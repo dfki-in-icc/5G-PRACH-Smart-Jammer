@@ -244,6 +244,7 @@ add_boolean_option(TEST_OMG            False "???")
 add_boolean_option(DEBUG_OMG           False "???")
 add_boolean_option(PRINT_STATS         False "This adds the possibility to see the status")
 add_boolean_option(T_TRACER            True  "Activate the T tracer, a debugging/monitoring framework" )
+add_boolean_option(LATSEQ              False "Active Latency Sequence tools)
 add_boolean_option(UE_AUTOTEST_TRACE   False "Activate UE autotest specific logs")
 add_boolean_option(UE_DEBUG_TRACE      False "Activate UE debug trace")
 add_boolean_option(UE_TIMING_TRACE     False "Activate UE timing trace")
@@ -1109,6 +1110,7 @@ set(UTIL_SRC
   ${OPENAIR2_DIR}/UTIL/LISTS/list2.c
   ${OPENAIR_DIR}/common/utils/LOG/log.c
   ${OPENAIR_DIR}/common/utils/LOG/vcd_signal_dumper.c
+  ${OPENAIR_DIR}/common/utils/LATSEQ/latseq.c
   ${OPENAIR2_DIR}/UTIL/MATH/oml.c
 #  ${OPENAIR2_DIR}/UTIL/MEM/mem_block.c
 #  ${OPENAIR2_DIR}/UTIL/OCG/OCG.c
@@ -1588,6 +1590,7 @@ set(PHY_MEX_UE
   ${OPENAIR1_DIR}/PHY/TOOLS/signal_energy.c
   ${OPENAIR1_DIR}/PHY/LTE_ESTIMATION/lte_ue_measurements.c
   ${OPENAIR_DIR}/common/utils/LOG/log.c
+  ${OPENAIR_DIR}/common/utils/LATSEQ/latseq.c
   ${OPENAIR_DIR}/common/utils/T/T.c
   ${OPENAIR_DIR}/common/utils/T/local_tracer.c
   )

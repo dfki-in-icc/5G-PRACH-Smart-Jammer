@@ -64,6 +64,9 @@ unsigned short config_frames[4] = {2,9,11,13};
 #include "common/utils/LOG/log.h"
 #include "common/utils/LOG/vcd_signal_dumper.h"
 #include "UTIL/OPT/opt.h"
+#if LATSEQ
+  "common/utils/LATSEQ/latseq.h"
+#endif
 
 //#include "PHY/TOOLS/time_meas.h"
 
@@ -825,6 +828,9 @@ int main( int argc, char **argv )
 
 #if T_TRACER
   T_Config_Init();
+#endif
+#if LATSEQ
+  init_latseq("latseq-nr.log");
 #endif
   //randominit (0);
   set_taus_seed (0);

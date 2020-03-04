@@ -42,6 +42,10 @@ static int DEFENBS[] = {0};
 #include <openair2/LAYER2/MAC/mac_vars.h>
 #include <openair2/RRC/LTE/rrc_vars.h>
 
+#ifdef LATSEQ
+  #include <common/utils/LATSEQ/latseq.h>
+#endif
+
 pthread_cond_t nfapi_sync_cond;
 pthread_mutex_t nfapi_sync_mutex;
 int nfapi_sync_var=-1; //!< protected by mutex \ref nfapi_sync_mutex
@@ -1145,6 +1149,9 @@ int main ( int argc, char **argv ) {
   EPC_MODE_ENABLED = !IS_SOFTMODEM_NOS1;
 #if T_TRACER
   T_Config_Init();
+#endif
+#if LATSEQ
+  init_latseq("latseq.log");
 #endif
   configure_linux();
   cpuf=get_cpu_freq_GHz();

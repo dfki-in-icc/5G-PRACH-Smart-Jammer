@@ -57,6 +57,9 @@ extern int otg_enabled;
 #include "nfapi/oai_integration/vendor_ext.h"
 #include "UTIL/FIFO/pad_list.h"
 #include "common/utils/LOG/vcd_signal_dumper.h"
+//#ifdef LATSEQ
+#include "common/utils/LATSEQ/latseq.h"
+//#endif
 #include "platform_constants.h"
 #include "msc.h"
 #include "pdcp.h"
@@ -212,6 +215,17 @@ int pdcp_fifo_read_input_sdus_fromtun (const protocol_ctxt_t *const  ctxt_pP) {
   do {
     VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME( VCD_SIGNAL_DUMPER_FUNCTIONS_PDCP_FIFO_READ, 1 );
     VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME( VCD_SIGNAL_DUMPER_FUNCTIONS_PDCP_FIFO_READ_BUFFER, 1 );
+    // LATSEQ
+    #if LATSEQ
+      char * tmp_p = calloc(8, sizeof(char));
+      char * tmp_id = calloc(8, sizeof(char));
+      sprintf(tmp_p, "ip.tun");
+      sprintf(tmp_id, "ip%d", ctxt_pP->module_id);
+      LATSEQ_P(tmp_p, tmp_id);
+      free(tmp_p);
+      free(tmp_id);
+    #endif
+    // END_LATSEQ
     len = read(UE_NAS_USE_TUN?nas_sock_fd[ctxt_pP->module_id]:nas_sock_fd[0], &nl_rx_buf, NL_MAX_PAYLOAD);
     VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME( VCD_SIGNAL_DUMPER_FUNCTIONS_PDCP_FIFO_READ_BUFFER, 0 );
 
