@@ -30,8 +30,10 @@
 #include "latseq.h"
 #include "latseq_extern.h"
 
-#include "assertions.h"
+#define _GNU_SOURCE // required for pthread_setname_np()
 #include <pthread.h>
+
+#include "assertions.h"
 
 /*----------------------------------------------------------------------------*/
 
@@ -52,7 +54,7 @@ int init_latseq(char * filename)
   // init members
   g_latseq->is_running = 0;
   g_latseq->is_debug = 1;
-  memcpy(g_latseq->filelog_name, filename, sizeof(filename));
+  g_latseq->filelog_name = strdup(filename);
   g_latseq->i_read_head = 0;
   g_latseq->i_write_head = 0;
   g_latseq->stats.entry_counter = 0;
@@ -62,12 +64,13 @@ int init_latseq(char * filename)
   g_latseq->is_running = 1;
   init_logger_latseq();
 
+  return g_latseq->is_running;
 }
 
 void init_logger_latseq(void)
 {
   // create thread write buffer to files
-  pthread_create(&logger_thread, NULL, &latseq_log_to_file, NULL);
+  pthread_create(&logger_thread, NULL, (void *) &latseq_log_to_file, NULL);
   if (g_latseq->is_debug)
     printf("[LATSEQ] Logger thread started\n");
 }
@@ -77,8 +80,11 @@ void log_measure(const char * point, const char * identifier)
   //check if occupancy ok
   if (OCCUPANCY(g_latseq->i_write_head, g_latseq->i_read_head) > MAX_LOG_OCCUPANCY) {
     g_latseq->is_running = 0;
-    close(g_latseq->outstream);
     fprintf(stderr, "[LATSEQ] log buffer max occupancy reached \n");
+    if (fclose(g_latseq->outstream)) {
+      fprintf(stderr, "[LATSEQ] error on closing %s\n", g_latseq->filelog_name);
+      exit(EXIT_FAILURE);
+    }
     return;
   }
   //Update head position
@@ -88,12 +94,12 @@ void log_measure(const char * point, const char * identifier)
   //Log time
   e->ts = rdtsc_oai();
   //Log point
-  e->point = malloc(sizeof(point));
-  memcpy(e->point, point, sizeof(point));
+  e->point = strdup(point);
   //Log list of identifiers
   e->len_id = sizeof(identifier);
-  e->data_id = malloc(e->len_id * sizeof(char));
-  memcpy(e->data_id, identifier, e->data_id);
+  e->data_id = strdup(identifier);
+  //e->data_id = malloc(e->len_id * sizeof(char));
+  //memcpy(e->data_id, identifier, e->data_id);
   //Update stats
 }
 
@@ -104,24 +110,24 @@ int _write_latseq_entry(void)
   //Convert latseq_element to a string
   entry = calloc(MAX_SIZE_LINE_OF_LOG, sizeof(char));
   //Copy of ts, point name and data identifier
-  sprintf(
-    entry[0], 
-    "%llu %s %s",
-    e->ts,
-    e->point,
-    e->data_id
-    ); //check offset
+  if (sprintf(entry, "%lu %s %s",
+      e->ts,
+      e->point,
+      e->data_id) == 0)
+    fprintf(stderr, "[LATSEQ] empty entry\n"); 
   //offset += buffer[g_latseq->i_read_head%MAX_LOG_SIZE].len_id;
   /* The idea was to forge string data identifier here and not in the code
+  int i;
+  int offset;
   for(i = 0; i < NB_DATA_IDENTIFIERS; i++) {
     offset += sprintf(entry[offset], "%s%d.", latseq_identifiers_t[i], buffer[g_latseq->i_read_head%MAX_LOG_SIZE].data_id[i]);
   }*/
   // Write into file
-  int ret = write(g_latseq->outstream, entry, sizeof(entry));
+  int ret = fwrite(entry, 1, sizeof(entry), g_latseq->outstream);
   if (ret < 0) {
     g_latseq->is_running = 0;
-    close(g_latseq->outstream);
-    fprintf(stderr, "[LATSEQ] output log file cannot be written \n");
+    fclose(g_latseq->outstream);
+    fprintf(stderr, "[LATSEQ] output log file cannot be written\n");
     exit(EXIT_FAILURE);
   }
   if (g_latseq->is_debug)
@@ -140,14 +146,12 @@ int _write_latseq_entry(void)
 void latseq_log_to_file(void)
 {
   pthread_setname_np(pthread_self(), "latseq_log_to_file");
-  int i;
-  int offset;
   
   while(g_latseq->is_running) {// run until flag running is at 0
     //If max occupancy reached
     if (OCCUPANCY(g_latseq->i_write_head, g_latseq->i_read_head) > MAX_LOG_OCCUPANCY) {
       g_latseq->is_running = 0;
-      close(g_latseq->outstream);
+      fclose(g_latseq->outstream);
       fprintf(stderr, "[LATSEQ] log buffer max occupancy reached \n");
       exit(EXIT_FAILURE);
     }
@@ -185,10 +189,15 @@ int close_latseq(void)
 {
   g_latseq->is_running = 0;
   //Wait logger finish to write data
-  pthread_join(&logger_thread, NULL);
+  pthread_join(logger_thread, NULL);
   //At this point, data_ids and points should be freed by the logger thread
-  close(g_latseq->outstream);
+  free(g_latseq->filelog_name);
+  if (fclose(g_latseq->outstream)){
+    fprintf(stderr, "[LATSEQ] error on closing %s\n", g_latseq->filelog_name);
+    exit(EXIT_FAILURE);
+  }
   if (g_latseq->is_debug)
     latseq_print_stats();
   free(g_latseq);
+  return g_latseq->is_running;
 }

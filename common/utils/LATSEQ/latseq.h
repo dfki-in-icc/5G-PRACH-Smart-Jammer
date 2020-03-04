@@ -41,7 +41,7 @@
 
 /*--- STRUCT -----------------------------------------------------------------*/
 //link to the NB_DATA_IDENTIFIERS
-static const char* latseq_identifiers_t = {
+static const char LATSEQ_IDENTIFIERS[NB_DATA_IDENTIFIERS][8] = {
   "ip", "drb", "pdcp", "rlcsn", "rlcso", "lcid", "tb"
 };
 
