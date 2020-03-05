@@ -26,11 +26,10 @@
 * \version 0.1
 * @ingroup util
 */
-
+#define _GNU_SOURCE // required for pthread_setname_np()
 #include "latseq.h"
 #include "latseq_extern.h"
 
-#define _GNU_SOURCE // required for pthread_setname_np()
 #include <pthread.h>
 
 #include "assertions.h"
@@ -39,6 +38,7 @@
 
 latseq_t * g_latseq;
 pthread_t logger_thread;
+//cpuf; //cpu frequency in GHz -> nsec
 
 /*----------------------------------------------------------------------------*/
 
@@ -57,6 +57,12 @@ int init_latseq(char * filename)
   g_latseq->filelog_name = strdup(filename);
   g_latseq->i_read_head = 0;
   g_latseq->i_write_head = 0;
+  //synchronise time and rdtsc
+  gettimeofday(&g_latseq->time_zero, NULL);
+  g_latseq->rdtsc_zero = rdtsc(); //check at compile time that constant_tsc is enabled in /proc/cpuinfo
+  if (cpuf == 0)
+    cpuf = get_cpu_freq_GHz();
+
   g_latseq->stats.entry_counter = 0;
   g_latseq->outstream = fopen(g_latseq->filelog_name, "a"); //open log file in append mode, should we open it in the logger thread ?
   
@@ -92,7 +98,7 @@ void log_measure(const char * point, const char * identifier)
   //get reference on new element
   latseq_element_t * e = &g_latseq->log_buffer[g_latseq->i_write_head%MAX_LOG_SIZE];
   //Log time
-  e->ts = rdtsc_oai();
+  e->ts = rdtsc();
   //Log point
   e->point = strdup(point);
   //Log list of identifiers
@@ -109,9 +115,17 @@ int _write_latseq_entry(void)
   char * entry;
   //Convert latseq_element to a string
   entry = calloc(MAX_SIZE_LINE_OF_LOG, sizeof(char));
+  //Compute time
+  uint64_t tdiff = (e->ts - g_latseq->rdtsc_zero)/(cpuf*1000);
+  uint64_t tf = (g_latseq->time_zero.tv_sec*1000000L + g_latseq->time_zero.tv_usec) + tdiff;
+  struct timeval etv = {
+    (time_t) ((tf - (tf%1000000L))/1000000L),
+    (suseconds_t) (tf%1000000L)
+  };
   //Copy of ts, point name and data identifier
-  if (sprintf(entry, "%lu %s %s",
-      e->ts,
+  if (sprintf(entry, "%ld.%06ld %s %s",
+      etv.tv_sec,
+      etv.tv_usec,
       e->point,
       e->data_id) == 0)
     fprintf(stderr, "[LATSEQ] empty entry\n"); 
@@ -145,7 +159,12 @@ int _write_latseq_entry(void)
 
 void latseq_log_to_file(void)
 {
-  pthread_setname_np(pthread_self(), "latseq_log_to_file");
+  pthread_t thId = pthread_self();
+  pthread_setname_np(thId, "latseq_log_to_file");
+  //set priority
+  int prio_for_policy = 10;
+  pthread_setschedprio(thId, prio_for_policy);
+
   
   while(g_latseq->is_running) {// run until flag running is at 0
     //If max occupancy reached

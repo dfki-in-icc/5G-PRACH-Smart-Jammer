@@ -10,6 +10,7 @@
 #include <assert.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <fcntl.h>
 #include <stdarg.h>
 #include <time.h>
@@ -24,7 +25,8 @@
 #include <pthread.h>
 #include <common/utils/T/T.h>
 #include <common/utils/utils.h>
-#include "PHY/TOOLS/time_meas.h"
+#include <common/utils/LOG/log.h>
+#include <openair1/PHY/TOOLS/time_meas.h>
 
 #include "latseq.h"
 /*----------------------------------------------------------------------------*/
@@ -65,6 +67,8 @@ typedef struct latseq_t {
   latseq_element_t    log_buffer[MAX_LOG_SIZE]; //log buffer, structure mutex-less
   int                 i_write_head; // position of writer in the log_buffer (main thread)
   int                 i_read_head;  // position of reader in the log buffer (logger thread)
+  struct timeval      time_zero; // time zero
+  uint64_t            rdtsc_zero; //rdtsc zero;
   latseq_stats_t      stats; // stats of latseq instance
 } latseq_t;
 /*----------------------------------------------------------------------------*/
