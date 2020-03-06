@@ -36,7 +36,7 @@
 
 /*----------------------------------------------------------------------------*/
 
-latseq_t * g_latseq;
+latseq_t * g_latseq = NULL;
 pthread_t logger_thread;
 //cpuf; //cpu frequency in GHz -> nsec
 
@@ -75,7 +75,7 @@ int init_latseq(char * filename)
 
 void init_logger_latseq(void)
 {
-  // create thread write buffer to files
+  // init thread to write buffer to file
   pthread_create(&logger_thread, NULL, (void *) &latseq_log_to_file, NULL);
   if (g_latseq->is_debug)
     printf("[LATSEQ] Logger thread started\n");
@@ -83,6 +83,15 @@ void init_logger_latseq(void)
 
 void log_measure(const char * point, const char * identifier)
 {
+  //check primitives
+  if (g_latseq == NULL) {
+    fprintf(stderr, "[LATSEQ] not initialized\n");
+    exit(EXIT_FAILURE);
+  }
+  if (g_latseq->is_running = 0) {
+      fprintf(stderr, "[LATSEQ] is not running\n");
+      exit(EXIT_FAILURE);
+  }
   //check if occupancy ok
   if (OCCUPANCY(g_latseq->i_write_head, g_latseq->i_read_head) > MAX_LOG_OCCUPANCY) {
     g_latseq->is_running = 0;
@@ -100,17 +109,22 @@ void log_measure(const char * point, const char * identifier)
   //Log time
   e->ts = rdtsc();
   //Log point
-  e->point = strdup(point);
+  e->point = strdup(point); //check if error
   //Log list of identifiers
   e->len_id = sizeof(identifier);
   e->data_id = strdup(identifier);
   //e->data_id = malloc(e->len_id * sizeof(char));
   //memcpy(e->data_id, identifier, e->data_id);
   //Update stats
+  return;
 }
 
 int _write_latseq_entry(void)
 {
+  if (g_latseq == NULL) {
+    fprintf(stderr, "[LATSEQ] not initialized\n");
+    exit(EXIT_FAILURE);
+  }
   latseq_element_t * e = &g_latseq->log_buffer[g_latseq->i_read_head%MAX_LOG_SIZE];
   char * entry;
   //Convert latseq_element to a string
@@ -186,7 +200,7 @@ void latseq_log_to_file(void)
 
     //Update counter and stats
     g_latseq->stats.entry_counter++;
-    //sleep ?
+    //sleep ? if low priority, no.
   }
   //Write all remaining data
   while (g_latseq->i_read_head != g_latseq->i_write_head)
@@ -218,5 +232,5 @@ int close_latseq(void)
   if (g_latseq->is_debug)
     latseq_print_stats();
   free(g_latseq);
-  return g_latseq->is_running;
+  return 0;
 }

@@ -38,7 +38,7 @@
 #define MAX_POINT_NAME_SIZE 16
 #define NB_DATA_IDENTIFIERS 7 // to update according to distinct data identifier used in point
 #define MAX_SIZE_LINE_OF_LOG 128 // ts=8c + pointname=MAX_POINT_NAME_SIZEc + identifier=NB_DATA_IDENTIFIERx(4c name + 4c number) (Worst-case)
-#define LATSEQ_P(p, i) do {log_measure(p, i);} while(0) // LatSeq point, nb of id and ids...
+#define LATSEQ_P(p, i) log_measure(p, i); // LatSeq point, nb of id and ids...
 #define OCCUPANCY(w, r) (w - r)
 
 /*--- STRUCT -----------------------------------------------------------------*/
@@ -62,7 +62,7 @@ typedef struct latseq_stats_t {
 typedef struct latseq_t {
   int                 is_running;
   int                 is_debug;
-  char *              filelog_name;
+  const char *        filelog_name;
   FILE *              outstream;
   latseq_element_t    log_buffer[MAX_LOG_SIZE]; //log buffer, structure mutex-less
   int                 i_write_head; // position of writer in the log_buffer (main thread)

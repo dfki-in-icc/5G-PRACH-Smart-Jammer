@@ -1151,7 +1151,7 @@ int main ( int argc, char **argv ) {
   T_Config_Init();
 #endif
 #if LATSEQ
-  init_latseq("latseq.log");
+  init_latseq("/tmp/openair.latseq.log");
 #endif
   configure_linux();
   cpuf=get_cpu_freq_GHz();
