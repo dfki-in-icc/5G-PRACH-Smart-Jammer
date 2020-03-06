@@ -36,16 +36,25 @@
 #define MAX_LOG_SIZE 1024
 #define MAX_LOG_OCCUPANCY 768
 #define MAX_POINT_NAME_SIZE 16
-#define NB_DATA_IDENTIFIERS 7 // to update according to distinct data identifier used in point
-#define MAX_SIZE_LINE_OF_LOG 128 // ts=8c + pointname=MAX_POINT_NAME_SIZEc + identifier=NB_DATA_IDENTIFIERx(4c name + 4c number) (Worst-case)
+#define NB_DATA_IDENTIFIERS 10 // to update according to distinct data identifier used in point
+//link to the NB_DATA_IDENTIFIERS
+static const char LATSEQ_IDENTIFIERS[NB_DATA_IDENTIFIERS][4] = {
+  "enb",
+  "ip",
+  "drb",
+  "pdcp",
+  "rsn",
+  "rso",
+  "lcid",
+  "tb",
+  "harq",
+  "phy"
+};
+#define MAX_DATA_ID_SIZE 128 // > (4+8)x7 
+#define MAX_SIZE_LINE_OF_LOG 256 // ts=8c + pointname=MAX_POINT_NAME_SIZEc + identifier=NB_DATA_IDENTIFIERx(4c name + 4c number) (Worst-case)
 #define LATSEQ_P(p, i) log_measure(p, i); // LatSeq point, nb of id and ids...
 #define OCCUPANCY(w, r) (w - r)
-
 /*--- STRUCT -----------------------------------------------------------------*/
-//link to the NB_DATA_IDENTIFIERS
-static const char LATSEQ_IDENTIFIERS[NB_DATA_IDENTIFIERS][8] = {
-  "ip", "drb", "pdcp", "rlcsn", "rlcso", "lcid", "tb"
-};
 
 typedef struct latseq_element_t {
   uint64_t            ts; // timestamp of the measure

@@ -21,6 +21,8 @@ where first argument is the name of the point and the seconde argument is a stri
 4) Do statistics
 
 TODO
-- harmonize string output with the rest of code (printf,...)
+- do the list of point
+- do the list of useful idenfier
 - change measurement points to do not have to prepare string identifier in the main code, should be produce in the log_measure() instead
+- harmonize string output with the rest of code (printf,...)
 - check size of MAX_LOG_SIZE. 1024 might be not enough space for buffer

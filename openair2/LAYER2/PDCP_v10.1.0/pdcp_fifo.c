@@ -217,8 +217,8 @@ int pdcp_fifo_read_input_sdus_fromtun (const protocol_ctxt_t *const  ctxt_pP) {
     VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME( VCD_SIGNAL_DUMPER_FUNCTIONS_PDCP_FIFO_READ_BUFFER, 1 );
     // LATSEQ
     #if LATSEQ
-      char * tmp_p = calloc(8, sizeof(char));
-      char * tmp_id = calloc(8, sizeof(char));
+      char * tmp_p = calloc(MAX_POINT_NAME_SIZE, sizeof(char));
+      char * tmp_id = calloc(MAX_DATA_ID_SIZE, sizeof(char));
       sprintf(tmp_p, "ip.tun");
       sprintf(tmp_id, "ip%d", ctxt_pP->module_id);
       LATSEQ_P(tmp_p, tmp_id);
