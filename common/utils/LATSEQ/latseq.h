@@ -36,10 +36,11 @@
 #define MAX_LOG_SIZE        1024
 #define MAX_LOG_OCCUPANCY   768
 #define MAX_POINT_NAME_SIZE 16
-#define MAX_LEN_DATA_ID     64
+#define MAX_LEN_DATA_ID     16
+#define MAX_NB_DATA_ID      16
 #define NB_DATA_IDENTIFIERS 10 // to update according to distinct data identifier used in point
 //link to the NB_DATA_IDENTIFIERS
-static const char LATSEQ_IDENTIFIERS[NB_DATA_IDENTIFIERS][4] = {
+static const char LATSEQ_IDENTIFIERS[NB_DATA_IDENTIFIERS][8] = {
   "enb",
   "ip",
   "drb",
@@ -54,22 +55,28 @@ static const char LATSEQ_IDENTIFIERS[NB_DATA_IDENTIFIERS][4] = {
 #define MAX_DATA_ID_SIZE 128 // > (4+8)x7 
 #define MAX_SIZE_LINE_OF_LOG 256 // ts=8c + pointname=MAX_POINT_NAME_SIZEc + identifier=NB_DATA_IDENTIFIERx(4c name + 4c number) (Worst-case)
 //#define LATSEQ_P(p, i) log_measure(p, i); // LatSeq point, nb of id and ids...
-#define LATSEQ_P(p, f, ...) do {log_measure(p, f, __VA_ARGS__); } while(0)
+#define LATSEQ_P(p, f, ...) do {log_measure(p, f, __VA_ARGS__, -1); } while(0) // -1 to stop iterate on va_arg. assumption : all values of ids are >= 0.
 #define OCCUPANCY(w, r) (w - r)
+
 /*--- STRUCT -----------------------------------------------------------------*/
 
+// A latseq element of the buffer
 typedef struct latseq_element_t {
   uint64_t            ts; // timestamp of the measure
-  char *              point; // point name
-  short               len_id; // length of data identifier
-  //char *              data_id;
-  char                data_id[MAX_LEN_DATA_ID]; // replace by a unique variable where mask is applied for each identifier.
+  const char *              point;
+  //char                point[MAX_POINT_NAME_SIZE]; // point name
+  char                format[MAX_LEN_DATA_ID] ;
+  //char *              format; // format for the data identifier
+  short                len_id; // Number data identifiers
+  uint32_t             data_id[MAX_NB_DATA_ID]; // values for the data identifier. What is the best type ?
 } latseq_element_t;
 
+// Statistics structures for latseq
 typedef struct latseq_stats_t {
   unsigned int        entry_counter;
 } latseq_stats_t;
 
+// Global structure of LatSeq module
 typedef struct latseq_t {
   int                 is_running;
   int                 is_debug;
@@ -84,6 +91,7 @@ typedef struct latseq_t {
 } latseq_t;
 /*----------------------------------------------------------------------------*/
 
+extern latseq_t * g_latseq; // global structure 
 
 /*--- FUNCTIONS --------------------------------------------------------------*/
 /** \fn int init_latseq(char * filename);
@@ -102,8 +110,38 @@ void init_logger_latseq(void);
  * \brief function to log a new measure into buffer
  * \param point name of the measurement point
  * \param id identifier for the data pointed
+ * \todo  measure latency introduced by this function
 */
-void log_measure(const char * point, const char *fmt, ...);
+static inline void log_measure(const char * point, const char *fmt, ...)
+{
+  // No check here because it will be check by the reader
+  //get list of argument
+  va_list va;
+  va_start(va, fmt); //start all values after fmt
+  //Update head position
+  g_latseq->i_write_head++;
+  //get reference on new element
+  latseq_element_t * e = &g_latseq->log_buffer[g_latseq->i_write_head%MAX_LOG_SIZE];
+
+  //Log time
+  //e->ts = rdtsc(); //Not used because rdtsc from log.h seems to be not static
+  //e->ts = rdtsc_oai(); //use of rdtsc defined in time_meas.h
+  //unsigned long long a, d;
+  //__asm__ volatile ("rdtsc" : "=a" (a), "=d" (d));
+  //e->ts = (d<<32) | a; //because of imcompatibility between inline and static of rdtsc. Assumption : usage of __x86_64__
+
+  //Log point name
+  //strcpy(e->point, point);
+  e->point = point;
+
+  //Log data identifier
+  e->len_id = 0;
+  while ( (e->data_id[e->len_id] = (uint32_t)va_arg(va, int) )!= -1)
+    e->len_id++;
+  
+  //Clean up va_list
+  va_end(va);
+}
 
 /** \fn int _write_latseq_entry(void);
  * \brief private function to write an entry in the log file

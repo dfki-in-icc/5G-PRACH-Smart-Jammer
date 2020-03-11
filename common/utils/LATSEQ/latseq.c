@@ -36,9 +36,9 @@
 
 /*----------------------------------------------------------------------------*/
 
-latseq_t * g_latseq = NULL;
+latseq_t * g_latseq = NULL; // Should it still a pointer ? extern to latseq.h
 pthread_t logger_thread;
-//cpuf; //cpu frequency in GHz -> nsec
+extern double cpuf; //cpu frequency in GHz -> nsec
 
 /*----------------------------------------------------------------------------*/
 
@@ -81,50 +81,6 @@ void init_logger_latseq(void)
     printf("[LATSEQ] Logger thread started\n");
 }
 
-void log_measure(const char * point, const char *fmt, ...)
-{
-  //check primitives
-  if (g_latseq == NULL) {
-    fprintf(stderr, "[LATSEQ] not initialized\n");
-    exit(EXIT_FAILURE);
-  }
-  if (g_latseq->is_running == 0) {
-      fprintf(stderr, "[LATSEQ] is not running\n");
-      exit(EXIT_FAILURE);
-  }
-  //check if occupancy ok
-  if (OCCUPANCY(g_latseq->i_write_head, g_latseq->i_read_head) > MAX_LOG_OCCUPANCY) {
-    g_latseq->is_running = 0;
-    fprintf(stderr, "[LATSEQ] log buffer max occupancy reached \n");
-    if (fclose(g_latseq->outstream)) {
-      fprintf(stderr, "[LATSEQ] error on closing %s\n", g_latseq->filelog_name);
-      exit(EXIT_FAILURE);
-    }
-    return;
-  }
-  //get list of argument
-  va_list va;
-  va_start(va, fmt);
-
-  //Update head position
-  g_latseq->i_write_head++;
-  //get reference on new element
-  latseq_element_t * e = &g_latseq->log_buffer[g_latseq->i_write_head%MAX_LOG_SIZE];
-  //Log time
-  e->ts = rdtsc();
-  //Log point
-  e->point = strdup(point); //check if error
-  //Log list of identifiers
-  e->len_id = 0;
-  vsprintf(e->data_id, fmt, va); //should be moved to logger ?
-  //e->data_id = strdup(identifier);
-  //e->data_id = malloc(e->len_id * sizeof(char));
-  //memcpy(e->data_id, identifier, e->data_id);
-  va_end(va);
-  //Update stats
-  return;
-}
-
 int _write_latseq_entry(void)
 {
   if (g_latseq == NULL) {
@@ -133,8 +89,10 @@ int _write_latseq_entry(void)
   }
   latseq_element_t * e = &g_latseq->log_buffer[g_latseq->i_read_head%MAX_LOG_SIZE];
   char * entry;
+  char * tmps;
   //Convert latseq_element to a string
   entry = calloc(MAX_SIZE_LINE_OF_LOG, sizeof(char));
+  tmps = calloc(e->len_id * 6, sizeof(char)); // how to compute size needed ? 6 corresponds to value 999.999
   //Compute time
   uint64_t tdiff = (e->ts - g_latseq->rdtsc_zero)/(cpuf*1000);
   uint64_t tf = (g_latseq->time_zero.tv_sec*1000000L + g_latseq->time_zero.tv_usec) + tdiff;
@@ -142,20 +100,35 @@ int _write_latseq_entry(void)
     (time_t) ((tf - (tf%1000000L))/1000000L),
     (suseconds_t) (tf%1000000L)
   };
+  //Write the data identifier, e.g. do the vsprintf() here and not at measure()
+  //We put the first MAX_NB_DATA_ID elements of array, even there are no MAX_NB_DATA_ID element to write. sprintf will get the firsts...
+  sprintf(
+    tmps,
+    e->format, 
+    e->data_id[0],
+    e->data_id[1],
+    e->data_id[2],
+    e->data_id[3],
+    e->data_id[4],
+    e->data_id[5],
+    e->data_id[6],
+    e->data_id[7],
+    e->data_id[8],
+    e->data_id[9],
+    e->data_id[10],
+    e->data_id[11],
+    e->data_id[12],
+    e->data_id[13],
+    e->data_id[14],
+    e->data_id[15]);
   //Copy of ts, point name and data identifier
   if (sprintf(entry, "%ld.%06ld %s %s",
       etv.tv_sec,
       etv.tv_usec,
       e->point,
-      e->data_id) == 0)
+      tmps) == 0)
     fprintf(stderr, "[LATSEQ] empty entry\n"); 
-  //offset += buffer[g_latseq->i_read_head%MAX_LOG_SIZE].len_id;
-  /* The idea was to forge string data identifier here and not in the code
-  int i;
-  int offset;
-  for(i = 0; i < NB_DATA_IDENTIFIERS; i++) {
-    offset += sprintf(entry[offset], "%s%d.", latseq_identifiers_t[i], buffer[g_latseq->i_read_head%MAX_LOG_SIZE].data_id[i]);
-  }*/
+
   // Write into file
   int ret = fwrite(entry, 1, sizeof(entry), g_latseq->outstream);
   if (ret < 0) {
@@ -167,10 +140,11 @@ int _write_latseq_entry(void)
   if (g_latseq->is_debug)
     printf("[LATSEQ] log an entry : %s (len %d)\n", &entry[0], ret);
   free(entry);
+  free(tmps);
 
   // cleanup buffer element
   e->ts = 0;
-  free(e->point);
+  //free(e->point); // no free() for const char * not allocated by malloc()
   e->len_id = 0;
   free(e->data_id);
 
@@ -180,13 +154,14 @@ int _write_latseq_entry(void)
 void latseq_log_to_file(void)
 {
   pthread_t thId = pthread_self();
+  //set name
   pthread_setname_np(thId, "latseq_log_to_file");
   //set priority
   int prio_for_policy = 10;
   pthread_setschedprio(thId, prio_for_policy);
 
-  
   while(g_latseq->is_running) {// run until flag running is at 0
+    //TODO for each buffer
     //If max occupancy reached
     if (OCCUPANCY(g_latseq->i_write_head, g_latseq->i_read_head) > MAX_LOG_OCCUPANCY) {
       g_latseq->is_running = 0;
@@ -197,9 +172,7 @@ void latseq_log_to_file(void)
     //Update header position
     g_latseq->i_read_head++;
     //If no new element
-    if (
-      (g_latseq->i_read_head == g_latseq->i_write_head)
-      )
+    if (g_latseq->i_read_head == g_latseq->i_write_head)
       continue;
     //Write pointed entry into log file
     (void)_write_latseq_entry();
