@@ -217,14 +217,9 @@ int pdcp_fifo_read_input_sdus_fromtun (const protocol_ctxt_t *const  ctxt_pP) {
     VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME( VCD_SIGNAL_DUMPER_FUNCTIONS_PDCP_FIFO_READ_BUFFER, 1 );
     // LATSEQ
     #if LATSEQ
-      char * tmp_p = calloc(MAX_POINT_NAME_SIZE, sizeof(char));
-      char * tmp_id = calloc(MAX_DATA_ID_SIZE, sizeof(char));
-      sprintf(tmp_p, "ip.tun");
-      sprintf(tmp_id, "ip%d", ctxt_pP->module_id);
-      LATSEQ_P(tmp_p, tmp_id);
-      free(tmp_p);
-      free(tmp_id);
+      LATSEQ_P("ip.tun", "ip%d", ctxt_pP->module_id);
     #endif
+    
     // END_LATSEQ
     len = read(UE_NAS_USE_TUN?nas_sock_fd[ctxt_pP->module_id]:nas_sock_fd[0], &nl_rx_buf, NL_MAX_PAYLOAD);
     VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME( VCD_SIGNAL_DUMPER_FUNCTIONS_PDCP_FIFO_READ_BUFFER, 0 );

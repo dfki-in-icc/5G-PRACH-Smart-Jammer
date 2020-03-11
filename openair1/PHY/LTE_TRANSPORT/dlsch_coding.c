@@ -41,7 +41,7 @@
 #include "common/utils/LOG/vcd_signal_dumper.h"
 #include "common/utils/LOG/log.h"
 #ifdef LATSEQ
-  "common/utils/LATSEQ/latseq.h"
+  #include "common/utils/LATSEQ/latseq.h"
 #endif
 #include "targets/RT/USER/lte-softmodem.h"
 #include <syscall.h>
@@ -377,6 +377,7 @@ int dlsch_encoding(PHY_VARS_eNB *eNB,
     //    hadlsch->b = a;
     // LATSEQ
     #if LATSEQ
+    /*
       char * tmp_p = calloc(MAX_POINT_NAME_SIZE, sizeof(char));
       char * tmp_id = calloc(MAX_DATA_ID_SIZE, sizeof(char));
       sprintf(tmp_p, "mac.harq");
@@ -384,6 +385,8 @@ int dlsch_encoding(PHY_VARS_eNB *eNB,
       LATSEQ_P(tmp_p, tmp_id);
       free(tmp_p);
       free(tmp_id);
+      */
+      LATSEQ_P("mac.harq", "enb%d.harq%d", eNB->Mod_id, harq_pid);
     #endif
     // END_LATSEQ
     memcpy(hadlsch->b,a,(A/8)+4);

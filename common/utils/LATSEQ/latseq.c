@@ -81,14 +81,14 @@ void init_logger_latseq(void)
     printf("[LATSEQ] Logger thread started\n");
 }
 
-void log_measure(const char * point, const char * identifier)
+void log_measure(const char * point, const char *fmt, ...)
 {
   //check primitives
   if (g_latseq == NULL) {
     fprintf(stderr, "[LATSEQ] not initialized\n");
     exit(EXIT_FAILURE);
   }
-  if (g_latseq->is_running = 0) {
+  if (g_latseq->is_running == 0) {
       fprintf(stderr, "[LATSEQ] is not running\n");
       exit(EXIT_FAILURE);
   }
@@ -102,6 +102,10 @@ void log_measure(const char * point, const char * identifier)
     }
     return;
   }
+  //get list of argument
+  va_list va;
+  va_start(va, fmt);
+
   //Update head position
   g_latseq->i_write_head++;
   //get reference on new element
@@ -111,10 +115,12 @@ void log_measure(const char * point, const char * identifier)
   //Log point
   e->point = strdup(point); //check if error
   //Log list of identifiers
-  e->len_id = sizeof(identifier);
-  e->data_id = strdup(identifier);
+  e->len_id = 0;
+  vsprintf(e->data_id, fmt, va); //should be moved to logger ?
+  //e->data_id = strdup(identifier);
   //e->data_id = malloc(e->len_id * sizeof(char));
   //memcpy(e->data_id, identifier, e->data_id);
+  va_end(va);
   //Update stats
   return;
 }
@@ -216,6 +222,7 @@ void latseq_print_stats(void)
 {
   printf("[LATSEQ] stats :\n");
   printf("[LATSEQ] number of entry in log : %d\n", g_latseq->stats.entry_counter);
+  printf("[LATSEQ] heads positions : %d (Write) : %d (Read)\n", g_latseq->i_write_head, g_latseq->i_read_head);
 }
 
 int close_latseq(void)
@@ -224,7 +231,7 @@ int close_latseq(void)
   //Wait logger finish to write data
   pthread_join(logger_thread, NULL);
   //At this point, data_ids and points should be freed by the logger thread
-  free(g_latseq->filelog_name);
+  free((char*) g_latseq->filelog_name);
   if (fclose(g_latseq->outstream)){
     fprintf(stderr, "[LATSEQ] error on closing %s\n", g_latseq->filelog_name);
     exit(EXIT_FAILURE);

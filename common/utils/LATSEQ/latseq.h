@@ -33,9 +33,10 @@
 
 /*--- DEFINE -----------------------------------------------------------------*/
 
-#define MAX_LOG_SIZE 1024
-#define MAX_LOG_OCCUPANCY 768
+#define MAX_LOG_SIZE        1024
+#define MAX_LOG_OCCUPANCY   768
 #define MAX_POINT_NAME_SIZE 16
+#define MAX_LEN_DATA_ID     64
 #define NB_DATA_IDENTIFIERS 10 // to update according to distinct data identifier used in point
 //link to the NB_DATA_IDENTIFIERS
 static const char LATSEQ_IDENTIFIERS[NB_DATA_IDENTIFIERS][4] = {
@@ -52,16 +53,17 @@ static const char LATSEQ_IDENTIFIERS[NB_DATA_IDENTIFIERS][4] = {
 };
 #define MAX_DATA_ID_SIZE 128 // > (4+8)x7 
 #define MAX_SIZE_LINE_OF_LOG 256 // ts=8c + pointname=MAX_POINT_NAME_SIZEc + identifier=NB_DATA_IDENTIFIERx(4c name + 4c number) (Worst-case)
-#define LATSEQ_P(p, i) log_measure(p, i); // LatSeq point, nb of id and ids...
+//#define LATSEQ_P(p, i) log_measure(p, i); // LatSeq point, nb of id and ids...
+#define LATSEQ_P(p, f, ...) do {log_measure(p, f, __VA_ARGS__); } while(0)
 #define OCCUPANCY(w, r) (w - r)
 /*--- STRUCT -----------------------------------------------------------------*/
 
 typedef struct latseq_element_t {
   uint64_t            ts; // timestamp of the measure
   char *              point; // point name
-  char                len_id; // length of data identifier
-  char *              data_id;
-  //unsigned short      data_id[NB_DATA_IDENTIFIERS]; // replace by a unique variable where mask is applied for each identifier.
+  short               len_id; // length of data identifier
+  //char *              data_id;
+  char                data_id[MAX_LEN_DATA_ID]; // replace by a unique variable where mask is applied for each identifier.
 } latseq_element_t;
 
 typedef struct latseq_stats_t {
@@ -74,8 +76,8 @@ typedef struct latseq_t {
   const char *        filelog_name;
   FILE *              outstream;
   latseq_element_t    log_buffer[MAX_LOG_SIZE]; //log buffer, structure mutex-less
-  int                 i_write_head; // position of writer in the log_buffer (main thread)
-  int                 i_read_head;  // position of reader in the log buffer (logger thread)
+  unsigned int        i_write_head; // position of writer in the log_buffer (main thread)
+  unsigned int        i_read_head;  // position of reader in the log buffer (logger thread)
   struct timeval      time_zero; // time zero
   uint64_t            rdtsc_zero; //rdtsc zero;
   latseq_stats_t      stats; // stats of latseq instance
@@ -101,7 +103,7 @@ void init_logger_latseq(void);
  * \param point name of the measurement point
  * \param id identifier for the data pointed
 */
-void log_measure(const char * point, const char *identifier);
+void log_measure(const char * point, const char *fmt, ...);
 
 /** \fn int _write_latseq_entry(void);
  * \brief private function to write an entry in the log file
