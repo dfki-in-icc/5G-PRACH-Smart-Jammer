@@ -8,6 +8,10 @@ LATSEQ_P macro calls log_measure(). The idea is to have a low-footprint at loggi
 
 latseq_log_to_file() is the function run in the logger thread. It writes log_elements in the log file.
 
+ASSUMPTIONS
+- All the point and latseq module run on the same machine (to don't have to synchronize clock of different machines)
+- Clock give by asm rdtsc is same for all the CPU cores (constant_tsc)
+
 USAGE
 0) Add a new measure point in the code with
 #include "common/utils/LATSEQ/latseq.h"
@@ -26,3 +30,5 @@ TODO
 - harmonize string output with the rest of code (printf,...)
 - check size of MAX_LOG_SIZE. 1024 might be not enough space for buffer
 - check problem of massive multi-threaded OAI
+- Change order to increment head because we skip the first cell (0)
+- handle the end of local oai thread

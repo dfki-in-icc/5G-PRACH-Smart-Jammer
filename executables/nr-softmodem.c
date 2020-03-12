@@ -830,7 +830,7 @@ int main( int argc, char **argv )
   T_Config_Init();
 #endif
 #if LATSEQ
-  init_latseq("/tmp/openair.latseq.log");
+  init_latseq("/tmp/openair.latseq.lseq");
 #endif
   //randominit (0);
   set_taus_seed (0);
