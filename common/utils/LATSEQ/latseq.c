@@ -39,7 +39,8 @@
 latseq_t g_latseq; // Should it still a pointer ? extern to latseq.h
 __thread latseq_thread_data_t tls_latseq; // need to be a thread local storage variable.
 pthread_t logger_thread;
-extern double cpuf; //cpu frequency in GHz -> nsec
+extern double cpuf; //cpu frequency in GHz -> nsec. Should be initialized in main.c
+extern volatile int oai_exit; //oai is ended. Close latseq
 
 /*----------------------------------------------------------------------------*/
 
@@ -54,7 +55,7 @@ int init_latseq(char * filename)
   }*/
   
   // init members
-  g_latseq.is_running = 0;
+  g_latseq.is_running = -1;
   g_latseq.is_debug = 1;
   g_latseq.filelog_name = strdup(filename);
   //synchronise time and rdtsc
@@ -75,7 +76,7 @@ int init_latseq(char * filename)
   tls_latseq.th_latseq_id = 0;
   
   // init logger thread
-  g_latseq.is_running = 1;
+  g_latseq.is_running = 0;
   init_logger_latseq();
 
   return g_latseq.is_running;
@@ -164,7 +165,7 @@ static int write_latseq_entry(void)
   // Write into file
   int ret = fwrite(entry, 1, sizeof(entry), g_latseq.outstream);
   if (ret < 0) {
-    g_latseq.is_running = 0;
+    g_latseq.is_running = -1;
     fclose(g_latseq.outstream);
     fprintf(stderr, "[LATSEQ] output log file cannot be written\n");
     exit(EXIT_FAILURE);
@@ -197,12 +198,13 @@ void latseq_log_to_file(void)
 
   latseq_registry_t * reg = &g_latseq.local_log_buffers;
 
-  while(g_latseq.is_running) {// run until flag running is at 0
+  while (!oai_exit) { // run until oai is stopped
+    if (!g_latseq.is_running) { break; } // run until flag running is at 0
     //Select a thread to read with read_ith_thread
     reg->read_ith_thread = (reg->read_ith_thread + 1) % MAX_NB_THREAD;
     //If max occupancy reached
     if (OCCUPANCY(reg->registry[reg->read_ith_thread]->i_write_head, reg->i_read_heads[reg->read_ith_thread]) > MAX_LOG_OCCUPANCY) {
-      g_latseq.is_running = 0;
+      g_latseq.is_running = -1;
       fclose(g_latseq.outstream);
       fprintf(stderr, "[LATSEQ] log buffer max occupancy reached \n");
       exit(EXIT_FAILURE);
@@ -243,7 +245,7 @@ void latseq_print_stats(void)
 
 int close_latseq(void)
 {
-  g_latseq.is_running = 0;
+  g_latseq.is_running = -1;
   //Wait logger finish to write data
   pthread_join(logger_thread, NULL);
   //At this point, data_ids and points should be freed by the logger thread

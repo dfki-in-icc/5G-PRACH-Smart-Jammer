@@ -83,6 +83,9 @@ unsigned short config_frames[4] = {2,9,11,13};
   #include "UTIL/OTG/otg_vars.h"
 #endif
 
+#ifdef LATSEQ
+  #include <common/utils/LATSEQ/latseq.h>
+#endif
 
 #include "create_tasks.h"
 
@@ -533,6 +536,10 @@ int main ( int argc, char **argv )
 #if T_TRACER
   T_Config_Init();
 #endif
+
+#if LATSEQ
+    init_latseq("/tmp/openair.latseq.lseq");
+#endif
   //randominit (0);
   set_taus_seed (0);
   printf("configuring for RAU/RRU\n");
@@ -726,6 +733,9 @@ int main ( int argc, char **argv )
   LOG_I(ENB_APP,"oai_exit=%d\n",oai_exit);
   // stop threads
 
+  #if LATSEQ
+    close_latseq(); //close before head of threads
+  #endif
   if (RC.nb_inst == 0 || !NODE_IS_CU(node_type)) {
     if(IS_SOFTMODEM_DOFORMS)
       end_forms();

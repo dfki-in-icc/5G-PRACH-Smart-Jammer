@@ -1045,6 +1045,9 @@ int main( int argc, char **argv )
       }
 
   #endif*/
+  #if LATSEQ
+    close_latseq(); //close befire head of threads
+  #endif
   printf("stopping MODEM threads\n");
   // cleanup
   stop_gNB(NB_gNB_INST);

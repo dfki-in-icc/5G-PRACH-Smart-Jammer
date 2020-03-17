@@ -67,7 +67,7 @@ typedef struct latseq_element_t {
   uint64_t            ts; // timestamp of the measure
   const char *              point;
   //char                point[MAX_POINT_NAME_SIZE]; // point name
-  char                format[MAX_LEN_DATA_ID] ;
+  const char *              format;
   //char *              format; // format for the data identifier
   short                len_id; // Number data identifiers
   uint32_t             data_id[MAX_NB_DATA_ID]; // values for the data identifier. What is the best type ?
@@ -95,8 +95,8 @@ typedef struct latseq_registry_t {
 
 // Global structure of LatSeq module
 typedef struct latseq_t {
-  int                 is_running;
-  int                 is_debug;
+  int                 is_running; //0 is running, -1 not running
+  int                 is_debug; //1 debug, 0 prod
   const char *        filelog_name;
   FILE *              outstream; //Output descriptor
   struct timeval      time_zero; // time zero
@@ -104,7 +104,8 @@ typedef struct latseq_t {
   latseq_registry_t   local_log_buffers; //Register of thread-specific buffers
   latseq_stats_t      stats; // stats of latseq instance
 } latseq_t;
-/*----------------------------------------------------------------------------*/
+
+/*--- EXTERNS ----------------------------------------------------------------*/
 
 extern latseq_t g_latseq; // global structure
 extern __thread latseq_thread_data_t tls_latseq;
