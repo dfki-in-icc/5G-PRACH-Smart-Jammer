@@ -52,11 +52,11 @@ int main (int argc, char **argv) {
   #ifdef LATSEQ
     printf("Call Latseq...\n");
   #endif
-  if (argc < 2) {
+  if (argc != 2) {
     print_usage();
     exit(EXIT_FAILURE);
   }
-  char opt = (char)argv[2][0];
+  char opt = (char)argv[1][0];
   switch (opt)
   {
   case 'h':
