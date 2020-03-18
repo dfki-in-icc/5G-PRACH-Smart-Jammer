@@ -24,6 +24,12 @@ where first argument is the name of the point and the seconde argument is a stri
 3) Process logs (as defined ) to yield data
 4) Do statistics
 
+TEST_LATSEQ
+in targets/TEST/LATSEQ test_latseq test different part of latseq module
+
+LSEQ_STATS
+- lseqlogs : convert entry log to useful data for other scripts
+
 TODO
 - do the list of point
 - do the list of useful idenfier

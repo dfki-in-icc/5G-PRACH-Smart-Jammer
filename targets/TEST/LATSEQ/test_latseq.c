@@ -56,7 +56,7 @@ int main (int argc, char **argv) {
     print_usage();
     exit(EXIT_FAILURE);
   }
-  char opt = (char)argv[2];
+  char opt = (char)argv[2][0];
   switch (opt)
   {
   case 'h':

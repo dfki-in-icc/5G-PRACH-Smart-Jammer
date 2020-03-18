@@ -24,6 +24,4 @@ run: test_latseq
 	./test_latseq
 
 clean:
-	rm -f test_latseq
 	rm -f *.o
-	rm -f *.lseq

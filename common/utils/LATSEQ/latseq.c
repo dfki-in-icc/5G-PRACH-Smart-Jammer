@@ -32,7 +32,7 @@
 
 #include <pthread.h>
 
-#include "assertions.h" //en galere avec el makefile de test_latseq
+#include "assertions.h"
 #include "time_meas.h" 
 
 /*----------------------------------------------------------------------------*/
