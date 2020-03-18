@@ -23,10 +23,10 @@
   #define _GNU_SOURCE
 #endif
 #include <pthread.h>
-#include <common/utils/T/T.h>
-#include <common/utils/utils.h>
-#include <common/utils/LOG/log.h>
-#include <openair1/PHY/TOOLS/time_meas.h>
+//#include <T.h>
+#include <utils.h>
+#include <LOG/log.h>
+//#include <openair1/PHY/TOOLS/time_meas.h>
 
 #include "latseq.h"
 /*----------------------------------------------------------------------------*/
@@ -114,9 +114,10 @@ extern __thread latseq_thread_data_t tls_latseq;
 /** \fn int init_latseq(char * filename);
  * \brief init latency sequences module 
  * \param filename output file name for latseq stats
+ * \param debuf level for this instance of latseq
  * \return 0 if error 1 otherwise
 */
-int init_latseq(char * filename);
+int init_latseq(const char * filename, int debug);
 
 /** \fn init_logger_to_mem(void);
  * \brief init thread logger

@@ -32,7 +32,8 @@
 
 #include <pthread.h>
 
-#include "assertions.h"
+#include "assertions.h" //en galere avec el makefile de test_latseq
+#include "time_meas.h" 
 
 /*----------------------------------------------------------------------------*/
 
@@ -44,7 +45,7 @@ extern volatile int oai_exit; //oai is ended. Close latseq
 
 /*----------------------------------------------------------------------------*/
 
-int init_latseq(char * filename)
+int init_latseq(const char * filename, int debug)
 {
   // init global struct
   //g_latseq = malloc(sizeof(latseq_t));

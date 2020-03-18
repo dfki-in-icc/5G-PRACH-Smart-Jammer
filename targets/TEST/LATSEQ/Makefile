@@ -1,44 +1,29 @@
-#include $(OPENAIR_DIR)/common/utils/Makefile.inc
-LATSEQ_TEST_DIR = $(shell pwd)
-OPENAIR_DIR 	= $(LATSEQ_TEST_DIR)/../../..
-TOP_DIR      	= $(OPENAIR_DIR)
-OPENAIR1_TOP 	= $(OPENAIR1_DIR)
-OPENAIR2_TOP 	= $(OPENAIR2_DIR)
-OPENAIR3_TOP 	= $(OPENAIR3_DIR)
-OPENAIR3     	= $(OPENAIR3_DIR)
-COMMON_DIR 		= $(OPENAIR2_DIR)/common
-UTILS_DIR		= $(COMMON_DIR)/utils
+OPENAIR_DIR 	= $(shell pwd)/../../..
+OPENAIR2_COMMON = $(OPENAIR_DIR)/openair2/COMMON
+UTILS_DIR 	= $(OPENAIR_DIR)/common/utils
 T_TRACER_DIR 	= $(UTILS_DIR)/T
-LATSEQ_DIR		= $(UTILS_DIR)/LATSEQ
-
-
-CFLAGS += -m32 -DPHYSIM -DNB_ANTENNAS_RX=2 -DNB_ANTENNAS_TX=2 -I/usr/include/X11
-CFLAGS += -I/usr/include/libxml2 -L/usr/local/lib -I/usr/include/atlas -L/usr/X11R6/lib 
+LATSEQ_DIR	= $(UTILS_DIR)/LATSEQ
+MEAS_DIR        = $(OPENAIR_DIR)/openair1/PHY/TOOLS
+#CFLAGS += -m32 -DPHYSIM -DNB_ANTENNAS_RX=2 -DNB_ANTENNAS_TX=2 -I/usr/include/X11
+#CFLAGS += -I/usr/include/libxml2 -L/usr/local/lib -I/usr/include/atlas -L/usr/X11R6/lib 
+CFLAGS += -O3
 CFLAGS += -DLATSEQ
 CFLAGS += -DLATSEQ_DEBUG
+CFLAGS += -I$(OPENAIR_DIR) -I$(OPENAIR2_COMMON) -I$(UTILS_DIR) -I$(T_TRACER_DIR) -I$(LATSEQ_DIR)  -I$(MEAS_DIR)
 
-TEST_LATSEQ_OBJS = test_latseq.o
-
-OBJ=$(LATSEQ_DIR)/latseq.o
+VPATH += $(LATSEQ_DIR)
+VPATH += $(MEAS_DIR)
 
 all: test_latseq
 
-# La compilation de latseq.o ne fonctionne pas ! "no rule to make target"
-$(OBJ): %.o : %.c
-	@echo Compiling $<
-	$(CC) -c -I$(LATSEQ_DIR) -I$(OPENAIR_DIR) -I$(UTILS_DIR) -I$(T_TRACER_DIR) -o $@ $<
-
-test_latseq: $(OBJ) test_latseq.c  
-	@echo "Compiling test_latseq.c ..."
-	@$(CC)  test_latseq.c -I$(LATSEQ_DIR) -I$(OPENAIR_DIR) -I$(T_TRACER_DIR) -o test_latseq $(OBJ) -lpthread
+test_latseq: LDLIBS += -lpthread
+test_latseq: test_latseq.o latseq.o time_meas.o
 
 run: test_latseq
+	@echo "Run test_latseq"
 	./test_latseq
 
 clean:
 	rm -f test_latseq
-	rm -f $(OBJ)
 	rm -f *.o
 	rm -f *.lseq
-
-# $(CFLAGS) $(OBJ) -lm  -lblas -lpthread -lxml2 -lX11 -lXpm -lrt  -lforms -llapack_atlas
