@@ -33,8 +33,8 @@
 
 /*--- DEFINE -----------------------------------------------------------------*/
 
-#define MAX_LOG_SIZE        1024
-#define MAX_LOG_OCCUPANCY   768
+#define MAX_LOG_SIZE        128
+#define MAX_LOG_OCCUPANCY   96 // Should be < MAX_LOG_OCCUPANCY
 #define MAX_POINT_NAME_SIZE 16
 #define MAX_LEN_DATA_ID     16
 #define MAX_NB_DATA_ID      16
@@ -88,14 +88,14 @@ typedef struct latseq_thread_data_t {
 //Registry of pointers to thread-specific struct latseq_data_thread
 typedef struct latseq_registry_t {
   uint8_t                 read_ith_thread;
-  uint8_t                 last_th;
-  latseq_thread_data_t *  registry[MAX_NB_THREAD];
+  uint8_t                 nb_th;
+  latseq_thread_data_t *  tls[MAX_NB_THREAD];
   unsigned int            i_read_heads[MAX_NB_THREAD]; // position of reader in the ith log buffer (logger thread)
 } latseq_registry_t;
 
 // Global structure of LatSeq module
 typedef struct latseq_t {
-  int                 is_running; //0 is running, -1 not running
+  int                 is_running; //1 is running, 0 not running
   int                 is_debug; //1 debug, 0 prod
   const char *        filelog_name;
   FILE *              outstream; //Output descriptor
@@ -137,6 +137,8 @@ void init_thread_for_latseq(void);
 */
 static inline void log_measure(const char * point, const char *fmt, ...)
 {
+  //TODO : chack that latseq is running
+
   // No check here because it will be check by the reader
   //get list of argument
   va_list va;
@@ -146,8 +148,6 @@ static inline void log_measure(const char * point, const char *fmt, ...)
     //is not initialized yet
     init_thread_for_latseq();
   }
-  //Update head position
-  tls_latseq.i_write_head++;
   //get reference on new element
   latseq_element_t * e = &tls_latseq.log_buffer[tls_latseq.i_write_head%MAX_LOG_SIZE];
 
@@ -161,12 +161,16 @@ static inline void log_measure(const char * point, const char *fmt, ...)
   //Log point name
   //strcpy(e->point, point);
   e->point = point;
+  e->format = fmt;
 
   //Log data identifier
   e->len_id = 0;
   while ( (e->data_id[e->len_id] = (uint32_t)va_arg(va, int) )!= -1)
     e->len_id++;
+  //becareful, the data_id[e->len_id + 1] = (uint32_t)-1. Use len_id to know the correct number of element
   
+  //Update head position
+  tls_latseq.i_write_head++;
   //Clean up va_list
   va_end(va);
 }
@@ -174,7 +178,7 @@ static inline void log_measure(const char * point, const char *fmt, ...)
 /** \fn static int write_latseq_entry(void);
  * \brief private function to write an entry in the log file
 */
-static int write_latseq_entry(void);
+//static int write_latseq_entry(void);
 
 /** \fn void log_to_file(void);
  * \brief function to save buffer of logs into a file

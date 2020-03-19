@@ -6,11 +6,9 @@
 //#endif
 
 double cpuf;
-const char * test_log = "test.lseq";
+const char * test_log = "test1.lseq";
 
-void oai_exit(int code) {
-  exit(code);
-}
+volatile int  oai_exit = 1; //Emulate global variable used by oai to indicate that oai is running
 
 void print_usage(void) {
   printf("help test_latseq\n");
@@ -20,8 +18,9 @@ void print_usage(void) {
 }
 
 int test_init_and_close() {
+  oai_exit = 0;
   printf("[TEST] %s\n",__func__);
-  if(!init_latseq(test_log, 0)) {
+  if(!init_latseq(test_log, 1)) {
     printf("[ERROR] : init_latseq()\n");
     exit(EXIT_FAILURE);
   }
@@ -35,12 +34,15 @@ int test_init_and_close() {
 }
 
 int test_full() {
+  oai_exit = 0;
   printf("[TEST] %s\n",__func__);
-  if(!init_latseq(test_log, 0)) {
+  if(!init_latseq(test_log, 1)) {
     printf("[ERROR] : init_latseq()\n");
     exit(EXIT_FAILURE);
   }
-  //Do stuff here
+  LATSEQ_P("full3 D", "ip%d", 0);
+  sleep(1);
+  LATSEQ_P("full2 D", "ip%d.mac%d", 0, 1);
   if(!close_latseq()) {
     printf("[ERROR] : close_latseq()\n");
     exit(EXIT_FAILURE);
@@ -77,6 +79,6 @@ int main (int argc, char **argv) {
   }
   
   //#endif
-  
+  oai_exit = 1;
   return 0;
 }
