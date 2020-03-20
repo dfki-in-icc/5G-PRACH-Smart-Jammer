@@ -33,7 +33,7 @@
 #include <pthread.h>
 
 #include "assertions.h"
-#include "time_meas.h" 
+#include <openair1/PHY/TOOLS/time_meas.h>
 
 /*----------------------------------------------------------------------------*/
 
@@ -127,6 +127,7 @@ static int write_latseq_entry(void)
   //char entry[MAX_SIZE_LINE_OF_LOG] = "";
   tmps = calloc(e->len_id * 6, sizeof(char)); // how to compute size needed ? 6 corresponds to value 999.999
   //Compute time
+  //TODO : convert in 20200117_085721.954362
   uint64_t tdiff = (e->ts - g_latseq.rdtsc_zero)/(cpuf*1000);
   uint64_t tf = (g_latseq.time_zero.tv_sec*1000000L + g_latseq.time_zero.tv_usec) + tdiff;
   struct timeval etv = {
@@ -155,16 +156,16 @@ static int write_latseq_entry(void)
     e->data_id[14],
     e->data_id[15]);
   //Copy of ts, point name and data identifier
-    int len = sprintf(entry, "%ld.%06ld %s %s\n",
-      etv.tv_sec,
-      etv.tv_usec,
-      e->point,
-      tmps);
-    if (len == 0)
-      fprintf(stderr, "[LATSEQ] empty entry\n"); 
+  size_t len = (size_t)sprintf(entry, "%ld.%06ld %s %s\n",
+    etv.tv_sec,
+    etv.tv_usec,
+    e->point,
+    tmps);
+  if (len == 0)
+    fprintf(stderr, "[LATSEQ] empty entry\n"); 
 
   // Write into file
-  int ret = fwrite(entry, sizeof(char), len , g_latseq.outstream);
+  int ret = (int)fwrite(entry, sizeof(char), len , g_latseq.outstream);
   if (ret < 0) {
     g_latseq.is_running = 0;
     fclose(g_latseq.outstream);
@@ -172,7 +173,7 @@ static int write_latseq_entry(void)
     exit(EXIT_FAILURE);
   }
   if (g_latseq.is_debug)
-    printf("[LATSEQ] log an entry : %s (len %d)\n", &entry[0], ret);
+    printf("[LATSEQ] log an entry (len %d) : %s", ret, &entry[0]);
   free(entry);
   free(tmps);
 
@@ -241,8 +242,7 @@ void latseq_log_to_file(void)
 
   //Write all remaining data
   
-  int i;
-  for (i = 0; i < reg->nb_th; i++) {
+  for (uint8_t i = 0; i < reg->nb_th; i++) {
     reg->read_ith_thread = i;
     while ( reg->i_read_heads[reg->read_ith_thread] < reg->tls[reg->read_ith_thread]->i_write_head)
     {
@@ -256,7 +256,7 @@ void latseq_log_to_file(void)
 
 void latseq_print_stats(void)
 {
-  printf("[LATSEQ] stats :\n");
+  printf("[LATSEQ] === stats ===\n");
   printf("[LATSEQ] number of entry in log : %d\n", g_latseq.stats.entry_counter);
   //printf("[LATSEQ] heads positions : %d (Write) : %d (Read)\n", g_latseq.i_write_head, g_latseq.i_read_head);
 }
