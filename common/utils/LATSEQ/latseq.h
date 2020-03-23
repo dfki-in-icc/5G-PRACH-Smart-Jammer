@@ -55,22 +55,23 @@ static const char LATSEQ_IDENTIFIERS[NB_DATA_IDENTIFIERS][8] = {
 #define MAX_DATA_ID_SIZE 128 // > (4+8)x7 
 #define MAX_SIZE_LINE_OF_LOG 256 // ts=8c + pointname=MAX_POINT_NAME_SIZEc + identifier=NB_DATA_IDENTIFIERx(4c name + 4c number) (Worst-case)
 //#define LATSEQ_P(p, i) log_measure(p, i); // LatSeq point, nb of id and ids...
+// TODO: version avec LATSEQ_P1, P2,...
 #define LATSEQ_P(p, f, ...) do {log_measure(p, f, __VA_ARGS__, -1); } while(0) // -1 to stop iterate on va_arg. assumption : all values of ids are >= 0.
 #define OCCUPANCY(w, r) (w - r)
 
-#define MAX_NB_THREAD 256
+#define MAX_NB_THREAD 32
 
 /*--- STRUCT -----------------------------------------------------------------*/
 
 // A latseq element of the buffer
 typedef struct latseq_element_t {
   uint64_t            ts; // timestamp of the measure
-  const char *              point;
+  const char *        point;
   //char                point[MAX_POINT_NAME_SIZE]; // point name
-  const char *              format;
+  const char *        format;
   //char *              format; // format for the data identifier
-  short                len_id; // Number data identifiers
-  uint32_t             data_id[MAX_NB_DATA_ID]; // values for the data identifier. What is the best type ?
+  short               len_id; // Number data identifiers
+  uint32_t            data_id[MAX_NB_DATA_ID]; // values for the data identifier. What is the best type ?
 } latseq_element_t;
 
 // Statistics structures for latseq
@@ -126,8 +127,9 @@ void init_logger_latseq(void);
 
 /** \fn init_thread_for_latseq(void);
  * \brief init tls_latseq for local oai thread
+ * \return -1 if error, 0 otherwise
 */
-void init_thread_for_latseq(void);
+int init_thread_for_latseq(void);
 
 /** \fn void log_measure(const char * point, const char *identifier);
  * \brief function to log a new measure into buffer
@@ -135,19 +137,27 @@ void init_thread_for_latseq(void);
  * \param id identifier for the data pointed
  * \todo  measure latency introduced by this function
 */
-static inline void log_measure(const char * point, const char *fmt, ...)
+static __inline__ void log_measure(const char * point, const char *fmt, ...)
 {
+  /*
+#ifdef LATSEQ_DEBUG
+  struct timeval begin, end;
+  gettimeofday(&begin, NULL);
+#endif
+*/
   //TODO : chack that latseq is running
-
+  //check if the oai thread is already registered
+  if (tls_latseq.th_latseq_id == 0) {
+    //is not initialized yet
+    if (init_thread_for_latseq()) {
+      return;
+    }
+  }
   // No check here because it will be check by the reader
   //get list of argument
   va_list va;
   va_start(va, fmt); //start all values after fmt
-  //check if the oai thread is already registered
-  if (tls_latseq.th_latseq_id == 0) {
-    //is not initialized yet
-    init_thread_for_latseq();
-  }
+
   //get reference on new element
   latseq_element_t * e = &tls_latseq.log_buffer[tls_latseq.i_write_head%MAX_LOG_SIZE];
 
@@ -173,6 +183,12 @@ static inline void log_measure(const char * point, const char *fmt, ...)
   tls_latseq.i_write_head++;
   //Clean up va_list
   va_end(va);
+  /*
+#ifdef LATSEQ_DEBUG
+  gettimeofday(&end, NULL);
+  printf("[LATSEQ] log_measure took : 06%lu us\n", (end.tv_usec - begin.tv_usec)); //at 23-03, 60usec
+#endif
+*/
 }
 
 /** \fn static int write_latseq_entry(void);

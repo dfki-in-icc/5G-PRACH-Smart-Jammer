@@ -83,9 +83,9 @@ unsigned short config_frames[4] = {2,9,11,13};
   #include "UTIL/OTG/otg_vars.h"
 #endif
 
-#ifdef LATSEQ
+//#ifdef LATSEQ
   #include <common/utils/LATSEQ/latseq.h>
-#endif
+//#endif
 
 #include "create_tasks.h"
 
@@ -537,9 +537,9 @@ int main ( int argc, char **argv )
   T_Config_Init();
 #endif
 
-#if LATSEQ
-    init_latseq("/tmp/openair.latseq.lseq");
-#endif
+//#if LATSEQ
+    init_latseq("/tmp/openair.latseq.lseq", 1);
+//#endif
   //randominit (0);
   set_taus_seed (0);
   printf("configuring for RAU/RRU\n");

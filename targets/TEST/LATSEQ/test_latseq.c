@@ -23,7 +23,8 @@ void print_usage(void)
   printf("h \t: Help\n");
   printf("a \t: test_full() \t: a full unit test\n");
   printf("i \t: test_init_and_close() \t: test a simple init/close case\n");
-  printf("m \t: test_multi_thread() \t: test multi-producers in different thread case\n");
+  printf("t \t: test_multi_thread() \t: test multi-producers in different thread case\n");
+  printf("m \t: measure_log_measure() \t: measure time took by log_measure\n");
 }
 
 int test_init_and_close() 
@@ -121,6 +122,40 @@ int test_multithread()
   return 0;
 }
 
+int measure_log_measure()
+{
+  oai_exit = 0;
+  printf("[TEST] %s\n",__func__);
+  if(!init_latseq(test_log, debug_enabled)) {
+    printf("[ERROR] : init_latseq()\n");
+    exit(EXIT_FAILURE);
+  }
+#ifdef TEST_LATSEQ
+  struct timeval begin, end;
+  gettimeofday(&begin, NULL);
+#endif
+  const uint32_t num_call = 1000000;
+  for (int i = 0; i < num_call; i++)
+  {
+    LATSEQ_P("meas", "call.%d", i);
+  }
+
+#ifdef TEST_LATSEQ
+  gettimeofday(&end, NULL);
+#endif
+  sleep(1);
+  
+  if(!close_latseq()) {
+    printf("[ERROR] : close_latseq()\n");
+    exit(EXIT_FAILURE);
+  }
+#ifdef TEST_LATSEQ
+  printf("[LATSEQ] %d log_measure took : %lu us\n", num_call, (end.tv_usec - begin.tv_usec)); //at 23-03, 0.0328usec
+#endif
+
+  return 0;
+}
+
 int main (int argc, char **argv) 
 {
   #ifdef LATSEQ
@@ -145,8 +180,12 @@ int main (int argc, char **argv)
     (void)test_full();
     break;
 
-  case 'm':
+  case 't':
     (void)test_multithread();
+    break;
+  
+  case 'm':
+    (void)measure_log_measure();
     break;
   
   default:

@@ -59,7 +59,7 @@ int init_latseq(const char * filename, int debug)
   
   // init members
   g_latseq.is_running = 0;
-  g_latseq.is_debug = 1;
+  g_latseq.is_debug = debug;
   g_latseq.filelog_name = strdup(filename);
   //synchronise time and rdtsc
   gettimeofday(&g_latseq.time_zero, NULL);
@@ -93,8 +93,9 @@ void init_logger_latseq(void)
     printf("[LATSEQ] Logger thread started\n");
 }
 
-void init_thread_for_latseq(void)
+int init_thread_for_latseq(void)
 {
+
   //Init tls_latseq for local thread
   tls_latseq.i_write_head = 0; //local thread tls_latseq
   //No init of log_buffer that is a latseq_element_t because we trust in position of read_head to not read uninitialized memory. Accelerating init_thread_latseq ?
@@ -102,13 +103,19 @@ void init_thread_for_latseq(void)
 
   //Register thread in the registry
   latseq_registry_t * reg = &g_latseq.local_log_buffers;
+  //Check if space left in registry
+  if (reg->nb_th >= MAX_NB_THREAD) {
+    fprintf(stderr, "[LATSEQ] registry size %d is full\n", reg->nb_th);
+    g_latseq.is_running = 0;
+    return -1;
+  }
   reg->tls[reg->nb_th] = &tls_latseq;
   reg->i_read_heads[reg->nb_th] = 0;
 
   //Give id to the thread
   reg->nb_th++;
   tls_latseq.th_latseq_id = reg->nb_th;
-  return;
+  return 0;
   //TODO : No destroy function ? What happens when thread is stopped and data had not been written in the log file ?
 }
 
@@ -229,7 +236,8 @@ void latseq_log_to_file(void)
 
     //If max occupancy reached for a local buffer
     if (OCCUPANCY(reg->tls[reg->read_ith_thread]->i_write_head, reg->i_read_heads[reg->read_ith_thread]) > MAX_LOG_OCCUPANCY) {
-      fprintf(stderr, "[LATSEQ] log log buffer [%d] max occupancy reached\n", reg->read_ith_thread);
+      if (g_latseq.is_debug)
+        fprintf(stderr, "[LATSEQ] log buffer [%d] max occupancy reached\n", reg->read_ith_thread);
     }
 
     //Write pointed entry into log file
