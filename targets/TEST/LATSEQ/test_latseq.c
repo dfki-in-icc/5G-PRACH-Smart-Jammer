@@ -8,7 +8,7 @@
 //#endif
 
 int debug_enabled = 0;
-#ifdef DLATSEQ
+#ifdef LATSEQ_DEBUG
   int debug_enabled = 1;
 #endif
 
@@ -25,6 +25,7 @@ void print_usage(void)
   printf("i \t: test_init_and_close() \t: test a simple init/close case\n");
   printf("t \t: test_multi_thread() \t: test multi-producers in different thread case\n");
   printf("m \t: measure_log_measure() \t: measure time took by log_measure\n");
+  printf("n \t: measure_log_n() \t: measure time took by log_measure with n varargs\n");
 }
 
 int test_init_and_close() 
@@ -156,6 +157,87 @@ int measure_log_measure()
   return 0;
 }
 
+int measure_log_n() 
+{
+  oai_exit = 0;
+  printf("[TEST] %s\n",__func__);
+  if(!init_latseq(test_log, debug_enabled)) {
+    printf("[ERROR] : init_latseq()\n");
+    exit(EXIT_FAILURE);
+  }
+#ifdef TEST_LATSEQ
+  struct timeval begin, end;
+  gettimeofday(&begin, NULL);
+  long t1, t2, t3, t5, t10;
+#endif
+  const uint32_t num_call = 1000;
+  int i;
+  //test n=1
+  for (i = 0; i < num_call; i++)
+  {
+    LATSEQ_P("meas1", "call.%d", i);
+  }
+#ifdef TEST_LATSEQ
+  gettimeofday(&end, NULL);
+  t1 = end.tv_usec - begin.tv_usec;
+  gettimeofday(&begin, NULL);
+#endif
+  //test n=2
+  for (i = 0; i < num_call; i++)
+  {
+    LATSEQ_P("meas2", "call.%d.%d", i,0);
+  }
+#ifdef TEST_LATSEQ
+  gettimeofday(&end, NULL);
+  t2 = end.tv_usec - begin.tv_usec;
+  gettimeofday(&begin, NULL);
+#endif
+  //test n=3
+  for (i = 0; i < num_call; i++)
+  {
+    LATSEQ_P("meas3", "call.%d.%d.%d", i,0,1);
+  }
+#ifdef TEST_LATSEQ
+  gettimeofday(&end, NULL);
+  t3 = end.tv_usec - begin.tv_usec;
+  gettimeofday(&begin, NULL);
+#endif
+  //test n=5
+  for (i = 0; i < num_call; i++)
+  {
+    LATSEQ_P("meas3", "call.%d.%d.%d.%d.%d", i,0,1,2,3);
+  }
+#ifdef TEST_LATSEQ
+  gettimeofday(&end, NULL);
+  t5 = end.tv_usec - begin.tv_usec;
+  gettimeofday(&begin, NULL);
+#endif
+  //test n=10 (max given by NB_DATA_IDENTIFIERS)
+  for (i = 0; i < num_call; i++)
+  {
+    LATSEQ_P("meas4", "call.%d.%d.%d.%d.%d.%d.%d.%d.%d.%d",i,0,1,2,3,4,5,7,8,9);
+  }
+#ifdef TEST_LATSEQ
+  gettimeofday(&end, NULL);
+  t10 = end.tv_usec - begin.tv_usec;
+#endif
+  sleep(1);
+  
+  if(!close_latseq()) {
+    printf("[ERROR] : close_latseq()\n");
+    exit(EXIT_FAILURE);
+  }
+#ifdef TEST_LATSEQ
+  printf("[LATSEQ] log_measure took :\n"); //at 23-03, 32.8ns
+  printf("\tvar_args=1 : %.1f ns/call\n", 1000*(double)t1/num_call); // mean : 19ns at 23-03
+  printf("\tvar_args=2 : %.1f ns/call\n", 1000*(double)t2/num_call); // mean : 22ns at 23-03
+  printf("\tvar_args=3 : %.1f ns/call\n", 1000*(double)t3/num_call); // mean : 25ns at 23-03
+  printf("\tvar_args=5 : %.1f ns/call\n", 1000*(double)t5/num_call); // mean : 32ns at 23-03
+  printf("\tvar_args=10 : %.1f ns/call\n", 1000*(double)t10/num_call); // mean : 61ns at 23-03
+#endif
+  return 0;
+}
+
 int main (int argc, char **argv) 
 {
   #ifdef LATSEQ
@@ -186,6 +268,10 @@ int main (int argc, char **argv)
   
   case 'm':
     (void)measure_log_measure();
+    break;
+
+  case 'n':
+    (void)measure_log_n();
     break;
   
   default:
