@@ -37,8 +37,7 @@
 #include "PHY/CODING/coding_extern.h"
 #include "PHY/CODING/coding_defs.h"
 #include "PHY/CODING/lte_interleaver_inline.h"
-#include "PHY/CODING/nrLDPC_decoder/nrLDPC_decoder.h"
-#include "PHY/CODING/nrLDPC_decoder/nrLDPC_types.h"
+#include "PHY/CODING/nrLDPC_extern.h"
 #include "PHY/NR_TRANSPORT/nr_transport_common_proto.h"
 #include "PHY/NR_TRANSPORT/nr_ulsch.h"
 #include "PHY/NR_TRANSPORT/nr_dlsch.h"
@@ -710,6 +709,15 @@ uint32_t nr_ulsch_decoding(PHY_VARS_gNB *phy_vars_gNB,
 #endif
 
   }
+
+#ifdef DEBUG_ULSCH_DECODING
+  LOG_I(PHY, "Decoder output (payload): \n");
+  for (i = 0; i < harq_process->TBS / 8; i++) {
+	  //harq_process_ul_ue->a[i] = (unsigned char) rand();
+	  //printf("a[%d]=0x%02x\n",i,harq_process_ul_ue->a[i]);
+	  printf("0x%02x",harq_process->b[i]);
+  }
+#endif
 
   ulsch->last_iteration_cnt = ret;
 

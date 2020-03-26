@@ -70,53 +70,12 @@ uint16_t NB_UE_INST = 1;
 // dummy functions
 int8_t nr_mac_rrc_data_ind_ue(const module_id_t module_id, const int CC_id, const uint8_t gNB_index,
                               const int8_t channel, const uint8_t* pduP, const sdu_size_t pdu_len) { return 0; }
-void mac_rlc_data_ind ( const module_id_t         module_idP,
-			const rnti_t              rntiP,
-			const eNB_index_t         eNB_index,
-			const frame_t             frameP,
-			const eNB_flag_t          enb_flagP,
-			const MBMS_flag_t         MBMS_flagP,
-			const logical_chan_id_t   channel_idP,
-			char                     *buffer_pP,
-			const tb_size_t           tb_sizeP,
-			num_tb_t                  num_tbP,
-			crc_t                    *crcs_pP){}
-mac_rlc_status_resp_t mac_rlc_status_ind( const module_id_t       module_idP,
-					  const rnti_t            rntiP,
-					  const eNB_index_t       eNB_index,
-					  const frame_t           frameP,
-					  const sub_frame_t 	  subframeP,
-					  const eNB_flag_t        enb_flagP,
-					  const MBMS_flag_t       MBMS_flagP,
-					  const logical_chan_id_t channel_idP,
-					  const tb_size_t         tb_sizeP,
-					  const uint32_t sourceL2Id,
-					  const uint32_t destinationL2Id)
-{mac_rlc_status_resp_t  mac_rlc_status_resp = {0}; return mac_rlc_status_resp;}
-tbs_size_t mac_rlc_data_req(  const module_id_t       module_idP,
-			      const rnti_t            rntiP,
-			      const eNB_index_t       eNB_index,
-			      const frame_t           frameP,
-			      const eNB_flag_t        enb_flagP,
-			      const MBMS_flag_t       MBMS_flagP,
-			      const logical_chan_id_t channel_idP,
-			      const tb_size_t         tb_sizeP,
-			      char             *buffer_pP,
-			      const uint32_t sourceL2Id,
-			      const uint32_t destinationL2Id )
-{return 0;}
-int generate_dlsch_header(unsigned char *mac_header,
-                          unsigned char num_sdus,
-                          unsigned short *sdu_lengths,
-                          unsigned char *sdu_lcids,
-                          unsigned char drx_cmd,
-                          unsigned short timing_advance_cmd,
-                          unsigned char *ue_cont_res_id,
-                          unsigned char short_padding,
-                          unsigned short post_padding){return 0;}
 uint64_t get_softmodem_optmask(void) {return 0;}
-int rlc_module_init (int enb) {return(0);}
+//int rlc_module_init (int enb) {return(0);}
 void pdcp_layer_init (void) {}
+boolean_t pdcp_data_ind( const protocol_ctxt_t *const ctxt_pP, const srb_flag_t   srb_flagP, const MBMS_flag_t  MBMS_flagP, const rb_id_t      rb_idP,
+						 const sdu_size_t   sdu_buffer_sizeP, mem_block_t *const sdu_buffer_pP)
+{return (0);}
 void nr_ip_over_LTE_DRB_preconfiguration(void){}
 
 // needed for some functions
@@ -469,7 +428,7 @@ int main(int argc, char **argv)
   uint16_t number_dmrs_symbols = 0;
   unsigned int available_bits;
   uint8_t nb_re_dmrs;
-  uint8_t length_dmrs = UE->dmrs_UplinkConfig.pusch_maxLength;
+  uint8_t length_dmrs = UE->pusch_config.dmrs_UplinkConfig.pusch_maxLength;
   unsigned char mod_order;
   uint16_t code_rate;
 
@@ -481,12 +440,12 @@ int main(int argc, char **argv)
                                             0,
                                             0,
                                             nb_symb_sch,
-                                            &UE->dmrs_UplinkConfig,
+                                            &UE->pusch_config.dmrs_UplinkConfig,
                                             UE->pusch_config.pusch_TimeDomainResourceAllocation[0]->mappingType,
                                             frame_parms->ofdm_symbol_size);
 
   mod_order      = nr_get_Qm_ul(Imcs, 0);
-  nb_re_dmrs     = ((UE->dmrs_UplinkConfig.pusch_dmrs_type == pusch_dmrs_type1) ? 6 : 4) * number_dmrs_symbols;
+  nb_re_dmrs     = ((UE->pusch_config.dmrs_UplinkConfig.pusch_dmrs_type == pusch_dmrs_type1) ? 6 : 4) * number_dmrs_symbols;
   code_rate      = nr_get_code_rate_ul(Imcs, 0);
   available_bits = nr_get_G(nb_rb, nb_symb_sch, nb_re_dmrs, length_dmrs, mod_order, 1);
   TBS            = nr_compute_tbs(mod_order, code_rate, nb_rb, nb_symb_sch, nb_re_dmrs*length_dmrs, 0, precod_nbr_layers);
