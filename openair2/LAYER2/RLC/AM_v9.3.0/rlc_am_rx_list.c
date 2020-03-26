@@ -29,6 +29,9 @@
 #include "rlc_am.h"
 #include "LAYER2/MAC/mac_extern.h"
 #include "common/utils/LOG/log.h"
+//#ifdef LATSEQ
+  #include "common/utils/LATSEQ/latseq.h"
+//#endif
 
 
 boolean_t rlc_am_rx_check_vr_reassemble(
@@ -400,7 +403,13 @@ rlc_am_rx_pdu_status_t rlc_am_rx_list_handle_pdu_segment(
                             pdu_info_cursor_p->sn);
               list2_insert_before_element(tb_pP, cursor_p, &rlc_pP->receiver_buffer);
           }
-
+//#ifdef LATSEQ
+              LATSEQ_P(
+                "rlc.am.rx U",
+                "mod%d.enb%d.drb%d.lcid%d.sn%d",
+                ctxt_pP->module_id, ctxt_pP->eNB_index, rlc_pP->rb_id, rlc_pP->channel_id, pdu_rx_info_p->sn
+                );
+//endif
 		  return RLC_AM_DATA_PDU_STATUS_OK;
 	  }
 
@@ -455,6 +464,13 @@ rlc_am_rx_pdu_status_t rlc_am_rx_list_handle_pdu_segment(
 						  pdu_info_previous_cursor_p->so + pdu_info_previous_cursor_p->payload_size - 1);
 
 			  list2_insert_after_element(tb_pP, previous_cursor_p, &rlc_pP->receiver_buffer);
+//#ifdef LATSEQ
+        LATSEQ_P(
+          "rlc.am.rx U",
+          "mod%d.enb%d.drb%d.lcid%d.sn%d.so%d",
+          ctxt_pP->module_id, ctxt_pP->eNB_index, rlc_pP->rb_id, rlc_pP->channel_id, pdu_rx_info_p->sn, so_start_segment
+          );
+//endif
 			  return RLC_AM_DATA_PDU_STATUS_OK;
 		  }
 
@@ -540,6 +556,13 @@ rlc_am_rx_pdu_status_t rlc_am_rx_list_handle_pdu_segment(
 							pdu_info_cursor_p->so);
 
 			  list2_insert_before_element(tb_pP, cursor_p, &rlc_pP->receiver_buffer);
+//#ifdef LATSEQ
+        LATSEQ_P(
+          "rlc.am.rx U",
+          "mod%d.enb%d.drb%d.lcid%d.sn%d.so%d",
+          ctxt_pP->module_id, ctxt_pP->eNB_index, rlc_pP->rb_id, rlc_pP->channel_id, pdu_rx_info_p->sn, so_start_segment
+          );
+//endif
 			  return RLC_AM_DATA_PDU_STATUS_OK;
 		  }
 
@@ -608,6 +631,13 @@ rlc_am_rx_pdu_status_t rlc_am_rx_list_handle_pdu_segment(
 							  pdu_info_previous_cursor_p->so + pdu_info_previous_cursor_p->payload_size - 1);
 
 				  list2_insert_after_element(tb_pP, previous_cursor_p, &rlc_pP->receiver_buffer);
+//#ifdef LATSEQ
+          LATSEQ_P(
+            "rlc.am.rx U",
+            "mod%d.enb%d.drb%d.lcid%d.sn%d.so%d",
+            ctxt_pP->module_id, ctxt_pP->eNB_index, rlc_pP->rb_id, rlc_pP->channel_id, pdu_rx_info_p->sn, so_start_segment
+            );
+//endif
 				  return RLC_AM_DATA_PDU_STATUS_OK;
 			  }
 
@@ -712,6 +742,13 @@ rlc_am_rx_pdu_status_t rlc_am_rx_list_handle_pdu_segment(
 		  else {
 			  list2_insert_before_element(trunc_segment, rlc_pP->receiver_buffer.head, &rlc_pP->receiver_buffer);
 		  }
+//#ifdef LATSEQ
+        LATSEQ_P(
+          "rlc.am.rx U",
+          "mod%d.enb%d.drb%d.lcid%d.sn%d.so%d",
+          ctxt_pP->module_id, ctxt_pP->eNB_index, rlc_pP->rb_id, rlc_pP->channel_id, pdu_rx_info_p->sn, pdu_rx_info_p->so
+          );
+//endif
 
 		  /* Free original PDU Segment */
 		  free_mem_block(tb_pP, __func__);
@@ -779,7 +816,13 @@ rlc_am_rx_pdu_status_t rlc_am_rx_list_handle_pdu(
                             pdu_info_cursor_p->sn);
 	          list2_insert_before_element(tb_pP, cursor_p, &rlc_pP->receiver_buffer);
 	      }
-
+//#ifdef LATSEQ
+        LATSEQ_P(
+          "rlc.am.rx U",
+          "mod%d.enb%d.drb%d.lcid%d.sn%d",
+          ctxt_pP->module_id, ctxt_pP->eNB_index, rlc_pP->rb_id, rlc_pP->channel_id, pdu_rx_info_p->sn
+          );
+//endif
 		  return pdu_status;
 	  }
 
@@ -818,7 +861,13 @@ rlc_am_rx_pdu_status_t rlc_am_rx_list_handle_pdu(
 	      else {
 	          list2_insert_before_element(tb_pP, cursor_next_p, &rlc_pP->receiver_buffer);
 	      }
-
+//#ifdef LATSEQ
+        LATSEQ_P(
+          "rlc.am.rx U",
+          "mod%d.enb%d.drb%d.lcid%d.sn%d",
+          ctxt_pP->module_id, ctxt_pP->eNB_index, rlc_pP->rb_id, rlc_pP->channel_id, pdu_rx_info_p->sn
+          );
+//endif
 		  return pdu_status;
 	  } // End SN != vrR or SO != 0
 	  else {

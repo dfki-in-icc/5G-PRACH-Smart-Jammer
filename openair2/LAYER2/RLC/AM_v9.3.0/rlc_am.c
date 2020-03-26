@@ -39,6 +39,9 @@
 #include "common/utils/LOG/log.h"
 #include "LTE_UL-AM-RLC.h"
 #include "LTE_DL-AM-RLC.h"
+//#ifdef LATSEQ
+  #include "common/utils/LATSEQ/latseq.h"
+//#endif
 
 //-----------------------------------------------------------------------------
 uint32_t
@@ -1037,6 +1040,17 @@ rlc_am_data_req (
       PROTOCOL_RLC_AM_MSC_ARGS(ctxt_pP, l_rlc_p),
       data_size,
       mui);
+
+//#ifdef LATSEQ
+      if (l_rlc_p->is_data_plane) {
+        LATSEQ_P(
+          "rlc.am.tx D",
+          "mod%d.enb%d.drb%d.lcid%d.in%d",
+          ctxt_pP->module_id, ctxt_pP->eNB_index, l_rlc_p->rb_id, l_rlc_p->channel_id, l_rlc_p->next_sdu_index
+        );
+      }
+//endif
+
 
     if (LOG_DEBUGFLAG(DEBUG_RLC)) {
       message_string_size += sprintf(&message_string[message_string_size], "Bearer      : %ld\n", l_rlc_p->rb_id);

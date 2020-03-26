@@ -40,9 +40,9 @@
 #include "SCHED/sched_eNB.h"
 #include "common/utils/LOG/vcd_signal_dumper.h"
 #include "common/utils/LOG/log.h"
-#ifdef LATSEQ
+//#ifdef LATSEQ
   #include "common/utils/LATSEQ/latseq.h"
-#endif
+//#endif
 #include "targets/RT/USER/lte-softmodem.h"
 #include <syscall.h>
 #include "targets/RT/USER/rt_wrapper.h"
@@ -376,18 +376,13 @@ int dlsch_encoding(PHY_VARS_eNB *eNB,
     hadlsch->B = A+24;
     //    hadlsch->b = a;
     // LATSEQ
-    #if LATSEQ
-    /*
-      char * tmp_p = calloc(MAX_POINT_NAME_SIZE, sizeof(char));
-      char * tmp_id = calloc(MAX_DATA_ID_SIZE, sizeof(char));
-      sprintf(tmp_p, "mac.harq");
-      sprintf(tmp_id, "enb%d.harq%d", eNB->Mod_id, harq_pid);
-      LATSEQ_P(tmp_p, tmp_id);
-      free(tmp_p);
-      free(tmp_id);
-      */
-      LATSEQ_P("mac.harq", "enb%d.harq%d", eNB->Mod_id, harq_pid);
-    #endif
+//#if LATSEQ
+    LATSEQ_P(
+      "mac.harq D",
+      "enb%d.cc%d.rnti%d.harq%d.fm%d.subfm%d",
+      eNB->Mod_id, proc->CC_id, dlsch->rnti, harq_pid, frame, subframe);    
+//#endif
+
     // END_LATSEQ
     memcpy(hadlsch->b,a,(A/8)+4);
     

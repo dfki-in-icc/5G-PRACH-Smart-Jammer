@@ -83,6 +83,9 @@ hash_table_t  *pdcp_coll_p = NULL;
   static int mbms_socket = -1;
 #endif
 
+//#ifdef LATSEQ
+  #include "common/utils/LATSEQ/latseq.h"
+//#endif
 
 /* pdcp module parameters and related functions*/
 static pdcp_params_t pdcp_params= {0,NULL};
@@ -287,6 +290,16 @@ boolean_t pdcp_data_req(
         VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PDCP_DATA_REQ,VCD_FUNCTION_OUT);
         return FALSE;
       }
+//#ifdef LATSEQ
+      if (!srb_flagP) {
+        LATSEQ_P(
+          "pdcp.tx D",
+          "mod%d.enb%d.drb%d",
+          ctxt_pP->module_id, ctxt_pP->eNB_index, rb_idP
+        );
+      }
+//endif
+
 
       LOG_D(PDCP, "Sequence number %d is assigned to current PDU\n", current_sn);
       /* Then append data... */
@@ -914,6 +927,17 @@ pdcp_data_ind(
     VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PDCP_DATA_IND,VCD_FUNCTION_OUT);
     return TRUE;
   }
+
+//#ifdef LATSEQ
+      if (!srb_flagP) {
+        LATSEQ_P(
+          "pdcp.rx U",
+          "mod%d.enb%d.drb%d",
+          ctxt_pP->module_id, ctxt_pP->eNB_index, rb_idP
+        );
+      }
+//endif
+
 
   // XXX Decompression would be done at this point
   /*

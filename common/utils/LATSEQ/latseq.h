@@ -33,8 +33,8 @@
 
 /*--- DEFINE -----------------------------------------------------------------*/
 
-#define MAX_LOG_SIZE        128
-#define MAX_LOG_OCCUPANCY   96 // Should be < MAX_LOG_OCCUPANCY
+#define MAX_LOG_SIZE        512
+#define MAX_LOG_OCCUPANCY   384 // Should be < MAX_LOG_OCCUPANCY
 #define MAX_POINT_NAME_SIZE 16
 #define MAX_LEN_DATA_ID     16
 #define MAX_NB_DATA_ID      16
@@ -60,12 +60,12 @@ static const char LATSEQ_IDENTIFIERS[NB_DATA_IDENTIFIERS][8] = {
 #define LATSEQ_P3(p, f, i1) do {log_measure1(p, f, i1); } while(0)
 #define LATSEQ_P4(p, f, i1, i2) do {log_measure2(p, f, i1, i2); } while(0)
 #define LATSEQ_P5(p, f, i1, i2, i3) do {log_measure3(p, f, i1, i2, i3); } while(0)
-#define LATSEQ_P6(p, f, i1, i2, i3, i4) do {} while(0)
+#define LATSEQ_P6(p, f, i1, i2, i3, i4) do {log_measure4(p, f, i1, i2, i3, i4);} while(0)
 #define LATSEQ_P7(p, f, i1, i2, i3, i4, i5) do {log_measure5(p, f, i1, i2, i3, i4, i5); } while(0)
-#define LATSEQ_P8(p, f, i1, i2, i3, i4, i5, i6) do {} while(0)
-#define LATSEQ_P9(p, f, i1, i2, i3, i4, i5, i6, i7) do {} while(0)
-#define LATSEQ_P10(p, f, i1, i2, i3, i4, i5, i6, i7, i8) do {} while(0)
-#define LATSEQ_P11(p, f, i1, i2, i3, i4, i5, i6, i7, i8, i9) do {} while(0)
+#define LATSEQ_P8(p, f, i1, i2, i3, i4, i5, i6) do {log_measure6(p, f, i1, i2, i3, i4, i5, i6); } while(0)
+#define LATSEQ_P9(p, f, i1, i2, i3, i4, i5, i6, i7) do {log_measure7(p, f, i1, i2, i3, i4, i5, i6, i7); } while(0)
+#define LATSEQ_P10(p, f, i1, i2, i3, i4, i5, i6, i7, i8) do {log_measure8(p, f, i1, i2, i3, i4, i5, i6, i7, i8); } while(0)
+#define LATSEQ_P11(p, f, i1, i2, i3, i4, i5, i6, i7, i8, i9) do {log_measure9(p, f, i1, i2, i3, i4, i5, i6, i7, i8, i9); } while(0)
 #define LATSEQ_P12(p, f, i1, i2, i3, i4, i5, i6, i7, i8, i9, i10) do {log_measure10(p, f, i1, i2, i3, i4, i5, i6, i7, i8, i9, i10); } while(0)
 
 #define GET_MACRO(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,NAME,...) NAME
@@ -247,6 +247,26 @@ static __inline__ void log_measure3(const char * point, const char *fmt, uint32_
   tls_latseq.i_write_head++;
 }
 
+static __inline__ void log_measure4(const char * point, const char *fmt, uint32_t i1, uint32_t i2, uint32_t i3, uint32_t i4)
+{
+  if (tls_latseq.th_latseq_id == 0) {
+    //is not initialized yet
+    if (init_thread_for_latseq()) {
+      return;
+    }
+  }
+  latseq_element_t * e = &tls_latseq.log_buffer[tls_latseq.i_write_head%MAX_LOG_SIZE];
+  e->ts = rdtsc();
+  e->point = point;
+  e->format = fmt;
+  e->len_id = 4;
+  e->data_id[0] = i1;
+  e->data_id[1] = i2;
+  e->data_id[2] = i3;
+  e->data_id[2] = i4;
+  tls_latseq.i_write_head++;
+}
+
 static __inline__ void log_measure5(const char * point, const char *fmt, uint32_t i1, uint32_t i2, uint32_t i3, uint32_t i4, uint32_t i5)
 {
   if (tls_latseq.th_latseq_id == 0) {
@@ -267,6 +287,104 @@ static __inline__ void log_measure5(const char * point, const char *fmt, uint32_
   e->data_id[4] = i5;
   tls_latseq.i_write_head++;
 }
+
+static __inline__ void log_measure6(const char * point, const char *fmt, uint32_t i1, uint32_t i2, uint32_t i3, uint32_t i4, uint32_t i5, uint32_t i6)
+{
+  if (tls_latseq.th_latseq_id == 0) {
+    //is not initialized yet
+    if (init_thread_for_latseq()) {
+      return;
+    }
+  }
+  latseq_element_t * e = &tls_latseq.log_buffer[tls_latseq.i_write_head%MAX_LOG_SIZE];
+  e->ts = rdtsc();
+  e->point = point;
+  e->format = fmt;
+  e->len_id = 6;
+  e->data_id[0] = i1;
+  e->data_id[1] = i2;
+  e->data_id[2] = i3;
+  e->data_id[3] = i4;
+  e->data_id[4] = i5;
+  e->data_id[5] = i6;
+  tls_latseq.i_write_head++;
+}
+
+
+static __inline__ void log_measure7(const char * point, const char *fmt, uint32_t i1, uint32_t i2, uint32_t i3, uint32_t i4, uint32_t i5, uint32_t i6, uint32_t i7)
+{
+  if (tls_latseq.th_latseq_id == 0) {
+    //is not initialized yet
+    if (init_thread_for_latseq()) {
+      return;
+    }
+  }
+  latseq_element_t * e = &tls_latseq.log_buffer[tls_latseq.i_write_head%MAX_LOG_SIZE];
+  e->ts = rdtsc();
+  e->point = point;
+  e->format = fmt;
+  e->len_id = 7;
+  e->data_id[0] = i1;
+  e->data_id[1] = i2;
+  e->data_id[2] = i3;
+  e->data_id[3] = i4;
+  e->data_id[4] = i5;
+  e->data_id[5] = i6;
+  e->data_id[6] = i7;
+  tls_latseq.i_write_head++;
+}
+
+
+static __inline__ void log_measure8(const char * point, const char *fmt, uint32_t i1, uint32_t i2, uint32_t i3, uint32_t i4, uint32_t i5, uint32_t i6, uint32_t i7, uint32_t i8)
+{
+  if (tls_latseq.th_latseq_id == 0) {
+    //is not initialized yet
+    if (init_thread_for_latseq()) {
+      return;
+    }
+  }
+  latseq_element_t * e = &tls_latseq.log_buffer[tls_latseq.i_write_head%MAX_LOG_SIZE];
+  e->ts = rdtsc();
+  e->point = point;
+  e->format = fmt;
+  e->len_id = 8;
+  e->data_id[0] = i1;
+  e->data_id[1] = i2;
+  e->data_id[2] = i3;
+  e->data_id[3] = i4;
+  e->data_id[4] = i5;
+  e->data_id[5] = i6;
+  e->data_id[6] = i7;
+  e->data_id[7] = i8;
+  tls_latseq.i_write_head++;
+}
+
+
+static __inline__ void log_measure9(const char * point, const char *fmt, uint32_t i1, uint32_t i2, uint32_t i3, uint32_t i4, uint32_t i5, uint32_t i6, uint32_t i7, uint32_t i8, uint32_t i9)
+{
+  if (tls_latseq.th_latseq_id == 0) {
+    //is not initialized yet
+    if (init_thread_for_latseq()) {
+      return;
+    }
+  }
+  latseq_element_t * e = &tls_latseq.log_buffer[tls_latseq.i_write_head%MAX_LOG_SIZE];
+  e->ts = rdtsc();
+  e->point = point;
+  e->format = fmt;
+  e->len_id = 9;
+  e->data_id[0] = i1;
+  e->data_id[1] = i2;
+  e->data_id[2] = i3;
+  e->data_id[3] = i4;
+  e->data_id[4] = i5;
+  e->data_id[5] = i6;
+  e->data_id[6] = i7;
+  e->data_id[7] = i8;
+  e->data_id[8] = i9;
+  tls_latseq.i_write_head++;
+}
+
 
 static __inline__ void log_measure10(const char * point, const char *fmt, uint32_t i1, uint32_t i2, uint32_t i3, uint32_t i4, uint32_t i5, uint32_t i6, uint32_t i7, uint32_t i8, uint32_t i9, uint32_t i10)
 {

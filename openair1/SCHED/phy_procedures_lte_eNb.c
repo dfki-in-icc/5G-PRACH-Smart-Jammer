@@ -40,6 +40,9 @@
 #include "common/utils/LOG/log.h"
 #include <common/utils/system.h>
 #include "common/utils/LOG/vcd_signal_dumper.h"
+//#ifdef LATSEQ
+  #include "common/utils/LATSEQ/latseq.h"
+//#endif
 
 #include "assertions.h"
 #include "msc.h"
@@ -303,6 +306,12 @@ bool dlsch_procedures(PHY_VARS_eNB *eNB,
     }
 
     start_meas(&eNB->dlsch_encoding_stats);
+//#if LATSEQ
+  LATSEQ_P(
+    "phy.enc D",
+    "enb%d.cc%d.rnti%d.harq%d.fm%d.subfm%d.sym%d",
+    eNB->Mod_id, proc->CC_id, dlsch->rnti, harq_pid, frame, subframe, dlsch_harq->pdsch_start);    
+//#endif
     dlsch_encoding_all(eNB,
 		       proc,
                        dlsch_harq->pdu,
@@ -1305,6 +1314,12 @@ void pusch_procedures(PHY_VARS_eNB *eNB,L1_rxtx_proc_t *proc) {
       rx_ulsch(eNB,proc, i);
       stop_meas(&eNB->ulsch_demodulation_stats);
       start_meas(&eNB->ulsch_decoding_stats);
+//#if LATSEQ
+  LATSEQ_P(
+    "phy.dec U",
+    "enb%d.cc%d.rnti%d.harq%d.fm%d.subfm%d",
+    eNB->Mod_id, proc->CC_id, ulsch->rnti, harq_pid, frame, subframe);    
+//#endif
       ulsch_decoding(eNB,proc,
                            i,
                            0, // control_only_flag

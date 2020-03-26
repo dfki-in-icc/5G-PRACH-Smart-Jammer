@@ -37,7 +37,9 @@
 #include "hashtable.h"
 #include "assertions.h"
 #include "common/utils/LOG/vcd_signal_dumper.h"
-
+//#ifdef LATSEQ
+  #include "common/utils/LATSEQ/latseq.h"
+//#endif
 //#define DEBUG_MAC_INTERFACE 1
 
 //-----------------------------------------------------------------------------
@@ -219,6 +221,15 @@ tbs_size_t mac_rlc_data_req(
     T(T_ENB_RLC_MAC_DL, T_INT(module_idP), T_INT(rntiP), T_INT(channel_idP), T_INT(ret_tb_size));
 
 #endif
+
+//#ifdef LATSEQ
+  LATSEQ_P(
+    "mac.mux D",
+    "mod%d.enb%d.lcid%d.rnti%d.frame%d",
+    module_idP, eNB_index, channel_idP, rntiP, frameP
+  );
+//endif
+
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_MAC_RLC_DATA_REQ,VCD_FUNCTION_OUT);
   return ret_tb_size;
 }
@@ -263,6 +274,13 @@ void mac_rlc_data_ind     (
     T(T_ENB_RLC_MAC_UL, T_INT(module_idP), T_INT(rntiP), T_INT(channel_idP), T_INT(tb_sizeP));
 
 #endif
+//#ifdef LATSEQ
+  LATSEQ_P(
+    "mac.demux U",
+    "mod%d.enb%d.lcid%d.rnti%d.frame%d",
+    module_idP, eNB_index, channel_idP, rntiP, frameP
+  );
+//endif
 
   if (MBMS_flagP) {
     if (BOOL_NOT(enb_flagP)) {
