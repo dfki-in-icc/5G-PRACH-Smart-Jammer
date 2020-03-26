@@ -220,6 +220,7 @@ static __inline__ void log_measure2(const char * point, const char *fmt, uint32_
   }
   latseq_element_t * e = &tls_latseq.log_buffer[tls_latseq.i_write_head%MAX_LOG_SIZE];
   e->ts = rdtsc();
+  e->point = point;
   e->format = fmt;
   e->len_id = 2;
   e->data_id[0] = i1;
@@ -237,6 +238,7 @@ static __inline__ void log_measure3(const char * point, const char *fmt, uint32_
   }
   latseq_element_t * e = &tls_latseq.log_buffer[tls_latseq.i_write_head%MAX_LOG_SIZE];
   e->ts = rdtsc();
+  e->point = point;
   e->format = fmt;
   e->len_id = 3;
   e->data_id[0] = i1;
@@ -255,6 +257,7 @@ static __inline__ void log_measure5(const char * point, const char *fmt, uint32_
   }
   latseq_element_t * e = &tls_latseq.log_buffer[tls_latseq.i_write_head%MAX_LOG_SIZE];
   e->ts = rdtsc();
+  e->point = point;
   e->format = fmt;
   e->len_id = 5;
   e->data_id[0] = i1;
@@ -275,6 +278,7 @@ static __inline__ void log_measure10(const char * point, const char *fmt, uint32
   }
   latseq_element_t * e = &tls_latseq.log_buffer[tls_latseq.i_write_head%MAX_LOG_SIZE];
   e->ts = rdtsc();
+  e->point = point;
   e->format = fmt;
   e->len_id = 10;
   e->data_id[0] = i1;
