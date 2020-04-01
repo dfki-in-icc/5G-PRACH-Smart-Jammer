@@ -144,6 +144,7 @@ static int gtpv1u_eNB_send_init_udp(const Gtpv1uS1Req *req) {
   UDP_INIT(message_p).port = req->enb_port_for_S1u_S12_S4_up;
   addr.s_addr = req->enb_ip_address_for_S1u_S12_S4_up;
   UDP_INIT(message_p).address = inet_ntoa(addr);
+  {const char *s;if ((s=getenv("OAINAT"))) {UDP_INIT(message_p).address=(char *)s;LOG_W(GTPU, "Using OAINAT=%s for GTPU",s);}}
   LOG_I(GTPU, "Tx UDP_INIT IP addr %s (%x)\n", UDP_INIT(message_p).address,UDP_INIT(message_p).port);
   MSC_LOG_EVENT(
     MSC_GTPU_ENB,
