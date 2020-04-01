@@ -47,7 +47,9 @@ do {                                                        \
         fprintf(stderr, "\nAssertion ("#cOND") failed!\n"   \
                 "In %s() %s:%d\n" fORMAT,                   \
                 __FUNCTION__, __FILE__, __LINE__, ##aRGS);  \
-        aCTION;                                             \
+       \
+       abort(); /* Alex grrrrrrr!!!!!!!! */    \
+       \
     }						\
 } while(0)
 
