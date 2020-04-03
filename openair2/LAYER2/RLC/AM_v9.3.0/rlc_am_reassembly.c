@@ -31,6 +31,9 @@
 //#include "LAYER2/MAC/extern.h"
 #include "common/utils/LOG/log.h"
 #include "msc.h"
+#if LATSEQ
+  #include "common/utils/LATSEQ/latseq.h"
+#endif
 
 //-----------------------------------------------------------------------------
 inline void
@@ -162,6 +165,12 @@ rlc_am_send_sdu (
         PROTOCOL_RLC_AM_MSC_ARGS(ctxt_pP,rlc_pP),
         rlc_pP->output_sdu_size_to_write
       );
+#if LATSEQ
+//TODO voir a deplacer dans pdcp pour voir l'entete
+      if (rlc_pP->is_data_plane) {
+        LATSEQ_P("U rlc.rx.am--pdcp.rx","mod%d.drb%d.rnti%d.lcid%d", ctxt_pP->module_id, rlc_pP->rb_id, ctxt_pP->rnti,rlc_pP->channel_id);
+      }
+#endif
       rlc_data_ind (ctxt_pP,
                     BOOL_NOT(rlc_pP->is_data_plane),
                     MBMS_FLAG_NO,

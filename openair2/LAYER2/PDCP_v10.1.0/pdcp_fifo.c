@@ -57,9 +57,9 @@ extern int otg_enabled;
 #include "nfapi/oai_integration/vendor_ext.h"
 #include "UTIL/FIFO/pad_list.h"
 #include "common/utils/LOG/vcd_signal_dumper.h"
-//#ifdef LATSEQ
+#if LATSEQ
   #include "common/utils/LATSEQ/latseq.h"
-//#endif
+#endif
 #include "platform_constants.h"
 #include "msc.h"
 #include "pdcp.h"
@@ -159,15 +159,15 @@ int pdcp_fifo_flush_sdus(const protocol_ctxt_t *const  ctxt_pP) {
     		}
     		printf("\n");
 		#endif
-//#if LATSEQ
-      LATSEQ_P("ip.tun.out U", "ip%d", ctxt_pP->module_id);
-//#endif
+#if LATSEQ
+      LATSEQ_P("U ip--pdcp.out.nas", "mod%d.drb%d", ctxt_pP->module_id, rb_id);
+#endif
     	ret = write(nas_sock_fd[0], &(sdu_p->data[sizeof(pdcp_data_ind_header_t)]), sizeToWrite);
 
     } else if (PDCP_USE_NETLINK) {
-//#if LATSEQ
-      LATSEQ_P("ip.netl.out U", "ip%d", ctxt_pP->module_id);
-//#endif
+#if LATSEQ
+      LATSEQ_P("U ip--pdcp.out.nl", "mod%d.drb%d", ctxt_pP->module_id, rb_id);
+#endif
       memcpy(NLMSG_DATA(nas_nlh_tx), (uint8_t *) sdu_p->data,  sizeToWrite);
       nas_nlh_tx->nlmsg_len = sizeToWrite;
       ret = sendmsg(nas_sock_fd[0],&nas_msg_tx,0);
@@ -241,9 +241,6 @@ int pdcp_fifo_read_input_sdus_fromtun (const protocol_ctxt_t *const  ctxt_pP) {
   do {
     VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME( VCD_SIGNAL_DUMPER_FUNCTIONS_PDCP_FIFO_READ, 1 );
     VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME( VCD_SIGNAL_DUMPER_FUNCTIONS_PDCP_FIFO_READ_BUFFER, 1 );
-    //#if LATSEQ
-      LATSEQ_P("ip.tun.in", "ip%d", ctxt_pP->module_id);
-    //#endif
     len = read(UE_NAS_USE_TUN?nas_sock_fd[ctxt_pP->module_id]:nas_sock_fd[0], &nl_rx_buf, NL_MAX_PAYLOAD);
     VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME( VCD_SIGNAL_DUMPER_FUNCTIONS_PDCP_FIFO_READ_BUFFER, 0 );
 
@@ -269,7 +266,9 @@ int pdcp_fifo_read_input_sdus_fromtun (const protocol_ctxt_t *const  ctxt_pP) {
       LOG_D(PDCP, "[FRAME %5u][UE][IP][INSTANCE %u][RB %ld][--- PDCP_DATA_REQ / %d Bytes --->][PDCP][MOD %u][UE %04x][RB %ld]\n",
             ctxt.frame, ctxt.instance, rab_id, len, ctxt.module_id,
             ctxt.rnti, rab_id);
-
+#if LATSEQ
+      LATSEQ_P("D ip--pdcp.in.tun", "mod%d.drb%d.rnti%d", ctxt.module_id, rab_id, ctxt.rnti);
+#endif
 #if defined  ENABLE_PDCP_PAYLOAD_DEBUG
       LOG_I(PHY, "TUN interface output received from PDCP: \n");
       for (int i = 0; i < 128; i++) {
@@ -412,9 +411,6 @@ int pdcp_fifo_read_input_sdus_fromnetlinksock (const protocol_ctxt_t *const  ctx
     VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME( VCD_SIGNAL_DUMPER_FUNCTIONS_PDCP_FIFO_READ_BUFFER, 1 );
     len = recvmsg(nas_sock_fd[0], &nas_msg_rx, 0);
     VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME( VCD_SIGNAL_DUMPER_FUNCTIONS_PDCP_FIFO_READ_BUFFER, 0 );
-    //#if LATSEQ
-      LATSEQ_P("ip.netl.in", "ip%d", ctxt_pP->module_id);
-    //#endif
     if (len > 0) {
       for (nas_nlh_rx = (struct nlmsghdr *) nl_rx_buf;
            NLMSG_OK (nas_nlh_rx, len);
@@ -477,6 +473,9 @@ int pdcp_fifo_read_input_sdus_fromnetlinksock (const protocol_ctxt_t *const  ctx
                       ctxt.module_id,
                       ctxt.rnti,
                       rab_id);
+#if LATSEQ
+                LATSEQ_P("D ip--pdcp.in.nl", "mod%d.drb%d.rnti%d", ctxt.module_id, rab_id, ctxt.rnti);
+#endif
                 pdcp_data_req(&ctxt,
                               SRB_FLAG_NO,
                               rab_id,

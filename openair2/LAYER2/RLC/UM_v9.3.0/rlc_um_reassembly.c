@@ -36,6 +36,9 @@
 #include "LAYER2/MAC/mac_extern.h"
 #include "common/utils/LOG/log.h"
 #include "msc.h"
+#if LATSEQ
+  #include "common/utils/LATSEQ/latseq.h"
+#endif
 
 //-----------------------------------------------------------------------------
 inline void
@@ -138,6 +141,11 @@ rlc_um_send_sdu (const protocol_ctxt_t* const ctxt_pP, rlc_um_entity_t *rlc_pP)
       rlc_um_v9_3_0_test_data_ind (rlc_pP->module_id, rlc_pP->rb_id, rlc_pP->output_sdu_size_to_write, rlc_pP->output_sdu_in_construction);
 #else
       // msg("[RLC] DATA IND ON MOD_ID %d RB ID %d, size %d\n",rlc_pP->module_id, rlc_pP->rb_id, ctxt_pP->frame,rlc_pP->output_sdu_size_to_write);
+#if LATSEQ
+//TODO voir a deplacer dans pdcp pour voir l'entete
+    if (rlc_pP->is_data_plane)
+      LATSEQ_P("U rlc.rx.um--pdcp.rx","mod%d.drb%d.rnti%d.lcid%d",ctxt_pP->module_id, rlc_pP->rb_id, ctxt_pP->rnti,rlc_pP->channel_id);
+#endif
       rlc_data_ind (
         ctxt_pP,
         BOOL_NOT(rlc_pP->is_data_plane),

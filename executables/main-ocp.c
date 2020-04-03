@@ -42,7 +42,7 @@ static int DEFENBS[] = {0};
 #include <openair2/LAYER2/MAC/mac_vars.h>
 #include <openair2/RRC/LTE/rrc_vars.h>
 
-#ifdef LATSEQ
+#if LATSEQ
   #include <common/utils/LATSEQ/latseq.h>
 #endif
 
@@ -641,7 +641,7 @@ void rx_rf(RU_t *ru, L1_rxtx_proc_t *proc) {
     exit_fun("Exiting IQ record/playback");
 #else
     //exit_fun( "problem receiving samples" );
-    LOG_E(PHY, "problem receiving samples");
+    LOG_E(PHY, "problem receiving samples\n");
 #endif
   }
 

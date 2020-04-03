@@ -49,6 +49,9 @@
 #include "rlc.h"
 
 #include "T.h"
+#if LATSEQ
+  #include "common/utils/LATSEQ/latseq.h"
+#endif
 
 
 #ifdef PHY_TX_THREAD
@@ -1833,6 +1836,15 @@ schedule_ue_spec_fairRR(module_id_t module_idP,
                                         eNB->pdu_index[CC_id],
                                         eNB->UE_list.DLSCH_pdu[CC_id][0][(unsigned char)UE_id].payload[0]);
             LOG_D(MAC,"Filled NFAPI configuration for DCI/DLSCH/TXREQ %d, new SDU\n",eNB->pdu_index[CC_id]);
+/*
+#if LATSEQ
+            LATSEQ_P(
+              "mac.txreq D",
+              "mod%d.cc%d.ue%d.rnti%d.pdu%d.fm%d.subfm%d",
+              module_idP, CC_id, UE_id, rnti, eNB->pdu_index[CC_id], frameP, subframeP
+            );
+#endif
+*/
             eNB->pdu_index[CC_id]++;
             program_dlsch_acknak(module_idP,CC_id,UE_id,frameP,subframeP,dl_config_pdu->dci_dl_pdu.dci_dl_pdu_rel8.cce_idx);
             last_dlsch_ue_id[CC_id] = UE_id;

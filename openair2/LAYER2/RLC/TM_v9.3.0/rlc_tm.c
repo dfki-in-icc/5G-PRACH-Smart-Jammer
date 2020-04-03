@@ -30,6 +30,9 @@
 #include "rlc_primitives.h"
 #include "list.h"
 #include "LAYER2/MAC/mac_extern.h"
+#if LATSEQ
+  #include "common/utils/LATSEQ/latseq.h"
+#endif
 //-----------------------------------------------------------------------------
 void
 rlc_tm_send_sdu (
@@ -67,7 +70,10 @@ rlc_tm_send_sdu (
 #endif
 
     memcpy (&rlc_pP->output_sdu_in_construction->data[rlc_pP->output_sdu_size_to_write], srcP, length_in_bytes);
-
+#if LATSEQ
+//TODO voir a deplacer dans pdcp pour voir l'entete
+    LATSEQ_P("U rlc.rx.tm--pdcp.rx","mod%d.drb%d.rnti%d.lcid%d",ctxt_pP->module_id, rlc_pP->rb_id, ctxt_pP->rnti,rlc_pP->channel_id);
+#endif
     rlc_data_ind (
       ctxt_pP,
       BOOL_NOT(rlc_pP->is_data_plane),
@@ -114,7 +120,9 @@ rlc_tm_no_segment (
     ((struct mac_tb_req *) (pdu_p->data))->first_bit = 0;
     ((struct mac_tb_req *) (pdu_p->data))->tb_size = rlc_pP->rlc_pdu_size >> 3;
     list_add_tail_eurecom (pdu_p, &rlc_pP->pdus_to_mac_layer);
-
+#if LATSEQ
+    LATSEQ_P("D rlc.tx.tm--mac.mux","mod%d.drb%d.rnti%d.lcid%d.sdu%d",ctxt_pP->module_id, rlc_pP->rb_id, ctxt_pP->rnti,rlc_pP->channel_id, rlc_pP->current_sdu_index);
+#endif
     rlc_pP->buffer_occupancy -= (sdu_mngt_p->sdu_size >> 3);
     free_mem_block (rlc_pP->input_sdus[rlc_pP->current_sdu_index], __func__);
     rlc_pP->input_sdus[rlc_pP->current_sdu_index] = NULL;
@@ -226,7 +234,11 @@ rlc_tm_data_req (
          rlc_p->current_sdu_index,
          rlc_p->next_sdu_index);
 #endif
-
+#if LATSEQ
+      if (rlc_p->is_data_plane) {
+        LATSEQ_P("D pdcp.tx--rlc.tx.tm","mod%d.drb%d.rnti%d.lcid%d.sdu%d", ctxt_pP->module_id, rlc_p->rb_id, ctxt_pP->rnti,rlc_p->channel_id, rlc_p->current_sdu_index);
+      }
+#endif
   // not in 3GPP specification but the buffer may be full if not correctly configured
   if (rlc_p->input_sdus[rlc_p->next_sdu_index] == NULL) {
     ((struct rlc_tm_tx_sdu_management *) (sdu_pP->data))->sdu_size = ((struct rlc_tm_data_req *) (sdu_pP->data))->data_size;
