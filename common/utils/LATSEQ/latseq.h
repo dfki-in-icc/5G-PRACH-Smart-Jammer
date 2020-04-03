@@ -35,7 +35,7 @@
 
 #define MAX_LOG_SIZE        512
 #define MAX_LOG_OCCUPANCY   384 // Should be < MAX_LOG_OCCUPANCY
-#define MAX_POINT_NAME_SIZE 16
+#define MAX_POINT_NAME_SIZE 32
 #define MAX_LEN_DATA_ID     16
 #define MAX_NB_DATA_ID      16
 #define NB_DATA_IDENTIFIERS 10 // to update according to distinct data identifier used in point

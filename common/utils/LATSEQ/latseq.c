@@ -127,10 +127,10 @@ static int write_latseq_entry(void)
   unsigned int * i_read_head = &g_latseq.local_log_buffers.i_read_heads[g_latseq.local_log_buffers.read_ith_thread];
   //reference to element to write
   latseq_element_t * e = &th->log_buffer[(*i_read_head)%MAX_LOG_SIZE];
-  char * entry;
+  //char * entry;
   char * tmps;
   //Convert latseq_element to a string
-  entry = calloc(MAX_SIZE_LINE_OF_LOG, sizeof(char));
+  //entry = calloc(MAX_SIZE_LINE_OF_LOG, sizeof(char));
   //char entry[MAX_SIZE_LINE_OF_LOG] = "";
   tmps = calloc(e->len_id * 6, sizeof(char)); // how to compute size needed ? 6 corresponds to value 999.999
   //Compute time
@@ -163,25 +163,35 @@ static int write_latseq_entry(void)
     e->data_id[14],
     e->data_id[15]);
   //Copy of ts, point name and data identifier
+  /*
   size_t len = (size_t)sprintf(entry, "%ld.%06ld %s %s\n",
     etv.tv_sec,
     etv.tv_usec,
     e->point,
     tmps);
   if (len == 0)
-    fprintf(stderr, "[LATSEQ] empty entry\n"); 
+    fprintf(stderr, "[LATSEQ] empty entry\n");*/
 
   // Write into file
-  int ret = (int)fwrite(entry, sizeof(char), len , g_latseq.outstream);
+  int ret = fprintf(g_latseq.outstream, "%ld.%06ld %s %s\n",
+    etv.tv_sec,
+    etv.tv_usec,
+    e->point,
+    tmps);
   if (ret < 0) {
     g_latseq.is_running = 0;
     fclose(g_latseq.outstream);
     fprintf(stderr, "[LATSEQ] output log file cannot be written\n");
     exit(EXIT_FAILURE);
   }
-  if (g_latseq.is_debug)
-    printf("[LATSEQ] log an entry (len %d) : %s", ret, &entry[0]);
-  free(entry);
+  if (g_latseq.is_debug) {
+    printf("[LATSEQ] log an entry (len %d) : %ld.%06ld %s %s\n",
+      ret,
+      etv.tv_sec,
+      etv.tv_usec,
+      e->point,
+      tmps);}
+  //free(entry);
   free(tmps);
 
   // cleanup buffer element
