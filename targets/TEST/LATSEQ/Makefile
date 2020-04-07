@@ -12,7 +12,7 @@ CC = gcc
 #CFLAGS += -I/usr/include/libxml2 -L/usr/local/lib -I/usr/include/atlas -L/usr/X11R6/lib 
 CFLAGS += -std=gnu99 #TODO : to be compiled in c99 like all oai
 CFLAGS += -Wall -Wconversion
-CFLAGS += -g
+CFLAGS += -g -pg
 #CFLAGS += -O3
 CFLAGS += -DLATSEQ
 #CFLAGS += -DLATSEQ_DEBUG
@@ -43,4 +43,4 @@ run-parsing: $(LATSEQ_DIR)/lseq_stats/lseqlogs.py
 	      	./lseqlogs.py -l $(TEST_DIR)/test1.lseq
 
 clean:
-	rm -f core $(EXE) *.o
+	rm -f core gmon.out $(EXE) *.o

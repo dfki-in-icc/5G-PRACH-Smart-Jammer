@@ -7,9 +7,11 @@
 #include "latseq.h"
 //#endif
 
-int debug_enabled = 0;
+int debug_enabled;
 #ifdef LATSEQ_DEBUG
-  int debug_enabled = 1;
+  debug_enabled = 1;
+#else
+  debug_enabled = 0;
 #endif
 
 double cpuf;
@@ -26,6 +28,7 @@ void print_usage(void)
   printf("t \t: test_multi_thread() \t: test multi-producers in different thread case\n");
   printf("m \t: measure_log_measure() \t: measure time took by log_measure\n");
   printf("n \t: measure_log_n() \t: measure time took by log_measure with n varargs\n");
+  printf("w \t: measure_writer() \t: measure time to write\n");
 }
 
 int test_init_and_close() 
@@ -71,8 +74,8 @@ void thread_test1(void)
   while(!oai_exit) {
     if (!i) {
       LATSEQ_P("full3 D", "ip%d", 0);
-      usleep(25000);
-      LATSEQ_P("full2 D", "ip%d.mac%d", 0, 1);
+      //usleep(25000);
+      //LATSEQ_P("full2 D", "ip%d.mac%d", 0, 1);
       i = 1;
       continue;
     }
@@ -88,10 +91,10 @@ void thread_test2(void)
   while(!oai_exit) {
     if (!i) {
       LATSEQ_P("full3 D", "ip%d", 1);
-      usleep(1000);
-      LATSEQ_P("full2 D", "ip%d.mac%d", 1, 1);
-      usleep(9000);
-      LATSEQ_P("full1 D", "ip%d.mac%d.phy%d", 1, 1, 4);
+      //usleep(1000);
+      //LATSEQ_P("full2 D", "ip%d.mac%d", 1, 1);
+      //usleep(9000);
+      //LATSEQ_P("full1 D", "ip%d.mac%d.phy%d", 1, 1, 4);
       i = 1;
       continue;
     }
@@ -111,7 +114,7 @@ int test_multithread()
   pthread_t th2;
   pthread_create(&th1, NULL, (void *) &thread_test1, NULL);
   pthread_create(&th2, NULL, (void *) &thread_test2, NULL);
-  sleep(1);
+  usleep(1000);
   oai_exit = 1;
   pthread_join(th1, NULL);
   pthread_join(th2, NULL);
@@ -135,7 +138,7 @@ int measure_log_measure()
   struct timeval begin, end;
   gettimeofday(&begin, NULL);
 #endif
-  const uint32_t num_call = 1000000;
+  const uint32_t num_call = 10000000;
   for (int i = 0; i < num_call; i++)
   {
     LATSEQ_P("meas", "call.%d", i);
@@ -144,7 +147,8 @@ int measure_log_measure()
 #ifdef TEST_LATSEQ
   gettimeofday(&end, NULL);
 #endif
-  sleep(1);
+  oai_exit = 1;
+  //sleep(1);
   
   if(!close_latseq()) {
     printf("[ERROR] : close_latseq()\n");
@@ -165,6 +169,7 @@ int measure_log_n()
     printf("[ERROR] : init_latseq()\n");
     exit(EXIT_FAILURE);
   }
+  //usleep(10000); //TODO : with this, generate a corrupted size vs. prev_size
 #ifdef TEST_LATSEQ
   struct timeval begin, end;
   gettimeofday(&begin, NULL);
@@ -172,7 +177,6 @@ int measure_log_n()
 #endif
   const uint32_t num_call = 1000;
   int i;
-  //test n=1
   for (i = 0; i < num_call; i++)
   {
     LATSEQ_P("meas1", "call.%d", i);
@@ -221,6 +225,7 @@ int measure_log_n()
   gettimeofday(&end, NULL);
   t10 = end.tv_usec - begin.tv_usec;
 #endif
+  oai_exit = 1;
   sleep(1);
   
   if(!close_latseq()) {
@@ -235,6 +240,50 @@ int measure_log_n()
   printf("\tvar_args=5 : %.1f ns/call\n", 1000*(double)t5/num_call); // mean : 32ns at 23-03
   printf("\tvar_args=10 : %.1f ns/call\n", 1000*(double)t10/num_call); // mean : 61ns at 23-03
 #endif
+  return 0;
+}
+
+void test_writer(FILE * f, char * tmps, int i)
+{
+  sprintf(tmps, "a%d.b%d", i, i+1);
+  fprintf(f, "%ld.%06ld %s %s\n", 1, 234567, "D write", tmps);
+}
+
+/*
+ * Compiler avec -pg
+ * résultats au 6-04-2020
+ * %   cumulative   self              self     * total           
+ * time   seconds   seconds    calls  ms/call  ms/call  name    
+ * 71.46      0.05     0.05        1    50.02    70.03  measure_writer
+ * 28.58      0.07     0.02 10000000     0.00     0.00  test_writer
+ */
+int measure_writer()
+{
+  oai_exit = 0;
+  printf("[TEST] %s\n",__func__);
+  FILE * fout = fopen("test1.lseq", "w");
+  //write header
+  char hdr[] = "# LatSeq format\n# By Alexandre Ferrieux and Flavien Ronteix Jacquet\n# timestamp\tU/D\tsrc--dest\tdataId\n#funcId ip.entry sdap.mapping sdap.header pdcp.txbuf pdcp.rohc pdcp.intcipher pdcp.header pdcp.routing rlc.am.txbuf rlc.am.seg rlc.am.header rlc.am.retbuf mac.mux mac.harq.[0-7] phy.crc phy.cbseg phy.msc phy.mod phy.map phy.ant\n";
+  fwrite(hdr, sizeof(char), sizeof(hdr) - 1, fout);
+  const int num_call = 10000000;
+  char * tmps;
+  tmps = calloc(2*10, sizeof(char));
+
+#ifdef TEST_LATSEQ
+  struct timeval begin, end;
+  gettimeofday(&begin, NULL);
+#endif
+  for (int i = 0; i < num_call; i++) {
+    test_writer(fout, tmps, i);
+  }
+#ifdef TEST_LATSEQ
+  gettimeofday(&end, NULL);
+  printf("[LATSEQ] measure_write took : "); //at 23-03, 32.8ns
+  printf("(%d) writes : %.1ld ns\n", num_call, (end.tv_usec - begin.tv_usec)/num_call);
+#endif
+  fclose(fout);
+  free(tmps);
+  oai_exit = 1;
   return 0;
 }
 
@@ -272,6 +321,10 @@ int main (int argc, char **argv)
 
   case 'n':
     (void)measure_log_n();
+    break;
+  
+  case 'w':
+    (void)measure_writer();
     break;
   
   default:
