@@ -306,13 +306,6 @@ bool dlsch_procedures(PHY_VARS_eNB *eNB,
     }
 
     start_meas(&eNB->dlsch_encoding_stats);
-/*
-#if LATSEQ
-  LATSEQ_P(
-    "phy.enc D",
-    "enb%d.cc%d.rnti%d.harq%d.fm%d.subfm%d.sym%d",
-    eNB->Mod_id, proc->CC_id, dlsch->rnti, harq_pid, frame, subframe, dlsch_harq->pdsch_start); 
-#endif*/
     dlsch_encoding_all(eNB,
 		       proc,
                        dlsch_harq->pdu,
@@ -550,6 +543,12 @@ void phy_procedures_eNB_TX(PHY_VARS_eNB *eNB,
                 dlsch0->harq_ids[frame%2][6],
                 dlsch0->harq_ids[frame%2][7]);
       } else {
+
+#if LATSEQ
+        LATSEQ_P("D mac.txreq--phy.proc",
+              "mod%d.cc%d.ue%d.rnti%d.harq%d.fm%d.subfm%d",
+              eNB->Mod_id, eNB->CC_id, UE_id, dlsch0->rnti, harq_pid, frame, subframe);
+#endif
         if (dlsch_procedures(eNB,
                              proc,
                              harq_pid,
@@ -1270,6 +1269,11 @@ void pusch_procedures(PHY_VARS_eNB *eNB,L1_rxtx_proc_t *proc) {
     else harq_pid=harq_pid0;
 
     ulsch_harq = ulsch->harq_processes[harq_pid];
+#if LATSEQ
+    LATSEQ_P("U phy.in--phy.proc",
+              "mod%d.cc%d.ue%d.rnti%d.harq%d.fm%d.subfm%d",
+              eNB->Mod_id, eNB->CC_id, i, ulsch->rnti, harq_pid, frame, subframe);
+#endif
 
     if (ulsch->rnti>0) LOG_D(PHY,"eNB->ulsch[%d]->harq_processes[harq_pid:%d] SFN/SF:%04d%d: PUSCH procedures, UE %d/%x ulsch_harq[status:%d SFN/SF:%04d%d handled:%d]\n",
                                i, harq_pid, frame,subframe,i,ulsch->rnti,
@@ -1315,12 +1319,6 @@ void pusch_procedures(PHY_VARS_eNB *eNB,L1_rxtx_proc_t *proc) {
       rx_ulsch(eNB,proc, i);
       stop_meas(&eNB->ulsch_demodulation_stats);
       start_meas(&eNB->ulsch_decoding_stats);
-#if LATSEQ
-  LATSEQ_P(
-    "phy.dec U",
-    "enb%d.cc%d.rnti%d.harq%d.fm%d.subfm%d",
-    eNB->Mod_id, proc->CC_id, ulsch->rnti, harq_pid, frame, subframe);    
-#endif
       ulsch_decoding(eNB,proc,
                            i,
                            0, // control_only_flag

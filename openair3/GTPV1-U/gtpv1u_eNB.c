@@ -51,6 +51,9 @@
 #include "gtpv1u_eNB_defs.h"
 #include "gtpv1u_eNB_task.h"
 #include "rrc_eNB_GTPV1U.h"
+#if LATSEQ
+  #include "common/utils/LATSEQ/latseq.h"
+#endif
 
 #undef GTP_DUMP_SOCKET
 
@@ -419,7 +422,9 @@ NwGtpv1uRcT gtpv1u_eNB_process_stack_req(
             }
           }
         }
-
+#if LATSEQ
+        LATSEQ_P("D ip--pdcp.in.gtp", "mod%d.ue%d.drb%d.rnti%d", gtpv1u_teid_data_p->enb_id, gtpv1u_teid_data_p->enb_id, gtpv1u_teid_data_p->eps_bearer_id);
+#endif
         result = pdcp_data_req(
                    &ctxt,
                    SRB_FLAG_NO,

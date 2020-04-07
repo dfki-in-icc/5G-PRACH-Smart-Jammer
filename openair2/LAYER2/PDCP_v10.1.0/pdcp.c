@@ -967,6 +967,9 @@ pdcp_data_ind(
       GTPV1U_ENB_TUNNEL_DATA_REQ(message_p).rab_id       = rb_id + 4;
       itti_send_msg_to_task(TASK_GTPV1_U, INSTANCE_DEFAULT, message_p);
       packet_forwarded = TRUE;
+#if LATSEQ
+      LATSEQ_P("U pdcp.out.gtp--ip","mod%d.ue%d.drb%d.rnti%d",ctxt_pP->module_id,ctxt_pP->rnti,GTPV1U_ENB_TUNNEL_DATA_REQ(message_p).rab_id, GTPV1U_ENB_TUNNEL_DATA_REQ(message_p).rnti);
+#endif
     }
   } else {
     packet_forwarded = FALSE;

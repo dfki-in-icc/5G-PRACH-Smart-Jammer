@@ -221,11 +221,6 @@ tbs_size_t mac_rlc_data_req(
     T(T_ENB_RLC_MAC_DL, T_INT(module_idP), T_INT(rntiP), T_INT(channel_idP), T_INT(ret_tb_size));
 
 #endif
-/*
-#if LATSEQ
-  LATSEQ_P("mac.mux D","mod%d.drb%d.rnti%d.lcid%d.",module_idP,65535, rntiP, channel_idP,);
-#endif
-*/
 
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_MAC_RLC_DATA_REQ,VCD_FUNCTION_OUT);
   return ret_tb_size;

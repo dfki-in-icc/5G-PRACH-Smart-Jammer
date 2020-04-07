@@ -73,7 +73,6 @@ int init_latseq(const char * filename, int debug)
   memset(&g_latseq.local_log_buffers.read_ith_thread, 0, MAX_NB_THREAD * sizeof(unsigned int));
   
   g_latseq.stats.entry_counter = 0;
-  //open log file in append mode, should we open it in the logger thread ?
 
   //init latseq_thread_t
   tls_latseq.th_latseq_id = 0;
@@ -132,9 +131,9 @@ static int write_latseq_entry(void)
   //Convert latseq_element to a string
   //entry = calloc(MAX_SIZE_LINE_OF_LOG, sizeof(char));
   //char entry[MAX_SIZE_LINE_OF_LOG] = "";
-  tmps = calloc(e->len_id * 6, sizeof(char)); // how to compute size needed ? 6 corresponds to value 999.999
+  // TODO : Check de la taille nécessaire pour éviter de free de la mémoire qui ne m'appartient pas !
+  tmps = calloc(e->len_id * 12, sizeof(char)); // how to compute size needed ? 6 corresponds to value 999.999
   //Compute time
-  //TODO : convert in 20200117_085721.954362
   uint64_t tdiff = (e->ts - g_latseq.rdtsc_zero)/(cpuf*1000);
   uint64_t tf = (g_latseq.time_zero.tv_sec*1000000L + g_latseq.time_zero.tv_usec) + tdiff;
   struct timeval etv = {
@@ -143,6 +142,7 @@ static int write_latseq_entry(void)
   };
   //Write the data identifier, e.g. do the vsprintf() here and not at measure()
   //We put the first MAX_NB_DATA_ID elements of array, even there are no MAX_NB_DATA_ID element to write. sprintf will get the firsts...
+  //TODO : check des correspondances, sinon segfault
   sprintf(
     tmps,
     e->format, 

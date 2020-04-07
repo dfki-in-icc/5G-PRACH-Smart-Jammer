@@ -120,14 +120,14 @@ rlc_tm_no_segment (
     ((struct mac_tb_req *) (pdu_p->data))->first_bit = 0;
     ((struct mac_tb_req *) (pdu_p->data))->tb_size = rlc_pP->rlc_pdu_size >> 3;
     list_add_tail_eurecom (pdu_p, &rlc_pP->pdus_to_mac_layer);
-#if LATSEQ
-    LATSEQ_P("D rlc.tx.tm--mac.mux","mod%d.drb%d.rnti%d.lcid%d.sdu%d",ctxt_pP->module_id, rlc_pP->rb_id, ctxt_pP->rnti,rlc_pP->channel_id, rlc_pP->current_sdu_index);
-#endif
     rlc_pP->buffer_occupancy -= (sdu_mngt_p->sdu_size >> 3);
     free_mem_block (rlc_pP->input_sdus[rlc_pP->current_sdu_index], __func__);
     rlc_pP->input_sdus[rlc_pP->current_sdu_index] = NULL;
     rlc_pP->current_sdu_index = (rlc_pP->current_sdu_index + 1) % rlc_pP->size_input_sdus_buffer;
     rlc_pP->nb_sdu -= 1;
+#if LATSEQ
+    LATSEQ_P("D rlc.tx.tm--mac.mux","mod%d.drb%d.rnti%d.lcid%d.sdu%d",ctxt_pP->module_id, rlc_pP->rb_id, ctxt_pP->rnti,rlc_pP->channel_id, rlc_pP->current_sdu_index);
+#endif
   }
 }
 //-----------------------------------------------------------------------------

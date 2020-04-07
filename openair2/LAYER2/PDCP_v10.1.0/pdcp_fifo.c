@@ -160,13 +160,13 @@ int pdcp_fifo_flush_sdus(const protocol_ctxt_t *const  ctxt_pP) {
     		printf("\n");
 		#endif
 #if LATSEQ
-      LATSEQ_P("U ip--pdcp.out.nas", "mod%d.drb%d", ctxt_pP->module_id, rb_id);
+      LATSEQ_P("U pdcp.out.nas--ip", "mod%d.drb%d", ctxt_pP->module_id, rb_id);
 #endif
     	ret = write(nas_sock_fd[0], &(sdu_p->data[sizeof(pdcp_data_ind_header_t)]), sizeToWrite);
 
     } else if (PDCP_USE_NETLINK) {
 #if LATSEQ
-      LATSEQ_P("U ip--pdcp.out.nl", "mod%d.drb%d", ctxt_pP->module_id, rb_id);
+      LATSEQ_P("U pdcp.out.nl--ip", "mod%d.drb%d", ctxt_pP->module_id, rb_id);
 #endif
       memcpy(NLMSG_DATA(nas_nlh_tx), (uint8_t *) sdu_p->data,  sizeToWrite);
       nas_nlh_tx->nlmsg_len = sizeToWrite;
