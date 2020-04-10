@@ -31,6 +31,9 @@
 #include "rlc_am.h"
 #include "LAYER2/MAC/mac_extern.h"
 #include "common/utils/LOG/log.h"
+#if LATSEQ
+  #include "common/utils/LATSEQ/latseq.h"
+#endif
 
 //-----------------------------------------------------------------------------
 void rlc_am_pdu_polling (
@@ -550,6 +553,11 @@ void rlc_am_segment_10 (
     pdu_mngt_p->flags.transmitted = 1;
     pdu_mngt_p->sn = RLC_AM_PREV_SN(rlc_pP->vt_s);
 
+#if LATSEQ
+    for (int i=0; i < pdu_mngt_p->nb_sdus; i++) {
+      LATSEQ_P("D rlc.tx.am--rlc.seg.am","drb%d.rnti%d:lcid%d.rsdu%d.rsn%d", rlc_pP->rb_id, ctxt_pP->rnti, rlc_pP->channel_id, pdu_mngt_p->sdus_index[i], pdu_mngt_p->sn);
+    }
+#endif
 
     //TBC: What for resetting local pointers at the end ??
     pdu_p = NULL;

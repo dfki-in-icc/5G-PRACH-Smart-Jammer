@@ -653,6 +653,9 @@ void rx_rf(RU_t *ru, L1_rxtx_proc_t *proc) {
 
   old_ts=timestamp_rx;
   setAllfromTS(timestamp_rx, proc);
+#if LATSEQ
+  LATSEQ_P("U phy.in--phy.in.proc","fm%d.subfm%d",proc->frame_rx,proc->subframe_rx);
+#endif
 }
 
 void ocp_tx_rf(RU_t *ru, L1_rxtx_proc_t *proc) {
@@ -696,6 +699,9 @@ void ocp_tx_rf(RU_t *ru, L1_rxtx_proc_t *proc) {
 #endif
 #elif defined(__arm__)
     sf_extension = (sf_extension)&0xfffffffc;
+#endif
+#if LATSEQ
+    LATSEQ_P("D phy.out.proc--phy.out","fm%d.subfm%d",proc->frame_tx,proc->subframe_tx);
 #endif
 
     for (i=0; i<ru->nb_tx; i++)

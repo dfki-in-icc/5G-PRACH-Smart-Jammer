@@ -545,9 +545,7 @@ void phy_procedures_eNB_TX(PHY_VARS_eNB *eNB,
       } else {
 
 #if LATSEQ
-        LATSEQ_P("D mac.txreq--phy.proc",
-              "mod%d.cc%d.ue%d.rnti%d.harq%d.fm%d.subfm%d",
-              eNB->Mod_id, eNB->CC_id, UE_id, dlsch0->rnti, harq_pid, frame, subframe);
+        LATSEQ_P("D mac.txreq--phy.out.proc","ue%d.rnti%d:harq%d.fm%d.subfm%d",UE_id, dlsch0->rnti, harq_pid, frame, subframe);
 #endif
         if (dlsch_procedures(eNB,
                              proc,
@@ -1269,11 +1267,6 @@ void pusch_procedures(PHY_VARS_eNB *eNB,L1_rxtx_proc_t *proc) {
     else harq_pid=harq_pid0;
 
     ulsch_harq = ulsch->harq_processes[harq_pid];
-#if LATSEQ
-    LATSEQ_P("U phy.in--phy.proc",
-              "mod%d.cc%d.ue%d.rnti%d.harq%d.fm%d.subfm%d",
-              eNB->Mod_id, eNB->CC_id, i, ulsch->rnti, harq_pid, frame, subframe);
-#endif
 
     if (ulsch->rnti>0) LOG_D(PHY,"eNB->ulsch[%d]->harq_processes[harq_pid:%d] SFN/SF:%04d%d: PUSCH procedures, UE %d/%x ulsch_harq[status:%d SFN/SF:%04d%d handled:%d]\n",
                                i, harq_pid, frame,subframe,i,ulsch->rnti,
@@ -1338,6 +1331,9 @@ void pusch_procedures(PHY_VARS_eNB *eNB,L1_rxtx_proc_t *proc) {
       ulsch->harq_mask &= ~(1 << harq_pid);
       LOG_W (PHY, "Removing stale ULSCH config for UE %x harq_pid %d (harq_mask is now 0x%2.2x)\n", ulsch->rnti, harq_pid, ulsch->harq_mask);
     }
+#if LATSEQ
+    LATSEQ_P("U phy.in.proc--mac.demux","ue%d.rnti%d:harq%d.fm%d.subfm%d",i, ulsch->rnti, harq_pid, frame, subframe);
+#endif
   }   //   for (i=0; i<NUMBER_OF_UE_MAX; i++)
   
   while (proc->nbDecode > 0) {
@@ -1345,6 +1341,7 @@ void pusch_procedures(PHY_VARS_eNB *eNB,L1_rxtx_proc_t *proc) {
     postDecode(proc, req);
     delNotifiedFIFO_elt(req);
   }
+
 }
 
 extern int      oai_exit;

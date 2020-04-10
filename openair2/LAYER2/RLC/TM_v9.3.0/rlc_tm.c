@@ -71,8 +71,18 @@ rlc_tm_send_sdu (
 
     memcpy (&rlc_pP->output_sdu_in_construction->data[rlc_pP->output_sdu_size_to_write], srcP, length_in_bytes);
 #if LATSEQ
-//TODO voir a deplacer dans pdcp pour voir l'entete
-    LATSEQ_P("U rlc.rx.tm--pdcp.rx","mod%d.drb%d.rnti%d.lcid%d",ctxt_pP->module_id, rlc_pP->rb_id, ctxt_pP->rnti,rlc_pP->channel_id);
+    if (rlc_pP->is_data_plane) {
+      //there is 2 cases for pdcp sn lenght. Put the 2 possibilities...
+      // Copied from these functions
+      // pdcp_get_sequence_number_of_pdu_with_short_sn
+      // pdcp_get_sequence_number_of_pdu_with_long_sn
+      uint8_t psn_short = (uint8_t)((unsigned char *)(rlc_pP->output_sdu_in_construction)->data[0]) & 0x7F;
+      uint16_t psn_long = 0x00;
+      psn_long = (uint8_t)((unsigned char *)(rlc_pP->output_sdu_in_construction)->data[0]) & 0x0F;
+      psn_long <<= 8;
+      psn_long |= (uint8_t)((unsigned char *)(rlc_pP->output_sdu_in_construction)->data[1]) & 0xFF;
+      LATSEQ_P("U mac.demux--pdcp.rx","drb%d.rnti%d:lcid%d.fm%d.psn%d.psn%d",rlc_pP->rb_id, ctxt_pP->rnti,rlc_pP->channel_id, ctxt_pP->frame, psn_short, psn_long);
+    }
 #endif
     rlc_data_ind (
       ctxt_pP,
@@ -126,7 +136,7 @@ rlc_tm_no_segment (
     rlc_pP->current_sdu_index = (rlc_pP->current_sdu_index + 1) % rlc_pP->size_input_sdus_buffer;
     rlc_pP->nb_sdu -= 1;
 #if LATSEQ
-    LATSEQ_P("D rlc.tx.tm--mac.mux","mod%d.drb%d.rnti%d.lcid%d.sdu%d",ctxt_pP->module_id, rlc_pP->rb_id, ctxt_pP->rnti,rlc_pP->channel_id, rlc_pP->current_sdu_index);
+    LATSEQ_P("D rlc.tx.tm--mac.mux","drb%d.rnti%d:lcid%d.rsdu%d.fm%d", rlc_pP->rb_id, ctxt_pP->rnti,rlc_pP->channel_id, rlc_pP->current_sdu_index, ctxt_pP->frame);
 #endif
   }
 }
@@ -236,7 +246,7 @@ rlc_tm_data_req (
 #endif
 #if LATSEQ
       if (rlc_p->is_data_plane) {
-        LATSEQ_P("D pdcp.tx--rlc.tx.tm","mod%d.drb%d.rnti%d.lcid%d.sdu%d", ctxt_pP->module_id, rlc_p->rb_id, ctxt_pP->rnti,rlc_p->channel_id, rlc_p->current_sdu_index);
+        LATSEQ_P("D pdcp.tx--rlc.tx.tm","drb%d.rnti%d:lcid%d.rsdu%d", rlc_p->rb_id, ctxt_pP->rnti,rlc_p->channel_id, rlc_p->current_sdu_index);
       }
 #endif
   // not in 3GPP specification but the buffer may be full if not correctly configured

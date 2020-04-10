@@ -76,9 +76,11 @@ struct mac_data_ind mac_rlc_deserialize_tb (
       LOG_T(RLC, "[MAC-RLC] DUMP RX PDU(%d bytes):\n", tb_sizeP);
       rlc_util_print_hex_octets(RLC, ((struct mac_tb_ind *) (tb_p->data))->data_ptr, tb_sizeP);
 #endif
+
       nb_tb_read = nb_tb_read + 1;
       tbs_size   = tbs_size   + tb_sizeP;
       list_add_tail_eurecom(tb_p, &data_ind.data);
+      
     }
 
     num_tbP = num_tbP - 1;
@@ -266,15 +268,6 @@ void mac_rlc_data_ind     (
     T(T_ENB_RLC_MAC_UL, T_INT(module_idP), T_INT(rntiP), T_INT(channel_idP), T_INT(tb_sizeP));
 
 #endif
-/*
-#if LATSEQ
-  LATSEQ_P(
-    "mac.demux U",
-    "enb%d.lcid%d.rnti%d.fm%d",
-    module_idP, channel_idP, rntiP, frameP
-  );
-#endif
-*/
 
   if (MBMS_flagP) {
     if (BOOL_NOT(enb_flagP)) {
@@ -295,7 +288,9 @@ void mac_rlc_data_ind     (
     rlc_mode = RLC_MODE_NONE;
     //AssertFatal (0 , "%s RLC not configured lcid %u ! (h_rc %d)\n", __FUNCTION__,channel_idP,h_rc);
   }
-
+#if LATSEQ
+  LATSEQ_P("U phy.in.proc--mac.demux", "rnti%d:lcid%d.fm%d",rntiP, channel_idP, frameP);
+#endif
   struct mac_data_ind data_ind = mac_rlc_deserialize_tb(buffer_pP, tb_sizeP, num_tbP, crcs_pP);
 
   switch (rlc_mode) {

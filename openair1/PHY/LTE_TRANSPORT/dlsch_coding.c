@@ -383,13 +383,13 @@ int dlsch_encoding(PHY_VARS_eNB *eNB,
       "enb%d.cc%d.rnti%d.harq%d.fm%d.subfm%d",
       eNB->Mod_id, proc->CC_id, dlsch->rnti, harq_pid, frame, subframe);
 #endi*/
+#if LATSEQ
+    LATSEQ_P("D mac.txreq--mac.harq","rnti%d:harq%d.fm%d.subfm%d",dlsch->rnti, harq_pid, frame, subframe);
+#endif
 
     // END_LATSEQ
     memcpy(hadlsch->b,a,(A/8)+4);
-    
-    // LATSEQ
-    // phy.seg.[harq_pid]
-    // END_LATSEQ
+
     if (lte_segmentation(hadlsch->b,
                          hadlsch->c,
                          hadlsch->B,

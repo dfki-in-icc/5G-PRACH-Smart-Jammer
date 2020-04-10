@@ -142,9 +142,18 @@ rlc_um_send_sdu (const protocol_ctxt_t* const ctxt_pP, rlc_um_entity_t *rlc_pP)
 #else
       // msg("[RLC] DATA IND ON MOD_ID %d RB ID %d, size %d\n",rlc_pP->module_id, rlc_pP->rb_id, ctxt_pP->frame,rlc_pP->output_sdu_size_to_write);
 #if LATSEQ
-//TODO voir a deplacer dans pdcp pour voir l'entete
-    if (rlc_pP->is_data_plane)
-      LATSEQ_P("U rlc.rx.um--pdcp.rx","mod%d.drb%d.rnti%d.lcid%d",ctxt_pP->module_id, rlc_pP->rb_id, ctxt_pP->rnti,rlc_pP->channel_id);
+      //there is 2 cases for pdcp sn lenght. Put the 2 possibilities...
+      // Copied from these functions
+      // pdcp_get_sequence_number_of_pdu_with_short_sn
+      // pdcp_get_sequence_number_of_pdu_with_long_sn
+      if (rlc_pP->is_data_plane) {
+        uint8_t psn_short = (uint8_t)((unsigned char *)(rlc_pP->output_sdu_in_construction)->data[0]) & 0x7F;
+        uint16_t psn_long = 0x00;
+        psn_long = (uint8_t)((unsigned char *)(rlc_pP->output_sdu_in_construction)->data[0]) & 0x0F;
+        psn_long <<= 8;
+        psn_long |= (uint8_t)((unsigned char *)(rlc_pP->output_sdu_in_construction)->data[1]) & 0xFF;
+        LATSEQ_P("U rlc.unseg.um--pdcp.rx","drb%d.rnti%d:lcid%d.rsn%d.psn%d.psn%d", rlc_pP->rb_id, ctxt_pP->rnti,rlc_pP->channel_id, rlc_pP->last_reassemblied_sn, psn_short, psn_long);
+      }
 #endif
       rlc_data_ind (
         ctxt_pP,

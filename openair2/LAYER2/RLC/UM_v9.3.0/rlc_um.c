@@ -496,7 +496,7 @@ rlc_um_mac_data_request (const protocol_ctxt_t *const ctxt_pP, void *rlc_pP,cons
         continue;
       }
 
-      if (MESSAGE_CHART_GENERATOR || LOG_DEBUGFLAG(DEBUG_RLC) ) {
+      if (LATSEQ || MESSAGE_CHART_GENERATOR || LOG_DEBUGFLAG(DEBUG_RLC) ) {
         rlc_um_get_pdu_infos(ctxt_pP, l_rlc_p,(rlc_um_pdu_sn_10_t *) ((struct mac_tb_req *) (tb_p->data))->data_ptr, tb_size_in_bytes, &pdu_info, l_rlc_p->rx_sn_length);
 
         if(MESSAGE_CHART_GENERATOR) {
@@ -578,11 +578,11 @@ rlc_um_mac_data_request (const protocol_ctxt_t *const ctxt_pP, void *rlc_pP,cons
           message_string_size += sprintf(&message_string[message_string_size], " |\n");
           LOG_UI(RLC, "%s\n", message_string);
         } /*LOG_DEBUGFLAG(DEBUG_RLC) */
-      } /* MESSAGE_CHART_GENERATOR || LOG_DEBUGFLAG(DEBUG_RLC) */
 #if LATSEQ
-    rlc_um_get_pdu_infos(ctxt_pP, l_rlc_p,(rlc_um_pdu_sn_10_t *) ((struct mac_tb_req *) (tb_p->data))->data_ptr, tb_size_in_bytes, &pdu_info, l_rlc_p->rx_sn_length);
-    LATSEQ_P("D rlc.tx.um--mac.mux","mod%d.drb%d.rnti%d.lcid%d.sn%d",ctxt_pP->module_id, l_rlc_p->rb_id, ctxt_pP->rnti,l_rlc_p->channel_id, pdu_info.sn);
+        LATSEQ_P("D rlc.seg.um--mac.mux","drb%d.rnti%d:lcid%d.rsn%d",l_rlc_p->rb_id, ctxt_pP->rnti,l_rlc_p->channel_id, pdu_info.sn);
 #endif
+      } /* MESSAGE_CHART_GENERATOR || LOG_DEBUGFLAG(DEBUG_RLC) */
+
       tb_p = tb_p->next;
     } /* while (tb_p != NULL) */
   } /* if (data_req.data.nb_elements > 0) */
@@ -672,7 +672,7 @@ rlc_um_data_req (const protocol_ctxt_t *const ctxt_pP, void *rlc_pP, mem_block_t
   }
 #if LATSEQ
       if (rlc_p->is_data_plane) {
-        LATSEQ_P("D pdcp.tx--rlc.tx.um","mod%d.drb%d.rnti%d.lcid%d.sdu%d", ctxt_pP->module_id, rlc_p->rb_id, ctxt_pP->rnti,rlc_p->channel_id, ctxt_pP->frame);
+        LATSEQ_P("D pdcp.tx--rlc.tx.um","drb%d.rnti%d:lcid%d.rsdu%d", rlc_p->rb_id, ctxt_pP->rnti,rlc_p->channel_id, ctxt_pP->frame);
       }
 #endif
 

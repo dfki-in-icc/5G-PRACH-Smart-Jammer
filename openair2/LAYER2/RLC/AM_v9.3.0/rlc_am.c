@@ -631,7 +631,7 @@ rlc_am_mac_data_request (
 
   data_req.rlc_info.rlc_protocol_state = l_rlc_p->protocol_state;
 
-  if ( (MESSAGE_CHART_GENERATOR || LOG_DEBUGFLAG(DEBUG_RLC))&& data_req.data.nb_elements > 0) {
+  if ( (LATSEQ || MESSAGE_CHART_GENERATOR || LOG_DEBUGFLAG(DEBUG_RLC))&& data_req.data.nb_elements > 0) {
     tb_p = data_req.data.head;
 
     while (tb_p != NULL) {
@@ -741,7 +741,8 @@ rlc_am_mac_data_request (
           } /* LOG_DEBUGFLAG(DEBUG_RLC) */
         }
 #if LATSEQ
-    LATSEQ_P("D rlc.tx.am--mac.mux","mod%d.drb%d.rnti%d.lcid%d.sn%d.so%d",ctxt_pP->module_id, l_rlc_p->rb_id, ctxt_pP->rnti,l_rlc_p->channel_id, pdu_info.sn, pdu_info.so);
+    LATSEQ_P("D rlc.seg.am--mac.mux","drb%d.rnti%d:lcid%d.rsn%d.fm%d", l_rlc_p->rb_id, ctxt_pP->rnti,l_rlc_p->channel_id, pdu_info.sn, ctxt_pP->frame);
+    //.so%d : pdu_info.so
 #endif
       } else {
         if (rlc_am_get_control_pdu_infos(rlc_am_pdu_sn_10_p, &tb_size_in_bytes, &l_rlc_p->control_pdu_info) >= 0) {
@@ -1043,12 +1044,6 @@ rlc_am_data_req (
       PROTOCOL_RLC_AM_MSC_ARGS(ctxt_pP, l_rlc_p),
       data_size,
       mui);
-#if LATSEQ
-      if (l_rlc_p->is_data_plane) {
-        LATSEQ_P("D pdcp.tx--rlc.tx.am","mod%d.drb%d.rnti%d.lcid%d.mui%d", ctxt_pP->module_id, l_rlc_p->rb_id, ctxt_pP->rnti,l_rlc_p->channel_id, mui);
-      }
-#endif
-
 
     if (LOG_DEBUGFLAG(DEBUG_RLC)) {
       message_string_size += sprintf(&message_string[message_string_size], "Bearer      : %ld\n", l_rlc_p->rb_id);
@@ -1088,7 +1083,11 @@ rlc_am_data_req (
       message_string_size += sprintf(&message_string[message_string_size], " |\n");
       LOG_UI(RLC, "%s\n", message_string);
     } /* LOG_DEBUGFLAG(RLC) */
-
+#if LATSEQ
+      if (l_rlc_p->is_data_plane) {
+        LATSEQ_P("D pdcp.tx--rlc.tx.am","drb%d.rnti%d:mui%d.lcid%d.rsdu", l_rlc_p->rb_id, ctxt_pP->rnti, mui, l_rlc_p->channel_id, l_rlc_p->next_sdu_index);
+      }
+#endif
     l_rlc_p->stat_tx_pdcp_sdu   += 1;
     l_rlc_p->stat_tx_pdcp_bytes += data_size;
     l_rlc_p->input_sdus[l_rlc_p->next_sdu_index].mui      = mui;
