@@ -36,7 +36,7 @@
 #define MAX_LOG_SIZE        512
 #define MAX_LOG_OCCUPANCY   384 // Should be < MAX_LOG_OCCUPANCY
 #define MAX_POINT_NAME_SIZE 32
-#define MAX_LEN_DATA_ID     16
+#define MAX_LEN_DATA_ID     12 //correspond to name + value. value might be represent with 6 chars
 #define MAX_NB_DATA_ID      16
 #define NB_DATA_IDENTIFIERS 10 // to update according to distinct data identifier used in point
 //link to the NB_DATA_IDENTIFIERS
@@ -54,9 +54,7 @@ static const char LATSEQ_IDENTIFIERS[NB_DATA_IDENTIFIERS][8] = {
 };
 #define MAX_DATA_ID_SIZE 128 // > (4+8)x7 
 #define MAX_SIZE_LINE_OF_LOG 256 // ts=8c + pointname=MAX_POINT_NAME_SIZEc + identifier=NB_DATA_IDENTIFIERx(4c name + 4c number) (Worst-case)
-//#define LATSEQ_P(p, i) log_measure(p, i); // LatSeq point, nb of id and ids...
-// TODO: version avec LATSEQ_P1, P2,...
-//#define LATSEQ_P(p, f, ...) do {log_measure(p, f, __VA_ARGS__, -1); } while(0) // -1 to stop iterate on va_arg. assumption : all values of ids are >= 0.
+
 #define LATSEQ_P3(p, f, i1) do {log_measure1(p, f, i1); } while(0)
 #define LATSEQ_P4(p, f, i1, i2) do {log_measure2(p, f, i1, i2); } while(0)
 #define LATSEQ_P5(p, f, i1, i2, i3) do {log_measure3(p, f, i1, i2, i3); } while(0)

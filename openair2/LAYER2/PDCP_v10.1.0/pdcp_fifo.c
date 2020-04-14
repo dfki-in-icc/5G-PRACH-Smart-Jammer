@@ -267,7 +267,7 @@ int pdcp_fifo_read_input_sdus_fromtun (const protocol_ctxt_t *const  ctxt_pP) {
             ctxt.frame, ctxt.instance, rab_id, len, ctxt.module_id,
             ctxt.rnti, rab_id);
 #if LATSEQ
-      LATSEQ_P("D ip--pdcp.in.tun", "drb%d.rnti%d", ctxt.module_id, rab_id, ctxt.rnti);
+      LATSEQ_P("D ip--pdcp.in.tun", "drb%d.rnti%d", rab_id, ctxt.rnti);
 #endif
 #if defined  ENABLE_PDCP_PAYLOAD_DEBUG
       LOG_I(PHY, "TUN interface output received from PDCP: \n");
@@ -474,7 +474,7 @@ int pdcp_fifo_read_input_sdus_fromnetlinksock (const protocol_ctxt_t *const  ctx
                       ctxt.rnti,
                       rab_id);
 #if LATSEQ
-                LATSEQ_P("D ip--pdcp.in.nl", "drb%d.rnti%d", ctxt.module_id, rab_id, ctxt.rnti);
+                LATSEQ_P("D ip--pdcp.in.nl", "drb%d.rnti%d", rab_id, ctxt.rnti);
 #endif
                 pdcp_data_req(&ctxt,
                               SRB_FLAG_NO,

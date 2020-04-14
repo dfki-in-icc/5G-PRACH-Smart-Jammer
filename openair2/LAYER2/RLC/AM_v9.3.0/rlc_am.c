@@ -1085,7 +1085,7 @@ rlc_am_data_req (
     } /* LOG_DEBUGFLAG(RLC) */
 #if LATSEQ
       if (l_rlc_p->is_data_plane) {
-        LATSEQ_P("D pdcp.tx--rlc.tx.am","drb%d.rnti%d:mui%d.lcid%d.rsdu", l_rlc_p->rb_id, ctxt_pP->rnti, mui, l_rlc_p->channel_id, l_rlc_p->next_sdu_index);
+        LATSEQ_P("D pdcp.tx--rlc.tx.am","drb%d.rnti%d:mui%d.lcid%d.rsdu%d", l_rlc_p->rb_id, ctxt_pP->rnti, mui, l_rlc_p->channel_id, l_rlc_p->next_sdu_index);
       }
 #endif
     l_rlc_p->stat_tx_pdcp_sdu   += 1;

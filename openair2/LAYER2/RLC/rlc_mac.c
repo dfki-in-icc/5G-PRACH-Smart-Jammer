@@ -288,9 +288,11 @@ void mac_rlc_data_ind     (
     rlc_mode = RLC_MODE_NONE;
     //AssertFatal (0 , "%s RLC not configured lcid %u ! (h_rc %d)\n", __FUNCTION__,channel_idP,h_rc);
   }
+/*
 #if LATSEQ
   LATSEQ_P("U phy.in.proc--mac.demux", "rnti%d:lcid%d.fm%d",rntiP, channel_idP, frameP);
 #endif
+*/
   struct mac_data_ind data_ind = mac_rlc_deserialize_tb(buffer_pP, tb_sizeP, num_tbP, crcs_pP);
 
   switch (rlc_mode) {

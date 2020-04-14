@@ -5,11 +5,12 @@ LATSEQ_PATH="$OAI_PATH/common/utils/LATSEQ"
 LATSEQ_TOKEN="LATSEQ_P("
 LATSEQ_H_INC="#include \"common/utils/LATSEQ/latseq.h\""
 NB_TOKEN_BEFORE_VARARGS=2
+error=0
 
 usage() {
     echo "the absolute path to oai should be given as first argument"
-    echo "-v\t : to increase verbosity"
-    echo "-p\t : print internal variables of latseq"
+    echo -e "-v \t : to increase verbosity"
+    echo -e "-p \t : print internal variables of latseq"
     exit
 }
 
@@ -26,17 +27,21 @@ check_latseq_p() {
     if [[ ! -z "$VERBOSE" ]] ; then echo "checking line... $1:$2"; fi
     # check the presence of include latseq 0 if found
     if [ `grep "$LATSEQ_H_INC" $1 >/dev/null; echo $?` -eq 1 ]; then 
-        echo -e "\e[31m\e[1m[INCLUDE]\t$1\e[21m : $LATSEQ_H_INC is missing\e[0m";
+        echo -e "\e[31m\e[1m[INCLUDE]\t$1\e[21m :\n\t$LATSEQ_H_INC is missing\e[0m";
+        error=$((error+1));
     fi
     # check if LATSEQ_P not empty
     if [[ "$2" != *");" ]] ; then 
-        echo -e "\e[31m\e[1m[EMPTY]\t\t$1:$2\e[21m : LATSEQ_P empty or multilined\e[0m";
+        echo -e "\e[31m\e[1m[EMPTY]\t\t$1:$2\e[21m :\n\tLATSEQ_P empty or multilined\e[0m";
+        error=$((error+1));
+        exit
     fi
     # check number of argument
     nbArgsFmt=$(echo $2 | grep -o "%d" | wc -l)
     nbArgsGiven=$((`echo $2 | tr -dc ',' | wc -c` + 1 - NB_TOKEN_BEFORE_VARARGS))
     if [ "$nbArgsFmt" -ne "$nbArgsGiven" ]; then
-        echo -e "\e[31m\e[1m[NB_VAR]\t$1:$2\e[21m : number of arguments for format ($nbArgsFmt) and given ($nbArgsGiven) are different\e[0m";
+        echo -e "\e[31m\e[1m[NB_VAR]\t$1:$2\e[21m :\n\tnumber of arguments for format ($nbArgsFmt) and given ($nbArgsGiven) are different\e[0m";
+        error=$((error+1));
     fi
     # check the variable length
     #   get the entry length in sources
@@ -46,7 +51,8 @@ check_latseq_p() {
     fmtLen=${#fmtLen}
     computedLen=$((fmtLen + nbArgsFmt*4))
     if [ "$computedLen" -gt $((nbArgsFmt*ENTRY_MAX_LEN)) ]; then
-        echo -e "\e[31m\e[1m[DATAID_LEN]\t$1:$2\e[21m : Not enough space reserved for data id ($computedLen vs $ENTRY_MAX_LEN)\e[0m";
+        echo -e "\e[31m\e[1m[DATAID_LEN]\t$1:$2\e[21m :\n\tNot enough space reserved for data id ($computedLen vs $ENTRY_MAX_LEN)\e[0m";
+        error=$((error+1));
     fi
 
 }
@@ -82,3 +88,4 @@ do
     fi
     F_OLD=$F
 done
+echo "LatSeq checker finished with $error error(s)"

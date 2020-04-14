@@ -132,7 +132,7 @@ static int write_latseq_entry(void)
   //entry = calloc(MAX_SIZE_LINE_OF_LOG, sizeof(char));
   //char entry[MAX_SIZE_LINE_OF_LOG] = "";
   // TODO : Check de la taille nécessaire pour éviter de free de la mémoire qui ne m'appartient pas !
-  tmps = calloc(e->len_id * 12, sizeof(char)); // how to compute size needed ? 6 corresponds to value 999.999
+  tmps = calloc(e->len_id * MAX_LEN_DATA_ID, sizeof(char)); // how to compute size needed ? 6 corresponds to value 999.999
   //Compute time
   uint64_t tdiff = (e->ts - g_latseq.rdtsc_zero)/(cpuf*1000);
   uint64_t tf = (g_latseq.time_zero.tv_sec*1000000L + g_latseq.time_zero.tv_usec) + tdiff;

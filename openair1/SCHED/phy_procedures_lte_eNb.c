@@ -543,10 +543,11 @@ void phy_procedures_eNB_TX(PHY_VARS_eNB *eNB,
                 dlsch0->harq_ids[frame%2][6],
                 dlsch0->harq_ids[frame%2][7]);
       } else {
-
+/*
 #if LATSEQ
         LATSEQ_P("D mac.txreq--phy.out.proc","ue%d.rnti%d:harq%d.fm%d.subfm%d",UE_id, dlsch0->rnti, harq_pid, frame, subframe);
 #endif
+*/
         if (dlsch_procedures(eNB,
                              proc,
                              harq_pid,
@@ -1331,9 +1332,11 @@ void pusch_procedures(PHY_VARS_eNB *eNB,L1_rxtx_proc_t *proc) {
       ulsch->harq_mask &= ~(1 << harq_pid);
       LOG_W (PHY, "Removing stale ULSCH config for UE %x harq_pid %d (harq_mask is now 0x%2.2x)\n", ulsch->rnti, harq_pid, ulsch->harq_mask);
     }
+/*
 #if LATSEQ
     LATSEQ_P("U phy.in.proc--mac.demux","ue%d.rnti%d:harq%d.fm%d.subfm%d",i, ulsch->rnti, harq_pid, frame, subframe);
 #endif
+*/
   }   //   for (i=0; i<NUMBER_OF_UE_MAX; i++)
   
   while (proc->nbDecode > 0) {
