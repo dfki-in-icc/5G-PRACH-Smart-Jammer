@@ -81,7 +81,7 @@ rlc_tm_send_sdu (
       psn_long = (uint8_t)((unsigned char *)(rlc_pP->output_sdu_in_construction)->data[0]) & 0x0F;
       psn_long <<= 8;
       psn_long |= (uint8_t)((unsigned char *)(rlc_pP->output_sdu_in_construction)->data[1]) & 0xFF;
-      LATSEQ_P("U mac.demux--pdcp.rx","drb%d.rnti%d:lcid%d.fm%d.psn%d.psn%d",rlc_pP->rb_id, ctxt_pP->rnti,rlc_pP->channel_id, ctxt_pP->frame, psn_short, psn_long);
+      LATSEQ_P("U mac.demux--pdcp.rx","len%d:drb%d.rnti%d.fm%d:lcid%d.psn%d.psn%d", length_in_bytes, rlc_pP->rb_id, ctxt_pP->rnti, ctxt_pP->frame,rlc_pP->channel_id, psn_short, psn_long);
     }
 #endif
     rlc_data_ind (
@@ -136,7 +136,7 @@ rlc_tm_no_segment (
     rlc_pP->current_sdu_index = (rlc_pP->current_sdu_index + 1) % rlc_pP->size_input_sdus_buffer;
     rlc_pP->nb_sdu -= 1;
 #if LATSEQ
-    LATSEQ_P("D rlc.tx.tm--mac.mux","drb%d.rnti%d:lcid%d.rsdu%d.fm%d", rlc_pP->rb_id, ctxt_pP->rnti,rlc_pP->channel_id, rlc_pP->current_sdu_index, ctxt_pP->frame);
+    LATSEQ_P("D rlc.tx.tm--mac.mux","len%d:drb%d.rnti%d.fm%d:lcid%d.rsdu%d", sdu_mngt_p->sdu_size, rlc_pP->rb_id, ctxt_pP->rnti, ctxt_pP->frame,rlc_pP->channel_id, rlc_pP->current_sdu_index);
 #endif
   }
 }
@@ -246,7 +246,7 @@ rlc_tm_data_req (
 #endif
 #if LATSEQ
       if (rlc_p->is_data_plane) {
-        LATSEQ_P("D pdcp.tx--rlc.tx.tm","drb%d.rnti%d:lcid%d.rsdu%d", rlc_p->rb_id, ctxt_pP->rnti,rlc_p->channel_id, rlc_p->current_sdu_index);
+        LATSEQ_P("D pdcp.tx--rlc.tx.tm","len%d:drb%d.rnti%d.fm%d:lcid%d.rsdu%d", ((struct rlc_um_data_req *) (sdu_pP->data))->data_size, rlc_p->rb_id, ctxt_pP->rnti, ctxt_pP->frame, rlc_p->channel_id, rlc_p->current_sdu_index);
       }
 #endif
   // not in 3GPP specification but the buffer may be full if not correctly configured

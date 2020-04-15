@@ -292,7 +292,7 @@ boolean_t pdcp_data_req(
       }
 #if LATSEQ
       if (!srb_flagP) {
-        LATSEQ_P("D pdcp.in--pdcp.tx","drb%d.rnti%d:psn%d.mui%d", rb_idP, ctxt_pP->rnti, current_sn, muiP);
+        LATSEQ_P("D pdcp.in--pdcp.tx","len%d:drb%d.rnti.fm%d%d:gsn%d.psn%d.mui%d", sdu_buffer_sizeP, rb_idP, ctxt_pP->rnti, ctxt_pP->frame, RC.gtpv1u_data_g->seq_num, current_sn, muiP);
       }
 #endif
 
@@ -924,12 +924,6 @@ pdcp_data_ind(
     return TRUE;
   }
 
-#if LATSEQ
-      if (!srb_flagP) {
-        LATSEQ_P("U pdcp.rx--pdcp.out","drb%d.rnti%d:frame%d.psn%d",rb_idP, ctxt_pP->rnti, ctxt_pP->frame, sequence_number);
-      }
-#endif
-
 
   // XXX Decompression would be done at this point
   /*
@@ -968,7 +962,7 @@ pdcp_data_ind(
       itti_send_msg_to_task(TASK_GTPV1_U, INSTANCE_DEFAULT, message_p);
       packet_forwarded = TRUE;
 #if LATSEQ
-      LATSEQ_P("U pdcp.out.gtp--ip","drb%d.rnti%d:ue%d.fm%d.psn%d",GTPV1U_ENB_TUNNEL_DATA_REQ(message_p).rab_id, GTPV1U_ENB_TUNNEL_DATA_REQ(message_p).rnti, ctxt_pP->rnti, ctxt_pP->frame, sequence_number);
+      LATSEQ_P("U pdcp.rx--ip","len%d:drb%d.rnti%d.fm%d:rab%d.psn%d",GTPV1U_ENB_TUNNEL_DATA_REQ(message_p).length, rb_id, ctxt_pP->rnti, ctxt_pP->frame, GTPV1U_ENB_TUNNEL_DATA_REQ(message_p).rab_id, sequence_number);
 #endif
     }
   } else {
@@ -1058,6 +1052,11 @@ pdcp_data_ind(
     	  LOG_I(PDCP, "%x", sdu_buffer_pP->data[i]);
       	}
       #endif
+#if LATSEQ
+      if (!srb_flagP) {
+        LATSEQ_P("U pdcp.rx--pdcp.out","len%d:drb%d.rnti%d.fm%d:l2id%d.psn%d",(sdu_buffer_sizeP - payload_offset), rb_id, ctxt_pP->rnti, ctxt_pP->frame, ((pdcp_data_ind_header_t *)(new_sdu_p->data))->destinationL2Id, sequence_number);
+      }
+#endif
       list_add_tail_eurecom (new_sdu_p, sdu_list_p);
     }
 

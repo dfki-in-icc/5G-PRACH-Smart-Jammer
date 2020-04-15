@@ -543,11 +543,11 @@ void phy_procedures_eNB_TX(PHY_VARS_eNB *eNB,
                 dlsch0->harq_ids[frame%2][6],
                 dlsch0->harq_ids[frame%2][7]);
       } else {
-/*
+
 #if LATSEQ
         LATSEQ_P("D mac.txreq--phy.out.proc","ue%d.rnti%d:harq%d.fm%d.subfm%d",UE_id, dlsch0->rnti, harq_pid, frame, subframe);
 #endif
-*/
+
         if (dlsch_procedures(eNB,
                              proc,
                              harq_pid,
@@ -1334,7 +1334,7 @@ void pusch_procedures(PHY_VARS_eNB *eNB,L1_rxtx_proc_t *proc) {
     }
 /*
 #if LATSEQ
-    LATSEQ_P("U phy.in.proc--mac.demux","ue%d.rnti%d:harq%d.fm%d.subfm%d",i, ulsch->rnti, harq_pid, frame, subframe);
+    LATSEQ_P("U phy.in.proc--mac.demux","ue%d.rnti%d.fm%d:harq%d.round%d.subfm%d",i, ulsch->rnti, frame, harq_pid, ulsch_harq->round, subframe);
 #endif
 */
   }   //   for (i=0; i<NUMBER_OF_UE_MAX; i++)

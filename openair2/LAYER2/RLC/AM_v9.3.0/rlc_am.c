@@ -741,7 +741,7 @@ rlc_am_mac_data_request (
           } /* LOG_DEBUGFLAG(DEBUG_RLC) */
         }
 #if LATSEQ
-    LATSEQ_P("D rlc.seg.am--mac.mux","drb%d.rnti%d:lcid%d.rsn%d.fm%d", l_rlc_p->rb_id, ctxt_pP->rnti,l_rlc_p->channel_id, pdu_info.sn, ctxt_pP->frame);
+    LATSEQ_P("D rlc.seg.am--mac.mux","len%d:drb%d.rnti%d.fm%d:lcid%d.rsn%d", tb_size_in_bytes, l_rlc_p->rb_id, ctxt_pP->rnti,ctxt_pP->frame, l_rlc_p->channel_id, pdu_info.sn);
     //.so%d : pdu_info.so
 #endif
       } else {
@@ -1085,7 +1085,7 @@ rlc_am_data_req (
     } /* LOG_DEBUGFLAG(RLC) */
 #if LATSEQ
       if (l_rlc_p->is_data_plane) {
-        LATSEQ_P("D pdcp.tx--rlc.tx.am","drb%d.rnti%d:mui%d.lcid%d.rsdu%d", l_rlc_p->rb_id, ctxt_pP->rnti, mui, l_rlc_p->channel_id, l_rlc_p->next_sdu_index);
+        LATSEQ_P("D pdcp.tx--rlc.tx.am","len%d:drb%d.rnti%d.fm%d:mui%d.lcid%d.rsdu%d", data_size, l_rlc_p->rb_id, ctxt_pP->rnti, ctxt_pP->frame, mui, l_rlc_p->channel_id, l_rlc_p->next_sdu_index);
       }
 #endif
     l_rlc_p->stat_tx_pdcp_sdu   += 1;

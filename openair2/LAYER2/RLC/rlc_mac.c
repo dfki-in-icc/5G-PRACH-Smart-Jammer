@@ -290,9 +290,10 @@ void mac_rlc_data_ind     (
   }
 /*
 #if LATSEQ
-  LATSEQ_P("U phy.in.proc--mac.demux", "rnti%d:lcid%d.fm%d",rntiP, channel_idP, frameP);
+  LATSEQ_P("U phy.in.proc--mac.demux", "drb%d.rnti%d.fm%d:lcid%d",&rlc_union_p->rlc.am->rb_id, rntiP, frameP, channel_idP);
 #endif
 */
+
   struct mac_data_ind data_ind = mac_rlc_deserialize_tb(buffer_pP, tb_sizeP, num_tbP, crcs_pP);
 
   switch (rlc_mode) {
