@@ -71,4 +71,18 @@ pp_impl_param_t static_dl_init(module_id_t mod_id, int CC_id);
 pp_impl_param_t static_ul_init(module_id_t mod_id, int CC_id);
 
 
+#define NVS_SLICING 20
+/* arbitrary upper limit, increase if you want to instantiate more slices */
+#define MAX_NVS_SLICES 10
+/* window for slice weight averaging -> 1s for fine granularity */
+#define BETA 0.001f
+typedef struct {
+  enum nvs_type {NVS_RATE, NVS_RES} type;
+  union {
+    struct { float Mbps_reserved; float Mbps_reference; };
+    struct { float pct_reserved; };
+  };
+} nvs_slice_param_t;
+pp_impl_param_t nvs_dl_init(module_id_t mod_id, int CC_id);
+
 #endif /* __SLICING_H__ */

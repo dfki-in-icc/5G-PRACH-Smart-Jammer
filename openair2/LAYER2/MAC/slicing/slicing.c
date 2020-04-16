@@ -604,3 +604,403 @@ pp_impl_param_t static_ul_init(module_id_t mod_id, int CC_id) {
 
   return sttc;
 }
+
+/************************* NVS Slicing Implementation **************************/
+
+typedef struct {
+  float exp; // exponential weight. mov. avg for weight calc
+  int   rb;  // number of RBs this slice has been scheduled in last round
+  float eff; // effective rate for rate slices
+  float beta_eff; // averaging coeff so we average over roughly one second
+  int   active;   // activity state for rate slices
+} _nvs_int_t;
+
+int _nvs_admission_control(const slice_info_t *si,
+                           const nvs_slice_param_t *p,
+                           int idx) {
+  if (p->type != NVS_RATE && p->type != NVS_RES)
+    RET_FAIL(-1, "%s(): invalid slice type %d\n", __func__, p->type);
+  if (p->type == NVS_RATE && p->Mbps_reserved > p->Mbps_reference)
+    RET_FAIL(-1,
+             "%s(): a rate slice cannot reserve more than the reference rate\n",
+             __func__);
+  if (p->type == NVS_RES && p->pct_reserved > 1.0f)
+    RET_FAIL(-1, "%s(): cannot reserve more than 1.0\n", __func__);
+  float sum_req = 0.0f;
+  for (int i = 0; i < si->num; ++i) {
+    const nvs_slice_param_t *sp = i == idx ? p : si->s[i]->algo_data;
+    if (sp->type == NVS_RATE)
+      sum_req += sp->Mbps_reserved / sp->Mbps_reference;
+    else
+      sum_req += sp->pct_reserved;
+  }
+  if (idx < 0) { /* not an existing slice */
+    if (p->type == NVS_RATE)
+      sum_req += p->Mbps_reserved / p->Mbps_reference;
+    else
+      sum_req += p->pct_reserved;
+  }
+  if (sum_req > 1.0)
+    RET_FAIL(-3,
+             "%s(): admission control failed: sum of resources is %f > 1.0\n",
+             __func__, sum_req);
+  return 0;
+}
+
+int addmod_nvs_slice_dl(slice_info_t *si,
+                        int id,
+                        char *label,
+                        void *algo,
+                        void *slice_params_dl) {
+  nvs_slice_param_t *dl = slice_params_dl;
+  int index = _exists_slice(si->num, si->s, id);
+  if (index < 0 && si->num >= MAX_NVS_SLICES)
+    RET_FAIL(-2, "%s(): cannot handle more than %d slices\n", __func__, MAX_NVS_SLICES);
+
+  if (index < 0 && !dl)
+    RET_FAIL(-100, "%s(): no parameters for new slice %d, aborting\n", __func__, id);
+
+  if (dl) {
+    int rc = _nvs_admission_control(si, dl, index);
+    if (rc < 0)
+      return rc;
+  }
+
+  slice_t *s = NULL;
+  if (index >= 0) {
+    s = si->s[index];
+    if (label) {
+      if (s->label) free(s->label);
+      s->label = label;
+    }
+    if (algo) {
+      s->dl_algo.unset(&s->dl_algo.data);
+      s->dl_algo = *(default_sched_dl_algo_t *) algo;
+      if (!s->dl_algo.data)
+        s->dl_algo.data = s->dl_algo.setup();
+    }
+    if (dl) {
+      free(s->algo_data);
+      s->algo_data = dl;
+    } else { /* we have no parameters: we are done */
+      return index;
+    }
+  } else {
+    if (!algo)
+      RET_FAIL(-14, "%s(): no scheduler algorithm provided\n", __func__);
+
+    s = _add_slice(&si->num, si->s);
+    if (!s)
+      RET_FAIL(-4, "%s(): cannot allocate memory for slice\n", __func__);
+    s->int_data = malloc(sizeof(_nvs_int_t));
+    if (!s->int_data)
+      RET_FAIL(-5, "%s(): cannot allocate memory for slice internal data\n", __func__);
+
+    s->id = id;
+    s->label = label;
+    s->dl_algo = *(default_sched_dl_algo_t *) algo;
+    if (!s->dl_algo.data)
+      s->dl_algo.data = s->dl_algo.setup();
+    s->algo_data = dl;
+  }
+
+  _nvs_int_t *nvs_p = s->int_data;
+  /* reset all slice-internal parameters */
+  nvs_p->rb = 0;
+  nvs_p->active = 0;
+  if (dl->type == NVS_RATE) {
+    nvs_p->exp = dl->Mbps_reserved / dl->Mbps_reference;
+    nvs_p->eff = dl->Mbps_reference;
+  } else {
+    nvs_p->exp = dl->pct_reserved;
+    nvs_p->eff = 0; // not used
+  }
+  // scale beta so we (roughly) average the eff rate over 1s
+  nvs_p->beta_eff = BETA / nvs_p->exp;
+
+  return index < 0 ? si->num - 1 : index;
+}
+
+//int addmod_nvs_slice_ul(slice_info_t *si,
+//                        int id,
+//                        char *label,
+//                        void *slice_params_ul) {
+//  nvs_slice_param_t *sp = slice_params_ul;
+//  int index = _exists_slice(si->num, si->s, id);
+//  if (index < 0 && si->num >= MAX_NVS_SLICES)
+//    RET_FAIL(-2, "%s(): cannot handle more than %d slices\n", __func__, MAX_NVS_SLICES);
+//
+//  int rc = _nvs_admission_control(si->num, si->s, sp, index);
+//  if (rc < 0)
+//    return rc;
+//
+//  slice_t *ns = NULL;
+//  if (index < 0) {
+//    ns = _add_slice(&si->num, si->s);
+//    if (!ns)
+//      RET_FAIL(-4, "%s(): cannot allocate memory for slice\n", __func__);
+//    ns->id = id;
+//    ns->int_data = malloc(sizeof(_nvs_int_t));
+//    if (!ns->int_data)
+//      RET_FAIL(-5, "%s(): cannot allocate memory for slice internal data\n",
+//               __func__);
+//  } else {
+//    ns = si->s[index];
+//    free(ns->algo_data);
+//  }
+//  if (label) {
+//    if (ns->label)
+//      free(ns->label);
+//    ns->label = label;
+//  }
+//  ns->algo_data = sp;
+//  _nvs_int_t *nvs_p = ns->int_data;
+//  nvs_p->rb = 0;
+//  nvs_p->active = 0;
+//  if (sp->type == NVS_RATE) {
+//    nvs_p->exp = sp->Mbps_reserved;
+//    nvs_p->eff = sp->Mbps_reference;
+//  } else {
+//    nvs_p->exp = sp->pct_reserved;
+//    nvs_p->eff = 0; // not used
+//  }
+//
+//  return si->num - 1;
+//}
+
+int remove_nvs_slice_dl(slice_info_t *si, uint8_t slice_idx) {
+  if (slice_idx == 0)
+    return 0;
+  slice_t *sr = _remove_slice(&si->num, si->s, si->UE_assoc_slice, slice_idx);
+  if (!sr)
+    return 0;
+  free(sr->algo_data);
+  free(sr->int_data);
+  sr->dl_algo.unset(&sr->dl_algo.data);
+  free(sr);
+  return 1;
+}
+
+//int remove_nvs_slice_ul(slice_info_t *si, uint8_t slice_idx) {
+//  if (slice_idx == 0)
+//    return 0;
+//  slice_t *sr = _remove_slice(&si->num, si->s, si->UE_assoc_slice, slice_idx);
+//  if (!sr)
+//    return 0;
+//  free(sr->algo_data);
+//  free(sr->int_data);
+//  free(sr);
+//  return 1;
+//}
+
+void nvs_dl(module_id_t mod_id,
+               int CC_id,
+               frame_t frame,
+               sub_frame_t subframe) {
+  UE_info_t *UE_info = &RC.mac[mod_id]->UE_info;
+
+  store_dlsch_buffer(mod_id, CC_id, frame, subframe);
+
+  slice_info_t *si = RC.mac[mod_id]->pre_processor_dl.slices;
+  const COMMON_channels_t *cc = &RC.mac[mod_id]->common_channels[CC_id];
+  const uint8_t harq_pid = frame_subframe2_dl_harq_pid(cc->tdd_Config, frame, subframe);
+  for (int UE_id = UE_info->list.head; UE_id >= 0; UE_id = UE_info->list.next[UE_id]) {
+    UE_sched_ctrl_t *ue_sched_ctrl = &UE_info->UE_sched_ctrl[UE_id];
+
+    /* initialize per-UE scheduling information */
+    ue_sched_ctrl->pre_nb_available_rbs[CC_id] = 0;
+    ue_sched_ctrl->dl_pow_off[CC_id] = 2;
+    memset(ue_sched_ctrl->rballoc_sub_UE[CC_id], 0, sizeof(ue_sched_ctrl->rballoc_sub_UE[CC_id]));
+    ue_sched_ctrl->pre_dci_dl_pdu_idx = -1;
+
+    const UE_TEMPLATE *UE_template = &UE_info->UE_template[CC_id][UE_id];
+    const uint8_t round = UE_info->UE_sched_ctrl[UE_id].round[CC_id][harq_pid];
+    /* if UE has data or retransmission, mark respective slice as active */
+    if (UE_template->dl_buffer_total > 0 || round != 8) {
+      const int idx = si->UE_assoc_slice[UE_id];
+      if (idx >= 0)
+        ((_nvs_int_t *)si->s[idx]->int_data)->active = 1;
+    }
+  }
+
+  const int N_RBG = to_rbg(RC.mac[mod_id]->common_channels[CC_id].mib->message.dl_Bandwidth);
+  const int RBGsize = get_min_rb_unit(mod_id, CC_id);
+  uint8_t *vrb_map = RC.mac[mod_id]->common_channels[CC_id].vrb_map;
+  uint8_t rbgalloc_mask[N_RBG_MAX];
+  int n_rbg_sched = 0;
+  for (int i = 0; i < N_RBG; i++) {
+    // calculate mask: init to one + "AND" with vrb_map:
+    // if any RB in vrb_map is blocked (1), the current RBG will be 0
+    rbgalloc_mask[i] = 1;
+    for (int j = 0; j < RBGsize; j++)
+      rbgalloc_mask[i] &= !vrb_map[RBGsize * i + j];
+    n_rbg_sched += rbgalloc_mask[i];
+  }
+
+  const int N_RB_DL = to_prb(RC.mac[mod_id]->common_channels[CC_id].mib->message.dl_Bandwidth);
+  float maxw = 0.0f;
+  int maxidx = -1;
+  for (int i = 0; i < si->num; ++i) {
+    slice_t *s = si->s[i];
+    nvs_slice_param_t *p = s->algo_data;
+    _nvs_int_t *ip = s->int_data;
+    /* if this slice has been marked as inactive, disable to prevent that
+     * it's exp rate is uselessly driven down */
+    if (!ip->active)
+      continue;
+
+    float w = 0.0f;
+    if (p->type == NVS_RATE) {
+      float inst = 0.0f;
+      if (ip->rb > 0) { /* it was scheduled last round */
+        /* inst rate: B in last round * 8(bit) / 1000000 (Mbps) * 1000 (1ms) */
+        inst = (float) RC.mac[mod_id]->eNB_stats[CC_id].dlsch_bytes_tx * 8 / 1000;
+        ip->eff = (1.0f - ip->beta_eff) * ip->eff + ip->beta_eff * inst;
+        //LOG_W(MAC, "i %d slice %d ip->rb %d inst %f ip->eff %f\n", i, s->id, ip->rb, inst, ip->eff);
+        ip->rb = 0;
+      }
+      ip->exp = (1 - BETA) * ip->exp + BETA * inst;
+      const float rsv = p->Mbps_reserved * min(1.0f, ip->eff / p->Mbps_reference);
+      w = rsv / ip->exp;
+    } else {
+      float inst = (float)ip->rb / N_RB_DL;
+      ip->exp = (1.0f - BETA) * ip->exp + BETA * inst;
+      w = p->pct_reserved / ip->exp;
+    }
+    //LOG_I(MAC, "i %d slice %d type %d ip->exp %f w %f\n", i, s->id, p->type, ip->exp, w);
+    ip->rb = 0;
+    if (w > maxw + 0.001f) {
+      maxw = w;
+      maxidx = i;
+    }
+  }
+
+  if (maxidx < 0)
+    return;
+
+  int nb_rb = n_rbg_sched * RBGsize;
+  if (rbgalloc_mask[N_RBG - 1]
+      && (N_RB_DL == 15 || N_RB_DL == 25 || N_RB_DL == 50 || N_RB_DL == 75))
+    nb_rb -= 1;
+  ((_nvs_int_t *)si->s[maxidx]->int_data)->rb = nb_rb;
+
+  int rbg_rem = n_rbg_sched;
+  if (si->s[maxidx]->UEs.head >= 0) {
+    rbg_rem = si->s[maxidx]->dl_algo.run(mod_id,
+                                         CC_id,
+                                         frame,
+                                         subframe,
+                                         &si->s[maxidx]->UEs,
+                                         4, // max_num_ue
+                                         n_rbg_sched,
+                                         rbgalloc_mask,
+                                         si->s[maxidx]->dl_algo.data);
+  }
+  if (rbg_rem == n_rbg_sched) // if no RBGs have been used mark as inactive
+    ((_nvs_int_t *)si->s[maxidx]->int_data)->active = 0;
+
+  // the following block is meant for validation of the pre-processor to check
+  // whether all UE allocations are non-overlapping and is not necessary for
+  // scheduling functionality
+  char t[26] = "_________________________";
+  t[N_RBG] = 0;
+  for (int i = 0; i < N_RBG; i++)
+    for (int j = 0; j < RBGsize; j++)
+      if (vrb_map[RBGsize*i+j] != 0)
+        t[i] = 'x';
+  int print = 0;
+  for (int UE_id = UE_info->list.head; UE_id >= 0; UE_id = UE_info->list.next[UE_id]) {
+    const UE_sched_ctrl_t *ue_sched_ctrl = &UE_info->UE_sched_ctrl[UE_id];
+
+    if (ue_sched_ctrl->pre_nb_available_rbs[CC_id] == 0)
+      continue;
+
+    LOG_D(MAC,
+          "%4d.%d UE%d %d RBs allocated, pre MCS %d\n",
+          frame,
+          subframe,
+          UE_id,
+          ue_sched_ctrl->pre_nb_available_rbs[CC_id],
+          UE_info->eNB_UE_stats[CC_id][UE_id].dlsch_mcs1);
+
+    print = 1;
+
+    for (int i = 0; i < N_RBG; i++) {
+      if (!ue_sched_ctrl->rballoc_sub_UE[CC_id][i])
+        continue;
+      for (int j = 0; j < RBGsize; j++) {
+        if (vrb_map[RBGsize*i+j] != 0) {
+          LOG_I(MAC, "%4d.%d DL scheduler allocation list: %s\n", frame, subframe, t);
+          LOG_E(MAC, "%4d.%d: UE %d allocated at locked RB %d/RBG %d\n", frame,
+                subframe, UE_id, RBGsize * i + j, i);
+        }
+        vrb_map[RBGsize*i+j] = 1;
+      }
+      t[i] = '0' + UE_id;
+    }
+  }
+  if (print)
+    LOG_D(MAC, "%4d.%d DL scheduler allocation list: %s\n", frame, subframe, t);
+}
+
+void nvs_ul(module_id_t mod_id,
+               int CC_id,
+               frame_t frame,
+               sub_frame_t subframe,
+               frame_t sched_frame,
+               sub_frame_t sched_subframe) {
+  ulsch_scheduler_pre_processor(mod_id, CC_id, frame, subframe, sched_frame, sched_subframe);
+}
+
+void nvs_destroy(slice_info_t **si) {
+  const int n_dl = (*si)->num;
+  (*si)->num = 0;
+  for (int i = 0; i < n_dl; ++i) {
+    slice_t *s = (*si)->s[i];
+    if (s->label)
+      free(s->label);
+    free(s->algo_data);
+    free(s->int_data);
+    free(s);
+  }
+  free((*si)->s);
+}
+
+pp_impl_param_t nvs_dl_init(module_id_t mod_id, int CC_id) {
+  slice_info_t *si = calloc(1, sizeof(slice_info_t));
+  DevAssert(si);
+
+  si->num = 0;
+  si->s = calloc(MAX_NVS_SLICES, sizeof(slice_t));
+  DevAssert(si->s);
+  for (int i = 0; i < MAX_MOBILES_PER_ENB; ++i)
+    si->UE_assoc_slice[i] = -1;
+
+  /* insert default slice, all resources */
+  nvs_slice_param_t *dlp = malloc(sizeof(nvs_slice_param_t));
+  DevAssert(dlp);
+  dlp->type = NVS_RES;
+  dlp->pct_reserved = 1.0f;
+  default_sched_dl_algo_t *algo = &RC.mac[mod_id]->pre_processor_dl.dl_algo;
+  algo->data = NULL;
+  const int rc = addmod_nvs_slice_dl(si, 0, strdup("default"), algo, dlp);
+  DevAssert(0 == rc);
+  const UE_list_t *UE_list = &RC.mac[mod_id]->UE_info.list;
+  for (int UE_id = UE_list->head; UE_id >= 0; UE_id = UE_list->next[UE_id])
+    slicing_add_UE(si, UE_id);
+
+  pp_impl_param_t nvs;
+  nvs.algorithm = NVS_SLICING;
+  nvs.add_UE = slicing_add_UE;
+  nvs.remove_UE = slicing_remove_UE;
+  nvs.move_UE = slicing_move_UE;
+  nvs.addmod_slice = addmod_nvs_slice_dl;
+  nvs.remove_slice = remove_nvs_slice_dl;
+  nvs.dl = nvs_dl;
+  // current DL algo becomes default scheduler
+  nvs.dl_algo = *algo;
+  nvs.destroy = nvs_destroy;
+  nvs.slices = si;
+
+  return nvs;
+}
