@@ -217,7 +217,7 @@ void latseq_log_to_file(void)
     pthread_exit(NULL);
   }
   //write header
-  char hdr[] = "# LatSeq format\n# By Alexandre Ferrieux and Flavien Ronteix Jacquet\n# timestamp\tU/D\tsrc--dest\tdataId\n#funcId ip pdcp.in.tun pdcp.in.nl pdcp.in.gtp pdcp.in pdcp.tx rlc.tx.am rlc.seg.am rlc.tx.um rlc.seg.um rlc.tx.tm mac.mux mac.txreq phy.out.proc phy.out phy.in phy.in.proc mac.demux rlc.rx.am rlc.rx.um rlc.rx.tm pdcp.rx pdcp.out pdcp.out.nas pdcp.out.nl pdcp.out.gtp";
+  char hdr[] = "# LatSeq format\n# By Alexandre Ferrieux and Flavien Ronteix Jacquet\n# timestamp\tU/D\tsrc--dest\tlen:ctxtId:localId\n#funcId ip pdcp.in.tun pdcp.in.nl pdcp.in.gtp pdcp.in pdcp.tx rlc.tx.am rlc.seg.am rlc.tx.um rlc.seg.um rlc.tx.tm mac.mux mac.txreq phy.out.proc phy.out phy.in phy.in.proc mac.demux rlc.rx.am rlc.rx.um rlc.rx.tm pdcp.rx pdcp.out pdcp.out.nas pdcp.out.nl pdcp.out.gtp";
   fwrite(hdr, sizeof(char), sizeof(hdr) - 1, g_latseq.outstream);
 
   pthread_t thId = pthread_self();

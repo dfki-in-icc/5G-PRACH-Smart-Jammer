@@ -672,7 +672,8 @@ rlc_um_data_req (const protocol_ctxt_t *const ctxt_pP, void *rlc_pP, mem_block_t
   }
 #if LATSEQ
       if (rlc_p->is_data_plane) {
-        LATSEQ_P("D pdcp.tx--rlc.tx.um","len%d:drb%d.rnti%d.fm%d:lcid%d.rsdu%d", data_size, rlc_p->rb_id, ctxt_pP->rnti, ctxt_pP->frame,rlc_p->channel_id, ctxt_pP->frame);
+        uint16_t seqnum = (uint16_t *)(&sdu_pP->data[0]) << 8 | (uint8_t *)(&sdu_pP->data[1]);
+        LATSEQ_P("D pdcp.tx--rlc.tx.um","len%d:drb%d.rnti%d:psn%d.lcid%d.rsdu%d", ((struct rlc_um_tx_sdu_management *) (sdu_pP->data))->sdu_size, rlc_p->rb_id, ctxt_pP->rnti, seqnum, rlc_p->channel_id, ctxt_pP->frame);
       }
 #endif
 

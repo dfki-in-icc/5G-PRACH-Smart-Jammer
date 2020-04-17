@@ -58,6 +58,9 @@
 #include <dlfcn.h>
 
 #include "T.h"
+#if LATSEQ
+  #include "common/utils/LATSEQ/latseq.h"
+#endif
 
 #define ENABLE_MAC_PAYLOAD_DEBUG
 //#define DEBUG_eNB_SCHEDULER 1
@@ -1611,6 +1614,9 @@ schedule_ue_spec(module_id_t module_idP,
                                         dlsch_pdu->payload[0]);
             LOG_D(MAC, "Filled NFAPI configuration for DCI/DLSCH/TXREQ %d, new SDU\n",
                   eNB->pdu_index[CC_id]);
+#if LATSEQ
+            LATSEQ_P("D mac.mux--mac.txreq","len%d:rnti%d.fm%d:lcid%d.ue%d.harq%d.pdu%d.subfm%d", TBS, rnti, frameP, lcid, UE_id,harq_pid,eNB->pdu_index[CC_id], subframeP);
+#endif
             eNB->pdu_index[CC_id]++;
             program_dlsch_acknak(module_idP,
                                  CC_id,
