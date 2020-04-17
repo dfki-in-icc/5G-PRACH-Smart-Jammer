@@ -6,7 +6,7 @@ import operator
 import statistics
 #import math
 
-# python3 latseq_logs.py -l /home/flavien/oai/oai-laurent/common/utils/LATSEQ/lseq_stats/latseq.07042020.lseq
+# ./latseq_logs.py -l /home/flavien/latseq.16042020.lseq
 
 # TODO
 # stats at each point (time, number, sd,...)
@@ -103,12 +103,15 @@ class latseq_log:
                 e_points = e[2].split('--')
                 dataids = e[3].split(':')
                 if len(dataids) < 2:
+                    dataids.insert(0, 0)
                     dataids.append('')
-                if len(dataids) == 3:
-                    dataids.pop(0)
+                if len(dataids) < 3:
+                    dataids.insert(0, 0)
+                #if len(dataids) == 3:
+                #    dataids.pop(0)
                 ctmp = {}
-                if dataids[0] != '':
-                    for c in dataids[0].split('.'):
+                if dataids[1] != '':
+                    for c in dataids[1].split('.'):
                         try:
                             dic = matchids.match(c).groups()
                         except:
@@ -118,8 +121,8 @@ class latseq_log:
                             if dic[0] not in self.dataids:
                                 self.dataids.append(dic[0])
                 dtmp = {}
-                if dataids[1] != '':
-                    for d in dataids[1].split('.'):
+                if dataids[2] != '':
+                    for d in dataids[2].split('.'):
                         try:
                             did = matchids.match(d).groups()
                         except:
@@ -128,7 +131,7 @@ class latseq_log:
                             ctmp[did[0]] = did[1]
                             if did[0] not in self.dataids:
                                 self.dataids.append(did[0])
-                self.inputs.append((e[0], e[1], e_points[0], e_points[1], 0, ctmp, dtmp))
+                self.inputs.append((e[0], e[1], e_points[0], e_points[1], dataids[0], ctmp, dtmp))
             except:
                 print(f"[ERROR] at parsing line {e}")
                 raise
@@ -140,7 +143,15 @@ class latseq_log:
             if e_points[0] not in self.points:
                 self.points[e_points[0]] = [] # list of pointers and direction 0 for D and 1 for U
             if e_points[1] not in self.points[e_points[0]]:
-                self.points[e_points[0]].append(e_points[1])
+                # Get combinations of dest point
+                destpt = e_points[1].split('.')
+                for i in range(len(destpt)):
+                    tmps = ""
+                    j=0
+                    while j<=i:
+                        tmps += f"{destpt[j]}."
+                        j+=1
+                    self.points[e_points[0]].append(tmps[:-1])
         # Find in et out points
         # tmpD = [x[0] for x,y in self.points if y[1]==0]
         # tmpDin = tmpD
@@ -171,8 +182,8 @@ class latseq_log:
         # self.pointsInU  = tmpUin
         # self.pointsOutU = tmpUout
         self.pointsInD  = ["ip"]
-        self.pointsOutD = ["phy.out"]
-        self.pointsInU  = ["phy.in"]
+        self.pointsOutD = ["mac.mux"]
+        self.pointsInU  = ["phy.in.proc"]
         self.pointsOutU = ["ip"]
     
     def _build_paths(self):
