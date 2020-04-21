@@ -545,7 +545,8 @@ void phy_procedures_eNB_TX(PHY_VARS_eNB *eNB,
       } else {
 
 #if LATSEQ
-        LATSEQ_P("D mac.txreq--phy.out.proc","len%d:rnti%d.fm%d:ue%d.harq%d.subfm%d", dlsch0->harq_processes[harq_pid]->TBS/8,dlsch0->rnti, frame, UE_id, harq_pid,  subframe);
+//dci is always 1
+        LATSEQ_P("D mac.txreq--phy.out.proc","len%d:rnti%d.fm%d:ue%d.harq%d.subfm%d", dlsch0->harq_processes[harq_pid]->TBS/8,dlsch0->rnti, frame, UE_id, harq_pid, subframe);
 #endif
 
         if (dlsch_procedures(eNB,

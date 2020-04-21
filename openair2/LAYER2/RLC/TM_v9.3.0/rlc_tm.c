@@ -246,7 +246,7 @@ rlc_tm_data_req (
 #endif
 #if LATSEQ
       if (rlc_p->is_data_plane) {
-        uint16_t seqnum = (uint16_t *)(&sdu_pP->data[0]) << 8 | (uint8_t *)(&sdu_pP->data[1]);
+        uint8_t seqnum = (uint8_t)(&sdu_pP->data[1]);
         LATSEQ_P("D pdcp.tx--rlc.tx.tm","len%d:drb%d.rnti%d:psn%d.lcid%d.rsdu%d", ((struct rlc_um_data_req *) (sdu_pP->data))->data_size, rlc_p->rb_id, ctxt_pP->rnti, seqnum, rlc_p->channel_id, rlc_p->current_sdu_index);
       }
 #endif

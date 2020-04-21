@@ -257,7 +257,7 @@ rlc_um_segment_10 (const protocol_ctxt_t* const ctxt_pP, rlc_um_entity_t *rlc_pP
 
       data_sdu_p = (char *) &(sdu_in_buffer->data[sizeof (struct rlc_um_tx_sdu_management) + sdu_mngt_p->sdu_segmented_size]);
 #if LATSEQ
-      LATSEQ_P("D rlc.tx.um--rlc.seg.um","len%d:drb%d.rnti%d.fm%d:lcid%d.rsdu%d.rsn%d", sizeof(data_sdu_p), rlc_pP->rb_id, ctxt_pP->rnti, ctxt_pP->frame, rlc_pP->channel_id, ((struct rlc_um_tx_sdu_management *) (sdu_in_buffer->data))->sdu_creation_time, rlc_pP->vt_us);
+      LATSEQ_P("D rlc.tx.um--rlc.seg.um","len%d:drb%d.rnti%d.fm%d:lcid%d.rsdu%d.rsn%d.rso%d", sdu_mngt_p->sdu_size, rlc_pP->rb_id, ctxt_pP->rnti, ctxt_pP->frame, rlc_pP->channel_id, sdu_mngt_p->sdu_creation_time, rlc_pP->vt_us, sdu_mngt_p->sdu_segmented_size);
 #endif
 
       if (sdu_mngt_p->sdu_remaining_size > pdu_remaining_size) {
@@ -631,6 +631,7 @@ rlc_um_segment_5 (const protocol_ctxt_t* const ctxt_pP, rlc_um_entity_t *rlc_pP)
       fi_first_byte_pdu_is_first_byte_sdu = 1;
     }
 
+    // While a new sdu_in_buffer (input_sdus not empty) or continue_fill_pdu_with_sdu (means we have to continue filling a mac pdu)
     while ((sdu_in_buffer) && (continue_fill_pdu_with_sdu > 0)) {
       sdu_mngt_p = ((struct rlc_um_tx_sdu_management *) (sdu_in_buffer->data));
 
@@ -653,8 +654,10 @@ rlc_um_segment_5 (const protocol_ctxt_t* const ctxt_pP, rlc_um_entity_t *rlc_pP)
 
       data_sdu_p = (char*) &(sdu_in_buffer->data[sizeof (struct rlc_um_tx_sdu_management) + sdu_mngt_p->sdu_segmented_size]);
 
+      //LATSEQ : first place for rlc.tx.um--rlc.seg.um
+
 #if LATSEQ
-      LATSEQ_P("D rlc.tx.um--rlc.seg.um","len%d:drb%d.rnti%d.fm%d:lcid%d.rsdu%d.rsn%d", sizeof(data_sdu_p), rlc_pP->rb_id, ctxt_pP->rnti, ctxt_pP->frame, rlc_pP->channel_id, ((struct rlc_um_tx_sdu_management *) (sdu_in_buffer->data))->sdu_creation_time, rlc_pP->vt_us);
+      LATSEQ_P("D rlc.tx.um--rlc.seg.um","len%d:drb%d.rnti%d.fm%d:lcid%d.rsdu%d.rsn%d.rso%d", sdu_mngt_p->sdu_size, rlc_pP->rb_id, ctxt_pP->rnti, ctxt_pP->frame, rlc_pP->channel_id, sdu_mngt_p->sdu_creation_time, rlc_pP->vt_us, sdu_mngt_p->sdu_segmented_size);
 #endif
 
       if (sdu_mngt_p->sdu_remaining_size > pdu_remaining_size) {

@@ -1085,7 +1085,7 @@ rlc_am_data_req (
     } /* LOG_DEBUGFLAG(RLC) */
 #if LATSEQ
       if (l_rlc_p->is_data_plane) {
-        uint16_t seqnum = (uint16_t *)(&sdu_pP->data[0]) << 8 | (uint8_t *)(&sdu_pP->data[1]);
+                uint8_t seqnum = ((uint8_t *)(&sdu_pP->data[data_offset]))[1];
         LATSEQ_P("D pdcp.tx--rlc.tx.am","len%d:drb%d.rnti%d:psn%d.lcid%d.rsdu%d", ((struct rlc_am_data_req *) (sdu_pP->data))->data_size, l_rlc_p->rb_id, ctxt_pP->rnti, seqnum, l_rlc_p->channel_id, l_rlc_p->next_sdu_index);
       }
 #endif

@@ -261,7 +261,7 @@ static __inline__ void log_measure4(const char * point, const char *fmt, uint32_
   e->data_id[0] = i1;
   e->data_id[1] = i2;
   e->data_id[2] = i3;
-  e->data_id[2] = i4;
+  e->data_id[3] = i4;
   tls_latseq.i_write_head++;
 }
 
