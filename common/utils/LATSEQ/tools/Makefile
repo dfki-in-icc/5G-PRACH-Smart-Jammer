@@ -8,8 +8,8 @@ LATSEQ_DIR	= $(UTILS_DIR)/LATSEQ
 CC = gcc
 
 #CFLAGS += -m32 -DPHYSIM -DNB_ANTENNAS_RX=2 -DNB_ANTENNAS_TX=2 -I/usr/include/X11
-#CFLAGS += -I/usr/include/libxml2 -L/usr/local/lib -I/usr/include/atlas -L/usr/X11R6/lib 
-CFLAGS += -std=gnu99 #TODO : to be compiled in c99 like all oai
+#CFLAGS += -I/usr/include/libxml2 -L/usr/local/lib -I/usr/include/atlas -L/u99
+CFLAGS += -g
 CFLAGS += -Wall
 CFLAGS += -O3
 #CFLAGS += -I$(OPENAIR_DIR) -I$(OPENAIR2_COMMON) -I$(UTILS_DIR) -I$(T_TRACER_DIR) -I$(LATSEQ_DIR)  -I$(MEAS_DIR)
