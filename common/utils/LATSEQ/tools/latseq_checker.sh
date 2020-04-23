@@ -5,7 +5,10 @@ LATSEQ_PATH="$OAI_PATH/common/utils/LATSEQ"
 LATSEQ_TOKEN="LATSEQ_P("
 LATSEQ_H_INC="#include \"common/utils/LATSEQ/latseq.h\""
 NB_TOKEN_BEFORE_VARARGS=2
-errors=0
+nb_errors=0
+nb_files=0
+nb_points=0
+
 
 usage() {
     echo "the absolute path to oai should be given as first argument"
@@ -28,20 +31,25 @@ check_latseq_p() {
     # check the presence of include latseq 0 if found
     if [ `grep "$LATSEQ_H_INC" $1 >/dev/null; echo $?` -eq 1 ]; then 
         echo -e "\e[31m\e[1m[INCLUDE]\t$1\e[21m :\n\t$LATSEQ_H_INC is missing\e[0m";
-        errors=$((errors+1));
+        nb_errors=$((nb_errors+1));
     fi
     # check if LATSEQ_P not empty
-    if [[ "$2" != *");" ]] ; then 
+    if [[ "$2" != *");" ]]; then 
         echo -e "\e[31m\e[1m[EMPTY]\t\t$1:$2\e[21m :\n\tLATSEQ_P empty or multilined\e[0m";
-        errors=$((errors+1));
+        nb_errors=$((nb_errors+1));
         exit
+    fi
+    # check the format properties:globals:locals
+    if [ $(echo $2 | grep -o ":" | wc -l) -ne 2 ]; then
+        echo -e "\e[31m\e[1m[NB_VAR]\t$1:$2\e[21m :\n\tdata identifer's format should be properties:globals:locals\e[0m";
+        nb_errors=$((nb_errors+1));
     fi
     # check number of argument
     nbArgsFmt=$(echo $2 | grep -o "%d" | wc -l)
     nbArgsGiven=$((`echo $2 | tr -dc ',' | wc -c` + 1 - NB_TOKEN_BEFORE_VARARGS))
     if [ "$nbArgsFmt" -ne "$nbArgsGiven" ]; then
         echo -e "\e[31m\e[1m[NB_VAR]\t$1:$2\e[21m :\n\tnumber of arguments for format ($nbArgsFmt) and given ($nbArgsGiven) are different\e[0m";
-        errors=$((errors+1));
+        nb_errors=$((nb_errors+1));
     fi
     # check the variable length
     #   get the entry length in sources
@@ -52,7 +60,7 @@ check_latseq_p() {
     computedLen=$((fmtLen + nbArgsFmt*4))
     if [ "$computedLen" -gt $((nbArgsFmt*ENTRY_MAX_LEN)) ]; then
         echo -e "\e[31m\e[1m[DATAID_LEN]\t$1:$2\e[21m :\n\tNot enough space reserved for data id ($computedLen vs $ENTRY_MAX_LEN)\e[0m";
-        errors=$((errors+1));
+        nb_errors=$((nb_errors+1));
     fi
 
 }
@@ -80,12 +88,19 @@ case $2 in
 esac
 
 # get all files where are LATSEQ_P
-grep --exclude-dir={common,targets} --include=\*.c -rnw $OAI_PATH -e $LATSEQ_TOKEN | cut -d: -f1 | while read F
+while read F
 do
     if [[ "$F" != "$F_OLD" ]]; then 
         if [[ ! -z "$VERBOSE" ]] ; then echo "-----"; fi
-        grep $F -e $LATSEQ_TOKEN | while read L; do check_latseq_p "$F" "$L"; done
+        while read L
+        do
+            check_latseq_p "$F" "$L"
+            nb_points=$(($nb_points + 1));
+        done <<<$(grep $F -e $LATSEQ_TOKEN)
+        nb_files=$(($nb_files + 1));
     fi
     F_OLD=$F
-done
-echo "LatSeq checker finished with $errors error(s)"
+done <<<$(grep --exclude-dir={common,targets} --include=\*.c -rnw $OAI_PATH -e $LATSEQ_TOKEN | cut -d: -f1)
+echo "LatSeq checker done."
+echo "$nb_files file(s)/ $nb_points point(s) analyzed"
+echo "$nb_errors error(s)"

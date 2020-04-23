@@ -12,10 +12,11 @@ CC = gcc
 #CFLAGS += -I/usr/include/libxml2 -L/usr/local/lib -I/usr/include/atlas -L/usr/X11R6/lib 
 CFLAGS += -std=gnu99 #TODO : to be compiled in c99 like all oai
 CFLAGS += -Wall -Wconversion
-CFLAGS += -g -pg
+CFLAGS += -g
+#CFLAGS += pg
 #CFLAGS += -O3
 CFLAGS += -DLATSEQ
-#CFLAGS += -DLATSEQ_DEBUG
+CFLAGS += -DLATSEQ_DEBUG
 CFLAGS += -DTEST_LATSEQ
 CFLAGS += -I$(OPENAIR_DIR) -I$(OPENAIR2_COMMON) -I$(UTILS_DIR) -I$(T_TRACER_DIR) -I$(LATSEQ_DIR)  -I$(MEAS_DIR)
 

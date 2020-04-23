@@ -15,7 +15,7 @@ int debug_enabled;
 #endif
 
 double cpuf;
-const char * test_log = "test1.lseq";
+const char * test_log = "test.lseq";
 
 volatile int  oai_exit = 1; //Emulate global variable used by oai to indicate that oai is running
 
@@ -74,8 +74,8 @@ void thread_test1(void)
   while(!oai_exit) {
     if (!i) {
       LATSEQ_P("full3 D", "ip%d", 0);
-      //usleep(25000);
-      //LATSEQ_P("full2 D", "ip%d.mac%d", 0, 1);
+      usleep(11000);
+      LATSEQ_P("full2 D", "ip%d.mac%d", 0, 1);
       i = 1;
       continue;
     }
@@ -91,10 +91,10 @@ void thread_test2(void)
   while(!oai_exit) {
     if (!i) {
       LATSEQ_P("full3 D", "ip%d", 1);
-      //usleep(1000);
-      //LATSEQ_P("full2 D", "ip%d.mac%d", 1, 1);
-      //usleep(9000);
-      //LATSEQ_P("full1 D", "ip%d.mac%d.phy%d", 1, 1, 4);
+      usleep(1000);
+      LATSEQ_P("full2 D", "ip%d.mac%d", 1, 1);
+      usleep(9000);
+      LATSEQ_P("full1 D", "ip%d.mac%d.phy%d", 1, 1, 4);
       i = 1;
       continue;
     }
@@ -114,7 +114,7 @@ int test_multithread()
   pthread_t th2;
   pthread_create(&th1, NULL, (void *) &thread_test1, NULL);
   pthread_create(&th2, NULL, (void *) &thread_test2, NULL);
-  usleep(1000);
+  usleep(25000);
   oai_exit = 1;
   pthread_join(th1, NULL);
   pthread_join(th2, NULL);
