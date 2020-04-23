@@ -26,6 +26,7 @@ TODO
     * output a json more practical to use
     * APIify with flask to be called easily by the others modules
         https://programminghistorian.org/en/lessons/creating-apis-with-python-and-flask#creating-a-basic-flask-application
+    * Rebuild_packet with multithreading because the algorithmc complexity is huge...
 
 """
 
@@ -45,10 +46,10 @@ import statistics
 #
 
 
-def epoch_to_datetime(epoch: str) -> str:
+def epoch_to_datetime(epoch: float) -> str:
     """Convert an epoch to datetime"""
     return datetime.datetime.fromtimestamp(
-        float(epoch)).strftime('%Y-%m-%d %H:%M:%S.%f')
+        epoch).strftime('%Y-%m-%d %H:%M:%S.%f')
 
 
 def dstamp_to_epoch(dstamptime: str) -> float:
@@ -182,9 +183,6 @@ class latseq_log:
             try:
                 e_points = e[2].split('--')
                 dataids = e[3].split(':')
-                if len(dataids) < 2:
-                    dataids.insert(0, 0)
-                    dataids.append('')
                 if len(dataids) < 3:
                     continue
                 ptmp = {}
@@ -222,9 +220,18 @@ class latseq_log:
                         except Exception:
                             continue
                         else:
-                            dtmp[did[0]] = did[1]
+                            if did[0] not in dtmp:
+                                dtmp[did[0]] = did[1]
+                            else:  # case we have multiple value for the same id
+                                if isinstance(dtmp[did[0]], list):
+                                    dtmp[did[0]].append(did[1])
+                                else:
+                                    tmpl = [dtmp[did[0]], did[1]]
+                                    del dtmp[did[0]]
+                                    dtmp[did[0]] = tmpl
                             if did[0] not in self.dataids:
                                 self.dataids.append(did[0])
+
                 self.inputs.append((
                         e[0],
                         e[1],
@@ -334,8 +341,12 @@ class latseq_log:
                 self(self.logpath)
             except Exception:
                 raise Exception("Impossible to rebuild packet because the module has not been initialized correctly")
-
+        
+        total_i = len(self.inputs)
+        current_i = 0
         for p in self.inputs:  # for all input, try to build the journeys
+            current_i += 1
+            print(f"{current_i} / {total_i}")
             if p[1] == 0:  # Downlink
                 tmpIn = self.pointsInD
                 tmpOut = self.pointsOutD
@@ -351,7 +362,7 @@ class latseq_log:
                 self.journeys[newid]['set'] = list()  # set measurements of ids in inputs for this journey
                 self.journeys[newid]['set'].append(self.inputs.index(p))
                 self.journeys[newid]['set_ids'] = dict()
-                tmp_list = [f"id{newid}"]
+                tmp_list = [f"uid{newid}"]
                 for g in p[5]:
                     tmp_list.append(f"{g}{p[5][g]}")
                 for l in p[6]:
@@ -366,27 +377,42 @@ class latseq_log:
                     matched_ids_list = []
                     if self.journeys[i]['completed']:  # if the journey, not necessary to go further
                         continue  # for i in self.journeys
+
+                    if not p[2] in self.journeys[i]['next_points']:  # not expected next measurement point
+                        continue  # for i in self.journeys
+
                     match_glob = True
+                    # if len(p[5]) > 0:  # case where global context is irrelevant, lower layers
                     for k in p[5]:  # for all global ids, first filter
                         if k in self.journeys[i]['glob']:
                             if p[5][k] != self.journeys[i]['glob'][k]:
                                 match_glob = False
                                 break  # for i in self.journeys
-                        # else: Case where drb1 was not addes at the beginning
-                        #     match_glob = False
+                        else:  # The global context id is not in the contet of this journey, continue
+                            match_glob = False
+                            break
                     if not match_glob:  # global ids do not match
-                        continue  # for i in self.journeys
-
-                    if not p[2] in self.journeys[i]['next_points']:  # not expected next measurement point
                         continue  # for i in self.journeys
 
                     last_lids_list = self.inputs[self.journeys[i]['set'][-1]][6]
                     match_local = True
                     for k_lid in p[6]:  # for all local ids in measurement point
                         if k_lid in last_lids_list:  # if the local ids are present in the 2 points
-                            if p[6][k_lid] != last_lids_list[k_lid]:  # the local id k_lid do not match
-                                match_local = False
+                            if isinstance(last_lids_list[k_lid], list):  # Case we have multiple values for same id
+                                match_local_in_list = False
+                                for v in last_lids_list[k_lid]:
+                                    if p[6][k_lid] == v:  # We want only one matches the id
+                                        match_local_in_list = True
+                                        break  # for v in last_lids_list[k_lid]
+                                match_local = match_local_in_list
+                                if not match_local:
+                                    break # for k_lid in p[6]
                             else:
+                                # ignore frame value for DL
+                                if p[6][k_lid] != last_lids_list[k_lid]:  # the local id k_lid do not match
+                                    match_local = False
+                                    break  # for k_lid in p[6]
+                            if match_local:
                                 matched_ids_list.append(f"{k_lid}{p[6][k_lid]}")
                     if not match_local:
                         continue
@@ -404,7 +430,7 @@ class latseq_log:
                 
                 tmp_list.extend(x for x in matched_ids_list if x not in tmp_list)
                 self.journeys[matched_key]['set_ids'][self.journeys[matched_key]['set'][-1]] = tmp_list
-                if self.points[p[3]] in tmpOut:  # this is the last input before the great farewell
+                if p[3] in tmpOut:  # this is the last input before the great farewell
                     self.journeys[matched_key]['next_points'] = None
                     self.journeys[matched_key]['ts_out'] = p[0]
                     self.journeys[matched_key]['completed'] = True
@@ -412,17 +438,27 @@ class latseq_log:
                     self.journeys[matched_key]['next_points'] = self.points[p[2]]
 
         for j in self.journeys:  # retrieves all journey to build out_journeys
+            if not self.journeys[j]['completed']: # The journey is incomplete
+                continue
             for e in self.journeys[j]['set']: # for all elements in set of ids
                 e_tmp = self.inputs[e]
                 self.out_journeys.append((
-                    e_tmp[0],
+                    epoch_to_datetime(e_tmp[0]),
                     e_tmp[1],
                     f"{e_tmp[2]}--{e_tmp[3]}",
                     e_tmp[4],
                     '.'.join(self.journeys[j]['set_ids'][e])
                 ))
-        for e in self.yield_clean_inputs():
+        try:
+            with open("latseq.lseqj", 'w+') as f:
+                print(f"[INFO] Writing latseq.lseqj ...")
+                for e in self.yield_clean_inputs():
+                    f.write(f"{e}\n")
+        except IOError as e:
+            print(f"[ERROR] on open({self.logpath})")
             print(e)
+            raise e
+
 
 
     # GETTERS
@@ -449,7 +485,7 @@ class latseq_log:
     def yield_clean_inputs(self):
         try:
             for e in self.out_journeys:
-                yield f"{e[0]} {e[1]} (len{e[3]['len']}) {e[2]} {e[4]}"
+                yield f"{e[0]} {e[1]} (len{e[3]['len']})\t{e[2]}\t{e[4]}"
         except Exception as e:
             raise e
 
