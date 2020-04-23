@@ -555,7 +555,7 @@ void rlc_am_segment_10 (
 
 #if LATSEQ
     for (int i=0; i < pdu_mngt_p->nb_sdus; i++) {
-      LATSEQ_P("D rlc.tx.am--rlc.seg.am","len%d:drb%d.rnti%d.fm%d:lcid%d.rsdu%d.rsn%d", pdu_mngt_p->header_and_payload_size, rlc_pP->rb_id, ctxt_pP->rnti, ctxt_pP->frame, rlc_pP->channel_id, pdu_mngt_p->sdus_index[i], pdu_mngt_p->sn);
+      LATSEQ_P("D rlc.tx.am--rlc.seg.am","len%d:rnti%d:drb%d.lcid%d.rsdu%d.rsn%d", pdu_mngt_p->header_and_payload_size, ctxt_pP->rnti, rlc_pP->rb_id, rlc_pP->channel_id, pdu_mngt_p->sdus_index[i], pdu_mngt_p->sn);
     }
 #endif
 

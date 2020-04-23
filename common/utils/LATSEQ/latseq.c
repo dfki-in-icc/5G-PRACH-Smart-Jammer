@@ -185,12 +185,9 @@ static int write_latseq_entry(void)
     exit(EXIT_FAILURE);
   }
   if (g_latseq.is_debug) {
-    printf("[LATSEQ] log an entry (len %d) : %ld.%06ld %s %s\n",
-      ret,
-      etv.tv_sec,
-      etv.tv_usec,
-      e->point,
-      tmps);}
+    fprintf(g_latseq.outstream, "#debug %ld.%06ld : log an entry (len %d) for %s\n", etv.tv_sec, etv.tv_usec, ret, e->point);
+    fprintf(g_latseq.outstream, "#info %ld.%06ld : buffer occupancy (%d / %d) for thread which embedded %s\n",etv.tv_sec, etv.tv_usec, OCCUPANCY((*(&th->i_write_head)%MAX_LOG_SIZE), ((*i_read_head)%MAX_LOG_SIZE)), MAX_LOG_SIZE, e->point);
+  }
   //free(entry);
   free(tmps);
 
@@ -246,8 +243,8 @@ void latseq_log_to_file(void)
 
     //If max occupancy reached for a local buffer
     if (OCCUPANCY(reg->tls[reg->read_ith_thread]->i_write_head, reg->i_read_heads[reg->read_ith_thread]) > MAX_LOG_OCCUPANCY) {
-      if (g_latseq.is_debug)
-        fprintf(stderr, "[LATSEQ] log buffer [%d] max occupancy reached\n", reg->read_ith_thread);
+      //if (g_latseq.is_debug)
+      //  fprintf(stderr, "[LATSEQ] log buffer [%d] max occupancy reached\n", reg->read_ith_thread);
     }
 
     //Write pointed entry into log file

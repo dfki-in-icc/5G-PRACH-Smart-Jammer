@@ -1831,7 +1831,7 @@ schedule_ue_spec_fairRR(module_id_t module_idP,
                                     0 // number of beamforming vectors, not used here
                                    );
 #if LATSEQ
-            LATSEQ_P("D mac.mux--mac.txreq","len%d:rnti%d.fm%d:lcid%d.txreq%d.harq%d.subfm%d", TBS, rnti, frameP, sdu_lcids[0], eNB->pdu_index[CC_id], harq_pid, subframeP);
+            LATSEQ_P("D mac.mux--mac.txreq","len%d:rnti%d:lcid%d.harq%d.txreq%d.fm%d.subfm%d", TBS, rnti, sdu_lcids[0], harq_pid, eNB->pdu_index[CC_id], frameP, subframeP);
 #endif
             eNB->TX_req[CC_id].sfn_sf = fill_nfapi_tx_req(&eNB->TX_req[CC_id].tx_request_body,
                                         (frameP*10)+subframeP,

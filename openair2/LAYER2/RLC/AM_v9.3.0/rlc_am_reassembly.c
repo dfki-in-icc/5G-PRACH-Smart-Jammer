@@ -176,7 +176,7 @@ rlc_am_send_sdu (
         psn_long = (uint8_t)((unsigned char *)(rlc_pP->output_sdu_in_construction)->data[0]) & 0x0F;
         psn_long <<= 8;
         psn_long |= (uint8_t)((unsigned char *)(rlc_pP->output_sdu_in_construction)->data[1]) & 0xFF;
-        LATSEQ_P("U rlc.rx.am--pdcp.rx","len%d:drb%d.rnti%d.fm%d:lcid%d.rsn%d.psn%d.psn%d", rlc_pP->output_sdu_size_to_write, rlc_pP->rb_id, ctxt_pP->rnti, ctxt_pP->frame, rlc_pP->channel_id, rlc_pP->vr_r, psn_short, psn_long);
+        LATSEQ_P("U rlc.rx.am--pdcp.rx","len%d:rnti%d:drb%d.lcid%d.rsn%d.psn%d.psn%d.fm%d", rlc_pP->output_sdu_size_to_write, ctxt_pP->rnti, rlc_pP->rb_id, rlc_pP->channel_id, rlc_pP->vr_r, psn_short, psn_long, ctxt_pP->frame);
       }
 #endif
       rlc_data_ind (ctxt_pP,

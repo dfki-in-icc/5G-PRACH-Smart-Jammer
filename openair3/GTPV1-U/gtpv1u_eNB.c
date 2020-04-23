@@ -423,7 +423,7 @@ NwGtpv1uRcT gtpv1u_eNB_process_stack_req(
           }
         }
 #if LATSEQ
-        LATSEQ_P("D ip--pdcp.in.gtp", "len%d:drb%d.rnti%d:gsn%d", buffer_len, gtpv1u_teid_data_p->eps_bearer_id - 4, gtpv1u_teid_data_p->ue_id, RC.gtpv1u_data_g->seq_num);
+        LATSEQ_P("D ip--pdcp.in.gtp", "len%d:rnti%d:drb%d.gsn%d", buffer_len, gtpv1u_teid_data_p->ue_id,gtpv1u_teid_data_p->eps_bearer_id - 4, RC.gtpv1u_data_g->seq_num);
 #endif
         result = pdcp_data_req(
                    &ctxt,

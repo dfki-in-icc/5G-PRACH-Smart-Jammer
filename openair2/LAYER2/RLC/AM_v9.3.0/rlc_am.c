@@ -741,7 +741,7 @@ rlc_am_mac_data_request (
           } /* LOG_DEBUGFLAG(DEBUG_RLC) */
         }
 #if LATSEQ
-    LATSEQ_P("D rlc.seg.am--mac.mux","len%d:drb%d.rnti%d.fm%d:lcid%d.rsn%d", tb_size_in_bytes, l_rlc_p->rb_id, ctxt_pP->rnti,ctxt_pP->frame, l_rlc_p->channel_id, pdu_info.sn);
+    LATSEQ_P("D rlc.seg.am--mac.mux","len%d:rnti%d:drb%d.lcid%d.rsn%d.fm%d", tb_size_in_bytes, l_rlc_p->rb_id, ctxt_pP->rnti,ctxt_pP->frame, l_rlc_p->channel_id, pdu_info.sn);
     //.so%d : pdu_info.so
 #endif
       } else {
@@ -1086,7 +1086,7 @@ rlc_am_data_req (
 #if LATSEQ
       if (l_rlc_p->is_data_plane) {
                 uint8_t seqnum = ((uint8_t *)(&sdu_pP->data[data_offset]))[1];
-        LATSEQ_P("D pdcp.tx--rlc.tx.am","len%d:drb%d.rnti%d:psn%d.lcid%d.rsdu%d", ((struct rlc_am_data_req *) (sdu_pP->data))->data_size, l_rlc_p->rb_id, ctxt_pP->rnti, seqnum, l_rlc_p->channel_id, l_rlc_p->next_sdu_index);
+        LATSEQ_P("D pdcp.tx--rlc.tx.am","len%d:rnti%d:drb%d.psn%d.lcid%d.rsdu%d", ((struct rlc_am_data_req *) (sdu_pP->data))->data_size, ctxt_pP->rnti, l_rlc_p->rb_id, seqnum, l_rlc_p->channel_id, l_rlc_p->next_sdu_index);
       }
 #endif
     l_rlc_p->stat_tx_pdcp_sdu   += 1;

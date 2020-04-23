@@ -546,7 +546,7 @@ void phy_procedures_eNB_TX(PHY_VARS_eNB *eNB,
 
 #if LATSEQ
 //dci is always 1
-        LATSEQ_P("D mac.txreq--phy.out.proc","len%d:rnti%d.fm%d:ue%d.harq%d.subfm%d", dlsch0->harq_processes[harq_pid]->TBS/8,dlsch0->rnti, frame, UE_id, harq_pid, subframe);
+        LATSEQ_P("D mac.txreq--phy.out.proc","len%d:rnti%d:ue%d.harq%d.fm%d.subfm%d", dlsch0->harq_processes[harq_pid]->TBS/8,dlsch0->rnti, UE_id, harq_pid, frame, subframe);
 #endif
 
         if (dlsch_procedures(eNB,
@@ -1335,7 +1335,7 @@ void pusch_procedures(PHY_VARS_eNB *eNB,L1_rxtx_proc_t *proc) {
     }
 /*
 #if LATSEQ
-    LATSEQ_P("U phy.in.proc--mac.demux","ue%d.rnti%d.fm%d:harq%d.round%d.subfm%d",i, ulsch->rnti, frame, harq_pid, ulsch_harq->round, subframe);
+    LATSEQ_P_TEST("U phy.in.proc--mac.demux","ue%d.rnti%d.fm%d:harq%d.round%d.subfm%d",i, ulsch->rnti, frame, harq_pid, ulsch_harq->round, subframe);
 #endif
 */
   }   //   for (i=0; i<NUMBER_OF_UE_MAX; i++)

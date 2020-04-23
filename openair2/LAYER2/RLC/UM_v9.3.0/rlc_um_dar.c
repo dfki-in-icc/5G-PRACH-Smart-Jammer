@@ -345,7 +345,7 @@ rlc_um_try_reassembly(
       }
 #if LATSEQ
       if (rlc_pP->is_data_plane)
-        LATSEQ_P("U rlc.rx.um--rlc.unseg.um","len%d:drb%d.rnti%d.fm%d:lcid%d.rsn%d", size, rlc_pP->rb_id, ctxt_pP->rnti, ctxt_pP->frame, rlc_pP->channel_id, rlc_pP->last_reassemblied_sn);
+        LATSEQ_P("U rlc.rx.um--rlc.unseg.um","len%d:rnti%d:drb%d.lcid%d.rsn%d.fm%d", size, ctxt_pP->rnti, rlc_pP->rb_id, rlc_pP->channel_id, rlc_pP->last_reassemblied_sn, ctxt_pP->frame);
 #endif
       if (e == RLC_E_FIXED_PART_DATA_FIELD_FOLLOW) {
         switch (fi) {
@@ -1110,7 +1110,7 @@ rlc_um_receive_process_dar (
   }
 #if LATSEQ
   if (rlc_pP->is_data_plane)
-    LATSEQ_P("U mac.demux--rlc.rx.um","len%d:drb%d.rnti%d.fm%d:lcid%d.rsn%d", tb_sizeP, rlc_pP->rb_id, ctxt_pP->rnti, ctxt_pP->frame, rlc_pP->channel_id, sn);
+    LATSEQ_P("U mac.demux--rlc.rx.um","len%d:rnti%d:drb%d.lcid%d.rsn%d.fm%d", tb_sizeP, ctxt_pP->rnti, rlc_pP->rb_id, rlc_pP->channel_id, sn, ctxt_pP->frame);
 #endif
   rlc_um_store_pdu_in_dar_buffer(ctxt_pP, rlc_pP, pdu_mem_pP, sn);
 

@@ -378,7 +378,7 @@ int dlsch_encoding(PHY_VARS_eNB *eNB,
     // LATSEQ
 /*
 #if LATSEQ
-    LATSEQ_P("D mac.txreq--mac.harq","rnti%d:harq%d.fm%d.subfm%d",dlsch->rnti, harq_pid, frame, subframe);
+    LATSEQ_P_TEST("D mac.txreq--mac.harq","rnti%d:harq%d.fm%d.subfm%d",dlsch->rnti, harq_pid, frame, subframe);
 #endif
 */
 

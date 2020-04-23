@@ -1615,7 +1615,7 @@ schedule_ue_spec(module_id_t module_idP,
             LOG_D(MAC, "Filled NFAPI configuration for DCI/DLSCH/TXREQ %d, new SDU\n",
                   eNB->pdu_index[CC_id]);
 #if LATSEQ
-            LATSEQ_P("D mac.mux--mac.txreq","len%d:rnti%d.fm%d:lcid%d.txreq%d.harq%d.subfm%d", TBS, rnti, frameP, sdu_lcids[0], eNB->pdu_index[CC_id], harq_pid, subframeP);
+            LATSEQ_P("D mac.mux--mac.txreq","len%d:rnti%d:lcid%d.harq%d.txreq%d.fm%d.subfm%d", TBS, rnti, sdu_lcids[0], harq_pid, eNB->pdu_index[CC_id], frameP, subframeP);
 #endif
             eNB->pdu_index[CC_id]++;
             program_dlsch_acknak(module_idP,

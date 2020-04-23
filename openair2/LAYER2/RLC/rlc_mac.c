@@ -290,7 +290,7 @@ void mac_rlc_data_ind     (
   }
 /*
 #if LATSEQ
-  LATSEQ_P("U phy.in.proc--mac.demux", "drb%d.rnti%d.fm%d:lcid%d",&rlc_union_p->rlc.am->rb_id, rntiP, frameP, channel_idP);
+  LATSEQ_P_TEST("U phy.in.proc--mac.demux", "drb%d.rnti%d.fm%d:lcid%d",&rlc_union_p->rlc.am->rb_id, rntiP, frameP, channel_idP);
 #endif
 */
 

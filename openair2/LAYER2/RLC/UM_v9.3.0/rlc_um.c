@@ -579,7 +579,7 @@ rlc_um_mac_data_request (const protocol_ctxt_t *const ctxt_pP, void *rlc_pP,cons
           LOG_UI(RLC, "%s\n", message_string);
         } /*LOG_DEBUGFLAG(DEBUG_RLC) */
 #if LATSEQ
-        LATSEQ_P("D rlc.seg.um--mac.mux","len%d:drb%d.rnti%d.frame%d:lcid%d.rsn%d", tb_size_in_bytes, l_rlc_p->rb_id, ctxt_pP->rnti, ctxt_pP->frame,l_rlc_p->channel_id, pdu_info.sn);
+        LATSEQ_P("D rlc.seg.um--mac.mux","len%d:rnti%d:drb%d.lcid%d.rsn%d.fm%d", tb_size_in_bytes, ctxt_pP->rnti, l_rlc_p->rb_id,l_rlc_p->channel_id, pdu_info.sn, ctxt_pP->frame);
 #endif
       } /* MESSAGE_CHART_GENERATOR || LOG_DEBUGFLAG(DEBUG_RLC) */
 
@@ -673,7 +673,7 @@ rlc_um_data_req (const protocol_ctxt_t *const ctxt_pP, void *rlc_pP, mem_block_t
 #if LATSEQ
       if (rlc_p->is_data_plane) {
         uint8_t seqnum = ((uint8_t *)(&sdu_pP->data[sizeof (struct rlc_um_data_req_alloc)]))[1];
-        LATSEQ_P("D pdcp.tx--rlc.tx.um","len%d:drb%d.rnti%d:psn%d.lcid%d.rsdu%d", ((struct rlc_um_tx_sdu_management *) (sdu_pP->data))->sdu_size, rlc_p->rb_id, ctxt_pP->rnti, seqnum, rlc_p->channel_id, ctxt_pP->frame);
+        LATSEQ_P("D pdcp.tx--rlc.tx.um","len%d:rnti%d:drb%d.psn%d.lcid%d.rsdu%d", ((struct rlc_um_tx_sdu_management *) (sdu_pP->data))->sdu_size, ctxt_pP->rnti, rlc_p->rb_id, seqnum, rlc_p->channel_id, ctxt_pP->frame);
       }
 #endif
 

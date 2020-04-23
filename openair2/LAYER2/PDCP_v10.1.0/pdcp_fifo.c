@@ -160,13 +160,13 @@ int pdcp_fifo_flush_sdus(const protocol_ctxt_t *const  ctxt_pP) {
     		printf("\n");
 		#endif
 #if LATSEQ
-      LATSEQ_P("U pdcp.out.nas--ip", "len%d:drb%d.rnti%d.fm%d:sock%d.lid%d", sizeToWrite, rb_id, ctxt_pP->rnti, ctxt_pP->frame, nas_sock_fd[0], ((pdcp_data_ind_header_t *)(sdu_p->data))->destinationL2Id);
+      LATSEQ_P("U pdcp.out.nas--ip", "len%d:rnti%d:drb%d.sock%d.lid%d.fm%d", sizeToWrite, ctxt_pP->rnti, rb_id, nas_sock_fd[0], ((pdcp_data_ind_header_t *)(sdu_p->data))->destinationL2Id, ctxt_pP->frame);
 #endif
     	ret = write(nas_sock_fd[0], &(sdu_p->data[sizeof(pdcp_data_ind_header_t)]), sizeToWrite);
 
     } else if (PDCP_USE_NETLINK) {
 #if LATSEQ
-      LATSEQ_P("U pdcp.out.nl--ip", "len%d:drb%d.rnti%d.fm%d:sock%d.lid%d", sizeToWrite, rb_id, ctxt_pP->rnti, ctxt_pP->frame, nas_sock_fd[0], ((pdcp_data_ind_header_t *)(sdu_p->data))->destinationL2Id);
+      LATSEQ_P("U pdcp.out.nl--ip", "len%d:rnti%d:drb%d.sock%d.lid%d.fm%d", sizeToWrite, ctxt_pP->rnti, rb_id, nas_sock_fd[0], ((pdcp_data_ind_header_t *)(sdu_p->data))->destinationL2Id, ctxt_pP->frame);
 #endif
       memcpy(NLMSG_DATA(nas_nlh_tx), (uint8_t *) sdu_p->data,  sizeToWrite);
       nas_nlh_tx->nlmsg_len = sizeToWrite;
@@ -267,7 +267,7 @@ int pdcp_fifo_read_input_sdus_fromtun (const protocol_ctxt_t *const  ctxt_pP) {
             ctxt.frame, ctxt.instance, rab_id, len, ctxt.module_id,
             ctxt.rnti, rab_id);
 #if LATSEQ
-      LATSEQ_P("D ip--pdcp.in.tun", "len%d:drb%d.rnti%d", len, rab_id, ctxt.rnti);
+      LATSEQ_P("D ip--pdcp.in.tun", "len%d:rnti%d:drb%d", len, ctxt.rnti, rab_id);
 #endif
 #if defined  ENABLE_PDCP_PAYLOAD_DEBUG
       LOG_I(PHY, "TUN interface output received from PDCP: \n");
@@ -474,7 +474,7 @@ int pdcp_fifo_read_input_sdus_fromnetlinksock (const protocol_ctxt_t *const  ctx
                       ctxt.rnti,
                       rab_id);
 #if LATSEQ
-                LATSEQ_P("D ip--pdcp.in.nl", "len%d:drb%d.rnti%d", pdcp_read_header_g.data_size, rab_id, ctxt.rnti);
+                LATSEQ_P("D ip--pdcp.in.nl", "len%d:rnti%d:drb%d", pdcp_read_header_g.data_size, ctxt.rnti, rab_id);
 #endif
                 pdcp_data_req(&ctxt,
                               SRB_FLAG_NO,
