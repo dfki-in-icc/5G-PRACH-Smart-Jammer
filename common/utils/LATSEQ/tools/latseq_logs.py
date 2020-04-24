@@ -35,6 +35,7 @@ import re
 import datetime
 import operator
 import statistics
+from copy import deepcopy
 # import math
 
 #
@@ -49,7 +50,7 @@ import statistics
 def epoch_to_datetime(epoch: float) -> str:
     """Convert an epoch to datetime"""
     return datetime.datetime.fromtimestamp(
-        epoch).strftime('%Y-%m-%d %H:%M:%S.%f')
+        epoch).strftime('%Y%m%d_%H%M%S.%f')
 
 
 def dstamp_to_epoch(dstamptime: str) -> float:
@@ -69,6 +70,13 @@ def path_to_str(pathP: list) -> str:
     for i in range(1, len(pathP) - 1):
         res += f"{pathP[i]} -> "
     return res + f"{pathP[-1]}"
+
+def dict_ids_to_str(idsP: dict) -> str:
+    return '.'.join([f"{k}{v}" for k,v in idsP.items()])
+
+
+def make_immutable_list(listP: list) -> tuple:
+    return tuple(listP)
 
 
 #
@@ -242,6 +250,7 @@ class latseq_log:
                         dtmp))
             except Exception:
                 raise ValueError(f"Error at parsing line {e}")
+        self.inputs = make_immutable_list(self.inputs)
 
     def _build_points(self):
         """Build graph of measurement `points` and find in and out points
@@ -334,6 +343,47 @@ class latseq_log:
         self.timestamps = list(map(lambda x: x[0], self.raw_inputs))
 
     def rebuild_packets_journey(self):
+        """Rebuild the packets journey from a list of measure
+        Attributes:
+            journeys (:obj:`dict`): the dictionnary containing dictionnaries
+
+
+        """
+        def _measure_ids_in_journey(p_gids: list, p_lids: list, j_gids: list, j_last_element: dict) -> dict:
+            """Returns the dict of common identifiers if the measure is in the journey
+            Otherwise returns an empty dictionnary
+            """
+            # for all global ids, first filter
+            for k in p_gids:
+                if k in j_gids:
+                    if p_gids[k] != j_gids[k]:
+                        return {}  # False
+                else:  # The global context id is not in the contet of this journey, continue
+                    return {}  # False
+            res_matched = {}
+            # for all local ids in measurement point
+            for k_lid in p_lids:
+                if k_lid in j_last_element[6]:  # if the local ids are present in the 2 points
+                    # Case : multiple value for the same identifier
+                    if isinstance(j_last_element[6][k_lid], list):
+                        match_local_in_list = False
+                        for v in j_last_element[6][k_lid]:
+                            if p_lids[k_lid] == v:  # We want only one matches the id
+                                match_local_in_list = True
+                                res_matched[k_lid] = v
+                                # remove the multiple value for input to keep only the one used
+                                j_last_element[6][k_lid] = v
+                                break  # for v in j_last_lids[k_lid]
+                        if not match_local_in_list:
+                            return {}
+                    # Case : normal case, one value per identifier
+                    else:
+                        if p_lids[k_lid] != j_last_element[6][k_lid]:  # the local id k_lid do not match
+                            return {}
+                        else:
+                            res_matched[k_lid] = p_lids[k_lid]
+            return res_matched
+
         self.journeys = dict()
         self.out_journeys = list()
         if not self.initialized:
@@ -346,7 +396,17 @@ class latseq_log:
         current_i = 0
         for p in self.inputs:  # for all input, try to build the journeys
             current_i += 1
-            print(f"{current_i} / {total_i}")
+            if current_i % 100 == 0:
+                print(f"{current_i} / {total_i}")
+            if current_i > 3000:
+                break
+            # p[0] float : ts
+            # p[1] int : direction
+            # p[2] str : src point
+            # p[3] str : dst point
+            # p[4] dict : properties ids
+            # p[5] dict : global ids
+            # p[6] dict : local ids
             if p[1] == 0:  # Downlink
                 tmpIn = self.pointsInD
                 tmpOut = self.pointsOutD
@@ -354,101 +414,111 @@ class latseq_log:
                 tmpIn = self.pointsInU
                 tmpOut = self.pointsOutU
 
-            if p[2] in tmpIn:  # this is a packet in arrival
+            if p[2] in tmpIn:  # this is a packet in arrival, create a new journey
                 newid = len(self.journeys)
                 self.journeys[newid] = dict()
+                self.journeys[newid]['dir'] = p[1]
                 self.journeys[newid]['glob'] = p[5]  # global ids as a first filter
                 self.journeys[newid]['ts_in'] = p[0]  # timestamp of arrival
                 self.journeys[newid]['set'] = list()  # set measurements of ids in inputs for this journey
                 self.journeys[newid]['set'].append(self.inputs.index(p))
                 self.journeys[newid]['set_ids'] = dict()
-                tmp_list = [f"uid{newid}"]
-                for g in p[5]:
-                    tmp_list.append(f"{g}{p[5][g]}")
-                for l in p[6]:
-                    tmp_list.append(f"{l}{p[6][l]}")
-                self.journeys[newid]['set_ids'][self.journeys[newid]['set'][-1]] = tmp_list
+                # tmp_list = [f"uid{newid}"]
+                # for l in p[6]:
+                #     tmp_list.append(f"{l}{p[6][l]}")
+                self.journeys[newid]['set_ids'] = {'uid': newid}
+                self.journeys[newid]['set_ids'].update(p[6])
                 self.journeys[newid]['next_points'] = self.points[p[2]]  # list of possible next points
+                self.journeys[newid]['last_point'] = p[2]
                 self.journeys[newid]['completed'] = False  # True if the journey is complete
             else:  # this packet should be already followed somewhere
                 matched_key = None
-                matched_ids_list = list()
+                matched_ids = dict()
+                matched_seg = False
+                seg_new_journey = dict()
                 for i in self.journeys:  # for all keys (ids) in journeys
-                    matched_ids_list = []
-                    if self.journeys[i]['completed']:  # if the journey, not necessary to go further
+                    # Case : journey already completed
+                    # Assumption : no segmentation at the out points
+                    if self.journeys[i]['completed']:
                         continue  # for i in self.journeys
 
-                    if not p[2] in self.journeys[i]['next_points']:  # not expected next measurement point
+                    # Case : wrong direction
+                    if p[1] != self.journeys[i]['dir']:
                         continue  # for i in self.journeys
 
-                    match_glob = True
-                    # if len(p[5]) > 0:  # case where global context is irrelevant, lower layers
-                    for k in p[5]:  # for all global ids, first filter
-                        if k in self.journeys[i]['glob']:
-                            if p[5][k] != self.journeys[i]['glob'][k]:
-                                match_glob = False
+                    # Case : segmentation
+                    # False Asumption : all the segmentation will occurs before the measure of the next point
+                    if p[2] == self.journeys[i]['last_point']:
+                        if len(self.journeys[i]['set']) > 1:
+                            matched_ids = _measure_ids_in_journey(
+                                p[5],
+                                p[6],
+                                self.journeys[i]['glob'],
+                                self.inputs[self.journeys[i]['set'][-2]])
+                            if matched_ids:  # this is a fork from the point before the last point, a segmentation
+                                matched_seg = True
+                                seg_new_journey = deepcopy(self.journeys[i]) # deep copy the journey
+                                seg_new_journey['set'].pop() # we remove the last element of the set because we forked
+                                # TODO: what to do when the value is exactly the same ?
+                                seg_new_journey['set'].append(self.inputs.index(p))
+                                seg_new_journey['set_ids'].update(matched_ids)
+                                seg_new_journey['last_point'] = p[2]
                                 break  # for i in self.journeys
-                        else:  # The global context id is not in the contet of this journey, continue
-                            match_glob = False
-                            break
-                    if not match_glob:  # global ids do not match
+
+                    # Case : not expected next measurement point
+                    if self.journeys[i]['next_points'] is not None and not p[2] in self.journeys[i]['next_points']:
                         continue  # for i in self.journeys
 
-                    last_lids_list = self.inputs[self.journeys[i]['set'][-1]][6]
-                    match_local = True
-                    for k_lid in p[6]:  # for all local ids in measurement point
-                        if k_lid in last_lids_list:  # if the local ids are present in the 2 points
-                            if isinstance(last_lids_list[k_lid], list):  # Case we have multiple values for same id
-                                match_local_in_list = False
-                                for v in last_lids_list[k_lid]:
-                                    if p[6][k_lid] == v:  # We want only one matches the id
-                                        match_local_in_list = True
-                                        break  # for v in last_lids_list[k_lid]
-                                match_local = match_local_in_list
-                                if not match_local:
-                                    break # for k_lid in p[6]
-                            else:
-                                # ignore frame value for DL
-                                if p[6][k_lid] != last_lids_list[k_lid]:  # the local id k_lid do not match
-                                    match_local = False
-                                    break  # for k_lid in p[6]
-                            if match_local:
-                                matched_ids_list.append(f"{k_lid}{p[6][k_lid]}")
-                    if not match_local:
-                        continue
+                    # if len(p[5]) > 0:  # case where global context is irrelevant, lower layers
+                    # Case : packet as candidate to join this journey
+                    matched_ids = _measure_ids_in_journey(
+                        p[5],
+                        p[6],
+                        self.journeys[i]['glob'],
+                        self.inputs[self.journeys[i]['set'][-1]])
+                    if not matched_ids:  # No match
+                        continue  # for i in self.journeys
 
                     matched_key = i
                     break
 
-                # At this point we should have the good i for this packet
-                # Then add id
-                if matched_key is None:  # We cant add this input to a journey
-                    continue  # continue to the next input
+                # Case : A segmentation has been found,
+                # add seg_new_journeys to the dict
+                if matched_seg:
+                    newidseg = len(self.journeys)
+                    self.journeys[newidseg] = seg_new_journey
+                    continue # for p in self.inputs
+
+                # Case : This measure could not be added to a journey
+                if matched_key is None:
+                    continue  # for p in self.inputs
                 
-                tmp_list = list(self.journeys[matched_key]['set_ids'][self.journeys[matched_key]['set'][-1]])
+                # At this point, we have a journey id to add this measure
                 self.journeys[matched_key]['set'].append(self.inputs.index(p))
+                self.journeys[matched_key]['set_ids'].update(matched_ids)
                 
-                tmp_list.extend(x for x in matched_ids_list if x not in tmp_list)
-                self.journeys[matched_key]['set_ids'][self.journeys[matched_key]['set'][-1]] = tmp_list
                 if p[3] in tmpOut:  # this is the last input before the great farewell
                     self.journeys[matched_key]['next_points'] = None
                     self.journeys[matched_key]['ts_out'] = p[0]
                     self.journeys[matched_key]['completed'] = True
                 else:  # this is not the last input
                     self.journeys[matched_key]['next_points'] = self.points[p[2]]
+                    self.journeys[matched_key]['last_point'] = p[2]
 
-        for j in self.journeys:  # retrieves all journey to build out_journeys
-            if not self.journeys[j]['completed']: # The journey is incomplete
+        # retrieves all journey to build out_journeys
+        for j in self.journeys:
+            # Case : The journey is incomplete
+            if not self.journeys[j]['completed']:
                 continue
             for e in self.journeys[j]['set']: # for all elements in set of ids
                 e_tmp = self.inputs[e]
+                tmp_str = f"uid{j}.{dict_ids_to_str(self.journeys[j]['glob'])}.{dict_ids_to_str(e_tmp[6])}"
                 self.out_journeys.append((
                     epoch_to_datetime(e_tmp[0]),
-                    e_tmp[1],
+                    'D' if e_tmp[1] == 0 else 'U',
                     f"{e_tmp[2]}--{e_tmp[3]}",
                     e_tmp[4],
-                    '.'.join(self.journeys[j]['set_ids'][e])
-                ))
+                    tmp_str))
         try:
             with open("latseq.lseqj", 'w+') as f:
                 print(f"[INFO] Writing latseq.lseqj ...")
@@ -486,6 +556,7 @@ class latseq_log:
         try:
             for e in self.out_journeys:
                 yield f"{e[0]} {e[1]} (len{e[3]['len']})\t{e[2]}\t{e[4]}"
+                # yield f"{e[0]} {e[1]} {e[2]} {e[4]}"
         except Exception as e:
             raise e
 
