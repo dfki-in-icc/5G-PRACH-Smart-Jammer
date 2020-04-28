@@ -35,6 +35,7 @@ import re
 import datetime
 import operator
 import statistics
+import numpy
 from copy import deepcopy
 import pickle
 # import math
@@ -880,6 +881,43 @@ class latseq_log:
 class latseq_stats:
     """Class of static methods for statistics stuff for latseq
     """
+    # PRESENTATION
+    @staticmethod
+    def str_statistics(statsNameP: str, statsP: dict) -> str:
+        res_str = f"Stats for {statsNameP}\n"
+        for dir in statsP:
+            if dir == '0':
+                res_str += "Values \t\t | \t Downlink\n"
+                res_str += "------ \t\t | \t --------\n"
+            elif dir == '1':
+                res_str += "Values \t\t | \t Uplink\n"
+                res_str += "------ \t\t | \t ------\n"
+            else:
+                continue
+            keysD = statsP[dir].keys()
+            if 'size' in keysD:
+                res_str += f"Size \t\t | \t {statsP[dir]['size']}\n"
+            if 'mean' in keysD:
+                res_str += f"Average \t | \t {float(statsP[dir]['mean']):.3}\n"
+            if 'stdev' in keysD:
+                res_str += f"StDev \t\t | \t {float(statsP[dir]['stdev']):.3}\n"
+            if 'max' in keysD:
+                res_str += f"Max \t\t | \t {float(statsP[dir]['max']):.3}\n"
+            if 'quantiles' in keysD:
+                if len(statsP[dir]['quantiles']) == 5:
+                    res_str += f"[75..90%] \t | \t {float(statsP[dir]['quantiles'][4]):.3}\n"
+                    res_str += f"[50..75%] \t | \t {float(statsP[dir]['quantiles'][3]):.3}\n"
+                    res_str += f"[25..50%] \t | \t {float(statsP[dir]['quantiles'][2]):.3}\n"
+                    res_str += f"[10..25%] \t | \t {float(statsP[dir]['quantiles'][1]):.3}\n"
+                    res_str += f"[0..10%] \t | \t {float(statsP[dir]['quantiles'][0]):.3}\n"
+                else:
+                    for i in range(len(statsP[dir]['quantiles']),0,-1):
+                        res_str += f"Quantiles {i-1}\t | \t {statsP[dir]['quantiles'][i-1]:.3}\n"
+            if 'min' in keysD:
+                res_str += f"Min \t\t | \t {float(statsP[dir]['min']):.3}\n"
+        return res_str
+
+    # GLOBAL_BASED
     @staticmethod
     def mean_separation_time(tsLP: list) -> float:
         """Function to return means time separation between logs
@@ -899,6 +937,61 @@ class latseq_stats:
         for i in range(len(tsLP)-1):
             tmp.append(abs(tsLP[i+1]-tsLP[i]))
         return statistics.mean(tmp)
+
+    # JOURNEYS-BASED
+    @staticmethod
+    def journeys_latency_statistics(journeysP: dict) -> dict:
+        times = [[],[]]
+        for j in journeysP:
+            if not journeysP[j]['completed']:
+                continue
+            times[journeysP[j]['dir']].append((
+                j,
+                (journeysP[j]['ts_out'] - journeysP[j]['ts_in'])*S_TO_MS))
+        # {'size': {105, 445}, 'mean': {0.7453864879822463, 19.269811539422896}, 'min': {0.04315376281738281, 0.00476837158203125}, 'max': {8.366107940673828, 445.9710121154785}, 'stdev': {1.6531425844726746, 61.32162047000048}}
+        tmp_t = list()
+        tmp_t.append([t[1] for t in times[0]])
+        tmp_t.append([t[1] for t in times[1]])
+        res = {'0' : {}, '1': {}}
+        for d in res:
+            res[d] = {
+                'size': len(times[int(d)]),
+                'min': min(tmp_t[int(d)]),
+                'max': max(tmp_t[int(d)]),
+                'mean': numpy.average(tmp_t[int(d)]),
+                'stdev': numpy.std(tmp_t[int(d)]),
+                'quantiles': numpy.quantile(tmp_t[int(d)], [0.1, 0.25, 0.5, 0.75, 0.9]),
+                'times': times[int(d)]
+            }
+        return res
+
+
+    # POINTS-BASED
+    def points_latency_statistics(pointsP: dict) -> dict:
+        times = [dict(), dict()]
+        for p in pointsP:
+            if 'duration' not in pointsP[p]:
+                continue
+            tmp_p = [v * S_TO_MS for v in list(pointsP[p]['duration'].values())]
+            if 0 in pointsP[p]['dir']:
+                times[0][p] = tmp_p
+            if 1 in pointsP[p]['dir']:
+                times[1][p] = tmp_p
+        res = {'0': {}, '1': {}}
+        for d in res:
+            dint=int(d)
+            for e0 in times[dint]:
+                res[d][e0] = {
+                    'size': len(times[dint][e0]),
+                    'min': min(times[dint][e0]),
+                    'max': max(times[dint][e0]),
+                    'mean': numpy.average(times[dint][e0]),
+                    'stdev': numpy.std(times[dint][e0]),
+                    'quantiles': numpy.quantile(times[dint][e0], [0.1, 0.25, 0.5, 0.75, 0.9]),
+                    'durations': times[dint][e0]
+                }
+        return res
+
 
 #
 # MAIN
@@ -937,5 +1030,10 @@ if __name__ == "__main__":
             pickle.dump(lseq, fout, pickle.HIGHEST_PROTOCOL)
         
         print(lseq.get_list_of_points())
-            print(lseq.print_paths())
-            lseq.rebuild_packets_journey_recursively()
+        print(lseq.paths_to_str())
+        print(latseq_stats.str_statistics("Journeys latency", latseq_stats.journeys_latency_statistics(lseq.journeys)))
+        print("Latency for points")
+        tmp_stats_points = latseq_stats.points_latency_statistics(lseq.points)
+        for dir in tmp_stats_points:
+            for p in tmp_stats_points[dir]:
+                print(latseq_stats.str_statistics(f"Point Latency for {p}", {dir : tmp_stats_points[dir][p]}))
