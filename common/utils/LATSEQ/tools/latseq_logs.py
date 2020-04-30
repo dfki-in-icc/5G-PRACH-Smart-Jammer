@@ -45,8 +45,8 @@ import pickle
 
 # trick to reduce complexity
 # Asumption : packet spend at maximum DEPTH_TO_SEARCH_PKT measure in the system
-DEPTH_TO_SEARCH_PKT = 500
-DEPTH_TO_SEARCH_FORKS = 20
+DEPTH_TO_SEARCH_PKT = 20
+DEPTH_TO_SEARCH_FORKS = 10
 # TODO : Too larg, I match between um and am
 
 S_TO_MS = 1000
@@ -618,6 +618,7 @@ class latseq_log:
         nb_meas = len(self.inputs)  # number of measure in self.inputs
         info_meas = {}
         list_meas = list(range(nb_meas))  # list of measures not in a journey
+        point_added = {}  # point added
         pointer = 0  # base pointer on the measure in self.inputs for the current journey's input
         local_pointer = 0  # pointer on the current tested measure candidate for the current journey
 
@@ -658,19 +659,22 @@ class latseq_log:
 
         def _get_next(listP: list, endP: int, pointerP: int) -> int:
             pointerP += 1
-            while pointerP not in listP and pointerP < endP:
+            while pointerP not in listP and pointerP < endP - 1:
                 pointerP += 1
             return pointerP
 
-        def _rec_rebuild(pointerP: int, local_pointerP: int, parent_journey_id: int):
+        def _rec_rebuild(pointerP: int, local_pointerP: int, parent_journey_id: int) -> bool:
             """rebuild journey from a parent measure
             Args:
                 pointerP (int): the index in inputs of the parent measure
                 local_pointerP (int): the index in inputs of the current measure candidate for the journey
                 parent_journey_id (int): the id of the current journey
+            Returns:
+                bool: if the journey is completed
             """
+            seg_list = {}
             # max local pointer to consider. DEPTH_TO_SEARCH impact the algorithm's speed
-            max_local_pointer = min(pointerP + DEPTH_TO_SEARCH_PKT, nb_meas)
+            max_local_pointer = min(local_pointerP + DEPTH_TO_SEARCH_PKT, nb_meas)
             # LOOP: the journey is not completed and we still have local_pointer to consider
             while not self.journeys[parent_journey_id]['completed'] and local_pointerP < max_local_pointer:
                 # if local_pointerP not in list_meas:
@@ -717,24 +721,29 @@ class latseq_log:
                     continue
 
                 # Case: find a match
-                list_meas.remove(local_pointerP)
+                # list_meas.remove(local_pointerP)
                 print(f"Add {local_pointerP} to {parent_journey_id}")
-                seg_local_pointer = local_pointerP
-                local_pointerP = _get_next(list_meas, nb_meas, local_pointerP)                # Case : search for segmentation
+                if local_pointerP not in point_added:
+                    point_added[local_pointerP] = [parent_journey_id]
+                else:
+                    point_added[local_pointerP].append(parent_journey_id)
+                seg_local_pointer = _get_next(list_meas, nb_meas, local_pointerP)
+                # Case : search for segmentation
                 # Find all forks possible
                 # seg local pointer to consider for segmentations.
                 #   DEPTH_TO_SEARCH_FORKS impact the algorithm's complexity
                 max_seg_pointer = min(local_pointerP + DEPTH_TO_SEARCH_FORKS, nb_meas - 1)
                 # LOOP: we still have a seg local pointer to consider
                 while seg_local_pointer < max_seg_pointer:
-                    seg_local_pointer = _get_next(list_meas, nb_meas, seg_local_pointer)
                     seg_tmp_p = self.inputs[seg_local_pointer]
                     
                     # Case: wrong direction
                     if seg_tmp_p[1] != self.journeys[parent_journey_id]['dir']:
+                        seg_local_pointer = _get_next(list_meas, nb_meas, seg_local_pointer)
                         continue
                     # Case: the src point are different, not a candidate for segmentation
                     if seg_tmp_p[2] != tmp_p[2]:
+                        seg_local_pointer = _get_next(list_meas, nb_meas, seg_local_pointer)
                         continue
 
                     seg_matched_ids = _measure_ids_in_journey(
@@ -743,28 +752,13 @@ class latseq_log:
                         self.journeys[parent_journey_id]['glob'],
                         self.inputs[self.journeys[parent_journey_id]['set'][-1]])
                     # Case: find a match, then a segmentation
-                    if not seg_matched_ids:
+                    if seg_matched_ids:
+                        if local_pointerP not in seg_list:
+                            seg_list[local_pointerP] = {}
+                        seg_list[local_pointerP][seg_local_pointer] = seg_matched_ids
+                        seg_local_pointer = _get_next(list_meas, nb_meas, seg_local_pointer)
                         continue
-                    # Create a new path
-                    # TODO: what to do when the value is exactly the same ?
-                    segid = len(self.journeys)
-                    self.journeys[segid] = deepcopy(self.journeys[parent_journey_id])
-                    self.journeys[segid]['set_ids']['uid'] = segid
-                    self.journeys[segid]['set'].append(self.inputs.index(seg_tmp_p))
-                    self.journeys[segid]['set_ids'].update(matched_ids)
-                    print(f"Add {seg_local_pointer} to {segid}")
-                    list_meas.remove(seg_local_pointer)
-                    if seg_tmp_p[3] in tmpOut:  # this is the last input before the great farewell
-                        self.journeys[segid]['next_points'] = None
-                        self.journeys[segid]['ts_out'] = seg_tmp_p[0]
-                        self.journeys[segid]['completed'] = True
-                        continue
-                    self.journeys[segid]['next_points'] = self.points[seg_tmp_p[2]]['next']
-                    # self.journeys[segid]['last_points'].append(seg_tmp_p[2])
-                    seg_local_pointer_next = _get_next(list_meas, nb_meas, seg_local_pointer)
-                    pointerP, seg_local_pointer = _rec_rebuild(seg_local_pointer, seg_local_pointer_next, segid)
-                    #pointerP = _get_next(list_meas, nb_meas, pointerP)
-
+                    seg_local_pointer = _get_next(list_meas, nb_meas, seg_local_pointer)
 
                 # At this point, we have completed all the possible fork
                 self.journeys[parent_journey_id]['set'].append(self.inputs.index(tmp_p))
@@ -774,12 +768,50 @@ class latseq_log:
                     self.journeys[parent_journey_id]['next_points'] = None
                     self.journeys[parent_journey_id]['ts_out'] = tmp_p[0]
                     self.journeys[parent_journey_id]['completed'] = True
-                    continue
+                else:  # continue to rebuild journey
+                    self.journeys[parent_journey_id]['next_points'] = self.points[tmp_p[2]]['next']
+                    local_pointerP = _get_next(list_meas, nb_meas, local_pointerP)
 
-                self.journeys[parent_journey_id]['next_points'] = self.points[tmp_p[2]]['next']
-                # self.journeys[parent_journey_id]['last_points'].append(tmp_p[2])
+            # Case: We finished to rebuild the first journey,
+            #   We find segmentation for one or more points
+            #   Retrieves all point of the first journey
+            #   If brother(s) for a point for this first journey
+            #   rebuild new journey from this brother to the end
+            #   Looks like a tree
+            if seg_list and self.journeys[parent_journey_id]['completed']:
+                for p in self.journeys[parent_journey_id]['set']:
+                    if p in seg_list:  # There is a brother
+                        # For all brothers
+                        for s in seg_list[p]:  # seg_local_pointer : seg_matched_ids
+                            # Create a new path
+                            # TODO: what to do when the value is exactly the same ?
+                            seg_p = self.inputs[s]
+                            segid = len(self.journeys)
+                            self.journeys[segid] = deepcopy(self.journeys[parent_journey_id])
+                            self.journeys[segid]['set_ids']['uid'] = segid
+                            # Remove all elements after p
+                            del self.journeys[segid]['set'][self.journeys[segid]['set'].index(p):]
+                            self.journeys[segid]['set'].append(s)
+                            self.journeys[segid]['completed'] = False
+                            # TODO: check if no collision with set_ids
+                            self.journeys[segid]['set_ids'].update(seg_list[p][s])
+                            print(f"Add {s} to {segid}")
+                            if s not in point_added:
+                                point_added[s] = [segid]
+                            else:
+                                point_added[s].append(segid)
+                            # list_meas.remove(seg_local_pointer)
+                            if seg_p[3] in tmpOut:  # this is the last input before the great farewell
+                                self.journeys[segid]['next_points'] = None
+                                self.journeys[segid]['ts_out'] = seg_p[0]
+                                self.journeys[segid]['completed'] = True
+                                continue
+                            self.journeys[segid]['next_points'] = self.points[seg_p[2]]['next']
+                            seg_local_pointer_next = _get_next(list_meas, nb_meas, s)
+                            _rec_rebuild(seg_local_pointer, seg_local_pointer_next, segid)
+                            #pointerP = _get_next(list_meas, nb_meas, pointerP)
 
-            return (pointerP, local_pointerP)
+            return self.journeys[parent_journey_id]['completed']
 
         # LOOP: for all inputs, try to build the journeys
         while pointer < nb_meas:
@@ -824,35 +856,41 @@ class latseq_log:
             self.journeys[newid]['set_ids'] = {'uid': newid}
             self.journeys[newid]['set_ids'].update(p[6])
             self.journeys[newid]['next_points'] = self.points[p[2]]['next']  # list of possible next points
+            if self.journeys[newid]['set'][-1] not in point_added:
+                point_added[self.journeys[newid]['set'][-1]] = [newid]
             self.journeys[newid]['path'] = 0  # path number of this journey according to self.paths
             # self.journeys[newid]['last_points'] = [p[2]]
             self.journeys[newid]['completed'] = False  # True if the journey is complete
-            list_meas.remove(pointer)  # Remove from the list
-            local_pointer = pointer + 1
-            while local_pointer not in list_meas and local_pointer < nb_meas:
-                local_pointer += 1
+            # list_meas.remove(pointer)  # Remove from the list
+            local_pointer = _get_next(list_meas, nb_meas, pointer)
             # Try to rebuild the journey from this packet
             # Assumption: the measures are ordered by timestamp,
             #   means that the next point is necessary after the current
             #   input point in the list of inputs
-            pointer, _ = _rec_rebuild(pointer, local_pointer, newid)
+            _rec_rebuild(pointer, local_pointer, newid)
             pointer = _get_next(list_meas, nb_meas, pointer)
 
         # retrieves all journey to build out_journeys
+        added_out_j = {}
         for j in self.journeys:
             # Case : The journey is incomplete
             if not self.journeys[j]['completed']:
                 continue
             for e in self.journeys[j]['set']: # for all elements in set of ids
                 e_tmp = self.inputs[e]
-                tmp_uid = self.journeys[j]['set_ids']['uid']
-                tmp_str = f"uid{tmp_uid}.{dict_ids_to_str(self.journeys[j]['glob'])}.{dict_ids_to_str(e_tmp[6])}"
-                self.out_journeys.append((
-                    e_tmp[0],
-                    'D' if e_tmp[1] == 0 else 'U',
-                    f"{e_tmp[2]}--{e_tmp[3]}",
-                    e_tmp[4],
-                    tmp_str))
+                if e not in added_out_j:  # create a new entry for this point in out journeys
+                    added_out_j[e] = len(self.out_journeys)
+                    tmp_uid = self.journeys[j]['set_ids']['uid']
+                    tmp_str = f"uid{tmp_uid}.{dict_ids_to_str(self.journeys[j]['glob'])}.{dict_ids_to_str(e_tmp[6])}"
+                    self.out_journeys.append([
+                        e_tmp[0],  # [0] : timestamp
+                        'D' if e_tmp[1] == 0 else 'U',  # [1] : dir
+                        f"{e_tmp[2]}--{e_tmp[3]}", # [2] : segment
+                        e_tmp[4],  # [3] : properties
+                        tmp_str])  # [4] : data id
+                else:  # update the current entry
+                    self.out_journeys[added_out_j[e]][4] = f"uid{self.journeys[j]['set_ids']['uid']}." + self.out_journeys[added_out_j[e]][4]
+
                 # points latency
                 tmp_point = self.points[e_tmp[2]]
                 if 'duration' not in tmp_point:
@@ -864,7 +902,12 @@ class latseq_log:
                     prev_ts = self.inputs[self.journeys[j]['set'][current_index - 1]][0]
                     tmp_point['duration'][tmp_uid] = e_tmp[0] - prev_ts
         self.out_journeys.sort(key=operator.itemgetter(0))
-        print(f"{nb_meas - len(self.out_journeys)} orphans / {nb_meas}")
+        orphans = 0
+        for e in range(nb_meas):
+            if e not in point_added:
+                print(f"{e} : {self.inputs[e]} is missing in journeys (completed or not)")
+                orphans += 1
+        print(f"{orphans} orphans / {nb_meas}")
 
         # Saves to file type lseqj
         try:
@@ -910,7 +953,7 @@ class latseq_log:
         return {
             "name": self.logpath,
             "nb_raw_meas": len(self.raw_inputs),
-            "nb_meas": len(self.inputs)
+            "nb_meas": len(self.inputs),
             "points": self.get_list_of_points()
             }
 
