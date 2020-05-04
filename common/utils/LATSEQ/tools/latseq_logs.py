@@ -45,9 +45,11 @@ import pickle
 
 # trick to reduce complexity
 # Asumption : packet spend at maximum DEPTH_TO_SEARCH_PKT measure in the system
-DEPTH_TO_SEARCH_PKT = 20
-DEPTH_TO_SEARCH_FORKS = 10
-# TODO : Too larg, I match between um and am
+DEPTH_TO_SEARCH_PKT = 80
+DURATION_TO_SEARCH_PKT = 0.1  # 100ms treshold to complete a journey
+DEPTH_TO_SEARCH_FORKS = 20
+DURATION_TO_SEARCH_FORKS = 0.05  # 50ms treshold to find segmentation
+
 
 S_TO_MS = 1000
 #
@@ -397,9 +399,9 @@ class latseq_log:
         if len(self.paths[0]) == 0 and len(self.paths[1]) == 0:
             raise Exception("Error no paths found in Downlink nor in Uplink")
         elif len(self.paths[0]) == 0:
-            raise Exception("Error, no path found in Downlink")
+            print("[INFO] no path found in Downlink")
         elif len(self.paths[1]) == 0:
-            raise Exception("Error, no path found in Uplink")
+            print("[INFO] no path found in Uplink")
 
     def _build_timestamp(self):
         """Build `timestamps` a :obj:`list` of float of timestamp
@@ -674,13 +676,17 @@ class latseq_log:
             """
             seg_list = {}
             # max local pointer to consider. DEPTH_TO_SEARCH impact the algorithm's speed
-            max_local_pointer = min(local_pointerP + DEPTH_TO_SEARCH_PKT, nb_meas)
+            # max_local_pointer = min(local_pointerP + DEPTH_TO_SEARCH_PKT, nb_meas)
+            max_duration_to_search = self.inputs[local_pointerP][0] + DURATION_TO_SEARCH_PKT
             # LOOP: the journey is not completed and we still have local_pointer to consider
-            while not self.journeys[parent_journey_id]['completed'] and local_pointerP < max_local_pointer:
+            while not self.journeys[parent_journey_id]['completed'] and local_pointerP < nb_meas:
                 # if local_pointerP not in list_meas:
                 #     print(f"error at removing : {local_pointerP}")
                 #     continue
                 tmp_p = self.inputs[local_pointerP]
+                # Case: Time treshold to complete journey reached
+                if tmp_p[0] > max_duration_to_search:
+                    break
 
                 # Case: wrong direction
                 if tmp_p[1] != self.journeys[parent_journey_id]['dir']:
@@ -732,11 +738,15 @@ class latseq_log:
                 # Find all forks possible
                 # seg local pointer to consider for segmentations.
                 #   DEPTH_TO_SEARCH_FORKS impact the algorithm's complexity
-                max_seg_pointer = min(local_pointerP + DEPTH_TO_SEARCH_FORKS, nb_meas - 1)
+                # max_seg_pointer = min(local_pointerP + DEPTH_TO_SEARCH_FORKS, nb_meas - 1)
+                max_seg_duration = tmp_p[0] + DURATION_TO_SEARCH_FORKS
                 # LOOP: we still have a seg local pointer to consider
-                while seg_local_pointer < max_seg_pointer:
+                while seg_local_pointer < nb_meas:
                     seg_tmp_p = self.inputs[seg_local_pointer]
-                    
+                    # Case: time treshold reached
+                    if seg_tmp_p[0] > max_seg_duration:
+                        break
+
                     # Case: wrong direction
                     if seg_tmp_p[1] != self.journeys[parent_journey_id]['dir']:
                         seg_local_pointer = _get_next(list_meas, nb_meas, seg_local_pointer)
@@ -1115,6 +1125,10 @@ class latseq_stats:
                 (journeysP[j]['ts_out'] - journeysP[j]['ts_in'])*S_TO_MS))
         # {'size': {105, 445}, 'mean': {0.7453864879822463, 19.269811539422896}, 'min': {0.04315376281738281, 0.00476837158203125}, 'max': {8.366107940673828, 445.9710121154785}, 'stdev': {1.6531425844726746, 61.32162047000048}}
         tmp_t = list()
+        if not times[0]:
+            times[0].append((0,0))
+        if not times[1]:
+            times[1].append((0,0))
         tmp_t.append([t[1] for t in times[0]])
         tmp_t.append([t[1] for t in times[1]])
         res = {'0' : {}, '1': {}}
@@ -1132,6 +1146,7 @@ class latseq_stats:
 
 
     # POINTS-BASED
+    @staticmethod
     def points_latency_statistics(pointsP: dict) -> dict:
         """Function calculate statistics on points' latency
 
@@ -1199,8 +1214,8 @@ if __name__ == "__main__":
                 exit()
         if not hasattr(lseq, 'journeys') or not lseq.journeys:
             lseq.rebuild_packets_journey_recursively()
-        with open(f"lseq_data_{lseq.get_filename()}.pkl", 'wb') as fout:
-            pickle.dump(lseq, fout, pickle.HIGHEST_PROTOCOL)
+        # with open(f"lseq_data_{lseq.get_filename()}.pkl", 'wb') as fout:
+        #     pickle.dump(lseq, fout, pickle.HIGHEST_PROTOCOL)
         
         print(lseq.get_list_of_points())
         print(lseq.paths_to_str())
