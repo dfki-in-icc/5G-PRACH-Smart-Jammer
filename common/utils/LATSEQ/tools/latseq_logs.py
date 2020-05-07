@@ -29,6 +29,8 @@ TODO
 
 """
 
+import sys
+import os
 import argparse
 import re
 import datetime
@@ -37,6 +39,7 @@ import statistics
 import numpy
 from copy import deepcopy
 import pickle
+import json
 # import math
 
 #
@@ -46,10 +49,11 @@ import pickle
 # trick to reduce complexity
 # Asumption : packet spend at maximum DEPTH_TO_SEARCH_PKT measure in the system
 DEPTH_TO_SEARCH_PKT = 80
-DURATION_TO_SEARCH_PKT = 0.1  # 100ms treshold to complete a journey
+DURATION_TO_SEARCH_PKT = 0.05  # 50ms treshold to complete a journey
 DEPTH_TO_SEARCH_FORKS = 20
-DURATION_TO_SEARCH_FORKS = 0.05  # 50ms treshold to find segmentation
-
+DURATION_TO_SEARCH_FORKS = 0.002  # 2ms treshold to find segmentation
+# TODO: limit time to search concatenation: or use the properties like size ?
+DURATION_TO_SEARCH_CONCA = 0.005  # 5ms to find concatenation
 
 S_TO_MS = 1000
 #
@@ -408,196 +412,6 @@ class latseq_log:
         """
         self.timestamps = list(map(lambda x: x[0], self.raw_inputs))
 
-    def rebuild_packets_journey_seq(self):
-        """[DEPRECATED] Rebuild the packets journey sequentially from a list of measure
-        Algorithm:
-            Process each packet sequentially and try to put into a journey
-        Args:
-            inputs: ordered and cleaned inputs
-        Attributs:
-            journeys (:obj:`dict`): the dictionnary containing dictionnaries
-            out_journeys (:obj:`list`): the list of journeys prepare for output
-        """
-        def _measure_ids_in_journey(p_gids: list, p_lids: list, j_gids: list, j_last_element: dict) -> dict:
-            """Returns the dict of common identifiers if the measure is in the journey
-            Otherwise returns an empty dictionnary
-            """
-            # for all global ids, first filter
-            for k in p_gids:
-                if k in j_gids:
-                    if p_gids[k] != j_gids[k]:
-                        return {}  # False
-                else:  # The global context id is not in the contet of this journey, continue
-                    return {}  # False
-            res_matched = {}
-            # for all local ids in measurement point
-            for k_lid in p_lids:
-                if k_lid in j_last_element[6]:  # if the local ids are present in the 2 points
-                    # Case : multiple value for the same identifier
-                    if isinstance(j_last_element[6][k_lid], list):
-                        match_local_in_list = False
-                        for v in j_last_element[6][k_lid]:
-                            if p_lids[k_lid] == v:  # We want only one matches the id
-                                match_local_in_list = True
-                                res_matched[k_lid] = v
-                                # remove the multiple value for input to keep only the one used
-                                j_last_element[6][k_lid] = v
-                                break  # for v in j_last_lids[k_lid]
-                        if not match_local_in_list:
-                            return {}
-                    # Case : normal case, one value per identifier
-                    else:
-                        if p_lids[k_lid] != j_last_element[6][k_lid]:  # the local id k_lid do not match
-                            return {}
-                        else:
-                            res_matched[k_lid] = p_lids[k_lid]
-            return res_matched
-
-        self.journeys = dict()
-        self.out_journeys = list()
-        if not self.initialized:
-            try:
-                self(self.logpath)
-            except Exception:
-                raise Exception("Impossible to rebuild packet because the module has not been initialized correctly")
-        
-        total_i = len(self.inputs)
-        current_i = 0
-        for p in self.inputs:  # for all input, try to build the journeys
-            current_i += 1
-            if current_i % 100 == 0:
-                print(f"{current_i} / {total_i}")
-            # if current_i > 3000:
-            #     break
-            # p[0] float : ts
-            # p[1] int : direction
-            # p[2] str : src point
-            # p[3] str : dst point
-            # p[4] dict : properties ids
-            # p[5] dict : global ids
-            # p[6] dict : local ids
-            if p[1] == 0:  # Downlink
-                tmpIn = self.pointsInD
-                tmpOut = self.pointsOutD
-            else:  # Uplink
-                tmpIn = self.pointsInU
-                tmpOut = self.pointsOutU
-
-            if p[2] in tmpIn:  # this is a packet in arrival, create a new journey
-                newid = len(self.journeys)
-                self.journeys[newid] = dict()
-                self.journeys[newid]['dir'] = p[1]
-                self.journeys[newid]['glob'] = p[5]  # global ids as a first filter
-                self.journeys[newid]['ts_in'] = p[0]  # timestamp of arrival
-                self.journeys[newid]['set'] = list()  # set measurements of ids in inputs for this journey
-                self.journeys[newid]['set'].append(self.inputs.index(p))
-                self.journeys[newid]['set_ids'] = dict()
-                # tmp_list = [f"uid{newid}"]
-                # for l in p[6]:
-                #     tmp_list.append(f"{l}{p[6][l]}")
-                self.journeys[newid]['set_ids'] = {'uid': newid}
-                self.journeys[newid]['set_ids'].update(p[6])
-                self.journeys[newid]['next_points'] = self.points[p[2]]['next']  # list of possible next points
-                self.journeys[newid]['last_point'] = p[2]
-                self.journeys[newid]['completed'] = False  # True if the journey is complete
-            else:  # this packet should be already followed somewhere
-                matched_key = None
-                matched_ids = dict()
-                matched_seg = False
-                seg_new_journey = dict()
-                for i in self.journeys:  # for all keys (ids) in journeys
-                    # Case : journey already completed
-                    # Assumption : no segmentation at the out points
-                    if self.journeys[i]['completed']:
-                        continue  # for i in self.journeys
-
-                    # Case : wrong direction
-                    if p[1] != self.journeys[i]['dir']:
-                        continue  # for i in self.journeys
-
-                    # Case : segmentation
-                    # False Asumption : all the segmentation will occurs before the measure of the next point
-                    if p[2] == self.journeys[i]['last_point']:
-                        if len(self.journeys[i]['set']) > 1:
-                            matched_ids = _measure_ids_in_journey(
-                                p[5],
-                                p[6],
-                                self.journeys[i]['glob'],
-                                self.inputs[self.journeys[i]['set'][-2]])
-                            if matched_ids:  # this is a fork from the point before the last point, a segmentation
-                                matched_seg = True
-                                seg_new_journey = deepcopy(self.journeys[i]) # deep copy the journey
-                                seg_new_journey['set'].pop() # we remove the last element of the set because we forked
-                                # TODO: what to do when the value is exactly the same ?
-                                seg_new_journey['set'].append(self.inputs.index(p))
-                                seg_new_journey['set_ids'].update(matched_ids)
-                                seg_new_journey['last_point'] = p[2]
-                                break  # for i in self.journeys
-
-                    # Case : not expected next measurement point
-                    if self.journeys[i]['next_points'] is not None and not p[2] in self.journeys[i]['next_points']:
-                        continue  # for i in self.journeys
-
-                    # if len(p[5]) > 0:  # case where global context is irrelevant, lower layers
-                    # Case : packet as candidate to join this journey
-                    matched_ids = _measure_ids_in_journey(
-                        p[5],
-                        p[6],
-                        self.journeys[i]['glob'],
-                        self.inputs[self.journeys[i]['set'][-1]])
-                    if not matched_ids:  # No match
-                        continue  # for i in self.journeys
-
-                    matched_key = i
-                    break
-
-                # Case : A segmentation has been found,
-                # add seg_new_journeys to the dict
-                if matched_seg:
-                    newidseg = len(self.journeys)
-                    self.journeys[newidseg] = seg_new_journey
-                    continue # for p in self.inputs
-
-                # Case : This measure could not be added to a journey
-                if matched_key is None:
-                    continue  # for p in self.inputs
-                
-                # At this point, we have a journey id to add this measure
-                self.journeys[matched_key]['set'].append(self.inputs.index(p))
-                self.journeys[matched_key]['set_ids'].update(matched_ids)
-                
-                if p[3] in tmpOut:  # this is the last input before the great farewell
-                    self.journeys[matched_key]['next_points'] = None
-                    self.journeys[matched_key]['ts_out'] = p[0]
-                    self.journeys[matched_key]['completed'] = True
-                else:  # this is not the last input
-                    self.journeys[matched_key]['next_points'] = self.points[p[2]]['next']
-                    self.journeys[matched_key]['last_point'] = p[2]
-
-        # retrieves all journey to build out_journeys
-        for j in self.journeys:
-            # Case : The journey is incomplete
-            if not self.journeys[j]['completed']:
-                continue
-            for e in self.journeys[j]['set']: # for all elements in set of ids
-                e_tmp = self.inputs[e]
-                tmp_str = f"uid{j}.{dict_ids_to_str(self.journeys[j]['glob'])}.{dict_ids_to_str(e_tmp[6])}"
-                self.out_journeys.append((
-                    epoch_to_datetime(e_tmp[0]),
-                    'D' if e_tmp[1] == 0 else 'U',
-                    f"{e_tmp[2]}--{e_tmp[3]}",
-                    e_tmp[4],
-                    tmp_str))
-        try:
-            with open("latseq.lseqj", 'w+') as f:
-                print(f"[INFO] Writing latseq.lseqj ...")
-                for e in self.yield_clean_inputs():
-                    f.write(f"{e}\n")
-        except IOError as e:
-            print(f"[ERROR] on open({self.logpath})")
-            print(e)
-            raise e
-
     def rebuild_packets_journey_recursively(self):
         """Rebuild the packets journey from a list of measure recursively
         Algorithm:
@@ -609,7 +423,6 @@ class latseq_log:
             out_journeys (:obj:`list`): the list of journeys prepare for output
         """
         self.journeys = dict()
-        self.out_journeys = list()
         # Case: the instance has not been initialized correctly
         if not self.initialized:
             try:
@@ -677,25 +490,19 @@ class latseq_log:
             seg_list = {}
             # max local pointer to consider. DEPTH_TO_SEARCH impact the algorithm's speed
             # max_local_pointer = min(local_pointerP + DEPTH_TO_SEARCH_PKT, nb_meas)
-            max_duration_to_search = self.inputs[local_pointerP][0] + DURATION_TO_SEARCH_PKT
+            max_duration_to_search = self.inputs[pointerP][0] + DURATION_TO_SEARCH_PKT
             # LOOP: the journey is not completed and we still have local_pointer to consider
-            while not self.journeys[parent_journey_id]['completed'] and local_pointerP < nb_meas:
+            while not self.journeys[parent_journey_id]['completed'] and local_pointerP < nb_meas and self.inputs[local_pointerP][0] < max_duration_to_search:
                 # if local_pointerP not in list_meas:
                 #     print(f"error at removing : {local_pointerP}")
                 #     continue
                 tmp_p = self.inputs[local_pointerP]
                 # Case: Time treshold to complete journey reached
-                if tmp_p[0] > max_duration_to_search:
-                    break
+                # if tmp_p[0] > max_duration_to_search:
+                #     break
 
                 # Case: wrong direction
                 if tmp_p[1] != self.journeys[parent_journey_id]['dir']:
-                    local_pointerP = _get_next(list_meas, nb_meas, local_pointerP)
-                    continue
-                
-                # Case: the measurement point is too far away
-                # and tmp_p[2] not in self.journeys[parent_journey_id]['last_points']
-                if tmp_p[2] not in self.journeys[parent_journey_id]['next_points']:
                     local_pointerP = _get_next(list_meas, nb_meas, local_pointerP)
                     continue
 
@@ -709,10 +516,14 @@ class latseq_log:
                         local_pointerP = _get_next(list_meas, nb_meas, local_pointerP)
                         continue
 
+                # Case: the measurement point is too far away
+                # and tmp_p[2] not in self.journeys[parent_journey_id]['last_points']
+                if tmp_p[2] not in self.journeys[parent_journey_id]['next_points']:
+                    local_pointerP = _get_next(list_meas, nb_meas, local_pointerP)
+                    continue
 
                 # Case: Concatenation
-                # TODO : gestion de la concatenation
-                #   Play with list_meas.remove(local_pointerP)
+                # Do not list_meas.remove(local_pointerP)
 
                 # Case: Normal
                 # Here get the first occurence who is matching
@@ -741,11 +552,11 @@ class latseq_log:
                 # max_seg_pointer = min(local_pointerP + DEPTH_TO_SEARCH_FORKS, nb_meas - 1)
                 max_seg_duration = tmp_p[0] + DURATION_TO_SEARCH_FORKS
                 # LOOP: we still have a seg local pointer to consider
-                while seg_local_pointer < nb_meas:
+                while seg_local_pointer < nb_meas and self.inputs[seg_local_pointer][0] < max_seg_duration:
                     seg_tmp_p = self.inputs[seg_local_pointer]
                     # Case: time treshold reached
-                    if seg_tmp_p[0] > max_seg_duration:
-                        break
+                    # if seg_tmp_p[0] > max_seg_duration:
+                    #    break
 
                     # Case: wrong direction
                     if seg_tmp_p[1] != self.journeys[parent_journey_id]['dir']:
@@ -803,7 +614,6 @@ class latseq_log:
                             del self.journeys[segid]['set'][self.journeys[segid]['set'].index(p):]
                             self.journeys[segid]['set'].append(s)
                             self.journeys[segid]['completed'] = False
-                            # TODO: check if no collision with set_ids
                             self.journeys[segid]['set_ids'].update(seg_list[p][s])
                             print(f"Add {s} to {segid}")
                             if s not in point_added:
@@ -818,7 +628,7 @@ class latseq_log:
                                 continue
                             self.journeys[segid]['next_points'] = self.points[seg_p[2]]['next']
                             seg_local_pointer_next = _get_next(list_meas, nb_meas, s)
-                            _rec_rebuild(seg_local_pointer, seg_local_pointer_next, segid)
+                            _rec_rebuild(pointerP, seg_local_pointer_next, segid)
                             #pointerP = _get_next(list_meas, nb_meas, pointerP)
 
             return self.journeys[parent_journey_id]['completed']
@@ -879,15 +689,30 @@ class latseq_log:
             #   input point in the list of inputs
             _rec_rebuild(pointer, local_pointer, newid)
             pointer = _get_next(list_meas, nb_meas, pointer)
+        self.store_object()
+
+    def _build_out_journeys(self) -> int:
+        if not hasattr(self, 'journeys'):
+            print("[ERROR] First rebuild journeys")
+            return 0
+
+        self.out_journeys = list()
+        nb_meas = len(self.inputs)
+        added_out_j = {}
+        points_added = {}
 
         # retrieves all journey to build out_journeys
-        added_out_j = {}
         for j in self.journeys:
             # Case : The journey is incomplete
             if not self.journeys[j]['completed']:
                 continue
             for e in self.journeys[j]['set']: # for all elements in set of ids
-                e_tmp = self.inputs[e]
+                # List all points used for the out journeys
+                if e not in points_added:
+                    points_added[e] = [j]
+                else:
+                    points_added[e].append(j)
+                e_tmp = self.inputs[e]  # Get the point in the inputs list
                 if e not in added_out_j:  # create a new entry for this point in out journeys
                     added_out_j[e] = len(self.out_journeys)
                     tmp_uid = self.journeys[j]['set_ids']['uid']
@@ -913,22 +738,14 @@ class latseq_log:
                     tmp_point['duration'][tmp_uid] = e_tmp[0] - prev_ts
         self.out_journeys.sort(key=operator.itemgetter(0))
         orphans = 0
+        # Check which points (clean inputs) are not in the completed journeys
         for e in range(nb_meas):
-            if e not in point_added:
-                print(f"{e} : {self.inputs[e]} is missing in journeys (completed or not)")
+            if e not in points_added:
+                print(f"[INFO] {e} : {self.inputs[e]} is missing in completed journeys")
                 orphans += 1
-        print(f"{orphans} orphans / {nb_meas}")
-
-        # Saves to file type lseqj
-        try:
-            with open("latseq.lseqj", 'w+') as f:
-                print(f"[INFO] Writing latseq.lseqj ...")
-                for e in self.yield_clean_inputs():
-                    f.write(f"{e}\n")
-        except IOError as e:
-            print(f"[ERROR] on open({self.logpath})")
-            print(e)
-            raise e
+        print(f"[INFO] {orphans} orphans / {nb_meas} measurements")
+        self.store_object()
+        return len(self.out_journeys)
 
 
     # GETTERS
@@ -967,28 +784,31 @@ class latseq_log:
             "points": self.get_list_of_points()
             }
 
-    def get_paths(self) -> tuple:
+    def get_paths(self) -> dict:
         """Get paths found in the file
         Returns:
-            paths (:obj:`tuple` of :obj:`list`): 0 for Downlink paths and 1 for Uplink paths
+            paths (:obj:`dict` of :obj:`list`): 0 for Downlink paths and 1 for Uplink paths
         """
         if len(self.paths[0]) == 0 and len(self.paths[1]) == 0:
             self._build_paths()
-        return (self.paths[0], self.paths[1])
+        return {'D': self.paths[0], 'U': self.paths[1]}
 
+    # YIELDERS
     def yield_clean_inputs(self):
-        """Yielder for cleaned inputs
-        Yields:
-            str: A line of input
-        Raises:
-            ValueError : if the entry in out_journeys is malformed
-        """
         try:
-            for e in self.out_journeys:
-                yield f"{epoch_to_datetime(e[0])} {e[1]} (len{e[3]['len']})\t{e[2]}\t{e[4]}"
-                # yield f"{e[0]} {e[1]} {e[2]} {e[4]}"
+            for i in self.inputs:
+                tmp_str = f"{i[0]} "
+                tmp_str += "U " if i[1] else "D "
+                tmp_str += f"(len{i[4]['len']}) "
+                tmp_str += f"{i[2]}--{i[3]} "
+                for g in i[5]:
+                    tmp_str += f"{g}{i[5][g]}."
+                tmp_str = tmp_str[:-1] + ':'
+                for l in i[6]:
+                    tmp_str += f"{l}{i[6][l]}."
+                yield tmp_str[:-1]
         except Exception:
-            raise ValueError(f"{e} is malformed")
+            raise ValueError(f"{i} is malformed")
 
     def yield_journeys(self):
         """Yielder of journeys
@@ -1003,11 +823,64 @@ class latseq_log:
                 try:
                     self.rebuild_packets_journey_recursively()
                 except Exception:
-                    raise Exception("Imposible to rebuild journeys")
+                    raise Exception("[ERROR] to rebuild journeys")
             for j in self.journeys:
-                yield j
+                if self.journeys[j]["completed"]:
+                    yield self.journeys[j]
         except Exception:
-            raise ValueError(f"Impossible to yield {j}")
+            raise ValueError(f"[ERROR] to yield journeys for {self.logpath}")
+    
+    def yield_out_journeys(self):
+        """Yielder for cleaned inputs
+        Yields:
+            str: A line of input
+        Raises:
+            ValueError : if the entry in out_journeys is malformed
+        """
+        if not hasattr(self, 'out_journeys'):
+            if not self._build_out_journeys():
+                print("[ERROR] to build out_journeys")
+        try:
+            for e in self.out_journeys:
+                yield f"{epoch_to_datetime(e[0])} {e[1]} (len{e[3]['len']})\t{e[2]}\t{e[4]}"
+        except Exception:
+            raise ValueError(f"{e} is malformed")
+
+    def yield_points(self):
+        for p in self.points:
+            yield {p: self.points[p]}
+
+    # WRITERS TO FILE
+    def out_journeys_to_file(self):
+        # Save out_journeys to file type lseqj
+        out_journeyspath = self.logpath.replace('lseq', 'lseqj')
+        def _build_header() -> str:
+            res_str = "#funcId "
+            paths = [path for dir in self.get_paths() for path in self.get_paths()[dir]]  # flatten the dict
+            added_points = []
+            for p in paths:
+                if p not in added_points:
+                    res_str += f"{p} "
+                    added_points.append(p)
+            return res_str + "\n"
+        try:
+            with open(out_journeyspath, 'w+') as f:
+                print(f"[INFO] Writing latseq.lseqj ...")
+                f.write(_build_header())  # write header
+                for e in self.yield_out_journeys():
+                    f.write(f"{e}\n")
+        except IOError as e:
+            print(f"[ERROR] on writing({self.logpath})")
+            raise e
+
+    def store_object(self):
+        pickle_file = self.logpath.replace("lseq", "pkl")
+        try:
+            with open(pickle_file, 'wb') as fout:
+                pickle.dump(self, fout, pickle.HIGHEST_PROTOCOL)
+        except IOError:
+            pass
+        print(f"[INFO] Saving lseq instance to {pickle_file}")
 
     def paths_to_str(self) -> str:
         """Stringify paths
@@ -1030,157 +903,6 @@ class latseq_log:
             i += 1
         return res
 
-
-#
-# STATISTICS
-#
-class latseq_stats:
-    """Class of static methods for statistics stuff for latseq
-    """
-    # PRESENTATION
-    @staticmethod
-    def str_statistics(statsNameP: str, statsP: dict) -> str:
-        """Stringify a statistics
-
-        A statistics here embedded size, average, max, min, quantiles, stdev
-
-        Args:
-            statsNameP (str): the title for this stats
-            statsP (str): a dictionnary with statistics
-
-        Returns:
-            str: the output statistics
-        """
-        res_str = f"Stats for {statsNameP}\n"
-        for dir in statsP:
-            if dir == '0':
-                res_str += "Values \t\t | \t Downlink\n"
-                res_str += "------ \t\t | \t --------\n"
-            elif dir == '1':
-                res_str += "Values \t\t | \t Uplink\n"
-                res_str += "------ \t\t | \t ------\n"
-            else:
-                continue
-            keysD = statsP[dir].keys()
-            if 'size' in keysD:
-                res_str += f"Size \t\t | \t {statsP[dir]['size']}\n"
-            if 'mean' in keysD:
-                res_str += f"Average \t | \t {float(statsP[dir]['mean']):.3}\n"
-            if 'stdev' in keysD:
-                res_str += f"StDev \t\t | \t {float(statsP[dir]['stdev']):.3}\n"
-            if 'max' in keysD:
-                res_str += f"Max \t\t | \t {float(statsP[dir]['max']):.3}\n"
-            if 'quantiles' in keysD:
-                if len(statsP[dir]['quantiles']) == 5:
-                    res_str += f"[75..90%] \t | \t {float(statsP[dir]['quantiles'][4]):.3}\n"
-                    res_str += f"[50..75%] \t | \t {float(statsP[dir]['quantiles'][3]):.3}\n"
-                    res_str += f"[25..50%] \t | \t {float(statsP[dir]['quantiles'][2]):.3}\n"
-                    res_str += f"[10..25%] \t | \t {float(statsP[dir]['quantiles'][1]):.3}\n"
-                    res_str += f"[0..10%] \t | \t {float(statsP[dir]['quantiles'][0]):.3}\n"
-                else:
-                    for i in range(len(statsP[dir]['quantiles']),0,-1):
-                        res_str += f"Quantiles {i-1}\t | \t {statsP[dir]['quantiles'][i-1]:.3}\n"
-            if 'min' in keysD:
-                res_str += f"Min \t\t | \t {float(statsP[dir]['min']):.3}\n"
-        return res_str
-
-    # GLOBAL_BASED
-    @staticmethod
-    def mean_separation_time(tsLP: list) -> float:
-        """Function to return means time separation between logs
-
-        Args:
-            TsLP (:obj:`list` of float): the list of timestamp
-
-        Returns:
-            float : mean time separation between log entries
-
-        Raises:
-            ValueError: The len of list is < 2
-        """
-        if len(tsLP) < 2:
-            raise ValueError("The length of tsLP is inferior to 2")
-        tmp = list()
-        for i in range(len(tsLP)-1):
-            tmp.append(abs(tsLP[i+1]-tsLP[i]))
-        return statistics.mean(tmp)
-
-    # JOURNEYS-BASED
-    @staticmethod
-    def journeys_latency_statistics(journeysP: dict) -> dict:
-        """Function calculate statistics on journey's latency
-
-        Args:
-            journeysP (:obj:`dict` of journey): dictionnary of journey
-
-        Returns:
-            :obj:`dict`: statistics
-        """
-        times = [[],[]]
-        for j in journeysP:
-            if not journeysP[j]['completed']:
-                continue
-            times[journeysP[j]['dir']].append((
-                j,
-                (journeysP[j]['ts_out'] - journeysP[j]['ts_in'])*S_TO_MS))
-        # {'size': {105, 445}, 'mean': {0.7453864879822463, 19.269811539422896}, 'min': {0.04315376281738281, 0.00476837158203125}, 'max': {8.366107940673828, 445.9710121154785}, 'stdev': {1.6531425844726746, 61.32162047000048}}
-        tmp_t = list()
-        if not times[0]:
-            times[0].append((0,0))
-        if not times[1]:
-            times[1].append((0,0))
-        tmp_t.append([t[1] for t in times[0]])
-        tmp_t.append([t[1] for t in times[1]])
-        res = {'0' : {}, '1': {}}
-        for d in res:
-            res[d] = {
-                'size': len(times[int(d)]),
-                'min': min(tmp_t[int(d)]),
-                'max': max(tmp_t[int(d)]),
-                'mean': numpy.average(tmp_t[int(d)]),
-                'stdev': numpy.std(tmp_t[int(d)]),
-                'quantiles': numpy.quantile(tmp_t[int(d)], [0.1, 0.25, 0.5, 0.75, 0.9]),
-                'times': times[int(d)]
-            }
-        return res
-
-
-    # POINTS-BASED
-    @staticmethod
-    def points_latency_statistics(pointsP: dict) -> dict:
-        """Function calculate statistics on points' latency
-
-        Args:
-            pointsP (:obj:`dict` of points): dictionnary of point
-
-        Returns:
-            :obj:`dict`: statistics
-        """
-        times = [dict(), dict()]
-        for p in pointsP:
-            if 'duration' not in pointsP[p]:
-                continue
-            tmp_p = [v * S_TO_MS for v in list(pointsP[p]['duration'].values())]
-            if 0 in pointsP[p]['dir']:
-                times[0][p] = tmp_p
-            if 1 in pointsP[p]['dir']:
-                times[1][p] = tmp_p
-        res = {'0': {}, '1': {}}
-        for d in res:
-            dint=int(d)
-            for e0 in times[dint]:
-                res[d][e0] = {
-                    'size': len(times[dint][e0]),
-                    'min': min(times[dint][e0]),
-                    'max': max(times[dint][e0]),
-                    'mean': numpy.average(times[dint][e0]),
-                    'stdev': numpy.std(times[dint][e0]),
-                    'quantiles': numpy.quantile(times[dint][e0], [0.1, 0.25, 0.5, 0.75, 0.9]),
-                    'durations': times[dint][e0]
-                }
-        return res
-
-
 #
 # MAIN
 #
@@ -1195,33 +917,111 @@ if __name__ == "__main__":
         help="Log file",
         required=True
     )
+    parser.add_argument(
+        "-c",
+        "--config",
+        type=str,
+        dest="configfile",
+        help="Config file for the parser"
+    )
+    parser.add_argument(
+        "-f",
+        "--flask",
+        dest="flask",
+        action='store_true',
+        help="Run parser as flask service"
+    )
+    parser.add_argument(
+        "-C",
+        "--clean",
+        dest="clean",
+        action='store_true',
+        help="Clean previous saves and rerun"
+    )
+    parser.add_argument(
+        "-o",
+        "--out_journeys",
+        dest="req_outj",
+        action='store_true',
+        help="Request out journeys points in the case of command line script"
+    )
+    parser.add_argument(
+        "-i",
+        "--inputs",
+        dest="req_inputs",
+        action='store_true',
+        help="Request cleaned input measurements in the case of command line script"
+    )
+    parser.add_argument(
+        "-j",
+        "--journeys",
+        dest="req_journeys",
+        action='store_true',
+        help="Request journeys in the case of command line script"
+    )
+    parser.add_argument(
+        "-p",
+        "--points",
+        dest="req_points",
+        action='store_true',
+        help="Request points in the case of command line script"
+    )
+    parser.add_argument(
+        "-r",
+        "--paths",
+        "--routes",
+        dest="req_paths",
+        action='store_true',
+        help="Request paths in the case of command line script"
+    )
 
     args = parser.parse_args()
 
-    if args.logname:
-        try:
-            with open(f"lseq_data_{args.logname.split('/')[-1]}.pkl", 'rb') as fin:
-                try:
-                    lseq = pickle.load(fin)
-                except EOFError:
-                    raise FileNotFoundError
-        except FileNotFoundError:
+    # Phase 1 : We init latseq_logs class
+    if not args.logname:  # No logfile
+        print("[ERROR] No log file provided")
+        exit(-1)
+    if args.logname.split('.')[-1] != "lseq":
+        print("[ERROR] No LatSeq log file provided (.lseq)")
+        exit(-1)
+    candidate_pickle_file = args.logname.replace('lseq', 'pkl')
+    if args.clean:  # clean pickles and others stuff
+        if os.path.exists(candidate_pickle_file):
+            os.remove(candidate_pickle_file)
+    try:  # Try load a previous session
+        with open(candidate_pickle_file, 'rb') as fin:
             try:
-                lseq = latseq_log(args.logname)
-            except Exception as e:
-                raise(e)
-                print(f"[ERROR] On creating a lseq element {args.logname}")
-                exit()
-        if not hasattr(lseq, 'journeys') or not lseq.journeys:
-            lseq.rebuild_packets_journey_recursively()
-        # with open(f"lseq_data_{lseq.get_filename()}.pkl", 'wb') as fout:
-        #     pickle.dump(lseq, fout, pickle.HIGHEST_PROTOCOL)
-        
-        print(lseq.get_list_of_points())
-        print(lseq.paths_to_str())
-        print(latseq_stats.str_statistics("Journeys latency", latseq_stats.journeys_latency_statistics(lseq.journeys)))
-        print("Latency for points")
-        tmp_stats_points = latseq_stats.points_latency_statistics(lseq.points)
-        for dir in tmp_stats_points:
-            for p in tmp_stats_points[dir]:
-                print(latseq_stats.str_statistics(f"Point Latency for {p}", {dir : tmp_stats_points[dir][p]}))
+                lseq = pickle.load(fin)
+                print(f"[INFO] load lseq instance from {candidate_pickle_file}")
+            except EOFError:
+                raise FileNotFoundError
+    except FileNotFoundError:
+        try:
+            print(f"[INFO] create a new lseq instance")
+            lseq = latseq_log(args.logname)
+        except Exception as e:
+            raise(e)
+            print(f"[ERROR] On creating a lseq element {args.logname}")
+            exit(-1)
+    lseq.store_object()
+    
+    # Phase 2A : case Flask
+    if args.flask:
+        print("[INFO] Run a flask server")
+    # Phase 2B : case run as command line script
+    else:
+        if args.req_inputs:
+            for i in lseq.yield_clean_inputs():
+                sys.stdout.write(i + '\n')
+        if args.req_outj:
+            for o in lseq.yield_out_journeys():
+                sys.stdout.write(o + '\n')
+        if args.req_journeys:
+            for j in lseq.yield_journeys():
+                sys.stdout.write(json.dumps(j) + '\n')
+        if args.req_points:
+            for p in lseq.yield_points():
+                sys.stdout.write(json.dumps(p) + '\n')
+        if args.req_paths:
+            sys.stdout.write(json.dumps(lseq.get_paths()) + '\n')
+
