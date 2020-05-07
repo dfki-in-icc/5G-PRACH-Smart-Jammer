@@ -257,7 +257,7 @@ rlc_um_segment_10 (const protocol_ctxt_t* const ctxt_pP, rlc_um_entity_t *rlc_pP
 
       data_sdu_p = (char *) &(sdu_in_buffer->data[sizeof (struct rlc_um_tx_sdu_management) + sdu_mngt_p->sdu_segmented_size]);
 #if LATSEQ
-      LATSEQ_P("D rlc.tx.um--rlc.seg.um","len%d:rnti%d:drb%d.lcid%d.rsdu%d.rsn%d.rso%d", sdu_mngt_p->sdu_size, ctxt_pP->rnti, rlc_pP->rb_id, rlc_pP->channel_id, sdu_mngt_p->sdu_creation_time, rlc_pP->vt_us, sdu_mngt_p->sdu_segmented_size);
+      LATSEQ_P("D rlc.tx.um--rlc.seg.um","len%d:rnti%d:drb%d.lcid%d.rsdu%d.rsn%d.rso%d", sdu_mngt_p->sdu_size, ctxt_pP->rnti, rlc_pP->rb_id, rlc_pP->channel_id, sdu_mngt_p->sdu_size, rlc_pP->vt_us, sdu_mngt_p->sdu_segmented_size);
 #endif
 
       if (sdu_mngt_p->sdu_remaining_size > pdu_remaining_size) {

@@ -962,7 +962,7 @@ pdcp_data_ind(
       itti_send_msg_to_task(TASK_GTPV1_U, INSTANCE_DEFAULT, message_p);
       packet_forwarded = TRUE;
 #if LATSEQ
-      LATSEQ_P("U pdcp.rx--ip","len%d:rnti%d:drb%d.psn%d.fm%d",GTPV1U_ENB_TUNNEL_DATA_REQ(message_p).length, ctxt_pP->rnti, rb_id, sequence_number, ctxt_pP->frame);
+      LATSEQ_P("U pdcp.rx--ip.out","len%d:rnti%d:drb%d.psn%d.fm%d",GTPV1U_ENB_TUNNEL_DATA_REQ(message_p).length, ctxt_pP->rnti, rb_id, sequence_number, ctxt_pP->frame);
 #endif
     }
   } else {
