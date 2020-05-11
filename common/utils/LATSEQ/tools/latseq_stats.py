@@ -205,19 +205,38 @@ if __name__ == "__main__":
         action='store_true',
         help="Request stat journeys in the case of command line script"
     )
+    parser.add_argument(
+        "-p",
+        "--points",
+        dest="stat_points",
+        action='store_true',
+        help="Request stat points in the case of command line script"
+    )
     args = parser.parse_args()
+    if not args.stat_journeys and not args.stat_points:
+        sys.stdout.write("No action requested\n")
+        exit()
 
+    list_meas_json = []
     if args.logname:
         if args.logname.split('.')[-1] == 'lseqj':  # We do statistics from a log journey files
             pass
-
-    # Else, we read stdin
-    list_meas_json = []
-    for meas in sys.stdin.readlines():  # For all lines in stdin
-        # Clean all lines begins with # or [
-        if meas.startswith('#') or meas.startswith('['):
-            continue
-        list_meas_json.append(meas)
+        if args.logname.split('.')[-1] == 'json':  # We do statistics from a json file
+            try:
+                with open(args.logname, 'r') as j:
+                    for l in j.read().splitlines():
+                        if l.startswith('#') or l.startswith('['):
+                            continue
+                        list_meas_json.append(l)
+            except IOError:
+                raise IOError(f"[Error] at openeing ({args.logname})")
+    else:
+        # Else, we read stdin
+        for meas in sys.stdin.readlines():  # For all lines in stdin
+            # Clean all lines begins with # or [
+            if meas.startswith('#') or meas.startswith('['):
+                continue
+            list_meas_json.append(meas)
     
     # print(lseq.get_list_of_points())
     # print(lseq.paths_to_str())
@@ -226,10 +245,17 @@ if __name__ == "__main__":
         # handle errors
         for j in list_meas_json:
             tmp_j = json.loads(j)
-            journeys[tmp_j['set_ids']['uid']] = tmp_j
+            journeys[tmp_j['uid']] = tmp_j
         print(latseq_stats.str_statistics("Journeys latency", latseq_stats.journeys_latency_statistics(journeys)))
-    # print("Latency for points")
-    # tmp_stats_points = latseq_stats.points_latency_statistics(lseq.points)
-    # for dir in tmp_stats_points:
-    #     for p in tmp_stats_points[dir]:
-    #         print(latseq_stats.str_statistics(f"Point Latency for {p}", {dir : tmp_stats_points[dir][p]}))
+    elif args.stat_points:
+        points = {}
+        for p in list_meas_json:
+            tmp_p = json.loads(p)
+            point_name = list(tmp_p.keys())[0]
+            points[point_name] = tmp_p[point_name]
+        print("Latency for points")
+        tmp_stats_points = latseq_stats.points_latency_statistics(points)
+        for dir in tmp_stats_points:
+            for p in tmp_stats_points[dir]:
+                print(latseq_stats.str_statistics(f"Point Latency for {p}", {dir : tmp_stats_points[dir][p]}))
+ 
