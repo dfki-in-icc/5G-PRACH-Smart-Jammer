@@ -121,6 +121,7 @@ class latseq_log:
         pointsOutU (:obj:`list` of str): list of output points for Uplink
         paths (:obj:`list` of :obj:`list`):
             list[0] is a list of all DownLink paths possibles
+                list[0][i] : ordered list of points' name
             list[1] is a list of all UpLink paths possibles
         timestamps (:obj:`list` of float): list of timestamps in the logs
         journeys (:obj:`dict`): the dictionnary containing journeys
@@ -406,6 +407,11 @@ class latseq_log:
             print("[INFO] no path found in Downlink")
         elif len(self.paths[1]) == 0:
             print("[INFO] no path found in Uplink")
+        else:  # make immutable paths
+            for dp in range(len(self.paths)):
+                for p in range(len(self.paths[dp])):
+                    self.paths[dp][p] = make_immutable_list(self.paths[dp][p])
+
 
     def _build_timestamp(self):
         """Build `timestamps` a :obj:`list` of float of timestamp
@@ -580,11 +586,28 @@ class latseq_log:
                         seg_local_pointer = _get_next(list_meas, nb_meas, seg_local_pointer)
                         continue
                     seg_local_pointer = _get_next(list_meas, nb_meas, seg_local_pointer)
+                # end while seg_local_pointer < nb_meas
 
                 # At this point, we have completed all the possible fork
                 self.journeys[parent_journey_id]['set'].append(self.inputs.index(tmp_p))
                 self.journeys[parent_journey_id]['set_ids'].update(matched_ids)
-            
+
+                # Try to find a path id
+                if isinstance(self.journeys[parent_journey_id]['path'], dict):
+                    paths_to_remove = []
+                    for path in self.journeys[parent_journey_id]['path']:
+                        if self.paths[self.journeys[parent_journey_id]['dir']][path][self.journeys[parent_journey_id]['path'][path]] != tmp_p[2]:
+                            paths_to_remove.append(path)
+                        else:
+                            if len(self.paths[self.journeys[parent_journey_id]['dir']][path]) > 1:
+                                self.journeys[newid]['path'][path] += 1
+                    for ptorm in paths_to_remove:
+                        self.journeys[parent_journey_id]['path'].pop(ptorm)
+                    if len(self.journeys[parent_journey_id]['path']) == 1:  # We find the path id
+                        tmp_path = list(self.journeys[newid]['path'].keys())[0]
+                        del self.journeys[parent_journey_id]['path']
+                        self.journeys[parent_journey_id]['path'] = tmp_path
+
                 if tmp_p[3] in tmpOut:  # this is the last input before the great farewell
                     self.journeys[parent_journey_id]['next_points'] = None
                     self.journeys[parent_journey_id]['ts_out'] = tmp_p[0]
@@ -592,6 +615,7 @@ class latseq_log:
                 else:  # continue to rebuild journey
                     self.journeys[parent_journey_id]['next_points'] = self.points[tmp_p[2]]['next']
                     local_pointerP = _get_next(list_meas, nb_meas, local_pointerP)
+            # end while local_pointerP < nb_meas
 
             # Case: We finished to rebuild the first journey,
             #   We find segmentation for one or more points
@@ -678,7 +702,26 @@ class latseq_log:
             self.journeys[newid]['next_points'] = self.points[p[2]]['next']  # list of possible next points
             if self.journeys[newid]['set'][-1] not in point_added:
                 point_added[self.journeys[newid]['set'][-1]] = [newid]
-            self.journeys[newid]['path'] = 0  # path number of this journey according to self.paths
+            # path number of this journey according to self.paths
+            if not hasattr(self, 'paths'):  # Paths not construct, it should because it is done at init
+                self.journeys[newid]['completed'] = False
+                continue
+            self.journeys[newid]['path'] = dict()  # list of index on path lists
+            for path in range(len(self.paths[self.journeys[newid]['dir']])):
+                self.journeys[newid]['path'][path] = 0
+            paths_to_remove = []
+            for path in self.journeys[newid]['path']:
+                if self.paths[self.journeys[newid]['dir']][path][self.journeys[newid]['path'][path]] != p[2]:
+                    paths_to_remove.append(path)
+                else:
+                    if len(self.paths[self.journeys[newid]['dir']][path]) > 1:
+                        self.journeys[newid]['path'][path] += 1
+            for ptorm in paths_to_remove:
+                self.journeys[newid]['path'].pop(ptorm)
+            if len(self.journeys[newid]['path']) == 1:  # We find the path id
+                tmp_path = list(self.journeys[newid]['path'].keys())[0]
+                del self.journeys[newid]['path']
+                self.journeys[newid]['path'] = tmp_path
             # self.journeys[newid]['last_points'] = [p[2]]
             self.journeys[newid]['completed'] = False  # True if the journey is complete
             # list_meas.remove(pointer)  # Remove from the list
@@ -689,6 +732,13 @@ class latseq_log:
             #   input point in the list of inputs
             _rec_rebuild(pointer, local_pointer, newid)
             pointer = _get_next(list_meas, nb_meas, pointer)
+        # Remove all useless journeys dict keys for the next
+        for k in self.journeys:
+            self.journeys[k]['uid'] = self.journeys[k]['set_ids']['uid']
+            del self.journeys[k]['next_points']
+            if isinstance(self.journeys[k]['path'], dict):
+                self.journeys[k]['completed'] == False
+        # Store latseq_logs object
         self.store_object()
 
     def _build_out_journeys(self) -> int:
