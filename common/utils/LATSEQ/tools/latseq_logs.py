@@ -193,7 +193,7 @@ class latseq_log:
         """
         try:
             with open(self.logpath, 'r') as f:
-                print(f"[INFO] Reading {self.logpath} ...")
+                sys.stderr.write(f"[INFO] Reading {self.logpath} ...\n")
                 return f.read()
         except IOError:
             raise IOError(f"error at opening ({self.logpath})")
@@ -214,7 +214,7 @@ class latseq_log:
                     # TODO : rendre dynamique cette valeur avec
                     # le format donne par le header
                     if len(tmp) < 4:
-                        print(f"[WARNING] {l} is a malformed line")
+                        sys.stderr.write(f"[WARNING] {l} is a malformed line\n")
                         continue
                     self.raw_inputs.append(tuple([
                         float(tmp[0]),
@@ -225,11 +225,22 @@ class latseq_log:
     def _clean_log(self):
         """Clean logs from `raw_inputs` to `inputs`
 
-        Filters : rnti65535
         Extract ids and values from pattern id123, 'id': 123
         Transform the string entry in tuple entry
         At the end, `input` is made immutable for the rest of the program
 
+        Filters :
+            rnti65535
+
+        Attributes:
+            inputs (:obj:`list` of :obj:`tuple`) : list of log elements
+                inputs[i][0] : Timestamp
+                inputs[i][1] : Direction
+                inputs[i][2] : Src point
+                inputs[i][3] : Dst point
+                inputs[i][4] : Properties
+                inputs[i][5] : Global identifiers
+                inputs[i][6] : Local identifiers
         Raises:
             ValueError : Error at parsing a line
         """
@@ -314,6 +325,12 @@ class latseq_log:
 
     def _build_points(self):
         """Build graph of measurement `points` and find in and out points
+
+        Attributes:
+            points (:obj:`dict`):
+                points['point']['next'] (:obj:`list` of str): list of next point possible
+                points['point']['count'] (int): number of occurence of this point
+                points['point']['dir'] (list): could be 0, 1 or 0 and 1
         """
         # Build graph
         for e in self.raw_inputs:
@@ -370,7 +387,7 @@ class latseq_log:
                         if e not in tmpU:
                             tmpUout.append(e)
                 else:
-                    print(f"[ERROR] Unknown direction for {p[0]} : {p[1]}")
+                    sys.stderr.write(f"[ERROR] Unknown direction for {p[0]} : {p[1]}\n")
             self.pointsInD  = tmpDin
             self.pointsOutD = tmpDout
             self.pointsInU  = tmpUin
@@ -404,9 +421,9 @@ class latseq_log:
         if len(self.paths[0]) == 0 and len(self.paths[1]) == 0:
             raise Exception("Error no paths found in Downlink nor in Uplink")
         elif len(self.paths[0]) == 0:
-            print("[INFO] no path found in Downlink")
+            sys.stderr.write("[INFO] no path found in Downlink\n")
         elif len(self.paths[1]) == 0:
-            print("[INFO] no path found in Uplink")
+            sys.stderr.write("[INFO] no path found in Uplink\n")
         else:  # make immutable paths
             for dp in range(len(self.paths)):
                 for p in range(len(self.paths[dp])):
@@ -545,7 +562,7 @@ class latseq_log:
 
                 # Case: find a match
                 # list_meas.remove(local_pointerP)
-                print(f"Add {local_pointerP} to {parent_journey_id}")
+                sys.stderr.write(f"Add {local_pointerP} to {parent_journey_id}\n")
                 if local_pointerP not in point_added:
                     point_added[local_pointerP] = [parent_journey_id]
                 else:
@@ -633,13 +650,13 @@ class latseq_log:
                             seg_p = self.inputs[s]
                             segid = len(self.journeys)
                             self.journeys[segid] = deepcopy(self.journeys[parent_journey_id])
-                            self.journeys[segid]['set_ids']['uid'] = segid
+                            self.journeys[segid]['set_ids']['uid'] = str(segid)
                             # Remove all elements after p
                             del self.journeys[segid]['set'][self.journeys[segid]['set'].index(p):]
                             self.journeys[segid]['set'].append(s)
                             self.journeys[segid]['completed'] = False
                             self.journeys[segid]['set_ids'].update(seg_list[p][s])
-                            print(f"Add {s} to {segid}")
+                            sys.stderr.write(f"Add {s} to {segid}\n")
                             if s not in point_added:
                                 point_added[s] = [segid]
                             else:
@@ -697,7 +714,7 @@ class latseq_log:
             self.journeys[newid]['set'] = list()  # set measurements of ids in inputs for this journey
             self.journeys[newid]['set'].append(self.inputs.index(p))
             self.journeys[newid]['set_ids'] = dict()  # dict of local ids
-            self.journeys[newid]['set_ids'] = {'uid': newid}
+            self.journeys[newid]['set_ids'] = {'uid': str(newid)}
             self.journeys[newid]['set_ids'].update(p[6])
             self.journeys[newid]['next_points'] = self.points[p[2]]['next']  # list of possible next points
             if self.journeys[newid]['set'][-1] not in point_added:
@@ -740,10 +757,13 @@ class latseq_log:
                 self.journeys[k]['completed'] == False
         # Store latseq_logs object
         self.store_object()
+        # build out_journeys
+        self._build_out_journeys()
+
 
     def _build_out_journeys(self) -> int:
         if not hasattr(self, 'journeys'):
-            print("[ERROR] First rebuild journeys")
+            sys.stderr.write("[ERROR] First rebuild journeys\n")
             return 0
 
         self.out_journeys = list()
@@ -791,9 +811,9 @@ class latseq_log:
         # Check which points (clean inputs) are not in the completed journeys
         for e in range(nb_meas):
             if e not in points_added:
-                print(f"[INFO] {e} : {self.inputs[e]} is missing in completed journeys")
+                sys.stderr.write(f"[INFO] {e} : {self.inputs[e]} is missing in completed journeys\n")
                 orphans += 1
-        print(f"[INFO] {orphans} orphans / {nb_meas} measurements")
+        sys.stderr.write(f"[INFO] {orphans} orphans / {nb_meas} measurements\n")
         self.store_object()
         return len(self.out_journeys)
 
@@ -889,14 +909,29 @@ class latseq_log:
         """
         if not hasattr(self, 'out_journeys'):
             if not self._build_out_journeys():
-                print("[ERROR] to build out_journeys")
+                sys.stderr.write("[ERROR] to build out_journeys\n")
+                exit(-1)
+        def _build_header() -> str:
+            res_str = "#funcId "
+            paths = [path for dir in self.get_paths() for path in self.get_paths()[dir]]  # flatten the dict
+            added_points = []
+            for p in paths:
+                for j in p:
+                    if j not in added_points:
+                        res_str += f"{j} "
+                        added_points.append(j)
+            return res_str
         try:
+            yield _build_header()
             for e in self.out_journeys:
                 yield f"{epoch_to_datetime(e[0])} {e[1]} (len{e[3]['len']})\t{e[2]}\t{e[4]}"
         except Exception:
             raise ValueError(f"{e} is malformed")
 
     def yield_points(self):
+        # Warning for stats if journeys has not been rebuilt
+        if "duration" not in self.points[next(iter(self.points.keys()))]:
+            sys.stderr.write("[WARNING] points without duration, first rebuild journeys for stat")
         for p in self.points:
             yield {p: self.points[p]}
 
@@ -915,12 +950,12 @@ class latseq_log:
             return res_str + "\n"
         try:
             with open(out_journeyspath, 'w+') as f:
-                print(f"[INFO] Writing latseq.lseqj ...")
+                sys.stderr.write(f"[INFO] Writing latseq.lseqj ...\n")
                 f.write(_build_header())  # write header
                 for e in self.yield_out_journeys():
                     f.write(f"{e}\n")
         except IOError as e:
-            print(f"[ERROR] on writing({self.logpath})")
+            sys.stderr.write(f"[ERROR] on writing({self.logpath})\n")
             raise e
 
     def store_object(self):
@@ -929,8 +964,8 @@ class latseq_log:
             with open(pickle_file, 'wb') as fout:
                 pickle.dump(self, fout, pickle.HIGHEST_PROTOCOL)
         except IOError:
-            pass
-        print(f"[INFO] Saving lseq instance to {pickle_file}")
+            sys.stderr.write(f"[ERROR] at saving {pickle_file}\n")
+        sys.stderr.write(f"[INFO] Saving lseq instance to {pickle_file}\n")
 
     def paths_to_str(self) -> str:
         """Stringify paths
@@ -989,18 +1024,18 @@ if __name__ == "__main__":
         help="Clean previous saves and rerun"
     )
     parser.add_argument(
-        "-o",
-        "--out_journeys",
-        dest="req_outj",
-        action='store_true',
-        help="Request out journeys points in the case of command line script"
-    )
-    parser.add_argument(
         "-i",
         "--inputs",
         dest="req_inputs",
         action='store_true',
         help="Request cleaned input measurements in the case of command line script"
+    )
+    parser.add_argument(
+        "-o",
+        "--out_journeys",
+        dest="req_outj",
+        action='store_true',
+        help="Request out journeys points in the case of command line script"
     )
     parser.add_argument(
         "-j",
@@ -1029,10 +1064,10 @@ if __name__ == "__main__":
 
     # Phase 1 : We init latseq_logs class
     if not args.logname:  # No logfile
-        print("[ERROR] No log file provided")
+        sys.stderr.write("[ERROR] No log file provided\n")
         exit(-1)
     if args.logname.split('.')[-1] != "lseq":
-        print("[ERROR] No LatSeq log file provided (.lseq)")
+        sys.stderr.write("[ERROR] No LatSeq log file provided (.lseq)\n")
         exit(-1)
     candidate_pickle_file = args.logname.replace('lseq', 'pkl')
     if args.clean:  # clean pickles and others stuff
@@ -1042,22 +1077,21 @@ if __name__ == "__main__":
         with open(candidate_pickle_file, 'rb') as fin:
             try:
                 lseq = pickle.load(fin)
-                print(f"[INFO] load lseq instance from {candidate_pickle_file}")
+                sys.stderr.write(f"[INFO] load lseq instance from {candidate_pickle_file}\n")
             except EOFError:
                 raise FileNotFoundError
     except FileNotFoundError:
         try:
-            print(f"[INFO] create a new lseq instance")
-            lseq = latseq_log(args.logname)
+            sys.stderr.write(f"[INFO] create a new lseq instance\n")
+            lseq = latseq_log(args.logname)  # Build latseq_log object
         except Exception as e:
-            raise(e)
-            print(f"[ERROR] On creating a lseq element {args.logname}")
+            sys.stderr.write(f"[ERROR] On creating a lseq element {args.logname}\n")
             exit(-1)
     lseq.store_object()
     
     # Phase 2A : case Flask
     if args.flask:
-        print("[INFO] Run a flask server")
+        sys.stderr.write("[INFO] Run a flask server\n")
     # Phase 2B : case run as command line script
     else:
         if args.req_inputs:

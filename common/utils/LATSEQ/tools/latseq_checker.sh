@@ -11,7 +11,7 @@ nb_points=0
 
 
 usage() {
-    echo "the absolute path to oai should be given as first argument"
+    echo "The absolute path to oai should be given as first argument"
     echo -e "-v \t : to increase verbosity"
     echo -e "-p \t : print internal variables of latseq"
     exit

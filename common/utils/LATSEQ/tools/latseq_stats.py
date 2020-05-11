@@ -37,6 +37,18 @@ S_TO_MS = 1000
 # FUNCTIONS
 #
 
+def output_function(outP: dict, flagP=False, data_nameP=""):
+    """output wrapper
+
+    Arguments:
+        outP (:obj:`dict`): object to out
+        flagP (bool): Print string if True, Json otherwise
+    """
+    if flagP:
+        sys.stdout.write(latseq_stats.str_statistics(data_nameP, outP))
+    else:
+        sys.stdout.write(json.dumps(outP))
+
 #
 # STATISTICS
 #
@@ -58,36 +70,40 @@ class latseq_stats:
             str: the output statistics
         """
         res_str = f"Stats for {statsNameP}\n"
-        for dir in statsP:
-            if dir == '0':
+        for s in statsP:
+            if 'dir' in statsP[s]:
+                dir = statsP[s]['dir']
+            else:
+                dir = s
+            if dir == 'D':
                 res_str += "Values \t\t | \t Downlink\n"
                 res_str += "------ \t\t | \t --------\n"
-            elif dir == '1':
+            elif dir == 'U':
                 res_str += "Values \t\t | \t Uplink\n"
                 res_str += "------ \t\t | \t ------\n"
             else:
                 continue
-            keysD = statsP[dir].keys()
+            keysD = statsP[s].keys()
             if 'size' in keysD:
-                res_str += f"Size \t\t | \t {statsP[dir]['size']}\n"
+                res_str += f"Size \t\t | \t {statsP[s]['size']}\n"
             if 'mean' in keysD:
-                res_str += f"Average \t | \t {float(statsP[dir]['mean']):.3}\n"
+                res_str += f"Average \t | \t {float(statsP[s]['mean']):.3}\n"
             if 'stdev' in keysD:
-                res_str += f"StDev \t\t | \t {float(statsP[dir]['stdev']):.3}\n"
+                res_str += f"StDev \t\t | \t {float(statsP[s]['stdev']):.3}\n"
             if 'max' in keysD:
-                res_str += f"Max \t\t | \t {float(statsP[dir]['max']):.3}\n"
+                res_str += f"Max \t\t | \t {float(statsP[s]['max']):.3}\n"
             if 'quantiles' in keysD:
-                if len(statsP[dir]['quantiles']) == 5:
-                    res_str += f"[75..90%] \t | \t {float(statsP[dir]['quantiles'][4]):.3}\n"
-                    res_str += f"[50..75%] \t | \t {float(statsP[dir]['quantiles'][3]):.3}\n"
-                    res_str += f"[25..50%] \t | \t {float(statsP[dir]['quantiles'][2]):.3}\n"
-                    res_str += f"[10..25%] \t | \t {float(statsP[dir]['quantiles'][1]):.3}\n"
-                    res_str += f"[0..10%] \t | \t {float(statsP[dir]['quantiles'][0]):.3}\n"
+                if len(statsP[s]['quantiles']) == 5:
+                    res_str += f"[75..90%] \t | \t {float(statsP[s]['quantiles'][4]):.3}\n"
+                    res_str += f"[50..75%] \t | \t {float(statsP[s]['quantiles'][3]):.3}\n"
+                    res_str += f"[25..50%] \t | \t {float(statsP[s]['quantiles'][2]):.3}\n"
+                    res_str += f"[10..25%] \t | \t {float(statsP[s]['quantiles'][1]):.3}\n"
+                    res_str += f"[0..10%] \t | \t {float(statsP[s]['quantiles'][0]):.3}\n"
                 else:
-                    for i in range(len(statsP[dir]['quantiles']),0,-1):
-                        res_str += f"Quantiles {i-1}\t | \t {statsP[dir]['quantiles'][i-1]:.3}\n"
+                    for i in range(len(statsP[s]['quantiles']),0,-1):
+                        res_str += f"Quantiles {i-1}\t | \t {statsP[s]['quantiles'][i-1]:.3}\n"
             if 'min' in keysD:
-                res_str += f"Min \t\t | \t {float(statsP[dir]['min']):.3}\n"
+                res_str += f"Min \t\t | \t {float(statsP[s]['min']):.3}\n"
         return res_str
 
     # GLOBAL_BASED
@@ -137,17 +153,18 @@ class latseq_stats:
             times[1].append((0,0))
         tmp_t.append([t[1] for t in times[0]])
         tmp_t.append([t[1] for t in times[1]])
-        res = {'0' : {}, '1': {}}
+        res = {'D' : {}, 'U': {}}
         for d in res:
+            dint = 0 if d == "D" else 1
             res[d] = {
-                'size': len(times[int(d)]),
-                'min': min(tmp_t[int(d)]),
-                'max': max(tmp_t[int(d)]),
-                'mean': numpy.average(tmp_t[int(d)]),
-                'stdev': numpy.std(tmp_t[int(d)]),
-                'quantiles': numpy.quantile(tmp_t[int(d)], [0.1, 0.25, 0.5, 0.75, 0.9]),
-                'times': times[int(d)]
+                'size': len(times[dint]),
+                'min': min(tmp_t[dint]),
+                'max': max(tmp_t[dint]),
+                'mean': numpy.average(tmp_t[dint]),
+                'stdev': numpy.std(tmp_t[dint]),
+                'quantiles': numpy.quantile(tmp_t[dint], [0.1, 0.25, 0.5, 0.75, 0.9]).tolist()
             }
+            # 'times': times[dint]
         return res
 
 
@@ -171,18 +188,18 @@ class latseq_stats:
                 times[0][p] = tmp_p
             if 1 in pointsP[p]['dir']:
                 times[1][p] = tmp_p
-        res = {'0': {}, '1': {}}
+        res = {'D': {}, 'U': {}}
         for d in res:
-            dint=int(d)
+            dint = 0 if d == "D" else 1
             for e0 in times[dint]:
                 res[d][e0] = {
+                    'dir': d,
                     'size': len(times[dint][e0]),
                     'min': min(times[dint][e0]),
                     'max': max(times[dint][e0]),
                     'mean': numpy.average(times[dint][e0]),
                     'stdev': numpy.std(times[dint][e0]),
-                    'quantiles': numpy.quantile(times[dint][e0], [0.1, 0.25, 0.5, 0.75, 0.9]),
-                    'durations': times[dint][e0]
+                    'quantiles': numpy.quantile(times[dint][e0], [0.1, 0.25, 0.5, 0.75, 0.9]).tolist()
                 }
         return res
 
@@ -197,6 +214,13 @@ if __name__ == "__main__":
         type=str,
         dest="logname",
         help="Log file",
+    )
+    parser.add_argument(
+        "-P",
+        "--print",
+        dest="print_stats",
+        action='store_true',
+        help="Print statistics instead of return a json report"
     )
     parser.add_argument(
         "-j",
@@ -237,25 +261,22 @@ if __name__ == "__main__":
             if meas.startswith('#') or meas.startswith('['):
                 continue
             list_meas_json.append(meas)
-    
-    # print(lseq.get_list_of_points())
-    # print(lseq.paths_to_str())
+
     if args.stat_journeys:
         journeys = {}
         # handle errors
         for j in list_meas_json:
             tmp_j = json.loads(j)
             journeys[tmp_j['uid']] = tmp_j
-        print(latseq_stats.str_statistics("Journeys latency", latseq_stats.journeys_latency_statistics(journeys)))
+        output_function(latseq_stats.journeys_latency_statistics(journeys), args.print_stats, "Journeys latency stats")
     elif args.stat_points:
         points = {}
         for p in list_meas_json:
             tmp_p = json.loads(p)
             point_name = list(tmp_p.keys())[0]
             points[point_name] = tmp_p[point_name]
-        print("Latency for points")
         tmp_stats_points = latseq_stats.points_latency_statistics(points)
         for dir in tmp_stats_points:
             for p in tmp_stats_points[dir]:
-                print(latseq_stats.str_statistics(f"Point Latency for {p}", {dir : tmp_stats_points[dir][p]}))
+                output_function({p: tmp_stats_points[dir][p]}, args.print_stats, f"Point Latency for {p}")
  
