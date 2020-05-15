@@ -13,15 +13,13 @@
 Example:
     ./latseq_logs.py -l /home/flavien/latseq.simple.lseq -j | ./latseq_stats.py -j
 
-Attributes:
-    none
-
 TODO
 
 """
 
 import sys
 import argparse
+import subprocess
 import json
 import datetime
 import statistics
@@ -32,6 +30,7 @@ import numpy
 # GLOBALS
 #
 S_TO_MS = 1000
+QUANTILES = [0.1, 0.25, 0.5, 0.75, 0.9]
 
 #
 # FUNCTIONS
@@ -67,7 +66,7 @@ class latseq_stats:
             statsP (str): a dictionnary with statistics
 
         Returns:
-            str: the output statistics
+            str: the formatted statistics
         """
         res_str = f"Stats for {statsNameP}\n"
         for s in statsP:
@@ -106,7 +105,7 @@ class latseq_stats:
                 res_str += f"Min \t\t | \t {float(statsP[s]['min']):.3}\n"
         return res_str
 
-    # GLOBAL_BASED
+    # GLOBAL-BASED
     @staticmethod
     def mean_separation_time(tsLP: list) -> float:
         """Function to return means time separation between logs
@@ -145,7 +144,6 @@ class latseq_stats:
             times[journeysP[j]['dir']].append((
                 j,
                 (journeysP[j]['ts_out'] - journeysP[j]['ts_in'])*S_TO_MS))
-        # {'size': {105, 445}, 'mean': {0.7453864879822463, 19.269811539422896}, 'min': {0.04315376281738281, 0.00476837158203125}, 'max': {8.366107940673828, 445.9710121154785}, 'stdev': {1.6531425844726746, 61.32162047000048}}
         tmp_t = list()
         if not times[0]:
             times[0].append((0,0))
@@ -162,7 +160,39 @@ class latseq_stats:
                 'max': max(tmp_t[dint]),
                 'mean': numpy.average(tmp_t[dint]),
                 'stdev': numpy.std(tmp_t[dint]),
-                'quantiles': numpy.quantile(tmp_t[dint], [0.1, 0.25, 0.5, 0.75, 0.9]).tolist()
+                'quantiles': numpy.quantile(tmp_t[dint], QUANTILES).tolist()
+            }
+            # 'times': times[dint]
+        return res
+
+    @staticmethod
+    def journeys_latency_per_point_statistics(journeysP: dict, pathsP: dict) -> dict:
+        """Function calculate statistics on journey's latency by points
+
+        Args:
+            journeysP (:obj:`dict` of journey): dictionnary of journey
+            pathsP (:obj:`dict` of paths): dictionnray of path
+
+        Returns:
+            :obj:`dict`: statistics
+        """
+        times_paths = {}
+        # For all journeys
+        for j in journeysP:
+            if not journeysP[j]['completed']:
+                continue
+            else:
+                pass
+        res = {'D' : {}, 'U': {}}
+        for d in res:
+            dint = 0 if d == "D" else 1
+            res[d] = {
+                'size': len(times[dint]),
+                'min': min(tmp_t[dint]),
+                'max': max(tmp_t[dint]),
+                'mean': numpy.average(tmp_t[dint]),
+                'stdev': numpy.std(tmp_t[dint]),
+                'quantiles': numpy.quantile(tmp_t[dint], QUANTILES).tolist()
             }
             # 'times': times[dint]
         return res
@@ -199,7 +229,7 @@ class latseq_stats:
                     'max': max(times[dint][e0]),
                     'mean': numpy.average(times[dint][e0]),
                     'stdev': numpy.std(times[dint][e0]),
-                    'quantiles': numpy.quantile(times[dint][e0], [0.1, 0.25, 0.5, 0.75, 0.9]).tolist()
+                    'quantiles': numpy.quantile(times[dint][e0], QUANTILES).tolist()
                 }
         return res
 
@@ -207,7 +237,9 @@ class latseq_stats:
 # MAIN
 #
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser("LatSeq statistics processing")
+    parser = argparse.ArgumentParser(
+        "./latseq_stats.py",
+        description="LatSeq Analysis Module - Statistics script")
     parser.add_argument(
         "-l",
         "--log",
@@ -230,6 +262,13 @@ if __name__ == "__main__":
         help="Request stat journeys in the case of command line script"
     )
     parser.add_argument(
+        "-jpp",
+        "--jperpoints",
+        dest="stat_journeys_points",
+        action='store_true',
+        help="Request stat on journeys per points in the case of command line script"
+    )
+    parser.add_argument(
         "-p",
         "--points",
         dest="stat_points",
@@ -237,7 +276,7 @@ if __name__ == "__main__":
         help="Request stat points in the case of command line script"
     )
     args = parser.parse_args()
-    if not args.stat_journeys and not args.stat_points:
+    if not args.stat_journeys and not args.stat_points and not args.stat_journeys_points:
         sys.stdout.write("No action requested\n")
         exit()
 
@@ -269,6 +308,29 @@ if __name__ == "__main__":
             tmp_j = json.loads(j)
             journeys[tmp_j['uid']] = tmp_j
         output_function(latseq_stats.journeys_latency_statistics(journeys), args.print_stats, "Journeys latency stats")
+    elif args.stat_journeys_points:
+        journeys = {}
+        # to a dict
+        tmp_j = {}
+        for jpp in list_meas_json:
+            tmp_j = json.loads(jpp)
+            journeys[tmp_j['uid']] = tmp_j
+        # call latseq_logs to get path
+        # TODO : gerer les erreurs
+        # CA NE MARCHE PAS, avec run() et Popen me fait un Broken pipe...
+        # La gestion des subprocess sous python c'est tout de même un peu rodeo !!!
+
+        # print(journeys['32']['file'])
+        # cmd = ["./latseq_logs.py", "-r", f"-l /home/flavien/latseq.simple.lseq"]
+        # print(" ".join(cmd))
+        # latseq_route_process = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, universal_newlines=True)
+        # print(latseq_route_process)
+        # On va dire que ca marche
+        paths = {}
+        with open("routes.json", 'r') as fp:
+            paths = json.load(fp)
+        
+        #output_function()
     elif args.stat_points:
         points = {}
         for p in list_meas_json:

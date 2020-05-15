@@ -132,7 +132,7 @@ class latseq_log:
                 journeys[i]['ts_in'] (float): timestamp at which the journey begins
                 journeys[i]['ts_out'] (float): timestamp at which the journey ends if `completed`
                 journeys[i]['next_points'] (:obj:`list`): the next points' identifier expected
-                journeys[i]['set'] (:obj:`list`): list of measures in `input` corresponding to this journey
+                journeys[i]['set'] (:obj:`list` of :obj:`tuple`): list of measures in `input` corresponding to this journey
                 journeys[i]['set_ids'] (:obj:`list`): the last measurement point identifier added
                 journeys[i]['path'] (int): the path id according to self.paths
         out_journeys (:obj:`list`): the list of measurement point like `raw_inputs` but ordered, filtered and with unique identifier (uid) by journey
@@ -554,7 +554,7 @@ class latseq_log:
                     tmp_p[5],
                     tmp_p[6],
                     self.journeys[parent_journey_id]['glob'],
-                    self.inputs[self.journeys[parent_journey_id]['set'][-1]]
+                    self.inputs[self.journeys[parent_journey_id]['set'][-1][0]]
                 )
                 if not matched_ids:
                     local_pointerP = _get_next(list_meas, nb_meas, local_pointerP)
@@ -594,7 +594,7 @@ class latseq_log:
                         seg_tmp_p[5],
                         seg_tmp_p[6],
                         self.journeys[parent_journey_id]['glob'],
-                        self.inputs[self.journeys[parent_journey_id]['set'][-1]])
+                        self.inputs[self.journeys[parent_journey_id]['set'][-1][0]])
                     # Case: find a match, then a segmentation
                     if seg_matched_ids:
                         if local_pointerP not in seg_list:
@@ -606,7 +606,7 @@ class latseq_log:
                 # end while seg_local_pointer < nb_meas
 
                 # At this point, we have completed all the possible fork
-                self.journeys[parent_journey_id]['set'].append(self.inputs.index(tmp_p))
+                self.journeys[parent_journey_id]['set'].append((self.inputs.index(tmp_p), tmp_p[0]))
                 self.journeys[parent_journey_id]['set_ids'].update(matched_ids)
 
                 # Try to find a path id
@@ -642,9 +642,9 @@ class latseq_log:
             #   Looks like a tree
             if seg_list and self.journeys[parent_journey_id]['completed']:
                 for p in self.journeys[parent_journey_id]['set']:
-                    if p in seg_list:  # There is a brother
+                    if p[0] in seg_list:  # There is a brother
                         # For all brothers
-                        for s in seg_list[p]:  # seg_local_pointer : seg_matched_ids
+                        for s in seg_list[p[0]]:  # seg_local_pointer : seg_matched_ids
                             # Create a new path
                             # TODO: what to do when the value is exactly the same ?
                             seg_p = self.inputs[s]
@@ -653,9 +653,9 @@ class latseq_log:
                             self.journeys[segid]['set_ids']['uid'] = str(segid)
                             # Remove all elements after p
                             del self.journeys[segid]['set'][self.journeys[segid]['set'].index(p):]
-                            self.journeys[segid]['set'].append(s)
+                            self.journeys[segid]['set'].append((s, seg_p[0]))
                             self.journeys[segid]['completed'] = False
-                            self.journeys[segid]['set_ids'].update(seg_list[p][s])
+                            self.journeys[segid]['set_ids'].update(seg_list[p[0]][s])
                             sys.stderr.write(f"Add {s} to {segid}\n")
                             if s not in point_added:
                                 point_added[s] = [segid]
@@ -711,14 +711,16 @@ class latseq_log:
             self.journeys[newid]['dir'] = p[1]  # direction for this journey
             self.journeys[newid]['glob'] = p[5]  # global ids as a first filter
             self.journeys[newid]['ts_in'] = p[0]  # timestamp of arrival
-            self.journeys[newid]['set'] = list()  # set measurements of ids in inputs for this journey
-            self.journeys[newid]['set'].append(self.inputs.index(p))
+            self.journeys[newid]['set'] = list()  # set of measurements ids and properties (tuple())
+            # self.journeys[newid]['set'][0] : id dans inputs
+            # self.journeys[newid]['set'][1] : for this input
+            self.journeys[newid]['set'].append((self.inputs.index(p), p[0]))
             self.journeys[newid]['set_ids'] = dict()  # dict of local ids
             self.journeys[newid]['set_ids'] = {'uid': str(newid)}
             self.journeys[newid]['set_ids'].update(p[6])
             self.journeys[newid]['next_points'] = self.points[p[2]]['next']  # list of possible next points
-            if self.journeys[newid]['set'][-1] not in point_added:
-                point_added[self.journeys[newid]['set'][-1]] = [newid]
+            if self.journeys[newid]['set'][-1][0] not in point_added:
+                point_added[self.journeys[newid]['set'][-1][0]] = [newid]
             # path number of this journey according to self.paths
             if not hasattr(self, 'paths'):  # Paths not construct, it should because it is done at init
                 self.journeys[newid]['completed'] = False
@@ -750,11 +752,13 @@ class latseq_log:
             _rec_rebuild(pointer, local_pointer, newid)
             pointer = _get_next(list_meas, nb_meas, pointer)
         # Remove all useless journeys dict keys for the next
+        tmp_file = self.logpath
         for k in self.journeys:
             self.journeys[k]['uid'] = self.journeys[k]['set_ids']['uid']
             del self.journeys[k]['next_points']
+            self.journeys[k]['file'] = tmp_file
             if isinstance(self.journeys[k]['path'], dict):
-                self.journeys[k]['completed'] == False
+                self.journeys[k]['completed'] = False
         # Store latseq_logs object
         self.store_object()
         # build out_journeys
@@ -778,13 +782,13 @@ class latseq_log:
                 continue
             for e in self.journeys[j]['set']: # for all elements in set of ids
                 # List all points used for the out journeys
-                if e not in points_added:
-                    points_added[e] = [j]
+                if e[0] not in points_added:
+                    points_added[e[0]] = [j]
                 else:
-                    points_added[e].append(j)
-                e_tmp = self.inputs[e]  # Get the point in the inputs list
-                if e not in added_out_j:  # create a new entry for this point in out journeys
-                    added_out_j[e] = len(self.out_journeys)
+                    points_added[e[0]].append(j)
+                e_tmp = self.inputs[e[0]]  # Get the point in the inputs list
+                if e[0] not in added_out_j:  # create a new entry for this point in out journeys
+                    added_out_j[e[0]] = len(self.out_journeys)
                     tmp_uid = self.journeys[j]['set_ids']['uid']
                     tmp_str = f"uid{tmp_uid}.{dict_ids_to_str(self.journeys[j]['glob'])}.{dict_ids_to_str(e_tmp[6])}"
                     self.out_journeys.append([
@@ -794,7 +798,7 @@ class latseq_log:
                         e_tmp[4],  # [3] : properties
                         tmp_str])  # [4] : data id
                 else:  # update the current entry
-                    self.out_journeys[added_out_j[e]][4] = f"uid{self.journeys[j]['set_ids']['uid']}." + self.out_journeys[added_out_j[e]][4]
+                    self.out_journeys[added_out_j[e[0]]][4] = f"uid{self.journeys[j]['set_ids']['uid']}." + self.out_journeys[added_out_j[e[0]]][4]
 
                 # points latency
                 tmp_point = self.points[e_tmp[2]]
@@ -804,7 +808,7 @@ class latseq_log:
                     tmp_point['duration'][tmp_uid] = 0
                 else:  # Is a mid point because out could not be in e_tmp[2]
                     current_index = self.journeys[j]['set'].index(e)
-                    prev_ts = self.inputs[self.journeys[j]['set'][current_index - 1]][0]
+                    prev_ts = self.inputs[self.journeys[j]['set'][current_index - 1][0]][0]
                     tmp_point['duration'][tmp_uid] = e_tmp[0] - prev_ts
         self.out_journeys.sort(key=operator.itemgetter(0))
         orphans = 0
@@ -993,7 +997,8 @@ class latseq_log:
 #
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser("LatSeq log processing")
+    parser = argparse.ArgumentParser("./latseq_logs.py",
+    description="LatSeq Analysis Module - Log processing component")
     parser.add_argument(
         "-l",
         "--log",
