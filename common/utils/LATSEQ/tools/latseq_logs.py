@@ -20,9 +20,7 @@ Attributes:
     none
 
 TODO
-    * categorize journeys in a path. For later filtering
     * find ALL in and out points (dynamically). Should I do ?
-    * output a json more practical to use
     * APIify with flask to be called easily by the others modules
         https://programminghistorian.org/en/lessons/creating-apis-with-python-and-flask#creating-a-basic-flask-application
     * Rebuild_packet with multithreading because the algorithmc complexity is huge...
@@ -49,9 +47,9 @@ import json
 
 # trick to reduce complexity
 # Asumption : packet spend at maximum DEPTH_TO_SEARCH_PKT measure in the system
-DEPTH_TO_SEARCH_PKT = 80
+# DEPTH_TO_SEARCH_PKT = 80
 DURATION_TO_SEARCH_PKT = 0.05  # 50ms treshold to complete a journey
-DEPTH_TO_SEARCH_FORKS = 20
+# DEPTH_TO_SEARCH_FORKS = 20
 DURATION_TO_SEARCH_FORKS = 0.002  # 2ms treshold to find segmentation
 # TODO: limit time to search concatenation: or use the properties like size ?
 DURATION_TO_SEARCH_CONCA = 0.005  # 5ms to find concatenation
@@ -95,7 +93,7 @@ def make_immutable_list(listP: list) -> tuple:
 
 
 #
-# STRUCTURES
+# CLASSES
 #
 class latseq_log:
     """class for log processing associated to a log file
@@ -439,7 +437,6 @@ class latseq_log:
                 for p in range(len(self.paths[dp])):
                     self.paths[dp][p] = make_immutable_list(self.paths[dp][p])
 
-
     def _build_timestamp(self):
         """Build `timestamps` a :obj:`list` of float of timestamp
         """
@@ -774,12 +771,27 @@ class latseq_log:
         # build out_journeys
         self._build_out_journeys()
 
-
     def _build_out_journeys(self) -> int:
+        """Build out_journeys. Compute 'duration' for each points present in each journeys.
+
+        Attributes:
+            out_journeys (:obj:`list`): the list of measurements like `raw_inputs` but ordered, filtered and with unique identifier (uid) by journey
+                out_journeys[o] : a log line of out_journeys = a log line from input (if input is present in a journey)
+                    out_journeys[o][0] (float): timestamp
+                    out_journeys[o][1] (char): direction, U/D
+                    out_journeys[o][2] (str): segment
+                    out_journeys[o][3] (str): properties
+                    out_journeys[o][4] (str): data identifier with journey id(s) associated to this measurement
+        
+        Returns:
+            int: size of out_journeys list
+
+        Raises:
+            AttributeError: journeys not present in `latseq_logs` object
+        """
         if not hasattr(self, 'journeys'):
             sys.stderr.write("[ERROR] First rebuild journeys\n")
-            return 0
-
+            raise AttributeError('journeys not present in object, first try rebuild journeys')
         self.out_journeys = list()
         nb_meas = len(self.inputs)
         added_out_j = {}
@@ -879,6 +891,12 @@ class latseq_log:
 
     # YIELDERS
     def yield_clean_inputs(self):
+        """Yielder of cleaned inputs
+        Yields:
+            measurement line of log (str)
+        Raises:
+            ValueError: line malformed
+        """
         try:
             for i in self.inputs:
                 tmp_str = f"{i[0]} "
@@ -943,14 +961,45 @@ class latseq_log:
             raise ValueError(f"{e} is malformed")
 
     def yield_points(self):
+        """Yielder for points
+        Yields:
+            :obj:`dict`: point's name with corresponding self.points dict element
+        """
         # Warning for stats if journeys has not been rebuilt
         if "duration" not in self.points[next(iter(self.points.keys()))]:
             sys.stderr.write("[WARNING] points without duration, first rebuild journeys for stat")
         for p in self.points:
             yield {p: self.points[p]}
 
+    def yield_global_csv(self):
+        """Yielder for a csv file from journeys
+        Yields:
+            str: csv line of timestamp by measurement point (column) and journeys (line) 
+        """
+        points = self.get_list_of_points()
+        # Yields header
+        NB_PREAMBLE = 3
+        yield "journeys uid, dir, path_id, " + ", ".join(points) + "\n"
+        # Yields one line per journey
+        for j in self.journeys:
+            if not self.journeys[j]['completed']:
+                continue
+            tmp_tab = (len(points) + NB_PREAMBLE)*['']
+            tmp_tab[0] = str(self.journeys[j]['uid'])
+            tmp_tab[1] = str(self.journeys[j]['dir'])
+            tmp_tab[2] = str(self.journeys[j]['path'])
+            for i in self.journeys[j]['set']:
+                tmp_tab[points.index(self.inputs[i[0]][3])+NB_PREAMBLE] = str(self.inputs[i[0]][0])
+            yield ", ".join(tmp_tab) + "\n"
+
     # WRITERS TO FILE
     def out_journeys_to_file(self):
+        """ Saves out_journey to a lseqj file
+        Attributes:
+            out_journeys
+        Raises:
+            IOError: Error at writing lseqj files
+        """
         # Save out_journeys to file type lseqj
         out_journeyspath = self.logpath.replace('lseq', 'lseqj')
         def _build_header() -> str:
@@ -972,25 +1021,13 @@ class latseq_log:
             sys.stderr.write(f"[ERROR] on writing({self.logpath})\n")
             raise e
 
-    def get_global_csv(self):
-        """Returns a csv string"""
-        points = self.get_list_of_points()
-        # Yields header
-        NB_PREAMBLE = 3
-        yield "journeys uid, dir, path_id, " + ", ".join(points) + "\n"
-        # Yields one line per journey
-        for j in self.journeys:
-            if not self.journeys[j]['completed']:
-                continue
-            tmp_tab = (len(points) + NB_PREAMBLE)*['']
-            tmp_tab[0] = str(self.journeys[j]['uid'])
-            tmp_tab[1] = str(self.journeys[j]['dir'])
-            tmp_tab[2] = str(self.journeys[j]['path'])
-            for i in self.journeys[j]['set']:
-                tmp_tab[points.index(self.inputs[i[0]][3])+NB_PREAMBLE] = str(self.inputs[i[0]][0])
-            yield ", ".join(tmp_tab) + "\n"
-
     def store_object(self):
+        """Store latseq_log object into a pickle file
+        Raises:
+            IOError: Error at saving file to pkl
+        TODO:
+            handle pickle error
+        """
         pickle_file = self.logpath.replace("lseq", "pkl")
         try:
             with open(pickle_file, 'wb') as fout:
@@ -1025,6 +1062,7 @@ class latseq_log:
 #
 
 if __name__ == "__main__":
+    # Arguments
     parser = argparse.ArgumentParser("./latseq_logs.py",
     description="LatSeq Analysis Module - Log processing component")
     parser.add_argument(
@@ -1149,6 +1187,6 @@ if __name__ == "__main__":
         if args.req_paths:
             sys.stdout.write(json.dumps(lseq.get_paths()) + '\n')
         if args.req_csv:
-            for l in lseq.get_global_csv():
+            for l in lseq.yield_global_csv():
                 sys.stdout.write(l)
 

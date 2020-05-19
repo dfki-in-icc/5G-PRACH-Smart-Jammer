@@ -15,6 +15,7 @@ Example:
 
 TODO
     * Issue with float representation in python https://docs.python.org/3.6/tutorial/floatingpoint.html
+    * Handle -s and -n
 """
 
 import sys
@@ -30,7 +31,7 @@ import numpy
 # GLOBALS
 #
 S_TO_MS = 1000
-QUANTILES = [0.1, 0.25, 0.5, 0.75, 0.9]
+QUANTILES = [0.05, 0.25, 0.5, 0.75, 0.95]
 
 #
 # FUNCTIONS
@@ -67,6 +68,9 @@ class latseq_stats:
 
         Returns:
             str: the formatted statistics
+        
+        TODO:
+            more dynamic stuff
         """
         res_str = f"Stats for {statsNameP}\n"
         for s in statsP:
@@ -93,11 +97,11 @@ class latseq_stats:
                 res_str += f"Max \t\t | \t {float(statsP[s]['max']):.3}\n"
             if 'quantiles' in keysD:
                 if len(statsP[s]['quantiles']) == 5:
-                    res_str += f"[75..90%] \t | \t {float(statsP[s]['quantiles'][4]):.3}\n"
+                    res_str += f"[75..95%] \t | \t {float(statsP[s]['quantiles'][4]):.3}\n"
                     res_str += f"[50..75%] \t | \t {float(statsP[s]['quantiles'][3]):.3}\n"
                     res_str += f"[25..50%] \t | \t {float(statsP[s]['quantiles'][2]):.3}\n"
                     res_str += f"[10..25%] \t | \t {float(statsP[s]['quantiles'][1]):.3}\n"
-                    res_str += f"[0..10%] \t | \t {float(statsP[s]['quantiles'][0]):.3}\n"
+                    res_str += f"[0..5%] \t | \t {float(statsP[s]['quantiles'][0]):.3}\n"
                 else:
                     for i in range(len(statsP[s]['quantiles']),0,-1):
                         res_str += f"Quantiles {i-1}\t | \t {statsP[s]['quantiles'][i-1]:.3}\n"
@@ -285,6 +289,20 @@ if __name__ == "__main__":
         dest="print_stats",
         action='store_true',
         help="Print statistics instead of return a json report"
+    )
+    parser.add_argument(
+        "-n",
+        "--name",
+        type=str,
+        dest="savename",
+        help="Statistic computed's name"
+    )
+    parser.add_argument(
+        "-s",
+        "--save",
+        dest="save_file",
+        action='store_true',
+        help="Save to a json file"
     )
     parser.add_argument(
         "-j",
