@@ -14,7 +14,7 @@ Example:
     ./latseq_logs.py -l /home/flavien/latseq.simple.lseq -j | ./latseq_stats.py -j
 
 TODO
-
+    * Issue with float representation in python https://docs.python.org/3.6/tutorial/floatingpoint.html
 """
 
 import sys
@@ -74,10 +74,10 @@ class latseq_stats:
                 dir = statsP[s]['dir']
             else:
                 dir = s
-            if dir == 'D':
+            if dir == 'D' or dir.split(".")[0] == 'D':
                 res_str += "Values \t\t | \t Downlink\n"
                 res_str += "------ \t\t | \t --------\n"
-            elif dir == 'U':
+            elif dir == 'U' or dir.split(".")[0] == 'U':
                 res_str += "Values \t\t | \t Uplink\n"
                 res_str += "------ \t\t | \t ------\n"
             else:
@@ -176,25 +176,57 @@ class latseq_stats:
         Returns:
             :obj:`dict`: statistics
         """
-        times_paths = {}
-        # For all journeys
+        res = {'D' : {}, 'U': {}}
+        # compute share and duration For all journeys
         for j in journeysP:
             if not journeysP[j]['completed']:
                 continue
+            # Compute share of time for each points
             else:
-                pass
-        res = {'D' : {}, 'U': {}}
+                duration = round(journeysP[j]['ts_out'] - journeysP[j]['ts_in'], 6)
+                tmp_j = {'total': duration, 'durations': []}
+                try:
+                    for p in range(len(journeysP[j]['set'])-1):
+                        # replace seg par point according to paths
+                        tmp_seg = (journeysP[j]['set'][p][0], journeysP[j]['set'][p+1][0])
+                        tmp_duration =  round((journeysP[j]['set'][p+1][1] - journeysP[j]['set'][p][1]), 6)
+                        tmp_j['durations'].append(
+                            (
+                                tmp_seg,
+                                tmp_duration,
+                                round((tmp_duration/duration), 4)
+                            )
+                        )
+                except KeyError:
+                    sys.stderr.write(f"[ERROR] set not in journey {j}\n")
+                    continue
+                else:
+                    dir = 'D' if journeysP[j]['dir'] == 0 else 'U'
+                    if journeysP[j]['path'] not in res[dir]:
+                        res[dir][journeysP[j]['path']] = {}
+                    res[dir][journeysP[j]['path']][j] = tmp_j
+
+        shares = []
         for d in res:
-            dint = 0 if d == "D" else 1
-            res[d] = {
-                'size': len(times[dint]),
-                'min': min(tmp_t[dint]),
-                'max': max(tmp_t[dint]),
-                'mean': numpy.average(tmp_t[dint]),
-                'stdev': numpy.std(tmp_t[dint]),
-                'quantiles': numpy.quantile(tmp_t[dint], QUANTILES).tolist()
-            }
-            # 'times': times[dint]
+            for path in res[d]:
+                del shares[:]
+                # correpond to the number of point
+                size_path = len(res[d][path][list(res[d][path].keys())[0]]['durations'])
+                shares = []
+                for v in range(size_path):
+                    shares.append([])
+                    for j in res[d][path]:
+                        shares[v].append(res[d][path][j]['durations'][v][2])
+                res[d][path]['stats'] = {}
+                for v in range(size_path):  # TODO : replace v par segment in path
+                    res[d][path]['stats'][v] = {
+                        'size': len(shares[v]),
+                        'min': min(shares[v]),
+                        'max': max(shares[v]),
+                        'mean': numpy.average(shares[v]),
+                        'stdev': numpy.std(shares[v]),
+                        'quantiles': numpy.quantile(shares[v], QUANTILES).tolist()
+                    }
         return res
 
 
@@ -327,8 +359,15 @@ if __name__ == "__main__":
         # print(latseq_route_process)
         # On va dire que ca marche
         paths = {}
-        with open("routes.json", 'r') as fp:
-            paths = json.load(fp)
+        # with open("routes.json", 'r') as fp:
+        #     paths = json.load(fp)
+        res = latseq_stats.journeys_latency_per_point_statistics(journeys, {})
+        for d in res:
+            for path in res[d]:
+                for v in res[d][path]['stats']:
+                    #continue
+                    output_function({f"{d}.{path}.{v}": res[d][path]['stats'][v]}, args.print_stats, f"Share of time for {v} in path {path}")
+        # output_function( , args.print_stats, "Journeys latency per point")
         
         #output_function()
     elif args.stat_points:

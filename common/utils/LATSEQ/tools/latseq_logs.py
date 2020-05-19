@@ -26,6 +26,7 @@ TODO
     * APIify with flask to be called easily by the others modules
         https://programminghistorian.org/en/lessons/creating-apis-with-python-and-flask#creating-a-basic-flask-application
     * Rebuild_packet with multithreading because the algorithmc complexity is huge...
+    * https://docs.python.org/3.6/tutorial/floatingpoint.html
 
 """
 
