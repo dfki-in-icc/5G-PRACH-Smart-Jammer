@@ -109,6 +109,13 @@ class latseq_log:
         raw_inputs (:obj:`list` of :obj:`str`): list of lines from logpath file
         inputs (:obj:`list` of :obj:`str`): list of lines after a first pass
             of processing from raw_inputs
+                inputs[i][0] : Timestamp
+                inputs[i][1] : Direction
+                inputs[i][2] : Src point
+                inputs[i][3] : Dst point
+                inputs[i][4] : Properties
+                inputs[i][5] : Global identifiers
+                inputs[i][6] : Local identifiers
         dataids (:obj:`list` of :obj:`str`): list of dataids found in the logs
         points (:obj:`dict` of :obj:`list`): list of points
             points[i] (:obj:`dict`): a point
@@ -133,7 +140,9 @@ class latseq_log:
                 journeys[i]['ts_in'] (float): timestamp at which the journey begins
                 journeys[i]['ts_out'] (float): timestamp at which the journey ends if `completed`
                 journeys[i]['next_points'] (:obj:`list`): the next points' identifier expected
-                journeys[i]['set'] (:obj:`list` of :obj:`tuple`): list of measures in `input` corresponding to this journey
+                journeys[i]['set'] (:obj:`list` of :obj:`tuple`): list of measures 
+                    journeys[i]['set'][s][0] (int): corresponding id in `input`
+                    journeys[i]['set'][s][1] (float): timestamp
                 journeys[i]['set_ids'] (:obj:`list`): the last measurement point identifier added
                 journeys[i]['path'] (int): the path id according to self.paths
         out_journeys (:obj:`list`): the list of measurement point like `raw_inputs` but ordered, filtered and with unique identifier (uid) by journey
@@ -963,6 +972,24 @@ class latseq_log:
             sys.stderr.write(f"[ERROR] on writing({self.logpath})\n")
             raise e
 
+    def get_global_csv(self):
+        """Returns a csv string"""
+        points = self.get_list_of_points()
+        # Yields header
+        NB_PREAMBLE = 3
+        yield "journeys uid, dir, path_id, " + ", ".join(points) + "\n"
+        # Yields one line per journey
+        for j in self.journeys:
+            if not self.journeys[j]['completed']:
+                continue
+            tmp_tab = (len(points) + NB_PREAMBLE)*['']
+            tmp_tab[0] = str(self.journeys[j]['uid'])
+            tmp_tab[1] = str(self.journeys[j]['dir'])
+            tmp_tab[2] = str(self.journeys[j]['path'])
+            for i in self.journeys[j]['set']:
+                tmp_tab[points.index(self.inputs[i[0]][3])+NB_PREAMBLE] = str(self.inputs[i[0]][0])
+            yield ", ".join(tmp_tab) + "\n"
+
     def store_object(self):
         pickle_file = self.logpath.replace("lseq", "pkl")
         try:
@@ -1065,6 +1092,13 @@ if __name__ == "__main__":
         action='store_true',
         help="Request paths in the case of command line script"
     )
+    parser.add_argument(
+        "-x",
+        "--csv",
+        dest="req_csv",
+        action='store_true',
+        help="Request csv with journeys and points"
+    )
 
     args = parser.parse_args()
 
@@ -1114,4 +1148,7 @@ if __name__ == "__main__":
                 sys.stdout.write(json.dumps(p) + '\n')
         if args.req_paths:
             sys.stdout.write(json.dumps(lseq.get_paths()) + '\n')
+        if args.req_csv:
+            for l in lseq.get_global_csv():
+                sys.stdout.write(l)
 
