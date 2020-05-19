@@ -186,12 +186,8 @@ void nr_process_mac_pdu(
                 LOG_D(MAC, "[UE %d] Frame %d : DLSCH -> DL-DTCH %d (gNB %d, %d bytes)\n", module_idP, frameP, rx_lcid, module_idP, mac_sdu_len);
 
                 #if defined(ENABLE_MAC_PAYLOAD_DEBUG)
-                    LOG_T(MAC, "[UE %d] First 32 bytes of DLSCH : \n", module_idP);
+		    log_dump(MAC, pdu_ptr + mac_subheader_len, 32, LOG_DUMP_CHAR, "\n");
 
-                    for (i = 0; i < 32; i++)
-                      LOG_T(MAC, "%x.", (pdu_ptr + mac_subheader_len)[i]);
-
-                    LOG_T(MAC, "\n");
                 #endif
 
                 if (IS_SOFTMODEM_NOS1){
@@ -222,7 +218,10 @@ void nr_process_mac_pdu(
         pdu_ptr += ( mac_subheader_len + mac_ce_len + mac_sdu_len );
         pdu_len -= ( mac_subheader_len + mac_ce_len + mac_sdu_len );
 
-        AssertFatal(pdu_len >= 0, "[MAC] nr_process_mac_pdu, residual mac pdu length < 0!\n");
+        if (pdu_len < 0) {
+          LOG_E(MAC, "%s() residual mac pdu length < 0!\n", __func__);
+          return;
+        }
     }
 }
 
@@ -233,7 +232,7 @@ void nr_process_mac_pdu(
 void nr_rx_sdu(const module_id_t gnb_mod_idP,
                const int CC_idP,
                const frame_t frameP,
-               const sub_frame_t subframeP,
+               const sub_frame_t slotP,
                const rnti_t rntiP,
                uint8_t *sduP,
                const uint16_t sdu_lenP,
@@ -241,38 +240,30 @@ void nr_rx_sdu(const module_id_t gnb_mod_idP,
                const uint8_t ul_cqi){
   int current_rnti = 0, UE_id = -1, harq_pid = 0;
   gNB_MAC_INST *gNB_mac = NULL;
-  UE_list_t *UE_list = NULL;
+  NR_UE_list_t *UE_list = NULL;
   UE_sched_ctrl_t *UE_scheduling_control = NULL;
 
   current_rnti = rntiP;
-  UE_id = find_nrUE_id(gnb_mod_idP, current_rnti);
+  UE_id = find_nr_UE_id(gnb_mod_idP, current_rnti);
   gNB_mac = RC.nrmac[gnb_mod_idP];
   UE_list = &gNB_mac->UE_list;
-
-  UE_id = 0;
 
   if (UE_id != -1) {
     UE_scheduling_control = &(UE_list->UE_sched_ctrl[UE_id]);
 
-    LOG_D(MAC, "[eNB %d][PUSCH %d] CC_id %d %d.%d Received ULSCH sdu round %d from PHY (rnti %x, UE_id %d) ul_cqi %d\n",
+    LOG_D(MAC, "[gNB %d][PUSCH %d] CC_id %d %d.%d Received ULSCH sdu round %d from PHY (rnti %x, UE_id %d) ul_cqi %d\n",
           gnb_mod_idP,
           harq_pid,
           CC_idP,
           frameP,
-          subframeP,
+          slotP,
           UE_scheduling_control->round_UL[CC_idP][harq_pid],
           current_rnti,
           UE_id,
           ul_cqi);
 
 #if defined(ENABLE_MAC_PAYLOAD_DEBUG)
-  LOG_I(MAC, "Printing received UL MAC payload at gNB side: %d \n");
-  for (int i = 0; i < sdu_lenP ; i++) {
-	  //harq_process_ul_ue->a[i] = (unsigned char) rand();
-	  //printf("a[%d]=0x%02x\n",i,harq_process_ul_ue->a[i]);
-	  printf("%02x ",(unsigned char)sduP[i]);
-  }
-  printf("\n");
+  log_dump(MAC, sduP, sdu_lenP, LOG_DUMP_CHAR, "Printing received UL MAC payload at gNB side: %d \n");
 #endif
 
     if (sduP != NULL){
