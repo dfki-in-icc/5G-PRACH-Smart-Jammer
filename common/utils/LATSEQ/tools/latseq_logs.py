@@ -20,6 +20,7 @@ Attributes:
     none
 
 TODO
+    * Retransmissions
     * find ALL in and out points (dynamically). Should I do ?
     * APIify with flask to be called easily by the others modules
         https://programminghistorian.org/en/lessons/creating-apis-with-python-and-flask#creating-a-basic-flask-application
@@ -52,9 +53,11 @@ DURATION_TO_SEARCH_PKT = 0.05  # 50ms treshold to complete a journey
 # DEPTH_TO_SEARCH_FORKS = 20
 DURATION_TO_SEARCH_FORKS = 0.002  # 2ms treshold to find segmentation
 # TODO: limit time to search concatenation: or use the properties like size ?
-DURATION_TO_SEARCH_CONCA = 0.005  # 5ms to find concatenation
+# DURATION_TO_SEARCH_CONCA = 0.005  # 5ms to find concatenation
+DURATION_TO_SEARCH_RETX = 0.01  # 10ms : Set according to drx-RetransmissionTimerDL RRC config (3GPP-TS38.321) for MAC and max_seq_num for RLC (3GPP-TS38.322)
 
 S_TO_MS = 1000
+KEYWORDS = ('tx', 'rx', 'retx')  # Special keywords
 #
 # UTILS
 #

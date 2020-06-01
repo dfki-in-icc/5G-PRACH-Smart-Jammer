@@ -31,13 +31,16 @@ import numpy
 # GLOBALS
 #
 S_TO_MS = 1000
+BASIC_STATS = ["size", "min", "max", "mean", "stdev", ["quantiles", "0.05", "0.25", "0.50", "0.75", "0.95"]]
 QUANTILES = [0.05, 0.25, 0.5, 0.75, 0.95]
+PRECISION = 6
+OUT_FORMATS = ["json", "csv"]
 
 #
 # FUNCTIONS
 #
 
-def output_function(outP: dict, flagP=False, data_nameP=""):
+def output_function(outP: dict, flagP=False, fmtP="json", data_nameP="") -> str:
     """output wrapper
 
     Arguments:
@@ -45,10 +48,36 @@ def output_function(outP: dict, flagP=False, data_nameP=""):
         flagP (bool): Print string if True, Json otherwise
     """
     if flagP:
-        sys.stdout.write(latseq_stats.str_statistics(data_nameP, outP))
+        return latseq_stats.str_statistics(data_nameP, outP)
     else:
-        sys.stdout.write(json.dumps(outP))
+        if fmtP == "json":
+            return json.dumps(outP)
+        elif fmtP == "csv":
+            return out_csv(outP)
+        else:
+            sys.stderr.write("No supported format provided for output\n")
 
+def out_csv(outP: dict) -> str:
+    resS = ";;"
+    for s in BASIC_STATS:
+        if isinstance(s, list):
+            iterlist = iter(s)
+            next(iterlist)
+            for k in iterlist:
+                resS += f"{s[0]}:{k};"
+        else:    
+            resS += f"{s};"
+    resS += "\n"
+    for k in outP:
+        resS += f"{k};"
+        for s in outP[k]:
+            if isinstance(outP[k][s], list):
+                for l in outP[k][s]:
+                    resS += f"{l};"
+            else:
+                resS += f"{outP[k][s]};"
+        resS += "\n"
+    return resS
 #
 # STATISTICS
 #
@@ -160,11 +189,11 @@ class latseq_stats:
             dint = 0 if d == "D" else 1
             res[d] = {
                 'size': len(times[dint]),
-                'min': min(tmp_t[dint]),
-                'max': max(tmp_t[dint]),
-                'mean': numpy.average(tmp_t[dint]),
-                'stdev': numpy.std(tmp_t[dint]),
-                'quantiles': numpy.quantile(tmp_t[dint], QUANTILES).tolist()
+                'min': round(min(tmp_t[dint]), ndigits=PRECISION),
+                'max': round(max(tmp_t[dint]), ndigits=PRECISION),
+                'mean': numpy.around(numpy.average(tmp_t[dint]), decimals=PRECISION),
+                'stdev': numpy.around(numpy.std(tmp_t[dint]), decimals=PRECISION),
+                'quantiles': numpy.around(numpy.quantile(tmp_t[dint], QUANTILES), decimals=PRECISION).tolist()
             }
             # 'times': times[dint]
         return res
@@ -225,11 +254,11 @@ class latseq_stats:
                 for v in range(size_path):  # TODO : replace v par segment in path
                     res[d][path]['stats'][v] = {
                         'size': len(shares[v]),
-                        'min': min(shares[v]),
-                        'max': max(shares[v]),
-                        'mean': numpy.average(shares[v]),
-                        'stdev': numpy.std(shares[v]),
-                        'quantiles': numpy.quantile(shares[v], QUANTILES).tolist()
+                        'min': round(min(shares[v]), ndigits=PRECISION),
+                        'max': round(max(shares[v]), ndigits=PRECISION),
+                        'mean': numpy.around(numpy.average(shares[v]), decimals=PRECISION),
+                        'stdev': numpy.around(numpy.std(shares[v]), decimals=PRECISION),
+                        'quantiles': numpy.around(numpy.quantile(shares[v], QUANTILES), decimals=PRECISION).tolist()
                     }
         return res
 
@@ -261,11 +290,11 @@ class latseq_stats:
                 res[d][e0] = {
                     'dir': d,
                     'size': len(times[dint][e0]),
-                    'min': min(times[dint][e0]),
-                    'max': max(times[dint][e0]),
-                    'mean': numpy.average(times[dint][e0]),
-                    'stdev': numpy.std(times[dint][e0]),
-                    'quantiles': numpy.quantile(times[dint][e0], QUANTILES).tolist()
+                    'min': round(min(times[dint][e0]), ndigits=PRECISION),
+                    'max': round(max(times[dint][e0]), ndigits=PRECISION),
+                    'mean': numpy.around(numpy.average(times[dint][e0]), decimals=PRECISION),
+                    'stdev': numpy.around(numpy.std(times[dint][e0]), decimals=PRECISION),
+                    'quantiles': numpy.around(numpy.quantile(times[dint][e0], QUANTILES), decimals=PRECISION).tolist()
                 }
         return res
 
@@ -289,6 +318,13 @@ if __name__ == "__main__":
         dest="print_stats",
         action='store_true',
         help="Print statistics instead of return a json report"
+    )
+    parser.add_argument(
+        "-f",
+        "--format",
+        dest="format",
+        type=str,
+        help="Output's format. csv and json supported. by default, json"
     )
     parser.add_argument(
         "-n",
@@ -326,9 +362,18 @@ if __name__ == "__main__":
         help="Request stat points in the case of command line script"
     )
     args = parser.parse_args()
+    # check arguments
     if not args.stat_journeys and not args.stat_points and not args.stat_journeys_points:
         sys.stdout.write("No action requested\n")
         exit()
+
+    if not args.format:
+        fmt = OUT_FORMATS[0]
+    else:
+        if args.format not in OUT_FORMATS:
+            fmt = OUT_FORMATS[0]
+        else:
+            fmt = args.format
 
     list_meas_json = []
     if args.logname:
@@ -351,13 +396,15 @@ if __name__ == "__main__":
                 continue
             list_meas_json.append(meas)
 
+    output = ""
+
     if args.stat_journeys:
         journeys = {}
         # handle errors
         for j in list_meas_json:
             tmp_j = json.loads(j)
             journeys[tmp_j['uid']] = tmp_j
-        output_function(latseq_stats.journeys_latency_statistics(journeys), args.print_stats, "Journeys latency stats")
+        output = output_function(latseq_stats.journeys_latency_statistics(journeys), args.print_stats, fmt, "Journeys latency stats")
     elif args.stat_journeys_points:
         journeys = {}
         # to a dict
@@ -384,10 +431,18 @@ if __name__ == "__main__":
             for path in res[d]:
                 for v in res[d][path]['stats']:
                     #continue
-                    output_function({f"{d}.{path}.{v}": res[d][path]['stats'][v]}, args.print_stats, f"Share of time for {v} in path {path}")
-        # output_function( , args.print_stats, "Journeys latency per point")
-        
-        #output_function()
+                    output += output_function({f"{d}{path}.{v}": res[d][path]['stats'][v]}, args.print_stats, fmt, f"Share of time for {v} in path {path}")
+        # Clear output
+        if fmt == "csv" and not args.print_stats:
+            tmp_out = ""
+            for l in output.splitlines():
+                if l.startswith(";;"):
+                    if not tmp_out:
+                        tmp_out += f"{l}\n"
+                else:
+                    tmp_out += f"{l}\n"
+            output = tmp_out
+
     elif args.stat_points:
         points = {}
         for p in list_meas_json:
@@ -397,5 +452,16 @@ if __name__ == "__main__":
         tmp_stats_points = latseq_stats.points_latency_statistics(points)
         for dir in tmp_stats_points:
             for p in tmp_stats_points[dir]:
-                output_function({p: tmp_stats_points[dir][p]}, args.print_stats, f"Point Latency for {p}")
+                output += output_function({p: tmp_stats_points[dir][p]}, args.print_stats, fmt, f"Point Latency for {p}")
+                # Clear output
+        if fmt == "csv" and not args.print_stats:
+            tmp_out = ""
+            for l in output.splitlines():
+                if l.startswith(";;"):
+                    if not tmp_out:
+                        tmp_out += f"{l}\n"
+                else:
+                    tmp_out += f"{l}\n"
+            output = tmp_out
+    sys.stdout.write(output)
  
