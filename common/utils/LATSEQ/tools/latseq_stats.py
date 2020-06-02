@@ -25,6 +25,7 @@ import json
 import datetime
 import statistics
 import numpy
+import operator  # itemgetter
 # import math
 
 #
@@ -161,7 +162,7 @@ class latseq_stats:
 
     # JOURNEYS-BASED
     @staticmethod
-    def journeys_latency_statistics(journeysP: dict) -> dict:
+    def journeys_latency_statistics(journeysP: dict, flagTimesP: bool) -> dict:
         """Function calculate statistics on journey's latency
 
         Args:
@@ -175,27 +176,34 @@ class latseq_stats:
             if not journeysP[j]['completed']:
                 continue
             times[journeysP[j]['dir']].append((
+                journeysP[j]['dir'],
                 j,
-                (journeysP[j]['ts_out'] - journeysP[j]['ts_in'])*S_TO_MS))
+                journeysP[j]['ts_in'],
+                round((journeysP[j]['ts_out'] - journeysP[j]['ts_in'])*S_TO_MS, 6)
+                ))
         tmp_t = list()
         if not times[0]:
-            times[0].append((0,0))
+            times[0].append((0,0,0,0))
         if not times[1]:
-            times[1].append((0,0))
-        tmp_t.append([t[1] for t in times[0]])
-        tmp_t.append([t[1] for t in times[1]])
+            times[1].append((1,0,0,0))
+        tmp_t.append([t[3] for t in times[0]])
+        tmp_t.append([t[3] for t in times[1]])
         res = {'D' : {}, 'U': {}}
-        for d in res:
-            dint = 0 if d == "D" else 1
-            res[d] = {
-                'size': len(times[dint]),
-                'min': round(min(tmp_t[dint]), ndigits=PRECISION),
-                'max': round(max(tmp_t[dint]), ndigits=PRECISION),
-                'mean': numpy.around(numpy.average(tmp_t[dint]), decimals=PRECISION),
-                'stdev': numpy.around(numpy.std(tmp_t[dint]), decimals=PRECISION),
-                'quantiles': numpy.around(numpy.quantile(tmp_t[dint], QUANTILES), decimals=PRECISION).tolist()
-            }
-            # 'times': times[dint]
+        if flagTimesP:
+            for d in res:
+                dint = 0 if d == "D" else 1
+                res[d]['times'] = times[dint]
+        else:
+            for d in res:
+                dint = 0 if d == "D" else 1
+                res[d] = {
+                    'size': len(times[dint]),
+                    'min': round(min(tmp_t[dint]), ndigits=PRECISION),
+                    'max': round(max(tmp_t[dint]), ndigits=PRECISION),
+                    'mean': numpy.around(numpy.average(tmp_t[dint]), decimals=PRECISION),
+                    'stdev': numpy.around(numpy.std(tmp_t[dint]), decimals=PRECISION),
+                    'quantiles': numpy.around(numpy.quantile(tmp_t[dint], QUANTILES), decimals=PRECISION).tolist(),
+                }
         return res
 
     @staticmethod
@@ -355,6 +363,13 @@ if __name__ == "__main__":
         help="Request stat on journeys per points in the case of command line script"
     )
     parser.add_argument(
+        "-jd",
+        "--jduration",
+        dest="journeys_durations",
+        action='store_true',
+        help="Request journeys duration"
+    )
+    parser.add_argument(
         "-p",
         "--points",
         dest="stat_points",
@@ -363,7 +378,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     # check arguments
-    if not args.stat_journeys and not args.stat_points and not args.stat_journeys_points:
+    if not args.stat_journeys and not args.stat_points and not args.stat_journeys_points and not args.journeys_durations:
         sys.stdout.write("No action requested\n")
         exit()
 
@@ -404,7 +419,7 @@ if __name__ == "__main__":
         for j in list_meas_json:
             tmp_j = json.loads(j)
             journeys[tmp_j['uid']] = tmp_j
-        output = output_function(latseq_stats.journeys_latency_statistics(journeys), args.print_stats, fmt, "Journeys latency stats")
+        output = output_function(latseq_stats.journeys_latency_statistics(journeys, False), args.print_stats, fmt, "Journeys latency stats")
     elif args.stat_journeys_points:
         journeys = {}
         # to a dict
@@ -442,6 +457,34 @@ if __name__ == "__main__":
                 else:
                     tmp_out += f"{l}\n"
             output = tmp_out
+
+    elif args.journeys_durations:
+        journeys = {}
+        for jd in list_meas_json:
+            tmp_j = json.loads(jd)
+            journeys[tmp_j['uid']] = tmp_j
+        tmp_out = latseq_stats.journeys_latency_statistics(journeys, True)  # tmp_out[dir][times][0..len]=(dir, jid, ts, durations)
+        out_list = []
+
+        for d in tmp_out:
+            out_list.extend(tmp_out[d]['times'])
+        out_list.sort(key=operator.itemgetter(2))
+
+        output = ""
+        if fmt == "json":
+            tmp = {}
+            for e in out_list:
+                tmp[f"{e[0]}{e[1]}"] = {
+                    'ts': e[2],
+                    'durations': e[3]
+                }
+            output = json.dumps(tmp)
+        elif fmt == "csv":
+            output="jid;timestamp;duration;\n"
+            for e in out_list:
+                output += f"{e[0]}{e[1]};{e[2]};{e[3]};\n"
+        else:
+            sys.stderr.write("No supported format provided for output\n")
 
     elif args.stat_points:
         points = {}
