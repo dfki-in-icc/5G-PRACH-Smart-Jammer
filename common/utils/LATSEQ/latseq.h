@@ -39,20 +39,6 @@
 //#define MAX_LEN_DATA_ID     12 //correspond to name + value. value might be represent with 6 chars
 #define MAX_NB_DATA_ID      16
 #define NB_DATA_IDENTIFIERS 10 // to update according to distinct data identifier used in point
-//link to the NB_DATA_IDENTIFIERS
-// static const char LATSEQ_IDENTIFIERS[NB_DATA_IDENTIFIERS][8] = {
-//   "enb",
-//   "ip",
-//   "drb",
-//   "pdcp",
-//   "rsn",
-//   "rso",
-//   "lcid",
-//   "tb",
-//   "harq",
-//   "phy"
-// };
-//#define MAX_DATA_ID_SIZE 64 // > (4+8)x7 
 #define MAX_SIZE_LINE_OF_LOG 128 // ts=8c + pointname=MAX_POINT_NAME_SIZEc + identifier=NB_DATA_IDENTIFIERx(4c name + 4c number) (Worst-case)
 
 #define LATSEQ_P3(p, f, i1) do {log_measure1(p, f, i1); } while(0)
@@ -126,13 +112,13 @@ extern latseq_t g_latseq; // global structure
 extern __thread latseq_thread_data_t tls_latseq;
 
 /*--- FUNCTIONS --------------------------------------------------------------*/
-/** \fn int init_latseq(char * filename);
- * \brief init latency sequences module 
- * \param filename output file name for latseq stats
- * \param debuf level for this instance of latseq
+/** \fn int init_latseq(const char * appname, int debug);
+ * \brief init latency sequences module.
+ * \param appname app's name. The output file is appname.date_hour.lseq
+ * \param debug level for this instance of latseq
  * \return 0 if error 1 otherwise
 */
-int init_latseq(const char * filename, int debug);
+int init_latseq(const char * appname, int debug);
 
 /** \fn init_logger_to_mem(void);
  * \brief init thread logger

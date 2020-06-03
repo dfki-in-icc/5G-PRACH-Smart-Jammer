@@ -47,7 +47,7 @@ extern volatile int oai_exit; //oai is ended. Close latseq
 
 /*----------------------------------------------------------------------------*/
 
-int init_latseq(const char * filename, int debug)
+int init_latseq(const char * appname, int debug)
 {
   // init global struct
   //g_latseq = malloc(sizeof(latseq_t));
@@ -60,13 +60,16 @@ int init_latseq(const char * filename, int debug)
   // init members
   g_latseq.is_running = 0;
   g_latseq.is_debug = debug;
-  g_latseq.filelog_name = strdup(filename);
   //synchronise time and rdtsc
   gettimeofday(&g_latseq.time_zero, NULL);
   g_latseq.rdtsc_zero = rdtsc(); //check at compile time that constant_tsc is enabled in /proc/cpuinfo
   if (cpuf == 0)
     cpuf = get_cpu_freq_GHz();
-  
+
+  char time_string[16];
+  strftime(time_string, sizeof (time_string), "%d%m%Y_%H%M%S", localtime(&g_latseq.time_zero.tv_sec));
+  g_latseq.filelog_name = sprintf("%s.%s.lseq", appname, time_string);
+
   // init registry
   g_latseq.local_log_buffers.read_ith_thread = 0;
   g_latseq.local_log_buffers.nb_th = 0;

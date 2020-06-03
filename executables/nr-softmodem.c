@@ -827,7 +827,7 @@ int main( int argc, char **argv )
   T_Config_Init();
 #endif
 #if LATSEQ
-  init_latseq("/tmp/openair.latseq.lseq", 1);
+  init_latseq("/tmp/nr_softmodem", 1);
 #endif
   //randominit (0);
   set_taus_seed (0);

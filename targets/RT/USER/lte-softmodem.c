@@ -542,7 +542,7 @@ int main ( int argc, char **argv )
 #endif
 
 //#if LATSEQ
-    init_latseq("/tmp/openair.latseq.lseq", 1);
+    init_latseq("/tmp/lte_softmodem", 1);
 //#endif
   //randominit (0);
   set_taus_seed (0);
