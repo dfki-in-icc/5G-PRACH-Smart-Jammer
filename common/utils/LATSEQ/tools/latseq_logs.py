@@ -102,9 +102,11 @@ class latseq_log:
     """class for log processing associated to a log file
 
     Args:
+
         logpathP (str): path to the log file
 
     Attributes:
+
         logpath (str): path to the log file
         initialized (bool): become true when __init__ is successfully done
         raw_inputs (:obj:`list` of :obj:`str`): list of lines from logpath file
@@ -449,8 +451,10 @@ class latseq_log:
         """Rebuild the packets journey from a list of measure recursively
         Algorithm:
             for each input packet, try to rebuild the journey with the next measurements (depth limited)
+
         Args:
             inputs: ordered and cleaned inputs
+
         Attributs:
             journeys (:obj:`dict`): the dictionnary of journey
             out_journeys (:obj:`list`): the list of journeys prepare for output
@@ -473,6 +477,13 @@ class latseq_log:
         def _measure_ids_in_journey(p_gids: list, p_lids: list, j_gids: list, j_last_element: dict) -> dict:
             """Returns the dict of common identifiers if the measure is in the journey
             Otherwise returns an empty dictionnary
+
+            Algorithm:
+                All global identifiers should match.
+                All common identifiers' values should match
+
+            Returns:
+                :obj:`dict`: returns a dict of matched identifiers. Empty if the point is not in journey (false)
             """
             # for all global ids, first filter
             for k in p_gids:
@@ -972,7 +983,8 @@ class latseq_log:
         if "duration" not in self.points[next(iter(self.points.keys()))]:
             sys.stderr.write("[WARNING] points without duration, first rebuild journeys for stat")
         for p in self.points:
-            yield {p: self.points[p]}
+            self.points[p]['point'] = p
+            yield self.points[p]
 
     def yield_global_csv(self):
         """Yielder for a csv file from journeys
@@ -1175,21 +1187,27 @@ if __name__ == "__main__":
         sys.stderr.write("[INFO] Run a flask server\n")
     # Phase 2B : case run as command line script
     else:
+        # -i, --inputs
         if args.req_inputs:
             for i in lseq.yield_clean_inputs():
                 sys.stdout.write(i + '\n')
-        if args.req_outj:
+        # -o, --out_journeys
+        elif args.req_outj:
             for o in lseq.yield_out_journeys():
                 sys.stdout.write(o + '\n')
-        if args.req_journeys:
+        # -j, --journeys
+        elif args.req_journeys:
             for j in lseq.yield_journeys():
                 sys.stdout.write(json.dumps(j) + '\n')
-        if args.req_points:
+        # -p, --points
+        elif args.req_points:
             for p in lseq.yield_points():
                 sys.stdout.write(json.dumps(p) + '\n')
-        if args.req_paths:
+        # -r, --routes
+        elif args.req_paths:
             sys.stdout.write(json.dumps(lseq.get_paths()) + '\n')
-        if args.req_csv:
+        # -x, --csv
+        elif args.req_csv:
             for l in lseq.yield_global_csv():
                 sys.stdout.write(l)
 

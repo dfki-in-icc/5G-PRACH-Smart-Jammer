@@ -310,9 +310,12 @@ class latseq_stats:
 # MAIN
 #
 if __name__ == "__main__":
+
+    # Arguments
     parser = argparse.ArgumentParser(
         "./latseq_stats.py",
-        description="LatSeq Analysis Module - Statistics script")
+        description="LatSeq Analysis Module - Statistics script",
+        epilog="arguments that start with 's' return numpy stats when those that start with 'd' return raw values for visualizations.")
     parser.add_argument(
         "-l",
         "--log",
@@ -332,63 +335,43 @@ if __name__ == "__main__":
         "--format",
         dest="format",
         type=str,
+        default=OUT_FORMATS[0],
+        choices=OUT_FORMATS,
         help="Output's format. csv and json supported. by default, json"
     )
     parser.add_argument(
-        "-n",
-        "--name",
-        type=str,
-        dest="savename",
-        help="Statistic computed's name"
-    )
-    parser.add_argument(
-        "-s",
-        "--save",
-        dest="save_file",
-        action='store_true',
-        help="Save to a json file"
-    )
-    parser.add_argument(
-        "-j",
-        "--journeys",
+        "-sj",
+        "--sjourneys",
         dest="stat_journeys",
         action='store_true',
-        help="Request stat journeys in the case of command line script"
+        help="Request stats journeys in the case of command line script"
     )
     parser.add_argument(
-        "-jpp",
-        "--jperpoints",
+        "-sjpp",
+        "--sjperpoints",
         dest="stat_journeys_points",
         action='store_true',
-        help="Request stat on journeys per points in the case of command line script"
+        help="Request stats on journeys per points in the case of command line script"
     )
     parser.add_argument(
-        "-jd",
-        "--jduration",
+        "-sp",
+        "--spoints",
+        dest="stat_points",
+        action='store_true',
+        help="Request stats points in the case of command line script"
+    )
+    parser.add_argument(
+        "-djd",
+        "--djduration",
         dest="journeys_durations",
         action='store_true',
         help="Request journeys duration"
     )
-    parser.add_argument(
-        "-p",
-        "--points",
-        dest="stat_points",
-        action='store_true',
-        help="Request stat points in the case of command line script"
-    )
     args = parser.parse_args()
-    # check arguments
+    # Check arguments
     if not args.stat_journeys and not args.stat_points and not args.stat_journeys_points and not args.journeys_durations:
-        sys.stdout.write("No action requested\n")
+        sys.stderr.write("[WARNING] No action requested\n")
         exit()
-
-    if not args.format:
-        fmt = OUT_FORMATS[0]
-    else:
-        if args.format not in OUT_FORMATS:
-            fmt = OUT_FORMATS[0]
-        else:
-            fmt = args.format
 
     list_meas_json = []
     if args.logname:
@@ -411,15 +394,18 @@ if __name__ == "__main__":
                 continue
             list_meas_json.append(meas)
 
-    output = ""
+    output = ""  # Common variable for output
 
+    # -j, --journeys
     if args.stat_journeys:
         journeys = {}
         # handle errors
         for j in list_meas_json:
             tmp_j = json.loads(j)
             journeys[tmp_j['uid']] = tmp_j
-        output = output_function(latseq_stats.journeys_latency_statistics(journeys, False), args.print_stats, fmt, "Journeys latency stats")
+        output = output_function(latseq_stats.journeys_latency_statistics(journeys, False), args.print_stats, args.format, "Journeys latency stats")
+
+    # -jpp, --jperpoints
     elif args.stat_journeys_points:
         journeys = {}
         # to a dict
@@ -446,9 +432,9 @@ if __name__ == "__main__":
             for path in res[d]:
                 for v in res[d][path]['stats']:
                     #continue
-                    output += output_function({f"{d}{path}.{v}": res[d][path]['stats'][v]}, args.print_stats, fmt, f"Share of time for {v} in path {path}")
+                    output += output_function({f"{d}{path}.{v}": res[d][path]['stats'][v]}, args.print_stats, args.format, f"Share of time for {v} in path {path}")
         # Clear output
-        if fmt == "csv" and not args.print_stats:
+        if args.format == "csv" and not args.print_stats:
             tmp_out = ""
             for l in output.splitlines():
                 if l.startswith(";;"):
@@ -458,6 +444,7 @@ if __name__ == "__main__":
                     tmp_out += f"{l}\n"
             output = tmp_out
 
+    # -jd, jduration
     elif args.journeys_durations:
         journeys = {}
         for jd in list_meas_json:
@@ -471,7 +458,7 @@ if __name__ == "__main__":
         out_list.sort(key=operator.itemgetter(2))
 
         output = ""
-        if fmt == "json":
+        if args.format == "json":
             tmp = {}
             for e in out_list:
                 tmp[f"{e[0]}{e[1]}"] = {
@@ -479,25 +466,31 @@ if __name__ == "__main__":
                     'durations': e[3]
                 }
             output = json.dumps(tmp)
-        elif fmt == "csv":
+        elif args.format == "csv":
             output="jid;timestamp;duration;\n"
             for e in out_list:
                 output += f"{e[0]}{e[1]};{e[2]};{e[3]};\n"
         else:
             sys.stderr.write("No supported format provided for output\n")
 
+    # -p, --points
     elif args.stat_points:
         points = {}
         for p in list_meas_json:
             tmp_p = json.loads(p)
-            point_name = list(tmp_p.keys())[0]
-            points[point_name] = tmp_p[point_name]
+            #point_name = list(tmp_p.keys())[0]
+            try:
+                point_name = tmp_p['point']
+            except KeyError:
+                sys.stderr.write("[ERROR] no 'point' name key in input")
+                exit()
+            points[point_name] = tmp_p
         tmp_stats_points = latseq_stats.points_latency_statistics(points)
         for dir in tmp_stats_points:
             for p in tmp_stats_points[dir]:
-                output += output_function({p: tmp_stats_points[dir][p]}, args.print_stats, fmt, f"Point Latency for {p}")
+                output += output_function({p: tmp_stats_points[dir][p]}, args.print_stats, args.format, f"Point Latency for {p}")
                 # Clear output
-        if fmt == "csv" and not args.print_stats:
+        if args.format == "csv" and not args.print_stats:
             tmp_out = ""
             for l in output.splitlines():
                 if l.startswith(";;"):
@@ -506,5 +499,9 @@ if __name__ == "__main__":
                 else:
                     tmp_out += f"{l}\n"
             output = tmp_out
-    sys.stdout.write(output)
+
+    if not output:
+        sys.stderr.write("[ERROR] no output")
+    else:
+        sys.stdout.write(output)
  
