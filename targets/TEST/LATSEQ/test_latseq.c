@@ -15,7 +15,7 @@ int debug_enabled;
 #endif
 
 double cpuf;
-const char * test_log = "test.lseq";
+const char * test_log = "test";
 
 volatile int  oai_exit = 1; //Emulate global variable used by oai to indicate that oai is running
 

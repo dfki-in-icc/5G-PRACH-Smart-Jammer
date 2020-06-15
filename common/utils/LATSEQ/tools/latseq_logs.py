@@ -1178,7 +1178,7 @@ if __name__ == "__main__":
             sys.stderr.write(f"[INFO] create a new lseq instance\n")
             lseq = latseq_log(args.logname)  # Build latseq_log object
         except Exception as e:
-            sys.stderr.write(f"[ERROR] On creating a lseq element {args.logname}\n")
+            sys.stderr.write(f"[ERROR] {args.logname}, {e}\n")
             exit(-1)
     lseq.store_object()
     

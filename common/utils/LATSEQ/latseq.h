@@ -98,7 +98,7 @@ typedef struct latseq_registry_t {
 typedef struct latseq_t {
   int                 is_running; //1 is running, 0 not running
   int                 is_debug; //1 debug, 0 prod
-  const char *        filelog_name;
+  char        	      filelog_name[64];
   FILE *              outstream; //Output descriptor
   struct timeval      time_zero; // time zero
   uint64_t            rdtsc_zero; //rdtsc zero
