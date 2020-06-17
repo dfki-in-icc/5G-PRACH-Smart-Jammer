@@ -57,7 +57,11 @@ DURATION_TO_SEARCH_FORKS = 0.002  # 2ms treshold to find segmentation
 DURATION_TO_SEARCH_RETX = 0.01  # 10ms : Set according to drx-RetransmissionTimerDL RRC config (3GPP-TS38.321) for MAC and max_seq_num for RLC (3GPP-TS38.322)
 
 S_TO_MS = 1000
-KEYWORDS = ('tx', 'rx', 'retx')  # Special keywords
+KWS_BUFFER = ['tx', 'rx', 'retx']  # buffer keywords
+KWS_IN_D = ['ip.in']
+KWS_OUT_D = ['phy.out.proc']
+KWS_IN_U = ['phy.in.proc']
+KWS_OUT_U = ['ip.out']
 #
 # UTILS
 #
@@ -174,10 +178,10 @@ class latseq_log:
         # Build points
         try:
             self.points = dict()  # the couple (key, "next") is basically a graph
-            self.pointsInD = ["ip", "rlc.tx.am"]
-            self.pointsOutD = ["phy.out.proc"]
-            self.pointsInU = ["phy.in.proc"]
-            self.pointsOutU = ["ip"]
+            self.pointsInD = KWS_IN_D
+            self.pointsOutD = KWS_OUT_D
+            self.pointsInU = KWS_IN_U
+            self.pointsOutU = KWS_OUT_U
             self._build_points()
         except Exception:
             raise Exception("Error at getting points")
@@ -827,10 +831,20 @@ class latseq_log:
                     added_out_j[e[0]] = len(self.out_journeys)
                     tmp_uid = self.journeys[j]['set_ids']['uid']
                     tmp_str = f"uid{tmp_uid}.{dict_ids_to_str(self.journeys[j]['glob'])}.{dict_ids_to_str(e_tmp[6])}"
+                    # have segment corresponding to journey's path
+                    src_point_s = e_tmp[2]
+                    while src_point_s not in self.paths[self.journeys[j]['dir']][self.journeys[j]['path']]:
+                        src_point_s = '.'.join(src_point_s.split('.')[:-1])
+                    dst_point_s = e_tmp[3]
+                    while dst_point_s not in self.paths[self.journeys[j]['dir']][self.journeys[j]['path']]:
+                        dst_point_s = '.'.join(dst_point_s.split('.')[:-1])
+                    tmp_seg = f"{src_point_s}--{dst_point_s}"
+
+                    # build out_journeys for lseqj
                     self.out_journeys.append([
                         e_tmp[0],  # [0] : timestamp
                         'D' if e_tmp[1] == 0 else 'U',  # [1] : dir
-                        f"{e_tmp[2]}--{e_tmp[3]}", # [2] : segment
+                        tmp_seg, # [2] : segment
                         e_tmp[4],  # [3] : properties
                         tmp_str])  # [4] : data id
                 else:  # update the current entry
