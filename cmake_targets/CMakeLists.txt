@@ -1720,8 +1720,9 @@ set(L2_SRC
   ${RRC_DIR}/L2_interface_ue.c
   )
 
+# frj: RLC_V2 to use rlc_v2/; RLC_V1 to use RLC/
 set(L2_LTE_SRC
-  ${RLC_V2}
+  ${RLC_V1}
   )
 
 set(L2_NR_SRC

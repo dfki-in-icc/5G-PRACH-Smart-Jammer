@@ -842,7 +842,7 @@ rx_sdu(const module_id_t enb_mod_idP,
 
             if ((rx_lengths[i] < SCH_PAYLOAD_SIZE_MAX) && (rx_lengths[i] > 0)) {  // MAX SIZE OF transport block
 #if LATSEQ
-              LATSEQ_P("U phy.in.proc--mac.demux", "len%d:rnti%d:lcid%d.ue%d.fm%d", rx_lengths[i], current_rnti, rx_lcids[i], i, frameP);
+              LATSEQ_P("U phy.in.proc--mac.demux", "len%d:rnti%d:lcid%d.fm%d", rx_lengths[i], current_rnti, rx_lcids[i], frameP);
 #endif
               mac_rlc_data_ind(enb_mod_idP, current_rnti, enb_mod_idP, frameP, ENB_FLAG_YES, MBMS_FLAG_NO, rx_lcids[i], (char *) payload_ptr, rx_lengths[i], 1, NULL);
               UE_info->eNB_UE_stats[CC_idP][UE_id].num_pdu_rx[rx_lcids[i]] += 1;

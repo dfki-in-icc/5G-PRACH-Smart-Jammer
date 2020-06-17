@@ -567,7 +567,10 @@ void rlc_entity_um_recv_sdu(rlc_entity_t *_entity, char *buffer, int size,
   }
 
   entity->tx_size += size;
-
+// no access to ctxt_pP ???
+//#if LATSEQ
+//  LATSEQ_P("D pdcp.tx--rlc.tx.um","len%d:rnti%d:drb%d.psn%d.lcid%d.rsdu%d", size, ctxt_pP->rnti, rlc_p->rb_id, seqnum, rlc_p->channel_id, ssize);
+//#endif
   sdu = rlc_new_sdu(buffer, size, sdu_id);
   rlc_sdu_list_add(&entity->tx_list, &entity->tx_end, sdu);
 }

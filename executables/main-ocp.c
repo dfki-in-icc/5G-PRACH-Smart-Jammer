@@ -1055,23 +1055,23 @@ void set_default_frame_parms(LTE_DL_FRAME_PARMS *frame_parms[MAX_NUM_CCs]) {
 
 void init_pdcp(void) {
   if (!NODE_IS_DU(RC.rrc[0]->node_type)) {
-    pdcp_layer_init();
+    pdcp_layer_init();  //gdb
     uint32_t pdcp_initmask = (IS_SOFTMODEM_NOS1) ?
                              (PDCP_USE_NETLINK_BIT | LINK_ENB_PDCP_TO_IP_DRIVER_BIT) : LINK_ENB_PDCP_TO_GTPV1U_BIT;
 
-    if (IS_SOFTMODEM_NOS1)
+    if (IS_SOFTMODEM_NOS1)  //gdb
       pdcp_initmask = pdcp_initmask | ENB_NAS_USE_TUN_BIT | SOFTMODEM_NOKRNMOD_BIT  ;
 
     pdcp_initmask = pdcp_initmask | ENB_NAS_USE_TUN_W_MBMS_BIT;
 
     if ( split73!=SPLIT73_DU)
-      pdcp_module_init(pdcp_initmask);
+      pdcp_module_init(pdcp_initmask);  //gdb : mono.enb.band7.tm1.50PRB.usrpb210.conf 
 
     if (NODE_IS_CU(RC.rrc[0]->node_type)) {
       pdcp_set_rlc_data_req_func((send_rlc_data_req_func_t)proto_agent_send_rlc_data_req);
     } else {
-      pdcp_set_rlc_data_req_func((send_rlc_data_req_func_t) rlc_data_req);
-      pdcp_set_pdcp_data_ind_func((pdcp_data_ind_func_t) pdcp_data_ind);
+      pdcp_set_rlc_data_req_func((send_rlc_data_req_func_t) rlc_data_req);  //gdb : mono.enb.band7.tm1.50PRB.usrpb210.conf 
+      pdcp_set_pdcp_data_ind_func((pdcp_data_ind_func_t) pdcp_data_ind);  //gdb : mono.enb.band7.tm1.50PRB.usrpb210.conf 
     }
   } else {
     pdcp_set_pdcp_data_ind_func((pdcp_data_ind_func_t) proto_agent_send_pdcp_data_ind);

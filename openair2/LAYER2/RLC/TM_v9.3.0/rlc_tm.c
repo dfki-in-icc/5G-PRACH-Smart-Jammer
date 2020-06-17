@@ -242,10 +242,11 @@ rlc_tm_data_req (
          rlc_p->next_sdu_index);
 #endif
 #if LATSEQ
-      if (rlc_p->is_data_plane) {
-        uint8_t seqnum = (uint8_t)(&sdu_pP->data[1]);
-        LATSEQ_P("D pdcp.tx--rlc.tx.tm","len%d:rnti%d:drb%d.lcid%d.psn%d.rsdu%d", ((struct rlc_um_data_req *) (sdu_pP->data))->data_size, ctxt_pP->rnti, rlc_p->rb_id, rlc_p->channel_id, seqnum, rlc_p->current_sdu_index);
-      }
+  // Not necessary to detect userplane, because if it is the case
+  // then a rebuilding, no user data at input point
+  // but input point may belongs to userplane only
+  uint8_t seqnum = (uint8_t)(&sdu_pP->data[1]);
+  LATSEQ_P("D pdcp.tx--rlc.tx.tm","len%d:rnti%d:drb%d.lcid%d.psn%d.rsdu%d", ((struct rlc_um_data_req *) (sdu_pP->data))->data_size, ctxt_pP->rnti, rlc_p->rb_id, rlc_p->channel_id, seqnum, rlc_p->current_sdu_index);
 #endif
   // not in 3GPP specification but the buffer may be full if not correctly configured
   if (rlc_p->input_sdus[rlc_p->next_sdu_index] == NULL) {

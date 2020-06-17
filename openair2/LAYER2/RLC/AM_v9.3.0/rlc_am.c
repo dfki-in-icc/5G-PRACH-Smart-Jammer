@@ -1066,10 +1066,11 @@ rlc_am_data_req (
       LOG_UI(RLC, "%s\n", message_string);
     } /* LOG_DEBUGFLAG(RLC) */
 #if LATSEQ
-      if (l_rlc_p->is_data_plane) {
-                uint8_t seqnum = ((uint8_t *)(&sdu_pP->data[data_offset]))[1];
-        LATSEQ_P("D pdcp.tx--rlc.tx.am","len%d:rnti%d:drb%d.psn%d.lcid%d.rsdu%d", ((struct rlc_am_data_req *) (sdu_pP->data))->data_size, ctxt_pP->rnti, l_rlc_p->rb_id, seqnum, l_rlc_p->channel_id, l_rlc_p->next_sdu_index);
-      }
+    // Not necessary to detect userplane, because if it is the case
+    // then a rebuilding, no user data at input point
+    // but input point may belongs to userplane only
+    uint8_t seqnum = ((uint8_t *)(&sdu_pP->data[data_offset]))[1];
+    LATSEQ_P("D pdcp.tx--rlc.tx.am","len%d:rnti%d:drb%d.psn%d.lcid%d.rsdu%d", ((struct rlc_am_data_req *) (sdu_pP->data))->data_size, ctxt_pP->rnti, l_rlc_p->rb_id, seqnum, l_rlc_p->channel_id, l_rlc_p->next_sdu_index);
 #endif
     l_rlc_p->stat_tx_pdcp_sdu   += 1;
     l_rlc_p->stat_tx_pdcp_bytes += data_size;

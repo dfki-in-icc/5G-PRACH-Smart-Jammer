@@ -1109,8 +1109,7 @@ rlc_um_receive_process_dar (
     free_mem_block(pdu, __func__);
   }
 #if LATSEQ
-  if (rlc_pP->is_data_plane)
-    LATSEQ_P("U mac.demux--rlc.rx.um","len%d:rnti%d:drb%d.lcid%d.rsn%d.fm%d", tb_sizeP, ctxt_pP->rnti, rlc_pP->rb_id, rlc_pP->channel_id, sn, ctxt_pP->frame);
+  LATSEQ_P("U mac.demux--rlc.rx.um","len%d:rnti%d:drb%d.lcid%d.rsn%d.fm%d", tb_sizeP, ctxt_pP->rnti, rlc_pP->rb_id, rlc_pP->channel_id, sn, ctxt_pP->frame);
 #endif
   rlc_um_store_pdu_in_dar_buffer(ctxt_pP, rlc_pP, pdu_mem_pP, sn);
 
