@@ -94,10 +94,19 @@ def path_to_str(pathP: list) -> str:
 def dict_ids_to_str(idsP: dict) -> str:
     return '.'.join([f"{k}{v}" for k,v in idsP.items()])
 
-
 def make_immutable_list(listP: list) -> tuple:
     return tuple(listP)
 
+def write_string_to_stdout(sstream: str):
+    try:
+        sys.stdout.write(sstream + '\n')
+    except IOError as e:
+        if e.errno == errno.EPIPE:  # Ignore broken pipe Error
+            sys.stderr.write("[WARNING] Broken pipe error\n")
+            return
+        else:
+            sys.stderr.write(f"[ERROR] {e}\n")
+            exit()
 
 #
 # CLASSES
@@ -1095,26 +1104,18 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser("./latseq_logs.py",
     description="LatSeq Analysis Module - Log processing component")
     parser.add_argument(
-        "-l",
-        "--log",
-        type=str,
-        dest="logname",
-        help="Log file",
-        required=True
-    )
-    parser.add_argument(
         "-c",
         "--config",
         type=str,
         dest="configfile",
-        help="Config file for the parser"
+        help="[WIP] Config file for the parser"
     )
     parser.add_argument(
         "-f",
         "--flask",
         dest="flask",
         action='store_true',
-        help="Run parser as flask service"
+        help="[DEPRECTADED] Run parser as flask service"
     )
     parser.add_argument(
         "-C",
@@ -1164,7 +1165,15 @@ if __name__ == "__main__":
         "--csv",
         dest="req_csv",
         action='store_true',
-        help="Request csv with journeys and points"
+        help="[DEPRECATED] Request csv with journeys and points"
+    )
+    parser.add_argument(
+        "-l",
+        "--log",
+        type=str,
+        dest="logname",
+        help="Log file",
+        required=True
     )
 
     args = parser.parse_args()
@@ -1204,24 +1213,24 @@ if __name__ == "__main__":
         # -i, --inputs
         if args.req_inputs:
             for i in lseq.yield_clean_inputs():
-                sys.stdout.write(i + '\n')
+                write_string_to_stdout(i)
         # -o, --out_journeys
         elif args.req_outj:
             for o in lseq.yield_out_journeys():
-                sys.stdout.write(o + '\n')
+                write_string_to_stdout(o)
         # -j, --journeys
         elif args.req_journeys:
             for j in lseq.yield_journeys():
-                sys.stdout.write(json.dumps(j) + '\n')
+                write_string_to_stdout(json.dumps(j))
         # -p, --points
         elif args.req_points:
             for p in lseq.yield_points():
-                sys.stdout.write(json.dumps(p) + '\n')
+                write_string_to_stdout(json.dumps(p))
         # -r, --routes
         elif args.req_paths:
-            sys.stdout.write(json.dumps(lseq.get_paths()) + '\n')
+            write_string_to_stdout(json.dumps(lseq.get_paths()))
         # -x, --csv
         elif args.req_csv:
             for l in lseq.yield_global_csv():
-                sys.stdout.write(l)
+                write_string_to_stdout(l)
 
