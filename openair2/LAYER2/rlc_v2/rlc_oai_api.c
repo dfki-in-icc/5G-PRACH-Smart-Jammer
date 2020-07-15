@@ -28,6 +28,10 @@
 #include "rlc_ue_manager.h"
 #include "rlc_entity.h"
 
+#ifdef LATSEQ
+  #include "common/utils/LATSEQ/latseq.h"
+#endif
+
 #include <stdint.h>
 
 static rlc_ue_manager_t *rlc_ue_manager;
@@ -127,9 +131,16 @@ tbs_size_t mac_rlc_data_req(
   rlc_manager_lock(rlc_ue_manager);
   ue = rlc_manager_get_ue(rlc_ue_manager, rntiP);
 
+  logical_chan_id_t lcid;
   switch (channel_idP) {
-  case 1 ... 2: rb = ue->srb[channel_idP - 1]; break;
-  case 3 ... 7: rb = ue->drb[channel_idP - 3]; break;
+  case 1 ... 2:
+    lcid = channel_idP - 1;
+    rb = ue->srb[lcid]; 
+    break;
+  case 3 ... 7:
+    lcid = channel_idP - 3;
+    rb = ue->drb[lcid];
+    break;
   default:      rb = NULL;                     break;
   }
 
@@ -144,7 +155,7 @@ tbs_size_t mac_rlc_data_req(
   if (rb != NULL) {
     rb->set_time(rb, rlc_current_time);
     maxsize = tb_sizeP;
-    ret = rb->generate_pdu(rb, buffer_pP, maxsize);
+    ret = rb->generate_pdu(rb, buffer_pP, maxsize, rntiP);
   } else {
     LOG_E(RLC, "%s:%d:%s: fatal: data req for unknown RB\n", __FILE__, __LINE__, __FUNCTION__);
     exit(1);
@@ -152,7 +163,9 @@ tbs_size_t mac_rlc_data_req(
   }
 
   rlc_manager_unlock(rlc_ue_manager);
-
+#ifdef LATSEQ
+  LATSEQ_P("D rlc.seg--mac.mux", "len%d:rnti%d:drb%d.lcid%d.rtime%d.fm%d", ret, rntiP, lcid, channel_idP, rlc_current_time, frameP);
+#endif
   if (enb_flagP)
     T(T_ENB_RLC_MAC_DL, T_INT(module_idP), T_INT(rntiP),
       T_INT(channel_idP), T_INT(ret));
@@ -318,6 +331,7 @@ rlc_op_status_t rlc_data_req     (const protocol_ctxt_t *const ctxt_pP,
   if (srb_flagP) {
     if (rb_idP >= 1 && rb_idP <= 2)
       rb = ue->srb[rb_idP - 1];
+      rb
   } else {
     if (rb_idP >= 1 && rb_idP <= 5)
       rb = ue->drb[rb_idP - 1];
@@ -330,6 +344,10 @@ rlc_op_status_t rlc_data_req     (const protocol_ctxt_t *const ctxt_pP,
 
   if (rb != NULL) {
     rb->set_time(rb, rlc_current_time);
+#if LATSEQ
+    uint8_t seqnum = (uint8_t)(&sdu_pP->data[1]);
+    LATSEQ_P("D pdcp.tx--rlc.tx","len%d:rnti%d:drb%d.mui%d.psn%d.lcid%d", sdu_sizeP, rnti, rb_idP - 1, muiP, seqnum, rb_idP - 1);
+#endif
     rb->recv_sdu(rb, (char *)sdu_pP->data, sdu_sizeP, muiP);
   } else {
     LOG_E(RLC, "%s:%d:%s: fatal: SDU sent to unknown RB\n", __FILE__, __LINE__, __FUNCTION__);
@@ -655,7 +673,7 @@ static void add_srb(int rnti, int module_id, struct LTE_SRB_ToAddMod *s)
                                max_retx_reached, ue,
                                t_reordering, t_status_prohibit,
                                t_poll_retransmit,
-                               poll_pdu, poll_byte, max_retx_threshold);
+                               poll_pdu, poll_byte, max_retx_threshold, srb_id-1);
     rlc_ue_add_srb_rlc_entity(ue, srb_id, rlc_am);
 
     LOG_D(RLC, "%s:%d:%s: added srb %d to ue %d\n",
@@ -733,7 +751,7 @@ static void add_drb_am(int rnti, int module_id, struct LTE_DRB_ToAddMod *s)
                                max_retx_reached, ue,
                                t_reordering, t_status_prohibit,
                                t_poll_retransmit,
-                               poll_pdu, poll_byte, max_retx_threshold);
+                               poll_pdu, poll_byte, max_retx_threshold, drb_id-1);
     rlc_ue_add_drb_rlc_entity(ue, drb_id, rlc_am);
 
     LOG_D(RLC, "%s:%d:%s: added drb %d to ue %d\n",
@@ -804,7 +822,8 @@ static void add_drb_um(int rnti, int module_id, struct LTE_DRB_ToAddMod *s)
                                1000000,
                                deliver_sdu, ue,
                                t_reordering,
-                               sn_field_length);
+                               sn_field_length,
+                               drb_id-1);
     rlc_ue_add_drb_rlc_entity(ue, drb_id, rlc_um);
 
     LOG_D(RLC, "%s:%d:%s: added drb %d to ue %d\n",
@@ -921,7 +940,8 @@ rlc_op_status_t rrc_rlc_config_asn1_req (const protocol_ctxt_t   * const ctxt_pP
                                      1000000,
                                      deliver_sdu, ue,
                                      0,//LTE_T_Reordering_ms0,//t_reordering,
-                                     5//LTE_SN_FieldLength_size5//sn_field_length
+                                     5,//LTE_SN_FieldLength_size5//sn_field_length
+                                     drb_id-1
                                     );
           rlc_ue_add_drb_rlc_entity(ue, drb_id, rlc_um);
 

@@ -1408,7 +1408,7 @@ rlc_entity_buffer_status_t rlc_entity_am_buffer_status(
   return ret;
 }
 
-int rlc_entity_am_generate_pdu(rlc_entity_t *_entity, char *buffer, int size)
+int rlc_entity_am_generate_pdu(rlc_entity_t *_entity, char *buffer, int size, uint16_t rnti)
 {
   rlc_entity_am_t *entity = (rlc_entity_am_t *)_entity;
   int ret;

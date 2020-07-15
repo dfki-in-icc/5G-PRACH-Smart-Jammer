@@ -420,7 +420,7 @@ rlc_entity_buffer_status_t rlc_entity_um_buffer_status(
   return ret;
 }
 
-int rlc_entity_um_generate_pdu(rlc_entity_t *_entity, char *buffer, int size)
+int rlc_entity_um_generate_pdu(rlc_entity_t *_entity, char *buffer, int size, uint16_t rnti)
 {
   rlc_entity_um_t      *entity = (rlc_entity_um_t *)_entity;
   tx_pdu_size_t        pdu_size;
@@ -537,9 +537,11 @@ int rlc_entity_um_generate_pdu(rlc_entity_t *_entity, char *buffer, int size)
   }
   if (entity->tx_list == NULL)
     entity->tx_end = NULL;
-
   /* update VT(US) */
   entity->vt_us = (entity->vt_us + 1) % entity->sn_modulus;
+#ifdef LATSEQ
+  LATSEQ_P("D rlc.tx.um--rlc.seg.um", "len%d:rnti%d:drb%d.lcid%d.rtime%d.rsn%d", ret, rnti, entity->channel_id , entity->channel_id, entity->t_current, entity->vt_us);
+#endif
 
   return pdu_size.header_size + pdu_size.data_size;
 }
@@ -568,9 +570,6 @@ void rlc_entity_um_recv_sdu(rlc_entity_t *_entity, char *buffer, int size,
 
   entity->tx_size += size;
 // no access to ctxt_pP ???
-//#if LATSEQ
-//  LATSEQ_P("D pdcp.tx--rlc.tx.um","len%d:rnti%d:drb%d.psn%d.lcid%d.rsdu%d", size, ctxt_pP->rnti, rlc_p->rb_id, seqnum, rlc_p->channel_id, ssize);
-//#endif
   sdu = rlc_new_sdu(buffer, size, sdu_id);
   rlc_sdu_list_add(&entity->tx_list, &entity->tx_end, sdu);
 }

@@ -226,6 +226,7 @@ typedef struct {
   int poll_pdu;              /* -1 means infinity */
   int poll_byte;             /* -1 means infinity */
   int max_retx_threshold;
+  unsigned int channel_id;
 
   /* runtime rx */
   int vr_r;
@@ -276,7 +277,7 @@ void rlc_entity_am_recv_sdu(rlc_entity_t *entity, char *buffer, int size,
 void rlc_entity_am_recv_pdu(rlc_entity_t *entity, char *buffer, int size);
 rlc_entity_buffer_status_t rlc_entity_am_buffer_status(
     rlc_entity_t *entity, int maxsize);
-int rlc_entity_am_generate_pdu(rlc_entity_t *entity, char *buffer, int size);
+int rlc_entity_am_generate_pdu(rlc_entity_t *entity, char *buffer, int size, uint16_t rnti);
 void rlc_entity_am_set_time(rlc_entity_t *entity, uint64_t now);
 void rlc_entity_am_discard_sdu(rlc_entity_t *entity, int sdu_id);
 void rlc_entity_am_reestablishment(rlc_entity_t *entity);

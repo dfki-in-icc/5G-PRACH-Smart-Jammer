@@ -43,6 +43,7 @@ typedef struct {
   /* configuration */
   int t_reordering;
   int sn_field_length;
+  unsigned int channel_id;
 
   int sn_modulus;        /* 1024 for sn_field_length == 10, 32 for 5 */
   int window_size;       /* 512 for sn_field_length == 10, 16 for 5 */
@@ -81,7 +82,7 @@ void rlc_entity_um_recv_sdu(rlc_entity_t *_entity, char *buffer, int size,
 void rlc_entity_um_recv_pdu(rlc_entity_t *entity, char *buffer, int size);
 rlc_entity_buffer_status_t rlc_entity_um_buffer_status(
     rlc_entity_t *entity, int maxsize);
-int rlc_entity_um_generate_pdu(rlc_entity_t *_entity, char *buffer, int size);
+int rlc_entity_um_generate_pdu(rlc_entity_t *_entity, char *buffer, int size, uint16_t rnti);
 void rlc_entity_um_set_time(rlc_entity_t *entity, uint64_t now);
 void rlc_entity_um_discard_sdu(rlc_entity_t *entity, int sdu_id);
 void rlc_entity_um_reestablishment(rlc_entity_t *entity);

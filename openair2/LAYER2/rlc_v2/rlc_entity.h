@@ -37,7 +37,7 @@ typedef struct rlc_entity_t {
   void (*recv_pdu)(struct rlc_entity_t *entity, char *buffer, int size);
   rlc_entity_buffer_status_t (*buffer_status)(
       struct rlc_entity_t *entity, int maxsize);
-  int (*generate_pdu)(struct rlc_entity_t *entity, char *buffer, int size);
+  int (*generate_pdu)(struct rlc_entity_t *entity, char *buffer, int size, uint16_t rnti);
 
   void (*recv_sdu)(struct rlc_entity_t *entity, char *buffer, int size,
                    int sdu_id);
@@ -83,7 +83,8 @@ rlc_entity_t *new_rlc_entity_am(
     int t_poll_retransmit,
     int poll_pdu,
     int poll_byte,
-    int max_retx_threshold);
+    int max_retx_threshold,
+    unsigned int channel_id);
 
 rlc_entity_t *new_rlc_entity_um(
     int rx_maxsize,
@@ -92,6 +93,7 @@ rlc_entity_t *new_rlc_entity_um(
                       char *buf, int size),
     void *deliver_sdu_data,
     int t_reordering,
-    int sn_field_length);
+    int sn_field_length,
+    unsigned int channel_id);
 
 #endif /* _RLC_ENTITY_H_ */
