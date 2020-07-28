@@ -159,6 +159,7 @@ class latseq_log:
                 journeys[i]['set'] (:obj:`list` of :obj:`tuple`): list of measures 
                     journeys[i]['set'][s][0] (int): corresponding id in `input`
                     journeys[i]['set'][s][1] (float): timestamp
+                    journeys[i]['set'][s][2] (string): segment
                 journeys[i]['set_ids'] (:obj:`list`): the last measurement point identifier added
                 journeys[i]['path'] (int): the path id according to self.paths
         out_journeys (:obj:`list`): the list of measurement point like `raw_inputs` but ordered, filtered and with unique identifier (uid) by journey
@@ -640,7 +641,10 @@ class latseq_log:
                 # end while seg_local_pointer < nb_meas
 
                 # At this point, we have completed all the possible fork
-                self.journeys[parent_journey_id]['set'].append((self.inputs.index(tmp_p), tmp_p[0]))
+                self.journeys[parent_journey_id]['set'].append((
+                    self.inputs.index(tmp_p),
+                    tmp_p[0],
+                    f"{tmp_p[2]}--{tmp_p[3]}"))
                 self.journeys[parent_journey_id]['set_ids'].update(matched_ids)
 
                 # Try to find a path id
@@ -687,7 +691,10 @@ class latseq_log:
                             self.journeys[segid]['set_ids']['uid'] = str(segid)
                             # Remove all elements after p
                             del self.journeys[segid]['set'][self.journeys[segid]['set'].index(p):]
-                            self.journeys[segid]['set'].append((s, seg_p[0]))
+                            self.journeys[segid]['set'].append((
+                                s,
+                                seg_p[0],
+                                f"{seg_p[2]}--{seg_p[3]}"))
                             self.journeys[segid]['completed'] = False
                             self.journeys[segid]['set_ids'].update(seg_list[p[0]][s])
                             sys.stderr.write(f"Add {s} to {segid}\n")
@@ -747,8 +754,12 @@ class latseq_log:
             self.journeys[newid]['ts_in'] = p[0]  # timestamp of arrival
             self.journeys[newid]['set'] = list()  # set of measurements ids and properties (tuple())
             # self.journeys[newid]['set'][0] : id dans inputs
-            # self.journeys[newid]['set'][1] : for this input
-            self.journeys[newid]['set'].append((self.inputs.index(p), p[0]))
+            # self.journeys[newid]['set'][1] : ts for this input
+            # self.journeys[newid]['set'][2] : corresponding segment
+            self.journeys[newid]['set'].append((
+                self.inputs.index(p),
+                p[0],
+                f"{p[2]}--{p[3]}"))
             self.journeys[newid]['set_ids'] = dict()  # dict of local ids
             self.journeys[newid]['set_ids'] = {'uid': str(newid)}
             self.journeys[newid]['set_ids'].update(p[6])
@@ -1030,6 +1041,48 @@ class latseq_log:
                 tmp_tab[points.index(self.inputs[i[0]][3])+NB_PREAMBLE] = str(self.inputs[i[0]][0])
             yield ", ".join(tmp_tab) + "\n"
 
+    def yield_matrix(self):
+        """Yield a line for matrix file for journeys
+        Yields:
+            str: csv string per matrix
+        """
+        tmp_d = {}  # key=path direction + path type
+        points = self.get_list_of_points()
+        for j in self.journeys:
+            if not self.journeys[j]['completed']:
+                continue
+            tmp_path_id = f"{self.journeys[j]['dir']}.{self.journeys[j]['path']}"
+            # New matrix for this journey
+            if tmp_path_id not in tmp_d:
+                tmp_header = "uid;"
+                tmp_l = f"{self.journeys[j]['uid']};"
+                tmp_tm1 = self.journeys[j]['ts_in']
+                for i in self.journeys[j]['set']:
+                    tmp_i = self.inputs[i[0]]
+                    tmp_header += f"{tmp_i[2]}--{tmp_i[3]};"
+                    tmp_l += "{:.6f};".format(tmp_i[0] - tmp_tm1)
+                    tmp_tm1 = tmp_i[0]
+                tmp_d[tmp_path_id] = [tmp_header]
+                tmp_d[tmp_path_id].append(tmp_l)
+            # Add a line to an existing matrix
+            else:
+                tmp_l = f"{self.journeys[j]['uid']};"
+                tmp_tm1 = self.journeys[j]['ts_in']
+                for i in self.journeys[j]['set']:
+                    tmp_i = self.inputs[i[0]]
+                    tmp_l += "{:.6f};".format(tmp_i[0] - tmp_tm1)
+                    tmp_tm1 = tmp_i[0]
+                tmp_d[tmp_path_id].append(tmp_l)
+        # end for self.journeys
+        res = []
+        for k in tmp_d:
+            res.append(f"{'D' if k.split('.')[0] == '0' else 'U'}{k.split('.')[1]}")
+            for l in tmp_d[k]:
+                res.append(l)
+            res.append("")
+        for e in res:
+            yield e
+
     # WRITERS TO FILE
     def out_journeys_to_file(self):
         """ Saves out_journey to a lseqj file
@@ -1161,6 +1214,13 @@ if __name__ == "__main__":
         help="Request paths in the case of command line script"
     )
     parser.add_argument(
+        "-m",
+        "--mat",
+        dest="req_matrix",
+        action='store_true',
+        help="Request matrix of points and journeys",
+    )
+    parser.add_argument(
         "-x",
         "--csv",
         dest="req_csv",
@@ -1229,6 +1289,9 @@ if __name__ == "__main__":
         # -r, --routes
         elif args.req_paths:
             write_string_to_stdout(json.dumps(lseq.get_paths()))
+        elif args.req_matrix:
+            for r in lseq.yield_matrix():
+                write_string_to_stdout(r)
         # -x, --csv
         elif args.req_csv:
             for l in lseq.yield_global_csv():

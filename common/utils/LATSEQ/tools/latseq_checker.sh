@@ -89,7 +89,8 @@ print_intvar() {
 # $1 : source file
 # $2 : LATSEQ_P point
 print_report() {
-    echo -e "$1\n\t$2\n" >> $REPORT_FILE 
+    echo -e "$1\n\t$2\n" >> $REPORT_FILE
+    echo "Writing report to $REPORT_FILE ..." 
 }
 
 # function to update header of latseq log file in latseq sources

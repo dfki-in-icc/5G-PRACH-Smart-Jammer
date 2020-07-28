@@ -159,6 +159,53 @@ class latseq_stats:
         for i in range(len(tsLP)-1):
             tmp.append(abs(tsLP[i+1]-tsLP[i]))
         return statistics.mean(tmp)
+    
+    @staticmethod
+    def yield_matrix(journeysP: dict):
+        """Yield a line for matrix file for journeys
+        Copied from latseq_logs.py::yield_matrix()
+        Yields:
+            str: csv string per matrix
+        """
+        tmp_d = {}  # key=path direction + path type
+        for j in journeysP:
+            if not journeysP[j]['completed']:
+                continue
+            tmp_path_id = f"{journeysP[j]['dir']}.{journeysP[j]['path']}"
+            # New matrix for this journey
+            if tmp_path_id not in tmp_d:
+                tmp_header = "uid;"
+                tmp_l = f"{journeysP[j]['uid']};"
+                tmp_tm1 = journeysP[j]['ts_in']
+                for i in journeysP[j]['set']:
+                    # journeysP[j]['set'][0] : id dans inputs
+                    # journeysP[j]['set'][1] : ts for this input
+                    # journeysP[j]['set'][2] : corresponding segment
+                    #tmp_i = journeysP[j]['set'][i]
+                    tmp_header += str(i[2])
+                    tmp_l += f"{(i[1] - tmp_tm1):.6f};"
+                    tmp_tm1 = i[1]
+                tmp_d[tmp_path_id] = [tmp_header]
+                tmp_d[tmp_path_id].append(tmp_l)
+            # Add a line to an existing matrix
+            else:
+                tmp_l = f"{journeysP[j]['uid']};"
+                tmp_tm1 = journeysP[j]['ts_in']
+                for i in journeysP[j]['set']:
+                    #tmp_i = journeysP[j]['set'][i]
+                    tmp_l += f"{(i[1] - tmp_tm1):.6f};"
+                    tmp_tm1 = i[1]
+                tmp_d[tmp_path_id].append(tmp_l)
+        # end for self.journeys
+        res = []
+        for k in tmp_d:
+            res.append(f"{'dl' if k.split('.')[0] == '0' else 'ul'}{k.split('.')[1]}")
+            for l in tmp_d[k]:
+                res.append(l)
+            res.append("")
+        for e in res:
+            yield e
+
 
     # JOURNEYS-BASED
     @staticmethod
@@ -367,9 +414,16 @@ if __name__ == "__main__":
         action='store_true',
         help="Request journeys duration"
     )
+    parser.add_argument(
+        "-m",
+        "--matrix",
+        dest="matrix",
+        action='store_true',
+        help="Request matrix of segment/journey"
+    )
     args = parser.parse_args()
     # Check arguments
-    if not args.stat_journeys and not args.stat_points and not args.stat_journeys_points and not args.journeys_durations:
+    if not args.stat_journeys and not args.stat_points and not args.stat_journeys_points and not args.journeys_durations and not args.matrix:
         sys.stderr.write("[WARNING] No action requested\n")
         exit()
 
@@ -499,7 +553,18 @@ if __name__ == "__main__":
                 else:
                     tmp_out += f"{l}\n"
             output = tmp_out
-
+    # -m, --matrix
+    elif args.matrix:
+        journeys = {}
+        # to a dict
+        tmp_j = {}
+        for jpp in list_meas_json:
+            tmp_j = json.loads(jpp)
+            journeys[tmp_j['uid']] = tmp_j
+        
+        for l in latseq_stats.yield_matrix(journeys):
+            # TODO: to uniformize with the rest of the script
+            sys.stdout.write(l + '\n')
     if not output:
         sys.stderr.write("[ERROR] no output")
     else:
