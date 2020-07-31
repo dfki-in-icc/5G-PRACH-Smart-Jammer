@@ -667,6 +667,8 @@ class latseq_log:
                     self.journeys[parent_journey_id]['next_points'] = None
                     self.journeys[parent_journey_id]['ts_out'] = tmp_p[0]
                     self.journeys[parent_journey_id]['completed'] = True
+                    # properties of journey inherit from propertiesof last segment
+                    self.journeys[parent_journey_id]['properties'] = tmp_p[4].copy()
                 else:  # continue to rebuild journey
                     self.journeys[parent_journey_id]['next_points'] = self.points[tmp_p[2]]['next']
                     local_pointerP = _get_next(list_meas, nb_meas, local_pointerP)
@@ -1179,7 +1181,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-i",
-        "--inputs",
+        "--req_inputs",
         dest="req_inputs",
         action='store_true',
         help="Request cleaned input measurements in the case of command line script"

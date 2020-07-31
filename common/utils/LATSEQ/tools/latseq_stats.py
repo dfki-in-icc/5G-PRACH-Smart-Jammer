@@ -32,6 +32,7 @@ import operator  # itemgetter
 # GLOBALS
 #
 S_TO_MS = 1000
+B_TO_MB = 1048576
 BASIC_STATS = ["size", "min", "max", "mean", "stdev", ["quantiles", "0.05", "0.25", "0.50", "0.75", "0.95"]]
 QUANTILES = [0.05, 0.25, 0.5, 0.75, 0.95]
 PRECISION = 6
@@ -353,6 +354,46 @@ class latseq_stats:
                 }
         return res
 
+    # OTHER METRIC
+    @staticmethod
+    def instant_out_throughput(journeysP: dict) -> dict:
+        # TODO: sort the list
+        def _handle_len_prop(jP):
+            if 'properties' in jP:
+                if 'len' in jP['properties']:
+                    return int(jP['properties']['len'])
+            return 1
+        def _compute_instant_throughtput(tsN, tsN1, lenP):
+            delta = abs(float(tsN1)-float(tsN))
+            if delta == 0.0:
+                raise ZeroDivisionError  # is not ideal because it says that if 2 initial packet which share same output is not differentiated
+            return f"{int(lenP)/delta/B_TO_MB:.3f}"
+
+        res = {'0': {}, '1': {}}  # for each direction and for each path in direction
+        for j in journeysP:
+            if not journeysP[j]['completed']:
+                continue
+            # Compute share of time for each points
+            else:
+                # new path
+                dire = str(journeysP[j]['dir'])
+                path = journeysP[j]['path']
+                if path not in res[dire]:
+                    res[dire][path] = [(journeysP[j]['set'][-1][1], _handle_len_prop(journeysP[j]), journeysP[j]['uid'], 0)]  # [i] = (ts, len, uid, instant throughput)
+                    continue
+                tmp_len = _handle_len_prop(journeysP[j])
+                try:
+                    tmp_tp = _compute_instant_throughtput(res[dire][path][-1][0], journeysP[j]['set'][-1][1], tmp_len)
+                except ZeroDivisionError:
+                    continue
+                else:
+                    res[dire][path].append((
+                        journeysP[j]['set'][-1][1],
+                        tmp_len,
+                        journeysP[j]['uid'],
+                        tmp_tp
+                    ))
+        return res
 #
 # MAIN
 #
@@ -415,6 +456,13 @@ if __name__ == "__main__":
         help="Request journeys duration"
     )
     parser.add_argument(
+        "-st",
+        "--stp",
+        dest="stat_throughput",
+        action='store_true',
+        help="Request instant throughtputs for each path"
+    )
+    parser.add_argument(
         "-m",
         "--matrix",
         dest="matrix",
@@ -423,7 +471,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     # Check arguments
-    if not args.stat_journeys and not args.stat_points and not args.stat_journeys_points and not args.journeys_durations and not args.matrix:
+    if not args.stat_journeys and not args.stat_points and not args.stat_journeys_points and not args.journeys_durations and not args.stat_throughput and not args.matrix:
         sys.stderr.write("[WARNING] No action requested\n")
         exit()
 
@@ -553,6 +601,29 @@ if __name__ == "__main__":
                 else:
                     tmp_out += f"{l}\n"
             output = tmp_out
+
+    # -st, --stp
+    elif args.stat_throughput:
+        journeys = {}
+        # to a dict
+        tmp_j = {}
+        for jpp in list_meas_json:
+            tmp_j = json.loads(jpp)
+            journeys[tmp_j['uid']] = tmp_j
+        if args.format == "json":
+            output = json.dumps(latseq_stats.instant_out_throughput(journeys)) + "\n"
+        if args.format == "csv":
+            tmp_res = latseq_stats.instant_out_throughput(journeys)
+            for dire in tmp_res:
+                for path in tmp_res[dire]:
+                    output+=f"{'dl' if dire == '0' else 'ul'}{path}\n"
+                    output+="timestamp;throughput;\n"
+                    for l in tmp_res[dire][path]:
+                        output+=f"{l[0]};{l[-1]};\n"
+                output+="\n"
+
+
+
     # -m, --matrix
     elif args.matrix:
         journeys = {}

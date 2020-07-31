@@ -5,6 +5,43 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Latseq_stats",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": ["-l/home/flavien/oai/oai-laurent/common/utils/LATSEQ/tools/journeys.json","-jpp"]
+        },
+        {
+            "name": "Latseq_logs",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": ["-l/home/flavien/latseq.23042020.lseq","-o"]
+        },
+        {
+            "name": "(gdb) test_latseq",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/targets/TEST/LATSEQ/test_latseq",
+            "args": [
+                "t"
+            ],
+            "stopAtEntry": true,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
