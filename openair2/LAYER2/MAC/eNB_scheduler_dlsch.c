@@ -588,6 +588,8 @@ schedule_ue_spec(module_id_t module_idP,
     UE_TEMPLATE *ue_template = &UE_info->UE_template[CC_id][UE_id];
     eNB_UE_STATS *eNB_UE_stats = &UE_info->eNB_UE_stats[CC_id][UE_id];
     eNB_UE_stats->TBS = 0;
+    eNB_UE_stats->overhead_bytes = 0;
+    eNB_UE_stats->rbs_used = 0;
     const rnti_t rnti = ue_template->rnti;
 
     // If TDD
