@@ -394,6 +394,33 @@ class latseq_stats:
                         tmp_tp
                     ))
         return res
+
+    @staticmethod
+    def in_interarrivals_rate(journeysP: dict) -> dict:
+        # TODO: sort the list
+        res = {'0': {}, '1': {}}  # for each direction and for each path in direction
+        for j in journeysP:
+            if not journeysP[j]['completed']:
+                continue
+            else:
+                # new path
+                dire = str(journeysP[j]['dir'])
+                path = journeysP[j]['path']
+                if path not in res[dire]:
+                    res[dire][path] = [(journeysP[j]['set'][0][1], journeysP[j]['uid'], 0)]  # [i] = (ts, len, uid, instant throughput)
+                    continue
+                # set.0 = first segment in path
+                tmp_ia = abs(journeysP[j]['set'][0][1] - res[dire][path][-1][0])
+                if tmp_ia == 0:  # FIX temporary
+                    tmp_ia = 0.000001
+                tmp_ia = f"{tmp_ia:.6f}"
+                res[dire][path].append((
+                    journeysP[j]['set'][-1][1],  # timestamp
+                    journeysP[j]['uid'],
+                    tmp_ia
+                ))
+        return res
+
 #
 # MAIN
 #
@@ -463,6 +490,13 @@ if __name__ == "__main__":
         help="Request instant throughtputs for each path"
     )
     parser.add_argument(
+        "-ia",
+        "--interarrival",
+        dest="stat_interarrival",
+        action='store_true',
+        help="Request interarrival rate"
+    )
+    parser.add_argument(
         "-m",
         "--matrix",
         dest="matrix",
@@ -471,7 +505,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     # Check arguments
-    if not args.stat_journeys and not args.stat_points and not args.stat_journeys_points and not args.journeys_durations and not args.stat_throughput and not args.matrix:
+    if not args.stat_journeys and not args.stat_points and not args.stat_journeys_points and not args.journeys_durations and not args.stat_throughput and not args.stat_interarrival and not args.matrix:
         sys.stderr.write("[WARNING] No action requested\n")
         exit()
 
@@ -622,7 +656,25 @@ if __name__ == "__main__":
                         output+=f"{l[0]};{l[-1]};\n"
                 output+="\n"
 
-
+    # -ia, --interarrival
+    elif args.stat_interarrival:
+        journeys = {}
+        # to a dict
+        tmp_j = {}
+        for jpp in list_meas_json:
+            tmp_j = json.loads(jpp)
+            journeys[tmp_j['uid']] = tmp_j
+        if args.format == "json":
+            output = json.dumps(latseq_stats.in_interarrivals_rate(journeys)) + "\n"
+        if args.format == "csv":
+            tmp_res = latseq_stats.in_interarrivals_rate(journeys)
+            for dire in tmp_res:
+                for path in tmp_res[dire]:
+                    output+=f"{'dl' if dire == '0' else 'ul'}{path}\n"
+                    output+="timestamp;interarrival;\n"
+                    for l in tmp_res[dire][path]:
+                        output+=f"{l[0]};{l[-1]};\n"
+                output+="\n"
 
     # -m, --matrix
     elif args.matrix:
