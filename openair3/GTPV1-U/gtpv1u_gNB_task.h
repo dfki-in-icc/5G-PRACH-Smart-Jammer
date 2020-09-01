@@ -1,5 +1,4 @@
-/*
- * Licensed to the OpenAirInterface (OAI) Software Alliance under one or more
+/* Licensed to the OpenAirInterface (OAI) Software Alliance under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
  * The OpenAirInterface Software Alliance licenses this file to You under
@@ -19,14 +18,20 @@
  *      contact@openairinterface.org
  */
 
-#ifndef CREATE_TASKS_H_
-#define CREATE_TASKS_H_
+/*! \file gtpv1u_gNB_task.h
+* \brief
+* \author Lionel Gauthier Panos Matzakos
+* \company Eurecom
+* \email: lionel.gauthier@eurecom.fr
+*/
 
-/* External declaration of L2L1 task that depend on the target */
-extern void *l2l1_task(void *arg);
+#ifndef GTPV1U_GNB_TASK_H_
+#define GTPV1U_GNB_TASK_H_
 
-int create_tasks(uint32_t enb_nb);
-int create_tasks_ue(uint32_t ue_nb);
-int create_tasks_mbms(uint32_t enb_nb);
+int   gtpv1u_gNB_init(void);
 
-#endif /* CREATE_TASKS_H_ */
+void *gtpv1u_gNB_task(void *args);
+
+
+#endif /* GTPV1U_GNB_TASK_H_ */
+
