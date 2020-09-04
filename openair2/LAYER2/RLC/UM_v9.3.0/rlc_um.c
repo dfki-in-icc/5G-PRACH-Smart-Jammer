@@ -485,7 +485,7 @@ rlc_um_mac_data_request (const protocol_ctxt_t *const ctxt_pP, void *rlc_pP,cons
         continue;
       }
 
-      if (LATSEQ || MESSAGE_CHART_GENERATOR || LOG_DEBUGFLAG(DEBUG_RLC) ) {
+      if (MESSAGE_CHART_GENERATOR || LOG_DEBUGFLAG(DEBUG_RLC) ) {
         rlc_um_get_pdu_infos(ctxt_pP, l_rlc_p,(rlc_um_pdu_sn_10_t *) ((struct mac_tb_req *) (tb_p->data))->data_ptr, tb_size_in_bytes, &pdu_info, l_rlc_p->rx_sn_length);
 
         if(MESSAGE_CHART_GENERATOR) {

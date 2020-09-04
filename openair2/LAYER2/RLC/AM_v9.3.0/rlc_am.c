@@ -613,7 +613,7 @@ rlc_am_mac_data_request (
 
   data_req.rlc_info.rlc_protocol_state = l_rlc_p->protocol_state;
 
-  if ( (LATSEQ || MESSAGE_CHART_GENERATOR || LOG_DEBUGFLAG(DEBUG_RLC))&& data_req.data.nb_elements > 0) {
+  if ( (MESSAGE_CHART_GENERATOR || LOG_DEBUGFLAG(DEBUG_RLC))&& data_req.data.nb_elements > 0) {
     tb_p = data_req.data.head;
 
     while (tb_p != NULL) {

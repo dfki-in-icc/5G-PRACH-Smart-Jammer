@@ -153,13 +153,13 @@ int pdcp_fifo_flush_sdus(const protocol_ctxt_t *const  ctxt_pP) {
       if( LOG_DEBUGFLAG(DEBUG_PDCP) )
         log_dump(PDCP, pdcpData, sizeToWrite, LOG_DUMP_CHAR,"PDCP output to be sent to TUN interface: \n");
 #if LATSEQ
-      LATSEQ_P("U pdcp.out.nas--ip.out", "len%d:rnti%d:drb%d.sock%d.lid%d.fm%d", sizeToWrite, ctxt_pP->rnti, rb_id, nas_sock_fd[0], ((pdcp_data_ind_header_t *)(sdu_p->data))->destinationL2Id, ctxt_pP->frame);
+      LATSEQ_P("U pdcp.out.nas--ip.out", "len%d:rnti%d:drb%d.sock%d.lid%d.fm%d", sizeToWrite, ctxt_pP->rnti, rb_id, nas_sock_fd[0], pdcpHead->destinationL2Id, ctxt_pP->frame);
 #endif
       ret = write(nas_sock_fd[0], pdcpData, sizeToWrite);
       LOG_T(PDCP,"[NB PDCP_FIFOS] ret %d TRIED TO PUSH DATA TO rb_id %d handle %d sizeToWrite %d\n",ret,rb_id,nas_sock_fd[0],sizeToWrite);
     } else if (PDCP_USE_NETLINK) {
 #if LATSEQ
-      LATSEQ_P("U pdcp.out.nl--ip.out", "len%d:rnti%d:drb%d.sock%d.lid%d.fm%d", sizeToWrite, ctxt_pP->rnti, rb_id, nas_sock_fd[0], ((pdcp_data_ind_header_t *)(sdu_p->data))->destinationL2Id, ctxt_pP->frame);
+      LATSEQ_P("U pdcp.out.nl--ip.out", "len%d:rnti%d:drb%d.sock%d.lid%d.fm%d", sizeToWrite, ctxt_pP->rnti, rb_id, nas_sock_fd[0], pdcpHead->destinationL2Id, ctxt_pP->frame);
 #endif
       memcpy(NLMSG_DATA(nas_nlh_tx), (uint8_t *) pdcpHead,  sizeToWrite);
 

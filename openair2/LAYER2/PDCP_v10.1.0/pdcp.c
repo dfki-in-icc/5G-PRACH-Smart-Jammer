@@ -1048,7 +1048,7 @@ pdcp_data_ind(
         "Printing first bytes of PDCP SDU before adding it to the list: \n");
 #if LATSEQ
       if (srb_flagP == FALSE) {
-        LATSEQ_P("U pdcp.rx--pdcp.out","len%d:rnti%d:drb%d.lid%d.psn%d.fm%d",(sdu_buffer_sizeP - payload_offset), ctxt_pP->rnti, rb_id, ((pdcp_data_ind_header_t *)(new_sdu_p->data))->destinationL2Id, sequence_number, ctxt_pP->frame);
+        LATSEQ_P("U pdcp.rx--pdcp.out","len%d:rnti%d:drb%d.lid%d.psn%d.fm%d",(sdu_buffer_sizeP - payload_offset), ctxt_pP->rnti, rb_id, pdcpHead->destinationL2Id, sequence_number, ctxt_pP->frame);
       }
 #endif
       pushNotifiedFIFO(&pdcp_sdu_list, new_sdu_p); 
