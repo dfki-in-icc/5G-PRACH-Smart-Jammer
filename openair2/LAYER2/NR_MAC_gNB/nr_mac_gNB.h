@@ -68,6 +68,10 @@
 #include "LAYER2/NR_MAC_COMMON/nr_mac_common.h"
 #include "NR_TAG.h"
 
+#include <openair3/NAS/COMMON/NR_NAS_defs.h>
+#include <openair3/UICC/usim_interface.h>
+
+
 /* Defs */
 #define MAX_NUM_BWP 2
 #define MAX_NUM_CORESET 2
@@ -278,6 +282,11 @@ typedef struct NR_preamble_ue {
   uint8_t *preamble_list;
 } NR_preamble_ue;
 
+typedef struct {
+  boolean_t fiveG_connected;
+  uicc_t *uicc;
+} NRUEcontext_t;
+
 /*! \brief UE list used by gNB to order UEs/CC for scheduling*/
 typedef struct {
   DLSCH_PDU DLSCH_pdu[4][MAX_MOBILES_PER_GNB];
@@ -290,7 +299,7 @@ typedef struct {
   int avail;
   int num_UEs;
   boolean_t active[MAX_MOBILES_PER_GNB];
-  boolean_t fiveG_connected[MAX_MOBILES_PER_GNB];
+  NRUEcontext_t UEcontext[MAX_MOBILES_PER_GNB];
   rnti_t rnti[MAX_MOBILES_PER_GNB];
   rnti_t tc_rnti[MAX_MOBILES_PER_GNB];
   NR_preamble_ue preambles[MAX_MOBILES_PER_GNB];

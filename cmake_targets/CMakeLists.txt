@@ -232,8 +232,8 @@ set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath -Wl,${CMAKE_CU
 #########################
 # set a flag for changes in the source code
 # these changes are related to hardcoded path to include .h files
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS} -g3 -DMALLOC_CHECK_=3")
-set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS} -g3 -DMALLOC_CHECK_=3 -Og -fno-delete-null-pointer-checks")
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS} -g3 -O0 -DMALLOC_CHECK_=3")
+set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS} -g3 -DMALLOC_CHECK_=3 -O1 -fno-delete-null-pointer-checks")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS}  -O3")
 
 set(GIT_BRANCH        "UNKNOWN")
@@ -292,7 +292,7 @@ add_boolean_option(TRACE_RLC_PAYLOAD   False "print RLC PDU to stdout") # if tru
 add_boolean_option(TEST_OMG            False "???")
 add_boolean_option(DEBUG_OMG           False "???")
 add_boolean_option(PRINT_STATS         False "This adds the possibility to see the status")
-add_boolean_option(T_TRACER            True  "Activate the T tracer, a debugging/monitoring framework" )
+add_boolean_option(T_TRACER            False  "Activate the T tracer, a debugging/monitoring framework" )
 add_boolean_option(LATSEQ              False "Active Latency Sequence tools")
 add_boolean_option(UE_AUTOTEST_TRACE   False "Activate UE autotest specific logs")
 add_boolean_option(UE_DEBUG_TRACE      False "Activate UE debug trace")
@@ -303,7 +303,6 @@ set (OCP_ITTI ${OPENAIR_DIR}/common/utils/ocp_itti)
 add_library(ITTI
   ${OCP_ITTI}/intertask_interface.cpp
   ${OPENAIR_DIR}/common/utils/backtrace.c
-  ${OPENAIR_DIR}/common/utils/memory_pools.c
   )
 add_dependencies(ITTI rrc_flag)
   set(ITTI_LIB ITTI)
@@ -778,7 +777,7 @@ Message("CPU_Affinity flag is ${CPU_AFFINITY}")
 add_boolean_option(NO_RRM                  True  "DO WE HAVE A RADIO RESSOURCE MANAGER: NO")
 
 add_boolean_option(OAI_NW_DRIVER_TYPE_ETHERNET False "????")
-add_boolean_option(DEADLINE_SCHEDULER True "Use the Linux scheduler SCHED_DEADLINE: kernel >= 3.14")
+add_boolean_option(DEADLINE_SCHEDULER False "Use the Linux scheduler SCHED_DEADLINE: kernel >= 3.14")
 add_boolean_option(CPU_AFFINITY False "Enable CPU Affinity of threads (only valid without deadline scheduler). It is enabled only with >2 CPUs")
 add_boolean_option(NAS_NETLINK False "useless ??? Must be True to compile nasmesh driver without rtai ????")
 add_boolean_option(OAI_NW_DRIVER_USE_NETLINK True "????")
@@ -800,9 +799,9 @@ add_boolean_option(ENB_MODE True "Swap the include directories between openair2 
 ##########################
 # SCHEDULING/REAL-TIME/PERF options
 ##########################
-add_boolean_option(ENABLE_USE_CPU_EXECUTION_TIME True "Add data in vcd traces: disable it if perf issues")
-add_boolean_option(ENABLE_VCD              True  "always true now, time measurements of proc calls and var displays")
-add_boolean_option(ENABLE_VCD_FIFO         True  "time measurements of proc calls and var displays sent to FIFO (one more thread)")
+add_boolean_option(ENABLE_USE_CPU_EXECUTION_TIME False "Add data in vcd traces: disable it if perf issues")
+add_boolean_option(ENABLE_VCD              False  "always true now, time measurements of proc calls and var displays")
+add_boolean_option(ENABLE_VCD_FIFO         False  "time measurements of proc calls and var displays sent to FIFO (one more thread)")
 add_boolean_option(LINUX                   False "used in weird memcpy() in pdcp.c ???")
 add_boolean_option(LINUX_LIST              False "used only in lists.c: either use OAI implementation of lists or Linux one (should be True, but it is False")
 add_boolean_option(OPENAIR_LTE             True "Seems legacy: keep it to true")
@@ -1645,6 +1644,7 @@ add_library(PHY_COMMON ${PHY_SRC_COMMON})
 add_dependencies(PHY_COMMON rrc_flag)
 add_dependencies(PHY_COMMON dfts)
 add_library(PHY ${PHY_SRC})
+
 add_dependencies(PHY rrc_flag)
 add_library(PHY_UE ${PHY_SRC_UE})
 add_dependencies(PHY_UE rrc_flag)
@@ -2272,6 +2272,12 @@ set (SHLIB_LOADER_SOURCES
     ${OPENAIR_DIR}/common/utils/load_module_shlib.c
 )
 
+add_library(LIB_5GNAS_GNB
+	${NAS_SRC}/gNB/network_process_nas.c
+	${NAS_SRC}/NR_UE/ue_process_nas.c
+	${OPENAIR3_DIR}//UICC/usim_interface.c
+	)
+
 # Make lfds as a own source code (even if it is a outside library)
 # For better intergration with compilation flags & structure of cmake
 ###################################################################
@@ -2639,7 +2645,7 @@ target_link_libraries (ocp-enb
   -Wl,--start-group
   RRC_LIB NR_RRC_LIB S1AP_LIB S1AP_ENB F1AP_LIB F1AP M2AP_LIB M2AP_ENB X2AP_LIB X2AP_ENB M3AP_LIB M3AP_ENB GTPV1U SECU_CN SECU_OSA UTIL HASHTABLE SCTP_CLIENT MME_APP UDP SCHED_LIB SCHED_RU_LIB 
   PHY_COMMON PHY PHY_RU LFDS L2 L2_LTE NFAPI_COMMON_LIB NFAPI_LIB NFAPI_VNF_LIB NFAPI_PNF_LIB NFAPI_USER_LIB LFDS7 SIMU_COMMON
-  ${MSC_LIB} ${RAL_LIB} ${NAS_UE_LIB} ${ITTI_LIB} ${FLPT_MSG_LIB} ${ASYNC_IF_LIB} ${FLEXRAN_AGENT_LIB} ${FSPT_MSG_LIB} ${PROTO_AGENT_LIB}
+  ${MSC_LIB} ${RAL_LIB} ${NAS_UE_LIB} ${ITTI_LIB} ${FLPT_MSG_LIB} ${ASYNC_IF_LIB} 
   -Wl,--end-group z dl)
 target_link_libraries (ocp-enb ${LIBXML2_LIBRARIES} pthread m ${CONFIG_LIBRARIES} rt crypt ${CRYPTO_LIBRARIES} ${OPENSSL_LIBRARIES} ${NETTLE_LIBRARIES} sctp ${PROTOBUF_LIB}  ${CMAKE_DL_LIBS} ${LIBYAML_LIBRARIES} ${LIB_LMS_LIBRARIES} ${T_LIB})
 
@@ -2767,6 +2773,7 @@ add_executable(ocp-gnb
   ${s1ap_h}
 #  ${OPENAIR_BIN_DIR}/messages_xml.h
   ${OPENAIR_DIR}/executables/ocp-gnb.c
+  ${OPENAIR_DIR}/common/utils/threadPool/thread-pool.c
   ${OPENAIR_DIR}/executables/softmodem-common.c
   ${OPENAIR1_DIR}/SIMULATION/TOOLS/taus.c
   ${OPENAIR_TARGETS}/ARCH/COMMON/common_lib.c
@@ -2782,21 +2789,22 @@ add_executable(ocp-gnb
   ${T_SOURCE}
   ${CONFIG_SOURCES}
   ${SHLIB_LOADER_SOURCES}
+  ${XFORMSINTERFACE_SOURCE}
   )
 
 target_link_libraries (ocp-gnb
   -Wl,--start-group
-  UTIL HASHTABLE SCTP_CLIENT UDP SCHED_LIB SCHED_RU_LIB SCHED_NR_LIB PHY_NR PHY PHY_COMMON PHY_NR_COMMON PHY_RU LFDS GTPV1U SECU_CN SECU_OSA
-  ${ITTI_LIB} ${FLPT_MSG_LIB} ${ASYNC_IF_LIB} ${FLEXRAN_AGENT_LIB} LFDS7 ${MSC_LIB} ${RAL_LIB} ${NAS_UE_LIB} RRC_LIB NR_RRC_LIB 
+  UTIL HASHTABLE SCTP_CLIENT UDP SCHED_LIB SCHED_RU_LIB SCHED_NR_LIB PHY_NR PHY PHY_COMMON PHY_NR_COMMON PHY_RU LFDS NR_GTPV1U SECU_CN SECU_OSA
+  ${ITTI_LIB} ${FLPT_MSG_LIB} ${ASYNC_IF_LIB} LFDS7 ${MSC_LIB} ${RAL_LIB} ${NAS_UE_LIB} RRC_LIB NR_RRC_LIB 
   S1AP_LIB S1AP_ENB L2 L2_NR MAC_NR_COMMON NFAPI_COMMON_LIB NFAPI_LIB NFAPI_VNF_LIB NFAPI_PNF_LIB NFAPI_USER_LIB
-  X2AP_LIB X2AP_ENB F1AP_LIB F1AP M2AP_LIB M2AP_ENB M3AP_LIB M3AP_ENB ${PROTO_AGENT_LIB} ${FSPT_MSG_LIB}
+  X2AP_LIB X2AP_ENB F1AP_LIB F1AP M2AP_LIB M2AP_ENB M3AP_LIB M3AP_ENB SIMU_COMMON
   -Wl,--end-group z dl)
 
 target_link_libraries (ocp-gnb ${LIBXML2_LIBRARIES})
 target_link_libraries (ocp-gnb pthread m ${CONFIG_LIB} rt crypt ${CRYPTO_LIBRARIES} ${OPENSSL_LIBRARIES} ${NETTLE_LIBRARIES} sctp  ${XFORMS_LIBRARIES} ${PROTOBUF_LIB}  ${CMAKE_DL_LIBS} ${LIBYAML_LIBRARIES} ${ATLAS_LIBRARIES})
 target_link_libraries (ocp-gnb ${LIB_LMS_LIBRARIES})
 target_link_libraries (ocp-gnb ${T_LIB})
-add_dependencies(ocp-gnb ldpc_orig ldpc_optim ldpc_optim8seg ldpc )
+add_dependencies(ocp-gnb ldpc_orig ldpc_optim ldpc_optim8seg ldpc params_libconfig rfsimulator oai_usrpdevif rfsimulator nrscope)
 
 
 # nr-uesoftmodem is  UE implementation
@@ -2823,6 +2831,7 @@ add_executable(nr-uesoftmodem
   ${OPENAIR_DIR}/common/utils/nr/nr_common.c
   ${XFORMSINTERFACE_SOURCE}
   ${T_SOURCE}
+  ${UTIL_SRC}
   ${CONFIG_SOURCES}
   ${SHLIB_LOADER_SOURCES}
   )
@@ -2832,7 +2841,7 @@ target_link_libraries (nr-uesoftmodem
   RRC_LIB NR_RRC_LIB SECU_CN SECU_OSA UTIL HASHTABLE SCTP_CLIENT UDP SCHED_RU_LIB SCHED_UE_LIB SCHED_NR_UE_LIB
   PHY_COMMON PHY_NR_COMMON PHY_UE PHY_NR_UE PHY_RU LFDS NR_L2_UE L2_UE MAC_NR_COMMON NFAPI_COMMON_LIB NFAPI_LIB NFAPI_PNF_LIB
   NFAPI_USER_LIB S1AP_LIB S1AP_ENB
-  ${MSC_LIB} ${RAL_LIB} ${NAS_UE_LIB} ${ITTI_LIB} ${FLPT_MSG_LIB} ${ASYNC_IF_LIB} LFDS7 ${ATLAS_LIBRARIES} 
+  ${MSC_LIB} ${RAL_LIB} ${NAS_UE_LIB} ${ITTI_LIB} ${FLPT_MSG_LIB} ${ASYNC_IF_LIB} LFDS7 ${ATLAS_LIBRARIES} LIB_5GNAS_GNB
   -Wl,--end-group z dl)
 
 target_link_libraries (nr-uesoftmodem ${LIBXML2_LIBRARIES})
@@ -2977,6 +2986,7 @@ add_executable(nr_pucchsim
   ${OPENAIR_DIR}/common/utils/backtrace.c
   ${OPENAIR_DIR}/common/utils/nr/nr_common.c
   ${OPENAIR_DIR}/common/utils/system.c
+  ${UTIL_SRC}
   ${T_SOURCE}
   ${SHLIB_LOADER_SOURCES}
   )
@@ -2990,6 +3000,7 @@ add_executable(nr_dlsim
   ${OPENAIR_DIR}/common/utils/system.c
   ${OPENAIR_DIR}/common/utils/nr/nr_common.c
   ${OPENAIR_DIR}/executables/softmodem-common.c
+  ${UTIL_SRC}
   ${T_SOURCE}
   ${SHLIB_LOADER_SOURCES}
   )   
@@ -3004,6 +3015,7 @@ add_executable(nr_prachsim
   ${OPENAIR_DIR}/common/utils/system.c
   ${OPENAIR_DIR}/common/utils/nr/nr_common.c
   ${OPENAIR1_DIR}/SCHED_NR/phy_procedures_nr_common.c
+  ${UTIL_SRC}
   ${T_SOURCE}
   ${SHLIB_LOADER_SOURCES})
 target_link_libraries(nr_prachsim  
@@ -3027,6 +3039,7 @@ add_executable(nr_ulsim
   ${OPENAIR_DIR}/common/utils/system.c
   ${OPENAIR_DIR}/common/utils/nr/nr_common.c
   ${OPENAIR_DIR}/executables/softmodem-common.c
+  ${UTIL_SRC}
   ${T_SOURCE}
   ${SHLIB_LOADER_SOURCES}
   )

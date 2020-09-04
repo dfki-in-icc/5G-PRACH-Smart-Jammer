@@ -999,7 +999,7 @@ pdcp_data_ind(
       AssertFatal((sdu_buffer_sizeP - payload_offset >= 0), "invalid PDCP SDU size!");
 
       // Here there is no virtualization possible
-      // set ((pdcp_data_ind_header_t *) new_sdu_p->data)->inst for IP layer here
+      // set pdcpHead->inst for IP layer here
       if (ctxt_pP->enb_flag == ENB_FLAG_NO) {
         pdcpHead->rb_id = rb_id;
 
@@ -1055,7 +1055,7 @@ pdcp_data_ind(
 
 
     /* Print octets of incoming data in hexadecimal form */
-    LOG_D(PDCP, "Following content has been received from RLC (%d,%d)(PDCP header has already been removed):\n",
+      LOG_D(PDCP, "Following content has been received from RLC (%d,%d)(PDCP header has already been removed):\n",
           sdu_buffer_sizeP  - payload_offset + (int)sizeof(pdcp_data_ind_header_t),
           sdu_buffer_sizeP  - payload_offset);
     //util_print_hex_octets(PDCP, &new_sdu_p->data[sizeof (pdcp_data_ind_header_t)], sdu_buffer_sizeP - payload_offset);

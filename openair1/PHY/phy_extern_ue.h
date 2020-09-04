@@ -38,6 +38,7 @@ extern int number_of_cards;
 
 
 extern const short conjugate[8],conjugate2[8];
+
 extern PHY_VARS_UE ***PHY_vars_UE_g;
 
 extern short primary_synch0[144];

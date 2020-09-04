@@ -467,6 +467,15 @@ int nr_slot_fep_ul(NR_DL_FRAME_PARMS *frame_parms,
 
   // clear DC carrier from OFDM symbols
   rxdataF[symbol * frame_parms->ofdm_symbol_size] = 0;
+<<<<<<< HEAD
+=======
+
+  LOG_T(PHY,"Ns: %d, symbol: %d dft of size: %d done from %d (energy %d) to %d offsets (energy (%d)\n", 
+		  Ns, symbol, dftsize, 
+		  rxdata_offset-sample_offset, signal_energy(&rxdata[rxdata_offset-sample_offset], dftsize),
+		  symbol * frame_parms->ofdm_symbol_size,  signal_energy(&rxdataF[symbol * frame_parms->ofdm_symbol_size], dftsize)
+		  );
+>>>>>>> main5G
 
   return(0);
 }
