@@ -26,6 +26,9 @@
 #include <string.h>
 
 #include "LOG/log.h"
+#ifdef LATSEQ
+  #include "common/utils/LATSEQ/latseq.h"
+#endif
 
 /*************************************************************************/
 /* PDU RX functions                                                      */

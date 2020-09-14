@@ -102,10 +102,10 @@ def write_string_to_stdout(sstream: str):
         sys.stdout.write(sstream + '\n')
     except IOError as e:
         if e.errno == errno.EPIPE:  # Ignore broken pipe Error
-            sys.stderr.write("[WARNING] Broken pipe error\n")
+            sys.stderr.write("[WARNING] write_string_to_stdout() : Broken pipe error\n")
             return
         else:
-            sys.stderr.write(f"[ERROR] {e}\n")
+            sys.stderr.write(f"[ERROR] write_string_to_stdout() : {e}\n")
             exit()
 
 #
@@ -227,7 +227,7 @@ class latseq_log:
         """
         try:
             with open(self.logpath, 'r') as f:
-                sys.stderr.write(f"[INFO] Reading {self.logpath} ...\n")
+                sys.stderr.write(f"[INFO] latseq_log._read_file() : Reading {self.logpath} ...\n")
                 return f.read()
         except IOError:
             raise IOError(f"error at opening ({self.logpath})")
@@ -246,7 +246,7 @@ class latseq_log:
                 continue
             tmp = l.split(' ')
             if len(tmp) < 4:
-                sys.stderr.write(f"[WARNING] {l} is a malformed line\n")
+                sys.stderr.write(f"[WARNING] latseq_log._read_log() : {l} is a malformed line\n")
                 continue
             if tmp[1] == 'I':  # information-type line
                 self.raw_infos.append(tuple([
@@ -299,22 +299,38 @@ class latseq_log:
             try:
                 i_points = tuple(i[1].split('.'))
                 tmp_infos_d = dict()
-                for d in i[2].split('.'):
+                meas_ctxt = i[2].split(':')  # Left part represents properties, right parts optional local identifier
+                for d in meas_ctxt[0].split('.'):
                     try:
                         did = match_ids.match(d).groups()
                     except Exception:
                         continue
                     else:
                         tmp_infos_d[did[0]] = did[1]
-
-                self.infos.append((
-                    i[0],
-                    i_points,
-                    deepcopy(tmp_infos_d)
-                ))
+                if len(meas_ctxt) == 2:  # measurement context identifier
+                    tmp_ctxt_d = dict()
+                    for c in meas_ctxt[1].split('.'):
+                        try:
+                            dic = match_ids.match(d).groups()
+                        except Exception:
+                            continue
+                        else:
+                            tmp_ctxt_d[dic[0]] = dic[1]
+                    self.infos.append((
+                        i[0],
+                        i_points,
+                        deepcopy(tmp_infos_d),
+                        deepcopy(tmp_ctxt_d),
+                    ))
+                else:
+                    self.infos.append((
+                        i[0],
+                        i_points,
+                        deepcopy(tmp_infos_d),
+                    ))
                 # not other processing needed for infos
             except Exception:
-                sys.stderr.write(f"[ERROR] at parsing information line {i}\n")
+                sys.stderr.write(f"[ERROR] latseq_log._clean_log() : at parsing information line {i}\n")
 
         # sort by timestamp. important assumption for the next methods
         self.raw_inputs.sort(key=operator.itemgetter(0))
@@ -459,7 +475,7 @@ class latseq_log:
                         if e not in tmpU:
                             tmpUout.append(e)
                 else:
-                    sys.stderr.write(f"[ERROR] Unknown direction for {p[0]} : {p[1]}\n")
+                    sys.stderr.write(f"[ERROR] latseq_log._build_points() : Unknown direction for {p[0]} : {p[1]}\n")
             self.pointsInD  = tmpDin
             self.pointsOutD = tmpDout
             self.pointsInU  = tmpUin
@@ -493,9 +509,9 @@ class latseq_log:
         if len(self.paths[0]) == 0 and len(self.paths[1]) == 0:
             raise Exception("Error no paths found in Downlink nor in Uplink")
         elif len(self.paths[0]) == 0:
-            sys.stderr.write("[INFO] no path found in Downlink\n")
+            sys.stderr.write("[INFO] latseq_log._build_paths() : no path found in Downlink\n")
         elif len(self.paths[1]) == 0:
-            sys.stderr.write("[INFO] no path found in Uplink\n")
+            sys.stderr.write("[INFO] latseq_log._build_paths() : no path found in Uplink\n")
         else:  # make immutable paths
             for dp in range(len(self.paths)):
                 for p in range(len(self.paths[dp])):
@@ -875,7 +891,7 @@ class latseq_log:
             AttributeError: journeys not present in `latseq_logs` object
         """
         if not hasattr(self, 'journeys'):
-            sys.stderr.write("[ERROR] First rebuild journeys\n")
+            sys.stderr.write("[ERROR] latseq_log._build_out_journeys() First rebuild journeys\n")
             raise AttributeError('journeys not present in object, first try rebuild journeys')
         self.out_journeys = list()
         nb_meas = len(self.inputs)
@@ -932,9 +948,9 @@ class latseq_log:
         # Check which points (clean inputs) are not in the completed journeys
         for e in range(nb_meas):
             if e not in points_added:
-                sys.stderr.write(f"[INFO] {e} : {self.inputs[e]} is missing in completed journeys\n")
+                sys.stderr.write(f"[INFO] latseq_log._build_out_journeys() : {e} : {self.inputs[e]} is missing in completed journeys\n")
                 orphans += 1
-        sys.stderr.write(f"[INFO] {orphans} orphans / {nb_meas} measurements\n")
+        sys.stderr.write(f"[INFO] latseq_log._build_out_journeys() : {orphans} orphans / {nb_meas} measurements\n")
         self.store_object()
         return len(self.out_journeys)
 
@@ -1036,7 +1052,7 @@ class latseq_log:
         """
         if not hasattr(self, 'out_journeys'):
             if not self._build_out_journeys():
-                sys.stderr.write("[ERROR] to build out_journeys\n")
+                sys.stderr.write("[ERROR] latseq_log.yield_out_journeys() : to build out_journeys\n")
                 exit(-1)
         def _build_header() -> str:
             res_str = "#funcId "
@@ -1059,9 +1075,16 @@ class latseq_log:
             """Yielder for cleaned meta data sort by points and by timestamp
             """
             try:
-                for i in self.infos:
-                    for im in self.infos[2]:
-                        yield f"{epoch_to_datetime(i[0])}\t{i[1]}\t{i[2][im]}"
+                for i in self.infos:  # for all informations
+                    for im in i[2]:  # for all individual information in i (one line in trace can generate multiple line in output)
+                        if len(i) == 4:  # ctxt identifier
+                            tmp_ctxt_l = []
+                            for c in i[3]:
+                                tmp_ctxt_l.append(f"{c}{i[3][c]}")
+                            tmp_ctxt_s = ".".join(tmp_ctxt_l)
+                            yield f"{epoch_to_datetime(i[0])}\t{i[1]}\t{i[2][im]}:{tmp_ctxt_s}"
+                        else:
+                            yield f"{epoch_to_datetime(i[0])}\t{i[1]}\t{i[2][im]}"
             except Exception:
                 raise ValueError(f"{i} is malformed")
 
@@ -1072,7 +1095,7 @@ class latseq_log:
         """
         # Warning for stats if journeys has not been rebuilt
         if "duration" not in self.points[next(iter(self.points.keys()))]:
-            sys.stderr.write("[WARNING] points without duration, first rebuild journeys for stat")
+            sys.stderr.write("[WARNING] latseq_log.yield_points() : points without duration, first rebuild journeys for stat")
         for p in self.points:
             self.points[p]['point'] = p
             yield self.points[p]
@@ -1161,12 +1184,12 @@ class latseq_log:
             return res_str + "\n"
         try:
             with open(out_journeyspath, 'w+') as f:
-                sys.stderr.write(f"[INFO] Writing latseq.lseqj ...\n")
+                sys.stderr.write(f"[INFO] latseq_log.out_journeys_to_file() : Writing latseq.lseqj ...\n")
                 f.write(_build_header())  # write header
                 for e in self.yield_out_journeys():
                     f.write(f"{e}\n")
         except IOError as e:
-            sys.stderr.write(f"[ERROR] on writing({self.logpath})\n")
+            sys.stderr.write(f"[ERROR] latseq_log.out_journeys_to_file() : on writing({self.logpath})\n")
             raise e
 
     def store_object(self):
@@ -1181,8 +1204,8 @@ class latseq_log:
             with open(pickle_file, 'wb') as fout:
                 pickle.dump(self, fout, pickle.HIGHEST_PROTOCOL)
         except IOError:
-            sys.stderr.write(f"[ERROR] at saving {pickle_file}\n")
-        sys.stderr.write(f"[INFO] Saving lseq instance to {pickle_file}\n")
+            sys.stderr.write(f"[ERROR] latseq_log.store_object() : at saving {pickle_file}\n")
+        sys.stderr.write(f"[INFO] latseq_log.store_object() : Saving lseq instance to {pickle_file}\n")
 
     def paths_to_str(self) -> str:
         """Stringify paths
@@ -1304,10 +1327,10 @@ if __name__ == "__main__":
 
     # Phase 1 : We init latseq_logs class
     if not args.logname:  # No logfile
-        sys.stderr.write("[ERROR] No log file provided\n")
+        sys.stderr.write("[ERROR] __main__ : No log file provided\n")
         exit(-1)
     if args.logname.split('.')[-1] != "lseq":
-        sys.stderr.write("[ERROR] No LatSeq log file provided (.lseq)\n")
+        sys.stderr.write("[ERROR] __main__ : No LatSeq log file provided (.lseq)\n")
         exit(-1)
     candidate_pickle_file = args.logname.replace('lseq', 'pkl')
     if args.clean:  # clean pickles and others stuff
@@ -1317,22 +1340,22 @@ if __name__ == "__main__":
         with open(candidate_pickle_file, 'rb') as fin:
             try:
                 lseq = pickle.load(fin)
-                sys.stderr.write(f"[INFO] load lseq instance from {candidate_pickle_file}\n")
+                sys.stderr.write(f"[INFO] __main__ : load lseq instance from {candidate_pickle_file}\n")
             except EOFError:
                 raise FileNotFoundError
     except FileNotFoundError:
         try:
-            sys.stderr.write(f"[INFO] create a new lseq instance\n")
+            sys.stderr.write(f"[INFO] __main__ : create a new lseq instance\n")
             lseq = latseq_log(args.logname)  # Build latseq_log object
         except Exception as e:
-            sys.stderr.write(f"[ERROR] {args.logname}, {e}\n")
+            sys.stderr.write(f"[ERROR] __main__ : {args.logname}, {e}\n")
             exit(-1)
     lseq.store_object()
     
     # Phase 2A : case Flask
     if args.flask:
-        sys.stderr.write("[INFO] Run a flask server\n")
-        sys.stderr.write("[ERROR] Flask server not implemented yet")
+        sys.stderr.write("[INFO] __main__ : Run a flask server\n")
+        sys.stderr.write("[ERROR] __main__ : Flask server not implemented yet")
         exit(1)
     # Phase 2B : case run as command line script
     else:
