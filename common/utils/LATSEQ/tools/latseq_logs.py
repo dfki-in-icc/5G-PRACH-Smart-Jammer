@@ -123,7 +123,8 @@ class latseq_log:
         logpath (str): path to the log file
         initialized (bool): become true when __init__ is successfully done
         raw_inputs (:obj:`list` of :obj:`str`): list of lines from logpath file
-        inputs (:obj:`list` of :obj:`str`): list of lines after a first pass
+        raw_infos (:obj:`list` of :obj:`str`): list of lines from logpath
+        inputs (:obj:`list` of :obj:`list`): list of lines after a first pass
             of processing from raw_inputs
                 inputs[i][0] : Timestamp
                 inputs[i][1] : Direction
@@ -132,6 +133,10 @@ class latseq_log:
                 inputs[i][4] : Properties
                 inputs[i][5] : Global identifiers
                 inputs[i][6] : Local identifiers
+        infos (:obj:`list` of :obj:`list`): list of information lines
+                infos[i][0] : Timestamp
+                infos[i][1] : Point
+                infos[i][2] : Properties
         dataids (:obj:`list` of :obj:`str`): list of dataids found in the logs
         points (:obj:`dict` of :obj:`list`): list of points
             points[i] (:obj:`dict`): a point
@@ -172,6 +177,7 @@ class latseq_log:
             raise AssertionError("Error, no logpath provided")
         try:
             self.raw_inputs = list()
+            self.raw_infos = list()
             self._read_log()
         except FileNotFoundError:
             raise FileNotFoundError(f"Error, {logpathP} not found")
@@ -181,6 +187,7 @@ class latseq_log:
             # Filter raw_inputs to fill inputs
             try:
                 self.inputs = list()
+                self.infos = list()
                 self.dataids = list()
                 self._clean_log()
             except Exception:
@@ -231,23 +238,30 @@ class latseq_log:
         Filters : comments, empty lines and malformed lines
         """
         for l in self._read_file().splitlines():
-            if l:  # line is not empty
-                # Match pattern
-                # https://www.tutorialspoint.com/python/python_reg_expressions.htm
-                if re.match(r'#.*$', l, re.M):
-                    continue
-                else:
-                    tmp = l.split(' ')
-                    # TODO : rendre dynamique cette valeur avec
-                    # le format donne par le header
-                    if len(tmp) < 4:
-                        sys.stderr.write(f"[WARNING] {l} is a malformed line\n")
-                        continue
-                    self.raw_inputs.append(tuple([
-                        float(tmp[0]),
-                        0 if tmp[1] == 'D' else 1,
-                        tmp[2],
-                        tmp[3]]))
+            if not l:  # line is not empty
+                continue
+            # Match pattern
+            # https://www.tutorialspoint.com/python/python_reg_expressions.htm
+            if re.match(r'#.*$', l, re.M):
+                continue
+            tmp = l.split(' ')
+            if len(tmp) < 4:
+                sys.stderr.write(f"[WARNING] {l} is a malformed line\n")
+                continue
+            if tmp[1] == 'I':  # information-type line
+                self.raw_infos.append(tuple([
+                    float(tmp[0]),
+                    tmp[2],
+                    tmp[3]
+                ]))
+                continue
+            # TODO : rendre dynamique cette valeur avec
+            # le format donne par le header
+            self.raw_inputs.append(tuple([
+                float(tmp[0]),
+                0 if tmp[1] == 'D' else 1,
+                tmp[2],
+                tmp[3]]))
 
     def _clean_log(self):
         """Clean logs from `raw_inputs` to `inputs`
@@ -268,13 +282,43 @@ class latseq_log:
                 inputs[i][4] : Properties
                 inputs[i][5] : Global identifiers
                 inputs[i][6] : Local identifiers
+            infos (:obj:`list` of :obj:`list`): list of information lines
+                infos[i][0] : Timestamp
+                infos[i][1] : Point
+                infos[i][2] : Properties
         Raises:
             ValueError : Error at parsing a line
         """
+        # patterns dataidO to detect
+        match_ids = re.compile("([a-zA-Z]+)([0-9]+)")
+
+        # First process informations
+        self.raw_infos.sort(key=operator.itemgetter(1, 0))  # sort by point followed timestamp
+        for i in self.raw_infos:
+            # process infomation line
+            try:
+                i_points = tuple(i[1].split('.'))
+                tmp_infos_d = dict()
+                for d in i[2].split('.'):
+                    try:
+                        did = match_ids.match(d).groups()
+                    except Exception:
+                        continue
+                    else:
+                        tmp_infos_d[did[0]] = did[1]
+
+                self.infos.append((
+                    i[0],
+                    i_points,
+                    deepcopy(tmp_infos_d)
+                ))
+                # not other processing needed for infos
+            except Exception:
+                sys.stderr.write(f"[ERROR] at parsing information line {i}\n")
+
         # sort by timestamp. important assumption for the next methods
         self.raw_inputs.sort(key=operator.itemgetter(0))
-        # patterns to detect
-        match_ids = re.compile("([a-zA-Z]+)([0-9]+)")
+
         # match_emptyrnti = re.compile("rnti65535")
         for e in self.raw_inputs:
             # an entry is a timestamp, a direction,
@@ -343,9 +387,10 @@ class latseq_log:
                         e[1],
                         e_points[0],
                         e_points[1],
-                        ptmp,
-                        ctmp,
-                        dtmp))
+                        deepcopy(ptmp),
+                        deepcopy(ctmp),
+                        deepcopy(dtmp)
+                    ))
             except Exception:
                 raise ValueError(f"Error at parsing line {e}")
         self.inputs = make_immutable_list(self.inputs)
@@ -1010,6 +1055,16 @@ class latseq_log:
         except Exception:
             raise ValueError(f"{e} is malformed")
 
+        def yield_out_metadata(self):
+            """Yielder for cleaned meta data sort by points and by timestamp
+            """
+            try:
+                for i in self.infos:
+                    for im in self.infos[2]:
+                        yield f"{epoch_to_datetime(i[0])}\t{i[1]}\t{i[2][im]}"
+            except Exception:
+                raise ValueError(f"{i} is malformed")
+
     def yield_points(self):
         """Yielder for points
         Yields:
@@ -1191,21 +1246,21 @@ if __name__ == "__main__":
         "--out_journeys",
         dest="req_outj",
         action='store_true',
-        help="Request out journeys points in the case of command line script"
+        help="Request out journeys points from log file to stdout"
     )
     parser.add_argument(
         "-j",
         "--journeys",
         dest="req_journeys",
         action='store_true',
-        help="Request journeys in the case of command line script"
+        help="Request journeys from log file to stdout"
     )
     parser.add_argument(
         "-p",
         "--points",
         dest="req_points",
         action='store_true',
-        help="Request points in the case of command line script"
+        help="Request points from log file to stdout"
     )
     parser.add_argument(
         "-r",
@@ -1213,14 +1268,21 @@ if __name__ == "__main__":
         "--routes",
         dest="req_paths",
         action='store_true',
-        help="Request paths in the case of command line script"
+        help="Request paths from log file to stdout"
     )
     parser.add_argument(
         "-m",
+        "--metadata",
+        dest="req_metadata",
+        action="store_true",
+        help="Request metadata from log file to stdout"
+    )
+    parser.add_argument(
+        "-M",
         "--mat",
         dest="req_matrix",
         action='store_true',
-        help="Request matrix of points and journeys",
+        help="Request matrix of points and journeys from log file to stdout",
     )
     parser.add_argument(
         "-x",
@@ -1270,6 +1332,8 @@ if __name__ == "__main__":
     # Phase 2A : case Flask
     if args.flask:
         sys.stderr.write("[INFO] Run a flask server\n")
+        sys.stderr.write("[ERROR] Flask server not implemented yet")
+        exit(1)
     # Phase 2B : case run as command line script
     else:
         # -i, --inputs
@@ -1291,6 +1355,11 @@ if __name__ == "__main__":
         # -r, --routes
         elif args.req_paths:
             write_string_to_stdout(json.dumps(lseq.get_paths()))
+        # -m, --metadata
+        elif args.req_metadata:
+            for m in lseq.yield_out_metadata():
+                write_string_to_stdout(m)
+        # -M, --mat
         elif args.req_matrix:
             for r in lseq.yield_matrix():
                 write_string_to_stdout(r)
