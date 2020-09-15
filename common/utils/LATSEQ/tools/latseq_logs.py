@@ -39,7 +39,9 @@ import statistics
 import numpy
 from copy import deepcopy
 import pickle
-import json
+import simplejson as json
+import decimal
+from tqdm import tqdm
 # import math
 
 #
@@ -49,33 +51,36 @@ import json
 # trick to reduce complexity
 # Asumption : packet spend at maximum DEPTH_TO_SEARCH_PKT measure in the system
 # DEPTH_TO_SEARCH_PKT = 80
-DURATION_TO_SEARCH_PKT = 0.05  # 50ms treshold to complete a journey
+DURATION_TO_SEARCH_PKT = decimal.Decimal(0.002)  # 20ms treshold to complete a journey
 # DEPTH_TO_SEARCH_FORKS = 20
-DURATION_TO_SEARCH_FORKS = 0.002  # 2ms treshold to find segmentation
+DURATION_TO_SEARCH_FORKS = decimal.Decimal(0.005)  # 5ms treshold to find segmentation
 # TODO: limit time to search concatenation: or use the properties like size ?
 # DURATION_TO_SEARCH_CONCA = 0.005  # 5ms to find concatenation
-DURATION_TO_SEARCH_RETX = 0.01  # 10ms : Set according to drx-RetransmissionTimerDL RRC config (3GPP-TS38.321) for MAC and max_seq_num for RLC (3GPP-TS38.322)
+DURATION_TO_SEARCH_RETX = decimal.Decimal(0.01)  # 10ms : Set according to drx-RetransmissionTimerDL RRC config (3GPP-TS38.321) for MAC and max_seq_num for RLC (3GPP-TS38.322)
+
+# decimal.getcontext().prec = 6  # fix precision to 6 (precision of timestamp, then do not be more precise). BE CAREFUL : precision is different to fix place after point
 
 S_TO_MS = 1000
 KWS_BUFFER = ['tx', 'rx', 'retx']  # buffer keywords
-KWS_IN_D = ['ip.in']
+KWS_IN_D = ['ip.in']  # TODO : put in conf file and verify why when add 'ip' it breaks rebuild
 KWS_OUT_D = ['phy.out.proc']
 KWS_IN_U = ['phy.in.proc']
 KWS_OUT_U = ['ip.out']
+VERBOSITY = False  # Verbosity for rebuild phase False by default
 #
 # UTILS
 #
 
 
-def epoch_to_datetime(epoch: float) -> str:
+def epoch_to_datetime(epoch: decimal.Decimal) -> str:
     """Convert an epoch to datetime"""
     return datetime.datetime.fromtimestamp(
-        epoch).strftime('%Y%m%d_%H%M%S.%f')
+        float(epoch)).strftime('%Y%m%d_%H%M%S.%f')
 
 
-def dstamp_to_epoch(dstamptime: str) -> float:
+def dstamp_to_epoch(dstamptime: str) -> decimal.Decimal:
     """Convert a dstamptime to float epoch"""
-    return float(datetime.datetime.strptime(
+    return decimal.Decimal(datetime.datetime.strptime(
         dstamptime, "%Y%m%d_%H%M%S.%f"
     ).timestamp())
 
@@ -250,7 +255,7 @@ class latseq_log:
                 continue
             if tmp[1] == 'I':  # information-type line
                 self.raw_infos.append(tuple([
-                    float(tmp[0]),
+                    decimal.Decimal(tmp[0]),
                     tmp[2],
                     tmp[3]
                 ]))
@@ -258,7 +263,7 @@ class latseq_log:
             # TODO : rendre dynamique cette valeur avec
             # le format donne par le header
             self.raw_inputs.append(tuple([
-                float(tmp[0]),
+                decimal.Decimal(tmp[0]),
                 0 if tmp[1] == 'D' else 1,
                 tmp[2],
                 tmp[3]]))
@@ -518,7 +523,7 @@ class latseq_log:
                     self.paths[dp][p] = make_immutable_list(self.paths[dp][p])
 
     def _build_timestamp(self):
-        """Build `timestamps` a :obj:`list` of float of timestamp
+        """Build `timestamps` a :obj:`list` of Decimal of timestamp
         """
         self.timestamps = list(map(lambda x: x[0], self.raw_inputs))
 
@@ -545,6 +550,8 @@ class latseq_log:
         nb_meas = len(self.inputs)  # number of measure in self.inputs
         info_meas = {}
         list_meas = list(range(nb_meas))  # list of measures not in a journey
+        if VERBOSITY:
+            pbar = tqdm(range(nb_meas), file=sys.__stderr__)
         point_added = {}  # point added
         pointer = 0  # base pointer on the measure in self.inputs for the current journey's input
         local_pointer = 0  # pointer on the current tested measure candidate for the current journey
@@ -642,7 +649,7 @@ class latseq_log:
                     continue
 
                 # Case: Concatenation
-                # Do not list_meas.remove(local_pointerP)
+                # Do not list_meas.remove(local_pointerP) because of segmentations
 
                 # Case: Normal
                 # Here get the first occurence who is matching
@@ -658,7 +665,7 @@ class latseq_log:
 
                 # Case: find a match
                 # list_meas.remove(local_pointerP)
-                sys.stderr.write(f"Add {local_pointerP} to {parent_journey_id}\n")
+                # sys.stderr.write(f"Add {local_pointerP} to {parent_journey_id}\n")
                 if local_pointerP not in point_added:
                     point_added[local_pointerP] = [parent_journey_id]
                 else:
@@ -760,7 +767,7 @@ class latseq_log:
                                 f"{seg_p[2]}--{seg_p[3]}"))
                             self.journeys[segid]['completed'] = False
                             self.journeys[segid]['set_ids'].update(seg_list[p[0]][s])
-                            sys.stderr.write(f"Add {s} to {segid}\n")
+                            # sys.stderr.write(f"Add {s} to {segid}\n")
                             if s not in point_added:
                                 point_added[s] = [segid]
                             else:
@@ -785,6 +792,9 @@ class latseq_log:
             #     print(f"{current_i} / {total_i}")
             # if pointer > 2000:
             #     break
+            if VERBOSITY:
+                pbar.n = pointer
+                pbar.refresh()
             p = self.inputs[pointer]
             # p[0] float : ts
             # p[1] int : direction
@@ -804,9 +814,7 @@ class latseq_log:
 
             # Case: the current measure is not an input measure, continue
             if p[2] not in tmpIn:
-                pointer += 1
-                while pointer not in list_meas and pointer < nb_meas:
-                    pointer += 1
+                pointer = _get_next(list_meas, nb_meas, pointer)
                 continue
 
             # this is a packet in arrival, create a new journey
@@ -859,6 +867,7 @@ class latseq_log:
             #   input point in the list of inputs
             _rec_rebuild(pointer, local_pointer, newid)
             pointer = _get_next(list_meas, nb_meas, pointer)
+
         # Remove all useless journeys dict keys for the next
         tmp_file = self.logpath
         for k in self.journeys:
@@ -867,6 +876,8 @@ class latseq_log:
             self.journeys[k]['file'] = tmp_file
             if isinstance(self.journeys[k]['path'], dict):
                 self.journeys[k]['completed'] = False
+        if VERBOSITY:
+            pbar.close()
         # Store latseq_logs object
         self.store_object()
         # build out_journeys
@@ -878,7 +889,7 @@ class latseq_log:
         Attributes:
             out_journeys (:obj:`list`): the list of measurements like `raw_inputs` but ordered, filtered and with unique identifier (uid) by journey
                 out_journeys[o] : a log line of out_journeys = a log line from input (if input is present in a journey)
-                    out_journeys[o][0] (float): timestamp
+                    out_journeys[o][0] (Decimal): timestamp
                     out_journeys[o][1] (char): direction, U/D
                     out_journeys[o][2] (str): segment
                     out_journeys[o][3] (str): properties
@@ -948,7 +959,11 @@ class latseq_log:
         # Check which points (clean inputs) are not in the completed journeys
         for e in range(nb_meas):
             if e not in points_added:
-                sys.stderr.write(f"[INFO] latseq_log._build_out_journeys() : {e} : {self.inputs[e]} is missing in completed journeys\n")
+                if VERBOSITY:
+                    tmp_str = f"{float(self.inputs[e][0])} "
+                    tmp_str += "D " if self.inputs[e][1] == 0 else "U "
+                    tmp_str += f"{self.inputs[e][2]}--{self.inputs[e][3]}"
+                    sys.stderr.write(f"[INFO] latseq_log._build_out_journeys() : inputs({e}) [{tmp_str}] is missing in completed journeys\n")
                 orphans += 1
         sys.stderr.write(f"[INFO] latseq_log._build_out_journeys() : {orphans} orphans / {nb_meas} measurements\n")
         self.store_object()
@@ -1308,6 +1323,13 @@ if __name__ == "__main__":
         help="Request matrix of points and journeys from log file to stdout",
     )
     parser.add_argument(
+        "-v",
+        "--verbosity",
+        dest="verbosity",
+        action="store_true",
+        help="Verbosity for rebuilding phase especially"
+    )
+    parser.add_argument(
         "-x",
         "--csv",
         dest="req_csv",
@@ -1332,6 +1354,8 @@ if __name__ == "__main__":
     if args.logname.split('.')[-1] != "lseq":
         sys.stderr.write("[ERROR] __main__ : No LatSeq log file provided (.lseq)\n")
         exit(-1)
+    if args.verbosity:
+        VERBOSITY = True
     candidate_pickle_file = args.logname.replace('lseq', 'pkl')
     if args.clean:  # clean pickles and others stuff
         if os.path.exists(candidate_pickle_file):

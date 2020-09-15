@@ -48,19 +48,25 @@ check_latseq_p() {
         P_ERROR=true
         return
     fi
-    # check the format properties:globals:locals
-    if [ $(echo $2 | grep -o ":" | wc -l) -ne 2 ]; then
-        echo -e "\e[31m\e[1m[NB_VAR]\t$1:$2\e[21m :\n\tdata identifer's format should be properties:globals:locals\e[0m";
-        nb_errors=$((nb_errors+1));
-        P_ERROR=true
+    # check for no-information type
+    if grep -voq "I" <<< "$2" ; then
+        # check the format properties:globals:locals
+        if [ "$(grep -o ":" <<< "$2" | wc -l)" -ne 2 ]; then
+            echo -e "\e[31m\e[1m[NB_VAR]\t$1:$2\e[21m :\n\tdata identifer's format should be properties:globals:locals\e[0m";
+            nb_errors=$((nb_errors+1));
+            P_ERROR=true
+        fi
     fi
+
     # check number of argument
-    nbArgsFmt=$(echo $2 | grep -o "%d" | wc -l)
-    nbArgsGiven=$((`echo $2 | tr -dc ',' | wc -c` + 1 - NB_TOKEN_BEFORE_VARARGS))
-    if [ "$nbArgsFmt" -ne "$nbArgsGiven" ]; then
-        echo -e "\e[31m\e[1m[NB_VAR]\t$1:$2\e[21m :\n\tnumber of arguments for format ($nbArgsFmt) and given ($nbArgsGiven) are different\e[0m";
-        nb_errors=$((nb_errors+1));
-        P_ERROR=true
+    if grep -voq "I" <<< "$2" ; then
+        nbArgsFmt=$(echo $2 | grep -o "%d" | wc -l)
+        nbArgsGiven=$((`echo $2 | tr -dc ',' | wc -c` + 1 - NB_TOKEN_BEFORE_VARARGS))
+        if [ "$nbArgsFmt" -ne "$nbArgsGiven" ]; then
+            echo -e "\e[31m\e[1m[NB_VAR]\t$1:$2\e[21m :\n\tnumber of arguments for format ($nbArgsFmt) and given ($nbArgsGiven) are different\e[0m";
+            nb_errors=$((nb_errors+1));
+            P_ERROR=true
+        fi
     fi
     # check the variable length
     #   get the entry length in sources

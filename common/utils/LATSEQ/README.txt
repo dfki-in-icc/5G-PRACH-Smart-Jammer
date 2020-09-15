@@ -2,12 +2,12 @@
 
 ## USAGE
 
-0) Add a new measure point in the code with
+0) Add a new data measure point in the code with
 #include "common/utils/LATSEQ/latseq.h"
 #if LATSEQ
-LATSEQ_P("pdcp--rlc", "pdcp%d.rlc%d", 0, 1);  
+LATSEQ_P("D pdcp--rlc", "pdcp%d.rlc%d", 0, 1);  
 #endif
-where first argument is the name of the point and the seconde argument is a string of data_identifier
+where first argument is the direction, the second the observed segment and the third argument is a string of data_identifier
 1) Compile OAI code with option --enable-latseq (LATSEQ)
 2) Run scanario for Uplink and Downlink
 3) Process lseq traces to yield data do statistics with LatSeq tools
@@ -21,6 +21,9 @@ latseq_t, global structure for latseq embodied the latseq logging info. log_buff
 LATSEQ_P macro calls log_measure(). The idea is to have a low-footprint at logging explains why log_measure() should do a minimal amount of operations.
 
 latseq_log_to_file() is the function run in the logger thread. It writes log_elements in the log file.
+
+LATSEQ_P with direction of D (Downlink) or U (Uplink) observed the passage of a data.
+LATSEQ_P with direction of I (Information) observed a scalar property at a point of code. e.g. buffer occupancy.
 
 === Assumptions
 - All the point and latseq module run on the same machine (to don't have to synchronize clock of different machines)
@@ -108,6 +111,14 @@ Becareful, if journeys has not been rebuilt, then you do not have "duration" att
 {
     ...
 }
+```
+
+"-m" returns metadata of information as list
+```
+20200423_143226.191801  rlc.am.txbuf    occ1:drb1
+20200423_143226.191802  rlc.am.txbuf    occ2:drb1
+...
+20200423_143226.192000  rlc.um.txbuf    occ15:drb2
 ```
 
 "-o" returns a latseq journey file line by line. redirects output to a file to have a *.lseqj
