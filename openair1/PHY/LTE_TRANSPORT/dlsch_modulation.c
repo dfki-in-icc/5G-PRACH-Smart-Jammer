@@ -2248,7 +2248,7 @@ int dlsch_modulation(PHY_VARS_eNB* phy_vars_eNB,
   uint8_t Nl0;  //= dlsch0_harq->Nl;
   uint8_t Nl1;
 #endif
-  RU_t *ru;
+  //RU_t *ru;
 
 
   if ((dlsch0 != NULL) && (dlsch1 != NULL)){
