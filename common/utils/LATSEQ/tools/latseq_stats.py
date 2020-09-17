@@ -26,6 +26,7 @@ import datetime
 import statistics
 import numpy
 import operator  # itemgetter
+import decimal
 # import math
 
 #

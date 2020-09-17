@@ -76,11 +76,11 @@ rlc_tm_send_sdu (
       // Copied from these functions
       // pdcp_get_sequence_number_of_pdu_with_short_sn
       // pdcp_get_sequence_number_of_pdu_with_long_sn
-      uint8_t psn_short = (uint8_t)((unsigned char *)(rlc_pP->output_sdu_in_construction)->data[0]) & 0x7F;
+      uint8_t psn_short = (uint8_t)((unsigned char *)rlc_pP->output_sdu_in_construction->data)[0] & 0x7F;
       uint16_t psn_long = 0x00;
-      psn_long = (uint8_t)((unsigned char *)(rlc_pP->output_sdu_in_construction)->data[0]) & 0x0F;
+      psn_long = (uint8_t)((unsigned char *)rlc_pP->output_sdu_in_construction->data)[0] & 0x0F;
       psn_long <<= 8;
-      psn_long |= (uint8_t)((unsigned char *)(rlc_pP->output_sdu_in_construction)->data[1]) & 0xFF;
+      psn_long |= (uint8_t)((unsigned char *)rlc_pP->output_sdu_in_construction->data)[1] & 0xFF;
       LATSEQ_P("U mac.demux--pdcp.rx","len%d:rnti%d:drb%d.lcid%d.psn%d.psn%d.fm%d", length_in_bytes, ctxt_pP->rnti, rlc_pP->rb_id, rlc_pP->channel_id, psn_short, psn_long, ctxt_pP->frame);
     }
 #endif
@@ -245,7 +245,7 @@ rlc_tm_data_req (
   // Not necessary to detect userplane, because if it is the case
   // then a rebuilding, no user data at input point
   // but input point may belongs to userplane only
-  uint8_t seqnum = (uint8_t)(&sdu_pP->data[1]);
+  uint8_t seqnum = (uint8_t)((unsigned char *)&sdu_pP->data)[1];
   LATSEQ_P("D pdcp.tx--rlc.tx.tm","len%d:rnti%d:drb%d.lcid%d.psn%d.rsdu%d", ((struct rlc_um_data_req *) (sdu_pP->data))->data_size, ctxt_pP->rnti, rlc_p->rb_id, rlc_p->channel_id, seqnum, rlc_p->current_sdu_index);
 #endif
   // not in 3GPP specification but the buffer may be full if not correctly configured

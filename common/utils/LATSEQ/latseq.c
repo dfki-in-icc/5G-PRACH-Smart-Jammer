@@ -28,12 +28,9 @@
 */
 #define _GNU_SOURCE // required for pthread_setname_np()
 #include "latseq.h"
-#include "latseq_extern.h"
 
-#include <pthread.h>
+// #include "assertions.h"
 
-#include "assertions.h"
-#include <openair1/PHY/TOOLS/time_meas.h>
 
 /*----------------------------------------------------------------------------*/
 
@@ -70,7 +67,8 @@ int init_latseq(const char * appname, int debug)
   strftime(time_string, sizeof (time_string), "%d%m%Y_%H%M%S", localtime(&g_latseq.time_zero.tv_sec));
   //g_latseq.filelog_name = "/tmp/ocp-enb.lseq";
   
-  sprintf(&g_latseq.filelog_name, "%s.%s.lseq", appname, time_string);
+  g_latseq.filelog_name = (char *)malloc(MAX_NAME_SIZE);
+  sprintf(g_latseq.filelog_name, "%s.%s.lseq", appname, time_string);
   
   // init registry
   g_latseq.local_log_buffers.read_ith_thread = 0;
@@ -289,7 +287,7 @@ int close_latseq(void)
   //Wait logger finish to write data
   pthread_join(logger_thread, NULL);
   //At this point, data_ids and points should be freed by the logger thread
-  //free((char*) g_latseq.filelog_name);
+  free((char*) g_latseq.filelog_name);
   if (fclose(g_latseq.outstream)){
     fprintf(stderr, "[LATSEQ] error on closing %s\n", g_latseq.filelog_name);
     exit(EXIT_FAILURE);

@@ -26,9 +26,9 @@
 //#include <T.h>
 #include <utils.h>
 #include <LOG/log.h>
-//#include <openair1/PHY/TOOLS/time_meas.h>
+#include <openair1/PHY/TOOLS/time_meas.h>
 
-#include "latseq.h"
+
 /*----------------------------------------------------------------------------*/
 
 /*--- DEFINE -----------------------------------------------------------------*/
@@ -36,6 +36,7 @@
 #define MAX_LOG_SIZE        32
 #define MAX_LOG_OCCUPANCY   24 // Should be < MAX_LOG_OCCUPANCY
 #define MAX_POINT_NAME_SIZE 32
+#define MAX_NAME_SIZE       64
 //#define MAX_LEN_DATA_ID     12 //correspond to name + value. value might be represent with 6 chars
 #define MAX_NB_DATA_ID      16
 #define NB_DATA_IDENTIFIERS 10 // to update according to distinct data identifier used in point
@@ -98,7 +99,7 @@ typedef struct latseq_registry_t {
 typedef struct latseq_t {
   int                 is_running; //1 is running, 0 not running
   int                 is_debug; //1 debug, 0 prod
-  char        	      filelog_name[64];
+  char *              filelog_name;
   FILE *              outstream; //Output descriptor
   struct timeval      time_zero; // time zero
   uint64_t            rdtsc_zero; //rdtsc zero

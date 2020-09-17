@@ -672,7 +672,7 @@ rlc_um_data_req (const protocol_ctxt_t *const ctxt_pP, void *rlc_pP, mem_block_t
   RLC_UM_MUTEX_LOCK(&rlc_p->lock_input_sdus, ctxt_pP, rlc_p);
   rlc_p->buffer_occupancy += ((struct rlc_um_tx_sdu_management *) (sdu_pP->data))->sdu_size;
 #if LATSEQ
-    LATSEQ_P("I rlc.um.txbuf","occ%d:drb%d", rlc_p->buffer_occupancy, l_rlc_p->rb_id);
+    LATSEQ_P("I rlc.um.txbuf","occ%d:drb%d", rlc_p->buffer_occupancy, rlc_p->rb_id);
 #endif
   list_add_tail_eurecom(sdu_pP, &rlc_p->input_sdus);
   RLC_UM_MUTEX_UNLOCK(&rlc_p->lock_input_sdus);

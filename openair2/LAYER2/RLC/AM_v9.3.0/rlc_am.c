@@ -1094,7 +1094,7 @@ rlc_am_data_req (
     //l_rlc_p->input_sdus[l_rlc_p->next_sdu_index].li_index_for_discard = -1;
     l_rlc_p->next_sdu_index = (l_rlc_p->next_sdu_index + 1) % RLC_AM_SDU_CONTROL_BUFFER_SIZE;
 #if LATSEQ
-    LATSEQ_P("I rlc.am.txbuf","occ%d:drb%d", status_buffer_occupancy(ctxt_pP, l_rlc_p), l_rlc_p->rb_id);
+    LATSEQ_P("I rlc.am.txbuf","occ%d:drb%d", l_rlc_p->sdu_buffer_occupancy, l_rlc_p->rb_id);
 #endif
 
     if (l_rlc_p->channel_id <3) {
