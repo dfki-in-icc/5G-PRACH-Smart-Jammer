@@ -172,7 +172,13 @@ class latseq_log:
                     journeys[i]['set'][s][2] (string): segment
                 journeys[i]['set_ids'] (:obj:`list`): the last measurement point identifier added
                 journeys[i]['path'] (int): the path id according to self.paths
-        out_journeys (:obj:`list`): the list of measurement point like `raw_inputs` but ordered, filtered and with unique identifier (uid) by journey
+        out_journeys (:obj:`list`): the list of measurements like `raw_inputs` but ordered, filtered and with unique identifier (uid) by journey
+            out_journeys[o] : a log line of out_journeys = a log line from input (if input is present in a journey)
+                out_journeys[o][0] (Decimal): timestamp
+                out_journeys[o][1] (char): direction, U/D
+                out_journeys[o][2] (str): segment
+                out_journeys[o][3] (str): properties
+                out_journeys[o][4] (str): data identifier with journey id(s) associated to this measurement
     """
     def __init__(self, logpathP: str):
         self.logpath = logpathP
@@ -924,7 +930,7 @@ class latseq_log:
                 if e[0] not in added_out_j:  # create a new entry for this point in out journeys
                     added_out_j[e[0]] = len(self.out_journeys)
                     tmp_uid = self.journeys[j]['set_ids']['uid']
-                    tmp_str = f"uid{tmp_uid}.{dict_ids_to_str(self.journeys[j]['glob'])}.{dict_ids_to_str(e_tmp[6])}"
+                    tmp_str = f"uid{tmp_uid}:{dict_ids_to_str(self.journeys[j]['glob'])}.{dict_ids_to_str(e_tmp[6])}"
                     # have segment corresponding to journey's path
                     src_point_s = e_tmp[2]
                     while src_point_s not in self.paths[self.journeys[j]['dir']][self.journeys[j]['path']]:
@@ -1082,7 +1088,10 @@ class latseq_log:
         try:
             yield _build_header()
             for e in self.out_journeys:
-                yield f"{epoch_to_datetime(e[0])} {e[1]} (len{e[3]['len']})\t{e[2]}\t{e[4]}"
+                try:
+                    yield f"{epoch_to_datetime(e[0])} {e[1]} ({e[3]['len']})\t{e[2]}\t{e[4]}"
+                except KeyError:
+                    yield f"{epoch_to_datetime(e[0])} {e[1]} \t{e[2]}\t{e[4]}"
         except Exception:
             raise ValueError(f"{e} is malformed")
 

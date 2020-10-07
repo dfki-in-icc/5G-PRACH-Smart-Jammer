@@ -233,6 +233,7 @@ void latseq_log_to_file(void)
 
   while (!oai_exit) { // run until oai is stopped
     if (!g_latseq.is_running) { break; } //running flag is at 0, not running
+    usleep(1);
     //If no thread registered, continue and wait
     if (reg->nb_th == 0) { continue; }
     //Select a thread to read with read_ith_thread. 
@@ -247,9 +248,10 @@ void latseq_log_to_file(void)
     if (reg->tls[reg->read_ith_thread]->i_write_head == reg->i_read_heads[reg->read_ith_thread]) { continue; }
 
     //If max occupancy reached for a local buffer
-    if (OCCUPANCY(reg->tls[reg->read_ith_thread]->i_write_head, reg->i_read_heads[reg->read_ith_thread]) > MAX_LOG_OCCUPANCY) {
-      //if (g_latseq.is_debug)
-      //  fprintf(stderr, "[LATSEQ] log buffer [%d] max occupancy reached\n", reg->read_ith_thread);
+    if (g_latseq.is_debug) {
+      if (OCCUPANCY(reg->tls[reg->read_ith_thread]->i_write_head, reg->i_read_heads[reg->read_ith_thread]) > MAX_LOG_OCCUPANCY) {
+        fprintf(stderr, "[LATSEQ] log buffer [%d] max occupancy reached\n", reg->read_ith_thread);
+      }
     }
 
     //Write pointed entry into log file
