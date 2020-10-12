@@ -142,6 +142,7 @@ class latseq_log:
                 infos[i][0] : Timestamp
                 infos[i][1] : Point
                 infos[i][2] : Properties
+                infos[i][3] : Context identifiers
         dataids (:obj:`list` of :obj:`str`): list of dataids found in the logs
         points (:obj:`dict` of :obj:`list`): list of points
             points[i] (:obj:`dict`): a point
@@ -297,6 +298,7 @@ class latseq_log:
                 infos[i][0] : Timestamp
                 infos[i][1] : Point
                 infos[i][2] : Properties
+                infos[i][3] : Context identifiers
         Raises:
             ValueError : Error at parsing a line
         """
@@ -327,6 +329,7 @@ class latseq_log:
                             continue
                         else:
                             tmp_ctxt_d[dic[0]] = dic[1]
+                    # TODO : A problem here, tmp_infos_d == tmp_ctxt_d at yielding
                     self.infos.append((
                         i[0],
                         i_points,
@@ -1095,22 +1098,22 @@ class latseq_log:
         except Exception:
             raise ValueError(f"{e} is malformed")
 
-        def yield_out_metadata(self):
-            """Yielder for cleaned meta data sort by points and by timestamp
-            """
-            try:
-                for i in self.infos:  # for all informations
-                    for im in i[2]:  # for all individual information in i (one line in trace can generate multiple line in output)
-                        if len(i) == 4:  # ctxt identifier
-                            tmp_ctxt_l = []
-                            for c in i[3]:
-                                tmp_ctxt_l.append(f"{c}{i[3][c]}")
-                            tmp_ctxt_s = ".".join(tmp_ctxt_l)
-                            yield f"{epoch_to_datetime(i[0])}\t{i[1]}\t{i[2][im]}:{tmp_ctxt_s}"
-                        else:
-                            yield f"{epoch_to_datetime(i[0])}\t{i[1]}\t{i[2][im]}"
-            except Exception:
-                raise ValueError(f"{i} is malformed")
+    def yield_out_metadata(self):
+        """Yielder for cleaned meta data sort by points and by timestamp
+        """
+        try:
+            for i in self.infos:  # for all informations
+                tmp_ctxt_s = ""
+                # TODO : set to 4 when infos construct fixed
+                if len(i) == 0: # ctxt identifier
+                    tmp_ctxt_l = []
+                    for c in i[3]:
+                        tmp_ctxt_l.append(f"{c}{i[3][c]}")
+                    tmp_ctxt_s = ".".join(tmp_ctxt_l)
+                for im in i[2]:  # for all individual information in i (one line in trace can generate multiple line in output)
+                        yield f"{i[0]}\t{'.'.join(i[1])}{tmp_ctxt_s}.{im}\t{i[2][im]}"
+        except Exception:
+            raise ValueError(f"{i} is malformed")
 
     def yield_points(self):
         """Yielder for points
