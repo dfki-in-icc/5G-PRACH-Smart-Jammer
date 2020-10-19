@@ -7,13 +7,6 @@
 #include "latseq.h"
 //#endif
 
-int debug_enabled;
-#ifdef LATSEQ_DEBUG
-  debug_enabled = 1;
-#else
-  debug_enabled = 0;
-#endif
-
 double cpuf;
 const char * test_log = "test";
 
@@ -35,7 +28,7 @@ int test_init_and_close()
 {
   oai_exit = 0;
   printf("[TEST] %s\n",__func__);
-  if(!init_latseq(test_log, debug_enabled)) {
+  if(!init_latseq(test_log)) {
     printf("[ERROR] : init_latseq()\n");
     exit(EXIT_FAILURE);
   }
@@ -52,13 +45,21 @@ int test_full()
 {
   oai_exit = 0;
   printf("[TEST] %s\n",__func__);
-  if(!init_latseq(test_log, debug_enabled)) {
+  if(!init_latseq(test_log)) {
     printf("[ERROR] : init_latseq()\n");
     exit(EXIT_FAILURE);
   }
-  LATSEQ_P("full3 D", "ip%d", 0);
-  sleep(1);
-  LATSEQ_P("full2 D", "ip%d.mac%d", 0, 1);
+  //int num = 1000000;
+  int num = 1;
+  int i;
+  for (i=0; i < num; i++){
+    LATSEQ_P("full3 D", "ip%d", 0);
+    //sleep(1);
+    usleep(1);
+    LATSEQ_P("full2 D", "ip%d.mac%d", 0, 1);
+  }
+  printf("sizeof latseq_element : %ld\n", sizeof(struct latseq_element_t));
+  oai_exit = 1;
   if(!close_latseq()) {
     printf("[ERROR] : close_latseq()\n");
     exit(EXIT_FAILURE);
@@ -69,7 +70,7 @@ int test_full()
 void thread_test1(void)
 {
   pthread_t thId = pthread_self();
-  printf("[TEST] [%d] thread started\n");
+  printf("[TEST] [%ld] thread started\n", thId);
   int i = 0;
   while(!oai_exit) {
     if (!i) {
@@ -86,7 +87,7 @@ void thread_test1(void)
 void thread_test2(void)
 {
   pthread_t thId = pthread_self();
-  printf("[TEST] [%d] thread started\n");
+  printf("[TEST] [%ld] thread started\n", thId);
   int i = 0;
   while(!oai_exit) {
     if (!i) {
@@ -99,6 +100,7 @@ void thread_test2(void)
       continue;
     }
   }
+  printf("[TEST] [%ld] thread stopped\n", thId);
   pthread_exit(NULL);
 }
 
@@ -106,7 +108,7 @@ int test_multithread()
 {
   oai_exit = 0;
   printf("[TEST] %s\n",__func__);
-  if(!init_latseq(test_log, debug_enabled)) {
+  if(!init_latseq(test_log)) {
     printf("[ERROR] : init_latseq()\n");
     exit(EXIT_FAILURE);
   }
@@ -126,11 +128,13 @@ int test_multithread()
   return 0;
 }
 
+// Repeat experiment 3 times for i in {1..3}; do ./test_latseq m | awk '{print $6}' | sed -r '/^\s*$/d' >> measurement_res.txt; done
+
 int measure_log_measure()
 {
   oai_exit = 0;
   printf("[TEST] %s\n",__func__);
-  if(!init_latseq(test_log, debug_enabled)) {
+  if(!init_latseq(test_log)) {
     printf("[ERROR] : init_latseq()\n");
     exit(EXIT_FAILURE);
   }
@@ -138,10 +142,14 @@ int measure_log_measure()
   struct timeval begin, end;
   gettimeofday(&begin, NULL);
 #endif
-  const uint32_t num_call = 10000000;
+  const uint32_t num_call = 1000000;
   for (int i = 0; i < num_call; i++)
   {
-    LATSEQ_P("meas", "call.%d", i);
+    //LATSEQ_P("meas", "call.%d.%d.%d.%d.%d.%d.%d.%d.%d.%d", i,i,i,i,i,i,i,i,i,i);
+    LATSEQ_P("meas", "call.%d.%d.%d.%d.%d.%d.%d", i,i,i,i,i,i,i);
+    //LATSEQ_P("meas", "call.%d.%d.%d.%d.%d", i,i,i,i,i);
+    //LATSEQ_P("meas", "call.%d", i);
+    //usleep(1);
   }
 
 #ifdef TEST_LATSEQ
@@ -165,7 +173,7 @@ int measure_log_n()
 {
   oai_exit = 0;
   printf("[TEST] %s\n",__func__);
-  if(!init_latseq(test_log, debug_enabled)) {
+  if(!init_latseq(test_log)) {
     printf("[ERROR] : init_latseq()\n");
     exit(EXIT_FAILURE);
   }
@@ -246,7 +254,7 @@ int measure_log_n()
 void test_writer(FILE * f, char * tmps, int i)
 {
   sprintf(tmps, "a%d.b%d", i, i+1);
-  fprintf(f, "%ld.%06ld %s %s\n", 1, 234567, "D write", tmps);
+  fprintf(f, "%d.%06d %s %s\n", 1, 234567, "D write", tmps);
 }
 
 /*
@@ -265,7 +273,7 @@ int measure_writer()
   //write header
   char hdr[] = "# LatSeq format\n# By Alexandre Ferrieux and Flavien Ronteix Jacquet\n# timestamp\tU/D\tsrc--dest\tdataId\n#funcId ip.entry sdap.mapping sdap.header pdcp.txbuf pdcp.rohc pdcp.intcipher pdcp.header pdcp.routing rlc.am.txbuf rlc.am.seg rlc.am.header rlc.am.retbuf mac.mux mac.harq.[0-7] phy.crc phy.cbseg phy.msc phy.mod phy.map phy.ant\n";
   fwrite(hdr, sizeof(char), sizeof(hdr) - 1, fout);
-  const int num_call = 10000000;
+  const int num_call = 1000000;
   char * tmps;
   tmps = calloc(2*10, sizeof(char));
 
@@ -279,7 +287,7 @@ int measure_writer()
 #ifdef TEST_LATSEQ
   gettimeofday(&end, NULL);
   printf("[LATSEQ] measure_write took : "); //at 23-03, 32.8ns
-  printf("(%d) writes : %.1ld ns\n", num_call, (end.tv_usec - begin.tv_usec)/num_call);
+  printf("%d writes : %.1ld us\n", num_call, (end.tv_usec - begin.tv_usec));
 #endif
   fclose(fout);
   free(tmps);
@@ -290,7 +298,7 @@ int measure_writer()
 int main (int argc, char **argv) 
 {
   #ifdef LATSEQ
-    printf("Call Latseq...\n");
+    printf("[TEST] #ifdef LATSEQ\n");
   #endif
   if (argc != 2) {
     print_usage();
