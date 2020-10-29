@@ -539,9 +539,6 @@ int main ( int argc, char **argv )
   T_Config_Init();
 #endif
 
-//#if LATSEQ
-    init_latseq("/tmp/lte_softmodem", 1);
-//#endif
   //randominit (0);
   set_taus_seed (0);
   printf("configuring for RAU/RRU\n");
@@ -551,6 +548,9 @@ int main ( int argc, char **argv )
   }
 
   cpuf=get_cpu_freq_GHz();
+#if LATSEQ
+    init_latseq("/tmp/lte_softmodem", cpuf);
+#endif
   printf("ITTI init, useMME: %i\n",EPC_MODE_ENABLED);
   itti_init(TASK_MAX, THREAD_MAX, MESSAGES_ID_MAX, tasks_info, messages_info);
   // allows to forward in wireshark L2 protocol for decoding

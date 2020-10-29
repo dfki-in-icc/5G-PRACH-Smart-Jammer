@@ -24,6 +24,7 @@
 #endif
 #include <pthread.h>
 #include <utils.h>
+// #include <openair1/PHY/TOOLS/time_meas.h> // needed if LatSeq used in OAI. import get_cpu_freq_GHz()
 
 /*--- DEFINE -----------------------------------------------------------------*/
 
@@ -87,6 +88,7 @@ typedef struct latseq_t {
   FILE *              outstream; //Output descriptor
   struct timeval      time_zero; // time zero
   uint64_t            rdtsc_zero; //rdtsc zero
+  double              cpu_freq; //cpu frequency
   latseq_registry_t   local_log_buffers; //Register of thread-specific buffers
   latseq_stats_t      stats; // stats of latseq instance
 } latseq_t;
@@ -100,14 +102,16 @@ extern __thread latseq_thread_data_t tls_latseq;
 /** \fn int init_latseq(const char * appname);
  * \brief init latency sequences module.
  * \param appname app's name. The output file is appname.date_hour.lseq
- * \return 0 if error 1 otherwise
+ * \param cpufreq. cpu frequency in GHz.
+ * \return -1 if error 1 otherwise
 */
-int init_latseq(const char * appname);
+int init_latseq(const char * appname, double cpufreq);
 
 /** \fn init_logger_to_mem(void);
  * \brief init thread logger
+ * \return -1 if error 1 otherwise
 */
-void init_logger_latseq(void);
+int init_logger_latseq(void);
 
 /** \fn init_thread_for_latseq(void);
  * \brief init tls_latseq for local oai thread
@@ -115,21 +119,21 @@ void init_logger_latseq(void);
 */
 int init_thread_for_latseq(void);
 
-/** \fn rdtsc(void);
+/** \fn l_rdtsc(void);
  * \brief rdtsc wrapper
  * \return time
 */
-static __inline__ uint64_t rdtsc(void) {
+static __inline__ uint64_t l_rdtsc(void) {
   uint32_t a, d;
   __asm__ volatile ("rdtsc" : "=a" (a), "=d" (d));
   return (((uint64_t)d)<<32) | ((uint64_t)a);
 }
 
-/** \fn get_cpu_freq_MHz(void);
+/** \fn get_cpu_freq_kHz(void);
  * \brief Compute CPU clock in a 1 second experiment
- * \return CPU clock in MHz
+ * \return CPU clock in kHz
 */
-double get_cpu_freq_MHz(void);
+uint64_t get_cpu_freq_kHz(void);
 
 /*--- MEASUREMENTS -----------------------------------------------------------*/
 /** \fn void log_measure(const char * point, const char *identifier);
@@ -151,7 +155,7 @@ static __inline__ void log_measure1(const char * point, const char *fmt, uint32_
   //get reference on new element
   latseq_element_t * e = &tls_latseq.log_buffer[tls_latseq.i_write_head%RING_BUFFER_SIZE];
   //Log time
-  e->ts = rdtsc();
+  e->ts = l_rdtsc();
   //Log point name
   //strcpy(e->point, point);
   e->point = point;
@@ -176,7 +180,7 @@ static __inline__ void log_measure2(const char * point, const char *fmt, uint32_
     }
   }
   latseq_element_t * e = &tls_latseq.log_buffer[tls_latseq.i_write_head%RING_BUFFER_SIZE];
-  e->ts = rdtsc();
+  e->ts = l_rdtsc();
   e->point = point;
   e->format = fmt;
   e->len_id = 2;
@@ -194,7 +198,7 @@ static __inline__ void log_measure3(const char * point, const char *fmt, uint32_
     }
   }
   latseq_element_t * e = &tls_latseq.log_buffer[tls_latseq.i_write_head%RING_BUFFER_SIZE];
-  e->ts = rdtsc();
+  e->ts = l_rdtsc();
   e->point = point;
   e->format = fmt;
   e->len_id = 3;
@@ -213,7 +217,7 @@ static __inline__ void log_measure4(const char * point, const char *fmt, uint32_
     }
   }
   latseq_element_t * e = &tls_latseq.log_buffer[tls_latseq.i_write_head%RING_BUFFER_SIZE];
-  e->ts = rdtsc();
+  e->ts = l_rdtsc();
   e->point = point;
   e->format = fmt;
   e->len_id = 4;
@@ -233,7 +237,7 @@ static __inline__ void log_measure5(const char * point, const char *fmt, uint32_
     }
   }
   latseq_element_t * e = &tls_latseq.log_buffer[tls_latseq.i_write_head%RING_BUFFER_SIZE];
-  e->ts = rdtsc();
+  e->ts = l_rdtsc();
   e->point = point;
   e->format = fmt;
   e->len_id = 5;
@@ -254,7 +258,7 @@ static __inline__ void log_measure6(const char * point, const char *fmt, uint32_
     }
   }
   latseq_element_t * e = &tls_latseq.log_buffer[tls_latseq.i_write_head%RING_BUFFER_SIZE];
-  e->ts = rdtsc();
+  e->ts = l_rdtsc();
   e->point = point;
   e->format = fmt;
   e->len_id = 6;
@@ -277,7 +281,7 @@ static __inline__ void log_measure7(const char * point, const char *fmt, uint32_
     }
   }
   latseq_element_t * e = &tls_latseq.log_buffer[tls_latseq.i_write_head%RING_BUFFER_SIZE];
-  e->ts = rdtsc();
+  e->ts = l_rdtsc();
   e->point = point;
   e->format = fmt;
   e->len_id = 7;
@@ -301,7 +305,7 @@ static __inline__ void log_measure8(const char * point, const char *fmt, uint32_
     }
   }
   latseq_element_t * e = &tls_latseq.log_buffer[tls_latseq.i_write_head%RING_BUFFER_SIZE];
-  e->ts = rdtsc();
+  e->ts = l_rdtsc();
   e->point = point;
   e->format = fmt;
   e->len_id = 8;
@@ -326,7 +330,7 @@ static __inline__ void log_measure9(const char * point, const char *fmt, uint32_
     }
   }
   latseq_element_t * e = &tls_latseq.log_buffer[tls_latseq.i_write_head%RING_BUFFER_SIZE];
-  e->ts = rdtsc();
+  e->ts = l_rdtsc();
   e->point = point;
   e->format = fmt;
   e->len_id = 9;
@@ -352,7 +356,7 @@ static __inline__ void log_measure10(const char * point, const char *fmt, uint32
     }
   }
   latseq_element_t * e = &tls_latseq.log_buffer[tls_latseq.i_write_head%RING_BUFFER_SIZE];
-  e->ts = rdtsc();
+  e->ts = l_rdtsc();
   e->point = point;
   e->format = fmt;
   e->len_id = 10;

@@ -722,9 +722,9 @@ void ocp_tx_rf(RU_t *ru, L1_rxtx_proc_t *proc) {
     sf_extension = (sf_extension)&0xfffffffc;
 #endif
 
-#if LATSEQ
-    //LATSEQ_P("D phy.out.proc--phy.out.ant","len%d::fm%d.subfm%d",siglen, proc->frame_tx, proc->subframe_tx);
-#endif
+//#if LATSEQ
+//    LATSEQ_P("D phy.out.proc--phy.out.ant","len%d::fm%d.subfm%d",siglen, proc->frame_tx, proc->subframe_tx);
+//#endif
 
 
     for (i=0; i<ru->nb_tx; i++)
@@ -1154,14 +1154,13 @@ int main ( int argc, char **argv ) {
 #if T_TRACER
   T_Config_Init();
 #endif
-#if LATSEQ
-  init_latseq("/tmp/main_ocp", 0);
-#endif
   configure_linux();
   set_softmodem_sighandler();
   cpuf=get_cpu_freq_GHz();
   set_taus_seed (0);
-
+#if LATSEQ
+  init_latseq("/tmp/main_ocp", cpuf);
+#endif
   if (opp_enabled ==1)
     reset_opp_meas();
 

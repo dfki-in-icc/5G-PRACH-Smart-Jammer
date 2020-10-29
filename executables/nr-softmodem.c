@@ -832,9 +832,6 @@ int main( int argc, char **argv )
 #if T_TRACER
   T_Config_Init();
 #endif
-#if LATSEQ
-  init_latseq("/tmp/nr_softmodem", 1);
-#endif
   //randominit (0);
   set_taus_seed (0);
   printf("configuring for RAU/RRU\n");
@@ -844,6 +841,9 @@ int main( int argc, char **argv )
   }
 
   cpuf=get_cpu_freq_GHz();
+#if LATSEQ
+  init_latseq("/tmp/nr_softmodem", cpuf);
+#endif
   itti_init(TASK_MAX, THREAD_MAX, MESSAGES_ID_MAX, tasks_info, messages_info);
   // initialize mscgen log after ITTI
   MSC_INIT(MSC_E_UTRAN, THREAD_MAX+TASK_MAX);

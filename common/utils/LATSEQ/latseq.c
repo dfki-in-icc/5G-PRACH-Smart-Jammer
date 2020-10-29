@@ -41,26 +41,26 @@ extern volatile int oai_exit; //oai is ended. Close latseq
 
 /*--- UTILS FUNCTIONS --------------------------------------------------------*/
 
-double get_cpu_freq_MHz(void)
+uint64_t get_cpu_freq_kHz(void)
 {
-  uint64_t ts = 0;
-  ts = rdtsc();
+  uint64_t ts = l_rdtsc();
   sleep(1);
-  uint64_t diff = (rdtsc() - ts);
-  return (double)diff/1000000;
+  return (l_rdtsc() - ts);
 }
 
 /*--- MAIN THREAD FUNCTIONS --------------------------------------------------*/
 
-int init_latseq(const char * appname)
+int init_latseq(const char * appname, double cpufreq)
 { 
   // init members
   g_latseq.is_running = 0;
   //synchronise time and rdtsc
   gettimeofday(&g_latseq.time_zero, NULL);
-  g_latseq.rdtsc_zero = rdtsc(); //check at compile time that constant_tsc is enabled in /proc/cpuinfo
-  if (cpuf == 0) {
-    cpuf = get_cpu_freq_MHz();
+  g_latseq.rdtsc_zero = l_rdtsc(); //check at compile time that constant_tsc is enabled in /proc/cpuinfo
+  if (cpufreq == 0) {
+    g_latseq.cpu_freq = get_cpu_freq_kHz();
+  } else {
+    g_latseq.cpu_freq = cpufreq;
   }
 
   char time_string[16];
@@ -82,12 +82,11 @@ int init_latseq(const char * appname)
   
   // init logger thread
   g_latseq.is_running = 1;
-  init_logger_latseq();
-
-  return g_latseq.is_running;
+  
+  return init_logger_latseq();
 }
 
-void init_logger_latseq(void)
+int init_logger_latseq(void)
 {
   // init thread to write buffer to file
   if(pthread_create(&logger_thread, NULL, (void *) &latseq_log_to_file, NULL) > 0) {
@@ -118,8 +117,6 @@ int close_latseq(void)
     fprintf(stderr, "[LATSEQ] error on closing %s\n", g_latseq.filelog_name);
     exit(EXIT_FAILURE);
   }
-  if (g_latseq.is_debug)
-    latseq_print_stats();
   return 1;
 }
 
@@ -130,13 +127,14 @@ int init_thread_for_latseq(void)
 
   //Init tls_latseq for local thread
   tls_latseq.i_write_head = 0; //local thread tls_latseq
-  memset(tls_latseq.log_buffer, 0, sizeof(tls_latseq.log_buffer));
+  //memset(tls_latseq.log_buffer, 0, sizeof(tls_latseq.log_buffer));
 
   //Register thread in the registry
   latseq_registry_t * reg = &g_latseq.local_log_buffers;
   //Check if space left in registry
   if (reg->nb_th >= MAX_NB_THREAD) {
     g_latseq.is_running = 0;
+    fprintf(g_latseq.outstream, "Max instrumented thread MAX_NB_THREAD reached\n");
     return -1;
   }
   reg->tls[reg->nb_th] = &tls_latseq;
@@ -164,7 +162,7 @@ static int write_latseq_entry(void)
   //Convert latseq_element to a string
   tmps = calloc(LATSEQ_MAX_STR_SIZE, sizeof(char));
   //Compute time
-  uint64_t tdiff = (uint64_t)(((double)(e->ts - g_latseq.rdtsc_zero))/cpuf);
+  uint64_t tdiff = (uint64_t)((e->ts - g_latseq.rdtsc_zero)/(g_latseq.cpu_freq*1000));
   uint64_t tf = ((uint64_t)(g_latseq.time_zero.tv_sec)*1000000L + (uint64_t)(g_latseq.time_zero.tv_usec)) + tdiff;
   struct timeval etv = {
     (time_t) ((tf - (tf%1000000L))/1000000L),
