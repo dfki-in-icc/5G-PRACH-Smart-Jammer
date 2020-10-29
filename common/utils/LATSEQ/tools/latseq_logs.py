@@ -24,8 +24,9 @@ TODO
     * find ALL in and out points (dynamically). Should I do ?
     * APIify with flask to be called easily by the others modules
         https://programminghistorian.org/en/lessons/creating-apis-with-python-and-flask#creating-a-basic-flask-application
-    * Rebuild_packet with multithreading because the algorithmc complexity is huge...
-    * https://docs.python.org/3.6/tutorial/floatingpoint.html
+    * Rebuild_packet with multithreading...
+    * Uniformize output to julia processing
+    * Alex Algorithm container
 
 """
 
@@ -48,12 +49,11 @@ from tqdm import tqdm
 # GLOBALS
 #
 
-# trick to reduce complexity
-# Asumption : packet spend at maximum DEPTH_TO_SEARCH_PKT measure in the system
-# DEPTH_TO_SEARCH_PKT = 80
-DURATION_TO_SEARCH_PKT = decimal.Decimal(0.002)  # 20ms treshold to complete a journey
-# DEPTH_TO_SEARCH_FORKS = 20
-DURATION_TO_SEARCH_FORKS = decimal.Decimal(0.005)  # 5ms treshold to find segmentation
+# Reducing search space
+# 20ms treshold to complete a journey
+DURATION_TO_SEARCH_PKT = decimal.Decimal(0.002)  
+# 5ms treshold to find segmentation
+DURATION_TO_SEARCH_FORKS = decimal.Decimal(0.005)
 # TODO: limit time to search concatenation: or use the properties like size ?
 # DURATION_TO_SEARCH_CONCA = 0.005  # 5ms to find concatenation
 DURATION_TO_SEARCH_RETX = decimal.Decimal(0.01)  # 10ms : Set according to drx-RetransmissionTimerDL RRC config (3GPP-TS38.321) for MAC and max_seq_num for RLC (3GPP-TS38.322)
@@ -62,7 +62,7 @@ DURATION_TO_SEARCH_RETX = decimal.Decimal(0.01)  # 10ms : Set according to drx-R
 
 S_TO_MS = 1000
 KWS_BUFFER = ['tx', 'rx', 'retx']  # buffer keywords
-KWS_IN_D = ['ip.in']  # TODO : put in conf file and verify why when add 'ip' it breaks rebuild
+KWS_IN_D = ['pdcp.in']  # TODO : put in conf file and verify why when add 'ip' it breaks rebuild
 KWS_OUT_D = ['phy.out.proc']
 KWS_IN_U = ['phy.in.proc']
 KWS_OUT_U = ['ip.out']
@@ -1275,7 +1275,7 @@ if __name__ == "__main__":
         "--flask",
         dest="flask",
         action='store_true',
-        help="[DEPRECTADED] Run parser as flask service"
+        help="[DEPRECATED] Run parser as flask service"
     )
     parser.add_argument(
         "-C",
