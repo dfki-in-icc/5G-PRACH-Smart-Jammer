@@ -213,7 +213,7 @@ int test_main(void)
                                   successful_delivery_enb, NULL,
                                   max_retx_reached_enb, NULL,
                                   test[pos+3], test[pos+4], test[pos+5],
-                                  test[pos+6], test[pos+7], test[pos+8],0);
+                                  test[pos+6], test[pos+7], test[pos+8],0,0);
           pos += 9;
           break;
         case UE_AM:
@@ -222,7 +222,7 @@ int test_main(void)
                                  successful_delivery_ue, NULL,
                                  max_retx_reached_ue, NULL,
                                  test[pos+3], test[pos+4], test[pos+5],
-                                 test[pos+6], test[pos+7], test[pos+8],0);
+                                 test[pos+6], test[pos+7], test[pos+8],0,0);
           pos += 9;
           break;
         case ENB_UM:

@@ -570,7 +570,6 @@ nwGtpv1uProcessGpdu( NwGtpv1uStackT *thiz,
         " G-PDU ltid %u size %u",
         tunnelEndPointKey.teid,
         gpduLen);
-
       rc = nwGtpSessionSendMsgApiToUlpEntity(pTunnelEndPoint, pMsg);
     }
   } else {

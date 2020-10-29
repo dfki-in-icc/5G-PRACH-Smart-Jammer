@@ -670,8 +670,8 @@ void phy_procedures_eNB_TX(PHY_VARS_eNB *eNB,
 
 #if LATSEQ
 //dci is always 1
-        if(dlsch0->rnti != 65535)  // Corresponds to a broadcast rnti
-          LATSEQ_P("D mac.txreq--phy.out.proc","len%d:rnti%d:ue%d.harq%d.fm%d.subfm%d", dlsch0->harq_processes[harq_pid]->TBS/8,dlsch0->rnti, UE_id, harq_pid, frame, subframe);
+        if(dlsch0->rnti != 0xFFFF)  // Corresponds to a broadcast rnti
+          LATSEQ_P("D mac.harq--phy.out.proc","len%d:rnti%d:harq%d.fm%d.subfm%d", dlsch0->harq_processes[harq_pid]->TBS/8,dlsch0->rnti, harq_pid, frame, subframe);
 #endif
 
         if (dlsch_procedures(eNB,

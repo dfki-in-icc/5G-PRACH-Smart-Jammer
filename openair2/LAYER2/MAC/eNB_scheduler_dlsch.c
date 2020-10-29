@@ -1178,9 +1178,6 @@ schedule_ue_spec(module_id_t module_idP,
                                 cc[CC_id].p_eNB == 1 ? 1 : 2, // transmission mode
                                 0,  //number of PRBs treated as one subband, not used here
                                 0); // number of beamforming vectors, not used here
-#if LATSEQ
-        LATSEQ_P("D mac.mux--mac.txreq","len%d:rnti%d:lcid%d.harq%d.txreq%d.fm%d.subfm%d", TBS, rnti, sdu_lcids[0], harq_pid, eNB->pdu_index[CC_id], frameP, subframeP);
-#endif
         eNB->TX_req[CC_id].sfn_sf = fill_nfapi_tx_req(&eNB->TX_req[CC_id].tx_request_body,
                                     (frameP * 10) + subframeP,
                                     TBS,
@@ -1188,6 +1185,9 @@ schedule_ue_spec(module_id_t module_idP,
                                     dlsch_pdu->payload[0]);
         LOG_D(MAC, "Filled NFAPI configuration for DCI/DLSCH/TXREQ %d, new SDU\n",
               eNB->pdu_index[CC_id]);
+#if LATSEQ
+        LATSEQ_P("D mac.mux--mac.txreq","len%d:rnti%d:lcid%d.reqfm%d.harq%d.sfn%d.txreq%d", TBS, rnti, sdu_lcids[0], frameP, harq_pid, eNB->TX_req[CC_id].sfn_sf, eNB->pdu_index[CC_id]);
+#endif
         eNB->pdu_index[CC_id]++;
         program_dlsch_acknak(module_idP,
                              CC_id,

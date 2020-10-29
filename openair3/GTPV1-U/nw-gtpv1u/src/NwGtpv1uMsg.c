@@ -48,6 +48,9 @@
 #if defined(ENB_MODE)
 #include "common/utils/LOG/log.h"
 #endif
+#ifdef LATSEQ
+  #include "common/utils/LATSEQ/latseq.h"
+#endif
 
 #define NW_GTPV1U_EPC_SPECIFIC_HEADER_SIZE                             (12)   /**< Size of GTPv1u EPC specific header */
 #define NW_GTPV1U_EPC_MIN_HEADER_SIZE                                  (8)
@@ -285,6 +288,9 @@ nwGtpv1uMsgFromBufferNew( NW_IN NwGtpv1uStackHandleT hGtpuStackHandle,
                pMsg->msgLen, pMsg->msgBufLen, pMsg->msgBufOffset);
 #endif
     *phMsg = (NwGtpv1uMsgHandleT) pMsg;
+#ifdef LATSEQ
+  LATSEQ_P("D ip.in--gtp.in", "len%d::teid%u.gsn%d",pMsg->msgLen, pMsg->teid, pMsg->seqNum + 1);
+#endif
     return NW_GTPV1U_OK;
   }
 

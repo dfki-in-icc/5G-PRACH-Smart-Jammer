@@ -429,6 +429,7 @@ static void *gtpv1u_thread(void *args)
 
     // DATA COMING FROM UDP
     case UDP_DATA_IND: {
+      // TODO: Latses point ip.in--gtp.in
       udp_data_ind_t *udp_data_ind_p;
       udp_data_ind_p = &received_message_p->ittiMsg.udp_data_ind;
       nwGtpv1uProcessUdpReq(gtpv1u_sgw_data.gtpv1u_stack,
