@@ -42,7 +42,7 @@ extern volatile int oai_exit; //oai is ended. Close latseq
 
 /*--- UTILS FUNCTIONS --------------------------------------------------------*/
 
-uint64_t get_cpu_freq_kHz(void)
+uint64_t get_cpu_freq_cycles(void)
 {
   uint64_t ts = l_rdtsc();
   sleep(1);
@@ -51,22 +51,24 @@ uint64_t get_cpu_freq_kHz(void)
 
 /*--- MAIN THREAD FUNCTIONS --------------------------------------------------*/
 
-int init_latseq(const char * appname, double cpufreq)
+int init_latseq(const char * appname, uint64_t cpufreq)
 { 
   // init members
   g_latseq.is_running = 0;
   //synchronise time and rdtsc
-  gettimeofday(&g_latseq.time_zero, NULL);
+  struct timespec ts;
+  clock_gettime(CLOCK_REALTIME, &ts);
+  g_latseq.time_zero = (uint64_t)ts.tv_sec * 1000000000LL + (uint64_t)ts.tv_nsec;
   g_latseq.rdtsc_zero = l_rdtsc(); //check at compile time that constant_tsc is enabled in /proc/cpuinfo
   if (cpufreq == 0) {
-    g_latseq.cpu_freq = get_cpu_freq_kHz();
+    g_latseq.cpu_freq = get_cpu_freq_cycles();
   } else {
     g_latseq.cpu_freq = cpufreq;
   }
 
   // Open traces
   char time_string[16];
-  strftime(time_string, sizeof (time_string), "%d%m%Y_%H%M%S", localtime(&g_latseq.time_zero.tv_sec));
+  strftime(time_string, sizeof (time_string), "%d%m%Y_%H%M%S", localtime(&ts.tv_sec));
   g_latseq.filelog_name = (char *)malloc(LATSEQ_MAX_STR_SIZE);
   sprintf(g_latseq.filelog_name, "%s.%s.lseq", appname, time_string);
   //open logfile
@@ -78,7 +80,7 @@ int init_latseq(const char * appname, double cpufreq)
   }
   //write header
   char hdr[] = "# LatSeq packet fingerprints\n# By Alexandre Ferrieux and Flavien Ronteix Jacquet\n# timestamp\tU/D\tsrc--dest\tlen:ctxtId:localId\n";
-  int ret = fwrite(hdr, sizeof(char), sizeof(hdr) - 1, g_latseq.outstream);
+  size_t ret = fwrite(hdr, sizeof(char), sizeof(hdr) - 1, g_latseq.outstream);
   if (ret < 0) {
     printf("[LATSEQ] Error at opening log file\n");
     g_latseq.is_running = 0;
@@ -181,11 +183,13 @@ static int write_latseq_entry(void)
   //Convert latseq_element to a string
   tmps = calloc(LATSEQ_MAX_STR_SIZE, sizeof(char));
   //Compute time
-  uint64_t tdiff = (uint64_t)((e->ts - g_latseq.rdtsc_zero)/(g_latseq.cpu_freq*1000));
-  uint64_t tf = ((uint64_t)(g_latseq.time_zero.tv_sec)*1000000L + (uint64_t)(g_latseq.time_zero.tv_usec)) + tdiff;
-  struct timeval etv = {
-    (time_t) ((tf - (tf%1000000L))/1000000L),
-    (suseconds_t) (tf%1000000L)
+  unsigned int overhead = 10;
+  uint64_t tdiff = (uint64_t)((e->ts - g_latseq.rdtsc_zero - overhead)/(long double)(g_latseq.cpu_freq/1000000000LL));
+  uint64_t tf = g_latseq.time_zero + tdiff;
+  // TODO : convert uint64 to int32
+  struct timespec etv = {
+    ((tf - (tf%1000000000LL))/1000000000LL),
+    (tf%1000000000L)
   };
   //Write the data identifier, e.g. do the vsprintf() here and not at measure()
   //We put the first NB_DATA_IDENTIFIERS elements of array, even there are no NB_DATA_IDENTIFIERS element to write. sprintf will get the firsts...
@@ -212,7 +216,7 @@ static int write_latseq_entry(void)
   // Write into file
   int ret = fprintf(g_latseq.outstream, "%ld.%06ld %s %s\n",
     etv.tv_sec,
-    etv.tv_usec,
+    etv.tv_nsec,
     e->point,
     tmps);
 

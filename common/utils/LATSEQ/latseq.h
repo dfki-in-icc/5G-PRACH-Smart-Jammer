@@ -86,9 +86,9 @@ typedef struct latseq_t {
   int                 is_running; //1 is running, 0 not running
   char *              filelog_name;
   FILE *              outstream; //Output descriptor
-  struct timeval      time_zero; // time zero
+  uint64_t            time_zero; // time zero
   uint64_t            rdtsc_zero; //rdtsc zero
-  double              cpu_freq; //cpu frequency
+  uint64_t            cpu_freq; //cpu frequency
   latseq_registry_t   local_log_buffers; //Register of thread-specific buffers
   latseq_stats_t      stats; // stats of latseq instance
 } latseq_t;
@@ -102,10 +102,10 @@ extern __thread latseq_thread_data_t tls_latseq;
 /** \fn int init_latseq(const char * appname);
  * \brief init latency sequences module.
  * \param appname app's name. The output file is appname.date_hour.lseq
- * \param cpufreq. cpu frequency in GHz.
+ * \param cpufreq. cpu frequency in cycles.
  * \return -1 if error 1 otherwise
 */
-int init_latseq(const char * appname, double cpufreq);
+int init_latseq(const char * appname, uint64_t cpufreq);
 
 /** \fn init_logger_to_mem(void);
  * \brief init thread logger
@@ -129,11 +129,11 @@ static __inline__ uint64_t l_rdtsc(void) {
   return (((uint64_t)d)<<32) | ((uint64_t)a);
 }
 
-/** \fn get_cpu_freq_kHz(void);
+/** \fn get_cpu_freq_cycles(void);
  * \brief Compute CPU clock in a 1 second experiment
- * \return CPU clock in kHz
+ * \return CPU clock in cycles
 */
-uint64_t get_cpu_freq_kHz(void);
+uint64_t get_cpu_freq_cycles(void);
 
 /*--- MEASUREMENTS -----------------------------------------------------------*/
 /** \fn void log_measure(const char * point, const char *identifier);
