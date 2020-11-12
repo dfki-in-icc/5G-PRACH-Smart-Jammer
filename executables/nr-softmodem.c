@@ -842,7 +842,7 @@ int main( int argc, char **argv )
 
   cpuf=get_cpu_freq_GHz();
 #if LATSEQ
-  init_latseq("/tmp/nr_softmodem", cpuf);
+  init_latseq("/tmp/nr_softmodem", (uint64_t)(cpuf*1000000000LL));
 #endif
   itti_init(TASK_MAX, THREAD_MAX, MESSAGES_ID_MAX, tasks_info, messages_info);
   // initialize mscgen log after ITTI

@@ -154,18 +154,10 @@ static __inline__ void log_measure1(const char * point, const char *fmt, uint32_
   }
   //get reference on new element
   latseq_element_t * e = &tls_latseq.log_buffer[tls_latseq.i_write_head%RING_BUFFER_SIZE];
-  //Log time
   e->ts = l_rdtsc();
-  //Log point name
-  //strcpy(e->point, point);
   e->point = point;
   e->format = fmt;
-  //Log data identifier
-  //e->len_id = 0;
   e->len_id = 1;
-  //while ( (e->data_id[e->len_id] = (uint32_t)va_arg(va, int) )!= -1)
-  //  e->len_id++;
-  //becareful, the data_id[e->len_id + 1] = (uint32_t)-1. Use len_id to know the correct number of element
   e->data_id[0] = i1;
   //Update head position
   tls_latseq.i_write_head++;

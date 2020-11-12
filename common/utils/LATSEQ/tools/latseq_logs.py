@@ -44,6 +44,7 @@ import simplejson as json
 import decimal
 from tqdm import tqdm
 # import math
+import rdtsctots
 
 #
 # GLOBALS
@@ -1381,7 +1382,9 @@ if __name__ == "__main__":
                 raise FileNotFoundError
     except FileNotFoundError:
         try:
-            sys.stderr.write(f"[INFO] __main__ : create a new lseq instance\n")
+            logging.info(f"__main__ : create a new lseq instance")
+            ro = rdtsctots.rdtsctots(args.logname)
+            ro.write_rdtsctots(args.logname)
             lseq = latseq_log(args.logname)  # Build latseq_log object
         except Exception as e:
             sys.stderr.write(f"[ERROR] __main__ : {args.logname}, {e}\n")

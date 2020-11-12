@@ -86,6 +86,7 @@ int init_latseq(const char * appname, uint64_t cpufreq)
     g_latseq.is_running = 0;
     return -1;
   }
+  fprintf(g_latseq.outstream, "%ld S rdtsc--gettimeofday %d.%09d\n", g_latseq.rdtsc_zero, ts.tv_sec, ts.tv_nsec);
   fflush(g_latseq.outstream);
   
   // init registry
@@ -182,15 +183,6 @@ static int write_latseq_entry(void)
   char * tmps;
   //Convert latseq_element to a string
   tmps = calloc(LATSEQ_MAX_STR_SIZE, sizeof(char));
-  //Compute time
-  unsigned int overhead = 10;
-  uint64_t tdiff = (uint64_t)((e->ts - g_latseq.rdtsc_zero - overhead)/(long double)(g_latseq.cpu_freq/1000000000LL));
-  uint64_t tf = g_latseq.time_zero + tdiff;
-  // TODO : convert uint64 to int32
-  struct timespec etv = {
-    ((tf - (tf%1000000000LL))/1000000000LL),
-    (tf%1000000000L)
-  };
   //Write the data identifier, e.g. do the vsprintf() here and not at measure()
   //We put the first NB_DATA_IDENTIFIERS elements of array, even there are no NB_DATA_IDENTIFIERS element to write. sprintf will get the firsts...
   sprintf(
@@ -214,9 +206,8 @@ static int write_latseq_entry(void)
     e->data_id[15]);
 
   // Write into file
-  int ret = fprintf(g_latseq.outstream, "%ld.%06ld %s %s\n",
-    etv.tv_sec,
-    etv.tv_nsec,
+  int ret = fprintf(g_latseq.outstream, "%ld %s %s\n",
+    e->ts,
     e->point,
     tmps);
 
@@ -302,6 +293,12 @@ void latseq_log_to_file(void)
 
 void fflush_latseq_periodically(void)
 {
-  while(1){sleep(1);fflush(g_latseq.outstream);}
+  struct timespec ts;
+  while(1){
+    sleep(1);
+    fflush(g_latseq.outstream);
+    clock_gettime(CLOCK_REALTIME, &ts);
+    fprintf(g_latseq.outstream, "%ld S rdtsc--gettimeofday %d.%09d\n", l_rdtsc(), ts.tv_sec, ts.tv_nsec);
+  }
   pthread_exit(NULL);
 }
