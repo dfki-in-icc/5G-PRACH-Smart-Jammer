@@ -86,7 +86,7 @@ int init_latseq(const char * appname, uint64_t cpufreq)
     g_latseq.is_running = 0;
     return -1;
   }
-  fprintf(g_latseq.outstream, "%ld S rdtsc--gettimeofday %d.%09d\n", g_latseq.rdtsc_zero, ts.tv_sec, ts.tv_nsec);
+  fprintf(g_latseq.outstream, "%ld S rdtsc--gettimeofday %ld.%09ld\n", g_latseq.rdtsc_zero, ts.tv_sec, ts.tv_nsec);
   fflush(g_latseq.outstream);
   
   // init registry
@@ -298,7 +298,7 @@ void fflush_latseq_periodically(void)
     sleep(1);
     fflush(g_latseq.outstream);
     clock_gettime(CLOCK_REALTIME, &ts);
-    fprintf(g_latseq.outstream, "%ld S rdtsc--gettimeofday %d.%09d\n", l_rdtsc(), ts.tv_sec, ts.tv_nsec);
+    fprintf(g_latseq.outstream, "%ld S rdtsc--gettimeofday %ld.%09ld\n", l_rdtsc(), ts.tv_sec, ts.tv_nsec);
   }
   pthread_exit(NULL);
 }

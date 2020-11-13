@@ -716,6 +716,9 @@ void rlc_entity_am_recv_pdu(rlc_entity_t *_entity, char *buffer, int size, const
   pdu_segment = rlc_rx_new_pdu_segment(sn, so, size, lsf, buffer, data_start);
   entity->rx_list = rlc_rx_pdu_segment_list_add(sn_compare_rx, entity,
                                                 entity->rx_list, pdu_segment);
+#ifdef LATSEQ
+  LATSEQ_P("I rlc.rxbuf.am", "wait%d:drb%d:", entity->rx_size, entity->channel_id);
+#endif
 
   /* do reception actions (36.322 5.1.3.2.3) */
   rlc_am_reception_actions(entity, pdu_segment);
@@ -1498,6 +1501,7 @@ void rlc_entity_am_recv_sdu(rlc_entity_t *_entity, char *buffer, int size,
   seqnum <<= 8;
   seqnum |= buffer[1] & 0xFF;
   LATSEQ_P("D pdcp.tx--rlc.tx.am", "len%d:rnti%d:drb%d.psn%d.sdu%d", size, entity->ue_rnti, entity->channel_id, seqnum, entity->tx_num);
+  LATSEQ_P("I rlc.txbuf.am", "occ%d:drb%d:", entity->tx_size, entity->channel_id);
 #endif
 }
 

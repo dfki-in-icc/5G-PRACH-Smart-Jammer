@@ -38,6 +38,9 @@
 #include "common/utils/LOG/log.h"
 #include "nfapi/oai_integration/vendor_ext.h"
 #include "common/utils/LOG/vcd_signal_dumper.h"
+#ifdef LATSEQ
+  #include "common/utils/LATSEQ/latseq.h"
+#endif
 #include "UTIL/OPT/opt.h"
 #include "OCG.h"
 #include "OCG_extern.h"
@@ -3967,6 +3970,9 @@ extract_harq(module_id_t mod_idP,
                     subframe_tx,
                     harq_pid,
                     sched_ctl->round[CC_idP][harq_pid]);
+#ifdef LATSEQ
+              LATSEQ_P("I mac.harq", "nack%d:ue%d:harq%d.fm%d.subfm%d", 0, UE_id, harq_pid, frame_tx, subframe_tx);
+#endif
             } else { //nack
               if (sched_ctl->round[CC_idP][harq_pid] < 8) sched_ctl->round[CC_idP][harq_pid]++;
 
@@ -3982,6 +3988,9 @@ extract_harq(module_id_t mod_idP,
                     subframe_tx,
                     harq_pid,
                     sched_ctl->round[CC_idP][harq_pid]);
+#ifdef LATSEQ
+              LATSEQ_P("I mac.harq", "nack%d:ue%d:harq%d.fm%d.subfm%d", sched_ctl->round[CC_idP][harq_pid], UE_id, harq_pid, frame_tx, subframe_tx);
+#endif
 
               if (sched_ctl->round[CC_idP][harq_pid] == 8) {
                 for (uint8_t ra_i = 0; ra_i < NB_RA_PROC_MAX; ra_i++) {
@@ -4125,9 +4134,14 @@ extract_harq(module_id_t mod_idP,
             sched_ctl->tbcnt[CC_idP][harq_pid] = 0;
             /* CDRX: PUCCH gives an ACK, so reset corresponding HARQ RTT */
             sched_ctl->harq_rtt_timer[CC_idP][harq_pid] = 0;
+#ifdef LATSEQ
+            LATSEQ_P("I mac.harq", "nack%d:ue%d:harq%d.fm%d.subfm%d", 0, UE_id, harq_pid, frameP, subframeP);
+#endif
           } else if (pdu[0] == 2 || pdu[0] == 4) {  // NAK (treat DTX as NAK)
             sched_ctl->round[CC_idP][harq_pid]++; // increment round
-
+#ifdef LATSEQ
+            LATSEQ_P("I mac.harq", "nack%d:ue%d:harq%d.fm%d.subfm%d", sched_ctl->round[CC_idP][harq_pid], UE_id, harq_pid, frameP, subframeP);
+#endif
             if (sched_ctl->round[CC_idP][harq_pid] == 4) {
               sched_ctl->round[CC_idP][harq_pid] = 8; // release HARQ process
               sched_ctl->tbcnt[CC_idP][harq_pid] = 0;
@@ -4157,6 +4171,9 @@ extract_harq(module_id_t mod_idP,
           if (num_ack_nak == 2 && sched_ctl->round[CC_idP][harq_pid] < 8 && sched_ctl->tbcnt[CC_idP][harq_pid] == 1 && pdu[0] == 1 && pdu[1] == 1) {
             sched_ctl->round[CC_idP][harq_pid] = 8;
             sched_ctl->tbcnt[CC_idP][harq_pid] = 0;
+#ifdef LATSEQ
+            LATSEQ_P("I mac.harq", "nack%d:ue%d:harq%d.fm%d.subfm%d", 0, UE_id, harq_pid, frameP, subframeP);
+#endif
             /* CDRX: PUCCH gives an ACK, so reset corresponding HARQ RTT */
             sched_ctl->harq_rtt_timer[CC_idP][harq_pid] = 0;
           }
@@ -4166,6 +4183,9 @@ extract_harq(module_id_t mod_idP,
               && (sched_ctl->tbcnt[CC_idP][harq_pid] == 1)
               && (pdu[0] == 2) && (pdu[1] == 2)) {
             sched_ctl->round[CC_idP][harq_pid]++;
+#ifdef LATSEQ
+              LATSEQ_P("I mac.harq", "nack%d:ue%d:harq%d.fm%d.subfm%d", sched_ctl->round[CC_idP][harq_pid], UE_id, harq_pid, frameP, subframeP);
+#endif
 
             if (sched_ctl->round[CC_idP][harq_pid] == 4) {
               sched_ctl->round[CC_idP][harq_pid] = 8;     // release HARQ process
@@ -4182,6 +4202,9 @@ extract_harq(module_id_t mod_idP,
                          && (sched_ctl->tbcnt[CC_idP][harq_pid] == 2)
                          && (pdu[0] == 2) && (pdu[1] == 1))) {
             sched_ctl->round[CC_idP][harq_pid]++;
+#ifdef LATSEQ
+            LATSEQ_P("I mac.harq", "nack%d:ue%d:harq%d.fm%d.subfm%d", sched_ctl->round[CC_idP][harq_pid], UE_id, harq_pid, frameP, subframeP);
+#endif
             sched_ctl->tbcnt[CC_idP][harq_pid] = 1;
 
             if (sched_ctl->round[CC_idP][harq_pid] == 4) {
@@ -4195,6 +4218,9 @@ extract_harq(module_id_t mod_idP,
                      && (sched_ctl->tbcnt[CC_idP][harq_pid] == 2)
                      && (pdu[0] == 2) && (pdu[1] == 2)) {
             sched_ctl->round[CC_idP][harq_pid]++;
+#ifdef LATSEQ
+            LATSEQ_P("I mac.harq", "nack%d:ue%d:harq%d.fm%d.subfm%d", sched_ctl->round[CC_idP][harq_pid], UE_id, harq_pid, frameP, subframeP);
+#endif
 
             if (sched_ctl->round[CC_idP][harq_pid] == 4) {
               sched_ctl->round[CC_idP][harq_pid] = 8;     // release HARQ process
@@ -5036,6 +5062,9 @@ SR_indication(module_id_t mod_idP,
 
       UE_info->UE_template[cc_idP][UE_id].ul_SR = 1;
       UE_info->UE_template[cc_idP][UE_id].ul_active = TRUE;
+#ifdef LATSEQ
+      LATSEQ_P("I mac.ind", "sr%d:ue%d:", 1, UE_id);
+#endif
       VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_SR_INDICATION, 1);
       VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_SR_INDICATION, 0);
     }

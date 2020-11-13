@@ -549,7 +549,7 @@ int main ( int argc, char **argv )
 
   cpuf=get_cpu_freq_GHz();
 #if LATSEQ
-    init_latseq("/tmp/lte_softmodem", cpuf);
+    init_latseq("/tmp/lte_softmodem", (uint64_t)(cpuf*1000000000LL));
 #endif
   printf("ITTI init, useMME: %i\n",EPC_MODE_ENABLED);
   itti_init(TASK_MAX, THREAD_MAX, MESSAGES_ID_MAX, tasks_info, messages_info);
