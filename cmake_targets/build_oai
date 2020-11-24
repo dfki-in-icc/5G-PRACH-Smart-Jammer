@@ -537,6 +537,11 @@ function main() {
     echo_info "Erased all previously producted files"
   fi
 
+  # for historical reasons we build in a subdirectory cmake_targets/XYZ/build,
+  # e.g., cmake_targets/ran_build/build, hence the ../../..
+  CMAKE_CMD="$CMAKE_CMD ../../.."
+  echo_info "CMAKE_CMD=$CMAKE_CMD"
+
   dbin=$OPENAIR_DIR/targets/bin
   dlog=$OPENAIR_DIR/cmake_targets/log
   mkdir -p $dbin $dlog
