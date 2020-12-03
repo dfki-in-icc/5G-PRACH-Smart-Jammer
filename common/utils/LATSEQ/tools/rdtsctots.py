@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 import sys
 
+# 78374 lines = 182ms; 1 line = 2.32us 
+
 def usage():
     sys.stdout.write("[rdtsctots] ./rdtsctots.py raw_file.lseq > file.lseq")
     exit()
@@ -38,8 +40,8 @@ class rdtsctots():
         first_S = next(l for l in self.lines if ' S ' in l).split()
         last_S = next(l for l in self.lines[::-1] if ' S ' in l).split()
         cycle_offset = int(first_S[0])
-        time_offset = float(first_S[2])
-        cpufreq = int((int(last_S[0]) - int(first_S[0]))/(float(last_S[2]) - float(first_S[2])))
+        time_offset = float(first_S[3])
+        cpufreq = int((int(last_S[0]) - int(first_S[0]))/(float(last_S[3]) - float(first_S[3])))
         return (cycle_offset, time_offset, cpufreq)
     
     def yield_rdtsctots(self):

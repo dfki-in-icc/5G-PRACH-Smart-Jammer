@@ -43,6 +43,12 @@ import pickle
 import simplejson as json
 import decimal
 from tqdm import tqdm
+import logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(asctime)s] [%(levelname)s] %(message)s",
+    stream=sys.stderr
+)
 # import math
 import rdtsctots
 
@@ -51,10 +57,10 @@ import rdtsctots
 #
 
 # Reducing search space
-# 20ms treshold to complete a journey
-DURATION_TO_SEARCH_PKT = decimal.Decimal(0.002)  
-# 5ms treshold to find segmentation
-DURATION_TO_SEARCH_FORKS = decimal.Decimal(0.005)
+# 4ms treshold to seek the next trace
+DURATION_TO_SEARCH_PKT = decimal.Decimal(0.1)
+# 4ms treshold to find segmentation
+DURATION_TO_SEARCH_FORKS = decimal.Decimal(0.1)
 # TODO: limit time to search concatenation: or use the properties like size ?
 # DURATION_TO_SEARCH_CONCA = 0.005  # 5ms to find concatenation
 DURATION_TO_SEARCH_RETX = decimal.Decimal(0.01)  # 10ms : Set according to drx-RetransmissionTimerDL RRC config (3GPP-TS38.321) for MAC and max_seq_num for RLC (3GPP-TS38.322)
@@ -63,9 +69,10 @@ DURATION_TO_SEARCH_RETX = decimal.Decimal(0.01)  # 10ms : Set according to drx-R
 
 S_TO_MS = 1000
 KWS_BUFFER = ['tx', 'rx', 'retx']  # buffer keywords
-KWS_IN_D = ['pdcp.in']  # TODO : put in conf file and verify why when add 'ip' it breaks rebuild
-KWS_OUT_D = ['phy.out.proc']
-KWS_IN_U = ['phy.in.proc']
+KWS_NO_CONCATENATION = ['pdcp.in']  # TODO
+KWS_IN_D = ['ip.in']  # TODO : put in conf file and verify why when add 'ip' it breaks rebuild
+KWS_OUT_D = ['phy.out.ant']
+KWS_IN_U = ['phy.in.ant']
 KWS_OUT_U = ['ip.out']
 VERBOSITY = False  # Verbosity for rebuild phase False by default
 #
@@ -108,10 +115,10 @@ def write_string_to_stdout(sstream: str):
         sys.stdout.write(sstream + '\n')
     except IOError as e:
         if e.errno == errno.EPIPE:  # Ignore broken pipe Error
-            sys.stderr.write("[WARNING] write_string_to_stdout() : Broken pipe error\n")
+            logging.warning("write_string_to_stdout() : Broken pipe error")
             return
         else:
-            sys.stderr.write(f"[ERROR] write_string_to_stdout() : {e}\n")
+            logging.error(f"write_string_to_stdout() : {e}")
             exit()
 
 #
@@ -240,7 +247,7 @@ class latseq_log:
         """
         try:
             with open(self.logpath, 'r') as f:
-                sys.stderr.write(f"[INFO] latseq_log._read_file() : Reading {self.logpath} ...\n")
+                logging.info(f"latseq_log._read_file() : Reading {self.logpath} ...")
                 return f.read()
         except IOError:
             raise IOError(f"error at opening ({self.logpath})")
@@ -259,7 +266,9 @@ class latseq_log:
                 continue
             tmp = l.split(' ')
             if len(tmp) < 4:
-                sys.stderr.write(f"[WARNING] latseq_log._read_log() : {l} is a malformed line\n")
+                logging.warning(f"latseq_log._read_log() : {l} is a malformed line")
+                continue
+            if tmp[1] == 'S':  # synchronisation-type line
                 continue
             if tmp[1] == 'I':  # information-type line
                 self.raw_infos.append(tuple([
@@ -345,7 +354,7 @@ class latseq_log:
                     ))
                 # not other processing needed for infos
             except Exception:
-                sys.stderr.write(f"[ERROR] latseq_log._clean_log() : at parsing information line {i}\n")
+                logging.error(f"latseq_log._clean_log() : at parsing information line {i}")
 
         # sort by timestamp. important assumption for the next methods
         self.raw_inputs.sort(key=operator.itemgetter(0))
@@ -490,7 +499,7 @@ class latseq_log:
                         if e not in tmpU:
                             tmpUout.append(e)
                 else:
-                    sys.stderr.write(f"[ERROR] latseq_log._build_points() : Unknown direction for {p[0]} : {p[1]}\n")
+                    logging.error(f"latseq_log._build_points() : Unknown direction for {p[0]} : {p[1]}")
             self.pointsInD  = tmpDin
             self.pointsOutD = tmpDout
             self.pointsInU  = tmpUin
@@ -524,9 +533,9 @@ class latseq_log:
         if len(self.paths[0]) == 0 and len(self.paths[1]) == 0:
             raise Exception("Error no paths found in Downlink nor in Uplink")
         elif len(self.paths[0]) == 0:
-            sys.stderr.write("[INFO] latseq_log._build_paths() : no path found in Downlink\n")
+            logging.info("latseq_log._build_paths() : no path found in Downlink")
         elif len(self.paths[1]) == 0:
-            sys.stderr.write("[INFO] latseq_log._build_paths() : no path found in Uplink\n")
+            logging.info("latseq_log._build_paths() : no path found in Uplink")
         else:  # make immutable paths
             for dp in range(len(self.paths)):
                 for p in range(len(self.paths[dp])):
@@ -573,17 +582,26 @@ class latseq_log:
             Algorithm:
                 All global identifiers should match.
                 All common identifiers' values should match
+            
+            Arguments:
+                p_gids : Trace global ids
+                p_lids : Trace local ids
+                j_gids : Journey global ids
+                j_last_element : Last traces added to journey
 
             Returns:
-                :obj:`dict`: returns a dict of matched identifiers. Empty if the point is not in journey (false)
+                (list, :obj:`dict`): returns
+                    A list of global ids if journeys global ids empty and trace match
+                    A dict of matched identifiers.
+                    Empty if the point is not in journey (false)
             """
-            # for all global ids, first filter
-            for k in p_gids:
-                if k in j_gids:
-                    if p_gids[k] != j_gids[k]:
-                        return {}  # False
-                else:  # The global context id is not in the contet of this journey, continue
-                    return {}  # False
+            if j_gids:  # if global ids of journeys not empty
+                for k in p_gids:  # for all global ids, first filter
+                    if k in j_gids:
+                        if p_gids[k] != j_gids[k]:
+                            return ()  # False
+                    else:  # The global context id is not in the contet of this journey, continue
+                        return ()  # False
             res_matched = {}
             # for all local ids in measurement point
             for k_lid in p_lids:
@@ -599,14 +617,17 @@ class latseq_log:
                                 j_last_element[6][k_lid] = v
                                 break  # for v in j_last_lids[k_lid]
                         if not match_local_in_list:
-                            return {}
+                            return ()
                     # Case : normal case, one value per identifier
                     else:
                         if p_lids[k_lid] != j_last_element[6][k_lid]:  # the local id k_lid do not match
-                            return {}
+                            return ()
                         else:
                             res_matched[k_lid] = p_lids[k_lid]
-            return res_matched
+            if not j_gids:  # If no global ids for journeys and trace match
+                return (p_gids, res_matched)
+            else:
+                return ([],res_matched)
 
         def _get_next(listP: list, endP: int, pointerP: int) -> int:
             pointerP += 1
@@ -625,6 +646,7 @@ class latseq_log:
             """
             seg_list = {}
             # max local pointer to consider. DEPTH_TO_SEARCH impact the algorithm's speed
+            # max_duration_to_search the NEXT fingerprint, not the latency of all journey
             # max_local_pointer = min(local_pointerP + DEPTH_TO_SEARCH_PKT, nb_meas)
             max_duration_to_search = self.inputs[pointerP][0] + DURATION_TO_SEARCH_PKT
             # LOOP: the journey is not completed and we still have local_pointer to consider
@@ -676,10 +698,13 @@ class latseq_log:
                 # Case: find a match
                 # list_meas.remove(local_pointerP)
                 # sys.stderr.write(f"Add {local_pointerP} to {parent_journey_id}\n")
+                logging.debug(f"Add {local_pointerP} to {parent_journey_id}")
                 if local_pointerP not in point_added:
                     point_added[local_pointerP] = [parent_journey_id]
                 else:
                     point_added[local_pointerP].append(parent_journey_id)
+                if matched_ids[0]:
+                    self.journeys[parent_journey_id]['glob'].update(matched_ids[0])
                 seg_local_pointer = _get_next(list_meas, nb_meas, local_pointerP)
                 # Case : search for segmentation
                 # Find all forks possible
@@ -712,7 +737,8 @@ class latseq_log:
                     if seg_matched_ids:
                         if local_pointerP not in seg_list:
                             seg_list[local_pointerP] = {}
-                        seg_list[local_pointerP][seg_local_pointer] = seg_matched_ids
+                        seg_list[local_pointerP][seg_local_pointer] = seg_matched_ids[1]
+                        logging.debug(f"Seg {seg_local_pointer} of {local_pointerP} to {parent_journey_id}")
                         seg_local_pointer = _get_next(list_meas, nb_meas, seg_local_pointer)
                         continue
                     seg_local_pointer = _get_next(list_meas, nb_meas, seg_local_pointer)
@@ -723,7 +749,7 @@ class latseq_log:
                     self.inputs.index(tmp_p),
                     tmp_p[0],
                     f"{tmp_p[2]}--{tmp_p[3]}"))
-                self.journeys[parent_journey_id]['set_ids'].update(matched_ids)
+                self.journeys[parent_journey_id]['set_ids'].update(matched_ids[1])
 
                 # Try to find a path id
                 if isinstance(self.journeys[parent_journey_id]['path'], dict):
@@ -875,6 +901,8 @@ class latseq_log:
             # Assumption: the measures are ordered by timestamp,
             #   means that the next point is necessary after the current
             #   input point in the list of inputs
+
+            # TODO : Give a list of measurement to consider instead of local pointer only ?
             _rec_rebuild(pointer, local_pointer, newid)
             pointer = _get_next(list_meas, nb_meas, pointer)
 
@@ -912,7 +940,7 @@ class latseq_log:
             AttributeError: journeys not present in `latseq_logs` object
         """
         if not hasattr(self, 'journeys'):
-            sys.stderr.write("[ERROR] latseq_log._build_out_journeys() First rebuild journeys\n")
+            logging.error("latseq_log._build_out_journeys() First rebuild journeys")
             raise AttributeError('journeys not present in object, first try rebuild journeys')
         self.out_journeys = list()
         nb_meas = len(self.inputs)
@@ -973,9 +1001,10 @@ class latseq_log:
                     tmp_str = f"{float(self.inputs[e][0])} "
                     tmp_str += "D " if self.inputs[e][1] == 0 else "U "
                     tmp_str += f"{self.inputs[e][2]}--{self.inputs[e][3]}"
-                    sys.stderr.write(f"[INFO] latseq_log._build_out_journeys() : inputs({e}) [{tmp_str}] is missing in completed journeys\n")
+                    logging.info(f"latseq_log._build_out_journeys() : inputs({e}) [{tmp_str}] is missing in completed journeys")
                 orphans += 1
-        sys.stderr.write(f"[INFO] latseq_log._build_out_journeys() : {orphans} orphans / {nb_meas} measurements\n")
+        # TODO : export all orphans as clean output to be compared with original cleaned output in a file
+        logging.info(f"latseq_log._build_out_journeys() : {orphans} orphans / {nb_meas} measurements")
         self.store_object()
         return len(self.out_journeys)
 
@@ -1077,7 +1106,7 @@ class latseq_log:
         """
         if not hasattr(self, 'out_journeys'):
             if not self._build_out_journeys():
-                sys.stderr.write("[ERROR] latseq_log.yield_out_journeys() : to build out_journeys\n")
+                logging.error("latseq_log.yield_out_journeys() : to build out_journeys")
                 exit(-1)
         def _build_header() -> str:
             res_str = "#funcId "
@@ -1123,7 +1152,7 @@ class latseq_log:
         """
         # Warning for stats if journeys has not been rebuilt
         if "duration" not in self.points[next(iter(self.points.keys()))]:
-            sys.stderr.write("[WARNING] latseq_log.yield_points() : points without duration, first rebuild journeys for stat")
+            logging.warning("latseq_log.yield_points() : points without duration, first rebuild journeys for stat")
         for p in self.points:
             self.points[p]['point'] = p
             yield self.points[p]
@@ -1212,12 +1241,12 @@ class latseq_log:
             return res_str + "\n"
         try:
             with open(out_journeyspath, 'w+') as f:
-                sys.stderr.write(f"[INFO] latseq_log.out_journeys_to_file() : Writing latseq.lseqj ...\n")
+                logging.info(f"latseq_log.out_journeys_to_file() : Writing latseq.lseqj ...")
                 f.write(_build_header())  # write header
                 for e in self.yield_out_journeys():
                     f.write(f"{e}\n")
         except IOError as e:
-            sys.stderr.write(f"[ERROR] latseq_log.out_journeys_to_file() : on writing({self.logpath})\n")
+            logging.error(f"latseq_log.out_journeys_to_file() : on writing({self.logpath})")
             raise e
 
     def store_object(self):
@@ -1232,8 +1261,8 @@ class latseq_log:
             with open(pickle_file, 'wb') as fout:
                 pickle.dump(self, fout, pickle.HIGHEST_PROTOCOL)
         except IOError:
-            sys.stderr.write(f"[ERROR] latseq_log.store_object() : at saving {pickle_file}\n")
-        sys.stderr.write(f"[INFO] latseq_log.store_object() : Saving lseq instance to {pickle_file}\n")
+            logging.error(f"[ERROR] latseq_log.store_object() : at saving {pickle_file}")
+        logging.info(f"[INFO] latseq_log.store_object() : Saving lseq instance to {pickle_file}")
 
     def paths_to_str(self) -> str:
         """Stringify paths
@@ -1362,13 +1391,19 @@ if __name__ == "__main__":
 
     # Phase 1 : We init latseq_logs class
     if not args.logname:  # No logfile
-        sys.stderr.write("[ERROR] __main__ : No log file provided\n")
+        logging.error("[ERROR] __main__ : No log file provided")
         exit(-1)
     if args.logname.split('.')[-1] != "lseq":
-        sys.stderr.write("[ERROR] __main__ : No LatSeq log file provided (.lseq)\n")
+        logging.error("[ERROR] __main__ : No LatSeq log file provided (.lseq)")
         exit(-1)
+
+    # Logger handler
+    root_logger  = logging.getLogger()
+    # Verbosity level
     if args.verbosity:
         VERBOSITY = True
+        root_logger.setLevel(logging.DEBUG)
+    
     candidate_pickle_file = args.logname.replace('lseq', 'pkl')
     if args.clean:  # clean pickles and others stuff
         if os.path.exists(candidate_pickle_file):
@@ -1377,7 +1412,7 @@ if __name__ == "__main__":
         with open(candidate_pickle_file, 'rb') as fin:
             try:
                 lseq = pickle.load(fin)
-                sys.stderr.write(f"[INFO] __main__ : load lseq instance from {candidate_pickle_file}\n")
+                logging.info(f"__main__ : load lseq instance from {candidate_pickle_file}")
             except EOFError:
                 raise FileNotFoundError
     except FileNotFoundError:
@@ -1387,14 +1422,14 @@ if __name__ == "__main__":
             ro.write_rdtsctots(args.logname)
             lseq = latseq_log(args.logname)  # Build latseq_log object
         except Exception as e:
-            sys.stderr.write(f"[ERROR] __main__ : {args.logname}, {e}\n")
+            logging.error(f"__main__ : {args.logname}, {e}")
             exit(-1)
     lseq.store_object()
     
     # Phase 2A : case Flask
     if args.flask:
-        sys.stderr.write("[INFO] __main__ : Run a flask server\n")
-        sys.stderr.write("[ERROR] __main__ : Flask server not implemented yet")
+        logging.info("__main__ : Run a flask server")
+        logging.error("__main__ : Flask server not implemented yet")
         exit(1)
     # Phase 2B : case run as command line script
     else:
