@@ -24,10 +24,6 @@
 
 #include "PHY/sse_intrin.h"
 
-#ifdef LATSEQ
-  #include "common/utils/LATSEQ/latseq.h"
-#endif
-
 
 //#define k1 1000
 #define k1 1024
@@ -168,9 +164,6 @@ void lte_eNB_srs_measurements(PHY_VARS_eNB *eNB,
 
     //      measurements->rx_power[UE_id][aarx]/=frame_parms->nb_antennas_tx;
     measurements->wideband_cqi_dB[UE_id][aarx] = (unsigned short) dB_fixed(measurements->wideband_cqi[UE_id][aarx]);
-#ifdef LATSEQ
-    LATSEQ_P("I phy.srs", "cqidb%d:ru%d.ue%d:", measurements->wideband_cqi_dB[UE_id][aarx], aarx, UE_id);
-#endif
     rx_power += measurements->wideband_cqi[UE_id][aarx];
     //      measurements->rx_avg_power_dB[UE_id] += measurements->rx_power_dB[UE_id][aarx];
   }

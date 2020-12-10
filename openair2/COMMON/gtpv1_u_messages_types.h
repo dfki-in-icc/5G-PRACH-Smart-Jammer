@@ -120,6 +120,7 @@ typedef struct gtpv1u_enb_tunnel_data_req_s {
   uint32_t               offset;               ///< start of message offset in buffer
   rnti_t                 rnti;
   rb_id_t                rab_id;
+  uint32_t               seqnum;
 } gtpv1u_enb_tunnel_data_req_t;
 
 typedef struct gtpv1u_enb_data_forwarding_req_s {

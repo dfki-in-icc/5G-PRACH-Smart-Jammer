@@ -233,7 +233,7 @@ void handle_nfapi_dlsch_pdu(PHY_VARS_eNB *eNB,int frame,int subframe,L1_rxtx_pro
 #ifdef LATSEQ
   if (rel8->rnti != 0xFFFF) {
     uint16_t sfn_sf = (uint16_t)((frame << 4 ) | subframe);
-    LATSEQ_P("D mac.txreq--mac.harq", "len%d:rnti%d:sfn%d.txreq%d.harq%d", rel8->length, rel8->rnti, sfn_sf, rel8->pdu_index, harq_pid);
+    LATSEQ_P("D mac.txreq--mac.harq.down", "len%d:rnti%d:txreq%d.harq%d.sfn%d", rel8->length, rel8->rnti, rel8->pdu_index, harq_pid, sfn_sf);
   }
 #endif
 

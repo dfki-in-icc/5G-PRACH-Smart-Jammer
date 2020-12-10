@@ -292,7 +292,7 @@ boolean_t pdcp_data_req(
       }
 #if LATSEQ
       if (!srb_flagP) {
-        LATSEQ_P("D pdcp.in--pdcp.tx","len%d:rnti%d:drb%d.gsn%d.psn%d", sdu_buffer_sizeP, ctxt_pP->rnti, rb_idP, RC.gtpv1u_data_g->seq_num, current_sn);
+        LATSEQ_P("D pdcp.in--pdcp.tx","len%d:rnti%d:drb%d.gsn%d.psn%d", sdu_buffer_sizeP, ctxt_pP->rnti, rb_idP, RC.gtpv1u_data_g->tx_seq_num, current_sn);
       }
 #endif
 
@@ -957,9 +957,10 @@ pdcp_data_ind(
       GTPV1U_ENB_TUNNEL_DATA_REQ(message_p).rnti         = ctxt_pP->rnti;
       GTPV1U_ENB_TUNNEL_DATA_REQ(message_p).rab_id       = rb_id + 4;
       itti_send_msg_to_task(TASK_GTPV1_U, INSTANCE_DEFAULT, message_p);
+      GTPV1U_ENB_TUNNEL_DATA_REQ(message_p).seqnum       = sequence_number;
       packet_forwarded = TRUE;
 #if LATSEQ
-      LATSEQ_P("U pdcp.rx--ip.out","len%d:rnti%d:drb%d.psn%d.fm%d",GTPV1U_ENB_TUNNEL_DATA_REQ(message_p).length, ctxt_pP->rnti, rb_id, sequence_number, ctxt_pP->frame);
+      LATSEQ_P("U pdcp.rx--gtp.out","len%d:rnti%d:drb%d.psn%d",sdu_buffer_sizeP, ctxt_pP->rnti, rb_id, sequence_number);
 #endif
     }
   } else {

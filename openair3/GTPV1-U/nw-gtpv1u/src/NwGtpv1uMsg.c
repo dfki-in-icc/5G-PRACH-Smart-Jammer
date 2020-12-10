@@ -268,6 +268,7 @@ nwGtpv1uMsgFromBufferNew( NW_IN NwGtpv1uStackHandleT hGtpuStackHandle,
     pMsg->msgType       = *(pBuf);
     pBuf++;
 
+    // GPRS message length
     pBuf += 2;
 
     pMsg->teid          = ntohl(*((uint32_t *)pBuf));
@@ -289,7 +290,8 @@ nwGtpv1uMsgFromBufferNew( NW_IN NwGtpv1uStackHandleT hGtpuStackHandle,
 #endif
     *phMsg = (NwGtpv1uMsgHandleT) pMsg;
 #ifdef LATSEQ
-  LATSEQ_P("D ip.in--gtp.in", "len%d::teid%u.gsn%d",pMsg->msgLen, pMsg->teid, pMsg->seqNum + 1);
+    uint16_t ipid = pBuf[4] << 8 | pBuf[5];
+    LATSEQ_P("D ip.in--gtp.in", "len%d::ipid0x%x.teid%u.gsn%d.gso%d.npdu%d", pMsg->msgLen, ipid, pMsg->teid, pMsg->seqNum, pMsg->msgBufOffset, pMsg->npduNum);
 #endif
     return NW_GTPV1U_OK;
   }

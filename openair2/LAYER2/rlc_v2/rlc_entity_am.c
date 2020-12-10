@@ -199,6 +199,14 @@ static void rlc_am_reassemble(rlc_entity_am_t *entity)
        */
       if (r->data_pos != r->start->size ||
           (r->fi & 1) == 0) {
+#ifdef LATSEQ
+        uint8_t psn_short = (uint8_t)r->sdu[0] & 0x7F;
+        uint16_t psn_long = 0x00;
+        psn_long = (uint8_t)r->sdu[0] & 0x0F;
+        psn_long <<= 8;
+        psn_long |= (uint8_t)r->sdu[1] & 0xFF;
+        LATSEQ_P("U rlc.reas.am--pdcp.rx", "len%d:rnti%d:drb%d.rsn%d.rso%d.psn%d.psn%d", r->sdu_pos, entity->ue_rnti, entity->channel_id, r->sn, r->so, psn_short, psn_long);
+#endif
         /* SDU is full - deliver to higher layer */
         entity->common.deliver_sdu(entity->common.deliver_sdu_data,
                                    (rlc_entity_t *)entity,
@@ -218,14 +226,6 @@ static void rlc_am_reassemble(rlc_entity_am_t *entity)
          * processed, if any
          */
         do {
-#ifdef LATSEQ
-          uint8_t psn_short = (uint8_t)r->sdu[0] & 0x7F;
-          uint16_t psn_long = 0x00;
-          psn_long = (uint8_t)r->sdu[0] & 0x0F;
-          psn_long <<= 8;
-          psn_long |= (uint8_t)r->sdu[1] & 0xFF;
-          LATSEQ_P("U rlc.reas.am--pdcp.rx", "len%d:rnti%d:drb%d.rsn%d.rso%d.psn%d.psn%d", r->sdu_pos, entity->ue_rnti, entity->channel_id, r->start->sn, r->start->so, psn_short, psn_long);
-#endif
           rlc_rx_pdu_segment_t *e = r->start;
           entity->rx_size -= e->size;
           r->start = r->start->next;
@@ -631,6 +631,10 @@ void rlc_entity_am_recv_pdu(rlc_entity_t *_entity, char *buffer, int size, const
   e  = rlc_pdu_decoder_get_bits(&decoder, 1); R(decoder);
   sn = rlc_pdu_decoder_get_bits(&decoder, 10); R(decoder);
 
+#ifdef LATSEQ
+  LATSEQ_P("I rlc.rxbuf.am", "occ%d:rnti%d:drb%d", entity->rx_size + size, entity->ue_rnti, entity->channel_id);
+#endif
+
   /* dicard PDU if rx buffer is full */
   if (entity->rx_size + size > entity->rx_maxsize) {
     LOG_D(RLC, "%s:%d:%s: warning: discard PDU, RX buffer full\n",
@@ -653,7 +657,7 @@ void rlc_entity_am_recv_pdu(rlc_entity_t *_entity, char *buffer, int size, const
     so = 0;
   }
 #ifdef LATSEQ
-  LATSEQ_P("U mac.demux--rlc.rx.am", "len%d:rnti%d:drb%d.lcid%d.rsn%d.rso%d.fm%d", size, entity->ue_rnti, entity->channel_id, channel_id, sn, so, frame);
+  LATSEQ_P("U mac.demux--rlc.rx.am", "len%d:rnti%d:drb%d.lcid%d.rsn%d.rso%d.rfi%d.fm%d", size, entity->ue_rnti, entity->channel_id, channel_id, sn, so, fi, frame);
 #endif
   packet_count = 1;
 
@@ -711,14 +715,11 @@ void rlc_entity_am_recv_pdu(rlc_entity_t *_entity, char *buffer, int size, const
   entity->rx_size += size;
   //entity->rx_num += 1;
 #ifdef LATSEQ
-  LATSEQ_P("U rlc.rx.am--rlc.reas.am", "len%d:rnti%d:drb%d.rsn%d.rso%d", size, entity->ue_rnti, entity->channel_id, sn, so);
+  LATSEQ_P("U rlc.rx.am--rlc.reas.am", "len%d:rnti%d:drb%d.rsn%d.rso%d.rfi%d", size, entity->ue_rnti, entity->channel_id, sn, so, fi);
 #endif
   pdu_segment = rlc_rx_new_pdu_segment(sn, so, size, lsf, buffer, data_start);
   entity->rx_list = rlc_rx_pdu_segment_list_add(sn_compare_rx, entity,
                                                 entity->rx_list, pdu_segment);
-#ifdef LATSEQ
-  LATSEQ_P("I rlc.rxbuf.am", "wait%d:drb%d:", entity->rx_size, entity->channel_id);
-#endif
 
   /* do reception actions (36.322 5.1.3.2.3) */
   rlc_am_reception_actions(entity, pdu_segment);
@@ -1488,6 +1489,13 @@ void rlc_entity_am_recv_sdu(rlc_entity_t *_entity, char *buffer, int size,
   if (entity->tx_size + size > entity->tx_maxsize) {
     LOG_D(RLC, "%s:%d:%s: warning: SDU rejected, SDU buffer full\n",
           __FILE__, __LINE__, __FUNCTION__);
+#ifdef LATSEQ
+    uint16_t seqnum = 0x00;
+    seqnum = buffer[0] & 0x0F;
+    seqnum <<= 8;
+    seqnum |= buffer[1] & 0xFF;
+    LATSEQ_P("D pdcp.tx--rlc.drop.am", "len%d:rnti%d:drb%d.psn%d", size, entity->ue_rnti, entity->channel_id, seqnum);
+#endif
     return;
   }
 
@@ -1501,7 +1509,7 @@ void rlc_entity_am_recv_sdu(rlc_entity_t *_entity, char *buffer, int size,
   seqnum <<= 8;
   seqnum |= buffer[1] & 0xFF;
   LATSEQ_P("D pdcp.tx--rlc.tx.am", "len%d:rnti%d:drb%d.psn%d.sdu%d", size, entity->ue_rnti, entity->channel_id, seqnum, entity->tx_num);
-  LATSEQ_P("I rlc.txbuf.am", "occ%d:drb%d:", entity->tx_size, entity->channel_id);
+  LATSEQ_P("I rlc.txbuf.am", "occ%d:rnti%d:drb%d", entity->tx_size, entity->ue_rnti, entity->channel_id);
 #endif
 }
 

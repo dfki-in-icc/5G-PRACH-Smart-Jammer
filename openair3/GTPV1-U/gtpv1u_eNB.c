@@ -235,6 +235,7 @@ NwGtpv1uRcT gtpv1u_eNB_process_stack_req(
        */
       teid = pUlpApi->apiInfo.recvMsgInfo.teid;
       pMsg = (NwGtpv1uMsgT *) pUlpApi->apiInfo.recvMsgInfo.hMsg;
+      RC.gtpv1u_data_g->tx_seq_num = pMsg->seqNum;
       msgType = pMsg->msgType;
 
       if (NW_GTPV1U_OK != nwGtpv1uMsgGetTpdu(pUlpApi->apiInfo.recvMsgInfo.hMsg,
@@ -423,7 +424,7 @@ NwGtpv1uRcT gtpv1u_eNB_process_stack_req(
           }
         }
 #if LATSEQ
-        LATSEQ_P("D gtp.in--pdcp.in.gtp", "len%d:rnti%d:teid%u.drb%d.gsn%d", buffer_len, gtpv1u_teid_data_p->ue_id, teid, gtpv1u_teid_data_p->eps_bearer_id - 4, RC.gtpv1u_data_g->seq_num);
+        LATSEQ_P("D gtp.in--pdcp.in.gtp", "len%d:rnti%d:teid%u.drb%d.gsn%d.gso%d.npdu%d", buffer_len, gtpv1u_teid_data_p->ue_id, teid, gtpv1u_teid_data_p->eps_bearer_id - 4, pMsg->seqNum, pMsg->msgBufOffset, pMsg->npduNum);
 #endif
         result = pdcp_data_req(
                    &ctxt,
@@ -1360,6 +1361,10 @@ void *gtpv1u_eNB_process_itti_msg(void *notUsed) {
                           enb_s1u_teid,sgw_s1u_teid,data_req_p->length);
             (void)enb_s1u_teid; /* avoid gcc warning "set but not used" */
           } else {
+#if LATSEQ
+            uint16_t ipid = data_req_p->buffer[data_req_p->offset + 4] << 8 | data_req_p->buffer[data_req_p->offset + 5];
+            LATSEQ_P("U gtp.out--ip.out","len%d:rnti%d:drb%d.psn%d.teid%d.gsn%d.ipid0x%x",data_req_p->length, data_req_p->rnti, data_req_p->rab_id - 4, data_req_p->seqnum, sgw_s1u_teid, RC.gtpv1u_data_g->seq_num, ipid);
+#endif
             rc = nwGtpv1uProcessUlpReq(RC.gtpv1u_data_g->gtpv1u_stack, &stack_req);
 
             if (rc != NW_GTPV1U_OK) {

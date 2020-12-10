@@ -109,6 +109,7 @@ typedef struct gtpv1u_data_s {
   //udp_data_t            udp_data;
 
   uint16_t              seq_num;
+  uint16_t              tx_seq_num;
   uint8_t               restart_counter;
 
 #ifdef GTPU_IN_KERNEL

@@ -168,6 +168,9 @@ rx_sdu(const module_id_t enb_mod_idP,
        */
       UE_scheduling_control->ta_update = (UE_scheduling_control->ta_update * 3 + timing_advance) / 4;
       UE_scheduling_control->pusch_snr[CC_idP] = ul_cqi;
+#ifdef LATSEQ
+      LATSEQ_P("I phy.srs", "ucqi%d:ru%d.ue%d:", ul_cqi, CC_idP, UE_id);
+#endif
       UE_scheduling_control->ul_consecutive_errors = 0;
       first_rb = UE_template_ptr->first_rb_ul[harq_pid];
 
@@ -525,6 +528,9 @@ rx_sdu(const module_id_t enb_mod_idP,
           int bsr = 0;
           bsr = payload_ptr[0] & 0x3f;
           lcgid_updated[lcgid] = 1;
+#ifdef LATSEQ
+          LATSEQ_P("I mac.ind", "bsr%d.len%d:ue%d:lcgid%d", bsr, BSR_TABLE[bsr], UE_id, lcgid);
+#endif
           /* Update buffer info */
           UE_template_ptr->ul_buffer_info[lcgid] = BSR_TABLE[bsr];
           UE_template_ptr->estimated_ul_buffer =
@@ -842,7 +848,7 @@ rx_sdu(const module_id_t enb_mod_idP,
 
             if ((rx_lengths[i] < SCH_PAYLOAD_SIZE_MAX) && (rx_lengths[i] > 0)) {  // MAX SIZE OF transport block
 #if LATSEQ
-              LATSEQ_P("U phy.in.proc--mac.demux", "len%d:rnti%d:lcid%d.fm%d", rx_lengths[i], current_rnti, rx_lcids[i], frameP);
+              LATSEQ_P("U mac.harq.up--mac.demux", "len%d:rnti%d:ue%d.lcid%d.fm%d.subfm%d", rx_lengths[i], current_rnti, UE_id, rx_lcids[i], frameP, subframeP);
 #endif
               mac_rlc_data_ind(enb_mod_idP, current_rnti, enb_mod_idP, frameP, ENB_FLAG_YES, MBMS_FLAG_NO, rx_lcids[i], (char *) payload_ptr, rx_lengths[i], 1, NULL);
               UE_info->eNB_UE_stats[CC_idP][UE_id].num_pdu_rx[rx_lcids[i]] += 1;
@@ -1535,6 +1541,9 @@ schedule_ulsch_rnti(module_id_t   module_idP,
         T_INT(rb_table[rb_table_index]),
         T_INT(UE_template_ptr->TBS_UL[harq_pid]),
         T_INT(ndi));
+#ifdef LATSEQ
+      LATSEQ_P("I mac.sched.up", "len%d:ue%d:fm%d.subfm%d", UE_info->eNB_UE_stats[CC_id][UE_id].ulsch_TBS, UE_id, frameP, subframeP);
+#endif
       /* Store information for possible retransmission */
       UE_template_ptr->nb_rb_ul[harq_pid] = rb_table[rb_table_index];
       UE_template_ptr->first_rb_ul[harq_pid] = UE_template_ptr->pre_first_nb_rb_ul;

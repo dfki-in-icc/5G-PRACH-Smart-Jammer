@@ -674,7 +674,7 @@ void rx_rf(RU_t *ru, L1_rxtx_proc_t *proc) {
   setAllfromTS(timestamp_rx, proc);
 
 #if LATSEQ
-  LATSEQ_P("U phy.in.ant--phy.in.proc","len%d::fm%d.subfm%d",rxs,proc->frame_rx,proc->subframe_rx);
+  LATSEQ_P("U phy.in.ant--phy.in.proc","len%d::fm%d.subfm%d", rxs, proc->frame_rx, proc->subframe_rx);
 #endif
 
 }

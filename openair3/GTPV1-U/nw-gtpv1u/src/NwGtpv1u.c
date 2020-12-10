@@ -54,6 +54,9 @@
 #include "common/utils/LOG/log.h"
 #include "common/utils/LOG/vcd_signal_dumper.h"
 #endif
+//#ifdef LATSEQ
+//  #include "common/utils/LATSEQ/latseq.h"
+//#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -241,7 +244,9 @@ nwGtpv1uCreateAndSendMsg( NwGtpv1uStackT *thiz, uint32_t peerIp, uint16_t peerPo
     *((uint8_t *) msgHdr) = (pMsg->extHdrFlag ? htons(pMsg->nextExtHdrType) : 0x00);
     msgHdr++;
   }
-
+//#if LATSEQ
+//  LATSEQ_P("U gtp.out--ip.out","len%d::teid%d.gsn%d",pMsg->msgBufLen, pMsg->teid, pMsg->seqNum);
+//#endif
   rc = thiz->udp.udpDataReqCallback(thiz->udp.hUdp,
                                     pMsg->msgBuf,
                                     pMsg->msgBufLen,
