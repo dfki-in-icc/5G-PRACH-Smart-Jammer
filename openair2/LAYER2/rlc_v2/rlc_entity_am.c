@@ -1199,7 +1199,7 @@ static int serialize_pdu(rlc_entity_am_t *entity, char *buffer, int bufsize,
     if (outpos + li >= pdu->data_size)
       li = pdu->data_size - outpos;
 #ifdef LATSEQ
-    LATSEQ_P("D rlc.tx.am--rlc.seg.am", "len%d:rnti%d:drb%d.sdu%d.rsn%d.rso%d", sdu->size, entity->ue_rnti, entity->channel_id, sdu->sdu_num, pdu->sn, pdu->so);
+    LATSEQ_P("D rlc.tx.am--rlc.seg.am", "len%d:rnti%d:drb%d.sdu%d.rsn%d.rfi%d", sdu->size, entity->ue_rnti, entity->channel_id, sdu->sdu_num, pdu->sn, fi);
 #endif
     memcpy(out+outpos, sdu->data + sdu_start_byte, li);
     outpos += li;

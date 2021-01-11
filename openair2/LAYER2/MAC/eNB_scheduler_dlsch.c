@@ -950,7 +950,7 @@ schedule_ue_spec(module_id_t module_idP,
         LOG_D(MAC, "dlsch_mcs before and after the rate matching = (%d, %d), TBS %d, nb_rb %d\n",
               eNB_UE_stats->dlsch_mcs1, mcs, TBS, nb_rb);
 #ifdef LATSEQ
-        LATSEQ_P("I mac.sched.down", "mcs%d.tbs%d:rnti%d:lcid%d", eNB_UE_stats->dlsch_mcs1, TBS, rnti, sdu_lcids[0]);
+        LATSEQ_P("I mac.sched.down", "mcs%d.tbs%d.nrb%d:rnti%d:lcid%d", eNB_UE_stats->dlsch_mcs1, TBS, nb_rb, rnti, sdu_lcids[0]);
 #endif
 
         int post_padding = TBS - header_length_total - sdu_length_total - ta_len > 2;

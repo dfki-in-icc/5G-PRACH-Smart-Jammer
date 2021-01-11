@@ -1542,7 +1542,7 @@ schedule_ulsch_rnti(module_id_t   module_idP,
         T_INT(UE_template_ptr->TBS_UL[harq_pid]),
         T_INT(ndi));
 #ifdef LATSEQ
-      LATSEQ_P("I mac.sched.up", "len%d:ue%d:fm%d.subfm%d", UE_info->eNB_UE_stats[CC_id][UE_id].ulsch_TBS, UE_id, frameP, subframeP);
+      LATSEQ_P("I mac.sched.up", "mcs%d.tbs%d.nrb%d:ue%d:fm%d.subfm%d", mcs, UE_info->eNB_UE_stats[CC_id][UE_id].ulsch_TBS, rb_table[rb_table_index], UE_id, frameP, subframeP);
 #endif
       /* Store information for possible retransmission */
       UE_template_ptr->nb_rb_ul[harq_pid] = rb_table[rb_table_index];
