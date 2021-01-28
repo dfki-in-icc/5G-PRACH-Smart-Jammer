@@ -107,6 +107,7 @@
 #define CONFIG_HLP_SNR           "Set average SNR in dB (for --siml1 option)\n"
 #define CONFIG_HLP_NOS1          "Disable s1 interface\n"
 #define CONFIG_HLP_NOKRNMOD      "(noS1 only): Use tun instead of namesh module \n"
+#define CONFIG_HLP_PROPD         "Set propagation delay in the RF simulator (expressed in number of samples)\n"
 /*--------------------------------------------------------------------------------------------------------------------------------*/
 /*                                            command line parameters for LOG utility                                             */
 /*   optname         helpstr          paramflags          XXXptr                     defXXXval            type           numelt   */
@@ -150,5 +151,7 @@ extern double cpuf;
 extern int emulate_rf;
 extern int numerology;
 extern int usrp_tx_thread;
+
+extern uint64_t RFsim_PropDelay; //propagation delay in the RF simulator (expressed in number of samples)
 
 #endif

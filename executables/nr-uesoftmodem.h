@@ -72,6 +72,7 @@
     {"chest-freq",               CONFIG_HLP_CHESTFREQ,   0,               iptr:&(UE->chest_freq),             defintval:0,           TYPE_INT,   0}, \
     {"chest-time",               CONFIG_HLP_CHESTTIME,   0,               iptr:&(UE->chest_time),             defintval:0,           TYPE_INT,   0}, \
     {"ue-timing-correction-disable", CONFIG_HLP_DISABLETIMECORR, PARAMFLAG_BOOL, iptr:&(UE->no_timing_correction), defintval:0,      TYPE_INT,   0}, \
+    {"P" ,                       CONFIG_HLP_PROPD,       0,               u64ptr:&RFsim_PropDelay,            defintval:0,           TYPE_UINT64,0}, \
 }
 
 

@@ -387,6 +387,7 @@ void *rrc_enb_process_msg(void *notUsed) {
   return NULL;
 }
 
+uint64_t RFsim_PropDelay = 0;
 
 int main( int argc, char **argv ) {
   int set_exe_prio = 1;
