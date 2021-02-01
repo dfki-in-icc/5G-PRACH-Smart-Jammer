@@ -222,15 +222,15 @@ uint32_t get_slot_from_timestamp(openair0_timestamp timestamp_rx, NR_DL_FRAME_PA
    return slot_idx; 
 }
 
-uint32_t get_samples_slot_timestamp(int slot, NR_DL_FRAME_PARMS* fp, uint8_t sl_ahead)
+uint32_t get_samples_slot_timestamp(int slot, NR_DL_FRAME_PARMS* fp, uint16_t sl_ahead)
 {
   uint32_t samp_count = 0;
 
   if(!sl_ahead) {
-    for(uint8_t idx_slot = 0; idx_slot < slot; idx_slot++)
+    for(uint16_t idx_slot = 0; idx_slot < slot; idx_slot++)
       samp_count += fp->get_samples_per_slot(idx_slot, fp);
   } else {
-    for(uint8_t idx_slot = slot; idx_slot < slot+sl_ahead; idx_slot++)
+    for(uint16_t idx_slot = slot; idx_slot < slot+sl_ahead; idx_slot++)
       samp_count += fp->get_samples_per_slot(idx_slot, fp);
   }
   return samp_count;

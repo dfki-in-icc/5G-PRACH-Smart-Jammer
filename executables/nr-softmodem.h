@@ -33,6 +33,7 @@
     {"uecap_file",            CONFIG_HLP_UECAP_FILE,  0,                strptr:&uecap_file,                 defstrval:"./uecap.xml",       TYPE_STRING, 0},        \
     {"s" ,                    CONFIG_HLP_SNR,         0,                dblptr:&snr_dB,                     defdblval:25,                  TYPE_DOUBLE, 0},        \
     {"P" ,                    CONFIG_HLP_PROPD,       0,                u64ptr:&RFsim_PropDelay,            defintval:0,                   TYPE_UINT64, 0},        \
+    {"gnb_k2" ,               CONFIG_HLP_GNBK2,       0,                u16ptr:&NTN_gNB_k2,                 defintval:0,                   TYPE_UINT16, 0},        \
   }
 
 #include "threads_t.h"

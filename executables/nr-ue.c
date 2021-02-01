@@ -92,7 +92,6 @@
  *
  */
 
-
 #define RX_JOB_ID 0x1010
 #define TX_JOB_ID 100
 

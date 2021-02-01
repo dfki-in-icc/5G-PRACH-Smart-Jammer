@@ -388,6 +388,8 @@ void *rrc_enb_process_msg(void *notUsed) {
 }
 
 uint64_t RFsim_PropDelay = 0;
+uint16_t NTN_UE_k2 = 0;
+uint16_t NTN_UE_slot_Rx_to_Tx = 0;
 
 int main( int argc, char **argv ) {
   int set_exe_prio = 1;

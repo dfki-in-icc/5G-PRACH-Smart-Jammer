@@ -1038,12 +1038,10 @@ bool nr_ue_dlsch_procedures(PHY_VARS_NR_UE *ue,
       const int ul_tx_timing_adjustment = 1 + (int)ceil(slots_per_subframe*(N_t_1 + N_t_2 + N_TA_max + 0.5)/t_subframe);
 
       if (ul_time_alignment->apply_ta == 1){
-        ul_time_alignment->ta_slot = (nr_slot_rx + ul_tx_timing_adjustment) % slots_per_frame;
-        if (nr_slot_rx + ul_tx_timing_adjustment > slots_per_frame){
-          ul_time_alignment->ta_frame = (frame_rx + 1) % 1024;
-        } else {
-          ul_time_alignment->ta_frame = frame_rx;
-        }
+        int ta_slot_temp = nr_slot_rx + ul_tx_timing_adjustment + NTN_UE_slot_Rx_to_Tx;
+        ul_time_alignment->ta_slot = ta_slot_temp % slots_per_frame;
+        ul_time_alignment->ta_frame = (frame_rx + ta_slot_temp/slots_per_frame) % 1024;
+
         // reset TA flag
         ul_time_alignment->apply_ta = 0;
         LOG_D(PHY,"Frame %d slot %d -- Starting UL time alignment procedures. TA update will be applied at frame %d slot %d\n",

@@ -62,7 +62,7 @@
 
 static prach_association_pattern_t prach_assoc_pattern;
 static ssb_list_info_t ssb_list;
-
+extern uint16_t NTN_UE_k2; //the additional k2 value at UE
 void fill_ul_config(fapi_nr_ul_config_request_t *ul_config, frame_t frame_tx, int slot_tx, uint8_t pdu_type){
 
   AssertFatal(ul_config->number_pdus < sizeof(ul_config->ul_config_list) / sizeof(ul_config->ul_config_list[0]),
@@ -141,7 +141,7 @@ long get_k2(NR_UE_MAC_INST_t *mac, uint8_t time_domain_ind) {
             time_domain_ind, pusch_TimeDomainAllocationList->list.count);
       return -1;
     }
-    k2 = *pusch_TimeDomainAllocationList->list.array[time_domain_ind]->k2;
+    k2 = *pusch_TimeDomainAllocationList->list.array[time_domain_ind]->k2+NTN_UE_k2;
   }
 
   AssertFatal(k2 >= DURATION_RX_TO_TX,
@@ -1610,10 +1610,10 @@ int nr_ue_pusch_scheduler(NR_UE_MAC_INST_t *mac,
     mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP.pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList;
   // k2 as per 3GPP TS 38.214 version 15.9.0 Release 15 ch 6.1.2.1.1
   // PUSCH time domain resource allocation is higher layer configured from uschTimeDomainAllocationList in either pusch-ConfigCommon
-  int k2;
+  uint16_t k2;
 
   if (is_Msg3) {
-    k2 = *pusch_TimeDomainAllocationList->list.array[tda_id]->k2;
+    k2 = *pusch_TimeDomainAllocationList->list.array[tda_id]->k2+NTN_UE_k2;
 
     switch (mu) {
       case 0:
@@ -1635,11 +1635,7 @@ int nr_ue_pusch_scheduler(NR_UE_MAC_INST_t *mac,
                 k2+delta,DURATION_RX_TO_TX);
 
     *slot_tx = (current_slot + k2 + delta) % nr_slots_per_frame[mu];
-    if (current_slot + k2 + delta > nr_slots_per_frame[mu]){
-      *frame_tx = (current_frame + 1) % 1024;
-    } else {
-      *frame_tx = current_frame;
-    }
+    *frame_tx = (current_frame + (current_slot + k2 + delta)/nr_slots_per_frame[mu]) % 1024;
 
   } else {
 
@@ -1652,7 +1648,7 @@ int nr_ue_pusch_scheduler(NR_UE_MAC_INST_t *mac,
 
     // Calculate TX slot and frame
     *slot_tx = (current_slot + k2) % nr_slots_per_frame[mu];
-    *frame_tx = ((current_slot + k2) > (nr_slots_per_frame[mu]-1)) ? (current_frame + 1) % 1024 : current_frame;
+    *frame_tx = (current_frame + (current_slot + k2)/nr_slots_per_frame[mu]) % 1024;
 
   }
 

@@ -689,6 +689,7 @@ void nr_schedule_RA(module_id_t module_idP, frame_t frameP, sub_frame_t slotP) {
   stop_meas(&mac->schedule_ra);
 }
 
+extern uint16_t NTN_gNB_k2;
 
 void nr_generate_Msg3_retransmission(module_id_t module_idP, int CC_id, frame_t frame, sub_frame_t slot, NR_RA_t *ra) {
 
@@ -699,8 +700,8 @@ void nr_generate_Msg3_retransmission(module_id_t module_idP, int CC_id, frame_t 
 
   NR_PUSCH_TimeDomainResourceAllocationList_t *pusch_TimeDomainAllocationList = ul_bwp->tdaList;
   int mu = ul_bwp->scs;
-  uint8_t K2 = *pusch_TimeDomainAllocationList->list.array[ra->Msg3_tda_id]->k2;
-  const int sched_frame = frame + (slot + K2 >= nr_slots_per_frame[mu]);
+  uint16_t K2 = *pusch_TimeDomainAllocationList->list.array[ra->Msg3_tda_id]->k2 + NTN_gNB_k2;
+  const int sched_frame = (frame + (slot + K2) / nr_slots_per_frame[mu]) % MAX_FRAME_NUMBER;
   const int sched_slot = (slot + K2) % nr_slots_per_frame[mu];
 
   if (is_xlsch_in_slot(RC.nrmac[module_idP]->ulsch_slot_bitmap[sched_slot / 64], sched_slot)) {
@@ -892,14 +893,14 @@ void nr_get_Msg3alloc(module_id_t module_id,
 
   const NR_TDD_UL_DL_Pattern_t *tdd = scc->tdd_UL_DL_ConfigurationCommon ? &scc->tdd_UL_DL_ConfigurationCommon->pattern1 : NULL;
   const int n_slots_frame = nr_slots_per_frame[mu];
-  uint8_t k2 = 0;
+  uint16_t k2 = 0;
   if (frame_type == TDD) {
     int nb_periods_per_frame = get_nb_periods_per_frame(scc->tdd_UL_DL_ConfigurationCommon->pattern1.dl_UL_TransmissionPeriodicity);
     int nb_slots_per_period = ((1<<mu)*10)/nb_periods_per_frame;
     for (int i=0; i<pusch_TimeDomainAllocationList->list.count; i++) {
       startSymbolAndLength = pusch_TimeDomainAllocationList->list.array[i]->startSymbolAndLength;
       SLIV2SL(startSymbolAndLength, &StartSymbolIndex, &NrOfSymbols);
-      k2 = *pusch_TimeDomainAllocationList->list.array[i]->k2;
+      k2 = *pusch_TimeDomainAllocationList->list.array[i]->k2 + NTN_gNB_k2;
       int start_symbol_index,nr_of_symbols;
       SLIV2SL(pusch_TimeDomainAllocationList->list.array[i]->startSymbolAndLength, &start_symbol_index, &nr_of_symbols);
       LOG_D(NR_MAC,"Checking Msg3 TDA %d : k2 %d, sliv %d,S %d L %d\n",i,(int)k2,(int)pusch_TimeDomainAllocationList->list.array[i]->startSymbolAndLength,start_symbol_index,nr_of_symbols);
@@ -922,7 +923,7 @@ void nr_get_Msg3alloc(module_id_t module_id,
   }
   else {
     ra->Msg3_tda_id = 0;
-    k2 = *pusch_TimeDomainAllocationList->list.array[0]->k2;
+    k2 = *pusch_TimeDomainAllocationList->list.array[0]->k2 + NTN_gNB_k2;
     temp_slot = current_slot + k2 + DELTA[mu]; // msg3 slot according to 8.3 in 38.213
     ra->Msg3_slot = temp_slot%nr_slots_per_frame[mu];
   }

@@ -279,8 +279,10 @@
 /* - issues caused by no rendez-vous point between TX and RX in the OAI UE     */
 #define NR_UE_CAPABILITY_SLOT_RX_TO_TX           (5) 
 
+extern uint16_t NTN_UE_slot_Rx_to_Tx;
+
 #ifndef NO_RAT_NR
-  #define DURATION_RX_TO_TX           (NR_UE_CAPABILITY_SLOT_RX_TO_TX)  /* for NR this will certainly depends to such UE capability which is not yet defined */
+  #define DURATION_RX_TO_TX           (NR_UE_CAPABILITY_SLOT_RX_TO_TX + NTN_UE_slot_Rx_to_Tx)  /* for NR this will certainly depends to such UE capability which is not yet defined */
 #else
   #define DURATION_RX_TO_TX           (6)   /* For LTE, this duration is fixed to 4 and it is linked to LTE standard for both modes FDD/TDD */
 #endif
