@@ -65,11 +65,30 @@ enum flex_slice_algorithm {
   None = 0;
   Static = 1;
   NVS = 2;
+  EDF = 4;
 }
 
 message flex_slice_static {
   optional uint32 posLow = 1;
   optional uint32 posHigh = 2;
+}
+
+message flex_slice_nvs {
+  message nvs_rate {
+    optional float Mbps_required = 1;
+    optional float Mbps_reference = 2;
+  }
+  oneof type {
+    nvs_rate rate = 1;
+    float pct_reserved = 2;
+  }
+}
+
+message flex_slice_edf {
+  optional uint32 deadline = 1;
+  optional uint32 guaranteed_prbs = 2;
+  optional uint32 max_replenish = 3;
+  repeated uint32 override = 4;
 }
 
 message flex_slice {
@@ -78,6 +97,8 @@ message flex_slice {
   optional string scheduler = 3;
   oneof params {
     flex_slice_static static = 10;
+    flex_slice_nvs nvs = 11;
+    flex_slice_edf edf = 13;
   }
 }
 

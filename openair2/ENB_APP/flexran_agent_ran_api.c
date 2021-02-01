@@ -3023,6 +3023,10 @@ Protocol__FlexSliceAlgorithm flexran_get_dl_slice_algo(mid_t mod_id) {
   switch (RC.mac[mod_id]->pre_processor_dl.algorithm) {
     case STATIC_SLICING:
       return PROTOCOL__FLEX_SLICE_ALGORITHM__Static;
+    case NVS_SLICING:
+      return PROTOCOL__FLEX_SLICE_ALGORITHM__NVS;
+    case EDF_SLICING:
+      return PROTOCOL__FLEX_SLICE_ALGORITHM__EDF;
     default:
       return PROTOCOL__FLEX_SLICE_ALGORITHM__None;
   }
@@ -3035,15 +3039,23 @@ int flexran_set_dl_slice_algo(mid_t mod_id, Protocol__FlexSliceAlgorithm algo) {
 
   pp_impl_param_t dl = mac->pre_processor_dl;
   switch (algo) {
-    case PROTOCOL__FLEX_SLICE_ALGORITHM__Static:
-      mac->pre_processor_dl = static_dl_init(mod_id, cc_id);
-      break;
-    default:
+    case PROTOCOL__FLEX_SLICE_ALGORITHM__None:
       mac->pre_processor_dl.algorithm = 0;
       mac->pre_processor_dl.dl = dlsch_scheduler_pre_processor;
       mac->pre_processor_dl.dl_algo.data = mac->pre_processor_dl.dl_algo.setup();
       mac->pre_processor_dl.slices = NULL;
       break;
+    case PROTOCOL__FLEX_SLICE_ALGORITHM__Static:
+      mac->pre_processor_dl = static_dl_init(mod_id, cc_id);
+      break;
+    case PROTOCOL__FLEX_SLICE_ALGORITHM__NVS:
+      mac->pre_processor_dl = nvs_dl_init(mod_id, cc_id);
+      break;
+    case PROTOCOL__FLEX_SLICE_ALGORITHM__EDF:
+      mac->pre_processor_dl = edf_dl_init(mod_id, cc_id);
+      break;
+    default:
+      return -1;
   }
   if (dl.slices)
     dl.destroy(&dl.slices);
@@ -3131,6 +3143,28 @@ int flexran_create_dl_slice(mid_t mod_id, const Protocol__FlexSlice *s, void *ob
       ((static_slice_param_t *)params)->posLow = s->static_->poslow;
       ((static_slice_param_t *)params)->posHigh = s->static_->poshigh;
       break;
+    case PROTOCOL__FLEX_SLICE__PARAMS_NVS:
+      params = malloc(sizeof(nvs_slice_param_t));
+      if (!params) return 0;
+      if (s->nvs->type_case == PROTOCOL__FLEX_SLICE_NVS__TYPE_RATE) {
+        ((nvs_slice_param_t *)params)->type = NVS_RATE;
+        ((nvs_slice_param_t *)params)->Mbps_reserved = s->nvs->rate->mbps_required;
+        ((nvs_slice_param_t *)params)->Mbps_reference = s->nvs->rate->mbps_reference;
+      } else {
+        ((nvs_slice_param_t *)params)->type = NVS_RES;
+        ((nvs_slice_param_t *)params)->pct_reserved = s->nvs->pct_reserved;
+      }
+      break;
+    case PROTOCOL__FLEX_SLICE__PARAMS_EDF:
+      params = malloc(sizeof(edf_slice_param_t));
+      if (!params) return 0;
+      ((edf_slice_param_t *)params)->deadline = s->edf->deadline;
+      ((edf_slice_param_t *)params)->guaranteed_prbs = s->edf->guaranteed_prbs;
+      ((edf_slice_param_t *)params)->max_replenish = s->edf->max_replenish;
+      ((edf_slice_param_t *)params)->noverride = s->edf->n_override;
+      for (int i = 0; i < s->edf->n_override; ++i)
+        ((edf_slice_param_t *)params)->loverride[i] = s->edf->override[i];
+      break;
     default:
       break;
   }
@@ -3187,6 +3221,39 @@ void flexran_get_dl_slice(mid_t mod_id,
       slice->static_->poshigh = ((static_slice_param_t *)s_->algo_data)->posHigh;
       slice->params_case = PROTOCOL__FLEX_SLICE__PARAMS_STATIC;
       break;
+    case PROTOCOL__FLEX_SLICE_ALGORITHM__NVS:
+      slice->nvs = malloc(sizeof(Protocol__FlexSliceNvs));
+      if (!slice->nvs) return;
+      protocol__flex_slice_nvs__init(slice->nvs);
+      if (((nvs_slice_param_t *)s_->algo_data)->type == NVS_RATE) {
+        slice->nvs->rate = malloc(sizeof(Protocol__FlexSliceNvs__NvsRate));
+        if (!slice->nvs->rate) return;
+        protocol__flex_slice_nvs__nvs_rate__init(slice->nvs->rate);
+        slice->nvs->rate->mbps_required = ((nvs_slice_param_t *)s_->algo_data)->Mbps_reserved;
+        slice->nvs->rate->has_mbps_required = 1;
+        slice->nvs->rate->mbps_reference = ((nvs_slice_param_t *)s_->algo_data)->Mbps_reference;
+        slice->nvs->rate->has_mbps_reference = 1;
+        slice->nvs->type_case = PROTOCOL__FLEX_SLICE_NVS__TYPE_RATE;
+      } else {
+        slice->nvs->pct_reserved = ((nvs_slice_param_t *)s_->algo_data)->pct_reserved;
+        slice->nvs->type_case = PROTOCOL__FLEX_SLICE_NVS__TYPE_PCT_RESERVED;
+      }
+      slice->params_case = PROTOCOL__FLEX_SLICE__PARAMS_NVS;
+      break;
+    case PROTOCOL__FLEX_SLICE_ALGORITHM__EDF:
+      slice->edf = malloc(sizeof(Protocol__FlexSliceEdf));
+      if (!slice->edf) return;
+      protocol__flex_slice_edf__init(slice->edf);
+      slice->edf->has_deadline = 1;
+      slice->edf->deadline = ((edf_slice_param_t *)s_->algo_data)->deadline;
+      slice->edf->has_guaranteed_prbs = 1;
+      slice->edf->guaranteed_prbs = ((edf_slice_param_t *)s_->algo_data)->guaranteed_prbs;
+      slice->edf->has_max_replenish = 1;
+      slice->edf->max_replenish = ((edf_slice_param_t *)s_->algo_data)->max_replenish;
+      slice->edf->n_override = ((edf_slice_param_t *)s_->algo_data)->noverride;
+      slice->edf->override = ((edf_slice_param_t *)s_->algo_data)->loverride;
+      slice->params_case = PROTOCOL__FLEX_SLICE__PARAMS_EDF;
+      break;
     default:
       break;
   }
@@ -3208,6 +3275,18 @@ int flexran_create_ul_slice(mid_t mod_id, const Protocol__FlexSlice *s, void *ob
       ((static_slice_param_t *)params)->posLow = s->static_->poslow;
       ((static_slice_param_t *)params)->posHigh = s->static_->poshigh;
       break;
+    /*case PROTOCOL__FLEX_SLICE__PARAMS_NVS:
+      params = malloc(sizeof(nvs_slice_param_t));
+      if (!params) return 0;
+      if (s->nvs->type_case == PROTOCOL__FLEX_SLICE_NVS__TYPE_RATE) {
+        ((nvs_slice_param_t *)params)->type = NVS_RATE;
+        ((nvs_slice_param_t *)params)->Mbps_reserved = s->nvs->rate->Mbps_required;
+        ((nvs_slice_param_t *)params)->Mbps_reference = s->nvs->rate->Mbps_reference;
+      } else {
+        ((nvs_slice_param_t *)params)->type = NVS_RES;
+        ((nvs_slice_param_t *)params)->pct_reserved = s->nvs->pct_reserved;
+      }
+      break;*/
     default:
       break;
   }
@@ -3264,10 +3343,25 @@ void flexran_get_ul_slice(mid_t mod_id,
       slice->static_->poshigh = ((static_slice_param_t *)s_->algo_data)->posHigh;
       slice->params_case = PROTOCOL__FLEX_SLICE__PARAMS_STATIC;
       break;
+    /*case PROTOCOL__FLEX_SLICE_ALGORITHM__NVS:
+      slice->nvs = malloc(sizeof(Protocol__FlexSliceNvs));
+      if (!slice->nvs) return;
+      protocol__flex_slice_nvs__init(slice->nvs);
+      if (((nvs_slice_param_t *)s_->algo_data)->type == NVS_RATE) {
+        slice->nvs->rate = malloc(sizeof(Protocol__FlexSliceNvs__NvsRate));
+        if (!slice->nvs->rate) return;
+        protocol__flex_slice_nvs__nvs_rate__init(slice->nvs->rate);
+        slice->nvs->rate->Mbps_required = ((nvs_slice_param_t *)s_->algo_data)->Mbps_reserved;
+        slice->nvs->rate->Mbps_reference = ((nvs_slice_param_t *)s_->algo_data)->Mbps_reference;
+        slice->nvs->type_case = PROTOCOL__FLEX_SLICE_NVS__TYPE_RATE;
+      } else {
+        slice->nvs->pct_reserved = ((nvs_slice_param_t *)s_->algo_data)->pct_reserved;
+        slice->nvs->type_case = PROTOCOL__FLEX_SLICE_NVS__TYPE_PCT_RESERVED;
+      }
+      slice->params_case = PROTOCOL__FLEX_SLICE__PARAMS_NVS;*/
     default:
       break;
   }
-
 }
 
 int flexran_get_num_ul_slices(mid_t mod_id) {

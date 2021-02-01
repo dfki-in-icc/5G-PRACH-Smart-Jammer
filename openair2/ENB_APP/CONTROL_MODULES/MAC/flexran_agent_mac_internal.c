@@ -1092,9 +1092,14 @@ void apply_update_dl_slice_config(mid_t mod_id, Protocol__FlexSliceDlUlConfig *d
 
   Protocol__FlexSliceAlgorithm dl_algo = flexran_get_dl_slice_algo(mod_id);
   if (dl->has_algorithm && dl_algo != dl->algorithm) {
-    LOG_I(FLEXRAN_AGENT, "loading new DL slice algorithm %d\n", dl->algorithm);
-    dl_algo = dl->algorithm;
-    flexran_set_dl_slice_algo(mod_id, dl_algo);
+    int rc = flexran_set_dl_slice_algo(mod_id, dl->algorithm);
+    if (rc != 1) {
+      LOG_E(FLEXRAN_AGENT, "cannot load slice algorithm %d: error code %d\n", dl->algorithm, rc);
+      return;
+    } else {
+      LOG_I(FLEXRAN_AGENT, "loading new DL slice algorithm %d\n", dl->algorithm);
+      dl_algo = dl->algorithm; // mark this as the new algo to prevent a new lookup
+    }
   }
 
   /* first update existing slices, then create new. Thus, we go through the
