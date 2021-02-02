@@ -1005,3 +1005,277 @@ pp_impl_param_t nvs_dl_init(module_id_t mod_id, int CC_id) {
 
   return nvs;
 }
+
+/************************* EDF Slicing Implementation **************************/
+
+typedef struct {
+  uint32_t Q;
+  uint32_t n;
+  bool suspended;
+#define d_INF 0xffffffff
+  uint32_t d;
+} _edf_int_t;
+
+int _edf_admission_control(const slice_info_t *si, edf_slice_param_t *p, int id, int idx, int N_RB_DL)
+{
+  float sum_req = 0.0f;
+  for (int i = 0; i < si->num; ++i) {
+    edf_slice_param_t *sp = i == idx ? p : si->s[i]->algo_data;
+    sum_req += (float) sp->guaranteed_prbs / sp->deadline;
+  }
+  if (idx < 0) { /* not an existing slice */
+    sum_req += (float) p->guaranteed_prbs / p->deadline;
+  }
+  /* check if all slices in override are actually present and emit warning if
+   * not (do not fail, since then it is not possible to create multiple slices
+   * that mutually use override */
+  for (int i = 0; i < p->noverride; ++i) {
+    bool found = id == p->loverride[i];
+    for (int j = 0; !found && j < si->num; ++j)
+      found = si->s[j]->id == p->loverride[i];
+    if (!found)
+      LOG_W(FLEXRAN_AGENT,
+            "%s(): slice ID %d references slice ID %d in override, but it is not present (yet)\n",
+            __func__, id, p->loverride[i]);
+    if (i == p->noverride - 1 && p->loverride[i] != id)
+      RET_FAIL(-110,
+               "%s(): last override slice of slice index %d should be itself (ID %d)\n",
+               __func__, idx, id);
+  }
+  if (sum_req > 1.0f * N_RB_DL)
+    RET_FAIL(-103,
+             "%s(): admission control failed: sum of resources %f > 1.0\n",
+             __func__, sum_req);
+  return 0;
+}
+
+int addmod_edf_slice_dl(slice_info_t *si, int id, char *label, void *algo, void *slice_params_dl)
+{
+  edf_slice_param_t *dl = slice_params_dl;
+  int index = _exists_slice(si->num, si->s, id);
+  if (index < 0 && si->num >= MAX_EDF_SLICES)
+    RET_FAIL(-2, "%s(): cannot handle more than %d slices\n", __func__, MAX_EDF_SLICES);
+
+  const module_id_t mod_id = 0;
+  const int CC_id = 0;
+  const int N_RB_DL = to_prb(RC.mac[mod_id]->common_channels[CC_id].mib->message.dl_Bandwidth);
+  const int rc = _edf_admission_control(si, dl, id, index, N_RB_DL);
+  if (rc < 0)
+    return rc;
+
+  slice_t *ns = NULL;
+  if (index >= 0) {
+    ns = si->s[index];
+    if (label) {
+      if (ns->label) free(ns->label);
+      ns->label = label;
+    }
+    if (algo) {
+      ns->dl_algo.unset(&ns->dl_algo.data);
+      ns->dl_algo = *(default_sched_dl_algo_t *) algo;
+      if (!ns->dl_algo.data)
+        ns->dl_algo.data = ns->dl_algo.setup();
+    }
+    if (dl) {
+      free(ns->algo_data);
+      ns->algo_data = dl;
+    } else { /* we have no parameters: we are done */
+      return index;
+    }
+  } else {
+    if (!algo)
+      RET_FAIL(-14, "%s(): no scheduler algorithm provided\n", __func__);
+
+    ns = _add_slice(&si->num, si->s);
+    if (!ns)
+      RET_FAIL(-4, "%s(): cannot allocate memory for slice\n", __func__);
+    ns->int_data = malloc(sizeof(_edf_int_t));
+    if (!ns->int_data)
+      RET_FAIL(-5, "%s(): cannot allocate memory for slice internal data\n",
+               __func__);
+
+    ns->id = id;
+    ns->label = label;
+    ns->dl_algo = *(default_sched_dl_algo_t *) algo;
+    if (!ns->dl_algo.data)
+      ns->dl_algo.data = ns->dl_algo.setup();
+    ns->algo_data = dl;
+  }
+
+  _edf_int_t *edf_p = ns->int_data;
+  /* reset all slice-internal parameters */
+  edf_p->Q = 0;
+  edf_p->n = 0;
+  edf_p->suspended = false;
+  edf_p->d = d_INF;
+  return index < 0 ? si->num - 1 : index;
+}
+
+void edf_destroy(slice_info_t **si)
+{
+  const int n_dl = (*si)->num;
+  (*si)->num = 0;
+  for (int i = 0; i < n_dl; ++i) {
+    slice_t *s = (*si)->s[i];
+    if (s->label)
+      free(s->label);
+    free(s->algo_data);
+    free(s->int_data);
+    free(s);
+  }
+  free((*si)->s);
+}
+
+void edf_dl(module_id_t mod_id, int CC_id, frame_t frame, sub_frame_t subframe)
+{
+  UE_info_t *UE_info = &RC.mac[mod_id]->UE_info;
+
+  store_dlsch_buffer(mod_id, CC_id, frame, subframe);
+
+  slice_info_t *si = RC.mac[mod_id]->pre_processor_dl.slices;
+  const COMMON_channels_t *cc = &RC.mac[mod_id]->common_channels[CC_id];
+  const uint8_t harq_pid = frame_subframe2_dl_harq_pid(cc->tdd_Config, frame, subframe);
+  uint64_t slice_buffered_data[MAX_EDF_SLICES] = {0};
+  bool slice_retransmission_ue[MAX_EDF_SLICES] = {0};
+  for (int UE_id = UE_info->list.head; UE_id >= 0; UE_id = UE_info->list.next[UE_id]) {
+    UE_sched_ctrl_t *ue_sched_ctrl = &UE_info->UE_sched_ctrl[UE_id];
+
+    /* initialize per-UE scheduling information */
+    ue_sched_ctrl->pre_nb_available_rbs[CC_id] = 0;
+    ue_sched_ctrl->dl_pow_off[CC_id] = 2;
+    memset(ue_sched_ctrl->rballoc_sub_UE[CC_id], 0, sizeof(ue_sched_ctrl->rballoc_sub_UE[CC_id]));
+    ue_sched_ctrl->pre_dci_dl_pdu_idx = -1;
+
+    const UE_TEMPLATE *UE_template = &UE_info->UE_template[CC_id][UE_id];
+    const uint8_t round = UE_info->UE_sched_ctrl[UE_id].round[CC_id][harq_pid];
+    const int idx = si->UE_assoc_slice[UE_id];
+    DevAssert(idx >= 0);
+    /* if UE has data or retransmission, mark respective slice as active */
+    slice_buffered_data[idx] += UE_template->dl_buffer_total;
+    slice_retransmission_ue[idx] |= (round != 8); // round != 8 -> UE has retx
+
+    eNB_UE_STATS *eNB_UE_stats = &UE_info->eNB_UE_stats[CC_id][UE_id];
+    slice_t *s = si->s[idx];
+    _edf_int_t *ip = s->int_data;
+    ip->n -= eNB_UE_stats->rbs_used;
+  }
+
+  /* EDF algorithm */
+  uint32_t q[MAX_EDF_SLICES] = {0};
+  UE_list_t L = {.head = -1, .next = {0}};
+  for (int i = 0; i < si->num; ++i) {
+    slice_t *s = si->s[i];
+    const edf_slice_param_t *p = s->algo_data;
+    _edf_int_t *ip = s->int_data;
+
+    if (slice_buffered_data[i] > 0) {
+      if (ip->d == d_INF || ip->d == 0) {
+        ip->d = p->deadline;
+        ip->n = 0;
+        ip->suspended = false;
+        ip->Q = p->guaranteed_prbs;
+        q[i] = ip->Q;
+      } else {
+        if (!ip->suspended) {
+          q[i] = max(0, ip->Q - ip->n);
+        } else {
+          ip->Q = min(p->guaranteed_prbs, ip->Q - ip->n + p->guaranteed_prbs * (p->deadline - ip->d) / p->deadline);
+          q[i] = ip->Q;
+          ip->d = p->deadline;
+          ip->n = 0;
+          ip->suspended = false;
+        }
+      }
+    } else {
+      if (ip->d == 0) {
+        ip->d = d_INF;
+      } else if (ip->d < p->deadline && ip->Q - ip->n > 0) {
+        q[i] = ip->Q - ip->n;
+        ip->suspended = true;
+      }
+    }
+
+    if (ip->d < d_INF)
+      ip->d -= 1;
+
+    /* no data, so it does not make sense to schedule this slice */
+    if (slice_buffered_data[i] == 0 && !slice_retransmission_ue[i])
+      continue;
+
+    /* insertion sort: sort slices by ascending parameter d */
+    int *cur = &L.head;
+    while (*cur != -1 && ip->d > ((_edf_int_t *)si->s[*cur]->int_data)->d)
+      cur = &L.next[*cur];
+    const int next = *cur;
+    *cur = i;
+    L.next[*cur] = next;
+  }
+
+  const int N_RBG = to_rbg(RC.mac[mod_id]->common_channels[CC_id].mib->message.dl_Bandwidth);
+  const int N_RB_DL = to_prb(RC.mac[mod_id]->common_channels[CC_id].mib->message.dl_Bandwidth);
+  const int RBGsize = get_min_rb_unit(mod_id, CC_id);
+  uint8_t *vrb_map = RC.mac[mod_id]->common_channels[CC_id].vrb_map;
+  uint8_t rbgalloc_mask[N_RBG_MAX];
+  int n_rbg_sched = 0;
+  for (int i = 0; i < N_RBG; i++) {
+    // calculate mask: init to one + "AND" with vrb_map:
+    // if any RB in vrb_map is blocked (1), the current RBG will be 0
+    rbgalloc_mask[i] = 1;
+    for (int j = 0; j < RBGsize && RBGsize * i + j < N_RB_DL; j++)
+      rbgalloc_mask[i] &= !vrb_map[RBGsize * i + j];
+    n_rbg_sched += rbgalloc_mask[i];
+  }
+
+  extern int get_rbg_size_last(module_id_t mod_id, int CC_id); // in pre_processor.c
+  const int RBGlastsize = get_rbg_size_last(mod_id, CC_id);
+  for (int i = L.head; i >= 0; i = L.next[i]) {
+    uint32_t quota = q[i]; /* can use this number of RBs! */
+
+    /* TODO get correct mask for up to 'quota' RBs, then call scheduler */
+  }
+}
+
+pp_impl_param_t edf_dl_init(module_id_t mod_id, int CC_id)
+{
+  slice_info_t *si = calloc(1, sizeof(slice_info_t));
+  DevAssert(si);
+
+  si->num = 0;
+  si->s = calloc(MAX_EDF_SLICES, sizeof(*si->s));
+  DevAssert(si->s);
+  for (int i = 0; i < MAX_MOBILES_PER_ENB; ++i)
+    si->UE_assoc_slice[i] = -1;
+
+  /* insert default slice, all resources */
+  edf_slice_param_t *dlp = malloc(sizeof(*dlp));
+  DevAssert(dlp);
+  dlp->deadline = 1;
+  dlp->guaranteed_prbs = to_prb(RC.mac[mod_id]->common_channels[CC_id].mib->message.dl_Bandwidth);
+  dlp->max_replenish = 0;
+  dlp->noverride = 1;
+  dlp->loverride[0] = 0;
+  DevAssert(dlp->loverride);
+  default_sched_dl_algo_t *algo = &RC.mac[mod_id]->pre_processor_dl.dl_algo;
+  algo->data = NULL;
+  const int rc = addmod_edf_slice_dl(si, 0, strdup("common (all UEs)"), algo, dlp);
+  DevAssert(0 == rc);
+  const UE_list_t *UE_list = &RC.mac[mod_id]->UE_info.list;
+  for (int UE_id = UE_list->head; UE_id >= 0; UE_id = UE_list->next[UE_id])
+    slicing_add_UE(si, UE_id);
+
+  pp_impl_param_t edf;
+  edf.algorithm = EDF_SLICING;
+#pragma warning "EDF scheduler: UE operations need to consider common slice"
+  edf.add_UE = slicing_add_UE;
+  edf.remove_UE = slicing_remove_UE;
+  edf.move_UE = slicing_move_UE;
+  edf.addmod_slice = addmod_edf_slice_dl;
+  edf.remove_slice = remove_nvs_slice_dl;
+  edf.dl = dlsch_scheduler_pre_processor;
+  // current DL algo becomes default scheduler
+  edf.dl_algo = *algo;
+  edf.destroy = edf_destroy;
+  edf.slices = si;
+
+  return edf;
+}
