@@ -583,7 +583,8 @@ pp_impl_param_t static_ul_init(module_id_t mod_id, int CC_id) {
   ulp->posHigh = to_prb(RC.mac[mod_id]->common_channels[CC_id].ul_Bandwidth) - 1;
   default_sched_ul_algo_t *algo = &RC.mac[mod_id]->pre_processor_ul.ul_algo;
   algo->data = NULL;
-  DevAssert(0 == addmod_static_slice_ul(si, 0, strdup("default"), algo, ulp));
+  const int rc = addmod_static_slice_ul(si, 0, strdup("default"), algo, ulp);
+  DevAssert(0 == rc);
   const UE_list_t *UE_list = &RC.mac[mod_id]->UE_info.list;
   for (int UE_id = UE_list->head; UE_id >= 0; UE_id = UE_list->next[UE_id])
     slicing_add_UE(si, UE_id);
