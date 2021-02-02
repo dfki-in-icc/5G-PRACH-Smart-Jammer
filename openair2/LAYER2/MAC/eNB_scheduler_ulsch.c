@@ -378,7 +378,9 @@ rx_sdu(const module_id_t enb_mod_idP,
           if (UE_template_ptr->phr_info > 40) {
             UE_template_ptr->phr_info = 40;
           }
-
+#ifdef LATSEQ
+          LATSEQ_P("I mac.ind", "phr%d:ue%d:", UE_template_ptr->phr_info, UE_id);
+#endif
           LOG_D(MAC, "[eNB %d] CC_id %d MAC CE_LCID %d : Received PHR PH = %d (db)\n",
                 enb_mod_idP,
                 CC_idP,
