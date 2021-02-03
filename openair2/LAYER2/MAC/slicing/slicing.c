@@ -813,18 +813,18 @@ void nvs_dl(module_id_t mod_id,
     memset(ue_sched_ctrl->rballoc_sub_UE[CC_id], 0, sizeof(ue_sched_ctrl->rballoc_sub_UE[CC_id]));
     ue_sched_ctrl->pre_dci_dl_pdu_idx = -1;
 
+    const int idx = si->UE_assoc_slice[UE_id];
+    DevAssert(idx >= 0);
     const UE_TEMPLATE *UE_template = &UE_info->UE_template[CC_id][UE_id];
     const uint8_t round = UE_info->UE_sched_ctrl[UE_id].round[CC_id][harq_pid];
     /* if UE has data or retransmission, mark respective slice as active */
-    if (UE_template->dl_buffer_total > 0 || round != 8) {
-      const int idx = si->UE_assoc_slice[UE_id];
-      if (idx >= 0)
-        ((_nvs_int_t *)si->s[idx]->int_data)->active = 1;
-    }
+    const bool active = UE_template->dl_buffer_total > 0 || round != 8;
+    ((_nvs_int_t *)si->s[idx]->int_data)->active |= active;
   }
 
   const int N_RBG = to_rbg(RC.mac[mod_id]->common_channels[CC_id].mib->message.dl_Bandwidth);
   const int RBGsize = get_min_rb_unit(mod_id, CC_id);
+  const int N_RB_DL = to_prb(RC.mac[mod_id]->common_channels[CC_id].mib->message.dl_Bandwidth);
   uint8_t *vrb_map = RC.mac[mod_id]->common_channels[CC_id].vrb_map;
   uint8_t rbgalloc_mask[N_RBG_MAX];
   int n_rbg_sched = 0;
@@ -832,12 +832,13 @@ void nvs_dl(module_id_t mod_id,
     // calculate mask: init to one + "AND" with vrb_map:
     // if any RB in vrb_map is blocked (1), the current RBG will be 0
     rbgalloc_mask[i] = 1;
-    for (int j = 0; j < RBGsize; j++)
+    for (int j = 0; j < RBGsize && RBGsize * i + j < N_RB_DL; j++)
       rbgalloc_mask[i] &= !vrb_map[RBGsize * i + j];
     n_rbg_sched += rbgalloc_mask[i];
   }
 
-  const int N_RB_DL = to_prb(RC.mac[mod_id]->common_channels[CC_id].mib->message.dl_Bandwidth);
+  /* todo: schedule retransmission first */
+
   float maxw = 0.0f;
   int maxidx = -1;
   for (int i = 0; i < si->num; ++i) {
