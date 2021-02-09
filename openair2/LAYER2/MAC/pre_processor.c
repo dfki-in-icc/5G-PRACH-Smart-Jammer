@@ -196,6 +196,9 @@ skip_ue:
     }
     UE_info->UE_sched_ctrl[UE_id].pre_dci_dl_pdu_idx = idx;
     const int mcs = cqi_to_mcs[cqi];
+    /* FRJ ALTERATE
+    * MCS DL
+    */
     UE_info->eNB_UE_stats[CC_id][UE_id].dlsch_mcs1 = mcs;
     const uint32_t B = UE_info->UE_template[CC_id][UE_id].dl_buffer_total;
     rb_required[UE_id] = find_nb_rb_DL(mcs, B, n_rbg_sched * RBGsize, RBGsize);
@@ -781,7 +784,7 @@ void calculate_max_mcs_min_rb(module_id_t mod_id,
 
   /* find maximum MCS */
   while ((phr - *tx_power < 0 || tbs > bytes) && *mcs > 3) {
-    mcs--;
+    (*mcs)--;
     tbs = get_TBS_UL(*mcs, rb_table[*rb_index]);
     *tx_power = estimate_ue_tx_power(tbs * 8, rb_table[*rb_index], 0, Ncp, 0);
   }

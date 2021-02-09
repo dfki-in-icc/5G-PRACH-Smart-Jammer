@@ -1301,7 +1301,9 @@ void postDecode(L1_rxtx_proc_t *proc, notifiedFIFO_elt_t *req) {
   LTE_eNB_ULSCH_t *ulsch = rdata->eNB->ulsch[rdata->UEid];
   LTE_UL_eNB_HARQ_t *ulsch_harq = rdata->ulsch_harq;
   PHY_VARS_eNB *eNB=rdata->eNB;
-    
+/* FRJ ALTERATE
+ * decodeSuccess : perturber le decodage en y mettant du bruit
+ */
   bool decodeSucess=rdata->decodeIterations <= rdata->maxIterations;
   ulsch_harq->processedSegments++;
   LOG_D(PHY, "processing result of segment: %d, ue %d, processed %d/%d\n",
@@ -1612,6 +1614,9 @@ void fill_rx_indication(PHY_VARS_eNB *eNB,
   pdu->rx_indication_rel8.timing_advance = timing_advance_update;
   // estimate UL_CQI for MAC (from antenna port 0 only)
   int SNRtimes10 = dB_fixed_times10(eNB->pusch_vars[UE_id]->ulsch_power[0]) - 10 * eNB->measurements.n0_subband_power_dB[0][0];
+/* FRJ ALTERATE
+ * SNRtimes10 : Diminuer la puissance reçu de l'UE
+ */
 
   if (SNRtimes10 < -640)
     pdu->rx_indication_rel8.ul_cqi = 0;
