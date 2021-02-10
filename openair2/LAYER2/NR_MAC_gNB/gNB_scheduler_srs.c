@@ -76,9 +76,9 @@ void nr_configure_srs(nfapi_nr_srs_pdu_t *srs_pdu, int module_id, int CC_id,NR_U
   srs_pdu->t_offset = get_nr_srs_offset(srs_resource->resourceType.choice.periodic->periodicityAndOffset_p);
 }
 
-void nr_fill_nfapi_srs(int module_id, int CC_id, NR_UE_info_t* UE, sub_frame_t slot, NR_SRS_Resource_t *srs_resource) {
+void nr_fill_nfapi_srs(int module_id, int CC_id, NR_UE_info_t* UE, frame_t frame, sub_frame_t slot, NR_SRS_Resource_t *srs_resource) {
 
-  nfapi_nr_ul_tti_request_t *future_ul_tti_req = &RC.nrmac[module_id]->UL_tti_req_ahead[0][slot];
+  nfapi_nr_ul_tti_request_t *future_ul_tti_req = &RC.nrmac[module_id]->UL_tti_req_ahead[0][frame%MAX_NUM_UL_SCHED_FRAME][slot];
   AssertFatal(future_ul_tti_req->n_pdus <
               sizeof(future_ul_tti_req->pdus_list) / sizeof(future_ul_tti_req->pdus_list[0]),
               "Invalid future_ul_tti_req->n_pdus %d\n", future_ul_tti_req->n_pdus);
@@ -158,7 +158,7 @@ void nr_schedule_srs(int module_id, frame_t frame) {
       // Check if UE will transmit the SRS in this frame
       if ( ((frame - offset/n_slots_frame)*n_slots_frame)%period == 0) {
         LOG_D(NR_MAC,"Scheduling SRS reception for %d.%d\n", frame, offset%n_slots_frame);
-        nr_fill_nfapi_srs(module_id, CC_id, UE, offset%n_slots_frame, srs_resource);
+        nr_fill_nfapi_srs(module_id, CC_id, UE, frame, offset%n_slots_frame, srs_resource);
         sched_ctrl->sched_srs.frame = frame;
         sched_ctrl->sched_srs.slot = offset%n_slots_frame;
         sched_ctrl->sched_srs.srs_scheduled = true;

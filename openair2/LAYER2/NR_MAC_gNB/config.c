@@ -474,8 +474,14 @@ int rrc_mac_config_req_gNB(module_id_t Mod_idP,
     AssertFatal((scc->ssb_PositionsInBurst->present > 0) && (scc->ssb_PositionsInBurst->present < 4), "SSB Bitmap type %d is not valid\n",scc->ssb_PositionsInBurst->present);
 
     const int n = nr_slots_per_frame[*scc->ssbSubcarrierSpacing];
-    RC.nrmac[Mod_idP]->common_channels[0].vrb_map_UL =
-        calloc(n * MAX_BWP_SIZE, sizeof(uint16_t));
+
+    RC.nrmac[Mod_idP]->common_channels[0].vrb_map_UL = calloc(MAX_NUM_UL_SCHED_FRAME, sizeof(uint16_t **));
+    for (int i = 0; i < MAX_NUM_UL_SCHED_FRAME; ++i ) {
+      RC.nrmac[Mod_idP]->common_channels[0].vrb_map_UL[i] = calloc(n, sizeof(uint16_t *));
+      for (int j = 0; j < n; ++j)
+        RC.nrmac[Mod_idP]->common_channels[0].vrb_map_UL[i][j] = calloc(MAX_BWP_SIZE, sizeof(uint16_t));
+    }
+
     AssertFatal(RC.nrmac[Mod_idP]->common_channels[0].vrb_map_UL,
                 "could not allocate memory for RC.nrmac[]->common_channels[0].vrb_map_UL\n");
 

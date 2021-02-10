@@ -72,8 +72,9 @@ void clear_nr_nfapi_information(gNB_MAC_INST * gNB,
 
   nfapi_nr_dl_tti_request_t    *DL_req = &gNB->DL_req[0];
   nfapi_nr_dl_tti_pdcch_pdu_rel15_t **pdcch = (nfapi_nr_dl_tti_pdcch_pdu_rel15_t **)gNB->pdcch_pdu_idx[CC_idP];
-  nfapi_nr_ul_tti_request_t    *future_ul_tti_req =
-      &gNB->UL_tti_req_ahead[CC_idP][(slotP + num_slots - 1) % num_slots];
+  const int                     last_slot = (slotP + num_slots - 1) % num_slots;
+  frame_t                       LastFrame = slotP==0 ? ((frameP + MAX_FRAME_NUMBER - 1) % MAX_FRAME_NUMBER) : frameP;
+  nfapi_nr_ul_tti_request_t    *future_ul_tti_req = &gNB->UL_tti_req_ahead[CC_idP][LastFrame%MAX_NUM_UL_SCHED_FRAME][last_slot];
   nfapi_nr_ul_dci_request_t    *UL_dci_req = &gNB->UL_dci_req[0];
   nfapi_nr_tx_data_request_t   *TX_req = &gNB->TX_req[0];
 
@@ -91,7 +92,7 @@ void clear_nr_nfapi_information(gNB_MAC_INST * gNB,
   UL_dci_req[CC_idP].numPdus                     = 0;
 
   /* advance last round's future UL_tti_req to be ahead of current frame/slot */
-  future_ul_tti_req->SFN = (slotP == 0 ? frameP : frameP + 1) % 1024;
+  future_ul_tti_req->SFN = (LastFrame + MAX_NUM_UL_SCHED_FRAME) % MAX_FRAME_NUMBER;
   LOG_D(NR_MAC, "In %s: UL_tti_req_ahead SFN.slot = %d.%d for slot %d \n", __FUNCTION__, future_ul_tti_req->SFN, future_ul_tti_req->Slot, (slotP + num_slots - 1) % num_slots);
   /* future_ul_tti_req->Slot is fixed! */
   future_ul_tti_req->n_pdus = 0;
@@ -101,7 +102,7 @@ void clear_nr_nfapi_information(gNB_MAC_INST * gNB,
 
   /* UL_tti_req is a simple pointer into the current UL_tti_req_ahead, i.e.,
    * it walks over UL_tti_req_ahead in a circular fashion */
-  gNB->UL_tti_req[CC_idP] = &gNB->UL_tti_req_ahead[CC_idP][slotP];
+  gNB->UL_tti_req[CC_idP] = &gNB->UL_tti_req_ahead[CC_idP][frameP%MAX_NUM_UL_SCHED_FRAME][slotP];
 
   TX_req[CC_idP].Number_of_PDUs                  = 0;
 
@@ -157,8 +158,9 @@ void gNB_dlsch_ulsch_scheduler(module_id_t module_idP,
     // clear last scheduled slot's content (only)!
     const int num_slots = nr_slots_per_frame[*scc->ssbSubcarrierSpacing];
     const int last_slot = (slot + num_slots - 1) % num_slots;
-    uint16_t *vrb_map_UL = cc[CC_id].vrb_map_UL;
-    memcpy(&vrb_map_UL[last_slot * MAX_BWP_SIZE], &RC.nrmac[module_idP]->ulprbbl, sizeof(uint16_t) * MAX_BWP_SIZE);
+    frame_t LastFrame = slot==0 ? ((frame + MAX_FRAME_NUMBER - 1) % MAX_FRAME_NUMBER) : frame;
+    uint16_t *vrb_map_UL = cc[CC_id].vrb_map_UL[LastFrame%MAX_NUM_UL_SCHED_FRAME][last_slot];
+    memcpy(vrb_map_UL, &RC.nrmac[module_idP]->ulprbbl, sizeof(uint16_t) * MAX_BWP_SIZE);
 
     clear_nr_nfapi_information(RC.nrmac[module_idP], CC_id, frame, slot);
 
@@ -168,11 +170,15 @@ void gNB_dlsch_ulsch_scheduler(module_id_t module_idP,
     if (NFAPI_MODE == NFAPI_MODE_VNF){
       if(vnf_first_sched_entry == 1)
       {
-        for (int i = 0; i<num_slots; i++){
-          if(i < slot)
-            gNB->UL_tti_req_ahead[CC_id][i].SFN = (frame + 1) % 1024;
-          else
-            gNB->UL_tti_req_ahead[CC_id][i].SFN = frame;
+        for (int i = 0; i < MAX_NUM_UL_SCHED_FRAME; ++i) {
+          frame_t SFN = (frame + i) % MAX_FRAME_NUMBER;
+          for (int j = 0; j < num_slots; ++j) {
+            nfapi_nr_ul_tti_request_t *req = &gNB->UL_tti_req_ahead[CC_id][SFN % MAX_NUM_UL_SCHED_FRAME][j];
+            if ((i == 0) && (j < slot))
+              req->SFN = (SFN + MAX_NUM_UL_SCHED_FRAME) % MAX_FRAME_NUMBER;
+            else
+              req->SFN = SFN;
+          }
         }
         vnf_first_sched_entry = 0;
       }

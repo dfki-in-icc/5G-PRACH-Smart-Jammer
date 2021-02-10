@@ -111,6 +111,7 @@
 #define CONFIG_HLP_UESLOTRXTX    "Set the additional Rx to Tx slot number for NTN at UE, original value is 6\n"
 #define CONFIG_HLP_UEK2          "Set the additional k2 for NTN at UE\n"
 #define CONFIG_HLP_GNBK2         "Set the additional k2 for NTN at gNB\n"
+#define CONFIG_HLP_ULSCHEDF      "Set the maximum number of buffered UL scheduled frames at gNB\n"
 /*--------------------------------------------------------------------------------------------------------------------------------*/
 /*                                            command line parameters for LOG utility                                             */
 /*   optname         helpstr          paramflags          XXXptr                     defXXXval            type           numelt   */
@@ -159,5 +160,6 @@ extern uint64_t RFsim_PropDelay; //propagation delay in the RF simulator (expres
 extern uint16_t NTN_UE_slot_Rx_to_Tx; //the additional Rx to Tx slot number at UE, original value is 6
 extern uint16_t NTN_UE_k2; //the additional k2 value at UE
 extern uint16_t NTN_gNB_k2; //the additional k2 value at gNB
+extern uint16_t max_ul_sched_frame; //Set the maximum number of buffered UL scheduled frames at gNB, for UL_tti_req_ahead and vrb_map_UL
 
 #endif

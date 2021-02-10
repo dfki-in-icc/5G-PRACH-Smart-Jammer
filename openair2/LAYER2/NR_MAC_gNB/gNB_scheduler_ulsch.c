@@ -1458,8 +1458,7 @@ bool nr_fr1_ulsch_preprocessor(module_id_t module_id, frame_t frame, sub_frame_t
   /* Change vrb_map_UL to rballoc_mask: check which symbols per RB (in
    * vrb_map_UL) overlap with the "default" tda and exclude those RBs.
    * Calculate largest contiguous RBs */
-  uint16_t *vrb_map_UL =
-      &RC.nrmac[module_id]->common_channels[CC_id].vrb_map_UL[sched_slot * MAX_BWP_SIZE];
+  uint16_t *vrb_map_UL = RC.nrmac[module_id]->common_channels[CC_id].vrb_map_UL[sched_frame%MAX_NUM_UL_SCHED_FRAME][sched_slot];
 
   const uint16_t bwpSize = current_BWP->BWPSize;
   const uint16_t bwpStart = current_BWP->BWPStart;
@@ -1664,9 +1663,8 @@ void nr_schedule_ulsch(module_id_t module_id, frame_t frame, sub_frame_t slot)
           sched_ctrl->tpc0);
 
     /* PUSCH in a later slot, but corresponding DCI now! */
-    nfapi_nr_ul_tti_request_t *future_ul_tti_req = &RC.nrmac[module_id]->UL_tti_req_ahead[0][sched_pusch->slot];
-    AssertFatal(future_ul_tti_req->SFN == sched_pusch->frame
-                && future_ul_tti_req->Slot == sched_pusch->slot,
+    nfapi_nr_ul_tti_request_t *future_ul_tti_req = &RC.nrmac[module_id]->UL_tti_req_ahead[0][sched_pusch->frame%MAX_NUM_UL_SCHED_FRAME][sched_pusch->slot];
+    AssertFatal(future_ul_tti_req->SFN == sched_pusch->frame && future_ul_tti_req->Slot == sched_pusch->slot,
                 "%d.%d future UL_tti_req's frame.slot %d.%d does not match PUSCH %d.%d\n",
                 frame, slot,
                 future_ul_tti_req->SFN,

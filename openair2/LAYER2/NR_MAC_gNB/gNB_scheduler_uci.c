@@ -45,8 +45,7 @@ static void nr_fill_nfapi_pucch(gNB_MAC_INST *nrmac,
                                 const NR_sched_pucch_t *pucch,
                                 NR_UE_info_t* UE)
 {
-  nfapi_nr_ul_tti_request_t *future_ul_tti_req =
-      &nrmac->UL_tti_req_ahead[0][pucch->ul_slot];
+  nfapi_nr_ul_tti_request_t *future_ul_tti_req = &nrmac->UL_tti_req_ahead[0][pucch->frame%MAX_NUM_UL_SCHED_FRAME][pucch->ul_slot];
   AssertFatal(future_ul_tti_req->SFN == pucch->frame
               && future_ul_tti_req->Slot == pucch->ul_slot,
               "Current %4d.%2d : future UL_tti_req's frame.slot %4d.%2d does not match PUCCH %4d.%2d\n",
@@ -221,7 +220,7 @@ void nr_csi_meas_reporting(int Mod_idP,
       int bwp_start = ul_bwp->BWPStart;
 
       // going through the list of PUCCH resources to find the one indexed by resource_id
-      uint16_t *vrb_map_UL = &RC.nrmac[Mod_idP]->common_channels[0].vrb_map_UL[sched_slot * MAX_BWP_SIZE];
+      uint16_t *vrb_map_UL = RC.nrmac[Mod_idP]->common_channels[0].vrb_map_UL[frame%MAX_NUM_UL_SCHED_FRAME][sched_slot];
       const int m = pucch_Config->resourceToAddModList->list.count;
       for (int j = 0; j < m; j++) {
         NR_PUCCH_Resource_t *pucchres = pucch_Config->resourceToAddModList->list.array[j];
@@ -1213,7 +1212,7 @@ int nr_acknack_scheduling(int mod_id,
   uint16_t *vrb_map_UL;
   while ((n_slots_frame + pucch->ul_slot - slot) % n_slots_frame <= max_fb_time) {
     // checking if in ul_slot the resources potentially to be assigned to this PUCCH are available
-    vrb_map_UL = &RC.nrmac[mod_id]->common_channels[CC_id].vrb_map_UL[pucch->ul_slot * MAX_BWP_SIZE];
+    vrb_map_UL = RC.nrmac[mod_id]->common_channels[CC_id].vrb_map_UL[pucch->frame%MAX_NUM_UL_SCHED_FRAME][pucch->ul_slot];
     bool ret = test_acknack_vrb_occupation(sched_ctrl,
                                            pucch,
                                            vrb_map_UL,
@@ -1304,7 +1303,7 @@ int nr_acknack_scheduling(int mod_id,
   pucch->resource_indicator = 0; // each UE has dedicated PUCCH resources
   pucch->r_pucch=r_pucch;
 
-  vrb_map_UL = &RC.nrmac[mod_id]->common_channels[CC_id].vrb_map_UL[pucch->ul_slot * MAX_BWP_SIZE];
+  vrb_map_UL = RC.nrmac[mod_id]->common_channels[CC_id].vrb_map_UL[pucch->frame%MAX_NUM_UL_SCHED_FRAME][pucch->ul_slot];
   for (int l=0; l<pucch->nr_of_symb; l++) {
     uint16_t symb = SL_to_bitmap(pucch->start_symb+l, 1);
     int prb;
@@ -1366,7 +1365,7 @@ void nr_sr_reporting(gNB_MAC_INST *nrmac, frame_t SFN, sub_frame_t slot)
       NR_PUCCH_Resource_t *pucch_res = pucch_Config->resourceToAddModList->list.array[found];
       /* for the moment, can only handle SR on PUCCH Format 0 */
       DevAssert(pucch_res->format.present == NR_PUCCH_Resource__format_PR_format0);
-      nfapi_nr_ul_tti_request_t *ul_tti_req = &nrmac->UL_tti_req_ahead[0][slot];
+      nfapi_nr_ul_tti_request_t *ul_tti_req = &nrmac->UL_tti_req_ahead[0][SFN % MAX_NUM_UL_SCHED_FRAME][slot];
       bool nfapi_allocated = false;
       for (int i = 0; i < ul_tti_req->n_pdus; ++i) {
         if (ul_tti_req->pdus_list[i].pdu_type != NFAPI_NR_UL_CONFIG_PUCCH_PDU_TYPE)

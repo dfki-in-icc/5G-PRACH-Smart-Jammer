@@ -80,6 +80,8 @@
 /*!\brief Maximum number of random access process */
 #define NR_NB_RA_PROC_MAX 4
 #define MAX_NUM_OF_SSB 64
+extern uint16_t max_ul_sched_frame; //Set the maximum number of buffered UL scheduled frames at gNB, for UL_tti_req_ahead and vrb_map_UL
+#define MAX_NUM_UL_SCHED_FRAME max_ul_sched_frame //should be the exponent of 2
 
 #define MIN_NUM_PRBS_TO_SCHEDULE  5
 
@@ -264,7 +266,7 @@ typedef struct {
   uint16_t vrb_map[275];
   /// VRB map for common channels and PUSCH, dynamically allocated because
   /// length depends on number of slots and RBs
-  uint16_t *vrb_map_UL;
+  uint16_t ***vrb_map_UL;
   /// number of subframe allocation pattern available for MBSFN sync area
   uint8_t num_sf_allocation_pattern;
   ///Number of active SSBs
@@ -773,7 +775,7 @@ typedef struct gNB_MAC_INST_s {
   nfapi_nr_ul_tti_request_t        *UL_tti_req[NFAPI_CC_MAX];
   /// NFAPI UL TTI Request Structure for future TTIs, dynamically allocated
   /// because length depends on number of slots
-  nfapi_nr_ul_tti_request_t        *UL_tti_req_ahead[NFAPI_CC_MAX];
+  nfapi_nr_ul_tti_request_t        **UL_tti_req_ahead[NFAPI_CC_MAX];
   /// NFAPI HI/DCI0 Config Request Structure
   nfapi_nr_ul_dci_request_t         UL_dci_req[NFAPI_CC_MAX];
   /// NFAPI DL PDU structure
