@@ -608,7 +608,7 @@ void pf_dl(module_id_t module_id,
       }
 
       /* Check DL buffer and skip this UE if no bytes and no TA necessary */
-      if (sched_ctrl->num_total_bytes == 0 && frame != (sched_ctrl->ta_frame + 10) % 1024)
+      if (sched_ctrl->num_total_bytes == 0 && frame != (sched_ctrl->ta_frame + 100) % 1024)
         continue;
 
       /* Calculate coeff */
@@ -752,8 +752,8 @@ void pf_dl(module_id_t module_id,
     // awaiting. Therefore, for the time being, we put a fixed overhead of 12
     // (for 4 PDUs) and optionally + 2 for TA. Once RLC gives the number of
     // PDUs, we replace with 3 * numPDUs
-    const int oh = 3 * 4 + 2 * (frame == (sched_ctrl->ta_frame + 10) % 1024);
-    //const int oh = 3 * sched_ctrl->dl_pdus_total + 2 * (frame == (sched_ctrl->ta_frame + 10) % 1024);
+    const int oh = 3 * 4 + 2 * (frame == (sched_ctrl->ta_frame + 100) % 1024);
+    //const int oh = 3 * sched_ctrl->dl_pdus_total + 2 * (frame == (sched_ctrl->ta_frame + 100) % 1024);
     nr_find_nb_rb(sched_pdsch->Qm,
                   sched_pdsch->R,
                   sched_pdsch->nrOfLayers,
@@ -885,11 +885,11 @@ void nr_schedule_ue_spec(module_id_t module_id,
     UE->mac_stats.dl.current_rbs = 0;
     NR_CellGroupConfig_t *cg = UE->CellGroup;
 
-    /* update TA and set ta_apply every 10 frames.
+    /* update TA and set ta_apply every 100 frames.
      * Possible improvement: take the periodicity from input file.
      * If such UE is not scheduled now, it will be by the preprocessor later.
      * If we add the CE, ta_apply will be reset */
-    if (frame == (sched_ctrl->ta_frame + 10) % 1024) {
+    if (frame == (sched_ctrl->ta_frame + 100) % 1024) {
       sched_ctrl->ta_apply = true; /* the timer is reset once TA CE is scheduled */
       LOG_D(NR_MAC, "[UE %04x][%d.%d] UL timing alignment procedures: setting flag for Timing Advance command\n", UE->rnti, frame, slot);
     }
