@@ -270,7 +270,6 @@ void generate_pss_nr(NR_DL_FRAME_PARMS *fp,int N_ID_2)
   if (k>= fp->ofdm_symbol_size) k-=fp->ofdm_symbol_size;
 
 
-
   for (int i=0; i < LENGTH_PSS_NR; i++) {
     synchroF_tmp[2*k] = primary_synchro[2*i];
     synchroF_tmp[2*k+1] = primary_synchro[2*i+1];
@@ -561,7 +560,6 @@ void set_frame_context_pss_nr(NR_DL_FRAME_PARMS *frame_parms_ue, int rate_change
 {
   /* set new value according to rate_change */
   frame_parms_ue->ofdm_symbol_size = (frame_parms_ue->ofdm_symbol_size / rate_change);
-  frame_parms_ue->samples_per_tti = (frame_parms_ue->samples_per_tti / rate_change);
   frame_parms_ue->samples_per_subframe = (frame_parms_ue->samples_per_subframe / rate_change);
 
   free_context_pss_nr();
@@ -589,7 +587,6 @@ void set_frame_context_pss_nr(NR_DL_FRAME_PARMS *frame_parms_ue, int rate_change
 void restore_frame_context_pss_nr(NR_DL_FRAME_PARMS *frame_parms_ue, int rate_change)
 {
   frame_parms_ue->ofdm_symbol_size = frame_parms_ue->ofdm_symbol_size * rate_change;
-  frame_parms_ue->samples_per_tti = frame_parms_ue->samples_per_tti * rate_change;
   frame_parms_ue->samples_per_subframe = frame_parms_ue->samples_per_subframe * rate_change;
 
   free_context_pss_nr();
@@ -620,8 +617,6 @@ void decimation_synchro_nr(PHY_VARS_NR_UE *PHY_vars_UE, int rate_change, int **r
 {
   NR_DL_FRAME_PARMS *frame_parms = &(PHY_vars_UE->frame_parms);
   int samples_for_frame = 2*frame_parms->samples_per_frame;
-
-  AssertFatal(frame_parms->samples_per_tti > 3839,"Illegal samples_per_tti %d\n",frame_parms->samples_per_tti);
 
 #if TEST_SYNCHRO_TIMING_PSS
 

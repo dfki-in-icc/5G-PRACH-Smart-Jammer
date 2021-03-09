@@ -389,7 +389,7 @@ void terminate_task(module_id_t mod_id, task_id_t from, task_id_t to) {
   LOG_I(ENB_APP, "sending TERMINATE_MESSAGE from task %s (%d) to task %s (%d)\n",
         itti_get_task_name(from), from, itti_get_task_name(to), to);
   MessageDef *msg;
-  msg = itti_alloc_new_message (from, TERMINATE_MESSAGE);
+  msg = itti_alloc_new_message (from, 0, TERMINATE_MESSAGE);
   itti_send_msg_to_task (to, ENB_MODULE_ID_TO_INSTANCE(mod_id), msg);
 }
 
@@ -447,7 +447,6 @@ int restart_L1L2(module_id_t enb_id) {
   init_UE_info(&RC.mac[enb_id]->UE_info);
   LOG_I(ENB_APP, "attempting to create ITTI tasks\n");
 
-  // No more rrc thread, as many race conditions are hidden behind
   if (itti_create_task (TASK_RRC_ENB, rrc_enb_task, NULL) < 0) {
     LOG_E(RRC, "Create task for RRC eNB failed\n");
     return -1;
@@ -457,7 +456,7 @@ int restart_L1L2(module_id_t enb_id) {
 
   /* pass a reconfiguration request which will configure everything down to
    * RC.eNB[i][j]->frame_parms, too */
-  msg_p = itti_alloc_new_message(TASK_ENB_APP, RRC_CONFIGURATION_REQ);
+  msg_p = itti_alloc_new_message(TASK_ENB_APP, 0, RRC_CONFIGURATION_REQ);
   RRC_CONFIGURATION_REQ(msg_p) = RC.rrc[enb_id]->configuration;
   itti_send_msg_to_task(TASK_RRC_ENB, ENB_MODULE_ID_TO_INSTANCE(enb_id), msg_p);
   /* TODO XForms might need to be restarted, but it is currently (09/02/18)
@@ -552,14 +551,14 @@ int main ( int argc, char **argv )
     init_latseq("/tmp/lte_softmodem", (uint64_t)(cpuf*1000000000LL));
 #endif
   printf("ITTI init, useMME: %i\n",EPC_MODE_ENABLED);
-  itti_init(TASK_MAX, THREAD_MAX, MESSAGES_ID_MAX, tasks_info, messages_info);
+  itti_init(TASK_MAX, tasks_info);
   // allows to forward in wireshark L2 protocol for decoding
   // initialize mscgen log after ITTI
   if (get_softmodem_params()->start_msc) {
     load_module_shlib("msc",NULL,0,&msc_interface);
   }
 
-  MSC_INIT(MSC_E_UTRAN, THREAD_MAX+TASK_MAX);
+  MSC_INIT(MSC_E_UTRAN, ADDED_QUEUES_MAX+TASK_MAX);
   init_opt();
   // to make a graceful exit when ctrl-c is pressed
   set_softmodem_sighandler();
@@ -591,6 +590,7 @@ int main ( int argc, char **argv )
   if (RC.nb_inst > 0) {
     /* Start the agent. If it is turned off in the configuration, it won't start */
     for (i = 0; i < RC.nb_inst; i++) {
+      if(NFAPI_MODE != NFAPI_MODE_PNF)
       flexran_agent_start(i);
     }
     
@@ -604,7 +604,7 @@ int main ( int argc, char **argv )
     }
 
     for (int enb_id = 0; enb_id < RC.nb_inst; enb_id++) {
-      MessageDef *msg_p = itti_alloc_new_message (TASK_ENB_APP, RRC_CONFIGURATION_REQ);
+      MessageDef *msg_p = itti_alloc_new_message (TASK_ENB_APP, 0, RRC_CONFIGURATION_REQ);
       RRC_CONFIGURATION_REQ(msg_p) = RC.rrc[enb_id]->configuration;
       itti_send_msg_to_task (TASK_RRC_ENB, ENB_MODULE_ID_TO_INSTANCE(enb_id), msg_p);
     }

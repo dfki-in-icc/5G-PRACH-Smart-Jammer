@@ -47,6 +47,7 @@
 #include "NwGtpv1uMsg.h"
 #include "NwGtpv1uPrivate.h"
 #include "gtpv1u_eNB_defs.h"
+#include "gtpv1u_gNB_defs.h"
 
 #include "PHY/defs_L1_NB_IoT.h"
 #include "RRC/LTE/defs_NB_IoT.h"
@@ -109,8 +110,9 @@ typedef struct {
   struct gNB_MAC_INST_s **nrmac;
   /// GTPu descriptor 
   gtpv1u_data_t *gtpv1u_data_g;
+  /// NR GTPu descriptor 
+  nr_gtpv1u_data_t *nr_gtpv1u_data_g;
   /// RU descriptors. These describe what each radio unit is supposed to do and contain the necessary functions for fronthaul interfaces
-  // LTS: not coherent (xxx_frame_parms cardinatlity wtih xNB (so one carrier))
   struct RU_t_s **ru;
   /// Mask to indicate fronthaul setup status of RU (hard-limit to 64 RUs)
   uint64_t ru_mask;

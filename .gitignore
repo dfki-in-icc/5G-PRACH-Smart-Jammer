@@ -20,7 +20,7 @@ core
 *.orig
 
 # vscode
-.vscode/
+.vscode
 .vscode/launch.json
 
 # python virtual env
@@ -32,4 +32,9 @@ ENV/
 env.bak/
 venv.bak/
 
-.vscode/launch.json
+
+# Tags for vim/global
+GPATH
+GRTAGS
+GTAGS
+tags

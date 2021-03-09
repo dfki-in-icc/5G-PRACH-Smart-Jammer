@@ -190,38 +190,24 @@ schedule_MBMS_NFAPI(module_id_t module_idP, uint8_t CC_id, frame_t frameP,
             }
 
            LOG_D(MAC,"frameP %d subframe %d period %d alloc_offset %d mcch_mcs %d mcch_period %d mcch_offset %ld buf %x mch_scheduling_period %d\n",frameP, subframeP, period, alloc_offset,mcch_mcs, mcch_period, mcch_offset,(cc->mbsfn_AreaInfo[i]->mcch_Config_r9.sf_AllocInfo_r9.buf[0]),mch_scheduling_period);
-  //if( (frameP % (4 << cc->commonSF_AllocPeriod_r9) ) == 0 ){
-  //     if((subframeP==0)){
-  //       x=0;
-  //       mbms_mch_i=0;
-  //     }
-  //}
-            //if (frameP % (4 << cc->commonSF_AllocPeriod_r9 ) == 0) {
-      //       if((subframeP==0)){
-      //         x=0;
-      //         mbms_mch_i=0;
-      //       }
-      //}
             if (cc->pmch_Config[0]) {
               //  Find the first subframe in this MCH to transmit MSI
               if (frameP % 1 == 0) {
                 if (frameP % mch_scheduling_period == 0) {
-       msi_pos=0;
-       if((frameP&3)==0)
-      msi_pos++;
-      while((non_mbsfn_SubframeConfig & (0x100 >> msi_pos)) == (0x100>>msi_pos)) {
-        msi_pos++;
-        mbms_mch_i=0;
-      }
+                  msi_pos=0;
+                  if((frameP&3)==0)
+                    msi_pos++;
+                  while((non_mbsfn_SubframeConfig & (0x100 >> msi_pos)) == (0x100>>msi_pos))
+                    msi_pos++;
+                  mbms_mch_i=0;
 
-        if((subframeP==0)){
-          x=0;
-          mbms_mch_i=0;
-        }
-      }
-        }
-    }
-
+                  if((subframeP==0)){
+                    x=0;
+                    mbms_mch_i=0;
+                  }
+                }
+              }
+            }
       if(cc->pmch_Config[mbms_mch_i+1]!=NULL){
     if( x == cc->pmch_Config[mbms_mch_i]->sf_AllocEnd_r9+shifted_sf){
 
