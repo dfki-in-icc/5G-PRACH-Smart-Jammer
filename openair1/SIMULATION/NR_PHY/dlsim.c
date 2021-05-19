@@ -745,6 +745,7 @@ int main(int argc, char **argv)
 
   get_softmodem_params()->phy_test = 1;
   get_softmodem_params()->do_ra = 0;
+  get_softmodem_params()->no_harq = 0;
   set_softmodem_optmask(SOFTMODEM_DLSIM_BIT);
 
   if (snr1set==0)

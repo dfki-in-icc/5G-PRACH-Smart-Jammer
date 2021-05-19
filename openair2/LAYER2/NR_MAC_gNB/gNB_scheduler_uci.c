@@ -34,6 +34,8 @@
 #include "common/ran_context.h"
 #include "common/utils/nr/nr_common.h"
 #include "nfapi/oai_integration/vendor_ext.h"
+/*Softmodem params*/
+#include "executables/softmodem-common.h"
 
 extern RAN_CONTEXT_t RC;
 
@@ -270,6 +272,11 @@ static void handle_dl_harq(NR_UE_info_t * UE,
   NR_UE_harq_t *harq = &UE->UE_sched_ctrl.harq_processes[harq_pid];
   harq->feedback_slot = -1;
   harq->is_waiting = false;
+  /* for No-harq case */
+  if (get_softmodem_params()->no_harq) {
+    success = true;
+    LOG_D(NR_MAC, "Dlharq id %d Released due to NO_HARQ flag.\n", harq_pid);
+  }
   if (success) {
     add_tail_nr_list(&UE->UE_sched_ctrl.available_dl_harq, harq_pid);
     harq->round = 0;
@@ -907,7 +914,10 @@ void handle_nr_uci_pucch_0_1(module_id_t mod_id,
         LOG_E(NR_MAC, "Oh no! Could not find a harq in %s!\n", __FUNCTION__);
         break;
       }
-      DevAssert(harq->is_waiting);
+      /* In no-harq case this condition is not valid !! */
+      if (!get_softmodem_params()->no_harq ) {
+        DevAssert(harq->is_waiting);
+      }
       const int8_t pid = sched_ctrl->feedback_dl_harq.head;
       remove_front_nr_list(&sched_ctrl->feedback_dl_harq);
       LOG_D(NR_MAC,"%4d.%2d bit %d pid %d ack/nack %d\n",frame, slot, harq_bit,pid,harq_value);

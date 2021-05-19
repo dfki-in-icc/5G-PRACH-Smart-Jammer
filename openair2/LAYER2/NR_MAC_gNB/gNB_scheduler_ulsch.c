@@ -458,6 +458,10 @@ void handle_nr_ul_harq(const int CC_idP,
     LOG_E(NR_MAC, "%s(): unknown RNTI 0x%04x in PUSCH\n", __func__, crc_pdu->rnti);
     return;
   }
+  /* for no-harq case, the harq is already reused in ulsch scheduler, no need to handle it again */
+  if (get_softmodem_params()->no_harq) {
+    return;
+  }
   NR_UE_sched_ctrl_t *sched_ctrl = &UE->UE_sched_ctrl;
   int8_t harq_pid = sched_ctrl->feedback_ul_harq.head;
   LOG_D(NR_MAC, "Comparing crc_pdu->harq_id vs feedback harq_pid = %d %d\n",crc_pdu->harq_id, harq_pid);
@@ -1598,10 +1602,20 @@ void nr_schedule_ulsch(module_id_t module_id, frame_t frame, sub_frame_t slot)
     }
     NR_UE_ul_harq_t *cur_harq = &sched_ctrl->ul_harq_processes[harq_id];
     DevAssert(!cur_harq->is_waiting);
-    add_tail_nr_list(&sched_ctrl->feedback_ul_harq, harq_id);
-    cur_harq->feedback_slot = sched_pusch->slot;
-    cur_harq->is_waiting = true;
-
+    /* for No-Harq case */
+    if (get_softmodem_params()->no_harq) {
+      /* added to front ofthe list to reuse same harq ID */
+      add_tail_nr_list(&sched_ctrl->available_ul_harq, harq_id);
+      LOG_D(MAC, "Ulharq id %d Released due to NO_HARQ flag. \n",harq_id);
+      cur_harq->feedback_slot = -1;
+      cur_harq->is_waiting = false;
+      cur_harq->ndi ^=1;
+      cur_harq->round =0;
+    } else {
+      add_tail_nr_list(&sched_ctrl->feedback_ul_harq, harq_id);
+      cur_harq->feedback_slot = sched_pusch->slot;
+      cur_harq->is_waiting = true;
+    }
     int rnti_types[2] = { NR_RNTI_C, 0 };
 
     /* Statistics */
