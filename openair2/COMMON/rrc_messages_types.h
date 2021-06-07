@@ -329,6 +329,7 @@ typedef struct RrcConfigurationReq_s {
   long                           discRxPoolPS_ResourceConfig_subframeBitmap_choice_bs_bits_unused[MAX_NUM_CCs];
   //Nr secondary cell group SSB central frequency (for ENDC NSA)
   int                            nr_scg_ssb_freq;
+  int                            nr_band;
 } RrcConfigurationReq;
 
 #define MAX_NUM_NBIOT_CELEVELS    3
