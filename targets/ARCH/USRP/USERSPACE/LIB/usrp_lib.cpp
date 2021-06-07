@@ -273,7 +273,7 @@ static int sync_to_gps(openair0_device *device) {
 static int trx_usrp_start(openair0_device *device) {
   usrp_state_t *s = (usrp_state_t *)device->priv;
 
-  /*if (device->type != USRP_X400_DEV) {
+  if (device->type != USRP_X400_DEV) {
     // setup GPIO for TDD, GPIO(4) = ATR_RX
     //set data direction register (DDR) to output
     s->usrp->set_gpio_attr("FP0", "DDR", 0xfff, 0xfff);
@@ -286,8 +286,7 @@ static int trx_usrp_start(openair0_device *device) {
     s->usrp->set_gpio_attr("FP0", "ATR_XX", (1<<5), 0x7f);
     // set the output pins to 1
     s->usrp->set_gpio_attr("FP0", "OUT", 7<<7, 0xf80);
-  }*/
-  s->usrp->set_gpio_attr("FP0", "OUT", 0xfff, 0xfff);
+  }
 
   s->wait_for_first_pps = 1;
   s->rx_count = 0;
