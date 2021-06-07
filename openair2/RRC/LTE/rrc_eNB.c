@@ -7555,43 +7555,12 @@ is_ul_256QAM_supported(
          && *c->NCE->NCE->NCE->NCE->NCE->NCE->NCE->NCE->NCE->NCE->NCE->NCE->NCE->NCE->NCE->NCE->NCE->NCE->NCE->NCE->rf_Parameters_v1430->supportedBandCombination_v1430->list.array[0]->bandParameterList_v1430->list.array[0]->ul_256QAM_r14==LTE_BandParameters_v1430__ul_256QAM_r14_supported;
 }
 
-int to_nr_rsrpq(long rsrpq_result,int nr_band) {
+float to_nr_rsrp(long rsrp_result) {
+  return (float)(rsrp_result - 156.5); // TS38.133 Table 10.1.6.1-1
+}
 
-    switch(nr_band) {
-      case 1:  // A
-      case 70:
-      case 74:
-      case 34:
-      case 38:
-      case 39:
-      case 40:
-      case 50:
-      case 51:
-       return((rsrpq_result*10)-1180);
-      case 66:  // B
-       return((rsrpq_result*10)-1175);
-      case 77:  // C
-      case 78:
-      case 79:
-       return((rsrpq_result*10)-1170);
-      case 28:  // D
-       return((rsrpq_result*10)-1165);
-      case 2:
-      case 5:
-      case 7:
-      case 41:  // E
-       return((rsrpq_result*10)-1160);
-      case 3:   // G
-      case 8:
-      case 12:
-      case 20:
-      case 71:
-       return((rsrpq_result*10)-1150);
-      case 25:  // H
-       return((rsrpq_result*10)-1145);
-      default:
-       AssertFatal(1==0,"Illegal NR band %d\n",nr_band);
-    }
+float to_nr_rsrq(long rsrq_result) {
+  return (float)(43.25 - (0.5 * rsrq_result)); // TS38.133 Table 10.1.11.1-1
 }
 
 //-----------------------------------------------------------------------------
@@ -8732,10 +8701,10 @@ void rrc_subframe_process(protocol_ctxt_t *const ctxt_pP, const int CC_id) {
 
             fprintf(fd,"NR_pci %ld\n",ue_context_p->ue_context.measResults->measResultNeighCells->choice.measResultNeighCellListNR_r15.list.array[0]->pci_r15);
             if(ue_context_p->ue_context.measResults->measResultNeighCells->choice.measResultNeighCellListNR_r15.list.array[0]->measResultCell_r15.rsrpResult_r15)
-              fprintf(fd,"NR_rsrp %f dB\n",to_nr_rsrpq(*ue_context_p->ue_context.measResults->measResultNeighCells->choice.measResultNeighCellListNR_r15.list.array[0]->measResultCell_r15.rsrpResult_r15,RC.rrc[ctxt_pP->module_id]->nr_gnb_freq_band[0][0])/10.0);
-            if (ue_context_p->ue_context.measResults->measResultNeighCells->choice.measResultNeighCellListNR_r15.list.array[0]->measResultCell_r15.rsrqResult_r15)
-              fprintf(fd,"NR_rsrq %f dB\n",to_nr_rsrpq(*ue_context_p->ue_context.measResults->measResultNeighCells->choice.measResultNeighCellListNR_r15.list.array[0]->measResultCell_r15.rsrqResult_r15,RC.rrc[ctxt_pP->module_id]->nr_gnb_freq_band[0][0])/10.0);
-            if (ue_context_p->ue_context.measResults->measResultNeighCells->choice.measResultNeighCellListNR_r15.list.array[0]->measResultRS_IndexList_r15)
+              fprintf(fd,"NR_rsrp %f dB\n",to_nr_rsrp(*ue_context_p->ue_context.measResults->measResultNeighCells->choice.measResultNeighCellListNR_r15.list.array[0]->measResultCell_r15.rsrpResult_r15,RC.rrc[ctxt_pP->module_id]));
+            if (ue_context_p->ue_context.measResults->measResultNeighCells->choice.measResultNeighCellListNR_r15.list.array[0]->measResultCell_r15.rsrqResult_r15) 
+              fprintf(fd,"NR_rsrq %f dB\n",to_nr_rsrq(*ue_context_p->ue_context.measResults->measResultNeighCells->choice.measResultNeighCellListNR_r15.list.array[0]->measResultCell_r15.rsrqResult_r15,RC.rrc[ctxt_pP->module_id]));
+            if (ue_context_p->ue_context.measResults->measResultNeighCells->choice.measResultNeighCellListNR_r15.list.array[0]->measResultRS_IndexList_r15) 
               fprintf(fd,"NR_ssb_index %ld\n",ue_context_p->ue_context.measResults->measResultNeighCells->choice.measResultNeighCellListNR_r15.list.array[0]->measResultRS_IndexList_r15->list.array[0]->ssb_Index_r15);
            }
         }
