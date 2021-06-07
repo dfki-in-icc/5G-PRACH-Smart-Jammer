@@ -174,7 +174,7 @@ void rx_func(void *param) {
     void clean_gNB_ulsch(NR_gNB_ULSCH_t *ulsch);
     void clean_gNB_dlsch(NR_gNB_DLSCH_t *dlsch);
     int j;
-    for (j = 0; j < NUMBER_OF_NR_ULSCH_MAX; j++)
+    for (j = 0; j < NUMBER_OF_NR_ULSCH_MAX; j++) {
       if (gNB->ulsch[j]->rnti == rnti_to_remove[i]) {
         gNB->ulsch[j]->rnti = 0;
         gNB->ulsch[j]->harq_mask = 0;
@@ -185,6 +185,16 @@ void rx_func(void *param) {
           gNB->ulsch[j]->harq_processes[h]->handled = 0;
         }
         up_removed++;
+      }
+      if (gNB->ulsch_stats[j].rnti == rnti_to_remove[i])
+        gNB->ulsch_stats[j].rnti = 0;
+    }
+    for (j = 0; j < NUMBER_OF_NR_DLSCH_MAX; j++)
+      if (gNB->dlsch[j][0]->rnti == rnti_to_remove[i]) {
+        gNB->dlsch[j][0]->rnti = 0;
+        gNB->dlsch[j][0]->harq_mask = 0;
+        //clean_gNB_dlsch(gNB->dlsch[j][0]);
+        down_removed++;
       }
     for (j = 0; j < NUMBER_OF_NR_PUCCH_MAX; j++)
       if (gNB->pucch[j]->active > 0 &&
