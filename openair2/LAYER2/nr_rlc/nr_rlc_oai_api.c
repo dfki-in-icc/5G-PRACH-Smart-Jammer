@@ -78,7 +78,7 @@ void nr_rlc_bearer_init(NR_RLC_BearerConfig_t *RLC_BearerConfig, NR_RLC_BearerCo
 void nr_rlc_bearer_init_ul_spec(struct NR_LogicalChannelConfig *mac_LogicalChannelConfig){
 
   mac_LogicalChannelConfig->ul_SpecificParameters                              = calloc(1, sizeof(*mac_LogicalChannelConfig->ul_SpecificParameters));
-  mac_LogicalChannelConfig->ul_SpecificParameters->priority                    = 1;
+  mac_LogicalChannelConfig->ul_SpecificParameters->priority                    = 9;
   mac_LogicalChannelConfig->ul_SpecificParameters->prioritisedBitRate          = NR_LogicalChannelConfig__ul_SpecificParameters__prioritisedBitRate_infinity;
   mac_LogicalChannelConfig->ul_SpecificParameters->bucketSizeDuration          = NR_LogicalChannelConfig__ul_SpecificParameters__bucketSizeDuration_ms50;
   mac_LogicalChannelConfig->ul_SpecificParameters->allowedServingCells         = NULL;
@@ -114,14 +114,14 @@ void nr_drb_config(struct NR_RLC_Config *rlc_Config, NR_RLC_Config_PR rlc_config
       rlc_Config->choice.am                             = calloc(1, sizeof(*rlc_Config->choice.am));
       rlc_Config->choice.am->ul_AM_RLC.sn_FieldLength   = calloc(1, sizeof(*rlc_Config->choice.am->ul_AM_RLC.sn_FieldLength));
       *rlc_Config->choice.am->ul_AM_RLC.sn_FieldLength  = NR_SN_FieldLengthAM_size18;
-      rlc_Config->choice.am->ul_AM_RLC.t_PollRetransmit = NR_T_PollRetransmit_ms45;
-      rlc_Config->choice.am->ul_AM_RLC.pollPDU          = NR_PollPDU_p64;
-      rlc_Config->choice.am->ul_AM_RLC.pollByte         = NR_PollByte_kB500;
+      rlc_Config->choice.am->ul_AM_RLC.t_PollRetransmit = NR_T_PollRetransmit_ms20;
+      rlc_Config->choice.am->ul_AM_RLC.pollPDU          = NR_PollPDU_p1024;
+      rlc_Config->choice.am->ul_AM_RLC.pollByte         = NR_PollByte_kB1000;
       rlc_Config->choice.am->ul_AM_RLC.maxRetxThreshold = NR_UL_AM_RLC__maxRetxThreshold_t32;
       rlc_Config->choice.am->dl_AM_RLC.sn_FieldLength   = calloc(1, sizeof(*rlc_Config->choice.am->dl_AM_RLC.sn_FieldLength));
       *rlc_Config->choice.am->dl_AM_RLC.sn_FieldLength  = NR_SN_FieldLengthAM_size18;
       rlc_Config->choice.am->dl_AM_RLC.t_Reassembly     = NR_T_Reassembly_ms15;
-      rlc_Config->choice.am->dl_AM_RLC.t_StatusProhibit = NR_T_StatusProhibit_ms15;
+      rlc_Config->choice.am->dl_AM_RLC.t_StatusProhibit = NR_T_StatusProhibit_ms10;
       break;
     default:
       AssertFatal(0, "RLC config type %d not handled\n", rlc_config_pr);
