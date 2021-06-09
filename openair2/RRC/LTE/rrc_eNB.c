@@ -99,6 +99,7 @@
 
 #define ASN_MAX_ENCODE_SIZE 4096
 #define NUMBEROF_DRBS_TOBE_ADDED 1
+#define NSA_HO 0
 static int encode_CG_ConfigInfo(char *buffer,int buffer_size,rrc_eNB_ue_context_t *const ue_context_pP,int *enc_size);
 
 extern RAN_CONTEXT_t RC;
@@ -4390,6 +4391,7 @@ rrc_eNB_process_MeasurementReport(
           ue_context_pP->ue_context.measResults->measResultPCell.rsrqResult/2 - 20);
   }
 
+#if NSA_HO
   /* TODO: improve NR triggering */
   if (measResults2->measId == 7) {
     if ((ue_context_pP->ue_context.StatusRrc != RRC_NR_NSA) && (ue_context_pP->ue_context.StatusRrc != RRC_NR_NSA_RECONFIGURED)) {
@@ -4593,6 +4595,7 @@ rrc_eNB_process_MeasurementReport(
     LOG_D(RRC, "[eNB %d] Frame %d: Ignoring MeasReport from UE %x as Handover is in progress... \n", ctxt_pP->module_id, ctxt_pP->frame,
           ctxt_pP->rnti);
   }
+#endif
 }
 
 
