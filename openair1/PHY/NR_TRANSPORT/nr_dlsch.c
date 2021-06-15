@@ -559,7 +559,7 @@ void nr_generate_pdsch(processingData_L1tx_t *msgTx,
 	gNB->common_vars.beam_id[0][slot*frame_parms->symbols_per_slot+j] = rel15->precodingAndBeamforming.prgs_list[0].dig_bf_interface_list[0].beam_idx;
     }
     else {
-      LOG_D(PHY,"beam index for PDSCH allocation already taken\n");
+      LOG_W(PHY,"beam index for PDSCH allocation already taken\n");
     }
     for (int layer = 0; layer<rel15->nrOfLayers; layer++)
       free16(txdataF_precoding[layer],2*14*frame_parms->ofdm_symbol_size);
