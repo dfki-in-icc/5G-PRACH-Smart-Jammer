@@ -307,10 +307,10 @@ static void *nr_feptx_thread(void *param) {
 
       if (ru->do_precoding == 1) {
         for(i=0; i<ru->nb_log_antennas; ++i) {
-          memcpy((void*) &ru->common.beam_id[i][slot*fp->symbols_per_slot+l],
-                 (void*) &ru->gNB_list[0]->common_vars.beam_id[i][slot*fp->symbols_per_slot+l],
-                 (fp->symbols_per_slot>>1)*sizeof(uint8_t));
-         }
+          memcpy((void*) &ru->common.beam_id[i][slot*fp->symbols_per_slot],
+                 (void*) &ru->gNB_list[0]->common_vars.beam_id[i][slot*fp->symbols_per_slot],
+                 (fp->symbols_per_slot)*sizeof(uint8_t));
+        }
       }
 
       if (ru->nb_tx == 1 && ru->nb_log_antennas == 1) {

@@ -90,6 +90,9 @@ void get_samplerate_and_bw(int mu,
                            double *tx_bw,
                            double *rx_bw);
 
+int get_tdd_period_in_slots(int tdd_period, int slots_per_frame);
+
+#define NR_FRAME_DURATION 10000
 #define CEILIDIV(a,b) ((a+b-1)/b)
 #define ROUNDIDIV(a,b) (((a<<1)+b)/(b<<1))
 

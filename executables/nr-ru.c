@@ -758,23 +758,19 @@ void tx_rf(RU_t *ru,int frame,int slot, uint64_t timestamp) {
     if (fp->freq_range==nr_FR2) {
       // the beam index is written in bits 8-10 of the flags
       // bit 11 enables the gpio programming
-      // currently we switch beams every 10 slots (should = 1 TDD period in FR2) and we take the beam index of the first symbol of the first slot of this period
       int beam=0;
-
-      if (slot%10==0) {
-        if ( ru->common.beam_id && (ru->common.beam_id[0][slot*fp->symbols_per_slot] < 8)) {
-          beam = ru->common.beam_id[0][slot*fp->symbols_per_slot] | 8;
-        }
+      if (ru->common.beam_id &&
+          ((ru->common.beam_id[0][slot*fp->symbols_per_slot] < 8) ||
+          (ru->common.beam_id[0][slot*fp->symbols_per_slot] == 255))) {
+        beam = ru->common.beam_id[0][slot*fp->symbols_per_slot] | 8;
+      }
+      else {
+        LOG_E(HW,"Beam index cannot be greater than 7. Attemping beam index is %d\n",ru->common.beam_id[0][slot*fp->symbols_per_slot]);
       }
 
-      /*
-      if (slot==0 || slot==40) beam=0|8;
-      if (slot==10 || slot==50) beam=1|8;
-      if (slot==20 || slot==60) beam=2|8;
-      if (slot==30 || slot==70) beam=3|8;
-      */
       flags |= beam<<8;
-      LOG_D(HW,"slot %d, beam %d\n",slot,ru->common.beam_id[0][slot*fp->symbols_per_slot]);
+
+      LOG_D(HW,"slot %d, beam %d\n",slot,beam);
     }
     if (proc->first_tx == 1) proc->first_tx = 0;
 
