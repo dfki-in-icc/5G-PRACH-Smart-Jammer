@@ -92,6 +92,7 @@ int init_latseq(const char * appname, uint64_t cpufreq)
   // init registry
   g_latseq.local_log_buffers.read_ith_thread = 0;
   g_latseq.local_log_buffers.nb_th = 0;
+  //‘__builtin_memset’ offset [50, 176] from the object at ‘g_latseq’ is out of the bounds of referenced subobject ‘read_ith_thread’ with type ‘unsigned char’ at offset 48 [-Warray-bounds]
   memset(&g_latseq.local_log_buffers.read_ith_thread, 0, MAX_NB_THREAD * sizeof(unsigned int));
   
   // init stat
