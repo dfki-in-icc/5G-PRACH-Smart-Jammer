@@ -98,6 +98,8 @@ typedef struct {
   nfapi_nr_ul_dci_request_t *UL_dci_req;
   /// Pointers to DL SDUs
   nfapi_nr_tx_data_request_t *TX_req;
+  /// Analog beam index array
+  int16_t *tdd_beam_association;
 } NR_Sched_Rsp_t;
 
 typedef struct {

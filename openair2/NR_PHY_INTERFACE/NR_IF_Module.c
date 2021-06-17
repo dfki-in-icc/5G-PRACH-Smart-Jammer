@@ -446,6 +446,24 @@ void NR_UL_indication(NR_UL_IND_t *UL_info) {
     }
   }
 
+  NR_COMMON_channels_t *cc = mac->common_channels;
+  NR_ServingCellConfigCommon_t *scc = cc->ServingCellConfigCommon;
+
+  if (UL_info->slot==0 && (*scc->downlinkConfigCommon->frequencyInfoDL->frequencyBandList.list.array[0]>=257)) {
+    const NR_TDD_UL_DL_Pattern_t *tdd = &scc->tdd_UL_DL_ConfigurationCommon->pattern1;
+    const int n = nr_slots_per_frame[*scc->ssbSubcarrierSpacing];
+    const int nr_mix_slots = tdd->nrofDownlinkSymbols != 0 || tdd->nrofUplinkSymbols != 0;
+    const int nr_slots_period = tdd->nrofDownlinkSlots + tdd->nrofUplinkSlots + nr_mix_slots;
+    const int nb_periods_per_frame = n / nr_slots_period;
+    // re-initialization of tdd_beam_association at beginning of frame (only for FR2)
+    // hardcoding beam index for TDD periods in a frame because of PHY limitation to switching beams.
+    // this beam to TDD period config would work only with PRACH config index 52 for FR2
+    for (int i=0; i<nb_periods_per_frame/2; i++) {
+      mac->tdd_beam_association[i] = i;
+      mac->tdd_beam_association[i+4] = i;
+    }
+  }
+
   handle_nr_rach(UL_info);
   handle_nr_uci(UL_info);
   // clear UL DCI prior to handling ULSCH
@@ -491,6 +509,7 @@ void NR_UL_indication(NR_UL_IND_t *UL_info) {
       sched_info->UL_tti_req  = mac->UL_tti_req[CC_id];
 
       sched_info->TX_req      = &mac->TX_req[CC_id];
+      sched_info->tdd_beam_association = mac->tdd_beam_association;
 #ifdef DUMP_FAPI
       dump_dl(sched_info);
 #endif

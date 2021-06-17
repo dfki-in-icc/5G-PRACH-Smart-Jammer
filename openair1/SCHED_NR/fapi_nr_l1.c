@@ -149,6 +149,7 @@ void nr_schedule_response(NR_Sched_Rsp_t *Sched_INFO){
   AssertFatal(RC.gNB[Mod_id]!=NULL,"RC.gNB[%d] is null\n",Mod_id);
 
   gNB = RC.gNB[Mod_id];
+  NR_DL_FRAME_PARMS *fp=&gNB->frame_parms;
   start_meas(&gNB->schedule_response_stats);
 
   nfapi_nr_config_request_scf_t *cfg = &gNB->gNB_config;
@@ -159,6 +160,15 @@ void nr_schedule_response(NR_Sched_Rsp_t *Sched_INFO){
   uint8_t number_ul_dci_pdu         = (UL_dci_req==NULL) ? 0 : UL_dci_req->numPdus;
   uint8_t number_ul_tti_pdu         = (UL_tti_req==NULL) ? 0 : UL_tti_req->n_pdus;
   uint8_t number_tx_data_pdu        = (TX_req == NULL) ? 0 : TX_req->Number_of_PDUs;
+
+  // Copy analog beam index from MAC to PHY
+  int tdd_period_in_slots = get_tdd_period_in_slots(gNB->gNB_config.tdd_table.tdd_period.value,
+                            fp->slots_per_frame);
+  for (int i=0; i<fp->slots_per_frame/tdd_period_in_slots; i++) {
+    memset(&gNB->common_vars.beam_id[0][i*tdd_period_in_slots*fp->symbols_per_slot],
+           Sched_INFO->tdd_beam_association[i],
+           fp->symbols_per_slot*tdd_period_in_slots*sizeof(uint8_t));
+  }
 
   if (NFAPI_MODE == NFAPI_MONOLITHIC){
 

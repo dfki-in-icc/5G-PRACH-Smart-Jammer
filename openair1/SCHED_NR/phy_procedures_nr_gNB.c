@@ -97,16 +97,6 @@ void nr_common_signal_procedures (PHY_VARS_gNB *gNB,int frame,int slot,nfapi_nr_
     T(T_GNB_PHY_MIB, T_INT(0) /* module ID */, T_INT(frame), T_INT(slot), T_BUFFER(bch, 3));
   }
 
-  // Beam_id is currently used only for FR2
-  if (fp->freq_range==nr_FR2){
-    LOG_D(PHY,"slot %d, ssb_index %d, beam %d\n",slot,ssb_index,cfg->ssb_table.ssb_beam_id_list[ssb_index].beam_id.value);
-    // PHY can switch beams only once per TDD
-    memset(&gNB->common_vars.beam_id[0][slot*fp->symbols_per_slot],
-           cfg->ssb_table.ssb_beam_id_list[ssb_index].beam_id.value,
-           fp->symbols_per_slot*get_tdd_period_in_slots(
-           gNB->gNB_config.tdd_table.tdd_period.value,fp->slots_per_frame)*sizeof(uint8_t));
-  }
-
   nr_generate_pbch(&ssb_pdu,
                    gNB->nr_pbch_interleaver,
                    &txdataF[0][txdataF_offset],
@@ -136,12 +126,6 @@ void phy_procedures_gNB_TX(processingData_L1tx_t *msgTx,
   // clear the transmit data array and beam index for the current slot
   for (aa=0; aa<cfg->carrier_config.num_tx_ant.value; aa++) {
     memset(&gNB->common_vars.txdataF[aa][txdataF_offset],0,fp->samples_per_slot_wCP*sizeof(int32_t));
-  }
-  //clear the beam index array every frame
-  if (slot == 0) {
-    for (aa=0; aa<cfg->carrier_config.num_tx_ant.value; aa++) {
-      memset(&gNB->common_vars.beam_id[aa][0],255,fp->symbols_per_slot*fp->slots_per_frame*sizeof(uint8_t));
-    }
   }
 
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PHY_PROCEDURES_gNB_COMMON_TX,1);
