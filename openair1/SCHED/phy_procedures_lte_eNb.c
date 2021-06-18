@@ -2145,8 +2145,11 @@ void phy_procedures_eNB_uespec_RX(PHY_VARS_eNB *eNB,L1_rxtx_proc_t *proc) {
   const int       subframe = proc->subframe_rx;
   const int       frame = proc->frame_rx;
   /* TODO: use correct rxdata */
-  T (T_ENB_PHY_INPUT_SIGNAL, T_INT (eNB->Mod_id), T_INT (frame), T_INT (subframe), T_INT (0),
-     T_BUFFER (&eNB->RU_list[0]->common.rxdata[0][subframe * eNB->frame_parms.samples_per_tti], eNB->frame_parms.samples_per_tti * 4));
+
+  if (eNB->RU_list[0]->common.rxdata && eNB->RU_list[0]->common.rxdata[0]) {
+    T (T_ENB_PHY_INPUT_SIGNAL, T_INT (eNB->Mod_id), T_INT (frame), T_INT (subframe), T_INT (0),
+       T_BUFFER (&eNB->RU_list[0]->common.rxdata[0][subframe * eNB->frame_parms.samples_per_tti], eNB->frame_parms.samples_per_tti * 4));
+  }
 
   if ((fp->frame_type == TDD) && (subframe_select(fp,subframe)!=SF_UL)) return;
 
