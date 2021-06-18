@@ -791,11 +791,6 @@ void tx_rf(RU_t *ru,int frame,int slot, uint64_t timestamp) {
 	  (long long unsigned int)(timestamp+ru->ts_offset-ru->openair0_cfg.tx_sample_advance-sf_extension),frame,slot,proc->frame_tx_unwrap,slot, flags, siglen+sf_extension, txs,10*log10((double)signal_energy(txp[0],siglen+sf_extension)));
     VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME( VCD_SIGNAL_DUMPER_FUNCTIONS_TRX_WRITE, 0 );
       //AssertFatal(txs == 0,"trx write function error %d\n", txs);
-      if (slot == (fp->slots_per_frame-1)) {
-        FILE *tx_wr_p = fopen("tx_write.raw","wba");
-        fwrite(&ru->common.txdata[0][0],sizeof(short),fp->samples_per_frame*2,tx_wr_p);
-        fclose(tx_wr_p);
-      }
   }
 }
 
