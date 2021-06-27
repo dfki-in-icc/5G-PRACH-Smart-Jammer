@@ -27,6 +27,7 @@
 #include "low.h"
 #include "common/utils/LOG/log.h"
 #include "common/utils/LOG/vcd_signal_dumper.h"
+#include "rte_version.h"
 
 typedef struct {
   eth_state_t           e;
@@ -40,6 +41,7 @@ typedef struct {
 int trx_benetel_start(openair0_device *device)
 {
   printf("BENETEL: %s\n", __FUNCTION__);
+  printf("DPDK Version %s\n", rte_version()); 
   return 0;
 }
 

@@ -69,7 +69,7 @@ static int mac_updating = 1;
 static uint16_t nb_rxd = RTE_TEST_RX_DESC_DEFAULT;
 static uint16_t nb_txd = RTE_TEST_TX_DESC_DEFAULT;
 /* ethernet addresses of ports */
-static struct ether_addr l2fwd_ports_eth_addr[RTE_MAX_ETHPORTS];
+static struct rte_ether_addr l2fwd_ports_eth_addr[RTE_MAX_ETHPORTS];
 /* mask of enabled ports */
 static uint32_t l2fwd_enabled_port_mask = 0;
 /* list of enabled ports */
@@ -149,7 +149,7 @@ l2fwd_simple_forward(struct rte_mbuf *m, unsigned portid, benetel_t *bs)
 {
 	unsigned char *buf, *buf_tx;
 	unsigned int len;
-	struct ether_hdr *eth;
+	struct rte_ether_hdr *eth;
 
 	unsigned dst_port;
 	int sent, prach_ctrl = 0;
