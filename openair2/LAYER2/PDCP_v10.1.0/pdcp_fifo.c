@@ -43,6 +43,7 @@ extern int otg_enabled;
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <netinet/ip.h>
 #define rtf_put write
 #define rtf_get read
 
@@ -81,9 +82,6 @@ extern int nas_sock_fd[MAX_MOBILES_PER_ENB];
 
 extern int nas_sock_mbms_fd;
 
-extern int mbms_rab_id;
-
-
 extern struct msghdr nas_msg_tx;
 extern struct msghdr nas_msg_rx;
 
@@ -116,8 +114,6 @@ int pdcp_fifo_flush_sdus(const protocol_ctxt_t *const  ctxt_pP) {
      * PDCP packet to pick the right socket below */
 
     int rb_id = pdcpHead->rb_id;
-    int sizeToWrite= sizeof (pdcp_data_ind_header_t) +
-      pdcpHead->data_size;
     void * pdcpData=(void*)(pdcpHead+1);
     if (rb_id == 10) { //hardcoded for PC5-Signaling
       if( LOG_DEBUGFLAG(DEBUG_PDCP) ) {
@@ -131,27 +127,32 @@ int pdcp_fifo_flush_sdus(const protocol_ctxt_t *const  ctxt_pP) {
     } else if (UE_NAS_USE_TUN) {
       //ret = write(nas_sock_fd[pdcpHead->inst], &(sdu_p->data[sizeof(pdcp_data_ind_header_t)]),sizeToWrite );
        if(rb_id == mbms_rab_id){
-       ret = write(nas_sock_mbms_fd, pdcpData,sizeToWrite );
+       ret = write(nas_sock_mbms_fd, pdcpData, pdcpHead->data_size );
        LOG_I(PDCP,"[PDCP_FIFOS] ret %d TRIED TO PUSH MBMS DATA TO rb_id %d handle %d sizeToWrite %d\n",
-	     ret,rb_id,nas_sock_fd[pdcpHead->inst],sizeToWrite);
+	     ret,rb_id,nas_sock_fd[pdcpHead->inst],pdcpHead->data_size);
         }
        else
        {
-	 if( LOG_DEBUGFLAG(DEBUG_PDCP) ) 
-	   log_dump(PDCP, pdcpData, sizeToWrite, LOG_DUMP_CHAR,"PDCP output to be sent to TUN interface: \n");
-	 ret = write(nas_sock_fd[pdcpHead->inst], pdcpData,sizeToWrite );
-	 LOG_T(PDCP,"[UE PDCP_FIFOS] ret %d TRIED TO PUSH DATA TO rb_id %d handle %d sizeToWrite %d\n",
-	       ret,rb_id,nas_sock_fd[pdcpHead->inst],sizeToWrite);
+    if( LOG_DEBUGFLAG(DEBUG_PDCP) ) {
+      log_dump(PDCP, pdcpData, pdcpHead->data_size, LOG_DUMP_CHAR,"PDCP output to be sent to TUN interface: \n");
+    }
+
+      ret = write(nas_sock_fd[pdcpHead->inst], pdcpData,pdcpHead->data_size );
+      LOG_T(PDCP,"[UE PDCP_FIFOS] ret %d TRIED TO PUSH DATA TO rb_id %d handle %d sizeToWrite %d\n",
+         ret,rb_id,nas_sock_fd[pdcpHead->inst],pdcpHead->data_size);
        }
     } else if (ENB_NAS_USE_TUN) {
-      if( LOG_DEBUGFLAG(DEBUG_PDCP) )
-        log_dump(PDCP, pdcpData, sizeToWrite, LOG_DUMP_CHAR,"PDCP output to be sent to TUN interface: \n");
+
+      if( LOG_DEBUGFLAG(DEBUG_PDCP) ) {
+        log_dump(PDCP, pdcpData, pdcpHead->data_size, LOG_DUMP_CHAR,"PDCP output to be sent to TUN interface: \n");
+      }
 #if LATSEQ
-      LATSEQ_P("U pdcp.out.nas--ip.out", "len%d:rnti%d:drb%d.sock%d.lid%d.fm%d", sizeToWrite, ctxt_pP->rnti, rb_id, nas_sock_fd[0], pdcpHead->destinationL2Id, ctxt_pP->frame);
+      LATSEQ_P("U pdcp.out.nas--ip.out", "len%d:rnti%d:drb%d.sock%d.lid%d.fm%d", pdcpHead->data_size, ctxt_pP->rnti, rb_id, nas_sock_fd[0], pdcpHead->destinationL2Id, ctxt_pP->frame);
 #endif
-      ret = write(nas_sock_fd[0], pdcpData, sizeToWrite);
-      LOG_T(PDCP,"[NB PDCP_FIFOS] ret %d TRIED TO PUSH DATA TO rb_id %d handle %d sizeToWrite %d\n",ret,rb_id,nas_sock_fd[0],sizeToWrite);
+      ret = write(nas_sock_fd[0], pdcpData, pdcpHead->data_size);
+       LOG_T(PDCP,"[NB PDCP_FIFOS] ret %d TRIED TO PUSH DATA TO rb_id %d handle %d sizeToWrite %d\n",ret,rb_id,nas_sock_fd[0],pdcpHead->data_size);
     } else if (PDCP_USE_NETLINK) {
+      int sizeToWrite= sizeof (pdcp_data_ind_header_t) + pdcpHead->data_size;
 #if LATSEQ
       LATSEQ_P("U pdcp.out.nl--ip.out", "len%d:rnti%d:drb%d.sock%d.lid%d.fm%d", sizeToWrite, ctxt_pP->rnti, rb_id, nas_sock_fd[0], pdcpHead->destinationL2Id, ctxt_pP->frame);
 #endif
@@ -164,7 +165,7 @@ int pdcp_fifo_flush_sdus(const protocol_ctxt_t *const  ctxt_pP) {
     AssertFatal(ret >= 0,"[PDCP_FIFOS] pdcp_fifo_flush_sdus (errno: %d %s), nas_sock_fd[0]: %d\n", errno, strerror(errno), nas_sock_fd[0]);
 
     if( LOG_DEBUGFLAG(DEBUG_PDCP) )
-      log_dump(PDCP, pdcpData, min(sizeToWrite,30) , LOG_DUMP_CHAR,
+      log_dump(PDCP, pdcpData, min(pdcpHead->data_size,30) , LOG_DUMP_CHAR,
 	       "Printing first bytes of PDCP SDU before removing it from the list: \n");
     delNotifiedFIFO_elt (sdu_p);
     pdcp_nb_sdu_sent ++;
@@ -236,7 +237,11 @@ int pdcp_fifo_read_input_sdus_fromtun (const protocol_ctxt_t *const  ctxt_pP) {
       key = PDCP_COLL_KEY_DEFAULT_DRB_VALUE(ctxt.module_id, ctxt.rnti, ctxt.enb_flag);
       h_rc = hashtable_get(pdcp_coll_p, key, (void **)&pdcp_p);
     } else { // => ENB_NAS_USE_TUN
-      ctxt.rnti=pdcp_eNB_UE_instance_to_rnti[0];
+      /* Get the IP from a packet */
+      struct ip *ip_pack = (struct ip *) nl_rx_buf;
+      /* Use last octet of destination IP to get index of UE */
+      int ue_indx = ((ip_pack->ip_dst.s_addr >> 24) -  2) % MAX_MOBILES_PER_ENB;
+      ctxt.rnti=pdcp_eNB_UE_instance_to_rnti[ue_indx];
       ctxt.enb_flag=ENB_FLAG_YES;
       ctxt.module_id=0;
       key = PDCP_COLL_KEY_VALUE(ctxt.module_id, ctxt.rnti, ctxt.enb_flag, rab_id, SRB_FLAG_NO);
@@ -389,7 +394,6 @@ int pdcp_fifo_read_input_sdus_fromnetlinksock (const protocol_ctxt_t *const  ctx
     protocol_ctxt_t                ctxt;
     hash_key_t                     key       = HASHTABLE_NOT_A_KEY_VALUE;
     hashtable_rc_t                 h_rc;
-    module_id_t                    ue_id     = 0;
     pdcp_t                        *pdcp_p    = NULL;
     static unsigned char pdcp_read_state_g =0;
     rb_id_t          rab_id  = 0;
@@ -485,30 +489,7 @@ int pdcp_fifo_read_input_sdus_fromnetlinksock (const protocol_ctxt_t *const  ctx
             } else  { // rb_id =0, thus interpreated as broadcast and transported as multiple unicast
               // is a broadcast packet, we have to send this packet on all default RABS of all connected UEs
               //#warning CODE TO BE REVIEWED, ONLY WORK FOR SIMPLE TOPOLOGY CASES
-              for (ue_id = 0; ue_id < NB_UE_INST; ue_id++) {
-                if (oai_emulation.info.eNB_ue_module_id_to_rnti[ctxt_cpy.module_id][ue_id] != NOT_A_RNTI) {
-                  ctxt.rnti = oai_emulation.info.eNB_ue_module_id_to_rnti[ctxt_cpy.module_id][ue_id];
-                  LOG_D(PDCP, "[FRAME %5u][eNB][IP][INSTANCE %u][RB %ld][--- PDCP_DATA_REQ / %d Bytes --->][PDCP][MOD %u][UE %u][RB DEFAULT_RAB_ID %u]\n",
-                        ctxt.frame,
-                        pdcp_read_header_g.inst,
-                        pdcp_read_header_g.rb_id,
-                        pdcp_read_header_g.data_size,
-                        ctxt.module_id,
-                        ctxt.rnti,
-                        DEFAULT_RAB_ID);
-                  pdcp_data_req (
-                    &ctxt,
-                    SRB_FLAG_NO,
-                    DEFAULT_RAB_ID,
-                    RLC_MUI_UNDEFINED,
-                    RLC_SDU_CONFIRM_NO,
-                    pdcp_read_header_g.data_size,
-                    (unsigned char *)NLMSG_DATA(nas_nlh_rx),
-                    PDCP_TRANSMISSION_MODE_DATA
-                    ,NULL, NULL
-                  );
-                }
-              }
+              // never finished code, dropped
             }
           } else { // ctxt.enb_flag => UE
             if (NFAPI_MODE == NFAPI_UE_STUB_PNF) {

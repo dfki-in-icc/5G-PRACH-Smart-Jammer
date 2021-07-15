@@ -99,6 +99,7 @@ void free_eNB_dlsch(LTE_eNB_DLSCH_t *dlsch) {
 }
 
 
+
 LTE_eNB_DLSCH_t *new_eNB_dlsch(unsigned char Kmimo,
                                unsigned char Mdlharq,
                                uint32_t Nsoft,
@@ -113,7 +114,7 @@ LTE_eNB_DLSCH_t *new_eNB_dlsch(unsigned char Kmimo,
 
   switch (N_RB_DL) {
   case 6:
-    bw_scaling =16;
+    bw_scaling = 4;
     break;
 
   case 25:
@@ -163,7 +164,7 @@ LTE_eNB_DLSCH_t *new_eNB_dlsch(unsigned char Kmimo,
 
     for (i=0; i<Mdlharq; i++) {
       dlsch->harq_processes[i] = (LTE_DL_eNB_HARQ_t *)malloc16(sizeof(LTE_DL_eNB_HARQ_t));
-      LOG_T(PHY, "Required mem size %d (bw scaling %d), dlsch->harq_processes[%d] %p\n",
+      LOG_I(PHY, "Required DLSCH mem size %d (bw scaling %d), dlsch->harq_processes[%d] %p\n",
             MAX_DLSCH_PAYLOAD_BYTES/bw_scaling,bw_scaling, i,dlsch->harq_processes[i]);
 
       if (dlsch->harq_processes[i]) {
@@ -172,9 +173,9 @@ LTE_eNB_DLSCH_t *new_eNB_dlsch(unsigned char Kmimo,
         dlsch->harq_processes[i]->b = (unsigned char *)malloc16(MAX_DLSCH_PAYLOAD_BYTES/bw_scaling);
 
         if (dlsch->harq_processes[i]->b) {
-          bzero(dlsch->harq_processes[i]->b,MAX_DLSCH_PAYLOAD_BYTES/bw_scaling);
+          memset(dlsch->harq_processes[i]->b,0,MAX_DLSCH_PAYLOAD_BYTES/bw_scaling);
         } else {
-          printf("Can't get b\n");
+          AssertFatal(1==0,"Can't get b\n");
           exit_flag=1;
         }
 
@@ -184,15 +185,15 @@ LTE_eNB_DLSCH_t *new_eNB_dlsch(unsigned char Kmimo,
             dlsch->harq_processes[i]->c[r] = (uint8_t *)malloc16(((r==0)?8:0) + 3+ 768);
 
             if (dlsch->harq_processes[i]->c[r]) {
-              bzero(dlsch->harq_processes[i]->c[r],((r==0)?8:0) + 3+ 768);
+              memset(dlsch->harq_processes[i]->c[r],0,((r==0)?8:0) + 3+ 768);
             } else {
-              printf("Can't get c\n");
+              AssertFatal(1==0,"Can't get c\n");
               exit_flag=2;
             }
           }
         }
       } else {
-        printf("Can't get harq_p %d\n",i);
+        AssertFatal(1==0,"Can't get harq_p %d\n",i);
         exit_flag=3;
       }
     }
@@ -206,7 +207,7 @@ LTE_eNB_DLSCH_t *new_eNB_dlsch(unsigned char Kmimo,
     }
   }
 
-  LOG_D(PHY,"new_eNB_dlsch exit flag %d, size of  %ld\n",
+  LOG_I(PHY,"new_eNB_dlsch exit flag %d, size of  %ld\n",
         exit_flag, sizeof(LTE_eNB_DLSCH_t));
   free_eNB_dlsch(dlsch);
   return(NULL);
@@ -362,6 +363,7 @@ int dlsch_encoding(PHY_VARS_eNB *eNB,
 	    frame,subframe,beamforming_mode);
 
   proc->nbEncode=0;
+
 
   //  if (hadlsch->Ndi == 1) {  // this is a new packet
   if (hadlsch->round == 0) {  // this is a new packet

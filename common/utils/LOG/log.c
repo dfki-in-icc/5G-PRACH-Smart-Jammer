@@ -88,7 +88,8 @@ int write_file_matlab(const char *fname,
 					  void *data,
 					  int length,
 					  int dec,
-					  unsigned int format)
+					  unsigned int format,
+            int multiVec)
 {
   FILE *fp=NULL;
   int i;
@@ -100,8 +101,7 @@ int write_file_matlab(const char *fname,
 
   //printf("Writing %d elements of type %d to %s\n",length,format,fname);
 
-
-  if (format == 10 || format ==11 || format == 12 || format == 13 || format == 14) {
+  if (format == 10 || format ==11 || format == 12 || format == 13 || format == 14 || multiVec) {
     fp = fopen(fname,"a+");
   } else if (format != 10 && format !=11  && format != 12 && format != 13 && format != 14) {
     fp = fopen(fname,"w+");
@@ -137,8 +137,7 @@ int write_file_matlab(const char *fname,
     return(0);	
   }
 
-
-  if (format != 10 && format !=11  && format != 12 && format != 13 && format != 14)
+  if ((format != 10 && format !=11  && format != 12 && format != 13 && format != 14) || multiVec)
     fprintf(fp,"%s = [",vname);
 
   switch (format) {
@@ -244,10 +243,10 @@ int write_file_matlab(const char *fname,
       fprintf(fp,"%d \n",((unsigned char *)&data)[0]);
       break;
   default:
-    AssertFatal(false, "unknown dump format: %d\n", format);
+    AssertFatal(false, "unknown dump format: %u\n", format);
   }
 
-  if (format != 10 && format !=11 && format !=12 && format != 13 && format != 15) {
+  if ((format != 10 && format !=11 && format !=12 && format != 13 && format != 15) || multiVec) {
     fprintf(fp,"];\n");
     fclose(fp);
     return(0);
@@ -461,7 +460,7 @@ int logInit (void)
   register_log_component("LOCALIZE","log",LOCALIZE);
   register_log_component("NAS","log",NAS);
   register_log_component("UDP","",UDP_);
-  register_log_component("GTPV1U","",GTPU);
+  register_log_component("GTPU","",GTPU);
   register_log_component("S1AP","",S1AP);
   register_log_component("F1AP","",F1AP);
   register_log_component("M2AP","",M2AP);
