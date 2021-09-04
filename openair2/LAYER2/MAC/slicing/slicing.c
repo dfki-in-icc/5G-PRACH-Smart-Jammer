@@ -30,6 +30,7 @@
 #define _GNU_SOURCE
 #include <stdlib.h>
 #include <dlfcn.h>
+#include <limits.h>
 
 #include "assertions.h"
 #include "common/utils/LOG/log.h"
@@ -1009,11 +1010,12 @@ pp_impl_param_t nvs_dl_init(module_id_t mod_id, int CC_id) {
 /************************* EDF Slicing Implementation **************************/
 
 typedef struct {
-  uint32_t Q;
-  uint32_t n;
+  int Q;
+  int n;
   bool suspended;
-#define d_INF 0xffffffff
-  uint32_t d;
+#define d_INF INT_MAX
+  int d;
+  int reps;
 } _edf_int_t;
 
 int _edf_admission_control(const slice_info_t *si, edf_slice_param_t *p, int id, int idx, int N_RB_DL)
@@ -1157,7 +1159,7 @@ void edf_dl(module_id_t mod_id, int CC_id, frame_t frame, sub_frame_t subframe)
     eNB_UE_STATS *eNB_UE_stats = &UE_info->eNB_UE_stats[CC_id][UE_id];
     slice_t *s = si->s[idx];
     _edf_int_t *ip = s->int_data;
-    ip->n -= eNB_UE_stats->rbs_used;
+    ip->n += eNB_UE_stats->rbs_used;
   }
 
   /* EDF algorithm */
@@ -1174,10 +1176,18 @@ void edf_dl(module_id_t mod_id, int CC_id, frame_t frame, sub_frame_t subframe)
         ip->n = 0;
         ip->suspended = false;
         ip->Q = p->guaranteed_prbs;
+        ip->reps = p->max_replenish;
         q[i] = ip->Q;
       } else {
         if (!ip->suspended) {
           q[i] = max(0, ip->Q - ip->n);
+          if (q[i] == 0 && ip->reps > 0) {
+            /* replenish this deadline */
+            ip->reps -= 1;
+            q[i] = p->guaranteed_prbs;
+            ip->d += p->deadline;
+            ip->n = 0; /* TODO: sure about that? not mentioned in paper.*/
+          }
         } else {
           ip->Q = min(p->guaranteed_prbs, ip->Q - ip->n + p->guaranteed_prbs * (p->deadline - ip->d) / p->deadline);
           q[i] = ip->Q;
@@ -1197,18 +1207,27 @@ void edf_dl(module_id_t mod_id, int CC_id, frame_t frame, sub_frame_t subframe)
 
     if (ip->d < d_INF)
       ip->d -= 1;
+    AssertFatal(ip->d >= 0, "parameter d is %d, should not happen\n", ip->d);
 
     /* no data, so it does not make sense to schedule this slice */
     if (slice_buffered_data[i] == 0 && !slice_retransmission_ue[i])
       continue;
+    /* quota used, does not make sense to schedule this slice */
+    if (q[i] <= 0)
+      continue;
 
     /* insertion sort: sort slices by ascending parameter d */
     int *cur = &L.head;
-    while (*cur != -1 && ip->d > ((_edf_int_t *)si->s[*cur]->int_data)->d)
+    int pos = 0;
+    while (*cur != -1 && ip->d > ((_edf_int_t *)si->s[*cur]->int_data)->d) {
       cur = &L.next[*cur];
+      pos++;
+    }
     const int next = *cur;
     *cur = i;
     L.next[*cur] = next;
+
+    LOG_D(MAC, "%4d.%d slice %d/ID %d q %d n %d d %d pos %d\n", frame, subframe, i, s->id, q[i], ip->n, ip->d, pos);
   }
 
   const int N_RBG = to_rbg(RC.mac[mod_id]->common_channels[CC_id].mib->message.dl_Bandwidth);
@@ -1227,11 +1246,30 @@ void edf_dl(module_id_t mod_id, int CC_id, frame_t frame, sub_frame_t subframe)
   }
 
   extern int get_rbg_size_last(module_id_t mod_id, int CC_id); // in pre_processor.c
-  const int RBGlastsize = get_rbg_size_last(mod_id, CC_id);
-  for (int i = L.head; i >= 0; i = L.next[i]) {
+  //const int RBGlastsize = get_rbg_size_last(mod_id, CC_id);
+  for (int i = L.head; i >= 0 && n_rbg_sched > 0; i = L.next[i]) {
     uint32_t quota = q[i]; /* can use this number of RBs! */
+    uint32_t qRBG = min(n_rbg_sched, q[i] / RBGsize + ((q[i] % RBGsize) > 0)); /* convert to RBG, round up if necessary */
 
-    /* TODO get correct mask for up to 'quota' RBs, then call scheduler */
+    slice_t *s = si->s[i];
+    //const edf_slice_param_t *p = s->algo_data;
+    _edf_int_t *ip = s->int_data;
+
+    int rbg_rem = si->s[i]->dl_algo.run(mod_id,
+                                        CC_id,
+                                        frame,
+                                        subframe,
+                                        &si->s[i]->UEs,
+                                        2, // max_num_ue
+                                        qRBG,
+                                        rbgalloc_mask,
+                                        si->s[i]->dl_algo.data);
+    int used = qRBG - rbg_rem;
+    n_rbg_sched -= used;
+    LOG_D(MAC, "%4d.%d calling slice %d/ID %d n_rbg_sched %d used %d n %d +~%d\n",
+          frame, subframe, i, s->id, n_rbg_sched, used, ip->n, used * RBGsize);
+    AssertFatal(n_rbg_sched >= 0, "n_rbg_sched<0: i %d quota %d qRBG %d used %d\n",
+                i, quota, qRBG, used);
   }
 }
 
@@ -1271,7 +1309,7 @@ pp_impl_param_t edf_dl_init(module_id_t mod_id, int CC_id)
   edf.move_UE = slicing_move_UE;
   edf.addmod_slice = addmod_edf_slice_dl;
   edf.remove_slice = remove_nvs_slice_dl;
-  edf.dl = dlsch_scheduler_pre_processor;
+  edf.dl = edf_dl;
   // current DL algo becomes default scheduler
   edf.dl_algo = *algo;
   edf.destroy = edf_destroy;
