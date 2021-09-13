@@ -159,6 +159,7 @@ set (OPENAIR_TARGETS ${OPENAIR_DIR}/targets)
 set (OPENAIR3_DIR    ${OPENAIR_DIR}/openair3)
 set (OPENAIR_CMAKE   ${OPENAIR_DIR}/cmake_targets)
 set (OPENAIR_BIN_DIR ${CMAKE_CURRENT_BINARY_DIR}${CMAKE_FILES_DIRECTORY})
+set (XRAN_DIR ${OPENAIR_DIR}/targets/ARCH/ORAN_FHI/lib)
 
 project (OpenAirInterface)
 
@@ -622,6 +623,27 @@ target_link_libraries(benetel_4g PRIVATE ${DPDK_LIBS})
 target_link_libraries(benetel_4g PRIVATE pthread dl rt m numa)
 target_link_libraries(benetel_4g PRIVATE asn1_nr_rrc asn1_lte_rrc)
 
+# ORAN 4G library
+######################################################################
+
+include_directories("${XRAN_DIR}")
+include_directories ("/usr/local/dpdk_19_11/include/dpdk")
+
+set(ORAN_FHLIB_4G_SOURCE
+    ${OPENAIR_TARGETS}/ARCH/ETHERNET/oran/4g/oran.cpp
+    ${OPENAIR_TARGETS}/ARCH/ETHERNET/oran/4g/shared_buffers.c
+    ${OPENAIR_TARGETS}/ARCH/ETHERNET/oran/4g/low_oran.c
+    ${OPENAIR_TARGETS}/ARCH/ETHERNET/oran/4g/low_dpdk_oran.c
+    )
+add_library(oran_fhlib_4g MODULE ${ORAN_FHLIB_4G_SOURCE})
+
+set_target_properties(oran_fhlib_4g PROPERTIES COMPILE_FLAGS "-fvisibility=hidden -march=native -I$ENV{RTE_SDK}/$ENV{RTE_TARGET}/include")
+
+SET(DPDK_LIBS "-Wl,-rpath,$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -Wl,--whole-archive -L$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -ldpdk -Wl,--no-whole-archive")
+TARGET_LINK_LIBRARIES(oran_fhlib_4g ${DPDK_LIBS})
+TARGET_LINK_LIBRARIES(oran_fhlib_4g -L${XRAN_DIR} -lxran)
+TARGET_LINK_LIBRARIES(oran_fhlib_4g pthread dl rt m numa)
+
 # Benetel 5G library
 ######################################################################
 
@@ -640,6 +662,27 @@ SET(DPDK_LIBS "-Wl,-rpath,$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -Wl,--whole-archive
 target_link_libraries(benetel_5g PRIVATE ${DPDK_LIBS})
 target_link_libraries(benetel_5g PRIVATE pthread dl rt m numa)
 target_link_libraries(benetel_5g PRIVATE asn1_nr_rrc asn1_lte_rrc)
+
+# ORAN 5G library
+######################################################################
+
+include_directories("${XRAN_DIR}")
+include_directories ("/usr/local/dpdk_19_11/include/dpdk")
+
+set(ORAN_FHLIB_5G_SOURCE
+    ${OPENAIR_TARGETS}/ARCH/ETHERNET/oran/5g/oran.cc
+    ${OPENAIR_TARGETS}/ARCH/ETHERNET/oran/5g/shared_buffers.c
+    ${OPENAIR_TARGETS}/ARCH/ETHERNET/oran/5g/low_oran.c
+    ${OPENAIR_TARGETS}/ARCH/ETHERNET/oran/5g/low_dpdk_oran.c
+    )
+add_library(oran_fhlib_5g MODULE ${ORAN_FHLIB_5G_SOURCE})
+
+set_target_properties(oran_fhlib_5g PROPERTIES COMPILE_FLAGS "-fvisibility=hidden -march=native -I$ENV{RTE_SDK}/$ENV{RTE_TARGET}/include")
+
+SET(DPDK_LIBS "-Wl,-rpath,$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -Wl,--whole-archive -L$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -ldpdk -Wl,--no-whole-archive")
+TARGET_LINK_LIBRARIES(oran_fhlib_5g ${DPDK_LIBS})
+TARGET_LINK_LIBRARIES(oran_fhlib_5g -L${XRAN_DIR} -lxran)
+TARGET_LINK_LIBRARIES(oran_fhlib_5g pthread dl rt m numa)
 
 ##########################################################
 
