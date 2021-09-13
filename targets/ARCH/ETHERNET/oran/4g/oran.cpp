@@ -24,7 +24,7 @@
 #include "common_lib.h"
 #include "ethernet_lib.h"
 #include "shared_buffers.h"
-
+// #include "xran_lib_wrap.hpp"
 
 
 typedef struct {
@@ -59,10 +59,20 @@ char *msg_type(int t)
 }
 
 
+void xran_fh_rx_callback(void *pCallbackTag, xran_status_t status){
+    rte_pause();
+}
+void xran_fh_srs_callback(void *pCallbackTag, xran_status_t status){
+    rte_pause();
+}
+void xran_fh_rx_prach_callback(void *pCallbackTag, xran_status_t status){
+    rte_pause();
+}
+
 
 int trx_oran_start(openair0_device *device)
 {
-  xranLibWraper *xranlib; 
+  // xranLibWraper *xranlib = malloc(sizeof(*xranlib)); 
   xranlib = new xranLibWraper;
   
   if(xranlib->SetUp() < 0) {
@@ -147,8 +157,8 @@ int trx_oran_read_raw(openair0_device *device,
 
 int trx_oran_ctlsend(openair0_device *device, void *msg, ssize_t msg_len)
 {
-  RRU_CONFIG_msg_t *rru_config_msg = msg;
-  oran_eth_state_t *s = device->priv;
+  RRU_CONFIG_msg_t *rru_config_msg = (RRU_CONFIG_msg_t *) msg;
+  oran_eth_state_t *s = (oran_eth_state_t *) device->priv;
 
   printf("ORAN: %s\n", __FUNCTION__);
 
@@ -163,8 +173,8 @@ int trx_oran_ctlsend(openair0_device *device, void *msg, ssize_t msg_len)
 
 int trx_oran_ctlrecv(openair0_device *device, void *msg, ssize_t msg_len)
 {
-  RRU_CONFIG_msg_t *rru_config_msg = msg;
- oran_eth_state_t *s = device->priv;
+  RRU_CONFIG_msg_t *rru_config_msg = (RRU_CONFIG_msg_t *) msg;
+  oran_eth_state_t *s = (oran_eth_state_t *) device->priv;
 
   printf("ORAN: %s\n", __FUNCTION__);
 
@@ -208,7 +218,7 @@ void oran_fh_if4p5_south_in(RU_t *ru,
                                int *frame,
                                int *subframe)
 {
-  oran_eth_state_t *s = ru->ifdevice.priv;
+  oran_eth_state_t *s = (oran_eth_state_t *) ru->ifdevice.priv;
   PHY_VARS_eNB **eNB_list = ru->eNB_list, *eNB;
   LTE_DL_FRAME_PARMS *fp;
   int symbol;
@@ -280,7 +290,7 @@ void oran_fh_if4p5_south_out(RU_t *ru,
                                 int subframe,
                                 uint64_t timestamp)
 {
-  oran_eth_state_t *s = ru->ifdevice.priv;
+  oran_eth_state_t *s = (oran_eth_state_t *) ru->ifdevice.priv;
   PHY_VARS_eNB **eNB_list = ru->eNB_list, *eNB;
   LTE_DL_FRAME_PARMS *fp;
   int symbol;
@@ -330,58 +340,60 @@ void *get_internal_parameter(char *name)
   printf("BENETEL: %s\n", __FUNCTION__);
 
   if (!strcmp(name, "fh_if4p5_south_in"))
-    return oran_fh_if4p5_south_in;
+    return (void *) oran_fh_if4p5_south_in;
   if (!strcmp(name, "fh_if4p5_south_out"))
-    return oran_fh_if4p5_south_out;
+    return (void *) oran_fh_if4p5_south_out;
 
   return NULL;
 }
 
 __attribute__((__visibility__("default")))
-int transport_init(openair0_device *device,
-                   openair0_config_t *openair0_cfg,
-                   eth_params_t * eth_params )
+extern "C"
 {
-  oran_eth_state_t *eth;
-printf("Ann: ORANNN\n");
-  printf("ORAN: %s\n", __FUNCTION__);
+  int transport_init(openair0_device *device,
+                     openair0_config_t *openair0_cfg,
+                     eth_params_t * eth_params )
+  {
+    oran_eth_state_t *eth;
+    printf("Ann: ORANNN\n");
+    printf("ORAN: %s\n", __FUNCTION__);
 
-  device->Mod_id               = 0;
-  device->transp_type          = ETHERNET_TP;
-  device->trx_start_func       = trx_oran_start;
-  device->trx_get_stats_func   = trx_oran_get_stats;
-  device->trx_reset_stats_func = trx_oran_reset_stats;
-  device->trx_end_func         = trx_oran_end;
-  device->trx_stop_func        = trx_oran_stop;
-  device->trx_set_freq_func    = trx_oran_set_freq;
-  device->trx_set_gains_func   = trx_oran_set_gains;
+    device->Mod_id               = 0;
+    device->transp_type          = ETHERNET_TP;
+    device->trx_start_func       = trx_oran_start;
+    device->trx_get_stats_func   = trx_oran_get_stats;
+    device->trx_reset_stats_func = trx_oran_reset_stats;
+    device->trx_end_func         = trx_oran_end;
+    device->trx_stop_func        = trx_oran_stop;
+    device->trx_set_freq_func    = trx_oran_set_freq;
+    device->trx_set_gains_func   = trx_oran_set_gains;
 
-  device->trx_write_func       = trx_oran_write_raw;
-  device->trx_read_func        = trx_oran_read_raw;
+    device->trx_write_func       = trx_oran_write_raw;
+    device->trx_read_func        = trx_oran_read_raw;
 
-  device->trx_ctlsend_func     = trx_oran_ctlsend;
-  device->trx_ctlrecv_func     = trx_oran_ctlrecv;
+    device->trx_ctlsend_func     = trx_oran_ctlsend;
+    device->trx_ctlrecv_func     = trx_oran_ctlrecv;
 
-  device->get_internal_parameter = get_internal_parameter;
+    device->get_internal_parameter = get_internal_parameter;
 
-  eth = calloc(1, sizeof(oran_eth_state_t));
-  if (eth == NULL) {
-    AssertFatal(0==1, "out of memory\n");
+    eth = calloc(1, sizeof(oran_eth_state_t));
+    if (eth == NULL) {
+      AssertFatal(0==1, "out of memory\n");
+    }
+
+    eth->e.flags = ETH_RAW_IF4p5_MODE;
+    eth->e.compression = NO_COMPRESS;
+    eth->e.if_name = eth_params->local_if_name;
+    device->priv = eth;
+    device->openair0_cfg=&openair0_cfg[0];
+
+    eth->last_msg = -1;
+
+    init_buffers(&eth->buffers);
+
+    return 0;
   }
-
-  eth->e.flags = ETH_RAW_IF4p5_MODE;
-  eth->e.compression = NO_COMPRESS;
-  eth->e.if_name = eth_params->local_if_name;
-  device->priv = eth;
-  device->openair0_cfg=&openair0_cfg[0];
-
-  eth->last_msg = -1;
-
-  init_buffers(&eth->buffers);
-
-  return 0;
 }
-
 
 
 

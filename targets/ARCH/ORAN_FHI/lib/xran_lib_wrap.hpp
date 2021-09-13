@@ -476,8 +476,8 @@ public:
         m_dpdk_dev_up = get_globalcfg<std::string>(XRAN_UT_KEY_GLOBALCFG_IO, "dpdk_dev_up");
         m_dpdk_dev_cp = get_globalcfg<std::string>(XRAN_UT_KEY_GLOBALCFG_IO, "dpdk_dev_cp");
         m_xranInit.io_cfg.num_vfs = 2;
-        m_xranInit.io_cfg.dpdk_dev[XRAN_UP_VF]  = (m_dpdk_dev_up == "") ? NULL : (char *)&m_dpdk_dev_up;
-        m_xranInit.io_cfg.dpdk_dev[XRAN_CP_VF]  = (m_dpdk_dev_cp == "") ? NULL : (char *)&m_dpdk_dev_cp;
+        m_xranInit.io_cfg.dpdk_dev[XRAN_UP_VF]  = "0000:65:02.0";
+        m_xranInit.io_cfg.dpdk_dev[XRAN_CP_VF]  = "0000:65:02.1";
 
         m_xranInit.io_cfg.core              = get_globalcfg<int>(XRAN_UT_KEY_GLOBALCFG_IO, "core");
         m_xranInit.io_cfg.system_core       = get_globalcfg<int>(XRAN_UT_KEY_GLOBALCFG_IO, "system_core");
@@ -943,7 +943,7 @@ public:
 
         uint32_t xran_max_antenna_nr = RTE_MAX(get_num_eaxc(), get_num_eaxc_ul());
         uint32_t xran_max_ant_array_elm_nr = RTE_MAX(get_num_antelmtrx(), xran_max_antenna_nr);
-
+	
         struct xran_buffer_list *pFthTxBuffer[XRAN_MAX_SECTOR_NR][XRAN_MAX_ANTENNA_NR][XRAN_N_FE_BUF_LEN];
         struct xran_buffer_list *pFthTxPrbMapBuffer[XRAN_MAX_SECTOR_NR][XRAN_MAX_ANTENNA_NR][XRAN_N_FE_BUF_LEN];
         struct xran_buffer_list *pFthRxBuffer[XRAN_MAX_SECTOR_NR][XRAN_MAX_ANTENNA_NR][XRAN_N_FE_BUF_LEN];
@@ -962,7 +962,7 @@ public:
         {
             for(j=0; j<XRAN_N_FE_BUF_LEN; j++)
             {
-                for(z = 0; z < xran_max_antenna_nr; z++){
+                for(z = 0; z < XRAN_MAX_ANTENNA_NR; z++){
                     pFthTxBuffer[i][z][j]       = NULL;
                     pFthTxPrbMapBuffer[i][z][j] = NULL;
                     pFthRxBuffer[i][z][j]       = NULL;

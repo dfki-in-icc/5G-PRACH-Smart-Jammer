@@ -25,6 +25,7 @@
 #include "ethernet_lib.h"
 #include "shared_buffers.h"
 #include "openair1/PHY/defs_nr_common.h"
+#include "xran_lib_wrap.hpp"
 
 
 typedef struct {
@@ -59,6 +60,15 @@ char *msg_type(int t)
 }
 
 
+void xran_fh_rx_callback(void *pCallbackTag, xran_status_t status){
+    rte_pause();
+}
+void xran_fh_srs_callback(void *pCallbackTag, xran_status_t status){
+    rte_pause();
+}
+void xran_fh_rx_prach_callback(void *pCallbackTag, xran_status_t status){
+    rte_pause();
+}
 
 int trx_oran_start(openair0_device *device)
 {
