@@ -21,7 +21,8 @@
 
 #include "shared_buffers.h"
 
-
+#ifndef LOW_ORAN_H
+#define LOW_ORAN_H
 
 void *oran_start(char *ifname, shared_buffers *buffers);
 
@@ -33,7 +34,7 @@ typedef struct {
   int            expected_oran_frame;
 } oran_t;
 
-
+#endif
 
 
 

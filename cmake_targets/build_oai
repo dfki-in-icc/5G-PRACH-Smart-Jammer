@@ -110,7 +110,7 @@ Options:
    USRP, BLADERF, LMSSDR, IRIS, SIMU, AW2SORI, None (Default)
    Adds this RF board support (in external packages installation and in compilation)
 -t | --transport
-   Selects the transport protocol type, options: None, Ethernet, benetel4g, benetel5g
+   Selects the transport protocol type, options: None, Ethernet, benetel4g, benetel5g, oran_fhlib_4g, oran_fhlib_5g
 -P | --phy_simulators
    Makes the unitary tests Layer 1 simulators
 -S | --core_simulators
@@ -494,7 +494,7 @@ function main() {
       if [ ! -v BUILD_UHD_FROM_SOURCE ] && [ ! "$DISABLE_HARDWARE_DEPENDENCY" == "True" ]; then
         install_usrp_uhd_driver $UHD_IMAGES_DIR
       fi
-    fi 
+    fi
     if [ "$HW" == "OAI_BLADERF" ] ; then
       echo_info "installing packages for BLADERF support"
       check_install_bladerf_driver
@@ -714,7 +714,23 @@ function main() {
               compilations $BUILD_DIR benetel_5g
               ln -sf libbenetel_5g.so liboai_transpro.so
               echo_info "liboai_transpro.so is linked to BENETEL4G transport"
-	  fi
+      fi
+          if [ "$TP" == "oran_fhlib_4g" ]; then
+              compilations \
+                  $BUILD_DIR oran_fhlib_4g \
+                  liboran_fhlib_4g.so $dbin/liboran_fhlib_4g.$REL
+              ln -sf liboran_fhlib_4g.so liboai_transpro.so
+              ln -sf $dbin/liboran_fhlib_4g.so.$REL $dbin/liboai_transpro.so
+              echo_info "liboai_transpro.so is linked to oran_fhlib_4G transport"
+          fi
+          if [ "$TP" == "oran_fhlib_5g" ]; then
+              compilations \
+                  $BUILD_DIR oran_fhlib_5g \
+                  liboran_fhlib_5g.so $dbin/liboran_fhlib_5g.$REL
+              ln -sf liboran_fhlib_5g.so liboai_transpro.so
+              ln -sf $dbin/liboran_fhlib_5g.so.$REL $dbin/liboai_transpro.so
+              echo_info "liboai_transpro.so is linked to oran_fhlib_5G transport"
+          fi
       fi
   fi
 
