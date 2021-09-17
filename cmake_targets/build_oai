@@ -122,6 +122,8 @@ Options:
 --run-group 
    runs only specified test cases specified here. This flag is only valid with -s
 -V | --vcd
+-t | --transport
+   Ethernet, benetel4g, benetel5g, oran_fhlib_4g, oran_fhlib_5g 
    Adds a debgging facility to the binary files: GUI with major internal synchronization events
 -x | --xforms
    Will compile with software oscilloscope features
@@ -268,7 +270,7 @@ function main() {
        --RU)
             RU=1
             echo_info "Will compile RRU"
-	    shift;;
+        shift;;
        -a | --agent)
             echo_info "FlexRAN support is always compiled into the eNB"
             shift;;
@@ -307,14 +309,21 @@ function main() {
                     echo_fatal "Unknown HW type $HW: exit..."
             esac
             echo_info "Setting hardware to: $HW"
+<<<<<<< HEAD
             #CMAKE_CMD="$CMAKE_CMD -DRF_BOARD=\"${HW}\""
             CMAKE_CMD="$CMAKE_CMD -DRF_BOARD=${HW}"
+=======
+>>>>>>> Create oran_isolate.c & link to libxran.so
             shift 2;;
        -t | --transport)
-	    TP=$2
+        TP=$2
             shift 2;;
        -P | --phy_simulators)
             SIMUS_PHY=1
+<<<<<<< HEAD
+=======
+              RU=0
+>>>>>>> Create oran_isolate.c & link to libxran.so
             echo_info "Will compile dlsim, ulsim, ..."
             shift;;
        -S | --core_simulators)
@@ -361,7 +370,7 @@ function main() {
             echo_info "Setting CPU FLAGS from USER to: $2"
             shift 2;;
        --build-doxygen)
-	        BUILD_DOXYGEN=1
+            BUILD_DOXYGEN=1
             echo_info "Will build doxygen support"
             shift;;     
        --build-coverity-scan)
@@ -431,15 +440,24 @@ function main() {
                     fi   
                   done
                 done
-	          if [ "${BUILD_OPTLIB## }" != "$2" ] ; then
+              if [ "${BUILD_OPTLIB## }" != "$2" ] ; then
                  echo_fatal "Unknown optional library in $2, valid libraries are $OPTIONAL_LIBRARIES" 
               fi
             fi
+<<<<<<< HEAD
             shift 2;;		
+=======
+            shift 2;;       
+        --usrp-recplay)
+            USRP_REC_PLAY="True"
+            echo_info "Enabling USRP record playback mode"
+            shift 1;;
+>>>>>>> Create oran_isolate.c & link to libxran.so
         -k | --skip-shared-libraries)
             SKIP_SHARED_LIB_FLAG="True"
             echo_info "Skipping build of shared libraries, rfsimulator and transport protocol libraries"
             shift;;
+<<<<<<< HEAD
         --ninja)
             CMAKE_CMD="$CMAKE_CMD -GNinja"
             MAKE_CMD=ninja
@@ -448,6 +466,16 @@ function main() {
             CMAKE_CMD="$CMAKE_CMD -DSANITIZE_ADDRESS=True"
             shift;;
         --ittiSIM)
+=======
+    --ninja)
+        CMAKE_CMD="$CMAKE_CMD -GNinja"
+    MAKE_CMD=ninja
+    shift;;
+    --sanitize-address | -fsanitize=address)
+        SANITIZE_ADDRESS=True
+        shift;;
+      --ittiSIM)
+>>>>>>> Create oran_isolate.c & link to libxran.so
             ittiSIM=1
             CMAKE_CMD="$CMAKE_CMD -DITTI_SIM=True"
             echo_info "Will compile itti simulator"
@@ -455,8 +483,8 @@ function main() {
         -h | --help)
             print_help
             exit 1;;
-	*)
-	    print_help
+    *)
+        print_help
             echo_fatal "Unknown option $1"
             break;;
    esac
@@ -482,13 +510,13 @@ function main() {
   
   if [ "$eNB" = "1" -o "$eNBocp" = "1" -o "$gNB" = "1" ] ; then
       if [ "$HW" = "None" -a  "$TP" = "None" ] ; then
-	      echo_info "No local radio head and no transport protocol selected"
+          echo_info "No local radio head and no transport protocol selected"
       fi
       if [ "$HW" = "None" ] ; then 
-	      echo_info "No radio head has been selected (HW set to $HW)"	
+          echo_info "No radio head has been selected (HW set to $HW)"   
       fi
       if [ "$TP" = "None" ] ; then
-	      echo_info "No transport protocol has been selected (TP set to $TP)"	
+          echo_info "No transport protocol has been selected (TP set to $TP)"   
       fi
   fi
   
@@ -503,11 +531,11 @@ function main() {
   if [ "$DEADLINE_SCHEDULER_FLAG_USER" = "" ]; then
       case "$HW" in
           "EXMIMO")
-		      DEADLINE_SCHEDULER_FLAG_USER="True"
-		      ;;
+              DEADLINE_SCHEDULER_FLAG_USER="True"
+              ;;
           *)
-		      DEADLINE_SCHEDULER_FLAG_USER="False"
-		      ;;
+              DEADLINE_SCHEDULER_FLAG_USER="False"
+              ;;
       esac
   fi
 
@@ -577,7 +605,12 @@ function main() {
       #fi
     fi
     echo_info "Installing protobuf/protobuf-c for flexran agent support"
+<<<<<<< HEAD
     install_protobuf_c
+=======
+    install_protobuf_from_source
+    install_protobuf_c_from_source
+>>>>>>> Create oran_isolate.c & link to libxran.so
     echo_success "protobuf/protobuf-c installation successful"
   fi
 
@@ -710,15 +743,26 @@ function main() {
     echo_info "Compiling physical unitary tests simulators"
     # TODO: fix: dlsim_tm4 pucchsim prachsim pdcchsim pbchsim mbmssim
     simlist="dlsim ulsim ldpctest polartest smallblocktest nr_pbchsim nr_dlschsim nr_ulschsim nr_dlsim nr_ulsim nr_pucchsim nr_prachsim"
-	# simlist="ldpctest"
+    # simlist="ldpctest"
     for f in $simlist ; do
       compilations \
+<<<<<<< HEAD
         ran_build $f \
 	    $f $dbin/$f.$REL
+=======
+        phy_simulators $f \
+        $f $dbin/$f.$REL
+>>>>>>> Create oran_isolate.c & link to libxran.so
     done
     compilations \
       ran_build coding \
       libcoding.so $dbin/libcoding.so
+<<<<<<< HEAD
+=======
+#    compilations \
+#      lte-simulators $config_libconfig_shlib \
+#      lib$config_libconfig_shlib.so $dbin/lib$config_libconfig_shlib.so
+>>>>>>> Create oran_isolate.c & link to libxran.so
   fi
 
   ###################
@@ -729,8 +773,13 @@ function main() {
     simlist="secu_knas_encrypt_eia1 secu_kenb aes128_ctr_encrypt aes128_ctr_decrypt secu_knas_encrypt_eea2 secu_knas secu_knas_encrypt_eea1 kdf aes128_cmac_encrypt secu_knas_encrypt_eia2"
     for f in $simlist ; do
       compilations \
+<<<<<<< HEAD
 	    ran_build test_$f \
 	    test_$f $dbin/test_$f.$REL
+=======
+        phy_simulators test_$f \
+        test_$f $dbin/test_$f.$REL
+>>>>>>> Create oran_isolate.c & link to libxran.so
     done
   fi
 
@@ -743,15 +792,20 @@ function main() {
       $BUILD_DIR openair_rf \
       CMakeFiles/openair_rf/openair_rf.ko $dbin/openair_rf.ko
     compilations \
+<<<<<<< HEAD
 	  $BUILD_DIR updatefw \
 	  updatefw $dbin/updatefw
+=======
+      $build_dir updatefw \
+      updatefw $dbin/updatefw
+>>>>>>> Create oran_isolate.c & link to libxran.so
     echo_info "Compiling oarf tools. The logfile for compilation is here: $dlog/oarf.txt"
     make -C $OPENAIR_DIR/cmake_targets/$BUILD_DIR/build oarf > $dlog/oarf.txt 2>&1
     cp $OPENAIR_DIR/cmake_targets/$BUILD_DIR/build/*.oct $dbin
     if [ -s $dbin/oarf_config_exmimo.oct ] ; then
-	  echo_success "oarf tools compiled"
+      echo_success "oarf tools compiled"
     else
-	  echo_error "oarf tools compilation failed"
+      echo_error "oarf tools compilation failed"
     fi
     cp $OPENAIR_DIR/cmake_targets/tools/init_exmimo2 $dbin
   fi
@@ -859,7 +913,7 @@ function main() {
 
               ln -sf liboai_bladerfdevif.so liboai_device.so
               ln -sf $dbin/liboai_bladerfdevif.so.$REL $dbin/liboai_device.so
-              echo_info "liboai_device.so is linked to BLADERF device library"	 
+              echo_info "liboai_device.so is linked to BLADERF device library"   
           elif [ "$HW" == "OAI_LMSSDR" ] ; then
 #              if [ -f "/usr/include/libbladeRF.h" ] ; then
                   compilations \
@@ -869,7 +923,7 @@ function main() {
 
               ln -sf liboai_lmssdrdevif.so liboai_device.so
               ln -sf $dbin/liboai_lmssdrdevif.so.$REL $dbin/liboai_device.so
-              echo_info "liboai_device.so is linked to LMSSDR device library"	 
+              echo_info "liboai_device.so is linked to LMSSDR device library"    
           elif [ "$HW" == "OAI_IRIS" ] ; then
               compilations \
                   $BUILD_DIR oai_irisdevif \
@@ -916,30 +970,61 @@ function main() {
           echo_info "Building transport protocol libraries"
           rm -f liboai_transpro.so
           rm -f $dbin/liboai_transpro.so
-	  if [ "$TP" == "Ethernet" ]; then
+      if [ "$TP" == "Ethernet" ]; then
               compilations \
+<<<<<<< HEAD
 		  $BUILD_DIR oai_eth_transpro \
 		  liboai_eth_transpro.so $dbin/liboai_eth_transpro.so.$REL
+=======
+          $build_dir oai_eth_transpro \
+          liboai_eth_transpro.so $dbin/liboai_eth_transpro.so.$REL
+>>>>>>> Create oran_isolate.c & link to libxran.so
               ln -sf liboai_eth_transpro.so liboai_transpro.so
               ln -sf $dbin/liboai_eth_transpro.so.$REL $dbin/liboai_transpro.so
               echo_info "liboai_transpro.so is linked to ETHERNET transport"
-	  fi
-	  if [ "$TP" == "benetel4g" ]; then
+      fi
+      if [ "$TP" == "benetel4g" ]; then
               compilations \
+<<<<<<< HEAD
 		  $BUILD_DIR benetel_4g \
 		  libbenetel_4g.so $dbin/libbenetel_4g.$REL
+=======
+          $build_dir benetel_4g \
+          libbenetel_4g.so $dbin/libbenetel_4g.$REL
+>>>>>>> Create oran_isolate.c & link to libxran.so
               ln -sf libbenetel_4g.so liboai_transpro.so
               ln -sf $dbin/libbenetel_4g.so.$REL $dbin/liboai_transpro.so
               echo_info "liboai_transpro.so is linked to BENETEL4G transport"
-	  fi
-	  if [ "$TP" == "benetel5g" ]; then
+      fi
+      if [ "$TP" == "benetel5g" ]; then
               compilations \
+<<<<<<< HEAD
 		  $BUILD_DIR benetel_5g \
 		  libbenetel_5g.so $dbin/libbenetel_5g.$REL
+=======
+          $build_dir benetel_5g \
+          libbenetel_5g.so $dbin/libbenetel_5g.$REL
+>>>>>>> Create oran_isolate.c & link to libxran.so
               ln -sf libbenetel_5g.so liboai_transpro.so
               ln -sf $dbin/libbenetel_5g.so.$REL $dbin/liboai_transpro.so
               echo_info "liboai_transpro.so is linked to BENETEL4G transport"
-	  fi
+      fi
+          if [ "$TP" == "oran_fhlib_4g" ]; then
+              compilations \
+                  $build_dir oran_fhlib_4g \
+                  liboran_fhlib_4g.so $dbin/liboran_fhlib_4g.$REL
+              ln -sf liboran_fhlib_4g.so liboai_transpro.so
+              ln -sf $dbin/liboran_fhlib_4g.so.$REL $dbin/liboai_transpro.so
+              echo_info "liboai_transpro.so is linked to oran_fhlib_4G transport"
+          fi
+          if [ "$TP" == "oran_fhlib_5g" ]; then
+              compilations \
+                  $build_dir oran_fhlib_5g \
+                  liboran_fhlib_5g.so $dbin/liborannfhi5g.$REL
+              ln -sf liboran_fhlib_5g.so liboai_transpro.so
+              ln -sf $dbin/liboran_fhlib_5g.so.$REL $dbin/liboai_transpro.so
+              echo_info "liboai_transpro.so is linked to oran_fhlib_5G transport"
+          fi
       fi
   fi
 
