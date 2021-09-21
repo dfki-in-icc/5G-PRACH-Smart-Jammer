@@ -308,6 +308,7 @@ void set_options(int CC_id, PHY_VARS_NR_UE *UE){
   LOG_I(PHY,"Set UE mode %d, UE_fo_compensation %d, UE_scan_carrier %d, UE_no_timing_correction %d \n, chest-freq %d\n",
   	   UE->mode, UE->UE_fo_compensation, UE->UE_scan_carrier, UE->no_timing_correction, UE->chest_freq);
 
+  LOG_I(PHY,"dl AGC setting %d\n", UE->enable_agc);
   // Set FP variables
 
   if (tddflag){

@@ -822,6 +822,26 @@ int openair0_set_rx_frequencies(openair0_device *device, openair0_config_t *open
   s->usrp->set_rx_freq(rx_tune_req);
   return(0);
 }
+/*! \brief Set Tx Gains thread
+ * \param device the hardware to use
+ * \param openair0_cfg RF frontend parameters set by application
+ */
+static void *set_tx_gain_thread(void *arg) {
+  openair0_device *device=(openair0_device *)arg;
+  usrp_state_t *s = (usrp_state_t *)device->priv;
+  s->usrp->set_tx_gain(device->app_tx_gain[0]);
+  return NULL;
+}
+/*! \brief Set Gains (TX/RX) in thread
+ * \param device the hardware to use
+ * \param openair0_cfg RF frontend parameters set by application
+ */
+static void *set_rx_gain_thread(void *arg) {
+  openair0_device *device=(openair0_device *)arg;
+  usrp_state_t *s = (usrp_state_t *)device->priv;
+  s->usrp->set_rx_gain(device->app_rx_gain[0]);
+  return NULL;
+}
 
 /*! \brief Set Gains (TX/RX)
  * \param device the hardware to use
@@ -829,23 +849,44 @@ int openair0_set_rx_frequencies(openair0_device *device, openair0_config_t *open
  * \returns 0 in success
  */
 int trx_usrp_set_gains(openair0_device *device,
-                       openair0_config_t *openair0_cfg) {
+                       openair0_config_t *openair0_cfg, int dont_block) {
   usrp_state_t *s = (usrp_state_t *)device->priv;
-  ::uhd::gain_range_t gain_range_tx = s->usrp->get_tx_gain_range(0);
-  s->usrp->set_tx_gain(gain_range_tx.stop()-openair0_cfg[0].tx_gain[0]);
-  ::uhd::gain_range_t gain_range = s->usrp->get_rx_gain_range(0);
-
-  // limit to maximum gain
-  if (openair0_cfg[0].rx_gain[0]-openair0_cfg[0].rx_gain_offset[0] > gain_range.stop()) {
-    LOG_E(HW,"RX Gain 0 too high, reduce by %f dB\n",
-          openair0_cfg[0].rx_gain[0]-openair0_cfg[0].rx_gain_offset[0] - gain_range.stop());
-    exit(-1);
+  double gain = 0;
+  pthread_t thread_1, thread_2;
+  // calculate tx gain
+  gain = device->max_tx_gain[0] - openair0_cfg[0].tx_gain[0];
+  if(gain != device->app_tx_gain[0]) {
+    // updated applied tx gain for UL processing
+    device->app_tx_gain[0] = gain;
+    if (dont_block == 1) {
+      pthread_create(&thread_1, NULL, set_tx_gain_thread, (void *)device);
+    } else {
+      //API call to USRP
+      s->usrp->set_tx_gain(gain);
+    }
+    LOG_D(HW, "USRP TX gain is %3.2f Max Tx Gain: %3.2f)\n",
+          gain, device->max_tx_gain[0]);
   }
+  // Rx gain
+  gain = openair0_cfg[0].rx_gain[0] - openair0_cfg[0].rx_gain_offset[0];
 
-  s->usrp->set_rx_gain(openair0_cfg[0].rx_gain[0]-openair0_cfg[0].rx_gain_offset[0]);
-  LOG_I(HW,"Setting USRP RX gain to %f (rx_gain %f,gain_range.stop() %f)\n",
-        openair0_cfg[0].rx_gain[0]-openair0_cfg[0].rx_gain_offset[0],
-        openair0_cfg[0].rx_gain[0],gain_range.stop());
+  if(gain != device->app_rx_gain[0]) {
+    // limit to maximum RX gain
+    if (gain > device->max_rx_gain[0]) {
+      LOG_E(HW,"RX Gain 0 too high, reduce by %3.2f dB\n",
+            gain - device->max_rx_gain[0]);
+      exit(-1);
+    }
+    device->app_rx_gain[0] = gain;
+    if (dont_block == 1) {
+      pthread_create(&thread_2, NULL, set_rx_gain_thread, (void *)device);
+    } else {
+      //API call to USRP
+      s->usrp->set_rx_gain(gain);
+    }
+    LOG_D(HW, "USRP RX gain is %3.2f, Max Rx Gain: %3.2f)\n",
+          gain, device->max_rx_gain[0]);
+  }
   return(0);
 }
 
@@ -1359,6 +1400,11 @@ extern "C" {
                gain=gain_range.stop();
       }
 
+
+      // store the max limit for RX gain
+      device->max_rx_gain[i] = gain_range.stop();
+      // store the actual applied RX gain
+      device->app_rx_gain[i] = gain;
       s->usrp->set_rx_gain(gain,i+choffset);
       LOG_I(HW,"RX Gain %d %f (%f) => %f (max %f)\n",i,
             openair0_cfg[0].rx_gain[i],openair0_cfg[0].rx_gain_offset[i],
@@ -1371,6 +1417,10 @@ extern "C" {
 
   for(int i=0; i<((int) s->usrp->get_tx_num_channels()); i++) {
     ::uhd::gain_range_t gain_range_tx = s->usrp->get_tx_gain_range(i);
+    // store the max limit for TX gain
+    device->max_tx_gain[i] = gain_range_tx.stop();
+    // store the actual applied TX gain
+    device->app_tx_gain[i] = gain_range_tx.stop() - openair0_cfg[0].tx_gain[i];
 
     if (i<openair0_cfg[0].tx_num_channels) {
       s->usrp->set_tx_rate(openair0_cfg[0].sample_rate,i+choffset);

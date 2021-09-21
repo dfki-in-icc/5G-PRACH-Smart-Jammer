@@ -629,6 +629,20 @@ void UE_processing(nr_rxtx_thread_data_t *rxtxD) {
       PROTOCOL_CTXT_SET_BY_MODULE_ID(&ctxt, UE->Mod_id, ENB_FLAG_NO, mac->crnti, proc->frame_rx, proc->nr_slot_rx, 0);
       pdcp_run(&ctxt);
     }
+
+    /* AGC RX GAIN */
+    /* USRP API Call for changing RX gain in a thread in mixed slot */
+    if ((UE->measurements.rx_gain_update == 1) &&
+        (proc->rx_slot_type == NR_MIXED_SLOT) &&
+        (proc->frame_rx % UPDATE_RX_GAIN == 0) &&
+        (proc->nr_slot_rx < 9)) {
+      /* reset averaging */
+      UE->init_averaging = 1;
+      /* Reset the rx gain update flag */
+      UE->measurements.rx_gain_update = 0;
+      /* Call the USRP API ina separate thread */
+      UE->rfdevice.trx_set_gains_func(&UE->rfdevice,&UE->rfdevice.openair0_cfg[0],1);
+    }
   }
 
   ue_ta_procedures(UE, proc->nr_slot_tx, proc->frame_tx);

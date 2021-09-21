@@ -935,7 +935,7 @@ static int rfsimulator_stop(openair0_device *device) {
 static int rfsimulator_set_freq(openair0_device *device, openair0_config_t *openair0_cfg) {
   return 0;
 }
-static int rfsimulator_set_gains(openair0_device *device, openair0_config_t *openair0_cfg) {
+static int rfsimulator_set_gains(openair0_device *device, openair0_config_t *openair0_cfg, int dont_block) {
   return 0;
 }
 static int rfsimulator_write_init(openair0_device *device) {

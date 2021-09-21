@@ -258,7 +258,7 @@ int trx_eth_set_freq(openair0_device* device, openair0_config_t *openair0_cfg)
 }
 
 
-int trx_eth_set_gains(openair0_device* device, openair0_config_t *openair0_cfg)
+int trx_eth_set_gains(openair0_device* device, openair0_config_t *openair0_cfg, int dont_block)
 {
     return(0);
 }

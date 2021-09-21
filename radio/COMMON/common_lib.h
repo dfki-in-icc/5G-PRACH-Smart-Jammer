@@ -379,6 +379,14 @@ struct openair0_device_t {
   /* !brief Indicates if device already initialized */
   int is_init;
 
+  /* !brief Store the value of max gain limit for the RX 4*4 MIMO */
+  double max_rx_gain[4];
+  /* !brief Store the value of applied gain for the RX 4*4 MIMO */
+  double app_rx_gain[4];
+  /* !brief Store the value of max gain limit for the TX 4*4 MIMO */
+  double max_tx_gain[4];
+  /* !brief Store the value of applied gain for the TX 4*4 MIMO */
+  double app_tx_gain[4];
 
   /*!brief Can be used by driver to hold internal structure*/
   void *priv;
@@ -409,7 +417,7 @@ struct openair0_device_t {
   int (*trx_start_func)(openair0_device *device);
 
  /*! \brief Called to configure the device
-      @param device pointer to the device structure specific to the RF hardware target  
+      @param device pointer to the device structure specific to the RF hardware target
   */
 
 
@@ -512,7 +520,7 @@ struct openair0_device_t {
    * \param openair0_cfg RF frontend parameters set by application
    * \returns 0 in success
    */
-  int (*trx_set_gains_func)(openair0_device *device, openair0_config_t *openair0_cfg);
+  int (*trx_set_gains_func)(openair0_device *device, openair0_config_t *openair0_cfg, int dont_block);
 
   /*! \brief RRU Configuration callback
    * \param idx RU index

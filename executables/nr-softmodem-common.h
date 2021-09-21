@@ -108,6 +108,7 @@
 #define CONFIG_HLP_SNR           "Set average SNR in dB (for --siml1 option)\n"
 #define CONFIG_HLP_NOS1          "Disable s1 interface\n"
 #define CONFIG_HLP_NOKRNMOD      "(noS1 only): Use tun instead of namesh module \n"
+#define CONFIG_HLP_AGC           "Enable Receive Automatic Gain control"
 /*--------------------------------------------------------------------------------------------------------------------------------*/
 /*                                            command line parameters for LOG utility                                             */
 /*   optname         helpstr          paramflags          XXXptr                     defXXXval            type           numelt   */
