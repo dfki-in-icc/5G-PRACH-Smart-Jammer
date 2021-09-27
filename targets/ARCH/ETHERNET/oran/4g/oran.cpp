@@ -39,9 +39,14 @@ void xran_fh_rx_prach_callback(void *pCallbackTag, xran_status_t status){
     rte_pause();
 }
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 int start_oran(){
 
-  // xranLibWraper *xranlib = malloc(sizeof(*xranlib)); 
+  //xranLibWraper *xranlib = malloc(sizeof(xranLibWraper)); 
+  xranLibWraper *xranlib;
   xranlib = new xranLibWraper;
   
   if(xranlib->SetUp() < 0) {
@@ -58,7 +63,9 @@ int start_oran(){
   return (0);
 
 }
-
+#ifdef __cplusplus
+}
+#endif
 
 
 

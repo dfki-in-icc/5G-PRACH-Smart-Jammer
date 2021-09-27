@@ -23,6 +23,7 @@
 #define _ORAN_H_
 
 #include "shared_buffers.h"
+#include "common_lib.h"
 
 void oran_fh_if4p5_south_out(RU_t *ru,
 			     int frame,

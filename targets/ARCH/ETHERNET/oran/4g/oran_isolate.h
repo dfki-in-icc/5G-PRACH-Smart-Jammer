@@ -26,6 +26,15 @@
 #include "shared_buffers.h"
 #include "low_oran.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 int start_oran();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _ORAN_ISOLATE_H_ */

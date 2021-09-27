@@ -31,7 +31,7 @@
 #include <rte_malloc.h>
 #endif
 
-// #include "gtest/gtest.h"
+//#include "gtest/gtest.h"
 
 #include "common_typedef_xran.h"
 
@@ -39,13 +39,13 @@
 
 using json = nlohmann::json;
 
-// #define ASSERT_ARRAY_NEAR(reference, actual, size, precision) \
+#define ASSERT_ARRAY_NEAR(reference, actual, size, precision) \
         assert_array_near(reference, actual, size, precision)
 
 #define ASSERT_ARRAY_EQ(reference, actual, size) \
         assert_array_eq(reference, actual, size)
 
-// #define ASSERT_AVG_GREATER_COMPLEX(reference, actual, size, precision) \
+#define ASSERT_AVG_GREATER_COMPLEX(reference, actual, size, precision) \
         assert_avg_greater_complex(reference, actual, size, precision)
 
 struct BenchmarkParameters
@@ -106,7 +106,7 @@ json read_json_from_file(const std::string &filename);
     \return Pointer to the allocated memory with data from the file.
     \throws std::runtime_error when memory cannot be allocated.
 */
-char* read_data_to_aligned_array(const std::string &filename);
+//char* read_data_to_aligned_array(const std::string &filename);
 
 /*!
     \brief Measure the TSC on the machine
@@ -575,29 +575,29 @@ private:
                                  const double mean,
                                  const double stddev);
 };
-#endif
+
 /*!
     \brief Run the given function and return the mean run time and stddev.
     \param [in] function Function to benchmark.
     \param [in] args Function's arguments.
     \return std::pair where the first element is mean and the second one is standard deviation.
 */
-// template <typename F, typename ... Args>
-// std::pair<double, double> run_benchmark(F function, Args ... args)
-// {
-//     std::vector<long> results((unsigned long) BenchmarkParameters::repetition);
+template <typename F, typename ... Args>
+std::pair<double, double> run_benchmark(F function, Args ... args)
+{
+    std::vector<long> results((unsigned long) BenchmarkParameters::repetition);
 
-//     for(unsigned int outer_loop = 0; outer_loop < BenchmarkParameters::repetition; outer_loop++) {
-//         const auto start_time =  __rdtsc();
-//         for (unsigned int inner_loop = 0; inner_loop < BenchmarkParameters::loop; inner_loop++) {
-//                 function(args ...);
-//         }
-//         const auto end_time = __rdtsc();
-//         results.push_back(end_time - start_time);
-//     }
+    for(unsigned int outer_loop = 0; outer_loop < BenchmarkParameters::repetition; outer_loop++) {
+        const auto start_time =  __rdtsc();
+        for (unsigned int inner_loop = 0; inner_loop < BenchmarkParameters::loop; inner_loop++) {
+                function(args ...);
+        }
+        const auto end_time = __rdtsc();
+        results.push_back(end_time - start_time);
+     }
 
-//     return calculate_statistics(results);
-// };
+    return calculate_statistics(results);
+};
 
 /*!
     \brief Assert elements of two arrays. It calls ASSERT_EQ for each element of the array.
@@ -622,27 +622,27 @@ void assert_array_eq(const T* reference, const T* actual, const int size)
     \param [in] size Size of the array.
     \param [in] precision Precision fo the comparision used by ASSERT_NEAR.
 */
-// template <typename T>
-// void assert_array_near(const T* reference, const T* actual, const int size, const double precision)
-// {
-//     for(int index = 0; index < size ; index++)
-//     {
-//         ASSERT_NEAR(reference[index], actual[index], precision)
-//                                 <<"The wrong number is index: "<< index;
-//     }
-// }
+template <typename T>
+void assert_array_near(const T* reference, const T* actual, const int size, const double precision)
+{
+    for(int index = 0; index < size ; index++)
+    {
+        ASSERT_NEAR(reference[index], actual[index], precision)
+                                <<"The wrong number is index: "<< index;
+    }
+}
 
-// template <>
-// void assert_array_near<complex_float>(const complex_float* reference, const complex_float* actual, const int size, const double precision)
-// {
-//     for(int index = 0; index < size ; index++)
-//     {
-//         ASSERT_NEAR(reference[index].re, actual[index].re, precision)
-//                              <<"The wrong number is RE, index: "<< index;
-//         ASSERT_NEAR(reference[index].im, actual[index].im, precision)
-//                              <<"The wrong number is IM, index: "<< index;
-//     }
-// }
+template <>
+void assert_array_near<complex_float>(const complex_float* reference, const complex_float* actual, const int size, const double precision)
+{
+    for(int index = 0; index < size ; index++)
+    {
+        ASSERT_NEAR(reference[index].re, actual[index].re, precision)
+                             <<"The wrong number is RE, index: "<< index;
+        ASSERT_NEAR(reference[index].im, actual[index].im, precision)
+                             <<"The wrong number is IM, index: "<< index;
+    }
+}
 
 /*!
     \brief Assert average diff of two arrays. It calls ASSERT_GT to check the average.
@@ -651,40 +651,40 @@ void assert_array_eq(const T* reference, const T* actual, const int size)
     \param [in] size Size of the array, based on complex inputs.
     \param [in] precision Precision for the comparison used by ASSERT_GT.
 */
-// template<typename T>
-// void assert_avg_greater_complex(const T* reference, const T* actual, const int size, const double precision)
-// {
-//     float mseDB, MSE;
-//     double avgMSEDB = 0.0;
-//     for (int index = 0; index < size; index++) {
-//         T refReal = reference[2*index];
-//         T refImag = reference[(2*index)+1];
-//         T resReal = actual[2*index];
-//         T resImag = actual[(2*index)+1];
+template<typename T>
+void assert_avg_greater_complex(const T* reference, const T* actual, const int size, const double precision)
+{
+    float mseDB, MSE;
+    double avgMSEDB = 0.0;
+    for (int index = 0; index < size; index++) {
+        T refReal = reference[2*index];
+        T refImag = reference[(2*index)+1];
+        T resReal = actual[2*index];
+        T resImag = actual[(2*index)+1];
 
-//         T errReal = resReal - refReal;
-//         T errIm = resImag - refImag;
+        T errReal = resReal - refReal;
+        T errIm = resImag - refImag;
 
-//          For some unit tests, e.g. PUCCH deomdulation, the expected output is 0. To avoid a
-//            divide by zero error, check the reference results to determine if the expected result
-//            is 0 and, if so, add a 1 to the division. 
-//         if (refReal == 0 && refImag == 0)
-//             MSE = (float)(errReal*errReal + errIm*errIm)/(float)(refReal*refReal + refImag*refImag + 1);
-//         else
-//             MSE = (float)(errReal*errReal + errIm*errIm)/(float)(refReal*refReal + refImag*refImag);
+         For some unit tests, e.g. PUCCH deomdulation, the expected output is 0. To avoid a
+           divide by zero error, check the reference results to determine if the expected result
+           is 0 and, if so, add a 1 to the division. 
+        if (refReal == 0 && refImag == 0)
+            MSE = (float)(errReal*errReal + errIm*errIm)/(float)(refReal*refReal + refImag*refImag + 1);
+        else
+            MSE = (float)(errReal*errReal + errIm*errIm)/(float)(refReal*refReal + refImag*refImag);
 
-//         if(MSE == 0)
-//             mseDB = (float)(-100.0);
-//         else
-//             mseDB = (float)(10.0) * (float)log10(MSE);
+        if(MSE == 0)
+            mseDB = (float)(-100.0);
+        else
+            mseDB = (float)(10.0) * (float)log10(MSE);
 
-//         avgMSEDB += (double)mseDB;
-//         }
+        avgMSEDB += (double)mseDB;
+        }
 
-//         avgMSEDB /= size;
+        avgMSEDB /= size;
 
-//         ASSERT_GT(precision, avgMSEDB);
-// }
+        ASSERT_GT(precision, avgMSEDB);
+}
 
 /*!
     \brief Allocates memory of the given size.
@@ -828,5 +828,6 @@ T* generate_random_real_numbers(const long size, const unsigned alignment, const
 
     return generate_random_numbers<T, std::uniform_real_distribution<T>>(size, alignment, distribution);
 }
+#endif
 
 #endif //XRANLIB_COMMON_HPP

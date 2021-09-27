@@ -1020,7 +1020,7 @@ function main() {
           if [ "$TP" == "oran_fhlib_5g" ]; then
               compilations \
                   $build_dir oran_fhlib_5g \
-                  liboran_fhlib_5g.so $dbin/liborannfhi5g.$REL
+                  liboran_fhlib_5g.so $dbin/liboran_fhlib_5g.$REL
               ln -sf liboran_fhlib_5g.so liboai_transpro.so
               ln -sf $dbin/liboran_fhlib_5g.so.$REL $dbin/liboai_transpro.so
               echo_info "liboai_transpro.so is linked to oran_fhlib_5G transport"
