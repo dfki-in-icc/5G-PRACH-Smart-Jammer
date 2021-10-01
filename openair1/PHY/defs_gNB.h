@@ -121,6 +121,13 @@ typedef struct {
 } NR_gNB_PDCCH_t;
 
 typedef struct {
+  uint8_t active;
+  int frame;
+  int slot;
+  nfapi_nr_dl_tti_csi_rs_pdu csirs_pdu;
+} NR_gNB_CSIRS_t;
+
+typedef struct {
   int frame;
   int slot;
   nfapi_nr_ul_dci_request_pdus_t pdcch_pdu;
@@ -760,6 +767,7 @@ typedef struct PHY_VARS_gNB_s {
   NR_gNB_PUSCH       *pusch_vars[NUMBER_OF_NR_ULSCH_MAX];
   NR_gNB_PUCCH_t     *pucch[NUMBER_OF_NR_PUCCH_MAX];
   NR_gNB_PDCCH_t     pdcch_pdu[NUMBER_OF_NR_PDCCH_MAX];
+  NR_gNB_CSIRS_t     csirs_pdu[NUMBER_OF_NR_CSIRS_MAX];
   NR_gNB_UL_PDCCH_t  ul_pdcch_pdu[NUMBER_OF_NR_PDCCH_MAX];
   NR_gNB_DLSCH_t     *dlsch[NUMBER_OF_NR_DLSCH_MAX][2];    // Nusers times two spatial streams
   NR_gNB_ULSCH_t     *ulsch[NUMBER_OF_NR_ULSCH_MAX][2];  // [Nusers times][2 codewords] 
@@ -811,6 +819,8 @@ typedef struct PHY_VARS_gNB_s {
 
   uint32_t max_peak_val;
 
+  /// OFDM symbol offset divisor for UL
+  uint32_t ofdm_offset_divisor;
   /// \brief sinr for all subcarriers of the current link (used only for abstraction).
   /// first index: ? [0..N_RB_DL*12[
   double *sinr_dB;
@@ -829,6 +839,8 @@ typedef struct PHY_VARS_gNB_s {
   /// hold the precoder for NULL beam to the primary user
   int              **dl_precoder_SgNB[3];
   char             log2_maxp; /// holds the maximum channel/precoder coefficient
+
+  int  prb_interpolation;
 
   /// if ==0 enables phy only test mode
   int mac_enabled;

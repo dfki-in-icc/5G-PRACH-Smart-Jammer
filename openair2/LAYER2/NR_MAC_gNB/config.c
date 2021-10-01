@@ -419,6 +419,7 @@ int rrc_mac_config_req_gNB(module_id_t Mod_idP,
                            int ssb_SubcarrierOffset,
                            int pdsch_AntennaPorts,
                            int pusch_AntennaPorts,
+                           int sib1_tda,
                            NR_ServingCellConfigCommon_t *scc,
 	                         int add_ue,
                            uint32_t rnti,
@@ -457,7 +458,7 @@ int rrc_mac_config_req_gNB(module_id_t Mod_idP,
                   ssb_SubcarrierOffset,
                   pdsch_AntennaPorts,
                   pusch_AntennaPorts,
-		              scc);
+                  scc);
     LOG_D(NR_MAC, "%s() %s:%d RC.nrmac[Mod_idP]->if_inst->NR_PHY_config_req:%p\n", __FUNCTION__, __FILE__, __LINE__, RC.nrmac[Mod_idP]->if_inst->NR_PHY_config_req);
   
     // if in nFAPI mode 
@@ -489,12 +490,12 @@ int rrc_mac_config_req_gNB(module_id_t Mod_idP,
       /* FIXME: it seems there is a problem with slot 0/10/slots right after UL:
        * we just get retransmissions. Thus, do not schedule such slots in DL */
       if (slot % nr_slots_period != 0)
-        RC.nrmac[Mod_idP]->dlsch_slot_bitmap[slot / 64] |= ((slot % nr_slots_period) < nr_dlmix_slots) << (slot % 64);
-      RC.nrmac[Mod_idP]->ulsch_slot_bitmap[slot / 64] |= ((slot % nr_slots_period) >= nr_ulstart_slot) << (slot % 64);
+        RC.nrmac[Mod_idP]->dlsch_slot_bitmap[slot / 64] |= (uint64_t)((slot % nr_slots_period) < nr_dlmix_slots) << (slot % 64);
+      RC.nrmac[Mod_idP]->ulsch_slot_bitmap[slot / 64] |= (uint64_t)((slot % nr_slots_period) >= nr_ulstart_slot) << (slot % 64);
       LOG_D(NR_MAC, "slot %d DL %d UL %d\n",
             slot,
-            (RC.nrmac[Mod_idP]->dlsch_slot_bitmap[slot / 64] & (1 << (slot % 64))) != 0,
-            (RC.nrmac[Mod_idP]->ulsch_slot_bitmap[slot / 64] & (1 << (slot % 64))) != 0);
+            (RC.nrmac[Mod_idP]->dlsch_slot_bitmap[slot / 64] & ((uint64_t)1 << (slot % 64))) != 0,
+            (RC.nrmac[Mod_idP]->ulsch_slot_bitmap[slot / 64] & ((uint64_t)1 << (slot % 64))) != 0);
     }
 
     if (get_softmodem_params()->phy_test) {
@@ -507,6 +508,7 @@ int rrc_mac_config_req_gNB(module_id_t Mod_idP,
 
     if (get_softmodem_params()->sa > 0) {
       NR_COMMON_channels_t *cc = &RC.nrmac[Mod_idP]->common_channels[0];
+      RC.nrmac[Mod_idP]->sib1_tda = sib1_tda;
       for (int n=0;n<NR_NB_RA_PROC_MAX;n++ ) {
 	       cc->ra[n].cfra = false;
 	       cc->ra[n].rnti = 0;

@@ -218,7 +218,7 @@ static void reassemble_and_deliver(nr_rlc_entity_am_t *entity, int sn)
       bad_sdu = 1;
     }
     if (!bad_sdu && len > 0) {
-      memcpy(sdu + so, pdu->data, len);
+      memcpy(sdu + so, pdu->data + so - pdu->so, len);
       so += len;
     }
     free(pdu->data);
@@ -1529,7 +1529,7 @@ static int tx_list_size(nr_rlc_entity_am_t *entity,
 {
   int ret = 0;
 
-  while (l != NULL) {
+  while (l != NULL && ret < maxsize) {
     ret += compute_pdu_header_size(entity, l) + l->size;
     l = l->next;
   }

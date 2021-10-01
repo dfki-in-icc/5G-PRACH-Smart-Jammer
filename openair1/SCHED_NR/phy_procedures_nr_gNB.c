@@ -147,14 +147,14 @@ void phy_procedures_gNB_TX(PHY_VARS_gNB *gNB,
   }
 
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PHY_PROCEDURES_gNB_COMMON_TX,1);
-  if (NFAPI_MODE == NFAPI_MONOLITHIC || NFAPI_MODE == NFAPI_MODE_PNF) { 
-    for (int i=0; i<fp->Lmax; i++) {
-      if (gNB->ssb[i].active) {
-        nr_common_signal_procedures(gNB,frame,slot,gNB->ssb[i].ssb_pdu);
-        gNB->ssb[i].active = false;
-      }
+
+  for (int i=0; i<fp->Lmax; i++) {
+    if (gNB->ssb[i].active) {
+      nr_common_signal_procedures(gNB,frame,slot,gNB->ssb[i].ssb_pdu);
+      gNB->ssb[i].active = false;
     }
   }
+  
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PHY_PROCEDURES_gNB_COMMON_TX,0);
 
   int pdcch_pdu_id=find_nr_pdcch(frame,slot,gNB,SEARCH_EXIST);
@@ -176,7 +176,7 @@ void phy_procedures_gNB_TX(PHY_VARS_gNB *gNB,
 			ul_pdcch_pdu_id>=0 ? &gNB->ul_pdcch_pdu[ul_pdcch_pdu_id].pdcch_pdu.pdcch_pdu : NULL,
 			gNB->nr_gold_pdcch_dmrs[slot],
 			&gNB->common_vars.txdataF[0][txdataF_offset],
-			AMP, *fp);
+			AMP, fp);
 
     // free up entry in pdcch tables
     if (pdcch_pdu_id>=0) gNB->pdcch_pdu[pdcch_pdu_id].frame = -1;
@@ -194,6 +194,18 @@ void phy_procedures_gNB_TX(PHY_VARS_gNB *gNB,
     VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_GENERATE_DLSCH,0);
   }
 
+  for (int i=0;i<NUMBER_OF_NR_CSIRS_MAX;i++){
+    NR_gNB_CSIRS_t *csirs = &gNB->csirs_pdu[i];
+    if ((csirs->active == 1) &&
+	(csirs->frame == frame) &&
+	(csirs->slot == slot) ) {
+      LOG_D(PHY, "CSI-RS generation started in frame %d.%d\n",frame,slot);
+      nfapi_nr_dl_tti_csi_rs_pdu_rel15_t csi_params = csirs->csirs_pdu.csi_rs_pdu_rel15;
+      nr_generate_csi_rs(gNB, AMP, csi_params, gNB->gNB_config.cell_config.phy_cell_id.value, slot);
+      csirs->active = 0;
+    }
+  }
+
   if (do_meas==1) stop_meas(&gNB->phy_proc_tx);
 
   if ((frame&127) == 0) dump_pdsch_stats(gNB);
@@ -202,7 +214,7 @@ void phy_procedures_gNB_TX(PHY_VARS_gNB *gNB,
   for (aa=0; aa<cfg->carrier_config.num_tx_ant.value; aa++) {
 	  apply_nr_rotation(fp,(int16_t*) &gNB->common_vars.txdataF[aa][txdataF_offset],slot,0,fp->Ncp==EXTENDED?12:14,fp->ofdm_symbol_size);
   }
-  
+
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PHY_PROCEDURES_gNB_TX+offset,0);
 }
 
@@ -371,7 +383,13 @@ void nr_ulsch_procedures(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx, int ULSCH
 
   // scale the 16 factor in N_TA calculation in 38.213 section 4.2 according to the used FFT size
   uint16_t bw_scaling = 16 * gNB->frame_parms.ofdm_symbol_size / 2048;
-  timing_advance_update = sync_pos / bw_scaling;
+  int sync_pos_rounded;
+  // do some integer rounding to improve TA accuracy
+  if (sync_pos > 0)
+    sync_pos_rounded = sync_pos + (bw_scaling / 2) - 1;
+  else
+    sync_pos_rounded = sync_pos - (bw_scaling / 2) - 1;
+  timing_advance_update = sync_pos_rounded / bw_scaling;
 
   // put timing advance command in 0..63 range
   timing_advance_update += 31;
@@ -557,8 +575,8 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx) {
     NR_gNB_PUCCH_t *pucch = gNB->pucch[i];
     if (pucch) {
       if ((pucch->active == 1) &&
-	       (pucch->frame == frame_rx) &&
-	       (pucch->slot == slot_rx) ) {
+          (pucch->frame == frame_rx) &&
+          (pucch->slot == slot_rx) ) {
 
         pucch_decode_done = 1;
 
@@ -579,7 +597,7 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx) {
           LOG_D(PHY,"frame %d, slot %d: PUCCH signal energy %d\n",frame_rx,slot_rx,power_rxF);
 
           nr_decode_pucch0(gNB,
-	                         frame_rx,
+                           frame_rx,
                            slot_rx,
                            uci_pdu_format0,
                            pucch_pdu);
@@ -621,9 +639,9 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx) {
         (ulsch->rnti > 0)) {
       // for for an active HARQ process
       for (harq_pid=0;harq_pid<NR_MAX_ULSCH_HARQ_PROCESSES;harq_pid++) {
-	      ulsch_harq = ulsch->harq_processes[harq_pid];
-    	  AssertFatal(ulsch_harq!=NULL,"harq_pid %d is not allocated\n",harq_pid);
-    	  if ((ulsch_harq->status == NR_ACTIVE) &&
+        ulsch_harq = ulsch->harq_processes[harq_pid];
+        AssertFatal(ulsch_harq!=NULL,"harq_pid %d is not allocated\n",harq_pid);
+        if ((ulsch_harq->status == NR_ACTIVE) &&
             (ulsch_harq->frame == frame_rx) &&
             (ulsch_harq->slot == slot_rx) &&
             (ulsch_harq->handled == 0)){
@@ -686,7 +704,7 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx) {
              gNB->pusch_vars[ULSCH_id]->ulsch_power_tot = gNB->pusch_vars[ULSCH_id]->ulsch_noise_power_tot;
              nr_fill_indication(gNB,frame_rx, slot_rx, ULSCH_id, harq_pid, 1);
              gNB->pusch_vars[ULSCH_id]->DTX=1;
-             stats->DTX++;
+             if (stats) stats->DTX++;
              return 1;
           } else gNB->pusch_vars[ULSCH_id]->DTX=0;
 

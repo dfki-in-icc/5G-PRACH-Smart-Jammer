@@ -1536,8 +1536,13 @@ class OaiCiTest():
 					SSH.command('cat ' + EPC.SourceCodePath + '/scripts/ping_' + self.testCase_id + '_' + device_id + '.log', '\$', 5)
 				else: #launch from Module
 					SSH.open(Module_UE.HostIPAddress, Module_UE.HostUsername, Module_UE.HostPassword)
+					#target address is different depending on EPC type
+					if re.match('OAI-Rel14-Docker', EPC.Type, re.IGNORECASE):
+						Target = EPC.MmeIPAddress
+					else:
+						Target = EPC.IPAddress
 					#ping from module NIC rather than IP address to make sure round trip is over the air	
-					cmd = 'ping -I ' + Module_UE.UENetwork  + ' ' + self.ping_args + ' ' +  EPC.IPAddress  + ' 2>&1 > ping_' + self.testCase_id + '_' + self.ue_id + '.log' 
+					cmd = 'ping -I ' + Module_UE.UENetwork  + ' ' + self.ping_args + ' ' +  Target  + ' 2>&1 > ping_' + self.testCase_id + '_' + self.ue_id + '.log' 
 					SSH.command(cmd,'\$',int(ping_time[0])*1.5)
 					#copy the ping log file to have it locally for analysis (ping stats)
 					SSH.copyin(Module_UE.HostIPAddress, Module_UE.HostUsername, Module_UE.HostPassword, 'ping_' + self.testCase_id + '_' + self.ue_id + '.log', '.')
@@ -2000,6 +2005,7 @@ class OaiCiTest():
 					curr_br = curr_br * 1000 * 1000
 				br_sum = curr_br + br_sum
 				ji_sum = float(ji[0]) + ji_sum
+
 		if (row_idx > 0):
 			br_sum = br_sum / row_idx
 			ji_sum = ji_sum / row_idx
@@ -2020,10 +2026,12 @@ class OaiCiTest():
 				pl = float(100 * pl_sum / ps_sum)
 				packetloss = '%2.1f ' % (pl)
 				packetloss += '%'
-			else:
-				packetloss = 'unknown'
+				if float(pl) > float(self.iperf_packetloss_threshold):
+					pal_too_high_msg = 'Packet Loss too high :  actual = '+packetloss+', target = '+self.iperf_packetloss_threshold+'%\n'
+				else:
+					pal_too_high_msg=''			
 			lock.acquire()
-			if (br_loss < 90):
+			if (br_loss < 90) or (float(pl) > float(self.iperf_packetloss_threshold)):
 				statusQueue.put(1)
 			else:
 				statusQueue.put(0)
@@ -2034,13 +2042,14 @@ class OaiCiTest():
 			brl_msg = 'Bitrate Perf: ' + bitperf
 			jit_msg = 'Jitter      : ' + jitter
 			pal_msg = 'Packet Loss : ' + packetloss
-			statusQueue.put(req_msg + '\n' + bir_msg + '\n' + brl_msg + '\n' + jit_msg + '\n' + pal_msg + '\n')
+			statusQueue.put(req_msg + '\n' + bir_msg + '\n' + brl_msg + '\n' + jit_msg + '\n' + pal_msg + '\n' + pal_too_high_msg + '\n')
 			logging.debug('\u001B[1;37;45m iperf result (' + UE_IPAddress + ') \u001B[0m')
 			logging.debug('\u001B[1;35m    ' + req_msg + '\u001B[0m')
 			logging.debug('\u001B[1;35m    ' + bir_msg + '\u001B[0m')
 			logging.debug('\u001B[1;35m    ' + brl_msg + '\u001B[0m')
 			logging.debug('\u001B[1;35m    ' + jit_msg + '\u001B[0m')
 			logging.debug('\u001B[1;35m    ' + pal_msg + '\u001B[0m')
+			logging.debug('\u001B[1;35m    ' + pal_too_high_msg + '\u001B[0m')
 			lock.release()
 		else:
 			self.ping_iperf_wrong_exit(lock, UE_IPAddress, device_id, statusQueue, 'Could not analyze from server log')
@@ -2222,6 +2231,24 @@ class OaiCiTest():
 
 	def Iperf_Module(self, lock, UE_IPAddress, device_id, idx, ue_num, statusQueue,EPC, Module_UE):
 		SSH = sshconnection.SSHConnection()
+		#RH temporary quick n dirty for test
+		SSH.open(EPC.IPAddress, EPC.UserName, EPC.Password)
+		cmd = 'echo ' + EPC.Password + ' | sudo -S ip link set dev tun5 mtu 1358'
+		SSH.command(cmd,'\$',5)	
+		SSH.close()
+			
+
+		#kill iperf processes before (in case there are still some remaining)
+		SSH.open(Module_UE.HostIPAddress, Module_UE.HostUsername, Module_UE.HostPassword)
+		cmd = 'killall --signal=SIGKILL iperf'
+		SSH.command(cmd,'\$',5)
+		SSH.close()
+		SSH.open(EPC.IPAddress, EPC.UserName, EPC.Password)
+		cmd = 'killall --signal=SIGKILL iperf'
+		SSH.command(cmd,'\$',5)
+		SSH.close()
+
+
 		iperf_time = self.Iperf_ComputeTime()	
 		if self.iperf_direction=="DL":
 			logging.debug("Iperf for Module in DL mode detected")
@@ -2231,12 +2258,14 @@ class OaiCiTest():
 			SSH.command(cmd,'\$',5)
 			cmd = 'echo $USER; nohup /opt/iperf-2.0.10/iperf -s -B ' + UE_IPAddress + ' -u  2>&1 > iperf_server_' + self.testCase_id + '_' + self.ue_id + '.log' 
 			SSH.command(cmd,'\$',5)
+			SSH.close()
 			#client side EPC
 			SSH.open(EPC.IPAddress, EPC.UserName, EPC.Password)
 			cmd = 'rm iperf_client_' + self.testCase_id + '_' + self.ue_id + '.log'
 			SSH.command(cmd,'\$',5)
 			cmd = 'iperf -c ' + UE_IPAddress + ' ' + self.iperf_args + ' 2>&1 > iperf_client_' + self.testCase_id + '_' + self.ue_id + '.log' 
 			SSH.command(cmd,'\$',int(iperf_time)*5.0)
+			SSH.close()
 			#copy the 2 resulting files locally
 			SSH.copyin(Module_UE.HostIPAddress, Module_UE.HostUsername, Module_UE.HostPassword, 'iperf_server_' + self.testCase_id + '_' + self.ue_id + '.log', '.')
 			SSH.copyin(EPC.IPAddress, EPC.UserName, EPC.Password, 'iperf_client_' + self.testCase_id + '_' + self.ue_id + '.log', '.')
@@ -2252,29 +2281,32 @@ class OaiCiTest():
 			SSH.command(cmd,'\$',5)
 			cmd = 'echo $USER; nohup iperf -s -u 2>&1 > iperf_server_' + self.testCase_id + '_' + self.ue_id + '.log'
 			SSH.command(cmd,'\$',5)
+			SSH.close()
 
 			#client side UE
 			SSH.open(Module_UE.HostIPAddress, Module_UE.HostUsername, Module_UE.HostPassword)
 			cmd = 'rm iperf_client_' + self.testCase_id + '_' + self.ue_id + '.log'
 			SSH.command(cmd,'\$',5)
 			SSH.command('/opt/iperf-2.0.10/iperf -c 192.172.0.1 ' + self.iperf_args + ' 2>&1 > iperf_client_' + self.testCase_id + '_' + self.ue_id + '.log', '\$', int(iperf_time)*5.0)
+			SSH.close()
 
 			#copy the 2 resulting files locally
 			SSH.copyin(Module_UE.HostIPAddress, Module_UE.HostUsername, Module_UE.HostPassword, 'iperf_client_' + self.testCase_id + '_' + self.ue_id + '.log', '.')
 			SSH.copyin(EPC.IPAddress, EPC.UserName, EPC.Password, 'iperf_server_' + self.testCase_id + '_' + self.ue_id + '.log', '.')
 			#send for analysis
-			filename='iperf_client_' + self.testCase_id + '_' + self.ue_id + '.log'
+			filename='iperf_server_' + self.testCase_id + '_' + self.ue_id + '.log'
 			self.Iperf_analyzeV2Server(lock, UE_IPAddress, device_id, statusQueue, self.iperf_args,filename,1)
 		else :
 			logging.debug("Incorrect or missing IPERF direction in XML")
 
+		#kill iperf processes after to be clean
 		SSH.open(Module_UE.HostIPAddress, Module_UE.HostUsername, Module_UE.HostPassword)
 		cmd = 'killall --signal=SIGKILL iperf'
 		SSH.command(cmd,'\$',5)
+		SSH.close()
 		SSH.open(EPC.IPAddress, EPC.UserName, EPC.Password)
 		cmd = 'killall --signal=SIGKILL iperf'
 		SSH.command(cmd,'\$',5)
-
 		SSH.close()
 		return
 
@@ -2677,7 +2709,7 @@ class OaiCiTest():
 
 		if (status_queue.empty()):
 			HTML.CreateHtmlTestRow(self.iperf_args, 'KO', CONST.ALL_PROCESSES_OK)
-			self.AutoTerminateUEandeNB(HTML,RAN,COTS_UE,EPC,InfaUE)
+			self.AutoTerminateUEandeNB(HTML,RAN,COTS_UE,EPC,InfraUE)
 		else:
 			iperf_status = True
 			iperf_noperf = False

@@ -419,8 +419,28 @@ uint8_t do_SIB1_NR(rrc_gNB_carrier_data_t *carrier,
     nrMultiBandInfo->freqBandIndicatorNR = configuration->scc->downlinkConfigCommon->frequencyInfoDL->frequencyBandList.list.array[i];
     ASN_SEQUENCE_ADD(&sib1->servingCellConfigCommon->downlinkConfigCommon.frequencyInfoDL.frequencyBandList.list,nrMultiBandInfo);
   }
-  //sib1->servingCellConfigCommon->downlinkConfigCommon.frequencyInfoDL.offsetToPointA = configuration->scc->downlinkConfigCommon->frequencyInfoDL->scs_SpecificCarrierList.list.array[0]->offsetToCarrier;
-  sib1->servingCellConfigCommon->downlinkConfigCommon.frequencyInfoDL.offsetToPointA = 86;
+
+  int scs_scaling0 = 1<<(configuration->scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters.subcarrierSpacing);
+  int scs_scaling  = scs_scaling0;
+  int scs_scaling2 = scs_scaling0;
+  if (configuration->scc->downlinkConfigCommon->frequencyInfoDL->absoluteFrequencyPointA < 600000) {
+    scs_scaling = scs_scaling0*3;
+  }
+  if (configuration->scc->downlinkConfigCommon->frequencyInfoDL->absoluteFrequencyPointA > 2016666) {
+    scs_scaling = scs_scaling0>>2;
+    scs_scaling2 = scs_scaling0>>2;
+  }
+  uint32_t absolute_diff = (*configuration->scc->downlinkConfigCommon->frequencyInfoDL->absoluteFrequencySSB -
+                             configuration->scc->downlinkConfigCommon->frequencyInfoDL->absoluteFrequencyPointA);
+
+  sib1->servingCellConfigCommon->downlinkConfigCommon.frequencyInfoDL.offsetToPointA = scs_scaling2 * (absolute_diff/(12*scs_scaling) - 10);
+
+  LOG_I(NR_RRC,"SIB1 freq: absoluteFrequencySSB %ld, absoluteFrequencyPointA %ld\n",
+                                    *configuration->scc->downlinkConfigCommon->frequencyInfoDL->absoluteFrequencySSB,
+                                    configuration->scc->downlinkConfigCommon->frequencyInfoDL->absoluteFrequencyPointA);
+  LOG_I(NR_RRC,"SIB1 freq: absolute_diff %d, %d*(absolute_diff/(12*%d) - 10) %d\n",
+        absolute_diff,scs_scaling2,scs_scaling,(int)sib1->servingCellConfigCommon->downlinkConfigCommon.frequencyInfoDL.offsetToPointA);
+
   for(int i = 0; i< configuration->scc->downlinkConfigCommon->frequencyInfoDL->scs_SpecificCarrierList.list.count; i++) {
     ASN_SEQUENCE_ADD(&sib1->servingCellConfigCommon->downlinkConfigCommon.frequencyInfoDL.scs_SpecificCarrierList.list,configuration->scc->downlinkConfigCommon->frequencyInfoDL->scs_SpecificCarrierList.list.array[i]);
   }
@@ -1220,47 +1240,6 @@ void fill_initial_cellGroupConfig(rnti_t rnti,
   logicalChannelConfig->ul_SpecificParameters->logicalChannelSR_DelayTimerApplied = 0;
   rlc_BearerConfig->mac_LogicalChannelConfig                       = logicalChannelConfig;
   ASN_SEQUENCE_ADD(&cellGroupConfig->rlc_BearerToAddModList->list, rlc_BearerConfig);
-
-  /*
-  // SRB2
-  NR_RLC_BearerConfig_t *rlc_BearerConfig2 = NULL;
-  NR_RLC_Config_t *rlc_Config2 = NULL;
-  NR_LogicalChannelConfig_t *logicalChannelConfig2= NULL;
-  long *logicalChannelGroup2 = NULL;
-  rlc_BearerConfig2                                                 = calloc(1, sizeof(NR_RLC_BearerConfig_t));
-  rlc_BearerConfig2->logicalChannelIdentity                         = 2;
-  rlc_BearerConfig2->servedRadioBearer                              = calloc(1, sizeof(*rlc_BearerConfig2->servedRadioBearer));
-  rlc_BearerConfig2->servedRadioBearer->present                     = NR_RLC_BearerConfig__servedRadioBearer_PR_srb_Identity;
-  rlc_BearerConfig2->servedRadioBearer->choice.srb_Identity         = 2;
-  rlc_BearerConfig2->reestablishRLC                                 = NULL;
-  rlc_Config2 = calloc(1, sizeof(NR_RLC_Config_t));
-  rlc_Config2->present                                              = NR_RLC_Config_PR_am;
-  rlc_Config2->choice.am                                            = calloc(1, sizeof(*rlc_Config2->choice.am));
-  rlc_Config2->choice.am->dl_AM_RLC.sn_FieldLength                  = calloc(1, sizeof(NR_SN_FieldLengthAM_t));
-  *(rlc_Config2->choice.am->dl_AM_RLC.sn_FieldLength)               = NR_SN_FieldLengthAM_size12;
-  rlc_Config2->choice.am->dl_AM_RLC.t_Reassembly                    = NR_T_Reassembly_ms35;
-  rlc_Config2->choice.am->dl_AM_RLC.t_StatusProhibit                = NR_T_StatusProhibit_ms0;
-  rlc_Config2->choice.am->ul_AM_RLC.sn_FieldLength                  = calloc(1, sizeof(NR_SN_FieldLengthAM_t));
-  *(rlc_Config2->choice.am->ul_AM_RLC.sn_FieldLength)               = NR_SN_FieldLengthAM_size12;
-  rlc_Config2->choice.am->ul_AM_RLC.t_PollRetransmit                = NR_T_PollRetransmit_ms45;
-  rlc_Config2->choice.am->ul_AM_RLC.pollPDU                         = NR_PollPDU_infinity;
-  rlc_Config2->choice.am->ul_AM_RLC.pollByte                        = NR_PollByte_infinity;
-  rlc_Config2->choice.am->ul_AM_RLC.maxRetxThreshold                = NR_UL_AM_RLC__maxRetxThreshold_t8;
-  rlc_BearerConfig2->rlc_Config                                     = rlc_Config2;
-  logicalChannelConfig2                                             = calloc(1, sizeof(NR_LogicalChannelConfig_t));
-  logicalChannelConfig2->ul_SpecificParameters                      = calloc(1, sizeof(*logicalChannelConfig2->ul_SpecificParameters));
-  logicalChannelConfig2->ul_SpecificParameters->priority            = 1;
-  logicalChannelConfig2->ul_SpecificParameters->prioritisedBitRate  = NR_LogicalChannelConfig__ul_SpecificParameters__prioritisedBitRate_infinity;
-  logicalChannelGroup2                                              = CALLOC(1, sizeof(long));
-  *logicalChannelGroup2                                             = 0;
-  logicalChannelConfig2->ul_SpecificParameters->logicalChannelGroup = logicalChannelGroup2;
-  logicalChannelConfig2->ul_SpecificParameters->schedulingRequestID = CALLOC(1, sizeof(*logicalChannelConfig2->ul_SpecificParameters->schedulingRequestID));
-  *logicalChannelConfig2->ul_SpecificParameters->schedulingRequestID = 0;
-  logicalChannelConfig2->ul_SpecificParameters->logicalChannelSR_Mask = 0;
-  logicalChannelConfig2->ul_SpecificParameters->logicalChannelSR_DelayTimerApplied = 0;
-  rlc_BearerConfig2->mac_LogicalChannelConfig                       = logicalChannelConfig2;
-  ASN_SEQUENCE_ADD(&cellGroupConfig->rlc_BearerToAddModList->list, rlc_BearerConfig2);
-  */
   
   cellGroupConfig->rlc_BearerToReleaseList = NULL;
   
@@ -1653,13 +1632,14 @@ int16_t do_RRCReconfiguration(
     // *security_config->keyToUse = NR_SecurityConfig__keyToUse_master;
 
     ie = calloc(1, sizeof(NR_RRCReconfiguration_IEs_t));
-    ie->radioBearerConfig = calloc(1, sizeof(NR_RadioBearerConfig_t));
-    ie->radioBearerConfig->srb_ToAddModList  = SRB_configList;
-    ie->radioBearerConfig->drb_ToAddModList  = DRB_configList;
-    ie->radioBearerConfig->securityConfig    = security_config;
-    ie->radioBearerConfig->srb3_ToRelease    = NULL;
-    ie->radioBearerConfig->drb_ToReleaseList = DRB_releaseList;
-
+    if (SRB_configList || DRB_configList) {
+      ie->radioBearerConfig = calloc(1, sizeof(NR_RadioBearerConfig_t));
+      ie->radioBearerConfig->srb_ToAddModList  = SRB_configList;
+      ie->radioBearerConfig->drb_ToAddModList  = DRB_configList;
+      ie->radioBearerConfig->securityConfig    = security_config;
+      ie->radioBearerConfig->srb3_ToRelease    = NULL;
+      ie->radioBearerConfig->drb_ToReleaseList = DRB_releaseList;
+    }
     /******************** Secondary Cell Group ********************/
     // rrc_gNB_carrier_data_t *carrier = &(gnb_rrc_inst->carrier);
     // fill_default_secondaryCellGroup( carrier->servingcellconfigcommon,

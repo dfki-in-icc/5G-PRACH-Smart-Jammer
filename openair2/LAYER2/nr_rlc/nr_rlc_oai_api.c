@@ -38,7 +38,6 @@
 #include "common/ran_context.h"
 #include "NR_UL-CCCH-Message.h"
 
-#undef C_RNTI // C_RNTI is used in F1AP generated code, prevent preprocessor replace
 #include "openair2/F1AP/f1ap_du_rrc_message_transfer.h"
 
 #include "openair2/LAYER2/PROTO_AGENT/proto_agent.h"
@@ -46,6 +45,8 @@
 extern RAN_CONTEXT_t RC;
 
 #include <stdint.h>
+
+#include <executables/softmodem-common.h>
 
 static nr_rlc_ue_manager_t *nr_rlc_ue_manager;
 
@@ -207,7 +208,10 @@ tbs_size_t mac_rlc_data_req(
   switch (channel_idP) {
   case 1 ... 3: rb = ue->srb[channel_idP - 1]; break;
   case 4 ... 8: rb = ue->drb[channel_idP - 4]; break;
-  default:      rb = NULL;                     break;
+  default:
+  rb = NULL;
+  LOG_E(RLC, "In %s:%d:%s: data request for unknown RB with LCID 0x%02x !\n", __FILE__, __LINE__, __FUNCTION__, channel_idP);
+  break;
   }
 
   if (rb != NULL) {
@@ -215,8 +219,6 @@ tbs_size_t mac_rlc_data_req(
     maxsize = tb_sizeP;
     ret = rb->generate_pdu(rb, buffer_pP, maxsize);
   } else {
-    LOG_E(RLC, "%s:%d:%s: fatal: data req for unknown RB, channel_idP: %d\n", __FILE__, __LINE__, __FUNCTION__, channel_idP);
-    exit(1);
     ret = 0;
   }
 
@@ -262,7 +264,8 @@ mac_rlc_status_resp_t mac_rlc_status_ind(
      * reports '> 81338368' (table 6.1.3.1-2). Passing 100000000 is thus
      * more than enough.
      */
-    buf_stat = rb->buffer_status(rb, 100000000);
+    // Fix me: temproary reduction meanwhile cpu cost of this computation is optimized
+    buf_stat = rb->buffer_status(rb, 1000*1000);
     ret.bytes_in_buffer = buf_stat.status_size
                         + buf_stat.retx_size
                         + buf_stat.tx_size;
@@ -324,7 +327,9 @@ rlc_buffer_occupancy_t mac_rlc_get_buffer_occupancy_ind(
      * reports '> 81338368' (table 6.1.3.1-2). Passing 100000000 is thus
      * more than enough.
      */
-    buf_stat = rb->buffer_status(rb, 100000000);
+    // Fixme : Laurent reduced size for CPU saving
+    // Fix me: temproary reduction meanwhile cpu cost of this computation is optimized
+    buf_stat = rb->buffer_status(rb, 1000*1000);
     ret = buf_stat.status_size
         + buf_stat.retx_size
         + buf_stat.tx_size;
@@ -426,7 +431,7 @@ static void deliver_sdu(void *_ue, nr_rlc_entity_t *entity, char *buf, int size)
   int is_enb;
 
   /* is it SRB? */
-  for (i = 0; i < 2; i++) {
+  for (i = 0; i < sizeofArray(ue->srb); i++) {
     if (entity == ue->srb[i]) {
       is_srb = 1;
       rb_id = i+1;
@@ -435,7 +440,7 @@ static void deliver_sdu(void *_ue, nr_rlc_entity_t *entity, char *buf, int size)
   }
 
   /* maybe DRB? */
-  for (i = 0; i < 5; i++) {
+  for (i = 0; i < sizeofArray(ue->drb) ; i++) {
     if (entity == ue->drb[i]) {
       is_srb = 0;
       rb_id = i+1;
@@ -918,7 +923,7 @@ rlc_op_status_t nr_rrc_rlc_config_asn1_req (const protocol_ctxt_t   * const ctxt
 
   if (drb2release_listP != NULL) {
     LOG_E(RLC, "%s:%d:%s: TODO\n", __FILE__, __LINE__, __FUNCTION__);
-    exit(1);
+    //exit(1);
   }
 
   if (srb2add_listP != NULL) {
