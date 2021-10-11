@@ -441,7 +441,7 @@ void nr_pdcch_extract_rbs_single(int32_t **rxdataF,
         // if these conditions are true the pointer has to be situated at the 1st part of the rxdataF
         rxF = &rxdataF[aarx][(12*(c_rb - (frame_parms->N_RB_DL>>1)) + (symbol * (frame_parms->ofdm_symbol_size)))+n_BWP_start*12]; // we point at the 1st part of the rxdataF in symbol
         LOG_DDD("in even case c_rb (%d) is higher than half N_RB_DL (not DC) -> rxF = &rxdataF[aarx = (%d)][(12*(c_rb - (frame_parms->N_RB_DL>>1)) + (symbol * (frame_parms->ofdm_symbol_size))) = (%d)]\n",
-               c_rb,aarx,(12*(c_rb - (frame_parms->N_RB_DL>>1)) + (symbol * (frame_parms->ofdm_symbol_size))));
+               c_rb,aarx,(12*(c_rb - (frame_parms->N_RB_DL>>1)) + (symbol * (frame_parms->ofdm_symbol_size))+n_BWP_start*12));
         //rxF = &rxdataF[aarx][(1 + 12*(c_rb - (frame_parms->N_RB_DL>>1)) + (symbol * (frame_parms->ofdm_symbol_size)))]; // we point at the 1st part of the rxdataF in symbol
         //#ifdef NR_PDCCH_DCI_DEBUG
         //  LOG_DDD("in even case c_rb (%d) is higher than half N_RB_DL (not DC) -> rxF = &rxdataF[aarx = (%d)][(1 + 12*(c_rb - (frame_parms->N_RB_DL>>1)) + (symbol * (frame_parms->ofdm_symbol_size))) = (%d)]\n",
@@ -449,37 +449,38 @@ void nr_pdcch_extract_rbs_single(int32_t **rxdataF,
         //#endif
       }
 
-      if (((c_rb + n_BWP_start) < (frame_parms->N_RB_DL >> 1)) && ((frame_parms->N_RB_DL & 1) != 0)) {
+      if (((frame_parms->first_carrier_offset + 12 * (c_rb + n_BWP_start)+11) < (frame_parms->ofdm_symbol_size)) && ((frame_parms->N_RB_DL & 1) != 0)) {
         //if RB to be treated is lower than middle system bandwidth then rxdataF pointed at (offset + c_br + symbol * ofdm_symbol_size): odd case
         rxF = &rxdataF[aarx][(frame_parms->first_carrier_offset + 12 * c_rb + (symbol * (frame_parms->ofdm_symbol_size)))+n_BWP_start*12];
 #ifdef NR_PDCCH_DCI_DEBUG
         LOG_D(PHY,"in odd case c_rb (%d) is lower or equal than half N_RB_DL -> rxF = &rxdataF[aarx = (%d)][(frame_parms->first_carrier_offset + 12 * c_rb + (symbol * (frame_parms->ofdm_symbol_size))) = (%d)]\n",
-               c_rb,aarx,(frame_parms->first_carrier_offset + 12 * c_rb + (symbol * (frame_parms->ofdm_symbol_size))));
+               c_rb,aarx,(frame_parms->first_carrier_offset + 12 * c_rb + (symbol * (frame_parms->ofdm_symbol_size))+n_BWP_start*12));
 #endif
-      }
-
-      if (((c_rb + n_BWP_start) > (frame_parms->N_RB_DL >> 1)) && ((frame_parms->N_RB_DL & 1) != 0)) {
-        // number of RBs is odd  and   c_rb is higher than half system bandwidth + 1
+      }else if (((frame_parms->first_carrier_offset + 12 * (c_rb + n_BWP_start)) >= (frame_parms->ofdm_symbol_size)) && ((frame_parms->N_RB_DL & 1) != 0)) {
+       int32_t offset_t=(frame_parms->first_carrier_offset + 12 * (c_rb + n_BWP_start) - frame_parms->ofdm_symbol_size);
+       // number of RBs is odd  and   c_rb is higher than half system bandwidth + 1
         // if these conditions are true the pointer has to be situated at the 1st part of the rxdataF just after the first IQ symbols of the RB containing DC
-        rxF = &rxdataF[aarx][(12*(c_rb - (frame_parms->N_RB_DL>>1)) - 6 + (symbol * (frame_parms->ofdm_symbol_size)))+n_BWP_start*12]; // we point at the 1st part of the rxdataF in symbol
+        rxF = &rxdataF[aarx][(offset_t + (symbol * (frame_parms->ofdm_symbol_size)))]; // we point at the 1st part of the rxdataF in symbol
 #ifdef NR_PDCCH_DCI_DEBUG
         LOG_D(PHY,"in odd case c_rb (%d) is higher than half N_RB_DL (not DC) -> rxF = &rxdataF[aarx = (%d)][(12*(c_rb - frame_parms->N_RB_DL) - 5 + (symbol * (frame_parms->ofdm_symbol_size))) = (%d)]\n",
-               c_rb,aarx,(12*(c_rb - (frame_parms->N_RB_DL>>1)) - 6 + (symbol * (frame_parms->ofdm_symbol_size))));
+               c_rb,aarx,(offset_t + (symbol * (frame_parms->ofdm_symbol_size))));
 #endif
       }
-
-      if (((c_rb + n_BWP_start) == (frame_parms->N_RB_DL >> 1)) && ((frame_parms->N_RB_DL & 1) != 0)) { // treatment of RB containing the DC
+      if ( ((frame_parms->first_carrier_offset + 12 * (c_rb + n_BWP_start)+11) >= (frame_parms->ofdm_symbol_size)) &&
+                     ((frame_parms->first_carrier_offset + 12 * (c_rb + n_BWP_start)) < (frame_parms->ofdm_symbol_size)) &&
+                     ((frame_parms->N_RB_DL & 1) != 0)) { // treatment of RB containing the DC
         // if odd number RBs in system bandwidth and first RB to be treated is higher than middle system bandwidth (around DC)
         // we have to treat the RB in two parts: first part from i=0 to 5, the data is at the end of rxdataF (pointing at the end of the table)
         rxF = &rxdataF[aarx][(frame_parms->first_carrier_offset + 12 * c_rb + (symbol * (frame_parms->ofdm_symbol_size)))+n_BWP_start*12];
 #ifdef NR_PDCCH_DCI_DEBUG
         LOG_D(PHY,"in odd case c_rb (%d) is half N_RB_DL + 1 we treat DC case -> rxF = &rxdataF[aarx = (%d)][(frame_parms->first_carrier_offset + 12 * c_rb + (symbol * (frame_parms->ofdm_symbol_size))) = (%d)]\n",
-               c_rb,aarx,(frame_parms->first_carrier_offset + 12 * c_rb + (symbol * (frame_parms->ofdm_symbol_size))));
+               c_rb,aarx,(frame_parms->first_carrier_offset + 12 * c_rb + (symbol * (frame_parms->ofdm_symbol_size))+n_BWP_start*12));
 #endif
         j = 0;
+        int32_t remain_re=(frame_parms->ofdm_symbol_size- (frame_parms->first_carrier_offset + 12 * (c_rb + n_BWP_start)));
 
-        for (i = 0; i < 6; i++) { //treating first part of the RB note that i=5 would correspond to DC. We treat it in NR
-          if ((i != 1) && (i != 5)) {
+        for (i = 0; i < remain_re; i++) { //treating first part of the RB note that i=5 would correspond to DC. We treat it in NR
+          if ((i != 1) && (i != 5) && (i != 9)) {
             dl_ch0_ext[j] = dl_ch0[i];
             rxF_ext[j++] = rxF[i];
             //              printf("**extract rb %d, re %d => (%d,%d)\n",rb,i,*(short *)&rxF_ext[j-1],*(1+(short*)&rxF_ext[j-1]));
@@ -493,9 +494,9 @@ void nr_pdcch_extract_rbs_single(int32_t **rxdataF,
                c_rb,aarx,(symbol * (frame_parms->ofdm_symbol_size)));
 #endif
         for (; i < 12; i++) {
-          if ((i != 9)) {
+          if ((i != 1) && (i != 5) && (i != 9)) {
             dl_ch0_ext[j] = dl_ch0[i];
-            rxF_ext[j++] = rxF[(1 + i - 6)];
+            rxF_ext[j++] = rxF[(i - remain_re)];
             //              printf("**extract rb %d, re %d => (%d,%d)\n",rb,i,*(short *)&rxF_ext[j-1],*(1+(short*)&rxF_ext[j-1]));
           }
         }

@@ -2003,7 +2003,8 @@ void nr_ue_sib1_scheduler(module_id_t module_idP,
   for (int i=0; i<3; i++) { // loop over possible aggregation levels
 
     fill_coresetZero(mac->coreset0, &mac->type0_PDCCH_CSS_config);
-    ret = fill_searchSpaceZero(mac->search_space_zero, &mac->type0_PDCCH_CSS_config,4<<i);
+    //TODO L5G
+    ret = fill_searchSpaceZero(mac->search_space_zero, &mac->type0_PDCCH_CSS_config,8<<i);
     if (ret) {
       rel15 = &dl_config->dl_config_list[dl_config->number_pdus].dci_config_pdu.dci_config_rel15;
       rel15->num_dci_options = 1;
