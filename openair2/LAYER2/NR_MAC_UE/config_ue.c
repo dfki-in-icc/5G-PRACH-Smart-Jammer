@@ -46,6 +46,8 @@ int set_tdd_config_nr_ue(fapi_nr_config_request_t *cfg,
   int slot_number = 0;
   int nb_periods_per_frame;
   int nb_slots_to_set = TDD_CONFIG_NB_FRAMES*(1<<mu)*NR_NUMBER_OF_SUBFRAMES_PER_FRAME;
+  int v1530_flag=0;
+  int remain_dl_slots = 0;
 
   switch(cfg->tdd_table.tdd_period) {
     case 0:
@@ -80,6 +82,11 @@ int set_tdd_config_nr_ue(fapi_nr_config_request_t *cfg,
       nb_periods_per_frame = 1; // 10ms/10ms
       break;
 
+    //TODO L5G
+    case 10:
+      nb_periods_per_frame = 2; // 10ms/5ms
+      break;
+
     default:
       AssertFatal(1==0,"Undefined tdd period %d\n", cfg->tdd_table.tdd_period);
   }
@@ -87,15 +94,32 @@ int set_tdd_config_nr_ue(fapi_nr_config_request_t *cfg,
   int nb_slots_per_period = ((1<<mu) * NR_NUMBER_OF_SUBFRAMES_PER_FRAME)/nb_periods_per_frame;
   cfg->tdd_table.tdd_period_in_slots = nb_slots_per_period;
 
-  if ( (nrofDownlinkSymbols + nrofUplinkSymbols) == 0 )
-    AssertFatal(nb_slots_per_period == (nrofDownlinkSlots + nrofUplinkSlots),
-                "set_tdd_configuration_nr: given period is inconsistent with current tdd configuration, nrofDownlinkSlots %d, nrofUplinkSlots %d, nb_slots_per_period %d \n",
-                nrofDownlinkSlots,nrofUplinkSlots,nb_slots_per_period);
-  else {
+  int remain_dl_slots = 0;
+  if ( (nrofDownlinkSymbols + nrofUplinkSymbols) == 0 ){
+    if(nb_slots_per_period != (nrofDownlinkSlots + nrofUplinkSlots)){
+      if(cfg->tdd_table.tdd_period>9){
+        LOG_I(MAC,"dl_UL_TransmissionPeriodicity_v1530 case %d\n",cfg->tdd_table.tdd_period);
+        v1530_flag=1;
+       remain_dl_slots = nb_slots_per_period - (nrofDownlinkSlots + nrofUplinkSlots);
+      } else {
+        AssertFatal(nb_slots_per_period == (nrofDownlinkSlots + nrofUplinkSlots),
+                    "set_tdd_configuration_nr: given period is inconsistent with current tdd configuration, nrofDownlinkSlots %d, nrofUplinkSlots %d, nb_slots_per_period %d \n",
+                    nrofDownlinkSlots,nrofUplinkSlots,nb_slots_per_period);
+      }
+    }
+  } else {
     AssertFatal(nrofDownlinkSymbols + nrofUplinkSymbols < 14,"illegal symbol configuration DL %d, UL %d\n",nrofDownlinkSymbols,nrofUplinkSymbols);
-    AssertFatal(nb_slots_per_period == (nrofDownlinkSlots + nrofUplinkSlots + 1),
-                "set_tdd_configuration_nr: given period is inconsistent with current tdd configuration, nrofDownlinkSlots %d, nrofUplinkSlots %d, nrofMixed slots 1, nb_slots_per_period %d \n",
-                nrofDownlinkSlots,nrofUplinkSlots,nb_slots_per_period);
+    if(nb_slots_per_period != (nrofDownlinkSlots + nrofUplinkSlots + 1)){
+      if(cfg->tdd_table.tdd_period>9){
+        LOG_I(MAC,"dl_UL_TransmissionPeriodicity_v1530 case %d\n",cfg->tdd_table.tdd_period);
+        v1530_flag=1;
+       remain_dl_slots = nb_slots_per_period - (nrofDownlinkSlots + nrofUplinkSlots + 1);
+      }else{
+        AssertFatal(nb_slots_per_period == (nrofDownlinkSlots + nrofUplinkSlots + 1),
+                    "set_tdd_configuration_nr: given period is inconsistent with current tdd configuration, nrofDownlinkSlots %d, nrofUplinkSlots %d, nrofMixed slots 1, nb_slots_per_period %d \n",
+                    nrofDownlinkSlots,nrofUplinkSlots,nb_slots_per_period);
+      }
+    }
   }
 
   cfg->tdd_table.max_tdd_periodicity_list = (fapi_nr_max_tdd_periodicity_t *) malloc(nb_slots_to_set*sizeof(fapi_nr_max_tdd_periodicity_t));
@@ -137,6 +161,14 @@ int set_tdd_config_nr_ue(fapi_nr_config_request_t *cfg,
         if((number_of_symbol+1)%NR_NUMBER_OF_SYMBOLS_PER_SLOT == 0)
           slot_number++;
       }
+    }
+    if(v1530_flag==1){
+      for (int number_of_symbol = 0; number_of_symbol < remain_dl_slots*NR_NUMBER_OF_SYMBOLS_PER_SLOT; number_of_symbol++) {
+        cfg->tdd_table.max_tdd_periodicity_list[slot_number].max_num_of_symbol_per_slot_list[number_of_symbol%NR_NUMBER_OF_SYMBOLS_PER_SLOT].slot_config= 0;
+
+         if((number_of_symbol+1)%NR_NUMBER_OF_SYMBOLS_PER_SLOT == 0)
+           slot_number++;
+       }
     }
   }
 
@@ -416,7 +448,7 @@ void config_common_ue(NR_UE_MAC_INST_t *mac,
     else {
       AssertFatal(scc->tdd_UL_DL_ConfigurationCommon->pattern1.ext1->dl_UL_TransmissionPeriodicity_v1530 != NULL,
 		  "scc->tdd_UL_DL_ConfigurationCommon->pattern1.ext1->dl_UL_TransmissionPeriodicity_v1530 is null\n");
-      cfg->tdd_table.tdd_period = *scc->tdd_UL_DL_ConfigurationCommon->pattern1.ext1->dl_UL_TransmissionPeriodicity_v1530;
+      cfg->tdd_table.tdd_period = *scc->tdd_UL_DL_ConfigurationCommon->pattern1.ext1->dl_UL_TransmissionPeriodicity_v1530 + 10;
     }
     if(cfg->cell_config.frame_duplex_type == TDD){
       LOG_I(MAC,"Setting TDD configuration period to %d\n", cfg->tdd_table.tdd_period);
