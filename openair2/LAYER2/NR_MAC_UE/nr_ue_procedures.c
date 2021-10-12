@@ -201,6 +201,9 @@ int8_t nr_ue_decode_mib(module_id_t module_id,
       ssb_subcarrier_offset = ssb_subcarrier_offset | 0x10;
     }
   }
+  if((mac->frequency_range==FR1)&&(mac->mib->subCarrierSpacingCommon==1)){
+    ssb_subcarrier_offset=(ssb_subcarrier_offset>>1);
+  }
 
 #ifdef DEBUG_MIB
   uint8_t half_frame_bit = ( extra_bits >> 4 ) & 0x1; //	extra bits[4]

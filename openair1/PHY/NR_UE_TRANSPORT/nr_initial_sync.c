@@ -481,8 +481,6 @@ int nr_initial_sync(UE_nr_rxtx_proc_t *proc,
 #endif
 
   }
-//TODO L5G
-int tempv=fp->first_carrier_offset;
   // if stand alone and sync on ssb do sib1 detection as part of initial sync
   if (sa==1 && ret==0) {
     bool dec = false;
@@ -490,7 +488,6 @@ int tempv=fp->first_carrier_offset;
     int gnb_id = 0; //FIXME
     int coreset_nb_rb=0;
     int coreset_start_rb=0;
-    fp->first_carrier_offset+=11; //TODO L5G
     for(int n_ss = 0; n_ss<pdcch_vars->nb_search_space; n_ss++) {
       uint8_t nb_symb_pdcch = pdcch_vars->pdcch_config[n_ss].coreset.duration;
       get_coreset_rballoc(pdcch_vars->pdcch_config[n_ss].coreset.frequency_domain_resource,&coreset_nb_rb,&coreset_start_rb);
@@ -528,7 +525,8 @@ int tempv=fp->first_carrier_offset;
                                   pdcch_vars->slot,  // same slot and offset as pdcch
                                   is*fp->samples_per_frame+pdcch_vars->sfn*fp->samples_per_frame+ue->rx_offset);
           }
-
+          //TODO L5G
+          proc->nr_slot_rx=pdcch_vars->slot;
           int ret = nr_ue_pdsch_procedures(ue,
                                            proc,
                                            gnb_id,
@@ -553,8 +551,6 @@ int tempv=fp->first_carrier_offset;
     if (dec == false) // sib1 not decoded
       ret = -1;
   }
-//TODO L5G
-fp->first_carrier_offset=tempv;
   //  exit_fun("debug exit");
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_NR_INITIAL_UE_SYNC, VCD_FUNCTION_OUT);
   return ret;
