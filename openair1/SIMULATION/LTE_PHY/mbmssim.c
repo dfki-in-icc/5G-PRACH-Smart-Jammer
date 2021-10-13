@@ -997,7 +997,6 @@ int main(int argc, char **argv) {
   // moreover you need to init itti with the following line
   // however itti will catch all signals, so ctrl-c won't work anymore
   // alternatively you can disable ITTI completely in CMakeLists.txt
-  //itti_init(TASK_MAX, THREAD_MAX, MESSAGES_ID_MAX, tasks_info, messages_info, messages_definition_xml, NULL);
 
   if (common_flag == 0) {
     switch (N_RB_DL) {
@@ -1291,7 +1290,7 @@ int main(int argc, char **argv) {
                                    N_RB2channel_bandwidth(eNB->frame_parms.N_RB_DL),
                                    forgetting_factor,
                                    rx_sample_offset,
-                                   0);
+                                   0, 0);
   reset_meas(&eNB2UE[0]->random_channel);
   reset_meas(&eNB2UE[0]->interp_time);
 
@@ -1304,7 +1303,7 @@ int main(int argc, char **argv) {
                                        N_RB2channel_bandwidth(eNB->frame_parms.N_RB_DL),
                                        forgetting_factor,
                                        rx_sample_offset,
-                                       0);
+                                       0, 0);
       reset_meas(&eNB2UE[n]->random_channel);
       reset_meas(&eNB2UE[n]->interp_time);
     }

@@ -57,10 +57,11 @@
 #include "openair2/RRC/NAS/nas_config.h"
 #include "intertask_interface.h"
 #include "openair3/S1AP/s1ap_eNB.h"
-
+#include <pthread.h>
 
 #  include "gtpv1u_eNB_task.h"
 #  include "gtpv1u.h"
+#include <openair3/ocp-gtpu/gtp_itf.h>
 
 #include "ENB_APP/enb_config.h"
 
@@ -83,9 +84,94 @@ hash_table_t  *pdcp_coll_p = NULL;
   static int mbms_socket = -1;
 #endif
 
+uint32_t Pdcp_stats_tx_window_ms[MAX_eNB][MAX_MOBILES_PER_ENB];
+uint32_t Pdcp_stats_tx_bytes[MAX_eNB][MAX_MOBILES_PER_ENB][NB_RB_MAX];
+uint32_t Pdcp_stats_tx_bytes_w[MAX_eNB][MAX_MOBILES_PER_ENB][NB_RB_MAX];
+uint32_t Pdcp_stats_tx_bytes_tmp_w[MAX_eNB][MAX_MOBILES_PER_ENB][NB_RB_MAX];
+uint32_t Pdcp_stats_tx[MAX_eNB][MAX_MOBILES_PER_ENB][NB_RB_MAX];
+uint32_t Pdcp_stats_tx_w[MAX_eNB][MAX_MOBILES_PER_ENB][NB_RB_MAX];
+uint32_t Pdcp_stats_tx_tmp_w[MAX_eNB][MAX_MOBILES_PER_ENB][NB_RB_MAX];
+uint32_t Pdcp_stats_tx_sn[MAX_eNB][MAX_MOBILES_PER_ENB][NB_RB_MAX];
+uint32_t Pdcp_stats_tx_throughput_w[MAX_eNB][MAX_MOBILES_PER_ENB][NB_RB_MAX];
+uint32_t Pdcp_stats_tx_aiat[MAX_eNB][MAX_MOBILES_PER_ENB][NB_RB_MAX];
+uint32_t Pdcp_stats_tx_aiat_w[MAX_eNB][MAX_MOBILES_PER_ENB][NB_RB_MAX];
+uint32_t Pdcp_stats_tx_aiat_tmp_w[MAX_eNB][MAX_MOBILES_PER_ENB][NB_RB_MAX];
+uint32_t Pdcp_stats_tx_iat[MAX_eNB][MAX_MOBILES_PER_ENB][NB_RB_MAX];
 
+uint32_t Pdcp_stats_rx_window_ms[MAX_eNB][MAX_MOBILES_PER_ENB];
+uint32_t Pdcp_stats_rx[MAX_eNB][MAX_MOBILES_PER_ENB][NB_RB_MAX];
+uint32_t Pdcp_stats_rx_w[MAX_eNB][MAX_MOBILES_PER_ENB][NB_RB_MAX];
+uint32_t Pdcp_stats_rx_tmp_w[MAX_eNB][MAX_MOBILES_PER_ENB][NB_RB_MAX];
+uint32_t Pdcp_stats_rx_bytes[MAX_eNB][MAX_MOBILES_PER_ENB][NB_RB_MAX];
+uint32_t Pdcp_stats_rx_bytes_w[MAX_eNB][MAX_MOBILES_PER_ENB][NB_RB_MAX];
+uint32_t Pdcp_stats_rx_bytes_tmp_w[MAX_eNB][MAX_MOBILES_PER_ENB][NB_RB_MAX];
+uint32_t Pdcp_stats_rx_sn[MAX_eNB][MAX_MOBILES_PER_ENB][NB_RB_MAX];
+uint32_t Pdcp_stats_rx_goodput_w[MAX_eNB][MAX_MOBILES_PER_ENB][NB_RB_MAX];
+uint32_t Pdcp_stats_rx_aiat[MAX_eNB][MAX_MOBILES_PER_ENB][NB_RB_MAX];
+uint32_t Pdcp_stats_rx_aiat_w[MAX_eNB][MAX_MOBILES_PER_ENB][NB_RB_MAX];
+uint32_t Pdcp_stats_rx_aiat_tmp_w[MAX_eNB][MAX_MOBILES_PER_ENB][NB_RB_MAX];
+uint32_t Pdcp_stats_rx_iat[MAX_eNB][MAX_MOBILES_PER_ENB][NB_RB_MAX];
+uint32_t Pdcp_stats_rx_outoforder[MAX_eNB][MAX_MOBILES_PER_ENB][NB_RB_MAX];
+int pdcp_pc5_sockfd;
+struct sockaddr_in prose_ctrl_addr;
+struct sockaddr_in prose_pdcp_addr;
+struct sockaddr_in pdcp_sin;
 /* pdcp module parameters and related functions*/
 static pdcp_params_t pdcp_params= {0,NULL};
+rnti_t                 pdcp_UE_UE_module_id_to_rnti[MAX_MOBILES_PER_ENB];
+rnti_t                 pdcp_eNB_UE_instance_to_rnti[MAX_MOBILES_PER_ENB]; // for noS1 mode
+unsigned int           pdcp_eNB_UE_instance_to_rnti_index;
+
+signed int             pdcp_2_nas_irq;
+pdcp_stats_t              UE_pdcp_stats[MAX_MOBILES_PER_ENB];
+pdcp_stats_t              eNB_pdcp_stats[NUMBER_OF_eNB_MAX];
+
+static pdcp_mbms_t               pdcp_mbms_array_ue[MAX_MOBILES_PER_ENB][LTE_maxServiceCount][LTE_maxSessionPerPMCH];   // some constants from openair2/RRC/LTE/MESSAGES/asn1_constants.h
+static pdcp_mbms_t               pdcp_mbms_array_eNB[NUMBER_OF_eNB_MAX][LTE_maxServiceCount][LTE_maxSessionPerPMCH]; // some constants from openair2/RRC/LTE/MESSAGES/asn1_constants.h
+static sdu_size_t             pdcp_input_sdu_remaining_size_to_read;
+static sdu_size_t             pdcp_output_header_bytes_to_write;
+static sdu_size_t             pdcp_output_sdu_bytes_to_write;
+notifiedFIFO_t         pdcp_sdu_list;
+
+pdcp_enb_t pdcp_enb[MAX_NUM_CCs];
+
+
+extern volatile int oai_exit;
+
+pthread_t pdcp_stats_thread_desc;
+
+void *pdcp_stats_thread(void *param) {
+
+   FILE *fd;
+   int old_byte_cnt[MAX_MOBILES_PER_ENB][NB_RB_MAX],old_byte_cnt_rx[MAX_MOBILES_PER_ENB][NB_RB_MAX];
+   for (int i=0;i<MAX_MOBILES_PER_ENB;i++)
+     for (int j=0;j<NB_RB_MAX;j++) {
+	old_byte_cnt[i][j]=0;
+	old_byte_cnt_rx[i][j]=0;
+     }
+   while (!oai_exit) {
+     sleep(1);
+
+     fd=fopen("PDCP_stats.log","w+");
+     AssertFatal(fd!=NULL,"Cannot open MAC_stats.log\n");
+     int drb_id=3;
+     for (int UE_id = 0; UE_id < MAX_MOBILES_PER_ENB; UE_id++) {
+        if (pdcp_enb[0].rnti[UE_id]>0) {
+           fprintf(fd,"PDCP: CRNTI %x, DRB %d: tx_bytes %d, DL Throughput %e\n",
+                   pdcp_enb[0].rnti[UE_id],drb_id,
+                   Pdcp_stats_tx_bytes[0][UE_id][drb_id],
+                   (double)((Pdcp_stats_tx_bytes[0][UE_id][drb_id]-old_byte_cnt[UE_id][drb_id])<<3));
+           fprintf(fd,"                              rx_bytes %d, UL Throughput %e\n",             
+                   Pdcp_stats_rx_bytes[0][UE_id][drb_id],
+                   (double)((Pdcp_stats_rx_bytes[0][UE_id][drb_id]-old_byte_cnt_rx[UE_id][drb_id])<<3));
+           old_byte_cnt[UE_id][drb_id]=Pdcp_stats_tx_bytes[0][UE_id][drb_id];
+           old_byte_cnt_rx[UE_id][drb_id]=Pdcp_stats_rx_bytes[0][UE_id][drb_id];
+        }
+     }
+     fclose(fd);
+   }
+   return(NULL);
+}
 
 uint64_t get_pdcp_optmask(void) {
   return pdcp_params.optmask;
@@ -358,16 +444,7 @@ boolean_t pdcp_data_req(
       LOG_D(PDCP, "pdcp data req on drb %ld, size %d, rnti %x, node_type %d \n",
             rb_idP, pdcp_pdu_size, ctxt_pP->rnti, RC.rrc ? RC.rrc[ctxt_pP->module_id]->node_type: -1);
 
-      // The check on nos1 is done only for the use case of LTE stack running over 5g-nr PHY. This should be changed
-      // before future merge of develop with develop-nr and instead of a check of IS_SOFTMODEM_NOS1, we should use a check
-      // with a new execution option capturing the nr-ip-over-LTE-stack use case.
-      ngran_node_t node_type;
-      if (IS_SOFTMODEM_NOS1)
-    	  node_type = ngran_gNB;
-      else
-    	  node_type = RC.rrc[ctxt_pP->module_id]->node_type;
-
-      if (ctxt_pP->enb_flag == ENB_FLAG_YES && NODE_IS_DU(node_type)) { //RC.rrc[ctxt_pP->module_id]->node_type
+      if (ctxt_pP->enb_flag == ENB_FLAG_YES && NODE_IS_DU(RC.rrc[ctxt_pP->module_id]->node_type)) {
         LOG_E(PDCP, "Can't be DU, bad node type %d \n", RC.rrc[ctxt_pP->module_id]->node_type);
         ret=FALSE;
       } else {
@@ -403,7 +480,7 @@ boolean_t pdcp_data_req(
         // DL transfer
         MessageDef                            *message_p;
         // Note: the acyual task must be TASK_PDCP_ENB, but this task is not created
-        message_p = itti_alloc_new_message (TASK_PDCP_ENB, F1AP_DL_RRC_MESSAGE);
+        message_p = itti_alloc_new_message (TASK_PDCP_ENB, 0, F1AP_DL_RRC_MESSAGE);
         F1AP_DL_RRC_MESSAGE (message_p).rrc_container =  &pdcp_pdu_p->data[0] ;
         F1AP_DL_RRC_MESSAGE (message_p).rrc_container_length = pdcp_pdu_size;
         F1AP_DL_RRC_MESSAGE (message_p).gNB_CU_ue_id  = 0;
@@ -476,7 +553,7 @@ boolean_t pdcp_data_req(
       break;
   }
 
-  //LOG_I(PDCP,"ueid %d lcid %d tx seq num %d\n", pdcp_uid, rb_idP+rb_offset, current_sn);
+  LOG_D(PDCP,"ueid %d lcid %d tx seq num %d\n", pdcp_uid, (int)(rb_idP+rb_offset), current_sn);
   Pdcp_stats_tx[ctxt_pP->module_id][pdcp_uid][rb_idP+rb_offset]++;
   Pdcp_stats_tx_tmp_w[ctxt_pP->module_id][pdcp_uid][rb_idP+rb_offset]++;
   Pdcp_stats_tx_bytes[ctxt_pP->module_id][pdcp_uid][rb_idP+rb_offset]+=sdu_buffer_sizeP;
@@ -939,14 +1016,14 @@ pdcp_data_ind(
                                   sdu_buffer_sizeP - payload_offset + GTPU_HEADER_OVERHEAD_MAX);
       AssertFatal(gtpu_buffer_p != NULL, "OUT OF MEMORY");
       memcpy(&gtpu_buffer_p[GTPU_HEADER_OVERHEAD_MAX], &sdu_buffer_pP->data[payload_offset], sdu_buffer_sizeP - payload_offset);
-      message_p = itti_alloc_new_message(TASK_PDCP_ENB, GTPV1U_ENB_TUNNEL_DATA_REQ);
+      message_p = itti_alloc_new_message(TASK_PDCP_ENB, 0, GTPV1U_ENB_TUNNEL_DATA_REQ);
       AssertFatal(message_p != NULL, "OUT OF MEMORY");
       GTPV1U_ENB_TUNNEL_DATA_REQ(message_p).buffer       = gtpu_buffer_p;
       GTPV1U_ENB_TUNNEL_DATA_REQ(message_p).length       = sdu_buffer_sizeP - payload_offset;
       GTPV1U_ENB_TUNNEL_DATA_REQ(message_p).offset       = GTPU_HEADER_OVERHEAD_MAX;
       GTPV1U_ENB_TUNNEL_DATA_REQ(message_p).rnti         = ctxt_pP->rnti;
       GTPV1U_ENB_TUNNEL_DATA_REQ(message_p).rab_id       = rb_id + 4;
-      itti_send_msg_to_task(TASK_GTPV1_U, INSTANCE_DEFAULT, message_p);
+      itti_send_msg_to_task(TASK_VARIABLE, INSTANCE_DEFAULT, message_p);
       packet_forwarded = TRUE;
     }
   } else {
@@ -996,17 +1073,7 @@ pdcp_data_ind(
            * TODO: be sure of this
            */
           if (NFAPI_MODE == NFAPI_UE_STUB_PNF ) {
-#ifdef UESIM_EXPANSION
-
-            if (UE_NAS_USE_TUN) {
-              pdcpHead->inst  = ctxt_pP->module_id;
-            } else {
-              pdcpHead->inst  = 0;
-            }
-
-#else
             pdcpHead->inst  = ctxt_pP->module_id;
-#endif
           } else {  // nfapi_mode
             if (UE_NAS_USE_TUN) {
               pdcpHead->inst  = ctxt_pP->module_id;
@@ -1014,7 +1081,13 @@ pdcp_data_ind(
               pdcpHead->inst  = 1;
             }
           } // nfapi_mode
-        }
+        } else {
+	  if (UE_NAS_USE_TUN) {
+	    pdcpHead->inst  = ctxt_pP->module_id;
+	  } else if (ENB_NAS_USE_TUN) {
+	    pdcpHead->inst  = 0;
+	  }
+	}
       } else {
         pdcpHead->rb_id = rb_id + (ctxt_pP->module_id * LTE_maxDRB);
         pdcpHead->inst  = ctxt_pP->module_id;
@@ -1035,7 +1108,7 @@ pdcp_data_ind(
       pushNotifiedFIFO(&pdcp_sdu_list, new_sdu_p); 
 
     /* Print octets of incoming data in hexadecimal form */
-    LOG_D(PDCP, "Following content has been received from RLC (%d,%d)(PDCP header has already been removed):\n",
+      LOG_D(PDCP, "Following content has been received from RLC (%d,%d)(PDCP header has already been removed):\n",
           sdu_buffer_sizeP  - payload_offset + (int)sizeof(pdcp_data_ind_header_t),
           sdu_buffer_sizeP  - payload_offset);
     //util_print_hex_octets(PDCP, &new_sdu_p->data[sizeof (pdcp_data_ind_header_t)], sdu_buffer_sizeP - payload_offset);
@@ -1158,11 +1231,11 @@ pdcp_run (
             RRC_DCCH_DATA_REQ (msg_p).frame,
             0,
             RRC_DCCH_DATA_REQ (msg_p).eNB_index);
-          LOG_D(PDCP, PROTOCOL_CTXT_FMT"Received %s from %s: instance %d, rb_id %ld, muiP %d, confirmP %d, mode %d\n",
+          LOG_D(PDCP, PROTOCOL_CTXT_FMT"Received %s from %s: instance %ld, rb_id %ld, muiP %d, confirmP %d, mode %d\n",
                 PROTOCOL_CTXT_ARGS(&ctxt),
                 ITTI_MSG_NAME (msg_p),
                 ITTI_MSG_ORIGIN_NAME(msg_p),
-                ITTI_MSG_INSTANCE (msg_p),
+                ITTI_MSG_DESTINATION_INSTANCE (msg_p),
                 RRC_DCCH_DATA_REQ (msg_p).rb_id,
                 RRC_DCCH_DATA_REQ (msg_p).muip,
                 RRC_DCCH_DATA_REQ (msg_p).confirmp,
@@ -1284,7 +1357,7 @@ pdcp_mbms_run (
 //                PROTOCOL_CTXT_ARGS(&ctxt),
 //                ITTI_MSG_NAME (msg_p),
 //                ITTI_MSG_ORIGIN_NAME(msg_p),
-//                ITTI_MSG_INSTANCE (msg_p),
+//                ITTI_MSG_DESTINATION_INSTANCE (msg_p),
 //                RRC_DCCH_DATA_REQ (msg_p).rb_id,
 //                RRC_DCCH_DATA_REQ (msg_p).muip,
 //                RRC_DCCH_DATA_REQ (msg_p).confirmp,
@@ -2117,8 +2190,7 @@ pdcp_config_set_security(
 }
 
 //-----------------------------------------------------------------------------
-void
-rrc_pdcp_config_req (
+void rrc_pdcp_config_req (
   const protocol_ctxt_t *const  ctxt_pP,
   const srb_flag_t srb_flagP,
   const uint32_t actionP,
@@ -2287,7 +2359,7 @@ uint64_t pdcp_module_init( uint64_t pdcp_optmask ) {
     nas_getparams();
 
     if(UE_NAS_USE_TUN) {
-      int num_if = (NFAPI_MODE == NFAPI_UE_STUB_PNF || IS_SOFTMODEM_SIML1 )?MAX_NUMBER_NETIF:1;
+      int num_if = (NFAPI_MODE == NFAPI_UE_STUB_PNF || IS_SOFTMODEM_SIML1 )? MAX_MOBILES_PER_ENB : 1;
       netlink_init_tun("ue",num_if);
       if (IS_SOFTMODEM_NOS1)
     	  nas_config(1, 1, 2, "ue");
@@ -2315,6 +2387,8 @@ uint64_t pdcp_module_init( uint64_t pdcp_optmask ) {
          }else
              LOG_E(PDCP, "ENB pdcp will not use tun interface\n");
    }
+
+  pthread_create(&pdcp_stats_thread_desc,NULL,pdcp_stats_thread,NULL);
 
   return pdcp_params.optmask ;
 }

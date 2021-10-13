@@ -28,10 +28,13 @@
 
  ***************************************************************************/
 
-#include "LTE_asn_constant.h"
 
 #ifndef __PLATFORM_CONSTANTS_H__
 #    define __PLATFORM_CONSTANTS_H__
+
+#include "LTE_asn_constant.h"
+#include "NR_asn_constant.h"
+#define NR_MAXDRB 14
 
 #ifdef JUMBO_FRAME
   #define NL_MAX_PAYLOAD 18000  /* this should cover the max mtu size*/
@@ -65,18 +68,6 @@
 #define MAX_NR_RRC_UE_CONTEXTS 64
 
 #ifndef UE_EXPANSION
-  // TODO:L2 FAPI simulator.
-  // UESIM_EXPANSION is used to be same value of MAX_MOBILES_PER_ENB
-  // in eNB and UE.
-  // now , if we use --mu option in UE, compiling error will occur.
-  // This problem will be fixed in the future.
-  #ifdef UESIM_EXPANSION
-    #define MAX_MOBILES_PER_ENB         256
-    #define MAX_MOBILES_PER_ENB_NB_IoT  256
-    #define MAX_MOBILES_PER_GNB         256
-    #define MAX_eNB                      2
-    #define MAX_gNB                      2
-  #else
     #ifdef LARGE_SCALE
       #define MAX_MOBILES_PER_ENB         128
       #define MAX_MOBILES_PER_ENB_NB_IoT  128
@@ -90,7 +81,6 @@
       #define MAX_eNB                      2
       #define MAX_gNB                      2
     #endif
-  #endif
 #else
   #define MAX_MOBILES_PER_ENB         256
   #define MAX_MOBILES_PER_ENB_NB_IoT  256
@@ -99,13 +89,7 @@
   #define MAX_gNB                      2
 #endif
 
-#define NUMBER_OF_NR_DLSCH_MAX 2//16
-#define NUMBER_OF_NR_ULSCH_MAX 2//16
-#define NUMBER_OF_NR_SCH_STATS_MAX 16
-#define NUMBER_OF_NR_PUCCH_MAX 16
-#define NUMBER_OF_NR_SR_MAX 16
-#define NUMBER_OF_NR_PDCCH_MAX 16
-
+#define NUMBER_OF_NR_UCI_STATS_MAX 16
 #define MAX_MANAGED_ENB_PER_MOBILE  2
 #define MAX_MANAGED_GNB_PER_MOBILE  2
 
@@ -116,6 +100,7 @@
 #define DEFAULT_RAB_ID 1
 
 #define NB_RB_MAX      (LTE_maxDRB + 3) /* was 11, now 14, maxDRB comes from asn1_constants.h, + 3 because of 3 SRB, one invisible id 0, then id 1 and 2 */
+#define NR_NB_RB_MAX   (NR_maxDRB + 3)
 
 #define NB_RB_MBMS_MAX (LTE_maxSessionPerPMCH*LTE_maxServiceCount)
 

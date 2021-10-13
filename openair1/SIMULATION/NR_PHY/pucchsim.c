@@ -46,6 +46,7 @@
 #include "openair1/SIMULATION/NR_PHY/nr_unitary_defs.h"
 #include "openair1/SIMULATION/NR_PHY/nr_dummy_functions.c"
 
+
 PHY_VARS_gNB *gNB;
 PHY_VARS_NR_UE *UE;
 RAN_CONTEXT_t RC;
@@ -53,7 +54,7 @@ openair0_config_t openair0_cfg[MAX_CARDS];
 int32_t uplink_frequency_offset[MAX_NUM_CCs][4];
 
 double cpuf;
-uint8_t nfapi_mode = 0;
+//uint8_t nfapi_mode = 0;
 uint16_t NB_UE_INST = 1;
 uint8_t const nr_rv_round_map[4] = {0, 2, 1, 3};
 uint8_t const nr_rv_round_map_ue[4] = {0, 2, 1, 3};
@@ -90,7 +91,8 @@ int main(int argc, char **argv)
   FILE *input_fd=NULL;
   //uint8_t nacktoack_flag=0;
   int16_t amp=0x7FFF;
-  int nr_tti_tx=0; 
+  int nr_slot_tx=0;
+  int nr_frame_tx=0;
   uint64_t actual_payload=0,payload_received;
   int nr_bit=1; // maximum value possible is 2
   uint8_t m0=0;// higher layer paramater initial cyclic shift
@@ -418,7 +420,7 @@ int main(int argc, char **argv)
 	printf("FFO = %lf; IFO = %d\n",eps-IFO,IFO);
   }
 
-  UE2gNB = new_channel_desc_scm(n_tx, n_rx, channel_model, fs, bw, DS_TDL,0, 0, 0);
+  UE2gNB = new_channel_desc_scm(n_tx, n_rx, channel_model, fs, bw, DS_TDL,0, 0, 0, 0);
 
   if (UE2gNB==NULL) {
     printf("Problem generating channel model. Exiting.\n");
@@ -455,32 +457,8 @@ int main(int argc, char **argv)
     bzero(rxdataF[i],14*frame_parms->ofdm_symbol_size*sizeof(int));
   }
 
-
-  //configure UE
-  UE = malloc(sizeof(PHY_VARS_NR_UE));
-  memcpy(&UE->frame_parms,frame_parms,sizeof(NR_DL_FRAME_PARMS));
-  UE->pucch_config_common_nr->hoppingId = Nid_cell;
-  //phy_init_nr_top(UE); //called from init_nr_ue_signal
-                      
-  UE->perfect_ce = 0;
-
-  if(eps!=0.0)
-	UE->UE_fo_compensation = 1; // if a frequency offset is set then perform fo estimation and compensation
-
-  if (init_nr_ue_signal(UE, 1, 0) != 0)
-  {
-    printf("Error at UE NR initialisation\n");
-    exit(-1);
-  }
   uint8_t mcs=0;
-  startingPRB_intraSlotHopping=N_RB_DL-1;
-  pucch_GroupHopping_t PUCCH_GroupHopping=UE->pucch_config_common_nr->pucch_GroupHopping;
-  uint32_t hopping_id=UE->pucch_config_common_nr->hoppingId;
-  uint32_t dmrs_scrambling_id = 0, data_scrambling_id=0;
-  //t_nrPolar_params *currentPtr;
-
   int shift = 0;
-
   if(format==0){
     if (sr_flag)
       shift = 1<<nr_bit;
@@ -494,6 +472,63 @@ int main(int argc, char **argv)
   }
   else if (format == 2 && nr_bit > 11) gNB->uci_polarParams = nr_polar_params(2, nr_bit, nrofPRB, 1, NULL);
   
+  startingPRB_intraSlotHopping=N_RB_DL-1;
+  uint32_t hopping_id=Nid_cell;
+  uint32_t dmrs_scrambling_id = 0, data_scrambling_id=0;
+
+  //configure UE
+  UE = malloc(sizeof(PHY_VARS_NR_UE));
+  memcpy(&UE->frame_parms,frame_parms,sizeof(NR_DL_FRAME_PARMS));
+
+  fapi_nr_ul_config_pucch_pdu pucch_tx_pdu;
+  if (format==0) {
+    pucch_tx_pdu.format_type = 0;
+    pucch_tx_pdu.nr_of_symbols = nrofSymbols;
+    pucch_tx_pdu.start_symbol_index = startingSymbolIndex;
+    pucch_tx_pdu.bwp_start = 0;
+    pucch_tx_pdu.prb_start = startingPRB;
+    pucch_tx_pdu.hopping_id = hopping_id;
+    pucch_tx_pdu.group_hop_flag = 0;
+    pucch_tx_pdu.sequence_hop_flag = 0;
+    pucch_tx_pdu.freq_hop_flag = 0;
+    pucch_tx_pdu.mcs = mcs;
+    pucch_tx_pdu.initial_cyclic_shift = 0;
+    pucch_tx_pdu.second_hop_prb = startingPRB_intraSlotHopping;
+  }
+  if (format==2) {
+    pucch_tx_pdu.format_type = 2;
+    pucch_tx_pdu.rnti = 0x1234;
+    pucch_tx_pdu.n_bit = nr_bit;
+    pucch_tx_pdu.payload = actual_payload;
+    pucch_tx_pdu.nr_of_symbols = nrofSymbols;
+    pucch_tx_pdu.start_symbol_index = startingSymbolIndex;
+    pucch_tx_pdu.bwp_start = 0;
+    pucch_tx_pdu.prb_start = startingPRB;
+    pucch_tx_pdu.prb_size = nrofPRB;
+    pucch_tx_pdu.hopping_id = hopping_id;
+    pucch_tx_pdu.group_hop_flag = 0;
+    pucch_tx_pdu.sequence_hop_flag = 0;
+    pucch_tx_pdu.freq_hop_flag = 0;
+    pucch_tx_pdu.dmrs_scrambling_id = dmrs_scrambling_id;
+    pucch_tx_pdu.data_scrambling_id = data_scrambling_id;
+    pucch_tx_pdu.second_hop_prb = startingPRB_intraSlotHopping;
+  }
+
+  UE->perfect_ce = 0;
+
+  if(eps!=0.0)
+    UE->UE_fo_compensation = 1; // if a frequency offset is set then perform fo estimation and compensation
+
+  if (init_nr_ue_signal(UE, 1, 0) != 0)
+  {
+    printf("Error at UE NR initialisation\n");
+    exit(-1);
+  }
+
+  pucch_GroupHopping_t PUCCH_GroupHopping = pucch_tx_pdu.group_hop_flag + (pucch_tx_pdu.sequence_hop_flag<<1);
+
+  //t_nrPolar_params *currentPtr;
+
   for(SNR=snr0;SNR<=snr1;SNR=SNR+1){
     ack_nack_errors=0;
     sr_errors=0;
@@ -501,13 +536,28 @@ int main(int argc, char **argv)
     for (trial=0; trial<n_trials; trial++) {
       bzero(txdataF[aa],frame_parms->ofdm_symbol_size*sizeof(int));
       if(format==0){
-        nr_generate_pucch0(UE,txdataF,frame_parms,PUCCH_GroupHopping,hopping_id,amp,nr_tti_tx,m0,mcs,nrofSymbols,startingSymbolIndex,startingPRB);
+        nr_generate_pucch0(UE,
+                           txdataF,
+	                   frame_parms,
+                           amp,
+                           nr_slot_tx,
+                           &pucch_tx_pdu);
       }
       else if (format == 1){
-        nr_generate_pucch1(UE,txdataF,frame_parms,UE->pucch_config_dedicated,actual_payload,amp,nr_tti_tx,m0,nrofSymbols,startingSymbolIndex,startingPRB,startingPRB_intraSlotHopping,0,nr_bit);	
+        nr_generate_pucch1(UE,
+                           txdataF,
+                           frame_parms,
+                           amp,
+                           nr_slot_tx,
+                           &pucch_tx_pdu);
       }
       else {
-	nr_generate_pucch2(UE,0x1234,dmrs_scrambling_id,data_scrambling_id,txdataF,frame_parms,UE->pucch_config_dedicated,actual_payload,amp,nr_tti_tx,nrofSymbols,startingSymbolIndex,nrofPRB,startingPRB,nr_bit);	
+        nr_generate_pucch2(UE,
+                           txdataF,
+                           frame_parms,
+                           amp,
+                           nr_slot_tx,
+                           &pucch_tx_pdu);
       }
       
       int txlev = signal_energy(&txdataF[aa][startingSymbolIndex*frame_parms->ofdm_symbol_size],
@@ -532,25 +582,27 @@ int main(int argc, char **argv)
         int rb2 = rb+startingPRB;
         gNB->rb_mask_ul[rb2>>5] |= (1<<(rb2&31));
       }
-      gNB_I0_measurements(gNB);
+      gNB_I0_measurements(gNB, startingSymbolIndex, nrofSymbols);
 
       if (n_trials==1) printf("rxlev %d (%d dB), sigma2 %f dB, SNR %f, TX %f\n",rxlev,dB_fixed(rxlev),sigma2_dB,SNR,10*log10((double)txlev*UE->frame_parms.ofdm_symbol_size/12));
       if(format==0){
-	nfapi_nr_uci_pucch_pdu_format_0_1_t uci_pdu;
-	nfapi_nr_pucch_pdu_t pucch_pdu;
-	pucch_pdu.subcarrier_spacing    = 1;
-	pucch_pdu.group_hop_flag        = PUCCH_GroupHopping&1;
-	pucch_pdu.sequence_hop_flag     = (PUCCH_GroupHopping>>1)&1;
-	pucch_pdu.bit_len_harq          = nr_bit;
-	pucch_pdu.bit_len_csi_part1     = 0;
-	pucch_pdu.bit_len_csi_part2     = 0;
-	pucch_pdu.sr_flag               = sr_flag;
-	pucch_pdu.nr_of_symbols         = nrofSymbols;
-	pucch_pdu.hopping_id            = hopping_id;
-	pucch_pdu.initial_cyclic_shift  = 0;
-	pucch_pdu.start_symbol_index    = startingSymbolIndex;
-	pucch_pdu.prb_start             = startingPRB;
-        nr_decode_pucch0(gNB,nr_tti_tx,&uci_pdu,&pucch_pdu);
+        nfapi_nr_uci_pucch_pdu_format_0_1_t uci_pdu;
+        nfapi_nr_pucch_pdu_t pucch_pdu;
+        pucch_pdu.subcarrier_spacing    = 1;
+        pucch_pdu.group_hop_flag        = PUCCH_GroupHopping&1;
+        pucch_pdu.sequence_hop_flag     = (PUCCH_GroupHopping>>1)&1;
+        pucch_pdu.bit_len_harq          = nr_bit;
+        pucch_pdu.bit_len_csi_part1     = 0;
+        pucch_pdu.bit_len_csi_part2     = 0;
+        pucch_pdu.sr_flag               = sr_flag;
+        pucch_pdu.nr_of_symbols         = nrofSymbols;
+        pucch_pdu.hopping_id            = hopping_id;
+        pucch_pdu.initial_cyclic_shift  = 0;
+        pucch_pdu.start_symbol_index    = startingSymbolIndex;
+        pucch_pdu.prb_start             = startingPRB;
+        pucch_pdu.bwp_start             = 0;
+        pucch_pdu.freq_hop_flag         = 0;
+        nr_decode_pucch0(gNB, nr_frame_tx, nr_slot_tx,&uci_pdu,&pucch_pdu);
         if(sr_flag==1){
           if (uci_pdu.sr->sr_indication == 0 || uci_pdu.sr->sr_confidence_level == 1)
             sr_errors+=1;
@@ -565,7 +617,7 @@ int main(int argc, char **argv)
       }
       else if (format==1) {
         nr_decode_pucch1(rxdataF,PUCCH_GroupHopping,hopping_id,
-                         &(payload_received),frame_parms,amp,nr_tti_tx,
+                         &(payload_received),frame_parms,amp,nr_slot_tx,
                          m0,nrofSymbols,startingSymbolIndex,startingPRB,
                          startingPRB_intraSlotHopping,timeDomainOCC,nr_bit);
         if(nr_bit==1)
@@ -574,34 +626,34 @@ int main(int argc, char **argv)
           ack_nack_errors+=((actual_payload^payload_received)&1) + (((actual_payload^payload_received)&2)>>1);
       }
       else if (format==2) {
-	nfapi_nr_uci_pucch_pdu_format_2_3_4_t uci_pdu;
-	nfapi_nr_pucch_pdu_t pucch_pdu;
-	pucch_pdu.rnti = 0x1234;
-	pucch_pdu.subcarrier_spacing    = 1;
-	pucch_pdu.group_hop_flag        = PUCCH_GroupHopping&1;
-	pucch_pdu.sequence_hop_flag     = (PUCCH_GroupHopping>>1)&1;
-	pucch_pdu.bit_len_csi_part1     = nr_bit;
-	pucch_pdu.bit_len_harq          = 0;
-	pucch_pdu.bit_len_csi_part2     = 0;
-	pucch_pdu.sr_flag               = 0;
-	pucch_pdu.nr_of_symbols         = nrofSymbols;
-	pucch_pdu.hopping_id            = hopping_id;
-	pucch_pdu.initial_cyclic_shift  = 0;
-	pucch_pdu.start_symbol_index    = startingSymbolIndex;
-	pucch_pdu.prb_size              = nrofPRB;
-	pucch_pdu.prb_start             = startingPRB;
-	pucch_pdu.dmrs_scrambling_id    = dmrs_scrambling_id;
-	pucch_pdu.data_scrambling_id    = data_scrambling_id;
-        nr_decode_pucch2(gNB,nr_tti_tx,&uci_pdu,&pucch_pdu);
-	int csi_part1_bytes=pucch_pdu.bit_len_csi_part1>>3;
-	if ((pucch_pdu.bit_len_csi_part1&7) > 0) csi_part1_bytes++;
-	for (int i=0;i<csi_part1_bytes;i++) {
-	  if (uci_pdu.csi_part1.csi_part1_payload[i] != ((uint8_t*)&actual_payload)[i]) {
-	    ack_nack_errors++;
-	    break;
-	  }
-	}
-	free(uci_pdu.csi_part1.csi_part1_payload);
+        nfapi_nr_uci_pucch_pdu_format_2_3_4_t uci_pdu;
+        nfapi_nr_pucch_pdu_t pucch_pdu;
+        pucch_pdu.rnti = 0x1234;
+        pucch_pdu.subcarrier_spacing    = 1;
+        pucch_pdu.group_hop_flag        = PUCCH_GroupHopping&1;
+        pucch_pdu.sequence_hop_flag     = (PUCCH_GroupHopping>>1)&1;
+        pucch_pdu.bit_len_csi_part1     = nr_bit;
+        pucch_pdu.bit_len_harq          = 0;
+        pucch_pdu.bit_len_csi_part2     = 0;
+        pucch_pdu.sr_flag               = 0;
+        pucch_pdu.nr_of_symbols         = nrofSymbols;
+        pucch_pdu.hopping_id            = hopping_id;
+        pucch_pdu.initial_cyclic_shift  = 0;
+        pucch_pdu.start_symbol_index    = startingSymbolIndex;
+        pucch_pdu.prb_size              = nrofPRB;
+        pucch_pdu.prb_start             = startingPRB;
+        pucch_pdu.dmrs_scrambling_id    = dmrs_scrambling_id;
+        pucch_pdu.data_scrambling_id    = data_scrambling_id;
+        nr_decode_pucch2(gNB,nr_slot_tx,&uci_pdu,&pucch_pdu);
+        int csi_part1_bytes=pucch_pdu.bit_len_csi_part1>>3;
+        if ((pucch_pdu.bit_len_csi_part1&7) > 0) csi_part1_bytes++;
+        for (int i=0;i<csi_part1_bytes;i++) {
+          if (uci_pdu.csi_part1.csi_part1_payload[i] != ((uint8_t*)&actual_payload)[i]) {
+            ack_nack_errors++;
+            break;
+          }
+        }
+        free(uci_pdu.csi_part1.csi_part1_payload);
 
       }
       n_errors=((actual_payload^payload_received)&1)+(((actual_payload^payload_received)&2)>>1)+(((actual_payload^payload_received)&4)>>2)+n_errors;

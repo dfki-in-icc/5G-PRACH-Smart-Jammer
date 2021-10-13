@@ -16,6 +16,7 @@ This page is valid on tags starting from **`2019.w09`**.
 
 # Soft Modem Build Script
 
+The OAI EPC is developed in a distinct project with it's own [documentation](https://github.com/OPENAIRINTERFACE/openair-epc-fed/wiki) , it is not described here.
 
 OAI softmodem sources, which aim to implement 3GPP compliant UEs, eNodeB and gNodeB can be downloaded from the Eurecom [gitlab repository](./GET_SOURCES.md).
 
@@ -50,6 +51,19 @@ Calling the `build_oai` script with the -h option gives the list of all availabl
 
 # Building PHY Simulators
 
+The PHY layer simulators (LTE and NR) can be built as follows:  
+
+```
+cd <your oai installation directory>/openairinterface5g/
+source oaienv
+cd cmake_targets/
+./build_oai -I --phy_simulators
+```
+
+After completing the build, the binaries are available in the cmake_targets/phy_simulators/build directory.  
+A copy is also available in the target/bin directory, with all binaries suffixed by the 3GPP release number, today **.Rel15**.  
+
+
 Detailed information about these simulators can be found [in this dedicated page](https://gitlab.eurecom.fr/oai/openairinterface5g/wikis/OpenAirLTEPhySimul)
 
 # Building UEs, eNodeB and gNodeB Executables
@@ -63,7 +77,7 @@ cd cmake_targets/
 ./build_oai -I -w USRP --eNB --UE --nrUE --gNB
 ```
 
-- The `-I` option is to install pre-requisites, you only need it the first time you build the softmodem or when some oai dependencies have changed. 
+- The `-I` option is to install pre-requisites, you only need it the first time you build the softmodem or when some oai dependencies have changed. Note: for Ubuntu 20 use cmake_targets/install_external_packages.ubuntu20 instead!
 - The `-w` option is to select the radio head support you want to include in your build. Radio head support is provided via a shared library, which is called the "oai device" The build script creates a soft link from `liboai_device.so` to the true device which will be used at run-time (here the USRP one,`liboai_usrpdevif.so` . USRP is the only hardware tested today in the Continuous Integration process. The RF simulator[RF simulator](../targets/ARCH/rfsimulator/README.md) is implemented as a specific device replacing RF hardware, it can be specifically built using `-w SIMU` option, but is also built during any softmodem build.
 - `--eNB` is to build the `lte-softmodem` executable and all required shared libraries
 - `--gNB` is to build the `nr-softmodem` executable and all required shared libraries

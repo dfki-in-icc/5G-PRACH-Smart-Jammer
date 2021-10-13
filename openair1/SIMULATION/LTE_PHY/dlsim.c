@@ -60,16 +60,19 @@
 #include "dummy_functions.c"
 #include "executables/thread-common.h"
 #include "executables/split_headers.h"
-
+#include "common/ran_context.h"
 void feptx_ofdm(RU_t *ru, int frame, int subframe);
 void feptx_prec(RU_t *ru, int frame, int subframe);
 
 double cpuf;
-#define inMicroS(a) (((double)(a))/(cpu_freq_GHz*1000.0))
+#define inMicroS(a) (((double)(a))/(get_cpu_freq_GHz()*1000.0))
 //#define MCS_COUNT 23//added for PHY abstraction
 #include <openair1/SIMULATION/LTE_PHY/common_sim.h>
 
 int otg_enabled=0;
+THREAD_STRUCT thread_struct;
+nfapi_ue_release_request_body_t release_rntis;
+
 /*the following parameters are used to control the processing times calculations*/
 double t_tx_max = -1000000000; /*!< \brief initial max process time for tx */
 double t_rx_max = -1000000000; /*!< \brief initial max process time for rx */
@@ -79,6 +82,10 @@ int n_tx_dropped = 0; /*!< \brief initial max process time for tx */
 int n_rx_dropped = 0; /*!< \brief initial max process time for rx */
 
 double DS_TDL = .03;
+static int cmpdouble(const void *p1, const void *p2) {
+  return *(double *)p1 > *(double *)p2;
+}
+RAN_CONTEXT_t RC;
 
 int emulate_rf = 0;
 int split73=0;
@@ -193,8 +200,8 @@ void DL_channel(RU_t *ru,PHY_VARS_UE *UE,uint subframe,int awgn_flag,double SNR,
       for (u=0; u<2*ru->frame_parms->N_RB_DL; u++) {
         for (aarx=0; aarx<eNB2UE[0]->nb_rx; aarx++) {
           for (aatx=0; aatx<eNB2UE[0]->nb_tx; aatx++) {
-            channelx = eNB2UE[0]->chF[aarx+(aatx*eNB2UE[0]->nb_rx)][u].x;
-            channely = eNB2UE[0]->chF[aarx+(aatx*eNB2UE[0]->nb_rx)][u].y;
+            channelx = eNB2UE[0]->chF[aarx+(aatx*eNB2UE[0]->nb_rx)][u].r;
+            channely = eNB2UE[0]->chF[aarx+(aatx*eNB2UE[0]->nb_rx)][u].i;
             fprintf(csv_fd,"%e+i*(%e),",channelx,channely);
           }
         }
@@ -206,8 +213,8 @@ void DL_channel(RU_t *ru,PHY_VARS_UE *UE,uint subframe,int awgn_flag,double SNR,
         for (u=0; u<2*ru->frame_parms->N_RB_DL; u++) {
           for (aarx=0; aarx<eNB2UE[1]->nb_rx; aarx++) {
             for (aatx=0; aatx<eNB2UE[1]->nb_tx; aatx++) {
-              channelx = eNB2UE[1]->chF[aarx+(aatx*eNB2UE[1]->nb_rx)][u].x;
-              channely = eNB2UE[1]->chF[aarx+(aatx*eNB2UE[1]->nb_rx)][u].y;
+              channelx = eNB2UE[1]->chF[aarx+(aatx*eNB2UE[1]->nb_rx)][u].r;
+              channely = eNB2UE[1]->chF[aarx+(aatx*eNB2UE[1]->nb_rx)][u].i;
               fprintf(csv_fd,"%e+i*(%e),",channelx,channely);
             }
           }
@@ -218,8 +225,8 @@ void DL_channel(RU_t *ru,PHY_VARS_UE *UE,uint subframe,int awgn_flag,double SNR,
         for (u=0; u<2*ru->frame_parms->N_RB_DL; u++) {
           for (aarx=0; aarx<eNB2UE[2]->nb_rx; aarx++) {
             for (aatx=0; aatx<eNB2UE[2]->nb_tx; aatx++) {
-              channelx = eNB2UE[2]->chF[aarx+(aatx*eNB2UE[2]->nb_rx)][u].x;
-              channely = eNB2UE[2]->chF[aarx+(aatx*eNB2UE[2]->nb_rx)][u].y;
+              channelx = eNB2UE[2]->chF[aarx+(aatx*eNB2UE[2]->nb_rx)][u].r;
+              channely = eNB2UE[2]->chF[aarx+(aatx*eNB2UE[2]->nb_rx)][u].i;
               fprintf(csv_fd,"%e+i*(%e),",channelx,channely);
             }
           }
@@ -230,8 +237,8 @@ void DL_channel(RU_t *ru,PHY_VARS_UE *UE,uint subframe,int awgn_flag,double SNR,
         for (u=0; u<2*ru->frame_parms->N_RB_DL; u++) {
           for (aarx=0; aarx<eNB2UE[3]->nb_rx; aarx++) {
             for (aatx=0; aatx<eNB2UE[3]->nb_tx; aatx++) {
-              channelx = eNB2UE[3]->chF[aarx+(aatx*eNB2UE[3]->nb_rx)][u].x;
-              channely = eNB2UE[3]->chF[aarx+(aatx*eNB2UE[3]->nb_rx)][u].y;
+              channelx = eNB2UE[3]->chF[aarx+(aatx*eNB2UE[3]->nb_rx)][u].r;
+              channely = eNB2UE[3]->chF[aarx+(aatx*eNB2UE[3]->nb_rx)][u].i;
               fprintf(csv_fd,"%e+i*(%e),",channelx,channely);
             }
           }
@@ -484,7 +491,7 @@ int n_ch_rlz = 1;
 int rx_sample_offset = 0;
 int xforms=0;
 int dump_table=0;
-int loglvl=OAILOG_WARNING;
+int loglvl=OAILOG_INFO;
 int mcs1=0,mcs2=0,mcs_i=0,dual_stream_UE = 0,awgn_flag=0;
 int two_thread_flag=0;
 int num_rounds = 4;//,fix_rounds=0;
@@ -667,7 +674,7 @@ int main(int argc, char **argv) {
     { "XForms", "Display the soft scope", PARAMFLAG_BOOL, iptr:&xforms,  defintval:0, TYPE_INT, 0 },
     { "Yperfect_ce","Perfect CE", PARAMFLAG_BOOL, iptr:&perfect_ce,  defintval:0, TYPE_INT, 0 },
     { "Zdump", "dump table",PARAMFLAG_BOOL,  iptr:&dump_table, defintval:0, TYPE_INT, 0 },
-    { "Loglvl", "log level",0, iptr:&loglvl,  defintval:OAILOG_DEBUG, TYPE_INT, 0 },
+    { "Loglvl", "log level",0, iptr:&loglvl,  defintval:OAILOG_INFO, TYPE_INT, 0 },
     { "zn_rx", "Number of RX antennas used in UE",0, iptr:NULL,  defintval:2, TYPE_INT, 0 },
     { "gchannel", "[A:M] Use 3GPP 25.814 SCM-A/B/C/D('A','B','C','D') or 36-101 EPA('E'), EVA ('F'),ETU('G') models (ignores delay spread and Ricean factor), Rayghleigh8 ('H'), Rayleigh1('I'), Rayleigh1_corr('J'), Rayleigh1_anticorr ('K'),  Rice8('L'), Rice1('M')",0, strptr:NULL,  defstrval:NULL, TYPE_STRING, 0 },
     { "verbose", "display debug text", PARAMFLAG_BOOL,  iptr:&verbose, defintval:0, TYPE_INT, 0 },
@@ -902,7 +909,6 @@ int main(int argc, char **argv) {
   // moreover you need to init itti with the following line
   // however itti will catch all signals, so ctrl-c won't work anymore
   // alternatively you can disable ITTI completely in CMakeLists.txt
-  //itti_init(TASK_MAX, THREAD_MAX, MESSAGES_ID_MAX, tasks_info, messages_info, messages_definition_xml, NULL);
   T_stdout = 1;
 
   if (common_flag == 0) {
@@ -931,9 +937,10 @@ int main(int argc, char **argv) {
 
     NB_RB = conv_nprb(0,DLSCH_RB_ALLOC,N_RB_DL);
   } else {
-    if (rballocset==0) NB_RB = 8;
+    if (rballocset==0) NB_RB = 2+TPC;
     else               NB_RB = DLSCH_RB_ALLOC;
 
+    printf("Common PDSCH: NB_RB = %d\n",NB_RB);
     AssertFatal(NB_RB <= N_RB_DL,"illegal NB_RB %d\n",NB_RB);
   }
 
@@ -1177,7 +1184,7 @@ int main(int argc, char **argv) {
                                    DS_TDL,
                                    forgetting_factor,
                                    rx_sample_offset,
-                                   0);
+                                   0, 0);
   reset_meas(&eNB2UE[0]->random_channel);
   reset_meas(&eNB2UE[0]->interp_time);
 
@@ -1191,7 +1198,7 @@ int main(int argc, char **argv) {
                                        DS_TDL,
                                        forgetting_factor,
                                        rx_sample_offset,
-                                       0);
+                                       0, 0);
       reset_meas(&eNB2UE[n]->random_channel);
       reset_meas(&eNB2UE[n]->interp_time);
     }
