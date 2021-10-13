@@ -94,7 +94,6 @@ int set_tdd_config_nr_ue(fapi_nr_config_request_t *cfg,
   int nb_slots_per_period = ((1<<mu) * NR_NUMBER_OF_SUBFRAMES_PER_FRAME)/nb_periods_per_frame;
   cfg->tdd_table.tdd_period_in_slots = nb_slots_per_period;
 
-  int remain_dl_slots = 0;
   if ( (nrofDownlinkSymbols + nrofUplinkSymbols) == 0 ){
     if(nb_slots_per_period != (nrofDownlinkSlots + nrofUplinkSlots)){
       if(cfg->tdd_table.tdd_period>9){
@@ -265,7 +264,7 @@ void config_common_ue_sa(NR_UE_MAC_INST_t *mac,
   else {
     AssertFatal(scc->tdd_UL_DL_ConfigurationCommon->pattern1.ext1->dl_UL_TransmissionPeriodicity_v1530 != NULL,
 		"scc_SIB->tdd_UL_DL_ConfigurationCommon->pattern1.ext1->dl_UL_TransmissionPeriodicity_v1530 is null\n");
-    cfg->tdd_table.tdd_period = *scc->tdd_UL_DL_ConfigurationCommon->pattern1.ext1->dl_UL_TransmissionPeriodicity_v1530;
+    cfg->tdd_table.tdd_period = *scc->tdd_UL_DL_ConfigurationCommon->pattern1.ext1->dl_UL_TransmissionPeriodicity_v1530 + 10;
   }
   if(cfg->cell_config.frame_duplex_type == TDD){
     LOG_I(MAC,"Setting TDD configuration period to %d\n", cfg->tdd_table.tdd_period);

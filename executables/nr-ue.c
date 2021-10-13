@@ -712,21 +712,28 @@ void *UE_thread(void *arg) {
       timing_advance = UE->timing_advance;
     }
 
+    mac = get_mac_inst(0);
     int flags = 0;
     int slot_tx_usrp = slot_nr + DURATION_RX_TO_TX - NR_RX_NB_TH;
 
-    if (openair0_cfg[0].duplex_mode == duplex_mode_TDD) {
-
+    int scc_flag=0;
+    if(mac->scc != NULL)
+     scc_flag=1;
+    else if( mac->scc_SIB != NULL)
+     scc_flag=2;
+    
+    if(scc_flag==0){
+      flags=0;
+    } else if (openair0_cfg[0].duplex_mode == duplex_mode_TDD) {
       uint8_t tdd_period = mac->phy_config.config_req.tdd_table.tdd_period_in_slots;
       int nrofUplinkSlots, nrofUplinkSymbols;
       int nrofDownlinkSlots, nrofDownlinkSymbols;
-      if (mac->scc) {
+      if (scc_flag==1) {
         nrofUplinkSlots = mac->scc->tdd_UL_DL_ConfigurationCommon->pattern1.nrofUplinkSlots;
         nrofUplinkSymbols = mac->scc->tdd_UL_DL_ConfigurationCommon->pattern1.nrofUplinkSymbols;
         nrofDownlinkSlots = mac->scc->tdd_UL_DL_ConfigurationCommon->pattern1.nrofDownlinkSlots;
         nrofDownlinkSymbols = mac->scc->tdd_UL_DL_ConfigurationCommon->pattern1.nrofDownlinkSymbols;
-      }
-      else {
+      } else {
         nrofUplinkSlots = mac->scc_SIB->tdd_UL_DL_ConfigurationCommon->pattern1.nrofUplinkSlots;
         nrofUplinkSymbols = mac->scc_SIB->tdd_UL_DL_ConfigurationCommon->pattern1.nrofUplinkSymbols;
         nrofDownlinkSlots = mac->scc_SIB->tdd_UL_DL_ConfigurationCommon->pattern1.nrofDownlinkSlots;
