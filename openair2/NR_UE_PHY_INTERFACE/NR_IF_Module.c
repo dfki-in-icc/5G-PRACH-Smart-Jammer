@@ -93,7 +93,9 @@ int nr_ue_ul_indication(nr_uplink_indication_t *ul_info){
   NR_UE_L2_STATE_t ret;
   module_id_t module_id = ul_info->module_id;
   NR_UE_MAC_INST_t *mac = get_mac_inst(module_id);
-
+  if((mac->scc==NULL)&&(mac->scc_SIB==NULL)){
+    return 0;
+  }
   if (ul_info->ue_sched_mode == ONLY_PUSCH) {
     ret = nr_ue_scheduler(NULL, ul_info);
     return 0;

@@ -743,13 +743,25 @@ void *UE_thread(void *arg) {
 
       uint8_t first_tx_slot = tdd_period - num_UL_slots;
 
-      if( (mac->scc->tdd_UL_DL_ConfigurationCommon->pattern1.ext1 != NULL) &&
-        (mac->scc->tdd_UL_DL_ConfigurationCommon->pattern1.ext1->dl_UL_TransmissionPeriodicity_v1530 != NULL) ){
-        if(*mac->scc->tdd_UL_DL_ConfigurationCommon->pattern1.ext1->dl_UL_TransmissionPeriodicity_v1530==0){
-          uint8_t first_num_DL_slots = nrofDownlinkSlots + (nrofDownlinkSymbols != 0);
-          first_tx_slot = first_num_DL_slots + (nrofUplinkSymbols != 0);
-        }else{
-          AssertFatal(1==0, "not implemented dl_UL_TransmissionPeriodicity_v1530 %d\n",*mac->scc->tdd_UL_DL_ConfigurationCommon->pattern1.ext1->dl_UL_TransmissionPeriodicity_v1530);
+      if (scc_flag==1) {
+        if( (mac->scc->tdd_UL_DL_ConfigurationCommon->pattern1.ext1 != NULL) &&
+          (mac->scc->tdd_UL_DL_ConfigurationCommon->pattern1.ext1->dl_UL_TransmissionPeriodicity_v1530 != NULL) ){
+          if(*mac->scc->tdd_UL_DL_ConfigurationCommon->pattern1.ext1->dl_UL_TransmissionPeriodicity_v1530==0){
+            uint8_t first_num_DL_slots = nrofDownlinkSlots + (nrofDownlinkSymbols != 0);
+            first_tx_slot = first_num_DL_slots + (nrofUplinkSymbols != 0);
+          }else{
+            AssertFatal(1==0, "not implemented dl_UL_TransmissionPeriodicity_v1530 %d\n",*mac->scc->tdd_UL_DL_ConfigurationCommon->pattern1.ext1->dl_UL_TransmissionPeriodicity_v1530);
+          }
+        }
+      }else if(scc_flag==2){
+        if( (mac->scc_SIB->tdd_UL_DL_ConfigurationCommon->pattern1.ext1 != NULL) &&
+          (mac->scc_SIB->tdd_UL_DL_ConfigurationCommon->pattern1.ext1->dl_UL_TransmissionPeriodicity_v1530 != NULL) ){
+          if(*mac->scc_SIB->tdd_UL_DL_ConfigurationCommon->pattern1.ext1->dl_UL_TransmissionPeriodicity_v1530==0){
+            uint8_t first_num_DL_slots = nrofDownlinkSlots + (nrofDownlinkSymbols != 0);
+            first_tx_slot = first_num_DL_slots - (nrofUplinkSymbols*nrofDownlinkSymbols != 0);
+          }else{
+            AssertFatal(1==0, "not implemented dl_UL_TransmissionPeriodicity_v1530 %d\n",*mac->scc_SIB->tdd_UL_DL_ConfigurationCommon->pattern1.ext1->dl_UL_TransmissionPeriodicity_v1530);
+          }
         }
       }
       
@@ -759,10 +771,10 @@ void *UE_thread(void *arg) {
         flags = 3;
       else if ( (slot_tx_usrp % tdd_period > first_tx_slot) && ( ((slot_tx_usrp % tdd_period) - first_tx_slot) < num_UL_slots ) )
         flags = 1;
+
     } else {
       flags = 1;
     }
-
     if (flags || IS_SOFTMODEM_RFSIM)
       AssertFatal(writeBlockSize ==
                   UE->rfdevice.trx_write_func(&UE->rfdevice,

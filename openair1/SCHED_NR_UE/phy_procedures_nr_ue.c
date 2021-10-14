@@ -1034,8 +1034,18 @@ bool nr_ue_dlsch_procedures(PHY_VARS_NR_UE *ue,
       LOG_T(PHY,"Sequential dlsch decoding , ret = %d\n", ret);
     }
 
-    if(ret<dlsch0->max_ldpc_iterations+1)
-      dec = true;
+    if(ret<dlsch0->max_ldpc_iterations+1){
+      int check_pdu=0;
+      for(int pp=0;pp < (dlsch0->harq_processes[dlsch0->current_harq_pid]->TBS / 8);pp++){
+        check_pdu += dlsch0->harq_processes[dlsch0->current_harq_pid]->b[pp];
+      }
+      if(check_pdu!=0){
+        dec = true;
+      }else{
+        dec = false;
+        dlsch0->harq_processes[dlsch0->current_harq_pid]->ack=0;
+      }
+    }
 
     switch (pdsch) {
       case RA_PDSCH:
