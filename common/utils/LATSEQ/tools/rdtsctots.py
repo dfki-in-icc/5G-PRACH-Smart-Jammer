@@ -1,4 +1,19 @@
 #!/usr/bin/python3
+
+#################################################################################
+# Software Name : LatSeq
+# Version: 1.0
+# SPDX-FileCopyrightText: Copyright (c) 2020-2021 Orange Labs
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# This software is distributed under the BSD 3-clause,
+# the text of which is available at https://opensource.org/licenses/BSD-3-Clause
+# or see the "license.txt" file for more details.
+#
+# Author: Flavien Ronteix--Jacquet
+# Software description: LatSeq rtdtsc to unix timestamp script
+#################################################################################
+
 import sys
 
 # 78374 lines = 182ms; 1 line = 2.32us 
@@ -19,10 +34,10 @@ class rdtsctots():
         self._cleanup_and_sort()
 
 
-    def self_converted_rdtsc(self) -> bool:
+    def self_converted_rdtsc(self):
         return self.is_converted_rdtsc(self.lines[0])
 
-    def is_converted_rdtsc(self, lineP) -> bool:
+    def is_converted_rdtsc(self, lineP):
         """
             return False if rdtsc else True
         """

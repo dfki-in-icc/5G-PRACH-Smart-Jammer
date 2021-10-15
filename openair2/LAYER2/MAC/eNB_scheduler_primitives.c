@@ -38,7 +38,7 @@
 #include "common/utils/LOG/log.h"
 #include "nfapi/oai_integration/vendor_ext.h"
 #include "common/utils/LOG/vcd_signal_dumper.h"
-#ifdef LATSEQ
+#if LATSEQ
   #include "common/utils/LATSEQ/latseq.h"
 #endif
 #include "UTIL/OPT/opt.h"
@@ -3986,7 +3986,7 @@ extract_harq(module_id_t mod_idP,
                     subframe_tx,
                     harq_pid,
                     sched_ctl->round[CC_idP][harq_pid]);
-#ifdef LATSEQ
+#if LATSEQ
               LATSEQ_P("I mac.harq.down", "nack%d:ue%d:harq%d.fm%d.subfm%d", 0, UE_id, harq_pid, frame_tx, subframe_tx);
 #endif
             } else { //nack
@@ -4004,7 +4004,7 @@ extract_harq(module_id_t mod_idP,
                     subframe_tx,
                     harq_pid,
                     sched_ctl->round[CC_idP][harq_pid]);
-#ifdef LATSEQ
+#if LATSEQ
               LATSEQ_P("I mac.harq.down", "nack%d:ue%d:harq%d.fm%d.subfm%d", sched_ctl->round[CC_idP][harq_pid], UE_id, harq_pid, frame_tx, subframe_tx);
 #endif
 
@@ -4150,12 +4150,12 @@ extract_harq(module_id_t mod_idP,
             sched_ctl->tbcnt[CC_idP][harq_pid] = 0;
             /* CDRX: PUCCH gives an ACK, so reset corresponding HARQ RTT */
             sched_ctl->harq_rtt_timer[CC_idP][harq_pid] = 0;
-#ifdef LATSEQ
+#if LATSEQ
             LATSEQ_P("I mac.harq.down", "nack%d:ue%d:harq%d", 0, UE_id, harq_pid);
 #endif
           } else if (pdu[0] == 2 || pdu[0] == 4) {  // NAK (treat DTX as NAK)
             sched_ctl->round[CC_idP][harq_pid]++; // increment round
-#ifdef LATSEQ
+#if LATSEQ
             LATSEQ_P("I mac.harq.down", "nack%d:ue%d:harq%d", sched_ctl->round[CC_idP][harq_pid], UE_id, harq_pid);
 #endif
             if (sched_ctl->round[CC_idP][harq_pid] == 4) {
@@ -4187,7 +4187,7 @@ extract_harq(module_id_t mod_idP,
           if (num_ack_nak == 2 && sched_ctl->round[CC_idP][harq_pid] < 8 && sched_ctl->tbcnt[CC_idP][harq_pid] == 1 && pdu[0] == 1 && pdu[1] == 1) {
             sched_ctl->round[CC_idP][harq_pid] = 8;
             sched_ctl->tbcnt[CC_idP][harq_pid] = 0;
-#ifdef LATSEQ
+#if LATSEQ
             LATSEQ_P("I mac.harq.down", "nack%d:ue%d:harq%d", 0, UE_id, harq_pid);
 #endif
             /* CDRX: PUCCH gives an ACK, so reset corresponding HARQ RTT */
@@ -4199,7 +4199,7 @@ extract_harq(module_id_t mod_idP,
               && (sched_ctl->tbcnt[CC_idP][harq_pid] == 1)
               && (pdu[0] == 2) && (pdu[1] == 2)) {
             sched_ctl->round[CC_idP][harq_pid]++;
-#ifdef LATSEQ
+#if LATSEQ
               LATSEQ_P("I mac.harq.down", "nack%d:ue%d:harq%d", sched_ctl->round[CC_idP][harq_pid], UE_id, harq_pid);
 #endif
 
@@ -4218,7 +4218,7 @@ extract_harq(module_id_t mod_idP,
                          && (sched_ctl->tbcnt[CC_idP][harq_pid] == 2)
                          && (pdu[0] == 2) && (pdu[1] == 1))) {
             sched_ctl->round[CC_idP][harq_pid]++;
-#ifdef LATSEQ
+#if LATSEQ
             LATSEQ_P("I mac.harq.down", "nack%d:ue%d:harq%d", sched_ctl->round[CC_idP][harq_pid], UE_id, harq_pid);
 #endif
             sched_ctl->tbcnt[CC_idP][harq_pid] = 1;
@@ -4234,7 +4234,7 @@ extract_harq(module_id_t mod_idP,
                      && (sched_ctl->tbcnt[CC_idP][harq_pid] == 2)
                      && (pdu[0] == 2) && (pdu[1] == 2)) {
             sched_ctl->round[CC_idP][harq_pid]++;
-#ifdef LATSEQ
+#if LATSEQ
             LATSEQ_P("I mac.harq.down", "nack%d:ue%d:harq%d", sched_ctl->round[CC_idP][harq_pid], UE_id, harq_pid);
 #endif
 
@@ -4863,7 +4863,7 @@ extract_pusch_csi(module_id_t mod_idP,
       }
 
       sched_ctl->dl_cqi[CC_idP] = sched_ctl->aperiodic_wideband_cqi0[CC_idP];
-#ifdef LATSEQ
+#if LATSEQ
       LATSEQ_P("I phy.srs", "dcqi%d:ru%d.ue%d:", sched_ctl->dl_cqi[CC_idP], CC_idP, UE_id);
 #endif
       break;
@@ -5082,7 +5082,7 @@ SR_indication(module_id_t mod_idP,
 
       UE_info->UE_template[cc_idP][UE_id].ul_SR = 1;
       UE_info->UE_template[cc_idP][UE_id].ul_active = TRUE;
-#ifdef LATSEQ
+#if LATSEQ
       LATSEQ_P("I mac.ind", "sr%d:ue%d:fm%d.subfm%d", 1, UE_id, frameP, subframeP);
 #endif
       VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_SR_INDICATION, 1);

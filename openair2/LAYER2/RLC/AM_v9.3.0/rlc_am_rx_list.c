@@ -29,9 +29,6 @@
 #include "rlc_am.h"
 #include "LAYER2/MAC/mac_extern.h"
 #include "common/utils/LOG/log.h"
-#if LATSEQ
-  #include "common/utils/LATSEQ/latseq.h"
-#endif
 
 
 boolean_t rlc_am_rx_check_vr_reassemble(

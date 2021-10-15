@@ -37,9 +37,6 @@
 #include "hashtable.h"
 #include "assertions.h"
 #include "common/utils/LOG/vcd_signal_dumper.h"
-#if LATSEQ
-  #include "common/utils/LATSEQ/latseq.h"
-#endif
 //#define DEBUG_MAC_INTERFACE 1
 
 //-----------------------------------------------------------------------------
@@ -288,10 +285,6 @@ void mac_rlc_data_ind     (
     //AssertFatal (0 , "%s RLC not configured lcid %u ! (h_rc %d)\n", __FUNCTION__,channel_idP,h_rc);
   }
 /*
-#if LATSEQ
-  LATSEQ_P_TEST("U phy.in.proc--mac.demux", "drb%d.rnti%d.fm%d:lcid%d",&rlc_union_p->rlc.am->rb_id, rntiP, frameP, channel_idP);
-#endif
-*/
 
   struct mac_data_ind data_ind = mac_rlc_deserialize_tb(buffer_pP, tb_sizeP, num_tbP, crcs_pP);
 

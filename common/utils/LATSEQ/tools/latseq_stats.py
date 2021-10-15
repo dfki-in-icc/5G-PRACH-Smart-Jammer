@@ -1,12 +1,18 @@
 #!/usr/bin/python3
 
-# -----------------------------------------------------------
-# Process latseq logs to get statistics and visualization
+#################################################################################
+# Software Name : LatSeq
+# Version: 1.0
+# SPDX-FileCopyrightText: Copyright (c) 2020-2021 Orange Labs
+# SPDX-License-Identifier: BSD-3-Clause
 #
-# (C) 2020 Flavien Ronteix--Jacquet, Lannion, France
-# Released under MIT License
-# email flavien.ronteixjacquet@orange.com
-# -----------------------------------------------------------
+# This software is distributed under the BSD 3-clause,
+# the text of which is available at https://opensource.org/licenses/BSD-3-Clause
+# or see the "license.txt" file for more details.
+#
+# Author: Flavien Ronteix--Jacquet
+# Software description: LatSeq stats script
+#################################################################################
 
 """Calculate statistics on a latseq_logs output
 
@@ -43,7 +49,7 @@ OUT_FORMATS = ["json", "csv"]
 # FUNCTIONS
 #
 
-def output_function(outP: dict, flagP=False, fmtP="json", data_nameP="") -> str:
+def output_function(outP: dict, flagP=False, fmtP="json", data_nameP=""):
     """output wrapper
 
     Arguments:
@@ -60,7 +66,7 @@ def output_function(outP: dict, flagP=False, fmtP="json", data_nameP="") -> str:
         else:
             sys.stderr.write("No supported format provided for output\n")
 
-def out_csv(outP: dict) -> str:
+def out_csv(outP: dict):
     resS = ";;"
     for s in BASIC_STATS:
         if isinstance(s, list):
@@ -89,7 +95,7 @@ class latseq_stats:
     """
     # PRESENTATION
     @staticmethod
-    def str_statistics(statsNameP: str, statsP: dict) -> str:
+    def str_statistics(statsNameP: str, statsP: dict):
         """Stringify a statistics
 
         A statistics here embedded size, average, max, min, quantiles, stdev
@@ -143,7 +149,7 @@ class latseq_stats:
 
     # GLOBAL-BASED
     @staticmethod
-    def mean_separation_time(tsLP: list) -> float:
+    def mean_separation_time(tsLP: list):
         """Function to return means time separation between logs
 
         Args:
@@ -211,7 +217,7 @@ class latseq_stats:
 
     # JOURNEYS-BASED
     @staticmethod
-    def journeys_latency_statistics(journeysP: dict, flagTimesP: bool) -> dict:
+    def journeys_latency_statistics(journeysP: dict, flagTimesP: bool):
         """Function calculate statistics on journey's latency
 
         Args:
@@ -256,7 +262,7 @@ class latseq_stats:
         return res
 
     @staticmethod
-    def journeys_latency_per_point_statistics(journeysP: dict, pathsP: dict) -> dict:
+    def journeys_latency_per_point_statistics(journeysP: dict, pathsP: dict):
         """Function calculate statistics on journey's latency by points
 
         Args:
@@ -322,7 +328,7 @@ class latseq_stats:
 
     # POINTS-BASED
     @staticmethod
-    def points_latency_statistics(pointsP: dict) -> dict:
+    def points_latency_statistics(pointsP: dict):
         """Function calculate statistics on points' latency
 
         Args:
@@ -357,7 +363,7 @@ class latseq_stats:
 
     # OTHER METRIC
     @staticmethod
-    def instant_out_throughput(journeysP: dict) -> dict:
+    def instant_out_throughput(journeysP: dict):
         # TODO: sort the list
         def _handle_len_prop(jP):
             if 'properties' in jP:
@@ -397,7 +403,7 @@ class latseq_stats:
         return res
 
     @staticmethod
-    def in_interarrivals_rate(journeysP: dict) -> dict:
+    def in_interarrivals_rate(journeysP: dict):
         # TODO: sort the list
         res = {'0': {}, '1': {}}  # for each direction and for each path in direction
         for j in journeysP:

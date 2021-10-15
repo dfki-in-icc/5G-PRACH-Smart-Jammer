@@ -1366,7 +1366,7 @@ void postDecode(L1_rxtx_proc_t *proc, notifiedFIFO_elt_t *req) {
 
     if (!decodeSucess) {
       T(T_ENB_PHY_ULSCH_UE_NACK, T_INT(eNB->Mod_id), T_INT(rdata->frame), T_INT(rdata->subframe), T_INT(ulsch->rnti), T_INT(rdata->harq_pid));
-#ifdef LATSEQ
+#if LATSEQ
       LATSEQ_P("I mac.harq.up", "nack%d:ue%d:harq%d.fm%d.subfm%d", ulsch_harq->round, rdata->UEid, rdata->harq_pid, rdata->frame, rdata->subframe);
 #endif
       fill_crc_indication(eNB,i,rdata->frame,rdata->subframe,1); // indicate NAK to MAC
@@ -1394,7 +1394,7 @@ void postDecode(L1_rxtx_proc_t *proc, notifiedFIFO_elt_t *req) {
       ulsch_harq->handled = 1;
     }  // ulsch in error
     else if(ulsch_harq->repetition_number == ulsch_harq->total_number_of_repetitions) {
-#ifdef LATSEQ
+#if LATSEQ
       LATSEQ_P("I mac.harq.up", "nack%d:ue%d:harq%d.fm%d.subfm%d", 0, rdata->UEid, rdata->harq_pid, rdata->frame, rdata->subframe);
 #endif
       fill_crc_indication(eNB,i,rdata->frame,rdata->subframe,0); // indicate ACK to MAC

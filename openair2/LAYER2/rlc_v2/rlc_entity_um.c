@@ -26,7 +26,7 @@
 #include <string.h>
 
 #include "LOG/log.h"
-#ifdef LATSEQ
+#if LATSEQ
   #include "common/utils/LATSEQ/latseq.h"
 #endif
 
@@ -542,7 +542,7 @@ int rlc_entity_um_generate_pdu(rlc_entity_t *_entity, char *buffer, int size, co
     entity->tx_end = NULL;
   /* update VT(US) */
   entity->vt_us = (entity->vt_us + 1) % entity->sn_modulus;
-#ifdef LATSEQ
+#if LATSEQ
   LATSEQ_P("D rlc.tx.um--rlc.seg.um", "len%d:rnti%d:drb%d.lcid%d.rtime%d.rsn%d", pdu_size.header_size + pdu_size.data_size, entity->ue_rnti, entity->channel_id , entity->channel_id, entity->t_current, entity->vt_us);
 #endif
 

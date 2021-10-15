@@ -1,5 +1,20 @@
 #!/bin/bash
 
+#################################################################################
+# Software Name : LatSeq
+# Version: 1.0
+# SPDX-FileCopyrightText: Copyright (c) 2020-2021 Orange Labs
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# This software is distributed under the BSD 3-clause,
+# the text of which is available at https://opensource.org/licenses/BSD-3-Clause
+# or see the "license.txt" file for more details.
+#
+# Author: Flavien Ronteix--Jacquet
+# Software description: LatSeq checker script
+#################################################################################
+
+
 OAI_PATH=$1
 LATSEQ_TOKEN="LATSEQ_P("
 LATSEQ_H_INC="#include \"common/utils/LATSEQ/latseq.h\""
@@ -22,7 +37,7 @@ usage() {
 # function to get latseq info in sources
 get_latseq_info () {
     if [[ ! -z "$VERBOSE" ]] ; then echo "${FUNCNAME[0]}"; fi
-    ENTRY_MAX_LEN=$(cat $LATSEQ_PATH/latseq.h | grep LATSEQ_MAX_STR_SIZE | head -1 | tr -s ' ' | cut -d " " -f3)
+    ENTRY_MAX_LEN=$(cat $LATSEQ_PATH/latseq.h | grep MAX_LEN_DATA_ID | tr -s ' ' | cut -d " " -f3)
 }
 
 # function to check one line of LATSEQ_P
@@ -60,7 +75,7 @@ check_latseq_p() {
 
     # check number of argument
     if grep -voq "I" <<< "$2" ; then
-        nbArgsFmt=$(echo $2 | grep -oE "%d|%u" | wc -l)
+        nbArgsFmt=$(echo $2 | grep -o "%d" | wc -l)
         nbArgsGiven=$((`echo $2 | tr -dc ',' | wc -c` + 1 - NB_TOKEN_BEFORE_VARARGS))
         if [ "$nbArgsFmt" -ne "$nbArgsGiven" ]; then
             echo -e "\e[31m\e[1m[NB_VAR]\t$1:$2\e[21m :\n\tnumber of arguments for format ($nbArgsFmt) and given ($nbArgsGiven) are different\e[0m";

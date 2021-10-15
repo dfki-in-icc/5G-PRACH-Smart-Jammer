@@ -86,9 +86,9 @@ unsigned short config_frames[4] = {2,9,11,13};
   #include "UTIL/OTG/otg_vars.h"
 #endif
 
-//#ifdef LATSEQ
+#if LATSEQ
   #include <common/utils/LATSEQ/latseq.h>
-//#endif
+#endif
 
 #include "create_tasks.h"
 

@@ -173,7 +173,7 @@ rx_sdu(const module_id_t enb_mod_idP,
        * maybe it's even not correct at all?
        */
 
-#ifdef LATSEQ
+#if LATSEQ
       LATSEQ_P("I phy.srs", "ucqi%d:ru%d.ue%d:", ul_cqi, CC_idP, UE_id);
 #endif
 
@@ -452,7 +452,7 @@ rx_sdu(const module_id_t enb_mod_idP,
           if (UE_template_ptr->phr_info > 40) {
             UE_template_ptr->phr_info = 40;
           }
-#ifdef LATSEQ
+#if LATSEQ
           LATSEQ_P("I mac.ind", "phr%d:ue%d:", UE_template_ptr->phr_info, UE_id);
 #endif
           LOG_D(MAC, "[eNB %d] CC_id %d MAC CE_LCID %d : Received PHR PH = %d (db)\n",
@@ -604,7 +604,7 @@ rx_sdu(const module_id_t enb_mod_idP,
           int bsr = 0;
           bsr = payload_ptr[0] & 0x3f;
           lcgid_updated[lcgid] = 1;
-#ifdef LATSEQ
+#if LATSEQ
           LATSEQ_P("I mac.ind", "bsr%d.len%d:ue%d:lcgid%d", bsr, BSR_TABLE[bsr], UE_id, lcgid);
 #endif
           /* Update buffer info */
@@ -659,7 +659,7 @@ rx_sdu(const module_id_t enb_mod_idP,
             UE_template_ptr->ul_buffer_info[LCGID1] +
             UE_template_ptr->ul_buffer_info[LCGID2] +
             UE_template_ptr->ul_buffer_info[LCGID3];
-#ifdef LATSEQ
+#if LATSEQ
           LATSEQ_P("I mac.ind", "bsr%d.len%d:ue%d:lcgid%d", bsr0, BSR_TABLE[bsr0], UE_id, 0);
           LATSEQ_P("I mac.ind", "bsr%d.len%d:ue%d:lcgid%d", bsr1, BSR_TABLE[bsr1], UE_id, 1);
           LATSEQ_P("I mac.ind", "bsr%d.len%d:ue%d:lcgid%d", bsr2, BSR_TABLE[bsr2], UE_id, 2);
@@ -1705,7 +1705,7 @@ schedule_ulsch_rnti(module_id_t   module_idP,
         T_INT(rb_table[rb_table_index]),
         T_INT(UE_template_ptr->TBS_UL[harq_pid]),
         T_INT(ndi));
-#ifdef LATSEQ
+#if LATSEQ
       LATSEQ_P("I mac.sched.up", "mcs%d.tbs%d.nrb%d:ue%d:fm%d.subfm%d", mcs, UE_info->eNB_UE_stats[CC_id][UE_id].ulsch_TBS, rb_table[rb_table_index], UE_id, frameP, subframeP);
 #endif
       /* Store information for possible retransmission */

@@ -28,10 +28,6 @@
 #include "rlc_ue_manager.h"
 #include "rlc_entity.h"
 
-#ifdef LATSEQ
-  #include "common/utils/LATSEQ/latseq.h"
-#endif
-
 #include <stdint.h>
 
 static rlc_ue_manager_t *rlc_ue_manager;
