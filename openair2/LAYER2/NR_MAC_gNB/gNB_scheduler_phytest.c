@@ -205,31 +205,24 @@ void nr_preprocessor_phytest(module_id_t module_id,
   const int bwpSize = dl_bwp->BWPSize;
   const int BWPStart = dl_bwp->BWPStart;
 
-  int rbStart = 0;
-  int rbSize = 0;
   if (target_dl_bw>bwpSize)
     target_dl_bw = bwpSize;
   uint16_t *vrb_map = RC.nrmac[module_id]->common_channels[CC_id].vrb_map;
-  /* loop ensures that we allocate exactly target_dl_bw, or return */
-  while (true) {
-    /* advance to first free RB */
-    while (rbStart < bwpSize &&
-           (vrb_map[rbStart + BWPStart]&SL_to_bitmap(tda_info.startSymbolIndex, tda_info.nrOfSymbols)))
-      rbStart++;
-    rbSize = 1;
-    /* iterate until we are at target_dl_bw or no available RBs */
-    while (rbStart + rbSize < bwpSize &&
-           !(vrb_map[rbStart + rbSize + BWPStart]&SL_to_bitmap(tda_info.startSymbolIndex, tda_info.nrOfSymbols)) &&
-           rbSize < target_dl_bw)
-      rbSize++;
-    /* found target_dl_bw? */
-    if (rbSize == target_dl_bw)
-      break;
-    /* at end and below target_dl_bw? */
-    if (rbStart + rbSize >= bwpSize)
-      return;
-    rbStart += rbSize;
-  }
+
+  /* allocate up to the target_dl_bw */
+  /* advance to first free RB */
+  int rbStart = (bwpSize - target_dl_bw) / 2;
+  while (rbStart < (bwpSize + target_dl_bw) / 2 && vrb_map[rbStart + BWPStart])
+    rbStart++;
+
+  /* iterate until we are at target_dl_bw or no available RBs */
+  int rbSize = 0;
+  while (rbStart + rbSize < (bwpSize + target_dl_bw) / 2 && !vrb_map[rbStart + rbSize + BWPStart])
+    rbSize++;
+
+  /* found no free RBs? */
+  if (rbSize == 0)
+    return;
 
   sched_ctrl->num_total_bytes = 0;
   sched_ctrl->dl_lc_num = 1;
@@ -381,31 +374,36 @@ bool nr_ul_preprocessor_phytest(module_id_t module_id, frame_t frame, sub_frame_
   if (!is_xlsch_in_slot(ulsch_slot_bitmap, sched_slot))
     return false;
 
-  uint16_t rbStart = 0;
-  uint16_t rbSize;
-
   const int bw = ul_bwp->BWPSize;
   const int BWPStart = ul_bwp->BWPStart;
 
   if (target_ul_bw>bw)
-    rbSize = bw;
-  else
-    rbSize = target_ul_bw;
+    target_ul_bw = bw;
+
+  if (target_ul_bw == 0)
+    return false;
 
   NR_tda_info_t tda_info = nr_get_pusch_tda_info(ul_bwp, tda);
   sched_ctrl->sched_pusch.tda_info = tda_info;
 
   uint16_t *vrb_map_UL = RC.nrmac[module_id]->common_channels[CC_id].vrb_map_UL[sched_frame%MAX_NUM_UL_SCHED_FRAME][sched_slot];
-  for (int i = rbStart; i < rbStart + rbSize; ++i) {
-    if ((vrb_map_UL[i+BWPStart] & SL_to_bitmap(tda_info.startSymbolIndex, tda_info.nrOfSymbols)) != 0) {
-      LOG_E(MAC,
-            "%s(): %4d.%2d RB %d is already reserved, cannot schedule UE\n",
-            __func__,
-            frame,
-            slot,
-            i);
-      return false;
-    }
+  const uint16_t symb = SL_to_bitmap(tda_info.startSymbolIndex, tda_info.nrOfSymbols);
+
+  uint16_t rbStart = (bw - target_ul_bw) / 2;
+  uint16_t rbSize = 0;
+  while (rbStart + rbSize < (bw + target_ul_bw) / 2) {
+    if ((vrb_map_UL[rbStart + rbSize + BWPStart] & symb) != 0)
+      break;
+    rbSize++;
+  }
+
+  if (rbSize == 0) {
+    LOG_E(MAC,
+          "%s(): %4d.%2d all RBs already reserved, cannot schedule UE\n",
+          __func__,
+          frame,
+          slot);
+    return false;
   }
 
   sched_ctrl->sched_pusch.slot = sched_slot;
@@ -482,6 +480,6 @@ bool nr_ul_preprocessor_phytest(module_id_t module_id, frame_t frame, sub_frame_
                      sched_ctrl->aggregation_level);
 
   for (int rb = rbStart; rb < rbStart + rbSize; rb++)
-    vrb_map_UL[rb+BWPStart] |= SL_to_bitmap(tda_info.startSymbolIndex, tda_info.nrOfSymbols);
+    vrb_map_UL[rb+BWPStart] |= symb;
   return true;
 }
