@@ -177,17 +177,17 @@ void PHY_ofdm_mod(int *input,                       /// pointer to complex input
     idftsize= IDFT_6144;
     break;
 
- case 12288:
+  case 12288:
     idftsize= IDFT_12288;
     break;
 
- case 24576:
+  case 24576:
     idftsize= IDFT_24576;
     break;
 
   default:
-    idftsize = IDFT_512;
-    break;
+    printf("unsupported ofdm symbol size %d\n", fftsize);
+    assert(0);
   }
 
 #ifdef DEBUG_OFDM_MOD
