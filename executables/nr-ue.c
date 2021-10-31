@@ -786,8 +786,9 @@ void *UE_thread(void *arg) {
                                               UE->frame_parms.nb_antennas_tx,
                                               flags);
     
-    for (int i=0; i<UE->frame_parms.nb_antennas_tx; i++)
-      memset(txp[i], 0, writeBlockSize);
+    //TODO L5G
+    //for (int i=0; i<UE->frame_parms.nb_antennas_tx; i++)
+    //  memset(txp[i], 0, writeBlockSize);
 
     nbSlotProcessing++;
     LOG_D(PHY,"Number of slots being processed at the moment: %d\n",nbSlotProcessing);

@@ -727,6 +727,11 @@ int8_t nr_ue_process_dci(module_id_t module_id, int cc_id, uint8_t gNB_index, fr
           dlsch_config_pdu_1_0->BWPSize = NRRIV2BW(mac->scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
           dlsch_config_pdu_1_0->BWPStart = NRRIV2PRBOFFSET(mac->scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
         }
+        if(ra->RA_window_cnt >= 0 && rnti == ra->ra_rnti){
+          dlsch_config_pdu_1_0->BWPSize = mac->type0_PDCCH_CSS_config.num_rbs;
+          dlsch_config_pdu_1_0->BWPStart = mac->type0_PDCCH_CSS_config.cset_start_rb;
+          BWPSize = dlsch_config_pdu_1_0->BWPSize;
+        }
         if (!get_softmodem_params()->sa) { // NSA mode is not using the Initial BWP
           dlsch_config_pdu_1_0->BWPStart = NRRIV2PRBOFFSET(mac->DLbwp[0]->bwp_Common->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
           pdsch_config = mac->DLbwp[0]->bwp_Dedicated->pdsch_Config->choice.setup;
@@ -2411,6 +2416,10 @@ int get_n_rb(NR_UE_MAC_INST_t *mac, int rnti_type){
         uint8_t coreset_id = 0; // assuming controlResourceSetId is 0 for controlResourceSetZero
         NR_ControlResourceSet_t *coreset = mac->coreset[dl_bwp_id-1][coreset_id];
         get_coreset_rballoc(coreset->frequencyDomainResources.buf,&N_RB,&start_RB);
+      } else if (*mac->DLbwp[dl_bwp_id-1]->bwp_Common->pdcch_ConfigCommon->choice.setup->controlResourceSetZero==0) {
+        uint8_t coreset_id = 0; // assuming controlResourceSetId is 0 for controlResourceSetZero
+        NR_ControlResourceSet_t *coreset = mac->coreset[dl_bwp_id-1][coreset_id];
+        get_coreset_rballoc(coreset->frequencyDomainResources.buf,&N_RB,&start_RB);
       } else {
         N_RB = NRRIV2BW(mac->scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
       }
@@ -2460,6 +2469,8 @@ uint8_t nr_extract_dci_info(NR_UE_MAC_INST_t *mac,
       } else {
         N_RB = get_n_rb(mac, rnti_type);
       }
+      //TODO L5G
+      N_RB = mac->type0_PDCCH_CSS_config.num_rbs;
       // Freq domain assignment
       fsize = (int)ceil( log2( (N_RB*(N_RB+1))>>1 ) );
       pos=fsize;

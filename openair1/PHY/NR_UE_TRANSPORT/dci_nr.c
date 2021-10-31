@@ -343,7 +343,7 @@ void nr_pdcch_channel_level(int32_t **dl_ch_estimates_ext,
 
 #endif
 
-
+extern int pdcch_testing;
 
 
 #ifdef NR_PDCCH_DCI_RUN
@@ -483,7 +483,8 @@ void nr_pdcch_extract_rbs_single(int32_t **rxdataF,
           if ((i != 1) && (i != 5) && (i != 9)) {
             dl_ch0_ext[j] = dl_ch0[i];
             rxF_ext[j++] = rxF[i];
-            //              printf("**extract rb %d, re %d => (%d,%d)\n",rb,i,*(short *)&rxF_ext[j-1],*(1+(short*)&rxF_ext[j-1]));
+            if(pdcch_testing==1)
+              printf("**extract rb %d, re %d => (%d,%d)\n",12 * (c_rb + n_BWP_start)+i,((short*)&rxF[i])[0],((short*)&rxF[i])[1],((short*)&dl_ch0[i])[0],((short*)&dl_ch0[i])[1]);
           }
         }
 
@@ -497,7 +498,8 @@ void nr_pdcch_extract_rbs_single(int32_t **rxdataF,
           if ((i != 1) && (i != 5) && (i != 9)) {
             dl_ch0_ext[j] = dl_ch0[i];
             rxF_ext[j++] = rxF[(i - remain_re)];
-            //              printf("**extract rb %d, re %d => (%d,%d)\n",rb,i,*(short *)&rxF_ext[j-1],*(1+(short*)&rxF_ext[j-1]));
+            if(pdcch_testing==1)
+              printf("**extract rb %d, re %d => (%d,%d)\n",12 * (c_rb + n_BWP_start)+i,((short*)&rxF[i])[0],((short*)&rxF[i])[1],((short*)&dl_ch0[i])[0],((short*)&dl_ch0[i])[1]);
           }
         }
 
@@ -521,6 +523,8 @@ void nr_pdcch_extract_rbs_single(int32_t **rxdataF,
                    *(short *) &rxF[i], *(1 + (short *) &rxF[i]));
 #endif
             dl_ch0_ext[j] = dl_ch0[i];
+            if(pdcch_testing==1)
+              printf("**extract rb %d, re %d => (%d,%d)\n",12 * (c_rb + n_BWP_start)+i,((short*)&rxF[i])[0],((short*)&rxF[i])[1],((short*)&dl_ch0[i])[0],((short*)&dl_ch0[i])[1]);
 
             //LOG_DDD("ch %d => dl_ch0(%d,%d)\n", i, *(short *) &dl_ch0[i], *(1 + (short*) &dl_ch0[i]));
             //printf("\t-> dl_ch0[%d] => dl_ch0_ext[%d](%d,%d)\n", i,j, *(short *) &dl_ch0[i], *(1 + (short*) &dl_ch0[i]));
@@ -730,8 +734,10 @@ int32_t nr_rx_pdcch(PHY_VARS_NR_UE *ue,
   int32_t avgP[4];
   int n_rb,rb_offset;
   get_coreset_rballoc(rel15->coreset.frequency_domain_resource,&n_rb,&rb_offset);
-  LOG_D(PHY,"pdcch coreset: freq %x, n_rb %d, rb_offset %d\n",
+if(pdcch_testing==1)
+  LOG_I(PHY,"pdcch coreset: freq %x, n_rb %d, rb_offset %d\n",
         rel15->coreset.frequency_domain_resource[0],n_rb,rb_offset);
+                      
   for (int s=rel15->coreset.StartSymbolIndex; s<(rel15->coreset.StartSymbolIndex+rel15->coreset.duration); s++) {
     LOG_D(PHY,"in nr_pdcch_extract_rbs_single(rxdataF -> rxdataF_ext || dl_ch_estimates -> dl_ch_estimates_ext)\n");
 
