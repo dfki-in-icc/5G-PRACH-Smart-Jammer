@@ -90,7 +90,7 @@
 #ifndef NO_RAT_NR
   #define DURATION_RX_TO_TX           (NR_UE_CAPABILITY_SLOT_RX_TO_TX)  /* for NR this will certainly depends to such UE capability which is not yet defined */
 #else
-  #define DURATION_RX_TO_TX           (6)   /* For LTE, this duration is fixed to 4 and it is linked to LTE standard for both modes FDD/TDD */
+  #define DURATION_RX_TO_TX           (4)   /* For LTE, this duration is fixed to 4 and it is linked to LTE standard for both modes FDD/TDD */
 #endif
 #define RX_JOB_ID 0x1010
 #define TX_JOB_ID 100
@@ -360,6 +360,7 @@ void processSlotRX(void *arg) {
     }
     // calling UL_indication to schedule things other than PUSCH (eg, PUCCH)
     rxtxD->ue_sched_mode = NOT_PUSCH;
+    if(tx_slot_type==NR_MIXED_SLOT) rxtxD->ue_sched_mode = SCHED_ALL;
     processSlotTX(rxtxD);
 
     // Wait for PUSCH processing to finish
