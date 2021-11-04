@@ -2707,6 +2707,8 @@ uint8_t nr_extract_dci_info(NR_UE_MAC_INST_t *mac,
       if (mac->DLbwp[0]) N_RB=NRRIV2BW(mac->DLbwp[0]->bwp_Common->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
       else         N_RB=NRRIV2BW(mac->scc_SIB->downlinkConfigCommon.initialDownlinkBWP.genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
 
+      //TODO L5G
+      N_RB = mac->type0_PDCCH_CSS_config.num_rbs;
       // indicating a DL DCI format 1bit
       pos++;
       dci_pdu_rel15->format_indicator = (*dci_pdu>>(dci_size-pos))&1;
