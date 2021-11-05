@@ -62,6 +62,10 @@ public:
         XRANFTHRX_PRB_MAP_IN,
         XRANFTHTX_SEC_DESC_IN,
         XRANFTHRACH_IN,
+#if 1
+// Sofia add this entry as in sample app
+        XRANSRS_IN,
+#endif
         MAX_SW_XRAN_INTERFACE_NUM
     } SWXRANInterfaceTypeEnum;
 
@@ -99,8 +103,8 @@ protected:
 
     void *m_xranhandle;
 
-    uint8_t m_du_mac[6] = { 0x00,0x11, 0x22, 0x33, 0x44, 0x66 };
-    uint8_t m_ru_mac[6] = { 0x00,0x11, 0x22, 0x33, 0x44, 0x55 };
+    uint8_t m_du_mac[6] = { 0x00,0x11, 0x22, 0x33, 0x44, 0x55 }; // Sofia: this is hard coded here and then it is read from the conf file
+    uint8_t m_ru_mac[6] = { 0x00,0x11, 0x22, 0x33, 0x44, 0x66 }; // Sofia: this is hard coded here and then it is read from the conf file
     bool m_bSub6;
     uint32_t m_nSlots = 10;
 
@@ -117,6 +121,7 @@ protected:
     BbuIoBufCtrlStruct m_sFrontHaulRxBbuIoBufCtrl[XRAN_N_FE_BUF_LEN][XRAN_MAX_SECTOR_NR][XRAN_MAX_ANTENNA_NR];
     BbuIoBufCtrlStruct m_sFrontHaulRxPrbMapBbuIoBufCtrl[XRAN_N_FE_BUF_LEN][XRAN_MAX_SECTOR_NR][XRAN_MAX_ANTENNA_NR];
     BbuIoBufCtrlStruct m_sFHPrachRxBbuIoBufCtrl[XRAN_N_FE_BUF_LEN][XRAN_MAX_SECTOR_NR][XRAN_MAX_ANTENNA_NR];
+
 
     /* Cat B */
     BbuIoBufCtrlStruct m_sFHSrsRxBbuIoBufCtrl[XRAN_N_FE_BUF_LEN][XRAN_MAX_SECTOR_NR][XRAN_MAX_ANT_ARRAY_ELM_NR];
@@ -206,11 +211,15 @@ private:
             std::cout << "Failed at XRAN front haul xran_mm_init" << std::endl;
             return (-1);
             }
-
+#if 0
+// Sofia: define the sizes according to the specified parameters in the conf file not up to the maximim boudary
         /* initialize maximum instances to have flexibility for the tests */
         int nInstanceNum = XRAN_MAX_SECTOR_NR;
         /* initialize maximum supported CC to have flexibility on the test */
-        int32_t nSectorNum = 6;//XRAN_MAX_SECTOR_NR;
+        int32_t nSectorNum = 6; //XRAN_MAX_SECTOR_NR;
+#endif
+        int32_t  nSectorNum   = get_num_cc();
+        int      nInstanceNum = get_num_cc();       
 
         for(k = 0; k < XRAN_PORTS_NUM; k++) {
             status = xran_sector_get_instances(m_xranhandle, nInstanceNum, &m_nInstanceHandle[k][0]);
@@ -224,8 +233,10 @@ private:
         std::cout << "Sucess xran_mm_init" << std::endl;
 
         /* Init Memory */
+        printf("Sofia wrapper.hpp: Init memory *** XRANFTHTX_OUT ***\n");
         for(i = 0; i<nSectorNum; i++) {
             eInterfaceType = XRANFTHTX_OUT;
+            printf("Call xran_bm_init %d\n",i);
             status = xran_bm_init(m_nInstanceHandle[0][i],
                             &m_nBufPoolIndex[m_nSectorIndex[i]][eInterfaceType],
                             XRAN_N_FE_BUF_LEN * xran_max_antenna_nr * XRAN_NUM_OF_SYMBOL_PER_SLOT,
@@ -265,6 +276,7 @@ private:
                 }
 
             /* C-plane DL */
+            printf("Sofia wrapper.hpp: Init memory *** XRANFTHTX_SEC_DESC_OUT ***\n");
             eInterfaceType = XRANFTHTX_SEC_DESC_OUT;
             status = xran_bm_init(m_nInstanceHandle[0][i],
                             &m_nBufPoolIndex[m_nSectorIndex[i]][eInterfaceType],
@@ -273,6 +285,7 @@ private:
                 std::cout << __LINE__ << " Failed at xran_bm_init, status " << status << std::endl;
                 return (-1);
             }
+            printf("Sofia wrapper.hpp: Init memory *** XRANFTHTX_PRB_MAP_OUT ***\n");
             eInterfaceType = XRANFTHTX_PRB_MAP_OUT;
             status = xran_bm_init(m_nInstanceHandle[0][i],
                             &m_nBufPoolIndex[m_nSectorIndex[i]][eInterfaceType],
@@ -322,6 +335,7 @@ private:
         }
 
         for(i = 0; i<nSectorNum; i++) {
+            printf("Sofia wrapper.hpp: Init memory *** XRANFTHRX_IN ***\n");
             eInterfaceType = XRANFTHRX_IN;
             status = xran_bm_init(m_nInstanceHandle[0][i],
                             &m_nBufPoolIndex[m_nSectorIndex[i]][eInterfaceType],
@@ -359,7 +373,7 @@ private:
                         }
                     }
                 }
-
+            printf("Sofia wrapper.hpp: Init memory *** XRANFTHTX_SEC_DESC_IN ***\n");
             eInterfaceType = XRANFTHTX_SEC_DESC_IN;
             status = xran_bm_init(m_nInstanceHandle[0][i],
                             &m_nBufPoolIndex[m_nSectorIndex[i]][eInterfaceType],
@@ -368,6 +382,7 @@ private:
                 std::cout << __LINE__ << " Failed at xran_bm_init, status " << status << std::endl;
                 return (-1);
             }
+            printf("Sofia wrapper.hpp: Init memory *** XRANFTHRX_PRB_MAP_IN ***\n");
             eInterfaceType = XRANFTHRX_PRB_MAP_IN;
             status = xran_bm_init(m_nInstanceHandle[0][i],
                                 &m_nBufPoolIndex[m_nSectorIndex[i]][eInterfaceType],
@@ -418,6 +433,7 @@ private:
         }
 
         for(i = 0; i<nSectorNum; i++) {
+            printf("Sofia wrapper.hpp: Init memory *** XRANFTHRACH_IN ***\n");
             eInterfaceType = XRANFTHRACH_IN;
             status = xran_bm_init(m_nInstanceHandle[0][i],
                                 &m_nBufPoolIndex[m_nSectorIndex[i]][eInterfaceType],
@@ -455,6 +471,56 @@ private:
                 }
             }
 
+#if 1
+// Insert the allocation of srs buffers useful for xran_5g_srs_req()
+// Code taken from sample app  
+//
+
+    /* add SRS rx buffer */
+    for(i = 0; i<nSectorNum && xran_max_ant_array_elm_nr; i++)
+    {
+        printf("Sofia wrapper.hpp: Init memory *** XRANSRS_IN ***\n");
+        eInterfaceType = XRANSRS_IN;
+        status = xran_bm_init(m_nInstanceHandle[0][i],&m_nBufPoolIndex[m_nSectorIndex[i]][eInterfaceType],
+            XRAN_N_FE_BUF_LEN*xran_max_ant_array_elm_nr*XRAN_MAX_NUM_OF_SRS_SYMBOL_PER_SLOT, m_nSW_ToFpga_FTH_TxBufferLen);
+
+        if(XRAN_STATUS_SUCCESS != status) {
+           std::cout << __LINE__ << " Failed at xran_bm_init, status " << status << std::endl;
+           return (-1);
+        }
+        for(j = 0; j < XRAN_N_FE_BUF_LEN; j++)
+        {
+            for(z = 0; z < xran_max_ant_array_elm_nr; z++){
+                m_sFHSrsRxBbuIoBufCtrl[j][i][z].bValid = 0;
+                m_sFHSrsRxBbuIoBufCtrl[j][i][z].nSegGenerated = -1;
+                m_sFHSrsRxBbuIoBufCtrl[j][i][z].nSegToBeGen = -1;
+                m_sFHSrsRxBbuIoBufCtrl[j][i][z].nSegTransferred = 0;
+                m_sFHSrsRxBbuIoBufCtrl[j][i][z].sBufferList.nNumBuffers = xran_max_ant_array_elm_nr; /* ant number */
+                m_sFHSrsRxBbuIoBufCtrl[j][i][z].sBufferList.pBuffers = &m_sFHSrsRxBuffers[j][i][z][0];
+                for(k = 0; k < XRAN_MAX_NUM_OF_SRS_SYMBOL_PER_SLOT; k++)
+                {
+                    m_sFHSrsRxBbuIoBufCtrl[j][i][z].sBufferList.pBuffers[k].nElementLenInBytes = m_nSW_ToFpga_FTH_TxBufferLen;
+                    m_sFHSrsRxBbuIoBufCtrl[j][i][z].sBufferList.pBuffers[k].nNumberOfElements = 1;
+                    m_sFHSrsRxBbuIoBufCtrl[j][i][z].sBufferList.pBuffers[k].nOffsetInBytes = 0;
+                    status = xran_bm_allocate_buffer(m_nInstanceHandle[0][i], m_nBufPoolIndex[m_nSectorIndex[i]][eInterfaceType], &ptr, &mb);
+                    if(XRAN_STATUS_SUCCESS != status) {
+                        std::cout << __LINE__ << " Failed at  xran_bm_allocate_buffer, status " << status << std::endl;
+                        return (-1);
+                    }
+                    m_sFHSrsRxBbuIoBufCtrl[j][i][z].sBufferList.pBuffers[k].pData = (uint8_t *)ptr;
+                    m_sFHSrsRxBbuIoBufCtrl[j][i][z].sBufferList.pBuffers[k].pCtrl = (void *)mb;
+                    if(ptr){
+                        u32dptr = (uint32_t*)(ptr);
+                        memset(u32dptr, 0x0, m_nSW_ToFpga_FTH_TxBufferLen);
+                    }
+                }
+            }
+        }
+    }
+
+            
+#endif
+
         return (0);
     }
 
@@ -476,8 +542,10 @@ public:
         m_dpdk_dev_up = get_globalcfg<std::string>(XRAN_UT_KEY_GLOBALCFG_IO, "dpdk_dev_up");
         m_dpdk_dev_cp = get_globalcfg<std::string>(XRAN_UT_KEY_GLOBALCFG_IO, "dpdk_dev_cp");
         m_xranInit.io_cfg.num_vfs = 2;
-        m_xranInit.io_cfg.dpdk_dev[XRAN_UP_VF]  = "0000:65:02.0";
-        m_xranInit.io_cfg.dpdk_dev[XRAN_CP_VF]  = "0000:65:02.1";
+        m_xranInit.io_cfg.dpdk_dev[XRAN_UP_VF]  = "0000:b3:02.0";
+        m_xranInit.io_cfg.dpdk_dev[XRAN_CP_VF]  = "0000:b3:02.1";
+ 
+        printf("Sofia: m_xranInit.io_cfg.dpdk_dev[%d] =%s, m_xranInit.io_cfg.dpdk_dev[%d]=%s\n",XRAN_UP_VF,m_xranInit.io_cfg.dpdk_dev[XRAN_UP_VF],XRAN_CP_VF,m_xranInit.io_cfg.dpdk_dev[XRAN_CP_VF]);
 
         m_xranInit.io_cfg.core              = get_globalcfg<int>(XRAN_UT_KEY_GLOBALCFG_IO, "core");
         m_xranInit.io_cfg.system_core       = get_globalcfg<int>(XRAN_UT_KEY_GLOBALCFG_IO, "system_core");
@@ -513,7 +581,7 @@ public:
                                            &tmp_mac[3], &tmp_mac[4], &tmp_mac[5]);
         for(i=0; i<6; i++)
             m_du_mac[i] = (uint8_t)tmp_mac[i];
-        std::sscanf(du_mac_str.c_str(), "%02x:%02x:%02x:%02x:%02x:%02x",
+        std::sscanf(ru_mac_str.c_str(), "%02x:%02x:%02x:%02x:%02x:%02x",
                                            &tmp_mac[0], &tmp_mac[1], &tmp_mac[2],
                                            &tmp_mac[3], &tmp_mac[4], &tmp_mac[5]);
         for(i=0; i<6; i++)
@@ -529,14 +597,14 @@ public:
         int bitnum_ccid     = get_globalcfg<int>(XRAN_UT_KEY_GLOBALCFG_EAXCID, "bit_ccId");
         int bitnum_ruport   = get_globalcfg<int>(XRAN_UT_KEY_GLOBALCFG_EAXCID, "bit_ruPortId");
 
-        m_xranInit.eAxCId_conf.bit_cuPortId       = bitnum_bandsec + bitnum_ccid + bitnum_ruport;
-        m_xranInit.eAxCId_conf.bit_bandSectorId   = bitnum_ccid + bitnum_ruport;
-        m_xranInit.eAxCId_conf.bit_ccId           = bitnum_ruport;
+        m_xranInit.eAxCId_conf.bit_cuPortId       = 12;//bitnum_bandsec + bitnum_ccid + bitnum_ruport;
+        m_xranInit.eAxCId_conf.bit_bandSectorId   = 8; //bitnum_ccid + bitnum_ruport;
+        m_xranInit.eAxCId_conf.bit_ccId           = 4; //bitnum_ruport;
         m_xranInit.eAxCId_conf.bit_ruPortId       = 0;
-        m_xranInit.eAxCId_conf.mask_cuPortId      = get_eaxcid_mask(bitnum_cuport, m_xranInit.eAxCId_conf.bit_cuPortId);
-        m_xranInit.eAxCId_conf.mask_bandSectorId  = get_eaxcid_mask(bitnum_bandsec, m_xranInit.eAxCId_conf.bit_bandSectorId);
-        m_xranInit.eAxCId_conf.mask_ccId          = get_eaxcid_mask(bitnum_ccid, m_xranInit.eAxCId_conf.bit_ccId);
-        m_xranInit.eAxCId_conf.mask_ruPortId      = get_eaxcid_mask(bitnum_ruport, m_xranInit.eAxCId_conf.bit_ruPortId);
+        m_xranInit.eAxCId_conf.mask_cuPortId      = 0xf000; //get_eaxcid_mask(bitnum_cuport, m_xranInit.eAxCId_conf.bit_cuPortId);
+        m_xranInit.eAxCId_conf.mask_bandSectorId  = 0x0f00; //get_eaxcid_mask(bitnum_bandsec, m_xranInit.eAxCId_conf.bit_bandSectorId);
+        m_xranInit.eAxCId_conf.mask_ccId          = 0x00f0; //get_eaxcid_mask(bitnum_ccid, m_xranInit.eAxCId_conf.bit_ccId);
+        m_xranInit.eAxCId_conf.mask_ruPortId      = 0x000f; //get_eaxcid_mask(bitnum_ruport, m_xranInit.eAxCId_conf.bit_ruPortId);
 
         m_xranInit.totalBfWeights   = get_globalcfg<int>(XRAN_UT_KEY_GLOBALCFG_RU, "totalBfWeights");
 
@@ -559,12 +627,16 @@ public:
         m_xranInit.Ta4_max          = get_globalcfg<int>(XRAN_UT_KEY_GLOBALCFG_RU, "Ta4_max");
 
         m_xranInit.enableCP         = 1;
-        m_xranInit.prachEnable      = 1;
-        m_xranInit.debugStop        = 0;
+        //m_xranInit.enableCP         = 0;    // Sofia try to modify 
+        //m_xranInit.prachEnable      = 1;
+        m_xranInit.prachEnable      = 1;   // Sofia modify according to sample app log 
+        m_xranInit.debugStop        = 0; // Sofia Modify according to sample app log
+        //m_xranInit.debugStop        = 1;   // Sofia Modify according to sample app log
         m_xranInit.debugStopCount   = 0;
         m_xranInit.DynamicSectionEna= 0;
 
-        m_xranInit.filePrefix   = "wls";
+        m_xranInit.filePrefix   = "wls"; //Sofia modifies
+       // m_xranInit.filePrefix   = "wls_0"; // Sofia Modifies
 
         m_bSub6     = get_globalcfg<bool>(XRAN_UT_KEY_GLOBALCFG_RU, "sub6");
 
@@ -659,7 +731,9 @@ public:
         m_xranConf.ru_conf.byteOrder    =  XRAN_NE_BE_BYTE_ORDER;
         m_xranConf.ru_conf.iqOrder      =  XRAN_I_Q_ORDER;
 
-        m_xranConf.log_level    = 0;
+        //m_xranConf.log_level    = 0; // Sofia modif
+        m_xranConf.log_level    = 1; //Sofia modif
+
 /*
         m_xranConf.bbdev_enc = nullptr;
         m_xranConf.bbdev_dec = nullptr;
@@ -710,8 +784,17 @@ public:
             m_nSectorIndex[i] = i;
 
         /* set to maximum length to support multiple cases */
-        m_nFpgaToSW_FTH_RxBufferLen     = 13168; /* 273*12*4 + 64*/
-        m_nSW_ToFpga_FTH_TxBufferLen    = 13168; /* 273*12*4 + 64*/
+         m_nFpgaToSW_FTH_RxBufferLen     = 13168; /* 273*12*4 + 64*/
+        #if 0
+        // Sofia: According to sample app this is not the max length. We should also include the spacce for ORAN and ETH Heaaders
+           m_nSW_ToFpga_FTH_TxBufferLen    = 13168; /* 273*12*4 + 64*/
+        #endif
+        m_nSW_ToFpga_FTH_TxBufferLen   = 13168 + /* 273*12*4 + 64* + ETH AND ORAN HDRs */
+                        XRAN_MAX_SECTIONS_PER_SYM* (RTE_PKTMBUF_HEADROOM + sizeof(struct rte_ether_hdr) +
+                        sizeof(struct xran_ecpri_hdr) +
+                        sizeof(struct radio_app_common_hdr) +
+                        sizeof(struct data_section_hdr));
+printf("Sofia wrapper.hpp: nFpgaToSW_FTH_RxBufferLen=%d , nSW_ToFpga_FTH_TxBufferLen=%d\n",m_nFpgaToSW_FTH_RxBufferLen,m_nSW_ToFpga_FTH_TxBufferLen);        
 
         if(init_memory() < 0) {
             std::cout << "Fatal Error on Initialization !!!" << std::endl;
@@ -956,6 +1039,8 @@ public:
         xran_reg_physide_cb(xranHandle, physide_ul_half_slot_call_back, NULL, 10, XRAN_CB_HALF_SLOT_RX);
         xran_reg_physide_cb(xranHandle, physide_ul_full_slot_call_back, NULL, 10, XRAN_CB_FULL_SLOT_RX);
 #endif
+        // Sofia, Roman enable xran_reg_physide_cb(xranHandle, physide_dl_tti_call_back, NULL, 10, XRAN_CB_TTI); for the CP --> In our wrapper
+
         nSectorNum = get_num_cc();
 
         for(i=0; i<nSectorNum; i++)
@@ -1002,18 +1087,20 @@ public:
                 }
 
             /* add SRS callback here */
+
+/*
             for (i = 0; i<nSectorNum && xran_max_ant_array_elm_nr; i++) {
                 xran_5g_srs_req(m_nInstanceHandle[0][i], pFthRxSrsBuffer[i],
                     (void (*)(void *, xran_status_t))fh_srs_callback,&pFthRxSrsBuffer[i][0]);
                 }
+*/
 
             }
 
 
-
         xran_register_cb_mbuf2ring(send_cp, send_up);
 
-        xran_open(m_xranhandle, &m_xranConf);
+        //xran_open(m_xranhandle, &m_xranConf); // Sofia comment
     }
 
     void Close()
@@ -1162,6 +1249,10 @@ public:
     bool is_cpenable()      { return(m_xranInit.enableCP); };
     bool is_prachenable()   { return(m_xranInit.prachEnable); };
     bool is_dynamicsection() { return(m_xranInit.DynamicSectionEna?true:false); }
+    
+    // --- Sofia defines useful functions
+    bool get_sub6()         { return(m_bSub6);}
+    // ---------------------------------
 
     void get_cfg_prach(struct xran_prach_config *pCfg)
     {

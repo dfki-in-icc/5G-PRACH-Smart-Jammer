@@ -24,9 +24,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#if 0
 void init_buffers(shared_buffers *s)
 {
+
   int subframe;
 
   memset(s, 0, sizeof(*s));
@@ -45,8 +46,9 @@ void init_buffers(shared_buffers *s)
   s->dl_busy[1] = 0x3fff;
   s->dl_busy[2] = 0x3fff;
   s->dl_busy[3] = 0x3fff;
+
 }
-/*
+
 void lock_buffers(shared_buffers *s, int subframe)
 {
   if (pthread_mutex_lock(&s->m[subframe]) != 0) {
@@ -78,4 +80,96 @@ void signal_buffers(shared_buffers *s, int subframe)
     exit(1);
   }
 }
-*/
+#endif
+
+void init_buffers(shared_buffers *s)
+{
+  int subframe;
+
+  memset(s, 0, sizeof(*s));
+
+  for (subframe = 0; subframe < 10; subframe++) {
+    if (pthread_mutex_init(&s->m_dl[subframe], NULL) != 0 ||
+        pthread_cond_init(&s->c_dl[subframe], NULL) != 0  ||
+        pthread_mutex_init(&s->m_ul[subframe], NULL) != 0 ||
+        pthread_cond_init(&s->c_ul[subframe], NULL) != 0) {
+      printf("%s: error initializing mutex/cond\n", __FUNCTION__);
+      exit(1);
+    }
+  }
+
+  /* in FDD the eNB's first transmitted DL subframe is 4 but the device
+ *    * needs to have subframes 1, 2 and 3 ready. Let's pretend there are ready.
+ *       */
+  s->dl_busy[0][1] = 0x3fff;
+  s->dl_busy[0][2] = 0x3fff;
+  s->dl_busy[0][3] = 0x3fff;
+  s->dl_busy[1][1] = 0x3fff;
+  s->dl_busy[1][2] = 0x3fff;
+  s->dl_busy[1][3] = 0x3fff;
+}
+
+void lock_dl_buffer(shared_buffers *s, int subframe)
+{
+  if (pthread_mutex_lock(&s->m_dl[subframe]) != 0) {
+    printf("%s: fatal: lock fails\n", __FUNCTION__);
+    exit(1);
+  }
+}
+
+void unlock_dl_buffer(shared_buffers *s, int subframe)
+{
+  if (pthread_mutex_unlock(&s->m_dl[subframe]) != 0) {
+    printf("%s: fatal: unlock fails\n", __FUNCTION__);
+    exit(1);
+  }
+}
+
+void wait_dl_buffer(shared_buffers *s, int subframe)
+{
+  if (pthread_cond_wait(&s->c_dl[subframe], &s->m_dl[subframe]) != 0) {
+    printf("%s: fatal: cond_wait fails\n", __FUNCTION__);
+    exit(1);
+  }
+}
+
+void signal_dl_buffer(shared_buffers *s, int subframe)
+{
+  if (pthread_cond_broadcast(&s->c_dl[subframe]) != 0) {
+    printf("%s: fatal: cond_broadcast fails\n", __FUNCTION__);
+    exit(1);
+  }
+}
+
+void lock_ul_buffer(shared_buffers *s, int subframe)
+{
+  if (pthread_mutex_lock(&s->m_ul[subframe]) != 0) {
+    printf("%s: fatal: lock fails\n", __FUNCTION__);
+    exit(1);
+  }
+}
+
+void unlock_ul_buffer(shared_buffers *s, int subframe)
+{
+  if (pthread_mutex_unlock(&s->m_ul[subframe]) != 0) {
+    printf("%s: fatal: unlock fails\n", __FUNCTION__);
+    exit(1);
+  }
+}
+
+void wait_ul_buffer(shared_buffers *s, int subframe)
+{
+  if (pthread_cond_wait(&s->c_ul[subframe], &s->m_ul[subframe]) != 0) {
+    printf("%s: fatal: cond_wait fails\n", __FUNCTION__);
+    exit(1);
+  }
+}
+
+void signal_ul_buffer(shared_buffers *s, int subframe)
+{
+  if (pthread_cond_broadcast(&s->c_ul[subframe]) != 0) {
+    printf("%s: fatal: cond_broadcast fails\n", __FUNCTION__);
+    exit(1);
+  }
+}
+
