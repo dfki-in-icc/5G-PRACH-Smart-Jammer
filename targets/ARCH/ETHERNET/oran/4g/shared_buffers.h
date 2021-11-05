@@ -25,6 +25,7 @@
 #include <pthread.h>
 #include <stdint.h>
 
+#if 0
 typedef struct {
   unsigned char dl[10][14*1200*4];
   unsigned char ul[10][14*1200*4];
@@ -47,5 +48,77 @@ void lock_buffers(shared_buffers *s, int subframe);
 void unlock_buffers(shared_buffers *s, int subframe);
 void wait_buffers(shared_buffers *s, int subframe);
 void signal_buffers(shared_buffers *s, int subframe);
+
+
+
+typedef struct {
+  /* [2] is for two antennas */
+  unsigned char dl[2][10][14*1200*4];
+  unsigned char ul[2][10][14*1200*4];
+  uint16_t dl_busy[2][10];
+  uint16_t ul_busy[2][10];
+
+  pthread_mutex_t m_ul[10];
+  pthread_cond_t  c_ul[10];
+
+  pthread_mutex_t m_dl[10];
+  pthread_cond_t  c_dl[10];
+
+  unsigned char prach[10][849*4];
+  unsigned char prach_busy[10];
+
+  /* statistics/error counting */
+  int ul_overflow;
+  int dl_underflow;
+} shared_buffers;
+
+void init_buffers(shared_buffers *s);
+
+void lock_dl_buffer(shared_buffers *s, int subframe);
+void unlock_dl_buffer(shared_buffers *s, int subframe);
+void wait_dl_buffer(shared_buffers *s, int subframe);
+void signal_dl_buffer(shared_buffers *s, int subframe);
+
+void lock_ul_buffer(shared_buffers *s, int subframe);
+void unlock_ul_buffer(shared_buffers *s, int subframe);
+void wait_ul_buffer(shared_buffers *s, int subframe);
+void signal_ul_buffer(shared_buffers *s, int subframe);
+#endif
+
+typedef struct {
+  /* [2] is for two antennas */
+  unsigned char dl[2][10][14*1200*4];
+  unsigned char ul[2][10][14*1200*4];
+  uint16_t dl_busy[2][10];
+  uint16_t ul_busy[2][10];
+
+  pthread_mutex_t m_ul[10];
+  pthread_cond_t  c_ul[10];
+
+  pthread_mutex_t m_dl[10];
+  pthread_cond_t  c_dl[10];
+
+  unsigned char prach[10][849*4];
+  unsigned char prach_busy[10];
+
+  /* statistics/error counting */
+  int ul_overflow;
+  int dl_underflow;
+} shared_buffers;
+
+void init_buffers(shared_buffers *s);
+
+void lock_dl_buffer(shared_buffers *s, int subframe);
+void unlock_dl_buffer(shared_buffers *s, int subframe);
+void wait_dl_buffer(shared_buffers *s, int subframe);
+void signal_dl_buffer(shared_buffers *s, int subframe);
+
+void lock_ul_buffer(shared_buffers *s, int subframe);
+void unlock_ul_buffer(shared_buffers *s, int subframe);
+void wait_ul_buffer(shared_buffers *s, int subframe);
+void signal_ul_buffer(shared_buffers *s, int subframe);
+
+
+
 
 #endif /* _SHARED_BUFFERS_H_ */
