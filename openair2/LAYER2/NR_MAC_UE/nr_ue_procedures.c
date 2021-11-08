@@ -749,7 +749,13 @@ int8_t nr_ue_process_dci(module_id_t module_id, int cc_id, uint8_t gNB_index, fr
         pdsch_config = NULL;
       }
     }
-
+    //TODO L5G
+    if(get_rnti_type(mac,rnti)==NR_RNTI_TC){
+        dlsch_config_pdu_1_0->BWPSize = mac->type0_PDCCH_CSS_config.num_rbs;
+        dlsch_config_pdu_1_0->BWPStart = mac->type0_PDCCH_CSS_config.cset_start_rb;
+        BWPSize = dlsch_config_pdu_1_0->BWPSize;
+        LOG_I(MAC,"get NR_RNTI_TC and recieve\n");
+    }
     /* IDENTIFIER_DCI_FORMATS */
     /* FREQ_DOM_RESOURCE_ASSIGNMENT_DL */
     if (nr_ue_process_dci_freq_dom_resource_assignment(NULL,dlsch_config_pdu_1_0,0,BWPSize,dci->frequency_domain_assignment.val) < 0) {
