@@ -1413,7 +1413,7 @@ int8_t nr_rrc_ue_decode_ccch( const protocol_ctxt_t *const ctxt_pP, const NR_SRB
 			  &asn_DEF_NR_DL_CCCH_Message,
 			  (void **)&dl_ccch_msg,
 			  (uint8_t *)Srb_info->Rx_buffer.Payload,
-			  100,0,0);
+			  1024,0,0);
 
 	 if ( LOG_DEBUGFLAG(DEBUG_ASN1) ) {
      xer_fprint(stdout,&asn_DEF_NR_DL_CCCH_Message,(void *)dl_ccch_msg);
