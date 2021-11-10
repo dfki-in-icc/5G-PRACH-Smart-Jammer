@@ -39,8 +39,8 @@
 #include "common/utils/LOG/vcd_signal_dumper.h"
 #include "common/utils/nr/nr_common.h"
 
-#define DEBUG_DLSCH
-#define DEBUG_DLSCH_MAPPING
+//#define DEBUG_DLSCH
+//#define DEBUG_DLSCH_MAPPING
 
 #define printfC(a) (a).r, (a.i)
 
