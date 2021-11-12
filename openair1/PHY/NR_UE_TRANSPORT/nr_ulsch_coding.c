@@ -268,9 +268,8 @@ int nr_ulsch_encoding(PHY_VARS_NR_UE *ue,
   LOG_D(PHY,"ulsch coding A %d G %d mod_order %d\n", A,G, mod_order);
   LOG_D(PHY,"harq_pid %d harq_process->ndi %d, pusch_data.new_data_indicator %d\n",
         harq_pid,harq_process->ndi,harq_process->pusch_pdu.pusch_data.new_data_indicator);
-  //if (harq_process->first_tx == 1 ||
-  //    harq_process->ndi != harq_process->pusch_pdu.pusch_data.new_data_indicator) {  // this is a new packet
-  { // todo
+  if (harq_process->first_tx == 1 ||
+      harq_process->ndi != harq_process->pusch_pdu.pusch_data.new_data_indicator) {  // this is a new packet
 #ifdef DEBUG_ULSCH_CODING
   printf("encoding thinks this is a new packet \n");
 #endif
