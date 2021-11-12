@@ -359,8 +359,7 @@ uint32_t nr_dlsch_decoding(PHY_VARS_NR_UE *phy_vars_ue,
     }
   }
 
-  //if (harq_process->first_rx == 1) {
-  { // todo to get around the assertion of Rate matching where a new packet is mistaken as not  a new one
+  if (harq_process->first_rx == 1) {
     // This is a new packet, so compute quantities regarding segmentation
     if (A > NR_MAX_PDSCH_TBS)
       harq_process->B = A+24;
