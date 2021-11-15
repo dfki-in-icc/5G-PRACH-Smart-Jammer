@@ -1795,7 +1795,6 @@ int phy_procedures_nrUE_RX(PHY_VARS_NR_UE *ue,
 
   dci_cnt = 0;
   for(int n_ss = 0; n_ss<pdcch_vars->nb_search_space; n_ss++) {
-    dump_flag=0;
     double temp_power=0.0;
     double temp_power_db=0.0;
     for (uint16_t l=0; l<nb_symb_pdcch; l++) {

@@ -651,7 +651,11 @@ int nr_config_pusch_pdu(NR_UE_MAC_INST_t *mac,
     pusch_config_pdu->bwp_size = n_RB_ULBWP;
 
     NR_PUSCH_Config_t *pusch_Config = mac->ULbwp[0] ? mac->ULbwp[0]->bwp_Dedicated->pusch_Config->choice.setup : NULL;
-
+    if( (pusch_Config==NULL) &&
+        (mac->initULbwp &&
+         mac->initULbwp->pusch_Config) ){
+      pusch_Config = mac->initULbwp->pusch_Config->choice.setup;
+    }
     // Basic sanity check for MCS value to check for a false or erroneous DCI
     if (dci->mcs > 28) {
       LOG_W(NR_MAC, "MCS value %d out of bounds! Possibly due to false DCI. Ignoring DCI!\n", dci->mcs);
