@@ -745,9 +745,11 @@ int nr_ue_pdcch_procedures(uint8_t gNB_id,
     */
 
     // fill dl_indication message
+  if(dci_cnt>0){
     nr_fill_dl_indication(&dl_indication, &dci_ind, NULL, proc, ue, gNB_id);
     //  send to mac
     ue->if_inst->dl_indication(&dl_indication, NULL);
+  }
 
 #if UE_TIMING_TRACE
   stop_meas(&ue->dlsch_rx_pdcch_stats);
@@ -1210,6 +1212,11 @@ bool nr_ue_dlsch_procedures(PHY_VARS_NR_UE *ue,
           mac->ULbwp[0]->bwp_Dedicated->pusch_Config->choice.setup->pusch_TimeDomainAllocationList) {
         pusch_TimeDomainAllocationList = mac->ULbwp[0]->bwp_Dedicated->pusch_Config->choice.setup->pusch_TimeDomainAllocationList->choice.setup;
       }
+      else if (mac->initULbwp &&
+               mac->initULbwp->pusch_Config &&
+               mac->initULbwp->pusch_Config->choice.setup->pusch_TimeDomainAllocationList) {
+        pusch_TimeDomainAllocationList = mac->initULbwp->pusch_Config->choice.setup->pusch_TimeDomainAllocationList->choice.setup;
+      }
       else if (mac->ULbwp[0] &&
                mac->ULbwp[0]->bwp_Common &&
                mac->ULbwp[0]->bwp_Common->pusch_ConfigCommon &&
@@ -1227,8 +1234,10 @@ bool nr_ue_dlsch_procedures(PHY_VARS_NR_UE *ue,
       long mapping_type_ul = pusch_TimeDomainAllocationList ? pusch_TimeDomainAllocationList->list.array[0]->mappingType : NR_PUSCH_TimeDomainResourceAllocation__mappingType_typeA;
 
       NR_PDSCH_Config_t *pdsch_Config = (mac->DLbwp[0] && mac->DLbwp[0]->bwp_Dedicated->pdsch_Config->choice.setup) ? mac->DLbwp[0]->bwp_Dedicated->pdsch_Config->choice.setup : NULL;
+      if(!pdsch_Config && mac->initDLbwp && mac->initDLbwp->pdsch_Config)
+        pdsch_Config = mac->initDLbwp->pdsch_Config->choice.setup;
       NR_PDSCH_TimeDomainResourceAllocationList_t *pdsch_TimeDomainAllocationList = NULL;
-      if (mac->DLbwp[0] && mac->DLbwp[0]->bwp_Dedicated->pdsch_Config->choice.setup->pdsch_TimeDomainAllocationList)
+      if (pdsch_Config && pdsch_Config->pdsch_TimeDomainAllocationList)
         pdsch_TimeDomainAllocationList = pdsch_Config->pdsch_TimeDomainAllocationList->choice.setup;
       else if (mac->DLbwp[0] && mac->DLbwp[0]->bwp_Common->pdsch_ConfigCommon->choice.setup->pdsch_TimeDomainAllocationList)
         pdsch_TimeDomainAllocationList = mac->DLbwp[0]->bwp_Common->pdsch_ConfigCommon->choice.setup->pdsch_TimeDomainAllocationList;
@@ -1758,6 +1767,16 @@ int phy_procedures_nrUE_RX(PHY_VARS_NR_UE *ue,
     LOG_I(PHY,"============================================\n");
   }
 
+  int temp_cnt=0;
+  for (uint16_t l=0; l<14; l++) {
+    for(int n_ss = 0; n_ss<pdcch_vars->nb_search_space; n_ss++) {
+      if((pdcch_vars->pdcch_config[n_ss].coreset.StartSymbolIndex <= l)&&((pdcch_vars->pdcch_config[n_ss].coreset.StartSymbolIndex+pdcch_vars->pdcch_config[n_ss].coreset.duration > l))){
+        temp_cnt++;
+        break;
+      }
+    }
+  }
+  nb_symb_pdcch=temp_cnt;
 #ifdef NR_PDCCH_SCHED
 
   LOG_D(PHY," ------ --> PDCCH ChannelComp/LLR Frame.slot %d.%d ------  \n", frame_rx%1024, nr_slot_rx);
@@ -1776,26 +1795,39 @@ int phy_procedures_nrUE_RX(PHY_VARS_NR_UE *ue,
 
   dci_cnt = 0;
   for(int n_ss = 0; n_ss<pdcch_vars->nb_search_space; n_ss++) {
+    dump_flag=0;
+    double temp_power=0.0;
+    double temp_power_db=0.0;
     for (uint16_t l=0; l<nb_symb_pdcch; l++) {
+      if((pdcch_vars->pdcch_config[n_ss].coreset.StartSymbolIndex <= l)&&((pdcch_vars->pdcch_config[n_ss].coreset.StartSymbolIndex+pdcch_vars->pdcch_config[n_ss].coreset.duration > l))){
+        short *temp_IQ=&ue->common_vars.common_vars_rx_data_per_thread[proc->thread_id].rxdataF[0][ue->frame_parms.ofdm_symbol_size*l];
+        for(int pp=0; pp < ue->frame_parms.ofdm_symbol_size ; pp++){
+          temp_power+=temp_IQ[pp*2]*temp_IQ[pp*2]+temp_IQ[pp*2+1]*temp_IQ[pp*2+1];
+        }
+        temp_power_db=log10(temp_power)*10;
+        // note: this only works if RBs for PDCCH are contigous!
+        LOG_D(PHY, "pdcch_channel_estimation: sf %d slot %d sym %d first_carrier_offset %d, BWPStart %d, coreset_start_rb %d %d power %lf\n",
+          frame_rx%1024, nr_slot_rx,l,fp->first_carrier_offset, pdcch_vars->pdcch_config[n_ss].BWPStart, coreset_start_rb, coreset_nb_rb,temp_power_db);
 
-      // note: this only works if RBs for PDCCH are contigous!
-      LOG_D(PHY, "pdcch_channel_estimation: first_carrier_offset %d, BWPStart %d, coreset_start_rb %d\n",
-            fp->first_carrier_offset, pdcch_vars->pdcch_config[n_ss].BWPStart, coreset_start_rb);
+        if( (coreset_nb_rb > 0)&&(temp_power_db>50.0) )
+          nr_pdcch_channel_estimation(ue,
+                                      proc,
+                                      gNB_id,
+                                      nr_slot_rx,
+                                      l,
+                                      fp->first_carrier_offset+(pdcch_vars->pdcch_config[n_ss].BWPStart + coreset_start_rb)*12,
+                                      coreset_nb_rb);
 
-      if (coreset_nb_rb > 0)
-        nr_pdcch_channel_estimation(ue,
-                                    proc,
-                                    gNB_id,
-                                    nr_slot_rx,
-                                    l,
-                                    fp->first_carrier_offset+(pdcch_vars->pdcch_config[n_ss].BWPStart + coreset_start_rb)*12,
-                                    coreset_nb_rb);
-
-#if UE_TIMING_TRACE
+  #if UE_TIMING_TRACE
       stop_meas(&ue->ofdm_demod_stats);
 #endif
+      }
     }
-    dci_cnt = dci_cnt + nr_ue_pdcch_procedures(gNB_id, ue, proc, n_ss);
+    if(temp_power_db<50.0){
+       LOG_D(PHY, "pdcch low power %lf skip\n",temp_power_db);
+    }else{
+      dci_cnt = dci_cnt + nr_ue_pdcch_procedures(gNB_id, ue, proc, n_ss);
+    }
   }
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_UE_SLOT_FEP_PDCCH, VCD_FUNCTION_OUT);
 

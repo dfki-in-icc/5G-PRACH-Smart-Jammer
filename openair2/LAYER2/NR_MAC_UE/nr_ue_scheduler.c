@@ -100,6 +100,12 @@ long get_k2(NR_UE_MAC_INST_t *mac, uint8_t time_domain_ind) {
   if (pusch_config && pusch_config->pusch_TimeDomainAllocationList) {
     pusch_TimeDomainAllocationList = pusch_config->pusch_TimeDomainAllocationList->choice.setup;
   }
+  else if (mac->initULbwp &&
+	   mac->initULbwp->pusch_Config &&
+	   mac->initULbwp->pusch_Config->choice.setup &&
+	   mac->initULbwp->pusch_Config->choice.setup->pusch_TimeDomainAllocationList) {
+    pusch_TimeDomainAllocationList = mac->initULbwp->pusch_Config->choice.setup->pusch_TimeDomainAllocationList->choice.setup;
+  }
   else if (mac->ULbwp[0] &&
 	   mac->ULbwp[0]->bwp_Common&&
 	   mac->ULbwp[0]->bwp_Common->pusch_ConfigCommon&&

@@ -148,7 +148,7 @@ void nr_pdcch_demapping_deinterleaving(uint32_t *llr,
   }
 
 
-  int f_bundle_j_list[NR_MAX_PDCCH_AGG_LEVEL] = {};
+  int f_bundle_j_list[273] = {};
 
   for (int reg = 0; reg < coreset_nbr_rb; reg++) {
     if ((reg % reg_bundle_size_L) == 0) {
@@ -162,7 +162,7 @@ void nr_pdcch_demapping_deinterleaving(uint32_t *llr,
 
       if (coreset_interleaved == 0) f_bundle_j = bundle_j;
 
-      f_bundle_j_list[reg / 6] = f_bundle_j;
+      f_bundle_j_list[reg / reg_bundle_size_L] = f_bundle_j;
 
     }
     if ((reg % reg_bundle_size_L) == 0) r++;
@@ -173,7 +173,7 @@ void nr_pdcch_demapping_deinterleaving(uint32_t *llr,
   int f_bundle_j_list_ord[NR_MAX_PDCCH_AGG_LEVEL] = {};
   for (int c_id = 0; c_id < number_of_candidates; c_id++ ) {
     f_bundle_j_list_id = CCE[c_id];
-    for (int p = 0; p < NR_MAX_PDCCH_AGG_LEVEL; p++) {
+    for (int p = 0; p < (coreset_nbr_rb/reg_bundle_size_L); p++) {
       for (int p2 = CCE[c_id]; p2 < CCE[c_id] + L[c_id]; p2++) {
         if (f_bundle_j_list[p2] == p) {
           f_bundle_j_list_ord[f_bundle_j_list_id] = p;
@@ -213,11 +213,11 @@ void nr_pdcch_demapping_deinterleaving(uint32_t *llr,
 
 #ifdef NR_PDCCH_DCI_RUN
 int32_t nr_pdcch_llr(NR_DL_FRAME_PARMS *frame_parms, int32_t **rxdataF_comp,
-                     int16_t *pdcch_llr, uint8_t symbol,uint32_t coreset_nbr_rb) {
+                     int16_t *pdcch_llr, uint8_t symbol, uint8_t start_symbol,uint32_t coreset_nbr_rb) {
   int16_t *rxF = (int16_t *) &rxdataF_comp[0][(symbol * coreset_nbr_rb * 12)];
   int32_t i;
   int16_t *pdcch_llrp;
-  pdcch_llrp = &pdcch_llr[2 * symbol * coreset_nbr_rb * 9];
+  pdcch_llrp = &pdcch_llr[2 * (symbol-start_symbol) * coreset_nbr_rb * 9];
 
   if (!pdcch_llrp) {
     LOG_E(PHY,"pdcch_qpsk_llr: llr is null, symbol %d\n", symbol);
@@ -385,7 +385,7 @@ void nr_pdcch_extract_rbs_single(int32_t **rxdataF,
 #endif
 
   for (aarx = 0; aarx < frame_parms->nb_antennas_rx; aarx++) {
-    dl_ch0 = &dl_ch_estimates[aarx][0];
+    dl_ch0 = &dl_ch_estimates[aarx][(symbol * (frame_parms->ofdm_symbol_size))];
     LOG_DDD("dl_ch0 = &dl_ch_estimates[aarx = (%d)][0]\n",aarx);
 
     dl_ch0_ext = &dl_ch_estimates_ext[aarx][symbol * (coreset_nbr_rb * NBR_RE_PER_RB_WITH_DMRS)];
@@ -787,7 +787,7 @@ int32_t nr_rx_pdcch(PHY_VARS_NR_UE *ue,
     nr_pdcch_llr(frame_parms,
                  pdcch_vars->rxdataF_comp,
                  pdcch_vars->llr,
-                 s,
+                 s,rel15->coreset.StartSymbolIndex,
                  n_rb);
 #if T_TRACER
     
@@ -985,7 +985,7 @@ uint8_t nr_dci_decoding_procedure(PHY_VARS_NR_UE *ue,
       }
     }
   }
-  pdcch_vars->nb_search_space = 0;
+  //pdcch_vars->nb_search_space = 0;
   return(dci_ind->number_of_dcis);
 }
 

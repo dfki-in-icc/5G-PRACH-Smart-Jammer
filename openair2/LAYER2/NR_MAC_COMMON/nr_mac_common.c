@@ -2736,14 +2736,32 @@ uint16_t nr_dci_size(const NR_BWP_UplinkCommon_t *initialUplinkBWP,
   NR_BWP_Uplink_t *ubwp = NULL;
   NR_PDSCH_Config_t *pdsch_config = NULL;
   NR_PUSCH_Config_t *pusch_Config = NULL;
+  NR_PDCCH_Config_t *pdcch_config = NULL;
+  NR_PUCCH_Config_t *pucch_Config = NULL;
   NR_SRS_Config_t *srs_config = NULL;
   if(bwp_id > 0) {
     AssertFatal(cg!=NULL,"Cellgroup is null and bwp_id!=0");
-    bwp=cg->spCellConfig->spCellConfigDedicated->downlinkBWP_ToAddModList->list.array[bwp_id-1];
-    ubwp=cg->spCellConfig->spCellConfigDedicated->uplinkConfig->uplinkBWP_ToAddModList->list.array[bwp_id-1];
-    pdsch_config = bwp->bwp_Dedicated->pdsch_Config->choice.setup;
-    pusch_Config = ubwp->bwp_Dedicated->pusch_Config->choice.setup;
-    srs_config = ubwp->bwp_Dedicated->srs_Config->choice.setup;
+    if(cg->spCellConfig->spCellConfigDedicated->downlinkBWP_ToAddModList){
+      bwp=cg->spCellConfig->spCellConfigDedicated->downlinkBWP_ToAddModList->list.array[bwp_id-1];
+      ubwp=cg->spCellConfig->spCellConfigDedicated->uplinkConfig->uplinkBWP_ToAddModList->list.array[bwp_id-1];
+      pdsch_config = bwp->bwp_Dedicated->pdsch_Config->choice.setup;
+      pusch_Config = ubwp->bwp_Dedicated->pusch_Config->choice.setup;
+      srs_config = ubwp->bwp_Dedicated->srs_Config->choice.setup;
+      ubwp=cg->spCellConfig->spCellConfigDedicated->uplinkConfig->uplinkBWP_ToAddModList->list.array[bwp_id-1];
+      pdsch_config = bwp->bwp_Dedicated->pdsch_Config->choice.setup;
+      pusch_Config = ubwp->bwp_Dedicated->pusch_Config->choice.setup;
+      pdcch_config = bwp->bwp_Dedicated->pdcch_Config->choice.setup;
+      pucch_Config = ubwp->bwp_Dedicated->pucch_Config->choice.setup;
+      if(ubwp->bwp_Dedicated->srs_Config)
+        srs_config = ubwp->bwp_Dedicated->srs_Config->choice.setup;
+    }else{
+      pdsch_config = cg->spCellConfig->spCellConfigDedicated->initialDownlinkBWP->pdsch_Config->choice.setup;
+      pusch_Config = cg->spCellConfig->spCellConfigDedicated->uplinkConfig->initialUplinkBWP->pusch_Config->choice.setup;
+      pdcch_config = cg->spCellConfig->spCellConfigDedicated->initialDownlinkBWP->pdcch_Config->choice.setup;
+      pucch_Config = cg->spCellConfig->spCellConfigDedicated->uplinkConfig->initialUplinkBWP->pucch_Config->choice.setup;
+      if(cg->spCellConfig->spCellConfigDedicated->uplinkConfig->initialUplinkBWP->srs_Config)
+        srs_config = cg->spCellConfig->spCellConfigDedicated->uplinkConfig->initialUplinkBWP->srs_Config->choice.setup;
+    }
   }
 
   switch(format) {
@@ -2752,7 +2770,9 @@ uint16_t nr_dci_size(const NR_BWP_UplinkCommon_t *initialUplinkBWP,
       /// fixed: Format identifier 1, Hop flag 1, MCS 5, NDI 1, RV 2, HARQ PID 4, PUSCH TPC 2 Time Domain assgnmt 4 --20
       size += 20;
       size += (uint8_t)ceil( log2( (N_RB*(N_RB+1))>>1 ) ); // Freq domain assignment -- hopping scenario to be updated
-      size += nr_dci_size(initialUplinkBWP,cg,dci_pdu,NR_DL_DCI_FORMAT_1_0, rnti_type, N_RB, bwp_id) - size; // Padding to match 1_0 size
+      //size += nr_dci_size(initialUplinkBWP,cg,dci_pdu,NR_DL_DCI_FORMAT_1_0, rnti_type, N_RB, bwp_id) - size; // Padding to match 1_0 size
+      //TODO L5G
+      size += 39 - size;
       // UL/SUL indicator assumed to be 0
       break;
 
@@ -2766,11 +2786,15 @@ uint16_t nr_dci_size(const NR_BWP_UplinkCommon_t *initialUplinkBWP,
       }
       // UL/SUL indicator
       if (cg->spCellConfig->spCellConfigDedicated->supplementaryUplink != NULL) {
-        dci_pdu->carrier_indicator.nbits=1;
+        dci_pdu->ul_sul_indicator.nbits=1;
         size += dci_pdu->ul_sul_indicator.nbits;
       }
       // BWP Indicator
-      uint8_t n_ul_bwp = cg->spCellConfig->spCellConfigDedicated->uplinkConfig->uplinkBWP_ToAddModList->list.count;
+      uint8_t n_ul_bwp;
+      if(cg->spCellConfig->spCellConfigDedicated->uplinkConfig->uplinkBWP_ToAddModList)
+        n_ul_bwp = cg->spCellConfig->spCellConfigDedicated->uplinkConfig->uplinkBWP_ToAddModList->list.count;
+      else
+        n_ul_bwp = 0;
       if (n_ul_bwp < 2)
         dci_pdu->bwp_indicator.nbits = n_ul_bwp;
       else
@@ -2781,9 +2805,12 @@ uint16_t nr_dci_size(const NR_BWP_UplinkCommon_t *initialUplinkBWP,
         rbg_size_config = 1;
       else
         rbg_size_config = 0;
-      numRBG = getNRBG(NRRIV2BW(ubwp->bwp_Common->genericParameters.locationAndBandwidth, MAX_BWP_SIZE),
+      if(ubwp)
+        numRBG = getNRBG(NRRIV2BW(ubwp->bwp_Common->genericParameters.locationAndBandwidth, MAX_BWP_SIZE),
                        NRRIV2PRBOFFSET(ubwp->bwp_Common->genericParameters.locationAndBandwidth, MAX_BWP_SIZE),
                        rbg_size_config);
+      else
+        numRBG = getNRBG(N_RB,0,rbg_size_config);
       if (pusch_Config->resourceAllocation == 0)
         dci_pdu->frequency_domain_assignment.nbits = numRBG;
       else if (pusch_Config->resourceAllocation == 1)
@@ -2822,9 +2849,11 @@ uint16_t nr_dci_size(const NR_BWP_UplinkCommon_t *initialUplinkBWP,
       if (pusch_Config->txConfig != NULL){
         int count=0;
         if (*pusch_Config->txConfig == NR_PUSCH_Config__txConfig_codebook){
-          for (int i=0; i<srs_config->srs_ResourceSetToAddModList->list.count; i++) {
+          if(srs_config){
+            for (int i=0; i<srs_config->srs_ResourceSetToAddModList->list.count; i++) {
             if (srs_config->srs_ResourceSetToAddModList->list.array[i]->usage == NR_SRS_ResourceSet__usage_codebook)
               count++;
+            }
           }
           if (count>1) {
             dci_pdu->srs_resource_indicator.nbits = 1;
@@ -2959,7 +2988,12 @@ uint16_t nr_dci_size(const NR_BWP_UplinkCommon_t *initialUplinkBWP,
         size += dci_pdu->carrier_indicator.nbits;
       }
       // BWP Indicator
-      uint8_t n_dl_bwp = cg->spCellConfig->spCellConfigDedicated->downlinkBWP_ToAddModList->list.count;
+      uint8_t n_dl_bwp;
+      if(cg->spCellConfig->spCellConfigDedicated->downlinkBWP_ToAddModList)
+        n_dl_bwp = cg->spCellConfig->spCellConfigDedicated->downlinkBWP_ToAddModList->list.count;
+      else
+        n_dl_bwp=1;
+      
       if (n_dl_bwp < 2)
         dci_pdu->bwp_indicator.nbits = n_dl_bwp;
       else
@@ -2967,9 +3001,12 @@ uint16_t nr_dci_size(const NR_BWP_UplinkCommon_t *initialUplinkBWP,
       size += dci_pdu->bwp_indicator.nbits;
       // Freq domain assignment
       rbg_size_config = cg->spCellConfig->spCellConfigDedicated->initialDownlinkBWP->pdsch_Config->choice.setup->rbg_Size;
-      numRBG = getNRBG(NRRIV2BW(bwp->bwp_Common->genericParameters.locationAndBandwidth, MAX_BWP_SIZE),
+      if(bwp)
+        numRBG = getNRBG(NRRIV2BW(bwp->bwp_Common->genericParameters.locationAndBandwidth, MAX_BWP_SIZE),
                        NRRIV2PRBOFFSET(bwp->bwp_Common->genericParameters.locationAndBandwidth, MAX_BWP_SIZE),
                        rbg_size_config);
+      else
+        numRBG = getNRBG(N_RB,0,rbg_size_config);
       if (pdsch_config->resourceAllocation == 0)
         dci_pdu->frequency_domain_assignment.nbits = numRBG;
       else if (pdsch_config->resourceAllocation == 1)
@@ -2989,7 +3026,7 @@ uint16_t nr_dci_size(const NR_BWP_UplinkCommon_t *initialUplinkBWP,
       dci_pdu->time_domain_assignment.nbits = (int)ceil(log2(num_entries));
       size += dci_pdu->time_domain_assignment.nbits;
       // VRB to PRB mapping 
-      if ((pdsch_config->resourceAllocation == 1) && (bwp->bwp_Dedicated->pdsch_Config->choice.setup->vrb_ToPRB_Interleaver != NULL)) {
+      if ((pdsch_config->resourceAllocation == 1) && (pdsch_config->vrb_ToPRB_Interleaver != NULL)) {
         dci_pdu->vrb_to_prb_mapping.nbits = 1;
         size += dci_pdu->vrb_to_prb_mapping.nbits;
       }
@@ -3031,7 +3068,7 @@ uint16_t nr_dci_size(const NR_BWP_UplinkCommon_t *initialUplinkBWP,
       // PUCCH resource indicator
       size += 3;
       // PDSCH to HARQ timing indicator
-      uint8_t I = ubwp->bwp_Dedicated->pucch_Config->choice.setup->dl_DataToUL_ACK->list.count;
+      uint8_t I = pucch_Config->dl_DataToUL_ACK->list.count;
       dci_pdu->pdsch_to_harq_feedback_timing_indicator.nbits = (int)ceil(log2(I));
       size += dci_pdu->pdsch_to_harq_feedback_timing_indicator.nbits;
       // Antenna ports
@@ -3040,7 +3077,7 @@ uint16_t nr_dci_size(const NR_BWP_UplinkCommon_t *initialUplinkBWP,
       dci_pdu->antenna_ports.nbits = getAntPortBitWidth(typeA,typeB);
       size += dci_pdu->antenna_ports.nbits;
       // Tx Config Indication
-      long *isTciEnable = bwp->bwp_Dedicated->pdcch_Config->choice.setup->controlResourceSetToAddModList->list.array[bwp_id-1]->tci_PresentInDCI;
+      long *isTciEnable = pdcch_config->controlResourceSetToAddModList->list.array[bwp_id-1]->tci_PresentInDCI;
       if (isTciEnable != NULL) {
         dci_pdu->transmission_configuration_indication.nbits = 3;
         size += dci_pdu->transmission_configuration_indication.nbits;

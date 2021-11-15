@@ -559,7 +559,48 @@ void config_bwp_ue(NR_UE_MAC_INST_t *mac, uint16_t *bwp_ind, uint8_t *dci_format
   LOG_D(MAC, "In %s setting DL_BWP_Id %ld UL_BWP_Id %ld \n", __FUNCTION__, mac->DL_BWP_Id, mac->UL_BWP_Id);
 
 }
+void config_control_initial_ue(NR_UE_MAC_INST_t *mac){
 
+  uint8_t coreset_id = 1, ss_id;
+
+  NR_ServingCellConfig_t *scd = mac->cg->spCellConfig->spCellConfigDedicated;
+
+
+  mac->DL_BWP_Id = 1;
+  mac->UL_BWP_Id = 1;
+  NR_BWP_Id_t dl_bwp_id=mac->DL_BWP_Id;
+  // check pdcch_Config, pdcch_ConfigCommon and DL BWP
+  if(scd->initialDownlinkBWP){
+    LOG_I(MAC, "set initDLbwp\n");
+    mac->initDLbwp = scd->initialDownlinkBWP;
+    if(scd->initialDownlinkBWP->pdcch_Config && scd->initialDownlinkBWP->pdcch_Config->choice.setup->controlResourceSetToAddModList){
+      mac->coreset[dl_bwp_id - 1][coreset_id - 1] = scd->initialDownlinkBWP->pdcch_Config->choice.setup->controlResourceSetToAddModList->list.array[0];
+      LOG_I(MAC, "set coreset %d %d\n",dl_bwp_id,coreset_id);
+    }
+  }
+
+  // Check dedicated UL BWP and pass to MAC
+  if(scd->uplinkConfig && scd->uplinkConfig->initialUplinkBWP){
+    mac->initULbwp = scd->uplinkConfig->initialUplinkBWP;
+    LOG_I(MAC, "set initULbwp\n");
+  }
+
+  // check available Search Spaces in the searchSpacesToAddModList and pass to MAC
+  // note: the network configures at most 10 Search Spaces per BWP per cell (including UE-specific and common Search Spaces).
+  if(scd->initialDownlinkBWP->pdcch_Config && scd->initialDownlinkBWP->pdcch_Config->choice.setup->searchSpacesToAddModList){
+    struct NR_PDCCH_Config__searchSpacesToAddModList *searchSpacesToAddModList = scd->initialDownlinkBWP->pdcch_Config->choice.setup->searchSpacesToAddModList;
+    for (ss_id = 0; ss_id < searchSpacesToAddModList->list.count; ss_id++) {
+      NR_SearchSpace_t *ss = searchSpacesToAddModList->list.array[ss_id];
+      AssertFatal(ss->controlResourceSetId != NULL, "ss->controlResourceSetId is null\n");
+      AssertFatal(ss->searchSpaceType != NULL, "ss->searchSpaceType is null\n");
+      AssertFatal(*ss->controlResourceSetId == mac->coreset[dl_bwp_id - 1][coreset_id - 1]->controlResourceSetId, "ss->controlResourceSetId is unknown\n");
+      AssertFatal(ss->monitoringSymbolsWithinSlot != NULL, "NR_SearchSpace->monitoringSymbolsWithinSlot is null\n");
+      AssertFatal(ss->monitoringSymbolsWithinSlot->buf != NULL, "NR_SearchSpace->monitoringSymbolsWithinSlot->buf is null\n");
+      mac->SSpace[0][0][ss_id] = ss;
+      LOG_I(MAC, "set searchSpaces %d %d\n",ss_id,*ss->controlResourceSetId);
+    }
+  }
+}
 /** \brief This function is relavant for the UE procedures for control. It loads the search spaces, the BWPs and the CORESETs into the MAC instance and
     \brief performs assert checks on the relevant RRC configuration.
     @param NR_UE_MAC_INST_t mac: pointer to local MAC instance
@@ -702,6 +743,9 @@ int nr_rrc_mac_config_req_ue(
       LOG_I(MAC,"Applying CellGroupConfig from gNodeB\n");
       mac->cg = cell_group_config;
       mac->servCellIndex = cell_group_config->spCellConfig->servCellIndex ? *cell_group_config->spCellConfig->servCellIndex : 0;
+      if(cell_group_config->spCellConfig->spCellConfigDedicated){
+        config_control_initial_ue(mac);
+      }
       //      config_control_ue(mac);
       //      config_common_ue(mac,module_id,cc_idP);
       /*      
