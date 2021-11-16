@@ -137,7 +137,9 @@ void nr_ue_ulsch_procedures(PHY_VARS_NR_UE *UE,
     uint16_t rnti             = pusch_pdu->rnti;
     uint8_t cdm_grps_no_data  = pusch_pdu->num_dmrs_cdm_grps_no_data;
     uint16_t start_sc         = frame_parms->first_carrier_offset + (start_rb+pusch_pdu->bwp_start)*NR_NB_SC_PER_RB;
-
+    if(pusch_pdu->rb_size<1 || pusch_pdu->nr_of_symbols<1){
+      continue;
+    }
     if (start_sc >= frame_parms->ofdm_symbol_size)
       start_sc -= frame_parms->ofdm_symbol_size;
 
