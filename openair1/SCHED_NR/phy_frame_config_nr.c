@@ -277,7 +277,7 @@ int set_tdd_config_nr_flex( nfapi_nr_config_request_scf_t *cfg,
               if((number_of_symbol+1)%NR_NUMBER_OF_SYMBOLS_PER_SLOT == 0)
                 slot_number++;
       }
-      for (int number_of_symbol = flexible_symbols[1]; number_of_symbol <NR_NUMBER_OF_SYMBOLS_PER_SLOT; number_of_symbol++) {
+      for (int number_of_symbol = NR_NUMBER_OF_SYMBOLS_PER_SLOT - flexible_symbols[1]; number_of_symbol <NR_NUMBER_OF_SYMBOLS_PER_SLOT; number_of_symbol++) {
               cfg->tdd_table.max_tdd_periodicity_list[slot_number].max_num_of_symbol_per_slot_list[number_of_symbol].slot_config.value= 1;
 
               if((number_of_symbol+1)%NR_NUMBER_OF_SYMBOLS_PER_SLOT == 0)
