@@ -413,7 +413,7 @@ void nr_processULSegment(void* arg) {
 
   ////////////////////////////////// pl =====> llrProcBuf //////////////////////////////////
 
-  p_decoderParms->n = length_dec;
+  p_decoderParms->block_length = length_dec;
   p_decoderParms->crc_type = crc_type;
   no_iteration_ldpc = nrLDPC_decoder(p_decoderParms,
                                      (int8_t*)&pl[0],

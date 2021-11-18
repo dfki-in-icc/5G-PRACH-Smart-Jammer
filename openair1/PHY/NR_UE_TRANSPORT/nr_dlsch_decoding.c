@@ -376,6 +376,7 @@ uint32_t nr_dlsch_decoding(PHY_VARS_NR_UE *phy_vars_ue,
   //printf("coderate %f kc %d \n", Coderate, kc);
   p_decParams->numMaxIter = dlsch->max_ldpc_iterations;
   p_decParams->outMode= 0;
+  p_decParams->F = harq_process->F;
   err_flag = 0;
   r_offset = 0;
   uint16_t a_segments = MAX_NUM_NR_DLSCH_SEGMENTS;  //number of segments to be allocated
@@ -767,6 +768,7 @@ uint32_t  nr_dlsch_decoding_mthread(PHY_VARS_NR_UE *phy_vars_ue,
   p_decParams->Z = harq_process->Z;
   p_decParams->numMaxIter = dlsch->max_ldpc_iterations;
   p_decParams->outMode= 0;
+  p_decParams->F = harq_process->F;
   err_flag = 0;
   r_offset = 0;
   uint16_t a_segments = MAX_NUM_NR_DLSCH_SEGMENTS;  //number of segments to be allocated
@@ -1208,6 +1210,7 @@ void nr_dlsch_decoding_process(void *arg) {
   LOG_D(PHY,"round %d Z %d K %d BG %d\n", harq_process->round, p_decParams->Z, harq_process->K, p_decParams->BG);
   p_decParams->numMaxIter = dlsch->max_ldpc_iterations;
   p_decParams->outMode= 0;
+  p_decParams->F = harq_process->F;
   err_flag = 0;
   opp_enabled=1;
   Qm= harq_process->Qm;

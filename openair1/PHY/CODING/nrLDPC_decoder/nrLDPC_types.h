@@ -72,7 +72,6 @@ typedef struct nrLDPC_dec_params {
     uint8_t numMaxIter; /**< Maximum number of iterations */
     int block_length;
     e_nrLDPC_outMode outMode; /**< Output format */
-    uint32_t n;
     uint32_t F;
     uint8_t crc_type;
 } t_nrLDPC_dec_params;

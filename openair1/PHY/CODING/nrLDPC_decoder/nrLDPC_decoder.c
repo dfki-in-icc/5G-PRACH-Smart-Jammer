@@ -350,7 +350,7 @@ static inline uint32_t nrLDPC_decoder_core(int8_t* p_llr, int8_t* p_out, uint32_
 #ifdef NR_LDPC_PROFILER_DETAIL
         stop_meas(&p_profiler->llr2bit);
 #endif
-        if (check_crc((uint8_t*)p_out,p_decParams->n,p_decParams->F,p_decParams->crc_type))
+        if (check_crc((uint8_t*)p_out,p_decParams->block_length,p_decParams->F,p_decParams->crc_type))
             pcRes = 0;
     }
 
