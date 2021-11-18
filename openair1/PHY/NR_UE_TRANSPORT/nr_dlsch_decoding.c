@@ -110,13 +110,6 @@ void free_nr_ue_dlsch(NR_UE_DLSCH_t **dlschptr,uint8_t N_RB_DL) {
             dlsch->harq_processes[i]->w[r] = NULL;
           }
 
-        for (r=0; r<a_segments; r++) {
-          if (dlsch->harq_processes[i]->p_nrLDPC_procBuf[r]) {
-            nrLDPC_free_mem(dlsch->harq_processes[i]->p_nrLDPC_procBuf[r]);
-            dlsch->harq_processes[i]->p_nrLDPC_procBuf[r] = NULL;
-          }
-        }
-
         free16(dlsch->harq_processes[i],sizeof(NR_DL_UE_HARQ_t));
         dlsch->harq_processes[i] = NULL;
       }
@@ -165,7 +158,6 @@ NR_UE_DLSCH_t *new_nr_ue_dlsch(uint8_t Kmimo,uint8_t Mdlharq,uint32_t Nsoft,uint
 
         if (abstraction_flag == 0) {
           for (r=0; r<a_segments; r++) {
-            dlsch->harq_processes[i]->p_nrLDPC_procBuf[r] = nrLDPC_init_mem();
             dlsch->harq_processes[i]->c[r] = (uint8_t *)malloc16(1056);
 
             if (dlsch->harq_processes[i]->c[r])
@@ -257,7 +249,6 @@ uint32_t nr_dlsch_decoding(PHY_VARS_NR_UE *phy_vars_ue,
     return(dlsch->max_ldpc_iterations + 1);
   }
 
-  t_nrLDPC_procBuf **p_nrLDPC_procBuf = harq_process->p_nrLDPC_procBuf;
   // HARQ stats
   phy_vars_ue->dl_stats[harq_process->round]++;
   int16_t z [68*384];
@@ -502,7 +493,6 @@ uint32_t nr_dlsch_decoding(PHY_VARS_NR_UE *phy_vars_ue,
       no_iteration_ldpc = nrLDPC_decoder(p_decParams,
                                          (int8_t *)&pl[0],
                                          llrProcBuf,
-                                         p_nrLDPC_procBuf[r],
                                          p_procTime);
       VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_DLSCH_LDPC, VCD_FUNCTION_OUT);
 
@@ -657,7 +647,6 @@ uint32_t  nr_dlsch_decoding_mthread(PHY_VARS_NR_UE *phy_vars_ue,
     return(dlsch->max_ldpc_iterations);
   }
 
-  t_nrLDPC_procBuf *p_nrLDPC_procBuf = harq_process->p_nrLDPC_procBuf[0];
   uint8_t Nl=4;
   int16_t z [68*384];
   int8_t l [68*384];
@@ -963,7 +952,6 @@ uint32_t  nr_dlsch_decoding_mthread(PHY_VARS_NR_UE *phy_vars_ue,
     no_iteration_ldpc = nrLDPC_decoder(p_decParams,
                                        (int8_t *)&pl[0],
                                        llrProcBuf,
-                                       p_nrLDPC_procBuf,
                                        p_procTime);
     nb_total_decod++;
 
@@ -1118,7 +1106,6 @@ void nr_dlsch_decoding_process(void *arg) {
   t_nrLDPC_time_stats procTime;
   t_nrLDPC_time_stats *p_procTime =&procTime ;
   int8_t llrProcBuf[NR_LDPC_MAX_NUM_LLR] __attribute__ ((aligned(32)));
-  t_nrLDPC_procBuf *p_nrLDPC_procBuf;
   int16_t z [68*384];
   int8_t l [68*384];
   //__m128i l;
@@ -1159,7 +1146,6 @@ void nr_dlsch_decoding_process(void *arg) {
   NR_UE_DLSCH_t *dlsch      = phy_vars_ue->dlsch[proc->thread_id][eNB_id][0];
   NR_DL_UE_HARQ_t *harq_process  = dlsch->harq_processes[harq_pid];
   short *dlsch_llr        = phy_vars_ue->pdsch_vars[proc->thread_id][eNB_id]->llr[0];
-  p_nrLDPC_procBuf = harq_process->p_nrLDPC_procBuf[r];
   nb_symb_sch = harq_process->nb_symbols;
   LOG_D(PHY,"dlsch decoding process frame %d slot %d segment %d r %u nb symb %d \n", frame, proc->nr_slot_rx, proc->num_seg, r, harq_process->nb_symbols);
   nb_rb = harq_process->nb_rb;
@@ -1348,7 +1334,6 @@ void nr_dlsch_decoding_process(void *arg) {
     no_iteration_ldpc = nrLDPC_decoder(p_decParams,
                                        (int8_t *)&pl[0],
                                        llrProcBuf,
-                                       p_nrLDPC_procBuf,
                                        p_procTime);
 
     // Fixme: correct type is unsigned, but nrLDPC_decoder and all called behind use signed int

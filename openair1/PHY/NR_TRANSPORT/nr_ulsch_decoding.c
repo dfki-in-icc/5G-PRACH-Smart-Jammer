@@ -91,12 +91,6 @@ void free_gNB_ulsch(NR_gNB_ULSCH_t **ulschptr,uint8_t N_RB_UL)
             ulsch->harq_processes[i]->w[r] = NULL;
           }
         }
-        for (r=0; r<a_segments; r++) {
-          if (ulsch->harq_processes[i]->p_nrLDPC_procBuf[r]){
-            nrLDPC_free_mem(ulsch->harq_processes[i]->p_nrLDPC_procBuf[r]);
-            ulsch->harq_processes[i]->p_nrLDPC_procBuf[r] = NULL;
-          }
-        }
         free16(ulsch->harq_processes[i],sizeof(NR_UL_gNB_HARQ_t));
         ulsch->harq_processes[i] = NULL;
       }
@@ -146,8 +140,6 @@ NR_gNB_ULSCH_t *new_gNB_ulsch(uint8_t max_ldpc_iterations,uint16_t N_RB_UL, uint
 
         if (abstraction_flag == 0) {
           for (r=0; r<a_segments; r++) {
-
-            ulsch->harq_processes[i]->p_nrLDPC_procBuf[r] = nrLDPC_init_mem();
 
             ulsch->harq_processes[i]->c[r] = (uint8_t*)malloc16(8448*sizeof(uint8_t));
 
@@ -426,7 +418,6 @@ void nr_processULSegment(void* arg) {
   no_iteration_ldpc = nrLDPC_decoder(p_decoderParms,
                                      (int8_t*)&pl[0],
                                      llrProcBuf,
-                                     ulsch_harq->p_nrLDPC_procBuf[r],
                                      p_procTime);
 
   if (check_crc((uint8_t*)llrProcBuf,length_dec,ulsch_harq->F,crc_type)) {
