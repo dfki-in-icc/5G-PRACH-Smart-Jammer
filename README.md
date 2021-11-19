@@ -2,6 +2,12 @@
 
 > In progress **To be completed by 20 November 2021**
 
+1. Added source code for eNodeB NTN 
+2. Technical Document [Random Access Procedure Over Non-Terrestrial Networks: From Theory to Practice
+](https://ieeexplore.ieee.org/document/9502071)
+3. Source code documentation **Pending ...**
+4. Hands-On guide **Pending ...**
+
 |OpenAirInterface5G development and test suite for 4G/5G Non-Terrestrial Network support. Current work is dedicated to support NTN delay using 4G/5G waveform over LEO and GEO orbits. Current progress supports a fixed delay up to 20 msec with IP connectivity and up to 800 msec RTT with only data transmission|
 | --- |
 
