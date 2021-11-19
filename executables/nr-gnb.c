@@ -76,10 +76,6 @@
 #include "gnb_paramdef.h"
 
 
-#ifndef OPENAIR2
-  #include "UTIL/OTG/otg_extern.h"
-#endif
-
 #include "s1ap_eNB.h"
 #include "SIMULATION/ETH_TRANSPORT/proto.h"
 #include <executables/softmodem-common.h>
@@ -336,7 +332,8 @@ void rx_func(void *param) {
 }
 static void dump_L1_meas_stats(PHY_VARS_gNB *gNB, RU_t *ru, char *output) {
   int stroff = 0;
-  //stroff += print_meas_log(&gNB->phy_proc_tx, "L1 Tx processing", NULL, NULL, output);
+  stroff += print_meas_log(gNB->phy_proc_tx_0, "L1 Tx processing thread 0", NULL, NULL, output);
+  stroff += print_meas_log(gNB->phy_proc_tx_1, "L1 Tx processing thread 1", NULL, NULL, output+stroff);
   stroff += print_meas_log(&gNB->dlsch_encoding_stats, "DLSCH encoding", NULL, NULL, output+stroff);
   stroff += print_meas_log(&gNB->phy_proc_rx, "L1 Rx processing", NULL, NULL, output+stroff);
   stroff += print_meas_log(&gNB->ul_indication_stats, "UL Indication", NULL, NULL, output+stroff);
@@ -353,26 +350,11 @@ static void dump_L1_meas_stats(PHY_VARS_gNB *gNB, RU_t *ru, char *output) {
 
   if (ru->fh_north_asynch_in) stroff += print_meas_log(&ru->rx_fhaul,"rx_fhaul",NULL,NULL, output+stroff);
 
+  stroff += print_meas_log(&ru->tx_fhaul,"tx_fhaul",NULL,NULL, output+stroff);
 
-  reset_meas(&gNB->dlsch_encoding_stats);
-  reset_meas(&gNB->phy_proc_rx);
-  reset_meas(&gNB->ul_indication_stats);
-  reset_meas(&gNB->rx_pusch_stats);
-  reset_meas(&gNB->ulsch_decoding_stats);
-
-  wait_sync("process_stats_thread");
-
-  while(!oai_exit)
-  {
-    sleep(1);
-    print_meas(gNB->phy_proc_tx_0, "L1 Tx processing thread 0", NULL, NULL);
-    print_meas(gNB->phy_proc_tx_1, "L1 Tx processing thread 1", NULL, NULL);
-    print_meas(&gNB->dlsch_encoding_stats, "DLSCH encoding", NULL, NULL);
-    print_meas(&gNB->phy_proc_rx, "L1 Rx processing", NULL, NULL);
-    print_meas(&gNB->ul_indication_stats, "UL Indication", NULL, NULL);
-    print_meas(&gNB->rx_pusch_stats, "PUSCH inner-receiver", NULL, NULL);
-    print_meas(&gNB->ulsch_decoding_stats, "PUSCH decoding", NULL, NULL);
-
+  if (ru->fh_north_out) {
+    stroff += print_meas_log(&ru->compression,"compression",NULL,NULL, output+stroff);
+    stroff += print_meas_log(&ru->transport,"transport",NULL,NULL, output+stroff);
   }
 }
 
@@ -386,7 +368,8 @@ void *nrL1_stats_thread(void *param) {
   fd=fopen("nrL1_stats.log","w");
   AssertFatal(fd!=NULL,"Cannot open nrL1_stats.log\n");
 
-  //reset_meas(&gNB->phy_proc_tx);
+  reset_meas(gNB->phy_proc_tx_0);
+  reset_meas(gNB->phy_proc_tx_1);
   reset_meas(&gNB->dlsch_encoding_stats);
   reset_meas(&gNB->phy_proc_rx);
   reset_meas(&gNB->ul_indication_stats);
@@ -464,7 +447,8 @@ void init_gNB_Tpool(int inst) {
   initNotifiedFIFO(gNB->resp_RU_tx);
   notifiedFIFO_elt_t *msgRUTx = newNotifiedFIFO_elt(sizeof(processingData_RU_t),0,gNB->resp_RU_tx,ru_tx_func);
   processingData_RU_t *msgData = (processingData_RU_t*)msgRUTx->msgData;
-  msgData->next_slot = sf_ahead*gNB->frame_parms.slots_per_subframe; // first Tx slot
+  int first_tx_slot = sf_ahead*gNB->frame_parms.slots_per_subframe;
+  msgData->next_slot = get_next_downlink_slot(gNB, &gNB->gNB_config, 0, first_tx_slot-1);
   pushNotifiedFIFO(gNB->resp_RU_tx,msgRUTx); // to unblock the process in the beginning
 
   threadCreate(&proc->L1_stats_thread,nrL1_stats_thread,(void*)gNB,"L1_stats",-1,OAI_PRIORITY_RT_LOW);

@@ -70,10 +70,6 @@ static int DEFBFW[] = {0x00007fff};
 #include "GNB_APP/gnb_paramdef.h"
 #include "common/config/config_userapi.h"
 
-#ifndef OPENAIR2
-  #include "UTIL/OTG/otg_extern.h"
-#endif
-
 #include "s1ap_eNB.h"
 #include "SIMULATION/ETH_TRANSPORT/proto.h"
 #include <openair1/PHY/TOOLS/phy_scope_interface.h>
@@ -1149,6 +1145,36 @@ int setup_RU_buffers(RU_t *ru) {
   }
 
   return(0);
+}
+
+void *ru_stats_thread(void *param) {
+  RU_t               *ru      = (RU_t *)param;
+  wait_sync("ru_stats_thread");
+
+  while (!oai_exit) {
+    sleep(1);
+
+    if (opp_enabled == 1) {
+      if (ru->feprx) print_meas(&ru->ofdm_demod_stats,"feprx",NULL,NULL);
+
+      if (ru->feptx_ofdm) {
+        print_meas(&ru->precoding_stats,"feptx_prec",NULL,NULL);
+        print_meas(&ru->txdataF_copy_stats,"txdataF_copy",NULL,NULL);
+        print_meas(&ru->ofdm_mod_stats,"feptx_ofdm",NULL,NULL);
+        print_meas(&ru->ofdm_total_stats,"feptx_total",NULL,NULL);
+      }
+
+      print_meas(&ru->rx_fhaul,"rx_fhaul",NULL,NULL);
+      print_meas(&ru->tx_fhaul,"tx_fhaul",NULL,NULL);
+
+      if (ru->fh_north_out) {
+        print_meas(&ru->compression,"compression",NULL,NULL);
+        print_meas(&ru->transport,"transport",NULL,NULL);
+      }
+    }
+  }
+
+  return(NULL);
 }
 
 void ru_tx_func(void *param) {
