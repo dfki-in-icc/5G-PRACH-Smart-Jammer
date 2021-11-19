@@ -450,7 +450,7 @@ void init_gNB_Tpool(int inst) {
   gNB->phy_proc_tx_0 = &msgDataTx->phy_proc_tx;
   pushNotifiedFIFO(gNB->resp_L1_tx,msgL1Tx); // to unblock the process in the beginning
 
-  /*msgL1Tx = newNotifiedFIFO_elt(sizeof(processingData_L1tx_t),0,gNB->resp_L1_tx,tx_func);
+  msgL1Tx = newNotifiedFIFO_elt(sizeof(processingData_L1tx_t),0,gNB->resp_L1_tx,tx_func);
   msgDataTx = (processingData_L1tx_t *)NotifiedFifoData(msgL1Tx);
   init_DLSCH_struct(gNB, msgDataTx);
   msgDataTx->slot = -1;
@@ -458,7 +458,7 @@ void init_gNB_Tpool(int inst) {
   reset_meas(&msgDataTx->phy_proc_tx);
   gNB->phy_proc_tx_1 = &msgDataTx->phy_proc_tx;
   pushNotifiedFIFO(gNB->resp_L1_tx,msgL1Tx); // to unblock the process in the beginning
-  */
+  
   // RU TX result FIFO 
   gNB->resp_RU_tx = (notifiedFIFO_t*) malloc(sizeof(notifiedFIFO_t));
   initNotifiedFIFO(gNB->resp_RU_tx);
