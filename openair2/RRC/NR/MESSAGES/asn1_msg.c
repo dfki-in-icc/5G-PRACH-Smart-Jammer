@@ -72,9 +72,6 @@
 #include "NR_RRCReestablishmentRequest.h"
 #include "NR_UE-CapabilityRequestFilterNR.h"
 #include "PHY/defs_nr_common.h"
-#include "common/utils/nr/nr_common.h"
-#include "openair2/LAYER2/NR_MAC_COMMON/nr_mac.h"
-
 #if defined(NR_Rel16)
   #include "NR_SCS-SpecificCarrier.h"
   #include "NR_TDD-UL-DL-ConfigCommon.h"
@@ -1019,11 +1016,9 @@ void fill_initial_SpCellConfig(rnti_t rnti,
   pucch_Config->resourceToReleaseList = NULL;
   // configure one single PUCCH0 opportunity for initial connection procedure
   // one symbol (13)
-  int bwp_size = NRRIV2BW(scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters.locationAndBandwidth,MAX_BWP_SIZE);
-
   NR_PUCCH_Resource_t *pucchres0=calloc(1,sizeof(*pucchres0));
   pucchres0->pucch_ResourceId=0;
-  pucchres0->startingPRB=(8+rnti) % bwp_size;
+  pucchres0->startingPRB=0;
   pucchres0->intraSlotFrequencyHopping=NULL;
   pucchres0->secondHopPRB=NULL;
   pucchres0->format.present= NR_PUCCH_Resource__format_PR_format0;
@@ -1177,7 +1172,7 @@ void fill_initial_SpCellConfig(rnti_t rnti,
   AssertFatal(scc->tdd_UL_DL_ConfigurationCommon->pattern1.dl_UL_TransmissionPeriodicity==NR_TDD_UL_DL_Pattern__dl_UL_TransmissionPeriodicity_ms5,
 	      "TDD period != 5ms : %ld\n",scc->tdd_UL_DL_ConfigurationCommon->pattern1.dl_UL_TransmissionPeriodicity);
   
-  schedulingRequestResourceConfig->periodicityAndOffset->choice.sl40 = 8;
+  schedulingRequestResourceConfig->periodicityAndOffset->choice.sl40 = 8 + 10*((rnti>>1)&3) + (rnti&1);
   schedulingRequestResourceConfig->resource = calloc(1,sizeof(*schedulingRequestResourceConfig->resource));
   *schedulingRequestResourceConfig->resource = 0;
   ASN_SEQUENCE_ADD(&pucch_Config->schedulingRequestResourceToAddModList->list,schedulingRequestResourceConfig);
