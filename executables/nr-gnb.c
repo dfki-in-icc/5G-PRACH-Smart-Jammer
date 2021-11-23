@@ -333,7 +333,7 @@ void rx_func(void *param) {
 static void dump_L1_meas_stats(PHY_VARS_gNB *gNB, RU_t *ru, char *output) {
   int stroff = 0;
   stroff += print_meas_log(gNB->phy_proc_tx_0, "L1 Tx processing thread 0", NULL, NULL, output);
-  stroff += print_meas_log(gNB->phy_proc_tx_1, "L1 Tx processing thread 1", NULL, NULL, output+stroff);
+  //  stroff += print_meas_log(gNB->phy_proc_tx_1, "L1 Tx processing thread 1", NULL, NULL, output+stroff);
   stroff += print_meas_log(&gNB->dlsch_encoding_stats, "DLSCH encoding", NULL, NULL, output+stroff);
   stroff += print_meas_log(&gNB->phy_proc_rx, "L1 Rx processing", NULL, NULL, output+stroff);
   stroff += print_meas_log(&gNB->ul_indication_stats, "UL Indication", NULL, NULL, output+stroff);
@@ -369,7 +369,7 @@ void *nrL1_stats_thread(void *param) {
   AssertFatal(fd!=NULL,"Cannot open nrL1_stats.log\n");
 
   reset_meas(gNB->phy_proc_tx_0);
-  reset_meas(gNB->phy_proc_tx_1);
+  //  reset_meas(gNB->phy_proc_tx_1);
   reset_meas(&gNB->dlsch_encoding_stats);
   reset_meas(&gNB->phy_proc_rx);
   reset_meas(&gNB->ul_indication_stats);
@@ -433,7 +433,7 @@ void init_gNB_Tpool(int inst) {
   gNB->phy_proc_tx_0 = &msgDataTx->phy_proc_tx;
   pushNotifiedFIFO(gNB->resp_L1_tx,msgL1Tx); // to unblock the process in the beginning
 
-  msgL1Tx = newNotifiedFIFO_elt(sizeof(processingData_L1tx_t),0,gNB->resp_L1_tx,tx_func);
+  /*msgL1Tx = newNotifiedFIFO_elt(sizeof(processingData_L1tx_t),0,gNB->resp_L1_tx,tx_func);
   msgDataTx = (processingData_L1tx_t *)NotifiedFifoData(msgL1Tx);
   init_DLSCH_struct(gNB, msgDataTx);
   msgDataTx->slot = -1;
@@ -441,7 +441,7 @@ void init_gNB_Tpool(int inst) {
   reset_meas(&msgDataTx->phy_proc_tx);
   gNB->phy_proc_tx_1 = &msgDataTx->phy_proc_tx;
   pushNotifiedFIFO(gNB->resp_L1_tx,msgL1Tx); // to unblock the process in the beginning
-  
+  */
   // RU TX result FIFO 
   gNB->resp_RU_tx = (notifiedFIFO_t*) malloc(sizeof(notifiedFIFO_t));
   initNotifiedFIFO(gNB->resp_RU_tx);
