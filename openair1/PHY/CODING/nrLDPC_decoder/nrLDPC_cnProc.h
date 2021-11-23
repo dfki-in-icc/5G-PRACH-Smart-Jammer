@@ -389,10 +389,10 @@ static inline void nrLDPC_cnProc_BG1_first(t_nrLDPC_lut* p_lut, int8_t* llr, t_n
     const uint8_t (*lut_posBnInCnProcBuf_CNG10)[lut_numCnInCnGroups_BG1_R13[7]] = (const uint8_t(*)[lut_numCnInCnGroups_BG1_R13[7]]) p_lut->posBnInCnProcBuf[7];
     const uint8_t (*lut_posBnInCnProcBuf_CNG19)[lut_numCnInCnGroups_BG1_R13[8]] = (const uint8_t(*)[lut_numCnInCnGroups_BG1_R13[8]]) p_lut->posBnInCnProcBuf[8];
 
-    const uint16_t (*lut_addrOffset_CNG7_SG1) [13] = (const uint8_t(*)[13]) p_lut->addrOffset_CNG7_SG1;
-    const uint16_t (*lut_addrOffset_CNG7_SG2) [7] = (const uint8_t(*)[7]) p_lut->addrOffset_CNG7_SG2;
-    const uint16_t (*lut_addrOffset_CNG7_SG3) [1] = (const uint8_t(*)[1]) p_lut->addrOffset_CNG7_SG3;
-    const uint16_t (*lut_addrOffset_CNG7_SG4) [2] = (const uint8_t(*)[2]) p_lut->addrOffset_CNG7_SG4;
+    const uint16_t (*lut_addrOffset_CNG7_SG1) [13] = (const uint16_t(*)[13]) p_lut->addrOffset_CNG7_SG1;
+    const uint16_t (*lut_addrOffset_CNG7_SG2) [7] = (const uint16_t(*)[7]) p_lut->addrOffset_CNG7_SG2;
+    const uint16_t (*lut_addrOffset_CNG7_SG3) [1] = (const uint16_t(*)[1]) p_lut->addrOffset_CNG7_SG3;
+    const uint16_t (*lut_addrOffset_CNG7_SG4) [2] = (const uint16_t(*)[2]) p_lut->addrOffset_CNG7_SG4;
 
     const uint8_t*  lut_numCnInCnGroups = p_lut->numCnInCnGroups;
     const uint32_t* lut_startAddrCnGroups = p_lut->startAddrCnGroups;
@@ -2892,10 +2892,10 @@ static inline void nrLDPC_cnProc_BG1_second(t_nrLDPC_lut* p_lut, int8_t* llr, t_
     const uint8_t (*lut_posBnInCnProcBuf_CNG10)[lut_numCnInCnGroups_BG1_R13[7]] = (const uint8_t(*)[lut_numCnInCnGroups_BG1_R13[7]]) p_lut->posBnInCnProcBuf[7];
     const uint8_t (*lut_posBnInCnProcBuf_CNG19)[lut_numCnInCnGroups_BG1_R13[8]] = (const uint8_t(*)[lut_numCnInCnGroups_BG1_R13[8]]) p_lut->posBnInCnProcBuf[8];
 
-    const uint16_t (*lut_addrOffset_CNG7_SG1) [13] = (const uint8_t(*)[13]) p_lut->addrOffset_CNG7_SG1;
-    const uint16_t (*lut_addrOffset_CNG7_SG2) [7] = (const uint8_t(*)[7]) p_lut->addrOffset_CNG7_SG2;
-    const uint16_t (*lut_addrOffset_CNG7_SG3) [1] = (const uint8_t(*)[1]) p_lut->addrOffset_CNG7_SG3;
-    const uint16_t (*lut_addrOffset_CNG7_SG4) [2] = (const uint8_t(*)[2]) p_lut->addrOffset_CNG7_SG4;
+    const uint16_t (*lut_addrOffset_CNG7_SG1) [13] = (const uint16_t(*)[13]) p_lut->addrOffset_CNG7_SG1;
+    const uint16_t (*lut_addrOffset_CNG7_SG2) [7] = (const uint16_t(*)[7]) p_lut->addrOffset_CNG7_SG2;
+    const uint16_t (*lut_addrOffset_CNG7_SG3) [1] = (const uint16_t(*)[1]) p_lut->addrOffset_CNG7_SG3;
+    const uint16_t (*lut_addrOffset_CNG7_SG4) [2] = (const uint16_t(*)[2]) p_lut->addrOffset_CNG7_SG4;
 
     const uint8_t*  lut_numCnInCnGroups = p_lut->numCnInCnGroups;
     const uint32_t* lut_startAddrCnGroups = p_lut->startAddrCnGroups;
