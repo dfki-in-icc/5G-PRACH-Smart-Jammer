@@ -453,7 +453,88 @@ int get_mcs_from_bler(module_id_t mod_id, int CC_id, frame_t frame, sub_frame_t 
   return new_mcs;
 }
 
+
 void nr_store_dlsch_buffer(module_id_t module_id,
+                           frame_t frame,
+                           sub_frame_t slot) {
+
+  NR_UE_info_t *UE_info = &RC.nrmac[module_id]->UE_info;
+
+  for (int UE_id = UE_info->list.head; UE_id >= 0; UE_id = UE_info->list.next[UE_id]) {
+    NR_UE_sched_ctrl_t *sched_ctrl = &UE_info->UE_sched_ctrl[UE_id];
+
+    sched_ctrl->num_total_bytes = 0;
+
+    int lcid; 
+    const uint16_t rnti = UE_info->rnti[UE_id];
+    LOG_D(NR_MAC,"UE %d/%x : lcid_mask %x\n",UE_id,rnti,sched_ctrl->lcid_mask);
+    if ((sched_ctrl->lcid_mask&(1<<2)) > 0)
+      sched_ctrl->rlc_status[DL_SCH_LCID_DCCH1] = mac_rlc_status_ind(module_id,
+                                                        rnti,
+                                                        module_id,
+                                                          frame,
+                                                        slot,
+                                                        ENB_FLAG_YES,
+                                                        MBMS_FLAG_NO,
+                                                        DL_SCH_LCID_DCCH1,
+                                                        0,
+                                                        0);
+    if ((sched_ctrl->lcid_mask&(1<<1)) > 0)
+       sched_ctrl->rlc_status[DL_SCH_LCID_DCCH] = mac_rlc_status_ind(module_id,
+                                                        rnti,
+                                                        module_id,
+                                                        frame,
+                                                        slot,
+                                                        ENB_FLAG_YES,
+                                                        MBMS_FLAG_NO,
+                                                        DL_SCH_LCID_DCCH,
+                                                        0,
+                                                        0);
+    if ((sched_ctrl->lcid_mask&(1<<4)) > 0)  
+       sched_ctrl->rlc_status[DL_SCH_LCID_DTCH] = mac_rlc_status_ind(module_id,
+                                                                    rnti,
+                                                                    module_id,
+                                                                    frame,
+                                                                    slot,
+                                                                    ENB_FLAG_YES,
+                                                                    MBMS_FLAG_NO,
+                                                                    DL_SCH_LCID_DTCH,
+                                                                    0,
+                                                                    0);
+
+     if(sched_ctrl->rlc_status[DL_SCH_LCID_DCCH].bytes_in_buffer > 0){
+       lcid = DL_SCH_LCID_DCCH;       
+     } 
+     else if (sched_ctrl->rlc_status[DL_SCH_LCID_DCCH1].bytes_in_buffer > 0)
+     {
+       lcid = DL_SCH_LCID_DCCH1;       
+     }else{
+       lcid = DL_SCH_LCID_DTCH;       
+     }
+                                                      
+    sched_ctrl->num_total_bytes += sched_ctrl->rlc_status[lcid].bytes_in_buffer;
+    //later multiplex here. Just select DCCH/SRB before DTCH/DRB
+    sched_ctrl->lcid_to_schedule = lcid;
+
+    if (sched_ctrl->num_total_bytes == 0
+        && !sched_ctrl->ta_apply) /* If TA should be applied, give at least one RB */
+      continue;
+
+    LOG_D(NR_MAC,
+          "[%s][%d.%d], %s%d->DLSCH, RLC status %d bytes TA %d\n",
+          __func__,
+          frame,
+          slot,
+          lcid<4?"DCCH":"DTCH",
+          lcid,
+          sched_ctrl->rlc_status[lcid].bytes_in_buffer,
+          sched_ctrl->ta_apply);
+  }
+}
+
+
+
+void nr_store_dlsch_buffer2(module_id_t module_id,
                            frame_t frame,
                            sub_frame_t slot) {
 
@@ -1233,7 +1314,7 @@ void nr_schedule_ue_spec(module_id_t module_id,
       /* next, get RLC data */
 
       // const int lcid = DL_SCH_LCID_DTCH;
-      const int lcid = loop_dcch_dtch;
+      const int lcid = sched_ctrl->lcid_to_schedule;
       int dlsch_total_bytes = 0;
       if (sched_ctrl->num_total_bytes > 0) {
         tbs_size_t len = 0;
