@@ -277,6 +277,58 @@ uint32_t get_ssb_frame(uint32_t test){
   return test;
 }
 
+//TODO L5G
+int8_t nr_ue_process_dci_freq_dom_resource_assignment0(nfapi_nr_ue_pusch_pdu_t *pusch_config_pdu,
+                                                     fapi_nr_dl_config_dlsch_pdu_rel15_t *dlsch_config_pdu,
+                                                     uint16_t n_RB_DLBWP,
+                                                     uint16_t DLRBG_size,
+                                                     uint16_t DLRBG_num,
+                                                     uint32_t rb_map
+                                                     ){
+  int num_rbs=0;
+  int start_rb=0;
+  int distributed_check=0;
+  for(int rbg=DLRBG_num-1;rbg>0;rbg--){
+    if((rb_map>>rbg)&1){
+      if(distributed_check){
+        dlsch_config_pdu->number_rbs=0;
+        dlsch_config_pdu->start_rb=0;
+        LOG_E(MAC,"DLSCH not support distributed rb_map = %x\n", rb_map);
+        return -1;
+      }
+      if(num_rbs==0){
+        start_rb=(DLRBG_num-1-rbg)*DLRBG_size;
+      }
+      num_rbs+=DLRBG_size;
+    }else if(num_rbs>0){
+      // Check distributed mapping following case
+      // 000111110****
+      distributed_check=1;
+    }
+  }
+  // check last bit
+  if(rb_map&1){
+    if(distributed_check){
+      dlsch_config_pdu->number_rbs=0;
+      dlsch_config_pdu->start_rb=0;
+      LOG_E(MAC,"DLSCH not support distributed rb_map = %x\n", rb_map);
+      return -1;
+    }
+    if(num_rbs==0){
+      start_rb=(DLRBG_num-1)*DLRBG_size;
+    }
+    // add remain RB
+    num_rbs+= n_RB_DLBWP-(DLRBG_size*(DLRBG_num-1));
+  }
+  dlsch_config_pdu->number_rbs=num_rbs;
+  dlsch_config_pdu->start_rb=start_rb;
+  LOG_D(MAC,"DLSCH rb_map = %x\n", rb_map);
+  LOG_D(MAC,"DLSCH n_RB_DLBWP = %i\n", n_RB_DLBWP);
+  LOG_D(MAC,"DLSCH number_rbs = %i\n", dlsch_config_pdu->number_rbs);
+  LOG_D(MAC,"DLSCH start_rb = %i\n", dlsch_config_pdu->start_rb);
+  return 0;
+}
+
 /*
  * This code contains all the functions needed to process all dci fields.
  * These tables and functions are going to be called by function nr_ue_process_dci
@@ -946,7 +998,8 @@ int8_t nr_ue_process_dci(module_id_t module_id, int cc_id, uint8_t gNB_index, fr
 
     if (dci->bwp_indicator.val != 1) {
       LOG_W(MAC, "[%d.%d] bwp_indicator != 1! Possibly due to false DCI. Ignoring DCI!\n", frame, slot);
-      return -1;
+      //TODO L5G
+      dci->bwp_indicator.val=1;
     }
     config_bwp_ue(mac, &dci->bwp_indicator.val, &dci_format);
     NR_BWP_Id_t dl_bwp_id = mac->DL_BWP_Id;
@@ -975,9 +1028,19 @@ int8_t nr_ue_process_dci(module_id_t module_id, int cc_id, uint8_t gNB_index, fr
     /* BANDWIDTH_PART_IND */
     //    dlsch_config_pdu_1_1->bandwidth_part_ind = dci->bandwidth_part_ind;
     /* FREQ_DOM_RESOURCE_ASSIGNMENT_DL */
-    if (nr_ue_process_dci_freq_dom_resource_assignment(NULL,dlsch_config_pdu_1_1,0,n_RB_DLBWP,dci->frequency_domain_assignment.val) < 0) {
-      LOG_W(MAC, "[%d.%d] Invalid frequency_domain_assignment. Possibly due to false DCI. Ignoring DCI!\n", frame, slot);
-      return -1;
+    if(pdsch_config->resourceAllocation==NR_PDSCH_Config__resourceAllocation_resourceAllocationType0){
+      //TODO L5G
+      uint16_t DLRBG_size=16;
+      uint16_t DLRBG_num=18;
+      if (nr_ue_process_dci_freq_dom_resource_assignment0(NULL,dlsch_config_pdu_1_1,n_RB_DLBWP,DLRBG_size,DLRBG_num,dci->frequency_domain_assignment.val) < 0) {
+        LOG_W(MAC, "[%d.%d] Invalid frequency_domain_assignment. Possibly due to false DCI. Ignoring DCI!\n", frame, slot);
+        return -1;
+      }
+    }else{
+      if (nr_ue_process_dci_freq_dom_resource_assignment(NULL,dlsch_config_pdu_1_1,0,n_RB_DLBWP,dci->frequency_domain_assignment.val) < 0) {
+        LOG_W(MAC, "[%d.%d] Invalid frequency_domain_assignment. Possibly due to false DCI. Ignoring DCI!\n", frame, slot);
+        return -1;
+      }
     }
     /* TIME_DOM_RESOURCE_ASSIGNMENT */
     if (nr_ue_process_dci_time_dom_resource_assignment(mac,NULL,dlsch_config_pdu_1_1,dci->time_domain_assignment.val,0,false) < 0) {
@@ -1002,8 +1065,8 @@ int8_t nr_ue_process_dci(module_id_t module_id, int cc_id, uint8_t gNB_index, fr
 
     /* dmrs symbol positions*/
     dlsch_config_pdu_1_1->dlDmrsSymbPos = fill_dmrs_mask(pdsch_config,
-							 mac->scc->dmrs_TypeA_Position,
-							 dlsch_config_pdu_1_1->number_symbols,
+                                                         mac->scc ? mac->scc->dmrs_TypeA_Position : mac->mib->dmrs_TypeA_Position,
+                                                         dlsch_config_pdu_1_1->number_symbols,
                                                          dlsch_config_pdu_1_1->start_symbol,
                                                          mappingtype);
 
@@ -1064,9 +1127,9 @@ int8_t nr_ue_process_dci(module_id_t module_id, int cc_id, uint8_t gNB_index, fr
     
     if(pucch_Config==NULL) return -1;
     valid = 0;
-    pucch_res_set_cnt = mac->ULbwp[0]->bwp_Dedicated->pucch_Config->choice.setup->resourceSetToAddModList->list.count;
+    pucch_res_set_cnt = pucch_Config->resourceSetToAddModList->list.count;
     for (int id = 0; id < pucch_res_set_cnt; id++) {
-      if (dci->pucch_resource_indicator < mac->ULbwp[0]->bwp_Dedicated->pucch_Config->choice.setup->resourceSetToAddModList->list.array[id]->resourceList.list.count) {
+      if (dci->pucch_resource_indicator < pucch_Config->resourceSetToAddModList->list.array[id]->resourceList.list.count) {
         valid = 1;
         break;
       }

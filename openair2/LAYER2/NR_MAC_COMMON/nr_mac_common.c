@@ -2532,7 +2532,7 @@ uint8_t getNRBG(uint16_t bwp_size, uint16_t bwp_start, long rbg_size_config) {
 
   uint8_t rbg_size = getRBGSize(bwp_size,rbg_size_config);
 
-  return (uint8_t)ceil((bwp_size+(bwp_start % rbg_size))/rbg_size);
+  return (uint8_t)ceil((float)(bwp_size+(bwp_start % rbg_size))/(float)rbg_size);
 }
 
 uint8_t getAntPortBitWidth(NR_SetupRelease_DMRS_DownlinkConfig_t *typeA, NR_SetupRelease_DMRS_DownlinkConfig_t *typeB) {
@@ -2988,11 +2988,12 @@ uint16_t nr_dci_size(const NR_BWP_UplinkCommon_t *initialUplinkBWP,
         size += dci_pdu->carrier_indicator.nbits;
       }
       // BWP Indicator
+      //TODO L5G
       uint8_t n_dl_bwp;
       if(cg->spCellConfig->spCellConfigDedicated->downlinkBWP_ToAddModList)
         n_dl_bwp = cg->spCellConfig->spCellConfigDedicated->downlinkBWP_ToAddModList->list.count;
       else
-        n_dl_bwp=1;
+        n_dl_bwp=0;
       
       if (n_dl_bwp < 2)
         dci_pdu->bwp_indicator.nbits = n_dl_bwp;

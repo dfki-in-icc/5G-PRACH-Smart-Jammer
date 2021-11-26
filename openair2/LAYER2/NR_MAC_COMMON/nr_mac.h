@@ -256,6 +256,12 @@ typedef struct {
   uint8_t nbits;
 } dci_field_t;
 
+// DCI pdu structures. Used by both gNB and UE.
+typedef struct {
+  uint32_t val;
+  uint8_t nbits;
+} dci_field32_t;
+
 typedef struct {
 
   uint8_t     format_indicator; //1 bit
@@ -286,7 +292,7 @@ typedef struct {
   dci_field_t mcs2; //variable
   dci_field_t ndi2; //variable
   dci_field_t rv2; //variable
-  dci_field_t frequency_domain_assignment; //variable
+  dci_field32_t frequency_domain_assignment; //variable
   dci_field_t time_domain_assignment; //variable
   dci_field_t frequency_hopping_flag; //variable
   dci_field_t vrb_to_prb_mapping; //variable
