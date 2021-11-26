@@ -49,11 +49,12 @@ old = t;
   while (ul->slot != bs->next_slot[a] ||
          ul->symbol != bs->next_symbol[a]) {
     lock_ul_buffer(bs->buffers, bs->next_slot[a]);
+    /*
     if (bs->buffers->ul_busy[a][bs->next_slot[a]] & (1 << bs->next_symbol[a])) {
       printf("%s: warning, antenna %d UL overflow (sl.symbol %d.%d)\n", __FUNCTION__,
              a, bs->next_slot[a], bs->next_symbol[a]);
     }
-
+    */
     memset(bs->buffers->ul[a][bs->next_slot[a]] + bs->next_symbol[a] * 1272*4,
            0, 1272*4);
     bs->buffers->ul_busy[a][bs->next_slot[a]] |= (1 << bs->next_symbol[a]);
@@ -72,10 +73,12 @@ old = t;
   }
 
   lock_ul_buffer(bs->buffers, bs->next_slot[a]);
+  /*
   if (bs->buffers->ul_busy[a][bs->next_slot[a]] & (1 << bs->next_symbol[a])) {
     printf("%s: warning, antenna %d UL overflow (sl.symbol %d.%d)\n", __FUNCTION__,
            a, bs->next_slot[a], bs->next_symbol[a]);
   }
+  */
 
   memcpy(bs->buffers->ul[a][bs->next_slot[a]] + bs->next_symbol[a] * 1272*4,
          ul->iq, 1272*4);
@@ -106,7 +109,7 @@ void store_prach(benetel_t *bs, int frame, int slot, void *data)
 
   lock_ul_buffer(bs->buffers, slot);
   if (bs->buffers->prach_busy[slot]) {
-    printf("store_prach: fatal: previous prach buffer not processed\n");
+    //printf("store_prach: fatal: previous prach buffer not processed\n");
     unlock_ul_buffer(bs->buffers, slot);
     return;
   }

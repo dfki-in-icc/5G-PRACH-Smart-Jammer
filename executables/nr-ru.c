@@ -1273,12 +1273,12 @@ void *ru_thread( void *param ) {
       LOG_I(PHY,"Starting IF interface for RU %d\n",ru->idx);
       AssertFatal(ru->nr_start_if(ru,NULL) == 0, "Could not start the IF device\n");
 
-      if (ru->has_ctrl_prt > 0) {
+      //if (ru->has_ctrl_prt > 0) {
         if (ru->if_south == LOCAL_RF) ret = connect_rau(ru);
         else ret = attach_rru(ru);
   
         AssertFatal(ret==0,"Cannot connect to remote radio\n");
-      }
+	//}
 
     }
     else if (ru->if_south == LOCAL_RF) { // configure RF parameters only

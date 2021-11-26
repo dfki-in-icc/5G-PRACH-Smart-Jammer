@@ -151,14 +151,14 @@ int nr_phy_init_RU(RU_t *ru) {
         } // for p
       } //for i
       }
-
-      ru->common.beam_id = (uint8_t**)malloc16_clear(ru->nb_tx*sizeof(uint8_t*));
-      for(i=0; i< ru->nb_tx; ++i) {
-        ru->common.beam_id[i] = (uint8_t*)malloc16_clear(fp->symbols_per_slot*fp->slots_per_frame*sizeof(uint8_t));
-        memset(ru->common.beam_id[i],255,fp->symbols_per_slot*fp->slots_per_frame);
-      }
     }
   } // !=IF5
+
+  ru->common.beam_id = (uint8_t**)malloc16_clear(ru->nb_tx*sizeof(uint8_t*));
+  for(i=0; i< ru->nb_tx; ++i) {
+    ru->common.beam_id[i] = (uint8_t*)malloc16_clear(fp->symbols_per_slot*fp->slots_per_frame*sizeof(uint8_t));
+    memset(ru->common.beam_id[i],255,fp->symbols_per_slot*fp->slots_per_frame);
+  }
 
   ru->common.sync_corr = (uint32_t*)malloc16_clear( LTE_NUMBER_OF_SUBFRAMES_PER_FRAME*sizeof(uint32_t)*fp->samples_per_subframe_wCP );
 
