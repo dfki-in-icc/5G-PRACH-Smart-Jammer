@@ -164,6 +164,7 @@ int trx_benetel_ctlrecv(openair0_device *device, void *msg, ssize_t msg_len)
     cap->FH_fmt                           = OAI_IF4p5_only;
     cap->num_bands                        = 1;
     cap->band_list[0]                     = 78;
+    cap->scs_idx[0]                       = 1; //30kHz
     /* TODO: hardcoded to 1 for the moment, get the real value somehow... */
     cap->nb_rx[0]                         = 1; //device->openair0_cfg->rx_num_channels;
     cap->nb_tx[0]                         = 1; //device->openair0_cfg->tx_num_channels;

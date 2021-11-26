@@ -966,7 +966,6 @@ add_library(benetel_5g MODULE ${HWLIB_BENETEL_5G_SOURCE} )
 
 set_target_properties(benetel_5g PROPERTIES COMPILE_FLAGS "-fvisibility=hidden -march=native -I$ENV{RTE_SDK}/$ENV{RTE_TARGET}/include")
 
-SET(DPDK_LIBS "-Wl,-rpath,$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -Wl,--whole-archive -L$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -ldpdk -Wl,--no-whole-archive")
 TARGET_LINK_LIBRARIES(benetel_5g ${DPDK_LIBS})
 TARGET_LINK_LIBRARIES(benetel_5g pthread dl rt m numa)
 

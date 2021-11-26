@@ -34,6 +34,7 @@
 #include "common/utils/assertions.h"
 #include "common/utils/system.h"
 #include "common/ran_context.h"
+#include "common/utils/nr/nr_common.h"
 
 #include "../../ARCH/COMMON/common_lib.h"
 #include "../../ARCH/ETHERNET/USERSPACE/LIB/ethernet_lib.h"
@@ -1550,19 +1551,26 @@ int check_capabilities(RU_t *ru,RRU_capabilities_t *cap) {
   FH_fmt_options_t fmt = cap->FH_fmt;
   int i;
   int found_band=0;
+  int band_table_idx=0;
   LOG_I(PHY,"RRU %d, num_bands %d, looking for band %d\n",ru->idx,cap->num_bands,ru->nr_frame_parms->nr_band);
 
   for (i=0; i<cap->num_bands; i++) {
-    LOG_I(PHY,"band %d on RRU %d\n",cap->band_list[i],ru->idx);
+    LOG_I(PHY,"Checking if carrier freq and scs is in band %d on RRU %d\n",cap->band_list[i],ru->idx);
 
-    if (ru->nr_frame_parms->nr_band == cap->band_list[i]) {
+    band_table_idx = get_nr_table_idx(cap->band_list[i], cap->scs_idx[i]);
+    
+    if (ru->nr_frame_parms->ul_CarrierFreq/1000 >= nr_bandtable[band_table_idx].ul_min &&
+	ru->nr_frame_parms->ul_CarrierFreq/1000 <= nr_bandtable[band_table_idx].ul_max &&
+	ru->nr_frame_parms->dl_CarrierFreq/1000 >= nr_bandtable[band_table_idx].dl_min &&
+	ru->nr_frame_parms->dl_CarrierFreq/1000 <= nr_bandtable[band_table_idx].dl_max &&
+	ru->nr_frame_parms->numerology_index == cap->scs_idx[i]) {
       found_band=1;
       break;
     }
   }
 
   if (found_band == 0) {
-    LOG_I(PHY,"Couldn't find target NR band %d on RRU %d\n",ru->nr_frame_parms->nr_band,ru->idx);
+    LOG_I(PHY,"Carrier Frequencies and/or SCS not supported on RRU %d\n",ru->idx);
     return(-1);
   }
 

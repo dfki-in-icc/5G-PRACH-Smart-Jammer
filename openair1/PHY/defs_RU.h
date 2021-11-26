@@ -686,6 +686,8 @@ typedef struct RRU_capabilities_s {
   uint8_t          num_bands;
   /// EUTRA band list supported by RRU
   uint8_t          band_list[MAX_BANDS_PER_RRU];
+  /// supported subcarrier spacing (0=15kHZ, 1=30kHz, etc)
+  uint8_t          scs_idx[MAX_BANDS_PER_RRU];
   /// Number of concurrent bands (component carriers)
   uint8_t          num_concurrent_bands;
   /// Maximum TX EPRE of each band
