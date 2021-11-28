@@ -2125,8 +2125,8 @@ get_aggregation(uint8_t bw_index,
  */
 void
 dump_ue_list(UE_list_t *listP) {
-  for (int j = listP->head; j >= 0; j = listP->next[j])
-    LOG_T(MAC, "DL list node %d => %d\n", j, listP->next[j]);
+  for (int j=0;  listP->nextUE[j] != -1 ; j++)
+    LOG_T(MAC, "DL list node %j => %d\n", j, listP->nextUE[j]);
 }
 
 //------------------------------------------------------------------------------
@@ -2134,25 +2134,27 @@ dump_ue_list(UE_list_t *listP) {
  * Add a UE to UE_list listP
  */
 inline void add_ue_list(UE_list_t *listP, int UE_id) {
-  int *cur = &listP->head;
-  while (*cur >= 0)
-    cur = &listP->next[*cur];
+  int *cur = listP->nextUE;
+  while (*cur !=-1)
+    cur++;
   *cur = UE_id;
 }
 
 //------------------------------------------------------------------------------
 /*
- * Remove a UE from the UE_list listP
+ * Remove a UE from the UE_list listP and pack it
  */
 inline int remove_ue_list(UE_list_t *listP, int UE_id) {
-  int *cur = &listP->head;
+  int *cur = listP->nextUE;
   while (*cur != -1 && *cur != UE_id)
-    cur = &listP->next[*cur];
+    cur++;
   if (*cur == -1)
     return 0;
-  int *next = &listP->next[*cur];
-  *cur = listP->next[*cur];
-  *next = -1;
+  while (*(cur+1) != -1) {
+    *cur=*(cur+1);
+    cur++;
+  }
+  *cur=-1;
   return 1;
 }
 
@@ -2161,9 +2163,8 @@ inline int remove_ue_list(UE_list_t *listP, int UE_id) {
  * Initialize the UE_list listP
  */
 inline void init_ue_list(UE_list_t *listP) {
-  listP->head = -1;
-  for (int i = 0; i < MAX_MOBILES_PER_ENB; ++i)
-    listP->next[i] = -1;
+  for (int i = 0; i < MAX_MOBILES_PER_ENB+1 ; ++i)
+    listP->nextUE[i] = -1;
 }
 
 //------------------------------------------------------------------------------
@@ -2370,6 +2371,7 @@ rrc_mac_remove_ue(module_id_t mod_idP,
 /*
  * Returns the previous UE_id in the scheduling list in UL or DL
  */
+#if 0
 inline int prev(UE_list_t *listP, int nodeP) {
   if (nodeP == listP->head)
       return -1; /* there is no previous of the head */
@@ -2382,7 +2384,7 @@ inline int prev(UE_list_t *listP, int nodeP) {
   dump_ue_list(listP);
   return -1;
 }
-
+#endif
 // This has to be updated to include BSR information
 //------------------------------------------------------------------------------
 uint8_t

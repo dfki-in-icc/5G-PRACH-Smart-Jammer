@@ -447,8 +447,8 @@ bool dlsch_procedures(PHY_VARS_eNB *eNB,
 #else
     dlsch->active = 0;
 #endif
-    dlsch_harq->round++;
     LOG_D(PHY,"Generated DLSCH dlsch_harq[round:%d]\n",dlsch_harq->round);
+    dlsch_harq->round++;
     return true;
   }
 
@@ -1361,7 +1361,7 @@ void postDecode(L1_rxtx_proc_t *proc, notifiedFIFO_elt_t *req) {
           T_INT(rdata->harq_pid));
 	fill_crc_indication(eNB,i,rdata->frame,rdata->subframe,1); // indicate NAK to MAC
 	fill_rx_indication(eNB,i,rdata->frame,rdata->subframe);  // indicate SDU to MAC
-	LOG_D(PHY,"[eNB %d][PUSCH %d] frame %d subframe %d UE %d Error receiving ULSCH, round %d/%d (ACK %d,%d)\n",
+	LOG_E(PHY,"[eNB %d][PUSCH %d] frame %d subframe %d UE %d Error receiving ULSCH, round %d/%d (ACK %d,%d)\n",
 	      eNB->Mod_id,rdata->harq_pid,
 	      rdata->frame,rdata->subframe, i,
 	      ulsch_harq->round,

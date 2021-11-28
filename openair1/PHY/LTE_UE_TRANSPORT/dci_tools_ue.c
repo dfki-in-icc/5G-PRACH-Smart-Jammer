@@ -64,6 +64,13 @@ extern uint16_t beta_cqi[16];
 extern uint16_t beta_ri[16];
 extern uint16_t beta_ack[16];
 
+int errorRB(int rb, char * table, int line) {
+  LOG_E(PHY,"Received %d rb, impossble in table %s, at line %d\n", rb, table, line);
+  return 0;
+}
+
+#define rbAllocCheck(RBalL, TabLe) RBalL>sizeof(TabLe)/sizeof(*TabLe) ? errorRB(RBalL,#TabLe, __LINE__) : TabLe[RBalL]
+
 void extract_dci1A_info(uint8_t N_RB_DL, lte_frame_type_t frame_type, void *dci_pdu, DCI_INFO_EXTRACTED_t *pdci_info_extarcted)
 {
     uint8_t harq_pid=0;
@@ -974,28 +981,28 @@ int check_dci_format1_1a_coherency(DCI_format_t dci_format,
     {
         switch (N_RB_DL) {
         case 6:
-            NPRB     = RIV2nb_rb_LUT6[rballoc];//NPRB;
+	  NPRB     = rbAllocCheck(rballoc, RIV2nb_rb_LUT6);//NPRB;
             if(rah)
               RIV_max  = RIV_max6;
             else
               RIV_max  = 0x3F;
             break;
         case 25:
-            NPRB     = RIV2nb_rb_LUT25[rballoc];//NPRB;
+            NPRB     =  rbAllocCheck(rballoc,RIV2nb_rb_LUT25);//NPRB;
             if(rah)
               RIV_max  = RIV_max25;
             else
               RIV_max  = 0x1FFF;
             break;
         case 50:
-            NPRB     = RIV2nb_rb_LUT50[rballoc];//NPRB;
+            NPRB     =  rbAllocCheck(rballoc,RIV2nb_rb_LUT50);//NPRB;
             if(rah)
               RIV_max  = RIV_max50;
             else
               RIV_max  = 0x1FFFF;
             break;
         case 100:
-            NPRB     = RIV2nb_rb_LUT100[rballoc];//NPRB;
+            NPRB     =  rbAllocCheck(rballoc,RIV2nb_rb_LUT100);//NPRB;
             if(rah)
               RIV_max  = RIV_max100;
             else
@@ -1034,9 +1041,10 @@ int check_dci_format1_1a_coherency(DCI_format_t dci_format,
             // this is an eNB issue
             // retransmisison but old and new TBS are different !!!
             // work around, consider it as a new transmission
-            LOG_E(PHY,"Format1A Retransmission but TBS are different: consider it as new transmission !!! \n");
-            pdlsch0_harq->round = 0;
-            //return(0); // ?? to cross check
+	  LOG_E(PHY,"Format1A Retransmission but TBS are different: consider it as new transmission !!!, round %d, mcs 1 %d, NPRB %d \n",
+		pdlsch0_harq->round, mcs1, NPRB);
+	  pdlsch0_harq->round = 0;
+	  return(0); // ?? to cross check
         }
     }
 
@@ -1063,19 +1071,19 @@ int check_dci_format1c_coherency(uint8_t N_RB_DL,
 
     switch (N_RB_DL) {
     case 6:
-      NPRB     = RIV2nb_rb_LUT6[rballoc];//NPRB;
+      NPRB     = rbAllocCheck(rballoc,RIV2nb_rb_LUT6);//NPRB;
       RIV_max  = RIV_max6;
     break;
     case 25:
-      NPRB     = RIV2nb_rb_LUT25[rballoc];//NPRB;
+      NPRB     = rbAllocCheck(rballoc,RIV2nb_rb_LUT25);//NPRB;
       RIV_max  = RIV_max25;
     break;
     case 50:
-      NPRB     = RIV2nb_rb_LUT50[rballoc];//NPRB;
+      NPRB     = rbAllocCheck(rballoc,RIV2nb_rb_LUT50);//NPRB;
       RIV_max  = RIV_max50;
     break;
     case 100:
-      NPRB     = RIV2nb_rb_LUT100[rballoc];//NPRB;
+      NPRB     = rbAllocCheck(rballoc,RIV2nb_rb_LUT100);//NPRB;
       RIV_max  = RIV_max100;
     break;
     }
@@ -1347,16 +1355,16 @@ void prepare_dl_decoding_format1_1A(DCI_format_t dci_format,
     {
       switch (N_RB_DL) {
       case 6:
-	NPRB     = RIV2nb_rb_LUT6[rballoc];
+	NPRB     = rbAllocCheck(rballoc,RIV2nb_rb_LUT6);
 	break;
       case 25:
-	NPRB     = RIV2nb_rb_LUT25[rballoc];
+	NPRB     = rbAllocCheck(rballoc,RIV2nb_rb_LUT25);
 	break;
       case 50:
-	NPRB     = RIV2nb_rb_LUT50[rballoc];
+	NPRB     = rbAllocCheck(rballoc,RIV2nb_rb_LUT50);
 	break;
       case 100:
-	NPRB     = RIV2nb_rb_LUT100[rballoc];
+	NPRB     = rbAllocCheck(rballoc,RIV2nb_rb_LUT100);
 	break;
       }
       if ((rnti==si_rnti) || (rnti==p_rnti) || (rnti==ra_rnti))
@@ -1369,16 +1377,16 @@ void prepare_dl_decoding_format1_1A(DCI_format_t dci_format,
 	  /*
             switch (N_RB_DL) {
             case 6:
-                NPRB     = RIV2nb_rb_LUT6[rballoc];//NPRB;
+                NPRB     = RIV2nb_rb_LUT6);//NPRB;
                 break;
             case 25:
-                NPRB     = RIV2nb_rb_LUT25[rballoc];//NPRB;
+                NPRB     = RIV2nb_rb_LUT25);//NPRB;
                 break;
             case 50:
-                NPRB     = RIV2nb_rb_LUT50[rballoc];//NPRB;
+                NPRB     = RIV2nb_rb_LUT50);//NPRB;
                 break;
             case 100:
-                NPRB     = RIV2nb_rb_LUT100[rballoc];//NPRB;
+                NPRB     = RIV2nb_rb_LUT100);//NPRB;
                 break;
             }
 
@@ -1463,82 +1471,82 @@ void prepare_dl_decoding_format1_1A(DCI_format_t dci_format,
         switch (N_RB_DL) {
         case 6:
             if (vrb_type == LOCALIZED) {
-                pdlsch0_harq->rb_alloc_even[0] = localRIV2alloc_LUT6[rballoc];
-                pdlsch0_harq->rb_alloc_odd[0]  = localRIV2alloc_LUT6[rballoc];
+                pdlsch0_harq->rb_alloc_even[0] = rbAllocCheck(rballoc,localRIV2alloc_LUT6);
+                pdlsch0_harq->rb_alloc_odd[0]  = rbAllocCheck(rballoc,localRIV2alloc_LUT6);
             }
             else {
-                pdlsch0_harq->rb_alloc_even[0] = distRIV2alloc_even_LUT6[rballoc];
-                pdlsch0_harq->rb_alloc_odd[0]  = distRIV2alloc_odd_LUT6[rballoc];
+                pdlsch0_harq->rb_alloc_even[0] = rbAllocCheck(rballoc,distRIV2alloc_even_LUT6);
+                pdlsch0_harq->rb_alloc_odd[0]  = rbAllocCheck(rballoc,distRIV2alloc_odd_LUT6);
             }
             break;
 
         case 25:
             if (vrb_type == LOCALIZED) {
-                pdlsch0_harq->rb_alloc_even[0] = localRIV2alloc_LUT25[rballoc];
-                pdlsch0_harq->rb_alloc_odd[0]  = localRIV2alloc_LUT25[rballoc];
+                pdlsch0_harq->rb_alloc_even[0] = rbAllocCheck(rballoc,localRIV2alloc_LUT25);
+                pdlsch0_harq->rb_alloc_odd[0]  = rbAllocCheck(rballoc,localRIV2alloc_LUT25);
             }
             else {
-                pdlsch0_harq->rb_alloc_even[0] = distRIV2alloc_even_LUT25[rballoc];
-                pdlsch0_harq->rb_alloc_odd[0]  = distRIV2alloc_odd_LUT25[rballoc];
+                pdlsch0_harq->rb_alloc_even[0] = rbAllocCheck(rballoc,distRIV2alloc_even_LUT25);
+                pdlsch0_harq->rb_alloc_odd[0]  = rbAllocCheck(rballoc,distRIV2alloc_odd_LUT25);
             }
             break;
 
         case 50:
             if (vrb_type == LOCALIZED) {
-                pdlsch0_harq->rb_alloc_even[0] = localRIV2alloc_LUT50_0[rballoc];
-                pdlsch0_harq->rb_alloc_even[1] = localRIV2alloc_LUT50_1[rballoc];
-                pdlsch0_harq->rb_alloc_odd[0]  = localRIV2alloc_LUT50_0[rballoc];
-                pdlsch0_harq->rb_alloc_odd[1]  = localRIV2alloc_LUT50_1[rballoc];
+                pdlsch0_harq->rb_alloc_even[0] = rbAllocCheck(rballoc,localRIV2alloc_LUT50_0);
+                pdlsch0_harq->rb_alloc_even[1] = rbAllocCheck(rballoc,localRIV2alloc_LUT50_1);
+                pdlsch0_harq->rb_alloc_odd[0]  = rbAllocCheck(rballoc,localRIV2alloc_LUT50_0);
+                pdlsch0_harq->rb_alloc_odd[1]  = rbAllocCheck(rballoc,localRIV2alloc_LUT50_1);
             } else { // DISTRIBUTED
                 if ((rballoc&(1<<10)) == 0) {
                     rballoc = rballoc&(~(1<<10));
-                    pdlsch0_harq->rb_alloc_even[0] = distRIV2alloc_gap0_even_LUT50_0[rballoc];
-                    pdlsch0_harq->rb_alloc_even[1] = distRIV2alloc_gap0_even_LUT50_1[rballoc];
-                    pdlsch0_harq->rb_alloc_odd[0]  = distRIV2alloc_gap0_odd_LUT50_0[rballoc];
-                    pdlsch0_harq->rb_alloc_odd[1]  = distRIV2alloc_gap0_odd_LUT50_1[rballoc];
+                    pdlsch0_harq->rb_alloc_even[0] = rbAllocCheck(rballoc,distRIV2alloc_gap0_even_LUT50_0);
+                    pdlsch0_harq->rb_alloc_even[1] = rbAllocCheck(rballoc,distRIV2alloc_gap0_even_LUT50_1);
+                    pdlsch0_harq->rb_alloc_odd[0]  = rbAllocCheck(rballoc,distRIV2alloc_gap0_odd_LUT50_0);
+                    pdlsch0_harq->rb_alloc_odd[1]  = rbAllocCheck(rballoc,distRIV2alloc_gap0_odd_LUT50_1);
                 }
                 else {
                     rballoc = rballoc&(~(1<<10));
-                    pdlsch0_harq->rb_alloc_even[0] = distRIV2alloc_gap0_even_LUT50_0[rballoc];
-                    pdlsch0_harq->rb_alloc_even[1] = distRIV2alloc_gap0_even_LUT50_1[rballoc];
-                    pdlsch0_harq->rb_alloc_odd[0]  = distRIV2alloc_gap0_odd_LUT50_0[rballoc];
-                    pdlsch0_harq->rb_alloc_odd[1]  = distRIV2alloc_gap0_odd_LUT50_1[rballoc];
+                    pdlsch0_harq->rb_alloc_even[0] = rbAllocCheck(rballoc,distRIV2alloc_gap0_even_LUT50_0);
+                    pdlsch0_harq->rb_alloc_even[1] = rbAllocCheck(rballoc,distRIV2alloc_gap0_even_LUT50_1);
+                    pdlsch0_harq->rb_alloc_odd[0]  = rbAllocCheck(rballoc,distRIV2alloc_gap0_odd_LUT50_0);
+                    pdlsch0_harq->rb_alloc_odd[1]  = rbAllocCheck(rballoc,distRIV2alloc_gap0_odd_LUT50_1);
                 }
             }
             break;
 
         case 100:
             if (vrb_type == LOCALIZED) {
-                pdlsch0_harq->rb_alloc_even[0] = localRIV2alloc_LUT100_0[rballoc];
-                pdlsch0_harq->rb_alloc_even[1] = localRIV2alloc_LUT100_1[rballoc];
-                pdlsch0_harq->rb_alloc_even[2] = localRIV2alloc_LUT100_2[rballoc];
-                pdlsch0_harq->rb_alloc_even[3] = localRIV2alloc_LUT100_3[rballoc];
-                pdlsch0_harq->rb_alloc_odd[0]  = localRIV2alloc_LUT100_0[rballoc];
-                pdlsch0_harq->rb_alloc_odd[1]  = localRIV2alloc_LUT100_1[rballoc];
-                pdlsch0_harq->rb_alloc_odd[2]  = localRIV2alloc_LUT100_2[rballoc];
-                pdlsch0_harq->rb_alloc_odd[3]  = localRIV2alloc_LUT100_3[rballoc];
+                pdlsch0_harq->rb_alloc_even[0] = rbAllocCheck(rballoc,localRIV2alloc_LUT100_0);
+                pdlsch0_harq->rb_alloc_even[1] = rbAllocCheck(rballoc,localRIV2alloc_LUT100_1);
+                pdlsch0_harq->rb_alloc_even[2] = rbAllocCheck(rballoc,localRIV2alloc_LUT100_2);
+                pdlsch0_harq->rb_alloc_even[3] = rbAllocCheck(rballoc,localRIV2alloc_LUT100_3);
+                pdlsch0_harq->rb_alloc_odd[0]  = rbAllocCheck(rballoc,localRIV2alloc_LUT100_0);
+                pdlsch0_harq->rb_alloc_odd[1]  = rbAllocCheck(rballoc,localRIV2alloc_LUT100_1);
+                pdlsch0_harq->rb_alloc_odd[2]  = rbAllocCheck(rballoc,localRIV2alloc_LUT100_2);
+                pdlsch0_harq->rb_alloc_odd[3]  = rbAllocCheck(rballoc,localRIV2alloc_LUT100_3);
             } else {
                 if ((rballoc&(1<<10)) == 0) { //Gap 1
                     rballoc = rballoc&(~(1<<12));
-                    pdlsch0_harq->rb_alloc_even[0] = distRIV2alloc_gap0_even_LUT100_0[rballoc];
-                    pdlsch0_harq->rb_alloc_even[1] = distRIV2alloc_gap0_even_LUT100_1[rballoc];
-                    pdlsch0_harq->rb_alloc_even[2] = distRIV2alloc_gap0_even_LUT100_2[rballoc];
-                    pdlsch0_harq->rb_alloc_even[3] = distRIV2alloc_gap0_even_LUT100_3[rballoc];
-                    pdlsch0_harq->rb_alloc_odd[0]  = distRIV2alloc_gap0_odd_LUT100_0[rballoc];
-                    pdlsch0_harq->rb_alloc_odd[1]  = distRIV2alloc_gap0_odd_LUT100_1[rballoc];
-                    pdlsch0_harq->rb_alloc_odd[2]  = distRIV2alloc_gap0_odd_LUT100_2[rballoc];
-                    pdlsch0_harq->rb_alloc_odd[3]  = distRIV2alloc_gap0_odd_LUT100_3[rballoc];
+                    pdlsch0_harq->rb_alloc_even[0] = rbAllocCheck(rballoc,distRIV2alloc_gap0_even_LUT100_0);
+                    pdlsch0_harq->rb_alloc_even[1] = rbAllocCheck(rballoc,distRIV2alloc_gap0_even_LUT100_1);
+                    pdlsch0_harq->rb_alloc_even[2] = rbAllocCheck(rballoc,distRIV2alloc_gap0_even_LUT100_2);
+                    pdlsch0_harq->rb_alloc_even[3] = rbAllocCheck(rballoc,distRIV2alloc_gap0_even_LUT100_3);
+                    pdlsch0_harq->rb_alloc_odd[0]  = rbAllocCheck(rballoc,distRIV2alloc_gap0_odd_LUT100_0);
+                    pdlsch0_harq->rb_alloc_odd[1]  = rbAllocCheck(rballoc,distRIV2alloc_gap0_odd_LUT100_1);
+                    pdlsch0_harq->rb_alloc_odd[2]  = rbAllocCheck(rballoc,distRIV2alloc_gap0_odd_LUT100_2);
+                    pdlsch0_harq->rb_alloc_odd[3]  = rbAllocCheck(rballoc,distRIV2alloc_gap0_odd_LUT100_3);
                 }
                 else { //Gap 2
                     rballoc = rballoc&(~(1<<12));
-                    pdlsch0_harq->rb_alloc_even[0] = distRIV2alloc_gap1_even_LUT100_0[rballoc];
-                    pdlsch0_harq->rb_alloc_even[1] = distRIV2alloc_gap1_even_LUT100_1[rballoc];
-                    pdlsch0_harq->rb_alloc_even[2] = distRIV2alloc_gap1_even_LUT100_2[rballoc];
-                    pdlsch0_harq->rb_alloc_even[3] = distRIV2alloc_gap1_even_LUT100_3[rballoc];
-                    pdlsch0_harq->rb_alloc_odd[0]  = distRIV2alloc_gap1_odd_LUT100_0[rballoc];
-                    pdlsch0_harq->rb_alloc_odd[1]  = distRIV2alloc_gap1_odd_LUT100_1[rballoc];
-                    pdlsch0_harq->rb_alloc_odd[2]  = distRIV2alloc_gap1_odd_LUT100_2[rballoc];
-                    pdlsch0_harq->rb_alloc_odd[3]  = distRIV2alloc_gap1_odd_LUT100_3[rballoc];
+                    pdlsch0_harq->rb_alloc_even[0] = rbAllocCheck(rballoc,distRIV2alloc_gap1_even_LUT100_0);
+                    pdlsch0_harq->rb_alloc_even[1] = rbAllocCheck(rballoc,distRIV2alloc_gap1_even_LUT100_1);
+                    pdlsch0_harq->rb_alloc_even[2] = rbAllocCheck(rballoc,distRIV2alloc_gap1_even_LUT100_2);
+                    pdlsch0_harq->rb_alloc_even[3] = rbAllocCheck(rballoc,distRIV2alloc_gap1_even_LUT100_3);
+                    pdlsch0_harq->rb_alloc_odd[0]  = rbAllocCheck(rballoc,distRIV2alloc_gap1_odd_LUT100_0);
+                    pdlsch0_harq->rb_alloc_odd[1]  = rbAllocCheck(rballoc,distRIV2alloc_gap1_odd_LUT100_1);
+                    pdlsch0_harq->rb_alloc_odd[2]  = rbAllocCheck(rballoc,distRIV2alloc_gap1_odd_LUT100_2);
+                    pdlsch0_harq->rb_alloc_odd[3]  = rbAllocCheck(rballoc,distRIV2alloc_gap1_odd_LUT100_3);
                 }
             }
             break;
@@ -1625,55 +1633,55 @@ void prepare_dl_decoding_format1C(uint8_t N_RB_DL,
 
     switch (N_RB_DL) {
     case 6:
-        pdlsch0_harq->nb_rb            = RIV2nb_rb_LUT6[rballoc];
-        pdlsch0_harq->rb_alloc_even[0] = distRIV2alloc_even_LUT6[rballoc];
-        pdlsch0_harq->rb_alloc_odd[0]  = distRIV2alloc_odd_LUT6[rballoc];
+        pdlsch0_harq->nb_rb            = rbAllocCheck(rballoc,RIV2nb_rb_LUT6);
+        pdlsch0_harq->rb_alloc_even[0] = rbAllocCheck(rballoc,distRIV2alloc_even_LUT6);
+        pdlsch0_harq->rb_alloc_odd[0]  = rbAllocCheck(rballoc,distRIV2alloc_odd_LUT6);
 
         break;
 
     case 25:
-        pdlsch0_harq->nb_rb            = RIV2nb_rb_LUT25[rballoc];
-        pdlsch0_harq->rb_alloc_even[0] = distRIV2alloc_even_LUT25[rballoc];
-        pdlsch0_harq->rb_alloc_odd[0]  = distRIV2alloc_odd_LUT25[rballoc];
+        pdlsch0_harq->nb_rb            = rbAllocCheck(rballoc,RIV2nb_rb_LUT25);
+        pdlsch0_harq->rb_alloc_even[0] = rbAllocCheck(rballoc,distRIV2alloc_even_LUT25);
+        pdlsch0_harq->rb_alloc_odd[0]  = rbAllocCheck(rballoc,distRIV2alloc_odd_LUT25);
         break;
 
     case 50:
-        pdlsch0_harq->nb_rb            = RIV2nb_rb_LUT50[rballoc];
+        pdlsch0_harq->nb_rb            = rbAllocCheck(rballoc,RIV2nb_rb_LUT50);
         if (Ngap == 0) {
-            pdlsch0_harq->rb_alloc_even[0] = distRIV2alloc_gap0_even_LUT50_0[rballoc];
-            pdlsch0_harq->rb_alloc_odd[0]  = distRIV2alloc_gap0_odd_LUT50_0[rballoc];
-            pdlsch0_harq->rb_alloc_even[1] = distRIV2alloc_gap0_even_LUT50_1[rballoc];
-            pdlsch0_harq->rb_alloc_odd[1]  = distRIV2alloc_gap0_odd_LUT50_1[rballoc];
+            pdlsch0_harq->rb_alloc_even[0] = rbAllocCheck(rballoc,distRIV2alloc_gap0_even_LUT50_0);
+            pdlsch0_harq->rb_alloc_odd[0]  = rbAllocCheck(rballoc,distRIV2alloc_gap0_odd_LUT50_0);
+            pdlsch0_harq->rb_alloc_even[1] = rbAllocCheck(rballoc,distRIV2alloc_gap0_even_LUT50_1);
+            pdlsch0_harq->rb_alloc_odd[1]  = rbAllocCheck(rballoc,distRIV2alloc_gap0_odd_LUT50_1);
         }
         else {
-            pdlsch0_harq->rb_alloc_even[0] = distRIV2alloc_gap1_even_LUT50_0[rballoc];
-            pdlsch0_harq->rb_alloc_odd[0]  = distRIV2alloc_gap1_odd_LUT50_0[rballoc];
-            pdlsch0_harq->rb_alloc_even[1] = distRIV2alloc_gap1_even_LUT50_1[rballoc];
-            pdlsch0_harq->rb_alloc_odd[1]  = distRIV2alloc_gap1_odd_LUT50_1[rballoc];
+            pdlsch0_harq->rb_alloc_even[0] = rbAllocCheck(rballoc,distRIV2alloc_gap1_even_LUT50_0);
+            pdlsch0_harq->rb_alloc_odd[0]  = rbAllocCheck(rballoc,distRIV2alloc_gap1_odd_LUT50_0);
+            pdlsch0_harq->rb_alloc_even[1] = rbAllocCheck(rballoc,distRIV2alloc_gap1_even_LUT50_1);
+            pdlsch0_harq->rb_alloc_odd[1]  = rbAllocCheck(rballoc,distRIV2alloc_gap1_odd_LUT50_1);
         }
         break;
 
     case 100:
-        pdlsch0_harq->nb_rb       = RIV2nb_rb_LUT100[rballoc];
+        pdlsch0_harq->nb_rb       = rbAllocCheck(rballoc,RIV2nb_rb_LUT100);
         if (Ngap==0) {
-            pdlsch0_harq->rb_alloc_even[0] = distRIV2alloc_gap0_even_LUT100_0[rballoc];
-            pdlsch0_harq->rb_alloc_odd[0]  = distRIV2alloc_gap0_odd_LUT100_0[rballoc];
-            pdlsch0_harq->rb_alloc_even[1] = distRIV2alloc_gap0_even_LUT100_1[rballoc];
-            pdlsch0_harq->rb_alloc_odd[1]  = distRIV2alloc_gap0_odd_LUT100_1[rballoc];
-            pdlsch0_harq->rb_alloc_even[2] = distRIV2alloc_gap0_even_LUT100_2[rballoc];
-            pdlsch0_harq->rb_alloc_odd[2]  = distRIV2alloc_gap0_odd_LUT100_2[rballoc];
-            pdlsch0_harq->rb_alloc_even[3] = distRIV2alloc_gap0_even_LUT100_3[rballoc];
-            pdlsch0_harq->rb_alloc_odd[3]  = distRIV2alloc_gap0_odd_LUT100_3[rballoc];
+            pdlsch0_harq->rb_alloc_even[0] = rbAllocCheck(rballoc,distRIV2alloc_gap0_even_LUT100_0);
+            pdlsch0_harq->rb_alloc_odd[0]  = rbAllocCheck(rballoc,distRIV2alloc_gap0_odd_LUT100_0);
+            pdlsch0_harq->rb_alloc_even[1] = rbAllocCheck(rballoc,distRIV2alloc_gap0_even_LUT100_1);
+            pdlsch0_harq->rb_alloc_odd[1]  = rbAllocCheck(rballoc,distRIV2alloc_gap0_odd_LUT100_1);
+            pdlsch0_harq->rb_alloc_even[2] = rbAllocCheck(rballoc,distRIV2alloc_gap0_even_LUT100_2);
+            pdlsch0_harq->rb_alloc_odd[2]  = rbAllocCheck(rballoc,distRIV2alloc_gap0_odd_LUT100_2);
+            pdlsch0_harq->rb_alloc_even[3] = rbAllocCheck(rballoc,distRIV2alloc_gap0_even_LUT100_3);
+            pdlsch0_harq->rb_alloc_odd[3]  = rbAllocCheck(rballoc,distRIV2alloc_gap0_odd_LUT100_3);
         }
         else {
-            pdlsch0_harq->rb_alloc_even[0] = distRIV2alloc_gap1_even_LUT100_0[rballoc];
-            pdlsch0_harq->rb_alloc_odd[0]  = distRIV2alloc_gap1_odd_LUT100_0[rballoc];
-            pdlsch0_harq->rb_alloc_even[1] = distRIV2alloc_gap1_even_LUT100_1[rballoc];
-            pdlsch0_harq->rb_alloc_odd[1]  = distRIV2alloc_gap1_odd_LUT100_1[rballoc];
-            pdlsch0_harq->rb_alloc_even[2] = distRIV2alloc_gap1_even_LUT100_2[rballoc];
-            pdlsch0_harq->rb_alloc_odd[2]  = distRIV2alloc_gap1_odd_LUT100_2[rballoc];
-            pdlsch0_harq->rb_alloc_even[3] = distRIV2alloc_gap1_even_LUT100_3[rballoc];
-            pdlsch0_harq->rb_alloc_odd[3]  = distRIV2alloc_gap1_odd_LUT100_3[rballoc];
+            pdlsch0_harq->rb_alloc_even[0] = rbAllocCheck(rballoc,distRIV2alloc_gap1_even_LUT100_0);
+            pdlsch0_harq->rb_alloc_odd[0]  = rbAllocCheck(rballoc,distRIV2alloc_gap1_odd_LUT100_0);
+            pdlsch0_harq->rb_alloc_even[1] = rbAllocCheck(rballoc,distRIV2alloc_gap1_even_LUT100_1);
+            pdlsch0_harq->rb_alloc_odd[1]  = rbAllocCheck(rballoc,distRIV2alloc_gap1_odd_LUT100_1);
+            pdlsch0_harq->rb_alloc_even[2] = rbAllocCheck(rballoc,distRIV2alloc_gap1_even_LUT100_2);
+            pdlsch0_harq->rb_alloc_odd[2]  = rbAllocCheck(rballoc,distRIV2alloc_gap1_odd_LUT100_2);
+            pdlsch0_harq->rb_alloc_even[3] = rbAllocCheck(rballoc,distRIV2alloc_gap1_even_LUT100_3);
+            pdlsch0_harq->rb_alloc_odd[3]  = rbAllocCheck(rballoc,distRIV2alloc_gap1_odd_LUT100_3);
         }
         break;
 
@@ -3317,6 +3325,7 @@ int generate_ue_ulsch_params_from_dci(void *dci_pdu,
   uint32_t rballoc,RIV_max;
   uint16_t* RIV2first_rb_LUT;
   uint16_t* RIV2nb_rb_LUT;
+  int  RIV2first_rb_LUTsz=0, RIV2nb_rb_LUTsz=0;
 
   //  uint32_t hopping;
   //  uint32_t type;
@@ -3368,7 +3377,9 @@ int generate_ue_ulsch_params_from_dci(void *dci_pdu,
 
       RIV_max = RIV_max6;
       RIV2first_rb_LUT = RIV2first_rb_LUT6;
+      RIV2first_rb_LUTsz = sizeof(RIV2first_rb_LUT6)/sizeof(*RIV2first_rb_LUT6);
       RIV2nb_rb_LUT = RIV2nb_rb_LUT6;
+      RIV2nb_rb_LUTsz = sizeof(RIV2nb_rb_LUT6)/sizeof(*RIV2nb_rb_LUT6);
 
       break;
 
@@ -3396,7 +3407,10 @@ int generate_ue_ulsch_params_from_dci(void *dci_pdu,
 
       RIV_max = RIV_max25;
       RIV2first_rb_LUT = RIV2first_rb_LUT25;
+      RIV2first_rb_LUTsz = sizeof(RIV2first_rb_LUT25)/sizeof(*RIV2first_rb_LUT25);
       RIV2nb_rb_LUT = RIV2nb_rb_LUT25;
+      RIV2nb_rb_LUTsz = sizeof(RIV2nb_rb_LUT25)/sizeof(*RIV2nb_rb_LUT25);
+
       //      printf("***********rballoc %d, first_rb %d, nb_rb %d (dci %p)\n",rballoc,ulsch->harq_processes[harq_pid]->first_rb,ulsch->harq_processes[harq_pid]->nb_rb,dci_pdu);
       break;
 
@@ -3424,7 +3438,9 @@ int generate_ue_ulsch_params_from_dci(void *dci_pdu,
 
       RIV_max = RIV_max50;
       RIV2first_rb_LUT = RIV2first_rb_LUT50;
+      RIV2first_rb_LUTsz = sizeof(RIV2first_rb_LUT50)/sizeof(*RIV2first_rb_LUT50);
       RIV2nb_rb_LUT = RIV2nb_rb_LUT50;
+      RIV2nb_rb_LUTsz = sizeof(RIV2nb_rb_LUT50)/sizeof(*RIV2nb_rb_LUT50);
 
       break;
 
@@ -3452,7 +3468,10 @@ int generate_ue_ulsch_params_from_dci(void *dci_pdu,
 
       RIV_max = RIV_max100;
       RIV2first_rb_LUT = RIV2first_rb_LUT100;
+      RIV2first_rb_LUTsz = sizeof(RIV2first_rb_LUT100)/sizeof(*RIV2first_rb_LUT100);
       RIV2nb_rb_LUT = RIV2nb_rb_LUT100;
+      RIV2nb_rb_LUTsz = sizeof(RIV2nb_rb_LUT100)/sizeof(*RIV2nb_rb_LUT100);
+
 
       //      printf("rb_alloc (20 MHz dci) %d\n",rballoc);
       break;
@@ -3468,6 +3487,7 @@ int generate_ue_ulsch_params_from_dci(void *dci_pdu,
       LOG_E(PHY,"frame %d, subframe %d, rnti %x, format %d: FATAL ERROR: generate_ue_ulsch_params_from_dci, rb_alloc[%d] > RIV_max[%d]\n",
             proc->frame_rx, subframe, rnti, dci_format,rballoc,RIV_max);
       LOG_E(PHY,"Wrong DCI0 detection, do not transmit PUSCH for HARQID: %d\n",harq_pid);
+      abort();
       ulsch->harq_processes[harq_pid]->subframe_scheduling_flag = 0;
       return(-1);
     }
@@ -3484,8 +3504,14 @@ int generate_ue_ulsch_params_from_dci(void *dci_pdu,
     }
 
     ulsch->harq_processes[harq_pid]->TPC                                   = TPC;
-    ulsch->harq_processes[harq_pid]->first_rb                              = RIV2first_rb_LUT[rballoc];
-    ulsch->harq_processes[harq_pid]->nb_rb                                 = RIV2nb_rb_LUT[rballoc];
+    if ( rballoc >= RIV2first_rb_LUTsz || rballoc >= RIV2nb_rb_LUTsz ) {
+      LOG_E(PHY, "Error rballoc %d, max RIV2first_rb_LUTsz %d\n",  rballoc, RIV2first_rb_LUTsz);
+      ulsch->harq_processes[harq_pid]->first_rb=0;
+      ulsch->harq_processes[harq_pid]->nb_rb=0;
+    } else {
+      ulsch->harq_processes[harq_pid]->first_rb  = RIV2first_rb_LUT[rballoc];
+      ulsch->harq_processes[harq_pid]->nb_rb     = RIV2nb_rb_LUT[rballoc];
+    }
 
     if (ue->ul_power_control_dedicated[eNB_id].accumulationEnabled == 1) {
       LOG_D(PHY,"[UE %d][PUSCH %d] Frame %d subframe %d: f_pusch (ACC) %d, adjusting by %d (TPC %d)\n",
@@ -4163,9 +4189,9 @@ int generate_ue_ulsch_params_from_dci(void *dci_pdu,
     } else {
       ulsch->harq_processes[harq_pid]->rvidx = mcs - 28;
       if (ulsch->harq_processes[harq_pid]->round == 0) {
-        LOG_W(PHY,"PUSCH::mcs = %d and DCI0::mcs(%d) > 28 and round == %d\n", ulsch->harq_processes[harq_pid]->mcs, mcs, ulsch->harq_processes[harq_pid]->round);
-      } else {
-        LOG_D(PHY,"PUSCH::mcs = %d and DCI0::mcs(%d) > 28 and round == %d\n", ulsch->harq_processes[harq_pid]->mcs, mcs, ulsch->harq_processes[harq_pid]->round);
+        LOG_W(PHY,"PUSCH::mcs = %d and DCI0::mcs(%d) > 28 and round == %d\n",
+	      ulsch->harq_processes[harq_pid]->mcs, mcs, ulsch->harq_processes[harq_pid]->round);
+	abort();
       }
       //LOG_E(PHY,"Fatal: mcs(%d) > 28!!! and round == 0\n", mcs);
     }
@@ -4292,8 +4318,8 @@ int generate_eNB_ulsch_params_from_dci(PHY_VARS_eNB *eNB,
       }
       
       RIV_max = RIV_max6;
-      ulsch->harq_processes[harq_pid]->first_rb                              = RIV2first_rb_LUT6[rballoc];
-      ulsch->harq_processes[harq_pid]->nb_rb                                 = RIV2nb_rb_LUT6[rballoc];
+      ulsch->harq_processes[harq_pid]->first_rb                              = RIV2first_rb_LUT6);
+      ulsch->harq_processes[harq_pid]->nb_rb                                 = RIV2nb_rb_LUT6);
 
       break;
 
@@ -4318,8 +4344,8 @@ int generate_eNB_ulsch_params_from_dci(PHY_VARS_eNB *eNB,
       }
 
       RIV_max = RIV_max25;
-      ulsch->harq_processes[harq_pid]->first_rb                              = RIV2first_rb_LUT25[rballoc];
-      ulsch->harq_processes[harq_pid]->nb_rb                                 = RIV2nb_rb_LUT25[rballoc];
+      ulsch->harq_processes[harq_pid]->first_rb                              = RIV2first_rb_LUT25);
+      ulsch->harq_processes[harq_pid]->nb_rb                                 = RIV2nb_rb_LUT25);
 
       break;
 
@@ -4344,8 +4370,8 @@ int generate_eNB_ulsch_params_from_dci(PHY_VARS_eNB *eNB,
       }
 
       RIV_max = RIV_max50;
-      ulsch->harq_processes[harq_pid]->first_rb                              = RIV2first_rb_LUT50[rballoc];
-      ulsch->harq_processes[harq_pid]->nb_rb                                 = RIV2nb_rb_LUT50[rballoc];
+      ulsch->harq_processes[harq_pid]->first_rb                              = RIV2first_rb_LUT50);
+      ulsch->harq_processes[harq_pid]->nb_rb                                 = RIV2nb_rb_LUT50);
 
       break;
 
@@ -4370,8 +4396,8 @@ int generate_eNB_ulsch_params_from_dci(PHY_VARS_eNB *eNB,
       }
 
       RIV_max = RIV_max100;
-      ulsch->harq_processes[harq_pid]->first_rb                              = RIV2first_rb_LUT100[rballoc];
-      ulsch->harq_processes[harq_pid]->nb_rb                                 = RIV2nb_rb_LUT100[rballoc];
+      ulsch->harq_processes[harq_pid]->first_rb                              = RIV2first_rb_LUT100);
+      ulsch->harq_processes[harq_pid]->nb_rb                                 = RIV2nb_rb_LUT100);
 
       //printf("eNB: rb_alloc (20 MHz dci) %d\n",rballoc);
       break;

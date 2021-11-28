@@ -578,7 +578,8 @@ schedule_ue_spec(module_id_t module_idP,
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_DLSCH_PREPROCESSOR,
                                           VCD_FUNCTION_OUT);
 
-  for (int UE_id = UE_info->list.head; UE_id >= 0; UE_id = UE_info->list.next[UE_id]) {
+  for (int * curUE=UE_info->list.nextUE; *curUE != -1; curUE ++) {
+    int UE_id=*curUE;
     LOG_D(MAC, "doing schedule_ue_spec for CC_id %d UE %d\n",
           CC_id,
           UE_id);
@@ -1306,7 +1307,8 @@ schedule_ue_spec_br(module_id_t module_idP,
     }
   }
 
-  for (UE_id = UE_info->list.head; UE_id >= 0; UE_id = UE_info->list.next[UE_id]) {
+  for (int * curUE=UE_info->list.nextUE; *curUE != -1; curUE ++) {
+    int UE_id=*curUE;
     int harq_pid = 0;
     rnti = UE_RNTI(module_idP, UE_id);
 

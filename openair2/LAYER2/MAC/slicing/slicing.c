@@ -97,8 +97,8 @@ slice_t *_remove_slice(uint8_t *n, slice_t **s, uint8_t *assoc, int idx) {
     return NULL;
 
   slice_t *sr = s[idx];
-  while (sr->UEs.head >= 0)
-    _move_UE(s, assoc, sr->UEs.head, 0);
+  while (sr->UEs.nextUE[0] != -1)
+    _move_UE(s, assoc, sr->UEs.nextUE[0], 0);
 
   for (int i = idx + 1; i < *n; ++i)
     s[i - 1] = s[i];
@@ -290,7 +290,8 @@ void static_dl(module_id_t mod_id,
 
   store_dlsch_buffer(mod_id, CC_id, frame, subframe);
 
-  for (int UE_id = UE_info->list.head; UE_id >= 0; UE_id = UE_info->list.next[UE_id]) {
+  for (int *curUE=&UE_info->list.nextUE[0]; *curUE>=0; curUE++) {
+    int UE_id=*curUE;
     UE_sched_ctrl_t *ue_sched_ctrl = &UE_info->UE_sched_ctrl[UE_id];
 
     /* initialize per-UE scheduling information */
@@ -326,7 +327,7 @@ void static_dl(module_id_t mod_id,
       break;
   }
   for (int i = 0; i < s->num; ++i) {
-    if (s->s[i]->UEs.head < 0)
+    if (s->s[i]->UEs.nextUE[0] < 0)
       continue;
     uint8_t rbgalloc_slice_mask[N_RBG_MAX];
     memset(rbgalloc_slice_mask, 0, sizeof(rbgalloc_slice_mask));
@@ -360,7 +361,8 @@ void static_dl(module_id_t mod_id,
       if (vrb_map[RBGsize*i+j] != 0)
         t[i] = 'x';
   int print = 0;
-  for (int UE_id = UE_info->list.head; UE_id >= 0; UE_id = UE_info->list.next[UE_id]) {
+  for (int *curUE=&UE_info->list.nextUE[0]; *curUE>=0; curUE++) {
+    int UE_id=*curUE;
     const UE_sched_ctrl_t *ue_sched_ctrl = &UE_info->UE_sched_ctrl[UE_id];
 
     if (ue_sched_ctrl->pre_nb_available_rbs[CC_id] == 0)
@@ -404,7 +406,8 @@ void static_ul(module_id_t mod_id,
   const int N_RB_UL = to_prb(RC.mac[mod_id]->common_channels[CC_id].ul_Bandwidth);
   COMMON_channels_t *cc = &RC.mac[mod_id]->common_channels[CC_id];
 
-  for (int UE_id = UE_info->list.head; UE_id >= 0; UE_id = UE_info->list.next[UE_id]) {
+  for (int *curUE=&UE_info->list.nextUE[0]; *curUE>=0; curUE++) {
+    int UE_id=*curUE;
     UE_TEMPLATE *UE_template = &UE_info->UE_template[CC_id][UE_id];
     UE_template->pre_assigned_mcs_ul = 0;
     UE_template->pre_allocated_nb_rb_ul = 0;
@@ -427,7 +430,7 @@ void static_ul(module_id_t mod_id,
       break;
   }
   for (int i = 0; i < s->num; ++i) {
-    if (s->s[i]->UEs.head < 0)
+    if (s->s[i]->UEs.nextUE[0] < 0)
       continue;
     int last_rb_blocked = 1;
     int n_contig = 0;
@@ -473,7 +476,8 @@ void static_ul(module_id_t mod_id,
     if (cc->vrb_map_UL[j] != 0)
       t[j] = 'x';
   int print = 0;
-  for (int UE_id = UE_info->list.head; UE_id >= 0; UE_id = UE_info->list.next[UE_id]) {
+  for (int *curUE=&UE_info->list.nextUE[0]; *curUE>=0; curUE++) {
+    int UE_id=*curUE;
     UE_TEMPLATE *UE_template = &UE_info->UE_template[CC_id][UE_id];
     if (UE_template->pre_allocated_nb_rb_ul == 0)
       continue;
@@ -547,9 +551,8 @@ pp_impl_param_t static_dl_init(module_id_t mod_id, int CC_id) {
   default_sched_dl_algo_t *algo = &RC.mac[mod_id]->pre_processor_dl.dl_algo;
   algo->data = NULL;
   DevAssert(0 == addmod_static_slice_dl(si, 0, strdup("default"), algo, dlp));
-  const UE_list_t *UE_list = &RC.mac[mod_id]->UE_info.list;
-  for (int UE_id = UE_list->head; UE_id >= 0; UE_id = UE_list->next[UE_id])
-    slicing_add_UE(si, UE_id);
+  for (int *curUE=RC.mac[mod_id]->UE_info.list.nextUE; *curUE>=0; curUE++) 
+    slicing_add_UE(si, *curUE);
 
   pp_impl_param_t sttc;
   sttc.algorithm = STATIC_SLICING;
@@ -584,9 +587,8 @@ pp_impl_param_t static_ul_init(module_id_t mod_id, int CC_id) {
   default_sched_ul_algo_t *algo = &RC.mac[mod_id]->pre_processor_ul.ul_algo;
   algo->data = NULL;
   DevAssert(0 == addmod_static_slice_ul(si, 0, strdup("default"), algo, ulp));
-  const UE_list_t *UE_list = &RC.mac[mod_id]->UE_info.list;
-  for (int UE_id = UE_list->head; UE_id >= 0; UE_id = UE_list->next[UE_id])
-    slicing_add_UE(si, UE_id);
+  for (int *curUE=RC.mac[mod_id]->UE_info.list.nextUE; *curUE>=0; curUE++) 
+    slicing_add_UE(si, *curUE);
 
   pp_impl_param_t sttc;
   sttc.algorithm = STATIC_SLICING;

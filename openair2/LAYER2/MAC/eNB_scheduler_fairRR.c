@@ -3224,7 +3224,7 @@ void schedule_ulsch_rnti_fairRR(module_id_t   module_idP,
         UE_template->cqi_req[harq_pid] = cqi_req;
         UE_sched_ctrl->ul_scheduled |= (1<<harq_pid);
 
-        if (UE_id == UE_info->list.head)
+        if (UE_id == UE_info->list.nextUE[0])
           VCD_SIGNAL_DUMPER_DUMP_VARIABLE_BY_NAME(VCD_SIGNAL_DUMPER_VARIABLES_UE0_SCHEDULED,UE_sched_ctrl->ul_scheduled);
 
         // adjust total UL buffer status by TBS, wait for UL sdus to do final update

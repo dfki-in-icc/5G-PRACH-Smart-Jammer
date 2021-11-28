@@ -1812,10 +1812,12 @@ void fill_dci0(PHY_VARS_eNB *eNB,int frame,int subframe,L1_rxtx_proc_t *proc,
   uint32_t        cshift = pdu->dci_pdu_rel8.cyclic_shift_2_for_drms;
   uint32_t        TPC = pdu->dci_pdu_rel8.tpc;
   uint32_t        mcs = pdu->dci_pdu_rel8.mcs_1;
+  AssertFatal(mcs<32,"");
   uint32_t        hopping = pdu->dci_pdu_rel8.frequency_hopping_enabled_flag;
   uint32_t        rballoc = computeRIV (frame_parms->N_RB_DL,
                                         pdu->dci_pdu_rel8.resource_block_start,
                                         pdu->dci_pdu_rel8.number_of_resource_block);
+  AssertFatal(rballoc<5050,"");
   uint32_t        ndi = pdu->dci_pdu_rel8.new_data_indication_1;
   uint16_t UE_id   = -1;
 #ifdef T_TRACER

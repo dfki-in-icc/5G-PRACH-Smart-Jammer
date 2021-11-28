@@ -650,7 +650,7 @@ eNB_dlsch_ulsch_scheduler(module_id_t module_idP,
 */
       RC.eNB[module_idP][CC_id]->pusch_stats_bsr[UE_id][(frameP * 10) + subframeP] = -63;
 
-      if (UE_id == UE_info->list.head) {
+      if ((UE_id == UE_info->list.nextUE[0]) != -1) {
         VCD_SIGNAL_DUMPER_DUMP_VARIABLE_BY_NAME(VCD_SIGNAL_DUMPER_VARIABLES_UE0_BSR, RC.eNB[module_idP][CC_id]->pusch_stats_bsr[UE_id][(frameP * 10) + subframeP]);
       }
 

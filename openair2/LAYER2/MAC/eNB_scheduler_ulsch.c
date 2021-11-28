@@ -329,17 +329,7 @@ rx_sdu(const module_id_t enb_mod_idP,
       if (ra->msg3_round >= mac->common_channels[CC_idP].radioResourceConfigCommon->rach_ConfigCommon.maxHARQ_Msg3Tx - 1) {
 
         // Release RNTI of LTE PHY when RA does not succeed
-        UE_free_list_t *free_list = NULL;
-        pthread_mutex_lock(&lock_ue_freelist);
-        free_list = &mac->UE_free_list;
-        free_list->UE_free_ctrl[free_list->tail_freelist].rnti = current_rnti;
-        free_list->UE_free_ctrl[free_list->tail_freelist].removeContextFlg = 1;
-        free_list->UE_free_ctrl[free_list->tail_freelist].raFlag = 1;
-        free_list->num_UEs++;
-        mac->UE_release_req.ue_release_request_body.ue_release_request_TLVs_list[mac->UE_release_req.ue_release_request_body.number_of_TLVs].rnti = current_rnti;
-        mac->UE_release_req.ue_release_request_body.number_of_TLVs++;
-        free_list->tail_freelist = (free_list->tail_freelist + 1) % (NUMBER_OF_UE_MAX+1);
-        pthread_mutex_unlock(&lock_ue_freelist);
+	put_UE_in_freelist(enb_mod_idP, current_rnti, true);
 
         cancel_ra_proc(enb_mod_idP, CC_idP, frameP, current_rnti);
         nfapi_hi_dci0_request_t *hi_dci0_req = NULL;
@@ -603,7 +593,7 @@ rx_sdu(const module_id_t enb_mod_idP,
             UE_template_ptr->ul_buffer_info[LCGID3];
           RC.eNB[enb_mod_idP][CC_idP]->pusch_stats_bsr[UE_id][(frameP * 10) + subframeP] = (payload_ptr[0] & 0x3f);
 
-          if (UE_id == UE_info->list.head) {
+          if (UE_id == UE_info->list.nextUE[0]) {
             VCD_SIGNAL_DUMPER_DUMP_VARIABLE_BY_NAME(VCD_SIGNAL_DUMPER_VARIABLES_UE0_BSR, (payload_ptr[0] & 0x3f));
           }
 
@@ -1442,7 +1432,8 @@ schedule_ulsch_rnti(module_id_t   module_idP,
    */
   mac->pre_processor_ul.ul(module_idP, CC_id, frameP, subframeP, sched_frame, sched_subframeP);
 
-  for (int UE_id = UE_info->list.head; UE_id >= 0; UE_id = UE_info->list.next[UE_id]) {
+  for (int *curUE=&UE_info->list.nextUE[0]; *curUE>=0; curUE++) {
+    int UE_id=*curUE;  
     if (UE_info->UE_template[CC_id][UE_id].rach_resource_type > 0)
       continue;
 
@@ -1668,7 +1659,7 @@ schedule_ulsch_rnti(module_id_t   module_idP,
       UE_template_ptr->cqi_req[harq_pid] = cqi_req;
       UE_sched_ctrl_ptr->ul_scheduled |= (1 << harq_pid);
 
-      if (UE_id == UE_info->list.head) {
+      if (UE_id == UE_info->list.nextUE[0]) {
         VCD_SIGNAL_DUMPER_DUMP_VARIABLE_BY_NAME(
             VCD_SIGNAL_DUMPER_VARIABLES_UE0_SCHEDULED,
             UE_sched_ctrl_ptr->ul_scheduled);
@@ -2024,7 +2015,8 @@ void schedule_ulsch_rnti_emtc(module_id_t   module_idP,
   nfapi_ul_config_request_pdu_t  *ul_config_pdu_Rep;
 
   /* Loop over all active UEs */
-  for (UE_id = UE_info->list.head; UE_id >= 0; UE_id = UE_info->list.next[UE_id]) {
+  for (int *curUE=&UE_info->list.nextUE[0]; *curUE>=0; curUE++) {
+    int UE_id=*curUE;
     UE_template = &UE_info->UE_template[UE_PCCID(module_idP, UE_id)][UE_id];
 
     /* LTE-M device */
@@ -2182,7 +2174,7 @@ void schedule_ulsch_rnti_emtc(module_id_t   module_idP,
             UE_template->nb_rb_ul[harq_pid]    = 6;
             UE_sched_ctrl->ul_scheduled |= (1 << harq_pid);
 
-            if (UE_id == UE_info->list.head) {
+            if (UE_id == UE_info->list.nextUE[0]) {
               VCD_SIGNAL_DUMPER_DUMP_VARIABLE_BY_NAME(VCD_SIGNAL_DUMPER_VARIABLES_UE0_SCHEDULED, UE_sched_ctrl->ul_scheduled);
             }
 

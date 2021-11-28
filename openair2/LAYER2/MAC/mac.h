@@ -1155,8 +1155,7 @@ typedef struct {
 /*! \brief UE_list_t is a "list" of users within UE_info_t. Especial useful in
  * the scheduler and to keep "classes" of users. */
 typedef struct {
-  int head;
-  int next[MAX_MOBILES_PER_ENB];
+  int nextUE[MAX_MOBILES_PER_ENB+1]; //Like \0 is end of a string, -1 is end of list
 } UE_list_t;
 
 /*! \brief UE info used by eNB to order UEs/CC for scheduling*/
@@ -1195,14 +1194,6 @@ typedef struct {
   ///remove RA flag
   boolean_t raFlag;
 } UE_free_ctrl_t;
-/*! \brief REMOVE UE list used by eNB to order UEs/CC for deleting*/
-typedef struct {
-  /// deleting control info
-  UE_free_ctrl_t UE_free_ctrl[NUMBER_OF_UE_MAX+1];
-  int num_UEs;
-  int head_freelist; ///the head position of the delete list
-  int tail_freelist; ///the tail position of the delete list
-} UE_free_list_t;
 
 /**
  * describes contiguous RBs
@@ -1442,8 +1433,7 @@ typedef struct eNB_MAC_INST_s {
   time_stats_t rx_ulsch_sdu;  // include rlc_data_ind
   /// processing time of eNB PCH scheduler
   time_stats_t schedule_pch;
-
-  UE_free_list_t UE_free_list;
+  UE_free_ctrl_t UE_free_ctrl[NUMBER_OF_UE_MAX+1];
   /// for scheduling selection
   SCHEDULER_MODES scheduler_mode;
   /// Default scheduler: Pre-processor implementation. Algorithms for UL/DL

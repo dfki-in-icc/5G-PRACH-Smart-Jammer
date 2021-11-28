@@ -55,9 +55,21 @@ extern RAN_CONTEXT_t RC;
 #define DEBUG_HEADER_PARSING 1
 
 int next_ue_list_looped(UE_list_t* list, int UE_id) {
-  if (UE_id < 0)
-    return list->head;
-  return list->next[UE_id] < 0 ? list->head : list->next[UE_id];
+
+  if (UE_id == -1)
+    return list->nextUE[0];
+
+  int * curUE;
+  for (curUE=list->nextUE; *curUE!=-1; curUE++)
+    if (*curUE==UE_id)
+      break;
+
+  if (*curUE!=UE_id) {
+    LOG_E(PHY,"loop on not existing UE: %d\n", UE_id);
+    return list->nextUE[0];
+  }
+  
+  return *(curUE+1);
 }
 
 int get_rbg_size_last(module_id_t Mod_id, int CC_id) {
@@ -172,7 +184,7 @@ int rr_dl_run(module_id_t Mod_id,
               int n_rbg_sched,
               uint8_t *rbgalloc_mask,
               void *data) {
-  DevAssert(UE_list->head >= 0);
+  DevAssert(UE_list->nextUE[0] != -1);
   DevAssert(n_rbg_sched > 0);
   const int N_RBG = to_rbg(RC.mac[Mod_id]->common_channels[CC_id].mib->message.dl_Bandwidth);
   const int RBGsize = get_min_rb_unit(Mod_id, CC_id);
@@ -190,7 +202,7 @@ int rr_dl_run(module_id_t Mod_id,
 
   int UE_id = *start_ue;
   UE_list_t UE_sched;
-  int *cur_UE = &UE_sched.head;
+  int *cur_UE = &UE_sched.nextUE[0];
   // Allocate retransmissions, and mark UEs with new transmissions
   do {
     // check whether there are HARQ retransmissions
@@ -214,58 +226,55 @@ int rr_dl_run(module_id_t Mod_id,
     } else {
       if (UE_info->UE_template[CC_id][UE_id].dl_buffer_total > 0) {
         *cur_UE = UE_id;
-        cur_UE = &UE_sched.next[UE_id];
+        cur_UE++;
       }
     }
     UE_id = next_ue_list_looped(UE_list, UE_id);
   } while (UE_id != *start_ue);
   *cur_UE = -1; // mark end
 
-  if (UE_sched.head < 0)
+  if (UE_sched.nextUE[0] == -1)
     return n_rbg_sched; // no UE has a transmission
 
   // after allocating retransmissions: pre-allocate CCE, compute number of
   // requested RBGs
   max_num_ue = min(max_num_ue, n_rbg_sched);
   int rb_required[MAX_MOBILES_PER_ENB]; // how much UEs request
-  cur_UE = &UE_sched.head;
-  while (*cur_UE >= 0 && max_num_ue > 0) {
+  cur_UE = UE_sched.nextUE;
+  while (*cur_UE != -1 && max_num_ue > 0) {
     const int UE_id = *cur_UE;
     const uint8_t cqi = UE_info->UE_sched_ctrl[UE_id].dl_cqi[CC_id];
     const int idx = CCE_try_allocate_dlsch(Mod_id, CC_id, subframe, UE_id, cqi);
     if (idx < 0) {
       LOG_D(MAC, "cannot allocate CCE for UE %d, skipping\n", UE_id);
       // SKIP this UE in the list by marking the next as the current
-      *cur_UE = UE_sched.next[UE_id];
-      continue;
+    } else {
+      UE_info->UE_sched_ctrl[UE_id].pre_dci_dl_pdu_idx = idx;
+      const int mcs = cqi_to_mcs[cqi];
+      UE_info->eNB_UE_stats[CC_id][UE_id].dlsch_mcs1 = mcs;
+      const uint32_t B = UE_info->UE_template[CC_id][UE_id].dl_buffer_total;
+      rb_required[UE_id] = find_nb_rb_DL(mcs, B, n_rbg_sched * RBGsize, RBGsize);
+      max_num_ue--;
+
     }
-    UE_info->UE_sched_ctrl[UE_id].pre_dci_dl_pdu_idx = idx;
-    const int mcs = cqi_to_mcs[cqi];
-    UE_info->eNB_UE_stats[CC_id][UE_id].dlsch_mcs1 = mcs;
-    const uint32_t B = UE_info->UE_template[CC_id][UE_id].dl_buffer_total;
-    rb_required[UE_id] = find_nb_rb_DL(mcs, B, n_rbg_sched * RBGsize, RBGsize);
-    max_num_ue--;
-    cur_UE = &UE_sched.next[UE_id]; // go to next
+    cur_UE++;
   }
   *cur_UE = -1; // not all UEs might be allocated, mark end
 
   /* for one UE after the next: allocate resources */
-  cur_UE = &UE_sched.head;
-  while (*cur_UE >= 0) {
-    const int UE_id = *cur_UE;
-    UE_sched_ctrl_t *ue_ctrl = &UE_info->UE_sched_ctrl[UE_id];
+  cur_UE = UE_sched.nextUE;
+  while (*cur_UE != -1) {
+    UE_sched_ctrl_t *ue_ctrl = &UE_info->UE_sched_ctrl[*cur_UE];
     ue_ctrl->rballoc_sub_UE[CC_id][rbg] = 1;
     rbgalloc_mask[rbg] = 0;
     const int sRBG = rbg == N_RBG - 1 ? RBGlastsize : RBGsize;
     ue_ctrl->pre_nb_available_rbs[CC_id] += sRBG;
-    rb_required[UE_id] -= sRBG;
-    if (rb_required[UE_id] <= 0) {
-      *cur_UE = UE_sched.next[*cur_UE];
-      if (*cur_UE < 0)
-        cur_UE = &UE_sched.head;
-    } else {
-      cur_UE = UE_sched.next[*cur_UE] < 0 ? &UE_sched.head : &UE_sched.next[*cur_UE];
+    rb_required[*cur_UE] -= sRBG;
+    if (rb_required[*cur_UE] <= 0) {
+      // not enough space, we drop the UE transmission
+      LOG_W(PHY,"what is ths code?\n");
     }
+    cur_UE++;
     n_rbg_sched--;
     if (n_rbg_sched <= 0)
       break;
@@ -304,7 +313,6 @@ int pf_wbcqi_dl_run(module_id_t Mod_id,
                     int n_rbg_sched,
                     uint8_t *rbgalloc_mask,
                     void *data) {
-  DevAssert(UE_list->head >= 0);
   DevAssert(n_rbg_sched > 0);
   const int N_RBG = to_rbg(RC.mac[Mod_id]->common_channels[CC_id].mib->message.dl_Bandwidth);
   const int RBGsize = get_min_rb_unit(Mod_id, CC_id);
@@ -316,11 +324,12 @@ int pf_wbcqi_dl_run(module_id_t Mod_id,
     ; /* fast-forward to first allowed RBG */
 
   UE_list_t UE_sched; // UEs that could be scheduled
-  int *uep = &UE_sched.head;
+  int *uep = UE_sched.nextUE;
   float *thr_ue = data;
   float coeff_ue[MAX_MOBILES_PER_ENB];
 
-  for (int UE_id = UE_list->head; UE_id >= 0; UE_id = UE_list->next[UE_id]) {
+  for (int * curUE=UE_info->list.nextUE; *curUE != -1; curUE ++) {
+    int UE_id=*curUE; 
     const float a = 0.0005f; // corresponds to 200ms window
     const uint32_t b = UE_info->eNB_UE_stats[CC_id][UE_id].TBS;
     thr_ue[UE_id] = (1 - a) * thr_ue[UE_id] + a * b;
@@ -353,25 +362,23 @@ int pf_wbcqi_dl_run(module_id_t Mod_id,
       //LOG_I(MAC, "    pf UE %d: old TBS %d thr %f MCS %d TBS %d coeff %f\n",
       //      UE_id, b, thr_ue[UE_id], mcs, tbs, coeff_ue[UE_id]);
       *uep = UE_id;
-      uep = &UE_sched.next[UE_id];
+      uep++;
     }
   }
   *uep = -1;
 
-  while (max_num_ue > 0 && n_rbg_sched > 0 && UE_sched.head >= 0) {
-    int *max = &UE_sched.head; /* assume head is max */
-    int *p = &UE_sched.next[*max];
+  while (max_num_ue > 0 && n_rbg_sched > 0 && UE_sched.nextUE >= 0) {
+    int *max = UE_sched.nextUE; /* assume head is max */
+    int *p = max;
     while (*p >= 0) {
       /* if the current one has larger coeff, save for later */
       if (coeff_ue[*p] > coeff_ue[*max])
         max = p;
-      p = &UE_sched.next[*p];
+      p ++;
     }
-    /* remove the max one */
     const int UE_id = *max;
-    p = &UE_sched.next[*max];
-    *max = UE_sched.next[*max];
-    *p = -1;
+    /* remove the max one */
+    remove_ue_list(&UE_sched, *max);
 
     const uint8_t cqi = UE_info->UE_sched_ctrl[UE_id].dl_cqi[CC_id];
     const int idx = CCE_try_allocate_dlsch(Mod_id, CC_id, subframe, UE_id, cqi);
@@ -425,7 +432,6 @@ int mt_wbcqi_dl_run(module_id_t Mod_id,
                     int n_rbg_sched,
                     uint8_t *rbgalloc_mask,
                     void *data) {
-  DevAssert(UE_list->head >= 0);
   DevAssert(n_rbg_sched > 0);
   const int N_RBG = to_rbg(RC.mac[Mod_id]->common_channels[CC_id].mib->message.dl_Bandwidth);
   const int RBGsize = get_min_rb_unit(Mod_id, CC_id);
@@ -437,9 +443,10 @@ int mt_wbcqi_dl_run(module_id_t Mod_id,
     ; /* fast-forward to first allowed RBG */
 
   UE_list_t UE_sched; // UEs that could be scheduled
-  int *uep = &UE_sched.head;
+  int *uep=UE_sched.nextUE;
 
-  for (int UE_id = UE_list->head; UE_id >= 0; UE_id = UE_list->next[UE_id]) {
+  for (int * curUE=UE_list->nextUE; *curUE != -1; curUE ++) {
+    int UE_id=*curUE;  
     // check whether there are HARQ retransmissions
     const COMMON_channels_t *cc = &RC.mac[Mod_id]->common_channels[CC_id];
     const uint8_t harq_pid = frame_subframe2_dl_harq_pid(cc->tdd_Config, frame, subframe);
@@ -462,14 +469,14 @@ int mt_wbcqi_dl_run(module_id_t Mod_id,
       if (UE_info->UE_template[CC_id][UE_id].dl_buffer_total == 0)
         continue;
       *uep = UE_id;
-      uep = &UE_sched.next[UE_id];
+      uep++;
     }
   }
   *uep = -1;
 
-  while (max_num_ue > 0 && n_rbg_sched > 0 && UE_sched.head >= 0) {
-    int *max = &UE_sched.head; /* assume head is max */
-    int *p = &UE_sched.next[*max];
+  while (max_num_ue > 0 && n_rbg_sched > 0 && UE_sched.nextUE >= 0) {
+    int *max = UE_sched.nextUE; /* assume head is max */
+    int *p = max;
     while (*p >= 0) {
       /* if the current one has better CQI, or the same and more data */
       const uint8_t maxCqi = UE_info->UE_sched_ctrl[*max].dl_cqi[CC_id];
@@ -478,13 +485,11 @@ int mt_wbcqi_dl_run(module_id_t Mod_id,
       const uint32_t pB = UE_info->UE_template[CC_id][*p].dl_buffer_total;
       if (pCqi > maxCqi || (pCqi == maxCqi && pB > maxB))
         max = p;
-      p = &UE_sched.next[*p];
+      p++;
     }
     /* remove the max one */
     const int UE_id = *max;
-    p = &UE_sched.next[*max];
-    *max = UE_sched.next[*max];
-    *p = -1;
+    remove_ue_list(&UE_sched, *max);
 
     const uint8_t cqi = UE_info->UE_sched_ctrl[UE_id].dl_cqi[CC_id];
     const int idx = CCE_try_allocate_dlsch(Mod_id, CC_id, subframe, UE_id, cqi);
@@ -531,7 +536,8 @@ store_dlsch_buffer(module_id_t Mod_id,
                    sub_frame_t subframeP) {
   UE_info_t *UE_info = &RC.mac[Mod_id]->UE_info;
 
-  for (int UE_id = UE_info->list.head; UE_id >= 0; UE_id = UE_info->list.next[UE_id]) {
+  for (int * curUE=UE_info->list.nextUE; *curUE != -1; curUE ++) {
+    int UE_id=*curUE;  
 
     UE_TEMPLATE *UE_template = &UE_info->UE_template[CC_id][UE_id];
     UE_sched_ctrl_t *UE_sched_ctrl = &UE_info->UE_sched_ctrl[UE_id];
@@ -619,11 +625,10 @@ dlsch_scheduler_pre_processor(module_id_t Mod_id,
   store_dlsch_buffer(Mod_id, CC_id, frameP, subframeP);
 
   UE_list_t UE_to_sched;
-  for (int i = 0; i < MAX_MOBILES_PER_ENB; ++i)
-    UE_to_sched.next[i] = -1;
-  int *cur = &UE_to_sched.head;
+  int *cur = UE_to_sched.nextUE;
 
-  for (int UE_id = UE_info->list.head; UE_id >= 0; UE_id = UE_info->list.next[UE_id]) {
+  for (int * curUE=UE_info->list.nextUE; *curUE != -1; curUE ++) {
+    int UE_id=*curUE; 
     UE_sched_ctrl_t *ue_sched_ctrl = &UE_info->UE_sched_ctrl[UE_id];
     const UE_TEMPLATE *ue_template = &UE_info->UE_template[CC_id][UE_id];
 
@@ -656,11 +661,11 @@ dlsch_scheduler_pre_processor(module_id_t Mod_id,
 
     /* define UEs to schedule */
     *cur = UE_id;
-    cur = &UE_to_sched.next[UE_id];
+    cur++;
   }
   *cur = -1;
 
-  if (UE_to_sched.head < 0)
+  if (UE_to_sched.nextUE[0] == -1)
     return;
 
   uint8_t *vrb_map = mac->common_channels[CC_id].vrb_map;
@@ -696,7 +701,8 @@ dlsch_scheduler_pre_processor(module_id_t Mod_id,
       if (vrb_map[RBGsize*i+j] != 0)
         t[i] = 'x';
   int print = 0;
-  for (int UE_id = UE_info->list.head; UE_id >= 0; UE_id = UE_info->list.next[UE_id]) {
+  for (int * curUE=UE_info->list.nextUE; *curUE != -1; curUE ++) {
+    int UE_id=*curUE; 
     const UE_sched_ctrl_t *ue_sched_ctrl = &UE_info->UE_sched_ctrl[UE_id];
 
     if (ue_sched_ctrl->pre_nb_available_rbs[CC_id] == 0)
@@ -826,7 +832,8 @@ int rr_ul_run(module_id_t Mod_id,
   int rb_idx_required[MAX_MOBILES_PER_ENB];
   memset(rb_idx_required, 0, sizeof(rb_idx_required));
   int num_ue_req = 0;
-  for (int UE_id = UE_list->head; UE_id >= 0; UE_id = UE_list->next[UE_id]) {
+  for (int * curUE=UE_info->list.nextUE; *curUE != -1; curUE ++) {
+    int UE_id=*curUE;  
     UE_TEMPLATE *UE_template = &UE_info->UE_template[CC_id][UE_id];
     uint8_t harq_pid = subframe2harqpid(&mac->common_channels[CC_id],
                                         sched_frame, sched_subframe);
@@ -960,7 +967,7 @@ int rr_ul_run(module_id_t Mod_id,
 
   int *start_ue = data;
   if (*start_ue == -1)
-    *start_ue = UE_list->head;
+    *start_ue = UE_list->nextUE[0];
   int sUE_id = *start_ue;
   int rb_idx_given[MAX_MOBILES_PER_ENB];
   memset(rb_idx_given, 0, sizeof(rb_idx_given));
@@ -977,7 +984,7 @@ int rr_ul_run(module_id_t Mod_id,
     int start_idx = pp_find_rb_table_index(rbs[r].length / nr[r]) - 1;
     int num_ue_sched = 0;
     int rb_required_add = 0;
-    int *cur_UE = &UE_sched.head;
+    int *cur_UE = UE_sched.nextUE;
     while (num_ue_sched < nr[r]) {
       while (rb_idx_required[sUE_id] == 0)
         sUE_id = next_ue_list_looped(UE_list, sUE_id);
@@ -991,7 +998,7 @@ int rr_ul_run(module_id_t Mod_id,
       }
       UE_info->UE_template[CC_id][sUE_id].pre_dci_ul_pdu_idx = idx;
       *cur_UE = sUE_id;
-      cur_UE = &UE_sched.next[sUE_id];
+      cur_UE++;
       rb_idx_given[sUE_id] = min(start_idx, rb_idx_required[sUE_id]);
       rb_required_add += rb_table[rb_idx_required[sUE_id]] - rb_table[rb_idx_given[sUE_id]];
       rbs[r].length -= rb_table[rb_idx_given[sUE_id]];
@@ -1004,11 +1011,11 @@ int rr_ul_run(module_id_t Mod_id,
      * amount of RBs we can give (the "step size" in rb_table is non-linear), go
      * through all UEs and try to give a bit more. Continue until no UE can be
      * given a higher index because the remaining RBs do not suffice to increase */
-    int UE_id = UE_sched.head;
     int rb_required_add_old;
     do {
       rb_required_add_old = rb_required_add;
-      for (int UE_id = UE_sched.head; UE_id >= 0; UE_id = UE_sched.next[UE_id]) {
+      for (int * curUE=UE_sched.nextUE; *curUE != -1; curUE ++) {
+	int UE_id=*curUE; 
         if (rb_idx_given[UE_id] >= rb_idx_required[UE_id])
           continue; // this UE does not need more
         const int new_idx = rb_idx_given[UE_id] + 1;
@@ -1021,7 +1028,8 @@ int rr_ul_run(module_id_t Mod_id,
       }
     } while (rb_required_add != rb_required_add_old);
 
-    for (UE_id = UE_sched.head; UE_id >= 0; UE_id = UE_sched.next[UE_id]) {
+    for (int * curUE=UE_sched.nextUE; *curUE != -1; curUE ++) {
+      int UE_id=*curUE;
       UE_TEMPLATE *UE_template = &UE_info->UE_template[CC_id][UE_id];
 
       /* MCS has been allocated previously */
@@ -1064,11 +1072,12 @@ void ulsch_scheduler_pre_processor(module_id_t Mod_id,
   COMMON_channels_t *cc = &mac->common_channels[CC_id];
 
   UE_list_t UE_to_sched;
-  for (int i = 0; i < MAX_MOBILES_PER_ENB; ++i)
-    UE_to_sched.next[i] = -1;
-  int *cur = &UE_to_sched.head;
+  for (int i = 0; i < sizeofArray(UE_to_sched.nextUE); ++i)
+    UE_to_sched.nextUE[i] = -1;
+  int *cur = UE_to_sched.nextUE;
 
-  for (int UE_id = UE_info->list.head; UE_id >= 0; UE_id = UE_info->list.next[UE_id]) {
+  for (int * curUE=UE_info->list.nextUE; *curUE != -1; curUE ++) {
+    int UE_id=*curUE;
     UE_TEMPLATE *UE_template = &UE_info->UE_template[CC_id][UE_id];
     UE_sched_ctrl_t *ue_sched_ctrl = &UE_info->UE_sched_ctrl[UE_id];
 
@@ -1088,14 +1097,12 @@ void ulsch_scheduler_pre_processor(module_id_t Mod_id,
       continue;
     if (UE_info->UE_template[CC_id][UE_id].rach_resource_type > 0)
       continue;
-
     /* define UEs to schedule */
     *cur = UE_id;
-    cur = &UE_to_sched.next[UE_id];
+    cur++;
   }
-  *cur = -1;
 
-  if (UE_to_sched.head < 0)
+  if (UE_to_sched.nextUE[0] == -1)
     return;
 
   int last_rb_blocked = 1;
@@ -1137,7 +1144,8 @@ void ulsch_scheduler_pre_processor(module_id_t Mod_id,
     if (cc->vrb_map_UL[j] != 0)
       t[j] = 'x';
   int print = 0;
-  for (int UE_id = UE_info->list.head; UE_id >= 0; UE_id = UE_info->list.next[UE_id]) {
+  for (int * curUE=UE_info->list.nextUE; *curUE != -1; curUE ++) {
+    int UE_id=*curUE;
     UE_TEMPLATE *UE_template = &UE_info->UE_template[CC_id][UE_id];
     if (UE_template->pre_allocated_nb_rb_ul == 0)
       continue;

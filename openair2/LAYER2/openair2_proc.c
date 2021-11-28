@@ -51,7 +51,7 @@ static mapping rrc_status_names[] = {
 extern RAN_CONTEXT_t RC;
 
 int dump_eNB_l2_stats(char *buffer, int length) {
-    int eNB_id,UE_id,number_of_cards;
+    int eNB_id,number_of_cards;
     int len= length;
     int CC_id=0;
     int i;
@@ -141,7 +141,8 @@ int dump_eNB_l2_stats(char *buffer, int length) {
 
         len += sprintf(&buffer[len],"\n");
 
-        for (UE_id=UE_info->list.head; UE_id>=0; UE_id=UE_info->list.next[UE_id]) {
+        for (int *curUE=&UE_info->list.nextUE[0]; *curUE>=0; curUE++) {
+	  int UE_id=*curUE;
             for (i=0; i<UE_info->numactiveCCs[UE_id]; i++) {
                 CC_id=UE_info->ordered_CCids[i][UE_id];
                 UE_info->eNB_UE_stats[CC_id][UE_id].dlsch_bitrate=((UE_info->eNB_UE_stats[CC_id][UE_id].TBS*8)/((eNB->frame + 1)*10));
