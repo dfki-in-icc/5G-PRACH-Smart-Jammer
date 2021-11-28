@@ -388,7 +388,7 @@ void handle_nfapi_dlsch_pdu(PHY_VARS_eNB *eNB,int frame,int subframe,L1_rxtx_pro
     dlsch0->active = 1;
     harq_pid        = dlsch0->harq_ids[frame%2][proc->subframe_tx];
     dlsch0->harq_mask |= (1<<harq_pid);
-    AssertFatal((harq_pid>=0) && (harq_pid<8),"subframe %d: harq_pid %d not in 0...7\n",proc->subframe_tx,harq_pid);
+    AssertFatal((harq_pid>=0) && (harq_pid<dlsch0->Mdlharq),"subframe %d: harq_pid %d not in 0...7\n",proc->subframe_tx,harq_pid);
     dlsch0_harq     = dlsch0->harq_processes[harq_pid];
     dlsch1_harq     = dlsch1->harq_processes[harq_pid];
     AssertFatal(dlsch0_harq!=NULL,"dlsch_harq is null\n");

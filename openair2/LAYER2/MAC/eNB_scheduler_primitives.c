@@ -249,6 +249,27 @@ get_Msg3alloc(COMMON_channels_t *cc,
           *frame = (current_frame + 2) & 1023;
           break;
       }
+    } else if (subframeAssignment == 2) {
+      // need n+k where k>=6 for rach
+      switch (current_subframe) {
+        case 0:
+          *subframe = 7;
+          *frame = current_frame;
+          break;
+
+        case 3:
+        case 4:
+        case 5:
+          *subframe = 2;
+          *frame = (current_frame + 1) & 1023;
+          break;
+
+        case 8:
+        case 9:
+          *subframe = 7;
+          *frame = (current_frame + 1) & 1023;
+          break;
+      }
     } else if (subframeAssignment == 4) {
       switch (current_subframe) {
         case 0:
@@ -323,6 +344,10 @@ get_Msg3allocret(COMMON_channels_t *cc,
       // original PUSCH in 7, PHICH in 1 (S), ret in 7
       // original PUSCH in 8, PHICH in 4, ret in 8
       *frame = (current_frame + 1) & 1023;
+    } else if (subframeAssignment == 2) {
+      // original PUSCH in 2, PHICH in 8, ret in 2 next frame
+      // original PUSCH in 7, PHICH in 3, ret in 7
+      *frame = current_subframe == 3 ? current_frame : (current_frame + 1) & 1023;
     } else if (subframeAssignment == 3) {
       // original PUSCH in 2, PHICH in 8, ret in 2 next frame
       // original PUSCH in 3, PHICH in 9, ret in 3 next frame
@@ -445,7 +470,21 @@ get_Msg3harqpid(COMMON_channels_t *cc,
         }
 
         break;
+      case 2:
+        switch (current_subframe) {
+          case 8:
+          case 9:
+          case 0:
+            ul_subframe = 7;
+            break;
 
+          case 3:
+          case 4:
+          case 5:
+            ul_subframe = 2;
+            break;
+        }
+        break;
       case 3:
         switch (current_subframe) {
           case 0:
@@ -586,7 +625,10 @@ is_UL_sf(COMMON_channels_t *ccP,
       }
 
       break;
-
+    case 2:
+      if (subframeP == 2 || subframeP == 7) return 1;
+      else return 0;
+      break;
     case 3:
       if (subframeP <= 1 || subframeP >= 5)
         return 0;
@@ -659,15 +701,18 @@ ul_subframe2_k_phich(COMMON_channels_t *cc,
           return 4;
         else if(ul_subframe == 3 || ul_subframe == 8)
           return 6;
-
         return 255;
-
       case 2:
+        if(ul_subframe == 2 || ul_subframe == 7)
+          return 6;
+        return 255;
+        break;
       case 3:
       case 4:
       case 5:
         break;
     }
+    AssertFatal(1==0,"TDD config %d to be filled in\n",(int)cc->tdd_Config->subframeAssignment);
   }
 
   return 4; //idk  sf_ahead?
@@ -2233,7 +2278,7 @@ add_new_ue(module_id_t mod_idP,
     UE_info->UE_sched_ctrl[UE_id].ret_cnt[cc_idP] = 0;
     UE_info->UE_sched_ctrl[UE_id].first_cnt[cc_idP] = 0;
 
-    for (j = 0; j < 8; j++) {
+    for (j = 0; j < 10; j++) {
       UE_info->UE_template[cc_idP][UE_id].oldNDI[j] = 0;
       UE_info->UE_template[cc_idP][UE_id].oldNDI_UL[j] = 0;
       UE_info->UE_sched_ctrl[UE_id].round[cc_idP][j] = 8;
@@ -3694,6 +3739,30 @@ get_retransmission_timing(LTE_TDD_Config_t *tdd_Config,
         }
 
         break;
+      case 2:
+        //TODO: Not sure this is correct. Seems that retrx needs to wait at
+        // least 16 sf; longer if sf+16 is not a DL sf.. but I can't see why in
+        // the spec. Need to review.
+        if (*subframeP == 0 || *subframeP == 5) {
+          *subframeP  += 18;
+          *frameP = (*frameP + (*subframeP / 10)) % 1024;
+          *subframeP %= 10;
+        } else if (*subframeP == 3 || *subframeP == 8) {
+          *subframeP  += 19;
+          *frameP = (*frameP + (*subframeP / 10)) % 1024;
+          *subframeP %= 10;
+        } else if (*subframeP == 4 || *subframeP == 9) {
+          *subframeP  += 16;
+          *frameP = (*frameP + (*subframeP / 10)) % 1024;
+          *subframeP %= 10;
+        } else {
+          AssertFatal(2 == 1, "Illegal dl subframe %d for tdd config %ld\n",
+                      *subframeP,
+                      tdd_Config->subframeAssignment);
+        }
+
+        break;
+
     }
   }
 
@@ -3707,13 +3776,17 @@ get_dl_subframe_count(int tdd_config_sfa,
 //------------------------------------------------------------------------------
 {
   uint8_t tdd1[10] = {1, -1, -1, -1, 2, 3, -1, -1, -1, 4}; // special subframes 1,6 are excluded
+  uint8_t tdd2[10] = {1, -1, -1, 2, 3, 4, -1, -1, 5, 6}; // special subframes 1,6 are excluded
 
   switch (tdd_config_sfa) {// TODO fill in other tdd configs
     case 1:
       return tdd1[subframeP];
+      break;
+    case 2:
+      return tdd2[subframeP];
+      break;
   }
-
-  return -1;
+  AssertFatal(1==0,"Fill for TDD Config %d\n",tdd_config_sfa);
 }
 
 //------------------------------------------------------------------------------
@@ -3745,7 +3818,27 @@ frame_subframe2_dl_harq_pid(LTE_TDD_Config_t *tdd_Config,
               count,
               harq_pid);
         return harq_pid;
+        break;
+      case 2:
+        count = get_dl_subframe_count(tdd_Config->subframeAssignment,
+                                      subframeP);
+        harq_pid = (((frame_cnt * 1024 + abs_frameP) * 6) - 1 + count) % 10; // 6 dl subframe in a frame, 10 harq processes
+
+        if (harq_pid < 0) {
+          harq_pid += 10;
+        }
+
+        LOG_D(MAC,"[frame_subframe2_dl_harq_pid] (%d,%d) calculate harq_pid ((( %d * 1024 + %d) *6) - 1 + %d) = %d \n",
+              (abs_frameP + 1024) % 1024,
+              subframeP,
+              frame_cnt,
+              abs_frameP,
+              count,
+              harq_pid);
+        return harq_pid;
+       break;
     }
+    AssertFatal(1==0,"Fill in TDD config %d\n",(int)tdd_Config->subframeAssignment);
   } else {
     return ((abs_frameP * 10) + subframeP) & 7;
   }
@@ -3782,6 +3875,11 @@ ul_ACK_subframe2M(LTE_TDD_Config_t *tdd_Config,
     }
     break;
     */
+    case 2:
+      if (subframe == 2 || subframe == 7) return 4;
+      break;
+    case 4:
+      return 4;
     case 3:
       if (subframe == 2) {  // ACK subframes 5 and 6
         return 2; // should be 3
@@ -3793,20 +3891,6 @@ ul_ACK_subframe2M(LTE_TDD_Config_t *tdd_Config,
 
       if (subframe == 4) { // ACK subframes 9 and 0
         return 2;
-      }
-
-      AssertFatal(1==0,"illegal subframe %d for tdd_config %ld\n",
-                  subframe,
-                  tdd_Config->subframeAssignment);
-      break;
-
-    case 4:
-      if (subframe == 2) {  // ACK subframes 0,4 and 5
-        return 3; // should be 4
-      }
-
-      if (subframe == 3) { // ACK subframes 6,7,8 and 9
-        return 4;
       }
 
       AssertFatal(1==0,"illegal subframe %d for tdd_config %ld\n",
@@ -3899,8 +3983,34 @@ ul_ACK_subframe2dl_subframe(LTE_TDD_Config_t *tdd_Config,
                   subframe,
                   tdd_Config->subframeAssignment);
       break;
-  }
+    case 2:
+      // if ACK on SSF
+      if (subframe == 2) {  // ACK subframes 4, 5, 6, 8
+        return ACK_index < 3 ? 4+ ACK_index : 5+ACK_index;
+      }
 
+      if (subframe == 7) { // ACK subframes 9, 0, 1, 3
+        return ACK_index < 3 ? (9 + ACK_index) % 10 : ACK_index;
+      }
+
+      /* // if no ACK on SSF
+      ** if (subframe == 2) {  // ACK subframes 4, 5, 8
+      **   return 3;
+      ** }
+      **
+      ** if (subframe == 7) { // ACK subframes 9, 0, 3
+      **   return 3;
+      ** }
+      **
+       */
+
+      AssertFatal(1==0,"illegal subframe %d for tdd_config %ld\n",
+                  subframe,
+                  tdd_Config->subframeAssignment);
+      break;
+
+  } 
+  AssertFatal(1==0,"Fill in TDD Config %ld\n",tdd_Config->subframeAssignment);
   return 0;
 }
 

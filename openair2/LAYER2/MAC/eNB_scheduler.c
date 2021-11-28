@@ -661,7 +661,7 @@ eNB_dlsch_ulsch_scheduler(module_id_t module_idP,
         unsigned long active_time_condition = 0; // variable used only for tracing purpose
 
         /* (UL and DL) HARQ RTT timers and DRX retransmission timers */
-        for (int harq_process_id = 0; harq_process_id < 8; harq_process_id++) {
+        for (int harq_process_id = 0; harq_process_id < 10; harq_process_id++) {
           /* DL asynchronous HARQ process */
           if (UE_scheduling_control->drx_retransmission_timer[harq_process_id] > 0) {
             UE_scheduling_control->drx_retransmission_timer[harq_process_id]++;
@@ -787,7 +787,7 @@ eNB_dlsch_ulsch_scheduler(module_id_t module_idP,
         UE_template = &(UE_info->UE_template[CC_id][UE_id]);
 
         /* (a)synchronous HARQ processes handling for Active Time */
-        for (int harq_process_id = 0; harq_process_id < 8; harq_process_id++) {
+        for (int harq_process_id = 0; harq_process_id < 10; harq_process_id++) {
           if (UE_scheduling_control->drx_retransmission_timer[harq_process_id] > 0) {
             harq_active_time_condition = TRUE;
             active_time_condition = 2; // for tracing purpose
@@ -839,7 +839,7 @@ eNB_dlsch_ulsch_scheduler(module_id_t module_idP,
       } else { // else: CDRX not configured
         /* Note: (UL) HARQ RTT timers processing is done here and can be used by other features than CDRX */
         /* HARQ RTT timers */
-        for (int harq_process_id = 0; harq_process_id < 8; harq_process_id++) {
+        for (int harq_process_id = 0; harq_process_id < 10; harq_process_id++) {
           if (UE_scheduling_control->harq_rtt_timer[CC_id][harq_process_id] > 0) {
             UE_scheduling_control->harq_rtt_timer[CC_id][harq_process_id]++;
 

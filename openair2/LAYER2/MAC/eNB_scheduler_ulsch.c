@@ -811,6 +811,10 @@ rx_sdu(const module_id_t enb_mod_idP,
                 ra->Msg4_frame = frameP + ((subframeP > 2) ? 1 : 0);
                 ra->Msg4_subframe = (subframeP + 7) % 10;
                 break;
+              case 2:
+                ra->Msg4_frame = frameP + ((subframeP > 2) ? 1 : 0);
+                ra->Msg4_subframe = (subframeP + 6) % 10;
+                break;
 
               default:
                 printf("%s:%d: TODO\n", __FILE__, __LINE__);
@@ -1596,17 +1600,19 @@ schedule_ulsch_rnti(module_id_t   module_idP,
           if (cc[CC_id].tdd_Config) {
             switch (cc[CC_id].tdd_Config->subframeAssignment) {
               case 1:
+              case 2:
                 if (subframeP == 1 || subframeP == 6)
                   cqi_req = 0;
                 break;
-
               case 3:
+              case 4:
+              case 5:
                 if (subframeP == 1)
                   cqi_req = 0;
                 break;
 
               default:
-                LOG_E(MAC, " TDD config not supported\n");
+                AssertFatal(1==0,"Fill in TDD config %ld\n",cc[CC_id].tdd_Config->subframeAssignment);
                 break;
             }
           }

@@ -1106,7 +1106,7 @@ void init_transport(PHY_VARS_eNB *eNB) {
       LOG_I(PHY,"Allocating Transport Channel Buffers for DLSCH %d/%d/%d\n",i,NUMBER_OF_DLSCH_MAX,(i-NUMBER_OF_DLSCH_MAX)<0);
 
       for (int j=0; j<2; j++) {
-        eNB->dlsch[i][j] = new_eNB_dlsch(1,8,NSOFT,fp->N_RB_DL,0,fp);
+        eNB->dlsch[i][j] = new_eNB_dlsch(1,10,NSOFT,fp->N_RB_DL,0,fp);
         LOG_I(PHY,"eNB->dlsch[%d][%d] %p\n",i,j,eNB->dlsch[i][j]);
         if (!eNB->dlsch[i][j]) {
           LOG_E(PHY,"Can't get eNB dlsch structures for DLSCH %d \n", i);
@@ -1130,7 +1130,7 @@ void init_transport(PHY_VARS_eNB *eNB) {
 
     eNB->dlsch_SI  = new_eNB_dlsch(1,8,NSOFT,fp->N_RB_DL, 0, fp);
     LOG_D(PHY,"eNB %d.%d : SI %p\n",eNB->Mod_id,eNB->CC_id,eNB->dlsch_SI);
-    eNB->dlsch_ra  = new_eNB_dlsch(1,8,NSOFT,fp->N_RB_DL, 0, fp);
+    eNB->dlsch_ra  = new_eNB_dlsch(1,10,NSOFT,fp->N_RB_DL, 0, fp);
     LOG_D(PHY,"eNB %d.%d : RA %p\n",eNB->Mod_id,eNB->CC_id,eNB->dlsch_ra);
     eNB->dlsch_MCH = new_eNB_dlsch(1,8,NSOFT,fp->N_RB_DL, 0, fp);
     LOG_D(PHY,"eNB %d.%d : MCH %p\n",eNB->Mod_id,eNB->CC_id,eNB->dlsch_MCH);

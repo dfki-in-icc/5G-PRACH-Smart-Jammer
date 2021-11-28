@@ -667,7 +667,7 @@ void fill_dci_and_dlsch(PHY_VARS_eNB *eNB,
           break;
       }
 
-      AssertFatal (rel8->harq_process < 8, "Format 1: harq_pid=%d >= 8\n", rel8->harq_process);
+      AssertFatal (rel8->harq_process < 10, "Format 1: harq_pid=%d >= 10\n", rel8->harq_process);
       dlsch0_harq = dlsch0->harq_processes[rel8->harq_process];
       dlsch0_harq->codeword = 0;
       // printf("DCI: Setting subframe_tx for subframe %d\n",subframe);

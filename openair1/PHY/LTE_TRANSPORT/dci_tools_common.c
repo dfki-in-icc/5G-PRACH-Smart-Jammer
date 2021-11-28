@@ -1018,6 +1018,10 @@ uint8_t pdcch_alloc2ul_subframe(LTE_DL_FRAME_PARMS *frame_parms,uint8_t n)
            (frame_parms->tdd_config == 6) &&
            (n==9)) // tdd_config 6 SF 9
     ul_subframe = ((n+5)%10);
+  else if (frame_parms->frame_type == TDD && frame_parms->tdd_config == 2) {
+    if (n == 3 || n == 8)
+      ul_subframe = (n + 4) % 10;
+  }
   else
     ul_subframe = ((n+4)%10);
 
@@ -1035,6 +1039,12 @@ uint8_t ul_subframe2pdcch_alloc_subframe(LTE_DL_FRAME_PARMS *frame_parms,uint8_t
       return((n==7)? 1 : 6);
     } else if ((n==3)||(n==8)) {
       return((n==3)? 9 : 4);
+    }
+  } else if (frame_parms->frame_type == TDD && frame_parms->tdd_config == 2) {
+    if (n == 7) {
+      return 3;
+    } else if (n == 2) {
+      return 8;
     }
   } else if ((frame_parms->frame_type == TDD) &&
            (frame_parms->tdd_config == 6) &&
@@ -1059,6 +1069,10 @@ uint32_t pdcch_alloc2ul_frame(LTE_DL_FRAME_PARMS *frame_parms,uint32_t frame, ui
       (frame_parms->tdd_config == 1) &&
       ((n==1)||(n==6)||(n==4)||(n==9))) { // tdd_config 0,1 SF 1,5
       ul_frame = (frame + (n < 5 ? 0 : 1));
+  } else if (frame_parms->frame_type == TDD && frame_parms->tdd_config == 2) {
+    if (n == 3 || n == 8) {
+      ul_frame = frame + n / 7;
+    }
   } else if ((frame_parms->frame_type == TDD) &&
            (frame_parms->tdd_config == 6) &&
            ((n==0)||(n==1)||(n==5)||(n==6)))

@@ -165,7 +165,7 @@ typedef struct {
   /// First-round error threshold for fine-grain rate adaptation
   uint8_t error_threshold;
   /// Pointers to 8 HARQ processes for the DLSCH
-  LTE_DL_eNB_HARQ_t *harq_processes[8];
+  LTE_DL_eNB_HARQ_t *harq_processes[10];
   /// Number of soft channel bits
   uint32_t G;
   /// Codebook index for this dlsch (0,1,2,3)

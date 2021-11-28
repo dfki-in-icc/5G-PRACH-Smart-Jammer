@@ -1311,19 +1311,19 @@ void fill_rf_config(RU_t *ru,
     } else if(ru->numerology == 1) {
       cfg->sample_rate=61.44e6;
       cfg->samples_per_frame = 307200;
-      cfg->tx_bw = 20e6;
-      cfg->rx_bw = 20e6;
+      cfg->tx_bw = 40e6;
+      cfg->rx_bw = 40e6;
     } else if(ru->numerology == 2) {
       cfg->sample_rate=122.88e6;
       cfg->samples_per_frame = 307200;
-      cfg->tx_bw = 40e6;
-      cfg->rx_bw = 40e6;
+      cfg->tx_bw = 80e6;
+      cfg->rx_bw = 80e6;
     } else {
       LOG_I(PHY,"Wrong input for numerology %d\n setting to 20MHz normal CP configuration",numerology);
       cfg->sample_rate=30.72e6;
       cfg->samples_per_frame = 307200;
-      cfg->tx_bw = 10e6;
-      cfg->rx_bw = 10e6;
+      cfg->tx_bw = 20e6;
+      cfg->rx_bw = 20e6;
     }
   } else if(fp->N_RB_DL == 50) {
     cfg->sample_rate=15.36e6;
@@ -1338,8 +1338,8 @@ void fill_rf_config(RU_t *ru,
   } else if (fp->N_RB_DL == 6) {
     cfg->sample_rate=1.92e6;
     cfg->samples_per_frame = 19200;
-    cfg->tx_bw = 1.5e6;
-    cfg->rx_bw = 1.5e6;
+    cfg->tx_bw = 3e6;
+    cfg->rx_bw = 3e6;
   } else AssertFatal(1==0,"Unknown N_RB_DL %d\n",fp->N_RB_DL);
 
   if (fp->frame_type==TDD)

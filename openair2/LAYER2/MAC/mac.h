@@ -799,44 +799,44 @@ typedef struct {
   /// C-RNTI of UE
   rnti_t rnti;
   /// NDI from last scheduling
-  uint8_t oldNDI[8];
+  uint8_t oldNDI[10];
   /// mcs1 from last scheduling
-  uint8_t oldmcs1[8];
+  uint8_t oldmcs1[10];
   /// mcs2 from last scheduling
-  uint8_t oldmcs2[8];
+  uint8_t oldmcs2[10];
   /// NDI from last UL scheduling
-  uint8_t oldNDI_UL[8];
+  uint8_t oldNDI_UL[10];
   /// mcs from last UL scheduling
-  uint8_t mcs_UL[8];
+  uint8_t mcs_UL[10];
   /// TBS from last UL scheduling
-  int TBS_UL[8];
+  int TBS_UL[10];
   /// Flag to indicate UL has been scheduled at least once
   boolean_t ul_active;
   /// Flag to indicate UE has been configured (ACK from RRCConnectionSetup received)
   boolean_t configured;
 
   /// MCS from last scheduling
-  uint8_t mcs[8];
+  uint8_t mcs[10];
 
   /// TPC from last scheduling
-  uint8_t oldTPC[8];
+  uint8_t oldTPC[10];
 
   // PHY interface info
 
   /// Number of Allocated RBs for DL after scheduling (prior to frequency allocation)
-  uint16_t nb_rb[8];    // num_max_harq
+  uint16_t nb_rb[10];    // num_max_harq
 
   /// Number of Allocated RBs for UL after scheduling
-  uint16_t nb_rb_ul[8]; // num_max_harq
+  uint16_t nb_rb_ul[10]; // num_max_harq
 
   /// Number of Allocated RBs for UL after scheduling
-  uint16_t first_rb_ul[8];  // num_max_harq
+  uint16_t first_rb_ul[10];  // num_max_harq
 
   /// Is CQI requested for UL after scheduling 1st transmission
-  uint8_t cqi_req[8];         // num_max_harq
+  uint8_t cqi_req[10];         // num_max_harq
 
   /// Cyclic shift for DMRS after scheduling
-  uint16_t cshift[8];   // num_max_harq
+  uint16_t cshift[10];   // num_max_harq
 
   /// Number of Allocated RBs by the ulsch preprocessor
   uint8_t pre_allocated_nb_rb_ul;
@@ -954,7 +954,7 @@ typedef struct {
   /// Current Active TBs per harq_pid on each CC
   uint8_t tbcnt[NFAPI_CC_MAX][10];
   /// Current UL harq round per harq_pid on each CC
-  uint8_t round_UL[NFAPI_CC_MAX][8];
+  uint8_t round_UL[NFAPI_CC_MAX][10];
   uint8_t dl_pow_off[NFAPI_CC_MAX];
   uint16_t pre_nb_available_rbs[NFAPI_CC_MAX];
   unsigned char rballoc_sub_UE[NFAPI_CC_MAX][N_RBG_MAX];
@@ -1020,9 +1020,9 @@ typedef struct {
 
   /* HARQ RRT Timers */
   /// (UL) HARQ RTT timers, especially used for CDRX operations, one timer per cell per harq process (and per user)
-  uint8_t harq_rtt_timer[NFAPI_CC_MAX][8];
-  uint8_t ul_harq_rtt_timer[NFAPI_CC_MAX][8]; // Note: UL HARQ RTT timers are only for asynchronous HARQ processes
-  uint8_t ul_synchronous_harq_timer[NFAPI_CC_MAX][8];  // These timers are used for UL synchronous HARQ processes
+  uint8_t harq_rtt_timer[NFAPI_CC_MAX][10];
+  uint8_t ul_harq_rtt_timer[NFAPI_CC_MAX][10]; // Note: UL HARQ RTT timers are only for asynchronous HARQ processes
+  uint8_t ul_synchronous_harq_timer[NFAPI_CC_MAX][10];  // These timers are used for UL synchronous HARQ processes
 
   /* C-DRX related timers */
   /* Note: only valid for FDD and LTE UE when this comment is written (11-01-19)*/
@@ -1068,8 +1068,8 @@ typedef struct {
   /// longDRX-CycleStartOffset (offset value)
   uint16_t  drx_start_offset;
   /// DRX retransmission timer, one per DL HARQ process
-  uint8_t   drx_retransmission_timer[8];
-  uint8_t   drx_retransmission_timer_thres[8];
+  uint8_t   drx_retransmission_timer[10];
+  uint8_t   drx_retransmission_timer_thres[10];
   /// DRX UL retransmission timer, one per UL HARQ process
   /* Not implemented yet */
   /* End of C-DRX related timers */

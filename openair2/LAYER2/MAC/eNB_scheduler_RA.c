@@ -1332,6 +1332,7 @@ initiate_ra_proc(module_id_t module_idP,
             abort();
 
           case 1 :
+          case 2 :
 	  case 3 :
 	  case 4 :
           case 5 :
