@@ -175,12 +175,8 @@ static void rnis_agent_func(void *params)
 
 struct cnx_info_t *info = (struct cnx_info_t *)params;
   struct cnx_info_t clicnx;
-	int ret;
 	int mtype;
 	char *message;
-	int clen;
-	int i;
-	int perr;
 
 	do {
     printf("RNIS agent begin ");
@@ -202,10 +198,34 @@ struct cnx_info_t *info = (struct cnx_info_t *)params;
     printf("RNSI message received \n ---------------- %s \n",message);
 		/* check message type and respond */
     int size=0;
-		/*if (mtype == MTYPE_MREG) {
+		if (mtype == MTYPE_MREG) {
 
+
+
+     int nbue = RC.nrrrc[0]->Nb_ue; 
+     printf("UEs number at RRC: %d\n",nbue);
+     if (nbue <= 0) continue;
+     char *res = malloc(nbue*60*sizeof(char));
+     gNB_MAC_INST *gNB_mac = RC.nrmac[0];
+     NR_UE_info_t *UE_info = &gNB_mac->UE_info;
+     NR_list_t *UE_list = &UE_info->list;
+     for (int UE_id = UE_list->head; UE_id >= 0; UE_id = UE_list->next[UE_id]) {
+       NR_UE_sched_ctrl_t *sched_ctrl = &UE_info->UE_sched_ctrl[UE_id];
+       const rnti_t rnti = UE_info->rnti[UE_id];
+       NR_mac_stats_t *stats = &UE_info->mac_stats[UE_id];
+       int phr = sched_ctrl->ph;
+       char tmp[60];
+       printf("rnti %d, phr %d\n",rnti,phr);
+       sprintf(tmp,"{rnti %d, phr %d},",rnti,phr);
+       strcat(res,tmp);
+     }
+      char *r = "MRSP\r\nContent-length: 4\r\nOK\r\n";
+			/// send response 
+      if (res != NULL)xmit_protocol_message(&clicnx, (void *)res, TO_CLIENT);
+			else xmit_protocol_message(&clicnx, (void *)r, TO_CLIENT);
+      if (res) free(res);
       // RNIS KARIM
-    int nbue = RC.rrc[0]->Nb_ue;
+    /*int nbue = RC.rrc[0]->Nb_ue;
 
      printf("UEs number: %d\n",nbue);
      if (nbue <=0) continue;
@@ -236,8 +256,8 @@ struct cnx_info_t *info = (struct cnx_info_t *)params;
 			/// send response 
       if (res != NULL)xmit_protocol_message(&clicnx, (void *)res, TO_CLIENT);
 			else xmit_protocol_message(&clicnx, (void *)r, TO_CLIENT);
-      if (res) free(res);
-		}*/
+      if (res) free(res);*/
+		}
     if (message) free(message);
 	} while(1);
 
