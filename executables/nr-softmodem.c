@@ -342,7 +342,7 @@ int create_gNB_tasks(uint32_t gnb_nb) {
     }
   }
 
-  LOG_E(NGAP,"aprefix %s : %s %s %s %s %d %s %d\n",aprefix,NETParams[0].strptr,NETParams[1].strptr,NETParams[2].strptr,NETParams[3].strptr,NETParams[4].iptr,NETParams[5].strptr,NETParams[6].iptr);
+  //LOG_E(NGAP,"aprefix %s : %s %s %s %s %d %s %d\n",aprefix,NETParams[0].strptr,NETParams[1].strptr,NETParams[2].strptr,NETParams[3].strptr,NETParams[4].iptr,NETParams[5].strptr,NETParams[6].iptr);
 
   if (AMF_MODE_ENABLED) {
     if (gnb_nb > 0) {

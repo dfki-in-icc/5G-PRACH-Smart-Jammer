@@ -2139,6 +2139,9 @@ set (ENB_APP_SRC
 set (GNB_APP_SRC
   ${OPENAIR2_DIR}/GNB_APP/gnb_app.c
   ${OPENAIR2_DIR}/GNB_APP/gnb_config.c
+  ${OPENAIR2_DIR}/GNB_APP/netfunc.c
+  ${OPENAIR2_DIR}/GNB_APP/protocol.c
+
   )
 
 set (MCE_APP_SRC

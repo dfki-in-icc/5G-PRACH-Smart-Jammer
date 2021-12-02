@@ -51,6 +51,10 @@
 #include "f1ap_du_task.h"
 #include "nfapi/oai_integration/vendor_ext.h"
 #include <openair2/LAYER2/nr_pdcp/nr_pdcp.h>
+
+#include "netfunc.h"
+#include "protocol.h"
+#include <pthread.h>
 extern unsigned char NB_gNB_INST;
 
 extern RAN_CONTEXT_t RC;
@@ -162,6 +166,109 @@ static void init_pdcp(void) {
 
 /*------------------------------------------------------------------------------*/
 
+
+
+/* RNIS Karim*/
+
+static void rnis_agent_func(void *params)
+{
+
+struct cnx_info_t *info = (struct cnx_info_t *)params;
+  struct cnx_info_t clicnx;
+	int ret;
+	int mtype;
+	char *message;
+	int clen;
+	int i;
+	int perr;
+
+	do {
+    printf("RNIS agent begin ");
+		/* either apply an iterative TCP server, or work on top of UDP */
+		if (info->proto == _PROTO_TCP_) {
+			/* accept */
+			struct cnx_info_t* cinfo = accept_client_connection(info);
+			memcpy(&clicnx, cinfo, sizeof(struct cnx_info_t));
+			free(cinfo);
+		}
+		else {
+			/* Operation over UDP, use the original "info" struct */
+			memcpy(&clicnx, info, sizeof(struct cnx_info_t));
+		}
+
+		/* read a protocol message */
+		/* TODO: check timeout! */
+		message = recv_protocol_message(&clicnx, &mtype, 0, FROM_CLIENT);
+    printf("RNSI message received \n ---------------- %s \n",message);
+		/* check message type and respond */
+    int size=0;
+		/*if (mtype == MTYPE_MREG) {
+
+      // RNIS KARIM
+    int nbue = RC.rrc[0]->Nb_ue;
+
+     printf("UEs number: %d\n",nbue);
+     if (nbue <=0) continue;
+     char *res = malloc(nbue*60*sizeof(char));
+     rnti_t rntis[nbue];
+     flexran_get_rrc_rnti_list(0, rntis, nbue);
+      for (int i = 0; i < nbue; i++) {
+          const rnti_t rnti = rntis[i];
+          //configure_rnti(rnti);
+          int UE_id = flexran_get_mac_ue_id_rnti(0, rnti);
+          int cqi = flexran_get_ue_wcqi(0, UE_id);
+          char tmp[60];
+            printf("rnti: %d, rsrp: %.2f, rsrq: %.2f, cqi: %d\n",rnti,flexran_get_rrc_pcell_rsrp(0, rnti),flexran_get_rrc_pcell_rsrq(0, rnti),cqi);      	
+            sprintf(tmp,"%d : {rsrp: %.2f, rsrq: %.2f, cqi: %d}",rnti,flexran_get_rrc_pcell_rsrp(0, rnti),flexran_get_rrc_pcell_rsrq(0, rnti),cqi); 
+            printf("tmp %s\n",tmp);
+
+            strcat(res,tmp);
+            printf("res[i] %s\n",res);
+
+            strcat(res,",");
+         }
+
+
+
+      // END
+      
+      char *r = "MRSP\r\nContent-length: 4\r\nOK\r\n";
+			/// send response 
+      if (res != NULL)xmit_protocol_message(&clicnx, (void *)res, TO_CLIENT);
+			else xmit_protocol_message(&clicnx, (void *)r, TO_CLIENT);
+      if (res) free(res);
+		}*/
+    if (message) free(message);
+	} while(1);
+
+}
+
+
+/* RNIS KARIM */
+
+static void rnis_agent_init(int soa_port)
+{
+	struct cnx_info_t *info = (struct cnx_info_t*)calloc(1, sizeof(struct cnx_info_t));
+
+  info->proto = _PROTO_TCP_;
+  info->port = soa_port;
+
+	/* networking */
+	memcpy(info->host, "0.0.0.0\0", 8); /* any addr */
+	if (init_server(info) < 0) {
+		fprintf(stderr, "Init failed");
+		exit(1);
+	}
+
+	/* threads */
+	pthread_t rnis_thread;
+  printf("RNIS agent created");
+	pthread_create(&rnis_thread, NULL, (void*)&rnis_agent_func, (void*)info);
+}
+
+
+
+
 void *gNB_app_task(void *args_p)
 {
 
@@ -243,6 +350,7 @@ void *gNB_app_task(void *args_p)
       itti_send_msg_to_task (TASK_DU_F1, GNB_MODULE_ID_TO_INSTANCE(0), msg_p);
     }
   }
+  rnis_agent_init(9991); // TODO: read port from config file
   do {
     // Wait for a message
     itti_receive_msg (TASK_GNB_APP, &msg_p);
