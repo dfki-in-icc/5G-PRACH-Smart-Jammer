@@ -184,6 +184,9 @@ int trx_oran_ctlrecv(openair0_device *device, void *msg, ssize_t msg_len)
   if (s->last_msg == RRU_start) {
      // Folllow the same steps as in the wrapper
      printf("Oran RRU_start\n");
+     
+     // Check if the machine is PTP sync
+     check_xran_ptp_sync();
 
      // SetUp
      if ( setup_oran(s->oran_priv) !=0 ){ 
@@ -330,6 +333,13 @@ void oran_fh_if4p5_south_out(RU_t *ru,
                                 uint64_t timestamp)
 {
  
+/* 
+ * Romain:
+ * Questions:
+ *   -Do we need a lock on the buffer? If yes, how should we implement it?
+ *   -Why is the byte order changed in Benetel? Do we need to do the same?
+ */
+
   printf("ORAN: %s for DL. frame=%d, subframe=%d, \n", __FUNCTION__,frame,subframe);
   oran_eth_state_t *s = ru->ifdevice.priv;
   PHY_VARS_eNB **eNB_list = ru->eNB_list, *eNB;
@@ -339,7 +349,7 @@ void oran_fh_if4p5_south_out(RU_t *ru,
   int aa;
 
   VCD_SIGNAL_DUMPER_DUMP_VARIABLE_BY_NAME( VCD_SIGNAL_DUMPER_VARIABLES_TRX_TST, ru->proc.timestamp_tx&0xffffffff );
-
+  // Romain: Lock on the DL buffer on given slot for avoiding concurrent write
   lock_dl_buffer(&s->buffers, subframe);
   if (s->buffers.dl_busy[0][subframe] ||
       s->buffers.dl_busy[1][subframe]) {
@@ -347,6 +357,7 @@ void oran_fh_if4p5_south_out(RU_t *ru,
      unlock_dl_buffer(&s->buffers, subframe);
     return;
   }
+  // Romain: Configuration check
   eNB = eNB_list[0];
   fp  = &eNB->frame_parms;
   if (ru->num_eNB != 1 || fp->ofdm_symbol_size != 2048 ||
@@ -356,10 +367,13 @@ void oran_fh_if4p5_south_out(RU_t *ru,
     exit(1);
   }
 
+  // Romain: Loop over antenas and symbols
   for (aa = 0; aa < ru->nb_tx; aa++) {
     for (symbol = 0; symbol < 14; symbol++) {
+      // Romain: txdata will hold the data from OAI to send on downlink. How are they presented?
       txdata = &ru->common.txdataF_BF[aa][symbol * fp->ofdm_symbol_size];
 #if 1
+      // Romain: For Benetel, '&s->buffers.dl' is the downlink buffer. Should we moove the data as it is done here?
       memcpy(&s->buffers.dl[aa][subframe][symbol*1200*4],
              txdata + 2048 - 600,
              600 * 4);
@@ -367,6 +381,7 @@ void oran_fh_if4p5_south_out(RU_t *ru,
              txdata + 1,
              600 * 4);
 #endif
+      // Romain: Change byte order. Why?
       int i;
       uint16_t *p = (uint16_t *)(&s->buffers.dl[aa][subframe][symbol*1200*4]);
       for (i = 0; i < 1200*2; i++) {
@@ -375,6 +390,7 @@ void oran_fh_if4p5_south_out(RU_t *ru,
     }
   }
 
+  // Romain: Lock on the DL buffer on given slot for avoiding concurrent write
   s->buffers.dl_busy[0][subframe] = 0x3fff;
   s->buffers.dl_busy[1][subframe] = 0x3fff;
   unlock_dl_buffer(&s->buffers, subframe);
@@ -405,7 +421,6 @@ int transport_init(openair0_device *device,
 {
   oran_eth_state_t *eth;
 
-  printf("Ann: ORANNN\n");
   printf("ORAN: %s\n", __FUNCTION__);
 
   device->Mod_id               = 0;
