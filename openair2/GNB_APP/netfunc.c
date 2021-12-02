@@ -141,7 +141,7 @@ int write_data(struct cnx_info_t* info, void *data, int datalen, int to_server) 
 	}
 
 	int remaining = datalen;
-
+    printf("write_data : sending %d bytes\n",remaining);
 	for (i = 0; i < datalen / 4092; i++) {
 		sent = sendto(outsock, offset, 4092, 0, sa, len);
 		remaining -= sent;

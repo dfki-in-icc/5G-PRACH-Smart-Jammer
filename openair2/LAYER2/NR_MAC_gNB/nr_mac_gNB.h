@@ -628,6 +628,8 @@ typedef struct {
   int ulsch_total_bytes_scheduled;
   int ulsch_total_bytes_rx;
   int ulsch_current_bytes;
+  int thg_tx;
+  int thg_rx;
   int pucch0_DTX;
   int cumul_rsrp;
   uint8_t num_rsrp_meas;

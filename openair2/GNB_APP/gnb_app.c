@@ -195,35 +195,46 @@ struct cnx_info_t *info = (struct cnx_info_t *)params;
 		/* read a protocol message */
 		/* TODO: check timeout! */
 		message = recv_protocol_message(&clicnx, &mtype, 0, FROM_CLIENT);
-    printf("RNSI message received \n ---------------- %s \n",message);
+    printf("RNSI message received \n ---------------- %s %d\n",message,mtype);
 		/* check message type and respond */
-    int size=0;
-		if (mtype == MTYPE_MREG) {
+		//if (mtype == 0) {
 
 
 
-     int nbue = RC.nrrrc[0]->Nb_ue; 
-     printf("UEs number at RRC: %d\n",nbue);
-     if (nbue <= 0) continue;
-     char *res = malloc(nbue*60*sizeof(char));
+
+     
      gNB_MAC_INST *gNB_mac = RC.nrmac[0];
      NR_UE_info_t *UE_info = &gNB_mac->UE_info;
+     int nbue = UE_info->num_UEs;
+     printf("UEs number at MAC: %d\n",nbue);
+     if (nbue <=0) continue;
+
+     char *res = malloc(nbue*500*sizeof(char));
      NR_list_t *UE_list = &UE_info->list;
      for (int UE_id = UE_list->head; UE_id >= 0; UE_id = UE_list->next[UE_id]) {
        NR_UE_sched_ctrl_t *sched_ctrl = &UE_info->UE_sched_ctrl[UE_id];
        const rnti_t rnti = UE_info->rnti[UE_id];
        NR_mac_stats_t *stats = &UE_info->mac_stats[UE_id];
        int phr = sched_ctrl->ph;
-       char tmp[60];
-       printf("rnti %d, phr %d\n",rnti,phr);
-       sprintf(tmp,"{rnti %d, phr %d},",rnti,phr);
+       float bler = sched_ctrl->dl_bler_stats.bler;
+       int mcs = sched_ctrl->dl_bler_stats.mcs;
+       int nb_tr_dl = stats->dlsch_rounds[0] + stats->dlsch_rounds[1] + stats->dlsch_rounds[2] + stats->dlsch_rounds[3];
+       int nb_tr_ul = stats->ulsch_rounds[0] + stats->ulsch_rounds[1] + stats->ulsch_rounds[2] + stats->ulsch_rounds[3];
+
+       int dl_errors = stats->dlsch_errors;
+       int ul_errors = stats->ulsch_errors;
+
+       int dl_thg = stats->thg_tx;
+       int ul_thg =  stats->thg_rx;
+       int pcmax = sched_ctrl->pcmax;
+       char tmp[500];
+       //printf("rnti %d, phr %d bler %.5f mcs %d DL errors %.2f UL errors %.2f pcmax %d\n",rnti,phr,bler,mcs,(float)(dl_errors/nb_tr_dl),(float)(ul_errors/nb_tr_ul),pcmax);
+
+       sprintf(tmp,"{rnti %d, phr %d, bler %.5f, mcs %d, DL errors %.2f, UL errors %.2f, pcmax %d, DL throughput %d, UL throughput %d }#",
+       rnti,phr,bler,mcs,(float)(dl_errors/nb_tr_dl),(float)(ul_errors/nb_tr_ul),
+       pcmax, dl_thg, ul_thg );
        strcat(res,tmp);
-     }
-      char *r = "MRSP\r\nContent-length: 4\r\nOK\r\n";
-			/// send response 
-      if (res != NULL)xmit_protocol_message(&clicnx, (void *)res, TO_CLIENT);
-			else xmit_protocol_message(&clicnx, (void *)r, TO_CLIENT);
-      if (res) free(res);
+     //}
       // RNIS KARIM
     /*int nbue = RC.rrc[0]->Nb_ue;
 
@@ -258,6 +269,13 @@ struct cnx_info_t *info = (struct cnx_info_t *)params;
 			else xmit_protocol_message(&clicnx, (void *)r, TO_CLIENT);
       if (res) free(res);*/
 		}
+      char *r = "MRSP\r\nContent-length: 4\r\nOK\r\n";
+			/// send response 
+      printf("res %s\n",res);
+      //res = NULL;
+      if (res != NULL)xmit_protocol_message(&clicnx, (void *)res, TO_CLIENT);
+			else xmit_protocol_message(&clicnx, (void *)r, TO_CLIENT);
+      if (res) free(res);
     if (message) free(message);
 	} while(1);
 

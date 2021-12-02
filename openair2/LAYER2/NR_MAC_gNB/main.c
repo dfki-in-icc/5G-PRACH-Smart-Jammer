@@ -113,22 +113,24 @@ void dump_mac_stats(gNB_MAC_INST *gNB, char *output, int strlen)
                     stats->ulsch_rounds[2], stats->ulsch_rounds[3],
                     stats->ulsch_DTX,
                     stats->ulsch_errors);
+    stats->thg_rx = stats->lc_bytes_rx[4];              
     stroff+=sprintf(output+stroff,
                     "UE %d: ulsch_total_bytes_scheduled %d, ulsch_total_bytes_received %d\n",
                     UE_id,
                     stats->ulsch_total_bytes_scheduled, stats->ulsch_total_bytes_rx);
+    stats->thg_tx = stats->lc_bytes_tx[4];
     for (int lc_id = 0; lc_id < 63; lc_id++) {
       if (stats->lc_bytes_tx[lc_id] > 0) {
         stroff+=sprintf(output+stroff, "UE %d: LCID %d: %d bytes TX\n", UE_id, lc_id, stats->lc_bytes_tx[lc_id]);
-        stroff+=sprintf(output+stroff, " THROUGHPUT UE %d: LCID %d: %d Kbps TX\n", UE_id, lc_id, (stats->lc_bytes_tx[lc_id]-last_bytes_tx[lc_id])>>7);
+        stroff+=sprintf(output+stroff, " THROUGHPUT UE %d: LCID %d:%d    %d Kbps TX\n", UE_id, lc_id, stats->thg_tx, (stats->lc_bytes_tx[lc_id]-last_bytes_tx[lc_id])>>7);
         last_bytes_tx[lc_id] = stats->lc_bytes_tx[lc_id];
-	LOG_D(NR_MAC, "UE %d: LCID %d: %d bytes TX\n", UE_id, lc_id, stats->lc_bytes_tx[lc_id]);
+      	LOG_D(NR_MAC, "UE %d: LCID %d: %d bytes TX\n", UE_id, lc_id, stats->lc_bytes_tx[lc_id]);
       }
       if (stats->lc_bytes_rx[lc_id] > 0) {
         stroff+=sprintf(output+stroff, "UE %d: LCID %d: %d bytes RX\n", UE_id, lc_id, stats->lc_bytes_rx[lc_id]);
-        stroff+=sprintf(output+stroff, "THROUGHPUT UE %d: LCID %d: %d Kbps RX\n", UE_id, lc_id, (stats->lc_bytes_rx[lc_id]-last_bytes_rx[lc_id])>>7);
+        stroff+=sprintf(output+stroff, "THROUGHPUT UE %d: LCID %d: %d   %d Kbps RX\n", UE_id, lc_id,stats->thg_rx, (stats->lc_bytes_rx[lc_id]-last_bytes_rx[lc_id])>>7);
         last_bytes_rx[lc_id] = stats->lc_bytes_rx[lc_id];
-	LOG_D(NR_MAC, "UE %d: LCID %d: %d bytes RX\n", UE_id, lc_id, stats->lc_bytes_rx[lc_id]);
+	      LOG_D(NR_MAC, "UE %d: LCID %d: %d bytes RX\n", UE_id, lc_id, stats->lc_bytes_rx[lc_id]);
       }
     }
   }
