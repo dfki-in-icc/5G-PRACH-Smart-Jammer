@@ -131,7 +131,6 @@ char *msg_type(int t)
   return s[t];
 }
 
-
 int trx_oran_ctlsend(openair0_device *device, void *msg, ssize_t msg_len)
 {
   RRU_CONFIG_msg_t *rru_config_msg = msg;
@@ -145,30 +144,26 @@ int trx_oran_ctlsend(openair0_device *device, void *msg, ssize_t msg_len)
   s->last_msg = rru_config_msg->type;
 
   return msg_len;
-
 }
-
 
 int trx_oran_ctlrecv(openair0_device *device, void *msg, ssize_t msg_len)
 {
-
   RRU_CONFIG_msg_t *rru_config_msg = msg;
-
   oran_eth_state_t *s = device->priv;
 
   printf("ORAN: %s\n", __FUNCTION__);
 
   if (s->last_msg == RAU_tick && s->capabilities_sent == 0) {
-    printf("Oran RAU_tick and capabilities sent\n");
     RRU_capabilities_t *cap;
     rru_config_msg->type = RRU_capabilities;
     rru_config_msg->len  = sizeof(RRU_CONFIG_msg_t)-MAX_RRU_CONFIG_SIZE+sizeof(RRU_capabilities_t);
     cap = (RRU_capabilities_t*)&rru_config_msg->msg[0];
     cap->FH_fmt                           = OAI_IF4p5_only;
     cap->num_bands                        = 1;
-    cap->band_list[0]                     = 7;
-    cap->nb_rx[0]                         = device->openair0_cfg->rx_num_channels;
-    cap->nb_tx[0]                         = device->openair0_cfg->tx_num_channels;
+    cap->band_list[0]                     = 78;
+    /* TODO: hardcoded to 1 for the moment, get the real value somehow... */
+    cap->nb_rx[0]                         = 1; //device->openair0_cfg->rx_num_channels;
+    cap->nb_tx[0]                         = 1; //device->openair0_cfg->tx_num_channels;
     cap->max_pdschReferenceSignalPower[0] = -27;
     cap->max_rxgain[0]                    = 90;
 
@@ -237,27 +232,23 @@ int trx_oran_ctlrecv(openair0_device *device, void *msg, ssize_t msg_len)
      }
 
   }
- return(0);
-
+  return 0;
 }
-
-/*This function reads the IQ samples from OAI, symbol by symbol.
- It also handles the shared buffers.                          */
 
 void oran_fh_if4p5_south_in(RU_t *ru,
                                int *frame,
                                int *slot)
 {
 #if 0
-  printf("ORAN: %s for UL. frame=%d, slot=%d, \n", __FUNCTION__,frame,slot);
+//printf("XXX oran_fh_if4p5_south_in %d %d\n", *frame, *slot);
   oran_eth_state_t *s = ru->ifdevice.priv;
-  PHY_VARS_eNB **eNB_list = ru->eNB_list, *eNB;
-  LTE_DL_FRAME_PARMS *fp;
+  NR_DL_FRAME_PARMS *fp;
   int symbol;
   int32_t *rxdata;
   int antenna;
 
   lock_ul_buffer(&s->buffers, *slot);
+#if 1
 next:
   while (!((s->buffers.ul_busy[0][*slot] == 0x3fff &&
             s->buffers.ul_busy[1][*slot] == 0x3fff) ||
@@ -270,30 +261,35 @@ next:
     uint16_t *out;
     in = (uint16_t *)s->buffers.prach[*slot];
     out = (uint16_t *)ru->prach_rxsigF[0][antenna];
-    for (i = 0; i < 840*2; i++)
+    for (i = 0; i < 839*2; i++)
       out[i] = ntohs(in[i]);
     s->buffers.prach_busy[*slot] = 0;
-    ru->wakeup_prach_eNB(ru->eNB_list[0], ru, *frame, *slot);
+    //printf("prach for f.sl %d.%d\n", *frame, *slot);
+    //ru->wakeup_prach_gNB(ru->gNB_list[0], ru, *frame, *slot);
     goto next;
   }
+#endif
 
-  eNB = eNB_list[0];
-  fp  = &eNB->frame_parms;
+  fp = ru->nr_frame_parms;
   for (antenna = 0; antenna < ru->nb_rx; antenna++) {
     for (symbol = 0; symbol < 14; symbol++) {
       int i;
-      uint16_t *p = (uint16_t *)(&s->buffers.ul[antenna][*slot][symbol*1200*4]);
-      for (i = 0; i < 1200*2; i++) {
-        p[i] = htons(p[i]);
+      int16_t *p = (int16_t *)(&s->buffers.ul[antenna][*slot][symbol*1272*4]);
+      for (i = 0; i < 1272*2; i++) {
+        p[i] = (int16_t)(ntohs(p[i])) / 16;
       }
       rxdata = &ru->common.rxdataF[antenna][symbol * fp->ofdm_symbol_size];
+#if 0
+if (*slot == 0 && symbol == 0)
+printf("rxdata in oran_fh_if4p5_south_in %p\n", &ru->common.rxdataF[antenna][0]);
+#endif
 #if 1
-      memcpy(rxdata + 2048 - 600,
-             &s->buffers.ul[antenna][*slot][symbol*1200*4],
-             600 * 4);
+      memcpy(rxdata + 2048 - 1272/2,
+             &s->buffers.ul[antenna][*slot][symbol*1272*4],
+             (1272/2) * 4);
       memcpy(rxdata,
-             &s->buffers.ul[antenna][*slot][symbol*1200*4] + 600*4,
-             600 * 4);
+             &s->buffers.ul[antenna][*slot][symbol*1272*4] + (1272/2)*4,
+             (1272/2) * 4);
 #endif
     }
   }
@@ -303,103 +299,84 @@ next:
   signal_ul_buffer(&s->buffers, *slot);
   unlock_ul_buffer(&s->buffers, *slot);
 
+  //printf("BENETEL: %s (f.sf %d.%d)\n", __FUNCTION__, *frame, *slot);
 
   RU_proc_t *proc = &ru->proc;
   extern uint16_t sl_ahead;
   int f = *frame;
   int sl = *slot;
 
-
+  //calculate timestamp_rx, timestamp_tx based on frame and slot
   proc->tti_rx       = sl;
   proc->frame_rx     = f;
-  proc->timestamp_rx = ((proc->frame_rx * 10)  + proc->tti_rx ) * fp->samples_per_tti ;
+  /* TODO: be sure of samples_per_slot0
+  FK: should use get_samples_per_slot(slot)
+  but for mu=1 its ok
+  */
+  proc->timestamp_rx = ((proc->frame_rx * 20)  + proc->tti_rx ) * fp->samples_per_slot0;
 
   if (get_nprocs()<=4) {
-    proc->tti_tx   = (sl+sl_ahead)%10;
-    proc->frame_tx = (sl>(9-sl_ahead)) ? (f+1)&1023 : f;
+    // why? what if there are more?
+    proc->tti_tx   = (sl+sl_ahead)%20;
+    proc->frame_tx = (sl>(19-sl_ahead)) ? (f+1)&1023 : f;
   }
-
-  VCD_SIGNAL_DUMPER_DUMP_VARIABLE_BY_NAME(VCD_SIGNAL_DUMPER_VARIABLES_FRAME_NUMBER_IF4P5_SOUTH_IN_RU+ru->idx,f);
-  VCD_SIGNAL_DUMPER_DUMP_VARIABLE_BY_NAME(VCD_SIGNAL_DUMPER_VARIABLES_SUBFRAME_NUMBER_IF4P5_SOUTH_IN_RU+ru->idx,sl);
-  proc->symbol_mask[sl] = 0;
-  VCD_SIGNAL_DUMPER_DUMP_VARIABLE_BY_NAME(VCD_SIGNAL_DUMPER_VARIABLES_TRX_TS, proc->timestamp_rx&0xffffffff);
 #endif
-
 }
-
 
 void oran_fh_if4p5_south_out(RU_t *ru,
                                 int frame,
                                 int slot,
                                 uint64_t timestamp)
 {
-#if 0 
-/* 
- * Romain:
- * Questions:
- *   -Do we need a lock on the buffer? If yes, how should we implement it?
- *   -Why is the byte order changed in Benetel? Do we need to do the same?
- */
-
-  printf("ORAN: %s for DL. frame=%d, slot=%d, \n", __FUNCTION__,frame,slot);
+#if 0
+//printf("XXX oran_fh_if4p5_south_out %d %d %ld\n", frame, slot, timestamp);
   oran_eth_state_t *s = ru->ifdevice.priv;
-  PHY_VARS_eNB **eNB_list = ru->eNB_list, *eNB;
-  LTE_DL_FRAME_PARMS *fp;
+  NR_DL_FRAME_PARMS *fp;
   int symbol;
   int32_t *txdata;
   int aa;
 
-  VCD_SIGNAL_DUMPER_DUMP_VARIABLE_BY_NAME( VCD_SIGNAL_DUMPER_VARIABLES_TRX_TST, ru->proc.timestamp_tx&0xffffffff );
-  // Romain: Lock on the DL buffer on given slot for avoiding concurrent write
+  //printf("BENETEL: %s (f.sf %d.%d ts %ld)\n", __FUNCTION__, frame, slot, timestamp);
+
   lock_dl_buffer(&s->buffers, slot);
   if (s->buffers.dl_busy[0][slot] ||
       s->buffers.dl_busy[1][slot]) {
-    printf("%s: fatal: DL buffer busy for slot %d\n", __FUNCTION__, slot);
-     unlock_dl_buffer(&s->buffers, slot);
+    printf("%s: fatal: DL buffer busy for subframe %d\n", __FUNCTION__, slot);
+    unlock_dl_buffer(&s->buffers, slot);
     return;
   }
-  // Romain: Configuration check
-  eNB = eNB_list[0];
-  fp  = &eNB->frame_parms;
-  if (ru->num_eNB != 1 || fp->ofdm_symbol_size != 2048 ||
-      fp->Ncp != NORMAL || fp->symbols_per_tti != 14) {
+
+  fp = ru->nr_frame_parms;
+  if (ru->num_gNB != 1 || fp->ofdm_symbol_size != 2048 ||
+      fp->Ncp != NORMAL || fp->symbols_per_slot != 14) {
     printf("%s:%d:%s: unsupported configuration\n",
            __FILE__, __LINE__, __FUNCTION__);
     exit(1);
   }
 
-  // Romain: Loop over antenas and symbols
   for (aa = 0; aa < ru->nb_tx; aa++) {
     for (symbol = 0; symbol < 14; symbol++) {
-      // Romain: txdata will hold the data from OAI to send on downlink. How are they presented?
       txdata = &ru->common.txdataF_BF[aa][symbol * fp->ofdm_symbol_size];
 #if 1
-      // Romain: For Benetel, '&s->buffers.dl' is the downlink buffer. Should we moove the data as it is done here?
-      memcpy(&s->buffers.dl[aa][slot][symbol*1200*4],
-             txdata + 2048 - 600,
-             600 * 4);
-      memcpy(&s->buffers.dl[aa][slot][symbol*1200*4] + 600*4,
-             txdata + 1,
-             600 * 4);
+      memcpy(&s->buffers.dl[aa][slot][symbol*1272*4],
+             txdata + 2048 - (1272/2),
+             (1272/2) * 4);
+      memcpy(&s->buffers.dl[aa][slot][symbol*1272*4] + (1272/2)*4,
+             txdata,
+             (1272/2) * 4);
 #endif
-      // Romain: Change byte order. Why?
       int i;
-      uint16_t *p = (uint16_t *)(&s->buffers.dl[aa][slot][symbol*1200*4]);
-      for (i = 0; i < 1200*2; i++) {
+      uint16_t *p = (uint16_t *)(&s->buffers.dl[aa][slot][symbol*1272*4]);
+      for (i = 0; i < 1272*2; i++) {
         p[i] = htons(p[i]);
       }
     }
   }
 
-  // Romain: Lock on the DL buffer on given slot for avoiding concurrent write
   s->buffers.dl_busy[0][slot] = 0x3fff;
   s->buffers.dl_busy[1][slot] = 0x3fff;
   unlock_dl_buffer(&s->buffers, slot);
-
-  VCD_SIGNAL_DUMPER_DUMP_VARIABLE_BY_NAME(VCD_SIGNAL_DUMPER_VARIABLES_FRAME_NUMBER_IF4P5_SOUTH_OUT_RU+ru->idx, ru->proc.frame_tx);
-  VCD_SIGNAL_DUMPER_DUMP_VARIABLE_BY_NAME(VCD_SIGNAL_DUMPER_VARIABLES_SUBFRAME_NUMBER_IF4P5_SOUTH_OUT_RU+ru->idx, ru->proc.tti_tx);
 #endif
-
 }
 
 void *get_internal_parameter(char *name)
