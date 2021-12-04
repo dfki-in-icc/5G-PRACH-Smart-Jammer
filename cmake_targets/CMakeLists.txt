@@ -831,10 +831,11 @@ include_directories ("/usr/local/dpdk_19_11/include/dpdk")
 include_directories("${ICC_LIB}")
 
 set(ORAN_FHLIB_5G_SOURCE
-    ${OPENAIR_TARGETS}/ARCH/ETHERNET/oran/5g/oran.cc
+    ${OPENAIR_TARGETS}/ARCH/ETHERNET/oran/5g/oran.cpp
     ${OPENAIR_TARGETS}/ARCH/ETHERNET/oran/5g/shared_buffers.c
     ${OPENAIR_TARGETS}/ARCH/ETHERNET/oran/5g/low_oran.c
     ${OPENAIR_TARGETS}/ARCH/ETHERNET/oran/5g/low_dpdk_oran.c
+    ${OPENAIR_TARGETS}/ARCH/ETHERNET/oran/5g/oran_isolate.c
     )
 add_library(oran_fhlib_5g MODULE ${ORAN_FHLIB_5G_SOURCE})
 
