@@ -27,6 +27,13 @@
 
 FROM ran-base:latest as ran-build
 
+# Copy the entitlements
+COPY ./etc-pki-entitlement /etc/pki/entitlement
+
+# Copy the subscription manager configurations
+COPY ./rhsm-conf /etc/rhsm
+COPY ./rhsm-ca /etc/rhsm/ca
+
 RUN rm -Rf /oai-ran
 WORKDIR /oai-ran
 COPY . .
