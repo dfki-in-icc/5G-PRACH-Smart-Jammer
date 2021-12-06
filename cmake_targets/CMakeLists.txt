@@ -179,9 +179,6 @@ else (CUDA_FOUND)
    message ("No CUDA tool installed")
 endif ()
 
-INCLUDE(FindPackageHandleStandardArgs)
-FIND_PACKAGE_HANDLE_STANDARD_ARGS(dpdk DEFAULT_MSG)
-
 ###########################################
 # macros to define options as there is numerous options in oai
 ################################################
@@ -984,7 +981,6 @@ set(HWLIB_LDPC_OFFLOAD_SOURCE
    ${OPENAIR1_DIR}/PHY/CODING/nrLDPC_decoder/nrLDPC_decoder_offload.c
   )
 
-if (DPDK_FOUND)
 if(EXISTS  "/usr/local/lib64/librte_pmd_hpac_sdfec_pmd.so")
 add_library(ldpc_offload MODULE ${HWLIB_LDPC_OFFLOAD_SOURCE} )
 
@@ -994,7 +990,6 @@ SET(T1_DPDK_LIBS "-Wl,-rpath /usr/local/lib64 -L/usr/local/lib64 -lrte_node -lrt
 TARGET_LINK_LIBRARIES(ldpc_offload ${T1_DPDK_LIBS})
 TARGET_LINK_LIBRARIES(ldpc_offload pthread dl rt m numa)
 endif()
-endif(DPDK_FOUND)
 
 ##########################################################
 
@@ -3071,11 +3066,9 @@ target_link_libraries (nr-softmodem ${T_LIB})
 
 add_dependencies( nr-softmodem ldpc_orig ldpc_optim ldpc_optim8seg ldpc)
 
-if (DPDK_FOUND)
 if(EXISTS  "/usr/local/lib64/librte_pmd_hpac_sdfec_pmd.so")
 add_dependencies( nr-softmodem ldpc_offload)
 endif ()
-endif (DPDK_FOUND)
 
 add_executable(ocp-gnb
   ${rrc_h}
@@ -3358,11 +3351,9 @@ add_executable(nr_ulsim
 
 add_dependencies( nr_ulsim ldpc_orig ldpc_optim ldpc_optim8seg ldpc)
 
-if (DPDK_FOUND)
 if(EXISTS  "/usr/local/lib64/librte_pmd_hpac_sdfec_pmd.so")
 add_dependencies( nr_ulsim ldpc_offload)
 endif ()
-endif (DPDK_FOUND)
 
 target_link_libraries(nr_ulsim
   -Wl,--start-group UTIL SIMU_COMMON SIMU PHY_COMMON PHY_NR_COMMON PHY_NR PHY_NR_UE SCHED_NR_LIB SCHED_NR_UE_LIB MAC_NR MAC_UE_NR MAC_NR_COMMON RRC_LIB NR_RRC_LIB CONFIG_LIB L2_LTE_NR L2_NR HASHTABLE X2AP_ENB X2AP_LIB SECU_CN NGAP_GNB -Wl,--end-group

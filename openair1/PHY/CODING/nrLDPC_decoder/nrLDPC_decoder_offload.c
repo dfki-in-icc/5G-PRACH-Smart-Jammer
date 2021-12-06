@@ -1054,6 +1054,7 @@ pmd_lcore_ldpc_dec(void *arg)
        
         //bool extDdr = check_bit(ldpc_cap_flags,
 	//		RTE_BBDEV_LDPC_INTERNAL_HARQ_MEMORY_OUT_ENABLE);
+
 	bool loopback = check_bit(ref_op->ldpc_dec.op_flags,
 			RTE_BBDEV_LDPC_INTERNAL_HARQ_MEMORY_LOOPBACK);
 	bool hc_out = check_bit(ref_op->ldpc_dec.op_flags,
@@ -1197,17 +1198,17 @@ print_dec_throughput(struct thread_params *t_params, unsigned int used_cores)
  */
 int
 start_pmd_dec(struct active_device *ad,
-	      struct test_op_params *op_params, 
+	      struct test_op_params *op_params,
+	      struct thread_params *t_params,
               t_nrLDPCoffload_params *p_offloadParams,
 	      uint8_t r,
 	      int8_t* p_out)
 {
 	int ret;
 	unsigned int lcore_id, used_cores = 0;
-	struct thread_params *t_params, *tp;
+	struct thread_params *tp;
 	//struct rte_bbdev_info info;
 	uint16_t num_lcores;
-
 	//rte_bbdev_info_get(ad->dev_id, &info);
 
 	/*printf("+ ------------------------------------------------------- +\n");
@@ -1221,13 +1222,6 @@ start_pmd_dec(struct active_device *ad,
 	num_lcores = (ad->nb_queues < (op_params->num_lcores))
 			? ad->nb_queues
 			: op_params->num_lcores;
-
-	/* Allocate memory for thread parameters structure */
-	t_params = rte_zmalloc(NULL, num_lcores * sizeof(struct thread_params),
-			RTE_CACHE_LINE_SIZE);
-	TEST_ASSERT_NOT_NULL(t_params, "Failed to alloc %zuB for t_params",
-			RTE_ALIGN(sizeof(struct thread_params) * num_lcores,
-				RTE_CACHE_LINE_SIZE));
 
 	rte_atomic16_set(&op_params->sync, SYNC_WAIT);
 
@@ -1273,10 +1267,8 @@ start_pmd_dec(struct active_device *ad,
 	/* Print throughput if interrupts are disabled and test passed */
 	if (!intr_enabled) {
 	  //print_dec_throughput(t_params, num_lcores);
-		rte_free(t_params);
 		return ret;
 	}
-
 	/* In interrupt TC we need to wait for the interrupt callback to deqeue
 	 * all pending operations. Skip waiting for queues which reported an
 	 * error using processing_status variable.
@@ -1313,6 +1305,7 @@ start_pmd_dec(struct active_device *ad,
 	}
 
 	rte_free(t_params);
+
 	return ret;
 }
 
@@ -1371,22 +1364,24 @@ struct test_op_params *op_params = &op_params_e;
 
 struct rte_mbuf *m_head[DATA_NUM_TYPES];
 
+struct thread_params *t_params;
+
 
 int32_t nrLDPC_decod_offload(t_nrLDPC_dec_params* p_decParams, uint8_t C, uint8_t rv, uint16_t F, 
 			uint32_t E, uint8_t Qm, int8_t* p_llr, int8_t* p_out, uint8_t mode) 
 {
     	t_nrLDPCoffload_params offloadParams;
     	t_nrLDPCoffload_params* p_offloadParams    = &offloadParams;
-    	
+	
 	uint32_t numIter = 0;
 	int ret;
-
+	
 	int argc_re=2;
 	char *argv_re[2];
 	argv_re[0] = "/home/wang/dpdk2005/dpdk-20.05/build/app/testbbdev";
-	argv_re[1] = "--"; 
-
-	test_params.num_ops=1; 
+	argv_re[1] = "--";
+	
+       	test_params.num_ops=1; 
 	test_params.burst_sz=1;
 	test_params.num_lcores=1;		
 	test_params.num_tests = 1;
@@ -1507,6 +1502,13 @@ int32_t nrLDPC_decod_offload(t_nrLDPC_dec_params* p_decParams, uint8_t C, uint8_
 			     mbuf_pools[type]->size);
 	
 	    }
+
+	    /* Allocate memory for thread parameters structure */
+	    t_params = rte_zmalloc(NULL,  sizeof(struct thread_params),
+				   RTE_CACHE_LINE_SIZE);
+	    TEST_ASSERT_NOT_NULL(t_params, "Failed to alloc %zuB for t_params",
+				 RTE_ALIGN(sizeof(struct thread_params),
+				 RTE_CACHE_LINE_SIZE));
 	  }
 
 	break;
@@ -1557,7 +1559,7 @@ int32_t nrLDPC_decod_offload(t_nrLDPC_dec_params* p_decParams, uint8_t C, uint8_
 
 	  }
 	  
-	  ret = start_pmd_dec(ad, op_params, p_offloadParams, C, p_out);
+	  ret = start_pmd_dec(ad, op_params, t_params, p_offloadParams, C, p_out);
 	  if (ret<0) {
 	    printf("Couldn't start pmd dec");
 	    return(-1);
@@ -1568,6 +1570,7 @@ int32_t nrLDPC_decod_offload(t_nrLDPC_dec_params* p_decParams, uint8_t C, uint8_
 
 	  free_buffers(ad, op_params);
 	  rte_free(op_params);
+	  rte_free(t_params);
 	  ut_teardown();
 	  testsuite_teardown();
 	break;
@@ -1575,7 +1578,8 @@ int32_t nrLDPC_decod_offload(t_nrLDPC_dec_params* p_decParams, uint8_t C, uint8_
 	  printf("Unknown mode: %d\n", mode);
 	  return(-1);
 	}	
-
+	
+	
     return numIter;
 }
 
