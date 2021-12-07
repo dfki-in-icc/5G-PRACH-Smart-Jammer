@@ -29,6 +29,7 @@
 
 #include "common/utils/LOG/log.h"
 #include "common/utils/LOG/vcd_signal_dumper.h"
+#include "openair1/PHY/defs_gNB.h"
 
 typedef struct {
   eth_state_t           e;
@@ -239,8 +240,9 @@ void oran_fh_if4p5_south_in(RU_t *ru,
                                int *frame,
                                int *slot)
 {
-#if 0
-//printf("XXX oran_fh_if4p5_south_in %d %d\n", *frame, *slot);
+
+printf("XXX oran_fh_if4p5_south_in %d %d\n", *frame, *slot);
+
   oran_eth_state_t *s = ru->ifdevice.priv;
   NR_DL_FRAME_PARMS *fp;
   int symbol;
@@ -250,8 +252,8 @@ void oran_fh_if4p5_south_in(RU_t *ru,
   lock_ul_buffer(&s->buffers, *slot);
 #if 1
 next:
-  while (!((s->buffers.ul_busy[0][*slot] == 0x3fff &&
-            s->buffers.ul_busy[1][*slot] == 0x3fff) ||
+  while (!((s->buffers.ul_busy[*slot] == 0x3fff &&
+            s->buffers.ul_busy[*slot] == 0x3fff) ||
            s->buffers.prach_busy[*slot] == 1))
     wait_ul_buffer(&s->buffers, *slot);
   if (s->buffers.prach_busy[*slot] == 1) {
@@ -274,7 +276,7 @@ next:
   for (antenna = 0; antenna < ru->nb_rx; antenna++) {
     for (symbol = 0; symbol < 14; symbol++) {
       int i;
-      int16_t *p = (int16_t *)(&s->buffers.ul[antenna][*slot][symbol*1272*4]);
+      int16_t *p = (int16_t *)(&s->buffers.ul[*slot][symbol*1272*4]);
       for (i = 0; i < 1272*2; i++) {
         p[i] = (int16_t)(ntohs(p[i])) / 16;
       }
@@ -285,17 +287,17 @@ printf("rxdata in oran_fh_if4p5_south_in %p\n", &ru->common.rxdataF[antenna][0])
 #endif
 #if 1
       memcpy(rxdata + 2048 - 1272/2,
-             &s->buffers.ul[antenna][*slot][symbol*1272*4],
+             &s->buffers.ul[*slot][symbol*1272*4],
              (1272/2) * 4);
       memcpy(rxdata,
-             &s->buffers.ul[antenna][*slot][symbol*1272*4] + (1272/2)*4,
+             &s->buffers.ul[*slot][symbol*1272*4] + (1272/2)*4,
              (1272/2) * 4);
 #endif
     }
   }
 
-  s->buffers.ul_busy[0][*slot] = 0;
-  s->buffers.ul_busy[1][*slot] = 0;
+  s->buffers.ul_busy[*slot] = 0;
+  s->buffers.ul_busy[*slot] = 0;
   signal_ul_buffer(&s->buffers, *slot);
   unlock_ul_buffer(&s->buffers, *slot);
 
@@ -320,7 +322,7 @@ printf("rxdata in oran_fh_if4p5_south_in %p\n", &ru->common.rxdataF[antenna][0])
     proc->tti_tx   = (sl+sl_ahead)%20;
     proc->frame_tx = (sl>(19-sl_ahead)) ? (f+1)&1023 : f;
   }
-#endif
+
 }
 
 void oran_fh_if4p5_south_out(RU_t *ru,
@@ -328,8 +330,10 @@ void oran_fh_if4p5_south_out(RU_t *ru,
                                 int slot,
                                 uint64_t timestamp)
 {
+
+
+printf("XXX oran_fh_if4p5_south_out %d %d %ld\n", frame, slot, timestamp);
 #if 0
-//printf("XXX oran_fh_if4p5_south_out %d %d %ld\n", frame, slot, timestamp);
   oran_eth_state_t *s = ru->ifdevice.priv;
   NR_DL_FRAME_PARMS *fp;
   int symbol;
