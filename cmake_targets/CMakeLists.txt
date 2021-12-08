@@ -1573,23 +1573,28 @@ set(PHY_LDPC_ORIG_SRC
 set(PHY_LDPC_OPTIM_SRC
   ${OPENAIR1_DIR}/PHY/CODING/nrLDPC_decoder/nrLDPC_decoder.c
   ${OPENAIR1_DIR}/PHY/CODING/nrLDPC_encoder/ldpc_encoder_optim.c
+  ${OPENAIR1_DIR}/PHY/CODING/crc_byte.c
 )
 set(PHY_LDPC_OPTIM8SEG_SRC
   ${OPENAIR1_DIR}/PHY/CODING/nrLDPC_decoder/nrLDPC_decoder.c
   ${OPENAIR1_DIR}/PHY/CODING/nrLDPC_encoder/ldpc_encoder_optim8seg.c
+  ${OPENAIR1_DIR}/PHY/CODING/crc_byte.c
 )
 set(PHY_LDPC_OPTIM8SEGMULTI_SRC
   ${OPENAIR1_DIR}/PHY/CODING/nrLDPC_decoder/nrLDPC_decoder.c
   ${OPENAIR1_DIR}/PHY/CODING/nrLDPC_encoder/ldpc_encoder_optim8segmulti.c
+  ${OPENAIR1_DIR}/PHY/CODING/crc_byte.c
 )
 set(PHY_LDPC_CUDA_SRC
   ${OPENAIR1_DIR}/PHY/CODING/nrLDPC_decoder_LYC/nrLDPC_decoder_LYC.cu
   ${OPENAIR1_DIR}/PHY/CODING/nrLDPC_encoder/ldpc_encoder_optim8segmulti.c
+  ${OPENAIR1_DIR}/PHY/CODING/crc_byte.c
 )
 
 set(PHY_LDPC_CL_SRC
   ${OPENAIR1_DIR}/PHY/CODING/nrLDPC_decoder/nrLDPC_decoder_CL.c
   ${OPENAIR1_DIR}/PHY/CODING/nrLDPC_encoder/ldpc_encoder_optim8segmulti.c
+  ${OPENAIR1_DIR}/PHY/CODING/crc_byte.c
 )
 
 set(PHY_NR_CODINGIF
