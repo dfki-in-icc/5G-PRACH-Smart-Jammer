@@ -111,8 +111,8 @@ void measurcmd_display_pdcpcpu(telnet_printfunc_t prnt) {
 
 void measurcmd_display_macstats_ue(telnet_printfunc_t prnt) {
   UE_info_t *UE_info = &(RC.mac[eNB_id]->UE_info);
-
-  for (int UE_id=UE_info->list.head; UE_id>=0; UE_id=UE_info->list.next[UE_id]) {
+  for (int *curUE=&UE_info->list.nextUE[0]; *curUE>=0; curUE++) {
+    int UE_id=*curUE;
     for (int i=0; i<UE_info->numactiveCCs[UE_id]; i++) {
       int CC_id = UE_info->ordered_CCids[i][UE_id];
       prnt("%s UE %i Id %i CCid %i %s\n",HDR,i,UE_id,CC_id,HDR);
@@ -164,8 +164,8 @@ void measurcmd_display_rlcstats(telnet_printfunc_t prnt) {
   for(int i=0; i <num_rlcmeasure ; i++) {
     statsptr[i].vptr = rlcstats + i;
   }
-
-  for (int UE_id=UE_info->list.head; UE_id>=0; UE_id=UE_info->list.next[UE_id]) {
+  for (int *curUE=&UE_info->list.nextUE[0]; *curUE>=0; curUE++) {
+    int UE_id=*curUE;
 #define NB_eNB_INST 1
     PROTOCOL_CTXT_SET_BY_MODULE_ID(&ctxt,eNB_id, ENB_FLAG_YES,UE_info->eNB_UE_stats[0][UE_id].crnti,
                                    eNB->frame,eNB->subframe,eNB_id);

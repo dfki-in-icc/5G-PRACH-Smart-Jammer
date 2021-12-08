@@ -621,7 +621,7 @@ static int rfsimulator_read(openair0_device *device, openair0_timestamp *ptimest
   if (nbAnt > 4) {
     LOG_W(HW, "rfsimulator: only 4 antenna tested\n");
   }
-
+  usleep(10*1000);
   rfsimulator_state_t *t = device->priv;
   LOG_D(HW, "Enter rfsimulator_read, expect %d samples, will release at TS: %ld\n", nsamps, t->nextTimestamp+nsamps);
   // deliver data from received data
