@@ -238,6 +238,39 @@ int start_oran(void *xranlib_){
 extern "C"
 {
 #endif
+int stop_oran(void *xranlib_){
+  xranLibWraper *xranlib = ((xranLibWraper *) xranlib_);
+  xranlib->Stop();
+
+  return (0);
+
+}
+#ifdef __cplusplus
+}
+#endif
+
+//------------------------------------------------------------------------
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+int close_oran(void *xranlib_){
+  xranLibWraper *xranlib = ((xranLibWraper *) xranlib_);
+  xranlib->Close();
+
+  return (0);
+
+}
+#ifdef __cplusplus
+}
+#endif
+
+
+//------------------------------------------------------------------------
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 int register_physide_callbacks(void *xranlib_){
   xranLibWraper *xranlib = ((xranLibWraper *) xranlib_);
   
