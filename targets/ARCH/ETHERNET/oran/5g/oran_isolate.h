@@ -106,6 +106,25 @@ int start_oran( void *xranlib_ );
 extern "C"
 {
 #endif
+int stop_oran( void *xranlib_ );
+#ifdef __cplusplus
+}
+#endif
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+int close_oran( void *xranlib_ );
+#ifdef __cplusplus
+}
+#endif
+
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 int register_physide_callbacks(void *xranlib_);
 #ifdef __cplusplus
 }

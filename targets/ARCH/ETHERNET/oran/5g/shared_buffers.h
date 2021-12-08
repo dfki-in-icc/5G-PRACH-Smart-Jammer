@@ -19,23 +19,25 @@
  *      contact@openairinterface.org
  */
 
-#ifndef _SHARED_BUFFERS_H_
-#define _SHARED_BUFFERS_H_
+#ifndef _BENETEL_5G_SHARED_BUFFERS_H_
+#define _BENETEL_5G_SHARED_BUFFERS_H_
 
 #include <pthread.h>
 #include <stdint.h>
 
 typedef struct {
-  unsigned char dl[20][14*1272*4];
-  unsigned char ul[20][14*1272*4];
-  uint16_t dl_busy[20];
-  uint16_t ul_busy[20];
+  /* [2] is for two antennas */
+  unsigned char dl[2][20][14*1272*4];
+  unsigned char ul[2][20][14*1272*4];
+  uint16_t dl_busy[2][20];
+  uint16_t ul_busy[2][20];
 
   pthread_mutex_t m_ul[20];
   pthread_cond_t  c_ul[20];
 
   pthread_mutex_t m_dl[20];
   pthread_cond_t  c_dl[20];
+
   unsigned char prach[20][849*4];
   unsigned char prach_busy[20];
 
@@ -46,16 +48,14 @@ typedef struct {
 
 void init_buffers(shared_buffers *s);
 
-void lock_dl_buffers(shared_buffers *s, int slot);
-void unlock_dl_buffers(shared_buffers *s, int slot);
-void wait_dl_buffers(shared_buffers *s, int slot);
-void signal_dl_buffers(shared_buffers *s, int slot);
+void lock_dl_buffer(shared_buffers *s, int slot);
+void unlock_dl_buffer(shared_buffers *s, int slot);
+void wait_dl_buffer(shared_buffers *s, int slot);
+void signal_dl_buffer(shared_buffers *s, int slot);
 
+void lock_ul_buffer(shared_buffers *s, int slot);
+void unlock_ul_buffer(shared_buffers *s, int slot);
+void wait_ul_buffer(shared_buffers *s, int slot);
+void signal_ul_buffer(shared_buffers *s, int slot);
 
-
-void lock_ul_buffers(shared_buffers *s, int slot);
-void unlock_ul_buffers(shared_buffers *s, int slot);
-void wait_ul_buffers(shared_buffers *s, int slot);
-void signal_ul_buffers(shared_buffers *s, int slot);
-
-#endif /* _SHARED_BUFFERS_H_ */
+#endif /* _BENETEL_5G_SHARED_BUFFERS_H_ */
