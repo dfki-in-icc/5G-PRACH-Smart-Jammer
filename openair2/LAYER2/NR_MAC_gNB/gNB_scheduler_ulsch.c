@@ -643,7 +643,7 @@ void nr_rx_sdu(const module_id_t gnb_mod_idP,
     }
     else{
       LOG_D(NR_MAC,"[UE %d] Detected DTX : increasing UE TX power\n",UE_id);
-      //UE_scheduling_control->tpc0 = 3;
+      UE_scheduling_control->tpc0 = 3;
     }
 
 #if defined(ENABLE_MAC_PAYLOAD_DEBUG)
