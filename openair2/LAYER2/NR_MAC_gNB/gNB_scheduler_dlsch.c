@@ -420,9 +420,9 @@ int get_mcs_from_bler(module_id_t mod_id, int CC_id, frame_t frame, sub_frame_t 
     return old_mcs; // no update
 
   // last update is longer than x frames ago
-  const int dtx = stats->dlsch_rounds[0] - bler_stats->dlsch_rounds[0];
-  const int dretx = stats->dlsch_rounds[1] - bler_stats->dlsch_rounds[1];
-  const int dretx2 = stats->dlsch_rounds[2] - bler_stats->dlsch_rounds[2];
+  const int dtx = (int)(stats->dlsch_rounds[0] - bler_stats->dlsch_rounds[0]);
+  const int dretx = (int)(stats->dlsch_rounds[1] - bler_stats->dlsch_rounds[1]);
+  const int dretx2 = (int)(stats->dlsch_rounds[2] - bler_stats->dlsch_rounds[2]);
   const float bler_window = dtx > 0 ? (float) dretx / dtx : bler_stats->bler;
   const float rd2_bler_wnd = dtx > 0 ? (float) dretx2 / dtx : bler_stats->rd2_bler;
   bler_stats->bler = BLER_FILTER * bler_stats->bler + (1 - BLER_FILTER) * bler_window;
@@ -753,7 +753,7 @@ void pf_dl(module_id_t module_id,
 
     /* Find PUCCH occasion: if it fails, undo CCE allocation (undoing PUCCH
     * allocation after CCE alloc fail would be more complex) */
-    const int alloc = nr_acknack_scheduling(module_id, UE_id, frame, slot, -1,0);
+    const int alloc = nr_acknack_scheduling(module_id, UE_id, frame, slot, -1, 0);
     if (alloc<0) {
       LOG_D(NR_MAC,
             "%s(): could not find PUCCH for UE %d/%04x@%d.%d\n",
@@ -1198,6 +1198,9 @@ void nr_schedule_ue_spec(module_id_t module_id,
                   "UE %d mismatch between scheduled TBS and buffered TB for HARQ PID %d\n",
                   UE_id,
                   current_harq_pid);
+
+      T(T_GNB_MAC_RETRANSMISSION_DL_PDU_WITH_DATA, T_INT(module_id), T_INT(CC_id), T_INT(rnti),
+        T_INT(frame), T_INT(slot), T_INT(current_harq_pid), T_INT(harq->round), T_BUFFER(harq->tb, TBS));
     } else { /* initial transmission */
 
       LOG_D(NR_MAC, "[%s] Initial HARQ transmission in %d.%d\n", __FUNCTION__, frame, slot);
