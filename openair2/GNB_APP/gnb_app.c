@@ -227,12 +227,14 @@ struct cnx_info_t *info = (struct cnx_info_t *)params;
        int dl_thg = stats->thg_tx;
        int ul_thg =  stats->thg_rx;
        int pcmax = sched_ctrl->pcmax;
+       int rssi = sched_ctrl->raw_rssi;
+       int pusch_snrx10 = sched_ctrl->pusch_snrx10; 
        char tmp[500];
        //printf("rnti %d, phr %d bler %.5f mcs %d DL errors %.2f UL errors %.2f pcmax %d\n",rnti,phr,bler,mcs,(float)(dl_errors/nb_tr_dl),(float)(ul_errors/nb_tr_ul),pcmax);
 
-       sprintf(tmp,"{rnti %d, phr %d, bler %.5f, mcs %d, DL errors %.2f, UL errors %.2f, pcmax %d, DL throughput %d, UL throughput %d }#",
+       sprintf(tmp,"{rnti %d, phr %d, bler %.5f, mcs %d, DL errors %.2f, UL errors %.2f, pcmax %d, DL throughput %d, UL throughput %d, rssi %d, snr %d }#",
        rnti,phr,bler,mcs,(float)(dl_errors/nb_tr_dl),(float)(ul_errors/nb_tr_ul),
-       pcmax, dl_thg, ul_thg );
+       pcmax, dl_thg, ul_thg, rssi, pusch_snrx10 );
        strcat(res,tmp);
      //}
       // RNIS KARIM
