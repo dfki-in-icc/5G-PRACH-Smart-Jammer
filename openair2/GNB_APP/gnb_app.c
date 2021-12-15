@@ -209,7 +209,7 @@ struct cnx_info_t *info = (struct cnx_info_t *)params;
      printf("UEs number at MAC: %d\n",nbue);
      if (nbue <=0) continue;
 
-     char *res = malloc(nbue*500*sizeof(char));
+     char *res = malloc(nbue*1000*sizeof(char));
      NR_list_t *UE_list = &UE_info->list;
      for (int UE_id = UE_list->head; UE_id >= 0; UE_id = UE_list->next[UE_id]) {
        NR_UE_sched_ctrl_t *sched_ctrl = &UE_info->UE_sched_ctrl[UE_id];
@@ -229,51 +229,25 @@ struct cnx_info_t *info = (struct cnx_info_t *)params;
        int pcmax = sched_ctrl->pcmax;
        int rssi = sched_ctrl->raw_rssi;
        int pusch_snrx10 = sched_ctrl->pusch_snrx10; 
-       char tmp[500];
+       char tmp[1000];
        //printf("rnti %d, phr %d bler %.5f mcs %d DL errors %.2f UL errors %.2f pcmax %d\n",rnti,phr,bler,mcs,(float)(dl_errors/nb_tr_dl),(float)(ul_errors/nb_tr_ul),pcmax);
-
+       if (nb_tr_dl == 0){
+         nb_tr_dl = 1;
+         dl_errors = 0;
+       }
+       if (nb_tr_ul == 0){
+         nb_tr_ul = 1;
+         ul_errors = 0;
+       }       
        sprintf(tmp,"{rnti %d, phr %d, bler %.5f, mcs %d, DL errors %.2f, UL errors %.2f, pcmax %d, DL throughput %d, UL throughput %d, rssi %d, snr %d }#",
        rnti,phr,bler,mcs,(float)(dl_errors/nb_tr_dl),(float)(ul_errors/nb_tr_ul),
        pcmax, dl_thg, ul_thg, rssi, pusch_snrx10 );
        strcat(res,tmp);
      //}
-      // RNIS KARIM
-    /*int nbue = RC.rrc[0]->Nb_ue;
-
-     printf("UEs number: %d\n",nbue);
-     if (nbue <=0) continue;
-     char *res = malloc(nbue*60*sizeof(char));
-     rnti_t rntis[nbue];
-     flexran_get_rrc_rnti_list(0, rntis, nbue);
-      for (int i = 0; i < nbue; i++) {
-          const rnti_t rnti = rntis[i];
-          //configure_rnti(rnti);
-          int UE_id = flexran_get_mac_ue_id_rnti(0, rnti);
-          int cqi = flexran_get_ue_wcqi(0, UE_id);
-          char tmp[60];
-            printf("rnti: %d, rsrp: %.2f, rsrq: %.2f, cqi: %d\n",rnti,flexran_get_rrc_pcell_rsrp(0, rnti),flexran_get_rrc_pcell_rsrq(0, rnti),cqi);      	
-            sprintf(tmp,"%d : {rsrp: %.2f, rsrq: %.2f, cqi: %d}",rnti,flexran_get_rrc_pcell_rsrp(0, rnti),flexran_get_rrc_pcell_rsrq(0, rnti),cqi); 
-            printf("tmp %s\n",tmp);
-
-            strcat(res,tmp);
-            printf("res[i] %s\n",res);
-
-            strcat(res,",");
-         }
-
-
-
-      // END
-      
-      char *r = "MRSP\r\nContent-length: 4\r\nOK\r\n";
-			/// send response 
-      if (res != NULL)xmit_protocol_message(&clicnx, (void *)res, TO_CLIENT);
-			else xmit_protocol_message(&clicnx, (void *)r, TO_CLIENT);
-      if (res) free(res);*/
 		}
       char *r = "MRSP\r\nContent-length: 4\r\nOK\r\n";
 			/// send response 
-      printf("res %s\n",res);
+      //printf("res %s\n",res);
       //res = NULL;
       if (res != NULL)xmit_protocol_message(&clicnx, (void *)res, TO_CLIENT);
 			else xmit_protocol_message(&clicnx, (void *)r, TO_CLIENT);
