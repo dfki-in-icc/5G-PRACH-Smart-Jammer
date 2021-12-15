@@ -1055,10 +1055,7 @@ int main(int argc, char **argv)
   memset(ldpcDecStats, 0, sizeof(double)*100);
   for (SNR = snr0; SNR < snr1; SNR += snr_step) {
 
-    //  if (gNB->ldpc_offload_flag)
-    //  init_nrLDPClib_offload();
-
-
+   
     varArray_t *table_rx=initVarArray(1000,sizeof(double));
     int error_flag = 0;
     n_false_positive = 0;

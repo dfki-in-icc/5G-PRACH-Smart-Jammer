@@ -391,11 +391,11 @@ void nr_ulsch_procedures(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx, int ULSCH
                     harq_pid,
                     G);
   if (enable_ldpc_offload ==0) {
-   while (gNB->nbDecode > 0) {
-    notifiedFIFO_elt_t *req=pullTpool(gNB->respDecode, gNB->threadPool);
-    nr_postDecode(gNB, req);
-    delNotifiedFIFO_elt(req);
-   }
+    while (gNB->nbDecode > 0) {
+      notifiedFIFO_elt_t *req=pullTpool(gNB->respDecode, gNB->threadPool);
+      nr_postDecode(gNB, req);
+      delNotifiedFIFO_elt(req);
+    }
   } 
   stop_meas(&gNB->ulsch_decoding_stats);
 }

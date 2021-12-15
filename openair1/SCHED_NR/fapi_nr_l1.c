@@ -213,9 +213,6 @@ void nr_schedule_response(NR_Sched_Rsp_t *Sched_INFO){
 
     pushNotifiedFIFO(gNB->resp_L1_tx,res);
 
-    /*for (int i=0;i<number_ul_dci_pdu;i++) {
-      handle_nfapi_nr_ul_dci_pdu(gNB, frame, slot, &UL_dci_req->ul_dci_pdu_list[i]);
-      }*/
 
     for (int i = 0; i < number_ul_tti_pdu; i++) {
       switch (UL_tti_req->pdus_list[i].pdu_type) {
