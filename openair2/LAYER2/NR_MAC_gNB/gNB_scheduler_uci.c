@@ -1188,7 +1188,7 @@ int nr_acknack_scheduling(int mod_id,
   const NR_TDD_UL_DL_Pattern_t *tdd = &scc->tdd_UL_DL_ConfigurationCommon->pattern1;
   const int last_ul_slot = RC.nrmac[mod_id]->last_ul_slot;
   //const int nr_mix_slots = 1; //karim, always there is a mixed slot
-  const int nr_slots_period = 5;
+  const int nr_slots_period = 10;
   int first_ul_slot_tdd = 0;
   for(int i = slot+2; i< n_slots_frame; i++){
 

@@ -269,12 +269,12 @@ bool is_xlsch_in_slot(uint64_t bitmap, sub_frame_t slot) {
   return (bitmap >> slot) & 0x01;
 }
 bool is_xlsch_in_slot_flex(int *flexible_slots, int direction, sub_frame_t slot) {
-  if (slot == 0  || slot == 10 || slot == 5 || slot == 15) return false;
+  if (slot == 0  || slot == 10) return false;
 
-  if (slot == 18 && direction == 0)return false;
-  if (slot == 3 && direction == 0)return false;
-  if (slot == 8 && direction == 0)return false;
-  if (slot == 13 && direction == 0)return false;
+  if (slot == 7 && direction == 0)return false;
+  if (slot == 17 && direction == 0)return false;
+  //if (slot == 8 && direction == 0)return false;
+  //if (slot == 13 && direction == 0)return false;
   //if (slot == 16 && direction == 0)return false;
   //if (slot == 15 && direction == 0)return false;
 
