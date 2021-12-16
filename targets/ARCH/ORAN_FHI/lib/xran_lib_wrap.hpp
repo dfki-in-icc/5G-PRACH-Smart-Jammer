@@ -900,7 +900,7 @@ printf("wrapper.hpp: nFpgaToSW_FTH_RxBufferLen=%d , nSW_ToFpga_FTH_TxBufferLen=%
                         pRbMap->prbMap[0].numSymb       = 14;
                         pRbMap->prbMap[0].nBeamIndex    = 0;
                         pRbMap->prbMap[0].compMethod    = XRAN_COMPMETHOD_NONE;//BLKFLOAT; // Modify according to the target compression.
-                        pRbMap->prbMap[0].iqWidth       = 14;                              // Modify according to the target compression. 
+                        pRbMap->prbMap[0].iqWidth       = 16;                              // Modify according to the target compression. 
 
                         if(get_rucategory() == XRAN_CATEGORY_A) {
                             pRbMap->prbMap[0].BeamFormingType   = XRAN_BEAM_ID_BASED;
