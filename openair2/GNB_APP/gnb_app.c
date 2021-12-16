@@ -209,28 +209,30 @@ struct cnx_info_t *info = (struct cnx_info_t *)params;
      printf("UEs number at MAC: %d\n",nbue);
      if (nbue <=0) continue;
 
-     char *res = malloc(nbue*1000*sizeof(char));
+     char *res = malloc(nbue*20000*sizeof(char));
+     res[0] = '\0';
      NR_list_t *UE_list = &UE_info->list;
      for (int UE_id = UE_list->head; UE_id >= 0; UE_id = UE_list->next[UE_id]) {
        NR_UE_sched_ctrl_t *sched_ctrl = &UE_info->UE_sched_ctrl[UE_id];
+       if (sched_ctrl != NULL){
        const rnti_t rnti = UE_info->rnti[UE_id];
        NR_mac_stats_t *stats = &UE_info->mac_stats[UE_id];
        int phr = sched_ctrl->ph;
        float bler = sched_ctrl->dl_bler_stats.bler;
        int mcs = sched_ctrl->dl_bler_stats.mcs;
-       int nb_tr_dl = stats->dlsch_rounds[0] + stats->dlsch_rounds[1] + stats->dlsch_rounds[2] + stats->dlsch_rounds[3];
-       int nb_tr_ul = stats->ulsch_rounds[0] + stats->ulsch_rounds[1] + stats->ulsch_rounds[2] + stats->ulsch_rounds[3];
-
-       int dl_errors = stats->dlsch_errors;
-       int ul_errors = stats->ulsch_errors;
-
-       int dl_thg = stats->thg_tx;
-       int ul_thg =  stats->thg_rx;
+       int nb_tr_dl=0, nb_tr_ul=0, dl_errors=0, ul_errors=0, dl_thg=0, ul_thg=0;  
+       if (stats){
+       nb_tr_dl = stats->dlsch_rounds[0] + stats->dlsch_rounds[1] + stats->dlsch_rounds[2] + stats->dlsch_rounds[3];
+       nb_tr_ul = stats->ulsch_rounds[0] + stats->ulsch_rounds[1] + stats->ulsch_rounds[2] + stats->ulsch_rounds[3];
+       dl_errors = stats->dlsch_errors;
+       ul_errors = stats->ulsch_errors;
+       dl_thg = stats->thg_tx;
+       ul_thg =  stats->thg_rx;
+       }
        int pcmax = sched_ctrl->pcmax;
        int rssi = sched_ctrl->raw_rssi;
        int pusch_snrx10 = sched_ctrl->pusch_snrx10; 
-       char tmp[1000];
-       //printf("rnti %d, phr %d bler %.5f mcs %d DL errors %.2f UL errors %.2f pcmax %d\n",rnti,phr,bler,mcs,(float)(dl_errors/nb_tr_dl),(float)(ul_errors/nb_tr_ul),pcmax);
+       char tmp[20000];
        if (nb_tr_dl == 0){
          nb_tr_dl = 1;
          dl_errors = 0;
@@ -238,11 +240,16 @@ struct cnx_info_t *info = (struct cnx_info_t *)params;
        if (nb_tr_ul == 0){
          nb_tr_ul = 1;
          ul_errors = 0;
-       }       
+       } 
+       printf("rnti %d, phr %d bler %.5f mcs %d DL errors %.2f UL errors %.2f pcmax %d\n",rnti,phr,bler,mcs,(float)(dl_errors/nb_tr_dl),(float)(ul_errors/nb_tr_ul),pcmax);
        sprintf(tmp,"{rnti %d, phr %d, bler %.5f, mcs %d, DL errors %.2f, UL errors %.2f, pcmax %d, DL throughput %d, UL throughput %d, rssi %d, snr %d }#",
        rnti,phr,bler,mcs,(float)(dl_errors/nb_tr_dl),(float)(ul_errors/nb_tr_ul),
        pcmax, dl_thg, ul_thg, rssi, pusch_snrx10 );
        strcat(res,tmp);
+       }
+       else{
+         strcpy(res,"none");
+       }
      //}
 		}
       char *r = "MRSP\r\nContent-length: 4\r\nOK\r\n";
