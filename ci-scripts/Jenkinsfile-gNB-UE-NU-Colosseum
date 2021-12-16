@@ -1,0 +1,157 @@
+#!/bin/groovy
+/*
+ * Licensed to the OpenAirInterface (OAI) Software Alliance under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The OpenAirInterface Software Alliance licenses this file to You under
+ * the OAI Public License, Version 1.1  (the "License"); you may not use this file
+ * except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.openairinterface.org/?page_id=698
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *-------------------------------------------------------------------------------
+ * For more information about the OpenAirInterface (OAI) Software Alliance:
+ *      contact@openairinterface.org
+ */
+
+def testXMLFile = params.pythonTestXmlFile
+def mainPythonAllXmlFiles = ""
+
+def termUE = 0
+def termENB = 1
+def termStatusArray = new Boolean[2]
+def buildStageStatus = true
+
+pipeline {
+    agent {
+       label 'nodeExecutor'
+    }
+    options {
+        disableConcurrentBuilds()
+        timestamps()
+        gitLabConnection('OAI Gitlab fork')
+    }
+    stages {
+        stage ("print latest commit info") {
+            steps {
+                script {
+                    gitlabCommitStatus(name: "Print latest commit info") {
+                        echo "Building on: "
+                        echo "  Repository -- ${GIT_URL}"
+                        echo "  Branch -- ${GIT_BRANCH}"
+                        echo "  Commit -- ${GIT_COMMIT}"
+                        echo "ENV eNB_mergeRequest: ${params.eNB_mergeRequest}"
+                        echo "ENV eNB_Repository: ${params.eNB_Repository}"
+                        echo "ENV source branch: ${params.eNB_Branch}"
+                        echo "ENV target branch: ${params.eNB_TargetBranch}"
+                    }
+                }
+            }
+        }
+        
+        stage ("Build and Test") {
+            steps {
+                script {
+                    sh "git clone https://gitlab.com/shweta.shrivastava/colosseum-cm.git"
+                    dir ('colosseum-cm') {
+                       sh "git checkout oai-ci"
+                       sh "./bootstrap.sh ${GIT_URL} ${params.eNB_Branch} ${GIT_COMMIT}"
+                    }
+                    dir ('ci-scripts') {
+                        // If not present picking a default XML file
+                        if (params.pythonTestXmlFile == null) {
+                            // picking default
+                            testXMLFile = 'xml_files/gnb_usrp_build.xml'
+                            echo "Test XML file(default):   ${testXMLFile}"
+                            mainPythonAllXmlFiles += "--XMLTestFile=" + testXMLFile + " "
+                        } else {
+                            String[] myXmlTestSuite = testXMLFile.split("\\r?\\n")
+                            for (xmlFile in myXmlTestSuite) {
+                                if (fileExists(xmlFile)) {
+                                    mainPythonAllXmlFiles += "--XMLTestFile=" + xmlFile + " "
+                                    echo "Test XML file         :   ${xmlFile}"
+                                }
+                            }
+                        }
+                        // For NU CI, the Ansible toolchain is responsible for building OAI and triggering the tests.
+                        // A modified version of OAI python scripts is used for two purposes:
+                        // 1. 'Pre' stage: In this stage the python scripts parse the XML files and set the right
+                        // build, run and ping/iperf params in oai.yml file - the main input playbook for the Ansible toolchain.
+                        // 2. 'Post' stage: This stage is executed after the Ansible pipeline has run. In this stage, the python
+                        // scripts analyze the collected log files and generate HTML report.
+                        runStage = "Pre"
+                        sh "python3 NU_main.py --mode=InitiateHtml --eNBRepository=${GIT_URL} --eNBBranch=${params.eNB_Branch} --eNBCommitID=${GIT_COMMIT} --eNBTargetBranch=${params.eNB_TargetBranch} --ADBIPAddress='none' ${mainPythonAllXmlFiles}  --runStage=${runStage}"
+                        String[] myXmlTestSuite = testXMLFile.split("\\r?\\n")
+                        for (xmlFile in myXmlTestSuite) {
+                            if (fileExists(xmlFile)) {
+                                try {
+                                    sh "python3 NU_main.py --mode=TesteNB --eNBRepository=${GIT_URL} --eNBBranch=${params.eNB_Branch} --eNBCommitID=${GIT_COMMIT} --eNBTargetBranch=${params.eNB_TargetBranch} --ADBIPAddress='none' --XMLTestFile=${xmlFile} --runStage=${runStage}"
+                                } catch (Exception e) {
+                                    currentBuild.result = 'FAILURE'
+                                    buildStageStatus = false
+                                }
+                            }
+                        }
+                    }
+                    // Run the Ansible pipeline to build OAI within LXC container for Colosseum, trigger test on Colosseum
+                    // and collect the log files
+                    dir ('colosseum-cm/ansible') {
+                        sh "ansible-playbook oai.yml -e 'ansible_python_interpreter=/usr/bin/python3'"
+                    }
+                    dir ('ci-scripts') {
+                        // If not present picking a default XML file
+                        if (params.pythonTestXmlFile == null) {
+                            // picking default
+                            testXMLFile = 'xml_files/gnb_usrp_build.xml'
+                            echo "Test XML file(default):   ${testXMLFile}"
+                            mainPythonAllXmlFiles += "--XMLTestFile=" + testXMLFile + " "
+                        } else {
+                            String[] myXmlTestSuite = testXMLFile.split("\\r?\\n")
+                            for (xmlFile in myXmlTestSuite) {
+                                if (fileExists(xmlFile)) {
+                                    mainPythonAllXmlFiles += "--XMLTestFile=" + xmlFile + " "
+                                    echo "Test XML file         :   ${xmlFile}"
+                                }
+                            }
+                        }
+                        // This is the 'Post' stage for analyzing the log files and generating HTML report
+                        runStage = "Post"
+                        String[] myXmlTestSuite = testXMLFile.split("\\r?\\n")
+                        for (xmlFile in myXmlTestSuite) {
+                            if (fileExists(xmlFile)) {
+                                try {
+                                    sh "python3 NU_main.py --mode=TesteNB --eNBRepository=${GIT_URL} --eNBBranch=${params.eNB_Branch} --eNBCommitID=${GIT_COMMIT} --eNBTargetBranch=${params.eNB_TargetBranch} --ADBIPAddress='none' --XMLTestFile=${xmlFile} --runStage=${runStage}"
+                                } catch (Exception e) {
+                                    currentBuild.result = 'FAILURE'
+                                    buildStageStatus = false
+                                }
+                            }
+                        }
+                        sh "python3 NU_main.py --mode=FinalizeHtml --finalStatus=${buildStageStatus}"
+                    }
+                }
+            }
+	    }
+    }
+    post {
+        always {
+            script {
+                finalizeSlaveJob('Col-CI')
+                sh "rm -rf colosseum-cm@tmp"
+                sh "rm -rf colosseum-cm"
+            }
+        }
+        failure {
+            script {
+                currentBuild.result = 'FAILURE'
+            }
+        }
+    }
+}
+

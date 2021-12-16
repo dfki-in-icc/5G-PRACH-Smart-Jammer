@@ -269,6 +269,10 @@ def ArgsParse(argvs,CiTestObj,RAN,HTML,EPC,ldpc,CONTAINERS,HELP,SCA,PHYSIM):
         elif re.match('^\-\-BuildId=(.+)$', myArgv, re.IGNORECASE):
             matchReg = re.match('^\-\-BuildId=(.+)$', myArgv, re.IGNORECASE)
             RAN.BuildId = matchReg.group(1)
+        elif re.match('^\-\-runStage=(.+)$', myArgv, re.IGNORECASE):
+            matchReg = re.match('^\-\-runStage=(.+)$', myArgv, re.IGNORECASE)
+            RAN.runStage = matchReg.group(1)
+            CiTestObj.runStage = matchReg.group(1)
         else:
             HELP.GenericHelp(CONST.Version)
             sys.exit('Invalid Parameter: ' + myArgv)
