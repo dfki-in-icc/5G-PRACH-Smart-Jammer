@@ -474,16 +474,18 @@ extern "C"
 int xran_fh_tx_send_slot(void *xranlib_, ru_info_t *ru, int frame, int slot, uint64_t timestamp){
   xranLibWraper *xranlib = ((xranLibWraper *) xranlib_);
 
-  int tti = /*frame*SUBFRAMES_PER_SYSTEMFRAME*SLOTNUM_PER_SUBFRAME*/+slot; //commented out temporarily to check that compilation of oran 5g is working.
+  int tti = /*frame*SUBFRAMES_PER_SYSTEMFRAME*SLOTNUM_PER_SUBFRAME+*/slot; //commented out temporarily to check that compilation of oran 5g is working.
 
   int32_t flowId;
   void *ptr = NULL;
   int32_t  *pos = NULL;
 
         p_xran_dev_ctx_2 = xran_dev_get_ctx();
+#if 0
        if (p_xran_dev_ctx_2 != NULL){
           printf("p_xran_dev_ctx_2=%d\n",p_xran_dev_ctx_2);
        }
+#endif
 
        int num_eaxc = xranlib->get_num_eaxc();
        int num_eaxc_ul = xranlib->get_num_eaxc_ul();
@@ -501,7 +503,7 @@ int xran_fh_tx_send_slot(void *xranlib_, ru_info_t *ru, int frame, int slot, uin
        nSectorNum = xranlib->get_num_cc();
 
        int maxflowid = num_eaxc * (nSectorNum-1) + (xran_max_antenna_nr-1);
-       printf("the maximum flowID will be=%d\n",maxflowid);
+       //printf("the maximum flowID will be=%d\n",maxflowid);
 
        for(uint16_t cc_id=0; cc_id<1/*nSectorNum*/; cc_id++){ // OAI does not support multiple CC yet.
            for(uint8_t ant_id = 0; ant_id < xran_max_antenna_nr && ant_id<ru->nb_tx; ant_id++){

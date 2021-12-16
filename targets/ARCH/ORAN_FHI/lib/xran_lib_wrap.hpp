@@ -233,7 +233,7 @@ private:
         std::cout << "Sucess xran_mm_init" << std::endl;
 
         /* Init Memory */
-        printf("Sofia wrapper.hpp: Init memory *** XRANFTHTX_OUT ***\n");
+        printf("wrapper.hpp: Init memory *** XRANFTHTX_OUT ***\n");
         for(i = 0; i<nSectorNum; i++) {
             eInterfaceType = XRANFTHTX_OUT;
             printf("Call xran_bm_init %d\n",i);
@@ -276,7 +276,7 @@ private:
                 }
 
             /* C-plane DL */
-            printf("Sofia wrapper.hpp: Init memory *** XRANFTHTX_SEC_DESC_OUT ***\n");
+            printf("wrapper.hpp: Init memory *** XRANFTHTX_SEC_DESC_OUT ***\n");
             eInterfaceType = XRANFTHTX_SEC_DESC_OUT;
             status = xran_bm_init(m_nInstanceHandle[0][i],
                             &m_nBufPoolIndex[m_nSectorIndex[i]][eInterfaceType],
@@ -285,7 +285,7 @@ private:
                 std::cout << __LINE__ << " Failed at xran_bm_init, status " << status << std::endl;
                 return (-1);
             }
-            printf("Sofia wrapper.hpp: Init memory *** XRANFTHTX_PRB_MAP_OUT ***\n");
+            printf("wrapper.hpp: Init memory *** XRANFTHTX_PRB_MAP_OUT ***\n");
             eInterfaceType = XRANFTHTX_PRB_MAP_OUT;
             status = xran_bm_init(m_nInstanceHandle[0][i],
                             &m_nBufPoolIndex[m_nSectorIndex[i]][eInterfaceType],
@@ -335,7 +335,7 @@ private:
         }
 
         for(i = 0; i<nSectorNum; i++) {
-            printf("Sofia wrapper.hpp: Init memory *** XRANFTHRX_IN ***\n");
+            printf("wrapper.hpp: Init memory *** XRANFTHRX_IN ***\n");
             eInterfaceType = XRANFTHRX_IN;
             status = xran_bm_init(m_nInstanceHandle[0][i],
                             &m_nBufPoolIndex[m_nSectorIndex[i]][eInterfaceType],
@@ -373,7 +373,7 @@ private:
                         }
                     }
                 }
-            printf("Sofia wrapper.hpp: Init memory *** XRANFTHTX_SEC_DESC_IN ***\n");
+            printf("wrapper.hpp: Init memory *** XRANFTHTX_SEC_DESC_IN ***\n");
             eInterfaceType = XRANFTHTX_SEC_DESC_IN;
             status = xran_bm_init(m_nInstanceHandle[0][i],
                             &m_nBufPoolIndex[m_nSectorIndex[i]][eInterfaceType],
@@ -382,7 +382,7 @@ private:
                 std::cout << __LINE__ << " Failed at xran_bm_init, status " << status << std::endl;
                 return (-1);
             }
-            printf("Sofia wrapper.hpp: Init memory *** XRANFTHRX_PRB_MAP_IN ***\n");
+            printf("wrapper.hpp: Init memory *** XRANFTHRX_PRB_MAP_IN ***\n");
             eInterfaceType = XRANFTHRX_PRB_MAP_IN;
             status = xran_bm_init(m_nInstanceHandle[0][i],
                                 &m_nBufPoolIndex[m_nSectorIndex[i]][eInterfaceType],
@@ -433,7 +433,7 @@ private:
         }
 
         for(i = 0; i<nSectorNum; i++) {
-            printf("Sofia wrapper.hpp: Init memory *** XRANFTHRACH_IN ***\n");
+            printf("wrapper.hpp: Init memory *** XRANFTHRACH_IN ***\n");
             eInterfaceType = XRANFTHRACH_IN;
             status = xran_bm_init(m_nInstanceHandle[0][i],
                                 &m_nBufPoolIndex[m_nSectorIndex[i]][eInterfaceType],
@@ -479,7 +479,7 @@ private:
     /* add SRS rx buffer */
     for(i = 0; i<nSectorNum && xran_max_ant_array_elm_nr; i++)
     {
-        printf("Sofia wrapper.hpp: Init memory *** XRANSRS_IN ***\n");
+        printf("wrapper.hpp: Init memory *** XRANSRS_IN ***\n");
         eInterfaceType = XRANSRS_IN;
         status = xran_bm_init(m_nInstanceHandle[0][i],&m_nBufPoolIndex[m_nSectorIndex[i]][eInterfaceType],
             XRAN_N_FE_BUF_LEN*xran_max_ant_array_elm_nr*XRAN_MAX_NUM_OF_SRS_SYMBOL_PER_SLOT, m_nSW_ToFpga_FTH_TxBufferLen);
@@ -545,7 +545,7 @@ public:
         m_xranInit.io_cfg.dpdk_dev[XRAN_UP_VF]  = "0000:b3:02.0";
         m_xranInit.io_cfg.dpdk_dev[XRAN_CP_VF]  = "0000:b3:02.1";
  
-        printf("Sofia: m_xranInit.io_cfg.dpdk_dev[%d] =%s, m_xranInit.io_cfg.dpdk_dev[%d]=%s\n",XRAN_UP_VF,m_xranInit.io_cfg.dpdk_dev[XRAN_UP_VF],XRAN_CP_VF,m_xranInit.io_cfg.dpdk_dev[XRAN_CP_VF]);
+        printf("wrapper.hpp: m_xranInit.io_cfg.dpdk_dev[%d] =%s, m_xranInit.io_cfg.dpdk_dev[%d]=%s\n",XRAN_UP_VF,m_xranInit.io_cfg.dpdk_dev[XRAN_UP_VF],XRAN_CP_VF,m_xranInit.io_cfg.dpdk_dev[XRAN_CP_VF]);
 
         m_xranInit.io_cfg.core              = get_globalcfg<int>(XRAN_UT_KEY_GLOBALCFG_IO, "core");
         m_xranInit.io_cfg.system_core       = get_globalcfg<int>(XRAN_UT_KEY_GLOBALCFG_IO, "system_core");
@@ -794,7 +794,7 @@ public:
                         sizeof(struct xran_ecpri_hdr) +
                         sizeof(struct radio_app_common_hdr) +
                         sizeof(struct data_section_hdr));
-printf("Sofia wrapper.hpp: nFpgaToSW_FTH_RxBufferLen=%d , nSW_ToFpga_FTH_TxBufferLen=%d\n",m_nFpgaToSW_FTH_RxBufferLen,m_nSW_ToFpga_FTH_TxBufferLen);        
+printf("wrapper.hpp: nFpgaToSW_FTH_RxBufferLen=%d , nSW_ToFpga_FTH_TxBufferLen=%d\n",m_nFpgaToSW_FTH_RxBufferLen,m_nSW_ToFpga_FTH_TxBufferLen);        
 
         if(init_memory() < 0) {
             std::cout << "Fatal Error on Initialization !!!" << std::endl;
@@ -899,7 +899,8 @@ printf("Sofia wrapper.hpp: nFpgaToSW_FTH_RxBufferLen=%d , nSW_ToFpga_FTH_TxBuffe
                         pRbMap->prbMap[0].nStartSymb    = 0;
                         pRbMap->prbMap[0].numSymb       = 14;
                         pRbMap->prbMap[0].nBeamIndex    = 0;
-                        pRbMap->prbMap[0].compMethod    = XRAN_COMPMETHOD_NONE;
+                        pRbMap->prbMap[0].compMethod    = XRAN_COMPMETHOD_NONE;//BLKFLOAT; // Modify according to the target compression.
+                        pRbMap->prbMap[0].iqWidth       = 14;                              // Modify according to the target compression. 
 
                         if(get_rucategory() == XRAN_CATEGORY_A) {
                             pRbMap->prbMap[0].BeamFormingType   = XRAN_BEAM_ID_BASED;
