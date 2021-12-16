@@ -42,8 +42,25 @@ typedef struct {
 
 int trx_oran_start(openair0_device *device)
 {
+
   printf("ORAN: %s\n", __FUNCTION__);
+
+#if 1
+
+  oran_eth_state_t *s = device->priv;
+
+  // Start ORAN
+   if ( start_oran(s->oran_priv) !=0 ){
+      printf("%s:%d:%s: Start ORAN failed ... Exit\n",
+         __FILE__, __LINE__, __FUNCTION__);
+      exit(1); 
+   }else{
+      printf("Start ORAN. Done\n");
+   }
+#endif
+
   return 0;
+
 }
 
 
@@ -51,14 +68,16 @@ void trx_oran_end(openair0_device *device)
 {
   printf("ORAN: %s\n", __FUNCTION__);
   oran_eth_state_t *s = device->priv;
-  stop_oran(s);
-  close_oran(s);
+  stop_oran(s->oran_priv);
+  close_oran(s->oran_priv);
 }
 
 
 int trx_oran_stop(openair0_device *device)
 {
   printf("ORAN: %s\n", __FUNCTION__);
+  oran_eth_state_t *s = device->priv;
+  stop_oran(s->oran_priv);
   return(0);
 }
 
@@ -158,18 +177,25 @@ int trx_oran_ctlrecv(openair0_device *device, void *msg, ssize_t msg_len)
   printf("ORAN: %s\n", __FUNCTION__);
 
   if (s->last_msg == RAU_tick && s->capabilities_sent == 0) {
+    printf("CCCCC ORAN ctrlrcv RRU_tick received and send capabilities hard coded\n");
     RRU_capabilities_t *cap;
     rru_config_msg->type = RRU_capabilities;
     rru_config_msg->len  = sizeof(RRU_CONFIG_msg_t)-MAX_RRU_CONFIG_SIZE+sizeof(RRU_capabilities_t);
+    // Fill RRU capabilities (see openair1/PHY/defs_RU.h)
+    // For now they are hard coded - try to retreive the params from openari device
+    
     cap = (RRU_capabilities_t*)&rru_config_msg->msg[0];
     cap->FH_fmt                           = OAI_IF4p5_only;
     cap->num_bands                        = 1;
     cap->band_list[0]                     = 78;
-    /* TODO: hardcoded to 1 for the moment, get the real value somehow... */
+    // cap->num_concurrent_bands             = 1; component carriers
     cap->nb_rx[0]                         = 1; //device->openair0_cfg->rx_num_channels;
     cap->nb_tx[0]                         = 1; //device->openair0_cfg->tx_num_channels;
     cap->max_pdschReferenceSignalPower[0] = -27;
     cap->max_rxgain[0]                    = 90;
+    cap->N_RB_DL[0]                       = 106;
+    cap->N_RB_UL[0]                       = 106;
+   
 
     s->capabilities_sent = 1;
 
@@ -180,6 +206,7 @@ int trx_oran_ctlrecv(openair0_device *device, void *msg, ssize_t msg_len)
     rru_config_msg->type = RRU_config_ok;
     return 0;
   }
+#if 0
   if (s->last_msg == RRU_start) {
      // Folllow the same steps as in the wrapper
      printf("Oran RRU_start\n");
@@ -228,14 +255,17 @@ int trx_oran_ctlrecv(openair0_device *device, void *msg, ssize_t msg_len)
      }else{
         printf("Start ORAN. Done\n");
      }
-     
+    
+     #if 0 
      // Once xran library and thread started compute the statistics
      while(1){
         sleep(1);
         compute_xran_statistics(s->oran_priv); 
      }
+     #endif
 
   }
+#endif
   return 0;
 }
 
@@ -243,19 +273,21 @@ void oran_fh_if4p5_south_in(RU_t *ru,
                                int *frame,
                                int *slot)
 {
-
-
-printf("XXX oran_fh_if4p5_south_in %d %d\n", *frame, *slot);
+  if(*frame==0 && *slot==0){
+    printf("XXX oran_fh_if4p5_south_in %d %d\n", *frame, *slot);
+    sleep(1);
+  }
+#if 0
   oran_eth_state_t *s = ru->ifdevice.priv;
   NR_DL_FRAME_PARMS *fp;
   int symbol;
   int32_t *rxdata;
   int antenna;
 
-  lock_ul_buffer(&s->buffers, *slot);
+  // lock_ul_buffer(&s->buffers, *slot);
 #if 1
 next:
-  while (!((s->buffers.ul_busy[0][*slot] == 0x3fff &&
+     while (!((s->buffers.ul_busy[0][*slot] == 0x3fff &&
             s->buffers.ul_busy[1][*slot] == 0x3fff) ||
            s->buffers.prach_busy[*slot] == 1))
     wait_ul_buffer(&s->buffers, *slot);
@@ -288,6 +320,7 @@ next:
 if (*slot == 0 && symbol == 0)
 printf("rxdata in oran_fh_if4p5_south_in %p\n", &ru->common.rxdataF[antenna][0]);
 #endif
+
 #if 1
       memcpy(rxdata + 2048 - 1272/2,
              &s->buffers.ul[antenna][*slot][symbol*1272*4],
@@ -299,10 +332,12 @@ printf("rxdata in oran_fh_if4p5_south_in %p\n", &ru->common.rxdataF[antenna][0])
     }
   }
 
+#if 1
   s->buffers.ul_busy[0][*slot] = 0;
   s->buffers.ul_busy[1][*slot] = 0;
   signal_ul_buffer(&s->buffers, *slot);
   unlock_ul_buffer(&s->buffers, *slot);
+#endif
 
   //printf("BENETEL: %s (f.sf %d.%d)\n", __FUNCTION__, *frame, *slot);
 
@@ -325,7 +360,7 @@ printf("rxdata in oran_fh_if4p5_south_in %p\n", &ru->common.rxdataF[antenna][0])
     proc->tti_tx   = (sl+sl_ahead)%20;
     proc->frame_tx = (sl>(19-sl_ahead)) ? (f+1)&1023 : f;
   }
-
+#endif
 }
 
 void oran_fh_if4p5_south_out(RU_t *ru,
@@ -333,9 +368,17 @@ void oran_fh_if4p5_south_out(RU_t *ru,
                                 int slot,
                                 uint64_t timestamp)
 {
+  openair0_device *device = &ru->ifdevice;
+  oran_eth_state_t *s = device->priv;
 
-
-printf("XXX oran_fh_if4p5_south_out %d %d %ld\n", frame, slot, timestamp);
+  ru_info_t ru_info;
+  ru_info.nb_tx = ru->nb_tx;
+  ru_info.txdataF_BF = ru->common.txdataF_BF;
+  int ret = xran_fh_tx_send_slot(s->oran_priv, &ru_info, frame, slot, timestamp);
+//printf("XXX oran_fh_if4p5_south_out %d %d %ld\n", frame, slot, timestamp);
+#if 0
+//printf("Sofia-Romain exit south out\n");
+//exit(-1);
   oran_eth_state_t *s = ru->ifdevice.priv;
   NR_DL_FRAME_PARMS *fp;
   int symbol;
@@ -382,6 +425,7 @@ printf("XXX oran_fh_if4p5_south_out %d %d %ld\n", frame, slot, timestamp);
   s->buffers.dl_busy[0][slot] = 0x3fff;
   s->buffers.dl_busy[1][slot] = 0x3fff;
   unlock_dl_buffer(&s->buffers, slot);
+#endif
 }
 
 void *get_internal_parameter(char *name)
@@ -438,8 +482,11 @@ int transport_init(openair0_device *device,
 
   eth->last_msg = (rru_config_msg_type_t)-1;
 
+#if 0
   init_buffers(&eth->buffers);
+#endif
 
+#if 1
   oran_eth_state_t *s = eth;
 
   printf("ORAN: %s\n", __FUNCTION__);
@@ -457,8 +504,8 @@ int transport_init(openair0_device *device,
    }
    
    // Load the IQ samples from file
-   load_iq_from_file(s->oran_priv);
-   printf("Load IQ from file. Done\n");
+   //load_iq_from_file(s->oran_priv);
+   //printf("Load IQ from file. Done\n");
 
    // Register physide callbacks
    register_physide_callbacks(s->oran_priv);
@@ -473,21 +520,15 @@ int transport_init(openair0_device *device,
    printf("Init Oran. Done\n");
 
    // Copy the loaded IQ to the xran buffer fro the tx
-   xran_fh_tx_send_buffer(s->oran_priv);
-   printf("ORAN FH send tx buffer filled in with loaded IQs. Done\n");
+   //xran_fh_tx_send_buffer(s->oran_priv);
+   //printf("ORAN FH send tx buffer filled in with loaded IQs. Done\n");
 
    // Open ORAN
    open_oran(s->oran_priv);
    printf("xran_open. Done\n");
 
-   // Start ORAN
-   if ( start_oran(s->oran_priv) !=0 ){
-      printf("%s:%d:%s: Start ORAN failed ... Exit\n",
-         __FILE__, __LINE__, __FUNCTION__);
-      exit(1); 
-   }else{
-      printf("Start ORAN. Done\n");
-   }
- 
+#endif 
+
   return 0;
+
 }
