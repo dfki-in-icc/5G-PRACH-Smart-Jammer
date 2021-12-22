@@ -163,20 +163,23 @@ void mac_rlc_data_ind     (
 
   if(ue == NULL)
 	  LOG_I(RLC, "RLC instance for the given UE was not found \n");
-
-  switch (channel_idP) {
-  case 1 ... 3: rb = ue->srb[channel_idP - 1]; break;
-  case 4 ... 8: rb = ue->drb[channel_idP - 4]; break;
+  //TODO L5G
+  logical_chan_id_t channel_id=channel_idP;
+  if(channel_idP==4) channel_id=5+3;
+  if(channel_idP==8) channel_id=0;
+  switch (channel_id) {
+  case 1 ... 3: rb = ue->srb[channel_id - 1]; break;
+  case 4 ... 8: rb = ue->drb[channel_id - 4]; break;
   default:      rb = NULL;                     break;
   }
 
   if (rb != NULL) {
-	LOG_D(RLC, "RB found! (channel ID %d) \n", channel_idP);
+	LOG_D(RLC, "RB found! (channel ID %d) \n", channel_id);
     rb->set_time(rb, nr_rlc_current_time);
     rb->recv_pdu(rb, buffer_pP, tb_sizeP);
   } else {
     LOG_E(RLC, "%s:%d:%s: fatal: no RB found (channel ID %d)\n",
-          __FILE__, __LINE__, __FUNCTION__, channel_idP);
+          __FILE__, __LINE__, __FUNCTION__, channel_id);
     // exit(1);
   }
 
@@ -204,10 +207,13 @@ tbs_size_t mac_rlc_data_req(
 
   nr_rlc_manager_lock(nr_rlc_ue_manager);
   ue = nr_rlc_manager_get_ue(nr_rlc_ue_manager, rntiP);
-
-  switch (channel_idP) {
-  case 1 ... 3: rb = ue->srb[channel_idP - 1]; break;
-  case 4 ... 8: rb = ue->drb[channel_idP - 4]; break;
+  //TODO L5G
+  logical_chan_id_t channel_id=channel_idP;
+  if(channel_idP==4) channel_id=5+3;
+  if(channel_idP==8) channel_id=0;
+  switch (channel_id) {
+  case 1 ... 3: rb = ue->srb[channel_id - 1]; break;
+  case 4 ... 8: rb = ue->drb[channel_id - 4]; break;
   default:
   rb = NULL;
   LOG_E(RLC, "In %s:%d:%s: data request for unknown RB with LCID 0x%02x !\n", __FILE__, __LINE__, __FUNCTION__, channel_idP);
@@ -250,10 +256,13 @@ mac_rlc_status_resp_t mac_rlc_status_ind(
 
   nr_rlc_manager_lock(nr_rlc_ue_manager);
   ue = nr_rlc_manager_get_ue(nr_rlc_ue_manager, rntiP);
-
-  switch (channel_idP) {
-  case 1 ... 3: rb = ue->srb[channel_idP - 1]; break;
-  case 4 ... 8: rb = ue->drb[channel_idP - 4]; break;
+  //TODO L5G
+  logical_chan_id_t channel_id=channel_idP;
+  if(channel_idP==4) channel_id=5+3;
+  if(channel_idP==8) channel_id=0;
+  switch (channel_id) {
+  case 1 ... 3: rb = ue->srb[channel_id - 1]; break;
+  case 4 ... 8: rb = ue->drb[channel_id - 4]; break;
   default:      rb = NULL;                     break;
   }
 
@@ -313,10 +322,13 @@ rlc_buffer_occupancy_t mac_rlc_get_buffer_occupancy_ind(
 
   nr_rlc_manager_lock(nr_rlc_ue_manager);
   ue = nr_rlc_manager_get_ue(nr_rlc_ue_manager, rntiP);
-
-  switch (channel_idP) {
-  case 1 ... 3: rb = ue->srb[channel_idP - 1]; break;
-  case 4 ... 8: rb = ue->drb[channel_idP - 4]; break;
+  //TODO L5G
+  logical_chan_id_t channel_id=channel_idP;
+  if(channel_idP==4) channel_id=5+3;
+  if(channel_idP==8) channel_id=0;
+  switch (channel_id) {
+  case 1 ... 3: rb = ue->srb[channel_id - 1]; break;
+  case 4 ... 8: rb = ue->drb[channel_id - 4]; break;
   default:      rb = NULL;                     break;
   }
 
@@ -745,7 +757,8 @@ static void add_drb_am(int rnti, struct NR_DRB_ToAddMod *s, NR_RLC_BearerConfig_
   if (channel_id != drb_id + 3) {
     LOG_E(RLC, "%s:%d:%s: todo, remove this limitation\n",
           __FILE__, __LINE__, __FUNCTION__);
-    exit(1);
+    //TODO L5G
+    //exit(1);
   }
 
   logical_channel_group = *l->ul_SpecificParameters->logicalChannelGroup;

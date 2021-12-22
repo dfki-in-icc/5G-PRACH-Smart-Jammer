@@ -2142,7 +2142,8 @@ nr_rrc_ue_establish_srb2(
                                     NULL,
                                     radioBearerConfig->drb_ToAddModList,
                                     NULL,
-                                    0,
+                                    NR_UE_rrc_inst[ctxt_pP->module_id].cipheringAlgorithm |
+                                    (NR_UE_rrc_inst[ctxt_pP->module_id].integrityProtAlgorithm << 4), //TODO L5G
                                     NULL,
                                     NULL,
                                     kUPenc,

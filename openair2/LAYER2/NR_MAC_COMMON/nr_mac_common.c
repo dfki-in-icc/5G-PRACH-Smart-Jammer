@@ -2835,10 +2835,12 @@ uint16_t nr_dci_size(const NR_BWP_UplinkCommon_t *initialUplinkBWP,
         size += 1;
       }
       // 1st DAI
-      if (cg->physicalCellGroupConfig->pdsch_HARQ_ACK_Codebook==NR_PhysicalCellGroupConfig__pdsch_HARQ_ACK_Codebook_dynamic)
+      if (cg->physicalCellGroupConfig && cg->physicalCellGroupConfig->pdsch_HARQ_ACK_Codebook==NR_PhysicalCellGroupConfig__pdsch_HARQ_ACK_Codebook_dynamic)
         dci_pdu->dai[0].nbits = 2;
       else
         dci_pdu->dai[0].nbits = 1;
+      //TODO L5G
+      dci_pdu->dai[0].nbits = 2;
       size += dci_pdu->dai[0].nbits;
       // 2nd DAI
       if (cg->spCellConfig->spCellConfigDedicated->pdsch_ServingCellConfig->choice.setup->codeBlockGroupTransmission != NULL) { //TODO not sure about that
@@ -2966,6 +2968,8 @@ uint16_t nr_dci_size(const NR_BWP_UplinkCommon_t *initialUplinkBWP,
          dci_pdu->dmrs_sequence_initialization.nbits = 1;
          size += dci_pdu->dmrs_sequence_initialization.nbits;
       }
+      //TODO L5G
+      size = 42;
       break;
 
     case NR_DL_DCI_FORMAT_1_0:
@@ -3059,10 +3063,14 @@ uint16_t nr_dci_size(const NR_BWP_UplinkCommon_t *initialUplinkBWP,
       }
       // HARQ PID
       size += 4;
+      //TODO L5G
+      int testflag=0;
       // DAI
-      if (cg->physicalCellGroupConfig->pdsch_HARQ_ACK_Codebook == NR_PhysicalCellGroupConfig__pdsch_HARQ_ACK_Codebook_dynamic) { // FIXME in case of more than one serving cell
+      if (cg->physicalCellGroupConfig && cg->physicalCellGroupConfig->pdsch_HARQ_ACK_Codebook == NR_PhysicalCellGroupConfig__pdsch_HARQ_ACK_Codebook_dynamic) { // FIXME in case of more than one serving cell
         dci_pdu->dai[0].nbits = 2;
         size += dci_pdu->dai[0].nbits;
+      }else{
+        testflag=1;
       }
       // TPC PUCCH
       size += 2;
@@ -3104,6 +3112,9 @@ uint16_t nr_dci_size(const NR_BWP_UplinkCommon_t *initialUplinkBWP,
       }
       // DMRS sequence init
       size += 1;
+      //TODO L5G
+      if(testflag==1)
+        size=49;
       break;
 
     case NR_DL_DCI_FORMAT_2_0:
@@ -4181,7 +4192,9 @@ uint16_t compute_pucch_prb_size(uint8_t format,
                 r,O_tot,O_crc,nr_prbs);
   }
   else{
-    AssertFatal(1==0,"Not yet implemented");
+  	//TODO L5G
+    return nr_prbs;
+    //AssertFatal(1==0,"Not yet implemented");
   }
 }
 

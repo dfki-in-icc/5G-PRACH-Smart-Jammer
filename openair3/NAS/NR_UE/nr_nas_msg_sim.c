@@ -670,9 +670,10 @@ static void generateRegistrationComplete(int Mod_id, as_nas_info_t *initialNasMs
 void decodeDownlinkNASTransport(as_nas_info_t *initialNasMsg, uint8_t * pdu_buffer){
   uint8_t msg_type = *(pdu_buffer + 16);
   if(msg_type == FGS_PDU_SESSION_ESTABLISHMENT_ACC){
-    sprintf(baseNetAddress, "%d.%d", *(pdu_buffer + 39),*(pdu_buffer + 40));
-    int third_octet = *(pdu_buffer + 41);
-    int fourth_octet = *(pdu_buffer + 42);
+  	//TODO L5G
+    sprintf(baseNetAddress, "%d.%d", *(pdu_buffer + 41),*(pdu_buffer + 42));
+    int third_octet = *(pdu_buffer + 43);
+    int fourth_octet = *(pdu_buffer + 44);
     LOG_I(NAS, "Received PDU Session Establishment Accept\n");
     nas_config(1,third_octet,fourth_octet,"ue");
   } else {
@@ -897,9 +898,10 @@ void *nas_nrue_task(void *args_p)
         else if((pdu_buffer + 16) != NULL){
           msg_type = *(pdu_buffer + 16);
           if(msg_type == FGS_PDU_SESSION_ESTABLISHMENT_ACC){
-            sprintf(baseNetAddress, "%d.%d", *(pdu_buffer + 39),*(pdu_buffer + 40));
-            int third_octet = *(pdu_buffer + 41);
-            int fourth_octet = *(pdu_buffer + 42);
+          	//TODO L5G
+            sprintf(baseNetAddress, "%d.%d", *(pdu_buffer + 41),*(pdu_buffer + 42));
+            int third_octet = *(pdu_buffer + 43);
+            int fourth_octet = *(pdu_buffer + 44);
             LOG_I(NAS, "Received PDU Session Establishment Accept\n");
             nas_config(1,third_octet,fourth_octet,"ue");
           }

@@ -282,11 +282,13 @@ static void *ue_tun_read_thread(void *_)
 {
   extern int nas_sock_fd[];
   char rx_buf[NL_MAX_PAYLOAD];
+  char sdap_buf[NL_MAX_PAYLOAD+1];
+  nr_pdcp_ue_t *ue;
   int len;
   int rnti;
   protocol_ctxt_t ctxt;
-
-  int rb_id = 1;
+  //TODO L5G
+  int rb_id = 5;
   pthread_setname_np( pthread_self(),"ue_tun_read"); 
   while (1) {
     len = read(nas_sock_fd[0], &rx_buf, NL_MAX_PAYLOAD);
@@ -296,10 +298,18 @@ static void *ue_tun_read_thread(void *_)
     }
 
     LOG_D(PDCP, "%s(): nas_sock_fd read returns len %d\n", __func__, len);
-
     nr_pdcp_manager_lock(nr_pdcp_ue_manager);
     rnti = nr_pdcp_get_first_rnti(nr_pdcp_ue_manager);
+    ue = nr_pdcp_manager_get_ue(nr_pdcp_ue_manager, rnti);
     nr_pdcp_manager_unlock(nr_pdcp_ue_manager);
+    //TODO L5G
+    if((ue->drb[rb_id-1]!=NULL)&&(ue->drb[rb_id-1]->has_sdap)&&(ue->drb[rb_id-1]->has_sdapULheader == 1)){
+      sdap_buf[0]=0x89;
+      memcpy(&sdap_buf[1],rx_buf,len);
+      len++;
+    }else{
+      memcpy(&sdap_buf[0],rx_buf,len);
+    }
 
     if (rnti == -1) continue;
 
@@ -315,7 +325,7 @@ static void *ue_tun_read_thread(void *_)
     ctxt.rnti = rnti;
 
     pdcp_data_req(&ctxt, SRB_FLAG_NO, rb_id, RLC_MUI_UNDEFINED,
-                  RLC_SDU_CONFIRM_NO, len, (unsigned char *)rx_buf,
+                  RLC_SDU_CONFIRM_NO, len, (unsigned char *)sdap_buf,
                   PDCP_TRANSMISSION_MODE_DATA, NULL, NULL);
   }
 
@@ -447,9 +457,26 @@ static void deliver_sdu_drb(void *_ue, nr_pdcp_entity_t *entity,
 
   if(IS_SOFTMODEM_NOS1 || UE_NAS_USE_TUN){
     LOG_D(PDCP, "IP packet received, to be sent to TUN interface");
-    len = write(nas_sock_fd[0], buf, size);
-    if (len != size) {
-      LOG_E(PDCP, "%s:%d:%s: fatal\n", __FILE__, __LINE__, __FUNCTION__);
+    //TODO L5G
+    for (i = 0; i < 5; i++) {
+        if (entity == ue->drb[i]) {
+          rb_id = i+1;
+          goto rb_found2;
+        }
+      }
+
+      LOG_E(PDCP, "%s:%d:%s: fatal, no RB found for ue %d\n",
+            __FILE__, __LINE__, __FUNCTION__, ue->rnti);
+      return;
+
+    rb_found2:
+    {
+      int offset=0;
+      if (entity->has_sdap == 1 && entity->has_sdapDLheader == 1) offset = 1; // this is the offset of the SDAP header in bytes
+      len = write(nas_sock_fd[0], buf+offset, size-offset);
+      if (len != size-offset) {
+        LOG_E(PDCP, "%s:%d:%s: fatal\n", __FILE__, __LINE__, __FUNCTION__);
+      }
     }
   }
   else{
@@ -795,15 +822,14 @@ static void add_drb_am(int is_gnb, int rnti, struct NR_DRB_ToAddMod *s,
   if (s->pdcp_Config->t_Reordering != NULL) {
     t_reordering = decode_t_reordering(*s->pdcp_Config->t_Reordering);
   }
-
-  if (s->pdcp_Config->drb != NULL
-      && s->pdcp_Config->drb->integrityProtection != NULL)
-    has_integrity = 1;
-  else
+//TODO L5G
+  if (integrity_algorithm==0)
     has_integrity = 0;
+  else
+    has_integrity = 1;
 
-  if (s->pdcp_Config->ext1 != NULL
-     && s->pdcp_Config->ext1->cipheringDisabled != NULL)
+//TODO L5G
+  if (ciphering_algorithm==0)
     has_ciphering = 0;
   else
     has_ciphering = 1;
@@ -829,8 +855,9 @@ static void add_drb_am(int is_gnb, int rnti, struct NR_DRB_ToAddMod *s,
     has_sdapULheader = s->cnAssociation->choice.sdap_Config->sdap_HeaderUL == NR_SDAP_Config__sdap_HeaderUL_present ? 1 : 0;
     has_sdapDLheader = s->cnAssociation->choice.sdap_Config->sdap_HeaderDL == NR_SDAP_Config__sdap_HeaderDL_present ? 1 : 0;
     if (has_sdapDLheader==1) {
+      //TODO L5G
       LOG_E(PDCP,"%s:%d:%s: fatal, no support for SDAP DL yet\n",__FILE__,__LINE__,__FUNCTION__);
-      exit(-1);
+      //exit(-1);
     }
   }
   /* TODO(?): accept different UL and DL SN sizes? */
@@ -843,7 +870,8 @@ static void add_drb_am(int is_gnb, int rnti, struct NR_DRB_ToAddMod *s,
   if (drb_id != 1) {
     LOG_E(PDCP, "%s:%d:%s: fatal, bad drb id %d\n",
           __FILE__, __LINE__, __FUNCTION__, drb_id);
-    exit(1);
+    //TODO L5G
+    //exit(1);
   }
 
   nr_pdcp_manager_lock(nr_pdcp_ue_manager);

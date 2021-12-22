@@ -310,10 +310,10 @@ void ul_layers_config(NR_UE_MAC_INST_t * mac, nfapi_nr_ue_pusch_pdu_t *pusch_con
 void ul_ports_config(NR_UE_MAC_INST_t * mac, nfapi_nr_ue_pusch_pdu_t *pusch_config_pdu, dci_pdu_rel15_t *dci) {
 
   /* ANTENNA_PORTS */
-  uint8_t rank = 0; // We need to initialize rank FIXME!!!
+  uint8_t rank = 1; // We need to initialize rank FIXME!!!
 
   NR_ServingCellConfigCommon_t *scc = mac->scc;
-  NR_PUSCH_Config_t *pusch_Config = mac->ULbwp[0]->bwp_Dedicated->pusch_Config->choice.setup;
+  NR_PUSCH_Config_t *pusch_Config = mac->ULbwp[0] ? mac->ULbwp[0]->bwp_Dedicated->pusch_Config->choice.setup : mac->initULbwp->pusch_Config->choice.setup;
 
   long	transformPrecoder;
   if (pusch_Config->transformPrecoder)
@@ -677,7 +677,9 @@ int nr_config_pusch_pdu(NR_UE_MAC_INST_t *mac,
       /* BANDWIDTH_PART_IND */
       if (dci->bwp_indicator.val != 1) {
         LOG_W(NR_MAC, "bwp_indicator != 1! Possibly due to false DCI. Ignoring DCI!\n");
-        return -1;
+        //TODO L5G
+        dci->bwp_indicator.val=1;
+        //return -1;
       }
       config_bwp_ue(mac, &dci->bwp_indicator.val, dci_format);
       target_ss = NR_SearchSpace__searchSpaceType_PR_ue_Specific;

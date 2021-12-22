@@ -1498,6 +1498,20 @@ void nr_ue_configure_pucch(NR_UE_MAC_INST_t *mac,
       pucch_Config =  mac->ULbwp[bwp_id-1]->bwp_Dedicated->pucch_Config->choice.setup;
       pucch_pdu->bwp_size = NRRIV2BW(mac->ULbwp[bwp_id-1]->bwp_Common->genericParameters.locationAndBandwidth,MAX_BWP_SIZE);
       pucch_pdu->bwp_start = NRRIV2PRBOFFSET(mac->ULbwp[bwp_id-1]->bwp_Common->genericParameters.locationAndBandwidth,MAX_BWP_SIZE);
+    }else if (bwp_id>0 &&
+        mac->initULbwp &&
+        mac->initULbwp->pucch_Config &&
+        mac->initULbwp->pucch_Config->choice.setup) {
+      NR_PUSCH_Config_t *pusch_Config = mac->initULbwp->pusch_Config->choice.setup;
+      pusch_id = pusch_Config->dataScramblingIdentityPUSCH;
+      if (pusch_Config->dmrs_UplinkForPUSCH_MappingTypeA != NULL)
+        id0 = pusch_Config->dmrs_UplinkForPUSCH_MappingTypeA->choice.setup->transformPrecodingDisabled->scramblingID0;
+      else if (pusch_Config->dmrs_UplinkForPUSCH_MappingTypeB != NULL)
+        id0 = pusch_Config->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup->transformPrecodingDisabled->scramblingID0;
+      else *id0 = mac->physCellId;
+      pucch_Config =  mac->initULbwp->pucch_Config->choice.setup;
+      pucch_pdu->bwp_size = NRRIV2BW(mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP.genericParameters.locationAndBandwidth,MAX_BWP_SIZE);
+      pucch_pdu->bwp_start = NRRIV2PRBOFFSET(mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP.genericParameters.locationAndBandwidth,MAX_BWP_SIZE);
     }
     else if (bwp_id==0 &&
              mac->cg &&
@@ -1832,6 +1846,12 @@ int find_pucch_resource_set(NR_UE_MAC_INST_t *mac, int uci_size) {
          mac->ULbwp[bwp_id-1]->bwp_Dedicated->pucch_Config->choice.setup &&
          mac->ULbwp[bwp_id-1]->bwp_Dedicated->pucch_Config->choice.setup->resourceSetToAddModList &&
          mac->ULbwp[bwp_id-1]->bwp_Dedicated->pucch_Config->choice.setup->resourceSetToAddModList->list.array[pucch_resource_set_id] != NULL) ||
+        (bwp_id>0 &&
+         mac->initULbwp &&
+         mac->initULbwp->pucch_Config &&
+         mac->initULbwp->pucch_Config->choice.setup &&
+         mac->initULbwp->pucch_Config->choice.setup->resourceSetToAddModList &&
+         mac->initULbwp->pucch_Config->choice.setup->resourceSetToAddModList->list.array[pucch_resource_set_id] != NULL) ||
         (bwp_id==0 &&
          mac->cg &&
          mac->cg->spCellConfig &&

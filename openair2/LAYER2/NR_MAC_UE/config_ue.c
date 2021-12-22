@@ -591,7 +591,10 @@ void config_control_initial_ue(NR_UE_MAC_INST_t *mac){
     struct NR_PDCCH_Config__searchSpacesToAddModList *searchSpacesToAddModList = scd->initialDownlinkBWP->pdcch_Config->choice.setup->searchSpacesToAddModList;
     for (ss_id = 0; ss_id < searchSpacesToAddModList->list.count; ss_id++) {
       NR_SearchSpace_t *ss = searchSpacesToAddModList->list.array[ss_id];
-      AssertFatal(ss->controlResourceSetId != NULL, "ss->controlResourceSetId is null\n");
+      //TODO L5G
+      if((ss->controlResourceSetId == NULL)&&(mac->SSpace[0][0][ss_id])&&(mac->SSpace[0][0][ss_id]->controlResourceSetId)){
+        ss->controlResourceSetId=mac->SSpace[0][0][ss_id]->controlResourceSetId;
+      }
       AssertFatal(ss->searchSpaceType != NULL, "ss->searchSpaceType is null\n");
       AssertFatal(*ss->controlResourceSetId == mac->coreset[dl_bwp_id - 1][coreset_id - 1]->controlResourceSetId, "ss->controlResourceSetId is unknown\n");
       AssertFatal(ss->monitoringSymbolsWithinSlot != NULL, "NR_SearchSpace->monitoringSymbolsWithinSlot is null\n");
@@ -741,7 +744,19 @@ int nr_rrc_mac_config_req_ue(
     }
     else if (cell_group_config != NULL ){
       LOG_I(MAC,"Applying CellGroupConfig from gNodeB\n");
-      mac->cg = cell_group_config;
+      //TODO L5G
+      if(mac->cg){
+        if(cell_group_config->mac_CellGroupConfig)
+          mac->cg->mac_CellGroupConfig = cell_group_config->mac_CellGroupConfig;
+        if(cell_group_config->spCellConfig)
+          mac->cg->spCellConfig = cell_group_config->spCellConfig;
+        if(cell_group_config->physicalCellGroupConfig)
+          mac->cg->physicalCellGroupConfig = cell_group_config->physicalCellGroupConfig;
+        if(cell_group_config->rlc_BearerToAddModList)
+          mac->cg->rlc_BearerToAddModList = cell_group_config->rlc_BearerToAddModList;
+      }else{
+        mac->cg = cell_group_config;
+      }
       mac->servCellIndex = cell_group_config->spCellConfig->servCellIndex ? *cell_group_config->spCellConfig->servCellIndex : 0;
       if(cell_group_config->spCellConfig->spCellConfigDedicated){
         config_control_initial_ue(mac);
