@@ -101,7 +101,7 @@ FD_lte_phy_scope_enb *create_lte_phy_scope_enb( void ) {
   fl_set_object_color( fdui->pusch_comp, FL_BLACK, FL_YELLOW );
   fl_set_object_lcolor( fdui->pusch_comp, FL_WHITE ); // Label color
   fl_set_xyplot_symbolsize( fdui->pusch_comp,2);
-  fl_set_xyplot_xgrid( fdui->pusch_llr,FL_GRID_MAJOR);
+  fl_set_xyplot_xgrid( fdui->pusch_comp,FL_GRID_MAJOR);
   fl_set_xyplot_symbol(fdui->pusch_comp, 0, drawsymbol);
   // I/Q PUCCH comp (format 1)
   fdui->pucch_comp1 = fl_add_xyplot( FL_POINTS_XYPLOT, 540, 480, 240, 100, "PUCCH1 Energy (SR)" );

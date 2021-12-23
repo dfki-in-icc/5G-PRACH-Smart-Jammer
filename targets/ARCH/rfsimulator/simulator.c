@@ -196,7 +196,7 @@ static void removeCirBuf(rfsimulator_state_t *bridge, int sock) {
   free(bridge->buf[sock].circularBuf);
   // Fixme: no free_channel_desc_scm(bridge->buf[sock].channel_model) implemented
   // a lot of mem leaks
-  free(bridge->buf[sock].channel_model);
+  //free(bridge->buf[sock].channel_model);
   memset(&bridge->buf[sock], 0, sizeof(buffer_t));
   bridge->buf[sock].conn_sock=-1;
 }
@@ -621,7 +621,6 @@ static int rfsimulator_read(openair0_device *device, openair0_timestamp *ptimest
   if (nbAnt > 4) {
     LOG_W(HW, "rfsimulator: only 4 antenna tested\n");
   }
-  usleep(10*1000);
   rfsimulator_state_t *t = device->priv;
   LOG_D(HW, "Enter rfsimulator_read, expect %d samples, will release at TS: %ld\n", nsamps, t->nextTimestamp+nsamps);
   // deliver data from received data

@@ -401,8 +401,8 @@ add_definitions("-DPACKAGE_BUGREPORT=\"openair4g-devel@lists.eurecom.fr\"")
 
 # Debug related options
 #########################################
-add_boolean_option(ASN_DEBUG           False "ASN1 coder/decoder Debug")
-add_boolean_option(EMIT_ASN_DEBUG      False "ASN1 coder/decoder Debug")
+add_boolean_option(ENABLE_ANS1C_INTERNAL_TRACE     False "ASN1 coder/decoder Debug")
+
 add_boolean_option(MSG_PRINT           False "print debug messages")
 add_boolean_option(DISABLE_XER_PRINT   False "print XER Format")
 add_boolean_option(XER_PRINT           False "print XER Format")
@@ -417,6 +417,11 @@ add_boolean_option(UE_AUTOTEST_TRACE   False "Activate UE autotest specific logs
 add_boolean_option(UE_DEBUG_TRACE      False "Activate UE debug trace")
 add_boolean_option(UE_TIMING_TRACE     False "Activate UE timing trace")
 add_boolean_option(DEBUG_CONSOLE       False "disables stdout/stderr buffering")
+
+if (${ENABLE_ANS1C_INTERNAL} )
+  add_definitions(-DEMIT_ASN_DEBUG=1)
+  add_definitions(-DASN_THREAD_SAFE=1)
+endif()
 
 set (OCP_ITTI ${OPENAIR_DIR}/common/utils/ocp_itti)
 add_library(ITTI

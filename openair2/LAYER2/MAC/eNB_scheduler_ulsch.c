@@ -722,7 +722,7 @@ rx_sdu(const module_id_t enb_mod_idP,
           break;
         }
 
-        LOG_D(MAC, "[eNB %d][RAPROC] CC_id %d Frame %d, Received CCCH:  %x.%x.%x.%x.%x.%x, Terminating RA procedure for UE rnti %x\n",
+        LOG_I(MAC, "[eNB %d][RAPROC] CC_id %d Frame %d, Received CCCH:  %x.%x.%x.%x.%x.%x, Terminating RA procedure for UE rnti %x\n",
               enb_mod_idP,
               CC_idP,
               frameP,
