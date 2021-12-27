@@ -180,20 +180,21 @@ void nr_ulsch_channel_level(int **ul_ch_estimates_ext,
     @param nb_rb Number of RBs in allocation
     @param output_shift Rescaling for compensated output (should be energy-normalizing)
 */
-void nr_ulsch_channel_compensation(int **rxdataF_ext,
-                                int **ul_ch_estimates_ext,
-                                int **ul_ch_mag,
-                                int **ul_ch_magb,
-                                int **rxdataF_comp,
-                                int **rho,
-                                NR_DL_FRAME_PARMS *frame_parms,
-                                unsigned char symbol,
-                                uint8_t is_dmrs_symbol,
-                                unsigned char mod_order,
-                                uint8_t  nrOfLayers,
-                                unsigned short nb_rb,
-                                unsigned char output_shift);
 
+void nr_ulsch_channel_compensation(int **rxdataF_ext,
+                                   int **ul_ch_estimates_ext,
+                                   int **ul_ch_mag,
+                                   int **ul_ch_magb,
+                                   int **rxdataF_comp,
+                                   int **rho,
+                                   NR_DL_FRAME_PARMS *frame_parms,
+                                   unsigned char symbol,
+                                   uint8_t is_dmrs_symbol,
+                                   int pusch_dmrs_type,
+                                   unsigned char mod_order,
+                                   uint8_t  nrOfLayers,
+                                   unsigned short nb_rb,
+                                   unsigned char output_shift);
 /*!
 \brief This function implements the idft transform precoding in PUSCH
 \param z Pointer to input in frequnecy domain, and it is also the output in time domain

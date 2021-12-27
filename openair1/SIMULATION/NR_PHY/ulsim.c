@@ -756,7 +756,9 @@ int main(int argc, char **argv)
   PHY_vars_UE_g = malloc(sizeof(PHY_VARS_NR_UE**));
   PHY_vars_UE_g[0] = malloc(sizeof(PHY_VARS_NR_UE*));
   PHY_vars_UE_g[0][0] = UE;
+
   memcpy(&UE->frame_parms, frame_parms, sizeof(NR_DL_FRAME_PARMS));
+  UE->frame_parms.nb_antennas_rx=1;
 
   //phy_init_nr_top(frame_parms);
   if (init_nr_ue_signal(UE, 1, 0) != 0) {
@@ -1033,6 +1035,7 @@ int main(int argc, char **argv)
     reset_meas(&gNB->ulsch_llr_stats);
     reset_meas(&gNB->ulsch_channel_compensation_stats);
     reset_meas(&gNB->ulsch_rbs_extraction_stats);
+    reset_meas(&gNB->ulsch_mrc_stats);
     reset_meas(&UE->ulsch_ldpc_encoding_stats);
     reset_meas(&UE->ulsch_rate_matching_stats);
     reset_meas(&UE->ulsch_interleaving_stats);
@@ -1468,6 +1471,7 @@ int main(int argc, char **argv)
     printf("\n");
     
     if (print_perf==1) {
+      printf("gNB RX\n");
       printDistribution(&gNB->phy_proc_rx,table_rx,"Total PHY proc rx");
       printStatIndent(&gNB->rx_pusch_stats,"RX PUSCH time");
       printStatIndent2(&gNB->ulsch_channel_estimation_stats,"ULSCH channel estimation time");
@@ -1478,6 +1482,7 @@ int main(int argc, char **argv)
       printStatIndent2(&gNB->ulsch_llr_stats,"ULSCH llr computation");
       printStatIndent(&gNB->ulsch_unscrambling_stats,"ULSCH unscrambling");
       printStatIndent(&gNB->ulsch_decoding_stats,"ULSCH total decoding time");
+      printf("\nUE TX\n");
       printStatIndent(&UE->ulsch_encoding_stats,"ULSCH total encoding time");
       printStatIndent2(&UE->ulsch_segmentation_stats,"ULSCH segmentation time");
       printStatIndent2(&UE->ulsch_ldpc_encoding_stats,"ULSCH LDPC encoder time");

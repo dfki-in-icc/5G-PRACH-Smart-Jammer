@@ -89,7 +89,7 @@ void phy_init_nr_ue__PDSCH(NR_UE_PDSCH *const pdsch,
   pdsch->ptrs_re_per_slot       = (int32_t **)malloc16_clear( fp->nb_antennas_rx*sizeof(int32_t *) );
   pdsch->dl_ch_ptrs_estimates_ext = (int32_t **)malloc16_clear( fp->nb_antennas_rx*sizeof(int32_t *) );
   // the allocated memory size is fixed:
-  AssertFatal( fp->nb_antennas_rx <= 4, "nb_antennas_rx > 4" );//Extend the max number of UE Rx antennas to 4
+  AssertFatal( fp->nb_antennas_rx <= 8, "nb_antennas_rx > 8" );
 
   const size_t num = 7*2*fp->N_RB_DL*12;
   for (int i=0; i<fp->nb_antennas_rx; i++) {

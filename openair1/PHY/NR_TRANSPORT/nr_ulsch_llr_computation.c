@@ -250,6 +250,7 @@ void nr_ulsch_64qam_llr(int32_t *rxdataF_comp,
   __m256i *rxF = (__m256i*)rxdataF_comp;
   __m256i *ch_mag,*ch_magb;
   register __m256i xmm0,xmm1,xmm2;
+  int32_t *ulsch_llr32=(int32_t*)ulsch_llr;
 #else
   __m128i *rxF = (__m128i*)rxdataF_comp;
   __m128i *ch_mag,*ch_magb;
@@ -278,7 +279,7 @@ void nr_ulsch_64qam_llr(int32_t *rxdataF_comp,
 
 #ifdef __AVX2__
   int len_mod8 = nb_re&7;
-  nb_re    = nb_re>>3;  // length in quad words (4 REs)
+  nb_re    = nb_re>>3;  // length in 256-bit words (8 REs)
   nb_re   += ((len_mod8 == 0) ? 0 : 1);
 #else
   int len_mod4 = nb_re&3;
@@ -312,12 +313,10 @@ void nr_ulsch_64qam_llr(int32_t *rxdataF_comp,
     // ---------------------------------------
 #if defined(__x86_64__) || defined(__i386__)
 #ifdef __AVX2__
-    ulsch_llr[0] = _mm256_extract_epi16(xmm0,0);
-    ulsch_llr[1] = _mm256_extract_epi16(xmm0,1);
-    ulsch_llr[2] = _mm256_extract_epi16(xmm1,0);
-    ulsch_llr[3] = _mm256_extract_epi16(xmm1,1);
-    ulsch_llr[4] = _mm256_extract_epi16(xmm2,0);
-    ulsch_llr[5] = _mm256_extract_epi16(xmm2,1);
+    ulsch_llr32[0] = _mm256_extract_epi32(xmm0,0);
+    ulsch_llr32[1] = _mm256_extract_epi32(xmm1,0);
+    ulsch_llr32[2] = _mm256_extract_epi32(xmm2,0);
+    ulsch_llr32+=3;
 #else
     ulsch_llr[0] = _mm_extract_epi16(xmm0,0);
     ulsch_llr[1] = _mm_extract_epi16(xmm0,1);
@@ -343,12 +342,10 @@ void nr_ulsch_64qam_llr(int32_t *rxdataF_comp,
     // ---------------------------------------
 #if defined(__x86_64__) || defined(__i386__)
 #ifdef __AVX2__
-    ulsch_llr[0] = _mm256_extract_epi16(xmm0,2);
-    ulsch_llr[1] = _mm256_extract_epi16(xmm0,3);
-    ulsch_llr[2] = _mm256_extract_epi16(xmm1,2);
-    ulsch_llr[3] = _mm256_extract_epi16(xmm1,3);
-    ulsch_llr[4] = _mm256_extract_epi16(xmm2,2);
-    ulsch_llr[5] = _mm256_extract_epi16(xmm2,3);
+    ulsch_llr32[0] = _mm256_extract_epi32(xmm0,1);
+    ulsch_llr32[1] = _mm256_extract_epi32(xmm1,1);
+    ulsch_llr32[2] = _mm256_extract_epi32(xmm2,1);
+    ulsch_llr32+=3;
 #else
     ulsch_llr[0] = _mm_extract_epi16(xmm0,2);
     ulsch_llr[1] = _mm_extract_epi16(xmm0,3);
@@ -374,12 +371,10 @@ void nr_ulsch_64qam_llr(int32_t *rxdataF_comp,
     // ---------------------------------------
 #if defined(__x86_64__) || defined(__i386__)
 #ifdef __AVX2__
-    ulsch_llr[0] = _mm256_extract_epi16(xmm0,4);
-    ulsch_llr[1] = _mm256_extract_epi16(xmm0,5);
-    ulsch_llr[2] = _mm256_extract_epi16(xmm1,4);
-    ulsch_llr[3] = _mm256_extract_epi16(xmm1,5);
-    ulsch_llr[4] = _mm256_extract_epi16(xmm2,4);
-    ulsch_llr[5] = _mm256_extract_epi16(xmm2,5);
+    ulsch_llr32[0] = _mm256_extract_epi32(xmm0,2);
+    ulsch_llr32[1] = _mm256_extract_epi32(xmm1,2);
+    ulsch_llr32[2] = _mm256_extract_epi32(xmm2,2);
+    ulsch_llr32+=3;
 #else
     ulsch_llr[0] = _mm_extract_epi16(xmm0,4);
     ulsch_llr[1] = _mm_extract_epi16(xmm0,5);
@@ -405,12 +400,10 @@ void nr_ulsch_64qam_llr(int32_t *rxdataF_comp,
     // ---------------------------------------
 #if defined(__x86_64__) || defined(__i386__)
 #ifdef __AVX2__
-    ulsch_llr[0] = _mm256_extract_epi16(xmm0,6);
-    ulsch_llr[1] = _mm256_extract_epi16(xmm0,7);
-    ulsch_llr[2] = _mm256_extract_epi16(xmm1,6);
-    ulsch_llr[3] = _mm256_extract_epi16(xmm1,7);
-    ulsch_llr[4] = _mm256_extract_epi16(xmm2,6);
-    ulsch_llr[5] = _mm256_extract_epi16(xmm2,7);
+    ulsch_llr32[0] = _mm256_extract_epi32(xmm0,3);
+    ulsch_llr32[1] = _mm256_extract_epi32(xmm1,3);
+    ulsch_llr32[2] = _mm256_extract_epi32(xmm2,3);
+    ulsch_llr32+=3;
 #else
     ulsch_llr[0] = _mm_extract_epi16(xmm0,6);
     ulsch_llr[1] = _mm_extract_epi16(xmm0,7);
@@ -431,35 +424,23 @@ void nr_ulsch_64qam_llr(int32_t *rxdataF_comp,
 
     ulsch_llr+=6;
 #ifdef __AVX2__
-    ulsch_llr[0] = _mm256_extract_epi16(xmm0,8);
-    ulsch_llr[1] = _mm256_extract_epi16(xmm0,9);
-    ulsch_llr[2] = _mm256_extract_epi16(xmm1,8);
-    ulsch_llr[3] = _mm256_extract_epi16(xmm1,9);
-    ulsch_llr[4] = _mm256_extract_epi16(xmm2,8);
-    ulsch_llr[5] = _mm256_extract_epi16(xmm2,9);
+    ulsch_llr32[0] = _mm256_extract_epi32(xmm0,4);
+    ulsch_llr32[1] = _mm256_extract_epi32(xmm1,4);
+    ulsch_llr32[2] = _mm256_extract_epi32(xmm2,4);
 
-    ulsch_llr[6] = _mm256_extract_epi16(xmm0,10);
-    ulsch_llr[7] = _mm256_extract_epi16(xmm0,11);
-    ulsch_llr[8] = _mm256_extract_epi16(xmm1,10);
-    ulsch_llr[9] = _mm256_extract_epi16(xmm1,11);
-    ulsch_llr[10] = _mm256_extract_epi16(xmm2,10);
-    ulsch_llr[11] = _mm256_extract_epi16(xmm2,11);
+    ulsch_llr32[3] = _mm256_extract_epi32(xmm0,5);
+    ulsch_llr32[4] = _mm256_extract_epi32(xmm1,5);
+    ulsch_llr32[5] = _mm256_extract_epi32(xmm2,5);
 
-    ulsch_llr[12] = _mm256_extract_epi16(xmm0,12);
-    ulsch_llr[13] = _mm256_extract_epi16(xmm0,13);
-    ulsch_llr[14] = _mm256_extract_epi16(xmm1,12);
-    ulsch_llr[15] = _mm256_extract_epi16(xmm1,13);
-    ulsch_llr[16] = _mm256_extract_epi16(xmm2,12);
-    ulsch_llr[17] = _mm256_extract_epi16(xmm2,13);
+    ulsch_llr32[6] = _mm256_extract_epi32(xmm0,6);
+    ulsch_llr32[7] = _mm256_extract_epi32(xmm1,6);
+    ulsch_llr32[8] = _mm256_extract_epi32(xmm2,6);
 
-    ulsch_llr[18] = _mm256_extract_epi16(xmm0,14);
-    ulsch_llr[19] = _mm256_extract_epi16(xmm0,15);
-    ulsch_llr[20] = _mm256_extract_epi16(xmm1,14);
-    ulsch_llr[21] = _mm256_extract_epi16(xmm1,15);
-    ulsch_llr[22] = _mm256_extract_epi16(xmm2,14);
-    ulsch_llr[23] = _mm256_extract_epi16(xmm2,15);
+    ulsch_llr32[9] = _mm256_extract_epi32(xmm0,7);
+    ulsch_llr32[10] = _mm256_extract_epi32(xmm1,7);
+    ulsch_llr32[11] = _mm256_extract_epi32(xmm2,7);
 
-    ulsch_llr+=24;
+    ulsch_llr32+=12;
 #endif
   }
 
