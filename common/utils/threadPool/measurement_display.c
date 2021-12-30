@@ -52,8 +52,9 @@ int main(int argc, char *argv[]) {
 
   while ( 1 ) {
     if ( read(fd,&doneRequest, sizeof(doneRequest)) ==  sizeof(doneRequest)) {
-      printf("%lu" SEP "%lu" SEP "%lu" SEP "%lu" "\n",
+      printf("%lu" SEP "%d" SEP "%lu" SEP "%lu" SEP "%lu" "\n",
              doneRequest.key,
+             doneRequest.cpuid,
              (doneRequest.startProcessingTime-doneRequest.creationTime)/cpuCyclesMicroSec,
              (doneRequest.endProcessingTime-doneRequest.startProcessingTime)/cpuCyclesMicroSec,
              (doneRequest.returnTime-doneRequest.endProcessingTime)/cpuCyclesMicroSec

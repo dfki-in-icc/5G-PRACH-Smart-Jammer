@@ -64,6 +64,7 @@ typedef struct notifiedFIFO_elt_s {
   uint64_t startProcessingTime;
   uint64_t endProcessingTime;
   uint64_t returnTime;
+  int      cpuid;
   void *msgData;
 }  notifiedFIFO_elt_t;
 
