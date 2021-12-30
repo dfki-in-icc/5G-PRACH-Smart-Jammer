@@ -665,15 +665,17 @@ int main(int argc, char **argv)
   gNB->ofdm_offset_divisor = UINT_MAX;
   gNB->threadPool = (tpool_t*)malloc(sizeof(tpool_t));
   gNB->respDecode = (notifiedFIFO_t*) malloc(sizeof(notifiedFIFO_t));
+  gNB->respPuschSymb = (notifiedFIFO_t*) malloc(sizeof(notifiedFIFO_t));
   char tp_param[80];
-  sprintf(tp_param,"-1");
-  int s_offset = 0;
+  sprintf(tp_param,"0");
+  int s_offset = 0,slen=0;
   for (int icpu=1; icpu<threadCnt; icpu++) {
-    sprintf(tp_param+2+s_offset,",-1");
-    s_offset += 3;
+    slen=sprintf(tp_param+1+s_offset,",%d",icpu);
+    s_offset += slen;
   }
 
-  initTpool(tp_param, gNB->threadPool, false);
+  printf("Initializing thread pool with %s from threadCnt %d\n",tp_param,threadCnt);
+  initTpool(tp_param, gNB->threadPool, threadCnt>1  ? true : false);
   initNotifiedFIFO(gNB->respDecode);
   gNB->resp_L1_tx = (notifiedFIFO_t*) malloc(sizeof(notifiedFIFO_t));
   initNotifiedFIFO(gNB->resp_L1_tx);

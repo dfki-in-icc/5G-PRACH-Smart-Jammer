@@ -510,8 +510,12 @@ typedef struct {
   /// \brief Total RE count after DMRS/PTRS RE's are extracted from respective symbol.
   /// - first index: ? [0...14] smybol per slot
   int16_t *ul_valid_re_per_slot;
+  /// \brief offset for llr corresponding to each symbol
+  int llr_offset[14];
   /// flag to verify if channel level computation is done
-  uint8_t cl_done;
+  int cl_done;
+  /// flag to indicate if channel extraction is done
+  int extraction_done[14]; 
   /// flag to indicate DTX on reception
   int DTX;
 } NR_gNB_PUSCH;
@@ -884,11 +888,13 @@ typedef struct PHY_VARS_gNB_s {
   time_stats_t rx_dft_stats;
   time_stats_t ulsch_freq_offset_estimation_stats;
   */
+  notifiedFIFO_t *respPuschSymb;
   notifiedFIFO_t *respDecode;
   notifiedFIFO_t *resp_L1;
   notifiedFIFO_t *resp_L1_tx;
   notifiedFIFO_t *resp_RU_tx;
   tpool_t *threadPool;
+  int nbSymb;
   int nbDecode;
   uint8_t pusch_proc_threads;
   int number_of_nr_dlsch_max;
@@ -896,6 +902,26 @@ typedef struct PHY_VARS_gNB_s {
   void * scopeData;
 } PHY_VARS_gNB;
 
+typedef struct puschSymbolProc_s {
+  PHY_VARS_gNB *gNB;
+  NR_DL_FRAME_PARMS *frame_parms;
+  nfapi_nr_pusch_pdu_t *rel15_ul;
+  int ulsch_id;
+  int slot;
+  int symbol;
+} puschSymbolProc_t;
+
+struct puschSymbolReqId {
+  uint16_t ulsch_id;
+  uint16_t frame;
+  uint8_t  slot;
+  uint16_t spare;
+} __attribute__((packed));
+
+union puschSymbolReqUnion {
+  struct puschSymbolReqId s;
+  uint64_t p;
+};
 typedef struct LDPCDecode_s {
   PHY_VARS_gNB *gNB;
   NR_UL_gNB_HARQ_t *ulsch_harq;

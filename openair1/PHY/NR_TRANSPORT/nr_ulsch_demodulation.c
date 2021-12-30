@@ -311,7 +311,7 @@ void nr_ulsch_extract_rbs_single(int32_t **rxdataF,
                                  NR_DL_FRAME_PARMS *frame_parms)
 {
 
-  unsigned short start_re, re, nb_re_pusch;
+  int short re, nb_re_pusch;
   unsigned char aarx;
   uint32_t rxF_ext_index = 0;
   uint32_t ul_ch0_ext_index = 0;
@@ -330,7 +330,7 @@ void nr_ulsch_extract_rbs_single(int32_t **rxdataF,
 #endif
 
   uint8_t is_dmrs_re;
-  start_re = (frame_parms->first_carrier_offset + (pusch_pdu->rb_start + pusch_pdu->bwp_start) * NR_NB_SC_PER_RB)%frame_parms->ofdm_symbol_size;
+  int start_re = (frame_parms->first_carrier_offset + (pusch_pdu->rb_start + pusch_pdu->bwp_start) * NR_NB_SC_PER_RB)%frame_parms->ofdm_symbol_size;
   nb_re_pusch = NR_NB_SC_PER_RB * pusch_pdu->rb_size;
 #ifdef __AVX2__
   int nb_re_pusch2 = nb_re_pusch + (nb_re_pusch&7);
@@ -1310,19 +1310,18 @@ void nr_ulsch_detection_mrc(NR_DL_FRAME_PARMS *frame_parms,
 #endif
 }
 
-void nr_pusch_symbol_processing(PHY_VARS_gNB *gNB,
-                                NR_DL_FRAME_PARMS *frame_parms,
-                                nfapi_nr_pusch_pdu_t *rel15_ul,
-                                int ulsch_id,
-                                int slot,
-                                int symbol) {
+void nr_pusch_symbol_processing(void *arg) {
 
+    puschSymbolProc_t *rdata=(puschSymbolProc_t*)arg;
 
-    int avgs;
-    int avg[frame_parms->nb_antennas_rx*rel15_ul->nrOfLayers];
-
-    int nb_re_pusch = get_nb_re_pusch(frame_parms,rel15_ul,symbol);
-    uint8_t dmrs_symbol_flag = (rel15_ul->ul_dmrs_symb_pos >> symbol) & 0x01;
+    PHY_VARS_gNB *gNB=rdata->gNB;
+    NR_DL_FRAME_PARMS *frame_parms=rdata->frame_parms;
+    nfapi_nr_pusch_pdu_t *rel15_ul=rdata->rel15_ul;
+    int ulsch_id=rdata->ulsch_id;
+    int slot=rdata->slot;
+    int symbol=rdata->symbol;
+    int dmrs_symbol_flag = (rel15_ul->ul_dmrs_symb_pos >> symbol) & 0x01;
+    int nb_re_pusch = gNB->pusch_vars[ulsch_id]->ul_valid_re_per_slot[symbol];
     if (dmrs_symbol_flag == 1) {
       if ((rel15_ul->ul_dmrs_symb_pos >> ((symbol + 1) % frame_parms->symbols_per_slot)) & 0x01)
         AssertFatal(1==0,"Double DMRS configuration is not yet supported\n");
@@ -1331,42 +1330,29 @@ void nr_pusch_symbol_processing(PHY_VARS_gNB *gNB,
 
     }
 
-    gNB->pusch_vars[ulsch_id]->ul_valid_re_per_slot[symbol] = nb_re_pusch;
     LOG_D(PHY,"symbol %d: nb_re_pusch %d, DMRS symbl used for Chest :%d \n", symbol, nb_re_pusch, gNB->pusch_vars[ulsch_id]->dmrs_symbol);
 
+#ifdef __AVX2__
+    int off = ((rel15_ul->rb_size&1) == 1)? 4:0;
+#else
+    int off = 0;
+#endif
     //----------------------------------------------------------
     //--------------------- RBs extraction ---------------------
     //----------------------------------------------------------
     if (nb_re_pusch > 0) {
 
-      start_meas(&gNB->ulsch_rbs_extraction_stats);
-      nr_ulsch_extract_rbs_single(gNB->common_vars.rxdataF,
-                                  gNB->pusch_vars[ulsch_id],
-                                  slot,
-                                  symbol,
-                                  dmrs_symbol_flag,
-                                  rel15_ul,
-                                  frame_parms);
-      stop_meas(&gNB->ulsch_rbs_extraction_stats);
-
-     if (gNB->pusch_vars[ulsch_id]->cl_done == 0) {
-        nr_ulsch_channel_level(gNB->pusch_vars[ulsch_id]->ul_ch_estimates_ext,
-                              frame_parms,
-                              avg,
-                              rel15_ul->start_symbol_index,
-                              get_nb_re_pusch(frame_parms,rel15_ul,rel15_ul->start_symbol_index),
-                              rel15_ul->nrOfLayers,
-                              rel15_ul->rb_size);
-
-        avgs = 0;
-
-        for (int aatx=0;aatx<rel15_ul->nrOfLayers;aatx++)
-          for (int aarx=0;aarx<frame_parms->nb_antennas_rx;aarx++) {
-             avgs = cmax(avgs,avg[aatx*frame_parms->nb_antennas_rx+aarx]);
-            }
-        gNB->pusch_vars[ulsch_id]->log2_maxh = (log2_approx(avgs)/2)+2;
-        gNB->pusch_vars[ulsch_id]->cl_done = 1;
-      } 
+      if (gNB->pusch_vars[ulsch_id]->extraction_done[symbol]!=1) {
+        start_meas(&gNB->ulsch_rbs_extraction_stats);
+        nr_ulsch_extract_rbs_single(gNB->common_vars.rxdataF,
+                                    gNB->pusch_vars[ulsch_id],
+                                    slot,
+                                    symbol,
+                                    dmrs_symbol_flag,
+                                    rel15_ul,
+                                    frame_parms);
+        stop_meas(&gNB->ulsch_rbs_extraction_stats);
+      }
       //----------------------------------------------------------
       //--------------------- Channel Scaling --------------------
       //----------------------------------------------------------
@@ -1424,6 +1410,16 @@ void nr_pusch_symbol_processing(PHY_VARS_gNB *gNB,
         LOG_D(PHY,"Transform precoding being done on data- symbol: %d, nb_re_pusch: %d\n", symbol, nb_re_pusch);
       }
 
+      start_meas(&gNB->ulsch_llr_stats);
+      nr_ulsch_compute_llr(&gNB->pusch_vars[ulsch_id]->rxdataF_comp[0][symbol * (off + rel15_ul->rb_size * NR_NB_SC_PER_RB)],
+                           gNB->pusch_vars[ulsch_id]->ul_ch_mag0,
+                           gNB->pusch_vars[ulsch_id]->ul_ch_magb0,
+                           &gNB->pusch_vars[ulsch_id]->llr[gNB->pusch_vars[ulsch_id]->llr_offset[symbol]],
+                           rel15_ul->rb_size,
+                           gNB->pusch_vars[ulsch_id]->ul_valid_re_per_slot[symbol],
+                           symbol,
+                           rel15_ul->qam_mod_order);
+      stop_meas(&gNB->ulsch_llr_stats);
       //----------------------------------------------------------
       //--------------------- PTRS Processing --------------------
       //----------------------------------------------------------
@@ -1462,7 +1458,8 @@ int nr_rx_pusch(PHY_VARS_gNB *gNB,
 
   gNB->pusch_vars[ulsch_id]->dmrs_symbol = INVALID_VALUE;
   gNB->pusch_vars[ulsch_id]->cl_done = 0;
-
+  memset(gNB->pusch_vars[ulsch_id]->extraction_done,0,14*sizeof(int));
+  gNB->nbSymb=0;
   bwp_start_subcarrier = ((rel15_ul->rb_start + rel15_ul->bwp_start)*NR_NB_SC_PER_RB + frame_parms->first_carrier_offset) % frame_parms->ofdm_symbol_size;
   LOG_D(PHY,"pusch %d.%d : bwp_start_subcarrier %d, rb_start %d, first_carrier_offset %d\n", frame,slot,bwp_start_subcarrier, rel15_ul->rb_start, frame_parms->first_carrier_offset);
   LOG_D(PHY,"pusch %d.%d : ul_dmrs_symb_pos %x\n",frame,slot,rel15_ul->ul_dmrs_symb_pos);
@@ -1507,36 +1504,81 @@ int nr_rx_pusch(PHY_VARS_gNB *gNB,
   }
   stop_meas(&gNB->ulsch_channel_estimation_stats);
 
-#ifdef __AVX2__
-  int off = ((rel15_ul->rb_size&1) == 1)? 4:0;
-#else
-  int off = 0;
-#endif
-  uint32_t rxdataF_ext_offset = 0;
+
+  void (*nr_pusch_symbol_processing_ptr)(void*) = &nr_pusch_symbol_processing;
+
+  // first the computation of channel levels
+
+  int nb_re_pusch=0,meas_symbol=-1;
+  for(meas_symbol = rel15_ul->start_symbol_index; 
+      meas_symbol < (rel15_ul->start_symbol_index + rel15_ul->nr_of_symbols); 
+      meas_symbol++) 
+    if ((nb_re_pusch = get_nb_re_pusch(frame_parms,rel15_ul,meas_symbol)) > 0) break;
+
+  AssertFatal(nb_re_pusch>0 && meas_symbol>=0,"nb_re_pusch %d cannot be 0 or meas_symbol %d cannot be negative here\n",nb_re_pusch,meas_symbol);
+
+
+  start_meas(&gNB->ulsch_rbs_extraction_stats);
+  nr_ulsch_extract_rbs_single(gNB->common_vars.rxdataF,
+                              gNB->pusch_vars[ulsch_id],
+                              slot,
+                              meas_symbol,
+                              (rel15_ul->ul_dmrs_symb_pos >> meas_symbol) & 0x01,
+                              rel15_ul,
+                              frame_parms);
+  stop_meas(&gNB->ulsch_rbs_extraction_stats);
+
+  int avgs;
+  int avg[frame_parms->nb_antennas_rx*rel15_ul->nrOfLayers];
+
+  nr_ulsch_channel_level(gNB->pusch_vars[ulsch_id]->ul_ch_estimates_ext,
+                         frame_parms,
+                         avg,
+                         meas_symbol,
+                         nb_re_pusch,
+                         rel15_ul->nrOfLayers,
+                         rel15_ul->rb_size);
+
+  avgs = 0;
+
+  for (int aatx=0;aatx<rel15_ul->nrOfLayers;aatx++)
+    for (int aarx=0;aarx<frame_parms->nb_antennas_rx;aarx++) {
+       avgs = cmax(avgs,avg[aatx*frame_parms->nb_antennas_rx+aarx]);
+    }
+  gNB->pusch_vars[ulsch_id]->log2_maxh = (log2_approx(avgs)/2)+2;
+  gNB->pusch_vars[ulsch_id]->cl_done = 1;
+  gNB->pusch_vars[ulsch_id]->extraction_done[meas_symbol]=1;
 
   for(uint8_t symbol = rel15_ul->start_symbol_index; 
       symbol < (rel15_ul->start_symbol_index + rel15_ul->nr_of_symbols); 
       symbol++) {
-    nr_pusch_symbol_processing(gNB,frame_parms,rel15_ul,ulsch_id,slot,symbol);
 
-
-      /*---------------------------------------------------------------------------------------------------- */
-      /*--------------------  LLRs computation  -------------------------------------------------------------*/
-      /*-----------------------------------------------------------------------------------------------------*/
-    if (gNB->pusch_vars[ulsch_id]->ul_valid_re_per_slot[symbol] > 0) { 
-      start_meas(&gNB->ulsch_llr_stats);
-      nr_ulsch_compute_llr(&gNB->pusch_vars[ulsch_id]->rxdataF_comp[0][symbol * (off + rel15_ul->rb_size * NR_NB_SC_PER_RB)],
-                           gNB->pusch_vars[ulsch_id]->ul_ch_mag0,
-                           gNB->pusch_vars[ulsch_id]->ul_ch_magb0,
-                           &gNB->pusch_vars[ulsch_id]->llr[rxdataF_ext_offset * rel15_ul->qam_mod_order],
-                           rel15_ul->rb_size,
-                           gNB->pusch_vars[ulsch_id]->ul_valid_re_per_slot[symbol],
-                           symbol,
-                           rel15_ul->qam_mod_order);
-      stop_meas(&gNB->ulsch_llr_stats);
-      rxdataF_ext_offset += gNB->pusch_vars[ulsch_id]->ul_valid_re_per_slot[symbol];
+    gNB->pusch_vars[ulsch_id]->ul_valid_re_per_slot[symbol] = get_nb_re_pusch(frame_parms,rel15_ul,symbol);
+    gNB->pusch_vars[ulsch_id]->llr_offset[symbol] = (symbol==rel15_ul->start_symbol_index) ? 
+                                                    0 : 
+                                                    gNB->pusch_vars[ulsch_id]->llr_offset[symbol-1] + gNB->pusch_vars[ulsch_id]->ul_valid_re_per_slot[symbol-1] * rel15_ul->qam_mod_order;
+    if (gNB->pusch_vars[ulsch_id]->ul_valid_re_per_slot[symbol] > 0)  {
+      union puschSymbolReqUnion id = {.s={ulsch_id,frame,slot,0}};
+      id.p=1+symbol;
+      notifiedFIFO_elt_t *req=newNotifiedFIFO_elt(sizeof(puschSymbolProc_t),id.p,gNB->respPuschSymb,nr_pusch_symbol_processing_ptr);
+      puschSymbolProc_t *rdata=(puschSymbolProc_t*)NotifiedFifoData(req);
+      rdata->gNB = gNB;
+      rdata->frame_parms=frame_parms;
+      rdata->rel15_ul = rel15_ul;
+      rdata->slot = slot;
+      rdata->symbol = symbol;
+      rdata->ulsch_id=ulsch_id;
+      pushTpool(gNB->threadPool,req);
+      gNB->nbSymb++;
+      LOG_D(PHY,"%d.%d Added symbol %d (count %d) to process, in pipe\n",frame,slot,symbol,gNB->nbSymb);
     }
   } // symbol loop
+
+  while (gNB->nbSymb > 0) {
+    notifiedFIFO_elt_t *req=pullTpool(gNB->respPuschSymb, gNB->threadPool);
+    gNB->nbSymb--;
+    delNotifiedFIFO_elt(req);
+  }
 
   return 0;
 }
