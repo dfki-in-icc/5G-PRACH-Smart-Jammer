@@ -28,6 +28,7 @@
 
 #include <string.h>
 #include "nrLDPCdecoder_defs.h"
+#include <common/utils/memcpy/FastMemcpy/FastMemcpy_Avx.h>
 //#include <omp.h>
 /**
    \brief Circular memcpy1
@@ -43,8 +44,8 @@
 */
 //more faster memcpy by using "rep movsb", which on modern processors is highly optimized
 
-void *memcpy1(void *dst, const void *src, size_t n)
-{
+void *memcpy1(void *dst, const void *src, size_t n) {
+
     void *ret = dst;
     asm volatile("rep movsb" : "+D" (dst) : "c"(n), "S"(src) : "cc", "memory");
     return ret;
@@ -54,8 +55,8 @@ void *memcpy1(void *dst, const void *src, size_t n)
 static inline void *nrLDPC_inv_circ_memcpy1(int8_t *str1, const int8_t *str2, uint16_t Z, uint16_t cshift)
 {
     uint16_t rem = Z - cshift;
-    memcpy1(str1+cshift, str2    , rem);
-    memcpy1(str1       , str2+rem, cshift);
+    memcpy_fast(str1+cshift, str2    , rem);
+    memcpy_fast(str1       , str2+rem, cshift);
 
     return(str1);
 }
@@ -74,8 +75,8 @@ static inline void *nrLDPC_inv_circ_memcpy1(int8_t *str1, const int8_t *str2, ui
 static inline void *nrLDPC_circ_memcpy1(int8_t *str1, const int8_t *str2, uint16_t Z, uint16_t cshift)
 {
     uint16_t rem = Z - cshift;
-    memcpy1(str1     , str2+cshift, rem);
-    memcpy1(str1+rem , str2       , cshift);
+    memcpy_fast(str1     , str2+cshift, rem);
+    memcpy_fast(str1+rem , str2       , cshift);
 
     return(str1);
 }
@@ -119,14 +120,14 @@ static inline void nrLDPC_llr2llrProcBuf(t_nrLDPC_lut* p_lut, int8_t* llr, t_nrL
     // Copy LLRs connected to 1 CN
     if (numBn2CnG1 > 0)
     {
-        memcpy1(&llrProcBuf[0], &llr[colG1], numBn2CnG1*Z);
+        memcpy_fast(&llrProcBuf[0], &llr[colG1], numBn2CnG1*Z);
     }
 
     // First 2 columns might be set to zero directly if it's true they always belong to the groups with highest number of connected CNs...
     for (i=0; i<startColParity; i++)
     {
         idxBn = lut_llr2llrProcBufAddr[i] + lut_llr2llrProcBufBnPos[i]*Z;
-        memcpy1(&llrProcBuf[idxBn], llr, Z);
+        memcpy_fast(&llrProcBuf[idxBn], llr, Z);
         llr += Z;
     }
 }

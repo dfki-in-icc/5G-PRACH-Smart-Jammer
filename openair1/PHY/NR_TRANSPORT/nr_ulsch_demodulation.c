@@ -8,12 +8,13 @@
 #include "PHY/NR_ESTIMATION/nr_ul_estimation.h"
 #include "PHY/defs_nr_common.h"
 #include "common/utils/nr/nr_common.h"
-
+#include "common/utils/memcpy/FastMemcpy/FastMemcpy_Avx.h"
 //#define DEBUG_CH_COMP
 //#define DEBUG_RB_EXT
 //#define DEBUG_CH_MAG
 
 #define INVALID_VALUE 255
+#define print_shorts(s,x) printf("%s %d,%d,%d,%d,%d,%d,%d,%d\n",s,(x)[0],(x)[1],(x)[2],(x)[3],(x)[4],(x)[5],(x)[6],(x)[7])
 
 void nr_idft(int32_t *z, uint32_t Msc_PUSCH)
 {
@@ -357,19 +358,202 @@ void nr_ulsch_extract_rbs_single(int32_t **rxdataF,
       //
       //rxF[ ((start_re + re)*2)      % (frame_parms->ofdm_symbol_size*2)]);
       if (start_re + nb_re_pusch < frame_parms->ofdm_symbol_size) {
-        memcpy((void*)rxF_ext,
+        memcpy_fast((void*)rxF_ext,
                 (void*)&rxF[start_re*2],
                 nb_re_pusch*sizeof(int32_t));
       } else {
-	int neg_length = frame_parms->ofdm_symbol_size-start_re;
-	int pos_length = nb_re_pusch-neg_length;
+	      int neg_length = frame_parms->ofdm_symbol_size-start_re;
+	      int pos_length = nb_re_pusch-neg_length;
 
-	memcpy((void*)rxF_ext,(void*)&rxF[start_re*2],neg_length*sizeof(int32_t));
-	memcpy((void*)&rxF_ext[2*neg_length],(void*)rxF,pos_length*sizeof(int32_t));
+	      memcpy_fast((void*)rxF_ext,(void*)&rxF[start_re*2],neg_length*sizeof(int32_t));
+	      memcpy_fast((void*)&rxF_ext[2*neg_length],(void*)rxF,pos_length*sizeof(int32_t));
       }
-      memcpy((void*)ul_ch0_ext,(void*)ul_ch0,nb_re_pusch*sizeof(int32_t));
+      memcpy_fast((void*)ul_ch0_ext,(void*)ul_ch0,nb_re_pusch*sizeof(int32_t));
     }
+    else if (pusch_pdu->dmrs_config_type == pusch_dmrs_type1) { // 6 REs / PRB
+      AssertFatal(delta==0||delta==1,"Illegal delta %d\n",delta);
+      int32_t *rxF32 = (int32_t*)&rxF[start_re*2];
+      int32_t *rxF_ext32 =(int32_t*)rxF_ext;
+      int32_t *ul_ch032 = (int32_t*)ul_ch0;
+      int32_t *ul_ch0_ext32 =(int32_t*)ul_ch0_ext;
+      int idx,idx2,idx3;
+      if (start_re + nb_re_pusch < frame_parms->ofdm_symbol_size) {
+        for (idx=1-delta,idx2=0;idx<nb_re_pusch;idx+=2,idx2++) {
+          rxF_ext32[idx2] = rxF32[idx];
+          ul_ch0_ext32[idx2]= ul_ch032[idx];
+        }
+      }
+      else { // handle the two pieces around DC
+        LOG_D(PHY,"Running extraction with DMRS for config 1, allocation around DC, start_re %d\n",start_re);
+	      int neg_length = frame_parms->ofdm_symbol_size-start_re;
+	      int pos_length = nb_re_pusch-neg_length;
+        
+        for (idx=1-delta,idx2=0;idx<neg_length;idx+=2,idx2++) {
+          rxF_ext32[idx2] = rxF32[idx];
+          ul_ch0_ext32[idx2]= ul_ch032[idx];
+        }
+        rxF32=(int32_t*)rxF;
+        idx3=idx;
+        for (idx=1-delta;idx<neg_length;idx+=2,idx2++,idx3++) {
+          rxF_ext32[idx2] = rxF32[idx];
+          ul_ch0_ext32[idx2]= ul_ch032[idx3];
+        }
+      }
+    }
+    else if (pusch_pdu->dmrs_config_type == pusch_dmrs_type2)  { // 8 REs / PRB
+      AssertFatal(delta==0||delta==2||delta==4,"Illegal delta %d\n",delta);
+      if (start_re + nb_re_pusch < frame_parms->ofdm_symbol_size) {
+        int64_t *rxF64 = (int64_t*)&rxF[start_re*2];
+        int64_t *rxF_ext64 =(int64_t*)rxF_ext;
+        int64_t *ul_ch064 = (int64_t*)ul_ch0;
+        int64_t *ul_ch0_ext64 =(int64_t*)ul_ch0_ext;
+        if (delta==0) {
+          for (int idx=0;idx<nb_re_pusch>>1;idx+=6) {
+             rxF_ext64[idx]=rxF64[idx+1];
+             rxF_ext64[idx+1]=rxF64[idx+2];
+             rxF_ext64[idx+2]=rxF64[idx+4];
+             rxF_ext64[idx+3]=rxF64[idx+5];
+             ul_ch0_ext64[idx]=ul_ch064[idx+1];
+             ul_ch0_ext64[idx+1]=ul_ch064[idx+2];
+             ul_ch0_ext64[idx+2]=ul_ch064[idx+4];
+             ul_ch0_ext64[idx+3]=ul_ch064[idx+5];
+          }
+        }
+        else if (delta==2) {
+          for (int idx=0;idx<nb_re_pusch>>1;idx+=6) {
+             rxF_ext64[idx]=rxF64[idx+0];
+             rxF_ext64[idx+1]=rxF64[idx+2];
+             rxF_ext64[idx+2]=rxF64[idx+3];
+             rxF_ext64[idx+3]=rxF64[idx+5];
+             ul_ch0_ext64[idx]=ul_ch064[idx+0];
+             ul_ch0_ext64[idx+1]=ul_ch064[idx+2];
+             ul_ch0_ext64[idx+2]=ul_ch064[idx+3];
+             ul_ch0_ext64[idx+3]=ul_ch064[idx+5];
+          }
+        }
+        else if (delta==4) {
+          for (int idx=0;idx<nb_re_pusch>>1;idx+=6) {
+             rxF_ext64[idx]=rxF64[idx+0];
+             rxF_ext64[idx+1]=rxF64[idx+1];
+             rxF_ext64[idx+2]=rxF64[idx+3];
+             rxF_ext64[idx+3]=rxF64[idx+4];
+             ul_ch0_ext64[idx]=ul_ch064[idx+0];
+             ul_ch0_ext64[idx+1]=ul_ch064[idx+1];
+             ul_ch0_ext64[idx+2]=ul_ch064[idx+3];
+             ul_ch0_ext64[idx+3]=ul_ch064[idx+4];
+          }
+        }
+      }
+      else {
+	      int neg_length = frame_parms->ofdm_symbol_size-start_re;
+	      int pos_length = nb_re_pusch-neg_length;
+        if ((pos_length%12) > 0 ) pos_length+=12;
+        int64_t *rxF64 = (int64_t*)&rxF[start_re*2];
+        int64_t *rxF_ext64 =(int64_t*)rxF_ext;
+        int64_t *ul_ch064 = (int64_t*)ul_ch0;
+        int64_t *ul_ch0_ext64 =(int64_t*)ul_ch0_ext;
+        int idx=0;
+        if (delta==0) {
+          for (idx=0;idx<neg_length>>1;idx+=6) {
+             rxF_ext64[idx]  =rxF64[idx+1];
+             rxF_ext64[idx+1]=rxF64[idx+2];
+             rxF_ext64[idx+2]=rxF64[idx+4];
+             rxF_ext64[idx+3]=rxF64[idx+5];
+             ul_ch0_ext64[idx]=ul_ch064[idx+1];
+             ul_ch0_ext64[idx+1]=ul_ch064[idx+2];
+             ul_ch0_ext64[idx+2]=ul_ch064[idx+4];
+             ul_ch0_ext64[idx+3]=ul_ch064[idx+5];
+          }
+          if ((neg_length%12) > 0) {
+            rxF_ext64[idx+4]=rxF64[idx+7];
+            rxF_ext64[idx+5]=rxF64[idx+8];
+            ul_ch0_ext64[idx+4]=ul_ch064[idx+7];
+            ul_ch0_ext64[idx+5]=ul_ch064[idx+8];
+          }
+          rxF_ext64+=(neg_length/3);
+          rxF64=(int64_t*)rxF;
+          ul_ch0_ext64+=(neg_length/3);
+          ul_ch064+=(neg_length>>1);
+          for (idx=0;idx<pos_length>>1;idx+=6) {
+             rxF_ext64[idx]  =rxF64[idx+1];
+             rxF_ext64[idx+1]=rxF64[idx+2];
+             rxF_ext64[idx+2]=rxF64[idx+4];
+             rxF_ext64[idx+3]=rxF64[idx+5];
+             ul_ch0_ext64[idx]=ul_ch064[idx+1];
+             ul_ch0_ext64[idx+1]=ul_ch064[idx+2];
+             ul_ch0_ext64[idx+2]=ul_ch064[idx+4];
+             ul_ch0_ext64[idx+3]=ul_ch064[idx+5];
+          }
+        }
+        else if (delta==2) {
+          for (idx=0;idx<neg_length>>1;idx+=6) {
+             rxF_ext64[idx]  =rxF64[idx+0];
+             rxF_ext64[idx+1]=rxF64[idx+2];
+             rxF_ext64[idx+2]=rxF64[idx+3];
+             rxF_ext64[idx+3]=rxF64[idx+5];
+             ul_ch0_ext64[idx]=ul_ch064[idx+0];
+             ul_ch0_ext64[idx+1]=ul_ch064[idx+2];
+             ul_ch0_ext64[idx+2]=ul_ch064[idx+3];
+             ul_ch0_ext64[idx+3]=ul_ch064[idx+5];
+          }
+          if ((neg_length%12) > 0) {
+            rxF_ext64[idx+4]=rxF64[idx+6];
+            rxF_ext64[idx+5]=rxF64[idx+8];
+            ul_ch0_ext64[idx+4]=ul_ch064[idx+6];
+            ul_ch0_ext64[idx+5]=ul_ch064[idx+8];
+          }
+          rxF_ext64+=(neg_length/3);
+          rxF64=(int64_t*)rxF;
+          ul_ch0_ext64+=(neg_length/3);
+          ul_ch064+=(neg_length>>1);
+          for (idx=0;idx<pos_length>>1;idx+=6) {
+             rxF_ext64[idx]  =rxF64[idx+0];
+             rxF_ext64[idx+1]=rxF64[idx+2];
+             rxF_ext64[idx+2]=rxF64[idx+3];
+             rxF_ext64[idx+3]=rxF64[idx+5];
+             ul_ch0_ext64[idx]=ul_ch064[idx+0];
+             ul_ch0_ext64[idx+1]=ul_ch064[idx+2];
+             ul_ch0_ext64[idx+2]=ul_ch064[idx+3];
+             ul_ch0_ext64[idx+3]=ul_ch064[idx+5];
+          }
+        }
+        else if (delta==4) {
+          for (idx=0;idx<neg_length>>1;idx+=6) {
+             rxF_ext64[idx]  =rxF64[idx+0];
+             rxF_ext64[idx+1]=rxF64[idx+1];
+             rxF_ext64[idx+2]=rxF64[idx+3];
+             rxF_ext64[idx+3]=rxF64[idx+4];
+             ul_ch0_ext64[idx]=ul_ch064[idx+0];
+             ul_ch0_ext64[idx+1]=ul_ch064[idx+1];
+             ul_ch0_ext64[idx+2]=ul_ch064[idx+3];
+             ul_ch0_ext64[idx+3]=ul_ch064[idx+4];
+          }
+          if ((neg_length%12) > 0) {
+            rxF_ext64[idx+4]=rxF64[idx+6];
+            rxF_ext64[idx+5]=rxF64[idx+7];
+            ul_ch0_ext64[idx+4]=ul_ch064[idx+6];
+            ul_ch0_ext64[idx+5]=ul_ch064[idx+7];
+          }
+          rxF_ext64+=(neg_length/3);
+          rxF64=(int64_t*)rxF;
+          ul_ch0_ext64+=(neg_length/3);
+          ul_ch064+=(neg_length>>1);
+          for (idx=0;idx<pos_length>>1;idx+=6) {
+             rxF_ext64[idx]  =rxF64[idx+0];
+             rxF_ext64[idx+1]=rxF64[idx+1];
+             rxF_ext64[idx+2]=rxF64[idx+3];
+             rxF_ext64[idx+3]=rxF64[idx+4];
+             ul_ch0_ext64[idx]=ul_ch064[idx+0];
+             ul_ch0_ext64[idx+1]=ul_ch064[idx+1];
+             ul_ch0_ext64[idx+2]=ul_ch064[idx+3];
+             ul_ch0_ext64[idx+3]=ul_ch064[idx+4];
+          }
+        }
+      }
+    }
+#if 0      
     else {
+
       for (re = 0; re < nb_re_pusch; re++) {
 
         is_dmrs_re = (re == get_dmrs_freq_idx_ul(n, k_prime, delta, pusch_pdu->dmrs_config_type));
@@ -398,6 +582,7 @@ void nr_ulsch_extract_rbs_single(int32_t **rxdataF,
         ul_ch0_index++;
       }
     }
+#endif // __AVX2_
   }
 }
 
@@ -512,8 +697,6 @@ void nr_ulsch_channel_level(int **ul_ch_estimates_ext,
       ul_ch128=(__m128i *)&ul_ch_estimates_ext[aatx*frame_parms->nb_antennas_rx+aarx][symbol*(off+(nb_rb*12))];
 
       for (rb = 0; rb < (len<12 ? 1 : len/12); rb++) {
-        LOG_D(PHY,"channel_level: symbol %d %d.%d rb %d : %d.%d\n",
-              symbol,aatx,aarx,rb,((int16_t *)ul_ch128)[0],((int16_t *)ul_ch128)[1]);
         avg128U = _mm_add_epi32(avg128U, _mm_srai_epi32(_mm_madd_epi16(ul_ch128[0], ul_ch128[0]), x));
         avg128U = _mm_add_epi32(avg128U, _mm_srai_epi32(_mm_madd_epi16(ul_ch128[1], ul_ch128[1]), x));
         avg128U = _mm_add_epi32(avg128U, _mm_srai_epi32(_mm_madd_epi16(ul_ch128[2], ul_ch128[2]), x));
@@ -1504,11 +1687,12 @@ int nr_rx_pusch(PHY_VARS_gNB *gNB,
   }
   stop_meas(&gNB->ulsch_channel_estimation_stats);
 
-
+  start_meas(&gNB->rx_pusch_init_stats);
   void (*nr_pusch_symbol_processing_ptr)(void*) = &nr_pusch_symbol_processing;
 
   // first the computation of channel levels
 
+  
   int nb_re_pusch=0,meas_symbol=-1;
   for(meas_symbol = rel15_ul->start_symbol_index; 
       meas_symbol < (rel15_ul->start_symbol_index + rel15_ul->nr_of_symbols); 
@@ -1548,7 +1732,8 @@ int nr_rx_pusch(PHY_VARS_gNB *gNB,
   gNB->pusch_vars[ulsch_id]->log2_maxh = (log2_approx(avgs)/2)+2;
   gNB->pusch_vars[ulsch_id]->cl_done = 1;
   gNB->pusch_vars[ulsch_id]->extraction_done[meas_symbol]=1;
-
+  stop_meas(&gNB->rx_pusch_init_stats);
+  start_meas(&gNB->rx_pusch_symbol_processing_stats);
   for(uint8_t symbol = rel15_ul->start_symbol_index; 
       symbol < (rel15_ul->start_symbol_index + rel15_ul->nr_of_symbols); 
       symbol++) {
@@ -1579,6 +1764,6 @@ int nr_rx_pusch(PHY_VARS_gNB *gNB,
     gNB->nbSymb--;
     delNotifiedFIFO_elt(req);
   }
-
+  stop_meas(&gNB->rx_pusch_symbol_processing_stats);
   return 0;
 }

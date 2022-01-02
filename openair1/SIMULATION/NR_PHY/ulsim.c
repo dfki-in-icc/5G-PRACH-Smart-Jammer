@@ -1028,6 +1028,8 @@ int main(int argc, char **argv)
     effTP[snrRun] = 0;
     reset_meas(&gNB->phy_proc_rx);
     reset_meas(&gNB->rx_pusch_stats);
+    reset_meas(&gNB->rx_pusch_init_stats);
+    reset_meas(&gNB->rx_pusch_symbol_processing_stats);
     reset_meas(&gNB->ulsch_decoding_stats);
     reset_meas(&gNB->ulsch_deinterleaving_stats);
     reset_meas(&gNB->ulsch_rate_unmatching_stats);
@@ -1476,12 +1478,16 @@ int main(int argc, char **argv)
       printf("gNB RX\n");
       printDistribution(&gNB->phy_proc_rx,table_rx,"Total PHY proc rx");
       printStatIndent(&gNB->rx_pusch_stats,"RX PUSCH time");
-      printStatIndent2(&gNB->ulsch_channel_estimation_stats,"ULSCH channel estimation time");
+      printStatIndent2(&gNB->ulsch_channel_estimation_stats,"RX PUSCH channel estimation time");
+      printStatIndent2(&gNB->rx_pusch_init_stats,"RX PUSCH Initialization time");
+      printStatIndent2(&gNB->rx_pusch_symbol_processing_stats,"RX PUSCH Symbol Processing time");
       printStatIndent2(&gNB->ulsch_ptrs_processing_stats,"ULSCH PTRS Processing time");
-      printStatIndent2(&gNB->ulsch_rbs_extraction_stats,"ULSCH rbs extraction time");
-      printStatIndent2(&gNB->ulsch_channel_compensation_stats,"ULSCH channel compensation time");
-      printStatIndent2(&gNB->ulsch_mrc_stats,"ULSCH mrc computation");
-      printStatIndent2(&gNB->ulsch_llr_stats,"ULSCH llr computation");
+      if (threadCnt == 1) {
+        printStatIndent2(&gNB->ulsch_rbs_extraction_stats,"ULSCH rbs extraction time");
+        printStatIndent2(&gNB->ulsch_channel_compensation_stats,"ULSCH channel compensation time");
+        printStatIndent2(&gNB->ulsch_mrc_stats,"ULSCH mrc computation");
+        printStatIndent2(&gNB->ulsch_llr_stats,"ULSCH llr computation");
+      }
       printStatIndent(&gNB->ulsch_unscrambling_stats,"ULSCH unscrambling");
       printStatIndent(&gNB->ulsch_decoding_stats,"ULSCH total decoding time");
       printf("\nUE TX\n");
