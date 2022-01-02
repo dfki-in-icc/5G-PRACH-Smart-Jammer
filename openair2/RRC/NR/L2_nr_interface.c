@@ -285,7 +285,7 @@ int8_t mac_rrc_nr_data_req(const module_id_t Mod_idP,
 
     LOG_D(NR_RRC,"[gNB %d] Frame %d CCCH request (Srb_id %ld)\n", Mod_idP, frameP, Srb_id);
 
-    AssertFatal(ue_context_p!=NULL,"failed to get ue_context\n");
+    AssertFatal(ue_context_p!=NULL,"failed to get ue_context, rnti %x\n",rnti);
     char payload_size = ue_context_p->ue_context.Srb0.Tx_buffer.payload_size;
 
     // check if data is there for MAC
@@ -325,7 +325,7 @@ int8_t nr_mac_rrc_data_ind(const module_id_t     module_idP,
     NR_ServingCellConfigCommon_t *scc=RC.nrrrc[module_idP]->carrier.servingcellconfigcommon;
     uint8_t sdu2[100];
     memset(&cellGroupConfig,0,sizeof(cellGroupConfig));
-    fill_initial_cellGroupConfig(rntiP,&cellGroupConfig,scc);
+    fill_initial_cellGroupConfig(rntiP,&cellGroupConfig,scc,&RC.nrrrc[module_idP]->carrier);
     asn_enc_rval_t enc_rval = uper_encode_to_buffer(&asn_DEF_NR_CellGroupConfig,
 						    NULL,
 						    (void *)&cellGroupConfig,
@@ -381,5 +381,19 @@ void nr_mac_gNB_rrc_ul_failure(const module_id_t Mod_instP,
       ue_context_p->ue_context.ul_failure_timer=1;
   } else {
     LOG_D(RRC,"Frame %d, Subframe %d: UL failure: UE %x unknown \n",frameP,subframeP,rntiP);
+  }
+}
+
+void nr_mac_gNB_rrc_ul_failure_reset(const module_id_t Mod_instP,
+                                     const frame_t frameP,
+                                     const sub_frame_t subframeP,
+                                     const rnti_t rntiP) {
+  struct rrc_gNB_ue_context_s *ue_context_p = NULL;
+  ue_context_p = rrc_gNB_get_ue_context(RC.nrrrc[Mod_instP], rntiP);
+  if (ue_context_p != NULL) {
+    LOG_W(RRC,"Frame %d, Subframe %d: UE %x UL failure reset, deactivating timer\n",frameP,subframeP,rntiP);
+    ue_context_p->ue_context.ul_failure_timer=0;
+  } else {
+    LOG_W(RRC,"Frame %d, Subframe %d: UL failure reset: UE %x unknown \n",frameP,subframeP,rntiP);
   }
 }

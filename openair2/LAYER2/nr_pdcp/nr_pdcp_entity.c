@@ -104,7 +104,7 @@ static void nr_pdcp_entity_recv_pdu(nr_pdcp_entity_t *entity,
       LOG_E(PDCP, "discard NR PDU, integrity failed\n");
       //TODO L5G
       integrity_size=0;
-      //return;
+//      return;
     }
   }
 
