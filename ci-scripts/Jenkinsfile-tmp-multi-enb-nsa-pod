@@ -48,7 +48,7 @@ def eNB_TargetBranch
 
 //Status fed to the database
 def StatusForDb = ""
-
+def PerformDbUpdate = true
 
 pipeline {
   agent {
@@ -184,6 +184,7 @@ pipeline {
           }
           if (params.DataBaseHost == "none") {
             DataBaseHost = pythonExecutor
+            PerformDbUpdate = false
           }
 
           if (allParametersPresent) {
@@ -372,14 +373,13 @@ pipeline {
           }
         }
         stage ("SQL Collect"){
-          when {
-            expression { params.DataBaseHost != "none" }
-          }
           agent {label DataBaseHost}
           steps {
             script {
-              if (currentBuild.result=='FAILURE') {StatusForDb = 'FAIL'} else {StatusForDb = 'PASS'}
-              sh "python3 /home/oaicicd/mysql/sql_connect.py ${JOB_NAME} ${params.eNB_MR} ${params.eNB_Branch} ${env.BUILD_ID} ${env.BUILD_URL} ${StatusForDb} ''"
+              if (PerformDbUpdate) {
+                if (currentBuild.result=='FAILURE') {StatusForDb = 'FAIL'} else {StatusForDb = 'PASS'}
+                sh "python3 /home/oaicicd/mysql/sql_connect.py ${JOB_NAME} ${params.eNB_MR} ${params.eNB_Branch} ${env.BUILD_ID} ${env.BUILD_URL} ${StatusForDb} ''"
+              }
             }
           }
         }
