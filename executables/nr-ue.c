@@ -778,19 +778,13 @@ void init_NR_UE_threads(int nb_inst) {
 
     LOG_I(PHY,"Intializing UE Threads for instance %d (%p,%p)...\n",inst,PHY_vars_UE_g[inst],PHY_vars_UE_g[inst][0]);
     threadCreate(&threads[inst], UE_thread, (void *)UE, "UEthread", -1, OAI_PRIORITY_RT_MAX);
-
-     if(get_nrUE_params()->nr_dlsch_parallel)
-     {
-       pthread_t dlsch0_threads;
-       threadCreate(&dlsch0_threads, dlsch_thread, (void *)UE, "DLthread", -1, OAI_PRIORITY_RT_MAX-1);
-     }
   }
 }
 
 /* HACK: this function is needed to compile the UE
  * fix it somehow
  */
-int8_t find_dlsch(uint16_t rnti,
+int find_dlsch(uint16_t rnti,
                   PHY_VARS_eNB *eNB,
                   find_type_t type)
 {
