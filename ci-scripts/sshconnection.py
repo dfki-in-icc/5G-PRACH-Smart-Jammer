@@ -195,7 +195,7 @@ class SSHConnection():
 		copy_status = False
 		logging.debug('scp '+ username + '@' + ipaddress + ':' + source + ' ' + destination)
 		while count < 10:
-			scp_spawn = pexpect.spawn('scp '+ username + '@' + ipaddress + ':' + source + ' ' + destination, timeout = 100)
+			scp_spawn = pexpect.spawn('scp -o PubkeyAuthentication=no -o StrictHostKeyChecking=no '+ username + '@' + ipaddress + ':' + source + ' ' + destination, timeout = 100)
 			scp_response = scp_spawn.expect(['Are you sure you want to continue connecting (yes/no)?', 'password:', pexpect.EOF, pexpect.TIMEOUT])
 			if scp_response == 0:
 				scp_spawn.sendline('yes')
@@ -234,7 +234,7 @@ class SSHConnection():
 		copy_status = False
 		logging.debug('scp ' + source + ' ' + username + '@' + ipaddress + ':' + destination)
 		while count < 4:
-			scp_spawn = pexpect.spawn('scp ' + source + ' ' + username + '@' + ipaddress + ':' + destination, timeout = 100)
+			scp_spawn = pexpect.spawn('scp -o PubkeyAuthentication=no -o StrictHostKeyChecking=no ' + source + ' ' + username + '@' + ipaddress + ':' + destination, timeout = 100)
 			scp_response = scp_spawn.expect(['Are you sure you want to continue connecting (yes/no)?', 'password:', pexpect.EOF, pexpect.TIMEOUT])
 			if scp_response == 0:
 				scp_spawn.sendline('yes')
