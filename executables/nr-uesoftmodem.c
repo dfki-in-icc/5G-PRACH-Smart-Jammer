@@ -63,10 +63,6 @@ unsigned short config_frames[4] = {2,9,11,13};
 #include "enb_config.h"
 //#include "PHY/TOOLS/time_meas.h"
 
-#ifndef OPENAIR2
-  #include "UTIL/OTG/otg_vars.h"
-#endif
-
 #include "intertask_interface.h"
 
 #include "PHY/INIT/phy_init.h"
@@ -237,20 +233,15 @@ nrUE_params_t *get_nrUE_params(void) {
 /* initialie thread pools used for NRUE processing paralleliation */ 
 void init_tpools(uint8_t nun_dlsch_threads) {
   char *params = NULL;
-  if (IS_SOFTMODEM_RFSIM) {
-    params = calloc(1,2);
-    memcpy(params,"N",1);
-  }
-  else {
-    params = calloc(1,(NR_RX_NB_TH*NR_NB_TH_SLOT*3)+1);
-    for (int i=0; i<NR_RX_NB_TH*NR_NB_TH_SLOT; i++) {
-      memcpy(params+(i*3),"-1,",3);
-    }
+  params = calloc(1,(NR_RX_NB_TH*NR_NB_TH_SLOT*3)+1);
+  for (int i=0; i<NR_RX_NB_TH*NR_NB_TH_SLOT; i++) {
+    memcpy(params+(i*3),"-1,",3);
   }
   initTpool(params, &(nrUE_params.Tpool), false);
   free(params);
   init_dlsch_tpool( nun_dlsch_threads);
 }
+
 static void get_options(void) {
 
   nrUE_params.ofdm_offset_divisor = 8;
@@ -319,8 +310,8 @@ void set_options(int CC_id, PHY_VARS_NR_UE *UE){
   UE->rf_map.card          = card_offset;
   UE->rf_map.chain         = CC_id + chain_offset;
 
-  LOG_I(PHY,"Set UE mode %d, UE_fo_compensation %d, UE_scan_carrier %d, UE_no_timing_correction %d \n, do_prb_interpolation %d\n", 
-  	UE->mode, UE->UE_fo_compensation, UE->UE_scan_carrier, UE->no_timing_correction, UE->prb_interpolation);
+  LOG_I(PHY,"Set UE mode %d, UE_fo_compensation %d, UE_scan_carrier %d, UE_no_timing_correction %d \n, do_prb_interpolation %d\n",
+  	   UE->mode, UE->UE_fo_compensation, UE->UE_scan_carrier, UE->no_timing_correction, UE->prb_interpolation);
 
   // Set FP variables
 
@@ -329,7 +320,7 @@ void set_options(int CC_id, PHY_VARS_NR_UE *UE){
     LOG_I(PHY, "Set UE frame_type %d\n", fp->frame_type);
   }
 
-  LOG_I(PHY, "Set UE nb_rx_antenna %d, nb_tx_antenna %d, threequarter_fs %d\n", fp->nb_antennas_rx, fp->nb_antennas_tx, fp->threequarter_fs);
+  LOG_I(PHY, "Set UE nb_rx_antenna %d, nb_tx_antenna %d, threequarter_fs %d, ssb_start_subcarrier %d\n", fp->nb_antennas_rx, fp->nb_antennas_tx, fp->threequarter_fs, fp->ssb_start_subcarrier);
 
   fp->ofdm_offset_divisor = nrUE_params.ofdm_offset_divisor;
 
@@ -366,7 +357,7 @@ void init_openair0(void) {
       openair0_cfg[card].rx_num_channels,
       duplex_mode[openair0_cfg[card].duplex_mode]);
 
-    nr_get_carrier_frequencies(frame_parms, &dl_carrier, &ul_carrier);
+    nr_get_carrier_frequencies(PHY_vars_UE_g[0][0], &dl_carrier, &ul_carrier);
 
     nr_rf_card_config_freq(&openair0_cfg[card], ul_carrier, dl_carrier, freq_off);
     nr_rf_card_config_gain(&openair0_cfg[card], rx_gain_off);
@@ -423,7 +414,7 @@ int main( int argc, char **argv ) {
 
   get_options (); //Command-line options specific for NRUE
 
-  get_common_options(SOFTMODEM_5GUE_BIT );
+  get_common_options(SOFTMODEM_5GUE_BIT);
   init_tpools(nrUE_params.nr_dlsch_parallel);
   CONFIG_CLEARRTFLAG(CONFIG_NOEXITONHELP);
 #if T_TRACER
@@ -436,7 +427,7 @@ int main( int argc, char **argv ) {
   itti_init(TASK_MAX, tasks_info);
 
   init_opt() ;
-  load_nrLDPClib();
+  load_nrLDPClib(NULL);
 
   if (ouput_vcd) {
     vcd_signal_dumper_init("/tmp/openair_dump_nrUE.vcd");
@@ -493,14 +484,6 @@ int main( int argc, char **argv ) {
     init_timeshift_rotation(&UE[CC_id]->frame_parms);
     init_nr_ue_vars(UE[CC_id], 0, abstraction_flag);
 
-    #ifdef FR2_TEST
-    // Overwrite DL frequency (for FR2 testing)
-    if (downlink_frequency[0][0]!=0){
-      frame_parms[CC_id]->dl_CarrierFreq = downlink_frequency[0][0];
-      if (frame_parms[CC_id]->frame_type == TDD)
-        frame_parms[CC_id]->ul_CarrierFreq = downlink_frequency[0][0];
-    }
-    #endif
   }
 
   init_openair0();
