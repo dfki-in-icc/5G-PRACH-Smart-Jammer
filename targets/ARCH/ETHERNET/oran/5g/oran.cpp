@@ -96,6 +96,18 @@ int sys_load_file_to_buff(char *filename, char *bufname, unsigned char *pBuffer,
 //------------------------------------------------------------------------
 void xran_fh_rx_callback(void *pCallbackTag, xran_status_t status){
     rte_pause();
+#if 0
+    xran_cb_tag *callback_tag = (xran_cb_tag *)pCallbackTag;
+    printf("cellId=%d\tslotiId=%d\tsymbol=%d\n",callback_tag->cellId,callback_tag->slotiId,callback_tag->symbol);
+    uint32_t frame,subFrame,slot;
+    int32_t tti;
+    uint64_t second;
+    tti = xran_get_slot_idx(&frame,&subFrame,&slot,&second);
+    printf("tti=%d\tframe=%d\tsubFrame=%d\tslot=%d\tsecond=%ld\n",tti,frame,subFrame,slot,second);
+    if(callback_tag->slotiId==10){
+      exit(0);
+    }
+#endif
 }
 void xran_fh_srs_callback(void *pCallbackTag, xran_status_t status){
     rte_pause();
@@ -474,7 +486,8 @@ extern "C"
 int xran_fh_tx_send_slot(void *xranlib_, ru_info_t *ru, int frame, int slot, uint64_t timestamp){
   xranLibWraper *xranlib = ((xranLibWraper *) xranlib_);
 
-  int tti = /*frame*SUBFRAMES_PER_SYSTEMFRAME*SLOTNUM_PER_SUBFRAME+*/slot; //commented out temporarily to check that compilation of oran 5g is working.
+
+  int tti = /*frame*SUBFRAMES_PER_SYSTEMFRAME*SLOTNUM_PER_SUBFRAME+*/10*frame+slot; //commented out temporarily to check that compilation of oran 5g is working.
 
   int32_t flowId;
   void *ptr = NULL;
@@ -503,8 +516,23 @@ int xran_fh_tx_send_slot(void *xranlib_, ru_info_t *ru, int frame, int slot, uin
        nSectorNum = xranlib->get_num_cc();
 
        int maxflowid = num_eaxc * (nSectorNum-1) + (xran_max_antenna_nr-1);
-       //printf("the maximum flowID will be=%d\n",maxflowid);
+       
+       #if 0
+       printf("\n ORAN south out frame:%d, slot:%d. oran cpp ru.txdataF_BF \n",frame,slot);
+       for(int hhh=0; hhh<(14); hhh++ ){
+         for(int jjj=0; jjj<2048; jjj++){
+           if(ru->txdataF_BF[0][hhh*2048+jjj] > 0){      
+              printf(" %d:%x ",hhh*2048+jjj,ru->txdataF_BF[0][hhh*2048+jjj]);
+           }
+         }
+       };
+       printf(" \n");
+       //exit(-1);
+       #endif
 
+
+
+       //printf("the maximum flowID will be=%d\n",maxflowid);
        for(uint16_t cc_id=0; cc_id<1/*nSectorNum*/; cc_id++){ // OAI does not support multiple CC yet.
            for(uint8_t ant_id = 0; ant_id < xran_max_antenna_nr && ant_id<ru->nb_tx; ant_id++){
               // This loop would better be more inner to avoid confusion and maybe also errors.
@@ -540,12 +568,12 @@ int xran_fh_tx_send_slot(void *xranlib_, ru_info_t *ru, int frame, int slot, uin
                           exit(-1);
                        }
                        // Calculation of the pointer for the section in the buffer.
-                       if (p_prbMapElm->nRBStart*N_SC_PER_PRB<600){
+                       //if(frame==0 && slot==6){printf("Romain: Writing to the buffer! \n");}
+                       if (p_prbMapElm->nRBStart*N_SC_PER_PRB<1272/2){
                          src = (uint8_t *)(pos + p_prbMapElm->nRBStart*N_SC_PER_PRB + 1);
                        }else{
-                         src = (uint8_t *)(pos + p_prbMapElm->nRBStart*N_SC_PER_PRB + 2048 - 1200);
+                         src = (uint8_t *)(pos + p_prbMapElm->nRBStart*N_SC_PER_PRB + 2048 - 1272);
                        }
-
                        if(p_prbMapElm->compMethod == XRAN_COMPMETHOD_NONE) {
                           payload_len = p_prbMapElm->nRBSize*N_SC_PER_PRB*4L;
                           rte_memcpy(dst, src, payload_len);
