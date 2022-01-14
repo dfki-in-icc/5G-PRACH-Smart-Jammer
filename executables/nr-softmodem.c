@@ -933,25 +933,6 @@ int main( int argc, char **argv ) {
     exit_fun("[SOFTMODEM] Error, configuration module init failed\n");
   }
 
-//////////////////////////////////
-//////////////////////////////////
-//// Init the E2 Agent
-  const char server_ip_str[] = "192.168.52.10";
-
-//  const gNB_RRC_INST* rrc = RC.nrrrc[mod_id];
-//  assert(rrc);
-
-  const int mcc = 208;  //rrc->configuration.mcc[0]; // 208;
-  const int mnc =  94; // rrc->configuration.mnc[0]; // 94;
-  const int mnc_digit_len = 2; // rrc->configuration.mnc_digit_length[0]; // 2;
-  const int nb_id = 42; // rrc->configuration.cell_identity; //42;
-  sm_io_ag_t io = {.read = read_RAN, .write = write_RAN};
-
-  init_agent_api(server_ip_str, mcc, mnc, mnc_digit_len, nb_id, io);
-//////////////////////////////////
-//////////////////////////////////
-
-
   set_softmodem_sighandler();
 #ifdef DEBUG_CONSOLE
   setvbuf(stdout, NULL, _IONBF, 0);
@@ -971,6 +952,7 @@ int main( int argc, char **argv ) {
     fprintf(stderr,"Getting configuration failed\n");
     exit(-1);
   }
+
 
   openair0_cfg[0].threequarter_fs = threequarter_fs;
 
@@ -1085,6 +1067,26 @@ int main( int argc, char **argv ) {
   }
 
   config_sync_var=0;
+
+//////////////////////////////////
+//////////////////////////////////
+//// Init the E2 Agent
+
+  sleep(2);
+  const gNB_RRC_INST* rrc = RC.nrrrc[mod_id];
+  assert(rrc != NULL && "rrc cannot be NULL");
+
+  const int mcc = rrc->configuration.mcc[0]; // 208;
+  const int mnc = rrc->configuration.mnc[0]; // 94;
+  const int mnc_digit_len = rrc->configuration.mnc_digit_length[0]; // 2;
+  const int nb_id = rrc->configuration.cell_identity; //42;
+  sm_io_ag_t io = {.read = read_RAN, .write = write_RAN};
+
+  printf("[E2 NODE]: mcc = %d mnc = %d mnc_digit = %d nd_id = %d \n", mcc, mnc, mnc_digit_len, nb_id);
+
+  init_agent_api( mcc, mnc, mnc_digit_len, nb_id, io);
+//////////////////////////////////
+//////////////////////////////////
 
   if (NFAPI_MODE==NFAPI_MODE_PNF) {
     wait_nfapi_init("main?");
