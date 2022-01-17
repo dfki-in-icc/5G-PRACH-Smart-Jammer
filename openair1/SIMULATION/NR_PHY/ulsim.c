@@ -1566,10 +1566,10 @@ int main(int argc, char **argv)
     MUSIC_init_16(rxdata_ch_music, result);
     // MUSIC_init_test(rx_data_music,result_test);
 
-    printf("Total execution time:\t%.3f ms\n", result[2]);
-    printf("Max error:\t\t%.1f degree\n", result[0]);
-    printf("Std. DEV:\t\t%.3f degree\n", sqrt(result[1]));
-    printf("Accuracy:\t\t%.3f%%\n\n", (20 - sqrt(result[1] / 20 * 100)));
+    // printf("Total execution time:\t%.3f ms\n", result[2]);
+    // printf("Max error:\t\t%.1f degree\n", result[0]);
+    // printf("Std. DEV:\t\t%.3f degree\n", sqrt(result[1]));
+    // printf("Accuracy:\t\t%.3f%%\n\n", (20 - sqrt(result[1] / 20 * 100)));
     printf("[END] MUSIC \n");
     printf("\n-----------------------------------------\n");
     
