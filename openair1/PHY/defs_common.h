@@ -997,8 +997,8 @@ static inline void wait_sync(char *thread_name) {
   /*
    * Raphael Defosseux: added for CI to get faster the got sync message.
    */
-  fflush(stdout);
-  fflush(stderr);
+  // fflush(stdout);
+  // fflush(stderr);
 }
 
 

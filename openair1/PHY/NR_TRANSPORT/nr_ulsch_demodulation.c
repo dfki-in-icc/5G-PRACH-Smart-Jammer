@@ -1207,6 +1207,9 @@ int nr_rx_pusch(PHY_VARS_gNB *gNB,
                                     bwp_start_subcarrier,
                                     rel15_ul);
 
+      //min
+      //printf("nr_ulsch_demodulation : %d\n",__LINE__);
+
       nr_gnb_measurements(gNB, ulsch_id, harq_pid, symbol,rel15_ul->nrOfLayers);
 
       for (aarx = 0; aarx < frame_parms->nb_antennas_rx; aarx++) {

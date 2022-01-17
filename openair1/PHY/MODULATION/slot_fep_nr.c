@@ -237,12 +237,10 @@ int nr_slot_fep_init_sync(PHY_VARS_NR_UE *ue,
              (void *)&common_vars->rxdata[aa][rx_offset],
              frame_parms->ofdm_symbol_size * sizeof(int32_t));
       rxdata_ptr = (int16_t *)tmp_dft_in;
-
     } else {
 
       // use dft input from RX buffer directly
       rxdata_ptr = (int16_t *)&common_vars->rxdata[aa][rx_offset];
-
     }
 
     start_meas(&ue->rx_dft_stats);
@@ -306,7 +304,6 @@ int nr_slot_fep_ul(NR_DL_FRAME_PARMS *frame_parms,
   int16_t *rxdata_ptr;
 
   if(sample_offset > rxdata_offset) {
-
     memcpy((void *)&tmp_dft_in[0],
            (void *)&rxdata[frame_parms->samples_per_frame - sample_offset + rxdata_offset],
            (sample_offset - rxdata_offset) * sizeof(int32_t));
@@ -316,15 +313,13 @@ int nr_slot_fep_ul(NR_DL_FRAME_PARMS *frame_parms,
     rxdata_ptr = (int16_t *)tmp_dft_in;
 
   } else if (((rxdata_offset - sample_offset) & 7) != 0) {
-
     // if input to dft is not 256-bit aligned
     memcpy((void *)&tmp_dft_in[0],
            (void *)&rxdata[rxdata_offset - sample_offset],
            (frame_parms->ofdm_symbol_size) * sizeof(int32_t));
     rxdata_ptr = (int16_t *)tmp_dft_in;
 
-  } else {
-
+  } else {// run here
     // use dft input from RX buffer directly
     rxdata_ptr = (int16_t *)&rxdata[rxdata_offset - sample_offset];
 
