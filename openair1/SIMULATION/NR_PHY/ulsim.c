@@ -70,7 +70,6 @@
 //min
 //#include "openair1/PHY/BF/cu_function.h"
 #include "openair1/PHY/BF/angle.h"
-  
 LCHAN_DESC DCCH_LCHAN_DESC,DTCH_DL_LCHAN_DESC,DTCH_UL_LCHAN_DESC;
 rlc_info_t Rlc_info_um,Rlc_info_am_config;
 
@@ -1330,10 +1329,10 @@ int main(int argc, char **argv)
       rxdata_ch[aa] = (int32_t*) malloc16_clear(2*(slot_offset+slot_length)*sizeof(int32_t));
     }
 
-    int32_t **rxdata_ch_s;
-     rxdata_ch_s = (int32_t**)malloc16(global_antenna * sizeof(int32_t*));
+    int32_t **rxdata_ch_rx;
+     rxdata_ch_rx = (int32_t**)malloc16(global_antenna * sizeof(int32_t*));
     for (int aa=0; aa < global_antenna; aa++) {
-      rxdata_ch_s[aa] = (int32_t*) malloc16_clear(2*(slot_offset+slot_length)*sizeof(int32_t));
+      rxdata_ch_rx[aa] = (int32_t*) malloc16_clear(2*(slot_offset+slot_length)*sizeof(int32_t));
     }
 
     // int16_t **rxdata_ch_16;
@@ -1373,36 +1372,36 @@ int main(int argc, char **argv)
         
 
     //rxdata 32bit to IQ 16bit
-    int16_t *IQ_0_i = (int16_t*)malloc(2 * (slot_offset+slot_length) * sizeof(int16_t));
-    memcpy(IQ_0_i, (int16_t*)&rxdata_ch[0][0], (slot_offset+slot_length) * sizeof(int32_t));
+    int16_t *IQ = (int16_t*)malloc(2 * (slot_offset+slot_length) * sizeof(int16_t));
+    memcpy(IQ, (int16_t*)&rxdata_ch[0][0], (slot_offset+slot_length) * sizeof(int32_t));
     
     //I,Q exchange position
     for (int i = 0; i < (slot_offset+slot_length); i++) {
         int16_t a;
-        a = IQ_0_i[2*i];
-        IQ_0_i[2*i] = IQ_0_i[2*i+1];
-        IQ_0_i[2*i+1] = a;  
+        a = IQ[2*i];
+        IQ[2*i] = IQ[2*i+1];
+        IQ[2*i+1] = a;  
     }
     
     // for (int i = 0; i < 10; i++) {
     //     printf("rxdata_ch[%d] : %d ,%08X \n",i,rxdata_ch[7][slot_offset+i] ,rxdata_ch[7][slot_offset+i]);
-    //     printf("IQ_0_I[%d] :%d, %04X \n",i,IQ_0_i[2*(slot_offset)+2*i], IQ_0_i[2*(slot_offset)+2*i]);
-    //     printf("IQ_0_Q[%d] :%d, %04X \n",i,IQ_0_i[2*(slot_offset)+2*i+1], IQ_0_i[2*(slot_offset)+2*i+1]);
+    //     printf("IQ_I[%d] :%d, %04X \n",i,IQ[2*(slot_offset)+2*i], IQ[2*(slot_offset)+2*i]);
+    //     printf("IQ_Q[%d] :%d, %04X \n",i,IQ[2*(slot_offset)+2*i+1], IQ[2*(slot_offset)+2*i+1]);
     //     //printf("rxdata_ch : %d ,%08X \n",rxdata_ch[7][(slot_offset+slot_length)-(i+1)] ,rxdata_ch[7][(slot_offset+slot_length)-(i+1)]);
     //     // printf("rxdata_ch[%d] : %d ,%08X \n",i,rxdata_ch[7][(slot_offset+slot_length)-(i+1)] ,rxdata_ch[7][(slot_offset+slot_length)-(i+1)]);
-    //     // printf("IQ_0_I :%d, %04X \n",IQ_0_i[2*(slot_offset+slot_length)-(2*i+2)], IQ_0_i[2*(slot_offset+slot_length)- (2*i+2)]);
-    //     // printf("IQ_0_Q :%d, %04X \n",IQ_0_i[2*(slot_offset+slot_length)-(2*i+1)], IQ_0_i[2*(slot_offset+slot_length)-(2*i+1)]);
+    //     // printf("IQ_I :%d, %04X \n",IQ[2*(slot_offset+slot_length)-(2*i+2)], IQ[2*(slot_offset+slot_length)- (2*i+2)]);
+    //     // printf("IQ_Q :%d, %04X \n",IQ[2*(slot_offset+slot_length)-(2*i+1)], IQ[2*(slot_offset+slot_length)-(2*i+1)]);
     // }
     
     
     // for (int i = 0; i < 500; i++) {
-    //     printf("IQ_0_I :%d, %04X \n",IQ_0_i[2*(slot_offset)+i], IQ_0_i[2*(slot_offset)+i]);
-    //     //printf("IQ_0_Q :%d, %04X \n",IQ_0_i[2*(slot_offset+slot_length)-(i+1)], IQ_0_i[2*(slot_offset+slot_length)-(i+1)]);
+    //     printf("IQ_I :%d, %04X \n",IQ[2*(slot_offset)+i], IQ[2*(slot_offset)+i]);
+    //     //printf("IQ_Q :%d, %04X \n",IQ[2*(slot_offset+slot_length)-(i+1)], IQ[2*(slot_offset+slot_length)-(i+1)]);
     // }
     
     // printf("rxdata_ch : %d ,%08X \n",rxdata_ch[7][(slot_offset+slot_length)-1] ,rxdata_ch[7][(slot_offset+slot_length)-1]);
-    // printf("IQ_0_I :%d, %04X \n",IQ_0_i[2*(slot_offset+slot_length)-2], IQ_0_i[2*(slot_offset+slot_length)-2]);
-    // printf("IQ_0_Q :%d, %04X \n",IQ_0_i[2*(slot_offset+slot_length)-1], IQ_0_i[2*(slot_offset+slot_length)-1]);
+    // printf("IQ_I :%d, %04X \n",IQ[2*(slot_offset+slot_length)-2], IQ[2*(slot_offset+slot_length)-2]);
+    // printf("IQ_Q :%d, %04X \n",IQ[2*(slot_offset+slot_length)-1], IQ[2*(slot_offset+slot_length)-1]);
     
 
     //int IQ_length = slot_offset+slot_length; //552960
@@ -1433,7 +1432,7 @@ int main(int argc, char **argv)
 
     //printf("\n-----------------------------------------\n");
     // for (int i = 0; i < 50; i++) {
-    //     printf("IQ_0_i[2*slot_offset+%d] : %d %08X \n",i,IQ_0_i[2*slot_offset+i],IQ_0_i[2*slot_offset+i] );
+    //     printf("IQ[2*slot_offset+%d] : %d %08X \n",i,IQ[2*slot_offset+i],IQ[2*slot_offset+i] );
     // }
     //printf("\n-----------------------------------------\n");    
     
@@ -1441,22 +1440,22 @@ int main(int argc, char **argv)
     for (int i = 0; i < global_antenna; i++) {
       for (int j = 0; j < slot_offset+slot_length; j++) {     
         
-        rxdata_ch[i][j*2] = ((bws_0[i*2] * IQ_0_i[j*2] - bws_0[i*2+1]  * IQ_0_i[j*2+1])); //re
-        rxdata_ch[i][j*2+1] = ((bws_0[i*2] * IQ_0_i[j*2+1] + IQ_0_i[j*2] * bws_0[i*2+1])); //im
+        rxdata_ch[i][j*2] = ((bws_0[i*2] * IQ[j*2] - bws_0[i*2+1]  * IQ[j*2+1])); //re
+        rxdata_ch[i][j*2+1] = ((bws_0[i*2] * IQ[j*2+1] + IQ[j*2] * bws_0[i*2+1])); //im
 
-        // rxdata_ch[i][j*2] = ((bws_0[i*2] * IQ_0_i[j*2])>>14 - (bws_0[i*2+1] * IQ_0_i[j*2+1])>>14); //re >>14
-        // rxdata_ch[i][j*2+1] = ((bws_0[i*2] * IQ_0_i[j*2+1])>>14 + (IQ_0_i[j*2] * bws_0[i*2+1])>>14); //im >>14
+        // rxdata_ch[i][j*2] = ((bws_0[i*2] * IQ[j*2])>>14 - (bws_0[i*2+1] * IQ[j*2+1])>>14); //re >>14
+        // rxdata_ch[i][j*2+1] = ((bws_0[i*2] * IQ[j*2+1])>>14 + (IQ[j*2] * bws_0[i*2+1])>>14); //im >>14
 
-        // rxdata_ch[i][j*2] = ((bws_0[i*2] * IQ_0_i[j*2]) - (bws_0[i*2+1] * IQ_0_i[j*2+1]))>>14; //re >>14
-        // rxdata_ch[i][j*2+1] = ((bws_0[i*2] * IQ_0_i[j*2+1]) + (IQ_0_i[j*2] * bws_0[i*2+1]))>>14; //im >>14
+        // rxdata_ch[i][j*2] = ((bws_0[i*2] * IQ[j*2]) - (bws_0[i*2+1] * IQ[j*2+1]))>>14; //re >>14
+        // rxdata_ch[i][j*2+1] = ((bws_0[i*2] * IQ[j*2+1]) + (IQ[j*2] * bws_0[i*2+1]))>>14; //im >>14
       }
     }
     
     // printf("\n-----------------------------------------\n");
     // printf("bws_0[7*2] : %d \n",bws_0[7*2]);
     // printf("bws_0[7*2+1] : %d \n",bws_0[7*2+1]);
-    // printf("bws_0[slot_offset*2] : %d \n",IQ_0_i[slot_offset*2]);
-    // printf("bws_0[slot_offset*2+1] : %d \n",IQ_0_i[slot_offset*2+1]);
+    // printf("IQ[slot_offset*2] : %d \n",IQ[slot_offset*2]);
+    // printf("IQ[slot_offset*2+1] : %d \n",IQ[slot_offset*2+1]);
     // printf("rxdata_ch[7][slot_offset*2] : %d\n",rxdata_ch[7][slot_offset*2]);
     // printf("rxdata_ch[7][slot_offset*2+1] : %d\n",rxdata_ch[7][slot_offset*2+1]);
 
@@ -1469,8 +1468,8 @@ int main(int argc, char **argv)
 
     // printf("gNB->common_vars.rxdata : %d ,%08X \n",gNB->common_vars.rxdata[0][(slot_offset+slot_length)-1] ,gNB->common_vars.rxdata[0][(slot_offset+slot_length)-1]);
     // printf("rxdata_ch : %d ,%08X \n",rxdata_ch[0][(slot_offset+slot_length)-1] ,rxdata_ch[0][(slot_offset+slot_length)-1]);
-    // printf("IQ_I :%d, %04X \n",IQ_0_i[2*(slot_offset+slot_length)-2], IQ_0_i[2*(slot_offset+slot_length)-2]);
-    // printf("IQ_Q :%d, %04X \n",IQ_0_i[2*(slot_offset+slot_length)-1], IQ_0_i[2*(slot_offset+slot_length)-1]);
+    // printf("IQ_I :%d, %04X \n",IQ[2*(slot_offset+slot_length)-2], IQ[2*(slot_offset+slot_length)-2]);
+    // printf("IQ_Q :%d, %04X \n",IQ[2*(slot_offset+slot_length)-1], IQ[2*(slot_offset+slot_length)-1]);
     // printf("rxdata_ch_I :%d, %08X \n",rxdata_ch[0][2*(slot_offset+slot_length)-2], rxdata_ch[0][2*(slot_offset+slot_length)-2]);
     // printf("rxdata_ch_Q :%d, %08X \n",rxdata_ch[0][2*(slot_offset+slot_length)-1], rxdata_ch[0][2*(slot_offset+slot_length)-1]);
     
@@ -1491,7 +1490,7 @@ int main(int argc, char **argv)
     */
 
     //int16_t *rxdata_ch_music;
-    float result[3] = {0};
+    float result[4] = {0};
     //float result_test[3] = {0};
     int16_t *rxdata_ch_music = (int16_t*)malloc(DOA_SAMPLE * global_antenna * sizeof(int16_t));
     //int32_t *rxdata_ch_music = (int32_t*)malloc(DOA_SAMPLE * global_antenna * sizeof(int32_t));
@@ -1570,43 +1569,42 @@ int main(int argc, char **argv)
     // printf("Max error:\t\t%.1f degree\n", result[0]);
     // printf("Std. DEV:\t\t%.3f degree\n", sqrt(result[1]));
     // printf("Accuracy:\t\t%.3f%%\n\n", (20 - sqrt(result[1] / 20 * 100)));
+    // printf("result[4] : %f\n",result[4]);
     printf("[END] MUSIC \n");
     printf("\n-----------------------------------------\n");
     
-    /*
     printf("[START] RX beamforming (8*1)\n");
-    int16_t *bws_rx= (int16_t*)malloc( 2 * 8 * global_antenna * sizeof(int16_t));
-    beam_weight_s(bws_rx, global_antenna);
+    int8_t *bws_rx= (int8_t*)malloc( 2 * 8 * global_antenna * sizeof(int8_t));
+    beam_weight_int8_t(bws_rx, global_antenna,-((int)result[4]));
 
-    for (int i = 0; i < global_antenna; i++) {
-        printf("i: %3d, bws_rx: %04d %04d\n",
-                i,
-                bws_rx[i*2],
-                bws_rx[i*2+1]);
-    }
+    // for (int i = 0; i < global_antenna; i++) {
+    //     printf("i: %3d, bws_rx: %04d %04d\n",
+    //             i,
+    //             bws_rx[i*2],
+    //             bws_rx[i*2+1]);
+    // }
 
+    // printf("rxdata_ch_I :%d, %08X \n",rxdata_ch[0][2*(slot_offset)+1], rxdata_ch[0][2*(slot_offset)+1]);
+    // printf("rxdata_ch_Q :%d, %08X \n",rxdata_ch[0][2*(slot_offset)+2], rxdata_ch[0][2*(slot_offset)+2]);
+    
     //bw * stream
     for (int i = 0; i < global_antenna; i++) {
-      for (int j = 0; j <slot_offset+slot_length; j++) {     
-        
-        // rxdata_ch[i][j*2] = (bws_0[i*2] * IQ_0_i[j*2] - bws_0[i*2+1] * IQ_0_i[j*2+1] ); //re
-        // rxdata_ch[i][j*2+1] = (bws_0[i*2] * IQ_0_i[j*2+1] +  IQ_0_i[j*2] * bws_0[i*2+1]); //im
-
-        rxdata_ch[i][j*2] = ((bws_rx[i*2] * rxdata_ch[i][j*2])>>14 - (bws_rx[i*2+1] * rxdata_ch[i][j*2+1])>>14); //re >>14
-        rxdata_ch[i][j*2+1] = ((bws_rx[i*2] * rxdata_ch[i][j*2+1])>>14 +  (bws_rx[i*2+1] * rxdata_ch[i][j*2])>>14); //im >>14
+      for (int j = 0; j < slot_offset+slot_length; j++) {     
+        rxdata_ch[i][j*2] = ((bws_rx[i*2] * rxdata_ch[i][j*2]) - (bws_rx[i*2+1] * rxdata_ch[i][j*2+1]))>>6; //re >>14
+        rxdata_ch[i][j*2+1] = ((bws_rx[i*2] * rxdata_ch[i][j*2+1]) + (bws_rx[i*2+1] * rxdata_ch[i][j*2]))>>6; //im >>14
       }
     }
 
-    // printf("rxdata_ch_I :%d, %08X \n",rxdata_ch[0][2*(slot_offset+slot_length)-2], rxdata_ch[0][2*(slot_offset+slot_length)-2]);
-    // printf("rxdata_ch_Q :%d, %08X \n",rxdata_ch[0][2*(slot_offset+slot_length)-1], rxdata_ch[0][2*(slot_offset+slot_length)-1]);
+    // printf("rxdata_ch_I :%d, %08X \n",rxdata_ch[0][2*(slot_offset)+1], rxdata_ch[0][2*(slot_offset)+1]);
+    // printf("rxdata_ch_Q :%d, %08X \n",rxdata_ch[0][2*(slot_offset)+2], rxdata_ch[0][2*(slot_offset)+2]);
     
 
     // 32bit to 2*16bit (I,Q exchange position)
     // for (int i = 0; i < global_angle; i++) {
     //     for (int j = 0; j < (slot_offset+slot_length); j++) {
-    //         //(&rxdata_ch_s[i][0])[j*2] = rxdata_ch[i][j]; 
-    //         ((int16_t*) &rxdata_ch_s[i][0])[(2*j)] = (int16_t)(rxdata_ch[i][(2*j)+1]);
-    //         ((int16_t*) &rxdata_ch_s[i][0])[(2*j)+1] = (int16_t)(rxdata_ch[i][(2*j)]);
+    //         //(&rxdata_ch_rx[i][0])[j*2] = rxdata_ch[i][j]; 
+    //         ((int16_t*) &rxdata_ch_rx[i][0])[(2*j)] = (int16_t)(rxdata_ch[i][(2*j)+1]);
+    //         ((int16_t*) &rxdata_ch_rx[i][0])[(2*j)+1] = (int16_t)(rxdata_ch[i][(2*j)]);
     //     } 
     // }
     
@@ -1614,9 +1612,9 @@ int main(int argc, char **argv)
     // 32bit to 2*16bit 
     for (int i = 0; i < global_antenna; i++) {
         for (int j = 0; j < (slot_offset+slot_length); j++) {
-                //(&rxdata_ch_s[i][0])[j*2] = rxdata_ch[i][j]; 
-                ((int16_t*) &rxdata_ch_s[i][0])[(2*j)] = (int16_t)(rxdata_ch[i][(2*j)]);
-                ((int16_t*) &rxdata_ch_s[i][0])[(2*j)+1] = (int16_t)(rxdata_ch[i][(2*j)+1]);
+                //(&rxdata_ch_rx[i][0])[j*2] = rxdata_ch[i][j]; 
+                ((int16_t*) &rxdata_ch_rx[i][0])[(2*j)] = (int16_t)(rxdata_ch[i][(2*j)]);
+                ((int16_t*) &rxdata_ch_rx[i][0])[(2*j)+1] = (int16_t)(rxdata_ch[i][(2*j)+1]);
         } 
     }
 
@@ -1626,33 +1624,32 @@ int main(int argc, char **argv)
         for (int j = 0; j < (slot_offset+slot_length); j++) {
             int ap = 0; 
             //memset(&gNB->common_vars.rxdata[0][0],0,(slot_offset+slot_length)*sizeof(int32_t));
-            gNB->common_vars.rxdata[ap][j] += rxdata_ch_s[i][j];
+            gNB->common_vars.rxdata[ap][j] += rxdata_ch_rx[i][j];
         } 
     }
 
     // for (int i = 0; i <8 ; i++) {
-    //     printf("rxdata_ch_s[i][slot_offset+2] :%d\n",rxdata_ch_s[i][slot_offset+2]);
+    //     printf("rxdata_ch_rx[i][2*slot_offset+2] :%d\n",rxdata_ch_rx[i][2*slot_offset+2]);
     // }
-    //    printf("gNB->common_vars.rxdata[0][slot_offset+2]:%d\n",gNB->common_vars.rxdata[0][slot_offset+2]);
+    //     printf("gNB->common_vars.rxdata[0][2*slot_offset+2]:%d\n",gNB->common_vars.rxdata[0][2*slot_offset+2]);
     
     // for(int i = 1105916; i< 1105916+11; i++) {
-    //      printf("rxdata_ch[0][%d] :%d, %04X \n",i ,rxdata_ch[0][i], rxdata_ch[0][i]);
+    //     printf("rxdata_ch[0][%d] :%d, %04X \n",i ,rxdata_ch[0][i], rxdata_ch[0][i]);
     // }
     
     // for (int i = 552958; i < 552958+11; i++) {
-    //     printf("rxdata_ch_s[0][%d] : %08X \n",i ,rxdata_ch_s[0][i]);
+    //     printf("rxdata_ch_rx[0][%d] : %08X \n",i ,rxdata_ch_rx[0][i]);
     // }
     
 
     printf("[END] RX beamforming (8*1)\n");
     printf("\n-----------------------------------------\n");;
     //min [end] channel beamforming (1*8)
-
-    */
+    
     // free memory
     for (int i = 0; i < global_antenna; i++) {
         //free(rxdata_ch[i]); //error
-        free(rxdata_ch_s[i]);
+        free(rxdata_ch_rx[i]);
     }
 
     //  for (int i = 0; i < global_antenna; i++) {
@@ -1660,11 +1657,12 @@ int main(int argc, char **argv)
     // }   
 
         // free(rxdata_ch);
-        free(rxdata_ch_s);
+        free(rxdata_ch_rx);
         free(rxdata_ch_music);
         //free(rx_data_music);
-        free(IQ_0_i);
+        free(IQ);
         free(bws_0);
+        free(bws_rx);
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////   
 

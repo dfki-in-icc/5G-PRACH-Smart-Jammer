@@ -713,7 +713,7 @@ void MUSIC_DOA_1D_CPU(int M, int qr_iter, int angle , float *result, double *dou
             position = i;
         }
     }
-    printf("position : %d\n",position);
+    // printf("position : %d\n",position);
     // timestamp end
     timeEnd = clock();
     #ifdef PRINT_RESULT
@@ -727,6 +727,8 @@ void MUSIC_DOA_1D_CPU(int M, int qr_iter, int angle , float *result, double *dou
 
     if(error > result[0]) result[0] = error;
     if (error != 0) result[1] += pow(error, 2);
+    
+    result[4] = dth[position];
 
 // plot the result
     #ifdef PLOT_RESULT
