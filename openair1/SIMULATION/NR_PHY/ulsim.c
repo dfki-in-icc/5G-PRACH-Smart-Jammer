@@ -867,7 +867,7 @@ int main(int argc, char **argv)
 
   uint8_t  length_dmrs         = pusch_len1;
   uint16_t l_prime_mask        = get_l_prime(nb_symb_sch, mapping_type, add_pos, length_dmrs, start_symbol, NR_MIB__dmrs_TypeA_Position_pos2);
-  uint16_t number_dmrs_symbols = get_dmrs_symbols_in_slot(l_prime_mask, nb_symb_sch);
+  uint16_t number_dmrs_symbols = get_dmrs_symbols_in_slot(l_prime_mask, start_symbol+nb_symb_sch);
   printf("num dmrs sym %d\n",number_dmrs_symbols);
   uint8_t  nb_re_dmrs          = (dmrs_config_type == pusch_dmrs_type1) ? 6 : 4;
 
