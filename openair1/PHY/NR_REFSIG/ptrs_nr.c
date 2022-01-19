@@ -134,7 +134,10 @@ void set_ptrs_symb_idx(uint16_t *ptrs_symbols,
       continue;
     }
 
-    *ptrs_symbols = *ptrs_symbols | (1<<(l_ref + i*L_ptrs));
+    if( !((ul_dmrs_symb_pos >> (l_ref + i*L_ptrs)) & 0x01) ) {
+      *ptrs_symbols = *ptrs_symbols | (1<<(l_ref + i*L_ptrs));
+    }
+
     i++;
   }
 }
