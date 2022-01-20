@@ -31,12 +31,13 @@
  */
 typedef struct ru_info_s{
 
+        // Needed for UL
+ 	int nb_rx;
+	int32_t **rxdataF;
+
         // Needed for DL
 	int nb_tx;
 	int32_t **txdataF_BF;
-
-        // Needed for UL
-        // TODO
 
 } ru_info_t;
 
@@ -140,6 +141,14 @@ int load_iq_from_file(void *xranlib_);
 }
 #endif
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+int xran_fh_rx_read_slot(void *xranlib_, ru_info_t *ru, int frame, int slot);
+#ifdef __cplusplus
+}
+#endif
 
 #ifdef __cplusplus
 extern "C"
