@@ -89,11 +89,7 @@ static inline uint32_t nrLDPC_decoder_core(int8_t* p_llr, int8_t* p_out, uint32_
     int8_t llrRes[NR_LDPC_MAX_NUM_LLR]            __attribute__ ((aligned(32))) = {0};
     int8_t llrProcBuf[NR_LDPC_MAX_NUM_LLR]        __attribute__ ((aligned(32))) = {0};
     int8_t llrOut[NR_LDPC_MAX_NUM_LLR]            __attribute__ ((aligned(32))) = {0};
-    // Minimum number of iterations is 1
-    // 0 iterations means hard-decision on input LLRs
-    uint32_t i = 1;
     // Initialize with parity check fail != 0
-    int32_t pcRes = 1;
     int8_t* p_llrOut;
 
     if (outMode == nrLDPC_outMode_LLRINT8)
@@ -236,12 +232,12 @@ static inline uint32_t nrLDPC_decoder_core(int8_t* p_llr, int8_t* p_out, uint32_
     // estimated after only one iteration
 
     // First iteration finished
-
-    while ( (i < numMaxIter) && (pcRes != 0) )
+    // Minimum number of iterations is 1
+    // 0 iterations means hard-decision on input LLRs
+    uint32_t iter = 0;
+    bool decoded=false;
+    while ( iter < numMaxIter && !decoded )
     {
-        // Increase iteration counter
-        i++;
-
         // CN processing
 #ifdef NR_LDPC_PROFILER_DETAIL
         start_meas(&p_profiler->cnProc);
@@ -351,19 +347,23 @@ static inline uint32_t nrLDPC_decoder_core(int8_t* p_llr, int8_t* p_out, uint32_
 #ifdef NR_LDPC_PROFILER_DETAIL
         stop_meas(&p_profiler->llr2bit);
 #endif
-        if (check_crc((uint8_t*)p_out,p_decParams->block_length,p_decParams->F,p_decParams->crc_type))
-            pcRes = 0;
+       
+	if (check_crc((uint8_t *)p_out,p_decParams->block_length,p_decParams->F,p_decParams->crc_type))
+	  decoded=true;
+
+	// pcRes=0 means decoded
+	int pcRes;
+	if (BG == 1) {
+	  pcRes = nrLDPC_cnProcPc_BG1(p_lut, cnProcBuf, cnProcBufRes, Z);
+	} else {
+	  pcRes = nrLDPC_cnProcPc_BG2(p_lut,cnProcBuf, cnProcBufRes, Z);
+	}
+	if ( pcRes!=decoded) 
+	  printf("parity decode: %d, crc decoded: %d\n", pcRes, decoded);
+	if ( pcRes == 0 && decoded==0)
+	  abort();
+	iter++;
     }
 
-    // If maximum number of iterations reached an PC still fails increase number of iterations
-    // Thus, i > numMaxIter indicates that PC has failed
-
-#ifdef NR_LDPC_ENABLE_PARITY_CHECK
-    if (pcRes != 0)
-    {
-        i++;
-    }
-#endif
-
-    return i;
+    return iter;
 }
