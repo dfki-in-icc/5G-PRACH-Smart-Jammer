@@ -204,7 +204,7 @@ int trx_oran_ctlrecv(openair0_device *device, void *msg, ssize_t msg_len)
   if (s->last_msg == RRU_config) {
     printf("Oran RRU_config\n");
     rru_config_msg->type = RRU_config_ok;
-    return 0;
+    //return 0;
   }
 #if 0
   if (s->last_msg == RRU_start) {
@@ -273,19 +273,39 @@ void oran_fh_if4p5_south_in(RU_t *ru,
                                int *frame,
                                int *slot)
 {
+/*
   if(*frame==0 && *slot==0){
     printf("XXX oran_fh_if4p5_south_in %d %d\n", *frame, *slot);
-    sleep(1);
+  //  sleep(1);
   }
-#if 0
+*/
+
   oran_eth_state_t *s = ru->ifdevice.priv;
   NR_DL_FRAME_PARMS *fp;
   int symbol;
   int32_t *rxdata;
   int antenna;
+ 
+  //printf("XXX ORAN_fh_if4p5_south_in %d %d\n", *frame, *slot);
 
-  // lock_ul_buffer(&s->buffers, *slot);
-#if 1
+  ru_info_t ru_info;
+  ru_info.nb_rx = ru->nb_rx;
+  ru_info.rxdataF = ru->common.rxdataF;
+
+  int ret = xran_fh_rx_read_slot(s->oran_priv, &ru_info, *frame, *slot);  
+
+#if 0
+  for (antenna = 0; antenna < ru->nb_rx; antenna++) {
+    for (symbol = 0; symbol < 14; symbol++) {
+      printf("\nantenna:%d\tsymbol=%d\n",antenna,symbol);
+      for(int sample = 0; sample < 2048; sample++){
+        printf("%x ",ru->common.rxdataF[antenna][symbol*2048+sample]);
+      }
+    }
+  }
+#endif
+
+#if 0
 next:
      while (!((s->buffers.ul_busy[0][*slot] == 0x3fff &&
             s->buffers.ul_busy[1][*slot] == 0x3fff) ||
@@ -306,41 +326,21 @@ next:
     goto next;
   }
 #endif
-
+#if 1
   fp = ru->nr_frame_parms;
   for (antenna = 0; antenna < ru->nb_rx; antenna++) {
     for (symbol = 0; symbol < 14; symbol++) {
+      /*      
       int i;
       int16_t *p = (int16_t *)(&s->buffers.ul[antenna][*slot][symbol*1272*4]);
       for (i = 0; i < 1272*2; i++) {
         p[i] = (int16_t)(ntohs(p[i])) / 16;
       }
-      rxdata = &ru->common.rxdataF[antenna][symbol * fp->ofdm_symbol_size];
-#if 0
-if (*slot == 0 && symbol == 0)
-printf("rxdata in oran_fh_if4p5_south_in %p\n", &ru->common.rxdataF[antenna][0]);
-#endif
-
-#if 1
-      memcpy(rxdata + 2048 - 1272/2,
-             &s->buffers.ul[antenna][*slot][symbol*1272*4],
-             (1272/2) * 4);
-      memcpy(rxdata,
-             &s->buffers.ul[antenna][*slot][symbol*1272*4] + (1272/2)*4,
-             (1272/2) * 4);
-#endif
+      */
+      rxdata = &ru->common.rxdataF[antenna][symbol * fp->ofdm_symbol_size]; 
     }
   }
-
-#if 1
-  s->buffers.ul_busy[0][*slot] = 0;
-  s->buffers.ul_busy[1][*slot] = 0;
-  signal_ul_buffer(&s->buffers, *slot);
-  unlock_ul_buffer(&s->buffers, *slot);
 #endif
-
-  //printf("BENETEL: %s (f.sf %d.%d)\n", __FUNCTION__, *frame, *slot);
-
   RU_proc_t *proc = &ru->proc;
   extern uint16_t sl_ahead;
   int f = *frame;
@@ -360,6 +360,11 @@ printf("rxdata in oran_fh_if4p5_south_in %p\n", &ru->common.rxdataF[antenna][0])
     proc->tti_tx   = (sl+sl_ahead)%20;
     proc->frame_tx = (sl>(19-sl_ahead)) ? (f+1)&1023 : f;
   }
+#if 0
+   printf("south_in:\ttimestamp_rx=%d{frame_rx=%d,tti_rx=%d}\ttti_tx=%d\tframe_tx=%d\n\n",proc->timestamp_rx,proc->frame_rx,proc->tti_rx,proc->tti_tx,proc->frame_tx);
+   if(proc->frame_rx ==20){
+      exit(-1);
+   }
 #endif
 }
 
@@ -374,8 +379,30 @@ void oran_fh_if4p5_south_out(RU_t *ru,
   ru_info_t ru_info;
   ru_info.nb_tx = ru->nb_tx;
   ru_info.txdataF_BF = ru->common.txdataF_BF;
+//printf("south_out:\tframe=%d\tslot=%d\ttimestamp=%ld\n",frame,slot,timestamp);
+#if 0
+//printf("\n ORAN south out frame:%d, slot:%d. ru->common.txdataF_BF and  ru_info.txdataF_BF \n",frame,slot);
+for(int hhh=0; hhh<(14); hhh++ ){
+   for(int jjj=0; jjj<2048; jjj++){
+      /// Try to set all the values of the buffer to 1
+      ru->common.txdataF_BF[0][hhh*2048+jjj] = 256;
+/*      if(ru->common.txdataF_BF[0][hhh*2048+jjj] > 0){      
+          printf(" %d:%d:%d ",hhh*2048+jjj,ru->common.txdataF_BF[0][hhh*2048+jjj],ru_info.txdataF_BF[0][hhh*2048+jjj]);
+       }
+*/
+   }
+}
+//printf(" \n");
+//exit(-1);
+#endif
+
   int ret = xran_fh_tx_send_slot(s->oran_priv, &ru_info, frame, slot, timestamp);
-//printf("XXX oran_fh_if4p5_south_out %d %d %ld\n", frame, slot, timestamp);
+
+#if 0
+  if(frame==0 && slot<100){
+    printf("XXX oran_fh_if4p5_south_out %d %d %ld\n", frame, slot, timestamp);
+  }
+#endif
 #if 0
 //printf("Sofia-Romain exit south out\n");
 //exit(-1);
@@ -502,10 +529,13 @@ int transport_init(openair0_device *device,
    }else{
       printf("SetUp ORAN. Done\n");
    }
+
+   // Dump ORAN config
+   dump_oran_config(s->oran_priv);
    
    // Load the IQ samples from file
-   //load_iq_from_file(s->oran_priv);
-   //printf("Load IQ from file. Done\n");
+//   load_iq_from_file(s->oran_priv);
+//   printf("Load IQ from file. Done\n");
 
    // Register physide callbacks
    register_physide_callbacks(s->oran_priv);
@@ -520,12 +550,13 @@ int transport_init(openair0_device *device,
    printf("Init Oran. Done\n");
 
    // Copy the loaded IQ to the xran buffer fro the tx
-   //xran_fh_tx_send_buffer(s->oran_priv);
-   //printf("ORAN FH send tx buffer filled in with loaded IQs. Done\n");
+  // xran_fh_tx_send_buffer(s->oran_priv);
+  // printf("ORAN FH send tx buffer filled in with loaded IQs. Done\n");
 
    // Open ORAN
    open_oran(s->oran_priv);
    printf("xran_open. Done\n");
+   
 
 #endif 
 

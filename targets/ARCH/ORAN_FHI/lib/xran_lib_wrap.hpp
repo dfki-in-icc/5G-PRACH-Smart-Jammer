@@ -106,7 +106,7 @@ protected:
     uint8_t m_du_mac[6] = { 0x00,0x11, 0x22, 0x33, 0x44, 0x55 }; // Sofia: this is hard coded here and then it is read from the conf file
     uint8_t m_ru_mac[6] = { 0x00,0x11, 0x22, 0x33, 0x44, 0x66 }; // Sofia: this is hard coded here and then it is read from the conf file
     bool m_bSub6;
-    uint32_t m_nSlots = 10;
+    uint32_t m_nSlots = 20;
 
     struct xran_fh_config   m_xranConf;
     struct xran_fh_init     m_xranInit;
