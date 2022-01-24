@@ -3141,6 +3141,7 @@ target_link_libraries(smallblocktest
 
 add_executable(ldpctest
    ${PHY_NR_CODINGIF}
+  ${OPENAIR_TARGETS}/ARCH/rfsimulator/new_channel_sim.c
    ${OPENAIR1_DIR}/PHY/CODING/TESTBENCH/ldpctest.c
    ${T_SOURCE}
    ${SHLIB_LOADER_SOURCES}
