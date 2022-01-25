@@ -1,10 +1,10 @@
  
  /*! \file openairinterface5g/openair1/PHY/BF/angle.cpp
- * \brief Integrate MUSIC algorithm single user
+ * \brief Integrate MUSIC algorithm single user Op8
  * \author NYCU OpinConnect Terng-Yin Hsu, Sendren Xu, Min-Hsun Wu
  * \email  tyhsu@cs.nctu.edu.tw, sdxu@mail.ntust.edu.tw, sam0104502@gmail.com
- * \date   21-1-2022
- * \version 1.0
+ * \date   25-1-2022
+ * \version 1.1
  * \note
  * \warning
  */
@@ -382,7 +382,7 @@ void awgn(std::complex<double> *input_signal, std::complex<double> *output_signa
         Esym += pow(abs(input_signal[i]), 2) / std::complex<double>(row * col);
         No = Esym / std::complex<double>(snr);
         noiseSigma = sqrt(No / std::complex<double>(2));
-        n = noiseSigma * (randn() + randn() * 1i);
+        n = noiseSigma * (randn() + randn() * I_1);
         output_signal[i] = input_signal[i] + n;
     }
 }

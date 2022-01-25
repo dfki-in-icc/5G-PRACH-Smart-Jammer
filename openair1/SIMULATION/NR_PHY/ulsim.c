@@ -68,17 +68,16 @@
 //#define DEBUG_ULSIM
 
  /*! \file openairinterface5g/openair1/SIMULATION/NR_PHY/ulsim
- * \brief Integrate MUSIC algorithm single user
+ * \brief Integrate MUSIC algorithm single user Op8
  * \author NYCU OpinConnect Terng-Yin Hsu, Sendren Xu, Min-Hsun Wu
  * \email  tyhsu@cs.nctu.edu.tw, sdxu@mail.ntust.edu.tw, sam0104502@gmail.com
- * \date   21-1-2022
- * \version 1.0
+ * \date   25-1-2022
+ * \version 1.1
  * \note
  * \warning
  */
 
 //min
-//#include "openair1/PHY/BF/cu_function.h"
 #include "openair1/PHY/BF/angle.h"
 LCHAN_DESC DCCH_LCHAN_DESC,DTCH_DL_LCHAN_DESC,DTCH_UL_LCHAN_DESC;
 rlc_info_t Rlc_info_um,Rlc_info_am_config;
@@ -605,10 +604,10 @@ int main(int argc, char **argv)
       break;
 
     case 'C' :
-      global_total_round = atoi(optarg);
-      printf("Total round is setting to %d\n", global_total_round);
+      global_DOA_algorithm = atoi(optarg);
+      printf("DOA algorithm is setting to %d\n", global_DOA_algorithm);
       break;
-
+    
     case 'D' :
       global_angle = atoi(optarg);
       printf("Angle theta is setting to %d\n", global_angle);
