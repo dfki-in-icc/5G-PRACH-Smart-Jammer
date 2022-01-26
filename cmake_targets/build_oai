@@ -55,7 +55,7 @@ CMAKE_BUILD_TYPE="RelWithDebInfo"
 CMAKE_CMD="$CMAKE"
 BUILD_ECLIPSE=0
 NR="False"
-OPTIONAL_LIBRARIES="telnetsrv enbscope uescope nrscope"
+OPTIONAL_LIBRARIES="telnetsrv enbscope uescope nrscope nrqtscope"
 ulfiusdep=$(basename ./`find /usr/lib* -name libulfius.so`)
 jssondep=$(basename ./`find /usr/lib* -name libjansson.so`)
 if [ "$ulfiusdep" == "libulfius.so" -a "$jssondep" == "libjansson.so" ] ; then
@@ -377,25 +377,40 @@ function main() {
             CMAKE_CMD="$CMAKE_CMD"' -DCMAKE_ECLIPSE_GENERATE_SOURCE_PROJECT=TRUE -G"Eclipse CDT4 - Unix Makefiles"'
             echo_info "Enabling build eclipse project support"
             shift 1;;
-       --build-lib) 
-            BUILD_OPTLIB="" 
+       --build-lib)
+            BUILD_OPTLIB=""
             if [  "$2" == "all" ] ; then
-              BUILD_OPTLIB="$OPTIONAL_LIBRARIES"
-              echo_info "Enabling build of all optional shared libraries ($OPTIONAL_LIBRARIES)" 
+              NOKLIB=""
+              qt5chartdep=$(find /usr/include -name qchart.h)
+              if [ "$qt5chartdep" == "" ]; then
+                echo_warning "  nrqtscope optional build not included in build-lib option as dependencies requirements not met"
+                NOKLIB="$NOKLIB nrqtscope"
+              fi
+              for alib in $OPTIONAL_LIBRARIES ; do
+                if [[ ! "$NOKLIB" =~ "$alib" ]] ; then
+                  BUILD_OPTLIB="$BUILD_OPTLIB $alib"
+                fi
+              done
+              echo_info "Enabling build of all optional shared libraries ($BUILD_OPTLIB)"
             else
-              for alib in $2 ; do 
+              for alib in $2 ; do
                 for oklib in $OPTIONAL_LIBRARIES ; do
                   if [ "$alib" = "$oklib" ] ; then
-                    BUILD_OPTLIB="$BUILD_OPTLIB $alib" 
-                    echo_info "Enabling build of lib${alib}.so" 
-                    fi   
+                    BUILD_OPTLIB="$BUILD_OPTLIB $alib"
+                    echo_info "Enabling build of lib${alib}.so"
+                    fi
                   done
                 done
 	          if [ "${BUILD_OPTLIB## }" != "$2" ] ; then
-                 echo_fatal "Unknown optional library in $2, valid libraries are $OPTIONAL_LIBRARIES" 
+                 echo_fatal "Unknown optional library in $2, valid libraries are $OPTIONAL_LIBRARIES"
               fi
             fi
-            shift 2;;		
+            if [[ "$BUILD_OPTLIB" =~ "nrqtscope" ]] ; then
+              CMAKE_CMD="$CMAKE_CMD -DQT_SCOPE=ON"
+            else
+              CMAKE_CMD="$CMAKE_CMD -DQT_SCOPE=OFF"
+            fi
+            shift 2;;
         --noavx512)
             CMAKE_CMD="$CMAKE_CMD -DAVX512=OFF"
             echo_info "Disabling AVX512 instructions"
@@ -752,7 +767,7 @@ function main() {
     echo_info "Doxygen generation log is located here: $doxygen_log"
     echo_info "Generating Doxygen files....please wait"
     (
-    $MAKE_CMD doc
+    make doc
     ) >& $doxygen_log
   fi
 

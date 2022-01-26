@@ -542,6 +542,7 @@ check_install_additional_tools (){
 	gawk \
 	libboost-all-dev \
 	libpthread-stubs0-dev \
+	libqt5charts5-dev \
 	openvpn \
 	pkg-config \
 	sshfs \

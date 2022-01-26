@@ -2128,6 +2128,19 @@ add_library(SIMU STATIC ${SIMUSRC} )
 target_include_directories(SIMU PUBLIC ${OPENAIR1_DIR}/SIMULATION/TOOLS ${OPENAIR1_DIR}/SIMULATION/RF)
 target_link_libraries(SIMU PRIVATE asn1_nr_rrc asn1_lte_rrc)
 
+# Qt-based scope
+add_boolean_option(QT_SCOPE False "Build the Qt-Scope")
+if(QT_SCOPE)
+  find_package(Qt5 REQUIRED COMPONENTS Widgets Charts)
+  message ("Qt5 Widgets and Charts found for nrqtscope")
+  set(QTSCOPE_SOURCE_NR ${OPENAIR1_DIR}/PHY/TOOLS/nr_phy_qt_scope.cpp)
+  # Creates rules for calling the Meta-Object Compiler (moc) on the given source files
+  qt5_wrap_cpp(QTSCOPE_SOURCE_NR ${OPENAIR1_DIR}/PHY/TOOLS/nr_phy_qt_scope.h)
+  add_library(nrqtscope MODULE ${QTSCOPE_SOURCE_NR})
+  target_link_libraries(nrqtscope PRIVATE Qt5::Widgets Qt5::Charts)
+  target_link_libraries(nrqtscope PRIVATE asn1_nr_rrc asn1_lte_rrc)
+endif ()
+
 add_library(SIMU_ETH
 ${OPENAIR1_DIR}/SIMULATION/ETH_TRANSPORT/netlink_init.c
 ${OPENAIR1_DIR}/SIMULATION/ETH_TRANSPORT/multicast_link.c
