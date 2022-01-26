@@ -68,11 +68,11 @@
 //#define DEBUG_ULSIM
 
  /*! \file openairinterface5g/openair1/SIMULATION/NR_PHY/ulsim
- * \brief Integrate MUSIC algorithm single user Op8
+ * \brief Integrate MVDR algorithm single user Op8
  * \author NYCU OpinConnect Terng-Yin Hsu, Sendren Xu, Min-Hsun Wu
  * \email  tyhsu@cs.nctu.edu.tw, sdxu@mail.ntust.edu.tw, sam0104502@gmail.com
- * \date   25-1-2022
- * \version 1.1
+ * \date   26-1-2022
+ * \version 1.2
  * \note
  * \warning
  */
@@ -604,7 +604,7 @@ int main(int argc, char **argv)
       break;
 
     case 'C' :
-      global_DOA_algorithm = atoi(optarg);
+      global_DOA_algorithm = atoi(optarg); // 0 = MUSIC, 1 = MVDR
       printf("DOA algorithm is setting to %d\n", global_DOA_algorithm);
       break;
     
@@ -1337,6 +1337,7 @@ int main(int argc, char **argv)
 
 
     printf("[START] channel beamforming (1*8)\n");
+    
     //copy data
     memcpy(&rxdata_ch[0][0], &gNB->common_vars.rxdata[0][0], (slot_offset+slot_length) * sizeof(int32_t));
 
@@ -1360,6 +1361,7 @@ int main(int argc, char **argv)
         IQ[2*i+1] = a;  
     }
     
+    //produce beam_weights
     int8_t *bws_0 = (int8_t*)malloc( 2 * 8 * global_antenna * sizeof(int8_t)); 
     beam_weight_int8_t(bws_0, global_antenna, global_angle);
        
@@ -1374,7 +1376,7 @@ int main(int argc, char **argv)
     printf("[END] channel beamforming (1*8)\n");
     printf("\n-----------------------------------------\n");
     
-    printf("[START] MUSIC \n");
+    printf("[START] MUSIC/MVDR \n");
     
     #define DOA_SAMPLE 1000
     float result[4] = {0};
@@ -1388,8 +1390,17 @@ int main(int argc, char **argv)
     }
     
     printf("\n-----------------------------------------\n");
-    MUSIC_init_16(rxdata_ch_music, result);
-    printf("[END] MUSIC \n");
+    
+    // use C to change to 0(MUSIC) or 1(MVDR)
+    // start DOA algorithm 
+    if(global_DOA_algorithm == 0){
+        MUSIC_init_16(rxdata_ch_music, result);
+    }
+    else if(global_DOA_algorithm == 1){
+        MVDR_init_16(rxdata_ch_music, result);
+    }
+    
+    printf("[END] MUSIC/MVDR \n");
     printf("\n-----------------------------------------\n");
     
     printf("[START] RX beamforming (8*1)\n");
