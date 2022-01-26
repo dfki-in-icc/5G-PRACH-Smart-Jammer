@@ -516,7 +516,8 @@ int main( int argc, char **argv ) {
     mlockall(MCL_CURRENT | MCL_FUTURE);
 
     if(IS_SOFTMODEM_DOSCOPE) {
-      load_softscope("nr",PHY_vars_UE_g[0][0]);
+      //load_softscope("nr",PHY_vars_UE_g[0][0]);
+      load_softscope("nrqt",PHY_vars_UE_g[0][0]);
     }
 
     init_NR_UE_threads(1);

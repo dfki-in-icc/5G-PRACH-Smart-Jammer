@@ -2484,6 +2484,9 @@ set (SIMUSRC
 ##########################
 add_library(SIMU SHARED ${SIMUSRC} )
 
+# Find the QtWidgets library
+find_package(Qt5 COMPONENTS Widgets REQUIRED)
+
 add_library(SIMU_ETH
 ${OPENAIR1_DIR}/SIMULATION/ETH_TRANSPORT/netlink_init.c
 ${OPENAIR1_DIR}/SIMULATION/ETH_TRANSPORT/multicast_link.c
@@ -2522,6 +2525,10 @@ set(XFORMSINTERFACE_SOURCE
   )
 set(XFORMS_LIBRARIES "forms")
 
+set(QTSCOPE_SOURCE_NR
+  ${OPENAIR1_DIR}/PHY/TOOLS/nr_phy_qt_scope.cpp
+  )
+
 add_library(enbscope MODULE ${XFORMS_SOURCE} ${XFORMS_SOURCE_SOFTMODEM} ${XFORMS_ENB_SOURCE})
 add_library(uescope MODULE ${XFORMS_SOURCE} ${XFORMS_SOURCE_SOFTMODEM} ${XFORMS_UE_SOURCE})
 target_link_libraries(enbscope ${XFORMS_LIBRARIES})
@@ -2530,6 +2537,12 @@ target_link_libraries(uescope ${XFORMS_LIBRARIES})
 add_library(nrscope MODULE ${XFORMS_SOURCE_NR})
 target_link_libraries(nrscope ${XFORMS_LIBRARIES})
 
+# Creates rules for calling the Meta-Object Compiler (moc) on the given source files
+qt5_wrap_cpp(QTSCOPE_SOURCE_NR ${OPENAIR1_DIR}/PHY/TOOLS/nr_phy_qt_scope.h)
+
+add_library(nrqtscope MODULE ${QTSCOPE_SOURCE_NR})
+# Use the Widgets module from Qt5.
+target_link_libraries(nrqtscope Qt5::Widgets)
 
 add_library(rfsimulator MODULE
   ${OPENAIR_DIR}/sdr/rfsimulator/simulator.c
