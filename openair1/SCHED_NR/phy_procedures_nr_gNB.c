@@ -128,6 +128,7 @@ void phy_procedures_gNB_TX(processingData_L1tx_t *msgTx,
                            int frame,
                            int slot,
                            int do_meas) {
+
   int aa;
   PHY_VARS_gNB *gNB = msgTx->gNB;
   NR_DL_FRAME_PARMS *fp=&gNB->frame_parms;
@@ -204,6 +205,8 @@ void phy_procedures_gNB_TX(processingData_L1tx_t *msgTx,
   }
 
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PHY_PROCEDURES_gNB_TX+offset,0);
+  //pthread_mutex_unlock(&mutextest);
+
 }
 
 
@@ -456,6 +459,7 @@ void nr_fill_indication(PHY_VARS_gNB *gNB, int frame, int slot_rx, int ULSCH_id,
 
 
   if (0/*pusch_pdu->mcs_index == 9*/) {
+      __attribute__((unused))
 #ifdef __AVX2__
       int off = ((pusch_pdu->rb_size&1) == 1)? 4:0;
 #else
@@ -660,6 +664,8 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx) {
   for (int i=0;i<NUMBER_OF_NR_PUCCH_MAX;i++){
     NR_gNB_PUCCH_t *pucch = gNB->pucch[i];
     if (pucch) {
+      if (NFAPI_MODE == NFAPI_MODE_PNF)
+        pucch->frame = frame_rx;
       if ((pucch->active == 1) &&
           (pucch->frame == frame_rx) &&
           (pucch->slot == slot_rx) ) {
