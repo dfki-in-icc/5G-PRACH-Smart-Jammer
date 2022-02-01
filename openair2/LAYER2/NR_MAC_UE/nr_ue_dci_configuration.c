@@ -425,9 +425,9 @@ void ue_dci_configuration(NR_UE_MAC_INST_t *mac, fapi_nr_dl_config_request_t *dl
 	}
       }
     }else if(mac->initDLbwp){
-      for (ss_id = 0; ss_id < FAPI_NR_MAX_SS_PER_CORESET && mac->SSpace[bwp_id - 1][coreset_id - 1][ss_id] != NULL; ss_id++){
+      for (ss_id = 0; ss_id < FAPI_NR_MAX_SS && mac->SSpace[bwp_id][ss_id] != NULL; ss_id++){
 	LOG_D(MAC, "[DCI_CONFIG] ss_id %d\n",ss_id);
-	NR_SearchSpace_t *ss = mac->SSpace[bwp_id - 1][coreset_id - 1][ss_id];
+	NR_SearchSpace_t *ss = mac->SSpace[bwp_id][ss_id];
 	fapi_nr_dl_config_dci_dl_pdu_rel15_t *rel15 = &dl_config->dl_config_list[dl_config->number_pdus].dci_config_pdu.dci_config_rel15;
 	struct NR_PhysicalCellGroupConfig *phy_cgc = mac->cg->physicalCellGroupConfig;
 	switch (ss->searchSpaceType->present){

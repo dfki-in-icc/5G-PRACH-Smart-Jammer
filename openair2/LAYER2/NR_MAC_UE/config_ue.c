@@ -550,14 +550,14 @@ void config_control_initial_ue(NR_UE_MAC_INST_t *mac){
     for (ss_id = 0; ss_id < searchSpacesToAddModList->list.count; ss_id++) {
       NR_SearchSpace_t *ss = searchSpacesToAddModList->list.array[ss_id];
       //TODO L5G
-      if((ss->controlResourceSetId == NULL)&&(mac->SSpace[0][0][ss_id])&&(mac->SSpace[0][0][ss_id]->controlResourceSetId)){
-        ss->controlResourceSetId=mac->SSpace[0][0][ss_id]->controlResourceSetId;
+      if((ss->controlResourceSetId == NULL)&&(mac->SSpace[0][ss_id])&&(mac->SSpace[0][ss_id]->controlResourceSetId)){
+        ss->controlResourceSetId=mac->SSpace[0][ss_id]->controlResourceSetId;
       }
       AssertFatal(ss->searchSpaceType != NULL, "ss->searchSpaceType is null\n");
       AssertFatal(*ss->controlResourceSetId == mac->coreset[dl_bwp_id - 1][coreset_id - 1]->controlResourceSetId, "ss->controlResourceSetId is unknown\n");
       AssertFatal(ss->monitoringSymbolsWithinSlot != NULL, "NR_SearchSpace->monitoringSymbolsWithinSlot is null\n");
       AssertFatal(ss->monitoringSymbolsWithinSlot->buf != NULL, "NR_SearchSpace->monitoringSymbolsWithinSlot->buf is null\n");
-      mac->SSpace[0][0][ss_id] = ss;
+      mac->SSpace[0][ss_id] = ss;
       LOG_I(MAC, "set searchSpaces %d %d\n",ss_id,*ss->controlResourceSetId);
     }
   }

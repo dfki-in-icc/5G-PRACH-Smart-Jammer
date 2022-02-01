@@ -2570,9 +2570,9 @@ uint16_t nr_dci_size(const NR_BWP_DownlinkCommon_t *initialDownlinkBWP,
       pusch_Config = (ubwpd->pusch_Config) ? ubwpd->pusch_Config->choice.setup : NULL;
       srs_config = (ubwpd->srs_Config) ? ubwpd->srs_Config->choice.setup : NULL;
     }else{
-      pdsch_config = cg->spCellConfig->spCellConfigDedicated->initialDownlinkBWP->pdsch_Config->choice.setup;
+      pdsch_Config = cg->spCellConfig->spCellConfigDedicated->initialDownlinkBWP->pdsch_Config->choice.setup;
       pusch_Config = cg->spCellConfig->spCellConfigDedicated->uplinkConfig->initialUplinkBWP->pusch_Config->choice.setup;
-      pdcch_config = cg->spCellConfig->spCellConfigDedicated->initialDownlinkBWP->pdcch_Config->choice.setup;
+      pucch_Config = cg->spCellConfig->spCellConfigDedicated->initialDownlinkBWP->pdcch_Config->choice.setup;
       pucch_Config = cg->spCellConfig->spCellConfigDedicated->uplinkConfig->initialUplinkBWP->pucch_Config->choice.setup;
       if(cg->spCellConfig->spCellConfigDedicated->uplinkConfig->initialUplinkBWP->srs_Config)
         srs_config = cg->spCellConfig->spCellConfigDedicated->uplinkConfig->initialUplinkBWP->srs_Config->choice.setup;
