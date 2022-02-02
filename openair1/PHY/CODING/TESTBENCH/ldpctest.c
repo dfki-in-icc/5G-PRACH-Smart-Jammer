@@ -373,7 +373,7 @@ int test_ldpc(short max_iterations,
         printf("return from decode in %d, the raw error bit is %f\n", n_iter,
                (float)*errors_bit_raw/(float)((Kb+nrows-no_punctured_columns-2) * Zc-removed_bit));
 
-        if ( memcmp(estimated_output[j], test_input[j], (block_length)/8 ) == 0 ) {
+        if ( memcmp(estimated_output[j], test_input[j], block_length/8 ) == 0 ) {
           // block is well decoded
           if (n_iter == max_iterations )
             printf("ERROR: decoded, but max iter returned\n");
@@ -381,14 +381,14 @@ int test_ldpc(short max_iterations,
           if (n_iter < max_iterations ) {
             int z=0, nb=0, pos=0;
 
-            for (; z < (block_length)/8; z++)
+            for (; z < block_length/8; z++)
               if ( estimated_output[j][z] != test_input[j][z] ) {
                 pos=z;
                 nb++;
               }
 
             printf("ERROR: claim decoded, but total bit errors: %d/%d last error place: %d!!!!! \n",
-                   nb,  (block_length-24)/8, pos );
+                   nb,  block_length/8, pos );
           }
 
           segment_bler++;
