@@ -1,0 +1,60 @@
+diff --git a/host/lib/usrp/dboard/db_sbx_common.cpp b/host/lib/usrp/dboard/db_sbx_common.cpp
+old mode 100644
+new mode 100755
+index 6b8fd85..ffd0eac
+--- a/host/lib/usrp/dboard/db_sbx_common.cpp
++++ b/host/lib/usrp/dboard/db_sbx_common.cpp
+@@ -262,13 +262,13 @@ void sbx_xcvr::update_atr(void){
+ 
+     //setup the tx atr (this does not change with antenna)
+     this->get_iface()->set_atr_reg(dboard_iface::UNIT_TX, \
+-            gpio_atr::ATR_REG_IDLE, 0 | tx_lo_lpf_en \
+-            | tx_ld_led | tx_ant_led | TX_POWER_UP | ANT_XX | TX_MIXER_DIS);
++            gpio_atr::ATR_REG_IDLE, tx_pga0_iobits | tx_lo_lpf_en \
++            | tx_ld_led | tx_ant_led | TX_POWER_UP | ANT_XX | TX_MIXER_ENB);
+ 
+     //setup the rx atr (this does not change with antenna)
+     this->get_iface()->set_atr_reg(dboard_iface::UNIT_RX, \
+             gpio_atr::ATR_REG_IDLE, rx_pga0_iobits | rx_lo_lpf_en \
+-            | rx_ld_led | rx_ant_led | RX_POWER_UP | ANT_XX | RX_MIXER_DIS);
++            | rx_ld_led | rx_ant_led | RX_POWER_UP | ANT_XX | RX_MIXER_ENB);
+ 
+     //set the RX atr regs that change with antenna setting
+     this->get_iface()->set_atr_reg(dboard_iface::UNIT_RX, \
+@@ -277,7 +277,7 @@ void sbx_xcvr::update_atr(void){
+             | ((_rx_ant != "RX2")? ANT_TXRX : ANT_RX2));
+     this->get_iface()->set_atr_reg(dboard_iface::UNIT_RX, \
+             gpio_atr::ATR_REG_TX_ONLY, rx_pga0_iobits | rx_lo_lpf_en \
+-            | rx_ld_led | rx_ant_led | RX_POWER_UP | RX_MIXER_DIS \
++            | rx_ld_led | rx_ant_led | RX_POWER_UP | RX_MIXER_ENB \
+             | ((_rx_ant == "CAL")? ANT_TXRX : ANT_RX2));
+     this->get_iface()->set_atr_reg(dboard_iface::UNIT_RX, \
+             gpio_atr::ATR_REG_FULL_DUPLEX, rx_pga0_iobits | rx_lo_lpf_en \
+@@ -286,8 +286,8 @@ void sbx_xcvr::update_atr(void){
+ 
+     //set the TX atr regs that change with antenna setting
+     this->get_iface()->set_atr_reg(dboard_iface::UNIT_TX, \
+-            gpio_atr::ATR_REG_RX_ONLY, 0 | tx_lo_lpf_en \
+-            | tx_ld_led | tx_ant_led | TX_POWER_UP | TX_MIXER_DIS \
++            gpio_atr::ATR_REG_RX_ONLY, tx_pga0_iobits | tx_lo_lpf_en \
++            | tx_ld_led | tx_ant_led | TX_POWER_UP | TX_MIXER_ENB \
+             | ((_rx_ant != "RX2")? ANT_RX : ANT_TX));
+     this->get_iface()->set_atr_reg(dboard_iface::UNIT_TX, \
+             gpio_atr::ATR_REG_TX_ONLY, tx_pga0_iobits | tx_lo_lpf_en \
+diff --git a/host/lib/usrp/dboard/db_ubx.cpp b/host/lib/usrp/dboard/db_ubx.cpp
+old mode 100644
+new mode 100755
+index d9abef5..ce14bc8
+--- a/host/lib/usrp/dboard/db_ubx.cpp
++++ b/host/lib/usrp/dboard/db_ubx.cpp
+@@ -188,8 +188,8 @@ static const ubx_gpio_field_info_t ubx_v1_gpio_info[] = {
+     {SPI_ADDR,      dboard_iface::UNIT_TX,   0,  0x7,        3,  ubx_gpio_field_info_t::INPUT,  false,  0,  0,  0,  0},
+     {CPLD_RST_N,    dboard_iface::UNIT_TX,   3,  0x1<<3,     1,  ubx_gpio_field_info_t::INPUT,  false,  0,  0,  0,  0},
+     {RX_ANT,        dboard_iface::UNIT_TX,   4,  0x1<<4,     1,  ubx_gpio_field_info_t::INPUT,  false,  0,  0,  0,  0},
+-    {TX_EN_N,       dboard_iface::UNIT_TX,   5,  0x1<<5,     1,  ubx_gpio_field_info_t::INPUT,  true,   1,  0,  1,  0},
+-    {RX_EN_N,       dboard_iface::UNIT_TX,   6,  0x1<<6,     1,  ubx_gpio_field_info_t::INPUT,  true,   1,  1,  0,  0},
++    {TX_EN_N,       dboard_iface::UNIT_TX,   5,  0x1<<5,     1,  ubx_gpio_field_info_t::INPUT,  true,   0,  0,  0,  0},
++    {RX_EN_N,       dboard_iface::UNIT_TX,   6,  0x1<<6,     1,  ubx_gpio_field_info_t::INPUT,  true,   0,  0,  0,  0},
+     {TXLO1_SYNC,    dboard_iface::UNIT_TX,   7,  0x1<<7,     1,  ubx_gpio_field_info_t::INPUT,  true,   0,  0,  0,  0},
+     {TXLO2_SYNC,    dboard_iface::UNIT_TX,   9,  0x1<<9,     1,  ubx_gpio_field_info_t::INPUT,  true,   0,  0,  0,  0},
+     {TX_GAIN,       dboard_iface::UNIT_TX,   10, 0x3F<<10,   10, ubx_gpio_field_info_t::INPUT,  false,  0,  0,  0,  0},

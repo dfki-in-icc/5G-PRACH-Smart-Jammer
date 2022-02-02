@@ -1,0 +1,46 @@
+From a97f3470e589c1b0105a32bf54160eb36fc0ddbe Mon Sep 17 00:00:00 2001
+From: Tom Tsou <tom.tsou@ettus.com>
+Date: Fri, 28 Jul 2017 16:58:37 -0700
+Subject: [PATCH] b200: Leave Tx PA on during ATR
+
+---
+ host/lib/usrp/b200/b200_impl.cpp | 16 ++++++++--------
+ 1 file changed, 8 insertions(+), 8 deletions(-)
+
+diff --git a/host/lib/usrp/b200/b200_impl.cpp b/host/lib/usrp/b200/b200_impl.cpp
+index 9526ae2..c1b71f8 100644
+--- a/host/lib/usrp/b200/b200_impl.cpp
++++ b/host/lib/usrp/b200/b200_impl.cpp
+@@ -1172,10 +1172,10 @@ void b200_impl::update_atrs(void)
+         if (enb_rx and not enb_tx) fd = rxonly;
+         if (not enb_rx and enb_tx) fd = txonly;
+         gpio_atr_3000::sptr atr = perif.atr;
+-        atr->set_atr_reg(ATR_REG_IDLE, STATE_OFF);
+-        atr->set_atr_reg(ATR_REG_RX_ONLY, rxonly);
+-        atr->set_atr_reg(ATR_REG_TX_ONLY, txonly);
+-        atr->set_atr_reg(ATR_REG_FULL_DUPLEX, fd);
++        atr->set_atr_reg(ATR_REG_IDLE, STATE_OFF | (1<<7));
++        atr->set_atr_reg(ATR_REG_RX_ONLY, rxonly | (1<<7));
++        atr->set_atr_reg(ATR_REG_TX_ONLY, txonly | (1<<7));
++        atr->set_atr_reg(ATR_REG_FULL_DUPLEX, fd | (1<<7));
+     }
+     if (_radio_perifs.size() > _fe2 and _radio_perifs[_fe2].atr)
+     {
+@@ -1190,10 +1190,10 @@ void b200_impl::update_atrs(void)
+         if (enb_rx and not enb_tx) fd = rxonly;
+         if (not enb_rx and enb_tx) fd = txonly;
+         gpio_atr_3000::sptr atr = perif.atr;
+-        atr->set_atr_reg(ATR_REG_IDLE, STATE_OFF);
+-        atr->set_atr_reg(ATR_REG_RX_ONLY, rxonly);
+-        atr->set_atr_reg(ATR_REG_TX_ONLY, txonly);
+-        atr->set_atr_reg(ATR_REG_FULL_DUPLEX, fd);
++        atr->set_atr_reg(ATR_REG_IDLE, STATE_OFF | (1<<7));
++        atr->set_atr_reg(ATR_REG_RX_ONLY, rxonly | (1<<7));
++        atr->set_atr_reg(ATR_REG_TX_ONLY, txonly | (1<<7));
++        atr->set_atr_reg(ATR_REG_FULL_DUPLEX, fd | (1<<7));
+     }
+ }
+ 
+-- 
+2.7.4
+
