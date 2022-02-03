@@ -92,6 +92,19 @@ unsigned short config_frames[4] = {2,9,11,13};
 #  include "sys/gmon.h"
 #endif
 
+//////////////////////////////////
+//// E2 Agent headers
+//////////////////////////////////
+
+#include "agent_if/read/sm_ag_if_rd.h"
+#include "agent_if/sm_io.h"
+#include "agent_if/e2_agent_api.h"
+#include <time.h>
+
+//////////////////////////////////
+//////////////////////////////////
+//////////////////////////////////
+
 pthread_cond_t nfapi_sync_cond;
 pthread_mutex_t nfapi_sync_mutex;
 int nfapi_sync_var=-1; //!< protected by mutex \ref nfapi_sync_mutex
@@ -507,6 +520,112 @@ static  void wait_nfapi_init(char *thread_name) {
   printf( "NFAPI: got sync (%s)\n", thread_name);
 }
 
+static
+const int mod_id = 0;
+
+static
+int64_t time_now_us(void)
+{
+  struct timespec tms;
+
+  /* The C11 way */
+  /* if (! timespec_get(&tms, TIME_UTC))  */
+
+  /* POSIX.1-2008 way */
+  if (clock_gettime(CLOCK_REALTIME,&tms)) {
+    return -1;
+  }
+  /* seconds, multiplied with 1 million */
+  int64_t micros = tms.tv_sec * 1000000;
+  /* Add full microseconds */
+  micros += tms.tv_nsec/1000;
+  /* round up if necessary */
+  if (tms.tv_nsec % 1000 >= 500) {
+    ++micros;
+  }
+  return micros;
+}
+
+static
+void read_mac_sm(mac_ind_msg_t* data)
+{
+  assert(data != NULL);
+
+  data->tstamp = time_now_us();
+}
+
+static
+void read_rlc_sm(rlc_ind_msg_t* data)
+{
+  assert(data != NULL);
+
+  data->tstamp = time_now_us();
+}
+
+static
+void read_pdcp_sm(pdcp_ind_msg_t* data)
+{
+  assert(data != NULL);
+
+  data->tstamp = time_now_us();
+}
+
+static
+void read_slice_sm(slice_ind_msg_t* data)
+{
+  assert(data != NULL);
+
+  data->tstamp = time_now_us();
+
+  char const* ulname = "UL SLICE";
+  char const* dlname = "DL SLICE";
+  data->slice_conf.ul.len_sched_name = strlen(ulname);
+  data->slice_conf.dl.len_sched_name = strlen(dlname);
+  data->slice_conf.ul.sched_name = malloc(strlen(ulname));
+  data->slice_conf.dl.sched_name = malloc(strlen(dlname));
+  assert(data->slice_conf.ul.sched_name != NULL && "memory exhausted");
+  assert(data->slice_conf.dl.sched_name != NULL && "memory exhausted");
+  memcpy(data->slice_conf.ul.sched_name, ulname, strlen(ulname));
+  memcpy(data->slice_conf.dl.sched_name, dlname, strlen(dlname));
+}
+
+static
+void read_RAN(sm_ag_if_rd_t* data)
+{
+  assert(data != NULL);
+  assert(data->type == MAC_STATS_V0
+         || data->type == RLC_STATS_V0
+         || data->type == PDCP_STATS_V0
+         || data->type == SLICE_STATS_V0
+  );
+
+  if(data->type == MAC_STATS_V0){
+    read_mac_sm(&data->mac_stats.msg);
+    //  printf("Calling READ MAC\n");
+  }else if(data->type == RLC_STATS_V0) {
+    read_rlc_sm(&data->rlc_stats.msg);
+    //  printf("Calling READ RLC\n");
+  } else if(data->type == PDCP_STATS_V0) {
+    read_pdcp_sm(&data->pdcp_stats.msg);
+    //  printf("Calling READ PDCP\n");
+  } else if(data->type == SLICE_STATS_V0) {
+    read_slice_sm(&data->slice_stats.msg);
+    //  printf("Calling READ SLICE\n");
+  } else {
+    assert(0!=0 && "Unknown data type!");
+  }
+}
+
+static
+sm_ag_if_ans_t write_RAN(sm_ag_if_wr_t const* data)
+{
+  assert(data != NULL);
+  assert(0!=0 && "Not implemented");
+  sm_ag_if_ans_t ans = {.type = MAC_AGENT_IF_CTRL_ANS_V0 };
+
+  return ans;
+}
+
 int main ( int argc, char **argv )
 {
   int i;
@@ -579,6 +698,25 @@ int main ( int argc, char **argv )
       if(NFAPI_MODE != NFAPI_MODE_PNF)
       flexran_agent_start(i);
     }
+//////////////////////////////////
+//////////////////////////////////
+//// Init the E2 Agent
+
+    sleep(2);
+    const eNB_RRC_INST* rrc = RC.rrc[mod_id];
+    assert(rrc != NULL && "rrc cannot be NULL");
+
+    const int mcc = rrc->configuration.mcc[0]; // 208;
+    const int mnc = rrc->configuration.mnc[0]; // 94;
+    const int mnc_digit_len = rrc->configuration.mnc_digit_length[0]; // 2;
+    const int nb_id = rrc->configuration.cell_identity; //42;
+    sm_io_ag_t io = {.read = read_RAN, .write = write_RAN};
+    args_t args = {.conf_file = "/usr/local/flexric/flexric.conf", .libs_dir = "/usr/local/flexric/"};
+    printf("[E2 NODE]: mcc = %d mnc = %d mnc_digit = %d nd_id = %d \n", mcc, mnc, mnc_digit_len, nb_id);
+
+    init_agent_api(mcc, mnc, mnc_digit_len, nb_id, io, args);
+//////////////////////////////////
+//////////////////////////////////
     
     /* initializes PDCP and sets correct RLC Request/PDCP Indication callbacks
      * for monolithic/F1 modes */
