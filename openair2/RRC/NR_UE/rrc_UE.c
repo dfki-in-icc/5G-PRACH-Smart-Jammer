@@ -164,6 +164,7 @@ static int nr_rrc_set_sub_state( module_id_t ue_mod_idP, Rrc_Sub_State_NR_t subS
         break;
 
       case RRC_STATE_CONNECTED_NR:
+        return (0);
         AssertFatal ((RRC_SUB_STATE_CONNECTED_FIRST_NR <= subState) && (subState <= RRC_SUB_STATE_CONNECTED_LAST_NR),
                      "Invalid nr sub state %d for state %d!\n", subState, NR_UE_rrc_inst[ue_mod_idP].nrRrcState);
         break;

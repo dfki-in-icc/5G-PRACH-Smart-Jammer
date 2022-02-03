@@ -192,10 +192,8 @@ void get_bwp_info(NR_UE_MAC_INST_t *mac,
                   NR_BWP_UplinkCommon_t **ubwpc) {
 
     if (dl_bwp_id > 0) {
-       AssertFatal(mac->DLbwp[dl_bwp_id-1]!=NULL,"mac->DLbwp[%d] is null, shouldn't be\n",
-                    (int)dl_bwp_id-1);
-       *bwpd = mac->DLbwp[dl_bwp_id-1]->bwp_Dedicated;
-       if (mac->DLbwp[dl_bwp_id-1]->bwp_Common) *bwpc = mac->DLbwp[dl_bwp_id-1]->bwp_Common;
+       *bwpd = (mac->DLbwp[dl_bwp_id-1]) ? mac->DLbwp[dl_bwp_id-1]->bwp_Dedicated : mac->initDLbwp;
+       if (mac->DLbwp[dl_bwp_id-1] && mac->DLbwp[dl_bwp_id-1]->bwp_Common) *bwpc = mac->DLbwp[dl_bwp_id-1]->bwp_Common;
        else if (mac->scc_SIB) *bwpc = &mac->scc_SIB->downlinkConfigCommon.initialDownlinkBWP;
        else if (mac->scc) *bwpc = mac->scc->downlinkConfigCommon->initialDownlinkBWP;
        AssertFatal(*bwpc!=NULL,"bwpc shouldn't be null\n");
@@ -211,10 +209,8 @@ void get_bwp_info(NR_UE_MAC_INST_t *mac,
     }
 
     if (ul_bwp_id > 0) {
-       AssertFatal(mac->ULbwp[ul_bwp_id-1]!=NULL,"mac->ULbwp[%d] is null, shouldn't be\n",
-                   ul_bwp_id-1);
-       *ubwpd = mac->ULbwp[ul_bwp_id-1]->bwp_Dedicated;
-       if (mac->ULbwp[ul_bwp_id-1]->bwp_Common) *ubwpc = mac->ULbwp[ul_bwp_id-1]->bwp_Common;
+       *ubwpd = (mac->ULbwp[ul_bwp_id-1]) ? mac->ULbwp[ul_bwp_id-1]->bwp_Dedicated : mac->initULbwp;
+       if (mac->ULbwp[ul_bwp_id-1] && mac->ULbwp[ul_bwp_id-1]->bwp_Common) *ubwpc = mac->ULbwp[ul_bwp_id-1]->bwp_Common;
        else if (mac->scc_SIB) *ubwpc = &mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP;
        else if (mac->scc) *ubwpc = mac->scc->uplinkConfigCommon->initialUplinkBWP;
        AssertFatal(*bwpc!=NULL,"bwpc shouldn't be null\n");
