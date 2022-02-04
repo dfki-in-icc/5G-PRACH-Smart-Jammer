@@ -2419,7 +2419,7 @@ uint8_t nr_get_csi_measurements(NR_UE_MAC_INST_t *mac,
                       "CSI resource not found among PUCCH resources\n");
 
           pucch->resource_indicator = found;
-          csi_bits += nr_get_csi_payload(mac, pucch, csi_report_id, csi_measconfig);
+          csi_bits = nr_get_csi_payload(mac, pucch, csi_report_id, csi_measconfig);
         }
       }
       else
@@ -2446,10 +2446,14 @@ uint8_t nr_get_csi_payload(NR_UE_MAC_INST_t *mac,
     case NR_CSI_ReportConfig__reportQuantity_PR_none:
       break;
     case NR_CSI_ReportConfig__reportQuantity_PR_ssb_Index_RSRP:
-      n_csi_bits = get_ssb_rsrp_payload(mac,pucch,csi_reportconfig,csi_ResourceConfigId,csi_MeasConfig);
+      n_csi_bits += get_ssb_rsrp_payload(mac,pucch,csi_reportconfig,csi_ResourceConfigId,csi_MeasConfig);
       break;
     case NR_CSI_ReportConfig__reportQuantity_PR_cri_RSRP:
+      n_csi_bits += get_ssb_rsrp_payload(mac,pucch,csi_reportconfig,csi_ResourceConfigId,csi_MeasConfig);
+      break;
     case NR_CSI_ReportConfig__reportQuantity_PR_cri_RI_PMI_CQI:
+      n_csi_bits += get_cri_ri_pmi_cqi_payload(mac,pucch,csi_reportconfig,csi_ResourceConfigId,csi_MeasConfig);
+      break;
     case NR_CSI_ReportConfig__reportQuantity_PR_cri_RI_i1:
     case NR_CSI_ReportConfig__reportQuantity_PR_cri_RI_i1_CQI:
     case NR_CSI_ReportConfig__reportQuantity_PR_cri_RI_CQI:
@@ -2461,6 +2465,68 @@ uint8_t nr_get_csi_payload(NR_UE_MAC_INST_t *mac,
   return (n_csi_bits);
 }
 
+uint8_t get_cri_ri_pmi_cqi_payload(NR_UE_MAC_INST_t *mac,
+                             PUCCH_sched_t *pucch,
+                             struct NR_CSI_ReportConfig *csi_reportconfig,
+                             NR_CSI_ResourceConfigId_t csi_ResourceConfigId,
+                             NR_CSI_MeasConfig_t *csi_MeasConfig) {
+  /*
+  cqi (MSB?) - pmi  - ri (LSB?)
+  2x2 case:
+  cqi: 4 bits long --> hard coded 15. Quality of downlink channel.
+  pmi: 2 (rank1) 1 (rank2) bits long  -> default: 0 seems okay in temp.
+  ri : 1 bits long --> Payload && 0x1  --> 0 : rank 1, 1: rank 2
+
+  4x4 case:
+  cqi: 4 bits long
+  pmi: 2 (rank1) 1 (rank2) bits long
+  ri : 2 bits long
+  */
+
+  uint8_t ri_index = 0; // 0 : rank 1, 1: rank 2 for 2x2 MIMO case. TODO:: Needs update
+  uint16_t ri_bits = 1; // 1 bit for 2x2 MIMO case, 2 bits for 4x4 MIMO case
+  uint8_t pmi_index = 0; // hard coded 0. TODO:: Needs update
+  uint16_t pmi_bits = ri_index > 0 ? 1 : 2; // 2 bits (rank 1), 1 bit (rank 2) for 2x2 MIMO case
+  uint8_t cqi_index = 15; // hard coded 15. Quality of downlink channel. TODO:: Needs update
+  uint16_t cqi_bits = 4;
+
+  int bits = 0;
+  int nb_meas = 0; // nb of measured RS resources to be reported
+  uint32_t temp_payload = 0;
+
+  for (int csi_resourceidx = 0; csi_resourceidx < csi_MeasConfig->csi_ResourceConfigToAddModList->list.count; csi_resourceidx++) {
+    struct NR_CSI_ResourceConfig *csi_resourceconfig = csi_MeasConfig->csi_ResourceConfigToAddModList->list.array[csi_resourceidx];
+    if (csi_resourceconfig->csi_ResourceConfigId == csi_ResourceConfigId) {
+
+      if (csi_reportconfig->groupBasedBeamReporting.present == NR_CSI_ReportConfig__groupBasedBeamReporting_PR_disabled) {
+        if (csi_reportconfig->groupBasedBeamReporting.choice.disabled->nrofReportedRS != NULL)
+          nb_meas = *(csi_reportconfig->groupBasedBeamReporting.choice.disabled->nrofReportedRS)+1;
+        else
+          nb_meas = 1;
+      } else
+        nb_meas = 2;
+
+      for (int i = 0; i < nb_meas; i++){
+        LOG_D(NR_MAC,"CSI Reporting Rank %d\n", ri_index+1);
+        reverse_n_bits(&ri_index, ri_bits);
+        temp_payload |= ri_index;
+        bits += ri_bits;
+
+        reverse_n_bits(&pmi_index, pmi_bits);
+        temp_payload |= (pmi_index << bits);
+        bits += pmi_bits;
+
+        reverse_n_bits(&cqi_index, cqi_bits);
+        temp_payload |= (cqi_index << bits);
+        bits += cqi_bits;
+      }
+      break; // resorce found
+    }
+  }
+  pucch->csi_part1_payload = temp_payload;
+  LOG_I(MAC, "David pucch->csi_part1_payload = 0x%x in %s\n", pucch->csi_part1_payload, __FUNCTION__);
+  return bits;
+}
 
 uint8_t get_ssb_rsrp_payload(NR_UE_MAC_INST_t *mac,
                              PUCCH_sched_t *pucch,

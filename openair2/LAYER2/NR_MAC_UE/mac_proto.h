@@ -206,6 +206,12 @@ uint8_t nr_get_csi_measurements(NR_UE_MAC_INST_t *mac,
                                 int slot,
                                 PUCCH_sched_t *pucch);
 
+uint8_t get_cri_ri_pmi_cqi_payload(NR_UE_MAC_INST_t *mac,
+                             PUCCH_sched_t *pucch,
+                             struct NR_CSI_ReportConfig *csi_reportconfig,
+                             NR_CSI_ResourceConfigId_t csi_ResourceConfigId,
+                             NR_CSI_MeasConfig_t *csi_MeasConfig);
+
 uint8_t get_ssb_rsrp_payload(NR_UE_MAC_INST_t *mac,
                              PUCCH_sched_t *pucch,
                              struct NR_CSI_ReportConfig *csi_reportconfig,
