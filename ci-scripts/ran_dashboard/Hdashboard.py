@@ -509,7 +509,24 @@ class Dashboard:
         s3.meta.client.copy(copy_source, 'oaitestdashboard', path+'/'+ 'test_styles.css')
 
 
-    def PostGitNote(self,mr,commit,args):
+    def PostGitNoteChild(self,mr,commit,jobname,buildurl,buildid,status):
+        #post individual test result as an option when running manually
+        #call from jenkinsfile : sh "python3 Hdashboard.py testevent ${params.eNB_MR} ${JOB_NAME} ${env.BUILD_URL} ${env.BUILD_ID} ${StatusForDb} "
+        gl = gitlab.Gitlab.from_config('OAI')
+        project_id = 223
+        project = gl.projects.get(project_id)
+        editable_mr = project.mergerequests.get(int(mr))
+        mr_notes = editable_mr.notes.list()
+        mr_note = editable_mr.notes.create({
+            'body': 'Tested CommitID: ' + commit + '<br>'+\
+            'Completed Test : '+jobname+', status: <b>'+status+'</b>, '+\
+            '(<a href="'+buildurl+'">'+buildid+'</a>)<br>'
+        })
+        editable_mr.save()
+
+
+
+    def PostGitNoteParent(self,mr,commit,args):
         #current date and time to be posted with test results
         #now = datetime.now()
         #dt_string = now.strftime("%d/%m/%Y %H:%M")
@@ -573,7 +590,10 @@ class Dashboard:
 
 def main():
 
+    #missing commit ID
     #call from slave Jenkinsfile : sh "python3 Hdashboard.py testevent ${params.eNB_MR} "  
+    #sh "python3 Hdashboard.py testevent ${params.eNB_MR} ${JOB_NAME} ${env.BUILD_URL} ${env.BUILD_ID} ${StatusForDb} "
+
     #call from master Jenkinsfile : sh "python3 Hdashboard.py gitpost ${GitPostArgs}"
    
 
@@ -600,7 +620,7 @@ def main():
                 args.append(sys.argv[i])
             htmlDash=Dashboard()
             if mr in htmlDash.mr_list:
-                htmlDash.PostGitNote(mr,commit, args)
+                htmlDash.PostGitNoteParent(mr,commit, args)
             else:
                 print("Not a Merge Request => this build is for testing/debug purpose, no report to git")
         elif sys.argv[1]=="awsclean":
