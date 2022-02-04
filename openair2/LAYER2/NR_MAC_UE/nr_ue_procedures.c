@@ -2471,11 +2471,11 @@ uint8_t get_cri_ri_pmi_cqi_payload(NR_UE_MAC_INST_t *mac,
                              NR_CSI_ResourceConfigId_t csi_ResourceConfigId,
                              NR_CSI_MeasConfig_t *csi_MeasConfig) {
   /*
-  cqi (MSB?) - pmi  - ri (LSB?)
+  cqi (MSB) - pmi  - ri (LSB)
   2x2 case:
-  cqi: 4 bits long --> hard coded 15. Quality of downlink channel.
-  pmi: 2 (rank1) 1 (rank2) bits long  -> default: 0 seems okay in temp.
-  ri : 1 bits long --> Payload && 0x1  --> 0 : rank 1, 1: rank 2
+  cqi: 4 bits long
+  pmi: 2 (rank1), 1 (rank2) bits long
+  ri : 1 bit long, 0 : rank 1, 1: rank 2
 
   4x4 case:
   cqi: 4 bits long
@@ -2511,6 +2511,9 @@ uint8_t get_cri_ri_pmi_cqi_payload(NR_UE_MAC_INST_t *mac,
         reverse_n_bits(&ri_index, ri_bits);
         temp_payload |= ri_index;
         bits += ri_bits;
+
+        uint16_t zero_padding_bits = 2 - pmi_bits;
+        bits += zero_padding_bits;
 
         reverse_n_bits(&pmi_index, pmi_bits);
         temp_payload |= (pmi_index << bits);
