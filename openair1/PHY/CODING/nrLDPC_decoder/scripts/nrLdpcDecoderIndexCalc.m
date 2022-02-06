@@ -31,9 +31,9 @@ NR_LDPC_ZMAX = 384;
 plotBG = 0;
 
 % Parameters for BG selection
-BG = 1;
+BG = 2;
 Z = 384;
-R = 13;
+R = 23;
 
 switch R
     case 15
@@ -49,7 +49,7 @@ switch R
 end
 
 % allZ = sort(liftingSizes(liftingSizes>0));
-allZ = 352;
+allZ = 2;
 group = 4;
 for iZ = 1:length(allZ)
     Z = allZ(iZ);
@@ -164,15 +164,17 @@ for i = 1:length(yUnique)
     idxY = find(bnIdx==y);
     addrOffset = [addrOffset, NR_LDPC_ZMAX*(idxY-1)'];
 end
-print_bnSubGroupAddr(addrOffset,BG,R,group,bnSubGroupNum);
-print_bnSubGroupIdx(BG,R,group,bnSubGroupNum,yUnique');
+yUnique = yUnique(:).';
+% print_bnSubGroupAddr(addrOffset,BG,R,group,bnSubGroupNum);
+bnSubGroupIdx_cell = print_bnSubGroupIdx(BG,R,group,bnSubGroupNum,yUnique);
+[idxBnProcBuf,startAddrBnProcBuf,startAddrLlrSG] = print_addrBnProcBuf(y-1,bnSubGroupIdx_cell,bnSubGroupNum,NR_LDPC_ZMAX);
 % print_bnSubGroupCshift(BG,R,Z,group,bnSubGroupNum,cshift);
 % print_cshift(cshift,BG,Z,group,numCNinGroup);
 % print_startAddr(startAddr,BG,R,group,numCNinGroup);
 % print_bnPos(bnPos,BG,R,group,numCNinGroup);
  
 % LUT for llr2CnProcBuf
-% print_posBnInCnProcBuf(y-1,BG,group,numCNinGroup);
+print_posBnInCnProcBuf(y-1,BG,group,numCNinGroup);
 
 % LUT for llr2llrProcBuf
 % LLR processing buffer org
@@ -219,6 +221,41 @@ end
 
 end
 
+function [idxBnProcBuf,startAddrBnProcBuf,startAddrLlrSG] = print_addrBnProcBuf(y,bnSubGroupIdx_cell,bnSubGroupNum,NR_LDPC_ZMAX)
+
+uniqueSG = unique(bnSubGroupNum);
+uniqueSGSum = sum((uniqueSG'==bnSubGroupNum),2);
+
+for i=1:length(uniqueSG)
+    SG = uniqueSG(i);
+    bnInSG = bnSubGroupIdx_cell{i};
+    if i==1
+        startAddri = 0;
+    else
+        startAddri = startAddri+((uniqueSGSum(i-1)*uniqueSG(i-1)*NR_LDPC_ZMAX)+(uniqueSGSum(i-1)*NR_LDPC_ZMAX)); % +1 for input LLRs
+    end
+    if SG == 1      
+        a = 0;
+        for j=1:length(bnInSG)
+            idx = find(bnInSG(j)==y);
+            idxBnProcBuf(idx) = a;
+            startAddrBnProcBuf(idx) = startAddri;
+            a = a+1;
+        end
+    else
+        for j=1:length(bnInSG)
+            idx = find(bnInSG(j)==y);
+            for k = 1:length(idx)
+                idxBnProcBuf(idx(k)) = j-1;
+                startAddrBnProcBuf(idx(k)) = startAddri+(k-1)*uniqueSGSum(i)*NR_LDPC_ZMAX;
+            end
+        end
+    end
+    startAddrLlrSG(i) = startAddri+((uniqueSGSum(i)*uniqueSG(i)*NR_LDPC_ZMAX)+(uniqueSGSum(i)*NR_LDPC_ZMAX));
+end
+
+end
+
 function print_bnSubGroupAddr(addrOffset,BG,R,group,bnSubGroupNum)
 
 prefix = 'static const uint16_t';
@@ -254,16 +291,17 @@ end
     
 end
 
-function print_bnSubGroupIdx(BG,R,group,bnSubGroupNum,yUnique)
+function bnSubGroupIdx_cell = print_bnSubGroupIdx(BG,R,group,bnSubGroupNum,yUnique)
 
 prefix = 'static const uint16_t';
-
+bnSubGroupIdx_cell={};
 uniqueSG = unique(bnSubGroupNum);
 uniqueSGSum = sum((uniqueSG'==bnSubGroupNum),2);
 
 
 for i=1:length(uniqueSG)
     SG = uniqueSG(i);
+    bnSubGroupIdx_cell{i} = [];
     idxBnSubGroupNum = SG==bnSubGroupNum;
     arrayName = strcat('bnIdx', '_BG', num2str(BG), '_CNG',num2str(group),...
         '_SG',num2str(SG),'_R',num2str(R),'[',num2str(uniqueSGSum(i)),'] =');
@@ -272,8 +310,10 @@ for i=1:length(uniqueSG)
     y = (yUnique(idxBnSubGroupNum))-1;
     if ~isempty(y(1:end-1))
         fprintf('%d, ',y(1:end-1));
+        bnSubGroupIdx_cell{i} = [bnSubGroupIdx_cell{i}, y(1:end-1)];
     end
     fprintf('%d',y(end));
+    bnSubGroupIdx_cell{i} = [bnSubGroupIdx_cell{i}, y(end)];
     fprintf('};\n');
 end
     
