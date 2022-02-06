@@ -5433,6 +5433,123 @@ static inline void nrLDPC_cnProc_BG1_second(t_nrLDPC_lut* p_lut, int8_t* llr, t_
 
 }
 
+static inline void nrLDPC_cnProc_BG2_first(t_nrLDPC_lut* p_lut,
+                                           int8_t* llr,
+                                           int8_t* llrProcBuf,
+                                           int8_t* llrRes,
+                                           int8_t* cnProcBuf,
+                                           int8_t* bnProcBuf,
+                                           int8_t* cnProcBufRes,
+                                           int8_t* bnProcBufRes,
+                                           uint16_t Z)
+{
+
+  const uint16_t (*lut_circShift_CNG3)  [lut_numCnInCnGroups_BG2_R15[0]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[0]]) p_lut->circShift[0];
+  const uint16_t (*lut_circShift_CNG4)  [lut_numCnInCnGroups_BG2_R15[1]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[1]]) p_lut->circShift[1];
+  const uint16_t (*lut_circShift_CNG5)  [lut_numCnInCnGroups_BG2_R15[2]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[2]]) p_lut->circShift[2];
+  const uint16_t (*lut_circShift_CNG6)  [lut_numCnInCnGroups_BG2_R15[3]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[3]]) p_lut->circShift[3];
+  const uint16_t (*lut_circShift_CNG8)  [lut_numCnInCnGroups_BG2_R15[4]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[4]]) p_lut->circShift[4];
+  const uint16_t (*lut_circShift_CNG10) [lut_numCnInCnGroups_BG2_R15[5]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[5]]) p_lut->circShift[5];
+
+  const uint8_t (*lut_posBnInCnProcBuf_CNG3)  [lut_numCnInCnGroups_BG2_R15[0]] = (const uint8_t(*)[lut_numCnInCnGroups_BG2_R15[0]]) p_lut->posBnInCnProcBuf[0];
+  const uint8_t (*lut_posBnInCnProcBuf_CNG4)  [lut_numCnInCnGroups_BG2_R15[1]] = (const uint8_t(*)[lut_numCnInCnGroups_BG2_R15[1]]) p_lut->posBnInCnProcBuf[1];
+  const uint8_t (*lut_posBnInCnProcBuf_CNG5)  [lut_numCnInCnGroups_BG2_R15[2]] = (const uint8_t(*)[lut_numCnInCnGroups_BG2_R15[2]]) p_lut->posBnInCnProcBuf[2];
+  const uint8_t (*lut_posBnInCnProcBuf_CNG6)  [lut_numCnInCnGroups_BG2_R15[3]] = (const uint8_t(*)[lut_numCnInCnGroups_BG2_R15[3]]) p_lut->posBnInCnProcBuf[3];
+  const uint8_t (*lut_posBnInCnProcBuf_CNG8)  [lut_numCnInCnGroups_BG2_R15[4]] = (const uint8_t(*)[lut_numCnInCnGroups_BG2_R15[4]]) p_lut->posBnInCnProcBuf[4];
+  const uint8_t (*lut_posBnInCnProcBuf_CNG10) [lut_numCnInCnGroups_BG2_R15[5]] = (const uint8_t(*)[lut_numCnInCnGroups_BG2_R15[5]]) p_lut->posBnInCnProcBuf[5];
+
+  const uint8_t*  lut_numCnInCnGroups = p_lut->numCnInCnGroups;
+  const uint32_t* lut_startAddrCnGroups = p_lut->startAddrCnGroups;
+
+  int8_t* p_cnProcBuf;
+  // Offset to each bit within a group in terms of 32 Byte
+  uint32_t bitOffsetInGroup;
+
+  __m256i* p_cnProcBuf256;
+  __m256i* p_cnProcBufRes256;
+
+  // Number of CNs in Groups
+  uint32_t M;
+  uint32_t i;
+  uint32_t j;
+  uint32_t k;
+  __m256i ymm0, min, sgn;
+  __m256i* p_cnProcBufResBit;
+
+  const __m256i* p_ones   = (__m256i*) ones256_epi8;
+  const __m256i* p_maxLLR = (__m256i*) maxLLR256_epi8;
+  // =====================================================================
+  // CN group with 3 BNs
+
+  bitOffsetInGroup = lut_numCnInCnGroups_BG2_R15[0]*NR_LDPC_ZMAX;
+
+  for (j=0; j<3; j++)
+  {
+    p_cnProcBuf = &cnProcBuf[lut_startAddrCnGroups[0] + j*bitOffsetInGroup];
+
+    for (i=0; i<lut_numCnInCnGroups[0]; i++)
+    {
+      idxBn = lut_posBnInCnProcBuf_CNG3[j][i]*Z;
+      nrLDPC_circ_memcpy(p_cnProcBuf, &llr[idxBn], Z, lut_circShift_CNG3[j][i]);
+      p_cnProcBuf += Z;
+    }
+  }
+
+  // LUT with offsets for bits that need to be processed
+  // 1. bit proc requires LLRs of 2. and 3. bit, 2.bits of 1. and 3. etc.
+  // Offsets are in units of bitOffsetInGroup
+  const uint8_t lut_idxCnProcG3[3][2] = {{72,144}, {0,144}, {0,72}};
+
+  // =====================================================================
+  // Process group with 3 BNs
+
+  if (lut_numCnInCnGroups[0] > 0)
+  {
+    // Number of groups of 32 CNs for parallel processing
+    // Ceil for values not divisible by 32
+    M = (lut_numCnInCnGroups[0]*Z + 31)>>5;
+    // Set the offset to each bit within a group in terms of 32 Byte
+    bitOffsetInGroup = (lut_numCnInCnGroups_BG2_R15[0]*NR_LDPC_ZMAX)>>5;
+
+    // Set pointers to start of group 3
+    p_cnProcBuf256    = (__m256i*) &cnProcBuf   [lut_startAddrCnGroups[0]];
+    p_cnProcBufRes256 = (__m256i*) &cnProcBufRes[lut_startAddrCnGroups[0]];
+
+    // Loop over every BN
+    for (j=0; j<3; j++)
+    {
+      // Set of results pointer to correct BN address
+      p_cnProcBufResBit = p_cnProcBufRes + (j*bitOffsetInGroup);
+
+      __m256i *pj0 = &p_cnProcBuf[lut_idxCnProcG3[j][0]];
+      __m256i *pj1 = &p_cnProcBuf[lut_idxCnProcG3[j][1]];
+
+      // Loop over CNs
+      for (i=0; i<M; i++)
+      {
+        // Abs and sign of 32 CNs (first BN)
+//                ymm0 = p_cnProcBuf[lut_idxCnProcG3[j][0] + i];
+  ymm0 = pj0[i];
+        sgn  = _mm256_sign_epi8(*p_ones, ymm0);
+        min  = _mm256_abs_epi8(ymm0);
+
+        // 32 CNs of second BN
+//  ymm0 = p_cnProcBuf[lut_idxCnProcG3[j][1] + i];
+ymm0 = pj1[i];
+        min  = _mm256_min_epu8(min, _mm256_abs_epi8(ymm0));
+        sgn  = _mm256_sign_epi8(sgn, ymm0);
+
+        // Store result
+        min = _mm256_min_epu8(min, *p_maxLLR); // 128 in epi8 is -127
+        //*p_cnProcBufResBit = _mm256_sign_epi8(min, sgn);
+        //p_cnProcBufResBit++;
+p_cnProcBufResBit[i]=_mm256_sign_epi8(min, sgn);
+      }
+    }
+  }
+
+}
+
 /**
    \brief Performs CN processing for BG1 on the CN processing buffer and stores the results in the CN processing results buffer.
    \param p_lut Pointer to decoder LUTs

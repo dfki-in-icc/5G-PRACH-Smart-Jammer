@@ -75,10 +75,8 @@ static inline void *nrLDPC_circ_memcpy(int8_t *str1, const int8_t *str2, uint16_
     return(str1);
 }
 
-static inline void nrLDPC_llr2llrProcBuf_new(t_nrLDPC_lut* p_lut, int8_t* llr, t_nrLDPC_procBuf* p_procBuf, uint16_t Z, uint8_t BG)
+static inline void nrLDPC_llr2llrProcBuf_new(t_nrLDPC_lut* p_lut, int8_t* llr, int8_t* llrProcBuf, int8_t* llrRes, uint16_t Z, uint8_t BG)
 {
-  int8_t* llrProcBuf = p_procBuf->llrProcBuf;
-  int8_t* llrRes = p_procBuf->llrRes;
   int numCols = (BG == 1) ? NR_LDPC_NCOL_BG1 : NR_LDPC_NCOL_BG2;
   memcpy(&llrProcBuf[0], &llr[0], numCols*Z);
   // First iterations uses the input LLRs
