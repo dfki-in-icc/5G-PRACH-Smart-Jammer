@@ -34,7 +34,8 @@
     {"offset-divisor",           CONFIG_HLP_OFFSET_DIV,  0,               uptr:(uint32_t *)&nrUE_params.ofdm_offset_divisor,    defuintval:UINT_MAX,           TYPE_UINT32,  0}, \
     {"nr-dlsch-demod-shift",     CONFIG_HLP_DLSHIFT,     0,               iptr:(int32_t *)&nr_dlsch_demod_shift,    defintval:0,     TYPE_INT,    0}, \
     {"V" ,                       CONFIG_HLP_VCD,         PARAMFLAG_BOOL,  iptr:&vcdflag,                            defintval:0,     TYPE_INT,    0}, \
-    {"rrc_config_path",          CONFIG_HLP_RRC_CFG_PATH,0,               strptr:(char **)&rrc_config_path,         defstrval:"./",  TYPE_STRING, 0} \
+    {"rrc_config_path",          CONFIG_HLP_RRC_CFG_PATH,0,               strptr:(char **)&rrc_config_path,         defstrval:"./",  TYPE_STRING, 0}, \
+    {"ue-idx-standalone",        NULL,                   0,               u16ptr:&ue_idx_standalone,          defuintval:0xFFFF,    TYPE_UINT16,   0} \
 }
 
 
@@ -50,7 +51,7 @@
     { NOL2CONNECT_OPT,           CONFIG_HLP_NOL2CN,     PARAMFLAG_BOOL,   uptr:NULL,                          defuintval:1,          TYPE_INT,   0}, \
     { CALIBPRACH_OPT,            CONFIG_HLP_CALPRACH,   PARAMFLAG_BOOL,   uptr:NULL,                          defuintval:1,          TYPE_INT,   0}, \
     { DUMPFRAME_OPT,             CONFIG_HLP_DUMPFRAME,  PARAMFLAG_BOOL,   iptr:&dumpframe,                    defintval:0,           TYPE_INT,   0}, \
-    {"ue-rxgain",                CONFIG_HLP_UERXG,       0,               dblptr:&(rx_gain[0][0]),            defdblval:0,           TYPE_DOUBLE,0}, \
+    {"ue-rxgain",                CONFIG_HLP_UERXG,       0,               dblptr:&(rx_gain[0][0]),            defdblval:110,         TYPE_DOUBLE,0}, \
     {"ue-rxgain-off",            CONFIG_HLP_UERXGOFF,    0,               dblptr:&rx_gain_off,                defdblval:0,           TYPE_DOUBLE,0}, \
     {"ue-txgain",                CONFIG_HLP_UETXG,       0,               dblptr:&(tx_gain[0][0]),            defdblval:0,           TYPE_DOUBLE,0}, \
     {"ue-nb-ant-rx",             CONFIG_HLP_UENANTR,     0,               u8ptr:&(fp->nb_antennas_rx),        defuintval:1,          TYPE_UINT8, 0}, \
@@ -88,7 +89,9 @@ extern void init_NR_UE(int, char*);
 extern void init_NR_UE_threads(int);
 extern void reset_opp_meas(void);
 extern void print_opp_meas(void);
+extern void start_oai_nrue_threads(void);
 void *UE_thread(void *arg);
 void init_nr_ue_vars(PHY_VARS_NR_UE *ue, uint8_t UE_id, uint8_t abstraction_flag);
+void init_nrUE_standalone_thread(int ue_idx);
 
 #endif

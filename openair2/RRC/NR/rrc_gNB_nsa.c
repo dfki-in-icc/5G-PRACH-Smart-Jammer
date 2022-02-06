@@ -52,9 +52,7 @@ extern boolean_t nr_rrc_pdcp_config_asn1_req(
     uint8_t                  *const kRRCint,
     uint8_t                  *const kUPenc,
     uint8_t                  *const kUPint
-  #if (LTE_RRC_VERSION >= MAKE_VERSION(9, 0, 0))
     ,LTE_PMCH_InfoList_r9_t  *pmch_InfoList_r9
-  #endif
     ,rb_id_t                 *const defaultDRB,
     struct NR_CellGroupConfig__rlc_BearerToAddModList *rlc_bearer2add_list);
 
@@ -125,6 +123,7 @@ void rrc_parse_ue_capabilities(gNB_RRC_INST *rrc, NR_UE_CapabilityRAT_ContainerL
   if ( LOG_DEBUGFLAG(DEBUG_ASN1) && ueCapabilityRAT_Container_MRDC != NULL ) {
     xer_fprint(stdout, &asn_DEF_NR_UE_MRDC_Capability, ue_context_p->ue_context.UE_Capability_MRDC);
   }
+  LOG_A(NR_RRC, "Successfully decoded UE NR capabilities (NR and MRDC)\n");
 
   rrc_add_nsa_user(rrc,ue_context_p, m);
 }
@@ -142,6 +141,7 @@ void rrc_add_nsa_user(gNB_RRC_INST *rrc,struct rrc_gNB_ue_context_s *ue_context_
   gtpv1u_enb_create_tunnel_resp_t create_tunnel_resp;
   protocol_ctxt_t ctxt={0};
   unsigned char *kUPenc = NULL;
+  unsigned char *kUPint = NULL;
   int i;
   // NR RRCReconfiguration
   AssertFatal(rrc->Nb_ue < MAX_NR_RRC_UE_CONTEXTS,"cannot add another UE\n");
@@ -214,15 +214,12 @@ void rrc_add_nsa_user(gNB_RRC_INST *rrc,struct rrc_gNB_ue_context_s *ue_context_
     LOG_I(RRC, "selecting integrity algorithm %d\n", ue_context_p->ue_context.integrity_algorithm);
 
     /* derive UP security key */
-    unsigned char *kUPenc_kdf;
     nr_derive_key_up_enc(ue_context_p->ue_context.ciphering_algorithm,
                          ue_context_p->ue_context.kgnb,
-                         &kUPenc_kdf);
-    /* kUPenc: last 128 bits of key derivation function which returns 256 bits */
-    kUPenc = malloc(16);
-    if (kUPenc == NULL) exit(1);
-    memcpy(kUPenc, kUPenc_kdf+16, 16);
-    free(kUPenc_kdf);
+                         &kUPenc);
+    nr_derive_key_up_int(ue_context_p->ue_context.integrity_algorithm,
+                         ue_context_p->ue_context.kgnb,
+                         &kUPint);
 
     e_NR_CipheringAlgorithm cipher_algo;
     switch (ue_context_p->ue_context.ciphering_algorithm) {
@@ -245,6 +242,7 @@ void rrc_add_nsa_user(gNB_RRC_INST *rrc,struct rrc_gNB_ue_context_s *ue_context_
                         reconfig_ies,
                         ue_context_p->ue_context.secondaryCellGroup,
                         carrier->pdsch_AntennaPorts,
+                        carrier->minRXTXTIME,
                         carrier->do_CSIRS,
                         carrier->initial_csi_index[ue_context_p->local_uid + 1],
                         ue_context_p->local_uid);
@@ -254,6 +252,7 @@ void rrc_add_nsa_user(gNB_RRC_INST *rrc,struct rrc_gNB_ue_context_s *ue_context_
                         reconfig_ies,
                         ue_context_p->ue_context.secondaryCellGroup,
                         carrier->pdsch_AntennaPorts,
+                        carrier->minRXTXTIME,
                         carrier->do_CSIRS,
                         carrier->initial_csi_index[ue_context_p->local_uid + 1],
                         ue_context_p->local_uid);
@@ -294,14 +293,18 @@ void rrc_add_nsa_user(gNB_RRC_INST *rrc,struct rrc_gNB_ue_context_s *ue_context_
       create_tunnel_req.num_tunnels    = m->nb_e_rabs_tobeadded;
       RB_INSERT(rrc_nr_ue_tree_s, &RC.nrrrc[rrc->module_id]->rrc_ue_head, ue_context_p);
       PROTOCOL_CTXT_SET_BY_MODULE_ID(&ctxt, rrc->module_id, GNB_FLAG_YES, ue_context_p->ue_id_rnti, 0, 0,rrc->module_id);
-      gtpv1u_create_s1u_tunnel(
-        ctxt.instance,
-        &create_tunnel_req,
-        &create_tunnel_resp);
-      rrc_gNB_process_GTPV1U_CREATE_TUNNEL_RESP(
-        &ctxt,
-        &create_tunnel_resp,
-        &inde_list[0]);
+      memset(&create_tunnel_resp, 0, sizeof(create_tunnel_resp));
+      if (!IS_SOFTMODEM_NOS1) {
+        LOG_D(RRC, "Calling gtpv1u_create_s1u_tunnel()\n");
+        gtpv1u_create_s1u_tunnel(
+          ctxt.instance,
+          &create_tunnel_req,
+          &create_tunnel_resp);
+        rrc_gNB_process_GTPV1U_CREATE_TUNNEL_RESP(
+          &ctxt,
+          &create_tunnel_resp,
+          &inde_list[0]);
+      }
       X2AP_ENDC_SGNB_ADDITION_REQ_ACK(msg).nb_e_rabs_admitted_tobeadded = m->nb_e_rabs_tobeadded;
       X2AP_ENDC_SGNB_ADDITION_REQ_ACK(msg).target_assoc_id = m->target_assoc_id;
 
@@ -339,7 +342,7 @@ void rrc_add_nsa_user(gNB_RRC_INST *rrc,struct rrc_gNB_ue_context_s *ue_context_
                               NULL,
                               (void *)CG_Config,
                               X2AP_ENDC_SGNB_ADDITION_REQ_ACK(msg).rrc_buffer,
-                              1024);
+                              sizeof(X2AP_ENDC_SGNB_ADDITION_REQ_ACK(msg).rrc_buffer));
     X2AP_ENDC_SGNB_ADDITION_REQ_ACK(msg).rrc_buffer_size = (enc_rval.encoded+7)>>3;
     itti_send_msg_to_task(TASK_X2AP, ENB_MODULE_ID_TO_INSTANCE(0), msg); //Check right id instead of hardcoding
   } else if (get_softmodem_params()->do_ra || get_softmodem_params()->sa) {
@@ -355,6 +358,7 @@ void rrc_add_nsa_user(gNB_RRC_INST *rrc,struct rrc_gNB_ue_context_s *ue_context_
 			   rrc->carrier.pusch_AntennaPorts,
                            rrc->carrier.sib1_tda,
                            rrc->carrier.servingcellconfigcommon,
+                           &rrc->carrier.mib,
                            1, // add_ue flag
                            ue_context_p->ue_id_rnti,
                            ue_context_p->ue_context.secondaryCellGroup);
@@ -364,6 +368,7 @@ void rrc_add_nsa_user(gNB_RRC_INST *rrc,struct rrc_gNB_ue_context_s *ue_context_
                            rrc->carrier.pdsch_AntennaPorts,
                            rrc->carrier.pusch_AntennaPorts,
                            rrc->carrier.sib1_tda,
+                           NULL,
                            NULL,
                            1, // add_ue flag
                            ue_context_p->ue_id_rnti,
@@ -387,7 +392,7 @@ void rrc_add_nsa_user(gNB_RRC_INST *rrc,struct rrc_gNB_ue_context_s *ue_context_
                               NULL,          /* kRRCenc - unused */
                               NULL,          /* kRRCint - unused */
                               kUPenc,        /* kUPenc  */
-                              NULL,          /* kUPint  - unused */
+                              kUPint,        /* kUPint */
                               NULL,
                               NULL,
                               ue_context_p->ue_context.secondaryCellGroup->rlc_BearerToAddModList);

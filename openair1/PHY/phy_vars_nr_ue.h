@@ -57,13 +57,6 @@ const short conjugate2[8]__attribute__((aligned(16))) = {1,-1,1,-1,1,-1,1,-1};
 
 unsigned char NB_RU=0;
 
-#ifndef OPENAIR2
-unsigned char NB_eNB_INST=0;
-uint16_t NB_UE_INST=0;
-unsigned char NB_RN_INST=0;
-unsigned char NB_INST=0;
-#endif
-
 
 int number_of_cards;
 
@@ -91,7 +84,7 @@ const double sinr_to_cqi[4][16]= { {-2.5051, -2.5051, -1.7451, -0.3655, 1.0812, 
 };
 
 //int cqi_to_mcs[16]={0, 0, 1, 3, 5, 7, 9, 13, 15, 16, 20, 23, 25, 27, 27, 27};
-const int cqi_to_mcs[16]= {0, 0, 1, 2, 4, 6, 8, 11, 13, 16, 18, 20, 23, 25, 27, 28};
+const int cqi_to_mcs[16]= {0, 0, 1, 2, 4, 6, 8, 11, 13, 16, 18, 20, 23, 25, 27, 27};
 
 //for SNR to MI conversion 7 th order Polynomial coeff
 const double q_qam16[8]= {3.21151853033897e-10,5.55435952230651e-09,-2.30760065362117e-07,-6.25587743817859e-06,4.62251036452795e-06,0.00224150813158937,0.0393723140344367,0.245486379182639};
