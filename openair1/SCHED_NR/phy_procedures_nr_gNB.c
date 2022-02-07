@@ -216,6 +216,68 @@ void phy_procedures_gNB_TX(processingData_L1tx_t *msgTx,
   //  VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PHY_PROCEDURES_ENB_RX,1);
 
 */
+void nr_postDecode_offload(PHY_VARS_gNB *gNB, notifiedFIFO_elt_t *req) {
+  ldpcDecode_t *rdata = (ldpcDecode_t*) NotifiedFifoData(req);
+  NR_UL_gNB_HARQ_t *ulsch_harq = rdata->ulsch_harq;
+  NR_gNB_ULSCH_t *ulsch = rdata->ulsch;
+  int r = rdata->segment_r;
+  nfapi_nr_pusch_pdu_t *pusch_pdu = &gNB->ulsch[rdata->ulsch_id][0]->harq_processes[rdata->harq_pid]->ulsch_pdu;
+
+  bool decodeSuccess = (rdata->decodeIterations <= rdata->decoderParms.numMaxIter);
+  ulsch_harq->processedSegments++;
+  LOG_D(PHY, "processing result of segment: %d, processed %d/%d\n",
+	rdata->segment_r, ulsch_harq->processedSegments, rdata->nbSegments);
+  gNB->nbDecode--;
+  LOG_D(PHY,"remain to decoded in subframe: %d\n", gNB->nbDecode);
+  
+  if (decodeSuccess) {
+    for (r=0;r<ulsch_harq->C;r++){
+      memcpy(ulsch_harq->b+rdata->offset,
+           ulsch_harq->c[r],
+           rdata->Kr_bytes - (ulsch_harq->F>>3) -((ulsch_harq->C>1)?3:0));
+    }
+  } 
+
+  // if all segments are done
+  if (rdata->nbSegments == ulsch_harq->processedSegments) {
+    if (decodeSuccess) {
+      LOG_D(PHY,"[gNB %d] ULSCH: Setting ACK for SFN/SF %d.%d (pid %d, ndi %d, status %d, round %d, TBS %d, Max interation (all seg) %d)\n",
+            gNB->Mod_id,ulsch_harq->frame,ulsch_harq->slot,rdata->harq_pid,pusch_pdu->pusch_data.new_data_indicator,ulsch_harq->status,ulsch_harq->round,ulsch_harq->TBS,rdata->decodeIterations);
+      ulsch_harq->status = SCH_IDLE;
+      ulsch_harq->round  = 0;
+      ulsch->harq_mask &= ~(1 << rdata->harq_pid);
+
+      LOG_D(PHY, "ULSCH received ok \n");
+      nr_fill_indication(gNB,ulsch_harq->frame, ulsch_harq->slot, rdata->ulsch_id, rdata->harq_pid, 0,0);
+      //dumpsig=1;
+    } else {
+      LOG_I(PHY,"[gNB %d] ULSCH: Setting NAK for SFN/SF %d/%d (pid %d, ndi %d, status %d, round %d, RV %d, prb_start %d, prb_size %d, TBS %d) r %d\n",
+            gNB->Mod_id, ulsch_harq->frame, ulsch_harq->slot,
+            rdata->harq_pid, pusch_pdu->pusch_data.new_data_indicator, ulsch_harq->status,
+	    ulsch_harq->round,
+            ulsch_harq->ulsch_pdu.pusch_data.rv_index,
+	    ulsch_harq->ulsch_pdu.rb_start,
+	    ulsch_harq->ulsch_pdu.rb_size,
+	    ulsch_harq->TBS,
+	    r);
+      ulsch_harq->round++;
+
+      if (ulsch_harq->round >= ulsch->Mlimit) {
+        ulsch_harq->status = SCH_IDLE;
+        ulsch_harq->round  = 0;
+        ulsch_harq->handled  = 0;
+        ulsch->harq_mask &= ~(1 << rdata->harq_pid);
+      }
+      ulsch_harq->handled  = 1;
+
+      LOG_D(PHY, "ULSCH %d in error\n",rdata->ulsch_id);
+      nr_fill_indication(gNB,ulsch_harq->frame, ulsch_harq->slot, rdata->ulsch_id, rdata->harq_pid, 1,0);
+    }
+
+    ulsch->last_iteration_cnt = rdata->decodeIterations;
+    VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PHY_gNB_ULSCH_DECODING,0);
+    }
+}
 
 void nr_postDecode(PHY_VARS_gNB *gNB, notifiedFIFO_elt_t *req) {
   ldpcDecode_t *rdata = (ldpcDecode_t*) NotifiedFifoData(req);
@@ -390,13 +452,22 @@ void nr_ulsch_procedures(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx, int ULSCH
                     slot_rx,
                     harq_pid,
                     G);
-  if (enable_ldpc_offload ==0) {
+  printf("gnb procedure mcs %d\n",pusch_pdu->mcs_index);
+  //if (enable_ldpc_offload ==0) {
    while (gNB->nbDecode > 0) {
     notifiedFIFO_elt_t *req=pullTpool(gNB->respDecode, gNB->threadPool);
-    nr_postDecode(gNB, req);
+    if ((enable_ldpc_offload ==0)||(pusch_pdu->mcs_index<=9)) {
+      nr_postDecode(gNB, req);
+      printf("postDecode-------");
+    }
+    else{
+      nr_postDecode_offload(gNB, req);
+      printf("postDecode_offload+++++");
+
+    }
     delNotifiedFIFO_elt(req);
    }
-  } 
+   //} 
   stop_meas(&gNB->ulsch_decoding_stats);
 }
 
@@ -636,6 +707,8 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx) {
   /* those variables to log T_GNB_PHY_PUCCH_PUSCH_IQ only when we try to decode */
   int pucch_decode_done = 0;
   int pusch_decode_done = 0;
+  uint64_t total_time = 0, start_time;
+  start_time = rdtsc();
 
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PHY_PROCEDURES_gNB_UESPEC_RX,1);
   LOG_D(PHY,"phy_procedures_gNB_uespec_RX frame %d, slot %d\n",frame_rx,slot_rx);
@@ -723,6 +796,7 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx) {
     int no_sig;
     NR_UL_gNB_HARQ_t *ulsch_harq;
 
+    //printf("loop ulsch id %d \n",ULSCH_id);
     if ((ulsch) &&
         (ulsch->rnti > 0)) {
       // for for an active HARQ process
@@ -734,8 +808,8 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx) {
             (ulsch_harq->slot == slot_rx) &&
             (ulsch_harq->handled == 0)){
 
-          LOG_D(PHY, "PUSCH detection started in frame %d slot %d\n",
-                frame_rx,slot_rx);
+          LOG_D(PHY, "PUSCH detection started in frame %d slot %d ulsch id %d hpid %d max %d\n",
+                frame_rx,slot_rx,ULSCH_id,harq_pid,gNB->number_of_nr_ulsch_max);
           int num_dmrs=0;
           for (int s=0;s<NR_NUMBER_OF_SYMBOLS_PER_SLOT; s++)
              num_dmrs+=(ulsch_harq->ulsch_pdu.ul_dmrs_symb_pos>>s)&1;
@@ -808,6 +882,10 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx) {
       }
     }
   }
+  total_time += rdtsc() - start_time;
+  if (total_time > 300*3000)
+    LOG_E(PHY," gNB uespec rx: %u\n",(uint) (total_time/3000));
+
   stop_meas(&gNB->phy_proc_rx);
   // figure out a better way to choose slot_rx, 19 is ok for a particular TDD configuration with 30kHz SCS
   if ((frame_rx&127) == 0 && slot_rx==19) {

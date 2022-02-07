@@ -920,6 +920,8 @@ typedef struct LDPCDecode_s {
   int A;
   int E;
   int Kc;
+  int mcs;
+  int dtx_det;
   int Qm;
   int Kr_bytes;
   int nbSegments;

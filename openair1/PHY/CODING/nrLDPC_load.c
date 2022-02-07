@@ -81,14 +81,14 @@ int load_nrLDPClib_offload(void) {
 
   t_nrLDPC_dec_params decParams;
   t_nrLDPC_dec_params* p_decParams    = &decParams;
-  int8_t   l[68*384];
-  int8_t llrProcBuf[22*384];
+  int8_t   l[32*68*384];
+  int8_t llrProcBuf[32*22*384];
 
   p_decParams->Z = 384;
   p_decParams->BG = 1;
 
   AssertFatal(nrLDPC_decoder_offload(p_decParams,0,
-				     1,
+				     2,
 				     0,
 				     0,
 				     25344,
@@ -104,14 +104,14 @@ int load_nrLDPClib_offload(void) {
 int free_nrLDPClib_offload(void) {
 t_nrLDPC_dec_params decParams;
   t_nrLDPC_dec_params* p_decParams    = &decParams;
-  int8_t   l[68*384];
-  int8_t llrProcBuf[22*384];
+  int8_t   l[32*68*384];
+  int8_t llrProcBuf[32*22*384];
 
   p_decParams->Z = 384;
   p_decParams->BG = 1;
 
   nrLDPC_decoder_offload(p_decParams,0,
-                        1,
+                        3,
                         0,
                         0,
                         25344,
