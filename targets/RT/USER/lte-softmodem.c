@@ -92,6 +92,9 @@ unsigned short config_frames[4] = {2,9,11,13};
 #  include "sys/gmon.h"
 #endif
 
+//// Slicing
+#include "openair2/LAYER2/MAC/slicing/slicing.h"
+
 //////////////////////////////////
 //// E2 Agent headers
 //////////////////////////////////
@@ -689,22 +692,150 @@ void read_pdcp_sm(pdcp_ind_msg_t* data)
 }
 
 static
+void read_slice_conf(slice_conf_t* conf)
+{
+  assert(conf != NULL);
+  eNB_MAC_INST *mac = RC.mac[mod_id];
+  assert(mac);
+
+  ///// DL SLICE CONFIG /////
+  ul_dl_slice_conf_t* rd_dl = &conf->dl;
+  pp_impl_param_t* pp_dl = &RC.mac[mod_id]->pre_processor_dl;
+
+  // Get sched algo
+  rd_dl->len_sched_name = strlen(pp_dl->dl_algo.name);
+  rd_dl->sched_name = malloc(strlen(pp_dl->dl_algo.name));
+  assert(rd_dl->sched_name != NULL && "memory exhausted");
+  memcpy(rd_dl->sched_name, pp_dl->dl_algo.name, rd_dl->len_sched_name);
+
+  // Get slice algo
+  int algo = mac->pre_processor_dl.algorithm;
+
+  // Get num of slice
+  rd_dl->len_slices = pp_dl->slices ? pp_dl->slices->num : 0; // n_dl_slices
+
+  if (rd_dl->len_slices > 0) {
+    rd_dl->slices = calloc(rd_dl->len_slices, sizeof(fr_slice_t));
+    assert(rd_dl->slices != NULL && "memory exhausted");
+
+    // Get each slice config: id, label, sched algo, slice algo data
+    for (uint32_t i = 0; i < rd_dl->len_slices; ++i) {
+      slice_t *s = RC.mac[mod_id]->pre_processor_dl.slices->s[i];
+      fr_slice_t *rd_slice = &rd_dl->slices[i];
+
+      // id
+      rd_dl->slices[i].id = s->id;
+
+      // label
+      if (s->label) {
+        rd_slice->len_label = strlen(s->label);
+        rd_slice->label = malloc(rd_slice->len_label);
+        assert(rd_slice->label != NULL && "Memory exhausted");
+        memcpy(rd_slice->label, s->label, rd_slice->len_label);
+      }
+
+      // sched algo
+      rd_slice->len_sched = strlen(s->dl_algo.name);
+      rd_slice->sched = malloc(rd_slice->len_sched);
+      assert(rd_slice->sched != NULL && "Memory exhausted");
+      memcpy(rd_slice->sched, s->dl_algo.name, rd_slice->len_sched);
+
+      // slice algo data
+      if (algo == STATIC_SLICING){
+        rd_slice->params.type = SLICE_ALG_SM_V0_STATIC;
+        static_slice_t* sta = &rd_slice->params.sta;
+        sta->pos_high = ((static_slice_param_t *)s->algo_data)->posHigh;
+        sta->pos_low = ((static_slice_param_t *)s->algo_data)->posLow;
+      } else if (algo == NVS_SLICING) {
+        rd_slice->params.type = SLICE_ALG_SM_V0_NVS;
+        nvs_slice_t* nvs = &rd_slice->params.nvs;
+        if (((nvs_slice_param_t *)s->algo_data)->type == NVS_RATE) {
+          nvs->conf = SLICE_SM_NVS_V0_RATE;
+          const float rsvd = ((nvs_slice_param_t *)s->algo_data)->Mbps_reserved;
+          const float ref = ((nvs_slice_param_t *)s->algo_data)->Mbps_reference;
+          nvs->rate.mbps_required = rsvd;
+          nvs->rate.mbps_reference = ref;
+        } else {
+          const float rsvd = ((nvs_slice_param_t *)s->algo_data)->pct_reserved;
+          nvs->conf = SLICE_SM_NVS_V0_CAPACITY;
+          nvs->capacity.pct_reserved = rsvd;
+        }
+      } else if (algo == EDF_SLICING) {
+        rd_slice->params.type = SLICE_ALG_SM_V0_EDF;
+        edf_slice_t* edf = &rd_slice->params.edf;
+        edf->deadline = ((edf_slice_param_t *)s->algo_data)->deadline;
+        edf->guaranteed_prbs = ((edf_slice_param_t *)s->algo_data)->guaranteed_prbs;
+        edf->max_replenish = ((edf_slice_param_t *)s->algo_data)->max_replenish;
+        edf->len_over = ((edf_slice_param_t *)s->algo_data)->noverride;
+        if (edf->len_over > 0) {
+          edf->over = calloc(edf->len_over, sizeof(uint32_t));
+          assert(edf->over != NULL && "Memory exhausted");
+        }
+        for (uint32_t j = 0; j < edf->len_over; ++j) {
+          edf->over[j] = ((edf_slice_param_t *)s->algo_data)->loverride[j];
+        }
+      } else if (algo == 0) {
+        rd_slice->params.type = SLICE_ALG_SM_V0_NONE;
+      } else {
+        assert(0 && "Unknow type of DL algo\n");
+      }
+    }
+  }
+
+  ///// TODO: UL SLICE CONFIG /////
+  ul_dl_slice_conf_t* read_ul = &conf->ul;
+  char const* ulname = "UL SLICE";
+  read_ul->len_sched_name = strlen(ulname);
+  read_ul->sched_name = malloc(strlen(ulname));
+  assert(read_ul->sched_name != NULL && "memory exhausted");
+  memcpy(read_ul->sched_name, ulname, strlen(ulname));
+
+}
+
+static
+void read_ue_slice_conf(ue_slice_conf_t* conf)
+{
+  assert(conf != NULL);
+
+  ///// DL UE ASSOCIATED SLCIE /////
+  const UE_info_t* ue_info = &RC.mac[mod_id]->UE_info;
+  int algo = RC.mac[mod_id]->pre_processor_dl.algorithm;
+
+  conf->len_ue_slice = ue_info->num_UEs;
+  if (conf->len_ue_slice > 0) {
+    conf->ues = calloc(conf->len_ue_slice, sizeof(ue_slice_assoc_t));
+    assert(conf->ues);
+  }
+
+  const UE_list_t* ue_list = &ue_info->list;
+  const slice_info_t *dl_slices = RC.mac[mod_id]->pre_processor_dl.slices;
+  for (int ue_id = ue_list->head; ue_id >= 0; ue_id = ue_list->next[ue_id]) {
+    const uint32_t rnti = ue_info->eNB_UE_stats[CC_id][ue_id].crnti;
+    conf->ues[ue_id].rnti = rnti;
+    if (algo != 0) {
+      const int dl_slice_idx = dl_slices->UE_assoc_slice[ue_id];
+      if (dl_slice_idx >= 0) {
+        const uint32_t dlslice = dl_slices->s[dl_slice_idx]->id;
+        conf->ues[ue_id].dl_id = dlslice;
+      }
+    } else {
+      conf->ues[ue_id].dl_id = - 1;
+    }
+  }
+
+  ///// TODO: UL UE ASSOCIATED SLICE /////
+
+}
+
+static
 void read_slice_sm(slice_ind_msg_t* data)
 {
   assert(data != NULL);
 
   data->tstamp = time_now_us();
 
-  char const* ulname = "UL SLICE";
-  char const* dlname = "DL SLICE";
-  data->slice_conf.ul.len_sched_name = strlen(ulname);
-  data->slice_conf.dl.len_sched_name = strlen(dlname);
-  data->slice_conf.ul.sched_name = malloc(strlen(ulname));
-  data->slice_conf.dl.sched_name = malloc(strlen(dlname));
-  assert(data->slice_conf.ul.sched_name != NULL && "memory exhausted");
-  assert(data->slice_conf.dl.sched_name != NULL && "memory exhausted");
-  memcpy(data->slice_conf.ul.sched_name, ulname, strlen(ulname));
-  memcpy(data->slice_conf.dl.sched_name, dlname, strlen(dlname));
+  read_slice_conf(&data->slice_conf);
+  read_ue_slice_conf(&data->ue_slice_conf);
 }
 
 static
