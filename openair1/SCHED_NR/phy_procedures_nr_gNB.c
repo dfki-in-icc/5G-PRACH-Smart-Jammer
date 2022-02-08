@@ -231,9 +231,9 @@ void nr_postDecode_offload(PHY_VARS_gNB *gNB, notifiedFIFO_elt_t *req) {
   LOG_D(PHY,"remain to decoded in subframe: %d\n", gNB->nbDecode);
   
   if (decodeSuccess) {
-    for (r=0;r<ulsch_harq->C;r++){
-      memcpy(ulsch_harq->b+rdata->offset,
-           ulsch_harq->c[r],
+    for (int l=0; l<ulsch_harq->C; l++){
+      memcpy(ulsch_harq->b+l*rdata->E,
+           ulsch_harq->c[l],
            rdata->Kr_bytes - (ulsch_harq->F>>3) -((ulsch_harq->C>1)?3:0));
     }
   } 
@@ -452,17 +452,17 @@ void nr_ulsch_procedures(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx, int ULSCH
                     slot_rx,
                     harq_pid,
                     G);
-  printf("gnb procedure mcs %d\n",pusch_pdu->mcs_index);
+  //printf("gnb procedure mcs %d\n",pusch_pdu->mcs_index);
   //if (enable_ldpc_offload ==0) {
    while (gNB->nbDecode > 0) {
     notifiedFIFO_elt_t *req=pullTpool(gNB->respDecode, gNB->threadPool);
     if ((enable_ldpc_offload ==0)||(pusch_pdu->mcs_index<=9)) {
       nr_postDecode(gNB, req);
-      printf("postDecode-------");
+      //printf("postDecode-------");
     }
     else{
       nr_postDecode_offload(gNB, req);
-      printf("postDecode_offload+++++");
+      //printf("postDecode_offload+++++");
 
     }
     delNotifiedFIFO_elt(req);

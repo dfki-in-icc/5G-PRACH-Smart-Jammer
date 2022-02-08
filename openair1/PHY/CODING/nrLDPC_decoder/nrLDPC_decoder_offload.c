@@ -631,7 +631,7 @@ ut_teardown(void)
 static int
 init_op_data_objs(struct rte_bbdev_op_data *bufs, 
 		int8_t* p_llr, uint32_t data_len,
-		struct rte_mbuf *m_head1,
+		  struct rte_mbuf *m_head[32],
 		struct rte_mempool *mbuf_pool, const uint16_t n,
 		enum op_data_type op_type, uint16_t min_alignment)
 {
@@ -646,12 +646,7 @@ init_op_data_objs(struct rte_bbdev_op_data *bufs,
 	printf("init op n = %d\n",n);
 	for (i = 0; i < n; i++) {
 		char *data;
-		struct rte_mbuf *m_head = rte_pktmbuf_alloc(mbuf_pool);
-		TEST_ASSERT_NOT_NULL(m_head,
-				     "Not enough mbufs in %d data type mbuf pool (needed %u, available %u)",
-				     op_type, n * nb_segments,
-				     mbuf_pool->size);
-
+		
 		if (data_len > RTE_BBDEV_LDPC_E_MAX_MBUF) {
 			/*
 			 * Special case when DPDK mbuf cannot handle
@@ -661,7 +656,7 @@ init_op_data_objs(struct rte_bbdev_op_data *bufs,
 					data_len);
 			large_input = true;
 		}
-		bufs[i].data = m_head;
+		bufs[i].data = m_head[i];
 		bufs[i].offset = 0;
 		bufs[i].length = 0;
 
@@ -670,15 +665,15 @@ init_op_data_objs(struct rte_bbdev_op_data *bufs,
 				/* Allocate a fake overused mbuf */
 				data = rte_malloc(NULL, data_len, 0);
 				memcpy(data, p_llr, data_len);
-				m_head->buf_addr = data;
-				m_head->buf_iova = rte_malloc_virt2iova(data);
-				m_head->data_off = 0;
-				m_head->data_len = data_len;
+				m_head[i]->buf_addr = data;
+				m_head[i]->buf_iova = rte_malloc_virt2iova(data);
+				m_head[i]->data_off = 0;
+				m_head[i]->data_len = data_len;
 			} else {
-			        if (i==0)
-				  rte_pktmbuf_reset(m_head);
-				data = rte_pktmbuf_append(m_head, data_len);
-
+			  
+			        rte_pktmbuf_reset(m_head[i]);
+				data = rte_pktmbuf_append(m_head[i], data_len);
+				//printf("append mbuf mhead %p data %p\n",m_head[i],data);
 				total_time = rte_rdtsc_precise() - start_time;
 
 				if (total_time > 10*3000)
@@ -696,7 +691,7 @@ init_op_data_objs(struct rte_bbdev_op_data *bufs,
 					"Data addr in mbuf (%p) is not aligned to device min alignment (%u)",
 					data, min_alignment);
 				printf("init op i %d r_offset %d pll +i addr %p\n",i,r_offset,p_llr+i*data_len);
-				rte_memcpy(data, p_llr+r_offset, data_len); //i*data_len
+				rte_memcpy(data, p_llr+r_offset, data_len); 
 				/*for (int m=0;m<8;m++){
 				  printf("init op input[%d]=%x data addr %p\n",m, *(p_llr+r_offset+m),data);
 				  }*/
@@ -708,7 +703,7 @@ init_op_data_objs(struct rte_bbdev_op_data *bufs,
 				  LOG_E(PHY,"init op second: %u\n",(uint) (total_time1/3000));
 			}
 
-			//bufs[i].length += data_len;
+			bufs[i].length += data_len;
 
 			for (j = 1; j < nb_segments; ++j) {
 				struct rte_mbuf *m_tail =
@@ -732,14 +727,14 @@ init_op_data_objs(struct rte_bbdev_op_data *bufs,
 				rte_memcpy(data, p_llr, data_len);
 				bufs[i].length += data_len;
 
-				ret = rte_pktmbuf_chain(m_head, m_tail);
+				ret = rte_pktmbuf_chain(m_head[i], m_tail);
 				TEST_ASSERT_SUCCESS(ret,
 						"Couldn't chain mbufs from %d data type mbuf pool",
 						op_type);
 			}
 		} else {
 
-			/* allocate chained-mbuf for output buffer */
+			
 			for (j = 1; j < nb_segments; ++j) {
 				struct rte_mbuf *m_tail =
 						rte_pktmbuf_alloc(mbuf_pool);
@@ -749,12 +744,12 @@ init_op_data_objs(struct rte_bbdev_op_data *bufs,
 						n * nb_segments,
 						mbuf_pool->size);
 
-				ret = rte_pktmbuf_chain(m_head, m_tail);
+				ret = rte_pktmbuf_chain(m_head[i], m_tail);
 				TEST_ASSERT_SUCCESS(ret,
 						"Couldn't chain mbufs from %d data type mbuf pool",
 						op_type);
 						}
-		}
+		}	
 	}
 
 	return 0;
@@ -1434,8 +1429,7 @@ get_init_device(void)
 struct test_op_params op_params_e; 
 struct test_op_params *op_params = &op_params_e; 
 
-struct rte_mbuf *m_head[DATA_NUM_TYPES];
-//struct rte_mbuf *m_head[32][DATA_NUM_TYPES];
+struct rte_mbuf *m_head[DATA_NUM_TYPES][32];
 struct thread_params *t_params;
 
 
@@ -1552,7 +1546,7 @@ int32_t nrLDPC_decod_offload(t_nrLDPC_dec_params* p_decParams, uint8_t harq_pid,
 
 	  for (i = 0; i < ad->nb_queues; ++i) {
 
-	    const uint16_t n = 32; //op_params->num_to_process;
+	    const uint16_t n = op_params->num_to_process;
 
 	    struct rte_mempool *in_mp = ad->in_mbuf_pool;
 	    struct rte_mempool *hard_out_mp = ad->hard_out_mbuf_pool;
@@ -1584,18 +1578,20 @@ int32_t nrLDPC_decod_offload(t_nrLDPC_dec_params* p_decParams, uint8_t harq_pid,
 					     socket_id);
 	      TEST_ASSERT_SUCCESS(ret,
 				"Couldn't allocate memory for rte_bbdev_op_data structs");
-	      
-	      //m_head[queue_id][type] = rte_pktmbuf_alloc(mbuf_pools[type]);	  
-	      m_head[type] = rte_pktmbuf_alloc(mbuf_pools[type]);
-	      //TEST_ASSERT_NOT_NULL(m_head[queue_id][type],
-	      TEST_ASSERT_NOT_NULL(m_head[type],
+	      for (int l=0; l<n; l++){
+		//m_head[queue_id][type] = rte_pktmbuf_alloc(mbuf_pools[type]);	  
+		m_head[type][l] = rte_pktmbuf_alloc(mbuf_pools[type]);
+		
+		TEST_ASSERT_NOT_NULL( m_head[type][l],
 		   "Not enough mbufs in %d data type mbuf pool (needed %u, available %u)",
 			     op_type, n,
 			     mbuf_pools[type]->size);
-	
+	      }
+	      
 	    }
+	    
 	  }
-	  printf("test_params.num_lcores %d\n",test_params.num_lcores);
+	  //printf("test_params.num_lcores %d\n",test_params.num_lcores);
 	    /* Allocate memory for thread parameters structure */
 	    t_params = rte_zmalloc(NULL,  test_params.num_lcores*sizeof(struct thread_params),
 				   RTE_CACHE_LINE_SIZE);
@@ -1606,7 +1602,7 @@ int32_t nrLDPC_decod_offload(t_nrLDPC_dec_params* p_decParams, uint8_t harq_pid,
 
 	break;
 	case 1:
-	  printf("offload param E %d BG %d F %d Z %d Qm %d rv %d seg %d\n", E,p_decParams->BG, F,p_decParams->Z, Qm,rv,C);
+	  //printf("offload param E %d BG %d F %d Z %d Qm %d rv %d seg %d\n", E,p_decParams->BG, F,p_decParams->Z, Qm,rv,C);
 	  //uint64_t start_time_init;
 	  //uint64_t total_time_init=0;
 
@@ -1653,12 +1649,11 @@ int32_t nrLDPC_decod_offload(t_nrLDPC_dec_params* p_decParams, uint8_t harq_pid,
 	    //printf("pll offset %d\n",i*p_offloadParams->E);
 	    	  
 	    for (type = DATA_INPUT; type < 3; type+=2) {
-	      //m_head[i]
+	      
 	      ret = init_op_data_objs(*queue_ops[type], p_llr, p_offloadParams->E,
-				      m_head[type], mbuf_pools[type], n, type, info.drv.min_alignment); //+i*p_offloadParams->E
+				       m_head[type], mbuf_pools[type], n, type, info.drv.min_alignment); //+i*p_offloadParams->E
 	      TEST_ASSERT_SUCCESS(ret,
 				"Couldn't init rte_bbdev_op_data structs");
-
 	    }
 	  }
 	  total_time_init = rte_rdtsc_precise() - start_time_init;

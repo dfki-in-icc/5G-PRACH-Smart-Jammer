@@ -358,15 +358,16 @@ void nr_processULSegment(void* arg) {
 				   E,
 				   Qm,
 				   (int8_t*)&pl_ol128[0],
-				   llrProcBuf, 1);
-      while(ret!=1){
+				   llrProcBufo, 1);
+      /*while(ret!=1){
 	printf("while ldpc offload ret !=1\n");
         usleep(10);
-      }
-      for (r=0;r<ulsch_harq->C;r++){
-	if (check_crc((uint8_t*)llrProcBuf,length_dec,ulsch_harq->F,crc_type)) {
+	}*/
+      printf("nb segs %d\n",ulsch_harq->C);
+      for (int l=0;l<ulsch_harq->C;l++){
+	if (check_crc((uint8_t*)(llrProcBufo+l*(Kr>>3)),length_dec,ulsch_harq->F,crc_type)) {
 #ifdef PRINT_CRC_CHECK
-	  LOG_I(PHY, "Segment %d CRC OK, iterations %d/%d\n",r,no_iteration_ldpc,max_ldpc_iterations);
+	  LOG_I(PHY, "Segment %d CRC OK, iterations %d/%d\n",l,no_iteration_ldpc,max_ldpc_iterations);
 #endif
 	  rdata->decodeIterations = no_iteration_ldpc;
 	  if (rdata->decodeIterations > p_decoderParms->numMaxIter) rdata->decodeIterations--;
@@ -381,14 +382,14 @@ void nr_processULSegment(void* arg) {
     else{
       rdata->decodeIterations = max_ldpc_iterations + 1;
     } 
-    for (r=0;r<ulsch_harq->C;r++){
+    for (int l=0;l<ulsch_harq->C;l++){
       for (int m=0; m < Kr>>3; m ++) {
-	ulsch_harq->c[r][m]= (uint8_t) llrProcBuf[m+r*(Kr>>3)];
+	ulsch_harq->c[l][m]= (uint8_t) llrProcBufo[m+l*(Kr>>3)];
       }
-      /*for (int k=0;k<8;k++){
-        printf("output decoder [%d] =  0x%02x \n", k, ulsch_harq->c[r][k]);
-        printf("llrprocbuf [%d] =  %x adr %p\n", k, llrProcBuf[k+r*(Kr>>3)], llrProcBuf+k+r*(Kr>>3));
-	}*/
+      for (int k=0;k<8;k++){
+        printf("output decoder [%d] =  0x%02x \n", k, ulsch_harq->c[l][k]);
+        printf("llrprocbuf [%d] =  %x adr %p\n", k, llrProcBufo[k+l*(Kr>>3)], llrProcBufo+k+l*(Kr>>3));
+	}
     }
   }
   else{
