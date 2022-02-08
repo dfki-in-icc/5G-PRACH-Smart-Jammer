@@ -2527,7 +2527,6 @@ uint8_t get_cri_ri_pmi_cqi_payload(NR_UE_MAC_INST_t *mac,
     }
   }
   pucch->csi_part1_payload = temp_payload;
-  LOG_I(MAC, "David pucch->csi_part1_payload = 0x%x in %s\n", pucch->csi_part1_payload, __FUNCTION__);
   return bits;
 }
 
