@@ -1193,10 +1193,77 @@ extern "C" {
     std::cerr << "-- Using calibration table: calib_table_none" << std::endl;
   }
 
+  LOG_I(HW,"%s() sample_rate:%u\n", __FUNCTION__, (int)openair0_cfg[0].sample_rate);
 
-  if (device->type==USRP_N300_DEV || device->type==USRP_X300_DEV || device->type==USRP_X400_DEV) {
-    LOG_I(HW,"%s() sample_rate:%u\n", __FUNCTION__, (int)openair0_cfg[0].sample_rate);
+  if (device->type==USRP_X300_DEV) {
+    switch ((int)openair0_cfg[0].sample_rate) {
+      case 184320000:
+        // from usrp_time_offset
+        //openair0_cfg[0].samples_per_packet    = 2048;
+        openair0_cfg[0].tx_sample_advance     = 63; // to be checked
+        openair0_cfg[0].tx_bw                 = 100e6;
+        openair0_cfg[0].rx_bw                 = 100e6;
+        break;
 
+      case 92160000:
+        // from usrp_time_offset
+        //openair0_cfg[0].samples_per_packet    = 2048;
+        openair0_cfg[0].tx_sample_advance     = 63; // to be checked
+        openair0_cfg[0].tx_bw                 = 80e6;
+        openair0_cfg[0].rx_bw                 = 80e6;
+        break;
+
+      case 46080000:
+        //openair0_cfg[0].samples_per_packet    = 2048;
+        openair0_cfg[0].tx_sample_advance     = 63; // verified
+        openair0_cfg[0].tx_bw                 = 40e6;
+        openair0_cfg[0].rx_bw                 = 40e6;
+        break;
+
+      case 30720000:
+        // from usrp_time_offset
+        //openair0_cfg[0].samples_per_packet    = 2048;
+        openair0_cfg[0].tx_sample_advance     = 50; // to be checked
+        openair0_cfg[0].tx_bw                 = 20e6;
+        openair0_cfg[0].rx_bw                 = 20e6;
+        break;
+
+      case 15360000:
+        //openair0_cfg[0].samples_per_packet    = 2048;
+        openair0_cfg[0].tx_sample_advance     = 44; // verified
+        openair0_cfg[0].tx_bw                 = 10e6;
+        openair0_cfg[0].rx_bw                 = 10e6;
+        break;
+
+      case 7680000:
+        //openair0_cfg[0].samples_per_packet    = 2048;
+        openair0_cfg[0].tx_sample_advance     = 44; // to be checked
+        openair0_cfg[0].tx_bw                 = 5e6;
+        openair0_cfg[0].rx_bw                 = 5e6;
+        break;
+
+      case 3840000:
+        //openair0_cfg[0].samples_per_packet    = 2048;
+        openair0_cfg[0].tx_sample_advance     = 44;
+        openair0_cfg[0].tx_bw                 = 2.5e6;
+        openair0_cfg[0].rx_bw                 = 2.5e6;
+        break;
+
+      case 1920000:
+        //openair0_cfg[0].samples_per_packet    = 2048;
+        openair0_cfg[0].tx_sample_advance     = 44;
+        openair0_cfg[0].tx_bw                 = 1.25e6;
+        openair0_cfg[0].rx_bw                 = 1.25e6;
+        break;
+
+      default:
+        LOG_E(HW,"Error: unknown sampling rate %f\n",openair0_cfg[0].sample_rate);
+        exit(-1);
+        break;
+    }
+  }
+
+  if (device->type==USRP_N300_DEV || device->type==USRP_X400_DEV) {
     switch ((int)openair0_cfg[0].sample_rate) {
       case 122880000:
         // from usrp_time_offset
@@ -1206,23 +1273,8 @@ extern "C" {
         openair0_cfg[0].rx_bw                 = 80e6;
         break;
 
-      case 92160000:
-        // from usrp_time_offset
-        //openair0_cfg[0].samples_per_packet    = 2048;
-        openair0_cfg[0].tx_sample_advance     = 15; //to be checked
-        openair0_cfg[0].tx_bw                 = 80e6;
-        openair0_cfg[0].rx_bw                 = 80e6;
-        break;
-
       case 61440000:
         // from usrp_time_offset
-        //openair0_cfg[0].samples_per_packet    = 2048;
-        openair0_cfg[0].tx_sample_advance     = 15;
-        openair0_cfg[0].tx_bw                 = 40e6;
-        openair0_cfg[0].rx_bw                 = 40e6;
-        break;
-
-      case 46080000:
         //openair0_cfg[0].samples_per_packet    = 2048;
         openair0_cfg[0].tx_sample_advance     = 15;
         openair0_cfg[0].tx_bw                 = 40e6;
