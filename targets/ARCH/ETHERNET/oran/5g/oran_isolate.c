@@ -23,8 +23,6 @@
 #include <stdio.h>
 #include "common_lib.h"
 #include "ethernet_lib.h"
-#include "shared_buffers.h"
-#include "low_oran.h"
 #include "oran_isolate.h"
 
 #include "common/utils/LOG/log.h"
@@ -33,7 +31,6 @@
 
 typedef struct {
   eth_state_t           e;
-  shared_buffers        buffers;
   rru_config_msg_type_t last_msg;
   int                   capabilities_sent;
   void                  *oran_priv;

@@ -23,8 +23,12 @@
 #define _ORAN_ISOLATE_H_
 
 #include <stdio.h>
-#include "shared_buffers.h"
-#include "low_oran.h"
+
+#include <pthread.h>
+#include <stdint.h>
+
+//#include "shared_buffers.h"
+//#include "low_oran.h"
 
 /*
  * Structure added to bear the information needed from OAI RU
