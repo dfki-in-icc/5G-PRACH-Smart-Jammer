@@ -100,6 +100,7 @@ unsigned short config_frames[4] = {2,9,11,13};
 //////////////////////////////////
 
 #include "agent_if/read/sm_ag_if_rd.h"
+#include "agent_if/write/sm_ag_if_wr.h"
 #include "agent_if/sm_io.h"
 #include "agent_if/e2_agent_api.h"
 #include <time.h>
@@ -743,26 +744,26 @@ void read_slice_conf(slice_conf_t* conf)
       // slice algo data
       if (algo == STATIC_SLICING){
         rd_slice->params.type = SLICE_ALG_SM_V0_STATIC;
-        static_slice_t* sta = &rd_slice->params.sta;
+        static_slice_t* sta = &rd_slice->params.u.sta;
         sta->pos_high = ((static_slice_param_t *)s->algo_data)->posHigh;
         sta->pos_low = ((static_slice_param_t *)s->algo_data)->posLow;
       } else if (algo == NVS_SLICING) {
         rd_slice->params.type = SLICE_ALG_SM_V0_NVS;
-        nvs_slice_t* nvs = &rd_slice->params.nvs;
+        nvs_slice_t* nvs = &rd_slice->params.u.nvs;
         if (((nvs_slice_param_t *)s->algo_data)->type == NVS_RATE) {
           nvs->conf = SLICE_SM_NVS_V0_RATE;
           const float rsvd = ((nvs_slice_param_t *)s->algo_data)->Mbps_reserved;
           const float ref = ((nvs_slice_param_t *)s->algo_data)->Mbps_reference;
-          nvs->rate.mbps_required = rsvd;
-          nvs->rate.mbps_reference = ref;
+          nvs->u.rate.u1.mbps_required = rsvd;
+          nvs->u.rate.u2.mbps_reference = ref;
         } else {
           const float rsvd = ((nvs_slice_param_t *)s->algo_data)->pct_reserved;
           nvs->conf = SLICE_SM_NVS_V0_CAPACITY;
-          nvs->capacity.pct_reserved = rsvd;
+          nvs->u.capacity.u.pct_reserved = rsvd;
         }
       } else if (algo == EDF_SLICING) {
         rd_slice->params.type = SLICE_ALG_SM_V0_EDF;
-        edf_slice_t* edf = &rd_slice->params.edf;
+        edf_slice_t* edf = &rd_slice->params.u.edf;
         edf->deadline = ((edf_slice_param_t *)s->algo_data)->deadline;
         edf->guaranteed_prbs = ((edf_slice_param_t *)s->algo_data)->guaranteed_prbs;
         edf->max_replenish = ((edf_slice_param_t *)s->algo_data)->max_replenish;
@@ -839,6 +840,278 @@ void read_slice_sm(slice_ind_msg_t* data)
 }
 
 static
+void set_new_dl_slice_algo(slice_algorithm_e algo)
+{
+  eNB_MAC_INST *mac = RC.mac[mod_id];
+  assert(mac);
+
+  pp_impl_param_t dl = mac->pre_processor_dl;
+  switch (algo) {
+    case SLICE_ALG_SM_V0_STATIC:
+      mac->pre_processor_dl = static_dl_init(mod_id, CC_id);
+      break;
+    case SLICE_ALG_SM_V0_NVS:
+      mac->pre_processor_dl = nvs_dl_init(mod_id, CC_id);
+      break;
+    case SLICE_ALG_SM_V0_EDF:
+      mac->pre_processor_dl = edf_dl_init(mod_id, CC_id);
+      break;
+    default:
+      mac->pre_processor_dl.algorithm = 0;
+      mac->pre_processor_dl.dl = dlsch_scheduler_pre_processor;
+      mac->pre_processor_dl.dl_algo.data = mac->pre_processor_dl.dl_algo.setup();
+      mac->pre_processor_dl.slices = NULL;
+      break;
+  }
+  if (dl.slices)
+    dl.destroy(&dl.slices);
+  if (dl.dl_algo.data)
+    dl.dl_algo.unset(&dl.dl_algo.data);
+}
+
+static
+int add_mod_dl_slice(slice_algorithm_e current_algo, fr_slice_t const* slice)
+{
+  void *params = NULL;
+  char *slice_algo = NULL;
+  if (current_algo == SLICE_ALG_SM_V0_STATIC) {
+    assert(current_algo == SLICE_ALG_SM_V0_STATIC);
+    slice_algo = strdup("STATIC");
+    // TODO: this should be copied inside addmod_slice() to avoid unnecessary
+    // copies, but reuse the old code for the moment
+    params = malloc(sizeof(static_slice_param_t));
+    if (!params) return -1;
+    ((static_slice_param_t *)params)->posLow = slice->params.u.sta.pos_low;
+    ((static_slice_param_t *)params)->posHigh = slice->params.u.sta.pos_high;
+  } else if (current_algo == SLICE_ALG_SM_V0_NVS) {
+    assert(current_algo == SLICE_ALG_SM_V0_NVS);
+    params = malloc(sizeof(nvs_slice_param_t));
+    if (!params) return -1;
+    if (slice->params.u.nvs.conf == SLICE_SM_NVS_V0_RATE) {
+      slice_algo = strdup("NVS_RATE");
+      ((nvs_slice_param_t *)params)->type = NVS_RATE;
+      ((nvs_slice_param_t *)params)->Mbps_reserved = slice->params.u.nvs.u.rate.u1.mbps_required;
+      ((nvs_slice_param_t *)params)->Mbps_reference = slice->params.u.nvs.u.rate.u2.mbps_reference;
+    } else {
+      assert(slice->params.u.nvs.conf == SLICE_SM_NVS_V0_CAPACITY);
+      slice_algo = strdup("NVS_CAPACITY");
+      ((nvs_slice_param_t *)params)->type = NVS_RES;
+      ((nvs_slice_param_t *)params)->pct_reserved = slice->params.u.nvs.u.capacity.u.pct_reserved;
+    }
+  } else if (current_algo == SLICE_ALG_SM_V0_EDF) {
+    assert(current_algo == SLICE_ALG_SM_V0_EDF);
+    slice_algo = strdup("EDF");
+    params = malloc(sizeof(edf_slice_param_t));
+    if (!params) return -1;
+    ((edf_slice_param_t *)params)->deadline = slice->params.u.edf.deadline;
+    ((edf_slice_param_t *)params)->guaranteed_prbs = slice->params.u.edf.guaranteed_prbs;
+    ((edf_slice_param_t *)params)->max_replenish = slice->params.u.edf.max_replenish;
+    ((edf_slice_param_t *)params)->noverride = slice->params.u.edf.len_over;
+    for (int i = 0; i < ((edf_slice_param_t *)params)->noverride; ++i)
+      ((edf_slice_param_t *)params)->loverride[i] = slice->params.u.edf.over[i];
+  } else {
+    assert(0 != 0 && "Unknow current_algo");
+  }
+
+  pp_impl_param_t *dl = &RC.mac[mod_id]->pre_processor_dl;
+  void *algo = &dl->dl_algo;
+  char *ue_algo = NULL;
+  if (slice->sched) {
+    if (!strcmp(slice->sched, "RR"))
+      ue_algo = strdup("round_robin_dl");
+    else if (!strcmp(slice->sched, "PF"))
+      ue_algo = strdup("proportional_fair_wbcqi_dl");
+    else if (!strcmp(slice->sched, "MT"))
+      ue_algo = strdup("maximum_throughput_wbcqi_dl");
+    else
+      LOG_E(MAC, "unknow scheduler '%s'\n", slice->sched);
+
+    algo = dlsym(NULL, ue_algo);
+
+    if (!algo) {
+      free(params);
+      LOG_E(MAC, "cannot locate scheduler '%s'\n", slice->sched);
+      return -15;
+    }
+  }
+
+  char *l = NULL;
+  if (slice->label)
+    l = strdup(slice->label);
+  uint8_t sid = slice->id;
+  LOG_W(MAC, "add DL slice id %d, label %s, slice sched algo %s, ue sched algo %s\n", sid, l, slice_algo, ue_algo);
+  return dl->addmod_slice(dl->slices, sid, l, algo, params);
+}
+
+static
+int find_dl_slice(uint32_t id)
+{
+  slice_info_t *si = RC.mac[mod_id]->pre_processor_dl.slices;
+  for (int i = 0; i < si->num; ++i)
+    if (si->s[i]->id == id)
+      return i;
+  return -1;
+}
+
+static
+int del_dl_slice(uint32_t id)
+{
+  const int idx = find_dl_slice(id);
+  if (idx < 0)
+    return -1;
+  pp_impl_param_t *dl = &RC.mac[mod_id]->pre_processor_dl;
+  return dl->remove_slice(dl->slices, idx);
+}
+
+static
+int get_ue_id(uint16_t rnti)
+{
+  const UE_info_t* ue_info = &RC.mac[mod_id]->UE_info;
+  const UE_list_t* ue_list = &ue_info->list;
+  for (int ue_id = ue_list->head; ue_id >= 0; ue_id = ue_list->next[ue_id]) {
+    if (ue_info->UE_template[CC_id][ue_id].rnti == rnti)
+      return ue_id;
+  }
+  return -1;
+}
+
+static
+int assoc_ue_to_dl_slice(uint16_t rnti, uint32_t id)
+{
+  int idx = find_dl_slice(id);
+  if (idx < 0)
+    return -100;
+  int ue_id = get_ue_id(rnti);
+  if (ue_id < 0)
+    return -101;
+
+  pp_impl_param_t *dl = &RC.mac[mod_id]->pre_processor_dl;
+  LOG_W(MAC, "associate UE RNTI 0x%04x from slice ID %d idx %d to slice ID %d idx %d\n",
+        rnti, dl->slices->UE_assoc_slice[ue_id], find_dl_slice(dl->slices->UE_assoc_slice[ue_id]), id, idx);
+  dl->move_UE(dl->slices, ue_id, idx);
+  return 0;
+}
+
+static
+sm_ag_if_ans_e write_slice_sm(slice_ctrl_msg_t const* data)
+{
+  assert(data != NULL);
+
+  /// ADD MOD ///
+  if (data->type == SLICE_CTRL_SM_V0_ADD) {
+    eNB_MAC_INST *mac = RC.mac[mod_id];
+    assert(mac);
+    /// GET DL SLICE CONTROL INFO ///
+    slice_conf_t const* wr = &data->u.add_mod_slice;
+    size_t slices_len = wr->dl.len_slices;
+
+    if (slices_len >= 0) {
+      int current_algo = mac->pre_processor_dl.algorithm;
+      int new_algo = -1;
+      if (slices_len > 0)
+        new_algo = wr->dl.slices[0].params.type;
+      pthread_mutex_lock(&mac->pp_dl_mutex);
+      if (current_algo != new_algo) {
+        set_new_dl_slice_algo(new_algo);
+        current_algo = new_algo;
+        if (new_algo > 0)
+          LOG_D(NR_MAC, "set new algorithm %d\n", current_algo);
+        else
+          LOG_W(NR_MAC, "reset slicing algorithm as NONE\n");
+      }
+
+      for (size_t i = 0; i < slices_len; ++i) {
+        const int rc = add_mod_dl_slice(current_algo, &wr->dl.slices[i]);
+        if (rc < 0) {
+          pthread_mutex_unlock(&mac->pp_dl_mutex);
+          LOG_E(MAC, "error code %d while updating slices\n", rc);
+          return SLICE_CTRL_OUT_ERROR;
+        }
+      }
+      pthread_mutex_unlock(&mac->pp_dl_mutex);
+      return SLICE_CTRL_OUT_OK;
+    } else {
+      assert(0 != 0 && "slices_len <= 0");
+      return SLICE_CTRL_OUT_ERROR;
+    }
+  } else if (data->type == SLICE_CTRL_SM_V0_DEL) {
+    /// DEL ///
+    eNB_MAC_INST *mac = RC.mac[mod_id];
+    assert(mac);
+    if (mac->pre_processor_dl.algorithm <= 0) {
+      LOG_E(MAC, "current slice algo is NONE, no slice can be deleted\n");
+      return SLICE_CTRL_OUT_ERROR;
+    }
+    /// GET DL SLICE CONTROL INFO ///
+    del_slice_conf_t const* wr = &data->u.del_slice;
+    uint32_t* dl_ids = wr->dl;
+    size_t n_dl_ids = wr->len_dl;
+    assert(n_dl_ids != 0 && "del_slice->len_dl == 0");
+
+    pthread_mutex_lock(&mac->pp_dl_mutex);
+    for (size_t i = 0; i < n_dl_ids; ++i) {
+      LOG_W(MAC, "attempt to delete slice ID %d\n", dl_ids[i]);
+      const int rc = del_dl_slice(dl_ids[i]);
+      if (rc < 0) {
+        pthread_mutex_unlock(&mac->pp_dl_mutex);
+        LOG_E(MAC, "error code %d while deleting slice ID %d\n", rc, dl_ids[i]);
+        return SLICE_CTRL_OUT_ERROR;
+      }
+    }
+    pthread_mutex_unlock(&mac->pp_dl_mutex);
+    return SLICE_CTRL_OUT_OK;
+  } else if (data->type == SLICE_CTRL_SM_V0_UE_SLICE_ASSOC) {
+    /// ASSOC SLICE ///
+    eNB_MAC_INST *mac = RC.mac[mod_id];
+    assert(mac);
+    if (mac->pre_processor_dl.algorithm <= 0) {
+      LOG_E(NR_MAC, "current slice algo is NONE, no UE can be associated\n");
+      return SLICE_CTRL_OUT_ERROR;
+    }
+    if (mac->pre_processor_dl.slices->num <= 0) {
+      LOG_E(NR_MAC, "no UE connected\n");
+      return SLICE_CTRL_OUT_ERROR;
+    }
+    /// GET DL SLICE CONTROL INFO ///
+    ue_slice_conf_t const* wr = &data->u.ue_slice;
+    ue_slice_assoc_t* new_ues = wr->ues;
+    size_t n_new_ues = wr->len_ue_slice;
+    assert(n_new_ues != 0 && "ue_slice->len_ue_slice == 0");
+
+    pthread_mutex_lock(&mac->pp_dl_mutex);
+    for (size_t i = 0; i < n_new_ues; ++i) {
+      // uint16_t rnti = new_ues[i].rnti;
+      uint16_t rnti = mac->UE_info.eNB_UE_stats[CC_id][0].crnti; // current FlexRIC can not pass the rnti info by ctrl req
+      if (new_ues[i].ul_id)
+        LOG_W(MAC, "ignoring UL slice association for RNTI %04x\n", rnti);
+      uint32_t new_idx = new_ues[i].dl_id;
+      int ue_id = get_ue_id(rnti);
+      if (ue_id < 0) {
+        pthread_mutex_unlock(&mac->pp_dl_mutex);
+        LOG_E(MAC, "no ue connected, ue_id %d\n", ue_id);
+        return SLICE_CTRL_OUT_ERROR;
+      }
+      int cur_idx = slicing_get_UE_slice_idx(mac->pre_processor_dl.slices, ue_id);
+      if (new_idx == cur_idx) {
+        pthread_mutex_unlock(&mac->pp_dl_mutex);
+        LOG_E(MAC, "expected DL slice association for UE RNTI %04x\n", rnti);
+        return SLICE_CTRL_OUT_ERROR;
+      }
+      int rc = assoc_ue_to_dl_slice(rnti, new_idx);
+      if (rc < 0) {
+        pthread_mutex_unlock(&mac->pp_dl_mutex);
+        LOG_E(MAC, "error code %d while associating RNTI %04x\n", rc, rnti);
+        return SLICE_CTRL_OUT_ERROR;
+      }
+    }
+    pthread_mutex_unlock(&mac->pp_dl_mutex);
+    return SLICE_CTRL_OUT_OK;
+  } else {
+    assert(0 != 0 && "Unknow slice ctrl type");
+  }
+}
+
+static
 void read_RAN(sm_ag_if_rd_t* data)
 {
   assert(data != NULL);
@@ -869,9 +1142,15 @@ static
 sm_ag_if_ans_t write_RAN(sm_ag_if_wr_t const* data)
 {
   assert(data != NULL);
-  assert(0!=0 && "Not implemented");
-  sm_ag_if_ans_t ans = {.type = MAC_AGENT_IF_CTRL_ANS_V0 };
+  if(data->type == SLICE_CTRL_REQ_V0){
+    sm_ag_if_ans_t ans = {.type = SLICE_AGENT_IF_CTRL_ANS_V0};
+    ans.slice.ans = write_slice_sm(&data->slice_req_ctrl.msg);
+    return ans;
+  } else {
+    assert(0 != 0 && "Not supported function ");
+  }
 
+  sm_ag_if_ans_t ans = {0};
   return ans;
 }
 
