@@ -1,197 +1,44 @@
-/*******************************************************************************
+/*
+ * Licensed to the OpenAirInterface (OAI) Software Alliance under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The OpenAirInterface Software Alliance licenses this file to You under
+ * the OAI Public License, Version 1.1  (the "License"); you may not use this file
+ * except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * <COPYRIGHT_TAG>
+ *      http://www.openairinterface.org/?page_id=698
  *
- *******************************************************************************/
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *-------------------------------------------------------------------------------
+ * For more information about the OpenAirInterface (OAI) Software Alliance:
+ *      contact@openairinterface.org
+ */
 
-#ifndef XRAN_LIB_WRAP_HPP
-#define XRAN_LIB_WRAP_HPP
-
-#include <exception>
-#include <random>
-#include <string>
-#include <utility>
-#include <vector>
-
-#include <malloc.h>
-#include <stdint.h>
-
-#include "common.hpp"
-#include "xran_fh_o_du.h"
-#include "xran_common.h"
-#include "xran_frame_struct.h"
+#include "xran_lib_wrap.hpp"
 
 
-#define XRAN_UT_CFG_FILENAME            "conf.json"
 
-#define XRAN_UT_KEY_GLOBALCFG           "GLOBAL"
-#define XRAN_UT_KEY_GLOBALCFG_IO        "io_cfg"
-#define XRAN_UT_KEY_GLOBALCFG_EAXCID    "eAxCId_cfg"
-#define XRAN_UT_KEY_GLOBALCFG_PRACH     "prach_cfg"
-#define XRAN_UT_KEY_GLOBALCFG_RU        "ru_cfg"
-#define XRAN_UT_KEY_GLOBALCFG_SLOT      "slotcfg_"
 
-#define MAX_NUM_OF_XRAN_CTX             (2)
-
-#define SW_FPGA_TOTAL_BUFFER_LEN        (4*1024*1024*1024)
-#define SW_FPGA_SEGMENT_BUFFER_LEN      (1*1024*1024*1024)
-#define SW_FPGA_FH_TOTAL_BUFFER_LEN     (1*1024*1024*1024)
-#define FPGA_TO_SW_PRACH_RX_BUFFER_LEN  (8192)
-
-#define MAX_ANT_CARRIER_SUPPORTED (XRAN_MAX_SECTOR_NR*XRAN_MAX_ANTENNA_NR)
-
-extern "C"
+//------------------------------------------------------------------------------------------------------------------------------------------------
+uint16_t xranLibWraper::get_eaxcid_mask(int numbit, int shift)
 {
-extern uint32_t xran_lib_ota_tti;
-extern uint32_t xran_lib_ota_sym;
-extern uint32_t xran_lib_ota_sym_idx;
+   uint16_t result = 0;
 
-void sym_ota_cb(struct rte_timer *tim, void *arg);
-void tti_ota_cb(struct rte_timer *tim, void *arg);
+   for(int i=0; i < numbit; i++) {
+      result = result << 1; result +=1;
+   }
+   return (result << shift);
 }
 
-class xranLibWraper
+
+//------------------------------------------------------------------------------------------------------------------------------------------------
+int xranLibWraper::init_memory()
 {
-public:
-    typedef enum
-    {
-        XRANFTHTX_OUT = 0,
-        XRANFTHTX_PRB_MAP_OUT,
-        XRANFTHTX_SEC_DESC_OUT,
-        XRANFTHRX_IN,
-        XRANFTHRX_PRB_MAP_IN,
-        XRANFTHTX_SEC_DESC_IN,
-        XRANFTHRACH_IN,
-#if 1
-// Sofia add this entry as in sample app
-        XRANSRS_IN,
-#endif
-        MAX_SW_XRAN_INTERFACE_NUM
-    } SWXRANInterfaceTypeEnum;
-
-    enum nChBw
-    {
-        PHY_BW_5MHZ   =   5, PHY_BW_10MHZ  =  10, PHY_BW_15MHZ  =  15,
-        PHY_BW_20MHZ  =  20, PHY_BW_25MHZ  =  25, PHY_BW_30MHZ  =  30,
-        PHY_BW_40MHZ  =  40, PHY_BW_50MHZ  =  50, PHY_BW_60MHZ  =  60,
-        PHY_BW_70MHZ  =  70, PHY_BW_80MHZ  =  80, PHY_BW_90MHZ  =  90,
-        PHY_BW_100MHZ = 100, PHY_BW_200MHZ = 200, PHY_BW_400MHZ = 400
-    };
-
-    // F1 Tables 38.101-1 Table 5.3.2-1. Maximum transmission bandwidth configuration NRB
-    const uint16_t nNumRbsPerSymF1[3][13] =
-    {
-    //      5MHz   10MHz   15MHz   20MHz   25MHz   30MHz   40MHz   50MHz   60MHz   70MHz   80MHz   90MHz  100MHz
-        {    25,     52,     79,    106,    133,    160,    216,    270,      0,      0,      0,      0,      0 },  // Numerology 0 (15KHz)
-        {    11,     24,     38,     51,     65,     78,    106,    133,    162,      0,    217,    245,    273 },  // Numerology 1 (30KHz)
-        {     0,     11,     18,     24,     31,     38,     51,     65,     79,      0,    107,    121,    135 }   // Numerology 2 (60KHz)
-    };
-
-    // F2 Tables 38.101-2 Table 5.3.2-1. Maximum transmission bandwidth configuration NRB
-    const uint16_t nNumRbsPerSymF2[2][4] =
-    {
-    //     50MHz  100MHz  200MHz  400MHz
-        {    66,    132,    264,      0 },  // Numerology 2 (60KHz)
-        {    32,     66,    132,    264 }   // Numerology 3 (120KHz)
-    };
-
-
-protected:
-    char argv[25] = "unittest";
-
-    std::string m_dpdk_dev_up, m_dpdk_dev_cp, m_dpdk_bbdev;
-
-    void *m_xranhandle;
-
-    uint8_t m_du_mac[6] = { 0x00,0x11, 0x22, 0x33, 0x44, 0x55 }; // Sofia: this is hard coded here and then it is read from the conf file
-    uint8_t m_ru_mac[6] = { 0x00,0x11, 0x22, 0x33, 0x44, 0x66 }; // Sofia: this is hard coded here and then it is read from the conf file
-    bool m_bSub6;
-    uint32_t m_nSlots = 20;
-
-    struct xran_fh_config   m_xranConf;
-    struct xran_fh_init     m_xranInit;
-
-    struct xran_timer_ctx {
-        uint32_t    tti_to_process;
-        } m_timer_ctx[MAX_NUM_OF_XRAN_CTX];
-
-    /* io struct */
-    BbuIoBufCtrlStruct m_sFrontHaulTxBbuIoBufCtrl[XRAN_N_FE_BUF_LEN][XRAN_MAX_SECTOR_NR][XRAN_MAX_ANTENNA_NR];
-    BbuIoBufCtrlStruct m_sFrontHaulTxPrbMapBbuIoBufCtrl[XRAN_N_FE_BUF_LEN][XRAN_MAX_SECTOR_NR][XRAN_MAX_ANTENNA_NR];
-    BbuIoBufCtrlStruct m_sFrontHaulRxBbuIoBufCtrl[XRAN_N_FE_BUF_LEN][XRAN_MAX_SECTOR_NR][XRAN_MAX_ANTENNA_NR];
-    BbuIoBufCtrlStruct m_sFrontHaulRxPrbMapBbuIoBufCtrl[XRAN_N_FE_BUF_LEN][XRAN_MAX_SECTOR_NR][XRAN_MAX_ANTENNA_NR];
-    BbuIoBufCtrlStruct m_sFHPrachRxBbuIoBufCtrl[XRAN_N_FE_BUF_LEN][XRAN_MAX_SECTOR_NR][XRAN_MAX_ANTENNA_NR];
-
-
-    /* Cat B */
-    BbuIoBufCtrlStruct m_sFHSrsRxBbuIoBufCtrl[XRAN_N_FE_BUF_LEN][XRAN_MAX_SECTOR_NR][XRAN_MAX_ANT_ARRAY_ELM_NR];
-
-    /* buffers lists */
-    struct xran_flat_buffer m_sFrontHaulTxBuffers[XRAN_N_FE_BUF_LEN][XRAN_MAX_SECTOR_NR][XRAN_MAX_ANTENNA_NR][XRAN_NUM_OF_SYMBOL_PER_SLOT];
-    struct xran_flat_buffer m_sFrontHaulTxPrbMapBuffers[XRAN_N_FE_BUF_LEN][XRAN_MAX_SECTOR_NR][XRAN_MAX_ANTENNA_NR];
-    struct xran_flat_buffer m_sFrontHaulRxBuffers[XRAN_N_FE_BUF_LEN][XRAN_MAX_SECTOR_NR][XRAN_MAX_ANTENNA_NR][XRAN_NUM_OF_SYMBOL_PER_SLOT];
-    struct xran_flat_buffer m_sFrontHaulRxPrbMapBuffers[XRAN_N_FE_BUF_LEN][XRAN_MAX_SECTOR_NR][XRAN_MAX_ANTENNA_NR];
-    struct xran_flat_buffer m_sFHPrachRxBuffers[XRAN_N_FE_BUF_LEN][XRAN_MAX_SECTOR_NR][XRAN_MAX_ANTENNA_NR][XRAN_NUM_OF_SYMBOL_PER_SLOT];
-
-    /* Cat B SRS buffers */
-    struct xran_flat_buffer m_sFHSrsRxBuffers[XRAN_N_FE_BUF_LEN][XRAN_MAX_SECTOR_NR][XRAN_MAX_ANT_ARRAY_ELM_NR][XRAN_MAX_NUM_OF_SRS_SYMBOL_PER_SLOT];
-
-    void    *m_nInstanceHandle[XRAN_PORTS_NUM][XRAN_MAX_SECTOR_NR]; // instance per sector
-    uint32_t m_nBufPoolIndex[XRAN_MAX_SECTOR_NR][MAX_SW_XRAN_INTERFACE_NUM];   // every api owns unique buffer pool
-
-    uint32_t m_nSW_ToFpga_FTH_TxBufferLen;
-    uint32_t m_nFpgaToSW_FTH_RxBufferLen;
-
-    int32_t m_nSectorIndex[XRAN_MAX_SECTOR_NR];
-
-    int iq_bfw_buffer_size_dl = 0;
-    int iq_bfw_buffer_size_ul = 0;
-
-    /* beamforming weights for UL (O-DU) */
-    int16_t *p_tx_dl_bfw_buffer[MAX_ANT_CARRIER_SUPPORTED];
-    int32_t tx_dl_bfw_buffer_size[MAX_ANT_CARRIER_SUPPORTED];
-    int32_t tx_dl_bfw_buffer_position[MAX_ANT_CARRIER_SUPPORTED];
-
-    /* beamforming weights for UL (O-DU) */
-    int16_t *p_tx_ul_bfw_buffer[MAX_ANT_CARRIER_SUPPORTED];
-    int32_t tx_ul_bfw_buffer_size[MAX_ANT_CARRIER_SUPPORTED];
-    int32_t tx_ul_bfw_buffer_position[MAX_ANT_CARRIER_SUPPORTED];
-
-
-private:
-    json m_global_cfg;
-
-    template<typename T>
-    T get_globalcfg(const std::string &type, const std::string &parameter_name)
-    {
-        return m_global_cfg[XRAN_UT_KEY_GLOBALCFG][type][parameter_name];
-    }
-
-    template<typename T>
-    std::vector<T> get_globalcfg_array(const std::string &type, const std::string &parameter_name)
-    {
-        auto array_size = m_global_cfg[XRAN_UT_KEY_GLOBALCFG][type][parameter_name].size();
-
-        std::vector<T> result(array_size);
-
-        for(unsigned number = 0; number < array_size; number++)
-            result.at(number) = m_global_cfg[XRAN_UT_KEY_GLOBALCFG][type][parameter_name][number];
-
-        return result;
-    }
-
-    uint16_t get_eaxcid_mask(int numbit, int shift)
-    {
-        uint16_t result = 0;
-
-        for(int i=0; i < numbit; i++) {
-            result = result << 1; result +=1;
-            }
-        return (result << shift);
-    }
-
-    int init_memory()
-    {
         xran_status_t status;
         int32_t i, j, k, z;
         SWXRANInterfaceTypeEnum eInterfaceType;
@@ -522,12 +369,13 @@ private:
 #endif
 
         return (0);
-    }
+}
 
 
-public:
-    xranLibWraper()
-    {
+//------------------------------------------------------------------------------------------------------------------------------------------------
+// Class Constructor
+xranLibWraper::xranLibWraper()
+{
         int i, temp;
         std::string tmpstr;
         unsigned int tmp_mac[6];
@@ -740,14 +588,20 @@ public:
         m_xranConf.ttiCb    = nullptr;
         m_xranConf.ttiCbParam   = nullptr;
 */
-    }
+}
 
-    ~xranLibWraper()
-    {
-    }
 
-    int SetUp()
-    {
+//------------------------------------------------------------------------------------------------------------------------------------------------
+// Class Destructor
+xranLibWraper::~xranLibWraper()
+{
+
+}
+
+
+//------------------------------------------------------------------------------------------------------------------------------------------------
+int xranLibWraper::SetUp()
+{
         int i;
 
         printf("O-DU MAC address: %02X:%02X:%02X:%02X:%02X:%02X\n",
@@ -804,10 +658,12 @@ printf("wrapper.hpp: nFpgaToSW_FTH_RxBufferLen=%d , nSW_ToFpga_FTH_TxBufferLen=%
 
         std::cout << "INIT DONE" << std::endl;
         return (0);
-    }
+}
 
-    void TearDown()
-    {
+
+//------------------------------------------------------------------------------------------------------------------------------------------------
+void xranLibWraper::TearDown()
+{
         if(m_xranhandle) {
             xran_close(m_xranhandle);
             m_xranhandle = nullptr;
@@ -815,10 +671,12 @@ printf("wrapper.hpp: nFpgaToSW_FTH_RxBufferLen=%d , nSW_ToFpga_FTH_TxBufferLen=%
             }
         else
             std::cout << "ALREADY CLOSED" << std::endl;
-    }
+}
 
-    int Init(struct xran_fh_config *pCfg = nullptr)
-    {
+
+//------------------------------------------------------------------------------------------------------------------------------------------------
+int xranLibWraper::Init(struct xran_fh_config *pCfg)
+{
         xran_status_t status;
         int32_t nSectorNum;
         int32_t i, j, k, z;
@@ -954,6 +812,7 @@ printf("wrapper.hpp: nFpgaToSW_FTH_RxBufferLen=%d , nSW_ToFpga_FTH_TxBufferLen=%
                         pRbMap->prbMap[0].numSymb       = 14;
                         pRbMap->prbMap[0].nBeamIndex    = 0;
                         pRbMap->prbMap[0].compMethod    = XRAN_COMPMETHOD_NONE;
+                        pRbMap->prbMap[0].iqWidth       = 16;                              // Modify according to the target compression.
 
                         if(get_rucategory() == XRAN_CATEGORY_A) {
                             pRbMap->prbMap[0].BeamFormingType   = XRAN_BEAM_ID_BASED;
@@ -994,10 +853,13 @@ printf("wrapper.hpp: nFpgaToSW_FTH_RxBufferLen=%d , nSW_ToFpga_FTH_TxBufferLen=%
             }
 
         return (0);
-    }
+}
 
-    void Cleanup()
-    {
+
+
+//------------------------------------------------------------------------------------------------------------------------------------------------
+void xranLibWraper::Cleanup()
+{
         int i;
 
         if(get_rucategory() == XRAN_CATEGORY_B) {
@@ -1015,12 +877,15 @@ printf("wrapper.hpp: nFpgaToSW_FTH_RxBufferLen=%d , nSW_ToFpga_FTH_TxBufferLen=%
             }
 
         return;
-    }
+}
 
 
-    void Open(xran_ethdi_mbuf_send_fn send_cp, xran_ethdi_mbuf_send_fn send_up,
+
+
+//------------------------------------------------------------------------------------------------------------------------------------------------
+void xranLibWraper::Open(xran_ethdi_mbuf_send_fn send_cp, xran_ethdi_mbuf_send_fn send_up,
             void *fh_rx_callback, void *fh_rx_prach_callback, void *fh_srs_callback)
-    {
+{
         struct xran_fh_config *pXranConf;
         int32_t nSectorNum;
         int i, j, k, z;
@@ -1102,38 +967,48 @@ printf("wrapper.hpp: nFpgaToSW_FTH_RxBufferLen=%d , nSW_ToFpga_FTH_TxBufferLen=%
         xran_register_cb_mbuf2ring(send_cp, send_up);
 
         //xran_open(m_xranhandle, &m_xranConf); // Sofia comment
-    }
+}
 
-    void Close()
-    {
+
+//------------------------------------------------------------------------------------------------------------------------------------------------
+void xranLibWraper::Close()
+{
         if(m_xranhandle)
             xran_close(m_xranhandle);
-    }
+}
 
-    int Start()
-    {
+
+//------------------------------------------------------------------------------------------------------------------------------------------------
+int xranLibWraper::Start()
+{
         if(m_xranhandle)
             return(xran_start(m_xranhandle));
         else
             return (-1);
-    }
+}
 
-    int Stop()
-    {
+
+//------------------------------------------------------------------------------------------------------------------------------------------------
+int xranLibWraper::Stop()
+{
         if(m_xranhandle)
             return(xran_stop(m_xranhandle));
         else
             return (-1);
-    }
+}
 
-    /* emulation of timer */
-    void update_tti()
-    {
+
+//------------------------------------------------------------------------------------------------------------------------------------------------
+ /* emulation of timer */
+void xranLibWraper::update_tti()
+{
         tti_ota_cb(nullptr, get_timer_ctx());
-    }
+}
 
-    void update_symbol_index()
-    {
+
+//------------------------------------------------------------------------------------------------------------------------------------------------
+void xranLibWraper::update_symbol_index()
+{
         xran_lib_ota_sym_idx++;
         if((xran_lib_ota_sym_idx % N_SYM_PER_SLOT) == 0) {
             update_tti();
@@ -1142,10 +1017,12 @@ printf("wrapper.hpp: nFpgaToSW_FTH_RxBufferLen=%d , nSW_ToFpga_FTH_TxBufferLen=%
         xran_lib_ota_sym++;
         if(xran_lib_ota_sym >= N_SYM_PER_SLOT)
             xran_lib_ota_sym = 0;
-    }
+}
 
-    int apply_cpenable(bool flag)
-    {
+
+//------------------------------------------------------------------------------------------------------------------------------------------------
+int xranLibWraper::apply_cpenable(bool flag)
+{
         struct xran_device_ctx *pCtx = xran_dev_get_ctx();
 
         if(is_running())
@@ -1164,11 +1041,13 @@ printf("wrapper.hpp: nFpgaToSW_FTH_RxBufferLen=%d , nSW_ToFpga_FTH_TxBufferLen=%
             }
 
         return (0);
-    }
+}
 
 
-    int get_slot_config(const std::string &cfgname, struct xran_frame_config *pCfg)
-    {
+
+//------------------------------------------------------------------------------------------------------------------------------------------------
+int xranLibWraper::get_slot_config(const std::string &cfgname, struct xran_frame_config *pCfg)
+{
         int numcfg, i, j;
         std::vector<int> slotcfg;
 
@@ -1186,10 +1065,12 @@ printf("wrapper.hpp: nFpgaToSW_FTH_RxBufferLen=%d , nSW_ToFpga_FTH_TxBufferLen=%
             }
 
         return (numcfg);
-    }
+}
 
-    int get_num_rbs(uint32_t nNumerology, uint32_t nBandwidth, bool nSub6)
-    {
+
+//------------------------------------------------------------------------------------------------------------------------------------------------
+int xranLibWraper::get_num_rbs(uint32_t nNumerology, uint32_t nBandwidth, bool nSub6)
+{
         if(nNumerology > 3)
             return (-1);
 
@@ -1227,63 +1108,85 @@ printf("wrapper.hpp: nFpgaToSW_FTH_RxBufferLen=%d , nSW_ToFpga_FTH_TxBufferLen=%
         }
 
         return(-1);
-    }
+}
 
-    void *get_xranhandle()  { return(m_xranhandle); }
-    void *get_timer_ctx()   { return((void *)&m_timer_ctx[0]); }
 
-    int get_symbol_index()  { return (xran_lib_ota_sym); }
+//------------------------------------------------------------------------------------------------------------------------------------------------
+void * xranLibWraper::get_xranhandle()  { return(m_xranhandle); }
 
-    bool is_running()       { return((xran_get_if_state() == XRAN_RUNNING)?true:false); }
+//------------------------------------------------------------------------------------------------------------------------------------------------
+void * xranLibWraper::get_timer_ctx()   { return((void *)&m_timer_ctx[0]); }
 
-    enum xran_category get_rucategory()    { return(m_xranConf.ru_conf.xranCat); }
+//------------------------------------------------------------------------------------------------------------------------------------------------
+int xranLibWraper::get_symbol_index()  { return (xran_lib_ota_sym); }
 
-    int get_numerology()    { return(m_xranConf.frame_conf.nNumerology); }
-    int get_duplextype()    { return(m_xranConf.frame_conf.nFrameDuplexType); }
-    int get_num_cc()        { return(m_xranConf.nCC); }
-    int get_num_eaxc()      { return(m_xranConf.neAxc); }
-    int get_num_eaxc_ul()   { return(m_xranConf.neAxcUl); }
-    int get_num_dlrbs()     { return(m_xranConf.nDLRBs); }
-    int get_num_ulrbs()     { return(m_xranConf.nULRBs); }
-    int get_num_antelmtrx() { return(m_xranConf.nAntElmTRx); }
+//------------------------------------------------------------------------------------------------------------------------------------------------
+bool xranLibWraper::is_running()       { return((xran_get_if_state() == XRAN_RUNNING)?true:false); }
 
-    bool is_cpenable()      { return(m_xranInit.enableCP); };
-    bool is_prachenable()   { return(m_xranInit.prachEnable); };
-    bool is_dynamicsection() { return(m_xranInit.DynamicSectionEna?true:false); }
-    
-    // --- Sofia defines useful functions
-    bool get_sub6()         { return(m_bSub6);}
-    // ---------------------------------
+//------------------------------------------------------------------------------------------------------------------------------------------------
+enum xran_category xranLibWraper::get_rucategory()    { return(m_xranConf.ru_conf.xranCat); }
 
-    void get_cfg_prach(struct xran_prach_config *pCfg)
-    {
+//------------------------------------------------------------------------------------------------------------------------------------------------
+int xranLibWraper::get_numerology()    { return(m_xranConf.frame_conf.nNumerology); }
+
+//------------------------------------------------------------------------------------------------------------------------------------------------
+int xranLibWraper::get_duplextype()    { return(m_xranConf.frame_conf.nFrameDuplexType); }
+
+//------------------------------------------------------------------------------------------------------------------------------------------------
+int xranLibWraper::get_num_cc()        { return(m_xranConf.nCC); }
+
+//------------------------------------------------------------------------------------------------------------------------------------------------
+int xranLibWraper::get_num_eaxc()      { return(m_xranConf.neAxc); }
+
+//------------------------------------------------------------------------------------------------------------------------------------------------
+int xranLibWraper::get_num_eaxc_ul()   { return(m_xranConf.neAxcUl); }
+
+//------------------------------------------------------------------------------------------------------------------------------------------------
+int xranLibWraper::get_num_dlrbs()     { return(m_xranConf.nDLRBs); }
+
+//------------------------------------------------------------------------------------------------------------------------------------------------
+int xranLibWraper::get_num_ulrbs()     { return(m_xranConf.nULRBs); }
+
+//------------------------------------------------------------------------------------------------------------------------------------------------
+int xranLibWraper::get_num_antelmtrx() { return(m_xranConf.nAntElmTRx); }
+
+//------------------------------------------------------------------------------------------------------------------------------------------------
+bool xranLibWraper::is_cpenable()      { return(m_xranInit.enableCP); };
+
+//------------------------------------------------------------------------------------------------------------------------------------------------
+bool xranLibWraper::is_prachenable()   { return(m_xranInit.prachEnable); };
+
+//------------------------------------------------------------------------------------------------------------------------------------------------
+bool xranLibWraper::is_dynamicsection() { return(m_xranInit.DynamicSectionEna?true:false); }
+
+//------------------------------------------------------------------------------------------------------------------------------------------------
+bool  xranLibWraper::get_sub6()         { return(m_bSub6);}
+
+//------------------------------------------------------------------------------------------------------------------------------------------------
+void  xranLibWraper::get_cfg_prach(struct xran_prach_config *pCfg)
+{
         if(pCfg)
             memcpy(pCfg, &m_xranConf.prach_conf, sizeof(struct xran_prach_config));
-    }
+}
 
-    void get_cfg_frame(struct xran_frame_config *pCfg)
-    {
+//------------------------------------------------------------------------------------------------------------------------------------------------
+void  xranLibWraper::get_cfg_frame(struct xran_frame_config *pCfg)
+{
         if(pCfg)
             memcpy(pCfg, &m_xranConf.frame_conf, sizeof(struct xran_frame_config));
-    }
+}
 
-    void get_cfg_ru(struct xran_ru_config *pCfg)
-    {
+//------------------------------------------------------------------------------------------------------------------------------------------------
+void  xranLibWraper::get_cfg_ru(struct xran_ru_config *pCfg)
+{
         if(pCfg)
             memcpy(pCfg, &m_xranConf.ru_conf, sizeof(struct xran_ru_config));
-    }
+}
 
-    void get_cfg_fh(struct xran_fh_config *pCfg)
-    {
+//------------------------------------------------------------------------------------------------------------------------------------------------
+void  xranLibWraper::get_cfg_fh(struct xran_fh_config *pCfg)
+{
         if(pCfg)
             memcpy(pCfg, &m_xranConf, sizeof(struct xran_fh_config));
-    }
+}
 
-};
-
-
-/* external declaration for the instance */
-extern xranLibWraper *xranlib;
-
-
-#endif //XRAN_LIB_WRAP_HPP

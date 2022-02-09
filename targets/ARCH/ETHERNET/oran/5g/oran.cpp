@@ -21,11 +21,7 @@
 
 
 #include <stdio.h>
-// #include "common_lib.h"
-// #include "ethernet_lib.h"
 #include "oran_isolate.h"
-#include "shared_buffers.h"
-#include "low_oran.h"
 #include "xran_lib_wrap.hpp"
 #include "common.hpp"
 #include "xran_compression.h"
