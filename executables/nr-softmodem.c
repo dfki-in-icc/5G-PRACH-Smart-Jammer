@@ -665,6 +665,9 @@ int main( int argc, char **argv ) {
   openair0_cfg[0].threequarter_fs = threequarter_fs;
   AMF_MODE_ENABLED = get_softmodem_params()->sa;
   NGAP_CONF_MODE   = get_softmodem_params()->sa;
+  openair0_cfg[0].tune_offset = get_softmodem_params()->tune_offset;
+
+  printf("Using tune offset: %lu\n", (unsigned long)openair0_cfg[0].tune_offset);
 
   if (get_softmodem_params()->do_ra)
     AssertFatal(get_softmodem_params()->phy_test == 0,"RA and phy_test are mutually exclusive\n");

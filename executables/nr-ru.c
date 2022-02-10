@@ -58,6 +58,8 @@
 unsigned short config_frames[4] = {2,9,11,13};
 #endif
 
+extern openair0_config_t openair0_cfg[MAX_CARDS];
+
 /* these variables have to be defined before including ENB_APP/enb_paramdef.h and GNB_APP/gnb_paramdef.h */
 static int DEFBANDS[] = {7};
 static int DEFENBS[] = {0};
@@ -309,7 +311,7 @@ void fh_if5_south_in(RU_t *ru,
   proc->tti_rx = fp->get_slot_from_timestamp(proc->timestamp_rx-ru->ts_offset,fp);
 //(idx_sf * fp->slots_per_subframe + (int)round((float)(proc->timestamp_rx % fp->samples_per_subframe) / fp->samples_per_slot0))%(fp->slots_per_frame);
   ts_rx[*tti] = proc->timestamp_rx;
-  LOG_D(PHY,"IF5 %d.%d => RX %d.%d first_rx %d\n",*frame,*tti,proc->frame_rx,proc->tti_rx,proc->first_rx); 
+  LOG_D(PHY,"IF5 %d.%d => RX %d.%d first_rx %d\n",*frame,*tti,proc->frame_rx,proc->tti_rx,proc->first_rx);
 
   if (proc->first_rx == 0) {
     if (proc->tti_rx != *tti) {
@@ -770,7 +772,7 @@ void tx_rf(RU_t *ru,int frame,int slot, uint64_t timestamp) {
 
     for (i=0; i<ru->nb_tx; i++)
       txp[i] = (void *)&ru->common.txdata[i][fp->get_samples_slot_timestamp(slot,fp,0)]-sf_extension*sizeof(int32_t);
-    
+
     VCD_SIGNAL_DUMPER_DUMP_VARIABLE_BY_NAME( VCD_SIGNAL_DUMPER_VARIABLES_TRX_TST, (timestamp+ru->ts_offset-ru->openair0_cfg.tx_sample_advance)&0xffffffff );
     VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME( VCD_SIGNAL_DUMPER_FUNCTIONS_TRX_WRITE, 1 );
       // prepare tx buffer pointers
@@ -823,7 +825,7 @@ void fill_rf_config(RU_t *ru, char *rf_config_file) {
         cfg->tx_bw = 40e6;
         cfg->rx_bw = 40e6;
       }
-      break; 
+      break;
     case 160: //30 MHz
     case 133: //25 MHz
       if (fp->threequarter_fs) {
@@ -1043,11 +1045,13 @@ void fill_rf_config(RU_t *ru, char *rf_config_file) {
     cfg->tx_gain[i] = ru->att_tx;
     cfg->rx_gain[i] = ru->max_rxgain-ru->att_rx;
     cfg->configFilename = rf_config_file;
-    LOG_I(PHY, "Channel %d: setting tx_gain offset %f, rx_gain offset %f, tx_freq %lu Hz, rx_freq %lu Hz\n",
+    LOG_I(PHY, "Channel %d: setting tx_gain offset %f, rx_gain offset %f, tx_freq %lu Hz, rx_freq %lu Hz, tune_offset %lu Hz\n",
           i, cfg->tx_gain[i],
           cfg->rx_gain[i],
           (unsigned long)cfg->tx_freq[i],
-          (unsigned long)cfg->rx_freq[i]);
+          (unsigned long)cfg->rx_freq[i],
+          (unsigned long)cfg->tune_offset
+        );
   }
 }
 
@@ -1275,7 +1279,7 @@ void *ru_thread( void *param ) {
       if (ru->has_ctrl_prt > 0) {
         if (ru->if_south == LOCAL_RF) ret = connect_rau(ru);
         else ret = attach_rru(ru);
-  
+
         AssertFatal(ret==0,"Cannot connect to remote radio\n");
       }
 
@@ -2021,6 +2025,8 @@ static void NRRCconfig_RU(void) {
         RC.ru[j]->openair0_cfg.time_source = internal;
       }
 
+      RC.ru[j]->openair0_cfg.tune_offset = openair0_cfg[0].tune_offset;
+
       if (strcmp(*(RUParamList.paramarray[j][RU_LOCAL_RF_IDX].strptr), "yes") == 0) {
         if ( !(config_isparamset(RUParamList.paramarray[j],RU_LOCAL_IF_NAME_IDX)) ) {
           RC.ru[j]->if_south                        = LOCAL_RF;
@@ -2123,4 +2129,3 @@ static void NRRCconfig_RU(void) {
 
   return;
 }
-

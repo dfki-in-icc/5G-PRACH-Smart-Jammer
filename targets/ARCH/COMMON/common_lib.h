@@ -107,7 +107,7 @@ typedef enum {
   RFSIMULATOR,
   MAX_RF_DEV_TYPE
 } dev_type_t;
-#define DEVTYPE_NAMES {"","EXMIMO","USRP B200","USRP X300","USRP N300","BLADERF","LMSSDR","IRIS","No HW","ADRV9371_ZC706","UEDv2", "RFSIMULATOR"} 
+#define DEVTYPE_NAMES {"","EXMIMO","USRP B200","USRP X300","USRP N300","BLADERF","LMSSDR","IRIS","No HW","ADRV9371_ZC706","UEDv2", "RFSIMULATOR"}
 /*!\brief transport protocol types
  */
 typedef enum {
@@ -186,6 +186,7 @@ typedef struct {
   //! \brief Center frequency in Hz for TX.
   //! index: [0..rx_num_channels[ !!! see lte-ue.c:427 FIXME iterates over rx_num_channels
   double tx_freq[4];
+  double tune_offset;
   //! \brief memory
   //! \brief Pointer to Calibration table for RX gains
   rx_gain_calib_table_t *rx_gain_calib_table;
@@ -345,7 +346,7 @@ struct openair0_device_t {
   int (*trx_start_func)(openair0_device *device);
 
  /*! \brief Called to configure the device
-      @param device pointer to the device structure specific to the RF hardware target  
+      @param device pointer to the device structure specific to the RF hardware target
   */
 
 
@@ -370,7 +371,7 @@ struct openair0_device_t {
       @param timestamp The timestamp at whicch the first sample MUST be sent
       @param buff Buffer which holds the samples (2 dimensional)
       @param nsamps number of samples to be sent
-      @param number of antennas 
+      @param number of antennas
       @param flags flags must be set to TRUE if timestamp parameter needs to be applied
   */
   int (*trx_write_func)(openair0_device *device, openair0_timestamp timestamp, void **buff, int nsamps,int antenna_id, int flags);
@@ -572,4 +573,3 @@ extern void iqrecorder_end(openair0_device *device);
 #endif
 
 #endif // COMMON_LIB_H
-

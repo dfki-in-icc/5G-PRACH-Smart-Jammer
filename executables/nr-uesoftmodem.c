@@ -230,7 +230,7 @@ uint64_t set_nrUE_optmask(uint64_t bitmask) {
 nrUE_params_t *get_nrUE_params(void) {
   return &nrUE_params;
 }
-/* initialie thread pools used for NRUE processing paralleliation */ 
+/* initialie thread pools used for NRUE processing paralleliation */
 void init_tpools(uint8_t nun_dlsch_threads) {
   char *params = NULL;
   if (IS_SOFTMODEM_RFSIM) {
@@ -280,18 +280,18 @@ void set_options(int CC_id, PHY_VARS_NR_UE *UE){
 
   int pindex = config_paramidx_fromname(cmdline_params,numparams, CALIBRX_OPT);
   if ( (cmdline_params[pindex].paramflags &  PARAMFLAG_PARAMSET) != 0) UE->mode = rx_calib_ue;
-  
+
   pindex = config_paramidx_fromname(cmdline_params,numparams, CALIBRXMED_OPT);
   if ( (cmdline_params[pindex].paramflags &  PARAMFLAG_PARAMSET) != 0) UE->mode = rx_calib_ue_med;
 
-  pindex = config_paramidx_fromname(cmdline_params,numparams, CALIBRXBYP_OPT);              
+  pindex = config_paramidx_fromname(cmdline_params,numparams, CALIBRXBYP_OPT);
   if ( (cmdline_params[pindex].paramflags &  PARAMFLAG_PARAMSET) != 0) UE->mode = rx_calib_ue_byp;
 
-  pindex = config_paramidx_fromname(cmdline_params,numparams, DBGPRACH_OPT); 
+  pindex = config_paramidx_fromname(cmdline_params,numparams, DBGPRACH_OPT);
   if (cmdline_params[pindex].uptr)
     if ( *(cmdline_params[pindex].uptr) > 0) UE->mode = debug_prach;
 
-  pindex = config_paramidx_fromname(cmdline_params,numparams,NOL2CONNECT_OPT ); 
+  pindex = config_paramidx_fromname(cmdline_params,numparams,NOL2CONNECT_OPT );
   if (cmdline_params[pindex].uptr)
     if ( *(cmdline_params[pindex].uptr) > 0)  UE->mode = no_L2_connect;
 
@@ -353,6 +353,7 @@ void init_openair0(void) {
     openair0_cfg[card].num_rb_dl = frame_parms->N_RB_DL;
     openair0_cfg[card].clock_source = get_softmodem_params()->clock_source;
     openair0_cfg[card].time_source = get_softmodem_params()->timing_source;
+    openair0_cfg[card].tune_offset = get_softmodem_params()->tune_offset;
     openair0_cfg[card].tx_num_channels = min(4, frame_parms->nb_antennas_tx);
     openair0_cfg[card].rx_num_channels = min(4, frame_parms->nb_antennas_rx);
 
@@ -498,15 +499,15 @@ int main( int argc, char **argv ) {
   memset (&UE_PF_PO[0][0], 0, sizeof(UE_PF_PO_t)*NUMBER_OF_UE_MAX*MAX_NUM_CCs);
   configure_linux();
   mlockall(MCL_CURRENT | MCL_FUTURE);
- 
+
   if(IS_SOFTMODEM_DOSCOPE) {
     load_softscope("nr",PHY_vars_UE_g[0][0]);
-  }     
+  }
 
-  
+
   init_NR_UE_threads(1);
   printf("UE threads created by %ld\n", gettid());
-  
+
   // wait for end of program
   printf("TYPE <CTRL-C> TO TERMINATE\n");
 
