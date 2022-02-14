@@ -88,7 +88,7 @@ int load_nrLDPClib_offload(void) {
   p_decParams->BG = 1;
 
   AssertFatal(nrLDPC_decoder_offload(p_decParams,0, 0,
-				     1,
+				     32,
 				     0,
 				     0,
 				     25344,
@@ -111,7 +111,7 @@ t_nrLDPC_dec_params decParams;
   p_decParams->BG = 1;
 
   nrLDPC_decoder_offload(p_decParams,0,0,
-                        1,
+                        32,
                         0,
                         0,
                         25344,
