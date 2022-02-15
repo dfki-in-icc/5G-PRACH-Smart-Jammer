@@ -79,12 +79,13 @@ char quantize8bit(double D,double x)
 }
 
 typedef struct {
-  double n_iter_mean[100];
-  double n_iter_std[100];
-  int n_iter_max[100];
-  double snr[100];
-  double ber[100];
-  double bler[100];
+  double n_iter_mean[400];
+  double n_iter_std[400];
+  int n_iter_max[400];
+  double snr[400];
+  double ber[400];
+  double bler[400];
+  double decoding_time[400];
 } n_iter_stats_t;
 
 nrLDPC_encoderfunc_t encoder_orig;
@@ -164,6 +165,7 @@ int test_ldpc(short No_iteration,
     estimated_output_bit[j] = (unsigned char*) malloc16(sizeof(unsigned char) * block_length);
     modulated_input[j] = (double *)malloc16(sizeof(double) * 68*384);
     channel_output_fixed[j]  =  (char *)malloc16(sizeof( char) * 68*384);
+    memset(channel_output_fixed[j], 0, sizeof(char)*68*384);
   }
   //modulated_input = (double *)malloc(sizeof(double) * 68*384);
   //channel_output  = (double *)malloc(sizeof(double) * 68*384);
@@ -285,7 +287,7 @@ int test_ldpc(short No_iteration,
   removed_bit=(nrows-no_punctured_columns-2) * Zc+block_length-(int)(block_length/((float)nom_rate/(float)denom_rate));
   encoder_implemparams_t impp=INIT0_LDPCIMPLEMPARAMS;
 
-  // CRC attachement
+/*  // CRC attachement
   for (j=0; j<n_segments; j++) {
     int crc = 0;
     crc = crc24b(test_input[j],block_length-24)>>8;
@@ -293,6 +295,7 @@ int test_ldpc(short No_iteration,
     test_input[j][1+((block_length-24)>>3)] = ((uint8_t*)&crc)[1];
     test_input[j][2+((block_length-24)>>3)] = ((uint8_t*)&crc)[0];
   }
+*/
  
   impp.gen_code=1;
   if (ntrials==0)
@@ -415,7 +418,7 @@ int test_ldpc(short No_iteration,
 
       //count errors
       for(j=0;j<n_segments;j++) {
-      for (i=0; i<(block_length-24)>>3; i++)
+      for (i=0; i<(block_length)>>3; i++)
       {
           //printf("block_length>>3: %d \n",block_length>>3);
          /// printf("i: %d \n",i);
@@ -429,7 +432,7 @@ int test_ldpc(short No_iteration,
         }
       }
 
-      for (i=0; i<block_length-24; i++)
+      for (i=0; i<block_length; i++)
         {
           estimated_output_bit[j][i] = (estimated_output[j][i/8]&(1<<(i&7)))>>(i&7);
           test_input_bit[i] = (test_input[j][i/8]&(1<<(i&7)))>>(i&7); // Further correct for multiple segments
@@ -712,6 +715,7 @@ int main(int argc, char *argv[])
     printf("Encoding time std: %15.3f us\n",sqrt((double)time_optim->diff_square/time_optim->trials/pow(1000,2)/pow(get_cpu_freq_GHz(),2)-pow((double)time_optim->diff/time_optim->trials/1000.0/get_cpu_freq_GHz(),2)));
     printf("Encoding time max: %15.3f us\n",(double)time_optim->max/1000.0/get_cpu_freq_GHz());
     printf("\n");
+    dec_iter.decoding_time[i] = (double)time_decoder->diff/time_decoder->trials/1000.0/get_cpu_freq_GHz();
     printf("Decoding time mean: %15.3f us\n",(double)time_decoder->diff/time_decoder->trials/1000.0/get_cpu_freq_GHz());
     printf("Decoding time std: %15.3f us\n",sqrt((double)time_decoder->diff_square/time_decoder->trials/pow(1000,2)/pow(get_cpu_freq_GHz(),2)-pow((double)time_decoder->diff/time_decoder->trials/1000.0/get_cpu_freq_GHz(),2)));
     printf("Decoding time max: %15.3f us\n",(double)time_decoder->max/1000.0/get_cpu_freq_GHz());
@@ -741,6 +745,7 @@ int main(int argc, char *argv[])
   LOG_MM("ldpctestStats.m","BLER",&dec_iter.bler[0],i,1,7);
   LOG_MM("ldpctestStats.m","BER",&dec_iter.ber[0],i,1,7);
   LOG_MM("ldpctestStats.m","meanIter",&dec_iter.n_iter_mean[0],i,1,7);
+  LOG_MM("ldpctestStats.m","decTime",&dec_iter.decoding_time[0],i,1,7);
 
   return(0);
 }
