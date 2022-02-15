@@ -39,14 +39,14 @@
 #include "nrLDPC_bnProc.h"
 
 #define NR_LDPC_ENABLE_PARITY_CHECK
-#define NR_LDPC_DEBUG_MODE;
+//#define NR_LDPC_DEBUG_MODE
 //#define NR_LDPC_PROFILER_DETAIL
 
 #ifdef NR_LDPC_DEBUG_MODE
 #include "nrLDPC_tools/nrLDPC_debug.h"
 #endif
 
-static inline uint32_t nrLDPC_decoder_core_new(int8_t* p_llr, int8_t* p_out, t_nrLDPC_procBuf* p_procBuf, uint32_t numLLR, t_nrLDPC_lut* p_lut, t_nrLDPC_dec_params* p_decParams, t_nrLDPC_time_stats* p_profiler);
+static inline uint32_t nrLDPC_decoder_core_layer(int8_t* p_llr, int8_t* p_out, uint32_t numLLR, t_nrLDPC_lut* p_lut, t_nrLDPC_dec_params* p_decParams, t_nrLDPC_time_stats* p_profiler);
 static inline uint32_t nrLDPC_decoder_core(int8_t* p_llr, int8_t* p_out, uint32_t numLLR, t_nrLDPC_lut* p_lut, t_nrLDPC_dec_params* p_decParams, t_nrLDPC_time_stats* p_profiler);
 int check_crc(uint8_t* decoded_bytes, uint32_t n, uint32_t F, uint8_t crc_type);
 void nrLDPC_initcall(t_nrLDPC_dec_params* p_decParams, int8_t* p_llr, int8_t* p_out) {
@@ -63,13 +63,13 @@ int32_t nrLDPC_decod(t_nrLDPC_dec_params* p_decParams, int8_t* p_llr, int8_t* p_
     numLLR = nrLDPC_init(p_decParams, p_lut);
 
     // Launch LDPC decoder core for one segment
-    //numIter = nrLDPC_decoder_core_new(p_llr, p_out, numLLR, p_lut, p_decParams, p_profiler);
-    numIter = nrLDPC_decoder_core(p_llr, p_out, numLLR, p_lut, p_decParams, p_profiler);
+    numIter = nrLDPC_decoder_core_layer(p_llr, p_out, numLLR, p_lut, p_decParams, p_profiler);
+    //numIter = nrLDPC_decoder_core(p_llr, p_out, numLLR, p_lut, p_decParams, p_profiler);
 
     return numIter;
 }
 
-static inline uint32_t nrLDPC_decoder_core_new(int8_t* p_llr, int8_t* p_out, uint32_t numLLR, t_nrLDPC_lut* p_lut, t_nrLDPC_dec_params* p_decParams, t_nrLDPC_time_stats* p_profiler)
+static inline uint32_t nrLDPC_decoder_core_layer(int8_t* p_llr, int8_t* p_out, uint32_t numLLR, t_nrLDPC_lut* p_lut, t_nrLDPC_dec_params* p_decParams, t_nrLDPC_time_stats* p_profiler)
 {
     uint16_t Z          = p_decParams->Z;
     uint8_t  BG         = p_decParams->BG;
@@ -78,35 +78,19 @@ static inline uint32_t nrLDPC_decoder_core_new(int8_t* p_llr, int8_t* p_out, uin
 
     int8_t cnProcBuf[NR_LDPC_SIZE_CN_PROC_BUF]    __attribute__ ((aligned(32))) = {0};
     int8_t cnProcBufRes[NR_LDPC_SIZE_CN_PROC_BUF] __attribute__ ((aligned(32))) = {0};
-    int8_t bnProcBuf[NR_LDPC_SIZE_BN_PROC_BUF]    __attribute__ ((aligned(32))) = {0};
-    int8_t bnProcBufRes[NR_LDPC_SIZE_BN_PROC_BUF] __attribute__ ((aligned(32))) = {0};
-    int8_t llrRes[NR_LDPC_MAX_NUM_LLR]            __attribute__ ((aligned(32))) = {0};
     int8_t llrProcBuf[NR_LDPC_MAX_NUM_LLR]        __attribute__ ((aligned(32))) = {0};
-    int8_t llrOut[NR_LDPC_MAX_NUM_LLR]            __attribute__ ((aligned(32))) = {0};
 
     // Minimum number of iterations is 1
     // 0 iterations means hard-decision on input LLRs
     uint32_t i = 1;
     // Initialize with parity check fail != 0
     int32_t pcRes = 1;
-    int8_t* p_llrOut;
-
-    if (outMode == nrLDPC_outMode_LLRINT8)
-    {
-        p_llrOut = p_out;
-    }
-    else
-    {
-        // Use LLR processing buffer as temporary output buffer
-        p_llrOut = llrProcBuf;
-    }
-
 
     // Initialization
 #ifdef NR_LDPC_PROFILER_DETAIL
     start_meas(&p_profiler->llr2llrProcBuf);
 #endif
-    nrLDPC_llr2llrProcBuf_new(p_lut, p_llr, llrProcBuf, llrRes, Z, BG);
+    nrLDPC_llr2llrProcBuf_layer(p_lut, p_llr, llrProcBuf, Z, BG);
 #ifdef NR_LDPC_PROFILER_DETAIL
     stop_meas(&p_profiler->llr2llrProcBuf);
 #endif
@@ -119,52 +103,51 @@ static inline uint32_t nrLDPC_decoder_core_new(int8_t* p_llr, int8_t* p_out, uin
     // First iteration
 
     // CN processing
-#ifdef NR_LDPC_PROFILER_DETAIL
-    start_meas(&p_profiler->cnProc);
-#endif
-    nrLDPC_cnProc_BG1_first(p_lut, p_llr, p_procBuf, Z);
-#ifdef NR_LDPC_PROFILER_DETAIL
-    stop_meas(&p_profiler->cnProc);
-#endif
+    nrLDPC_layerProc_BG2(p_lut, p_llr, llrProcBuf, cnProcBuf, cnProcBufRes, Z, (i == 1));
 
+#ifdef NR_LDPC_DEBUG_MODE
+    nrLDPC_debug_initBuffer2File(nrLDPC_buffers_CN_PROC);
+    nrLDPC_debug_writeBuffer2File(nrLDPC_buffers_CN_PROC, cnProcBuf);
+    nrLDPC_debug_initBuffer2File(nrLDPC_buffers_CN_PROC_RES);
+    nrLDPC_debug_writeBuffer2File(nrLDPC_buffers_CN_PROC_RES, cnProcBufRes);
+    nrLDPC_debug_writeBuffer2File(nrLDPC_buffers_LLR_PROC, llrProcBuf);
+#endif
     while ( (i < (numMaxIter)) && (pcRes != 0) )
     {
-
       i++;
+      nrLDPC_layerProc_BG2(p_lut, p_llr, llrProcBuf, cnProcBuf, cnProcBufRes, Z, (i == 1));
 
-#ifdef NR_LDPC_PROFILER_DETAIL
-      start_meas(&p_profiler->cnProc);
+#ifdef NR_LDPC_DEBUG_MODE
+      nrLDPC_debug_writeBuffer2File(nrLDPC_buffers_CN_PROC, cnProcBuf);
+      nrLDPC_debug_writeBuffer2File(nrLDPC_buffers_CN_PROC_RES, cnProcBufRes);
+      nrLDPC_debug_writeBuffer2File(nrLDPC_buffers_LLR_PROC, llrProcBuf);
 #endif
-      nrLDPC_cnProc_BG1_second(p_lut, p_llr, p_procBuf, Z);
-#ifdef NR_LDPC_PROFILER_DETAIL
-      stop_meas(&p_profiler->cnProc);
-#endif
-
-      pcRes = nrLDPC_cnProcPc_BG1(p_lut, p_procBuf, Z);
     }
 
-    nrLDPC_llrRes2llrOut_new(p_lut, p_llrOut, p_procBuf, Z, BG);
+    if (pcRes != 0)
+    {
+      i++;
+    }
 
-    //for (int j=0; j<300; j++) {
-    //  printf("llr %d: %d\n",j,p_llrOut[j]);
-    //}
     // Hard-decision
 #ifdef NR_LDPC_PROFILER_DETAIL
     start_meas(&p_profiler->llr2bit);
 #endif
     if (outMode == nrLDPC_outMode_BIT)
     {
-        nrLDPC_llr2bitPacked(p_out, p_llrOut, numLLR);
+      nrLDPC_llr2bitPacked(p_out, llrProcBuf, numLLR);
     }
     else if (outMode == nrLDPC_outMode_BITINT8)
     {
-        nrLDPC_llr2bit(p_out, p_llrOut, numLLR);
+      nrLDPC_llr2bit(p_out, llrProcBuf, numLLR);
     }
-
+    else
+    {
+      memcpy(p_out, llrProcBuf, numLLR*Z);
+    }
 #ifdef NR_LDPC_PROFILER_DETAIL
     stop_meas(&p_profiler->llr2bit);
 #endif
-
     return i;
 
 }
@@ -208,7 +191,6 @@ static inline uint32_t nrLDPC_decoder_core(int8_t* p_llr, int8_t* p_out, uint32_
         p_llrOut = llrOut;
     }
 
-
     // Initialization
 #ifdef NR_LDPC_PROFILER_DETAIL
     start_meas(&p_profiler->llr2llrProcBuf);
@@ -220,7 +202,7 @@ static inline uint32_t nrLDPC_decoder_core(int8_t* p_llr, int8_t* p_out, uint32_
 
 #ifdef NR_LDPC_DEBUG_MODE
     nrLDPC_debug_initBuffer2File(nrLDPC_buffers_LLR_PROC);
-    nrLDPC_debug_writeBuffer2File(nrLDPC_buffers_LLR_PROC, llrProcBuf);
+    nrLDPC_debug_writeBuffer2File(nrLDPC_buffers_LLR_PROC, p_llr);
 #endif
 
 #ifdef NR_LDPC_PROFILER_DETAIL
@@ -331,6 +313,10 @@ static inline uint32_t nrLDPC_decoder_core(int8_t* p_llr, int8_t* p_out, uint32_
 
 #ifdef NR_LDPC_DEBUG_MODE
     nrLDPC_debug_writeBuffer2File(nrLDPC_buffers_CN_PROC, cnProcBuf);
+#endif
+    nrLDPC_llrRes2llrOut(p_lut, p_llrOut, llrRes, Z, BG);
+#ifdef NR_LDPC_DEBUG_MODE
+    nrLDPC_debug_writeBuffer2File(nrLDPC_buffers_LLR_PROC, p_llrOut);
 #endif
 
     // Parity Check not necessary here since it will fail
@@ -445,6 +431,10 @@ static inline uint32_t nrLDPC_decoder_core(int8_t* p_llr, int8_t* p_out, uint32_
 #ifdef NR_LDPC_PROFILER_DETAIL
         stop_meas(&p_profiler->cnProcPc);
 #endif
+#endif
+        nrLDPC_llrRes2llrOut(p_lut, p_llrOut, llrRes, Z, BG);
+#ifdef NR_LDPC_DEBUG_MODE
+    nrLDPC_debug_writeBuffer2File(nrLDPC_buffers_LLR_PROC, p_llrOut);
 #endif
     }
 

@@ -30,6 +30,7 @@
 
 #ifndef __NR_LDPC_MPASS__H__
 #define __NR_LDPC_MPASS__H__
+#define NR_LDPC_PROC_DEBUG
 
 #include <string.h>
 #include "nrLDPCdecoder_defs.h"
@@ -75,19 +76,16 @@ static inline void *nrLDPC_circ_memcpy(int8_t *str1, const int8_t *str2, uint16_
     return(str1);
 }
 
-static inline void nrLDPC_llr2llrProcBuf_new(t_nrLDPC_lut* p_lut, int8_t* llr, int8_t* llrProcBuf, int8_t* llrRes, uint16_t Z, uint8_t BG)
+static inline void nrLDPC_llr2llrProcBuf_layer(t_nrLDPC_lut* p_lut, int8_t* llr, int8_t* llrProcBuf, uint16_t Z, uint8_t BG)
 {
   int numCols = (BG == 1) ? NR_LDPC_NCOL_BG1 : NR_LDPC_NCOL_BG2;
   memcpy(&llrProcBuf[0], &llr[0], numCols*Z);
-  // First iterations uses the input LLRs
-  memcpy(&llrRes[0], &llr[0], numCols*Z);
 }
 
-static inline void nrLDPC_llrRes2llrOut_new(t_nrLDPC_lut* p_lut, int8_t* llrOut, t_nrLDPC_procBuf* p_procBuf, uint16_t Z, uint8_t BG)
+static inline void nrLDPC_llrRes2llrOut_layer(t_nrLDPC_lut* p_lut, int8_t* llrOut, int8_t* llrDecoded, uint16_t Z, uint8_t BG)
 {
-  int8_t* llrRes = p_procBuf->llrRes;
   int numCols = (BG == 1) ? NR_LDPC_NCOL_BG1 : NR_LDPC_NCOL_BG2;
-  memcpy(llrOut, &llrRes[0], numCols*Z);
+  memcpy(llrOut, &llrOut[0], numCols*Z);
 }
 
 
@@ -625,29 +623,6 @@ static inline void nrLDPC_cn2bnProcBuf_BG2(t_nrLDPC_lut* p_lut, int8_t* cnProcBu
     }
 }
 
-static inline void nrLDPC_cn2bnProcBuf_BG1_new(t_nrLDPC_lut* p_lut, t_nrLDPC_procBuf* p_procBuf, uint16_t Z)
-{
-    const uint16_t (*lut_circShift_CNG3) [lut_numCnInCnGroups_BG1_R13[0]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[0]]) p_lut->circShift[0];
-    const uint16_t (*lut_circShift_CNG4) [lut_numCnInCnGroups_BG1_R13[1]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[1]]) p_lut->circShift[1];
-    const uint16_t (*lut_circShift_CNG5) [lut_numCnInCnGroups_BG1_R13[2]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[2]]) p_lut->circShift[2];
-    const uint16_t (*lut_circShift_CNG6) [lut_numCnInCnGroups_BG1_R13[3]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[3]]) p_lut->circShift[3];
-    const uint16_t (*lut_circShift_CNG7) [lut_numCnInCnGroups_BG1_R13[4]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[4]]) p_lut->circShift[4];
-    const uint16_t (*lut_circShift_CNG8) [lut_numCnInCnGroups_BG1_R13[5]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[5]]) p_lut->circShift[5];
-    const uint16_t (*lut_circShift_CNG9) [lut_numCnInCnGroups_BG1_R13[6]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[6]]) p_lut->circShift[6];
-    const uint16_t (*lut_circShift_CNG10)[lut_numCnInCnGroups_BG1_R13[7]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[7]]) p_lut->circShift[7];
-    const uint16_t (*lut_circShift_CNG19)[lut_numCnInCnGroups_BG1_R13[8]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[8]]) p_lut->circShift[8];
-
-    const uint8_t (*lut_posBnInCnProcBuf_CNG3) [lut_numCnInCnGroups_BG1_R13[0]] = (const uint8_t(*)[lut_numCnInCnGroups_BG1_R13[0]]) p_lut->posBnInCnProcBuf[0];
-    const uint8_t (*lut_posBnInCnProcBuf_CNG4) [lut_numCnInCnGroups_BG1_R13[1]] = (const uint8_t(*)[lut_numCnInCnGroups_BG1_R13[1]]) p_lut->posBnInCnProcBuf[1];
-    const uint8_t (*lut_posBnInCnProcBuf_CNG5) [lut_numCnInCnGroups_BG1_R13[2]] = (const uint8_t(*)[lut_numCnInCnGroups_BG1_R13[2]]) p_lut->posBnInCnProcBuf[2];
-    const uint8_t (*lut_posBnInCnProcBuf_CNG6) [lut_numCnInCnGroups_BG1_R13[3]] = (const uint8_t(*)[lut_numCnInCnGroups_BG1_R13[3]]) p_lut->posBnInCnProcBuf[3];
-    const uint8_t (*lut_posBnInCnProcBuf_CNG7) [lut_numCnInCnGroups_BG1_R13[4]] = (const uint8_t(*)[lut_numCnInCnGroups_BG1_R13[4]]) p_lut->posBnInCnProcBuf[4];
-    const uint8_t (*lut_posBnInCnProcBuf_CNG8) [lut_numCnInCnGroups_BG1_R13[5]] = (const uint8_t(*)[lut_numCnInCnGroups_BG1_R13[5]]) p_lut->posBnInCnProcBuf[5];
-    const uint8_t (*lut_posBnInCnProcBuf_CNG9) [lut_numCnInCnGroups_BG1_R13[6]] = (const uint8_t(*)[lut_numCnInCnGroups_BG1_R13[6]]) p_lut->posBnInCnProcBuf[6];
-    const uint8_t (*lut_posBnInCnProcBuf_CNG10)[lut_numCnInCnGroups_BG1_R13[7]] = (const uint8_t(*)[lut_numCnInCnGroups_BG1_R13[7]]) p_lut->posBnInCnProcBuf[7];
-    const uint8_t (*lut_posBnInCnProcBuf_CNG19)[lut_numCnInCnGroups_BG1_R13[8]] = (const uint8_t(*)[lut_numCnInCnGroups_BG1_R13[8]]) p_lut->posBnInCnProcBuf[8];
-
-}
 /**
    \brief Copies the values in the CN processing results buffer to their corresponding place in the BN processing buffer for BG1.
    \param p_lut Pointer to decoder LUTs

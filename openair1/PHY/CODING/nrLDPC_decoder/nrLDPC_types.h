@@ -51,43 +51,17 @@ typedef struct nrLDPC_lut {
     const uint16_t* llr2llrProcBufAddr; /**< LUT for transferring input LLRs to LLR processing buffer */
     const uint8_t*  llr2llrProcBufBnPos; /**< LUT BN position in BG */
     const uint8_t** posBnInCnProcBuf[NR_LDPC_NUM_CN_GROUPS_BG1]; /**< LUT for llr2cnProcBuf */
-    const uint16_t* circShift_CNG3_SG1;
-    const uint16_t* circShift_CNG4_SG1;
-    const uint16_t* circShift_CNG4_SG2;
-    const uint16_t* circShift_CNG4_SG3;
-    const uint16_t* circShift_CNG5_SG1;
-    const uint16_t* circShift_CNG5_SG2;
-    const uint16_t* circShift_CNG5_SG3;
-    const uint16_t* circShift_CNG5_SG4;
-    const uint16_t* circShift_CNG5_SG5;
-    const uint16_t* circShift_CNG5_SG9;
-    const uint16_t* circShift_CNG6_SG1;
-    const uint16_t* circShift_CNG6_SG2;
-    const uint16_t* circShift_CNG6_SG3;
-    const uint16_t* circShift_CNG6_SG4;
-    const uint16_t* circShift_CNG6_SG5;
-    const uint16_t* circShift_CNG7_SG1;
-    const uint16_t* circShift_CNG7_SG2;
-    const uint16_t* circShift_CNG7_SG3;
-    const uint16_t* circShift_CNG7_SG4;
-    const uint16_t* circShift_CNG8_SG1;
-    const uint16_t* circShift_CNG8_SG2;
-    const uint16_t* circShift_CNG9_SG1;
-    const uint16_t* circShift_CNG9_SG2;
-    const uint16_t* circShift_CNG10_SG1;
-    const uint16_t* circShift_CNG19_SG2;
-    const uint16_t* circShift_CNG19_SG3;
-    const uint16_t* circShift_CNG19_SG4;
 
-    const uint16_t** addrOffset_CNG7_SG1;
-    const uint16_t** addrOffset_CNG7_SG2;
-    const uint16_t** addrOffset_CNG7_SG3;
-    const uint16_t** addrOffset_CNG7_SG4;
-    const uint16_t* bnIdx_CNG7_SG1;
-    const uint16_t* bnIdx_CNG7_SG2;
-    const uint16_t* bnIdx_CNG7_SG3;
-    const uint16_t* bnIdx_CNG7_SG4;
-    uint8_t numBnDegCNG7[4];
+    // Following structs are used for layer schedule processing
+    const uint16_t* numSG[NR_LDPC_NUM_CN_GROUPS_BG1];
+    const uint16_t* listSG[NR_LDPC_NUM_CN_GROUPS_BG1];
+    const uint16_t* numBnInSG[NR_LDPC_NUM_CN_GROUPS_BG1];
+    const uint16_t* maxBnInSG[NR_LDPC_NUM_CN_GROUPS_BG1];
+    const uint16_t** bnPosSG[NR_LDPC_NUM_CN_GROUPS_BG1];
+    const uint16_t** idxBnInSG_cnProcBuf[NR_LDPC_NUM_CN_GROUPS_BG1];
+    const uint16_t** startAddrSG_cnProcBuf[NR_LDPC_NUM_CN_GROUPS_BG1];
+    const uint16_t* listStartAddrSG[NR_LDPC_NUM_CN_GROUPS_BG1];
+    const uint16_t* startAddrLlrSG[NR_LDPC_NUM_CN_GROUPS_BG1];
 } t_nrLDPC_lut;
 
 /**

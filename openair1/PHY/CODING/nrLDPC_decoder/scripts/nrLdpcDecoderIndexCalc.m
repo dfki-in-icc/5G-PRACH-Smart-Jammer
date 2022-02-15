@@ -50,7 +50,7 @@ end
 
 % allZ = sort(liftingSizes(liftingSizes>0));
 allZ = 2;
-group = 4;
+group = 6;
 for iZ = 1:length(allZ)
     Z = allZ(iZ);
 
@@ -167,7 +167,8 @@ end
 yUnique = yUnique(:).';
 % print_bnSubGroupAddr(addrOffset,BG,R,group,bnSubGroupNum);
 bnSubGroupIdx_cell = print_bnSubGroupIdx(BG,R,group,bnSubGroupNum,yUnique);
-[idxBnProcBuf,startAddrBnProcBuf,startAddrLlrSG] = print_addrBnProcBuf(y-1,bnSubGroupIdx_cell,bnSubGroupNum,NR_LDPC_ZMAX);
+[idxBnProcBuf,startAddrBnProcBuf,startAddrLlrSG,startAddrBnProcBufSG] = print_addrBnProcBuf(y-1,bnSubGroupIdx_cell,bnSubGroupNum,NR_LDPC_ZMAX);
+print_bnProcBufLUTs(idxBnProcBuf,startAddrBnProcBuf,startAddrLlrSG,startAddrBnProcBufSG,numCNinGroup,group,BG,R);
 % print_bnSubGroupCshift(BG,R,Z,group,bnSubGroupNum,cshift);
 % print_cshift(cshift,BG,Z,group,numCNinGroup);
 % print_startAddr(startAddr,BG,R,group,numCNinGroup);
@@ -221,7 +222,83 @@ end
 
 end
 
-function [idxBnProcBuf,startAddrBnProcBuf,startAddrLlrSG] = print_addrBnProcBuf(y,bnSubGroupIdx_cell,bnSubGroupNum,NR_LDPC_ZMAX)
+
+
+function print_bnProcBufLUTs(idxBnProcBuf,startAddrBnProcBuf,startAddrLlrSG,startAddrBnProcBufSG,numCNinGroup,group,BG,R)
+
+prefix = 'static const uint16_t';
+%%%%%%%%
+idxBnProcBuf = reshape(idxBnProcBuf,[numCNinGroup,group]);
+arrayName = strcat('idxBnProcBuf', '_BG', num2str(BG), '_CNG',num2str(group),...
+            '_R',num2str(R),'[',num2str(group),'][',num2str(numCNinGroup),'] =');
+    fprintf('%s %s ',prefix,arrayName);
+    fprintf('{{');
+
+for j=1:group-1
+    for i=idxBnProcBuf(1:end-1,j)
+        if ~isempty(i)
+            fprintf('%d, ',i)
+        end
+    end
+    fprintf('%d},{',idxBnProcBuf(end,j));   
+end
+for i=idxBnProcBuf(1:end-1,group)
+    if ~isempty(i)
+        fprintf('%d, ',i)
+    end
+end
+fprintf('%d}',idxBnProcBuf(end,group));   
+fprintf('};\n');
+
+%%%%%%%%
+startAddrBnProcBuf = reshape(startAddrBnProcBuf,[numCNinGroup,group]);
+arrayName = strcat('startAddrBnProcBuf', '_BG', num2str(BG), '_CNG',num2str(group),...
+            '_R',num2str(R),'[',num2str(group),'][',num2str(numCNinGroup),'] =');
+    fprintf('%s %s ',prefix,arrayName);
+    fprintf('{{');
+
+for j=1:group-1
+    for i=startAddrBnProcBuf(1:end-1,j)
+        if ~isempty(i)
+            fprintf('%d, ',i)
+        end
+    end
+    fprintf('%d},{',startAddrBnProcBuf(end,j));   
+end
+for i=startAddrBnProcBuf(1:end-1,group)
+    if ~isempty(i)
+        fprintf('%d, ',i)
+    end
+end
+fprintf('%d}',startAddrBnProcBuf(end,group));   
+fprintf('};\n');
+
+%%%%%%%%
+arrayName = strcat('startAddrBnProcBufSG', '_BG', num2str(BG), '_CNG',num2str(group),...
+            '_R',num2str(R),'[',num2str(length(startAddrBnProcBufSG)),'] =');
+    fprintf('%s %s ',prefix,arrayName);
+    fprintf('{');
+for j=startAddrBnProcBufSG(1:end-1)
+    if ~isempty(j)
+        fprintf('%d, ',j)
+    end
+end
+fprintf('%d};\n',startAddrBnProcBufSG(end));
+
+%%%%%%%%
+arrayName = strcat('startAddrLlrSG', '_BG', num2str(BG), '_CNG',num2str(group),...
+            '_R',num2str(R),'[',num2str(numCNinGroup),'] =');
+    fprintf('%s %s ',prefix,arrayName);
+    fprintf('{');
+for j=startAddrLlrSG(1:end-1)
+    if ~isempty(j)
+        fprintf('%d, ',j)
+    end
+end
+fprintf('%d};\n',startAddrLlrSG(end));
+end
+
+function [idxBnProcBuf,startAddrBnProcBuf,startAddrLlrSG,startAddrBnProcBufSG] = print_addrBnProcBuf(y,bnSubGroupIdx_cell,bnSubGroupNum,NR_LDPC_ZMAX)
 
 uniqueSG = unique(bnSubGroupNum);
 uniqueSGSum = sum((uniqueSG'==bnSubGroupNum),2);
@@ -234,6 +311,7 @@ for i=1:length(uniqueSG)
     else
         startAddri = startAddri+((uniqueSGSum(i-1)*uniqueSG(i-1)*NR_LDPC_ZMAX)+(uniqueSGSum(i-1)*NR_LDPC_ZMAX)); % +1 for input LLRs
     end
+    startAddrBnProcBufSG(i) = startAddri;
     if SG == 1      
         a = 0;
         for j=1:length(bnInSG)
@@ -251,7 +329,7 @@ for i=1:length(uniqueSG)
             end
         end
     end
-    startAddrLlrSG(i) = startAddri+((uniqueSGSum(i)*uniqueSG(i)*NR_LDPC_ZMAX)+(uniqueSGSum(i)*NR_LDPC_ZMAX));
+    startAddrLlrSG(i) = startAddri+((uniqueSGSum(i)*uniqueSG(i)*NR_LDPC_ZMAX));
 end
 
 end
@@ -298,14 +376,41 @@ bnSubGroupIdx_cell={};
 uniqueSG = unique(bnSubGroupNum);
 uniqueSGSum = sum((uniqueSG'==bnSubGroupNum),2);
 
+arrayName = strcat('numSG', '_BG', num2str(BG), '_CNG',num2str(group),...
+        '_R',num2str(R),' =');
+    fprintf('%s %s ',prefix,arrayName);
+    fprintf('%d;\n',length(uniqueSG));
+    
+arrayName = strcat('listSG', '_BG', num2str(BG), '_CNG',num2str(group),...
+        '_R',num2str(R),'[',num2str(length(uniqueSG)),'] =');
+    fprintf('%s %s ',prefix,arrayName);
+    fprintf(' {');
+for i=uniqueSG(1:end-1)
+    if ~isempty(i)
+        fprintf('%d, ',i);
+    end
+end
+fprintf('%d};\n',uniqueSG(end));
 
+arrayName = strcat('numBNinSG', '_BG', num2str(BG), '_CNG',num2str(group),...
+        '_R',num2str(R),'[',num2str(length(uniqueSG)),'] =');
+    fprintf('%s %s ',prefix,arrayName);
+    fprintf(' {');
+for i=uniqueSGSum(1:end-1)
+    if ~isempty(i)
+        fprintf('%d, ',i);
+    end
+end
+fprintf('%d};\n',uniqueSGSum(end));
+    
+arrayName = strcat('bnIdx', '_BG', num2str(BG), '_CNG',num2str(group),...
+        '_SG','_R',num2str(R),'[',num2str(length(uniqueSG)),']','[',num2str(max(uniqueSGSum)),'] =');
+    fprintf('%s %s ',prefix,arrayName);
+    fprintf(' {');
 for i=1:length(uniqueSG)
     SG = uniqueSG(i);
     bnSubGroupIdx_cell{i} = [];
     idxBnSubGroupNum = SG==bnSubGroupNum;
-    arrayName = strcat('bnIdx', '_BG', num2str(BG), '_CNG',num2str(group),...
-        '_SG',num2str(SG),'_R',num2str(R),'[',num2str(uniqueSGSum(i)),'] =');
-    fprintf('%s %s ',prefix,arrayName);
     fprintf('{');
     y = (yUnique(idxBnSubGroupNum))-1;
     if ~isempty(y(1:end-1))
@@ -314,8 +419,9 @@ for i=1:length(uniqueSG)
     end
     fprintf('%d',y(end));
     bnSubGroupIdx_cell{i} = [bnSubGroupIdx_cell{i}, y(end)];
-    fprintf('};\n');
+    fprintf('},');
 end
+fprintf('};\n');
     
 end
 
