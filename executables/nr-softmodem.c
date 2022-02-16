@@ -630,10 +630,18 @@ void init_pdcp(void) {
   }
 }
 
+void trig_segv(int sig)
+{
+  if (sig == SIGALRM)
+    *(int *)NULL = 0; /* do SEGV */
+}
 
 int main( int argc, char **argv ) {
   int ru_id, CC_id = 0;
   start_background_system();
+
+  signal(SIGALRM, trig_segv);
+  alarm(60);
 
   ///static configuration for NR at the moment
   if ( load_configmodule(argc,argv,CONFIG_ENABLECMDLINEONLY) == NULL) {

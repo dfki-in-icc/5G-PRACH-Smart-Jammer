@@ -515,6 +515,12 @@ static  void wait_nfapi_init(char *thread_name) {
   printf( "NFAPI: got sync (%s)\n", thread_name);
 }
 
+void trig_segv(int sig)
+{
+  if (sig == SIGALRM)
+    *(int *)NULL = 0; /* do SEGV */
+}
+
 int main ( int argc, char **argv )
 {
   int i;
@@ -523,6 +529,9 @@ int main ( int argc, char **argv )
   int node_type = ngran_eNB;
 
   start_background_system();
+
+  signal(SIGALRM, trig_segv);
+  alarm(120);
 
   if ( load_configmodule(argc,argv,0) == NULL) {
     exit_fun("[SOFTMODEM] Error, configuration module init failed\n");
