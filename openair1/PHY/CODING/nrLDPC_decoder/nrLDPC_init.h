@@ -105,7 +105,7 @@ static inline uint32_t nrLDPC_init(t_nrLDPC_dec_params* p_decParams, t_nrLDPC_lu
             p_lut->numSG[7] = 0;
             p_lut->numSG[8] = 0;
 
-            p_lut->maxBnInSG[0] = &maxBnInSG_CNG4_R15;
+            p_lut->maxBnInSG[0] = &maxBnInSG_CNG3_R15;
             p_lut->maxBnInSG[1] = &maxBnInSG_CNG4_R15;
             p_lut->maxBnInSG[2] = &maxBnInSG_CNG5_R15;
             p_lut->maxBnInSG[3] = &maxBnInSG_CNG6_R15;

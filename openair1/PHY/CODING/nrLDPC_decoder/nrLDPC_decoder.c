@@ -122,6 +122,15 @@ static inline uint32_t nrLDPC_decoder_core_layer(int8_t* p_llr, int8_t* p_out, u
       nrLDPC_debug_writeBuffer2File(nrLDPC_buffers_CN_PROC_RES, cnProcBufRes);
       nrLDPC_debug_writeBuffer2File(nrLDPC_buffers_LLR_PROC, llrProcBuf);
 #endif
+
+      if (BG == 1)
+      {
+        pcRes = nrLDPC_cnProcPc_BG1(p_lut, cnProcBuf, cnProcBufRes, Z);
+      }
+      else
+      {
+        pcRes = nrLDPC_cnProcPc_layer_BG2(p_lut, cnProcBuf, Z);
+      }
     }
 
     if (pcRes != 0)
