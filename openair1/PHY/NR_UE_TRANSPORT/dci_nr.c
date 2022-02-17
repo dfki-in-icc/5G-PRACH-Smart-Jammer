@@ -182,7 +182,7 @@ void nr_pdcch_demapping_deinterleaving(uint32_t *llr,
 
   int rb = 0;
   for (int c_id = 0; c_id < number_of_candidates; c_id++ ) {
-    for (int symbol_idx = start_symbol; symbol_idx < start_symbol+coreset_time_dur; symbol_idx++) {
+    for (int symbol_idx = 0; symbol_idx < coreset_time_dur; symbol_idx++) {
       for (int cce_count = CCE[c_id/coreset_time_dur]+c_id%coreset_time_dur; cce_count < CCE[c_id/coreset_time_dur]+c_id%coreset_time_dur+L[c_id]; cce_count += coreset_time_dur) {
         for (int reg_in_cce_idx = 0; reg_in_cce_idx < NR_NB_REG_PER_CCE; reg_in_cce_idx++) {
 
@@ -278,7 +278,7 @@ void nr_pdcch_channel_level(int32_t **dl_ch_estimates_ext,
                             NR_DL_FRAME_PARMS *frame_parms,
                             int32_t *avg,
                             int symbol,
-                            uint8_t nb_rb) {
+                            int nb_rb) {
   int16_t rb;
   uint8_t aarx;
 #if defined(__x86_64__) || defined(__i386__)
