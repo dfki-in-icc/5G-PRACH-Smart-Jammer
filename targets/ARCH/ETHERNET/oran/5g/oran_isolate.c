@@ -291,6 +291,9 @@ void oran_fh_if4p5_south_in(RU_t *ru,
 
   int ret = xran_fh_rx_read_slot(s->oran_priv, &ru_info, *frame, *slot);  
 
+  if (ret != 0){
+     printf("ORAN: ORAN_fh_if4p5_south_in ERROR in RX function \n");
+  }
 #if 0
   for (antenna = 0; antenna < ru->nb_rx; antenna++) {
     for (symbol = 0; symbol < 14; symbol++) {
@@ -394,6 +397,9 @@ for(int hhh=0; hhh<(14); hhh++ ){
 #endif
 
   int ret = xran_fh_tx_send_slot(s->oran_priv, &ru_info, frame, slot, timestamp);
+  if (ret != 0){
+     printf("ORAN: ORAN_fh_if4p5_south_out ERROR in TX function \n");
+  }
 
 #if 0
   if(frame==0 && slot<100){
