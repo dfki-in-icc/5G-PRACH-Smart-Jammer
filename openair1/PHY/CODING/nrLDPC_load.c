@@ -81,8 +81,8 @@ int load_nrLDPClib_offload(void) {
 
   t_nrLDPC_dec_params decParams;
   t_nrLDPC_dec_params* p_decParams    = &decParams;
-  int8_t   l[68*384];
-  int8_t llrProcBuf[22*384];
+  int8_t   l[32*68*384];
+  int8_t llrProcBuf[32*22*384];
 
   p_decParams->Z = 384;
   p_decParams->BG = 1;
@@ -104,8 +104,8 @@ int load_nrLDPClib_offload(void) {
 int free_nrLDPClib_offload(void) {
 t_nrLDPC_dec_params decParams;
   t_nrLDPC_dec_params* p_decParams    = &decParams;
-  int8_t   l[68*384];
-  int8_t llrProcBuf[22*384];
+  int8_t   l[32*68*384];
+  int8_t llrProcBuf[32*22*384];
 
   p_decParams->Z = 384;
   p_decParams->BG = 1;

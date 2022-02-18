@@ -469,9 +469,11 @@ add_dev(uint8_t dev_id, struct rte_bbdev_info *info)
 				info->dev_name);
 	}
 #endif
+	//printf("before first nb queue %d lcore count %d infor max queue %d\n",nb_queues,rte_lcore_count(),info->drv.max_num_queues);
 	nb_queues = RTE_MIN(rte_lcore_count(), info->drv.max_num_queues);
+	//printf("first nb queue %d lcore count %d infor max queue %d\n",nb_queues,rte_lcore_count(),info->drv.max_num_queues);
 	nb_queues = RTE_MIN(nb_queues, (unsigned int) MAX_QUEUES);
-
+	//printf("second nb queue %d lcore count %d infor max queue %d\n",nb_queues,rte_lcore_count(),info->drv.max_num_queues);
 	/* setup device */
 	ret = rte_bbdev_setup_queues(dev_id, nb_queues, info->socket_id);
 	if (ret < 0) {
@@ -630,7 +632,7 @@ ut_teardown(void)
 static int
 init_op_data_objs(struct rte_bbdev_op_data *bufs, 
 		int8_t* p_llr, uint32_t data_len,
-		struct rte_mbuf *m_head,
+		struct rte_mbuf *m_head1,
 		struct rte_mempool *mbuf_pool, const uint16_t n,
 		enum op_data_type op_type, uint16_t min_alignment)
 {
@@ -638,13 +640,21 @@ init_op_data_objs(struct rte_bbdev_op_data *bufs,
 	unsigned int i, j;
 	bool large_input = false;
 	uint8_t nb_segments = 1;
+
 	//uint64_t start_time=rte_rdtsc_precise();
 	//uint64_t start_time1; //=rte_rdtsc_precise();
 	//uint64_t total_time=0, total_time1=0;
 
-	for (i = 0; i < n; ++i) {
+	uint32_t r_offset=0;
+	printf("init op n = %d\n",n);
+	for (i = 0; i < n; i++) {
 		char *data;
-		
+		struct rte_mbuf *m_head = rte_pktmbuf_alloc(mbuf_pool);
+		TEST_ASSERT_NOT_NULL(m_head,
+				     "Not enough mbufs in %d data type mbuf pool (needed %u, available %u)",
+				     op_type, n * nb_segments,
+				     mbuf_pool->size);
+
 		if (data_len > RTE_BBDEV_LDPC_E_MAX_MBUF) {
 			/*
 			 * Special case when DPDK mbuf cannot handle
@@ -668,8 +678,8 @@ init_op_data_objs(struct rte_bbdev_op_data *bufs,
 				m_head->data_off = 0;
 				m_head->data_len = data_len;
 			} else {
-
-			        rte_pktmbuf_reset(m_head);
+			        if (i==0)
+				  rte_pktmbuf_reset(m_head);
 				data = rte_pktmbuf_append(m_head, data_len);
 
 				/*total_time = rte_rdtsc_precise() - start_time;
@@ -688,13 +698,21 @@ init_op_data_objs(struct rte_bbdev_op_data *bufs,
 						data, min_alignment),
 					"Data addr in mbuf (%p) is not aligned to device min alignment (%u)",
 					data, min_alignment);
-				rte_memcpy(data, p_llr, data_len);
-				/*total_time1 = rte_rdtsc_precise() - start_time;
+
+				printf("init op i %d r_offset %d pll +i addr %p\n",i,r_offset,p_llr+i*data_len);
+				rte_memcpy(data, p_llr+r_offset, data_len); //i*data_len
+				/*for (int m=0;m<8;m++){
+				  printf("init op input[%d]=%x data addr %p\n",m, *(p_llr+r_offset+m),data);
+				  }*/
+				
+				r_offset += data_len;
+				
+				/*total_time1 = rte_rdtsc_precise() - start_time1;
 				if (total_time1 > 10*3000)
 				LOG_E(PHY,"init op second: %u\n",(uint) (total_time1/3000));*/
 			}
 
-			bufs[i].length += data_len;
+			//bufs[i].length += data_len;
 
 			for (j = 1; j < nb_segments; ++j) {
 				struct rte_mbuf *m_tail =
@@ -726,7 +744,7 @@ init_op_data_objs(struct rte_bbdev_op_data *bufs,
 		} else {
 
 			/* allocate chained-mbuf for output buffer */
-			/*for (j = 1; j < nb_segments; ++j) {
+			for (j = 1; j < nb_segments; ++j) {
 				struct rte_mbuf *m_tail =
 						rte_pktmbuf_alloc(mbuf_pool);
 				TEST_ASSERT_NOT_NULL(m_tail,
@@ -739,7 +757,7 @@ init_op_data_objs(struct rte_bbdev_op_data *bufs,
 				TEST_ASSERT_SUCCESS(ret,
 						"Couldn't chain mbufs from %d data type mbuf pool",
 						op_type);
-						}*/
+						}
 		}
 	}
 
@@ -849,10 +867,11 @@ set_ldpc_dec_op(struct rte_bbdev_dec_op **ops, unsigned int n,
 		ops[i]->ldpc_dec.harq_combined_input.offset = ulsch_id*(32*1024*1024)+harq_pid*(2*1024*1024)+r*(1024*32);
 		ops[i]->ldpc_dec.harq_combined_output.offset = ulsch_id*(32*1024*1024)+harq_pid*(2*1024*1024)+r*(1024*32);
 		
-
-		if (hard_outputs != NULL)
+		//printf("set ldpc param %d \n",i);
+		if (hard_outputs != NULL){
+		  //printf("set ldpc hard output non null\n");
 			ops[i]->ldpc_dec.hard_output =
-					hard_outputs[start_idx + i];
+			  hard_outputs[start_idx + i];}
 		if (inputs != NULL)
 			ops[i]->ldpc_dec.input =
 					inputs[start_idx + i];
@@ -920,7 +939,7 @@ check_enc_status_and_ordering(struct rte_bbdev_enc_op *op,
 static int
 retrieve_ldpc_dec_op(struct rte_bbdev_dec_op **ops, const uint16_t n,
 		struct rte_bbdev_dec_op *ref_op, const int vector_mask,
-		int8_t* p_out)
+		     int8_t* p_out, uint16_t Kr)
 {
 	unsigned int i;
 	//int ret;
@@ -946,8 +965,8 @@ retrieve_ldpc_dec_op(struct rte_bbdev_dec_op **ops, const uint16_t n,
                 uint16_t data_len = rte_pktmbuf_data_len(m) - offset;
 
                 data = m->buf_addr;
-                memcpy(p_out, data+m->data_off, data_len);
-
+                memcpy(p_out+i*Kr, data+m->data_off, data_len);
+		printf("output offset %d pout[%d]=%x\n",i*Kr,i,*(p_out+i*Kr));
 	}
 
 	return TEST_SUCCESS;
@@ -1070,7 +1089,8 @@ pmd_lcore_ldpc_dec(void *arg)
 	uint16_t num_to_enq;
  	int8_t *p_out = tp->p_out;	
 	t_nrLDPCoffload_params *p_offloadParams = tp->p_offloadParams;
-        
+	uint16_t Kr = (22*p_offloadParams->Z)>>3;
+        //printf("pmd lcore queue id %d r %d num ops %d\n",queue_id,r,num_ops);
 	//struct rte_bbdev_op_data *hard_output;	
        
         //bool extDdr = check_bit(ldpc_cap_flags,
@@ -1105,7 +1125,7 @@ pmd_lcore_ldpc_dec(void *arg)
 				RTE_BBDEV_LDPC_ITERATION_STOP_ENABLE;
 	ref_op->ldpc_dec.iter_max = get_iter_max();
 	ref_op->ldpc_dec.iter_count = ref_op->ldpc_dec.iter_max;
-
+	printf("before set ldpc num ops %d\n",num_ops);
 	set_ldpc_dec_op(ops_enq, num_ops, 0, bufs->inputs,
 				bufs->hard_outputs, bufs->soft_outputs,
 			bufs->harq_inputs, bufs->harq_outputs, ref_op, r, harq_pid, ulsch_id, p_offloadParams);
@@ -1117,14 +1137,14 @@ pmd_lcore_ldpc_dec(void *arg)
 	for (i = 0; i < TEST_REPETITIONS; ++i) {
 		for (j = 0; j < num_ops; ++j) {
 			if (!loopback)
+			  {//printf("mbuf reset %p\n",ops_enq[j]->ldpc_dec.hard_output.data);
 				mbuf_reset(
-				ops_enq[j]->ldpc_dec.hard_output.data);
+					   ops_enq[j]->ldpc_dec.hard_output.data);}
 			if (hc_out || loopback)
 				mbuf_reset(
 				ops_enq[j]->ldpc_dec.harq_combined_output.data);
-		}
+		  }
 		//	start_time = rte_rdtsc_precise();
-
 		for (enq = 0, deq = 0; enq < num_ops;) {
 			num_to_enq = burst_sz;
 
@@ -1136,7 +1156,7 @@ pmd_lcore_ldpc_dec(void *arg)
 
 			deq += rte_bbdev_dequeue_ldpc_dec_ops(tp->dev_id,
 					queue_id, &ops_deq[deq], enq - deq);
-
+			
 			//printf("enq %d, deq %d\n",enq,deq);
 
                 }
@@ -1144,9 +1164,11 @@ pmd_lcore_ldpc_dec(void *arg)
 		/* dequeue the remaining */
 		//int trials=0;
 		while (deq < enq) {
+		  //printf("while first enq %d, deq %d\n",enq,deq);
 			deq += rte_bbdev_dequeue_ldpc_dec_ops(tp->dev_id,
 					queue_id, &ops_deq[deq], enq - deq);
-			/*usleep(10);
+			/*	usleep(10);
+			printf("while sencode enq %d, deq %d\n",enq,deq);
 			trials++;
 			if (trials>=100) {
 			  printf("aborting decoding after 100 dequeue tries\n");
@@ -1166,7 +1188,7 @@ pmd_lcore_ldpc_dec(void *arg)
 	}
 
 	ret = retrieve_ldpc_dec_op(ops_deq, num_ops, ref_op,
-				tp->op_params->vector_mask, p_out);
+				   tp->op_params->vector_mask, p_out,Kr); //queue_id*Kr
 		TEST_ASSERT_SUCCESS(ret, "Validation failed!");
 	}
 	else {
@@ -1236,14 +1258,15 @@ start_pmd_dec(struct active_device *ad,
 	int ret;
 	unsigned int lcore_id, used_cores = 0;
 	struct thread_params *tp;
-	//struct rte_bbdev_info info;
+	struct rte_bbdev_info info;
 	uint16_t num_lcores;
 	//uint64_t start_time, start_time1 ; //= rte_rdtsc_precise();
 	//uint64_t total_time=0, total_time1=0;
-	//rte_bbdev_info_get(ad->dev_id, &info);
-	//start_time = rte_rdtsc_precise();
-	/*printf("+ ------------------------------------------------------- +\n");
-	printf("== start pmd dec\ndev: %s, nb_queues: %u, burst size: %u, num ops: %u, num_lcores: %u,  itr mode: %s, GHz: %lg\n",
+	op_params->num_lcores =r;
+	rte_bbdev_info_get(ad->dev_id, &info);
+	//	start_time = rte_rdtsc_precise();
+	//printf("+ ------------------------------------------------------- +\n");
+	/*printf("== start pmd dec\ndev: %s, nb_queues: %u, burst size: %u, num ops: %u, num_lcores: %u,  itr mode: %s, GHz: %lg\n",
 			info.dev_name, ad->nb_queues, op_params->burst_sz,
 			op_params->num_to_process, op_params->num_lcores,
 			intr_enabled ? "Interrupt mode" : "PMD mode",
@@ -1272,9 +1295,11 @@ start_pmd_dec(struct active_device *ad,
 	t_params[0].iter_count = 0;
 	t_params[0].p_out = p_out;
 	t_params[0].p_offloadParams = p_offloadParams;
-	t_params[0].r = r;
+	t_params[0].r = 0;
 	t_params[0].harq_pid = harq_pid;
 	t_params[0].ulsch_id = ulsch_id;
+
+	//printf("used core %d num lcores %d seg %d\n",used_cores,num_lcores,r);
 
 	RTE_LCORE_FOREACH_SLAVE(lcore_id) {
 		if (used_cores >= num_lcores)
@@ -1286,7 +1311,7 @@ start_pmd_dec(struct active_device *ad,
 		t_params[used_cores].iter_count = 0;
 		t_params[used_cores].p_out = p_out; 
 		t_params[used_cores].p_offloadParams = p_offloadParams; 
-		t_params[used_cores].r = r;
+		t_params[used_cores].r = t_params[used_cores].queue_id; //(r-1);
 		t_params[used_cores].harq_pid = harq_pid;
 		t_params[used_cores].ulsch_id = ulsch_id;
 
@@ -1296,17 +1321,17 @@ start_pmd_dec(struct active_device *ad,
 	
 	rte_atomic16_set(&op_params->sync, SYNC_START);
 	
-	//total_time = rte_rdtsc_precise() - start_time;
+	total_time = rte_rdtsc_precise() - start_time;
 
-	//if (total_time > 100*3000)
-	//LOG_E(PHY," start pmd 1st: %u\n",(uint) (total_time/3000));
+	if (total_time > 50*3000)
+	  LOG_E(PHY," start pmd 1st: %u\n",(uint) (total_time/3000));
 
 	ret = pmd_lcore_ldpc_dec(&t_params[0]);
 	//start_time1 = rte_rdtsc_precise();
 
 	/* Master core is always used */
-	//for (used_cores = 1; used_cores < num_lcores; used_cores++)
-	//	ret |= rte_eal_wait_lcore(t_params[used_cores].lcore_id);
+	for (used_cores = 1; used_cores < num_lcores; used_cores++)
+		ret |= rte_eal_wait_lcore(t_params[used_cores].lcore_id);
 
 	/* Return if test failed */
 	if (ret) {
@@ -1419,7 +1444,7 @@ struct test_op_params op_params_e;
 struct test_op_params *op_params = &op_params_e; 
 
 struct rte_mbuf *m_head[DATA_NUM_TYPES];
-
+//struct rte_mbuf *m_head[32][DATA_NUM_TYPES];
 struct thread_params *t_params;
 
 
@@ -1437,13 +1462,13 @@ int32_t nrLDPC_decod_offload(t_nrLDPC_dec_params* p_decParams, uint8_t harq_pid,
 	/*uint64_t start_time_init;
 	  uint64_t total_time_init=0;*/
 
-	/*
+	
 	int argc_re=2;
 	char *argv_re[2];
 	argv_re[0] = "/home/eurecom/hongzhi/dpdk-20.05orig/build/app/testbbdev";
 	argv_re[1] = "--";
-	*/
 	
+	/*
 	int argc_re=7;
         char *argv_re[7];
         argv_re[0] = "/home/eurecom/hongzhi/dpdk-20.05orig/build/app/testbbdev";
@@ -1453,10 +1478,11 @@ int32_t nrLDPC_decod_offload(t_nrLDPC_dec_params* p_decParams, uint8_t harq_pid,
         argv_re[4] = "81:00.0";
         argv_re[5] = "--file-prefix=b6";
         argv_re[6] = "--";
-	
-	test_params.num_ops=1; 
+	*/
+	printf("ldpc dec nb seg %d\n",C);
+	test_params.num_ops=C; //C; 
 	test_params.burst_sz=1;
-	test_params.num_lcores=1;		
+	test_params.num_lcores=1; //C;		
 	test_params.num_tests = 1;
 	struct active_device *ad;
         ad = &active_devs[0];
@@ -1511,7 +1537,7 @@ int32_t nrLDPC_decod_offload(t_nrLDPC_dec_params* p_decParams, uint8_t harq_pid,
 				      ad->ops_mempool,
 				      1,
 				      get_num_ops(),
-				      get_num_lcores());
+				      get_num_lcores()); ///C or 1
 	  if (f_ret != TEST_SUCCESS) {
 	    printf("Couldn't init test op params");
 	  }
@@ -1529,12 +1555,13 @@ int32_t nrLDPC_decod_offload(t_nrLDPC_dec_params* p_decParams, uint8_t harq_pid,
 	    }
 	    cap++;
 	    }*/
-	  ad->nb_queues =  1;
+	  
+	  ad->nb_queues =  1; //C
 	  enum op_data_type type;
 
 	  for (i = 0; i < ad->nb_queues; ++i) {
 
-	    const uint16_t n = op_params->num_to_process;
+	    const uint16_t n = 32; //op_params->num_to_process;
 
 	    struct rte_mempool *in_mp = ad->in_mbuf_pool;
 	    struct rte_mempool *hard_out_mp = ad->hard_out_mbuf_pool;
@@ -1566,27 +1593,29 @@ int32_t nrLDPC_decod_offload(t_nrLDPC_dec_params* p_decParams, uint8_t harq_pid,
 					     socket_id);
 	      TEST_ASSERT_SUCCESS(ret,
 				"Couldn't allocate memory for rte_bbdev_op_data structs");
-
-	      m_head[type] = rte_pktmbuf_alloc(mbuf_pools[type]);	  
-	
+	      
+	      //m_head[queue_id][type] = rte_pktmbuf_alloc(mbuf_pools[type]);	  
+	      m_head[type] = rte_pktmbuf_alloc(mbuf_pools[type]);
+	      //TEST_ASSERT_NOT_NULL(m_head[queue_id][type],
 	      TEST_ASSERT_NOT_NULL(m_head[type],
-			     "Not enough mbufs in %d data type mbuf pool (needed %u, available %u)",
-			     op_type, 1,
+		   "Not enough mbufs in %d data type mbuf pool (needed %u, available %u)",
+			     op_type, n,
 			     mbuf_pools[type]->size);
 	
 	    }
-
+	  }
+	  printf("test_params.num_lcores %d\n",test_params.num_lcores);
 	    /* Allocate memory for thread parameters structure */
-	    t_params = rte_zmalloc(NULL,  sizeof(struct thread_params),
+	    t_params = rte_zmalloc(NULL,  test_params.num_lcores*sizeof(struct thread_params),
 				   RTE_CACHE_LINE_SIZE);
 	    TEST_ASSERT_NOT_NULL(t_params, "Failed to alloc %zuB for t_params",
-				 RTE_ALIGN(sizeof(struct thread_params),
+				 RTE_ALIGN(sizeof(struct thread_params)*test_params.num_lcores,
 					   RTE_CACHE_LINE_SIZE));
-	  }
+	    
 
 	break;
 	case 1:
-	  //printf("offload param E %d BG %d F %d Z %d Qm %d rv %d\n", E,p_decParams->BG, F,p_decParams->Z, Qm,rv);
+	  printf("offload param E %d BG %d F %d Z %d Qm %d rv %d seg %d\n", E,p_decParams->BG, F,p_decParams->Z, Qm,rv,C);
 	  //uint64_t start_time_init;
 	  //uint64_t total_time_init=0;
 
@@ -1617,38 +1646,48 @@ int32_t nrLDPC_decod_offload(t_nrLDPC_dec_params* p_decParams, uint8_t harq_pid,
             harq_in_mp,
             harq_out_mp,
           };
+	  ad->nb_queues = 1; //C
+	  //printf("ad queue %d\n",ad->nb_queues);
+	  for (i = 0; i < ad->nb_queues; ++i) {
+	    uint8_t queue_id =ad->queue_ids[i];
+	    const uint16_t n = op_params->num_to_process;
+	    struct rte_bbdev_op_data **queue_ops[DATA_NUM_TYPES] = {
+	      &op_params->q_bufs[socket_id][queue_id].inputs,
+	      &op_params->q_bufs[socket_id][queue_id].soft_outputs,
+	      &op_params->q_bufs[socket_id][queue_id].hard_outputs,
+	      &op_params->q_bufs[socket_id][queue_id].harq_inputs,
+	      &op_params->q_bufs[socket_id][queue_id].harq_outputs,
+	    };
 
-          uint8_t queue_id =ad->queue_ids[0];
-          struct rte_bbdev_op_data **queue_ops[DATA_NUM_TYPES] = {
-            &op_params->q_bufs[socket_id][queue_id].inputs,
-            &op_params->q_bufs[socket_id][queue_id].soft_outputs,
-            &op_params->q_bufs[socket_id][queue_id].hard_outputs,
-            &op_params->q_bufs[socket_id][queue_id].harq_inputs,
-            &op_params->q_bufs[socket_id][queue_id].harq_outputs,
-          };
-	  //start_time1 = rte_rdtsc_precise();
-	  for (type = DATA_INPUT; type < 3; type+=2) {
-
-	    ret = init_op_data_objs(*queue_ops[type], p_llr, p_offloadParams->E,
-				    m_head[type], mbuf_pools[type], 1, type, info.drv.min_alignment);
-	    TEST_ASSERT_SUCCESS(ret,
+	    //printf("pll offset %d\n",i*p_offloadParams->E);
+	    	  
+	    for (type = DATA_INPUT; type < 3; type+=2) {
+	      //m_head[i]
+	      ret = init_op_data_objs(*queue_ops[type], p_llr, p_offloadParams->E,
+				      m_head[type], mbuf_pools[type], n, type, info.drv.min_alignment); //+i*p_offloadParams->E
+	      TEST_ASSERT_SUCCESS(ret,
 				"Couldn't init rte_bbdev_op_data structs");
 
+	    }
 	  }
 	  /*total_time_init = rte_rdtsc_precise() - start_time_init;
 
 	  if (total_time_init > 100*3000)
-            LOG_E(PHY," ldpc decoder mode 1 first: %u\n",(uint) (total_time_init/3000));
+	    LOG_E(PHY," ldpc decoder mode 1 first: %u\n",(uint) (total_time_init/3000));
 	  
 	    start_time1 = rte_rdtsc_precise();*/
 	    ret = start_pmd_dec(ad, op_params, t_params, p_offloadParams, C, harq_pid, ulsch_id, p_out);
+
 	  if (ret<0) {
 	    printf("Couldn't start pmd dec");
 	    return(-1);
 	  }
+
 	  /*total_time1 = rte_rdtsc_precise() - start_time1;
 	  if (total_time1 > 100*3000)
 	  LOG_E(PHY," ldpc decoder mode 1 second: %u\n",(uint) (total_time1/3000));*/
+	  return(1);
+
 	break;
 	case 2:
 
