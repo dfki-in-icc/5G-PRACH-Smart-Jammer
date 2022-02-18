@@ -61,6 +61,16 @@ void* define_oran_pointer();
 extern "C"
 {
 #endif
+void dump_oran_config( void *xranlib_ );
+#ifdef __cplusplus
+}
+#endif
+
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 int setup_oran( void *xranlib_ );
 #ifdef __cplusplus
 }

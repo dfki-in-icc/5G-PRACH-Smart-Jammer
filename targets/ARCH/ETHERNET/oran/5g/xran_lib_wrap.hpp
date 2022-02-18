@@ -96,16 +96,17 @@ public:
 
 
 protected:
-    char argv[25] = "unittest";
+    char argv[25] = {'u','n','i','t','t','e','s','t','\0'};
+    //char argv[25] = "unittest";
 
     std::string m_dpdk_dev_up, m_dpdk_dev_cp, m_dpdk_bbdev;
 
     void *m_xranhandle;
 
-    uint8_t m_du_mac[6] = { 0x00,0x11, 0x22, 0x33, 0x44, 0x55 }; // Sofia: this is hard coded here and then it is read from the conf file
-    uint8_t m_ru_mac[6] = { 0x00,0x11, 0x22, 0x33, 0x44, 0x66 }; // Sofia: this is hard coded here and then it is read from the conf file
+    uint8_t m_du_mac[6]; // = { 0x00,0x11, 0x22, 0x33, 0x44, 0x55 }; // Sofia: this is hard coded here and then it is read from the conf file
+    uint8_t m_ru_mac[6]; //= { 0x00,0x11, 0x22, 0x33, 0x44, 0x66 }; // Sofia: this is hard coded here and then it is read from the conf file
     bool m_bSub6;
-    uint32_t m_nSlots = 20;
+    uint32_t m_nSlots; // = 20;
 
     struct xran_fh_config   m_xranConf;
     struct xran_fh_init     m_xranInit;
@@ -232,17 +233,17 @@ public:
 
     int get_duplextype();
 
-    int get_num_cc();
+    uint32_t get_num_cc();
 
-    int get_num_eaxc();
+    uint32_t get_num_eaxc();
 
-    int get_num_eaxc_ul();
+    uint32_t get_num_eaxc_ul();
 
-    int get_num_dlrbs();
+    uint32_t get_num_dlrbs();
 
-    int get_num_ulrbs();
+    uint32_t get_num_ulrbs();
 
-    int get_num_antelmtrx();
+    uint32_t get_num_antelmtrx();
 
     bool is_cpenable();
 
