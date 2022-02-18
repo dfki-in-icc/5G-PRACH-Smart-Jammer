@@ -1102,8 +1102,9 @@ void pf_ul(module_id_t module_id,
            NR_list_t *UE_list,
            int max_num_ue,
            int n_rb_sched,
-           uint8_t *rballoc_mask) {
-
+           uint8_t *rballoc_mask,
+           bool update_weight)
+{
   const int CC_id = 0;
   gNB_MAC_INST *nrmac = RC.nrmac[module_id];
   NR_ServingCellConfigCommon_t *scc = nrmac->common_channels[CC_id].ServingCellConfigCommon;
@@ -1119,21 +1120,29 @@ void pf_ul(module_id_t module_id,
 
     if (UE_info->Msg4_ACKed[UE_id] != true) continue;
 
-    LOG_D(NR_MAC,"pf_ul: preparing UL scheduling for UE %d\n",UE_id);
     NR_UE_sched_ctrl_t *sched_ctrl = &UE_info->UE_sched_ctrl[UE_id];
+    NR_sched_pusch_t *sched_pusch = &sched_ctrl->sched_pusch;
+    if (sched_pusch->rbSize > 0) {
+      /* the UE has already been scheduled in this slot, skip it */
+      continue;
+    }
+
+    LOG_D(NR_MAC,"pf_ul: preparing UL scheduling for UE %d\n",UE_id);
     NR_BWP_t *genericParameters = sched_ctrl->active_ubwp ? &sched_ctrl->active_ubwp->bwp_Common->genericParameters : &scc->uplinkConfigCommon->initialUplinkBWP->genericParameters;
     int rbStart = 0; // wrt BWP start
     NR_CellGroupConfig_t *cg = UE_info->CellGroup[UE_id];
     NR_BWP_UplinkDedicated_t *ubwpd= cg ? cg->spCellConfig->spCellConfigDedicated->uplinkConfig->initialUplinkBWP : NULL;
 
     const uint16_t bwpSize = NRRIV2BW(genericParameters->locationAndBandwidth, MAX_BWP_SIZE);
-    NR_sched_pusch_t *sched_pusch = &sched_ctrl->sched_pusch;
     NR_pusch_semi_static_t *ps = &sched_ctrl->pusch_semi_static;
 
     /* Calculate throughput */
     const float a = 0.0005f; // corresponds to 200ms window
     const uint32_t b = UE_info->mac_stats[UE_id].ulsch_current_bytes;
-    ul_thr_ue[UE_id] = (1 - a) * ul_thr_ue[UE_id] + a * b;
+    /* this parameter serves to update the weights only once per UE in the
+     * first call per slot to not skew them unnecessarily */
+    if (update_weight)
+      ul_thr_ue[UE_id] = (1 - a) * ul_thr_ue[UE_id] + a * b;
 
     /* Check if retransmission is necessary */
     sched_pusch->ul_harq_pid = sched_ctrl->retrans_ul_harq.head;
@@ -1252,7 +1261,7 @@ void pf_ul(module_id_t module_id,
     sched_pusch->mcs = 20;
     const uint32_t tbs = ul_pf_tbs[ps->mcs_table][sched_pusch->mcs];
     coeff_ue[UE_id] = (float) tbs / ul_thr_ue[UE_id];
-    LOG_D(NR_MAC,"b %d, ul_thr_ue[%d] %f, tbs %d, coeff_ue[%d] %f\n",
+    LOG_I(NR_MAC,"b %d, ul_thr_ue[%d] %f, tbs %d, coeff_ue[%d] %f\n",
           b, UE_id, ul_thr_ue[UE_id], tbs, UE_id, coeff_ue[UE_id]);
   }
 
@@ -1320,7 +1329,7 @@ void pf_ul(module_id_t module_id,
     uint16_t max_rbSize = 1;
     while (rbStart + max_rbSize < bwpSize && rballoc_mask[rbStart + max_rbSize])
       max_rbSize++;
-
+    
     if (rbStart + min_rb >= bwpSize) {
       LOG_W(NR_MAC, "cannot allocate UL data for UE %d/RNTI %04x: no resources (rbStart %d, min_rb %d, bwpSize %d\n",
 	    UE_id, UE_info->rnti[UE_id],rbStart,min_rb,bwpSize);
@@ -1441,6 +1450,7 @@ bool nr_fr1_ulsch_preprocessor(module_id_t module_id, frame_t frame, sub_frame_t
   SLIV2SL(startSymbolAndLength, &startSymbolIndex, &nrOfSymbols);
   const uint16_t symb = ((1 << nrOfSymbols) - 1) << startSymbolIndex;
 
+  bool update_weight = true;
   int st = 0, e = 0, len = 0;
   for (int i = 0; i < bwpSize; i++) 
     if (RC.nrmac[module_id]->ulprbbl[i] == 1) vrb_map_UL[i]=symb;
@@ -1451,29 +1461,31 @@ bool nr_fr1_ulsch_preprocessor(module_id_t module_id, frame_t frame, sub_frame_t
     st = i;
     while ((vrb_map_UL[bwpStart + i] & symb) == 0 && i < bwpSize)
       i++;
-    if (i - st > len) {
-      len = i - st;
-      e = i - 1;
-    }
+    len = i - st;
+    e = i - 1;
+
+    if (len < 5)
+      continue;
+    
+    LOG_I(NR_MAC, "UL %d.%d : start_prb %d, end PRB %d len %d\n",frame,slot,st,e, len);
+
+    /* Calculate mask: if any RB in vrb_map_UL is blocked (1), the current RB will be 0 */
+    uint8_t rballoc_mask[bwpSize];
+    for (int j = 0; j < bwpSize; j++)
+      rballoc_mask[j] = j >= st && j <= e;
+
+    /* proportional fair scheduling algorithm */
+    pf_ul(module_id,
+          frame,
+          slot,
+          &UE_info->list,
+          1, /* maximum one UE scheduled in each half! */
+          len,
+          rballoc_mask,
+          update_weight);
+    update_weight = false;
   }
-  st = e - len + 1;
 
-  LOG_D(NR_MAC,"UL %d.%d : start_prb %d, end PRB %d\n",frame,slot,st,e);
-  
-  uint8_t rballoc_mask[bwpSize];
-
-  /* Calculate mask: if any RB in vrb_map_UL is blocked (1), the current RB will be 0 */
-  for (int i = 0; i < bwpSize; i++)
-    rballoc_mask[i] = i >= st && i <= e;
-
-  /* proportional fair scheduling algorithm */
-  pf_ul(module_id,
-        frame,
-        slot,
-        &UE_info->list,
-        2,
-        len,
-        rballoc_mask);
   return true;
 }
 
@@ -1610,7 +1622,7 @@ void nr_schedule_ulsch(module_id_t module_id, frame_t frame, sub_frame_t slot)
     sched_ctrl->last_ul_frame = sched_pusch->frame;
     sched_ctrl->last_ul_slot = sched_pusch->slot;
 
-    LOG_D(NR_MAC,
+    LOG_I(NR_MAC,
           "ULSCH/PUSCH: %4d.%2d RNTI %04x UL sched %4d.%2d DCI L %d start %2d RBS %3d startSymbol %2d nb_symbol %2d dmrs_pos %x MCS %2d TBS %4d HARQ PID %2d round %d RV %d NDI %d est %6d sched %6d est BSR %6d TPC %d\n",
           frame,
           slot,
