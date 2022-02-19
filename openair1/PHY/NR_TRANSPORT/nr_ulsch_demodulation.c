@@ -1494,7 +1494,6 @@ void nr_ulsch_detection_mrc(NR_DL_FRAME_PARMS *frame_parms,
 }
 
 void nr_pusch_symbol_processing(void *arg) {
-
     puschSymbolProc_t *rdata=(puschSymbolProc_t*)arg;
 
     PHY_VARS_gNB *gNB=rdata->gNB;
