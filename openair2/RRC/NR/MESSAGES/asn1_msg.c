@@ -705,7 +705,8 @@ void fill_initial_SpCellConfig(int uid,
                                NR_SpCellConfig_t *SpCellConfig,
                                const NR_ServingCellConfigCommon_t *scc,
                                const NR_ServingCellConfig_t *servingcellconfigdedicated,
-                               const gNB_RrcConfigurationReq *configuration) {
+                               const gNB_RrcConfigurationReq *configuration)
+{
 
   // This assert will never happen in the current implementation because NUMBER_OF_UE_MAX = 4.
   // However, if in the future NUMBER_OF_UE_MAX is increased, it will be necessary to improve the allocation of SRS resources,
@@ -737,7 +738,7 @@ void fill_initial_SpCellConfig(int uid,
   config_pucch_resset1(pucch_Config, NULL);
   set_pucch_power_config(pucch_Config, configuration->do_CSIRS);
 
-  initialUplinkBWP->pusch_Config = config_pusch(NULL, scc);
+  initialUplinkBWP->pusch_Config = config_pusch(NULL, scc, NULL);
 
   long maxMIMO_Layers = uplinkConfig &&
                                 uplinkConfig->pusch_ServingCellConfig &&
@@ -1126,6 +1127,8 @@ void update_cellGroupConfig(NR_CellGroupConfig_t *cellGroupConfig,
     NR_BWP_DownlinkDedicated_t *bwp_Dedicated = SpCellConfig->spCellConfigDedicated->initialDownlinkBWP;
     set_dl_mcs_table(scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters.subcarrierSpacing,
                      configuration->force_256qam_off ? NULL : uecap, bwp_Dedicated, scc);
+    NR_BWP_UplinkDedicated_t *ul_bwp_Dedicated = SpCellConfig->spCellConfigDedicated->uplinkConfig->initialUplinkBWP;
+    set_ul_mcs_table(uecap, scc, ul_bwp_Dedicated->pusch_Config->choice.setup);
     struct NR_ServingCellConfig__downlinkBWP_ToAddModList *DL_BWP_list = SpCellConfig->spCellConfigDedicated->downlinkBWP_ToAddModList;
     struct NR_UplinkConfig__uplinkBWP_ToAddModList *UL_BWP_list = uplinkConfig->uplinkBWP_ToAddModList;
     if (DL_BWP_list) {
@@ -1141,6 +1144,7 @@ void update_cellGroupConfig(NR_CellGroupConfig_t *cellGroupConfig,
         int bwp_size = NRRIV2BW(ul_bwp->bwp_Common->genericParameters.locationAndBandwidth,MAX_BWP_SIZE);
         if (ul_bwp->bwp_Dedicated->pusch_Config) {
           NR_PUSCH_Config_t *pusch_Config = ul_bwp->bwp_Dedicated->pusch_Config->choice.setup;
+          set_ul_mcs_table(uecap, scc, pusch_Config);
           if (pusch_Config->maxRank == NULL) {
             pusch_Config->maxRank = calloc(1, sizeof(*pusch_Config->maxRank));
           }

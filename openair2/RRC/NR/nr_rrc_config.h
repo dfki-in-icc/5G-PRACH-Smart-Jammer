@@ -85,12 +85,15 @@ void set_dl_mcs_table(int scs,
                       NR_UE_NR_Capability_t *cap,
                       NR_BWP_DownlinkDedicated_t *bwp_Dedicated,
                       const NR_ServingCellConfigCommon_t *scc);
+void set_ul_mcs_table(NR_UE_NR_Capability_t *cap,
+                      const NR_ServingCellConfigCommon_t *scc,
+                      NR_PUSCH_Config_t *pusch_Config);
 void prepare_sim_uecap(NR_UE_NR_Capability_t *cap,
                        NR_ServingCellConfigCommon_t *scc,
                        int numerology,
                        int rbsize,
                        int mcs_table);
-struct NR_SetupRelease_PUSCH_Config *config_pusch(NR_PUSCH_Config_t *pusch_Config, const NR_ServingCellConfigCommon_t *scc);
+struct NR_SetupRelease_PUSCH_Config *config_pusch(NR_PUSCH_Config_t *pusch_Config, const NR_ServingCellConfigCommon_t *scc, NR_UE_NR_Capability_t *uecap);
 void config_downlinkBWP(NR_BWP_Downlink_t *bwp,
                         const NR_ServingCellConfigCommon_t *scc,
                         const NR_ServingCellConfig_t *servingcellconfigdedicated,
