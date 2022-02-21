@@ -289,7 +289,7 @@ int8_t nr_ue_scheduled_response(nr_scheduled_response_t *scheduled_response){
             dlsch0->g_pucch = dlsch_config_pdu->accumulated_delta_PUCCH;
             //get nrOfLayers from DCI info
             uint8_t Nl = 0;
-            for (i = 0; i < 4; i++) {
+            for (int i = 0; i < 4; i++) {
               if (dlsch_config_pdu->dmrs_ports[i] >= i) Nl += 1;
             }
             dlsch0_harq->Nl = Nl;
