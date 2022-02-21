@@ -671,7 +671,8 @@ int main(int argc, char **argv)
   gNB->respDecode = (notifiedFIFO_t*) malloc(sizeof(notifiedFIFO_t));
   gNB->respPuschSymb = (notifiedFIFO_t*) malloc(sizeof(notifiedFIFO_t));
   char tp_param[80];
-  sprintf(tp_param,"0");
+  if (threadCnt>1) sprintf(tp_param,"0");
+  else sprintf(tp_param,"n");
   int s_offset = 0,slen=0;
   for (int icpu=1; icpu<threadCnt; icpu++) {
     slen=sprintf(tp_param+1+s_offset,",%d",icpu);
