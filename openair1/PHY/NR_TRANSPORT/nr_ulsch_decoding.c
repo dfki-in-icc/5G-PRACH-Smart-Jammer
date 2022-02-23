@@ -627,6 +627,7 @@ uint32_t nr_ulsch_decoding(PHY_VARS_gNB *phy_vars_gNB,
 
   //if ((dtx_det==0)&&(pusch_pdu->pusch_data.rv_index==0)){
   //if (dtx_det==0){
+  if (pusch_pdu->pusch_data.rv_index==0){
   if (mcs >9){
   memcpy((&z_ol[0]),ulsch_llr+r_offset,E*sizeof(short));
   
@@ -727,11 +728,11 @@ uint32_t nr_ulsch_decoding(PHY_VARS_gNB *phy_vars_gNB,
 	printf("2nd UE llrprocbuf [%d] =  %x adr %p\n", k, llrProcBuf[k], llrProcBuf+22*384+k);
         }*/
   	 
-  /*}
+  }
   else{
     dtx_det = 0;
     no_iteration_ldpc = ulsch->max_ldpc_iterations+1;
-    }*/
+    }
 
 	bool decodeSuccess = (no_iteration_ldpc <= ulsch->max_ldpc_iterations);
         if (decodeSuccess) { 

@@ -1180,15 +1180,21 @@ pmd_lcore_ldpc_dec(void *arg)
 		tp->iter_count = RTE_MAX(ops_enq[i]->ldpc_dec.iter_count,
 				tp->iter_count);
 	}
-	if (ulsch_id ==0){
+	if ((ulsch_id ==0)&&(queue_id==0)){
 	  ret = retrieve_ldpc_dec_op(ops_deq, num_ops, ref_op,
 				   tp->op_params->vector_mask, p_out,Kr); //queue_id*Kr
-	  TEST_ASSERT_SUCCESS(ret, "Validation failed!");}
+	  TEST_ASSERT_SUCCESS(ret, "Validation failed!");
+	  }
+	else if ((ulsch_id ==1)&&(queue_id==1)){
+	     ret = retrieve_ldpc_dec_op(ops_deq, num_ops, ref_op,
+				   tp->op_params->vector_mask, p_out+Kr,Kr); //queue_id*Kr
+	  TEST_ASSERT_SUCCESS(ret, "Validation failed!");
+	  }
 	else {
 	  ret = retrieve_ldpc_dec_op(ops_deq, num_ops, ref_op,
 				   tp->op_params->vector_mask, p_out,Kr); //queue_id*Kr
 	  TEST_ASSERT_SUCCESS(ret, "Validation failed!");
-	}
+	  }
 	}
 	else {
 	  ret = TEST_FAILED;
@@ -1474,7 +1480,7 @@ int32_t nrLDPC_decod_offload(t_nrLDPC_dec_params* p_decParams, uint8_t harq_pid,
         char *argv_re[7];
         argv_re[0] = "/home/eurecom/hongzhi/dpdk-20.05orig/build/app/testbbdev";
         argv_re[1] = "-l";
-        argv_re[2] = "31";
+        argv_re[2] = "30-31";
         argv_re[3] = "-w";
         argv_re[4] = "81:00.0";
         argv_re[5] = "--file-prefix=b6";
@@ -1483,7 +1489,7 @@ int32_t nrLDPC_decod_offload(t_nrLDPC_dec_params* p_decParams, uint8_t harq_pid,
 	//printf("ldpc dec nb seg %d\n",C);
 	test_params.num_ops=1; //C; 
 	test_params.burst_sz=1;
-	test_params.num_lcores=1; //C;1		
+	test_params.num_lcores=2; //C;1		
 	test_params.num_tests = 1;
 	struct active_device *ad;
         ad = &active_devs[0];
@@ -1557,7 +1563,7 @@ int32_t nrLDPC_decod_offload(t_nrLDPC_dec_params* p_decParams, uint8_t harq_pid,
 	    cap++;
 	    }*/
 	  
-	  ad->nb_queues =  1; //C 2
+	  ad->nb_queues =  2; //C 2
 	  enum op_data_type type;
 
 	  for (i = 0; i < ad->nb_queues; ++i) {
@@ -1649,12 +1655,12 @@ int32_t nrLDPC_decod_offload(t_nrLDPC_dec_params* p_decParams, uint8_t harq_pid,
             harq_in_mp,
             harq_out_mp,
           };
-	  ad->nb_queues = 1; //C 2
+	  ad->nb_queues = 2; //C 2
 	  //printf("ad queue %d\n",ad->nb_queues);
 
 	  op_params->num_to_process = 1;
 	  for (i = 0; i < ad->nb_queues; ++i) {
-	  uint8_t queue_id = ad->queue_ids[i]; //ulsch_id
+	    uint8_t queue_id = ad->queue_ids[i]; //ulsch_id
 	    const uint16_t n = op_params->num_to_process;
 	    struct rte_bbdev_op_data **queue_ops[DATA_NUM_TYPES] = {
 	      &op_params->q_bufs[socket_id][queue_id].inputs,
@@ -1667,13 +1673,18 @@ int32_t nrLDPC_decod_offload(t_nrLDPC_dec_params* p_decParams, uint8_t harq_pid,
 	    //printf("pll offset %d\n",i*p_offloadParams->E);
 	    	  
 	    for (type = DATA_INPUT; type < 3; type+=2) {
-	      if (ulsch_id ==0){
+	      if ((queue_id ==0)&&(ulsch_id==0)){
 	      ret = init_op_data_objs(*queue_ops[type], p_llr, p_offloadParams->E,
 				       m_head[queue_id][type], mbuf_pools[type], n, type, info.drv.min_alignment); //+i*p_offloadParams->E
 	      }
+	      else if((queue_id ==1)&&(ulsch_id==1))
+		{
+		ret = init_op_data_objs(*queue_ops[type], p_llr+68*384, p_offloadParams->E,
+					m_head[queue_id][type], mbuf_pools[type], n, type, info.drv.min_alignment); //+queue_id*68*384
+		}
 	      else{
 		ret = init_op_data_objs(*queue_ops[type], p_llr, p_offloadParams->E,
-					m_head[queue_id][type], mbuf_pools[type], n, type, info.drv.min_alignment); //+queue_id*68*384
+					m_head[queue_id][type], mbuf_pools[type], n, type, info.drv.min_alignment);
 	      }
 
 	      TEST_ASSERT_SUCCESS(ret,
