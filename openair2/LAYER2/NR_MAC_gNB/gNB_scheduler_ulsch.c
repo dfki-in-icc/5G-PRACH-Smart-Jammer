@@ -1329,7 +1329,7 @@ void pf_ul(module_id_t module_id,
     uint16_t max_rbSize = 1;
     while (rbStart + max_rbSize < bwpSize && rballoc_mask[rbStart + max_rbSize])
       max_rbSize++;
-    max_rbSize = 50;
+    //max_rbSize = 50;
     
     if (rbStart + min_rb >= bwpSize) {
       LOG_W(NR_MAC, "cannot allocate UL data for UE %d/RNTI %04x: no resources (rbStart %d, min_rb %d, bwpSize %d\n",
@@ -1467,7 +1467,7 @@ bool nr_fr1_ulsch_preprocessor(module_id_t module_id, frame_t frame, sub_frame_t
 
     if (len < 5)
       continue;
-    len = 50;
+    //len = 50;
     
     LOG_D(NR_MAC, "UL %d.%d : start_prb %d, end PRB %d len %d\n",frame,slot,st,e, len);
 
