@@ -422,20 +422,20 @@ uint32_t nr_ulsch_decoding(PHY_VARS_gNB *phy_vars_gNB,
   int kc;
   int Tbslbrm;
   int E;
-  int8_t llrProcBuf[22*384];
+  int8_t llrProcBuf[16*22*384];
   int ret = 0;
   int i,j;
   int8_t enable_ldpc_offload = phy_vars_gNB->ldpc_offload_flag;
-  int16_t  z_ol [68*384];
-  int8_t   l_ol [68*384];
+  int16_t  z_ol [16*68*384];
+  int8_t   l_ol [16*68*384];
   __m128i *pv_ol128 = (__m128i*)&z_ol;
   __m128i *pl_ol128 = (__m128i*)&l_ol;
   int no_iteration_ldpc;
   int length_dec;
   uint8_t crc_type;
   int K_bits_F;
-  int16_t  z [68*384 + 16] __attribute__ ((aligned(16)));
-  int8_t   l [68*384 + 16] __attribute__ ((aligned(16)));
+  int16_t  z [16*68*384 + 16] __attribute__ ((aligned(16)));
+  int8_t   l [16*68*384 + 16] __attribute__ ((aligned(16)));
 
   __m128i *pv = (__m128i*)&z;
   __m128i *pl = (__m128i*)&l;
@@ -607,7 +607,7 @@ uint32_t nr_ulsch_decoding(PHY_VARS_gNB *phy_vars_gNB,
   offset = 0;
 
   if ((enable_ldpc_offload)&& (dtx_det==0)) {
-    
+    memset((int8_t*)&pl_ol128[0],0,4*68*384);
   if (harq_process->C == 1) {
     if (A > 3824)
       crc_type = CRC24_A;
@@ -632,7 +632,8 @@ uint32_t nr_ulsch_decoding(PHY_VARS_gNB *phy_vars_gNB,
   
   for (i=0, j=0; j < ((kc*harq_process->Z)>>4)+1;  i+=2, j++)
   {
-    pl_ol128[j] = _mm_packs_epi16(pv_ol128[i],pv_ol128[i+1]);  
+    //pl_ol128[j+ULSCH_id*68*384] = _mm_packs_epi16(pv_ol128[i],pv_ol128[i+1]);  
+    pl_ol128[j+ULSCH_id*68*384] = _mm_packs_epi16(pv_ol128[i],pv_ol128[i+1]);
   }
 	
   ret = nrLDPC_decoder_offload(p_decParams, harq_pid,
@@ -700,7 +701,8 @@ uint32_t nr_ulsch_decoding(PHY_VARS_gNB *phy_vars_gNB,
   else {*/
     
     for (int m=0; m < Kr>>3; m ++) {
-      harq_process->c[r][m]= (uint8_t) llrProcBuf[m];
+      //harq_process->c[r][m]= (uint8_t) llrProcBuf[ULSCH_id*22*384+m];
+      harq_process->c[r][m]= (uint8_t) llrProcBuf[ULSCH_id*22*384+m];
     }
     
     if (check_crc((uint8_t*)llrProcBuf,length_dec,harq_process->F,crc_type)) {
@@ -718,12 +720,13 @@ uint32_t nr_ulsch_decoding(PHY_VARS_gNB *phy_vars_gNB,
 
   r_offset += E;
 
-      	/*for (int k=0;k<8;k++)
+  /*for (int k=0;k<8;k++)
         {
         printf("output decoder [%d] =  0x%02x \n", k, harq_process->c[r][k]);
-        printf("llrprocbuf [%d] =  %x adr %p\n", k, llrProcBuf[k], llrProcBuf+k);
-        }
-  	*/ 
+        printf("1st UE llrprocbuf [%d] =  %x adr %p\n", k, llrProcBuf[k], llrProcBuf+k);
+	printf("2nd UE llrprocbuf [%d] =  %x adr %p\n", k, llrProcBuf[k], llrProcBuf+22*384+k);
+        }*/
+  	 
   /*}
   else{
     dtx_det = 0;

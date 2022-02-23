@@ -1261,7 +1261,7 @@ void pf_ul(module_id_t module_id,
     sched_pusch->mcs = 20;
     const uint32_t tbs = ul_pf_tbs[ps->mcs_table][sched_pusch->mcs];
     coeff_ue[UE_id] = (float) tbs / ul_thr_ue[UE_id];
-    LOG_I(NR_MAC,"b %d, ul_thr_ue[%d] %f, tbs %d, coeff_ue[%d] %f\n",
+    LOG_D(NR_MAC,"b %d, ul_thr_ue[%d] %f, tbs %d, coeff_ue[%d] %f\n",
           b, UE_id, ul_thr_ue[UE_id], tbs, UE_id, coeff_ue[UE_id]);
   }
 
@@ -1329,6 +1329,7 @@ void pf_ul(module_id_t module_id,
     uint16_t max_rbSize = 1;
     while (rbStart + max_rbSize < bwpSize && rballoc_mask[rbStart + max_rbSize])
       max_rbSize++;
+    max_rbSize = 50;
     
     if (rbStart + min_rb >= bwpSize) {
       LOG_W(NR_MAC, "cannot allocate UL data for UE %d/RNTI %04x: no resources (rbStart %d, min_rb %d, bwpSize %d\n",
@@ -1466,8 +1467,9 @@ bool nr_fr1_ulsch_preprocessor(module_id_t module_id, frame_t frame, sub_frame_t
 
     if (len < 5)
       continue;
+    len = 50;
     
-    LOG_I(NR_MAC, "UL %d.%d : start_prb %d, end PRB %d len %d\n",frame,slot,st,e, len);
+    LOG_D(NR_MAC, "UL %d.%d : start_prb %d, end PRB %d len %d\n",frame,slot,st,e, len);
 
     /* Calculate mask: if any RB in vrb_map_UL is blocked (1), the current RB will be 0 */
     uint8_t rballoc_mask[bwpSize];
@@ -1622,7 +1624,7 @@ void nr_schedule_ulsch(module_id_t module_id, frame_t frame, sub_frame_t slot)
     sched_ctrl->last_ul_frame = sched_pusch->frame;
     sched_ctrl->last_ul_slot = sched_pusch->slot;
 
-    LOG_I(NR_MAC,
+    LOG_D(NR_MAC,
           "ULSCH/PUSCH: %4d.%2d RNTI %04x UL sched %4d.%2d DCI L %d start %2d RBS %3d startSymbol %2d nb_symbol %2d dmrs_pos %x MCS %2d TBS %4d HARQ PID %2d round %d RV %d NDI %d est %6d sched %6d est BSR %6d TPC %d\n",
           frame,
           slot,
