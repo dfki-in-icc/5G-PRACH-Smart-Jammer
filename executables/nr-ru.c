@@ -58,6 +58,7 @@
 unsigned short config_frames[4] = {2,9,11,13};
 #endif
 
+extern openair0_config_t openair0_cfg[MAX_CARDS];
 /* these variables have to be defined before including ENB_APP/enb_paramdef.h and GNB_APP/gnb_paramdef.h */
 static int DEFBANDS[] = {7};
 static int DEFENBS[] = {0};
@@ -2024,7 +2025,7 @@ static void NRRCconfig_RU(void) {
         LOG_I(PHY,"Setting time source to internal\n");
         RC.ru[j]->openair0_cfg.time_source = internal;
       }
-
+      RC.ru[j]->openair0_cfg.tune_offset = openair0_cfg[0].tune_offset;
       if (strcmp(*(RUParamList.paramarray[j][RU_LOCAL_RF_IDX].strptr), "yes") == 0) {
         if ( !(config_isparamset(RUParamList.paramarray[j],RU_LOCAL_IF_NAME_IDX)) ) {
           RC.ru[j]->if_south                        = LOCAL_RF;
