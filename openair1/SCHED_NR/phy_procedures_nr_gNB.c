@@ -636,7 +636,7 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx) {
   LOG_D(PHY,"phy_procedures_gNB_uespec_RX frame %d, slot %d\n",frame_rx,slot_rx);
 
   fill_ul_rb_mask(gNB, frame_rx, slot_rx);
-
+  //LOG_D(PHY,"call phy_procedures_gNB_uespec_RX\n");
   int first_symb=0,num_symb=0;
   if (gNB->frame_parms.frame_type == TDD)
     for(int symbol_count=0; symbol_count<NR_NUMBER_OF_SYMBOLS_PER_SLOT; symbol_count++) {

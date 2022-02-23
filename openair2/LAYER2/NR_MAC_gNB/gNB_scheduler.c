@@ -272,7 +272,7 @@ bool is_xlsch_in_slot_flex(int *flexible_slots, int direction, sub_frame_t slot)
   //if (slot == 0  || slot == 10) return false;
   if (slot == 0  || slot == 10) return false;
   if (slot == 6 && direction == 0)return false; // 7
-  if (slot == 16 && direction == 0)return false; // 17 in origin
+  if (slot == 15 && direction == 0)return false; // 17 in origin
   //if (slot == 8 && direction == 0)return false;
   //if (slot == 13 && direction == 0)return false;
   //if (slot == 16 && direction == 0)return false;
