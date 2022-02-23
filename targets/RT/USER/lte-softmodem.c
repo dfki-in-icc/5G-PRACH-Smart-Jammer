@@ -522,6 +522,8 @@ static  void wait_nfapi_init(char *thread_name) {
 
 static
 const int mod_id = 0;
+static
+const int CC_id = 0;
 
 static
 int64_t time_now_us(void)
@@ -552,6 +554,70 @@ void read_mac_sm(mac_ind_msg_t* data)
   assert(data != NULL);
 
   data->tstamp = time_now_us();
+
+  const size_t num_ues = RC.mac[mod_id]->UE_info.num_UEs;
+
+  data->len_ue_stats = num_ues;
+  if(data->len_ue_stats > 0){
+    data->ue_stats = calloc(data->len_ue_stats, sizeof(mac_ue_stats_impl_t));
+    assert( data->ue_stats != NULL && "Memory exhausted" );
+  }
+
+  const UE_list_t* ue_list = &RC.mac[mod_id]->UE_info.list;
+  size_t i = 0;
+  for (int ue_id = ue_list->head; ue_id >= 0; ue_id = ue_list->next[ue_id]) {
+    const eNB_UE_STATS* uestats = &RC.mac[mod_id]->UE_info.eNB_UE_stats[CC_id][ue_id];
+    const UE_sched_ctrl_t *sched_ctrl = &RC.mac[mod_id]->UE_info.UE_sched_ctrl[ue_id];
+    const UE_TEMPLATE *template = &RC.mac[mod_id]->UE_info.UE_template[CC_id][ue_id];
+    mac_ue_stats_impl_t* rd = &data->ue_stats[i];
+
+    rd->dl_aggr_tbs = uestats->total_pdu_bytes;
+    rd->ul_aggr_tbs = uestats->total_ulsch_TBS;
+
+
+    rd->rnti = uestats->crnti;
+    rd->dl_aggr_prb = uestats->total_rbs_used;
+    rd->ul_aggr_prb = uestats->total_rbs_used_rx;
+    rd->dl_aggr_retx_prb = uestats->rbs_used_retx;
+    rd->ul_aggr_retx_prb = uestats->rbs_used_retx_rx;
+
+    rd->dl_aggr_bytes_sdus = uestats->total_sdu_bytes;
+    uint64_t ul_sdu_bytes = 0;
+    for (int i = 0; i < NB_RB_MAX; ++i)
+      ul_sdu_bytes += uestats->num_bytes_rx[i];
+    rd->ul_aggr_bytes_sdus = ul_sdu_bytes;
+
+    rd->dl_aggr_sdus = uestats->num_mac_sdu_tx;
+    rd->ul_aggr_sdus = uestats->num_mac_sdu_rx;
+
+    rd->pusch_snr = sched_ctrl->pusch_snr[CC_id];
+    rd->pucch_snr = sched_ctrl->pucch1_snr[CC_id];
+
+    rd->wb_cqi = sched_ctrl->dl_cqi[CC_id];
+    rd->dl_mcs1 = uestats->dlsch_mcs1;
+    rd->ul_mcs1 = uestats->ulsch_mcs1;
+    rd->dl_mcs2 = 0;
+    rd->ul_mcs2 = 0;
+    rd->phr = template->phr_info;
+
+    const uint8_t lcgid = 0; /* below is aggregated value across all LCGIDs */
+    const uint32_t bufferSize = template->estimated_ul_buffer - template->scheduled_ul_bytes;
+    rd->bsr = bufferSize;
+
+    const size_t numDLHarq = 4;
+    rd->dl_num_harq = numDLHarq;
+    for (uint8_t j = 0; j < numDLHarq; ++j)
+      rd->dl_harq[j] = uestats->dlsch_rounds[j];
+    rd->dl_harq[numDLHarq] = uestats->dlsch_errors;
+
+    const size_t numUlHarq = 4;
+    rd->ul_num_harq = numUlHarq;
+    for (uint8_t j = 0; j < numUlHarq; ++j)
+      rd->ul_harq[j] = uestats->ulsch_rounds[j];
+    rd->ul_harq[numUlHarq] = uestats->ulsch_errors;
+
+    ++i;
+  }
 }
 
 static
@@ -560,6 +626,35 @@ void read_rlc_sm(rlc_ind_msg_t* data)
   assert(data != NULL);
 
   data->tstamp = time_now_us();
+
+  data->len = 1; // TODO: get the number of active drb
+  if(data->len > 0){
+    data->rb = calloc(data->len, sizeof(rlc_radio_bearer_stats_t));
+    assert(data->rb != NULL && "Memory exhausted");
+  }
+
+  const int frame = RC.mac[mod_id]->frame;
+  const int subframe = RC.mac[mod_id]->subframe;
+
+  // use MAC structures to get RNTIs
+  const UE_info_t* UE_info = &RC.mac[mod_id]->UE_info;
+  const UE_list_t* ue_list = &RC.mac[mod_id]->UE_info.list;
+
+  for (int ue_id = ue_list->head; ue_id >= 0; ue_id = ue_list->next[ue_id]) {
+    const int lcid = 3;
+    const uint16_t rnti = UE_info->eNB_UE_stats[CC_id][ue_id].crnti;
+    rlc_radio_bearer_stats_t* sm_rb = &data->rb[0]; // TODO: loop for rb id
+
+    mac_rlc_status_resp_t rlc_stats =
+            mac_rlc_status_ind(mod_id, rnti, mod_id, frame, subframe,
+                               ENB_FLAG_YES, MBMS_FLAG_NO, lcid, 0, 0);
+
+    sm_rb->txbuf_occ_bytes = rlc_stats.bytes_in_buffer;
+    sm_rb->txbuf_occ_pkts = rlc_stats.pdus_in_buffer;
+
+    sm_rb->rnti = rnti;
+    sm_rb->rbid = lcid;
+  }
 }
 
 static
@@ -568,6 +663,29 @@ void read_pdcp_sm(pdcp_ind_msg_t* data)
   assert(data != NULL);
 
   data->tstamp = time_now_us();
+
+  data->len = 1; // TODO: get the number of active drb
+  if(data->len > 0){
+    data->rb = calloc(data->len, sizeof(rlc_radio_bearer_stats_t));
+    assert(data->rb != NULL && "Memory exhausted");
+  }
+
+  for (int pdcp_uid = 0; pdcp_uid < MAX_MOBILES_PER_ENB; ++pdcp_uid) {
+    if (pdcp_enb[0].rnti[pdcp_uid] == 0)
+      continue;
+
+    pdcp_radio_bearer_stats_t* rd = &data->rb[0]; // TODO: loop for rb id
+    size_t lcid = 3;
+
+    rd->txpdu_pkts = Pdcp_stats_tx[mod_id][pdcp_uid][lcid];
+    rd->rxpdu_pkts = Pdcp_stats_rx[mod_id][pdcp_uid][lcid];
+    rd->txpdu_bytes = Pdcp_stats_tx_bytes[mod_id][pdcp_uid][lcid];
+    rd->rxpdu_bytes = Pdcp_stats_rx_bytes[mod_id][pdcp_uid][lcid];
+    rd->txpdu_sn = Pdcp_stats_tx_sn[mod_id][pdcp_uid][lcid];
+    rd->rxpdu_sn = Pdcp_stats_rx_sn[mod_id][pdcp_uid][lcid];
+    rd->rbid = lcid;
+    rd->rnti = pdcp_enb[mod_id].rnti[pdcp_uid];
+  }
 }
 
 static
