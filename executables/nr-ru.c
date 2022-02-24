@@ -1048,11 +1048,12 @@ void fill_rf_config(RU_t *ru, char *rf_config_file) {
     cfg->tx_gain[i] = ru->att_tx;
     cfg->rx_gain[i] = ru->max_rxgain-ru->att_rx;
     cfg->configFilename = rf_config_file;
-    LOG_I(PHY, "Channel %d: setting tx_gain offset %f, rx_gain offset %f, tx_freq %lu Hz, rx_freq %lu Hz\n",
-          i, cfg->tx_gain[i],
-          cfg->rx_gain[i],
-          (unsigned long)cfg->tx_freq[i],
-          (unsigned long)cfg->rx_freq[i]);
+    LOG_I(PHY, "Channel %d: setting tx_gain offset %f, rx_gain offset %f, tx_freq %lu Hz, rx_freq %lu Hz, tune_offset %lu Hz\n",
+           i, cfg->tx_gain[i],
+           cfg->rx_gain[i],
+           (unsigned long)cfg->tx_freq[i],
+          (unsigned long)cfg->rx_freq[i],
+          (unsigned long)cfg->tune_offset);
   }
 }
 
