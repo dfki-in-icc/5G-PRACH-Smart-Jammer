@@ -30,9 +30,11 @@
 
 #ifndef __NR_LDPC_CNPROC__H__
 #define __NR_LDPC_CNPROC__H__
+//#define NR_LDPC_PROFILER_DETAIL
 #ifdef NR_LDPC_DEBUG_MODE
 #include "nrLDPC_tools/nrLDPC_debug.h"
 #endif
+#include "nrLDPC_bnProc.h"
 /**
    \brief Performs CN processing for BG2 on the CN processing buffer and stores the results in the CN processing results buffer.
    \param p_lut Pointer to decoder LUTs
@@ -367,14 +369,17 @@ static inline void nrLDPC_cnProc_BG2(t_nrLDPC_lut* p_lut, int8_t* cnProcBuf, int
 }
 
 static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
-                                           int8_t* llr,
-                                           int8_t* llrProcBuf,
-                                           int8_t* cnProcBuf,
-                                           int8_t* cnProcBufRes,
-                                           uint16_t Z,
-                                           bool isFirstIter)
+                                        int8_t* llr,
+                                        int8_t* llrProcBuf,
+                                        int8_t* llrRes,
+                                        int8_t* cnProcBuf,
+                                        int8_t* cnProcBufRes,
+                                        int8_t* bnProcBuf,
+                                        int8_t* bnProcBufRes,
+                                        uint16_t Z)
 {
   const uint8_t*  lut_numCnInCnGroups = p_lut->numCnInCnGroups;
+  const uint32_t* lut_startAddrCnGroups = p_lut->startAddrCnGroups;
 
   const uint16_t (*lut_circShift_CNG3)  [lut_numCnInCnGroups_BG2_R15[0]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[0]]) p_lut->circShift[0];
   const uint16_t (*lut_circShift_CNG4)  [lut_numCnInCnGroups_BG2_R15[1]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[1]]) p_lut->circShift[1];
@@ -383,105 +388,52 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
   const uint16_t (*lut_circShift_CNG8)  [lut_numCnInCnGroups_BG2_R15[4]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[4]]) p_lut->circShift[4];
   const uint16_t (*lut_circShift_CNG10) [lut_numCnInCnGroups_BG2_R15[5]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[5]]) p_lut->circShift[5];
 
-  const uint8_t (*lut_posBnInCnProcBuf_CNG3)  [lut_numCnInCnGroups_BG2_R15[0]] = (const uint8_t(*)[lut_numCnInCnGroups_BG2_R15[0]]) p_lut->posBnInCnProcBuf[0];
-  const uint8_t (*lut_posBnInCnProcBuf_CNG4)  [lut_numCnInCnGroups_BG2_R15[1]] = (const uint8_t(*)[lut_numCnInCnGroups_BG2_R15[1]]) p_lut->posBnInCnProcBuf[1];
-  const uint8_t (*lut_posBnInCnProcBuf_CNG5)  [lut_numCnInCnGroups_BG2_R15[2]] = (const uint8_t(*)[lut_numCnInCnGroups_BG2_R15[2]]) p_lut->posBnInCnProcBuf[2];
-  const uint8_t (*lut_posBnInCnProcBuf_CNG6)  [lut_numCnInCnGroups_BG2_R15[3]] = (const uint8_t(*)[lut_numCnInCnGroups_BG2_R15[3]]) p_lut->posBnInCnProcBuf[3];
-  const uint8_t (*lut_posBnInCnProcBuf_CNG8)  [lut_numCnInCnGroups_BG2_R15[4]] = (const uint8_t(*)[lut_numCnInCnGroups_BG2_R15[4]]) p_lut->posBnInCnProcBuf[4];
-  const uint8_t (*lut_posBnInCnProcBuf_CNG10) [lut_numCnInCnGroups_BG2_R15[5]] = (const uint8_t(*)[lut_numCnInCnGroups_BG2_R15[5]]) p_lut->posBnInCnProcBuf[5];
+    const uint32_t (*lut_startAddrBnProcBuf_CNG3)  [lut_numCnInCnGroups[0]] = (const uint32_t(*)[lut_numCnInCnGroups[0]]) p_lut->startAddrBnProcBuf[0];
+    const uint32_t (*lut_startAddrBnProcBuf_CNG4)  [lut_numCnInCnGroups[1]] = (const uint32_t(*)[lut_numCnInCnGroups[1]]) p_lut->startAddrBnProcBuf[1];
+    const uint32_t (*lut_startAddrBnProcBuf_CNG5)  [lut_numCnInCnGroups[2]] = (const uint32_t(*)[lut_numCnInCnGroups[2]]) p_lut->startAddrBnProcBuf[2];
+    const uint32_t (*lut_startAddrBnProcBuf_CNG6)  [lut_numCnInCnGroups[3]] = (const uint32_t(*)[lut_numCnInCnGroups[3]]) p_lut->startAddrBnProcBuf[3];
+    const uint32_t (*lut_startAddrBnProcBuf_CNG8)  [lut_numCnInCnGroups[4]] = (const uint32_t(*)[lut_numCnInCnGroups[4]]) p_lut->startAddrBnProcBuf[4];
+    const uint32_t (*lut_startAddrBnProcBuf_CNG10) [lut_numCnInCnGroups[5]] = (const uint32_t(*)[lut_numCnInCnGroups[5]]) p_lut->startAddrBnProcBuf[5];
 
-  const uint16_t (*lut_startAddrSG_cnProcBuf_CNG3) [lut_numCnInCnGroups[0]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[0]]) p_lut->startAddrSG_cnProcBuf[0];
-  const uint16_t (*lut_startAddrSG_cnProcBuf_CNG4) [lut_numCnInCnGroups[1]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[1]]) p_lut->startAddrSG_cnProcBuf[1];
-  const uint16_t (*lut_startAddrSG_cnProcBuf_CNG5) [lut_numCnInCnGroups[2]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[2]]) p_lut->startAddrSG_cnProcBuf[2];
-  const uint16_t (*lut_startAddrSG_cnProcBuf_CNG6) [lut_numCnInCnGroups[3]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[3]]) p_lut->startAddrSG_cnProcBuf[3];
-  const uint16_t (*lut_startAddrSG_cnProcBuf_CNG8) [lut_numCnInCnGroups[4]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[4]]) p_lut->startAddrSG_cnProcBuf[4];
-  const uint16_t (*lut_startAddrSG_cnProcBuf_CNG10) [lut_numCnInCnGroups[5]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[5]]) p_lut->startAddrSG_cnProcBuf[5];
-
-  const uint16_t (*lut_idxBnInSG_cnProcBuf_CNG3) [lut_numCnInCnGroups[0]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[0]]) p_lut->idxBnInSG_cnProcBuf[0];
-  const uint16_t (*lut_idxBnInSG_cnProcBuf_CNG4) [lut_numCnInCnGroups[1]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[1]]) p_lut->idxBnInSG_cnProcBuf[1];
-  const uint16_t (*lut_idxBnInSG_cnProcBuf_CNG5) [lut_numCnInCnGroups[2]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[2]]) p_lut->idxBnInSG_cnProcBuf[2];
-  const uint16_t (*lut_idxBnInSG_cnProcBuf_CNG6) [lut_numCnInCnGroups[3]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[3]]) p_lut->idxBnInSG_cnProcBuf[3];
-  const uint16_t (*lut_idxBnInSG_cnProcBuf_CNG8) [lut_numCnInCnGroups[4]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[4]]) p_lut->idxBnInSG_cnProcBuf[4];
-  const uint16_t (*lut_idxBnInSG_cnProcBuf_CNG10) [lut_numCnInCnGroups[5]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[5]]) p_lut->idxBnInSG_cnProcBuf[5];
-
-  const uint32_t* lut_startAddrCnGroups = p_lut->startAddrCnGroups;
-  const uint16_t** lut_numSGinCNG = p_lut->numSG;
-  const uint16_t** lut_listSGinCNG = p_lut->listSG;
-  const uint16_t** lut_numBnInSG = p_lut->numBnInSG;
-  const uint16_t** lut_maxBnInSG = p_lut->maxBnInSG;
-
-  const uint16_t (*lut_bnPosSG_CNG3) [*lut_maxBnInSG[0]] = (const uint16_t(*)[*lut_maxBnInSG[0]]) p_lut->bnPosSG[0];
-  const uint16_t (*lut_bnPosSG_CNG4) [*lut_maxBnInSG[1]] = (const uint16_t(*)[*lut_maxBnInSG[1]]) p_lut->bnPosSG[1];
-  const uint16_t (*lut_bnPosSG_CNG5) [*lut_maxBnInSG[2]] = (const uint16_t(*)[*lut_maxBnInSG[2]]) p_lut->bnPosSG[2];
-  const uint16_t (*lut_bnPosSG_CNG6) [*lut_maxBnInSG[3]] = (const uint16_t(*)[*lut_maxBnInSG[3]]) p_lut->bnPosSG[3];
-  const uint16_t (*lut_bnPosSG_CNG8) [*lut_maxBnInSG[4]] = (const uint16_t(*)[*lut_maxBnInSG[4]]) p_lut->bnPosSG[4];
-  const uint16_t (*lut_bnPosSG_CNG10) [*lut_maxBnInSG[5]] = (const uint16_t(*)[*lut_maxBnInSG[5]]) p_lut->bnPosSG[5];
-
-  const uint16_t** lut_listStartAddrSG = p_lut->listStartAddrSG;
-  const uint16_t** lut_startAddrLlrSG = p_lut->startAddrLlrSG;
+    const uint8_t (*lut_bnPosBnProcBuf_CNG3)  [lut_numCnInCnGroups[0]] = (const uint8_t(*)[lut_numCnInCnGroups[0]]) p_lut->bnPosBnProcBuf[0];
+    const uint8_t (*lut_bnPosBnProcBuf_CNG4)  [lut_numCnInCnGroups[1]] = (const uint8_t(*)[lut_numCnInCnGroups[1]]) p_lut->bnPosBnProcBuf[1];
+    const uint8_t (*lut_bnPosBnProcBuf_CNG5)  [lut_numCnInCnGroups[2]] = (const uint8_t(*)[lut_numCnInCnGroups[2]]) p_lut->bnPosBnProcBuf[2];
+    const uint8_t (*lut_bnPosBnProcBuf_CNG6)  [lut_numCnInCnGroups[3]] = (const uint8_t(*)[lut_numCnInCnGroups[3]]) p_lut->bnPosBnProcBuf[3];
+    const uint8_t (*lut_bnPosBnProcBuf_CNG8)  [lut_numCnInCnGroups[4]] = (const uint8_t(*)[lut_numCnInCnGroups[4]]) p_lut->bnPosBnProcBuf[4];
+    const uint8_t (*lut_bnPosBnProcBuf_CNG10) [lut_numCnInCnGroups[5]] = (const uint8_t(*)[lut_numCnInCnGroups[5]]) p_lut->bnPosBnProcBuf[5];
 
   int8_t* p_cnProcBuf;
   int8_t* p_cnProcBufRes;
 
   // Offset to each bit within a group in terms of 32 Byte
   uint32_t bitOffsetInGroup;
-  uint32_t cnOffsetInGroup;
 
   __m256i* p_cnProcBuf256;
   __m256i* p_cnProcBufRes256;
 
   // Number of CNs in Groups
-  __m256i ymm0, ymm1, ymmRes0, ymmRes1, min, sgn;
+  __m256i ymm0, min, sgn;
   __m256i* p_cnProcBufResBit;
-  __m128i* p_bnProcBuf;
-  __m256i* p_llrRes;
 
   const __m256i* p_ones   = (__m256i*) ones256_epi8;
   const __m256i* p_maxLLR = (__m256i*) maxLLR256_epi8;
+
   // =====================================================================
   // CN group with 3 BNs
 
   bitOffsetInGroup = lut_numCnInCnGroups_BG2_R15[0]*NR_LDPC_ZMAX;
 
-#ifdef NR_LDPC_PROFILER_DETAIL
-    start_meas(&p_profiler->llr2CnProcBuf);
-#endif
-  for (int j=0; j < 3; j++)
+  for (int j=0; j<3; j++)
   {
     p_cnProcBuf = &cnProcBuf[lut_startAddrCnGroups[0] + j*bitOffsetInGroup];
-
-    for (int i=0; i < lut_numCnInCnGroups[0]; i++)
+    for (int i=0; i<lut_numCnInCnGroups[0]; i++)
     {
-      int idxBn = lut_posBnInCnProcBuf_CNG3[j][i]*Z;
-      nrLDPC_circ_memcpy(p_cnProcBuf, &llrProcBuf[idxBn], Z, lut_circShift_CNG3[j][i]);
+      int idxBn = lut_startAddrBnProcBuf_CNG3[j][i] + lut_bnPosBnProcBuf_CNG3[j][i]*Z;
+      nrLDPC_circ_memcpy(p_cnProcBuf, &bnProcBufRes[idxBn], Z, lut_circShift_CNG3[j][i]);
+      p_cnProcBuf += Z;
     }
   }
-#ifdef NR_LDPC_PROFILER_DETAIL
-    stop_meas(&p_profiler->llr2CnProcBuf);
 
-    start_meas(&p_profiler->bnProc);
-#endif
-
-  // Subtract the edge message of previous iteration from the new LLR
-  if (!isFirstIter)
-  {
-    uint16_t idxCnProcG3[3] = {0,72,144};
-    int M = (lut_numCnInCnGroups[0]*Z + 31)>>5;
-    p_cnProcBuf256    = (__m256i*) &cnProcBuf   [lut_startAddrCnGroups[0]];
-    p_cnProcBufRes256 = (__m256i*) &cnProcBufRes[lut_startAddrCnGroups[0]];
-    for (int i=0; i < 3; i++)
-    {
-      __m256i *pj0 = &p_cnProcBuf256   [idxCnProcG3[i]];
-      __m256i *pj1 = &p_cnProcBufRes256[idxCnProcG3[i]];
-      for (int k=0; k < M; k++)
-        pj0[k] = _mm256_subs_epi8(pj0[k], pj1[k]);
-    }
-  }
-#ifdef NR_LDPC_PROFILER_DETAIL
-    stop_meas(&p_profiler->bnProc);
-
-    start_meas(&p_profiler->cnProc);
-#endif
   // LUT with offsets for bits that need to be processed
   // 1. bit proc requires LLRs of 2. and 3. bit, 2.bits of 1. and 3. etc.
   // Offsets are in units of bitOffsetInGroup
@@ -528,87 +480,23 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
         p_cnProcBufResBit[i]=_mm256_sign_epi8(min, sgn);
       }
     }
-#ifdef NR_LDPC_PROFILER_DETAIL
-    stop_meas(&p_profiler->cnProc);
 
-    start_meas(&p_profiler->cn2bnProcBuf);
-#endif
     // Copy CN processing results to bnProcBuf
-    int8_t bnProcBuf[NR_LDPC_SIZE_BN_PROC_BUF] __attribute__ ((aligned(32))) = {0};
     bitOffsetInGroup = lut_numCnInCnGroups_BG2_R15[0]*NR_LDPC_ZMAX;
 
     for (int j=0; j < 3; j++)
     {
       p_cnProcBufRes = &cnProcBufRes[lut_startAddrCnGroups[0] + j*bitOffsetInGroup];
-      for (int i=0; i < lut_numCnInCnGroups[0]; i++)
+      for (int i=0; i<lut_numCnInCnGroups[0]; i++)
       {
-        int idxBn = lut_startAddrSG_cnProcBuf_CNG3[j][i] +
-                      lut_idxBnInSG_cnProcBuf_CNG3[j][i]*Z;
-        nrLDPC_inv_circ_memcpy(&bnProcBuf[idxBn], p_cnProcBufRes, Z, lut_circShift_CNG3[j][i]);
+        int idxBn = lut_startAddrBnProcBuf_CNG3[j][i] + lut_bnPosBnProcBuf_CNG3[j][i]*Z;
+        nrLDPC_inv_circ_memcpy(&bnProcBuf[idxBn],p_cnProcBufRes,Z,lut_circShift_CNG3[j][i]);
         p_cnProcBufRes += Z;
       }
     }
 
-#ifdef NR_LDPC_PROFILER_DETAIL
-    stop_meas(&p_profiler->cn2bnProcBuf);
-
-    start_meas(&p_profiler-bnProc);
-#endif
-    // Copy input LLRs to bnProcBuf and do BN processing (one Sub Group(SG) at a time)
-    for (int j=0; j < lut_numSGinCNG[0][0]; j++)
-    {
-      int idxInLlrBNprocBuf = lut_startAddrLlrSG[0][j];
-
-      for (int i=0; i < lut_numBnInSG[0][j]; i++)
-      {
-        int idxInLlr = lut_bnPosSG_CNG3[j][i] * Z;
-        memcpy(&bnProcBuf[idxInLlrBNprocBuf], &llrProcBuf[idxInLlr], Z);
-        idxInLlrBNprocBuf += Z;
-      }
-
-      // Number of groups of 32 BNs for parallel processing
-      int M = (lut_numBnInSG[0][j]*Z + 31)>>5;
-      int8_t llrRes[NR_LDPC_MAX_NUM_LLR] __attribute__ ((aligned(32))) = {0};
-      p_bnProcBuf = (__m128i*) &bnProcBuf[lut_listStartAddrSG[0][j]];
-      p_llrRes    = (__m256i*) &llrRes[0]; // We reuse this buffer for next SG processing
-
-      // Set the offset to each CN within a group in terms of 16 Byte
-      cnOffsetInGroup = (lut_numBnInSG[0][j]*NR_LDPC_ZMAX)>>4;
-
-      for (int k=0,l=0; k < M; k++,l+=2)
-      {
-        // First 16 LLRs of first CN
-        ymmRes0 = _mm256_cvtepi8_epi16(p_bnProcBuf[l]);
-        ymmRes1 = _mm256_cvtepi8_epi16(p_bnProcBuf[l+1]);
-
-        // Loop over CNs
-        for (int m=1; m < (lut_listSGinCNG[0][j]+1); m++)
-        {
-          ymm0 = _mm256_cvtepi8_epi16(p_bnProcBuf[m*cnOffsetInGroup + l]);
-          ymmRes0 = _mm256_adds_epi16(ymmRes0, ymm0);
-
-          ymm1 = _mm256_cvtepi8_epi16(p_bnProcBuf[m*cnOffsetInGroup + l+1]);
-          ymmRes1 = _mm256_adds_epi16(ymmRes1, ymm1);
-        }
-        // Pack results back to epi8
-        ymm0 = _mm256_packs_epi16(ymmRes0, ymmRes1);
-        *p_llrRes = _mm256_permute4x64_epi64(ymm0, 0xD8);
-
-        // Next result
-        p_llrRes++;
-      }
-
-      int idxInLlrRes = 0;
-      for (int i=0; i < lut_numBnInSG[0][j]; i++)
-      {
-        int idxInLlr = lut_bnPosSG_CNG3[j][i] * Z;
-        memcpy(&llrProcBuf[idxInLlr], &llrRes[idxInLlrRes], Z);
-        idxInLlrRes += Z;
-      }
-    }
-#ifdef NR_LDPC_PROFILER_DETAIL
-    stop_meas(&p_profiler->bnProc);
-#endif
+    nrLDPC_bnProcPc(p_lut, bnProcBuf, bnProcBufRes, llrProcBuf, llrRes, Z);
+    nrLDPC_bnProc(p_lut, bnProcBuf, bnProcBufRes, llrRes, Z);
   }
 
   // =====================================================================
@@ -616,46 +504,16 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
 
   bitOffsetInGroup = lut_numCnInCnGroups_BG2_R15[1]*NR_LDPC_ZMAX;
 
-#ifdef NR_LDPC_PROFILER_DETAIL
-    start_meas(&p_profiler->llr2CnProcBuf);
-#endif
-  for (int j=0; j < 4; j++)
+  for (int j=0; j<4; j++)
   {
     p_cnProcBuf = &cnProcBuf[lut_startAddrCnGroups[1] + j*bitOffsetInGroup];
-
-    for (int i=0; i < lut_numCnInCnGroups[1]; i++)
+    for (int i=0; i<lut_numCnInCnGroups[1]; i++)
     {
-      int idxBn = lut_posBnInCnProcBuf_CNG4[j][i]*Z;
-      nrLDPC_circ_memcpy(p_cnProcBuf, &llrProcBuf[idxBn], Z, lut_circShift_CNG4[j][i]);
+      int idxBn = lut_startAddrBnProcBuf_CNG4[j][i] + lut_bnPosBnProcBuf_CNG4[j][i]*Z;
+      nrLDPC_circ_memcpy(p_cnProcBuf, &bnProcBufRes[idxBn], Z, lut_circShift_CNG4[j][i]);
       p_cnProcBuf += Z;
     }
   }
-#ifdef NR_LDPC_PROFILER_DETAIL
-    stop_meas(&p_profiler->llr2CnProcBuf);
-
-    start_meas(&p_profiler->bnProc);
-#endif
-
-  // Subtract the edge message of previous iteration from the new LLR
-  if (!isFirstIter)
-  {
-    uint16_t idxCnProcG4[4] = {0,240,480,720};
-    int M = (lut_numCnInCnGroups[0]*Z + 31)>>5;
-    p_cnProcBuf256    = (__m256i*) &cnProcBuf   [lut_startAddrCnGroups[1]];
-    p_cnProcBufRes256 = (__m256i*) &cnProcBufRes[lut_startAddrCnGroups[1]];
-    for (int i=0; i < 4; i++)
-    {
-      __m256i *pj0 = &p_cnProcBuf256   [idxCnProcG4[i]];
-      __m256i *pj1 = &p_cnProcBufRes256[idxCnProcG4[i]];
-      for (int k=0; k < M; k++)
-        pj0[k] = _mm256_subs_epi8(pj0[k], pj1[k]);
-    }
-  }
-#ifdef NR_LDPC_PROFILER_DETAIL
-    stop_meas(&p_profiler->bnProc);
-
-    start_meas(&p_profiler->cnProc);
-#endif
 
   // Process group with 4 BNs
   // Offset is 20*384/32 = 240
@@ -701,89 +559,23 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
         p_cnProcBufResBit++;
       }
     }
-#ifdef NR_LDPC_PROFILER_DETAIL
-    stop_meas(&p_profiler->cnProc);
-
-    start_meas(&p_profiler->cn2bnProcBuf);
-#endif
 
     // Copy CN processing results to bnProcBuf
-    int8_t bnProcBuf[NR_LDPC_SIZE_BN_PROC_BUF] __attribute__ ((aligned(32))) = {0};
     bitOffsetInGroup = lut_numCnInCnGroups_BG2_R15[1]*NR_LDPC_ZMAX;
 
     for (int j=0; j < 4; j++)
     {
       p_cnProcBufRes = &cnProcBufRes[lut_startAddrCnGroups[1] + j*bitOffsetInGroup];
-      for (int i=0; i < lut_numCnInCnGroups[1]; i++)
+      for (int i=0; i<lut_numCnInCnGroups[1]; i++)
       {
-        int idxBn = lut_startAddrSG_cnProcBuf_CNG4[j][i] +
-                    lut_idxBnInSG_cnProcBuf_CNG4[j][i]*Z;
-        nrLDPC_inv_circ_memcpy(&bnProcBuf[idxBn], p_cnProcBufRes, Z, lut_circShift_CNG4[j][i]);
-        //printf("idxBn %d: val %d\n",idxBn,bnProcBuf[0]);
+        int idxBn = lut_startAddrBnProcBuf_CNG4[j][i] + lut_bnPosBnProcBuf_CNG4[j][i]*Z;
+        nrLDPC_inv_circ_memcpy(&bnProcBuf[idxBn],p_cnProcBufRes,Z,lut_circShift_CNG4[j][i]);
         p_cnProcBufRes += Z;
       }
     }
-#ifdef NR_LDPC_PROFILER_DETAIL
-    stop_meas(&p_profiler->cn2bnProcBuf);
 
-    start_meas(&p_profiler-bnProc);
-#endif
-
-    // Copy input LLRs to bnProcBuf and do BN processing (one Sub Group(SG) at a time)
-    for (int j=0; j < lut_numSGinCNG[1][0]; j++)
-    {
-      int idxInLlrBNprocBuf = lut_startAddrLlrSG[1][j];
-
-      for (int i=0; i < lut_numBnInSG[1][j]; i++)
-      {
-        int idxInLlr = lut_bnPosSG_CNG4[j][i] * Z;
-        memcpy(&bnProcBuf[idxInLlrBNprocBuf], &llrProcBuf[idxInLlr], Z);
-        idxInLlrBNprocBuf += Z;
-      }
-
-      // Number of groups of 32 BNs for parallel processing
-      int M = (lut_numBnInSG[1][j]*Z + 31)>>5;
-      int8_t llrRes[NR_LDPC_MAX_NUM_LLR] __attribute__ ((aligned(32))) = {0};
-      p_bnProcBuf = (__m128i*) &bnProcBuf[lut_listStartAddrSG[1][j]];
-      p_llrRes    = (__m256i*) &llrRes[0]; // We reuse this buffer for next SG processing
-
-      // Set the offset to each CN within a group in terms of 16 Byte
-      cnOffsetInGroup = (lut_numBnInSG[1][j]*NR_LDPC_ZMAX)>>4;
-
-      for (int k=0,l=0; k < M; k++,l+=2)
-      {
-        // First 16 LLRs of first CN
-        ymmRes0 = _mm256_cvtepi8_epi16(p_bnProcBuf[l]);
-        ymmRes1 = _mm256_cvtepi8_epi16(p_bnProcBuf[l+1]);
-
-        // Loop over CNs
-        for (int m=1; m < (lut_listSGinCNG[1][j]+1); m++)
-        {
-          ymm0 = _mm256_cvtepi8_epi16(p_bnProcBuf[m*cnOffsetInGroup + l]);
-          ymmRes0 = _mm256_adds_epi16(ymmRes0, ymm0);
-
-          ymm1 = _mm256_cvtepi8_epi16(p_bnProcBuf[m*cnOffsetInGroup + l+1]);
-          ymmRes1 = _mm256_adds_epi16(ymmRes1, ymm1);
-        }
-        // Pack results back to epi8
-        ymm0 = _mm256_packs_epi16(ymmRes0, ymmRes1);
-        *p_llrRes = _mm256_permute4x64_epi64(ymm0, 0xD8);
-
-        // Next result
-        p_llrRes++;
-      }
-
-      int idxInLlrRes = 0;
-      for (int i=0; i < lut_numBnInSG[1][j]; i++)
-      {
-        int idxInLlr = lut_bnPosSG_CNG4[j][i] * Z;
-        memcpy(&llrProcBuf[idxInLlr], &llrRes[idxInLlrRes], Z);
-        idxInLlrRes += Z;
-      }
-    }
-#ifdef NR_LDPC_PROFILER_DETAIL
-    stop_meas(&p_profiler->bnProc);
-#endif
+    nrLDPC_bnProcPc(p_lut, bnProcBuf, bnProcBufRes, llrProcBuf, llrRes, Z);
+    nrLDPC_bnProc(p_lut, bnProcBuf, bnProcBufRes, llrRes, Z);
   }
 
   // =====================================================================
@@ -791,46 +583,16 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
 
   bitOffsetInGroup = lut_numCnInCnGroups_BG2_R15[2]*NR_LDPC_ZMAX;
 
-#ifdef NR_LDPC_PROFILER_DETAIL
-    start_meas(&p_profiler->llr2CnProcBuf);
-#endif
-  for (int j=0; j < 5; j++)
+  for (int j=0; j<5; j++)
   {
     p_cnProcBuf = &cnProcBuf[lut_startAddrCnGroups[2] + j*bitOffsetInGroup];
-
-    for (int i=0; i < lut_numCnInCnGroups[2]; i++)
+    for (int i=0; i<lut_numCnInCnGroups[2]; i++)
     {
-      int idxBn = lut_posBnInCnProcBuf_CNG5[j][i]*Z;
-      nrLDPC_circ_memcpy(p_cnProcBuf, &llrProcBuf[idxBn], Z, lut_circShift_CNG5[j][i]);
+      int idxBn = lut_startAddrBnProcBuf_CNG5[j][i] + lut_bnPosBnProcBuf_CNG5[j][i]*Z;
+      nrLDPC_circ_memcpy(p_cnProcBuf, &bnProcBufRes[idxBn], Z, lut_circShift_CNG5[j][i]);
       p_cnProcBuf += Z;
     }
   }
-#ifdef NR_LDPC_PROFILER_DETAIL
-    stop_meas(&p_profiler->llr2CnProcBuf);
-
-    start_meas(&p_profiler->bnProc);
-#endif
-
-  // Subtract the edge message of previous iteration from the new LLR
-  if (!isFirstIter)
-  {
-    uint16_t idxCnProcG5[5] = {0,108,216,324,432};
-    int M = (lut_numCnInCnGroups[2]*Z + 31)>>5;
-    p_cnProcBuf256    = (__m256i*) &cnProcBuf   [lut_startAddrCnGroups[2]];
-    p_cnProcBufRes256 = (__m256i*) &cnProcBufRes[lut_startAddrCnGroups[2]];
-    for (int i=0; i < 5; i++)
-    {
-      __m256i *pj0 = &p_cnProcBuf256   [idxCnProcG5[i]];
-      __m256i *pj1 = &p_cnProcBufRes256[idxCnProcG5[i]];
-      for (int k=0; k < M; k++)
-        pj0[k] = _mm256_subs_epi8(pj0[k], pj1[k]);
-    }
-  }
-#ifdef NR_LDPC_PROFILER_DETAIL
-    stop_meas(&p_profiler->bnProc);
-
-    start_meas(&p_profiler->cnProc);
-#endif
 
   // Offset is 9*384/32 = 108
   const uint16_t lut_idxCnProcG5[5][4] = {{108,216,324,432}, {0,216,324,432},
@@ -876,88 +638,23 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
         p_cnProcBufResBit++;
       }
     }
-#ifdef NR_LDPC_PROFILER_DETAIL
-    stop_meas(&p_profiler->cnProc);
-
-    start_meas(&p_profiler->cn2bnProcBuf);
-#endif
 
     // Copy CN processing results to bnProcBuf
-    int8_t bnProcBuf[NR_LDPC_SIZE_BN_PROC_BUF] __attribute__ ((aligned(32))) = {0};
     bitOffsetInGroup = lut_numCnInCnGroups_BG2_R15[2]*NR_LDPC_ZMAX;
 
     for (int j=0; j < 5; j++)
     {
       p_cnProcBufRes = &cnProcBufRes[lut_startAddrCnGroups[2] + j*bitOffsetInGroup];
-      for (int i=0; i < lut_numCnInCnGroups[2]; i++)
+      for (int i=0; i<lut_numCnInCnGroups[2]; i++)
       {
-        int idxBn = lut_startAddrSG_cnProcBuf_CNG5[j][i] +
-                    lut_idxBnInSG_cnProcBuf_CNG5[j][i]*Z;
-        nrLDPC_inv_circ_memcpy(&bnProcBuf[idxBn], p_cnProcBufRes, Z, lut_circShift_CNG5[j][i]);
+        int idxBn = lut_startAddrBnProcBuf_CNG5[j][i] + lut_bnPosBnProcBuf_CNG5[j][i]*Z;
+        nrLDPC_inv_circ_memcpy(&bnProcBuf[idxBn],p_cnProcBufRes,Z,lut_circShift_CNG5[j][i]);
         p_cnProcBufRes += Z;
       }
     }
-#ifdef NR_LDPC_PROFILER_DETAIL
-    stop_meas(&p_profiler->cn2bnProcBuf);
 
-    start_meas(&p_profiler-bnProc);
-#endif
-
-    // Copy input LLRs to bnProcBuf and do BN processing (one Sub Group(SG) at a time)
-    for (int j=0; j < lut_numSGinCNG[2][0]; j++)
-    {
-      int idxInLlrBNprocBuf = lut_startAddrLlrSG[2][j];
-
-      for (int i=0; i < lut_numBnInSG[2][j]; i++)
-      {
-        int idxInLlr = lut_bnPosSG_CNG5[j][i] * Z;
-        memcpy(&bnProcBuf[idxInLlrBNprocBuf], &llrProcBuf[idxInLlr], Z);
-        idxInLlrBNprocBuf += Z;
-      }
-
-      // Number of groups of 32 BNs for parallel processing
-      int M = (lut_numBnInSG[2][j]*Z + 31)>>5;
-      int8_t llrRes[NR_LDPC_MAX_NUM_LLR] __attribute__ ((aligned(32))) = {0};
-      p_bnProcBuf = (__m128i*) &bnProcBuf[lut_listStartAddrSG[2][j]];
-      p_llrRes    = (__m256i*) &llrRes[0]; // We reuse this buffer for next SG processing
-
-      // Set the offset to each CN within a group in terms of 16 Byte
-      cnOffsetInGroup = (lut_numBnInSG[2][j]*NR_LDPC_ZMAX)>>4;
-
-      for (int k=0,l=0; k < M; k++,l+=2)
-      {
-        // First 16 LLRs of first CN
-        ymmRes0 = _mm256_cvtepi8_epi16(p_bnProcBuf[l]);
-        ymmRes1 = _mm256_cvtepi8_epi16(p_bnProcBuf[l+1]);
-
-        // Loop over CNs
-        for (int m=1; m < (lut_listSGinCNG[2][j]+1); m++)
-        {
-          ymm0 = _mm256_cvtepi8_epi16(p_bnProcBuf[m*cnOffsetInGroup + l]);
-          ymmRes0 = _mm256_adds_epi16(ymmRes0, ymm0);
-
-          ymm1 = _mm256_cvtepi8_epi16(p_bnProcBuf[m*cnOffsetInGroup + l+1]);
-          ymmRes1 = _mm256_adds_epi16(ymmRes1, ymm1);
-        }
-        // Pack results back to epi8
-        ymm0 = _mm256_packs_epi16(ymmRes0, ymmRes1);
-        *p_llrRes = _mm256_permute4x64_epi64(ymm0, 0xD8);
-
-        // Next result
-        p_llrRes++;
-      }
-
-      int idxInLlrRes = 0;
-      for (int i=0; i < lut_numBnInSG[2][j]; i++)
-      {
-        int idxInLlr = lut_bnPosSG_CNG5[j][i] * Z;
-        memcpy(&llrProcBuf[idxInLlr], &llrRes[idxInLlrRes], Z);
-        idxInLlrRes += Z;
-      }
-    }
-#ifdef NR_LDPC_PROFILER_DETAIL
-    stop_meas(&p_profiler->bnProc);
-#endif
+    nrLDPC_bnProcPc(p_lut, bnProcBuf, bnProcBufRes, llrProcBuf, llrRes, Z);
+    nrLDPC_bnProc(p_lut, bnProcBuf, bnProcBufRes, llrRes, Z);
   }
 
   // =====================================================================
@@ -965,46 +662,16 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
 
   bitOffsetInGroup = lut_numCnInCnGroups_BG2_R15[3]*NR_LDPC_ZMAX;
 
-#ifdef NR_LDPC_PROFILER_DETAIL
-    start_meas(&p_profiler->llr2CnProcBuf);
-#endif
-  for (int j=0; j < 6; j++)
+  for (int j=0; j<6; j++)
   {
     p_cnProcBuf = &cnProcBuf[lut_startAddrCnGroups[3] + j*bitOffsetInGroup];
-
-    for (int i=0; i < lut_numCnInCnGroups[3]; i++)
+    for (int i=0; i<lut_numCnInCnGroups[3]; i++)
     {
-      int idxBn = lut_posBnInCnProcBuf_CNG6[j][i]*Z;
-      nrLDPC_circ_memcpy(p_cnProcBuf, &llrProcBuf[idxBn], Z, lut_circShift_CNG6[j][i]);
+      int idxBn = lut_startAddrBnProcBuf_CNG6[j][i] + lut_bnPosBnProcBuf_CNG6[j][i]*Z;
+      nrLDPC_circ_memcpy(p_cnProcBuf, &bnProcBufRes[idxBn], Z, lut_circShift_CNG6[j][i]);
       p_cnProcBuf += Z;
     }
   }
-#ifdef NR_LDPC_PROFILER_DETAIL
-    stop_meas(&p_profiler->llr2CnProcBuf);
-
-    start_meas(&p_profiler->bnProc);
-#endif
-
-  // Subtract the edge message of previous iteration from the new LLR
-  if (!isFirstIter)
-  {
-    uint16_t idxCnProcG6[6] = {0,36,72,108,144,180};
-    int M = (lut_numCnInCnGroups[3]*Z + 31)>>5;
-    p_cnProcBuf256    = (__m256i*) &cnProcBuf   [lut_startAddrCnGroups[3]];
-    p_cnProcBufRes256 = (__m256i*) &cnProcBufRes[lut_startAddrCnGroups[3]];
-    for (int i=0; i < 6; i++)
-    {
-      __m256i *pj0 = &p_cnProcBuf256   [idxCnProcG6[i]];
-      __m256i *pj1 = &p_cnProcBufRes256[idxCnProcG6[i]];
-      for (int k=0; k < M; k++)
-        pj0[k] = _mm256_subs_epi8(pj0[k], pj1[k]);
-    }
-  }
-#ifdef NR_LDPC_PROFILER_DETAIL
-    stop_meas(&p_profiler->bnProc);
-
-    start_meas(&p_profiler->cnProc);
-#endif
 
   // Offset is 3*384/32 = 36
   const uint16_t lut_idxCnProcG6[6][5] = {{36,72,108,144,180}, {0,72,108,144,180},
@@ -1051,88 +718,23 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
         p_cnProcBufResBit++;
       }
     }
-#ifdef NR_LDPC_PROFILER_DETAIL
-    stop_meas(&p_profiler->cnProc);
-
-    start_meas(&p_profiler->cn2bnProcBuf);
-#endif
 
     // Copy CN processing results to bnProcBuf
-    int8_t bnProcBuf[NR_LDPC_SIZE_BN_PROC_BUF] __attribute__ ((aligned(32))) = {0};
     bitOffsetInGroup = lut_numCnInCnGroups_BG2_R15[3]*NR_LDPC_ZMAX;
 
     for (int j=0; j < 6; j++)
     {
       p_cnProcBufRes = &cnProcBufRes[lut_startAddrCnGroups[3] + j*bitOffsetInGroup];
-      for (int i=0; i < lut_numCnInCnGroups[3]; i++)
+      for (int i=0; i<lut_numCnInCnGroups[3]; i++)
       {
-        int idxBn = lut_startAddrSG_cnProcBuf_CNG6[j][i] +
-                    lut_idxBnInSG_cnProcBuf_CNG6[j][i]*Z;
-        nrLDPC_inv_circ_memcpy(&bnProcBuf[idxBn], p_cnProcBufRes, Z, lut_circShift_CNG6[j][i]);
+        int idxBn = lut_startAddrBnProcBuf_CNG6[j][i] + lut_bnPosBnProcBuf_CNG6[j][i]*Z;
+        nrLDPC_inv_circ_memcpy(&bnProcBuf[idxBn],p_cnProcBufRes,Z,lut_circShift_CNG6[j][i]);
         p_cnProcBufRes += Z;
       }
     }
 
-#ifdef NR_LDPC_PROFILER_DETAIL
-    stop_meas(&p_profiler->cn2bnProcBuf);
-
-    start_meas(&p_profiler-bnProc);
-#endif
-    // Copy input LLRs to bnProcBuf and do BN processing (one Sub Group(SG) at a time)
-    for (int j=0; j < lut_numSGinCNG[3][0]; j++)
-    {
-      int idxInLlrBNprocBuf = lut_startAddrLlrSG[3][j];
-
-      for (int i=0; i < lut_numBnInSG[3][j]; i++)
-      {
-        int idxInLlr = lut_bnPosSG_CNG6[j][i] * Z;
-        memcpy(&bnProcBuf[idxInLlrBNprocBuf], &llrProcBuf[idxInLlr], Z);
-        idxInLlrBNprocBuf += Z;
-      }
-
-      // Number of groups of 32 BNs for parallel processing
-      int M = (lut_numBnInSG[3][j]*Z + 31)>>5;
-      int8_t llrRes[NR_LDPC_MAX_NUM_LLR] __attribute__ ((aligned(32))) = {0};
-      p_bnProcBuf = (__m128i*) &bnProcBuf[lut_listStartAddrSG[3][j]];
-      p_llrRes    = (__m256i*) &llrRes[0]; // We reuse this buffer for next SG processing
-
-      // Set the offset to each CN within a group in terms of 16 Byte
-      cnOffsetInGroup = (lut_numBnInSG[3][j]*NR_LDPC_ZMAX)>>4;
-
-      for (int k=0,l=0; k < M; k++,l+=2)
-      {
-        // First 16 LLRs of first CN
-        ymmRes0 = _mm256_cvtepi8_epi16(p_bnProcBuf[l]);
-        ymmRes1 = _mm256_cvtepi8_epi16(p_bnProcBuf[l+1]);
-
-        // Loop over CNs
-        for (int m=1; m < (lut_listSGinCNG[3][j]+1); m++)
-        {
-          ymm0 = _mm256_cvtepi8_epi16(p_bnProcBuf[m*cnOffsetInGroup + l]);
-          ymmRes0 = _mm256_adds_epi16(ymmRes0, ymm0);
-
-          ymm1 = _mm256_cvtepi8_epi16(p_bnProcBuf[m*cnOffsetInGroup + l+1]);
-          ymmRes1 = _mm256_adds_epi16(ymmRes1, ymm1);
-        }
-        // Pack results back to epi8
-        ymm0 = _mm256_packs_epi16(ymmRes0, ymmRes1);
-        *p_llrRes = _mm256_permute4x64_epi64(ymm0, 0xD8);
-
-        // Next result
-        p_llrRes++;
-      }
-
-      int idxInLlrRes = 0;
-      for (int i=0; i < lut_numBnInSG[3][j]; i++)
-      {
-        int idxInLlr = lut_bnPosSG_CNG6[j][i] * Z;
-        memcpy(&llrProcBuf[idxInLlr], &llrRes[idxInLlrRes], Z);
-        idxInLlrRes += Z;
-      }
-    }
-#ifdef NR_LDPC_PROFILER_DETAIL
-    stop_meas(&p_profiler->bnProc);
-#endif
+    nrLDPC_bnProcPc(p_lut, bnProcBuf, bnProcBufRes, llrProcBuf, llrRes, Z);
+    nrLDPC_bnProc(p_lut, bnProcBuf, bnProcBufRes, llrRes, Z);
   }
 
   // =====================================================================
@@ -1140,46 +742,17 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
 
   bitOffsetInGroup = lut_numCnInCnGroups_BG2_R15[4]*NR_LDPC_ZMAX;
 
-#ifdef NR_LDPC_PROFILER_DETAIL
-    start_meas(&p_profiler->llr2CnProcBuf);
-#endif
-  for (int j=0; j < 8; j++)
+  for (int j=0; j<8; j++)
   {
     p_cnProcBuf = &cnProcBuf[lut_startAddrCnGroups[4] + j*bitOffsetInGroup];
 
-    for (int i=0; i < lut_numCnInCnGroups[4]; i++)
+    for (int i=0; i<lut_numCnInCnGroups[4]; i++)
     {
-      int idxBn = lut_posBnInCnProcBuf_CNG8[j][i]*Z;
-      nrLDPC_circ_memcpy(p_cnProcBuf, &llrProcBuf[idxBn], Z, lut_circShift_CNG8[j][i]);
+      int idxBn = lut_startAddrBnProcBuf_CNG8[j][i] + lut_bnPosBnProcBuf_CNG8[j][i]*Z;
+      nrLDPC_circ_memcpy(p_cnProcBuf, &bnProcBufRes[idxBn], Z, lut_circShift_CNG8[j][i]);
       p_cnProcBuf += Z;
     }
   }
-#ifdef NR_LDPC_PROFILER_DETAIL
-    stop_meas(&p_profiler->llr2CnProcBuf);
-
-    start_meas(&p_profiler->bnProc);
-#endif
-
-  // Subtract the edge message of previous iteration from the new LLR
-  if (!isFirstIter)
-  {
-    uint16_t idxCnProcG8[8] = {0,24,48,72,96,120,144,168};
-    int M = (lut_numCnInCnGroups[4]*Z + 31)>>5;
-    p_cnProcBuf256    = (__m256i*) &cnProcBuf   [lut_startAddrCnGroups[4]];
-    p_cnProcBufRes256 = (__m256i*) &cnProcBufRes[lut_startAddrCnGroups[4]];
-    for (int i=0; i < 8; i++)
-    {
-      __m256i *pj0 = &p_cnProcBuf256   [idxCnProcG8[i]];
-      __m256i *pj1 = &p_cnProcBufRes256[idxCnProcG8[i]];
-      for (int k=0; k < M; k++)
-        pj0[k] = _mm256_subs_epi8(pj0[k], pj1[k]);
-    }
-  }
-#ifdef NR_LDPC_PROFILER_DETAIL
-    stop_meas(&p_profiler->bnProc);
-
-    start_meas(&p_profiler->cnProc);
-#endif
 
   // Process group with 8 BNs
   // Offset is 2*384/32 = 24
@@ -1228,88 +801,23 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
         p_cnProcBufResBit++;
       }
     }
-#ifdef NR_LDPC_PROFILER_DETAIL
-    stop_meas(&p_profiler->cnProc);
-
-    start_meas(&p_profiler->cn2bnProcBuf);
-#endif
 
     // Copy CN processing results to bnProcBuf
-    int8_t bnProcBuf[NR_LDPC_SIZE_BN_PROC_BUF] __attribute__ ((aligned(32))) = {0};
     bitOffsetInGroup = lut_numCnInCnGroups_BG2_R15[4]*NR_LDPC_ZMAX;
 
     for (int j=0; j < 8; j++)
     {
       p_cnProcBufRes = &cnProcBufRes[lut_startAddrCnGroups[4] + j*bitOffsetInGroup];
-      for (int i=0; i < lut_numCnInCnGroups[4]; i++)
+      for (int i=0; i<lut_numCnInCnGroups[4]; i++)
       {
-        int idxBn = lut_startAddrSG_cnProcBuf_CNG8[j][i] +
-                    lut_idxBnInSG_cnProcBuf_CNG8[j][i]*Z;
-        nrLDPC_inv_circ_memcpy(&bnProcBuf[idxBn], p_cnProcBufRes, Z, lut_circShift_CNG8[j][i]);
+        int idxBn = lut_startAddrBnProcBuf_CNG8[j][i] + lut_bnPosBnProcBuf_CNG8[j][i]*Z;
+        nrLDPC_inv_circ_memcpy(&bnProcBuf[idxBn],p_cnProcBufRes,Z,lut_circShift_CNG8[j][i]);
         p_cnProcBufRes += Z;
       }
     }
-#ifdef NR_LDPC_PROFILER_DETAIL
-    stop_meas(&p_profiler->cn2bnProcBuf);
 
-    start_meas(&p_profiler-bnProc);
-#endif
-
-    // Copy input LLRs to bnProcBuf and do BN processing (one Sub Group(SG) at a time)
-    for (int j=0; j < lut_numSGinCNG[4][0]; j++)
-    {
-      int idxInLlrBNprocBuf = lut_startAddrLlrSG[4][j];
-
-      for (int i=0; i < lut_numBnInSG[4][j]; i++)
-      {
-        int idxInLlr = lut_bnPosSG_CNG8[j][i] * Z;
-        memcpy(&bnProcBuf[idxInLlrBNprocBuf], &llrProcBuf[idxInLlr], Z);
-        idxInLlrBNprocBuf += Z;
-      }
-
-      // Number of groups of 32 BNs for parallel processing
-      int M = (lut_numBnInSG[4][j]*Z + 31)>>5;
-      int8_t llrRes[NR_LDPC_MAX_NUM_LLR] __attribute__ ((aligned(32))) = {0};
-      p_bnProcBuf = (__m128i*) &bnProcBuf[lut_listStartAddrSG[4][j]];
-      p_llrRes    = (__m256i*) &llrRes[0]; // We reuse this buffer for next SG processing
-
-      // Set the offset to each CN within a group in terms of 16 Byte
-      cnOffsetInGroup = (lut_numBnInSG[4][j]*NR_LDPC_ZMAX)>>4;
-
-      for (int k=0,l=0; k < M; k++,l+=2)
-      {
-        // First 16 LLRs of first CN
-        ymmRes0 = _mm256_cvtepi8_epi16(p_bnProcBuf[l]);
-        ymmRes1 = _mm256_cvtepi8_epi16(p_bnProcBuf[l+1]);
-
-        // Loop over CNs
-        for (int m=1; m < (lut_listSGinCNG[4][j]+1); m++)
-        {
-          ymm0 = _mm256_cvtepi8_epi16(p_bnProcBuf[m*cnOffsetInGroup + l]);
-          ymmRes0 = _mm256_adds_epi16(ymmRes0, ymm0);
-
-          ymm1 = _mm256_cvtepi8_epi16(p_bnProcBuf[m*cnOffsetInGroup + l+1]);
-          ymmRes1 = _mm256_adds_epi16(ymmRes1, ymm1);
-        }
-        // Pack results back to epi8
-        ymm0 = _mm256_packs_epi16(ymmRes0, ymmRes1);
-        *p_llrRes = _mm256_permute4x64_epi64(ymm0, 0xD8);
-
-        // Next result
-        p_llrRes++;
-      }
-
-      int idxInLlrRes = 0;
-      for (int i=0; i < lut_numBnInSG[4][j]; i++)
-      {
-        int idxInLlr = lut_bnPosSG_CNG8[j][i] * Z;
-        memcpy(&llrProcBuf[idxInLlr], &llrRes[idxInLlrRes], Z);
-        idxInLlrRes += Z;
-      }
-    }
-#ifdef NR_LDPC_PROFILER_DETAIL
-    stop_meas(&p_profiler->bnProc);
-#endif
+    nrLDPC_bnProcPc(p_lut, bnProcBuf, bnProcBufRes, llrProcBuf, llrRes, Z);
+    nrLDPC_bnProc(p_lut, bnProcBuf, bnProcBufRes, llrRes, Z);
   }
 
   // =====================================================================
@@ -1317,46 +825,16 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
 
   bitOffsetInGroup = lut_numCnInCnGroups_BG2_R15[5]*NR_LDPC_ZMAX;
 
-#ifdef NR_LDPC_PROFILER_DETAIL
-    start_meas(&p_profiler->llr2CnProcBuf);
-#endif
-  for (int j=0; j < 10; j++)
+  for (int j=0; j<10; j++)
   {
     p_cnProcBuf = &cnProcBuf[lut_startAddrCnGroups[5] + j*bitOffsetInGroup];
-
-    for (int i=0; i < lut_numCnInCnGroups[5]; i++)
+    for (int i=0; i<lut_numCnInCnGroups[5]; i++)
     {
-      int idxBn = lut_posBnInCnProcBuf_CNG10[j][i]*Z;
-      nrLDPC_circ_memcpy(p_cnProcBuf, &llrProcBuf[idxBn], Z, lut_circShift_CNG10[j][i]);
+      int idxBn = lut_startAddrBnProcBuf_CNG10[j][i] + lut_bnPosBnProcBuf_CNG10[j][i]*Z;
+      nrLDPC_circ_memcpy(p_cnProcBuf, &bnProcBufRes[idxBn], Z, lut_circShift_CNG10[j][i]);
       p_cnProcBuf += Z;
     }
   }
-#ifdef NR_LDPC_PROFILER_DETAIL
-    stop_meas(&p_profiler->llr2CnProcBuf);
-
-    start_meas(&p_profiler->bnProc);
-#endif
-
-  // Subtract the edge message of previous iteration from the new LLR
-  if (!isFirstIter)
-  {
-    uint16_t idxCnProcG10[10] = {0,24,48,72,96,120,144,168,192,216};
-    int M = (lut_numCnInCnGroups[5]*Z + 31)>>5;
-    p_cnProcBuf256    = (__m256i*) &cnProcBuf   [lut_startAddrCnGroups[5]];
-    p_cnProcBufRes256 = (__m256i*) &cnProcBufRes[lut_startAddrCnGroups[5]];
-    for (int i=0; i < 10; i++)
-    {
-      __m256i *pj0 = &p_cnProcBuf256   [idxCnProcG10[i]];
-      __m256i *pj1 = &p_cnProcBufRes256[idxCnProcG10[i]];
-      for (int k=0; k < M; k++)
-        pj0[k] = _mm256_subs_epi8(pj0[k], pj1[k]);
-    }
-  }
-#ifdef NR_LDPC_PROFILER_DETAIL
-    stop_meas(&p_profiler->bnProc);
-
-    start_meas(&p_profiler->cnProc);
-#endif
 
   // Offset is 2*384/32 = 24
   const uint8_t lut_idxCnProcG10[10][9] = {{24,48,72,96,120,144,168,192,216}, {0,48,72,96,120,144,168,192,216},
@@ -1405,88 +883,23 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
         p_cnProcBufResBit++;
       }
     }
-#ifdef NR_LDPC_PROFILER_DETAIL
-    stop_meas(&p_profiler->cnProc);
-
-    start_meas(&p_profiler->cn2bnProcBuf);
-#endif
 
     // Copy CN processing results to bnProcBuf
-    int8_t bnProcBuf[NR_LDPC_SIZE_BN_PROC_BUF] __attribute__ ((aligned(32))) = {0};
     bitOffsetInGroup = lut_numCnInCnGroups_BG2_R15[5]*NR_LDPC_ZMAX;
 
     for (int j=0; j < 10; j++)
     {
       p_cnProcBufRes = &cnProcBufRes[lut_startAddrCnGroups[5] + j*bitOffsetInGroup];
-      for (int i=0; i < lut_numCnInCnGroups[5]; i++)
+      for (int i=0; i<lut_numCnInCnGroups[5]; i++)
       {
-        int idxBn = lut_startAddrSG_cnProcBuf_CNG10[j][i] +
-                    lut_idxBnInSG_cnProcBuf_CNG10[j][i]*Z;
-        nrLDPC_inv_circ_memcpy(&bnProcBuf[idxBn], p_cnProcBufRes, Z, lut_circShift_CNG10[j][i]);
+        int idxBn = lut_startAddrBnProcBuf_CNG10[j][i] + lut_bnPosBnProcBuf_CNG10[j][i]*Z;
+        nrLDPC_inv_circ_memcpy(&bnProcBuf[idxBn],p_cnProcBufRes,Z,lut_circShift_CNG10[j][i]);
         p_cnProcBufRes += Z;
       }
     }
-#ifdef NR_LDPC_PROFILER_DETAIL
-    stop_meas(&p_profiler->cn2bnProcBuf);
 
-    start_meas(&p_profiler-bnProc);
-#endif
-
-    // Copy input LLRs to bnProcBuf and do BN processing (one Sub Group(SG) at a time)
-    for (int j=0; j < lut_numSGinCNG[5][0]; j++)
-    {
-      int idxInLlrBNprocBuf = lut_startAddrLlrSG[5][j];
-
-      for (int i=0; i < lut_numBnInSG[5][j]; i++)
-      {
-        int idxInLlr = lut_bnPosSG_CNG10[j][i] * Z;
-        memcpy(&bnProcBuf[idxInLlrBNprocBuf], &llrProcBuf[idxInLlr], Z);
-        idxInLlrBNprocBuf += Z;
-      }
-
-      // Number of groups of 32 BNs for parallel processing
-      int M = (lut_numBnInSG[5][j]*Z + 31)>>5;
-      int8_t llrRes[NR_LDPC_MAX_NUM_LLR] __attribute__ ((aligned(32))) = {0};
-      p_bnProcBuf = (__m128i*) &bnProcBuf[lut_listStartAddrSG[5][j]];
-      p_llrRes    = (__m256i*) &llrRes[0]; // We reuse this buffer for next SG processing
-
-      // Set the offset to each CN within a group in terms of 16 Byte
-      cnOffsetInGroup = (lut_numBnInSG[5][j]*NR_LDPC_ZMAX)>>4;
-
-      for (int k=0,l=0; k < M; k++,l+=2)
-      {
-        // First 16 LLRs of first CN
-        ymmRes0 = _mm256_cvtepi8_epi16(p_bnProcBuf[l]);
-        ymmRes1 = _mm256_cvtepi8_epi16(p_bnProcBuf[l+1]);
-
-        // Loop over CNs
-        for (int m=1; m < (lut_listSGinCNG[5][j]+1); m++)
-        {
-          ymm0 = _mm256_cvtepi8_epi16(p_bnProcBuf[m*cnOffsetInGroup + l]);
-          ymmRes0 = _mm256_adds_epi16(ymmRes0, ymm0);
-
-          ymm1 = _mm256_cvtepi8_epi16(p_bnProcBuf[m*cnOffsetInGroup + l+1]);
-          ymmRes1 = _mm256_adds_epi16(ymmRes1, ymm1);
-        }
-        // Pack results back to epi8
-        ymm0 = _mm256_packs_epi16(ymmRes0, ymmRes1);
-        *p_llrRes = _mm256_permute4x64_epi64(ymm0, 0xD8);
-
-        // Next result
-        p_llrRes++;
-      }
-
-      int idxInLlrRes = 0;
-      for (int i=0; i < lut_numBnInSG[5][j]; i++)
-      {
-        int idxInLlr = lut_bnPosSG_CNG10[j][i] * Z;
-        memcpy(&llrProcBuf[idxInLlr], &llrRes[idxInLlrRes], Z);
-        idxInLlrRes += Z;
-      }
-    }
-#ifdef NR_LDPC_PROFILER_DETAIL
-    stop_meas(&p_profiler->bnProc);
-#endif
+    nrLDPC_bnProcPc(p_lut, bnProcBuf, bnProcBufRes, llrProcBuf, llrRes, Z);
+    nrLDPC_bnProc(p_lut, bnProcBuf, bnProcBufRes, llrRes, Z);
   }
 }
 
