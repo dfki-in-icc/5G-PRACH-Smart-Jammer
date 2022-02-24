@@ -46,7 +46,6 @@
 #endif
 
 #include "assertions.h"
-#include "msc.h"
 
 #include <time.h>
 
