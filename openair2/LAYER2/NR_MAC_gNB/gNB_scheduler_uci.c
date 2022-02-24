@@ -141,7 +141,7 @@ void nr_schedule_pucch(int Mod_idP,
 
   for (int UE_id = UE_list->head; UE_id >= 0; UE_id = UE_list->next[UE_id]) {
     NR_UE_sched_ctrl_t *sched_ctrl = &UE_info->UE_sched_ctrl[UE_id];
-    if (sched_ctrl->ul_failure==1 && get_softmodem_params()->phy_test==0) continue;
+    //if (sched_ctrl->ul_failure==1 && get_softmodem_params()->phy_test==0) continue;
     const int n = sizeof(sched_ctrl->sched_pucch) / sizeof(*sched_ctrl->sched_pucch);
     for (int i = 0; i < n; i++) {
       NR_sched_pucch_t *curr_pucch = &UE_info->UE_sched_ctrl[UE_id].sched_pucch[i];
@@ -1192,7 +1192,7 @@ int nr_acknack_scheduling(int mod_id,
   int first_ul_slot_tdd = 0;
   for(int i = slot+2; i< n_slots_frame; i++){
 
-    if (RC.nrmac[mod_id]->flexible_slots_per_frame[i] > 0 ) {first_ul_slot_tdd = i; break;}
+    if (RC.nrmac[mod_id]->flexible_slots_per_frame[i] == 1 ) {first_ul_slot_tdd = i; break;}
      
     
   }
