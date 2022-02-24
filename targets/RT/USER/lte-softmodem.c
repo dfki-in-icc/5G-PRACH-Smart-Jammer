@@ -751,9 +751,9 @@ int main ( int argc, char **argv )
   LOG_I(ENB_APP,"oai_exit=%d\n",oai_exit);
   // stop threads
 
-  #if LATSEQ
+#if LATSEQ
     close_latseq(); //close before head of threads
-  #endif
+#endif
 
   #if 0 //Disable clean up because this tends to crash (and unnecessary)
 

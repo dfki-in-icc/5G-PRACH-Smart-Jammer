@@ -44,6 +44,9 @@ LATSEQ_P with direction of I (Information) observed a scalar property at a point
 - All the point and latseq module run on the same machine (to don't have to synchronize clock of different machines)
 - Clock give by asm rdtsc is same for all the CPU cores (constant_tsc enabled)
 
+### TODO
+
+- [ ] "gtp.in--pdcp.in.gtp" and "ip.in--gtp.in" has been deleted since "gtpv1u_eNB.c" and "NwGtpv1u.c" has been deleted
 
 ## TOOLS
 

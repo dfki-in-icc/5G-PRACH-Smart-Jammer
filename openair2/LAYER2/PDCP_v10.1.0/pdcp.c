@@ -432,7 +432,7 @@ boolean_t pdcp_data_req(
       }
 #if LATSEQ
       if (!srb_flagP) {
-        LATSEQ_P("D pdcp.in--pdcp.tx","len%d:rnti%d:drb%d.gsn%d.psn%d", sdu_buffer_sizeP, ctxt_pP->rnti, rb_idP, RC.gtpv1u_data_g->tx_seq_num, current_sn);
+        LATSEQ_P("D pdcp.in--pdcp.tx","len%d:rnti%d:drb%d.psn%d", sdu_buffer_sizeP, ctxt_pP->rnti, rb_idP, current_sn);
       }
 #endif
 
