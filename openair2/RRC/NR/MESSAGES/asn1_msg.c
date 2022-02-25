@@ -1167,7 +1167,7 @@ void fill_initial_SpCellConfig(rnti_t rnti,
   *pusch_Config->maxRank= 1;
   pusch_Config->rbg_Size=NULL;
   pusch_Config->uci_OnPUSCH=NULL;
-  if (1){
+  if (0){
   pusch_Config->uci_OnPUSCH=calloc(1,sizeof(*pusch_Config->uci_OnPUSCH));
   pusch_Config->uci_OnPUSCH->present = NR_SetupRelease_UCI_OnPUSCH_PR_setup;
   pusch_Config->uci_OnPUSCH->choice.setup = calloc(1,sizeof(*pusch_Config->uci_OnPUSCH->choice.setup));

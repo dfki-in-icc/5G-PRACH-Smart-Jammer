@@ -1231,10 +1231,19 @@ int nr_acknack_scheduling(int mod_id,
     nr_fill_nfapi_pucch(mod_id, frame, slot, pucch, UE_id);
     memset(pucch, 0, sizeof(*pucch));
     pucch->frame = s == n_slots_frame - 1 ? (f + 1) % 1024 : f;
-    if(((s + 1)%nr_slots_period) == 0)
+
+  for(int ss = s+1; ss< 2*n_slots_frame; ss++){
+
+    if (RC.nrmac[mod_id]->flexible_slots_per_frame[ss%n_slots_frame] == 1 ) {pucch->ul_slot  = ss%n_slots_frame; break;}
+     
+    
+  }
+
+
+    /*if(((s + 1)%nr_slots_period) == 0)
       pucch->ul_slot = (s + 1 + first_ul_slot_period) % n_slots_frame;
     else
-      pucch->ul_slot = (s + 1) % n_slots_frame;
+      pucch->ul_slot = (s + 1) % n_slots_frame;*/
     // we assume that only two indices over the array sched_pucch exist
     csi_pucch = &sched_ctrl->sched_pucch[1];
     // skip the CSI PUCCH if it is present and if in the next frame/slot
@@ -1247,10 +1256,18 @@ int nr_acknack_scheduling(int mod_id,
       nr_fill_nfapi_pucch(mod_id, frame, slot, csi_pucch, UE_id);
       memset(csi_pucch, 0, sizeof(*csi_pucch));
       pucch->frame = s == n_slots_frame - 1 ? (f + 1) % 1024 : f;
-      if(((s + 1)%nr_slots_period) == 0)
+      for(int ss = s+1; ss< 2*n_slots_frame; ss++){
+
+           if (RC.nrmac[mod_id]->flexible_slots_per_frame[ss%n_slots_frame] == 1 ) {pucch->ul_slot  = ss%n_slots_frame; break;}
+      }
+
+
+
+
+      /*if(((s + 1)%nr_slots_period) == 0)
         pucch->ul_slot = (s + 1 + first_ul_slot_period) % n_slots_frame;
       else
-        pucch->ul_slot = (s + 1) % n_slots_frame;
+        pucch->ul_slot = (s + 1) % n_slots_frame;*/
     }
   }
 
@@ -1296,10 +1313,18 @@ int nr_acknack_scheduling(int mod_id,
       nr_fill_nfapi_pucch(mod_id, frame, slot, pucch, UE_id);
       memset(pucch, 0, sizeof(*pucch));
       pucch->frame = s == n_slots_frame - 1 ? (f + 1) % 1024 : f;
-      if(((s + 1)%nr_slots_period) == 0)
+
+      for(int ss = s+1; ss< 2*n_slots_frame; ss++){
+
+        if (RC.nrmac[mod_id]->flexible_slots_per_frame[ss%n_slots_frame] == 1 ) {pucch->ul_slot  = ss%n_slots_frame; break;}
+      }
+
+
+
+      /*if(((s + 1)%nr_slots_period) == 0)
         pucch->ul_slot = (s + 1 + first_ul_slot_period) % n_slots_frame;
       else
-        pucch->ul_slot = (s + 1) % n_slots_frame;
+        pucch->ul_slot = (s + 1) % n_slots_frame;*/
       return nr_acknack_scheduling(mod_id, UE_id, frame, slot, r_pucch,is_common);
     }
 
@@ -1342,10 +1367,19 @@ int nr_acknack_scheduling(int mod_id,
     const int f = pucch->frame;
     const int s = pucch->ul_slot;
     pucch->frame = s == n_slots_frame - 1 ? (f + 1) % 1024 : f;
-    if(((s + 1)%nr_slots_period) == 0)
+
+  for(int ss = s+1; ss< 2*n_slots_frame; ss++){
+
+    if (RC.nrmac[mod_id]->flexible_slots_per_frame[ss%n_slots_frame] == 1 ) {pucch->ul_slot  = ss%n_slots_frame; break;}
+     
+    
+  }
+
+
+    /*if(((s + 1)%nr_slots_period) == 0)
       pucch->ul_slot = (s + 1 + first_ul_slot_period) % n_slots_frame;
     else
-      pucch->ul_slot = (s + 1) % n_slots_frame;
+      pucch->ul_slot = (s + 1) % n_slots_frame;*/
   }
   if (ind_found==-1) {
     LOG_D(NR_MAC,
@@ -1377,10 +1411,20 @@ int nr_acknack_scheduling(int mod_id,
       const int s = pucch->ul_slot;
       memset(pucch, 0, sizeof(*pucch));
       pucch->frame = s == n_slots_frame - 1 ? (f + 1) % 1024 : f;
-      if(((s + 1)%nr_slots_period) == 0)
+
+  for(int ss = s+1; ss< 2*n_slots_frame; ss++){
+
+    if (RC.nrmac[mod_id]->flexible_slots_per_frame[ss%n_slots_frame] == 1 ) {pucch->ul_slot  = ss%n_slots_frame; break;}
+     
+    
+  }
+
+
+
+      /*if(((s + 1)%nr_slots_period) == 0)
         pucch->ul_slot = (s + 1 + first_ul_slot_period) % n_slots_frame;
       else
-        pucch->ul_slot = (s + 1) % n_slots_frame;
+        pucch->ul_slot = (s + 1) % n_slots_frame;*/
       return nr_acknack_scheduling(mod_id, UE_id, frame, slot, r_pucch,is_common);
     }
     // multiplexing harq and csi in a pucch
