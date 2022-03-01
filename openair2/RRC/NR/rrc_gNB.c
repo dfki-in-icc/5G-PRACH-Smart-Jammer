@@ -734,22 +734,23 @@ rrc_gNB_generate_defaultRRCReconfiguration(
 {
   uint8_t                       buffer[RRC_BUF_SIZE];
   uint16_t                      size;
-  /*NR_SRB_ToAddModList_t        **SRB_configList2 = NULL;
+  NR_SRB_ToAddModList_t        **SRB_configList2 = NULL;
   NR_SRB_ToAddModList_t        *SRB_configList  = ue_context_pP->ue_context.SRB_configList;
   NR_DRB_ToAddModList_t        **DRB_configList  = NULL;
   NR_DRB_ToAddModList_t        **DRB_configList2 = NULL;
   NR_SRB_ToAddMod_t            *SRB2_config     = NULL;
   NR_DRB_ToAddMod_t            *DRB_config      = NULL;
-  NR_SDAP_Config_t             *sdap_config     = NULL;*/
+  NR_SDAP_Config_t             *sdap_config     = NULL;
   struct NR_RRCReconfiguration_v1530_IEs__dedicatedNAS_MessageList
                                *dedicatedNAS_MessageList = NULL;
   NR_DedicatedNAS_Message_t    *dedicatedNAS_Message = NULL;
 
   uint8_t xid = rrc_gNB_get_next_transaction_identifier(ctxt_pP->module_id);
-
+  int                            qos_flow_index = 0;
+  NR_QFI_t                       qfi = 0;
   /******************** Radio Bearer Config ********************/
   /* Configure SRB2 */
-  /*SRB_configList2 = &ue_context_pP->ue_context.SRB_configList2[xid];
+  SRB_configList2 = &ue_context_pP->ue_context.SRB_configList2[xid];
   if (*SRB_configList2) {
     free(*SRB_configList2);
   }
@@ -758,10 +759,10 @@ rrc_gNB_generate_defaultRRCReconfiguration(
   SRB2_config = CALLOC(1, sizeof(*SRB2_config));
   SRB2_config->srb_Identity = 2;
   ASN_SEQUENCE_ADD(&(*SRB_configList2)->list, SRB2_config);
-  ASN_SEQUENCE_ADD(&SRB_configList->list, SRB2_config);*/
+  ASN_SEQUENCE_ADD(&SRB_configList->list, SRB2_config);
 
   /* Configure DRB */
-  /*DRB_configList = &ue_context_pP->ue_context.DRB_configList;
+  DRB_configList = &ue_context_pP->ue_context.DRB_configList;
   if (*DRB_configList) {
       free(*DRB_configList);
   }
@@ -780,11 +781,34 @@ rrc_gNB_generate_defaultRRCReconfiguration(
   DRB_config->cnAssociation = CALLOC(1, sizeof(*DRB_config->cnAssociation));
   DRB_config->cnAssociation->present = NR_DRB_ToAddMod__cnAssociation_PR_sdap_Config;
   // TODO sdap_Config
-  sdap_config = CALLOC(1, sizeof(NR_SDAP_Config_t));
+  /*sdap_config = CALLOC(1, sizeof(NR_SDAP_Config_t));
   memset(sdap_config, 0, sizeof(NR_SDAP_Config_t));
-  DRB_config->cnAssociation->choice.sdap_Config = sdap_config;
+  DRB_config->cnAssociation->choice.sdap_Config = sdap_config;*/
+
+    sdap_config = CALLOC(1, sizeof(NR_SDAP_Config_t));
+    memset(sdap_config, 0, sizeof(NR_SDAP_Config_t));
+    sdap_config->pdu_Session = 5;
+    sdap_config->sdap_HeaderDL = NR_SDAP_Config__sdap_HeaderDL_absent;
+    sdap_config->sdap_HeaderUL = NR_SDAP_Config__sdap_HeaderUL_absent;
+    sdap_config->defaultDRB = TRUE;
+    sdap_config->mappedQoS_FlowsToAdd = calloc(1, sizeof(struct NR_SDAP_Config__mappedQoS_FlowsToAdd));
+    memset(sdap_config->mappedQoS_FlowsToAdd, 0, sizeof(struct NR_SDAP_Config__mappedQoS_FlowsToAdd));
+
+    for (qos_flow_index = 0; qos_flow_index < 1; qos_flow_index++) {
+      qfi = 1;
+      ASN_SEQUENCE_ADD(&sdap_config->mappedQoS_FlowsToAdd->list, &qfi);
+    }
+    sdap_config->mappedQoS_FlowsToRelease = NULL;
+    DRB_config->cnAssociation->choice.sdap_Config = sdap_config;
+
+
+
+
+
+
+
   // TODO pdcp_Config
-  DRB_config->reestablishPDCP = NULL;
+  /*DRB_config->reestablishPDCP = NULL;
   DRB_config->recoverPDCP = NULL;
   DRB_config->pdcp_Config = calloc(1, sizeof(*DRB_config->pdcp_Config));
   DRB_config->pdcp_Config->drb = calloc(1,sizeof(*DRB_config->pdcp_Config->drb));
@@ -804,10 +828,46 @@ rrc_gNB_generate_defaultRRCReconfiguration(
 
   DRB_config->pdcp_Config->t_Reordering = calloc(1, sizeof(*DRB_config->pdcp_Config->t_Reordering));
   *DRB_config->pdcp_Config->t_Reordering = NR_PDCP_Config__t_Reordering_ms0;
-  DRB_config->pdcp_Config->ext1 = NULL;
+  DRB_config->pdcp_Config->ext1 = NULL;*/
+
+    DRB_config->reestablishPDCP = NULL;
+    DRB_config->recoverPDCP = NULL;
+    DRB_config->pdcp_Config = calloc(1, sizeof(*DRB_config->pdcp_Config));
+    DRB_config->pdcp_Config->drb = calloc(1,sizeof(*DRB_config->pdcp_Config->drb));
+    DRB_config->pdcp_Config->drb->discardTimer = calloc(1, sizeof(*DRB_config->pdcp_Config->drb->discardTimer));
+    *DRB_config->pdcp_Config->drb->discardTimer = NR_PDCP_Config__drb__discardTimer_infinity;
+    DRB_config->pdcp_Config->drb->pdcp_SN_SizeUL = calloc(1, sizeof(*DRB_config->pdcp_Config->drb->pdcp_SN_SizeUL));
+    *DRB_config->pdcp_Config->drb->pdcp_SN_SizeUL = NR_PDCP_Config__drb__pdcp_SN_SizeUL_len18bits;
+    DRB_config->pdcp_Config->drb->pdcp_SN_SizeDL = calloc(1, sizeof(*DRB_config->pdcp_Config->drb->pdcp_SN_SizeDL));
+    *DRB_config->pdcp_Config->drb->pdcp_SN_SizeDL = NR_PDCP_Config__drb__pdcp_SN_SizeDL_len18bits;
+    DRB_config->pdcp_Config->drb->headerCompression.present = NR_PDCP_Config__drb__headerCompression_PR_notUsed;
+    DRB_config->pdcp_Config->drb->headerCompression.choice.notUsed = 0;
+
+    DRB_config->pdcp_Config->drb->integrityProtection = NULL;
+    DRB_config->pdcp_Config->drb->statusReportRequired = NULL;
+    DRB_config->pdcp_Config->drb->outOfOrderDelivery = NULL;
+    DRB_config->pdcp_Config->moreThanOneRLC = NULL;
+
+    DRB_config->pdcp_Config->t_Reordering = calloc(1, sizeof(*DRB_config->pdcp_Config->t_Reordering));
+    *DRB_config->pdcp_Config->t_Reordering = NR_PDCP_Config__t_Reordering_ms0;
+    DRB_config->pdcp_Config->ext1 = NULL;
+
+      DRB_config->pdcp_Config->drb->integrityProtection = calloc(1, sizeof(*DRB_config->pdcp_Config->drb->integrityProtection));
+      *DRB_config->pdcp_Config->drb->integrityProtection = NR_PDCP_Config__drb__integrityProtection_enabled;
+
+ 
+      DRB_config->pdcp_Config->ext1 = calloc(1, sizeof(*DRB_config->pdcp_Config->ext1));
+      DRB_config->pdcp_Config->ext1->cipheringDisabled = calloc(1, sizeof(*DRB_config->pdcp_Config->ext1->cipheringDisabled));
+      *DRB_config->pdcp_Config->ext1->cipheringDisabled = NR_PDCP_Config__ext1__cipheringDisabled_true;
+    
+
+
+
+
+
 
   ASN_SEQUENCE_ADD(&(*DRB_configList)->list, DRB_config);
-  ASN_SEQUENCE_ADD(&(*DRB_configList2)->list, DRB_config);*/
+  ASN_SEQUENCE_ADD(&(*DRB_configList2)->list, DRB_config);
 
   dedicatedNAS_MessageList = CALLOC(1, sizeof(struct NR_RRCReconfiguration_v1530_IEs__dedicatedNAS_MessageList));
 
@@ -845,8 +905,8 @@ rrc_gNB_generate_defaultRRCReconfiguration(
   memset(buffer, 0, RRC_BUF_SIZE);
   size = do_RRCReconfiguration(ctxt_pP, buffer,
                                 xid,
-                                NULL, //*SRB_configList2,
-                                NULL, //*DRB_configList,
+                                *SRB_configList2, //*SRB_configList2,
+                                *DRB_configList, //*DRB_configList,
                                 NULL,
                                 NULL,
                                 NULL,
