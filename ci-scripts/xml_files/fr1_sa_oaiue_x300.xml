@@ -33,6 +33,8 @@
  051000
  051001
  000001
+ 071000
+ 000001
  010002
  080000
 	</TestCaseRequestedList>
@@ -90,22 +92,22 @@
 		<ping_packetloss_threshold>5</ping_packetloss_threshold>
 	</testCase>
 
-	<testCase id="070000">
+	<testCase id="071000">
 		<class>Iperf</class>
 		<desc>iperf (DL/60Mbps/UDP)(60 sec)(single-ue profile)</desc>
-		<iperf_args>-u -b 60M -t 60</iperf_args>
+		<iperf_args>-u -b 1M -t 60</iperf_args>
 		<direction>DL</direction>
-		<id>nrmodule2_quectel</id>
+		<id>obelix_oainrue</id>
 		<iperf_packetloss_threshold>5</iperf_packetloss_threshold>
 		<iperf_profile>single-ue</iperf_profile>
 	</testCase>
 
-	<testCase id="070001">
+	<testCase id="071001">
 		<class>Iperf</class>
 		<desc>iperf (UL/3Mbps/UDP)(60 sec)(single-ue profile)</desc>
 		<iperf_args>-u -b 3M -t 60</iperf_args>
 		<direction>UL</direction>
-		<id>nrmodule2_quectel</id>
+		<id>obelix_oainrue</id>
 		<iperf_packetloss_threshold>5</iperf_packetloss_threshold>
 		<iperf_profile>single-ue</iperf_profile>
 	</testCase>
