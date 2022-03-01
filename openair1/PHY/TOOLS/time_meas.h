@@ -79,6 +79,7 @@ typedef struct {
 
 
 static inline void start_meas(time_stats_t *ts) __attribute__((always_inline));
+static inline void start_cont_meas(time_stats_t *ts) __attribute__((always_inline));
 static inline void stop_meas(time_stats_t *ts) __attribute__((always_inline));
 
 
@@ -131,6 +132,17 @@ static inline int cpumeas(int action) {
   }
 
   return opp_enabled;
+}
+
+static inline void start_cont_meas(time_stats_t *ts) {
+  if (opp_enabled) {
+    if (ts->meas_flag==0) {
+      ts->in = rdtsc_oai();
+      ts->meas_flag=1;
+    } else {
+      ts->in = rdtsc_oai();
+    }
+  }
 }
 
 static inline void start_meas(time_stats_t *ts) {

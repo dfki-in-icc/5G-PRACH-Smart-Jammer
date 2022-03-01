@@ -40,7 +40,7 @@
 
 #define NR_LDPC_ENABLE_PARITY_CHECK
 //#define NR_LDPC_DEBUG_MODE
-//#define NR_LDPC_PROFILER_DETAIL
+#define NR_LDPC_PROFILER_DETAIL
 
 #ifdef NR_LDPC_DEBUG_MODE
 #include "nrLDPC_tools/nrLDPC_debug.h"
@@ -121,14 +121,8 @@ static inline uint32_t nrLDPC_decoder_layer(int8_t* p_llr, int8_t* p_out, uint32
   {
 
     // CN processing
-#ifdef NR_LDPC_PROFILER_DETAIL
-    start_meas(&p_profiler->cnProc);
-#endif
     if (BG == 2)
-      nrLDPC_layerProc_BG2(p_lut, p_llr, llrProcBuf, llrRes, cnProcBuf, cnProcBufRes, bnProcBuf, bnProcBufRes, Z);
-#ifdef NR_LDPC_PROFILER_DETAIL
-    stop_meas(&p_profiler->cnProc);
-#endif
+      nrLDPC_layerProc_BG2(p_lut, p_llr, llrProcBuf, llrRes, cnProcBuf, cnProcBufRes, bnProcBuf, bnProcBufRes, Z, p_profiler);
 
 #ifdef NR_LDPC_DEBUG_MODE
     nrLDPC_debug_writeBuffer2File(nrLDPC_buffers_CN_PROC_RES, cnProcBufRes);

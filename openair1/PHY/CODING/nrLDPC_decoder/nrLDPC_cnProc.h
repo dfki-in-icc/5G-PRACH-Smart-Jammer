@@ -30,7 +30,7 @@
 
 #ifndef __NR_LDPC_CNPROC__H__
 #define __NR_LDPC_CNPROC__H__
-//#define NR_LDPC_PROFILER_DETAIL
+#define NR_LDPC_PROFILER_DETAIL
 #ifdef NR_LDPC_DEBUG_MODE
 #include "nrLDPC_tools/nrLDPC_debug.h"
 #endif
@@ -376,7 +376,8 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
                                         int8_t* cnProcBufRes,
                                         int8_t* bnProcBuf,
                                         int8_t* bnProcBufRes,
-                                        uint16_t Z)
+                                        uint16_t Z,
+                                        t_nrLDPC_time_stats* p_profiler)
 {
   const uint8_t*  lut_numCnInCnGroups = p_lut->numCnInCnGroups;
   const uint32_t* lut_startAddrCnGroups = p_lut->startAddrCnGroups;
@@ -421,6 +422,9 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
   // =====================================================================
   // CN group with 3 BNs
 
+#ifdef NR_LDPC_PROFILER_DETAIL
+    start_meas(&p_profiler->llr2CnProcBuf);
+#endif
   bitOffsetInGroup = lut_numCnInCnGroups_BG2_R15[0]*NR_LDPC_ZMAX;
 
   for (int j=0; j<3; j++)
@@ -433,7 +437,13 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
       p_cnProcBuf += Z;
     }
   }
+#ifdef NR_LDPC_PROFILER_DETAIL
+    stop_meas(&p_profiler->llr2CnProcBuf);
+#endif
 
+#ifdef NR_LDPC_PROFILER_DETAIL
+    start_meas(&p_profiler->cnProc);
+#endif
   // LUT with offsets for bits that need to be processed
   // 1. bit proc requires LLRs of 2. and 3. bit, 2.bits of 1. and 3. etc.
   // Offsets are in units of bitOffsetInGroup
@@ -481,6 +491,13 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
       }
     }
 
+#ifdef NR_LDPC_PROFILER_DETAIL
+    stop_meas(&p_profiler->cnProc);
+#endif
+
+#ifdef NR_LDPC_PROFILER_DETAIL
+    start_meas(&p_profiler->cn2bnProcBuf);
+#endif
     // Copy CN processing results to bnProcBuf
     bitOffsetInGroup = lut_numCnInCnGroups_BG2_R15[0]*NR_LDPC_ZMAX;
 
@@ -494,14 +511,33 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
         p_cnProcBufRes += Z;
       }
     }
+#ifdef NR_LDPC_PROFILER_DETAIL
+    stop_meas(&p_profiler->cn2bnProcBuf);
+#endif
 
+#ifdef NR_LDPC_PROFILER_DETAIL
+    start_meas(&p_profiler->bnProcPc);
+#endif
     nrLDPC_bnProcPc(p_lut, bnProcBuf, bnProcBufRes, llrProcBuf, llrRes, Z);
+#ifdef NR_LDPC_PROFILER_DETAIL
+    stop_meas(&p_profiler->bnProcPc);
+#endif
+
+#ifdef NR_LDPC_PROFILER_DETAIL
+    start_meas(&p_profiler->bnProc);
+#endif
     nrLDPC_bnProc(p_lut, bnProcBuf, bnProcBufRes, llrRes, Z);
+#ifdef NR_LDPC_PROFILER_DETAIL
+    stop_meas(&p_profiler->bnProc);
+#endif
   }
 
   // =====================================================================
   // CN group with 4 BNs
 
+#ifdef NR_LDPC_PROFILER_DETAIL
+    start_cont_meas(&p_profiler->llr2CnProcBuf);
+#endif
   bitOffsetInGroup = lut_numCnInCnGroups_BG2_R15[1]*NR_LDPC_ZMAX;
 
   for (int j=0; j<4; j++)
@@ -514,6 +550,13 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
       p_cnProcBuf += Z;
     }
   }
+#ifdef NR_LDPC_PROFILER_DETAIL
+    stop_meas(&p_profiler->llr2CnProcBuf);
+#endif
+
+#ifdef NR_LDPC_PROFILER_DETAIL
+    start_cont_meas(&p_profiler->cnProc);
+#endif
 
   // Process group with 4 BNs
   // Offset is 20*384/32 = 240
@@ -559,6 +602,13 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
         p_cnProcBufResBit++;
       }
     }
+#ifdef NR_LDPC_PROFILER_DETAIL
+    stop_meas(&p_profiler->cnProc);
+#endif
+
+#ifdef NR_LDPC_PROFILER_DETAIL
+    start_cont_meas(&p_profiler->cn2bnProcBuf);
+#endif
 
     // Copy CN processing results to bnProcBuf
     bitOffsetInGroup = lut_numCnInCnGroups_BG2_R15[1]*NR_LDPC_ZMAX;
@@ -573,14 +623,34 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
         p_cnProcBufRes += Z;
       }
     }
+#ifdef NR_LDPC_PROFILER_DETAIL
+    stop_meas(&p_profiler->cn2bnProcBuf);
+#endif
 
+#ifdef NR_LDPC_PROFILER_DETAIL
+    start_cont_meas(&p_profiler->bnProcPc);
+#endif
     nrLDPC_bnProcPc(p_lut, bnProcBuf, bnProcBufRes, llrProcBuf, llrRes, Z);
+#ifdef NR_LDPC_PROFILER_DETAIL
+    stop_meas(&p_profiler->bnProcPc);
+#endif
+
+#ifdef NR_LDPC_PROFILER_DETAIL
+    start_cont_meas(&p_profiler->bnProc);
+#endif
     nrLDPC_bnProc(p_lut, bnProcBuf, bnProcBufRes, llrRes, Z);
+#ifdef NR_LDPC_PROFILER_DETAIL
+    stop_meas(&p_profiler->bnProc);
+#endif
+
   }
 
   // =====================================================================
   // CN group with 5 BNs
 
+#ifdef NR_LDPC_PROFILER_DETAIL
+    start_cont_meas(&p_profiler->llr2CnProcBuf);
+#endif
   bitOffsetInGroup = lut_numCnInCnGroups_BG2_R15[2]*NR_LDPC_ZMAX;
 
   for (int j=0; j<5; j++)
@@ -593,6 +663,13 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
       p_cnProcBuf += Z;
     }
   }
+#ifdef NR_LDPC_PROFILER_DETAIL
+    stop_meas(&p_profiler->llr2CnProcBuf);
+#endif
+
+#ifdef NR_LDPC_PROFILER_DETAIL
+    start_cont_meas(&p_profiler->cnProc);
+#endif
 
   // Offset is 9*384/32 = 108
   const uint16_t lut_idxCnProcG5[5][4] = {{108,216,324,432}, {0,216,324,432},
@@ -638,6 +715,13 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
         p_cnProcBufResBit++;
       }
     }
+#ifdef NR_LDPC_PROFILER_DETAIL
+    stop_meas(&p_profiler->cnProc);
+#endif
+
+#ifdef NR_LDPC_PROFILER_DETAIL
+    start_cont_meas(&p_profiler->cn2bnProcBuf);
+#endif
 
     // Copy CN processing results to bnProcBuf
     bitOffsetInGroup = lut_numCnInCnGroups_BG2_R15[2]*NR_LDPC_ZMAX;
@@ -652,14 +736,34 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
         p_cnProcBufRes += Z;
       }
     }
+#ifdef NR_LDPC_PROFILER_DETAIL
+    stop_meas(&p_profiler->cn2bnProcBuf);
+#endif
 
+#ifdef NR_LDPC_PROFILER_DETAIL
+    start_cont_meas(&p_profiler->bnProcPc);
+#endif
     nrLDPC_bnProcPc(p_lut, bnProcBuf, bnProcBufRes, llrProcBuf, llrRes, Z);
+#ifdef NR_LDPC_PROFILER_DETAIL
+    stop_meas(&p_profiler->bnProcPc);
+#endif
+
+#ifdef NR_LDPC_PROFILER_DETAIL
+    start_cont_meas(&p_profiler->bnProc);
+#endif
     nrLDPC_bnProc(p_lut, bnProcBuf, bnProcBufRes, llrRes, Z);
+#ifdef NR_LDPC_PROFILER_DETAIL
+    stop_meas(&p_profiler->bnProc);
+#endif
+
   }
 
   // =====================================================================
   // CN group with 6 BNs
 
+#ifdef NR_LDPC_PROFILER_DETAIL
+    start_cont_meas(&p_profiler->llr2CnProcBuf);
+#endif
   bitOffsetInGroup = lut_numCnInCnGroups_BG2_R15[3]*NR_LDPC_ZMAX;
 
   for (int j=0; j<6; j++)
@@ -672,6 +776,13 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
       p_cnProcBuf += Z;
     }
   }
+#ifdef NR_LDPC_PROFILER_DETAIL
+    stop_meas(&p_profiler->llr2CnProcBuf);
+#endif
+
+#ifdef NR_LDPC_PROFILER_DETAIL
+    start_cont_meas(&p_profiler->cnProc);
+#endif
 
   // Offset is 3*384/32 = 36
   const uint16_t lut_idxCnProcG6[6][5] = {{36,72,108,144,180}, {0,72,108,144,180},
@@ -718,6 +829,13 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
         p_cnProcBufResBit++;
       }
     }
+#ifdef NR_LDPC_PROFILER_DETAIL
+    stop_meas(&p_profiler->cnProc);
+#endif
+
+#ifdef NR_LDPC_PROFILER_DETAIL
+    start_cont_meas(&p_profiler->cn2bnProcBuf);
+#endif
 
     // Copy CN processing results to bnProcBuf
     bitOffsetInGroup = lut_numCnInCnGroups_BG2_R15[3]*NR_LDPC_ZMAX;
@@ -732,14 +850,34 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
         p_cnProcBufRes += Z;
       }
     }
+#ifdef NR_LDPC_PROFILER_DETAIL
+    stop_meas(&p_profiler->cn2bnProcBuf);
+#endif
 
+#ifdef NR_LDPC_PROFILER_DETAIL
+    start_cont_meas(&p_profiler->bnProcPc);
+#endif
     nrLDPC_bnProcPc(p_lut, bnProcBuf, bnProcBufRes, llrProcBuf, llrRes, Z);
+#ifdef NR_LDPC_PROFILER_DETAIL
+    stop_meas(&p_profiler->bnProcPc);
+#endif
+
+#ifdef NR_LDPC_PROFILER_DETAIL
+    start_cont_meas(&p_profiler->bnProc);
+#endif
     nrLDPC_bnProc(p_lut, bnProcBuf, bnProcBufRes, llrRes, Z);
+#ifdef NR_LDPC_PROFILER_DETAIL
+    stop_meas(&p_profiler->bnProc);
+#endif
+
   }
 
   // =====================================================================
   // CN group with 8 BNs
 
+#ifdef NR_LDPC_PROFILER_DETAIL
+    start_cont_meas(&p_profiler->llr2CnProcBuf);
+#endif
   bitOffsetInGroup = lut_numCnInCnGroups_BG2_R15[4]*NR_LDPC_ZMAX;
 
   for (int j=0; j<8; j++)
@@ -753,6 +891,13 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
       p_cnProcBuf += Z;
     }
   }
+#ifdef NR_LDPC_PROFILER_DETAIL
+    stop_meas(&p_profiler->llr2CnProcBuf);
+#endif
+
+#ifdef NR_LDPC_PROFILER_DETAIL
+    start_cont_meas(&p_profiler->cnProc);
+#endif
 
   // Process group with 8 BNs
   // Offset is 2*384/32 = 24
@@ -801,6 +946,13 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
         p_cnProcBufResBit++;
       }
     }
+#ifdef NR_LDPC_PROFILER_DETAIL
+    stop_meas(&p_profiler->cnProc);
+#endif
+
+#ifdef NR_LDPC_PROFILER_DETAIL
+    start_cont_meas(&p_profiler->cn2bnProcBuf);
+#endif
 
     // Copy CN processing results to bnProcBuf
     bitOffsetInGroup = lut_numCnInCnGroups_BG2_R15[4]*NR_LDPC_ZMAX;
@@ -815,14 +967,34 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
         p_cnProcBufRes += Z;
       }
     }
+#ifdef NR_LDPC_PROFILER_DETAIL
+    stop_meas(&p_profiler->cn2bnProcBuf);
+#endif
 
+#ifdef NR_LDPC_PROFILER_DETAIL
+    start_cont_meas(&p_profiler->bnProcPc);
+#endif
     nrLDPC_bnProcPc(p_lut, bnProcBuf, bnProcBufRes, llrProcBuf, llrRes, Z);
+#ifdef NR_LDPC_PROFILER_DETAIL
+    stop_meas(&p_profiler->bnProcPc);
+#endif
+
+#ifdef NR_LDPC_PROFILER_DETAIL
+    start_cont_meas(&p_profiler->bnProc);
+#endif
     nrLDPC_bnProc(p_lut, bnProcBuf, bnProcBufRes, llrRes, Z);
+#ifdef NR_LDPC_PROFILER_DETAIL
+    stop_meas(&p_profiler->bnProc);
+#endif
+
   }
 
   // =====================================================================
   // CN group with 10 BNs
 
+#ifdef NR_LDPC_PROFILER_DETAIL
+    start_cont_meas(&p_profiler->llr2CnProcBuf);
+#endif
   bitOffsetInGroup = lut_numCnInCnGroups_BG2_R15[5]*NR_LDPC_ZMAX;
 
   for (int j=0; j<10; j++)
@@ -835,6 +1007,13 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
       p_cnProcBuf += Z;
     }
   }
+#ifdef NR_LDPC_PROFILER_DETAIL
+    stop_meas(&p_profiler->llr2CnProcBuf);
+#endif
+
+#ifdef NR_LDPC_PROFILER_DETAIL
+    start_cont_meas(&p_profiler->cnProc);
+#endif
 
   // Offset is 2*384/32 = 24
   const uint8_t lut_idxCnProcG10[10][9] = {{24,48,72,96,120,144,168,192,216}, {0,48,72,96,120,144,168,192,216},
@@ -883,6 +1062,13 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
         p_cnProcBufResBit++;
       }
     }
+#ifdef NR_LDPC_PROFILER_DETAIL
+    stop_meas(&p_profiler->cnProc);
+#endif
+
+#ifdef NR_LDPC_PROFILER_DETAIL
+    start_cont_meas(&p_profiler->cn2bnProcBuf);
+#endif
 
     // Copy CN processing results to bnProcBuf
     bitOffsetInGroup = lut_numCnInCnGroups_BG2_R15[5]*NR_LDPC_ZMAX;
@@ -897,9 +1083,26 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
         p_cnProcBufRes += Z;
       }
     }
+#ifdef NR_LDPC_PROFILER_DETAIL
+    stop_meas(&p_profiler->cn2bnProcBuf);
+#endif
 
+#ifdef NR_LDPC_PROFILER_DETAIL
+    start_cont_meas(&p_profiler->bnProcPc);
+#endif
     nrLDPC_bnProcPc(p_lut, bnProcBuf, bnProcBufRes, llrProcBuf, llrRes, Z);
+#ifdef NR_LDPC_PROFILER_DETAIL
+    stop_meas(&p_profiler->bnProcPc);
+#endif
+
+#ifdef NR_LDPC_PROFILER_DETAIL
+    start_cont_meas(&p_profiler->bnProc);
+#endif
     nrLDPC_bnProc(p_lut, bnProcBuf, bnProcBufRes, llrRes, Z);
+#ifdef NR_LDPC_PROFILER_DETAIL
+    stop_meas(&p_profiler->bnProc);
+#endif
+
   }
 }
 
