@@ -2361,6 +2361,7 @@ rrc_gNB_decode_dcch(
                 ctxt_pP,
                 ue_context_p,
                 ul_dcch_msg->message.choice.c1->choice.rrcReconfigurationComplete->rrc_TransactionIdentifier);
+                xer_fprint(stdout, &asn_DEF_NR_UL_DCCH_Message, (void *)ul_dcch_msg);
         }
 
         if (AMF_MODE_ENABLED) {
@@ -2509,6 +2510,7 @@ rrc_gNB_decode_dcch(
                 rrc_gNB_send_NGAP_UPLINK_NAS(ctxt_pP,
                                           ue_context_p,
                                           ul_dcch_msg);
+                xer_fprint(stdout, &asn_DEF_NR_UL_DCCH_Message, (void *)ul_dcch_msg);
             }
             break;
 
@@ -2529,7 +2531,7 @@ rrc_gNB_decode_dcch(
               PROTOCOL_NR_RRC_CTXT_UE_ARGS(ctxt_pP),
               DCCH,
               sdu_sizeP);
-
+        xer_fprint(stdout, &asn_DEF_NR_UL_DCCH_Message, (void *)ul_dcch_msg);
         if ( LOG_DEBUGFLAG(DEBUG_ASN1) ) {
           xer_fprint(stdout, &asn_DEF_NR_UL_DCCH_Message, (void *)ul_dcch_msg);
         }

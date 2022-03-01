@@ -661,7 +661,7 @@ void config_uldci(const NR_BWP_Uplink_t *ubwp,
 
   dci_pdu_rel15->frequency_domain_assignment.val =
       PRBalloc_to_locationandbandwidth0(pusch_pdu->rb_size, pusch_pdu->rb_start, bw);
-  LOG_I(NR_MAC,"UL DCI FREQ %d PRB %d start %d BW %d\n",dci_pdu_rel15->frequency_domain_assignment.val,pusch_pdu->rb_size,pusch_pdu->rb_start,bw);    
+  LOG_D(NR_MAC,"UL DCI FREQ %d PRB %d start %d BW %d\n",dci_pdu_rel15->frequency_domain_assignment.val,pusch_pdu->rb_size,pusch_pdu->rb_start,bw);    
   dci_pdu_rel15->time_domain_assignment.val = time_domain_assignment;
   dci_pdu_rel15->frequency_hopping_flag.val = pusch_pdu->frequency_hopping;
   dci_pdu_rel15->mcs = pusch_pdu->mcs_index;
@@ -1526,7 +1526,7 @@ void fill_dci_pdu_rel15(const NR_ServingCellConfigCommon_t *scc,
   case NR_UL_DCI_FORMAT_0_1:
     switch (rnti_type) {
     case NR_RNTI_C:
-      LOG_I(NR_MAC,"Filling NR_UL_DCI_FORMAT_0_1 size %d format indicator %d\n",dci_size,dci_pdu_rel15->format_indicator);
+      LOG_D(NR_MAC,"Filling NR_UL_DCI_FORMAT_0_1 size %d format indicator %d\n",dci_size,dci_pdu_rel15->format_indicator);
       // Indicating a DL DCI format 1bit
       pos = 1;
       *dci_pdu |= ((uint64_t)dci_pdu_rel15->format_indicator & 0x1) << (dci_size - pos);
@@ -1599,7 +1599,7 @@ void fill_dci_pdu_rel15(const NR_ServingCellConfigCommon_t *scc,
       // UL-SCH indicator
       pos += 1;
       *dci_pdu |= ((uint64_t)dci_pdu_rel15->ulsch_indicator & 0x1) << (dci_size - pos);
-      LOG_I(NR_MAC,"carrier_indicator %d ul_sul_indicator %d bwp_indicator %d frequency_domain_assignment %d time_domain_assignment %d frequency_hopping_flag %d  mcs %d ndi %d rv %d harq_pid %d tpc %d srs_resource_indicator %d precoding_information %d ptrs_dmrs_association %d beta_offset_indicator %d dmrs_sequence_initialization %d\n" ,dci_pdu_rel15->carrier_indicator.val, dci_pdu_rel15->ul_sul_indicator.val,dci_pdu_rel15->bwp_indicator.val,dci_pdu_rel15->frequency_domain_assignment.val, dci_pdu_rel15->time_domain_assignment.val,dci_pdu_rel15->frequency_hopping_flag.val, dci_pdu_rel15->mcs,dci_pdu_rel15->ndi, dci_pdu_rel15->rv, dci_pdu_rel15->harq_pid, dci_pdu_rel15->tpc, dci_pdu_rel15->srs_resource_indicator.val, dci_pdu_rel15->precoding_information.val, dci_pdu_rel15->ptrs_dmrs_association.val, dci_pdu_rel15->beta_offset_indicator.val,dci_pdu_rel15->dmrs_sequence_initialization.val);
+      LOG_D(NR_MAC,"carrier_indicator %d ul_sul_indicator %d bwp_indicator %d frequency_domain_assignment %d time_domain_assignment %d frequency_hopping_flag %d  mcs %d ndi %d rv %d harq_pid %d tpc %d srs_resource_indicator %d precoding_information %d ptrs_dmrs_association %d beta_offset_indicator %d dmrs_sequence_initialization %d\n" ,dci_pdu_rel15->carrier_indicator.val, dci_pdu_rel15->ul_sul_indicator.val,dci_pdu_rel15->bwp_indicator.val,dci_pdu_rel15->frequency_domain_assignment.val, dci_pdu_rel15->time_domain_assignment.val,dci_pdu_rel15->frequency_hopping_flag.val, dci_pdu_rel15->mcs,dci_pdu_rel15->ndi, dci_pdu_rel15->rv, dci_pdu_rel15->harq_pid, dci_pdu_rel15->tpc, dci_pdu_rel15->srs_resource_indicator.val, dci_pdu_rel15->precoding_information.val, dci_pdu_rel15->ptrs_dmrs_association.val, dci_pdu_rel15->beta_offset_indicator.val,dci_pdu_rel15->dmrs_sequence_initialization.val);
       break;
     }
     break;
@@ -2223,7 +2223,7 @@ void nr_csirs_scheduling(int Mod_idP,
 
         if((frame*n_slots_frame+slot-offset)%period == 0) {
 
-          LOG_I(MAC,"Scheduling CSI-RS in frame %d slot %d\n",frame,slot);
+          LOG_D(MAC,"Scheduling CSI-RS in frame %d slot %d\n",frame,slot);
 
           nfapi_nr_dl_tti_request_pdu_t *dl_tti_csirs_pdu = &dl_req->dl_tti_pdu_list[dl_req->nPDUs];
           memset((void*)dl_tti_csirs_pdu,0,sizeof(nfapi_nr_dl_tti_request_pdu_t));

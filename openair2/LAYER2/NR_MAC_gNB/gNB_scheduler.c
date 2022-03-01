@@ -361,7 +361,7 @@ void gNB_dlsch_ulsch_scheduler(module_id_t module_idP,
   if ((slot == 0) && (frame & 127) == 0) {
      stats_output[0]='\0';
      dump_mac_stats(RC.nrmac[module_idP],stats_output,16384);
-     LOG_I(NR_MAC,"Frame.Slot %d.%d\n%s\n",frame,slot,stats_output);
+     LOG_D(NR_MAC,"Frame.Slot %d.%d\n%s\n",frame,slot,stats_output);
   }
 
   // This schedules MIB
