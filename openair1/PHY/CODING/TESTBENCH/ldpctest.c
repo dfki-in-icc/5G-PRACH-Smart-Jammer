@@ -672,7 +672,7 @@ int main(int argc, char *argv[])
 
   fprintf(fd,"SNR BLER BER UNCODED_BER ENCODER_MEAN ENCODER_STD ENCODER_MAX DECODER_TIME_MEAN DECODER_TIME_STD DECODER_TIME_MAX DECODER_ITER_MEAN DECODER_ITER_STD DECODER_ITER_MAX\n");
 
-  for (SNR=SNR0;SNR<SNR0+20.0;SNR+=SNR_step) {
+  for (SNR=SNR0;SNR<SNR0+0.1;SNR+=SNR_step) {
 	  //reset_meas(&time_optim);
 	  //reset_meas(&time_decoder);
 	  //n_iter_stats_t dec_iter = {0, 0, 0};

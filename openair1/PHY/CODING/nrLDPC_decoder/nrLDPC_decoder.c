@@ -39,7 +39,7 @@
 #include "nrLDPC_bnProc.h"
 
 #define NR_LDPC_ENABLE_PARITY_CHECK
-//#define NR_LDPC_DEBUG_MODE
+#define NR_LDPC_DEBUG_MODE
 //#define NR_LDPC_PROFILER_DETAIL
 
 #ifdef NR_LDPC_DEBUG_MODE
@@ -103,23 +103,23 @@ static inline uint32_t nrLDPC_decoder_core_layer(int8_t* p_llr, int8_t* p_out, u
     // First iteration
 
     // CN processing
-    nrLDPC_layerProc_BG2(p_lut, p_llr, llrProcBuf, cnProcBuf, cnProcBufRes, Z, (i == 1));
+    nrLDPC_layerProc_BG2(p_lut, p_llr, llrProcBuf, cnProcBuf, cnProcBufRes, Z, false);
 
 #ifdef NR_LDPC_DEBUG_MODE
     nrLDPC_debug_initBuffer2File(nrLDPC_buffers_CN_PROC);
     nrLDPC_debug_writeBuffer2File(nrLDPC_buffers_CN_PROC, cnProcBuf);
-    nrLDPC_debug_initBuffer2File(nrLDPC_buffers_CN_PROC_RES);
-    nrLDPC_debug_writeBuffer2File(nrLDPC_buffers_CN_PROC_RES, cnProcBufRes);
+//    nrLDPC_debug_initBuffer2File(nrLDPC_buffers_CN_PROC_RES);
+//    nrLDPC_debug_writeBuffer2File(nrLDPC_buffers_CN_PROC_RES, cnProcBufRes);
     nrLDPC_debug_writeBuffer2File(nrLDPC_buffers_LLR_PROC, llrProcBuf);
 #endif
     while ( (i < (numMaxIter)) && (pcRes != 0) )
     {
       i++;
-      nrLDPC_layerProc_BG2(p_lut, p_llr, llrProcBuf, cnProcBuf, cnProcBufRes, Z, (i == 1));
+      nrLDPC_layerProc_BG2(p_lut, p_llr, llrProcBuf, cnProcBuf, cnProcBufRes, Z, false);
 
 #ifdef NR_LDPC_DEBUG_MODE
       nrLDPC_debug_writeBuffer2File(nrLDPC_buffers_CN_PROC, cnProcBuf);
-      nrLDPC_debug_writeBuffer2File(nrLDPC_buffers_CN_PROC_RES, cnProcBufRes);
+//      nrLDPC_debug_writeBuffer2File(nrLDPC_buffers_CN_PROC_RES, cnProcBufRes);
       nrLDPC_debug_writeBuffer2File(nrLDPC_buffers_LLR_PROC, llrProcBuf);
 #endif
     }

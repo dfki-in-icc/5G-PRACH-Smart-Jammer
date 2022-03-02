@@ -30,6 +30,7 @@
 
 #ifndef __NR_LDPC_CNPROC__H__
 #define __NR_LDPC_CNPROC__H__
+#define NR_LDPC_DEBUG_MODE
 #ifdef NR_LDPC_DEBUG_MODE
 #include "nrLDPC_tools/nrLDPC_debug.h"
 #endif
@@ -429,15 +430,20 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
 
   __m256i* p_cnProcBuf256;
   __m256i* p_cnProcBufRes256;
+  __m256i* p_cnProcBufResDiff256;
 
   // Number of CNs in Groups
   __m256i ymm0, ymm1, ymmRes0, ymmRes1, min, sgn;
   __m256i* p_cnProcBufResBit;
+  __m256i* p_cnProcBufResBitDiff;
   __m128i* p_bnProcBuf;
   __m256i* p_llrRes;
 
   const __m256i* p_ones   = (__m256i*) ones256_epi8;
   const __m256i* p_maxLLR = (__m256i*) maxLLR256_epi8;
+
+  int8_t cnProcBufResDiff[NR_LDPC_SIZE_CN_PROC_BUF] __attribute__ ((aligned(32))) = {0};
+  __m256i newVal;
   // =====================================================================
   // CN group with 3 BNs
 
@@ -500,12 +506,14 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
     // Set pointers to start of group 3
     p_cnProcBuf256    = (__m256i*) &cnProcBuf   [lut_startAddrCnGroups[0]];
     p_cnProcBufRes256 = (__m256i*) &cnProcBufRes[lut_startAddrCnGroups[0]];
+    p_cnProcBufResDiff256 = (__m256i*) &cnProcBufResDiff[lut_startAddrCnGroups[0]];
 
     // Loop over every BN
     for (int j=0; j < 3; j++)
     {
       // Set of results pointer to correct BN address
       p_cnProcBufResBit = p_cnProcBufRes256 + (j*bitOffsetInGroup);
+      p_cnProcBufResBitDiff = p_cnProcBufResDiff256 + (j*bitOffsetInGroup);
 
       __m256i *pj0 = &p_cnProcBuf256[lut_idxCnProcG3[j][0]];
       __m256i *pj1 = &p_cnProcBuf256[lut_idxCnProcG3[j][1]];
@@ -525,7 +533,9 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
 
         // Store result
         min = _mm256_min_epu8(min, *p_maxLLR); // 128 in epi8 is -127
-        p_cnProcBufResBit[i]=_mm256_sign_epi8(min, sgn);
+        newVal = _mm256_sign_epi8(min, sgn);
+        p_cnProcBufResBitDiff[i]=_mm256_subs_epi8(newVal, p_cnProcBufResBit[i]);
+        p_cnProcBufResBit[i]=newVal;
       }
     }
 #ifdef NR_LDPC_PROFILER_DETAIL
@@ -539,7 +549,7 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
 
     for (int j=0; j < 3; j++)
     {
-      p_cnProcBufRes = &cnProcBufRes[lut_startAddrCnGroups[0] + j*bitOffsetInGroup];
+      p_cnProcBufRes = &cnProcBufResDiff[lut_startAddrCnGroups[0] + j*bitOffsetInGroup];
       for (int i=0; i < lut_numCnInCnGroups[0]; i++)
       {
         int idxBn = lut_startAddrSG_cnProcBuf_CNG3[j][i] +
@@ -672,12 +682,14 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
     // Set pointers to start of group 4
     p_cnProcBuf256    = (__m256i*) &cnProcBuf   [lut_startAddrCnGroups[1]];
     p_cnProcBufRes256 = (__m256i*) &cnProcBufRes[lut_startAddrCnGroups[1]];
+    p_cnProcBufResDiff256 = (__m256i*) &cnProcBufResDiff[lut_startAddrCnGroups[1]];
 
     // Loop over every BN
     for (int j=0; j < 4; j++)
     {
       // Set of results pointer to correct BN address
       p_cnProcBufResBit = p_cnProcBufRes256 + (j*bitOffsetInGroup);
+      p_cnProcBufResBitDiff = p_cnProcBufResDiff256 + (j*bitOffsetInGroup);
 
       // Loop over CNs
       for (int i=0; i < M; i++)
@@ -697,8 +709,11 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
 
         // Store result
         min = _mm256_min_epu8(min, *p_maxLLR); // 128 in epi8 is -127
-        *p_cnProcBufResBit = _mm256_sign_epi8(min, sgn);
+        newVal = _mm256_sign_epi8(min, sgn);
+        *p_cnProcBufResBitDiff = _mm256_subs_epi8(newVal, *p_cnProcBufResBit);
+        *p_cnProcBufResBit=newVal;
         p_cnProcBufResBit++;
+        p_cnProcBufResBitDiff++;
       }
     }
 #ifdef NR_LDPC_PROFILER_DETAIL
@@ -713,13 +728,12 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
 
     for (int j=0; j < 4; j++)
     {
-      p_cnProcBufRes = &cnProcBufRes[lut_startAddrCnGroups[1] + j*bitOffsetInGroup];
+      p_cnProcBufRes = &cnProcBufResDiff[lut_startAddrCnGroups[1] + j*bitOffsetInGroup];
       for (int i=0; i < lut_numCnInCnGroups[1]; i++)
       {
         int idxBn = lut_startAddrSG_cnProcBuf_CNG4[j][i] +
                     lut_idxBnInSG_cnProcBuf_CNG4[j][i]*Z;
         nrLDPC_inv_circ_memcpy(&bnProcBuf[idxBn], p_cnProcBufRes, Z, lut_circShift_CNG4[j][i]);
-        //printf("idxBn %d: val %d\n",idxBn,bnProcBuf[0]);
         p_cnProcBufRes += Z;
       }
     }
@@ -847,12 +861,14 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
     // Set pointers to start of group 5
     p_cnProcBuf256    = (__m256i*) &cnProcBuf   [lut_startAddrCnGroups[2]];
     p_cnProcBufRes256 = (__m256i*) &cnProcBufRes[lut_startAddrCnGroups[2]];
+    p_cnProcBufResDiff256 = (__m256i*) &cnProcBufResDiff[lut_startAddrCnGroups[2]];
 
     // Loop over every BN
     for (int j=0; j < 5; j++)
     {
       // Set of results pointer to correct BN address
       p_cnProcBufResBit = p_cnProcBufRes256 + (j*bitOffsetInGroup);
+      p_cnProcBufResBitDiff = p_cnProcBufResDiff256 + (j*bitOffsetInGroup);
 
       // Loop over CNs
       for (int i=0; i < M; i++)
@@ -872,8 +888,11 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
 
         // Store result
         min = _mm256_min_epu8(min, *p_maxLLR); // 128 in epi8 is -127
-        *p_cnProcBufResBit = _mm256_sign_epi8(min, sgn);
+        newVal = _mm256_sign_epi8(min, sgn);
+        *p_cnProcBufResBitDiff = _mm256_subs_epi8(newVal, *p_cnProcBufResBit);
+        *p_cnProcBufResBit=newVal;
         p_cnProcBufResBit++;
+        p_cnProcBufResBitDiff++;
       }
     }
 #ifdef NR_LDPC_PROFILER_DETAIL
@@ -888,7 +907,7 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
 
     for (int j=0; j < 5; j++)
     {
-      p_cnProcBufRes = &cnProcBufRes[lut_startAddrCnGroups[2] + j*bitOffsetInGroup];
+      p_cnProcBufRes = &cnProcBufResDiff[lut_startAddrCnGroups[2] + j*bitOffsetInGroup];
       for (int i=0; i < lut_numCnInCnGroups[2]; i++)
       {
         int idxBn = lut_startAddrSG_cnProcBuf_CNG5[j][i] +
@@ -1022,12 +1041,14 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
     // Set pointers to start of group 6
     p_cnProcBuf256    = (__m256i*) &cnProcBuf   [lut_startAddrCnGroups[3]];
     p_cnProcBufRes256 = (__m256i*) &cnProcBufRes[lut_startAddrCnGroups[3]];
+    p_cnProcBufResDiff256 = (__m256i*) &cnProcBufResDiff[lut_startAddrCnGroups[3]];
 
     // Loop over every BN
     for (int j=0; j < 6; j++)
     {
       // Set of results pointer to correct BN address
       p_cnProcBufResBit = p_cnProcBufRes256 + (j*bitOffsetInGroup);
+      p_cnProcBufResBitDiff = p_cnProcBufResDiff256 + (j*bitOffsetInGroup);
 
       // Loop over CNs
       for (int i=0; i < M; i++)
@@ -1047,8 +1068,11 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
 
         // Store result
         min = _mm256_min_epu8(min, *p_maxLLR); // 128 in epi8 is -127
-        *p_cnProcBufResBit = _mm256_sign_epi8(min, sgn);
+        newVal = _mm256_sign_epi8(min, sgn);
+        *p_cnProcBufResBitDiff = _mm256_subs_epi8(newVal, *p_cnProcBufResBit);
+        *p_cnProcBufResBit=newVal;
         p_cnProcBufResBit++;
+        p_cnProcBufResBitDiff++;
       }
     }
 #ifdef NR_LDPC_PROFILER_DETAIL
@@ -1063,7 +1087,7 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
 
     for (int j=0; j < 6; j++)
     {
-      p_cnProcBufRes = &cnProcBufRes[lut_startAddrCnGroups[3] + j*bitOffsetInGroup];
+      p_cnProcBufRes = &cnProcBufResDiff[lut_startAddrCnGroups[3] + j*bitOffsetInGroup];
       for (int i=0; i < lut_numCnInCnGroups[3]; i++)
       {
         int idxBn = lut_startAddrSG_cnProcBuf_CNG6[j][i] +
@@ -1199,12 +1223,14 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
     // Set pointers to start of group 8
     p_cnProcBuf256    = (__m256i*) &cnProcBuf   [lut_startAddrCnGroups[4]];
     p_cnProcBufRes256 = (__m256i*) &cnProcBufRes[lut_startAddrCnGroups[4]];
+    p_cnProcBufResDiff256 = (__m256i*) &cnProcBufResDiff[lut_startAddrCnGroups[4]];
 
     // Loop over every BN
     for (int j=0; j < 8; j++)
     {
       // Set of results pointer to correct BN address
       p_cnProcBufResBit = p_cnProcBufRes256 + (j*bitOffsetInGroup);
+      p_cnProcBufResBitDiff = p_cnProcBufResDiff256 + (j*bitOffsetInGroup);
 
       // Loop over CNs
       for (int i=0; i < M; i++)
@@ -1224,8 +1250,11 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
 
         // Store result
         min = _mm256_min_epu8(min, *p_maxLLR); // 128 in epi8 is -127
-        *p_cnProcBufResBit = _mm256_sign_epi8(min, sgn);
+        newVal = _mm256_sign_epi8(min, sgn);
+        *p_cnProcBufResBitDiff = _mm256_subs_epi8(newVal, *p_cnProcBufResBit);
+        *p_cnProcBufResBit=newVal;
         p_cnProcBufResBit++;
+        p_cnProcBufResBitDiff++;
       }
     }
 #ifdef NR_LDPC_PROFILER_DETAIL
@@ -1240,7 +1269,7 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
 
     for (int j=0; j < 8; j++)
     {
-      p_cnProcBufRes = &cnProcBufRes[lut_startAddrCnGroups[4] + j*bitOffsetInGroup];
+      p_cnProcBufRes = &cnProcBufResDiff[lut_startAddrCnGroups[4] + j*bitOffsetInGroup];
       for (int i=0; i < lut_numCnInCnGroups[4]; i++)
       {
         int idxBn = lut_startAddrSG_cnProcBuf_CNG8[j][i] +
@@ -1376,12 +1405,14 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
     // Set pointers to start of group 10
     p_cnProcBuf256    = (__m256i*) &cnProcBuf   [lut_startAddrCnGroups[5]];
     p_cnProcBufRes256 = (__m256i*) &cnProcBufRes[lut_startAddrCnGroups[5]];
+    p_cnProcBufResDiff256 = (__m256i*) &cnProcBufResDiff[lut_startAddrCnGroups[5]];
 
     // Loop over every BN
     for (int j=0; j < 10; j++)
     {
       // Set of results pointer to correct BN address
       p_cnProcBufResBit = p_cnProcBufRes256 + (j*bitOffsetInGroup);
+      p_cnProcBufResBitDiff = p_cnProcBufResDiff256 + (j*bitOffsetInGroup);
 
       // Loop over CNs
       for (int i=0; i < M; i++)
@@ -1401,8 +1432,11 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
 
         // Store result
         min = _mm256_min_epu8(min, *p_maxLLR); // 128 in epi8 is -127
-        *p_cnProcBufResBit = _mm256_sign_epi8(min, sgn);
+        newVal = _mm256_sign_epi8(min, sgn);
+        *p_cnProcBufResBitDiff = _mm256_subs_epi8(newVal, *p_cnProcBufResBit);
+        *p_cnProcBufResBit=newVal;
         p_cnProcBufResBit++;
+        p_cnProcBufResBitDiff++;
       }
     }
 #ifdef NR_LDPC_PROFILER_DETAIL
@@ -1417,7 +1451,7 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
 
     for (int j=0; j < 10; j++)
     {
-      p_cnProcBufRes = &cnProcBufRes[lut_startAddrCnGroups[5] + j*bitOffsetInGroup];
+      p_cnProcBufRes = &cnProcBufResDiff[lut_startAddrCnGroups[5] + j*bitOffsetInGroup];
       for (int i=0; i < lut_numCnInCnGroups[5]; i++)
       {
         int idxBn = lut_startAddrSG_cnProcBuf_CNG10[j][i] +
@@ -1488,6 +1522,8 @@ static inline void nrLDPC_layerProc_BG2(t_nrLDPC_lut* p_lut,
     stop_meas(&p_profiler->bnProc);
 #endif
   }
+    nrLDPC_debug_initBuffer2File(nrLDPC_buffers_CN_PROC_RES);
+    nrLDPC_debug_writeBuffer2File(nrLDPC_buffers_CN_PROC_RES, cnProcBufResDiff);
 }
 
 /**
