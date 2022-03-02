@@ -40,6 +40,20 @@ nrmodule2_quectel:
     - sudo -S ip link set dev wwan1 mtu 1500
   MTU : 1500
 
+obelix_oainrue:
+  ID: obelix_oainrue
+  State : enabled
+  Kind : oainrue
+  #not required for OAI UE config but needed for py script
+  WakeupScript : none
+  DetachScript : none
+  PLMN : 20897
+  UENetwork : oaitun_ue1
+  HostIPAddress : 172.21.16.128
+  HostUsername : oaicicd
+  HostPassword : oaicicd
+  HostSourceCodePath : none
+
 # CAUTION: 192.168.18.89 address has to be changed when the server is moved
 #single UE single ping
 amarisoft_ue_1:

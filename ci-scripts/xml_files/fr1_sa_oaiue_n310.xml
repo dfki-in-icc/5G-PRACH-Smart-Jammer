@@ -95,7 +95,7 @@
 		<desc>iperf (DL/60Mbps/UDP)(60 sec)(single-ue profile)</desc>
 		<iperf_args>-u -b 60M -t 60</iperf_args>
 		<direction>DL</direction>
-		<id>nrmodule2_quectel</id>
+		<id>obelix_oainrue</id>
 		<iperf_packetloss_threshold>5</iperf_packetloss_threshold>
 		<iperf_profile>single-ue</iperf_profile>
 	</testCase>
