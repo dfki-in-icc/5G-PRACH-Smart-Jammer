@@ -164,7 +164,7 @@ void nr_pdcch_demapping_deinterleaving(uint32_t *llr,
 
   // Get cce_list indices by reg_idx in ascending order
   int f_bundle_j_list_id = 0;
-  int f_bundle_j_list_ord[(2*NR_MAX_PDCCH_AGG_LEVEL)-1] = {};
+  int f_bundle_j_list_ord[NR_MAX_PDCCH_AGG_LEVEL][FAPI_NR_MAX_NUM_CANDIDATE_BEAMS] = {};
   for (int c_id = 0; c_id < number_of_candidates; c_id++ ) {
     f_bundle_j_list_id = CCE[c_id];
     for (int p = 0; p < (coreset_nbr_rb/reg_bundle_size_L); p++) {
@@ -172,7 +172,7 @@ void nr_pdcch_demapping_deinterleaving(uint32_t *llr,
         AssertFatal(p2<2*NR_MAX_PDCCH_AGG_LEVEL,"number_of_candidates %d : p2 %d,  CCE[%d] %d, L[%d] %d\n",number_of_candidates,p2,c_id,CCE[c_id],c_id,L[c_id]);
         if (f_bundle_j_list[p2] == p) {
           AssertFatal(f_bundle_j_list_id < 2*NR_MAX_PDCCH_AGG_LEVEL,"f_bundle_j_list_id %d\n",f_bundle_j_list_id);
-          f_bundle_j_list_ord[f_bundle_j_list_id] = p;
+          f_bundle_j_list_ord[f_bundle_j_list_id][c_id] = p;
           f_bundle_j_list_id++;
           break;
         }
@@ -186,7 +186,7 @@ void nr_pdcch_demapping_deinterleaving(uint32_t *llr,
       for (int cce_count = CCE[c_id/coreset_time_dur]+c_id%coreset_time_dur; cce_count < CCE[c_id/coreset_time_dur]+c_id%coreset_time_dur+L[c_id]; cce_count += coreset_time_dur) {
         for (int reg_in_cce_idx = 0; reg_in_cce_idx < NR_NB_REG_PER_CCE; reg_in_cce_idx++) {
 
-          f_reg = (f_bundle_j_list_ord[cce_count] * reg_bundle_size_L) + reg_in_cce_idx;
+          f_reg = (f_bundle_j_list_ord[cce_count][c_id] * reg_bundle_size_L) + reg_in_cce_idx;
           index_z = 9 * rb;
           index_llr = (uint16_t) (f_reg + symbol_idx * coreset_nbr_rb) * 9;
 

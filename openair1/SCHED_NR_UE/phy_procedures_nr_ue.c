@@ -1738,8 +1738,8 @@ int phy_procedures_nrUE_RX(PHY_VARS_NR_UE *ue,
     }
     if(temp_power_db<65.0){
     }else{
-        LOG_I(PHY, "pdcch_channel_estimation: sf %d slot %d first_carrier_offset %d, BWPStart %d, coreset_start_rb %d %d power %lf ss %d\n",
-          frame_rx%1024, nr_slot_rx,fp->first_carrier_offset, pdcch_vars->pdcch_config[n_ss].BWPStart, coreset_start_rb, coreset_nb_rb,temp_power_db,n_ss);
+        // LOG_I(PHY, "pdcch_channel_estimation: sf %d slot %d first_carrier_offset %d, BWPStart %d, coreset_start_rb %d %d power %lf ss %d\n",
+          //frame_rx%1024, nr_slot_rx,fp->first_carrier_offset, pdcch_vars->pdcch_config[n_ss].BWPStart, coreset_start_rb, coreset_nb_rb,temp_power_db,n_ss);
       dci_cnt = dci_cnt + nr_ue_pdcch_procedures(gNB_id, ue, proc, n_ss);
     }
   }
