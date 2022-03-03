@@ -744,6 +744,7 @@ rrc_gNB_generate_defaultRRCReconfiguration(
   struct NR_RRCReconfiguration_v1530_IEs__dedicatedNAS_MessageList
                                *dedicatedNAS_MessageList = NULL;
   NR_DedicatedNAS_Message_t    *dedicatedNAS_Message = NULL;
+  NR_CellGroupConfig_t *cellGroupConfig;
 
   uint8_t xid = rrc_gNB_get_next_transaction_identifier(ctxt_pP->module_id);
 
@@ -841,6 +842,14 @@ rrc_gNB_generate_defaultRRCReconfiguration(
     free(dedicatedNAS_MessageList);
     dedicatedNAS_MessageList = NULL;
   }
+
+if (0){
+
+  cellGroupConfig = calloc(1, sizeof(NR_CellGroupConfig_t));
+  fill_mastercellGroupConfig(cellGroupConfig, ue_context_pP->ue_context.masterCellGroup);
+
+
+}
 
   memset(buffer, 0, RRC_BUF_SIZE);
   size = do_RRCReconfiguration(ctxt_pP, buffer,

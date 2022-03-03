@@ -1020,11 +1020,11 @@ static void add_drb_am(int is_gnb, int rnti, struct NR_DRB_ToAddMod *s,
     exit(1);
   }
 
-  if (drb_id != 1) {
+  /*if (drb_id != 1) {
     LOG_E(PDCP, "%s:%d:%s: fatal, bad drb id %d\n",
           __FILE__, __LINE__, __FUNCTION__, drb_id);
     exit(1);
-  }
+  }*/
 
   nr_pdcp_manager_lock(nr_pdcp_ue_manager);
   ue = nr_pdcp_manager_get_ue(nr_pdcp_ue_manager, rnti);
@@ -1121,6 +1121,8 @@ boolean_t nr_rrc_pdcp_config_asn1_req(
 
   if (drb2add_list != NULL) {
     for (i = 0; i < drb2add_list->list.count; i++) {
+      /*if (drb2add_list->list.array[i]->drb_Identity == 1) continue;
+      drb2add_list->list.array[i]->drb_Identity--;*/
       add_drb(ctxt_pP->enb_flag, rnti, drb2add_list->list.array[i],
               rlc_bearer2add_list->list.array[i]->rlc_Config,
               security_modeP & 0x0f, (security_modeP >> 4) & 0x0f,

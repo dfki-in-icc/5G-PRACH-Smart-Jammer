@@ -1038,6 +1038,8 @@ int ngap_gNB_pdusession_setup_resp(instance_t instance,
   ASN_SEQUENCE_ADD(&out->protocolIEs.list, ie);
 
   /* optional */
+  LOG_W(NGAP,"pdusession_setup_resp_p->nb_of_pdusessions %u\n",pdusession_setup_resp_p->nb_of_pdusessions);
+
   if (pdusession_setup_resp_p->nb_of_pdusessions > 0) {
     ie = calloc(1, sizeof *ie );
     ie->id = NGAP_ProtocolIE_ID_id_PDUSessionResourceSetupListSURes;

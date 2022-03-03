@@ -2303,6 +2303,7 @@ int16_t do_RRCReconfiguration(
     // *security_config->keyToUse = NR_SecurityConfig__keyToUse_master;
 
     ie = calloc(1, sizeof(NR_RRCReconfiguration_IEs_t));
+    
     if (SRB_configList || DRB_configList) {
       ie->radioBearerConfig = calloc(1, sizeof(NR_RadioBearerConfig_t));
       ie->radioBearerConfig->srb_ToAddModList  = SRB_configList;
