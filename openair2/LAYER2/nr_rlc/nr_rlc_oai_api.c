@@ -359,7 +359,7 @@ rlc_op_status_t rlc_data_req     (const protocol_ctxt_t *const ctxt_pP,
   nr_rlc_ue_t *ue;
   nr_rlc_entity_t *rb;
 
-  LOG_D(RLC, "%s rnti %d srb_flag %d rb_id %ld mui %d confirm %d sdu_size %d MBMS_flag %d\n",
+  LOG_I(RLC, "%s rnti %d srb_flag %d rb_id %ld mui %d confirm %d sdu_size %d MBMS_flag %d\n",
         __FUNCTION__, rnti, srb_flagP, rb_idP, muiP, confirmP, sdu_sizeP,
         MBMS_flagP);
 
@@ -801,7 +801,7 @@ static void add_drb_am(int rnti, struct NR_DRB_ToAddMod *s, NR_RLC_BearerConfig_
                                      sn_field_length);
     nr_rlc_ue_add_drb_rlc_entity(ue, drb_id, nr_rlc_am);
 
-    LOG_D(RLC, "%s:%d:%s: added drb %d to UE with RNTI 0x%x\n", __FILE__, __LINE__, __FUNCTION__, drb_id, rnti);
+    LOG_I(RLC, "%s:%d:%s: added drb %d to UE with RNTI 0x%x\n", __FILE__, __LINE__, __FUNCTION__, drb_id, rnti);
   }
   nr_rlc_manager_unlock(nr_rlc_ue_manager);
 }
@@ -910,6 +910,7 @@ rlc_op_status_t nr_rrc_rlc_config_asn1_req (const protocol_ctxt_t   * const ctxt
     const LTE_PMCH_InfoList_r9_t * const pmch_InfoList_r9_pP,
     struct NR_CellGroupConfig__rlc_BearerToAddModList *rlc_bearer2add_list)
 {
+  LOG_W(RLC,"calling nr_rrc_rlc_config_asn1_req \n");
   int rnti = ctxt_pP->rnti;
   int i;
   int j;
@@ -932,7 +933,7 @@ rlc_op_status_t nr_rrc_rlc_config_asn1_req (const protocol_ctxt_t   * const ctxt
     LOG_E(RLC, "%s:%d:%s: TODO\n", __FILE__, __LINE__, __FUNCTION__);
     //exit(1);
   }
-
+  LOG_W(RLC,"going through srb2add_listP \n");
   if (srb2add_listP != NULL) {
     for (i = 0; i < srb2add_listP->list.count; i++) {
       if (rlc_bearer2add_list != NULL) {
@@ -940,6 +941,7 @@ rlc_op_status_t nr_rrc_rlc_config_asn1_req (const protocol_ctxt_t   * const ctxt
           if(rlc_bearer2add_list->list.array[j]->servedRadioBearer != NULL){
             if(rlc_bearer2add_list->list.array[j]->servedRadioBearer->present == NR_RLC_BearerConfig__servedRadioBearer_PR_srb_Identity){
               if(srb2add_listP->list.array[i]->srb_Identity == rlc_bearer2add_list->list.array[j]->servedRadioBearer->choice.srb_Identity){
+                LOG_W(RLC,"adding SRB  \n");
                 add_rlc_srb(rnti, srb2add_listP->list.array[i], rlc_bearer2add_list->list.array[j]);
               }
             }
@@ -949,14 +951,21 @@ rlc_op_status_t nr_rrc_rlc_config_asn1_req (const protocol_ctxt_t   * const ctxt
 
     }
   }
-
+  LOG_W(RLC,"going through drb2add_listP \n");
   if ((drb2add_listP != NULL) && (rlc_bearer2add_list != NULL)) {
     for (i = 0; i < drb2add_listP->list.count; i++) {
+      LOG_W(RLC,"going through drb2add_listP loop \n");
       if (rlc_bearer2add_list != NULL) {
       for(j = 0; j < rlc_bearer2add_list->list.count; j++){
+        LOG_W(RLC,"going through rlc_bearer2add_list loop \n");
+
         if(rlc_bearer2add_list->list.array[j]->servedRadioBearer != NULL){
+          LOG_W(RLC,"cond 1 \n");
+
           if(rlc_bearer2add_list->list.array[j]->servedRadioBearer->present == NR_RLC_BearerConfig__servedRadioBearer_PR_drb_Identity){
+            LOG_W(RLC,"cond 2 %ld == %ld \n",drb2add_listP->list.array[i]->drb_Identity,rlc_bearer2add_list->list.array[j]->servedRadioBearer->choice.drb_Identity);
             if(drb2add_listP->list.array[i]->drb_Identity == rlc_bearer2add_list->list.array[j]->servedRadioBearer->choice.drb_Identity){
+              LOG_W(RLC,"add DRB \n");
               add_drb(rnti, drb2add_listP->list.array[i], rlc_bearer2add_list->list.array[j]);
             }
           }  

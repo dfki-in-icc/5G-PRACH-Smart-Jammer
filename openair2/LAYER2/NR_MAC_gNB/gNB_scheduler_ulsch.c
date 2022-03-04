@@ -453,6 +453,7 @@ int nr_process_mac_pdu(module_id_t module_idP,
           break;
 
         case UL_SCH_LCID_DTCH:
+        case UL_SCH_LCID_DTCH2:
           //  check if LCID is valid at current time.
           if (((NR_MAC_SUBHEADER_SHORT *)pduP)->F) {
             // mac_sdu_len |= (uint16_t)(((NR_MAC_SUBHEADER_LONG *)pduP)->L2)<<8;
@@ -466,7 +467,7 @@ int nr_process_mac_pdu(module_id_t module_idP,
           }
   struct timeval t;
    gettimeofday(&t, NULL);
-          LOG_D(NR_MAC, "[UE %d] Frame %d.%d : ULSCH -> UL-%s %d (gNB %d, %d bytes) at %lu\n",
+          LOG_I(NR_MAC, "[UE %d] Frame %d.%d : ULSCH -> UL-%s %d (gNB %d, %d bytes) at %lu\n",
 
                 module_idP,
                 frameP,

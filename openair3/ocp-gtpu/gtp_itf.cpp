@@ -402,7 +402,7 @@ teid_t newGtpuCreateTunnel(instance_t instance, rnti_t rnti, int incoming_bearer
 
   if ( it != inst->ue2te_mapping.end() ) {
     LOG_W(GTPU,"Create a config for a already existing GTP tunnel (rnti %x)\n", rnti);
-    inst->ue2te_mapping.erase(it);
+    //inst->ue2te_mapping.erase(it);
   }
 
   uint32_t incoming_teid=gtpv1uNewTeid();
