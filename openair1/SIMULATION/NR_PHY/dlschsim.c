@@ -46,9 +46,17 @@ int main(int argc, char **argv)
 
 	logInit();
 
-  loader_reset();
-  logTerm();
-  end_configmodule();
+    loader_reset();
+    logTerm();
+    end_configmodule();
+	if (load_configmodule(argc, argv, CONFIG_ENABLECMDLINEONLY) == 0) {
+		exit_fun("[NR_DLSCHSIM] Error, configuration module init 2 failed\n");
+	}
+  	logInit();
+
+    loader_reset();
+    logTerm();
+  free_configmodule();
 
 	return 0;
 }

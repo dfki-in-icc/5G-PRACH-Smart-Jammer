@@ -94,11 +94,12 @@ char *config_check_valptr(paramdef_t *cfgoptions, char **ptr, int length) {
 
     if ( *ptr != NULL) {
       memset(*ptr,0,length);
+      config_get_if()->ptrs[config_get_if()->numptrs] = *ptr;
 
       if ( (cfgoptions->paramflags & PARAMFLAG_NOFREE) == 0) {
-        config_get_if()->ptrs[config_get_if()->numptrs] = *ptr;
-        config_get_if()->numptrs++;
-      }
+        config_get_if()->ptrsNoFree[config_get_if()->numptrs] = true;
+      } 
+      config_get_if()->numptrs++;
     } else {
       CONFIG_PRINTF_ERROR("[CONFIG] %s %d malloc error\n",__FILE__, __LINE__);
     }
