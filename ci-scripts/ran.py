@@ -39,6 +39,7 @@ import time
 from multiprocessing import Process, Lock, SimpleQueue
 import yaml
 
+
 #-----------------------------------------------------------
 # OAI Testing modules
 #-----------------------------------------------------------
@@ -92,6 +93,7 @@ class RANManagement():
 		self.epcPcapFile = ''
 		self.runtime_stats= ''
 		self.datalog_rt_stats={}
+		self.datalog_rt_stats_file='datalog_rt_stats.default.yaml'
 		self.eNB_Trace = '' #if 'yes', Tshark will be launched at initialization
 		self.eNB_Stats = '' #if 'yes', Statistics Monitor will be launched at initialization		
 		self.USRPIPAddress = ''
@@ -159,22 +161,23 @@ class RANManagement():
 		# Raphael: here add a check if git clone or git fetch went smoothly
 		mySSH.command('git config user.email "jenkins@openairinterface.org"', '\$', 5)
 		mySSH.command('git config user.name "OAI Jenkins"', '\$', 5)
+		mySSH.command('git advice.detachedHead false', '\$', 5)
 		# Checking the BUILD INFO file
 		if not self.backgroundBuild:
 			mySSH.command('ls *.txt', '\$', 5)
 			result = re.search('LAST_BUILD_INFO', mySSH.getBefore())
 			if result is not None:
 				mismatch = False
-				mySSH.command('grep SRC_COMMIT LAST_BUILD_INFO.txt', '\$', 2)
+				mySSH.command('grep --colour=never SRC_COMMIT LAST_BUILD_INFO.txt', '\$', 2)
 				result = re.search(self.ranCommitID, mySSH.getBefore())
 				if result is None:
 					mismatch = True
-				mySSH.command('grep MERGED_W_TGT_BRANCH LAST_BUILD_INFO.txt', '\$', 2)
+				mySSH.command('grep --colour=never MERGED_W_TGT_BRANCH LAST_BUILD_INFO.txt', '\$', 2)
 				if (self.ranAllowMerge):
 					result = re.search('YES', mySSH.getBefore())
 					if result is None:
 						mismatch = True
-					mySSH.command('grep TGT_BRANCH LAST_BUILD_INFO.txt', '\$', 2)
+					mySSH.command('grep --colour=never TGT_BRANCH LAST_BUILD_INFO.txt', '\$', 2)
 					if self.ranTargetBranch == '':
 						result = re.search('develop', mySSH.getBefore())
 					else:
@@ -203,6 +206,7 @@ class RANManagement():
 			else:
 				logging.debug('Merging with the target branch: ' + self.ranTargetBranch)
 				mySSH.command('git merge --ff origin/' + self.ranTargetBranch + ' -m "Temporary merge for CI"', '\$', 5)
+		logging.debug(mySSH.getBefore()) # print what git said when merging/checking out
 		mySSH.command('source oaienv', '\$', 5)
 		mySSH.command('cd cmake_targets', '\$', 5)
 		mySSH.command('mkdir -p log', '\$', 5)
@@ -212,6 +216,7 @@ class RANManagement():
 			mySSH.command('echo "./build_oai ' + self.Build_eNB_args + '" > ./my-lte-softmodem-build.sh', '\$', 5)
 			mySSH.command('chmod 775 ./my-lte-softmodem-build.sh', '\$', 5)
 			mySSH.command('echo ' + lPassWord + ' | sudo -S ls', '\$', 5)
+			logging.debug(mySSH.getBefore()) # print current directory contents for verification
 			mySSH.command('echo $USER; nohup sudo -E ./my-lte-softmodem-build.sh' + ' > ' + lSourcePath + '/cmake_targets/compile_oai_enb.log ' + ' 2>&1 &', lUserName, 5)
 			mySSH.close()
 			HTML.CreateHtmlTestRow(self.Build_eNB_args, 'OK', CONST.ALL_PROCESSES_OK)
@@ -346,7 +351,7 @@ class RANManagement():
 		
 		#reboot USRP if requested in xml
 		if self.USRPIPAddress!='':
-			logging.debug('USRP '+ self.USRPIPAddress +'reboot request')
+			logging.debug('USRP '+ self.USRPIPAddress +': reboot request')
 			mySSH.open(lIpAddr, lUserName, lPassWord)
 			cmd2usrp='ssh root@'+self.USRPIPAddress+' reboot'
 			mySSH.command2(cmd2usrp,1)
@@ -371,10 +376,11 @@ class RANManagement():
 			result = re.search('interfaceToUse=(?P<eth_interface>[a-zA-Z0-9\-\_]+)done', mySSH.getBefore())
 			if result is not None:
 				eth_interface = result.group('eth_interface')
-				logging.debug('\u001B[1m Launching tshark on interface ' + eth_interface + '\u001B[0m')
+				fltr = 'port 38412 or port 36412 or port 36422' # NGAP, S1AP, X2AP
+				logging.debug('\u001B[1m Launching tshark on interface ' + eth_interface + ' with filter "' + fltr + '"\u001B[0m')
 				pcapfile = pcapfile_prefix + self.testCase_id + '_log.pcap'
 				mySSH.command('echo ' + lPassWord + ' | sudo -S rm -f /tmp/' + pcapfile , '\$', 5)
-				mySSH.command('echo $USER; nohup sudo -E tshark  -i ' + eth_interface + ' -w /tmp/' + pcapfile + ' 2>&1 &','\$', 5)
+				mySSH.command('echo $USER; nohup sudo -E tshark  -i ' + eth_interface + ' -f "' + fltr + '" -w /tmp/' + pcapfile + ' > /dev/null 2>&1 &','\$', 5)
 			mySSH.close()
 			
 
@@ -390,10 +396,11 @@ class RANManagement():
 			result = re.search('interfaceToUse=(?P<eth_interface>[a-zA-Z0-9\-\_]+)done', mySSH.getBefore())
 			if result is not None:
 				eth_interface = result.group('eth_interface')
-				logging.debug('\u001B[1m Launching tshark on interface ' + eth_interface + '\u001B[0m')
+				fltr = 'port 38412 or port 36412 or port 36422' # NGAP, S1AP, X2AP
+				logging.debug('\u001B[1m Launching tshark on interface ' + eth_interface + ' with filter "' + fltr + '"\u001B[0m')
 				self.epcPcapFile = 'enb_' + self.testCase_id + '_s1log.pcap'
 				mySSH.command('echo ' + localEpcPassword + ' | sudo -S rm -f /tmp/' + self.epcPcapFile , '\$', 5)
-				mySSH.command('echo $USER; nohup sudo tshark -f "host ' + lIpAddr +'" -i ' + eth_interface + ' -w /tmp/' + self.epcPcapFile + ' > /tmp/tshark.log 2>&1 &', localEpcUserName, 5)
+				mySSH.command('echo $USER; nohup sudo tshark -f "host ' + lIpAddr +'" -i ' + eth_interface + ' -f "' + fltr + '" -w /tmp/' + self.epcPcapFile + ' > /tmp/tshark.log 2>&1 &', localEpcUserName, 5)
 			mySSH.close()
 		mySSH.open(lIpAddr, lUserName, lPassWord)
 		mySSH.command('cd ' + lSourcePath, '\$', 5)
@@ -423,13 +430,13 @@ class RANManagement():
 		# do not reset board twice in IF4.5 case
 		result = re.search('^rru|^enb|^du.band', str(config_file))
 		if result is not None:
-			mySSH.command('echo ' + lPassWord + ' | sudo -S uhd_find_devices', '\$', 90)
+			mySSH.command('echo ' + lPassWord + ' | sudo -S uhd_find_devices', '\$', 180)
 			result = re.search('type: b200', mySSH.getBefore())
 			if result is not None:
 				logging.debug('Found a B2xx device --> resetting it')
 				mySSH.command('echo ' + lPassWord + ' | sudo -S b2xx_fx3_utils --reset-device', '\$', 10)
 				# Reloading FGPA bin firmware
-				mySSH.command('echo ' + lPassWord + ' | sudo -S uhd_find_devices', '\$', 90)
+				mySSH.command('echo ' + lPassWord + ' | sudo -S uhd_find_devices', '\$', 180)
 		# Make a copy and adapt to EPC / eNB IP addresses
 		mySSH.command('cp ' + full_config_file + ' ' + ci_full_config_file, '\$', 5)
 		localMmeIpAddr = EPC.MmeIPAddress
@@ -446,7 +453,7 @@ class RANManagement():
 		else:
 			mySSH.command('sed -i -e \'s/FLEXRAN_ENABLED.*;/FLEXRAN_ENABLED        = "no";/\' ' + ci_full_config_file, '\$', 2);
 		self.eNBmbmsEnables[int(self.eNB_instance)] = False
-		mySSH.command('grep enable_enb_m2 ' + ci_full_config_file, '\$', 2);
+		mySSH.command('grep --colour=never enable_enb_m2 ' + ci_full_config_file, '\$', 2);
 		result = re.search('yes', mySSH.getBefore())
 		if result is not None:
 			self.eNBmbmsEnables[int(self.eNB_instance)] = True
@@ -474,7 +481,7 @@ class RANManagement():
 			mySSH.command('echo ' + lPassWord + ' | echo "ulimit -c unlimited && sudo UHD_RFNOC_DIR=/usr/local/share/uhd/rfnoc ./ran_build/build/' + self.air_interface[self.eNB_instance] + ' -O ' + lSourcePath + '/' + ci_full_config_file + extra_options + '" > ./my-lte-softmodem-run' + str(self.eNB_instance) + '.sh', '\$', 5)
 		#otherwise the regular command is ok
 		else:
-			mySSH.command('echo "ulimit -c unlimited && ./ran_build/build/' + self.air_interface[self.eNB_instance] + ' -O ' + lSourcePath + '/' + ci_full_config_file + extra_options + '" > ./my-lte-softmodem-run' + str(self.eNB_instance) + '.sh', '\$', 5)
+			mySSH.command('echo "ulimit -c unlimited && catchsegv ./ran_build/build/' + self.air_interface[self.eNB_instance] + ' -O ' + lSourcePath + '/' + ci_full_config_file + extra_options + '" > ./my-lte-softmodem-run' + str(self.eNB_instance) + '.sh', '\$', 5)
 
 		mySSH.command('chmod 775 ./my-lte-softmodem-run' + str(self.eNB_instance) + '.sh', '\$', 5)
 		mySSH.command('echo ' + lPassWord + ' | sudo -S rm -Rf enb_' + self.testCase_id + '.log', '\$', 5)
@@ -487,9 +494,9 @@ class RANManagement():
 		conf_file='../ci-scripts/stats_monitor_conf.yaml'
 		if self.eNB_Stats=='yes':
 			if (self.air_interface[self.eNB_instance] == 'lte-softmodem') or (self.air_interface[self.eNB_instance] == 'ocp-enb'):
-				mySSH.command('echo $USER; nohup python3 ' + monitor_file + ' ' + conf_file + ' enb 2>&1 > enb_stats_monitor_execution.log &', '\$', 5)
+				mySSH.command('echo $USER; nohup python3 ' + monitor_file + ' ' + conf_file + ' ' + self.testCase_id + ' enb 2>&1 > enb_stats_monitor_execution.log &', '\$', 5)
 			else:
-				mySSH.command('echo $USER; nohup python3 ' + monitor_file + ' ' + conf_file + ' gnb 2>&1 > gnb_stats_monitor_execution.log &', '\$', 5)
+				mySSH.command('echo $USER; nohup python3 ' + monitor_file + ' ' + conf_file + ' ' + self.testCase_id + ' gnb 2>&1 > gnb_stats_monitor_execution.log &', '\$', 5)
 
 
 
@@ -593,8 +600,12 @@ class RANManagement():
 				lPassWord = self.eNBPassword
 			mySSH = SSH.SSHConnection()
 			mySSH.open(lIpAddr, lUserName, lPassWord)
-			mySSH.command('stdbuf -o0 ps -aux | grep --color=never ' + self.air_interface[self.eNB_instance] + ' | grep -v grep', '\$', 5)
-			result = re.search(self.air_interface[self.eNB_instance], mySSH.getBefore())
+			if self.air_interface[self.eNB_instance] == '':
+				pattern = 'softmodem'
+			else:
+				pattern = self.air_interface[self.eNB_instance]
+			mySSH.command('stdbuf -o0 ps -aux | grep --color=never ' + pattern + ' | grep -v grep', '\$', 5)
+			result = re.search(pattern, mySSH.getBefore())
 			if result is None:
 				logging.debug('\u001B[1;37;41m eNB Process Not Found! \u001B[0m')
 				status_queue.put(CONST.ENB_PROCESS_FAILED)
@@ -661,10 +672,14 @@ class RANManagement():
 				mySSH.command('echo ' + localEpcPassword + ' | sudo -S chmod 666 /tmp/' + self.epcPcapFile, '\$', 5)
 				mySSH.copyin(localEpcIpAddr, localEpcUserName, localEpcPassword, '/tmp/' + self.epcPcapFile, '.')
 				mySSH.copyout(lIpAddr, lUserName, lPassWord, self.epcPcapFile, lSourcePath + '/cmake_targets/.')
+			mySSH.command('killall --signal SIGKILL record', '\$', 5)
 			mySSH.close()
+		# if T tracer was run with option 0 (no logs), analyze logs
+		# from textlog, otherwise do normal analysis (e.g., option 2)
+		result = re.search('T_stdout 0', str(self.Initialize_eNB_args))
+		if (result is not None):
 			logging.debug('\u001B[1m Replaying RAW record file\u001B[0m')
 			mySSH.open(lIpAddr, lUserName, lPassWord)
-			mySSH.command('killall --signal SIGKILL record', '\$', 5)
 			mySSH.command('cd ' + lSourcePath + '/common/utils/T/tracer/', '\$', 5)
 			enbLogFile = self.eNBLogFiles[int(self.eNB_instance)]
 			raw_record_file = enbLogFile.replace('.log', '_record.raw')
@@ -713,6 +728,9 @@ class RANManagement():
 				logStatus = self.AnalyzeLogFile_eNB(fileToAnalyze, HTML)
 				if (logStatus < 0):
 					HTML.CreateHtmlTestRow('N/A', 'KO', logStatus)
+					#display rt stats for gNB only
+					if len(self.datalog_rt_stats)!=0 and nodeB_prefix == 'g':
+						HTML.CreateHtmlDataLogTable(self.datalog_rt_stats)
 					self.prematureExit = True
 					self.eNBmbmsEnables[int(self.eNB_instance)] = False
 					return
@@ -734,11 +752,14 @@ class RANManagement():
 		mySSH.command('echo ' + self.eNBPassword + ' | sudo -S mv /tmp/enb_*.pcap .','\$',20)
 		mySSH.command('echo ' + self.eNBPassword + ' | sudo -S mv /tmp/gnb_*.pcap .','\$',20)
 		mySSH.command('echo ' + self.eNBPassword + ' | sudo -S rm -f enb.log.zip', '\$', 5)
-		mySSH.command('echo ' + self.eNBPassword + ' | sudo -S zip enb.log.zip enb*.log core* enb_*record.raw enb_*.pcap gnb_*.pcap enb_*txt physim_*.log *stats.log *monitor.pickle *monitor.png', '\$', 60)
-		mySSH.command('echo ' + self.eNBPassword + ' | sudo -S rm enb*.log core* enb_*record.raw enb_*.pcap gnb_*.pcap enb_*txt physim_*.log *stats.log *.pickle *.png', '\$', 5)
+		mySSH.command('echo ' + self.eNBPassword + ' | sudo -S zip enb.log.zip enb*.log enb_*record.raw enb_*.pcap gnb_*.pcap enb_*txt physim_*.log *stats.log *monitor.pickle *monitor*.png ping*.log.png log/*/*.log log/*/*.pcap', '\$', 60)
+		result = re.search('core.\d+', mySSH.getBefore())
+		if result is not None:
+			mySSH.command('echo ' + self.eNBPassword + ' | sudo -S zip enb.log.zip core* ran_build/build/{lte,nr}-softmodem', '\$', 60) # add core and executable to zip
+		mySSH.command('echo ' + self.eNBPassword + ' | sudo -S rm enb*.log core* enb_*record.raw enb_*.pcap gnb_*.pcap enb_*txt physim_*.log *stats.log *monitor.pickle *monitor*.png ping*.log.png log/*/*.log log/*/*.pcap', '\$', 15)
 		mySSH.close()
 
-	def AnalyzeLogFile_eNB(self, eNBlogFile, HTML):
+	def AnalyzeLogFile_eNB(self, eNBlogFile, HTML, checkers={}):
 		if (not os.path.isfile('./' + eNBlogFile)):
 			return -1
 		enb_log_file = open('./' + eNBlogFile, 'r')
@@ -748,6 +769,7 @@ class RANManagement():
 		msgLine = 0
 		foundSegFault = False
 		foundRealTimeIssue = False
+		foundRealTimeIssue_cnt = 0
 		rrcSetupComplete = 0
 		rrcReleaseRequest = 0
 		rrcReconfigRequest = 0
@@ -792,26 +814,28 @@ class RANManagement():
 		pb_receiving_samples_cnt = 0
 		#count "removing UE" msg
 		removing_ue = 0
-		#NSA specific log markers
-		nsa_markers ={'SgNBReleaseRequestAcknowledge': [],'FAILURE': [], 'scgFailureInformationNR-r15': [], 'SgNBReleaseRequest': []}
+		#count"X2AP-PDU"
+		x2ap_pdu = 0
+		#gnb specific log markers
+		gnb_markers ={'SgNBReleaseRequestAcknowledge': [],'FAILURE': [], 'scgFailureInformationNR-r15': [], 'SgNBReleaseRequest': [], 'Detected UL Failure on PUSCH':[]}
+		nodeB_prefix_found = False
+		RealTimeProcessingIssue = False
+		DLRetxIssue = False
+		ULRetxIssue = False
 	
-		#the datalog config file has to be loaded
-		datalog_rt_stats_file='datalog_rt_stats.yaml'
-		if (os.path.isfile(datalog_rt_stats_file)):
-			yaml_file=datalog_rt_stats_file
-		elif (os.path.isfile('ci-scripts/'+datalog_rt_stats_file)):
-			yaml_file='ci-scripts/'+datalog_rt_stats_file
-		else:
-			logging.error("Datalog RT stats yaml file cannot be found")
-			sys.exit("Datalog RT stats yaml file cannot be found")
-
-		with open(yaml_file,'r') as f:
-			datalog_rt_stats = yaml.load(f,Loader=yaml.FullLoader)
-		rt_keys = datalog_rt_stats['Ref'] #we use the keys from the Ref field  
-
 		line_cnt=0 #log file line counter
 		for line in enb_log_file.readlines():
 			line_cnt+=1
+			# Detection of eNB/gNB from a container log
+			result = re.search('Starting eNB soft modem', str(line))
+			if result is not None:
+				nodeB_prefix_found = True
+				nodeB_prefix = 'e'
+			result = re.search('Starting gNB soft modem', str(line))
+			if result is not None:
+				nodeB_prefix_found = True
+				nodeB_prefix = 'g'
+			result = re.search('Run time:' ,str(line))
 			# Runtime statistics
 			result = re.search('Run time:' ,str(line))
 			if result is not None:
@@ -878,15 +902,13 @@ class RANManagement():
 			result = re.search('[Cc]ore [dD]ump', str(line))
 			if result is not None and not exitSignalReceived:
 				foundSegFault = True
-			result = re.search('./ran_build/build/lte-softmodem', str(line))
-			if result is not None and not exitSignalReceived:
-				foundSegFault = True
 			result = re.search('[Aa]ssertion', str(line))
 			if result is not None and not exitSignalReceived:
 				foundAssertion = True
 			result = re.search('LLL', str(line))
 			if result is not None and not exitSignalReceived:
 				foundRealTimeIssue = True
+				foundRealTimeIssue_cnt += 1
 			if foundAssertion and (msgLine < 3):
 				msgLine += 1
 				msgAssertion += str(line)
@@ -962,7 +984,7 @@ class RANManagement():
 				if result is not None:
 					mbmsRequestMsg += 1
 			#FR1 NSA test : add new markers to make sure gNB is used
-			result = re.search('\[gNB [0-9]+\]\[RAPROC\] PUSCH with TC_RNTI [0-9a-fA-F]+ received correctly, adding UE MAC Context UE_id [0-9]+\/RNTI [0-9a-fA-F]+', str(line))
+			result = re.search('\[gNB [0-9]+\]\[RAPROC\] PUSCH with TC_RNTI 0x[0-9a-fA-F]+ received correctly, adding UE MAC Context UE_id [0-9]+\/RNTI 0x[0-9a-fA-F]+', str(line))
 			if result is not None:
 				NSA_RAPROC_PUSCH_check = 1
 			#dlsch and ulsch statistics
@@ -975,15 +997,7 @@ class RANManagement():
 				if result is not None:
 					#remove 1- all useless char before relevant info (ulsch or dlsch) 2- trailing char
 					dlsch_ulsch_stats[k]=re.sub(r'^.*\]\s+', r'' , line.rstrip())
-			#real time statistics for gNB
-			for k in rt_keys:
-				result = re.search(k, line)     
-				if result is not None:
-					#remove 1- all useless char before relevant info  2- trailing char
-					line=line.replace('[0m','')
-					tmp=re.match(rf'^.*?(\b{k}\b.*)',line.rstrip()) #from python 3.6 we can use literal string interpolation for the variable k, using rf' in the regex
-					if tmp!=None: #with ULULULUULULULLLL at the head of the line, we skip it
-						real_time_stats[k]=tmp.group(1)
+
 
 			#count "problem receiving samples" msg
 			result = re.search('\[PHY\]\s+problem receiving samples', str(line))
@@ -993,19 +1007,70 @@ class RANManagement():
 			result = re.search('\[MAC\]\s+Removing UE', str(line))
 			if result is not None:
 				removing_ue += 1
-
-			#nsa markers logging
-			for k in nsa_markers:
+			#count "X2AP-PDU"
+			result = re.search('X2AP-PDU', str(line))
+			if result is not None:
+				x2ap_pdu += 1
+			#gnb markers logging
+			for k in gnb_markers:
 				result = re.search(k, line)
 				if result is not None:
-					nsa_markers[k].append(line_cnt)					
+					gnb_markers[k].append(line_cnt)
 
 		enb_log_file.close()
-		logging.debug('   File analysis completed')
-		if (self.air_interface[self.eNB_instance] == 'lte-softmodem') or (self.air_interface[self.eNB_instance] == 'ocp-enb'):
-			nodeB_prefix = 'e'
+
+
+		#the following part takes the *_stats.log files as source (not the stdout log file)
+
+		#the datalog config file has to be loaded
+		datalog_rt_stats_file=self.datalog_rt_stats_file
+		if (os.path.isfile(datalog_rt_stats_file)):
+			yaml_file=datalog_rt_stats_file
+		elif (os.path.isfile('ci-scripts/'+datalog_rt_stats_file)):
+			yaml_file='ci-scripts/'+datalog_rt_stats_file
 		else:
-			nodeB_prefix = 'g'
+			logging.error("Datalog RT stats yaml file cannot be found")
+			sys.exit("Datalog RT stats yaml file cannot be found")
+
+		with open(yaml_file,'r') as f:
+			datalog_rt_stats = yaml.load(f,Loader=yaml.FullLoader)
+		rt_keys = datalog_rt_stats['Ref'] #we use the keys from the Ref field  
+
+		if os.path.isfile('./nrL1_stats.log') and os.path.isfile('./nrMAC_stats.log'):
+			# don't use CI-nrL1_stats.log, as this will increase the processing time for
+			# no reason, we just need the last occurence
+			nrL1_stats = open('./nrL1_stats.log', 'r')
+			nrMAC_stats = open('./nrMAC_stats.log', 'r')
+			for line in nrL1_stats.readlines():
+				for k in rt_keys:
+					result = re.search(k, line)     
+					if result is not None:
+						#remove 1- all useless char before relevant info  2- trailing char
+						tmp=re.match(rf'^.*?(\b{k}\b.*)',line.rstrip()) #from python 3.6 we can use literal string interpolation for the variable k, using rf' in the regex
+						if tmp!=None: 
+							real_time_stats[k]=tmp.group(1)
+			for line in nrMAC_stats.readlines():
+				for k in rt_keys:
+					result = re.search(k, line)     
+					if result is not None:
+						#remove 1- all useless char before relevant info  2- trailing char
+						tmp=re.match(rf'^.*?(\b{k}\b.*)',line.rstrip()) #from python 3.6 we can use literal string interpolation for the variable k, using rf' in the regex
+						if tmp!=None: 
+							real_time_stats[k]=tmp.group(1)
+			nrL1_stats.close()
+			nrMAC_stats.close()
+		else:
+			logging.debug("NR Stats files for RT analysis not found")
+
+		#stdout log file and stat log files analysis completed
+		logging.debug('   File analysis (stdout, stats) completed')
+
+		#post processing depending on the node type
+		if not nodeB_prefix_found:
+			if (self.air_interface[self.eNB_instance] == 'lte-softmodem') or (self.air_interface[self.eNB_instance] == 'ocp-enb'):
+				nodeB_prefix = 'e'
+			else:
+				nodeB_prefix = 'g'
 
 		if nodeB_prefix == 'g':
 			if ulschReceiveOK > 0:
@@ -1034,48 +1099,95 @@ class RANManagement():
 			htmlMsg = statMsg+'\n'
 			logging.debug(statMsg)
 			htmleNBFailureMsg += htmlMsg
-			#nsa markers
+			#gnb markers
 			statMsg = 'logfile line count = ' + str(line_cnt)			
 			htmlMsg = statMsg+'\n'
 			logging.debug(statMsg)
 			htmleNBFailureMsg += htmlMsg
-			if len(nsa_markers['SgNBReleaseRequestAcknowledge'])!=0:
-				statMsg = 'SgNBReleaseRequestAcknowledge = ' + str(len(nsa_markers['SgNBReleaseRequestAcknowledge'])) + ' occurences , starting line ' + str(nsa_markers['SgNBReleaseRequestAcknowledge'][0])
+			if len(gnb_markers['SgNBReleaseRequestAcknowledge'])!=0:
+				statMsg = 'SgNBReleaseRequestAcknowledge = ' + str(len(gnb_markers['SgNBReleaseRequestAcknowledge'])) + ' occurences , starting line ' + str(gnb_markers['SgNBReleaseRequestAcknowledge'][0])
 			else:
-				statMsg = 'SgNBReleaseRequestAcknowledge = ' + str(len(nsa_markers['SgNBReleaseRequestAcknowledge'])) + ' occurences' 
+				statMsg = 'SgNBReleaseRequestAcknowledge = ' + str(len(gnb_markers['SgNBReleaseRequestAcknowledge'])) + ' occurences' 
 			htmlMsg = statMsg+'\n'
 			logging.debug(statMsg)
 			htmleNBFailureMsg += htmlMsg
-			statMsg = 'FAILURE = ' + str(len(nsa_markers['FAILURE'])) + ' occurences'
+			statMsg = 'FAILURE = ' + str(len(gnb_markers['FAILURE'])) + ' occurences'
+			htmlMsg = statMsg+'\n'
+			logging.debug(statMsg)
+			htmleNBFailureMsg += htmlMsg
+			statMsg = 'Detected UL Failure on PUSCH = ' + str(len(gnb_markers['Detected UL Failure on PUSCH'])) + ' occurences'
 			htmlMsg = statMsg+'\n'
 			logging.debug(statMsg)
 			htmleNBFailureMsg += htmlMsg
 
-			#ulsch and dlsch statistics
+			#ulsch and dlsch statistics and checkers
+			#print statistics into html
 			if len(dlsch_ulsch_stats)!=0: #check if dictionary is not empty
+				#for each dictionary key, generate the msg for html as information
 				statMsg=''
-				for key in dlsch_ulsch_stats: #for each dictionary key
+				for key in dlsch_ulsch_stats: 
 					statMsg += dlsch_ulsch_stats[key] + '\n' 
 					logging.debug(dlsch_ulsch_stats[key])
 				htmleNBFailureMsg += statMsg
+
+			#checker
+			if (len(dlsch_ulsch_stats)!=0) and (len(checkers)!=0):
+				if 'd_retx_th' in checkers:
+					checkers['d_retx_th'] = [float(x) for x in checkers['d_retx_th'].split(',')]
+					dlsch_checker_status = list(0 for i in checkers['d_retx_th'])#status 0 / -1
+					d_perc_retx = list(0 for i in checkers['d_retx_th'])#results in %
+
+				if 'u_retx_th' in checkers:
+					checkers['u_retx_th'] = [float(x) for x in checkers['u_retx_th'].split(',')]
+					ulsch_checker_status = list(0 for i in checkers['u_retx_th'])
+					u_perc_retx = list(0 for i in checkers['u_retx_th'])
+
+				#ul and dl retransmissions checkers
+				#NOTICE:  DL and UL regex are different 
+
+				if ('dlsch_rounds' in dlsch_ulsch_stats) and ('d_retx_th' in checkers):
+					tmp=re.match(r'^.*dlsch_rounds\s+(\d+)\/(\d+)\/(\d+)\/(\d+),\s+dlsch_errors\s+(\d+)',dlsch_ulsch_stats['dlsch_rounds'])
+					if tmp is not None :
+						#captures the different groups from the regex
+						retx_data=[float(x) for x in tmp.groups()]
+						for i in range(0,len(d_perc_retx)):
+							#case where numerator > denumerator with denum ==0 is disregarded, cannot hapen in principle, will lead to 0%
+							d_perc_retx[i] = 0 if (retx_data[i] == 0)  else 100*retx_data[i+1]/retx_data[i]
+							#treating % > 100 , % > requirement
+							if (d_perc_retx[i] > 100) or (d_perc_retx[i] > checkers['d_retx_th'][i]): dlsch_checker_status[i] = -1
+					if -1 in dlsch_checker_status:
+						DLRetxIssue = True
+
+				if ('ulsch_rounds' in dlsch_ulsch_stats)  and ('u_retx_th' in checkers):
+					tmp=re.match(r'^.*ulsch_rounds\s+(\d+)\/(\d+)\/(\d+)\/(\d+),\s+.*,\s+ulsch_errors\s+(\d+)',dlsch_ulsch_stats['ulsch_rounds'])
+					if tmp is not None :
+						retx_data=[float(x) for x in tmp.groups()]
+						for i in range(0,len(d_perc_retx)):
+							u_perc_retx[i] = 0 if (retx_data[i] == 0) else 100*retx_data[i+1]/retx_data[i]
+							if (u_perc_retx[i] > 100) or (u_perc_retx[i] > checkers['u_retx_th'][i]): ulsch_checker_status[i] = -1
+					if -1 in ulsch_checker_status:
+						ULRetxIssue = True
+
+
 
 			#real time statistics
 			datalog_rt_stats['Data']={}
 			if len(real_time_stats)!=0: #check if dictionary is not empty
 				for k in real_time_stats:
-					tmp=re.match(r'^(?P<metric>.*):\s+(?P<avg>\d+\.\d+) us;\s+\d+;\s+(?P<max>\d+\.\d+) us;',real_time_stats[k])
+					tmp=re.match(r'^(?P<metric>.*):\s+(?P<avg>\d+\.\d+) us;\s+(?P<count>\d+);\s+(?P<max>\d+\.\d+) us;',real_time_stats[k])
 					if tmp is not None:
 						metric=tmp.group('metric')
 						avg=float(tmp.group('avg'))
 						max=float(tmp.group('max'))
-						datalog_rt_stats['Data'][metric]=["{:.0f}".format(avg),"{:.0f}".format(max),"{:.2f}".format(avg/datalog_rt_stats['Ref'][metric])]
+						count=int(tmp.group('count'))
+						datalog_rt_stats['Data'][metric]=["{:.0f}".format(avg),"{:.0f}".format(max),"{:d}".format(count),"{:.2f}".format(avg/datalog_rt_stats['Ref'][metric])]
 				#once all metrics are collected, store the data as a class attribute to build a dedicated HTML table afterward
 				self.datalog_rt_stats=datalog_rt_stats
 				#check if there is a fail => will render the test as failed
 				for k in datalog_rt_stats['Data']:
-					if float(datalog_rt_stats['Data'][k][2])> datalog_rt_stats['Threshold'][k]: #condition for fail : avg/ref is greater than the fixed threshold
-						#setting prematureExit is ok although not the best option
-						self.prematureExit=False #temp for debug : do not stop the test if RT stats are excedeed
+					if float(datalog_rt_stats['Data'][k][3])> datalog_rt_stats['Threshold'][k]: #condition for fail : avg/ref is greater than the fixed threshold
+						logging.debug('\u001B[1;30;43m datalog_rt_stats metric ' + k + '=' + datalog_rt_stats['Data'][k][3] + ' > threshold ' + str(datalog_rt_stats['Threshold'][k]) + ' \u001B[0m')
+						RealTimeProcessingIssue = True
 			else:
 				statMsg = 'No real time stats found in the log file\n'
 				logging.debug('No real time stats found in the log file')
@@ -1087,24 +1199,48 @@ class RANManagement():
 			htmlMsg = statMsg+'\n'
 			logging.debug(statMsg)
 			htmleNBFailureMsg += htmlMsg
+			#X2AP-PDU log
+			statMsg = 'X2AP-PDU msg count =  '+str(x2ap_pdu)
+			htmlMsg = statMsg+'\n'
+			logging.debug(statMsg)
+			htmleNBFailureMsg += htmlMsg
 			#nsa markers
 			statMsg = 'logfile line count = ' + str(line_cnt)			
 			htmlMsg = statMsg+'\n'
 			logging.debug(statMsg)
 			htmleNBFailureMsg += htmlMsg
-			if len(nsa_markers['SgNBReleaseRequest'])!=0:
-				statMsg = 'SgNBReleaseRequest = ' + str(len(nsa_markers['SgNBReleaseRequest'])) + ' occurences , starting line ' + str(nsa_markers['SgNBReleaseRequest'][0])
+			if len(gnb_markers['SgNBReleaseRequest'])!=0:
+				statMsg = 'SgNBReleaseRequest = ' + str(len(gnb_markers['SgNBReleaseRequest'])) + ' occurences , starting line ' + str(gnb_markers['SgNBReleaseRequest'][0])
 			else:
-				statMsg = 'SgNBReleaseRequest = ' + str(len(nsa_markers['SgNBReleaseRequest'])) + ' occurences'
+				statMsg = 'SgNBReleaseRequest = ' + str(len(gnb_markers['SgNBReleaseRequest'])) + ' occurences'
 			htmlMsg = statMsg+'\n'
 			logging.debug(statMsg)
 			htmleNBFailureMsg += htmlMsg
-			statMsg = 'scgFailureInformationNR-r15 = ' + str(len(nsa_markers['scgFailureInformationNR-r15'])) + ' occurences'
+			statMsg = 'scgFailureInformationNR-r15 = ' + str(len(gnb_markers['scgFailureInformationNR-r15'])) + ' occurences'
 			htmlMsg = statMsg+'\n'
 			logging.debug(statMsg)
 			htmleNBFailureMsg += htmlMsg			
 
+		if DLRetxIssue:
+			retx_checker_status_str = ''
+			for status in dlsch_checker_status : retx_checker_status_str+=str(status)+ ' '
+			logging.debug('\u001B[1;37;41m ' + nodeB_prefix + 'NB ended with too many retransmissions / errors issue in DL ! \u001B[0m')
+			logging.debug('\u001B[1;37;41m Status : ' + retx_checker_status_str + ' \u001B[0m')
+			htmleNBFailureMsg += 'Fail due to retransmissions / errors issue in DL, status : ' + retx_checker_status_str + '\n'
+			global_status = CONST.ENB_RETX_ISSUE
 
+		if ULRetxIssue:
+			retx_checker_status_str = ''
+			for status in ulsch_checker_status : retx_checker_status_str+=str(status)+ ' '
+			logging.debug('\u001B[1;37;41m ' + nodeB_prefix + 'NB ended with too many retransmissions / errors issue in UL ! \u001B[0m')
+			logging.debug('\u001B[1;37;41m Status : ' + retx_checker_status_str + ' \u001B[0m')
+			htmleNBFailureMsg += 'Fail due to retransmissions / errors issue in UL, status : ' + retx_checker_status_str + '\n'
+			global_status = CONST.ENB_RETX_ISSUE
+
+		if RealTimeProcessingIssue:
+			logging.debug('\u001B[1;37;41m ' + nodeB_prefix + 'NB ended with real time processing issue! \u001B[0m')
+			htmleNBFailureMsg += 'Fail due to real time processing issue\n'
+			global_status = CONST.ENB_REAL_TIME_PROCESSING_ISSUE
 		if uciStatMsgCount > 0:
 			statMsg = nodeB_prefix + 'NB showed ' + str(uciStatMsgCount) + ' "uci->stat" message(s)'
 			logging.debug('\u001B[1;30;43m ' + statMsg + ' \u001B[0m')
@@ -1206,7 +1342,7 @@ class RANManagement():
 			global_status = CONST.ENB_PROCESS_ASSERTION
 		if foundRealTimeIssue:
 			logging.debug('\u001B[1;37;41m ' + nodeB_prefix + 'NB faced real time issues! \u001B[0m')
-			htmleNBFailureMsg += nodeB_prefix + 'NB faced real time issues!\n'
+			htmleNBFailureMsg += nodeB_prefix + 'NB faced real time issues! COUNT = '+ str(foundRealTimeIssue_cnt) +' lines\n'
 		if rlcDiscardBuffer > 0:
 			rlcMsg = nodeB_prefix + 'NB RLC discarded ' + str(rlcDiscardBuffer) + ' buffer(s)'
 			logging.debug('\u001B[1;37;41m ' + rlcMsg + ' \u001B[0m')

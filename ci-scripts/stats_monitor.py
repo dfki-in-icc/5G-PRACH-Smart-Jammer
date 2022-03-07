@@ -11,15 +11,22 @@ import pickle
 import matplotlib.pyplot as plt
 import numpy as np
 import yaml
+import os
 
 
 class StatMonitor():
     def __init__(self,cfg_file):
         with open(cfg_file,'r') as file:
             self.d = yaml.load(file)
-        for node in self.d:
-            for metric in self.d[node]:
-                self.d[node][metric]=[]
+        for node in self.d:#so far we have enb or gnb as nodes
+            for metric_l1 in self.d[node]: #first level of metric keys
+                if metric_l1!="graph": #graph is a reserved word to configure graph paging, so it is disregarded
+                    if self.d[node][metric_l1] is None:#first level is None -> create array
+                        self.d[node][metric_l1]=[]
+                    else: #first level is not None -> there is a second level -> create array
+                        for metric_l2 in self.d[node][metric_l1]:
+                            self.d[node][metric_l1][metric_l2]=[]                
+
 
 
     def process_gnb (self,node_type,output):
@@ -36,6 +43,11 @@ class StatMonitor():
                 percentage=float(result.group(2))/float(result.group(1))
                 self.d[node_type]['ulsch_err_perc_round_1'].append(percentage)
 
+            for k in self.d[node_type]['rt']:
+                result=re.match(rf'^.*\b{k}\b:\s+([0-9\.]+) us;\s+([0-9]+);\s+([0-9\.]+) us;',tmp)
+                if result is not None:
+                    self.d[node_type]['rt'][k].append(float(result.group(3)))
+
 
     def process_enb (self,node_type,output):
         for line in output:
@@ -48,11 +60,21 @@ class StatMonitor():
                 self.d[node_type]['mcs'].append(int(result.group(4)))
 
 
-    def collect(self,node_type):
+    def collect(self,testcase_id,node_type):
         if node_type=='enb':
-            cmd='cat L1_stats.log MAC_stats.log PDCP_stats.log RRC_stats.log'
+            files = ["L1_stats.log", "MAC_stats.log", "PDCP_stats.log", "RRC_stats.log"]
         else: #'gnb'
-            cmd='cat nrL1_stats.log nrMAC_stats.log nrPDCP_stats.log nrRRC_stats.log'
+            files = ["nrL1_stats.log", "nrMAC_stats.log", "nrPDCP_stats.log", "nrRRC_stats.log"]
+        #append each file's contents to another file (prepended with CI-) for debug
+        for f in files:
+            if os.path.isfile(f):
+                cmd = 'cat '+ f + ' >> CI-'+testcase_id+'-'+f
+                subprocess.Popen(cmd,shell=True)  
+        #join the files for further processing
+        cmd='cat '
+        for f in files:
+            if os.path.isfile(f):
+                cmd += f+' '
         process=subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE)
         output = process.stdout.readlines()
         if node_type=='enb':
@@ -61,42 +83,57 @@ class StatMonitor():
             self.process_gnb(node_type,output)
 
 
-    def graph(self,node_type):
-        col = 1
-        figure, axis = plt.subplots(len(self.d[node_type]), col ,figsize=(10, 10))
-        i=0
-        for metric in self.d[node_type]:
-            major_ticks = np.arange(0, len(self.d[node_type][metric])+1, 1)
-            axis[i].set_xticks(major_ticks)
-            axis[i].set_xticklabels([])
-            axis[i].plot(self.d[node_type][metric],marker='o')
-            axis[i].set_xlabel('time')
-            axis[i].set_ylabel(metric)
-            axis[i].set_title(metric)
-            i+=1
+    def graph(self,testcase_id, node_type):
+        for page in self.d[node_type]['graph']:#work out a set a graphs per page
+            col = 1
+            figure, axis = plt.subplots(len(self.d[node_type]['graph'][page]), col ,figsize=(10, 10))
+            i=0
+            for m in self.d[node_type]['graph'][page]:#metric may refer to 1 level or 2 levels 
+                metric_path=m.split('.')
+                if len(metric_path)==1:#1 level
+                    metric_l1=metric_path[0]
+                    major_ticks = np.arange(0, len(self.d[node_type][metric_l1])+1, 1)
+                    axis[i].set_xticks(major_ticks)
+                    axis[i].set_xticklabels([])
+                    axis[i].plot(self.d[node_type][metric_l1],marker='o')
+                    axis[i].set_xlabel('time')
+                    axis[i].set_ylabel(metric_l1)
+                    axis[i].set_title(metric_l1)
+                    
+                else:#2 levels
+                    metric_l1=metric_path[0]
+                    metric_l2=metric_path[1]
+                    major_ticks = np.arange(0, len(self.d[node_type][metric_l1][metric_l2])+1, 1)
+                    axis[i].set_xticks(major_ticks)
+                    axis[i].set_xticklabels([])
+                    axis[i].plot(self.d[node_type][metric_l1][metric_l2],marker='o')
+                    axis[i].set_xlabel('time')
+                    axis[i].set_ylabel(metric_l2)
+                    axis[i].set_title(metric_l2)
+                i+=1                
 
-        plt.tight_layout()
-        # Combine all the operations and display
-        plt.savefig(node_type+'_stats_monitor.png')
-        plt.show()
+            plt.tight_layout()
+            #save as png
+            plt.savefig(node_type+'_stats_monitor_'+testcase_id+'_'+page+'.png')
 
 
 if __name__ == "__main__":
 
     cfg_filename = sys.argv[1] #yaml file as metrics config
-    node = sys.argv[2]#enb or gnb
+    testcase_id = sys.argv[2] #test case id to name files accordingly, especially if we have several tests in a sequence
+    node = sys.argv[3]#enb or gnb
     mon=StatMonitor(cfg_filename)
 
     #collecting stats when modem process is stopped
-    CMD='ps aux | grep mode | grep -v grep'
+    CMD='ps aux | grep modem | grep -v grep'
     process=subprocess.Popen(CMD, shell=True, stdout=subprocess.PIPE)
     output = process.stdout.readlines()
     while len(output)!=0 :
-        mon.collect(node)
+        mon.collect(testcase_id,node)
         process=subprocess.Popen(CMD, shell=True, stdout=subprocess.PIPE)
         output = process.stdout.readlines()
         time.sleep(1)
     print('Process stopped')
     with open(node+'_stats_monitor.pickle', 'wb') as handle:
         pickle.dump(mon.d, handle, protocol=pickle.HIGHEST_PROTOCOL)
-    mon.graph(node)
+    mon.graph(testcase_id, node)

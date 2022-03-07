@@ -95,7 +95,7 @@ To get the code and build the gNB executable:
     ./build_oai --gNB -w USRP
 ```
 
-A reference configuration file for the gNB is provided  [here](https://gitlab.eurecom.fr/oai/openairinterface5g/-/blob/develop/targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band78.fr1.106PRB.usrpb210.conf).     
+A reference configuration file for the **monolithic** gNB is provided  [here](https://gitlab.eurecom.fr/oai/openairinterface5g/-/blob/develop/targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band78.fr1.106PRB.usrpb210.conf).     
 
 
 In the following, we highlight the fields of the file that have to be configured according to the configuration and interfaces of the Core Network. First, the PLMN section has to be filled with the proper values that match the configuration of the AMF and the UE USIM.
@@ -169,8 +169,7 @@ MACRLCs = (
 
 
 At the point of writing this document the control-plane exchanges between the CU and the DU over *F1-C* interface, as well as some IP traffic tests over *F1-U* have been validated using the OAI gNB/nrUE in RFSIMULATOR mode. 
-
-*These extensions are not yet fully integrated into develop branch, as they are under merge request. Until they get fully integrated, the CU/DU functionalities can be tested in [NR_F1C_F1U_extensions](https://gitlab.eurecom.fr/oai/openairinterface5g/-/tree/NR_F1C_F1U_extensions) branch.* 
+ 
 
 ## 1.2  OAI 5G Core Network installation and configuration
 The instructions for the installation of OAI CN components (AMF, SMF, NRF, UPF) using `docker-compose` can be found [here](https://gitlab.eurecom.fr/oai/cn5g/oai-cn5g-fed/-/blob/master/README.md).
@@ -193,6 +192,8 @@ sudo ./nr-softmodem -E --sa -O ../../../targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb
 The SA setup with OAI UE has been validated with **RFSIMULATOR**. Both control plane and user plane for the successful UE registration and PDU Session establishment has been verified with OAI and Nokia SA Box CNs.
 
 In the following, we provide the instructions on how to build, configure and execute this SA setup.
+
+As another option, if you do not want to build anything and instead deploy the OAI RAN (RFSIMULATOR) and Core Network components directly using docker images and docker-compose, please have a look at [this tutorial](https://gitlab.eurecom.fr/oai/openairinterface5g/-/blob/develop/ci-scripts/yaml_files/5g_rfsimulator/README.md).
 
 ### NAS configuration for the OAI UE
 The NAS configuration parameters of the OAI UE can be set as input parameters, configuration file or can be hardcoded.  More specifically:
@@ -245,7 +246,6 @@ The gNB configuration can be performed according to what is described in [sectio
 ## 2.2  OAI 5G Core Network installation and configuration
 The instructions for the installation of OAI CN components (AMF, SMF, NRF, UPF) using `docker-compose` can be found [here](https://gitlab.eurecom.fr/oai/cn5g/oai-cn5g-fed/-/blob/master/README.md).
 
-In addition, if you do not want to build anything, please have a look at [this tutorial](https://gitlab.eurecom.fr/oai/openairinterface5g/-/blob/develop/ci-scripts/yaml_files/5g_rfsimulator/README.md).
 
 ## 2.3 Execution of SA scenario
 
@@ -263,12 +263,12 @@ the gNB can be launched in 2 modes:
     1. Launch the CU component:
     ```bash
     sudo RFSIMULATOR=server ./nr-softmodem --rfsim --sa \
-        -O ../../../targets/PROJECTS/GENERIC-NR-5GC/CONF/cu_gnb.conf
+        -O ../../../ci-scripts/conf_files/gNB_SA_CU.conf
     ```
     2. Launch the DU component:
     ```bash
     sudo RFSIMULATOR=server ./nr-softmodem --rfsim --sa \
-        -O ../../../targets/PROJECTS/GENERIC-NR-5GC/CONF/du_gnb.conf
+        -O ../../../ci-scripts/conf_files/gNB_SA_DU.conf
     ```
 
 - To launch the OAI UE (valid in `monolithic` gNB and `CU/DU split` gNB):

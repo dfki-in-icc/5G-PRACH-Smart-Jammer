@@ -71,10 +71,6 @@ static int DEFBFW[] = {0x00007fff};
 #include "GNB_APP/gnb_paramdef.h"
 #include "common/config/config_userapi.h"
 
-#ifndef OPENAIR2
-  #include "UTIL/OTG/otg_extern.h"
-#endif
-
 #include "s1ap_eNB.h"
 #include "SIMULATION/ETH_TRANSPORT/proto.h"
 #include <openair1/PHY/TOOLS/phy_scope_interface.h>
@@ -82,10 +78,12 @@ static int DEFBFW[] = {0x00007fff};
 
 #include "T.h"
 #include "nfapi_interface.h"
+#include <nfapi/oai_integration/vendor_ext.h>
 
 extern volatile int oai_exit;
 
-
+extern struct timespec timespec_sub(struct timespec lhs, struct timespec rhs);
+extern struct timespec timespec_add(struct timespec lhs, struct timespec rhs);
 extern void  nr_phy_free_RU(RU_t *);
 extern void  nr_phy_config_request(NR_PHY_Config_t *gNB);
 #include "executables/thread-common.h"
@@ -102,9 +100,6 @@ int attach_rru(RU_t *ru);
 int connect_rau(RU_t *ru);
 static void NRRCconfig_RU(void);
 
-uint16_t sf_ahead;
-uint16_t slot_ahead;
-uint16_t sl_ahead;
 
 extern int emulate_rf;
 extern int numerology;
@@ -375,8 +370,8 @@ void fh_if4p5_south_in(RU_t *ru,
   proc->frame_rx = f;
   proc->timestamp_rx = (proc->frame_rx * fp->samples_per_subframe * 10)  + fp->get_samples_slot_timestamp(proc->tti_rx, fp, 0);
   //  proc->timestamp_tx = proc->timestamp_rx +  (4*fp->samples_per_subframe);
-  proc->tti_tx   = (sl+(fp->slots_per_subframe*sf_ahead))%fp->slots_per_frame;
-  proc->frame_tx = (sl>(fp->slots_per_frame-1-(fp->slots_per_subframe*sf_ahead))) ? (f+1)&1023 : f;
+  proc->tti_tx   = (sl+ru->sl_ahead)%fp->slots_per_frame;
+  proc->frame_tx = (sl>(fp->slots_per_frame-1-(ru->sl_ahead))) ? (f+1)&1023 : f;
 
   if (proc->first_rx == 0) {
     if (proc->tti_rx != *slot) {
@@ -1297,8 +1292,7 @@ void *ru_thread( void *param ) {
     }
   }
 
-  sf_ahead = (uint16_t) ceil((float)6/(0x01<<fp->numerology_index));
-  LOG_I(PHY, "Signaling main thread that RU %d is ready, sf_ahead %d\n",ru->idx,sf_ahead);
+  LOG_I(PHY, "Signaling main thread that RU %d is ready, sl_ahead %d\n",ru->idx,ru->sl_ahead);
   pthread_mutex_lock(&RC.ru_mutex);
   RC.ru_mask &= ~(1<<ru->idx);
   pthread_cond_signal(&RC.ru_cond);
@@ -1316,6 +1310,7 @@ void *ru_thread( void *param ) {
       else LOG_I(PHY,"RU %d rf device ready\n",ru->idx);
     } else LOG_I(PHY,"RU %d no rf device\n",ru->idx);
 
+    LOG_I(PHY,"RU %d RF started\n",ru->idx);
     // start trx write thread
     if(usrp_tx_thread == 1) {
       if (ru->start_write_thread) {
@@ -1329,9 +1324,33 @@ void *ru_thread( void *param ) {
   }
 
   // This is a forever while loop, it loops over subframes which are scheduled by incoming samples from HW devices
+  struct timespec slot_start;
+	clock_gettime(CLOCK_MONOTONIC, &slot_start);
+  
+  struct timespec slot_duration; 
+	slot_duration.tv_sec = 0;
+	//slot_duration.tv_nsec = 0.5e6;
+	slot_duration.tv_nsec = 0.5e6;
+
+  
+
   while (!oai_exit) {
-    // these are local subframe/frame counters to check that we are in synch with the fronthaul timing.
-    // They are set on the first rx/tx in the underly FH routines.
+    
+    if (NFAPI_MODE==NFAPI_MODE_VNF) {
+      // We should make a VNF main loop with proper tasks calls in case of VNF
+      slot_start = timespec_add(slot_start,slot_duration);
+      struct timespec curr_time;
+      clock_gettime(CLOCK_MONOTONIC, &curr_time);
+      
+      struct timespec sleep_time;
+      
+      if((slot_start.tv_sec > curr_time.tv_sec) || (slot_start.tv_sec == curr_time.tv_sec && slot_start.tv_nsec > curr_time.tv_nsec)){
+	sleep_time = timespec_sub(slot_start,curr_time);
+	
+	usleep(sleep_time.tv_nsec * 1e-3); 
+      }
+    }
+    
     if (slot==(fp->slots_per_frame-1)) {
       slot=0;
       frame++;
@@ -1359,9 +1378,12 @@ void *ru_thread( void *param ) {
       opp_enabled = opp_enabled0;
     }
     if (initial_wait == 0 && ru->rx_fhaul.trials > 1000) reset_meas(&ru->rx_fhaul);
-    proc->timestamp_tx = proc->timestamp_rx + (sf_ahead*fp->samples_per_subframe);
-    proc->frame_tx     = (proc->tti_rx > (fp->slots_per_frame-1-(fp->slots_per_subframe*sf_ahead))) ? (proc->frame_rx+1)&1023 : proc->frame_rx;
-    proc->tti_tx      = (proc->tti_rx + (fp->slots_per_subframe*sf_ahead))%fp->slots_per_frame;
+    proc->timestamp_tx = proc->timestamp_rx;
+    int sl=proc->tti_tx;
+    for (int slidx=0;slidx<ru->sl_ahead;slidx++)
+       proc->timestamp_tx += fp->get_samples_per_slot((sl+slidx)%fp->slots_per_frame,fp);
+    proc->frame_tx     = (proc->tti_rx > (fp->slots_per_frame-1-(ru->sl_ahead))) ? (proc->frame_rx+1)&1023 : proc->frame_rx;
+    proc->tti_tx      = (proc->tti_rx + ru->sl_ahead)%fp->slots_per_frame;
     LOG_D(PHY,"AFTER fh_south_in - SFN/SL:%d%d RU->proc[RX:%d.%d TX:%d.%d] RC.gNB[0]:[RX:%d%d TX(SFN):%d]\n",
           frame,slot,
           proc->frame_rx,proc->tti_rx,
@@ -1450,11 +1472,9 @@ void *ru_thread( void *param ) {
 
   res = pullNotifiedFIFO(gNB->resp_L1);
   delNotifiedFIFO_elt(res);
-  res = pullNotifiedFIFO(gNB->resp_L1_tx);
+  res = pullNotifiedFIFO(gNB->L1_tx_free);
   delNotifiedFIFO_elt(res);
-  res = pullNotifiedFIFO(gNB->resp_L1_tx);
-  delNotifiedFIFO_elt(res);
-  res = pullNotifiedFIFO(gNB->resp_RU_tx);
+  res = pullNotifiedFIFO(gNB->L1_tx_free);
   delNotifiedFIFO_elt(res);
 
   ru_thread_status = 0;
@@ -1513,7 +1533,6 @@ void init_RU_proc(RU_t *ru) {
     if (ru->feptx_ofdm) nr_init_feptx_thread(ru);
   }
 
-  if (opp_enabled == 1) threadCreate(&ru->ru_stats_thread,ru_stats_thread,(void *)ru, "emulateRF", -1, OAI_PRIORITY_RT_LOW);
 }
 
 void kill_NR_RU_proc(int inst) {
@@ -2066,9 +2085,7 @@ static void NRRCconfig_RU(void) {
 
         RC.ru[j]->max_pdschReferenceSignalPower     = *(RUParamList.paramarray[j][RU_MAX_RS_EPRE_IDX].uptr);;
         RC.ru[j]->max_rxgain                        = *(RUParamList.paramarray[j][RU_MAX_RXGAIN_IDX].uptr);
-        RC.ru[j]->num_bands                         = RUParamList.paramarray[j][RU_BAND_LIST_IDX].numelt;
         RC.ru[j]->sf_extension                      = *(RUParamList.paramarray[j][RU_SF_EXTENSION_IDX].uptr);
-        for (i=0; i<RC.ru[j]->num_bands; i++) RC.ru[j]->band[i] = RUParamList.paramarray[j][RU_BAND_LIST_IDX].iptr[i];
       } //strcmp(local_rf, "yes") == 0
       else {
         printf("RU %d: Transport %s\n",j,*(RUParamList.paramarray[j][RU_TRANSPORT_PREFERENCE_IDX].strptr));
@@ -2088,8 +2105,6 @@ static void NRRCconfig_RU(void) {
           RC.ru[j]->if_south                     = REMOTE_IF5;
           RC.ru[j]->function                     = NGFI_RAU_IF5;
           RC.ru[j]->eth_params.transp_preference = ETH_UDP_IF5_ECPRI_MODE;
-        } else if (strcmp(*(RUParamList.paramarray[j][RU_TRANSPORT_PREFERENCE_IDX].strptr), "udp_ecpri_if5") == 0) {
-          RC.ru[j]->if_south                     = REMOTE_IF5;
         } else if (strcmp(*(RUParamList.paramarray[j][RU_TRANSPORT_PREFERENCE_IDX].strptr), "raw") == 0) {
           RC.ru[j]->if_south                     = REMOTE_IF5;
           RC.ru[j]->function                     = NGFI_RAU_IF5;
@@ -2112,7 +2127,13 @@ static void NRRCconfig_RU(void) {
       RC.ru[j]->if_frequency                      = *(RUParamList.paramarray[j][RU_IF_FREQUENCY].u64ptr);
       RC.ru[j]->if_freq_offset                    = *(RUParamList.paramarray[j][RU_IF_FREQ_OFFSET].iptr);
       RC.ru[j]->do_precoding                      = *(RUParamList.paramarray[j][RU_DO_PRECODING].iptr);
-
+      RC.ru[j]->sl_ahead                          = *(RUParamList.paramarray[j][RU_SL_AHEAD].iptr);
+      RC.ru[j]->num_bands                         = RUParamList.paramarray[j][RU_BAND_LIST_IDX].numelt;
+      for (i=0; i<RC.ru[j]->num_bands; i++) RC.ru[j]->band[i] = RUParamList.paramarray[j][RU_BAND_LIST_IDX].iptr[i];
+      RC.ru[j]->openair0_cfg.nr_flag              = *(RUParamList.paramarray[j][RU_NR_FLAG].iptr);
+      RC.ru[j]->openair0_cfg.nr_band              = RC.ru[j]->band[0];
+      RC.ru[j]->openair0_cfg.nr_scs_for_raster    = *(RUParamList.paramarray[j][RU_NR_SCS_FOR_RASTER].iptr);
+      printf("[RU %d] Setting nr_flag %d, nr_band %d, nr_scs_for_raster %d\n",j,RC.ru[j]->openair0_cfg.nr_flag,RC.ru[j]->openair0_cfg.nr_band,RC.ru[j]->openair0_cfg.nr_scs_for_raster);
       if (config_isparamset(RUParamList.paramarray[j], RU_BF_WEIGHTS_LIST_IDX)) {
         RC.ru[j]->nb_bfw = RUParamList.paramarray[j][RU_BF_WEIGHTS_LIST_IDX].numelt;
 

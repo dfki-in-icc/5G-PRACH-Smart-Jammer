@@ -65,7 +65,7 @@ function start_basic_sim_enb {
     echo "sudo chmod 777 /home/ubuntu/tmp/cmake_targets/ran_build/" >> $1
     echo "sudo chmod 777 /home/ubuntu/tmp/cmake_targets/ran_build/build/" >> $1
     echo "cd /home/ubuntu/tmp/cmake_targets/ran_build/build/" >> $1
-    echo "echo \"ulimit -c unlimited && ./lte-softmodem -O /home/ubuntu/tmp/ci-scripts/conf_files/ci-$LOC_CONF_FILE --log_config.global_log_options level,nocolor --basicsim\" > ./my-lte-softmodem-run.sh " >> $1
+    echo "echo \"ulimit -c unlimited && ./lte-softmodem -O /home/ubuntu/tmp/ci-scripts/conf_files/ci-$LOC_CONF_FILE --log_config.global_log_options level,nocolor,time --basicsim\" > ./my-lte-softmodem-run.sh " >> $1
     echo "chmod 775 ./my-lte-softmodem-run.sh" >> $1
     echo "cat ./my-lte-softmodem-run.sh" >> $1
     echo "if [ -e /home/ubuntu/tmp/cmake_targets/log/$LOC_LOG_FILE ]; then sudo sudo rm -f /home/ubuntu/tmp/cmake_targets/log/$LOC_LOG_FILE; fi" >> $1
@@ -110,7 +110,7 @@ function start_basic_sim_ue {
     echo "echo \"cd /home/ubuntu/tmp/cmake_targets/ran_build/build/\"" > $1
     echo "sudo chmod 777 /home/ubuntu/tmp/cmake_targets/ran_build/build/" >> $1
     echo "cd /home/ubuntu/tmp/cmake_targets/ran_build/build" >> $1
-    echo "echo \"./lte-uesoftmodem -C ${LOC_FREQUENCY}000000 -r $LOC_NB_RBS  --log_config.global_log_options nocolor,level --basicsim\" > ./my-lte-uesoftmodem-run.sh" >> $1
+    echo "echo \"./lte-uesoftmodem -C ${LOC_FREQUENCY}000000 -r $LOC_NB_RBS  --log_config.global_log_options nocolor,line_num,level --basicsim\" > ./my-lte-uesoftmodem-run.sh" >> $1
     echo "chmod 775 ./my-lte-uesoftmodem-run.sh" >> $1
     echo "cat ./my-lte-uesoftmodem-run.sh" >> $1
     echo "if [ -e /home/ubuntu/tmp/cmake_targets/log/$LOC_UE_LOG_FILE ]; then sudo sudo rm -f /home/ubuntu/tmp/cmake_targets/log/$LOC_UE_LOG_FILE; fi" >> $1
@@ -818,9 +818,9 @@ function start_l2_sim_enb {
     echo "cd /home/ubuntu/tmp/cmake_targets/ran_build/build/" >> $1
     if [ $LOC_S1_CONFIGURATION -eq 0 ]
     then
-        echo "echo \"ulimit -c unlimited && ./lte-softmodem -O /home/ubuntu/tmp/ci-scripts/conf_files/ci-$LOC_CONF_FILE --log_config.global_log_options level,nocolor --noS1\" > ./my-lte-softmodem-run.sh " >> $1
+        echo "echo \"ulimit -c unlimited && ./lte-softmodem -O /home/ubuntu/tmp/ci-scripts/conf_files/ci-$LOC_CONF_FILE --log_config.global_log_options level,nocolor,time --noS1\" > ./my-lte-softmodem-run.sh " >> $1
     else
-        echo "echo \"ulimit -c unlimited && ./lte-softmodem -O /home/ubuntu/tmp/ci-scripts/conf_files/ci-$LOC_CONF_FILE --log_config.global_log_options level,nocolor \" > ./my-lte-softmodem-run.sh " >> $1
+        echo "echo \"ulimit -c unlimited && ./lte-softmodem -O /home/ubuntu/tmp/ci-scripts/conf_files/ci-$LOC_CONF_FILE --log_config.global_log_options level,nocolor,time \" > ./my-lte-softmodem-run.sh " >> $1
     fi
     echo "chmod 775 ./my-lte-softmodem-run.sh" >> $1
     echo "cat ./my-lte-softmodem-run.sh" >> $1
@@ -929,9 +929,9 @@ function start_l2_sim_ue {
     echo "cd /home/ubuntu/tmp/cmake_targets/ran_build/build/" >> $1
     if [ $LOC_S1_CONFIGURATION -eq 0 ]
     then
-        echo "echo \"ulimit -c unlimited && ./lte-uesoftmodem -O /home/ubuntu/tmp/ci-scripts/conf_files/ci-$LOC_CONF_FILE --L2-emul 3 --num-ues $LOC_NB_UES --nums_ue_thread 1 --nokrnmod 1 --log_config.global_log_options level,nocolor --noS1\" > ./my-lte-softmodem-run.sh " >> $1
+        echo "echo \"ulimit -c unlimited && ./lte-uesoftmodem -O /home/ubuntu/tmp/ci-scripts/conf_files/ci-$LOC_CONF_FILE --L2-emul 3 --num-ues $LOC_NB_UES --nums_ue_thread 1 --nokrnmod 1 --log_config.global_log_options level,nocolor,time --noS1\" > ./my-lte-softmodem-run.sh " >> $1
     else
-        echo "echo \"ulimit -c unlimited && ./lte-uesoftmodem -O /home/ubuntu/tmp/ci-scripts/conf_files/ci-$LOC_CONF_FILE --L2-emul 3 --num-ues $LOC_NB_UES --nums_ue_thread 1 --nokrnmod 1 --log_config.global_log_options level,nocolor\" > ./my-lte-softmodem-run.sh " >> $1
+        echo "echo \"ulimit -c unlimited && ./lte-uesoftmodem -O /home/ubuntu/tmp/ci-scripts/conf_files/ci-$LOC_CONF_FILE --L2-emul 3 --num-ues $LOC_NB_UES --nums_ue_thread 1 --nokrnmod 1 --log_config.global_log_options level,nocolor,time\" > ./my-lte-softmodem-run.sh " >> $1
     fi
     echo "chmod 775 ./my-lte-softmodem-run.sh" >> $1
     echo "cat ./my-lte-softmodem-run.sh" >> $1
@@ -1051,9 +1051,9 @@ function start_rf_sim_enb {
     echo "cd /home/ubuntu/tmp/cmake_targets/ran_build/build/" >> $1
     if [ $LOC_S1_CONFIGURATION -eq 0 ]
     then
-        echo "echo \"ulimit -c unlimited && ./lte-softmodem -O /home/ubuntu/tmp/ci-scripts/conf_files/ci-$LOC_CONF_FILE --rfsim --log_config.global_log_options level,nocolor --noS1 --eNBs.[0].rrc_inactivity_threshold 0\" > ./my-lte-softmodem-run.sh " >> $1
+        echo "echo \"ulimit -c unlimited && ./lte-softmodem -O /home/ubuntu/tmp/ci-scripts/conf_files/ci-$LOC_CONF_FILE --rfsim --log_config.global_log_options level,nocolor,time --noS1 --eNBs.[0].rrc_inactivity_threshold 0\" > ./my-lte-softmodem-run.sh " >> $1
     else
-        echo "echo \"ulimit -c unlimited && ./lte-softmodem -O /home/ubuntu/tmp/ci-scripts/conf_files/ci-$LOC_CONF_FILE --rfsim --log_config.global_log_options level,nocolor --eNBs.[0].rrc_inactivity_threshold 0 --eNBs.[0].plmn_list.[0].mnc 93\" > ./my-lte-softmodem-run.sh " >> $1
+        echo "echo \"ulimit -c unlimited && ./lte-softmodem -O /home/ubuntu/tmp/ci-scripts/conf_files/ci-$LOC_CONF_FILE --rfsim --log_config.global_log_options level,nocolor,time --eNBs.[0].rrc_inactivity_threshold 0 --eNBs.[0].plmn_list.[0].mnc 93\" > ./my-lte-softmodem-run.sh " >> $1
     fi
     echo "chmod 775 ./my-lte-softmodem-run.sh" >> $1
     echo "cat ./my-lte-softmodem-run.sh" >> $1
@@ -1159,9 +1159,9 @@ function start_rf_sim_ue {
     echo "cd /home/ubuntu/tmp/cmake_targets/ran_build/build/" >> $1
     if [ $LOC_S1_CONFIGURATION -eq 0 ]
     then
-        echo "echo \"ulimit -c unlimited && ./lte-uesoftmodem -C ${LOC_FREQUENCY}000000 -r $LOC_PRB --ue-rxgain 140 --ue-txgain 120 --nokrnmod 1 --rfsim --log_config.global_log_options level,nocolor --noS1\" > ./my-lte-softmodem-run.sh " >> $1
+        echo "echo \"ulimit -c unlimited && ./lte-uesoftmodem -C ${LOC_FREQUENCY}000000 -r $LOC_PRB --ue-rxgain 140 --ue-txgain 120 --nokrnmod 1 --rfsim --log_config.global_log_options level,nocolor,time --noS1\" > ./my-lte-softmodem-run.sh " >> $1
     else
-        echo "echo \"ulimit -c unlimited && ./lte-uesoftmodem -C ${LOC_FREQUENCY}000000 -r $LOC_PRB --ue-rxgain 140 --ue-txgain 120 --nokrnmod 1 --rfsim --log_config.global_log_options level,nocolor\" > ./my-lte-softmodem-run.sh " >> $1
+        echo "echo \"ulimit -c unlimited && ./lte-uesoftmodem -C ${LOC_FREQUENCY}000000 -r $LOC_PRB --ue-rxgain 140 --ue-txgain 120 --nokrnmod 1 --rfsim --log_config.global_log_options level,nocolor,time\" > ./my-lte-softmodem-run.sh " >> $1
     fi
     echo "chmod 775 ./my-lte-softmodem-run.sh" >> $1
     echo "cat ./my-lte-softmodem-run.sh" >> $1
@@ -1281,12 +1281,12 @@ function start_rf_sim_gnb {
     then
         if [ $LOC_RA_SA_TEST -eq 0 ] #no RA test => use --phy-test option
         then
-            echo "echo \"./nr-softmodem -O /home/ubuntu/tmp/ci-scripts/conf_files/ci-$LOC_CONF_FILE --log_config.global_log_options level,nocolor --parallel-config PARALLEL_SINGLE_THREAD --noS1 --nokrnmod 1 --rfsim --phy-test --lowmem --noS1\" > ./my-nr-softmodem-run.sh " >> $1
+            echo "echo \"./nr-softmodem -O /home/ubuntu/tmp/ci-scripts/conf_files/ci-$LOC_CONF_FILE --log_config.global_log_options level,nocolor,time --parallel-config PARALLEL_SINGLE_THREAD --noS1 --nokrnmod 1 --rfsim --phy-test --lowmem --noS1\" > ./my-nr-softmodem-run.sh " >> $1
         elif [ $LOC_RA_SA_TEST -eq 1 ] #RA test => use --do-ra option
         then
-            echo "echo \"./nr-softmodem -O /home/ubuntu/tmp/ci-scripts/conf_files/ci-$LOC_CONF_FILE --log_config.global_log_options level,nocolor --parallel-config PARALLEL_SINGLE_THREAD --rfsim --do-ra --lowmem --noS1\" > ./my-nr-softmodem-run.sh " >> $1
+            echo "echo \"./nr-softmodem -O /home/ubuntu/tmp/ci-scripts/conf_files/ci-$LOC_CONF_FILE --log_config.global_log_options level,nocolor,time --parallel-config PARALLEL_SINGLE_THREAD --rfsim --do-ra --lowmem --noS1\" > ./my-nr-softmodem-run.sh " >> $1
         else #SA test => use --sa option
-            echo "echo \"./nr-softmodem -O /home/ubuntu/tmp/ci-scripts/conf_files/ci-$LOC_CONF_FILE --log_config.global_log_options level,nocolor --parallel-config PARALLEL_SINGLE_THREAD --rfsim --sa --lowmem \" > ./my-nr-softmodem-run.sh " >> $1
+            echo "echo \"./nr-softmodem -O /home/ubuntu/tmp/ci-scripts/conf_files/ci-$LOC_CONF_FILE --log_config.global_log_options level,nocolor,time --parallel-config PARALLEL_SINGLE_THREAD --rfsim --sa --lowmem \" > ./my-nr-softmodem-run.sh " >> $1
         fi
     fi
     echo "chmod 775 ./my-nr-softmodem-run.sh" >> $1
@@ -1397,12 +1397,15 @@ function start_rf_sim_nr_ue {
     then
         if [ $LOC_RA_SA_TEST -eq 0 ] #no RA test => use --phy-test option
         then
-            echo "echo \"./nr-uesoftmodem --nokrnmod 1 --rfsim --phy-test --rrc_config_path /home/ubuntu/tmp/cmake_targets/ran_build/build/ --log_config.global_log_options level,nocolor --noS1\" > ./my-nr-softmodem-run.sh " >> $1
+            echo "echo \"./nr-uesoftmodem --nokrnmod 1 --rfsim --phy-test --rrc_config_path /home/ubuntu/tmp/cmake_targets/ran_build/build/ --log_config.global_log_options level,nocolor,time --noS1\" > ./my-nr-softmodem-run.sh " >> $1
         elif [ $LOC_RA_SA_TEST -eq 1 ] #RA test => use --do-ra option
         then
-            echo "echo \"./nr-uesoftmodem --rfsim --do-ra --log_config.global_log_options level,nocolor --rrc_config_path /home/ubuntu/tmp/cmake_targets/ran_build/build/\" > ./my-nr-softmodem-run.sh " >> $1
-        else #SA test => use --sa option
-            echo "echo \"./nr-uesoftmodem -r 106 --numerology 1 --band 78 -C 3619200000 --rfsim --sa --log_config.global_log_options level,nocolor\" > ./my-nr-softmodem-run.sh " >> $1
+            echo "echo \"./nr-uesoftmodem --rfsim --do-ra --log_config.global_log_options level,nocolor,time --rrc_config_path /home/ubuntu/tmp/cmake_targets/ran_build/build/\" > ./my-nr-softmodem-run.sh " >> $1
+        elif [ $LOC_RA_SA_TEST -eq 2 ] #SA test 106PRB => use --sa option
+        then
+            echo "echo \"./nr-uesoftmodem -r 106 --numerology 1 --band 78 -C 3619200000 --rfsim --sa --log_config.global_log_options level,nocolor,time\" > ./my-nr-softmodem-run.sh " >> $1
+        else # -eq 3 SA test 24PRB 
+           echo "echo \"./nr-uesoftmodem -r 24 -s 24 --numerology 1 --band 78 -C 3604320000 --rfsim --sa --log_config.global_log_options level,nocolor,time\" > ./my-nr-softmodem-run.sh " >> $1
         fi
     fi
     echo "chmod 775 ./my-nr-softmodem-run.sh" >> $1
@@ -1472,13 +1475,18 @@ function run_test_on_vm {
     echo "############################################################"
     echo "OAI CI VM script"
     echo "############################################################"
-    if [[ (( "$RUN_OPTIONS" == "complex" ) && ( $VM_NAME =~ .*-l2-sim.* ))  ]] ||  [[ (( "$RUN_OPTIONS" == "complex" ) && ( $VM_NAME =~ .*-rf-sim.* ))  ]]
+    if [[ (( "$RUN_OPTIONS" == "complex" ) && ( $VM_NAME =~ .*-l2-sim.* ))  ]]
     then
-        ENB_VM_NAME=`echo $VM_NAME | sed -e "s#l2-sim#enb-ethernet#" -e "s#rf-sim#enb-ethernet#"`
+        echo "This VM test type is no longer supported in the pipeline framework"
+        return
+    fi
+    if [[ (( "$RUN_OPTIONS" == "complex" ) && ( $VM_NAME =~ .*-rf-sim.* ))  ]]
+    then
+        ENB_VM_NAME=`echo $VM_NAME | sed -e "s#rf-sim#enb-ethernet#"`
         ENB_VM_CMDS=${ENB_VM_NAME}_cmds.txt
         echo "ENB_VM_NAME         = $ENB_VM_NAME"
         echo "ENB_VM_CMD_FILE     = $ENB_VM_CMDS"
-        UE_VM_NAME=`echo $VM_NAME | sed -e "s#l2-sim#ue-ethernet#" -e "s#rf-sim#ue-ethernet#"`
+        UE_VM_NAME=`echo $VM_NAME | sed -e "s#rf-sim#ue-ethernet#"`
         UE_VM_CMDS=${UE_VM_NAME}_cmds.txt
         echo "UE_VM_NAME          = $UE_VM_NAME"
         echo "UE_VM_CMD_FILE      = $UE_VM_CMDS"
@@ -1499,7 +1507,7 @@ function run_test_on_vm {
     echo "JENKINS_WKSP        = $JENKINS_WKSP"
     echo "ARCHIVES_LOC        = $ARCHIVES_LOC"
 
-    if [[ (( "$RUN_OPTIONS" == "complex" ) && ( $VM_NAME =~ .*-l2-sim.* ))  ]] ||  [[ (( "$RUN_OPTIONS" == "complex" ) && ( $VM_NAME =~ .*-rf-sim.* ))  ]]
+    if [[ (( "$RUN_OPTIONS" == "complex" ) && ( $VM_NAME =~ .*-rf-sim.* ))  ]]
     then
         echo "############################################################"
         echo "Waiting for ENB VM to be started"
@@ -2265,7 +2273,7 @@ function run_test_on_vm {
         mkdir --parents $ARCHIVES_LOC
 
         echo "############################################################"
-        echo "SA TEST"
+        echo "SA TEST 106PRB"
         echo "############################################################"
         #SA test, attention : has a different config file from the rest of the test
         CN_CONFIG="noS1"
@@ -2300,7 +2308,7 @@ function run_test_on_vm {
             echo "${CN_CONFIG} : Starting the NR-UE"
             echo "############################################################"
             CURRENT_NR_UE_LOG_FILE=tdd_${PRB}prb_${CN_CONFIG}_ue_sa_test.log
-            #last argument = 2 is to enable --sa for SA test
+            #last argument = 2 is to enable --sa for SA test for 106PRB
             start_rf_sim_nr_ue $NR_UE_VM_CMDS $NR_UE_VM_IP_ADDR $GNB_VM_IP_ADDR $CURRENT_NR_UE_LOG_FILE $PRB $FREQUENCY $S1_NOS1_CFG 2
             if [ $NR_UE_SYNC -eq 0 ]
             then
@@ -2335,14 +2343,102 @@ function run_test_on_vm {
                 echo "SA test NOT OK"
                 echo "try_cnt = " $try_cnt
                 try_cnt=$((try_cnt+1))
+                SA_106PRB_STATUS = -1
             else
                 echo "SA test OK"
                 try_cnt=$((try_cnt+10))
+                SA_106PRB_STATUS = 0
             fi
         done
         ########### end SA test
 
         sleep 30
+
+
+        echo "############################################################"
+        echo "SA TEST 24PRB"
+        echo "############################################################"
+        #SA test, attention : has a different config file from the rest of the test
+        CN_CONFIG="noS1"
+        CONF_FILE=gnb.sa.band78.fr1.24PRB.usrpb210.conf
+        S1_NOS1_CFG=0
+        PRB=24
+        FREQUENCY=3600
+
+        if [ ! -d $ARCHIVES_LOC ]
+        then
+            mkdir --parents $ARCHIVES_LOC
+        fi
+
+        local try_cnt=0
+
+        ######### start of SA TEST loop
+        while [ $try_cnt -lt 5 ] #5 because it hardly succeed within CI
+        do
+
+            SYNC_STATUS=0
+            SA_STATUS=0
+            rm -f $ARCHIVES_LOC/tdd_${PRB}prb_${CN_CONFIG}*sa_test.log
+
+            echo "############################################################"
+            echo "${CN_CONFIG} : Starting the gNB"
+            echo "############################################################"
+            CURRENT_GNB_LOG_FILE=tdd_${PRB}prb_${CN_CONFIG}_gnb_sa_test.log
+            #last argument = 2 is to enable --sa for SA test 
+            start_rf_sim_gnb $GNB_VM_CMDS "$GNB_VM_IP_ADDR" $CURRENT_GNB_LOG_FILE $PRB $CONF_FILE $S1_NOS1_CFG 2
+
+            echo "############################################################"
+            echo "${CN_CONFIG} : Starting the NR-UE"
+            echo "############################################################"
+            CURRENT_NR_UE_LOG_FILE=tdd_${PRB}prb_${CN_CONFIG}_ue_sa_test.log
+            #last argument = 3 is to enable --sa for SA test for 24PRB
+            start_rf_sim_nr_ue $NR_UE_VM_CMDS $NR_UE_VM_IP_ADDR $GNB_VM_IP_ADDR $CURRENT_NR_UE_LOG_FILE $PRB $FREQUENCY $S1_NOS1_CFG 3
+            if [ $NR_UE_SYNC -eq 0 ]
+            then
+                echo "Problem w/ gNB and NR-UE not syncing"
+                terminate_enb_ue_basic_sim $NR_UE_VM_CMDS $NR_UE_VM_IP_ADDR 2
+                terminate_enb_ue_basic_sim $GNB_VM_CMDS $GNB_VM_IP_ADDR 1
+                scp -o StrictHostKeyChecking=no ubuntu@$GNB_VM_IP_ADDR:/home/ubuntu/tmp/cmake_targets/log/$CURRENT_GNB_LOG_FILE $ARCHIVES_LOC
+                scp -o StrictHostKeyChecking=no ubuntu@$NR_UE_VM_IP_ADDR:/home/ubuntu/tmp/cmake_targets/log/$CURRENT_NR_UE_LOG_FILE $ARCHIVES_LOC
+                SYNC_STATUS=-1
+                try_cnt=$((try_cnt+1))
+                continue
+            fi
+
+            echo "############################################################"
+            echo "${CN_CONFIG} : Terminate gNB/NR-UE simulators"
+            echo "############################################################"
+            sleep 20
+            terminate_enb_ue_basic_sim $NR_UE_VM_CMDS $NR_UE_VM_IP_ADDR 2
+            terminate_enb_ue_basic_sim $GNB_VM_CMDS $GNB_VM_IP_ADDR 1
+            scp -o StrictHostKeyChecking=no ubuntu@$GNB_VM_IP_ADDR:/home/ubuntu/tmp/cmake_targets/log/$CURRENT_GNB_LOG_FILE $ARCHIVES_LOC
+            scp -o StrictHostKeyChecking=no ubuntu@$NR_UE_VM_IP_ADDR:/home/ubuntu/tmp/cmake_targets/log/$CURRENT_NR_UE_LOG_FILE $ARCHIVES_LOC
+
+            #check SA markers in gNB and NR UE log files
+            echo "############################################################"
+            echo "${CN_CONFIG} : Checking SA on gNB / NR-UE"
+            echo "############################################################"
+
+            # Proper check to be done when SA test is working!
+            check_sa_result $ARCHIVES_LOC/$CURRENT_GNB_LOG_FILE $ARCHIVES_LOC/$CURRENT_NR_UE_LOG_FILE
+            if [ $SA_STATUS -ne 0 ]
+            then
+                echo "SA test NOT OK"
+                echo "try_cnt = " $try_cnt
+                try_cnt=$((try_cnt+1))
+                SA_24PRB_STATUS = -1
+            else
+                echo "SA test OK"
+                try_cnt=$((try_cnt+10))
+                SA_24PRB_STATUS = 0
+            fi
+        done
+        ########### end SA test
+
+        sleep 30
+
+
+
 
 
 
@@ -2656,7 +2752,8 @@ function run_test_on_vm {
         echo "Checking run status"
         echo "############################################################"
 
-        if [ $SA_STATUS -ne 0 ]; then NR_STATUS=-1; fi     
+        if [ $SA_106PRB_STATUS -ne 0 ]; then NR_STATUS=-1; fi 
+        if [ $SA_24PRB_STATUS -ne 0 ]; then NR_STATUS=-1; fi  
         if [ $RA_FR2_STATUS -ne 0 ]; then NR_STATUS=-1; fi        
         if [ $RA_FR1_STATUS -ne 0 ]; then NR_STATUS=-1; fi
         if [ $SYNC_STATUS -ne 0 ]; then NR_STATUS=-1; fi

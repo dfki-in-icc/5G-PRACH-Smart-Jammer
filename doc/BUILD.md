@@ -60,7 +60,7 @@ cd cmake_targets/
 ./build_oai -I --phy_simulators
 ```
 
-After completing the build, the binaries are available in the cmake_targets/phy_simulators/build directory.  
+After completing the build, the binaries are available in the cmake_targets/ran_build/build directory.  
 A copy is also available in the target/bin directory, with all binaries suffixed by the 3GPP release number, today **.Rel15**.  
 
 
@@ -87,6 +87,21 @@ cd cmake_targets/
 You can build any oai softmodem executable separately, you may not need all of them depending on your oai usage.
 
 After completing the build, the binaries are available in the `cmake_targets/ran_build/build` directory. A copy is also available in the `target/bin` directory, with all binaries suffixed by the 3GPP release number, today .Rel15.
+
+When installing the pre-requisites, especially the `UHD` driver, you can now specify if you want to install from source or not.
+
+- For `fedora`-based OS, it was already the case all the time. But now you can specify which version to install.
+- For `ubuntu` OS, the Ettus PPA currently installs the following versions:
+  * `Ubuntu16.04`: --> version `3.15.0.0`
+  * `Ubuntu18.04`: --> version `4.1.0.0`
+
+```bash
+export BUILD_UHD_FROM_SOURCE=True
+export UHD_VERSION=3.15.0.0
+./build_oai -I -w USRP
+```
+
+The `UHD_VERSION` env variable `SHALL` be a valid tag (minus `v`) from the `https://github.com/EttusResearch/uhd.git` repository.
 
 ## Issue when building `nasmeh` module ##
 

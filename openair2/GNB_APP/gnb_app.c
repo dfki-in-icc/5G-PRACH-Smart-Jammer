@@ -31,8 +31,8 @@
 #include <stdio.h>
 #include <nr_pdcp/nr_pdcp.h>
 #include <softmodem-common.h>
+#include <nr-softmodem.h>
 #include <split_headers.h>
-#include <proto_agent.h>
 
 #include "gnb_app.h"
 #include "gnb_config.h"
@@ -55,6 +55,7 @@
 #include "netfunc.h"
 #include "protocol.h"
 #include <pthread.h>
+#include "openair2/LAYER2/PDCP_v10.1.0/pdcp.h"
 extern unsigned char NB_gNB_INST;
 
 extern RAN_CONTEXT_t RC;
@@ -138,38 +139,13 @@ static uint32_t gNB_app_register_x2(uint32_t gnb_id_start, uint32_t gnb_id_end) 
 
 /*------------------------------------------------------------------------------*/
 
-static void init_pdcp(void) {
-  if (!NODE_IS_DU(RC.nrrrc[0]->node_type)) {
-    pdcp_layer_init();
-    uint32_t pdcp_initmask = (IS_SOFTMODEM_NOS1) ?
-                             (PDCP_USE_NETLINK_BIT | LINK_ENB_PDCP_TO_IP_DRIVER_BIT) : LINK_ENB_PDCP_TO_GTPV1U_BIT;
-    if (IS_SOFTMODEM_NOS1) {
-      LOG_I(PDCP, "IS_SOFTMODEM_NOS1 option enabled\n");
-      pdcp_initmask = pdcp_initmask | ENB_NAS_USE_TUN_BIT | SOFTMODEM_NOKRNMOD_BIT;
-    }
-
-    pdcp_module_init(pdcp_initmask);
-
-    if (NODE_IS_CU(RC.nrrrc[0]->node_type)) {
-      LOG_I(PDCP, "node is CU, pdcp send rlc_data_req by proto_agent \n");
-      pdcp_set_rlc_data_req_func((send_rlc_data_req_func_t)proto_agent_send_rlc_data_req);
-    } else {
-      LOG_I(PDCP, "node is gNB \n");
-      pdcp_set_rlc_data_req_func((send_rlc_data_req_func_t) rlc_data_req);
-      pdcp_set_pdcp_data_ind_func((pdcp_data_ind_func_t) pdcp_data_ind);
-    }
-  } else {
-    LOG_I(PDCP, "node is DU, rlc send pdcp_data_ind by proto_agent \n");
-    pdcp_set_pdcp_data_ind_func((pdcp_data_ind_func_t) proto_agent_send_pdcp_data_ind);
-  }
-}
 
 /*------------------------------------------------------------------------------*/
 
 
 
 /* RNIS Karim*/
-
+/*
 static void rnis_agent_func(void *params)
 {
 
@@ -180,23 +156,18 @@ struct cnx_info_t *info = (struct cnx_info_t *)params;
 
 	do {
     printf("RNIS agent begin ");
-		/* either apply an iterative TCP server, or work on top of UDP */
 		if (info->proto == _PROTO_TCP_) {
-			/* accept */
 			struct cnx_info_t* cinfo = accept_client_connection(info);
 			memcpy(&clicnx, cinfo, sizeof(struct cnx_info_t));
 			free(cinfo);
 		}
 		else {
-			/* Operation over UDP, use the original "info" struct */
 			memcpy(&clicnx, info, sizeof(struct cnx_info_t));
 		}
 
-		/* read a protocol message */
-		/* TODO: check timeout! */
+
 		message = recv_protocol_message(&clicnx, &mtype, 0, FROM_CLIENT);
     printf("RNSI message received \n ---------------- %s %d\n",message,mtype);
-		/* check message type and respond */
 		//if (mtype == 0) {
 
 
@@ -265,7 +236,6 @@ struct cnx_info_t *info = (struct cnx_info_t *)params;
 }
 
 
-/* RNIS KARIM */
 
 static void rnis_agent_init(int soa_port)
 {
@@ -274,19 +244,17 @@ static void rnis_agent_init(int soa_port)
   info->proto = _PROTO_TCP_;
   info->port = soa_port;
 
-	/* networking */
-	memcpy(info->host, "0.0.0.0\0", 8); /* any addr */
+	memcpy(info->host, "0.0.0.0\0", 8); 
 	if (init_server(info) < 0) {
 		fprintf(stderr, "Init failed");
 		exit(1);
 	}
 
-	/* threads */
 	pthread_t rnis_thread;
   printf("RNIS agent created");
 	pthread_create(&rnis_thread, NULL, (void*)&rnis_agent_func, (void*)info);
 }
-
+*/
 
 
 
@@ -309,6 +277,8 @@ void *gNB_app_task(void *args_p)
 
   LOG_I(PHY, "%s() Task ready initialize structures\n", __FUNCTION__);
 
+  RCconfig_NR_L1();
+
   if (RC.nb_nr_macrlc_inst>0) RCconfig_nr_macrlc();
 
   LOG_I(PHY, "%s() RC.nb_nr_L1_inst:%d\n", __FUNCTION__, RC.nb_nr_L1_inst);
@@ -323,15 +293,13 @@ void *gNB_app_task(void *args_p)
 
   RC.nrrrc = (gNB_RRC_INST **)malloc(RC.nb_nr_inst*sizeof(gNB_RRC_INST *));
   LOG_I(PHY, "%s() RC.nb_nr_inst:%d RC.nrrrc:%p\n", __FUNCTION__, RC.nb_nr_inst, RC.nrrrc);
-
   for (gnb_id = gnb_id_start; (gnb_id < gnb_id_end) ; gnb_id++) {
-    RC.nrrrc[gnb_id] = (gNB_RRC_INST*)malloc(sizeof(gNB_RRC_INST));
+    RC.nrrrc[gnb_id] = (gNB_RRC_INST*)calloc(1,sizeof(gNB_RRC_INST));
     LOG_I(PHY, "%s() Creating RRC instance RC.nrrrc[%d]:%p (%d of %d)\n", __FUNCTION__, gnb_id, RC.nrrrc[gnb_id], gnb_id+1, gnb_id_end);
-    memset((void *)RC.nrrrc[gnb_id],0,sizeof(gNB_RRC_INST));
     configure_nr_rrc(gnb_id);
   }
 
-  if (RC.nb_nr_inst > 0)  {
+  if (RC.nb_nr_inst > 0 && !get_softmodem_params()->nsa)  {
     init_pdcp();
   }
 
@@ -342,7 +310,7 @@ void *gNB_app_task(void *args_p)
 
   /* For the CU case the gNB registration with the AMF might have to take place after the F1 setup, as the PLMN info
      * can originate from the DU. Add check on whether x2ap is enabled to account for ENDC NSA scenario.*/
-  if ((AMF_MODE_ENABLED || is_x2ap_enabled()) && !NODE_IS_DU(RC.nrrrc[0]->node_type) && !NODE_IS_CU(RC.nrrrc[0]->node_type)) {
+  if ((AMF_MODE_ENABLED || is_x2ap_enabled()) && !NODE_IS_DU(RC.nrrrc[0]->node_type) ) { //&& !NODE_IS_CU(RC.nrrrc[0]->node_type)) {
     /* Try to register each gNB */
     //registered_gnb = 0;
     __attribute__((unused)) uint32_t register_gnb_pending = gNB_app_register (gnb_id_start, gnb_id_end);
@@ -371,7 +339,7 @@ void *gNB_app_task(void *args_p)
       itti_send_msg_to_task (TASK_DU_F1, GNB_MODULE_ID_TO_INSTANCE(0), msg_p);
     }
   }
-  rnis_agent_init(9991); // TODO: read port from config file
+  //rnis_agent_init(9991); // TODO: read port from config file
   do {
     // Wait for a message
     itti_receive_msg (TASK_GNB_APP, &msg_p);

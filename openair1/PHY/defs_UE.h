@@ -55,12 +55,11 @@
 #include <string.h>
 #include <math.h>
 #include "common_lib.h"
-#include "msc.h"
 
 #include "defs_common.h"
 #include "impl_defs_top.h"
 
-#include "PHY/TOOLS/time_meas.h"
+#include "time_meas.h"
 #include "PHY/CODING/coding_defs.h"
 #include "PHY/TOOLS/tools_defs.h"
 #include "platform_types.h"
@@ -87,7 +86,6 @@
   #define LOG_W(x, ...) mexPrintf(__VA_ARGS__)
   #define LOG_M(x, ...) mexPrintf(__VA_ARGS__)
 #else
-  #ifdef OPENAIR2
     #if ENABLE_RAL
       #include "collection/hashtable/hashtable.h"
       #include "COMMON/ral_messages_types.h"
@@ -95,9 +93,6 @@
     #endif
     #include "common/utils/LOG/log.h"
     #define msg(aRGS...) LOG_D(PHY, ##aRGS)
-  #else
-    #define msg printf
-  #endif
 #endif
 
 
@@ -159,7 +154,6 @@ typedef struct {
 
   int sub_frame_start;
   int sub_frame_step;
-  unsigned long long gotIQs;
 } UE_rxtx_proc_t;
 
 /// Context data structure for eNB subframe processing

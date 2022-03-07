@@ -40,8 +40,6 @@
 
 #include "openair2/F1AP/f1ap_du_rrc_message_transfer.h"
 
-#include "openair2/LAYER2/PROTO_AGENT/proto_agent.h"
-
 extern RAN_CONTEXT_t RC;
 
 #include <stdint.h>
@@ -270,8 +268,8 @@ mac_rlc_status_resp_t mac_rlc_status_ind(
                         + buf_stat.retx_size
                         + buf_stat.tx_size;
   } else {
-    if (!(frameP%128)) //to supress this warning message
-      LOG_W(RLC, "[%s] Radio Bearer (channel ID %d) is NULL for UE with rntiP %x\n", __FUNCTION__, channel_idP, rntiP);
+   /* if (!(frameP%128)) //to suppress this warning message
+      LOG_W(RLC, "[%s] Radio Bearer (channel ID %d) is NULL for UE with rntiP %x\n", __FUNCTION__, channel_idP, rntiP);*/
     ret.bytes_in_buffer = 0;
   }
 
@@ -334,6 +332,8 @@ rlc_buffer_occupancy_t mac_rlc_get_buffer_occupancy_ind(
         + buf_stat.retx_size
         + buf_stat.tx_size;
   } else {
+   /* if (!(frameP%128)) //to suppress this warning message
+      LOG_W(RLC, "[%s] Radio Bearer (channel ID %d) is NULL for UE with rntiP %x\n", __FUNCTION__, channel_idP, rntiP);*/
     ret = 0;
   }
 
@@ -344,16 +344,16 @@ rlc_buffer_occupancy_t mac_rlc_get_buffer_occupancy_ind(
 
 
 rlc_op_status_t rlc_data_req     (const protocol_ctxt_t *const ctxt_pP,
-                                  const srb_flag_t   srb_flagP,
-                                  const MBMS_flag_t  MBMS_flagP,
-                                  const rb_id_t      rb_idP,
-                                  const mui_t        muiP,
-                                  confirm_t    confirmP,
-                                  sdu_size_t   sdu_sizeP,
-                                  mem_block_t *sdu_pP,
-  const uint32_t *const sourceL2Id,
-  const uint32_t *const destinationL2Id
-                                 )
+			const srb_flag_t   srb_flagP,
+			const MBMS_flag_t  MBMS_flagP,
+			const rb_id_t      rb_idP,
+			const mui_t        muiP,
+			confirm_t    confirmP,
+			sdu_size_t   sdu_sizeP,
+			mem_block_t *sdu_pP,
+                        const uint32_t *const sourceL2Id,
+                        const uint32_t *const destinationL2Id
+			)
 {
   int rnti = ctxt_pP->rnti;
   nr_rlc_ue_t *ue;
@@ -460,22 +460,19 @@ static void deliver_sdu(void *_ue, nr_rlc_entity_t *entity, char *buf, int size)
   exit(1);
 
 rb_found:
-  LOG_D(RLC, "%s:%d:%s: delivering SDU (rnti %d is_srb %d rb_id %d) size %d\n",
-        __FILE__, __LINE__, __FUNCTION__, ue->rnti, is_srb, rb_id, size);
+  if (is_srb==0) {
+     struct timespec time_request;
+     clock_gettime(CLOCK_REALTIME, &time_request);
 
-  memblock = get_free_mem_block(size, __func__);
-  if (memblock == NULL) {
-    LOG_E(RLC, "%s:%d:%s: ERROR: get_free_mem_block failed\n", __FILE__, __LINE__, __FUNCTION__);
-    exit(1);
+     LOG_D(RLC, "%s:%d:%s: delivering SDU Time %lu.%lu (rnti %d is_srb %d rb_id %d) size %d\n",
+           __FILE__, __LINE__, __FUNCTION__, time_request.tv_sec,time_request.tv_nsec,
+           ue->rnti, is_srb, rb_id, size);
   }
-  memcpy(memblock->data, buf, size);
-
   /* unused fields? */
   ctx.instance = 0;
   ctx.frame = 0;
   ctx.subframe = 0;
   ctx.eNB_index = 0;
-  ctx.configured = 1;
   ctx.brOption = 0;
 
   /* used fields? */
@@ -500,19 +497,44 @@ rb_found:
     //   return;
     // }
 
-    if (NODE_IS_DU(type) && is_srb == 1) {
-      MessageDef *msg;
-      msg = itti_alloc_new_message(TASK_RLC_ENB, 0, F1AP_UL_RRC_MESSAGE);
-      F1AP_UL_RRC_MESSAGE(msg).rnti = ue->rnti;
-      F1AP_UL_RRC_MESSAGE(msg).srb_id = rb_id;
-      F1AP_UL_RRC_MESSAGE(msg).rrc_container = (unsigned char *)buf;
-      F1AP_UL_RRC_MESSAGE(msg).rrc_container_length = size;
-      itti_send_msg_to_task(TASK_DU_F1, ENB_MODULE_ID_TO_INSTANCE(0 /*ctxt_pP->module_id*/), msg);
-      return;
+    if (NODE_IS_DU(type)) {
+      if(is_srb) {
+	MessageDef *msg;
+	msg = itti_alloc_new_message(TASK_RLC_ENB, 0, F1AP_UL_RRC_MESSAGE);
+	uint8_t *message_buffer = itti_malloc (TASK_RLC_ENB, TASK_DU_F1, size);
+	memcpy (message_buffer, buf, size);
+	F1AP_UL_RRC_MESSAGE(msg).rnti = ue->rnti;
+	F1AP_UL_RRC_MESSAGE(msg).srb_id = rb_id;
+	F1AP_UL_RRC_MESSAGE(msg).rrc_container = message_buffer;
+	F1AP_UL_RRC_MESSAGE(msg).rrc_container_length = size;
+	itti_send_msg_to_task(TASK_DU_F1, ENB_MODULE_ID_TO_INSTANCE(0 /*ctxt_pP->module_id*/), msg);
+	return;
+      } else {
+	MessageDef *msg = itti_alloc_new_message_sized(TASK_RLC_ENB, 0, GTPV1U_GNB_TUNNEL_DATA_REQ,
+						       sizeof(gtpv1u_gnb_tunnel_data_req_t) + size);
+	gtpv1u_gnb_tunnel_data_req_t *req=&GTPV1U_GNB_TUNNEL_DATA_REQ(msg);
+	req->buffer=(uint8_t*)(req+1);
+	memcpy(req->buffer,buf,size);
+	req->length=size;
+	req->offset=0;
+	req->rnti=ue->rnti;
+	req->pdusession_id=rb_id;
+	LOG_D(RLC, "Received uplink user-plane traffic at RLC-DU to be sent to the CU, size %d \n", size);
+	extern instance_t DUuniqInstance;
+	itti_send_msg_to_task(TASK_GTPV1_U, DUuniqInstance, msg);
+	return;
+      }
     }
   }
 
-  if (!pdcp_data_ind(&ctx, is_srb, 0, rb_id, size, memblock)) {
+  memblock = get_free_mem_block(size, __func__);
+  if (memblock == NULL) {
+    LOG_E(RLC, "%s:%d:%s: ERROR: get_free_mem_block failed\n", __FILE__, __LINE__, __FUNCTION__);
+    exit(1);
+  }
+  memcpy(memblock->data, buf, size);
+  LOG_D(PDCP, "Calling PDCP layer from RLC in %s\n", __FUNCTION__);
+  if (!pdcp_data_ind(&ctx, is_srb, 0, rb_id, size, memblock, NULL, NULL)) {
     LOG_E(RLC, "%s:%d:%s: ERROR: pdcp_data_ind failed\n", __FILE__, __LINE__, __FUNCTION__);
     /* what to do in case of failure? for the moment: nothing */
   }
@@ -719,7 +741,7 @@ static void add_rlc_srb(int rnti, struct NR_SRB_ToAddMod *s, NR_RLC_BearerConfig
                                      sn_field_length);
     nr_rlc_ue_add_srb_rlc_entity(ue, srb_id, nr_rlc_am);
 
-    LOG_D(RLC, "%s:%d:%s: added srb %d to UE with RNTI 0x%x\n", __FILE__, __LINE__, __FUNCTION__, srb_id, rnti);
+    LOG_I(RLC, "%s:%d:%s: added srb %d to UE with RNTI 0x%x\n", __FILE__, __LINE__, __FUNCTION__, srb_id, rnti);
   }
   nr_rlc_manager_unlock(nr_rlc_ue_manager);
 }
@@ -917,10 +939,10 @@ rlc_op_status_t nr_rrc_rlc_config_asn1_req (const protocol_ctxt_t   * const ctxt
 
   if (/*ctxt_pP->enb_flag != 1 ||*/ ctxt_pP->module_id != 0 /*||
       ctxt_pP->instance != 0 || ctxt_pP->eNB_index != 0 ||
-      ctxt_pP->configured != 1 || ctxt_pP->brOption != 0 */) {
-    LOG_E(RLC, "%s: ctxt_pP not handled (%d %d %ld %d %d %d)\n", __FUNCTION__,
+      ctxt_pP->brOption != 0 */) {
+    LOG_E(RLC, "%s: ctxt_pP not handled (%d %d %ld %d %d)\n", __FUNCTION__,
           ctxt_pP->enb_flag , ctxt_pP->module_id, ctxt_pP->instance,
-          ctxt_pP->eNB_index, ctxt_pP->configured, ctxt_pP->brOption);
+          ctxt_pP->eNB_index,  ctxt_pP->brOption);
     exit(1);
   }
 
@@ -956,21 +978,15 @@ rlc_op_status_t nr_rrc_rlc_config_asn1_req (const protocol_ctxt_t   * const ctxt
     for (i = 0; i < drb2add_listP->list.count; i++) {
       LOG_W(RLC,"going through drb2add_listP loop \n");
       if (rlc_bearer2add_list != NULL) {
-      for(j = 0; j < rlc_bearer2add_list->list.count; j++){
-        LOG_W(RLC,"going through rlc_bearer2add_list loop \n");
-
-        if(rlc_bearer2add_list->list.array[j]->servedRadioBearer != NULL){
-          LOG_W(RLC,"cond 1 \n");
-
-          if(rlc_bearer2add_list->list.array[j]->servedRadioBearer->present == NR_RLC_BearerConfig__servedRadioBearer_PR_drb_Identity){
-            LOG_W(RLC,"cond 2 %ld == %ld \n",drb2add_listP->list.array[i]->drb_Identity,rlc_bearer2add_list->list.array[j]->servedRadioBearer->choice.drb_Identity);
-            if(drb2add_listP->list.array[i]->drb_Identity == rlc_bearer2add_list->list.array[j]->servedRadioBearer->choice.drb_Identity){
-              LOG_W(RLC,"add DRB \n");
-              add_drb(rnti, drb2add_listP->list.array[i], rlc_bearer2add_list->list.array[j]);
+        for(j = 0; j < rlc_bearer2add_list->list.count; j++){
+          if(rlc_bearer2add_list->list.array[j]->servedRadioBearer != NULL){
+            if(rlc_bearer2add_list->list.array[j]->servedRadioBearer->present == NR_RLC_BearerConfig__servedRadioBearer_PR_drb_Identity){
+              if(drb2add_listP->list.array[i]->drb_Identity == rlc_bearer2add_list->list.array[j]->servedRadioBearer->choice.drb_Identity){
+                add_drb(rnti, drb2add_listP->list.array[i], rlc_bearer2add_list->list.array[j]);
+              }
             }
-          }  
+          }
         }
-      }
       }
     }
   }

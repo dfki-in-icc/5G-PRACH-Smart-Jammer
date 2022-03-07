@@ -1174,7 +1174,7 @@ int nr_rx_pusch(PHY_VARS_gNB *gNB,
 
   uint8_t aarx, aatx;
   uint32_t nb_re_pusch, bwp_start_subcarrier;
-  int avgs;
+  int avgs = 0;
 
   NR_DL_FRAME_PARMS *frame_parms = &gNB->frame_parms;
   nfapi_nr_pusch_pdu_t *rel15_ul = &gNB->ulsch[ulsch_id][0]->harq_processes[harq_pid]->ulsch_pdu;
@@ -1222,6 +1222,10 @@ int nr_rx_pusch(PHY_VARS_gNB *gNB,
               gNB->measurements.n0_subband_power[aarx][rel15_ul->bwp_start + rel15_ul->rb_start + rb] /
               rel15_ul->rb_size;
         }
+        LOG_D(PHY,"aa %d, bwp_start%d, rb_start %d, rb_size %d: ulsch_power %d, ulsch_noise_power %d\n",aarx,
+	      rel15_ul->bwp_start,rel15_ul->rb_start,rel15_ul->rb_size,
+              gNB->pusch_vars[ulsch_id]->ulsch_power[aarx],
+              gNB->pusch_vars[ulsch_id]->ulsch_noise_power[aarx]);
       }
     }
   }

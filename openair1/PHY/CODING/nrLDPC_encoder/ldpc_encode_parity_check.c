@@ -33,12 +33,9 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
-#include <types.h>
 #include "assertions.h"
 #include "common/utils/LOG/log.h"
 
-
-//#define DEBUG_LDPC
 
 #include "ldpc384_byte.c"
 #include "ldpc352_byte.c"

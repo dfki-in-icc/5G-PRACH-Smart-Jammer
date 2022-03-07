@@ -31,7 +31,7 @@
 #ifndef __NR_LDPC_TYPES__H__
 #define __NR_LDPC_TYPES__H__
 
-#include "PHY/TOOLS/time_meas.h"
+#include "time_meas.h"
 #include "nrLDPCdecoder_defs.h"
 // ==============================================================================
 // TYPES
@@ -70,6 +70,7 @@ typedef struct nrLDPC_dec_params {
     uint16_t Z; /**< Lifting size */
     uint8_t R; /**< Decoding rate: Format 15,13,... for code rates 1/5, 1/3,... */
     uint8_t numMaxIter; /**< Maximum number of iterations */
+    int block_length;
     e_nrLDPC_outMode outMode; /**< Output format */
 } t_nrLDPC_dec_params;
 

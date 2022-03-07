@@ -29,96 +29,191 @@
  */
 
 #include "nr_rrc_config.h"
+#include "common/utils/nr/nr_common.h"
 
-void rrc_config_rlc_bearer(uint8_t Mod_id,
-                           int CC_id,
-                           rlc_bearer_config_t *rlc_config
-                          ){
-  rlc_config->LogicalChannelIdentity[CC_id]                 = 0;
-  rlc_config->servedRadioBearer_present[CC_id]              = 0;
-  rlc_config->srb_Identity[CC_id]                           = 0;
-  rlc_config->drb_Identity[CC_id]                           = 0;
-  rlc_config->reestablishRLC[CC_id]                         = 0;
-  rlc_config->rlc_Config_present[CC_id]                     = 0;
-  rlc_config->ul_AM_sn_FieldLength[CC_id]                   = 0;
-  rlc_config->t_PollRetransmit[CC_id]                       = 0;
-  rlc_config->pollPDU[CC_id]                                = 0;
-  rlc_config->pollByte[CC_id]                               = 0;
-  rlc_config->maxRetxThreshold[CC_id]                       = 0;
-  rlc_config->dl_AM_sn_FieldLength[CC_id]                   = 0;
-  rlc_config->dl_AM_t_Reassembly[CC_id]                     = 0;
-  rlc_config->t_StatusProhibit[CC_id]                       = 0;
-  rlc_config->ul_UM_sn_FieldLength[CC_id]                   = 0;
-  rlc_config->dl_UM_sn_FieldLength[CC_id]                   = 0;
-  rlc_config->dl_UM_t_Reassembly[CC_id]                     = 0;
-  rlc_config->priority[CC_id]                               = 0;
-  rlc_config->prioritisedBitRate[CC_id]                     = 0;
-  rlc_config->bucketSizeDuration[CC_id]                     = 0;
-  rlc_config->allowedServingCells[CC_id]                    = 0;
-  rlc_config->subcarrierspacing[CC_id]                      = 0;
-  rlc_config->maxPUSCH_Duration[CC_id]                      = 0;
-  rlc_config->configuredGrantType1Allowed[CC_id]            = 0;
-  rlc_config->logicalChannelGroup[CC_id]                    = 0;
-  rlc_config->schedulingRequestID[CC_id]                    = 0;
-  rlc_config->logicalChannelSR_Mask[CC_id]                  = 0;
-  rlc_config->logicalChannelSR_DelayTimerApplied[CC_id]     = 0;
+void prepare_sim_uecap(NR_UE_NR_Capability_t *cap,
+                       NR_ServingCellConfigCommon_t *scc,
+                       int numerology,
+                       int rbsize,
+                       int mcs_table) {
+
+  int band = *scc->downlinkConfigCommon->frequencyInfoDL->frequencyBandList.list.array[0];
+  NR_BandNR_t *nr_bandnr = CALLOC(1,sizeof(NR_BandNR_t));
+  nr_bandnr->bandNR = band;
+  ASN_SEQUENCE_ADD(&cap->rf_Parameters.supportedBandListNR.list,
+                   nr_bandnr);
+  if (mcs_table == 1) {
+    int bw = get_supported_band_index(numerology, band, rbsize);
+    if (band>256) {
+      NR_BandNR_t *bandNRinfo = cap->rf_Parameters.supportedBandListNR.list.array[0];
+      bandNRinfo->pdsch_256QAM_FR2 = CALLOC(1,sizeof(*bandNRinfo->pdsch_256QAM_FR2));
+      *bandNRinfo->pdsch_256QAM_FR2 = NR_BandNR__pdsch_256QAM_FR2_supported;
+    }
+    else{
+      cap->phy_Parameters.phy_ParametersFR1 = CALLOC(1,sizeof(*cap->phy_Parameters.phy_ParametersFR1));
+      NR_Phy_ParametersFR1_t *phy_fr1 = cap->phy_Parameters.phy_ParametersFR1;
+      phy_fr1->pdsch_256QAM_FR1 = CALLOC(1,sizeof(*phy_fr1->pdsch_256QAM_FR1));
+      *phy_fr1->pdsch_256QAM_FR1 = NR_Phy_ParametersFR1__pdsch_256QAM_FR1_supported;
+    }
+    cap->featureSets = CALLOC(1,sizeof(*cap->featureSets));
+    NR_FeatureSets_t *fs=cap->featureSets;
+    fs->featureSetsDownlinkPerCC = CALLOC(1,sizeof(*fs->featureSetsDownlinkPerCC));
+    NR_FeatureSetDownlinkPerCC_t *fs_cc = CALLOC(1,sizeof(NR_FeatureSetDownlinkPerCC_t));
+    fs_cc->supportedSubcarrierSpacingDL = numerology;
+    if(band>256) {
+      fs_cc->supportedBandwidthDL.present = NR_SupportedBandwidth_PR_fr2;
+      fs_cc->supportedBandwidthDL.choice.fr2 = bw;
+    }
+    else{
+      fs_cc->supportedBandwidthDL.present = NR_SupportedBandwidth_PR_fr1;
+      fs_cc->supportedBandwidthDL.choice.fr1 = bw;
+    }
+    fs_cc->supportedModulationOrderDL = CALLOC(1,sizeof(*fs_cc->supportedModulationOrderDL));
+    *fs_cc->supportedModulationOrderDL = NR_ModulationOrder_qam256;
+    ASN_SEQUENCE_ADD(&fs->featureSetsDownlinkPerCC->list,
+                     fs_cc);
+  }
 }
 
-void rrc_config_mac_cellgroup(uint8_t Mod_id,
-                              int CC_id,
-                              mac_cellgroup_t *mac_cellgroup_config
-                             ){
-  mac_cellgroup_config->DRX_Config_PR[CC_id]                = 0;
-  mac_cellgroup_config->drx_onDurationTimer_PR[CC_id]       = 0;
-  mac_cellgroup_config->subMilliSeconds[CC_id]              = 0;
-  mac_cellgroup_config->milliSeconds[CC_id]                 = 0;
-  mac_cellgroup_config->drx_InactivityTimer[CC_id]          = 0;
-  mac_cellgroup_config->drx_HARQ_RTT_TimerDL[CC_id]         = 0;
-  mac_cellgroup_config->drx_HARQ_RTT_TimerUL[CC_id]         = 0;
-  mac_cellgroup_config->drx_RetransmissionTimerDL[CC_id]    = 0;
-  mac_cellgroup_config->drx_RetransmissionTimerUL[CC_id]    = 0;
-  mac_cellgroup_config->drx_LongCycleStartOffset_PR[CC_id]  = 0;
-  mac_cellgroup_config->drx_LongCycleStartOffset[CC_id]     = 0;
-  mac_cellgroup_config->drx_ShortCycle[CC_id]               = 0;
-  mac_cellgroup_config->drx_ShortCycleTimer[CC_id]          = 0;
-  mac_cellgroup_config->drx_SlotOffset[CC_id]               = 0;
-  mac_cellgroup_config->schedulingRequestId[CC_id]          = 0;
-  mac_cellgroup_config->sr_ProhibitTimer[CC_id]             = 0;
-  mac_cellgroup_config->sr_TransMax[CC_id]                  = 0;
-  mac_cellgroup_config->periodicBSR_Timer[CC_id]            = 0;
-  mac_cellgroup_config->retxBSR_Timer[CC_id]                = 0;
-  mac_cellgroup_config->logicalChannelSR_DelayTimer[CC_id]  = 0;
-  mac_cellgroup_config->tag_Id[CC_id]                       = 0;
-  mac_cellgroup_config->timeAlignmentTimer[CC_id]           = 0;
-  mac_cellgroup_config->PHR_Config_PR[CC_id]                = 0;
-  mac_cellgroup_config->phr_PeriodicTimer[CC_id]            = 0;
-  mac_cellgroup_config->phr_ProhibitTimer[CC_id]            = 0;
-  mac_cellgroup_config->phr_Tx_PowerFactorChange[CC_id]     = 0;
-  mac_cellgroup_config->multiplePHR[CC_id]                  = 0;
-  mac_cellgroup_config->phr_Type2SpCell[CC_id]              = 0;
-  mac_cellgroup_config->phr_Type2OtherCell[CC_id]           = 0;
-  mac_cellgroup_config->phr_ModeOtherCG[CC_id]              = 0;
-  mac_cellgroup_config->skipUplinkTxDynamic[CC_id]          = 0;
+void nr_rrc_config_dl_tda(NR_ServingCellConfigCommon_t *scc){
+
+  lte_frame_type_t frame_type = get_frame_type(*scc->downlinkConfigCommon->frequencyInfoDL->frequencyBandList.list.array[0], *scc->ssbSubcarrierSpacing);
+  int curr_bwp = scc->downlinkConfigCommon->frequencyInfoDL->scs_SpecificCarrierList.list.array[0]->carrierBandwidth;
+  // coreset duration setting to be improved in the framework of RRC harmonization, potentially using a common function
+  int len_coreset = 1;
+  if (curr_bwp < 48)
+    len_coreset = 2;
+  // setting default TDA for DL with
+  struct NR_PDSCH_TimeDomainResourceAllocation *timedomainresourceallocation = CALLOC(1,sizeof(NR_PDSCH_TimeDomainResourceAllocation_t));
+  timedomainresourceallocation->mappingType = NR_PDSCH_TimeDomainResourceAllocation__mappingType_typeA;
+  timedomainresourceallocation->startSymbolAndLength = get_SLIV(len_coreset,14-len_coreset); // basic slot configuration starting in symbol 1 til the end of the slot
+  ASN_SEQUENCE_ADD(&scc->downlinkConfigCommon->initialDownlinkBWP->pdsch_ConfigCommon->choice.setup->pdsch_TimeDomainAllocationList->list,
+                   timedomainresourceallocation);
+  if(frame_type==TDD) {
+    // TDD
+    if(scc->tdd_UL_DL_ConfigurationCommon) {
+      int dl_symb = scc->tdd_UL_DL_ConfigurationCommon->pattern1.nrofDownlinkSymbols;
+      if(dl_symb > 1) {
+        timedomainresourceallocation = CALLOC(1,sizeof(NR_PDSCH_TimeDomainResourceAllocation_t));
+        timedomainresourceallocation->mappingType = NR_PDSCH_TimeDomainResourceAllocation__mappingType_typeA;
+        timedomainresourceallocation->startSymbolAndLength = get_SLIV(len_coreset,dl_symb-len_coreset); // mixed slot configuration starting in symbol 1 til the end of the dl allocation
+        ASN_SEQUENCE_ADD(&scc->downlinkConfigCommon->initialDownlinkBWP->pdsch_ConfigCommon->choice.setup->pdsch_TimeDomainAllocationList->list,
+                         timedomainresourceallocation);
+      }
+    }
+  }
 }
 
-void rrc_config_physicalcellgroup(uint8_t Mod_id,
-                                  int CC_id,
-                                  physicalcellgroup_t *physicalcellgroup_config
-                                 ){
-  physicalcellgroup_config->harq_ACK_SpatialBundlingPUCCH[CC_id]    = 0;
-  physicalcellgroup_config->harq_ACK_SpatialBundlingPUSCH[CC_id]    = 0;
-  physicalcellgroup_config->p_NR[CC_id]                             = 0;
-  physicalcellgroup_config->pdsch_HARQ_ACK_Codebook[CC_id]          = 0;
-  physicalcellgroup_config->tpc_SRS_RNTI[CC_id]                     = 0;
-  physicalcellgroup_config->tpc_PUCCH_RNTI[CC_id]                   = 0;
-  physicalcellgroup_config->tpc_PUSCH_RNTI[CC_id]                   = 0;
-  physicalcellgroup_config->sp_CSI_RNTI[CC_id]                      = 0;
-  physicalcellgroup_config->RNTI_Value[CC_id]                       = 0;
-}
 
-void rrc_config_rachdedicated(uint8_t Mod_id,
-                              int CC_id,
-                              physicalcellgroup_t *physicalcellgroup_config
-                              ){
+void nr_rrc_config_ul_tda(NR_ServingCellConfigCommon_t *scc, int min_fb_delay){
+
+  //TODO change to accomodate for SRS
+
+  lte_frame_type_t frame_type = get_frame_type(*scc->downlinkConfigCommon->frequencyInfoDL->frequencyBandList.list.array[0], *scc->ssbSubcarrierSpacing);
+  int temp_min_delay; 
+  if(frame_type==TDD && scc->tdd_UL_DL_ConfigurationCommon) {
   
+    switch (scc->tdd_UL_DL_ConfigurationCommon->pattern1.dl_UL_TransmissionPeriodicity) {
+      default:
+        temp_min_delay = 6;
+        break;
+      case NR_TDD_UL_DL_Pattern__dl_UL_TransmissionPeriodicity_ms2p5:  // 30kHz SCS
+      case NR_TDD_UL_DL_Pattern__dl_UL_TransmissionPeriodicity_ms2:    // 60kHz SCS
+      case NR_TDD_UL_DL_Pattern__dl_UL_TransmissionPeriodicity_ms1p25: // 60kHz SCS
+      case NR_TDD_UL_DL_Pattern__dl_UL_TransmissionPeriodicity_ms1:    // 120kHz SCS
+      case NR_TDD_UL_DL_Pattern__dl_UL_TransmissionPeriodicity_ms0p625:    // 120kHz SCS
+      case NR_TDD_UL_DL_Pattern__dl_UL_TransmissionPeriodicity_ms0p5:    // 120kHz SCS
+        temp_min_delay = 2; 
+        break;
+    }
+  }
+
+
+  int k2 = (min_fb_delay<temp_min_delay)?temp_min_delay:min_fb_delay;
+
+  uint8_t DELTA[4]= {2,3,4,6}; // Delta parameter for Msg3
+  int mu = scc->uplinkConfigCommon->initialUplinkBWP->genericParameters.subcarrierSpacing;
+
+  struct NR_PUSCH_TimeDomainResourceAllocation *pusch_timedomainresourceallocation = CALLOC(1,sizeof(struct NR_PUSCH_TimeDomainResourceAllocation));
+  pusch_timedomainresourceallocation->k2  = CALLOC(1,sizeof(long));
+  *pusch_timedomainresourceallocation->k2 = k2;
+  pusch_timedomainresourceallocation->mappingType = NR_PUSCH_TimeDomainResourceAllocation__mappingType_typeB;
+  pusch_timedomainresourceallocation->startSymbolAndLength = get_SLIV(0,13); // basic slot configuration starting in symbol 0 til the last but one symbol
+  ASN_SEQUENCE_ADD(&scc->uplinkConfigCommon->initialUplinkBWP->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList->list,pusch_timedomainresourceallocation); 
+
+  if(frame_type==TDD) {
+      
+    // TDD
+    if(scc->tdd_UL_DL_ConfigurationCommon) {
+      int ul_symb = scc->tdd_UL_DL_ConfigurationCommon->pattern1.nrofUplinkSymbols;
+      pusch_timedomainresourceallocation = CALLOC(1,sizeof(struct NR_PUSCH_TimeDomainResourceAllocation));
+      pusch_timedomainresourceallocation->k2  = CALLOC(1,sizeof(long));
+      *pusch_timedomainresourceallocation->k2 = k2;
+      pusch_timedomainresourceallocation->mappingType = NR_PUSCH_TimeDomainResourceAllocation__mappingType_typeB;
+      pusch_timedomainresourceallocation->startSymbolAndLength = get_SLIV(14-ul_symb,ul_symb-1); // starting in fist ul symbol til the last but one
+      ASN_SEQUENCE_ADD(&scc->uplinkConfigCommon->initialUplinkBWP->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList->list,pusch_timedomainresourceallocation);
+
+      // for msg3 in the mixed slot
+      int nb_periods_per_frame = get_nb_periods_per_frame(scc->tdd_UL_DL_ConfigurationCommon->pattern1.dl_UL_TransmissionPeriodicity);
+      int nb_slots_per_period = ((1<<mu) * 10)/nb_periods_per_frame;
+      struct NR_PUSCH_TimeDomainResourceAllocation *pusch_timedomainresourceallocation_msg3 = CALLOC(1,sizeof(struct NR_PUSCH_TimeDomainResourceAllocation));
+      pusch_timedomainresourceallocation_msg3->k2  = CALLOC(1,sizeof(long));
+      *pusch_timedomainresourceallocation_msg3->k2 = nb_slots_per_period - DELTA[mu];
+      if(*pusch_timedomainresourceallocation_msg3->k2 < min_fb_delay)
+        *pusch_timedomainresourceallocation_msg3->k2 += nb_slots_per_period;
+      AssertFatal(*pusch_timedomainresourceallocation_msg3->k2<33,"Computed k2 for msg3 %ld is larger than the range allowed by RRC (0..32)\n",
+                  *pusch_timedomainresourceallocation_msg3->k2);
+      pusch_timedomainresourceallocation_msg3->mappingType = NR_PUSCH_TimeDomainResourceAllocation__mappingType_typeB;
+      pusch_timedomainresourceallocation_msg3->startSymbolAndLength = get_SLIV(14-ul_symb,ul_symb-1); // starting in fist ul symbol til the last but one
+      ASN_SEQUENCE_ADD(&scc->uplinkConfigCommon->initialUplinkBWP->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList->list,pusch_timedomainresourceallocation_msg3);
+    }
+  }
 }
+
+
+void set_dl_mcs_table(int scs, NR_UE_NR_Capability_t *cap,
+                      NR_BWP_DownlinkDedicated_t *bwp_Dedicated,
+                      NR_ServingCellConfigCommon_t *scc) {
+
+  if (cap == NULL){
+    bwp_Dedicated->pdsch_Config->choice.setup->mcs_Table = NULL;
+    return;
+  }
+
+  int band = *scc->downlinkConfigCommon->frequencyInfoDL->frequencyBandList.list.array[0];
+  struct NR_FrequencyInfoDL__scs_SpecificCarrierList scs_list = scc->downlinkConfigCommon->frequencyInfoDL->scs_SpecificCarrierList;
+  int bw_rb = -1;
+  for(int i=0; i<scs_list.list.count; i++){
+    if(scs == scs_list.list.array[i]->subcarrierSpacing){
+      bw_rb = scs_list.list.array[i]->carrierBandwidth;
+      break;
+    }
+  }
+  AssertFatal(bw_rb>0,"Could not find scs-SpecificCarrierList element for scs %d",scs);
+  int bw = get_supported_band_index(scs, band, bw_rb);
+  AssertFatal(bw>0,"Supported band corresponding to %d RBs not found\n", bw_rb);
+
+  bool supported = false;
+  if (band>256) {
+    for (int i=0;i<cap->rf_Parameters.supportedBandListNR.list.count;i++) {
+      NR_BandNR_t *bandNRinfo = cap->rf_Parameters.supportedBandListNR.list.array[i];
+      if(bandNRinfo->bandNR == band && bandNRinfo->pdsch_256QAM_FR2) {
+        supported = true;
+        break;
+      }
+    }
+  }
+  else if (cap->phy_Parameters.phy_ParametersFR1 && cap->phy_Parameters.phy_ParametersFR1->pdsch_256QAM_FR1)
+    supported = true;
+
+  if (supported) {
+    if(bwp_Dedicated->pdsch_Config->choice.setup->mcs_Table == NULL)
+      bwp_Dedicated->pdsch_Config->choice.setup->mcs_Table = calloc(1, sizeof(*bwp_Dedicated->pdsch_Config->choice.setup->mcs_Table));
+    *bwp_Dedicated->pdsch_Config->choice.setup->mcs_Table = NR_PDSCH_Config__mcs_Table_qam256;
+  }
+  else
+    bwp_Dedicated->pdsch_Config->choice.setup->mcs_Table = NULL;
+}
+
+
+

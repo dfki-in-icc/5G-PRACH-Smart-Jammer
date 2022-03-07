@@ -48,7 +48,6 @@
 #ifdef MEX
   #define msg mexPrintf
 #else
-  #ifdef OPENAIR2
     #if ENABLE_RAL
       #include "collection/hashtable/hashtable.h"
       #include "COMMON/ral_messages_types.h"
@@ -56,9 +55,6 @@
     #endif
     #include "common/utils/LOG/log.h"
     #define msg(aRGS...) LOG_D(PHY, ##aRGS)
-  #else
-    #define msg printf
-  #endif
 #endif
 //use msg in the real-time thread context
 #define msg_nrt printf
@@ -126,7 +122,7 @@ static inline void* malloc16_clear( size_t size )
 #include "PHY/impl_defs_top_NB_IoT.h"
 #include "PHY/impl_defs_lte_NB_IoT.h"
 
-#include "PHY/TOOLS/time_meas.h"
+#include "time_meas.h"
 //#include "PHY/CODING/defs.h"
 #include "PHY/CODING/defs_NB_IoT.h"
 #include "openair2/PHY_INTERFACE/IF_Module_NB_IoT.h"
@@ -196,19 +192,6 @@ typedef struct {
   NB_IoT_UE_DLSCH_t   *dlsch_rn_MCH[10];
 
 } PHY_VARS_RN_NB_IoT;
-/*
-#ifdef OCP_FRAMEWORK
-#include <enums.h>
-#else
-//typedef enum {normal_txrx=0,rx_calib_ue=1,rx_calib_ue_med=2,rx_calib_ue_byp=3,debug_prach=4,no_L2_connect=5,calib_prach_tx=6,rx_dump_frame=7,loop_through_memory=8} runmode_t;
-*/
-// enum transmission_access_mode {
-//   NO_ACCESS=0,
-//   POSTPONED_ACCESS,
-//   CANCELED_ACCESS,
-//   UNKNOWN_ACCESS,
-//   SCHEDULED_ACCESS,
-//   CBA_ACCESS};
 
 typedef enum  {
   eNodeB_3GPP_NB_IoT=0,   // classical eNodeB function
@@ -469,9 +452,6 @@ typedef struct {
   int                   sub_frame_start;
   ///
   int                   sub_frame_step;
-  ///
-  unsigned long long    gotIQs;
-
 } UE_rxtx_proc_NB_IoT_t;
 
 /// Context data structure for eNB subframe processing

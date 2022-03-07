@@ -111,29 +111,16 @@ typedef struct physicalcellgroup_s{
   long        RNTI_Value[MAX_NUM_CCs];
 }physicalcellgroup_t;
 
-typedef struct rach_dedicated_s{
-  
-  
-}rach_dedicated_t;
+void nr_rrc_config_dl_tda(NR_ServingCellConfigCommon_t *scc);
+void nr_rrc_config_ul_tda(NR_ServingCellConfigCommon_t *scc, int min_fb_delay);
+void set_dl_mcs_table(int scs, NR_UE_NR_Capability_t *cap,
+                      NR_BWP_DownlinkDedicated_t *bwp_Dedicated,
+                      NR_ServingCellConfigCommon_t *scc);
+void prepare_sim_uecap(NR_UE_NR_Capability_t *cap,
+                       NR_ServingCellConfigCommon_t *scc,
+                       int numerology,
+                       int rbsize,
+                       int mcs_table);
 
-void rrc_config_servingcellconfigcommon(uint8_t Mod_id,
-                                        int CC_id,
-                                        gNB_RrcConfigurationReq *common_configuration
-                                       );
-
-void rrc_config_rlc_bearer(uint8_t Mod_id,
-                           int CC_id,
-                           rlc_bearer_config_t *rlc_config
-                          );
-
-void rrc_config_mac_cellgroup(uint8_t Mod_id,
-                              int CC_id,
-                              mac_cellgroup_t *mac_cellgroup_config
-                             );
-
-void rrc_config_physicalcellgroup(uint8_t Mod_id,
-                                  int CC_id,
-                                  physicalcellgroup_t *physicalcellgroup_config
-                                 );
 
 #endif

@@ -30,12 +30,8 @@
 #include "PHY/types.h"
 #include <threadPool/thread-pool.h>
 
-#if defined(ENABLE_USE_MME)
 #include "s1ap_eNB.h"
-#ifdef PDCP_USE_NETLINK
 #include "SIMULATION/ETH_TRANSPORT/proto.h"
-#endif
-#endif
 
 /* help strings definition for command line options, used in CMDLINE_XXX_DESC macros and printed when -h option is used */
 #define CONFIG_HLP_RFCFGF        "Configuration file for front-end (e.g. LMS7002M)\n"
@@ -91,8 +87,9 @@
 #define CONFIG_HLP_NOTWAIT       "don't wait for tracer, start immediately\n"
 #define CONFIG_HLP_TNOFORK       "to ease debugging with gdb\n"
 #define CONFIG_HLP_DISABLNBIOT   "disable nb-iot, even if defined in config\n"
-#define CONFIG_HLP_DISABLETIMECORR   "disable UE timing correction\n"
-#define CONFIG_HLP_RRC_CFG_PATH   "path for RRC configuration\n"
+#define CONFIG_HLP_DISABLETIMECORR "disable UE timing correction\n"
+#define CONFIG_HLP_RRC_CFG_PATH  "path for RRC configuration\n"
+#define CONFIG_HLP_UECAP_FILE    "path for UE Capabilities file\n"
 
 #define CONFIG_HLP_NUMEROLOGY    "adding numerology for 5G\n"
 #define CONFIG_HLP_EMULATE_RF    "Emulated RF enabled(disable by defult)\n"
@@ -107,7 +104,6 @@
 #define CONFIG_HLP_LOGL          "Set the global log level, valid options: (4:trace, 3:debug, 2:info, 1:warn, (0:error))\n"
 #define CONFIG_HLP_LOGV          "Set the global log verbosity \n"
 #define CONFIG_HLP_TELN          "Start embedded telnet server \n"
-#define CONFIG_HLP_MSC           "Enable the MSC tracing utility \n"
 #define CONFIG_HLP_SNR           "Set average SNR in dB (for --siml1 option)\n"
 #define CONFIG_HLP_NOS1          "Disable s1 interface\n"
 #define CONFIG_HLP_NOKRNMOD      "(noS1 only): Use tun instead of namesh module \n"
@@ -115,13 +111,11 @@
 /*                                            command line parameters for LOG utility                                             */
 /*   optname         helpstr          paramflags          XXXptr                     defXXXval            type           numelt   */
 /*--------------------------------------------------------------------------------------------------------------------------------*/
-#define START_MSC                softmodem_params.start_msc
 #define CMDLINE_LOGPARAMS_DESC_NR {  \
     {"R" ,           CONFIG_HLP_FLOG, 0,                  uptr:&online_log_messages, defintval:1,         TYPE_INT,      0},       \
     {"g" ,           CONFIG_HLP_LOGL, 0,                  uptr:&glog_level,          defintval:0,         TYPE_UINT,     0},       \
     {"G" ,           CONFIG_HLP_LOGV, 0,                  uptr:&glog_verbosity,      defintval:0,         TYPE_UINT16,   0},       \
     {"telnetsrv",    CONFIG_HLP_TELN, PARAMFLAG_BOOL,     uptr:&start_telnetsrv,     defintval:0,         TYPE_UINT,     0},       \
-    {"msc",          CONFIG_HLP_MSC,  PARAMFLAG_BOOL,     uptr:&START_MSC,           defintval:0,         TYPE_UINT,     0},       \
   }
 
 #define CMDLINE_ONLINELOG_IDX     0

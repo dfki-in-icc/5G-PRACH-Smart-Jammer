@@ -50,10 +50,11 @@ int rrc_mac_config_req_gNB(module_id_t Mod_idP,
                            int pdsch_AntennaPorts,
                            int pusch_AntennaPorts,
                            int sib1_tda,
+                           int minRXTXTIMEpdsch,
                            NR_ServingCellConfigCommon_t *scc,
                            NR_BCCH_BCH_Message_t *mib,
-		                       int add_ue,
-			                     uint32_t rnti,
+                           int add_ue,
+                           uint32_t rnti,
                            NR_CellGroupConfig_t *CellGroup);
 
 void clear_nr_nfapi_information(gNB_MAC_INST * gNB, 
@@ -190,6 +191,8 @@ void nr_schedule_pucch(int Mod_idP,
                        frame_t frameP,
                        sub_frame_t slotP);
 
+void nr_schedule_srs(int module_id, frame_t frame);
+
 void nr_csirs_scheduling(int Mod_idP,
                          frame_t frame,
                          sub_frame_t slot,
@@ -242,18 +245,37 @@ void nr_configure_pucch(nfapi_nr_pucch_pdu_t* pucch_pdu,
                         uint16_t O_csi,
                         uint16_t O_ack,
                         uint8_t O_sr,
-			                  int r_pucch);
+                        int r_pucch);
 
 void find_search_space(int ss_type,
                        NR_BWP_Downlink_t *bwp,
                        NR_SearchSpace_t *ss);
 
 void nr_configure_pdcch(nfapi_nr_dl_tti_pdcch_pdu_rel15_t *pdcch_pdu,
-                        NR_SearchSpace_t *ss,
                         NR_ControlResourceSet_t *coreset,
-                        NR_ServingCellConfigCommon_t *scc,
                         NR_BWP_t *bwp,
-                        NR_Type0_PDCCH_CSS_config_t *type0_PDCCH_CSS_config);
+                        NR_sched_pdcch_t *pdcch);
+
+NR_sched_pdcch_t set_pdcch_structure(gNB_MAC_INST *gNB_mac,
+                                     NR_SearchSpace_t *ss,
+                                     NR_ControlResourceSet_t *coreset,
+                                     NR_ServingCellConfigCommon_t *scc,
+                                     NR_BWP_t *bwp,
+                                     NR_Type0_PDCCH_CSS_config_t *type0_PDCCH_CSS_config);
+
+int find_pdcch_candidate(gNB_MAC_INST *mac,
+                         int cc_id,
+                         int aggregation,
+                         int nr_of_candidates,
+                         NR_sched_pdcch_t *pdcch,
+                         NR_ControlResourceSet_t *coreset,
+                         uint16_t Y);
+
+void fill_pdcch_vrb_map(gNB_MAC_INST *mac,
+                        int CC_id,
+                        NR_sched_pdcch_t *pdcch,
+                        int first_cce,
+                        int aggregation);
 
 void fill_dci_pdu_rel15(const NR_ServingCellConfigCommon_t *scc,
                         const NR_CellGroupConfig_t *CellGroup,
@@ -288,7 +310,8 @@ void nr_set_pdsch_semi_static(const NR_ServingCellConfigCommon_t *scc,
                               const NR_BWP_Downlink_t *bwp,
                               const NR_BWP_DownlinkDedicated_t *bwpd0,
                               int tda,
-                              const long dci_format,
+                              uint8_t layers,
+                              NR_UE_sched_ctrl_t *sched_ctrl,
                               NR_pdsch_semi_static_t *ps);
 
 void nr_set_pusch_semi_static(const NR_ServingCellConfigCommon_t *scc,
@@ -299,11 +322,15 @@ void nr_set_pusch_semi_static(const NR_ServingCellConfigCommon_t *scc,
                               uint8_t num_dmrs_cdm_grps_no_data,
                               NR_pusch_semi_static_t *ps);
 
+uint16_t get_Y(int cid, int slot, rnti_t rnti);
+
 uint8_t nr_get_tpc(int target, uint8_t cqi, int incr);
 
 int get_spf(nfapi_nr_config_request_scf_t *cfg);
 
 int to_absslot(nfapi_nr_config_request_scf_t *cfg,int frame,int slot);
+
+int get_nrofHARQ_ProcessesForPDSCH(e_NR_PDSCH_ServingCellConfig__nrofHARQ_ProcessesForPDSCH n);
 
 void nr_get_tbs_dl(nfapi_nr_dl_tti_pdsch_pdu *pdsch_pdu,
 		   int x_overhead,
@@ -324,6 +351,7 @@ int NRRIV2PRBOFFSET(int locationAndBandwidth,int N_RB);
 /* Functions to manage an NR_list_t */
 void dump_nr_list(NR_list_t *listP);
 void create_nr_list(NR_list_t *listP, int len);
+void resize_nr_list(NR_list_t *list, int new_len);
 void destroy_nr_list(NR_list_t *list);
 void add_nr_list(NR_list_t *listP, int id);
 void remove_nr_list(NR_list_t *listP, int id);
@@ -408,6 +436,9 @@ void nr_rx_sdu(const module_id_t gnb_mod_idP,
                const uint8_t ul_cqi,
                const uint16_t rssi);
 
+void create_dl_harq_list(NR_UE_sched_ctrl_t *sched_ctrl,
+                         const NR_PDSCH_ServingCellConfig_t *pdsch);
+
 void handle_nr_ul_harq(const int CC_idP,
                        module_id_t mod_id,
                        frame_t frame,
@@ -425,6 +456,13 @@ void find_SSB_and_RO_available(module_id_t module_idP);
 
 void set_dl_dmrs_ports(NR_pdsch_semi_static_t *ps);
 
+void set_dl_mcs(NR_sched_pdsch_t *sched_pdsch,
+                NR_UE_sched_ctrl_t *sched_ctrl,
+                uint8_t *target_mcs,
+                uint8_t mcs_table_idx);
+
+uint8_t set_dl_nrOfLayers(NR_UE_sched_ctrl_t *sched_ctrl);
+
 void calculate_preferred_dl_tda(module_id_t module_id, const NR_BWP_Downlink_t *bwp);
 void calculate_preferred_ul_tda(module_id_t module_id, const NR_BWP_Uplink_t *ubwp);
 
@@ -432,14 +470,16 @@ bool find_free_CCE(module_id_t module_id, sub_frame_t slot, int UE_id);
 
 bool nr_find_nb_rb(uint16_t Qm,
                    uint16_t R,
+                   uint8_t nrOfLayers,
                    uint16_t nb_symb_sch,
                    uint16_t nb_dmrs_prb,
                    uint32_t bytes,
+                   uint16_t nb_rb_min,
                    uint16_t nb_rb_max,
                    uint32_t *tbs,
                    uint16_t *nb_rb);
 
 void nr_sr_reporting(int Mod_idP, frame_t frameP, sub_frame_t slotP);
 
-void dump_mac_stats(gNB_MAC_INST *gNB, char *output, int strlen);
+void dump_mac_stats(gNB_MAC_INST *gNB, char *output, int strlen, bool reset_rsrp);
 #endif /*__LAYER2_NR_MAC_PROTO_H__*/

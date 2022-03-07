@@ -36,6 +36,7 @@
 #include "NR_MAC_gNB/mac_proto.h"
 
 #include "common/utils/LOG/log.h"
+#include "common/utils/nr/nr_common.h"
 #include "common/utils/LOG/vcd_signal_dumper.h"
 #include "UTIL/OPT/opt.h"
 #include "OCG.h"
@@ -55,6 +56,7 @@
 #include <errno.h>
 #include <string.h>
 
+const uint8_t nr_rv_round_map[4] = { 0, 2, 3, 1 };
 uint16_t nr_pdcch_order_table[6] = { 31, 31, 511, 2047, 2047, 8191 };
 
 uint8_t vnf_first_sched_entry = 1;
@@ -67,7 +69,7 @@ void clear_nr_nfapi_information(gNB_MAC_INST * gNB,
   const int num_slots = nr_slots_per_frame[*scc->ssbSubcarrierSpacing];
 
   nfapi_nr_dl_tti_request_t    *DL_req = &gNB->DL_req[0];
-  nfapi_nr_dl_tti_pdcch_pdu_rel15_t ***pdcch = (nfapi_nr_dl_tti_pdcch_pdu_rel15_t ***)gNB->pdcch_pdu_idx[CC_idP];
+  nfapi_nr_dl_tti_pdcch_pdu_rel15_t **pdcch = (nfapi_nr_dl_tti_pdcch_pdu_rel15_t **)gNB->pdcch_pdu_idx[CC_idP];
   nfapi_nr_ul_tti_request_t    *future_ul_tti_req =
       &gNB->UL_tti_req_ahead[CC_idP][(slotP + num_slots - 1) % num_slots];
   nfapi_nr_ul_dci_request_t    *UL_dci_req = &gNB->UL_dci_req[0];
@@ -80,7 +82,7 @@ void clear_nr_nfapi_information(gNB_MAC_INST * gNB,
   DL_req[CC_idP].dl_tti_request_body.nPDUs             = 0;
   DL_req[CC_idP].dl_tti_request_body.nGroup            = 0;
   //DL_req[CC_idP].dl_tti_request_body.transmission_power_pcfich           = 6000;
-  memset(pdcch, 0, sizeof(**pdcch) * MAX_NUM_BWP * MAX_NUM_CORESET);
+  memset(pdcch, 0, sizeof(*pdcch) * MAX_NUM_CORESET);
 
   UL_dci_req[CC_idP].SFN                         = frameP;
   UL_dci_req[CC_idP].Slot                        = slotP;
@@ -88,7 +90,7 @@ void clear_nr_nfapi_information(gNB_MAC_INST * gNB,
 
   /* advance last round's future UL_tti_req to be ahead of current frame/slot */
   future_ul_tti_req->SFN = (slotP == 0 ? frameP : frameP + 1) % 1024;
-  LOG_D(MAC,"Future_ul_tti SFN = %d for slot %d \n", future_ul_tti_req->SFN, (slotP + num_slots - 1) % num_slots);
+  LOG_D(NR_MAC, "In %s: UL_tti_req_ahead SFN.slot = %d.%d for slot %d \n", __FUNCTION__, future_ul_tti_req->SFN, future_ul_tti_req->Slot, (slotP + num_slots - 1) % num_slots);
   /* future_ul_tti_req->Slot is fixed! */
   future_ul_tti_req->n_pdus = 0;
   future_ul_tti_req->n_ulsch = 0;
@@ -288,7 +290,6 @@ void gNB_dlsch_ulsch_scheduler(module_id_t module_idP,
   protocol_ctxt_t   ctxt={0};
   PROTOCOL_CTXT_SET_BY_MODULE_ID(&ctxt, module_idP, ENB_FLAG_YES, NOT_A_RNTI, frame, slot,module_idP);
 
-  const int bwp_id = 1;
   char stats_output[16384];
 
   gNB_MAC_INST *gNB = RC.nrmac[module_idP];
@@ -296,6 +297,7 @@ void gNB_dlsch_ulsch_scheduler(module_id_t module_idP,
   NR_ServingCellConfigCommon_t        *scc     = cc->ServingCellConfigCommon;
 
   if (slot==0 && (*scc->downlinkConfigCommon->frequencyInfoDL->frequencyBandList.list.array[0]>=257)) {
+    //FR2
     const NR_TDD_UL_DL_Pattern_t *tdd = &scc->tdd_UL_DL_ConfigurationCommon->pattern1;
     const int n = nr_slots_per_frame[*scc->ssbSubcarrierSpacing];
     const int nr_mix_slots = 1; // Karim always Mixed slot exist
@@ -320,13 +322,8 @@ void gNB_dlsch_ulsch_scheduler(module_id_t module_idP,
     nr_rrc_trigger(&ctxt, 0 /*CC_id*/, frame, slot >> *scc->ssbSubcarrierSpacing);
   }
 
-  memset(RC.nrmac[module_idP]->cce_list[0][0],0,MAX_NUM_CCE*sizeof(int)); // coreset0
-  memset(RC.nrmac[module_idP]->cce_list[0][1],0,MAX_NUM_CCE*sizeof(int)); // coreset1 on initialBWP
-  memset(RC.nrmac[module_idP]->cce_list[bwp_id][1],0,MAX_NUM_CCE*sizeof(int)); // coresetid 1
-  NR_UE_info_t *UE_info = &RC.nrmac[module_idP]->UE_info;
-  for (int UE_id = UE_info->list.head; UE_id >= 0; UE_id = UE_info->list.next[UE_id])
-    for (int i=0; i<MAX_NUM_CORESET; i++)
-      UE_info->num_pdcch_cand[UE_id][i] = 0;
+  for (int i=0; i<MAX_NUM_CORESET; i++)
+    RC.nrmac[module_idP]->pdcch_cand[i] = 0;
   for (int CC_id = 0; CC_id < MAX_NUM_CCs; CC_id++) {
     //mbsfn_status[CC_id] = 0;
 
@@ -360,7 +357,7 @@ void gNB_dlsch_ulsch_scheduler(module_id_t module_idP,
 
   if ((slot == 0) && (frame & 127) == 0) {
      stats_output[0]='\0';
-     dump_mac_stats(RC.nrmac[module_idP],stats_output,16384);
+     dump_mac_stats(RC.nrmac[module_idP],stats_output,16384,false);
      LOG_D(NR_MAC,"Frame.Slot %d.%d\n%s\n",frame,slot,stats_output);
   }
 
@@ -386,8 +383,6 @@ void gNB_dlsch_ulsch_scheduler(module_id_t module_idP,
     schedule_nr_prach(module_idP, f, s);
   }
 
-    // This schedule SR
-  nr_sr_reporting(module_idP, frame, slot);
 
   // Schedule CSI-RS transmission
   nr_csirs_scheduling(module_idP, frame, slot, nr_slots_per_frame[*scc->ssbSubcarrierSpacing]);
@@ -395,6 +390,10 @@ void gNB_dlsch_ulsch_scheduler(module_id_t module_idP,
   // Schedule CSI measurement reporting: check in slot 0 for the whole frame
   if (slot == 0)
     nr_csi_meas_reporting(module_idP, frame, slot);
+
+  // Schedule SRS: check in slot 0 for the whole frame
+  if (slot == 0)
+    nr_schedule_srs(module_idP, frame);
 
   // This schedule RA procedure if not in phy_test mode
   // Otherwise already consider 5G already connected
@@ -406,9 +405,14 @@ void gNB_dlsch_ulsch_scheduler(module_id_t module_idP,
   nr_schedule_ulsch(module_idP, frame, slot);
 
   // This schedules the DCI for Downlink and PDSCH
-  nr_schedule_ue_spec(module_idP, frame, slot);
+  start_meas(&gNB->schedule_dlsch);
+  nr_schedule_ue_spec(module_idP, frame, slot); 
+  stop_meas(&gNB->schedule_dlsch);
 
   nr_schedule_pucch(module_idP, frame, slot);
+
+  // This schedule SR after PUCCH for multiplexing
+  nr_sr_reporting(module_idP, frame, slot);
 
   stop_meas(&RC.nrmac[module_idP]->eNB_scheduler);
   

@@ -57,9 +57,7 @@
 #define RAU_REMOTE_THIRDPARTY_RADIO_HEAD 2
 #define MAX_WRITE_THREAD_PACKAGE     10
 #define MAX_WRITE_THREAD_BUFFER_SIZE 8
-#ifndef MAX_CARDS
-  #define MAX_CARDS 8
-#endif
+#define MAX_CARDS 8
 
 typedef int64_t openair0_timestamp;
 typedef volatile int64_t openair0_vtimestamp;
@@ -240,6 +238,12 @@ typedef struct {
   double tx_sample_rate;
   //! check for threequarter sampling rate
   int8_t threequarter_fs;
+  //! Flag to indicate this configuration is for NR
+  int nr_flag;
+  //! NR band number
+  int nr_band;
+  //! NR scs for raster
+  int nr_scs_for_raster;
 } openair0_config_t;
 
 /*! \brief RF mapping */

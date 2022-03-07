@@ -90,8 +90,8 @@ void nr_generate_pucch0(PHY_VARS_NR_UE *ue,
   // the value of u,v (delta always 0 for PUCCH) has to be calculated according to TS 38.211 Subclause 6.3.2.2.1
   uint8_t u[2]={0,0},v[2]={0,0};
 
-  LOG_D(PHY,"pucch0: slot %d nr_symbols %d, start_symbol %d, prb_start %d, second_hop_prb %d,  group_hop_flag %d, sequence_hop_flag %d, mcs %d\n",nr_slot_tx,pucch_pdu->nr_of_symbols,pucch_pdu->start_symbol_index,pucch_pdu->prb_start,pucch_pdu->second_hop_prb,pucch_pdu->group_hop_flag,pucch_pdu->sequence_hop_flag,pucch_pdu->mcs);
-
+  LOG_D(PHY,"pucch0: slot %d nr_symbols %d, start_symbol %d, prb_start %d, second_hop_prb %d,  group_hop_flag %d, sequence_hop_flag %d, mcs %d\n",
+        nr_slot_tx,pucch_pdu->nr_of_symbols,pucch_pdu->start_symbol_index,pucch_pdu->prb_start,pucch_pdu->second_hop_prb,pucch_pdu->group_hop_flag,pucch_pdu->sequence_hop_flag,pucch_pdu->mcs);
 
 #ifdef DEBUG_NR_PUCCH_TX
   printf("\t [nr_generate_pucch0] sequence generation: variable initialization for test\n");
@@ -805,8 +805,8 @@ void nr_generate_pucch1_old(PHY_VARS_NR_UE *ue,
 }
 #endif //0
 
-inline void nr_pucch2_3_4_scrambling(uint16_t M_bit,uint16_t rnti,uint16_t n_id,uint64_t *B64,uint8_t *btilde) __attribute__((always_inline));
-inline void nr_pucch2_3_4_scrambling(uint16_t M_bit,uint16_t rnti,uint16_t n_id,uint64_t *B64,uint8_t *btilde) {
+static inline void nr_pucch2_3_4_scrambling(uint16_t M_bit,uint16_t rnti,uint16_t n_id,uint64_t *B64,uint8_t *btilde) __attribute__((always_inline));
+static inline void nr_pucch2_3_4_scrambling(uint16_t M_bit,uint16_t rnti,uint16_t n_id,uint64_t *B64,uint8_t *btilde) {
   uint32_t x1, x2, s=0;
   int i;
   uint8_t c;
@@ -850,7 +850,7 @@ inline void nr_pucch2_3_4_scrambling(uint16_t M_bit,uint16_t rnti,uint16_t n_id,
   printf("\t\t [nr_pucch2_3_4_scrambling] scrambling M_bit=%d bits\n", M_bit);
 #endif
 }
-void nr_uci_encoding(uint64_t payload,
+static void nr_uci_encoding(uint64_t payload,
                      uint8_t nr_bit,
                      int fmt,
                      uint8_t is_pi_over_2_bpsk_enabled,
@@ -946,12 +946,10 @@ void nr_uci_encoding(uint64_t payload,
     AssertFatal(nrofPRB<=16,"Number of PRB >16\n");
   } else if (A>=12) {
     AssertFatal(A<65,"Polar encoding not supported yet for UCI with more than 64 bits\n");
-    t_nrPolar_params *currentPtr = nr_polar_params(NR_POLAR_UCI_PUCCH_MESSAGE_TYPE, 
-						   A, 
-						   nrofPRB,
-						   1,
-						   NULL);
-    polar_encoder_fast(&payload, b, 0,0,currentPtr);
+    polar_encoder_fast(&payload, b, 0,0,
+                       NR_POLAR_UCI_PUCCH_MESSAGE_TYPE, 
+                       A, 
+                       nrofPRB);
   }
   
 }
