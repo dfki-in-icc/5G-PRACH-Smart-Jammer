@@ -81,8 +81,6 @@ char nr_dci_format_string[8][30] = {
 
 
 //static const int16_t conjugate[8]__attribute__((aligned(32))) = {-1,1,-1,1,-1,1,-1,1};
-
-
 void nr_pdcch_demapping_deinterleaving(uint32_t *llr,
                                        uint32_t *z,
                                        uint8_t coreset_time_dur,
@@ -130,82 +128,204 @@ void nr_pdcch_demapping_deinterleaving(uint32_t *llr,
 
   */
   int c = 0, r = 0;
-  uint16_t f_bundle_j = 0;
+  uint16_t bundle_j = 0, f_bundle_j = 0, f_reg = 0;
   uint32_t coreset_C = 0;
   uint16_t index_z, index_llr;
   int coreset_interleaved = 0;
-  int N_regs = coreset_nbr_rb*coreset_time_dur;
 
   if (reg_bundle_size_L != 0) { // interleaving will be done only if reg_bundle_size_L != 0
     coreset_interleaved = 1;
-    coreset_C = (uint32_t) (N_regs / (coreset_interleaver_size_R * reg_bundle_size_L));
+    coreset_C = (uint32_t) (coreset_nbr_rb / (coreset_interleaver_size_R * reg_bundle_size_L));
   } else {
     reg_bundle_size_L = 6;
   }
 
+  int f_bundle_j_list[273] = {};
 
-  int B_rb = reg_bundle_size_L/coreset_time_dur; // nb of RBs occupied by each REG bundle
-  int num_bundles_per_cce = 6/reg_bundle_size_L;
-  int max_bundles = NR_MAX_PDCCH_AGG_LEVEL*num_bundles_per_cce;
-  int f_bundle_j_list[max_bundles];
-
-  // for each bundle
-  for (int nb = 0; nb < max_bundles; nb++) {
-    if (coreset_interleaved == 0) f_bundle_j = nb;
-    else {
+  for (int reg = 0; reg < coreset_nbr_rb; reg++) {
+    if ((reg % reg_bundle_size_L) == 0) {
       if (r == coreset_interleaver_size_R) {
         r = 0;
         c++;
       }
 
-      f_bundle_j = ((r * coreset_C) + c + n_shift) % (N_regs / reg_bundle_size_L);
-      r++;
+      bundle_j = (c * coreset_interleaver_size_R) + r;
+      f_bundle_j = ((r * coreset_C) + c + n_shift) % (coreset_nbr_rb / reg_bundle_size_L);
+
+      if (coreset_interleaved == 0) f_bundle_j = bundle_j;
+
+      f_bundle_j_list[reg / reg_bundle_size_L] = f_bundle_j;
+
     }
-    f_bundle_j_list[nb] = f_bundle_j;
+    if ((reg % reg_bundle_size_L) == 0) r++;
   }
 
-  // Get cce_list indices by bundle index in ascending order
-  int f_bundle_j_list_ord[number_of_candidates][max_bundles];
+  // Get cce_list indices by reg_idx in ascending order
+  int f_bundle_j_list_id = 0;
+  int f_bundle_j_list_ord[NR_MAX_PDCCH_AGG_LEVEL][FAPI_NR_MAX_NUM_CANDIDATE_BEAMS] = {};
   for (int c_id = 0; c_id < number_of_candidates; c_id++ ) {
-    int start_bund_cand = CCE[c_id]*num_bundles_per_cce;
-    int max_bund_per_cand = L[c_id]*num_bundles_per_cce;
-    int f_bundle_j_list_id = 0;
-    for(int nb = 0; nb < max_bundles; nb++) {
-      for(int bund_cand = start_bund_cand; bund_cand < start_bund_cand+max_bund_per_cand; bund_cand++){
-        if (f_bundle_j_list[bund_cand] == nb) {
-          f_bundle_j_list_ord[c_id][f_bundle_j_list_id] = nb;
+    f_bundle_j_list_id = CCE[c_id];
+    for (int p = 0; p < (coreset_nbr_rb/reg_bundle_size_L); p++) {
+      for (int p2 = CCE[c_id]; p2 < CCE[c_id] + L[c_id]; p2++) {
+        AssertFatal(p2<2*NR_MAX_PDCCH_AGG_LEVEL,"number_of_candidates %d : p2 %d,  CCE[%d] %d, L[%d] %d\n",number_of_candidates,p2,c_id,CCE[c_id],c_id,L[c_id]);
+        if (f_bundle_j_list[p2] == p) {
+          AssertFatal(f_bundle_j_list_id < 2*NR_MAX_PDCCH_AGG_LEVEL,"f_bundle_j_list_id %d\n",f_bundle_j_list_id);
+          f_bundle_j_list_ord[f_bundle_j_list_id][c_id] = p;
           f_bundle_j_list_id++;
-
+          break;
         }
       }
     }
   }
 
-  int rb_count = 0;
-  int data_sc = 9; // 9 sub-carriers with data per PRB
+  int rb = 0;
   for (int c_id = 0; c_id < number_of_candidates; c_id++ ) {
-    for (int symbol_idx = start_symbol; symbol_idx < start_symbol+coreset_time_dur; symbol_idx++) {
-      for (int cce_count = 0; cce_count < L[c_id]; cce_count ++) {
-        for (int k=0; k<NR_NB_REG_PER_CCE/reg_bundle_size_L; k++) { // loop over REG bundles
-          int f = f_bundle_j_list_ord[c_id][k+NR_NB_REG_PER_CCE*cce_count/reg_bundle_size_L];
-          for(int rb=0; rb<B_rb; rb++) { // loop over the RBs of the bundle
-            index_z = data_sc * rb_count;
-            index_llr = (uint16_t) (f*B_rb + rb + symbol_idx * coreset_nbr_rb) * data_sc;
-            for (int i = 0; i < data_sc; i++) {
-              z[index_z + i] = llr[index_llr + i];
+    for (int symbol_idx = 0; symbol_idx < coreset_time_dur; symbol_idx++) {
+      for (int cce_count = CCE[c_id/coreset_time_dur]+c_id%coreset_time_dur; cce_count < CCE[c_id/coreset_time_dur]+c_id%coreset_time_dur+L[c_id]; cce_count += coreset_time_dur) {
+        for (int reg_in_cce_idx = 0; reg_in_cce_idx < NR_NB_REG_PER_CCE; reg_in_cce_idx++) {
+
+          f_reg = (f_bundle_j_list_ord[cce_count][c_id] * reg_bundle_size_L) + reg_in_cce_idx;
+          index_z = 9 * rb;
+          index_llr = (uint16_t) (f_reg + symbol_idx * coreset_nbr_rb) * 9;
+
+          for (int i = 0; i < 9; i++) {
+            z[index_z + i] = llr[index_llr + i];
 #ifdef NR_PDCCH_DCI_DEBUG
-              LOG_I(PHY,"[candidate=%d,symbol_idx=%d,cce=%d,REG bundle=%d,PRB=%d] z[%d]=(%d,%d) <-> \t llr[%d]=(%d,%d) \n",
-                    c_id,symbol_idx,cce_count,k,f*B_rb + rb,(index_z + i),*(int16_t *) &z[index_z + i],*(1 + (int16_t *) &z[index_z + i]),
-                    (index_llr + i),*(int16_t *) &llr[index_llr + i], *(1 + (int16_t *) &llr[index_llr + i]));
+            LOG_I(PHY,"[cce_count=%d,reg_in_cce_idx=%d,bundle_j=%d,symbol_idx=%d,candidate=%d] z[%d]=(%d,%d) <-> \t[f_reg=%d,fbundle_j=%d] llr[%d]=(%d,%d) \n",
+                  cce_count,reg_in_cce_idx,bundle_j,symbol_idx,c_id,(index_z + i),*(int16_t *) &z[index_z + i],*(1 + (int16_t *) &z[index_z + i]),
+                   f_reg,f_bundle_j,(index_llr + i),*(int16_t *) &llr[index_llr + i], *(1 + (int16_t *) &llr[index_llr + i]));
 #endif
-            }
-            rb_count++;
           }
+          rb++;
         }
       }
     }
   }
 }
+
+//void nr_pdcch_demapping_deinterleaving(uint32_t *llr,
+//                                       uint32_t *z,
+//                                       uint8_t coreset_time_dur,
+//                                       uint8_t start_symbol,
+//                                       uint32_t coreset_nbr_rb,
+//                                       uint8_t reg_bundle_size_L,
+//                                       uint8_t coreset_interleaver_size_R,
+//                                       uint8_t n_shift,
+//                                       uint8_t number_of_candidates,
+//                                       uint16_t *CCE,
+//                                       uint8_t *L) {
+//  /*
+//   * This function will do demapping and deinterleaving from llr containing demodulated symbols
+//   * Demapping will regroup in REG and bundles
+//   * Deinterleaving will order the bundles
+//   *
+//   * In the following example we can see the process. The llr contains the demodulated IQs, but they are not ordered from REG 0,1,2,..
+//   * In e_rx (z) we will order the REG ids and group them into bundles.
+//   * Then we will put the bundles in the correct order as indicated in subclause 7.3.2.2
+//   *
+//   llr --------------------------> e_rx (z) ----> e_rx (z)
+//   |   ...
+//   |   ...
+//   |   REG 26
+//   symbol 2    |   ...
+//   |   ...
+//   |   REG 5
+//   |   REG 2
+//
+//   |   ...
+//   |   ...
+//   |   REG 25
+//   symbol 1    |   ...
+//   |   ...
+//   |   REG 4
+//   |   REG 1
+//
+//   |   ...
+//   |   ...                           ...              ...
+//   |   REG 24 (bundle 7)             ...              ...
+//   symbol 0    |   ...                           bundle 3         bundle 6
+//   |   ...                           bundle 2         bundle 1
+//   |   REG 3                         bundle 1         bundle 7
+//   |   REG 0  (bundle 0)             bundle 0         bundle 0
+//
+//  */
+//  int c = 0, r = 0;
+//  uint16_t f_bundle_j = 0;
+//  uint32_t coreset_C = 0;
+//  uint16_t index_z, index_llr;
+//  int coreset_interleaved = 0;
+//  int N_regs = coreset_nbr_rb*coreset_time_dur;
+//
+//  if (reg_bundle_size_L != 0) { // interleaving will be done only if reg_bundle_size_L != 0
+//    coreset_interleaved = 1;
+//    coreset_C = (uint32_t) (N_regs / (coreset_interleaver_size_R * reg_bundle_size_L));
+//  } else {
+//    reg_bundle_size_L = 6;
+//  }
+//
+//
+//  int B_rb = reg_bundle_size_L/coreset_time_dur; // nb of RBs occupied by each REG bundle
+//  int num_bundles_per_cce = 6/reg_bundle_size_L;
+//  int max_bundles = NR_MAX_PDCCH_AGG_LEVEL*num_bundles_per_cce;
+//  int f_bundle_j_list[max_bundles];
+//
+//  // for each bundle
+//  for (int nb = 0; nb < max_bundles; nb++) {
+//    if (coreset_interleaved == 0) f_bundle_j = nb;
+//    else {
+//      if (r == coreset_interleaver_size_R) {
+//        r = 0;
+//        c++;
+//      }
+//
+//      f_bundle_j = ((r * coreset_C) + c + n_shift) % (N_regs / reg_bundle_size_L);
+//      r++;
+//    }
+//    f_bundle_j_list[nb] = f_bundle_j;
+//  }
+//
+//  // Get cce_list indices by bundle index in ascending order
+//  int f_bundle_j_list_ord[number_of_candidates][max_bundles];
+//  for (int c_id = 0; c_id < number_of_candidates; c_id++ ) {
+//    int start_bund_cand = CCE[c_id]*num_bundles_per_cce;
+//    int max_bund_per_cand = L[c_id]*num_bundles_per_cce;
+//    int f_bundle_j_list_id = 0;
+//    for(int nb = 0; nb < max_bundles; nb++) {
+//      for(int bund_cand = start_bund_cand; bund_cand < start_bund_cand+max_bund_per_cand; bund_cand++){
+//        if (f_bundle_j_list[bund_cand] == nb) {
+//          f_bundle_j_list_ord[c_id][f_bundle_j_list_id] = nb;
+//          f_bundle_j_list_id++;
+//
+//        }
+//      }
+//    }
+//  }
+//
+//  int rb_count = 0;
+//  int data_sc = 9; // 9 sub-carriers with data per PRB
+//  for (int c_id = 0; c_id < number_of_candidates; c_id++ ) {
+//    for (int symbol_idx = start_symbol; symbol_idx < start_symbol+coreset_time_dur; symbol_idx++) {
+//      for (int cce_count = 0; cce_count < L[c_id]; cce_count ++) {
+//        for (int k=0; k<NR_NB_REG_PER_CCE/reg_bundle_size_L; k++) { // loop over REG bundles
+//          int f = f_bundle_j_list_ord[c_id][k+NR_NB_REG_PER_CCE*cce_count/reg_bundle_size_L];
+//          for(int rb=0; rb<B_rb; rb++) { // loop over the RBs of the bundle
+//            index_z = data_sc * rb_count;
+//            index_llr = (uint16_t) (f*B_rb + rb + symbol_idx * coreset_nbr_rb) * data_sc;
+//            for (int i = 0; i < data_sc; i++) {
+//              z[index_z + i] = llr[index_llr + i];
+//#ifdef NR_PDCCH_DCI_DEBUG
+//              LOG_I(PHY,"[candidate=%d,symbol_idx=%d,cce=%d,REG bundle=%d,PRB=%d] z[%d]=(%d,%d) <-> \t llr[%d]=(%d,%d) \n",
+//                    c_id,symbol_idx,cce_count,k,f*B_rb + rb,(index_z + i),*(int16_t *) &z[index_z + i],*(1 + (int16_t *) &z[index_z + i]),
+//                    (index_llr + i),*(int16_t *) &llr[index_llr + i], *(1 + (int16_t *) &llr[index_llr + i]));
+//#endif
+//            }
+//            rb_count++;
+//          }
+//        }
+//      }
+//    }
+//  }
+//}
 
 int32_t nr_pdcch_llr(NR_DL_FRAME_PARMS *frame_parms, int32_t **rxdataF_comp,
                      int16_t *pdcch_llr, uint8_t symbol, uint8_t start_symbol,uint32_t coreset_nbr_rb) {

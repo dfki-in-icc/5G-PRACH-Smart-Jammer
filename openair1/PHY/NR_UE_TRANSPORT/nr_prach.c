@@ -414,7 +414,7 @@ int32_t generate_nr_prach(PHY_VARS_NR_UE *ue, uint8_t gNB_id, uint8_t slot){
       Ncp = 2048/(1<<mu);
       break;
     default:
-      AssertFatal(1==0,"Unknown PRACH format ID %d\n", prach_fmt_id);
+      LOG_E(PHY,"Unknown PRACH format ID %d\n", prach_fmt_id);
       break;
     }
   }
