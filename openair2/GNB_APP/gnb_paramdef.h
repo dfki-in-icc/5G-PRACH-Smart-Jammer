@@ -122,7 +122,7 @@ typedef enum {
 #define GNB_CONFIG_STRING_NRCELLID                      "nr_cellid"
 #define GNB_CONFIG_STRING_MINRXTXTIME                   "min_rxtxtime"
 #define GNB_CONFIG_STRING_ULPRBBLACKLIST                "ul_prbblacklist"
-
+#define GNB_CONFIG_STRING_UMONDEFAULTDRB                "um_on_default_drb"
 
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 /*                                            cell configuration parameters                                                                */
@@ -151,7 +151,8 @@ typedef enum {
 {GNB_CONFIG_STRING_DOSRS,                        NULL,   0,            iptr:NULL,   defintval:0,                 TYPE_INT,       0},  \
 {GNB_CONFIG_STRING_NRCELLID,                     NULL,   0,            u64ptr:NULL, defint64val:1,               TYPE_UINT64,    0},  \
 {GNB_CONFIG_STRING_MINRXTXTIME,                  NULL,   0,            iptr:NULL,   defintval:2,                 TYPE_INT,       0},  \
-{GNB_CONFIG_STRING_ULPRBBLACKLIST,               NULL,   0,            strptr:NULL, defstrval:"",                TYPE_STRING,    0}   \
+{GNB_CONFIG_STRING_ULPRBBLACKLIST,               NULL,   0,            strptr:NULL, defstrval:"",                TYPE_STRING,    0},   \
+{GNB_CONFIG_STRING_UMONDEFAULTDRB,               NULL,   0,            uptr:NULL,   defuintval:0,                 TYPE_UINT,   0}   \
 }
 
 #define GNB_GNB_ID_IDX                  0
@@ -177,6 +178,7 @@ typedef enum {
 #define GNB_NRCELLID_IDX                20
 #define GNB_MINRXTXTIME_IDX             21
 #define GNB_ULPRBBLACKLIST_IDX          22
+#define GNB_UMONDEFAULTDRB_IDX          23
 
 #define TRACKING_AREA_CODE_OKRANGE {0x0001,0xFFFD}
 #define GNBPARAMS_CHECK {                                         \

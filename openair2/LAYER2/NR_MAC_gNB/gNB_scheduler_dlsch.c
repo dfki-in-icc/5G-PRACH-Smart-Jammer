@@ -598,9 +598,8 @@ bool allocate_dl_retransmission(module_id_t module_id,
   } else {
     /* the retransmission will use a different time domain allocation, check
      * that we have enough resources */
-
     NR_pdsch_semi_static_t temp_ps = *ps;
-    nr_set_pdsch_semi_static(scc, UE_info->CellGroup[UE_id], sched_ctrl->active_bwp, bwpd, tda, ps->nrOfLayers, sched_ctrl, &temp_ps);
+    nr_set_pdsch_semi_static(scc, cg, sched_ctrl->active_bwp, bwpd,tda, ps->nrOfLayers, sched_ctrl, &temp_ps);
     while (rbStart < bwpSize &&
            !(rballoc_mask[rbStart]&SL_to_bitmap(temp_ps.startSymbolIndex, temp_ps.nrOfSymbols)))
       rbStart++;
@@ -1010,6 +1009,8 @@ void nr_schedule_ue_spec(module_id_t module_id,
   if (!is_xlsch_in_slot(gNB_mac->dlsch_slot_bitmap[slot / 64], slot))
     return;
 
+  //if (slot==7 || slot == 17) return;
+
   /* PREPROCESSOR */
   gNB_mac->pre_processor_dl(module_id, frame, slot);
 
@@ -1381,6 +1382,21 @@ void nr_schedule_ue_spec(module_id_t module_id,
                 size);
           if (len == 0)
             break;
+          struct timespec time_request;
+          clock_gettime(CLOCK_REALTIME, &time_request);
+          if (lcid>=4)           
+                LOG_D(NR_MAC,
+                "%4d.%2d [UE %04x]: Time %lu.%lu:  %d bytes %s %d -> DLSCH (ndata %lu, remaining size %lu)\n",
+                frame,
+                slot,
+                rnti,
+                time_request.tv_sec,
+                time_request.tv_nsec,
+                len,
+                lcid < 4 ? "DCCH" : "DTCH",
+                lcid,
+                (unsigned long)ndata,
+                (unsigned long)size);
 
           header->R = 0;
           header->F = 1;

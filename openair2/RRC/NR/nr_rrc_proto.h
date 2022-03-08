@@ -47,7 +47,7 @@ void rrc_config_nr_buffer(NR_SRB_INFO* Srb_info,
                           uint8_t Lchan_type,
                           uint8_t Role);
 
-int8_t mac_rrc_nr_data_req(const module_id_t Mod_idP,
+int    mac_rrc_nr_data_req(const module_id_t Mod_idP,
                            const int         CC_id,
                            const frame_t     frameP,
                            const rb_id_t     Srb_id,
@@ -84,6 +84,7 @@ void fill_default_secondaryCellGroup(NR_ServingCellConfigCommon_t *servingcellco
                                      int do_csirs,
                                      int do_srs,
                                      int uid);
+
 
 void config_csirs(NR_ServingCellConfigCommon_t *servingcellconfigcommon,
                   NR_CSI_MeasConfig_t *csi_MeasConfig,
