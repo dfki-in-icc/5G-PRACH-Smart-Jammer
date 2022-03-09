@@ -1534,6 +1534,9 @@ void nr_ue_configure_pucch(NR_UE_MAC_INST_t *mac,
       return;
     }
     pucch_pdu->payload = (pucch->csi_part1_payload << (O_ACK + O_SR)) |  (pucch->sr_payload << O_ACK) | pucch->ack_payload;
+    LOG_I(MAC,"David pucch->csi_part1_payload 0x%0X << (O_ACK + O_SR %d |  (pucch->sr_payload %u << O_ACK %d) | pucch->ack_payload %u\n",
+                     pucch->csi_part1_payload, O_ACK + O_SR, pucch->sr_payload, O_ACK, pucch->ack_payload);
+                    //: at line %d in function %s of file %s \n", LINE_FILE , __func__, FILE_NAME);
 
     switch(pucchres->format.present) {
       case NR_PUCCH_Resource__format_PR_format0 :
@@ -2465,6 +2468,14 @@ uint8_t nr_get_csi_payload(NR_UE_MAC_INST_t *mac,
   return (n_csi_bits);
 }
 
+#define RI_SHIFT  0
+#define RI_MASK   0x03
+#define PMI_SHIFT 2
+#define PMI_MASK  0x03
+#define CQI_SHIFT 4
+#define CQI_MASK  0x0FFF
+
+extern int get_mcs_from_sinr(float sinr);
 uint8_t get_cri_ri_pmi_cqi_payload(NR_UE_MAC_INST_t *mac,
                              PUCCH_sched_t *pucch,
                              struct NR_CSI_ReportConfig *csi_reportconfig,
@@ -2483,12 +2494,20 @@ uint8_t get_cri_ri_pmi_cqi_payload(NR_UE_MAC_INST_t *mac,
   ri : 2 bits long
   */
 
-  uint8_t ri_index = 0; // 0 : rank 1, 1: rank 2 for 2x2 MIMO case. TODO:: Needs update
+  uint16_t csi_Measured = mac->nr_ue_emul_l1.csi_Measured;
+  uint8_t ri_index = (csi_Measured >> RI_SHIFT) & RI_MASK; // 0: rank 1, 1: rank 2 for 2x2 MIMO case.
+  uint8_t pmi_index = (csi_Measured >> PMI_SHIFT) & PMI_MASK;
   uint16_t ri_bits = 1; // 1 bit for 2x2 MIMO case, 2 bits for 4x4 MIMO case
-  uint8_t pmi_index = 0; // hard coded 0. TODO:: Needs update
   uint16_t pmi_bits = ri_index > 0 ? 1 : 2; // 2 bits (rank 1), 1 bit (rank 2) for 2x2 MIMO case
-  uint8_t cqi_index = 15; // hard coded 15. Quality of downlink channel. TODO:: Needs update
   uint16_t cqi_bits = 4;
+  static const uint8_t mcs_to_cqi[] = {0, 1, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9,
+                                      10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15};
+  float sinr = (((csi_Measured >> CQI_SHIFT) & CQI_MASK) - 640) * 0.1;
+  int mcs = get_mcs_from_sinr(sinr);
+  CHECK_INDEX(mcs_to_cqi, mcs);
+  uint8_t cqi_index = mcs_to_cqi[mcs];
+  LOG_I(NR_MAC,"David csi_Measured = 0x%X, ri_index = %u,  pmi_index = %u, cqi_index = %u, mcs = %d, sinr = %f\n",
+                csi_Measured, ri_index, pmi_index, cqi_index, mcs, sinr);
 
   int bits = 0;
   int nb_meas = 0; // nb of measured RS resources to be reported
@@ -2527,6 +2546,7 @@ uint8_t get_cri_ri_pmi_cqi_payload(NR_UE_MAC_INST_t *mac,
     }
   }
   pucch->csi_part1_payload = temp_payload;
+  LOG_I(NR_MAC,"David pucch csi_part1_payload = 0x%X, temp_payload = 0x%X\n", pucch->csi_part1_payload, temp_payload);
   return bits;
 }
 

@@ -436,6 +436,7 @@ static void *NRUE_phy_stub_standalone_pnf_task(void *arg)
     mac->dl_info.thread_id = 0;
     mac->dl_info.dci_ind = NULL;
     mac->dl_info.rx_ind = NULL;
+    mac->nr_ue_emul_l1.csi_Measured = ch_info->csi;
 
     if (is_nr_DL_slot(get_softmodem_params()->nsa ?
                       mac->scc->tdd_UL_DL_ConfigurationCommon :

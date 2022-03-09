@@ -288,6 +288,7 @@ typedef struct {
   int num_srs;
   int num_harqs;
   int num_csi_reports;
+  uint16_t csi_Measured;
 } nr_emulated_l1_t;
 
 typedef struct {

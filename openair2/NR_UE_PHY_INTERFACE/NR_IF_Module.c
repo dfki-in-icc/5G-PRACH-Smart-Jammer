@@ -68,7 +68,6 @@ queue_t nr_ul_tti_req_queue;
 
 static slot_rnti_mcs_s slot_rnti_mcs[NUM_NFAPI_SLOT];
 
-static int get_mcs_from_sinr(float sinr);
 static int get_cqi_from_mcs(void);
 static void read_channel_param(const nfapi_nr_dl_tti_pdsch_pdu_rel15_t * pdu, int sf, int index);
 static bool did_drop_transport_block(int slot, uint16_t rnti);
@@ -1026,8 +1025,8 @@ void *nrue_standalone_pnf_task(void *context)
       {
         slot_rnti_mcs[NFAPI_SFNSLOT2SLOT(ch_info->sfn_slot)].sinr = ch_info->sinr[i];
 
-        LOG_D(NR_PHY, "Received_SINR[%d] = %f, sfn:slot %d:%d\n",
-              i, ch_info->sinr[i], NFAPI_SFNSLOT2SFN(ch_info->sfn_slot), NFAPI_SFNSLOT2SLOT(ch_info->sfn_slot));
+        LOG_I(NR_PHY, "Received_SINR[%d] = %f, sfn:slot %d:%d CSI = %0x\n",
+              i, ch_info->sinr[i], NFAPI_SFNSLOT2SFN(ch_info->sfn_slot), NFAPI_SFNSLOT2SLOT(ch_info->sfn_slot), ch_info->csi);
       }
 
       if (!put_queue(&nr_chan_param_queue, ch_info))
@@ -1333,7 +1332,7 @@ void RCconfig_nr_ue_L1(void) {
   }
 }
 
-static int get_mcs_from_sinr(float sinr)
+int get_mcs_from_sinr(float sinr)
 {
   if (sinr < (nr_bler_data[0].bler_table[0][0]))
   {

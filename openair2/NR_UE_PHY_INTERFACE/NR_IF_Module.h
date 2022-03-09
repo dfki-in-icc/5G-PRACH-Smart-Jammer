@@ -53,6 +53,7 @@ typedef struct nr_phy_channel_params_t
 {
     uint16_t sfn_slot;
     uint16_t message_id;
+    uint16_t csi;
     uint16_t nb_of_sinrs;
     float sinr[NR_NUM_LAYER];
     // Incomplete, need all channel parameters

@@ -71,6 +71,8 @@ static void fill_uci_2_3_4(nfapi_nr_uci_pucch_pdu_format_2_3_4_t *pdu_2_3_4,
   for (int k = 0; k < csi_part1_byte_len; k++)
   {
     pdu_2_3_4->csi_part1.csi_part1_payload[k] = (pucch_pdu->payload >> (k * 8)) & 0xff;
+    LOG_I(NR_PHY, "In %s: David pdu_2_3_4->payload[%d] = 0x%X\n",
+              __FUNCTION__, k, pdu_2_3_4->csi_part1.csi_part1_payload[k]);
   }
   pdu_2_3_4->csi_part1.csi_part1_crc = 0;
 }
