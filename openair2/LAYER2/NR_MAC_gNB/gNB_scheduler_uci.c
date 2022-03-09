@@ -1556,7 +1556,7 @@ int nr_acknack_scheduling(int mod_id,
      
     
   }
-  const int first_ul_slot_period = first_ul_slot_tdd%nr_slots_period; // TODO: make it without periods
+  const int first_ul_slot_period = first_ul_slot_tdd%nr_slots_period; // TODO: clear these variables
 
   NR_sched_pucch_t *csi_pucch;
 
