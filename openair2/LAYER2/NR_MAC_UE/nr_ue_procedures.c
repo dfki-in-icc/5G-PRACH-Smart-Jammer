@@ -1534,9 +1534,6 @@ void nr_ue_configure_pucch(NR_UE_MAC_INST_t *mac,
       return;
     }
     pucch_pdu->payload = (pucch->csi_part1_payload << (O_ACK + O_SR)) |  (pucch->sr_payload << O_ACK) | pucch->ack_payload;
-    LOG_I(MAC,"David pucch->csi_part1_payload 0x%0X << (O_ACK + O_SR %d |  (pucch->sr_payload %u << O_ACK %d) | pucch->ack_payload %u\n",
-                     pucch->csi_part1_payload, O_ACK + O_SR, pucch->sr_payload, O_ACK, pucch->ack_payload);
-                    //: at line %d in function %s of file %s \n", LINE_FILE , __func__, FILE_NAME);
 
     switch(pucchres->format.present) {
       case NR_PUCCH_Resource__format_PR_format0 :
@@ -2506,8 +2503,6 @@ uint8_t get_cri_ri_pmi_cqi_payload(NR_UE_MAC_INST_t *mac,
   int mcs = get_mcs_from_sinr(sinr);
   CHECK_INDEX(mcs_to_cqi, mcs);
   uint8_t cqi_index = mcs_to_cqi[mcs];
-  LOG_I(NR_MAC,"David csi_Measured = 0x%X, ri_index = %u,  pmi_index = %u, cqi_index = %u, mcs = %d, sinr = %f\n",
-                csi_Measured, ri_index, pmi_index, cqi_index, mcs, sinr);
 
   int bits = 0;
   int nb_meas = 0; // nb of measured RS resources to be reported
@@ -2546,7 +2541,6 @@ uint8_t get_cri_ri_pmi_cqi_payload(NR_UE_MAC_INST_t *mac,
     }
   }
   pucch->csi_part1_payload = temp_payload;
-  LOG_I(NR_MAC,"David pucch csi_part1_payload = 0x%X, temp_payload = 0x%X\n", pucch->csi_part1_payload, temp_payload);
   return bits;
 }
 
