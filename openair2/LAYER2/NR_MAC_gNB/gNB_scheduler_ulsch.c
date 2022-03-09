@@ -862,6 +862,11 @@ void nr_rx_sdu(const module_id_t gnb_mod_idP,
   } else {
     for (int i = 0; i < NR_NB_RA_PROC_MAX; ++i) {
       NR_RA_t *ra = &gNB_mac->common_channels[CC_idP].ra[i];
+      if (ra->state != WAIT_Msg3)
+        continue;
+
+      if( (frameP!=ra->Msg3_frame) || (slotP!=ra->Msg3_slot))
+        continue;
 
       // for CFRA (NSA) do not schedule retransmission of msg3
       if (ra->cfra) {
@@ -877,11 +882,6 @@ void nr_rx_sdu(const module_id_t gnb_mod_idP,
         nr_clear_ra_proc(gnb_mod_idP, CC_idP, frameP, ra);
         return;
       }
-      if (ra->state != WAIT_Msg3)
-        continue;
-
-      if( (frameP!=ra->Msg3_frame) || (slotP!=ra->Msg3_slot))
-        continue;
 
       LOG_W(NR_MAC, "Random Access %i Msg3 CRC did not pass)\n", i);
       ra->msg3_round++;
@@ -1172,7 +1172,6 @@ void pf_ul(module_id_t module_id,
     /* preprocessor computed sched_frame/sched_slot */
     const bool do_sched = nr_UE_is_to_be_scheduled(module_id, 0, UE_id, sched_pusch->frame, sched_pusch->slot);
 
-
     LOG_D(NR_MAC,"pf_ul: do_sched UE %d => %s\n",UE_id,do_sched ? "yes" : "no");
     if (B == 0 && !do_sched)
       continue;
@@ -1326,8 +1325,7 @@ void pf_ul(module_id_t module_id,
 
     /* reduce max_num_ue once we are sure UE can be allocated, i.e., has CCE */
     max_num_ue--;
-    if (max_num_ue < 0)
-      return;
+
     LOG_D(NR_MAC, "%4d.%2d free CCE for UL DCI UE %04x\n",frame,slot, UE_info->rnti[UE_id]);
    // NR_UE_sched_ctrl_t *sched_ctrl = &UE_info->UE_sched_ctrl[UE_id];
     AssertFatal(max_num_ue >= 0, "Illegal max_num_ue %d\n", max_num_ue);
@@ -1335,7 +1333,8 @@ void pf_ul(module_id_t module_id,
     NR_CellGroupConfig_t *cg = UE_info->CellGroup[UE_id];
     NR_BWP_UplinkDedicated_t *ubwpd= cg ? cg->spCellConfig->spCellConfigDedicated->uplinkConfig->initialUplinkBWP:NULL;
     NR_BWP_t *genericParameters = sched_ctrl->active_ubwp ? &sched_ctrl->active_ubwp->bwp_Common->genericParameters : &scc->uplinkConfigCommon->initialUplinkBWP->genericParameters;
-    int rbStart = 0;
+    //int rbStart = 0;
+    int rbStart = sched_ctrl->active_ubwp ? NRRIV2PRBOFFSET(genericParameters->locationAndBandwidth, MAX_BWP_SIZE) : 0;
     const uint16_t bwpSize = NRRIV2BW(genericParameters->locationAndBandwidth, MAX_BWP_SIZE);
     NR_sched_pusch_t *sched_pusch = &sched_ctrl->sched_pusch;
     NR_pusch_semi_static_t *ps = &sched_ctrl->pusch_semi_static;
@@ -1648,7 +1647,7 @@ void nr_schedule_ulsch(module_id_t module_id, frame_t frame, sub_frame_t slot)
     sched_ctrl->last_ul_frame = sched_pusch->frame;
     sched_ctrl->last_ul_slot = sched_pusch->slot;
 
-    LOG_D(NR_MAC,
+    LOG_I(NR_MAC,
           "ULSCH/PUSCH: %4d.%2d RNTI %04x UL sched %4d.%2d start %2d RBS %3d startSymbol %2d nb_symbol %2d dmrs_pos %x MCS %2d TBS %4d HARQ PID %2d round %d RV %d NDI %d est %6d sched %6d est BSR %6d TPC %d CCE %d\n",
           frame,
           slot,

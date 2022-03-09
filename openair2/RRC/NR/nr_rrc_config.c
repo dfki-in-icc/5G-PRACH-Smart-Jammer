@@ -130,6 +130,8 @@ void nr_rrc_config_ul_tda(NR_ServingCellConfigCommon_t *scc, int min_fb_delay){
 
 
   int k2 = (min_fb_delay<temp_min_delay)?temp_min_delay:min_fb_delay;
+  int K2_1 = 5;
+  int K2_2 = 7;
 
   uint8_t DELTA[4]= {2,3,4,6}; // Delta parameter for Msg3
   int mu = scc->uplinkConfigCommon->initialUplinkBWP->genericParameters.subcarrierSpacing;
@@ -166,6 +168,22 @@ void nr_rrc_config_ul_tda(NR_ServingCellConfigCommon_t *scc, int min_fb_delay){
       pusch_timedomainresourceallocation_msg3->mappingType = NR_PUSCH_TimeDomainResourceAllocation__mappingType_typeB;
       pusch_timedomainresourceallocation_msg3->startSymbolAndLength = get_SLIV(14-ul_symb,ul_symb-1); // starting in fist ul symbol til the last but one
       ASN_SEQUENCE_ADD(&scc->uplinkConfigCommon->initialUplinkBWP->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList->list,pusch_timedomainresourceallocation_msg3);
+
+
+      //int ul_symb = scc->tdd_UL_DL_ConfigurationCommon->pattern1.nrofUplinkSymbols;
+      struct NR_PUSCH_TimeDomainResourceAllocation *pusch_timedomainresourceallocation2 = CALLOC(1,sizeof(struct NR_PUSCH_TimeDomainResourceAllocation));
+      pusch_timedomainresourceallocation2->k2  = CALLOC(1,sizeof(long));
+      *pusch_timedomainresourceallocation2->k2 = K2_1;
+      pusch_timedomainresourceallocation2->mappingType = NR_PUSCH_TimeDomainResourceAllocation__mappingType_typeB;
+      pusch_timedomainresourceallocation2->startSymbolAndLength = get_SLIV(14-ul_symb,ul_symb-1); // starting in fist ul symbol til the last but one
+      ASN_SEQUENCE_ADD(&scc->uplinkConfigCommon->initialUplinkBWP->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList->list,pusch_timedomainresourceallocation2);
+
+      struct NR_PUSCH_TimeDomainResourceAllocation *pusch_timedomainresourceallocation3 = CALLOC(1,sizeof(struct NR_PUSCH_TimeDomainResourceAllocation));
+      pusch_timedomainresourceallocation3->k2  = CALLOC(1,sizeof(long));
+      *pusch_timedomainresourceallocation3->k2 = K2_2;
+      pusch_timedomainresourceallocation3->mappingType = NR_PUSCH_TimeDomainResourceAllocation__mappingType_typeB;
+      pusch_timedomainresourceallocation3->startSymbolAndLength = get_SLIV(14-ul_symb,ul_symb-1); // starting in fist ul symbol til the last but one
+      ASN_SEQUENCE_ADD(&scc->uplinkConfigCommon->initialUplinkBWP->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList->list,pusch_timedomainresourceallocation3);
     }
   }
 }

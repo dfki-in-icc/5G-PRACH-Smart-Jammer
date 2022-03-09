@@ -52,9 +52,7 @@
 #define OCTET 8
 #define HALFWORD 16
 #define WORD 32
-//#define SIZE_OF_POINTER sizeof (void *)
-static int loop_dcch_dtch = DL_SCH_LCID_DTCH;
-static int internal_loop_dcch_dtch = DL_SCH_LCID_DTCH;
+
 void calculate_preferred_dl_tda(module_id_t module_id, const NR_BWP_Downlink_t *bwp)
 {
   gNB_MAC_INST *nrmac = RC.nrmac[module_id];
@@ -554,92 +552,14 @@ void nr_store_dlsch_buffer(module_id_t module_id,
       continue;
 
     LOG_I(NR_MAC,
-          "[%s][%d.%d], %s%d->DLSCH, RLC status %d bytes TA %d\n",
+          "[%s][UE %d][%d.%d], %s%d->DLSCH, RLC status %d bytes TA %d\n",
           __func__,
+          UE_id,
           frame,
           slot,
           lcid<4?"DCCH":"DTCH",
           lcid,
           sched_ctrl->rlc_status[lcid].bytes_in_buffer,
-          sched_ctrl->ta_apply);
-  }
-}
-
-
-
-void nr_store_dlsch_buffer2(module_id_t module_id,
-                           frame_t frame,
-                           sub_frame_t slot) {
-
-  NR_UE_info_t *UE_info = &RC.nrmac[module_id]->UE_info;
-
-  for (int UE_id = UE_info->list.head; UE_id >= 0; UE_id = UE_info->list.next[UE_id]) {
-    NR_UE_sched_ctrl_t *sched_ctrl = &UE_info->UE_sched_ctrl[UE_id];
-
-    sched_ctrl->num_total_bytes = 0;
-    int lcid = loop_dcch_dtch;
-     //const int lcid = DL_SCH_LCID_DTCH;
-    const uint16_t rnti = UE_info->rnti[UE_id];
-    sched_ctrl->rlc_status[DL_SCH_LCID_DCCH1] = mac_rlc_status_ind(module_id,
-                                                      rnti,
-                                                      module_id,
-                                                      frame,
-                                                      slot,
-                                                      ENB_FLAG_YES,
-                                                      MBMS_FLAG_NO,
-                                                      DL_SCH_LCID_DCCH1,
-                                                      0,
-                                                      0);
-    sched_ctrl->rlc_status[DL_SCH_LCID_DCCH] = mac_rlc_status_ind(module_id,
-                                                      rnti,
-                                                      module_id,
-                                                      frame,
-                                                      slot,
-                                                      ENB_FLAG_YES,
-                                                      MBMS_FLAG_NO,
-                                                      DL_SCH_LCID_DCCH,
-                                                      0,
-                                                      0);
-    sched_ctrl->rlc_status[DL_SCH_LCID_DTCH] = mac_rlc_status_ind(module_id,
-                                                      rnti,
-                                                      module_id,
-                                                      frame,
-                                                      slot,
-                                                      ENB_FLAG_YES,
-                                                      MBMS_FLAG_NO,
-                                                      DL_SCH_LCID_DTCH,
-                                                      0,
-                                                      0);  
-                                                
-     if(sched_ctrl->rlc_status[DL_SCH_LCID_DCCH].bytes_in_buffer > 0){
-       loop_dcch_dtch = DL_SCH_LCID_DCCH;       
-     } 
-     else if (sched_ctrl->rlc_status[DL_SCH_LCID_DCCH1].bytes_in_buffer > 0)
-     {
-       loop_dcch_dtch = DL_SCH_LCID_DCCH1;       
-     }else{
-       loop_dcch_dtch = DL_SCH_LCID_DTCH;       
-     }
-                                                      
-    sched_ctrl->num_total_bytes += sched_ctrl->rlc_status[loop_dcch_dtch].bytes_in_buffer;
-    LOG_D(NR_MAC,
-        "%d.%d, LCID%d:->DLSCH, RLC status %d bytes. \n",
-        frame,
-        slot,
-        loop_dcch_dtch,
-        sched_ctrl->num_total_bytes); // KARIM print
-      if (sched_ctrl->num_total_bytes == 0 && !sched_ctrl->ta_apply){
-        return;
-      }
-
-    LOG_D(NR_MAC,
-          "[%s][%d.%d], %s%d->DLSCH, RLC status %d bytes TA %d\n",
-          __func__,
-          frame,
-          slot,
-          loop_dcch_dtch<4?"DCCH":"DTCH",
-          loop_dcch_dtch,
-          sched_ctrl->rlc_status[loop_dcch_dtch].bytes_in_buffer,
           sched_ctrl->ta_apply);
   }
 }
@@ -666,14 +586,14 @@ bool allocate_dl_retransmission(module_id_t module_id,
 
   const uint16_t bwpSize = NRRIV2BW(genericParameters->locationAndBandwidth, MAX_BWP_SIZE);
   int rbStart = 0;
-  int bwpStart = NRRIV2PRBOFFSET(genericParameters->locationAndBandwidth, MAX_BWP_SIZE);
+  //int bwpStart = NRRIV2PRBOFFSET(genericParameters->locationAndBandwidth, MAX_BWP_SIZE);
   NR_pdsch_semi_static_t *ps = &sched_ctrl->pdsch_semi_static;
 
   int rbSize = 0;
-  const int tda = sched_ctrl->active_bwp ? RC.nrmac[module_id]->preferred_dl_tda[sched_ctrl->active_bwp->bwp_Id][slot] : (RC.nrmac[module_id]->flexible_slots_per_frame[slot] ? 1 : 0 );
+  //const int tda = sched_ctrl->active_bwp ? RC.nrmac[module_id]->preferred_dl_tda[sched_ctrl->active_bwp->bwp_Id][slot] : (RC.nrmac[module_id]->flexible_slots_per_frame[slot] ? 1 : 0 );
+const int tda = RC.nrmac[module_id]->preferred_dl_tda[sched_ctrl->active_bwp ? sched_ctrl->active_bwp->bwp_Id : 0][slot];
+  AssertFatal(tda>=0,"Unable to find PDSCH time domain allocation in list\n");
 
-  /*const int tda = RC.nrmac[module_id]->preferred_dl_tda[sched_ctrl->active_bwp ? sched_ctrl->active_bwp->bwp_Id : 0][slot];
-  AssertFatal(tda>=0,"Unable to find PDSCH time domain allocation in list\n");*/
   if (tda == retInfo->time_domain_allocation) {
     /* Check that there are enough resources for retransmission */
     while (rbSize < retInfo->rbSize) {
@@ -964,10 +884,9 @@ void pf_dl(module_id_t module_id,
                        sched_ctrl->aggregation_level);
 
     /* MCS has been set above */
-    const int tda = sched_ctrl->active_bwp ? RC.nrmac[module_id]->preferred_dl_tda[sched_ctrl->active_bwp->bwp_Id][slot] : (RC.nrmac[module_id]->flexible_slots_per_frame[slot] ? 1 : 0 );
-
-    /*const int tda = RC.nrmac[module_id]->preferred_dl_tda[sched_ctrl->active_bwp ? sched_ctrl->active_bwp->bwp_Id : 0][slot];
-    AssertFatal(tda>=0,"Unable to find PDSCH time domain allocation in list\n");*/
+    //const int tda = sched_ctrl->active_bwp ? RC.nrmac[module_id]->preferred_dl_tda[sched_ctrl->active_bwp->bwp_Id][slot] : (RC.nrmac[module_id]->flexible_slots_per_frame[slot] ? 1 : 0 );
+    const int tda = RC.nrmac[module_id]->preferred_dl_tda[sched_ctrl->active_bwp ? sched_ctrl->active_bwp->bwp_Id : 0][slot];
+    AssertFatal(tda>=0,"Unable to find PDSCH time domain allocation in list\n");
     NR_sched_pdsch_t *sched_pdsch = &sched_ctrl->sched_pdsch;
     NR_pdsch_semi_static_t *ps = &sched_ctrl->pdsch_semi_static;
 
@@ -1133,10 +1052,13 @@ void nr_schedule_ue_spec(module_id_t module_id,
   NR_list_t *UE_list = &UE_info->list;
   for (int UE_id = UE_list->head; UE_id >= 0; UE_id = UE_list->next[UE_id]) {
     NR_UE_sched_ctrl_t *sched_ctrl = &UE_info->UE_sched_ctrl[UE_id];
+        NR_sched_pdsch_t *sched_pdsch = &sched_ctrl->sched_pdsch;
+
+    LOG_I(NR_MAC," UE %d , slot %d , sched_ctrl->ul_failure %d sched_pdsch->rbSize %d \n",UE_id, slot, sched_ctrl->ul_failure,sched_pdsch->rbSize);
+
     if (sched_ctrl->ul_failure==1 && get_softmodem_params()->phy_test==0) continue;
   //LOG_W(NR_MAC,"didnt continue because of ul_failure DL for %d.%d\n",frame,slot);                     
 
-    NR_sched_pdsch_t *sched_pdsch = &sched_ctrl->sched_pdsch;
     UE_info->mac_stats[UE_id].dlsch_current_bytes = 0;
     NR_CellGroupConfig_t *cg = UE_info->CellGroup[UE_id];
     NR_BWP_DownlinkDedicated_t *bwpd= cg ? cg->spCellConfig->spCellConfigDedicated->initialDownlinkBWP:NULL;
@@ -1149,7 +1071,6 @@ void nr_schedule_ue_spec(module_id_t module_id,
       sched_ctrl->ta_apply = true; /* the timer is reset once TA CE is scheduled */
       LOG_D(NR_MAC, "[UE %d][%d.%d] UL timing alignment procedures: setting flag for Timing Advance command\n", UE_id, frame, slot);
     }
-
     if (sched_pdsch->rbSize <= 0)
       continue;
   //LOG_W(NR_MAC,"didnt continue because of rbsize <0 DL for %d.%d\n",frame,slot);                     
@@ -1194,7 +1115,7 @@ void nr_schedule_ue_spec(module_id_t module_id,
     harq->is_waiting = true;
     UE_info->mac_stats[UE_id].dlsch_rounds[harq->round]++;
 
-    LOG_D(NR_MAC,"%4d.%2d [DLSCH/PDSCH/PUCCH] UE %d RNTI %04x DCI L %d start %3d RBs %3d startSymbol %2d nb_symbol %2d dmrspos %x MCS %2d nrOfLayers %d TBS %4d HARQ PID %2d round %d RV %d NDI %d dl_data_to_ULACK %d (%d.%d) PUCCH allocation %d TPC %d\n",
+    LOG_I(NR_MAC,"%4d.%2d [DLSCH/PDSCH/PUCCH] UE %d RNTI %04x DCI L %d start %3d RBs %3d startSymbol %2d nb_symbol %2d dmrspos %x MCS %2d nrOfLayers %d TBS %4d HARQ PID %2d round %d RV %d NDI %d dl_data_to_ULACK %d (%d.%d) PUCCH allocation %d TPC %d\n",
           frame,
           slot,
           UE_id,
@@ -1499,7 +1420,7 @@ void nr_schedule_ue_spec(module_id_t module_id,
           struct timespec time_request;
           clock_gettime(CLOCK_REALTIME, &time_request);
           if (lcid>=4)           
-                LOG_D(NR_MAC,
+                LOG_I(NR_MAC,
                 "%4d.%2d [UE %04x]: Time %lu.%lu:  %d bytes %s %d -> DLSCH (ndata %lu, remaining size %lu)\n",
                 frame,
                 slot,

@@ -1394,7 +1394,7 @@ void fill_initial_SpCellConfig(int uid,
      else
        coreset->frequencyDomainResources.buf[1] = 0xff;
   } else {
-     coreset->frequencyDomainResources.buf[0] = 0xf0;
+     coreset->frequencyDomainResources.buf[0] = 0xff;
      coreset->frequencyDomainResources.buf[1] = 0x00;
   }
   coreset->frequencyDomainResources.buf[2] = 0;
@@ -1434,7 +1434,7 @@ void fill_initial_SpCellConfig(int uid,
   ss2->monitoringSymbolsWithinSlot->buf[1]=0x0;
   ss2->nrofCandidates=calloc(1,sizeof(*ss2->nrofCandidates));
   ss2->nrofCandidates->aggregationLevel1 = NR_SearchSpace__nrofCandidates__aggregationLevel1_n0;
-  ss2->nrofCandidates->aggregationLevel2 = NR_SearchSpace__nrofCandidates__aggregationLevel2_n2;
+  ss2->nrofCandidates->aggregationLevel2 = NR_SearchSpace__nrofCandidates__aggregationLevel2_n4;
   ss2->nrofCandidates->aggregationLevel4 = NR_SearchSpace__nrofCandidates__aggregationLevel4_n0;
   ss2->nrofCandidates->aggregationLevel8 = NR_SearchSpace__nrofCandidates__aggregationLevel8_n0;
   ss2->nrofCandidates->aggregationLevel16 = NR_SearchSpace__nrofCandidates__aggregationLevel16_n0;

@@ -501,7 +501,6 @@ bool nr_find_nb_rb(uint16_t Qm,
   *nb_rb = hi;
   *tbs = nr_compute_tbs(Qm, R, *nb_rb, nb_symb_sch, nb_dmrs_prb, 0, 0, nrOfLayers) >> 3;
   /* return whether we could allocate all bytes and stay below nb_rb_max */
-  LOG_D(NR_MAC,"nr find nb rb TBS = %d",*tbs);
   return *tbs >= bytes && *nb_rb <= nb_rb_max;
 }
 
@@ -591,7 +590,7 @@ void nr_set_pdsch_semi_static(const NR_ServingCellConfigCommon_t *scc,
     ps->dl_dmrs_symb_pos = fill_dmrs_mask(bwpd ? bwpd->pdsch_Config->choice.setup : NULL, scc->dmrs_TypeA_Position, ps->nrOfSymbols, ps->startSymbolIndex, ps->mapping_type, ps->frontloaded_symb);
     ps->N_DMRS_SLOT = get_num_dmrs(ps->dl_dmrs_symb_pos);
   }
-  LOG_W(NR_MAC,"bwpd0 %p, bwpd %p : Filling dmrs info, ps->N_PRB_DMRS %d, ps->dl_dmrs_symb_pos %x, ps->N_DMRS_SLOT %d\n",bwpd0,bwpd,ps->N_PRB_DMRS,ps->dl_dmrs_symb_pos,ps->N_DMRS_SLOT);
+  LOG_D(NR_MAC,"bwpd0 %p, bwpd %p : Filling dmrs info, ps->N_PRB_DMRS %d, ps->dl_dmrs_symb_pos %x, ps->N_DMRS_SLOT %d\n",bwpd0,bwpd,ps->N_PRB_DMRS,ps->dl_dmrs_symb_pos,ps->N_DMRS_SLOT);
 }
 
 void nr_set_pusch_semi_static(const NR_ServingCellConfigCommon_t *scc,
@@ -905,7 +904,6 @@ void config_uldci(const NR_BWP_Uplink_t *ubwp,
 
   dci_pdu_rel15->frequency_domain_assignment.val =
       PRBalloc_to_locationandbandwidth0(pusch_pdu->rb_size, pusch_pdu->rb_start, bw);
-  LOG_D(NR_MAC,"UL DCI FREQ %d PRB %d start %d BW %d\n",dci_pdu_rel15->frequency_domain_assignment.val,pusch_pdu->rb_size,pusch_pdu->rb_start,bw);    
   dci_pdu_rel15->time_domain_assignment.val = time_domain_assignment;
   dci_pdu_rel15->frequency_hopping_flag.val = pusch_pdu->frequency_hopping;
   dci_pdu_rel15->mcs = pusch_pdu->mcs_index;
@@ -1806,7 +1804,6 @@ void fill_dci_pdu_rel15(const NR_ServingCellConfigCommon_t *scc,
       // UL-SCH indicator
       pos += 1;
       *dci_pdu |= ((uint64_t)dci_pdu_rel15->ulsch_indicator & 0x1) << (dci_size - pos);
-      LOG_D(NR_MAC,"carrier_indicator %d ul_sul_indicator %d bwp_indicator %d frequency_domain_assignment %d time_domain_assignment %d frequency_hopping_flag %d  mcs %d ndi %d rv %d harq_pid %d tpc %d srs_resource_indicator %d precoding_information %d ptrs_dmrs_association %d beta_offset_indicator %d dmrs_sequence_initialization %d\n" ,dci_pdu_rel15->carrier_indicator.val, dci_pdu_rel15->ul_sul_indicator.val,dci_pdu_rel15->bwp_indicator.val,dci_pdu_rel15->frequency_domain_assignment.val, dci_pdu_rel15->time_domain_assignment.val,dci_pdu_rel15->frequency_hopping_flag.val, dci_pdu_rel15->mcs,dci_pdu_rel15->ndi, dci_pdu_rel15->rv, dci_pdu_rel15->harq_pid, dci_pdu_rel15->tpc, dci_pdu_rel15->srs_resource_indicator.val, dci_pdu_rel15->precoding_information.val, dci_pdu_rel15->ptrs_dmrs_association.val, dci_pdu_rel15->beta_offset_indicator.val,dci_pdu_rel15->dmrs_sequence_initialization.val);
       break;
     }
     break;

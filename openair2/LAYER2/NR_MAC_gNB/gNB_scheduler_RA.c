@@ -959,7 +959,7 @@ void nr_get_Msg3alloc(module_id_t module_id,
         k2 = *pusch_TimeDomainAllocationList->list.array[i]->k2;
         temp_slot = current_slot + k2 + DELTA[mu]; // msg3 slot according to 8.3 in 38.213
         ra->Msg3_slot = temp_slot%nr_slots_per_frame[mu];
-        LOG_W(NR_MAC,"ra->Msg3_slot %d",ra->Msg3_slot);
+        LOG_W(NR_MAC,"ra->Msg3_slot %d k2 %d",ra->Msg3_slot,k2);
 
         if (is_xlsch_in_slot_flex(RC.nrmac[module_id]->flexible_slots_per_frame, 1, ra->Msg3_slot)) {
           ra->Msg3_tda_id = i;
