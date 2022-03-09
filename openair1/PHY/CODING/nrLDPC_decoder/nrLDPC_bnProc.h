@@ -31,6 +31,702 @@
 #ifndef __NR_LDPC_BNPROC__H__
 #define __NR_LDPC_BNPROC__H__
 
+static inline void nrLDPC_bnProcPc_BG2_R23_CNG4(t_nrLDPC_lut* p_lut, int8_t* bnProcBuf, int8_t* bnProcBufRes, int8_t* llrProcBuf, int8_t* llrRes, uint16_t Z)
+{
+    const uint8_t*  lut_numBnInBnGroups = p_lut->numBnInBnGroups;
+    const uint32_t* lut_startAddrBnGroups = p_lut->startAddrBnGroups;
+    const uint16_t* lut_startAddrBnGroupsLlr = p_lut->startAddrBnGroupsLlr;
+
+    __m128i* p_bnProcBuf;
+    __m256i* p_bnProcBufRes;
+    __m128i* p_llrProcBuf;
+    __m256i* p_llrProcBuf256;
+    __m256i* p_llrRes;
+
+    // Number of BNs in Groups
+    uint32_t M;
+    //uint32_t M32rem;
+    uint32_t i,j;
+    uint32_t k;
+    // Offset to each bit within a group in terms of 32 Byte
+    uint32_t cnOffsetInGroup;
+    uint8_t idxBnGroup = 0;
+
+    __m256i ymm0, ymm1, ymmRes0, ymmRes1;
+
+    // =====================================================================
+    // Process group with 1 CN
+
+    // There is always a BN group with 1 CN
+    // Number of groups of 32 BNs for parallel processing
+    M = (lut_numBnInBnGroups[0]*Z + 31)>>5;
+
+    p_bnProcBuf     = (__m128i*) &bnProcBuf    [lut_startAddrBnGroups   [idxBnGroup]];
+    p_bnProcBufRes  = (__m256i*) &bnProcBufRes [lut_startAddrBnGroups   [idxBnGroup]];
+    p_llrProcBuf    = (__m128i*) &llrProcBuf   [lut_startAddrBnGroupsLlr[idxBnGroup]];
+    p_llrProcBuf256 = (__m256i*) &llrProcBuf   [lut_startAddrBnGroupsLlr[idxBnGroup]];
+    p_llrRes        = (__m256i*) &llrRes       [lut_startAddrBnGroupsLlr[idxBnGroup]];
+
+    // Loop over BNs
+    for (i=0,j=0; i<M; i++,j+=2)
+    {
+        // Store results in bnProcBufRes of first CN for further processing for next iteration
+        // In case parity check fails
+        p_bnProcBufRes[i] = p_llrProcBuf256[i];
+
+        // First 16 LLRs of first CN
+        ymm0 = _mm256_cvtepi8_epi16(p_bnProcBuf [j]);
+        ymm1 = _mm256_cvtepi8_epi16(p_llrProcBuf[j]);
+
+        ymmRes0 = _mm256_adds_epi16(ymm0, ymm1);
+
+        // Second 16 LLRs of first CN
+        ymm0 = _mm256_cvtepi8_epi16(p_bnProcBuf [j+1]);
+        ymm1 = _mm256_cvtepi8_epi16(p_llrProcBuf[j+1]);
+
+        ymmRes1 = _mm256_adds_epi16(ymm0, ymm1);
+
+        // Pack results back to epi8
+        ymm0 = _mm256_packs_epi16(ymmRes0, ymmRes1);
+        // ymm0     = [ymmRes1[255:128] ymmRes0[255:128] ymmRes1[127:0] ymmRes0[127:0]]
+        // p_llrRes = [ymmRes1[255:128] ymmRes1[127:0] ymmRes0[255:128] ymmRes0[127:0]]
+        *p_llrRes = _mm256_permute4x64_epi64(ymm0, 0xD8);
+
+        // Next result
+        p_llrRes++;
+    }
+
+    // =====================================================================
+    // Process group with 5 CNs
+
+    if (lut_numBnInBnGroups[4] > 0)
+    {
+        // If elements in group move to next address
+        idxBnGroup++;
+
+        // Number of groups of 32 BNs for parallel processing
+        M = (lut_numBnInBnGroups[4]*Z + 31)>>5;
+
+        // Set the offset to each CN within a group in terms of 16 Byte
+        cnOffsetInGroup = (lut_numBnInBnGroups[4]*NR_LDPC_ZMAX)>>4;
+
+        // Set pointers to start of group 5
+        p_bnProcBuf  = (__m128i*) &bnProcBuf  [lut_startAddrBnGroups   [idxBnGroup]];
+        p_llrProcBuf = (__m128i*) &llrProcBuf [lut_startAddrBnGroupsLlr[idxBnGroup]];
+        p_llrRes     = (__m256i*) &llrRes     [lut_startAddrBnGroupsLlr[idxBnGroup]];
+
+        // Loop over BNs
+        for (i=0,j=0; i<M; i++,j+=2)
+        {
+            // First 16 LLRs of first CN
+            ymmRes0 = _mm256_cvtepi8_epi16(p_bnProcBuf[j]);
+            ymmRes1 = _mm256_cvtepi8_epi16(p_bnProcBuf[j+1]);
+
+            // Loop over CNs
+            for (k=1; k<5; k++)
+            {
+                ymm0 = _mm256_cvtepi8_epi16(p_bnProcBuf[k*cnOffsetInGroup + j]);
+                ymmRes0 = _mm256_adds_epi16(ymmRes0, ymm0);
+
+                ymm1 = _mm256_cvtepi8_epi16(p_bnProcBuf[k*cnOffsetInGroup + j+1]);
+                ymmRes1 = _mm256_adds_epi16(ymmRes1, ymm1);
+            }
+
+            // Add LLR from receiver input
+            ymm0    = _mm256_cvtepi8_epi16(p_llrProcBuf[j]);
+            ymmRes0 = _mm256_adds_epi16(ymmRes0, ymm0);
+
+            ymm1    = _mm256_cvtepi8_epi16(p_llrProcBuf[j+1]);
+            ymmRes1 = _mm256_adds_epi16(ymmRes1, ymm1);
+
+            // Pack results back to epi8
+            ymm0 = _mm256_packs_epi16(ymmRes0, ymmRes1);
+            // ymm0     = [ymmRes1[255:128] ymmRes0[255:128] ymmRes1[127:0] ymmRes0[127:0]]
+            // p_llrRes = [ymmRes1[255:128] ymmRes1[127:0] ymmRes0[255:128] ymmRes0[127:0]]
+            *p_llrRes = _mm256_permute4x64_epi64(ymm0, 0xD8);
+
+            // Next result
+            p_llrRes++;
+        }
+    }
+
+    // =====================================================================
+    // Process group with 6 CNs
+
+    if (lut_numBnInBnGroups[5] > 0)
+    {
+        // If elements in group move to next address
+        idxBnGroup++;
+
+        // Number of groups of 32 BNs for parallel processing
+        M = (lut_numBnInBnGroups[5]*Z + 31)>>5;
+
+        // Set the offset to each CN within a group in terms of 16 Byte
+        cnOffsetInGroup = (lut_numBnInBnGroups[5]*NR_LDPC_ZMAX)>>4;
+
+        // Set pointers to start of group 6
+        p_bnProcBuf  = (__m128i*) &bnProcBuf  [lut_startAddrBnGroups   [idxBnGroup]];
+        p_llrProcBuf = (__m128i*) &llrProcBuf [lut_startAddrBnGroupsLlr[idxBnGroup]];
+        p_llrRes     = (__m256i*) &llrRes     [lut_startAddrBnGroupsLlr[idxBnGroup]];
+
+        // Loop over BNs
+        for (i=0,j=0; i<M; i++,j+=2)
+        {
+            // First 16 LLRs of first CN
+            ymmRes0 = _mm256_cvtepi8_epi16(p_bnProcBuf[j]);
+            ymmRes1 = _mm256_cvtepi8_epi16(p_bnProcBuf[j+1]);
+
+            // Loop over CNs
+            for (k=1; k<6; k++)
+            {
+                ymm0 = _mm256_cvtepi8_epi16(p_bnProcBuf[k*cnOffsetInGroup + j]);
+                ymmRes0 = _mm256_adds_epi16(ymmRes0, ymm0);
+
+                ymm1 = _mm256_cvtepi8_epi16(p_bnProcBuf[k*cnOffsetInGroup + j+1]);
+                ymmRes1 = _mm256_adds_epi16(ymmRes1, ymm1);
+            }
+
+            // Add LLR from receiver input
+            ymm0    = _mm256_cvtepi8_epi16(p_llrProcBuf[j]);
+            ymmRes0 = _mm256_adds_epi16(ymmRes0, ymm0);
+
+            ymm1    = _mm256_cvtepi8_epi16(p_llrProcBuf[j+1]);
+            ymmRes1 = _mm256_adds_epi16(ymmRes1, ymm1);
+
+            // Pack results back to epi8
+            ymm0 = _mm256_packs_epi16(ymmRes0, ymmRes1);
+            // ymm0     = [ymmRes1[255:128] ymmRes0[255:128] ymmRes1[127:0] ymmRes0[127:0]]
+            // p_llrRes = [ymmRes1[255:128] ymmRes1[127:0] ymmRes0[255:128] ymmRes0[127:0]]
+            *p_llrRes = _mm256_permute4x64_epi64(ymm0, 0xD8);
+
+            // Next result
+            p_llrRes++;
+        }
+    }
+}
+
+static inline void nrLDPC_bnProcPc_BG2_R23_CNG6(t_nrLDPC_lut* p_lut, int8_t* bnProcBuf, int8_t* bnProcBufRes, int8_t* llrProcBuf, int8_t* llrRes, uint16_t Z)
+{
+    const uint8_t*  lut_numBnInBnGroups = p_lut->numBnInBnGroups;
+    const uint32_t* lut_startAddrBnGroups = p_lut->startAddrBnGroups;
+    const uint16_t* lut_startAddrBnGroupsLlr = p_lut->startAddrBnGroupsLlr;
+
+    __m128i* p_bnProcBuf;
+    __m256i* p_bnProcBufRes;
+    __m128i* p_llrProcBuf;
+    __m256i* p_llrProcBuf256;
+    __m256i* p_llrRes;
+
+    // Number of BNs in Groups
+    uint32_t M;
+    //uint32_t M32rem;
+    uint32_t i,j;
+    uint32_t k;
+    // Offset to each bit within a group in terms of 32 Byte
+    uint32_t cnOffsetInGroup;
+    uint8_t idxBnGroup = 0;
+
+    __m256i ymm0, ymm1, ymmRes0, ymmRes1;
+
+    // =====================================================================
+    // Process group with 1 CN
+
+    // There is always a BN group with 1 CN
+    // Number of groups of 32 BNs for parallel processing
+    M = (lut_numBnInBnGroups[0]*Z + 31)>>5;
+
+    p_bnProcBuf     = (__m128i*) &bnProcBuf    [lut_startAddrBnGroups   [idxBnGroup]];
+    p_bnProcBufRes  = (__m256i*) &bnProcBufRes [lut_startAddrBnGroups   [idxBnGroup]];
+    p_llrProcBuf    = (__m128i*) &llrProcBuf   [lut_startAddrBnGroupsLlr[idxBnGroup]];
+    p_llrProcBuf256 = (__m256i*) &llrProcBuf   [lut_startAddrBnGroupsLlr[idxBnGroup]];
+    p_llrRes        = (__m256i*) &llrRes       [lut_startAddrBnGroupsLlr[idxBnGroup]];
+
+    // Loop over BNs
+    for (i=0,j=0; i<M; i++,j+=2)
+    {
+        // Store results in bnProcBufRes of first CN for further processing for next iteration
+        // In case parity check fails
+        p_bnProcBufRes[i] = p_llrProcBuf256[i];
+
+        // First 16 LLRs of first CN
+        ymm0 = _mm256_cvtepi8_epi16(p_bnProcBuf [j]);
+        ymm1 = _mm256_cvtepi8_epi16(p_llrProcBuf[j]);
+
+        ymmRes0 = _mm256_adds_epi16(ymm0, ymm1);
+
+        // Second 16 LLRs of first CN
+        ymm0 = _mm256_cvtepi8_epi16(p_bnProcBuf [j+1]);
+        ymm1 = _mm256_cvtepi8_epi16(p_llrProcBuf[j+1]);
+
+        ymmRes1 = _mm256_adds_epi16(ymm0, ymm1);
+
+        // Pack results back to epi8
+        ymm0 = _mm256_packs_epi16(ymmRes0, ymmRes1);
+        // ymm0     = [ymmRes1[255:128] ymmRes0[255:128] ymmRes1[127:0] ymmRes0[127:0]]
+        // p_llrRes = [ymmRes1[255:128] ymmRes1[127:0] ymmRes0[255:128] ymmRes0[127:0]]
+        *p_llrRes = _mm256_permute4x64_epi64(ymm0, 0xD8);
+
+        // Next result
+        p_llrRes++;
+    }
+
+    // =====================================================================
+    // Process group with 4 CNs
+
+    if (lut_numBnInBnGroups[3] > 0)
+    {
+        // If elements in group move to next address
+        idxBnGroup++;
+
+        // Number of groups of 32 BNs for parallel processing
+        M = (lut_numBnInBnGroups[3]*Z + 31)>>5;
+
+        // Set the offset to each CN within a group in terms of 16 Byte
+        cnOffsetInGroup = (lut_numBnInBnGroups[3]*NR_LDPC_ZMAX)>>4;
+
+        // Set pointers to start of group 4
+        p_bnProcBuf  = (__m128i*) &bnProcBuf  [lut_startAddrBnGroups   [idxBnGroup]];
+        p_llrProcBuf = (__m128i*) &llrProcBuf [lut_startAddrBnGroupsLlr[idxBnGroup]];
+        p_llrRes     = (__m256i*) &llrRes     [lut_startAddrBnGroupsLlr[idxBnGroup]];
+
+        // Loop over BNs
+        for (i=0,j=0; i<M; i++,j+=2)
+        {
+            // First 16 LLRs of first CN
+            ymmRes0 = _mm256_cvtepi8_epi16(p_bnProcBuf[j]);
+            ymmRes1 = _mm256_cvtepi8_epi16(p_bnProcBuf[j+1]);
+
+            // Loop over CNs
+            for (k=1; k<4; k++)
+            {
+                ymm0 = _mm256_cvtepi8_epi16(p_bnProcBuf[k*cnOffsetInGroup + j]);
+                ymmRes0 = _mm256_adds_epi16(ymmRes0, ymm0);
+
+                ymm1 = _mm256_cvtepi8_epi16(p_bnProcBuf[k*cnOffsetInGroup + j+1]);
+                ymmRes1 = _mm256_adds_epi16(ymmRes1, ymm1);
+            }
+
+            // Add LLR from receiver input
+            ymm0    = _mm256_cvtepi8_epi16(p_llrProcBuf[j]);
+            ymmRes0 = _mm256_adds_epi16(ymmRes0, ymm0);
+
+            ymm1    = _mm256_cvtepi8_epi16(p_llrProcBuf[j+1]);
+            ymmRes1 = _mm256_adds_epi16(ymmRes1, ymm1);
+
+            // Pack results back to epi8
+            ymm0 = _mm256_packs_epi16(ymmRes0, ymmRes1);
+            // ymm0     = [ymmRes1[255:128] ymmRes0[255:128] ymmRes1[127:0] ymmRes0[127:0]]
+            // p_llrRes = [ymmRes1[255:128] ymmRes1[127:0] ymmRes0[255:128] ymmRes0[127:0]]
+            *p_llrRes = _mm256_permute4x64_epi64(ymm0, 0xD8);
+
+            // Next result
+            p_llrRes++;
+        }
+    }
+
+    // =====================================================================
+    // Process group with 5 CNs
+
+    if (lut_numBnInBnGroups[4] > 0)
+    {
+        // If elements in group move to next address
+        idxBnGroup++;
+
+        // Number of groups of 32 BNs for parallel processing
+        M = (lut_numBnInBnGroups[4]*Z + 31)>>5;
+
+        // Set the offset to each CN within a group in terms of 16 Byte
+        cnOffsetInGroup = (lut_numBnInBnGroups[4]*NR_LDPC_ZMAX)>>4;
+
+        // Set pointers to start of group 5
+        p_bnProcBuf  = (__m128i*) &bnProcBuf  [lut_startAddrBnGroups   [idxBnGroup]];
+        p_llrProcBuf = (__m128i*) &llrProcBuf [lut_startAddrBnGroupsLlr[idxBnGroup]];
+        p_llrRes     = (__m256i*) &llrRes     [lut_startAddrBnGroupsLlr[idxBnGroup]];
+
+        // Loop over BNs
+        for (i=0,j=0; i<M; i++,j+=2)
+        {
+            // First 16 LLRs of first CN
+            ymmRes0 = _mm256_cvtepi8_epi16(p_bnProcBuf[j]);
+            ymmRes1 = _mm256_cvtepi8_epi16(p_bnProcBuf[j+1]);
+
+            // Loop over CNs
+            for (k=1; k<5; k++)
+            {
+                ymm0 = _mm256_cvtepi8_epi16(p_bnProcBuf[k*cnOffsetInGroup + j]);
+                ymmRes0 = _mm256_adds_epi16(ymmRes0, ymm0);
+
+                ymm1 = _mm256_cvtepi8_epi16(p_bnProcBuf[k*cnOffsetInGroup + j+1]);
+                ymmRes1 = _mm256_adds_epi16(ymmRes1, ymm1);
+            }
+
+            // Add LLR from receiver input
+            ymm0    = _mm256_cvtepi8_epi16(p_llrProcBuf[j]);
+            ymmRes0 = _mm256_adds_epi16(ymmRes0, ymm0);
+
+            ymm1    = _mm256_cvtepi8_epi16(p_llrProcBuf[j+1]);
+            ymmRes1 = _mm256_adds_epi16(ymmRes1, ymm1);
+
+            // Pack results back to epi8
+            ymm0 = _mm256_packs_epi16(ymmRes0, ymmRes1);
+            // ymm0     = [ymmRes1[255:128] ymmRes0[255:128] ymmRes1[127:0] ymmRes0[127:0]]
+            // p_llrRes = [ymmRes1[255:128] ymmRes1[127:0] ymmRes0[255:128] ymmRes0[127:0]]
+            *p_llrRes = _mm256_permute4x64_epi64(ymm0, 0xD8);
+
+            // Next result
+            p_llrRes++;
+        }
+    }
+
+    // =====================================================================
+    // Process group with 6 CNs
+
+    if (lut_numBnInBnGroups[5] > 0)
+    {
+        // If elements in group move to next address
+        idxBnGroup++;
+
+        // Number of groups of 32 BNs for parallel processing
+        M = (lut_numBnInBnGroups[5]*Z + 31)>>5;
+
+        // Set the offset to each CN within a group in terms of 16 Byte
+        cnOffsetInGroup = (lut_numBnInBnGroups[5]*NR_LDPC_ZMAX)>>4;
+
+        // Set pointers to start of group 6
+        p_bnProcBuf  = (__m128i*) &bnProcBuf  [lut_startAddrBnGroups   [idxBnGroup]];
+        p_llrProcBuf = (__m128i*) &llrProcBuf [lut_startAddrBnGroupsLlr[idxBnGroup]];
+        p_llrRes     = (__m256i*) &llrRes     [lut_startAddrBnGroupsLlr[idxBnGroup]];
+
+        // Loop over BNs
+        for (i=0,j=0; i<M; i++,j+=2)
+        {
+            // First 16 LLRs of first CN
+            ymmRes0 = _mm256_cvtepi8_epi16(p_bnProcBuf[j]);
+            ymmRes1 = _mm256_cvtepi8_epi16(p_bnProcBuf[j+1]);
+
+            // Loop over CNs
+            for (k=1; k<6; k++)
+            {
+                ymm0 = _mm256_cvtepi8_epi16(p_bnProcBuf[k*cnOffsetInGroup + j]);
+                ymmRes0 = _mm256_adds_epi16(ymmRes0, ymm0);
+
+                ymm1 = _mm256_cvtepi8_epi16(p_bnProcBuf[k*cnOffsetInGroup + j+1]);
+                ymmRes1 = _mm256_adds_epi16(ymmRes1, ymm1);
+            }
+
+            // Add LLR from receiver input
+            ymm0    = _mm256_cvtepi8_epi16(p_llrProcBuf[j]);
+            ymmRes0 = _mm256_adds_epi16(ymmRes0, ymm0);
+
+            ymm1    = _mm256_cvtepi8_epi16(p_llrProcBuf[j+1]);
+            ymmRes1 = _mm256_adds_epi16(ymmRes1, ymm1);
+
+            // Pack results back to epi8
+            ymm0 = _mm256_packs_epi16(ymmRes0, ymmRes1);
+            // ymm0     = [ymmRes1[255:128] ymmRes0[255:128] ymmRes1[127:0] ymmRes0[127:0]]
+            // p_llrRes = [ymmRes1[255:128] ymmRes1[127:0] ymmRes0[255:128] ymmRes0[127:0]]
+            *p_llrRes = _mm256_permute4x64_epi64(ymm0, 0xD8);
+
+            // Next result
+            p_llrRes++;
+        }
+    }
+}
+
+static inline void nrLDPC_bnProcPc_BG2_R23_CNG8_CNG10(t_nrLDPC_lut* p_lut, int8_t* bnProcBuf, int8_t* bnProcBufRes, int8_t* llrProcBuf, int8_t* llrRes, uint16_t Z)
+{
+    const uint8_t*  lut_numBnInBnGroups = p_lut->numBnInBnGroups;
+    const uint32_t* lut_startAddrBnGroups = p_lut->startAddrBnGroups;
+    const uint16_t* lut_startAddrBnGroupsLlr = p_lut->startAddrBnGroupsLlr;
+
+    __m128i* p_bnProcBuf;
+    __m256i* p_bnProcBufRes;
+    __m128i* p_llrProcBuf;
+    __m256i* p_llrProcBuf256;
+    __m256i* p_llrRes;
+
+    // Number of BNs in Groups
+    uint32_t M;
+    //uint32_t M32rem;
+    uint32_t i,j;
+    uint32_t k;
+    // Offset to each bit within a group in terms of 32 Byte
+    uint32_t cnOffsetInGroup;
+    uint8_t idxBnGroup = 0;
+
+    __m256i ymm0, ymm1, ymmRes0, ymmRes1;
+
+    // =====================================================================
+    // Process group with 2 CNs
+
+    if (lut_numBnInBnGroups[1] > 0)
+    {
+        // If elements in group move to next address
+        idxBnGroup++;
+
+        // Number of groups of 32 BNs for parallel processing
+        M = (lut_numBnInBnGroups[1]*Z + 31)>>5;
+
+        // Set the offset to each CN within a group in terms of 16 Byte
+        cnOffsetInGroup = (lut_numBnInBnGroups[1]*NR_LDPC_ZMAX)>>4;
+
+        // Set pointers to start of group 2
+        p_bnProcBuf  = (__m128i*) &bnProcBuf  [lut_startAddrBnGroups   [idxBnGroup]];
+        p_llrProcBuf = (__m128i*) &llrProcBuf [lut_startAddrBnGroupsLlr[idxBnGroup]];
+        p_llrRes     = (__m256i*) &llrRes     [lut_startAddrBnGroupsLlr[idxBnGroup]];
+
+        // Loop over BNs
+        for (i=0,j=0; i<M; i++,j+=2)
+        {
+            // First 16 LLRs of first CN
+            ymmRes0 = _mm256_cvtepi8_epi16(p_bnProcBuf[j]);
+            ymmRes1 = _mm256_cvtepi8_epi16(p_bnProcBuf[j+1]);
+
+            // Loop over CNs
+            for (k=1; k<2; k++)
+            {
+                ymm0 = _mm256_cvtepi8_epi16(p_bnProcBuf[k*cnOffsetInGroup + j]);
+                ymmRes0 = _mm256_adds_epi16(ymmRes0, ymm0);
+
+                ymm1 = _mm256_cvtepi8_epi16(p_bnProcBuf[k*cnOffsetInGroup + j+1]);
+                ymmRes1 = _mm256_adds_epi16(ymmRes1, ymm1);
+            }
+
+            // Add LLR from receiver input
+            ymm0    = _mm256_cvtepi8_epi16(p_llrProcBuf[j]);
+            ymmRes0 = _mm256_adds_epi16(ymmRes0, ymm0);
+
+            ymm1    = _mm256_cvtepi8_epi16(p_llrProcBuf[j+1]);
+            ymmRes1 = _mm256_adds_epi16(ymmRes1, ymm1);
+
+            // Pack results back to epi8
+            ymm0 = _mm256_packs_epi16(ymmRes0, ymmRes1);
+            // ymm0     = [ymmRes1[255:128] ymmRes0[255:128] ymmRes1[127:0] ymmRes0[127:0]]
+            // p_llrRes = [ymmRes1[255:128] ymmRes1[127:0] ymmRes0[255:128] ymmRes0[127:0]]
+            *p_llrRes = _mm256_permute4x64_epi64(ymm0, 0xD8);
+
+            // Next result
+            p_llrRes++;
+        }
+    }
+
+    // =====================================================================
+    // Process group with 3 CNs
+
+    if (lut_numBnInBnGroups[2] > 0)
+    {
+        // If elements in group move to next address
+        idxBnGroup++;
+
+        // Number of groups of 32 BNs for parallel processing
+        M = (lut_numBnInBnGroups[2]*Z + 31)>>5;
+
+        // Set the offset to each CN within a group in terms of 16 Byte
+        cnOffsetInGroup = (lut_numBnInBnGroups[2]*NR_LDPC_ZMAX)>>4;
+
+        // Set pointers to start of group 3
+        p_bnProcBuf  = (__m128i*) &bnProcBuf  [lut_startAddrBnGroups   [idxBnGroup]];
+        p_llrProcBuf = (__m128i*) &llrProcBuf [lut_startAddrBnGroupsLlr[idxBnGroup]];
+        p_llrRes     = (__m256i*) &llrRes     [lut_startAddrBnGroupsLlr[idxBnGroup]];
+
+        // Loop over BNs
+        for (i=0,j=0; i<M; i++,j+=2)
+        {
+            // First 16 LLRs of first CN
+            ymmRes0 = _mm256_cvtepi8_epi16(p_bnProcBuf[j]);
+            ymmRes1 = _mm256_cvtepi8_epi16(p_bnProcBuf[j+1]);
+
+            // Loop over CNs
+            for (k=1; k<3; k++)
+            {
+                ymm0 = _mm256_cvtepi8_epi16(p_bnProcBuf[k*cnOffsetInGroup + j]);
+                ymmRes0 = _mm256_adds_epi16(ymmRes0, ymm0);
+
+                ymm1 = _mm256_cvtepi8_epi16(p_bnProcBuf[k*cnOffsetInGroup + j+1]);
+                ymmRes1 = _mm256_adds_epi16(ymmRes1, ymm1);
+            }
+
+            // Add LLR from receiver input
+            ymm0    = _mm256_cvtepi8_epi16(p_llrProcBuf[j]);
+            ymmRes0 = _mm256_adds_epi16(ymmRes0, ymm0);
+
+            ymm1    = _mm256_cvtepi8_epi16(p_llrProcBuf[j+1]);
+            ymmRes1 = _mm256_adds_epi16(ymmRes1, ymm1);
+
+            // Pack results back to epi8
+            ymm0 = _mm256_packs_epi16(ymmRes0, ymmRes1);
+            // ymm0     = [ymmRes1[255:128] ymmRes0[255:128] ymmRes1[127:0] ymmRes0[127:0]]
+            // p_llrRes = [ymmRes1[255:128] ymmRes1[127:0] ymmRes0[255:128] ymmRes0[127:0]]
+            *p_llrRes = _mm256_permute4x64_epi64(ymm0, 0xD8);
+
+            // Next result
+            p_llrRes++;
+        }
+    }
+
+    // =====================================================================
+    // Process group with 4 CNs
+
+    if (lut_numBnInBnGroups[3] > 0)
+    {
+        // If elements in group move to next address
+        idxBnGroup++;
+
+        // Number of groups of 32 BNs for parallel processing
+        M = (lut_numBnInBnGroups[3]*Z + 31)>>5;
+
+        // Set the offset to each CN within a group in terms of 16 Byte
+        cnOffsetInGroup = (lut_numBnInBnGroups[3]*NR_LDPC_ZMAX)>>4;
+
+        // Set pointers to start of group 4
+        p_bnProcBuf  = (__m128i*) &bnProcBuf  [lut_startAddrBnGroups   [idxBnGroup]];
+        p_llrProcBuf = (__m128i*) &llrProcBuf [lut_startAddrBnGroupsLlr[idxBnGroup]];
+        p_llrRes     = (__m256i*) &llrRes     [lut_startAddrBnGroupsLlr[idxBnGroup]];
+
+        // Loop over BNs
+        for (i=0,j=0; i<M; i++,j+=2)
+        {
+            // First 16 LLRs of first CN
+            ymmRes0 = _mm256_cvtepi8_epi16(p_bnProcBuf[j]);
+            ymmRes1 = _mm256_cvtepi8_epi16(p_bnProcBuf[j+1]);
+
+            // Loop over CNs
+            for (k=1; k<4; k++)
+            {
+                ymm0 = _mm256_cvtepi8_epi16(p_bnProcBuf[k*cnOffsetInGroup + j]);
+                ymmRes0 = _mm256_adds_epi16(ymmRes0, ymm0);
+
+                ymm1 = _mm256_cvtepi8_epi16(p_bnProcBuf[k*cnOffsetInGroup + j+1]);
+                ymmRes1 = _mm256_adds_epi16(ymmRes1, ymm1);
+            }
+
+            // Add LLR from receiver input
+            ymm0    = _mm256_cvtepi8_epi16(p_llrProcBuf[j]);
+            ymmRes0 = _mm256_adds_epi16(ymmRes0, ymm0);
+
+            ymm1    = _mm256_cvtepi8_epi16(p_llrProcBuf[j+1]);
+            ymmRes1 = _mm256_adds_epi16(ymmRes1, ymm1);
+
+            // Pack results back to epi8
+            ymm0 = _mm256_packs_epi16(ymmRes0, ymmRes1);
+            // ymm0     = [ymmRes1[255:128] ymmRes0[255:128] ymmRes1[127:0] ymmRes0[127:0]]
+            // p_llrRes = [ymmRes1[255:128] ymmRes1[127:0] ymmRes0[255:128] ymmRes0[127:0]]
+            *p_llrRes = _mm256_permute4x64_epi64(ymm0, 0xD8);
+
+            // Next result
+            p_llrRes++;
+        }
+    }
+
+    // =====================================================================
+    // Process group with 5 CNs
+
+    if (lut_numBnInBnGroups[4] > 0)
+    {
+        // If elements in group move to next address
+        idxBnGroup++;
+
+        // Number of groups of 32 BNs for parallel processing
+        M = (lut_numBnInBnGroups[4]*Z + 31)>>5;
+
+        // Set the offset to each CN within a group in terms of 16 Byte
+        cnOffsetInGroup = (lut_numBnInBnGroups[4]*NR_LDPC_ZMAX)>>4;
+
+        // Set pointers to start of group 5
+        p_bnProcBuf  = (__m128i*) &bnProcBuf  [lut_startAddrBnGroups   [idxBnGroup]];
+        p_llrProcBuf = (__m128i*) &llrProcBuf [lut_startAddrBnGroupsLlr[idxBnGroup]];
+        p_llrRes     = (__m256i*) &llrRes     [lut_startAddrBnGroupsLlr[idxBnGroup]];
+
+        // Loop over BNs
+        for (i=0,j=0; i<M; i++,j+=2)
+        {
+            // First 16 LLRs of first CN
+            ymmRes0 = _mm256_cvtepi8_epi16(p_bnProcBuf[j]);
+            ymmRes1 = _mm256_cvtepi8_epi16(p_bnProcBuf[j+1]);
+
+            // Loop over CNs
+            for (k=1; k<5; k++)
+            {
+                ymm0 = _mm256_cvtepi8_epi16(p_bnProcBuf[k*cnOffsetInGroup + j]);
+                ymmRes0 = _mm256_adds_epi16(ymmRes0, ymm0);
+
+                ymm1 = _mm256_cvtepi8_epi16(p_bnProcBuf[k*cnOffsetInGroup + j+1]);
+                ymmRes1 = _mm256_adds_epi16(ymmRes1, ymm1);
+            }
+
+            // Add LLR from receiver input
+            ymm0    = _mm256_cvtepi8_epi16(p_llrProcBuf[j]);
+            ymmRes0 = _mm256_adds_epi16(ymmRes0, ymm0);
+
+            ymm1    = _mm256_cvtepi8_epi16(p_llrProcBuf[j+1]);
+            ymmRes1 = _mm256_adds_epi16(ymmRes1, ymm1);
+
+            // Pack results back to epi8
+            ymm0 = _mm256_packs_epi16(ymmRes0, ymmRes1);
+            // ymm0     = [ymmRes1[255:128] ymmRes0[255:128] ymmRes1[127:0] ymmRes0[127:0]]
+            // p_llrRes = [ymmRes1[255:128] ymmRes1[127:0] ymmRes0[255:128] ymmRes0[127:0]]
+            *p_llrRes = _mm256_permute4x64_epi64(ymm0, 0xD8);
+
+            // Next result
+            p_llrRes++;
+        }
+    }
+
+    // =====================================================================
+    // Process group with 6 CNs
+
+    if (lut_numBnInBnGroups[5] > 0)
+    {
+        // If elements in group move to next address
+        idxBnGroup++;
+
+        // Number of groups of 32 BNs for parallel processing
+        M = (lut_numBnInBnGroups[5]*Z + 31)>>5;
+
+        // Set the offset to each CN within a group in terms of 16 Byte
+        cnOffsetInGroup = (lut_numBnInBnGroups[5]*NR_LDPC_ZMAX)>>4;
+
+        // Set pointers to start of group 6
+        p_bnProcBuf  = (__m128i*) &bnProcBuf  [lut_startAddrBnGroups   [idxBnGroup]];
+        p_llrProcBuf = (__m128i*) &llrProcBuf [lut_startAddrBnGroupsLlr[idxBnGroup]];
+        p_llrRes     = (__m256i*) &llrRes     [lut_startAddrBnGroupsLlr[idxBnGroup]];
+
+        // Loop over BNs
+        for (i=0,j=0; i<M; i++,j+=2)
+        {
+            // First 16 LLRs of first CN
+            ymmRes0 = _mm256_cvtepi8_epi16(p_bnProcBuf[j]);
+            ymmRes1 = _mm256_cvtepi8_epi16(p_bnProcBuf[j+1]);
+
+            // Loop over CNs
+            for (k=1; k<6; k++)
+            {
+                ymm0 = _mm256_cvtepi8_epi16(p_bnProcBuf[k*cnOffsetInGroup + j]);
+                ymmRes0 = _mm256_adds_epi16(ymmRes0, ymm0);
+
+                ymm1 = _mm256_cvtepi8_epi16(p_bnProcBuf[k*cnOffsetInGroup + j+1]);
+                ymmRes1 = _mm256_adds_epi16(ymmRes1, ymm1);
+            }
+
+            // Add LLR from receiver input
+            ymm0    = _mm256_cvtepi8_epi16(p_llrProcBuf[j]);
+            ymmRes0 = _mm256_adds_epi16(ymmRes0, ymm0);
+
+            ymm1    = _mm256_cvtepi8_epi16(p_llrProcBuf[j+1]);
+            ymmRes1 = _mm256_adds_epi16(ymmRes1, ymm1);
+
+            // Pack results back to epi8
+            ymm0 = _mm256_packs_epi16(ymmRes0, ymmRes1);
+            // ymm0     = [ymmRes1[255:128] ymmRes0[255:128] ymmRes1[127:0] ymmRes0[127:0]]
+            // p_llrRes = [ymmRes1[255:128] ymmRes1[127:0] ymmRes0[255:128] ymmRes0[127:0]]
+            *p_llrRes = _mm256_permute4x64_epi64(ymm0, 0xD8);
+
+            // Next result
+            p_llrRes++;
+        }
+    }
+}
+
 /**
    \brief Performs first part of BN processing on the BN processing buffer and stores the results in the LLR results buffer.
           At every BN, the sum of the returned LLRs from the connected CNs and the LLR of the receiver input is computed.
@@ -1668,6 +2364,436 @@ static inline void nrLDPC_bnProcPc(t_nrLDPC_lut* p_lut, int8_t* bnProcBuf, int8_
         }
     }
 
+}
+
+static inline void nrLDPC_bnProc_BG2_R23_CNG4(t_nrLDPC_lut* p_lut, int8_t* bnProcBuf, int8_t* bnProcBufRes, int8_t* llrRes, uint16_t Z)
+{
+    // BN Processing calculating the values to send back to the CNs for next iteration
+    // bnProcBufRes contains the sum of all edges to each BN at the start of each group
+
+    const uint8_t*  lut_numBnInBnGroups = p_lut->numBnInBnGroups;
+    const uint32_t* lut_startAddrBnGroups = p_lut->startAddrBnGroups;
+    const uint16_t* lut_startAddrBnGroupsLlr = p_lut->startAddrBnGroupsLlr;
+
+    __m256i* p_bnProcBuf;
+    __m256i* p_bnProcBufRes;
+    __m256i* p_llrRes;
+    __m256i* p_res;
+
+    // Number of BNs in Groups
+    uint32_t M;
+    //uint32_t M32rem;
+    uint32_t i;
+    uint32_t k;
+    // Offset to each bit within a group in terms of 32 Byte
+    uint32_t cnOffsetInGroup;
+    uint8_t idxBnGroup = 0;
+
+    // =====================================================================
+    // Process group with 1 CN
+    // Already done in bnProcBufPc
+
+    // =====================================================================
+    // Process group with 5 CNs
+
+    if (lut_numBnInBnGroups[4] > 0)
+    {
+        // If elements in group move to next address
+        idxBnGroup++;
+
+        // Number of groups of 32 BNs for parallel processing
+        M = (lut_numBnInBnGroups[4]*Z + 31)>>5;
+
+        // Set the offset to each CN within a group in terms of 32 Byte
+        cnOffsetInGroup = (lut_numBnInBnGroups[4]*NR_LDPC_ZMAX)>>5;
+
+        // Set pointers to start of group 5
+        p_bnProcBuf    = (__m256i*) &bnProcBuf   [lut_startAddrBnGroups[idxBnGroup]];
+        p_bnProcBufRes = (__m256i*) &bnProcBufRes[lut_startAddrBnGroups[idxBnGroup]];
+
+        // Loop over CNs
+        for (k=0; k<5; k++)
+        {
+            p_res = &p_bnProcBufRes[k*cnOffsetInGroup];
+            p_llrRes = (__m256i*) &llrRes [lut_startAddrBnGroupsLlr[idxBnGroup]];
+
+            // Loop over BNs
+            for (i=0; i<M; i++)
+            {
+                *p_res = _mm256_subs_epi8(*p_llrRes, p_bnProcBuf[k*cnOffsetInGroup + i]);
+
+                p_res++;
+                p_llrRes++;
+            }
+        }
+    }
+
+    // =====================================================================
+    // Process group with 6 CNs
+
+    if (lut_numBnInBnGroups[5] > 0)
+    {
+        // If elements in group move to next address
+        idxBnGroup++;
+
+        // Number of groups of 32 BNs for parallel processing
+        M = (lut_numBnInBnGroups[5]*Z + 31)>>5;
+
+        // Set the offset to each CN within a group in terms of 32 Byte
+        cnOffsetInGroup = (lut_numBnInBnGroups[5]*NR_LDPC_ZMAX)>>5;
+
+        // Set pointers to start of group 6
+        p_bnProcBuf    = (__m256i*) &bnProcBuf   [lut_startAddrBnGroups[idxBnGroup]];
+        p_bnProcBufRes = (__m256i*) &bnProcBufRes[lut_startAddrBnGroups[idxBnGroup]];
+
+        // Loop over CNs
+        for (k=0; k<6; k++)
+        {
+            p_res = &p_bnProcBufRes[k*cnOffsetInGroup];
+            p_llrRes = (__m256i*) &llrRes[lut_startAddrBnGroupsLlr[idxBnGroup]];
+
+            // Loop over BNs
+            for (i=0; i<M; i++)
+            {
+                *p_res = _mm256_subs_epi8(*p_llrRes, p_bnProcBuf[k*cnOffsetInGroup + i]);
+
+                p_res++;
+                p_llrRes++;
+            }
+        }
+    }
+}
+
+static inline void nrLDPC_bnProc_BG2_R23_CNG6(t_nrLDPC_lut* p_lut, int8_t* bnProcBuf, int8_t* bnProcBufRes, int8_t* llrRes, uint16_t Z)
+{
+    // BN Processing calculating the values to send back to the CNs for next iteration
+    // bnProcBufRes contains the sum of all edges to each BN at the start of each group
+
+    const uint8_t*  lut_numBnInBnGroups = p_lut->numBnInBnGroups;
+    const uint32_t* lut_startAddrBnGroups = p_lut->startAddrBnGroups;
+    const uint16_t* lut_startAddrBnGroupsLlr = p_lut->startAddrBnGroupsLlr;
+
+    __m256i* p_bnProcBuf;
+    __m256i* p_bnProcBufRes;
+    __m256i* p_llrRes;
+    __m256i* p_res;
+
+    // Number of BNs in Groups
+    uint32_t M;
+    //uint32_t M32rem;
+    uint32_t i;
+    uint32_t k;
+    // Offset to each bit within a group in terms of 32 Byte
+    uint32_t cnOffsetInGroup;
+    uint8_t idxBnGroup = 0;
+
+    // =====================================================================
+    // Process group with 1 CN
+    // Already done in bnProcBufPc
+
+    // =====================================================================
+    // Process group with 4 CNs
+
+    if (lut_numBnInBnGroups[3] > 0)
+    {
+        // If elements in group move to next address
+        idxBnGroup++;
+
+        // Number of groups of 32 BNs for parallel processing
+        M = (lut_numBnInBnGroups[3]*Z + 31)>>5;
+
+        // Set the offset to each CN within a group in terms of 32 Byte
+        cnOffsetInGroup = (lut_numBnInBnGroups[3]*NR_LDPC_ZMAX)>>5;
+
+        // Set pointers to start of group 4
+        p_bnProcBuf    = (__m256i*) &bnProcBuf   [lut_startAddrBnGroups[idxBnGroup]];
+        p_bnProcBufRes = (__m256i*) &bnProcBufRes[lut_startAddrBnGroups[idxBnGroup]];
+
+        // Loop over CNs
+        for (k=0; k<4; k++)
+        {
+            p_res = &p_bnProcBufRes[k*cnOffsetInGroup];
+            p_llrRes = (__m256i*) &llrRes[lut_startAddrBnGroupsLlr[idxBnGroup]];
+
+            // Loop over BNs
+            for (i=0; i<M; i++)
+            {
+                *p_res = _mm256_subs_epi8(*p_llrRes, p_bnProcBuf[k*cnOffsetInGroup + i]);
+
+                p_res++;
+                p_llrRes++;
+            }
+        }
+    }
+
+    // =====================================================================
+    // Process group with 5 CNs
+
+    if (lut_numBnInBnGroups[4] > 0)
+    {
+        // If elements in group move to next address
+        idxBnGroup++;
+
+        // Number of groups of 32 BNs for parallel processing
+        M = (lut_numBnInBnGroups[4]*Z + 31)>>5;
+
+        // Set the offset to each CN within a group in terms of 32 Byte
+        cnOffsetInGroup = (lut_numBnInBnGroups[4]*NR_LDPC_ZMAX)>>5;
+
+        // Set pointers to start of group 5
+        p_bnProcBuf    = (__m256i*) &bnProcBuf   [lut_startAddrBnGroups[idxBnGroup]];
+        p_bnProcBufRes = (__m256i*) &bnProcBufRes[lut_startAddrBnGroups[idxBnGroup]];
+
+        // Loop over CNs
+        for (k=0; k<5; k++)
+        {
+            p_res = &p_bnProcBufRes[k*cnOffsetInGroup];
+            p_llrRes = (__m256i*) &llrRes [lut_startAddrBnGroupsLlr[idxBnGroup]];
+
+            // Loop over BNs
+            for (i=0; i<M; i++)
+            {
+                *p_res = _mm256_subs_epi8(*p_llrRes, p_bnProcBuf[k*cnOffsetInGroup + i]);
+
+                p_res++;
+                p_llrRes++;
+            }
+        }
+    }
+
+    // =====================================================================
+    // Process group with 6 CNs
+
+    if (lut_numBnInBnGroups[5] > 0)
+    {
+        // If elements in group move to next address
+        idxBnGroup++;
+
+        // Number of groups of 32 BNs for parallel processing
+        M = (lut_numBnInBnGroups[5]*Z + 31)>>5;
+
+        // Set the offset to each CN within a group in terms of 32 Byte
+        cnOffsetInGroup = (lut_numBnInBnGroups[5]*NR_LDPC_ZMAX)>>5;
+
+        // Set pointers to start of group 6
+        p_bnProcBuf    = (__m256i*) &bnProcBuf   [lut_startAddrBnGroups[idxBnGroup]];
+        p_bnProcBufRes = (__m256i*) &bnProcBufRes[lut_startAddrBnGroups[idxBnGroup]];
+
+        // Loop over CNs
+        for (k=0; k<6; k++)
+        {
+            p_res = &p_bnProcBufRes[k*cnOffsetInGroup];
+            p_llrRes = (__m256i*) &llrRes[lut_startAddrBnGroupsLlr[idxBnGroup]];
+
+            // Loop over BNs
+            for (i=0; i<M; i++)
+            {
+                *p_res = _mm256_subs_epi8(*p_llrRes, p_bnProcBuf[k*cnOffsetInGroup + i]);
+
+                p_res++;
+                p_llrRes++;
+            }
+        }
+    }
+}
+
+static inline void nrLDPC_bnProc_BG2_R23_CNG8_CNG10(t_nrLDPC_lut* p_lut, int8_t* bnProcBuf, int8_t* bnProcBufRes, int8_t* llrRes, uint16_t Z)
+{
+    // BN Processing calculating the values to send back to the CNs for next iteration
+    // bnProcBufRes contains the sum of all edges to each BN at the start of each group
+
+    const uint8_t*  lut_numBnInBnGroups = p_lut->numBnInBnGroups;
+    const uint32_t* lut_startAddrBnGroups = p_lut->startAddrBnGroups;
+    const uint16_t* lut_startAddrBnGroupsLlr = p_lut->startAddrBnGroupsLlr;
+
+    __m256i* p_bnProcBuf;
+    __m256i* p_bnProcBufRes;
+    __m256i* p_llrRes;
+    __m256i* p_res;
+
+    // Number of BNs in Groups
+    uint32_t M;
+    //uint32_t M32rem;
+    uint32_t i;
+    uint32_t k;
+    // Offset to each bit within a group in terms of 32 Byte
+    uint32_t cnOffsetInGroup;
+    uint8_t idxBnGroup = 0;
+
+    // =====================================================================
+    // Process group with 2 CNs
+
+    if (lut_numBnInBnGroups[1] > 0)
+    {
+        // If elements in group move to next address
+        idxBnGroup++;
+
+        // Number of groups of 32 BNs for parallel processing
+        M = (lut_numBnInBnGroups[1]*Z + 31)>>5;
+
+        // Set the offset to each CN within a group in terms of 32 Byte
+        cnOffsetInGroup = (lut_numBnInBnGroups[1]*NR_LDPC_ZMAX)>>5;
+
+        // Set pointers to start of group 2
+        p_bnProcBuf    = (__m256i*) &bnProcBuf   [lut_startAddrBnGroups[idxBnGroup]];
+        p_bnProcBufRes = (__m256i*) &bnProcBufRes[lut_startAddrBnGroups[idxBnGroup]];
+
+        // Loop over CNs
+        for (k=0; k<2; k++)
+        {
+            p_res = &p_bnProcBufRes[k*cnOffsetInGroup];
+            p_llrRes = (__m256i*) &llrRes[lut_startAddrBnGroupsLlr[idxBnGroup]];
+
+            // Loop over BNs
+            for (i=0; i<M; i++)
+            {
+                *p_res = _mm256_subs_epi8(*p_llrRes, p_bnProcBuf[k*cnOffsetInGroup + i]);
+
+                p_res++;
+                p_llrRes++;
+            }
+        }
+    }
+
+    // =====================================================================
+    // Process group with 3 CNs
+
+    if (lut_numBnInBnGroups[2] > 0)
+    {
+        // If elements in group move to next address
+        idxBnGroup++;
+
+        // Number of groups of 32 BNs for parallel processing
+        M = (lut_numBnInBnGroups[2]*Z + 31)>>5;
+
+        // Set the offset to each CN within a group in terms of 32 Byte
+        cnOffsetInGroup = (lut_numBnInBnGroups[2]*NR_LDPC_ZMAX)>>5;
+
+        // Set pointers to start of group 3
+        p_bnProcBuf    = (__m256i*) &bnProcBuf   [lut_startAddrBnGroups[idxBnGroup]];
+        p_bnProcBufRes = (__m256i*) &bnProcBufRes[lut_startAddrBnGroups[idxBnGroup]];
+
+        // Loop over CNs
+        for (k=0; k<3; k++)
+        {
+            p_res = &p_bnProcBufRes[k*cnOffsetInGroup];
+            p_llrRes = (__m256i*) &llrRes[lut_startAddrBnGroupsLlr[idxBnGroup]];
+
+            // Loop over BNs
+            for (i=0; i<M; i++)
+            {
+                *p_res = _mm256_subs_epi8(*p_llrRes, p_bnProcBuf[k*cnOffsetInGroup + i]);
+
+                p_res++;
+                p_llrRes++;
+            }
+        }
+    }
+
+    // =====================================================================
+    // Process group with 4 CNs
+
+    if (lut_numBnInBnGroups[3] > 0)
+    {
+        // If elements in group move to next address
+        idxBnGroup++;
+
+        // Number of groups of 32 BNs for parallel processing
+        M = (lut_numBnInBnGroups[3]*Z + 31)>>5;
+
+        // Set the offset to each CN within a group in terms of 32 Byte
+        cnOffsetInGroup = (lut_numBnInBnGroups[3]*NR_LDPC_ZMAX)>>5;
+
+        // Set pointers to start of group 4
+        p_bnProcBuf    = (__m256i*) &bnProcBuf   [lut_startAddrBnGroups[idxBnGroup]];
+        p_bnProcBufRes = (__m256i*) &bnProcBufRes[lut_startAddrBnGroups[idxBnGroup]];
+
+        // Loop over CNs
+        for (k=0; k<4; k++)
+        {
+            p_res = &p_bnProcBufRes[k*cnOffsetInGroup];
+            p_llrRes = (__m256i*) &llrRes[lut_startAddrBnGroupsLlr[idxBnGroup]];
+
+            // Loop over BNs
+            for (i=0; i<M; i++)
+            {
+                *p_res = _mm256_subs_epi8(*p_llrRes, p_bnProcBuf[k*cnOffsetInGroup + i]);
+
+                p_res++;
+                p_llrRes++;
+            }
+        }
+    }
+
+    // =====================================================================
+    // Process group with 5 CNs
+
+    if (lut_numBnInBnGroups[4] > 0)
+    {
+        // If elements in group move to next address
+        idxBnGroup++;
+
+        // Number of groups of 32 BNs for parallel processing
+        M = (lut_numBnInBnGroups[4]*Z + 31)>>5;
+
+        // Set the offset to each CN within a group in terms of 32 Byte
+        cnOffsetInGroup = (lut_numBnInBnGroups[4]*NR_LDPC_ZMAX)>>5;
+
+        // Set pointers to start of group 5
+        p_bnProcBuf    = (__m256i*) &bnProcBuf   [lut_startAddrBnGroups[idxBnGroup]];
+        p_bnProcBufRes = (__m256i*) &bnProcBufRes[lut_startAddrBnGroups[idxBnGroup]];
+
+        // Loop over CNs
+        for (k=0; k<5; k++)
+        {
+            p_res = &p_bnProcBufRes[k*cnOffsetInGroup];
+            p_llrRes = (__m256i*) &llrRes [lut_startAddrBnGroupsLlr[idxBnGroup]];
+
+            // Loop over BNs
+            for (i=0; i<M; i++)
+            {
+                *p_res = _mm256_subs_epi8(*p_llrRes, p_bnProcBuf[k*cnOffsetInGroup + i]);
+
+                p_res++;
+                p_llrRes++;
+            }
+        }
+    }
+
+    // =====================================================================
+    // Process group with 6 CNs
+
+    if (lut_numBnInBnGroups[5] > 0)
+    {
+        // If elements in group move to next address
+        idxBnGroup++;
+
+        // Number of groups of 32 BNs for parallel processing
+        M = (lut_numBnInBnGroups[5]*Z + 31)>>5;
+
+        // Set the offset to each CN within a group in terms of 32 Byte
+        cnOffsetInGroup = (lut_numBnInBnGroups[5]*NR_LDPC_ZMAX)>>5;
+
+        // Set pointers to start of group 6
+        p_bnProcBuf    = (__m256i*) &bnProcBuf   [lut_startAddrBnGroups[idxBnGroup]];
+        p_bnProcBufRes = (__m256i*) &bnProcBufRes[lut_startAddrBnGroups[idxBnGroup]];
+
+        // Loop over CNs
+        for (k=0; k<6; k++)
+        {
+            p_res = &p_bnProcBufRes[k*cnOffsetInGroup];
+            p_llrRes = (__m256i*) &llrRes[lut_startAddrBnGroupsLlr[idxBnGroup]];
+
+            // Loop over BNs
+            for (i=0; i<M; i++)
+            {
+                *p_res = _mm256_subs_epi8(*p_llrRes, p_bnProcBuf[k*cnOffsetInGroup + i]);
+
+                p_res++;
+                p_llrRes++;
+            }
+        }
+    }
 }
 
 /**

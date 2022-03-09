@@ -40,7 +40,7 @@
 
 #define NR_LDPC_ENABLE_PARITY_CHECK
 //#define NR_LDPC_DEBUG_MODE
-#define NR_LDPC_PROFILER_DETAIL
+//#define NR_LDPC_PROFILER_DETAIL
 
 #ifdef NR_LDPC_DEBUG_MODE
 #include "nrLDPC_tools/nrLDPC_debug.h"
@@ -86,7 +86,7 @@ static inline uint32_t nrLDPC_decoder_layer(int8_t* p_llr, int8_t* p_out, uint32
   int8_t llrOut[NR_LDPC_MAX_NUM_LLR]            __attribute__ ((aligned(32))) = {0};
   // Minimum number of iterations is 1
   // 0 iterations means hard-decision on input LLRs
-  uint32_t i = 0;
+  uint32_t i = 1;
   // Initialize with parity check fail != 0
   int32_t pcRes = 1;
   int8_t* p_llrOut;
@@ -106,8 +106,6 @@ static inline uint32_t nrLDPC_decoder_layer(int8_t* p_llr, int8_t* p_out, uint32
   start_meas(&p_profiler->llr2llrProcBuf);
 #endif
   nrLDPC_llr2llrProcBuf(p_lut, p_llr, llrProcBuf, Z, BG);
-  nrLDPC_bnProcPc(p_lut, bnProcBuf, bnProcBufRes, llrProcBuf, llrRes, Z);
-  nrLDPC_bnProc(p_lut, bnProcBuf, bnProcBufRes, llrRes, Z);
 #ifdef NR_LDPC_PROFILER_DETAIL
   stop_meas(&p_profiler->llr2llrProcBuf);
 #endif
@@ -116,11 +114,13 @@ static inline uint32_t nrLDPC_decoder_layer(int8_t* p_llr, int8_t* p_out, uint32
   nrLDPC_debug_initBuffer2File(nrLDPC_buffers_LLR_PROC);
   nrLDPC_debug_writeBuffer2File(nrLDPC_buffers_LLR_PROC, p_llr);
 #endif
+  nrLDPC_layerProc_BG2_first(p_lut, p_llr, llrProcBuf, llrRes, cnProcBuf, cnProcBufRes, bnProcBuf, bnProcBufRes, Z, p_profiler);
 
   while ( (i < numMaxIter) && (pcRes != 0) )
   {
+    // Increase iteration counter
+    i++;
 
-    // CN processing
     if (BG == 2)
       nrLDPC_layerProc_BG2(p_lut, p_llr, llrProcBuf, llrRes, cnProcBuf, cnProcBufRes, bnProcBuf, bnProcBufRes, Z, p_profiler);
 
@@ -145,8 +145,6 @@ static inline uint32_t nrLDPC_decoder_layer(int8_t* p_llr, int8_t* p_out, uint32
 #ifdef NR_LDPC_DEBUG_MODE
     nrLDPC_debug_writeBuffer2File(nrLDPC_buffers_LLR_PROC, p_llrOut);
 #endif
-    // Increase iteration counter
-    i++;
   }
 
   // If maximum number of iterations reached an PC still fails increase number of iterations
