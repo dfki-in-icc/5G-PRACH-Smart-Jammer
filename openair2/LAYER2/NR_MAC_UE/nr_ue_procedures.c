@@ -2553,9 +2553,18 @@ uint8_t get_ssb_rsrp_payload(NR_UE_MAC_INST_t *mac,
       } else
         nb_meas = 2;
 
+      NR_CSI_SSB_ResourceSetId_t array_0 = 1;
+      if (csi_resourceconfig->csi_RS_ResourceSetList.choice.nzp_CSI_RS_SSB->csi_SSB_ResourceSetList) {
+        array_0 = *(csi_resourceconfig->csi_RS_ResourceSetList.choice.
+                    nzp_CSI_RS_SSB->csi_SSB_ResourceSetList->list.array[0]);
+      }
+      else if (csi_resourceconfig->csi_RS_ResourceSetList.choice.nzp_CSI_RS_SSB->nzp_CSI_RS_ResourceSetList) {
+        array_0 = *(csi_resourceconfig->csi_RS_ResourceSetList.choice.
+                    nzp_CSI_RS_SSB->nzp_CSI_RS_ResourceSetList->list.array[0]);
+      }
+
       for (int csi_ssb_idx = 0; csi_ssb_idx < csi_MeasConfig->csi_SSB_ResourceSetToAddModList->list.count; csi_ssb_idx++) {
-        if (csi_MeasConfig->csi_SSB_ResourceSetToAddModList->list.array[csi_ssb_idx]->csi_SSB_ResourceSetId ==
-            *(csi_resourceconfig->csi_RS_ResourceSetList.choice.nzp_CSI_RS_SSB->csi_SSB_ResourceSetList->list.array[0])){
+        if (csi_MeasConfig->csi_SSB_ResourceSetToAddModList->list.array[csi_ssb_idx]->csi_SSB_ResourceSetId == array_0){
 
           ///only one SSB resource set from spec 38.331 IE CSI-ResourceConfig
           nb_ssb = csi_MeasConfig->csi_SSB_ResourceSetToAddModList->list.array[csi_ssb_idx]->csi_SSB_ResourceList.list.count;

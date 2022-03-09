@@ -1343,8 +1343,12 @@ static void rrc_ue_generate_RRCSetupComplete(
   if (mac->cg &&
       mac->cg->spCellConfig &&
       mac->cg->spCellConfig->spCellConfigDedicated &&
-      mac->cg->spCellConfig->spCellConfigDedicated->csi_MeasConfig)
-    AssertFatal(1==0,"2 > csi_MeasConfig is not null\n");
+      mac->cg->spCellConfig->spCellConfigDedicated->csi_MeasConfig) {
+      if (get_softmodem_params()->emulate_l1)
+        LOG_I(NR_MAC, "csi_MeasConfig is not null\n");
+      else
+        AssertFatal(1==0,"2 > csi_MeasConfig is not null\n");
+  }
 
  if (AMF_MODE_ENABLED) {
 #if defined(ITTI_SIM)

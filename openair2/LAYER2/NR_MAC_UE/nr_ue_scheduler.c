@@ -1047,8 +1047,10 @@ NR_UE_L2_STATE_t nr_ue_scheduler(nr_downlink_indication_t *dl_info, nr_uplink_in
 
     if(mac->cg != NULL){ // we have a cg
 
-      nr_schedule_csirs_reception(mac, rx_frame, rx_slot);
-      nr_schedule_csi_for_im(mac, rx_frame, rx_slot);
+      if (!get_softmodem_params()->emulate_l1) {
+        nr_schedule_csirs_reception(mac, rx_frame, rx_slot);
+        nr_schedule_csi_for_im(mac, rx_frame, rx_slot);
+      }
 
       dcireq.module_id = mod_id;
       dcireq.gNB_index = gNB_index;
