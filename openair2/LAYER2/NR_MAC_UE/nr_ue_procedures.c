@@ -133,6 +133,7 @@ const initial_pucch_resource_t initial_pucch_resource[16] = {
 /* 15  */ {  1,       0,                 14,                   0,            4,       {    0,   3,    6,    9  }   },
 };
 
+static int get_mcs_from_sinr(float sinr);
 
 void nr_ue_init_mac(module_id_t module_idP) {
   int i;
@@ -2472,7 +2473,35 @@ uint8_t nr_get_csi_payload(NR_UE_MAC_INST_t *mac,
 #define CQI_SHIFT 4
 #define CQI_MASK  0x0FFF
 
-extern int get_mcs_from_sinr(float sinr);
+static int get_mcs_from_sinr(float sinr)
+{
+  if (sinr < (nr_bler_data[0].bler_table[0][0]))
+  {
+    LOG_I(NR_MAC, "The SINR found is smaller than first MCS table\n");
+    return 0;
+  }
+
+  if (sinr > (nr_bler_data[NR_NUM_MCS-1].bler_table[nr_bler_data[NR_NUM_MCS-1].length - 1][0]))
+  {
+    LOG_I(NR_MAC, "The SINR found is larger than last MCS table\n");
+    return NR_NUM_MCS-1;
+  }
+
+  for (int n = NR_NUM_MCS-1; n >= 0; n--)
+  {
+    CHECK_INDEX(nr_bler_data, n);
+    float largest_sinr = (nr_bler_data[n].bler_table[nr_bler_data[n].length - 1][0]);
+    float smallest_sinr = (nr_bler_data[n].bler_table[0][0]);
+    if (sinr < largest_sinr && sinr > smallest_sinr)
+    {
+      LOG_I(NR_MAC, "The SINR found in MCS %d table\n", n);
+      return n;
+    }
+  }
+  LOG_E(NR_MAC, "Unable to get an MCS value.\n");
+  abort();
+}
+
 uint8_t get_cri_ri_pmi_cqi_payload(NR_UE_MAC_INST_t *mac,
                              PUCCH_sched_t *pucch,
                              struct NR_CSI_ReportConfig *csi_reportconfig,

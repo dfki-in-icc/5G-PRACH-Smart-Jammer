@@ -68,7 +68,6 @@ queue_t nr_ul_tti_req_queue;
 
 static slot_rnti_mcs_s slot_rnti_mcs[NUM_NFAPI_SLOT];
 
-static int get_cqi_from_mcs(void);
 static void read_channel_param(const nfapi_nr_dl_tti_pdsch_pdu_rel15_t * pdu, int sf, int index);
 static bool did_drop_transport_block(int slot, uint16_t rnti);
 static float get_bler_val(uint8_t mcs, int sinr);
@@ -1330,65 +1329,6 @@ void RCconfig_nr_ue_L1(void) {
       }
     }
   }
-}
-
-int get_mcs_from_sinr(float sinr)
-{
-  if (sinr < (nr_bler_data[0].bler_table[0][0]))
-  {
-    LOG_I(NR_MAC, "The SINR found is smaller than first MCS table\n");
-    return 0;
-  }
-
-  if (sinr > (nr_bler_data[NR_NUM_MCS-1].bler_table[nr_bler_data[NR_NUM_MCS-1].length - 1][0]))
-  {
-    LOG_I(NR_MAC, "The SINR found is larger than last MCS table\n");
-    return NR_NUM_MCS-1;
-  }
-
-  for (int n = NR_NUM_MCS-1; n >= 0; n--)
-  {
-    CHECK_INDEX(nr_bler_data, n);
-    float largest_sinr = (nr_bler_data[n].bler_table[nr_bler_data[n].length - 1][0]);
-    float smallest_sinr = (nr_bler_data[n].bler_table[0][0]);
-    if (sinr < largest_sinr && sinr > smallest_sinr)
-    {
-      LOG_I(NR_MAC, "The SINR found in MCS %d table\n", n);
-      return n;
-    }
-  }
-  LOG_E(NR_MAC, "Unable to get an MCS value.\n");
-  abort();
-}
-
-static int get_cqi_from_mcs(void)
-{
-  static const int mcs_to_cqi[] = {0, 1, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8,
-                                   9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15};
-  assert(NUM_ELEMENTS(mcs_to_cqi) == NR_NUM_MCS);
-  int slot = 0;
-  while (slot < NUM_NFAPI_SLOT)
-  {
-    if (slot_rnti_mcs[slot].latest)
-    {
-      int num_pdus = slot_rnti_mcs[slot].num_pdus;
-      if (num_pdus <= 0)
-      {
-        LOG_E(NR_MAC, "%s: slot_rnti_mcs[%d].num_pdus = 0\n", __FUNCTION__, slot);
-        abort();
-      }
-
-      CHECK_INDEX(slot_rnti_mcs[slot].mcs, num_pdus);
-      int mcs = get_mcs_from_sinr(slot_rnti_mcs[slot].sinr);
-      CHECK_INDEX(mcs_to_cqi, mcs);
-      int cqi = mcs_to_cqi[mcs];
-      LOG_I(NR_MAC, "SINR: %f -> MCS: %d -> CQI: %d\n", slot_rnti_mcs[slot].sinr, mcs, cqi);
-      return cqi;
-    }
-    slot++;
-  }
-  LOG_E(NR_MAC, "Unable to get CQI value because no MCS found\n");
-  abort();
 }
 
 static void read_channel_param(const nfapi_nr_dl_tti_pdsch_pdu_rel15_t * pdu, int slot, int index)
