@@ -1420,7 +1420,7 @@ void nr_schedule_ue_spec(module_id_t module_id,
           struct timespec time_request;
           clock_gettime(CLOCK_REALTIME, &time_request);
           if (lcid>=4)           
-                LOG_I(NR_MAC,
+                LOG_D(NR_MAC,
                 "%4d.%2d [UE %04x]: Time %lu.%lu:  %d bytes %s %d -> DLSCH (ndata %lu, remaining size %lu)\n",
                 frame,
                 slot,
