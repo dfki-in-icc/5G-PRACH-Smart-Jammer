@@ -1173,6 +1173,7 @@ void evaluate_rsrp_report(NR_UE_info_t *UE_info,
   // including ssb rsrp in mac stats
   stats->cumul_rsrp += strongest_ssb_rsrp;
   stats->num_rsrp_meas++;
+  LOG_W(NR_MAC,"strongest_ssb_rsrp %d num_rsrp_meas %d \n",strongest_ssb_rsrp,stats->num_rsrp_meas);
 }
 
 
@@ -1227,11 +1228,11 @@ void evaluate_cqi_report(uint8_t *payload,
   else
     AssertFatal(1==0,"CQI Table not present in RRC configuration\n");
   sched_ctrl->CSI_report.cri_ri_li_pmi_cqi_report.wb_cqi_1tb = temp_cqi;
-  LOG_D(MAC,"Wide-band CQI for the first TB %d\n", temp_cqi);
+  LOG_W(MAC,"Wide-band CQI for the first TB %d\n", temp_cqi);
   if (cqi_bitlen > 4) {
     temp_cqi = pickandreverse_bits(payload, 4, cumul_bits);
     sched_ctrl->CSI_report.cri_ri_li_pmi_cqi_report.wb_cqi_2tb = temp_cqi;
-    LOG_D(MAC,"Wide-band CQI for the second TB %d\n", temp_cqi);
+    LOG_W(MAC,"Wide-band CQI for the second TB %d\n", temp_cqi);
   }
   sched_ctrl->set_mcs = TRUE;
 }
@@ -1328,7 +1329,7 @@ void extract_pucch_csi_report(NR_CSI_MeasConfig_t *csi_MeasConfig,
     // verify if report with current id has been scheduled for this frame and slot
     if ((n_slots_frame*frame + slot - offset)%period == 0) {
       reportQuantity_type = csi_report->reportQuantity_type;
-      LOG_D(MAC,"SFN/SF:%d/%d reportQuantity type = %d\n",frame,slot,reportQuantity_type);
+      LOG_W(MAC,"SFN/SF:%d/%d reportQuantity type = %d\n",frame,slot,reportQuantity_type);
       switch(reportQuantity_type){
         case NR_CSI_ReportConfig__reportQuantity_PR_cri_RSRP:
           evaluate_rsrp_report(UE_info,sched_ctrl,UE_id,csi_report_id,payload,&cumul_bits,reportQuantity_type);
@@ -1558,7 +1559,6 @@ int nr_acknack_scheduling(int mod_id,
   }
   const int first_ul_slot_period = first_ul_slot_tdd%nr_slots_period; // TODO: clear these variables
 
-  NR_sched_pucch_t *csi_pucch;
 
   /* for the moment, we consider:
    * * only pucch_sched[0] holds HARQ (and SR)
@@ -1577,13 +1577,18 @@ int nr_acknack_scheduling(int mod_id,
               pucch->csi_bits);
 
   /* if the currently allocated PUCCH of this UE is full, allocate it */
+  NR_sched_pucch_t *csi_pucch = &sched_ctrl->sched_pucch[1];
   if (pucch->dai_c == 2) {
     /* advance the UL slot information in PUCCH by one so we won't schedule in
      * the same slot again */
     const int f = pucch->frame;
     const int s = pucch->ul_slot;
     LOG_D(NR_MAC, "In %s: %d.%d DAI = 2 pucch currently in %d.%d, advancing by 1 slot\n", __FUNCTION__, frame, slot, f, s);
-    nr_fill_nfapi_pucch(mod_id, frame, slot, pucch, UE_id);
+    if (!(csi_pucch 
+        && csi_pucch->csi_bits > 0
+        && csi_pucch->frame == f
+        && csi_pucch->ul_slot == s)) 
+      nr_fill_nfapi_pucch(mod_id, frame, slot, pucch, UE_id);
     memset(pucch, 0, sizeof(*pucch));
     pucch->frame = s == n_slots_frame - 1 ? (f + 1) % 1024 : f;
 
@@ -1600,11 +1605,11 @@ int nr_acknack_scheduling(int mod_id,
     else
       pucch->ul_slot = (s + 1) % n_slots_frame;*/
     // we assume that only two indices over the array sched_pucch exist
-    csi_pucch = &sched_ctrl->sched_pucch[1];
     // skip the CSI PUCCH if it is present and if in the next frame/slot
     // and if we don't multiplex
     csi_pucch->r_pucch=-1;
-    if (csi_pucch->csi_bits > 0
+    if (csi_pucch 
+        && csi_pucch->csi_bits > 0
         && csi_pucch->frame == pucch->frame
         && csi_pucch->ul_slot == pucch->ul_slot
         && !csi_pucch->simultaneous_harqcsi) {
@@ -1669,7 +1674,10 @@ int nr_acknack_scheduling(int mod_id,
       const int s = pucch->ul_slot;
       const int n_slots_frame = nr_slots_per_frame[*scc->ssbSubcarrierSpacing];
       LOG_D(NR_MAC, "In %s: %d.%d DAI > 0, cannot reach timing for pucch in %d.%d, advancing slot by 1 and trying again\n", __FUNCTION__, frame, slot, f, s);
-      nr_fill_nfapi_pucch(mod_id, frame, slot, pucch, UE_id);
+      if (!(csi_pucch &&
+          csi_pucch->csi_bits > 0 &&
+          csi_pucch->frame == f &&
+          csi_pucch->ul_slot == s)) nr_fill_nfapi_pucch(mod_id, frame, slot, pucch, UE_id);
       memset(pucch, 0, sizeof(*pucch));
       pucch->frame = s == n_slots_frame - 1 ? (f + 1) % 1024 : f;
 
@@ -1689,6 +1697,14 @@ int nr_acknack_scheduling(int mod_id,
 
     pucch->timing_indicator = i;
     pucch->dai_c++;
+    // if there is CSI in this slot update the HARQ information for that one too
+    if (csi_pucch &&
+        csi_pucch->csi_bits > 0 &&
+        csi_pucch->frame == pucch->frame &&
+        csi_pucch->ul_slot == pucch->ul_slot) {
+      csi_pucch->timing_indicator = i;
+      csi_pucch->dai_c++;
+    }
     // retain old resource indicator, and we are good
     LOG_D(NR_MAC, "In %s: %d.%d. DAI > 0, pucch allocated for %d.%d (index %d)\n", __FUNCTION__, frame,slot,pucch->frame,pucch->ul_slot,pucch->timing_indicator);
     return 0;
@@ -1758,8 +1774,6 @@ int nr_acknack_scheduling(int mod_id,
     return -1;
   }
 
-  // is there already CSI in this slot?
-  csi_pucch = &sched_ctrl->sched_pucch[1];
   if (csi_pucch &&
       csi_pucch->csi_bits > 0 &&
       csi_pucch->frame == pucch->frame &&
@@ -1798,7 +1812,10 @@ int nr_acknack_scheduling(int mod_id,
     else {
       csi_pucch->timing_indicator = ind_found;
       csi_pucch->dai_c++;
-      memset(pucch,0,sizeof(*pucch));
+      // keep updating format 2 indicator
+      pucch->timing_indicator = ind_found; // index in the list of timing indicators
+      pucch->dai_c++;
+
       LOG_D(NR_MAC,"multiplexing csi_pucch %d +csi_pucch->dai_c %d for %d.%d\n",csi_pucch->csi_bits,csi_pucch->dai_c,csi_pucch->frame,csi_pucch->ul_slot);
       return 1;
     }

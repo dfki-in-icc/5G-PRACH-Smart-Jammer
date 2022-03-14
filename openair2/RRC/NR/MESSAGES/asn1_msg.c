@@ -41,6 +41,7 @@
 #include <per_encoder.h>
 #include <nr/nr_common.h>
 
+#include "LAYER2/nr_rlc/nr_rlc_oai_api.h"
 #include "asn1_msg.h"
 #include "../nr_rrc_proto.h"
 #include "RRC/NR/nr_rrc_extern.h"
@@ -1807,7 +1808,7 @@ void fill_mastercellGroupConfig(NR_CellGroupConfig_t *cellGroupConfig, NR_CellGr
 
 
 
-void fill_mastercellGroupConfig_dedicatedBearer(NR_CellGroupConfig_t *cellGroupConfig, NR_CellGroupConfig_t *ue_context_mastercellGroup, int bearer_id) {
+void fill_mastercellGroupConfig_dedicatedBearer(NR_CellGroupConfig_t *cellGroupConfig, NR_CellGroupConfig_t *ue_context_mastercellGroup, int bearer_id, int use_rlc_um_for_drb) {
   //printf("EOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO MASTER CELL\n");
   cellGroupConfig->cellGroupId = 0;
   cellGroupConfig->rlc_BearerToReleaseList = NULL;
@@ -1826,7 +1827,13 @@ void fill_mastercellGroupConfig_dedicatedBearer(NR_CellGroupConfig_t *cellGroupC
   rlc_BearerConfig_drb2->servedRadioBearer->choice.drb_Identity     = bearer_id;
   rlc_BearerConfig_drb2->reestablishRLC                             = NULL;
   rlc_Config_drb2                                                   = calloc(1, sizeof(NR_RLC_Config_t));
-  rlc_Config_drb2->present                                          = NR_RLC_Config_PR_am;
+
+
+
+  if (use_rlc_um_for_drb) nr_drb_config(rlc_Config_drb2, NR_RLC_Config_PR_um_Bi_Directional);
+  else                    nr_drb_config(rlc_Config_drb2, NR_RLC_Config_PR_am);
+
+  /*rlc_Config_drb2->present                                          = NR_RLC_Config_PR_am;
   rlc_Config_drb2->choice.am                                        = calloc(1, sizeof(*rlc_Config_drb2->choice.am));
   rlc_Config_drb2->choice.am->dl_AM_RLC.sn_FieldLength              = calloc(1, sizeof(NR_SN_FieldLengthAM_t));
   *(rlc_Config_drb2->choice.am->dl_AM_RLC.sn_FieldLength)           = NR_SN_FieldLengthAM_size18;
@@ -1837,7 +1844,9 @@ void fill_mastercellGroupConfig_dedicatedBearer(NR_CellGroupConfig_t *cellGroupC
   rlc_Config_drb2->choice.am->ul_AM_RLC.t_PollRetransmit            = NR_T_PollRetransmit_ms80;
   rlc_Config_drb2->choice.am->ul_AM_RLC.pollPDU                     = NR_PollPDU_p64;
   rlc_Config_drb2->choice.am->ul_AM_RLC.pollByte                    = NR_PollByte_kB125;
-  rlc_Config_drb2->choice.am->ul_AM_RLC.maxRetxThreshold            = NR_UL_AM_RLC__maxRetxThreshold_t4;
+  rlc_Config_drb2->choice.am->ul_AM_RLC.maxRetxThreshold            = NR_UL_AM_RLC__maxRetxThreshold_t4;*/
+
+
   rlc_BearerConfig_drb2->rlc_Config                                 = rlc_Config_drb2;
   logicalChannelConfig_drb2                                             = calloc(1, sizeof(NR_LogicalChannelConfig_t));
   logicalChannelConfig_drb2->ul_SpecificParameters                      = calloc(1, sizeof(*logicalChannelConfig_drb2->ul_SpecificParameters));
@@ -1957,14 +1966,14 @@ void update_cellGroupConfig(NR_CellGroupConfig_t *cellGroupConfig,
 
   NR_BWP_DownlinkDedicated_t *bwp_Dedicated = SpCellConfig->spCellConfigDedicated->initialDownlinkBWP;
   set_dl_mcs_table(scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters.subcarrierSpacing,
-                   NULL /*uecap QAM256*/, bwp_Dedicated, scc);
+                   NULL /*uecap QAM256*/,SpCellConfig, bwp_Dedicated, scc);
 
   struct NR_ServingCellConfig__downlinkBWP_ToAddModList *DL_BWP_list = SpCellConfig->spCellConfigDedicated->downlinkBWP_ToAddModList;
   if (DL_BWP_list) {
     for (int i=0; i<DL_BWP_list->list.count; i++){
       NR_BWP_Downlink_t *bwp = DL_BWP_list->list.array[i];
       int scs = bwp->bwp_Common->genericParameters.subcarrierSpacing;
-      set_dl_mcs_table(scs, NULL/*uecap*/, bwp->bwp_Dedicated, carrier->servingcellconfigcommon);
+      set_dl_mcs_table(scs, NULL/*uecap*/,SpCellConfig, bwp->bwp_Dedicated, carrier->servingcellconfigcommon);
     }
   }
 }

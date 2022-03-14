@@ -978,7 +978,7 @@ rrc_gNB_generate_dedicatedRRCReconfiguration(
 
   memset(buffer, 0, sizeof(buffer));
   cellGroupConfig = calloc(1, sizeof(NR_CellGroupConfig_t));
-    if (second_bearer > 0) fill_mastercellGroupConfig_dedicatedBearer(cellGroupConfig, ue_context_pP->ue_context.masterCellGroup, second_bearer);
+    if (second_bearer > 0) fill_mastercellGroupConfig_dedicatedBearer(cellGroupConfig, ue_context_pP->ue_context.masterCellGroup, second_bearer,  rrc->um_on_default_drb );
   else  fill_mastercellGroupConfig(cellGroupConfig, ue_context_pP->ue_context.masterCellGroup, rrc->um_on_default_drb);
 
   size = do_RRCReconfiguration(ctxt_pP, buffer, sizeof(buffer),
