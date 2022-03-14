@@ -108,7 +108,8 @@ int test_ldpc(short max_iterations,
               time_stats_t *time_optim,
               time_stats_t *time_decoder,
               n_iter_stats_t *dec_iter,
-              int nsnr)
+              int nsnr,
+              int decMode)
 {
   //clock initiate
   //time_stats_t time,time_optim,tinput,tprep,tparity,toutput, time_decoder;
@@ -370,6 +371,7 @@ int test_ldpc(short max_iterations,
         decParams[j].numMaxIter=max_iterations;
         decParams[j].outMode = nrLDPC_outMode_BIT;
         decParams[j].block_length=block_length;
+        decParams[j].decMode=decMode;
         nrLDPC_initcall(&decParams[j], (int8_t*)channel_output_fixed[j], (int8_t*)estimated_output[j]);
       }
       for(int j=0;j<n_segments;j++) {
@@ -466,8 +468,9 @@ int main(int argc, char *argv[])
   n_iter_stats_t dec_iter;
 
   short BG=0,Zc,Kb=0;
+  int decMode = nrLDPC_decMode_flooding;
 
-  while ((c = getopt (argc, argv, "q:r:s:S:l:G:n:d:i:t:u:hv:")) != -1)
+  while ((c = getopt (argc, argv, "q:r:s:S:l:G:m:n:d:i:t:u:hv:")) != -1)
     switch (c)
     {
       case 'q':
@@ -492,6 +495,10 @@ int main(int argc, char *argv[])
 
       case 'n':
         n_trials = atoi(optarg);
+        break;
+
+      case 'm':
+        decMode = atoi(optarg);
         break;
 
       case 's':
@@ -621,7 +628,8 @@ int main(int argc, char *argv[])
                                 time_optim,
                                 time_decoder,
                                 &dec_iter,
-                                i);
+                                i,
+                                decMode);
 
     dec_iter.snr[i] = SNR;
     dec_iter.ber[i] = (float)errors_bit/(float)n_trials/(float)block_length/(double)n_segments;

@@ -74,6 +74,14 @@ typedef enum nrLDPC_outMode {
 } e_nrLDPC_outMode;
 
 /**
+   Enum for decoder mode
+ */
+typedef enum nrLDPC_decMode {
+    nrLDPC_decMode_flooding,
+    nrLDPC_decMode_layerCNG
+} e_nrLDPC_decMode;
+
+/**
    Structure containing LDPC decoder parameters.
  */
 typedef struct nrLDPC_dec_params {
@@ -83,6 +91,7 @@ typedef struct nrLDPC_dec_params {
     uint8_t numMaxIter; /**< Maximum number of iterations */
     int block_length;
     e_nrLDPC_outMode outMode; /**< Output format */
+    e_nrLDPC_decMode decMode; /**< Decoder mode */
 } t_nrLDPC_dec_params;
 
 /**
