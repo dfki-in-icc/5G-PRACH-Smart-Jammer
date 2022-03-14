@@ -919,15 +919,16 @@ bool nr_UE_is_to_be_scheduled(module_id_t mod_id, int CC_id, int UE_id, frame_t 
   int num_slots_per_period;
   int last_ul_slot,last_ul_sched;
   int tdd_period_len[8] = {500,625,1000,1250,2000,2500,5000,10000};
-  if (tdd) { // Force the default transmission in a full slot as early as possible in the UL portion of TDD period (last_ul_slot)
+  /*if (tdd) { // Force the default transmission in a full slot as early as possible in the UL portion of TDD period (last_ul_slot)
     num_slots_per_period = n*tdd_period_len[tdd->dl_UL_TransmissionPeriodicity]/10000;
     last_ul_slot=1+tdd->nrofDownlinkSlots;
   }
   else {
     num_slots_per_period = n;
     last_ul_slot = sched_ctrl->last_ul_slot; 
-  }
-
+  }*/
+  num_slots_per_period = n/2;
+  last_ul_slot = sched_ctrl->last_ul_slot; 
   last_ul_sched = sched_ctrl->last_ul_frame * n + last_ul_slot;
   const int diff = (now - last_ul_sched + 1024 * n) % (1024 * n);
   /* UE is to be scheduled if
@@ -1318,7 +1319,7 @@ void pf_ul(module_id_t module_id,
                                         sched_ctrl->coreset,
                                         Y);
     if (CCEIndex<0) {
-      LOG_D(NR_MAC, "%4d.%2d no free CCE for UL DCI UE %04x\n", frame, slot, UE_info->rnti[UE_id]);
+      LOG_E(NR_MAC, "%4d.%2d no free CCE for UL DCI UE %04x\n", frame, slot, UE_info->rnti[UE_id]);
       continue;
     }
     else LOG_D(NR_MAC, "%4d.%2d free CCE for UL DCI UE %04x\n",frame,slot, UE_info->rnti[UE_id]);
@@ -1372,7 +1373,7 @@ void pf_ul(module_id_t module_id,
     const int B = cmax(sched_ctrl->estimated_ul_buffer - sched_ctrl->sched_ul_bytes, 0);
     uint16_t rbSize = 0;
     uint32_t TBS = 0;
-    
+    //max_rbSize = min(max_rbSize,40);
     nr_find_nb_rb(sched_pusch->Qm,
                   sched_pusch->R,
                   1, // layers
