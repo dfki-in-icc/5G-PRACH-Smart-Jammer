@@ -3154,3 +3154,4 @@ ADD_CUSTOM_TARGET(oarf
 )
 
 include (${OPENAIR_DIR}/common/utils/telnetsrv/telnetsrv_CMakeLists.txt)
+include (${OPENAIR_DIR}/common/utils/websrv/websrv_CMakeLists.txt)
