@@ -776,7 +776,9 @@ void processSlotRX(void *arg) {
       PROTOCOL_CTXT_SET_BY_MODULE_ID(&ctxt, UE->Mod_id, ENB_FLAG_NO, mac->crnti, proc->frame_rx, proc->nr_slot_rx, 0);
       pdcp_run(&ctxt);
     }
+    // TODO L5G
 
+#if 0
     // Wait for PUSCH processing to finish
     notifiedFIFO_elt_t *res;
     res = pullTpool(&rxtxD->txFifo,&(get_nrUE_params()->Tpool));
@@ -786,6 +788,17 @@ void processSlotRX(void *arg) {
     rxtxD->ue_sched_mode = NOT_PUSCH;
     if(tx_slot_type==NR_MIXED_SLOT) rxtxD->ue_sched_mode = SCHED_ALL;
     processSlotTX(rxtxD);
+#else
+    // calling UL_indication to schedule things other than PUSCH (eg, PUCCH)
+    rxtxD->ue_sched_mode = NOT_PUSCH;
+    if(tx_slot_type==NR_MIXED_SLOT) rxtxD->ue_sched_mode = SCHED_ALL;
+    processSlotTX(rxtxD);
+
+    // Wait for PUSCH processing to finish
+    notifiedFIFO_elt_t *res;
+    res = pullTpool(&rxtxD->txFifo,&(get_nrUE_params()->Tpool));
+    delNotifiedFIFO_elt(res);
+#endif
 
   } else {
     rxtxD->ue_sched_mode = SCHED_ALL;
