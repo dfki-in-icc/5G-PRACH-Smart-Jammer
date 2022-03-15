@@ -153,7 +153,7 @@ void nr_schedule_pucch(int Mod_idP,
           || frameP != curr_pucch->frame
           || slotP != curr_pucch->ul_slot)
         continue;
-      if (O_csi > 0) LOG_D(NR_MAC,"Scheduling PUCCH[%d] RX for UE %d in %d.%d O_ack %d, O_sr %d, O_csi %d\n",
+      if (O_csi > 0) LOG_W(NR_MAC,"Scheduling PUCCH[%d] RX for UE %d in %d.%d O_ack %d, O_sr %d, O_csi %d\n",
 	                   i,UE_id,curr_pucch->frame,curr_pucch->ul_slot,O_ack,O_sr,O_csi);
       nr_fill_nfapi_pucch(Mod_idP, frameP, slotP, curr_pucch, UE_id);
       memset(curr_pucch, 0, sizeof(*curr_pucch));
@@ -727,7 +727,7 @@ void nr_csi_meas_reporting(int Mod_idP,
       // preparation is done in first slot of tdd period
       if (frame % (period / n_slots_frame) != offset / n_slots_frame)
         continue;
-      LOG_D(NR_MAC, "CSI reporting in frame %d slot %d\n", frame, sched_slot);
+      LOG_W(NR_MAC, "CSI reporting in frame %d slot %d\n", frame, sched_slot);
 
       const NR_PUCCH_CSI_Resource_t *pucchcsires = csirep->reportConfigType.choice.periodic->pucch_CSI_ResourceList.list.array[0];
       const NR_PUCCH_ResourceSet_t *pucchresset = pucch_Config->resourceSetToAddModList->list.array[1]; // set with formats >1
@@ -774,7 +774,7 @@ void nr_csi_meas_reporting(int Mod_idP,
             len = pucchres->format.choice.format2->nrofPRBs;
             mask = ((1 << pucchres->format.choice.format2->nrofSymbols) - 1) << pucchres->format.choice.format2->startingSymbolIndex;
             curr_pucch->simultaneous_harqcsi = pucch_Config->format2->choice.setup->simultaneousHARQ_ACK_CSI;
-            LOG_D(NR_MAC,"%d.%d Allocating PUCCH format 2, startPRB %d, nPRB %d, simulHARQ %d, num_bits %d\n", frame, sched_slot,start,len,curr_pucch->simultaneous_harqcsi,curr_pucch->csi_bits);
+            LOG_W(NR_MAC,"%d.%d Allocating PUCCH format 2, startPRB %d, nPRB %d, simulHARQ %d, num_bits %d\n", frame, sched_slot,start,len,curr_pucch->simultaneous_harqcsi,curr_pucch->csi_bits);
             break;
           case NR_PUCCH_Resource__format_PR_format3:
             len = pucchres->format.choice.format3->nrofPRBs;
@@ -1327,6 +1327,8 @@ void extract_pucch_csi_report(NR_CSI_MeasConfig_t *csi_MeasConfig,
     int period, offset;
     csi_period_offset(csirep, NULL, &period, &offset);
     // verify if report with current id has been scheduled for this frame and slot
+    LOG_W(MAC,"SFN/SF:%d/%d offset = %d, period = %d\n",frame,slot,offset,period);
+
     if ((n_slots_frame*frame + slot - offset)%period == 0) {
       reportQuantity_type = csi_report->reportQuantity_type;
       LOG_W(MAC,"SFN/SF:%d/%d reportQuantity type = %d\n",frame,slot,reportQuantity_type);
@@ -1486,6 +1488,7 @@ void handle_nr_uci_pucch_2_3_4(module_id_t mod_id,
                                sub_frame_t slot,
                                const nfapi_nr_uci_pucch_pdu_format_2_3_4_t *uci_234)
 {
+  LOG_W(NR_MAC,"handeling pucch 2 3 4\n");
   int UE_id = find_nr_UE_id(mod_id, uci_234->rnti);
   if (UE_id < 0) {
     LOG_E(NR_MAC, "%s(): unknown RNTI %04x in PUCCH UCI\n", __func__, uci_234->rnti);
@@ -1507,6 +1510,8 @@ void handle_nr_uci_pucch_2_3_4(module_id_t mod_id,
   sched_ctrl->pucch_snrx10 = uci_234->ul_cqi * 5 - 640;
 
   if ((uci_234->pduBitmap >> 1) & 0x01) {
+      LOG_W(NR_MAC,"handeling harq\n");
+
     // iterate over received harq bits
     for (int harq_bit = 0; harq_bit < uci_234->harq.harq_bit_len; harq_bit++) {
       const int acknack = ((uci_234->harq.harq_payload[harq_bit >> 3]) >> harq_bit) & 0x01;
@@ -1519,7 +1524,11 @@ void handle_nr_uci_pucch_2_3_4(module_id_t mod_id,
       handle_dl_harq(mod_id, UE_id, pid, uci_234->harq.harq_crc != 1 && acknack);
     }
   }
+    LOG_W(NR_MAC,"before handeling csi\n");
+
   if ((uci_234->pduBitmap >> 2) & 0x01) {
+      LOG_W(NR_MAC,"handeling csi\n");
+
     //API to parse the csi report and store it into sched_ctrl
     extract_pucch_csi_report(csi_MeasConfig, uci_234, frame, slot, UE_id, mod_id);
     //TCI handling function
@@ -1549,15 +1558,15 @@ int nr_acknack_scheduling(int mod_id,
   const NR_TDD_UL_DL_Pattern_t *tdd = &scc->tdd_UL_DL_ConfigurationCommon->pattern1;
   const int last_ul_slot = RC.nrmac[mod_id]->last_ul_slot;
   //const int nr_mix_slots = 1; //karim, always there is a mixed slot
-  const int nr_slots_period = 10;
+  //const int nr_slots_period = 10;
   int first_ul_slot_tdd = 0;
   for(int i = slot+2; i< n_slots_frame; i++){
 
-    if (RC.nrmac[mod_id]->flexible_slots_per_frame[i] == 1 ) {first_ul_slot_tdd = i; break;}
+    if (RC.nrmac[mod_id]->flexible_slots_per_frame[i] == 1  ) {first_ul_slot_tdd = i; break;}
      
     
   }
-  const int first_ul_slot_period = first_ul_slot_tdd%nr_slots_period; // TODO: clear these variables
+  //const int first_ul_slot_period = first_ul_slot_tdd%nr_slots_period; // TODO: clear these variables
 
 
   /* for the moment, we consider:
@@ -1953,8 +1962,36 @@ void nr_sr_reporting(int Mod_idP, frame_t SFN, sub_frame_t slot)
             && pdu->initial_cyclic_shift == pucch_res->format.choice.format0->initialCyclicShift
             && pdu->nr_of_symbols == pucch_res->format.choice.format0->nrofSymbols
             && pdu->start_symbol_index == pucch_res->format.choice.format0->startingSymbolIndex) {
+          LOG_D(NR_MAC,"%4d.%2d adding SR_flag 1 to PUCCH format 0 nFAPI SR for RNTI %04x\n", SFN, slot, pdu->rnti);
+          pdu->sr_flag = 1;
+          nfapi_allocated = true;
+          break;
+        }
+        else if (pdu->rnti == UE_info->rnti[UE_id]
+            && pdu->format_type == 2 // does not use NR_PUCCH_Resource__format_PR_format0
+            && pdu->nr_of_symbols == pucch_res->format.choice.format2->nrofSymbols
+            && pdu->start_symbol_index == pucch_res->format.choice.format2->startingSymbolIndex) {
+          LOG_D(NR_MAC,"%4d.%2d adding SR_flag 1 to PUCCH format 2 nFAPI SR for RNTI %04x\n", SFN, slot, pdu->rnti);
+          pdu->sr_flag = 1;
+          nfapi_allocated = true;
+          break;
 
-          LOG_D(NR_MAC,"%4d.%2d adding SR_flag 1 to PUCCH nFAPI SR for RNTI %04x\n", SFN, slot, pdu->rnti);
+        }
+        else if (pdu->rnti == UE_info->rnti[UE_id]
+            && pdu->format_type == 1 // does not use NR_PUCCH_Resource__format_PR_format0
+            && pdu->nr_of_symbols == pucch_res->format.choice.format1->nrofSymbols
+            && pdu->start_symbol_index == pucch_res->format.choice.format1->startingSymbolIndex) {
+          LOG_D(NR_MAC,"%4d.%2d adding SR_flag 1 to PUCCH format 1 nFAPI SR for RNTI %04x\n", SFN, slot, pdu->rnti);
+          pdu->sr_flag = 1;
+          nfapi_allocated = true;
+          break;
+
+        }
+        else if (pdu->rnti == UE_info->rnti[UE_id]
+            && pdu->format_type == 3 // does not use NR_PUCCH_Resource__format_PR_format0
+            && pdu->nr_of_symbols == pucch_res->format.choice.format3->nrofSymbols
+            && pdu->start_symbol_index == pucch_res->format.choice.format3->startingSymbolIndex) {
+          LOG_D(NR_MAC,"%4d.%2d adding SR_flag 1 to PUCCH format 3 nFAPI SR for RNTI %04x\n", SFN, slot, pdu->rnti);
           pdu->sr_flag = 1;
           nfapi_allocated = true;
           break;

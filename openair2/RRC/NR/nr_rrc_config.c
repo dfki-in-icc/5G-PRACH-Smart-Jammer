@@ -132,12 +132,32 @@ void nr_rrc_config_ul_tda(NR_ServingCellConfigCommon_t *scc, int min_fb_delay){
   uint8_t DELTA[4]= {2,3,4,6}; // Delta parameter for Msg3
   int mu = scc->uplinkConfigCommon->initialUplinkBWP->genericParameters.subcarrierSpacing;
 
+
+        struct NR_PUSCH_TimeDomainResourceAllocation *pusch_timedomainresourceallocation4 = CALLOC(1,sizeof(struct NR_PUSCH_TimeDomainResourceAllocation));
+      pusch_timedomainresourceallocation4->k2  = CALLOC(1,sizeof(long));
+      *pusch_timedomainresourceallocation4->k2 = K2_1;
+      pusch_timedomainresourceallocation4->mappingType = NR_PUSCH_TimeDomainResourceAllocation__mappingType_typeB;
+      pusch_timedomainresourceallocation4->startSymbolAndLength = get_SLIV(0,13); // starting in fist ul symbol til the last but one
+      ASN_SEQUENCE_ADD(&scc->uplinkConfigCommon->initialUplinkBWP->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList->list,pusch_timedomainresourceallocation4);
+
+      struct NR_PUSCH_TimeDomainResourceAllocation *pusch_timedomainresourceallocation5 = CALLOC(1,sizeof(struct NR_PUSCH_TimeDomainResourceAllocation));
+      pusch_timedomainresourceallocation5->k2  = CALLOC(1,sizeof(long));
+      *pusch_timedomainresourceallocation5->k2 = K2_2;
+      pusch_timedomainresourceallocation5->mappingType = NR_PUSCH_TimeDomainResourceAllocation__mappingType_typeB;
+      pusch_timedomainresourceallocation5->startSymbolAndLength = get_SLIV(0,13); // starting in fist ul symbol til the last but one
+      ASN_SEQUENCE_ADD(&scc->uplinkConfigCommon->initialUplinkBWP->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList->list,pusch_timedomainresourceallocation5);
+
+
+
   struct NR_PUSCH_TimeDomainResourceAllocation *pusch_timedomainresourceallocation = CALLOC(1,sizeof(struct NR_PUSCH_TimeDomainResourceAllocation));
   pusch_timedomainresourceallocation->k2  = CALLOC(1,sizeof(long));
   *pusch_timedomainresourceallocation->k2 = k2;
   pusch_timedomainresourceallocation->mappingType = NR_PUSCH_TimeDomainResourceAllocation__mappingType_typeB;
   pusch_timedomainresourceallocation->startSymbolAndLength = get_SLIV(0,13); // basic slot configuration starting in symbol 0 til the last but one symbol
   ASN_SEQUENCE_ADD(&scc->uplinkConfigCommon->initialUplinkBWP->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList->list,pusch_timedomainresourceallocation); 
+
+
+
 
   if(frame_type==TDD) {
       
@@ -180,6 +200,10 @@ void nr_rrc_config_ul_tda(NR_ServingCellConfigCommon_t *scc, int min_fb_delay){
       pusch_timedomainresourceallocation3->mappingType = NR_PUSCH_TimeDomainResourceAllocation__mappingType_typeB;
       pusch_timedomainresourceallocation3->startSymbolAndLength = get_SLIV(14-ul_symb,ul_symb-1); // starting in fist ul symbol til the last but one
       ASN_SEQUENCE_ADD(&scc->uplinkConfigCommon->initialUplinkBWP->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList->list,pusch_timedomainresourceallocation3);
+   
+
+   
+    
     }
   }
 }

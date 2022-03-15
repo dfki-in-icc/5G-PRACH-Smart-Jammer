@@ -127,6 +127,7 @@ void handle_nr_uci(NR_UL_IND_t *UL_info)
       }
 
         case NFAPI_NR_UCI_FORMAT_2_3_4_PDU_TYPE: {
+          LOG_W(NR_MAC,"handle NFAPI_NR_UCI_FORMAT_2_3_4_PDU_TYPE \n");
           const nfapi_nr_uci_pucch_pdu_format_2_3_4_t *uci_pdu = &uci_list[i].pucch_pdu_format_2_3_4;
           handle_nr_uci_pucch_2_3_4(mod_id, frame, slot, uci_pdu);
           break;
