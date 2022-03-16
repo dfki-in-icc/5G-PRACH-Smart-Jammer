@@ -475,7 +475,7 @@ int restart_L1L2(module_id_t enb_id) {
   return 0;
 }
 
-static void init_pdcp(void) {
+static void init_pdcp(int enb_id) {
   if (!NODE_IS_DU(RC.rrc[0]->node_type)) {
     pdcp_layer_init();
     uint32_t pdcp_initmask = (IS_SOFTMODEM_NOS1) ?
@@ -486,7 +486,7 @@ static void init_pdcp(void) {
 
     pdcp_initmask = pdcp_initmask | ENB_NAS_USE_TUN_W_MBMS_BIT;
 
-    pdcp_module_init(pdcp_initmask, 0);
+    pdcp_module_init(pdcp_initmask, enb_id);
 
     if (NODE_IS_CU(RC.rrc[0]->node_type)) {
       pdcp_set_rlc_data_req_func(cu_send_to_du);
@@ -583,8 +583,13 @@ int main ( int argc, char **argv )
     
     /* initializes PDCP and sets correct RLC Request/PDCP Indication callbacks
      * for monolithic/F1 modes */
-   init_pdcp();
-    
+    uint16_t node_number = get_softmodem_params()->node_number; // Starting from 1.
+    enb_id_g = (node_number == 0) ? 0 : node_number - 1; // enb_id_g = 0, 1
+    LOG_I(PHY,
+          "enb_id_g = %d",
+          enb_id_g);
+    init_pdcp(node_number);
+
     if (create_tasks(1) < 0) {
       printf("cannot create ITTI tasks\n");
       exit(-1);

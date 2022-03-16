@@ -596,14 +596,14 @@ int main( int argc, char **argv ) {
   itti_init(TASK_MAX, tasks_info);
 
   init_opt();
-  ue_id_g = (node_number == 0) ? 0 : node_number-2; //ue_id_g = 0, 1, ...,
+  ue_id_g = (node_number == 0) ? 0 : node_number - 1; //ue_id_g = 0, 1, ...,
   if(node_number == 0)
   {
     init_pdcp(0);
   }
   else
   {
-    init_pdcp(node_number-1);
+    init_pdcp(node_number);
   }
 
   //TTN for D2D
