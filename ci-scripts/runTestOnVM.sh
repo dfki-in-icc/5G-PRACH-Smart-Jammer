@@ -2277,7 +2277,7 @@ function run_test_on_vm {
         echo "############################################################"
         #SA test, attention : has a different config file from the rest of the test
         CN_CONFIG="noS1"
-        CONF_FILE=gnb.band78.sa.fr1.106PRB.usrpn310.conf
+        CONF_FILE=gnb.band78.sa.fr1.106PRB.rfsim.conf
         S1_NOS1_CFG=0
         PRB=106
         FREQUENCY=3510
@@ -2360,7 +2360,7 @@ function run_test_on_vm {
         echo "############################################################"
         #SA test, attention : has a different config file from the rest of the test
         CN_CONFIG="noS1"
-        CONF_FILE=gnb.sa.band78.fr1.24PRB.usrpb210.conf
+        CONF_FILE=gnb.sa.band78.fr1.24PRB.rfsim.conf
         S1_NOS1_CFG=0
         PRB=24
         FREQUENCY=3600
@@ -2447,7 +2447,7 @@ function run_test_on_vm {
         echo "############################################################"
         #RA FR2 test, attention : has a different config file from the rest of the test
         CN_CONFIG="noS1"
-        CONF_FILE=gnb.band261.tm1.32PRB.usrpn300.conf
+        CONF_FILE=gnb.band261.tm1.32PRB.rfsim.conf
         S1_NOS1_CFG=0
         PRB=32
         FREQUENCY=28000 #28GHz
