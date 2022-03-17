@@ -133,7 +133,7 @@ void nr_rrc_config_ul_tda(NR_ServingCellConfigCommon_t *scc, int min_fb_delay){
   int mu = scc->uplinkConfigCommon->initialUplinkBWP->genericParameters.subcarrierSpacing;
 
 
-        struct NR_PUSCH_TimeDomainResourceAllocation *pusch_timedomainresourceallocation4 = CALLOC(1,sizeof(struct NR_PUSCH_TimeDomainResourceAllocation));
+      struct NR_PUSCH_TimeDomainResourceAllocation *pusch_timedomainresourceallocation4 = CALLOC(1,sizeof(struct NR_PUSCH_TimeDomainResourceAllocation));
       pusch_timedomainresourceallocation4->k2  = CALLOC(1,sizeof(long));
       *pusch_timedomainresourceallocation4->k2 = K2_1;
       pusch_timedomainresourceallocation4->mappingType = NR_PUSCH_TimeDomainResourceAllocation__mappingType_typeB;
