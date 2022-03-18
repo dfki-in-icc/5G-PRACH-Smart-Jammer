@@ -397,19 +397,20 @@ void config_common(int Mod_idP, int ssb_SubcarrierOffset, int pdsch_AntennaPorts
   //TDD config
   //int flexible_slots_per_frame[20] = {0,0,0,0,0,0,0,2,1,1,0,0,0,0,0,0,0,2,1,1}; //original configuration works
   //int flexible_slots_per_frame[20] = {0,0,0,0,0,0,2,1,1,1,0,0,0,0,0,0,2,1,1,1}; //more UL
-  int flexible_slots_per_frame[20] = {0,0,0,0,0,0,2,1,1,1,0,0,0,0,0,2,1,1,1,1}; //more UL
+  //int flexible_slots_per_frame[20] = {0,0,0,0,0,0,2,1,1,1,0,0,0,0,0,2,1,1,1,1}; //more UL , 35/12 Mbps
+  int flexible_slots_per_frame[20] =   {0,0,0,0,0,0,0,2,2,2,2,2,2,2,1,1,1,1,1,1}; //more UL, 
 
   //int flexible_slots_per_frame[20] = {0,0,0,0,0,2,1,1,1,1,0,0,2,1,1,1,1,1,1,1};
   //int flexible_slots_per_frame[20] = {0,0,1,1,0,0,1,1,0,0,2,1,0,0,1,1,0,0,2,1};
   //int flexible_slots_per_frame[20] = {0,0,0,2,1,0,0,0,2,1,0,0,0,2,1,0,0,0,2,1}; // works
   //int flexible_slots_per_frame[20] = {0,0,0,0,2,1,1,0,0,0,2,1,1,0,0,0,0,2,1,1}; //harq pucch frame != pucch frame
-  int flexible_symbols[2] = {6,4};
+  int flexible_symbols[2] = {3,7};
   RC.nrmac[Mod_idP]->flexible_slots_per_frame = calloc(20,sizeof(int));
   RC.nrmac[Mod_idP]->flexible_symbols = calloc(2,sizeof(int));
   for(int i = 0;i < 20; i++) {RC.nrmac[Mod_idP]->flexible_slots_per_frame[i] = flexible_slots_per_frame[i]; }
   RC.nrmac[Mod_idP]->flexible_symbols[0] = flexible_symbols[0];
   RC.nrmac[Mod_idP]->flexible_symbols[1] = flexible_symbols[1];
-  RC.nrmac[Mod_idP]->prefered_slot_msg2 = 6; // 7 in original
+  RC.nrmac[Mod_idP]->prefered_slot_msg2 = 7; // 7 in original
   RC.nrmac[Mod_idP]->last_ul_slot = 19;
   // TDD Table Configuration
   //cfg->tdd_table.tdd_period.value = scc->tdd_UL_DL_ConfigurationCommon->pattern1.dl_UL_TransmissionPeriodicity;

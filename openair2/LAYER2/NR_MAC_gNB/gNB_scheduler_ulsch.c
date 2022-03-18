@@ -66,7 +66,7 @@ void calculate_preferred_ul_tda(module_id_t module_id, const NR_BWP_Uplink_t *ub
   const NR_TDD_UL_DL_Pattern_t *tdd =
       scc->tdd_UL_DL_ConfigurationCommon ? &scc->tdd_UL_DL_ConfigurationCommon->pattern1 : NULL;
   /* Uplink symbols are at the end of the slot */
-  const int symb_ulMixed = tdd ? ((1 << nrmac->flexible_symbols[1]) - 1) << (14 - nrmac->flexible_symbols[1]) : 0;
+  const int symb_ulMixed = tdd ? ((1 << (nrmac->flexible_symbols[1] - 1)) - 1) << (14 - (nrmac->flexible_symbols[1]-1)) : 0;
 
   const struct NR_PUCCH_Config__resourceToAddModList *resList = ubwp->bwp_Dedicated->pucch_Config->choice.setup->resourceToAddModList;
   // for the moment, just block any symbol that might hold a PUCCH, regardless
@@ -974,7 +974,10 @@ bool allocate_ul_retransmission(module_id_t module_id,
   const uint16_t bwpSize = NRRIV2BW(genericParameters->locationAndBandwidth, MAX_BWP_SIZE);
 
   const uint8_t num_dmrs_cdm_grps_no_data = (sched_ctrl->active_bwp || ubwpd) ? 1 : 2;
-  const int tda = sched_ctrl->active_ubwp ? RC.nrmac[module_id]->preferred_ul_tda[sched_ctrl->active_ubwp->bwp_Id][slot] : 0;
+  int tda = sched_ctrl->active_ubwp ? RC.nrmac[module_id]->preferred_ul_tda[sched_ctrl->active_ubwp->bwp_Id][slot] : 0;
+  gNB_MAC_INST *nr_mac = RC.nrmac[module_id];
+  bool is_mixed_slot = is_xlsch_in_slot_flex(nr_mac->flexible_slots_per_frame, 2, sched_ctrl->sched_pusch.slot); // sched_ctrl->sched_pusch.slot
+  if (is_mixed_slot) tda = 1;
   LOG_D(NR_MAC,"retInfo->time_domain_allocation = %d, tda = %d\n", retInfo->time_domain_allocation, tda);
   LOG_D(NR_MAC,"num_dmrs_cdm_grps_no_data %d, tbs %d\n",num_dmrs_cdm_grps_no_data, retInfo->tb_size);
   if (tda == retInfo->time_domain_allocation) {
@@ -1231,7 +1234,9 @@ void pf_ul(module_id_t module_id,
        * num_dmrs_cdm_grps_no_data has changed and only then recompute */
       const uint8_t num_dmrs_cdm_grps_no_data = (sched_ctrl->active_ubwp || ubwpd) ? 1 : 2;
       int dci_format = get_dci_format(sched_ctrl);
-      const int tda = sched_ctrl->active_ubwp ? nrmac->preferred_ul_tda[sched_ctrl->active_ubwp->bwp_Id][slot] : 0;
+      int tda = sched_ctrl->active_ubwp ? nrmac->preferred_ul_tda[sched_ctrl->active_ubwp->bwp_Id][slot] : 0;
+      bool is_mixed_slot = is_xlsch_in_slot_flex(nrmac->flexible_slots_per_frame, 2, sched_ctrl->sched_pusch.slot); // sched_ctrl->sched_pusch.slot
+      if (is_mixed_slot) tda = 1;
       if (ps->time_domain_allocation != tda
           || ps->dci_format != dci_format
           || ps->num_dmrs_cdm_grps_no_data != num_dmrs_cdm_grps_no_data
@@ -1359,7 +1364,10 @@ void pf_ul(module_id_t module_id,
      * num_dmrs_cdm_grps_no_data has changed and only then recompute */
     const uint8_t num_dmrs_cdm_grps_no_data = (sched_ctrl->active_ubwp || ubwpd) ? 1 : 2;
     int dci_format = get_dci_format(sched_ctrl);
-    const int tda = sched_ctrl->active_ubwp ? nrmac->preferred_ul_tda[sched_ctrl->active_ubwp->bwp_Id][slot] : 0;
+    gNB_MAC_INST *nr_mac = RC.nrmac[module_id];
+    int tda = sched_ctrl->active_ubwp ? nrmac->preferred_ul_tda[sched_ctrl->active_ubwp->bwp_Id][slot] : 0;
+    bool is_mixed_slot = is_xlsch_in_slot_flex(nr_mac->flexible_slots_per_frame, 2, sched_ctrl->sched_pusch.slot); // sched_ctrl->sched_pusch.slot
+    if (is_mixed_slot) tda = 1;
     if (ps->time_domain_allocation != tda
         || ps->dci_format != dci_format
         || ps->num_dmrs_cdm_grps_no_data != num_dmrs_cdm_grps_no_data
@@ -1423,7 +1431,7 @@ bool nr_fr1_ulsch_preprocessor(module_id_t module_id, frame_t frame, sub_frame_t
    * schedule now (slot + k2 is not UL slot) */
   int UE_id = UE_info->list.head;
   NR_UE_sched_ctrl_t *sched_ctrl = &UE_info->UE_sched_ctrl[UE_id];
-  const int tda = sched_ctrl->active_ubwp ? nr_mac->preferred_ul_tda[sched_ctrl->active_ubwp->bwp_Id][slot] : 0;
+  int tda = sched_ctrl->active_ubwp ? nr_mac->preferred_ul_tda[sched_ctrl->active_ubwp->bwp_Id][slot] : 0;
   if (tda < 0)
     return false;
   int K2 = get_K2(scc, sched_ctrl->active_ubwp, tda, mu);
@@ -1434,11 +1442,13 @@ bool nr_fr1_ulsch_preprocessor(module_id_t module_id, frame_t frame, sub_frame_t
     return false;
 
   bool is_mixed_slot = is_xlsch_in_slot_flex(nr_mac->flexible_slots_per_frame, 2, sched_slot);
+  if (is_mixed_slot) tda = 1;
+  LOG_W(NR_MAC,"is mixed ? %d tda %d\n",is_mixed_slot,tda);
   //LOG_W(NR_MAC," slot is mixed %d is UL\n",is_mixed_slot);
 
   // FIXME: Avoid mixed slots for initialUplinkBWP
-  if (sched_ctrl->active_ubwp==NULL && is_mixed_slot)
-    return false;
+  //if (sched_ctrl->active_ubwp==NULL && is_mixed_slot)
+    //return false;
 
   // Avoid slots with the SRS
   const NR_list_t *UE_list = &UE_info->list;
@@ -1478,6 +1488,8 @@ bool nr_fr1_ulsch_preprocessor(module_id_t module_id, frame_t frame, sub_frame_t
   const int startSymbolAndLength = tdaList->list.array[tda]->startSymbolAndLength;
   int startSymbolIndex, nrOfSymbols;
   SLIV2SL(startSymbolAndLength, &startSymbolIndex, &nrOfSymbols);
+  LOG_W(NR_MAC,"startSymbolIndex %d nrOfSymbols %d\n",startSymbolIndex,nrOfSymbols);
+
   const uint16_t symb = ((1 << nrOfSymbols) - 1) << startSymbolIndex;
 
   int st = 0, e = 0, len = 0;

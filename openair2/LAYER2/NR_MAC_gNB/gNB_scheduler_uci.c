@@ -1562,7 +1562,7 @@ int nr_acknack_scheduling(int mod_id,
   int first_ul_slot_tdd = 0;
   for(int i = slot+2; i< n_slots_frame; i++){
 
-    if (RC.nrmac[mod_id]->flexible_slots_per_frame[i] == 1  ) {first_ul_slot_tdd = i; break;}
+    if (RC.nrmac[mod_id]->flexible_slots_per_frame[i] > 0  ) {first_ul_slot_tdd = i; break;}
      
     
   }
@@ -1603,7 +1603,7 @@ int nr_acknack_scheduling(int mod_id,
 
   for(int ss = s+1; ss< 2*n_slots_frame; ss++){
 
-    if (RC.nrmac[mod_id]->flexible_slots_per_frame[ss%n_slots_frame] == 1 ) {pucch->ul_slot  = ss%n_slots_frame; break;}
+    if (RC.nrmac[mod_id]->flexible_slots_per_frame[ss%n_slots_frame]  > 0  ) {pucch->ul_slot  = ss%n_slots_frame; break;}
      
     
   }
@@ -1628,7 +1628,7 @@ int nr_acknack_scheduling(int mod_id,
       pucch->frame = s == n_slots_frame - 1 ? (f + 1) % 1024 : f;
       for(int ss = s+1; ss< 2*n_slots_frame; ss++){
 
-           if (RC.nrmac[mod_id]->flexible_slots_per_frame[ss%n_slots_frame] == 1 ) {pucch->ul_slot  = ss%n_slots_frame; break;}
+           if (RC.nrmac[mod_id]->flexible_slots_per_frame[ss%n_slots_frame] > 0 ) {pucch->ul_slot  = ss%n_slots_frame; break;}
       }
 
 
@@ -1692,7 +1692,7 @@ int nr_acknack_scheduling(int mod_id,
 
       for(int ss = s+1; ss< 2*n_slots_frame; ss++){
 
-        if (RC.nrmac[mod_id]->flexible_slots_per_frame[ss%n_slots_frame] == 1 ) {pucch->ul_slot  = ss%n_slots_frame; break;}
+        if (RC.nrmac[mod_id]->flexible_slots_per_frame[ss%n_slots_frame]  > 0  ) {pucch->ul_slot  = ss%n_slots_frame; break;}
       }
 
 
@@ -1761,7 +1761,7 @@ int nr_acknack_scheduling(int mod_id,
 
   for(int ss = s+1; ss< 2*n_slots_frame; ss++){
 
-    if (RC.nrmac[mod_id]->flexible_slots_per_frame[ss%n_slots_frame] == 1 ) {pucch->ul_slot  = ss%n_slots_frame; break;}
+    if (RC.nrmac[mod_id]->flexible_slots_per_frame[ss%n_slots_frame]  > 0  ) {pucch->ul_slot  = ss%n_slots_frame; break;}
      
     
   }
@@ -1804,7 +1804,7 @@ int nr_acknack_scheduling(int mod_id,
 
   for(int ss = s+1; ss< 2*n_slots_frame; ss++){
 
-    if (RC.nrmac[mod_id]->flexible_slots_per_frame[ss%n_slots_frame] == 1 ) {pucch->ul_slot  = ss%n_slots_frame; break;}
+    if (RC.nrmac[mod_id]->flexible_slots_per_frame[ss%n_slots_frame]  > 0 ) {pucch->ul_slot  = ss%n_slots_frame; break;}
      
     
   }
