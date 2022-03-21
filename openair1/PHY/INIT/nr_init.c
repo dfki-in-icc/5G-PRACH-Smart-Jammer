@@ -75,6 +75,7 @@ uint16_t get_band(uint64_t downlink_frequency, int32_t delta_duplex)
     }
   }
 
+  if (current_band == 77 && downlink_frequency < 3.8e9) current_band=78;
   LOG_I(PHY, "DL frequency %"PRIu64": band %d, UL frequency %"PRIu64"\n",
         downlink_frequency, current_band, downlink_frequency+delta_duplex);
 

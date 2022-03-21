@@ -383,8 +383,6 @@ xranLibWraper::xranLibWraper()
         // From xran_io_cfg of xran_fh_o_du.h
         uint8_t id_           = 0;
         uint8_t num_vfs_      = 2;
-        const char* VF_UPlane = "0000:b3:02.0"; // why not m_dpdk_dev_up ?
-        const char* VF_CPlane = "0000:b3:02.1"; // why not m_dpdk_dev_cp ?
 
         // From xran_eaxcid_config of xran_fh_o_du.h
         uint8_t  bit_cuPortId_       = 12;   //(??) bitnum_bandsec + bitnum_ccid + bitnum_ruport;
@@ -425,8 +423,8 @@ xranLibWraper::xranLibWraper()
         m_dpdk_dev_up = get_globalcfg<std::string>(XRAN_UT_KEY_GLOBALCFG_IO, "dpdk_dev_up");
         m_dpdk_dev_cp = get_globalcfg<std::string>(XRAN_UT_KEY_GLOBALCFG_IO, "dpdk_dev_cp");
         m_xranInit.io_cfg.num_vfs               = num_vfs_;
-        m_xranInit.io_cfg.dpdk_dev[XRAN_UP_VF]  = const_cast<char*>(VF_UPlane);
-        m_xranInit.io_cfg.dpdk_dev[XRAN_CP_VF]  = const_cast<char*>(VF_CPlane);
+        m_xranInit.io_cfg.dpdk_dev[XRAN_UP_VF]  = const_cast<char*>(m_dpdk_dev_up.c_str());
+        m_xranInit.io_cfg.dpdk_dev[XRAN_CP_VF]  = const_cast<char*>(m_dpdk_dev_cp.c_str());
  
         printf("wrapper.hpp: m_xranInit.io_cfg.dpdk_dev[%d] =%s, m_xranInit.io_cfg.dpdk_dev[%d]=%s\n",XRAN_UP_VF,m_xranInit.io_cfg.dpdk_dev[XRAN_UP_VF],XRAN_CP_VF,m_xranInit.io_cfg.dpdk_dev[XRAN_CP_VF]);
 

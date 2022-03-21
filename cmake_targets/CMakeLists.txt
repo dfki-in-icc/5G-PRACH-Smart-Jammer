@@ -957,7 +957,7 @@ add_library(benetel_4g MODULE ${HWLIB_BENETEL_4G_SOURCE} )
 
 set_target_properties(benetel_4g PROPERTIES COMPILE_FLAGS "-fvisibility=hidden -march=native -I$ENV{RTE_SDK}/$ENV{RTE_TARGET}/include")
 
-SET(DPDK_LIBS "-Wl,-rpath,$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -Wl,--whole-archive -L$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -ldpdk -Wl,--no-whole-archive")
+SET(DPDK_LIBS "-Wl,-rpath,$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -Wl,--whole-archive -L$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -L/usr/local/lib64/ -ldpdk -Wl,--no-whole-archive")
 TARGET_LINK_LIBRARIES(benetel_4g ${DPDK_LIBS})
 TARGET_LINK_LIBRARIES(benetel_4g pthread dl rt m numa)
 
@@ -1014,21 +1014,23 @@ include_directories("${XRAN_LIB_DIR}")
 set(ORAN_FHLIB_5G_SOURCE
     ${OPENAIR_TARGETS}/ARCH/ETHERNET/oran/5g/oran.cpp
     ${OPENAIR_TARGETS}/ARCH/ETHERNET/oran/5g/xran_lib_wrap.cpp
+    ${OPENAIR_TARGETS}/ARCH/ETHERNET/oran/5g/common.cpp
     ${OPENAIR_TARGETS}/ARCH/ETHERNET/oran/5g/oran_isolate.c
     )
 add_library(oran_fhlib_5g MODULE ${ORAN_FHLIB_5G_SOURCE})
 
 find_library(XRANFHI xran HINTS ${XRAN_LIB_DIR})
-find_library(INTELIRC irc HINTS ${INTEL_LIB_DIR})
+#find_library(INTELIRC irc HINTS ${INTEL_LIB_DIR})
 
 set_target_properties(oran_fhlib_5g PROPERTIES COMPILE_FLAGS "-fvisibility=hidden -march=native -I$ENV{RTE_SDK}/$ENV{RTE_TARGET}/include")
 
-SET(DPDK_LIBS "-Wl,-rpath,$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -Wl,--whole-archive -L$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -ldpdk -Wl,--no-whole-archive")
+#SET(DPDK_LIBS "-Wl,-rpath,$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -Wl,--whole-archive -L$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -L/usr/local/lib64 -ldpdk -Wl,--no-whole-archive")
+execute_process(COMMAND pkg-config --libs libdpdk | sed --expression='s/[[:space:]]*$//' OUTPUT_VARIABLE DPDK_LIBS)
 TARGET_LINK_LIBRARIES(oran_fhlib_5g ${DPDK_LIBS})
 #TARGET_LINK_LIBRARIES(oran_fhlib_5g -L${XRAN_LIB_DIR} -lxran)
-TARGET_LINK_LIBRARIES(oran_fhlib_5g ${XRANFHI})
+TARGET_LINK_LIBRARIES(oran_fhlib_5g -lxran)
 #TARGET_LINK_LIBRARIES(oran_fhlib_5g -L${INTEL_LIB} -lirc)
-TARGET_LINK_LIBRARIES(oran_fhlib_5g ${INTELIRC})
+#TARGET_LINK_LIBRARIES(oran_fhlib_5g ${INTELIRC})
 TARGET_LINK_LIBRARIES(oran_fhlib_5g pthread dl rt m numa)
 
 ##########################################################
