@@ -342,7 +342,6 @@ next:
   }
 #endif
   RU_proc_t *proc = &ru->proc;
-  extern uint16_t sl_ahead;
   int f = *frame;
   int sl = *slot;
 
@@ -357,8 +356,8 @@ next:
 
   if (get_nprocs()<=4) {
     // why? what if there are more?
-    proc->tti_tx   = (sl+sl_ahead)%20;
-    proc->frame_tx = (sl>(19-sl_ahead)) ? (f+1)&1023 : f;
+    proc->tti_tx   = (sl+ru->sl_ahead)%20;
+    proc->frame_tx = (sl>(19-ru->sl_ahead)) ? (f+1)&1023 : f;
   }
 #if 0
    printf("south_in:\ttimestamp_rx=%d{frame_rx=%d,tti_rx=%d}\ttti_tx=%d\tframe_tx=%d\n\n",proc->timestamp_rx,proc->frame_rx,proc->tti_rx,proc->tti_tx,proc->frame_tx);
