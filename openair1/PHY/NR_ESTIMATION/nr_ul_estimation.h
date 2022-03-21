@@ -49,7 +49,7 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
 
 void dump_nr_I0_stats(FILE *fd,PHY_VARS_gNB *gNB);
 
-void gNB_I0_measurements(PHY_VARS_gNB *gNB,int first_symb,int num_symb);
+void gNB_I0_measurements(PHY_VARS_gNB *gNB,int slot,int first_symb,int num_symb);
 
 void nr_gnb_measurements(PHY_VARS_gNB *gNB, uint8_t ulsch_id, unsigned char harq_pid, unsigned char symbol, uint8_t nrOfLayers);
 
@@ -62,4 +62,16 @@ void nr_pusch_ptrs_processing(PHY_VARS_gNB *gNB,
                               uint8_t nr_tti_rx,
                               unsigned char symbol,
                               uint32_t nb_re_pusch);
+
+int nr_srs_channel_estimation(PHY_VARS_gNB *gNB,
+                              int frame,
+                              int slot,
+                              nfapi_nr_srs_pdu_t *srs_pdu,
+                              nr_srs_info_t *nr_srs_info,
+                              int32_t *srs_generated_signal,
+                              int32_t **srs_received_signal,
+                              int32_t **srs_estimated_channel_freq,
+                              int32_t **srs_estimated_channel_time,
+                              int32_t **srs_estimated_channel_time_shifted,
+                              uint32_t *noise_power);
 #endif

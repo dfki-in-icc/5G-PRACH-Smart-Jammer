@@ -33,7 +33,7 @@
 #include "COMMON/platform_types.h"
 #include "COMMON/platform_constants.h"
 #include "common/ran_context.h"
-
+#include "common/utils/nr/nr_common.h"
 #include "common/utils/LOG/log.h"
 #include "common/utils/LOG/vcd_signal_dumper.h"
 
@@ -57,6 +57,7 @@ extern uint8_t nfapi_mode;
 void process_rlcBearerConfig(struct NR_CellGroupConfig__rlc_BearerToAddModList *rlc_bearer2add_list,
                              struct NR_CellGroupConfig__rlc_BearerToReleaseList *rlc_bearer2release_list,
                              NR_UE_sched_ctrl_t *sched_ctrl) {
+
 
   if (rlc_bearer2add_list)
   // keep lcids
@@ -135,6 +136,7 @@ void process_CellGroup(NR_CellGroupConfig_t *CellGroup, NR_UE_sched_ctrl_t *sche
    process_rlcBearerConfig(CellGroup->rlc_BearerToAddModList,CellGroup->rlc_BearerToReleaseList,sched_ctrl);
 
 }
+
 void config_common(int Mod_idP, int ssb_SubcarrierOffset, int pdsch_AntennaPorts, int pusch_AntennaPorts, NR_ServingCellConfigCommon_t *scc) {
 
   nfapi_nr_config_request_scf_t *cfg = &RC.nrmac[Mod_idP]->config[0];
@@ -318,14 +320,22 @@ void config_common(int Mod_idP, int ssb_SubcarrierOffset, int pdsch_AntennaPorts
     scs_scaling = scs_scaling>>2;
   uint32_t absolute_diff = (*scc->downlinkConfigCommon->frequencyInfoDL->absoluteFrequencySSB - scc->downlinkConfigCommon->frequencyInfoDL->absoluteFrequencyPointA);
   uint16_t sco = absolute_diff%(12*scs_scaling);
-  //AssertFatal(sco==0,"absoluteFrequencySSB has a subcarrier offset of %d while it should be alligned with CRBs\n",sco);
+  // values of subcarrier offset larger than the limit only indicates CORESET for Type0-PDCCH CSS set is not present
+  uint8_t ssb_SubcarrierOffset_limit = 0;
+  if(frequency_range == FR1) {
+    ssb_SubcarrierOffset_limit = 24;
+  } else {
+    ssb_SubcarrierOffset_limit = 12;
+  }
+  if (ssb_SubcarrierOffset<ssb_SubcarrierOffset_limit)
+    AssertFatal(sco==(scs_scaling * (ssb_SubcarrierOffset>>(cfg->ssb_config.scs_common.value))),"absoluteFrequencySSB has a subcarrier offset of %d while it should be %d\n",sco/scs_scaling,ssb_SubcarrierOffset);
   cfg->ssb_table.ssb_offset_point_a.value = absolute_diff/(12*scs_scaling) - 10; //absoluteFrequencySSB is the central frequency of SSB which is made by 20RBs in total
   cfg->ssb_table.ssb_offset_point_a.tl.tag = NFAPI_NR_CONFIG_SSB_OFFSET_POINT_A_TAG;
   cfg->num_tlv++;
   cfg->ssb_table.ssb_period.value = *scc->ssb_periodicityServingCell;
   cfg->ssb_table.ssb_period.tl.tag = NFAPI_NR_CONFIG_SSB_PERIOD_TAG;
   cfg->num_tlv++;
-  cfg->ssb_table.ssb_subcarrier_offset.value = ssb_SubcarrierOffset;
+  cfg->ssb_table.ssb_subcarrier_offset.value = ssb_SubcarrierOffset>>(cfg->ssb_config.scs_common.value);
   cfg->ssb_table.ssb_subcarrier_offset.tl.tag = NFAPI_NR_CONFIG_SSB_SUBCARRIER_OFFSET_TAG;
   cfg->num_tlv++;
 
@@ -354,8 +364,9 @@ void config_common(int Mod_idP, int ssb_SubcarrierOffset, int pdsch_AntennaPorts
   cfg->ssb_table.ssb_mask_list[1].ssb_mask.tl.tag = NFAPI_NR_CONFIG_SSB_MASK_TAG;
   cfg->num_tlv+=2;
 
+  // logical antenna ports
   cfg->carrier_config.num_tx_ant.value = pdsch_AntennaPorts;
-  AssertFatal(pdsch_AntennaPorts > 0 && pdsch_AntennaPorts < 13, "pdsch_AntennaPorts in 1...12\n");
+  AssertFatal(pdsch_AntennaPorts > 0 && pdsch_AntennaPorts < 33, "pdsch_AntennaPorts in 1...32\n");
   cfg->carrier_config.num_tx_ant.tl.tag = NFAPI_NR_CONFIG_NUM_TX_ANT_TAG;
 
   int num_ssb=0;
@@ -385,18 +396,17 @@ void config_common(int Mod_idP, int ssb_SubcarrierOffset, int pdsch_AntennaPorts
   cfg->num_tlv++;
 
   // TDD Table Configuration
-  //cfg->tdd_table.tdd_period.value = scc->tdd_UL_DL_ConfigurationCommon->pattern1.dl_UL_TransmissionPeriodicity;
-  cfg->tdd_table.tdd_period.tl.tag = NFAPI_NR_CONFIG_TDD_PERIOD_TAG;
-  cfg->num_tlv++;
-  if (scc->tdd_UL_DL_ConfigurationCommon->pattern1.ext1 == NULL)
-    cfg->tdd_table.tdd_period.value = scc->tdd_UL_DL_ConfigurationCommon->pattern1.dl_UL_TransmissionPeriodicity;
-  else {
-    AssertFatal(scc->tdd_UL_DL_ConfigurationCommon->pattern1.ext1->dl_UL_TransmissionPeriodicity_v1530 != NULL,
-		"scc->tdd_UL_DL_ConfigurationCommon->pattern1.ext1->dl_UL_TransmissionPeriodicity_v1530 is null\n");
-    cfg->tdd_table.tdd_period.value = *scc->tdd_UL_DL_ConfigurationCommon->pattern1.ext1->dl_UL_TransmissionPeriodicity_v1530;
-  }
-  if(cfg->cell_config.frame_duplex_type.value == TDD){
-    LOG_I(NR_MAC,"Setting TDD configuration period to %d\n",cfg->tdd_table.tdd_period.value);
+  if (cfg->cell_config.frame_duplex_type.value == TDD){
+    cfg->tdd_table.tdd_period.tl.tag = NFAPI_NR_CONFIG_TDD_PERIOD_TAG;
+    cfg->num_tlv++;
+    if (scc->tdd_UL_DL_ConfigurationCommon->pattern1.ext1 == NULL) {
+      cfg->tdd_table.tdd_period.value = scc->tdd_UL_DL_ConfigurationCommon->pattern1.dl_UL_TransmissionPeriodicity;
+    } else {
+      AssertFatal(scc->tdd_UL_DL_ConfigurationCommon->pattern1.ext1->dl_UL_TransmissionPeriodicity_v1530 != NULL,
+                  "In %s: scc->tdd_UL_DL_ConfigurationCommon->pattern1.ext1->dl_UL_TransmissionPeriodicity_v1530 is null\n", __FUNCTION__);
+      cfg->tdd_table.tdd_period.value = *scc->tdd_UL_DL_ConfigurationCommon->pattern1.ext1->dl_UL_TransmissionPeriodicity_v1530;
+    }
+    LOG_I(NR_MAC, "Setting TDD configuration period to %d\n", cfg->tdd_table.tdd_period.value);
     int periods_per_frame = set_tdd_config_nr(cfg,
                                               scc->uplinkConfigCommon->frequencyInfoUL->scs_SpecificCarrierList.list.array[0]->subcarrierSpacing,
                                               scc->tdd_UL_DL_ConfigurationCommon->pattern1.nrofDownlinkSlots,
@@ -414,38 +424,35 @@ void config_common(int Mod_idP, int ssb_SubcarrierOffset, int pdsch_AntennaPorts
 
 }
 
-extern uint16_t sl_ahead;
+
 int rrc_mac_config_req_gNB(module_id_t Mod_idP,
                            int ssb_SubcarrierOffset,
                            int pdsch_AntennaPorts,
                            int pusch_AntennaPorts,
+                           int sib1_tda,
+                           int minRXTXTIMEpdsch,
                            NR_ServingCellConfigCommon_t *scc,
-	                         int add_ue,
+                           NR_BCCH_BCH_Message_t *mib,
+	                   int add_ue,
                            uint32_t rnti,
-	                         NR_CellGroupConfig_t *CellGroup) {
+	                   NR_CellGroupConfig_t *CellGroup) {
 
   if (scc != NULL ) {
     AssertFatal((scc->ssb_PositionsInBurst->present > 0) && (scc->ssb_PositionsInBurst->present < 4), "SSB Bitmap type %d is not valid\n",scc->ssb_PositionsInBurst->present);
 
     /* dimension UL_tti_req_ahead for number of slots in frame */
-    const uint8_t slots_per_frame[5] = {10, 20, 40, 80, 160};
-    const int n = slots_per_frame[*scc->ssbSubcarrierSpacing];
+    const int n = nr_slots_per_frame[*scc->ssbSubcarrierSpacing];
     RC.nrmac[Mod_idP]->UL_tti_req_ahead[0] = calloc(n, sizeof(nfapi_nr_ul_tti_request_t));
     AssertFatal(RC.nrmac[Mod_idP]->UL_tti_req_ahead[0],
                 "could not allocate memory for RC.nrmac[]->UL_tti_req_ahead[]\n");
-    /* fill in slot/frame numbers: slot is fixed, frame will be updated by
-     * scheduler */
+    /* fill in slot/frame numbers: slot is fixed, frame will be updated by scheduler
+     * consider that scheduler runs sl_ahead: the first sl_ahead slots are
+     * already "in the past" and thus we put frame 1 instead of 0! */
     for (int i = 0; i < n; ++i) {
       nfapi_nr_ul_tti_request_t *req = &RC.nrmac[Mod_idP]->UL_tti_req_ahead[0][i];
-      /* consider that scheduler runs sl_ahead: the first sl_ahead slots are
-       * already "in the past" and thus we put frame 1 instead of 0!  Note that
-       * variable sl_ahead seems to not be correctly initialized, but I leave
-       * it for information purposes here (the fix would always put 0, what
-       * happens now, too) */
-      req->SFN = i < sl_ahead;
+      req->SFN = i < (RC.nrmac[Mod_idP]->if_inst->sl_ahead-1);
       req->Slot = i;
     }
-
     RC.nrmac[Mod_idP]->common_channels[0].vrb_map_UL =
         calloc(n * MAX_BWP_SIZE, sizeof(uint16_t));
     AssertFatal(RC.nrmac[Mod_idP]->common_channels[0].vrb_map_UL,
@@ -457,7 +464,7 @@ int rrc_mac_config_req_gNB(module_id_t Mod_idP,
                   ssb_SubcarrierOffset,
                   pdsch_AntennaPorts,
                   pusch_AntennaPorts,
-                  scc);
+		  scc);
     LOG_D(NR_MAC, "%s() %s:%d RC.nrmac[Mod_idP]->if_inst->NR_PHY_config_req:%p\n", __FUNCTION__, __FILE__, __LINE__, RC.nrmac[Mod_idP]->if_inst->NR_PHY_config_req);
   
     // if in nFAPI mode 
@@ -469,6 +476,7 @@ int rrc_mac_config_req_gNB(module_id_t Mod_idP,
       }
     }
     RC.nrmac[Mod_idP]->ssb_SubcarrierOffset = ssb_SubcarrierOffset;
+    RC.nrmac[Mod_idP]->minRXTXTIMEpdsch = minRXTXTIMEpdsch;
 
     NR_PHY_Config_t phycfg;
     phycfg.Mod_id = Mod_idP;
@@ -479,19 +487,28 @@ int rrc_mac_config_req_gNB(module_id_t Mod_idP,
 
     find_SSB_and_RO_available(Mod_idP);
 
-    const NR_TDD_UL_DL_Pattern_t *tdd = &scc->tdd_UL_DL_ConfigurationCommon->pattern1;
-    const int nr_mix_slots = tdd->nrofDownlinkSymbols != 0 || tdd->nrofUplinkSymbols != 0;
-    const int nr_slots_period = tdd->nrofDownlinkSlots + tdd->nrofUplinkSlots + nr_mix_slots;
-    const int nr_dlmix_slots = tdd->nrofDownlinkSlots + (tdd->nrofDownlinkSymbols != 0);
-    const int nr_ulstart_slot = tdd->nrofDownlinkSlots + (tdd->nrofUplinkSymbols == 0);
+    const NR_TDD_UL_DL_Pattern_t *tdd = scc->tdd_UL_DL_ConfigurationCommon ? &scc->tdd_UL_DL_ConfigurationCommon->pattern1 : NULL;
+
+    int nr_slots_period = n;
+    int nr_dl_slots = n;
+    int nr_ulstart_slot = 0;
+    if (tdd) {
+      nr_dl_slots = tdd->nrofDownlinkSlots + (tdd->nrofDownlinkSymbols != 0);
+      nr_ulstart_slot = tdd->nrofDownlinkSlots + (tdd->nrofUplinkSymbols == 0);
+      nr_slots_period /= get_nb_periods_per_frame(tdd->dl_UL_TransmissionPeriodicity);
+    }
+    else
+      // if TDD configuration is not present and the band is not FDD, it means it is a dynamic TDD configuration
+      AssertFatal(RC.nrmac[Mod_idP]->common_channels[0].frame_type == FDD,"Dynamic TDD not handled yet\n");
 
     for (int slot = 0; slot < n; ++slot) {
-      /* FIXME: it seems there is a problem with slot 0/10/slots right after UL:
-       * we just get retransmissions. Thus, do not schedule such slots in DL */
-      if (slot % nr_slots_period != 0)
-        RC.nrmac[Mod_idP]->dlsch_slot_bitmap[slot / 64] |= (uint64_t)((slot % nr_slots_period) < nr_dlmix_slots) << (slot % 64);
+      if (RC.nrmac[Mod_idP]->common_channels[0].frame_type == FDD ||
+          (slot != 0))
+        RC.nrmac[Mod_idP]->dlsch_slot_bitmap[slot / 64] |= (uint64_t)((slot % nr_slots_period) < nr_dl_slots) << (slot % 64);
       RC.nrmac[Mod_idP]->ulsch_slot_bitmap[slot / 64] |= (uint64_t)((slot % nr_slots_period) >= nr_ulstart_slot) << (slot % 64);
-      LOG_D(NR_MAC, "slot %d DL %d UL %d\n",
+
+      LOG_I(NR_MAC, "In %s: slot %d DL %d UL %d\n",
+            __FUNCTION__,
             slot,
             (RC.nrmac[Mod_idP]->dlsch_slot_bitmap[slot / 64] & ((uint64_t)1 << (slot % 64))) != 0,
             (RC.nrmac[Mod_idP]->ulsch_slot_bitmap[slot / 64] & ((uint64_t)1 << (slot % 64))) != 0);
@@ -507,21 +524,24 @@ int rrc_mac_config_req_gNB(module_id_t Mod_idP,
 
     if (get_softmodem_params()->sa > 0) {
       NR_COMMON_channels_t *cc = &RC.nrmac[Mod_idP]->common_channels[0];
+      RC.nrmac[Mod_idP]->sib1_tda = sib1_tda;
       for (int n=0;n<NR_NB_RA_PROC_MAX;n++ ) {
-	       cc->ra[n].cfra = false;
-	       cc->ra[n].rnti = 0;
-	       cc->ra[n].preambles.num_preambles = MAX_NUM_NR_PRACH_PREAMBLES;
-	       cc->ra[n].preambles.preamble_list = (uint8_t *) malloc(MAX_NUM_NR_PRACH_PREAMBLES*sizeof(uint8_t));
-	       for (int i = 0; i < MAX_NUM_NR_PRACH_PREAMBLES; i++)
-	          cc->ra[n].preambles.preamble_list[i] = i;
+        cc->ra[n].cfra = false;
+        cc->ra[n].msg3_dcch_dtch = false;
+        cc->ra[n].rnti = 0;
+        cc->ra[n].preambles.num_preambles = MAX_NUM_NR_PRACH_PREAMBLES;
+        cc->ra[n].preambles.preamble_list = (uint8_t *) malloc(MAX_NUM_NR_PRACH_PREAMBLES*sizeof(uint8_t));
+        for (int i = 0; i < MAX_NUM_NR_PRACH_PREAMBLES; i++)
+          cc->ra[n].preambles.preamble_list[i] = i;
       }
     }
   }
-  
+ 
+  if (mib) RC.nrmac[Mod_idP]->common_channels[0].mib = mib; 
+ 
   if (CellGroup) {
 
     const NR_ServingCellConfig_t *servingCellConfig = CellGroup->spCellConfig->spCellConfigDedicated;
-
     const struct NR_ServingCellConfig__downlinkBWP_ToAddModList *bwpList = servingCellConfig->downlinkBWP_ToAddModList;
     if(bwpList) {
       AssertFatal(bwpList->list.count > 0, "downlinkBWP_ToAddModList has no BWPs!\n");
@@ -529,11 +549,13 @@ int rrc_mac_config_req_gNB(module_id_t Mod_idP,
         const NR_BWP_Downlink_t *bwp = bwpList->list.array[i];
         calculate_preferred_dl_tda(Mod_idP, bwp);
       }
+    } else {
+      calculate_preferred_dl_tda(Mod_idP, NULL);
     }
 
     const struct NR_UplinkConfig__uplinkBWP_ToAddModList *ubwpList = servingCellConfig->uplinkConfig->uplinkBWP_ToAddModList;
     if(ubwpList) {
-      AssertFatal(ubwpList->list.count > 0, "downlinkBWP_ToAddModList no BWPs!\n");
+      AssertFatal(ubwpList->list.count > 0, "uplinkBWP_ToAddModList no BWPs!\n");
       for (int i = 0; i < ubwpList->list.count; ++i) {
         const NR_BWP_Uplink_t *ubwp = ubwpList->list.array[i];
         calculate_preferred_ul_tda(Mod_idP, ubwp);
@@ -587,17 +609,61 @@ int rrc_mac_config_req_gNB(module_id_t Mod_idP,
         for (int i = 0; i < MAX_NUM_NR_PRACH_PREAMBLES; i++)
           ra->preambles.preamble_list[i] = i;
       }
+      ra->msg3_dcch_dtch = false;
       LOG_I(NR_MAC,"Added new RA process for UE RNTI %04x with initial CellGroup\n", rnti);
     } else { // CellGroup has been updated
+      NR_ServingCellConfigCommon_t *scc = RC.nrmac[Mod_idP]->common_channels[0].ServingCellConfigCommon;
       const int UE_id = find_nr_UE_id(Mod_idP,rnti);
+      int target_ss;
       UE_info->CellGroup[UE_id] = CellGroup;
       LOG_I(NR_MAC,"Modified UE_id %d/%x with CellGroup\n",UE_id,rnti);
       process_CellGroup(CellGroup,&UE_info->UE_sched_ctrl[UE_id]);
+      const NR_ServingCellConfig_t *servingCellConfig = CellGroup ? CellGroup->spCellConfig->spCellConfigDedicated : NULL;
+      NR_UE_sched_ctrl_t *sched_ctrl = &UE_info->UE_sched_ctrl[UE_id];
+      sched_ctrl->update_pdsch_ps = true;
+      sched_ctrl->update_pusch_ps = true;
+      const NR_PDSCH_ServingCellConfig_t *pdsch = servingCellConfig ? servingCellConfig->pdsch_ServingCellConfig->choice.setup : NULL;
+      if (get_softmodem_params()->sa) {
+        // add all available DL HARQ processes for this UE in SA
+        create_dl_harq_list(sched_ctrl, pdsch);
+      }
+      // update coreset/searchspace
+      void *bwpd = NULL;
+      NR_BWP_t *genericParameters = NULL;
+      target_ss = NR_SearchSpace__searchSpaceType_PR_common;
+      if ((sched_ctrl->active_bwp)) {
+        target_ss = NR_SearchSpace__searchSpaceType_PR_ue_Specific;
+        bwpd = (void*)sched_ctrl->active_bwp->bwp_Dedicated;
+        genericParameters = &sched_ctrl->active_bwp->bwp_Common->genericParameters;
+      }
+      else if (CellGroup->spCellConfig &&
+                 CellGroup->spCellConfig->spCellConfigDedicated &&
+                 (CellGroup->spCellConfig->spCellConfigDedicated->initialDownlinkBWP)) {
+        target_ss = NR_SearchSpace__searchSpaceType_PR_ue_Specific;
+        bwpd = (void*)CellGroup->spCellConfig->spCellConfigDedicated->initialDownlinkBWP;
+        genericParameters = &scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters;
+      }
+      else
+        AssertFatal(1==0,"Either initial BWP or active BWP should always be present\n");
+      sched_ctrl->search_space = get_searchspace(scc, bwpd, target_ss);
+      sched_ctrl->coreset = get_coreset(Mod_idP, scc, bwpd, sched_ctrl->search_space, target_ss);
+      sched_ctrl->sched_pdcch = set_pdcch_structure(RC.nrmac[Mod_idP],
+                                                    sched_ctrl->search_space,
+                                                    sched_ctrl->coreset,
+                                                    scc,
+                                                    genericParameters,
+                                                    NULL);
+      sched_ctrl->maxL = 2;
+      if (CellGroup->spCellConfig &&
+          CellGroup->spCellConfig->spCellConfigDedicated &&
+          CellGroup->spCellConfig->spCellConfigDedicated->csi_MeasConfig &&
+          CellGroup->spCellConfig->spCellConfigDedicated->csi_MeasConfig->choice.setup
+        )
+      compute_csi_bitlen (CellGroup->spCellConfig->spCellConfigDedicated->csi_MeasConfig->choice.setup, UE_info, UE_id, Mod_idP);
     }
   }
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_RRC_MAC_CONFIG, VCD_FUNCTION_OUT);
   
-    
   return(0);
 
 }// END rrc_mac_config_req_gNB

@@ -33,7 +33,6 @@
 #include <stdint.h>
 #include "PHY/NR_TRANSPORT/nr_transport_common_proto.h"
 #include "PHY/NR_TRANSPORT/nr_ulsch.h"
-#include "PHY/NR_REFSIG/nr_refsig.h"
 
 int16_t find_nr_ulsch(uint16_t rnti, PHY_VARS_gNB *gNB,find_type_t type) {
 
@@ -82,82 +81,29 @@ void nr_fill_ulsch(PHY_VARS_gNB *gNB,
 
 }
 
-void nr_ulsch_unscrambling(int16_t* llr,
-                           uint32_t size,
-                           uint8_t q,
-                           uint32_t Nid,
-                           uint32_t n_RNTI) {
-
-  uint8_t reset;
-  uint32_t x1, x2, s=0;
-
-  reset = 1;
-  x2 = (n_RNTI<<15) + Nid;
-
-  for (uint32_t i=0; i<size; i++) {
-    if ((i&0x1f)==0) {
-      s = lte_gold_generic(&x1, &x2, reset);
-      reset = 0;
-    }
-    if (((s>>(i&0x1f))&1)==1)
-      llr[i] = -llr[i];
-  }
+void nr_ulsch_unscrambling(int16_t* llr, uint32_t size, uint32_t Nid, uint32_t n_RNTI)
+{
+  nr_codeword_unscrambling(llr, size, 0, Nid, n_RNTI);
 }
 
-void nr_ulsch_unscrambling_optim(int16_t* llr,
-				 uint32_t size,
-				 uint8_t q,
-				 uint32_t Nid,
-				 uint32_t n_RNTI) {
-  
-#if defined(__x86_64__) || defined(__i386__)
-  uint32_t x1, x2, s=0;
-
-  x2 = (n_RNTI<<15) + Nid;
-
-  uint8_t *s8=(uint8_t *)&s;
-  __m128i *llr128 = (__m128i*)llr;
-  int j=0;
-  s = lte_gold_generic(&x1, &x2, 1);
-
-  for (int i=0; i<((size>>5)+((size&0x1f) > 0 ? 1 : 0)); i++,j+=4) {
-    llr128[j]   = _mm_mullo_epi16(llr128[j],byte2m128i[s8[0]]);
-    llr128[j+1] = _mm_mullo_epi16(llr128[j+1],byte2m128i[s8[1]]);
-    llr128[j+2] = _mm_mullo_epi16(llr128[j+2],byte2m128i[s8[2]]);
-    llr128[j+3] = _mm_mullo_epi16(llr128[j+3],byte2m128i[s8[3]]);
-    s = lte_gold_generic(&x1, &x2, 0);
-  }
-#else
-
-    nr_ulsch_unscrambling(llr,
-                          size,
-                          q,
-                          Nid,
-                          n_RNTI);
-#endif
-}
-
-#define STATSTRLEN 16384
 void dump_pusch_stats(FILE *fd,PHY_VARS_gNB *gNB) {
 
-  char output[16384];
-  int stroff=0;
-
   for (int i=0;i<gNB->number_of_nr_ulsch_max;i++) {
-    if (gNB->ulsch_stats[i].rnti>0) {
+
+    if (gNB->ulsch_stats[i].rnti>0 && gNB->ulsch_stats[i].frame != gNB->ulsch_stats[i].dump_frame) {
+      gNB->ulsch_stats[i].dump_frame = gNB->ulsch_stats[i].frame; 
       for (int aa=0;aa<gNB->frame_parms.nb_antennas_rx;aa++)
-          if (aa==0) stroff+=sprintf(output+stroff,"ULSCH RNTI %4x: ulsch_power[%d] %d,%d ulsch_noise_power[%d] %d.%d\n",
-                                     gNB->ulsch_stats[i].rnti,
+          if (aa==0) fprintf(fd,"ULSCH RNTI %4x, %d.%d: ulsch_power[%d] %d,%d ulsch_noise_power[%d] %d.%d, sync_pos %d\n",
+                                     gNB->ulsch_stats[i].rnti,gNB->ulsch_stats[i].frame,gNB->ulsch_stats[i].dump_frame,
+                                     aa,gNB->ulsch_stats[i].power[aa]/10,gNB->ulsch_stats[i].power[aa]%10,
+                                     aa,gNB->ulsch_stats[i].noise_power[aa]/10,gNB->ulsch_stats[i].noise_power[aa]%10,
+                                     gNB->ulsch_stats[i].sync_pos);
+          else       fprintf(fd,"                  ulsch_power[%d] %d.%d, ulsch_noise_power[%d] %d.%d\n",
                                      aa,gNB->ulsch_stats[i].power[aa]/10,gNB->ulsch_stats[i].power[aa]%10,
                                      aa,gNB->ulsch_stats[i].noise_power[aa]/10,gNB->ulsch_stats[i].noise_power[aa]%10);
-          else       stroff+=sprintf(output+stroff,"                  ulsch_power[%d] %d.%d, ulsch_noise_power[%d] %d.%d\n",
-                                     aa,gNB->ulsch_stats[i].power[aa]/10,gNB->ulsch_stats[i].power[aa]%10,
-                                     aa,gNB->ulsch_stats[i].noise_power[aa]/10,gNB->ulsch_stats[i].noise_power[aa]%10);
-
-      AssertFatal(stroff<(STATSTRLEN-1000),"Increase STATSTRLEN\n");
 
 
-      stroff+=sprintf(output+stroff,"                 round_trials %d(%1.1e):%d(%1.1e):%d(%1.1e):%d, DTX %d, current_Qm %d, current_RI %d, total_bytes RX/SCHED %d/%d\n",
+      fprintf(fd,"                 round_trials %d(%1.1e):%d(%1.1e):%d(%1.1e):%d, DTX %d, current_Qm %d, current_RI %d, total_bytes RX/SCHED %d/%d\n",
 	    gNB->ulsch_stats[i].round_trials[0],
 	    (double)gNB->ulsch_stats[i].round_trials[1]/gNB->ulsch_stats[i].round_trials[0],
 	    gNB->ulsch_stats[i].round_trials[1],
@@ -165,14 +111,13 @@ void dump_pusch_stats(FILE *fd,PHY_VARS_gNB *gNB) {
 	    gNB->ulsch_stats[i].round_trials[2],
 	    (double)gNB->ulsch_stats[i].round_trials[3]/gNB->ulsch_stats[i].round_trials[0],
 	    gNB->ulsch_stats[i].round_trials[3],
-      gNB->ulsch_stats[i].DTX,
+            gNB->ulsch_stats[i].DTX,
 	    gNB->ulsch_stats[i].current_Qm,
 	    gNB->ulsch_stats[i].current_RI,
 	    gNB->ulsch_stats[i].total_bytes_rx,
 	    gNB->ulsch_stats[i].total_bytes_tx);
     }
  }
- fprintf(fd,"%s",output);
 }
 
 void clear_pusch_stats(PHY_VARS_gNB *gNB) {

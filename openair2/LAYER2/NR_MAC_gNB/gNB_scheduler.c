@@ -36,6 +36,7 @@
 #include "NR_MAC_gNB/mac_proto.h"
 
 #include "common/utils/LOG/log.h"
+#include "common/utils/nr/nr_common.h"
 #include "common/utils/LOG/vcd_signal_dumper.h"
 #include "UTIL/OPT/opt.h"
 #include "OCG.h"
@@ -46,9 +47,6 @@
 //#include "LAYER2/MAC/pre_processor.c"
 #include "pdcp.h"
 
-#include "openair1/PHY/defs_gNB.h"
-#include "openair1/PHY/NR_TRANSPORT/nr_dlsch.h"
-
 #include "intertask_interface.h"
 
 #include "executables/softmodem-common.h"
@@ -58,83 +56,10 @@
 #include <errno.h>
 #include <string.h>
 
+const uint8_t nr_rv_round_map[4] = { 0, 2, 3, 1 };
 uint16_t nr_pdcch_order_table[6] = { 31, 31, 511, 2047, 2047, 8191 };
 
 uint8_t vnf_first_sched_entry = 1;
-
-void clear_mac_stats(gNB_MAC_INST *gNB) {
-  memset((void*)gNB->UE_info.mac_stats,0,MAX_MOBILES_PER_GNB*sizeof(NR_mac_stats_t));
-}
-#define MACSTATSSTRLEN 16384
-void dump_mac_stats(gNB_MAC_INST *gNB)
-{
-  NR_UE_info_t *UE_info = &gNB->UE_info;
-  int num = 1;
-  FILE *fd=fopen("nrMAC_stats.log","w");
-  AssertFatal(fd!=NULL,"Cannot open nrMAC_stats.log, error %s\n",strerror(errno));
-  char output[MACSTATSSTRLEN];
-  memset(output,0,MACSTATSSTRLEN);
-  int stroff=0;
-  for (int UE_id = UE_info->list.head; UE_id >= 0; UE_id = UE_info->list.next[UE_id]) {
-    stroff = sprintf(output,"UE ID %d RNTI %04x (%d/%d)\n", UE_id, UE_info->rnti[UE_id], num++, UE_info->num_UEs);
-    LOG_I(NR_MAC, "UE ID %d RNTI %04x (%d/%d) PH %d dB PCMAX %d dBm\n",
-      UE_id,
-      UE_info->rnti[UE_id],
-      num++,
-      UE_info->num_UEs,
-      UE_info->UE_sched_ctrl[UE_id].ph,
-      UE_info->UE_sched_ctrl[UE_id].pcmax);
-    NR_mac_stats_t *stats = &UE_info->mac_stats[UE_id];
-    const int avg_rsrp = stats->num_rsrp_meas > 0 ? stats->cumul_rsrp / stats->num_rsrp_meas : 0;
-    stroff+=sprintf(output+stroff,"UE %d: dlsch_rounds %d/%d/%d/%d, dlsch_errors %d, average RSRP %d (%d meas)\n",
-          UE_id,
-          stats->dlsch_rounds[0], stats->dlsch_rounds[1],
-          stats->dlsch_rounds[2], stats->dlsch_rounds[3], stats->dlsch_errors,
-          avg_rsrp, stats->num_rsrp_meas);
-    LOG_I(NR_MAC, "UE %d: dlsch_rounds %d/%d/%d/%d, dlsch_errors %d, average RSRP %d (%d meas)\n",
-      UE_id,
-      stats->dlsch_rounds[0], stats->dlsch_rounds[1],
-      stats->dlsch_rounds[2], stats->dlsch_rounds[3], stats->dlsch_errors,
-      avg_rsrp, stats->num_rsrp_meas);
-    stats->num_rsrp_meas = 0;
-    stats->cumul_rsrp = 0 ;
-    stroff+=sprintf(output+stroff,"UE %d: dlsch_total_bytes %d\n", UE_id, stats->dlsch_total_bytes);
-    stroff+=sprintf(output+stroff,"UE %d: ulsch_rounds %d/%d/%d/%d, ulsch_DTX %d, ulsch_errors %d\n",
-                    UE_id,
-                    stats->ulsch_rounds[0], stats->ulsch_rounds[1],
-                    stats->ulsch_rounds[2], stats->ulsch_rounds[3],
-                    stats->ulsch_DTX,
-                    stats->ulsch_errors);
-    stroff+=sprintf(output+stroff,
-                    "UE %d: ulsch_total_bytes_scheduled %d, ulsch_total_bytes_received %d\n",
-                    UE_id,
-                    stats->ulsch_total_bytes_scheduled, stats->ulsch_total_bytes_rx);
-    LOG_I(NR_MAC, "UE %d: dlsch_total_bytes %d\n", UE_id, stats->dlsch_total_bytes);
-    LOG_I(NR_MAC, "UE %d: ulsch_rounds %d/%d/%d/%d, ulsch_DTX %d, ulsch_errors %d\n",
-          UE_id,
-          stats->ulsch_rounds[0], stats->ulsch_rounds[1],
-          stats->ulsch_rounds[2], stats->ulsch_rounds[3],
-          stats->ulsch_DTX,
-          stats->ulsch_errors);
-    LOG_I(NR_MAC,
-          "UE %d: ulsch_total_bytes_scheduled %d, ulsch_total_bytes_received %d\n",
-          UE_id,
-          stats->ulsch_total_bytes_scheduled, stats->ulsch_total_bytes_rx);
-    for (int lc_id = 0; lc_id < 63; lc_id++) {
-      if (stats->lc_bytes_tx[lc_id] > 0) {
-        stroff+=sprintf(output+stroff, "UE %d: LCID %d: %d bytes TX\n", UE_id, lc_id, stats->lc_bytes_tx[lc_id]);
-	LOG_D(NR_MAC, "UE %d: LCID %d: %d bytes TX\n", UE_id, lc_id, stats->lc_bytes_tx[lc_id]);
-      }
-      if (stats->lc_bytes_rx[lc_id] > 0) {
-        stroff+=sprintf(output+stroff, "UE %d: LCID %d: %d bytes RX\n", UE_id, lc_id, stats->lc_bytes_rx[lc_id]);
-	LOG_D(NR_MAC, "UE %d: LCID %d: %d bytes RX\n", UE_id, lc_id, stats->lc_bytes_rx[lc_id]);
-      }
-    }
-  }
-  print_meas(&gNB->eNB_scheduler, "DL & UL scheduling timing stats", NULL, NULL);
-  if (stroff>0) fprintf(fd,"%s",output);
-  fclose(fd);
-}
 
 void clear_nr_nfapi_information(gNB_MAC_INST * gNB,
                                 int CC_idP,
@@ -144,7 +69,7 @@ void clear_nr_nfapi_information(gNB_MAC_INST * gNB,
   const int num_slots = nr_slots_per_frame[*scc->ssbSubcarrierSpacing];
 
   nfapi_nr_dl_tti_request_t    *DL_req = &gNB->DL_req[0];
-  nfapi_nr_dl_tti_pdcch_pdu_rel15_t ***pdcch = (nfapi_nr_dl_tti_pdcch_pdu_rel15_t ***)gNB->pdcch_pdu_idx[CC_idP];
+  nfapi_nr_dl_tti_pdcch_pdu_rel15_t **pdcch = (nfapi_nr_dl_tti_pdcch_pdu_rel15_t **)gNB->pdcch_pdu_idx[CC_idP];
   nfapi_nr_ul_tti_request_t    *future_ul_tti_req =
       &gNB->UL_tti_req_ahead[CC_idP][(slotP + num_slots - 1) % num_slots];
   nfapi_nr_ul_dci_request_t    *UL_dci_req = &gNB->UL_dci_req[0];
@@ -157,7 +82,7 @@ void clear_nr_nfapi_information(gNB_MAC_INST * gNB,
   DL_req[CC_idP].dl_tti_request_body.nPDUs             = 0;
   DL_req[CC_idP].dl_tti_request_body.nGroup            = 0;
   //DL_req[CC_idP].dl_tti_request_body.transmission_power_pcfich           = 6000;
-  memset(pdcch, 0, sizeof(**pdcch) * MAX_NUM_BWP * MAX_NUM_CORESET);
+  memset(pdcch, 0, sizeof(*pdcch) * MAX_NUM_CORESET);
 
   UL_dci_req[CC_idP].SFN                         = frameP;
   UL_dci_req[CC_idP].Slot                        = slotP;
@@ -165,7 +90,7 @@ void clear_nr_nfapi_information(gNB_MAC_INST * gNB,
 
   /* advance last round's future UL_tti_req to be ahead of current frame/slot */
   future_ul_tti_req->SFN = (slotP == 0 ? frameP : frameP + 1) % 1024;
-  LOG_D(MAC,"Future_ul_tti SFN = %d for slot %d \n", future_ul_tti_req->SFN, (slotP + num_slots - 1) % num_slots);
+  LOG_D(NR_MAC, "In %s: UL_tti_req_ahead SFN.slot = %d.%d for slot %d \n", __FUNCTION__, future_ul_tti_req->SFN, future_ul_tti_req->Slot, (slotP + num_slots - 1) % num_slots);
   /* future_ul_tti_req->Slot is fixed! */
   future_ul_tti_req->n_pdus = 0;
   future_ul_tti_req->n_ulsch = 0;
@@ -353,19 +278,18 @@ void gNB_dlsch_ulsch_scheduler(module_id_t module_idP,
   protocol_ctxt_t   ctxt={0};
   PROTOCOL_CTXT_SET_BY_MODULE_ID(&ctxt, module_idP, ENB_FLAG_YES, NOT_A_RNTI, frame, slot,module_idP);
 
-  const int bwp_id = 1;
+  char stats_output[16384];
 
   gNB_MAC_INST *gNB = RC.nrmac[module_idP];
   NR_COMMON_channels_t *cc = gNB->common_channels;
   NR_ServingCellConfigCommon_t        *scc     = cc->ServingCellConfigCommon;
 
   if (slot==0 && (*scc->downlinkConfigCommon->frequencyInfoDL->frequencyBandList.list.array[0]>=257)) {
+    //FR2
     const NR_TDD_UL_DL_Pattern_t *tdd = &scc->tdd_UL_DL_ConfigurationCommon->pattern1;
-    const int n = nr_slots_per_frame[*scc->ssbSubcarrierSpacing];
-    const int nr_mix_slots = tdd->nrofDownlinkSymbols != 0 || tdd->nrofUplinkSymbols != 0;
-    const int nr_slots_period = tdd->nrofDownlinkSlots + tdd->nrofUplinkSlots + nr_mix_slots;
-    const int nb_periods_per_frame = n / nr_slots_period;
-    // re-initialization of tdd_beam_association at beginning of frame (only for FR2)
+    AssertFatal(tdd,"Dynamic TDD not handled yet\n");
+    const int nb_periods_per_frame = get_nb_periods_per_frame(tdd->dl_UL_TransmissionPeriodicity);
+    // re-initialization of tdd_beam_association at beginning of frame
     for (int i=0; i<nb_periods_per_frame; i++)
       gNB->tdd_beam_association[i] = -1;
   }
@@ -383,12 +307,8 @@ void gNB_dlsch_ulsch_scheduler(module_id_t module_idP,
     nr_rrc_trigger(&ctxt, 0 /*CC_id*/, frame, slot >> *scc->ssbSubcarrierSpacing);
   }
 
-  memset(RC.nrmac[module_idP]->cce_list[0][0],0,MAX_NUM_CCE*sizeof(int)); // coreset0
-  memset(RC.nrmac[module_idP]->cce_list[bwp_id][1],0,MAX_NUM_CCE*sizeof(int)); // coresetid 1
-  NR_UE_info_t *UE_info = &RC.nrmac[module_idP]->UE_info;
-  for (int UE_id = UE_info->list.head; UE_id >= 0; UE_id = UE_info->list.next[UE_id])
-    for (int i=0; i<MAX_NUM_CORESET; i++)
-      UE_info->num_pdcch_cand[UE_id][i] = 0;
+  for (int i=0; i<MAX_NUM_CORESET; i++)
+    RC.nrmac[module_idP]->pdcch_cand[i] = 0;
   for (int CC_id = 0; CC_id < MAX_NUM_CCs; CC_id++) {
     //mbsfn_status[CC_id] = 0;
 
@@ -420,8 +340,11 @@ void gNB_dlsch_ulsch_scheduler(module_id_t module_idP,
   }
 
 
-  if ((slot == 0) && (frame & 127) == 0) dump_mac_stats(RC.nrmac[module_idP]);
-
+  if ((slot == 0) && (frame & 127) == 0) {
+     stats_output[0]='\0';
+     dump_mac_stats(RC.nrmac[module_idP],stats_output,16384,true);
+     LOG_I(NR_MAC,"Frame.Slot %d.%d\n%s\n",frame,slot,stats_output);
+  }
 
   // This schedules MIB
   schedule_nr_mib(module_idP, frame, slot);
@@ -445,8 +368,6 @@ void gNB_dlsch_ulsch_scheduler(module_id_t module_idP,
     schedule_nr_prach(module_idP, f, s);
   }
 
-    // This schedule SR
-  nr_sr_reporting(module_idP, frame, slot);
 
   // Schedule CSI-RS transmission
   nr_csirs_scheduling(module_idP, frame, slot, nr_slots_per_frame[*scc->ssbSubcarrierSpacing]);
@@ -454,6 +375,10 @@ void gNB_dlsch_ulsch_scheduler(module_id_t module_idP,
   // Schedule CSI measurement reporting: check in slot 0 for the whole frame
   if (slot == 0)
     nr_csi_meas_reporting(module_idP, frame, slot);
+
+  // Schedule SRS: check in slot 0 for the whole frame
+  if (slot == 0)
+    nr_schedule_srs(module_idP, frame);
 
   // This schedule RA procedure if not in phy_test mode
   // Otherwise already consider 5G already connected
@@ -465,9 +390,14 @@ void gNB_dlsch_ulsch_scheduler(module_id_t module_idP,
   nr_schedule_ulsch(module_idP, frame, slot);
 
   // This schedules the DCI for Downlink and PDSCH
-  nr_schedule_ue_spec(module_idP, frame, slot);
+  start_meas(&gNB->schedule_dlsch);
+  nr_schedule_ue_spec(module_idP, frame, slot); 
+  stop_meas(&gNB->schedule_dlsch);
 
   nr_schedule_pucch(module_idP, frame, slot);
+
+  // This schedule SR after PUCCH for multiplexing
+  nr_sr_reporting(module_idP, frame, slot);
 
   stop_meas(&RC.nrmac[module_idP]->eNB_scheduler);
   

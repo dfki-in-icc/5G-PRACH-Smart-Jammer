@@ -295,9 +295,6 @@ uint8_t nr_pdcch_alloc2ul_subframe(NR_DL_FRAME_PARMS *frame_parms,uint8_t n);
 uint32_t nr_pdcch_alloc2ul_frame(NR_DL_FRAME_PARMS *frame_parms,uint32_t frame, uint8_t n);
 
 
-uint16_t nr_get_Np(uint8_t N_RB_DL,uint8_t nCCE,uint8_t plus1);
-
-
 int8_t nr_find_ue(uint16_t rnti, PHY_VARS_eNB *phy_vars_eNB);
 
 /*! \brief UL time alignment procedures for TA application
@@ -340,8 +337,6 @@ uint16_t nr_get_n1_pucch(PHY_VARS_NR_UE *phy_vars_ue,
 */
 UE_MODE_t get_nrUE_mode(uint8_t Mod_id,uint8_t CC_id,uint8_t gNB_index);
 
-uint8_t get_ra_PreambleIndex(uint8_t Mod_id, uint8_t CC_id, uint8_t gNB_id);
-
 /*! \brief This function implements the power control mechanism for PUCCH from 36.213.
     @param phy_vars_ue PHY variables
     @param proc Pointer to proc descriptor
@@ -360,30 +355,11 @@ int16_t nr_pucch_power_cntl(PHY_VARS_NR_UE *ue,UE_nr_rxtx_proc_t *proc,uint8_t s
  */
 void nr_pusch_power_cntl(PHY_VARS_NR_UE *phy_vars_ue,UE_nr_rxtx_proc_t *proc,uint8_t eNB_id,uint8_t j, uint8_t abstraction_flag);
 
-/*! \brief This function implements the power control mechanism for SRS from 36.213.
-    @param phy_vars_ue PHY variables
-    @param proc Pointer to proc descriptor
-    @param eNB_id Index of eNB
-    @param j index of type of PUSCH (SPS, Normal, Msg3)
-    @returns Transmit power
- */
-void nr_srs_power_cntl(PHY_VARS_NR_UE *ue,UE_nr_rxtx_proc_t *proc,uint8_t eNB_id,uint8_t *pnb_rb_srs, uint8_t abstraction_flag);
-
 void nr_get_cqipmiri_params(PHY_VARS_NR_UE *ue,uint8_t eNB_id);
-
-
-
-
-
 
 void nr_dump_dlsch(PHY_VARS_NR_UE *phy_vars_ue,UE_nr_rxtx_proc_t *proc,uint8_t eNB_id,uint8_t subframe,uint8_t harq_pid);
 void nr_dump_dlsch_SI(PHY_VARS_NR_UE *phy_vars_ue,UE_nr_rxtx_proc_t *proc,uint8_t eNB_id,uint8_t subframe);
 void nr_dump_dlsch_ra(PHY_VARS_NR_UE *phy_vars_ue,UE_nr_rxtx_proc_t *proc,uint8_t eNB_id,uint8_t subframe);
-
-
-int nr_is_srs_occasion_common(NR_DL_FRAME_PARMS *frame_parms,int frame_tx,int subframe_tx);
-
-void nr_compute_srs_pos(lte_frame_type_t frameType,uint16_t isrs,uint16_t *psrsPeriodicity,uint16_t *psrsOffset);
 
 void set_tx_harq_id(NR_UE_ULSCH_t *ulsch, int harq_pid, int slot_tx);
 int get_tx_harq_id(NR_UE_ULSCH_t *ulsch, int slot_tx);
@@ -418,7 +394,26 @@ void nr_fill_rx_indication(fapi_nr_rx_indication_t *rx_ind,
                            PHY_VARS_NR_UE *ue,
                            NR_UE_DLSCH_t *dlsch0,
                            NR_UE_DLSCH_t *dlsch1,
-                           uint16_t n_pdus);
+                           uint16_t n_pdus,
+                           UE_nr_rxtx_proc_t *proc);
+
+bool nr_ue_dlsch_procedures(PHY_VARS_NR_UE *ue,
+                            UE_nr_rxtx_proc_t *proc,
+                            int gNB_id,
+                            PDSCH_t pdsch,
+                            NR_UE_DLSCH_t *dlsch0,
+                            NR_UE_DLSCH_t *dlsch1,
+                            int *dlsch_errors);
+
+int nr_ue_pdsch_procedures(PHY_VARS_NR_UE *ue,
+                           UE_nr_rxtx_proc_t *proc,
+                           int eNB_id, PDSCH_t pdsch,
+                           NR_UE_DLSCH_t *dlsch0, NR_UE_DLSCH_t *dlsch1);
+
+int nr_ue_pdcch_procedures(uint8_t gNB_id,
+			   PHY_VARS_NR_UE *ue,
+			   UE_nr_rxtx_proc_t *proc,
+                           int n_ss);
 
 
 #endif

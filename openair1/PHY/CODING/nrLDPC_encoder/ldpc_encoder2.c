@@ -36,10 +36,8 @@
 #include <types.h>
 #include "assertions.h"
 #include "common/utils/LOG/log.h"
-#include "PHY/TOOLS/time_meas.h"
+#include "time_meas.h"
 #include "defs.h"
-
-//#define DEBUG_LDPC
 
 #include "ldpc384_byte.c"
 #include "ldpc352_byte.c"

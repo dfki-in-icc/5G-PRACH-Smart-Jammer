@@ -555,6 +555,7 @@ void *trx_usrp_write_thread(void * arg){
     s->tx_md.start_of_burst = (s->tx_count==0) ? true : first_packet;
     s->tx_md.end_of_burst   = last_packet;
     s->tx_md.time_spec      = uhd::time_spec_t::from_ticks(timestamp, s->sample_rate);
+    LOG_D(PHY,"usrp_tx_write: tx_count %llu SoB %d, EoB %d, TS %llu\n",(unsigned long long)s->tx_count,s->tx_md.start_of_burst,s->tx_md.end_of_burst,(unsigned long long)timestamp); 
     s->tx_count++;
 
     // bit 3 enables gpio (for backward compatibility)
@@ -647,57 +648,56 @@ static int trx_usrp_read(openair0_device *device, openair0_timestamp *ptimestamp
        AssertFatal(1==0,"Shouldn't be here\n");
   }
 
-    samples_received=0;
-    while (samples_received != nsamps) {
+  samples_received=0;
+  while (samples_received != nsamps) {
 
-      if (cc>1) {
+    if (cc>1) {
       // receive multiple channels (e.g. RF A and RF B)
-        std::vector<void *> buff_ptrs;
+      std::vector<void *> buff_ptrs;
 
-        for (int i=0; i<cc; i++) buff_ptrs.push_back(buff_tmp[i]+samples_received);
-
-        samples_received += s->rx_stream->recv(buff_ptrs, nsamps, s->rx_md);
-      } else {
+      for (int i=0; i<cc; i++) buff_ptrs.push_back(buff_tmp[i]+samples_received);
+      samples_received += s->rx_stream->recv(buff_ptrs, nsamps, s->rx_md);
+    } else {
       // receive a single channel (e.g. from connector RF A)
 
-        samples_received += s->rx_stream->recv((void*)((int32_t*)buff_tmp[0]+samples_received),
-                                               nsamps-samples_received, s->rx_md);
-      }
-      if  ((s->wait_for_first_pps == 0) && (s->rx_md.error_code!=uhd::rx_metadata_t::ERROR_CODE_NONE))
-        break;
-
-      if ((s->wait_for_first_pps == 1) && (samples_received != nsamps)) {
-        printf("sleep...\n"); //usleep(100);
-      }
+      samples_received += s->rx_stream->recv((void*)((int32_t*)buff_tmp[0]+samples_received),
+                                             nsamps-samples_received, s->rx_md);
     }
-    if (samples_received == nsamps) s->wait_for_first_pps=0;
+    if  ((s->wait_for_first_pps == 0) && (s->rx_md.error_code!=uhd::rx_metadata_t::ERROR_CODE_NONE))
+      break;
+
+    if ((s->wait_for_first_pps == 1) && (samples_received != nsamps)) {
+      printf("sleep...\n"); //usleep(100);
+    }
+  }
+  if (samples_received == nsamps) s->wait_for_first_pps=0;
 
     // bring RX data into 12 LSBs for softmodem RX
-    for (int i=0; i<cc; i++) {
-      for (int j=0; j<nsamps2; j++) {
+  for (int i=0; i<cc; i++) {
+
 #if defined(__x86_64__) || defined(__i386__)
 #ifdef __AVX2__
-        // FK: in some cases the buffer might not be 32 byte aligned, so we cannot use avx2
 
-        if ((((uintptr_t) buff[i])&0x1F)==0) {
-          ((__m256i *)buff[i])[j] = _mm256_srai_epi16(buff_tmp[i][j],rxshift);
-        } else {
-          ((__m128i *)buff[i])[2*j] = _mm_srai_epi16(((__m128i *)buff_tmp[i])[2*j],rxshift);
-          ((__m128i *)buff[i])[2*j+1] = _mm_srai_epi16(((__m128i *)buff_tmp[i])[2*j+1],rxshift);
-        }
-
-#else
+      if ((((uintptr_t) buff[i])&0x1F)==0) {
+        for (int j=0; j<nsamps2; j++) 
+           ((__m256i *)buff[i])[j] = _mm256_srai_epi16(buff_tmp[i][j],rxshift);
+      } else {
+        for (int j=0; j<(nsamps2<<1); j++) 
+          ((__m128i *)buff[i])[j]  = _mm_srai_epi16(((__m128i *)buff_tmp[i])[j],rxshift);
+      }
+#else    
+      for (int j=0; j<nsamps2; j++) 
         ((__m128i *)buff[i])[j] = _mm_srai_epi16(buff_tmp[i][j],rxshift);
 #endif
 #elif defined(__arm__)
+      for (int j=0; j<nsamps2; j++) 
         ((int16x8_t *)buff[i])[j] = vshrq_n_s16(buff_tmp[i][j],rxshift);
 #endif
-      }
-    }
+  }
 
-    if (samples_received < nsamps) {
-      LOG_E(HW,"[recv] received %d samples out of %d\n",samples_received,nsamps);
-    }
+  if (samples_received < nsamps) {
+    LOG_E(HW,"[recv] received %d samples out of %d\n",samples_received,nsamps);
+  }
 
   if ( s->rx_md.error_code != uhd::rx_metadata_t::ERROR_CODE_NONE)
     LOG_E(HW, "%s\n", s->rx_md.to_pp_string(true).c_str());
@@ -940,6 +940,7 @@ extern "C" {
     LOG_I(HW, "openair0_cfg[0].sdr_addrs == '%s'\n", openair0_cfg[0].sdr_addrs);
     LOG_I(HW, "openair0_cfg[0].clock_source == '%d' (internal = %d, external = %d)\n", openair0_cfg[0].clock_source,internal,external);
     usrp_state_t *s ;
+    int choffset = 0;
 
     if ( device->priv == NULL) {
       s=(usrp_state_t *)calloc(sizeof(usrp_state_t),1);
@@ -1248,10 +1249,10 @@ extern "C" {
 
   for(int i=0; i<((int) s->usrp->get_rx_num_channels()); i++) {
     if (i<openair0_cfg[0].rx_num_channels) {
-      s->usrp->set_rx_rate(openair0_cfg[0].sample_rate,i);
-      s->usrp->set_rx_freq(openair0_cfg[0].rx_freq[i],i);
+      s->usrp->set_rx_rate(openair0_cfg[0].sample_rate,i+choffset);
+      s->usrp->set_rx_freq(openair0_cfg[0].rx_freq[i],i+choffset);
       set_rx_gain_offset(&openair0_cfg[0],i,bw_gain_adjust);
-      ::uhd::gain_range_t gain_range = s->usrp->get_rx_gain_range(i);
+      ::uhd::gain_range_t gain_range = s->usrp->get_rx_gain_range(i+choffset);
       // limit to maximum gain
       double gain=openair0_cfg[0].rx_gain[i]-openair0_cfg[0].rx_gain_offset[i];
       if ( gain > gain_range.stop())  {
@@ -1260,7 +1261,7 @@ extern "C" {
                gain=gain_range.stop();
       }
 
-      s->usrp->set_rx_gain(gain,i);
+      s->usrp->set_rx_gain(gain,i+choffset);
       LOG_I(HW,"RX Gain %d %f (%f) => %f (max %f)\n",i,
             openair0_cfg[0].rx_gain[i],openair0_cfg[0].rx_gain_offset[i],
             openair0_cfg[0].rx_gain[i]-openair0_cfg[0].rx_gain_offset[i],gain_range.stop());
@@ -1274,9 +1275,9 @@ extern "C" {
     ::uhd::gain_range_t gain_range_tx = s->usrp->get_tx_gain_range(i);
 
     if (i<openair0_cfg[0].tx_num_channels) {
-      s->usrp->set_tx_rate(openair0_cfg[0].sample_rate,i);
-      s->usrp->set_tx_freq(openair0_cfg[0].tx_freq[i],i);
-      s->usrp->set_tx_gain(gain_range_tx.stop()-openair0_cfg[0].tx_gain[i],i);
+      s->usrp->set_tx_rate(openair0_cfg[0].sample_rate,i+choffset);
+      s->usrp->set_tx_freq(openair0_cfg[0].tx_freq[i],i+choffset);
+      s->usrp->set_tx_gain(gain_range_tx.stop()-openair0_cfg[0].tx_gain[i],i+choffset);
       LOG_I(HW,"USRP TX_GAIN:%3.2lf gain_range:%3.2lf tx_gain:%3.2lf\n", gain_range_tx.stop()-openair0_cfg[0].tx_gain[i], gain_range_tx.stop(), openair0_cfg[0].tx_gain[i]);
     }
   }
@@ -1303,41 +1304,41 @@ extern "C" {
         s->usrp->get_rx_stream(stream_args_rx)->get_max_num_samps());
 
   for (int i = 0; i<openair0_cfg[0].rx_num_channels; i++) {
-    LOG_I(HW,"setting rx channel %d\n",i);
-    stream_args_rx.channels.push_back(i);
+    LOG_I(HW,"setting rx channel %d\n",i+choffset);
+    stream_args_rx.channels.push_back(i+choffset);
   }
 
   s->rx_stream = s->usrp->get_rx_stream(stream_args_rx);
   uhd::stream_args_t stream_args_tx("sc16", "sc16");
 
   for (int i = 0; i<openair0_cfg[0].tx_num_channels; i++)
-    stream_args_tx.channels.push_back(i);
+    stream_args_tx.channels.push_back(i+choffset);
 
   s->tx_stream = s->usrp->get_tx_stream(stream_args_tx);
 
   /* Setting TX/RX BW after streamers are created due to USRP calibration issue */
   for(int i=0; i<((int) s->usrp->get_tx_num_channels()) && i<openair0_cfg[0].tx_num_channels; i++)
-    s->usrp->set_tx_bandwidth(openair0_cfg[0].tx_bw,i);
+    s->usrp->set_tx_bandwidth(openair0_cfg[0].tx_bw,i+choffset);
 
   for(int i=0; i<((int) s->usrp->get_rx_num_channels()) && i<openair0_cfg[0].rx_num_channels; i++)
-    s->usrp->set_rx_bandwidth(openair0_cfg[0].rx_bw,i);
+    s->usrp->set_rx_bandwidth(openair0_cfg[0].rx_bw,i+choffset);
 
   for (int i=0; i<openair0_cfg[0].rx_num_channels; i++) {
     LOG_I(HW,"RX Channel %d\n",i);
-    LOG_I(HW,"  Actual RX sample rate: %fMSps...\n",s->usrp->get_rx_rate(i)/1e6);
-    LOG_I(HW,"  Actual RX frequency: %fGHz...\n", s->usrp->get_rx_freq(i)/1e9);
-    LOG_I(HW,"  Actual RX gain: %f...\n", s->usrp->get_rx_gain(i));
-    LOG_I(HW,"  Actual RX bandwidth: %fM...\n", s->usrp->get_rx_bandwidth(i)/1e6);
-    LOG_I(HW,"  Actual RX antenna: %s...\n", s->usrp->get_rx_antenna(i).c_str());
+    LOG_I(HW,"  Actual RX sample rate: %fMSps...\n",s->usrp->get_rx_rate(i+choffset)/1e6);
+    LOG_I(HW,"  Actual RX frequency: %fGHz...\n", s->usrp->get_rx_freq(i+choffset)/1e9);
+    LOG_I(HW,"  Actual RX gain: %f...\n", s->usrp->get_rx_gain(i+choffset));
+    LOG_I(HW,"  Actual RX bandwidth: %fM...\n", s->usrp->get_rx_bandwidth(i+choffset)/1e6);
+    LOG_I(HW,"  Actual RX antenna: %s...\n", s->usrp->get_rx_antenna(i+choffset).c_str());
   }
 
   for (int i=0; i<openair0_cfg[0].tx_num_channels; i++) {
     LOG_I(HW,"TX Channel %d\n",i);
-    LOG_I(HW,"  Actual TX sample rate: %fMSps...\n", s->usrp->get_tx_rate(i)/1e6);
-    LOG_I(HW,"  Actual TX frequency: %fGHz...\n", s->usrp->get_tx_freq(i)/1e9);
-    LOG_I(HW,"  Actual TX gain: %f...\n", s->usrp->get_tx_gain(i));
-    LOG_I(HW,"  Actual TX bandwidth: %fM...\n", s->usrp->get_tx_bandwidth(i)/1e6);
-    LOG_I(HW,"  Actual TX antenna: %s...\n", s->usrp->get_tx_antenna(i).c_str());
+    LOG_I(HW,"  Actual TX sample rate: %fMSps...\n", s->usrp->get_tx_rate(i+choffset)/1e6);
+    LOG_I(HW,"  Actual TX frequency: %fGHz...\n", s->usrp->get_tx_freq(i+choffset)/1e9);
+    LOG_I(HW,"  Actual TX gain: %f...\n", s->usrp->get_tx_gain(i+choffset));
+    LOG_I(HW,"  Actual TX bandwidth: %fM...\n", s->usrp->get_tx_bandwidth(i+choffset)/1e6);
+    LOG_I(HW,"  Actual TX antenna: %s...\n", s->usrp->get_tx_antenna(i+choffset).c_str());
     LOG_I(HW,"  Actual TX packet size: %lu\n",s->tx_stream->get_max_num_samps());
   }
 

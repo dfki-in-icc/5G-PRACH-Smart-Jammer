@@ -123,12 +123,12 @@ typedef enum UE_STATE_NR_e {
 #define RRM_CALLOC(t,n)   (t *) malloc16( sizeof(t) * n)
 #define RRM_CALLOC2(t,s)  (t *) malloc16( s )
 
-#define MAX_MEAS_OBJ                                  6
-#define MAX_MEAS_CONFIG                               6
-#define MAX_MEAS_ID                                   6
+#define MAX_MEAS_OBJ                                  7
+#define MAX_MEAS_CONFIG                               7
+#define MAX_MEAS_ID                                   7
 
 #define PAYLOAD_SIZE_MAX                              1024
-#define RRC_BUF_SIZE                                  8192
+#define RRC_BUF_SIZE                                  512
 #define UNDEF_SECURITY_MODE                           0xff
 #define NO_SECURITY_MODE                              0x20
 
@@ -213,7 +213,7 @@ typedef struct HANDOVER_INFO_NR_s {
 typedef struct {
   char                                                Payload[NR_RRC_BUFFER_SIZE_MAX];
   char                                                Header[NR_RRC_HEADER_SIZE_MAX];
-  char                                                payload_size;
+  int                                                 payload_size;
 } NR_RRC_BUFFER;
 
 #define NR_RRC_BUFFER_SIZE                            sizeof(RRC_BUFFER_NR)
@@ -286,10 +286,10 @@ typedef struct gNB_RRC_UE_s {
   NR_DRB_ToReleaseList_t            *DRB_Release_configList2[RRC_TRANSACTION_IDENTIFIER_NUMBER];
   uint8_t                            DRB_active[8];
 
-  SRB_INFO                           SI;
-  SRB_INFO                           Srb0;
-  SRB_INFO_TABLE_ENTRY               Srb1;
-  SRB_INFO_TABLE_ENTRY               Srb2;
+  NR_SRB_INFO                           SI;
+  NR_SRB_INFO                           Srb0;
+  NR_SRB_INFO_TABLE_ENTRY               Srb1;
+  NR_SRB_INFO_TABLE_ENTRY               Srb2;
   NR_MeasConfig_t                   *measConfig;
   HANDOVER_INFO                     *handover_info;
   NR_MeasResults_t                  *measResults;
@@ -345,14 +345,18 @@ typedef struct gNB_RRC_UE_s {
   uint8_t                           setup_e_rabs;
   /* Number of e_rab to be setup in the list */
   uint8_t                            nb_of_e_rabs;
-  /* Total number of pdu session already setup in the list */
-  uint8_t                           setup_pdu_sessions;
-  /* Number of pdu session to be setup in the list */
-  uint8_t                            nb_of_pdusessions;
   /* Number of e_rab to be modified in the list */
   uint8_t                            nb_of_modify_e_rabs;
   uint8_t                            nb_of_failed_e_rabs;
   e_rab_param_t                      modify_e_rab[NB_RB_MAX];//[S1AP_MAX_E_RAB];
+  /* Total number of pdu session already setup in the list */
+  uint8_t                            setup_pdu_sessions;
+  /* Number of pdu session to be setup in the list */
+  uint8_t                            nb_of_pdusessions;
+  /* Number of e_rab to be modified in the list */
+  uint8_t                            nb_of_modify_pdusessions;
+  uint8_t                            nb_of_failed_pdusessions;
+  pdu_session_param_t                modify_pdusession[NR_NB_RB_MAX];
   /* list of e_rab to be setup by RRC layers */
   /* list of pdu session to be setup by RRC layers */
   e_rab_param_t                      e_rab[NB_RB_MAX];//[S1AP_MAX_E_RAB];
@@ -367,6 +371,8 @@ typedef struct gNB_RRC_UE_s {
   transport_layer_addr_t             gnb_gtp_addrs[S1AP_MAX_E_RAB];
   rb_id_t                            gnb_gtp_ebi[S1AP_MAX_E_RAB];
   rb_id_t                            gnb_gtp_psi[S1AP_MAX_E_RAB];
+  //GTPV1 F1-U TUNNELS
+  uint32_t                           incoming_teid[S1AP_MAX_E_RAB]; 
 
   uint32_t                           ul_failure_timer;
   uint32_t                           ue_release_timer;
@@ -443,19 +449,19 @@ typedef struct {
   NR_SIB2_t                                *sib2;
   NR_SIB3_t                                *sib3;
   NR_BCCH_DL_SCH_Message_t                  systemInformation; // SIB23
-  int ssb_SubcarrierOffset;                  
+  int ssb_SubcarrierOffset;
+  int sib1_tda;
   int pdsch_AntennaPorts;
   int pusch_AntennaPorts;
-  int pusch_TargetSNRx10;
-  int pucch_TargetSNRx10;
+  int minRXTXTIME;
   int do_CSIRS;
+  int do_SRS;
   NR_BCCH_DL_SCH_Message_t                  *siblock1;
   NR_ServingCellConfigCommon_t              *servingcellconfigcommon;
   NR_PDCCH_ConfigSIB1_t                     *pdcch_ConfigSIB1;
   NR_CellGroupConfig_t                      *secondaryCellGroup[MAX_NR_RRC_UE_CONTEXTS];
   NR_SRB_INFO                               SI;
   NR_SRB_INFO                               Srb0;
-  int                                       initial_csi_index[MAX_NR_RRC_UE_CONTEXTS];
   int                                       p_gNB;
 
 } rrc_gNB_carrier_data_t;
@@ -470,6 +476,10 @@ typedef struct {
   /* nia0 = 0, nia1 = 1, ... */
   int integrity_algorithms[4];
   int integrity_algorithms_count;
+
+  /* flags to enable/disable ciphering and integrity for DRBs */
+  int do_drb_ciphering;
+  int do_drb_integrity;
 } nr_security_configuration_t;
 
 //---NR---(completely change)---------------------
@@ -510,11 +520,14 @@ typedef struct gNB_RRC_INST_s {
   int srb1_max_retx_threshold;
   int srb1_timer_reordering;
   int srb1_timer_status_prohibit;
+  int um_on_default_drb;
   int srs_enable[MAX_NUM_CCs];
   uint16_t sctp_in_streams;
   uint16_t sctp_out_streams;
   int cell_info_configured;
   pthread_mutex_t cell_info_mutex;
+
+  char *uecap_file;
 
   // security configuration (preferred algorithms)
   nr_security_configuration_t security;

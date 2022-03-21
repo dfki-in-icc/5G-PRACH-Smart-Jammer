@@ -34,7 +34,6 @@
 #include "nr_rrc_extern.h"
 #include "common/utils/LOG/log.h"
 #include "pdcp.h"
-#include "msc.h"
 #include "common/ran_context.h"
 #include "LAYER2/NR_MAC_COMMON/nr_mac_common.h"
 #include "LAYER2/NR_MAC_COMMON/nr_mac_extern.h"
@@ -172,16 +171,6 @@ nr_rrc_data_req(
     return FALSE;
   }
 
-  MSC_LOG_TX_MESSAGE(
-    ctxt_pP->enb_flag ? MSC_RRC_GNB : MSC_RRC_UE,
-    ctxt_pP->enb_flag ? MSC_PDCP_ENB : MSC_PDCP_UE,
-    buffer_pP,
-    sdu_sizeP,
-    MSC_AS_TIME_FMT"RRC_DCCH_DATA_REQ UE %x MUI %d size %u",
-    MSC_AS_TIME_ARGS(ctxt_pP),
-    ctxt_pP->rnti,
-    muiP,
-    sdu_sizeP);
   MessageDef *message_p;
   // Uses a new buffer to avoid issue with PDCP buffer content that could be changed by PDCP (asynchronous message handling).
   uint8_t *message_buffer;
@@ -218,7 +207,7 @@ nr_rrc_data_req(
   return TRUE; // TODO should be changed to a CNF message later, currently RRC lite does not used the returned value anyway.
 }
 
-int8_t mac_rrc_nr_data_req(const module_id_t Mod_idP,
+int    mac_rrc_nr_data_req(const module_id_t Mod_idP,
                            const int         CC_id,
                            const frame_t     frameP,
                            const rb_id_t     Srb_id,
@@ -285,8 +274,8 @@ int8_t mac_rrc_nr_data_req(const module_id_t Mod_idP,
 
     LOG_D(NR_RRC,"[gNB %d] Frame %d CCCH request (Srb_id %ld)\n", Mod_idP, frameP, Srb_id);
 
-    AssertFatal(ue_context_p!=NULL,"failed to get ue_context\n");
-    char payload_size = ue_context_p->ue_context.Srb0.Tx_buffer.payload_size;
+    AssertFatal(ue_context_p!=NULL,"failed to get ue_context, rnti %x\n",rnti);
+    int payload_size = ue_context_p->ue_context.Srb0.Tx_buffer.payload_size;
 
     // check if data is there for MAC
     if (payload_size > 0) {
@@ -323,31 +312,37 @@ int8_t nr_mac_rrc_data_ind(const module_id_t     module_idP,
     // call do_RRCSetup like full procedure and extract masterCellGroup
     NR_CellGroupConfig_t cellGroupConfig;
     NR_ServingCellConfigCommon_t *scc=RC.nrrrc[module_idP]->carrier.servingcellconfigcommon;
-    uint8_t sdu2[100];
     memset(&cellGroupConfig,0,sizeof(cellGroupConfig));
-    fill_initial_cellGroupConfig(rntiP,&cellGroupConfig,scc);
+
+    struct rrc_gNB_ue_context_s *ue_context_p = rrc_gNB_allocate_new_UE_context(RC.nrrrc[module_idP]);
+    ue_context_p->ue_id_rnti                    = rntiP;
+    ue_context_p->ue_context.rnti               = rntiP;
+    ue_context_p->ue_context.random_ue_identity = rntiP;
+    ue_context_p->ue_context.Srb0.Active        = 1;
+    RB_INSERT(rrc_nr_ue_tree_s, &RC.nrrrc[module_idP]->rrc_ue_head, ue_context_p);
+
+    fill_initial_cellGroupConfig(ue_context_p->local_uid,&cellGroupConfig,scc,&RC.nrrrc[module_idP]->carrier);
+
+    MessageDef* tmp=itti_alloc_new_message_sized(TASK_RRC_GNB, 0, F1AP_INITIAL_UL_RRC_MESSAGE, sizeof(f1ap_initial_ul_rrc_message_t) + sdu_lenP);
+    f1ap_initial_ul_rrc_message_t *msg = &F1AP_INITIAL_UL_RRC_MESSAGE(tmp);
+
     asn_enc_rval_t enc_rval = uper_encode_to_buffer(&asn_DEF_NR_CellGroupConfig,
 						    NULL,
 						    (void *)&cellGroupConfig,
-						    sdu2,
-						    100);
+						    msg->du2cu_rrc_container,
+						    1024); //sizeof(msg->du2cu_rrc_container));
 
-    int sdu2_len = (enc_rval.encoded+7)/8;
     if (enc_rval.encoded == -1) {
       LOG_E(F1AP,"Could not encoded cellGroupConfig, failed element %s\n",enc_rval.failed_type->name);
       exit(-1);
     }
     /* do ITTI message */
-    DU_send_INITIAL_UL_RRC_MESSAGE_TRANSFER(
-      module_idP,
-      CC_id,
-      UE_id,
-      rntiP,
-      sduP,
-      sdu_lenP,
-      (const int8_t*)sdu2,
-      sdu2_len
-    );
+    msg->du2cu_rrc_container_length = (enc_rval.encoded+7)/8;
+    msg->crnti=rntiP;
+    msg->rrc_container=(uint8_t*) (msg+1); // Made extra room after the struct with itti_alloc_msg_sized()
+    memcpy(msg->rrc_container, sduP, sdu_lenP);
+    msg->rrc_container_length=sdu_lenP;
+    itti_send_msg_to_task(TASK_DU_F1, 0, tmp);
     return(0);
   }
 
@@ -366,10 +361,10 @@ int8_t nr_mac_rrc_data_ind(const module_id_t     module_idP,
 }
 
 void nr_mac_gNB_rrc_ul_failure(const module_id_t Mod_instP,
-                            const int CC_idP,
-                            const frame_t frameP,
-                            const sub_frame_t subframeP,
-                            const rnti_t rntiP) {
+                               const int CC_idP,
+                               const frame_t frameP,
+                               const sub_frame_t subframeP,
+                               const rnti_t rntiP) {
   struct rrc_gNB_ue_context_s *ue_context_p = NULL;
   ue_context_p = rrc_gNB_get_ue_context(
                    RC.nrrrc[Mod_instP],
@@ -381,5 +376,19 @@ void nr_mac_gNB_rrc_ul_failure(const module_id_t Mod_instP,
       ue_context_p->ue_context.ul_failure_timer=1;
   } else {
     LOG_D(RRC,"Frame %d, Subframe %d: UL failure: UE %x unknown \n",frameP,subframeP,rntiP);
+  }
+}
+
+void nr_mac_gNB_rrc_ul_failure_reset(const module_id_t Mod_instP,
+                                     const frame_t frameP,
+                                     const sub_frame_t subframeP,
+                                     const rnti_t rntiP) {
+  struct rrc_gNB_ue_context_s *ue_context_p = NULL;
+  ue_context_p = rrc_gNB_get_ue_context(RC.nrrrc[Mod_instP], rntiP);
+  if (ue_context_p != NULL) {
+    LOG_W(RRC,"Frame %d, Subframe %d: UE %x UL failure reset, deactivating timer\n",frameP,subframeP,rntiP);
+    ue_context_p->ue_context.ul_failure_timer=0;
+  } else {
+    LOG_W(RRC,"Frame %d, Subframe %d: UL failure reset: UE %x unknown \n",frameP,subframeP,rntiP);
   }
 }

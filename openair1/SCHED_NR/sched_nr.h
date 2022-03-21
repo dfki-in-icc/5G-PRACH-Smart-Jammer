@@ -36,7 +36,7 @@
 
 void fill_ul_rb_mask(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx);
 void nr_set_ssb_first_subcarrier(nfapi_nr_config_request_scf_t *cfg, NR_DL_FRAME_PARMS *fp);
-void phy_procedures_gNB_TX(PHY_VARS_gNB *gNB, int frame_tx, int slot_tx, int do_meas);
+void phy_procedures_gNB_TX(processingData_L1tx_t *msgTx, int frame_tx, int slot_tx, int do_meas);
 void phy_procedures_gNB_common_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx);
 int  phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx);
 void L1_nr_prach_procedures(PHY_VARS_gNB *gNB,int frame,int slot);
@@ -54,5 +54,6 @@ void nr_fep_full(RU_t *ru, int slot);
 void nr_fep_full_2thread(RU_t *ru, int slot);
 void feptx_prec(RU_t *ru,int frame_tx,int tti_tx);
 int nr_phy_init_RU(RU_t *ru);
+void nr_phy_free_RU(RU_t *ru);
 
 #endif

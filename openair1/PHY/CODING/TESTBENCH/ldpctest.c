@@ -25,6 +25,7 @@
 #include <string.h>
 #include "assertions.h"
 #include "SIMULATION/TOOLS/sim.h"
+#include "common/utils/load_module_shlib.h"
 #include "PHY/CODING/nrLDPC_extern.h"
 //#include "openair1/SIMULATION/NR_PHY/nr_unitary_defs.h"
 #include "openair1/PHY/CODING/nrLDPC_decoder_LYC/nrLDPC_decoder_LYC.h"
@@ -101,8 +102,8 @@ int test_ldpc(short No_iteration,
               unsigned int *crc_misses,
               time_stats_t *time_optim,
               time_stats_t *time_decoder,
-              n_iter_stats_t *dec_iter,
-              short run_cuda)
+              n_iter_stats_t *dec_iter
+              )
 {
   //clock initiate
   //time_stats_t time,time_optim,tinput,tprep,tparity,toutput, time_decoder;
@@ -118,15 +119,13 @@ int test_ldpc(short No_iteration,
   //short test_input[block_length];
   unsigned char *test_input[MAX_NUM_NR_DLSCH_SEGMENTS]={NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};;
   //short *c; //padded codeword
-  unsigned char *estimated_output[MAX_NUM_DLSCH_SEGMENTS];
-  unsigned char *estimated_output_bit[MAX_NUM_DLSCH_SEGMENTS];
-  unsigned char *test_input_bit;
+  unsigned char estimated_output[MAX_NUM_DLSCH_SEGMENTS][block_length];
+  memset(estimated_output, 0, sizeof(estimated_output));
   unsigned char *channel_input[MAX_NUM_DLSCH_SEGMENTS];
-  unsigned char *channel_output_uncoded[MAX_NUM_DLSCH_SEGMENTS];
   unsigned char *channel_input_optim[MAX_NUM_DLSCH_SEGMENTS];
-  double *channel_output;
-  double *modulated_input[MAX_NUM_DLSCH_SEGMENTS];
-  char *channel_output_fixed[MAX_NUM_DLSCH_SEGMENTS];
+  //double channel_output[68 * 384];
+  double modulated_input[MAX_NUM_DLSCH_SEGMENTS][68 * 384] = { 0 };
+  char channel_output_fixed[MAX_NUM_DLSCH_SEGMENTS][68  * 384] = { 0 };
   unsigned int i,j,trial=0;
   short BG=0,nrows=0;//,ncols;
   int no_punctured_columns,removed_bit;
@@ -155,24 +154,12 @@ int test_ldpc(short No_iteration,
   // generate input block
   for(j=0;j<MAX_NUM_DLSCH_SEGMENTS;j++) {
     test_input[j]=(unsigned char *)malloc16(sizeof(unsigned char) * block_length/8);
+    memset(test_input[j], 0, sizeof(unsigned char) * block_length / 8);
     channel_input[j] = (unsigned char *)malloc16(sizeof(unsigned char) * 68*384);
+    memset(channel_input[j], 0, sizeof(unsigned char) * 68 * 384);
     channel_input_optim[j] = (unsigned char *)malloc16(sizeof(unsigned char) * 68*384);
-    channel_output_uncoded[j] = (unsigned char *)malloc16(sizeof(unsigned char) * 68*384);
-    estimated_output[j] = (unsigned char*) malloc16(sizeof(unsigned char) * block_length);
-    estimated_output_bit[j] = (unsigned char*) malloc16(sizeof(unsigned char) * block_length);
-    modulated_input[j] = (double *)malloc16(sizeof(double) * 68*384);
-    channel_output_fixed[j]  =  (char *)malloc16(sizeof( char) * 68*384);
+    memset(channel_input_optim[j], 0, sizeof(unsigned char) * 68 * 384);
   }
-  //modulated_input = (double *)malloc(sizeof(double) * 68*384);
-  //channel_output  = (double *)malloc(sizeof(double) * 68*384);
-  //channel_output_fixed  = (char *)malloc16(sizeof(char) * 68*384);
-  //modulated_input = (double *)calloc(68*384, sizeof(double));
-  channel_output  =  (double *)calloc(68*384, sizeof(double));
-  //channel_output_fixed  =  (double *)calloc(68*384, sizeof(double));
-  //channel_output_fixed  =  (unsigned char*)calloc(68*384, sizeof(unsigned char*));
-  //estimated_output = (unsigned char*) malloc16(sizeof(unsigned char) * block_length);///8);
-  //estimated_output_bit = (unsigned char*) malloc16(sizeof(unsigned char) * block_length);
-  test_input_bit = (unsigned char*) malloc16(sizeof(unsigned char) * block_length);
 
   reset_meas(&time);
   reset_meas(time_optim);
@@ -319,7 +306,6 @@ int test_ldpc(short No_iteration,
         for (i = 0; i < block_length+(nrows-no_punctured_columns) * Zc - removed_bit; i++)
           if (channel_input[j][i]!=channel_input_optim[j][i]) {
             printf("differ in seg %u pos %u (%u,%u)\n", j, i, channel_input[j][i], channel_input_optim[j][i]);
-            free(channel_output);
             return (-1);
           }
       //else{
@@ -367,12 +353,9 @@ int test_ldpc(short No_iteration,
         //channel_output_fixed[i] = (char)quantize(1,channel_output_fixed[i],qbits);
 
         //Uncoded BER
-        if (channel_output_fixed[j][i]<0)
-            channel_output_uncoded[j][i]=1;  //QPSK demod
-        else
-            channel_output_uncoded[j][i]=0;
+        unsigned char channel_output_uncoded = channel_output_fixed[j][i]<0 ? 1 /* QPSK demod */ : 0;
 
-        if (channel_output_uncoded[j][i] != channel_input_optim[j][i-2*Zc])
+        if (channel_output_uncoded != channel_input_optim[j][i-2*Zc])
 	  *errors_bit_uncoded = (*errors_bit_uncoded) + 1;
 
 	}
@@ -393,28 +376,13 @@ int test_ldpc(short No_iteration,
       decParams.R=code_rate_vec[R_ind];//13;
       decParams.numMaxIter=No_iteration;
       decParams.outMode = nrLDPC_outMode_BIT;
+      decParams.block_length=block_length;
       //decParams.outMode =nrLDPC_outMode_LLRINT8;
-#ifdef CUDA_FLAG
-	  set_compact_BG(Zc,BG);
-	  init_LLR_DMA_for_CUDA(&decParams, (int8_t*)channel_output_fixed[j], (int8_t*)estimated_output[j], block_length);
-#endif
+	  nrLDPC_initcall(&decParams, (int8_t*)channel_output_fixed[j], (int8_t*)estimated_output[j]);
 	  for(j=0;j<n_segments;j++) {
     	  start_meas(time_decoder);
-#ifdef CUDA_FLAG
-        if(run_cuda){
-          n_iter = nrLDPC_decoder_LYC(&decParams, (int8_t*)channel_output_fixed[j], (int8_t*)estimated_output[j], block_length, time_decoder);
-        }  
-        else{ 
-        // decode the sequence
-        // decoder supports BG2, Z=128 & 256
-        //esimated_output=ldpc_decoder(channel_output_fixed, block_length, No_iteration, (double)((float)nom_rate/(float)denom_rate));
-        ///nrLDPC_decoder(&decParams, channel_output_fixed, estimated_output, NULL);
           n_iter = nrLDPC_decoder(&decParams, (int8_t*)channel_output_fixed[j], (int8_t*)estimated_output[j], p_nrLDPC_procBuf, p_decoder_profiler);
-        }
-#else
-        n_iter = nrLDPC_decoder(&decParams, (int8_t*)channel_output_fixed[j], (int8_t*)estimated_output[j], p_nrLDPC_procBuf, p_decoder_profiler);
-#endif
-	stop_meas(time_decoder);
+	      stop_meas(time_decoder);
       }
 
       //for (i=(Kb+nrows) * Zc-5;i<(Kb+nrows) * Zc;i++)
@@ -438,12 +406,10 @@ int test_ldpc(short No_iteration,
 
       for (i=0; i<block_length; i++)
         {
-          estimated_output_bit[j][i] = (estimated_output[j][i/8]&(1<<(i&7)))>>(i&7);
-          test_input_bit[i] = (test_input[j][i/8]&(1<<(i&7)))>>(i&7); // Further correct for multiple segments
-          if (estimated_output_bit[j][i] != test_input_bit[i])
-          {
+          unsigned char estoutputbit = (estimated_output[j][i/8]&(1<<(i&7)))>>(i&7);
+          unsigned char inputbit = (test_input[j][i/8]&(1<<(i&7)))>>(i&7); // Further correct for multiple segments
+          if (estoutputbit != inputbit)
             *errors_bit = (*errors_bit) + 1;
-          }
         }
 
       //if (*errors == 1000)
@@ -475,17 +441,8 @@ int test_ldpc(short No_iteration,
   for(j=0;j<MAX_NUM_DLSCH_SEGMENTS;j++) {
     free(test_input[j]);
     free(channel_input[j]);
-    free(channel_output_uncoded[j]);
     free(channel_input_optim[j]);
-    free(modulated_input[j]);
-    free(channel_output_fixed[j]);
-    free(estimated_output[j]);
-    free(estimated_output_bit[j]);
   }
-  //free(modulated_input);
-  free(channel_output);
-  //free(channel_output_fixed);
-  //free(estimated_output);
 
   nrLDPC_free_mem(p_nrLDPC_procBuf);
 
@@ -514,17 +471,14 @@ int test_ldpc(short No_iteration,
 
 int main(int argc, char *argv[])
 {
-#ifdef CUDA_FLAG	
-  warmup_for_GPU();
-#endif
+
   unsigned int errors, errors_bit, crc_misses;
   double errors_bit_uncoded;
   short block_length=8448; // decoder supports length: 1201 -> 1280, 2401 -> 2560
-
+  char *ldpc_version=NULL; /* version of the ldpc decoder library to use (XXX suffix to use when loading libldpc_XXX.so */
   short No_iteration=5;
   int n_segments=1;
   //double rate=0.333;
-  short run_cuda = 0;
   
   int nom_rate=1;
   int denom_rate=3;
@@ -532,7 +486,7 @@ int main(int argc, char *argv[])
   unsigned char qbits=8;
   unsigned int decoded_errors[10000]; // initiate the size of matrix equivalent to size of SNR
   int c,i=0, i1 = 0;
-
+  int loglvl=OAILOG_WARNING;
   int n_trials = 1;
   double SNR_step = 0.1;
 
@@ -543,8 +497,11 @@ int main(int argc, char *argv[])
   n_iter_stats_t dec_iter[3];
 
   short BG=0,Zc,Kb=0;
-
-  while ((c = getopt (argc, argv, "q:r:s:S:l:G:n:d:i:t:u:h")) != -1)
+  if ( load_configmodule(argc,argv,CONFIG_ENABLECMDLINEONLY) == 0) {
+    exit_fun(" Error, configuration module init failed\n");
+  } // must be done before specific options parsing to prevent errasing them
+  
+  while ((c = getopt (argc, argv, "q:r:s:S:l:L:G:n:d:i:t:u:hv:")) != -1)
     switch (c)
     {
       case 'q':
@@ -562,9 +519,13 @@ int main(int argc, char *argv[])
       case 'l':
         block_length = atoi(optarg);
         break;
+
+      case 'L':
+        loglvl = atoi(optarg);
+        break;
 		
       case 'G':
-        run_cuda = atoi(optarg);
+        ldpc_version="_cuda";
         break;
 
       case 'n':
@@ -590,17 +551,20 @@ int main(int argc, char *argv[])
       case 'u':
         test_uncoded = atoi(optarg);
         break;
-
+      case 'v':
+          ldpc_version=strdup(optarg);
+        break;
       case 'h':
-            default:
+      default:
               printf("CURRENTLY SUPPORTED CODE RATES: \n");
               printf("BG1 (blocklength > 3840): 1/3, 2/3, 22/25 (8/9) \n");
               printf("BG2 (blocklength <= 3840): 1/5, 1/3, 2/3 \n\n");
               printf("-h This message\n");
+              printf("-L <log level, 0(errors), 1(warning), 2(info) 3(debug) 4 (trace)>\n");              
               printf("-q Quantization bits, Default: 8\n");
               printf("-r Nominator rate, (1, 2, 22), Default: 1\n");
               printf("-d Denominator rate, (3, 5, 25), Default: 1\n");
-              printf("-l Block length (l > 3840 -> BG1, rest BG2 ), Default: 8448\n");
+              printf("-l Block length (l > 3840 -> BG1, rest BG2 ), Default: 8448\n");              
 			  printf("-G give 1 to run cuda for LDPC, Default: 0\n");
               printf("-n Number of simulation trials, Default: 1\n");
               //printf("-M MCS2 for TB 2\n");
@@ -609,6 +573,7 @@ int main(int argc, char *argv[])
               printf("-t SNR simulation step, Default: 0.1\n");
               printf("-i Max decoder iterations, Default: 5\n");
               printf("-u Set SNR per coded bit, Default: 0\n");
+              printf("-v XXX Set ldpc shared library version. libldpc_XXX.so will be used \n");
               exit(1);
               break;
     }
@@ -618,8 +583,13 @@ int main(int argc, char *argv[])
   printf("n_trials %d: \n", n_trials);
   printf("SNR0 %f: \n", SNR0);
 
+  logInit();
+  set_glog(loglvl);
 
-  load_nrLDPClib();
+  if (ldpc_version != NULL)
+    load_nrLDPClib(ldpc_version);
+  else
+    load_nrLDPClib(NULL); 
   load_nrLDPClib_ref("_orig", &encoder_orig);
   //for (block_length=8;block_length<=MAX_BLOCK_LENGTH;block_length+=8)
 
@@ -691,8 +661,7 @@ int main(int argc, char *argv[])
                                 &crc_misses,
                                 time_optim,
                                 time_decoder,
-                                dec_iter,
-								run_cuda);
+                                dec_iter);
 
     printf("SNR %f, BLER %f (%u/%d)\n", SNR, (float)decoded_errors[i]/(float)n_trials, decoded_errors[i], n_trials);
     printf("SNR %f, BER %f (%u/%d)\n", SNR, (float)errors_bit/(float)n_trials/(float)block_length/(double)n_segments, decoded_errors[i], n_trials);
@@ -730,6 +699,9 @@ int main(int argc, char *argv[])
     i=i+1;
   }
   fclose(fd);
+
+  loader_reset();
+  logTerm();
 
   return(0);
 }

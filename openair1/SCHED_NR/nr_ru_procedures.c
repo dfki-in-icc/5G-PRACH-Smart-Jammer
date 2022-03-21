@@ -44,7 +44,6 @@
 #include "T.h"
 
 #include "assertions.h"
-#include "msc.h"
 
 #include <time.h>
 // RU OFDM Modulator gNodeB
@@ -155,7 +154,7 @@ void nr_feptx_ofdm_2thread(RU_t *ru,int frame_tx,int tti_tx) {
   int aa   = 0;//physical antenna number
   int ret  = 0;
   int ofdm_mask_full   = (1<<(ru->nb_tx*2))-1;
-  int txdataF_offset   = ((tti_tx%2)*fp->samples_per_slot_wCP);
+  int txdataF_offset   = (tti_tx*fp->samples_per_slot_wCP);
 
   if (nr_slot_select(cfg,frame_tx,slot) == NR_UPLINK_SLOT) return;
   for (aa=0; aa<ru->nb_tx; aa++) memset(ru->common.txdataF[aa],0,fp->samples_per_slot_wCP*sizeof(int32_t));
@@ -300,7 +299,7 @@ static void *nr_feptx_thread(void *param) {
     ofdm_mask_full   = (1<<(ru->nb_tx*2))-1;
 
     if(ru->num_gNB != 0){
-      txdataF_offset = ((slot%2)*fp->samples_per_slot_wCP);
+      txdataF_offset = (slot*fp->samples_per_slot_wCP);
       ////////////precoding////////////
       VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PHY_PROCEDURES_RU_FEPTX_PREC+feptx->index+1 , 1);
       
@@ -464,7 +463,7 @@ void nr_feptx_prec(RU_t *ru,int frame_tx,int tti_tx) {
   int32_t ***bw;
   int i=0;
   int slot_tx = tti_tx;
-  int txdataF_offset   = ((tti_tx%2)*fp->samples_per_slot_wCP);
+  int txdataF_offset   = (tti_tx*fp->samples_per_slot_wCP);
 
   start_meas(&ru->precoding_stats);
   AssertFatal(ru->nb_log_antennas > 0,"ru->nb_log_antennas is 0!\n");
@@ -477,9 +476,10 @@ void nr_feptx_prec(RU_t *ru,int frame_tx,int tti_tx) {
       memcpy((void*)ru->common.txdataF[i],
            (void*)&gNB->common_vars.txdataF[i][txdataF_offset],
            fp->samples_per_slot_wCP*sizeof(int32_t));
-      memcpy((void*)&ru->common.beam_id[i][slot_tx*fp->symbols_per_slot],
-	     (void*)&gNB->common_vars.beam_id[i][slot_tx*fp->symbols_per_slot],
-	     fp->symbols_per_slot*sizeof(uint8_t));
+      if (ru->do_precoding == 1)
+	memcpy((void*)&ru->common.beam_id[i][slot_tx*fp->symbols_per_slot],
+	       (void*)&gNB->common_vars.beam_id[i][slot_tx*fp->symbols_per_slot],
+	       fp->symbols_per_slot*sizeof(uint8_t));
     }
 
     if (ru->nb_tx == 1 && ru->nb_log_antennas == 1) {
@@ -531,12 +531,12 @@ void nr_fep0(RU_t *ru, int first_half) {
 
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PHY_PROCEDURES_RU_FEPRX+proc->tti_rx, 1);
 
-  // remove_7_5_kHz(ru,(slot&1)+(proc->tti_rx<<1));
+  int offset = (proc->tti_rx&3) * fp->symbols_per_slot * fp->ofdm_symbol_size;
   for (l = start_symbol; l < end_symbol; l++) {
     for (aa = 0; aa < fp->nb_antennas_rx; aa++) {
       nr_slot_fep_ul(fp,
                      ru->common.rxdata[aa],
-                     ru->common.rxdataF[aa],
+                     &ru->common.rxdataF[aa][offset],
                      l,
                      proc->tti_rx,
                      ru->N_TA_offset);
@@ -665,14 +665,15 @@ void nr_fep_full(RU_t *ru, int slot) {
   start_meas(&ru->ofdm_demod_stats);
   if (ru->idx == 0) VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME( VCD_SIGNAL_DUMPER_FUNCTIONS_PHY_PROCEDURES_RU_FEPRX, 1 );
 
+
   // remove_7_5_kHz(ru,proc->tti_rx<<1);
   // remove_7_5_kHz(ru,1+(proc->tti_rx<<1));
-
+  int offset = (proc->tti_rx&3)*(fp->symbols_per_slot * fp->ofdm_symbol_size);
   for (l = 0; l < fp->symbols_per_slot; l++) {
     for (aa = 0; aa < fp->nb_antennas_rx; aa++) {
       nr_slot_fep_ul(fp,
                      ru->common.rxdata[aa],
-                     ru->common.rxdataF[aa],
+                     &ru->common.rxdataF[aa][offset],
                      l,
                      proc->tti_rx,
                      ru->N_TA_offset);

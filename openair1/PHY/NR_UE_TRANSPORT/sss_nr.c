@@ -318,7 +318,7 @@ int do_pss_sss_extract_nr(PHY_VARS_NR_UE *ue,
                           int32_t pss_ext[NB_ANTENNAS_RX][LENGTH_PSS_NR],
                           int32_t sss_ext[NB_ANTENNAS_RX][LENGTH_SSS_NR],
                           uint8_t doPss, uint8_t doSss,
-					      uint8_t subframe) // add flag to indicate extracting only PSS, only SSS, or both
+                          uint8_t subframe) // add flag to indicate extracting only PSS, only SSS, or both
 {
   uint8_t aarx;
   int32_t *pss_rxF,*pss_rxF_ext;
@@ -329,8 +329,8 @@ int do_pss_sss_extract_nr(PHY_VARS_NR_UE *ue,
 
   for (aarx=0; aarx<frame_parms->nb_antennas_rx; aarx++) {
 
-  pss_symbol = 0;
-  sss_symbol = SSS_SYMBOL_NB-PSS_SYMBOL_NB;
+    pss_symbol = 0;
+    sss_symbol = SSS_SYMBOL_NB-PSS_SYMBOL_NB;
 
     rxdataF  =  ue->common_vars.common_vars_rx_data_per_thread[proc->thread_id].rxdataF;
 
@@ -343,6 +343,7 @@ int do_pss_sss_extract_nr(PHY_VARS_NR_UE *ue,
     sss_rxF_ext = &sss_ext[aarx][0];
 
     unsigned int k = frame_parms->first_carrier_offset + frame_parms->ssb_start_subcarrier + 56;
+
     if (k>= frame_parms->ofdm_symbol_size) k-=frame_parms->ofdm_symbol_size;
 
     for (int i=0; i < LENGTH_PSS_NR; i++) {
@@ -401,7 +402,7 @@ int pss_sss_extract_nr(PHY_VARS_NR_UE *phy_vars_ue,
                        UE_nr_rxtx_proc_t *proc,
                        int32_t pss_ext[NB_ANTENNAS_RX][LENGTH_PSS_NR],
                        int32_t sss_ext[NB_ANTENNAS_RX][LENGTH_SSS_NR],
-					   uint8_t subframe)
+                       uint8_t subframe)
 {
   return do_pss_sss_extract_nr(phy_vars_ue, proc, pss_ext, sss_ext, 1 /* doPss */, 1 /* doSss */, subframe);
 }
@@ -419,7 +420,7 @@ int pss_sss_extract_nr(PHY_VARS_NR_UE *phy_vars_ue,
 *
 *********************************************************************/
 
-int rx_sss_nr(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, int32_t *tot_metric, uint8_t *phase_max)
+int rx_sss_nr(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, int32_t *tot_metric, uint8_t *phase_max, int *freq_offset_sss)
 {
   uint8_t i;
   int32_t pss_ext[NB_ANTENNAS_RX][LENGTH_PSS_NR];
@@ -556,6 +557,20 @@ int rx_sss_nr(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, int32_t *tot_metric, 
     printf("Nid2 %d Nid1 %d tot_metric %d, phase_max %d \n", Nid2, Nid1, *tot_metric, *phase_max);
   }
   //#endif
+
+  int re = 0;
+  int im = 0;
+  d = (int16_t *)&d_sss[Nid2][Nid1];
+  for(i = 0; i<LENGTH_SSS_NR; i++) {
+    re += d[i]*sss[2*i];
+    im += d[i]*sss[2*i+1];
+  }
+  double ffo_sss = atan2(im,re)/M_PI/4.3;
+  *freq_offset_sss = (int)(ffo_sss*frame_parms->subcarrier_spacing);
+
+  double ffo_pss = ((double)ue->common_vars.freq_offset)/frame_parms->subcarrier_spacing;
+  LOG_I(NR_PHY, "ffo_pss %f (%i Hz), ffo_sss %f (%i Hz),  ffo_pss+ffo_sss %f (%i Hz)\n",
+         ffo_pss, (int)(ffo_pss*frame_parms->subcarrier_spacing), ffo_sss, *freq_offset_sss, ffo_pss+ffo_sss, (int)((ffo_pss+ffo_sss)*frame_parms->subcarrier_spacing));
 
   return(0);
 }
