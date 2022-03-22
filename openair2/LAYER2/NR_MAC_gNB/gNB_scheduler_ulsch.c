@@ -1443,12 +1443,12 @@ bool nr_fr1_ulsch_preprocessor(module_id_t module_id, frame_t frame, sub_frame_t
 
   bool is_mixed_slot = is_xlsch_in_slot_flex(nr_mac->flexible_slots_per_frame, 2, sched_slot);
   if (is_mixed_slot) tda = 1;
-  LOG_W(NR_MAC,"is mixed ? %d tda %d\n",is_mixed_slot,tda);
+  //LOG_W(NR_MAC,"is mixed ? %d tda %d\n",is_mixed_slot,tda);
   //LOG_W(NR_MAC," slot is mixed %d is UL\n",is_mixed_slot);
 
   // FIXME: Avoid mixed slots for initialUplinkBWP
-  //if (sched_ctrl->active_ubwp==NULL && is_mixed_slot)
-    //return false;
+ //if (sched_ctrl->active_ubwp==NULL && is_mixed_slot)
+   // return false;
 
   // Avoid slots with the SRS
   const NR_list_t *UE_list = &UE_info->list;
@@ -1488,7 +1488,7 @@ bool nr_fr1_ulsch_preprocessor(module_id_t module_id, frame_t frame, sub_frame_t
   const int startSymbolAndLength = tdaList->list.array[tda]->startSymbolAndLength;
   int startSymbolIndex, nrOfSymbols;
   SLIV2SL(startSymbolAndLength, &startSymbolIndex, &nrOfSymbols);
-  LOG_W(NR_MAC,"startSymbolIndex %d nrOfSymbols %d\n",startSymbolIndex,nrOfSymbols);
+  //LOG_W(NR_MAC,"startSymbolIndex %d nrOfSymbols %d\n",startSymbolIndex,nrOfSymbols);
 
   const uint16_t symb = ((1 << nrOfSymbols) - 1) << startSymbolIndex;
 

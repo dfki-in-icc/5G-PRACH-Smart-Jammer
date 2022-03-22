@@ -1035,8 +1035,11 @@ void nr_schedule_ue_spec(module_id_t module_id,
   gNB_MAC_INST *gNB_mac = RC.nrmac[module_id];
   if (!is_xlsch_in_slot_flex(gNB_mac->flexible_slots_per_frame, 0, slot))
     return;
+  bool is_mixed_slot = is_xlsch_in_slot_flex(gNB_mac->flexible_slots_per_frame, 2, slot);
 
-  //if (slot==7 || slot == 17) return;
+ if (is_mixed_slot)
+    return;
+  //f (slot==7 || slot == 17) return;
 
   /* PREPROCESSOR */
   //LOG_W(NR_MAC,"call preprocessor DL for %d.%d\n",frame,slot);                     
