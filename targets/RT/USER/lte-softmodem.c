@@ -583,8 +583,9 @@ int main ( int argc, char **argv )
     
     /* initializes PDCP and sets correct RLC Request/PDCP Indication callbacks
      * for monolithic/F1 modes */
-    uint16_t node_number = get_softmodem_params()->node_number; // Starting from 1.
+    uint16_t node_number = get_softmodem_params()->node_number; // node_number = 1, 2
     enb_id_g = (node_number == 0) ? 0 : node_number - 1; // enb_id_g = 0, 1
+    AssertFatal(enb_id_g >= 0, "eNB id is expected to be nonnegative.\n");
     init_pdcp(node_number);
 
     if (create_tasks(1) < 0) {
