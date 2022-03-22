@@ -2447,13 +2447,13 @@ uint8_t nr_get_csi_payload(NR_UE_MAC_INST_t *mac,
     case NR_CSI_ReportConfig__reportQuantity_PR_none:
       break;
     case NR_CSI_ReportConfig__reportQuantity_PR_ssb_Index_RSRP:
-      n_csi_bits += get_ssb_rsrp_payload(mac,pucch,csi_reportconfig,csi_ResourceConfigId,csi_MeasConfig);
+      n_csi_bits += get_ssb_rsrp_payload(mac, pucch, csi_reportconfig, csi_ResourceConfigId, csi_MeasConfig);
       break;
     case NR_CSI_ReportConfig__reportQuantity_PR_cri_RSRP:
-      n_csi_bits += get_ssb_rsrp_payload(mac,pucch,csi_reportconfig,csi_ResourceConfigId,csi_MeasConfig);
+      n_csi_bits += get_ssb_rsrp_payload(mac, pucch, csi_reportconfig, csi_ResourceConfigId, csi_MeasConfig);
       break;
     case NR_CSI_ReportConfig__reportQuantity_PR_cri_RI_PMI_CQI:
-      n_csi_bits += get_cri_ri_pmi_cqi_payload(mac,pucch,csi_reportconfig,csi_ResourceConfigId,csi_MeasConfig);
+      n_csi_bits += get_cri_ri_pmi_cqi_payload(mac, pucch, csi_reportconfig, csi_ResourceConfigId, csi_MeasConfig);
       break;
     case NR_CSI_ReportConfig__reportQuantity_PR_cri_RI_i1:
     case NR_CSI_ReportConfig__reportQuantity_PR_cri_RI_i1_CQI:
@@ -2566,7 +2566,7 @@ uint8_t get_cri_ri_pmi_cqi_payload(NR_UE_MAC_INST_t *mac,
         temp_payload |= (cqi_index << bits);
         bits += cqi_bits;
       }
-      break; // resorce found
+      break; // resource found
     }
   }
   pucch->csi_part1_payload = temp_payload;
