@@ -585,9 +585,6 @@ int main ( int argc, char **argv )
      * for monolithic/F1 modes */
     uint16_t node_number = get_softmodem_params()->node_number; // Starting from 1.
     enb_id_g = (node_number == 0) ? 0 : node_number - 1; // enb_id_g = 0, 1
-    LOG_I(PHY,
-          "enb_id_g = %d",
-          enb_id_g);
     init_pdcp(node_number);
 
     if (create_tasks(1) < 0) {
