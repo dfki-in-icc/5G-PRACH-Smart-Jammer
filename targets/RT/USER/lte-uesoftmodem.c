@@ -597,14 +597,8 @@ int main( int argc, char **argv ) {
 
   init_opt();
   ue_id_g = (node_number == 0) ? 0 : node_number - 1; //ue_id_g = 0, 1, ...,
-  if(node_number == 0)
-  {
-    init_pdcp(0);
-  }
-  else
-  {
-    init_pdcp(node_number);
-  }
+  AssertFatal(ue_id_g >= 0, "UE id is expected to be nonnegative.\n");
+  init_pdcp(node_number);
 
   //TTN for D2D
   printf ("RRC control socket\n");
