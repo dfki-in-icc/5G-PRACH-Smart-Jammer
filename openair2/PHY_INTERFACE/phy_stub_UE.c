@@ -61,6 +61,8 @@ static sf_rnti_mcs_s sf_rnti_mcs[NUM_NFAPI_SUBFRAME];
 
 static int ue_tx_sock_descriptor = -1;
 static int ue_rx_sock_descriptor = -1;
+static int ue_ho_tx_sock_descriptor = -1;
+static int ue_ho_rx_sock_descriptor = -1;
 static int get_mcs_from_sinr(float sinr);
 static int get_cqi_from_mcs(void);
 static void read_channel_param(const nfapi_dl_config_request_pdu_t * pdu, int sf, int index);
@@ -1199,7 +1201,7 @@ void UE_config_stub_pnf(void) {
   }
 }
 
-void ue_init_standalone_socket(int tx_port, int rx_port)
+void ue_init_standalone_socket(int tx_port, int rx_port, int id)
 {
   {
     struct sockaddr_in server_address;
@@ -1229,8 +1231,16 @@ void ue_init_standalone_socket(int tx_port, int rx_port)
       close(sd);
       return;
     }
-    assert(ue_tx_sock_descriptor == -1);
-    ue_tx_sock_descriptor = sd;
+    if (id == 0)
+    {
+      assert(ue_tx_sock_descriptor == -1);
+      ue_tx_sock_descriptor = sd;
+    }
+    else
+    {
+      assert(ue_ho_tx_sock_descriptor == -1);
+      ue_ho_tx_sock_descriptor = sd;
+    }
   }
 
   {
@@ -1254,8 +1264,16 @@ void ue_init_standalone_socket(int tx_port, int rx_port)
       close(sd);
       return;
     }
-    assert(ue_rx_sock_descriptor == -1);
-    ue_rx_sock_descriptor = sd;
+    if (id == 0)
+    {
+      assert(ue_rx_sock_descriptor == -1);
+      ue_rx_sock_descriptor = sd;
+    }
+    else
+    {
+      assert(ue_ho_rx_sock_descriptor == -1);
+      ue_ho_rx_sock_descriptor = sd;
+    }
   }
 }
 
@@ -1275,7 +1293,8 @@ void *ue_standalone_pnf_task(void *context)
   struct sockaddr_in server_address;
   socklen_t addr_len = sizeof(server_address);
   char buffer[NFAPI_MAX_PACKED_MESSAGE_SIZE];
-  int sd = ue_rx_sock_descriptor;
+  int id = (int) context;
+  int sd = (!id) ? ue_rx_sock_descriptor : ue_ho_rx_sock_descriptor;
   assert(sd > 0);
 
   nfapi_tx_request_t tx_req;
@@ -1306,7 +1325,7 @@ void *ue_standalone_pnf_task(void *context)
       memcpy((void *)&sfn_sf, buffer, sizeof(sfn_sf));
       current_sfn_sf = sfn_sf;
 
-      if (sem_post(&sfn_semaphore) != 0)
+      if (id == 0 && sem_post(&sfn_semaphore) != 0)
       {
         LOG_E(MAC, "sem_post() error\n");
         abort();
@@ -1335,7 +1354,7 @@ void *ue_standalone_pnf_task(void *context)
         LOG_D(MAC, "Received_SINR[%d] = %f\n", i, ch_info.sinr[i]);
       }
     }
-    else
+    else if (id == 0)
     {
       nfapi_p7_message_header_t header;
       if (nfapi_p7_message_header_unpack((void *)buffer, len, &header, sizeof(header), NULL) < 0)
@@ -1454,6 +1473,13 @@ void *ue_standalone_pnf_task(void *context)
         LOG_E(MAC, "Case Statement has no corresponding nfapi message\n");
         break;
       }
+    }
+    else
+    {
+      if(id > 0)
+        LOG_I(MAC, "Received message from the second proxy.\n");
+      else
+        LOG_I(MAC, "Received unidentified message.\n");
     }
   }
 }

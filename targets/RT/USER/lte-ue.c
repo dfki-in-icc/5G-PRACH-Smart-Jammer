@@ -417,17 +417,26 @@ void init_UE_stub_single_thread(int nb_inst,
   }
 }
 
+int num_enbs = 1;
 void init_UE_standalone_thread(int ue_idx)
 {
-  int standalone_tx_port = 3211 + ue_idx * 2;
-  int standalone_rx_port = 3212 + ue_idx * 2;
-  ue_init_standalone_socket(standalone_tx_port, standalone_rx_port);
+  const int enb_port_delta = 300;
+  pthread_t thread[2];
+  char threadname[128];
+  LOG_D(MAC, "num_enbs = %d\n", num_enbs);
+  for (int id = 0; id < num_enbs; id++)
+  {
+    int standalone_tx_port = 3211 + id * enb_port_delta + ue_idx * 2;
+    int standalone_rx_port = 3212 + id * enb_port_delta + ue_idx * 2;
+    ue_init_standalone_socket(standalone_tx_port, standalone_rx_port, id);
 
-  pthread_t thread;
-  if (pthread_create(&thread, NULL, ue_standalone_pnf_task, NULL) != 0) {
-    LOG_E(MAC, "pthread_create failed for calling ue_standalone_pnf_task");
+
+    if (pthread_create(&thread[id], NULL, ue_standalone_pnf_task, (void *)id) != 0) {
+      LOG_E(MAC, "pthread_create failed for calling ue_standalone_pnf_task");
+    }
+    sprintf(threadname, "oai:ue-stand-for-enb%d", id);
+    pthread_setname_np(thread[id], threadname);
   }
-  pthread_setname_np(thread, "oai:ue-stand");
 }
 
 void init_UE_stub(int nb_inst,
