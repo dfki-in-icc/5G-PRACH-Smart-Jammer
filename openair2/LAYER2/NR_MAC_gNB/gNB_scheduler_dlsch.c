@@ -1036,8 +1036,7 @@ void nr_schedule_ue_spec(module_id_t module_id,
   if (!is_xlsch_in_slot_flex(gNB_mac->flexible_slots_per_frame, 0, slot))
     return;
   bool is_mixed_slot = is_xlsch_in_slot_flex(gNB_mac->flexible_slots_per_frame, 2, slot);
-
- if (is_mixed_slot)
+  if (is_mixed_slot)
     return;
   //f (slot==7 || slot == 17) return;
 

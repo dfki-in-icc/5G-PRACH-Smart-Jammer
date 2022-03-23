@@ -404,7 +404,7 @@ void config_common(int Mod_idP, int ssb_SubcarrierOffset, int pdsch_AntennaPorts
   //int flexible_slots_per_frame[20] = {0,0,1,1,0,0,1,1,0,0,2,1,0,0,1,1,0,0,2,1};
   //int flexible_slots_per_frame[20] = {0,0,0,2,1,0,0,0,2,1,0,0,0,2,1,0,0,0,2,1}; // works
   //int flexible_slots_per_frame[20] = {0,0,0,0,2,1,1,0,0,0,2,1,1,0,0,0,0,2,1,1}; //harq pucch frame != pucch frame
-  int flexible_symbols[2] = {6,4};
+  int flexible_symbols[2] = {3,7};
   RC.nrmac[Mod_idP]->flexible_slots_per_frame = calloc(20,sizeof(int));
   RC.nrmac[Mod_idP]->flexible_symbols = calloc(2,sizeof(int));
   for(int i = 0;i < 20; i++) {RC.nrmac[Mod_idP]->flexible_slots_per_frame[i] = flexible_slots_per_frame[i]; }
