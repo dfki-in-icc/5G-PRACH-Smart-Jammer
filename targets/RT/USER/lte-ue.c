@@ -420,7 +420,7 @@ void init_UE_stub_single_thread(int nb_inst,
 int num_enbs = 1;
 void init_UE_standalone_thread(int ue_idx)
 {
-  const int enb_port_delta = 300;
+  const int enb_port_delta = 200;
   pthread_t thread[2];
   char threadname[128];
   LOG_D(MAC, "num_enbs = %d\n", num_enbs);
