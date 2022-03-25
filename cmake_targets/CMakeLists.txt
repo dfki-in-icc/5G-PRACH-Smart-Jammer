@@ -163,7 +163,7 @@ set (XRAN_DIR        ${OPENAIR_DIR}/targets/ARCH/ORAN_FHI/lib)
 set (XRAN_LIB_DIR /usr/local/xran)
 set (INTEL_LIB_DIR /usr/local/intel64)
 set (INTEL_LIB /usr/local/intel64)
-set (DPDK_DIR /usr/local/dpdk_19_11/include/dpdk)
+set (DPDK_DIR ${RTE_SDK}/${RTE_TARGET}/)
 
 project (OpenAirInterface)
 
@@ -830,7 +830,7 @@ TARGET_LINK_LIBRARIES(benetel_5g pthread dl rt m numa)
 
 include_directories("${XRAN_DIR}")
 include_directories("${DPDK_DIR}")
-include_directories("${INTEL_LIB_DIR}")
+#include_directories("${INTEL_LIB_DIR}")
 include_directories("${XRAN_LIB_DIR}")
 
 set(ORAN_FHLIB_5G_SOURCE
@@ -841,16 +841,16 @@ set(ORAN_FHLIB_5G_SOURCE
 add_library(oran_fhlib_5g MODULE ${ORAN_FHLIB_5G_SOURCE})
 
 find_library(XRANFHI xran HINTS ${XRAN_LIB_DIR})
-find_library(INTELIRC irc HINTS ${INTEL_LIB_DIR})
+#find_library(INTELIRC irc HINTS ${INTEL_LIB_DIR})
 
 set_target_properties(oran_fhlib_5g PROPERTIES COMPILE_FLAGS "-fvisibility=hidden -march=native -I$ENV{RTE_SDK}/$ENV{RTE_TARGET}/include")
 
-SET(DPDK_LIBS "-Wl,-rpath,$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -Wl,--whole-archive -L$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -ldpdk -Wl,--no-whole-archive")
+SET(DPDK_LIBS "-Wl,-rpath,$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -Wl,--whole-archive -L$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -Wl,--no-whole-archive")
 TARGET_LINK_LIBRARIES(oran_fhlib_5g ${DPDK_LIBS})
 #TARGET_LINK_LIBRARIES(oran_fhlib_5g -L${XRAN_LIB_DIR} -lxran)
 TARGET_LINK_LIBRARIES(oran_fhlib_5g ${XRANFHI})
 #TARGET_LINK_LIBRARIES(oran_fhlib_5g -L${INTEL_LIB} -lirc)
-TARGET_LINK_LIBRARIES(oran_fhlib_5g ${INTELIRC})
+#TARGET_LINK_LIBRARIES(oran_fhlib_5g ${INTELIRC})
 TARGET_LINK_LIBRARIES(oran_fhlib_5g pthread dl rt m numa)
 
 ##########################################################
