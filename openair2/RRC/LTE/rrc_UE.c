@@ -4533,11 +4533,13 @@ void ue_measurement_report_triggering(protocol_ctxt_t *const ctxt_pP, const uint
 
                     ue->measReportList[i][j]->measId = ue->MeasId[i][j]->measId;
                     ue->measReportList[i][j]->numberOfReportsSent = 0;
+                    LOG_I(RRC,"David calling rrc_ue_generate_MeasurementReport\n");
                     rrc_ue_generate_MeasurementReport(
                       ctxt_pP,
                       eNB_index);
                     ue->HandoverInfoUe.measFlag = 1;
                   } else {
+                    LOG_I(RRC,"David checking measReportList = %p\n", ue->measReportList[i][j]);
                     if(ue->measReportList[i][j] != NULL) {
                       free(ue->measReportList[i][j]);
                     }
@@ -4631,15 +4633,17 @@ uint8_t check_trigger_meas_event(
   uint8_t eNB_offset;
   //  uint8_t currentCellIndex = frame_parms->Nid_cell;
   uint8_t tmp_offset;
-  LOG_D(RRC,"[UE %d] ofn(%ld) ocn(%ld) hys(%ld) ofs(%ld) ocs(%ld) ttt(%ld) rssi %3.1f\n",
+  LOG_I(RRC,"[start of check_trigger_meas_event]\n");
+  LOG_D(RRC,"\t[UE %d] ofn(%ld) ocn(%ld) hys(%ld) ofs(%ld) ocs(%ld) ttt(%ld) rssi %3.1f\n",
         ue_mod_idP,
         ofn,ocn,hys,ofs,ocs,ttt,
         10*log10(get_RSSI(ue_mod_idP,0))-get_rx_total_gain_dB(ue_mod_idP,0));
-  LOG_D(RRC, "[UE %d] Frame %d: num_adj: %d eNB_idx: %d, NB_eNB_INST: %d\n",
+  LOG_D(RRC, "\t[UE %d] Frame %d: num_adj: %d eNB_idx: %d, NB_eNB_INST: %d\n",
         ue_mod_idP, frameP, get_n_adj_cells(ue_mod_idP,0), eNB_index, NB_eNB_INST);
 
   for (eNB_offset = 0; eNB_offset<1+get_n_adj_cells(ue_mod_idP,0); eNB_offset++) {
     /* RHS: Verify that idx 0 corresponds to currentCellIndex in rsrp array */
+    LOG_I(RRC,"\tDavid eNB_offset %u eNB_index %u NB_eNB_INST %u\n", eNB_offset, eNB_index, NB_eNB_INST);
     if((eNB_offset!=eNB_index)&&(eNB_offset<NB_eNB_INST)) {
       if(eNB_offset<eNB_index) {
         tmp_offset = eNB_offset;
@@ -4649,17 +4653,17 @@ uint8_t check_trigger_meas_event(
 
       if(UE_rrc_inst[ue_mod_idP].rsrp_db_filtered[eNB_offset]+ofn+ocn-hys > UE_rrc_inst[ue_mod_idP].rsrp_db_filtered[eNB_index]+ofs+ocs-1/*+a3_offset*/) {
         UE_rrc_inst->measTimer[ue_cnx_index][meas_index][tmp_offset] += 2; //Called every subframe = 2ms
-        LOG_D(RRC,"[UE %d] Frame %d: Entry measTimer[%d][%d][%d]: %d currentCell: %d betterCell: %d \n",
+        LOG_D(RRC,"\t\t[UE %d] Frame %d: Entry measTimer[%d][%d][%d]: %d currentCell: %d betterCell: %d \n",
               ue_mod_idP, frameP, ue_cnx_index,meas_index,tmp_offset,UE_rrc_inst->measTimer[ue_cnx_index][meas_index][tmp_offset],0,eNB_offset);
       } else {
         UE_rrc_inst->measTimer[ue_cnx_index][meas_index][tmp_offset] = 0; //Exit condition: Resetting the measurement timer
-        LOG_D(RRC,"[UE %d] Frame %d: Exit measTimer[%d][%d][%d]: %d currentCell: %d betterCell: %d \n",
+        LOG_D(RRC,"\t\t[UE %d] Frame %d: Exit measTimer[%d][%d][%d]: %d currentCell: %d betterCell: %d \n",
               ue_mod_idP, frameP, ue_cnx_index,meas_index,tmp_offset,UE_rrc_inst->measTimer[ue_cnx_index][meas_index][tmp_offset],0,eNB_offset);
       }
 
       if (UE_rrc_inst->measTimer[ue_cnx_index][meas_index][tmp_offset] >= ttt) {
         UE_rrc_inst->HandoverInfoUe.targetCellId = get_adjacent_cell_id(ue_mod_idP,tmp_offset); //WARNING!!!...check this!
-        LOG_D(RRC,"[UE %d] Frame %d eNB %d: Handover triggered: targetCellId: %ld currentCellId: %d eNB_offset: %d rsrp source: %3.1f rsrp target: %3.1f\n",
+        LOG_D(RRC,"\t\t[UE %d] Frame %d eNB %d: Handover triggered: targetCellId: %ld currentCellId: %d eNB_offset: %d rsrp source: %3.1f rsrp target: %3.1f\n",
               ue_mod_idP, frameP, eNB_index,
               UE_rrc_inst->HandoverInfoUe.targetCellId,ue_cnx_index,eNB_offset,
               get_RSRP(ue_mod_idP,0,0),

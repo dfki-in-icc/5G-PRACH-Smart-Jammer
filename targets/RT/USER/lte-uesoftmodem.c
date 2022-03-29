@@ -543,8 +543,9 @@ int main( int argc, char **argv ) {
   uint8_t  abstraction_flag=0;
   // Default value for the number of UEs. It will hold,
   // if not changed from the command line option --num-ues
-  NB_UE_INST=1;
-  NB_THREAD_INST=1;
+  NB_UE_INST = 1;
+  NB_THREAD_INST = 1;
+  NB_eNB_INST = 1;
   configmodule_interface_t *config_mod;
   start_background_system();
   config_mod = load_configmodule(argc, argv, CONFIG_ENABLECMDLINEONLY);
@@ -661,6 +662,9 @@ int main( int argc, char **argv ) {
     //init_UE_stub(1,eMBMS_active,uecap_xer_in,emul_iface);
     init_UE_stub_single_thread(NB_UE_INST,eMBMS_active,uecap_xer_in,emul_iface);
   } else if (NFAPI_MODE==NFAPI_MODE_STANDALONE_PNF) {
+    LOG_I(MAC, "NB_eNB_INST = %d\n", NB_eNB_INST);
+    NB_eNB_INST = num_enbs;
+    LOG_I(MAC, "num_enbs = %d, NB_eNB_INST = %d\n", num_enbs, NB_eNB_INST);
     init_queue(&dl_config_req_tx_req_queue);
     init_queue(&hi_dci0_req_queue);
     init_queue(&ul_config_req_queue);

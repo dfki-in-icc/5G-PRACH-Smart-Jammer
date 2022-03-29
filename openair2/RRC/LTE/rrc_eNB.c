@@ -4599,7 +4599,7 @@ rrc_eNB_process_MeasurementReport(
   if (RC.rrc[ctxt_pP->module_id]->x2_ho_net_control)
     return;
 
-  LOG_D(RRC, "A3 event is triggered...\n");
+  LOG_I(RRC, "David A3 event is triggered...\n");
 
   /* if the UE is not in handover mode, start handover procedure */
   if (ue_context_pP->ue_context.StatusRrc != RRC_HO_EXECUTION) {
@@ -7732,9 +7732,9 @@ rrc_eNB_decode_dcch(
           break;
         }
 
-        LOG_D(RRC,
+        LOG_I(RRC,
               PROTOCOL_RRC_CTXT_UE_FMT" RLC RB %02d --- RLC_DATA_IND "
-              "%d bytes (measurementReport) ---> RRC_eNB\n",
+              "David %d bytes (measurementReport) ---> RRC_eNB\n",
               PROTOCOL_RRC_CTXT_UE_ARGS(ctxt_pP),
               DCCH,
               sdu_sizeP);
