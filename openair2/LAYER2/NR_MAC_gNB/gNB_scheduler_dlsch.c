@@ -490,7 +490,7 @@ void nr_store_dlsch_buffer(module_id_t module_id,
                                                         DL_SCH_LCID_DCCH,
                                                         0,
                                                         0);
-    if ((sched_ctrl->lcid_mask&(1<<4)) > 0)  
+    if ((sched_ctrl->lcid_mask&(1<<4)) > 0){  
        sched_ctrl->rlc_status[DL_SCH_LCID_DTCH] = mac_rlc_status_ind(module_id,
                                                                     rnti,
                                                                     module_id,
@@ -501,14 +501,28 @@ void nr_store_dlsch_buffer(module_id_t module_id,
                                                                     DL_SCH_LCID_DTCH,
                                                                     0,
                                                                     0);
-
+       sched_ctrl->rlc_status[DL_SCH_LCID_DTCH2] = mac_rlc_status_ind(module_id,
+                                                                    rnti,
+                                                                    module_id,
+                                                                    frame,
+                                                                    slot,
+                                                                    ENB_FLAG_YES,
+                                                                    MBMS_FLAG_NO,
+                                                                    DL_SCH_LCID_DTCH2,
+                                                                    0,
+                                                                    0);}
      if(sched_ctrl->rlc_status[DL_SCH_LCID_DCCH].bytes_in_buffer > 0){
        lcid = DL_SCH_LCID_DCCH;       
      } 
      else if (sched_ctrl->rlc_status[DL_SCH_LCID_DCCH1].bytes_in_buffer > 0)
      {
        lcid = DL_SCH_LCID_DCCH1;       
-     }else{
+     }
+    else if (sched_ctrl->rlc_status[DL_SCH_LCID_DTCH2].bytes_in_buffer > 0)
+     {
+       lcid = DL_SCH_LCID_DTCH2;       
+     }
+     else{
        lcid = DL_SCH_LCID_DTCH;       
      }
                                                       

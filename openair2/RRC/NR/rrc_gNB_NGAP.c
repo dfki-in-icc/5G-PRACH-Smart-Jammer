@@ -974,18 +974,18 @@ rrc_gNB_send_NGAP_PDUSESSION_SETUP_RESP(
   for (pdusession = 0; pdusession < ue_context_pP->ue_context.setup_pdu_sessions; pdusession++) {
     // if (xid == ue_context_pP->ue_context.pdusession[pdusession].xid) {
       if (ue_context_pP->ue_context.pduSession[pdusession].status == PDU_SESSION_STATUS_DONE) {
-        NGAP_PDUSESSION_SETUP_RESP(msg_p).pdusessions[pdusession].pdusession_id = ue_context_pP->ue_context.pduSession[pdusession].param.pdusession_id;
+        NGAP_PDUSESSION_SETUP_RESP(msg_p).pdusessions[pdu_sessions_done].pdusession_id = ue_context_pP->ue_context.pduSession[pdusession].param.pdusession_id;
         // NGAP_PDUSESSION_SETUP_RESP(msg_p).pdusessions[pdusession].pdusession_id = 1;
-        NGAP_PDUSESSION_SETUP_RESP(msg_p).pdusessions[pdusession].nb_of_qos_flow = ue_context_pP->ue_context.pduSession[pdusession].param.nb_qos;
-        NGAP_PDUSESSION_SETUP_RESP(msg_p).pdusessions[pdusession].gtp_teid = ue_context_pP->ue_context.gnb_gtp_teid[pdusession];
-        NGAP_PDUSESSION_SETUP_RESP(msg_p).pdusessions[pdusession].gNB_addr.pdu_session_type = PDUSessionType_ipv4;
-        NGAP_PDUSESSION_SETUP_RESP(msg_p).pdusessions[pdusession].gNB_addr.length = ue_context_pP->ue_context.gnb_gtp_addrs[pdusession].length;
-        memcpy(NGAP_PDUSESSION_SETUP_RESP(msg_p).pdusessions[pdusession].gNB_addr.buffer,
+        NGAP_PDUSESSION_SETUP_RESP(msg_p).pdusessions[pdu_sessions_done].nb_of_qos_flow = ue_context_pP->ue_context.pduSession[pdusession].param.nb_qos;
+        NGAP_PDUSESSION_SETUP_RESP(msg_p).pdusessions[pdu_sessions_done].gtp_teid = ue_context_pP->ue_context.gnb_gtp_teid[pdusession];
+        NGAP_PDUSESSION_SETUP_RESP(msg_p).pdusessions[pdu_sessions_done].gNB_addr.pdu_session_type = PDUSessionType_ipv4;
+        NGAP_PDUSESSION_SETUP_RESP(msg_p).pdusessions[pdu_sessions_done].gNB_addr.length = ue_context_pP->ue_context.gnb_gtp_addrs[pdusession].length;
+        memcpy(NGAP_PDUSESSION_SETUP_RESP(msg_p).pdusessions[pdu_sessions_done].gNB_addr.buffer,
                 ue_context_pP->ue_context.gnb_gtp_addrs[pdusession].buffer, sizeof(uint8_t)*20);
-        for (qos_flow_index = 0; qos_flow_index < NGAP_PDUSESSION_SETUP_RESP(msg_p).pdusessions[pdusession].nb_of_qos_flow; qos_flow_index++) {
-          NGAP_PDUSESSION_SETUP_RESP(msg_p).pdusessions[pdusession].associated_qos_flows[qos_flow_index].qfi =
+        for (qos_flow_index = 0; qos_flow_index < NGAP_PDUSESSION_SETUP_RESP(msg_p).pdusessions[pdu_sessions_done].nb_of_qos_flow; qos_flow_index++) {
+          NGAP_PDUSESSION_SETUP_RESP(msg_p).pdusessions[pdu_sessions_done].associated_qos_flows[qos_flow_index].qfi =
             ue_context_pP->ue_context.pduSession[pdusession].param.qos[qos_flow_index].qfi;
-          NGAP_PDUSESSION_SETUP_RESP(msg_p).pdusessions[pdusession].associated_qos_flows[qos_flow_index].qos_flow_mapping_ind = QOSFLOW_MAPPING_INDICATION_DL;
+          NGAP_PDUSESSION_SETUP_RESP(msg_p).pdusessions[pdu_sessions_done].associated_qos_flows[qos_flow_index].qos_flow_mapping_ind = QOSFLOW_MAPPING_INDICATION_DL;
         }
 
         ue_context_pP->ue_context.pduSession[pdusession].status = PDU_SESSION_STATUS_ESTABLISHED;

@@ -319,6 +319,7 @@ typedef struct {
 #define DL_SCH_LCID_DCCH                           0x01
 #define DL_SCH_LCID_DCCH1                          0x02
 #define DL_SCH_LCID_DTCH                           0x04
+#define DL_SCH_LCID_DTCH2                          0x05
 #define DL_SCH_LCID_RECOMMENDED_BITRATE            0x2F
 #define DL_SCH_LCID_SP_ZP_CSI_RS_RES_SET_ACT       0x30
 #define DL_SCH_LCID_PUCCH_SPATIAL_RELATION_ACT     0x31
@@ -342,6 +343,7 @@ typedef struct {
 #define UL_SCH_LCID_SRB2                           0x02
 #define UL_SCH_LCID_SRB3                           0x03
 #define UL_SCH_LCID_DTCH                           0x04
+#define UL_SCH_LCID_DTCH2                           0x05
 #define UL_SCH_LCID_CCCH                           0x34
 #define UL_SCH_LCID_RECOMMENDED_BITRATE_QUERY      0x35
 #define UL_SCH_LCID_MULTI_ENTRY_PHR_4_OCT          0x36

@@ -398,12 +398,12 @@ teid_t newGtpuCreateTunnel(instance_t instance, rnti_t rnti, int incoming_bearer
                            transport_layer_addr_t remoteAddr, int port, gtpCallback callBack) {
   pthread_mutex_lock(&globGtp.gtp_lock);
   auto inst=&globGtp.instances[instance];
-  auto it=inst->ue2te_mapping.find(rnti);
+  /*auto it=inst->ue2te_mapping.find(rnti);
 
   if ( it != inst->ue2te_mapping.end() ) {
     LOG_W(GTPU,"Create a config for a already existing GTP tunnel (rnti %x)\n", rnti);
     inst->ue2te_mapping.erase(it);
-  }
+  }*/
 
   uint32_t incoming_teid=gtpv1uNewTeid();
 

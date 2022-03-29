@@ -963,6 +963,9 @@ rrc_gNB_generate_dedicatedRRCReconfiguration(
   NR_QFI_t                       qfi = 0;
   int                            pdu_sessions_done = 0;
   int i;
+  uint8_t drb_id_to_setup_start = 1;
+  uint8_t nb_drb_to_setup = 0;
+  long drb_priority[1] = {13}; // For now, we assume only one drb per pdu sessions with a default preiority (will be dynamique in future)
   NR_CellGroupConfig_t *cellGroupConfig;
 
   uint8_t xid = rrc_gNB_get_next_transaction_identifier(ctxt_pP->module_id);
@@ -1005,6 +1008,8 @@ rrc_gNB_generate_dedicatedRRCReconfiguration(
 
     DRB_config = CALLOC(1, sizeof(*DRB_config));
     DRB_config->drb_Identity = i+1;
+    if (drb_id_to_setup_start == 1) drb_id_to_setup_start = DRB_config->drb_Identity;
+    nb_drb_to_setup++;
     DRB_config->cnAssociation = CALLOC(1, sizeof(*DRB_config->cnAssociation));
     DRB_config->cnAssociation->present = NR_DRB_ToAddMod__cnAssociation_PR_sdap_Config;
     // sdap_Config
@@ -1112,7 +1117,7 @@ rrc_gNB_generate_dedicatedRRCReconfiguration(
 
   memset(buffer, 0, RRC_BUF_SIZE);
   cellGroupConfig = calloc(1, sizeof(NR_CellGroupConfig_t));
-  fill_mastercellGroupConfig(cellGroupConfig, ue_context_pP->ue_context.masterCellGroup);
+  fill_mastercellGroupConfig(cellGroupConfig, ue_context_pP->ue_context.masterCellGroup, (drb_id_to_setup_start < 2) ? 1 : 0, drb_id_to_setup_start, nb_drb_to_setup, drb_priority);
   size = do_RRCReconfiguration(ctxt_pP, buffer,
                                 xid,
                                 *SRB_configList2,
