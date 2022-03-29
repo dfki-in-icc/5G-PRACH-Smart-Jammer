@@ -193,6 +193,8 @@ void nr_schedule_pucch(int Mod_idP,
 
 void nr_schedule_srs(int module_id, frame_t frame);
 
+void nr_schedule_srs_secondary(int module_id, frame_t frame, int UE_id);
+
 void nr_csirs_scheduling(int Mod_idP,
                          frame_t frame,
                          sub_frame_t slot,

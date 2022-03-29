@@ -184,3 +184,66 @@ void nr_schedule_srs(int module_id, frame_t frame) {
     }
   }
 }
+
+/*******************************************************************
+*
+* NAME :         nr_schedule_srs_secondary
+*
+* PARAMETERS :   module id
+*                frame number for possible SRS reception
+*
+* DESCRIPTION :  It informs the PHY layer that has an SRS to receive.
+*                To be used at secondary gNB (where UE is not connected).
+*                Only for periodic scheduling yet.
+*
+*********************************************************************/
+void nr_schedule_srs_secondary(int module_id, frame_t frame, int UE_id) {
+
+  const int CC_id = 0;
+  NR_ServingCellConfigCommon_t *scc = RC.nrmac[module_id]->common_channels[CC_id].ServingCellConfigCommon;
+
+  NR_SRS_Config_t *srs_config = fill_srs_config(scc,
+						1, //do_srsg
+						UE_id);
+  
+  for(int rs = 0; rs < srs_config->srs_ResourceSetToAddModList->list.count; rs++) {
+    
+    // Find periodic resource set
+    NR_SRS_ResourceSet_t *srs_resource_set = srs_config->srs_ResourceSetToAddModList->list.array[rs];
+    if (srs_resource_set->resourceType.present != NR_SRS_ResourceSet__resourceType_PR_periodic) {
+      continue;
+    }
+    
+      // Find the corresponding srs resource
+    NR_SRS_Resource_t *srs_resource = NULL;
+    for (int r1 = 0; r1 < srs_resource_set->srs_ResourceIdList->list.count; r1++) {
+      for (int r2 = 0; r2 < srs_config->srs_ResourceToAddModList->list.count; r2++) {
+	if ((*srs_resource_set->srs_ResourceIdList->list.array[r1] ==
+	     srs_config->srs_ResourceToAddModList->list.array[r2]->srs_ResourceId) &&
+	    (srs_config->srs_ResourceToAddModList->list.array[r2]->resourceType.present ==
+	     NR_SRS_Resource__resourceType_PR_periodic)) {
+	  srs_resource = srs_config->srs_ResourceToAddModList->list.array[r2];
+	  break;
+	}
+      }
+    }
+    
+    if (srs_resource == NULL) {
+        continue;
+    }
+    
+    NR_BWP_t ubwp = scc->uplinkConfigCommon->initialUplinkBWP->genericParameters;
+    
+    uint16_t period = srs_period[srs_resource->resourceType.choice.periodic->periodicityAndOffset_p.present];
+    uint16_t offset = get_nr_srs_offset(srs_resource->resourceType.choice.periodic->periodicityAndOffset_p);
+    
+    int n_slots_frame = nr_slots_per_frame[ubwp.subcarrierSpacing];
+    
+    // Check if UE will transmit the SRS in this frame
+    if ( ((frame - offset/n_slots_frame)*n_slots_frame)%period == 0) {
+      LOG_D(NR_MAC,"Scheduling SRS reception for %d.%d\n", frame, offset%n_slots_frame);
+      nr_fill_nfapi_srs(module_id, CC_id, UE_id, offset%n_slots_frame, srs_resource);
+
+    }
+  }
+}

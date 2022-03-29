@@ -91,6 +91,10 @@ void config_csirs(NR_ServingCellConfigCommon_t *servingcellconfigcommon,
                   int curr_bwp,
                   int do_csirs);
 
+NR_SRS_Config_t *fill_srs_config(NR_ServingCellConfigCommon_t *servingcellconfigcommon,
+				 int do_srs,
+				 int uid);
+
 void fill_default_reconfig(NR_ServingCellConfigCommon_t *servingcellconfigcommon,
                            NR_ServingCellConfig_t *servingcellconfigdedicated,
                            NR_RRCReconfiguration_IEs_t *reconfig,
