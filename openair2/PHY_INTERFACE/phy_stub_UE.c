@@ -1282,6 +1282,9 @@ void *ue_standalone_pnf_task(void *context)
   nfapi_dl_config_request_t dl_config_req;
   bool tx_req_valid = false;
   bool dl_config_req_valid = false;
+  uint16_t prev_sfn_slot = 0xFFFF;
+  uint16_t same_tick = 1;
+  extern int num_enbs;
   while (true)
   {
     ssize_t len = recvfrom(sd, buffer, sizeof(buffer), MSG_TRUNC, (struct sockaddr *)&server_address, &addr_len);
@@ -1300,17 +1303,33 @@ void *ue_standalone_pnf_task(void *context)
        the length of the message. This works because sizeof(uint16_t) < sizeof(nfapi_p7_message_header_t)
        and sizeof(phy_channel_params_t) < sizeof(nfapi_p7_message_header_t) and
        sizeof(uint16_t) != sizeof(phy_channel_params_t). */
-    if (len == sizeof(uint16_t))
+    
+    LOG_I(MAC, "Received  msg len = %zu, sizeof(sfn_sf_info_t)= %zu\n", len, sizeof(sfn_sf_info_t));
+    if (len == sizeof(sfn_sf_info_t))
     {
       uint16_t sfn_sf = 0;
-      memcpy((void *)&sfn_sf, buffer, sizeof(sfn_sf));
-      current_sfn_sf = sfn_sf;
+      uint16_t cell_id = 0;
+      sfn_sf_info_t sfn_sf_info;
+      memcpy((void *)&sfn_sf_info, buffer, sizeof(sfn_sf_info_t));
+      sfn_sf = sfn_sf_info.sfn_sf;
+      cell_id = sfn_sf_info.cell_id;
 
-      if (sem_post(&sfn_semaphore) != 0)
+      LOG_I(MAC, "Received sfn_slot[%hu] frame: %u, subframe: %u\n", sfn_sf_info.cell_id,
+            sfn_sf_info.sfn_sf >> 4, sfn_sf_info.sfn_sf & 15);
+      if (prev_sfn_slot == sfn_sf)
+        ++same_tick;
+      if (same_tick == num_enbs)
       {
-        LOG_E(MAC, "sem_post() error\n");
-        abort();
+        current_sfn_sf = sfn_sf;
+
+        if (sem_post(&sfn_semaphore) != 0)
+        {
+          LOG_E(MAC, "sem_post() error\n");
+          abort();
+        }
+        same_tick = 1;
       }
+      prev_sfn_slot = sfn_sf;
     }
     else if (get_message_id((const uint8_t *)buffer, len) == 0x0FFF) // 0x0FFF : channel info identifier.
     {

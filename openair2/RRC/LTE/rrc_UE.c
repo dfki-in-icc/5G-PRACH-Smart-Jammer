@@ -4282,6 +4282,7 @@ void ue_meas_filtering( const protocol_ctxt_t *const ctxt_pP, const uint8_t eNB_
           UE_rrc_inst[ctxt_pP->module_id].rsrp_db_filtered[eNB_offset] =
             (1.0-a)*UE_rrc_inst[ctxt_pP->module_id].rsrp_db_filtered[eNB_offset] +
             a*UE_rrc_inst[ctxt_pP->module_id].rsrp_db[eNB_offset];
+          UE_rrc_inst[ctxt_pP->module_id].rsrp_db_filtered[eNB_offset] = 40; // DavidK
           LOG_D(RRC,"RSRP_dBm: %3.2f \n",get_RSRP(ctxt_pP->module_id,0,eNB_offset));;
           /*          LOG_D(RRC,"gain_loss_dB: %d \n",get_rx_total_gain_dB(ctxt_pP->module_id,0));
                 LOG_D(RRC,"gain_fixed_dB: %d \n",dB_fixed(frame_parms->N_RB_DL*12));*/
@@ -4301,6 +4302,7 @@ void ue_meas_filtering( const protocol_ctxt_t *const ctxt_pP, const uint8_t eNB_
     } else {
       for (eNB_offset = 0; eNB_offset<1+get_n_adj_cells(ctxt_pP->module_id,0); eNB_offset++) {
         UE_rrc_inst[ctxt_pP->module_id].rsrp_db_filtered[eNB_offset]= get_RSRP(ctxt_pP->module_id,0,eNB_offset);
+        UE_rrc_inst[ctxt_pP->module_id].rsrp_db_filtered[eNB_offset] = 40; // DavidK
       }
     }
 
@@ -4310,11 +4312,13 @@ void ue_meas_filtering( const protocol_ctxt_t *const ctxt_pP, const uint8_t eNB_
           UE_rrc_inst[ctxt_pP->module_id].rsrq_db[eNB_offset] = (10*log10(get_RSRQ(ctxt_pP->module_id,0,eNB_offset)))-20;
           UE_rrc_inst[ctxt_pP->module_id].rsrq_db_filtered[eNB_offset]=(1-a1)*UE_rrc_inst[ctxt_pP->module_id].rsrq_db_filtered[eNB_offset] +
               a1 *UE_rrc_inst[ctxt_pP->module_id].rsrq_db[eNB_offset];
+          UE_rrc_inst[ctxt_pP->module_id].rsrq_db_filtered[eNB_offset]= 33;// DavidK
         }
       }
     } else {
       for (eNB_offset = 0; eNB_offset<1+get_n_adj_cells(ctxt_pP->module_id,0); eNB_offset++) {
         UE_rrc_inst[ctxt_pP->module_id].rsrq_db_filtered[eNB_offset]= get_RSRQ(ctxt_pP->module_id,0,eNB_offset);
+        UE_rrc_inst[ctxt_pP->module_id].rsrq_db_filtered[eNB_offset]= 33;// DavidK
       }
     }
   }
@@ -4533,13 +4537,13 @@ void ue_measurement_report_triggering(protocol_ctxt_t *const ctxt_pP, const uint
 
                     ue->measReportList[i][j]->measId = ue->MeasId[i][j]->measId;
                     ue->measReportList[i][j]->numberOfReportsSent = 0;
-                    LOG_I(RRC,"David calling rrc_ue_generate_MeasurementReport\n");
+                    LOG_I(RRC,"Calling rrc_ue_generate_MeasurementReport\n"); // DavidK
                     rrc_ue_generate_MeasurementReport(
                       ctxt_pP,
                       eNB_index);
                     ue->HandoverInfoUe.measFlag = 1;
                   } else {
-                    LOG_I(RRC,"David checking measReportList = %p\n", ue->measReportList[i][j]);
+                    LOG_I(RRC,"measReportList = %p\n", ue->measReportList[i][j]); // DavidK
                     if(ue->measReportList[i][j] != NULL) {
                       free(ue->measReportList[i][j]);
                     }

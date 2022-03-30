@@ -124,6 +124,12 @@ void handle_nfapi_ul_pdu_UE_MAC(module_id_t Mod_id,
                          uint16_t frame,uint8_t subframe,uint8_t srs_present, int index,
                          nfapi_ul_config_request_t *ul_config_req);
 
+typedef struct sfn_sf_info_s
+{
+    uint16_t sfn_sf;
+    uint16_t cell_id;
+} sfn_sf_info_t;
+
 typedef struct phy_channel_params_t
 {
     uint16_t sfn_sf;
