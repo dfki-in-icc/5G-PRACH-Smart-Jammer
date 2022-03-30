@@ -799,7 +799,7 @@ void nr_rx_sdu(const module_id_t gnb_mod_idP,
           LOG_A(NR_MAC, "(rnti 0x%04x) CFRA procedure succeeded!\n", ra->rnti);
           nr_mac_remove_ra_rnti(gnb_mod_idP, ra->rnti);
           nr_clear_ra_proc(gnb_mod_idP, CC_idP, frameP, ra);
-          process_CellGroup(ra->CellGroup, UE_scheduling_control);
+          process_CellGroup(ra->CellGroup, UE_scheduling_control, NULL, NULL);
 
         } else {
 

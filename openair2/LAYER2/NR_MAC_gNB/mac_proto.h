@@ -38,8 +38,6 @@ void set_cset_offset(uint16_t);
 
 void mac_top_init_gNB(void);
 
-void process_CellGroup(NR_CellGroupConfig_t *CellGroup, NR_UE_sched_ctrl_t *sched_ctrl);
-
 void config_common(int Mod_idP,
                    int ssb_SubcarrierOffset,
                    rrc_pdsch_AntennaPorts_t pdsch_AntennaPorts,
@@ -62,7 +60,8 @@ int rrc_mac_config_req_gNB(module_id_t Mod_idP,
                            NR_BCCH_DL_SCH_Message_t *sib1,
                            int add_ue,
                            uint32_t rnti,
-                           NR_CellGroupConfig_t *CellGroup);
+                           NR_CellGroupConfig_t *CellGroup,
+                           pdu_session_param_t *pduSession);
 
 void clear_nr_nfapi_information(gNB_MAC_INST * gNB, 
                                 int CC_idP,
@@ -528,6 +527,6 @@ void nr_sr_reporting(gNB_MAC_INST *nrmac, frame_t frameP, sub_frame_t slotP);
 
 void dump_mac_stats(gNB_MAC_INST *gNB, char *output, int strlen, bool reset_rsrp);
 
-void process_CellGroup(NR_CellGroupConfig_t *CellGroup, NR_UE_sched_ctrl_t *sched_ctrl);
+void process_CellGroup(NR_CellGroupConfig_t *CellGroup, NR_UE_sched_ctrl_t *sched_ctrl, pdu_session_param_t *pduSession, NR_DRB_ToAddModList_t *DRB_configList);
 
 #endif /*__LAYER2_NR_MAC_PROTO_H__*/

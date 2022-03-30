@@ -176,6 +176,7 @@ static void init_NR_SI(gNB_RRC_INST *rrc, gNB_RrcConfigurationReq *configuration
                            rrc->carrier.siblock1,
                            0,
                            0, // WIP hardcoded rnti
+                           NULL,
                            NULL);
   }
 
@@ -285,7 +286,8 @@ void apply_macrlc_config(gNB_RRC_INST *rrc,
                          NULL,
                          0,
                          ue_context_pP->ue_context.rnti,
-                         cgc);
+                         cgc,
+                         NULL);
 
   nr_rrc_rlc_config_asn1_req(ctxt_pP,
                              ue_context_pP->ue_context.SRB_configList,
@@ -473,6 +475,7 @@ rrc_gNB_generate_RRCSetup_for_RRCReestablishmentRequest(
                          rrc_instance_p->carrier.siblock1,
                          0,
                          ue_context_pP->ue_context.rnti,
+                         NULL,
                          NULL);
 
   LOG_I(NR_RRC,
@@ -1408,7 +1411,9 @@ rrc_gNB_process_RRCReconfigurationComplete(
                            NULL,
                            0,
                            ue_context_pP->ue_context.rnti,
-                           ue_context_pP->ue_context.masterCellGroup);
+                           ue_context_pP->ue_context.masterCellGroup,
+                           ue_context_pP->ue_context.pduSession);
+
     LOG_D(NR_RRC,"Configuring RLC DRBs/SRBs for UE %x\n",ue_context_pP->ue_context.rnti);
     nr_rrc_rlc_config_asn1_req(ctxt_pP,
                                SRB_configList, // NULL,
