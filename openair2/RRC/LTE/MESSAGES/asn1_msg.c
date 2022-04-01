@@ -4168,12 +4168,20 @@ uint8_t do_MBSFNAreaConfig(uint8_t Mod_id,
   return((enc_rval.encoded+7)/8);
 }
 
+#define asn1cCallocOne(VaR, VaLue) \
+  VaR = calloc(1,sizeof(*VaR)); *VaR=VaLue;
+#define asn1cCalloc(VaR, lOcPtr) \
+  typeof(VaR) lOcPtr = VaR = calloc(1,sizeof(*VaR));
+#define asn1cSequenceAdd(VaR, TyPe, lOcPtr) \
+  TyPe *lOcPtr= calloc(1,sizeof(TyPe)); \
+  ASN_SEQUENCE_ADD(&VaR,lOcPtr);
 
 uint8_t do_MeasurementReport(uint8_t Mod_id, uint8_t *buffer, size_t buffer_size,
                              int measid, int phy_id, long rsrp_s, long rsrq_s,
                              long rsrp_t, long rsrq_t) {
   asn_enc_rval_t enc_rval;
   LTE_UL_DCCH_Message_t ul_dcch_msg;
+  memset((void *)&ul_dcch_msg, 0, sizeof(ul_dcch_msg));
   LTE_MeasurementReport_t  *measurementReport;
   ul_dcch_msg.message.present                     = LTE_UL_DCCH_MessageType_PR_c1;
   ul_dcch_msg.message.choice.c1.present           = LTE_UL_DCCH_MessageType__c1_PR_measurementReport;
@@ -4199,19 +4207,23 @@ uint8_t do_MeasurementReport(uint8_t Mod_id, uint8_t *buffer, size_t buffer_size
   // measresult_cgi2->cellGlobalId.plmn_Identity.mcc=CALLOC(1,sizeof(measresult_cgi2->cellGlobalId.plmn_Identity.mcc));
   measresult_cgi2->cellGlobalId.plmn_Identity.mcc = CALLOC(1, sizeof(*measresult_cgi2->cellGlobalId.plmn_Identity.mcc));
   asn_set_empty(&measresult_cgi2->cellGlobalId.plmn_Identity.mcc->list);//.size=0;
-  LTE_MCC_MNC_Digit_t dummy;
-  dummy=2;
-  ASN_SEQUENCE_ADD(&measresult_cgi2->cellGlobalId.plmn_Identity.mcc->list,&dummy);
-  dummy=6;
-  ASN_SEQUENCE_ADD(&measresult_cgi2->cellGlobalId.plmn_Identity.mcc->list,&dummy);
-  dummy=2;
-  ASN_SEQUENCE_ADD(&measresult_cgi2->cellGlobalId.plmn_Identity.mcc->list,&dummy);
+
+  LTE_MCC_MNC_Digit_t dummy[6];
+  dummy[0]1=3;//2
+  ASN_SEQUENCE_ADD(&measresult_cgi2->cellGlobalId.plmn_Identity.mcc->list,&dummy[0]);
+  dummy[1]=2;//6
+  ASN_SEQUENCE_ADD(&measresult_cgi2->cellGlobalId.plmn_Identity.mcc->list,&dummy[1]);
+  dummy[2]=0;//2
+  ASN_SEQUENCE_ADD(&measresult_cgi2->cellGlobalId.plmn_Identity.mcc->list,&dummy[2]);
   measresult_cgi2->cellGlobalId.plmn_Identity.mnc.list.size=0;
   measresult_cgi2->cellGlobalId.plmn_Identity.mnc.list.count=0;
-  dummy=8;
-  ASN_SEQUENCE_ADD(&measresult_cgi2->cellGlobalId.plmn_Identity.mnc.list,&dummy);
-  dummy=0;
-  ASN_SEQUENCE_ADD(&measresult_cgi2->cellGlobalId.plmn_Identity.mnc.list,&dummy);
+  dummy[3]=2;//8
+  ASN_SEQUENCE_ADD(&measresult_cgi2->cellGlobalId.plmn_Identity.mnc.list,&dummy[3]);
+  dummy[4]=3;//0
+  ASN_SEQUENCE_ADD(&measresult_cgi2->cellGlobalId.plmn_Identity.mnc.list,&dummy[4]);
+  dummy[5]=0;
+  ASN_SEQUENCE_ADD(&measresult_cgi2->cellGlobalId.plmn_Identity.mnc.list,&dummy[5]);
+
   measresult_cgi2->cellGlobalId.cellIdentity.buf=MALLOC(8);
   measresult_cgi2->cellGlobalId.cellIdentity.buf[0]=0x01;
   measresult_cgi2->cellGlobalId.cellIdentity.buf[1]=0x48;
@@ -4235,7 +4247,7 @@ uint8_t do_MeasurementReport(uint8_t Mod_id, uint8_t *buffer, size_t buffer_size
   ASN_SEQUENCE_ADD(&measResultListEUTRA2->list,measresulteutra2);
   measurementReport->criticalExtensions.choice.c1.choice.measurementReport_r8.measResults.measResultNeighCells->choice.measResultListEUTRA=*(measResultListEUTRA2);
 
-  if ( LOG_DEBUGFLAG(DEBUG_ASN1) ) {
+  if ( 1 || LOG_DEBUGFLAG(DEBUG_ASN1) ) {
     xer_fprint(stdout, &asn_DEF_LTE_UL_DCCH_Message, (void *)&ul_dcch_msg);
   }
 
@@ -4257,14 +4269,6 @@ uint8_t do_MeasurementReport(uint8_t Mod_id, uint8_t *buffer, size_t buffer_size
   measResultListEUTRA2 = NULL;
   return((enc_rval.encoded+7)/8);
 }
-
-#define asn1cCallocOne(VaR, VaLue) \
-  VaR = calloc(1,sizeof(*VaR)); *VaR=VaLue;
-#define asn1cCalloc(VaR, lOcPtr) \
-  typeof(VaR) lOcPtr = VaR = calloc(1,sizeof(*VaR));
-#define asn1cSequenceAdd(VaR, TyPe, lOcPtr) \
-  TyPe *lOcPtr= calloc(1,sizeof(TyPe)); \
-  ASN_SEQUENCE_ADD(&VaR,lOcPtr);
 
 ssize_t do_nrMeasurementReport(uint8_t *buffer,
                                size_t bufsize,
