@@ -4218,24 +4218,25 @@ uint8_t do_MeasurementReport(uint8_t Mod_id, uint8_t *buffer, size_t buffer_size
   ASN_SEQUENCE_ADD(&measresult_cgi2->cellGlobalId.plmn_Identity.mcc->list,&dummy[2]);
   measresult_cgi2->cellGlobalId.plmn_Identity.mnc.list.size=0;
   measresult_cgi2->cellGlobalId.plmn_Identity.mnc.list.count=0;
-  dummy[3]=0;//8
+  dummy[3]=2;//8
   ASN_SEQUENCE_ADD(&measresult_cgi2->cellGlobalId.plmn_Identity.mnc.list,&dummy[3]);
-  dummy[4]=2;//0
+  dummy[4]=3;//0
   ASN_SEQUENCE_ADD(&measresult_cgi2->cellGlobalId.plmn_Identity.mnc.list,&dummy[4]);
-  dummy[5]=3;
+  dummy[5]=0;
   ASN_SEQUENCE_ADD(&measresult_cgi2->cellGlobalId.plmn_Identity.mnc.list,&dummy[5]);
 
+  // cellIdentity is limited to 28 bits, hence bits_unused // 3GPP TS 23.003 (?)
   measresult_cgi2->cellGlobalId.cellIdentity.buf=MALLOC(8);
-  measresult_cgi2->cellGlobalId.cellIdentity.buf[0]=0x01;
-  measresult_cgi2->cellGlobalId.cellIdentity.buf[1]=0x48;
-  measresult_cgi2->cellGlobalId.cellIdentity.buf[2]=0x0f;
-  measresult_cgi2->cellGlobalId.cellIdentity.buf[3]=0x03;
-  measresult_cgi2->cellGlobalId.cellIdentity.size=3;
-  measresult_cgi2->cellGlobalId.cellIdentity.bits_unused=0;
+  measresult_cgi2->cellGlobalId.cellIdentity.buf[0]=0x00;//0x01;
+  measresult_cgi2->cellGlobalId.cellIdentity.buf[1]=0x00;//0x48;
+  measresult_cgi2->cellGlobalId.cellIdentity.buf[2]=0x00;//0x0f;
+  measresult_cgi2->cellGlobalId.cellIdentity.buf[3]=0x00;//0x30;
+  measresult_cgi2->cellGlobalId.cellIdentity.size=4;
+  measresult_cgi2->cellGlobalId.cellIdentity.bits_unused=4;
 
   measresult_cgi2->trackingAreaCode.buf = MALLOC(2);
   measresult_cgi2->trackingAreaCode.buf[0]=0x00;
-  measresult_cgi2->trackingAreaCode.buf[1]=0x10;
+  measresult_cgi2->trackingAreaCode.buf[1]=0x05;//0x10;
   measresult_cgi2->trackingAreaCode.size=2;
   measresult_cgi2->trackingAreaCode.bits_unused=0;
   measresulteutra2->cgi_Info = measresult_cgi2;
@@ -4271,52 +4272,6 @@ uint8_t do_MeasurementReport(uint8_t Mod_id, uint8_t *buffer, size_t buffer_size
 
   free(measResultListEUTRA2);
   measResultListEUTRA2 = NULL;
-  return((enc_rval.encoded+7)/8);
-}
-
-uint8_t do_MeasurementReport_new(uint8_t Mod_id, uint8_t *buffer, size_t buffer_size,
-                             int measid, int phy_id, long rsrp_s, long rsrq_s,
-                             long rsrp_t, long rsrq_t) {
-
-  LTE_UL_DCCH_Message_t ul_dcch_msg={0};
-  ul_dcch_msg.message.present = LTE_UL_DCCH_MessageType_PR_c1;
-  ul_dcch_msg.message.choice.c1.present = LTE_UL_DCCH_MessageType__c1_PR_measurementReport;
-
-  LTE_MeasurementReport_t *measurementReport = &ul_dcch_msg.message.choice.c1.choice.measurementReport;
-  measurementReport->criticalExtensions.present = LTE_MeasurementReport__criticalExtensions_PR_c1;
-  measurementReport->criticalExtensions.choice.c1.present = LTE_MeasurementReport__criticalExtensions__c1_PR_measurementReport_r8;
-  measurementReport->criticalExtensions.choice.c1.choice.measurementReport_r8.nonCriticalExtension =
-    calloc(1, sizeof(*measurementReport->criticalExtensions.choice.c1.choice.measurementReport_r8.nonCriticalExtension));
-  measurementReport->criticalExtensions.choice.c1.choice.measurementReport_r8.measResults.measId = measid;
-  measurementReport->criticalExtensions.choice.c1.choice.measurementReport_r8.measResults.measResultPCell.rsrpResult = rsrp_s;
-  measurementReport->criticalExtensions.choice.c1.choice.measurementReport_r8.measResults.measResultPCell.rsrqResult = rsrq_s;
-  asn1cCalloc(measurementReport->criticalExtensions.choice.c1.choice.measurementReport_r8.measResults.measResultNeighCells,  
-              measResultNeighCells); 
-  measResultNeighCells->present = LTE_MeasResults__measResultNeighCells_PR_measResultNeighCellListNR_r15;
-  LTE_MeasResultListEUTRA_t  *measResultListEUTRA2=&measResultNeighCells->choice.measResultListEUTRA;
-  asn1cSequenceAdd(measResultListEUTRA2->list, struct LTE_MeasResultEUTRA, measresulteutra_list);
-  measresulteutra_list->physCellId = phy_id;
-  /* TODO: This asn1cCalloc leaks memory but also masks a bug.
-     If we delete this asn1cCalloc statement, eNB will crash in NSA mode.
-     Please don't delete the following line unless the bug has been found. */
-  asn1cCalloc(measresulteutra_list->cgi_Info, measresult_cgi2);
-  struct LTE_MeasResultEUTRA__measResult* measResult= &measresulteutra_list->measResult;
-  asn1cCallocOne(measResult->rsrpResult, rsrp_t);
-  asn1cCallocOne(measResult->rsrqResult, rsrq_t);
-  
-  
-  asn_enc_rval_t enc_rval = uper_encode_to_buffer(&asn_DEF_LTE_UL_DCCH_Message,
-                                   NULL,
-                                   &ul_dcch_msg,
-                                   buffer,
-                                   buffer_size);
-  if(enc_rval.encoded == -1) {
-    LOG_I(RRC, "[eNB AssertFatal] ASN1 message encoding failed (%s, %lu)!\n",
-          enc_rval.failed_type->name, enc_rval.encoded);
-    SEQUENCE_free(&asn_DEF_LTE_UL_DCCH_Message, &ul_dcch_msg, ASFM_FREE_UNDERLYING_AND_RESET);
-    return -1;
-  }
-
   return((enc_rval.encoded+7)/8);
 }
 

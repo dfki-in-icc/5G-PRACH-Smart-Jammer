@@ -414,6 +414,7 @@ void x2ap_eNB_handle_handover_req(instance_t instance,
   int                 ue_id;
 
   int target_pci = x2ap_handover_req->target_physCellId;
+  X2AP_DEBUG("DavidK target_pci = %d\n", target_pci);
 
   instance_p = x2ap_eNB_get_instance(instance);
   DevAssert(instance_p != NULL);
