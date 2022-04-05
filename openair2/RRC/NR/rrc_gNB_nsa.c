@@ -355,6 +355,7 @@ void rrc_add_nsa_user(gNB_RRC_INST *rrc,struct rrc_gNB_ue_context_s *ue_context_
                            1, // add_ue flag
                            ue_context_p->ue_id_rnti,
                            ue_context_p->ue_context.secondaryCellGroup,
+                           NULL,
                            NULL);
   } else {
     rrc_mac_config_req_gNB(rrc->module_id,
@@ -369,6 +370,7 @@ void rrc_add_nsa_user(gNB_RRC_INST *rrc,struct rrc_gNB_ue_context_s *ue_context_
                            1, // add_ue flag
                            ue_context_p->ue_id_rnti,
                            ue_context_p->ue_context.secondaryCellGroup,
+                           NULL,
                            NULL);
   }
 

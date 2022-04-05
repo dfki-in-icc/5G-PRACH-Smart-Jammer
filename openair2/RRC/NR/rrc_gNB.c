@@ -177,6 +177,7 @@ static void init_NR_SI(gNB_RRC_INST *rrc, gNB_RrcConfigurationReq *configuration
                            0,
                            0, // WIP hardcoded rnti
                            NULL,
+                           NULL,
                            NULL);
   }
 
@@ -274,6 +275,8 @@ void apply_macrlc_config(gNB_RRC_INST *rrc,
                          rrc_gNB_ue_context_t         *const ue_context_pP,
                          const protocol_ctxt_t        *const ctxt_pP ) {
 
+  uint8_t xid = rrc_gNB_get_next_transaction_identifier(ctxt_pP->module_id);
+
   NR_CellGroupConfig_t *cgc = get_softmodem_params()->sa ? ue_context_pP->ue_context.masterCellGroup : NULL;
   rrc_mac_config_req_gNB(rrc->module_id,
                          rrc->configuration.ssb_SubcarrierOffset,
@@ -287,7 +290,9 @@ void apply_macrlc_config(gNB_RRC_INST *rrc,
                          0,
                          ue_context_pP->ue_context.rnti,
                          cgc,
-                         NULL);
+                         NULL,
+                         ue_context_pP->ue_context.DRB_configList2[xid]);
+
 
   nr_rrc_rlc_config_asn1_req(ctxt_pP,
                              ue_context_pP->ue_context.SRB_configList,
@@ -444,6 +449,7 @@ rrc_gNB_generate_RRCSetup_for_RRCReestablishmentRequest(
   rrc_gNB_ue_context_t         *ue_context_pP   = NULL;
   gNB_RRC_INST                 *rrc_instance_p = RC.nrrrc[ctxt_pP->module_id];
   NR_ServingCellConfigCommon_t *scc=rrc_instance_p->carrier.servingcellconfigcommon;
+  uint8_t xid = rrc_gNB_get_next_transaction_identifier(ctxt_pP->module_id);
 
   ue_context_pP = rrc_gNB_get_next_free_ue_context(ctxt_pP, rrc_instance_p, 0);
 
@@ -476,7 +482,8 @@ rrc_gNB_generate_RRCSetup_for_RRCReestablishmentRequest(
                          0,
                          ue_context_pP->ue_context.rnti,
                          NULL,
-                         NULL);
+                         NULL,
+                         ue_context_pP->ue_context.DRB_configList2[xid]);
 
   LOG_I(NR_RRC,
         PROTOCOL_NR_RRC_CTXT_UE_FMT" [RAPROC] Logical Channel DL-CCCH, Generating RRCSetup (bytes %d)\n",
@@ -946,7 +953,13 @@ rrc_gNB_generate_dedicatedRRCReconfiguration(
         case 7: //100ms
         case 8: //300ms
         case 9: //300ms Video (Buffered Streaming)TCP-based (e.g., www, e-mail, chat, ftp, p2p file sharing, progressive video, etc.)
-          // TODO
+          LOG_D(NR_RRC, "PDU SESSION ID %ld, DRB ID %ld (index %d), QOS flow %d, 5QI %ld \n",
+              DRB_config->cnAssociation->choice.sdap_Config->pdu_Session,
+              DRB_config->drb_Identity,
+              i,
+              qos_flow_index,
+              ue_context_pP->ue_context.pduSession[i].param.qos[qos_flow_index].fiveQI
+             );
           break;
 
         default:
@@ -1412,7 +1425,8 @@ rrc_gNB_process_RRCReconfigurationComplete(
                            0,
                            ue_context_pP->ue_context.rnti,
                            ue_context_pP->ue_context.masterCellGroup,
-                           ue_context_pP->ue_context.pduSession);
+                           ue_context_pP->ue_context.pduSession,
+                           DRB_configList);
 
     LOG_D(NR_RRC,"Configuring RLC DRBs/SRBs for UE %x\n",ue_context_pP->ue_context.rnti);
     nr_rrc_rlc_config_asn1_req(ctxt_pP,

@@ -555,6 +555,10 @@ typedef struct NR_UE_ul_harq {
   NR_sched_pusch_t sched_pusch;
 } NR_UE_ul_harq_t;
 
+typedef struct NR_QoS_config {
+  uint64_t fiveQI;
+} NR_QoS_config_t;
+
 /*! \brief scheduling control information set through an API */
 #define MAX_CSI_REPORTS 48
 typedef struct {
@@ -652,6 +656,10 @@ typedef struct {
 
   /// Timer for RRC processing procedures
   uint32_t rrc_processing_timer;
+
+  /// Information about the QoS configuration for each LCID
+  NR_QoS_config_t nr_QoS_config[NR_MAX_NUM_LCID][NR_MAX_NUM_QFI];
+
 } NR_UE_sched_ctrl_t;
 
 typedef struct {

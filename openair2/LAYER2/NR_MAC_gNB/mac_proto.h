@@ -61,7 +61,8 @@ int rrc_mac_config_req_gNB(module_id_t Mod_idP,
                            int add_ue,
                            uint32_t rnti,
                            NR_CellGroupConfig_t *CellGroup,
-                           pdu_session_param_t *pduSession);
+                           pdu_session_param_t *pduSession,
+                           NR_DRB_ToAddModList_t *DRB_configList);
 
 void clear_nr_nfapi_information(gNB_MAC_INST * gNB, 
                                 int CC_idP,

@@ -57,7 +57,7 @@ extern uint8_t nfapi_mode;
 void process_rlcBearerConfig(struct NR_CellGroupConfig__rlc_BearerToAddModList *rlc_bearer2add_list,
                              struct NR_CellGroupConfig__rlc_BearerToReleaseList *rlc_bearer2release_list,
                              NR_UE_sched_ctrl_t *sched_ctrl,
-                             pdu_session_param_t *pduSession) {
+                             NR_DRB_ToAddModList_t *DRB_configList) {
 
   if (rlc_bearer2release_list) {
     for (int i = 0; i < rlc_bearer2release_list->list.count; i++) {
@@ -98,6 +98,37 @@ void process_rlcBearerConfig(struct NR_CellGroupConfig__rlc_BearerToAddModList *
 
 }
 
+void process_QoSConfig(NR_UE_sched_ctrl_t *sched_ctrl, NR_DRB_ToAddModList_t *DRB_configList, pdu_session_param_t *pduSession) {
+  if (DRB_configList) {
+    LOG_D(NR_MAC, "In %s: number of DRBs in DRB_configList: %d \n", __func__, DRB_configList->list.count);
+    for (int i = 0; i < DRB_configList->list.count; i++){
+      NR_SDAP_Config_t *sdap_config = DRB_configList->list.array[i]->cnAssociation->choice.sdap_Config;
+      uint8_t nb_QoS_flows = sdap_config->mappedQoS_FlowsToAdd->list.count;
+      long drb_id = DRB_configList->list.array[i]->drb_Identity;
+      long pdu_Session_id = sdap_config->pdu_Session;
+      LOG_D(NR_MAC, "Processing QoS configuration for PDU Session ID %ld, DRB %ld \n", pdu_Session_id, drb_id);
+      LOG_D(NR_MAC, "In %s: number of QoS in mappedQoS_FlowsToAdd: %d \n", __func__, nb_QoS_flows);
+      for (int q = 0; q < nb_QoS_flows; q++) {
+        if (pduSession) {
+          for (int p = 0; p < NR_MAX_PDU_SESSION; p++){
+            if (pduSession[p].status == PDU_SESSION_STATUS_ESTABLISHED || pduSession[p].status == PDU_SESSION_STATUS_DONE) {
+              uint8_t qfi = pduSession[p].param.qos[q].qfi;
+              if (qfi == *DRB_configList->list.array[i]->cnAssociation->choice.sdap_Config->mappedQoS_FlowsToAdd->list.array[q]) {
+                sched_ctrl->nr_QoS_config[drb_id - 1][qfi - 1].fiveQI = pduSession[p].param.qos[q].fiveQI;
+                LOG_D(NR_MAC, "In %s: pdu_Session ID %ld drb_id %ld: 5QI %lu QFI %d \n",
+                  __func__,
+                  sdap_config->pdu_Session,
+                  drb_id,
+                  sched_ctrl->nr_QoS_config[drb_id - 1][qfi - 1].fiveQI,
+                  qfi);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
 
 void process_drx_Config(NR_UE_sched_ctrl_t *sched_ctrl,NR_SetupRelease_DRX_Config_t *drx_Config) {
  if (!drx_Config) return;
@@ -139,7 +170,7 @@ void process_phr_Config(NR_UE_sched_ctrl_t *sched_ctrl,NR_SetupRelease_PHR_Confi
    }
 }
 
-void process_CellGroup(NR_CellGroupConfig_t *CellGroup, NR_UE_sched_ctrl_t *sched_ctrl, pdu_session_param_t *pduSession) {
+void process_CellGroup(NR_CellGroupConfig_t *CellGroup, NR_UE_sched_ctrl_t *sched_ctrl, pdu_session_param_t *pduSession, NR_DRB_ToAddModList_t *DRB_configList) {
 
    AssertFatal(CellGroup, "CellGroup is null\n");
    NR_MAC_CellGroupConfig_t   *mac_CellGroupConfig = CellGroup->mac_CellGroupConfig;
@@ -157,7 +188,8 @@ void process_CellGroup(NR_CellGroupConfig_t *CellGroup, NR_UE_sched_ctrl_t *sche
 
    }
 
-   process_rlcBearerConfig(CellGroup->rlc_BearerToAddModList,CellGroup->rlc_BearerToReleaseList,sched_ctrl, pduSession);
+   process_QoSConfig(sched_ctrl, DRB_configList, pduSession);
+   process_rlcBearerConfig(CellGroup->rlc_BearerToAddModList,CellGroup->rlc_BearerToReleaseList,sched_ctrl, DRB_configList);
 
 }
 
@@ -484,7 +516,8 @@ int rrc_mac_config_req_gNB(module_id_t Mod_idP,
                            int add_ue,
                            uint32_t rnti,
                            NR_CellGroupConfig_t *CellGroup,
-                           pdu_session_param_t *pduSession) {
+                           pdu_session_param_t *pduSession,
+                           NR_DRB_ToAddModList_t *DRB_configList) {
 
   if (scc != NULL ) {
     AssertFatal((scc->ssb_PositionsInBurst->present > 0) && (scc->ssb_PositionsInBurst->present < 4), "SSB Bitmap type %d is not valid\n",scc->ssb_PositionsInBurst->present);
@@ -625,7 +658,7 @@ int rrc_mac_config_req_gNB(module_id_t Mod_idP,
 	LOG_E(NR_MAC,"Error adding UE %04x\n", rnti);
 	return -1;
       }
-      process_CellGroup(CellGroup, &UE->UE_sched_ctrl, pduSession);
+      process_CellGroup(CellGroup, &UE->UE_sched_ctrl, pduSession, DRB_configList);
     } else if (add_ue == 1 && !get_softmodem_params()->phy_test) {
       const int CC_id = 0;
       NR_COMMON_channels_t *cc = &RC.nrmac[Mod_idP]->common_channels[CC_id];
@@ -680,7 +713,7 @@ int rrc_mac_config_req_gNB(module_id_t Mod_idP,
       int target_ss;
       UE->CellGroup = CellGroup;
       LOG_I(NR_MAC,"Modified rnti %04x with CellGroup\n",rnti);
-      process_CellGroup(CellGroup,&UE->UE_sched_ctrl, pduSession);
+      process_CellGroup(CellGroup,&UE->UE_sched_ctrl, pduSession, DRB_configList);
       NR_UE_sched_ctrl_t *sched_ctrl = &UE->UE_sched_ctrl;
       const NR_PDSCH_ServingCellConfig_t *pdsch = servingCellConfig ? servingCellConfig->pdsch_ServingCellConfig->choice.setup : NULL;
       if (get_softmodem_params()->sa) {
