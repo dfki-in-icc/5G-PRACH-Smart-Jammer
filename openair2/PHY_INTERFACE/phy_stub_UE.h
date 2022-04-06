@@ -126,8 +126,8 @@ void handle_nfapi_ul_pdu_UE_MAC(module_id_t Mod_id,
 
 typedef struct sfn_sf_info_s
 {
+    uint16_t phy_id;
     uint16_t sfn_sf;
-    uint16_t cell_id;
 } sfn_sf_info_t;
 
 typedef struct phy_channel_params_t

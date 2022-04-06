@@ -5250,13 +5250,14 @@ rrc_eNB_generate_HO_RRCConnectionReconfiguration(const protocol_ctxt_t *const ct
   (void)dedicatedInfoNas;
   LTE_C_RNTI_t                       *cba_RNTI                         = NULL;
   int                                measurements_enabled;
+  LOG_I(RRC, "DavidK Calling rrc_eNB_generate_HO_RRCConnectionReconfiguration\n");
   uint8_t xid = rrc_eNB_get_next_transaction_identifier(ctxt_pP->module_id);   //Transaction_id,
   T(T_ENB_RRC_CONNECTION_RECONFIGURATION, T_INT(ctxt_pP->module_id), T_INT(ctxt_pP->frame),
     T_INT(ctxt_pP->subframe), T_INT(ctxt_pP->rnti));
   rv[0] = (ue_context_pP->ue_context.rnti >> 8) & 255;
   rv[1] = ue_context_pP->ue_context.rnti & 255;
   LOG_I(RRC, "target UE rnti = %x (decimal: %d)\n", ue_context_pP->ue_context.rnti, ue_context_pP->ue_context.rnti);
-  LOG_D(RRC, "[eNB %d] Frame %d : handover preparation: add target eNB SRB1 and PHYConfigDedicated reconfiguration\n",
+  LOG_I(RRC, "[eNB %d] Frame %d : handover preparation: add target eNB SRB1 and PHYConfigDedicated reconfiguration\n",
         ctxt_pP->module_id, ctxt_pP->frame);
 
   if (SRB_configList) {
@@ -9343,7 +9344,8 @@ void *rrc_enb_process_itti_msg(void *notUsed) {
 
       if (ue_context_p->ue_context.handover_info->state != HO_REQUEST) abort();
 
-      hash_rc = hashtable_get(RC.gtpv1u_data_g->ue_mapping, ue_context_p->ue_context.rnti, (void **)&gtpv1u_ue_data_p);
+      if (RC.gtpv1u_data_g != NULL)
+        hash_rc = hashtable_get(RC.gtpv1u_data_g->ue_mapping, ue_context_p->ue_context.rnti, (void **)&gtpv1u_ue_data_p);
 
       /* set target enb gtp teid */
       if (hash_rc == HASH_TABLE_KEY_NOT_EXISTS) {

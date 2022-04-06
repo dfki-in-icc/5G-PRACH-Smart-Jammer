@@ -2024,6 +2024,7 @@ int rrc_eNB_process_X2AP_TUNNEL_SETUP_REQ(instance_t instance, rrc_eNB_ue_contex
       create_tunnel_req.rnti           = ue_context_target_p->ue_context.rnti; // warning put zero above
       create_tunnel_req.num_tunnels    = e_rab_done;
       // NN: not sure if we should create a new tunnel: need to check teid, etc.
+#if 0 //DavidK
       gtpv1u_create_x2u_tunnel(
         instance,
         &create_tunnel_req,
@@ -2042,6 +2043,7 @@ int rrc_eNB_process_X2AP_TUNNEL_SETUP_REQ(instance_t instance, rrc_eNB_ue_contex
               create_tunnel_resp.eps_bearer_id[i],
               create_tunnel_resp.enb_addr.length);
       }
+#endif
     }
     return (0);
   }

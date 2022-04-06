@@ -1167,7 +1167,23 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg)
                            0,
                            0 /*FIXME CC_id*/);
 
-        if (ret != CONNECTION_OK) {
+        LOG_I(PHY, "[UE %" PRIu8 "] Frame %" PRIu32 ", subframe %u ret %d  %s\n",
+                UE->Mod_id, rx_frame, NFAPI_SFNSF2SF(sfn_sf), ret, get_connectionloss_errstr(ret));
+        if (ret == PHY_HO_PRACH){
+            reset_queue(&dl_config_req_tx_req_queue);
+            reset_queue(&ul_config_req_queue);
+            reset_queue(&hi_dci0_req_queue);
+            UE_mac_inst[ue_Mod_id].UE_mode[0] = PRACH;
+            UL_INFO->rach_ind.header.phy_id = 1;
+            /*
+            UL_INFO->rx_ind.header.phy_id = 1;
+            UL_INFO->crc_ind.header.phy_id = 1;
+            UL_INFO->cqi_ind.header.phy_id = 1;
+            UL_INFO->sr_ind.header.phy_id = 1;
+            UL_INFO->harq_ind.header.phy_id = 1;
+            */
+        }
+        else if (ret != CONNECTION_OK){
           LOG_E(PHY, "[UE %" PRIu8 "] Frame %" PRIu32 ", subframe %u %s\n",
                 UE->Mod_id, rx_frame, NFAPI_SFNSF2SF(sfn_sf), get_connectionloss_errstr(ret));
         }
@@ -1190,7 +1206,7 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg)
           {
             UE_mac_inst[ue_Mod_id].UE_mode[0] = PRACH;
           }
-          LOG_D(MAC, "UE_mode: %d\n", UE_mac_inst[ue_Mod_id].UE_mode[0]);
+          LOG_I(MAC, "UE_mode: %d\n", UE_mac_inst[ue_Mod_id].UE_mode[0]);
           if (UE_mac_inst[ue_Mod_id].UE_mode[0] == PRACH)
           { //&& ue_Mod_id == next_Mod_id) {
             next_ra_frame++;

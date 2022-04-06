@@ -2116,12 +2116,14 @@ rrc_ue_process_mobilityControlInfo(
    */
   //Removing SRB1 and SRB2 and DRB0
   LOG_I(RRC,"[UE %d] : Update needed for rrc_pdcp_config_req (deprecated) and rrc_rlc_config_req commands(deprecated)\n", ctxt_pP->module_id);
+#if 0 //DavidK
   rrc_pdcp_config_req (ctxt_pP, SRB_FLAG_YES, CONFIG_ACTION_REMOVE, DCCH,UNDEF_SECURITY_MODE);
   rrc_rlc_config_req(ctxt_pP, SRB_FLAG_YES, MBMS_FLAG_NO, CONFIG_ACTION_REMOVE,ctxt_pP->module_id+DCCH,Rlc_info_am_config);
   rrc_pdcp_config_req (ctxt_pP, SRB_FLAG_YES, CONFIG_ACTION_REMOVE, DCCH1,UNDEF_SECURITY_MODE);
   rrc_rlc_config_req(ctxt_pP, SRB_FLAG_YES,CONFIG_ACTION_REMOVE, MBMS_FLAG_NO,ctxt_pP->module_id+DCCH1,Rlc_info_am_config);
   rrc_pdcp_config_req (ctxt_pP, SRB_FLAG_NO, CONFIG_ACTION_REMOVE, DTCH,UNDEF_SECURITY_MODE);
   rrc_rlc_config_req(ctxt_pP, SRB_FLAG_NO,CONFIG_ACTION_REMOVE, MBMS_FLAG_NO,ctxt_pP->module_id+DTCH,Rlc_info_um);
+#endif
   //Synchronisation to DL of target cell
   LOG_I(RRC,
         "HO: Reset PDCP and RLC for configured RBs.. \n[FRAME %05d][RRC_UE][MOD %02d][][--- MAC_CONFIG_REQ  (SRB2 eNB %d) --->][MAC_UE][MOD %02d][]\n",
@@ -2265,6 +2267,8 @@ rrc_ue_decode_dcch(
         case LTE_DL_DCCH_MessageType__c1_PR_rrcConnectionReconfiguration:
 
           // first check if mobilityControlInfo  is present
+          LOG_I(RRC, "DavidK Mobility control info = %p\n",
+                dl_dcch_msg->message.choice.c1.choice.rrcConnectionReconfiguration.criticalExtensions.choice.c1.choice.rrcConnectionReconfiguration_r8.mobilityControlInfo);
           if (dl_dcch_msg->message.choice.c1.choice.rrcConnectionReconfiguration.criticalExtensions.choice.c1.choice.rrcConnectionReconfiguration_r8.mobilityControlInfo
               != NULL) {
             /* 36.331, 5.3.5.4 Reception of an RRCConnectionReconfiguration including the mobilityControlInfo by the UE (handover)*/
@@ -2298,7 +2302,9 @@ rrc_ue_decode_dcch(
             &dl_dcch_msg->message.choice.c1.choice.rrcConnectionReconfiguration,
             eNB_indexP);
 
+          LOG_I(RRC, "DavidK target_eNB_index = %u\n", target_eNB_index);
           if (target_eNB_index != 0xFF) {
+            LOG_I(RRC, "DavidK here\n");
             rrc_ue_generate_RRCConnectionReconfigurationComplete(
               ctxt_pP,
               target_eNB_index,

@@ -1304,18 +1304,15 @@ void *ue_standalone_pnf_task(void *context)
        and sizeof(phy_channel_params_t) < sizeof(nfapi_p7_message_header_t) and
        sizeof(uint16_t) != sizeof(phy_channel_params_t). */
     
-    LOG_I(MAC, "Received  msg len = %zu, sizeof(sfn_sf_info_t)= %zu\n", len, sizeof(sfn_sf_info_t));
     if (len == sizeof(sfn_sf_info_t))
     {
-      uint16_t sfn_sf = 0;
-      uint16_t cell_id = 0;
       sfn_sf_info_t sfn_sf_info;
       memcpy((void *)&sfn_sf_info, buffer, sizeof(sfn_sf_info_t));
-      sfn_sf = sfn_sf_info.sfn_sf;
-      cell_id = sfn_sf_info.cell_id;
+      uint16_t sfn_sf = sfn_sf_info.sfn_sf;
+      uint16_t phy_id = sfn_sf_info.phy_id;
 
-      LOG_I(MAC, "Received sfn_slot[%hu] frame: %u, subframe: %u\n", sfn_sf_info.cell_id,
-            sfn_sf_info.sfn_sf >> 4, sfn_sf_info.sfn_sf & 15);
+      LOG_I(MAC, "Received sfn_slot[%hu] frame: %u, subframe: %u from phy_id %u\n", sfn_sf_info.phy_id,
+            sfn_sf_info.sfn_sf >> 4, sfn_sf_info.sfn_sf & 15, phy_id);
       if (prev_sfn_slot == sfn_sf)
         ++same_tick;
       if (same_tick == num_enbs)
