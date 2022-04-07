@@ -43,6 +43,13 @@
 #include "PHY/sse_intrin.h"
 #include "common/utils/nr/nr_common.h"
 
+// L5G_IOT
+#include "prometheus_exporter.h"
+int16_t* pdcch_cmp_ptr;
+uint32_t  num_pdcch_symbol;
+extern int16_t* pdcch_chest_ptr;
+extern uint32_t  num_pdcch_chest_symbol;
+
 #include "assertions.h"
 #include "T.h"
 
@@ -763,6 +770,9 @@ void nr_pdcch_channel_compensation(int32_t **rxdataF_ext,
 #endif
     }
   }
+  // L5G_IOT
+  pdcch_cmp_ptr = (int16_t*)&rxdataF_comp[0][symbol*coreset_nbr_rb*12];
+  num_pdcch_symbol = coreset_nbr_rb*12;
 
 #if defined(__x86_64__) || defined(__i386__)
   _mm_empty();
@@ -806,6 +816,8 @@ void nr_pdcch_detection_mrc(NR_DL_FRAME_PARMS *frame_parms,
 #endif
 }
 
+// L5G_IOT
+int32_t pdcch_power[2];
 int32_t nr_rx_pdcch(PHY_VARS_NR_UE *ue,
                     UE_nr_rxtx_proc_t *proc,
                     fapi_nr_dl_config_dci_dl_pdu_rel15_t *rel15) {
@@ -848,7 +860,8 @@ int32_t nr_rx_pdcch(PHY_VARS_NR_UE *ue,
 
     for (aarx = 0; aarx < frame_parms->nb_antennas_rx; aarx++)
       avgs = cmax(avgs, avgP[aarx]);
-
+    // L5G_IOT
+    pdcch_power[s] = avgs;
     log2_maxh = (log2_approx(avgs) / 2) + 5;  //+frame_parms->nb_antennas_rx;
 
 #ifdef UE_DEBUG_TRACE
@@ -1023,6 +1036,11 @@ uint8_t nr_dci_decoding_procedure(PHY_VARS_NR_UE *ue,
                                          dci_estimation,
                                          1,
                                          NR_POLAR_DCI_MESSAGE_TYPE, dci_length, L);
+      // L5G_IOT
+      RegisterComplexMetric(PDCCH_IQ, "PDCCH_IQ", (int16_t*)pdcch_cmp_ptr, num_pdcch_symbol);
+      RegisterComplexMetric(PDCCH_CHEST, "PDCCH_CHEST", (int16_t*)pdcch_chest_ptr, num_pdcch_chest_symbol);
+      PROM_METRICS(PDCCH_LEVEL_0,"PDCCH_LEVEL_0",pdcch_power[0]);
+      PROM_METRICS(PDCCH_LEVEL_1,"PDCCH_LEVEL_1",pdcch_power[1]);
 
       n_rnti = rel15->rnti;
       LOG_D(PHY, "(%i.%i) dci indication (rnti %x,dci format %s,n_CCE %d,payloadSize %d)\n",

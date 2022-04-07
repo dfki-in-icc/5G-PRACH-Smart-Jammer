@@ -33,6 +33,8 @@
 #include "LAYER2/nr_pdcp/nr_pdcp_entity.h"
 #include "SCHED_NR_UE/pucch_uci_ue_nr.h"
 #include "openair2/NR_UE_PHY_INTERFACE/NR_IF_Module.h"
+// L5G_IOT
+#include "prometheus_exporter.h"
 
 /*
  *  NR SLOT PROCESSING SEQUENCE
@@ -1088,7 +1090,8 @@ void *UE_thread(void *arg) {
                                            rxp,
                                            readBlockSize,
                                            UE->frame_parms.nb_antennas_rx),"");
-
+    // L5G_IOT
+    PROM_METRICS(RX_OFFSET,"rx_offset",UE->rx_offset)
     if( slot_nr==(nb_slot_frame-1)) {
       // read in first symbol of next frame and adjust for timing drift
       int first_symbols=UE->frame_parms.ofdm_symbol_size+UE->frame_parms.nb_prefix_samples0; // first symbol of every frames

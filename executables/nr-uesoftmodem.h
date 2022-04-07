@@ -36,7 +36,10 @@
     {"V" ,                       CONFIG_HLP_VCD,         PARAMFLAG_BOOL,  iptr:&vcdflag,                      defintval:0,     TYPE_INT,    0}, \
     {"uecap_file",               CONFIG_HLP_UECAP_FILE,  0,               strptr:(char **)&uecap_file,        defstrval:"./uecap.xml", TYPE_STRING, 0}, \
     {"rrc_config_path",          CONFIG_HLP_RRC_CFG_PATH,0,               strptr:(char **)&rrc_config_path,   defstrval:"./",  TYPE_STRING, 0}, \
-    {"ue-idx-standalone",        NULL,                   0,               u16ptr:&ue_idx_standalone,          defuintval:0xFFFF,    TYPE_UINT16,   0} \
+    {"ue-idx-standalone",        NULL,                   0,               u16ptr:&ue_idx_standalone,          defuintval:0xFFFF,    TYPE_UINT16,   0}, \
+    /* L5G_IOT */\
+    {"enable_prometheus",        CONFIG_HLP_EN_PROM,     PARAMFLAG_BOOL,  strptr:(char **)&prometheus_en_flag,      defstrval:0,     TYPE_INT, 0}, \
+    {"prometheus_port",          CONFIG_HLP_PROM_PORT,   0,               strptr:(uint32_t*)&prometheus_port,       defuintval:1234, TYPE_UINT32, 0} \
 }
 
 

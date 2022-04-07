@@ -38,6 +38,9 @@
 #include <openair3/ocp-gtpu/gtp_itf.h>
 #include "openair2/SDAP/nr_sdap/nr_sdap_gnb.h"
 
+// L5G_IOT
+#include "prometheus_exporter.h"
+
 #define TODO do { \
     printf("%s:%d:%s: todo\n", __FILE__, __LINE__, __FUNCTION__); \
     exit(1); \
@@ -370,6 +373,10 @@ boolean_t pdcp_data_ind(
   const uint32_t *const srcID,
   const uint32_t *const dstID)
 {
+  // L5G_IOT
+  PROM_METRICS(PDCP_UL_RB_ID,"PDCP_UL_RB_ID",rb_id)
+  PROM_METRICS(PDCP_UL_SDU_BUFF_SIZE,"PDCP_UL_SDU_BUFF_SIZE",sdu_buffer_size)
+
   enqueue_pdcp_data_ind(ctxt_pP,
                         srb_flagP,
                         MBMS_flagP,
@@ -1439,6 +1446,9 @@ boolean_t pdcp_data_req(
   ,const uint32_t *const destinationL2Id
   )
 {
+  PROM_METRICS(PDCP_DL_RB_ID,"PDCP_DL_RB_ID",rb_id)
+  PROM_METRICS(PDCP_DL_SDU_BUFF_SIZE,"PDCP_DL_SDU_BUFF_SIZE",sdu_buffer_size)
+
   if (srb_flagP) {
    return pdcp_data_req_srb(ctxt_pP, rb_id, muiP, confirmP, sdu_buffer_size, sdu_buffer);
   }
