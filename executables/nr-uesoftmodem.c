@@ -100,6 +100,7 @@ int sync_var=-1; //!< protected by mutex \ref sync_mutex.
 int config_sync_var=-1;
 // L5G_IOT
 int use_prometheus = 0;
+int enable_parallel_pull = 0;
 
 // not used in UE
 instance_t CUuniqInstance=0;
@@ -118,6 +119,7 @@ int                 vcdflag = 0;
 // L5G_IOT
 int      prometheus_en_flag = 0;
 uint32_t    prometheus_port = 1234;
+int          para_pull_flag = 0;
 
 double          rx_gain_off = 0.0;
 char             *usrp_args = NULL;
@@ -264,6 +266,7 @@ static void get_options(void) {
   config_process_cmdline( cmdline_params,numparams,NULL);
   // L5G_IOT
   if (prometheus_en_flag > 0)  use_prometheus = 1;
+  if (para_pull_flag > 0)  enable_parallel_pull = 1;
 
   if (vcdflag > 0)
     ouput_vcd = 1;
@@ -528,6 +531,9 @@ int main( int argc, char **argv ) {
     }
 
     init_NR_UE_threads(1);
+    // L5G_IOT
+    if (enable_parallel_pull != 0)  init_pull_thread( );
+
     printf("UE threads created by %ld\n", gettid());
   }
 

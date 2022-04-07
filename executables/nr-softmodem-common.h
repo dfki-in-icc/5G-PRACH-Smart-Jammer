@@ -93,6 +93,7 @@
 // L5G_IOT
 #define CONFIG_HLP_EN_PROM        "Enable Prometheus monitoring\n"
 #define CONFIG_HLP_PROM_PORT      "Specify TCP-IP port for prmetheus\n"
+#define CONFIG_HLP_PARA_PULL      "Enable parallel pulling thread pool\n"
 
 #define CONFIG_HLP_NUMEROLOGY    "adding numerology for 5G\n"
 #define CONFIG_HLP_EMULATE_RF    "Emulated RF enabled(disable by defult)\n"
