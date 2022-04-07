@@ -2267,8 +2267,6 @@ rrc_ue_decode_dcch(
         case LTE_DL_DCCH_MessageType__c1_PR_rrcConnectionReconfiguration:
 
           // first check if mobilityControlInfo  is present
-          LOG_I(RRC, "DavidK Mobility control info = %p\n",
-                dl_dcch_msg->message.choice.c1.choice.rrcConnectionReconfiguration.criticalExtensions.choice.c1.choice.rrcConnectionReconfiguration_r8.mobilityControlInfo);
           if (dl_dcch_msg->message.choice.c1.choice.rrcConnectionReconfiguration.criticalExtensions.choice.c1.choice.rrcConnectionReconfiguration_r8.mobilityControlInfo
               != NULL) {
             /* 36.331, 5.3.5.4 Reception of an RRCConnectionReconfiguration including the mobilityControlInfo by the UE (handover)*/
@@ -2302,9 +2300,7 @@ rrc_ue_decode_dcch(
             &dl_dcch_msg->message.choice.c1.choice.rrcConnectionReconfiguration,
             eNB_indexP);
 
-          LOG_I(RRC, "DavidK target_eNB_index = %u\n", target_eNB_index);
           if (target_eNB_index != 0xFF) {
-            LOG_I(RRC, "DavidK here\n");
             rrc_ue_generate_RRCConnectionReconfigurationComplete(
               ctxt_pP,
               target_eNB_index,
@@ -4653,7 +4649,7 @@ uint8_t check_trigger_meas_event(
 
   for (eNB_offset = 0; eNB_offset<1+get_n_adj_cells(ue_mod_idP,0); eNB_offset++) {
     /* RHS: Verify that idx 0 corresponds to currentCellIndex in rsrp array */
-    LOG_I(RRC,"\tDavid eNB_offset %u eNB_index %u NB_eNB_INST %u\n", eNB_offset, eNB_index, NB_eNB_INST);
+    LOG_I(RRC,"\teNB_offset %u eNB_index %u NB_eNB_INST %u\n", eNB_offset, eNB_index, NB_eNB_INST);
     if((eNB_offset!=eNB_index)&&(eNB_offset<NB_eNB_INST)) {
       if(eNB_offset<eNB_index) {
         tmp_offset = eNB_offset;

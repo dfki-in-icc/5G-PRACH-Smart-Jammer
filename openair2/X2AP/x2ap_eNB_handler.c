@@ -993,7 +993,7 @@ int x2ap_eNB_handle_handover_preparation (instance_t instance,
                      e_RABs_ToBeSetup_Item->uL_GTPtunnelEndpoint.transportLayerAddress.buf,
                      e_RABs_ToBeSetup_Item->uL_GTPtunnelEndpoint.transportLayerAddress.size);
 
-      for (int j=0;j<20;j++)
+      for (int j = 0; j < e_RABs_ToBeSetup_Item->uL_GTPtunnelEndpoint.transportLayerAddress.size; j++)
         X2AP_INFO ("eNB_addr.buffer = %u\n", e_RABs_ToBeSetup_Item->uL_GTPtunnelEndpoint.transportLayerAddress.buf[j]);
 
       X2AP_HANDOVER_REQ(msg).e_rabs_tobesetup[i].eNB_addr.length =
