@@ -1359,6 +1359,11 @@ void *ue_standalone_pnf_task(void *context)
         LOG_E(MAC, "Header unpack failed for standalone pnf\n");
         continue;
       }
+      if (UE_mac_inst[0].targetPhysCellId != header.phy_id)
+      {
+        LOG_D(MAC, "Discarding the detached eNB%d message\n", header.phy_id);
+        continue;
+      }
       switch (header.message_id)
       {
       case NFAPI_DL_CONFIG_REQUEST:

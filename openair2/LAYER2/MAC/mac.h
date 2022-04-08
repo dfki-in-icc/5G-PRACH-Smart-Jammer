@@ -1730,6 +1730,7 @@ typedef struct {
   // to make sure that different UEs RA starts within a number of frames difference.
 
   eth_params_t         eth_params_n;
+  LTE_PhysCellId_t     targetPhysCellId;
 
 } UE_MAC_INST;
 /*! \brief ID of the neighboring cells used for HO*/
