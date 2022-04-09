@@ -460,7 +460,7 @@ rx_sdu(const module_id_t enb_mod_idP,
       case CRNTI:
         old_rnti = (((uint16_t) payload_ptr[0]) << 8) + payload_ptr[1];
         old_UE_id = find_UE_id(enb_mod_idP, old_rnti);
-        LOG_I(MAC, "[eNB %d] Frame %d, Subframe %d CC_id %d MAC CE_LCID %d (ce %d/%d): CRNTI %x (UE_id %d) in Msg3\n",
+        LOG_I(MAC, "[eNB %d] DavidK Frame %d, Subframe %d CC_id %d MAC CE_LCID %d (ce %d/%d): CRNTI %x (UE_id %d) in Msg3\n",
               enb_mod_idP,
               frameP,
               subframeP,
@@ -474,7 +474,7 @@ rx_sdu(const module_id_t enb_mod_idP,
         /* Receiving CRNTI means that the current rnti has to go away */
         if (old_UE_id != -1) {
           if (mac_eNB_get_rrc_status(enb_mod_idP,old_rnti) ==  RRC_HO_EXECUTION) {
-            LOG_D(MAC, "[eNB %d] Frame %d, Subframe %d CC_id %d : (rnti %x UE_id %d) Handover case\n",
+            LOG_I(MAC, "[eNB %d] Frame %d, Subframe %d CC_id %d : (rnti %x UE_id %d) Handover case\n",
                   enb_mod_idP,
                   frameP,
                   subframeP,

@@ -247,6 +247,9 @@ void fill_rach_indication_UE_MAC(int Mod_id,
       .preamble_rel8.preamble = ra_PreambleIndex;
   UL_INFO->rach_ind.rach_indication_body.preamble_list[0].preamble_rel8.rnti =
       ra_RNTI;
+  UL_INFO->rach_ind.rach_indication_body.preamble_list[0].preamble_rel8.rnti =
+          ra_RNTI;
+
   // UL_INFO->rach_ind.rach_indication_body.number_of_preambles++;
 
   UL_INFO->rach_ind.rach_indication_body.preamble_list[0]
@@ -815,6 +818,7 @@ void dl_config_req_UE_MAC_dci(int sfn,
 
   LOG_I(MAC, "%s() rnti value: 0x%x rnti type: %d\n", __func__,
         rnti, rnti_type);
+  //if ((rnti_type == 1) || (UE_mac_inst[0].rach_ConfigDedicated != NULL)) { // C-RNTI (Normal DLSCH case)
   if (rnti_type == 1) { // C-RNTI (Normal DLSCH case)
     for (int ue_id = 0; ue_id < num_ue; ue_id++) {
       if (UE_mac_inst[ue_id].crnti == rnti) {
@@ -873,7 +877,7 @@ void dl_config_req_UE_MAC_dci(int sfn,
             && UE_mac_inst[ue_id].RA_prach_resources.Msg3 != NULL
             && ra_rnti == dlsch->dlsch_pdu.dlsch_pdu_rel8.rnti) {
           LOG_E(MAC,
-                "%s(): Received RAR, PreambleIndex: %d\n",
+                "%s(): DavidK2 Received RAR, PreambleIndex: %d\n",
                 __func__, UE_mac_inst[ue_id].RA_prach_resources.ra_PreambleIndex);
 
           ue_process_rar(ue_id, 0, sfn,

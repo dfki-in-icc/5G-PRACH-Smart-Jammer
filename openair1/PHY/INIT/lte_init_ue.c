@@ -378,7 +378,7 @@ void syn_config_afterHO_ue(module_id_t Mod_id,uint8_t CC_id,uint8_t eNB_id, LTE_
     PHY_vars_UE_g[Mod_id][CC_id]->ho_triggered = 1;
     LTE_DL_FRAME_PARMS *fp = &PHY_vars_UE_g[Mod_id][CC_id]->frame_parms;
 
-    LOG_I(PHY,"[UE%d] DavidK Handover triggered: Applying radioResourceConfigCommon from eNB %d\n",
+    LOG_I(PHY,"[UE%d] DavidK2 Handover triggered: Applying radioResourceConfigCommon from eNB %d\n",
           Mod_id, eNB_id);
     fp->prach_config_common.rootSequenceIndex                           =radioResourceConfigCommon->prach_Config.rootSequenceIndex;
     fp->prach_config_common.prach_ConfigInfo.prach_ConfigIndex          =radioResourceConfigCommon->prach_Config.prach_ConfigInfo->prach_ConfigIndex;
@@ -388,7 +388,7 @@ void syn_config_afterHO_ue(module_id_t Mod_id,uint8_t CC_id,uint8_t eNB_id, LTE_
     //Target CellId
     fp->Nid_cell = mobilityControlInfo->targetPhysCellId;
     fp->nushift  = fp->Nid_cell%6;
-    LOG_I(PHY,"DavidK fp->Nid_cell (targetPhysCellId) = %u\n", fp->Nid_cell);
+    LOG_I(PHY,"fp->Nid_cell (targetPhysCellId) = %u\n", fp->Nid_cell); // DavidK
     // PUCCH
     // RNTI
     PHY_vars_UE_g[Mod_id][CC_id]->pdcch_vars[0][eNB_id] = (LTE_UE_PDCCH *)malloc16_clear(sizeof(LTE_UE_PDCCH));

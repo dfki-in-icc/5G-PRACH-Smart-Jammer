@@ -153,8 +153,8 @@ void ue_init_mac(module_id_t module_idP) {
     pthread_mutex_init(&UE_mac_inst[module_idP].UL_INFO_mutex,NULL);
     UE_mac_inst[module_idP].UE_mode[0] = PRACH; //NOT_SYNCHED;
     UE_mac_inst[module_idP].first_ULSCH_Tx =0;
-    UE_mac_inst[module_idP].SI_Decoded = 0;
-    next_ra_frame = 0;
+    UE_mac_inst[module_idP].SI_Decoded = 1; //DavidK
+    next_ra_frame = 500;
     next_Mod_id = 0;
   }
 }

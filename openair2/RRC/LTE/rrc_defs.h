@@ -526,6 +526,7 @@ typedef struct MEAS_REPORT_LIST_s {
 typedef struct HANDOVER_INFO_UE_s {
   LTE_PhysCellId_t targetCellId;
   uint8_t measFlag;
+  uint8_t Transaction_id;
 } HANDOVER_INFO_UE;
 
 typedef struct rrc_gummei_s {

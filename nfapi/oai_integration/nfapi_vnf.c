@@ -660,7 +660,7 @@ int phy_subframe_indication(struct nfapi_vnf_p7_config *config, uint16_t phy_id,
 int phy_rach_indication(struct nfapi_vnf_p7_config *config, nfapi_rach_indication_t *ind) {
   LOG_D(MAC, "%s() NFAPI SFN/SF:%d number_of_preambles:%u\n", __FUNCTION__, NFAPI_SFNSF2DEC(ind->sfn_sf), ind->rach_indication_body.number_of_preambles);
   struct PHY_VARS_eNB_s *eNB = RC.eNB[0][0];
-  LOG_D(MAC, "[VNF] RACH_IND eNB:%p sfn_sf:%d number_of_preambles:%d\n", eNB, NFAPI_SFNSF2DEC(ind->sfn_sf), ind->rach_indication_body.number_of_preambles);
+  LOG_I(MAC, "[VNF] RACH_IND eNB:%p sfn_sf:%d number_of_preambles:%d\n", eNB, NFAPI_SFNSF2DEC(ind->sfn_sf), ind->rach_indication_body.number_of_preambles);
   AssertFatal(pthread_mutex_lock(&eNB->UL_INFO_mutex)==0, "Mutex lock failed");
   if(NFAPI_MODE == NFAPI_MODE_VNF){
     int8_t index = NFAPI_SFNSF2SF(ind->sfn_sf);
@@ -673,7 +673,7 @@ int phy_rach_indication(struct nfapi_vnf_p7_config *config, nfapi_rach_indicatio
     for (int i=0; i<ind->rach_indication_body.number_of_preambles; i++) {
       if (ind->rach_indication_body.preamble_list[i].preamble_rel8.tl.tag == NFAPI_PREAMBLE_REL8_TAG) {
 
-        LOG_D(MAC, "preamble[%d]: rnti:%02x preamble:%d timing_advance:%d\n",
+        LOG_I(MAC, "preamble[%d]: rnti:%02x preamble:%d timing_advance:%d\n",
               i,
               ind->rach_indication_body.preamble_list[i].preamble_rel8.rnti,
               ind->rach_indication_body.preamble_list[i].preamble_rel8.preamble,

@@ -162,11 +162,12 @@ static void rrc_ue_generate_RRCConnectionSetupComplete(
  *  \param eNB_index Index of corresponding eNB/CH
  *  \param Transaction_id RRC transaction identifier
  */
-static void rrc_ue_generate_RRCConnectionReconfigurationComplete(const protocol_ctxt_t *const ctxt_pP,
+/*
+void rrc_ue_generate_RRCConnectionReconfigurationComplete(const protocol_ctxt_t *const ctxt_pP,
                                                                  const uint8_t eNB_index,
                                                                  const uint8_t Transaction_id,
                                                                  OCTET_STRING_t *str);
-
+*/
 static void rrc_ue_generate_MeasurementReport(protocol_ctxt_t *const ctxt_pP, uint8_t eNB_index );
 
 static void rrc_ue_generate_nrMeasurementReport(protocol_ctxt_t *const ctxt_pP, uint8_t eNB_index );
@@ -2167,6 +2168,7 @@ rrc_ue_process_mobilityControlInfo(
   // rrc_rlc_config_req(ue_mod_idP+NB_eNB_INST,frameP,0,CONFIG_ACTION_ADD,ue_mod_idP+DCCH1,SIGNALLING_RADIO_BEARER,Rlc_info_am_config);
   // rrc_rlc_config_req(ue_mod_idP+NB_eNB_INST,frameP,0,CONFIG_ACTION_ADD,ue_mod_idP+DTCH,RADIO_ACCESS_BEARER,Rlc_info_um);
   UE_rrc_inst[ctxt_pP->module_id].Info[eNB_index].State = RRC_SI_RECEIVED;
+  
 }
 
 //-----------------------------------------------------------------------------
@@ -2292,6 +2294,7 @@ rrc_ue_decode_dcch(
                     ctxt_pP->module_id,
                     ctxt_pP->frame);
               UE_rrc_inst[ctxt_pP->module_id].HandoverInfoUe.measFlag = 1; // Ready to send more MeasReports if required
+              UE_rrc_inst[ctxt_pP->module_id].Srb0[target_eNB_index].Tx_buffer.payload_size = 1;
             }
           }
 
@@ -2301,15 +2304,39 @@ rrc_ue_decode_dcch(
             eNB_indexP);
 
           if (target_eNB_index != 0xFF) {
-            rrc_ue_generate_RRCConnectionReconfigurationComplete(
-              ctxt_pP,
-              target_eNB_index,
-              dl_dcch_msg->message.choice.c1.choice.rrcConnectionReconfiguration.rrc_TransactionIdentifier,
-              NULL);
-            UE_rrc_inst[ctxt_pP->module_id].Info[eNB_indexP].State = RRC_HO_EXECUTION;
-            UE_rrc_inst[ctxt_pP->module_id].Info[target_eNB_index].State = RRC_RECONFIGURED;
-            LOG_I(RRC, "[UE %d] State = RRC_RECONFIGURED during HO (eNB %d)\n",
-                  ctxt_pP->module_id, target_eNB_index);
+#if 0
+            int count = 0;
+            while (UE_mac_inst[ctxt_pP->module_id].UE_mode[0] != PUSCH) //PUSCH = 4
+            {
+              LOG_I(RRC, "===========  %d/100_ ============ Sleeping for 1000us to wait for PRACH.\n", count);
+              usleep(1000);
+              count++;
+              if (count > 100)
+                break;
+            }
+            if ((UE_mac_inst[ctxt_pP->module_id].UE_mode[0] != RA_RESPONSE) && (count > 100))
+                LOG_I(RRC, "DavidK Waited up to maximum.\n");
+
+            if (UE_mac_inst[ctxt_pP->module_id].UE_mode[0] == RA_RESPONSE)
+              LOG_I(RRC, "DavidK3 UE State = RA_RESPONSE (2)\n");
+            else if (UE_mac_inst[ctxt_pP->module_id].UE_mode[0] == PUSCH)
+              LOG_I(RRC, "DavidK3 UE State = PUSCH (4)\n");
+            else
+              LOG_I(RRC, "DavidK3 UE State = %d\n", UE_mac_inst[ctxt_pP->module_id].UE_mode[0]);
+#endif
+            UE_rrc_inst[ctxt_pP->module_id].HandoverInfoUe.Transaction_id 
+                = dl_dcch_msg->message.choice.c1.choice.rrcConnectionReconfiguration.rrc_TransactionIdentifier;
+            if (0 && UE_mac_inst[ctxt_pP->module_id].UE_mode[0] == PUSCH) {
+              rrc_ue_generate_RRCConnectionReconfigurationComplete(
+                ctxt_pP,
+                target_eNB_index,
+                dl_dcch_msg->message.choice.c1.choice.rrcConnectionReconfiguration.rrc_TransactionIdentifier,
+                NULL);
+              UE_rrc_inst[ctxt_pP->module_id].Info[eNB_indexP].State = RRC_HO_EXECUTION;
+              UE_rrc_inst[ctxt_pP->module_id].Info[target_eNB_index].State = RRC_RECONFIGURED;
+              LOG_I(RRC, "[UE %d] DavidK4 State = RRC_RECONFIGURED during HO (eNB %d)\n",
+                    ctxt_pP->module_id, target_eNB_index);
+            }
 #if ENABLE_RAL
             {
               MessageDef                                 *message_ral_p = NULL;

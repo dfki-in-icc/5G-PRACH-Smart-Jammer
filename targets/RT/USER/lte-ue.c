@@ -1180,7 +1180,9 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg)
                 UE->Mod_id, rx_frame, NFAPI_SFNSF2SF(sfn_sf), ret, get_connectionloss_errstr(ret), 
                 UE_mac_inst[ue_Mod_id].UE_mode[0]);
         if (ret == PHY_HO_PRACH){
-            UL_INFO->rach_ind.header.phy_id = 1;
+            //UL_INFO->rach_ind.header.phy_id = 1;
+            //next_ra_frame = 500;
+            //UE_mac_inst[ue_Mod_id].SI_Decoded = 1;
             /*
             UL_INFO->rx_ind.header.phy_id = 1;
             UL_INFO->crc_ind.header.phy_id = 1;
@@ -1212,7 +1214,13 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg)
           {
             UE_mac_inst[ue_Mod_id].UE_mode[0] = PRACH;
           }
-          LOG_I(MAC, "------------> UE_mode: %d\n", UE_mac_inst[ue_Mod_id].UE_mode[0]);
+
+          LOG_I(MAC, "------------> UE_mode: %d next_ra_frame = %d SI_Decoded = %u  is_prach_subframe = %d \n", 
+                UE_mac_inst[ue_Mod_id].UE_mode[0], 
+                next_ra_frame,
+                UE_mac_inst[ue_Mod_id].SI_Decoded, 
+                is_prach_subframe(&UE->frame_parms, NFAPI_SFNSF2SFN(sfn_sf), NFAPI_SFNSF2SF(sfn_sf)));
+
           if (UE_mac_inst[ue_Mod_id].UE_mode[0] == PRACH)
           { //&& ue_Mod_id == next_Mod_id) {
             next_ra_frame++;
@@ -1223,16 +1231,17 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg)
               {
                 // The one working strangely...
                 //if (is_prach_subframe(&UE->frame_parms,NFAPI_SFNSF2SFN(sfn_sf), NFAPI_SFNSF2SF(sfn_sf) && Mod_id == (module_id_t) init_ra_UE) ) {
+                LOG_I(MAC,"Rach target eNB = %d\n",  UE->frame_parms.Nid_cell);
+                UL_INFO->rach_ind.header.phy_id = UE->frame_parms.Nid_cell;
+                if (UL_INFO->rach_ind.header.phy_id == 1)
+                  LOG_I(MAC, "DavidK2 Checking prach resource for PRACH for handover.\n");
                 PRACH_RESOURCES_t *prach_resources = ue_get_rach(ue_Mod_id, 0, NFAPI_SFNSF2SFN(sfn_sf), 0, NFAPI_SFNSF2SF(sfn_sf));
-                LOG_I(MAC, "Entered for PRACH_David\n");
                 if (prach_resources != NULL)
                 {
                   LOG_I(MAC, "preamble_received_tar_power: %d\n",
                         prach_resources->ra_PREAMBLE_RECEIVED_TARGET_POWER);
                   UE_mac_inst[ue_Mod_id].ra_frame = NFAPI_SFNSF2SFN(sfn_sf);
                   LOG_D(MAC, "UE_phy_stub_standalone_pnf_task before RACH, Mod_id: %d frame %d subframe %d\n", ue_Mod_id, NFAPI_SFNSF2SFN(sfn_sf), NFAPI_SFNSF2SF(sfn_sf));
-                  LOG_I(MAC,"Rach target eNB = %d\n",  UE->frame_parms.Nid_cell);
-                  UL_INFO->rach_ind.header.phy_id = UE->frame_parms.Nid_cell;
                   fill_rach_indication_UE_MAC(ue_Mod_id, NFAPI_SFNSF2SFN(sfn_sf), NFAPI_SFNSF2SF(sfn_sf), UL_INFO, prach_resources->ra_PreambleIndex, prach_resources->ra_RNTI);
                   sent_any = true;
                   Msg1_transmitted(ue_Mod_id, 0, NFAPI_SFNSF2SFN(sfn_sf), 0);

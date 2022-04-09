@@ -452,7 +452,7 @@ void generate_Msg2(module_id_t module_idP,
         add_msg3 (module_idP, CC_idP, ra, frameP, subframeP);
         ra->state = WAITMSG3;
         /* DL request */
-        LOG_D(MAC, "[eNB %d][RAPROC] Frame %d, Subframe %d : In generate_Msg2, Programming TX Req\n",
+        LOG_I(MAC, "[eNB %d][RAPROC] Frame %d, Subframe %d : In generate_Msg2, Programming TX Req\n",
               module_idP,
               frameP,
               subframeP);
@@ -468,7 +468,7 @@ void generate_Msg2(module_id_t module_idP,
     }
   } else {
     if ((ra->Msg2_frame == frameP) && (ra->Msg2_subframe == subframeP)) {
-      LOG_D(MAC,
+      LOG_I(MAC,
             "[eNB %d] CC_id %d Frame %d, subframeP %d: Generating RAR DCI, state %d\n",
             module_idP, CC_idP, frameP, subframeP, ra->state);
       // Allocate 4 PRBS starting in RB 0
@@ -1287,10 +1287,10 @@ initiate_ra_proc(module_id_t module_idP,
     prach_ParametersListCE_r13 = &ext4_prach->prach_ParametersListCE_r13;
   }
 
-  LOG_D(MAC,
+  LOG_I(MAC,
         "[eNB %d][RAPROC] CC_id %d Frame %d, Subframe %d  Initiating RA procedure for preamble index %d, timing offset %d\n",
         module_idP, CC_id, frameP, subframeP, preamble_index, timing_offset);
-  LOG_D(MAC,
+  LOG_I(MAC,
         "[eNB %d][RAPROC] CC_id %d Frame %d, Subframe %d  PRACH resource type %d\n",
         module_idP, CC_id, frameP, subframeP, rach_resource_type);
   uint16_t msg2_frame = frameP;
@@ -1313,7 +1313,7 @@ initiate_ra_proc(module_id_t module_idP,
   for (i = 0; i < NB_RA_PROC_MAX; i++) {
     if (ra[i].state == IDLE) {
       int loop = 0;
-      LOG_D(MAC, "Frame %d, Subframe %d: Activating RA process %d\n",
+      LOG_I(MAC, "Frame %d, Subframe %d: Activating RA process %d\n",
             frameP, subframeP, i);
       ra[i].state = MSG2;
       ra[i].Msg4_delay_cnt=0;
@@ -1348,7 +1348,7 @@ initiate_ra_proc(module_id_t module_idP,
       add_subframe(&msg2_frame, &msg2_subframe, offset);
       ra[i].Msg2_frame         = msg2_frame;
       ra[i].Msg2_subframe      = msg2_subframe;
-      LOG_D(MAC,"%s() Msg2[%04d%d] SFN/SF:%04d%d offset:%d\n", __FUNCTION__,ra[i].Msg2_frame,ra[i].Msg2_subframe,frameP,subframeP,offset);
+      LOG_I(MAC,"%s() Msg2[%04d%d] SFN/SF:%04d%d offset:%d\n", __FUNCTION__,ra[i].Msg2_frame,ra[i].Msg2_subframe,frameP,subframeP,offset);
       ra[i].Msg2_subframe = (subframeP + offset) % 10;
 
       /* TODO: find better procedure to allocate RNTI */
@@ -1396,7 +1396,7 @@ initiate_ra_proc(module_id_t module_idP,
       ra[i].RA_rnti = ra_rnti;
       ra[i].preamble_index = preamble_index;
       failure_cnt = 0;
-      LOG_D(MAC,
+      LOG_I(MAC,
             "[eNB %d][RAPROC] CC_id %d Frame %d Activating RAR generation in Frame %d, subframe %d for process %d, rnti %x, state %d\n",
             module_idP, CC_id, frameP, ra[i].Msg2_frame,
             ra[i].Msg2_subframe, i, ra[i].rnti, ra[i].state);
