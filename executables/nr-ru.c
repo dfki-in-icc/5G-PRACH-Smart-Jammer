@@ -759,13 +759,13 @@ void tx_rf(RU_t *ru,int frame,int slot, uint64_t timestamp) {
       // the beam index is written in bits 8-10 of the flags
       // bit 11 enables the gpio programming
       int beam=0;
-      if (ru->common.beam_id &&
-          (slot%10 == 0) &&
-          (ru->common.beam_id[0][slot*fp->symbols_per_slot] < 8)) {
-        beam = ru->common.beam_id[0][slot*fp->symbols_per_slot] | 8;
+      if ((slot%10 == 0) &&
+          ru->common.beam_id &&
+          (ru->common.beam_id[0][slot*fp->symbols_per_slot] < 64)) {
+        beam = ru->common.beam_id[0][slot*fp->symbols_per_slot] | 64;
         LOG_D(HW,"slot %d, beam %d\n",slot,beam);
       }
-      flags |= beam<<8;
+      flags |= beam<<8; // MSB 16 bits are used for beam
 
       LOG_D(HW,"slot %d, beam %d\n",slot,beam);
     }

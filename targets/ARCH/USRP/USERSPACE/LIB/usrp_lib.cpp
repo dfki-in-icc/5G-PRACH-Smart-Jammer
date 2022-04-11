@@ -274,18 +274,16 @@ static int trx_usrp_start(openair0_device *device) {
   usrp_state_t *s = (usrp_state_t *)device->priv;
 
   if (device->type != USRP_X400_DEV) {
-    // setup GPIO for TDD, GPIO(4) = ATR_RX
     //set data direction register (DDR) to output
     s->usrp->set_gpio_attr("FP0", "DDR", 0xfff, 0xfff);
-    //set lower 7 bits to be controlled automatically by ATR (the rest 5 bits are controlled manually)
-    s->usrp->set_gpio_attr("FP0", "CTRL", 0x7f,0xfff);
-    //set pins 4 (RX_TX_Switch) and 6 (Shutdown PA) to 1 when the radio is only receiving (ATR_RX)
-    s->usrp->set_gpio_attr("FP0", "ATR_RX", (1<<4)|(1<<6), 0x7f);
-    // set pin 5 (Shutdown LNA) to 1 when the radio is transmitting and receiveing (ATR_XX)
-    // (we use full duplex here, because our RX is on all the time - this might need to change later)
-    s->usrp->set_gpio_attr("FP0", "ATR_XX", (1<<5), 0x7f);
-    // set the output pins to 1
-    s->usrp->set_gpio_attr("FP0", "OUT", 7<<7, 0xf80);
+    //set lower 5 bits to be controlled automatically by ATR (the rest 7 bits are controlled manually)
+    s->usrp->set_gpio_attr("FP0", "CTRL", 0x1f,0xfff);
+    //set pin 1 (TX/RX1) to 1 for MHU1 for transmistting
+    s->usrp->set_gpio_attr("FP0", "ATR_TX", (1<<1), 0x1f);
+    //set pin 4 (ID0) to 1 and pins 2 (TX/RX2) & 3 (ID1) to 0
+    s->usrp->set_gpio_attr("FP0", "ATR_XX", (1<<4), 0x1f);
+    //set the output pins to 1
+    s->usrp->set_gpio_attr("FP0", "OUT", 0x7e0, 0xfe0);
   }
 
   s->wait_for_first_pps = 1;
@@ -457,12 +455,12 @@ static int trx_usrp_write(openair0_device *device,
     s->tx_count++;
 
 VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_BEAM_SWITCHING_GPIO,1);
-    // bit 3 enables gpio (for backward compatibility)
-    if (flags_msb&8) {
-      // push GPIO bits 7-9 from flags_msb
-      int gpio789=(flags_msb&7)<<7;
+    // bit 6 enables gpio (for backward compatibility)
+    if (flags_msb&64) {
+      // push GPIO bits 5-9 from flags_msb
+      int gpio5ten=(flags_msb&63)<<5;
       s->usrp->set_command_time(s->tx_md.time_spec);
-      s->usrp->set_gpio_attr("FP0", "OUT", gpio789, 0x380);
+      s->usrp->set_gpio_attr("FP0", "OUT", gpio5ten, 0x7e0);
       s->usrp->clear_command_time();
     }
 VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_BEAM_SWITCHING_GPIO,0);
@@ -598,12 +596,12 @@ void *trx_usrp_write_thread(void * arg){
     LOG_D(PHY,"usrp_tx_write: tx_count %llu SoB %d, EoB %d, TS %llu\n",(unsigned long long)s->tx_count,s->tx_md.start_of_burst,s->tx_md.end_of_burst,(unsigned long long)timestamp); 
     s->tx_count++;
 
-    // bit 3 enables gpio (for backward compatibility)
-    if (flags_msb&8) {
-      // push GPIO bits 7-9 from flags_msb
-      int gpio789=(flags_msb&7)<<7;
+    // bit 6 enables gpio (for backward compatibility)
+    if (flags_msb&64) {
+      // push GPIO bits 5-9 from flags_msb
+      int gpio5ten=(flags_msb&63)<<5;
       s->usrp->set_command_time(s->tx_md.time_spec);
-      s->usrp->set_gpio_attr("FP0", "OUT", gpio789, 0x380);
+      s->usrp->set_gpio_attr("FP0", "OUT", gpio5ten, 0x7e0);
       s->usrp->clear_command_time();
     }
 
