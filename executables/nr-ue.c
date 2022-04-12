@@ -33,6 +33,8 @@
 #include "LAYER2/nr_pdcp/nr_pdcp_entity.h"
 #include "SCHED_NR_UE/pucch_uci_ue_nr.h"
 #include "openair2/NR_UE_PHY_INTERFACE/NR_IF_Module.h"
+// L5G_IOT
+#include "prometheus_exporter.h"
 
 /*
  *  NR SLOT PROCESSING SEQUENCE
@@ -776,7 +778,9 @@ void processSlotRX(void *arg) {
       PROTOCOL_CTXT_SET_BY_MODULE_ID(&ctxt, UE->Mod_id, ENB_FLAG_NO, mac->crnti, proc->frame_rx, proc->nr_slot_rx, 0);
       pdcp_run(&ctxt);
     }
+    // TODO L5G
 
+#if 0
     // Wait for PUSCH processing to finish
     notifiedFIFO_elt_t *res;
     res = pullTpool(&rxtxD->txFifo,&(get_nrUE_params()->Tpool));
@@ -786,6 +790,17 @@ void processSlotRX(void *arg) {
     rxtxD->ue_sched_mode = NOT_PUSCH;
     if(tx_slot_type==NR_MIXED_SLOT) rxtxD->ue_sched_mode = SCHED_ALL;
     processSlotTX(rxtxD);
+#else
+    // calling UL_indication to schedule things other than PUSCH (eg, PUCCH)
+    rxtxD->ue_sched_mode = NOT_PUSCH;
+    if(tx_slot_type==NR_MIXED_SLOT) rxtxD->ue_sched_mode = SCHED_ALL;
+    processSlotTX(rxtxD);
+
+    // Wait for PUSCH processing to finish
+    notifiedFIFO_elt_t *res;
+    res = pullTpool(&rxtxD->txFifo,&(get_nrUE_params()->Tpool));
+    delNotifiedFIFO_elt(res);
+#endif
 
   } else {
     rxtxD->ue_sched_mode = SCHED_ALL;
@@ -887,6 +902,7 @@ void syncInFrame(PHY_VARS_NR_UE *UE, openair0_timestamp *timestamp) {
 }
 
 int computeSamplesShift(PHY_VARS_NR_UE *UE) {
+#if 0 // L5G debug
   int samples_shift = -(UE->rx_offset>>1);
   UE->rx_offset   = 0; // reset so that it is not applied falsely in case of SSB being only in every second frame
   UE->max_pos_fil = 0; // reset IIR filter when sample shift is applied
@@ -894,6 +910,13 @@ int computeSamplesShift(PHY_VARS_NR_UE *UE) {
     LOG_I(NR_PHY,"Adjusting frame in time by %i samples\n", samples_shift);
   }
   return samples_shift;
+#else
+    if ( UE->rx_offset > 0 ) {
+    return -1 ;
+  } else {
+    return 1;
+  }
+#endif
 }
 
 static inline int get_firstSymSamp(uint16_t slot, NR_DL_FRAME_PARMS *fp) {
@@ -912,9 +935,23 @@ static inline int get_readBlockSize(uint16_t slot, NR_DL_FRAME_PARMS *fp) {
   return rem_samples + next_slot_first_symbol;
 }
 
+int nbSlotProcessing;
+notifiedFIFO_t nf;
+int decoded_frame_rx;
+NR_UE_MAC_INST_t *mac;
+notifiedFIFO_t freeBlocks;
+nr_rxtx_thread_data_t *curMsg;
+notifiedFIFO_elt_t *msgToPush;
+int absolute_slot;
+PHY_VARS_NR_UE *UE;
+int nb_slot_frame;
+
+volatile int ready_1 = 0;
+volatile int ready_2 = 0;
+
 void *UE_thread(void *arg) {
   //this thread should be over the processing thread to keep in real time
-  PHY_VARS_NR_UE *UE = (PHY_VARS_NR_UE *) arg;
+  UE = (PHY_VARS_NR_UE *) arg;  // PHY_VARS_NR_UE *UE = (PHY_VARS_NR_UE *) arg;     // L5G_IOT
   //  int tx_enabled = 0;
   openair0_timestamp timestamp, writeTimestamp;
   void *rxp[NB_ANTENNAS_RX], *txp[NB_ANTENNAS_TX];
@@ -925,27 +962,34 @@ void *UE_thread(void *arg) {
   UE->is_synchronized = 0;
   AssertFatal(UE->rfdevice.trx_start_func(&UE->rfdevice) == 0, "Could not start the device\n");
 
-  notifiedFIFO_t nf;
+  // L5G_IOT
+  if (enable_parallel_pull != 0)  LOG_I(PHY,"pull thread enabled ( %d )\n",enable_parallel_pull);
+  else  LOG_I(PHY,"pull thread disabled ( %d ) (Original Mode)\n",enable_parallel_pull);
+
+  // notifiedFIFO_t nf; // L5G_IOT
   initNotifiedFIFO(&nf);
 
-  notifiedFIFO_t freeBlocks;
+  // notifiedFIFO_t freeBlocks; // L5G_IOT
   initNotifiedFIFO_nothreadSafe(&freeBlocks);
 
-  int nbSlotProcessing=0;
+  nbSlotProcessing=0; // int nbSlotProcessing=0;  // L5G_IOT
   int thread_idx=0;
-  NR_UE_MAC_INST_t *mac = get_mac_inst(0);
+  mac = get_mac_inst(0); //  NR_UE_MAC_INST_t *mac = get_mac_inst(0);  // L5G_IOT
   int timing_advance = UE->timing_advance;
 
   bool syncRunning=false;
-  const int nb_slot_frame = UE->frame_parms.slots_per_frame;
-  int absolute_slot=0, decoded_frame_rx=INT_MAX, trashed_frames=0;
+  // const int nb_slot_frame = UE->frame_parms.slots_per_frame; // L5G_IOT
+  nb_slot_frame = UE->frame_parms.slots_per_frame;    // L5G_IOT
+  absolute_slot=0;  // int absolute_slot=0; // L5G_IOT
+  int decoded_frame_rx=INT_MAX, trashed_frames=0; // int decoded_frame_rx=INT_MAX, trashed_frames=0;  // L5G_IOT
   if(usrp_tx_thread == 1) {
     UE->rfdevice.trx_write_init(&UE->rfdevice);
   }
 
   for (int i=0; i<NR_RX_NB_TH+1; i++) {// NR_RX_NB_TH working + 1 we are making to be pushed
     notifiedFIFO_elt_t *newElt = newNotifiedFIFO_elt(sizeof(nr_rxtx_thread_data_t), RX_JOB_ID,&nf,processSlotRX);
-    nr_rxtx_thread_data_t *curMsg=(nr_rxtx_thread_data_t *)NotifiedFifoData(newElt);
+    // L5G_IOT  // nr_rxtx_thread_data_t *curMsg=(nr_rxtx_thread_data_t *)NotifiedFifoData(newElt);
+    curMsg=(nr_rxtx_thread_data_t *)NotifiedFifoData(newElt);
     initNotifiedFIFO(&curMsg->txFifo);
     pushNotifiedFIFO_nothreadSafe(&freeBlocks, newElt);
   }
@@ -1019,26 +1063,37 @@ void *UE_thread(void *arg) {
 
     absolute_slot++;
 
-    // whatever means thread_idx
-    // Fix me: will be wrong when slot 1 is slow, as slot 2 finishes
-    // Slot 3 will overlap if NR_RX_NB_TH is 2
-    // this is general failure in UE !!!
-    thread_idx = absolute_slot % NR_RX_NB_TH;
+    // L5G_IOT
+    int thread_idx = absolute_slot % NR_RX_NB_TH;
     int slot_nr = absolute_slot % nb_slot_frame;
-    notifiedFIFO_elt_t *msgToPush;
-    AssertFatal((msgToPush=pullNotifiedFIFO_nothreadSafe(&freeBlocks)) != NULL,"chained list failure");
-    nr_rxtx_thread_data_t *curMsg=(nr_rxtx_thread_data_t *)NotifiedFifoData(msgToPush);
-    curMsg->UE=UE;
-    // update thread index for received subframe
-    curMsg->proc.thread_id   = thread_idx;
-    curMsg->proc.CC_id       = UE->CC_id;
-    curMsg->proc.nr_slot_rx  = slot_nr;
-    curMsg->proc.nr_slot_tx  = (absolute_slot + DURATION_RX_TO_TX) % nb_slot_frame;
-    curMsg->proc.frame_rx    = (absolute_slot/nb_slot_frame) % MAX_FRAME_NUMBER;
-    curMsg->proc.frame_tx    = ((absolute_slot+DURATION_RX_TO_TX)/nb_slot_frame) % MAX_FRAME_NUMBER;
-    curMsg->proc.decoded_frame_rx=-1;
-    //LOG_I(PHY,"Process slot %d thread Idx %d total gain %d\n", slot_nr, thread_idx, UE->rx_total_gain_dB);
+    // L5G_IOT  
+    if (enable_parallel_pull != 0){
+      ready_1 = 1;
+    } else {
 
+      // whatever means thread_idx
+      // Fix me: will be wrong when slot 1 is slow, as slot 2 finishes
+      // Slot 3 will overlap if NR_RX_NB_TH is 2
+      // this is general failure in UE !!!
+
+      // L5G_IOT
+      // thread_idx = absolute_slot % NR_RX_NB_TH;
+      // int slot_nr = absolute_slot % nb_slot_frame;
+
+      // notifiedFIFO_elt_t *msgToPush;   // L5G_IOT
+      AssertFatal((msgToPush=pullNotifiedFIFO_nothreadSafe(&freeBlocks)) != NULL,"chained list failure");
+      nr_rxtx_thread_data_t *curMsg=(nr_rxtx_thread_data_t *)NotifiedFifoData(msgToPush);
+      curMsg->UE=UE;
+      // update thread index for received subframe
+      curMsg->proc.thread_id   = thread_idx;
+      curMsg->proc.CC_id       = UE->CC_id;
+      curMsg->proc.nr_slot_rx  = slot_nr;
+      curMsg->proc.nr_slot_tx  = (absolute_slot + DURATION_RX_TO_TX) % nb_slot_frame;
+      curMsg->proc.frame_rx    = (absolute_slot/nb_slot_frame) % MAX_FRAME_NUMBER;
+      curMsg->proc.frame_tx    = ((absolute_slot+DURATION_RX_TO_TX)/nb_slot_frame) % MAX_FRAME_NUMBER;
+      curMsg->proc.decoded_frame_rx=-1;
+      //LOG_I(PHY,"Process slot %d thread Idx %d total gain %d\n", slot_nr, thread_idx, UE->rx_total_gain_dB);
+    }
 #ifdef OAI_ADRV9371_ZC706
     /*uint32_t total_gain_dB_prev = 0;
     if (total_gain_dB_prev != UE->rx_total_gain_dB) {
@@ -1075,7 +1130,8 @@ void *UE_thread(void *arg) {
                                            rxp,
                                            readBlockSize,
                                            UE->frame_parms.nb_antennas_rx),"");
-
+    // L5G_IOT
+    PROM_METRICS(RX_OFFSET,"rx_offset",UE->rx_offset)
     if( slot_nr==(nb_slot_frame-1)) {
       // read in first symbol of next frame and adjust for timing drift
       int first_symbols=UE->frame_parms.ofdm_symbol_size+UE->frame_parms.nb_prefix_samples0; // first symbol of every frames
@@ -1095,25 +1151,30 @@ void *UE_thread(void *arg) {
     curMsg->proc.timestamp_tx = timestamp+
       UE->frame_parms.get_samples_slot_timestamp(slot_nr,&UE->frame_parms,DURATION_RX_TO_TX) 
       - firstSymSamp;
+      
+    // L5G_IOT
+    if (enable_parallel_pull !=0){
+      ready_2 = 1;
+    } else {  // L5G_IOT
+      notifiedFIFO_elt_t *res;
 
-    notifiedFIFO_elt_t *res;
+      while (nbSlotProcessing >= NR_RX_NB_TH) {
+        res=pullTpool(&nf, &(get_nrUE_params()->Tpool));
+        nbSlotProcessing--;
+        nr_rxtx_thread_data_t *tmp=(nr_rxtx_thread_data_t *)res->msgData;
 
-    while (nbSlotProcessing >= NR_RX_NB_TH) {
-      res=pullTpool(&nf, &(get_nrUE_params()->Tpool));
-      nbSlotProcessing--;
-      nr_rxtx_thread_data_t *tmp=(nr_rxtx_thread_data_t *)res->msgData;
+        if (tmp->proc.decoded_frame_rx != -1)
+          decoded_frame_rx=(((mac->mib->systemFrameNumber.buf[0] >> mac->mib->systemFrameNumber.bits_unused)<<4) | tmp->proc.decoded_frame_rx);
+        else
+           decoded_frame_rx=-1;
+      
+        pushNotifiedFIFO_nothreadSafe(&freeBlocks,res);
+      }
 
-      if (tmp->proc.decoded_frame_rx != -1)
-        decoded_frame_rx=(((mac->mib->systemFrameNumber.buf[0] >> mac->mib->systemFrameNumber.bits_unused)<<4) | tmp->proc.decoded_frame_rx);
-      else
-         decoded_frame_rx=-1;
-
-      pushNotifiedFIFO_nothreadSafe(&freeBlocks,res);
-    }
-
-    if (decoded_frame_rx>0 && decoded_frame_rx != curMsg->proc.frame_rx)
-      LOG_E(PHY,"Decoded frame index (%d) is not compatible with current context (%d), UE should go back to synch mode\n",
-            decoded_frame_rx, curMsg->proc.frame_rx);
+      if (decoded_frame_rx>0 && decoded_frame_rx != curMsg->proc.frame_rx)
+        LOG_E(PHY,"Decoded frame index (%d) is not compatible with current context (%d), UE should go back to synch mode\n",
+              decoded_frame_rx, curMsg->proc.frame_rx);
+    }   // L5G_IOT
 
     // use previous timing_advance value to compute writeTimestamp
     writeTimestamp = timestamp+
@@ -1201,11 +1262,11 @@ void *UE_thread(void *arg) {
     //TODO L5G
     //for (int i=0; i<UE->frame_parms.nb_antennas_tx; i++)
     //  memset(txp[i], 0, writeBlockSize);
-
-    nbSlotProcessing++;
-    LOG_D(PHY,"Number of slots being processed at the moment: %d\n",nbSlotProcessing);
-    pushTpool(&(get_nrUE_params()->Tpool), msgToPush);
-
+    if (enable_parallel_pull == 0){ // L5G_IOT
+      nbSlotProcessing++;
+      LOG_D(PHY,"Number of slots being processed at the moment: %d\n",nbSlotProcessing);
+      pushTpool(&(get_nrUE_params()->Tpool), msgToPush);
+    } // L5G_IOT
   } // while !oai_exit
 
   return NULL;
@@ -1238,6 +1299,116 @@ void init_NR_UE_threads(int nb_inst) {
     pthread_t stat_pthread;
     threadCreate(&stat_pthread, nrL1_UE_stats_thread, UE, "L1_UE_stats", -1, OAI_PRIORITY_RT_LOW);
   }
+}
+// L5G_IOT
+void *pullthread(void* arg){
+    struct timespec loc_ts,te,loc_prev_ts;
+    long loc_lstart, loc_lend;
+    notifiedFIFO_elt_t *res;
+    int slot_offset = 0;
+
+  while(1){
+#ifdef READY_LOG
+    if (ready_1 == 1){
+      clock_gettime(CLOCK_MONOTONIC_RAW, &loc_ts);
+      LOG_I(PHY,"%s  already ready_1 ( %ld  %ld ) \n",__FUNCTION__,loc_ts.tv_sec, loc_ts.tv_nsec);
+    } else LOG_I(PHY,"%s  ready_1 not set (OK) ( %ld  %ld ) \n",__FUNCTION__,loc_ts.tv_sec, loc_ts.tv_nsec);
+#endif
+    while (!ready_1){
+      usleep(10);
+    }
+    ready_1 = 0;
+
+  {
+    // whatever means thread_idx
+    // Fix me: will be wrong when slot 1 is slow, as slot 2 finishes
+    // Slot 3 will overlap if NR_RX_NB_TH is 2
+    // this is general failure in UE !!!
+    int thread_idx = (absolute_slot - slot_offset) % NR_RX_NB_TH;
+    int slot_nr = (absolute_slot - slot_offset) % nb_slot_frame;
+    // notifiedFIFO_elt_t *msgToPush;
+    AssertFatal((msgToPush=pullNotifiedFIFO_nothreadSafe(&freeBlocks)) != NULL,"chained list failure");
+#ifdef FIFO_LOG
+    clock_gettime(CLOCK_MONOTONIC_RAW, &loc_ts);
+    LOG_I(PHY,"%s ( %ld  %ld ) pullNotifiedFIFO_nothreadSafe key = %ld (thread : %d  slot : %d )\n",
+          __FUNCTION__,loc_ts.tv_sec, loc_ts.tv_nsec, msgToPush->key, thread_idx, slot_nr);
+#endif
+    // nr_rxtx_thread_data_t *curMsg=(nr_rxtx_thread_data_t *)NotifiedFifoData(msgToPush);
+    curMsg=(nr_rxtx_thread_data_t *)NotifiedFifoData(msgToPush);
+    curMsg->UE=UE;
+    // update thread index for received subframe
+    curMsg->proc.thread_id   = thread_idx;
+    curMsg->proc.CC_id       = UE->CC_id;
+    curMsg->proc.nr_slot_rx  = slot_nr;
+    curMsg->proc.nr_slot_tx  = ((absolute_slot - slot_offset) + DURATION_RX_TO_TX) % nb_slot_frame;
+    curMsg->proc.frame_rx    = ((absolute_slot - slot_offset) /nb_slot_frame) % MAX_FRAME_NUMBER;
+    curMsg->proc.frame_tx    = (((absolute_slot - slot_offset) +DURATION_RX_TO_TX)/nb_slot_frame) % MAX_FRAME_NUMBER;
+    curMsg->proc.decoded_frame_rx=-1;
+    //LOG_I(PHY,"Process slot %d thread Idx %d total gain %d\n", slot_nr, thread_idx, UE->rx_total_gain_dB);
+  }
+#ifdef READY_LOG
+    if (ready_2 == 1){
+      clock_gettime(CLOCK_MONOTONIC_RAW, &loc_ts);
+      LOG_I(PHY,"%s  already ready_2 ( %ld  %ld )  slot : %d  offset : %d \n",
+          __FUNCTION__,loc_ts.tv_sec, loc_ts.tv_nsec, absolute_slot, slot_offset);
+    } else LOG_I(PHY,"%s  ready_2 not set (OK) ( %ld  %ld )  slot : %d  offset : %d\n",
+          __FUNCTION__,loc_ts.tv_sec, loc_ts.tv_nsec, absolute_slot, slot_offset);
+#endif
+    while (!ready_2){
+      usleep(10);
+    }
+    ready_2 = 0;
+//    slot_offset = 0;
+
+    while (nbSlotProcessing >= NR_RX_NB_TH) {
+      clock_gettime(CLOCK_MONOTONIC_RAW, &loc_prev_ts);   // nkob
+      res=pullTpool(&nf, &(get_nrUE_params()->Tpool));
+      clock_gettime(CLOCK_MONOTONIC_RAW, &loc_ts);
+#ifdef FIFO_LOG
+      LOG_I(PHY,"%s pullTpool key = %d\n",__FUNCTION__,res->key);
+#endif
+      nbSlotProcessing--;
+      nr_rxtx_thread_data_t *tmp=(nr_rxtx_thread_data_t *)res->msgData;
+      loc_lstart = loc_prev_ts.tv_sec * 1E9 + loc_prev_ts.tv_nsec;
+      loc_lend = loc_ts.tv_sec * 1E9 + loc_ts.tv_nsec;
+      if ((loc_lend - loc_lstart) > 500000 ) {
+        slot_offset += (int) ((loc_lend - loc_lstart)/500000);
+	slot_offset = slot_offset % 20;
+        LOG_I(PHY,"%ld -> %ld  pullthread::pullTpool exec. time *** over 500uS *** :  %ld (offset : %d )\n", 
+            loc_lstart, loc_lend , (loc_lend - loc_lstart), slot_offset);
+      }
+
+      if (tmp->proc.decoded_frame_rx != -1)
+        decoded_frame_rx=(((mac->mib->systemFrameNumber.buf[0] >> mac->mib->systemFrameNumber.bits_unused)<<4) | tmp->proc.decoded_frame_rx);
+      else
+         decoded_frame_rx=-1;
+
+      pushNotifiedFIFO_nothreadSafe(&freeBlocks,res);
+    }
+    if (decoded_frame_rx>0 && decoded_frame_rx != curMsg->proc.frame_rx)
+      LOG_E(PHY,"Decoded frame index (%d) is not compatible with current context (%d), UE should go back to synch mode\n",
+            decoded_frame_rx, curMsg->proc.frame_rx);
+    nbSlotProcessing++;
+    LOG_D(PHY,"Number of slots being processed at the moment: %d\n",nbSlotProcessing);
+    pushTpool(&(get_nrUE_params()->Tpool), msgToPush);
+    clock_gettime(CLOCK_MONOTONIC_RAW, &loc_ts);
+#ifdef FIFO_LOG
+    LOG_I(PHY,"%s ( %ld  %ld ) pushTpool key = %ld (decoded_frame : %d )\n",
+        __FUNCTION__,loc_ts.tv_sec, loc_ts.tv_nsec, msgToPush->key, decoded_frame_rx);
+#endif
+    }
+}
+
+// L5G_IOT
+void init_pull_thread(  ){
+    pthread_t thread_pull;
+    int arg = 0;
+
+    threadCreate(
+      &thread_pull, pullthread /* function */, (void *)&arg, "pullthread" /* name */, -1 /* affinity */, OAI_PRIORITY_RT_MAX /* priority */);
+    pthread_setname_np(thread_pull, "pullThread");
+
+    LOG_I(PHY,"pullthread created ( %s )\n",__FUNCTION__);
 }
 
 /* HACK: this function is needed to compile the UE

@@ -256,11 +256,17 @@ int nr_initial_sync(UE_nr_rxtx_proc_t *proc,
       // In SA we need to perform frequency offset correction until the end of buffer because we need to decode SIB1
       // and we do not know yet in which slot it goes.
 
+      // TODO L5G
+#if 0
       // start for offset correction
       int start = sa ? is*fp->samples_per_frame : is*fp->samples_per_frame + ue->ssb_offset;
 
       // loop over samples
       int end = sa ? n_frames*fp->samples_per_frame-1 : start + NR_N_SYMBOLS_SSB*(fp->ofdm_symbol_size + fp->nb_prefix_samples);
+#else
+      int start = is*fp->samples_per_frame+ue->ssb_offset;  // start for offset correction is at ssb_offset (pss time position)
+      int end = start + NR_N_SYMBOLS_SSB*(fp->ofdm_symbol_size + fp->nb_prefix_samples);  // loop over samples in 4 symbols (ssb size), including prefix
+#endif
 
       for(int n=start; n<end; n++){
         for (int ar=0; ar<fp->nb_antennas_rx; ar++) {
@@ -307,13 +313,18 @@ int nr_initial_sync(UE_nr_rxtx_proc_t *proc,
 
         // In SA we need to perform frequency offset correction until the end of buffer because we need to decode SIB1
         // and we do not know yet in which slot it goes.
-
+        // TODO L5G
+#if 0
         // start for offset correction
         int start = sa ? is*fp->samples_per_frame : is*fp->samples_per_frame + ue->ssb_offset;
 
         // loop over samples
         int end = sa ? n_frames*fp->samples_per_frame-1 : start + NR_N_SYMBOLS_SSB*(fp->ofdm_symbol_size + fp->nb_prefix_samples);
+#else
+        int start = is*fp->samples_per_frame+ue->ssb_offset;  // start for offset correction is at ssb_offset (pss time position)
+        int end = start + NR_N_SYMBOLS_SSB*(fp->ofdm_symbol_size + fp->nb_prefix_samples);  // loop over samples in 4 symbols (ssb size), including prefix
 
+#endif
         for(int n=start; n<end; n++){
           for (int ar=0; ar<fp->nb_antennas_rx; ar++) {
             re = ((double)(((short *)ue->common_vars.rxdata[ar]))[2*n]);
@@ -584,8 +595,8 @@ int nr_initial_sync(UE_nr_rxtx_proc_t *proc,
     }
     if (dec == false) // sib1 not decoded
       ret = -1;
-
-    ue->common_vars.freq_offset = accumulated_freq_offset;
+    // TODO L5G
+    // ue->common_vars.freq_offset = accumulated_freq_offset;
   }
   //  exit_fun("debug exit");
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_NR_INITIAL_UE_SYNC, VCD_FUNCTION_OUT);

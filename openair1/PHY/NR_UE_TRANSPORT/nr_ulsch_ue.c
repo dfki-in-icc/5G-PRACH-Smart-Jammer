@@ -46,7 +46,8 @@
 #include "executables/softmodem-common.h"
 #include "PHY/NR_REFSIG/ul_ref_seq_nr.h"
 #include <openair2/UTIL/OPT/opt.h>
-
+// L5G_IOT
+#include "prometheus_exporter.h"
 //#define DEBUG_PUSCH_MAPPING
 //#define DEBUG_MAC_PDU
 //#define DEBUG_DFT_IDFT
@@ -193,6 +194,8 @@ void nr_ue_ulsch_procedures(PHY_VARS_NR_UE *UE,
     ///////////
 
     available_bits = G;
+    // L5G_IOT
+    PROM_METRICS(UL_BITS,"UL_BITS",G);
 
     memset(scrambled_output[cwd_index], 0, ((available_bits>>5)+1)*sizeof(uint32_t));
 

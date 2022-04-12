@@ -36,9 +36,12 @@
     {"V" ,                       CONFIG_HLP_VCD,         PARAMFLAG_BOOL,  iptr:&vcdflag,                      defintval:0,     TYPE_INT,    0}, \
     {"uecap_file",               CONFIG_HLP_UECAP_FILE,  0,               strptr:(char **)&uecap_file,        defstrval:"./uecap.xml", TYPE_STRING, 0}, \
     {"rrc_config_path",          CONFIG_HLP_RRC_CFG_PATH,0,               strptr:(char **)&rrc_config_path,   defstrval:"./",  TYPE_STRING, 0}, \
-    {"ue-idx-standalone",        NULL,                   0,               u16ptr:&ue_idx_standalone,          defuintval:0xFFFF,    TYPE_UINT16,   0} \
+    {"ue-idx-standalone",        NULL,                   0,               u16ptr:&ue_idx_standalone,          defuintval:0xFFFF,    TYPE_UINT16,   0}, \
+    /* L5G_IOT */\
+    {"enable_prometheus",        CONFIG_HLP_EN_PROM,     PARAMFLAG_BOOL,  strptr:(char **)&prometheus_en_flag,      defstrval:0,     TYPE_INT, 0}, \
+    {"prometheus_port",          CONFIG_HLP_PROM_PORT,   0,               strptr:(uint32_t*)&prometheus_port,       defuintval:1234, TYPE_UINT32, 0}, \
+    {"parallel_pull",            CONFIG_HLP_PARA_PULL,   PARAMFLAG_BOOL,  strptr:(char **)&para_pull_flag,          defstrval:0,     TYPE_INT, 0} \
 }
-
 
 /*------------------------------------------------------------------------------------------------------------------------------------------*/
 /*                                            command line parameters defining UE running mode                                              */
@@ -81,7 +84,7 @@ typedef struct {
 extern uint64_t get_nrUE_optmask(void);
 extern uint64_t set_nrUE_optmask(uint64_t bitmask);
 extern nrUE_params_t *get_nrUE_params(void);
-
+extern int enable_parallel_pull;
 
 // In nr-ue.c
 extern int setup_nr_ue_buffers(PHY_VARS_NR_UE **phy_vars_ue, openair0_config_t *openair0_cfg);

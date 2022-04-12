@@ -51,7 +51,8 @@
 #include "executables/nr-uesoftmodem.h"
 #include "LAYER2/NR_MAC_UE/mac_proto.h"
 #include "LAYER2/NR_MAC_UE/nr_l1_helpers.h"
-
+// L5G_IOT
+#include "prometheus_exporter.h"
 //#define DEBUG_PHY_PROC
 #define NR_PDCCH_SCHED
 //#define NR_PDCCH_SCHED_DEBUG
@@ -79,7 +80,8 @@ char nr_mode_string[NUM_UE_MODE][20] = {"NOT SYNCHED","PRACH","RAR","RA_WAIT_CR"
 #if defined(EXMIMO) || defined(OAI_USRP) || defined(OAI_BLADERF) || defined(OAI_LMSSDR) || defined(OAI_ADRV9371_ZC706)
 extern uint64_t downlink_frequency[MAX_NUM_CCs][4];
 #endif
-
+// L5G_IOT
+uint32_t  pdsch_mode;
 unsigned int gain_table[31] = {100,112,126,141,158,178,200,224,251,282,316,359,398,447,501,562,631,708,794,891,1000,1122,1258,1412,1585,1778,1995,2239,2512,2818,3162};
 
 void nr_fill_dl_indication(nr_downlink_indication_t *dl_ind,
@@ -625,6 +627,8 @@ int nr_ue_pdsch_procedures(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, int gNB_
       // process DLSCH received symbols in the slot
       // symbol by symbol processing (if data/DMRS are multiplexed is checked inside the function)
       if (pdsch == PDSCH || pdsch == SI_PDSCH || pdsch == RA_PDSCH) {
+        // L5G_IOT
+        pdsch_mode = pdsch;
         if (nr_rx_pdsch(ue,
                         proc,
                         pdsch,
@@ -823,6 +827,8 @@ bool nr_ue_dlsch_procedures(PHY_VARS_NR_UE *ue,
     }
 
     LOG_D(PHY, "In %s DL PDU length in bits: %d, in bytes: %d \n", __FUNCTION__, dlsch0->harq_processes[harq_pid]->TBS, dlsch0->harq_processes[harq_pid]->TBS / 8);
+    // L5G_IOT
+    PROM_METRICS(RX_TBS,"RX_TBS",dlsch0->harq_processes[harq_pid]->TBS);
 
     stop_meas(&ue->dlsch_decoding_stats[proc->thread_id]);
     if (cpumeas(CPUMEAS_GETSTATE))  {

@@ -3243,7 +3243,9 @@ uint8_t get_pusch_mcs_table(long *mcs_Table,
         return (2+(is_tp<<1));
       if (rnti_type == NR_RNTI_MCS_C)
         return (2+(is_tp<<1));
-      AssertFatal(1==0,"Invalid configuration to set MCS table");
+      // L5G_IOT
+      // AssertFatal(1==0,"Invalid configuration to set MCS table");
+      LOG_W(MAC,"Invalid configuration to set MCS table");
     }
   }
   else

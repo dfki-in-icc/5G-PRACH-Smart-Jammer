@@ -36,6 +36,8 @@
 #include "PHY/LTE_REFSIG/lte_refsig.h"
 #include "PHY/INIT/phy_init.h"
 #include "openair1/SCHED_NR_UE/defs.h"
+// L5G_IOT
+#include "prometheus_exporter.h"
 
 //#define DEBUG_PBCH 
 //#define DEBUG_PBCH_ENCODING
@@ -287,6 +289,9 @@ void nr_pbch_channel_compensation(int **rxdataF_ext,
       *rxdataF_comp128++ = mulByConjugate128(rxdataF128++, dl_ch128++, output_shift);
     }
   }
+  // TODO L5G
+  RegisterComplexMetric(PBCH_IQ, "PBCH_IQ", (int16_t*)&rxdataF_comp[0], nb_re*12);
+
 }
 
 void nr_pbch_detection_mrc(NR_DL_FRAME_PARMS *frame_parms,

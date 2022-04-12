@@ -1345,7 +1345,9 @@ static void rrc_ue_generate_RRCSetupComplete(
       mac->cg->spCellConfig &&
       mac->cg->spCellConfig->spCellConfigDedicated &&
       mac->cg->spCellConfig->spCellConfigDedicated->csi_MeasConfig)
-    AssertFatal(1==0,"2 > csi_MeasConfig is not null\n");
+    // L5G_IOT temporary
+    // AssertFatal(1==0,"2 > csi_MeasConfig is not null\n");
+    LOG_W(RRC,"2 > csi_MeasConfig is not null\r");
 
  if (AMF_MODE_ENABLED) {
 #if defined(ITTI_SIM)

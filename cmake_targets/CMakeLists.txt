@@ -2763,6 +2763,7 @@ add_executable(nr-uesoftmodem
   ${OPENAIR_DIR}/executables/nr-uesoftmodem.c
   ${OPENAIR_DIR}/executables/nr-ue.c
   ${OPENAIR_DIR}/executables/softmodem-common.c
+  ${OPENAIR_DIR}/executables/prometheus_exporter.c
   ${OPENAIR1_DIR}/SIMULATION/TOOLS/taus.c
   ${OPENAIR_TARGETS}/ARCH/COMMON/common_lib.c
   ${OPENAIR_TARGETS}/ARCH/COMMON/record_player.c
