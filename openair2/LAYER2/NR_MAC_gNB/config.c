@@ -54,6 +54,92 @@ extern RAN_CONTEXT_t RC;
 extern void mac_top_init_gNB(void);
 extern uint8_t nfapi_mode;
 
+// Array containing the values of the 26 5QIs indexes
+const uint64_t fiveqi_idx[26] = {1, 2, 3, 4, 65, 66, 67, 71, 72, 73, 74, 76, 5, 6, 7, 8, 9, 69, 70, 79, 80, 82, 83, 84, 85, 86};
+
+// 3GPP TS 23.501 Table 5.7.4-1: Standardized 5QI to QoS characteristics mapping
+// resource type, default priority level
+// 0 = GBR, 1 = Non-GBR, 2 = delay critical GBR
+const uint64_t table_5_6_4_1[27][2] = {
+  {0,20},
+  {0,40},
+  {0,30},
+  {0,50},
+  {0,7},
+  {0,20},
+  {0,15},
+  {0,56},
+  {0,56},
+  {0,56},
+  {0,56},
+  {1,10},
+  {1,60},
+  {1,70},
+  {1,80},
+  {1,90},
+  {1,5},
+  {1,55},
+  {1,65},
+  {1,68},
+  {2,19},
+  {2,22},
+  {2,24},
+  {2,21},
+  {2,18}
+};
+
+/**
+ * This is a QoS comparator function for qsort.
+ *
+ * @lcid1 pointer to the first array element
+ * @lcid1 pointer to the second array element
+ * @return negative return value means that *p1 goes before *p2
+ *         zero return value means that that *p1 is equivalent to *p2
+ *         positive return value means that *p1 goes after *p2
+ *
+ * The function fetches the indexes i and j by matching the 26 5QIs values with the 5QI in the DRB to be configured.
+ * The indexes are used to fetch the Priority Level from table_5_6_4_1.
+ * Lower Priority Level means higher priority.
+ * The sorting of the array is based on the Priority Levels. SRBs are placed at the top of the array, followed by DRBs by descending priority order.
+ *
+ **/
+static int QoS_comp(const void *lcid1, const void *lcid2) {
+  NR_UE_info_t *UE_info = &RC.nrmac[0]->UE_info;
+  NR_UE_sched_ctrl_t *sched_ctrl = &UE_info->UE_sched_ctrl[0];
+  uint8_t lcid_1 = *(uint8_t *)lcid1;
+  uint8_t lcid_2 = *(uint8_t *)lcid2;
+  if (lcid_1 >= 4 && lcid_2 >= 4) {
+      uint8_t i, j;
+      uint64_t fiveQI_1 = sched_ctrl->nr_QoS_config[lcid_1 - 4].fiveQI;
+      uint64_t fiveQI_2 = sched_ctrl->nr_QoS_config[lcid_2 - 4].fiveQI;
+      for (i = 0; i < 26; i++) {
+        if (fiveqi_idx[i] == fiveQI_1) {
+          break;
+        }
+      }
+      for (j = 0; j < 26; j++) {
+        if (fiveqi_idx[j] == fiveQI_2) {
+          break;
+        }
+      }
+      LOG_I(NR_MAC, "LCID %d (DRB %d) with 5QI %ld and priority level %ld \n", lcid_1, lcid_1 - 3, fiveQI_1, table_5_6_4_1[i][1]);
+      LOG_I(NR_MAC, "LCID %d (DRB %d) with 5QI %ld and priority level %ld \n", lcid_2, lcid_2 - 3, fiveQI_2, table_5_6_4_1[j][1]);
+      if (table_5_6_4_1[i][1] > table_5_6_4_1[j][1]) {
+        return 1;
+      } else {
+        return -1;
+      }
+  } else {
+    if (lcid_1 < 4 && lcid_2 < 4) {
+      return 0;
+    } else if (lcid_1 < 4) {
+      return -1;
+    } else {
+      return 1;
+    }
+  }
+}
+
 void process_rlcBearerConfig(struct NR_CellGroupConfig__rlc_BearerToAddModList *rlc_bearer2add_list,
                              struct NR_CellGroupConfig__rlc_BearerToReleaseList *rlc_bearer2release_list,
                              NR_UE_sched_ctrl_t *sched_ctrl,
@@ -87,18 +173,25 @@ void process_rlcBearerConfig(struct NR_CellGroupConfig__rlc_BearerToAddModList *
       if (!found) {
         sched_ctrl->dl_lc_num++;
         sched_ctrl->dl_lc_ids[sched_ctrl->dl_lc_num - 1] = lcid;
-        LOG_D(NR_MAC, "Adding LCID %d (%s %d)\n", lcid, lcid < 4 ? "SRB" : "DRB", lcid);
+        LOG_D(NR_MAC, "Adding LCID %d (%s %d)\n", lcid, lcid < 4 ? "SRB" : "DRB", lcid < 4 ? lcid : lcid - 3);
       }
     }
   }
 
-  LOG_D(NR_MAC, "In %s: total num of active bearers %d) \n",
-      __FUNCTION__,
-      sched_ctrl->dl_lc_num);
-
 }
 
+/**
+ * This function fills the QoS config at the MAC layer and performs the sorting of the LCIDs based on the QoS Priority Levels
+ *
+ * @sched_ctrl            pointer to sched_ctrl, eventually used by the scheduler
+ * @DRB_configList        pointer to the list of DRB IDs to be configured, contains the SDAP configuration IE
+ * @pduSession            pointer to pduSession containing the QoS configuration (5QI, QFI)
+ *
+ * This function fetches the QoS configuration from the PDU Session and matches the QFI with the DRB IDs.
+ * The information is therefore stored in the nr_QoS_config struct and eventually used for scheduling.
+ **/
 void process_QoSConfig(NR_UE_sched_ctrl_t *sched_ctrl, NR_DRB_ToAddModList_t *DRB_configList, pdu_session_param_t *pduSession) {
+
   if (DRB_configList) {
     LOG_D(NR_MAC, "In %s: number of DRBs in DRB_configList: %d \n", __func__, DRB_configList->list.count);
     for (int i = 0; i < DRB_configList->list.count; i++){
@@ -114,12 +207,12 @@ void process_QoSConfig(NR_UE_sched_ctrl_t *sched_ctrl, NR_DRB_ToAddModList_t *DR
             if (pduSession[p].status == PDU_SESSION_STATUS_ESTABLISHED || pduSession[p].status == PDU_SESSION_STATUS_DONE) {
               uint8_t qfi = pduSession[p].param.qos[q].qfi;
               if (qfi == *DRB_configList->list.array[i]->cnAssociation->choice.sdap_Config->mappedQoS_FlowsToAdd->list.array[q]) {
-                sched_ctrl->nr_QoS_config[drb_id - 1][qfi - 1].fiveQI = pduSession[p].param.qos[q].fiveQI;
+                sched_ctrl->nr_QoS_config[drb_id - 1].fiveQI = pduSession[p].param.qos[q].fiveQI;
                 LOG_D(NR_MAC, "In %s: pdu_Session ID %ld drb_id %ld: 5QI %lu QFI %d \n",
                   __func__,
-                  sdap_config->pdu_Session,
+                  pdu_Session_id,
                   drb_id,
-                  sched_ctrl->nr_QoS_config[drb_id - 1][qfi - 1].fiveQI,
+                  sched_ctrl->nr_QoS_config[drb_id - 1].fiveQI,
                   qfi);
               }
             }
@@ -128,6 +221,18 @@ void process_QoSConfig(NR_UE_sched_ctrl_t *sched_ctrl, NR_DRB_ToAddModList_t *DR
       }
     }
   }
+
+  qsort((void *)sched_ctrl->dl_lc_ids, sizeof(uint8_t) * sched_ctrl->dl_lc_num, sizeof(uint8_t), QoS_comp);
+
+  #ifdef DEBUG_QOS
+  LOG_I(NR_MAC, "In %s: total num of active bearers %d \n", __func__, sched_ctrl->dl_lc_num);
+  LOG_I(NR_MAC, "Dumping sched_ctrl->dl_lc_ids sorted by Priority Level:\n");
+  for (int j = 0; j < sched_ctrl->dl_lc_num; j++) {
+    int lcid = sched_ctrl->dl_lc_ids[j];
+    LOG_I(NR_MAC, "LCID %d (%s %d)\n", lcid, lcid < 4 ? "SRB" : "DRB", lcid < 4 ? lcid : lcid - 3);
+  }
+  #endif
+
 }
 
 void process_drx_Config(NR_UE_sched_ctrl_t *sched_ctrl,NR_SetupRelease_DRX_Config_t *drx_Config) {
@@ -188,8 +293,8 @@ void process_CellGroup(NR_CellGroupConfig_t *CellGroup, NR_UE_sched_ctrl_t *sche
 
    }
 
-   process_QoSConfig(sched_ctrl, DRB_configList, pduSession);
    process_rlcBearerConfig(CellGroup->rlc_BearerToAddModList,CellGroup->rlc_BearerToReleaseList,sched_ctrl, DRB_configList);
+   process_QoSConfig(sched_ctrl, DRB_configList, pduSession);
 
 }
 

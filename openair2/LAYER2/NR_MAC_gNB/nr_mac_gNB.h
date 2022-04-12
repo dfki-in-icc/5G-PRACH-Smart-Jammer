@@ -658,7 +658,7 @@ typedef struct {
   uint32_t rrc_processing_timer;
 
   /// Information about the QoS configuration for each LCID
-  NR_QoS_config_t nr_QoS_config[NR_MAX_NUM_LCID][NR_MAX_NUM_QFI];
+  NR_QoS_config_t nr_QoS_config[NR_MAX_NUM_LCID];
 
 } NR_UE_sched_ctrl_t;
 
