@@ -2979,15 +2979,11 @@ uint16_t nr_dci_size(const NR_BWP_DownlinkCommon_t *initialDownlinkBWP,
       }
       // HARQ PID
       size += 4;
-      //TODO L5G
-      int testflag=0;
       // DAI
       if (cg->physicalCellGroupConfig &&
           cg->physicalCellGroupConfig->pdsch_HARQ_ACK_Codebook == NR_PhysicalCellGroupConfig__pdsch_HARQ_ACK_Codebook_dynamic) { // FIXME in case of more than one serving cell
         dci_pdu->dai[0].nbits = 2;
         size += dci_pdu->dai[0].nbits;
-      }else{
-        testflag=1;
       }
       LOG_D(NR_MAC,"dci_pdu->dai[0].nbits %d\n",dci_pdu->dai[0].nbits);
       // TPC PUCCH
@@ -3035,9 +3031,7 @@ uint16_t nr_dci_size(const NR_BWP_DownlinkCommon_t *initialDownlinkBWP,
       }
       // DMRS sequence init
       size += 1;
-      //TODO L5G
-      if(testflag==1)
-        size=49;
+      size=49;
       break;
 
     case NR_DL_DCI_FORMAT_2_0:

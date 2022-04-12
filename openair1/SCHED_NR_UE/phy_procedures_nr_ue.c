@@ -1512,7 +1512,7 @@ int phy_procedures_nrUE_RX(PHY_VARS_NR_UE *ue,
         stop_meas(&ue->ofdm_demod_stats);
       }
     }
-    if(temp_power_db<65.0){
+    if(temp_power_db<50.0){
     }else{
         // LOG_I(PHY, "pdcch_channel_estimation: sf %d slot %d first_carrier_offset %d, BWPStart %d, coreset_start_rb %d %d power %lf ss %d\n",
           //frame_rx%1024, nr_slot_rx,fp->first_carrier_offset, pdcch_vars->pdcch_config[n_ss].BWPStart, coreset_start_rb, coreset_nb_rb,temp_power_db,n_ss);
