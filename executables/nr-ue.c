@@ -902,6 +902,7 @@ void syncInFrame(PHY_VARS_NR_UE *UE, openair0_timestamp *timestamp) {
 }
 
 int computeSamplesShift(PHY_VARS_NR_UE *UE) {
+#if 0 // L5G debug
   int samples_shift = -(UE->rx_offset>>1);
   UE->rx_offset   = 0; // reset so that it is not applied falsely in case of SSB being only in every second frame
   UE->max_pos_fil = 0; // reset IIR filter when sample shift is applied
@@ -909,6 +910,13 @@ int computeSamplesShift(PHY_VARS_NR_UE *UE) {
     LOG_I(NR_PHY,"Adjusting frame in time by %i samples\n", samples_shift);
   }
   return samples_shift;
+#else
+    if ( UE->rx_offset > 0 ) {
+    return -1 ;
+  } else {
+    return 1;
+  }
+#endif
 }
 
 static inline int get_firstSymSamp(uint16_t slot, NR_DL_FRAME_PARMS *fp) {
