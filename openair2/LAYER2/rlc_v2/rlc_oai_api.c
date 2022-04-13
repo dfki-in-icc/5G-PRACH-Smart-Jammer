@@ -126,7 +126,7 @@ tbs_size_t mac_rlc_data_req(
 
   rlc_manager_lock(rlc_ue_manager);
   ue = rlc_manager_get_ue(rlc_ue_manager, rntiP);
-
+  LOG_I(RLC, "channel_idP %d ue->srb[] %p MBMS_flagP %d\n", channel_idP, ue->srb[channel_idP - 1], MBMS_flagP);
   switch (channel_idP) {
   case 1 ... 2: rb = ue->srb[channel_idP - 1]; break;
   case 3 ... 7: rb = ue->drb[channel_idP - 3]; break;

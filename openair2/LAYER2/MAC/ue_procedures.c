@@ -132,7 +132,7 @@ void ue_init_mac(module_id_t module_idP) {
   UE_mac_inst[module_idP].PHR_reporting_active = 0;
 
   for (i = 0; i < MAX_NUM_LCID; i++) {
-    LOG_D(MAC,
+    LOG_I(MAC,
           "[UE%d] Applying default logical channel config for LCGID %d\n",
           module_idP, i);
     UE_mac_inst[module_idP].scheduling_info.Bj[i] = -1;
@@ -2576,6 +2576,15 @@ ue_get_sdu(module_id_t module_idP, int CC_id, frame_t frameP,
 
       //Update Buffer remain and BSR bytes after transmission
       UE_mac_inst[module_idP].scheduling_info.LCID_buffer_remain[lcid] = lcid_buffer_occupancy_new;
+      LOG_I(PHY, "lcid %d LCGID[lcid]] %u lcid_buffer_occupancy_new %d - lcid_buffer_occupancy_old %d BSR_bytes[%d] BSR_bytes[DCCH %d]\n",
+            lcid,
+            UE_mac_inst[module_idP].scheduling_info.BSR_bytes[UE_mac_inst[module_idP].scheduling_info.LCGID[lcid]],
+            lcid_buffer_occupancy_new,
+            lcid_buffer_occupancy_old,
+            UE_mac_inst[module_idP].scheduling_info.LCGID[lcid],
+            UE_mac_inst[module_idP].scheduling_info.LCGID[DCCH]
+            );
+
       UE_mac_inst[module_idP].scheduling_info.BSR_bytes[UE_mac_inst[module_idP].scheduling_info.LCGID[lcid]] += (lcid_buffer_occupancy_new - lcid_buffer_occupancy_old);
       if (UE_mac_inst[module_idP].scheduling_info.BSR_bytes[UE_mac_inst[module_idP].scheduling_info.LCGID[lcid]] < 0)
         UE_mac_inst[module_idP].scheduling_info.BSR_bytes[UE_mac_inst[module_idP].scheduling_info.LCGID[lcid]] = 0;
@@ -3171,7 +3180,7 @@ ue_scheduler(const module_id_t module_idP,
     // Regular BSR trigger
     UE_mac_inst[module_idP].BSR_reporting_active |=
       BSR_TRIGGER_REGULAR;
-    LOG_D(MAC,
+    LOG_I(MAC,
           "[UE %d][BSR] Regular BSR Triggered Frame %d subframe %d SR for PUSCH is pending\n",
           module_idP, txFrameP, txSubframeP);
   }
@@ -3282,8 +3291,11 @@ update_bsr(module_id_t module_idP, frame_t frameP,
     UE_mac_inst[module_idP].scheduling_info.BSR_bytes[lcgid]=0;
   }
 
+  LOG_I(MAC,"Got here %s %d\n", __FUNCTION__, __LINE__);
   //Get Buffer Occupancy and fill lcid_reordered_array
   for (lcid=DCCH; lcid < MAX_NUM_LCID; lcid++) {
+    LOG_I(MAC,"Got here %s %d UE_mac_inst[module_idP].logicalChannelConfig[lcid %d] %d\n",
+     __FUNCTION__, __LINE__, lcid, UE_mac_inst[module_idP].logicalChannelConfig[lcid]);
     if (UE_mac_inst[module_idP].logicalChannelConfig[lcid]) {
       lcgid = UE_mac_inst[module_idP].scheduling_info.LCGID[lcid];
 
@@ -3291,6 +3303,7 @@ update_bsr(module_id_t module_idP, frame_t frameP,
       if (lcgid < MAX_NUM_LCGID) {
         lcgid_buffer_remain[lcgid] += UE_mac_inst[module_idP].scheduling_info.LCID_buffer_remain[lcid];
       }
+      LOG_I(MAC,"Got here %s %d\n", __FUNCTION__, __LINE__);
 
       rlc_status = mac_rlc_status_ind(module_idP, UE_mac_inst[module_idP].crnti,eNB_index,frameP,subframeP,ENB_FLAG_NO,MBMS_FLAG_NO,
                                       lcid,
@@ -3299,7 +3312,7 @@ update_bsr(module_id_t module_idP, frame_t frameP,
       lcid_bytes_in_buffer[lcid] = rlc_status.bytes_in_buffer;
 
       if (rlc_status.bytes_in_buffer > 0) {
-        LOG_D(MAC,"[UE %d] PDCCH Tick : LCID%d LCGID%d has data to transmit =%d bytes at frame %d subframe %d\n",
+        LOG_I(MAC,"[UE %d] PDCCH Tick : LCID%d LCGID%d has data to transmit =%d bytes at frame %d subframe %d\n",
               module_idP, lcid,lcgid,rlc_status.bytes_in_buffer,frameP,subframeP);
         UE_mac_inst[module_idP].scheduling_info.LCID_status[lcid] = LCID_NOT_EMPTY;
 

@@ -2294,7 +2294,7 @@ rrc_ue_decode_dcch(
                     ctxt_pP->module_id,
                     ctxt_pP->frame);
               UE_rrc_inst[ctxt_pP->module_id].HandoverInfoUe.measFlag = 1; // Ready to send more MeasReports if required
-              UE_rrc_inst[ctxt_pP->module_id].Srb0[target_eNB_index].Tx_buffer.payload_size = 1;
+              //UE_rrc_inst[ctxt_pP->module_id].Srb0[target_eNB_index].Tx_buffer.payload_size = 1;
             }
           }
 

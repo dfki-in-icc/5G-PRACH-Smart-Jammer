@@ -499,8 +499,9 @@ void handle_nfapi_ul_pdu_UE_MAC(module_id_t Mod_id,
     uint8_t access_mode = SCHEDULED_ACCESS;
     if (buflen > 0) {
       if (UE_mac_inst[Mod_id].first_ULSCH_Tx == 1) { // Msg3 case
-        LOG_D(MAC,
-              "handle_nfapi_ul_pdu_UE_MAC 2.2, Mod_id:%d, SFN/SF: %d/%d \n",
+        LOG_I(MAC,
+              "line %d handle_nfapi_ul_pdu_UE_MAC 2.2, Mod_id:%d, SFN/SF: %d/%d \n",
+              __LINE__,
               Mod_id,
               frame,
               subframe);
@@ -552,6 +553,12 @@ void handle_nfapi_ul_pdu_UE_MAC(module_id_t Mod_id,
     uint8_t access_mode = SCHEDULED_ACCESS;
     if (buflen > 0) {
       if (UE_mac_inst[Mod_id].first_ULSCH_Tx == 1) {
+        LOG_I(MAC,
+              "line %d handle_nfapi_ul_pdu_UE_MAC 2.2, Mod_id:%d, SFN/SF: %d/%d \n",
+              __LINE__,
+              Mod_id,
+              frame,
+              subframe);
         fill_crc_indication_UE_MAC(Mod_id, frame, subframe, UL_INFO, 0, index, rnti, ul_config_req);
         fill_rx_indication_UE_MAC(Mod_id,
                                   frame,
@@ -593,6 +600,12 @@ void handle_nfapi_ul_pdu_UE_MAC(module_id_t Mod_id,
     uint8_t access_mode = SCHEDULED_ACCESS;
     if (buflen > 0) {
       if (UE_mac_inst[Mod_id].first_ULSCH_Tx == 1) { // Msg3 case
+        LOG_I(MAC,
+              "line %d handle_nfapi_ul_pdu_UE_MAC 2.2, Mod_id:%d, SFN/SF: %d/%d \n",
+              __LINE__,
+              Mod_id,
+              frame,
+              subframe);
         fill_crc_indication_UE_MAC(Mod_id, frame, subframe, UL_INFO, 0, index, rnti, ul_config_req);
         fill_rx_indication_UE_MAC(Mod_id,
                                   frame,
@@ -633,6 +646,12 @@ void handle_nfapi_ul_pdu_UE_MAC(module_id_t Mod_id,
     uint8_t access_mode = SCHEDULED_ACCESS;
     if (buflen > 0) {
       if (UE_mac_inst[Mod_id].first_ULSCH_Tx == 1) { // Msg3 case
+        LOG_I(MAC,
+              "line %d handle_nfapi_ul_pdu_UE_MAC 2.2, Mod_id:%d, SFN/SF: %d/%d \n",
+              __LINE__,
+              Mod_id,
+              frame,
+              subframe);
         fill_crc_indication_UE_MAC(Mod_id, frame, subframe, UL_INFO, 0, index, rnti, ul_config_req);
         fill_rx_indication_UE_MAC(Mod_id,
                                   frame,

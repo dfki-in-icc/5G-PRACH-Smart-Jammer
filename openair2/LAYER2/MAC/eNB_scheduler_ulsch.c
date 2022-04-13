@@ -684,7 +684,7 @@ rx_sdu(const module_id_t enb_mod_idP,
   } // end for loop on control element
 
   for (int i = 0; i < num_sdu; i++) {
-    LOG_D(MAC, "SDU Number %d MAC Subheader SDU_LCID %d, length %d\n",
+    LOG_I(MAC, "SDU Number %d MAC Subheader SDU_LCID %d, length %d\n",
           i,
           rx_lcids[i],
           rx_lengths[i]);
