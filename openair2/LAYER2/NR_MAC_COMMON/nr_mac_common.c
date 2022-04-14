@@ -3245,7 +3245,8 @@ uint8_t get_pusch_mcs_table(long *mcs_Table,
         return (2+(is_tp<<1));
       // L5G_IOT
       // AssertFatal(1==0,"Invalid configuration to set MCS table");
-      LOG_W(MAC,"Invalid configuration to set MCS table");
+      LOG_W(MAC,"Invalid configuration to set MCS table, set default %d\n",0);
+      return 0;
     }
   }
   else
