@@ -451,10 +451,13 @@ rrc_mac_config_req_ue(module_id_t Mod_idP,
     // store the previous rnti in case of failure, and set thenew rnti
     UE_mac_inst[Mod_idP].targetPhysCellId = mobilityControlInfo->targetPhysCellId;
     UE_mac_inst[Mod_idP].crnti_before_ho = UE_mac_inst[Mod_idP].crnti;
+
     UE_mac_inst[Mod_idP].crnti =
       ((mobilityControlInfo->
-        newUE_Identity.buf[0]) | (mobilityControlInfo->
-                                  newUE_Identity.buf[1] << 8));
+        newUE_Identity.buf[1]) | (mobilityControlInfo->
+                                  newUE_Identity.buf[0] << 8));
+    UE_mac_inst[Mod_idP].crnti_for_ho = UE_mac_inst[Mod_idP].crnti;
+    UE_mac_inst[Mod_idP].ho_active = true;
     LOG_I(MAC, "[UE %d] Received new identity %x from %d\n", Mod_idP,
           UE_mac_inst[Mod_idP].crnti, eNB_index);
     UE_mac_inst[Mod_idP].rach_ConfigDedicated =

@@ -487,15 +487,19 @@ void handle_nfapi_ul_pdu_UE_MAC(module_id_t Mod_id,
                                 int index,
                                 nfapi_ul_config_request_t *ul_config_req) {
   if (ul_config_pdu->pdu_type == NFAPI_UL_CONFIG_ULSCH_PDU_TYPE) {
-    LOG_D(PHY,
-          "Applying UL config for UE, rnti %x for frame %d, subframe %d\n",
+    LOG_I(PHY,
+          "Applying UL config for UE, rnti %x rnti_ho 0x%x ho_active %d for frame %d, subframe %d\n",
           (ul_config_pdu->ulsch_pdu.ulsch_pdu_rel8).rnti,
+          UE_mac_inst[Mod_id].crnti_for_ho,
+          UE_mac_inst[Mod_id].ho_active,
           frame,
           subframe);
     uint8_t ulsch_buffer[5477] __attribute__((aligned(32)));
     uint16_t buflen = ul_config_pdu->ulsch_pdu.ulsch_pdu_rel8.size;
-
     uint16_t rnti = ul_config_pdu->ulsch_pdu.ulsch_pdu_rel8.rnti;
+    if (UE_mac_inst[Mod_id].ho_active) {
+      rnti = UE_mac_inst[Mod_id].crnti_for_ho;
+    }
     uint8_t access_mode = SCHEDULED_ACCESS;
     if (buflen > 0) {
       if (UE_mac_inst[Mod_id].first_ULSCH_Tx == 1) { // Msg3 case
@@ -775,7 +779,7 @@ int ul_config_req_UE_MAC(nfapi_ul_config_request_t *req,
       handle_nfapi_ul_pdu_UE_MAC(
           Mod_id, pdu, sfn, sf, req->ul_config_request_body.srs_present, i, req);
     } else {
-      LOG_D(MAC, "UNKNOWN UL_CONFIG_REQ PDU_TYPE or RNTI not matching pdu type: %d\n", pdu_type);
+      LOG_I(MAC, "UNKNOWN UL_CONFIG_REQ PDU_TYPE or RNTI not matching pdu type: %d\n", pdu_type);
     }
   }
 

@@ -425,7 +425,7 @@ boolean_t pdcp_data_req(
         return FALSE;
       }
 
-      LOG_D(PDCP, "Sequence number %d is assigned to current PDU\n", current_sn);
+      LOG_I(PDCP, "Sequence number %d is assigned to current PDU\n", current_sn);
       /* Then append data... */
       memcpy(&pdcp_pdu_p->data[pdcp_header_len], sdu_buffer_pP, sdu_buffer_sizeP);
 
@@ -462,7 +462,7 @@ boolean_t pdcp_data_req(
       }
 
       /* Print octets of outgoing data in hexadecimal form */
-      LOG_D(PDCP, "Following content with size %d will be sent over RLC (PDCP PDU header is the first two bytes)\n",
+      LOG_I(PDCP, "Following content with size %d will be sent over RLC (PDCP PDU header is the first two bytes)\n",
             pdcp_pdu_size);
       //util_print_hex_octets(PDCP, (unsigned char*)pdcp_pdu_p->data, pdcp_pdu_size);
       //util_flush_hex_octets(PDCP, (unsigned char*)pdcp_pdu->data, pdcp_pdu_size);
@@ -490,9 +490,10 @@ boolean_t pdcp_data_req(
      */
     LOG_DUMPMSG(PDCP,DEBUG_PDCP,(char *)pdcp_pdu_p->data,pdcp_pdu_size,
                 "[MSG] PDCP DL %s PDU on rb_id %ld\n",(srb_flagP)? "CONTROL" : "DATA", rb_idP);
+    LOG_I(PDCP, "[MSG] PDCP DL %s PDU on rb_id %ld\n",(srb_flagP)? "CONTROL" : "DATA", rb_idP);
 
     if ((pdcp_pdu_p!=NULL) && (srb_flagP == 0) && (ctxt_pP->enb_flag == 1)) {
-      LOG_D(PDCP, "pdcp data req on drb %ld, size %d, rnti %x, node_type %d \n",
+      LOG_I(PDCP, "pdcp data req on drb %ld, size %d, rnti %x, node_type %d \n",
             rb_idP, pdcp_pdu_size, ctxt_pP->rnti, RC.rrc ? RC.rrc[ctxt_pP->module_id]->node_type: -1);
 
       if (ctxt_pP->enb_flag == ENB_FLAG_YES && NODE_IS_DU(RC.rrc[ctxt_pP->module_id]->node_type)) {
@@ -505,7 +506,7 @@ boolean_t pdcp_data_req(
 	ret=FALSE;
         switch (rlc_status) {
           case RLC_OP_STATUS_OK:
-            LOG_D(PDCP, "Data sending request over RLC succeeded!\n");
+            LOG_I(PDCP, "Data sending request over RLC succeeded!\n");
             ret=TRUE;
             break;
 
@@ -560,7 +561,7 @@ boolean_t pdcp_data_req(
 
         switch (rlc_status) {
           case RLC_OP_STATUS_OK:
-            LOG_D(PDCP, "Data sending request over RLC succeeded!\n");
+            LOG_I(PDCP, "Data sending request over RLC succeeded!\n");
             ret=TRUE;
             break;
 
@@ -604,7 +605,7 @@ boolean_t pdcp_data_req(
       break;
   }
 
-  LOG_D(PDCP,"ueid %d lcid %d tx seq num %d\n", pdcp_uid, (int)(rb_idP+rb_offset), current_sn);
+  LOG_I(PDCP,"ueid %d lcid %d tx seq num %d\n", pdcp_uid, (int)(rb_idP+rb_offset), current_sn);
   Pdcp_stats_tx[ctxt_pP->module_id][pdcp_uid][rb_idP+rb_offset]++;
   Pdcp_stats_tx_tmp_w[ctxt_pP->module_id][pdcp_uid][rb_idP+rb_offset]++;
   Pdcp_stats_tx_bytes[ctxt_pP->module_id][pdcp_uid][rb_idP+rb_offset]+=sdu_buffer_sizeP;
@@ -1276,7 +1277,7 @@ pdcp_run (
             RRC_DCCH_DATA_REQ (msg_p).frame,
             0,
             RRC_DCCH_DATA_REQ (msg_p).eNB_index);
-          LOG_D(PDCP, PROTOCOL_CTXT_FMT"Received %s from %s: instance %ld, rb_id %ld, muiP %d, confirmP %d, mode %d\n",
+          LOG_I(PDCP, PROTOCOL_CTXT_FMT"Received %s from %s: instance %ld, rb_id %ld, muiP %d, confirmP %d, mode %d\n",
                 PROTOCOL_CTXT_ARGS(&ctxt),
                 ITTI_MSG_NAME (msg_p),
                 ITTI_MSG_ORIGIN_NAME(msg_p),

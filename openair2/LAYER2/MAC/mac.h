@@ -1565,6 +1565,8 @@ typedef struct {
   uint16_t crnti;
   /// C-RNTI of UE before HO
   rnti_t crnti_before_ho; ///user id (rnti) of connected UEs
+  rnti_t crnti_for_ho; //DavidK
+  bool ho_active; //DavidK
   /// uplink active flag
   uint8_t ul_active;
   /// pointer to RRC PHY configuration

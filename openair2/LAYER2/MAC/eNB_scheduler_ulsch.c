@@ -132,6 +132,7 @@ rx_sdu(const module_id_t enb_mod_idP,
   UE_TEMPLATE *UE_template_ptr = NULL;
   /* Init */
   current_rnti = rntiP;
+  LOG_I(MAC, "current_rnti = 0x%x\n", current_rnti);
   UE_id = find_UE_id(enb_mod_idP, current_rnti);
   harq_pid = subframe2harqpid(&mac->common_channels[CC_idP], frameP, subframeP);
   memset(rx_ces, 0, MAX_NUM_CE * sizeof(unsigned char));
@@ -144,7 +145,7 @@ rx_sdu(const module_id_t enb_mod_idP,
   if (UE_id != -1) {
     UE_scheduling_control = &UE_info->UE_sched_ctrl[UE_id];
     UE_template_ptr = &UE_info->UE_template[CC_idP][UE_id];
-    LOG_D(MAC, "[eNB %d][PUSCH %d] CC_id %d %d.%d Received ULSCH (%s) sdu round %d from PHY (rnti %x, UE_id %d) ul_cqi %d, timing_advance %d\n",
+    LOG_I(MAC, "[eNB %d][PUSCH %d] CC_id %d %d.%d Received ULSCH (%s) sdu round %d from PHY (rnti %x, UE_id %d) ul_cqi %d, timing_advance %d\n",
           enb_mod_idP,
           harq_pid,
           CC_idP,
@@ -909,17 +910,22 @@ rx_sdu(const module_id_t enb_mod_idP,
             UE_info->eNB_UE_stats[CC_idP][UE_id].num_errors_rx += 1;
             break;
           }
-          LOG_D(MAC, "[eNB %d] CC_id %d Frame %d : ULSCH -> UL-DTCH, received %d bytes from UE %d for lcid %d\n",
+          LOG_I(MAC, "[eNB %d] CC_id %d Frame %d : ULSCH -> UL-DTCH, received %d bytes from UE %d for lcid %d index i %d\n",
                 enb_mod_idP,
                 CC_idP,
                 frameP,
                 rx_lengths[i],
                 UE_id,
-                rx_lcids[i]);
+                rx_lcids[i], i);
 
           if (UE_id != -1) {
             ue_contextP = rrc_eNB_get_ue_context(RC.rrc[enb_mod_idP], current_rnti);
             if (ue_contextP != NULL) {
+              LOG_I(MAC, "DRB_active[0] = %d DRB_active[1] = %d DRB_active[2] = %d \n",
+              ue_contextP->ue_context.DRB_active[0],
+              ue_contextP->ue_context.DRB_active[1],
+              ue_contextP->ue_context.DRB_active[2]);
+
               if (ue_contextP->ue_context.DRB_active[rx_lcids[i] - 2] == 0) {
                 LOG_E(MAC, "[eNB %d/%d] frame %d received non active DTCH of size %d ( sdu_len %d, lcid %d), dropping packet\n",
                     enb_mod_idP,
@@ -938,7 +944,7 @@ rx_sdu(const module_id_t enb_mod_idP,
                break;
             }
             /* Adjust buffer occupancy of the correponding logical channel group */
-            LOG_D(MAC, "[eNB %d] CC_id %d Frame %d : ULSCH -> UL-DTCH, received %d bytes from UE %d for lcid %d, removing from LCGID %ld, %d\n",
+            LOG_I(MAC, "[eNB %d] CC_id %d Frame %d : ULSCH -> UL-DTCH, received %d bytes from UE %d for lcid %d, removing from LCGID %ld, %d\n",
                   enb_mod_idP,
                   CC_idP,
                   frameP,
@@ -1145,7 +1151,7 @@ parse_ulsch_header(unsigned char *mac_header,
         }
       }
 
-      LOG_D(MAC, "[eNB] sdu %d lcid %d tb_length %d length %d (offset now %ld)\n",
+      LOG_I(MAC, "[eNB] sdu %d lcid %d tb_length %d length %d (offset now %ld)\n",
             num_sdus,
             lcid,
             tb_length,

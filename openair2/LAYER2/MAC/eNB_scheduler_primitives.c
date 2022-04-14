@@ -1985,12 +1985,18 @@ find_UE_id(module_id_t mod_idP,
 {
   int UE_id;
   UE_info_t *UE_info = &RC.mac[mod_idP]->UE_info;
+  LOG_I(MAC, "UE_info= %p mod_idP %d\n", UE_info, mod_idP);
   if(!UE_info)
     return -1;
 
   for (UE_id = 0; UE_id < MAX_MOBILES_PER_ENB; UE_id++) {
+    LOG_I(MAC, "UE_info->active[UE_id %d] = %d\n", UE_id, UE_info->active[UE_id]);
     if (UE_info->active[UE_id] == TRUE) {
       int CC_id = UE_PCCID(mod_idP, UE_id);
+      LOG_I(MAC, "CC_id %d  NFAPI_CC_MAX %d \n", CC_id, NFAPI_CC_MAX);
+      LOG_I(MAC, "Checking UE_info->UE_template[CC_id %d][UE_id %d].rnti 0x%x\n", 
+            CC_id, UE_id,
+            UE_info->UE_template[CC_id][UE_id].rnti);
       if (CC_id>=0 && CC_id<NFAPI_CC_MAX && UE_info->UE_template[CC_id][UE_id].rnti == rntiP) {
         return UE_id;
       }
@@ -2180,7 +2186,7 @@ add_new_ue(module_id_t mod_idP,
   int UE_id;
   int i, j;
   UE_info_t *UE_info = &RC.mac[mod_idP]->UE_info;
-  LOG_D(MAC, "[eNB %d, CC_id %d] Adding UE with rnti %x (prev. num_UEs %d)\n",
+  LOG_I(MAC, "[eNB %d, CC_id %d] Adding UE with rnti %x (prev. num_UEs %d)\n",
         mod_idP,
         cc_idP,
         rntiP,

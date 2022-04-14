@@ -179,7 +179,9 @@ mac_rlc_status_resp_t mac_rlc_status_ind(
 
   rlc_manager_lock(rlc_ue_manager);
   ue = rlc_manager_get_ue(rlc_ue_manager, rntiP);
-
+  LOG_I(RLC, "Got here %s line %d channel_idP %d\n", __FUNCTION__, __LINE__, channel_idP);
+  LOG_I(RLC, "Got here %s line %d ue->srb[channel_idP - 1] %p\n", __FUNCTION__, __LINE__, ue->srb[channel_idP - 1]);
+  
   switch (channel_idP) {
   case 1 ... 2: rb = ue->srb[channel_idP - 1]; break;
   case 3 ... 7: rb = ue->drb[channel_idP - 3]; break;
@@ -318,6 +320,11 @@ rlc_op_status_t rlc_data_req     (const protocol_ctxt_t *const ctxt_pP,
     LOG_E(RLC, "%s:%d:%s: fatal: SDU sent to unknown RB\n", __FILE__, __LINE__, __FUNCTION__);
     exit(1);
   }
+
+  int bytes_in_buffer = rb->buffer_status(rb, 4000000).status_size
+                        + rb->buffer_status(rb, 4000000).retx_size
+                        + rb->buffer_status(rb, 4000000).tx_size;
+  LOG_I(RLC, "%s:%d:%s: ue->srb[rb_idP - 1] %p bytes_in_buffer %d\n", __FILE__, __LINE__, __FUNCTION__, ue->srb[rb_idP - 1], bytes_in_buffer);
 
   rlc_manager_unlock(rlc_ue_manager);
 

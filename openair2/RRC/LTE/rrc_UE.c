@@ -2326,7 +2326,7 @@ rrc_ue_decode_dcch(
 #endif
             UE_rrc_inst[ctxt_pP->module_id].HandoverInfoUe.Transaction_id 
                 = dl_dcch_msg->message.choice.c1.choice.rrcConnectionReconfiguration.rrc_TransactionIdentifier;
-            if (0 && UE_mac_inst[ctxt_pP->module_id].UE_mode[0] == PUSCH) {
+            //if (0 && UE_mac_inst[ctxt_pP->module_id].UE_mode[0] == PUSCH) {
               rrc_ue_generate_RRCConnectionReconfigurationComplete(
                 ctxt_pP,
                 target_eNB_index,
@@ -2334,9 +2334,10 @@ rrc_ue_decode_dcch(
                 NULL);
               UE_rrc_inst[ctxt_pP->module_id].Info[eNB_indexP].State = RRC_HO_EXECUTION;
               UE_rrc_inst[ctxt_pP->module_id].Info[target_eNB_index].State = RRC_RECONFIGURED;
+              
               LOG_I(RRC, "[UE %d] DavidK4 State = RRC_RECONFIGURED during HO (eNB %d)\n",
                     ctxt_pP->module_id, target_eNB_index);
-            }
+            //}
 #if ENABLE_RAL
             {
               MessageDef                                 *message_ral_p = NULL;

@@ -2848,7 +2848,7 @@ ue_get_sdu(module_id_t module_idP, int CC_id, frame_t frameP,
                                          bsr_t, // truncated bsr
                                          bsr_s, // short bsr
                                          bsr_l, post_padding);  // long_bsr
-  LOG_D(MAC,
+  LOG_I(MAC,
         "[UE %d] Generate header :bufflen %d  sdu_length_total %d, num_sdus %d, sdu_lengths[0] %d, sdu_lcids[0] %d => payload offset %d,  total_rlc_pdu_header_len %d, padding %d,post_padding %d, bsr len %d, phr len %d, reminder %d \n",
         module_idP, buflen, sdu_length_total, num_sdus, sdu_lengths[0],
         sdu_lcids[0], payload_offset, total_rlc_pdu_header_len,
@@ -3291,7 +3291,7 @@ update_bsr(module_id_t module_idP, frame_t frameP,
     UE_mac_inst[module_idP].scheduling_info.BSR_bytes[lcgid]=0;
   }
 
-  LOG_I(MAC,"Got here %s %d\n", __FUNCTION__, __LINE__);
+  LOG_I(MAC,"Got here %s %d eNB_index %u \n", __FUNCTION__, __LINE__, eNB_index);
   //Get Buffer Occupancy and fill lcid_reordered_array
   for (lcid=DCCH; lcid < MAX_NUM_LCID; lcid++) {
     LOG_I(MAC,"Got here %s %d UE_mac_inst[module_idP].logicalChannelConfig[lcid %d] %d\n",
@@ -3305,7 +3305,11 @@ update_bsr(module_id_t module_idP, frame_t frameP,
       }
       LOG_I(MAC,"Got here %s %d\n", __FUNCTION__, __LINE__);
 
-      rlc_status = mac_rlc_status_ind(module_idP, UE_mac_inst[module_idP].crnti,eNB_index,frameP,subframeP,ENB_FLAG_NO,MBMS_FLAG_NO,
+      rnti_t crnti = UE_mac_inst[module_idP].crnti;
+      if (UE_mac_inst[module_idP].ho_active) {
+        crnti = UE_mac_inst[module_idP].crnti_before_ho;
+      }
+      rlc_status = mac_rlc_status_ind(module_idP, crnti, eNB_index,frameP,subframeP,ENB_FLAG_NO,MBMS_FLAG_NO,
                                       lcid,
                                       0, 0
                                      );

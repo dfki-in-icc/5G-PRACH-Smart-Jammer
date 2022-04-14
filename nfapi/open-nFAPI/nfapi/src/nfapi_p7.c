@@ -2043,8 +2043,14 @@ static uint8_t pack_rx_ue_information_value(void *tlv, uint8_t **ppWritePackedMs
 
 static uint8_t unpack_rx_ue_information_value(void *tlv, uint8_t **ppReadPackedMsg, uint8_t *end) {
   nfapi_rx_ue_information *value = (nfapi_rx_ue_information *)tlv;
-  return ( pull32(ppReadPackedMsg, &value->handle, end) &&
-           pull16(ppReadPackedMsg, &value->rnti, end));
+  
+  if (!(pull32(ppReadPackedMsg, &value->handle, end) &&
+           pull16(ppReadPackedMsg, &value->rnti, end))) {
+          NFAPI_TRACE(NFAPI_TRACE_INFO, "This is rnti value %x", value->rnti);
+           return 0;
+      }
+  NFAPI_TRACE(NFAPI_TRACE_INFO, "This is rnti value %x", value->rnti);
+  return 1;
 }
 
 static uint8_t pack_harq_indication_tdd_harq_data_bundling(nfapi_harq_indication_tdd_harq_data_bundling_t *data, uint8_t **ppWritePackedMsg, uint8_t *end) {
