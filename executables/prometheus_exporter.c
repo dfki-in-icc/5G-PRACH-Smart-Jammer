@@ -26,6 +26,8 @@ prom_metrics_t  prom_metrics;
 complex_metrics_t complex_metrics;
 uint8_t  Prom_switch_state[NUM_PROM_SETTINGS];
 uint8_t  Realtime_switch_state[NUM_REALTIME_SETTINGS];
+pthread_mutex_t mutex_prom;
+pthread_mutex_t mutex_real;
 
 int parseHeader(char* in, char* Query, char* path, char* proto);
 int SendResponse(int sock, const char* msg, char* context);
@@ -227,6 +229,12 @@ void init_PrometheusNodeExporter_thread(void* arg){
       strcpy(prom_metrics.metric_element[i].metric_name,"not_set");
       prom_metrics.metric_element[i].metric_value = 0;
     }
+    for (int i=0;i<MAX_COMPLEX_ELM_SIZE;i++){
+      complex_metrics.complex_element[i].iq_data = NULL;
+    }
+
+    pthread_mutex_init(&mutex_prom, NULL);
+    pthread_mutex_init(&mutex_real, NULL);
 
     MonitoringConfig();
 
@@ -244,8 +252,10 @@ int RegisterMetric(uint32_t key, char* name, uint32_t value){
   if (Prom_switch_state[key] == 0) return 1;  // if monitoring operation disabled, skip this function 
 
   if (key < NUM_MAX_PROM_ELEMENTS){
+    pthread_mutex_lock(&mutex_prom);
     strcpy(prom_metrics.metric_element[key].metric_name,name);
     prom_metrics.metric_element[key].metric_value = value;
+    pthread_mutex_unlock(&mutex_prom);
     ret_code = 0;
   }
   return ret_code;
@@ -258,11 +268,13 @@ int RegisterComplexMetric(uint32_t key, char* label, int16_t* ptr, uint32_t size
   if (key < NUM_MAX_COMPLEX_ELEMENTS){
     if (Realtime_switch_state[key] == 0) return ret_code;
     strcpy(complex_metrics.complex_element[key].label,label);
+    pthread_mutex_lock(&mutex_real);
     {
       if (complex_metrics.complex_element[key].iq_data != NULL) free(complex_metrics.complex_element[key].iq_data);
       complex_metrics.complex_element[key].iq_data = malloc(sizeof(int32_t) * size);
     }
     memcpy(complex_metrics.complex_element[key].iq_data, ptr, sizeof(int32_t)*size);
+    pthread_mutex_unlock(&mutex_real);
     complex_metrics.complex_element[key].size = size;
     ret_code = 0;
   }
