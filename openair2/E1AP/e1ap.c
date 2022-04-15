@@ -117,44 +117,252 @@ int e1ap_send_ERROR_INDICATION(instance_t instance, E1AP_ErrorIndication_t *Erro
 */
 
 int e1apCUUP_send_SETUP_REQUEST(instance_t instance, E1AP_Reset_t *Reset) {
-  AssertFatal(false,"Not implemented yet\n");
+  E1AP_E1AP_PDU_t pdu = {0};
+  /* Create */
+  /* 0. pdu Type */
+  pdu.present = E1AP_E1AP_PDU_PR_initiatingMessage;
+  asn1cCalloc(pdu.choice.initiatingMessage, initMsg);
+  initMsg->procedureCode = E1AP_ProcedureCode_id_gNB_CU_UP_E1Setup;
+  initMsg->criticality   = E1AP_Criticality_reject;
+  initMsg->present       = E1AP_InitiatingMessage__value_PR_GNB_CU_UP_E1SetupRequest;
+  E1AP_GNB_CU_UP_E1SetupRequest_t *e1SetupUP = &initMsg->value.choice.GNB_CU_UP_E1SetupRequest;
+  /* mandatory */
+  /* c1. Transaction ID (integer value) */
+  asn1cSequenceAdd(e1SetupUP->protocolIEs.list, E1AP_GNB_CU_UP_E1SetupRequestIEs_t, ieC1);
+  ieC1->id                         = E1AP_ProtocolIE_ID_id_TransactionID;
+  ieC1->criticality                = E1AP_Criticality_reject;
+  ieC1->value.present              = E1AP_GNB_CU_UP_E1SetupRequestIEs__value_PR_TransactionID;
+  ieC1->value.choice.TransactionID = E1AP_get_next_transaction_identifier();
+  /* mandatory */
+  /* c2. GNB_CU_ID (integer value) */
+  asn1cSequenceAdd(e1SetupUP->protocolIEs.list, E1AP_GNB_CU_UP_E1SetupRequestIEs_t, ieC2);
+  ieC2->id                       = E1AP_ProtocolIE_ID_id_gNB_CU_UP_ID;
+  ieC2->criticality              = E1AP_Criticality_reject;
+  ieC2->value.present            = E1AP_GNB_CU_UP_E1SetupRequestIEs__value_PR_GNB_CU_UP_ID;
+  asn_int642INTEGER(&ieC2->value.choice.GNB_CU_UP_ID, 0);
+  /* mandatory */
+  /* c4. CN Support */
+  asn1cSequenceAdd(e1SetupUP->protocolIEs.list, E1AP_GNB_CU_UP_E1SetupRequestIEs_t, ieC4);
+  iec4->id = E1AP_ProtocolIE_ID_id_CNSupport;
+  ieC4->criticality = E1AP_Criticality_reject;
+  iec4->value.present = E1AP_GNB_CU_UP_E1SetupRequestIEs__value_PR_CNSupport;
+  iec4->value.choice.CNSupport = E1AP_CNSupport_c_5gc;
+
+  /* mandatory */
+  /* c5. Supported PLMNs */
+  asn1cSequenceAdd(e1SetupUP->protocolIEs.list, E1AP_GNB_CU_UP_E1SetupRequestIEs_t, ieC5);
+  iec5->id = E1AP_ProtocolIE_ID_id_SupportedPLMNs;
+  iec5->criticality = E1AP_Criticality_reject;
+  iec5->value.present = E1AP_GNB_CU_UP_E1SetupRequestIEs__value_PR_SupportedPLMNs_List;
+
+  int numSupportedPLMNs = 1;
+
+  for (int i=0; i < numSupportedPLMNs; i++) {
+    asn1cSequenceAdd(iec5->value.choice.SupportedPLMNs_List.list, E1AP_SupportedPLMNs_Item_t, supportedPLMN);
+    /* 5.1 PLMN Identity */
+    OCTET_STRING_fromBuf(&supportedPLMN->pLMN_Identity, "OAI", strlen("OAI"));
+  }
+
+  e1ap_encode_send(0, instance, pdu, 0, __func__);
 }
 
 int e1apCUCP_send_SETUP_RESPONSE(instance_t instance) {
-  AssertFatal(false,"Not implemented yet\n");
+  E1AP_E1AP_PDU_t pdu = {0};
+  /* Create */
+  /* 0. pdu Type */
+  pdu.present = E1AP_E1AP_PDU_PR_successfulOutcome;
+  asn1cCalloc(pdu.choice.successfulOutcome, initMsg);
+  initMsg->procedureCode = E1AP_ProcedureCode_id_gNB_CU_UP_E1Setup;
+  initMsg->criticality = E1AP_Criticality_reject;
+  initMsg->value.present = E1AP_SuccessfulOutcome__value_PR_GNB_CU_UP_E1SetupResponse;
+  E1AP_GNB_CU_UP_E1SetupResponse_t *out = &pdu.choice.successfulOutcome->value.choice.GNB_CU_UP_E1SetupResponse;
+  /* mandatory */
+  /* c1. Transaction ID (integer value) */
+  asn1cSequenceAdd(out->protocolIEs.list, E1AP_GNB_CU_UP_E1SetupResponseIEs, ieC1);
+  ieC1->id                         = E1AP_ProtocolIE_ID_id_TransactionID;
+  ieC1->criticality                = E1AP_Criticality_reject;
+  ieC1->value.present              = E1AP_GNB_CU_UP_E1SetupResponseIEs__value_PR_TransactionID;
+  ieC1->value.choice.TransactionID = //get this from stored transaction IDs in CU
+
+  e1ap_encode_send(0, instance, pdu, 0, __func__);
 }
 
 int e1apCUCP_send_SETUP_FAILURE() {
-  AssertFatal(false,"Not implemented yet\n");
+  E1AP_E1AP_PDU_t pdu = {0};
+  /* Create */
+  /* 0. pdu Type */
+  pdu.present = E1AP_E1AP_PDU_PR_unsuccessfulOutcome;
+  asn1cCalloc(pdu.choice.unsuccessfulOutcome, initMsg);
+  initMsg->procedureCode = E1AP_ProcedureCode_id_gNB_CU_UP_E1Setup;
+  initMsg->criticality = E1AP_Criticality_reject;
+  initMsg->value.present = E1AP_UnsuccessfulOutcome__value_PR_GNB_CU_UP_E1SetupFailure;
+  E1AP_GNB_CU_UP_E1SetupFailure_t *out = &pdu.choice.successfulOutcome->value.choice.GNB_CU_UP_E1SetupFailure;
+  /* mandatory */
+  /* c1. Transaction ID (integer value) */
+  asn1cSequenceAdd(out->protocolIEs.list, E1AP_GNB_CU_UP_E1SetupFailureIEs, ieC1);
+  ieC1->id                         = E1AP_ProtocolIE_ID_id_TransactionID;
+  ieC1->criticality                = E1AP_Criticality_reject;
+  ieC1->value.present              = E1AP_GNB_CU_UP_E1SetupResponseIEs__value_PR_TransactionID;
+  ieC1->value.choice.TransactionID = //get this from stored transaction IDs in CU
+  /* mandatory */
+  /* c2. cause (integer value) */
+  asn1cSequenceAdd(out->protocolIEs.list, E1AP_GNB_CU_UP_E1SetupFailureIEs, ieC2);
+  ieC2->id                         = E1AP_ProtocolIE_ID_id_Cause;
+  ieC2->criticality                = E1AP_Criticality_ignore;
+  ieC2->value.present              = E1AP_GNB_CU_UP_E1SetupFailureIEs__value_PR_Cause;
+  ieC2->value.choice.Cause.present = E1AP_Cause_PR_radioNetwork; //choose this accordingly
+  ieC2->value.choice.Cause.choice.ratioNetwork = E1AP_CauseRadioNetwork_unspecified;
+
+  e1ap_encode_send(0, instance, pdu, 0, __func__);
 }
 
 int e1apCUCP_handle_SETUP_REQUEST(instance_t instance,
                                   uint32_t assoc_id,
                                   uint32_t stream,
                                   E1AP_E1AP_PDU_t *pdu) {
-  AssertFatal(false,"Not implemented yet\n");
+
+  E1AP_GNB_CU_UP_E1SetupRequestIEs_t *ie;
+  DevAssert(pdu != NULL);
+  E1AP_GNB_CU_UP_E1SetupRequest_t *in = pdu->choice.initiatingMessage->value.choice.GNB_CU_UP_E1SetupRequest;
+
+  e1ap_setup_req_t *req = &getCxt(CPtype, instance)->setupReq;
+
+  /* assoc_id */
+  req->assoc_id = assoc_id;
+
+  /* transac_id */
+  F1AP_FIND_PROTOCOLIE_BY_ID(E1AP_GNB_CU_UP_E1SetupRequestIEs_t, ie, in,
+                             E1AP_ProtocolIE_ID_id_TransactionID, true);
+  asn_INTEGER2ulong(&ie->value.choice.TransactionID, &req->transac_id);
+  LOG_D(E1AP, "gNB CU UP E1 setup request transaction ID: %d\n", req->transac_id);
+
+  /* gNB CU UP ID */
+  F1AP_FIND_PROTOCOLIE_BY_ID(E1AP_GNB_CU_UP_E1SetupRequestIEs_t, ie, in,
+                             E1AP_ProtocolIE_ID_id_gNB_CU_UP_ID, true);
+  asn_INTEGER2ulong(&ie->value.choice.GNB_CU_UP_ID, &req->gNB_cu_up_id);
+  LOG_D(E1AP, "gNB CU UP ID: %d\n", req->gNB_cu_up_id);
+
+  /* CN Support */
+  F1AP_FIND_PROTOCOLIE_BY_ID(E1AP_GNB_CU_UP_E1SetupRequestIEs_t, ie, in,
+                             E1AP_ProtocolIE_ID_id_CNSupport, true);
+  asn_INTEGER2ulong(&ie->value.choice.GNB_CU_UP_ID, &req->cn_support);
+  LOG_D(E1AP, "E1ap CN support: %d\n", req->cn_support);
+
+  /* Supported PLMNs */
+  F1AP_FIND_PROTOCOLIE_BY_ID(E1AP_GNB_CU_UP_E1SetupRequestIEs_t, ie, in,
+                             E1AP_ProtocolIE_ID_id_SupportedPLMNs, true);
+  req->supported_plmns = ie->value.choice.SupportedPLMNs_List.list.count;
+  LOG_D(E1AP, "Number of supported PLMNs: %d\n", req->supported_plmns);
+
+  for (int i=0; i < req->supported_plmns; i++) {
+    E1AP_SupportedPLMNs_Item_t *supported_plmn_item = (E1AP_SupportedPLMNs_Item_t *)(ie->value.choice.SupportedPLMNs_List.list.array[i]);
+
+    /* PLMN Identity */
+    OCTET_STRING_TO_INT16(supported_plmn_item.pLMN_Identity, req->plmns[i].id);
+    LOG_D(E1AP, "PLMN %d ID: %d\n", i, req->plmns[i].id);
+  }
+
+  /* Create ITTI message and send to queue */
+
 }
 
 int e1apCUUP_handle_SETUP_RESPONSE(instance_t instance,
                                    uint32_t assoc_id,
                                    uint32_t stream,
                                    E1AP_E1AP_PDU_t *pdu) {
-  AssertFatal(false,"Not implemented yet\n");
+  LOG_D(E1AP, "%s\n", __func__);
+  AssertFatal(pdu->present == E1AP_E1AP_PDU_PR_successfulOutcome,
+              "pdu->present != E1AP_E1AP_PDU_PR_successfulOutcome\n");
+  AssertFatal(pdu->choice.successfulOutcome->procedureCode  == E1AP_ProcedureCode_id_gNB_CU_UP_E1Setup,
+              "pdu->choice.successfulOutcome->procedureCode != E1AP_ProcedureCode_id_gNB_CU_UP_E1Setup\n");
+  AssertFatal(pdu->choice.successfulOutcome->criticality  == E1AP_Criticality_reject,
+              "pdu->choice.successfulOutcome->criticality != E1AP_Criticality_reject\n");
+  AssertFatal(pdu->choice.successfulOutcome->value.present  == E1AP_SuccessfulOutcome__value_PR_GNB_CU_UP_E1SetupResponse,
+              "pdu->choice.successfulOutcome->value.present != E1AP_SuccessfulOutcome__value_PR_GNB_CU_UP_E1SetupResponse\n");
+
+  E1AP_GNB_CU_UP_E1SetupResponse_t  *in = &pdu.choice.successfulOutcome->value.choice.GNB_CU_UP_E1SetupResponse;
+  E1AP_GNB_CU_UP_E1SetupResponseIEs *ie;
+
+  /* transac_id */
+  int transaction_id;
+  F1AP_FIND_PROTOCOLIE_BY_ID(E1AP_GNB_CU_UP_E1SetupResponseIEs, ie, in,
+                             E1AP_ProtocolIE_ID_id_TransactionID, true);
+  asn_INTEGER2ulong(&ie->value.choice.TransactionID, &transaction_id);
+  LOG_D(E1AP, "gNB CU UP E1 setup response transaction ID: %d\n", transaction_id);
+
+  /* do the required processing */
+
 }
 
 int e1apCUUP_handle_SETUP_FAILURE(instance_t instance,
                                   uint32_t assoc_id,
                                   uint32_t stream,
                                   E1AP_E1AP_PDU_t *pdu) {
-  AssertFatal(false,"Not implemented yet\n");
+  E1AP_GNB_CU_UP_E1SetupFailureIEs_t *ie;
+  DevAssert(pdu != NULL);
+  E1AP_GNB_CU_UP_E1SetupFailure_t *in = pdu->choice.unsuccessfulOutcome->value.choice.GNB_CU_UP_E1SetupFailure;
+  /* Transaction ID */
+  F1AP_FIND_PROTOCOLIE_BY_ID(E1AP_GNB_CU_UP_E1SetupFailureIEs_t, ie, in,
+                             E1AP_ProtocolIE_ID_id_TransactionID, true);
+  /* Cause */
+  F1AP_FIND_PROTOCOLIE_BY_ID(E1AP_GNB_CU_UP_E1SetupFailureIEs_t, ie, in,
+                             E1AP_ProtocolIE_ID_id_Cause, true);
+
+  return 0;
 }
 
 /*
   E1 configuration update: can be sent in both ways, to be refined
 */
 
-int e1apCUUP_send_gNB_DU_CONFIGURATION_UPDATE(instance_t instance) {
-  AssertFatal(false,"Not implemented yet\n");
+int e1apCUUP_send_CONFIGURATION_UPDATE(instance_t instance) {
+  E1AP_E1AP_PDU_t pdu = {0};
+  /* Create */
+  /* 0. pdu Type */
+  pdu.present = E1AP_E1AP_PDU_PR_initiatingMessage;
+  asn1cCalloc(pdu.choice.initiatingMessage, msg);
+  msg->procedureCode = E1AP_ProcedureCode_id_gNB_CU_UP_ConfigurationUpdate;
+  msg->criticality   = E1AP_Criticality_reject;
+  msg->value.present = E1AP_InitiatingMessage__value_PR_GNB_CU_UP_ConfigurationUpdate;
+  E1AP_GNB_CU_UP_ConfigurationUpdate_t *out = &pdu.choice.successfulOutcome->value.choice.GNB_CU_UP_ConfigurationUpdate;
+  /* mandatory */
+  /* c1. Transaction ID (integer value) */
+  asn1cSequenceAdd(out->protocolIEs.list, E1AP_GNB_CU_UP_ConfigurationUpdateIEs_t, ieC1);
+  ieC1->id                         = E1AP_ProtocolIE_ID_id_TransactionID;
+  ieC1->criticality                = E1AP_Criticality_reject;
+  ieC1->value.present              = E1AP_GNB_CU_UP_ConfigurationUpdateIEs__value_PR_TransactionID;
+  ieC1->value.choice.TransactionID = //get this from stored transaction IDs in CU
+  /* mandatory */
+  /* c2. Supported PLMNs */
+  asn1cSequenceAdd(out->protocolIEs.list, E1AP_GNB_CU_UP_ConfigurationUpdateIEs_t, ieC2);
+  iec2->id = E1AP_ProtocolIE_ID_id_SupportedPLMNs;
+  iec2->criticality = E1AP_Criticality_reject;
+  iec2->value.present = E1AP_GNB_CU_UP_ConfigurationUpdateIEs__value_PR_SupportedPLMNs_List;
+
+  int numSupportedPLMNs = 1;
+
+  for (int i=0; i < numSupportedPLMNs; i++) {
+    asn1cSequenceAdd(iec2->value.choice.SupportedPLMNs_List.list, E1AP_SupportedPLMNs_Item_t, supportedPLMN);
+    /* 5.1 PLMN Identity */
+    OCTET_STRING_fromBuf(&supportedPLMN->pLMN_Identity, "OAI", strlen("OAI"));
+  }
+
+  /* mandatory */
+  /* c3. TNLA to remove list */
+  asn1cSequenceAdd(out->protocolIEs.list, E1AP_GNB_CU_UP_ConfigurationUpdateIEs_t, ieC3);
+  iec3->id = E1AP_ProtocolIE_ID_id_GNB_CU_UP_TNLA_To_Remove_List;
+  iec3->criticality = E1AP_Criticality_reject;
+  iec3->value.present = E1AP_GNB_CU_UP_ConfigurationUpdateIEs__value_PR_GNB_CU_UP_TNLA_To_Remove_List;
+
+  int numTNLAtoRemoveList = 1;
+
+  for (int i=0; i < numTNLAtoRemoveList; i++) {
+    asn1cSequenceAdd(iec2->value.choice.GNB_CU_UP_TNLA_To_Remove_List.list, E1AP_GNB_CU_UP_TNLA_To_Remove_Item_t, TNLAtoRemove);
+    TNLAtoRemove->tNLAssociationTransportLayerAddress.present = E1AP_CP_TNL_Information_PR_endpoint_IP_Address;
+    TNLAtoRemove->tNLAssociationTransportLayerAddress.choice.endpoint_IP_Address = // TODO: include the ip
+  }
+
+  e1ap_encode_send(0, instance, pdu, 0, __func__);
 }
 
 int e1apCUCP_send_gNB_DU_CONFIGURATION_FAILURE(instance_t instance) {
@@ -165,10 +373,15 @@ int e1apCUCP_send_gNB_DU_CONFIGURATION_UPDATE_ACKNOWLEDGE(instance_t instance) {
   AssertFatal(false,"Not implemented yet\n");
 }
 
-int e1apCUCP_handle_gNB_DU_CONFIGURATION_UPDATE(instance_t instance,
+int e1apCUCP_handle_CONFIGURATION_UPDATE(instance_t instance,
     uint32_t assoc_id,
     uint32_t stream,
     E1AP_E1AP_PDU_t *pdu) {
+
+  E1AP_GNB_CU_UP_E1SetupRequestIEs_t *ie;
+  DevAssert(pdu != NULL);
+  E1AP_GNB_CU_UP_E1SetupRequest_t *in = pdu->choice.initiatingMessage->value.choice.GNB_CU_UP_E1SetupRequest;
+
   AssertFatal(false,"Not implemented yet\n");
 }
 
