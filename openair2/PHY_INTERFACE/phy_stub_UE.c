@@ -497,9 +497,6 @@ void handle_nfapi_ul_pdu_UE_MAC(module_id_t Mod_id,
     uint8_t ulsch_buffer[5477] __attribute__((aligned(32)));
     uint16_t buflen = ul_config_pdu->ulsch_pdu.ulsch_pdu_rel8.size;
     uint16_t rnti = ul_config_pdu->ulsch_pdu.ulsch_pdu_rel8.rnti;
-    if (UE_mac_inst[Mod_id].ho_active) {
-      rnti = UE_mac_inst[Mod_id].crnti_for_ho;
-    }
     uint8_t access_mode = SCHEDULED_ACCESS;
     if (buflen > 0) {
       if (UE_mac_inst[Mod_id].first_ULSCH_Tx == 1) { // Msg3 case
@@ -524,7 +521,11 @@ void handle_nfapi_ul_pdu_UE_MAC(module_id_t Mod_id,
         //  Modification
         UE_mac_inst[Mod_id].UE_mode[0] = PUSCH;
         UE_mac_inst[Mod_id].first_ULSCH_Tx = 0;
-
+        //  Update for HO case
+        if (UE_mac_inst[Mod_id].ho_active) {
+          UE_mac_inst[Mod_id].crnti = UE_mac_inst[Mod_id].crnti_for_ho;
+          UE_mac_inst[Mod_id].ho_active = false;
+        }
         // This should be done after the reception of the respective hi_dci0
         // UE_mac_inst[Mod_id].first_ULSCH_Tx = 0;
       } else {

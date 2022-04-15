@@ -291,7 +291,7 @@ rx_sdu(const module_id_t enb_mod_idP,
     AssertFatal(mac->common_channels[CC_idP].radioResourceConfigCommon->rach_ConfigCommon.maxHARQ_Msg3Tx > 1,
                 "maxHARQ %d should be greater than 1\n",
                 (int) mac->common_channels[CC_idP].radioResourceConfigCommon->rach_ConfigCommon.maxHARQ_Msg3Tx);
-    LOG_D(MAC, "[eNB %d][PUSCH %d] CC_id %d [RAPROC Msg3] Received ULSCH sdu (%s) round %d from PHY (rnti %x, RA_id %d) ul_cqi %d, timing advance %d\n",
+    LOG_I(MAC, "[eNB %d][PUSCH %d] CC_id %d [RAPROC Msg3] Received ULSCH sdu (%s) round %d from PHY (rnti %x, RA_id %d) ul_cqi %d, timing advance %d\n",
           enb_mod_idP,
           harq_pid,
           CC_idP,
@@ -459,7 +459,7 @@ rx_sdu(const module_id_t enb_mod_idP,
         break;
 
       case CRNTI:
-        old_rnti = (((uint16_t) payload_ptr[0]) << 8) + payload_ptr[1];
+        old_rnti = (((uint16_t) payload_ptr[1]) << 8) + payload_ptr[0];
         old_UE_id = find_UE_id(enb_mod_idP, old_rnti);
         LOG_I(MAC, "[eNB %d] DavidK Frame %d, Subframe %d CC_id %d MAC CE_LCID %d (ce %d/%d): CRNTI %x (UE_id %d) in Msg3\n",
               enb_mod_idP,
@@ -483,7 +483,6 @@ rx_sdu(const module_id_t enb_mod_idP,
                   old_rnti,
                   old_UE_id);
             UE_id = old_UE_id;
-            current_rnti = old_rnti;
             /* Clear timer */
             UE_scheduling_control = &UE_info->UE_sched_ctrl[UE_id];
             UE_template_ptr = &UE_info->UE_template[CC_idP][UE_id];
@@ -507,6 +506,7 @@ rx_sdu(const module_id_t enb_mod_idP,
                            CC_idP,
                            frameP,
                            current_rnti);
+            current_rnti = old_rnti;
           } else {
             /* TODO: if the UE did random access (followed by a MAC uplink with
              * CRNTI) because none of its scheduling request was granted, then
@@ -870,7 +870,7 @@ rx_sdu(const module_id_t enb_mod_idP,
             //UE_template_ptr->estimated_ul_buffer += UE_template_ptr->estimated_ul_buffer / 4;
           }
 
-          LOG_D(MAC,
+          LOG_I(MAC,
                 "[eNB %d] CC_id %d Frame %d : ULSCH -> UL-DCCH, received %d bytes form UE %d on LCID %d \n",
                 enb_mod_idP, CC_idP, frameP, rx_lengths[i], UE_id,
                 rx_lcids[i]);

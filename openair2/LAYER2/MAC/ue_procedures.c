@@ -2206,6 +2206,8 @@ generate_ulsch_header(uint8_t *mac_header,
   //  printf("last_size %d,mac_header_ptr %p\n",last_size,mac_header_ptr);
 
   for (i = 0; i < num_sdus; i++) {
+    LOG_I(MAC, "[UE] sdu subheader %d (lcid %d, %d bytes)\n", i,
+          sdu_lcids[i], sdu_lengths[i]);
 #ifdef DEBUG_HEADER_PARSING
     LOG_T(MAC, "[UE] sdu subheader %d (lcid %d, %d bytes)\n", i,
           sdu_lcids[i], sdu_lengths[i]);
@@ -2496,7 +2498,7 @@ ue_get_sdu(module_id_t module_idP, int CC_id, frame_t frameP,
           buflen - (bsr_len + phr_len +
                     total_rlc_pdu_header_len + sdu_length_total +
                     1);
-        LOG_D(MAC,
+        LOG_I(MAC,
               "[UE %d] Frame %d : UL-DXCH -> ULSCH, RLC %d has %d bytes to "
               "send (Transport Block size %d BSR size=%d PHR=%d SDU Length Total %d , mac header len %d BSR byte before Tx=%d)\n",
               module_idP, frameP, lcid, lcid_buffer_occupancy_new,

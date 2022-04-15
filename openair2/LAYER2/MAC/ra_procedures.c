@@ -262,7 +262,6 @@ Msg1_transmitted(module_id_t module_idP, uint8_t CC_id,
             UE_mac_inst[module_idP].RA_attempt_number);
 }
 
-
 void
 Msg3_transmitted(module_id_t module_idP, uint8_t CC_id,
                  frame_t frameP, uint8_t eNB_id) {
@@ -306,7 +305,8 @@ PRACH_RESOURCES_t *ue_get_rach(module_id_t module_idP, int CC_id,
   int32_t frame_diff = 0;
   uint8_t dcch_header_len = 0;
   uint16_t sdu_lengths;
-  uint8_t ulsch_buff[MAX_ULSCH_PAYLOAD_BYTES];
+  static uint8_t ulsch_buff[MAX_ULSCH_PAYLOAD_BYTES];
+
   AssertFatal(CC_id == 0,
               "Transmission on secondary CCs is not supported yet\n");
   uint8_t target_eNB_index = eNB_indexP; 
@@ -543,11 +543,10 @@ PRACH_RESOURCES_t *ue_get_rach(module_id_t module_idP, int CC_id,
         UE_mac_inst[module_idP].RA_active = 1;
         UE_mac_inst[module_idP].RA_PREAMBLE_TRANSMISSION_COUNTER =
           1;
-        UE_mac_inst[module_idP].RA_Msg3_size = rlc_status.bytes_in_buffer + dcch_header_len;
-          //sdu_lengths + dcch_header_len;
+        UE_mac_inst[module_idP].RA_Msg3_size = //rlc_status.bytes_in_buffer + dcch_header_len;
+          sdu_lengths + dcch_header_len;
         UE_mac_inst[module_idP].RA_prachMaskIndex = 0;
-        UE_mac_inst[module_idP].RA_prach_resources.Msg3 =
-          ulsch_buff;
+        UE_mac_inst[module_idP].RA_prach_resources.Msg3 = ulsch_buff;
         UE_mac_inst[module_idP].RA_backoff_cnt = 0; // add the backoff condition here if we have it from a previous RA reponse which failed (i.e. backoff indicator)
         AssertFatal(rach_ConfigCommon != NULL,
                     "[UE %d] FATAL Frame %d: rach_ConfigCommon is NULL !!!\n",
@@ -573,7 +572,7 @@ PRACH_RESOURCES_t *ue_get_rach(module_id_t module_idP, int CC_id,
         generate_ulsch_header((uint8_t *) ulsch_buff, // mac header
                               1,  // num sdus
                               0,  // short pading
-                              &Size16,  // sdu length
+                              &sdu_lengths,  // sdu length
                               &lcid,  // sdu lcid
                               NULL, // power headroom
                               &UE_mac_inst[module_idP].crnti_for_ho, // crnti
