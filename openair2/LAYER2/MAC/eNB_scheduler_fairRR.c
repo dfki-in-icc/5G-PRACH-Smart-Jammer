@@ -362,6 +362,9 @@ void dlsch_scheduler_pre_ue_select_fairRR(
       harq_pid = frame_subframe2_dl_harq_pid(cc[CC_id].tdd_Config,frameP,subframeP);
       round = ue_sched_ctl->round[CC_id][harq_pid];
 
+      LOG_I(MAC,"DavidK4 round %u harq_pid %u nb_rbs_reqed %u\n",
+              round, harq_pid, nb_rbs_required[CC_id][UE_id]);
+
       if (round == 8) {
         if (nb_rbs_required[CC_id][UE_id] == 0) {
           continue;
@@ -757,7 +760,7 @@ static void assign_rbs_required_fairRR(
   for (UE_id = 0; UE_id < MAX_MOBILES_PER_ENB; UE_id++) {
     if (UE_info->active[UE_id] != TRUE)
       continue;
-
+    LOG_I(MAC, "DavidK4 UE_info->active[UE_id %d] %d  :0 means continue\n", UE_id, UE_info->active[UE_id]);
     pCCid = UE_PCCID(Mod_id, UE_id);
 
     // update CQI information across component carriers
@@ -786,7 +789,7 @@ static void assign_rbs_required_fairRR(
     }
 
     if (UE_info->UE_template[pCCid][UE_id].dl_buffer_total > 0) {
-      LOG_D(MAC, "[preprocessor] assign RB for UE %d\n", UE_id);
+      LOG_I(MAC, "[preprocessor] assign RB for UE %d\n", UE_id);
 
       for (i = 0; i < UE_info->numactiveCCs[UE_id]; i++) {
         CC_id = UE_info->ordered_CCids[i][UE_id];
@@ -800,7 +803,7 @@ static void assign_rbs_required_fairRR(
         }
 
         TBS = get_TBS_DL(eNB_UE_stats->dlsch_mcs1, nb_rbs_required[CC_id][UE_id]);
-        LOG_D(MAC,
+        LOG_I(MAC,
               "[preprocessor] start RB assignement for UE %d CC_id %d dl "
               "buffer %d (RB unit %d, MCS %d, TBS %d) \n",
               UE_id,
@@ -825,7 +828,7 @@ static void assign_rbs_required_fairRR(
                            nb_rbs_required[CC_id][UE_id]);
         } // end of while
 
-        LOG_D(MAC,
+        LOG_I(MAC,
               "[eNB %d] Frame %d: UE %d on CC %d: RB unit %d,  nb_required RB "
               "%d (TBS %d, mcs %d)\n",
               Mod_id,
@@ -1239,26 +1242,33 @@ schedule_ue_spec_fairRR(module_id_t module_idP,
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_DLSCH_PREPROCESSOR,VCD_FUNCTION_OUT);
 
   for (CC_id=0; CC_id<MAX_NUM_CCs; CC_id++) {
-    LOG_D(MAC, "doing schedule_ue_spec for CC_id %d\n",CC_id);
+    LOG_I(MAC, "DavidK4 doing schedule_ue_spec for CC_id %d in fn %s\n",CC_id, __FUNCTION__);
     dl_req        = &eNB->DL_req[CC_id].dl_config_request_body;
 
-    if (mbsfn_flag[CC_id]>0)
+    if (mbsfn_flag[CC_id]>0) {
+      LOG_I(MAC, "DavidK4 mbsfn_flag[CC_id] not positive\n");
       continue;
+    }
 
+    LOG_I(MAC, "DavidK4 dlsch_ue_select[CC_id].ue_num %d\n", dlsch_ue_select[CC_id].ue_num);
     for (i = 0; i < dlsch_ue_select[CC_id].ue_num; i++) {
       if(dlsch_ue_select[CC_id].list[i].ue_priority == SCH_DL_MSG2) {
+        LOG_I(MAC, "DavidK4 SCH_DL_MSG2 -> continue\n");
         continue;
       }
 
       if(dlsch_ue_select[CC_id].list[i].ue_priority == SCH_DL_MSG4) {
+        LOG_I(MAC, "DavidK4 SCH_DL_MSG4 -> continue\n");
         continue;
       }
 
       UE_id = dlsch_ue_select[CC_id].list[i].UE_id;
       rnti = UE_RNTI(module_idP,UE_id);
+      LOG_I(MAC,"found rnti 0x%x for UE_id %d (num_UEs %d)\n", rnti, UE_id, UE_info->num_UEs);
 
       if (rnti==NOT_A_RNTI) {
         LOG_E(MAC,"Cannot find rnti for UE_id %d (num_UEs %d)\n",UE_id,UE_info->num_UEs);
+        LOG_I(MAC,"Cannot find rnti for UE_id\n");
         continue;
       }
 
@@ -1285,6 +1295,7 @@ schedule_ue_spec_fairRR(module_id_t module_idP,
               break;
             }
       */
+      LOG_I(MAC, "DavidK5 doing schedule_ue_spec for CC_id %d in fn %s\n",CC_id, __FUNCTION__);
       if (cc[CC_id].tdd_Config != NULL) { //TDD
         set_ue_dai (subframeP,
                     UE_id,
@@ -1303,12 +1314,16 @@ schedule_ue_spec_fairRR(module_id_t module_idP,
       UE_info->eNB_UE_stats[CC_id][UE_id].harq_pid = harq_pid;
       UE_info->eNB_UE_stats[CC_id][UE_id].harq_round = round;
 
+      LOG_I(MAC, "UE rrc status = %d\n", UE_info->eNB_UE_stats[CC_id][UE_id].rrc_status);
+
       if (UE_info->eNB_UE_stats[CC_id][UE_id].rrc_status < RRC_RECONFIGURED) {
         UE_info->UE_sched_ctrl[UE_id].uplane_inactivity_timer = 0;
       }
 
-      if (UE_info->eNB_UE_stats[CC_id][UE_id].rrc_status < RRC_CONNECTED)
+      if (UE_info->eNB_UE_stats[CC_id][UE_id].rrc_status < RRC_CONNECTED) {
+        LOG_I(MAC, "UE rrc status = %d < RRC_CONNECTED(3)\n", UE_info->eNB_UE_stats[CC_id][UE_id].rrc_status);
         continue;
+      }
 
       sdu_length_total = 0;
       num_sdus = 0;
@@ -1333,7 +1348,7 @@ schedule_ue_spec_fairRR(module_id_t module_idP,
         UE_info->UE_template[CC_id][UE_id].rballoc_subband[harq_pid][j] = 0;
       }
 
-      LOG_D(MAC,
+      LOG_I(MAC,
             "[eNB %d] Frame %d: Scheduling UE %d on CC_id %d (rnti %x, harq_pid %d, round %d, rb %d, cqi %d, mcs %d, rrc %d)\n",
             module_idP, frameP, UE_id, CC_id, rnti, harq_pid, round,
             nb_available_rb, ue_sched_ctl->dl_cqi[CC_id],
@@ -2991,7 +3006,7 @@ void schedule_ulsch_rnti_fairRR(module_id_t   module_idP,
   nfapi_hi_dci0_request_pdu_t    *hi_dci0_pdu;
   nfapi_ul_config_request_body_t *ul_req_tmp;
   nfapi_ul_config_ulsch_harq_information *ulsch_harq_information;
-  LOG_D(MAC,"entering ulsch preprocesor for %d.%d\n",sched_frame,sched_subframeP);
+  LOG_I(MAC,"entering ulsch preprocesor for %d.%d\n",sched_frame,sched_subframeP);
   ulsch_scheduler_pre_processor_fairRR(module_idP,
                                        frameP,
                                        subframeP,
@@ -3100,7 +3115,7 @@ void schedule_ulsch_rnti_fairRR(module_id_t   module_idP,
                                       UE_info->UE_sched_ctrl[UE_id].dl_cqi[CC_id],
                                       format0);
       }
-      LOG_D(MAC,"[eNB %d] frame %d subframe %d,Checking PUSCH %d for UE %d/%x CC %d : aggregation level %d, N_RB_UL %d\n",
+      LOG_I(MAC,"[eNB %d] frame %d subframe %d,Checking PUSCH %d for UE %d/%x CC %d : aggregation level %d, N_RB_UL %d\n",
             module_idP,frameP,subframeP,harq_pid,UE_id,rnti,CC_id, aggregation,N_RB_UL);
       int bytes_to_schedule = UE_template->estimated_ul_buffer - UE_template->scheduled_ul_bytes;
 
@@ -3277,7 +3292,7 @@ void schedule_ulsch_rnti_fairRR(module_id_t   module_idP,
         nfapi_hi_dci0_request_t        *nfapi_hi_dci0_req = &eNB->HI_DCI0_req[CC_id][subframeP];
         nfapi_hi_dci0_req->sfn_sf = frameP<<4|subframeP; // sfnsf_add_subframe(sched_frame, sched_subframeP, 0); // sunday!
         nfapi_hi_dci0_req->header.message_id = NFAPI_HI_DCI0_REQUEST;
-        LOG_D(MAC,"[PUSCH %d] Frame %d, Subframe %d: Adding UL CONFIG.Request for UE %d/%x, ulsch_frame %d, ulsch_subframe %d mcs %d first_rb %d num_rb %d round %d mcs %d sinr %d bler %lf\n",
+        LOG_I(MAC,"[PUSCH %d] Frame %d, Subframe %d: Adding UL CONFIG.Request for UE %d/%x, ulsch_frame %d, ulsch_subframe %d mcs %d first_rb %d num_rb %d round %d mcs %d sinr %d bler %lf\n",
               harq_pid,frameP,subframeP,UE_id,rnti,sched_frame,sched_subframeP,UE_template->mcs_UL[harq_pid],first_rb[CC_id],rb_table[rb_table_index],0,UE_template->mcs_UL[harq_pid],UE_sched_ctrl->pusch_snr_avg[CC_id],UE_sched_ctrl->pusch_bler[CC_id]);
         ul_req_index = 0;
         dlsch_flag = 0;
@@ -3286,7 +3301,7 @@ void schedule_ulsch_rnti_fairRR(module_id_t   module_idP,
           if((ul_req_tmp->ul_config_pdu_list[ul_req_index].pdu_type == NFAPI_UL_CONFIG_UCI_HARQ_PDU_TYPE) &&
               (ul_req_tmp->ul_config_pdu_list[ul_req_index].uci_harq_pdu.ue_information.ue_information_rel8.rnti == rnti)) {
             dlsch_flag = 1;
-            LOG_D(MAC,"Frame %d, Subframe %d:rnti %x ul_req_index %d Switched UCI HARQ to ULSCH HARQ(first)\n",frameP,subframeP,rnti,ul_req_index);
+            LOG_I(MAC,"Frame %d, Subframe %d:rnti %x ul_req_index %d Switched UCI HARQ to ULSCH HARQ(first)\n",frameP,subframeP,rnti,ul_req_index);
             break;
           }
         }
@@ -3357,7 +3372,7 @@ void schedule_ulsch_rnti_fairRR(module_id_t   module_idP,
                           UE_id,
                           subframeP,
                           S_UL_SCHEDULED);
-        LOG_D(MAC,"[eNB %d] CC_id %d Frame %d, subframeP %d: Generated ULSCH DCI for next UE_id %d, format 0\n", module_idP,CC_id,frameP,subframeP,UE_id);
+        LOG_I(MAC,"[eNB %d] CC_id %d Frame %d, subframeP %d: Generated ULSCH DCI for next UE_id %d, format 0\n", module_idP,CC_id,frameP,subframeP,UE_id);
         // increment first rb for next UE allocation
         first_rb[CC_id]+=rb_table[rb_table_index];
 
@@ -3438,7 +3453,7 @@ void schedule_ulsch_rnti_fairRR(module_id_t   module_idP,
           if((ul_req_tmp->ul_config_pdu_list[ul_req_index].pdu_type == NFAPI_UL_CONFIG_UCI_HARQ_PDU_TYPE) &&
               (ul_req_tmp->ul_config_pdu_list[ul_req_index].uci_harq_pdu.ue_information.ue_information_rel8.rnti == rnti)) {
             dlsch_flag = 1;
-            LOG_D(MAC,"Frame %d, Subframe %d:rnti %x ul_req_index %d Switched UCI HARQ to ULSCH HARQ(phich)\n",frameP,subframeP,rnti,ul_req_index);
+            LOG_I(MAC,"Frame %d, Subframe %d:rnti %x ul_req_index %d Switched UCI HARQ to ULSCH HARQ(phich)\n",frameP,subframeP,rnti,ul_req_index);
             break;
           }
         }

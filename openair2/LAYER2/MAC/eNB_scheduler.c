@@ -1010,9 +1010,11 @@ eNB_dlsch_ulsch_scheduler(module_id_t module_idP,
   void (*schedule_ue_spec_p)(module_id_t module_idP, frame_t frameP, sub_frame_t subframe, int *mbsfn_flag) = NULL;
 
   if (eNB->scheduler_mode == SCHED_MODE_DEFAULT) {
+    LOG_I(MAC,"SCHED_MODE: SCHED_MODE_DEFAULT\n");
     schedule_ulsch_p = schedule_ulsch;
     schedule_ue_spec_p = schedule_dlsch;
   } else if (eNB->scheduler_mode == SCHED_MODE_FAIR_RR) {
+    LOG_I(MAC,"SCHED_MODE: SCHED_MODE_FAIR_RR\n");
     memset(dlsch_ue_select, 0, sizeof(dlsch_ue_select));
     schedule_ulsch_p = schedule_ulsch_fairRR;
     schedule_ue_spec_p = schedule_ue_spec_fairRR;

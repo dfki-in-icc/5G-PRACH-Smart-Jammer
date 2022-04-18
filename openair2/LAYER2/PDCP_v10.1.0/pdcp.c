@@ -633,6 +633,7 @@ pdcp_data_ind(
 )
 //-----------------------------------------------------------------------------
 {
+  LOG_I(PDCP, "Calling pdcp_data_ind\n");
   pdcp_t      *pdcp_p          = NULL;
   uint8_t      pdcp_header_len = 0;
   uint8_t      pdcp_tailer_len = 0;

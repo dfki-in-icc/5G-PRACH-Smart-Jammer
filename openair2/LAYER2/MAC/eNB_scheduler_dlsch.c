@@ -579,7 +579,7 @@ schedule_ue_spec(module_id_t module_idP,
                                           VCD_FUNCTION_OUT);
 
   for (int UE_id = UE_info->list.head; UE_id >= 0; UE_id = UE_info->list.next[UE_id]) {
-    LOG_D(MAC, "doing schedule_ue_spec for CC_id %d UE %d\n",
+    LOG_I(MAC, "doing schedule_ue_spec for CC_id %d UE %d\n",
           CC_id,
           UE_id);
     UE_sched_ctrl_t *ue_sched_ctrl = &UE_info->UE_sched_ctrl[UE_id];

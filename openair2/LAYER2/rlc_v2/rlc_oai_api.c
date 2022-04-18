@@ -95,6 +95,7 @@ void mac_rlc_data_ind     (
 
   if (rb != NULL) {
     rb->set_time(rb, rlc_current_time);
+    LOG_I(RLC, "receiving pdu in rlc\n");
     rb->recv_pdu(rb, buffer_pP, tb_sizeP);
   } else {
     LOG_E(RLC, "%s:%d:%s: fatal: no RB found (rnti %d channel ID %d)\n",
@@ -324,7 +325,11 @@ rlc_op_status_t rlc_data_req     (const protocol_ctxt_t *const ctxt_pP,
   int bytes_in_buffer = rb->buffer_status(rb, 4000000).status_size
                         + rb->buffer_status(rb, 4000000).retx_size
                         + rb->buffer_status(rb, 4000000).tx_size;
+
   LOG_I(RLC, "%s:%d:%s: ue->srb[rb_idP - 1] %p bytes_in_buffer %d\n", __FILE__, __LINE__, __FUNCTION__, ue->srb[rb_idP - 1], bytes_in_buffer);
+  LOG_I(RLC, "ue->srb[rb_idP - 1].status_size %d\n", rb->buffer_status(rb, 4000000).status_size);
+  LOG_I(RLC, "ue->srb[rb_idP - 1].retx_size %d\n", rb->buffer_status(rb, 4000000).retx_size);
+  LOG_I(RLC, "ue->srb[rb_idP - 1].tx_size %d\n", rb->buffer_status(rb, 4000000).tx_size);
 
   rlc_manager_unlock(rlc_ue_manager);
 
@@ -363,6 +368,7 @@ extern RAN_CONTEXT_t RC;
 
 static void deliver_sdu(void *_ue, rlc_entity_t *entity, char *buf, int size)
 {
+  LOG_I(RLC, "Entered deliver_sdu\n");
   rlc_ue_t *ue = _ue;
   int is_srb;
   int rb_id;
@@ -398,7 +404,7 @@ static void deliver_sdu(void *_ue, rlc_entity_t *entity, char *buf, int size)
   exit(1);
 
 rb_found:
-  LOG_D(RLC, "%s:%d:%s: delivering SDU (rnti %d is_srb %d rb_id %d) size %d",
+  LOG_I(RLC, "%s:%d:%s: delivering SDU (rnti %d is_srb %d rb_id %d) size %d",
         __FILE__, __LINE__, __FUNCTION__, ue->rnti, is_srb, rb_id, size);
 
 
@@ -459,6 +465,7 @@ rb_found:
     exit(1);
   }
   memcpy(memblock->data, buf, size);
+  LOG_I(RLC, "calling get_pdcp_data_ind_func \n");
   if (!get_pdcp_data_ind_func()(&ctx, is_srb, is_mbms, rb_id, size, memblock, NULL, NULL)) {
     LOG_E(RLC, "%s:%d:%s: ERROR: pdcp_data_ind failed (is_srb %d rb_id %d rnti %d)\n",
           __FILE__, __LINE__, __FUNCTION__,

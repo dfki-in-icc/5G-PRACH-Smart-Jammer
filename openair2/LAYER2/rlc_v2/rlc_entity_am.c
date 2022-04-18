@@ -175,6 +175,7 @@ static int rlc_am_reassemble_next_segment(rlc_am_reassemble_t *r)
 
 static void rlc_am_reassemble(rlc_entity_am_t *entity)
 {
+  LOG_I(RLC, "Entered rlc_am_reassemble\n");
   rlc_am_reassemble_t *r = &entity->reassemble;
 
   while (r->start != NULL) {
@@ -197,6 +198,7 @@ static void rlc_am_reassemble(rlc_entity_am_t *entity)
       if (r->data_pos != r->start->size ||
           (r->fi & 1) == 0) {
         /* SDU is full - deliver to higher layer */
+        LOG_I(RLC, "calling deliver_sdu\n");
         entity->common.deliver_sdu(entity->common.deliver_sdu_data,
                                    (rlc_entity_t *)entity,
                                    r->sdu, r->sdu_pos);
@@ -228,6 +230,7 @@ static void rlc_am_reassemble(rlc_entity_am_t *entity)
 static void rlc_am_reception_actions(rlc_entity_am_t *entity,
     rlc_rx_pdu_segment_t *pdu_segment)
 {
+  LOG_I(RLC, "Entered rlc_am_reception_actions\n");
   int x = pdu_segment->sn;
   int vr_ms;
   int vr_r;
@@ -269,6 +272,7 @@ static void rlc_am_reception_actions(rlc_entity_am_t *entity,
     entity->vr_r = vr_r;
   }
 
+  LOG_I(RLC, "Calling rlc_am_reassemble\n");
   rlc_am_reassemble(entity);
 
   if (entity->t_reordering_start) {
@@ -288,6 +292,7 @@ static void rlc_am_reception_actions(rlc_entity_am_t *entity,
 
 static void process_received_ack(rlc_entity_am_t *entity, int sn)
 {
+  LOG_I(RLC, "Entered process_received_ack\n");
   rlc_tx_pdu_segment_t head;
   rlc_tx_pdu_segment_t *cur;
   rlc_tx_pdu_segment_t *prev;
@@ -608,6 +613,7 @@ void rlc_entity_am_recv_pdu(rlc_entity_t *_entity, char *buffer, int size)
 
   rlc_pdu_decoder_init(&decoder, buffer, size);
   dc = rlc_pdu_decoder_get_bits(&decoder, 1); R(decoder);
+  LOG_I(RLC, "dc = %d : 0 menas goto control in very early stage.\n", dc);
   if (dc == 0) goto control;
 
   /* data PDU */
@@ -698,8 +704,10 @@ void rlc_entity_am_recv_pdu(rlc_entity_t *_entity, char *buffer, int size)
                                                 entity->rx_list, pdu_segment);
 
   /* do reception actions (36.322 5.1.3.2.3) */
+  LOG_I(RLC, "Calling rlc_am_reception_actions\n");
   rlc_am_reception_actions(entity, pdu_segment);
-
+  
+  LOG_I(RLC, "p= %d after rlc_am_reception_actions\n", p);
   if (p) {
     /* 36.322 5.2.3 says status triggering should be delayed
      * until x < VR(MS) or x >= VR(MR). This is not clear (what
@@ -749,7 +757,7 @@ control:
    * may be incorrect (eg. if so_start > so_end)
    */
   process_received_ack(entity, ack_sn);
-
+  LOG_I(RLC, "e1 = %d after returning from process_received_ack\n", e1);
   while (e1) {
     nack_sn = rlc_pdu_decoder_get_bits(&decoder, 10); R(decoder);
     e1 = rlc_pdu_decoder_get_bits(&decoder, 1); R(decoder);

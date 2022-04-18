@@ -7748,7 +7748,8 @@ rrc_eNB_decode_dcch(
 
       case LTE_UL_DCCH_MessageType__c1_PR_rrcConnectionReconfigurationComplete:
 
-        // to avoid segmentation fault
+        // to avoid segmentation 
+        LOG_I(RRC, "DavidK4 Entered into Processing LTE_RRCConnectionReconfigurationComplete \n");
         if(!ue_context_p) {
           LOG_I(RRC, "Processing LTE_RRCConnectionReconfigurationComplete UE %x, ue_context_p is NULL\n", ctxt_pP->rnti);
           break;
@@ -9254,6 +9255,9 @@ void *rrc_enb_process_itti_msg(void *notUsed) {
             PROTOCOL_RRC_CTXT_UE_ARGS(&ctxt),
             RRC_DCCH_DATA_IND(msg_p).dcch_index,
             msg_name_p);
+
+      LOG_I(RRC, "Received RRC_DCCH_DATA_IND from PDCP\n",result);
+
       rrc_eNB_decode_dcch(&ctxt,
                           RRC_DCCH_DATA_IND(msg_p).dcch_index,
                           RRC_DCCH_DATA_IND(msg_p).sdu_p,

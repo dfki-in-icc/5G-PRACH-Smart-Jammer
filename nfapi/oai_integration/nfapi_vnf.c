@@ -865,11 +865,11 @@ int phy_nr_uci_indication(nfapi_nr_uci_indication_t *ind)
 
 int phy_harq_indication(struct nfapi_vnf_p7_config *config, nfapi_harq_indication_t *ind) {
   struct PHY_VARS_eNB_s *eNB = RC.eNB[0][0];
-  LOG_D(MAC, "%s() NFAPI SFN/SF:%d number_of_harqs:%u\n", __FUNCTION__, NFAPI_SFNSF2DEC(ind->sfn_sf), ind->harq_indication_body.number_of_harqs);
+  LOG_I(MAC, "%s() NFAPI SFN/SF:%d number_of_harqs:%u\n", __FUNCTION__, NFAPI_SFNSF2DEC(ind->sfn_sf), ind->harq_indication_body.number_of_harqs);
   AssertFatal(pthread_mutex_lock(&eNB->UL_INFO_mutex)==0, "Mutex lock failed");
   if(NFAPI_MODE == NFAPI_MODE_VNF){
     int8_t index = NFAPI_SFNSF2SF(ind->sfn_sf);
-
+    LOG_I(MAC, "%s() NFAPI SFN/SF:%d number_of_harqs:%u index %d\n", __FUNCTION__, NFAPI_SFNSF2DEC(ind->sfn_sf), ind->harq_indication_body.number_of_harqs, index);
     UL_RCC_INFO.harq_ind[index] = *ind;
 
     assert(ind->harq_indication_body.number_of_harqs <= NFAPI_HARQ_IND_MAX_PDU);
@@ -880,6 +880,7 @@ int phy_harq_indication(struct nfapi_vnf_p7_config *config, nfapi_harq_indicatio
         memcpy(&UL_RCC_INFO.harq_ind[index].harq_indication_body.harq_pdu_list[i], &ind->harq_indication_body.harq_pdu_list[i], sizeof(nfapi_harq_indication_pdu_t));
     }
   }else{
+    LOG_I(MAC, "%s() NFAPI SFN/SF:%d number_of_harqs:%u\n", __FUNCTION__, NFAPI_SFNSF2DEC(ind->sfn_sf), ind->harq_indication_body.number_of_harqs);
     eNB->UL_INFO.harq_ind = *ind;
     eNB->UL_INFO.harq_ind.harq_indication_body.harq_pdu_list = eNB->harq_pdu_list;
 
@@ -1021,7 +1022,7 @@ int phy_rx_indication(struct nfapi_vnf_p7_config *config, nfapi_rx_indication_t 
         memcpy(dest_pdu->rx_ind_data, src_pdu->rx_ind_data, dest_pdu->rx_indication_rel8.length);
       }
 
-      LOG_D(PHY, "%s() NFAPI SFN/SF:%d PDUs:%zu [PDU:%d] handle:%d rnti:%04x length:%d offset:%d ul_cqi:%d ta:%d data:%p\n",
+      LOG_I(PHY, "VNF %s() NFAPI SFN/SF:%d PDUs:%zu [PDU:%d] handle:%d rnti:%04x length:%d offset:%d ul_cqi:%d ta:%d data:%p\n",
           __FUNCTION__,
           NFAPI_SFNSF2DEC(ind->sfn_sf), number_of_pdus, i,
           dest_pdu->rx_ue_information.handle,
@@ -1048,7 +1049,7 @@ int phy_rx_indication(struct nfapi_vnf_p7_config *config, nfapi_rx_indication_t 
     assert(dest_pdu->rx_indication_rel8.length <= NFAPI_RX_IND_DATA_MAX);
     memcpy(dest_pdu->rx_ind_data, src_pdu->rx_ind_data, dest_pdu->rx_indication_rel8.length);
 
-    LOG_D(PHY, "%s() NFAPI SFN/SF:%d PDUs:%d [PDU:%d] handle:%d rnti:%04x length:%d offset:%d ul_cqi:%d ta:%d data:%p\n",
+    LOG_I(PHY, "%s() NFAPI SFN/SF:%d PDUs:%d [PDU:%d] handle:%d rnti:%04x length:%d offset:%d ul_cqi:%d ta:%d data:%p\n",
           __FUNCTION__,
           NFAPI_SFNSF2DEC(ind->sfn_sf), ind->rx_indication_body.number_of_pdus, i,
           dest_pdu->rx_ue_information.handle,

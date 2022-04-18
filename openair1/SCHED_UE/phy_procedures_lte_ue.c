@@ -1988,7 +1988,7 @@ void ue_pucch_procedures(PHY_VARS_UE *ue,
                   &pucch_resource,
                   (uint8_t *)&pucch_payload,
                   &len);
-  LOG_D(PHY,"PUCCH feedback AbsSubframe %d.%d SR %d NbCW %d (%d %d) AckNack %d.%d CQI %d RI %d format %d pucch_resource %d pucch_payload %d %d \n",
+  LOG_I(PHY,"PUCCH feedback AbsSubframe %d.%d SR %d NbCW %d (%d %d) AckNack %d.%d CQI %d RI %d format %d pucch_resource %d pucch_payload %d %d \n",
         frame_tx%1024, subframe_tx, SR_payload, nb_cw, ack_status_cw0, ack_status_cw1, pucch_ack_payload[0], pucch_ack_payload[1], cqi_status, ri_status, format, pucch_resource,pucch_payload[0],
         pucch_payload[1]);
   // Part - IV
@@ -2180,7 +2180,7 @@ void phy_procedures_UE_TX(PHY_VARS_UE *ue,
   uint8_t next1_thread_id = ue->current_thread_id[proc->subframe_rx]== (RX_NB_TH-1) ? 0:(ue->current_thread_id[proc->subframe_rx]+1);
   uint8_t next2_thread_id = next1_thread_id== (RX_NB_TH-1) ? 0:(next1_thread_id+1);
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PHY_PROCEDURES_UE_TX,VCD_FUNCTION_IN);
-  LOG_D(PHY,"****** start TX-Chain for AbsSubframe %d.%d ******\n", frame_tx, subframe_tx);
+  LOG_I(PHY,"****** start TX-Chain for AbsSubframe %d.%d ******\n", frame_tx, subframe_tx);
   T(T_UE_PHY_UL_TICK, T_INT(ue->Mod_id), T_INT(frame_tx%1024), T_INT(subframe_tx));
   ue->generate_ul_signal[eNB_id] = 0;
 
@@ -2199,6 +2199,7 @@ void phy_procedures_UE_TX(PHY_VARS_UE *ue,
   if (subframe_select(&ue->frame_parms,proc->subframe_tx) == SF_UL ||
       ue->frame_parms.frame_type == FDD) {
     if (ue->UE_mode[eNB_id] > PRACH ) {
+      LOG_I(PHY,"We are here %s %d\n", __FUNCTION__, __LINE__);
       // check cell srs subframe and ue srs subframe. This has an impact on pusch encoding
       isSubframeSRS = is_srs_occasion_common(&ue->frame_parms,proc->frame_tx,proc->subframe_tx);
       ue_compute_srs_occasion(ue,proc,eNB_id,isSubframeSRS);
@@ -2208,6 +2209,7 @@ void phy_procedures_UE_TX(PHY_VARS_UE *ue,
     }
 
     if (ue->UE_mode[eNB_id] == PUSCH) {
+      LOG_I(PHY,"We are here %s %d\n", __FUNCTION__, __LINE__);
       // check if we need to use PUCCH 1a/1b
       ue_pucch_procedures(ue,proc,eNB_id,abstraction_flag);
       // check if we need to use SRS
@@ -2215,7 +2217,7 @@ void phy_procedures_UE_TX(PHY_VARS_UE *ue,
     } // UE_mode==PUSCH
   }
 
-  LOG_D(PHY,"doing ulsch_common_procedures (%d.%d): generate_ul_signal %d\n",frame_tx,subframe_tx,
+  LOG_I(PHY,"doing ulsch_common_procedures (%d.%d): generate_ul_signal %d\n",frame_tx,subframe_tx,
         ue->generate_ul_signal[eNB_id]);
   ulsch_common_procedures(ue,proc, (ue->generate_ul_signal[eNB_id] == 0));
 

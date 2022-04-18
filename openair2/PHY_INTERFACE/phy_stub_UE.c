@@ -1726,8 +1726,8 @@ static void print_rx_ind(nfapi_rx_indication_t *p)
       break;
     case NFAPI_HARQ_INDICATION:
       encoded_size = nfapi_p7_message_pack(&UL->harq_ind, buffer, sizeof(buffer), NULL);
-      LOG_I(MAC, "HARQ_IND sent to Proxy, Size: %d Frame %d Subframe %d\n", encoded_size,
-            NFAPI_SFNSF2SFN(UL->harq_ind.sfn_sf), NFAPI_SFNSF2SF(UL->harq_ind.sfn_sf));
+      LOG_I(MAC, "HARQ_IND sent to Proxy, Size: %d Frame %d Subframe %d num pdus %d\n", encoded_size,
+            NFAPI_SFNSF2SFN(UL->harq_ind.sfn_sf), NFAPI_SFNSF2SF(UL->harq_ind.sfn_sf),UL->harq_ind.harq_indication_body.number_of_harqs);
       break;
     case NFAPI_RX_SR_INDICATION:
       encoded_size = nfapi_p7_message_pack(&UL->sr_ind, buffer, sizeof(buffer), NULL);

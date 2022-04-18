@@ -412,11 +412,14 @@ ue_send_sdu(module_id_t module_idP,
       LOG_I(MAC, "ce %d : %d\n",i,rx_ces[i]);
       switch (rx_ces[i]) {
         case UE_CONT_RES:
+          tx_sdu = &UE_mac_inst[module_idP].CCCH_pdu.payload[3];
           LOG_I(MAC,
-                "[UE %d][RAPROC] Frame %d : received contention resolution msg: %x.%x.%x.%x.%x.%x, Terminating RA procedure\n",
+                "[UE %d][RAPROC] Frame %d : received contention resolution msg: %x.%x.%x.%x.%x.%x, Terminating RA procedure %x.%x.%x.%x.%x.%x\n",
                 module_idP, frameP, payload_ptr[0], payload_ptr[1],
                 payload_ptr[2], payload_ptr[3], payload_ptr[4],
-                payload_ptr[5]);
+                payload_ptr[5],
+                tx_sdu[0], tx_sdu[1], tx_sdu[2], tx_sdu[3], tx_sdu[4], tx_sdu[5]
+                );
 
           if (UE_mac_inst[module_idP].RA_active == 1) {
             LOG_I(MAC,
@@ -424,12 +427,12 @@ ue_send_sdu(module_id_t module_idP,
                   module_idP, frameP);
             UE_mac_inst[module_idP].RA_active = 0;
             // check if RA procedure has finished completely (no contention)
-            tx_sdu = &UE_mac_inst[module_idP].CCCH_pdu.payload[3];
+            
 
             //Note: 3 assumes sizeof(SCH_SUBHEADER_SHORT) + PADDING CE, which is when UL-Grant has TBS >= 9 (64 bits)
             // (other possibility is 1 for TBS=7 (SCH_SUBHEADER_FIXED), or 2 for TBS=8 (SCH_SUBHEADER_FIXED+PADDING or SCH_SUBHEADER_SHORT)
             for (i = 0; i < 6; i++)
-              if (tx_sdu[i] != payload_ptr[i]) {
+              if (tx_sdu[i] != payload_ptr[i] && payload_ptr[i] != 0) {
                 LOG_E(MAC,
                       "[UE %d][RAPROC] Contention detected, RA failed\n",
                       module_idP);
@@ -463,7 +466,9 @@ ue_send_sdu(module_id_t module_idP,
             if(NFAPI_MODE==NFAPI_UE_STUB_PNF || NFAPI_MODE==NFAPI_MODE_STANDALONE_PNF) { // phy_stub mode
               // Modification for phy_stub mode operation here. We only need to change the ue_mode to PUSCH
               UE_mac_inst[module_idP].UE_mode[eNB_index] = PUSCH;
+              LOG_I(MAC, "We are here %s %d\n", __FUNCTION__, __LINE__);
             } else { // Full stack mode
+              LOG_I(MAC, "We are here %s %d\n", __FUNCTION__, __LINE__);
               ra_succeeded(module_idP,CC_id,eNB_index);
             }
           }
