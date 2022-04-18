@@ -47,6 +47,8 @@
 
 #include "PHY/NR_REFSIG/sss_nr.h"
 #include "PHY/NR_UE_TRANSPORT/cic_filter_nr.h"
+// L5G_IOT
+#include "prometheus_exporter.h"
 
 /*******************************************************************
 *
@@ -927,7 +929,7 @@ int pss_search_time_nr(int **rxdata, ///rx data in time domain
   *eNB_id = pss_source;
 
   LOG_I(PHY,"[UE] nr_synchro_time: Sync source = %d, Peak found at pos %d, val = %llu (%d dB) avg %d dB, ffo %lf\n", pss_source, peak_position, (unsigned long long)peak_value, dB_fixed64(peak_value),dB_fixed64(avg[pss_source]),ffo_est);
-
+  PROM_METRICS(PSS_PEAK_POW,"pss_peak_power",dB_fixed64(peak_value));
   if (peak_value < 5*avg[pss_source])
     return(-1);
 

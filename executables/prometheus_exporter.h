@@ -32,6 +32,7 @@
 #define NUM_MAX_PROM_ELEMENTS  100
 #define MAX_COMPLEX_ELM_SIZE   8192
 #define NUM_MAX_COMPLEX_ELEMENTS  20
+#define MAX_DATA_SIZE 65536
 
 typedef unsigned int uint32_t;
 typedef unsigned short uint16_t;
@@ -49,7 +50,7 @@ typedef struct {
 
 typedef struct {
  // char* buf;
-  int16_t* iq_data;
+  int16_t iq_data[MAX_DATA_SIZE];
   char label[256];
   uint32_t size;
 } complex_metric_elm_t;
@@ -77,7 +78,7 @@ enum metrics_key{
   PDCP_DL_SDU_BUFF_SIZE,
   DL_MCS,
   UL_MCS,
-  RESERVED_19,
+  PSS_PEAK_POW, //19
   RESERVED_20,
   RESERVED_21,
   RESERVED_22,
@@ -100,7 +101,7 @@ enum metrics_key{
   RESERVED_39,
   RESERVED_40,
 };
-#define NUM_PROM_ELEMENTS 26
+#define NUM_PROM_ELEMENTS 19
 
 enum complex_metrics_key{
   PBCH_IQ = 0,  // 1
@@ -118,7 +119,7 @@ enum complex_metrics_key{
 
 #define NUM_COMPLEX_METRICS_ELEMENTS 1
 #define NUM_METHOD 5
-#define NUM_PROM_SETTINGS 7
+#define NUM_PROM_SETTINGS 8
 #define NUM_REALTIME_SETTINGS 9
 
 enum MetricSwitchID {
@@ -142,7 +143,8 @@ enum PromMetricSwitchID {
   dl_mcs,
   dl_tbs,
   ul_mcs,
-  ul_tbs  // 6
+  ul_tbs,  // 6
+  pss_peak_power  // 7
 };
 
 extern uint8_t  Prom_switch_state[NUM_PROM_SETTINGS];
