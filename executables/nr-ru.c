@@ -727,7 +727,7 @@ void tx_rf(RU_t *ru,int frame,int slot, uint64_t timestamp) {
       else
         siglen = (fp->ofdm_symbol_size + fp->nb_prefix_samples0) + (txsymb - 1) * (fp->ofdm_symbol_size + fp->nb_prefix_samples);
 
-      //+ ru->end_of_burst_delay;
+      siglen += ru->end_of_burst_delay;
       flags = 3; // end of burst
     } else if (slot_type == NR_DOWNLINK_SLOT) {
       int prevslot_type = nr_slot_select(cfg,frame,(slot+(fp->slots_per_frame-1))%fp->slots_per_frame);
@@ -2093,6 +2093,7 @@ static void NRRCconfig_RU(void) {
         RC.ru[j]->max_rxgain                        = *(RUParamList.paramarray[j][RU_MAX_RXGAIN_IDX].uptr);
         RC.ru[j]->num_bands                         = RUParamList.paramarray[j][RU_BAND_LIST_IDX].numelt;
         RC.ru[j]->sf_extension                      = *(RUParamList.paramarray[j][RU_SF_EXTENSION_IDX].uptr);
+        RC.ru[j]->end_of_burst_delay                = *(RUParamList.paramarray[j][RU_END_OF_BURST_DELAY_IDX].uptr);
         for (i=0; i<RC.ru[j]->num_bands; i++) RC.ru[j]->band[i] = RUParamList.paramarray[j][RU_BAND_LIST_IDX].iptr[i];
       } //strcmp(local_rf, "yes") == 0
       else {
