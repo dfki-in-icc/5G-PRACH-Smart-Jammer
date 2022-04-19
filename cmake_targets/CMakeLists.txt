@@ -252,14 +252,14 @@ if (SANITIZE_ADDRESS)
   # There seems to be some incompatibility with pthread_create and the RT scheduler, which
   # results in pthread_create hanging.
   #
-  # When we switch from Ubuntu 16.04 to 18.04, we found that running with the Address sanitizer
-  # that the pthread_create function calls were not working. The inital thought was that we were
+  # When we switch from Ubuntu 16.04 to 18.04, we found that running with the address sanitizer,
+  # the pthread_create function calls were not working. The inital thought was that we were
   # trying to create a thread that was not-blocking and would eventually crash the machine during
   # the run. After more debugging, we found that we would never even start the thread. We narrowed
   # down the first two instances of pthread_create in the gNB and NR UE to be sctp_eNB_task and
-  # onethread, respectively. We found that adding sleeps, and various other pauses to the threads
+  # one_thread, respectively. We found that adding sleeps, and various other pauses to the threads
   # had not effect. From there, we found that if we add an abort(); prior to the thread loop, we
-  # do not execute that. This inidcated to us that the problem is not likely to be a non-blocking
+  # do not execute that. This indicated to us that the problem is not likely to be a non-blocking
   # thread, but perhaps and issue with pthread_create itself. From there we begain to research the
   # issue on the web. See: https://github.com/google/sanitizers/issues/1125
   #
