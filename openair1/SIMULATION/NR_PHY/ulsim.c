@@ -93,9 +93,6 @@ THREAD_STRUCT thread_struct;
 nfapi_ue_release_request_body_t release_rntis;
 uint32_t N_RB_DL = 106;
 
-/* dummy constant */
-NR_UE_RRC_INST_t *NR_UE_rrc_inst;
-
 //Fixme: Uniq dirty DU instance, by global var, datamodel need better management
 instance_t DUuniqInstance=0;
 instance_t CUuniqInstance=0;
@@ -736,7 +733,14 @@ int main(int argc, char **argv)
   prepare_scd(scd);
 
   // TODO do a UECAP for phy-sim
-  fill_default_secondaryCellGroup(scc, scd, secondaryCellGroup, NULL, 0, 1, n_tx, 0, 0, 0, 0);
+  const gNB_RrcConfigurationReq conf = {
+    .pdsch_AntennaPorts = { .N1 = n_tx, .N2 = 1, .XP = 1 },
+    .minRXTXTIME = 0,
+    .do_CSIRS = 0,
+    .do_SRS = 0,
+    .force_256qam_off = false
+  };
+  fill_default_secondaryCellGroup(scc, scd, secondaryCellGroup, NULL, 0, 1, &conf, 0);
 
   // xer_fprint(stdout, &asn_DEF_NR_CellGroupConfig, (const void*)secondaryCellGroup);
 
@@ -747,9 +751,9 @@ int main(int argc, char **argv)
 
   gNB->if_inst->NR_PHY_config_req      = nr_phy_config_request;
   // common configuration
-  rrc_mac_config_req_gNB(0,0, n_tx, n_rx, 0, 6, scc, &rrc.carrier.mib,0, 0, NULL);
+  rrc_mac_config_req_gNB(0,0, conf.pdsch_AntennaPorts, n_rx, 0, 6, scc, &rrc.carrier.mib, rrc.carrier.siblock1, 0, 0, NULL);
   // UE dedicated configuration
-  rrc_mac_config_req_gNB(0,0, n_tx, n_rx, 0, 6, scc, &rrc.carrier.mib,1, secondaryCellGroup->spCellConfig->reconfigurationWithSync->newUE_Identity,secondaryCellGroup);
+  rrc_mac_config_req_gNB(0,0, conf.pdsch_AntennaPorts, n_rx, 0, 6, scc, &rrc.carrier.mib, rrc.carrier.siblock1, 1, secondaryCellGroup->spCellConfig->reconfigurationWithSync->newUE_Identity,secondaryCellGroup);
   frame_parms->nb_antennas_tx = n_tx;
   frame_parms->nb_antennas_rx = n_rx;
   nfapi_nr_config_request_scf_t *cfg = &gNB->gNB_config;
@@ -778,10 +782,10 @@ int main(int argc, char **argv)
 
   init_nr_ue_transport(UE);
 
-  // initialize the pusch dmrs
-  uint16_t N_n_scid[2] = {frame_parms->Nid_cell,frame_parms->Nid_cell};
-  int n_scid = 0; // This quantity is indicated by higher layer parameter dmrs-SeqInitialization
-  nr_init_pusch_dmrs(UE, N_n_scid, n_scid);
+  for(int n_scid = 0; n_scid<2; n_scid++) {
+    UE->scramblingID_ulsch[n_scid] = frame_parms->Nid_cell;
+    nr_init_pusch_dmrs(UE, frame_parms->Nid_cell, n_scid);
+  }
 
   //Configure UE
   NR_UE_RRC_INST_t rrcue;

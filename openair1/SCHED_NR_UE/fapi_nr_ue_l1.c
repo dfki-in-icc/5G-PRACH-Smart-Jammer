@@ -117,7 +117,7 @@ int8_t nr_ue_scheduled_response_stub(nr_scheduled_response_t *scheduled_response
                   "Too many ul_config pdus %d", ul_config->number_pdus);
       for (int i = 0; i < ul_config->number_pdus; ++i)
       {
-        LOG_I(NR_PHY, "In %s: processing type %d PDU of %d total UL PDUs (ul_config %p) \n",
+        LOG_D(NR_PHY, "In %s: processing type %d PDU of %d total UL PDUs (ul_config %p) \n",
               __FUNCTION__, ul_config->ul_config_list[i].pdu_type, ul_config->number_pdus, ul_config);
 
         uint8_t pdu_type = ul_config->ul_config_list[i].pdu_type;
@@ -218,7 +218,7 @@ int8_t nr_ue_scheduled_response_stub(nr_scheduled_response_t *scheduled_response
             uci_ind->uci_list = CALLOC(uci_ind->num_ucis, sizeof(*uci_ind->uci_list));
             for (int j = 0; j < uci_ind->num_ucis; j++)
             {
-              LOG_I(NR_MAC, "ul_config->ul_config_list[%d].pucch_config_pdu.n_bit = %d\n", i, ul_config->ul_config_list[i].pucch_config_pdu.n_bit);
+              LOG_D(NR_MAC, "ul_config->ul_config_list[%d].pucch_config_pdu.n_bit = %d\n", i, ul_config->ul_config_list[i].pucch_config_pdu.n_bit);
               if (ul_config->ul_config_list[i].pucch_config_pdu.n_bit > 3 && mac->nr_ue_emul_l1.num_csi_reports > 0)
               {
                 uci_ind->uci_list[j].pdu_type = NFAPI_NR_UCI_FORMAT_2_3_4_PDU_TYPE;
@@ -265,7 +265,7 @@ int8_t nr_ue_scheduled_response_stub(nr_scheduled_response_t *scheduled_response
               }
             }
 
-            LOG_I(NR_PHY, "Sending UCI with %d PDUs in sfn.slot %d/%d\n",
+            LOG_D(NR_PHY, "Sending UCI with %d PDUs in sfn.slot %d/%d\n",
                   uci_ind->num_ucis, uci_ind->sfn, uci_ind->slot);
             NR_UL_IND_t ul_info = {
                 .uci_ind = *uci_ind,
@@ -276,7 +276,7 @@ int8_t nr_ue_scheduled_response_stub(nr_scheduled_response_t *scheduled_response
           }
 
           default:
-            LOG_I(NR_MAC, "Unknown ul_config->pdu_type %d\n", pdu_type);
+            LOG_W(NR_MAC, "Unknown ul_config->pdu_type %d\n", pdu_type);
           break;
         }
       }
@@ -315,6 +315,8 @@ void configure_dlsch(NR_UE_DLSCH_t *dlsch0,
   dlsch0_harq->mcs = dlsch_config_pdu->mcs;
   dlsch0_harq->rvidx = dlsch_config_pdu->rv;
   dlsch0->g_pucch = dlsch_config_pdu->accumulated_delta_PUCCH;
+  dlsch0_harq->nscid = dlsch_config_pdu->nscid;
+  dlsch0_harq->dlDmrsScramblingId = dlsch_config_pdu->dlDmrsScramblingId;
   //get nrOfLayers from DCI info
   uint8_t Nl = 0;
   for (int i = 0; i < 12; i++) { // max 12 ports
@@ -351,15 +353,14 @@ int8_t nr_ue_scheduled_response(nr_scheduled_response_t *scheduled_response){
     // Note: we have to handle the thread IDs for this. To be revisited completely.
     thread_id = scheduled_response->thread_id;
     NR_UE_DLSCH_t *dlsch0 = NULL;
-    NR_UE_PDCCH *pdcch_vars = PHY_vars_UE_g[module_id][cc_id]->pdcch_vars[thread_id][0];
     NR_UE_ULSCH_t *ulsch = PHY_vars_UE_g[module_id][cc_id]->ulsch[thread_id][0];
     NR_UE_PUCCH *pucch_vars = PHY_vars_UE_g[module_id][cc_id]->pucch_vars[thread_id][0];
+    NR_UE_PDCCH_CONFIG *phy_pdcch_config = NULL;
 
     if(scheduled_response->dl_config != NULL){
       fapi_nr_dl_config_request_t *dl_config = scheduled_response->dl_config;
       fapi_nr_dl_config_dlsch_pdu_rel15_t *dlsch_config_pdu;
       fapi_nr_dl_config_dci_dl_pdu_rel15_t *pdcch_config;
-      pdcch_vars->nb_search_space = 0;
 
       for (int i = 0; i < dl_config->number_pdus; ++i){
         AssertFatal(dl_config->number_pdus < FAPI_NR_DL_CONFIG_LIST_NUM,"dl_config->number_pdus %d out of bounds\n",dl_config->number_pdus);
@@ -369,12 +370,16 @@ int8_t nr_ue_scheduled_response(nr_scheduled_response_t *scheduled_response){
 
         switch(dl_config->dl_config_list[i].pdu_type) {
           case FAPI_NR_DL_CONFIG_TYPE_DCI:
+            if (NULL == phy_pdcch_config) {
+              phy_pdcch_config = (NR_UE_PDCCH_CONFIG *)scheduled_response->phy_data;
+              phy_pdcch_config->nb_search_space = 0;
+            }
             pdcch_config = &dl_config->dl_config_list[i].dci_config_pdu.dci_config_rel15;
-            memcpy(&pdcch_vars->pdcch_config[pdcch_vars->nb_search_space],pdcch_config,sizeof(*pdcch_config));
-            pdcch_vars->nb_search_space = pdcch_vars->nb_search_space + 1;
-            pdcch_vars->sfn = scheduled_response->frame;
-            pdcch_vars->slot = slot;
-            LOG_D(PHY,"Number of DCI SearchSpaces %d\n",pdcch_vars->nb_search_space);
+            memcpy((void*)&phy_pdcch_config->pdcch_config[phy_pdcch_config->nb_search_space],(void*)pdcch_config,sizeof(*pdcch_config));
+            phy_pdcch_config->nb_search_space = phy_pdcch_config->nb_search_space + 1;
+            phy_pdcch_config->sfn = scheduled_response->frame;
+            phy_pdcch_config->slot = slot;
+            LOG_D(PHY,"Number of DCI SearchSpaces %d\n",phy_pdcch_config->nb_search_space);
             break;
           case FAPI_NR_DL_CONFIG_TYPE_CSI_IM:
             LOG_I(PHY,"Received CSI-IM PDU at FAPI\n");
