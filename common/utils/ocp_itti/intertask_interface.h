@@ -412,7 +412,7 @@ typedef struct MessageHeader_s {
 } MessageHeader;
 
 typedef struct message_info_s {
-  int id;
+  MessagesIds id;
   message_priorities_t priority;
   /* Message payload size */
   MessageHeaderSize size;

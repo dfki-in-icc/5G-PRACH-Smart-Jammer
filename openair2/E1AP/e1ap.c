@@ -596,3 +596,74 @@ int e1apCUCP_handle_send_DATA_USAGE_REPORT(instance_t instance,
                                            E1AP_E1AP_PDU_t *pdu) {
   AssertFatal(false,"Not implemented yet\n");
 }
+
+void up_task_send_sctp_association_req(instance_t instance, e1ap_setup_req_t *e1ap_setup_req) {
+  DevAssert(e1ap_setup_req != NULL);
+  MessageDef                 *message_p                   = NULL;
+  sctp_new_association_req_t *sctp_new_association_req_p  = NULL;
+  message_p = itti_alloc_new_message(TASK_CUUP_E1, 0, SCTP_NEW_ASSOCIATION_REQ);
+  sctp_new_association_req_p = &message_p->ittiMsg.sctp_new_association_req;
+  sctp_new_association_req_p->ulp_cnx_id = instance;
+  sctp_new_association_req_p->port = E1AP_PORT_NUMBER;
+  sctp_new_association_req_p->ppid = E1AP_SCTP_PPID;
+  sctp_new_association_req_p->in_streams  = e1ap_setup_req->sctp_in_streams;
+  sctp_new_association_req_p->out_streams = e1ap_setup_req->sctp_out_streams;
+  // remote
+  memcpy(&sctp_new_association_req_p->remote_address,
+         &e1ap_setup_req->CUCP_e1_ip_address,
+         sizeof(e1ap_setup_req->CUCP_e1_ip_address));
+  // local
+  memcpy(&sctp_new_association_req_p->local_address,
+         &e1ap_setup_req->CUUP_e1_ip_address,
+         sizeof(e1ap_setup_req->CUUP_e1_ip_address));
+  itti_send_msg_to_task(TASK_SCTP, instance, message_p);
+}
+
+void up_task_handle_sctp_association_resp(instance_t instance, sctp_new_association_resp_t sctp_new_association_resp) {
+  DevAssert(sctp_new_association_resp != NULL);
+
+  if (sctp_new_association_resp->sctp_state != SCTP_STATE_ESTABLISHED) {
+    LOG_W(E1AP, "Received unsuccessful result for SCTP association (%u), instance %ld, cnx_id %u\n",
+          sctp_new_association_resp->sctp_state,
+          instance,
+          sctp_new_association_resp->ulp_cnx_id);
+    return;
+  }
+
+  e1ap_setup_req_t *e1ap_cuup_setup_req       = &getCxt(UPtype, instance)->setupReq;
+  e1ap_cuup_setup_req->assoc_id               = sctp_new_association_resp->assoc_id;
+  e1ap_cuup_setup_req->sctp_in_streams        = sctp_new_association_resp->in_streams;
+  e1ap_cuup_setup_req->sctp_out_streams       = sctp_new_association_resp->out_streams;
+  e1ap_cuup_setup_req->default_sctp_stream_id = 0;
+
+  e1apCUUP_send_SETUP_REQUEST(instance);
+}
+
+void *E1AP_CUUP_task(void *arg) {
+  LOG_I(E1AP, "Starting E1AP at CU UP\n");
+
+  // SCTP
+  while (1) {
+    MessageDef *msg = NULL;
+    itti_receive_msg(TASK_CUUP_E1, &msg);
+    instance_t myInstance=ITTI_MSG_DESTINATION_INSTANCE(msg);
+
+    switch (ITTI_MSG_ID(msg)) {
+      case E1AP_SETUP_REQ:
+        LOG_I(E1AP, "CUUP Task Received E1AP_SETUP_REQ\n");
+        e1ap_setup_req_t *msgSetup = &E1AP_SETUP_REQ(msg);
+        createE1inst(UPtype, instance, msgSetup);
+
+        up_task_send_sctp_association_req(instance, msgSetup);
+        break;
+
+      case SCTP_NEW_ASSOCIATION_RESP:
+        LOG_I(E1AP, "CUUP Task Received SCTP_NEW_ASSOCIATION_RESP\n");
+        up_task_handle_sctp_association_resp(instance, &msg->ittiMsg.sctp_new_association_resp);
+        break;
+
+    }
+  }
+}
+
+

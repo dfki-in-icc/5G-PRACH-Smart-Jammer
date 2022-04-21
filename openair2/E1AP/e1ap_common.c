@@ -33,6 +33,17 @@ e1ap_upcp_inst_t *getCxt(E1_t type, instance_t instance) {
   return type ? e1_up_inst[instance] : e1_cp_inst[instance];
 }
 
+void createE1inst(E1_t type, instance_t instance, e1ap_setup_req_t *req) {
+  if (type == CPtype) {
+    AssertFatal(e1_cp_inst[instance] == NULL, "Double call to E1 CP instance %d\n", instance);
+    e1_cp_inst[instance] = (e1_upcp_inst_t *) calloc(1, sizeof(e1_upcp_inst_t));
+  } else {
+    AssertFatal(e1_up_inst[instance] == NULL, "Double call to E1 UP instance %d\n", instance);
+    e1_up_inst[instance] = (e1_upcp_inst_t *) calloc(1, sizeof(e1_upcp_inst_t));
+    memcpy(&e1_up_inst[instance]->setupReq, req, sizeof(e1ap_setup_req_t));
+  }
+}
+
 E1AP_TransactionID_t transacID[MAX_NUM_TRANSAC_IDS] = {0}; 
 srand(time(NULL));
 
