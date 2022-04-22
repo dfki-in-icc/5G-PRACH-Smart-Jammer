@@ -4126,6 +4126,7 @@ extract_harq(module_id_t mod_idP,
                                CC_idP,
                                frameP,
                                ra[ra_i].rnti);
+                
               } else {
                 if (sched_ctl->round[CC_idP][harq_pid] == 7) {
                   cancel_ra_proc(mod_idP,

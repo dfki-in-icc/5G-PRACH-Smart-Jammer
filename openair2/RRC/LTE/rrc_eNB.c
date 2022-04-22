@@ -7757,7 +7757,7 @@ rrc_eNB_decode_dcch(
 
         LOG_DUMPMSG(RRC,DEBUG_RRC,(char *)(Rx_sdu),sdu_sizeP,
                     "[MSG] RRC Connection Reconfiguration Complete\n");
-        LOG_D(RRC,
+        LOG_I(RRC,
               PROTOCOL_RRC_CTXT_UE_FMT" RLC RB %02d --- RLC_DATA_IND %d bytes "
               "(RRCConnectionReconfigurationComplete) ---> RRC_eNB]\n",
               PROTOCOL_RRC_CTXT_UE_ARGS(ctxt_pP),

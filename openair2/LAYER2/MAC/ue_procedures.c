@@ -506,7 +506,7 @@ ue_send_sdu(module_id_t module_idP,
 #endif
 
       if (rx_lcids[i] == CCCH) {
-        LOG_D(MAC,
+        LOG_I(MAC,
               "[UE %d] rnti %x Frame %d : DLSCH -> DL-CCCH, RRC message (eNB %d, %d bytes)\n",
               module_idP, UE_mac_inst[module_idP].crnti, frameP,
               eNB_index, rx_lengths[i]);
@@ -530,7 +530,7 @@ ue_send_sdu(module_id_t module_idP,
                             0
                            );
       } else if ((rx_lcids[i] == DCCH) || (rx_lcids[i] == DCCH1)) {
-        LOG_D(MAC,"[UE %d] Frame %d : DLSCH -> DL-DCCH%d, RRC message (eNB %d, %d bytes)\n", module_idP, frameP, rx_lcids[i],eNB_index,rx_lengths[i]);
+        LOG_I(MAC,"[UE %d] Frame %d : DLSCH -> DL-DCCH%d, RRC message (eNB %d, %d bytes)\n", module_idP, frameP, rx_lcids[i],eNB_index,rx_lengths[i]);
         mac_rlc_data_ind(module_idP,
                          UE_mac_inst[module_idP].crnti,
                          eNB_index,
@@ -543,7 +543,7 @@ ue_send_sdu(module_id_t module_idP,
                          1,
                          NULL);
       } else if ((rx_lcids[i]  < NB_RB_MAX) && (rx_lcids[i] > DCCH1 )) {
-        LOG_D(MAC,"[UE %d] Frame %d : DLSCH -> DL-DTCH%d (eNB %d, %d bytes)\n", module_idP, frameP,rx_lcids[i], eNB_index,rx_lengths[i]);
+        LOG_I(MAC,"[UE %d] Frame %d : DLSCH -> DL-DTCH%d (eNB %d, %d bytes)\n", module_idP, frameP,rx_lcids[i], eNB_index,rx_lengths[i]);
 #if defined(ENABLE_MAC_PAYLOAD_DEBUG)
         int j;
 
@@ -2108,6 +2108,8 @@ generate_ulsch_header(uint8_t *mac_header,
     LOG_D(MAC, "[UE] CRNTI : %x (first_element %d)\n", *crnti,
           first_element);
 #endif
+    LOG_I(MAC, "[UE] CRNTI : %x (first_element %d)\n", *crnti,
+          first_element);
 
     if (first_element > 0) {
       mac_header_ptr->E = 1;
@@ -2355,7 +2357,7 @@ ue_get_sdu(module_id_t module_idP, int CC_id, frame_t frameP,
   int num_lcg_id_with_data = 0;
   rlc_buffer_occupancy_t lcid_buffer_occupancy_old =
     0, lcid_buffer_occupancy_new = 0;
-  LOG_D(MAC,
+  LOG_I(MAC,
         "[UE %d] MAC PROCESS UL TRANSPORT BLOCK at frame%d subframe %d TBS=%d\n",
         module_idP, frameP, subframe, buflen);
   AssertFatal(CC_id == 0,
@@ -2843,6 +2845,8 @@ ue_get_sdu(module_id_t module_idP, int CC_id, frame_t frameP,
                 sdu_length_total + 1);
   }
 
+  LOG_I(MAC, "UE_mac_inst[module_idP].ho_active = %d\n", UE_mac_inst[module_idP].ho_active);
+  LOG_I(MAC, "UE_mac_inst[module_idP].crnti_for_ho = 0x%x\n", UE_mac_inst[module_idP].crnti_for_ho);
   // Generate header
   // if (num_sdus>0) {
   payload_offset = generate_ulsch_header(ulsch_buffer,  // mac header
@@ -2851,7 +2855,7 @@ ue_get_sdu(module_id_t module_idP, int CC_id, frame_t frameP,
                                          sdu_lengths, // sdu length
                                          sdu_lcids, // sdu lcid
                                          phr_p, // power headroom
-                                         NULL,  // crnti
+                                         UE_mac_inst[module_idP].ho_active ? &UE_mac_inst[module_idP].crnti_for_ho : NULL,  // crnti
                                          bsr_t, // truncated bsr
                                          bsr_s, // short bsr
                                          bsr_l, post_padding);  // long_bsr

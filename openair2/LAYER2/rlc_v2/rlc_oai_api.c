@@ -979,8 +979,8 @@ rlc_op_status_t rrc_rlc_config_req   (
     LOG_E(RLC, "%s:%d:%s: todo (mbms not supported)\n", __FILE__, __LINE__, __FUNCTION__);
     exit(1);
   }
-  if (actionP != CONFIG_ACTION_REMOVE) {
-    LOG_E(RLC, "%s:%d:%s: todo (only CONFIG_ACTION_REMOVE supported)\n", __FILE__, __LINE__, __FUNCTION__);
+  if ((actionP != CONFIG_ACTION_REMOVE) && (actionP != CONFIG_ACTION_RESET) && (actionP != CONFIG_ACTION_ADD)) {
+    LOG_E(RLC, "%s:%d:%s: todo (CONFIG_ACTION_REMOVE or CONFIG_ACTION_RESET or CONFIG_ACTION_ADD supported)\n", __FILE__, __LINE__, __FUNCTION__);
     exit(1);
   }
   if (ctxt_pP->module_id) {
@@ -993,31 +993,102 @@ rlc_op_status_t rrc_rlc_config_req   (
     exit(1);
   }
   rlc_manager_lock(rlc_ue_manager);
-  LOG_D(RLC, "%s:%d:%s: remove rb %d (is_srb %d) for UE %d\n", __FILE__, __LINE__, __FUNCTION__, (int)rb_idP, srb_flagP, ctxt_pP->rnti);
   ue = rlc_manager_get_ue(rlc_ue_manager, ctxt_pP->rnti);
-  if (srb_flagP) {
-    if (ue->srb[rb_idP-1] != NULL) {
-      ue->srb[rb_idP-1]->delete(ue->srb[rb_idP-1]);
-      ue->srb[rb_idP-1] = NULL;
-    } else
-      LOG_W(RLC, "removing non allocated SRB %d, do nothing\n", (int)rb_idP);
-  } else {
-    if (ue->drb[rb_idP-1] != NULL) {
-      ue->drb[rb_idP-1]->delete(ue->drb[rb_idP-1]);
-      ue->drb[rb_idP-1] = NULL;
-    } else
-      LOG_W(RLC, "removing non allocated DRB %d, do nothing\n", (int)rb_idP);
-  }
-  /* remove UE if it has no more RB configured */
-  for (i = 0; i < 2; i++)
-    if (ue->srb[i] != NULL)
+
+  switch (actionP) {
+    case CONFIG_ACTION_REMOVE:
+      LOG_D(RLC, "%s:%d:%s: remove rb %d (is_srb %d) for UE %d\n", __FILE__, __LINE__, __FUNCTION__, (int)rb_idP, srb_flagP, ctxt_pP->rnti);
+      if (srb_flagP) {
+        if (ue->srb[rb_idP-1] != NULL) {
+          ue->srb[rb_idP-1]->delete(ue->srb[rb_idP-1]);
+          ue->srb[rb_idP-1] = NULL;
+        } else
+          LOG_W(RLC, "removing non allocated SRB %d, do nothing\n", (int)rb_idP);
+      } else {
+        if (ue->drb[rb_idP-1] != NULL) {
+          ue->drb[rb_idP-1]->delete(ue->drb[rb_idP-1]);
+          ue->drb[rb_idP-1] = NULL;
+        } else
+          LOG_W(RLC, "removing non allocated DRB %d, do nothing\n", (int)rb_idP);
+      }
+      /* remove UE if it has no more RB configured */
+      for (i = 0; i < 2; i++)
+        if (ue->srb[i] != NULL)
+          break;
+      if (i == 2) {
+        for (i = 0; i < 5; i++)
+          if (ue->drb[i] != NULL)
+            break;
+        if (i == 5)
+          rlc_manager_remove_ue(rlc_ue_manager, ctxt_pP->rnti);
+      }
       break;
-  if (i == 2) {
-    for (i = 0; i < 5; i++)
-      if (ue->drb[i] != NULL)
-        break;
-    if (i == 5)
-      rlc_manager_remove_ue(rlc_ue_manager, ctxt_pP->rnti);
+
+    case CONFIG_ACTION_RESET:
+      LOG_D(RLC, "%s:%d:%s: reset rb %d (is_srb %d) for UE %d\n", __FILE__, __LINE__, __FUNCTION__, (int)rb_idP, srb_flagP, ctxt_pP->rnti);
+      if (srb_flagP) {
+        if (ue->srb[rb_idP-1] != NULL) {
+          ue->srb[rb_idP-1]->reestablishment(ue->srb[rb_idP-1]);
+          LOG_D(RLC, "resetting the allocated SRB %d\n", (int)rb_idP);
+        } else
+          LOG_W(RLC, "resetting non allocated SRB %d, do nothing\n", (int)rb_idP);
+      } else {
+        if (ue->drb[rb_idP-1] != NULL) {
+          ue->drb[rb_idP-1]->reestablishment(ue->drb[rb_idP-1]);
+        } else
+          LOG_W(RLC, "resetting non allocated DRB %d, do nothing\n", (int)rb_idP);
+      }
+      break;
+
+    case CONFIG_ACTION_ADD:
+      if (ue != NULL)
+        LOG_D(RLC, "%s:%d:%s: adding rb %d (is_srb %d) for UE %d with ue->srb[rb_idP -1] %d\n", __FILE__, __LINE__, __FUNCTION__, (int)rb_idP, srb_flagP, ctxt_pP->rnti, ue->srb[rb_idP -1]);
+        //LOG_D(RLC, "%s:%d:%s: adding rb %d (is_srb %d) for UE %d\n", __FILE__, __LINE__, __FUNCTION__, (int)rb_idP, srb_flagP, ctxt_pP->rnti);
+      else
+        LOG_W(RLC, "adding ue with rb %d failed\n", (int)rb_idP);
+      if (srb_flagP) {
+        if (ue->srb[rb_idP-1] != NULL) {
+          LOG_W(RLC, "warning rb %d already exist for ue %d, do nothing\n", (int)rb_idP);
+        } else {
+          /* default values from 36.331 9.2.1 */
+          int t_reordering       = 35;
+          int t_status_prohibit  = 0;
+          int t_poll_retransmit  = 45;
+          int poll_pdu           = -1;
+          int poll_byte          = -1;
+          int max_retx_threshold = 4;
+          ue->module_id = ctxt_pP->module_id;
+  
+          rlc_entity_t            *rlc_am;
+          rlc_am = new_rlc_entity_am(100000,
+                                    100000,
+                                    deliver_sdu, ue,
+                                    successful_delivery, ue,
+                                    max_retx_reached, ue,
+                                    t_reordering, t_status_prohibit,
+                                    t_poll_retransmit,
+                                    poll_pdu, poll_byte, max_retx_threshold);
+          rlc_ue_add_srb_rlc_entity(ue, rb_idP, rlc_am);
+
+          LOG_D(RLC, "added rb %d to UE RNTI %x\n", (int)rb_idP, ctxt_pP->rnti);
+        }
+      } else {
+        if (ue->drb[rb_idP-1] != NULL) {
+          LOG_W(RLC, "warning rb %d already exist for ue %d, do nothing\n", (int)rb_idP);
+        } else {
+          rlc_entity_t            *rlc_um;
+          rlc_um = new_rlc_entity_um(1000000,
+                                    1000000,
+                                    deliver_sdu, ue,
+                                    0,//LTE_T_Reordering_ms0,//t_reordering,
+                                    5//LTE_SN_FieldLength_size5//sn_field_length
+                                    );
+          rlc_ue_add_drb_rlc_entity(ue, rb_idP, rlc_um);
+
+          LOG_D(RLC, "added rb %d to UE RNTI %x\n", (int)rb_idP, ctxt_pP->rnti);
+        }
+      }
+      break;
   }
   rlc_manager_unlock(rlc_ue_manager);
   return RLC_OP_STATUS_OK;

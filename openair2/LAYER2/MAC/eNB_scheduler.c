@@ -883,7 +883,7 @@ eNB_dlsch_ulsch_scheduler(module_id_t module_idP,
       /* Increment these timers, they are cleared when we receive an sdu */
       UE_scheduling_control->ul_inactivity_timer++;
       UE_scheduling_control->cqi_req_timer++;
-      LOG_D(MAC, "UE %d/%x : ul_inactivity %d, cqi_req %d\n",
+      LOG_I(MAC, "UE %d/%x : ul_inactivity %d, cqi_req %d\n",
             UE_id,
             rnti,
             UE_scheduling_control->ul_inactivity_timer,

@@ -92,21 +92,28 @@ static int rlc_am_segment_full(rlc_entity_am_t *entity, int sn)
   int new_last_byte;
 
   last_byte = -1;
+  LOG_I(RLC, "entity->rx_list rx pdu segment l = %p with sn %d 0x%x\n", l, sn, sn);
   while (l != NULL) {
     if (l->sn == sn)
       break;
     l = l->next;
   }
+  LOG_I(RLC, "The first same sn entity->rx_list (rx pdu sement) l = %p\n", l);
   while (l != NULL && l->sn == sn) {
-    if (l->so > last_byte + 1)
+    if (l->so > last_byte + 1) {
+      LOG_I(RLC, "We are here : l->so > last_byte + 1  return 0, %s line %d\n", __FUNCTION__, __LINE__);
       return 0;
-    if (l->is_last)
+    }
+    if (l->is_last) {
+      LOG_I(RLC, "We are here : l->is_last exists return 1, %s line %d\n", __FUNCTION__, __LINE__);
       return 1;
+    }
     new_last_byte = l->so + l->size - l->data_offset - 1;
     if (new_last_byte > last_byte)
       last_byte = new_last_byte;
     l = l->next;
   }
+  LOG_I(RLC, "We are here return 0 at the end. %s line %d\n", __FUNCTION__, __LINE__);
   return 0;
 }
 
@@ -116,6 +123,7 @@ static int rlc_am_reassemble_next_segment(rlc_am_reassemble_t *r)
   int rf;
   int sn;
 
+  LOG_I(RLC, "rlc_am_reassemble_next_segment!!!\n");
   r->sdu_offset = r->start->data_offset;
 
   rlc_pdu_decoder_init(&r->dec, r->start->data, r->start->size);
@@ -138,6 +146,9 @@ static int rlc_am_reassemble_next_segment(rlc_am_reassemble_t *r)
     r->sdu_len = rlc_pdu_decoder_get_bits(&r->dec, 11);
   } else
     r->sdu_len = r->start->size - r->sdu_offset;
+
+  LOG_I(RLC, "rlc_am_reassemble_next_segment r->sdu_len %d r->start->size %d r->sdu_offset %d\n",
+              r->sdu_len, r->start->size, r->sdu_offset);
 
   /* new sn: read starts from PDU byte 0 */
   if (sn != r->sn) {
@@ -230,10 +241,10 @@ static void rlc_am_reassemble(rlc_entity_am_t *entity)
 static void rlc_am_reception_actions(rlc_entity_am_t *entity,
     rlc_rx_pdu_segment_t *pdu_segment)
 {
-  LOG_I(RLC, "Entered rlc_am_reception_actions\n");
   int x = pdu_segment->sn;
   int vr_ms;
   int vr_r;
+  LOG_I(RLC, "Entered rlc_am_reception_actions with sn %d 0x%x\n", x, x);
 
   if (modulus_rx(entity, x) >= modulus_rx(entity, entity->vr_h))
     entity->vr_h = (x + 1) % 1024;
@@ -243,8 +254,10 @@ static void rlc_am_reception_actions(rlc_entity_am_t *entity,
     vr_ms = (vr_ms + 1) % 1024;
   entity->vr_ms = vr_ms;
 
+  LOG_I(RLC, "rlc_am_reception_actions: sn %d 0x%x vs entity->vr_r %d 0x%x \n", x, x, entity->vr_r, entity->vr_r);
   if (x == entity->vr_r) {
     vr_r = entity->vr_r;
+    LOG_I(RLC, "rlc_am_segment_full(entity, vr_r) is %d (1 is full)\n",  rlc_am_segment_full(entity, vr_r));
     while (rlc_am_segment_full(entity, vr_r)) {
       /* move segments with sn=vr(r) from rx list to end of reassembly list */
       while (entity->rx_list != NULL && entity->rx_list->sn == vr_r) {
@@ -613,7 +626,7 @@ void rlc_entity_am_recv_pdu(rlc_entity_t *_entity, char *buffer, int size)
 
   rlc_pdu_decoder_init(&decoder, buffer, size);
   dc = rlc_pdu_decoder_get_bits(&decoder, 1); R(decoder);
-  LOG_I(RLC, "dc = %d : 0 menas goto control in very early stage.\n", dc);
+  LOG_I(RLC, "dc = %d : 0 means goto control in very early stage.\n", dc);
   if (dc == 0) goto control;
 
   /* data PDU */
@@ -648,6 +661,7 @@ void rlc_entity_am_recv_pdu(rlc_entity_t *_entity, char *buffer, int size)
   packet_count = 1;
 
   /* go to start of data */
+  LOG_I(RLC, "go to start of data\n");
   indicated_data_size = 0;
   data_decoder = decoder;
   data_e = e;
@@ -662,6 +676,7 @@ void rlc_entity_am_recv_pdu(rlc_entity_t *_entity, char *buffer, int size)
     indicated_data_size += data_li;
     packet_count++;
   }
+  LOG_I(RLC, "Calling rlc_pdu_decoder_align\n");
   rlc_pdu_decoder_align(&data_decoder);
 
   data_start = data_decoder.byte;
@@ -694,7 +709,7 @@ void rlc_entity_am_recv_pdu(rlc_entity_t *_entity, char *buffer, int size)
     "first byte: NO   last byte: NO",
   };
 
-  LOG_D(RLC, "found %d packets, data size %d data start %d [fi %d %s] (sn %d) (p %d)\n",
+  LOG_I(RLC, "found %d packets, data size %d data start %d [fi %d %s] (sn %d) (p %d)\n",
         packet_count, data_size, data_decoder.byte, fi, fi_str[fi], sn, p);
 
   /* put in pdu reception list */
@@ -1311,6 +1326,7 @@ static int generate_tx_pdu(rlc_entity_am_t *entity, char *buffer, int bufsize)
 
   pdu->sn = entity->vt_s;
   entity->vt_s = (entity->vt_s + 1) % 1024;
+  LOG_I(RLC, "generate_tx_pdu  pdu->sn %d\n", pdu->sn);
 
   /* go to first SDU (skip those already fully processed) */
   sdu = entity->tx_list;

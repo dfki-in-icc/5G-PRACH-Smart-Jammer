@@ -516,7 +516,11 @@ PRACH_RESOURCES_t *ue_get_rach(module_id_t module_idP, int CC_id,
                 "[UE %d] Frame %d : UL-DCCH -> ULSCH, RRC message has %d bytes to send through PRACH(mac header len %d)\n",
                 module_idP, frameP, rlc_status.bytes_in_buffer,
                 dcch_header_len);
-        if (rlc_status.bytes_in_buffer > 0) {
+        uint8_t access_mode = SCHEDULED_ACCESS;
+        uint16_t buflen = 109;
+        UE_mac_inst[module_idP].crnti = UE_mac_inst[module_idP].crnti_before_ho;
+        ue_get_sdu(module_idP, 0, frameP, subframeP, 0, (char *)&ulsch_buff[0], buflen, &access_mode);
+        if (0 && rlc_status.bytes_in_buffer > 0) {
           sdu_lengths = mac_rlc_data_req(module_idP, UE_mac_inst[module_idP].crnti_before_ho, eNB_indexP, frameP, ENB_FLAG_NO, MBMS_FLAG_NO, DCCH, 6,
                                         (char *) &ulsch_buff[0],0,
                                         0
@@ -544,7 +548,8 @@ PRACH_RESOURCES_t *ue_get_rach(module_id_t module_idP, int CC_id,
         UE_mac_inst[module_idP].RA_PREAMBLE_TRANSMISSION_COUNTER =
           1;
         UE_mac_inst[module_idP].RA_Msg3_size = //rlc_status.bytes_in_buffer + dcch_header_len;
-          sdu_lengths + dcch_header_len;
+          UE_mac_inst[module_idP].scheduling_info.BSR_bytes[0] + dcch_header_len;
+
         UE_mac_inst[module_idP].RA_prachMaskIndex = 0;
         UE_mac_inst[module_idP].RA_prach_resources.Msg3 = ulsch_buff;
         UE_mac_inst[module_idP].RA_backoff_cnt = 0; // add the backoff condition here if we have it from a previous RA reponse which failed (i.e. backoff indicator)
@@ -569,6 +574,7 @@ PRACH_RESOURCES_t *ue_get_rach(module_id_t module_idP, int CC_id,
         // Fill in preamble and PRACH resource
         get_prach_resources(module_idP, CC_id, eNB_indexP,
                             subframeP, 1, NULL);
+#if 0
         generate_ulsch_header((uint8_t *) ulsch_buff, // mac header
                               1,  // num sdus
                               0,  // short pading
@@ -580,6 +586,7 @@ PRACH_RESOURCES_t *ue_get_rach(module_id_t module_idP, int CC_id,
                               NULL, // short bsr
                               NULL, // long_bsr
                               0); //post_padding
+#endif
               return (&UE_mac_inst[module_idP].RA_prach_resources);
               //}
             }

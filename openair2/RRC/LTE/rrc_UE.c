@@ -2115,16 +2115,16 @@ rrc_ue_process_mobilityControlInfo(
     ASN_SEQUENCE_ADD (&(drb2release_list)->list,lcid);
   }
    */
-  //Removing SRB1 and SRB2 and DRB0
+  //Resetting SRB1 and SRB2 and DRB0
+
   LOG_I(RRC,"[UE %d] : Update needed for rrc_pdcp_config_req (deprecated) and rrc_rlc_config_req commands(deprecated)\n", ctxt_pP->module_id);
-#if 0 //DavidK
-  rrc_pdcp_config_req (ctxt_pP, SRB_FLAG_YES, CONFIG_ACTION_REMOVE, DCCH,UNDEF_SECURITY_MODE);
-  rrc_rlc_config_req(ctxt_pP, SRB_FLAG_YES, MBMS_FLAG_NO, CONFIG_ACTION_REMOVE,ctxt_pP->module_id+DCCH,Rlc_info_am_config);
-  rrc_pdcp_config_req (ctxt_pP, SRB_FLAG_YES, CONFIG_ACTION_REMOVE, DCCH1,UNDEF_SECURITY_MODE);
-  rrc_rlc_config_req(ctxt_pP, SRB_FLAG_YES,CONFIG_ACTION_REMOVE, MBMS_FLAG_NO,ctxt_pP->module_id+DCCH1,Rlc_info_am_config);
-  rrc_pdcp_config_req (ctxt_pP, SRB_FLAG_NO, CONFIG_ACTION_REMOVE, DTCH,UNDEF_SECURITY_MODE);
-  rrc_rlc_config_req(ctxt_pP, SRB_FLAG_NO,CONFIG_ACTION_REMOVE, MBMS_FLAG_NO,ctxt_pP->module_id+DTCH,Rlc_info_um);
-#endif
+  rrc_pdcp_config_req (ctxt_pP, SRB_FLAG_YES, CONFIG_ACTION_RESET, DCCH,UNDEF_SECURITY_MODE);
+  rrc_rlc_config_req(ctxt_pP, SRB_FLAG_YES, MBMS_FLAG_NO, CONFIG_ACTION_RESET,ctxt_pP->module_id+DCCH, Rlc_info_am_config);
+  rrc_pdcp_config_req (ctxt_pP, SRB_FLAG_YES, CONFIG_ACTION_RESET, DCCH1,UNDEF_SECURITY_MODE);
+  rrc_rlc_config_req(ctxt_pP, SRB_FLAG_YES, MBMS_FLAG_NO, CONFIG_ACTION_RESET, ctxt_pP->module_id+DCCH1, Rlc_info_am_config);
+  //rrc_pdcp_config_req (ctxt_pP, SRB_FLAG_NO, CONFIG_ACTION_RESET, DTCH,UNDEF_SECURITY_MODE);
+  //rrc_rlc_config_req(ctxt_pP, SRB_FLAG_NO, MBMS_FLAG_NO, CONFIG_ACTION_RESET, ctxt_pP->module_id+DTCH, Rlc_info_um);
+
   //Synchronisation to DL of target cell
   LOG_I(RRC,
         "HO: Reset PDCP and RLC for configured RBs.. \n[FRAME %05d][RRC_UE][MOD %02d][][--- MAC_CONFIG_REQ  (SRB2 eNB %d) --->][MAC_UE][MOD %02d][]\n",
@@ -2159,6 +2159,23 @@ rrc_ue_process_mobilityControlInfo(
                         (struct LTE_NonMBSFN_SubframeConfig_r14 *)NULL,
                         (LTE_MBSFN_AreaInfoList_r9_t *)NULL
                        );
+
+#if 1
+  protocol_ctxt_t ho_ctxt = *ctxt_pP;
+  ho_ctxt.rnti = 
+      ((mobilityControlInfo->
+        newUE_Identity.buf[1]) | (mobilityControlInfo->
+                                  newUE_Identity.buf[0] << 8));
+  const protocol_ctxt_t *const ho_ctxt_pP = &ho_ctxt;
+  LOG_I(RRC, "ORG_rnti = 0x%x vs  HO_rnti = 0x%x\n", ctxt_pP->rnti, ho_ctxt.rnti); 
+
+  rrc_pdcp_config_req(ho_ctxt_pP, SRB_FLAG_YES, CONFIG_ACTION_ADD, DCCH,UNDEF_SECURITY_MODE);
+  rrc_rlc_config_req(ho_ctxt_pP, SRB_FLAG_YES, MBMS_FLAG_NO, CONFIG_ACTION_ADD,ctxt_pP->module_id+DCCH, Rlc_info_am_config);
+  rrc_pdcp_config_req (ho_ctxt_pP, SRB_FLAG_YES, CONFIG_ACTION_ADD, DCCH1,UNDEF_SECURITY_MODE);
+  rrc_rlc_config_req(ho_ctxt_pP, SRB_FLAG_YES, MBMS_FLAG_NO, CONFIG_ACTION_ADD, ctxt_pP->module_id+DCCH1, Rlc_info_am_config);
+  rrc_pdcp_config_req (ho_ctxt_pP, SRB_FLAG_NO, CONFIG_ACTION_ADD, DTCH,UNDEF_SECURITY_MODE);
+  rrc_rlc_config_req(ho_ctxt_pP, SRB_FLAG_NO, MBMS_FLAG_NO, CONFIG_ACTION_ADD, ctxt_pP->module_id+DTCH, Rlc_info_um);
+#endif
   // Re-establish PDCP for all RBs that are established
   // rrc_pdcp_config_req (ue_mod_idP+NB_eNB_INST, frameP, 0, CONFIG_ACTION_ADD, ue_mod_idP+DCCH);
   // rrc_pdcp_config_req (ue_mod_idP+NB_eNB_INST, frameP, 0, CONFIG_ACTION_ADD, ue_mod_idP+DCCH1);
@@ -2324,8 +2341,8 @@ rrc_ue_decode_dcch(
             else
               LOG_I(RRC, "DavidK3 UE State = %d\n", UE_mac_inst[ctxt_pP->module_id].UE_mode[0]);
 #endif
-            UE_rrc_inst[ctxt_pP->module_id].HandoverInfoUe.Transaction_id 
-                = dl_dcch_msg->message.choice.c1.choice.rrcConnectionReconfiguration.rrc_TransactionIdentifier;
+            //UE_rrc_inst[ctxt_pP->module_id].HandoverInfoUe.Transaction_id 
+            //    = dl_dcch_msg->message.choice.c1.choice.rrcConnectionReconfiguration.rrc_TransactionIdentifier;
             //if (0 && UE_mac_inst[ctxt_pP->module_id].UE_mode[0] == PUSCH) {
               rrc_ue_generate_RRCConnectionReconfigurationComplete(
                 ctxt_pP,

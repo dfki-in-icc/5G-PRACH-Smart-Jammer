@@ -180,12 +180,14 @@ add_msg3(module_id_t module_idP, int CC_id, RA_t *ra, frame_t frameP,
     ul_config_pdu->ulsch_pdu.ulsch_pdu_rel8.ul_tx_mode                     = 0;
     ul_config_pdu->ulsch_pdu.ulsch_pdu_rel8.current_tx_nb                  = 0;
     ul_config_pdu->ulsch_pdu.ulsch_pdu_rel8.n_srs                          = 1;
-    ul_config_pdu->ulsch_pdu.ulsch_pdu_rel8.size                           = get_TBS_UL(10, ra->msg3_nb_rb);
+    ul_config_pdu->ulsch_pdu.ulsch_pdu_rel8.size                           = get_TBS_UL(10, ra->msg3_nb_rb) + 3;// DavidK comeback again
     ul_req_body->number_of_pdus++;
     ul_req_body->tl.tag                                                    = NFAPI_UL_CONFIG_REQUEST_BODY_TAG;
     ul_req->sfn_sf                                                         = ra->Msg3_frame<<4|ra->Msg3_subframe;
     ul_req->header.message_id                                              = NFAPI_UL_CONFIG_REQUEST;
-
+    LOG_D (MAC, "ra->msg3_nb_rb %d ulsch_pdu.ulsch_pdu_rel8.size %d\n",  
+                  ra->msg3_nb_rb, 
+                   ul_config_pdu->ulsch_pdu.ulsch_pdu_rel8.size);
     // save UL scheduling information for preprocessor
     for (j = 0; j < ra->msg3_nb_rb; j++)
       cc->vrb_map_UL[ra->msg3_first_rb + j] = 1;
@@ -540,7 +542,7 @@ void generate_Msg2(module_id_t module_idP,
         fill_rar(module_idP, CC_idP, ra, frameP, cc[CC_idP].RAR_pdu.payload, N_RB_DL, 7);
         add_msg3(module_idP, CC_idP, ra, frameP, subframeP);
         ra->state = WAITMSG3;
-        LOG_D(MAC,"[eNB %d][RAPROC] Frame %d, Subframe %d: state:WAITMSG3\n", module_idP, frameP, subframeP);
+        LOG_I(MAC,"[eNB %d][RAPROC] Frame %d, Subframe %d: state:WAITMSG3\n", module_idP, frameP, subframeP);
         T(T_ENB_MAC_UE_DL_RAR_PDU_WITH_DATA, T_INT(module_idP),
           T_INT(CC_idP), T_INT(ra->RA_rnti), T_INT(frameP),
           T_INT(subframeP), T_INT(0 /*harq_pid always 0? */ ),

@@ -2432,7 +2432,8 @@ do_RRCConnectionReconfigurationComplete(
     rrcConnectionReconfigurationComplete->criticalExtensions.choice.rrcConnectionReconfigurationComplete_r8.nonCriticalExtension=NULL;
   }
 
-  if ( LOG_DEBUGFLAG(DEBUG_ASN1) ) {
+  if ( 1 || LOG_DEBUGFLAG(DEBUG_ASN1) ) {
+    LOG_I(RRC, "Showing ul_dcch_msg\n");
     xer_fprint(stdout, &asn_DEF_LTE_UL_DCCH_Message, (void *)&ul_dcch_msg);
   }
 

@@ -368,6 +368,7 @@ boolean_t pdcp_data_req(
         pdcp_control_plane_data_pdu_header pdu_header;
         pdu_header.sn = pdcp_get_next_tx_seq_number(pdcp_p);
         current_sn = pdu_header.sn;
+        LOG_I(PDCP, "Sequence number %d is assigned to current PDU with srb_flagP = 1 \n", current_sn);
         memset(&pdu_header.mac_i[0],0,PDCP_CONTROL_PLANE_DATA_PDU_MAC_I_SIZE);
         memset(&pdcp_pdu_p->data[sdu_buffer_sizeP + pdcp_header_len],0,PDCP_CONTROL_PLANE_DATA_PDU_MAC_I_SIZE);
 
@@ -389,6 +390,7 @@ boolean_t pdcp_data_req(
         pdu_header.dc = (modeP == PDCP_TRANSMISSION_MODE_DATA) ? PDCP_DATA_PDU_BIT_SET :  PDCP_CONTROL_PDU_BIT_SET;
         pdu_header.sn = pdcp_get_next_tx_seq_number(pdcp_p);
         current_sn = pdu_header.sn ;
+        LOG_I(PDCP, "Sequence number %d is assigned to current PDU with srb_flagP = 0 \n", current_sn);
 
         if (pdcp_serialize_user_plane_data_pdu_with_long_sn_buffer((unsigned char *)pdcp_pdu_p->data, &pdu_header) == FALSE) {
           LOG_E(PDCP, PROTOCOL_PDCP_CTXT_FMT" Cannot fill PDU buffer with relevant header fields!\n",
@@ -2270,6 +2272,15 @@ void rrc_pdcp_config_req (
         LOG_D(PDCP,PROTOCOL_PDCP_CTXT_FMT" Config request : Action ADD:  radio bearer id %ld (already added) configured\n",
               PROTOCOL_PDCP_CTXT_ARGS(ctxt_pP,pdcp_p),
               rb_idP);
+        break;
+
+      case CONFIG_ACTION_RESET:
+        pdcp_p->next_pdcp_tx_sn = 0;
+        pdcp_p->next_pdcp_rx_sn = 0;
+        pdcp_p->tx_hfn = 0;
+        pdcp_p->rx_hfn = 0;
+        pdcp_p->last_submitted_pdcp_rx_sn = 4095;
+        pdcp_p->first_missing_pdu = -1;
         break;
 
       case CONFIG_ACTION_MODIFY:

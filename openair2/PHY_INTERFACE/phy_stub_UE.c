@@ -846,7 +846,7 @@ void dl_config_req_UE_MAC_dci(int sfn,
   if (rnti_type == 1) { // C-RNTI (Normal DLSCH case)
     for (int ue_id = 0; ue_id < num_ue; ue_id++) {
       if (UE_mac_inst[ue_id].crnti == rnti) {
-        LOG_D(MAC,
+        LOG_I(MAC,
               "%s() Received data: sfn/sf:%d.%d "
               "size:%d, TX_PDU index: %d, tx_req_num_elems: %d \n",
               __func__,
