@@ -500,17 +500,27 @@ class OaiCiTest():
 			UE_prefix = 'NR '
 		SSH = sshconnection.SSHConnection()
 		SSH.open(self.UEIPAddress, self.UEUserName, self.UEPassword)
-		# b2xx_fx3_utils reset procedure
+		# UHD reset procedure
 		SSH.command('echo ' + self.UEPassword + ' | sudo -S uhd_find_devices', '\$', 180)
-		result = re.search('type: b200', SSH.getBefore())
+		uhd_devices = SSH.getBefore()
+		result = re.search('type: b200', uhd_devices)
 		if result is not None:
 			logging.debug('Found a B2xx device --> resetting it')
 			SSH.command('echo ' + self.UEPassword + ' | sudo -S b2xx_fx3_utils --reset-device', '\$', 10)
 			# Reloading FGPA bin firmware
 			SSH.command('echo ' + self.UEPassword + ' | sudo -S uhd_find_devices', '\$', 180)
-		result = re.search('type: n3xx', str(SSH.getBefore()))
+		result = re.search('type: n3xx', uhd_devices)
 		if result is not None:
-			logging.debug('Found a N3xx device --> resetting it')
+			logging.debug('Found a N3xx device --> no reset procedure defined')
+		result = re.search('type: x300', uhd_devices)
+		if result is not None:
+			logging.debug('Found a X300 device --> resetting it')
+			# we hardcode the X300 address, which is currently the only one in use in the CI
+			SSH.command('echo ' + self.UEPassword + ' | sudo -S x300_reset.py --addr=192.168.60.2', '\$', 10)
+			# There is no X300 firmware load through uhd_find_devices. However,
+			# it takes some time for the X300 to be online again, so we just wait 10s
+			time.sleep(10)
+			SSH.command('echo ' + self.UEPassword + ' | sudo -S uhd_find_devices', '\$', 180)
 		SSH.command('cd ' + self.UESourceCodePath, '\$', 5)
 		# Initialize_OAI_UE_args usually start with -C and followed by the location in repository
 		SSH.command('source oaienv', '\$', 5)
