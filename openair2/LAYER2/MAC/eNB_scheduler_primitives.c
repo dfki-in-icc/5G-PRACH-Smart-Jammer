@@ -1985,15 +1985,15 @@ find_UE_id(module_id_t mod_idP,
 {
   int UE_id;
   UE_info_t *UE_info = &RC.mac[mod_idP]->UE_info;
-  LOG_I(MAC, "UE_info= %p mod_idP %d\n", UE_info, mod_idP);
+  LOG_D(MAC, "UE_info= %p mod_idP %d\n", UE_info, mod_idP);
   if(!UE_info)
     return -1;
 
   for (UE_id = 0; UE_id < MAX_MOBILES_PER_ENB; UE_id++) {
     if (UE_info->active[UE_id] == TRUE) {
       int CC_id = UE_PCCID(mod_idP, UE_id);
-      LOG_I(MAC, "CC_id %d  NFAPI_CC_MAX %d \n", CC_id, NFAPI_CC_MAX);
-      LOG_I(MAC, "Checking UE_info->UE_template[CC_id %d][UE_id %d].rnti 0x%x\n", 
+      LOG_D(MAC, "CC_id %d  NFAPI_CC_MAX %d \n", CC_id, NFAPI_CC_MAX);
+      LOG_D(MAC, "Checking UE_info->UE_template[CC_id %d][UE_id %d].rnti 0x%x\n", 
             CC_id, UE_id,
             UE_info->UE_template[CC_id][UE_id].rnti);
       if (CC_id>=0 && CC_id<NFAPI_CC_MAX && UE_info->UE_template[CC_id][UE_id].rnti == rntiP) {
@@ -3141,7 +3141,7 @@ allocate_CCEs(int module_idP,
     max_symbol = 3;
 
   nfapi_ul_config_request_body_t *ul_req = &eNB->UL_req_tmp[CC_idP][ackNAK_absSF % 10].ul_config_request_body;
-  LOG_I(MAC, "Allocate CCEs subframe %d, test %d : (DL PDU %d, DL DCI %d, UL %d)\n",
+  LOG_D(MAC, "Allocate CCEs subframe %d, test %d : (DL PDU %d, DL DCI %d, UL %d)\n",
         subframeP,
         test_onlyP,
         DL_req->number_pdu,
@@ -3173,7 +3173,7 @@ try_again:
         if (DL_req->number_pdcch_ofdm_symbols == max_symbol)
           return -1;
 
-        LOG_I(MAC, "Can't fit DCI allocations with %d PDCCH symbols, increasing by 1\n",
+        LOG_D(MAC, "Can't fit DCI allocations with %d PDCCH symbols, increasing by 1\n",
               DL_req->number_pdcch_ofdm_symbols);
         DL_req->number_pdcch_ofdm_symbols++;
         nCCE_max = get_nCCE_max(cc, DL_req->number_pdcch_ofdm_symbols, subframeP);
@@ -3213,7 +3213,7 @@ try_again:
           return -1;
         }
 
-        LOG_I(MAC, "Can't fit DCI allocations with %d PDCCH symbols (rnti condition), increasing by 1\n",
+        LOG_D(MAC, "Can't fit DCI allocations with %d PDCCH symbols (rnti condition), increasing by 1\n",
               DL_req->number_pdcch_ofdm_symbols);
         DL_req->number_pdcch_ofdm_symbols++;
         nCCE_max = get_nCCE_max(cc, DL_req->number_pdcch_ofdm_symbols, subframeP);
@@ -3222,7 +3222,7 @@ try_again:
 
       // the allocation is feasible, rnti rule passes
       nCCE += dl_config_pduLoop->dci_dl_pdu.dci_dl_pdu_rel8.aggregation_level;
-      LOG_I(MAC, "Allocating at nCCE %d\n", fCCE);
+      LOG_D(MAC, "Allocating at nCCE %d\n", fCCE);
 
       if ((test_onlyP%2) == 0) {
         dl_config_pduLoop->dci_dl_pdu.dci_dl_pdu_rel8.cce_idx = fCCE;
@@ -3326,7 +3326,7 @@ try_again:
     // allocate DL UE specific DCIs
     if ((dl_config_pdu[i].pdu_type == NFAPI_DL_CONFIG_DCI_DL_PDU_TYPE)
         && (dl_config_pduLoop->dci_dl_pdu.dci_dl_pdu_rel8.rnti_type == 1)) {
-      LOG_I(MAC, "Trying to allocate DL UE-SPECIFIC DCI %d/%d (%d,%d) : rnti %x, aggreg %d nCCE %d / %d (num_pdcch_symbols %d)\n",
+      LOG_D(MAC, "Trying to allocate DL UE-SPECIFIC DCI %d/%d (%d,%d) : rnti %x, aggreg %d nCCE %d / %d (num_pdcch_symbols %d)\n",
             idci,
             DL_req->number_dci + HI_DCI0_req->number_of_dci,
             DL_req->number_dci, HI_DCI0_req->number_of_dci,
@@ -3340,7 +3340,7 @@ try_again:
         if (DL_req->number_pdcch_ofdm_symbols == max_symbol)
           return -1;
 
-        LOG_I(MAC, "Can't fit DCI allocations with %d PDCCH symbols, increasing by 1\n",
+        LOG_D(MAC, "Can't fit DCI allocations with %d PDCCH symbols, increasing by 1\n",
               DL_req->number_pdcch_ofdm_symbols);
         DL_req->number_pdcch_ofdm_symbols++;
         nCCE_max = get_nCCE_max(cc, DL_req->number_pdcch_ofdm_symbols, subframeP);
@@ -3382,7 +3382,7 @@ try_again:
           return -1;
         }
 
-        LOG_I(MAC, "Can't fit DCI allocations with %d PDCCH symbols (rnti condition), increasing by 1\n",
+        LOG_D(MAC, "Can't fit DCI allocations with %d PDCCH symbols (rnti condition), increasing by 1\n",
               DL_req->number_pdcch_ofdm_symbols);
         DL_req->number_pdcch_ofdm_symbols++;
         nCCE_max = get_nCCE_max(cc, DL_req->number_pdcch_ofdm_symbols, subframeP);
@@ -3391,7 +3391,7 @@ try_again:
 
       // the allocation is feasible, rnti rule passes
       nCCE += dl_config_pduLoop->dci_dl_pdu.dci_dl_pdu_rel8.aggregation_level;
-      LOG_I(MAC, "Allocating at nCCE %d\n",
+      LOG_D(MAC, "Allocating at nCCE %d\n",
             fCCE);
 
       if ((test_onlyP%2) == 0) {
@@ -3518,7 +3518,7 @@ CCE_allocation_infeasible(int module_idP,
       dl_config_pdu->dci_dl_pdu.dci_dl_pdu_rel8.rnti_type         = (format_flag == 0) ? 2 : 1;
       dl_config_pdu->dci_dl_pdu.dci_dl_pdu_rel8.aggregation_level = aggregation;
       DL_req->number_pdu++;
-      LOG_I(MAC, "Subframe %d: Checking CCE feasibility format %d : (%x,%d) \n",
+      LOG_D(MAC, "Subframe %d: Checking CCE feasibility format %d : (%x,%d) \n",
             subframe, format_flag, rnti, aggregation);
 
       if (allocate_CCEs(module_idP, CC_idP, 0, subframe, 0) != -1)

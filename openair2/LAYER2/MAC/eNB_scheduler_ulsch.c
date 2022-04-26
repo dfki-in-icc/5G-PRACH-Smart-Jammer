@@ -456,16 +456,12 @@ rx_sdu(const module_id_t enb_mod_idP,
         }
 
         payload_ptr += sizeof(POWER_HEADROOM_CMD);
-        LOG_I(MAC, "line %d offset: %d payload_ptr %d sduP %d\n", __LINE__,
-                                                        (unsigned char) ((unsigned char *) payload_ptr - sduP), 
-                                                        (unsigned char) ((unsigned char *) payload_ptr),
-                                                        (unsigned char) ((unsigned char *) sduP));
         break;
 
       case CRNTI:
         old_rnti = (((uint16_t) payload_ptr[1]) << 8) + payload_ptr[0];
         old_UE_id = find_UE_id(enb_mod_idP, old_rnti);
-        LOG_I(MAC, "[eNB %d] DavidK Frame %d, Subframe %d CC_id %d MAC CE_LCID %d (ce %d/%d): CRNTI %x (UE_id %d) in Msg3\n",
+        LOG_I(MAC, "[eNB %d] Frame %d, Subframe %d CC_id %d MAC CE_LCID %d (ce %d/%d): CRNTI %x (UE_id %d) in Msg3\n",
               enb_mod_idP,
               frameP,
               subframeP,
@@ -593,20 +589,12 @@ rx_sdu(const module_id_t enb_mod_idP,
 
         crnti_rx = 1;
         payload_ptr += 2; // sizeof(CRNTI)
-        LOG_I(MAC, "line %d offset: %d payload_ptr %d sduP %d\n", __LINE__,
-                                                        (unsigned char) ((unsigned char *) payload_ptr - sduP), 
-                                                        (unsigned char) ((unsigned char *) payload_ptr),
-                                                        (unsigned char) ((unsigned char *) sduP));
         break;
 
       case TRUNCATED_BSR:
       case SHORT_BSR:
-        LOG_I(MAC, "line %d offset: %d payload_ptr %d sduP %d\n", __LINE__,
-                                                        (unsigned char) ((unsigned char *) payload_ptr - sduP), 
-                                                        (unsigned char) ((unsigned char *) payload_ptr),
-                                                        (unsigned char) ((unsigned char *) sduP));
         lcgid = (payload_ptr[0] >> 6);
-        LOG_I(MAC, "[eNB %d] CC_id %d MAC CE_LCID %d : Received short BSR LCGID = %u bsr = %d\n",
+        LOG_D(MAC, "[eNB %d] CC_id %d MAC CE_LCID %d : Received short BSR LCGID = %u bsr = %d\n",
               enb_mod_idP,
               CC_idP,
               rx_ces[i],
@@ -647,10 +635,6 @@ rx_sdu(const module_id_t enb_mod_idP,
         }
 
         payload_ptr += 1;  // sizeof(SHORT_BSR)
-        LOG_I(MAC, "line %d offset: %d payload_ptr %d sduP %d\n", __LINE__,
-                                                        (unsigned char) ((unsigned char *) payload_ptr - sduP), 
-                                                        (unsigned char) ((unsigned char *) payload_ptr),
-                                                        (unsigned char) ((unsigned char *) sduP));
         break;
 
       case LONG_BSR:
@@ -673,7 +657,7 @@ rx_sdu(const module_id_t enb_mod_idP,
             UE_template_ptr->ul_buffer_info[LCGID1] +
             UE_template_ptr->ul_buffer_info[LCGID2] +
             UE_template_ptr->ul_buffer_info[LCGID3];
-          LOG_I(MAC, "[eNB %d] CC_id %d MAC CE_LCID %d: Received long BSR. Size is LCGID0 = %u LCGID1 = %u LCGID2 = %u LCGID3 = %u\n",
+          LOG_D(MAC, "[eNB %d] CC_id %d MAC CE_LCID %d: Received long BSR. Size is LCGID0 = %u LCGID1 = %u LCGID2 = %u LCGID3 = %u\n",
                 enb_mod_idP,
                 CC_idP,
                 rx_ces[i],
@@ -711,7 +695,7 @@ rx_sdu(const module_id_t enb_mod_idP,
   } // end for loop on control element
 
   for (int i = 0; i < num_sdu; i++) {
-    LOG_I(MAC, "SDU Number %d MAC Subheader SDU_LCID %d, length %d\n",
+    LOG_D(MAC, "SDU Number %d MAC Subheader SDU_LCID %d, length %d\n",
           i,
           rx_lcids[i],
           rx_lengths[i]);
@@ -869,14 +853,6 @@ rx_sdu(const module_id_t enb_mod_idP,
 
         LOG_T(MAC, "\n");
 #endif
-      LOG_I(MAC, "line %d offset: %d payload_ptr %d sduP %d\n", __LINE__,
-                                                        (unsigned char) ((unsigned char *) payload_ptr - sduP), 
-                                                        (unsigned char) ((unsigned char *) payload_ptr),
-                                                        (unsigned char) ((unsigned char *) sduP));
-        for (int j = 0; j < rx_lengths[i]; j++) {
-          LOG_I(MAC, " %x\n", payload_ptr[j]);
-        }
-        LOG_I(MAC, "\n");
       if ((rx_lengths[i] > DCH_PAYLOAD_SIZE_MAX) || (rx_lengths[i] < 0) || (rx_lengths[i] > (sdu_lenP - (payload_ptr - sduP)))) {
         LOG_E(MAC, "[eNB %d/%d] frame %d received DCCH of size %d (too big, maximum allowed is %d, sdu_len %d), dropping packet\n",
               enb_mod_idP,
@@ -1162,42 +1138,41 @@ parse_ulsch_header(unsigned char *mac_header,
   while (not_done == 1) {
     if (((SCH_SUBHEADER_FIXED *) mac_header_ptr)->E == 0) {
       not_done = 0;
-      LOG_I(MAC, "done header checking\n");
+      LOG_D(MAC, "done header checking\n");
     }
 
     lcid = ((SCH_SUBHEADER_FIXED *) mac_header_ptr)->LCID;
-    LOG_I(MAC,"lcid %d\n", lcid);
     if (lcid < EXTENDED_POWER_HEADROOM) {
       if (not_done == 0) {  // last MAC SDU, length is implicit
         mac_header_ptr++;
         length = tb_length - (mac_header_ptr - mac_header) - ce_len;
-        LOG_I(MAC, "mac_header_ptr += 1 wt lcid %d in line %d\n", lcid, __LINE__);
+        LOG_D(MAC, "mac_header_ptr += 1 wt lcid %u in line %d\n", lcid, __LINE__);
 
         for (num_sdu_cnt = 0; num_sdu_cnt < num_sdus; num_sdu_cnt++) {
           length -= rx_lengths[num_sdu_cnt];
-          LOG_I(MAC, "    Subtracking rx_lengths[num_sdu_cnt %d] = %u\n", num_sdu_cnt, rx_lengths[num_sdu_cnt]);
+          LOG_D(MAC, "    Subtracking rx_lengths[num_sdu_cnt %u] = %u\n", num_sdu_cnt, rx_lengths[num_sdu_cnt]);
         }
       } else {
         if (((SCH_SUBHEADER_SHORT *) mac_header_ptr)->F == 0) {
           length = ((SCH_SUBHEADER_SHORT *) mac_header_ptr)->L;
           mac_header_ptr += 2;  //sizeof(SCH_SUBHEADER_SHORT);
-          LOG_I(MAC, "mac_header_ptr += 2 wt F == 0 in SCH_SUBHEADER_SHORT in line %d\n", __LINE__);
+          LOG_D(MAC, "mac_header_ptr += 2 wt F == 0 in SCH_SUBHEADER_SHORT in line %d\n", __LINE__);
         } else {  // F = 1
           length = ((((SCH_SUBHEADER_LONG *) mac_header_ptr)->L_MSB & 0x7f) << 8) |
                    (((SCH_SUBHEADER_LONG *) mac_header_ptr)->L_LSB & 0xff);
           mac_header_ptr += 3;  //sizeof(SCH_SUBHEADER_LONG);
-          LOG_I(MAC, "mac_header_ptr += 3 wt F == 1 in SCH_SUBHEADER_SHORT in line %d\n", __LINE__);
+          LOG_D(MAC, "mac_header_ptr += 3 wt F == 1 in SCH_SUBHEADER_SHORT in line %d\n", __LINE__);
         }
       }
 
-      LOG_I(MAC, "[eNB] sdu %d lcid %d tb_length %d length %d (offset now %ld)\n",
+      LOG_D(MAC, "[eNB] sdu %u lcid %u tb_length %u length %u (offset now %ld)\n",
             num_sdus,
             lcid,
             tb_length,
             length,
             mac_header_ptr - mac_header);
       if(num_sdus >= NB_RB_MAX){
-        LOG_E(MAC,"parse_ulsch_header: num_sdus(%d) reach max\n",num_sdus);
+        LOG_E(MAC,"parse_ulsch_header: num_sdus(%u) reach max\n",num_sdus);
         return NULL;
       }
       rx_lcids[num_sdus] = lcid;
@@ -1206,28 +1181,28 @@ parse_ulsch_header(unsigned char *mac_header,
     } else {  // This is a control element subheader POWER_HEADROOM, BSR and CRNTI
       if (lcid == SHORT_PADDING) {
         mac_header_ptr++;
-        LOG_I(MAC, "mac_header_ptr += 1 wt lcid %d for SHORT_PADDING in line %d\n", lcid, __LINE__);
+        LOG_D(MAC, "mac_header_ptr += 1 wt lcid %u for SHORT_PADDING in line %d\n", lcid, __LINE__);
       } else {
         if(num_ces >= MAX_NUM_CE){
-           LOG_E(MAC,"parse_ulsch_header: num_ces(%d) reach max\n",num_ces);
+           LOG_E(MAC,"parse_ulsch_header: num_ces(%u) reach max\n",num_ces);
            return NULL;
         }
         rx_ces[num_ces] = lcid;
         num_ces++;
         mac_header_ptr++;
-        LOG_I(MAC, "mac_header_ptr += 1 wt lcid %d num_ces %d, for CE in line %d\n", lcid, num_ces, __LINE__);
+        LOG_D(MAC, "mac_header_ptr += 1 wt lcid %u num_ces %u, for CE in line %d\n", lcid, num_ces, __LINE__);
 
         if (lcid == LONG_BSR) {
           ce_len += 3;
-          LOG_I(MAC, "ce_len += 3 wt lcid %d -> LONG_BSR(30) in line %d\n", lcid, __LINE__);
+          LOG_D(MAC, "ce_len += 3 wt lcid %u -> LONG_BSR(30) in line %d\n", lcid, __LINE__);
         } else if (lcid == CRNTI) {
           ce_len += 2;
-          LOG_I(MAC, "ce_len += 2 wt CRNTI in line %d\n", lcid, __LINE__);
+          LOG_D(MAC, "ce_len += 2 wt CRNTI in line %d\n",  __LINE__);
         } else if ((lcid == POWER_HEADROOM) || (lcid == TRUNCATED_BSR) || (lcid == SHORT_BSR)) {
           ce_len++;
-          LOG_I(MAC, "ce_len += 1 wt lcid %d -> SHORT_BSR(29) or 26, 28 in line %d\n", lcid, __LINE__);
+          LOG_D(MAC, "ce_len += 1 wt lcid %u -> SHORT_BSR(29) or 26, 28 in line %d\n", lcid, __LINE__);
         } else {
-          LOG_E(MAC, "unknown CE %d \n", lcid);
+          LOG_E(MAC, "unknown CE %u \n", lcid);
           return NULL;
         }
       }

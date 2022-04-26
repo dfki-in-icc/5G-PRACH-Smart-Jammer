@@ -180,7 +180,7 @@ add_msg3(module_id_t module_idP, int CC_id, RA_t *ra, frame_t frameP,
     ul_config_pdu->ulsch_pdu.ulsch_pdu_rel8.ul_tx_mode                     = 0;
     ul_config_pdu->ulsch_pdu.ulsch_pdu_rel8.current_tx_nb                  = 0;
     ul_config_pdu->ulsch_pdu.ulsch_pdu_rel8.n_srs                          = 1;
-    ul_config_pdu->ulsch_pdu.ulsch_pdu_rel8.size                           = get_TBS_UL(10, ra->msg3_nb_rb) + 3;// DavidK comeback again
+    ul_config_pdu->ulsch_pdu.ulsch_pdu_rel8.size                           = get_TBS_UL(10, ra->msg3_nb_rb);
     ul_req_body->number_of_pdus++;
     ul_req_body->tl.tag                                                    = NFAPI_UL_CONFIG_REQUEST_BODY_TAG;
     ul_req->sfn_sf                                                         = ra->Msg3_frame<<4|ra->Msg3_subframe;
@@ -610,7 +610,6 @@ generate_Msg4(module_id_t module_idP,
   int             pucchreps[4] = { 1, 1, 1, 1 };
   int             n1pucchan[4] = { 0, 0, 0, 0 };
 
-  LOG_I(MAC, "We are here %s %d\n", __FUNCTION__, __LINE__);
   if (cc[CC_idP].mib->message.schedulingInfoSIB1_BR_r13 > 0 && cc[CC_idP].radioResourceConfigCommon_BR) {
     ext4_prach = cc[CC_idP].radioResourceConfigCommon_BR->ext4->prach_ConfigCommon_v1310;
     prach_ParametersListCE_r13 = &ext4_prach->prach_ParametersListCE_r13;
@@ -658,7 +657,6 @@ generate_Msg4(module_id_t module_idP,
   dl_config_pdu = &dl_req_body->dl_config_pdu_list[dl_req_body->number_pdu];
   N_RB_DL = to_prb(cc[CC_idP].mib->message.dl_Bandwidth);
   UE_id = find_UE_id(module_idP, ra->rnti);
-  LOG_I(MAC, "We are here %s %d\n", __FUNCTION__, __LINE__);
   if (UE_id < 0) {
     LOG_E(MAC, "Can't find UE for t-crnti %x, kill RA procedure for this UE\n",
           ra->rnti);
@@ -668,7 +666,6 @@ generate_Msg4(module_id_t module_idP,
 
   // set HARQ process round to 0 for this UE
   ra->harq_pid = frame_subframe2_dl_harq_pid(cc->tdd_Config,frameP,subframeP);
-  LOG_I(MAC, "We are here %s %d\n", __FUNCTION__, __LINE__);
   /* // Get RRCConnectionSetup for Piggyback
    rrc_sdu_length = mac_rrc_data_req(module_idP, CC_idP, frameP, CCCH, 1,  // 1 transport block
            &cc[CC_idP].CCCH_pdu.payload[0], 0);  // not used in this case
@@ -683,7 +680,6 @@ generate_Msg4(module_id_t module_idP,
    LOG_D(MAC,
    "[eNB %d][RAPROC] CC_id %d Frame %d, subframeP %d: UE_id %d, rrc_sdu_length %d\n",
    module_idP, CC_idP, frameP, subframeP, UE_id, rrc_sdu_length);*/
-  LOG_I(MAC, "We are here %s %d ra->rach_resource_type %d\n", __FUNCTION__, __LINE__, ra->rach_resource_type);
   if (ra->rach_resource_type > 0) {
     ra->harq_pid = 0;
     // Generate DCI + repetitions first
@@ -1429,14 +1425,14 @@ cancel_ra_proc(module_id_t module_idP, int CC_id, frame_t frameP,
         module_idP, CC_id, frameP, rnti);
 
   for (i = 0; i < NB_RA_PROC_MAX; i++) {
-    //if (rnti == ra[i].rnti) {
+    if (rnti == ra[i].rnti) {
       ra[i].state = IDLE;
       ra[i].timing_offset = 0;
       ra[i].RRC_timer = 20;
       ra[i].rnti = 0;
       ra[i].msg3_round = 0;
       LOG_I(MAC,"[eNB %d][RAPROC] CC_id %d Frame %d Canceled RA procedure for UE rnti %x\n", module_idP, CC_id, frameP, rnti);
-    //}
+    }
   }
 }
 

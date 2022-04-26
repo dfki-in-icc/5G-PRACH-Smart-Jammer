@@ -901,7 +901,7 @@ void dl_config_req_UE_MAC_dci(int sfn,
             && UE_mac_inst[ue_id].RA_prach_resources.Msg3 != NULL
             && ra_rnti == dlsch->dlsch_pdu.dlsch_pdu_rel8.rnti) {
           LOG_E(MAC,
-                "%s(): DavidK2 Received RAR, PreambleIndex: %d\n",
+                "%s(): Received RAR, PreambleIndex: %d\n",
                 __func__, UE_mac_inst[ue_id].RA_prach_resources.ra_PreambleIndex);
 
           ue_process_rar(ue_id, 0, sfn,

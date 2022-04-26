@@ -362,7 +362,7 @@ void dlsch_scheduler_pre_ue_select_fairRR(
       harq_pid = frame_subframe2_dl_harq_pid(cc[CC_id].tdd_Config,frameP,subframeP);
       round = ue_sched_ctl->round[CC_id][harq_pid];
 
-      LOG_I(MAC,"DavidK4 round %u harq_pid %u nb_rbs_reqed %u\n",
+      LOG_D(MAC,"round %u harq_pid %u nb_rbs_reqed %u\n",
               round, harq_pid, nb_rbs_required[CC_id][UE_id]);
 
       if (round == 8) {
@@ -760,7 +760,7 @@ static void assign_rbs_required_fairRR(
   for (UE_id = 0; UE_id < MAX_MOBILES_PER_ENB; UE_id++) {
     if (UE_info->active[UE_id] != TRUE)
       continue;
-    LOG_I(MAC, "DavidK4 UE_info->active[UE_id %d] %d  :0 means continue\n", UE_id, UE_info->active[UE_id]);
+
     pCCid = UE_PCCID(Mod_id, UE_id);
 
     // update CQI information across component carriers
@@ -789,7 +789,7 @@ static void assign_rbs_required_fairRR(
     }
 
     if (UE_info->UE_template[pCCid][UE_id].dl_buffer_total > 0) {
-      LOG_I(MAC, "[preprocessor] assign RB for UE %d\n", UE_id);
+      LOG_D(MAC, "[preprocessor] assign RB for UE %d\n", UE_id);
 
       for (i = 0; i < UE_info->numactiveCCs[UE_id]; i++) {
         CC_id = UE_info->ordered_CCids[i][UE_id];
@@ -803,7 +803,7 @@ static void assign_rbs_required_fairRR(
         }
 
         TBS = get_TBS_DL(eNB_UE_stats->dlsch_mcs1, nb_rbs_required[CC_id][UE_id]);
-        LOG_I(MAC,
+        LOG_D(MAC,
               "[preprocessor] start RB assignement for UE %d CC_id %d dl "
               "buffer %d (RB unit %d, MCS %d, TBS %d) \n",
               UE_id,
@@ -828,7 +828,7 @@ static void assign_rbs_required_fairRR(
                            nb_rbs_required[CC_id][UE_id]);
         } // end of while
 
-        LOG_I(MAC,
+        LOG_D(MAC,
               "[eNB %d] Frame %d: UE %d on CC %d: RB unit %d,  nb_required RB "
               "%d (TBS %d, mcs %d)\n",
               Mod_id,
@@ -1242,23 +1242,19 @@ schedule_ue_spec_fairRR(module_id_t module_idP,
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_DLSCH_PREPROCESSOR,VCD_FUNCTION_OUT);
 
   for (CC_id=0; CC_id<MAX_NUM_CCs; CC_id++) {
-    LOG_I(MAC, "DavidK4 doing schedule_ue_spec for CC_id %d in fn %s\n",CC_id, __FUNCTION__);
     dl_req        = &eNB->DL_req[CC_id].dl_config_request_body;
 
     if (mbsfn_flag[CC_id]>0) {
-      LOG_I(MAC, "DavidK4 mbsfn_flag[CC_id] not positive\n");
       continue;
     }
 
-    LOG_I(MAC, "DavidK4 dlsch_ue_select[CC_id].ue_num %d\n", dlsch_ue_select[CC_id].ue_num);
+    LOG_D(MAC, "dlsch_ue_select[CC_id].ue_num %d\n", dlsch_ue_select[CC_id].ue_num);
     for (i = 0; i < dlsch_ue_select[CC_id].ue_num; i++) {
       if(dlsch_ue_select[CC_id].list[i].ue_priority == SCH_DL_MSG2) {
-        LOG_I(MAC, "DavidK4 SCH_DL_MSG2 -> continue\n");
         continue;
       }
 
       if(dlsch_ue_select[CC_id].list[i].ue_priority == SCH_DL_MSG4) {
-        LOG_I(MAC, "DavidK4 SCH_DL_MSG4 -> continue\n");
         continue;
       }
 
@@ -1268,7 +1264,6 @@ schedule_ue_spec_fairRR(module_id_t module_idP,
 
       if (rnti==NOT_A_RNTI) {
         LOG_E(MAC,"Cannot find rnti for UE_id %d (num_UEs %d)\n",UE_id,UE_info->num_UEs);
-        LOG_I(MAC,"Cannot find rnti for UE_id\n");
         continue;
       }
 
@@ -1295,7 +1290,6 @@ schedule_ue_spec_fairRR(module_id_t module_idP,
               break;
             }
       */
-      LOG_I(MAC, "DavidK5 doing schedule_ue_spec for CC_id %d in fn %s\n",CC_id, __FUNCTION__);
       if (cc[CC_id].tdd_Config != NULL) { //TDD
         set_ue_dai (subframeP,
                     UE_id,
@@ -1313,8 +1307,6 @@ schedule_ue_spec_fairRR(module_id_t module_idP,
       UE_info->eNB_UE_stats[CC_id][UE_id].rrc_status = mac_eNB_get_rrc_status(module_idP, rnti);
       UE_info->eNB_UE_stats[CC_id][UE_id].harq_pid = harq_pid;
       UE_info->eNB_UE_stats[CC_id][UE_id].harq_round = round;
-
-      LOG_I(MAC, "UE rrc status = %d\n", UE_info->eNB_UE_stats[CC_id][UE_id].rrc_status);
 
       if (UE_info->eNB_UE_stats[CC_id][UE_id].rrc_status < RRC_RECONFIGURED) {
         UE_info->UE_sched_ctrl[UE_id].uplane_inactivity_timer = 0;
@@ -3006,13 +2998,11 @@ void schedule_ulsch_rnti_fairRR(module_id_t   module_idP,
   nfapi_hi_dci0_request_pdu_t    *hi_dci0_pdu;
   nfapi_ul_config_request_body_t *ul_req_tmp;
   nfapi_ul_config_ulsch_harq_information *ulsch_harq_information;
-  LOG_I(MAC,"entering ulsch preprocesor for %d.%d\n",sched_frame,sched_subframeP);
   ulsch_scheduler_pre_processor_fairRR(module_idP,
                                        frameP,
                                        subframeP,
                                        sched_subframeP,
                                        ulsch_ue_select);
-  LOG_D(MAC,"exiting ulsch preprocesor\n");
 
   // loop over all active UEs
   for (CC_id=0; CC_id<MAX_NUM_CCs; CC_id++) {
@@ -3048,7 +3038,7 @@ void schedule_ulsch_rnti_fairRR(module_id_t   module_idP,
           break;
       }
     }
-
+    LOG_D(MAC,"====> schedule_ulsch_rnti_fairRR : ulsch_ue_select[CC_id %d].ue_num %d\n", CC_id, ulsch_ue_select[CC_id].ue_num);
     for ( ulsch_ue_num = 0; ulsch_ue_num < ulsch_ue_select[CC_id].ue_num; ulsch_ue_num++ ) {
       UE_id = ulsch_ue_select[CC_id].list[ulsch_ue_num].UE_id;
 

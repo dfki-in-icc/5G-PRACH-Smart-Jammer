@@ -211,7 +211,7 @@ x2ap_eNB_data_t  * x2ap_is_eNB_pci_in_list (const uint32_t pci)
   struct x2ap_eNB_data_s *elm;
 
   STAILQ_FOREACH(inst, &x2ap_eNB_internal_data.x2ap_eNB_instances_head, x2ap_eNB_entries) {
-    X2AP_DEBUG("DavidK RB_MIN = %p\n", RB_MIN(x2ap_enb_map, &inst->x2ap_enb_head));
+    X2AP_DEBUG("RB_MIN = %p\n", RB_MIN(x2ap_enb_map, &inst->x2ap_enb_head));
     RB_FOREACH(elm, x2ap_enb_map, &inst->x2ap_enb_head) {
       for (int i = 0; i<elm->num_cc; i++) {
         if (elm->Nid_cell[i] == pci) {

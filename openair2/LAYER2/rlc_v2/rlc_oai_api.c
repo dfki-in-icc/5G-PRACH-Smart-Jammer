@@ -95,7 +95,6 @@ void mac_rlc_data_ind     (
 
   if (rb != NULL) {
     rb->set_time(rb, rlc_current_time);
-    LOG_I(RLC, "receiving pdu in rlc\n");
     rb->recv_pdu(rb, buffer_pP, tb_sizeP);
   } else {
     LOG_E(RLC, "%s:%d:%s: fatal: no RB found (rnti %d channel ID %d)\n",
@@ -180,8 +179,8 @@ mac_rlc_status_resp_t mac_rlc_status_ind(
 
   rlc_manager_lock(rlc_ue_manager);
   ue = rlc_manager_get_ue(rlc_ue_manager, rntiP);
-  LOG_I(RLC, "Got here %s line %d channel_idP %d\n", __FUNCTION__, __LINE__, channel_idP);
-  LOG_I(RLC, "Got here %s line %d ue->srb[channel_idP - 1] %p\n", __FUNCTION__, __LINE__, ue->srb[channel_idP - 1]);
+  LOG_D(RLC, "Got here %s line %d channel_idP %d\n", __FUNCTION__, __LINE__, channel_idP);
+  LOG_D(RLC, "Got here %s line %d ue->srb[channel_idP - 1] %p\n", __FUNCTION__, __LINE__, ue->srb[channel_idP - 1]);
   
   switch (channel_idP) {
   case 1 ... 2: rb = ue->srb[channel_idP - 1]; break;
@@ -327,9 +326,6 @@ rlc_op_status_t rlc_data_req     (const protocol_ctxt_t *const ctxt_pP,
                         + rb->buffer_status(rb, 4000000).tx_size;
 
   LOG_I(RLC, "%s:%d:%s: ue->srb[rb_idP - 1] %p bytes_in_buffer %d\n", __FILE__, __LINE__, __FUNCTION__, ue->srb[rb_idP - 1], bytes_in_buffer);
-  LOG_I(RLC, "ue->srb[rb_idP - 1].status_size %d\n", rb->buffer_status(rb, 4000000).status_size);
-  LOG_I(RLC, "ue->srb[rb_idP - 1].retx_size %d\n", rb->buffer_status(rb, 4000000).retx_size);
-  LOG_I(RLC, "ue->srb[rb_idP - 1].tx_size %d\n", rb->buffer_status(rb, 4000000).tx_size);
 
   rlc_manager_unlock(rlc_ue_manager);
 
@@ -368,7 +364,6 @@ extern RAN_CONTEXT_t RC;
 
 static void deliver_sdu(void *_ue, rlc_entity_t *entity, char *buf, int size)
 {
-  LOG_I(RLC, "Entered deliver_sdu\n");
   rlc_ue_t *ue = _ue;
   int is_srb;
   int rb_id;
@@ -404,7 +399,7 @@ static void deliver_sdu(void *_ue, rlc_entity_t *entity, char *buf, int size)
   exit(1);
 
 rb_found:
-  LOG_I(RLC, "%s:%d:%s: delivering SDU (rnti %d is_srb %d rb_id %d) size %d",
+  LOG_D(RLC, "%s:%d:%s: delivering SDU (rnti %d is_srb %d rb_id %d) size %d\n",
         __FILE__, __LINE__, __FUNCTION__, ue->rnti, is_srb, rb_id, size);
 
 
@@ -465,8 +460,7 @@ rb_found:
     exit(1);
   }
   memcpy(memblock->data, buf, size);
-  LOG_I(RLC, "calling get_pdcp_data_ind_func \n");
-  if (!get_pdcp_data_ind_func()(&ctx, is_srb, is_mbms, rb_id, size, memblock, NULL, NULL)) {
+    if (!get_pdcp_data_ind_func()(&ctx, is_srb, is_mbms, rb_id, size, memblock, NULL, NULL)) {
     LOG_E(RLC, "%s:%d:%s: ERROR: pdcp_data_ind failed (is_srb %d rb_id %d rnti %d)\n",
           __FILE__, __LINE__, __FUNCTION__,
           is_srb, rb_id, ue->rnti);
@@ -999,13 +993,13 @@ rlc_op_status_t rrc_rlc_config_req   (
     case CONFIG_ACTION_REMOVE:
       LOG_D(RLC, "%s:%d:%s: remove rb %d (is_srb %d) for UE %d\n", __FILE__, __LINE__, __FUNCTION__, (int)rb_idP, srb_flagP, ctxt_pP->rnti);
       if (srb_flagP) {
-        if (ue->srb[rb_idP-1] != NULL) {
+        if ((ue->srb != NULL) && (ue->srb[rb_idP-1] != NULL)) {
           ue->srb[rb_idP-1]->delete(ue->srb[rb_idP-1]);
           ue->srb[rb_idP-1] = NULL;
         } else
           LOG_W(RLC, "removing non allocated SRB %d, do nothing\n", (int)rb_idP);
       } else {
-        if (ue->drb[rb_idP-1] != NULL) {
+        if ((ue->drb != NULL) && (ue->drb[rb_idP-1] != NULL)) {
           ue->drb[rb_idP-1]->delete(ue->drb[rb_idP-1]);
           ue->drb[rb_idP-1] = NULL;
         } else
@@ -1027,13 +1021,13 @@ rlc_op_status_t rrc_rlc_config_req   (
     case CONFIG_ACTION_RESET:
       LOG_D(RLC, "%s:%d:%s: reset rb %d (is_srb %d) for UE %d\n", __FILE__, __LINE__, __FUNCTION__, (int)rb_idP, srb_flagP, ctxt_pP->rnti);
       if (srb_flagP) {
-        if (ue->srb[rb_idP-1] != NULL) {
+        if ((ue->srb != NULL) && (ue->srb[rb_idP-1] != NULL)) {
           ue->srb[rb_idP-1]->reestablishment(ue->srb[rb_idP-1]);
           LOG_D(RLC, "resetting the allocated SRB %d\n", (int)rb_idP);
         } else
           LOG_W(RLC, "resetting non allocated SRB %d, do nothing\n", (int)rb_idP);
       } else {
-        if (ue->drb[rb_idP-1] != NULL) {
+        if ((ue->drb != NULL) && (ue->drb[rb_idP-1] != NULL)) {
           ue->drb[rb_idP-1]->reestablishment(ue->drb[rb_idP-1]);
         } else
           LOG_W(RLC, "resetting non allocated DRB %d, do nothing\n", (int)rb_idP);
@@ -1042,13 +1036,12 @@ rlc_op_status_t rrc_rlc_config_req   (
 
     case CONFIG_ACTION_ADD:
       if (ue != NULL)
-        LOG_D(RLC, "%s:%d:%s: adding rb %d (is_srb %d) for UE %d with ue->srb[rb_idP -1] %d\n", __FILE__, __LINE__, __FUNCTION__, (int)rb_idP, srb_flagP, ctxt_pP->rnti, ue->srb[rb_idP -1]);
-        //LOG_D(RLC, "%s:%d:%s: adding rb %d (is_srb %d) for UE %d\n", __FILE__, __LINE__, __FUNCTION__, (int)rb_idP, srb_flagP, ctxt_pP->rnti);
+        LOG_D(RLC, "%s:%d:%s: adding rb %d (is_srb %d) for UE %d\n", __FILE__, __LINE__, __FUNCTION__, (int)rb_idP, srb_flagP, ctxt_pP->rnti);
       else
         LOG_W(RLC, "adding ue with rb %d failed\n", (int)rb_idP);
       if (srb_flagP) {
         if (ue->srb[rb_idP-1] != NULL) {
-          LOG_W(RLC, "warning rb %d already exist for ue %d, do nothing\n", (int)rb_idP);
+          LOG_W(RLC, "warning rb %d already exist for ue %d, do nothing\n", (int)rb_idP, ctxt_pP->rnti);
         } else {
           /* default values from 36.331 9.2.1 */
           int t_reordering       = 35;
@@ -1070,11 +1063,11 @@ rlc_op_status_t rrc_rlc_config_req   (
                                     poll_pdu, poll_byte, max_retx_threshold);
           rlc_ue_add_srb_rlc_entity(ue, rb_idP, rlc_am);
 
-          LOG_D(RLC, "added rb %d to UE RNTI %x\n", (int)rb_idP, ctxt_pP->rnti);
+          LOG_D(RLC, "added rb %d to UE RNTI 0x%x\n", (int)rb_idP, ctxt_pP->rnti);
         }
       } else {
         if (ue->drb[rb_idP-1] != NULL) {
-          LOG_W(RLC, "warning rb %d already exist for ue %d, do nothing\n", (int)rb_idP);
+          LOG_W(RLC, "warning rb %d already exist for ue 0x%d, do nothing\n", (int)rb_idP, ctxt_pP->rnti);
         } else {
           rlc_entity_t            *rlc_um;
           rlc_um = new_rlc_entity_um(1000000,
@@ -1089,6 +1082,11 @@ rlc_op_status_t rrc_rlc_config_req   (
         }
       }
       break;
+
+    default:
+      LOG_W(RLC, "This operation %d was not yet implemented, do nothing\n", actionP);
+      break;
+
   }
   rlc_manager_unlock(rlc_ue_manager);
   return RLC_OP_STATUS_OK;

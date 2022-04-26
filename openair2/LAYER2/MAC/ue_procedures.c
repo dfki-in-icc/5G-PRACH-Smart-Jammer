@@ -2428,6 +2428,10 @@ ue_get_sdu(module_id_t module_idP, int CC_id, frame_t frameP,
       }
     }
   }
+  LOG_D(MAC, "bsr_len %d  = bsr_header_len %d + bsr_ce_len %d BSR reporting active %d  UE_mac_inst[module_idP].scheduling_info.LCID_status[DCCH] %d\n",
+        bsr_header_len+bsr_ce_len, bsr_header_len, bsr_ce_len,
+        UE_mac_inst[module_idP].BSR_reporting_active,
+        UE_mac_inst[module_idP].scheduling_info.LCID_status[DCCH]);
 
   bsr_len = bsr_ce_len + bsr_header_len;
   phr_ce_len =
@@ -2585,15 +2589,6 @@ ue_get_sdu(module_id_t module_idP, int CC_id, frame_t frameP,
 
       //Update Buffer remain and BSR bytes after transmission
       UE_mac_inst[module_idP].scheduling_info.LCID_buffer_remain[lcid] = lcid_buffer_occupancy_new;
-      LOG_I(PHY, "lcid %d LCGID[lcid]] %u lcid_buffer_occupancy_new %d - lcid_buffer_occupancy_old %d BSR_bytes[%d] BSR_bytes[DCCH %d]\n",
-            lcid,
-            UE_mac_inst[module_idP].scheduling_info.BSR_bytes[UE_mac_inst[module_idP].scheduling_info.LCGID[lcid]],
-            lcid_buffer_occupancy_new,
-            lcid_buffer_occupancy_old,
-            UE_mac_inst[module_idP].scheduling_info.LCGID[lcid],
-            UE_mac_inst[module_idP].scheduling_info.LCGID[DCCH]
-            );
-
       UE_mac_inst[module_idP].scheduling_info.BSR_bytes[UE_mac_inst[module_idP].scheduling_info.LCGID[lcid]] += (lcid_buffer_occupancy_new - lcid_buffer_occupancy_old);
       if (UE_mac_inst[module_idP].scheduling_info.BSR_bytes[UE_mac_inst[module_idP].scheduling_info.LCGID[lcid]] < 0)
         UE_mac_inst[module_idP].scheduling_info.BSR_bytes[UE_mac_inst[module_idP].scheduling_info.LCGID[lcid]] = 0;
@@ -2845,8 +2840,6 @@ ue_get_sdu(module_id_t module_idP, int CC_id, frame_t frameP,
                 sdu_length_total + 1);
   }
 
-  LOG_I(MAC, "UE_mac_inst[module_idP].ho_active = %d\n", UE_mac_inst[module_idP].ho_active);
-  LOG_I(MAC, "UE_mac_inst[module_idP].crnti_for_ho = 0x%x\n", UE_mac_inst[module_idP].crnti_for_ho);
   // Generate header
   // if (num_sdus>0) {
   payload_offset = generate_ulsch_header(ulsch_buffer,  // mac header
@@ -3302,11 +3295,8 @@ update_bsr(module_id_t module_idP, frame_t frameP,
     UE_mac_inst[module_idP].scheduling_info.BSR_bytes[lcgid]=0;
   }
 
-  LOG_I(MAC,"Got here %s %d eNB_index %u \n", __FUNCTION__, __LINE__, eNB_index);
   //Get Buffer Occupancy and fill lcid_reordered_array
   for (lcid=DCCH; lcid < MAX_NUM_LCID; lcid++) {
-    LOG_I(MAC,"Got here %s %d UE_mac_inst[module_idP].logicalChannelConfig[lcid %d] %d\n",
-     __FUNCTION__, __LINE__, lcid, UE_mac_inst[module_idP].logicalChannelConfig[lcid]);
     if (UE_mac_inst[module_idP].logicalChannelConfig[lcid]) {
       lcgid = UE_mac_inst[module_idP].scheduling_info.LCGID[lcid];
 
@@ -3314,7 +3304,6 @@ update_bsr(module_id_t module_idP, frame_t frameP,
       if (lcgid < MAX_NUM_LCGID) {
         lcgid_buffer_remain[lcgid] += UE_mac_inst[module_idP].scheduling_info.LCID_buffer_remain[lcid];
       }
-      LOG_I(MAC,"Got here %s %d\n", __FUNCTION__, __LINE__);
 
       rnti_t crnti = UE_mac_inst[module_idP].crnti;
       if (UE_mac_inst[module_idP].ho_active) {
@@ -3336,6 +3325,9 @@ update_bsr(module_id_t module_idP, frame_t frameP,
           num_lcid_with_data ++;
           // sum lcid buffer which has same lcgid
           UE_mac_inst[module_idP].scheduling_info.BSR_bytes[lcgid] += rlc_status.bytes_in_buffer;
+          LOG_D(MAC,"Accumulated BSR_bytes[%d] = %d after adding %d bytes.\n",
+                    lcgid, UE_mac_inst[module_idP].scheduling_info.BSR_bytes[lcgid],
+                    rlc_status.bytes_in_buffer);
           //Fill in the array
           array_index = 0;
 

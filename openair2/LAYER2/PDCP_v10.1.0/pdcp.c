@@ -368,7 +368,7 @@ boolean_t pdcp_data_req(
         pdcp_control_plane_data_pdu_header pdu_header;
         pdu_header.sn = pdcp_get_next_tx_seq_number(pdcp_p);
         current_sn = pdu_header.sn;
-        LOG_I(PDCP, "Sequence number %d is assigned to current PDU with srb_flagP = 1 \n", current_sn);
+        LOG_D(PDCP, "Sequence number %d is assigned to current PDU with srb_flagP = 1 \n", current_sn);
         memset(&pdu_header.mac_i[0],0,PDCP_CONTROL_PLANE_DATA_PDU_MAC_I_SIZE);
         memset(&pdcp_pdu_p->data[sdu_buffer_sizeP + pdcp_header_len],0,PDCP_CONTROL_PLANE_DATA_PDU_MAC_I_SIZE);
 
@@ -446,7 +446,6 @@ boolean_t pdcp_data_req(
         } else {
           start_meas(&UE_pdcp_stats[ctxt_pP->module_id].apply_security);
         }
-
         pdcp_apply_security(ctxt_pP,
                             pdcp_p,
                             srb_flagP,
@@ -635,7 +634,6 @@ pdcp_data_ind(
 )
 //-----------------------------------------------------------------------------
 {
-  LOG_I(PDCP, "Calling pdcp_data_ind\n");
   pdcp_t      *pdcp_p          = NULL;
   uint8_t      pdcp_header_len = 0;
   uint8_t      pdcp_tailer_len = 0;

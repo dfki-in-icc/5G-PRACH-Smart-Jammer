@@ -4599,7 +4599,7 @@ rrc_eNB_process_MeasurementReport(
   if (RC.rrc[ctxt_pP->module_id]->x2_ho_net_control)
     return;
 
-  LOG_I(RRC, "David A3 event is triggered...\n");
+  LOG_I(RRC, "A3 event is triggered...\n");
 
   /* if the UE is not in handover mode, start handover procedure */
   if (ue_context_pP->ue_context.StatusRrc != RRC_HO_EXECUTION) {
@@ -5250,7 +5250,6 @@ rrc_eNB_generate_HO_RRCConnectionReconfiguration(const protocol_ctxt_t *const ct
   (void)dedicatedInfoNas;
   LTE_C_RNTI_t                       *cba_RNTI                         = NULL;
   int                                measurements_enabled;
-  LOG_I(RRC, "DavidK Calling rrc_eNB_generate_HO_RRCConnectionReconfiguration\n");
   uint8_t xid = rrc_eNB_get_next_transaction_identifier(ctxt_pP->module_id);   //Transaction_id,
   T(T_ENB_RRC_CONNECTION_RECONFIGURATION, T_INT(ctxt_pP->module_id), T_INT(ctxt_pP->frame),
     T_INT(ctxt_pP->subframe), T_INT(ctxt_pP->rnti));
@@ -7735,7 +7734,7 @@ rrc_eNB_decode_dcch(
 
         LOG_I(RRC,
               PROTOCOL_RRC_CTXT_UE_FMT" RLC RB %02d --- RLC_DATA_IND "
-              "David %d bytes (measurementReport) ---> RRC_eNB\n",
+              "%d bytes (measurementReport) ---> RRC_eNB\n",
               PROTOCOL_RRC_CTXT_UE_ARGS(ctxt_pP),
               DCCH,
               sdu_sizeP);
@@ -7749,7 +7748,6 @@ rrc_eNB_decode_dcch(
       case LTE_UL_DCCH_MessageType__c1_PR_rrcConnectionReconfigurationComplete:
 
         // to avoid segmentation 
-        LOG_I(RRC, "DavidK4 Entered into Processing LTE_RRCConnectionReconfigurationComplete \n");
         if(!ue_context_p) {
           LOG_I(RRC, "Processing LTE_RRCConnectionReconfigurationComplete UE %x, ue_context_p is NULL\n", ctxt_pP->rnti);
           break;
@@ -7775,7 +7773,7 @@ rrc_eNB_decode_dcch(
             if (ue_context_p->ue_context.StatusRrc == RRC_RECONFIGURED) {
               dedicated_DRB = 1;
               LOG_I(RRC,
-                    PROTOCOL_RRC_CTXT_UE_FMT" UE State = RRC_RECONFIGURED (dedicated DRB, xid %ld)\n",
+                    PROTOCOL_RRC_CTXT_UE_FMT" UE State = RRC_RECONFIGURED (dedicated DRB, xid %ld) Dkim1\n",
                     PROTOCOL_RRC_CTXT_UE_ARGS(ctxt_pP),ul_dcch_msg->message.choice.c1.choice.rrcConnectionReconfigurationComplete.rrc_TransactionIdentifier);
               //clear
               int16_t UE_id = find_UE_id(ctxt_pP->module_id, ctxt_pP->rnti);
@@ -7815,6 +7813,10 @@ rrc_eNB_decode_dcch(
 
               if(ue_context_p->ue_context.handover_info) {
                 ue_context_p->ue_context.handover_info->state = HO_CONFIGURED;
+                LOG_A(RRC, "Received HO LTE_RRCConnectionReconfigurationComplete UE rnti 0x%x ue_context.StatusRrc %u (4: RRC_RECONFIGURED) handover_info->state %d (8: HO_CONFIGURED)\n", 
+                          ctxt_pP->rnti, 
+                          ue_context_p->ue_context.StatusRrc,
+                          ue_context_p->ue_context.handover_info->state);
               }
 
               LOG_I(RRC,
@@ -9255,8 +9257,6 @@ void *rrc_enb_process_itti_msg(void *notUsed) {
             PROTOCOL_RRC_CTXT_UE_ARGS(&ctxt),
             RRC_DCCH_DATA_IND(msg_p).dcch_index,
             msg_name_p);
-
-      LOG_I(RRC, "Received RRC_DCCH_DATA_IND from PDCP\n",result);
 
       rrc_eNB_decode_dcch(&ctxt,
                           RRC_DCCH_DATA_IND(msg_p).dcch_index,

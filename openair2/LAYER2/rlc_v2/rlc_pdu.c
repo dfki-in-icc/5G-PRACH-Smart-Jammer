@@ -200,7 +200,6 @@ int rlc_pdu_decoder_get_bits(rlc_pdu_decoder_t *decoder, int count)
   for (i = 0; i < count; i++) {
     ret <<= 1;
     ret |= get_bit(decoder);
-    LOG_I(RLC, "ret = %d (i %d < count %d)\n", ret, i, count);
     if (decoder->error) return -1;
   }
 
@@ -258,7 +257,6 @@ void rlc_pdu_encoder_put_bits(rlc_pdu_encoder_t *encoder, int value, int count)
 
   x = 1 << (count - 1);
   for (i = 0; i < count; i++, x >>= 1) {
-    LOG_I(RLC, "value & x %d (i %d < count %d)\n",  value & x, i, count);
     put_bit(encoder, value & x);
   }
 }

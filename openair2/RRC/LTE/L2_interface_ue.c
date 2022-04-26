@@ -112,7 +112,6 @@ mac_rrc_data_req_ue(
     //      msg("[RRC][UE %d] Sending rach\n",Mod_id);
     return(Ret_size);
   } else {
-    LOG_I(RRC,"DavidK entered into else block \n");
     return 0;
   }
 
@@ -297,7 +296,6 @@ rrc_data_req_ue(
     RRC_DCCH_DATA_REQ (message_p).module_id = ctxt_pP->module_id;
     RRC_DCCH_DATA_REQ (message_p).rnti      = ctxt_pP->rnti;
     RRC_DCCH_DATA_REQ (message_p).eNB_index = ctxt_pP->eNB_index;
-    LOG_I(MAC,"Got here %s %d ctxt_pP->eNB_index %u \n", __FUNCTION__, __LINE__,ctxt_pP->eNB_index);
     itti_send_msg_to_task (
       TASK_PDCP_UE,
       ctxt_pP->instance,

@@ -304,12 +304,10 @@ PRACH_RESOURCES_t *ue_get_rach(module_id_t module_idP, int CC_id,
     (struct LTE_RACH_ConfigCommon *) NULL;
   int32_t frame_diff = 0;
   uint8_t dcch_header_len = 0;
-  uint16_t sdu_lengths;
   static uint8_t ulsch_buff[MAX_ULSCH_PAYLOAD_BYTES];
 
   AssertFatal(CC_id == 0,
               "Transmission on secondary CCs is not supported yet\n");
-  uint8_t target_eNB_index = eNB_indexP; 
 
   if (UE_mode == PRACH) {
     LOG_D(MAC, "ue_get_rach 3, RA_active value: %d", UE_mac_inst[module_idP].RA_active);
@@ -363,77 +361,6 @@ PRACH_RESOURCES_t *ue_get_rach(module_id_t module_idP, int CC_id,
         LOG_I(MAC,
               "[UE %d] Frame %d: Requested RRCConnectionRequest, got %d bytes\n",
               module_idP, frameP, Size);
-      } else {
-        //UE_mac_inst[module_idP].scheduling_info.BSR_bytes[UE_mac_inst[module_idP].scheduling_info.LCGID[DCCH]] = 1;
-
-#if 0 
-        target_eNB_index = get_adjacent_cell_mod_id(UE_rrc_inst[ctxt.module_id].HandoverInfoUe.targetCellId);
-        LOG_I(MAC, "DavidK2 target_eNB_index = %u\n", target_eNB_index);
-        if ((UE_rrc_inst[module_idP].Info[eNB_indexP].T300_cnt
-            != T300[UE_rrc_inst[module_idP].sib2[eNB_indexP]->ue_TimersAndConstants.t300]) &&
-            (UE_mac_inst[module_idP].first_ULSCH_Tx == 1)) {
-              UE_rrc_inst[module_idP].Srb0[eNB_indexP].Tx_buffer.payload_size = 0;
-              //ctxt.rnti = [module_idP].crnti;
-              rrc_ue_generate_RRCConnectionReconfigurationComplete(
-                &ctxt,
-                target_eNB_index,
-                UE_rrc_inst[ctxt.module_id].HandoverInfoUe.Transaction_id,
-                NULL);
-              UE_rrc_inst[ctxt.module_id].Info[eNB_indexP].State = RRC_HO_EXECUTION;
-              UE_rrc_inst[ctxt.module_id].Info[target_eNB_index].State = RRC_RECONFIGURED;
-              LOG_I(RRC, "[UE %d] DavidK3 State = RRC_RECONFIGURED during HO (eNB %d)\n",
-                    ctxt.module_id, target_eNB_index);
-              eNB_indexP = target_eNB_index; 
-        }
-        // check if RRC is ready to initiate the RA procedure
-
-        Size = mac_rrc_data_req_ue(module_idP,
-                                  CC_id,
-                                  frameP,
-                                  CCH, 1,
-                                  &UE_mac_inst[module_idP].
-                                  CCCH_pdu.payload[sizeof
-                                      (SCH_SUBHEADER_SHORT)
-                                      + 1], eNB_indexP,
-                                  0);
-        uint8_t access_mode = SCHEDULED_ACCESS;
-        ue_get_sdu(module_idP, CC_id, frameP,
-           subframeP, eNB_index, ulsch_buff,
-           sizeof(ulsch_buff), &access_mode);
-
-
-        Size16 = (uint16_t) Size;
-        //Size = 1;
-        //  LOG_D(MAC,"[UE %d] Frame %d: Requested RRCConnectionRequest, got %d bytes\n",module_idP,frameP,Size);
-        LOG_I(RRC,
-              "[FRAME %05d][RRC_UE][MOD %02d][][--- MAC_DATA_REQ (eNB %d) --->][MAC_UE][MOD %02d][]\n",
-              frameP, module_idP, eNB_indexP, module_idP);
-        LOG_I(MAC,
-              "[UE %d] Frame %d: Requested mac_rrc_data_req_ue, got %d bytes\n",
-              module_idP, frameP, Size);
-// David
-        //uint8_t mac_sdus[MAX_ULSCH_PAYLOAD_BYTES];
-        uint16_t sdu_lengths[NB_RB_MAX] = {0};
-        int TBS_bytes = 136;//848;
-        int mac_ce_len = 0;
-        int header_length_total=0;
-        unsigned short post_padding = 1;
-
-        // fill ulsch_buffer with random data
-        //for (int i = 0; i < TBS_bytes; i++){
-        //  mac_sdus[i] = (unsigned char) (lrand48()&0xff);
-        //}
-        //Sending SDUs with size 1
-        //Initialize elements of sdu_lengths
-        sdu_lengths[0] = TBS_bytes - 3 - post_padding - mac_ce_len;
-        header_length_total += 2 + (sdu_lengths[0] >= 128);
-        Size += sdu_lengths[0];
-        Size = 1;
-
-        if (Size > 0) {
-          //memcpy(ra->cont_res_id, mac_sdus, sizeof(uint8_t) * 6);
-        }
-#endif
       }
 
       LOG_I(PHY, "ue_get_rach lcid %u LCGID[lcid]] %u LCGID[DCCH] %u BSR_bytes[%d]\n",
@@ -465,7 +392,6 @@ PRACH_RESOURCES_t *ue_get_rach(module_id_t module_idP, int CC_id,
         if (UE_mac_inst[module_idP].RA_window_cnt == 9) {
           UE_mac_inst[module_idP].RA_window_cnt = 10; // Note: 9 subframe window doesn't exist, after 8 is 10!
         }
-        LOG_I(MAC, "DavidK2 RA_active = 1 and crnti = 0x%x in Msg3\n", UE_mac_inst[module_idP].crnti);
 
         UE_mac_inst[module_idP].RA_tx_frame = frameP;
         UE_mac_inst[module_idP].RA_tx_subframe = subframeP;
@@ -501,9 +427,13 @@ PRACH_RESOURCES_t *ue_get_rach(module_id_t module_idP, int CC_id,
         LOG_USEDINLOG_VAR(mac_rlc_status_resp_t,rlc_status)=mac_rlc_status_ind(module_idP,
             UE_mac_inst[module_idP].crnti_before_ho,
             eNB_indexP, frameP, subframeP,
-            ENB_FLAG_NO, MBMS_FLAG_NO, DCCH, 0, 0
-                                                                              );
+            ENB_FLAG_NO, MBMS_FLAG_NO, DCCH, 0, 0);
 
+        if (UE_mac_inst[module_idP].
+                 scheduling_info.BSR_bytes[UE_mac_inst[module_idP].
+                                           scheduling_info.LCGID
+                                           [DCCH]] != rlc_status.bytes_in_buffer)
+            return (NULL);
         if (UE_mac_inst[module_idP].crnti_before_ho)
           LOG_I(MAC,
                 "[UE %d] Frame %d : UL-DCCH -> ULSCH, HO RRCConnectionReconfigurationComplete (%x, %x), RRC message has %d bytes to send throug PRACH (mac header len %d)\n",
@@ -517,33 +447,8 @@ PRACH_RESOURCES_t *ue_get_rach(module_id_t module_idP, int CC_id,
                 module_idP, frameP, rlc_status.bytes_in_buffer,
                 dcch_header_len);
         uint8_t access_mode = SCHEDULED_ACCESS;
-        uint16_t buflen = 109;
         UE_mac_inst[module_idP].crnti = UE_mac_inst[module_idP].crnti_before_ho;
-        ue_get_sdu(module_idP, 0, frameP, subframeP, 0, (char *)&ulsch_buff[0], buflen, &access_mode);
-        if (0 && rlc_status.bytes_in_buffer > 0) {
-          sdu_lengths = mac_rlc_data_req(module_idP, UE_mac_inst[module_idP].crnti_before_ho, eNB_indexP, frameP, ENB_FLAG_NO, MBMS_FLAG_NO, DCCH, 6,
-                                        (char *) &ulsch_buff[0],0,
-                                        0
-                                        );
-
-          if(sdu_lengths > 0)
-            LOG_I(MAC, "[UE %d] TX Got %d bytes for DCCH\n",
-                  module_idP, sdu_lengths);
-          else
-            LOG_E(MAC, "[UE %d] TX DCCH error\n",
-                  module_idP );
-
-          update_bsr(module_idP, frameP, subframeP, eNB_indexP);
-          UE_mac_inst[module_idP].
-          scheduling_info.BSR[UE_mac_inst[module_idP].
-                              scheduling_info.LCGID[DCCH]] =
-                                locate_BsrIndexByBufferSize(BSR_TABLE, BSR_TABLE_SIZE,
-                                    UE_mac_inst
-                                    [module_idP].scheduling_info.BSR_bytes
-                                    [UE_mac_inst
-                                    [module_idP].scheduling_info.LCGID
-                                    [DCCH]]);
-        }
+        ue_get_sdu(module_idP, 0, frameP, subframeP, 0, ulsch_buff, sizeof(ulsch_buff), &access_mode);
         UE_mac_inst[module_idP].RA_active = 1;
         UE_mac_inst[module_idP].RA_PREAMBLE_TRANSMISSION_COUNTER =
           1;
@@ -574,22 +479,8 @@ PRACH_RESOURCES_t *ue_get_rach(module_id_t module_idP, int CC_id,
         // Fill in preamble and PRACH resource
         get_prach_resources(module_idP, CC_id, eNB_indexP,
                             subframeP, 1, NULL);
-#if 0
-        generate_ulsch_header((uint8_t *) ulsch_buff, // mac header
-                              1,  // num sdus
-                              0,  // short pading
-                              &sdu_lengths,  // sdu length
-                              &lcid,  // sdu lcid
-                              NULL, // power headroom
-                              &UE_mac_inst[module_idP].crnti_for_ho, // crnti
-                              NULL, // truncated bsr
-                              NULL, // short bsr
-                              NULL, // long_bsr
-                              0); //post_padding
-#endif
-              return (&UE_mac_inst[module_idP].RA_prach_resources);
-              //}
-            }
+        return (&UE_mac_inst[module_idP].RA_prach_resources);
+      }
     } else {    // RACH is active
       LOG_D(MAC,
             "[MAC][UE %d][RAPROC] frameP %d, subframe %d: RA Active, window cnt %d (RA_tx_frame %d, RA_tx_subframe %d)\n",

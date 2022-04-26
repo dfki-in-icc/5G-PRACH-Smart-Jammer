@@ -541,7 +541,7 @@ store_dlsch_buffer(module_id_t Mod_id,
     /* loop over all activated logical channels */
     for (int i = 0; i < UE_sched_ctrl->dl_lc_num; ++i) {
       const int lcid = UE_sched_ctrl->dl_lc_ids[i];
-      LOG_I(MAC, "UE_template->rnti 0x%x\n", UE_template->rnti);
+      LOG_D(MAC, "UE_template->rnti 0x%x\n", UE_template->rnti);
 
       const mac_rlc_status_resp_t rlc_status = mac_rlc_status_ind(Mod_id,
                                                                   UE_template->rnti,
@@ -568,7 +568,7 @@ store_dlsch_buffer(module_id_t Mod_id,
        * this to request the corresponding data from the RLC, and this might be
        * limited in the preprocessor */
       UE_sched_ctrl->dl_lc_bytes[i] = rlc_status.bytes_in_buffer;
-      LOG_I(MAC, "UE_template->dl_buffer_total %u rlc_status.bytes_in_buffer %d\n", UE_template->dl_buffer_total, rlc_status.bytes_in_buffer);
+      LOG_D(MAC, "UE_template->dl_buffer_total %u rlc_status.bytes_in_buffer %d\n", UE_template->dl_buffer_total, rlc_status.bytes_in_buffer);
 
 #ifdef DEBUG_eNB_SCHEDULER
       /* note for dl_buffer_head_sdu_remaining_size_to_send[lcid] :

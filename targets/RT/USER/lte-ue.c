@@ -1234,7 +1234,7 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg)
                 LOG_I(MAC,"Rach target eNB = %d\n",  UE->frame_parms.Nid_cell);
                 UL_INFO->rach_ind.header.phy_id = UE->frame_parms.Nid_cell;
                 if (UL_INFO->rach_ind.header.phy_id == 1)
-                  LOG_I(MAC, "DavidK2 Checking prach resource for PRACH for handover.\n");
+                  LOG_D(MAC, "Checking prach resource for PRACH for handover.\n");
                 PRACH_RESOURCES_t *prach_resources = ue_get_rach(ue_Mod_id, 0, NFAPI_SFNSF2SFN(sfn_sf), 0, NFAPI_SFNSF2SF(sfn_sf));
                 if (prach_resources != NULL)
                 {

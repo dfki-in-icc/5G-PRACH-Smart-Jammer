@@ -329,42 +329,6 @@ void phy_config_afterHO_ue(module_id_t Mod_id,uint8_t CC_id,uint8_t eNB_id, LTE_
   }
 }
 
-void apply_cbra_step()
-{
-#if 0
-  if (UE_mac_inst[ue_Mod_id].UE_mode[0] == PRACH)
-  { //&& ue_Mod_id == next_Mod_id) {
-    next_ra_frame++;
-    if (next_ra_frame > 500)
-    {
-      // check if we have PRACH opportunity
-      if (is_prach_subframe(&UE->frame_parms, NFAPI_SFNSF2SFN(sfn_sf), NFAPI_SFNSF2SF(sfn_sf)) && UE_mac_inst[ue_Mod_id].SI_Decoded == 1)
-      {
-        // The one working strangely...
-        //if (is_prach_subframe(&UE->frame_parms,NFAPI_SFNSF2SFN(sfn_sf), NFAPI_SFNSF2SF(sfn_sf) && Mod_id == (module_id_t) init_ra_UE) ) {
-        PRACH_RESOURCES_t *prach_resources = ue_get_rach(ue_Mod_id, 0, NFAPI_SFNSF2SFN(sfn_sf), 0, NFAPI_SFNSF2SF(sfn_sf));
-        LOG_I(MAC, "Entered for PRACH_David\n");
-        if (prach_resources != NULL)
-        {
-          LOG_I(MAC, "preamble_received_tar_power: %d\n",
-                prach_resources->ra_PREAMBLE_RECEIVED_TARGET_POWER);
-          UE_mac_inst[ue_Mod_id].ra_frame = NFAPI_SFNSF2SFN(sfn_sf);
-          LOG_D(MAC, "UE_phy_stub_thread_rxn_txnp4 before RACH, Mod_id: %d frame %d subframe %d\n", ue_Mod_id, NFAPI_SFNSF2SFN(sfn_sf), NFAPI_SFNSF2SF(sfn_sf));
-          fill_rach_indication_UE_MAC(ue_Mod_id, NFAPI_SFNSF2SFN(sfn_sf), NFAPI_SFNSF2SF(sfn_sf), UL_INFO, prach_resources->ra_PreambleIndex, prach_resources->ra_RNTI);
-          sent_any = true;
-          Msg1_transmitted(ue_Mod_id, 0, NFAPI_SFNSF2SFN(sfn_sf), 0);
-          UE_mac_inst[ue_Mod_id].UE_mode[0] = RA_RESPONSE;
-          next_Mod_id = ue_Mod_id + 1;
-          //next_ra_frame = (rx_frame + 20)%1000;
-          next_ra_frame = 0;
-        }
-        //ue_prach_procedures(ue,proc,eNB_id,abstraction_flag,mode);
-      }
-    }
-  } // mode is PRACH
-#endif
-}
-
 /*
  * Configures UE MAC and PHY with radioResourceCommon received in mobilityControlInfo IE during Handover
  */
@@ -378,17 +342,16 @@ void syn_config_afterHO_ue(module_id_t Mod_id,uint8_t CC_id,uint8_t eNB_id, LTE_
     PHY_vars_UE_g[Mod_id][CC_id]->ho_triggered = 1;
     LTE_DL_FRAME_PARMS *fp = &PHY_vars_UE_g[Mod_id][CC_id]->frame_parms;
 
-    LOG_I(PHY,"[UE%d] DavidK2 Handover triggered: Applying radioResourceConfigCommon from eNB %d\n",
+    LOG_I(PHY,"[UE%d] Handover triggered: Applying radioResourceConfigCommon from eNB %d\n",
           Mod_id, eNB_id);
     fp->prach_config_common.rootSequenceIndex                           =radioResourceConfigCommon->prach_Config.rootSequenceIndex;
     fp->prach_config_common.prach_ConfigInfo.prach_ConfigIndex          =radioResourceConfigCommon->prach_Config.prach_ConfigInfo->prach_ConfigIndex;
     fp->prach_config_common.prach_ConfigInfo.prach_FreqOffset           =radioResourceConfigCommon->prach_Config.prach_ConfigInfo->prach_FreqOffset;
-    apply_cbra_step();
     //PHICH
     //Target CellId
     fp->Nid_cell = mobilityControlInfo->targetPhysCellId;
     fp->nushift  = fp->Nid_cell%6;
-    LOG_I(PHY,"fp->Nid_cell (targetPhysCellId) = %u\n", fp->Nid_cell); // DavidK
+    LOG_I(PHY,"fp->Nid_cell (targetPhysCellId) = %u\n", fp->Nid_cell);
     // PUCCH
     // RNTI
     PHY_vars_UE_g[Mod_id][CC_id]->pdcch_vars[0][eNB_id] = (LTE_UE_PDCCH *)malloc16_clear(sizeof(LTE_UE_PDCCH));

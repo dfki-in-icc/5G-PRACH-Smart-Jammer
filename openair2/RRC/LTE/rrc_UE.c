@@ -2122,8 +2122,8 @@ rrc_ue_process_mobilityControlInfo(
   rrc_rlc_config_req(ctxt_pP, SRB_FLAG_YES, MBMS_FLAG_NO, CONFIG_ACTION_RESET,ctxt_pP->module_id+DCCH, Rlc_info_am_config);
   rrc_pdcp_config_req (ctxt_pP, SRB_FLAG_YES, CONFIG_ACTION_RESET, DCCH1,UNDEF_SECURITY_MODE);
   rrc_rlc_config_req(ctxt_pP, SRB_FLAG_YES, MBMS_FLAG_NO, CONFIG_ACTION_RESET, ctxt_pP->module_id+DCCH1, Rlc_info_am_config);
-  //rrc_pdcp_config_req (ctxt_pP, SRB_FLAG_NO, CONFIG_ACTION_RESET, DTCH,UNDEF_SECURITY_MODE);
-  //rrc_rlc_config_req(ctxt_pP, SRB_FLAG_NO, MBMS_FLAG_NO, CONFIG_ACTION_RESET, ctxt_pP->module_id+DTCH, Rlc_info_um);
+  rrc_pdcp_config_req (ctxt_pP, SRB_FLAG_NO, CONFIG_ACTION_RESET, DTCH,UNDEF_SECURITY_MODE);
+  rrc_rlc_config_req(ctxt_pP, SRB_FLAG_NO, MBMS_FLAG_NO, CONFIG_ACTION_RESET, ctxt_pP->module_id+DTCH, Rlc_info_um);
 
   //Synchronisation to DL of target cell
   LOG_I(RRC,
@@ -2160,14 +2160,13 @@ rrc_ue_process_mobilityControlInfo(
                         (LTE_MBSFN_AreaInfoList_r9_t *)NULL
                        );
 
-#if 1
   protocol_ctxt_t ho_ctxt = *ctxt_pP;
   ho_ctxt.rnti = 
       ((mobilityControlInfo->
         newUE_Identity.buf[1]) | (mobilityControlInfo->
                                   newUE_Identity.buf[0] << 8));
   const protocol_ctxt_t *const ho_ctxt_pP = &ho_ctxt;
-  LOG_I(RRC, "ORG_rnti = 0x%x vs  HO_rnti = 0x%x\n", ctxt_pP->rnti, ho_ctxt.rnti); 
+  LOG_D(RRC, "source rnti = 0x%x vs  target rnti = 0x%x\n", ctxt_pP->rnti, ho_ctxt.rnti); 
 
   rrc_pdcp_config_req(ho_ctxt_pP, SRB_FLAG_YES, CONFIG_ACTION_ADD, DCCH,UNDEF_SECURITY_MODE);
   rrc_rlc_config_req(ho_ctxt_pP, SRB_FLAG_YES, MBMS_FLAG_NO, CONFIG_ACTION_ADD,ctxt_pP->module_id+DCCH, Rlc_info_am_config);
@@ -2175,7 +2174,7 @@ rrc_ue_process_mobilityControlInfo(
   rrc_rlc_config_req(ho_ctxt_pP, SRB_FLAG_YES, MBMS_FLAG_NO, CONFIG_ACTION_ADD, ctxt_pP->module_id+DCCH1, Rlc_info_am_config);
   rrc_pdcp_config_req (ho_ctxt_pP, SRB_FLAG_NO, CONFIG_ACTION_ADD, DTCH,UNDEF_SECURITY_MODE);
   rrc_rlc_config_req(ho_ctxt_pP, SRB_FLAG_NO, MBMS_FLAG_NO, CONFIG_ACTION_ADD, ctxt_pP->module_id+DTCH, Rlc_info_um);
-#endif
+
   // Re-establish PDCP for all RBs that are established
   // rrc_pdcp_config_req (ue_mod_idP+NB_eNB_INST, frameP, 0, CONFIG_ACTION_ADD, ue_mod_idP+DCCH);
   // rrc_pdcp_config_req (ue_mod_idP+NB_eNB_INST, frameP, 0, CONFIG_ACTION_ADD, ue_mod_idP+DCCH1);
@@ -2311,7 +2310,6 @@ rrc_ue_decode_dcch(
                     ctxt_pP->module_id,
                     ctxt_pP->frame);
               UE_rrc_inst[ctxt_pP->module_id].HandoverInfoUe.measFlag = 1; // Ready to send more MeasReports if required
-              //UE_rrc_inst[ctxt_pP->module_id].Srb0[target_eNB_index].Tx_buffer.payload_size = 1;
             }
           }
 
@@ -2321,40 +2319,16 @@ rrc_ue_decode_dcch(
             eNB_indexP);
 
           if (target_eNB_index != 0xFF) {
-#if 0
-            int count = 0;
-            while (UE_mac_inst[ctxt_pP->module_id].UE_mode[0] != PUSCH) //PUSCH = 4
-            {
-              LOG_I(RRC, "===========  %d/100_ ============ Sleeping for 1000us to wait for PRACH.\n", count);
-              usleep(1000);
-              count++;
-              if (count > 100)
-                break;
-            }
-            if ((UE_mac_inst[ctxt_pP->module_id].UE_mode[0] != RA_RESPONSE) && (count > 100))
-                LOG_I(RRC, "DavidK Waited up to maximum.\n");
-
-            if (UE_mac_inst[ctxt_pP->module_id].UE_mode[0] == RA_RESPONSE)
-              LOG_I(RRC, "DavidK3 UE State = RA_RESPONSE (2)\n");
-            else if (UE_mac_inst[ctxt_pP->module_id].UE_mode[0] == PUSCH)
-              LOG_I(RRC, "DavidK3 UE State = PUSCH (4)\n");
-            else
-              LOG_I(RRC, "DavidK3 UE State = %d\n", UE_mac_inst[ctxt_pP->module_id].UE_mode[0]);
-#endif
-            //UE_rrc_inst[ctxt_pP->module_id].HandoverInfoUe.Transaction_id 
-            //    = dl_dcch_msg->message.choice.c1.choice.rrcConnectionReconfiguration.rrc_TransactionIdentifier;
-            //if (0 && UE_mac_inst[ctxt_pP->module_id].UE_mode[0] == PUSCH) {
-              rrc_ue_generate_RRCConnectionReconfigurationComplete(
-                ctxt_pP,
-                target_eNB_index,
-                dl_dcch_msg->message.choice.c1.choice.rrcConnectionReconfiguration.rrc_TransactionIdentifier,
-                NULL);
-              UE_rrc_inst[ctxt_pP->module_id].Info[eNB_indexP].State = RRC_HO_EXECUTION;
-              UE_rrc_inst[ctxt_pP->module_id].Info[target_eNB_index].State = RRC_RECONFIGURED;
-              
-              LOG_I(RRC, "[UE %d] DavidK4 State = RRC_RECONFIGURED during HO (eNB %d)\n",
-                    ctxt_pP->module_id, target_eNB_index);
-            //}
+            rrc_ue_generate_RRCConnectionReconfigurationComplete(
+              ctxt_pP,
+              target_eNB_index,
+              dl_dcch_msg->message.choice.c1.choice.rrcConnectionReconfiguration.rrc_TransactionIdentifier,
+              NULL);
+            UE_rrc_inst[ctxt_pP->module_id].Info[eNB_indexP].State = RRC_HO_EXECUTION;
+            UE_rrc_inst[ctxt_pP->module_id].Info[target_eNB_index].State = RRC_RECONFIGURED;
+            
+            LOG_I(RRC, "[UE %d] State = RRC_RECONFIGURED during HO (eNB %d)\n",
+                  ctxt_pP->module_id, target_eNB_index);
 #if ENABLE_RAL
             {
               MessageDef                                 *message_ral_p = NULL;
