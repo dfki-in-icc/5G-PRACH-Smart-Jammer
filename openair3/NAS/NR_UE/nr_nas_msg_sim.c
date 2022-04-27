@@ -1009,6 +1009,37 @@ void *nas_nrue_task(void *args_p)
 	    }
 	  }
 	  break;
+    case REGISTRATION_ACCEPT :
+      {
+      LOG_I(NAS, "[UE] Received REGISTRATION ACCEPT message\n");
+
+      as_nas_info_t initialNasMsg;
+      memset(&initialNasMsg, 0, sizeof(as_nas_info_t));
+      generateRegistrationComplete(Mod_id,&initialNasMsg, NULL);
+      if(initialNasMsg.length > 0){
+        MessageDef *message_p;
+        message_p = itti_alloc_new_message(TASK_NAS_NRUE, 0, NAS_UPLINK_DATA_REQ);
+        NAS_UPLINK_DATA_REQ(message_p).UEid          = Mod_id;
+        NAS_UPLINK_DATA_REQ(message_p).nasMsg.data   = (uint8_t *)initialNasMsg.data;
+        NAS_UPLINK_DATA_REQ(message_p).nasMsg.length = initialNasMsg.length;
+        itti_send_msg_to_task(TASK_RRC_NRUE, instance, message_p);
+        LOG_I(NAS, "Send NAS_UPLINK_DATA_REQ message(RegistrationComplete)\n");
+      }
+
+      as_nas_info_t pduEstablishMsg;
+      memset(&pduEstablishMsg, 0, sizeof(as_nas_info_t));
+      generatePduSessionEstablishRequest(Mod_id, uicc, &pduEstablishMsg);
+      if(pduEstablishMsg.length > 0){
+        MessageDef *message_p;
+        message_p = itti_alloc_new_message(TASK_NAS_NRUE, 0, NAS_UPLINK_DATA_REQ);
+        NAS_UPLINK_DATA_REQ(message_p).UEid          = Mod_id;
+        NAS_UPLINK_DATA_REQ(message_p).nasMsg.data   = (uint8_t *)pduEstablishMsg.data;
+        NAS_UPLINK_DATA_REQ(message_p).nasMsg.length = pduEstablishMsg.length;
+        itti_send_msg_to_task(TASK_RRC_NRUE, instance, message_p);
+        LOG_I(NAS, "Send NAS_UPLINK_DATA_REQ message(PduSessionEstablishRequest)\n");
+      }
+    }
+    break;
           default:
               LOG_W(NR_RRC,"unknow message type %d\n",msg_type);
               break;

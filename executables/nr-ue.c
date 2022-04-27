@@ -863,12 +863,15 @@ void readFrame(PHY_VARS_NR_UE *UE,  openair0_timestamp *timestamp, bool toTrash)
                    UE->frame_parms.get_samples_slot_timestamp(slot,&UE->frame_parms,0));
       }
         
-      AssertFatal( UE->frame_parms.get_samples_per_slot(slot,&UE->frame_parms) ==
-                   UE->rfdevice.trx_read_func(&UE->rfdevice,
-                   timestamp,
-                   rxp,
-                   UE->frame_parms.get_samples_per_slot(slot,&UE->frame_parms),
-                   UE->frame_parms.nb_antennas_rx), "");
+      if ( UE->frame_parms.get_samples_per_slot(slot,&UE->frame_parms) !=
+          UE->rfdevice.trx_read_func(&UE->rfdevice,
+                                      timestamp,
+                                      rxp,
+                                      UE->frame_parms.get_samples_per_slot(slot,&UE->frame_parms),
+                                      UE->frame_parms.nb_antennas_rx)) {
+        LOG_E(PHY, "get_samples_per_slot != trx_read_func \n");
+        UE->lost_sync=1;
+      }
 
       if (IS_SOFTMODEM_RFSIM)
         dummyWrite(UE,*timestamp, UE->frame_parms.get_samples_per_slot(slot,&UE->frame_parms));
@@ -1124,12 +1127,15 @@ void *UE_thread(void *arg) {
       writeBlockSize=UE->frame_parms.get_samples_per_slot((slot_nr + DURATION_RX_TO_TX - NR_RX_NB_TH) % nb_slot_frame, &UE->frame_parms)- UE->rx_offset_diff;
     }
 
-    AssertFatal(readBlockSize ==
+    if(readBlockSize !=
                 UE->rfdevice.trx_read_func(&UE->rfdevice,
                                            &timestamp,
                                            rxp,
                                            readBlockSize,
-                                           UE->frame_parms.nb_antennas_rx),"");
+                                           UE->frame_parms.nb_antennas_rx)){
+        LOG_E(PHY, "get_samples_per_slot != trx_read_func \n");
+        UE->lost_sync=1;
+      }
     // L5G_IOT
     PROM_METRICS(RX_OFFSET,"rx_offset",UE->rx_offset)
     if( slot_nr==(nb_slot_frame-1)) {
@@ -1138,12 +1144,15 @@ void *UE_thread(void *arg) {
 
       if ( first_symbols > 0 ) {
         openair0_timestamp ignore_timestamp;
-        AssertFatal(first_symbols ==
+        if(first_symbols !=
                     UE->rfdevice.trx_read_func(&UE->rfdevice,
                                                &ignore_timestamp,
                                                (void **)UE->common_vars.rxdata,
                                                first_symbols,
-                                               UE->frame_parms.nb_antennas_rx),"");
+                                               UE->frame_parms.nb_antennas_rx)){
+          LOG_E(PHY, "get_samples_per_slot != trx_read_func \n");
+          UE->lost_sync=1;
+        }
       } else
         LOG_E(PHY,"can't compensate: diff =%d\n", first_symbols);
     }

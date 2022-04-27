@@ -180,9 +180,12 @@ fapi_nr_ul_config_request_t *get_ul_config_request(NR_UE_MAC_INST_t *mac, int sl
     mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP.genericParameters.subcarrierSpacing;
   const int n = nr_slots_per_frame[mu];
   const int num_slots_per_tdd = tdd_config ? (n >> (7 - tdd_config->pattern1.dl_UL_TransmissionPeriodicity)) : n;
-  const int num_slots_ul = tdd_config ? (tdd_config->pattern1.nrofUplinkSlots + (tdd_config->pattern1.nrofUplinkSymbols != 0)) : n;
+  int num_slots_ul = tdd_config ? (tdd_config->pattern1.nrofUplinkSlots + (tdd_config->pattern1.nrofUplinkSymbols != 0)) : n;
   int index = slot % num_slots_ul;
-
+  //TODO L5G
+  num_slots_ul=6;
+  index = (slot % (num_slots_ul>>1))+(num_slots_ul>>1)*(int)(slot/10);
+  
   LOG_D(NR_MAC, "In %s slots per %s: %d, num_slots_ul %d, index %d\n",
                 __FUNCTION__,
                 tdd_config ? "TDD" : "FDD",

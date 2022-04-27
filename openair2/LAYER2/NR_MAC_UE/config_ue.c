@@ -679,6 +679,8 @@ int nr_rrc_mac_config_req_ue(
           num_slots_ul++;
         }
       }
+      //TODO L5G
+      num_slots_ul=6;
       LOG_I(NR_MAC, "Initializing ul_config_request. num_slots_ul = %d\n", num_slots_ul);
       mac->ul_config_request = (fapi_nr_ul_config_request_t *)calloc(num_slots_ul, sizeof(fapi_nr_ul_config_request_t));
       for (int i=0; i<num_slots_ul; i++)

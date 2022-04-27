@@ -766,6 +766,7 @@ int8_t nr_ue_process_dci(module_id_t module_id, int cc_id, uint8_t gNB_index, fr
         return -1;
       }
       pthread_mutex_lock(&ul_config->mutex_ul_config);
+      ul_config->number_pdus = 0;
       AssertFatal(ul_config->number_pdus<FAPI_NR_UL_CONFIG_LIST_NUM, "ul_config->number_pdus %d out of bounds\n",ul_config->number_pdus);
       nfapi_nr_ue_pusch_pdu_t *pusch_config_pdu = &ul_config->ul_config_list[ul_config->number_pdus].pusch_config_pdu;
 
@@ -2577,10 +2578,11 @@ uint8_t nr_get_csi_measurements(NR_UE_MAC_INST_t *mac,
           csi_bits += nr_get_csi_payload(mac, pucch, csi_report_id, csi_measconfig);
         }
       }
-      else
+      else{
         // L5G_IOT temporary
         // AssertFatal(1==0,"Only periodic CSI reporting is currently implemented\n");
-        LOG_W(MAC,"Only periodic CSI reporting is currently implemented\r");
+        LOG_D(MAC,"Only periodic CSI reporting is currently implemented\r");
+      }
     }
   }
 
