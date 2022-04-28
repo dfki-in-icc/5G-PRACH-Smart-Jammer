@@ -4,9 +4,9 @@ import { of } from 'rxjs/internal/observable/of';
 import { map } from 'rxjs/internal/operators/map';
 import { mergeMap } from 'rxjs/internal/operators/mergeMap';
 import { filter } from 'rxjs/operators';
-import { CommandsApi, IArgType, IColumn, ICommand } from 'src/app/api/commands.api';
+import { CommandsApi, IArgType, IColumn, ICommand, IParam } from 'src/app/api/commands.api';
 import { CmdCtrl } from 'src/app/controls/cmd.control';
-import { Param, ParamFC } from 'src/app/controls/param.control';
+import { RowCtrl } from 'src/app/controls/row.control';
 import { VarCtrl } from 'src/app/controls/var.control';
 import { DialogService } from 'src/app/services/dialog.service';
 import { LoadingService } from 'src/app/services/loading.service';
@@ -31,7 +31,7 @@ export class CommandsComponent {
 
   //table columns
   displayedColumns: string[] = []
-  rows$: Observable<ParamFC[][]> = new Observable<ParamFC[][]>()
+  rows$: Observable<RowCtrl[]> = new Observable<RowCtrl[]>()
   columns: IColumn[] = []
 
   constructor(
@@ -92,29 +92,21 @@ export class CommandsComponent {
         this.columns = resp.table!.columns
         this.displayedColumns = this.columns.map(col => col.name)
 
-        let rows = [];
+        let controls: RowCtrl[] = []
 
-        for (let i = 0; i < resp.table!.rows.length; i++) {
-          let row: Param[] = []
-
-          for (let j = 0; j < this.columns.length; j++) {
-            row[j] = new Param(
-              resp.table!.rows[i][j],
-              this.columns[j],
-              j,
-              this.selectedModule!.nameFC.value,
-              this.selectedCmd!.name
-            )
+        resp.table!.rows.map(row => {
+          for (let rawIndex = 0; rawIndex < this.columns.length; rawIndex++) {
+            controls[rawIndex] = new RowCtrl(row)
           }
-          rows[i] = row.map(param => new ParamFC(param))
-        }
-        return rows
+        })
+
+        return controls
       })
     );
   }
 
-  onParamSubmit(row: ParamFC[]) {
-    row.map(paramFC => this.commandsApi.setParam$(paramFC.api()).subscribe());
+  onParamSubmit(control: RowCtrl) {
+    this.commandsApi.setRow$(control.api()).subscribe();
   }
 
 
