@@ -96,7 +96,17 @@ export class CommandsComponent {
 
         resp.table!.rows.map(row => {
           for (let rawIndex = 0; rawIndex < this.columns.length; rawIndex++) {
-            controls[rawIndex] = new RowCtrl(row)
+            controls[rawIndex] = new RowCtrl({
+              params: row.map(item => {
+                const param: IParam = {
+                  value: item,
+                  col: this.columns[rawIndex]
+                }
+                return param
+              }),
+              rawIndex: rawIndex,
+              cmdName: this.selectedCmd!.name
+            })
           }
         })
 
@@ -106,7 +116,7 @@ export class CommandsComponent {
   }
 
   onParamSubmit(control: RowCtrl) {
-    this.commandsApi.setRow$(control.api()).subscribe();
+    this.commandsApi.setRow$(control.api(), this.selectedModule?.nameFC.value).subscribe();
   }
 
 

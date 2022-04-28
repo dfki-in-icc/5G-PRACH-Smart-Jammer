@@ -41,10 +41,12 @@ export interface IColumn { //should use IVariable ?
     type: IArgType;
     modifiable: boolean; //set command ?
 }
-export interface IRow {
+
+export type IRow = string[]
+
+export interface IRow2 {
     params: IParam[],
     rawIndex: number,
-    moduleName: string,
     cmdName: string
 }
 export interface ITable {
@@ -76,6 +78,6 @@ export class CommandsApi {
 
     public setVariable$ = (variable: IVariable, moduleName?: string) => this.httpClient.post<IResp>(environment.backend + route + (moduleName ? ('/' + moduleName) : "") + '/variables/', variable);
 
-    public setRow$ = (row: IRow) => this.httpClient.post<IResp>(environment.backend + route + '/' + row.moduleName + '/set', row);
+    public setRow$ = (row: IRow2, moduleName: string) => this.httpClient.post<IResp>(environment.backend + route + '/' + moduleName + '/set', row);
 
 }
