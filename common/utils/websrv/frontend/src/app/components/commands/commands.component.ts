@@ -94,13 +94,14 @@ export class CommandsComponent {
 
         let controls: RowCtrl[] = []
 
-        resp.table!.rows.map(row => {
-          for (let rawIndex = 0; rawIndex < this.columns.length; rawIndex++) {
+        for (let rawIndex = 0; rawIndex < resp.table!.rows.length; rawIndex++) {
+          for (let i = 0; i < this.columns.length; i++) {
+
             controls[rawIndex] = new RowCtrl({
-              params: row.map(item => {
+              params: resp.table!.rows[rawIndex].map(item => {
                 const param: IParam = {
                   value: item,
-                  col: this.columns[rawIndex]
+                  col: this.columns[i]
                 }
                 return param
               }),
@@ -108,7 +109,7 @@ export class CommandsComponent {
               cmdName: this.selectedCmd!.name
             })
           }
-        })
+        }
 
         return controls
       })
