@@ -94,8 +94,7 @@
 
                 <ng-template #toggle>
                   <mat-slide-toggle [formControl]="row.paramsFA.controls[colIndex]"
-                    [checked]="row.paramsFA.controls[colIndex].value" [disabled]="!col.modifiable"
-                    (change)="onParamSubmit(row)">
+                    [checked]="row.paramsFA.controls[colIndex].value" [disabled]="!col.modifiable">
                   </mat-slide-toggle>
                 </ng-template>
 
@@ -116,7 +115,7 @@
             </div>
 
             <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
-            <mat-row *matRowDef="let row; columns: displayedColumns" (keydown.enter)="onParamSubmit(row)"></mat-row>
+            <mat-row *matRowDef="let row; columns: displayedColumns"></mat-row>
 
           </mat-table>
 
