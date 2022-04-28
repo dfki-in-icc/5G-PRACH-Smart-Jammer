@@ -82,7 +82,7 @@
               See https://github.com/angular/material2/issues/12793 -->
 
 
-            <div *ngFor="let col of columns; index as colIndex" matColumnDef="{{col.name}}">
+            <div *ngFor="let col of columns; index as rawIndex" matColumnDef="{{col.name}}">
               <mat-header-cell *matHeaderCellDef>
                 <div>
                   <h4>{{ col.name }}</h4>
@@ -90,17 +90,17 @@
               </mat-header-cell>
               <mat-cell *matCellDef="let row; dataIndex as rowIndex">
 
-                <div *ngIf="col.type === IOptionType.boolean; then toggle else default"> </div>
+                <div *ngIf="col.type === IArgType.boolean; then toggle else default"> </div>
 
                 <ng-template #toggle>
-                  <mat-slide-toggle [formControl]="row.paramsFA.controls[colIndex]"
-                    [checked]="row.paramsFA.controls[colIndex].value" [disabled]="!col.modifiable">
+                  <mat-slide-toggle [formControl]="row.paramsFA.controls[rawIndex]"
+                    [checked]="row.paramsFA.controls[rawIndex].value" [disabled]="!col.modifiable">
                   </mat-slide-toggle>
                 </ng-template>
 
                 <ng-template #default>
                   <mat-form-field>
-                    <input matInput [formControl]="row.paramsFA.controls[colIndex]" [disabled]="!col.modifiable" />
+                    <input matInput [formControl]="row.paramsFA.controls[rawIndex]" [disabled]="!col.modifiable" />
                   </mat-form-field>
                 </ng-template>
 

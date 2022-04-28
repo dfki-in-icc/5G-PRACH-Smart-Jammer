@@ -6,6 +6,7 @@ import { mergeMap } from 'rxjs/internal/operators/mergeMap';
 import { filter } from 'rxjs/operators';
 import { CommandsApi, IArgType, IColumn, ICommand, IParam } from 'src/app/api/commands.api';
 import { CmdCtrl } from 'src/app/controls/cmd.control';
+import { ParamFC } from 'src/app/controls/param.control';
 import { RowCtrl } from 'src/app/controls/row.control';
 import { VarCtrl } from 'src/app/controls/var.control';
 import { DialogService } from 'src/app/services/dialog.service';
@@ -19,7 +20,7 @@ import { LoadingService } from 'src/app/services/loading.service';
 })
 export class CommandsComponent {
 
-  IOptionType = IArgType;
+  IArgType = IArgType;
 
   vars$: Observable<VarCtrl[]>
   modules$: Observable<CmdCtrl[]>
@@ -96,20 +97,20 @@ export class CommandsComponent {
         let controls: RowCtrl[] = []
 
         for (let rawIndex = 0; rawIndex < resp.table!.rows.length; rawIndex++) {
-          for (let i = 0; i < this.columns.length; i++) {
 
-            controls[rawIndex] = new RowCtrl({
-              params: resp.table!.rows[rawIndex].map(item => {
-                const param: IParam = {
-                  value: item,
-                  col: this.columns[i]
-                }
-                return param
-              }),
-              rawIndex: rawIndex,
-              cmdName: this.selectedCmd!.name
+          let params: IParam[] = []
+          for (let i = 0; i < this.columns.length; i = i + 1) {
+            params.push({
+              value: resp.table!.rows[rawIndex][i],
+              col: this.columns[i]
             })
           }
+
+          controls[rawIndex] = new RowCtrl({
+            params: params,
+            rawIndex: rawIndex,
+            cmdName: this.selectedCmd!.name
+          })
         }
 
         return controls
