@@ -94,14 +94,15 @@
                 <!-- <button mat-raised-button color="primary" (click)="onParamSubmit(row)"> set </button> -->
 
                 <ng-template #toggle>
-                  <mat-slide-toggle [formControl]="row[colIndex]" [checked]="row[colIndex].value"
-                    [disabled]="!col.modifiable" (change)="onParamSubmit(row)">
+                  <mat-slide-toggle [formControl]="row.paramsFA.controls[colIndex]"
+                    [checked]="row.paramsFA.controls[colIndex].value" [disabled]="!col.modifiable"
+                    (change)="onParamSubmit(row)">
                   </mat-slide-toggle>
                 </ng-template>
 
                 <ng-template #default>
                   <mat-form-field>
-                    <input matInput [formControl]="row[colIndex]" [disabled]="!col.modifiable" />
+                    <input matInput [formControl]="row.paramsFA.controls[colIndex]" [disabled]="!col.modifiable" />
                   </mat-form-field>
                 </ng-template>
 
