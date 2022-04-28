@@ -91,6 +91,7 @@ export class CommandsComponent {
       map(resp => {
         this.columns = resp.table!.columns
         this.displayedColumns = this.columns.map(col => col.name)
+        this.displayedColumns.push('button')
 
         let controls: RowCtrl[] = []
 

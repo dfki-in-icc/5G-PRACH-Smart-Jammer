@@ -10,7 +10,7 @@
             <div *ngFor="let variable of vars">
               <mat-form-field>
                 <mat-label>{{ variable.nameFC.value }}</mat-label>
-                <input input matInput [formControl]="variable.valueFC" />
+                <input input matInput [formControl]="variable.valueFC" [readonly]="!variable.modifiableFC.value" />
               </mat-form-field>
               <button mat-raised-button color="primary" [disabled]="!variable.modifiableFC.value"
                 (click)="onVarSubmit(variable)">
@@ -57,7 +57,7 @@
           <div *ngFor="let variable of modulevars">
             <mat-form-field>
               <mat-label>{{ variable.nameFC.value }}</mat-label>
-              <input input matInput [formControl]="variable.valueFC" />
+              <input input matInput [formControl]="variable.valueFC" [readonly]="!variable.modifiableFC.value" />
             </mat-form-field>
             <button mat-raised-button color="primary" [disabled]="!variable.modifiableFC.value"
               (click)="onModuleVarsubmit(variable)">
@@ -91,7 +91,6 @@
               <mat-cell *matCellDef="let row; dataIndex as rowIndex">
 
                 <div *ngIf="col.type === IOptionType.boolean; then toggle else default"> </div>
-                <!-- <button mat-raised-button color="primary" (click)="onParamSubmit(row)"> set </button> -->
 
                 <ng-template #toggle>
                   <mat-slide-toggle [formControl]="row.paramsFA.controls[colIndex]"
@@ -106,6 +105,13 @@
                   </mat-form-field>
                 </ng-template>
 
+              </mat-cell>
+            </div>
+
+            <div matColumnDef="button">
+              <mat-header-cell *matHeaderCellDef> </mat-header-cell>
+              <mat-cell *matCellDef="let row">
+                <button mat-raised-button color="primary" (click)="onParamSubmit(row)"> set </button>
               </mat-cell>
             </div>
 
