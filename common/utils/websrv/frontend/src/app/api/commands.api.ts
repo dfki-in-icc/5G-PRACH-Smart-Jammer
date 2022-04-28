@@ -1,9 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { environment } from 'src/environments/environment';
-import { Param, ParamFC } from '../controls/param.control';
-
-
 export interface IVariable {
     name: string;
     value: string;
@@ -39,15 +36,17 @@ export interface ICommand {
     name: string;
     confirm?: string;
 }
-
-
 export interface IColumn { //should use IVariable ?
     name: string;
     type: IArgType;
     modifiable: boolean; //set command ?
 }
-
-export type IRow = string[]
+export interface IRow {
+    params: IParam[],
+    rawIndex: number,
+    moduleName: string,
+    cmdName: string
+}
 export interface ITable {
     columns: IColumn[];
     rows: IRow[];
@@ -55,6 +54,10 @@ export interface ITable {
 export interface IResp {
     display: string[],
     table?: ITable
+}
+export interface IParam {
+    value: string,
+    col?: IColumn
 }
 
 const route = '/oaisoftmodem';
@@ -73,13 +76,6 @@ export class CommandsApi {
 
     public setVariable$ = (variable: IVariable, moduleName?: string) => this.httpClient.post<IResp>(environment.backend + route + (moduleName ? ('/' + moduleName) : "") + '/variables/', variable);
 
-    public setParam$ = (param: Param) => this.httpClient.post<IResp>(environment.backend + route + '/' + param.moduleName + '/set',
-        {
-            cmdName: param.cmdName,
-            colName: param.col.name,
-            rawIndex: param.rawIndex,
-            value: param.value
-        }
-    );
+    public setRow$ = (row: IRow) => this.httpClient.post<IResp>(environment.backend + route + '/' + row.moduleName + '/set', row);
 
 }
