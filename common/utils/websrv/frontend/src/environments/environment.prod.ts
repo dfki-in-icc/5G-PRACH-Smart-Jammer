@@ -4,5 +4,5 @@
 
 export const environment = {
   production: true,
-  backend: 'http://' + window.location.hostname + ':8090'
+  backend: 'http://' + window.location.hostname + ':' + window.location.port
 };
