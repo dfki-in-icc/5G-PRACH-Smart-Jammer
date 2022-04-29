@@ -16,7 +16,7 @@ export class ParamFC extends FormControl {
 
   api() {
     const doc: IParam = {
-      value: this.value as string,
+      value: ((this.param.col?.type !== IArgType.boolean) ? this.value as string : String(this.value)),
       col: this.param.col
     };
 
