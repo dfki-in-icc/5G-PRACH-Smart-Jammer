@@ -100,7 +100,7 @@
 
                 <ng-template #default>
                   <mat-form-field>
-                    <input matInput [formControl]="row.paramsFA.controls[rawIndex]" [disabled]="!col.modifiable" />
+                    <input matInput [formControl]="row.paramsFA.controls[rawIndex]" [readonly]="!col.modifiable" />
                   </mat-form-field>
                 </ng-template>
 
@@ -110,7 +110,8 @@
             <div matColumnDef="button">
               <mat-header-cell *matHeaderCellDef> </mat-header-cell>
               <mat-cell *matCellDef="let row">
-                <button mat-raised-button color="primary" (click)="onParamSubmit(row)"> set </button>
+                <button mat-raised-button color="primary" (click)="onParamSubmit(row)"
+                  [disabled]="!isRowModifiable(row)"> set </button>
               </mat-cell>
             </div>
 
