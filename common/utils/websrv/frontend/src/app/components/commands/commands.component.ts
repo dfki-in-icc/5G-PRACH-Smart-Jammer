@@ -24,11 +24,11 @@ export class CommandsComponent {
 
   vars$: Observable<VarCtrl[]>
   modules$: Observable<CmdCtrl[]>
-  selectedModule?: CmdCtrl
-  selectedCmd?: ICommand
-
   modulevars$?: Observable<VarCtrl[]>
   modulecmds$?: Observable<CmdCtrl[]>
+
+  selectedModule?: CmdCtrl
+  selectedCmd?: ICommand
 
   //table columns
   displayedColumns: string[] = []
@@ -71,7 +71,7 @@ export class CommandsComponent {
   onModuleVarsubmit(control: VarCtrl) {
     this.commandsApi.setVariable$(control.api(), `${this.selectedModule!.nameFC.value}`)
       .pipe(
-        map(resp => this.dialogService.openRespDialog(resp))
+        map(resp => this.dialogService.openVarRespDialog(resp))
       ).subscribe();
   }
 
@@ -87,7 +87,7 @@ export class CommandsComponent {
     this.rows$ = obs.pipe(
       mergeMap(() => this.commandsApi.runCommand$(control.api(), `${this.selectedModule!.nameFC.value}`)),
       mergeMap(resp => {
-        if (resp.display[0]) return this.dialogService.openRespDialog(resp, 'cmd ' + control.nameFC.value + ' response:')
+        if (resp.display[0]) return this.dialogService.openCmdDialog(resp, 'cmd ' + control.nameFC.value + ' response:')
         else return of(resp)
       }),
       map(resp => {

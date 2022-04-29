@@ -30,16 +30,16 @@ import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { CommandsComponent } from './components/commands/commands.component';
 import { ConfirmDialogComponent } from './components/confirm/confirm.component';
-import { ErrorDialogComponent } from './components/error-dialog/error-dialog.component';
+import { DialogComponent } from './components/dialog/dialog.component';
 import { InterceptorProviders } from './interceptors/interceptors';
 import { LoadingService } from './services/loading.service';
 
 @NgModule({
   declarations: [
     AppComponent,
-    ErrorDialogComponent,
     CommandsComponent,
-    ConfirmDialogComponent
+    ConfirmDialogComponent,
+    DialogComponent
   ],
   imports: [
     BrowserModule,
@@ -73,6 +73,6 @@ import { LoadingService } from './services/loading.service';
     InterceptorProviders,
   ],
   bootstrap: [AppComponent],
-  entryComponents: [ErrorDialogComponent],
+  entryComponents: [DialogComponent],
 })
 export class AppModule { }
