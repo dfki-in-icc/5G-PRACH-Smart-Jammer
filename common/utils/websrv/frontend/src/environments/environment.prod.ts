@@ -4,5 +4,5 @@
 
 export const environment = {
   production: true,
-  backend: 'http://localhost:8090' //FIXME
+  backend: 'http://' + window.location.hostname + ':8090'
 };
