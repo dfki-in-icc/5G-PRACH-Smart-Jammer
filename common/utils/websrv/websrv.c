@@ -304,8 +304,9 @@ FILE *websrv_getfile(char *filename, struct _u_response * response) {
     
 }
 /*------------------------------------------------------------------------------------------------------------------------*/
-int websrv_callback_set_moduleparams(const struct _u_request * request, struct _u_response * response, void * user_data) {
+int websrv_callback_set_moduleparams(const struct _u_request *request, struct _u_response *response, void *user_data) {
   cmdparser_t * modulestruct = (cmdparser_t *)user_data;
+  websrv_printf_start(response,200);
   LOG_I(UTIL,"[websrv] callback_module_set received: %s %s\n",request->http_verb,request->http_url);
 	 json_error_t jserr;
 	 json_t* jsbody = ulfius_get_json_body_request (request, &jserr);
@@ -320,8 +321,31 @@ int websrv_callback_set_moduleparams(const struct _u_request * request, struct _
          websrv_printf("%s: NULL user data",request->http_url);
        } else {
 	     cmdparser_t * modulestruct = (cmdparser_t *)user_data;
-         json_t *J=json_object_get(jsbody, "name");
-         const char *vname=json_string_value(J);
+	     int   rawval;
+	     char *cmd;
+	     json_t *parray=json_array();
+	     json_error_t jerror;
+         int ures =  json_unpack_ex(jsbody, &jerror,0,"{s:i,s:s,s:o}", "rawIndex",&rawval,"cmdName", &cmd,"params",&parray);
+         if (ures != 0) {
+			 websrv_printf("cannot unpack json body from %s: %s \n",request->http_url,jerror.text);
+		 } else {
+			 int psize=json_array_size(parray);
+			 LOG_I(UTIL,"[websrv] rawIndex=%i, cmdName=%s, params=array of %i table values\n", rawval, cmd,psize);
+			 for (int i=0 ; i<psize; i++) {
+				 json_t *jelem = json_array_get(parray,i);
+				 char *cvalue;
+				 char *cname;
+				 char *ctype;
+				 int cmod;
+				 ures =  json_unpack_ex(jelem, &jerror,0,"{s:s,s:{s:s,s:s,s:b}}", "value",&cvalue,"col", 
+				                                          "name",&cname,"type",&ctype,"modifiable",&cmod);
+                 if (ures != 0) {
+			       websrv_printf("cannot unpack json element %i %s\n",i,jerror.text);
+		         } else {
+					LOG_I(UTIL,"[websrv] element%i, value=%s, name %s type %s\n", i, cvalue, cname, ctype); 
+				 }
+			 } 
+		 }
  /*        for ( telnetshell_vardef_t *var = modulestruct->var; var->varvalptr!= NULL ;var++) {
            if (strncmp(var->varname,vname,TELNET_CMD_MAXSIZE) == 0){
              J=json_object_get(jsbody, "value");
@@ -378,6 +402,7 @@ int websrv_callback_set_moduleparams(const struct _u_request * request, struct _
          }//for */
        }//user_data
      } //sbody
+  websrv_printf_end(httpstatus);
   return U_CALLBACK_COMPLETE;      	
 }
 /*------------------------------------------------------------------------------------------------------------------------*/
