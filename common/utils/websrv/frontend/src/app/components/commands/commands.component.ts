@@ -93,6 +93,7 @@ export class CommandsComponent {
       map(resp => {
 
         let controls: RowCtrl[] = []
+        this.displayedColumns = []
 
         if (resp.table) {
           this.columns = resp.table.columns
