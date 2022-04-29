@@ -80,6 +80,7 @@ paramdef_t telnetoptions[] = {
   {"loopdelay",                    "<loop command delay (ms)>\n",   0,                 uptr:&(telnetparams.loopdelay),       defuintval:5000,                TYPE_UINT,      0 },
   {"histfile",                     "<history file name>\n",         PARAMFLAG_NOFREE,  strptr:&(telnetparams.histfile),      defstrval:"oaitelnet.history",  TYPE_STRING,    0 },
   {"histsize",                     "<history sizes>\n",             0,                 iptr:&(telnetparams.histsize),        defuintval:50,                  TYPE_INT,       0 },
+  {"logfile",                      "log file hen redirecting",      PARAMFLAG_NOFREE,  strptr:&(telnetparams.logfile),       defstrval:"oaisoftmodem.log",   TYPE_STRING,    0 },
   {"phypbsize",                    "<phy dump buff size (bytes)>\n",0,                 uptr:&(telnetparams.phyprntbuff_size),defuintval:65000,               TYPE_UINT,      0 },
   {TELNETSRV_OPTNAME_STATICMOD,    "<static modules selection>\n",  0,                 strlistptr:NULL,                      defstrlistval:telnet_defstatmod,TYPE_STRINGLIST,(sizeof(telnet_defstatmod)/sizeof(char *))},
   {TELNETSRV_OPTNAME_SHRMOD,       "<dynamic modules selection>\n", 0,                 strlistptr:NULL,                      defstrlistval:NULL,TYPE_STRINGLIST,0 }
@@ -108,7 +109,9 @@ telnetshell_vardef_t telnet_vardef[] = {
 };
 
 telnetshell_cmddef_t  telnet_cmdarray[] = {
-  {"redirlog","[here,file,off]",setoutput,{wsetoutput},0,NULL},
+  {"redirlog","[here,file,off]",setoutput,{NULL},TELNETSRV_CMDFLAG_TELNETONLY,NULL},
+  {"redirlog file","",setoutput,{NULL},TELNETSRV_CMDFLAG_WEBSRVONLY,NULL},
+  {"redirlog off","",setoutput,{NULL},TELNETSRV_CMDFLAG_WEBSRVONLY,NULL},
   {"param","[prio]",setparam,{wsetparam},0,NULL},
   {"history","[list,reset]",history_cmd,{NULL},TELNETSRV_CMDFLAG_TELNETONLY,NULL},
   {"","",NULL,{NULL},0,NULL},
@@ -239,13 +242,17 @@ void redirstd(char *newfname,telnet_printfunc_t prnt ) {
   fd=freopen(newfname, "w", stdout);
 
   if (fd == NULL) {
-    prnt("ERROR: stdout redir to %s error %s",strerror(errno));
+    prnt("ERROR: stdout redir to %s error %s\n",strerror(errno));
+  } else {
+	prnt("stdout redirected to %s\n",newfname);
   }
 
   fd=freopen(newfname, "w", stderr);
 
   if (fd == NULL) {
-    prnt("ERROR: stderr redir to %s error %s",strerror(errno));
+    prnt("ERROR: stderr redir to %s error %s\n",strerror(errno));
+  } else {
+	prnt("stderr redirected to %s\n",newfname); 
   }
 }
 
@@ -257,7 +264,7 @@ int setoutput(char *buff, int debug, telnet_printfunc_t prnt) {
   char cmds[TELNET_MAX_MSGLENGTH/TELNET_CMD_MAXSIZE][TELNET_CMD_MAXSIZE];
   char *logfname;
   char stdout_str[64];
-#define LOGFILE "logfile.log"
+
   memset(cmds,0,sizeof(cmds));
   sscanf(buff,"%9s %32s %9s %9s %9s", cmds[0],cmds[1],cmds[2],cmds[3],cmds[4]  );
 
@@ -273,10 +280,10 @@ int setoutput(char *buff, int debug, telnet_printfunc_t prnt) {
 
   if (strncasecmp(cmds[0],"file",4) == 0) {
     if (cmds[1][0] == 0)
-      logfname=LOGFILE;
+      logfname=telnetparams.logfile;
     else
       logfname=cmds[1];
-
+    prnt("Log output redirected to (%s)\n",logfname);
     fflush(stdout);
     redirstd(logfname,prnt);
   }

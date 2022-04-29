@@ -51,7 +51,7 @@
 /* definitions to store 2 dim table, used to store command results before */
 /* displaying them either on console or web page */
 #define TELNET_MAXLINE_NUM     100
-#define TELNET_MAXCOL_NUM      5
+#define TELNET_MAXCOL_NUM      10
 
 typedef struct col {
     char coltitle[TELNET_CMD_MAXSIZE];
@@ -153,6 +153,7 @@ typedef struct {
      int priority;                   // server running priority
      char *histfile;                 // command history
      int histsize;                   // command history length
+     char *logfile;                  // filename to use when redirecting output to file
      int new_socket;                 // socket of the client connection
      int logfilefd;                  // file id of the log file when log output is redirected to a file
      int  saved_stdout;              // file id of the previous stdout, used to be able to restore original stdout 
