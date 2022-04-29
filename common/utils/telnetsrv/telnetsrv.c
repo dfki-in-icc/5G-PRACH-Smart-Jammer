@@ -98,13 +98,14 @@ int history_cmd(char *buff, int debug, telnet_printfunc_t prnt);
 
 
 telnetshell_vardef_t telnet_vardef[] = {
-  {"debug",TELNET_VARTYPE_INT32,0,&telnetparams.telnetdbg},
-  {"prio",TELNET_VARTYPE_INT32,0,&telnetparams.priority},
-  {"loopc",TELNET_VARTYPE_INT32,0,&telnetparams.loopcount},
-  {"loopd",TELNET_VARTYPE_INT32,0,&telnetparams.loopdelay},
-  {"phypb",TELNET_VARTYPE_INT32,0,&telnetparams.phyprntbuff_size},
-  {"hsize",TELNET_VARTYPE_INT32,0,&telnetparams.histsize},
-  {"hfile",TELNET_VARTYPE_STRING,TELNET_CHECKVAL_RDONLY,&telnetparams.histfile},
+  {"debug",  TELNET_VARTYPE_INT32,0,&telnetparams.telnetdbg},
+  {"prio",   TELNET_VARTYPE_INT32,0,&telnetparams.priority},
+  {"loopc",  TELNET_VARTYPE_INT32,0,&telnetparams.loopcount},
+  {"loopd",  TELNET_VARTYPE_INT32,0,&telnetparams.loopdelay},
+  {"phypb",  TELNET_VARTYPE_INT32,0,&telnetparams.phyprntbuff_size},
+  {"hsize",  TELNET_VARTYPE_INT32,0,&telnetparams.histsize},
+  {"hfile",  TELNET_VARTYPE_STRING,TELNET_CHECKVAL_RDONLY,&telnetparams.histfile},
+  {"logfile",TELNET_VARTYPE_STRING,0,&telnetparams.logfile},
   {"",0,0,NULL}
 };
 

@@ -533,6 +533,7 @@ int s = sscanf(buf,"%ms %i-%i\n",&logsubcmd, &idx1,&idx2);
 
    return 0;
 } 
+
 /*-------------------------------------------------------------------------------------*/
 
 void add_softmodem_cmds(void)
