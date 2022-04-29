@@ -49,7 +49,7 @@ import { LoadingService } from './services/loading.service';
     MatFormFieldModule,
     MatInputModule,
     ReactiveFormsModule,
-    // MatChipsModule,
+    MatChipsModule,
     MatProgressSpinnerModule,
     MatButtonModule,
     FlexLayoutModule,
