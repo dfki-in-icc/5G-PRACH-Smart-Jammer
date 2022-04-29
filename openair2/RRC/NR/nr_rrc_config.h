@@ -92,7 +92,8 @@ void prepare_sim_uecap(NR_UE_NR_Capability_t *cap,
                        NR_ServingCellConfigCommon_t *scc,
                        int numerology,
                        int rbsize,
-                       int mcs_table);
+                       int mcs_table_dl,
+                       int mcs_table_ul);
 struct NR_SetupRelease_PUSCH_Config *config_pusch(NR_PUSCH_Config_t *pusch_Config, const NR_ServingCellConfigCommon_t *scc, NR_UE_NR_Capability_t *uecap);
 void config_downlinkBWP(NR_BWP_Downlink_t *bwp,
                         const NR_ServingCellConfigCommon_t *scc,

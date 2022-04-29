@@ -754,6 +754,10 @@ int main(int argc, char **argv)
 
   prepare_scd(scd);
 
+  NR_UE_NR_Capability_t* UE_Capability_nr = CALLOC(1,sizeof(NR_UE_NR_Capability_t));
+  prepare_sim_uecap(UE_Capability_nr,scc,mu,
+                    N_RB_UL,0,mcs_table);
+
   // TODO do a UECAP for phy-sim
   const gNB_RrcConfigurationReq conf = {
     .pdsch_AntennaPorts = { .N1 = 1, .N2 = 1, .XP = 1 },
@@ -763,7 +767,7 @@ int main(int argc, char **argv)
     .do_SRS = 0,
     .force_256qam_off = false
   };
-  fill_default_secondaryCellGroup(scc, scd, secondaryCellGroup, NULL, 0, 1, &conf, 0);
+  fill_default_secondaryCellGroup(scc, scd, secondaryCellGroup, UE_Capability_nr, 0, 1, &conf, 0);
 
   // xer_fprint(stdout, &asn_DEF_NR_CellGroupConfig, (const void*)secondaryCellGroup);
 
