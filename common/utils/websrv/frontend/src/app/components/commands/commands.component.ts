@@ -91,27 +91,30 @@ export class CommandsComponent {
         else return of(resp)
       }),
       map(resp => {
-        this.columns = resp.table!.columns
-        this.displayedColumns = this.columns.map(col => col.name)
-        this.displayedColumns.push('button')
 
         let controls: RowCtrl[] = []
 
-        for (let rawIndex = 0; rawIndex < resp.table!.rows.length; rawIndex++) {
+        if (resp.table) {
+          this.columns = resp.table.columns
+          this.displayedColumns = this.columns.map(col => col.name)
+          this.displayedColumns.push('button')
 
-          let params: IParam[] = []
-          for (let i = 0; i < this.columns.length; i = i + 1) {
-            params.push({
-              value: resp.table!.rows[rawIndex][i],
-              col: this.columns[i]
+          for (let rawIndex = 0; rawIndex < resp.table.rows.length; rawIndex++) {
+
+            let params: IParam[] = []
+            for (let i = 0; i < this.columns.length; i = i + 1) {
+              params.push({
+                value: resp.table.rows[rawIndex][i],
+                col: this.columns[i]
+              })
+            }
+
+            controls[rawIndex] = new RowCtrl({
+              params: params,
+              rawIndex: rawIndex,
+              cmdName: this.selectedCmd!.name
             })
           }
-
-          controls[rawIndex] = new RowCtrl({
-            params: params,
-            rawIndex: rawIndex,
-            cmdName: this.selectedCmd!.name
-          })
         }
 
         return controls
@@ -121,6 +124,14 @@ export class CommandsComponent {
 
   onParamSubmit(control: RowCtrl) {
     this.commandsApi.setRow$(control.api(), this.selectedModule?.nameFC.value).subscribe();
+  }
+
+  isRowModifiable(control: RowCtrl) {
+    const modif = control.paramsFA.controls
+      .map(paramFC => (paramFC as ParamFC).api().col!.modifiable)
+      .reduce((acc, next) => acc || next)
+
+    return modif
   }
 
 
