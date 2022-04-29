@@ -53,6 +53,7 @@ export class CommandsComponent {
   onModuleSelect(control: CmdCtrl) {
 
     this.selectedModule = control
+    this.selectedCmd = undefined
 
     this.modulecmds$ = this.commandsApi.readCommands$(`${control.nameFC.value}`).pipe(
       map(icmds => icmds.map(icmd => new CmdCtrl(icmd)))
