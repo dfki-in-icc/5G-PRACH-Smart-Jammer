@@ -39,9 +39,10 @@
           </div>
           <div *ngIf="modulecmds$ | async as cmds">
             <div *ngIf="cmds.length">
-              <div *ngFor="let cmd of cmds" fxLayoutGap="10px" fxLayoutAlign="start start">
-                <button mat-raised-button color="primary" (click)="onCmdSubmit(cmd)"> {{cmd.nameFC.value}} </button>
-              </div>
+              <mat-chip-list>
+                <mat-chip *ngFor="let cmd of cmds" (click)="onCmdSubmit(cmd)"> {{cmd.nameFC.value}}
+                </mat-chip>
+              </mat-chip-list>
             </div>
           </div>
         </mat-card-content>
@@ -83,12 +84,12 @@
 
 
             <div *ngFor="let col of columns; index as rawIndex" matColumnDef="{{col.name}}">
-              <mat-header-cell *matHeaderCellDef>
+              <mat-header-cell *matHeaderCellDef fxLayoutAlign="center">
                 <div>
                   <h4>{{ col.name }}</h4>
                 </div>
               </mat-header-cell>
-              <mat-cell *matCellDef="let row; dataIndex as rowIndex">
+              <mat-cell *matCellDef="let row; dataIndex as rowIndex" fxLayoutAlign="center">
 
                 <div *ngIf="col.type === IArgType.boolean; then toggle else default"> </div>
 
@@ -109,7 +110,7 @@
 
             <div matColumnDef="button">
               <mat-header-cell *matHeaderCellDef> </mat-header-cell>
-              <mat-cell *matCellDef="let row">
+              <mat-cell *matCellDef="let row" fxLayoutAlign="center">
                 <button mat-raised-button color="primary" (click)="onParamSubmit(row)"
                   [disabled]="!isRowModifiable(row)"> set </button>
               </mat-cell>
