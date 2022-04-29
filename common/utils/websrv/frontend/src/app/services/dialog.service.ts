@@ -7,7 +7,7 @@ import { of } from 'rxjs/internal/observable/of';
 import { tap } from 'rxjs/internal/operators/tap';
 import { IResp } from '../api/commands.api';
 import { ConfirmDialogComponent } from '../components/confirm/confirm.component';
-import { ErrorDialogComponent } from '../components/error-dialog/error-dialog.component';
+import { DialogComponent } from '../components/dialog/dialog.component';
 
 @Injectable({
   providedIn: 'root',
@@ -27,7 +27,7 @@ export class DialogService {
 
     this.isDialogOpen = true;
 
-    return this._dialog.open(ErrorDialogComponent, {
+    return this._dialog.open(DialogComponent, {
       width: '900px',
       data: {
         title: error.status + ' Error',
@@ -37,19 +37,42 @@ export class DialogService {
       .pipe(tap(() => this.isDialogOpen = false));
   }
 
-  openRespDialog(resp: IResp, title?: string): Observable<IResp> {
+  openCmdDialog(resp: IResp, title?: string): Observable<IResp> {
     if (this.isDialogOpen || !resp.display.length) {
       return of(resp);
     }
 
     this.isDialogOpen = true;
 
-    const dialogRef = this._dialog.open(ErrorDialogComponent, {
+    const dialogRef = this._dialog.open(DialogComponent, {
       width: '900px',
       height: '80%',
       data: {
         title: title,
         body: resp.display!.join("</p><p>")
+      },
+    });
+
+    dialogRef.afterClosed().subscribe((_) => {
+      console.log('The dialog was closed');
+      this.isDialogOpen = false;
+    });
+
+    return of(resp)
+  }
+
+
+  openVarRespDialog(resp: IResp): Observable<IResp> {
+    if (this.isDialogOpen || !resp.display.length) {
+      return of(resp);
+    }
+
+    this.isDialogOpen = true;
+
+    const dialogRef = this._dialog.open(DialogComponent, {
+      width: '900px',
+      data: {
+        title: resp.display![0]
       },
     });
 

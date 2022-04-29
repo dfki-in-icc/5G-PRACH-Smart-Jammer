@@ -69,7 +69,7 @@
       </mat-card>
     </mat-grid-tile>
 
-    <mat-grid-tile *ngIf="(rows$ | async)?.length" [colspan]="1" [rowspan]="10">
+    <mat-grid-tile *ngIf="(rows$ | async)?.length" [colspan]="1" [rowspan]="20">
       <mat-card class="dashboard-card">
         <mat-card-header>
           <mat-card-title>{{ selectedModule!.nameFC.value }} {{ selectedCmd!.name }} </mat-card-title>
