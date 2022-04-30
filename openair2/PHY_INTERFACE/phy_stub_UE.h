@@ -134,6 +134,7 @@ typedef struct phy_channel_params_t
 {
     uint16_t sfn_sf;
     uint16_t message_id;
+    uint16_t phy_id;
     uint16_t nb_of_sinrs;
     float sinr[LTE_NUM_LAYER];
     // Incomplete, need all channel parameters

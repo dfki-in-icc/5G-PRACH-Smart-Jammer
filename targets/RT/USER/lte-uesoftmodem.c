@@ -272,7 +272,6 @@ void exit_function(const char *file, const char *function, const int line, const
 }
 
 extern int16_t dlsch_demod_shift;
-uint16_t node_number;
 static void get_options(void) {
   int CC_id=0;
   int tddflag=0;
@@ -597,9 +596,11 @@ int main( int argc, char **argv ) {
   itti_init(TASK_MAX, tasks_info);
 
   init_opt();
-  ue_id_g = (node_number == 0) ? 0 : node_number - 1; //ue_id_g = 0, 1, ...,
+
+  uint16_t node_number = get_softmodem_params()->node_number; // node_number = 1, 2
+  ue_id_g = (node_number == 0) ? 0 : node_number - 1; // ue_id_g = 0, 1
   AssertFatal(ue_id_g >= 0, "UE id is expected to be nonnegative.\n");
-  init_pdcp(node_number);
+  init_pdcp(ue_id_g + 1);
 
   //TTN for D2D
   printf ("RRC control socket\n");

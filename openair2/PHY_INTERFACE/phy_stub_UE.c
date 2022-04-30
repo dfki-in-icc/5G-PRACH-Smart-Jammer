@@ -853,7 +853,7 @@ void dl_config_req_UE_MAC_dci(int sfn,
               sfn, sf, dci->pdu_size,
               dlsch->dlsch_pdu.dlsch_pdu_rel8.pdu_index,
               tx_req_pdu_list->num_pdus);
-        if (node_number > 0 || !should_drop_transport_block(sf, dci->dci_dl_pdu.dci_dl_pdu_rel8.rnti))
+        if (get_softmodem_params()->node_number > 0 || !should_drop_transport_block(sf, dci->dci_dl_pdu.dci_dl_pdu_rel8.rnti))
         {
           ue_send_sdu(ue_id, 0, sfn, sf,
               tx_req_pdu_list->pdus[pdu_index].segments[0].segment_data,
@@ -1310,7 +1310,7 @@ void *ue_standalone_pnf_task(void *context)
   nfapi_dl_config_request_t dl_config_req;
   bool tx_req_valid = false;
   bool dl_config_req_valid = false;
-  uint16_t prev_sfn_slot = 0xFFFF;
+  uint16_t prev_sfn_sf = 0xFFFF;
   uint16_t same_tick = 1;
   extern int num_enbs;
   while (true)
@@ -1341,7 +1341,7 @@ void *ue_standalone_pnf_task(void *context)
 
       LOG_I(MAC, "Received sfn_slot[%hu] frame: %u, subframe: %u from phy_id %u\n", sfn_sf_info.phy_id,
             sfn_sf_info.sfn_sf >> 4, sfn_sf_info.sfn_sf & 15, phy_id);
-      if (prev_sfn_slot == sfn_sf)
+      if (prev_sfn_sf == sfn_sf)
         ++same_tick;
       if (same_tick == num_enbs)
       {
@@ -1354,30 +1354,39 @@ void *ue_standalone_pnf_task(void *context)
         }
         same_tick = 1;
       }
-      prev_sfn_slot = sfn_sf;
+      prev_sfn_sf = sfn_sf;
     }
     else if (get_message_id((const uint8_t *)buffer, len) == 0x0FFF) // 0x0FFF : channel info identifier.
     {
       phy_channel_params_t ch_info;
       memcpy(&ch_info, buffer, sizeof(phy_channel_params_t));
-      current_sfn_sf = ch_info.sfn_sf;
-      if (sem_post(&sfn_semaphore) != 0)
-      {
-        LOG_E(MAC, "sem_post() error\n");
-        abort();
-      }
-      uint16_t sf = ch_info.sfn_sf & 15;
-      assert(sf < 10);
+      uint16_t sfn_sf = ch_info.sfn_sf;
 
-      if (ch_info.nb_of_sinrs > 1)
-        LOG_W(MAC, "Expecting at most one SINR.\n");
-
-      // TODO: Update sinr field of slot_rnti_mcs to be array.
-      for (int i = 0; i < ch_info.nb_of_sinrs; ++i)
+      if (prev_sfn_sf == sfn_sf)
+        ++same_tick;
+      if (same_tick == num_enbs)
       {
-        sf_rnti_mcs[sf].sinr = ch_info.sinr[i];
-        LOG_D(MAC, "Received_SINR[%d] = %f\n", i, ch_info.sinr[i]);
+        current_sfn_sf = sfn_sf;;
+
+        if (sem_post(&sfn_semaphore) != 0)
+        {
+          LOG_E(MAC, "sem_post() error\n");
+          abort();
+        }
+        uint16_t sf = ch_info.sfn_sf & 15;
+        assert(sf < 10);
+        same_tick = 1;
+        if (ch_info.nb_of_sinrs > 1)
+          LOG_W(MAC, "Expecting at most one SINR.\n");
+
+        // TODO: Update sinr field of slot_rnti_mcs to be array.
+        for (int i = 0; i < ch_info.nb_of_sinrs; ++i)
+        {
+          sf_rnti_mcs[sf].sinr = ch_info.sinr[i];
+          LOG_D(MAC, "Received_SINR[%d] = %f\n", i, ch_info.sinr[i]);
+        }
       }
+      prev_sfn_sf = sfn_sf;
     }
     else
     {
@@ -2133,7 +2142,7 @@ static inline bool is_channel_modeling(void)
      mode. It does not crash for LTE mode. We have not implemented channel
      modeling for NSA mode yet. For now, we ensure only do do chanel modeling
      in LTE mode. */
-  return node_number == 0 && !get_softmodem_params()->nsa;
+  return get_softmodem_params()->node_number == 0 && !get_softmodem_params()->nsa;
 }
 
 static bool should_drop_transport_block(int sf, uint16_t rnti)
