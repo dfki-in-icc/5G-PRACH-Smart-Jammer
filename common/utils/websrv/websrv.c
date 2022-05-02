@@ -305,7 +305,6 @@ FILE *websrv_getfile(char *filename, struct _u_response * response) {
 }
 /*------------------------------------------------------------------------------------------------------------------------*/
 int websrv_callback_set_moduleparams(const struct _u_request *request, struct _u_response *response, void *user_data) {
-  cmdparser_t * modulestruct = (cmdparser_t *)user_data;
   websrv_printf_start(response,200);
   LOG_I(UTIL,"[websrv] callback_module_set received: %s %s\n",request->http_verb,request->http_url);
 	 json_error_t jserr;
@@ -322,15 +321,16 @@ int websrv_callback_set_moduleparams(const struct _u_request *request, struct _u
        } else {
 	     cmdparser_t * modulestruct = (cmdparser_t *)user_data;
 	     int   rawval;
-	     char *cmd;
+	     char *cmdName;
 	     json_t *parray=json_array();
 	     json_error_t jerror;
-         int ures =  json_unpack_ex(jsbody, &jerror,0,"{s:i,s:s,s:o}", "rawIndex",&rawval,"cmdName", &cmd,"params",&parray);
+         int ures =  json_unpack_ex(jsbody, &jerror,0,"{s:i,s:s,s:o}", "rawIndex",&rawval,"cmdName", &cmdName,"params",&parray);
          if (ures != 0) {
 			 websrv_printf("cannot unpack json body from %s: %s \n",request->http_url,jerror.text);
 		 } else {
 			 int psize=json_array_size(parray);
-			 LOG_I(UTIL,"[websrv] rawIndex=%i, cmdName=%s, params=array of %i table values\n", rawval, cmd,psize);
+			 webdatadef_t datatbl;
+			 LOG_I(UTIL,"[websrv] rawIndex=%i, cmdName=%s, params=array of %i table values\n", rawval, cmdName,psize);
 			 for (int i=0 ; i<psize; i++) {
 				 json_t *jelem = json_array_get(parray,i);
 				 char *cvalue;
@@ -343,63 +343,25 @@ int websrv_callback_set_moduleparams(const struct _u_request *request, struct _u
 			       websrv_printf("cannot unpack json element %i %s\n",i,jerror.text);
 		         } else {
 					LOG_I(UTIL,"[websrv] element%i, value=%s, name %s type %s\n", i, cvalue, cname, ctype); 
-				 }
-			 } 
-		 }
- /*        for ( telnetshell_vardef_t *var = modulestruct->var; var->varvalptr!= NULL ;var++) {
-           if (strncmp(var->varname,vname,TELNET_CMD_MAXSIZE) == 0){
-             J=json_object_get(jsbody, "value");
-             if(J!=NULL) {
-               if (json_is_string(J)) {
-				 const char *vval=json_string_value(J);
-				 websrv_printf("var %s set to ",var->varname); 
-                 int st=telnet_setvarvalue(var,(char *)vval, websrv_printf );
-                 if (st>=0) {				   
-				   httpstatus=200;
-				 } else {
-				   httpstatus=500;				 
-				 }
-			  } else if (json_is_integer(J)) {
-				 json_int_t i = json_integer_value(J);
-				 switch(var->vartype) {
-					 case TELNET_VARTYPE_INT64:
-					   *(int64_t *)var->varvalptr=(int64_t)i;
-					   break;					 
-					 case TELNET_VARTYPE_INT32:
-					   *(int32_t *)var->varvalptr=(int32_t)i;
-					   break;
-					 case TELNET_VARTYPE_INT16:
-					   *(int16_t *)var->varvalptr=(int16_t)i;
-					   break;	
-					 case TELNET_VARTYPE_INT8:
-					   *(int8_t *)var->varvalptr=(int8_t)i;
-					   break;
-					 case TELNET_VARTYPE_UINT:
-					   *(unsigned int *)var->varvalptr=(unsigned int)i;
-					   break;					   						   				   
-					 default:
-                       httpstatus=500;
-                       websrv_printf(" Cannot set var %s, integer type mismatch\n",vname );
-                       break;				 
-			     }
-			   } else if (json_is_real(J)) {
-				 double lf = json_real_value(J); 
-				 if(var->vartype==TELNET_VARTYPE_DOUBLE) {
-					*(double *)var->varvalptr = lf;
-                    httpstatus=200;
-                    websrv_printf(" Var %s, set to %g\n",vname, *(double *)var->varvalptr );				 					
-				 } else {
-                   httpstatus=500;
-                   websrv_printf(" Cannot set var %s, real type mismatch\n",vname );					 
-				 }
-			   }
-             } else {
-               httpstatus=500;
-               websrv_printf("Cannot set var %s, json object is NULL\n",vname );
-             }
-             break;
-           }
-         }//for */
+			        datatbl.numlines=rawval;
+			        datatbl.numcols=psize;
+			        snprintf(datatbl.columns[i].coltitle,TELNET_CMD_MAXSIZE-1,"%s",cname);
+			        datatbl.columns[i].coltype=TELNET_VARTYPE_STRING;
+			        datatbl.lines[0].val[i]=cvalue;	        
+				 } // json_unpack_ex(jelem OK
+			 } // for i
+		     for ( telnetshell_cmddef_t *cmd = modulestruct->cmd ; cmd->cmdfunc != NULL ;cmd++) {
+               if ( strcmp(cmd->cmdname,cmdName) == 0 && (( cmd->cmdflags & TELNETSRV_CMDFLAG_TELNETONLY) == 0) ){
+				 httpstatus=200;
+				 if(strncmp(cmdName,"show",4) == 0) {
+				   sprintf(cmdName,"%s","set");
+				   cmdName[3]=' ';
+				   }
+			     cmd->webfunc_getdata(cmdName,websrvparams.dbglvl,&datatbl,websrv_printf);
+                 break;
+               }
+            }//for	*cmd	
+		 } // json_unpack_ex(jsbody OK
        }//user_data
      } //sbody
   websrv_printf_end(httpstatus);
@@ -565,12 +527,12 @@ int websrv_processwebfunc(struct _u_response * response, cmdparser_t * modulestr
   if ( cmd->cmdflags & TELNETSRV_CMDFLAG_GETWEBDATA ) {
 	webdatadef_t wdata;
     memset(&wdata,0,sizeof(wdata));
-	cmd->webfunc_getdata(cmd->cmdname,websrvparams.dbglvl,(webdatadef_t *)&wdata);
+	cmd->webfunc_getdata(cmd->cmdname,websrvparams.dbglvl,(webdatadef_t *)&wdata,NULL);
 	websrv_getdata_response(response,&wdata);
   } else if (cmd->cmdflags & TELNETSRV_CMDFLAG_GETWEBTBLDATA) {
 	webdatadef_t wdata;
     memset(&wdata,0,sizeof(wdata));
-	cmd->webfunc_getdata(cmd->cmdname,websrvparams.dbglvl,(webdatadef_t *)&wdata);	  
+	cmd->webfunc_getdata(cmd->cmdname,websrvparams.dbglvl,(webdatadef_t *)&wdata,NULL);	  
 	websrv_gettbldata_response(response,&wdata);
   } else {
     websrv_printf_start(response,16384);
@@ -831,7 +793,7 @@ void register_module_endpoints(cmdparser_t *module) {
   snprintf(prefixurl,TELNET_CMD_MAXSIZE+19,"oaisoftmodem/%s",module->module);
   LOG_I(UTIL,"[websrv] add endpoints %s/[variables or commands] \n",prefixurl);
 
-  websrv_add_endpoint(http_methods,3,prefixurl,"commands" ,callback_functions_cmd , module );
+  websrv_add_endpoint(http_methods,3,prefixurl,"commands" ,callback_functions_cmd, module);
   websrv_add_endpoint(http_methods,3,prefixurl,"variables" ,callback_functions_var, module);
   
   callback_functions_cmd[0]=websrv_callback_okset_softmodem_cmdvar;
