@@ -76,7 +76,7 @@ typedef struct webdatadef {
 typedef void(*telnet_printfunc_t)(const char* format, ...);
 typedef int(*cmdfunc_t)(char*, int, telnet_printfunc_t prnt);
 typedef int(*webfunc_t)(char *cmdbuff, int debug, telnet_printfunc_t prnt, ... );
-typedef int(*webfunc_getdata_t)(char *cmdbuff, int debug, void *data);
+typedef int(*webfunc_getdata_t)(char *cmdbuff, int debug, void *data,telnet_printfunc_t prnt);
 typedef int(*qcmdfunc_t)(char*, int, telnet_printfunc_t prnt,void *arg);
 
 #define TELNETSRV_CMDFLAG_PUSHINTPOOLQ     (1<<0)    // ask the telnet server to push the command in a thread pool queue
