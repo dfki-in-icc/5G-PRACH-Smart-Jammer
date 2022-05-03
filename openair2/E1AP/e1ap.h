@@ -27,6 +27,7 @@
 #include <common/utils/LOG/log.h>
 #include "openairinterface5g_limits.h"
 #include <openair2/RRC/NR/MESSAGES/asn1_msg.h>
+#include "e1ap_common.h"
 
 #include <E1AP_Cause.h>
 #include <E1AP_InitiatingMessage.h>

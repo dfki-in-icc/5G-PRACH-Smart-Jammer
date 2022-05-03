@@ -22,12 +22,15 @@
  */
 
 #include "E1AP_TransactionID.h"
+#include "E1AP_PriorityLevel.h"
 
 #define MAX_NUM_TRANSAC_IDS 8
 #define E1AP_MAX_NUM_PLMNS
 
 #define E1AP_SETUP_REQ(mSGpTR)                     (mSGpTR)->ittiMsg.e1ap_setup_req
 #define E1AP_SETUP_RESP(mSGpTR)                    (mSGpTR)->ittiMsg.e1ap_setup_resp
+
+typedef f1ap_net_ip_address_t e1ap_net_ip_address_t;
 
 typedef int (*e1ap_message_processing_t)(
   instance_t            instance,
@@ -54,12 +57,70 @@ typedef struct e1ap_setup_req_s {
   f1ap_net_ip_address_t CUCP_e1_ip_address;
 } e1ap_setup_req_t;
 
+typedef struct cell_group_s {
+  long id;
+} cell_group_t;
+
+typedef struct drb_to_setup_s {
+  long drbId;
+  long pDCP_SN_Size_UL;
+  long pDCP_SN_Size_DL;
+  long rLC_Mode;
+  long qci;
+  E1AP_PriorityLevel_t qosPriorityLevel;
+  E1AP_Pre_emptionCapability_t pre_emptionCapability;
+  E1AP_Pre_emptionVulnerability_t	 pre_emptionVulnerability;
+  in_addr_t tlAddress;
+  long teId;
+  int numCellGroups;
+  cell_group_t cellGroupList[MAX_NUM_CELL_GROUPS];
+} drb_to_setup_t;
+
+typedef struct qos_flow_to_setup_s {
+  long id;
+  long fiveQI;
+  long qoSPriorityLevel;
+  long packetDelayBudget;
+  long packetError_scalar;
+  long packetError_exponent;
+} qos_flow_to_setup_t;
+
+typedef struct DRB_nGRAN_to_setup_s {
+  long id;
+  E1AP_DefaultDRB_t	 defaultDRB;
+  E1AP_SDAP_Header_UL_t	 sDAP_Header_UL;
+  E1AP_SDAP_Header_DL_t	 sDAP_Header_DL;
+  int numCellGroups;
+  cell_group_t cellGroupList[MAX_NUM_CELL_GROUPS];
+  int numQosFlowSetup;
+  qos_flow_to_setup_t qosFlows[MAX_NUM_QOS_FLOWS];
+  E1AP_PriorityLevel_t	 priorityLevel;
+  E1AP_Pre_emptionCapability_t	 pre_emptionCapability;
+  E1AP_Pre_emptionVulnerability_t	 pre_emptionVulnerability;
+} DRB_nGRAN_to_setup_t;
+
+typedef struct pdu_session_to_setup_s {
+  long sessionId;
+  E1AP_PDU_Session_Type_t sessionType;
+  int32_t sst;
+  E1AP_IntegrityProtectionIndication_t	 integrityProtectionIndication;
+  E1AP_ConfidentialityProtectionIndication_t	 confidentialityProtectionIndication;
+  in_addr_t tlAddress;
+  long teId;
+  long numDRB2Setup;
+  DRB_nGRAN_to_setup_t DRBnGRanList[MAX_NUM_NGRAN_DRB];
+} pdu_session_to_setup_t;
+
 typedef struct e1ap_bearer_setup_req_s {
   uint64_t gNB_cu_cp_ue_id;
   uint64_t cipheringAlgorithm;
   char     encryptionKey[128];
   uint64_t bitRate;
   E1AP_ActivityNotificationLevel_t activityNotificationLevel;
+  int numDRBs;
+  drb_to_setup_t DRBList[MAX_NUM_DRBS];
+  int numPDUSessions;
+  pdu_session_to_setup_t pduSession[MAX_NUM_PDU_SESSIONS];
 } e1ap_bearer_setup_req_t;
 
 typedef struct e1ap_upcp_inst_s {
