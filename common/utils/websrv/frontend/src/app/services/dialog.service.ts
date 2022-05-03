@@ -7,14 +7,14 @@ import { of } from 'rxjs/internal/observable/of';
 import { tap } from 'rxjs/internal/operators/tap';
 import { IResp } from '../api/commands.api';
 import { ConfirmDialogComponent } from '../components/confirm/confirm.component';
-import { DialogComponent } from '../components/dialog/dialog.component';
+import { DialogComponent  } from '../components/dialog/dialog.component';
+
 
 @Injectable({
   providedIn: 'root',
 })
 export class DialogService {
   public isDialogOpen = false;
-
   constructor(
     private _dialog: MatDialog,
     private _snackBar: MatSnackBar,
@@ -45,12 +45,12 @@ export class DialogService {
     this.isDialogOpen = true;
 
     const dialogRef = this._dialog.open(DialogComponent, {
-      width: '900px',
       height: '80%',
       data: {
         title: title,
         body: resp.display!.join("</p><p>")
       },
+      panelClass: 'cmdRespDialog',
     });
 
     dialogRef.afterClosed().subscribe((_) => {
@@ -74,6 +74,7 @@ export class DialogService {
       data: {
         title: resp.display![0]
       },
+    panelClass: 'varRespDialog',
     });
 
     dialogRef.afterClosed().subscribe((_) => {

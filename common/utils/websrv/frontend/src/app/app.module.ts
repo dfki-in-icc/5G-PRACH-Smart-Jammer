@@ -31,6 +31,7 @@ import { AppComponent } from './app.component';
 import { CommandsComponent } from './components/commands/commands.component';
 import { ConfirmDialogComponent } from './components/confirm/confirm.component';
 import { DialogComponent } from './components/dialog/dialog.component';
+import { DragDropModule } from '@angular/cdk/drag-drop';
 import { InterceptorProviders } from './interceptors/interceptors';
 import { LoadingService } from './services/loading.service';
 
@@ -63,6 +64,7 @@ import { LoadingService } from './services/loading.service';
     MatGridListModule,
     MatCardModule,
     // MatMenuModule,
+    DragDropModule,
   ],
   providers: [
     // services

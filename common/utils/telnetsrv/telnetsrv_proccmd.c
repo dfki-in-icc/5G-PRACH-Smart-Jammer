@@ -214,26 +214,37 @@ int proccmd_websrv_getdata(char *cmdbuff, int debug, void *data, telnet_printfun
                 logsdata->lines[0].val[1], enabled?"enabled":"disabled",loginfile?g_log->log_component[logsdata->numlines].filelog_name :"stdout");          
     }
 	if (strcasestr(cmdbuff,"logopt") != NULL) {
-      if(strcmp(logsdata->lines[0].val[1],"true")==0)
-        SET_LOG_OPTION(logsdata->numlines);
-      else
-        CLEAR_LOG_OPTION(logsdata->numlines); 
-      printfunc("%s log option %s\n",logsdata->lines[0].val[0],(strcmp(logsdata->lines[0].val[1],"true")==0)?"enabled":"disabled");                        
+      int optbit=map_str_to_int(log_options,logsdata->lines[0].val[0]);
+      if (optbit < 0) {
+        printfunc("option %s unknown\n",logsdata->lines[0].val[0]);
+      } else {
+        if(strcmp(logsdata->lines[0].val[1],"true")==0) {
+          SET_LOG_OPTION(optbit);
+        } else {
+          CLEAR_LOG_OPTION(optbit);
+        } 
+        printfunc("%s log option %s\n",logsdata->lines[0].val[0],(strcmp(logsdata->lines[0].val[1],"true")==0)?"enabled":"disabled");                        
+      }
     }    
 	if (strcasestr(cmdbuff,"dbgopt") != NULL) {
-      if(strcmp(logsdata->lines[0].val[1],"true")==0)
-        SET_LOG_DEBUG(logsdata->numlines);
-      else
-        CLEAR_LOG_DEBUG(logsdata->numlines); 
-      if(strcmp(logsdata->lines[0].val[2],"true")==0)
-        SET_LOG_DUMP(logsdata->numlines);
-      else
-        CLEAR_LOG_DUMP(logsdata->numlines); 
-      printfunc("%s debug %s dump %s\n",logsdata->lines[0].val[0],
-                 (strcmp(logsdata->lines[0].val[1],"true")==0)?"enabled":"disabled",
-                 (strcmp(logsdata->lines[0].val[2],"true")==0)?"enabled":"disabled");                      
-    }        
-  } else {
+      int optbit=map_str_to_int(log_maskmap,logsdata->lines[0].val[0]);		
+      if (optbit < 0) {
+        printfunc("debug option %s unknown\n",logsdata->lines[0].val[0]);
+      } else {		
+        if(strcmp(logsdata->lines[0].val[1],"true")==0)
+          SET_LOG_DEBUG(optbit);
+        else
+          CLEAR_LOG_DEBUG(optbit); 
+        if(strcmp(logsdata->lines[0].val[2],"true")==0)
+          SET_LOG_DUMP(optbit);
+        else
+          CLEAR_LOG_DUMP(optbit); 
+        printfunc("%s debug %s dump %s\n",logsdata->lines[0].val[0],
+                   (strcmp(logsdata->lines[0].val[1],"true")==0)?"enabled":"disabled",
+                   (strcmp(logsdata->lines[0].val[2],"true")==0)?"enabled":"disabled");
+        }                      
+      }        
+  } else { /* end of set, => show */
     if (strcasestr(cmdbuff,"loglvl") != NULL) {
 		
 		logsdata->numcols=4;

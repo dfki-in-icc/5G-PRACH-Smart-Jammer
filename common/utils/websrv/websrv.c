@@ -330,6 +330,8 @@ int websrv_callback_set_moduleparams(const struct _u_request *request, struct _u
 		 } else {
 			 int psize=json_array_size(parray);
 			 webdatadef_t datatbl;
+			 datatbl.numlines=rawval;
+			 datatbl.numcols=psize;			 
 			 LOG_I(UTIL,"[websrv] rawIndex=%i, cmdName=%s, params=array of %i table values\n", rawval, cmdName,psize);
 			 for (int i=0 ; i<psize; i++) {
 				 json_t *jelem = json_array_get(parray,i);
@@ -343,8 +345,6 @@ int websrv_callback_set_moduleparams(const struct _u_request *request, struct _u
 			       websrv_printf("cannot unpack json element %i %s\n",i,jerror.text);
 		         } else {
 					LOG_I(UTIL,"[websrv] element%i, value=%s, name %s type %s\n", i, cvalue, cname, ctype); 
-			        datatbl.numlines=rawval;
-			        datatbl.numcols=psize;
 			        snprintf(datatbl.columns[i].coltitle,TELNET_CMD_MAXSIZE-1,"%s",cname);
 			        datatbl.columns[i].coltype=TELNET_VARTYPE_STRING;
 			        datatbl.lines[0].val[i]=cvalue;	        
