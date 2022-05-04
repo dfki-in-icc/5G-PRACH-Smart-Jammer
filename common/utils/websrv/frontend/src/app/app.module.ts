@@ -55,7 +55,6 @@ import { LoadingService } from './services/loading.service';
     MatButtonModule,
     FlexLayoutModule,
     MatToolbarModule,
-    // MatListModule,
     MatTableModule,
     MatSelectModule,
     MatDialogModule,
@@ -63,7 +62,6 @@ import { LoadingService } from './services/loading.service';
     MatSlideToggleModule,
     MatGridListModule,
     MatCardModule,
-    // MatMenuModule,
     DragDropModule,
   ],
   providers: [
