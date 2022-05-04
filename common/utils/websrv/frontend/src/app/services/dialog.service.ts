@@ -8,7 +8,8 @@ import { tap } from 'rxjs/internal/operators/tap';
 import { IResp } from '../api/commands.api';
 import { ConfirmDialogComponent } from '../components/confirm/confirm.component';
 import { DialogComponent  } from '../components/dialog/dialog.component';
-
+import { NgModule } from '@angular/core';
+import { BrowserModule } from '@angular/platform-browser';
 
 @Injectable({
   providedIn: 'root',
@@ -24,15 +25,14 @@ export class DialogService {
     if (this.isDialogOpen) {
       return of(undefined);
     }
-
     this.isDialogOpen = true;
-
     return this._dialog.open(DialogComponent, {
       width: '900px',
       data: {
         title: error.status + ' Error',
         body: error.error,
       },
+      panelClass: 'errRespDialog',
     }).afterClosed()
       .pipe(tap(() => this.isDialogOpen = false));
   }
@@ -41,11 +41,11 @@ export class DialogService {
     if (this.isDialogOpen || !resp.display.length) {
       return of(resp);
     }
-
     this.isDialogOpen = true;
-
+    console.log('Open Cmd dialog');
     const dialogRef = this._dialog.open(DialogComponent, {
       height: '80%',
+      hasBackdrop: false,
       data: {
         title: title,
         body: resp.display!.join("</p><p>")
@@ -66,15 +66,15 @@ export class DialogService {
     if (this.isDialogOpen || !resp.display.length) {
       return of(resp);
     }
-
+   console.log('Open Var dialog');
     this.isDialogOpen = true;
-
     const dialogRef = this._dialog.open(DialogComponent, {
       width: '900px',
+      hasBackdrop: true,
       data: {
-        title: resp.display![0]
+        title: resp.display![0],
       },
-    panelClass: 'varRespDialog',
+      panelClass: 'varRespDialog',
     });
 
     dialogRef.afterClosed().subscribe((_) => {
