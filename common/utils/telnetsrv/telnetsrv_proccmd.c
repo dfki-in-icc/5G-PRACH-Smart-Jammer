@@ -57,91 +57,119 @@
 #include "openair1/PHY/phy_extern.h"
 #include "telnetsrv_proccmd.h"
 
-void decode_procstat(char *record, int debug, telnet_printfunc_t prnt)
+void decode_procstat(char *record, int debug, telnet_printfunc_t prnt,webdatadef_t *tdata)
 {
 char prntline[160];
-char *procfile_fiels;
+char *procfile_fields;
 char *strtokptr;
 char *lptr;
 int fieldcnt;
 char toksep[2];
 
   fieldcnt=0;	  
-  procfile_fiels =strtok_r(record," ",&strtokptr);
+  procfile_fields =strtok_r(record," ",&strtokptr);
   lptr= prntline;
 /*http://man7.org/linux/man-pages/man5/proc.5.html gives the structure of the stat file */
- 
-  while( 	procfile_fiels != NULL && fieldcnt < 42) {
+  int priority=0;
+  while( 	procfile_fields != NULL && fieldcnt < 42) {
     long int policy;
-    if (strlen(procfile_fiels) == 0)
+    if (strlen(procfile_fields) == 0)
        continue;
     fieldcnt++;
     sprintf(toksep," ");
     switch(fieldcnt) {
        case 1: /* id */
-           lptr+=sprintf(lptr,"%9.9s ",procfile_fiels);
-           sprintf(toksep,")");
+           if (tdata != NULL) {
+		     tdata->lines[tdata->numlines].val[0]=strdup(procfile_fields);	
+		   }         
+           lptr+=sprintf(lptr,"%9.9s ",procfile_fields);
+           sprintf(toksep,")");											                 
        break;  
        case 2: /* name */
-	   lptr+=sprintf(lptr,"%20.20s ",procfile_fiels+1);
+           if (tdata != NULL) {
+		     tdata->lines[tdata->numlines].val[1]=strdup(procfile_fields);	
+		   }          
+	       lptr+=sprintf(lptr,"%20.20s ",procfile_fields+1);
        break;              
        case 3:   //thread state
-           lptr+=sprintf(lptr,"  %c   ",procfile_fiels[0]);
+           lptr+=sprintf(lptr,"  %c   ",procfile_fields[0]);
        break;
        case 14:   //time in user mode
        case 15:   //time in kernel mode
-           lptr+=sprintf(lptr,"%9.9s ",procfile_fiels);
+           lptr+=sprintf(lptr,"%9.9s ",procfile_fields);
        break;
-       case 18:   //priority
-       case 19:   //nice	       
-           lptr+=sprintf(lptr,"%3.3s ",procfile_fiels);
+       case 18:   //priority column index 2 in tdata, -2 to -100 (1, min to 99, highest prio)
+           priority=strtol(procfile_fields,NULL,0);
+       case 19:   //nice	  column index 3 in tdata  0 to 39 (-20, highest prio, to 19)
+           if (tdata != NULL) {
+		     tdata->lines[tdata->numlines].val[fieldcnt-16]=strdup(procfile_fields);	
+		   }           
+           lptr+=sprintf(lptr,"%3.3s ",procfile_fields);
        break;
        case 23:   //vsize	       
-           lptr+=sprintf(lptr,"%9.9s ",procfile_fiels);
+           lptr+=sprintf(lptr,"%9.9s ",procfile_fields);
        break;
-       case 39:   //processor	       
-           lptr+=sprintf(lptr," %2.2s  ",procfile_fiels);
+       case 39:   //processor	
+           if (tdata != NULL) {
+		     tdata->lines[tdata->numlines].val[4]=strdup(procfile_fields);	
+		   }                  
+           lptr+=sprintf(lptr," %2.2s  ",procfile_fields);
        break;
        case 41:   //policy	       
-           lptr+=sprintf(lptr,"%3.3s ",procfile_fiels);
-           policy=strtol(procfile_fiels,NULL,0);
+           lptr+=sprintf(lptr,"%3.3s ",procfile_fields);
+           policy=strtol(procfile_fields,NULL,0);
+           char strschedp[64];
            switch(policy) {
               case SCHED_FIFO:
-                   lptr+=sprintf(lptr,"%s ","rt: fifo");
+                   snprintf(strschedp,sizeof(strschedp),"%s ","rt:fifo");
+                   priority=priority+NICE_MIN+1;
               break;
               case SCHED_OTHER:
-                   lptr+=sprintf(lptr,"%s ","other");
+                   snprintf(strschedp,sizeof(strschedp),"%s ","other");
+                   priority=priority-(NICE_MAX+1); // nice is 
               break;
               case SCHED_IDLE:
-                   lptr+=sprintf(lptr,"%s ","idle");
+                   snprintf(strschedp,sizeof(strschedp),"%s ","idle");
+                   priority=0;
               break;
               case SCHED_BATCH:
-                   lptr+=sprintf(lptr,"%s ","batch");
+                   snprintf(strschedp,sizeof(strschedp),"%s ","batch");
+                   priority=priority-(NICE_MAX+1)+(NICE_MAX-NICE_MIN+1);
               break;
               case SCHED_RR:
-                   lptr+=sprintf(lptr,"%s ","rt: rr");
+                   snprintf(strschedp,sizeof(strschedp),"%s ","rt:rr");
+                   priority=priority+NICE_MIN+1-100;
               break;
 #ifdef SCHED_DEADLINE
               case SCHED_DEADLINE:
-                   lptr+=sprintf(lptr,"%s ","rt: deadline");
+                   snprintf(strschedp,sizeof(strschedp),"%s ","rt:deadline");
               break;
 #endif
               default:
-                   lptr+=sprintf(lptr,"%s ","????");
+                   snprintf(strschedp,sizeof(strschedp),"%s ","????");
               break;
            }
+           lptr+=sprintf(lptr,"%s ",strschedp);
+           if (tdata != NULL) {
+		     tdata->lines[tdata->numlines].val[5]=strdup(strschedp);
+		     tdata->lines[tdata->numlines].val[6]=malloc(10);
+		     snprintf(tdata->lines[tdata->numlines].val[6],9,"(%i)",priority);	  	
+		   }              
        break;
        default:
        break;	       	       	       	       	       
     }/* switch on fieldcnr */  
-    procfile_fiels =strtok_r(NULL,toksep,&strtokptr); 
+    procfile_fields =strtok_r(NULL,toksep,&strtokptr); 
   } /* while on proc_fields != NULL */
   prnt("%s\n",prntline); 
+  if (tdata != NULL) {
+    tdata->numlines++;											
+  }          
 } /*decode_procstat */
 
 
 
-void read_statfile(char *fname,int debug, telnet_printfunc_t prnt, void *data)
+void read_statfile(char *fname,int debug, telnet_printfunc_t prnt, webdatadef_t *tdata)
 {
 FILE *procfile;
 char arecord[1024];
@@ -159,16 +187,50 @@ char arecord[1024];
        return;
        }    
     fclose(procfile);
-    decode_procstat(arecord, debug, prnt);
+    decode_procstat(arecord, debug, prnt,tdata);
 }
 
-void print_threads(char *buf, int debug, telnet_printfunc_t prnt)
+int nullprnt(char *fmt,...) {
+  return 0;
+}
+void proccmd_get_threaddata(char *buf, int debug, telnet_printfunc_t fprnt,webdatadef_t *tdata)
 {
 char aname[256];
 
 DIR *proc_dir;
 struct dirent *entry;
+    telnet_printfunc_t prnt = (fprnt != NULL)?fprnt:(telnet_printfunc_t)nullprnt;
+    if (tdata != NULL) {
+		tdata->numcols=7;
+		snprintf(tdata->columns[0].coltitle,sizeof(tdata->columns[0].coltitle),"thread id");
+		tdata->columns[0].coltype=TELNET_VARTYPE_STRING|TELNET_CHECKVAL_RDONLY|TELNET_VAR_NEEDFREE;
+		snprintf(tdata->columns[1].coltitle,sizeof(tdata->columns[1].coltitle),"thread name");
+		tdata->columns[1].coltype=TELNET_VARTYPE_STRING|TELNET_CHECKVAL_RDONLY|TELNET_VAR_NEEDFREE;	
+		snprintf(tdata->columns[2].coltitle,sizeof(tdata->columns[2].coltitle),"priority");
+		tdata->columns[2].coltype=TELNET_VARTYPE_STRING|TELNET_CHECKVAL_RDONLY|TELNET_VAR_NEEDFREE;
+		snprintf(tdata->columns[3].coltitle,sizeof(tdata->columns[3].coltitle),"nice");
+		tdata->columns[3].coltype=TELNET_VARTYPE_STRING|TELNET_CHECKVAL_RDONLY|TELNET_VAR_NEEDFREE;	
+        snprintf(tdata->columns[4].coltitle,sizeof(tdata->columns[4].coltitle),"core");
+		tdata->columns[4].coltype=TELNET_VARTYPE_STRING|TELNET_VAR_NEEDFREE;
+        snprintf(tdata->columns[5].coltitle,sizeof(tdata->columns[5].coltitle),"sched policy");
+		tdata->columns[5].coltype=TELNET_VARTYPE_STRING|TELNET_CHECKVAL_RDONLY|TELNET_VAR_NEEDFREE;
+        snprintf(tdata->columns[5].coltitle,sizeof(tdata->columns[5].coltitle),"sched policy");
+		tdata->columns[6].coltype=TELNET_VARTYPE_STRING|TELNET_VAR_NEEDFREE;
+		snprintf(tdata->columns[6].coltitle,sizeof(tdata->columns[6].coltitle)," ");			
+		tdata->numlines=0;											
+	}
 
+    unsigned int eax=11,ebx=0,ecx=1,edx=0;
+
+    asm volatile("cpuid"
+        : "=a" (eax),
+          "=b" (ebx),
+          "=c" (ecx),
+          "=d" (edx)
+        : "0" (eax), "2" (ecx)
+        : );
+
+    prnt("System has %d cores %d threads %d Actual threads",eax,ebx,edx);
 
 
     prnt("\n  id          name            state   USRmod    KRNmod  prio nice   vsize   proc pol \n\n");
@@ -183,16 +245,17 @@ struct dirent *entry;
        return;
        }
     
-    while ((entry = readdir(proc_dir)) != NULL)
-        {
-        if(entry->d_name[0] != '.')
-          {
+    while ((entry = readdir(proc_dir)) != NULL){
+        if(entry->d_name[0] != '.') {
 	      snprintf(aname, sizeof(aname), "/proc/%d/task/%.*s/stat", getpid(),(int)(sizeof(aname)-24),entry->d_name);    
-          read_statfile(aname,debug,prnt,NULL);
-	      }      
-        } /* while entry != NULL */
+          read_statfile(aname,debug,prnt,tdata);
+	    }      
+    } /* while entry != NULL */
 	closedir(proc_dir);
 } /* print_threads */
+void print_threads(char *buf, int debug, telnet_printfunc_t prnt) {
+	proccmd_get_threaddata(buf,debug,prnt,NULL);
+}
 
 int proccmd_websrv_getdata(char *cmdbuff, int debug, void *data, telnet_printfunc_t prnt) {
   webdatadef_t *logsdata = ( webdatadef_t *) data;
@@ -243,7 +306,15 @@ int proccmd_websrv_getdata(char *cmdbuff, int debug, void *data, telnet_printfun
                    (strcmp(logsdata->lines[0].val[1],"true")==0)?"enabled":"disabled",
                    (strcmp(logsdata->lines[0].val[2],"true")==0)?"enabled":"disabled");
         }                      
-      }        
+      }
+	if (strcasestr(cmdbuff,"threadsched") != NULL) { 
+		unsigned int tid=strtoll(logsdata->lines[0].val[0],NULL,0);
+		unsigned int core=strtoll(logsdata->lines[0].val[4],NULL,0);
+		int priority=strtoll(logsdata->lines[0].val[6],NULL,0);
+		printfunc("Thread %s id %u set affinity to core %u\n",logsdata->lines[0].val[0],tid,core);
+		set_affinity( 0,(pid_t)tid, core) ;  
+		set_sched(0, (pid_t)tid, priority) ;         
+    }              
   } else { /* end of set, => show */
     if (strcasestr(cmdbuff,"loglvl") != NULL) {
 		
@@ -303,6 +374,9 @@ int proccmd_websrv_getdata(char *cmdbuff, int debug, void *data, telnet_printfun
 	    logsdata->lines[i].val[0]=log_options[i].name;
         logsdata->lines[i].val[1]=(g_log->flag & log_options[i].value)?"true":"false";
       }
+    }
+    if (strcasestr(cmdbuff,"threadsched") != NULL) {
+      proccmd_get_threaddata(cmdbuff, debug, prnt, ( webdatadef_t *) data);
     }
   } // show
     

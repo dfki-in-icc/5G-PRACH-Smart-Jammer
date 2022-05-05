@@ -723,7 +723,14 @@ int websrv_callback_get_softmodemmodules(const struct _u_request * request, stru
 
 /* get info on this modem */
 void websrv_add_modeminfo(json_t *modemvars, char *infoname, char *infoval, char *strtype) {
-  json_t *info=json_pack("{s:s,s:s,s:s,s:b}","name",infoname, "value",infoval, "type",strtype,"modifiable",0);
+  json_t *info;
+  if(strcmp(strtype,"link")==0) {
+    char linkstr[255];
+    snprintf(linkstr,sizeof(linkstr),"<link href=\"%s\">",infoval);
+    info=json_pack("{s:s,s:s,s:s,s:b}","name",linkstr, "value",infoval, "type",strtype,"modifiable",0);
+  } else {
+    info=json_pack("{s:s,s:s,s:s,s:b}","name",infoname, "value",infoval, "type",strtype,"modifiable",0);
+  }
   if (info==NULL) {
 	  LOG_E(UTIL,"[websrv] cannot encode modem info %s response\n",infoname);
   } else {
@@ -739,7 +746,7 @@ int websrv_callback_get_softmodemstatus(const struct _u_request * request, struc
   json_t *modemvars = json_array();
   websrv_add_modeminfo(modemvars,"connected to",ipstr,"string");
   websrv_add_modeminfo(modemvars,"exec function",get_softmodem_function(NULL),"string");
-  websrv_add_modeminfo(modemvars,"config_file",CONFIG_GETCONFFILE,"string");
+  websrv_add_modeminfo(modemvars,"config_file",CONFIG_GETCONFFILE,"link");
   websrv_add_modeminfo(modemvars,"exec name",config_get_if()->argv[0],"string");
   websrv_add_modeminfo(modemvars,"config debug mode",(config_get_if()->status != NULL)?"yes":"no","string");
   

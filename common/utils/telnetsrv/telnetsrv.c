@@ -134,19 +134,22 @@ void client_printf(const char *message, ...) {
   return ;
 }
 
-#define NICE_MAX 19
-#define NICE_MIN -20
+
 void set_sched(pthread_t tid, int pid, int priority) {
   int rt;
   struct sched_param schedp;
   int policy;
   char strpolicy[10];
 
-  //sched_get_priority_max(SCHED_FIFO)
-  if (priority < NICE_MIN) {
+
+  if (priority < (NICE_MIN - 100 )) {
+    policy=SCHED_RR;
+    sprintf(strpolicy,"%s","RR"); 
+    schedp.sched_priority= -(priority + 100 - NICE_MIN); 
+  } else if (priority < NICE_MIN && priority >= (NICE_MIN - 100 )) { 
     policy=SCHED_FIFO;
     sprintf(strpolicy,"%s","fifo");
-    schedp.sched_priority= NICE_MIN - priority ;
+    schedp.sched_priority=-(priority - NICE_MIN ) ;
 
     if (   (schedp.sched_priority < sched_get_priority_min(SCHED_FIFO)) ||
            (schedp.sched_priority > sched_get_priority_max(SCHED_FIFO)) ) {
@@ -154,13 +157,17 @@ void set_sched(pthread_t tid, int pid, int priority) {
                     priority, NICE_MIN -sched_get_priority_min(SCHED_FIFO),
                     NICE_MIN - sched_get_priority_max(SCHED_FIFO) );
     }
-  } else if (priority > NICE_MAX) {
-    policy=SCHED_IDLE;
-    sprintf(strpolicy,"%s","idle");
-    schedp.sched_priority=0;
-  } else {
+  } else if (priority >= NICE_MIN && priority <= NICE_MAX) {
     policy=SCHED_OTHER;
     sprintf(strpolicy,"%s","other");
+    schedp.sched_priority=0;
+  } else if (priority > NICE_MAX && priority <= (NICE_MAX + (NICE_MAX - NICE_MIN ) +1)) {
+    policy=SCHED_BATCH;
+    sprintf(strpolicy,"%s","batch");
+    schedp.sched_priority=0;
+  } else {
+    policy=SCHED_IDLE;
+    sprintf(strpolicy,"%s","idle");
     schedp.sched_priority=0;
   }
 
@@ -179,15 +186,15 @@ void set_sched(pthread_t tid, int pid, int priority) {
   } else  {
     client_printf("policy set to %s, priority %i\n",strpolicy,schedp.sched_priority);
 
-    if ( policy==SCHED_OTHER) {
+    if ( policy==SCHED_OTHER || policy==SCHED_BATCH ) {
       rt = getpriority(PRIO_PROCESS,tid);
 
       if (rt != -1) {
-        rt = setpriority(PRIO_PROCESS,tid,priority);
+        rt = setpriority(PRIO_PROCESS,tid,schedp.sched_priority);
 
         if (rt < 0) {
           client_printf("Error %i: %s trying to set nice value of thread %u to %i\n",
-                        errno,strerror(errno),tid,priority);
+                        errno,strerror(errno),tid,schedp.sched_priority);
         }
       } else {
         client_printf("Error %i: %s trying to get nice value of thread %u \n",
@@ -201,12 +208,12 @@ void set_sched(pthread_t tid, int pid, int priority) {
       client_printf("setting nice value using a thread id not implemented....\n");
     } else if (pid > 0) {
       errno=0;
-      rt = setpriority(PRIO_PROCESS,pid,priority);
+      rt = setpriority(PRIO_PROCESS,pid,schedp.sched_priority);
 
       if (rt != 0) {
         client_printf("Error %i: %s calling setpriority, \n",errno,strerror(errno));
       } else {
-        client_printf("nice value set to %i\n",priority);
+        client_printf("nice value set to %i\n",schedp.sched_priority);
       }
     }
   }

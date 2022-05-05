@@ -123,6 +123,7 @@ typedef struct telnetsrv_qmsg {
 
 #define TELNET_CHECKVAL_RDONLY      16
 #define TELNET_CHECKVAL_BOOL        32
+#define TELNET_VAR_NEEDFREE         64
 typedef struct variabledef {
     char varname[TELNET_CMD_MAXSIZE];
     char vartype;
@@ -186,6 +187,8 @@ VT escape sequence definition, for smarter display....
 #define STDFMT   "\x1b[0m"
 
 /*---------------------------------------------------------------------------------------------*/
+#define NICE_MAX 19
+#define NICE_MIN -20
 #define TELNET_ADDCMD_FNAME "add_telnetcmd"
 #define TELNET_POLLCMDQ_FNAME "poll_telnetcmdq"
 typedef int(*add_telnetcmd_func_t)(char *, telnetshell_vardef_t *, telnetshell_cmddef_t *);
