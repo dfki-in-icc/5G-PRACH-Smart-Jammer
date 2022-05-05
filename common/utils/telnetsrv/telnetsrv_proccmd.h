@@ -80,7 +80,9 @@ telnetshell_cmddef_t proc_cmdarray[] = {
    {"show logopt","", proccmd_log,{(webfunc_t)proccmd_websrv_getdata}, TELNETSRV_CMDFLAG_WEBSRVONLY|TELNETSRV_CMDFLAG_GETWEBTBLDATA,NULL},
    {"show dbgopt","", proccmd_log,{(webfunc_t)proccmd_websrv_getdata}, TELNETSRV_CMDFLAG_WEBSRVONLY|TELNETSRV_CMDFLAG_GETWEBTBLDATA,NULL},
    {"show config","", proccmd_show,{(webfunc_t)proccmd_show}, TELNETSRV_CMDFLAG_WEBSRVONLY,NULL},
-   {"show thread","", proccmd_thread,{(webfunc_t)proccmd_show},TELNETSRV_CMDFLAG_WEBSRVONLY|TELNETSRV_CMDFLAG_PRINTWEBTBLDATA,NULL},
+   {"show thread","", proccmd_thread,{(webfunc_t)proccmd_show},TELNETSRV_CMDFLAG_WEBSRVONLY,NULL},
+   {"thread","(enter help for details)",proccmd_thread,{NULL},TELNETSRV_CMDFLAG_TELNETONLY,NULL},
+   {"show threadsched","",proccmd_show,{(webfunc_t)proccmd_websrv_getdata}, TELNETSRV_CMDFLAG_WEBSRVONLY|TELNETSRV_CMDFLAG_GETWEBTBLDATA,NULL},
    {"exit","", proccmd_exit,{NULL},TELNETSRV_CMDFLAG_CONFEXEC,NULL},
    {"","",NULL},
 };
