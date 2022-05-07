@@ -1159,6 +1159,10 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg)
     for (ue_index = 0; ue_index < ue_num; ue_index++) {
       ue_Mod_id = ue_thread_id + NB_THREAD_INST * ue_index; // Always 0 in standalone pnf mode
       UE = PHY_vars_UE_g[ue_Mod_id][0];
+      for (int i = 0; i < NB_eNB_INST; i++) {
+        UE->measurements.rsrp[i] = update_measurements(sfn_sf, i);
+      }
+
 
 #if UE_TIMING_TRACE
       start_meas(&UE->generic_stat);

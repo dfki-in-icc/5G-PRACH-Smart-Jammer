@@ -4285,8 +4285,10 @@ int decode_SI( const protocol_ctxt_t *const ctxt_pP, const uint8_t eNB_index ) {
 // layer 3 filtering of RSRP (EUTRA) measurements: 36.331, Sec. 5.5.3.2
 //-----------------------------------------------------------------------------
 void ue_meas_filtering( const protocol_ctxt_t *const ctxt_pP, const uint8_t eNB_index ) {
-  float a  = UE_rrc_inst[ctxt_pP->module_id].filter_coeff_rsrp; // 'a' in 36.331 Sec. 5.5.3.2
-  float a1 = UE_rrc_inst[ctxt_pP->module_id].filter_coeff_rsrq;
+  float k  = UE_rrc_inst[ctxt_pP->module_id].filter_coeff_rsrp; // 'a' in 36.331 Sec. 5.5.3.2
+  float a =  1/pow(2.0, k/4);
+  float k1 = UE_rrc_inst[ctxt_pP->module_id].filter_coeff_rsrq;
+  float a1 = 1/pow(2.0, k1/4);
   //float rsrp_db, rsrq_db;
   uint8_t    eNB_offset;
 
@@ -4303,7 +4305,7 @@ void ue_meas_filtering( const protocol_ctxt_t *const ctxt_pP, const uint8_t eNB_
           UE_rrc_inst[ctxt_pP->module_id].rsrp_db_filtered[eNB_offset] =
             (1.0-a)*UE_rrc_inst[ctxt_pP->module_id].rsrp_db_filtered[eNB_offset] +
             a*UE_rrc_inst[ctxt_pP->module_id].rsrp_db[eNB_offset];
-          UE_rrc_inst[ctxt_pP->module_id].rsrp_db_filtered[eNB_offset] = 40; // DavidK
+          //UE_rrc_inst[ctxt_pP->module_id].rsrp_db_filtered[eNB_offset] = 40; // DavidK
           LOG_D(RRC,"RSRP_dBm: %3.2f \n",get_RSRP(ctxt_pP->module_id,0,eNB_offset));;
           /*          LOG_D(RRC,"gain_loss_dB: %d \n",get_rx_total_gain_dB(ctxt_pP->module_id,0));
                 LOG_D(RRC,"gain_fixed_dB: %d \n",dB_fixed(frame_parms->N_RB_DL*12));*/
@@ -4323,7 +4325,7 @@ void ue_meas_filtering( const protocol_ctxt_t *const ctxt_pP, const uint8_t eNB_
     } else {
       for (eNB_offset = 0; eNB_offset<1+get_n_adj_cells(ctxt_pP->module_id,0); eNB_offset++) {
         UE_rrc_inst[ctxt_pP->module_id].rsrp_db_filtered[eNB_offset]= get_RSRP(ctxt_pP->module_id,0,eNB_offset);
-        UE_rrc_inst[ctxt_pP->module_id].rsrp_db_filtered[eNB_offset] = 40; // DavidK
+        //UE_rrc_inst[ctxt_pP->module_id].rsrp_db_filtered[eNB_offset] = 40; // DavidK
       }
     }
 
@@ -4333,13 +4335,13 @@ void ue_meas_filtering( const protocol_ctxt_t *const ctxt_pP, const uint8_t eNB_
           UE_rrc_inst[ctxt_pP->module_id].rsrq_db[eNB_offset] = (10*log10(get_RSRQ(ctxt_pP->module_id,0,eNB_offset)))-20;
           UE_rrc_inst[ctxt_pP->module_id].rsrq_db_filtered[eNB_offset]=(1-a1)*UE_rrc_inst[ctxt_pP->module_id].rsrq_db_filtered[eNB_offset] +
               a1 *UE_rrc_inst[ctxt_pP->module_id].rsrq_db[eNB_offset];
-          UE_rrc_inst[ctxt_pP->module_id].rsrq_db_filtered[eNB_offset]= 33;// DavidK
+          //UE_rrc_inst[ctxt_pP->module_id].rsrq_db_filtered[eNB_offset]= 33;// DavidK
         }
       }
     } else {
       for (eNB_offset = 0; eNB_offset<1+get_n_adj_cells(ctxt_pP->module_id,0); eNB_offset++) {
         UE_rrc_inst[ctxt_pP->module_id].rsrq_db_filtered[eNB_offset]= get_RSRQ(ctxt_pP->module_id,0,eNB_offset);
-        UE_rrc_inst[ctxt_pP->module_id].rsrq_db_filtered[eNB_offset]= 33;// DavidK
+        //UE_rrc_inst[ctxt_pP->module_id].rsrq_db_filtered[eNB_offset]= 33;// DavidK
       }
     }
   }
@@ -4522,7 +4524,8 @@ void ue_measurement_report_triggering(protocol_ctxt_t *const ctxt_pP, const uint
               ttt_ms = timeToTrigger_ms[ue->ReportConfig[i][reportConfigId
                                         -1]->reportConfig.choice.reportConfigEUTRA.triggerType.choice.event.timeToTrigger];
               // Freq specific offset of neighbor cell freq
-              ofn = 5;//((ue->MeasObj[i][measObjId-1]->measObject.choice.measObjectEUTRA.offsetFreq != NULL) ?
+              //ofn = 5;//((ue->MeasObj[i][measObjId-1]->measObject.choice.measObjectEUTRA.offsetFreq != NULL) ?
+              ofn = 1; // DavidK
               // *ue->MeasObj[i][measObjId-1]->measObject.choice.measObjectEUTRA.offsetFreq : 15); //  /* 15 is the Default */
               // cellIndividualOffset of neighbor cell - not defined yet
               ocn = 0;
@@ -4658,6 +4661,8 @@ uint8_t check_trigger_meas_event(
   uint8_t eNB_offset;
   //  uint8_t currentCellIndex = frame_parms->Nid_cell;
   uint8_t tmp_offset;
+  float adj_eNB_rsrp_db;
+  float src_eNB_rsrp_db;
   LOG_I(RRC,"[start of check_trigger_meas_event]\n");
   LOG_D(RRC,"\t[UE %d] ofn(%ld) ocn(%ld) hys(%ld) ofs(%ld) ocs(%ld) ttt(%ld) rssi %3.1f\n",
         ue_mod_idP,
@@ -4675,8 +4680,23 @@ uint8_t check_trigger_meas_event(
       } else {
         tmp_offset = eNB_offset-1;
       }
-
-      if(UE_rrc_inst[ue_mod_idP].rsrp_db_filtered[eNB_offset]+ofn+ocn-hys > UE_rrc_inst[ue_mod_idP].rsrp_db_filtered[eNB_index]+ofs+ocs-1/*+a3_offset*/) {
+      adj_eNB_rsrp_db = UE_rrc_inst[ue_mod_idP].rsrp_db_filtered[eNB_offset];
+      src_eNB_rsrp_db = UE_rrc_inst[ue_mod_idP].rsrp_db_filtered[eNB_index];
+      float adj_db = adj_eNB_rsrp_db + ofn + ocn - hys;
+      float src_db = src_eNB_rsrp_db + ofs + ocs;
+      if (src_db < adj_db)
+          LOG_D(RRC,"\t\t src_eNB_rsrp_db (%f) + ofs (%d) + ocs (%d) %f  < adj_eNB_rsrp_db (%f) + ofn (%d) + ocn (%d) - hys (%d) %f !!!! HO !!!\n",
+                      src_eNB_rsrp_db, ofs, ocs,
+                      src_eNB_rsrp_db + ofs + ocs,
+                      adj_eNB_rsrp_db, ofn, ocn, hys,
+                      adj_eNB_rsrp_db + ofn + ocn - hys);
+      else 
+          LOG_D(RRC,"\t\t src_eNB_rsrp_db (%f) + ofs (%d) + ocs (%d) %f  >= adj_eNB_rsrp_db (%f) + ofn (%d) + ocn (%d) - hys (%d) %f\n",
+                      src_eNB_rsrp_db, ofs, ocs,
+                      src_eNB_rsrp_db + ofs + ocs,
+                      adj_eNB_rsrp_db, ofn, ocn, hys,
+                      adj_eNB_rsrp_db + ofn + ocn - hys);
+      if(adj_eNB_rsrp_db + ofn + ocn - hys > src_eNB_rsrp_db + ofs + ocs - 1 /*+a3_offset*/) {
         UE_rrc_inst->measTimer[ue_cnx_index][meas_index][tmp_offset] += 2; //Called every subframe = 2ms
         LOG_D(RRC,"\t\t[UE %d] Frame %d: Entry measTimer[%d][%d][%d]: %d currentCell: %d betterCell: %d \n",
               ue_mod_idP, frameP, ue_cnx_index,meas_index,tmp_offset,UE_rrc_inst->measTimer[ue_cnx_index][meas_index][tmp_offset],0,eNB_offset);

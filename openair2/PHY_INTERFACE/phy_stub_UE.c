@@ -1383,8 +1383,16 @@ void *ue_standalone_pnf_task(void *context)
         for (int i = 0; i < ch_info.nb_of_sinrs; ++i)
         {
           sf_rnti_mcs[sf].sinr = ch_info.sinr[i];
-          LOG_D(MAC, "Received_SINR[%d] = %f\n", i, ch_info.sinr[i]);
+          LOG_I(MAC, "Received_SINR[%d] = %f\n", i, ch_info.sinr[i]);
         }
+        assert(ch_info.phy_id < 7);
+        if (ch_info.sinr < 0)
+          sf_rnti_mcs[sf].rsrp[ch_info.phy_id] = 0;
+        else
+          sf_rnti_mcs[sf].rsrp[ch_info.phy_id] = (uint32_t) sf_rnti_mcs[sf].sinr; // It needs update to use rsrp value.
+        LOG_I(MAC, "Received_RSRP[0] = %u RSRP[1] = %u\n", 
+                    sf_rnti_mcs[sf].rsrp[0],
+                    sf_rnti_mcs[sf].rsrp[1]);
       }
       prev_sfn_sf = sfn_sf;
     }
@@ -2205,4 +2213,9 @@ static bool should_drop_transport_block(int sf, uint16_t rnti)
     abort();
   }
   return false;
+}
+
+uint32_t update_measurements(uint16_t sfn_sf, int eNB_index)
+{
+  return sf_rnti_mcs[sfn_sf & 15].rsrp[eNB_index]; //DavidK2
 }

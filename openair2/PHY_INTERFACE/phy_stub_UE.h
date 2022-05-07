@@ -44,6 +44,7 @@ typedef struct
     uint16_t rnti[256];
     uint8_t mcs[256];
     float sinr;
+    uint32_t rsrp[7];
     uint16_t pdu_size;
     bool drop_flag[256];
     bool latest;
@@ -209,6 +210,8 @@ char *nfapi_ul_config_req_to_string(nfapi_ul_config_request_t *req);
 // Returned memory is statically allocated.
 const char *dl_pdu_type_to_string(uint8_t pdu_type);
 const char *ul_pdu_type_to_string(uint8_t pdu_type);
+
+uint32_t update_measurements(uint16_t sfn_sf, int eNB_index);
 
 extern queue_t dl_config_req_tx_req_queue;
 extern queue_t ul_config_req_queue;
