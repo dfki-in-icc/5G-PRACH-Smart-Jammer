@@ -355,25 +355,18 @@ void nr_ulsch_extract_rbs_single(int32_t **rxdataF,
     ul_ch0_index = 0;
 
     if (is_dmrs_symbol == 0) {
-      //
-      //rxF[ ((start_re + re)*2)      % (frame_parms->ofdm_symbol_size*2)]);
-<<<<<<< HEAD
-      if (start_re + nb_re_pusch < frame_parms->ofdm_symbol_size) {
-        memcpy_fast((void*)rxF_ext,
-=======
       if (start_re + nb_re_pusch <= frame_parms->ofdm_symbol_size) {
-        memcpy1((void*)rxF_ext,
->>>>>>> origin/ldpc-decoder-codegen
+        memcpy((void*)rxF_ext,
                 (void*)&rxF[start_re*2],
                 nb_re_pusch*sizeof(int32_t));
       } else {
 	      int neg_length = frame_parms->ofdm_symbol_size-start_re;
 	      int pos_length = nb_re_pusch-neg_length;
 
-	      memcpy_fast((void*)rxF_ext,(void*)&rxF[start_re*2],neg_length*sizeof(int32_t));
-	      memcpy_fast((void*)&rxF_ext[2*neg_length],(void*)rxF,pos_length*sizeof(int32_t));
+	      memcpy((void*)rxF_ext,(void*)&rxF[start_re*2],neg_length*sizeof(int32_t));
+	      memcpy((void*)&rxF_ext[2*neg_length],(void*)rxF,pos_length*sizeof(int32_t));
       }
-      memcpy_fast((void*)ul_ch0_ext,(void*)ul_ch0,nb_re_pusch*sizeof(int32_t));
+      memcpy((void*)ul_ch0_ext,(void*)ul_ch0,nb_re_pusch*sizeof(int32_t));
     }
     else if (pusch_pdu->dmrs_config_type == pusch_dmrs_type1) { // 6 REs / PRB
       AssertFatal(delta==0||delta==1,"Illegal delta %d\n",delta);
@@ -1498,7 +1491,6 @@ void nr_ulsch_detection_mrc(NR_DL_FRAME_PARMS *frame_parms,
 #endif
 }
 
-<<<<<<< HEAD
 void nr_pusch_symbol_processing(void *arg) {
     puschSymbolProc_t *rdata=(puschSymbolProc_t*)arg;
 
@@ -1510,79 +1502,6 @@ void nr_pusch_symbol_processing(void *arg) {
     int symbol=rdata->symbol;
     int dmrs_symbol_flag = (rel15_ul->ul_dmrs_symb_pos >> symbol) & 0x01;
     int nb_re_pusch = gNB->pusch_vars[ulsch_id]->ul_valid_re_per_slot[symbol];
-=======
-int nr_rx_pusch(PHY_VARS_gNB *gNB,
-                uint8_t ulsch_id,
-                uint32_t frame,
-                uint8_t slot,
-                unsigned char harq_pid)
-{
-
-  uint8_t aarx, aatx;
-  uint32_t nb_re_pusch, bwp_start_subcarrier;
-  int avgs = 0;
-
-  NR_DL_FRAME_PARMS *frame_parms = &gNB->frame_parms;
-  nfapi_nr_pusch_pdu_t *rel15_ul = &gNB->ulsch[ulsch_id]->harq_processes[harq_pid]->ulsch_pdu;
-  int avg[frame_parms->nb_antennas_rx*rel15_ul->nrOfLayers];
-
-  gNB->pusch_vars[ulsch_id]->dmrs_symbol = INVALID_VALUE;
-  gNB->pusch_vars[ulsch_id]->cl_done = 0;
-
-  bwp_start_subcarrier = ((rel15_ul->rb_start + rel15_ul->bwp_start)*NR_NB_SC_PER_RB + frame_parms->first_carrier_offset) % frame_parms->ofdm_symbol_size;
-  LOG_D(PHY,"pusch %d.%d : bwp_start_subcarrier %d, rb_start %d, first_carrier_offset %d\n", frame,slot,bwp_start_subcarrier, rel15_ul->rb_start, frame_parms->first_carrier_offset);
-  LOG_D(PHY,"pusch %d.%d : ul_dmrs_symb_pos %x\n",frame,slot,rel15_ul->ul_dmrs_symb_pos);
-
-  //----------------------------------------------------------
-  //--------------------- Channel estimation ---------------------
-  //----------------------------------------------------------
-  start_meas(&gNB->ulsch_channel_estimation_stats);
-  for(uint8_t symbol = rel15_ul->start_symbol_index; symbol < (rel15_ul->start_symbol_index + rel15_ul->nr_of_symbols); symbol++) {
-    uint8_t dmrs_symbol_flag = (rel15_ul->ul_dmrs_symb_pos >> symbol) & 0x01;
-    LOG_D(PHY, "symbol %d, dmrs_symbol_flag :%d\n", symbol, dmrs_symbol_flag);
-    if (dmrs_symbol_flag == 1) {
-      if (gNB->pusch_vars[ulsch_id]->dmrs_symbol == INVALID_VALUE)
-        gNB->pusch_vars[ulsch_id]->dmrs_symbol = symbol;
-
-      for (int nl=0; nl<rel15_ul->nrOfLayers; nl++)
-        nr_pusch_channel_estimation(gNB,
-                                    slot,
-                                    get_dmrs_port(nl,rel15_ul->dmrs_ports),
-                                    symbol,
-                                    ulsch_id,
-                                    bwp_start_subcarrier,
-                                    rel15_ul);
-
-      nr_gnb_measurements(gNB, ulsch_id, harq_pid, symbol,rel15_ul->nrOfLayers);
-
-      for (aarx = 0; aarx < frame_parms->nb_antennas_rx; aarx++) {
-        if (symbol == rel15_ul->start_symbol_index) {
-          gNB->pusch_vars[ulsch_id]->ulsch_power[aarx] = 0;
-          gNB->pusch_vars[ulsch_id]->ulsch_noise_power[aarx] = 0;
-        }
-        gNB->pusch_vars[ulsch_id]->ulsch_power[aarx] += signal_energy_nodc(
-            &gNB->pusch_vars[ulsch_id]->ul_ch_estimates[aarx][symbol * frame_parms->ofdm_symbol_size],
-            rel15_ul->rb_size * 12);
-        for (int rb = 0; rb < rel15_ul->rb_size; rb++) {
-          gNB->pusch_vars[ulsch_id]->ulsch_noise_power[aarx] +=
-              gNB->measurements.n0_subband_power[aarx][rel15_ul->bwp_start + rel15_ul->rb_start + rb] /
-              rel15_ul->rb_size;
-        }
-      }
-    }
-  }
-  stop_meas(&gNB->ulsch_channel_estimation_stats);
-
-#ifdef __AVX2__
-  int off = ((rel15_ul->rb_size&1) == 1)? 4:0;
-#else
-  int off = 0;
-#endif
-  uint32_t rxdataF_ext_offset = 0;
-
-  for(uint8_t symbol = rel15_ul->start_symbol_index; symbol < (rel15_ul->start_symbol_index + rel15_ul->nr_of_symbols); symbol++) {
-    uint8_t dmrs_symbol_flag = (rel15_ul->ul_dmrs_symb_pos >> symbol) & 0x01;
->>>>>>> origin/ldpc-decoder-codegen
     if (dmrs_symbol_flag == 1) {
       if ((rel15_ul->ul_dmrs_symb_pos >> ((symbol + 1) % frame_parms->symbols_per_slot)) & 0x01)
         AssertFatal(1==0,"Double DMRS configuration is not yet supported\n");
@@ -1714,7 +1633,7 @@ int nr_rx_pusch(PHY_VARS_gNB *gNB,
   uint32_t bwp_start_subcarrier;
 
   NR_DL_FRAME_PARMS *frame_parms = &gNB->frame_parms;
-  nfapi_nr_pusch_pdu_t *rel15_ul = &gNB->ulsch[ulsch_id][0]->harq_processes[harq_pid]->ulsch_pdu;
+  nfapi_nr_pusch_pdu_t *rel15_ul = &gNB->ulsch[ulsch_id]->harq_processes[harq_pid]->ulsch_pdu;
 
 
   gNB->pusch_vars[ulsch_id]->dmrs_symbol = INVALID_VALUE;

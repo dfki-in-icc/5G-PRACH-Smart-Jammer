@@ -72,7 +72,7 @@ void *one_thread(void *arg) {
   do {
     notifiedFIFO_elt_t *elt=pullNotifiedFifoRemember(&tp->incomingFifo, myThread);
 
-    if (tp->measurePerf) {elt->cpuid=sched_getcpu(); elt->startProcessingTime=rdtsc();}
+    if (tp->measurePerf) {elt->cpuid=sched_getcpu(); elt->startProcessingTime=rdtsc_oai();}
 
     elt->processingFunc(NotifiedFifoData(elt));
 
