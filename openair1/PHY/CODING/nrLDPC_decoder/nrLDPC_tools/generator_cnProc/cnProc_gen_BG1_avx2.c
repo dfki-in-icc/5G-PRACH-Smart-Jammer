@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
 #include "../../nrLDPCdecoder_defs.h"
@@ -11,7 +12,7 @@ void nrLDPC_cnProc_BG1_generator_AVX2(int R)
 
  // system("mkdir -p ../ldpc_gen_files");
 
-  char fname[150];
+  char fname[FILENAME_MAX+1];
   sprintf(fname,"../ldpc_gen_files/cnProc/nrLDPC_cnProc_BG1_R%s_AVX2.h",ratestr[R]);
   FILE *fd=fopen(fname,"w");
   if (fd == NULL) {printf("Cannot create \n");abort();}

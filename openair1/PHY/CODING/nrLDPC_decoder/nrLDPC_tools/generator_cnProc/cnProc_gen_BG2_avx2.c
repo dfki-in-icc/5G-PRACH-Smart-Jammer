@@ -15,7 +15,7 @@ void nrLDPC_cnProc_BG2_generator_AVX2(int R)
 
 //  system("mkdir -p ldpc_gen_files/avx2");
 
-  char fname[500];
+  char fname[FILENAME_MAX+1];
   sprintf(fname,"../ldpc_gen_files/cnProc/nrLDPC_cnProc_BG2_R%s_AVX2.h",ratestr[R]);
   FILE *fd=fopen(fname,"w");
   if (fd == NULL) {printf("Cannot create \n");abort();}

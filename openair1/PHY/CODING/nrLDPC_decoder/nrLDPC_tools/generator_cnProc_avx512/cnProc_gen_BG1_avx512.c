@@ -12,7 +12,7 @@ void nrLDPC_cnProc_BG1_generator_AVX512(int R)
 
  // system("mkdir -p ../ldpc_gen_files");
 
-  char fname[500];
+  char fname[FILENAME_MAX+1];
   sprintf(fname,"../ldpc_gen_files/cnProc_avx512/nrLDPC_cnProc_BG1_R%s_AVX512.h",ratestr[R]);
   FILE *fd=fopen(fname,"w");
   if (fd == NULL) {printf("Cannot create \n");abort();}

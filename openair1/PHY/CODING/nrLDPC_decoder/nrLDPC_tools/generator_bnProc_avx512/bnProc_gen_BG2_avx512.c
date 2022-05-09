@@ -15,7 +15,7 @@ void nrLDPC_bnProc_BG2_generator_AVX512(int R)
 
  // system("mkdir -p ../ldpc_gen_files");
 
-  char fname[500];
+  char fname[FILENAME_MAX+1];
   sprintf(fname,"../ldpc_gen_files/bnProc_avx512/nrLDPC_bnProc_BG2_R%s_AVX512.h",ratestr[R]);
   FILE *fd=fopen(fname,"w");
   if (fd == NULL) {printf("Cannot create %s\n",fname);abort();}
