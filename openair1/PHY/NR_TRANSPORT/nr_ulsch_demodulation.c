@@ -8,7 +8,6 @@
 #include "PHY/NR_ESTIMATION/nr_ul_estimation.h"
 #include "PHY/defs_nr_common.h"
 #include "common/utils/nr/nr_common.h"
-#include "common/utils/memcpy/FastMemcpy/FastMemcpy_Avx.h"
 //#define DEBUG_CH_COMP
 //#define DEBUG_RB_EXT
 //#define DEBUG_CH_MAG
@@ -312,13 +311,8 @@ void nr_ulsch_extract_rbs_single(int32_t **rxdataF,
                                  NR_DL_FRAME_PARMS *frame_parms)
 {
 
-  int short re, nb_re_pusch;
-  unsigned char aarx;
-  uint32_t rxF_ext_index = 0;
-  uint32_t ul_ch0_ext_index = 0;
-  uint32_t ul_ch0_index = 0;
-  uint8_t k_prime;
-  uint16_t n;
+  int nb_re_pusch;
+  int aarx;
   int16_t *rxF,*rxF_ext;
   int *ul_ch0,*ul_ch0_ext;
   uint8_t delta = 0;
@@ -330,7 +324,6 @@ void nr_ulsch_extract_rbs_single(int32_t **rxdataF,
 
 #endif
 
-  uint8_t is_dmrs_re;
   int start_re = (frame_parms->first_carrier_offset + (pusch_pdu->rb_start + pusch_pdu->bwp_start) * NR_NB_SC_PER_RB)%frame_parms->ofdm_symbol_size;
   nb_re_pusch = NR_NB_SC_PER_RB * pusch_pdu->rb_size;
 #ifdef __AVX2__
@@ -348,11 +341,6 @@ void nr_ulsch_extract_rbs_single(int32_t **rxdataF,
 
     ul_ch0_ext = &pusch_vars->ul_ch_estimates_ext[aarx][symbol*nb_re_pusch2];
 
-    n = 0;
-    k_prime = 0;
-    rxF_ext_index = 0;
-    ul_ch0_ext_index = 0;
-    ul_ch0_index = 0;
 
     if (is_dmrs_symbol == 0) {
       if (start_re + nb_re_pusch <= frame_parms->ofdm_symbol_size) {
@@ -360,11 +348,11 @@ void nr_ulsch_extract_rbs_single(int32_t **rxdataF,
                 (void*)&rxF[start_re*2],
                 nb_re_pusch*sizeof(int32_t));
       } else {
-	      int neg_length = frame_parms->ofdm_symbol_size-start_re;
-	      int pos_length = nb_re_pusch-neg_length;
+	int neg_length = frame_parms->ofdm_symbol_size-start_re;
+	int pos_length = nb_re_pusch-neg_length;
 
-	      memcpy((void*)rxF_ext,(void*)&rxF[start_re*2],neg_length*sizeof(int32_t));
-	      memcpy((void*)&rxF_ext[2*neg_length],(void*)rxF,pos_length*sizeof(int32_t));
+	memcpy((void*)rxF_ext,(void*)&rxF[start_re*2],neg_length*sizeof(int32_t));
+	memcpy((void*)&rxF_ext[2*neg_length],(void*)rxF,pos_length*sizeof(int32_t));
       }
       memcpy((void*)ul_ch0_ext,(void*)ul_ch0,nb_re_pusch*sizeof(int32_t));
     }
@@ -383,8 +371,8 @@ void nr_ulsch_extract_rbs_single(int32_t **rxdataF,
       }
       else { // handle the two pieces around DC
         LOG_D(PHY,"Running extraction with DMRS for config 1, allocation around DC, start_re %d\n",start_re);
-	      int neg_length = frame_parms->ofdm_symbol_size-start_re;
-	      int pos_length = nb_re_pusch-neg_length;
+	int neg_length = frame_parms->ofdm_symbol_size-start_re;
+	int pos_length = nb_re_pusch-neg_length;
         
         for (idx=1-delta,idx2=0;idx<neg_length;idx+=2,idx2++) {
           rxF_ext32[idx2] = rxF32[idx];
@@ -392,7 +380,7 @@ void nr_ulsch_extract_rbs_single(int32_t **rxdataF,
         }
         rxF32=(int32_t*)rxF;
         idx3=idx;
-        for (idx=1-delta;idx<neg_length;idx+=2,idx2++,idx3++) {
+        for (idx=1-delta;idx<pos_length;idx+=2,idx2++,idx3++) {
           rxF_ext32[idx2] = rxF32[idx];
           ul_ch0_ext32[idx2]= ul_ch032[idx3];
         }
@@ -831,8 +819,7 @@ void nr_ulsch_channel_compensation(int **rxdataF_ext,
 
 #if defined(__i386) || defined(__x86_64__)
 
-  unsigned short rb;
-  unsigned char aatx,aarx;
+  int aatx,aarx;
 #ifdef __AVX2__
   __m256i *ul_ch256,*ul_ch_mag256,*ul_ch_mag256b,*rxdataF256,*rxdataF_comp256;
   __m256i mmtmpD0,mmtmpD1,mmtmpD2,mmtmpD3,QAM_amp256={0},QAM_amp256b={0};
@@ -862,7 +849,6 @@ void nr_ulsch_channel_compensation(int **rxdataF_ext,
 #endif
     }
 
-    //    printf("comp: rxdataF_comp %p, symbol %d\n",rxdataF_comp[0],symbol);
 
     for (aarx=0; aarx<frame_parms->nb_antennas_rx; aarx++) {
 #ifdef __AVX2__
@@ -1629,7 +1615,7 @@ int nr_rx_pusch(PHY_VARS_gNB *gNB,
                 unsigned char harq_pid)
 {
 
-  uint8_t aarx, aatx;
+  uint8_t aarx;
   uint32_t bwp_start_subcarrier;
 
   NR_DL_FRAME_PARMS *frame_parms = &gNB->frame_parms;
@@ -1741,7 +1727,7 @@ int nr_rx_pusch(PHY_VARS_gNB *gNB,
                                                     gNB->pusch_vars[ulsch_id]->llr_offset[symbol-1] + gNB->pusch_vars[ulsch_id]->ul_valid_re_per_slot[symbol-1] * rel15_ul->qam_mod_order;
     if (gNB->pusch_vars[ulsch_id]->ul_valid_re_per_slot[symbol] > 0)  {
       union puschSymbolReqUnion id = {.s={ulsch_id,frame,slot,0}};
-      id.p=1+symbol;
+      //id.p=1+symbol;
       notifiedFIFO_elt_t *req=newNotifiedFIFO_elt(sizeof(puschSymbolProc_t),id.p,gNB->respPuschSymb,nr_pusch_symbol_processing_ptr);
       puschSymbolProc_t *rdata=(puschSymbolProc_t*)NotifiedFifoData(req);
       rdata->gNB = gNB;

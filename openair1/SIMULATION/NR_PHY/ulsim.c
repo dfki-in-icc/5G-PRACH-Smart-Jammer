@@ -688,7 +688,7 @@ int main(int argc, char **argv)
   else sprintf(tp_param,"n");
   int s_offset = 0,slen=0;
   for (int icpu=1; icpu<threadCnt; icpu++) {
-    slen=sprintf(tp_param+1+s_offset,",%d",icpu);
+    slen=sprintf(tp_param+1+s_offset,",%d",icpu*2);
     s_offset += slen;
   }
 

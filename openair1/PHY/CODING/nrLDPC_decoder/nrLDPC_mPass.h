@@ -28,7 +28,6 @@
 
 #include <string.h>
 #include "nrLDPCdecoder_defs.h"
-#include <common/utils/memcpy/FastMemcpy/FastMemcpy_Avx.h>
 //#include <omp.h>
 /**
    \brief Circular memcpy1
