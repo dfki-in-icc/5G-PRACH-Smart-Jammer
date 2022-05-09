@@ -682,7 +682,9 @@ int main(int argc, char **argv)
   gNB->ofdm_offset_divisor = UINT_MAX;
   gNB->threadPool = (tpool_t*)malloc(sizeof(tpool_t));
   gNB->respDecode = (notifiedFIFO_t*) malloc(sizeof(notifiedFIFO_t));
+  initNotifiedFIFO(gNB->respDecode);
   gNB->respPuschSymb = (notifiedFIFO_t*) malloc(sizeof(notifiedFIFO_t));
+  initNotifiedFIFO(gNB->respPuschSymb );
   char tp_param[80];
   if (threadCnt>1) sprintf(tp_param,"0");
   else sprintf(tp_param,"n");
