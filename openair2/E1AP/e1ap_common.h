@@ -40,7 +40,9 @@ typedef int (*e1ap_message_processing_t)(
 };
 
 typedef struct PLMN_ID_s {
-  int id;
+  int mcc;
+  int mnc;
+  int mnc_digit_length;
 } PLMN_ID_t;
 
 typedef struct e1ap_setup_req_s {
@@ -55,7 +57,12 @@ typedef struct e1ap_setup_req_s {
   uint16_t              default_sctp_stream_id;
   f1ap_net_ip_address_t CUUP_e1_ip_address;
   f1ap_net_ip_address_t CUCP_e1_ip_address;
+  E1AP_CNSupport_t      cn_support;
 } e1ap_setup_req_t;
+
+typedef struct e1ap_setup_resp_s {
+  long transac_id;
+} e1ap_setup_resp_t;
 
 typedef struct cell_group_s {
   long id;
@@ -83,6 +90,9 @@ typedef struct qos_flow_to_setup_s {
   long packetDelayBudget;
   long packetError_scalar;
   long packetError_exponent;
+  E1AP_PriorityLevel_t	 priorityLevel;
+  E1AP_Pre_emptionCapability_t	 pre_emptionCapability;
+  E1AP_Pre_emptionVulnerability_t	 pre_emptionVulnerability;
 } qos_flow_to_setup_t;
 
 typedef struct DRB_nGRAN_to_setup_s {
@@ -94,9 +104,6 @@ typedef struct DRB_nGRAN_to_setup_s {
   cell_group_t cellGroupList[MAX_NUM_CELL_GROUPS];
   int numQosFlowSetup;
   qos_flow_to_setup_t qosFlows[MAX_NUM_QOS_FLOWS];
-  E1AP_PriorityLevel_t	 priorityLevel;
-  E1AP_Pre_emptionCapability_t	 pre_emptionCapability;
-  E1AP_Pre_emptionVulnerability_t	 pre_emptionVulnerability;
 } DRB_nGRAN_to_setup_t;
 
 typedef struct pdu_session_to_setup_s {
@@ -123,10 +130,61 @@ typedef struct e1ap_bearer_setup_req_s {
   pdu_session_to_setup_t pduSession[MAX_NUM_PDU_SESSIONS];
 } e1ap_bearer_setup_req_t;
 
+typedef struct up_params_s {
+  in_addr_t tlAddress;
+  long teId;
+} up_params_t;
+
+typedef struct drb_setup_s {
+  int drbId;
+  in_addr_t tlAddress;
+  ling teId;
+  int numUpParam;
+  up_params_t UpParamList[MAX_NUM_UP_PARAM];
+} drb_setup_t;
+
+typedef struct qos_flow_setup_s {
+  long id;
+} qos_flow_setup_t;
+
+typedef struct DRB_nGRAN_setup_s {
+  long id;
+  int numUpParam;
+  up_params_t UpParamList[MAX_NUM_UP_PARAM];
+  int numQosFlowSetup;
+  qos_flow_setup_t qosFlows[MAX_NUM_QOS_FLOWS];
+} DRB_nGRAN_setup_t;
+
+typedef struct DRB_nGRAN_failed_s {
+  long id;
+  long cause_type;
+  long cause;
+} DRB_nGRAN_failed_t;
+
+typedef struct pdu_session_setup_s {
+  long id;
+  in_addr_t tlAddress;
+  long teId;
+  int numDRBSetup;
+  DRB_nGRAN_setup_t DRBnGRanList[MAX_NUM_NGRAN_DRB];
+  int numDRBFailed;
+  DRB_nGRAN_failed_t DRBnGRanFailedList[MAX_NUM_NGRAN_DRB];
+} pdu_session_setup_t;
+
+
+typedef struct e1ap_bearer_setup_resp_s {
+  uint64_t gNB_cu_cp_ue_id;
+  uint64_t gNB_cu_up_ue_id;
+  int numDRBs;
+  drb_setup_t DRBList[MAX_NUM_DRBS];
+  int numPDUSessions;
+} e1ap_bearer_setup_resp_t;
+
 typedef struct e1ap_upcp_inst_s {
   uint32_t                assoc_id;
   e1ap_setup_req_t        setupReq;
   e1ap_bearer_setup_req_t bearerSetupReq;
+  e1ap_bearer_setup_resp_t bearerSetupResp;
 } e1ap_upcp_inst_t;
 
 typedef enum {

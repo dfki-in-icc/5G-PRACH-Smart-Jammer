@@ -77,3 +77,42 @@ E1AP_TransactionID_t E1AP_get_next_transaction_identifier() {
   return genTransacId;
 }
 
+int e1ap_decode_pdu(E1AP_E1AP_PDU_t *pdu, const uint8_t *const buffer, uint32_t length) {
+  asn_dec_rval_t dec_ret;
+  DevAssert(buffer != NULL);
+  dec_ret = aper_decode(NULL,
+                        &asn_DEF_F1AP_F1AP_PDU,
+                        (void **)&pdu,
+                        buffer,
+                        length,
+                        0,
+                        0);
+
+  if (asn1_decoder_xer_print) {
+    LOG_E(F1AP, "----------------- ASN1 DECODER PRINT START----------------- \n");
+    xer_fprint(stdout, &asn_DEF_E1AP_E1AP_PDU, pdu);
+    LOG_E(F1AP, "----------------- ASN1 DECODER PRINT END ----------------- \n");
+  }
+
+  if (dec_ret.code != RC_OK) {
+    AssertFatal(1==0,"Failed to decode pdu\n");
+    return -1;
+  }
+
+  switch(pdu->present) {
+    case E1AP_E1AP_PDU_PR_initiatingMessage:
+      return e1ap_decode_initiating_message(pdu);
+
+    case E1AP_E1AP_PDU_PR_successfulOutcome:
+      return e1ap_decode_successful_outcome(pdu);
+
+    case E1AP_E1AP_PDU_PR_unsuccessfulOutcome:
+      return e1ap_decode_unsuccessful_outcome(pdu);
+
+    default:
+      LOG_E(E1AP, "Unknown presence (%d) or not implemented\n", (int)pdu->present);
+      break;
+  }
+
+  return -1;
+}
