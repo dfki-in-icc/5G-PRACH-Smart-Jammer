@@ -44,7 +44,7 @@ typedef struct
     uint16_t rnti[256];
     uint8_t mcs[256];
     float sinr;
-    uint32_t rsrp[7];
+    float rsrp[7];
     uint16_t pdu_size;
     bool drop_flag[256];
     bool latest;
@@ -131,13 +131,22 @@ typedef struct sfn_sf_info_s
     uint16_t sfn_sf;
 } sfn_sf_info_t;
 
+typedef struct
+{
+    float sinr;
+    float rsrp;
+    float rsrq;
+    uint16_t source;
+    // Incomplete, need all channel parameters
+} channel_status;
+
 typedef struct phy_channel_params_t
 {
     uint16_t sfn_sf;
     uint16_t message_id;
     uint16_t phy_id;
-    uint16_t nb_of_sinrs;
-    float sinr[LTE_NUM_LAYER];
+    uint16_t nb_of_csi;
+    channel_status csi[LTE_NUM_LAYER];
     // Incomplete, need all channel parameters
 } phy_channel_params_t;
 
@@ -211,7 +220,7 @@ char *nfapi_ul_config_req_to_string(nfapi_ul_config_request_t *req);
 const char *dl_pdu_type_to_string(uint8_t pdu_type);
 const char *ul_pdu_type_to_string(uint8_t pdu_type);
 
-uint32_t update_measurements(uint16_t sfn_sf, int eNB_index);
+float update_measurements(uint16_t sfn_sf, int eNB_index);
 
 extern queue_t dl_config_req_tx_req_queue;
 extern queue_t ul_config_req_queue;

@@ -847,8 +847,8 @@ rx_sdu(const module_id_t enb_mod_idP,
 #if defined(ENABLE_MAC_PAYLOAD_DEBUG)
         LOG_T(MAC, "offset: %d\n", (unsigned char) ((unsigned char *) payload_ptr - sduP));
 
-        for (int j = 0; j < 32; j++) {
-          LOG_T(MAC, "%x ", payload_ptr[j]);
+        for (int j = 0; j < rx_lengths[i]; j++) {
+          LOG_I(MAC, "%x \n", payload_ptr[j]);
         }
 
         LOG_T(MAC, "\n");

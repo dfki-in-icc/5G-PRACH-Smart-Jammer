@@ -108,8 +108,6 @@ uint32_t get_RSSI (module_id_t Mod_id,uint8_t CC_id)
 
   PHY_VARS_UE *ue = PHY_vars_UE_g[Mod_id][CC_id];
 
-  //return 100; // DavidK
-
   if (ue)
     LOG_I(PHY,"Checking rssi %u\n", ue->measurements.rssi);
 
@@ -128,15 +126,18 @@ double get_RSRP(module_id_t Mod_id,uint8_t CC_id,uint8_t eNB_index)
   PHY_VARS_UE *ue = PHY_vars_UE_g[Mod_id][CC_id];
 
   if(NFAPI_MODE==NFAPI_UE_STUB_PNF || NFAPI_MODE==NFAPI_MODE_STANDALONE_PNF) {
-    if (ue)
-      //ue->measurements.rsrp[eNB_index] = (eNB_index == 0) ? 100 : 100; //DavidK2
-      LOG_I(PHY,"Checking rsrp[%d] %u, dbPower %d, RSRP (db) %f\n", 
+    if (ue) {
+      LOG_I(PHY,"Checking rsrp[%d] %u, dB_fixed_times10 %d, 10log10(N_RB_DL*12) %f Calc_RSRP (db) %f vs filtered %f\n", 
                 eNB_index, ue->measurements.rsrp[eNB_index],
                 dB_fixed_times10(ue->measurements.rsrp[eNB_index]),
+                10*log10(ue->frame_parms.N_RB_DL*12),
                 (dB_fixed_times10(ue->measurements.rsrp[eNB_index]))/10.0-
                     get_rx_total_gain_dB(Mod_id,0) -
-                    10*log10(ue->frame_parms.N_RB_DL*12)
+                    10*log10(ue->frame_parms.N_RB_DL*12),
+                ue->measurements.rsrp_filtered[eNB_index]
            );
+      return ue->measurements.rsrp_filtered[eNB_index];
+    }
   }
 
   if (ue)

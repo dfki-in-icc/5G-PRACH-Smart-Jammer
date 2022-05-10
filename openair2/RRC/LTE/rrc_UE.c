@@ -2085,6 +2085,22 @@ rrc_ue_process_rrcConnectionReconfiguration(
   } // critical extensions present
 }
 
+static void check_rlc_status(
+  const protocol_ctxt_t *const       ctxt_pP,
+  uint8_t lcid
+)
+{
+      rnti_t crnti = UE_mac_inst[ctxt_pP->module_id].crnti;
+      uint8_t lcgid = UE_mac_inst[ctxt_pP->module_id].scheduling_info.LCGID[lcid];
+      mac_rlc_status_resp_t rlc_status = mac_rlc_status_ind(ctxt_pP->module_id, crnti, 0,0,0,ENB_FLAG_NO,MBMS_FLAG_NO,
+                                      lcid,
+                                      0, 0
+                                     );
+      //if (rlc_status.bytes_in_buffer > 0)
+        LOG_I(MAC,"[UE %d] PDCCH Tick : LCID%d LCGID%d has data to transmit ====>  %d bytes\n\n",
+              ctxt_pP->module_id, lcid,lcgid,rlc_status.bytes_in_buffer);
+}
+
 /* 36.331, 5.3.5.4      Reception of an RRCConnectionReconfiguration including the mobilityControlInfo by the UE (handover) */
 //-----------------------------------------------------------------------------
 void
@@ -2120,10 +2136,13 @@ rrc_ue_process_mobilityControlInfo(
   LOG_I(RRC,"[UE %d] : Update needed for rrc_pdcp_config_req (deprecated) and rrc_rlc_config_req commands(deprecated)\n", ctxt_pP->module_id);
   rrc_pdcp_config_req (ctxt_pP, SRB_FLAG_YES, CONFIG_ACTION_RESET, DCCH,UNDEF_SECURITY_MODE);
   rrc_rlc_config_req(ctxt_pP, SRB_FLAG_YES, MBMS_FLAG_NO, CONFIG_ACTION_RESET,ctxt_pP->module_id+DCCH, Rlc_info_am_config);
+  check_rlc_status(ctxt_pP, DCCH);
   rrc_pdcp_config_req (ctxt_pP, SRB_FLAG_YES, CONFIG_ACTION_RESET, DCCH1,UNDEF_SECURITY_MODE);
   rrc_rlc_config_req(ctxt_pP, SRB_FLAG_YES, MBMS_FLAG_NO, CONFIG_ACTION_RESET, ctxt_pP->module_id+DCCH1, Rlc_info_am_config);
+  check_rlc_status(ctxt_pP, DCCH1);
   rrc_pdcp_config_req (ctxt_pP, SRB_FLAG_NO, CONFIG_ACTION_RESET, DTCH,UNDEF_SECURITY_MODE);
   rrc_rlc_config_req(ctxt_pP, SRB_FLAG_NO, MBMS_FLAG_NO, CONFIG_ACTION_RESET, ctxt_pP->module_id+DTCH, Rlc_info_um);
+  check_rlc_status(ctxt_pP, DTCH);
 
   //Synchronisation to DL of target cell
   LOG_I(RRC,

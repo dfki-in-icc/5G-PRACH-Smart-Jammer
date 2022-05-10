@@ -1376,23 +1376,20 @@ void *ue_standalone_pnf_task(void *context)
         uint16_t sf = ch_info.sfn_sf & 15;
         assert(sf < 10);
         same_tick = 1;
-        if (ch_info.nb_of_sinrs > 1)
+        if (ch_info.nb_of_csi > 1)
           LOG_W(MAC, "Expecting at most one SINR.\n");
 
         // TODO: Update sinr field of slot_rnti_mcs to be array.
-        for (int i = 0; i < ch_info.nb_of_sinrs; ++i)
+        for (int i = 0; i < ch_info.nb_of_csi; ++i)
         {
-          sf_rnti_mcs[sf].sinr = ch_info.sinr[i];
-          LOG_I(MAC, "Received_SINR[%d] = %f\n", i, ch_info.sinr[i]);
+          sf_rnti_mcs[sf].sinr = ch_info.csi[i].sinr;
+          LOG_D(MAC, "Received_SINR[%d] = %f\n", i, ch_info.csi[i].sinr);
+          assert(ch_info.csi[i].source > 0 && ch_info.csi[i].source <= 7); // 7 : max number of adj cells.
+          sf_rnti_mcs[sf].rsrp[ch_info.csi[i].source - 1] = ch_info.csi[i].rsrp;
+          LOG_I(MAC, "Received_RSRP[0] = %f RSRP[1] = %f %s\n", 
+                      sf_rnti_mcs[sf].rsrp[0],
+                      sf_rnti_mcs[sf].rsrp[1]);
         }
-        assert(ch_info.phy_id < 7);
-        if (ch_info.sinr < 0)
-          sf_rnti_mcs[sf].rsrp[ch_info.phy_id] = 0;
-        else
-          sf_rnti_mcs[sf].rsrp[ch_info.phy_id] = (uint32_t) sf_rnti_mcs[sf].sinr; // It needs update to use rsrp value.
-        LOG_I(MAC, "Received_RSRP[0] = %u RSRP[1] = %u\n", 
-                    sf_rnti_mcs[sf].rsrp[0],
-                    sf_rnti_mcs[sf].rsrp[1]);
       }
       prev_sfn_sf = sfn_sf;
     }
@@ -2215,7 +2212,7 @@ static bool should_drop_transport_block(int sf, uint16_t rnti)
   return false;
 }
 
-uint32_t update_measurements(uint16_t sfn_sf, int eNB_index)
+float update_measurements(uint16_t sfn_sf, int eNB_index)
 {
   return sf_rnti_mcs[sfn_sf & 15].rsrp[eNB_index]; //DavidK2
 }

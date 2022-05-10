@@ -2495,6 +2495,15 @@ ue_get_sdu(module_id_t module_idP, int CC_id, frame_t frameP,
 
       //Multiplex all available DCCH RLC PDUs considering to multiplex the last PDU each time for maximize the data
       //Adjust at the end of the loop
+      if ((is_lcid_processed) || (!lcid_buffer_occupancy_new)
+             || (bsr_len + phr_len + total_rlc_pdu_header_len +
+                 sdu_length_total + MIN_MAC_HDR_RLC_SIZE > buflen)) {
+        LOG_I(MAC, "\n\n (!is_lcid_processed %d) && (lcid_buffer_occupancy_new %d) && (sz check %d)\n\n\n", 
+              !is_lcid_processed, lcid_buffer_occupancy_new,
+              (bsr_len + phr_len + total_rlc_pdu_header_len + sdu_length_total + MIN_MAC_HDR_RLC_SIZE <= buflen)
+              );
+      }
+
       while ((!is_lcid_processed) && (lcid_buffer_occupancy_new)
              && (bsr_len + phr_len + total_rlc_pdu_header_len +
                  sdu_length_total + MIN_MAC_HDR_RLC_SIZE <= buflen)) {
@@ -3316,7 +3325,7 @@ update_bsr(module_id_t module_idP, frame_t frameP,
       lcid_bytes_in_buffer[lcid] = rlc_status.bytes_in_buffer;
 
       if (rlc_status.bytes_in_buffer > 0) {
-        LOG_I(MAC,"[UE %d] PDCCH Tick : LCID%d LCGID%d has data to transmit =%d bytes at frame %d subframe %d\n",
+        LOG_I(MAC,"[UE %d] PDCCH Tick : LCID%d LCGID%d has data to transmit = %d bytes at frame %d subframe %d\n",
               module_idP, lcid,lcgid,rlc_status.bytes_in_buffer,frameP,subframeP);
         UE_mac_inst[module_idP].scheduling_info.LCID_status[lcid] = LCID_NOT_EMPTY;
 
