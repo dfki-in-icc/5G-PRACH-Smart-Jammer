@@ -86,6 +86,7 @@ typedef int(*qcmdfunc_t)(char*, int, telnet_printfunc_t prnt,void *arg);
 #define TELNETSRV_CMDFLAG_CONFEXEC         (1<<4)    // Ask for confirm before exec
 #define TELNETSRV_CMDFLAG_GETWEBTBLDATA    (1<<8)    // When called from web server, use the get table data variant of the function
 #define TELNETSRV_CMDFLAG_PRINTWEBTBLDATA  (1<<9)    // Print as a single column table
+#define TELNETSRV_CMDFLAG_NEEDPARAM        (1<<10)   // The command needs a parameter
 typedef struct cmddef {
     char cmdname[TELNET_CMD_MAXSIZE];
     char helpstr[TELNET_HELPSTR_SIZE];
@@ -189,10 +190,12 @@ VT escape sequence definition, for smarter display....
 /*---------------------------------------------------------------------------------------------*/
 #define NICE_MAX 19
 #define NICE_MIN -20
-#define TELNET_ADDCMD_FNAME "add_telnetcmd"
+#define TELNET_ADDCMD_FNAME   "add_telnetcmd"
 #define TELNET_POLLCMDQ_FNAME "poll_telnetcmdq"
+#define TELNET_PUSHCMD_FNAME  "telnet_pushcmd"
 typedef int(*add_telnetcmd_func_t)(char *, telnetshell_vardef_t *, telnetshell_cmddef_t *);
 typedef void(*poll_telnetcmdq_func_t)(void *qid,void *arg);
+typedef void(*push_telnetcmd_func_t)(telnetshell_cmddef_t *cmd, char *cmdbuff, telnet_printfunc_t prnt);
 #ifdef TELNETSERVERCODE
 int add_telnetcmd(char *modulename, telnetshell_vardef_t *var, telnetshell_cmddef_t *cmd);
 void set_sched(pthread_t tid, int pid,int priority);
@@ -200,8 +203,10 @@ void set_affinity(pthread_t tid, int pid, int coreid);
 extern int get_phybsize(void); 
 #endif
 #ifdef WEBSERVERCODE
+extern void telnet_pushcmd(telnetshell_cmddef_t *cmd, char *cmdbuff, telnet_printfunc_t prnt);
 extern telnetsrv_params_t *get_telnetsrv_params(void);
 extern char *telnet_getvarvalue(telnetshell_vardef_t   *var, int varindex);
 extern int telnet_setvarvalue(telnetshell_vardef_t   *var,char *strval, telnet_printfunc_t prnt ) ;
+extern void telnetsrv_freetbldata(webdatadef_t *wdata);
 #endif
 #endif

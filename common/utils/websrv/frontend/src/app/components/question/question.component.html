@@ -1,0 +1,13 @@
+<h3>{{ data.title }}</h3>
+<div mat-dialog-content>
+  <p>{{ data.title }}</p>
+  <mat-form-field appearance="fill">
+    <mat-label>{{ data.title }}</mat-label>
+    <label for="answer">{{ data.question }} </label>
+    <input id="answer" type="text" formControlName="answer" >
+  </mat-form-field>
+</div>
+<div fxLayoutGap="10px" mat-dialog-actions fxLayout="row" fxLayoutAlign="center start">
+    <button mat-button [mat-dialog-close]="true" cdkFocusInitial>Ok</button>
+    <button mat-button (click)="onNoClick()">Cancel</button>
+</div>

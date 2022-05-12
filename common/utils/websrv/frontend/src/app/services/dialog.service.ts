@@ -7,6 +7,7 @@ import { of } from 'rxjs/internal/observable/of';
 import { tap } from 'rxjs/internal/operators/tap';
 import { IResp } from '../api/commands.api';
 import { ConfirmDialogComponent } from '../components/confirm/confirm.component';
+import { QuestionDialogComponent } from '../components/question/question.component';
 import { DialogComponent  } from '../components/dialog/dialog.component';
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
@@ -103,6 +104,22 @@ export class DialogService {
     return this._dialog.open(ConfirmDialogComponent, {
       width: '300px',
       data: { title: question }
+    })
+      .afterClosed()
+      .pipe(tap(() => this.isDialogOpen = false));
+  }
+
+
+  openQuestionDialog(title:string, question: string) {
+    if (this.isDialogOpen) {
+      return of(undefined);
+    }
+
+    this.isDialogOpen = true;
+
+    return this._dialog.open(QuestionDialogComponent, {
+      width: '300px',
+      data: { title:title, question: question }
     })
       .afterClosed()
       .pipe(tap(() => this.isDialogOpen = false));

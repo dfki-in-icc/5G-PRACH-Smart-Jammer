@@ -70,6 +70,7 @@ void websrv_printjson(char * label, json_t *jsonobj){
     free(jstr);
 }
 void websrv_gettbldata_response(struct _u_response * response,webdatadef_t * wdata) ;
+int websrv_callback_get_softmodemcmd(const struct _u_request * request, struct _u_response * response, void * user_data);
 /*-----------------------------------*/
 /* build a json body in a response */
 void websrv_jbody( struct _u_response * response, json_t *jbody) {
@@ -167,30 +168,7 @@ void websrv_printf_tbl_end(int httpstatus ) {
 
 }
 
-/*--------------------------------------------------------------------------------------------------*/
-/* format a json response from a result table returned from a call to a telnet server command       */
-void websrv_getdata_response(struct _u_response * response,webdatadef_t * wdata) {
-    json_t *jdata = json_array();
-    
-	for (int i=0; i<wdata->numlines ; i++) {
-        json_t *kv=json_object();
-        for (int j=0; j<wdata->numcols; j++) {
-          json_t *jval;  
-          if(wdata->columns[j].coltype & TELNET_CHECKVAL_BOOL)
-            jval=json_boolean(wdata->lines[i].val[j]);
-          else if (wdata->columns[j].coltype & TELNET_VARTYPE_STRING)
-            jval=json_string(wdata->lines[i].val[j]);
-//          else if (wdata->columns[j].coltype == TELNET_VARTYPE_DOUBLE)
-//            jval=json_real((double)(wdata->lines[i].val[j]));
-          else
-            jval=json_integer((long)(wdata->lines[i].val[j]));
-          json_object_set_new(kv, wdata->columns[j].coltitle, jval);                    
-        }
-        json_array_append_new(jdata,kv);
-    }
-    json_t *jbody=json_pack("{s:[o],s:o}","display",json_null(),"logs",jdata);
-    websrv_jbody(response,jbody);
-}
+
 /*--------------------------------------------------------------------------------------------------*/
 /* format a json response from a result table returned from a call to a telnet server command       */
 void websrv_gettbldata_response(struct _u_response * response,webdatadef_t * wdata) {
@@ -226,6 +204,7 @@ void websrv_gettbldata_response(struct _u_response * response,webdatadef_t * wda
     }
     json_t *jbody=json_pack("{s:[],s:{s:o,s:o}}","display","table","columns",jcols,"rows",jdata);
     websrv_jbody(response,jbody);
+    telnetsrv_freetbldata(wdata);
 }
 
 /*----------------------------------------------------------------------------------------------------------*/
@@ -416,6 +395,7 @@ int websrv_callback_newmodule(const struct _u_request * request, struct _u_respo
 		/* found the module in the telnet server module array, it was likely not registered at init time */
 			 if (strcmp(telnetparams->CmdParsers[j].module, u_map_enum_values(request->map_url)[i]) == 0) {
 	           register_module_endpoints( &(telnetparams->CmdParsers[j]) );
+	           websrv_callback_get_softmodemcmd(request, response, &(telnetparams->CmdParsers[j]));
 	           return U_CALLBACK_CONTINUE;
 		     }
           } /* for j */
@@ -524,12 +504,7 @@ int websrv_callback_set_softmodemvar(const struct _u_request * request, struct _
 int websrv_processwebfunc(struct _u_response * response, cmdparser_t * modulestruct ,telnetshell_cmddef_t *cmd) {
   LOG_I(UTIL,"[websrv] : executing command %s %s\n",modulestruct->module,cmd->cmdname);
   
-  if ( cmd->cmdflags & TELNETSRV_CMDFLAG_GETWEBDATA ) {
-	webdatadef_t wdata;
-    memset(&wdata,0,sizeof(wdata));
-	cmd->webfunc_getdata(cmd->cmdname,websrvparams.dbglvl,(webdatadef_t *)&wdata,NULL);
-	websrv_getdata_response(response,&wdata);
-  } else if (cmd->cmdflags & TELNETSRV_CMDFLAG_GETWEBTBLDATA) {
+  if (cmd->cmdflags & TELNETSRV_CMDFLAG_GETWEBTBLDATA) {
 	webdatadef_t wdata;
     memset(&wdata,0,sizeof(wdata));
 	cmd->webfunc_getdata(cmd->cmdname,websrvparams.dbglvl,(webdatadef_t *)&wdata,NULL);	  
@@ -537,7 +512,10 @@ int websrv_processwebfunc(struct _u_response * response, cmdparser_t * modulestr
   } else {
     websrv_printf_start(response,16384);
     char *sptr=index(cmd->cmdname,' ');
-    cmd->cmdfunc((sptr==NULL)?cmd->cmdname:sptr,websrvparams.dbglvl,websrv_printf);
+    if (cmd->qptr != NULL) 
+      telnet_pushcmd(cmd, (sptr==NULL)?cmd->cmdname:sptr, websrv_printf);
+    else
+      cmd->cmdfunc((sptr==NULL)?cmd->cmdname:sptr,websrvparams.dbglvl,websrv_printf);
     if (cmd->cmdflags & TELNETSRV_CMDFLAG_PRINTWEBTBLDATA)
       websrv_printf_tbl_end(200);
     else
@@ -669,7 +647,13 @@ int websrv_callback_get_softmodemcmd(const struct _u_request * request, struct _
 		  char confstr[256];
 		  snprintf(confstr,sizeof(confstr),"Execute %s ?",modulestruct->cmd[j].cmdname);
 		  acmd =json_pack( "{s:s,s:s}", "name",modulestruct->cmd[j].cmdname,"confirm", confstr);
-		} else {
+		} else if (modulestruct->cmd[j].cmdflags &  TELNETSRV_CMDFLAG_NEEDPARAM) {
+			if (modulestruct->cmd[j].webfunc_getdata != NULL) {
+				webdatadef_t wdata;
+				modulestruct->cmd[j].webfunc_getdata(modulestruct->cmd[j].cmdname,websrvparams.dbglvl, &(wdata),NULL);
+				acmd =json_pack( "{s:s,s:{s:s,s:s}}", "name",modulestruct->cmd[j].cmdname,"question","display",wdata.tblname ,"type","string");
+			}
+		}else {
 		  acmd =json_pack( "{s:s}", "name",modulestruct->cmd[j].cmdname);
 	    }
 		json_array_append(modulesubcom , acmd);
@@ -848,6 +832,8 @@ void* websrv_autoinit() {
   for (int i=0; telnetparams->CmdParsers[i].cmd != NULL; i++) {
 	  register_module_endpoints( &(telnetparams->CmdParsers[i]) );
   }
+  
+  /* callbacks to take care of modules not yet initialized, so not visible in telnet server data when this autoinit runs: */
   ulfius_add_endpoint_by_val(&(websrvparams.instance), "GET", "oaisoftmodem", "@module/commands", 10, websrv_callback_newmodule, telnetparams);
   ulfius_add_endpoint_by_val(&(websrvparams.instance), "GET", "oaisoftmodem", "@module/variables", 10, websrv_callback_newmodule, telnetparams);
 

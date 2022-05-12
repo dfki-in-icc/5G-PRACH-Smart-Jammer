@@ -499,7 +499,6 @@ void init_channelmod(void) ;
 int load_channellist(uint8_t nb_tx, uint8_t nb_rx, double sampling_rate, double channel_bandwidth) ;
 double N_RB2sampling_rate(uint16_t N_RB);
 double N_RB2channel_bandwidth(uint16_t N_RB);
-
 /* Linear phase noise model */
 /*!
   \brief This function produce phase noise and add to input signal
@@ -528,5 +527,7 @@ void do_UL_sig(sim_t *sim,
                uint32_t frame,
                int ru_id,
                uint8_t CC_id);
-
+#ifdef telnet_printfunc_t
+extern int get_currentchannels_type(char *buf, int debug, telnet_printfunc_t prnt,webdatadef_t *tdata);
+#endif
 #endif

@@ -53,8 +53,13 @@ export interface ITable {
     columns: IColumn[];
     rows: IRow[];
 }
+export interface IQuestion {
+    display:string;
+    type:IArgType;
+}
 export interface IResp {
     display: string[],
+    question?: IQuestion,
     table?: ITable
 }
 export interface IParam {

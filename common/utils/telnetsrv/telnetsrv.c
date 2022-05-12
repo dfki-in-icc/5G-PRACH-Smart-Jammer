@@ -495,12 +495,29 @@ int setgetvar(int moduleindex,char getorset,char *params) {
 
   return CMDSTATUS_VARNOTFOUND;
 }
+
+void telnetsrv_freetbldata(webdatadef_t *wdata) {
+	for(int i=0;i< wdata->numlines; i++)
+	  for(int j=0;j< wdata->numcols ; j++)
+	    if ( wdata->columns[j].coltype & TELNET_VAR_NEEDFREE )
+	      free(wdata->lines[i].val[j]);
+}
 /*----------------------------------------------------------------------------------------------------*/
 char *get_time(char *buff,int bufflen) {
   struct tm  tmstruct;
   time_t now = time (0);
   strftime (buff, bufflen, "%Y-%m-%d %H:%M:%S.000", localtime_r(&now,&tmstruct));
   return buff;
+}
+void telnet_pushcmd(telnetshell_cmddef_t *cmd, char *cmdbuff, telnet_printfunc_t prnt) {
+  notifiedFIFO_elt_t *msg =newNotifiedFIFO_elt(sizeof(telnetsrv_qmsg_t),0,NULL,NULL);
+  telnetsrv_qmsg_t *cmddata=NotifiedFifoData(msg);
+  cmddata->cmdfunc=(qcmdfunc_t)cmd->cmdfunc;
+  cmddata->prnt=prnt;
+  cmddata->debug=telnetparams.telnetdbg;
+  if (cmdbuff != NULL)
+    cmddata->cmdbuff=strdup(cmdbuff);
+  pushNotifiedFIFO(cmd->qptr, msg);
 }
 
 int process_command(char *buf) {
@@ -562,14 +579,7 @@ int process_command(char *buf) {
 			if (telnetparams.CmdParsers[i].cmd[k].cmdflags & TELNETSRV_CMDFLAG_WEBSRVONLY)
 			  continue;
           	if (telnetparams.CmdParsers[i].cmd[k].qptr != NULL) {
-          		notifiedFIFO_elt_t *msg =newNotifiedFIFO_elt(sizeof(telnetsrv_qmsg_t),0,NULL,NULL);
-          		telnetsrv_qmsg_t *cmddata=NotifiedFifoData(msg);
-          		cmddata->cmdfunc=(qcmdfunc_t)telnetparams.CmdParsers[i].cmd[k].cmdfunc;
-          	    cmddata->prnt=client_printf;
-          	    cmddata->debug=telnetparams.telnetdbg;
-          	    if (cmdb != NULL)
-          		  cmddata->cmdbuff=strdup(cmdb);
-          		pushNotifiedFIFO(telnetparams.CmdParsers[i].cmd[k].qptr, msg);
+				telnet_pushcmd(&(telnetparams.CmdParsers[i].cmd[k]), cmdb,client_printf );
           	} else {
               telnetparams.CmdParsers[i].cmd[k].cmdfunc(cmdb, telnetparams.telnetdbg, client_printf);
             }
@@ -917,12 +927,14 @@ int add_telnetcmd(char *modulename, telnetshell_vardef_t *var, telnetshell_cmdde
       strncpy(telnetparams.CmdParsers[i].module,modulename,sizeof(telnetparams.CmdParsers[i].module)-1);
       telnetparams.CmdParsers[i].cmd = cmd;
       telnetparams.CmdParsers[i].var = var;
-      if (cmd->cmdflags & TELNETSRV_CMDFLAG_PUSHINTPOOLQ) {
+      for (int j=0; cmd[j].cmdfunc != NULL ;j++) {
+        if (cmd[j].cmdflags & TELNETSRV_CMDFLAG_PUSHINTPOOLQ) {
       	  if (afifo == NULL) {
       	  	  afifo = malloc(sizeof(notifiedFIFO_t));
       	  	  initNotifiedFIFO(afifo);
       	  }
-      	  cmd->qptr = afifo;
+      	  cmd[j].qptr = afifo;
+      	}
       }
       printf("[TELNETSRV] Telnet server: module %i = %s added to shell\n",
              i,telnetparams.CmdParsers[i].module);
@@ -952,12 +964,14 @@ int  telnetsrv_checkbuildver(char *mainexec_buildversion, char **shlib_buildvers
 }
 
 int telnetsrv_getfarray(loader_shlibfunc_t  **farray) {
-  *farray=malloc(sizeof(loader_shlibfunc_t)*2);
+  *farray=malloc(sizeof(loader_shlibfunc_t)*3);
   (*farray)[0].fname=TELNET_ADDCMD_FNAME;
   (*farray)[0].fptr=(int (*)(void) )add_telnetcmd;
   (*farray)[1].fname=TELNET_POLLCMDQ_FNAME;
   (*farray)[1].fptr=(int (*)(void) )poll_telnetcmdq; 
-  return ( 2);
+  (*farray)[2].fname=TELNET_PUSHCMD_FNAME;
+  (*farray)[2].fptr=(int (*)(void) )telnet_pushcmd;   
+  return ( 3);
 }
 /* for webserver interface, needs access to some telnet server paramaters */
 telnetsrv_params_t *get_telnetsrv_params(void) {
