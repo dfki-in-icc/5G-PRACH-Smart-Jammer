@@ -14,6 +14,7 @@
 
 #define INVALID_VALUE 255
 #define print_shorts(s,x) printf("%s %d,%d,%d,%d,%d,%d,%d,%d\n",s,(x)[0],(x)[1],(x)[2],(x)[3],(x)[4],(x)[5],(x)[6],(x)[7])
+#define print_shorts64(s,x) printf("%s %d,%d,%d,%d\n",s,(x)[0],(x)[1],(x)[2],(x)[3])
 
 void nr_idft(int32_t *z, uint32_t Msc_PUSCH)
 {
@@ -301,6 +302,226 @@ void nr_idft(int32_t *z, uint32_t Msc_PUSCH)
 
 }
 
+
+void nr_ulsch_extract_rbs_single0(int32_t *rxdataF,
+                                  int32_t *chF,
+				  int32_t *rxFext,
+				  int32_t *chFext,
+				  int rxoffset,
+				  int choffset,
+				  int aarx,
+				  int is_dmrs_symbol,
+                                  nfapi_nr_pusch_pdu_t *pusch_pdu,
+                                  NR_DL_FRAME_PARMS *frame_parms)
+{
+
+  uint8_t delta = 0;
+
+  int start_re = (frame_parms->first_carrier_offset + (pusch_pdu->rb_start + pusch_pdu->bwp_start) * NR_NB_SC_PER_RB)%frame_parms->ofdm_symbol_size;
+  int nb_re_pusch = NR_NB_SC_PER_RB * pusch_pdu->rb_size;
+
+
+  int32_t *rxF        = &rxdataF[rxoffset];
+  int32_t *rxF_ext    = &rxFext[0];
+  int32_t *ul_ch0     = &chF[choffset]; 
+  int32_t *ul_ch0_ext = &chFext[0];
+
+
+  if (is_dmrs_symbol == 0) {
+    if (start_re + nb_re_pusch <= frame_parms->ofdm_symbol_size) {
+      memcpy((void*)rxF_ext,
+             (void*)&rxF[start_re],
+             nb_re_pusch*sizeof(int32_t));
+    } else {
+    int neg_length = frame_parms->ofdm_symbol_size-start_re;
+    int pos_length = nb_re_pusch-neg_length;
+
+    memcpy((void*)rxF_ext,(void*)&rxF[start_re],neg_length*sizeof(int32_t));
+    memcpy((void*)&rxF_ext[neg_length],(void*)rxF,pos_length*sizeof(int32_t));
+    }
+   memcpy((void*)ul_ch0_ext,(void*)ul_ch0,nb_re_pusch*sizeof(int32_t));
+  }
+  else if (pusch_pdu->dmrs_config_type == pusch_dmrs_type1) { // 6 REs / PRB
+    AssertFatal(delta==0||delta==1,"Illegal delta %d\n",delta);
+    int32_t *rxF32        = &rxF[start_re];
+    int32_t *rxF_ext32    = rxF_ext;
+    int32_t *ul_ch032     = ul_ch0;
+    int32_t *ul_ch0_ext32 = ul_ch0_ext;
+    int idx,idx2,idx3;
+    if (start_re + nb_re_pusch < frame_parms->ofdm_symbol_size) {
+      for (idx=1-delta,idx2=0;idx<nb_re_pusch;idx+=2,idx2++) {
+        rxF_ext32[idx2] = rxF32[idx];
+        ul_ch0_ext32[idx2]= ul_ch032[idx];
+      }
+    }
+    else { // handle the two pieces around DC
+      int neg_length = frame_parms->ofdm_symbol_size-start_re;
+      int pos_length = nb_re_pusch-neg_length;
+        
+      for (idx=1-delta,idx2=0;idx<neg_length;idx+=2,idx2++) {
+        rxF_ext32[idx2] = rxF32[idx];
+        ul_ch0_ext32[idx2]= ul_ch032[idx];
+      }
+      rxF32=(int32_t*)rxF;
+      idx3=idx;
+      for (idx=1-delta;idx<pos_length;idx+=2,idx2++,idx3++) {
+        rxF_ext32[idx2] = rxF32[idx];
+        ul_ch0_ext32[idx2]= ul_ch032[idx3];
+      }
+    }
+  }
+  else if (pusch_pdu->dmrs_config_type == pusch_dmrs_type2)  { // 8 REs / PRB
+    AssertFatal(delta==0||delta==2||delta==4,"Illegal delta %d\n",delta);
+    if (start_re + nb_re_pusch < frame_parms->ofdm_symbol_size) {
+      int64_t *rxF64        = (int64_t*)&rxF[start_re];
+      int64_t *rxF_ext64    = (int64_t*)rxF_ext;
+      int64_t *ul_ch064     = (int64_t*)ul_ch0;
+      int64_t *ul_ch0_ext64 = (int64_t*)ul_ch0_ext;
+      if (delta==0) {
+        for (int idx=0;idx<nb_re_pusch>>1;idx+=6) {
+           rxF_ext64[idx]=rxF64[idx+1];
+           rxF_ext64[idx+1]=rxF64[idx+2];
+           rxF_ext64[idx+2]=rxF64[idx+4];
+           rxF_ext64[idx+3]=rxF64[idx+5];
+           ul_ch0_ext64[idx]=ul_ch064[idx+1];
+           ul_ch0_ext64[idx+1]=ul_ch064[idx+2];
+           ul_ch0_ext64[idx+2]=ul_ch064[idx+4];
+           ul_ch0_ext64[idx+3]=ul_ch064[idx+5];
+        }
+      }
+      else if (delta==2) {
+        for (int idx=0;idx<nb_re_pusch>>1;idx+=6) {
+           rxF_ext64[idx]=rxF64[idx+0];
+           rxF_ext64[idx+1]=rxF64[idx+2];
+           rxF_ext64[idx+2]=rxF64[idx+3];
+           rxF_ext64[idx+3]=rxF64[idx+5];
+           ul_ch0_ext64[idx]=ul_ch064[idx+0];
+           ul_ch0_ext64[idx+1]=ul_ch064[idx+2];
+           ul_ch0_ext64[idx+2]=ul_ch064[idx+3];
+           ul_ch0_ext64[idx+3]=ul_ch064[idx+5];
+        }
+      }
+      else if (delta==4) {
+        for (int idx=0;idx<nb_re_pusch>>1;idx+=6) {
+           rxF_ext64[idx]=rxF64[idx+0];
+           rxF_ext64[idx+1]=rxF64[idx+1];
+           rxF_ext64[idx+2]=rxF64[idx+3];
+           rxF_ext64[idx+3]=rxF64[idx+4];
+           ul_ch0_ext64[idx]=ul_ch064[idx+0];
+           ul_ch0_ext64[idx+1]=ul_ch064[idx+1];
+           ul_ch0_ext64[idx+2]=ul_ch064[idx+3];
+           ul_ch0_ext64[idx+3]=ul_ch064[idx+4];
+        }
+      }
+    }
+    else {
+      int neg_length = frame_parms->ofdm_symbol_size-start_re;
+      int pos_length = nb_re_pusch-neg_length;
+      if ((pos_length%12) > 0 ) pos_length+=12;
+      int64_t *rxF64        = (int64_t*)&rxF[start_re];
+      int64_t *rxF_ext64    = (int64_t*)rxF_ext;
+      int64_t *ul_ch064     = (int64_t*)ul_ch0;
+      int64_t *ul_ch0_ext64 = (int64_t*)ul_ch0_ext;
+      int idx=0;
+      if (delta==0) {
+        for (idx=0;idx<neg_length>>1;idx+=6) {
+           rxF_ext64[idx]  =rxF64[idx+1];
+           rxF_ext64[idx+1]=rxF64[idx+2];
+           rxF_ext64[idx+2]=rxF64[idx+4];
+           rxF_ext64[idx+3]=rxF64[idx+5];
+           ul_ch0_ext64[idx]=ul_ch064[idx+1];
+           ul_ch0_ext64[idx+1]=ul_ch064[idx+2];
+           ul_ch0_ext64[idx+2]=ul_ch064[idx+4];
+           ul_ch0_ext64[idx+3]=ul_ch064[idx+5];
+        }
+        if ((neg_length%12) > 0) {
+          rxF_ext64[idx+4]=rxF64[idx+7];
+          rxF_ext64[idx+5]=rxF64[idx+8];
+          ul_ch0_ext64[idx+4]=ul_ch064[idx+7];
+          ul_ch0_ext64[idx+5]=ul_ch064[idx+8];
+        }
+        rxF_ext64+=(neg_length/3);
+        rxF64=(int64_t*)rxF;
+        ul_ch0_ext64+=(neg_length/3);
+        ul_ch064+=(neg_length>>1);
+        for (idx=0;idx<pos_length>>1;idx+=6) {
+           rxF_ext64[idx]  =rxF64[idx+1];
+           rxF_ext64[idx+1]=rxF64[idx+2];
+           rxF_ext64[idx+2]=rxF64[idx+4];
+           rxF_ext64[idx+3]=rxF64[idx+5];
+           ul_ch0_ext64[idx]=ul_ch064[idx+1];
+           ul_ch0_ext64[idx+1]=ul_ch064[idx+2];
+           ul_ch0_ext64[idx+2]=ul_ch064[idx+4];
+           ul_ch0_ext64[idx+3]=ul_ch064[idx+5];
+        }
+      }
+      else if (delta==2) {
+        for (idx=0;idx<neg_length>>1;idx+=6) {
+           rxF_ext64[idx]  =rxF64[idx+0];
+           rxF_ext64[idx+1]=rxF64[idx+2];
+           rxF_ext64[idx+2]=rxF64[idx+3];
+           rxF_ext64[idx+3]=rxF64[idx+5];
+           ul_ch0_ext64[idx]=ul_ch064[idx+0];
+           ul_ch0_ext64[idx+1]=ul_ch064[idx+2];
+           ul_ch0_ext64[idx+2]=ul_ch064[idx+3];
+           ul_ch0_ext64[idx+3]=ul_ch064[idx+5];
+        }
+        if ((neg_length%12) > 0) {
+          rxF_ext64[idx+4]=rxF64[idx+6];
+          rxF_ext64[idx+5]=rxF64[idx+8];
+          ul_ch0_ext64[idx+4]=ul_ch064[idx+6];
+          ul_ch0_ext64[idx+5]=ul_ch064[idx+8];
+        }
+        rxF_ext64+=(neg_length/3);
+        rxF64=(int64_t*)rxF;
+        ul_ch0_ext64+=(neg_length/3);
+        ul_ch064+=(neg_length>>1);
+        for (idx=0;idx<pos_length>>1;idx+=6) {
+           rxF_ext64[idx]  =rxF64[idx+0];
+           rxF_ext64[idx+1]=rxF64[idx+2];
+           rxF_ext64[idx+2]=rxF64[idx+3];
+           rxF_ext64[idx+3]=rxF64[idx+5];
+           ul_ch0_ext64[idx]=ul_ch064[idx+0];
+           ul_ch0_ext64[idx+1]=ul_ch064[idx+2];
+           ul_ch0_ext64[idx+2]=ul_ch064[idx+3];
+           ul_ch0_ext64[idx+3]=ul_ch064[idx+5];
+        }
+      }
+      else if (delta==4) {
+        for (idx=0;idx<neg_length>>1;idx+=6) {
+           rxF_ext64[idx]  =rxF64[idx+0];
+           rxF_ext64[idx+1]=rxF64[idx+1];
+           rxF_ext64[idx+2]=rxF64[idx+3];
+           rxF_ext64[idx+3]=rxF64[idx+4];
+           ul_ch0_ext64[idx]=ul_ch064[idx+0];
+           ul_ch0_ext64[idx+1]=ul_ch064[idx+1];
+           ul_ch0_ext64[idx+2]=ul_ch064[idx+3];
+           ul_ch0_ext64[idx+3]=ul_ch064[idx+4];
+        }
+        if ((neg_length%12) > 0) {
+          rxF_ext64[idx+4]=rxF64[idx+6];
+          rxF_ext64[idx+5]=rxF64[idx+7];
+          ul_ch0_ext64[idx+4]=ul_ch064[idx+6];
+          ul_ch0_ext64[idx+5]=ul_ch064[idx+7];
+        }
+        rxF_ext64+=(neg_length/3);
+        rxF64=(int64_t*)rxF;
+        ul_ch0_ext64+=(neg_length/3);
+        ul_ch064+=(neg_length>>1);
+        for (idx=0;idx<pos_length>>1;idx+=6) {
+           rxF_ext64[idx]  =rxF64[idx+0];
+           rxF_ext64[idx+1]=rxF64[idx+1];
+           rxF_ext64[idx+2]=rxF64[idx+3];
+           rxF_ext64[idx+3]=rxF64[idx+4];
+           ul_ch0_ext64[idx]=ul_ch064[idx+0];
+           ul_ch0_ext64[idx+1]=ul_ch064[idx+1];
+           ul_ch0_ext64[idx+2]=ul_ch064[idx+3];
+           ul_ch0_ext64[idx+3]=ul_ch064[idx+4];
+        }
+      }
+    }
+  }
+}
 
 void nr_ulsch_extract_rbs_single(int32_t **rxdataF,
                                  NR_gNB_PUSCH *pusch_vars,
@@ -1477,6 +1698,134 @@ void nr_ulsch_detection_mrc(NR_DL_FRAME_PARMS *frame_parms,
 #endif
 }
 
+void inner_rx_qpsk(int *rxF, 
+	           int *ul_ch,
+		   int16_t *llr,
+		   int aarx, 
+                   int length,
+		   int output_shift) {
+
+#ifdef __AVX2__
+   register __m256i xmmtmpD0,xmmtmpD1,xmmtmpD2,xmmtmpD3,xmmtmpD4;
+   register __m256i complex_shuffle256 = _mm256_set_epi8(29,28,31,30,25,24,27,26,21,20,23,22,17,16,19,18,13,12,15,14,9,8,11,10,5,4,7,6,1,0,3,2);
+   register __m256i conj256 = _mm256_set_epi16(1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1);
+
+   __m256i *rxF256  = (__m256i*)rxF;
+   __m256i *ulch256 = (__m256i*)ul_ch;
+   // need to use __m64 because llr output is not necessarily aligned to 256 bits, but it is always to 64 bits
+   __m64   *llr64 = (__m64 *)llr;   
+ 
+   if (aarx==0)  
+     for (int i=0;i<((length>>3)+((length&7)>0?1:0));i++) {
+        xmmtmpD0  = _mm256_madd_epi16(ulch256[i],rxF256[i]);
+        // xmmtmpD0 contains real part of 8 consecutive outputs (32-bit) of conj(H_m[i])*R_m[i]
+        xmmtmpD1  = _mm256_shuffle_epi8(ulch256[i],complex_shuffle256);
+        xmmtmpD1  = _mm256_sign_epi16(xmmtmpD1,conj256);
+        xmmtmpD1  = _mm256_madd_epi16(xmmtmpD1,rxF256[i]);
+        // xmmtmpD1 contains imag part of 8 consecutive outputs (32-bit) of conj(H_m[i])*R_m[i]
+        xmmtmpD0  = _mm256_srai_epi32(xmmtmpD0,output_shift);
+        xmmtmpD1  = _mm256_srai_epi32(xmmtmpD1,output_shift);
+        xmmtmpD2  = _mm256_unpacklo_epi32(xmmtmpD0,xmmtmpD1);
+        xmmtmpD3  = _mm256_unpackhi_epi32(xmmtmpD0,xmmtmpD1);
+        xmmtmpD4  = _mm256_packs_epi32(xmmtmpD2,xmmtmpD3);
+	*llr64    = (__m64)_mm256_extract_epi64(xmmtmpD4,0); llr64++;
+	*llr64    = (__m64)_mm256_extract_epi64(xmmtmpD4,1); llr64++;
+	*llr64    = (__m64)_mm256_extract_epi64(xmmtmpD4,2); llr64++;
+	*llr64    = (__m64)_mm256_extract_epi64(xmmtmpD4,3); llr64++;
+     }
+   else
+     for (int i=0;i<((length>>3)+((length&7)>0?1:0));i++) {
+        xmmtmpD0 = _mm256_madd_epi16(ulch256[i],rxF256[i]);
+        // xmmtmpD0 contains real part of 8 consecutive outputs (32-bit) of conj(H_m[i])*R_m[i]
+        xmmtmpD1 = _mm256_shuffle_epi8(ulch256[i],complex_shuffle256);
+        xmmtmpD1 = _mm256_sign_epi16(xmmtmpD1,conj256);
+        xmmtmpD1 = _mm256_madd_epi16(xmmtmpD1,rxF256[i]);
+        // xmmtmpD1 contains imag part of 8 consecutive outputs (32-bit) of conj(H_m[i])*R_m[i]
+        xmmtmpD0 = _mm256_srai_epi32(xmmtmpD0,output_shift);
+        xmmtmpD1 = _mm256_srai_epi32(xmmtmpD1,output_shift);
+        xmmtmpD2 = _mm256_unpacklo_epi32(xmmtmpD0,xmmtmpD1);
+        xmmtmpD3 = _mm256_unpackhi_epi32(xmmtmpD0,xmmtmpD1);
+        xmmtmpD4 = _mm256_packs_epi32(xmmtmpD2,xmmtmpD3);
+	*llr64   = _mm_adds_pi16(*llr64,(__m64)(_mm256_extract_epi64(xmmtmpD4,0))); llr64++;
+	*llr64   = _mm_adds_pi16(*llr64,(__m64)(_mm256_extract_epi64(xmmtmpD4,1))); llr64++;
+	*llr64   = _mm_adds_pi16(*llr64,(__m64)(_mm256_extract_epi64(xmmtmpD4,2))); llr64++;
+	*llr64   = _mm_adds_pi16(*llr64,(__m64)(_mm256_extract_epi64(xmmtmpD4,3))); llr64++;
+     }
+#else 
+   AssertFatal(1==0,"Add SSE4-only code\n");
+#endif	
+}
+
+void inner_rx_16qam(int *rxF, int *ul_ch, int16_t *llr, int aarx, int length,int output_shift) {
+ AssertFatal(1==0,"to do\n");
+}
+void inner_rx_64qam(int *rxF, int *ul_ch, int16_t *llr, int aarx, int length,int output_shift) {
+ AssertFatal(1==0,"to do\n");
+}
+void inner_rx_256qam(int *rxF,int *ul_ch, int16_t *llr, int aarx, int length,int output_shift) {
+
+ AssertFatal(1==0,"to do\n");
+}
+
+
+void nr_pusch_symbol_processing_noprecoding(void *arg) {
+
+  puschSymbolProc_t *rdata=(puschSymbolProc_t*)arg;
+
+  PHY_VARS_gNB *gNB=rdata->gNB;
+  NR_DL_FRAME_PARMS *frame_parms=rdata->frame_parms;
+  nfapi_nr_pusch_pdu_t *rel15_ul=rdata->rel15_ul;
+  int ulsch_id=rdata->ulsch_id;
+  int slot=rdata->slot;
+  int symbol=rdata->symbol;
+  int dmrs_symbol_flag = (rel15_ul->ul_dmrs_symb_pos >> symbol) & 0x01;
+  int nb_re_pusch = gNB->pusch_vars[ulsch_id]->ul_valid_re_per_slot[symbol];
+  // this needs to be reworded for parrellization, we need a table which give dmrs symbol location
+  // used for chennel estimate, they are being run in parallel!
+  if (dmrs_symbol_flag == 1) {
+    if ((rel15_ul->ul_dmrs_symb_pos >> ((symbol + 1) % frame_parms->symbols_per_slot)) & 0x01)
+      AssertFatal(1==0,"Double DMRS configuration is not yet supported\n");
+
+    gNB->pusch_vars[ulsch_id]->dmrs_symbol = symbol;
+
+  }
+
+  LOG_D(PHY,"symbol %d: nb_re_pusch %d, DMRS symbl used for Chest :%d \n", symbol, nb_re_pusch, gNB->pusch_vars[ulsch_id]->dmrs_symbol);
+
+  if (nb_re_pusch == 0) return;
+
+
+  void (*inner_rx)(int *,int *,int16_t *,int,int,int);
+
+  if      (rel15_ul->qam_mod_order == 2) inner_rx = inner_rx_qpsk;
+  else if (rel15_ul->qam_mod_order == 4) inner_rx = inner_rx_16qam;
+  else if (rel15_ul->qam_mod_order == 6) inner_rx = inner_rx_64qam;
+  else if (rel15_ul->qam_mod_order == 8) inner_rx = inner_rx_256qam;
+  else    AssertFatal(1==0,"rel15_ul->qam_mod_order %d, pusch_pdu->dmrs_config_type %d\n",
+	  	      rel15_ul->qam_mod_order,rel15_ul->dmrs_config_type);
+
+  int soffset   = (slot&3)*frame_parms->symbols_per_slot*frame_parms->ofdm_symbol_size;
+  int16_t *llr  = &gNB->pusch_vars[ulsch_id]->llr[gNB->pusch_vars[ulsch_id]->llr_offset[symbol]];
+  int32_t rxFext[nb_re_pusch] __attribute__((aligned(32)));
+  int32_t chFext[nb_re_pusch] __attribute__((aligned(32)));
+
+
+  for (int aa=0;aa<frame_parms->nb_antennas_rx;aa++) {
+    nr_ulsch_extract_rbs_single0(gNB->common_vars.rxdataF[aa],
+                                 gNB->pusch_vars[ulsch_id]->ul_ch_estimates[aa],
+                                 rxFext,
+                                 chFext,
+  	  		         soffset+(symbol * frame_parms->ofdm_symbol_size),
+	 		         gNB->pusch_vars[ulsch_id]->dmrs_symbol*frame_parms->ofdm_symbol_size,
+				 aa,
+                                 dmrs_symbol_flag, 
+                                 rel15_ul,
+                                 frame_parms);
+    inner_rx(rxFext,chFext,llr,aa,nb_re_pusch,gNB->pusch_vars[ulsch_id]->log2_maxh);
+
+  }
+}
+
 void nr_pusch_symbol_processing(void *arg) {
     puschSymbolProc_t *rdata=(puschSymbolProc_t*)arg;
 
@@ -1671,7 +2020,8 @@ int nr_rx_pusch(PHY_VARS_gNB *gNB,
   stop_meas(&gNB->ulsch_channel_estimation_stats);
 
   start_meas(&gNB->rx_pusch_init_stats);
-  void (*nr_pusch_symbol_processing_ptr)(void*) = &nr_pusch_symbol_processing;
+  void (*nr_pusch_symbol_processing_ptr)(void*) = &nr_pusch_symbol_processing_noprecoding;
+//  void (*nr_pusch_symbol_processing_ptr)(void*) = &nr_pusch_symbol_processing;
 
   // first the computation of channel levels
 
