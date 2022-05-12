@@ -87,13 +87,15 @@
     {"offset",                 "<channel offset in samps>\n",         simOpt,  iptr:&(rfsimulator->chan_offset),       defintval:0,                     TYPE_INT,       0 }\
   };
 
-
-
+static void getset_currentchannels_type(char *buf, int debug,webdatadef_t *tdata, telnet_printfunc_t prnt);
+extern int get_currentchannels_type(char *buf, int debug,webdatadef_t *tdata, telnet_printfunc_t prnt); //in random_channel.c
 static int rfsimu_setchanmod_cmd(char *buff, int debug, telnet_printfunc_t prnt, void *arg);
 static telnetshell_cmddef_t rfsimu_cmdarray[] = {
-  {"setmodel","<model name> <model type>",(cmdfunc_t)rfsimu_setchanmod_cmd,{NULL},TELNETSRV_CMDFLAG_PUSHINTPOOLQ,NULL},
+  {"show models","",(cmdfunc_t)rfsimu_setchanmod_cmd,{(webfunc_t)getset_currentchannels_type}, TELNETSRV_CMDFLAG_WEBSRVONLY|TELNETSRV_CMDFLAG_GETWEBTBLDATA,NULL},
+  {"setmodel","<model name> <model type>",(cmdfunc_t)rfsimu_setchanmod_cmd,{NULL},TELNETSRV_CMDFLAG_PUSHINTPOOLQ|TELNETSRV_CMDFLAG_TELNETONLY,NULL},
   {"","",NULL,{NULL},0,NULL},
 };
+static telnetshell_cmddef_t *setmodel_cmddef=&(rfsimu_cmdarray[1]);
 
 static telnetshell_vardef_t rfsimu_vardef[] = {
   {"",0,0,NULL}
@@ -377,7 +379,16 @@ static int rfsimu_setchanmod_cmd(char *buff, int debug, telnet_printfunc_t prnt,
   free(modeltype);
   return CMDSTATUS_FOUND;
 }
-
+static void getset_currentchannels_type(char *buf, int debug,webdatadef_t *tdata, telnet_printfunc_t prnt) {
+  if (strncmp(buf,"set",3) == 0) {
+	  char cmd[256];
+	  snprintf (cmd,sizeof(cmd),"setmodel %s %s", tdata->lines[0].val[1],tdata->lines[0].val[3] );
+	  push_telnetcmd_func_t  push_telnetcmd =  (push_telnetcmd_func_t)get_shlibmodule_fptr("telnetsrv", TELNET_PUSHCMD_FNAME); 
+	  push_telnetcmd(setmodel_cmddef, cmd, prnt); 
+  } else {
+	 get_currentchannels_type(buf,debug,tdata, prnt); 
+  }
+} /*getset_currentchannels_type */
 static int startServer(openair0_device *device) {
   rfsimulator_state_t *t = (rfsimulator_state_t *) device->priv;
   t->typeStamp=ENB_MAGICDL;
@@ -804,7 +815,7 @@ int device_init(openair0_device *device, openair0_config_t *openair0_cfg) {
   /* look for telnet server, if it is loaded, add the channel modeling commands to it */
   add_telnetcmd_func_t addcmd = (add_telnetcmd_func_t)get_shlibmodule_fptr("telnetsrv", TELNET_ADDCMD_FNAME);
 
-  if (addcmd != NULL) {
+  if (addcmd != NULL) {	  
     rfsimulator->poll_telnetcmdq =  (poll_telnetcmdq_func_t)get_shlibmodule_fptr("telnetsrv", TELNET_POLLCMDQ_FNAME);
     addcmd("rfsimu",rfsimu_vardef,rfsimu_cmdarray);
 

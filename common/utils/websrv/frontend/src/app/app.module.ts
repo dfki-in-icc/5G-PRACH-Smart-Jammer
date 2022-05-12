@@ -10,6 +10,8 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { FormsModule } from '@angular/forms';
+import { FormGroup, FormBuilder, Validators, NgForm } from '@angular/forms';
 import { MatGridListModule } from '@angular/material/grid-list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -30,6 +32,7 @@ import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { CommandsComponent } from './components/commands/commands.component';
 import { ConfirmDialogComponent } from './components/confirm/confirm.component';
+import { QuestionDialogComponent } from './components/question/question.component';
 import { DialogComponent } from './components/dialog/dialog.component';
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import { InterceptorProviders } from './interceptors/interceptors';
@@ -40,6 +43,7 @@ import { LoadingService } from './services/loading.service';
     AppComponent,
     CommandsComponent,
     ConfirmDialogComponent,
+    QuestionDialogComponent,
     DialogComponent
   ],
   imports: [
