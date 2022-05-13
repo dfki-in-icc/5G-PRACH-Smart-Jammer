@@ -2302,7 +2302,7 @@ void deleteUEData(NR_UE_info_t *UE, NR_COMMON_channels_t *ccPtr) {
     for (int i = 0; i < NR_NB_RA_PROC_MAX; i++) {
       NR_COMMON_channels_t *cc = &ccPtr[cc_id];
       if (cc->ra[i].rnti == UE->rnti) {
-        LOG_D(NR_MAC, "free RA process %d for rnti %d\n", i, UE->rnti);
+        LOG_D(NR_MAC, "free RA process %d for rnti %04x\n", i, UE->rnti);
         /* is it enough? */
         cc->ra[i].cfra  = false;
         cc->ra[i].rnti  = 0;

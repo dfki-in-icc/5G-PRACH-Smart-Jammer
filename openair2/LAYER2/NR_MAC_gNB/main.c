@@ -91,7 +91,7 @@ void dump_mac_stats(gNB_MAC_INST *gNB, char *output, int strlen, bool reset_rsrp
 		    sched_ctrl->pcmax,
 		    avg_rsrp,
 		    stats->num_rsrp_meas);
-    stroff+=sprintf(output+stroff,"UE %d: CQI %d, RI %d, PMI (%d,%d)\n",
+    stroff+=sprintf(output+stroff,"UE %04x: CQI %d, RI %d, PMI (%d,%d)\n",
                     UE->rnti,
                     UE->UE_sched_ctrl.CSI_report.cri_ri_li_pmi_cqi_report.wb_cqi_1tb,
                     UE->UE_sched_ctrl.CSI_report.cri_ri_li_pmi_cqi_report.ri+1,

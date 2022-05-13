@@ -457,7 +457,7 @@ int nr_process_mac_pdu( instance_t module_idP,
 	    return 0;
 
 
-          LOG_D(NR_MAC, "[UE %x] %d.%d : ULSCH -> UL-%s %d (gNB %ld, %d bytes)\n",
+          LOG_D(NR_MAC, "[UE %04x] %d.%d : ULSCH -> UL-%s %d (gNB %ld, %d bytes)\n",
                 UE->rnti,
                 frameP,
                 slot,
@@ -1882,7 +1882,7 @@ void nr_schedule_ulsch(module_id_t module_id, frame_t frame, sub_frame_t slot)
       pdcch_pdu_coreset[coresetid] = pdcch_pdu;
     }
 
-    LOG_D(NR_MAC,"Configuring ULDCI/PDCCH in %d.%d at CCE %d, rnti %x\n", frame,slot,sched_ctrl->cce_index,rnti);
+    LOG_D(NR_MAC,"Configuring ULDCI/PDCCH in %d.%d at CCE %d, rnti %04x\n", frame,slot,sched_ctrl->cce_index,rnti);
 
     /* Fill PDCCH DL DCI PDU */
     nfapi_nr_dl_dci_pdu_t *dci_pdu = &pdcch_pdu->dci_pdu[pdcch_pdu->numDlDci];
