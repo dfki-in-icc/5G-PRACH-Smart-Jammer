@@ -1117,6 +1117,7 @@ void fill_msg3_pusch_pdu(nfapi_nr_pusch_pdu_t *pusch_pdu,
 
     pusch_pdu->mcs_index = mcsindex;
     pusch_pdu->pusch_data.tb_size = TBS;
+    AssertFatal(mcsindex<10, "msg3 mcs got to 10 cannot get TBS = 7: pusch_pdu->rb_size %d, pusch_pdu->nr_of_symbols %d\n",pusch_pdu->rb_size,pusch_pdu->nr_of_symbols);
   }
 }
 
