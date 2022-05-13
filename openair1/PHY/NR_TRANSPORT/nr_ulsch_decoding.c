@@ -30,6 +30,14 @@
 * \warning
 */
 
+/*! \file PHY/NR_TRANSPORT/nr_ulsch_decoding.c
+* \brief Integrate driver to OAI
+* \author Sendren Xu, SY Yeh(fdragon), Hongming, Terng-Yin Hsu
+* \date 2022-05-13
+* \version 1.0
+* \email: summery19961210@gmail.com
+*/
+
 
 // [from gNB coding]
 #include "PHY/defs_gNB.h"
@@ -51,7 +59,7 @@
 
 #define OAI_UL_LDPC_MAX_NUM_LLR 27000//26112 // NR_LDPC_NCOL_BG1*NR_LDPC_ZMAX = 68*384
 //#define PRINT_CRC_CHECK
-
+#include "nr_ldpc_decoding_pym.h"
 //extern double cpuf;
 
 void free_gNB_ulsch(NR_gNB_ULSCH_t **ulschptr,uint8_t N_RB_UL)
@@ -421,6 +429,9 @@ void nr_processULSegment(void* arg) {
 
   ////////////////////////////////// pl =====> llrProcBuf //////////////////////////////////
 
+  if(r==0)
+    nrLDPC_decoder_FPGA_PYM();
+    
   no_iteration_ldpc = nrLDPC_decoder(p_decoderParms,
                                      (int8_t*)&pl[0],
                                      llrProcBuf,

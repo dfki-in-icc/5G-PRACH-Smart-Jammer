@@ -1,0 +1,6 @@
+UE ID 0 RNTI 1234 (1/1) PH 0 dB PCMAX 0 dBm
+UE 0: dlsch_rounds 0/0/0/0, dlsch_errors 0, pucch0_DTX 0 average RSRP 0 (0 meas)
+UE 0: dlsch_total_bytes 0
+UE 0: ulsch_rounds 0/0/0/0, ulsch_DTX 0, ulsch_errors 0
+UE 0: ulsch_total_bytes_scheduled 0, ulsch_total_bytes_received 0
+
