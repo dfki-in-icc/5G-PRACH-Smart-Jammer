@@ -179,7 +179,7 @@ time_stats_t *register_meas(char *name)
       memset(measur_table[i] ,0,sizeof(time_stats_t));
       measur_table[i]->meas_name = strdup(name);
       measur_table[i]->meas_index = i;
-      measur_table[i]->tpoolmsg =newNotifiedFIFO_elt(sizeof(time_stats_msg_t),0,NULL,NULL);
+      measur_table[i]->tpoolmsg =newNotifiedFIFO_elt(sizeof(time_stats_msg_t),0,0,NULL,NULL);
       measur_table[i]->tstatptr = (time_stats_msg_t *)NotifiedFifoData(measur_table[i]->tpoolmsg);
       return measur_table[i];
     }
@@ -277,7 +277,7 @@ void send_meas(time_stats_t *ts, int msgid) {
   }
 
 void end_meas(void) {
-    notifiedFIFO_elt_t *nfe = newNotifiedFIFO_elt(sizeof(time_stats_msg_t),0,NULL,NULL);
+    notifiedFIFO_elt_t *nfe = newNotifiedFIFO_elt(sizeof(time_stats_msg_t),0,0,NULL,NULL);
 	time_stats_msg_t *msg = (time_stats_msg_t *)NotifiedFifoData(nfe);
     msg->msgid = TIMESTAT_MSGID_END ;
     pushNotifiedFIFO(&measur_fifo, nfe);

@@ -1550,7 +1550,7 @@ int phy_procedures_nrUE_RX(PHY_VARS_NR_UE *ue,
 #endif //NR_PDCCH_SCHED
 
   // Start PUSCH processing here. It runs in parallel with PDSCH processing
-  notifiedFIFO_elt_t *newElt = newNotifiedFIFO_elt(sizeof(nr_rxtx_thread_data_t), proc->nr_slot_tx,txFifo,processSlotTX);
+  notifiedFIFO_elt_t *newElt = newNotifiedFIFO_elt(sizeof(nr_rxtx_thread_data_t), proc->nr_slot_tx,0,txFifo,processSlotTX);
   nr_rxtx_thread_data_t *curMsg=(nr_rxtx_thread_data_t *)NotifiedFifoData(newElt);
   curMsg->proc = *proc;
   curMsg->UE = ue;

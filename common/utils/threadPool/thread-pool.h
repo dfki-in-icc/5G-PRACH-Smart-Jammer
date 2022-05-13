@@ -65,6 +65,7 @@ typedef struct notifiedFIFO_elt_s {
   oai_cputime_t endProcessingTime;
   oai_cputime_t returnTime;
   int      cpuid;
+  int      tag;
   void *msgData;
 }  notifiedFIFO_elt_t;
 
@@ -78,12 +79,14 @@ typedef struct notifiedFIFO_s {
 // You can use this allocator or use any piece of memory
 static inline notifiedFIFO_elt_t *newNotifiedFIFO_elt(int size,
     uint64_t key,
+    uint64_t tag,
     notifiedFIFO_t *reponseFifo,
     void (*processingFunc)(void *)) {
   notifiedFIFO_elt_t *ret;
   AssertFatal( NULL != (ret=(notifiedFIFO_elt_t *) malloc(sizeof(notifiedFIFO_elt_t)+size+32)), "");
   ret->next=NULL;
   ret->key=key;
+  ret->tag=tag;
   ret->reponseFifo=reponseFifo;
   ret->processingFunc=processingFunc;
   // We set user data piece aligend 32 bytes to be able to process it with SIMD

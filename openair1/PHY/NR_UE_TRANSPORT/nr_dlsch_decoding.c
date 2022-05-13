@@ -604,7 +604,8 @@ uint32_t nr_dlsch_decoding(PHY_VARS_NR_UE *phy_vars_ue,
     //printf("start rx segment %d\n",r);
     E = nr_get_E(G, harq_process->C, harq_process->Qm, harq_process->Nl, r);
     union ldpcReqUnion id = {.s={dlsch->rnti,frame,nr_slot_rx,0,0}};
-    notifiedFIFO_elt_t *req=newNotifiedFIFO_elt(sizeof(ldpcDecode_ue_t), id.p, &nf, nr_processDLSegment_ptr);
+    uint64_t tag=100+r;
+    notifiedFIFO_elt_t *req=newNotifiedFIFO_elt(sizeof(ldpcDecode_ue_t), id.p, tag, &nf, nr_processDLSegment_ptr);
     ldpcDecode_ue_t * rdata=(ldpcDecode_ue_t *) NotifiedFifoData(req);
 
     rdata->phy_vars_ue = phy_vars_ue;

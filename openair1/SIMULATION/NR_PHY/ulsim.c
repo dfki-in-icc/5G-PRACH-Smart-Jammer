@@ -690,7 +690,7 @@ int main(int argc, char **argv)
   else sprintf(tp_param,"n");
   int s_offset = 0,slen=0;
   for (int icpu=1; icpu<threadCnt; icpu++) {
-    slen=sprintf(tp_param+1+s_offset,",%d",icpu*2);
+    slen=sprintf(tp_param+1+s_offset,",%d",-1/*icpu*2*/);
     s_offset += slen;
   }
 
@@ -703,7 +703,7 @@ int main(int argc, char **argv)
   initNotifiedFIFO(gNB->L1_tx_free);
   initNotifiedFIFO(gNB->L1_tx_filled);
   initNotifiedFIFO(gNB->L1_tx_out);
-  notifiedFIFO_elt_t *msgL1Tx = newNotifiedFIFO_elt(sizeof(processingData_L1tx_t),0,gNB->L1_tx_free,NULL);
+  notifiedFIFO_elt_t *msgL1Tx = newNotifiedFIFO_elt(sizeof(processingData_L1tx_t),0,0,gNB->L1_tx_free,NULL);
   processingData_L1tx_t *msgDataTx = (processingData_L1tx_t *)NotifiedFifoData(msgL1Tx);
   msgDataTx->slot = -1;
   //gNB_config = &gNB->gNB_config;
