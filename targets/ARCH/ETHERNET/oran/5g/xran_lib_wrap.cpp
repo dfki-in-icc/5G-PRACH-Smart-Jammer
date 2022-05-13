@@ -20,9 +20,20 @@
  */
 
 #include "xran_lib_wrap.hpp"
+#include <fstream>
 
+json read_json_from_file(const std::string &filename)
+{
+       json result;
 
+       std::ifstream json_stream(filename);
+       if(!json_stream.is_open())
+               throw missing_config_file_exception();
 
+       json_stream >> result;
+
+       return result;
+}
 
 //------------------------------------------------------------------------------------------------------------------------------------------------
 uint16_t xranLibWraper::get_eaxcid_mask(int numbit, int shift)
@@ -407,11 +418,12 @@ xranLibWraper::xranLibWraper()
         // Independent
         m_nSlots  = 20;          // If mu=0 is 10, if mu=1 is 20
         m_du_mac[0]=0x00; m_du_mac[1]=0x11; m_du_mac[2]=0x22; m_du_mac[3]=0x33; m_du_mac[4]=0x44; m_du_mac[5]=0x55;
-        m_ru_mac[0]=0x00; m_ru_mac[1]=0x11; m_ru_mac[2]=0x22; m_ru_mac[3]=0x33; m_ru_mac[4]=0x44; m_ru_mac[5]=0x66;
+		/* commenting below to get the ru mac from conf file */
+        //m_ru_mac[0]=0x00; m_ru_mac[1]=0x11; m_ru_mac[2]=0x22; m_ru_mac[3]=0x33; m_ru_mac[4]=0x44; m_ru_mac[5]=0x66;
 
         //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-        int i, temp;
+        int i,j, temp;
         std::string tmpstr;
         unsigned int tmp_mac[6];
 
@@ -424,9 +436,16 @@ xranLibWraper::xranLibWraper()
         /* DPDK configuration */
         m_dpdk_dev_up = get_globalcfg<std::string>(XRAN_UT_KEY_GLOBALCFG_IO, "dpdk_dev_up");
         m_dpdk_dev_cp = get_globalcfg<std::string>(XRAN_UT_KEY_GLOBALCFG_IO, "dpdk_dev_cp");
+        m_xranInit.io_cfg.dpdk_dev[XRAN_CP_VF] = (m_dpdk_dev_cp == "") ? NULL : (char *)&m_dpdk_dev_cp[0];
+        m_xranInit.io_cfg.dpdk_dev[XRAN_UP_VF] = (m_dpdk_dev_cp == "") ? NULL : (char *)&m_dpdk_dev_up[0];
+        std::cout << "UP_VF [" << m_xranInit.io_cfg.dpdk_dev[XRAN_UP_VF] << "], CP_VF [" << m_xranInit.io_cfg.dpdk_dev[XRAN_CP_VF] << "]" << std::endl;
+
         m_xranInit.io_cfg.num_vfs               = num_vfs_;
+/* Commenting below to get the PCI device ID from conf file */
+#if 0
         m_xranInit.io_cfg.dpdk_dev[XRAN_UP_VF]  = const_cast<char*>(VF_UPlane);
         m_xranInit.io_cfg.dpdk_dev[XRAN_CP_VF]  = const_cast<char*>(VF_CPlane);
+#endif
  
         printf("wrapper.hpp: m_xranInit.io_cfg.dpdk_dev[%d] =%s, m_xranInit.io_cfg.dpdk_dev[%d]=%s\n",XRAN_UP_VF,m_xranInit.io_cfg.dpdk_dev[XRAN_UP_VF],XRAN_CP_VF,m_xranInit.io_cfg.dpdk_dev[XRAN_CP_VF]);
 
@@ -467,8 +486,17 @@ xranLibWraper::xranLibWraper()
         std::sscanf(ru_mac_str.c_str(), "%02x:%02x:%02x:%02x:%02x:%02x",
                                            &tmp_mac[0], &tmp_mac[1], &tmp_mac[2],
                                            &tmp_mac[3], &tmp_mac[4], &tmp_mac[5]);
-        for(i=0; i<6; i++)
+
+/* commenting below to get the ru mac from conf file and assign it to both vf */
+#if 0
+		for(i=0; i<6; i++)
             m_ru_mac[i] = (uint8_t)tmp_mac[i];
+#endif
+        for(j = 0; j < XRAN_VF_MAX; j++) {
+                for(i = 0; i < 6; i++)
+                        m_ru_mac[j][i] = (uint8_t)tmp_mac[i];
+        }
+
         m_xranInit.p_o_du_addr  = (int8_t *)m_du_mac;
         m_xranInit.p_o_ru_addr  = (int8_t *)m_ru_mac;
         m_xranInit.cp_vlan_tag  = get_globalcfg<int>(XRAN_UT_KEY_GLOBALCFG_IO, "cp_vlan_tag");
