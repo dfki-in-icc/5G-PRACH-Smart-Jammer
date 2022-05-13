@@ -2097,7 +2097,7 @@ static void check_rlc_status(
                                       0, 0
                                      );
       //if (rlc_status.bytes_in_buffer > 0)
-        LOG_I(MAC,"[UE %d] PDCCH Tick : LCID%d LCGID%d has data to transmit ====>  %d bytes\n\n",
+        LOG_I(MAC,"[UE %d] PDCCH Tick : LCID%d LCGID%d has data to transmit in check_rlc_status  >>>>>  %d bytes\n\n",
               ctxt_pP->module_id, lcid,lcgid,rlc_status.bytes_in_buffer);
 }
 
@@ -2468,7 +2468,7 @@ rrc_ue_decode_dcch(
           }
 
           UE_RRC_INFO *info = &UE_rrc_inst[ctxt_pP->module_id].Info[eNB_indexP];
-          if (info->dl_dcch_msg != NULL) {
+          if ((info->dl_dcch_msg != NULL) && (target_eNB_index == 0xFF)) {
               SEQUENCE_free(&asn_DEF_LTE_DL_DCCH_Message, info->dl_dcch_msg, ASFM_FREE_EVERYTHING);
           }
           info->dl_dcch_msg = dl_dcch_msg;
@@ -4324,7 +4324,6 @@ void ue_meas_filtering( const protocol_ctxt_t *const ctxt_pP, const uint8_t eNB_
           UE_rrc_inst[ctxt_pP->module_id].rsrp_db_filtered[eNB_offset] =
             (1.0-a)*UE_rrc_inst[ctxt_pP->module_id].rsrp_db_filtered[eNB_offset] +
             a*UE_rrc_inst[ctxt_pP->module_id].rsrp_db[eNB_offset];
-          //UE_rrc_inst[ctxt_pP->module_id].rsrp_db_filtered[eNB_offset] = 40; // DavidK
           LOG_D(RRC,"RSRP_dBm: %3.2f \n",get_RSRP(ctxt_pP->module_id,0,eNB_offset));;
           /*          LOG_D(RRC,"gain_loss_dB: %d \n",get_rx_total_gain_dB(ctxt_pP->module_id,0));
                 LOG_D(RRC,"gain_fixed_dB: %d \n",dB_fixed(frame_parms->N_RB_DL*12));*/
@@ -4344,7 +4343,6 @@ void ue_meas_filtering( const protocol_ctxt_t *const ctxt_pP, const uint8_t eNB_
     } else {
       for (eNB_offset = 0; eNB_offset<1+get_n_adj_cells(ctxt_pP->module_id,0); eNB_offset++) {
         UE_rrc_inst[ctxt_pP->module_id].rsrp_db_filtered[eNB_offset]= get_RSRP(ctxt_pP->module_id,0,eNB_offset);
-        //UE_rrc_inst[ctxt_pP->module_id].rsrp_db_filtered[eNB_offset] = 40; // DavidK
       }
     }
 
@@ -4354,13 +4352,11 @@ void ue_meas_filtering( const protocol_ctxt_t *const ctxt_pP, const uint8_t eNB_
           UE_rrc_inst[ctxt_pP->module_id].rsrq_db[eNB_offset] = (10*log10(get_RSRQ(ctxt_pP->module_id,0,eNB_offset)))-20;
           UE_rrc_inst[ctxt_pP->module_id].rsrq_db_filtered[eNB_offset]=(1-a1)*UE_rrc_inst[ctxt_pP->module_id].rsrq_db_filtered[eNB_offset] +
               a1 *UE_rrc_inst[ctxt_pP->module_id].rsrq_db[eNB_offset];
-          //UE_rrc_inst[ctxt_pP->module_id].rsrq_db_filtered[eNB_offset]= 33;// DavidK
         }
       }
     } else {
       for (eNB_offset = 0; eNB_offset<1+get_n_adj_cells(ctxt_pP->module_id,0); eNB_offset++) {
         UE_rrc_inst[ctxt_pP->module_id].rsrq_db_filtered[eNB_offset]= get_RSRQ(ctxt_pP->module_id,0,eNB_offset);
-        //UE_rrc_inst[ctxt_pP->module_id].rsrq_db_filtered[eNB_offset]= 33;// DavidK
       }
     }
   }
@@ -4543,8 +4539,7 @@ void ue_measurement_report_triggering(protocol_ctxt_t *const ctxt_pP, const uint
               ttt_ms = timeToTrigger_ms[ue->ReportConfig[i][reportConfigId
                                         -1]->reportConfig.choice.reportConfigEUTRA.triggerType.choice.event.timeToTrigger];
               // Freq specific offset of neighbor cell freq
-              //ofn = 5;//((ue->MeasObj[i][measObjId-1]->measObject.choice.measObjectEUTRA.offsetFreq != NULL) ?
-              ofn = 1; // DavidK
+              ofn = 1; //ofn = 5;//((ue->MeasObj[i][measObjId-1]->measObject.choice.measObjectEUTRA.offsetFreq != NULL) ?
               // *ue->MeasObj[i][measObjId-1]->measObject.choice.measObjectEUTRA.offsetFreq : 15); //  /* 15 is the Default */
               // cellIndividualOffset of neighbor cell - not defined yet
               ocn = 0;
@@ -4580,13 +4575,13 @@ void ue_measurement_report_triggering(protocol_ctxt_t *const ctxt_pP, const uint
 
                     ue->measReportList[i][j]->measId = ue->MeasId[i][j]->measId;
                     ue->measReportList[i][j]->numberOfReportsSent = 0;
-                    LOG_I(RRC,"Calling rrc_ue_generate_MeasurementReport\n"); // DavidK
+                    LOG_I(RRC,"Calling rrc_ue_generate_MeasurementReport\n");
                     rrc_ue_generate_MeasurementReport(
                       ctxt_pP,
                       eNB_index);
                     ue->HandoverInfoUe.measFlag = 1;
                   } else {
-                    LOG_I(RRC,"measReportList = %p\n", ue->measReportList[i][j]); // DavidK
+                    LOG_I(RRC,"measReportList = %p\n", ue->measReportList[i][j]);
                     if(ue->measReportList[i][j] != NULL) {
                       free(ue->measReportList[i][j]);
                     }
@@ -4704,7 +4699,7 @@ uint8_t check_trigger_meas_event(
       float adj_db = adj_eNB_rsrp_db + ofn + ocn - hys;
       float src_db = src_eNB_rsrp_db + ofs + ocs;
       if (src_db < adj_db)
-          LOG_D(RRC,"\t\t src_eNB_rsrp_db (%f) + ofs (%d) + ocs (%d) %f  < adj_eNB_rsrp_db (%f) + ofn (%d) + ocn (%d) - hys (%d) %f !!!! HO !!!\n",
+          LOG_D(RRC,"\t\t src_eNB_rsrp_db (%f) + ofs (%d) + ocs (%d) %f  < adj_eNB_rsrp_db (%f) + ofn (%d) + ocn (%d) - hys (%d) %f !!!!HO!!!\n",
                       src_eNB_rsrp_db, ofs, ocs,
                       src_eNB_rsrp_db + ofs + ocs,
                       adj_eNB_rsrp_db, ofn, ocn, hys,

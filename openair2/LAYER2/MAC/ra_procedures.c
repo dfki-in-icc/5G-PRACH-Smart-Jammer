@@ -448,8 +448,8 @@ PRACH_RESOURCES_t *ue_get_rach(module_id_t module_idP, int CC_id,
                 dcch_header_len);
         uint8_t access_mode = SCHEDULED_ACCESS;
         UE_mac_inst[module_idP].crnti = UE_mac_inst[module_idP].crnti_before_ho;
-        ue_get_sdu(module_idP, 0, frameP, subframeP, 0, ulsch_buff, sizeof(ulsch_buff), &access_mode);
         UE_mac_inst[module_idP].RA_active = 1;
+        ue_get_sdu(module_idP, 0, frameP, subframeP, 0, ulsch_buff, 18, &access_mode);
         UE_mac_inst[module_idP].RA_PREAMBLE_TRANSMISSION_COUNTER =
           1;
         UE_mac_inst[module_idP].RA_Msg3_size = //rlc_status.bytes_in_buffer + dcch_header_len;

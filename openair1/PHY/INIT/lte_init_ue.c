@@ -354,9 +354,9 @@ void syn_config_afterHO_ue(module_id_t Mod_id,uint8_t CC_id,uint8_t eNB_id, LTE_
     LOG_I(PHY,"fp->Nid_cell (targetPhysCellId) = %u\n", fp->Nid_cell);
     // PUCCH
     // RNTI
+#if 0
     PHY_vars_UE_g[Mod_id][CC_id]->pdcch_vars[0][eNB_id] = (LTE_UE_PDCCH *)malloc16_clear(sizeof(LTE_UE_PDCCH));
     PHY_vars_UE_g[Mod_id][CC_id]->pdcch_vars[1][eNB_id] = (LTE_UE_PDCCH *)malloc16_clear(sizeof(LTE_UE_PDCCH));
-#if 1 // DavidK
     LOG_D(PHY,"PHY_vars_UE_g[Mod_id][CC_id]->pdcch_vars[0][eNB_id=%d] = %p\n", 
           eNB_id,
           PHY_vars_UE_g[Mod_id][CC_id]->pdcch_vars[0][eNB_id]);

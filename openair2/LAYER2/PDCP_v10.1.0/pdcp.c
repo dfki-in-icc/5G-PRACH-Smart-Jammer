@@ -832,7 +832,7 @@ pdcp_data_ind(
         security_ok = 1;
       }
 
-      if (security_ok == 0) {
+      if (!get_softmodem_params()->emulate_l1 && security_ok == 0) {
         LOG_W(PDCP,
               PROTOCOL_PDCP_CTXT_FMT"security not validated for incoming PDCP SRB PDU\n",
               PROTOCOL_PDCP_CTXT_ARGS(ctxt_pP, pdcp_p));
@@ -943,7 +943,7 @@ pdcp_data_ind(
           security_ok = 1;
         }
 
-        if (security_ok == 0) {
+        if (!get_softmodem_params()->emulate_l1 && security_ok == 0) {
           LOG_W(PDCP,
                 PROTOCOL_PDCP_CTXT_FMT"security not validated for incoming PDPC DRB RLC/AM PDU\n",
                 PROTOCOL_PDCP_CTXT_ARGS(ctxt_pP, pdcp_p));

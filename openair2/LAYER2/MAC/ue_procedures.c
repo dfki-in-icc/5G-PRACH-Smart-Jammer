@@ -153,7 +153,7 @@ void ue_init_mac(module_id_t module_idP) {
     pthread_mutex_init(&UE_mac_inst[module_idP].UL_INFO_mutex,NULL);
     UE_mac_inst[module_idP].UE_mode[0] = PRACH; //NOT_SYNCHED;
     UE_mac_inst[module_idP].first_ULSCH_Tx =0;
-    UE_mac_inst[module_idP].SI_Decoded = 1; //DavidK
+    UE_mac_inst[module_idP].SI_Decoded = 1;
     next_ra_frame = 500;
     next_Mod_id = 0;
   }
@@ -2379,7 +2379,7 @@ ue_get_sdu(module_id_t module_idP, int CC_id, frame_t frameP,
   }
 
   if (num_lcg_id_with_data) {
-    LOG_D(MAC,
+    LOG_I(MAC,
           "[UE %d] MAC Tx data pending at frame%d subframe %d nb LCG =%d Bytes for LCG0=%d LCG1=%d LCG2=%d LCG3=%d BSR Trigger status =%d TBS=%d\n",
           module_idP, frameP, subframe, num_lcg_id_with_data,
           UE_mac_inst[module_idP].scheduling_info.BSR_bytes[0],
@@ -2428,11 +2428,14 @@ ue_get_sdu(module_id_t module_idP, int CC_id, frame_t frameP,
       }
     }
   }
-  LOG_D(MAC, "bsr_len %d  = bsr_header_len %d + bsr_ce_len %d BSR reporting active %d  UE_mac_inst[module_idP].scheduling_info.LCID_status[DCCH] %d\n",
-        bsr_header_len+bsr_ce_len, bsr_header_len, bsr_ce_len,
-        UE_mac_inst[module_idP].BSR_reporting_active,
-        UE_mac_inst[module_idP].scheduling_info.LCID_status[DCCH]);
-
+  else if (UE_mac_inst[module_idP].RA_active == 1)
+  {
+    if ((buflen >= 4) && (UE_mac_inst[module_idP].scheduling_info.BSR_bytes[0] > 0)) {
+      bsr_header_len = 1;
+      bsr_ce_len = sizeof(BSR_SHORT); //1 byte
+        UE_mac_inst[module_idP].scheduling_info.LCID_status[DCCH] = LCID_NOT_EMPTY;
+    }
+  }
   bsr_len = bsr_ce_len + bsr_header_len;
   phr_ce_len =
     (UE_mac_inst[module_idP].PHR_reporting_active ==
@@ -2449,6 +2452,11 @@ ue_get_sdu(module_id_t module_idP, int CC_id, frame_t frameP,
     phr_header_len = 0;
     phr_ce_len = 0;
   }
+
+  LOG_D(MAC, "bsr_len %d  = bsr_header_len %d + bsr_ce_len %d BSR reporting active %d  UE_mac_inst[module_idP].scheduling_info.LCID_status[DCCH] %d\n",
+        bsr_header_len+bsr_ce_len, bsr_header_len, bsr_ce_len,
+        UE_mac_inst[module_idP].BSR_reporting_active,
+        UE_mac_inst[module_idP].scheduling_info.LCID_status[DCCH]);
 
   // check for UL bandwidth requests and add SR control element
 
@@ -3325,7 +3333,7 @@ update_bsr(module_id_t module_idP, frame_t frameP,
       lcid_bytes_in_buffer[lcid] = rlc_status.bytes_in_buffer;
 
       if (rlc_status.bytes_in_buffer > 0) {
-        LOG_I(MAC,"[UE %d] PDCCH Tick : LCID%d LCGID%d has data to transmit = %d bytes at frame %d subframe %d\n",
+        LOG_I(MAC,"[UE %d] PDCCH Tick : LCID%d LCGID%d has data to transmit in update_bsr = %d bytes at frame %d subframe %d\n",
               module_idP, lcid,lcgid,rlc_status.bytes_in_buffer,frameP,subframeP);
         UE_mac_inst[module_idP].scheduling_info.LCID_status[lcid] = LCID_NOT_EMPTY;
 

@@ -594,7 +594,7 @@ rx_sdu(const module_id_t enb_mod_idP,
       case TRUNCATED_BSR:
       case SHORT_BSR:
         lcgid = (payload_ptr[0] >> 6);
-        LOG_D(MAC, "[eNB %d] CC_id %d MAC CE_LCID %d : Received short BSR LCGID = %u bsr = %d\n",
+        LOG_I(MAC, "[eNB %d] CC_id %d MAC CE_LCID %d : Received short BSR LCGID = %u bsr = %d\n",
               enb_mod_idP,
               CC_idP,
               rx_ces[i],
@@ -657,7 +657,7 @@ rx_sdu(const module_id_t enb_mod_idP,
             UE_template_ptr->ul_buffer_info[LCGID1] +
             UE_template_ptr->ul_buffer_info[LCGID2] +
             UE_template_ptr->ul_buffer_info[LCGID3];
-          LOG_D(MAC, "[eNB %d] CC_id %d MAC CE_LCID %d: Received long BSR. Size is LCGID0 = %u LCGID1 = %u LCGID2 = %u LCGID3 = %u\n",
+          LOG_I(MAC, "[eNB %d] CC_id %d MAC CE_LCID %d: Received long BSR. Size is LCGID0 = %u LCGID1 = %u LCGID2 = %u LCGID3 = %u\n",
                 enb_mod_idP,
                 CC_idP,
                 rx_ces[i],
@@ -667,7 +667,7 @@ rx_sdu(const module_id_t enb_mod_idP,
                 UE_template_ptr->ul_buffer_info[LCGID3]);
 
           if (crnti_rx == 1) {
-            LOG_D(MAC, "[eNB %d] CC_id %d MAC CE_LCID %d: Received CRNTI.\n",
+            LOG_I(MAC, "[eNB %d] CC_id %d MAC CE_LCID %d: Received CRNTI.\n",
                   enb_mod_idP,
                   CC_idP,
                   rx_ces[i]);
@@ -848,7 +848,7 @@ rx_sdu(const module_id_t enb_mod_idP,
         LOG_T(MAC, "offset: %d\n", (unsigned char) ((unsigned char *) payload_ptr - sduP));
 
         for (int j = 0; j < rx_lengths[i]; j++) {
-          LOG_I(MAC, "%x \n", payload_ptr[j]);
+          LOG_T(MAC, "%x \n", payload_ptr[j]);
         }
 
         LOG_T(MAC, "\n");
@@ -861,6 +861,11 @@ rx_sdu(const module_id_t enb_mod_idP,
               rx_lengths[i],
               DCH_PAYLOAD_SIZE_MAX,
               sdu_lenP);
+        LOG_E(MAC, "DCCH of size (rx_lengths[i] sdu %d payload) %d > %ld (Remained space: sdu_lenP %d - (header+CE %ld)) too big, dropping packet\n",
+              i,
+              rx_lengths[i],
+              sdu_lenP - (payload_ptr - sduP),
+              sdu_lenP, payload_ptr - sduP);
         break;
       }
 

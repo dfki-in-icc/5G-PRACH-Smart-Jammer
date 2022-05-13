@@ -2214,5 +2214,5 @@ static bool should_drop_transport_block(int sf, uint16_t rnti)
 
 float update_measurements(uint16_t sfn_sf, int eNB_index)
 {
-  return sf_rnti_mcs[sfn_sf & 15].rsrp[eNB_index]; //DavidK2
+  return sf_rnti_mcs[sfn_sf & 15].rsrp[eNB_index];
 }

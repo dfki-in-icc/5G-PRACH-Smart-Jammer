@@ -85,7 +85,7 @@ void ue_mac_reset(module_id_t module_idP, uint8_t eNB_index) {
   UE_mac_inst[module_idP].RA_prach_resources.ra_RACH_MaskIndex = 0;
   ue_init_mac(module_idP);  //This will hopefully do the rest of the MAC reset procedure
   if(NFAPI_MODE==NFAPI_UE_STUB_PNF || NFAPI_MODE==NFAPI_MODE_STANDALONE_PNF) {
-    LOG_I(MAC, "reset queues\n"); // DavidK
+    LOG_I(MAC, "reset queues\n");
     reset_UE_phy_stub_standalone();
   }
 }
