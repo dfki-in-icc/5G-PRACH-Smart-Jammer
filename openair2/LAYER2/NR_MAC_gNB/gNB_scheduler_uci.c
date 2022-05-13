@@ -754,8 +754,8 @@ void nr_csi_meas_reporting(int Mod_idP,
       AssertFatal(curr_pucch->csi_bits == 0
                   && !curr_pucch->sr_flag
                   && curr_pucch->dai_c == 0,
-                  "PUCCH not free at index 1 for UE %04x\n",
-                  UE->rnti);
+                  "PUCCH not free at index 1 for UE %04x csi_bits %d, sr_flag %d, dai_c %d\n",
+                  UE->rnti,curr_pucch->csi_bits,curr_pucch->sr_flag,curr_pucch->dai_c);
       curr_pucch->r_pucch = -1;
       curr_pucch->frame = frame;
       curr_pucch->ul_slot = sched_slot;
