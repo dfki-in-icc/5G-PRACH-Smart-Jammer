@@ -3456,6 +3456,9 @@ typedef struct {
 	uint16_t sfn_sf;
 } nfapi_subframe_indication_t;
 
+/** VTUESF.indication sent from UE as an ACK in the virtual time scenario */
+typedef nfapi_subframe_indication_t nfapi_ue_sf_indication_vt_t;
+
 typedef struct {
 	nfapi_p7_message_header_t header;
 	uint16_t sfn_sf;

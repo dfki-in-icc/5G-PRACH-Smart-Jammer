@@ -76,6 +76,9 @@ typedef struct {
   /// UCI indication
   nfapi_nr_uci_indication_t uci_ind;
 
+  /// UE Slot indication for VT
+  nfapi_ue_slot_indication_vt_t vt_ue_slot_ind;
+
 } NR_UL_IND_t;
 
 // Downlink slot P7

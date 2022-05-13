@@ -84,6 +84,9 @@ typedef struct {
   /// RX indication
   nfapi_rx_indication_t rx_ind;
 
+  /// UE Subframe indication for VT
+  nfapi_ue_sf_indication_vt_t vt_ue_sf_ind;
+
 } UL_IND_t;
 
 // Downlink subframe P7
@@ -160,6 +163,8 @@ typedef struct {
   pthread_mutex_t harq_mutex;
   pthread_mutex_t cqi_mutex;
   pthread_mutex_t rach_mutex;
+  pthread_mutex_t vt_ue_sf_mutex;
+  pthread_mutex_t vt_ue_slot_mutex;
 } FILL_UL_INFO_MUTEX_t;
 
 /*Initial */

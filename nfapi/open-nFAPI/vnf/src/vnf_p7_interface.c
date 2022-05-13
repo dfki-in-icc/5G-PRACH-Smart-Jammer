@@ -329,6 +329,9 @@ int nfapi_vnf_p7_start(nfapi_vnf_p7_config_t* config)
 		clock_gettime(CLOCK_MONOTONIC, &pselect_start);
 		//long millisecond = pselect_start.tv_nsec / 1e6;
 
+        if (RC.ss.mode == SS_ENB) /** TODO:FC: Can check for any other mode  other than VT */
+		{
+
 		if((last_millisecond == -1) || (millisecond == last_millisecond) || (millisecond == (last_millisecond + 1) % 1000) )
 		{
                   //NFAPI_TRACE(NFAPI_TRACE_INFO, "pselect_start:%d.%d sf_start:%d.%d\n", pselect_start.tv_sec, pselect_start.tv_nsec, sf_start.tv_sec, sf_start.tv_nsec);
@@ -515,7 +518,8 @@ if (selectRetval==-1 && errno == 22)
 				curr = curr->next;
 			}
 
-			send_mac_subframe_indications(vnf_p7);
+            /** NOTE: The second argument (sfn_sf) has no significance */
+			send_mac_subframe_indications(vnf_p7, 0);
 
 		}
 		else if(selectRetval > 0)
@@ -544,6 +548,45 @@ if (selectRetval==-1 && errno == 22)
 			}
 		}
 
+	}
+	else
+	{
+			/* System running in System Simulator mode with Virtual time
+			 * no need of synching the SFN and over-run of SFN time for
+			 * the processing the P7 handling is kept simple
+			 */
+			selectRetval = pselect(maxSock + 1, &rfds, NULL, NULL, &pselect_timeout, NULL);
+			if (selectRetval == -1 && errno == 22)
+			{
+				NFAPI_TRACE(NFAPI_TRACE_ERROR, "INVAL: pselect_timeout:%ld.%ld sf_dur:%ld.%ld\n",
+							pselect_timeout.tv_sec, pselect_timeout.tv_nsec,
+							sf_duration.tv_sec, sf_duration.tv_nsec);
+			}
+			else if (selectRetval > 0)
+			{
+				NFAPI_TRACE(NFAPI_TRACE_INFO, "\n\nGot a message\n\n");
+				// have a p7 message
+				if (FD_ISSET(vnf_p7->socket, &rfds))
+				{
+					vnf_p7_read_dispatch_message(vnf_p7);
+				}
+			}
+			else if (selectRetval == 0)
+			{
+				NFAPI_TRACE(NFAPI_TRACE_INFO, "No message received pselect_timeout:%ld.%ld sf_dur:%ld.%ld\n",
+							pselect_timeout.tv_sec, pselect_timeout.tv_nsec,
+							sf_duration.tv_sec, sf_duration.tv_nsec);
+			}
+			sf_start = timespec_add(sf_start, sf_duration);
+			pselect_timeout = timespec_sub(sf_start, pselect_start);
+#if 1
+			/** FC : TODO: Need to fix */
+			if (pselect_timeout.tv_sec < 0 || pselect_timeout.tv_nsec < 0) {
+				pselect_timeout.tv_sec = sf_duration.tv_sec;
+				pselect_timeout.tv_nsec = sf_duration.tv_nsec;
+			}
+#endif
+		}
 	}
 
 

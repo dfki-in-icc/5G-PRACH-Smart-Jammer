@@ -227,6 +227,31 @@ void send_nsa_standalone_msg(NR_UL_IND_t *UL_INFO, uint16_t msg_id)
     }
     case NFAPI_NR_PHY_MSG_TYPE_SRS_INDICATION:
     break;
+    case NFAPI_NR_PHY_MSG_TYPE_SLOT_INDICATION:
+    {
+        char buffer[NFAPI_MAX_PACKED_MESSAGE_SIZE];
+        LOG_T(NR_MAC, "SLOT IND header id :%d\n", UL_INFO->vt_ue_slot_ind.header.message_id);
+        int encoded_size = nfapi_nr_p7_message_pack(&UL_INFO->vt_ue_slot_ind, buffer, sizeof(buffer), NULL);
+        if (encoded_size <= 0)
+        {
+                LOG_E(NR_MAC, "nfapi_nr_p7_message_pack has failed. Encoded size = %d\n", encoded_size);
+                return;
+        }
+
+        LOG_D(NR_MAC, "SLOT_IND sent to Proxy, Size: %d Frame %d Slot %d\n", encoded_size,
+                UL_INFO->rach_ind.sfn, UL_INFO->rach_ind.slot);
+        if (send(ue_tx_sock_descriptor, buffer, encoded_size, 0) < 0)
+        {
+                LOG_E(NR_MAC, "Send Proxy NR_UE failed\n");
+                return;
+        }
+        else
+        {
+                LOG_D(NR_MAC, "Send Proxy SLOT_IND Success\n");
+        }
+        break;
+    }
+
     default:
     break;
   }
@@ -689,6 +714,26 @@ static void fill_dci_from_dl_config(nr_downlink_indication_t*dl_ind, fapi_nr_dl_
     }
   }
 }
+
+void check_and_process_slot_ind(nfapi_ue_slot_indication_vt_t *slot_ind, uint16_t frame, uint16_t slot)
+{
+    NR_UE_MAC_INST_t *mac = get_mac_inst(0);
+
+    if (pthread_mutex_lock(&mac->mutex_dl_info)) abort();
+
+    if (slot_ind)
+    {
+        slot_ind->header.message_id = NFAPI_NR_PHY_MSG_TYPE_SLOT_INDICATION;
+        slot_ind->header.message_length = sizeof(nfapi_ue_slot_indication_vt_t);
+        slot_ind->header.phy_id = 0;
+        slot_ind->sfn = frame;
+        slot_ind->slot = slot;
+        LOG_D(NR_PHY, "[%d, %d] SLOT Indication\n", frame, slot);
+    }
+
+    if (pthread_mutex_unlock(&mac->mutex_dl_info)) abort();
+}
+
 
 void check_and_process_dci(nfapi_nr_dl_tti_request_t *dl_tti_request,
                            nfapi_nr_tx_data_request_t *tx_data_request,

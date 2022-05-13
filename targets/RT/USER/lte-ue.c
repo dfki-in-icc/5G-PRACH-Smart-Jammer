@@ -1231,6 +1231,12 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg)
           NFAPI_SFNSF2SFN(ul_config_req->sfn_sf), NFAPI_SFNSF2SF(ul_config_req->sfn_sf));
         }
       }
+
+      /** TODO: FC */
+      if (1 /** UE is L2 Sim mode */) {
+        fill_ue_slot_indication_UE_MAC(ue_Mod_id, NFAPI_SFNSF2SFN(sfn_sf), NFAPI_SFNSF2SF(sfn_sf), sfn_sf, UL_INFO);
+      }
+
     } //for (Mod_id=0; Mod_id<NB_UE_INST; Mod_id++)
 
     if (UL_INFO->crc_ind.crc_indication_body.number_of_crcs > 0) {
@@ -1273,6 +1279,18 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg)
         sent_any = true;
       //LOG_I(MAC, "ul_config_req_UE_MAC 2.51 \n");
       UL_INFO->sr_ind.sr_indication_body.number_of_srs = 0;
+    }
+
+    /** TODO: FC Send UE_SLOT.indication here after processing everything */
+    if ( 1 /** UE is SS mode */ && UL_INFO->vt_ue_sf_ind.sfn_sf >= 0)
+    {
+        LOG_D(MAC, "Sending UE_SLOT.indication at SFN: %d SF: %d for Ack'ing sfn: %d sf: %d \n", 
+            NFAPI_SFNSF2SFN(sfn_sf), NFAPI_SFNSF2SF(sfn_sf), 
+            NFAPI_SFNSF2SFN(UL_INFO->vt_ue_sf_ind.sfn_sf),
+            NFAPI_SFNSF2SF(UL_INFO->vt_ue_sf_ind.sfn_sf));
+        send_standalone_msg(UL_INFO, UL_INFO->vt_ue_sf_ind.header.message_id);
+        sent_any = true;
+        UL_INFO->vt_ue_sf_ind.sfn_sf = 0;
     }
 
     // De-allocate memory of nfapi requests copies before next subframe round

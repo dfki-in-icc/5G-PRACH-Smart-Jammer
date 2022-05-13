@@ -3297,6 +3297,12 @@ static uint8_t pack_nr_uci_pucch_2_3_4(void* tlv, uint8_t **ppWritePackedMsg, ui
 	return 1;
 }
 
+static uint8_t pack_subframe_indication(void *msg, uint8_t **ppWritePackedMsg, uint8_t *end, nfapi_p7_codec_config_t* config)
+{
+	nfapi_subframe_indication_t *pNfapiMsg = (nfapi_subframe_indication_t*)msg;
+	return (push16(pNfapiMsg->sfn_sf, ppWritePackedMsg, end));
+}
+
 static uint8_t pack_nr_uci_indication_body(nfapi_nr_uci_t* value, uint8_t **ppWritePackedMsg, uint8_t *end)
 {
 	if (!push16(value->pdu_type, ppWritePackedMsg, end))
@@ -3607,6 +3613,10 @@ int nfapi_p7_message_pack(void *pMessageBuf, void *pPackedBuf, uint32_t packedBu
 
     case NFAPI_TIMING_INFO:
       result = pack_timing_info(pMessageHeader, &pWritePackedMessage, end, config);
+      break;
+
+    case NFAPI_SUBFRAME_INDICATION:
+      result = pack_subframe_indication(pMessageHeader, &pWritePackedMessage, end, config);
       break;
 
     default: {
@@ -5248,6 +5258,16 @@ static uint8_t unpack_ul_config_request(uint8_t **ppReadPackedMsg, uint8_t *end,
   };
   return (pull16(ppReadPackedMsg, &pNfapiMsg->sfn_sf, end) &&
           unpack_p7_tlv_list(unpack_fns, sizeof(unpack_fns)/sizeof(unpack_tlv_t), ppReadPackedMsg, end, config, &pNfapiMsg->vendor_extension));
+}
+
+static uint8_t unpack_subframe_indication(uint8_t **ppReadPackedMsg, uint8_t *end, void *msg, nfapi_p7_codec_config_t* config)
+{
+  nfapi_subframe_indication_t *pNfapiMsg = (nfapi_subframe_indication_t *)msg;
+
+  if (!(pull16(ppReadPackedMsg, &pNfapiMsg->sfn_sf , end) ))
+    return 0;
+
+  return 1;
 }
 
 static uint8_t unpack_hi_dci0_hi_pdu_rel8_value(void *tlv, uint8_t **ppReadPackedMsg, uint8_t *end) {
@@ -7720,6 +7740,14 @@ int nfapi_p7_message_unpack(void *pMessageBuf, uint32_t messageBufLen, void *pUn
 
   // look for the specific message
   switch (pMessageHeader->message_id) {
+    case NFAPI_SUBFRAME_INDICATION:
+      if (check_unpack_length(NFAPI_SUBFRAME_INDICATION, unpackedBufLen)){
+        nfapi_subframe_indication_t* msg = (nfapi_subframe_indication_t*) pMessageHeader;
+        result = unpack_subframe_indication(&pReadPackedMessage,  end, msg, config);
+      }
+      else
+        return -1;
+      break;
     case NFAPI_DL_CONFIG_REQUEST:
       if (check_unpack_length(NFAPI_DL_CONFIG_REQUEST, unpackedBufLen))
         result = unpack_dl_config_request(&pReadPackedMessage,  end, pMessageHeader, config);
@@ -8078,11 +8106,11 @@ int nfapi_nr_p7_message_unpack(void *pMessageBuf, uint32_t messageBufLen, void *
 			{
 				if(config && config->unpack_p7_vendor_extension)
 				{
-					result = (config->unpack_p7_vendor_extension)(pMessageHeader, &pReadPackedMessage, end, config);
+				  result = (config->unpack_p7_vendor_extension)(pMessageHeader, &pReadPackedMessage, end, config);
 				}
 				else
 				{
-					NFAPI_TRACE(NFAPI_TRACE_ERROR, "%s VE NFAPI message ID %d. No ve decoder provided\n", __FUNCTION__, pMessageHeader->message_id);
+				  NFAPI_TRACE(NFAPI_TRACE_ERROR, "%s VE NFAPI message ID %d. No ve decoder provided\n", __FUNCTION__, pMessageHeader->message_id);
 				}
 			}
 			else

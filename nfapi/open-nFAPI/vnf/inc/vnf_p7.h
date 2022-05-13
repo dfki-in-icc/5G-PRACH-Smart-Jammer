@@ -127,8 +127,8 @@ uint16_t increment_sfn_sf(uint16_t sfn_sf);
 int vnf_sync(vnf_p7_t* vnf_p7, nfapi_vnf_p7_connection_info_t* p7_info);
 int vnf_nr_sync(vnf_p7_t* vnf_p7, nfapi_vnf_p7_connection_info_t* p7_info);
 
-int send_mac_subframe_indications(vnf_p7_t* config);
-int send_mac_slot_indications(vnf_p7_t* config);
+int send_mac_subframe_indications(vnf_p7_t* config, uint16_t sfn_sf);
+int send_mac_slot_indications(vnf_p7_t* config, uint16_t sfn, uint16_t slot);
 int vnf_p7_read_dispatch_message(vnf_p7_t* vnf_p7 );
 int vnf_nr_p7_read_dispatch_message(vnf_p7_t* vnf_p7 );
 
