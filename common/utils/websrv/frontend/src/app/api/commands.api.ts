@@ -35,6 +35,7 @@ export enum IArgType {
 export interface ICommand {
     name: string;
     confirm?: string;
+    question?: IQuestion,
 }
 export interface IColumn { //should use IVariable ?
     name: string;
@@ -59,7 +60,6 @@ export interface IQuestion {
 }
 export interface IResp {
     display: string[],
-    question?: IQuestion,
     table?: ITable
 }
 export interface IParam {

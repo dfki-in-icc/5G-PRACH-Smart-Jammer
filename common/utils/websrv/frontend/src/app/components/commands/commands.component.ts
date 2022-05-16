@@ -80,10 +80,10 @@ export class CommandsComponent {
 
     const obs = control.confirm
       ? this.dialogService.openConfirmDialog(control.confirm).pipe(
-        filter(confirmed => confirmed)
-      )
-      : of(null)
+        filter(confirmed => confirmed))
+      : control.question ? this.dialogService.openQuestionDialog("",control.question.display).pipe() : of(null)
 
+      
     this.rows$ = obs.pipe(
       mergeMap(() => this.commandsApi.runCommand$(control.api(), `${this.selectedModule!.nameFC.value}`)),
       mergeMap(resp => {

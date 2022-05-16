@@ -1,5 +1,6 @@
 import { FormControl, FormGroup } from '@angular/forms';
 import { ICommand } from '../api/commands.api';
+import { IQuestion } from '../api/commands.api';
 
 const enum CmdFCN {
   name = 'name',
@@ -9,12 +10,13 @@ const enum CmdFCN {
 export class CmdCtrl extends FormGroup {
 
   confirm?: string
-
+  question?: IQuestion
   constructor(cmd: ICommand) {
     super({});
 
     this.addControl(CmdFCN.name, new FormControl(cmd.name));
     this.confirm = cmd.confirm
+    this.question = cmd.question
   }
 
   api() {
