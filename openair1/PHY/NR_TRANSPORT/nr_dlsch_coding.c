@@ -409,7 +409,7 @@ int nr_dlsch_encoding(PHY_VARS_gNB *gNB,
   initNotifiedFIFO(&nf);
   int nbJobs=0;
   for(int j=0; j<(impp.n_segments/8+((impp.n_segments&7)==0 ? 0 : 1)); j++) {
-    notifiedFIFO_elt_t *req=newNotifiedFIFO_elt(sizeof(impp), j,0, &nf, ldpc8blocks);
+    notifiedFIFO_elt_t *req=newNotifiedFIFO_elt(sizeof(impp), j, &nf, ldpc8blocks);
     encoder_implemparams_t* perJobImpp=(encoder_implemparams_t*)NotifiedFifoData(req);
     *perJobImpp=impp;
     perJobImpp->macro_num=j;

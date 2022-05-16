@@ -2288,8 +2288,8 @@ int nr_rx_pusch(PHY_VARS_gNB *gNB,
                                                     gNB->pusch_vars[ulsch_id]->llr_offset[symbol-1] + gNB->pusch_vars[ulsch_id]->ul_valid_re_per_slot[symbol-1] * rel15_ul->qam_mod_order;
     if (gNB->pusch_vars[ulsch_id]->ul_valid_re_per_slot[symbol] > 0)  {
       union puschSymbolReqUnion id = {.s={ulsch_id,frame,slot,0}};
-      uint64_t tag=1+symbol;
-      notifiedFIFO_elt_t *req=newNotifiedFIFO_elt(sizeof(puschSymbolProc_t),id.p,tag,gNB->respPuschSymb,nr_pusch_symbol_processing_ptr);
+      id.p=1+symbol;
+      notifiedFIFO_elt_t *req=newNotifiedFIFO_elt(sizeof(puschSymbolProc_t),id.p,gNB->respPuschSymb,nr_pusch_symbol_processing_ptr);
       puschSymbolProc_t *rdata=(puschSymbolProc_t*)NotifiedFifoData(req);
       rdata->gNB = gNB;
       rdata->frame_parms=frame_parms;
