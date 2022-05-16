@@ -364,25 +364,25 @@ void config_common(int Mod_idP, int ssb_SubcarrierOffset, rrc_pdsch_AntennaPorts
   cfg->num_tlv++;
 
   switch (scc->ssb_PositionsInBurst->present) {
-    case 1 :
-      cfg->ssb_table.ssb_mask_list[0].ssb_mask.value = scc->ssb_PositionsInBurst->choice.shortBitmap.buf[0]<<24;
-      cfg->ssb_table.ssb_mask_list[1].ssb_mask.value = 0;
-      break;
-    case 2 :
-      cfg->ssb_table.ssb_mask_list[0].ssb_mask.value = scc->ssb_PositionsInBurst->choice.mediumBitmap.buf[0]<<24;
-      cfg->ssb_table.ssb_mask_list[1].ssb_mask.value = 0;
-      break;
-    case 3 :
-      cfg->ssb_table.ssb_mask_list[0].ssb_mask.value = 0;
-      cfg->ssb_table.ssb_mask_list[1].ssb_mask.value = 0;
-      for (int i=0; i<4; i++) {
-        cfg->ssb_table.ssb_mask_list[0].ssb_mask.value += (scc->ssb_PositionsInBurst->choice.longBitmap.buf[3-i]<<i*8);
-        cfg->ssb_table.ssb_mask_list[1].ssb_mask.value += (scc->ssb_PositionsInBurst->choice.longBitmap.buf[7-i]<<i*8);
-      }
-      break;
+  case 1 :
+    cfg->ssb_table.ssb_mask_list[0].ssb_mask.value = ((uint32_t)scc->ssb_PositionsInBurst->choice.shortBitmap.buf[0])<<24;
+    cfg->ssb_table.ssb_mask_list[1].ssb_mask.value = 0;
+    break;
+  case 2 :
+    cfg->ssb_table.ssb_mask_list[0].ssb_mask.value = ((uint32_t)scc->ssb_PositionsInBurst->choice.mediumBitmap.buf[0])<<24;
+  cfg->ssb_table.ssb_mask_list[1].ssb_mask.value = 0;
+  break;
+  case 3 :
+    cfg->ssb_table.ssb_mask_list[0].ssb_mask.value = 0;
+    cfg->ssb_table.ssb_mask_list[1].ssb_mask.value = 0;
+    for (int i=0; i<4; i++) {
+      cfg->ssb_table.ssb_mask_list[0].ssb_mask.value += ((uint32_t)scc->ssb_PositionsInBurst->choice.longBitmap.buf[3-i])<<i*8;
+      cfg->ssb_table.ssb_mask_list[1].ssb_mask.value += ((uint32_t)scc->ssb_PositionsInBurst->choice.longBitmap.buf[7-i])<<i*8;
+    }
+    break;
     default:
       AssertFatal(1==0,"SSB bitmap size value %d undefined (allowed values 1,2,3) \n", scc->ssb_PositionsInBurst->present);
-  }
+}
 
   cfg->ssb_table.ssb_mask_list[0].ssb_mask.tl.tag = NFAPI_NR_CONFIG_SSB_MASK_TAG;
   cfg->ssb_table.ssb_mask_list[1].ssb_mask.tl.tag = NFAPI_NR_CONFIG_SSB_MASK_TAG;

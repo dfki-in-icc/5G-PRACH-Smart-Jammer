@@ -206,12 +206,7 @@ void nr_postDecode(PHY_VARS_gNB *gNB, notifiedFIFO_elt_t *req) {
   gNB->nbDecode--;
   LOG_D(PHY,"remain to decoded in subframe: %d\n", gNB->nbDecode);
   
-  if (decodeSuccess) {
-    memcpy(ulsch_harq->b+rdata->offset,
-           ulsch_harq->c[r],
-           rdata->Kr_bytes - (ulsch_harq->F>>3) -((ulsch_harq->C>1)?3:0));
-
-  } else {
+  if (!decodeSuccess) {
     if ( rdata->nbSegments != ulsch_harq->processedSegments ) {
       int nb=abortTpool(gNB->threadPool, req->key);
       nb+=abortNotifiedFIFO(gNB->respDecode, req->key);
@@ -497,7 +492,7 @@ void nr_fill_indication(PHY_VARS_gNB *gNB, int frame, int slot_rx, int ULSCH_id,
     gNB->rx_pdu_list[num_rx].pdu_length = 0;
   else {
     gNB->rx_pdu_list[num_rx].pdu_length = harq_process->TBS;
-    gNB->rx_pdu_list[num_rx].pdu = harq_process->b;
+    gNB->rx_pdu_list[num_rx].pdu = harq_process->decodedPdu;
   }
 
   gNB->UL_INFO.rx_ind.number_of_pdus++;
@@ -567,7 +562,7 @@ void fill_ul_rb_mask(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx) {
               LOG_D(PHY,"symbol %d Filling rb_mask_ul rb_size %d\n",symbol,ulsch_harq->ulsch_pdu.rb_size);
               for (rb=0; rb<ulsch_harq->ulsch_pdu.rb_size; rb++) {
                 rb2 = rb+ulsch_harq->ulsch_pdu.rb_start+ulsch_harq->ulsch_pdu.bwp_start;
-                gNB->rb_mask_ul[symbol][rb2>>5] |= (1<<(rb2&31));
+                gNB->rb_mask_ul[symbol][rb2>>5] |= (1U<<(rb2&31));
               }
             }
           }

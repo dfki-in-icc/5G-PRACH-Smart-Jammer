@@ -2017,8 +2017,8 @@ void nr_pusch_symbol_processing_noprecoding(void *arg) {
 
   int soffset   = (slot&3)*frame_parms->symbols_per_slot*frame_parms->ofdm_symbol_size;
   int16_t *llr  = &gNB->pusch_vars[ulsch_id]->llr[gNB->pusch_vars[ulsch_id]->llr_offset[symbol]];
-  int32_t rxFext[nb_re_pusch] __attribute__((aligned(32)));
-  int32_t chFext[nb_re_pusch] __attribute__((aligned(32)));
+  int32_t rxFext[nb_re_pusch+8] __attribute__((aligned(32))); // we will access the partional end of mm256
+  int32_t chFext[nb_re_pusch+8] __attribute__((aligned(32)));
 
 
   for (int aa=0;aa<frame_parms->nb_antennas_rx;aa++) {

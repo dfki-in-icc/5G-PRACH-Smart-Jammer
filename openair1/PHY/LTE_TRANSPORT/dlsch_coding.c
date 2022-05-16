@@ -390,7 +390,7 @@ int dlsch_encoding(PHY_VARS_eNB *eNB,
   for (int r=0, r_offset=0; r<hadlsch->C; r++) {
     
     union turboReqUnion id= {.s={dlsch->rnti,frame,subframe,r,0}};
-    notifiedFIFO_elt_t *req=newNotifiedFIFO_elt(sizeof(turboEncode_t), id.p, proc->respEncode, TPencode);
+    notifiedFIFO_elt_t *req=newNotifiedFIFO_elt(sizeof(turboEncode_t), id.p, 0,proc->respEncode, TPencode);
     turboEncode_t * rdata=(turboEncode_t *) NotifiedFifoData(req);
     rdata->input=hadlsch->c[r];
     rdata->Kr_bytes= ( r<hadlsch->Cminus ? hadlsch->Kminus : hadlsch->Kplus) >>3;
@@ -493,7 +493,7 @@ int dlsch_encoding_fembms_pmch(PHY_VARS_eNB *eNB,
   for (int r=0, r_offset=0; r<hadlsch->C; r++) {
     
     union turboReqUnion id= {.s={dlsch->rnti,frame,subframe,r,0}};
-    notifiedFIFO_elt_t *req=newNotifiedFIFO_elt(sizeof(turboEncode_t), id.p, proc->respEncode, TPencode);
+    notifiedFIFO_elt_t *req=newNotifiedFIFO_elt(sizeof(turboEncode_t), id.p,0, proc->respEncode, TPencode);
     turboEncode_t * rdata=(turboEncode_t *) NotifiedFifoData(req);
     rdata->input=hadlsch->c[r];
     rdata->Kr_bytes= ( r<hadlsch->Cminus ? hadlsch->Kminus : hadlsch->Kplus) >>3;

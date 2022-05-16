@@ -442,7 +442,7 @@ void init_gNB_Tpool(int inst) {
   // L1 RX result FIFO 
   gNB->resp_L1 = (notifiedFIFO_t*) malloc(sizeof(notifiedFIFO_t));
   initNotifiedFIFO(gNB->resp_L1);
-  notifiedFIFO_elt_t *msg = newNotifiedFIFO_elt(sizeof(processingData_L1_t),0,gNB->resp_L1,rx_func);
+  notifiedFIFO_elt_t *msg = newNotifiedFIFO_elt(sizeof(processingData_L1_t),0,0,gNB->resp_L1,rx_func);
   pushNotifiedFIFO(gNB->resp_L1,msg); // to unblock the process in the beginning
 
   // L1 TX result FIFO 
@@ -455,7 +455,7 @@ void init_gNB_Tpool(int inst) {
   
   // we create 2 threads for L1 tx processing
   for (int i=0; i < 2; i++) {
-    notifiedFIFO_elt_t *msgL1Tx = newNotifiedFIFO_elt(sizeof(processingData_L1tx_t),0,gNB->L1_tx_out,tx_func);
+    notifiedFIFO_elt_t *msgL1Tx = newNotifiedFIFO_elt(sizeof(processingData_L1tx_t),0,0,gNB->L1_tx_out,tx_func);
     processingData_L1tx_t *msgDataTx = (processingData_L1tx_t *)NotifiedFifoData(msgL1Tx);
     memset(msgDataTx,0, sizeof(processingData_L1tx_t));
     init_DLSCH_struct(gNB, msgDataTx);

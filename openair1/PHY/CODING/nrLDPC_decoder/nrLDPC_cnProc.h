@@ -1792,7 +1792,8 @@ static inline uint32_t nrLDPC_cnProcPc_BG1(t_nrLDPC_lut* p_lut, int8_t* cnProcBu
 
         // If no error pcRes should be 0
         // Only use valid CNs
-        pcResSum |= (pcRes&(0xFFFFFFFF>>(32-Mrem)));
+	if (Mrem)
+	  pcResSum |= (pcRes&(0xFFFFFFFF>>(32-Mrem)));
 
         // If PC failed we can stop here
         if (pcResSum > 0)
@@ -2061,7 +2062,8 @@ static inline uint32_t nrLDPC_cnProcPc_BG1(t_nrLDPC_lut* p_lut, int8_t* cnProcBu
 
         // If no error pcRes should be 0
         // Only use valid CNs
-        pcResSum |= (pcRes&(0xFFFFFFFF>>(32-Mrem)));
+	if (Mrem)
+	  pcResSum |= (pcRes&(0xFFFFFFFF>>(32-Mrem)));
 
         // If PC failed we can stop here
         if (pcResSum > 0)
@@ -2128,7 +2130,8 @@ static inline uint32_t nrLDPC_cnProcPc_BG1(t_nrLDPC_lut* p_lut, int8_t* cnProcBu
 
         // If no error pcRes should be 0
         // Only use valid CNs
-        pcResSum |= (pcRes&(0xFFFFFFFF>>(32-Mrem)));
+	if (Mrem)
+	  pcResSum |= (pcRes&(0xFFFFFFFF>>(32-Mrem)));
 
         // If PC failed we can stop here
         if (pcResSum > 0)
@@ -2195,7 +2198,8 @@ static inline uint32_t nrLDPC_cnProcPc_BG1(t_nrLDPC_lut* p_lut, int8_t* cnProcBu
 
         // If no error pcRes should be 0
         // Only use valid CNs
-        pcResSum |= (pcRes&(0xFFFFFFFF>>(32-Mrem)));
+	if (Mrem)
+	  pcResSum |= (pcRes&(0xFFFFFFFF>>(32-Mrem)));
 
         // If PC failed we can stop here
         if (pcResSum > 0)
@@ -2262,7 +2266,8 @@ static inline uint32_t nrLDPC_cnProcPc_BG1(t_nrLDPC_lut* p_lut, int8_t* cnProcBu
 
         // If no error pcRes should be 0
         // Only use valid CNs
-        pcResSum |= (pcRes&(0xFFFFFFFF>>(32-Mrem)));
+	if (Mrem)
+	  pcResSum |= (pcRes&(0xFFFFFFFF>>(32-Mrem)));
 
         // If PC failed we can stop here
         if (pcResSum > 0)
@@ -2329,7 +2334,8 @@ static inline uint32_t nrLDPC_cnProcPc_BG1(t_nrLDPC_lut* p_lut, int8_t* cnProcBu
 
         // If no error pcRes should be 0
         // Only use valid CNs
-        pcResSum |= (pcRes&(0xFFFFFFFF>>(32-Mrem)));
+	if (Mrem)
+	  pcResSum |= (pcRes&(0xFFFFFFFF>>(32-Mrem)));
 
         // If PC failed we can stop here
         if (pcResSum > 0)

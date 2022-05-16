@@ -226,7 +226,9 @@ void nr_modulation(uint32_t *in,
     i *= 24;
     bit_cnt = i * 8;
     while (bit_cnt < length) {
-      x = *((uint32_t*)(in_bytes+i));
+      x = in_bytes[i]+(((uint32_t)in_bytes[i+1])<<8);
+      if (bit_cnt+2 > length)
+	x+=(((uint32_t)in_bytes[i+2])<<16);
       x1 = x&4095;
       out64[j++] = nr_64qam_mod_table[x1];
       x1 = (x>>12)&4095;

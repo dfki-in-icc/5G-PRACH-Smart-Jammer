@@ -68,14 +68,12 @@ void free_gNB_ulsch(NR_gNB_ULSCH_t **ulschptr, uint16_t N_RB_UL)
 
   for (i=0; i<NR_MAX_ULSCH_HARQ_PROCESSES; i++) {
     if (ulsch->harq_processes[i]) {
-      if (ulsch->harq_processes[i]->b) {
-        free_and_zero(ulsch->harq_processes[i]->b);
-        ulsch->harq_processes[i]->b = NULL;
+      if (ulsch->harq_processes[i]->decodedPdu) {
+        free_and_zero(ulsch->harq_processes[i]->decodedPdu);
+        ulsch->harq_processes[i]->decodedPdu = NULL;
       }
       for (r=0; r<a_segments; r++) {
-        free_and_zero(ulsch->harq_processes[i]->c[r]);
-        free_and_zero(ulsch->harq_processes[i]->d[r]);
-        free_and_zero(ulsch->harq_processes[i]->w[r]);
+        free_and_zero(ulsch->harq_processes[i]->segmentAccumulHARQ[r]);
       }
       free_and_zero(ulsch->harq_processes[i]);
       ulsch->harq_processes[i] = NULL;
@@ -106,11 +104,9 @@ NR_gNB_ULSCH_t *new_gNB_ulsch(uint8_t max_ldpc_iterations, uint16_t N_RB_UL)
   for (i=0; i<NR_MAX_ULSCH_HARQ_PROCESSES; i++) {
 
     ulsch->harq_processes[i] = (NR_UL_gNB_HARQ_t *)malloc16_clear(sizeof(NR_UL_gNB_HARQ_t));
-    ulsch->harq_processes[i]->b = (uint8_t*)malloc16_clear(ulsch_bytes);
+    ulsch->harq_processes[i]->decodedPdu = (uint8_t*)malloc16_clear(ulsch_bytes);
     for (r=0; r<a_segments; r++) {
-      ulsch->harq_processes[i]->c[r] = (uint8_t*)malloc16_clear(8448*sizeof(uint8_t));
-      ulsch->harq_processes[i]->d[r] = (int16_t*)malloc16_clear((68*384)*sizeof(int16_t));
-      ulsch->harq_processes[i]->w[r] = (int16_t*)malloc16_clear((3*(6144+64))*sizeof(int16_t));
+      ulsch->harq_processes[i]->segmentAccumulHARQ[r] = (int16_t*)malloc16_clear((68*384)*sizeof(int16_t));
     }
   }
 
@@ -222,7 +218,6 @@ void nr_processULSegment(void* arg) {
   int length_dec;
   int no_iteration_ldpc;
   int Kr;
-  int Kr_bytes;
   int K_bits_F;
   uint8_t crc_type;
   int i;
@@ -248,7 +243,6 @@ void nr_processULSegment(void* arg) {
   uint8_t  Ilbrm    = 0;
 
   Kr = ulsch_harq->K;
-  Kr_bytes = Kr>>3;
   K_bits_F = Kr-ulsch_harq->F;
 
   t_nrLDPC_time_stats procTime = {0};
@@ -261,10 +255,10 @@ void nr_processULSegment(void* arg) {
   //////////////////////////////////////////////////////////////////////////////////////////
 
   //////////////////////////// ulsch_llr =====> ulsch_harq->e //////////////////////////////
-
+  int16_t deinterleaved[E];
   nr_deinterleaving_ldpc(E,
                          Qm,
-                         ulsch_harq->e[r],
+                         deinterleaved,
                          ulsch_llr+r_offset);
 
   //for (int i =0; i<16; i++)
@@ -297,8 +291,8 @@ void nr_processULSegment(void* arg) {
                                Tbslbrm,
                                p_decoderParms->BG,
                                p_decoderParms->Z,
-                               ulsch_harq->d[r],
-                               ulsch_harq->e[r],
+                               ulsch_harq->segmentAccumulHARQ[r],
+                               deinterleaved,
                                ulsch_harq->C,
                                rv_index,
                                ulsch_harq->new_rx,
@@ -314,8 +308,6 @@ void nr_processULSegment(void* arg) {
   } else {
     stop_meas(&phy_vars_gNB->ulsch_rate_unmatching_stats);
   }
-
-  memset(ulsch_harq->c[r],0,Kr_bytes);
 
   if (ulsch_harq->C == 1) {
     if (A > 3824)
@@ -337,9 +329,9 @@ void nr_processULSegment(void* arg) {
   //set Filler bits
   memset((&z[0]+K_bits_F),127,ulsch_harq->F*sizeof(int16_t));
   //Move coded bits before filler bits
-  memcpy((&z[0]+2*ulsch_harq->Z),ulsch_harq->d[r],(K_bits_F-2*ulsch_harq->Z)*sizeof(int16_t));
+  memcpy((&z[0]+2*ulsch_harq->Z),ulsch_harq->segmentAccumulHARQ[r],(K_bits_F-2*ulsch_harq->Z)*sizeof(int16_t));
   //skip filler bits
-  memcpy((&z[0]+Kr),ulsch_harq->d[r]+(Kr-2*ulsch_harq->Z),(kc*ulsch_harq->Z-Kr)*sizeof(int16_t));
+  memcpy((&z[0]+Kr),ulsch_harq->segmentAccumulHARQ[r]+(Kr-2*ulsch_harq->Z),(kc*ulsch_harq->Z-Kr)*sizeof(int16_t));
   //Saturate coded bits before decoding into 8 bits values
   for (i=0, j=0; j < ((kc*ulsch_harq->Z)>>4)+1;  i+=2, j++)
   {
@@ -365,17 +357,14 @@ void nr_processULSegment(void* arg) {
 #endif
     rdata->decodeIterations = no_iteration_ldpc;
     if (rdata->decodeIterations > p_decoderParms->numMaxIter) rdata->decodeIterations--;
+    memcpy(ulsch_harq->decodedPdu+rdata->offset,llrProcBuf,
+	   rdata->Kr_bytes - (ulsch_harq->F>>3) -((ulsch_harq->C>1)?3:0));
   } else {
 #ifdef PRINT_CRC_CHECK
       LOG_I(PHY, "CRC NOK\n");
 #endif
     rdata->decodeIterations = max_ldpc_iterations + 1;
   }
-
-  for (int m=0; m < Kr>>3; m ++) {
-    ulsch_harq->c[r][m]= (uint8_t) llrProcBuf[m];
-  }
-
   //stop_meas(&phy_vars_gNB->ulsch_ldpc_decoding_stats);
 }
 
@@ -566,7 +555,6 @@ uint32_t nr_ulsch_decoding(PHY_VARS_gNB *phy_vars_gNB,
   Kr = harq_process->K;
   Kr_bytes = Kr>>3;
   offset = 0;
-  void (*nr_processULSegment_ptr)(void*) = &nr_processULSegment;
 
   for (r=0; r<harq_process->C; r++) {
 
@@ -574,7 +562,7 @@ uint32_t nr_ulsch_decoding(PHY_VARS_gNB *phy_vars_gNB,
 
     union ldpcReqUnion id = {.s={ulsch->rnti,frame,nr_tti_rx,0,0}};
     uint64_t tag=100+r;
-    notifiedFIFO_elt_t *req=newNotifiedFIFO_elt(sizeof(ldpcDecode_t), id.p, tag, phy_vars_gNB->respDecode, nr_processULSegment_ptr);
+    notifiedFIFO_elt_t *req=newNotifiedFIFO_elt(sizeof(ldpcDecode_t)+ Kr_bytes, id.p, tag, phy_vars_gNB->respDecode, &nr_processULSegment);
     ldpcDecode_t * rdata=(ldpcDecode_t *) NotifiedFifoData(req);
 
     rdata->gNB = phy_vars_gNB;

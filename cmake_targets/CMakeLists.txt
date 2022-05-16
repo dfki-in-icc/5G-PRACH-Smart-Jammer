@@ -251,8 +251,8 @@ set(CMAKE_CXX_FLAGS
 
 add_boolean_option(SANITIZE_ADDRESS False "enable the address sanitizer (ASan)")
 if (SANITIZE_ADDRESS)
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address -fno-omit-frame-pointer -fno-common")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer -fno-common")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address  -fsanitize=undefined -fno-sanitize-recover=all  -fno-omit-frame-pointer -fno-common")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address  -fsanitize=undefined -fno-sanitize-recover=all  -fno-omit-frame-pointer -fno-common")
 endif ()
 
 add_definitions("-DASN_DISABLE_OER_SUPPORT")
@@ -691,8 +691,8 @@ add_library(F1AP ${F1AP_C_FILES} )
 
 # Hardware dependant options
 ###################################
-add_list1_option(NB_ANTENNAS_RX "4" "Number of antennas in reception" "1" "2" "4")
-add_list1_option(NB_ANTENNAS_TX "4" "Number of antennas in transmission" "1" "2" "4")
+add_list1_option(NB_ANTENNAS_RX "8" "Number of antennas in reception" "1" "2" "4" "8")
+add_list1_option(NB_ANTENNAS_TX "8" "Number of antennas in transmission" "1" "2" "4" "8")
 
 #NOKIA config enhancement
 set (CONFIG_ROOTDIR ${OPENAIR_DIR}/common/config)

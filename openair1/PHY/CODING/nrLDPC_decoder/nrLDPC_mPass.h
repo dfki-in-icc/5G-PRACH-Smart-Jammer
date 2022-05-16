@@ -140,9 +140,6 @@ static inline void nrLDPC_llr2llrProcBuf(t_nrLDPC_lut* p_lut, int8_t* llr, int8_
 static inline void nrLDPC_llr2CnProcBuf_BG1(t_nrLDPC_lut* p_lut, int8_t* llr, int8_t* cnProcBuf, uint16_t Z)
 {
     const uint16_t (*lut_circShift_CNG3) [lut_numCnInCnGroups_BG1_R13[0]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[0]]) p_lut->circShift[0];
-    const uint16_t (*lut_circShift_CNG4) [lut_numCnInCnGroups_BG1_R13[1]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[1]]) p_lut->circShift[1];
-    const uint16_t (*lut_circShift_CNG5) [lut_numCnInCnGroups_BG1_R13[2]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[2]]) p_lut->circShift[2];
-    const uint16_t (*lut_circShift_CNG6) [lut_numCnInCnGroups_BG1_R13[3]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[3]]) p_lut->circShift[3];
     const uint16_t (*lut_circShift_CNG7) [lut_numCnInCnGroups_BG1_R13[4]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[4]]) p_lut->circShift[4];
     const uint16_t (*lut_circShift_CNG8) [lut_numCnInCnGroups_BG1_R13[5]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[5]]) p_lut->circShift[5];
     const uint16_t (*lut_circShift_CNG9) [lut_numCnInCnGroups_BG1_R13[6]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[6]]) p_lut->circShift[6];
@@ -193,15 +190,15 @@ static inline void nrLDPC_llr2CnProcBuf_BG1(t_nrLDPC_lut* p_lut, int8_t* llr, in
     for (j=0; j<4; j++)
     {
         p_cnProcBuf = &cnProcBuf[lut_startAddrCnGroups[1] + j*bitOffsetInGroup];
-
-        for (i=0; i<lut_numCnInCnGroups[1]; i++)
-        {
-            idxBn = lut_posBnInCnProcBuf_CNG4[j][i]*Z;
-
-            nrLDPC_circ_memcpy(p_cnProcBuf, &llr[idxBn], Z, lut_circShift_CNG4[j][i]);
-
-            p_cnProcBuf += Z;
-        }
+	if (lut_numCnInCnGroups[1]) {
+	  const uint16_t (*lut_circShift_CNG4) [lut_numCnInCnGroups_BG1_R13[1]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[1]]) p_lut->circShift[1];
+	  for (i=0; i<lut_numCnInCnGroups[1]; i++)
+	    {
+	      idxBn = lut_posBnInCnProcBuf_CNG4[j][i]*Z;
+	      nrLDPC_circ_memcpy(p_cnProcBuf, &llr[idxBn], Z, lut_circShift_CNG4[j][i]);
+	      p_cnProcBuf += Z;
+	    }
+	}
     }
 
     // =====================================================================
@@ -213,14 +210,16 @@ static inline void nrLDPC_llr2CnProcBuf_BG1(t_nrLDPC_lut* p_lut, int8_t* llr, in
 
     for (j=0; j<5; j++)
     {
+      if (lut_numCnInCnGroups[2]) {
         p_cnProcBuf = &cnProcBuf[lut_startAddrCnGroups[2] + j*bitOffsetInGroup];
-
+	const uint16_t (*lut_circShift_CNG5) [lut_numCnInCnGroups_BG1_R13[2]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[2]]) p_lut->circShift[2];
         for (i=0; i<lut_numCnInCnGroups[2]; i++)
-        {
+	  {
             idxBn = lut_posBnInCnProcBuf_CNG5[j][i]*Z;
             nrLDPC_circ_memcpy(p_cnProcBuf, &llr[idxBn], Z, lut_circShift_CNG5[j][i]);
             p_cnProcBuf += Z;
-        }
+	  }
+      }
     }
 
     // =====================================================================
@@ -230,14 +229,16 @@ static inline void nrLDPC_llr2CnProcBuf_BG1(t_nrLDPC_lut* p_lut, int8_t* llr, in
 
     for (j=0; j<6; j++)
     {
+      if (lut_numCnInCnGroups[3]) {
         p_cnProcBuf = &cnProcBuf[lut_startAddrCnGroups[3] + j*bitOffsetInGroup];
-
+	const uint16_t (*lut_circShift_CNG6) [lut_numCnInCnGroups_BG1_R13[3]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[3]]) p_lut->circShift[3];
         for (i=0; i<lut_numCnInCnGroups[3]; i++)
-        {
+	  {
             idxBn = lut_posBnInCnProcBuf_CNG6[j][i]*Z;
             nrLDPC_circ_memcpy(p_cnProcBuf, &llr[idxBn], Z, lut_circShift_CNG6[j][i]);
             p_cnProcBuf += Z;
-        }
+	  }
+      }
     }
 
     // =====================================================================
@@ -356,9 +357,6 @@ static inline void nrLDPC_llr2CnProcBuf_BG1(t_nrLDPC_lut* p_lut, int8_t* llr, in
 static inline void nrLDPC_llr2CnProcBuf_BG2(t_nrLDPC_lut* p_lut, int8_t* llr, int8_t* cnProcBuf, uint16_t Z)
 {
     const uint16_t (*lut_circShift_CNG3)  [lut_numCnInCnGroups_BG2_R15[0]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[0]]) p_lut->circShift[0];
-    const uint16_t (*lut_circShift_CNG4)  [lut_numCnInCnGroups_BG2_R15[1]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[1]]) p_lut->circShift[1];
-    const uint16_t (*lut_circShift_CNG5)  [lut_numCnInCnGroups_BG2_R15[2]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[2]]) p_lut->circShift[2];
-    const uint16_t (*lut_circShift_CNG6)  [lut_numCnInCnGroups_BG2_R15[3]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[3]]) p_lut->circShift[3];
     const uint16_t (*lut_circShift_CNG8)  [lut_numCnInCnGroups_BG2_R15[4]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[4]]) p_lut->circShift[4];
     const uint16_t (*lut_circShift_CNG10) [lut_numCnInCnGroups_BG2_R15[5]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[5]]) p_lut->circShift[5];
 
@@ -404,13 +402,15 @@ static inline void nrLDPC_llr2CnProcBuf_BG2(t_nrLDPC_lut* p_lut, int8_t* llr, in
     for (j=0; j<4; j++)
     {
         p_cnProcBuf = &cnProcBuf[lut_startAddrCnGroups[1] + j*bitOffsetInGroup];
-
-        for (i=0; i<lut_numCnInCnGroups[1]; i++)
-        {
-            idxBn = lut_posBnInCnProcBuf_CNG4[j][i]*Z;
-            nrLDPC_circ_memcpy(p_cnProcBuf, &llr[idxBn], Z, lut_circShift_CNG4[j][i]);
-            p_cnProcBuf += Z;
-        }
+	if (lut_numCnInCnGroups[1]) {
+	  const uint16_t (*lut_circShift_CNG4)  [lut_numCnInCnGroups_BG2_R15[1]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[1]]) p_lut->circShift[1];
+	  for (i=0; i<lut_numCnInCnGroups[1]; i++)
+	    {
+	      idxBn = lut_posBnInCnProcBuf_CNG4[j][i]*Z;
+	      nrLDPC_circ_memcpy(p_cnProcBuf, &llr[idxBn], Z, lut_circShift_CNG4[j][i]);
+	      p_cnProcBuf += Z;
+	    }
+	}
     }
 
     // =====================================================================
@@ -420,14 +420,16 @@ static inline void nrLDPC_llr2CnProcBuf_BG2(t_nrLDPC_lut* p_lut, int8_t* llr, in
 
     for (j=0; j<5; j++)
     {
+      if (lut_numCnInCnGroups[2]) {
         p_cnProcBuf = &cnProcBuf[lut_startAddrCnGroups[2] + j*bitOffsetInGroup];
-
+	const uint16_t (*lut_circShift_CNG5)  [lut_numCnInCnGroups_BG2_R15[2]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[2]]) p_lut->circShift[2];
         for (i=0; i<lut_numCnInCnGroups[2]; i++)
-        {
+	  {
             idxBn = lut_posBnInCnProcBuf_CNG5[j][i]*Z;
             nrLDPC_circ_memcpy(p_cnProcBuf, &llr[idxBn], Z, lut_circShift_CNG5[j][i]);
             p_cnProcBuf += Z;
-        }
+	  }
+      }
     }
 
     // =====================================================================
@@ -437,14 +439,16 @@ static inline void nrLDPC_llr2CnProcBuf_BG2(t_nrLDPC_lut* p_lut, int8_t* llr, in
 
     for (j=0; j<6; j++)
     {
+      if (lut_numCnInCnGroups[3]) {
         p_cnProcBuf = &cnProcBuf[lut_startAddrCnGroups[3] + j*bitOffsetInGroup];
-
+	const uint16_t (*lut_circShift_CNG6)  [lut_numCnInCnGroups_BG2_R15[3]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[3]]) p_lut->circShift[3];
         for (i=0; i<lut_numCnInCnGroups[3]; i++)
-        {
+	  {
             idxBn = lut_posBnInCnProcBuf_CNG6[j][i]*Z;
             nrLDPC_circ_memcpy(p_cnProcBuf, &llr[idxBn], Z, lut_circShift_CNG6[j][i]);
             p_cnProcBuf += Z;
-        }
+	  }
+      }
     }
 
     // =====================================================================
@@ -494,23 +498,14 @@ static inline void nrLDPC_cn2bnProcBuf_BG2(t_nrLDPC_lut* p_lut, int8_t* cnProcBu
     const uint32_t* lut_startAddrCnGroups = p_lut->startAddrCnGroups;
 
     const uint16_t (*lut_circShift_CNG3)  [lut_numCnInCnGroups_BG2_R15[0]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[0]]) p_lut->circShift[0];
-    const uint16_t (*lut_circShift_CNG4)  [lut_numCnInCnGroups_BG2_R15[1]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[1]]) p_lut->circShift[1];
-    const uint16_t (*lut_circShift_CNG5)  [lut_numCnInCnGroups_BG2_R15[2]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[2]]) p_lut->circShift[2];
-    const uint16_t (*lut_circShift_CNG6)  [lut_numCnInCnGroups_BG2_R15[3]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[3]]) p_lut->circShift[3];
     const uint16_t (*lut_circShift_CNG8)  [lut_numCnInCnGroups_BG2_R15[4]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[4]]) p_lut->circShift[4];
     const uint16_t (*lut_circShift_CNG10) [lut_numCnInCnGroups_BG2_R15[5]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[5]]) p_lut->circShift[5];
 
     const uint32_t (*lut_startAddrBnProcBuf_CNG3)  [lut_numCnInCnGroups[0]] = (const uint32_t(*)[lut_numCnInCnGroups[0]]) p_lut->startAddrBnProcBuf[0];
-    const uint32_t (*lut_startAddrBnProcBuf_CNG4)  [lut_numCnInCnGroups[1]] = (const uint32_t(*)[lut_numCnInCnGroups[1]]) p_lut->startAddrBnProcBuf[1];
-    const uint32_t (*lut_startAddrBnProcBuf_CNG5)  [lut_numCnInCnGroups[2]] = (const uint32_t(*)[lut_numCnInCnGroups[2]]) p_lut->startAddrBnProcBuf[2];
-    const uint32_t (*lut_startAddrBnProcBuf_CNG6)  [lut_numCnInCnGroups[3]] = (const uint32_t(*)[lut_numCnInCnGroups[3]]) p_lut->startAddrBnProcBuf[3];
     const uint32_t (*lut_startAddrBnProcBuf_CNG8)  [lut_numCnInCnGroups[4]] = (const uint32_t(*)[lut_numCnInCnGroups[4]]) p_lut->startAddrBnProcBuf[4];
     const uint32_t (*lut_startAddrBnProcBuf_CNG10) [lut_numCnInCnGroups[5]] = (const uint32_t(*)[lut_numCnInCnGroups[5]]) p_lut->startAddrBnProcBuf[5];
 
     const uint8_t (*lut_bnPosBnProcBuf_CNG3)  [lut_numCnInCnGroups[0]] = (const uint8_t(*)[lut_numCnInCnGroups[0]]) p_lut->bnPosBnProcBuf[0];
-    const uint8_t (*lut_bnPosBnProcBuf_CNG4)  [lut_numCnInCnGroups[1]] = (const uint8_t(*)[lut_numCnInCnGroups[1]]) p_lut->bnPosBnProcBuf[1];
-    const uint8_t (*lut_bnPosBnProcBuf_CNG5)  [lut_numCnInCnGroups[2]] = (const uint8_t(*)[lut_numCnInCnGroups[2]]) p_lut->bnPosBnProcBuf[2];
-    const uint8_t (*lut_bnPosBnProcBuf_CNG6)  [lut_numCnInCnGroups[3]] = (const uint8_t(*)[lut_numCnInCnGroups[3]]) p_lut->bnPosBnProcBuf[3];
     const uint8_t (*lut_bnPosBnProcBuf_CNG8)  [lut_numCnInCnGroups[4]] = (const uint8_t(*)[lut_numCnInCnGroups[4]]) p_lut->bnPosBnProcBuf[4];
     const uint8_t (*lut_bnPosBnProcBuf_CNG10) [lut_numCnInCnGroups[5]] = (const uint8_t(*)[lut_numCnInCnGroups[5]]) p_lut->bnPosBnProcBuf[5];
 
@@ -544,12 +539,16 @@ static inline void nrLDPC_cn2bnProcBuf_BG2(t_nrLDPC_lut* p_lut, int8_t* cnProcBu
     for (j=0; j<4; j++)
     {
         p_cnProcBufRes = &cnProcBufRes[lut_startAddrCnGroups[1] + j*bitOffsetInGroup];
-
-        for (i=0; i<lut_numCnInCnGroups[1]; i++)
-        {
-            idxBn = lut_startAddrBnProcBuf_CNG4[j][i] + lut_bnPosBnProcBuf_CNG4[j][i]*Z;
-            nrLDPC_inv_circ_memcpy(&bnProcBuf[idxBn],p_cnProcBufRes,Z,lut_circShift_CNG4[j][i]);
-            p_cnProcBufRes += Z;
+        if (lut_numCnInCnGroups[1]) {
+	  const uint32_t (*lut_startAddrBnProcBuf_CNG4)  [lut_numCnInCnGroups[1]] = (const uint32_t(*)[lut_numCnInCnGroups[1]]) p_lut->startAddrBnProcBuf[1];
+	  const uint8_t (*lut_bnPosBnProcBuf_CNG4)  [lut_numCnInCnGroups[1]] = (const uint8_t(*)[lut_numCnInCnGroups[1]]) p_lut->bnPosBnProcBuf[1];
+	  const uint16_t (*lut_circShift_CNG4)  [lut_numCnInCnGroups_BG2_R15[1]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[1]]) p_lut->circShift[1];
+	  for (i=0; i<lut_numCnInCnGroups[1]; i++)
+	    {     
+	      idxBn = lut_startAddrBnProcBuf_CNG4[j][i] + lut_bnPosBnProcBuf_CNG4[j][i]*Z;
+	      nrLDPC_inv_circ_memcpy(&bnProcBuf[idxBn],p_cnProcBufRes,Z,lut_circShift_CNG4[j][i]);
+	      p_cnProcBufRes += Z;
+	    }
         }
     }
 
@@ -561,12 +560,16 @@ static inline void nrLDPC_cn2bnProcBuf_BG2(t_nrLDPC_lut* p_lut, int8_t* cnProcBu
     for (j=0; j<5; j++)
     {
         p_cnProcBufRes = &cnProcBufRes[lut_startAddrCnGroups[2] + j*bitOffsetInGroup];
-
-        for (i=0; i<lut_numCnInCnGroups[2]; i++)
-        {
-            idxBn = lut_startAddrBnProcBuf_CNG5[j][i] + lut_bnPosBnProcBuf_CNG5[j][i]*Z;
-            nrLDPC_inv_circ_memcpy(&bnProcBuf[idxBn],p_cnProcBufRes,Z,lut_circShift_CNG5[j][i]);
-            p_cnProcBufRes += Z;
+        if (lut_numCnInCnGroups[2]) {
+	  const uint32_t (*lut_startAddrBnProcBuf_CNG5)  [lut_numCnInCnGroups[2]] = (const uint32_t(*)[lut_numCnInCnGroups[2]]) p_lut->startAddrBnProcBuf[2];
+	  const uint8_t (*lut_bnPosBnProcBuf_CNG5)  [lut_numCnInCnGroups[2]] = (const uint8_t(*)[lut_numCnInCnGroups[2]]) p_lut->bnPosBnProcBuf[2];
+	  const uint16_t (*lut_circShift_CNG5)  [lut_numCnInCnGroups_BG2_R15[2]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[2]]) p_lut->circShift[2];
+	  for (i=0; i<lut_numCnInCnGroups[2]; i++)
+	    {
+	      idxBn = lut_startAddrBnProcBuf_CNG5[j][i] + lut_bnPosBnProcBuf_CNG5[j][i]*Z;
+	      nrLDPC_inv_circ_memcpy(&bnProcBuf[idxBn],p_cnProcBufRes,Z,lut_circShift_CNG5[j][i]);
+	      p_cnProcBufRes += Z;
+	    }
         }
     }
 
@@ -578,12 +581,16 @@ static inline void nrLDPC_cn2bnProcBuf_BG2(t_nrLDPC_lut* p_lut, int8_t* cnProcBu
     for (j=0; j<6; j++)
     {
         p_cnProcBufRes = &cnProcBufRes[lut_startAddrCnGroups[3] + j*bitOffsetInGroup];
-
-        for (i=0; i<lut_numCnInCnGroups[3]; i++)
-        {
-            idxBn = lut_startAddrBnProcBuf_CNG6[j][i] + lut_bnPosBnProcBuf_CNG6[j][i]*Z;
-            nrLDPC_inv_circ_memcpy(&bnProcBuf[idxBn],p_cnProcBufRes,Z,lut_circShift_CNG6[j][i]);
-            p_cnProcBufRes += Z;
+        if (lut_numCnInCnGroups[3]) {
+	  const uint32_t (*lut_startAddrBnProcBuf_CNG6)  [lut_numCnInCnGroups[3]] = (const uint32_t(*)[lut_numCnInCnGroups[3]]) p_lut->startAddrBnProcBuf[3];
+	  const uint8_t (*lut_bnPosBnProcBuf_CNG6)  [lut_numCnInCnGroups[3]] = (const uint8_t(*)[lut_numCnInCnGroups[3]]) p_lut->bnPosBnProcBuf[3];
+	  const uint16_t (*lut_circShift_CNG6)  [lut_numCnInCnGroups_BG2_R15[3]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[3]]) p_lut->circShift[3];
+	  for (i=0; i<lut_numCnInCnGroups[3]; i++)
+	    {
+	      idxBn = lut_startAddrBnProcBuf_CNG6[j][i] + lut_bnPosBnProcBuf_CNG6[j][i]*Z;
+	      nrLDPC_inv_circ_memcpy(&bnProcBuf[idxBn],p_cnProcBufRes,Z,lut_circShift_CNG6[j][i]);
+	      p_cnProcBufRes += Z;
+	    }
         }
     }
 
@@ -634,9 +641,6 @@ static inline void nrLDPC_cn2bnProcBuf_BG1(t_nrLDPC_lut* p_lut, int8_t* cnProcBu
     const uint32_t* lut_startAddrCnGroups = p_lut->startAddrCnGroups;
 
     const uint16_t (*lut_circShift_CNG3) [lut_numCnInCnGroups_BG1_R13[0]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[0]]) p_lut->circShift[0];
-    const uint16_t (*lut_circShift_CNG4) [lut_numCnInCnGroups_BG1_R13[1]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[1]]) p_lut->circShift[1];
-    const uint16_t (*lut_circShift_CNG5) [lut_numCnInCnGroups_BG1_R13[2]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[2]]) p_lut->circShift[2];
-    const uint16_t (*lut_circShift_CNG6) [lut_numCnInCnGroups_BG1_R13[3]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[3]]) p_lut->circShift[3];
     const uint16_t (*lut_circShift_CNG7) [lut_numCnInCnGroups_BG1_R13[4]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[4]]) p_lut->circShift[4];
     const uint16_t (*lut_circShift_CNG8) [lut_numCnInCnGroups_BG1_R13[5]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[5]]) p_lut->circShift[5];
     const uint16_t (*lut_circShift_CNG9) [lut_numCnInCnGroups_BG1_R13[6]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[6]]) p_lut->circShift[6];
@@ -644,18 +648,11 @@ static inline void nrLDPC_cn2bnProcBuf_BG1(t_nrLDPC_lut* p_lut, int8_t* cnProcBu
     const uint16_t (*lut_circShift_CNG19)[lut_numCnInCnGroups_BG1_R13[8]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[8]]) p_lut->circShift[8];
 
     const uint32_t (*lut_startAddrBnProcBuf_CNG3) [lut_numCnInCnGroups[0]] = (const uint32_t(*)[lut_numCnInCnGroups[0]]) p_lut->startAddrBnProcBuf[0];
-    const uint32_t (*lut_startAddrBnProcBuf_CNG4) [lut_numCnInCnGroups[1]] = (const uint32_t(*)[lut_numCnInCnGroups[1]]) p_lut->startAddrBnProcBuf[1];
-    const uint32_t (*lut_startAddrBnProcBuf_CNG5) [lut_numCnInCnGroups[2]] = (const uint32_t(*)[lut_numCnInCnGroups[2]]) p_lut->startAddrBnProcBuf[2];
-    const uint32_t (*lut_startAddrBnProcBuf_CNG6) [lut_numCnInCnGroups[3]] = (const uint32_t(*)[lut_numCnInCnGroups[3]]) p_lut->startAddrBnProcBuf[3];
-    const uint32_t (*lut_startAddrBnProcBuf_CNG7) [lut_numCnInCnGroups[4]] = (const uint32_t(*)[lut_numCnInCnGroups[4]]) p_lut->startAddrBnProcBuf[4];
     const uint32_t (*lut_startAddrBnProcBuf_CNG8) [lut_numCnInCnGroups[5]] = (const uint32_t(*)[lut_numCnInCnGroups[5]]) p_lut->startAddrBnProcBuf[5];
     const uint32_t (*lut_startAddrBnProcBuf_CNG9) [lut_numCnInCnGroups[6]] = (const uint32_t(*)[lut_numCnInCnGroups[6]]) p_lut->startAddrBnProcBuf[6];
     const uint32_t (*lut_startAddrBnProcBuf_CNG10)[lut_numCnInCnGroups[7]] = (const uint32_t(*)[lut_numCnInCnGroups[7]]) p_lut->startAddrBnProcBuf[7];
     const uint32_t (*lut_startAddrBnProcBuf_CNG19)[lut_numCnInCnGroups[8]] = (const uint32_t(*)[lut_numCnInCnGroups[8]]) p_lut->startAddrBnProcBuf[8];
 
-    const uint8_t (*lut_bnPosBnProcBuf_CNG4) [lut_numCnInCnGroups[1]] = (const uint8_t(*)[lut_numCnInCnGroups[1]]) p_lut->bnPosBnProcBuf[1];
-    const uint8_t (*lut_bnPosBnProcBuf_CNG5) [lut_numCnInCnGroups[2]] = (const uint8_t(*)[lut_numCnInCnGroups[2]]) p_lut->bnPosBnProcBuf[2];
-    const uint8_t (*lut_bnPosBnProcBuf_CNG6) [lut_numCnInCnGroups[3]] = (const uint8_t(*)[lut_numCnInCnGroups[3]]) p_lut->bnPosBnProcBuf[3];
     const uint8_t (*lut_bnPosBnProcBuf_CNG7) [lut_numCnInCnGroups[4]] = (const uint8_t(*)[lut_numCnInCnGroups[4]]) p_lut->bnPosBnProcBuf[4];
     const uint8_t (*lut_bnPosBnProcBuf_CNG8) [lut_numCnInCnGroups[5]] = (const uint8_t(*)[lut_numCnInCnGroups[5]]) p_lut->bnPosBnProcBuf[5];
     const uint8_t (*lut_bnPosBnProcBuf_CNG9) [lut_numCnInCnGroups[6]] = (const uint8_t(*)[lut_numCnInCnGroups[6]]) p_lut->bnPosBnProcBuf[6];
@@ -687,13 +684,17 @@ static inline void nrLDPC_cn2bnProcBuf_BG1(t_nrLDPC_lut* p_lut, int8_t* cnProcBu
     for (j=0; j<4; j++)
     {
         p_cnProcBufRes = &cnProcBufRes[lut_startAddrCnGroups[1] + j*bitOffsetInGroup];
-
-        for (i=0; i<lut_numCnInCnGroups[1]; i++)
-        {
-            idxBn = lut_startAddrBnProcBuf_CNG4[j][i] + lut_bnPosBnProcBuf_CNG4[j][i]*Z;
-            nrLDPC_inv_circ_memcpy(&bnProcBuf[idxBn],p_cnProcBufRes,Z,lut_circShift_CNG4[j][i]);
-            p_cnProcBufRes += Z;
-        }
+        if (lut_numCnInCnGroups[1]) {
+	    const uint32_t (*lut_startAddrBnProcBuf_CNG4) [lut_numCnInCnGroups[1]] = (const uint32_t(*)[lut_numCnInCnGroups[1]]) p_lut->startAddrBnProcBuf[1];
+	    const uint8_t (*lut_bnPosBnProcBuf_CNG4) [lut_numCnInCnGroups[1]] = (const uint8_t(*)[lut_numCnInCnGroups[1]]) p_lut->bnPosBnProcBuf[1];
+	    const uint16_t (*lut_circShift_CNG4) [lut_numCnInCnGroups_BG1_R13[1]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[1]]) p_lut->circShift[1];
+	    for (i=0; i<lut_numCnInCnGroups[1]; i++)
+	      {
+		idxBn = lut_startAddrBnProcBuf_CNG4[j][i] + lut_bnPosBnProcBuf_CNG4[j][i]*Z;
+		nrLDPC_inv_circ_memcpy(&bnProcBuf[idxBn],p_cnProcBufRes,Z,lut_circShift_CNG4[j][i]);
+		p_cnProcBufRes += Z;
+	      }
+	}
     }
 
     // =====================================================================
@@ -704,13 +705,17 @@ static inline void nrLDPC_cn2bnProcBuf_BG1(t_nrLDPC_lut* p_lut, int8_t* cnProcBu
     for (j=0; j<5; j++)
     {
         p_cnProcBufRes = &cnProcBufRes[lut_startAddrCnGroups[2] + j*bitOffsetInGroup];
-
-        for (i=0; i<lut_numCnInCnGroups[2]; i++)
-        {
-            idxBn = lut_startAddrBnProcBuf_CNG5[j][i] + lut_bnPosBnProcBuf_CNG5[j][i]*Z;
-            nrLDPC_inv_circ_memcpy(&bnProcBuf[idxBn],p_cnProcBufRes,Z,lut_circShift_CNG5[j][i]);
-            p_cnProcBufRes += Z;
-        }
+	if (lut_numCnInCnGroups[2]) {
+	  const uint32_t (*lut_startAddrBnProcBuf_CNG5) [lut_numCnInCnGroups[2]] = (const uint32_t(*)[lut_numCnInCnGroups[2]]) p_lut->startAddrBnProcBuf[2];
+	  const uint8_t (*lut_bnPosBnProcBuf_CNG5) [lut_numCnInCnGroups[2]] = (const uint8_t(*)[lut_numCnInCnGroups[2]]) p_lut->bnPosBnProcBuf[2];
+	  const uint16_t (*lut_circShift_CNG5) [lut_numCnInCnGroups_BG1_R13[2]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[2]]) p_lut->circShift[2];
+	  for (i=0; i<lut_numCnInCnGroups[2]; i++)
+	    {
+	      idxBn = lut_startAddrBnProcBuf_CNG5[j][i] + lut_bnPosBnProcBuf_CNG5[j][i]*Z;
+	      nrLDPC_inv_circ_memcpy(&bnProcBuf[idxBn],p_cnProcBufRes,Z,lut_circShift_CNG5[j][i]);
+	      p_cnProcBufRes += Z;
+	    }
+	}
     }
 
     // =====================================================================
@@ -721,13 +726,17 @@ static inline void nrLDPC_cn2bnProcBuf_BG1(t_nrLDPC_lut* p_lut, int8_t* cnProcBu
     for (j=0; j<6; j++)
     {
         p_cnProcBufRes = &cnProcBufRes[lut_startAddrCnGroups[3] + j*bitOffsetInGroup];
-
-        for (i=0; i<lut_numCnInCnGroups[3]; i++)
-        {
-            idxBn = lut_startAddrBnProcBuf_CNG6[j][i] + lut_bnPosBnProcBuf_CNG6[j][i]*Z;
-            nrLDPC_inv_circ_memcpy(&bnProcBuf[idxBn],p_cnProcBufRes,Z,lut_circShift_CNG6[j][i]);
-            p_cnProcBufRes += Z;
-        }
+	if (lut_numCnInCnGroups[3]) {
+	  const uint32_t (*lut_startAddrBnProcBuf_CNG6) [lut_numCnInCnGroups[3]] = (const uint32_t(*)[lut_numCnInCnGroups[3]]) p_lut->startAddrBnProcBuf[3];
+	  const uint8_t (*lut_bnPosBnProcBuf_CNG6) [lut_numCnInCnGroups[3]] = (const uint8_t(*)[lut_numCnInCnGroups[3]]) p_lut->bnPosBnProcBuf[3];
+	  const uint16_t (*lut_circShift_CNG6) [lut_numCnInCnGroups_BG1_R13[3]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[3]]) p_lut->circShift[3];
+	  for (i=0; i<lut_numCnInCnGroups[3]; i++)
+	    {
+	      idxBn = lut_startAddrBnProcBuf_CNG6[j][i] + lut_bnPosBnProcBuf_CNG6[j][i]*Z;
+	      nrLDPC_inv_circ_memcpy(&bnProcBuf[idxBn],p_cnProcBufRes,Z,lut_circShift_CNG6[j][i]);
+	      p_cnProcBufRes += Z;
+	    }
+	}
     }
 
     // =====================================================================
@@ -738,13 +747,15 @@ static inline void nrLDPC_cn2bnProcBuf_BG1(t_nrLDPC_lut* p_lut, int8_t* cnProcBu
     for (j=0; j<7; j++)
     {
         p_cnProcBufRes = &cnProcBufRes[lut_startAddrCnGroups[4] + j*bitOffsetInGroup];
-
+if (lut_numCnInCnGroups[4]) {
+	  const uint32_t (*lut_startAddrBnProcBuf_CNG7) [lut_numCnInCnGroups[4]] = (const uint32_t(*)[lut_numCnInCnGroups[4]]) p_lut->startAddrBnProcBuf[4];
         for (i=0; i<lut_numCnInCnGroups[4]; i++)
         {
             idxBn = lut_startAddrBnProcBuf_CNG7[j][i] + lut_bnPosBnProcBuf_CNG7[j][i]*Z;
             nrLDPC_inv_circ_memcpy(&bnProcBuf[idxBn],p_cnProcBufRes,Z,lut_circShift_CNG7[j][i]);
             p_cnProcBufRes += Z;
         }
+}
     }
 
     // =====================================================================
@@ -829,23 +840,14 @@ static inline void nrLDPC_bn2cnProcBuf_BG2(t_nrLDPC_lut* p_lut, int8_t* bnProcBu
     const uint32_t* lut_startAddrCnGroups = p_lut->startAddrCnGroups;
 
     const uint16_t (*lut_circShift_CNG3)  [lut_numCnInCnGroups_BG2_R15[0]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[0]]) p_lut->circShift[0];
-    const uint16_t (*lut_circShift_CNG4)  [lut_numCnInCnGroups_BG2_R15[1]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[1]]) p_lut->circShift[1];
-    const uint16_t (*lut_circShift_CNG5)  [lut_numCnInCnGroups_BG2_R15[2]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[2]]) p_lut->circShift[2];
-    const uint16_t (*lut_circShift_CNG6)  [lut_numCnInCnGroups_BG2_R15[3]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[3]]) p_lut->circShift[3];
     const uint16_t (*lut_circShift_CNG8)  [lut_numCnInCnGroups_BG2_R15[4]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[4]]) p_lut->circShift[4];
     const uint16_t (*lut_circShift_CNG10) [lut_numCnInCnGroups_BG2_R15[5]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[5]]) p_lut->circShift[5];
 
     const uint32_t (*lut_startAddrBnProcBuf_CNG3)  [lut_numCnInCnGroups[0]] = (const uint32_t(*)[lut_numCnInCnGroups[0]]) p_lut->startAddrBnProcBuf[0];
-    const uint32_t (*lut_startAddrBnProcBuf_CNG4)  [lut_numCnInCnGroups[1]] = (const uint32_t(*)[lut_numCnInCnGroups[1]]) p_lut->startAddrBnProcBuf[1];
-    const uint32_t (*lut_startAddrBnProcBuf_CNG5)  [lut_numCnInCnGroups[2]] = (const uint32_t(*)[lut_numCnInCnGroups[2]]) p_lut->startAddrBnProcBuf[2];
-    const uint32_t (*lut_startAddrBnProcBuf_CNG6)  [lut_numCnInCnGroups[3]] = (const uint32_t(*)[lut_numCnInCnGroups[3]]) p_lut->startAddrBnProcBuf[3];
     const uint32_t (*lut_startAddrBnProcBuf_CNG8)  [lut_numCnInCnGroups[4]] = (const uint32_t(*)[lut_numCnInCnGroups[4]]) p_lut->startAddrBnProcBuf[4];
     const uint32_t (*lut_startAddrBnProcBuf_CNG10) [lut_numCnInCnGroups[5]] = (const uint32_t(*)[lut_numCnInCnGroups[5]]) p_lut->startAddrBnProcBuf[5];
 
     const uint8_t (*lut_bnPosBnProcBuf_CNG3)  [lut_numCnInCnGroups[0]] = (const uint8_t(*)[lut_numCnInCnGroups[0]]) p_lut->bnPosBnProcBuf[0];
-    const uint8_t (*lut_bnPosBnProcBuf_CNG4)  [lut_numCnInCnGroups[1]] = (const uint8_t(*)[lut_numCnInCnGroups[1]]) p_lut->bnPosBnProcBuf[1];
-    const uint8_t (*lut_bnPosBnProcBuf_CNG5)  [lut_numCnInCnGroups[2]] = (const uint8_t(*)[lut_numCnInCnGroups[2]]) p_lut->bnPosBnProcBuf[2];
-    const uint8_t (*lut_bnPosBnProcBuf_CNG6)  [lut_numCnInCnGroups[3]] = (const uint8_t(*)[lut_numCnInCnGroups[3]]) p_lut->bnPosBnProcBuf[3];
     const uint8_t (*lut_bnPosBnProcBuf_CNG8)  [lut_numCnInCnGroups[4]] = (const uint8_t(*)[lut_numCnInCnGroups[4]]) p_lut->bnPosBnProcBuf[4];
     const uint8_t (*lut_bnPosBnProcBuf_CNG10) [lut_numCnInCnGroups[5]] = (const uint8_t(*)[lut_numCnInCnGroups[5]]) p_lut->bnPosBnProcBuf[5];
 
@@ -881,13 +883,18 @@ static inline void nrLDPC_bn2cnProcBuf_BG2(t_nrLDPC_lut* p_lut, int8_t* bnProcBu
 
     for (j=0; j<3; j++)
     {
+      if (lut_numCnInCnGroups[1]) {
+	const uint32_t (*lut_startAddrBnProcBuf_CNG4)  [lut_numCnInCnGroups[1]] = (const uint32_t(*)[lut_numCnInCnGroups[1]]) p_lut->startAddrBnProcBuf[1];
+	const uint8_t (*lut_bnPosBnProcBuf_CNG4)  [lut_numCnInCnGroups[1]] = (const uint8_t(*)[lut_numCnInCnGroups[1]]) p_lut->bnPosBnProcBuf[1];
+	const uint16_t (*lut_circShift_CNG4)  [lut_numCnInCnGroups_BG2_R15[1]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[1]]) p_lut->circShift[1];
         p_cnProcBuf = &cnProcBuf[lut_startAddrCnGroups[1] + j*bitOffsetInGroup];
         for (i=0; i<lut_numCnInCnGroups[1]; i++)
-        {
-            idxBn = lut_startAddrBnProcBuf_CNG4[j][i] + lut_bnPosBnProcBuf_CNG4[j][i]*Z;
-            nrLDPC_circ_memcpy(p_cnProcBuf, &bnProcBufRes[idxBn], Z, lut_circShift_CNG4[j][i]);
-            p_cnProcBuf += Z;
-        }
+	  {
+	    idxBn = lut_startAddrBnProcBuf_CNG4[j][i] + lut_bnPosBnProcBuf_CNG4[j][i]*Z;
+	    nrLDPC_circ_memcpy(p_cnProcBuf, &bnProcBufRes[idxBn], Z, lut_circShift_CNG4[j][i]);
+	    p_cnProcBuf += Z;
+	  }
+      }
     }
 
     // =====================================================================
@@ -898,12 +905,17 @@ static inline void nrLDPC_bn2cnProcBuf_BG2(t_nrLDPC_lut* p_lut, int8_t* bnProcBu
     for (j=0; j<4; j++)
     {
         p_cnProcBuf = &cnProcBuf[lut_startAddrCnGroups[2] + j*bitOffsetInGroup];
-        for (i=0; i<lut_numCnInCnGroups[2]; i++)
-        {
-            idxBn = lut_startAddrBnProcBuf_CNG5[j][i] + lut_bnPosBnProcBuf_CNG5[j][i]*Z;
-            nrLDPC_circ_memcpy(p_cnProcBuf, &bnProcBufRes[idxBn], Z, lut_circShift_CNG5[j][i]);
-            p_cnProcBuf += Z;
-        }
+	if (lut_numCnInCnGroups[2]) {
+	  const uint32_t (*lut_startAddrBnProcBuf_CNG5)  [lut_numCnInCnGroups[2]] = (const uint32_t(*)[lut_numCnInCnGroups[2]]) p_lut->startAddrBnProcBuf[2];
+	  const uint8_t (*lut_bnPosBnProcBuf_CNG5)  [lut_numCnInCnGroups[2]] = (const uint8_t(*)[lut_numCnInCnGroups[2]]) p_lut->bnPosBnProcBuf[2];
+	  const uint16_t (*lut_circShift_CNG5)  [lut_numCnInCnGroups_BG2_R15[2]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[2]]) p_lut->circShift[2];
+	  for (i=0; i<lut_numCnInCnGroups[2]; i++)
+	    {
+	      idxBn = lut_startAddrBnProcBuf_CNG5[j][i] + lut_bnPosBnProcBuf_CNG5[j][i]*Z;
+	      nrLDPC_circ_memcpy(p_cnProcBuf, &bnProcBufRes[idxBn], Z, lut_circShift_CNG5[j][i]);
+	      p_cnProcBuf += Z;
+	    }
+	}
     }
 
     // =====================================================================
@@ -914,12 +926,17 @@ static inline void nrLDPC_bn2cnProcBuf_BG2(t_nrLDPC_lut* p_lut, int8_t* bnProcBu
     for (j=0; j<5; j++)
     {
         p_cnProcBuf = &cnProcBuf[lut_startAddrCnGroups[3] + j*bitOffsetInGroup];
-        for (i=0; i<lut_numCnInCnGroups[3]; i++)
-        {
-            idxBn = lut_startAddrBnProcBuf_CNG6[j][i] + lut_bnPosBnProcBuf_CNG6[j][i]*Z;
-            nrLDPC_circ_memcpy(p_cnProcBuf, &bnProcBufRes[idxBn], Z, lut_circShift_CNG6[j][i]);
-            p_cnProcBuf += Z;
-        }
+	if (lut_numCnInCnGroups[3]) {
+	  const uint32_t (*lut_startAddrBnProcBuf_CNG6)  [lut_numCnInCnGroups[3]] = (const uint32_t(*)[lut_numCnInCnGroups[3]]) p_lut->startAddrBnProcBuf[3];
+	  const uint8_t (*lut_bnPosBnProcBuf_CNG6)  [lut_numCnInCnGroups[3]] = (const uint8_t(*)[lut_numCnInCnGroups[3]]) p_lut->bnPosBnProcBuf[3];
+	  const uint16_t (*lut_circShift_CNG6)  [lut_numCnInCnGroups_BG2_R15[3]] = (const uint16_t(*)[lut_numCnInCnGroups_BG2_R15[3]]) p_lut->circShift[3];
+	  for (i=0; i<lut_numCnInCnGroups[3]; i++)
+	    {
+	      idxBn = lut_startAddrBnProcBuf_CNG6[j][i] + lut_bnPosBnProcBuf_CNG6[j][i]*Z;
+	      nrLDPC_circ_memcpy(p_cnProcBuf, &bnProcBufRes[idxBn], Z, lut_circShift_CNG6[j][i]);
+	      p_cnProcBuf += Z;
+	    }
+	}
     }
 
     // =====================================================================
@@ -968,9 +985,6 @@ static inline void nrLDPC_bn2cnProcBuf_BG1(t_nrLDPC_lut* p_lut, int8_t* bnProcBu
     const uint32_t* lut_startAddrCnGroups = p_lut->startAddrCnGroups;
 
     const uint16_t (*lut_circShift_CNG3) [lut_numCnInCnGroups_BG1_R13[0]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[0]]) p_lut->circShift[0];
-    const uint16_t (*lut_circShift_CNG4) [lut_numCnInCnGroups_BG1_R13[1]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[1]]) p_lut->circShift[1];
-    const uint16_t (*lut_circShift_CNG5) [lut_numCnInCnGroups_BG1_R13[2]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[2]]) p_lut->circShift[2];
-    const uint16_t (*lut_circShift_CNG6) [lut_numCnInCnGroups_BG1_R13[3]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[3]]) p_lut->circShift[3];
     const uint16_t (*lut_circShift_CNG7) [lut_numCnInCnGroups_BG1_R13[4]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[4]]) p_lut->circShift[4];
     const uint16_t (*lut_circShift_CNG8) [lut_numCnInCnGroups_BG1_R13[5]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[5]]) p_lut->circShift[5];
     const uint16_t (*lut_circShift_CNG9) [lut_numCnInCnGroups_BG1_R13[6]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[6]]) p_lut->circShift[6];
@@ -978,18 +992,11 @@ static inline void nrLDPC_bn2cnProcBuf_BG1(t_nrLDPC_lut* p_lut, int8_t* bnProcBu
     const uint16_t (*lut_circShift_CNG19)[lut_numCnInCnGroups_BG1_R13[8]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[8]]) p_lut->circShift[8];
 
     const uint32_t (*lut_startAddrBnProcBuf_CNG3) [lut_numCnInCnGroups[0]] = (const uint32_t(*)[lut_numCnInCnGroups[0]]) p_lut->startAddrBnProcBuf[0];
-    const uint32_t (*lut_startAddrBnProcBuf_CNG4) [lut_numCnInCnGroups[1]] = (const uint32_t(*)[lut_numCnInCnGroups[1]]) p_lut->startAddrBnProcBuf[1];
-    const uint32_t (*lut_startAddrBnProcBuf_CNG5) [lut_numCnInCnGroups[2]] = (const uint32_t(*)[lut_numCnInCnGroups[2]]) p_lut->startAddrBnProcBuf[2];
-    const uint32_t (*lut_startAddrBnProcBuf_CNG6) [lut_numCnInCnGroups[3]] = (const uint32_t(*)[lut_numCnInCnGroups[3]]) p_lut->startAddrBnProcBuf[3];
-    const uint32_t (*lut_startAddrBnProcBuf_CNG7) [lut_numCnInCnGroups[4]] = (const uint32_t(*)[lut_numCnInCnGroups[4]]) p_lut->startAddrBnProcBuf[4];
     const uint32_t (*lut_startAddrBnProcBuf_CNG8) [lut_numCnInCnGroups[5]] = (const uint32_t(*)[lut_numCnInCnGroups[5]]) p_lut->startAddrBnProcBuf[5];
     const uint32_t (*lut_startAddrBnProcBuf_CNG9) [lut_numCnInCnGroups[6]] = (const uint32_t(*)[lut_numCnInCnGroups[6]]) p_lut->startAddrBnProcBuf[6];
     const uint32_t (*lut_startAddrBnProcBuf_CNG10)[lut_numCnInCnGroups[7]] = (const uint32_t(*)[lut_numCnInCnGroups[7]]) p_lut->startAddrBnProcBuf[7];
     const uint32_t (*lut_startAddrBnProcBuf_CNG19)[lut_numCnInCnGroups[8]] = (const uint32_t(*)[lut_numCnInCnGroups[8]]) p_lut->startAddrBnProcBuf[8];
 
-    const uint8_t (*lut_bnPosBnProcBuf_CNG4) [lut_numCnInCnGroups[1]] = (const uint8_t(*)[lut_numCnInCnGroups[1]]) p_lut->bnPosBnProcBuf[1];
-    const uint8_t (*lut_bnPosBnProcBuf_CNG5) [lut_numCnInCnGroups[2]] = (const uint8_t(*)[lut_numCnInCnGroups[2]]) p_lut->bnPosBnProcBuf[2];
-    const uint8_t (*lut_bnPosBnProcBuf_CNG6) [lut_numCnInCnGroups[3]] = (const uint8_t(*)[lut_numCnInCnGroups[3]]) p_lut->bnPosBnProcBuf[3];
     const uint8_t (*lut_bnPosBnProcBuf_CNG7) [lut_numCnInCnGroups[4]] = (const uint8_t(*)[lut_numCnInCnGroups[4]]) p_lut->bnPosBnProcBuf[4];
     const uint8_t (*lut_bnPosBnProcBuf_CNG8) [lut_numCnInCnGroups[5]] = (const uint8_t(*)[lut_numCnInCnGroups[5]]) p_lut->bnPosBnProcBuf[5];
     const uint8_t (*lut_bnPosBnProcBuf_CNG9) [lut_numCnInCnGroups[6]] = (const uint8_t(*)[lut_numCnInCnGroups[6]]) p_lut->bnPosBnProcBuf[6];
@@ -1024,13 +1031,17 @@ static inline void nrLDPC_bn2cnProcBuf_BG1(t_nrLDPC_lut* p_lut, int8_t* bnProcBu
     for (j=0; j<3; j++)
     {
         p_cnProcBuf = &cnProcBuf[lut_startAddrCnGroups[1] + j*bitOffsetInGroup];
-
-        for (i=0; i<lut_numCnInCnGroups[1]; i++)
-        {
-            idxBn = lut_startAddrBnProcBuf_CNG4[j][i] + lut_bnPosBnProcBuf_CNG4[j][i]*Z;
-            nrLDPC_circ_memcpy(p_cnProcBuf, &bnProcBufRes[idxBn], Z, lut_circShift_CNG4[j][i]);
-            p_cnProcBuf += Z;
-         }
+	if (lut_numCnInCnGroups[1]) {
+	  const uint32_t (*lut_startAddrBnProcBuf_CNG4) [lut_numCnInCnGroups[1]] = (const uint32_t(*)[lut_numCnInCnGroups[1]]) p_lut->startAddrBnProcBuf[1];
+	  const uint8_t (*lut_bnPosBnProcBuf_CNG4) [lut_numCnInCnGroups[1]] = (const uint8_t(*)[lut_numCnInCnGroups[1]]) p_lut->bnPosBnProcBuf[1];
+	  const uint16_t (*lut_circShift_CNG4) [lut_numCnInCnGroups_BG1_R13[1]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[1]]) p_lut->circShift[1];
+	  for (i=0; i<lut_numCnInCnGroups[1]; i++)
+	    {
+	      idxBn = lut_startAddrBnProcBuf_CNG4[j][i] + lut_bnPosBnProcBuf_CNG4[j][i]*Z;
+	      nrLDPC_circ_memcpy(p_cnProcBuf, &bnProcBufRes[idxBn], Z, lut_circShift_CNG4[j][i]);
+	      p_cnProcBuf += Z;
+	    }
+	}
     }
     // =====================================================================
     // CN group with 5 BNs
@@ -1040,13 +1051,17 @@ static inline void nrLDPC_bn2cnProcBuf_BG1(t_nrLDPC_lut* p_lut, int8_t* bnProcBu
     for (j=0; j<4; j++)
     {
         p_cnProcBuf = &cnProcBuf[lut_startAddrCnGroups[2] + j*bitOffsetInGroup];
-    
-        for (i=0; i<lut_numCnInCnGroups[2]; i++)
-        {
-            idxBn = lut_startAddrBnProcBuf_CNG5[j][i] + lut_bnPosBnProcBuf_CNG5[j][i]*Z;
-            nrLDPC_circ_memcpy(p_cnProcBuf, &bnProcBufRes[idxBn], Z, lut_circShift_CNG5[j][i]);
-            p_cnProcBuf += Z;
-        }
+	if (lut_numCnInCnGroups[2]) {
+    	  const uint32_t (*lut_startAddrBnProcBuf_CNG5) [lut_numCnInCnGroups[2]] = (const uint32_t(*)[lut_numCnInCnGroups[2]]) p_lut->startAddrBnProcBuf[2];
+	  const uint8_t (*lut_bnPosBnProcBuf_CNG5) [lut_numCnInCnGroups[2]] = (const uint8_t(*)[lut_numCnInCnGroups[2]]) p_lut->bnPosBnProcBuf[2];
+	  const uint16_t (*lut_circShift_CNG5) [lut_numCnInCnGroups_BG1_R13[2]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[2]]) p_lut->circShift[2];
+	  for (i=0; i<lut_numCnInCnGroups[2]; i++)
+	    {
+	      idxBn = lut_startAddrBnProcBuf_CNG5[j][i] + lut_bnPosBnProcBuf_CNG5[j][i]*Z;
+	      nrLDPC_circ_memcpy(p_cnProcBuf, &bnProcBufRes[idxBn], Z, lut_circShift_CNG5[j][i]);
+	      p_cnProcBuf += Z;
+	    }
+	}
     }
 
     // =====================================================================
@@ -1057,13 +1072,17 @@ static inline void nrLDPC_bn2cnProcBuf_BG1(t_nrLDPC_lut* p_lut, int8_t* bnProcBu
     for (j=0; j<5; j++)
     {
         p_cnProcBuf = &cnProcBuf[lut_startAddrCnGroups[3] + j*bitOffsetInGroup];
-      
-        for (i=0; i<lut_numCnInCnGroups[3]; i++)
-        {
-            idxBn = lut_startAddrBnProcBuf_CNG6[j][i] + lut_bnPosBnProcBuf_CNG6[j][i]*Z;
-            nrLDPC_circ_memcpy(p_cnProcBuf, &bnProcBufRes[idxBn], Z, lut_circShift_CNG6[j][i]);
-            p_cnProcBuf += Z;
-        }
+	if (lut_numCnInCnGroups[3]) {
+	  const uint32_t (*lut_startAddrBnProcBuf_CNG6) [lut_numCnInCnGroups[3]] = (const uint32_t(*)[lut_numCnInCnGroups[3]]) p_lut->startAddrBnProcBuf[3];
+	  const uint8_t (*lut_bnPosBnProcBuf_CNG6) [lut_numCnInCnGroups[3]] = (const uint8_t(*)[lut_numCnInCnGroups[3]]) p_lut->bnPosBnProcBuf[3];
+	  const uint16_t (*lut_circShift_CNG6) [lut_numCnInCnGroups_BG1_R13[3]] = (const uint16_t(*)[lut_numCnInCnGroups_BG1_R13[3]]) p_lut->circShift[3];
+	  for (i=0; i<lut_numCnInCnGroups[3]; i++)
+	    {
+	      idxBn = lut_startAddrBnProcBuf_CNG6[j][i] + lut_bnPosBnProcBuf_CNG6[j][i]*Z;
+	      nrLDPC_circ_memcpy(p_cnProcBuf, &bnProcBufRes[idxBn], Z, lut_circShift_CNG6[j][i]);
+	      p_cnProcBuf += Z;
+	    }
+	}
     }
 
     // =====================================================================
@@ -1074,14 +1093,15 @@ static inline void nrLDPC_bn2cnProcBuf_BG1(t_nrLDPC_lut* p_lut, int8_t* bnProcBu
     for (j=0; j<6; j++)
     {
         p_cnProcBuf = &cnProcBuf[lut_startAddrCnGroups[4] + j*bitOffsetInGroup];
-
-    
+if (lut_numCnInCnGroups[4]) {
+    	  const uint32_t (*lut_startAddrBnProcBuf_CNG7) [lut_numCnInCnGroups[4]] = (const uint32_t(*)[lut_numCnInCnGroups[4]]) p_lut->startAddrBnProcBuf[4];
         for (i=0; i<lut_numCnInCnGroups[4]; i++)
         {
             idxBn = lut_startAddrBnProcBuf_CNG7[j][i] + lut_bnPosBnProcBuf_CNG7[j][i]*Z;
             nrLDPC_circ_memcpy(p_cnProcBuf, &bnProcBufRes[idxBn], Z, lut_circShift_CNG7[j][i]);
             p_cnProcBuf += Z;
         }
+}
     }
 
     // =====================================================================

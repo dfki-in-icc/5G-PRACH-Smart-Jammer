@@ -90,6 +90,10 @@ static inline notifiedFIFO_elt_t *newNotifiedFIFO_elt(int size,
   ret->reponseFifo=reponseFifo;
   ret->processingFunc=processingFunc;
   // We set user data piece aligend 32 bytes to be able to process it with SIMD
+  ret->creationTime=0;
+  ret->startProcessingTime=0;
+  ret->endProcessingTime=0;
+  ret->returnTime=0;
   ret->msgData=(void *)((uint8_t*)ret+(sizeof(notifiedFIFO_elt_t)/32+1)*32);
   ret->malloced=true;
   return ret;

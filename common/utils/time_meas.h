@@ -31,6 +31,7 @@
 #include <pthread.h>
 #include <linux/kernel.h>
 #include <linux/types.h>
+#include <limits.h>
 // global var to enable openair performance profiler
 extern int opp_enabled;
 extern double cpu_freq_GHz  __attribute__ ((aligned(32)));;
@@ -62,7 +63,7 @@ typedef struct time_stats {
   oai_cputime_t in;          /*!< \brief time at measure starting point */
   oai_cputime_t diff;        /*!< \brief average difference between time at starting point and time at endpoint*/
   oai_cputime_t p_time;      /*!< \brief absolute process duration */
-  oai_cputime_t diff_square; /*!< \brief process duration square */
+  double diff_square; /*!< \brief process duration square */
   oai_cputime_t max;         /*!< \brief maximum difference between time at starting point and time at endpoint*/
   int trials;                /*!< \brief number of start point - end point iterations */
   int meas_flag;             /*!< \brief 1: stop_meas not called (consecutive calls of start_meas) */
@@ -151,13 +152,14 @@ static inline void stop_meas(time_stats_t *ts) {
     ts->diff += (out-ts->in);
     /// process duration is the difference between two clock points
     ts->p_time = (out-ts->in);
-    ts->diff_square += (out-ts->in)*(out-ts->in);
-
+    if (out-ts->in < UINT_MAX) 
+      ts->diff_square += (out-ts->in)*(double)(out-ts->in);
+    
     if ((out-ts->in) > ts->max)
-      ts->max = out-ts->in;
-
-    ts->meas_flag=0;
-  }
+	ts->max = out-ts->in;
+      
+      ts->meas_flag=0;
+    }
 }
 
 static inline void reset_meas(time_stats_t *ts) {

@@ -471,8 +471,8 @@ int nr_rx_pdsch(PHY_VARS_NR_UE *ue,
   
   if (cpumeas(CPUMEAS_GETSTATE))
     LOG_D(PHY, "[AbsSFN %u.%d] Slot%d Symbol %d: Channel Combine and zero forcing %5.2f \n",frame,nr_slot_rx,slot,symbol,ue->generic_stat_bis[proc->thread_id][slot].p_time/(cpuf*1000.0));
-
-    start_meas(&ue->generic_stat_bis[proc->thread_id][slot]);
+  
+  start_meas(&ue->generic_stat_bis[proc->thread_id][slot]);
   /* Store the valid DL RE's */
     pdsch_vars[gNB_id]->dl_valid_re[symbol-1] = nb_re_pdsch;
 
