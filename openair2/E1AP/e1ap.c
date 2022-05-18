@@ -1085,6 +1085,55 @@ void cuup_task_handle_sctp_association_resp(instance_t instance, sctp_new_associ
   e1apCUUP_send_SETUP_REQUEST(instance);
 }
 
+void cucp_task_send_sctp_init_req(instance_t instance, char *my_addr) {
+  LOG_I(E1AP, "E1AP_CUCP_SCTP_REQ(create socket)\n");
+  MessageDef  *message_p = NULL;
+  message_p = itti_alloc_new_message (TASK_CUCP_E1, 0, SCTP_INIT_MSG);
+  message_p->ittiMsg.sctp_init.port = E1AP_PORT_NUMBER;
+  message_p->ittiMsg.sctp_init.ppid = E1AP_SCTP_PPID;
+  message_p->ittiMsg.sctp_init.ipv4 = 1;
+  message_p->ittiMsg.sctp_init.ipv6 = 0;
+  message_p->ittiMsg.sctp_init.nb_ipv4_addr = 1;
+  message_p->ittiMsg.sctp_init.ipv4_address[0] = inet_addr(my_addr);
+  /*
+   * SR WARNING: ipv6 multi-homing fails sometimes for localhost.
+   * * * * Disable it for now.
+   */
+  message_p->ittiMsg.sctp_init.nb_ipv6_addr = 0;
+  message_p->ittiMsg.sctp_init.ipv6_address[0] = "0:0:0:0:0:0:0:1";
+  itti_send_msg_to_task(TASK_SCTP, instance, message_p);
+}
+
+void *E1AP_CUCP_task(void *arg) {
+  LOG_I(E1AP, "Starting E1AP at CU CP\n");
+  MessageDef *msg = NULL;
+  int         result;
+
+  while (1) {
+    itti_receive_msg(TASK_CUCP_E1, &msg);
+
+    switch (ITTI_MSG_ID(msg)) {
+      case E1AP_SETUP_REQ:
+        LOG_I(E1AP, "CUCP Task Received E1AP_SETUP_REQ for instance %ld. Initializing SCTP listener\n",
+              ITTI_MSG_DESTINATION_INSTANCE(msg));
+        e1ap_setup_req_t *req = &E1AP_SETUP_REQ(msg);
+        char *ipaddr;
+        if (req->CUCP_e1_ip_address.ipv4 == 0) {
+          LOG_E(E1AP, "No IPv4 address configured\n");
+          return -1;
+        }
+        else
+          ipaddr = req->CUCP_e1_ip_address.ipv4_address;
+        cucp_task_send_sctp_init_req(0, ipaddr);
+        break;
+
+      default:
+        LOG_E(E1AP, "Unknown message received in TASK_CUCP_E1\n");
+        break;
+    }
+  }
+}
+
 void *E1AP_CUUP_task(void *arg) {
   LOG_I(E1AP, "Starting E1AP at CU UP\n");
 
@@ -1111,6 +1160,10 @@ void *E1AP_CUUP_task(void *arg) {
       case SCTP_DATA_IND:
         LOG_I(E1AP, "CUUP Task Received SCTP_DATA_IND\n");
         cuup_task_handle_sctp_data_ind(instance, &msg->ittiMsg.sctp_data_ind);
+        break;
+
+      default:
+        LOG_E(E1AP, "Unknown message received in TASK_CUUP_E1\n");
         break;
     }
   }

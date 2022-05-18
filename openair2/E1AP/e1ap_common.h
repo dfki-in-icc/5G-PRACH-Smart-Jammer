@@ -30,6 +30,9 @@
 #define E1AP_SETUP_REQ(mSGpTR)                     (mSGpTR)->ittiMsg.e1ap_setup_req
 #define E1AP_SETUP_RESP(mSGpTR)                    (mSGpTR)->ittiMsg.e1ap_setup_resp
 
+#define E1AP_PORT_NUMBER 25
+#define E1AP_SCTP_PPID 63
+
 typedef f1ap_net_ip_address_t e1ap_net_ip_address_t;
 
 typedef int (*e1ap_message_processing_t)(
@@ -49,7 +52,6 @@ typedef struct e1ap_setup_req_s {
   uint64_t              gNB_cu_up_id;
   char *                gNB_cu_up_name;
   uint64_t              transac_id;
-  uint64_t              cn_support;
   int                   supported_plmns; 
   PLMN_ID_t             plmns[E1AP_MAX_NUM_PLMNS];
   uint16_t              sctp_in_streams;

@@ -67,6 +67,7 @@ static void configure_nr_rrc(uint32_t gnb_id)
   msg_p = itti_alloc_new_message (TASK_GNB_APP, 0, NRRRC_CONFIGURATION_REQ);
 
   if (RC.nrrrc[gnb_id]) {
+    set_node_type();
     RCconfig_NRRRC(msg_p,gnb_id, RC.nrrrc[gnb_id]);
     
     LOG_I(GNB_APP, "RRC starting with node type %d\n", RC.nrrrc[gnb_id]->node_type);
@@ -200,6 +201,30 @@ void *gNB_app_task(void *args_p)
           LOG_E(F1AP, "Create task for F1AP CU failed\n");
           AssertFatal(1==0,"exiting");
       }
+
+      if (RC.nrrrc[0]->cu_type == CPtype) {
+        if (itti_create_task(TASK_CUCP_E1, E1AP_CUCP_task, NULL) < 0) {
+          LOG_E(E1AP, "Create task for E1AP CP failed\n");
+          AssertFatal(1==0, "exiting");
+        }
+        // To initialize SCTP listener
+        msg_p = itti_alloc_new_message(TASK_GNB_APP, 0, E1AP_SETUP_REQ);
+        RCconfig_NR_CU_E1(msg_p, 0);
+
+        itti_send_msg_to_task(TASK_CUCP_E1, GNB_MODULE_ID_TO_INSTANCE(0), msg_p);
+      } else if (RC.nrrrc[0]->cu_type == UPtype) {
+        if (itti_create_task(TASK_CUUP_E1, E1AP_CUUP_task, NULL) < 0) {
+          LOG_E(E1AP, "Create task for E1AP UP failed\n");
+          AssertFatal(1==0, "exiting");
+        }
+        // configure E1AP here
+        LOG_I(GNB_APP, "ngran_gNB_CU: Allocating ITTI message for E1AP_SETUP_REQ\n");
+        msg_p = itti_alloc_new_message(TASK_GNB_APP, 0, E1AP_SETUP_REQ);
+        RCconfig_NR_CU_E1(msg_p, 0);
+
+        itti_send_msg_to_task(TASK_CUUP_E1, GNB_MODULE_ID_TO_INSTANCE(0), msg_p);
+      }
+
     }
 
     if (NODE_IS_DU(RC.nrrrc[0]->node_type)) {
