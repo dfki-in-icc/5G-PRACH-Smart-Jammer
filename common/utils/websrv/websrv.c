@@ -651,7 +651,7 @@ int websrv_callback_get_softmodemcmd(const struct _u_request * request, struct _
 			if (modulestruct->cmd[j].webfunc_getdata != NULL) {
 				webdatadef_t wdata;
 				modulestruct->cmd[j].webfunc_getdata(modulestruct->cmd[j].cmdname,websrvparams.dbglvl, &(wdata),NULL);
-				acmd =json_pack( "{s:s,s:{s:s,s:s}}", "name",modulestruct->cmd[j].cmdname,"question","display",wdata.tblname ,"type","string");
+				acmd =json_pack( "{s:s,s:{s:s,s:s,s:s}}", "name",modulestruct->cmd[j].cmdname,"question","display",wdata.tblname ,"answer","","type","string");
 			}
 		}else {
 		  acmd =json_pack( "{s:s}", "name",modulestruct->cmd[j].cmdname);
