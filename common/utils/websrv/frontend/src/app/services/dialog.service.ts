@@ -11,6 +11,7 @@ import { QuestionDialogComponent } from '../components/question/question.compone
 import { DialogComponent  } from '../components/dialog/dialog.component';
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
+import { CmdCtrl } from 'src/app/controls/cmd.control';
 
 @Injectable({
   providedIn: 'root',
@@ -78,7 +79,7 @@ export class DialogService {
       panelClass: 'varRespDialog',
     });
 
-    dialogRef.afterClosed().subscribe((_) => {
+    dialogRef.afterClosed().subscribe(() => {
       console.log('The dialog was closed');
       this.isDialogOpen = false;
     });
@@ -94,7 +95,7 @@ export class DialogService {
     });
   }
 
-  openConfirmDialog(question: string) {
+  openConfirmDialog(question: string){
     if (this.isDialogOpen) {
       return of(undefined);
     }
@@ -110,18 +111,21 @@ export class DialogService {
   }
 
 
-  openQuestionDialog(title:string, question: string) {
+  openQuestionDialog(title:string, control: CmdCtrl): Observable<string> {
     if (this.isDialogOpen) {
-      return of(undefined);
+      return of("");
     }
 
     this.isDialogOpen = true;
 
-    return this._dialog.open(QuestionDialogComponent, {
+    const dialogRef = this._dialog.open(QuestionDialogComponent, {
       width: '300px',
-      data: { title:title, question: question }
+      data: { title:title, control: CmdCtrl }
     })
-      .afterClosed()
-      .pipe(tap(() => this.isDialogOpen = false));
+    dialogRef.afterClosed().subscribe(() => {
+      this.isDialogOpen = false;
+    });
+    let retstr = control.question?control.question.answer:"";
+    return of(retstr)
   }
 }
