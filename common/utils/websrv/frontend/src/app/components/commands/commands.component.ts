@@ -80,13 +80,15 @@ export class CommandsComponent {
 
     const obs = control.confirm
       ? this.dialogService.openConfirmDialog(control.confirm).pipe(
-        filter(confirmed => confirmed)) : control.question 
-      ? this.dialogService.openQuestionDialog(this.selectedModule!.modulename() + " " + control.modulename(),control).pipe()
-        : of(null)
-    
-      
+        filter(confirmed => confirmed))
+      : of(null)
+
     this.rows$ = obs.pipe(
-      mergeMap(() => this.commandsApi.runCommand$(control.api(), control.question ? this.selectedModule!.modulename() : `${this.selectedModule!.nameFC.value}`)),
+      mergeMap(() => control.question
+        ? this.dialogService.openQuestionDialog(this.selectedModule!.modulename() + " " + control.modulename(), control)
+        : of(null)
+      ),
+      mergeMap(control => this.commandsApi.runCommand$(control!.api(), control!.question ? this.selectedModule!.modulename() : `${this.selectedModule!.nameFC.value}`)),
       mergeMap(resp => {
         if (resp.display[0]) return this.dialogService.openCmdDialog(resp, 'cmd ' + control.nameFC.value + ' response:')
         else return of(resp)
