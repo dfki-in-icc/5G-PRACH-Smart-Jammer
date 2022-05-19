@@ -6,6 +6,6 @@
   </mat-form-field>
 </div>
 <div fxLayoutGap=" 10px" mat-dialog-actions fxLayout="row" fxLayoutAlign="center start">
-  <button mat-button [mat-dialog-close]="data.control.question?.answer" cdkFocusInitial>Ok</button>
+  <button mat-button [mat-dialog-close]="data.control" cdkFocusInitial>Ok</button>
   <button mat-button (click)="onNoClick()">Cancel</button>
 </div>

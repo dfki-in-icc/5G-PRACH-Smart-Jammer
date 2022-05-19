@@ -86,7 +86,7 @@ export class CommandsComponent {
     this.rows$ = obs.pipe(
       mergeMap(() => control.question
         ? this.dialogService.openQuestionDialog(this.selectedModule!.modulename() + " " + control.modulename(), control)
-        : of(null)
+        : of(control)
       ),
       mergeMap(control => this.commandsApi.runCommand$(control!.api(), control!.question ? this.selectedModule!.modulename() : `${this.selectedModule!.nameFC.value}`)),
       mergeMap(resp => {

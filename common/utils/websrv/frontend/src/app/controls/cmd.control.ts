@@ -12,7 +12,7 @@ const enum CmdFCN {
 export class CmdCtrl extends FormGroup {
 
   confirm?: string
-  question?: IQuestion
+  question?:IQuestion
   cmdname: string
   constructor(cmd: ICommand) {
     super({});
@@ -27,7 +27,9 @@ export class CmdCtrl extends FormGroup {
   api() {
     const doc: ICommand = {
       name: this.nameFC.value,
-      param: { name: "", value: this.answerFC.value, type: this.question ? this.question?.type : IArgType.string, modifiable: false }
+      param: this.question
+        ? { name: this.question!.pname, value: this.answerFC.value, type: this.question!.type , modifiable: false }
+        : undefined
     };
 
     return doc;
