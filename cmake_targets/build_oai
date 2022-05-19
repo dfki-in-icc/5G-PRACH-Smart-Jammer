@@ -436,10 +436,20 @@ function main() {
               fi
             fi
             shift 2;;		
+      --build-ric-agent)
+	    BUILD_RIC_AGENT="True"
+      CMAKE_CMD="$CMAKE_CMD -DENABLE_RIC_AGENT=True"
+	    echo_info "Enabling RIC agent"
+	    shift 1;;    
         -k | --skip-shared-libraries)
             SKIP_SHARED_LIB_FLAG="True"
             echo_info "Skipping build of shared libraries, rfsimulator and transport protocol libraries"
             shift;;
+        --build-ran-slicing)
+        BUILD_RAN_SLICING="True"
+        CMAKE_CMD="$CMAKE_CMD -DENABLE_RAN_SLICING=True"
+        echo_info "Enabling RAN Slicing"
+        shift;;  
         --ninja)
             CMAKE_CMD="$CMAKE_CMD -GNinja"
             MAKE_CMD=ninja
@@ -787,7 +797,9 @@ function main() {
       echo "set ( DEADLINE_SCHEDULER \"${DEADLINE_SCHEDULER_FLAG_USER}\" )" >> $cmake_file
       echo "set ( CPU_AFFINITY \"${CPU_AFFINITY_FLAG_USER}\" )"             >> $cmake_file
       echo "set ( HWLAT \"${HWLAT}\" )"                                     >> $cmake_file
-      echo 'include(${CMAKE_CURRENT_SOURCE_DIR}/../CMakeLists.txt)'         >> $cmake_file    
+      echo 'include(${CMAKE_CURRENT_SOURCE_DIR}/../CMakeLists.txt)'         >> $cmake_file
+      echo "set ( ENABLE_RIC_AGENT $BUILD_RIC_AGENT )"                      >> $cmake_file
+      echo "set ( ENABLE_RAN_SLICING $BUILD_RAN_SLICING )"                  >> $cmake_file              
       cd $DIR/$hwlat_build_dir/build
       cmake ..
       compilations \
@@ -816,6 +828,8 @@ function main() {
       echo "set ( CPU_AFFINITY \"${CPU_AFFINITY_FLAG_USER}\" )"             >> $cmake_file
       echo "set ( HWLAT \"${HWLAT}\" )"                                     >> $cmake_file
       echo 'include(${CMAKE_CURRENT_SOURCE_DIR}/../CMakeLists.txt)'         >> $cmake_file    
+      echo "set ( ENABLE_RIC_AGENT $BUILD_RIC_AGENT )"                         >> $cmake_file
+      echo "set ( ENABLE_RAN_SLICING $BUILD_RAN_SLICING )"                  >> $cmake_file          
       cd $DIR/$hwlat_test_build_dir/build
       cmake ..
       compilations \

@@ -80,7 +80,9 @@ unsigned short config_frames[4] = {2,9,11,13};
 #include "gnb_paramdef.h"
 #include <openair3/ocp-gtpu/gtp_itf.h>
 #include "nfapi/oai_integration/vendor_ext.h"
-
+#ifdef ENABLE_RIC_AGENT
+  #include "ric_agent.h"
+#endif
 pthread_cond_t nfapi_sync_cond;
 pthread_mutex_t nfapi_sync_mutex;
 int nfapi_sync_var=-1; //!< protected by mutex \ref nfapi_sync_mutex
@@ -367,7 +369,13 @@ int create_gNB_tasks(uint32_t gnb_nb) {
       }
     }
   }
-
+#ifdef ENABLE_RIC_AGENT
+  //if (NODE_IS_CU(type)) {
+    RCconfig_ric_agent();
+    int rc = itti_create_task(TASK_RIC_AGENT, ric_agent_task, NULL);
+    AssertFatal(rc >= 0, "Create task for RIC_AGENT failed\n");
+  //}
+#endif
   return 0;
 }
 

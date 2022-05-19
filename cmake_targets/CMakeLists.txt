@@ -1161,6 +1161,183 @@ set(FSPT_MSG_LIB FSPT_MSG)
 message("fspt c dir is : ${FSPT_C_DIR}")
 include_directories (${FSPT_C_DIR})
 
+
+# O-RAN RIC Agent
+#################
+add_boolean_option(ENABLE_RIC_AGENT False "Enable O-RAN RIC agent")
+
+if(ENABLE_RIC_AGENT)
+
+  set(E2AP_DIR ${OPENAIR2_DIR}/RIC_AGENT/E2AP)
+
+  # E2AP ASN
+  set(E2AP_ASN_VERS R02)
+  set(E2AP_ASN_DIR ${E2AP_DIR}/MESSAGES/ASN1/${E2AP_ASN_VERS})
+  set(E2AP_C_DIR ${asn1_generated_dir}/E2AP/)
+  set(E2AP_ASN_FILE ${E2AP_ASN_DIR}/e2ap-v2.asn1)
+  #execute_process(
+  #    COMMAND ${OPENAIR_CMAKE}/tools/make_asn1c_includes_e2.sh "${E2AP_C_DIR}"
+  #    "${E2AP_ASN_FILE}" "E2AP_" -fno-include-deps -fincludes-quoted
+  #    RESULT_VARIABLE ret)
+  #if (NOT ${ret} STREQUAL 0)
+  #    message(FATAL_ERROR "${ret}: error")
+  #endif (NOT ${ret} STREQUAL 0)
+  add_custom_target (
+      e2ap_flag ALL
+      COMMAND ${OPENAIR_CMAKE}/tools/make_asn1c_includes_e2.sh "${E2AP_C_DIR}"
+      "${E2AP_ASN_FILE}" "E2AP_" -fno-include-deps -fincludes-quoted
+      DEPENDS $${E2AP_ASN_FILE}
+  )
+  file(GLOB E2AP_asn_source ${E2AP_C_DIR}/*.c)
+  add_library(E2AP_ASN ${E2AP_asn_source})
+  set(E2AP_ASN_LIB E2AP_ASN)
+  include_directories ("${E2AP_C_DIR}")
+
+  # E2AP
+  file(GLOB E2AP_source ${E2AP_DIR}/*.c)
+  add_library(E2AP ${E2AP_source})
+  set(E2AP_LIB E2AP)
+  include_directories (${E2AP_DIR})
+
+  # E2SM_KPM
+  # set(KPM_ASN_VERS R01)
+  set(KPM_ASN_VERS R02)
+
+  if (${KPM_ASN_VERS} STREQUAL R01)
+    set(E2SM_KPM_ASN_FILE e2sm-kpm-v01.00.asn1)
+  elseif (${KPM_ASN_VERS} STREQUAL R02)
+    # set(E2SM_KPM_ASN_FILE e2sm-kpm-v02.00.asn1)
+    # set(E2SM_KPM_ASN_FILE e2sm_kpm_v2.0.2-rm.asn)
+    set(E2SM_KPM_ASN_FILE e2sm_kpm_v2.0.3-changed.asn)
+  endif (${KPM_ASN_VERS} STREQUAL R01)
+
+  set(E2SM_KPM_DIR ${OPENAIR2_DIR}/RIC_AGENT/E2SM-KPM)
+
+  set(E2SM_KPM_ASN_DIR ${E2SM_KPM_DIR}/MESSAGES/ASN1/${KPM_ASN_VERS})
+  set(E2SM_KPM_C_DIR ${asn1_generated_dir}/E2SM-KPM/)
+  #execute_process(
+   #   COMMAND ${OPENAIR_CMAKE}/tools/make_asn1c_includes.sh "${E2SM_KPM_C_DIR}"
+    #  "${E2SM_KPM_ASN_DIR}/${E2SM_KPM_ASN_FILE}" "E2SM_KPM_" -fno-include-deps -fincludes-quoted
+     # RESULT_VARIABLE ret)
+  #if (NOT ${ret} STREQUAL 0)
+   #   message(FATAL_ERROR "${ret}: error")
+  #endif (NOT ${ret} STREQUAL 0)
+  add_custom_target (
+      e2sm_kpm_flag ALL
+      COMMAND ${OPENAIR_CMAKE}/tools/make_asn1c_includes_e2.sh "${E2SM_KPM_C_DIR}"
+      "${E2SM_KPM_ASN_DIR}/${E2SM_KPM_ASN_FILE}" "E2SM_KPM_" -fno-include-deps -fincludes-quoted
+      DEPENDS ${E2SM_KPM_ASN_DIR}/${E2SM_KPM_ASN_FILE})
+  file(GLOB E2SM_KPM_asn_source ${E2SM_KPM_C_DIR}/*.c)
+  add_library(E2SM_KPM_ASN ${E2SM_KPM_asn_source})
+  set(E2SM_KPM_ASN_LIB E2SM_KPM_ASN)
+  include_directories ("${E2SM_KPM_C_DIR}")
+
+  file(GLOB E2SM_KPM_source ${E2SM_KPM_DIR}/*.c)
+  add_library(E2SM_KPM ${E2SM_KPM_source} ${E2SM_KPM_asn_source})
+  set(E2SM_KPM_LIB E2SM_KPM)
+  include_directories (${E2SM_KPM_DIR})
+
+
+  ######## MET SM 
+
+  # E2SM_MET
+  set(MET_ASN_VERS R01)
+  # set(MET_ASN_VERS R02)
+
+  if (${MET_ASN_VERS} STREQUAL R01)
+    set(E2SM_MET_ASN_FILE e2sm-met.asn1)
+  elseif (${MET_ASN_VERS} STREQUAL R02)
+    # set(E2SM_MET_ASN_FILE e2sm-met-v02.00.asn1)
+    # set(E2SM_MET_ASN_FILE e2sm_met_v2.0.2-rm.asn)
+    set(E2SM_MET_ASN_FILE e2sm_met_v2.0.3-changed.asn)
+  endif (${MET_ASN_VERS} STREQUAL R01)
+
+  set(E2SM_MET_DIR ${OPENAIR2_DIR}/RIC_AGENT/E2SM-MET)
+
+  set(E2SM_MET_ASN_DIR ${E2SM_MET_DIR}/MESSAGES/ASN1/${MET_ASN_VERS})
+  set(E2SM_MET_C_DIR ${asn1_generated_dir}/E2SM-MET/)
+  execute_process(
+      COMMAND ${OPENAIR_CMAKE}/tools/make_asn1c_includes_e2.sh "${E2SM_MET_C_DIR}"
+      "${E2SM_MET_ASN_DIR}/${E2SM_MET_ASN_FILE}" "E2SM_MET_" -fno-include-deps -fincludes-quoted
+      RESULT_VARIABLE ret)
+  if (NOT ${ret} STREQUAL 0)
+      message(FATAL_ERROR "${ret}: error")
+  endif (NOT ${ret} STREQUAL 0)
+  add_custom_target (
+      e2sm_met_flag ALL
+      COMMAND ${OPENAIR_CMAKE}/tools/make_asn1c_includes_e2.sh "${E2SM_MET_C_DIR}"
+      "${E2SM_MET_ASN_DIR}/${E2SM_MET_ASN_FILE}" "E2SM_MET_" -fno-include-deps -fincludes-quoted
+      DEPENDS ${E2SM_MET_ASN_DIR}/${E2SM_MET_ASN_FILE})
+  file(GLOB E2SM_MET_asn_source ${E2SM_MET_C_DIR}/*.c)
+  add_library(E2SM_MET_ASN ${E2SM_MET_asn_source})
+  set(E2SM_MET_ASN_LIB E2SM_MET_ASN)
+  include_directories ("${E2SM_MET_C_DIR}")
+
+  file(GLOB E2SM_MET_source ${E2SM_MET_DIR}/*.c)
+  add_library(E2SM_MET ${E2SM_MET_source} ${E2SM_MET_asn_source})
+  set(E2SM_MET_LIB E2SM_MET)
+  include_directories (${E2SM_MET_DIR})
+
+  ######### End MET SM
+
+
+
+  # RIC_AGENT_LIB
+  set(RIC_AGENT_DIR ${OPENAIR2_DIR}/RIC_AGENT)
+  file(GLOB RIC_AGENT_source ${RIC_AGENT_DIR}/*.c)
+  include_directories ("${RIC_AGENT_DIR}")
+  add_library(RIC_AGENT ${RIC_AGENT_source})
+  add_dependencies(RIC_AGENT rrc_flag)
+  set(RIC_AGENT_LIB RIC_AGENT)
+
+else()
+  set(E2AP_ASN_LIB "")
+  set(E2AP_LIB "")
+  set(RIC_AGENT_LIB "")
+endif()
+
+# RAN SLICING
+#################
+add_boolean_option(ENABLE_RAN_SLICING False "Enable RAN Slicing")
+
+if(ENABLE_RAN_SLICING)
+
+  # E2SM_RSM
+  set(RSM_ASN_VERS R01)
+
+  if (${RSM_ASN_VERS} STREQUAL R01)
+    set(E2SM_RSM_ASN_FILE e2sm-rsm-v1.asn)
+    set(E2SM_COMMON_ASN_FILE ORAN-WG3.E2SM-v02.00.asn)
+  endif (${RSM_ASN_VERS} STREQUAL R01)
+
+  set(E2SM_RSM_DIR ${OPENAIR2_DIR}/RIC_AGENT/E2SM-RSM)
+
+  set(E2SM_RSM_ASN_DIR ${E2SM_RSM_DIR}/MESSAGES/ASN1/${RSM_ASN_VERS})
+  set(E2SM_RSM_C_DIR ${asn1_generated_dir}/E2SM-RSM/)
+  #execute_process(
+   #   COMMAND ${OPENAIR_CMAKE}/tools/make_asn1c_includes.sh "${E2SM_RSM_C_DIR}"
+    #  "${E2SM_RSM_ASN_DIR}/${E2SM_RSM_ASN_FILE} ${E2SM_RSM_ASN_DIR}/${E2SM_COMMON_ASN_FILE}" "E2SM_RSM_" -fno-include-deps -fincludes-quoted
+    #  RESULT_VARIABLE ret)
+  #if (NOT ${ret} STREQUAL 0)
+   #   message(FATAL_ERROR "${ret}: error")
+  #endif (NOT ${ret} STREQUAL 0)
+  add_custom_target (
+      e2sm_rsm_flag ALL
+      COMMAND ${OPENAIR_CMAKE}/tools/make_asn1c_includes_e2.sh "${E2SM_RSM_C_DIR}"
+      "${E2SM_RSM_ASN_DIR}/${E2SM_RSM_ASN_FILE} ${E2SM_RSM_ASN_DIR}/${E2SM_COMMON_ASN_FILE}" "E2SM_RSM_" -fno-include-deps -fincludes-quoted
+      DEPENDS ${E2SM_RSM_ASN_DIR}/${E2SM_RSM_ASN_FILE} ${E2SM_RSM_ASN_DIR}/${E2SM_COMMON_ASN_FILE})
+  file(GLOB E2SM_RSM_asn_source ${E2SM_RSM_C_DIR}/*.c)
+  add_library(E2SM_RSM_ASN ${E2SM_RSM_asn_source})
+  set(E2SM_RSM_ASN_LIB E2SM_RSM_ASN)
+  include_directories ("${E2SM_RSM_C_DIR}")
+
+  file(GLOB E2SM_RSM_source ${E2SM_RSM_DIR}/*.c)
+  add_library(E2SM_RSM ${E2SM_RSM_source} ${E2SM_RSM_asn_source})
+  set(E2SM_RSM_LIB E2SM_RSM)
+  include_directories (${E2SM_RSM_DIR})
+
+endif()
+
 set(PROTOBUF_LIB "protobuf-c")
 
 #set(PROTOBUF_LIB "protobuf") #for Cpp
@@ -2716,7 +2893,7 @@ target_link_libraries (nr-softmodem
   UTIL HASHTABLE SCTP_CLIENT SCHED_LIB SCHED_RU_LIB SCHED_NR_LIB PHY_NR PHY PHY_COMMON PHY_NR_COMMON PHY_RU GTPV1U SECU_CN SECU_OSA
   ITTI ${FLPT_MSG_LIB} ${FLEXRAN_AGENT_LIB} ${RAL_LIB} ${NAS_UE_LIB} RRC_LIB NR_RRC_LIB
   NGAP_LIB NGAP_GNB S1AP_LIB S1AP_ENB L2_LTE_NR L2_NR MAC_NR_COMMON NFAPI_COMMON_LIB NFAPI_LIB NFAPI_VNF_LIB NFAPI_PNF_LIB NFAPI_USER_LIB
-  X2AP_LIB X2AP_ENB F1AP_LIB F1AP M2AP_LIB M2AP_ENB M3AP_LIB M3AP_ENB ${FSPT_MSG_LIB}
+  X2AP_LIB X2AP_ENB F1AP_LIB F1AP M2AP_LIB M2AP_ENB M3AP_LIB M3AP_ENB  ${E2AP_ASN_LIB} ${E2AP_LIB} ${E2SM_KPM_ASN_LIB} ${E2SM_KPM_LIB} ${E2SM_KMET_ASN_LIB} ${E2SM_MET_LIB} ${E2SM_RSM_LIB} ${RIC_AGENT_LIB} ${FSPT_MSG_LIB}
   -Wl,--end-group z dl)
 
 target_link_libraries (nr-softmodem ${LIBXML2_LIBRARIES})
@@ -2996,7 +3173,8 @@ if (${T_TRACER})
         NFAPI_COMMON_LIB NFAPI_LIB NFAPI_PNF_LIB NFAPI_VNF_LIB NFAPI_USER_LIB
         PHY_COMMON PHY PHY_UE PHY_NR PHY_NR_COMMON PHY_NR_UE PHY_RU PHY_MEX
         L2 L2_LTE L2_NR L2_LTE_NR L2_UE NR_L2_UE L2_UE_LTE_NR MAC_NR_COMMON MAC_NR MAC_UE_NR NGAP_GNB
-        CN_UTILS GTPV1U SCTP_CLIENT MME_APP LIB_NAS_UE NB_IoT SIMU_COMMON SIMU SIMU_ETH OPENAIR0_LIB
+        CN_UTILS GTPV1U SCTP_CLIENT MME_APP LIB_NAS_UE NB_IoT SIMU_COMMON SIMU SIMU_ETH OPENAIR0_LIB ${E2AP_ASN_LIB} ${E2AP_LIB} ${E2SM_KPM_ASN_LIB} ${E2SM_KPM_LIB} ${E2SM_KMET_ASN_LIB} ${E2SM_MET_LIB}
+         ${E2SM_RSM_LIB} ${RIC_AGENT_LIB}
         ldpc_orig ldpc_optim ldpc_optim8seg ldpc dfts)
     if (TARGET ${i})
       add_dependencies(${i} generate_T)
