@@ -31,7 +31,11 @@ export class CmdCtrl extends FormGroup {
 
     return doc;
   }
-
+  
+  modulename() {
+      return this.cmdname;
+  }
+  
   get nameFC() {
     return this.get(CmdFCN.name) as FormControl;
   }
@@ -43,5 +47,7 @@ export class CmdCtrl extends FormGroup {
   get answerFC() {
     return this.get(CmdFCN.answer) as FormControl;
   }
+  
+
 }
 
