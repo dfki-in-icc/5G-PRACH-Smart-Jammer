@@ -1336,7 +1336,12 @@ pdcp_run (
   // IP/NAS -> PDCP traffic : TX, read the pkt from the upper layer buffer
   //  if (LINK_ENB_PDCP_TO_GTPV1U && ctxt_pP->enb_flag == ENB_FLAG_NO) {
   if (!get_softmodem_params()->emulate_l1 && (!EPC_MODE_ENABLED || ctxt_pP->enb_flag == ENB_FLAG_NO)) {
-    pdcp_fifo_read_input_sdus(ctxt_pP);
+    int nb_sdu_read_nas_to_pdcp = pdcp_fifo_read_input_sdus(ctxt_pP);
+    LOG_I(PDCP, "We got here %s %d UL: nb_sdu_read_nas_to_pdcp %d LINK_ENB_PDCP_TO_GTPV1U %d EPC_MODE_ENABLED  %d\n",
+                __FUNCTION__, __LINE__,
+                nb_sdu_read_nas_to_pdcp,
+                LINK_ENB_PDCP_TO_GTPV1U, EPC_MODE_ENABLED
+                );
   }
 
   // PDCP -> NAS/IP traffic: RX
@@ -1346,7 +1351,12 @@ pdcp_run (
     start_meas(&UE_pdcp_stats[ctxt_pP->module_id].pdcp_ip);
   }
   if (!get_softmodem_params()->emulate_l1) {
-    pdcp_fifo_flush_sdus(ctxt_pP);
+    int nb_sdu_sent_from_pdcp_to_nas = pdcp_fifo_flush_sdus(ctxt_pP);
+     LOG_I(PDCP, "We got here %s %d DL: nb_sdu_sent_from_pdcp_to_nas %d LINK_ENB_PDCP_TO_GTPV1U %d EPC_MODE_ENABLED  %d\n",
+                __FUNCTION__, __LINE__,
+                nb_sdu_sent_from_pdcp_to_nas,
+                LINK_ENB_PDCP_TO_GTPV1U, EPC_MODE_ENABLED
+                );
   }
 
   if (ctxt_pP->enb_flag) {
@@ -2233,7 +2243,7 @@ void rrc_pdcp_config_req (
 //-----------------------------------------------------------------------------
 {
   pdcp_t *pdcp_p = NULL;
-  hash_key_t       key           = PDCP_COLL_KEY_VALUE(ctxt_pP->module_id, ctxt_pP->rnti, ctxt_pP->enb_flag, rb_idP, srb_flagP);
+  hash_key_t       key           = PDCP_COLL_KEY_VALUE(ctxt_pP->module_id, ctxt_pP->rnti, ctxt_pP->enb_flag, rb_idP == DTCH ? 1:rb_idP, srb_flagP);
   hashtable_rc_t   h_rc;
   h_rc = hashtable_get(pdcp_coll_p, key, (void **)&pdcp_p);
 
@@ -2279,6 +2289,7 @@ void rrc_pdcp_config_req (
         pdcp_p->rx_hfn = 0;
         pdcp_p->last_submitted_pdcp_rx_sn = 4095;
         pdcp_p->first_missing_pdu = -1;
+        pdcp_p->security_activated = 0;
         break;
 
       case CONFIG_ACTION_MODIFY:
@@ -2342,6 +2353,7 @@ void rrc_pdcp_config_req (
           pdcp_p->next_pdcp_rx_sn = 0;
           pdcp_p->tx_hfn = 0;
           pdcp_p->rx_hfn = 0;
+          pdcp_p->rlc_mode = RLC_MODE_AM;
           /* SN of the last PDCP SDU delivered to upper layers */
           pdcp_p->last_submitted_pdcp_rx_sn = 4095;
 

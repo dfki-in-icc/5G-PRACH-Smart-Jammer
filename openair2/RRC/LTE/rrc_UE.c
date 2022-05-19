@@ -2134,13 +2134,13 @@ rrc_ue_process_mobilityControlInfo(
   //Resetting SRB1 and SRB2 and DRB0
 
   LOG_I(RRC,"[UE %d] : Update needed for rrc_pdcp_config_req (deprecated) and rrc_rlc_config_req commands(deprecated)\n", ctxt_pP->module_id);
-  rrc_pdcp_config_req (ctxt_pP, SRB_FLAG_YES, CONFIG_ACTION_RESET, DCCH,UNDEF_SECURITY_MODE);
+  rrc_pdcp_config_req (ctxt_pP, SRB_FLAG_YES, CONFIG_ACTION_RESET, ctxt_pP->module_id+DCCH,UNDEF_SECURITY_MODE);
   rrc_rlc_config_req(ctxt_pP, SRB_FLAG_YES, MBMS_FLAG_NO, CONFIG_ACTION_RESET,ctxt_pP->module_id+DCCH, Rlc_info_am_config);
   check_rlc_status(ctxt_pP, DCCH);
-  rrc_pdcp_config_req (ctxt_pP, SRB_FLAG_YES, CONFIG_ACTION_RESET, DCCH1,UNDEF_SECURITY_MODE);
+  rrc_pdcp_config_req (ctxt_pP, SRB_FLAG_YES, CONFIG_ACTION_RESET, ctxt_pP->module_id+DCCH1,UNDEF_SECURITY_MODE);
   rrc_rlc_config_req(ctxt_pP, SRB_FLAG_YES, MBMS_FLAG_NO, CONFIG_ACTION_RESET, ctxt_pP->module_id+DCCH1, Rlc_info_am_config);
   check_rlc_status(ctxt_pP, DCCH1);
-  rrc_pdcp_config_req (ctxt_pP, SRB_FLAG_NO, CONFIG_ACTION_RESET, DTCH,UNDEF_SECURITY_MODE);
+  rrc_pdcp_config_req (ctxt_pP, SRB_FLAG_NO, CONFIG_ACTION_RESET, ctxt_pP->module_id+DTCH,UNDEF_SECURITY_MODE);
   rrc_rlc_config_req(ctxt_pP, SRB_FLAG_NO, MBMS_FLAG_NO, CONFIG_ACTION_RESET, ctxt_pP->module_id+DTCH, Rlc_info_um);
   check_rlc_status(ctxt_pP, DTCH);
 
@@ -2187,11 +2187,11 @@ rrc_ue_process_mobilityControlInfo(
   const protocol_ctxt_t *const ho_ctxt_pP = &ho_ctxt;
   LOG_D(RRC, "source rnti = 0x%x vs  target rnti = 0x%x\n", ctxt_pP->rnti, ho_ctxt.rnti); 
 
-  rrc_pdcp_config_req(ho_ctxt_pP, SRB_FLAG_YES, CONFIG_ACTION_ADD, DCCH,UNDEF_SECURITY_MODE);
+  rrc_pdcp_config_req(ho_ctxt_pP, SRB_FLAG_YES, CONFIG_ACTION_ADD, ctxt_pP->module_id+DCCH,UNDEF_SECURITY_MODE);
   rrc_rlc_config_req(ho_ctxt_pP, SRB_FLAG_YES, MBMS_FLAG_NO, CONFIG_ACTION_ADD,ctxt_pP->module_id+DCCH, Rlc_info_am_config);
-  rrc_pdcp_config_req (ho_ctxt_pP, SRB_FLAG_YES, CONFIG_ACTION_ADD, DCCH1,UNDEF_SECURITY_MODE);
+  rrc_pdcp_config_req (ho_ctxt_pP, SRB_FLAG_YES, CONFIG_ACTION_ADD, ctxt_pP->module_id+DCCH1,UNDEF_SECURITY_MODE);
   rrc_rlc_config_req(ho_ctxt_pP, SRB_FLAG_YES, MBMS_FLAG_NO, CONFIG_ACTION_ADD, ctxt_pP->module_id+DCCH1, Rlc_info_am_config);
-  rrc_pdcp_config_req (ho_ctxt_pP, SRB_FLAG_NO, CONFIG_ACTION_ADD, DTCH,UNDEF_SECURITY_MODE);
+  rrc_pdcp_config_req (ho_ctxt_pP, SRB_FLAG_NO, CONFIG_ACTION_ADD, ctxt_pP->module_id+DTCH,UNDEF_SECURITY_MODE);
   rrc_rlc_config_req(ho_ctxt_pP, SRB_FLAG_NO, MBMS_FLAG_NO, CONFIG_ACTION_ADD, ctxt_pP->module_id+DTCH, Rlc_info_um);
 
   // Re-establish PDCP for all RBs that are established
@@ -6478,12 +6478,20 @@ rrc_rx_tx_ue(
 
     if (UE_rrc_inst[ctxt_pP->module_id].Info[enb_indexP].T304_cnt == 0) {
       UE_rrc_inst[ctxt_pP->module_id].Info[enb_indexP].T304_active = 0;
-      UE_rrc_inst[ctxt_pP->module_id].HandoverInfoUe.measFlag = 1;
-      LOG_E(RRC,"[UE %d] Handover failure..initiating connection re-establishment procedure... \n",
-            ctxt_pP->module_id);
-      //Implement 36.331, section 5.3.5.6 here
-      VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_RRC_RX_TX,VCD_FUNCTION_OUT);
-      return(RRC_Handover_failed);
+      LOG_I(RRC,"UE rrc state = %d (5: HO, 3: RRC_CON, 1: IDLE)\n",  UE_rrc_inst[ctxt_pP->module_id].Info[enb_indexP].State);
+      if (UE_rrc_inst[ctxt_pP->module_id].Info[enb_indexP].State == RRC_IDLE) {//TODO:: Remove it
+          UE_rrc_inst[ctxt_pP->module_id].HandoverInfoUe.measFlag = 0;
+          UE_rrc_inst[ctxt_pP->module_id].Info[enb_indexP].State == RRC_CONNECTED;
+          return (RRC_OK);
+      }
+      else {
+        UE_rrc_inst[ctxt_pP->module_id].HandoverInfoUe.measFlag = 1;
+        LOG_E(RRC,"[UE %d] Handover failure..initiating connection re-establishment procedure... \n",
+              ctxt_pP->module_id);
+        //Implement 36.331, section 5.3.5.6 here
+        VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_RRC_RX_TX,VCD_FUNCTION_OUT);
+        return(RRC_Handover_failed);
+      }
     }
 
     UE_rrc_inst[ctxt_pP->module_id].Info[enb_indexP].T304_cnt--;

@@ -1035,23 +1035,25 @@ rlc_op_status_t rrc_rlc_config_req   (
       break;
 
     case CONFIG_ACTION_ADD:
+    {
       if (ue != NULL)
         LOG_D(RLC, "%s:%d:%s: adding rb %d (is_srb %d) for UE %d\n", __FILE__, __LINE__, __FUNCTION__, (int)rb_idP, srb_flagP, ctxt_pP->rnti);
       else
         LOG_W(RLC, "adding ue with rb %d failed\n", (int)rb_idP);
+
+        /* default values from 36.331 9.2.1 */
+        int t_reordering       = 35;
+        int t_status_prohibit  = 0;
+        int t_poll_retransmit  = 45;
+        int poll_pdu           = -1;
+        int poll_byte          = -1;
+        int max_retx_threshold = 4;
+        ue->module_id = ctxt_pP->module_id;
+
       if (srb_flagP) {
         if (ue->srb[rb_idP-1] != NULL) {
           LOG_W(RLC, "warning rb %d already exist for ue %d, do nothing\n", (int)rb_idP, ctxt_pP->rnti);
         } else {
-          /* default values from 36.331 9.2.1 */
-          int t_reordering       = 35;
-          int t_status_prohibit  = 0;
-          int t_poll_retransmit  = 45;
-          int poll_pdu           = -1;
-          int poll_byte          = -1;
-          int max_retx_threshold = 4;
-          ue->module_id = ctxt_pP->module_id;
-  
           rlc_entity_t            *rlc_am;
           rlc_am = new_rlc_entity_am(100000,
                                     100000,
@@ -1066,23 +1068,25 @@ rlc_op_status_t rrc_rlc_config_req   (
           LOG_D(RLC, "added rb %d to UE RNTI 0x%x\n", (int)rb_idP, ctxt_pP->rnti);
         }
       } else {
-        if (ue->drb[rb_idP-1] != NULL) {
+        if (ue->drb[rb_idP-3] != NULL) {
           LOG_W(RLC, "warning rb %d already exist for ue 0x%d, do nothing\n", (int)rb_idP, ctxt_pP->rnti);
         } else {
-          rlc_entity_t            *rlc_um;
-          rlc_um = new_rlc_entity_um(1000000,
-                                    1000000,
+          rlc_entity_t            *rlc_am;
+          rlc_am = new_rlc_entity_am(100000,
+                                    100000,
                                     deliver_sdu, ue,
-                                    0,//LTE_T_Reordering_ms0,//t_reordering,
-                                    5//LTE_SN_FieldLength_size5//sn_field_length
-                                    );
-          rlc_ue_add_drb_rlc_entity(ue, rb_idP, rlc_um);
+                                    successful_delivery, ue,
+                                    max_retx_reached, ue,
+                                    t_reordering, t_status_prohibit,
+                                    t_poll_retransmit,
+                                    poll_pdu, poll_byte, max_retx_threshold);
+          rlc_ue_add_drb_rlc_entity(ue, rb_idP - 2, rlc_am);
 
           LOG_D(RLC, "added rb %d to UE RNTI %x\n", (int)rb_idP, ctxt_pP->rnti);
         }
       }
       break;
-
+    }
     default:
       LOG_W(RLC, "This operation %d was not yet implemented, do nothing\n", actionP);
       break;
