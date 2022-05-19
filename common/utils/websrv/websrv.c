@@ -501,12 +501,22 @@ int websrv_callback_set_softmodemvar(const struct _u_request * request, struct _
 	 return U_CALLBACK_COMPLETE;   
 }
 /* callback processing module url (<address>/oaisoftmodem/module/commands), post method */
-int websrv_processwebfunc(struct _u_response * response, cmdparser_t * modulestruct ,telnetshell_cmddef_t *cmd) {
+int websrv_processwebfunc(struct _u_response * response, cmdparser_t * modulestruct ,telnetshell_cmddef_t *cmd, json_t *jparams) {
   LOG_I(UTIL,"[websrv] : executing command %s %s\n",modulestruct->module,cmd->cmdname);
   
   if (cmd->cmdflags & TELNETSRV_CMDFLAG_GETWEBTBLDATA) {
 	webdatadef_t wdata;
     memset(&wdata,0,sizeof(wdata));
+    if (cmd->cmdflags & TELNETSRV_CMDFLAG_NEEDPARAM) {
+	  if ( jparams == NULL) {
+		LOG_W(UTIL,"No parameters sent by frontend for %s %s\n",modulestruct->module,cmd->cmdname);
+	  } else {
+		int b;
+		char *pname, *pvalue, *ptype;
+		json_unpack(jparams,"%s:%s,%s:%s,%s:%s,%s,%b","name",&pname,"value",&pvalue,"type",&ptype,"modifiable",&b);
+		wdata.numlines=strtol(pvalue,NULL,0);
+	  }
+	}
 	cmd->webfunc_getdata(cmd->cmdname,websrvparams.dbglvl,(webdatadef_t *)&wdata,NULL);	  
 	websrv_gettbldata_response(response,&wdata);
   } else {
@@ -551,7 +561,8 @@ int websrv_callback_exec_softmodemcmd(const struct _u_request * request, struct 
 		 msg="Unknown command in request body";
          for ( telnetshell_cmddef_t *cmd = modulestruct->cmd ; cmd->cmdfunc != NULL ;cmd++) {
            if ( strcmp(cmd->cmdname,vname) == 0 && (( cmd->cmdflags & TELNETSRV_CMDFLAG_TELNETONLY) == 0) ){
-			   httpstatus=websrv_processwebfunc(response,modulestruct,cmd);
+			 J=json_object_get(jsbody, "param");
+			 httpstatus=websrv_processwebfunc(response,modulestruct,cmd,J);
              break;
            }
          }//for
@@ -651,7 +662,7 @@ int websrv_callback_get_softmodemcmd(const struct _u_request * request, struct _
 			if (modulestruct->cmd[j].webfunc_getdata != NULL) {
 				webdatadef_t wdata;
 				modulestruct->cmd[j].webfunc_getdata(modulestruct->cmd[j].cmdname,websrvparams.dbglvl, &(wdata),NULL);
-				acmd =json_pack( "{s:s,s:{s:s,s:s,s:s}}", "name",modulestruct->cmd[j].cmdname,"question","display",wdata.tblname ,"answer","","type","string");
+				acmd =json_pack( "{s:s,s:{s:s,s:s,s:s}}", "name",modulestruct->cmd[j].cmdname,"question","display",wdata.tblname ,"pname","P0","type","string");
 			}
 		}else {
 		  acmd =json_pack( "{s:s}", "name",modulestruct->cmd[j].cmdname);

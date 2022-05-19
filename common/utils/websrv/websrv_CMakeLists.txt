@@ -35,6 +35,7 @@ add_custom_target (
 websrvfront
 WORKING_DIRECTORY ${WEBSRVROOT}/frontend
 COMMAND npm run build
+#COMMAND npm run builddev
 DEPENDS websrvfront_installjsdep
 )
 #install built files, required at exec time

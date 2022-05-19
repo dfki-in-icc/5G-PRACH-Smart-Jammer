@@ -125,10 +125,11 @@ export class DialogService {
         control: control
       }
     })
-    dialogRef.afterClosed().subscribe(() => {
-      this.isDialogOpen = false;
-    });
+    
+     return dialogRef
+      .afterClosed()
+      .pipe(tap(() => this.isDialogOpen = false));
 
-    return of(control)
+   
   }
 }

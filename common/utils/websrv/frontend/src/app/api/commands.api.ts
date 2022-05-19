@@ -57,7 +57,7 @@ export interface ITable {
 }
 export interface IQuestion {
     display:string;
-    answer:string
+    pname:string;
     type:IArgType;
 }
 export interface IResp {
