@@ -1,6 +1,10 @@
 #ifndef MAC_DATA_INFORMATION_ELEMENTS_H
 #define MAC_DATA_INFORMATION_ELEMENTS_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * 9 Information Elements (IE) , RIC Event Trigger Definition, RIC Action Definition, RIC Indication Header, RIC Indication Message, RIC Call Process ID, RIC Control Header, RIC Control Message, RIC Control Outcome and RAN Function Definition defined by ORAN-WG3.E2SM-v01.00.00 at Section 5
  */
@@ -53,7 +57,7 @@ typedef struct{
 
 void free_mac_ind_hdr(mac_ind_hdr_t* src); 
 
-mac_ind_hdr_t cp_mac_ind_hdr(mac_ind_hdr_t* src);
+mac_ind_hdr_t cp_mac_ind_hdr(mac_ind_hdr_t const* src);
 
 bool eq_mac_ind_hdr(mac_ind_hdr_t* m0, mac_ind_hdr_t* m1);
 
@@ -102,6 +106,8 @@ typedef struct
   int16_t slot;
 } mac_ue_stats_impl_t;
 
+mac_ue_stats_impl_t cp_mac_ue_stats_impl(mac_ue_stats_impl_t const* src);
+
 typedef struct {
   uint32_t len_ue_stats;
   mac_ue_stats_impl_t* ue_stats;
@@ -110,7 +116,7 @@ typedef struct {
 
 void free_mac_ind_msg(mac_ind_msg_t* src); 
 
-mac_ind_msg_t cp_mac_ind_msg(mac_ind_msg_t* src);
+mac_ind_msg_t cp_mac_ind_msg(mac_ind_msg_t const* src);
 
 bool eq_mac_ind_msg(mac_ind_msg_t* m0, mac_ind_msg_t* m1);
 
@@ -224,6 +230,10 @@ typedef struct{
   mac_call_proc_id_t* proc_id;
 } mac_ind_data_t;
 
+mac_ind_data_t cp_mac_ind_data( mac_ind_data_t const* src);
+
+void free_mac_ind_data(mac_ind_data_t* ind);
+
 ///////////////
 // RIC Control
 ///////////////
@@ -252,6 +262,10 @@ typedef struct{
 typedef struct{
   mac_func_def_t func_def;
 } mac_ric_service_update_t;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

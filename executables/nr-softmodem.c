@@ -1081,10 +1081,10 @@ int main( int argc, char **argv ) {
   const int mnc_digit_len = rrc->configuration.mnc_digit_length[0]; // 2;
   const int nb_id = rrc->configuration.cell_identity; //42;
   sm_io_ag_t io = {.read = read_RAN, .write = write_RAN};
-
+  args_t args = {.conf_file = "/usr/local/flexric/flexric.conf", .libs_dir = "/usr/local/flexric/"};
   printf("[E2 NODE]: mcc = %d mnc = %d mnc_digit = %d nd_id = %d \n", mcc, mnc, mnc_digit_len, nb_id);
 
-  init_agent_api( mcc, mnc, mnc_digit_len, nb_id, io);
+  init_agent_api( mcc, mnc, mnc_digit_len, nb_id, io, args);
 //////////////////////////////////
 //////////////////////////////////
 

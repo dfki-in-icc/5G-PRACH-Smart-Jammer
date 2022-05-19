@@ -22,6 +22,10 @@
 #ifndef SLICE_DATA_INFORMATION_ELEMENTS_H
 #define SLICE_DATA_INFORMATION_ELEMENTS_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * 9 Information Elements (IE) , RIC Event Trigger Definition, RIC Action Definition, RIC Indication Header, RIC Indication Message, RIC Call Process ID, RIC Control Header, RIC Control Message, RIC Control Outcome and RAN Function Definition defined by ORAN-WG3.E2SM-v01.00.00 at Section 5
  */
@@ -449,13 +453,13 @@ slice_func_def_t cp_slice_func_def(slice_func_def_t* src);
 bool eq_slice_func_def(slice_func_def_t* m0, slice_func_def_t* m1);
 
 
-
+/*
 void slice_free_ind_msg(slice_ind_msg_t* msg);
 
 void slice_free_ctrl_msg(slice_ctrl_msg_t* msg);
 
 void slice_free_ctrl_out(slice_ctrl_out_t* out);
-
+*/
 /////////////////////////////////////////////////
 //////////////////////////////////////////////////
 /////////////////////////////////////////////////
@@ -484,6 +488,10 @@ typedef struct{
   slice_ind_msg_t msg;
   slice_call_proc_id_t* proc_id;
 } slice_ind_data_t;
+
+void free_slice_ind_data(slice_ind_data_t* ind);
+
+slice_ind_data_t cp_slice_ind_data(slice_ind_data_t const* src);
 
 ///////////////
 // RIC Control
@@ -514,6 +522,9 @@ typedef struct{
   slice_func_def_t func_def;
 } slice_ric_service_update_t;
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

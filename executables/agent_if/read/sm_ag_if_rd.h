@@ -53,7 +53,9 @@ typedef struct{
 } sm_ag_if_rd_t;
 
 
-void free_sm_rd_if(sm_ag_if_rd_t* d);
+void free_sm_ag_if_rd(sm_ag_if_rd_t* d);
+
+sm_ag_if_rd_t cp_sm_ag_if_rd(sm_ag_if_rd_t const* d);
 
 
 #endif

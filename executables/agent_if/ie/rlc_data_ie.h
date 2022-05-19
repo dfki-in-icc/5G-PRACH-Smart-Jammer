@@ -22,6 +22,9 @@
 #ifndef RLC_DATA_INFORMATION_ELEMENTS_H
 #define RLC_DATA_INFORMATION_ELEMENTS_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
  * 9 Information Elements (IE) , RIC Event Trigger Definition, RIC Action Definition, RIC Indication Header, RIC Indication Message, RIC Call Process ID, RIC Control Header, RIC Control Message, RIC Control Outcome and RAN Function Definition defined by ORAN-WG3.E2SM-v01.00.00 at Section 5
@@ -70,9 +73,9 @@ typedef struct{
   uint32_t dummy;  
 } rlc_ind_hdr_t;
 
-void free_rlc_ind_hdr(rlc_ind_hdr_t* src); 
+void free_rlc_ind_hdr(rlc_ind_hdr_t* src);
 
-rlc_ind_hdr_t cp_rlc_ind_hdr(rlc_ind_hdr_t* src);
+rlc_ind_hdr_t cp_rlc_ind_hdr(rlc_ind_hdr_t const* src);
 
 bool eq_rlc_ind_hdr(rlc_ind_hdr_t* m0, rlc_ind_hdr_t* m1);
 
@@ -148,9 +151,9 @@ typedef struct {
 //  uint8_t slot;
 } rlc_ind_msg_t;
 
-void free_rlc_ind_msg(rlc_ind_msg_t* src); 
+void free_rlc_ind_msg(rlc_ind_msg_t* src);
 
-rlc_ind_msg_t cp_rlc_ind_msg(rlc_ind_msg_t* src);
+rlc_ind_msg_t cp_rlc_ind_msg(rlc_ind_msg_t const* src);
 
 bool eq_rlc_ind_msg(rlc_ind_msg_t* m0, rlc_ind_msg_t* m1);
 
@@ -270,6 +273,10 @@ typedef struct{
   rlc_call_proc_id_t* proc_id;
 } rlc_ind_data_t;
 
+void free_rlc_ind_data(rlc_ind_data_t* ind);
+
+rlc_ind_data_t cp_rlc_ind_data(rlc_ind_data_t const* src);
+
 ///////////////
 // RIC Control
 ///////////////
@@ -300,7 +307,9 @@ typedef struct{
 } rlc_ric_service_update_t;
 
 
-
+#ifdef __cplusplus
+}
+#endif
 
 
 
