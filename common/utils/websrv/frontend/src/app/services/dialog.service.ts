@@ -8,7 +8,7 @@ import { tap } from 'rxjs/internal/operators/tap';
 import { IResp } from '../api/commands.api';
 import { ConfirmDialogComponent } from '../components/confirm/confirm.component';
 import { QuestionDialogComponent } from '../components/question/question.component';
-import { DialogComponent  } from '../components/dialog/dialog.component';
+import { DialogComponent } from '../components/dialog/dialog.component';
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { CmdCtrl } from 'src/app/controls/cmd.control';
@@ -68,7 +68,7 @@ export class DialogService {
     if (this.isDialogOpen || !resp.display.length) {
       return of(resp);
     }
-   console.log('Open Var dialog');
+    console.log('Open Var dialog');
     this.isDialogOpen = true;
     const dialogRef = this._dialog.open(DialogComponent, {
       width: '900px',
@@ -95,7 +95,7 @@ export class DialogService {
     });
   }
 
-  openConfirmDialog(question: string){
+  openConfirmDialog(question: string) {
     if (this.isDialogOpen) {
       return of(undefined);
     }
@@ -111,21 +111,24 @@ export class DialogService {
   }
 
 
-  openQuestionDialog(title:string, control: CmdCtrl): Observable<string> {
+  openQuestionDialog(title: string, control: CmdCtrl) {
     if (this.isDialogOpen) {
-      return of("");
+      return of(control);
     }
 
     this.isDialogOpen = true;
 
     const dialogRef = this._dialog.open(QuestionDialogComponent, {
       width: '300px',
-      data: { title:title, control: CmdCtrl }
+      data: {
+        title: title,
+        control: control
+      }
     })
     dialogRef.afterClosed().subscribe(() => {
       this.isDialogOpen = false;
     });
-    let retstr = control.question?control.question.answer:"";
-    return of(retstr)
+
+    return of(control)
   }
 }

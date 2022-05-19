@@ -2,10 +2,10 @@
 <div mat-dialog-content>
   <mat-form-field appearance="fill">
     <label for="answer">{{data.control.question?.display}}</label>
-    <input id="answer" type="text" formControlName="answer" >
+    <input id="answer" type="text" [formControl]="data.control.answerFC">
   </mat-form-field>
 </div>
-<div fxLayoutGap="10px" mat-dialog-actions fxLayout="row" fxLayoutAlign="center start">
-    <button mat-button [mat-dialog-close]="data.control.question?.answer" cdkFocusInitial>Ok</button>
-    <button mat-button (click)="onNoClick()">Cancel</button>
+<div fxLayoutGap=" 10px" mat-dialog-actions fxLayout="row" fxLayoutAlign="center start">
+  <button mat-button [mat-dialog-close]="data.control.question?.answer" cdkFocusInitial>Ok</button>
+  <button mat-button (click)="onNoClick()">Cancel</button>
 </div>
