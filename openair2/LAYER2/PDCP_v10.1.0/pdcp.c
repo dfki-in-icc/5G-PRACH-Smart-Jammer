@@ -368,7 +368,6 @@ boolean_t pdcp_data_req(
         pdcp_control_plane_data_pdu_header pdu_header;
         pdu_header.sn = pdcp_get_next_tx_seq_number(pdcp_p);
         current_sn = pdu_header.sn;
-        LOG_D(PDCP, "Sequence number %d is assigned to current PDU with srb_flagP = 1 \n", current_sn);
         memset(&pdu_header.mac_i[0],0,PDCP_CONTROL_PLANE_DATA_PDU_MAC_I_SIZE);
         memset(&pdcp_pdu_p->data[sdu_buffer_sizeP + pdcp_header_len],0,PDCP_CONTROL_PLANE_DATA_PDU_MAC_I_SIZE);
 
@@ -390,7 +389,6 @@ boolean_t pdcp_data_req(
         pdu_header.dc = (modeP == PDCP_TRANSMISSION_MODE_DATA) ? PDCP_DATA_PDU_BIT_SET :  PDCP_CONTROL_PDU_BIT_SET;
         pdu_header.sn = pdcp_get_next_tx_seq_number(pdcp_p);
         current_sn = pdu_header.sn ;
-        LOG_I(PDCP, "Sequence number %d is assigned to current PDU with srb_flagP = 0 \n", current_sn);
 
         if (pdcp_serialize_user_plane_data_pdu_with_long_sn_buffer((unsigned char *)pdcp_pdu_p->data, &pdu_header) == FALSE) {
           LOG_E(PDCP, PROTOCOL_PDCP_CTXT_FMT" Cannot fill PDU buffer with relevant header fields!\n",
@@ -427,7 +425,7 @@ boolean_t pdcp_data_req(
         return FALSE;
       }
 
-      LOG_I(PDCP, "Sequence number %d is assigned to current PDU\n", current_sn);
+      LOG_D(PDCP, "Sequence number %d is assigned to current PDU\n", current_sn);
       /* Then append data... */
       memcpy(&pdcp_pdu_p->data[pdcp_header_len], sdu_buffer_pP, sdu_buffer_sizeP);
 
@@ -446,6 +444,7 @@ boolean_t pdcp_data_req(
         } else {
           start_meas(&UE_pdcp_stats[ctxt_pP->module_id].apply_security);
         }
+
         pdcp_apply_security(ctxt_pP,
                             pdcp_p,
                             srb_flagP,
@@ -463,7 +462,7 @@ boolean_t pdcp_data_req(
       }
 
       /* Print octets of outgoing data in hexadecimal form */
-      LOG_I(PDCP, "Following content with size %d will be sent over RLC (PDCP PDU header is the first two bytes)\n",
+      LOG_D(PDCP, "Following content with size %d will be sent over RLC (PDCP PDU header is the first two bytes)\n",
             pdcp_pdu_size);
       //util_print_hex_octets(PDCP, (unsigned char*)pdcp_pdu_p->data, pdcp_pdu_size);
       //util_flush_hex_octets(PDCP, (unsigned char*)pdcp_pdu->data, pdcp_pdu_size);
@@ -491,10 +490,9 @@ boolean_t pdcp_data_req(
      */
     LOG_DUMPMSG(PDCP,DEBUG_PDCP,(char *)pdcp_pdu_p->data,pdcp_pdu_size,
                 "[MSG] PDCP DL %s PDU on rb_id %ld\n",(srb_flagP)? "CONTROL" : "DATA", rb_idP);
-    LOG_I(PDCP, "[MSG] PDCP DL %s PDU on rb_id %ld\n",(srb_flagP)? "CONTROL" : "DATA", rb_idP);
 
     if ((pdcp_pdu_p!=NULL) && (srb_flagP == 0) && (ctxt_pP->enb_flag == 1)) {
-      LOG_I(PDCP, "pdcp data req on drb %ld, size %d, rnti %x, node_type %d \n",
+      LOG_D(PDCP, "pdcp data req on drb %ld, size %d, rnti %x, node_type %d \n",
             rb_idP, pdcp_pdu_size, ctxt_pP->rnti, RC.rrc ? RC.rrc[ctxt_pP->module_id]->node_type: -1);
 
       if (ctxt_pP->enb_flag == ENB_FLAG_YES && NODE_IS_DU(RC.rrc[ctxt_pP->module_id]->node_type)) {
@@ -507,7 +505,7 @@ boolean_t pdcp_data_req(
 	ret=FALSE;
         switch (rlc_status) {
           case RLC_OP_STATUS_OK:
-            LOG_I(PDCP, "Data sending request over RLC succeeded!\n");
+            LOG_D(PDCP, "Data sending request over RLC succeeded!\n");
             ret=TRUE;
             break;
 
@@ -562,7 +560,7 @@ boolean_t pdcp_data_req(
 
         switch (rlc_status) {
           case RLC_OP_STATUS_OK:
-            LOG_I(PDCP, "Data sending request over RLC succeeded!\n");
+            LOG_D(PDCP, "Data sending request over RLC succeeded!\n");
             ret=TRUE;
             break;
 
@@ -606,7 +604,7 @@ boolean_t pdcp_data_req(
       break;
   }
 
-  LOG_I(PDCP,"ueid %d lcid %d tx seq num %d\n", pdcp_uid, (int)(rb_idP+rb_offset), current_sn);
+  LOG_D(PDCP,"ueid %d lcid %d tx seq num %d\n", pdcp_uid, (int)(rb_idP+rb_offset), current_sn);
   Pdcp_stats_tx[ctxt_pP->module_id][pdcp_uid][rb_idP+rb_offset]++;
   Pdcp_stats_tx_tmp_w[ctxt_pP->module_id][pdcp_uid][rb_idP+rb_offset]++;
   Pdcp_stats_tx_bytes[ctxt_pP->module_id][pdcp_uid][rb_idP+rb_offset]+=sdu_buffer_sizeP;
@@ -1278,7 +1276,7 @@ pdcp_run (
             RRC_DCCH_DATA_REQ (msg_p).frame,
             0,
             RRC_DCCH_DATA_REQ (msg_p).eNB_index);
-          LOG_I(PDCP, PROTOCOL_CTXT_FMT"Received %s from %s: instance %ld, rb_id %ld, muiP %d, confirmP %d, mode %d\n",
+          LOG_D(PDCP, PROTOCOL_CTXT_FMT"Received %s from %s: instance %ld, rb_id %ld, muiP %d, confirmP %d, mode %d\n",
                 PROTOCOL_CTXT_ARGS(&ctxt),
                 ITTI_MSG_NAME (msg_p),
                 ITTI_MSG_ORIGIN_NAME(msg_p),
@@ -1336,12 +1334,7 @@ pdcp_run (
   // IP/NAS -> PDCP traffic : TX, read the pkt from the upper layer buffer
   //  if (LINK_ENB_PDCP_TO_GTPV1U && ctxt_pP->enb_flag == ENB_FLAG_NO) {
   if (!get_softmodem_params()->emulate_l1 && (!EPC_MODE_ENABLED || ctxt_pP->enb_flag == ENB_FLAG_NO)) {
-    int nb_sdu_read_nas_to_pdcp = pdcp_fifo_read_input_sdus(ctxt_pP);
-    LOG_I(PDCP, "We got here %s %d UL: nb_sdu_read_nas_to_pdcp %d LINK_ENB_PDCP_TO_GTPV1U %d EPC_MODE_ENABLED  %d\n",
-                __FUNCTION__, __LINE__,
-                nb_sdu_read_nas_to_pdcp,
-                LINK_ENB_PDCP_TO_GTPV1U, EPC_MODE_ENABLED
-                );
+    pdcp_fifo_read_input_sdus(ctxt_pP);
   }
 
   // PDCP -> NAS/IP traffic: RX
@@ -1351,12 +1344,7 @@ pdcp_run (
     start_meas(&UE_pdcp_stats[ctxt_pP->module_id].pdcp_ip);
   }
   if (!get_softmodem_params()->emulate_l1) {
-    int nb_sdu_sent_from_pdcp_to_nas = pdcp_fifo_flush_sdus(ctxt_pP);
-     LOG_I(PDCP, "We got here %s %d DL: nb_sdu_sent_from_pdcp_to_nas %d LINK_ENB_PDCP_TO_GTPV1U %d EPC_MODE_ENABLED  %d\n",
-                __FUNCTION__, __LINE__,
-                nb_sdu_sent_from_pdcp_to_nas,
-                LINK_ENB_PDCP_TO_GTPV1U, EPC_MODE_ENABLED
-                );
+    pdcp_fifo_flush_sdus(ctxt_pP);
   }
 
   if (ctxt_pP->enb_flag) {
@@ -2243,7 +2231,7 @@ void rrc_pdcp_config_req (
 //-----------------------------------------------------------------------------
 {
   pdcp_t *pdcp_p = NULL;
-  hash_key_t       key           = PDCP_COLL_KEY_VALUE(ctxt_pP->module_id, ctxt_pP->rnti, ctxt_pP->enb_flag, rb_idP == DTCH ? 1:rb_idP, srb_flagP);
+  hash_key_t       key           = PDCP_COLL_KEY_VALUE(ctxt_pP->module_id, ctxt_pP->rnti, ctxt_pP->enb_flag, rb_idP >= DTCH ? rb_idP - 2:rb_idP, srb_flagP);
   hashtable_rc_t   h_rc;
   h_rc = hashtable_get(pdcp_coll_p, key, (void **)&pdcp_p);
 

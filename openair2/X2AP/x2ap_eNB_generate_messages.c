@@ -686,8 +686,6 @@ int x2ap_eNB_generate_x2_handover_request (x2ap_eNB_instance_t *instance_p, x2ap
         memcpy (e_RABs_ToBeSetup_Item->uL_GTPtunnelEndpoint.transportLayerAddress.buf,
                         x2ap_handover_req->e_rabs_tobesetup[i].eNB_addr.buffer,
                         e_RABs_ToBeSetup_Item->uL_GTPtunnelEndpoint.transportLayerAddress.size);
-        for(int j = 0; j < e_RABs_ToBeSetup_Item->uL_GTPtunnelEndpoint.transportLayerAddress.size; j++)
-          X2AP_INFO("transportLayerAddress.buffer[%d] = %u\n", j, x2ap_handover_req->e_rabs_tobesetup[i].eNB_addr.buffer[j]);
 
         INT32_TO_OCTET_STRING(x2ap_handover_req->e_rabs_tobesetup[i].gtp_teid,&e_RABs_ToBeSetup_Item->uL_GTPtunnelEndpoint.gTP_TEID);
       }

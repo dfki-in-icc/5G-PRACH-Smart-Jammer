@@ -162,12 +162,7 @@ static void rrc_ue_generate_RRCConnectionSetupComplete(
  *  \param eNB_index Index of corresponding eNB/CH
  *  \param Transaction_id RRC transaction identifier
  */
-/*
-void rrc_ue_generate_RRCConnectionReconfigurationComplete(const protocol_ctxt_t *const ctxt_pP,
-                                                                 const uint8_t eNB_index,
-                                                                 const uint8_t Transaction_id,
-                                                                 OCTET_STRING_t *str);
-*/
+
 static void rrc_ue_generate_MeasurementReport(protocol_ctxt_t *const ctxt_pP, uint8_t eNB_index );
 
 static void rrc_ue_generate_nrMeasurementReport(protocol_ctxt_t *const ctxt_pP, uint8_t eNB_index );
@@ -2179,6 +2174,7 @@ rrc_ue_process_mobilityControlInfo(
                         (LTE_MBSFN_AreaInfoList_r9_t *)NULL
                        );
 
+  // Re-establish PDCP for all RBs that are established
   protocol_ctxt_t ho_ctxt = *ctxt_pP;
   ho_ctxt.rnti = 
       ((mobilityControlInfo->
@@ -2203,7 +2199,6 @@ rrc_ue_process_mobilityControlInfo(
   // rrc_rlc_config_req(ue_mod_idP+NB_eNB_INST,frameP,0,CONFIG_ACTION_ADD,ue_mod_idP+DCCH1,SIGNALLING_RADIO_BEARER,Rlc_info_am_config);
   // rrc_rlc_config_req(ue_mod_idP+NB_eNB_INST,frameP,0,CONFIG_ACTION_ADD,ue_mod_idP+DTCH,RADIO_ACCESS_BEARER,Rlc_info_um);
   UE_rrc_inst[ctxt_pP->module_id].Info[eNB_index].State = RRC_SI_RECEIVED;
-  
 }
 
 //-----------------------------------------------------------------------------
@@ -2345,7 +2340,6 @@ rrc_ue_decode_dcch(
               NULL);
             UE_rrc_inst[ctxt_pP->module_id].Info[eNB_indexP].State = RRC_HO_EXECUTION;
             UE_rrc_inst[ctxt_pP->module_id].Info[target_eNB_index].State = RRC_RECONFIGURED;
-            
             LOG_I(RRC, "[UE %d] State = RRC_RECONFIGURED during HO (eNB %d)\n",
                   ctxt_pP->module_id, target_eNB_index);
 #if ENABLE_RAL
@@ -4576,13 +4570,13 @@ void ue_measurement_report_triggering(protocol_ctxt_t *const ctxt_pP, const uint
 
                     ue->measReportList[i][j]->measId = ue->MeasId[i][j]->measId;
                     ue->measReportList[i][j]->numberOfReportsSent = 0;
-                    LOG_I(RRC,"Calling rrc_ue_generate_MeasurementReport\n");
+                    LOG_D(RRC,"Calling rrc_ue_generate_MeasurementReport\n");
                     rrc_ue_generate_MeasurementReport(
                       ctxt_pP,
                       eNB_index);
                     ue->HandoverInfoUe.measFlag = 1;
                   } else {
-                    LOG_I(RRC,"measReportList = %p\n", ue->measReportList[i][j]);
+                    LOG_D(RRC,"measReportList = %p\n", ue->measReportList[i][j]);
                     if(ue->measReportList[i][j] != NULL) {
                       free(ue->measReportList[i][j]);
                     }
@@ -4679,11 +4673,11 @@ uint8_t check_trigger_meas_event(
   float adj_eNB_rsrp_db;
   float src_eNB_rsrp_db;
   LOG_I(RRC,"[start of check_trigger_meas_event]\n");
-  LOG_D(RRC,"\t[UE %d] ofn(%ld) ocn(%ld) hys(%ld) ofs(%ld) ocs(%ld) ttt(%ld) rssi %3.1f\n",
+  LOG_D(RRC,"[UE %d] ofn(%ld) ocn(%ld) hys(%ld) ofs(%ld) ocs(%ld) ttt(%ld) rssi %3.1f\n",
         ue_mod_idP,
         ofn,ocn,hys,ofs,ocs,ttt,
         10*log10(get_RSSI(ue_mod_idP,0))-get_rx_total_gain_dB(ue_mod_idP,0));
-  LOG_D(RRC, "\t[UE %d] Frame %d: num_adj: %d eNB_idx: %d, NB_eNB_INST: %d\n",
+  LOG_D(RRC, "[UE %d] Frame %d: num_adj: %d eNB_idx: %d, NB_eNB_INST: %d\n",
         ue_mod_idP, frameP, get_n_adj_cells(ue_mod_idP,0), eNB_index, NB_eNB_INST);
 
   for (eNB_offset = 0; eNB_offset<1+get_n_adj_cells(ue_mod_idP,0); eNB_offset++) {
@@ -4713,17 +4707,17 @@ uint8_t check_trigger_meas_event(
                       adj_eNB_rsrp_db + ofn + ocn - hys);
       if(adj_eNB_rsrp_db + ofn + ocn - hys > src_eNB_rsrp_db + ofs + ocs - 1 /*+a3_offset*/) {
         UE_rrc_inst->measTimer[ue_cnx_index][meas_index][tmp_offset] += 2; //Called every subframe = 2ms
-        LOG_D(RRC,"\t\t[UE %d] Frame %d: Entry measTimer[%d][%d][%d]: %d currentCell: %d betterCell: %d \n",
+        LOG_D(RRC,"[UE %d] Frame %d: Entry measTimer[%d][%d][%d]: %d currentCell: %d betterCell: %d \n",
               ue_mod_idP, frameP, ue_cnx_index,meas_index,tmp_offset,UE_rrc_inst->measTimer[ue_cnx_index][meas_index][tmp_offset],0,eNB_offset);
       } else {
         UE_rrc_inst->measTimer[ue_cnx_index][meas_index][tmp_offset] = 0; //Exit condition: Resetting the measurement timer
-        LOG_D(RRC,"\t\t[UE %d] Frame %d: Exit measTimer[%d][%d][%d]: %d currentCell: %d betterCell: %d \n",
+        LOG_D(RRC,"[UE %d] Frame %d: Exit measTimer[%d][%d][%d]: %d currentCell: %d betterCell: %d \n",
               ue_mod_idP, frameP, ue_cnx_index,meas_index,tmp_offset,UE_rrc_inst->measTimer[ue_cnx_index][meas_index][tmp_offset],0,eNB_offset);
       }
 
       if (UE_rrc_inst->measTimer[ue_cnx_index][meas_index][tmp_offset] >= ttt) {
         UE_rrc_inst->HandoverInfoUe.targetCellId = get_adjacent_cell_id(ue_mod_idP,tmp_offset); //WARNING!!!...check this!
-        LOG_D(RRC,"\t\t[UE %d] Frame %d eNB %d: Handover triggered: targetCellId: %ld currentCellId: %d eNB_offset: %d rsrp source: %3.1f rsrp target: %3.1f\n",
+        LOG_D(RRC,"[UE %d] Frame %d eNB %d: Handover triggered: targetCellId: %ld currentCellId: %d eNB_offset: %d rsrp source: %3.1f rsrp target: %3.1f\n",
               ue_mod_idP, frameP, eNB_index,
               UE_rrc_inst->HandoverInfoUe.targetCellId,ue_cnx_index,eNB_offset,
               get_RSRP(ue_mod_idP,0,0),
@@ -6479,7 +6473,6 @@ rrc_rx_tx_ue(
 
     if (UE_rrc_inst[ctxt_pP->module_id].Info[enb_indexP].T304_cnt == 0) {
       UE_rrc_inst[ctxt_pP->module_id].Info[enb_indexP].T304_active = 0;
-      LOG_I(RRC,"UE rrc state = %d (5: HO, 3: RRC_CON, 1: IDLE)\n",  UE_rrc_inst[ctxt_pP->module_id].Info[enb_indexP].State);
       if (UE_rrc_inst[ctxt_pP->module_id].Info[enb_indexP].State == RRC_IDLE) {//TODO:: Remove it
           UE_rrc_inst[ctxt_pP->module_id].HandoverInfoUe.measFlag = 0;
           UE_rrc_inst[ctxt_pP->module_id].Info[enb_indexP].State == RRC_CONNECTED;

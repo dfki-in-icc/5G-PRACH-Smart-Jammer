@@ -419,7 +419,6 @@ void init_UE_standalone_thread(int ue_idx)
   }
 
   pthread_setname_np(thread, "oai:ue-stand");
-
 }
 
 void init_UE_stub(int nb_inst,
@@ -1161,22 +1160,7 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg) {
                            0,
                            0 /*FIXME CC_id*/);
 
-        LOG_I(PHY, "[UE %" PRIu8 "] Frame %" PRIu32 ", subframe %u ret %d %s UE_mode %d\n",
-                UE->Mod_id, rx_frame, NFAPI_SFNSF2SF(sfn_sf), ret, get_connectionloss_errstr(ret), 
-                UE_mac_inst[ue_Mod_id].UE_mode[0]);
-        if (ret == PHY_HO_PRACH){
-            //UL_INFO->rach_ind.header.phy_id = 1;
-            //next_ra_frame = 500;
-            //UE_mac_inst[ue_Mod_id].SI_Decoded = 1;
-            /*
-            UL_INFO->rx_ind.header.phy_id = 1;
-            UL_INFO->crc_ind.header.phy_id = 1;
-            UL_INFO->cqi_ind.header.phy_id = 1;
-            UL_INFO->sr_ind.header.phy_id = 1;
-            UL_INFO->harq_ind.header.phy_id = 1;
-            */
-        }
-        else if (ret != CONNECTION_OK){
+        if (ret != CONNECTION_OK) {
           LOG_E(PHY, "[UE %" PRIu8 "] Frame %" PRIu32 ", subframe %u %s\n",
                 UE->Mod_id, rx_frame, NFAPI_SFNSF2SF(sfn_sf), get_connectionloss_errstr(ret));
         }
@@ -1195,8 +1179,11 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg) {
             is_prach_subframe(&UE->frame_parms, NFAPI_SFNSF2SFN(sfn_sf), NFAPI_SFNSF2SF(sfn_sf))) {
           UE_mac_inst[ue_Mod_id].UE_mode[0] = PRACH;
         }
-        if (UE_mac_inst[ue_Mod_id].UE_mode[0] == PRACH)
-        { //&& ue_Mod_id == next_Mod_id) {
+
+        LOG_D(MAC, "UE_mode: %d\n", UE_mac_inst[ue_Mod_id].UE_mode[0]);
+
+        if (UE_mac_inst[ue_Mod_id].UE_mode[0] == PRACH) {
+          //&& ue_Mod_id == next_Mod_id) {
           next_ra_frame++;
 
           if (next_ra_frame > 500) {
@@ -1206,6 +1193,7 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg) {
               //if (is_prach_subframe(&UE->frame_parms,NFAPI_SFNSF2SFN(sfn_sf), NFAPI_SFNSF2SF(sfn_sf) && Mod_id == (module_id_t) init_ra_UE) ) {
               UL_INFO->rach_ind.header.phy_id = UE->frame_parms.Nid_cell;
               PRACH_RESOURCES_t *prach_resources = ue_get_rach(ue_Mod_id, 0, NFAPI_SFNSF2SFN(sfn_sf), 0, NFAPI_SFNSF2SF(sfn_sf));
+
               if (prach_resources != NULL) {
                 LOG_I(MAC, "preamble_received_tar_power: %d\n",
                       prach_resources->ra_PREAMBLE_RECEIVED_TARGET_POWER);
@@ -1219,10 +1207,9 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg) {
                 //next_ra_frame = (rx_frame + 20)%1000;
                 next_ra_frame = 0;
               }
+
               //ue_prach_procedures(ue,proc,eNB_id,abstraction_flag,mode);
             }
-
-            //ue_prach_procedures(ue,proc,eNB_id,abstraction_flag,mode);
           }
         } // mode is PRACH
 
@@ -1248,7 +1235,6 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg) {
       //LOG_D(PHY,"UL_info->crc_ind.crc_indication_body.number_of_crcs:%d CRC_IND:SFN/SF:%d\n", UL_info->crc_ind.crc_indication_body.number_of_crcs, NFAPI_SFNSF2DEC(UL_info->crc_ind.sfn_sf));
       //LOG_I(MAC, "ul_config_req_UE_MAC 2.2, SFN/SF of PNF counter:%d.%d, number_of_crcs: %d \n", timer_frame, timer_subframe, UL_INFO->crc_ind.crc_indication_body.number_of_crcs);
       UL_INFO->crc_ind.header.phy_id = UE->frame_parms.Nid_cell;
-      LOG_I(MAC,"CRC target eNB = %d\n",  UE->frame_parms.Nid_cell);
       send_standalone_msg(UL_INFO, UL_INFO->crc_ind.header.message_id);
       sent_any = true;
       //LOG_I(MAC, "ul_config_req_UE_MAC 2.21 \n");
@@ -1259,7 +1245,6 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg) {
       //LOG_D(PHY,"UL_info->rx_ind.number_of_pdus:%d RX_IND:SFN/SF:%d\n", UL_info->rx_ind.rx_indication_body.number_of_pdus, NFAPI_SFNSF2DEC(UL_info->rx_ind.sfn_sf));
       //LOG_I(MAC, "ul_config_req_UE_MAC 2.3, SFN/SF of PNF counter:%d.%d, number_of_pdus: %d \n", timer_frame, timer_subframe, UL_INFO->rx_ind.rx_indication_body.number_of_pdus);
       UL_INFO->rx_ind.header.phy_id = UE->frame_parms.Nid_cell;
-      LOG_I(MAC,"RX target eNB = %d\n",  UE->frame_parms.Nid_cell);
       send_standalone_msg(UL_INFO, UL_INFO->rx_ind.header.message_id);
       sent_any = true;
       //LOG_I(MAC, "ul_config_req_UE_MAC 2.31 \n");
@@ -1268,7 +1253,6 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg) {
 
     if (UL_INFO->cqi_ind.cqi_indication_body.number_of_cqis > 0) {
       UL_INFO->cqi_ind.header.phy_id = UE->frame_parms.Nid_cell;
-      LOG_I(MAC,"CQI target eNB = %d\n",  UE->frame_parms.Nid_cell);
       send_standalone_msg(UL_INFO, UL_INFO->cqi_ind.header.message_id);
       sent_any = true;
       UL_INFO->cqi_ind.cqi_indication_body.number_of_cqis = 0;

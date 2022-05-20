@@ -1035,7 +1035,7 @@ void *nrue_standalone_pnf_task(void *context)
       {
         slot_rnti_mcs[NFAPI_SFNSLOT2SLOT(ch_info->sfn_slot)].sinr = ch_info->csi[i].sinr;
 
-        LOG_D(NR_PHY, "Received_SINR[%d] = %f, sfn:slot %d:%d\n",
+        LOG_T(NR_PHY, "Received_SINR[%d] = %f, sfn:slot %d:%d\n",
               i, ch_info->csi[i].sinr, NFAPI_SFNSLOT2SFN(ch_info->sfn_slot), NFAPI_SFNSLOT2SLOT(ch_info->sfn_slot));
       }
 

@@ -247,9 +247,6 @@ void fill_rach_indication_UE_MAC(int Mod_id,
       .preamble_rel8.preamble = ra_PreambleIndex;
   UL_INFO->rach_ind.rach_indication_body.preamble_list[0].preamble_rel8.rnti =
       ra_RNTI;
-  UL_INFO->rach_ind.rach_indication_body.preamble_list[0].preamble_rel8.rnti =
-          ra_RNTI;
-
   // UL_INFO->rach_ind.rach_indication_body.number_of_preambles++;
 
   UL_INFO->rach_ind.rach_indication_body.preamble_list[0]
@@ -487,7 +484,7 @@ void handle_nfapi_ul_pdu_UE_MAC(module_id_t Mod_id,
                                 int index,
                                 nfapi_ul_config_request_t *ul_config_req) {
   if (ul_config_pdu->pdu_type == NFAPI_UL_CONFIG_ULSCH_PDU_TYPE) {
-    LOG_I(PHY,
+    LOG_D(PHY,
           "Applying UL config for UE, rnti %x rnti_ho 0x%x ho_active %d for frame %d, subframe %d\n",
           (ul_config_pdu->ulsch_pdu.ulsch_pdu_rel8).rnti,
           UE_mac_inst[Mod_id].crnti_for_ho,
@@ -496,13 +493,13 @@ void handle_nfapi_ul_pdu_UE_MAC(module_id_t Mod_id,
           subframe);
     uint8_t ulsch_buffer[5477] __attribute__((aligned(32)));
     uint16_t buflen = ul_config_pdu->ulsch_pdu.ulsch_pdu_rel8.size;
+
     uint16_t rnti = ul_config_pdu->ulsch_pdu.ulsch_pdu_rel8.rnti;
     uint8_t access_mode = SCHEDULED_ACCESS;
     if (buflen > 0) {
       if (UE_mac_inst[Mod_id].first_ULSCH_Tx == 1) { // Msg3 case
-        LOG_I(MAC,
-              "line %d handle_nfapi_ul_pdu_UE_MAC 2.2, Mod_id:%d, SFN/SF: %d/%d \n",
-              __LINE__,
+        LOG_D(MAC,
+              "handle_nfapi_ul_pdu_UE_MAC 2.2, Mod_id:%d, SFN/SF: %d/%d \n",
               Mod_id,
               frame,
               subframe);
@@ -521,7 +518,7 @@ void handle_nfapi_ul_pdu_UE_MAC(module_id_t Mod_id,
         //  Modification
         UE_mac_inst[Mod_id].UE_mode[0] = PUSCH;
         UE_mac_inst[Mod_id].first_ULSCH_Tx = 0;
-        //  Update for HO case
+
         if (UE_mac_inst[Mod_id].ho_active) {
           UE_mac_inst[Mod_id].crnti = UE_mac_inst[Mod_id].crnti_for_ho;
           UE_mac_inst[Mod_id].ho_active = false;
@@ -558,12 +555,6 @@ void handle_nfapi_ul_pdu_UE_MAC(module_id_t Mod_id,
     uint8_t access_mode = SCHEDULED_ACCESS;
     if (buflen > 0) {
       if (UE_mac_inst[Mod_id].first_ULSCH_Tx == 1) {
-        LOG_I(MAC,
-              "line %d handle_nfapi_ul_pdu_UE_MAC 2.2, Mod_id:%d, SFN/SF: %d/%d \n",
-              __LINE__,
-              Mod_id,
-              frame,
-              subframe);
         fill_crc_indication_UE_MAC(Mod_id, frame, subframe, UL_INFO, 0, index, rnti, ul_config_req);
         fill_rx_indication_UE_MAC(Mod_id,
                                   frame,
@@ -605,12 +596,6 @@ void handle_nfapi_ul_pdu_UE_MAC(module_id_t Mod_id,
     uint8_t access_mode = SCHEDULED_ACCESS;
     if (buflen > 0) {
       if (UE_mac_inst[Mod_id].first_ULSCH_Tx == 1) { // Msg3 case
-        LOG_I(MAC,
-              "line %d handle_nfapi_ul_pdu_UE_MAC 2.2, Mod_id:%d, SFN/SF: %d/%d \n",
-              __LINE__,
-              Mod_id,
-              frame,
-              subframe);
         fill_crc_indication_UE_MAC(Mod_id, frame, subframe, UL_INFO, 0, index, rnti, ul_config_req);
         fill_rx_indication_UE_MAC(Mod_id,
                                   frame,
@@ -651,12 +636,6 @@ void handle_nfapi_ul_pdu_UE_MAC(module_id_t Mod_id,
     uint8_t access_mode = SCHEDULED_ACCESS;
     if (buflen > 0) {
       if (UE_mac_inst[Mod_id].first_ULSCH_Tx == 1) { // Msg3 case
-        LOG_I(MAC,
-              "line %d handle_nfapi_ul_pdu_UE_MAC 2.2, Mod_id:%d, SFN/SF: %d/%d \n",
-              __LINE__,
-              Mod_id,
-              frame,
-              subframe);
         fill_crc_indication_UE_MAC(Mod_id, frame, subframe, UL_INFO, 0, index, rnti, ul_config_req);
         fill_rx_indication_UE_MAC(Mod_id,
                                   frame,
@@ -780,7 +759,7 @@ int ul_config_req_UE_MAC(nfapi_ul_config_request_t *req,
       handle_nfapi_ul_pdu_UE_MAC(
           Mod_id, pdu, sfn, sf, req->ul_config_request_body.srs_present, i, req);
     } else {
-      LOG_I(MAC, "UNKNOWN UL_CONFIG_REQ PDU_TYPE or RNTI not matching pdu type: %d\n", pdu_type);
+      LOG_D(MAC, "UNKNOWN UL_CONFIG_REQ PDU_TYPE or RNTI not matching pdu type: %d\n", pdu_type);
     }
   }
 
@@ -842,11 +821,10 @@ void dl_config_req_UE_MAC_dci(int sfn,
 
   LOG_I(MAC, "%s() rnti value: 0x%x rnti type: %d\n", __func__,
         rnti, rnti_type);
-  //if ((rnti_type == 1) || (UE_mac_inst[0].rach_ConfigDedicated != NULL)) { // C-RNTI (Normal DLSCH case)
   if (rnti_type == 1) { // C-RNTI (Normal DLSCH case)
     for (int ue_id = 0; ue_id < num_ue; ue_id++) {
       if (UE_mac_inst[ue_id].crnti == rnti) {
-        LOG_I(MAC,
+        LOG_D(MAC,
               "%s() Received data: sfn/sf:%d.%d "
               "size:%d, TX_PDU index: %d, tx_req_num_elems: %d \n",
               __func__,
@@ -1339,7 +1317,7 @@ void *ue_standalone_pnf_task(void *context)
       uint16_t sfn_sf = sfn_sf_info.sfn_sf;
       uint16_t phy_id = sfn_sf_info.phy_id;
 
-      LOG_I(MAC, "Received sfn_slot[%hu] frame: %u, subframe: %u from phy_id %u\n", sfn_sf_info.phy_id,
+      LOG_D(MAC, "Received sfn_slot[%hu] frame: %u, subframe: %u from phy_id %u\n", sfn_sf_info.phy_id,
             sfn_sf_info.sfn_sf >> 4, sfn_sf_info.sfn_sf & 15, phy_id);
       if (prev_sfn_sf == sfn_sf)
         ++same_tick;
@@ -1386,7 +1364,7 @@ void *ue_standalone_pnf_task(void *context)
           LOG_D(MAC, "Received_SINR[%d] = %f\n", i, ch_info.csi[i].sinr);
           assert(ch_info.csi[i].source > 0 && ch_info.csi[i].source <= 7); // 7 : max number of adj cells.
           sf_rnti_mcs[sf].rsrp[ch_info.csi[i].source - 1] = ch_info.csi[i].rsrp;
-          LOG_I(MAC, "Received_RSRP[0] = %f RSRP[1] = %f %s\n", 
+          LOG_D(MAC, "Received_RSRP[0] = %f RSRP[1] = %f %s\n", 
                       sf_rnti_mcs[sf].rsrp[0],
                       sf_rnti_mcs[sf].rsrp[1]);
         }

@@ -2432,8 +2432,7 @@ do_RRCConnectionReconfigurationComplete(
     rrcConnectionReconfigurationComplete->criticalExtensions.choice.rrcConnectionReconfigurationComplete_r8.nonCriticalExtension=NULL;
   }
 
-  if ( 1 || LOG_DEBUGFLAG(DEBUG_ASN1) ) {
-    LOG_I(RRC, "Showing ul_dcch_msg\n");
+  if ( LOG_DEBUGFLAG(DEBUG_ASN1) ) {
     xer_fprint(stdout, &asn_DEF_LTE_UL_DCCH_Message, (void *)&ul_dcch_msg);
   }
 
@@ -4211,11 +4210,11 @@ uint8_t do_MeasurementReport(uint8_t Mod_id, uint8_t *buffer, size_t buffer_size
   asn_set_empty(&measresult_cgi2->cellGlobalId.plmn_Identity.mcc->list);//.size=0;
 
   LTE_MCC_MNC_Digit_t dummy[6];
-  dummy[0]=3;//2
+  dummy[0]=3;
   ASN_SEQUENCE_ADD(&measresult_cgi2->cellGlobalId.plmn_Identity.mcc->list,&dummy[0]);
-  dummy[1]=2;//6
+  dummy[1]=2;
   ASN_SEQUENCE_ADD(&measresult_cgi2->cellGlobalId.plmn_Identity.mcc->list,&dummy[1]);
-  dummy[2]=0;//2
+  dummy[2]=0;
   ASN_SEQUENCE_ADD(&measresult_cgi2->cellGlobalId.plmn_Identity.mcc->list,&dummy[2]);
   measresult_cgi2->cellGlobalId.plmn_Identity.mnc.list.size=0;
   measresult_cgi2->cellGlobalId.plmn_Identity.mnc.list.count=0;
@@ -4228,32 +4227,30 @@ uint8_t do_MeasurementReport(uint8_t Mod_id, uint8_t *buffer, size_t buffer_size
 
   // cellIdentity is limited to 28 bits, hence bits_unused // 3GPP TS 23.003 (?)
   measresult_cgi2->cellGlobalId.cellIdentity.buf=MALLOC(8);
-  measresult_cgi2->cellGlobalId.cellIdentity.buf[0]=0x00;//0x01;
-  measresult_cgi2->cellGlobalId.cellIdentity.buf[1]=0x00;//0x48;
-  measresult_cgi2->cellGlobalId.cellIdentity.buf[2]=0x00;//0x0f;
-  measresult_cgi2->cellGlobalId.cellIdentity.buf[3]=0x00;//0x30;
+  measresult_cgi2->cellGlobalId.cellIdentity.buf[0]=0x00;
+  measresult_cgi2->cellGlobalId.cellIdentity.buf[1]=0x00;
+  measresult_cgi2->cellGlobalId.cellIdentity.buf[2]=0x00;
+  measresult_cgi2->cellGlobalId.cellIdentity.buf[3]=0x00;
   measresult_cgi2->cellGlobalId.cellIdentity.size=4;
   measresult_cgi2->cellGlobalId.cellIdentity.bits_unused=4;
 
   measresult_cgi2->trackingAreaCode.buf = MALLOC(2);
   measresult_cgi2->trackingAreaCode.buf[0]=0x00;
-  measresult_cgi2->trackingAreaCode.buf[1]=0x05;//0x10;
+  measresult_cgi2->trackingAreaCode.buf[1]=0x05;
   measresult_cgi2->trackingAreaCode.size=2;
   measresult_cgi2->trackingAreaCode.bits_unused=0;
-  measresulteutra2->cgi_Info = measresult_cgi2;
-
+  measresulteutra2->cgi_Info=measresult_cgi2;
   struct LTE_MeasResultEUTRA__measResult meas2;
   //    int rsrp_va=10;
   meas2.rsrpResult=&(rsrp_t);
   //&rsrp_va;
   meas2.rsrqResult=&(rsrq_t);
-  meas2.ext1 = NULL;//meas2.ext2 = NULL;meas2.ext3 = NULL;meas2.ext4 = NULL;meas2.ext5 = NULL;
+  meas2.ext1 = NULL;
   measresulteutra2->measResult=meas2;
-
-  ASN_SEQUENCE_ADD(&measResultListEUTRA2->list, measresulteutra2);
+  ASN_SEQUENCE_ADD(&measResultListEUTRA2->list,measresulteutra2);
   measurementReport->criticalExtensions.choice.c1.choice.measurementReport_r8.measResults.measResultNeighCells->choice.measResultListEUTRA=*(measResultListEUTRA2);
 
-  if ( 1 || LOG_DEBUGFLAG(DEBUG_ASN1) ) {
+  if ( LOG_DEBUGFLAG(DEBUG_ASN1) ) {
     xer_fprint(stdout, &asn_DEF_LTE_UL_DCCH_Message, (void *)&ul_dcch_msg);
   }
 

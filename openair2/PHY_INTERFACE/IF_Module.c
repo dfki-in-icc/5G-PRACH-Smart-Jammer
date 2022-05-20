@@ -179,7 +179,7 @@ void handle_cqi(UL_IND_t *UL_info) {
 
 void handle_harq(UL_IND_t *UL_info) {
   if (NFAPI_MODE == NFAPI_MODE_PNF && UL_info->harq_ind.harq_indication_body.number_of_harqs > 0) { // PNF
-    LOG_I(PHY, "PNF UL_info->harq_ind.harq_indication_body.number_of_harqs:%d Send to VNF\n", UL_info->harq_ind.harq_indication_body.number_of_harqs);
+    //LOG_D(PHY, "UL_info->harq_ind.harq_indication_body.number_of_harqs:%d Send to VNF\n", UL_info->harq_ind.harq_indication_body.number_of_harqs);
     int retval = oai_nfapi_harq_indication(&UL_info->harq_ind);
 
     if (retval != 0) {
@@ -188,7 +188,6 @@ void handle_harq(UL_IND_t *UL_info) {
 
     UL_info->harq_ind.harq_indication_body.number_of_harqs = 0;
   } else if(NFAPI_MODE == NFAPI_MODE_VNF) {
-    LOG_I(PHY, "UL_info->harq_ind.harq_indication_body.number_of_harqs:%d Send to VNF\n", UL_info->harq_ind.harq_indication_body.number_of_harqs);
     for(uint8_t j = 0; j < NUM_NFAPI_SUBFRAME; j++) {
       if(UL_RCC_INFO.harq_ind[j].harq_indication_body.number_of_harqs > 0) {
         assert(UL_RCC_INFO.harq_ind[j].harq_indication_body.number_of_harqs <= NFAPI_HARQ_IND_MAX_PDU);
@@ -249,7 +248,7 @@ void handle_ulsch(UL_IND_t *UL_info) {
                     j, UL_RCC_INFO.crc_ind[k].crc_indication_body.crc_pdu_list[j].crc_indication_rel8.crc_flag);
 
               if (UL_RCC_INFO.crc_ind[k].crc_indication_body.crc_pdu_list[j].crc_indication_rel8.crc_flag == 1) { // CRC error indication
-                LOG_I(MAC,"Frame %d, Subframe %d Calling rx_sdu (CRC error) \n",UL_info->frame,UL_info->subframe);
+                LOG_D(MAC,"Frame %d, Subframe %d Calling rx_sdu (CRC error) \n",UL_info->frame,UL_info->subframe);
                 rx_sdu(UL_info->module_id,
                        UL_info->CC_id,
                        NFAPI_SFNSF2SFN(UL_RCC_INFO.rx_ind[k].sfn_sf), //UL_info->frame,
@@ -260,7 +259,7 @@ void handle_ulsch(UL_IND_t *UL_info) {
                        UL_RCC_INFO.rx_ind[k].rx_indication_body.rx_pdu_list[i].rx_indication_rel8.timing_advance,
                        UL_RCC_INFO.rx_ind[k].rx_indication_body.rx_pdu_list[i].rx_indication_rel8.ul_cqi);
               } else {
-                LOG_I(MAC,"Frame %d, Subframe %d Calling rx_sdu (CRC ok) \n",UL_info->frame,UL_info->subframe);
+                LOG_D(MAC,"Frame %d, Subframe %d Calling rx_sdu (CRC ok) \n",UL_info->frame,UL_info->subframe);
                 rx_sdu(UL_info->module_id,
                        UL_info->CC_id,
                        NFAPI_SFNSF2SFN(UL_RCC_INFO.rx_ind[k].sfn_sf), //UL_info->frame,
@@ -710,7 +709,7 @@ void UL_indication(UL_IND_t *UL_info, void *proc) {
   Sched_Rsp_t  *sched_info = &Sched_INFO[module_id][CC_id];
   IF_Module_t  *ifi        = if_inst[module_id];
   eNB_MAC_INST *mac        = RC.mac[module_id];
-  LOG_I(PHY,"SFN/SF:%d%d module_id:%d CC_id:%d UL_info[rx_ind:%d harqs:%d crcs:%d cqis:%d preambles:%d sr_ind:%d]\n",
+  LOG_D(PHY,"SFN/SF:%d%d module_id:%d CC_id:%d UL_info[rx_ind:%d harqs:%d crcs:%d cqis:%d preambles:%d sr_ind:%d]\n",
         UL_info->frame,UL_info->subframe,
         module_id,CC_id,
         UL_info->rx_ind.rx_indication_body.number_of_pdus, UL_info->harq_ind.harq_indication_body.number_of_harqs, UL_info->crc_ind.crc_indication_body.number_of_crcs,

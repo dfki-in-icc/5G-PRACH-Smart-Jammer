@@ -754,7 +754,6 @@ void vnf_handle_harq_indication(void *pRecvMsg, int recvMsgLen, vnf_p7_t* vnf_p7
 	else
 	{
 		nfapi_harq_indication_t ind;
-		NFAPI_TRACE(NFAPI_TRACE_INFO, "We are here %s %d\n", __FUNCTION__, __LINE__);
 	
 		if(nfapi_p7_message_unpack(pRecvMsg, recvMsgLen, &ind, sizeof(ind), &vnf_p7->_public.codec_config) < 0)
 		{
@@ -762,10 +761,8 @@ void vnf_handle_harq_indication(void *pRecvMsg, int recvMsgLen, vnf_p7_t* vnf_p7
 		}
 		else
 		{
-			NFAPI_TRACE(NFAPI_TRACE_INFO, "We are here %s %d\n", __FUNCTION__, __LINE__);
 			if(vnf_p7->_public.harq_indication)
 			{
-				NFAPI_TRACE(NFAPI_TRACE_INFO, "We are here %s %d number_of_harqs %d\n", __FUNCTION__, __LINE__, ind.harq_indication_body.number_of_harqs);
 				(vnf_p7->_public.harq_indication)(&(vnf_p7->_public), &ind);
 			}
 		}
@@ -2106,7 +2103,6 @@ void vnf_dispatch_p7_message(void *pRecvMsg, int recvMsgLen, vnf_p7_t* vnf_p7)
 			break;
 			
 		case NFAPI_HARQ_INDICATION:
-			NFAPI_TRACE(NFAPI_TRACE_INFO, "We are here %s %d\n", __FUNCTION__, __LINE__);
 			vnf_handle_harq_indication(pRecvMsg, recvMsgLen, vnf_p7);
 			break;
 	

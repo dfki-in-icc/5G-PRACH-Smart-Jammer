@@ -262,6 +262,7 @@ Msg1_transmitted(module_id_t module_idP, uint8_t CC_id,
             UE_mac_inst[module_idP].RA_attempt_number);
 }
 
+
 void
 Msg3_transmitted(module_id_t module_idP, uint8_t CC_id,
                  frame_t frameP, uint8_t eNB_id) {
@@ -362,14 +363,7 @@ PRACH_RESOURCES_t *ue_get_rach(module_id_t module_idP, int CC_id,
               "[UE %d] Frame %d: Requested RRCConnectionRequest, got %d bytes\n",
               module_idP, frameP, Size);
       }
-
-      LOG_I(PHY, "ue_get_rach lcid %u LCGID[lcid]] %u LCGID[DCCH] %u BSR_bytes[%d]\n",
-            lcid,
-            UE_mac_inst[module_idP].scheduling_info.BSR_bytes[UE_mac_inst[module_idP].scheduling_info.LCGID[lcid]],
-            UE_mac_inst[module_idP].scheduling_info.BSR_bytes[UE_mac_inst[module_idP].scheduling_info.LCGID[DCCH]],
-            UE_mac_inst[module_idP].scheduling_info.LCGID[DCCH]
-            );
-      
+    
       if (Size > 0) {
         UE_mac_inst[module_idP].RA_active = 1;
         UE_mac_inst[module_idP].RA_PREAMBLE_TRANSMISSION_COUNTER =
@@ -427,7 +421,8 @@ PRACH_RESOURCES_t *ue_get_rach(module_id_t module_idP, int CC_id,
         LOG_USEDINLOG_VAR(mac_rlc_status_resp_t,rlc_status)=mac_rlc_status_ind(module_idP,
             UE_mac_inst[module_idP].crnti_before_ho,
             eNB_indexP, frameP, subframeP,
-            ENB_FLAG_NO, MBMS_FLAG_NO, DCCH, 0, 0);
+            ENB_FLAG_NO, MBMS_FLAG_NO, DCCH, 0, 0
+                                                                              );
 
         if (UE_mac_inst[module_idP].
                  scheduling_info.BSR_bytes[UE_mac_inst[module_idP].
@@ -435,14 +430,14 @@ PRACH_RESOURCES_t *ue_get_rach(module_id_t module_idP, int CC_id,
                                            [DCCH]] != rlc_status.bytes_in_buffer)
             return (NULL);
         if (UE_mac_inst[module_idP].crnti_before_ho)
-          LOG_I(MAC,
+          LOG_D(MAC,
                 "[UE %d] Frame %d : UL-DCCH -> ULSCH, HO RRCConnectionReconfigurationComplete (%x, %x), RRC message has %d bytes to send throug PRACH (mac header len %d)\n",
                 module_idP, frameP,
                 UE_mac_inst[module_idP].crnti,
                 UE_mac_inst[module_idP].crnti_before_ho,
                 rlc_status.bytes_in_buffer, dcch_header_len);
         else
-          LOG_I(MAC,
+          LOG_D(MAC,
                 "[UE %d] Frame %d : UL-DCCH -> ULSCH, RRC message has %d bytes to send through PRACH(mac header len %d)\n",
                 module_idP, frameP, rlc_status.bytes_in_buffer,
                 dcch_header_len);

@@ -82,7 +82,7 @@ fill_rar(const module_id_t module_idP,
     }
   }
 
-  ra->msg3_nb_rb = 1;//comeback again
+  ra->msg3_nb_rb = 1;
   uint16_t rballoc = mac_computeRIV(N_RB_UL, ra->msg3_first_rb, ra->msg3_nb_rb);  // first PRB only for UL Grant
   rar[1] |= (rballoc >> 7) & 7; // Hopping = 0 (bit 3), 3 MSBs of rballoc
   rar[2] = ((uint8_t) (rballoc & 0xff)) << 1; // 7 LSBs of rballoc

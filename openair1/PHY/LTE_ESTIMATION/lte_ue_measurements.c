@@ -109,9 +109,6 @@ uint32_t get_RSSI (module_id_t Mod_id,uint8_t CC_id)
   PHY_VARS_UE *ue = PHY_vars_UE_g[Mod_id][CC_id];
 
   if (ue)
-    LOG_I(PHY,"Checking rssi %u\n", ue->measurements.rssi);
-
-  if (ue)
     return ue->measurements.rssi;
 
   return 0xFFFFFFFF;

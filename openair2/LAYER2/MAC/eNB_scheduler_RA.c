@@ -185,9 +185,7 @@ add_msg3(module_id_t module_idP, int CC_id, RA_t *ra, frame_t frameP,
     ul_req_body->tl.tag                                                    = NFAPI_UL_CONFIG_REQUEST_BODY_TAG;
     ul_req->sfn_sf                                                         = ra->Msg3_frame<<4|ra->Msg3_subframe;
     ul_req->header.message_id                                              = NFAPI_UL_CONFIG_REQUEST;
-    LOG_D (MAC, "ra->msg3_nb_rb %d ulsch_pdu.ulsch_pdu_rel8.size %d\n",  
-                  ra->msg3_nb_rb, 
-                   ul_config_pdu->ulsch_pdu.ulsch_pdu_rel8.size);
+
     // save UL scheduling information for preprocessor
     for (j = 0; j < ra->msg3_nb_rb; j++)
       cc->vrb_map_UL[ra->msg3_first_rb + j] = 1;
@@ -911,7 +909,7 @@ generate_Msg4(module_id_t module_idP,
                                         UE_RNTI(module_idP,UE_id),1,  // 1 transport block
                                         &cc[CC_idP].CCCH_pdu.payload[0], 0);  // not used in this case
 
-      if (1 || rrc_sdu_length > 0) {
+      if (rrc_sdu_length > 0 || (RRC_RECONFIGURED == mac_eNB_get_rrc_status(module_idP, ra->rnti))) {
         LOG_D(MAC,
               "[eNB %d][RAPROC] CC_id %d Frame %d, subframeP %d: UE_id %d, rrc_sdu_length %d\n",
               module_idP, CC_idP, frameP, subframeP, UE_id, rrc_sdu_length);

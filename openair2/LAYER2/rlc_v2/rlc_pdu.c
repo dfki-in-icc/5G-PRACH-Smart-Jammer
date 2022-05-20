@@ -256,9 +256,8 @@ void rlc_pdu_encoder_put_bits(rlc_pdu_encoder_t *encoder, int value, int count)
   }
 
   x = 1 << (count - 1);
-  for (i = 0; i < count; i++, x >>= 1) {
+  for (i = 0; i < count; i++, x >>= 1)
     put_bit(encoder, value & x);
-  }
 }
 
 void rlc_pdu_encoder_align(rlc_pdu_encoder_t *encoder)

@@ -132,7 +132,6 @@ rx_sdu(const module_id_t enb_mod_idP,
   UE_TEMPLATE *UE_template_ptr = NULL;
   /* Init */
   current_rnti = rntiP;
-  LOG_I(MAC, "current_rnti = 0x%x\n", current_rnti);
   UE_id = find_UE_id(enb_mod_idP, current_rnti);
   harq_pid = subframe2harqpid(&mac->common_channels[CC_idP], frameP, subframeP);
   memset(rx_ces, 0, MAX_NUM_CE * sizeof(unsigned char));
@@ -145,7 +144,7 @@ rx_sdu(const module_id_t enb_mod_idP,
   if (UE_id != -1) {
     UE_scheduling_control = &UE_info->UE_sched_ctrl[UE_id];
     UE_template_ptr = &UE_info->UE_template[CC_idP][UE_id];
-    LOG_I(MAC, "[eNB %d][PUSCH %d] CC_id %d %d.%d Received ULSCH (%s) sdu round %d from PHY (rnti %x, UE_id %d) ul_cqi %d, timing_advance %d\n",
+    LOG_D(MAC, "[eNB %d][PUSCH %d] CC_id %d %d.%d Received ULSCH (%s) sdu round %d from PHY (rnti %x, UE_id %d) ul_cqi %d, timing_advance %d\n",
           enb_mod_idP,
           harq_pid,
           CC_idP,
@@ -291,7 +290,7 @@ rx_sdu(const module_id_t enb_mod_idP,
     AssertFatal(mac->common_channels[CC_idP].radioResourceConfigCommon->rach_ConfigCommon.maxHARQ_Msg3Tx > 1,
                 "maxHARQ %d should be greater than 1\n",
                 (int) mac->common_channels[CC_idP].radioResourceConfigCommon->rach_ConfigCommon.maxHARQ_Msg3Tx);
-    LOG_I(MAC, "[eNB %d][PUSCH %d] CC_id %d [RAPROC Msg3] Received ULSCH sdu (%s) round %d from PHY (rnti %x, RA_id %d) ul_cqi %d, timing advance %d\n",
+    LOG_D(MAC, "[eNB %d][PUSCH %d] CC_id %d [RAPROC Msg3] Received ULSCH sdu (%s) round %d from PHY (rnti %x, RA_id %d) ul_cqi %d, timing advance %d\n",
           enb_mod_idP,
           harq_pid,
           CC_idP,
@@ -475,7 +474,7 @@ rx_sdu(const module_id_t enb_mod_idP,
         /* Receiving CRNTI means that the current rnti has to go away */
         if (old_UE_id != -1) {
           if (mac_eNB_get_rrc_status(enb_mod_idP,old_rnti) ==  RRC_HO_EXECUTION) {
-            LOG_I(MAC, "[eNB %d] Frame %d, Subframe %d CC_id %d : (rnti %x UE_id %d) Handover case\n",
+            LOG_D(MAC, "[eNB %d] Frame %d, Subframe %d CC_id %d : (rnti %x UE_id %d) Handover case\n",
                   enb_mod_idP,
                   frameP,
                   subframeP,
@@ -502,12 +501,6 @@ rx_sdu(const module_id_t enb_mod_idP,
             UE_template_ptr->ul_SR = 1;
             UE_scheduling_control->crnti_reconfigurationcomplete_flag = 1;
             UE_info->UE_template[UE_PCCID(enb_mod_idP, UE_id)][UE_id].configured = 1;
-            /*
-            cancel_ra_proc(enb_mod_idP,
-                           CC_idP,
-                           frameP,
-                           current_rnti);
-            */
             current_rnti = old_rnti;
             // prepare transmission of Msg4
             RA_t *ra = (RA_t *) & RC.mac[enb_mod_idP]->common_channels[CC_idP].ra[0];
@@ -579,7 +572,6 @@ rx_sdu(const module_id_t enb_mod_idP,
               }
 
               // break;
-
             }
           }
         } else {
@@ -594,7 +586,7 @@ rx_sdu(const module_id_t enb_mod_idP,
       case TRUNCATED_BSR:
       case SHORT_BSR:
         lcgid = (payload_ptr[0] >> 6);
-        LOG_I(MAC, "[eNB %d] CC_id %d MAC CE_LCID %d : Received short BSR LCGID = %u bsr = %d\n",
+        LOG_D(MAC, "[eNB %d] CC_id %d MAC CE_LCID %d : Received short BSR LCGID = %u bsr = %d\n",
               enb_mod_idP,
               CC_idP,
               rx_ces[i],
@@ -623,7 +615,7 @@ rx_sdu(const module_id_t enb_mod_idP,
           }
 
           if (mac_eNB_get_rrc_status(enb_mod_idP,UE_RNTI(enb_mod_idP, UE_id)) < RRC_CONNECTED) {
-            LOG_I(MAC, "[eNB %d] CC_id %d MAC CE_LCID %d : estimated_ul_buffer = %d (lcg increment %d)\n",
+            LOG_D(MAC, "[eNB %d] CC_id %d MAC CE_LCID %d : estimated_ul_buffer = %d (lcg increment %d)\n",
                   enb_mod_idP,
                   CC_idP,
                   rx_ces[i],
@@ -657,7 +649,7 @@ rx_sdu(const module_id_t enb_mod_idP,
             UE_template_ptr->ul_buffer_info[LCGID1] +
             UE_template_ptr->ul_buffer_info[LCGID2] +
             UE_template_ptr->ul_buffer_info[LCGID3];
-          LOG_I(MAC, "[eNB %d] CC_id %d MAC CE_LCID %d: Received long BSR. Size is LCGID0 = %u LCGID1 = %u LCGID2 = %u LCGID3 = %u\n",
+          LOG_D(MAC, "[eNB %d] CC_id %d MAC CE_LCID %d: Received long BSR. Size is LCGID0 = %u LCGID1 = %u LCGID2 = %u LCGID3 = %u\n",
                 enb_mod_idP,
                 CC_idP,
                 rx_ces[i],
@@ -667,7 +659,7 @@ rx_sdu(const module_id_t enb_mod_idP,
                 UE_template_ptr->ul_buffer_info[LCGID3]);
 
           if (crnti_rx == 1) {
-            LOG_I(MAC, "[eNB %d] CC_id %d MAC CE_LCID %d: Received CRNTI.\n",
+            LOG_D(MAC, "[eNB %d] CC_id %d MAC CE_LCID %d: Received CRNTI.\n",
                   enb_mod_idP,
                   CC_idP,
                   rx_ces[i]);
@@ -835,7 +827,6 @@ rx_sdu(const module_id_t enb_mod_idP,
             ra->Msg4_frame = frameP + ((subframeP > 5) ? 1 : 0);
             ra->Msg4_subframe = (subframeP + 4) % 10;
           }
-          LOG_I(MAC, "Msg4 frame %u subframe %u, %s %d\n", ra->Msg4_frame, ra->Msg4_subframe, __FUNCTION__, __LINE__);
 
           UE_scheduling_control->crnti_reconfigurationcomplete_flag = 0;
         } // if RA process is active
@@ -847,12 +838,13 @@ rx_sdu(const module_id_t enb_mod_idP,
 #if defined(ENABLE_MAC_PAYLOAD_DEBUG)
         LOG_T(MAC, "offset: %d\n", (unsigned char) ((unsigned char *) payload_ptr - sduP));
 
-        for (int j = 0; j < rx_lengths[i]; j++) {
-          LOG_T(MAC, "%x \n", payload_ptr[j]);
+        for (int j = 0; j < 32; j++) {
+          LOG_T(MAC, "%x ", payload_ptr[j]);
         }
 
         LOG_T(MAC, "\n");
 #endif
+
       if ((rx_lengths[i] > DCH_PAYLOAD_SIZE_MAX) || (rx_lengths[i] < 0) || (rx_lengths[i] > (sdu_lenP - (payload_ptr - sduP)))) {
         LOG_E(MAC, "[eNB %d/%d] frame %d received DCCH of size %d (too big, maximum allowed is %d, sdu_len %d), dropping packet\n",
               enb_mod_idP,
@@ -861,11 +853,6 @@ rx_sdu(const module_id_t enb_mod_idP,
               rx_lengths[i],
               DCH_PAYLOAD_SIZE_MAX,
               sdu_lenP);
-        LOG_E(MAC, "DCCH of size (rx_lengths[i] sdu %d payload) %d > %ld (Remained space: sdu_lenP %d - (header+CE %ld)) too big, dropping packet\n",
-              i,
-              rx_lengths[i],
-              sdu_lenP - (payload_ptr - sduP),
-              sdu_lenP, payload_ptr - sduP);
         break;
       }
 
@@ -885,7 +872,7 @@ rx_sdu(const module_id_t enb_mod_idP,
             //UE_template_ptr->estimated_ul_buffer += UE_template_ptr->estimated_ul_buffer / 4;
           }
 
-          LOG_I(MAC,
+          LOG_D(MAC,
                 "[eNB %d] CC_id %d Frame %d : ULSCH -> UL-DCCH, received %d bytes form UE %d on LCID %d \n",
                 enb_mod_idP, CC_idP, frameP, rx_lengths[i], UE_id,
                 rx_lcids[i]);
@@ -925,22 +912,17 @@ rx_sdu(const module_id_t enb_mod_idP,
             UE_info->eNB_UE_stats[CC_idP][UE_id].num_errors_rx += 1;
             break;
           }
-          LOG_I(MAC, "[eNB %d] CC_id %d Frame %d : ULSCH -> UL-DTCH, received %d bytes from UE %d for lcid %d index i %d\n",
+          LOG_D(MAC, "[eNB %d] CC_id %d Frame %d : ULSCH -> UL-DTCH, received %d bytes from UE %d for lcid %d\n",
                 enb_mod_idP,
                 CC_idP,
                 frameP,
                 rx_lengths[i],
                 UE_id,
-                rx_lcids[i], i);
+                rx_lcids[i]);
 
           if (UE_id != -1) {
             ue_contextP = rrc_eNB_get_ue_context(RC.rrc[enb_mod_idP], current_rnti);
             if (ue_contextP != NULL) {
-              LOG_I(MAC, "DRB_active[0] = %d DRB_active[1] = %d DRB_active[2] = %d \n",
-              ue_contextP->ue_context.DRB_active[0],
-              ue_contextP->ue_context.DRB_active[1],
-              ue_contextP->ue_context.DRB_active[2]);
-
               if (ue_contextP->ue_context.DRB_active[rx_lcids[i] - 2] == 0) {
                 LOG_E(MAC, "[eNB %d/%d] frame %d received non active DTCH of size %d ( sdu_len %d, lcid %d), dropping packet\n",
                     enb_mod_idP,
@@ -959,7 +941,7 @@ rx_sdu(const module_id_t enb_mod_idP,
                break;
             }
             /* Adjust buffer occupancy of the correponding logical channel group */
-            LOG_I(MAC, "[eNB %d] CC_id %d Frame %d : ULSCH -> UL-DTCH, received %d bytes from UE %d for lcid %d, removing from LCGID %ld, %d\n",
+            LOG_D(MAC, "[eNB %d] CC_id %d Frame %d : ULSCH -> UL-DTCH, received %d bytes from UE %d for lcid %d, removing from LCGID %ld, %d\n",
                   enb_mod_idP,
                   CC_idP,
                   frameP,
@@ -1143,41 +1125,37 @@ parse_ulsch_header(unsigned char *mac_header,
   while (not_done == 1) {
     if (((SCH_SUBHEADER_FIXED *) mac_header_ptr)->E == 0) {
       not_done = 0;
-      LOG_D(MAC, "done header checking\n");
     }
 
     lcid = ((SCH_SUBHEADER_FIXED *) mac_header_ptr)->LCID;
+
     if (lcid < EXTENDED_POWER_HEADROOM) {
       if (not_done == 0) {  // last MAC SDU, length is implicit
         mac_header_ptr++;
         length = tb_length - (mac_header_ptr - mac_header) - ce_len;
-        LOG_D(MAC, "mac_header_ptr += 1 wt lcid %u in line %d\n", lcid, __LINE__);
 
         for (num_sdu_cnt = 0; num_sdu_cnt < num_sdus; num_sdu_cnt++) {
           length -= rx_lengths[num_sdu_cnt];
-          LOG_D(MAC, "    Subtracking rx_lengths[num_sdu_cnt %u] = %u\n", num_sdu_cnt, rx_lengths[num_sdu_cnt]);
         }
       } else {
         if (((SCH_SUBHEADER_SHORT *) mac_header_ptr)->F == 0) {
           length = ((SCH_SUBHEADER_SHORT *) mac_header_ptr)->L;
           mac_header_ptr += 2;  //sizeof(SCH_SUBHEADER_SHORT);
-          LOG_D(MAC, "mac_header_ptr += 2 wt F == 0 in SCH_SUBHEADER_SHORT in line %d\n", __LINE__);
         } else {  // F = 1
           length = ((((SCH_SUBHEADER_LONG *) mac_header_ptr)->L_MSB & 0x7f) << 8) |
                    (((SCH_SUBHEADER_LONG *) mac_header_ptr)->L_LSB & 0xff);
           mac_header_ptr += 3;  //sizeof(SCH_SUBHEADER_LONG);
-          LOG_D(MAC, "mac_header_ptr += 3 wt F == 1 in SCH_SUBHEADER_SHORT in line %d\n", __LINE__);
         }
       }
 
-      LOG_D(MAC, "[eNB] sdu %u lcid %u tb_length %u length %u (offset now %ld)\n",
+      LOG_D(MAC, "[eNB] sdu %d lcid %d tb_length %d length %d (offset now %ld)\n",
             num_sdus,
             lcid,
             tb_length,
             length,
             mac_header_ptr - mac_header);
       if(num_sdus >= NB_RB_MAX){
-        LOG_E(MAC,"parse_ulsch_header: num_sdus(%u) reach max\n",num_sdus);
+        LOG_E(MAC,"parse_ulsch_header: num_sdus(%d) reach max\n",num_sdus);
         return NULL;
       }
       rx_lcids[num_sdus] = lcid;
@@ -1186,28 +1164,23 @@ parse_ulsch_header(unsigned char *mac_header,
     } else {  // This is a control element subheader POWER_HEADROOM, BSR and CRNTI
       if (lcid == SHORT_PADDING) {
         mac_header_ptr++;
-        LOG_D(MAC, "mac_header_ptr += 1 wt lcid %u for SHORT_PADDING in line %d\n", lcid, __LINE__);
       } else {
         if(num_ces >= MAX_NUM_CE){
-           LOG_E(MAC,"parse_ulsch_header: num_ces(%u) reach max\n",num_ces);
+           LOG_E(MAC,"parse_ulsch_header: num_ces(%d) reach max\n",num_ces);
            return NULL;
         }
         rx_ces[num_ces] = lcid;
         num_ces++;
         mac_header_ptr++;
-        LOG_D(MAC, "mac_header_ptr += 1 wt lcid %u num_ces %u, for CE in line %d\n", lcid, num_ces, __LINE__);
 
         if (lcid == LONG_BSR) {
           ce_len += 3;
-          LOG_D(MAC, "ce_len += 3 wt lcid %u -> LONG_BSR(30) in line %d\n", lcid, __LINE__);
         } else if (lcid == CRNTI) {
           ce_len += 2;
-          LOG_D(MAC, "ce_len += 2 wt CRNTI in line %d\n",  __LINE__);
         } else if ((lcid == POWER_HEADROOM) || (lcid == TRUNCATED_BSR) || (lcid == SHORT_BSR)) {
           ce_len++;
-          LOG_D(MAC, "ce_len += 1 wt lcid %u -> SHORT_BSR(29) or 26, 28 in line %d\n", lcid, __LINE__);
         } else {
-          LOG_E(MAC, "unknown CE %u \n", lcid);
+          LOG_E(MAC, "unknown CE %d \n", lcid);
           return NULL;
         }
       }

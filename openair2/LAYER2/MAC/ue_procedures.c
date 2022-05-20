@@ -132,7 +132,7 @@ void ue_init_mac(module_id_t module_idP) {
   UE_mac_inst[module_idP].PHR_reporting_active = 0;
 
   for (i = 0; i < MAX_NUM_LCID; i++) {
-    LOG_I(MAC,
+    LOG_D(MAC,
           "[UE%d] Applying default logical channel config for LCGID %d\n",
           module_idP, i);
     UE_mac_inst[module_idP].scheduling_info.Bj[i] = -1;
@@ -466,9 +466,7 @@ ue_send_sdu(module_id_t module_idP,
             if(NFAPI_MODE==NFAPI_UE_STUB_PNF || NFAPI_MODE==NFAPI_MODE_STANDALONE_PNF) { // phy_stub mode
               // Modification for phy_stub mode operation here. We only need to change the ue_mode to PUSCH
               UE_mac_inst[module_idP].UE_mode[eNB_index] = PUSCH;
-              LOG_I(MAC, "We are here %s %d\n", __FUNCTION__, __LINE__);
             } else { // Full stack mode
-              LOG_I(MAC, "We are here %s %d\n", __FUNCTION__, __LINE__);
               ra_succeeded(module_idP,CC_id,eNB_index);
             }
           }
@@ -506,7 +504,7 @@ ue_send_sdu(module_id_t module_idP,
 #endif
 
       if (rx_lcids[i] == CCCH) {
-        LOG_I(MAC,
+        LOG_D(MAC,
               "[UE %d] rnti %x Frame %d : DLSCH -> DL-CCCH, RRC message (eNB %d, %d bytes)\n",
               module_idP, UE_mac_inst[module_idP].crnti, frameP,
               eNB_index, rx_lengths[i]);
@@ -530,7 +528,7 @@ ue_send_sdu(module_id_t module_idP,
                             0
                            );
       } else if ((rx_lcids[i] == DCCH) || (rx_lcids[i] == DCCH1)) {
-        LOG_I(MAC,"[UE %d] Frame %d : DLSCH -> DL-DCCH%d, RRC message (eNB %d, %d bytes)\n", module_idP, frameP, rx_lcids[i],eNB_index,rx_lengths[i]);
+        LOG_D(MAC,"[UE %d] Frame %d : DLSCH -> DL-DCCH%d, RRC message (eNB %d, %d bytes)\n", module_idP, frameP, rx_lcids[i],eNB_index,rx_lengths[i]);
         mac_rlc_data_ind(module_idP,
                          UE_mac_inst[module_idP].crnti,
                          eNB_index,
@@ -543,7 +541,7 @@ ue_send_sdu(module_id_t module_idP,
                          1,
                          NULL);
       } else if ((rx_lcids[i]  < NB_RB_MAX) && (rx_lcids[i] > DCCH1 )) {
-        LOG_I(MAC,"[UE %d] Frame %d : DLSCH -> DL-DTCH%d (eNB %d, %d bytes)\n", module_idP, frameP,rx_lcids[i], eNB_index,rx_lengths[i]);
+        LOG_D(MAC,"[UE %d] Frame %d : DLSCH -> DL-DTCH%d (eNB %d, %d bytes)\n", module_idP, frameP,rx_lcids[i], eNB_index,rx_lengths[i]);
 #if defined(ENABLE_MAC_PAYLOAD_DEBUG)
         int j;
 
@@ -2108,8 +2106,6 @@ generate_ulsch_header(uint8_t *mac_header,
     LOG_D(MAC, "[UE] CRNTI : %x (first_element %d)\n", *crnti,
           first_element);
 #endif
-    LOG_I(MAC, "[UE] CRNTI : %x (first_element %d)\n", *crnti,
-          first_element);
 
     if (first_element > 0) {
       mac_header_ptr->E = 1;
@@ -2213,8 +2209,6 @@ generate_ulsch_header(uint8_t *mac_header,
   //  printf("last_size %d,mac_header_ptr %p\n",last_size,mac_header_ptr);
 
   for (i = 0; i < num_sdus; i++) {
-    LOG_I(MAC, "[UE] sdu subheader %d (lcid %d, %d bytes)\n", i,
-          sdu_lcids[i], sdu_lengths[i]);
 #ifdef DEBUG_HEADER_PARSING
     LOG_T(MAC, "[UE] sdu subheader %d (lcid %d, %d bytes)\n", i,
           sdu_lcids[i], sdu_lengths[i]);
@@ -2357,7 +2351,7 @@ ue_get_sdu(module_id_t module_idP, int CC_id, frame_t frameP,
   int num_lcg_id_with_data = 0;
   rlc_buffer_occupancy_t lcid_buffer_occupancy_old =
     0, lcid_buffer_occupancy_new = 0;
-  LOG_I(MAC,
+  LOG_D(MAC,
         "[UE %d] MAC PROCESS UL TRANSPORT BLOCK at frame%d subframe %d TBS=%d\n",
         module_idP, frameP, subframe, buflen);
   AssertFatal(CC_id == 0,
@@ -2379,7 +2373,7 @@ ue_get_sdu(module_id_t module_idP, int CC_id, frame_t frameP,
   }
 
   if (num_lcg_id_with_data) {
-    LOG_I(MAC,
+    LOG_D(MAC,
           "[UE %d] MAC Tx data pending at frame%d subframe %d nb LCG =%d Bytes for LCG0=%d LCG1=%d LCG2=%d LCG3=%d BSR Trigger status =%d TBS=%d\n",
           module_idP, frameP, subframe, num_lcg_id_with_data,
           UE_mac_inst[module_idP].scheduling_info.BSR_bytes[0],
@@ -2453,11 +2447,6 @@ ue_get_sdu(module_id_t module_idP, int CC_id, frame_t frameP,
     phr_ce_len = 0;
   }
 
-  LOG_D(MAC, "bsr_len %d  = bsr_header_len %d + bsr_ce_len %d BSR reporting active %d  UE_mac_inst[module_idP].scheduling_info.LCID_status[DCCH] %d\n",
-        bsr_header_len+bsr_ce_len, bsr_header_len, bsr_ce_len,
-        UE_mac_inst[module_idP].BSR_reporting_active,
-        UE_mac_inst[module_idP].scheduling_info.LCID_status[DCCH]);
-
   // check for UL bandwidth requests and add SR control element
 
   // check for UL bandwidth requests and add SR control element
@@ -2503,15 +2492,6 @@ ue_get_sdu(module_id_t module_idP, int CC_id, frame_t frameP,
 
       //Multiplex all available DCCH RLC PDUs considering to multiplex the last PDU each time for maximize the data
       //Adjust at the end of the loop
-      if ((is_lcid_processed) || (!lcid_buffer_occupancy_new)
-             || (bsr_len + phr_len + total_rlc_pdu_header_len +
-                 sdu_length_total + MIN_MAC_HDR_RLC_SIZE > buflen)) {
-        LOG_I(MAC, "\n\n (!is_lcid_processed %d) && (lcid_buffer_occupancy_new %d) && (sz check %d)\n\n\n", 
-              !is_lcid_processed, lcid_buffer_occupancy_new,
-              (bsr_len + phr_len + total_rlc_pdu_header_len + sdu_length_total + MIN_MAC_HDR_RLC_SIZE <= buflen)
-              );
-      }
-
       while ((!is_lcid_processed) && (lcid_buffer_occupancy_new)
              && (bsr_len + phr_len + total_rlc_pdu_header_len +
                  sdu_length_total + MIN_MAC_HDR_RLC_SIZE <= buflen)) {
@@ -2526,7 +2506,7 @@ ue_get_sdu(module_id_t module_idP, int CC_id, frame_t frameP,
           buflen - (bsr_len + phr_len +
                     total_rlc_pdu_header_len + sdu_length_total +
                     1);
-        LOG_I(MAC,
+        LOG_D(MAC,
               "[UE %d] Frame %d : UL-DXCH -> ULSCH, RLC %d has %d bytes to "
               "send (Transport Block size %d BSR size=%d PHR=%d SDU Length Total %d , mac header len %d BSR byte before Tx=%d)\n",
               module_idP, frameP, lcid, lcid_buffer_occupancy_new,
@@ -2869,7 +2849,7 @@ ue_get_sdu(module_id_t module_idP, int CC_id, frame_t frameP,
                                          bsr_t, // truncated bsr
                                          bsr_s, // short bsr
                                          bsr_l, post_padding);  // long_bsr
-  LOG_I(MAC,
+  LOG_D(MAC,
         "[UE %d] Generate header :bufflen %d  sdu_length_total %d, num_sdus %d, sdu_lengths[0] %d, sdu_lcids[0] %d => payload offset %d,  total_rlc_pdu_header_len %d, padding %d,post_padding %d, bsr len %d, phr len %d, reminder %d \n",
         module_idP, buflen, sdu_length_total, num_sdus, sdu_lengths[0],
         sdu_lcids[0], payload_offset, total_rlc_pdu_header_len,
@@ -3201,7 +3181,7 @@ ue_scheduler(const module_id_t module_idP,
     // Regular BSR trigger
     UE_mac_inst[module_idP].BSR_reporting_active |=
       BSR_TRIGGER_REGULAR;
-    LOG_I(MAC,
+    LOG_D(MAC,
           "[UE %d][BSR] Regular BSR Triggered Frame %d subframe %d SR for PUSCH is pending\n",
           module_idP, txFrameP, txSubframeP);
   }
@@ -3333,7 +3313,7 @@ update_bsr(module_id_t module_idP, frame_t frameP,
       lcid_bytes_in_buffer[lcid] = rlc_status.bytes_in_buffer;
 
       if (rlc_status.bytes_in_buffer > 0) {
-        LOG_I(MAC,"[UE %d] PDCCH Tick : LCID%d LCGID%d has data to transmit in update_bsr = %d bytes at frame %d subframe %d\n",
+        LOG_D(MAC,"[UE %d] PDCCH Tick : LCID%d LCGID%d has data to transmit =%d bytes at frame %d subframe %d\n",
               module_idP, lcid,lcgid,rlc_status.bytes_in_buffer,frameP,subframeP);
         UE_mac_inst[module_idP].scheduling_info.LCID_status[lcid] = LCID_NOT_EMPTY;
 
@@ -3342,9 +3322,6 @@ update_bsr(module_id_t module_idP, frame_t frameP,
           num_lcid_with_data ++;
           // sum lcid buffer which has same lcgid
           UE_mac_inst[module_idP].scheduling_info.BSR_bytes[lcgid] += rlc_status.bytes_in_buffer;
-          LOG_D(MAC,"Accumulated BSR_bytes[%d] = %d after adding %d bytes.\n",
-                    lcgid, UE_mac_inst[module_idP].scheduling_info.BSR_bytes[lcgid],
-                    rlc_status.bytes_in_buffer);
           //Fill in the array
           array_index = 0;
 

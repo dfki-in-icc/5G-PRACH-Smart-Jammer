@@ -80,12 +80,10 @@ mac_rrc_data_req_ue(
   }
 
   LOG_D(RRC,"[UE %d] Frame %d Filling CCCH SRB_ID %ld\n",Mod_idP,frameP,Srb_id);
-  //LOG_I(RRC,"[UE %d] Frame %d buffer_pP status %d,\n",Mod_idP,frameP, UE_rrc_inst[Mod_idP].Srb0[eNB_index].Tx_buffer.payload_size);
-  LOG_I(RRC,"[UE %d] Frame %d buffer_pP status %d,\n",Mod_idP,frameP, UE_rrc_inst[Mod_idP].Srb0[0].Tx_buffer.payload_size);
-  LOG_I(RRC,"[UE %d] Frame %d buffer_pP status %d,\n",Mod_idP,frameP, UE_rrc_inst[Mod_idP].Srb0[1].Tx_buffer.payload_size);
+  LOG_D(RRC,"[UE %d] Frame %d buffer_pP status %d,\n",Mod_idP,frameP, UE_rrc_inst[Mod_idP].Srb0[eNB_index].Tx_buffer.payload_size);
 
   if( (UE_rrc_inst[Mod_idP].Srb0[eNB_index].Tx_buffer.payload_size > 0) ) {
-    
+    {
       MessageDef *message_p;
       int ccch_size = UE_rrc_inst[Mod_idP].Srb0[eNB_index].Tx_buffer.payload_size;
       int sdu_size = sizeof(RRC_MAC_CCCH_DATA_REQ (message_p).sdu);
@@ -103,7 +101,7 @@ mac_rrc_data_req_ue(
       RRC_MAC_CCCH_DATA_REQ (message_p).enb_index = eNB_index;
 
       itti_send_msg_to_task (TASK_MAC_UE, UE_MODULE_ID_TO_INSTANCE(Mod_idP), message_p);
-    
+    }
     memcpy(&buffer_pP[0],&UE_rrc_inst[Mod_idP].Srb0[eNB_index].Tx_buffer.Payload[0],UE_rrc_inst[Mod_idP].Srb0[eNB_index].Tx_buffer.payload_size);
     uint8_t Ret_size=UE_rrc_inst[Mod_idP].Srb0[eNB_index].Tx_buffer.payload_size;
     //   UE_rrc_inst[Mod_id].Srb0[eNB_index].Tx_buffer.payload_size=0;

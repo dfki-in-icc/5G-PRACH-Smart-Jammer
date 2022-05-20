@@ -902,7 +902,7 @@ int x2ap_eNB_handle_handover_preparation (instance_t instance,
     return 0;
   }
 
-  X2AP_INFO ("Received a new X2 handover request\n");
+  X2AP_DEBUG ("Received a new X2 handover request\n");
 
   x2ap_eNB_data = x2ap_get_eNB(NULL, assoc_id, 0);
   DevAssert(x2ap_eNB_data != NULL);
@@ -977,8 +977,6 @@ int x2ap_eNB_handle_handover_preparation (instance_t instance,
     X2AP_WARN ("Size of eNB key star does not match the expected value\n");
   }
 
-  X2AP_INFO ("e_RABs_ToBeSetup_List count = %d\n", ie->value.choice.UE_ContextInformation.e_RABs_ToBeSetup_List.list.count);
-
   if (ie->value.choice.UE_ContextInformation.e_RABs_ToBeSetup_List.list.count > 0) {
 
     X2AP_HANDOVER_REQ(msg).nb_e_rabs_tobesetup = ie->value.choice.UE_ContextInformation.e_RABs_ToBeSetup_List.list.count;
@@ -992,9 +990,6 @@ int x2ap_eNB_handle_handover_preparation (instance_t instance,
       memcpy(X2AP_HANDOVER_REQ(msg).e_rabs_tobesetup[i].eNB_addr.buffer,
                      e_RABs_ToBeSetup_Item->uL_GTPtunnelEndpoint.transportLayerAddress.buf,
                      e_RABs_ToBeSetup_Item->uL_GTPtunnelEndpoint.transportLayerAddress.size);
-
-      for (int j = 0; j < e_RABs_ToBeSetup_Item->uL_GTPtunnelEndpoint.transportLayerAddress.size; j++)
-        X2AP_INFO ("eNB_addr.buffer = %u\n", e_RABs_ToBeSetup_Item->uL_GTPtunnelEndpoint.transportLayerAddress.buf[j]);
 
       X2AP_HANDOVER_REQ(msg).e_rabs_tobesetup[i].eNB_addr.length =
                       e_RABs_ToBeSetup_Item->uL_GTPtunnelEndpoint.transportLayerAddress.size * 8 - e_RABs_ToBeSetup_Item->uL_GTPtunnelEndpoint.transportLayerAddress.bits_unused;

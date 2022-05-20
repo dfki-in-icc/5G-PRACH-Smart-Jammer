@@ -2042,14 +2042,8 @@ static uint8_t pack_rx_ue_information_value(void *tlv, uint8_t **ppWritePackedMs
 
 static uint8_t unpack_rx_ue_information_value(void *tlv, uint8_t **ppReadPackedMsg, uint8_t *end) {
   nfapi_rx_ue_information *value = (nfapi_rx_ue_information *)tlv;
-  
-  if (!(pull32(ppReadPackedMsg, &value->handle, end) &&
-           pull16(ppReadPackedMsg, &value->rnti, end))) {
-          NFAPI_TRACE(NFAPI_TRACE_INFO, "This is rnti value %x", value->rnti);
-           return 0;
-      }
-  NFAPI_TRACE(NFAPI_TRACE_INFO, "This is rnti value %x", value->rnti);
-  return 1;
+  return ( pull32(ppReadPackedMsg, &value->handle, end) &&
+           pull16(ppReadPackedMsg, &value->rnti, end));
 }
 
 static uint8_t pack_harq_indication_tdd_harq_data_bundling(nfapi_harq_indication_tdd_harq_data_bundling_t *data, uint8_t **ppWritePackedMsg, uint8_t *end) {
@@ -2233,7 +2227,7 @@ static uint8_t pack_ul_cqi_information_value(void *tlv, uint8_t **ppWritePackedM
 
 static uint8_t pack_harq_indication_body_value(void *tlv, uint8_t **ppWritePackedMsg, uint8_t *end) {
   nfapi_harq_indication_body_t *value = (nfapi_harq_indication_body_t *)tlv;
-  NFAPI_TRACE(NFAPI_TRACE_INFO, "We are here %s %d  number_of_harqs %d\n", __FUNCTION__, __LINE__, value->number_of_harqs);
+
   if(push16(value->number_of_harqs, ppWritePackedMsg, end) == 0)
     return 0;
 
@@ -6371,7 +6365,7 @@ static uint8_t unpack_harq_indication_body_value(void *tlv, uint8_t **ppReadPack
 
   if(pull16(ppReadPackedMsg, &value->number_of_harqs, end) == 0)
     return 0;
-  NFAPI_TRACE(NFAPI_TRACE_INFO, "We are here %s %d number_of_harqs %d\n", __FUNCTION__, __LINE__, value->number_of_harqs);
+
   if(value->number_of_harqs > NFAPI_HARQ_IND_MAX_PDU) {
     NFAPI_TRACE(NFAPI_TRACE_ERROR, "%s number of harq ind pdus exceed maxium (count:%d max:%d)\n", __FUNCTION__, value->number_of_harqs, NFAPI_HARQ_IND_MAX_PDU);
     return 0;
@@ -6417,7 +6411,6 @@ static uint8_t unpack_harq_indication(uint8_t **ppReadPackedMsg, uint8_t *end, v
   unpack_p7_tlv_t unpack_fns[] = {
     { NFAPI_HARQ_INDICATION_BODY_TAG, &pNfapiMsg->harq_indication_body, &unpack_harq_indication_body_value},
   };
-  NFAPI_TRACE(NFAPI_TRACE_INFO, "We are here %s %d\n", __FUNCTION__, __LINE__);
   return (pull16(ppReadPackedMsg, &pNfapiMsg->sfn_sf, end) &&
           unpack_p7_tlv_list(unpack_fns, sizeof(unpack_fns)/sizeof(unpack_tlv_t), ppReadPackedMsg, end, config, &pNfapiMsg->vendor_extension));
 }
@@ -7768,10 +7761,8 @@ int nfapi_p7_message_unpack(void *pMessageBuf, uint32_t messageBufLen, void *pUn
       break;
 
     case NFAPI_HARQ_INDICATION:
-      if (check_unpack_length(NFAPI_HARQ_INDICATION, unpackedBufLen)) {
-        NFAPI_TRACE(NFAPI_TRACE_INFO, "We are here %s %d\n", __FUNCTION__, __LINE__);
+      if (check_unpack_length(NFAPI_HARQ_INDICATION, unpackedBufLen))
         result = unpack_harq_indication(&pReadPackedMessage,  end, pMessageHeader, config);
-      }
       else
         return -1;
 

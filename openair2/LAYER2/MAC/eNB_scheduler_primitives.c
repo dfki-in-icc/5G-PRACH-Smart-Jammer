@@ -1569,7 +1569,7 @@ fill_nfapi_uci_acknak(module_id_t module_idP,
                               rntiP,
                               &ul_config_pdu->uci_harq_pdu.harq_information,
                               cce_idxP);
-  LOG_I(MAC, "Filled in UCI HARQ request for rnti %x SF %d.%d acknakSF %d.%d, cce_idxP %d-> n1_pucch %d\n",
+  LOG_D(MAC, "Filled in UCI HARQ request for rnti %x SF %d.%d acknakSF %d.%d, cce_idxP %d-> n1_pucch %d\n",
         rntiP,
         absSFP / 10,
         absSFP % 10,
@@ -1985,17 +1985,12 @@ find_UE_id(module_id_t mod_idP,
 {
   int UE_id;
   UE_info_t *UE_info = &RC.mac[mod_idP]->UE_info;
-  LOG_D(MAC, "UE_info= %p mod_idP %d\n", UE_info, mod_idP);
   if(!UE_info)
     return -1;
 
   for (UE_id = 0; UE_id < MAX_MOBILES_PER_ENB; UE_id++) {
     if (UE_info->active[UE_id] == TRUE) {
       int CC_id = UE_PCCID(mod_idP, UE_id);
-      LOG_D(MAC, "CC_id %d  NFAPI_CC_MAX %d \n", CC_id, NFAPI_CC_MAX);
-      LOG_D(MAC, "Checking UE_info->UE_template[CC_id %d][UE_id %d].rnti 0x%x\n", 
-            CC_id, UE_id,
-            UE_info->UE_template[CC_id][UE_id].rnti);
       if (CC_id>=0 && CC_id<NFAPI_CC_MAX && UE_info->UE_template[CC_id][UE_id].rnti == rntiP) {
         return UE_id;
       }
@@ -2185,7 +2180,7 @@ add_new_ue(module_id_t mod_idP,
   int UE_id;
   int i, j;
   UE_info_t *UE_info = &RC.mac[mod_idP]->UE_info;
-  LOG_I(MAC, "[eNB %d, CC_id %d] Adding UE with rnti %x (prev. num_UEs %d)\n",
+  LOG_D(MAC, "[eNB %d, CC_id %d] Adding UE with rnti %x (prev. num_UEs %d)\n",
         mod_idP,
         cc_idP,
         rntiP,
@@ -3190,7 +3185,7 @@ try_again:
 
       if (fCCE == -1) {
         if (DL_req->number_pdcch_ofdm_symbols == max_symbol) {
-          LOG_I(MAC, "subframe %d: Dropping Allocation for RNTI %x\n",
+          LOG_D(MAC, "subframe %d: Dropping Allocation for RNTI %x\n",
                 subframeP,
                 dl_config_pduLoop->dci_dl_pdu.dci_dl_pdu_rel8.rnti);
 
@@ -3198,7 +3193,7 @@ try_again:
             dl_config_pduLoop = &dl_config_pdu[j];
 
             if (dl_config_pduLoop->pdu_type == NFAPI_DL_CONFIG_DCI_DL_PDU_TYPE)
-              LOG_I(MAC, "DCI %d/%d (%d,%d) : rnti %x dci format %d, aggreg %d nCCE %d / %d (num_pdcch_symbols %d)\n",
+              LOG_D(MAC, "DCI %d/%d (%d,%d) : rnti %x dci format %d, aggreg %d nCCE %d / %d (num_pdcch_symbols %d)\n",
                     j,
                     DL_req->number_dci + HI_DCI0_req->number_of_dci,
                     DL_req->number_dci,
@@ -4061,7 +4056,7 @@ extract_harq(module_id_t mod_idP,
     num_ack_nak         = harq_indication_fdd->number_of_ack_nack;
     pdu                 = &harq_indication_fdd->harq_tb_n[0];
     harq_pid = ((10 * frameP) + subframeP + 10236) & 7;
-    LOG_I(MAC, "frame %d subframe %d harq_pid %d mode %d tmode[0] %d num_ack_nak %d round %d\n",
+    LOG_D(MAC, "frame %d subframe %d harq_pid %d mode %d tmode[0] %d num_ack_nak %d round %d\n",
           frameP,
           subframeP,
           harq_pid,
@@ -4107,14 +4102,14 @@ extract_harq(module_id_t mod_idP,
                       harq_pid,
                       UE_id,
                       rnti);
-          LOG_I(MAC, "Received %d for harq_pid %d\n",
+          LOG_D(MAC, "Received %d for harq_pid %d\n",
                 pdu[0],
                 harq_pid);
           RA_t *ra = &eNB->common_channels[CC_idP].ra[0];
 
           for (uint8_t ra_i = 0; ra_i < NB_RA_PROC_MAX; ra_i++) {
             if (ra[ra_i].rnti == rnti && ra[ra_i].state == MSGCRNTI_ACK && ra[ra_i].crnti_harq_pid == harq_pid) {
-              LOG_I(MAC,"CRNTI Reconfiguration: ACK %d rnti %x round %d frame %d subframe %d \n",
+              LOG_D(MAC,"CRNTI Reconfiguration: ACK %d rnti %x round %d frame %d subframe %d \n",
                     pdu[0],
                     rnti,
                     sched_ctl->round[CC_idP][harq_pid],
@@ -4126,7 +4121,6 @@ extract_harq(module_id_t mod_idP,
                                CC_idP,
                                frameP,
                                ra[ra_i].rnti);
-                
               } else {
                 if (sched_ctl->round[CC_idP][harq_pid] == 7) {
                   cancel_ra_proc(mod_idP,
