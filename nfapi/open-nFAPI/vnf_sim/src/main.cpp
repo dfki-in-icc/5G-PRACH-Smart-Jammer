@@ -399,6 +399,7 @@ void *vnf_p7_start_thread(void *ptr) {
 }
 
 void set_thread_priority(int priority) {
+#if !INHIBIT_REALTIME_SCHEDULER
   //printf("%s(priority:%d)\n", __FUNCTION__, priority);
   pthread_attr_t ptAttr;
   struct sched_param schedParam;
@@ -419,6 +420,7 @@ void set_thread_priority(int priority) {
   if(pthread_attr_setschedparam(&ptAttr, &thread_params) != 0) {
     printf("failed to set sched param\n");
   }
+#endif // INHIBIT_REALTIME_SCHEDULER
 }
 
 void *vnf_p7_thread_start(void *ptr) {

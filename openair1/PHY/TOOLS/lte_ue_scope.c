@@ -51,9 +51,9 @@ void reset_stats(FL_OBJECT *button, long arg) {
   int i,j,k;
   PHY_VARS_eNB *phy_vars_eNB = RC.eNB[0][0];
 
-  for (i=0; i<NUMBER_OF_DLSCH_MAX; i++) {
-    for (k=0; k<8; k++) { //harq_processes
-      for (j=0; j<phy_vars_eNB->dlsch[i][0]->Mlimit; j++) {
+  for (i=0; i<NUMBER_OF_UE_MAX; i++) {
+    for (k=0; k<NUMBER_OF_DLSCH_MAX; k++) { //harq_processes
+      for (j=0; j<phy_vars_eNB->dlsch[k][0]->Mlimit; j++) {
         phy_vars_eNB->UE_stats[i].dlsch_NAK[k][j]=0;
         phy_vars_eNB->UE_stats[i].dlsch_ACK[k][j]=0;
         phy_vars_eNB->UE_stats[i].dlsch_trials[k][j]=0;
@@ -72,10 +72,12 @@ void reset_stats(FL_OBJECT *button, long arg) {
 
 static void *scope_thread_UE(void *arg) {
   char stats_buffer[16384];
+#if !INHIBIT_REALTIME_SCHEDULER
   struct sched_param sched_param;
   sched_param.sched_priority = sched_get_priority_min(SCHED_FIFO)+1;
   sched_setscheduler(0, SCHED_FIFO,&sched_param);
   printf("Scope thread has priority %d\n",sched_param.sched_priority);
+#endif // INHIBIT_REALTIME_SCHEDULER
 
   while (!oai_exit) {
     //      dump_ue_stats (PHY_vars_UE_g[0][0], &PHY_vars_UE_g[0][0]->proc.proc_rxtx[0],stats_buffer, 0, mode,rx_input_level_dBm);
