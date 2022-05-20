@@ -31,10 +31,10 @@
 */
 
 /*! \file PHY/NR_TRANSPORT/nr_ulsch_decoding.c
-* \brief Integrate driver to OAI
+* \brief FPGA decoding one code block
 * \author Sendren Xu, SY Yeh(fdragon), Hongming, Terng-Yin Hsu
-* \date 2022-05-13
-* \version 1.0
+* \date 2022-05-20
+* \version 2.0
 * \email: summery19961210@gmail.com
 */
 
@@ -59,8 +59,11 @@
 
 #define OAI_UL_LDPC_MAX_NUM_LLR 27000//26112 // NR_LDPC_NCOL_BG1*NR_LDPC_ZMAX = 68*384
 //#define PRINT_CRC_CHECK
+#define PRINT_CRC_CHECK 1
+#define UL_LDPC_MODE 2
 #include "nr_ldpc_decoding_pym.h"
 //extern double cpuf;
+#include <time.h>
 
 void free_gNB_ulsch(NR_gNB_ULSCH_t **ulschptr,uint8_t N_RB_UL)
 {
@@ -289,6 +292,9 @@ void clean_gNB_ulsch(NR_gNB_ULSCH_t *ulsch)
   static uint32_t prnt_crc_cnt = 0;
 #endif
 
+int8_t buffer_in[26112+16]={0};
+int8_t buffer_out[1056+16]={0};
+
 void nr_processULSegment(void* arg) {
   ldpcDecode_t *rdata = (ldpcDecode_t*) arg;
   PHY_VARS_gNB *phy_vars_gNB = rdata->gNB;
@@ -428,15 +434,65 @@ void nr_processULSegment(void* arg) {
   //////////////////////////////////////////////////////////////////////////////////////////
 
   ////////////////////////////////// pl =====> llrProcBuf //////////////////////////////////
+   /* LDPC ------[FPGA version]------ param set*/
+  DecIFConf dec_conf;
+  dec_conf.Zc = p_decoderParms->Z;
+  dec_conf.BG = p_decoderParms->BG;
+  dec_conf.max_iter = p_decoderParms->numMaxIter;
+  dec_conf.numCB = ulsch_harq->C;
+  dec_conf.numChannelLls = (K_bits_F-2*ulsch_harq->Z) + (kc*ulsch_harq->Z-Kr); // input soft bits length, Zc x 66 - length of filler bits
+  dec_conf.numFillerBits = ulsch_harq->F; // filler bits length
+  dec_conf.max_iter = 8;
+  dec_conf.max_schedule = 0;
+  dec_conf.SetIdx = 12;
+  int mbmb=0,bg_len=0;
+    if( dec_conf.BG == 1 ){
+      dec_conf.nRows = 46;
+      mbmb=68;
+      bg_len = 22;
+    } else {
+      dec_conf.nRows = 42;
+      mbmb=52;
+      bg_len = 10;
+    }
+    // Calc input CB offset
+  int input_CBoffset = p_decoderParms->Z*mbmb*8;
+  if ((input_CBoffset & 0x7F) == 0)
+    input_CBoffset = input_CBoffset/8;
+  else
+    input_CBoffset = 16*((input_CBoffset / 128) + 1);
+    // Calc output CB offset
+  int out_CBoffset = dec_conf.Zc*bg_len;
+    if ((out_CBoffset & 0x7F) == 0)
+        out_CBoffset = out_CBoffset/8;
+    else
+        out_CBoffset = 16 * ((out_CBoffset / 128) + 1);
 
-  if(r==0)
-    nrLDPC_decoder_FPGA_PYM();
+  for(int ab=0;ab<input_CBoffset;ab++){
+    if(l[ab] == -128){
+      buffer_in[ab] = 0x81;
+    } else {
+      buffer_in[ab]=((int8_t)l[ab]);
+    }
+    buffer_in[ab]=((buffer_in[ab])^0xFF)+1;
+  }
+  
+  if(r==0){
+    nrLDPC_decoder_FPGA_PYM((int8_t *)&buffer_in[0],(int8_t *)&buffer_out[0],dec_conf);
+    memcpy(llrProcBuf,buffer_out,sizeof(uint8_t)*out_CBoffset);
+    for(int y=0;y<out_CBoffset;y++){
+      printf("[%04d]%02x ",y,(uint8_t)llrProcBuf[y]);
+      if(y%30 == 29)printf("\n");
+    }
+  }
     
-  no_iteration_ldpc = nrLDPC_decoder(p_decoderParms,
-                                     (int8_t*)&pl[0],
-                                     llrProcBuf,
-                                     ulsch_harq->p_nrLDPC_procBuf[r],
-                                     p_procTime);
+  // no_iteration_ldpc = nrLDPC_decoder(p_decoderParms,
+  //                                    (int8_t*)&pl[0],
+  //                                    llrProcBuf,
+  //                                    ulsch_harq->p_nrLDPC_procBuf[r],
+  //                                    p_procTime);
+
+  
 
   if (check_crc((uint8_t*)llrProcBuf,length_dec,ulsch_harq->F,crc_type)) {
 #ifdef PRINT_CRC_CHECK

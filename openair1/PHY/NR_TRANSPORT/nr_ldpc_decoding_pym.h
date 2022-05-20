@@ -1,9 +1,9 @@
 
 /*! \file PHY/NR_TRANSPORT/nr_ulsch_decoding.c
-* \brief Integrate driver to OAI
+* \brief FPGA decoding one code block
 * \author Sendren Xu, SY Yeh(fdragon), Hongming, Terng-Yin Hsu
-* \date 2022-05-13
-* \version 1.0
+* \date 2022-05-20
+* \version 2.0
 * \email: summery19961210@gmail.com
 */
 
@@ -23,5 +23,5 @@ typedef struct {
     int numFillerBits;		
 }DecIFConf;
 
-// int nrLDPC_decoder_FPGA_PYM(int8_t *buf,int8_t *buf_out,DecIFConf dec_conf);
-int nrLDPC_decoder_FPGA_PYM();
+int nrLDPC_decoder_FPGA_PYM(int8_t *buf,int8_t *buf_out,DecIFConf dec_conf);
+// int nrLDPC_decoder_FPGA_PYM();
