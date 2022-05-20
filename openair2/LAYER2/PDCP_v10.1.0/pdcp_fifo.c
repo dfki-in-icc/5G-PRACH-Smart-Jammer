@@ -258,7 +258,7 @@ int pdcp_fifo_read_input_sdus_fromtun (const protocol_ctxt_t *const  ctxt_pP) {
     }
 
     if (UE_NAS_USE_TUN) {
-      key = PDCP_COLL_KEY_DEFAULT_DRB_VALUE(ctxt.module_id, ctxt.rnti, ctxt.enb_flag);
+      key = PDCP_COLL_KEY_VALUE(ctxt.module_id, ctxt.rnti, ctxt.enb_flag, rab_id, SRB_FLAG_NO);
       h_rc = hashtable_get(pdcp_coll_p, key, (void **)&pdcp_p);
     } else { // => ENB_NAS_USE_TUN
       /* Get the IP from a packet */

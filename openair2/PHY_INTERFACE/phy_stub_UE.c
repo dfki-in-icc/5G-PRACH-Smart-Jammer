@@ -2147,7 +2147,8 @@ static inline bool is_channel_modeling(void)
      mode. It does not crash for LTE mode. We have not implemented channel
      modeling for NSA mode yet. For now, we ensure only do do chanel modeling
      in LTE mode. */
-  return get_softmodem_params()->node_number == 0 && !get_softmodem_params()->nsa;
+  extern int num_enbs;
+  return num_enbs < 2 && get_softmodem_params()->node_number == 0 && !get_softmodem_params()->nsa;
 }
 
 static bool should_drop_transport_block(int sf, uint16_t rnti)

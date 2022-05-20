@@ -4697,9 +4697,9 @@ uint8_t check_trigger_meas_event(
       adj_eNB_rsrp_db = UE_rrc_inst[ue_mod_idP].rsrp_db_filtered[eNB_offset];
       src_eNB_rsrp_db = UE_rrc_inst[ue_mod_idP].rsrp_db_filtered[eNB_index];
       float adj_db = adj_eNB_rsrp_db + ofn + ocn - hys;
-      float src_db = src_eNB_rsrp_db + ofs + ocs;
+      float src_db = src_eNB_rsrp_db + ofs + ocs - 1;
       if (src_db < adj_db)
-          LOG_D(RRC,"\t\t src_eNB_rsrp_db (%f) + ofs (%d) + ocs (%d) %f  < adj_eNB_rsrp_db (%f) + ofn (%d) + ocn (%d) - hys (%d) %f !!!!HO!!!\n",
+          LOG_D(RRC,"\t\t src_eNB_rsrp_db (%f) + ofs (%d) + ocs (%d) -1  %f  < adj_eNB_rsrp_db (%f) + ofn (%d) + ocn (%d) - hys (%d) %f !!!!HO!!!\n",
                       src_eNB_rsrp_db, ofs, ocs,
                       src_eNB_rsrp_db + ofs + ocs,
                       adj_eNB_rsrp_db, ofn, ocn, hys,
