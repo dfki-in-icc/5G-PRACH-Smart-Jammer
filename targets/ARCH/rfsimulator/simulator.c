@@ -386,7 +386,7 @@ static void getset_currentchannels_type(char *buf, int debug,webdatadef_t *tdata
 	  push_telnetcmd_func_t  push_telnetcmd =  (push_telnetcmd_func_t)get_shlibmodule_fptr("telnetsrv", TELNET_PUSHCMD_FNAME); 
 	  push_telnetcmd(setmodel_cmddef, cmd, prnt); 
   } else {
-	 get_currentchannels_type(buf,debug,tdata, prnt); 
+	 get_currentchannels_type("modify type",debug,tdata, prnt); 
   }
 } /*getset_currentchannels_type */
 static int startServer(openair0_device *device) {
