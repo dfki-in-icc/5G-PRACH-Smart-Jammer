@@ -503,7 +503,7 @@ int websrv_callback_set_softmodemvar(const struct _u_request * request, struct _
 /* callback processing module url (<address>/oaisoftmodem/module/commands), post method */
 int websrv_processwebfunc(struct _u_response * response, cmdparser_t * modulestruct ,telnetshell_cmddef_t *cmd, json_t *jparams) {
   LOG_I(UTIL,"[websrv] : executing command %s %s\n",modulestruct->module,cmd->cmdname);
-  
+  int http_status=200;
   if (cmd->cmdflags & TELNETSRV_CMDFLAG_GETWEBTBLDATA) {
 	webdatadef_t wdata;
     memset(&wdata,0,sizeof(wdata));
@@ -513,8 +513,17 @@ int websrv_processwebfunc(struct _u_response * response, cmdparser_t * modulestr
 	  } else {
 		int b;
 		char *pname, *pvalue, *ptype;
-		json_unpack(jparams,"%s:%s,%s:%s,%s:%s,%s,%b","name",&pname,"value",&pvalue,"type",&ptype,"modifiable",&b);
-		wdata.numlines=strtol(pvalue,NULL,0);
+		json_unpack(jparams,"{%s:%s,%s:%s,%s:%s,%s,%b}","name",&pname,"value",&pvalue,"type",&ptype,"modifiable",&b);
+		if (pvalue==NULL || pname==NULL || ptype == NULL) {
+		  LOG_I(UTIL, "[websrv], couldn't unpack jparams, module %s, command %s\n",modulestruct->module,cmd->cmdname);
+		  websrv_printjson( (char *)__FUNCTION__ ,jparams);
+		  http_status=500;
+	    } else {
+		  snprintf(wdata.columns[0].coltitle,sizeof(wdata.columns[0].coltitle)-1,"%s",pname);
+		  wdata.numcols=1;
+		  wdata.lines[0].val[0]=pvalue;
+		  wdata.numlines=1;
+		}
 	  }
 	}
 	cmd->webfunc_getdata(cmd->cmdname,websrvparams.dbglvl,(webdatadef_t *)&wdata,NULL);	  
@@ -527,11 +536,11 @@ int websrv_processwebfunc(struct _u_response * response, cmdparser_t * modulestr
     else
       cmd->cmdfunc((sptr==NULL)?cmd->cmdname:sptr,websrvparams.dbglvl,websrv_printf);
     if (cmd->cmdflags & TELNETSRV_CMDFLAG_PRINTWEBTBLDATA)
-      websrv_printf_tbl_end(200);
+      websrv_printf_tbl_end(http_status);
     else
-      websrv_printf_end(200);
+      websrv_printf_end(http_status);
   }
-  return 200;
+  return http_status;
 }
 
 int websrv_callback_exec_softmodemcmd(const struct _u_request * request, struct _u_response * response, void * user_data) {
@@ -661,6 +670,8 @@ int websrv_callback_get_softmodemcmd(const struct _u_request * request, struct _
 		} else if (modulestruct->cmd[j].cmdflags &  TELNETSRV_CMDFLAG_NEEDPARAM) {
 			if (modulestruct->cmd[j].webfunc_getdata != NULL) {
 				webdatadef_t wdata;
+				wdata.numcols=0;
+				wdata.numlines=0;
 				modulestruct->cmd[j].webfunc_getdata(modulestruct->cmd[j].cmdname,websrvparams.dbglvl, &(wdata),NULL);
 				acmd =json_pack( "{s:s,s:{s:s,s:s,s:s}}", "name",modulestruct->cmd[j].cmdname,"question","display",wdata.tblname ,"pname","P0","type","string");
 			}
