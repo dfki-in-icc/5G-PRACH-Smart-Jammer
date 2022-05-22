@@ -56,7 +56,7 @@ static telnetshell_cmddef_t channelmod_cmdarray[] = {
   {"show","<predef,current>",channelmod_show_cmd,{NULL},TELNETSRV_CMDFLAG_TELNETONLY,NULL},
   {"show predef","",channelmod_show_cmd,{NULL},TELNETSRV_CMDFLAG_WEBSRVONLY,NULL},
   {"show current","",channelmod_show_cmd,{NULL},TELNETSRV_CMDFLAG_WEBSRVONLY,NULL},
-  {"show params","<channelid> <param> <value>",channelmod_modify_cmd,{webfunc_getdata:get_currentchannels_type}, TELNETSRV_CMDFLAG_GETWEBTBLDATA,NULL},
+  {"show params","<channelid> <param> <value>",channelmod_modify_cmd,{webfunc_getdata:get_currentchannels_type}, TELNETSRV_CMDFLAG_GETWEBTBLDATA | TELNETSRV_CMDFLAG_WEBSRV_SETRETURNTBL,NULL},
   {"modify channelid","",channelmod_modify_cmd,{webfunc_getdata:get_channel_params},TELNETSRV_CMDFLAG_NEEDPARAM | TELNETSRV_CMDFLAG_WEBSRVONLY | TELNETSRV_CMDFLAG_GETWEBTBLDATA,NULL},  
   {"","",NULL,{NULL},0,NULL},
 };
@@ -1939,7 +1939,7 @@ int get_channel_params(char *buf, int debug, void *vdata, telnet_printfunc_t prn
     if (tdata != NULL && defined_channels[chanidx] != NULL) {
 		tdata->numcols=2;
 		snprintf(tdata->columns[0].coltitle,sizeof(tdata->columns[0].coltitle),"parameter");
-		tdata->columns[0].coltype=TELNET_VARTYPE_STRING;		
+		tdata->columns[0].coltype=TELNET_VARTYPE_STRING|TELNET_CHECKVAL_RDONLY;		
 		snprintf(tdata->columns[1].coltitle,sizeof(tdata->columns[1].coltitle),"value");
 		tdata->columns[1].coltype=TELNET_VARTYPE_STRING|TELNET_VAR_NEEDFREE;		
 		tdata->numlines=0;
@@ -1948,9 +1948,9 @@ int get_channel_params(char *buf, int debug, void *vdata, telnet_printfunc_t prn
         for (int i=0; pnames[i]!=NULL; i++) {        
 		    tdata->lines[tdata->numlines].val[0]=malloc(64);
 		    if (pformat[i][1] == 'i')
-		      snprintf( tdata->lines[tdata->numlines].val[0],64,pformat[i],*(int *)valptr[i]); 
+		      snprintf( tdata->lines[tdata->numlines].val[1],64,pformat[i],*(int *)valptr[i]); 
 		    else
-		      snprintf( tdata->lines[tdata->numlines].val[0],64,pformat[i],*(double *)valptr[i]); 
+		      snprintf( tdata->lines[tdata->numlines].val[1],64,pformat[i],*(double *)valptr[i]); 
             tdata->numlines++;
         }
     }

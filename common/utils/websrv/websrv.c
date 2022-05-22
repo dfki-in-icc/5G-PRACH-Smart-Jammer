@@ -137,7 +137,7 @@ void websrv_printf_end(int httpstatus ) {
   if (httpstatus >= 200 && httpstatus < 300) {
     LOG_I(UTIL,"[websrv] %s\n",websrv_printf_buff.buff);
     websrv_string_response(websrv_printf_buff.buff, websrv_printf_buff.response, httpstatus) ;   
-  } else {
+  } else if ( httpstatus < 1000) {
     LOG_W(UTIL,"[websrv] %s\n",websrv_printf_buff.buff);
     ulfius_set_binary_body_response(websrv_printf_buff.response,httpstatus , websrv_printf_buff.buff,websrv_printf_buff.buffptr - websrv_printf_buff.buff);
   }
@@ -285,7 +285,7 @@ FILE *websrv_getfile(char *filename, struct _u_response * response) {
 /*------------------------------------------------------------------------------------------------------------------------*/
 int websrv_callback_set_moduleparams(const struct _u_request *request, struct _u_response *response, void *user_data) {
   websrv_printf_start(response,200);
-  LOG_I(UTIL,"[websrv] callback_module_set received: %s %s\n",request->http_verb,request->http_url);
+  LOG_I(UTIL,"[websrv] %s received: %s %s\n",__FUNCTION__,request->http_verb,request->http_url);
 	 json_error_t jserr;
 	 json_t* jsbody = ulfius_get_json_body_request (request, &jserr);
      int httpstatus=404;
@@ -337,6 +337,12 @@ int websrv_callback_set_moduleparams(const struct _u_request *request, struct _u
 				   cmdName[3]=' ';
 				   }
 			     cmd->webfunc_getdata(cmdName,websrvparams.dbglvl,&datatbl,websrv_printf);
+                 if (cmd->cmdflags & TELNETSRV_CMDFLAG_WEBSRV_SETRETURNTBL) {
+                    httpstatus=1000;
+                    websrv_printf_end(httpstatus); 
+                    websrv_gettbldata_response(response,&datatbl);
+                    return U_CALLBACK_COMPLETE;  
+                 }
                  break;
                }
             }//for	*cmd	
@@ -513,9 +519,10 @@ int websrv_processwebfunc(struct _u_response * response, cmdparser_t * modulestr
 	  } else {
 		int b;
 		char *pname, *pvalue, *ptype;
-		json_unpack(jparams,"{%s:%s,%s:%s,%s:%s,%s,%b}","name",&pname,"value",&pvalue,"type",&ptype,"modifiable",&b);
+        json_error_t jerror;
+		json_unpack_ex(jparams,&jerror,0,"{s:s,s:s,s:s,s,b}","name",&pname,"value",&pvalue,"type",&ptype,"modifiable",&b);
 		if (pvalue==NULL || pname==NULL || ptype == NULL) {
-		  LOG_I(UTIL, "[websrv], couldn't unpack jparams, module %s, command %s\n",modulestruct->module,cmd->cmdname);
+		  LOG_I(UTIL, "[websrv], couldn't unpack jparams, module %s, command %s: %s\n",modulestruct->module,cmd->cmdname,jerror.text);
 		  websrv_printjson( (char *)__FUNCTION__ ,jparams);
 		  http_status=500;
 	    } else {
