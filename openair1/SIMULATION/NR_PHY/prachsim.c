@@ -97,6 +97,10 @@ teid_t newGtpuCreateTunnel(instance_t instance, rnti_t rnti, int incoming_bearer
 return 0;
 }
 
+int newGtpuDeleteAllTunnels(instance_t instance, rnti_t rnti) {
+  return 0;
+}
+
 void
 rrc_data_ind(
   const protocol_ctxt_t *const ctxt_pP,
@@ -222,6 +226,8 @@ nrUE_params_t nrUE_params;
 nrUE_params_t *get_nrUE_params(void) {
   return &nrUE_params;
 }
+
+nr_bler_struct nr_bler_data[NR_NUM_MCS];
 
 void processSlotTX(void *arg) {}
 
