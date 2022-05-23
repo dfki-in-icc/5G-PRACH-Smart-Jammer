@@ -51,13 +51,14 @@ int get_modchannel_index(char *buf, int debug, void *vdata, telnet_printfunc_t p
 int get_channel_params(char *buf, int debug, void *tdata, telnet_printfunc_t prnt);
 int get_currentchannels_type(char *buf, int debug, void *vdata, telnet_printfunc_t prnt);
 
+#define HELP_WEBIF_MODIFCHAN_STRING "Current channel index? <chanidx>"
 static telnetshell_cmddef_t channelmod_cmdarray[] = {
   {"help","",channelmod_print_help,{NULL},0,NULL},
   {"show","<predef,current>",channelmod_show_cmd,{NULL},TELNETSRV_CMDFLAG_TELNETONLY,NULL},
   {"show predef","",channelmod_show_cmd,{NULL},TELNETSRV_CMDFLAG_WEBSRVONLY,NULL},
   {"show current","",channelmod_show_cmd,{NULL},TELNETSRV_CMDFLAG_WEBSRVONLY,NULL},
   {"show params","<channelid> <param> <value>",channelmod_modify_cmd,{webfunc_getdata:get_currentchannels_type}, TELNETSRV_CMDFLAG_GETWEBTBLDATA | TELNETSRV_CMDFLAG_WEBSRV_SETRETURNTBL,NULL},
-  {"modify channelid","",channelmod_modify_cmd,{webfunc_getdata:get_channel_params},TELNETSRV_CMDFLAG_NEEDPARAM | TELNETSRV_CMDFLAG_WEBSRVONLY | TELNETSRV_CMDFLAG_GETWEBTBLDATA,NULL},  
+  {"show channelid",HELP_WEBIF_MODIFCHAN_STRING,channelmod_modify_cmd,{webfunc_getdata:get_channel_params},TELNETSRV_CMDFLAG_NEEDPARAM | TELNETSRV_CMDFLAG_WEBSRVONLY | TELNETSRV_CMDFLAG_GETWEBTBLDATA,NULL},  
   {"","",NULL,{NULL},0,NULL},
 };
 
@@ -1923,19 +1924,21 @@ static int channelmod_print_help(char *buff, int debug, telnet_printfunc_t prnt 
 }
 static char *pnames[]={"riceanf","aoa","randaoa","ploss","noise_power_dB","offset","forgetf",NULL};
 static char *pformat[]={"%lf","%lf","%i","%lf","%lf","%i","%lf",NULL};
-int get_channel_params(char *buf, int debug, void *vdata, telnet_printfunc_t prnt)
-{
-    if (buf == NULL) {
+int get_channel_params(char *buf, int debug, void *vdata, telnet_printfunc_t prnt) {
+  if (buf == NULL) {
 	  LOG_I(UTIL, "%s received NULL buffer\n",__FUNCTION__);
 	  return -1;
-    }	
-    if (debug)
+  }	
+  if (debug)
       LOG_I(UTIL, "%s received %s\n",__FUNCTION__,buf);
-    webdatadef_t *tdata =(webdatadef_t *)vdata;	
-    if ( tdata->numcols == 0  )
-      return get_modchannel_index(buf,debug,vdata,prnt);
-
-	int chanidx=strtol(tdata->lines[0].val[0],NULL,0);
+  int chanidx = 0;
+  webdatadef_t *tdata =(webdatadef_t *)vdata;
+  if (tdata->lines[0].val[0] != NULL) {
+    chanidx = strtol(tdata->lines[0].val[0],NULL,0);
+  } else {
+	LOG_I(UTIL,"Channel index set to 0, not available in received data\n");
+  }
+  if ( strstr(buf, "show") == buf) { 
     if (tdata != NULL && defined_channels[chanidx] != NULL) {
 		tdata->numcols=2;
 		snprintf(tdata->columns[0].coltitle,sizeof(tdata->columns[0].coltitle),"parameter");
@@ -1946,15 +1949,33 @@ int get_channel_params(char *buf, int debug, void *vdata, telnet_printfunc_t prn
 		channel_desc_t *cd = defined_channels[chanidx];	
 		void *valptr[]={&(cd->ricean_factor), &(cd->aoa),&(cd->random_aoa),&(cd->path_loss_dB), &(cd->noise_power_dB), &(cd->channel_offset), &(cd->forgetting_factor)};										
         for (int i=0; pnames[i]!=NULL; i++) {        
-		    tdata->lines[tdata->numlines].val[0]=malloc(64);
-		    if (pformat[i][1] == 'i')
+		    tdata->lines[tdata->numlines].val[0]=malloc(strlen(pnames[i]+1));
+		    tdata->lines[tdata->numlines].val[1]=malloc(64);
+		    strcpy(tdata->lines[tdata->numlines].val[0],pnames[i]);
+		    if (pformat[i][1] == 'i') {			   
 		      snprintf( tdata->lines[tdata->numlines].val[1],64,pformat[i],*(int *)valptr[i]); 
-		    else
+		    } else {
 		      snprintf( tdata->lines[tdata->numlines].val[1],64,pformat[i],*(double *)valptr[i]); 
+		    }
             tdata->numlines++;
-        }
+        }      
     }
     return tdata->numlines;
+  } /* show */ else if ( strstr(buf, "set") == buf) {
+	char cmdbuf[TELNET_MAX_MSGLENGTH];
+	  
+	if (pformat[chanidx][1] == 'i') {			   
+	  sprintf(cmdbuf,"channelmod modify %i %s %i>",chanidx,pnames[chanidx],*(int *)tdata->lines[0].val[0]); 
+	} else {
+	  sprintf(cmdbuf,"channelmod modify %i %s %lf>",chanidx,pnames[chanidx],*(double *)tdata->lines[0].val[0]);
+    }
+    return channelmod_modify_cmd(cmdbuf, debug, prnt);;
+  } else {
+	prnt("%s not implemented\n",buf);	 
+  }
+
+  return 500;  
+  
 } /* get_currentchannel_type */
 
 static void display_channelmodel(channel_desc_t *cd,int debug, telnet_printfunc_t prnt) {

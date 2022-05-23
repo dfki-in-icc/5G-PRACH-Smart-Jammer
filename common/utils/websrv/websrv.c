@@ -675,12 +675,14 @@ int websrv_callback_get_softmodemcmd(const struct _u_request * request, struct _
 		  snprintf(confstr,sizeof(confstr),"Execute %s ?",modulestruct->cmd[j].cmdname);
 		  acmd =json_pack( "{s:s,s:s}", "name",modulestruct->cmd[j].cmdname,"confirm", confstr);
 		} else if (modulestruct->cmd[j].cmdflags &  TELNETSRV_CMDFLAG_NEEDPARAM) {
-			if (modulestruct->cmd[j].webfunc_getdata != NULL) {
-				webdatadef_t wdata;
-				wdata.numcols=0;
-				wdata.numlines=0;
-				modulestruct->cmd[j].webfunc_getdata(modulestruct->cmd[j].cmdname,websrvparams.dbglvl, &(wdata),NULL);
-				acmd =json_pack( "{s:s,s:{s:s,s:s,s:s}}", "name",modulestruct->cmd[j].cmdname,"question","display",wdata.tblname ,"pname","P0","type","string");
+			if (modulestruct->cmd[j].helpstr != NULL) {
+				char *tokptr;
+				char *helpcp=strdup(modulestruct->cmd[j].helpstr);
+				char *question=strtok_r( helpcp,"<[",&tokptr);
+				char *pname = (question!=NULL)?strtok_r(helpcp,">]",&tokptr):NULL;
+				acmd =json_pack( "{s:s,s:{s:s,s:s,s:s}}", "name",modulestruct->cmd[j].cmdname,"question","display",
+				                (question==NULL)?"":question , "pname",(pname==NULL)?"Px":pname,"type","string");
+				free(pname);
 			}
 		}else {
 		  acmd =json_pack( "{s:s}", "name",modulestruct->cmd[j].cmdname);
