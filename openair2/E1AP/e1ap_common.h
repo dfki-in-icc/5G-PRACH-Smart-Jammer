@@ -21,11 +21,14 @@
  *      contact@openairinterface.org
  */
 
+#ifndef E1AP_COMMON_H_
+#define E1AP_COMMON_H_
+
+#include "E1AP_E1AP-PDU.h"
 #include "E1AP_TransactionID.h"
 #include "E1AP_PriorityLevel.h"
 
 #define MAX_NUM_TRANSAC_IDS 8
-#define E1AP_MAX_NUM_PLMNS
 
 #define E1AP_SETUP_REQ(mSGpTR)                     (mSGpTR)->ittiMsg.e1ap_setup_req
 #define E1AP_SETUP_RESP(mSGpTR)                    (mSGpTR)->ittiMsg.e1ap_setup_resp
@@ -36,35 +39,11 @@
 typedef f1ap_net_ip_address_t e1ap_net_ip_address_t;
 
 typedef int (*e1ap_message_processing_t)(
-  instance_t            instance,
-  uint32_t              assoc_id,
-  uint32_t              stream,
-  E1AP_E1AP_PDU_t       *message_p
+  instance_t            instance;
+  uint32_t              assoc_id;
+  uint32_t              stream;
+  E1AP_E1AP_PDU_t       *message_p;
 };
-
-typedef struct PLMN_ID_s {
-  int mcc;
-  int mnc;
-  int mnc_digit_length;
-} PLMN_ID_t;
-
-typedef struct e1ap_setup_req_s {
-  uint64_t              gNB_cu_up_id;
-  char *                gNB_cu_up_name;
-  uint64_t              transac_id;
-  int                   supported_plmns; 
-  PLMN_ID_t             plmns[E1AP_MAX_NUM_PLMNS];
-  uint16_t              sctp_in_streams;
-  uint16_t              sctp_out_streams;
-  uint16_t              default_sctp_stream_id;
-  f1ap_net_ip_address_t CUUP_e1_ip_address;
-  f1ap_net_ip_address_t CUCP_e1_ip_address;
-  E1AP_CNSupport_t      cn_support;
-} e1ap_setup_req_t;
-
-typedef struct e1ap_setup_resp_s {
-  long transac_id;
-} e1ap_setup_resp_t;
 
 typedef struct cell_group_s {
   long id;
@@ -193,3 +172,5 @@ typedef enum {
   CPtype = 0,
   UPtype
 } E1_t;
+
+#endif /* E1AP_COMMON_H_ */

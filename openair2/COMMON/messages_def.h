@@ -42,3 +42,4 @@
 #include "udp_messages_def.h"
 #include "gtpv1_u_messages_def.h"
 #include "flexran_messages_def.h"
+#include "e1ap_message_types.h"

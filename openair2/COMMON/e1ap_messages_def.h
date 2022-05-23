@@ -19,9 +19,13 @@
  *      contact@openairinterface.org
  */
 
+#ifndef E1AP_MESSAGES_DEF_H_
+#define E1AP_MESSAGES_DEF_H_
+
 /* gNB_CUUP application layer -> E1AP messages */
 MESSAGE_DEF(E1AP_SETUP_REQ  , MESSAGE_PRIORITY_MED , e1ap_setup_req_t , e1ap_setup_req)
 
 /* E1AP -> eNB_DU or eNB_CU_RRC -> E1AP application layer messages */
 MESSAGE_DEF(E1AP_SETUP_RESP , MESSAGE_PRIORITY_MED, e1ap_setup_resp_t , e1ap_setup_resp)
 
+#endif /* E1AP_MESSAGES_DEF_H_ */
