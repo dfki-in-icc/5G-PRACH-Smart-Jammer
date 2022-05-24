@@ -5697,17 +5697,34 @@ rrc_eNB_generate_HO_RRCConnectionReconfiguration(const protocol_ctxt_t *const ct
   *(DRB_config->logicalChannelIdentity) = (long)3;
   DRB_rlc_config = CALLOC(1, sizeof(*DRB_rlc_config));
   DRB_config->rlc_Config = DRB_rlc_config;
+#ifdef RRC_DEFAULT_RAB_IS_AM
+  DRB_rlc_config->present = LTE_RLC_Config_PR_am;
+  DRB_rlc_config->choice.am.ul_AM_RLC.t_PollRetransmit = LTE_T_PollRetransmit_ms50;
+  DRB_rlc_config->choice.am.ul_AM_RLC.pollPDU = LTE_PollPDU_p16;
+  DRB_rlc_config->choice.am.ul_AM_RLC.pollByte = LTE_PollByte_kBinfinity;
+  DRB_rlc_config->choice.am.ul_AM_RLC.maxRetxThreshold = LTE_UL_AM_RLC__maxRetxThreshold_t8;
+  DRB_rlc_config->choice.am.dl_AM_RLC.t_Reordering = LTE_T_Reordering_ms35;
+  DRB_rlc_config->choice.am.dl_AM_RLC.t_StatusProhibit = LTE_T_StatusProhibit_ms25;
+#else
   DRB_rlc_config->present = LTE_RLC_Config_PR_um_Bi_Directional;
   DRB_rlc_config->choice.um_Bi_Directional.ul_UM_RLC.sn_FieldLength = LTE_SN_FieldLength_size10;
   DRB_rlc_config->choice.um_Bi_Directional.dl_UM_RLC.sn_FieldLength = LTE_SN_FieldLength_size10;
   DRB_rlc_config->choice.um_Bi_Directional.dl_UM_RLC.t_Reordering = LTE_T_Reordering_ms35;
+#endif
   DRB_pdcp_config = CALLOC(1, sizeof(*DRB_pdcp_config));
   DRB_config->pdcp_Config = DRB_pdcp_config;
   DRB_pdcp_config->discardTimer = NULL;
   DRB_pdcp_config->rlc_AM = NULL;
+  DRB_pdcp_config->rlc_UM = NULL;
+#ifdef RRC_DEFAULT_RAB_IS_AM // EXMIMO_IOT
+  PDCP_rlc_AM = CALLOC(1, sizeof(*PDCP_rlc_AM));
+  DRB_pdcp_config->rlc_AM = PDCP_rlc_AM;
+  PDCP_rlc_AM->statusReportRequired = FALSE;
+#else
   PDCP_rlc_UM = CALLOC(1, sizeof(*PDCP_rlc_UM));
   DRB_pdcp_config->rlc_UM = PDCP_rlc_UM;
   PDCP_rlc_UM->pdcp_SN_Size = LTE_PDCP_Config__rlc_UM__pdcp_SN_Size_len12bits;
+#endif
   DRB_pdcp_config->headerCompression.present = LTE_PDCP_Config__headerCompression_PR_notUsed;
   DRB_lchan_config = CALLOC(1, sizeof(*DRB_lchan_config));
   DRB_config->logicalChannelConfig = DRB_lchan_config;
@@ -5722,6 +5739,7 @@ rrc_eNB_generate_HO_RRCConnectionReconfiguration(const protocol_ctxt_t *const ct
   logicalchannelgroup_drb = CALLOC(1, sizeof(long));
   *logicalchannelgroup_drb = 1;
   DRB_ul_SpecificParameters->logicalChannelGroup = logicalchannelgroup_drb;
+  ASN_SEQUENCE_ADD(&(*DRB_configList)->list, DRB_config);
   ASN_SEQUENCE_ADD(&(*DRB_configList2)->list, DRB_config);
   mac_MainConfig = CALLOC(1, sizeof(*mac_MainConfig));
   ue_context_pP->ue_context.mac_MainConfig = mac_MainConfig;
@@ -6139,7 +6157,7 @@ rrc_eNB_generate_HO_RRCConnectionReconfiguration(const protocol_ctxt_t *const ct
              sizeof(rrc_buf),
              xid,   //Transaction_id,
              NULL, // SRB_configList
-             NULL,
+             *DRB_configList, //NULL,
              NULL,  // DRB2_list,
              (struct LTE_SPS_Config *)NULL,   // *sps_Config,
              (struct LTE_PhysicalConfigDedicated *)*physicalConfigDedicated,

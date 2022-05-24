@@ -200,7 +200,7 @@ unsigned char *parse_header(unsigned char *mac_header,
                       L_LSB & 0xff);
           mac_header_ptr += 3;
 #ifdef DEBUG_HEADER_PARSING
-          LOG_D(MAC, "[UE] parse long sdu, size %x \n", length);
+          LOG_I(MAC, "[UE] parse long sdu, size %x \n", length);
 #endif
         } else {  //if (((SCH_SUBHEADER_SHORT *)mac_header_ptr)->F == 0) {
           length = ((SCH_SUBHEADER_SHORT *) mac_header_ptr)->L;
@@ -209,7 +209,7 @@ unsigned char *parse_header(unsigned char *mac_header,
       }
 
 #ifdef DEBUG_HEADER_PARSING
-      LOG_D(MAC, "[UE] sdu %d lcid %d length %d (offset now %ld)\n",
+      LOG_I(MAC, "[UE] sdu %d lcid %d length %d (offset now %ld)\n",
             num_sdus, lcid, length, mac_header_ptr - mac_header);
 #endif
       rx_lcids[num_sdus] = lcid;
@@ -504,7 +504,7 @@ ue_send_sdu(module_id_t module_idP,
 #endif
 
       if (rx_lcids[i] == CCCH) {
-        LOG_D(MAC,
+        LOG_I(MAC,
               "[UE %d] rnti %x Frame %d : DLSCH -> DL-CCCH, RRC message (eNB %d, %d bytes)\n",
               module_idP, UE_mac_inst[module_idP].crnti, frameP,
               eNB_index, rx_lengths[i]);
@@ -528,7 +528,7 @@ ue_send_sdu(module_id_t module_idP,
                             0
                            );
       } else if ((rx_lcids[i] == DCCH) || (rx_lcids[i] == DCCH1)) {
-        LOG_D(MAC,"[UE %d] Frame %d : DLSCH -> DL-DCCH%d, RRC message (eNB %d, %d bytes)\n", module_idP, frameP, rx_lcids[i],eNB_index,rx_lengths[i]);
+        LOG_I(MAC,"[UE %d] Frame %d : DLSCH -> DL-DCCH%d, RRC message (eNB %d, %d bytes)\n", module_idP, frameP, rx_lcids[i],eNB_index,rx_lengths[i]);
         mac_rlc_data_ind(module_idP,
                          UE_mac_inst[module_idP].crnti,
                          eNB_index,
@@ -541,7 +541,8 @@ ue_send_sdu(module_id_t module_idP,
                          1,
                          NULL);
       } else if ((rx_lcids[i]  < NB_RB_MAX) && (rx_lcids[i] > DCCH1 )) {
-        LOG_D(MAC,"[UE %d] Frame %d : DLSCH -> DL-DTCH%d (eNB %d, %d bytes)\n", module_idP, frameP,rx_lcids[i], eNB_index,rx_lengths[i]);
+        LOG_I(MAC,"[UE %d] Frame %d : DLSCH -> DL-DTCH%d (eNB %d, %d bytes)\n", module_idP, frameP,rx_lcids[i], eNB_index,rx_lengths[i]);
+        rrc_update_ue_status(module_idP, eNB_index);
 #if defined(ENABLE_MAC_PAYLOAD_DEBUG)
         int j;
 

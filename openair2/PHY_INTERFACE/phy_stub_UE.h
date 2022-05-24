@@ -44,6 +44,7 @@ typedef struct
     uint16_t rnti[256];
     uint8_t mcs[256];
     float sinr;
+    float neicellsinr[7];
     float rsrp[7];
     uint16_t pdu_size;
     bool drop_flag[256];

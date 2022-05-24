@@ -1968,8 +1968,24 @@ rrc_ue_process_rrcConnectionReconfiguration(
       }
 
       if (r_r8->radioResourceConfigDedicated) {
+        protocol_ctxt_t ho_ctxt = *ctxt_pP;
+        const protocol_ctxt_t *const ho_ctxt_pP = &ho_ctxt;
+        if (r_r8->mobilityControlInfo) {
+          // Re-establish PDCP for all RBs that are established
+          ho_ctxt.rnti =
+              ((r_r8->mobilityControlInfo->
+                newUE_Identity.buf[1]) | (r_r8->mobilityControlInfo->
+                                          newUE_Identity.buf[0] << 8));
+          LOG_D(RRC, "source rnti = 0x%x vs  target rnti = 0x%x\n", ctxt_pP->rnti, ho_ctxt.rnti); 
+          rrc_pdcp_config_req(ho_ctxt_pP, SRB_FLAG_YES, CONFIG_ACTION_ADD, ctxt_pP->module_id+DCCH,UNDEF_SECURITY_MODE);
+          rrc_rlc_config_req(ho_ctxt_pP, SRB_FLAG_YES, MBMS_FLAG_NO, CONFIG_ACTION_ADD,ctxt_pP->module_id+DCCH, Rlc_info_am_config);
+          rrc_pdcp_config_req (ho_ctxt_pP, SRB_FLAG_YES, CONFIG_ACTION_ADD, ctxt_pP->module_id+DCCH1,UNDEF_SECURITY_MODE);
+          rrc_rlc_config_req(ho_ctxt_pP, SRB_FLAG_YES, MBMS_FLAG_NO, CONFIG_ACTION_ADD, ctxt_pP->module_id+DCCH1, Rlc_info_am_config);
+          // rrc_pdcp_config_req (ho_ctxt_pP, SRB_FLAG_NO, CONFIG_ACTION_ADD, ctxt_pP->module_id+DTCH,UNDEF_SECURITY_MODE);
+          // rrc_rlc_config_req(ho_ctxt_pP, SRB_FLAG_NO, MBMS_FLAG_NO, CONFIG_ACTION_ADD, ctxt_pP->module_id+DTCH, Rlc_info_am_config);
+        }
         LOG_I(RRC,"Radio Resource Configuration is present\n");
-        rrc_ue_process_radioResourceConfigDedicated(ctxt_pP,
+        rrc_ue_process_radioResourceConfigDedicated(ho_ctxt_pP,
                                                     eNB_index,
                                                     r_r8->radioResourceConfigDedicated);
         r_r8->radioResourceConfigDedicated = NULL;
@@ -2136,7 +2152,7 @@ rrc_ue_process_mobilityControlInfo(
   rrc_rlc_config_req(ctxt_pP, SRB_FLAG_YES, MBMS_FLAG_NO, CONFIG_ACTION_RESET, ctxt_pP->module_id+DCCH1, Rlc_info_am_config);
   check_rlc_status(ctxt_pP, DCCH1);
   rrc_pdcp_config_req (ctxt_pP, SRB_FLAG_NO, CONFIG_ACTION_RESET, ctxt_pP->module_id+DTCH,UNDEF_SECURITY_MODE);
-  rrc_rlc_config_req(ctxt_pP, SRB_FLAG_NO, MBMS_FLAG_NO, CONFIG_ACTION_RESET, ctxt_pP->module_id+DTCH, Rlc_info_um);
+  rrc_rlc_config_req(ctxt_pP, SRB_FLAG_NO, MBMS_FLAG_NO, CONFIG_ACTION_RESET, ctxt_pP->module_id+DTCH, Rlc_info_am_config);
   check_rlc_status(ctxt_pP, DTCH);
 
   //Synchronisation to DL of target cell
@@ -2173,22 +2189,6 @@ rrc_ue_process_mobilityControlInfo(
                         (struct LTE_NonMBSFN_SubframeConfig_r14 *)NULL,
                         (LTE_MBSFN_AreaInfoList_r9_t *)NULL
                        );
-
-  // Re-establish PDCP for all RBs that are established
-  protocol_ctxt_t ho_ctxt = *ctxt_pP;
-  ho_ctxt.rnti = 
-      ((mobilityControlInfo->
-        newUE_Identity.buf[1]) | (mobilityControlInfo->
-                                  newUE_Identity.buf[0] << 8));
-  const protocol_ctxt_t *const ho_ctxt_pP = &ho_ctxt;
-  LOG_D(RRC, "source rnti = 0x%x vs  target rnti = 0x%x\n", ctxt_pP->rnti, ho_ctxt.rnti); 
-
-  rrc_pdcp_config_req(ho_ctxt_pP, SRB_FLAG_YES, CONFIG_ACTION_ADD, ctxt_pP->module_id+DCCH,UNDEF_SECURITY_MODE);
-  rrc_rlc_config_req(ho_ctxt_pP, SRB_FLAG_YES, MBMS_FLAG_NO, CONFIG_ACTION_ADD,ctxt_pP->module_id+DCCH, Rlc_info_am_config);
-  rrc_pdcp_config_req (ho_ctxt_pP, SRB_FLAG_YES, CONFIG_ACTION_ADD, ctxt_pP->module_id+DCCH1,UNDEF_SECURITY_MODE);
-  rrc_rlc_config_req(ho_ctxt_pP, SRB_FLAG_YES, MBMS_FLAG_NO, CONFIG_ACTION_ADD, ctxt_pP->module_id+DCCH1, Rlc_info_am_config);
-  rrc_pdcp_config_req (ho_ctxt_pP, SRB_FLAG_NO, CONFIG_ACTION_ADD, ctxt_pP->module_id+DTCH,UNDEF_SECURITY_MODE);
-  rrc_rlc_config_req(ho_ctxt_pP, SRB_FLAG_NO, MBMS_FLAG_NO, CONFIG_ACTION_ADD, ctxt_pP->module_id+DTCH, Rlc_info_um);
 
   // Re-establish PDCP for all RBs that are established
   // rrc_pdcp_config_req (ue_mod_idP+NB_eNB_INST, frameP, 0, CONFIG_ACTION_ADD, ue_mod_idP+DCCH);
@@ -4555,14 +4555,14 @@ void ue_measurement_report_triggering(protocol_ctxt_t *const ctxt_pP, const uint
                   LOG_D(RRC,"[UE %d] Frame %d : A3 event: check if a neighboring cell becomes offset better than serving to trigger a measurement event \n",
                         ctxt_pP->module_id, ctxt_pP->frame);
 
-                  if ((check_trigger_meas_event(
+                  if ((ue->Info[0].State >= RRC_CONNECTED) &&
+                      (ue->Info[0].T304_active == 0 )      &&
+                      (ue->HandoverInfoUe.measFlag == 1)   &&
+                      (check_trigger_meas_event(
                          ctxt_pP->module_id,
                          ctxt_pP->frame,
                          eNB_index,
-                         i,j,ofn,ocn,hys,ofs,ocs,a3_offset,ttt_ms)) &&
-                      (ue->Info[0].State >= RRC_CONNECTED) &&
-                      (ue->Info[0].T304_active == 0 )      &&
-                      (ue->HandoverInfoUe.measFlag == 1)) {
+                         i,j,ofn,ocn,hys,ofs,ocs,a3_offset,ttt_ms))) {
                     //trigger measurement reporting procedure (36.331, section 5.5.5)
                     if (ue->measReportList[i][j] == NULL) {
                       ue->measReportList[i][j] = malloc(sizeof(MEAS_REPORT_LIST));
@@ -4696,7 +4696,7 @@ uint8_t check_trigger_meas_event(
       if (src_db < adj_db)
           LOG_D(RRC,"\t\t src_eNB_rsrp_db (%f) + ofs (%d) + ocs (%d) -1  %f  < adj_eNB_rsrp_db (%f) + ofn (%d) + ocn (%d) - hys (%d) %f !!!!HO!!!\n",
                       src_eNB_rsrp_db, ofs, ocs,
-                      src_eNB_rsrp_db + ofs + ocs,
+                      src_eNB_rsrp_db + ofs + ocs -1,
                       adj_eNB_rsrp_db, ofn, ocn, hys,
                       adj_eNB_rsrp_db + ofn + ocn - hys);
       else 
@@ -6393,6 +6393,20 @@ int decode_SL_Discovery_Message(
   return(0);
 }
 
+void
+rrc_update_ue_status(
+  const module_id_t module_idP,
+  const uint8_t      enb_indexP
+)
+{
+  if((UE_rrc_inst[module_idP].Info[enb_indexP].State == RRC_IDLE) &&
+      (UE_rrc_inst[module_idP].HandoverInfoUe.targetCellId != 0xFF)) {
+    UE_rrc_inst[module_idP].Info[enb_indexP].State = RRC_CONNECTED;
+    UE_rrc_inst[module_idP].Info[enb_indexP].handoverTarget = 0;
+    UE_rrc_inst[module_idP].HandoverInfoUe.targetCellId = 0xFF;
+    LOG_I(RRC,"[UE %d] State = RRC_CONNECTED\n", module_idP);
+  }
+}
 
 //-----------------------------------------------------------------------------
 RRC_status_t
@@ -6473,9 +6487,8 @@ rrc_rx_tx_ue(
 
     if (UE_rrc_inst[ctxt_pP->module_id].Info[enb_indexP].T304_cnt == 0) {
       UE_rrc_inst[ctxt_pP->module_id].Info[enb_indexP].T304_active = 0;
-      if (UE_rrc_inst[ctxt_pP->module_id].Info[enb_indexP].State == RRC_IDLE) {//TODO:: Remove it
+      if (UE_rrc_inst[ctxt_pP->module_id].Info[enb_indexP].State == RRC_IDLE) {
           UE_rrc_inst[ctxt_pP->module_id].HandoverInfoUe.measFlag = 0;
-          UE_rrc_inst[ctxt_pP->module_id].Info[enb_indexP].State == RRC_CONNECTED;
           return (RRC_OK);
       }
       else {

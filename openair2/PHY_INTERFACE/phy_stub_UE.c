@@ -1360,14 +1360,14 @@ void *ue_standalone_pnf_task(void *context)
         // TODO: Update sinr field of slot_rnti_mcs to be array.
         for (int i = 0; i < ch_info.nb_of_csi; ++i)
         {
-          sf_rnti_mcs[sf].sinr = ch_info.csi[i].sinr;
-          LOG_D(MAC, "Received_SINR[%d] = %f\n", i, ch_info.csi[i].sinr);
+          if (ch_info.csi[i].source > num_enbs)
+            continue;
           assert(ch_info.csi[i].source > 0 && ch_info.csi[i].source <= 7); // 7 : max number of adj cells.
           sf_rnti_mcs[sf].rsrp[ch_info.csi[i].source - 1] = ch_info.csi[i].rsrp;
-          LOG_D(MAC, "Received_RSRP[0] = %f RSRP[1] = %f %s\n", 
-                      sf_rnti_mcs[sf].rsrp[0],
-                      sf_rnti_mcs[sf].rsrp[1]);
+          sf_rnti_mcs[sf].neicellsinr[ch_info.csi[i].source - 1] = ch_info.csi[i].sinr;
         }
+        sf_rnti_mcs[sf].sinr = sf_rnti_mcs[sf].neicellsinr[UE_mac_inst[0].targetPhysCellId];
+        LOG_D(MAC, "Received_SINR[%d] = %f\n", sf, sf_rnti_mcs[sf].sinr);
       }
       prev_sfn_sf = sfn_sf;
     }
