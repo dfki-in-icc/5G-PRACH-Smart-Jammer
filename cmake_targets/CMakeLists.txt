@@ -1188,8 +1188,8 @@ add_library(UTIL
   ${OPENAIR_DIR}/common/utils/backtrace.c
   ${OPENAIR_DIR}/common/utils/time_meas.c
 )
-# uncomment line below to activate new logging feature in JSON format
-target_compile_definitions(UTIL PUBLIC -DOAI_LOG_JSON)
+# uncomment line below to activate new logging formatting feature in JSON
+# target_compile_definitions(UTIL PUBLIC -DOAI_LOG_JSON)
 
 set(SECU_OSA_SRC
   ${OPENAIR2_DIR}/UTIL/OSA/osa_key_deriver.c
