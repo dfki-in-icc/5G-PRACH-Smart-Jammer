@@ -224,14 +224,12 @@ void process_QoSConfig(NR_UE_sched_ctrl_t *sched_ctrl, NR_DRB_ToAddModList_t *DR
 
   qsort((void *)sched_ctrl->dl_lc_ids, sizeof(uint8_t) * sched_ctrl->dl_lc_num, sizeof(uint8_t), QoS_comp);
 
-  #ifdef DEBUG_QOS
-  LOG_I(NR_MAC, "In %s: total num of active bearers %d \n", __func__, sched_ctrl->dl_lc_num);
-  LOG_I(NR_MAC, "Dumping sched_ctrl->dl_lc_ids sorted by Priority Level:\n");
+  LOG_D(NR_MAC, "In %s: total num of active bearers %d \n", __func__, sched_ctrl->dl_lc_num);
+  LOG_D(NR_MAC, "Dumping sched_ctrl->dl_lc_ids sorted by Priority Level:\n");
   for (int j = 0; j < sched_ctrl->dl_lc_num; j++) {
     int lcid = sched_ctrl->dl_lc_ids[j];
-    LOG_I(NR_MAC, "LCID %d (%s %d)\n", lcid, lcid < 4 ? "SRB" : "DRB", lcid < 4 ? lcid : lcid - 3);
+    LOG_D(NR_MAC, "LCID %d (%s %d)\n", lcid, lcid < 4 ? "SRB" : "DRB", lcid < 4 ? lcid : lcid - 3);
   }
-  #endif
 
 }
 
