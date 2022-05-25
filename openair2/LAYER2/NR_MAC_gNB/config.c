@@ -103,9 +103,8 @@ const uint64_t table_5_6_4_1[27][2] = {
  * The sorting of the array is based on the Priority Levels. SRBs are placed at the top of the array, followed by DRBs by descending priority order.
  *
  **/
-static int QoS_comp(const void *lcid1, const void *lcid2) {
-  NR_UE_info_t *UE_info = &RC.nrmac[0]->UE_info;
-  NR_UE_sched_ctrl_t *sched_ctrl = &UE_info->UE_sched_ctrl[0];
+static int QoS_comp(const void *lcid1, const void *lcid2, void *sctrl) {
+  NR_UE_sched_ctrl_t *sched_ctrl = (NR_UE_sched_ctrl_t*)sctrl;
   uint8_t lcid_1 = *(uint8_t *)lcid1;
   uint8_t lcid_2 = *(uint8_t *)lcid2;
   if (lcid_1 >= 4 && lcid_2 >= 4) {
@@ -222,7 +221,7 @@ void process_QoSConfig(NR_UE_sched_ctrl_t *sched_ctrl, NR_DRB_ToAddModList_t *DR
     }
   }
 
-  qsort((void *)sched_ctrl->dl_lc_ids, sizeof(uint8_t) * sched_ctrl->dl_lc_num, sizeof(uint8_t), QoS_comp);
+  qsort_r((void *)sched_ctrl->dl_lc_ids, sizeof(uint8_t) * sched_ctrl->dl_lc_num, sizeof(uint8_t), QoS_comp, (void *)sched_ctrl);
 
   LOG_D(NR_MAC, "In %s: total num of active bearers %d \n", __func__, sched_ctrl->dl_lc_num);
   LOG_D(NR_MAC, "Dumping sched_ctrl->dl_lc_ids sorted by Priority Level:\n");
