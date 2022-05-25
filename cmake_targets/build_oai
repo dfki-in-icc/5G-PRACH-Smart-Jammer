@@ -184,7 +184,7 @@ Usage (regular):
 
 
 function main() {
-
+  execlist=""
   until [ -z "$1" ]
   do
     case "$1" in
@@ -456,9 +456,8 @@ function main() {
             print_help
             exit 1;;
 	*)
-	    print_help
-            echo_fatal "Unknown option $1"
-            break;;
+	    execlist="$execlist $1"
+      shift;;
    esac
   done
 
@@ -586,7 +585,6 @@ function main() {
     check_install_additional_tools
   fi
 
-  execlist=""
   if [ "$eNB" = "1" ] ; then
       execlist="$execlist lte-softmodem"
   fi
