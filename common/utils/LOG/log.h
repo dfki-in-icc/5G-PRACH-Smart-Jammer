@@ -56,7 +56,7 @@
 /*----------------------------------------------------------------------------*/
 #include <assert.h>
 #ifdef NDEBUG
-#warning assert is disabled
+  #warning assert is disabled
 #endif
 #define NUM_ELEMENTS(ARRAY) (sizeof(ARRAY) / sizeof(ARRAY[0]))
 #define CHECK_INDEX(ARRAY, INDEX) assert((INDEX) < NUM_ELEMENTS(ARRAY))
@@ -129,6 +129,7 @@ extern "C" {
 #define FLAG_FILE_LINE   0x0040
 #define FLAG_TIME        0x0100
 #define FLAG_THREAD_ID   0x0200
+#define FLAG_CORR_ID     0x0400 /*!< \brief: activate correlation ID in json formatted logs*/
 #define FLAG_INITIALIZED 0x8000
 
 #define SET_LOG_OPTION(O)   g_log->flag = (g_log->flag | O)
@@ -267,7 +268,7 @@ typedef struct  {
   int               level;
   int               savedlevel;
   int               flag;
-  int               filelog;
+  int               filelog; // flag set to 1 when using a sink of type file, stdout if set to 0
   char              *filelog_name;
   FILE              *stream;
   log_vprint_func_t vprint;
@@ -284,6 +285,11 @@ typedef struct {
   char                   *filelog_name;
   uint64_t                debug_mask;
   uint64_t                dump_mask;
+  unsigned char           global_logfile;
+  FILE                   *global_logfilep;
+  off_t                   rotation_size;// in bytes, 0 means disabled
+  unsigned int            rotation_time;// in seconds. 0 means disabled
+  time_t                  rotation_start_time; // timestamp in seconds since Unix-Epoch
 } log_t;
 
 
@@ -301,36 +307,64 @@ extern "C" {
 #endif
 /*--- INCLUDES ---------------------------------------------------------------*/
 #    include "log_if.h"
-/*----------------------------------------------------------------------------*/
+
+
+/**
+ * Initialize the logging framework allocating internal memory for API global structure 'g_log', setting defaults and
+ * reading parameters from the configuration file (if exists) and command line. There is no environment variable handling.
+ * In order of priority, logs are disabled thanks to loglevel OAILOG_DISABLE and sink to file per component. Internally it
+ * leverages log API function log_getconfig().
+ *
+ * @return: 0 (successful), !=0 (error), exit(1) if memory failure
+ */
 int  logInit (void);
-void logTerm (void);
 int  isLogInitDone (void);
+int register_log_component(char *name, char *fext,int compidx);
 void logRecord_mt(const char *file, const char *func, int line,int comp, int level, const char *format, ...) __attribute__ ((format (printf, 6, 7)));
 void vlogRecord_mt(const char *file, const char *func, int line, int comp, int level, const char *format, va_list args );
 void log_dump(int component, void *buffer, int buffsize,int datatype, const char *format, ... );
-int  set_log(int component, int level);
-void set_glog(int level);
 
+/**
+ * set log level for log component and check also if the stream associated is open. If it is not, give priority to file sink
+ * type of log stream
+ * @return: 0(success), !=-0(failure)
+ */
+int  set_log(int component, int level);
+/*
+ * @return: 0(success), !=-0(failure)
+ */
+int  set_glog(int level);
 void set_glog_onlinelog(int enable);
-void set_glog_filelog(int enable);
-void set_component_filelog(int comp);
+
+/**
+ * Set sink logging type globally. Sinks are of 2 types: stdout or file. You choose among them using ENABLE parameter
+ *
+ * @param enable if param is != 0, all the logs will be redirected to a global file, else logs will be redirected to stdout
+ * @return: 0(success), !=-0(failure)
+ */
+int set_glog_filelog(int enable);
+/*
+ * @return: 0(success), !=-0(failure)
+ */
+int set_component_filelog(int comp);
 void close_component_filelog(int comp);
 void set_component_consolelog(int comp);
+
+void logTerm (void);
+void logClean (void);
+
 int  map_str_to_int(mapping *map, const char *str);
 char *map_int_to_str(mapping *map, int val);
-void logClean (void);
 int  is_newline( char *str, int size);
-
-int register_log_component(char *name, char *fext, int compidx);
 
 #define LOG_MEM_SIZE 100*1024*1024
 #define LOG_MEM_FILE "./logmem.log"
 void flush_mem_to_file(void);
 int logInit_log_mem(void);
 void close_log_mem(void);
-  
+
 typedef struct {
-  char* buf_p;
+  char *buf_p;
   int buf_index;
   int enable_flag;
 } log_mem_cnt_t;
@@ -364,7 +398,7 @@ typedef struct {
 #define MATLAB_CSHORT_BRACKET1 13
 #define MATLAB_CSHORT_BRACKET2 14
 #define MATLAB_CSHORT_BRACKET3 15
-  
+
 int32_t write_file_matlab(const char *fname, const char *vname, void *data, int length, int dec, unsigned int format, int multiVec);
 
 /*----------------macro definitions for reading log configuration from the config module */
@@ -372,8 +406,11 @@ int32_t write_file_matlab(const char *fname, const char *vname, void *data, int 
 
 #define LOG_CONFIG_STRING_GLOBAL_LOG_LEVEL                 "global_log_level"
 #define LOG_CONFIG_STRING_GLOBAL_LOG_ONLINE                "global_log_online"
+// LOG_CONFIG_STRING_GLOBAL_LOG_INFILE: it is unused inside this log library.
 #define LOG_CONFIG_STRING_GLOBAL_LOG_INFILE                "global_log_infile"
 #define LOG_CONFIG_STRING_GLOBAL_LOG_OPTIONS               "global_log_options"
+#define LOG_CONFIG_STRING_GLOBAL_LOG_ROT_SIZE              "global_log_rotation_size"
+#define LOG_CONFIG_STRING_GLOBAL_LOG_ROT_TIME              "global_log_rotation_time"
 
 #define LOG_CONFIG_LEVEL_FORMAT                            "%s_log_level"
 #define LOG_CONFIG_LOGFILE_FORMAT                          "%s_log_infile"
@@ -393,13 +430,14 @@ int32_t write_file_matlab(const char *fname, const char *vname, void *data, int 
 /*   optname                               help                                          paramflags         XXXptr               defXXXval                          type        numelt */
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 #define LOG_GLOBALPARAMS_DESC { \
-    {LOG_CONFIG_STRING_GLOBAL_LOG_LEVEL,   "Default log level for all componemts\n",              0, strptr:(char **)&gloglevel, defstrval:log_level_names[3].name, TYPE_STRING,     0}, \
-    {LOG_CONFIG_STRING_GLOBAL_LOG_ONLINE,  "Default console output option, for all components\n", 0, iptr:&(consolelog),         defintval:1,                       TYPE_INT,        0}, \
-    {LOG_CONFIG_STRING_GLOBAL_LOG_OPTIONS, LOG_CONFIG_HELP_OPTIONS,                               0, strlistptr:NULL,            defstrlistval:NULL,                TYPE_STRINGLIST, 0} \
+    {LOG_CONFIG_STRING_GLOBAL_LOG_LEVEL,   "Default log level for all components\n",              0, strptr:(char **)&gloglevel, defstrval:log_level_names[6].name, TYPE_STRING,     0}, \
+    {LOG_CONFIG_STRING_GLOBAL_LOG_ONLINE,  "Default console output option, for all components\n", 0, iptr:&(consolelog),         defintval:0,                       TYPE_INT,        0}, \
+    {LOG_CONFIG_STRING_GLOBAL_LOG_OPTIONS, LOG_CONFIG_HELP_OPTIONS,                               0, strlistptr:NULL,            defstrlistval:NULL,                TYPE_STRINGLIST, 0}, \
+    {LOG_CONFIG_STRING_GLOBAL_LOG_ROT_SIZE, "Log Rotation: maximum log size in MB for file rotation (0 to disable/default)\n",         0, uptr:&(rotationsize), defuintval:0, TYPE_UINT, 0},\
+    {LOG_CONFIG_STRING_GLOBAL_LOG_ROT_TIME, "Log Rotation: maximum elapsed time in seconds for file rotation (0 to disable/default)\n", 0, uptr:&(rotationtime), defuintval:0, TYPE_UINT, 0} \
   }
 
 #define LOG_OPTIONS_IDX   2
-
 
 /*----------------------------------------------------------------------------------*/
 /** @defgroup _debugging debugging macros
@@ -447,7 +485,7 @@ int32_t write_file_matlab(const char *fname, const char *vname, void *data, int 
 
 #    define LOG_M(file, vector, data, len, dec, format) do { write_file_matlab(file, vector, data, len, dec, format, 0);} while(0)
 #    define LOG_VAR(A,B) A B
-#    define T_ACTIVE(a) (0) 
+#    define T_ACTIVE(a) (0)
 #  endif /* T_TRACER */
 
 /* avoid warnings for variables only used in LOG macro's but set outside debug section */

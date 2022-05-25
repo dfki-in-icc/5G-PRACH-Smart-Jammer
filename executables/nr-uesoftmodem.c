@@ -428,7 +428,8 @@ int main( int argc, char **argv ) {
   memset(openair0_cfg,0,sizeof(openair0_config_t)*MAX_CARDS);
   memset(tx_max_power,0,sizeof(int)*MAX_NUM_CCs);
   // initialize logging
-  logInit();
+  if (logInit())                                                                                                                                                
+    exit_fun("[SOFTMODEM] Error, logging configuration init failed\n");      
   // get options and fill parameters from configuration file
 
   get_options (); //Command-line options specific for NRUE
