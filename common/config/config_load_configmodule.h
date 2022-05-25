@@ -58,6 +58,10 @@
 #define CONFIG_HELP           (1<<20)           // print help message
 #define CONFIG_ABORT          (1<<21)           // config failed,abort execution 
 #define CONFIG_NOOOPT         (1<<22)           // no -O option found when parsing command line
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 typedef int(*configmodule_initfunc_t)(char *cfgP[],int numP);
 typedef int(*configmodule_getfunc_t)(paramdef_t *,int numparams, char *prefix);
 typedef int(*configmodule_getlistfunc_t)(paramlist_def_t *, paramdef_t *,int numparams, char *prefix);
@@ -114,6 +118,8 @@ extern configmodule_interface_t *cfgptr;
 extern configmodule_interface_t *load_configmodule(int argc, char **argv, uint32_t initflags);
 extern void end_configmodule(void);
 #define CONFIG_PRINTF_ERROR(f, x... ) if (isLogInitDone ()) { LOG_E(ENB_APP,f,x);} else {printf(f,x);}; if ( !CONFIG_ISFLAGSET(CONFIG_NOABORTONCHKF) ) exit_fun("exit because configuration failed\n");
-
+#ifdef __cplusplus
+}
+#endif
 
 #endif  /* INCLUDE_CONFIG_LOADCONFIGMODULE_H */
