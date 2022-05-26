@@ -741,7 +741,7 @@ int main( int argc, char **argv ) {
       RC.ru[ru_id]->rf_map.card=0;
       RC.ru[ru_id]->rf_map.chain=CC_id+chain_offset;
       if (ru_id==0) sl_ahead = RC.ru[ru_id]->sl_ahead;	
-      else AssertFatal(RC.ru[ru_id]->sl_ahead != RC.ru[0]->sl_ahead,"RU %d has different sl_ahead %d than RU 0 %d\n",RC.ru[ru_id]->sl_ahead,RC.ru[0]->sl_ahead);
+      else AssertFatal(RC.ru[ru_id]->sl_ahead != RC.ru[0]->sl_ahead,"RU %d has different sl_ahead %d than RU 0 %d\n",ru_id,RC.ru[ru_id]->sl_ahead,RC.ru[0]->sl_ahead);
     }
     
   }
@@ -839,10 +839,10 @@ int main( int argc, char **argv ) {
   }
 
   for (int inst = 0; inst < NB_RU; inst++) {
+    kill_NR_RU_proc(inst);
     nr_phy_free_RU(RC.ru[inst]);
   }
 
-  free_lte_top();
   pthread_cond_destroy(&sync_cond);
   pthread_mutex_destroy(&sync_mutex);
   pthread_cond_destroy(&nfapi_sync_cond);
