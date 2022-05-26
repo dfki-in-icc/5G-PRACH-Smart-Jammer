@@ -830,7 +830,7 @@ pdcp_data_ind(
         security_ok = 1;
       }
 
-      if (security_ok == 0) {
+      if (!get_softmodem_params()->emulate_l1 && security_ok == 0) {
         LOG_W(PDCP,
               PROTOCOL_PDCP_CTXT_FMT"security not validated for incoming PDCP SRB PDU\n",
               PROTOCOL_PDCP_CTXT_ARGS(ctxt_pP, pdcp_p));
@@ -941,7 +941,7 @@ pdcp_data_ind(
           security_ok = 1;
         }
 
-        if (security_ok == 0) {
+        if (!get_softmodem_params()->emulate_l1 && security_ok == 0) {
           LOG_W(PDCP,
                 PROTOCOL_PDCP_CTXT_FMT"security not validated for incoming PDPC DRB RLC/AM PDU\n",
                 PROTOCOL_PDCP_CTXT_ARGS(ctxt_pP, pdcp_p));
@@ -2231,7 +2231,7 @@ void rrc_pdcp_config_req (
 //-----------------------------------------------------------------------------
 {
   pdcp_t *pdcp_p = NULL;
-  hash_key_t       key           = PDCP_COLL_KEY_VALUE(ctxt_pP->module_id, ctxt_pP->rnti, ctxt_pP->enb_flag, rb_idP, srb_flagP);
+  hash_key_t       key           = PDCP_COLL_KEY_VALUE(ctxt_pP->module_id, ctxt_pP->rnti, ctxt_pP->enb_flag, rb_idP >= DTCH ? rb_idP - 2:rb_idP, srb_flagP);
   hashtable_rc_t   h_rc;
   h_rc = hashtable_get(pdcp_coll_p, key, (void **)&pdcp_p);
 
@@ -2268,6 +2268,16 @@ void rrc_pdcp_config_req (
         LOG_D(PDCP,PROTOCOL_PDCP_CTXT_FMT" Config request : Action ADD:  radio bearer id %ld (already added) configured\n",
               PROTOCOL_PDCP_CTXT_ARGS(ctxt_pP,pdcp_p),
               rb_idP);
+        break;
+
+      case CONFIG_ACTION_RESET:
+        pdcp_p->next_pdcp_tx_sn = 0;
+        pdcp_p->next_pdcp_rx_sn = 0;
+        pdcp_p->tx_hfn = 0;
+        pdcp_p->rx_hfn = 0;
+        pdcp_p->last_submitted_pdcp_rx_sn = 4095;
+        pdcp_p->first_missing_pdu = -1;
+        pdcp_p->security_activated = 0;
         break;
 
       case CONFIG_ACTION_MODIFY:
@@ -2331,6 +2341,7 @@ void rrc_pdcp_config_req (
           pdcp_p->next_pdcp_rx_sn = 0;
           pdcp_p->tx_hfn = 0;
           pdcp_p->rx_hfn = 0;
+          pdcp_p->rlc_mode = RLC_MODE_AM;
           /* SN of the last PDCP SDU delivered to upper layers */
           pdcp_p->last_submitted_pdcp_rx_sn = 4095;
 
@@ -2394,16 +2405,16 @@ uint64_t pdcp_module_init( uint64_t pdcp_optmask, int id) {
       int num_if = (NFAPI_MODE == NFAPI_UE_STUB_PNF || IS_SOFTMODEM_SIML1 || NFAPI_MODE == NFAPI_MODE_STANDALONE_PNF)? MAX_MOBILES_PER_ENB : 1;
       netlink_init_tun("ue",num_if, id);
       if (IS_SOFTMODEM_NOS1)
-        nas_config(1, 1, 2, "ue");
+        nas_config(id, 1, 2, "ue");
       netlink_init_mbms_tun("uem", id);
-      nas_config_mbms(1, 2, 2, "uem");
+      nas_config_mbms(id, 2, 2, "uem");
       LOG_I(PDCP, "UE pdcp will use tun interface\n");
     } else if(ENB_NAS_USE_TUN) {
-      netlink_init_tun("enb", 1, 0);
-      nas_config(1, 1, 1, "enb");
+      netlink_init_tun("enb", 1, id);
+      nas_config(id, 1, 1, "enb");
       if(pdcp_optmask & ENB_NAS_USE_TUN_W_MBMS_BIT){
-        netlink_init_mbms_tun("enm", 0);
-      	nas_config_mbms(1, 2, 1, "enm"); 
+        netlink_init_mbms_tun("enm", id);
+      	nas_config_mbms(id, 2, 1, "enm"); 
       	LOG_I(PDCP, "ENB pdcp will use mbms tun interface\n");
       }
       LOG_I(PDCP, "ENB pdcp will use tun interface\n");
@@ -2414,8 +2425,8 @@ uint64_t pdcp_module_init( uint64_t pdcp_optmask, int id) {
   }else{
          if(pdcp_optmask & ENB_NAS_USE_TUN_W_MBMS_BIT){
              LOG_W(PDCP, "ENB pdcp will use tun interface for MBMS\n");
-             netlink_init_mbms_tun("enm", 0);
-             nas_config_mbms_s1(1, 2, 1, "enm");
+             netlink_init_mbms_tun("enm", id);
+             nas_config_mbms_s1(id, 2, 1, "enm");
          }else
              LOG_E(PDCP, "ENB pdcp will not use tun interface\n");
    }

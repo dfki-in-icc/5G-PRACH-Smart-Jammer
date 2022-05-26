@@ -631,12 +631,52 @@ int gtpv1u_update_ngu_tunnel(
   return GTPNOK;
 }
 
-int gtpv1u_create_x2u_tunnel(
+int gtpv1u_create_x2u_tunnel(instance_t instance,
+                             const gtpv1u_enb_create_x2u_tunnel_req_t  *create_tunnel_req,
+                             gtpv1u_enb_create_x2u_tunnel_resp_t *create_tunnel_resp) {
+  LOG_I(GTPU, "[%ld] Start create tunnels for RNTI %x, num_tunnels %d, teid %x\n",
+        instance,
+        create_tunnel_req->rnti,
+        create_tunnel_req->num_tunnels,
+        create_tunnel_req->tenb_X2u_teid[0]);
+  tcp_udp_port_t dstport=globGtp.instances[compatInst(instance)].get_dstport();
+
+  for (int i = 0; i < create_tunnel_req->num_tunnels; i++) {
+    //AssertFatal(create_tunnel_req->eps_bearer_id[i] > 4,
+    //            "From legacy code not clear, seems impossible (bearer=%d)\n",
+    //            create_tunnel_req->eps_bearer_id[i]);
+    //int incoming_rb_id=create_tunnel_req->eps_bearer_id[i]-4;
+    int incoming_rb_id=create_tunnel_req->eps_bearer_id[i];
+    LOG_I(GTPU, "remoteAddr.length = %u\n", create_tunnel_req->enb_addr[i]);
+    
+
+    teid_t teid=newGtpuCreateTunnel(compatInst(instance), create_tunnel_req->rnti,
+                                    incoming_rb_id,
+                                    create_tunnel_req->eps_bearer_id[i], // outgoing bearer id
+                                    create_tunnel_req->tenb_X2u_teid[i],  // outgoing_teid
+                                    create_tunnel_req->enb_addr[i],  dstport,
+                                    pdcp_data_req);
+    create_tunnel_resp->status=0;
+    create_tunnel_resp->rnti=create_tunnel_req->rnti;
+    create_tunnel_resp->num_tunnels=create_tunnel_req->num_tunnels;
+    create_tunnel_resp->enb_X2u_teid[i]=teid;
+    create_tunnel_resp->eps_bearer_id[i] = create_tunnel_req->eps_bearer_id[i];
+    memcpy(create_tunnel_resp->enb_addr.buffer,globGtp.instances[compatInst(instance)].foundAddr,
+           globGtp.instances[compatInst(instance)].foundAddrLen);
+    create_tunnel_resp->enb_addr.length= globGtp.instances[compatInst(instance)].foundAddrLen;
+  }
+
+  return !GTPNOK;
+}
+
+#if 1
+int gtpv1u_create_x2u_tunnel_new(
   const instance_t instanceP,
   const gtpv1u_enb_create_x2u_tunnel_req_t   *const create_tunnel_req_pP,
   gtpv1u_enb_create_x2u_tunnel_resp_t *const create_tunnel_resp_pP) {
   AssertFatal( false, "to be developped\n");
 }
+#endif
 
 int newGtpuDeleteAllTunnels(instance_t instance, rnti_t rnti) {
   LOG_D(GTPU, "[%ld] Start delete tunnels for RNTI %x\n",

@@ -458,7 +458,7 @@ rx_sdu(const module_id_t enb_mod_idP,
         break;
 
       case CRNTI:
-        old_rnti = (((uint16_t) payload_ptr[0]) << 8) + payload_ptr[1];
+        old_rnti = (((uint16_t) payload_ptr[1]) << 8) + payload_ptr[0];
         old_UE_id = find_UE_id(enb_mod_idP, old_rnti);
         LOG_I(MAC, "[eNB %d] Frame %d, Subframe %d CC_id %d MAC CE_LCID %d (ce %d/%d): CRNTI %x (UE_id %d) in Msg3\n",
               enb_mod_idP,
@@ -482,7 +482,6 @@ rx_sdu(const module_id_t enb_mod_idP,
                   old_rnti,
                   old_UE_id);
             UE_id = old_UE_id;
-            current_rnti = old_rnti;
             /* Clear timer */
             UE_scheduling_control = &UE_info->UE_sched_ctrl[UE_id];
             UE_template_ptr = &UE_info->UE_template[CC_idP][UE_id];
@@ -502,10 +501,14 @@ rx_sdu(const module_id_t enb_mod_idP,
             UE_template_ptr->ul_SR = 1;
             UE_scheduling_control->crnti_reconfigurationcomplete_flag = 1;
             UE_info->UE_template[UE_PCCID(enb_mod_idP, UE_id)][UE_id].configured = 1;
-            cancel_ra_proc(enb_mod_idP,
-                           CC_idP,
-                           frameP,
-                           current_rnti);
+            current_rnti = old_rnti;
+            // prepare transmission of Msg4
+            RA_t *ra = (RA_t *) & RC.mac[enb_mod_idP]->common_channels[CC_idP].ra[0];
+            ra->rnti = old_rnti;
+            ra->state = MSG4;
+            ra->Msg4_frame = frameP + ((subframeP > 5) ? 1 : 0);
+            ra->Msg4_subframe = (subframeP + 4) % 10;
+            LOG_I(MAC, "Msg4 frame %u subframe %u, %s %d\n", ra->Msg4_frame, ra->Msg4_subframe, __FUNCTION__, __LINE__);
           } else {
             /* TODO: if the UE did random access (followed by a MAC uplink with
              * CRNTI) because none of its scheduling request was granted, then

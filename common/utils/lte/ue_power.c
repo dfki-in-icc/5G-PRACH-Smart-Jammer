@@ -95,8 +95,15 @@ int16_t estimate_ue_tx_power(int norm,uint32_t tbs, uint32_t nb_rb, uint8_t cont
   //(beta_offset_pusch_x8=ue->ulsch[eNB_id]->harq_processes[harq_pid]->control_only == 1) ? ue->ulsch[eNB_id]->beta_offset_cqi_times8:8;
 
   // if deltamcs_enabledm
+  AssertFatal(MPR_x100/6 < sizeof(hundred_times_delta_TF) / sizeof(hundred_times_delta_TF[0]),
+              "MPR_x100/6 index %d >= %d\n",
+              MPR_x100/6, sizeof(hundred_times_delta_TF) / sizeof(hundred_times_delta_TF[0]));
   delta_mcs = ((hundred_times_delta_TF[MPR_x100/6]+10*dB_fixed_times10((beta_offset_pusch_x8)>>3))/100.0);
-                                                                                                                 
+
+  AssertFatal(nb_rb - 1 < sizeof(hundred_times_log10_NPRB) / sizeof(hundred_times_log10_NPRB[0]),
+              "nb_rb - 1 index %d >= %d\n",
+              nb_rb - 1, sizeof(hundred_times_log10_NPRB) / sizeof(hundred_times_log10_NPRB[0]));
+
   bw_factor = (norm!=0) ? 0 : (hundred_times_log10_NPRB[nb_rb-1]/100.0);
   LOG_D(PHY,"estimated ue tx power %d (num_re %d, sumKr %d, mpr_x100 %d, delta_mcs %f, bw_factor %f)\n",
          (int16_t)ceil(delta_mcs + bw_factor), num_re, sumKr, MPR_x100, delta_mcs, bw_factor);

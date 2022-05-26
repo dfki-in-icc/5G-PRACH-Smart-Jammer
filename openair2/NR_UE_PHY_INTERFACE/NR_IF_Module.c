@@ -1025,16 +1025,16 @@ void *nrue_standalone_pnf_task(void *context)
       nr_phy_channel_params_t *ch_info = CALLOC(1, sizeof(*ch_info));
       memcpy(ch_info, buffer, sizeof(*ch_info));
 
-      if (ch_info->nb_of_sinrs > 1)
+      if (ch_info->nb_of_csi > 1)
         LOG_W(NR_PHY, "Expecting at most one SINR.\n");
 
       // TODO: Update sinr field of slot_rnti_mcs to be array.
-      for (int i = 0; i < ch_info->nb_of_sinrs; ++i)
+      for (int i = 0; i < ch_info->nb_of_csi; ++i)
       {
-        slot_rnti_mcs[NFAPI_SFNSLOT2SLOT(ch_info->sfn_slot)].sinr = ch_info->sinr[i];
+        slot_rnti_mcs[NFAPI_SFNSLOT2SLOT(ch_info->sfn_slot)].sinr = ch_info->csi[i].sinr;
 
         LOG_T(NR_PHY, "Received_SINR[%d] = %f, sfn:slot %d:%d\n",
-              i, ch_info->sinr[i], NFAPI_SFNSLOT2SFN(ch_info->sfn_slot), NFAPI_SFNSLOT2SLOT(ch_info->sfn_slot));
+              i, ch_info->csi[i].sinr, NFAPI_SFNSLOT2SFN(ch_info->sfn_slot), NFAPI_SFNSLOT2SLOT(ch_info->sfn_slot));
       }
 
       if (!put_queue(&nr_chan_param_queue, ch_info))

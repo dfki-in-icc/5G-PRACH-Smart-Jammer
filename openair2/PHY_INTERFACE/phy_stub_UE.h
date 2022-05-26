@@ -21,7 +21,7 @@
 //#include "openair1/PHY/LTE_TRANSPORT/defs.h"
 #include "queue_t.h"
 
-#define NUM_MCS 28
+#define NUM_MCS 29
 #define NUM_SINR 100
 #define NUM_BLER_COL 13
 #define LTE_NUM_LAYER 1
@@ -44,6 +44,8 @@ typedef struct
     uint16_t rnti[256];
     uint8_t mcs[256];
     float sinr;
+    float neicellsinr[7];
+    float rsrp[7];
     uint16_t pdu_size;
     bool drop_flag[256];
     bool latest;
@@ -124,12 +126,28 @@ void handle_nfapi_ul_pdu_UE_MAC(module_id_t Mod_id,
                          uint16_t frame,uint8_t subframe,uint8_t srs_present, int index,
                          nfapi_ul_config_request_t *ul_config_req);
 
+typedef struct sfn_sf_info_s
+{
+    uint16_t phy_id;
+    uint16_t sfn_sf;
+} sfn_sf_info_t;
+
+typedef struct
+{
+    float sinr;
+    float rsrp;
+    float rsrq;
+    uint16_t source;
+    // Incomplete, need all channel parameters
+} channel_status;
+
 typedef struct phy_channel_params_t
 {
     uint16_t sfn_sf;
     uint16_t message_id;
-    uint16_t nb_of_sinrs;
-    float sinr[LTE_NUM_LAYER];
+    uint16_t phy_id;
+    uint16_t nb_of_csi;
+    channel_status csi[LTE_NUM_LAYER];
     // Incomplete, need all channel parameters
 } phy_channel_params_t;
 
@@ -202,6 +220,8 @@ char *nfapi_ul_config_req_to_string(nfapi_ul_config_request_t *req);
 // Returned memory is statically allocated.
 const char *dl_pdu_type_to_string(uint8_t pdu_type);
 const char *ul_pdu_type_to_string(uint8_t pdu_type);
+
+float update_measurements(uint16_t sfn_sf, int eNB_index);
 
 extern queue_t dl_config_req_tx_req_queue;
 extern queue_t ul_config_req_queue;

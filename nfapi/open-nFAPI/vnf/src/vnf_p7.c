@@ -2593,7 +2593,7 @@ int vnf_p7_read_dispatch_message(vnf_p7_t* vnf_p7)
 						    __LINE__, recvfrom_result, header.message_length);
 					break;
 				}
-				NFAPI_TRACE(NFAPI_TRACE_INFO, "Calling vnf_nr_handle_p7_message from %d\n", __LINE__);
+				NFAPI_TRACE(NFAPI_TRACE_INFO, "Calling vnf_handle_p7_message from %d\n", __LINE__);
 				vnf_handle_p7_message(vnf_p7->rx_message_buffer, recvfrom_result, vnf_p7);
 				return 0;
 			}
