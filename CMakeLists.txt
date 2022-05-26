@@ -1325,6 +1325,8 @@ add_library(NFAPI_COMMON_LIB ${NFAPI_COMMON_SRC})
 
 include_directories(${NFAPI_DIR}/common/public_inc)
 
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/openair2/E1AP/MESSAGES/)
+
 set(NFAPI_SRC
   ${NFAPI_DIR}/nfapi/src/nfapi.c
   ${NFAPI_DIR}/nfapi/src/nfapi_p4.c

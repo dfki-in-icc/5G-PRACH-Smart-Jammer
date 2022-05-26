@@ -1845,7 +1845,7 @@ int RCconfig_NR_CU_E1(MessageDef *msg_p, uint32_t i) {
                 "gNB id %u is not defined in configuration file\n",i);
     config_getlist(&GNBE1ParamList, GNBE1Params, sizeof(GNBE1Params)/sizeof(paramdef_t), NULL);
     e1ap_setup_req_t *e1Setup = &E1AP_SETUP_REQ(msg_p);
-    e1setup->gNB_cu_up_id = *(GNBParamList.paramarray[0][GNB_GNB_ID_IDX].uptr);
+    e1Setup->gNB_cu_up_id = *(GNBParamList.paramarray[0][GNB_GNB_ID_IDX].uptr);
 
     paramdef_t PLMNParams[] = GNBPLMNPARAMS_DESC;
     paramlist_def_t PLMNParamList = {GNB_CONFIG_STRING_PLMN_LIST, NULL, 0};
@@ -1855,7 +1855,7 @@ int RCconfig_NR_CU_E1(MessageDef *msg_p, uint32_t i) {
     for (int I = 0; I < sizeof(PLMNParams) / sizeof(paramdef_t); ++I)
       PLMNParams[I].chkPptr = &(config_check_PLMNParams[I]);
 
-    config_getlist(&PLMNParamList, PLMNParams, sizeof(PLMNParams)/sizeof(paramdef_t), aprefix);
+    config_getlist(&PLMNParamList, PLMNParams, sizeof(PLMNParams)/sizeof(paramdef_t), NULL);
     int numPLMNs = PLMNParamList.numelt;
     e1Setup->supported_plmns = numPLMNs;
 
@@ -1865,12 +1865,12 @@ int RCconfig_NR_CU_E1(MessageDef *msg_p, uint32_t i) {
       e1Setup->plmns[I].mnc = *PLMNParamList.paramarray[I][GNB_MNC_DIGIT_LENGTH].u8ptr;
     }
 
-    strcpy(e1Setup->CUCP_e1_ip_address.ipv4_address, GNBE1PARAMList.paramarray[0][GNB_CONFIG_E1_IPV4_ADDRESS_CUCP].strptr);
-    e1Setup->port_cucp = *GNBE1PARAMList.paramarray[0][GNB_CONFIG_E1_PORT_CUCP].uptr;
-    strcpy(e1Setup->CUUP_e1_ip_address.ipv4_address, GNBE1PARAMList.paramarray[0][GNB_CONFIG_E1_IPV4_ADDRESS_CUUP].strptr);
-    e1Setup->port_cuup = *GNBE1PARAMList.paramarray[0][GNB_CONFIG_E1_PORT_CUUP].uptr;
+    strcpy(e1Setup->CUCP_e1_ip_address.ipv4_address, *(GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_IPV4_ADDRESS_CUCP].strptr));
+    e1Setup->port_cucp = *GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_PORT_CUCP].uptr;
+    strcpy(e1Setup->CUUP_e1_ip_address.ipv4_address, *(GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_IPV4_ADDRESS_CUUP].strptr));
+    e1Setup->port_cuup = *GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_PORT_CUUP].uptr;
 
-    e1Setup->cn_support = *GNBE1PARAMList.Paramarray[0][GNB_CONFIG_E1_CN_SUPPORT].uptr;
+    e1Setup->cn_support = *GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_CN_SUPPORT].uptr;
   }
 
   return 0;

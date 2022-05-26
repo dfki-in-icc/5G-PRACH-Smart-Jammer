@@ -387,8 +387,8 @@ typedef enum {
   {GNB_CONFIG_STRING_E1_IPV4_ADDRESS_CUCP, NULL, 0, strptr:NULL, defstrval:NULL, TYPE_STRING, 0}, \
   {GNB_CONFIG_STRING_E1_PORT_CUCP,         NULL, 0, uptr  :NULL, defintval:25L,  TYPE_UINT,   0}, \
   {GNB_CONFIG_STRING_E1_IPV4_ADDRESS_CUUP, NULL, 0, strptr:NULL, defstrval:NULL, TYPE_STRING, 0}, \
-  {GNB_CONFIG_STRING_E1_PORT_CUUP,         NULL, 0, uptr  :NULL, defintval:25L,  TYPE_UINT,   0} \
-  {GNB_CONFIG_STRING_E1_CN_SUPPORT,        NULL, 0, uptr  :NULL, defintval:1L,   TYPE_UNIT,   0} \
+  {GNB_CONFIG_STRING_E1_PORT_CUUP,         NULL, 0, uptr  :NULL, defintval:25L,  TYPE_UINT,   0}, \
+  {GNB_CONFIG_STRING_E1_CN_SUPPORT,        NULL, 0, uptr  :NULL, defintval:1L,   TYPE_UINT,   0} \
 }
 
 /* L1 configuration section names   */
