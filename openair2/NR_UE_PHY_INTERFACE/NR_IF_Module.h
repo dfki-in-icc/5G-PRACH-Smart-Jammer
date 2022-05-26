@@ -54,8 +54,10 @@ typedef struct
     float sinr;
     float rsrp;
     float rsrq;
-    uint16_t source;
-    // Incomplete, need all channel parameters
+    uint8_t source;
+    uint8_t pmi;
+    uint8_t ri;
+    uint8_t cqi;
 } nr_channel_status;
 
 typedef struct nr_phy_channel_params_t
@@ -64,7 +66,6 @@ typedef struct nr_phy_channel_params_t
     uint16_t message_id;
     uint16_t nb_of_csi;
     nr_channel_status csi[NR_NUM_LAYER];
-    // Incomplete, need all channel parameters
 } nr_phy_channel_params_t;
 
 typedef struct

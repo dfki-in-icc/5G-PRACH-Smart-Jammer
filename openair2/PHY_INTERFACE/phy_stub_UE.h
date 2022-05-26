@@ -137,8 +137,10 @@ typedef struct
     float sinr;
     float rsrp;
     float rsrq;
-    uint16_t source;
-    // Incomplete, need all channel parameters
+    uint8_t source;
+    uint8_t pmi;
+    uint8_t ri;
+    uint8_t cqi;
 } channel_status;
 
 typedef struct phy_channel_params_t
@@ -148,7 +150,6 @@ typedef struct phy_channel_params_t
     uint16_t phy_id;
     uint16_t nb_of_csi;
     channel_status csi[LTE_NUM_LAYER];
-    // Incomplete, need all channel parameters
 } phy_channel_params_t;
 
 typedef struct nfapi_tx_req_pdu_list_t

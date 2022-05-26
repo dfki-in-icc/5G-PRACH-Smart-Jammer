@@ -2596,15 +2596,14 @@ uint8_t get_cri_ri_pmi_cqi_payload(NR_UE_MAC_INST_t *mac,
   ri : 2 bits long
   */
 
-  uint16_t csi_Measured = mac->nr_ue_emul_l1.csi_Measured;
-  uint8_t ri_index = (csi_Measured >> RI_SHIFT) & RI_MASK; // 0: rank 1, 1: rank 2 for 2x2 MIMO case.
-  uint8_t pmi_index = (csi_Measured >> PMI_SHIFT) & PMI_MASK;
+  uint8_t ri_index = mac->nr_ue_emul_l1.ri; // 0: rank 1, 1: rank 2 for 2x2 MIMO case.
+  uint8_t pmi_index = mac->nr_ue_emul_l1.pmi;
   uint16_t ri_bits = 1; // 1 bit for 2x2 MIMO case, 2 bits for 4x4 MIMO case
   uint16_t pmi_bits = ri_index > 0 ? 1 : 2; // 2 bits (rank 1), 1 bit (rank 2) for 2x2 MIMO case
   uint16_t cqi_bits = 4;
   static const uint8_t mcs_to_cqi[] = {0, 1, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9,
                                       10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15};
-  float sinr = (((csi_Measured >> CQI_SHIFT) & CQI_MASK) - 640) * 0.1;
+  float sinr = (mac->nr_ue_emul_l1.cqi - 640) * 0.1;
   int mcs = get_mcs_from_sinr(sinr);
   CHECK_INDEX(mcs_to_cqi, mcs);
   uint8_t cqi_index = mcs_to_cqi[mcs];
