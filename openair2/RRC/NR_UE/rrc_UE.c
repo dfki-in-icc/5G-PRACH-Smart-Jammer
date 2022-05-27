@@ -1255,6 +1255,9 @@ nr_rrc_ue_process_masterCellGroup(
   if ( LOG_DEBUGFLAG(DEBUG_ASN1) ) {
     xer_fprint(stdout, &asn_DEF_NR_CellGroupConfig, (const void *) cellGroupConfig);
   }
+  LOG_X(NR_RRC,"* CellGroupConfig *\n");
+  xer_fprint(dbg_fp, &asn_DEF_NR_CellGroupConfig, (const void *) cellGroupConfig);
+  
 
   if( cellGroupConfig->spCellConfig != NULL &&  cellGroupConfig->spCellConfig->reconfigurationWithSync != NULL){
     //TODO (perform Reconfiguration with sync according to 5.3.5.5.2)
@@ -1711,6 +1714,7 @@ int8_t nr_rrc_ue_decode_ccch( const protocol_ctxt_t *const ctxt_pP, const NR_SRB
     if ( LOG_DEBUGFLAG(DEBUG_ASN1) ) {
       xer_fprint(stdout, &asn_DEF_NR_UL_DCCH_Message, (void *)&ul_dcch_msg);
     }
+     xer_fprint(dbg_fp, &asn_DEF_NR_UL_DCCH_Message, (void *)&ul_dcch_msg);
      log_dump(MAC, buffer, 16, LOG_DUMP_CHAR, "securityModeComplete payload: ");
      LOG_D(NR_RRC, "securityModeComplete Encoded %zd bits (%zd bytes)\n", enc_rval.encoded, (enc_rval.encoded+7)/8);
 
@@ -2327,7 +2331,8 @@ nr_rrc_ue_establish_srb2(
    if ( LOG_DEBUGFLAG(DEBUG_ASN1) ) {
      xer_fprint(stdout, &asn_DEF_NR_DL_DCCH_Message,(void *)dl_dcch_msg);
    }
-
+    LOG_X(NR_RRC,"DL_DCCH_Message\n");
+    xer_fprint(dbg_fp, &asn_DEF_NR_DL_DCCH_Message,(void *)dl_dcch_msg);
      if (dl_dcch_msg->message.present == NR_DL_DCCH_MessageType_PR_c1) {
 	 switch (dl_dcch_msg->message.choice.c1->present) {
 	     case NR_DL_DCCH_MessageType__c1_PR_NOTHING:
@@ -2686,6 +2691,7 @@ nr_rrc_ue_process_ueCapabilityEnquiry(
   UECap = CALLOC(1,sizeof(OAI_NR_UECapability_t));
   UECap->UE_NR_Capability = UE_Capability_nr;
   xer_fprint(stdout,&asn_DEF_NR_UE_NR_Capability,(void *)UE_Capability_nr);
+  xer_fprint(dbg_fp,&asn_DEF_NR_UE_NR_Capability,(void *)UE_Capability_nr);
 
   enc_rval = uper_encode_to_buffer(&asn_DEF_NR_UE_NR_Capability,
                                    NULL,
@@ -2733,6 +2739,8 @@ nr_rrc_ue_process_ueCapabilityEnquiry(
       if ( LOG_DEBUGFLAG(DEBUG_ASN1) ) {
         xer_fprint(stdout, &asn_DEF_NR_UL_DCCH_Message, (void *)&ul_dcch_msg);
       }
+        LOG_X(NR_RRC,"NR_UL_DCCH_Message\n");
+        xer_fprint(dbg_fp, &asn_DEF_NR_UL_DCCH_Message, (void *)&ul_dcch_msg);
 
       LOG_I(NR_RRC, "UECapabilityInformation Encoded %zd bits (%zd bytes)\n",enc_rval.encoded,(enc_rval.encoded+7)/8);
 #ifdef ITTI_SIM

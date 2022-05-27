@@ -61,6 +61,7 @@ volatile int log_mem_write_side=0;
 char __log_mem_filename[1024]={0};
 char * log_mem_filename = &__log_mem_filename[0];
 char logmem_filename[1024] = {0};
+FILE* dbg_fp;
 
 mapping log_level_names[] = {
   {"error",  OAILOG_ERR},
@@ -86,8 +87,8 @@ mapping log_options[] = {
 
 mapping log_maskmap[] = LOG_MASKMAP_INIT;
 
-char *log_level_highlight_start[] = {LOG_RED, LOG_ORANGE, LOG_GREEN, "", LOG_BLUE, LOG_CYBL};  /*!< \brief Optional start-format strings for highlighting */
-char *log_level_highlight_end[]   = {LOG_RESET, LOG_RESET, LOG_RESET, LOG_RESET, LOG_RESET, LOG_RESET};   /*!< \brief Optional end-format strings for highlighting */
+char *log_level_highlight_start[] = {LOG_RED, LOG_ORANGE, LOG_GREEN, "","", LOG_BLUE, LOG_CYBL};  /*!< \brief Optional start-format strings for highlighting */
+char *log_level_highlight_end[]   = {LOG_RESET, LOG_RESET, LOG_RESET, LOG_RESET, LOG_RESET, LOG_RESET, LOG_RESET};   /*!< \brief Optional end-format strings for highlighting */
 static void log_output_memory(log_component_t *c, const char *file, const char *func, int line, int comp, int level, const char* format,va_list args);
 
 
@@ -374,9 +375,11 @@ void  log_getconfig(log_t *g_log)
     if (*(logparams_dump[i].uptr) )
       g_log->dump_mask = g_log->dump_mask | log_maskmap[i].value;
   }
+//  g_log->debug_mask = g_log->debug_mask | DEBUG_ASN1 ;
 
   /* log globally enabled/disabled */
   set_glog_onlinelog(consolelog);
+  set_glog_filelog(1);
 }
 
 int register_log_component(char *name,
@@ -499,7 +502,8 @@ int logInit (void)
   for (int i=0 ; log_level_names[i].name != NULL ; i++)
     g_log->level2string[i]           = toupper(log_level_names[i].name[0]); // uppercased first letter of level name
 
-  g_log->filelog_name = "/tmp/openair.log";
+  // g_log->filelog_name = "/tmp/openair.log";
+  g_log->filelog_name = "/dev/shm/nrue";
   log_getconfig(g_log);
 
   // set all unused component items to 0, they are for non predefined components
@@ -508,6 +512,7 @@ int logInit (void)
   }
 
   g_log->flag =  g_log->flag | FLAG_INITIALIZED;
+  // g_log->flag =  g_log->flag | FLAG_INITIALIZED | FLAG_NOCOLOR ;
   printf("log init done\n");
   return 0;
 }
@@ -549,7 +554,8 @@ static inline int log_header(log_component_t *c,
   else
     l[0] = 0;
 
-  char timeString[32];
+  char timeString[48];
+#if 0
   if ( flag & FLAG_TIME ) {
     struct timespec t;
     if (clock_gettime(CLOCK_MONOTONIC, &t) == -1)
@@ -560,6 +566,15 @@ static inline int log_header(log_component_t *c,
   } else {
     timeString[0] = 0;
   }
+#endif
+  struct timeval oaiTime;
+  struct tm *time_st;
+  /* get time */
+  gettimeofday(&oaiTime, NULL);
+  time_st = localtime(&oaiTime.tv_sec);
+  snprintf(timeString, sizeof(timeString), "%d/%02d/%02d %02d:%02d:%02d.%06d ",
+           time_st->tm_year+1900,  time_st->tm_mon+1,  time_st->tm_mday,
+           time_st->tm_hour, time_st->tm_min, time_st->tm_sec, oaiTime.tv_usec);
 
   char threadIdString[32];
   if (flag & FLAG_THREAD_ID) {
@@ -568,6 +583,7 @@ static inline int log_header(log_component_t *c,
     threadIdString[0] = 0;
   }
   return snprintf(log_buffer, buffsize, "%s%s%s[%s] %c %s%s",
+		  //  ((flag & FLAG_NOCOLOR) || (level == OAILOG_INFO) || ( level == OAILOG_DEBUG)) ? "" : log_level_highlight_start[level],
 		   flag & FLAG_NOCOLOR ? "" : log_level_highlight_start[level],
 		   timeString,
 		   threadIdString,
@@ -698,11 +714,21 @@ void set_glog_filelog(int enable)
   static FILE *fptr;
 
   if ( enable ) {
-    fptr = fopen(g_log->filelog_name,"w");
+    // fptr = fopen(g_log->filelog_name,"w");
+    time_t t = time(NULL);
+    struct tm *local = localtime(&t);
+    char buf[128],buf2[128];
+    strftime(buf,sizeof(buf),"_%Y%m%d%H%M%S.log",local);
+    strcpy(buf2,g_log->filelog_name);
+    strcat(buf2,buf);
+    fptr = fopen(buf2,"w");
 
     for (int c=0; c< MAX_LOG_COMPONENTS; c++ ) {
       close_component_filelog(c);
-      g_log->log_component[c].stream = fptr;
+      // g_log->log_component[c].stream = fptr;
+      g_log->log_component[c].stream_ram = fptr;
+      dbg_fp = fptr;
+      g_log->log_component[c].vprint_ram = vfprintf;
       g_log->log_component[c].filelog =  1;
     }
   } else {
@@ -931,7 +957,12 @@ static void log_output_memory(log_component_t *c, const char *file, const char *
       }
   }else{
     AssertFatal(len >= 0 && len <= MAX_LOG_TOTAL, "Bad len %d\n", len);
-    if (write(fileno(c->stream), log_buffer, len)) {};
+    if ((level <= OAILOG_INFO ) && (level != OAILOG_EXTRA)){
+      if (write(fileno(c->stream), log_buffer, len)) {};
+    }
+    if ((level == OAILOG_INFO) || (level == OAILOG_DEBUG) || (level == OAILOG_EXTRA)){
+      if (write(fileno(c->stream_ram), log_buffer, len)) {};
+    }
   }
 }
 
