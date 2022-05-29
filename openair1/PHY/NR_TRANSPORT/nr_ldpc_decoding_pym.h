@@ -1,9 +1,9 @@
 
 /*! \file PHY/NR_TRANSPORT/nr_ulsch_decoding.c
-* \brief FPGA decoding each code block
+* \brief Time test of the number of code blocks
 * \author Sendren Xu, SY Yeh(fdragon), Hongming, Terng-Yin Hsu
-* \date 2022-05-20
-* \version 3.0
+* \date 2022-05-29
+* \version 4.0
 * \email: summery19961210@gmail.com
 */
 

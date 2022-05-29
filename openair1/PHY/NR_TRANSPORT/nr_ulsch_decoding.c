@@ -31,10 +31,10 @@
 */
 
 /*! \file PHY/NR_TRANSPORT/nr_ulsch_decoding.c
-* \brief FPGA decoding each code block
+* \brief Time test of the number of code blocks
 * \author Sendren Xu, SY Yeh(fdragon), Hongming, Terng-Yin Hsu
-* \date 2022-05-20
-* \version 3.0
+* \date 2022-05-29
+* \version 4.0
 * \email: summery19961210@gmail.com
 */
 
@@ -292,10 +292,36 @@ void clean_gNB_ulsch(NR_gNB_ULSCH_t *ulsch)
   static uint32_t prnt_crc_cnt = 0;
 #endif
 
+#if 1
+
+#define CB_TEST_NUM 3
+#define CB_NUM CB_TEST_NUM+1
+char multi_indata[26112*CB_NUM+16]; //68*384
+char multi_outdata[1056*CB_NUM+16]; //22*384*1/8
 int8_t buffer_in[26112+16]={0};
 int8_t buffer_out[1056+16]={0};
 
+
+
 void nr_processULSegment(void* arg) {
+  cpu_set_t cpuset;
+  int cpu = 1;
+	int s;
+  cpu = sysconf(_SC_NPROCESSORS_CONF);
+  printf("cpus: %d\n", cpu);
+	CPU_ZERO(&cpuset);       //clears the cpuset
+	// CPU_SET(  0 , &cpuset); //set CPU 0~7 on cpuset
+  // CPU_SET(  1 , &cpuset);
+  CPU_SET(  2 , &cpuset);
+  printf("pthread_self() = %d\n",pthread_self());
+  
+	s = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
+  if (s != 0){	
+		perror( "pthread_setaffinity_np");
+		exit_fun("Error setting processor affinity");
+	}
+
+
   ldpcDecode_t *rdata = (ldpcDecode_t*) arg;
   PHY_VARS_gNB *phy_vars_gNB = rdata->gNB;
   NR_UL_gNB_HARQ_t *ulsch_harq = rdata->ulsch_harq;
@@ -455,17 +481,29 @@ void nr_processULSegment(void* arg) {
     pl[j] = _mm_packs_epi16(pv[i],pv[i+1]);
   }
 
-  for(int ab=0;ab<input_CBoffset;ab++){
-    if(l[ab] == -128){
-      buffer_in[ab] = 0x81;
-    } else {
-      buffer_in[ab]=((int8_t)l[ab]);
+  if(cutcb == 0){
+    for(int ab=0;ab<input_CBoffset;ab++){
+      if(l[ab] == -128){
+        buffer_in[ab] = 0x81;
+      } else {
+        buffer_in[ab]=((int8_t)l[ab]);
+      }
+      buffer_in[ab]=((buffer_in[ab])^0xFF)+1;
     }
-    buffer_in[ab]=((buffer_in[ab])^0xFF)+1;
   }
 
-  
+  } // all cb
 
+
+  for(int i=0;i<CB_TEST_NUM;i++){ // data format
+    printf("*********** code block[%d] ***********\n",i+1);
+    for(int ab=0;ab<input_CBoffset;ab++){
+      multi_indata[ab+i*input_CBoffset] = buffer_in[ab];
+      // printf("[%04d]%02x ",ab,(uint8_t)multi_indata[ab+i*input_CBoffset]);
+      // if(ab%30==29)
+      //   printf("\n");
+    }
+  }
 
 
   //////////////////////////////////////////////////////////////////////////////////////////
@@ -480,7 +518,8 @@ void nr_processULSegment(void* arg) {
   dec_conf.Zc = p_decoderParms->Z;
   dec_conf.BG = p_decoderParms->BG;
   dec_conf.max_iter = p_decoderParms->numMaxIter;
-  dec_conf.numCB = ulsch_harq->C;
+  //dec_conf.numCB = ulsch_harq->C;
+  dec_conf.numCB = CB_TEST_NUM;
   dec_conf.numChannelLls = (K_bits_F-2*ulsch_harq->Z) + (kc*ulsch_harq->Z-Kr); // input soft bits length, Zc x 66 - length of filler bits
   dec_conf.numFillerBits = ulsch_harq->F; // filler bits length
   dec_conf.max_iter = 8;
@@ -488,24 +527,93 @@ void nr_processULSegment(void* arg) {
   dec_conf.SetIdx = 12;
   
   
-    nrLDPC_decoder_FPGA_PYM((int8_t *)&buffer_in[0],(int8_t *)&buffer_out[0],dec_conf);
-
+    // nrLDPC_decoder_FPGA_PYM((int8_t *)&buffer_in[0],(int8_t *)&buffer_out[0],dec_conf);
+    // memcpy(llrProcBuf,buffer_out,sizeof(uint8_t)*out_CBoffset);
+    // for(int y=0;y<out_CBoffset;y++){
+    //   printf("[%04d]%02x ",y,(uint8_t)llrProcBuf[y]);
+    //   if(y%30 == 29)printf("\n");
+    // }
+  printf("FPGA accelator LDPC deocder multi code block \n");
+  int test_num=0;
+  int test_max=1000;
+  int time_10kup=0;
+  int time_1kup=0;
+  int cb_error=0;
+  int error_case=0;
     
-    memcpy(llrProcBuf,buffer_out,sizeof(uint8_t)*out_CBoffset);
-    for(int y=0;y<out_CBoffset;y++){
-      printf("[%04d]%02x ",y,(uint8_t)llrProcBuf[y]);
-      if(y%30 == 29)printf("\n");
+  struct timespec ts_start, ts_end;
+  double time_max=0.0,time_min=100000.0,time_ava=0.0,time_num=0.0,count=0.0,time_arr[1000]={0.0},time_sd=0.0;
+  for(test_num=0;test_num<test_max;test_num++){
+  // printf("test[%d/%d]\n",test_num,test_max);
+    double cost;
+    clock_gettime(CLOCK_MONOTONIC, &ts_start); // time start
+    nrLDPC_decoder_FPGA_PYM((int8_t *)&multi_indata[0],(int8_t *)&multi_outdata[0],dec_conf);
+    clock_gettime(CLOCK_MONOTONIC, &ts_end); // time end
+    
+    count++;
+    // time_num = (fpga_end.tv_nsec - fpga_start.tv_nsec) *1.0 / 1000;
+    timespec_sub(&ts_end, &ts_start);
+    time_num = ts_end.tv_nsec/1000.0;
+    if(time_num > 9999.99){
+      time_10kup++;
+      error_case = test_num;
     }
-  
+    if((time_num < 9999.99) && (time_num > 999.99)){
+      time_1kup++;
+      error_case = test_num;
+    }
+     
+    if(count == 1){
+      time_max = time_num;
+      time_min = time_num;
+    }
+    if(time_max < time_num)
+      time_max = time_num;
     
-  // no_iteration_ldpc = nrLDPC_decoder(p_decoderParms,
-  //                                    (int8_t*)&pl[0],
-  //                                    llrProcBuf,
-  //                                    ulsch_harq->p_nrLDPC_procBuf[r],
-  //                                    p_procTime);
+    if(time_min > time_num)
+      time_min = time_num;
+      
+    time_ava = time_ava + time_num;
+    time_arr[test_num]=time_num;
+
+      for(int i=0;i<dec_conf.numCB;i++){
+        
+        printf("FPGA LDPC decoder mCB[%d/%d]\n",i+1,dec_conf.numCB); //CB Info
+        for(int j=0;j<out_CBoffset;j++){
+          llrProcBuf[j]=multi_outdata[j+i*out_CBoffset];
+          // ulsch_harq->c[i][j]= (uint8_t) llrProcBuf[j];
+          // printf("[%04d]%02x ",j,(uint8_t)llrProcBuf[j]);
+          // if(j%10==9)printf("\n");
+        }
+        if (check_crc((uint8_t*)llrProcBuf,length_dec,ulsch_harq->F,crc_type)) {
+          #ifdef PRINT_CRC_CHECK
+            // printf("length_dec = %d，out_CBoffset = %d\n",length_dec,out_CBoffset);
+            printf("\nFPGA LDPC [%d/%d] CRC check is OK \n",i+1,dec_conf.numCB); //CRC Info
+          #endif
+        }else{
+          #ifdef PRINT_CRC_CHECK
+            printf("\nFPGA LDPC [%d/%d] CRC check NOK\n",i+1,dec_conf.numCB); //CRC Info
+            cb_error++;
+          #endif
+        }
+        memset(llrProcBuf,0,27000);
+      }
+    }
+    time_ava=time_ava/test_max;
+    printf("------------------ time data information -----------------\n");
+    for(int i=0;i<test_max;i++){
+      // calculate [ standard deviation ]
+      time_sd=time_sd+((time_arr[i]-time_ava)*(time_arr[i]-time_ava));
+      time_sd = time_sd/test_max;
+      // printf("time[%d]:%.2f  \n",i,time_arr[i]);
+    }
+    printf("\ntime_max:%.2f usec，time_min:%.2f usec，time_ava:%.2f usec，time_10kup =%d，SD = %.2f[%.2f]\n",time_max,time_min,time_ava,time_10kup,sqrt(time_sd),count);
+    printf("time_1kup:%d\n",time_1kup);
+    printf("code block error_num %d\n",cb_error); 
+    printf("code block error_case %d\n",error_case);
 
   
-
+  /*
   if (check_crc((uint8_t*)llrProcBuf,length_dec,ulsch_harq->F,crc_type)) {
 #ifdef PRINT_CRC_CHECK
       LOG_I(PHY, "Segment %d CRC OK, iterations %d/%d\n",r,no_iteration_ldpc,max_ldpc_iterations);
@@ -526,8 +634,11 @@ void nr_processULSegment(void* arg) {
   //stop_meas(&phy_vars_gNB->ulsch_ldpc_decoding_stats);
 
   memset(llrProcBuf,0,27000);
-  }
+  */
+  
 }
+#endif
+
 
 uint32_t nr_ulsch_decoding(PHY_VARS_gNB *phy_vars_gNB,
                            uint8_t ULSCH_id,
