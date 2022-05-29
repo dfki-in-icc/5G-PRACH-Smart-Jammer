@@ -557,12 +557,14 @@ void *ric_agent_task(void *args)
 
 #define RIC_CONFIG_STRING_ENABLED "enabled"
 #define RIC_CONFIG_STRING_REMOTE_IPV4_ADDR "remote_ipv4_addr"
+#define RIC_CONFIG_STRING_LOCAL_IPV4_ADDR "local_ipv4_addr"
 #define RIC_CONFIG_STRING_REMOTE_PORT "remote_port"
 
 #define RIC_CONFIG_IDX_ENABLED          0
 #define RIC_CONFIG_IDX_REMOTE_IPV4_ADDR 1
 #define RIC_CONFIG_IDX_REMOTE_PORT      2
 #define RIC_CONFIG_IDX_FUNCTIONS_ENABLED 3
+#define RIC_CONFIG_IDX_LOCAL_IPV4_ADDR 4
 
 #define RIC_PORT 36421
 
@@ -570,6 +572,8 @@ void *ric_agent_task(void *args)
     { RIC_CONFIG_STRING_ENABLED, \
         "yes/no", 0, strptr:NULL, defstrval:"no", TYPE_STRING, 0 }, \
     { RIC_CONFIG_STRING_REMOTE_IPV4_ADDR, \
+        NULL, 0, strptr:NULL, defstrval: "127.0.0.1", TYPE_STRING, 0 }, \
+    { RIC_CONFIG_STRING_LOCAL_IPV4_ADDR, \
         NULL, 0, strptr:NULL, defstrval: "127.0.0.1", TYPE_STRING, 0 }, \
     { RIC_CONFIG_STRING_REMOTE_PORT, \
         NULL, 0, uptr:NULL, defintval:RIC_PORT, TYPE_UINT, 0 }  \
@@ -659,8 +663,8 @@ void RCconfig_ric_agent(void)
             }*/
             e2_conf[i]->e2node_type = E2NODE_TYPE_GNB_CU;
             e2_conf[i]->remote_ipv4_addr = strdup(*ric_params[RIC_CONFIG_IDX_REMOTE_IPV4_ADDR].strptr);
-            e2_conf[i]->local_ipv4_addr = malloc(20*sizeof(char));
-            strcpy(e2_conf[i]->local_ipv4_addr,"192.168.18.195");
+            e2_conf[i]->local_ipv4_addr = strdup(*ric_params[RIC_CONFIG_IDX_LOCAL_IPV4_ADDR].strptr); //malloc(20*sizeof(char));
+            //strcpy(e2_conf[i]->local_ipv4_addr,"192.168.18.195");
 
             //printf("-------------------------------ip adress RIC %s\n",e2_conf[i]->remote_ipv4_addr);
             e2_conf[i]->remote_port = *ric_params[RIC_CONFIG_IDX_REMOTE_PORT].uptr;
