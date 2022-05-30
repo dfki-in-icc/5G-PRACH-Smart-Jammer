@@ -13,15 +13,15 @@ E2SM-MET-IEs {
     
     -- **************************************************************
     
-    CellObjectID ::= INTEGER (0.. 255, ...)
+    CellObjectID ::= INTEGER (0.. 255)
     
     GranularityPeriod ::= INTEGER (1.. 4294967295)
     
-    SubscriptionID ::= INTEGER (1.. 4294967296, ...)
+    SubscriptionID ::= INTEGER (1.. 4294967295)
     
     -- **************************************************************
     
-    GlobalMETnode-ID ::= INTEGER (1.. 4294967296, ...)
+    GlobalMETnode-ID ::= INTEGER (1.. 4294967295)
     
     -- **************************************************************
     
@@ -36,19 +36,14 @@ E2SM-MET-IEs {
     --   Lists
     -- **************************************************************
     
-    maxnoofMeasurementInfo		INTEGER ::= 65536
-    maxnoofMeasurementRecord	INTEGER ::= 65536
-    maxnoofMeasurementValue		INTEGER ::= 65536
-    maxnoofRICStyles			INTEGER ::= 63
-    
     
     -- ****************** 
     -- UE related defs 
-    maxofUE             		INTEGER ::= 65536
+    maxofUE             		INTEGER ::= 65535
     
-    UEID ::= INTEGER (1.. 4294967296, ...)
+    UEID ::= INTEGER (0.. 255)
     
-    UETag ::= PrintableString(SIZE(1.. 150, ...))
+    UETag ::= PrintableString(SIZE(1.. 150))
     
     UEItem ::= SEQUENCE {
         ueID	UEID,
@@ -58,30 +53,26 @@ E2SM-MET-IEs {
     
     --****************
     
-    MeasurementInfoList ::= SEQUENCE (SIZE(1..maxnoofMeasurementInfo)) OF MeasurementInfoItem
+    MeasurementInfoList ::= SEQUENCE (SIZE(1..65535)) OF MeasurementInfoItem
+
+    MeasurementInfoItem::= PrintableString(SIZE(1.. 50))
     
-    MeasurementInfoItem ::= SEQUENCE {
-        measType				PrintableString (SIZE (0..15), ...),
-        ...
-    }
-    
-    MeasurementData ::= SEQUENCE (SIZE(1..maxnoofMeasurementRecord)) OF MeasurementRecord
+    MeasurementData ::= SEQUENCE (SIZE(1..65535)) OF MeasurementRecord
     
     MeasurementRecord ::= SEQUENCE {
         ueID					UEID,
         ueTag                   UETag,
-        measRecordItem  SEQUENCE (SIZE(1..maxnoofMeasurementValue)) OF MeasurementRecordItem,
+        measRecordItem  SEQUENCE (SIZE(1..65535)) OF MeasurementRecordItem,
         ...
     }
     
     MeasurementRecordItem ::= CHOICE {
-        integer					INTEGER,
-        real					REAL,
+        integer					INTEGER (0..4294967295),
         noValue					NULL,
         ...
     }
     
-    MeasurementInfo-Action-List ::= SEQUENCE (SIZE(1..maxnoofMeasurementInfo)) OF MeasurementInfo-Action-Item
+    MeasurementInfo-Action-List ::= SEQUENCE (SIZE(1..65535)) OF MeasurementInfo-Action-Item
     
     MeasurementInfo-Action-Item ::= SEQUENCE {
         measName				MeasurementTypeName,
@@ -89,9 +80,9 @@ E2SM-MET-IEs {
         ...
     }
     
-    MeasurementTypeName ::= PrintableString(SIZE(1.. 150, ...))
+    MeasurementTypeName ::= PrintableString(SIZE(1.. 150))
     
-    MeasurementTypeID ::= INTEGER (1.. 65536, ...)
+    MeasurementTypeID ::= INTEGER (1.. 65535, ...)
     
     -- **************************************************************
     -- E2SM-MET Service Model IEs
@@ -110,7 +101,7 @@ E2SM-MET-IEs {
     }
     
     E2SM-MET-EventTriggerDefinition-Format1 ::= SEQUENCE{
-        reportingPeriod					INTEGER,
+        reportingPeriod					INTEGER (1.. 4294967295),
         ...
     }
     
@@ -182,16 +173,16 @@ E2SM-MET-IEs {
     
     E2SM-MET-RANfunction-Description ::= SEQUENCE{
         ranFunction-Name				RANfunction-Name,
-        ric-EventTriggerStyle-List		SEQUENCE (SIZE(1..maxnoofRICStyles)) OF RIC-EventTriggerStyle-Item 		OPTIONAL,
-        ric-ReportStyle-List			SEQUENCE (SIZE(1..maxnoofRICStyles)) OF RIC-ReportStyle-Item 			OPTIONAL,
+        ric-EventTriggerStyle-List		SEQUENCE (SIZE(1..255)) OF RIC-EventTriggerStyle-Item 		OPTIONAL,
+        ric-ReportStyle-List			SEQUENCE (SIZE(1..255)) OF RIC-ReportStyle-Item 			OPTIONAL,
         ...
     }
     
-    RIC-Style-Type ::= INTEGER
-    
+    RIC-Style-Type ::= INTEGER (0.. 255, ...)
+
     RIC-Style-Name ::= PrintableString(SIZE(1.. 150, ...))
     
-    RIC-Format-Type ::= INTEGER
+    RIC-Format-Type ::= INTEGER (0.. 255, ...)
     
     RIC-EventTriggerStyle-Item ::= SEQUENCE{
         ric-EventTriggerStyle-Type			RIC-Style-Type,
