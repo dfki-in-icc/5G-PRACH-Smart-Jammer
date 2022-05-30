@@ -31,6 +31,7 @@
 #include "e2ap_handler.h"
 #include "e2sm_kpm.h"
 #include "e2sm_met.h"
+#include "openair2/LAYER2/NR_MAC_gNB/nr_mac_gNB.h"
 
 
 #ifdef ENABLE_RAN_SLICING
@@ -484,7 +485,8 @@ void *ric_agent_task(void *args)
             timer_setup(5, 0, TASK_RIC_AGENT, i, TIMER_PERIODIC, NULL, &ric_agent_info[i]->ric_connect_timer_id);
         }
     }
-
+    gNB_MAC_INST *gNB_mac = RC.nrmac[0];
+    NR_UE_info_t *UE_info = &gNB_mac->UE_info;
     while (1) {
         itti_receive_msg(TASK_RIC_AGENT, &msg);
 
@@ -518,6 +520,8 @@ void *ric_agent_task(void *args)
                 break;
 
             case TIMER_HAS_EXPIRED:
+
+                if (UE_info->num_UEs <=0) continue;
                 ric_agent_handle_timer_expiry(
                         ITTI_MSG_DESTINATION_INSTANCE(msg),
                         TIMER_HAS_EXPIRED(msg).timer_id,
