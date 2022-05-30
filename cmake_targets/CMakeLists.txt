@@ -1171,17 +1171,17 @@ if(ENABLE_RIC_AGENT)
   set(E2AP_DIR ${OPENAIR2_DIR}/RIC_AGENT/E2AP)
 
   # E2AP ASN
-  set(E2AP_ASN_VERS R02)
+  set(E2AP_ASN_VERS R2)
   set(E2AP_ASN_DIR ${E2AP_DIR}/MESSAGES/ASN1/${E2AP_ASN_VERS})
   set(E2AP_C_DIR ${asn1_generated_dir}/E2AP/)
-  set(E2AP_ASN_FILE ${E2AP_ASN_DIR}/e2ap-v2.asn1)
-  #execute_process(
-  #    COMMAND ${OPENAIR_CMAKE}/tools/make_asn1c_includes_e2.sh "${E2AP_C_DIR}"
-  #    "${E2AP_ASN_FILE}" "E2AP_" -fno-include-deps -fincludes-quoted
-  #    RESULT_VARIABLE ret)
-  #if (NOT ${ret} STREQUAL 0)
-  #    message(FATAL_ERROR "${ret}: error")
-  #endif (NOT ${ret} STREQUAL 0)
+  set(E2AP_ASN_FILE ${E2AP_ASN_DIR}/e2ap_v2.asn1)
+  execute_process(
+      COMMAND ${OPENAIR_CMAKE}/tools/make_asn1c_includes_e2.sh "${E2AP_C_DIR}"
+      "${E2AP_ASN_FILE}" "E2AP_" -fno-include-deps -fincludes-quoted
+      RESULT_VARIABLE ret)
+  if (NOT ${ret} STREQUAL 0)
+      message(FATAL_ERROR "${ret}: error")
+  endif (NOT ${ret} STREQUAL 0)
   add_custom_target (
       e2ap_flag ALL
       COMMAND ${OPENAIR_CMAKE}/tools/make_asn1c_includes_e2.sh "${E2AP_C_DIR}"
@@ -1215,13 +1215,13 @@ if(ENABLE_RIC_AGENT)
 
   set(E2SM_KPM_ASN_DIR ${E2SM_KPM_DIR}/MESSAGES/ASN1/${KPM_ASN_VERS})
   set(E2SM_KPM_C_DIR ${asn1_generated_dir}/E2SM-KPM/)
-  #execute_process(
-   #   COMMAND ${OPENAIR_CMAKE}/tools/make_asn1c_includes.sh "${E2SM_KPM_C_DIR}"
-    #  "${E2SM_KPM_ASN_DIR}/${E2SM_KPM_ASN_FILE}" "E2SM_KPM_" -fno-include-deps -fincludes-quoted
-     # RESULT_VARIABLE ret)
-  #if (NOT ${ret} STREQUAL 0)
-   #   message(FATAL_ERROR "${ret}: error")
-  #endif (NOT ${ret} STREQUAL 0)
+  execute_process(
+      COMMAND ${OPENAIR_CMAKE}/tools/make_asn1c_includes_e2.sh "${E2SM_KPM_C_DIR}"
+      "${E2SM_KPM_ASN_DIR}/${E2SM_KPM_ASN_FILE}" "E2SM_KPM_" -fno-include-deps -fincludes-quoted
+      RESULT_VARIABLE ret)
+  if (NOT ${ret} STREQUAL 0)
+      message(FATAL_ERROR "${ret}: error")
+  endif (NOT ${ret} STREQUAL 0)
   add_custom_target (
       e2sm_kpm_flag ALL
       COMMAND ${OPENAIR_CMAKE}/tools/make_asn1c_includes_e2.sh "${E2SM_KPM_C_DIR}"
