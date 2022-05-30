@@ -55,7 +55,7 @@ E2SM-MET-IEs {
     
     MeasurementInfoList ::= SEQUENCE (SIZE(1..65535)) OF MeasurementInfoItem
 
-    MeasurementInfoItem::= PrintableString(SIZE(1.. 50))
+    MeasurementInfoItem::= PrintableString(SIZE(1.. 150))
     
     MeasurementData ::= SEQUENCE (SIZE(1..65535)) OF MeasurementRecord
     
@@ -140,6 +140,7 @@ E2SM-MET-IEs {
     
     E2SM-MET-IndicationHeader-Format1 ::= SEQUENCE{
         colletStartTime					TimeStamp,
+        measInfoList					MeasurementInfoList,
         fileFormatversion				PrintableString (SIZE (0..15), ...)		OPTIONAL,
         senderName						PrintableString (SIZE (0..400), ...)	OPTIONAL,
         metNodeID						GlobalMETnode-ID						OPTIONAL,

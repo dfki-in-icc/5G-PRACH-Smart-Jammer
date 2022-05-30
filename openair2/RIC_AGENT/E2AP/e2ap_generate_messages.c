@@ -71,6 +71,14 @@ int e2ap_generate_e2_setup_request(ranid_t  ranid,
   pdu.choice.initiatingMessage.value.present = E2AP_InitiatingMessage__value_PR_E2setupRequest;
   req = &pdu.choice.initiatingMessage.value.choice.E2setupRequest;
 
+
+  /* TransactionID*/ //
+  ie = (E2AP_E2setupRequestIEs_t *)calloc(1,sizeof(*ie));
+  ie->id = E2AP_ProtocolIE_ID_id_TransactionID;
+  ie->criticality = E2AP_Criticality_reject;
+  ie->value.present = E2AP_E2setupRequestIEs__value_PR_TransactionID;
+  ie->value.choice.TransactionID = 1;
+  ASN_SEQUENCE_ADD(&req->protocolIEs.list,ie);
   /* GlobalE2node_ID */
   ie = (E2AP_E2setupRequestIEs_t *)calloc(1,sizeof(*ie));
   ie->id = E2AP_ProtocolIE_ID_id_GlobalE2node_ID;
@@ -136,7 +144,7 @@ int e2ap_generate_e2_setup_request(ranid_t  ranid,
   
   e2NodeCompId = &(e2node_comp_cfg_update_ie->value.choice.E2nodeComponentConfigAddition_Item.e2nodeComponentID);
 
-  if (e2node_type == E2NODE_TYPE_ENB_CU)
+  if (1 || e2node_type == E2NODE_TYPE_ENB_CU)
   {
     e2node_comp_cfg_update_ie->value.choice.E2nodeComponentConfigAddition_Item.e2nodeComponentInterfaceType = E2AP_E2nodeComponentInterfaceType_e1; //E2AP_E2nodeComponentType_ng_eNB_CU 
     e2NodeCompId->present = E2AP_E2nodeComponentID_PR_e2nodeComponentInterfaceTypeE1;
@@ -210,7 +218,7 @@ int e2ap_generate_e2_config_update(ranid_t  ranid,
   ie->id = E2AP_ProtocolIE_ID_id_TransactionID;
   ie->criticality = E2AP_Criticality_reject;
   ie->value.present = E2AP_E2nodeConfigurationUpdate_IEs__value_PR_TransactionID;
-  ie->value.choice.TransactionID = 10;
+  ie->value.choice.TransactionID = 1;
 
   ASN_SEQUENCE_ADD(&req->protocolIEs.list,ie);
 
@@ -230,7 +238,7 @@ int e2ap_generate_e2_config_update(ranid_t  ranid,
   ie->value.present = E2AP_E2nodeConfigurationUpdate_IEs__value_PR_E2nodeComponentConfigUpdate_List;
 
   
-  if (e2node_type == E2NODE_TYPE_ENB_CU)
+  if (e2node_type == E2NODE_TYPE_GNB_CU || e2node_type == E2NODE_TYPE_ENB_CU)
   { 
     /* S1 Interface Component Config */
     updateItemIe = (E2AP_E2nodeComponentConfigUpdate_ItemIEs_t *)calloc(1,sizeof(*updateItemIe));
@@ -258,7 +266,7 @@ int e2ap_generate_e2_config_update(ranid_t  ranid,
   updateItemIe->value.present = E2AP_E2nodeComponentConfigUpdate_ItemIEs__value_PR_E2nodeComponentConfigUpdate_Item;
 
   updateItem = (E2AP_E2nodeComponentConfigUpdate_Item_t *)&updateItemIe->value.choice.E2nodeComponentConfigUpdate_Item;
-  if (e2node_type == E2NODE_TYPE_ENB_CU)
+  if (e2node_type == E2NODE_TYPE_GNB_CU || e2node_type == E2NODE_TYPE_ENB_CU)
   {
     updateItem->e2nodeComponentInterfaceType = E2AP_E2nodeComponentInterfaceType_e1;
     updateItem->e2nodeComponentID.present = E2AP_E2nodeComponentID_PR_e2nodeComponentInterfaceTypeE1;
@@ -752,8 +760,7 @@ int global_e2_node_id(ranid_t ranid, E2AP_GlobalE2node_ID_t* node_id) {
     e2node_type_t node_type;
 
     node_type = e2_conf[ranid]->e2node_type;
-
-    if ( (node_type == E2NODE_TYPE_ENB_CU) || (node_type == E2NODE_TYPE_ENB_DU) ) 
+    if ( 1 ||  (node_type == E2NODE_TYPE_ENB_CU) || (node_type == E2NODE_TYPE_ENB_DU) ) // TODO RIC: remove 1 ||
     {
         node_id->present = E2AP_GlobalE2node_ID_PR_eNB;
 
@@ -768,6 +775,26 @@ int global_e2_node_id(ranid_t ranid, E2AP_GlobalE2node_ID_t* node_id) {
         MACRO_ENB_ID_TO_BIT_STRING(
                 e2_conf[ranid]->cell_identity,
                 &node_id->choice.eNB.global_eNB_ID.eNB_ID.choice.macro_eNB_ID);
+    RIC_AGENT_INFO("plmn %d\n",node_id->choice.eNB.global_eNB_ID.pLMN_Identity.buf[0]);
+    }
+    else if (node_type ==  E2NODE_TYPE_GNB_CU){
+        node_id->present = E2AP_GlobalE2node_ID_PR_gNB;
+
+        MCC_MNC_TO_PLMNID(
+                e2_conf[ranid]->mcc,
+                e2_conf[ranid]->mnc,
+                e2_conf[ranid]->mnc_digit_length,
+                &node_id->choice.gNB.global_gNB_ID.plmn_id);
+
+        node_id->choice.gNB.global_gNB_ID.gnb_id.present = E2AP_GNB_ID_Choice_PR_gnb_ID;
+
+        /* XXX: GNB version? */
+
+        MACRO_ENB_ID_TO_BIT_STRING(
+                e2_conf[ranid]->cell_identity,
+                &node_id->choice.gNB.global_gNB_ID.gnb_id.choice.gnb_ID);
+
+
 
     }
 #if 0

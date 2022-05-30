@@ -80,10 +80,16 @@ int ric_agent_register_ran_function(ric_ran_function_t *func)
         }
         ran_functions_alloc_len += 8;
     }
-
-    new_id = ran_functions_len++;
-    ran_functions[new_id] = func;
-    func->function_id = new_id + 1;
+    // if (!strcmp(func->name,"Eurecom-MET-SM")){
+    //     new_id = 3;
+    //     ran_functions[new_id-1] = func;
+    //     func->function_id = 3;
+    //     ran_functions_len+=2;
+    // }else{
+        new_id = ran_functions_len++;
+        ran_functions[new_id] = func;
+        func->function_id = new_id + 1;
+    //}
 
     return 0;
 }
@@ -226,7 +232,7 @@ static int ric_agent_connect(ranid_t ranid)
 #if DISABLE_SCTP_MULTIHOMING
     // Comment out if testing with loopback
     req->local_address.ipv4 = 1;
-    strncpy(req->local_address.ipv4_address, RC.rrc[0]->eth_params_s.my_addr,
+    strncpy(req->local_address.ipv4_address,  e2_conf[ranid]->local_ipv4_addr, //TODO RIC
             sizeof(req->local_address.ipv4_address));
     req->local_address.ipv4_address[sizeof(req->local_address.ipv4_address)-1] = '\0';
 #endif
@@ -472,7 +478,8 @@ void *ric_agent_task(void *args)
     //REVIEW 
     e2sm_met_init();
 
-    for (i = 0; i < RC.nb_inst; ++i) {
+    //TODO RIC: hqndle multiple gNBs
+    for (i = 0; i < 1; ++i) {
         if (e2_conf[i]->enabled) {
             timer_setup(5, 0, TASK_RIC_AGENT, i, TIMER_PERIODIC, NULL, &ric_agent_info[i]->ric_connect_timer_id);
         }
@@ -562,9 +569,9 @@ void *ric_agent_task(void *args)
 
 #define RIC_CONFIG_IDX_ENABLED          0
 #define RIC_CONFIG_IDX_REMOTE_IPV4_ADDR 1
-#define RIC_CONFIG_IDX_REMOTE_PORT      2
-#define RIC_CONFIG_IDX_FUNCTIONS_ENABLED 3
-#define RIC_CONFIG_IDX_LOCAL_IPV4_ADDR 4
+#define RIC_CONFIG_IDX_LOCAL_IPV4_ADDR 2
+#define RIC_CONFIG_IDX_REMOTE_PORT      3
+#define RIC_CONFIG_IDX_FUNCTIONS_ENABLED 4
 
 #define RIC_PORT 36421
 
