@@ -32,6 +32,9 @@
 #include "E2SM_MET_GlobalMETnode-ID.h"
 
 #include "E2AP_Cause.h"
+#include "E2SM_MET_UETag.h"
+
+#include "met_debug.h"
 
 
 // extern f1ap_cudu_inst_t f1ap_cu_inst[MAX_eNB];
@@ -49,6 +52,8 @@
 //Functions of the SM 
 
 // SECTION this section is for Constatnts, global vars definitions and function signatures 
+
+// debug functions 
 
 static int e2sm_met_subscription_add(ric_agent_info_t *ric, ric_subscription_t *sub);
 static int e2sm_met_subscription_del(ric_agent_info_t *ric, ric_subscription_t *sub, int force,long *cause,long *cause_detail);
@@ -78,7 +83,7 @@ static E2SM_MET_E2SM_MET_IndicationMessage_t* encode_met_Indication_Msg(ric_agen
 void encode_e2sm_met_indication_header(ranid_t ranid, E2SM_MET_E2SM_MET_IndicationHeader_t *ihead) ;
 
 //TODONOW set the subID and granularity period somewhere 
-E2SM_MET_SubscriptionID_t    g_subscriptionID;
+// E2SM_MET_SubscriptionID_t    g_subscriptionID;
 
 E2SM_MET_GranularityPeriod_t     *g_granulPeriod;
 
@@ -99,7 +104,7 @@ static ric_service_model_t e2sm_met_model = {
 };
 
 kmp_meas_info_t e2sm_met_meas_info[MAX_RECORD_ITEM] = {
-                                            {1, "RRC.ConnEstabAtt.sum", 0, FALSE},
+                                            {1, "RRC.ConnEstabAatt.sum", 0, FALSE},
                                             {2, "RRC.ConnEstabSucc.sum", 0, FALSE},
                                             {3, "RRC.ConnReEstabAtt.sum", 0, FALSE},
                                             {4, "RRC.ConnMean", 0, FALSE},
@@ -116,7 +121,6 @@ kmp_meas_info_t e2sm_met_meas_info[MAX_RECORD_ITEM] = {
  */
 int e2sm_met_init(void)
 {
-    uint16_t i;
     ric_ran_function_t *func;
     E2SM_MET_E2SM_MET_RANfunction_Description_t *func_def;
     E2SM_MET_RIC_ReportStyle_Item_t *ric_report_style_item;
@@ -312,6 +316,9 @@ static int e2sm_met_ricInd_timer_expiry(
         uint8_t **outbuf,
         uint32_t *outlen)
 {
+    //call of the debug function 
+    test_met();
+
     E2SM_MET_E2SM_MET_IndicationMessage_t* indicationmessage;
     ric_subscription_t *rs;
 
@@ -333,12 +340,12 @@ static int e2sm_met_ricInd_timer_expiry(
 
     {
         char *error_buf = (char*)calloc(300, sizeof(char));
-        size_t errlen;
+        size_t errlen = 0;
         asn_check_constraints(&asn_DEF_E2SM_MET_E2SM_MET_IndicationMessage, indicationmessage, error_buf, &errlen);
-        //fprintf(stderr,"MET IND error length %zu\n", errlen);
-        //fprintf(stderr,"MET IND error buf %s\n", error_buf);
-        free(error_buf);
-        //xer_fprint(stderr, &asn_DEF_E2SM_MET_E2SM_MET_IndicationMessage, indicationmessage);
+        // fprintf(stderr,"MET IND error length %zu\n", errlen);
+        // fprintf(stderr,"MET IND error buf %s\n", error_buf);
+        // free(error_buf);
+        // xer_fprint(stderr, &asn_DEF_E2SM_MET_E2SM_MET_IndicationMessage, indicationmessage);
     }
     // g_granularityIndx = 0; // Resetting
 
@@ -351,8 +358,23 @@ static int e2sm_met_ricInd_timer_expiry(
             &asn_DEF_E2SM_MET_E2SM_MET_IndicationMessage,
             indicationmessage, e2smbuffer, e2smbuffer_size);
 
-    //fprintf(stderr, "er encded is %zu\n", er.encoded);
-    //fprintf(stderr, "after encoding MET IND message\n");
+    fprintf(stderr, "er encded is %zu\n", er.encoded);
+    fprintf(stderr, "after encoding MET IND message\n");
+
+#if 0
+
+    fprintf(stderr, "Here is the message:n\n");
+    for (int i = 0; i < er.encoded; i++)
+    {
+        fprintf(stderr, "0x%02x,", e2smbuffer[i]);
+    }
+    if (er.encoded < 0) {
+        fprintf(stderr, "ERROR encoding indication header, name=%s, tag=%s", er.failed_type->name, er.failed_type->xml_tag);
+    }
+
+    DevAssert(er.encoded >= 0);
+
+#endif
 
     E2AP_E2AP_PDU_t *e2ap_pdu = (E2AP_E2AP_PDU_t*)calloc(1, sizeof(E2AP_E2AP_PDU_t));
 
@@ -377,6 +399,22 @@ static int e2sm_met_ricInd_timer_expiry(
 
     DevAssert(er_header_style1.encoded >= 0);
 
+#if 0
+
+    fprintf(stderr, "Here is the ind header:  len = %d \n",er_header_style1.encoded);
+    for (int i = 0; i < er_header_style1.encoded; i++)
+    {
+        fprintf(stderr, "0x%02x,", e2sm_header_buf_style1[i]);
+    }
+    fprintf(stderr,"\n\n");
+    if (er.encoded < 0) {
+        fprintf(stderr, "ERROR encoding indication header, name=%s, tag=%s", er.failed_type->name, er.failed_type->xml_tag);
+    }
+
+    DevAssert(er.encoded >= 0);
+
+#endif
+
         // TODO - remove hardcoded values
     generate_e2apv1_indication_request_parameterized(
             e2ap_pdu, request_id, instance_id, function_id, action_id,
@@ -395,7 +433,7 @@ static int e2sm_met_ricInd_timer_expiry(
 static E2SM_MET_E2SM_MET_IndicationMessage_t*
 encode_met_Indication_Msg(ric_agent_info_t* ric, ric_subscription_t *rs)
 {
-    int ret;
+    int ret, ret2;
     uint64_t i,k;
 
     E2SM_MET_MeasurementData_t* meas_data;
@@ -417,19 +455,19 @@ encode_met_Indication_Msg(ric_agent_info_t* ric, ric_subscription_t *rs)
             switch(i)
             {
                 case 0:/*RRC.ConnEstabAtt.sum*/
-                    g_indMsgMeasRecItemArr[i]->choice.integer = 1;
+                    g_indMsgMeasRecItemArr[i]->choice.integer = 21;
                     break;
                 case 1:/*RRC.ConnEstabSucc.sum*/
-                    g_indMsgMeasRecItemArr[i]->choice.integer = 2; 
+                    g_indMsgMeasRecItemArr[i]->choice.integer = 10; 
                     break;
                 case 2:/*RRC.ConnReEstabAtt.sum*/
-                    g_indMsgMeasRecItemArr[i]->choice.integer = 3;
+                    g_indMsgMeasRecItemArr[i]->choice.integer = 10;
                     break;
                 case 3:/*RRC.ConnMean*/
-                    g_indMsgMeasRecItemArr[i]->choice.integer = 4;
+                    g_indMsgMeasRecItemArr[i]->choice.integer = 10;
                     break;
                 case 4:/*RRC.ConnMax*/
-                    g_indMsgMeasRecItemArr[i]->choice.integer = 5;
+                    g_indMsgMeasRecItemArr[i]->choice.integer = 10;
                     break;
 
                 default:
@@ -446,6 +484,49 @@ encode_met_Indication_Msg(ric_agent_info_t* ric, ric_subscription_t *rs)
      */
     meas_data = (E2SM_MET_MeasurementData_t*)calloc(1, sizeof(E2SM_MET_MeasurementData_t));
     DevAssert(meas_data!=NULL);
+#if 0
+        int64_t tmp_id = 11;
+        E2SM_MET_MeasurementRecord_t *meas_rec_debug = (E2SM_MET_MeasurementRecord_t *)calloc(1, sizeof(E2SM_MET_MeasurementRecord_t));
+        // meas_rec[k]->ueID = asn_int642INTEGER(meas_rec[k]->ueID,k);
+        // ret = asn_uint642INTEGER(&meas_rec_debug->ueID,tmp_id);
+
+        meas_rec_debug->ueID = 10;
+
+        // char *name = "AAAA";
+        // meas_rec_debug->ueTag.buf = (uint8_t *)strdup(name);
+        // meas_rec_debug->ueTag.size = strlen(name);
+
+        // meas_rec[k]->ueTag = "ABC";
+        // ret2 = OCTET_STRING_fromString(&meas_rec_debug->ueTag,"ABC");
+
+
+        E2SM_MET_MeasurementRecordItem_t *t = (E2SM_MET_MeasurementRecordItem_t *)calloc(1,sizeof(E2SM_MET_MeasurementRecordItem_t));
+        t->present = E2SM_MET_MeasurementRecordItem_PR_integer;
+        t->choice.integer = 10;
+
+        E2SM_MET_MeasurementRecordItem_t *t2 = (E2SM_MET_MeasurementRecordItem_t *)calloc(1,sizeof(E2SM_MET_MeasurementRecordItem_t));
+        t2->present = E2SM_MET_MeasurementRecordItem_PR_integer;
+        t2->choice.integer = 20;
+
+        ret = ASN_SEQUENCE_ADD(&meas_rec_debug->measRecordItem.list, t);
+        DevAssert(ret == 0);
+
+        ret = ASN_SEQUENCE_ADD(&meas_rec_debug->measRecordItem.list, t2);
+        DevAssert(ret == 0);    
+
+
+
+        // xer_fprint(stderr, &asn_DEF_E2SM_MET_MeasurementRecord,meas_rec_debug);
+
+        encode_decode(meas_rec_debug);
+
+        // log_buf_content(meas_rec_debug,&asn_DEF_E2SM_MET_MeasurementRecord,"helllooo measRec--" );
+
+        
+
+
+#endif 
+
     
     for (k=0; k < MAX_UE; k++)
     {
@@ -454,9 +535,14 @@ encode_met_Indication_Msg(ric_agent_info_t* ric, ric_subscription_t *rs)
          */
         meas_rec[k] = (E2SM_MET_MeasurementRecord_t *)calloc(1, sizeof(E2SM_MET_MeasurementRecord_t));
         // meas_rec[k]->ueID = asn_int642INTEGER(meas_rec[k]->ueID,k);
-        int ret = asn_uint642INTEGER(&meas_rec[k]->ueID,k);
-        // meas_rec[k]->ueTag = "ABC";
-        int ret2 = OCTET_STRING_fromString(&meas_rec[k]->ueTag,"ABC");
+        // int ret1 = asn_uint642INTEGER(&meas_rec[k]->ueID,tmp_id);
+        meas_rec[k]->ueID = 11;
+        // meas_rec[k]->ueTag = "AAA";
+        // int ret22 = OCTET_STRING_fromString(&meas_rec[k]->ueTag,"ABC");
+        // E2SM_MET_UETag_t	*ueTag = (E2SM_MET_UETag_t *)calloc(1, sizeof(E2SM_MET_UETag_t));
+        // int ret22 = OCTET_STRING_fromString(ueTag,"AAAA");
+        meas_rec[k]->ueTag.buf  = (uint8_t *)strdup("AAA");
+        meas_rec[k]->ueTag.size = strlen("AAA");
 
         for(i=0; i < MAX_RECORD_ITEM; i++)
         { 
@@ -482,14 +568,55 @@ encode_met_Indication_Msg(ric_agent_info_t* ric, ric_subscription_t *rs)
     */
    
     E2SM_MET_MeasurementInfoList_t* meas_info_list = (E2SM_MET_MeasurementInfoList_t*)calloc(1, sizeof(E2SM_MET_MeasurementInfoList_t));
-    for(i=0; i < MAX_RECORD_ITEM; i++)
-    {
-        E2SM_MET_MeasurementInfoItem_t* meas_info_item = (E2SM_MET_MeasurementInfoItem_t*)calloc(1, sizeof(E2SM_MET_MeasurementInfoItem_t));
-        meas_info_item->measType.buf = (uint8_t *)strdup("measPH");
-        meas_info_item->measType.size = strlen("measPH");
-        ret = ASN_SEQUENCE_ADD(&meas_info_list->list, meas_info_item);
-        DevAssert(ret == 0);
-    }
+    
+    E2SM_MET_MeasurementInfoItem_t* meas_info_item1 = (E2SM_MET_MeasurementInfoItem_t*)calloc(1, sizeof(E2SM_MET_MeasurementInfoItem_t));
+    meas_info_item1->buf = (uint8_t *)strdup("mcs");
+    meas_info_item1->size = strlen("mcs");
+    ret = ASN_SEQUENCE_ADD(&meas_info_list->list, meas_info_item1);
+    DevAssert(ret == 0);
+
+    E2SM_MET_MeasurementInfoItem_t* meas_info_item2 = (E2SM_MET_MeasurementInfoItem_t*)calloc(1, sizeof(E2SM_MET_MeasurementInfoItem_t));
+    meas_info_item2->buf = (uint8_t *)strdup("phr");
+    meas_info_item2->size = strlen("phr");
+    ret = ASN_SEQUENCE_ADD(&meas_info_list->list, meas_info_item2);
+    DevAssert(ret == 0);
+
+    E2SM_MET_MeasurementInfoItem_t* meas_info_item3 = (E2SM_MET_MeasurementInfoItem_t*)calloc(1, sizeof(E2SM_MET_MeasurementInfoItem_t));
+    meas_info_item3->buf = (uint8_t *)strdup("bler");
+    meas_info_item3->size = strlen("bler");
+    ret = ASN_SEQUENCE_ADD(&meas_info_list->list, meas_info_item3);
+    DevAssert(ret == 0);
+
+    E2SM_MET_MeasurementInfoItem_t* meas_info_item4 = (E2SM_MET_MeasurementInfoItem_t*)calloc(1, sizeof(E2SM_MET_MeasurementInfoItem_t));
+    meas_info_item4->buf = (uint8_t *)strdup("errors");
+    meas_info_item4->size = strlen("errors");
+    ret = ASN_SEQUENCE_ADD(&meas_info_list->list, meas_info_item4);
+    DevAssert(ret == 0);
+
+    E2SM_MET_MeasurementInfoItem_t* meas_info_item5 = (E2SM_MET_MeasurementInfoItem_t*)calloc(1, sizeof(E2SM_MET_MeasurementInfoItem_t));
+    meas_info_item5->buf = (uint8_t *)strdup("throughput");
+    meas_info_item5->size = strlen("throughput");
+    ret = ASN_SEQUENCE_ADD(&meas_info_list->list, meas_info_item5);
+    DevAssert(ret == 0);
+
+    E2SM_MET_MeasurementInfoItem_t* meas_info_item6 = (E2SM_MET_MeasurementInfoItem_t*)calloc(1, sizeof(E2SM_MET_MeasurementInfoItem_t));
+    meas_info_item6->buf = (uint8_t *)strdup("snr");
+    meas_info_item6->size = strlen("snr");
+    ret = ASN_SEQUENCE_ADD(&meas_info_list->list, meas_info_item6);
+    DevAssert(ret == 0);
+
+    E2SM_MET_MeasurementInfoItem_t* meas_info_item7 = (E2SM_MET_MeasurementInfoItem_t*)calloc(1, sizeof(E2SM_MET_MeasurementInfoItem_t));
+    meas_info_item7->buf = (uint8_t *)strdup("rsrp");
+    meas_info_item7->size = strlen("rsrp");
+    ret = ASN_SEQUENCE_ADD(&meas_info_list->list, meas_info_item7);
+    DevAssert(ret == 0);
+
+    E2SM_MET_MeasurementInfoItem_t* meas_info_item8 = (E2SM_MET_MeasurementInfoItem_t*)calloc(1, sizeof(E2SM_MET_MeasurementInfoItem_t));
+    meas_info_item8->buf = (uint8_t *)strdup("cqi");
+    meas_info_item8->size = strlen("cqi");
+    ret = ASN_SEQUENCE_ADD(&meas_info_list->list, meas_info_item8);
+    DevAssert(ret == 0);
+    
 
     /*
      * IndicationMessage_Format1 -> measInfoList
@@ -500,15 +627,20 @@ encode_met_Indication_Msg(ric_agent_info_t* ric, ric_subscription_t *rs)
     E2SM_MET_E2SM_MET_IndicationMessage_Format1_t* format = 
                         (E2SM_MET_E2SM_MET_IndicationMessage_Format1_t*)calloc(1, sizeof(E2SM_MET_E2SM_MET_IndicationMessage_Format1_t));
     ASN_STRUCT_RESET(asn_DEF_E2SM_MET_E2SM_MET_IndicationMessage_Format1, format);
-    //format->subscriptID.size = g_subscriptionID.size;
-    //format->subscriptID.buf = g_subscriptionID.buf;
+
+
+    // format->subscriptID.size = g_subscriptionID.size;
+    // format->subscriptID.buf = g_subscriptionID.buf;
+    uint16_t tmpp = 10;
+    // format->subscriptID = tmpp;
     //ANCHOR This sub Id is important so avoid e2t crash 
     uint64_t subsId = 10;//hack
-    ret = asn_uint642INTEGER(&g_subscriptionID,subsId);
-    format->subscriptID = g_subscriptionID;
+    // ret = asn_uint642INTEGER(&g_subscriptionID,subsId);
+    format->subscriptID =10;
+
 	format->measInfoList = meas_info_list;
     format->measData = *meas_data;
-    format->granulPeriod = g_granulPeriod;
+    // format->granulPeriod = g_granulPeriod;
 
     /*
      * IndicationMessage -> IndicationMessage_Format1
@@ -520,8 +652,15 @@ encode_met_Indication_Msg(ric_agent_info_t* ric, ric_subscription_t *rs)
     indicationmessage->indicationMessage_formats.present = 
                                     E2SM_MET_E2SM_MET_IndicationMessage__indicationMessage_formats_PR_indicationMessage_Format1;
     indicationmessage->indicationMessage_formats.choice.indicationMessage_Format1 = *format;
-    
+
+    E2SM_MET_E2SM_MET_IndicationMessage_t* tmp_ind = 
+                            (E2SM_MET_E2SM_MET_IndicationMessage_t*)calloc(1, sizeof(E2SM_MET_E2SM_MET_IndicationMessage_t));
+
+    // encode_decode(&asn_DEF_E2SM_MET_E2SM_MET_IndicationMessage,indicationmessage,tmp_ind);  
+
     return indicationmessage;
+
+
 }
 //REVIEW AT the end of the function what known isses : 
     //  the granurality period and subId are not set by nay other function 
@@ -539,8 +678,7 @@ void encode_e2sm_met_indication_header(ranid_t ranid, E2SM_MET_E2SM_MET_Indicati
     /* MET Node ID */
     ind_header->metNodeID = (E2SM_MET_GlobalMETnode_ID_t *)calloc(1,sizeof(E2SM_MET_GlobalMETnode_ID_t));
     //REVIEW is the init of an int done correctly
-    uint64_t nid = 10; // hack 
-    int ret = asn_uint642INTEGER(ind_header->metNodeID,nid); // hack 
+    *ind_header->metNodeID = 10; // hack 
 
     // *(ind_header->metNodeID) = 10; //REVIEW  // hack 
 
@@ -611,10 +749,10 @@ e2sm_met_decode_and_handle_action_def(uint8_t *def_buf,
         // {
         //     g_indMsgMeasInfoItemArr[g_indMsgMeasInfoCnt] =
         //                              (E2SM_KPM_MeasurementInfoItem_KPMv2_t *)calloc(1,sizeof(E2SM_KPM_MeasurementInfoItem_KPMv2_t));
-        //     g_indMsgMeasInfoItemArr[g_indMsgMeasInfoCnt]->measType.present = E2SM_KPM_MeasurementType_KPMv2_PR_measName;
-        //     g_indMsgMeasInfoItemArr[g_indMsgMeasInfoCnt]->measType.choice.measName.buf =
+        //     g_indMsgMeasInfoItemArr[g_indMsgMeasInfoCnt].present = E2SM_KPM_MeasurementType_KPMv2_PR_measName;
+        //     g_indMsgMeasInfoItemArr[g_indMsgMeasInfoCnt].choice.measName.buf =
         //                                              (uint8_t *)strdup(e2sm_met_meas_info[i].meas_type_name);
-        //     g_indMsgMeasInfoItemArr[g_indMsgMeasInfoCnt]->measType.choice.measName.size =
+        //     g_indMsgMeasInfoItemArr[g_indMsgMeasInfoCnt].choice.measName.size =
         //                                                         strlen(e2sm_met_meas_info[i].meas_type_name);
         //     e2sm_met_meas_info[i].subscription_status = TRUE;
         //     g_indMsgMeasInfoCnt++;
@@ -629,7 +767,7 @@ e2sm_met_decode_and_handle_action_def(uint8_t *def_buf,
 
 		// g_subscriptionID = subsId; // this is a wrong assignment 
 
-        int ret = asn_uint642INTEGER(&g_subscriptionID,subsId);
+        // asn_uint642INTEGER(&g_subscriptionID,subsId);
 
         // action_def_missing = TRUE; /* Granularity Timer will not start */
         return 0;
@@ -638,3 +776,4 @@ e2sm_met_decode_and_handle_action_def(uint8_t *def_buf,
 }
 
 // !SECTION 
+
