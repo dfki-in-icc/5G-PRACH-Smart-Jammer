@@ -190,8 +190,8 @@ int trx_oran_ctlrecv(openair0_device *device, void *msg, ssize_t msg_len)
     cap->nb_tx[0]                         = 1; //device->openair0_cfg->tx_num_channels;
     cap->max_pdschReferenceSignalPower[0] = -27;
     cap->max_rxgain[0]                    = 90;
-    cap->N_RB_DL[0]                       = 106;
-    cap->N_RB_UL[0]                       = 106;
+    cap->N_RB_DL[0]                       = 273;
+    cap->N_RB_UL[0]                       = 273;
    
 
     s->capabilities_sent = 1;

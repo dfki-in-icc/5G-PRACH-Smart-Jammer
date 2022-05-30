@@ -576,7 +576,7 @@ int xran_fh_rx_read_slot(void *xranlib_, ru_info_t *ru, int frame, int slot){
                  uint8_t *pPrbMapData = p_xran_dev_ctx_2->sFrontHaulRxPrbMapBbuIoBufCtrl[tti % XRAN_N_FE_BUF_LEN][cc_id][ant_id].sBufferList.pBuffers->pData;
                  struct xran_prb_map *pPrbMap = (struct xran_prb_map *)pPrbMapData;
                  ptr = pData;
-                 pos = &ru->rxdataF[ant_id][sym_idx * 2048 /*fp->ofdm_symbol_size*/]; // We had to use a different ru structure than benetel so the access to the buffer is not the same.
+                 pos = &ru->rxdataF[ant_id][sym_idx * 4096 /*fp->ofdm_symbol_size*/]; // We had to use a different ru structure than benetel so the access to the buffer is not the same.
 
                  uint8_t *u8dptr;
                  struct xran_prb_map *pRbMap = pPrbMap;
@@ -621,7 +621,7 @@ int xran_fh_rx_read_slot(void *xranlib_, ru_info_t *ru, int frame, int slot){
                        // first half
                        dst1 = (uint8_t *)(pos + p_prbMapElm->nRBStart*N_SC_PER_PRB);
                        // second half
-                       dst2 = (uint8_t *)(pos + (p_prbMapElm->nRBStart*N_SC_PER_PRB + 1272/2) + 2048 - 1272);
+                       dst2 = (uint8_t *)(pos + (p_prbMapElm->nRBStart*N_SC_PER_PRB + 3276/2) + 4096 - 3276);
                        //printf("RRR: idxElm=%d\tcompMethod=%d\tiqWidth=%d\n",idxElm,p_prbMapElm->compMethod,p_prbMapElm->iqWidth);
                        if(p_prbMapElm->compMethod == XRAN_COMPMETHOD_NONE) {
                           payload_len = p_prbMapElm->nRBSize*N_SC_PER_PRB*4L;
@@ -701,6 +701,7 @@ int xran_fh_tx_send_slot(void *xranlib_, ru_info_t *ru, int frame, int slot, uin
   //int32_t flowId;
   void *ptr = NULL;
   int32_t  *pos = NULL;
+  int idx = 0;
 
         p_xran_dev_ctx_2 = xran_dev_get_ctx();
 #if 0
@@ -738,7 +739,7 @@ int xran_fh_tx_send_slot(void *xranlib_, ru_info_t *ru, int frame, int slot, uin
                  uint8_t *pPrbMapData = p_xran_dev_ctx_2->sFrontHaulTxPrbMapBbuIoBufCtrl[tti % XRAN_N_FE_BUF_LEN][cc_id][ant_id].sBufferList.pBuffers->pData;
                  struct xran_prb_map *pPrbMap = (struct xran_prb_map *)pPrbMapData;
                  ptr = pData;
-                 pos = &ru->txdataF_BF[ant_id][sym_idx * 2048 /*fp->ofdm_symbol_size*/]; // We had to use a different ru structure than benetel so the access to the buffer is not the same.
+                 pos = &ru->txdataF_BF[ant_id][sym_idx * 4096 /*fp->ofdm_symbol_size*/]; // We had to use a different ru structure than benetel so the access to the buffer is not the same.
 
                  uint8_t *u8dptr;
                  struct xran_prb_map *pRbMap = pPrbMap;
@@ -778,14 +779,25 @@ int xran_fh_tx_send_slot(void *xranlib_, ru_info_t *ru, int frame, int slot, uin
                        // first half
                        src1 = (uint8_t *)(pos + p_prbMapElm->nRBStart*N_SC_PER_PRB);
                        // second half
-                       src2 = (uint8_t *)(pos + (p_prbMapElm->nRBStart*N_SC_PER_PRB + 1272/2) + 2048 - 1272);
+                       src2 = (uint8_t *)(pos + (p_prbMapElm->nRBStart*N_SC_PER_PRB + 3276/2) + 4096 - 3276);
                        if(p_prbMapElm->compMethod == XRAN_COMPMETHOD_NONE) {
-                          rte_memcpy(dst1, src1, payload_len/2);
-                          rte_memcpy(dst2, src2, payload_len/2);
-                       } else if (p_prbMapElm->compMethod == XRAN_COMPMETHOD_BLKFLOAT) {
-                          printf("idxElm=%d, compMeth==BLKFLOAT\n",idxElm);
-                          struct xranlib_compress_request  bfp_com_req;
-                          struct xranlib_compress_response bfp_com_rsp;
+						   /* convert to Network order */
+						   for (idx = 0; idx < payload_len/(2*sizeof(int16_t)); idx++)
+						   {
+							   ((uint16_t *)dst1)[idx] = ((uint16_t *)src1)[idx]>>8
+								   | ((uint16_t *)src1)[idx]<<8;
+							   ((uint16_t *)dst2)[idx] = ((uint16_t *)src2)[idx]>>8
+								   | ((uint16_t *)src2)[idx]<<8;
+						   }
+
+#if 0
+						   rte_memcpy(dst1, src1, payload_len/2);
+						   rte_memcpy(dst2, src2, payload_len/2);
+#endif
+					   } else if (p_prbMapElm->compMethod == XRAN_COMPMETHOD_BLKFLOAT) {
+						   printf("idxElm=%d, compMeth==BLKFLOAT\n",idxElm);
+						   struct xranlib_compress_request  bfp_com_req;
+						   struct xranlib_compress_response bfp_com_rsp;
 
                           memset(&bfp_com_req, 0, sizeof(struct xranlib_compress_request));
                           memset(&bfp_com_rsp, 0, sizeof(struct xranlib_compress_response));
