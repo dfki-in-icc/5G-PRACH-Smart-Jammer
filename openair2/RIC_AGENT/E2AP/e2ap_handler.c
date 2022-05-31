@@ -34,6 +34,7 @@
 #include "e2ap_encoder.h"
 #include "e2ap_generate_messages.h"
 #include "e2sm_kpm.h"
+#include "e2sm_met.h"
 
 #include "E2AP_Cause.h"
 #include "E2AP_E2AP-PDU.h"
@@ -164,7 +165,9 @@ void dec2strIpv4(uint32_t binIpv4, char *decIpv4)
 void prepare_e2_conn_update_ack(uint8_t **outbuf,
                                 uint32_t *outlen,
                                 BIT_STRING_t *tnlAddr,
-                                BIT_STRING_t *tnlPort)
+                                BIT_STRING_t *tnlPort,
+                                E2AP_TransactionID_t e2ConnUpdTransId)
+
 {
   E2AP_E2AP_PDU_t pdu;
   E2AP_E2connectionUpdateAcknowledge_t *req;
@@ -279,6 +282,8 @@ int e2ap_handle_e2_connection_update(
     uint16_t    remote_port;
     MessageDef *msg;
     sctp_new_association_req_t *req;
+    E2AP_TransactionID_t e2_conn_upd_trans_id = 0;
+
     //asn_dec_rval_t rv;
 
     RIC_AGENT_INFO("Received E2ConnectionUpdate from ranid %u\n",ranid);
@@ -292,6 +297,13 @@ int e2ap_handle_e2_connection_update(
             ptr++) 
     {
         E2AP_E2connectionUpdate_IEs_t* connUpdateIE = (E2AP_E2connectionUpdate_IEs_t *)*ptr;
+
+        if (connUpdateIE->value.present == E2AP_E2connectionUpdate_IEs__value_PR_TransactionID)
+        {
+            e2_conn_upd_trans_id = connUpdateIE->value.choice.TransactionID;
+            RIC_AGENT_INFO("[%s] Transaction ID:%ld",__func__, e2_conn_upd_trans_id);
+            continue;        
+        }
 
         if  (connUpdateIE->value.present == E2AP_E2connectionUpdate_IEs__value_PR_E2connectionUpdate_List) 
         {
@@ -315,8 +327,8 @@ int e2ap_handle_e2_connection_update(
                 prepare_e2_conn_update_ack(outbuf,
                                            outlen,
                                            &connUpdate_Item->value.choice.E2connectionUpdate_Item.tnlInformation.tnlAddress,
-                                           connUpdate_Item->value.choice.E2connectionUpdate_Item.tnlInformation.tnlPort);
-
+                                           connUpdate_Item->value.choice.E2connectionUpdate_Item.tnlInformation.tnlPort,
+                                           e2_conn_upd_trans_id);
                 RIC_AGENT_INFO("[%s] Setting up New SCTP for Data Connection \n",__func__);
                 asn_fprint(stderr, &asn_DEF_BIT_STRING, &connUpdate_Item->value.choice.E2connectionUpdate_Item.tnlInformation.tnlAddress); 
 
@@ -399,7 +411,7 @@ int e2ap_handle_ric_subscription_request(
         uint32_t *outlen)
 {
     int ret;
-    uint32_t      interval_sec = 0;
+    uint32_t      interval_sec = 10;
     uint32_t      interval_us = 0;
     uint32_t      interval_ms = 0;
     ric_ran_function_t *func = NULL;
@@ -468,6 +480,11 @@ int e2ap_handle_ric_subscription_request(
                         interval_us = (interval_ms%1000)*1000;
                         interval_sec = (interval_ms/1000);
                     }
+                    break;
+                  }
+                case 2:
+                  {
+                    RIC_AGENT_WARN("THE MET RAN FUNCTION REVEIVED A SUBSCRIPTION ");
                     break;
                   }
 #ifdef ENABLE_RAN_SLICING        
@@ -601,6 +618,36 @@ int e2ap_handle_ric_subscription_request(
     }
   }
 
+
+    //REVIEW this section is important as it is the section code responsable for registring the 
+        // timer related to the periodicity of the indication message of the ran function 
+        // with the id 3, that is the MET reporting RAN function
+    if (rs->function_id == 2)
+    {
+
+    RIC_AGENT_WARN("THE E2AP HANDLER WANTED TO SET AN INDICATION_MESSAGE TIMER FOR THE MET ");
+
+    ric_ran_function_id_t* function_id = (ric_ran_function_id_t *)calloc(1, sizeof(ric_ran_function_id_t));
+    *function_id = func->function_id;
+    ric_ran_function_requestor_info_t* arg
+        = (ric_ran_function_requestor_info_t*)calloc(1, sizeof(ric_ran_function_requestor_info_t));
+
+    
+    arg->function_id = func->function_id;
+    arg->request_id = rs->request_id;
+    arg->instance_id = rs->instance_id;
+    arg->action_id = (LIST_FIRST(&rs->action_list))->id;
+    ret = timer_setup(interval_sec, interval_us,
+            TASK_RIC_AGENT,
+            ric->ranid,
+            TIMER_PERIODIC,
+            (void *)arg,
+            &ric->e2sm_met_timer_id);
+    if (ret < 0) {
+        RIC_AGENT_ERROR("failed to start timer\n");
+        goto errout;
+    }
+    }
     return 0;
 
     errout:

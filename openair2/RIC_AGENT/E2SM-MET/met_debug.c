@@ -2,48 +2,93 @@
 #include <stddef.h>
 
 #include "met_debug.h"
+#include "common/utils/assertions.h"
+
 
 #include "E2SM_MET_MeasurementRecord.h"
 #include "E2SM_MET_MeasurementRecord.h"
 #include "E2SM_MET_MeasurementRecordItem.h"
 
+#include "E2SM_MET_MeasurementInfoItem.h"
+#include "E2SM_MET_MeasurementInfoList.h"
+
 void encode_decode(const struct asn_TYPE_descriptor_s *td, const void *struct_ptr,const void *empty_struct_ptr );
 void test_met(void);
+void test_met2(void);
 
 
-void test_met(void){
+void test_met2(void){
 
     // creating measurment record item 
-    E2SM_MET_MeasurementRecordItem_t *mri = (E2SM_MET_MeasurementRecordItem_t *)calloc(1, sizeof(E2SM_MET_MeasurementRecordItem_t));
-    mri->choice.integer = 10;
-    mri->present = E2SM_MET_MeasurementRecordItem_PR_integer;
+    E2SM_MET_MeasurementInfoItem_t *mii = (E2SM_MET_MeasurementInfoItem_t *)calloc(1, sizeof(E2SM_MET_MeasurementInfoItem_t));
+    mii->buf = (uint8_t *)strdup("test");
+    mii->size = strlen("test");
 
+    E2SM_MET_MeasurementInfoList_t  *mil = (E2SM_MET_MeasurementInfoList_t *)calloc(1, sizeof(E2SM_MET_MeasurementInfoList_t));
 
-    //creating measurment record and affecting UEID and the UETAG 
-    E2SM_MET_MeasurementRecord_t *deb_mr = (E2SM_MET_MeasurementRecord_t *)calloc(1, sizeof(E2SM_MET_MeasurementRecord_t));
-    deb_mr->ueID = 11;
-    // E2SM_MET_UETag_t	*ueTag = (E2SM_MET_UETag_t *)calloc(1, sizeof(E2SM_MET_UETag_t));
-    // int ret22 = OCTET_STRING_fromString(ueTag,"AAAA");
-    // if (ret22  != 0) exit(-1);
-    // fprintf(stderr, " the %s  ---- size : %d \n\n", ueTag->buf, ueTag->size);
-    // deb_mr->ueTag = ueTag;
+    ASN_SEQUENCE_ADD(mil,mii);
 
-    deb_mr->ueTag.buf  = (uint8_t *)strdup("AA");
-    deb_mr->ueTag.size = strlen("AA");
+    E2SM_MET_MeasurementInfoList_t *miltmp = (E2SM_MET_MeasurementInfoList_t *)calloc(1, sizeof(E2SM_MET_MeasurementInfoList_t));
 
-    //adding reacord item to the list of measrecords 
-    int ret = ASN_SEQUENCE_ADD(&deb_mr->measRecordItem.list, mri);
-    if (ret != 0) exit(-1);
-
-
-    // tmp record for debug function
-    E2SM_MET_MeasurementRecord_t *mritmp = (E2SM_MET_MeasurementRecord_t *)calloc(1, sizeof(E2SM_MET_MeasurementRecord_t));
-
-    E2SM_MET_MeasurementRecordItem_t *mri0 = (E2SM_MET_MeasurementRecordItem_t *)calloc(1, sizeof(E2SM_MET_MeasurementRecordItem_t));
-
-    encode_decode(&asn_DEF_E2SM_MET_MeasurementRecord,deb_mr,mritmp);  
+    encode_decode(&asn_DEF_E2SM_MET_MeasurementInfoList,mil,miltmp);  
 
 }
+
+void test_met(void){
+    E2SM_MET_MeasurementInfoList_t* meas_info_list = (E2SM_MET_MeasurementInfoList_t*)calloc(1, sizeof(E2SM_MET_MeasurementInfoList_t));
+    E2SM_MET_MeasurementInfoList_t* tmpmeas_info_list = (E2SM_MET_MeasurementInfoList_t*)calloc(1, sizeof(E2SM_MET_MeasurementInfoList_t));
+
+    
+    E2SM_MET_MeasurementInfoItem_t* meas_info_item1 = (E2SM_MET_MeasurementInfoItem_t*)calloc(1, sizeof(E2SM_MET_MeasurementInfoItem_t));
+    meas_info_item1->buf = (uint8_t *)strdup("mcs");
+    meas_info_item1->size = strlen("mcs");
+    int ret = ASN_SEQUENCE_ADD(&meas_info_list->list, meas_info_item1);
+    DevAssert(ret == 0);
+
+    E2SM_MET_MeasurementInfoItem_t* meas_info_item2 = (E2SM_MET_MeasurementInfoItem_t*)calloc(1, sizeof(E2SM_MET_MeasurementInfoItem_t));
+    meas_info_item2->buf = (uint8_t *)strdup("phr");
+    meas_info_item2->size = strlen("phr");
+    ret = ASN_SEQUENCE_ADD(&meas_info_list->list, meas_info_item2);
+    DevAssert(ret == 0);
+
+    encode_decode(&asn_DEF_E2SM_MET_MeasurementInfoList,meas_info_list,tmpmeas_info_list);  
+
+}
+
+
+// void test_met(void){
+
+//     // creating measurment record item 
+//     E2SM_MET_MeasurementRecordItem_t *mri = (E2SM_MET_MeasurementRecordItem_t *)calloc(1, sizeof(E2SM_MET_MeasurementRecordItem_t));
+//     mri->choice.integer = 10;
+//     mri->present = E2SM_MET_MeasurementRecordItem_PR_integer;
+
+
+//     //creating measurment record and affecting UEID and the UETAG 
+//     E2SM_MET_MeasurementRecord_t *deb_mr = (E2SM_MET_MeasurementRecord_t *)calloc(1, sizeof(E2SM_MET_MeasurementRecord_t));
+//     deb_mr->ueID = 11;
+//     // E2SM_MET_UETag_t	*ueTag = (E2SM_MET_UETag_t *)calloc(1, sizeof(E2SM_MET_UETag_t));
+//     // int ret22 = OCTET_STRING_fromString(ueTag,"AAAA");
+//     // if (ret22  != 0) exit(-1);
+//     // fprintf(stderr, " the %s  ---- size : %d \n\n", ueTag->buf, ueTag->size);
+//     // deb_mr->ueTag = ueTag;
+
+//     deb_mr->ueTag.buf  = (uint8_t *)strdup("AA");
+//     deb_mr->ueTag.size = strlen("AA");
+
+//     //adding reacord item to the list of measrecords 
+//     int ret = ASN_SEQUENCE_ADD(&deb_mr->measRecordItem.list, mri);
+//     if (ret != 0) exit(-1);
+
+
+//     // tmp record for debug function
+//     E2SM_MET_MeasurementRecord_t *mritmp = (E2SM_MET_MeasurementRecord_t *)calloc(1, sizeof(E2SM_MET_MeasurementRecord_t));
+
+//     E2SM_MET_MeasurementRecordItem_t *mri0 = (E2SM_MET_MeasurementRecordItem_t *)calloc(1, sizeof(E2SM_MET_MeasurementRecordItem_t));
+
+//     encode_decode(&asn_DEF_E2SM_MET_MeasurementRecord,deb_mr,mritmp);  
+
+// }
 
 
 void encode_decode(const struct asn_TYPE_descriptor_s *td, const void *struct_ptr,const void *empty_struct_ptr ){
