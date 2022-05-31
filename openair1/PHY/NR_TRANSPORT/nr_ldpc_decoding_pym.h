@@ -1,9 +1,9 @@
 
 /*! \file PHY/NR_TRANSPORT/nr_ulsch_decoding.c
-* \brief Time test of the number of code blocks
+* \briefFPGA accelerator integrated into OAI (for one and multi code block)
 * \author Sendren Xu, SY Yeh(fdragon), Hongming, Terng-Yin Hsu
-* \date 2022-05-29
-* \version 4.0
+* \date 2022-05-31
+* \version 5.0
 * \email: summery19961210@gmail.com
 */
 

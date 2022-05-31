@@ -232,10 +232,14 @@ void nr_postDecode(PHY_VARS_gNB *gNB, notifiedFIFO_elt_t *req) {
   LOG_D(PHY,"remain to decoded in subframe: %d\n", gNB->nbDecode);
   
   if (decodeSuccess) {
-    memcpy(ulsch_harq->b+rdata->offset,
-           ulsch_harq->c[r],
-           rdata->Kr_bytes - (ulsch_harq->F>>3) -((ulsch_harq->C>1)?3:0));
-
+    // memcpy(ulsch_harq->b+rdata->offset,
+    //        ulsch_harq->c[r],
+    //        rdata->Kr_bytes - (ulsch_harq->F>>3) -((ulsch_harq->C>1)?3:0));
+    for (r=0; r<ulsch_harq->C; r++) {
+      memcpy(ulsch_harq->b+((rdata->Kr_bytes - (ulsch_harq->F>>3) -((ulsch_harq->C>1)?3:0))*r),
+             ulsch_harq->c[r],
+             rdata->Kr_bytes - (ulsch_harq->F>>3) -((ulsch_harq->C>1)?3:0));
+    }
   } else {
     if ( rdata->nbSegments != ulsch_harq->processedSegments ) {
       int nb=abortTpool(gNB->threadPool, req->key);
