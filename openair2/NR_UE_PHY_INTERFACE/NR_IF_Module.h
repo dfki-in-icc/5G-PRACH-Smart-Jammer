@@ -42,7 +42,7 @@
 #include "openair2/NR_PHY_INTERFACE/NR_IF_Module.h"
 
 #define NR_NUM_MCS 29
-#define NUM_SINR 100
+#define NUM_SINR 372
 #define NUM_BLER_COL 13
 #define NUM_NFAPI_SLOT 20
 #define NR_NUM_LAYER 1
@@ -58,6 +58,7 @@ typedef struct
     uint8_t pmi;
     uint8_t ri;
     uint8_t cqi;
+    uint8_t area_code;
 } nr_channel_status;
 
 typedef struct nr_phy_channel_params_t
@@ -78,6 +79,7 @@ typedef struct
     uint16_t num_pdus;
     bool drop_flag[256];
     bool latest;
+    uint8_t area_code;
 
 } slot_rnti_mcs_s;
 
@@ -88,6 +90,7 @@ typedef struct
 } nr_bler_struct;
 
 extern nr_bler_struct nr_bler_data[NR_NUM_MCS];
+extern nr_bler_struct nr_mimo_bler_data[NR_NUM_MCS];
 
 typedef enum {
   ONLY_PUSCH,

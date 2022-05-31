@@ -141,6 +141,7 @@ typedef struct
     uint8_t pmi;
     uint8_t ri;
     uint8_t cqi;
+    uint8_t area_code;
 } channel_status;
 
 typedef struct phy_channel_params_t

@@ -133,7 +133,7 @@ const initial_pucch_resource_t initial_pucch_resource[16] = {
 /* 15  */ {  1,       0,                 14,                   0,            4,       {    0,   3,    6,    9  }   },
 };
 
-static int get_mcs_from_sinr(float sinr);
+static int get_mcs_from_sinr(nr_bler_struct *nr_bler_data, float sinr);
 
 void nr_ue_init_mac(module_id_t module_idP) {
   int i;
@@ -2549,7 +2549,7 @@ uint8_t nr_get_csi_payload(NR_UE_MAC_INST_t *mac,
 #define CQI_SHIFT 4
 #define CQI_MASK  0x0FFF
 
-static int get_mcs_from_sinr(float sinr)
+static int get_mcs_from_sinr(nr_bler_struct *nr_bler_data, float sinr)
 {
   if (sinr < (nr_bler_data[0].bler_table[0][0]))
   {
@@ -2604,8 +2604,8 @@ uint8_t get_cri_ri_pmi_cqi_payload(NR_UE_MAC_INST_t *mac,
   static const uint8_t mcs_to_cqi[] = {0, 1, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9,
                                       10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15};
   float sinr = (mac->nr_ue_emul_l1.cqi - 640) * 0.1;
-  int mcs = get_mcs_from_sinr(sinr);
-  CHECK_INDEX(mcs_to_cqi, mcs);
+  int mcs = get_mcs_from_sinr(nr_bler_data, sinr);
+    CHECK_INDEX(mcs_to_cqi, mcs);
   uint8_t cqi_index = mcs_to_cqi[mcs];
 
   int bits = 0;

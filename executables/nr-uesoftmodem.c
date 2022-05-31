@@ -158,8 +158,10 @@ uint32_t       N_RB_DL    = 106;
 uint8_t abstraction_flag=0;
 
 nr_bler_struct nr_bler_data[NR_NUM_MCS];
+nr_bler_struct nr_mimo_bler_data[NR_NUM_MCS];
 
 static void init_bler_table(void);
+static void init_mimo_bler_table(void);
 
 /*---------------------BMC: timespec helpers -----------------------------*/
 
@@ -478,6 +480,7 @@ int main( int argc, char **argv ) {
   if (get_softmodem_params()->emulate_l1) {
     RCconfig_nr_ue_L1();
     init_bler_table();
+    init_mimo_bler_table();
   }
 
   if (get_softmodem_params()->do_ra)
@@ -563,9 +566,9 @@ int main( int argc, char **argv ) {
 static void init_bler_table(void) {
   memset(nr_bler_data, 0, sizeof(nr_bler_data));
 
-  const char *awgn_results_dir = getenv("AWGN_RESULTS_DIR");
+  const char *awgn_results_dir = getenv("NR_AWGN_RESULTS_DIR");
   if (!awgn_results_dir) {
-    LOG_W(NR_MAC, "No $AWGN_RESULTS_DIR\n");
+    LOG_W(NR_MAC, "No $NR_AWGN_RESULTS_DIR\n");
     return;
   }
 
@@ -608,6 +611,59 @@ static void init_bler_table(void) {
       nlines++;
     }
     nr_bler_data[i].length = nlines;
+    fclose(pFile);
+  }
+}
+
+// Read in each MCS file and build BLER-SINR-TB table
+static void init_mimo_bler_table(void) {
+  memset(nr_mimo_bler_data, 0, sizeof(nr_mimo_bler_data));
+
+  const char *awgn_results_dir = getenv("NR_MIMO2x2_AWGN_RESULTS_DIR");
+  if (!awgn_results_dir) {
+    LOG_W(NR_MAC, "No $NR_MIMO2x2_AWGN_RESULTS_DIR\n");
+    return;
+  }
+
+  for (unsigned int i = 0; i < NR_NUM_MCS; i++) {
+    char fName[1024];
+    snprintf(fName, sizeof(fName), "%s/mcs%d_cdlc_mimo2x2_dl.csv", awgn_results_dir, i);
+    FILE *pFile = fopen(fName, "r");
+    if (!pFile) {
+      LOG_E(NR_MAC, "%s: open %s: %s\n", __func__, fName, strerror(errno));
+      continue;
+    }
+    size_t bufSize = 1024;
+    char * line = NULL;
+    char * token;
+    char * temp = NULL;
+    int nlines = 0;
+    while (getline(&line, &bufSize, pFile) > 0) {
+      if (!strncmp(line, "SNR", 3)) {
+        continue;
+      }
+
+      if (nlines > NUM_SINR) {
+        LOG_E(NR_MAC, "BLER FILE ERROR - num lines greater than expected - file: %s\n", fName);
+        abort();
+      }
+
+      token = strtok_r(line, ";", &temp);
+      int ncols = 0;
+      while (token != NULL) {
+        if (ncols > NUM_BLER_COL) {
+          LOG_E(NR_MAC, "BLER FILE ERROR - num of cols greater than expected\n");
+          abort();
+        }
+
+        nr_mimo_bler_data[i].bler_table[nlines][ncols] = strtof(token, NULL);
+        ncols++;
+
+        token = strtok_r(NULL, ";", &temp);
+      }
+      nlines++;
+    }
+    nr_mimo_bler_data[i].length = nlines;
     fclose(pFile);
   }
 }

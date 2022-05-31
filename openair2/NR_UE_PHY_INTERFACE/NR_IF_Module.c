@@ -70,7 +70,7 @@ static slot_rnti_mcs_s slot_rnti_mcs[NUM_NFAPI_SLOT];
 
 static void read_channel_param(const nfapi_nr_dl_tti_pdsch_pdu_rel15_t * pdu, int sf, int index);
 //static bool did_drop_transport_block(int slot, uint16_t rnti);
-static float get_bler_val(uint8_t mcs, int sinr);
+static float get_bler_val(nr_bler_struct *nr_bler_data, uint8_t mcs, int sinr);
 static bool should_drop_transport_block(int slot, uint16_t rnti);
 static void save_pdsch_pdu_for_crnti(nfapi_nr_dl_tti_request_t *dl_tti_request);
 static inline bool is_channel_modeling(void);
@@ -1032,6 +1032,7 @@ void *nrue_standalone_pnf_task(void *context)
       for (int i = 0; i < ch_info->nb_of_csi; ++i)
       {
         slot_rnti_mcs[NFAPI_SFNSLOT2SLOT(ch_info->sfn_slot)].sinr = ch_info->csi[i].sinr;
+        slot_rnti_mcs[NFAPI_SFNSLOT2SLOT(ch_info->sfn_slot)].area_code = ch_info->csi[i].area_code;
 
         LOG_T(NR_PHY, "Received_SINR[%d] = %f, sfn:slot %d:%d\n",
               i, ch_info->csi[i].sinr, NFAPI_SFNSLOT2SFN(ch_info->sfn_slot), NFAPI_SFNSLOT2SLOT(ch_info->sfn_slot));
@@ -1395,11 +1396,10 @@ static bool did_drop_transport_block(int slot, uint16_t rnti)
 }
 */
 
-static float get_bler_val(uint8_t mcs, int sinr)
+static float get_bler_val(nr_bler_struct *nr_bler_data, uint8_t mcs, int sinr)
 {
   // 4th col = dropped packets, 5th col = total packets
   float bler_val = 0.0;
-  CHECK_INDEX(nr_bler_data, mcs);
   LOG_D(NR_MAC, "sinr %d min %d max %d\n", sinr,
                 (int)(nr_bler_data[mcs].bler_table[0][0] * 10),
                 (int)(nr_bler_data[mcs].bler_table[nr_bler_data[mcs].length - 1][0] * 10)
@@ -1479,6 +1479,7 @@ static bool should_drop_transport_block(int slot, uint16_t rnti)
   CHECK_INDEX(slot_rnti_mcs[slot].drop_flag, num_pdus);
   int n = 0;
   uint8_t mcs = 99;
+  nr_bler_struct *bler_data;
   for (n = 0; n < num_pdus; n++)
   {
     if (slot_rnti_mcs[slot].rnti[n] == rnti)
@@ -1499,7 +1500,15 @@ static bool should_drop_transport_block(int slot, uint16_t rnti)
       if (slot_rnti_mcs[slot].rvIndex[n] != 0)
         bler_val = 0;
       else
-        bler_val = get_bler_val(mcs, ((int)(slot_rnti_mcs[slot].sinr * 10)));
+      {
+        bler_data = slot_rnti_mcs[slot].area_code == 0 ? nr_mimo_bler_data : nr_bler_data;
+        LOG_I(NR_MAC, "Calling bler table : %s\n", slot_rnti_mcs[slot].area_code == 0 ? "nr_mimo_bler_data" : "nr_bler_data");
+        if (slot_rnti_mcs[slot].area_code== 0)
+          CHECK_INDEX(nr_mimo_bler_data, mcs);
+        else
+          CHECK_INDEX(nr_bler_data, mcs);
+        bler_val = get_bler_val(bler_data, mcs, ((int)(slot_rnti_mcs[slot].sinr * 10)));
+      }
       double drop_cutoff = ((double) rand() / (RAND_MAX));
       assert(drop_cutoff <= 1);
       LOG_D(NR_MAC, "SINR = %f, Bler_val = %f, MCS = %"PRIu8"\n", slot_rnti_mcs[slot].sinr, bler_val, slot_rnti_mcs[slot].mcs[n]);
