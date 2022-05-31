@@ -59,6 +59,7 @@ BUILD_ECLIPSE=0
 NR="False"
 OPTIONAL_LIBRARIES="telnetsrv enbscope uescope nrscope"
 RU=0
+JSONLOGS=0
 CMAKE_C_FLAGS=()
 CMAKE_CXX_FLAGS=()
 
@@ -76,7 +77,7 @@ Options:
 --clean-kernel
    Erase previously installed features in kernel: iptables, drivers, ...
 --cmake-opt
-   Pass the supplied option verbatim to cmake.
+   Pass the supplied option verbatim to cmake. If -DOAI_LOG_JSON is specified, it activates JSON formatting for logs.
 -d | --build-dir
    Sets build directory (will be <oai-root>/cmake_targets/<build-dir>/build)
 -I | --install-external-packages
@@ -172,6 +173,8 @@ Options:
    Enable the address sanitizer on all targets
 --ittiSIM
   Makes the itti simulator
+--target NAME
+  add NAME to the list of targets to be built. To specify more targets, you can call multiple times this option. I.e. '--target tstlog --target gNB'
 -h | --help
    Print this help
 
@@ -202,8 +205,15 @@ function main() {
             clean_kernel
             echo_info "Erased iptables config and removed modules from kernel"
             shift;;
-       --cmake-opt)
-            CMAKE_CMD="$CMAKE_CMD $2"
+       --cmake-opt)  
+            if [ "$2" == "-DOAI_LOG_JSON" ]; then
+              JSONLOGS=1
+              export JSONLOGS=1
+              echo_info "Activated JSON formatting for logs"
+            else
+              CMAKE_CMD="$CMAKE_CMD $2"
+            fi
+            
             shift 2;;
        -d | --build-dir)
             BUILD_DIR=$2
@@ -452,12 +462,17 @@ function main() {
             CMAKE_CMD="$CMAKE_CMD -DITTI_SIM=True"
             echo_info "Will compile itti simulator"
             shift;;
+        --target)
+            execlist="$execlist $2"
+            echo_info "Added '$2' to the list of targets"
+            shift 2;;
         -h | --help)
             print_help
             exit 1;;
-	*)
-	    execlist="$execlist $1"
-      shift;;
+	      *)
+	          print_help
+            echo_fatal "Unknown option $1"
+            break;;
    esac
   done
 
@@ -584,7 +599,7 @@ function main() {
     echo_info "Installing optional packages"
     check_install_additional_tools
   fi
-
+  
   if [ "$eNB" = "1" ] ; then
       execlist="$execlist lte-softmodem"
   fi

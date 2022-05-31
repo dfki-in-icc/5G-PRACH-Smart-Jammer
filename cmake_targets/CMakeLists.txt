@@ -322,6 +322,7 @@ add_boolean_option(UE_AUTOTEST_TRACE   False "Activate UE autotest specific logs
 add_boolean_option(UE_DEBUG_TRACE      False "Activate UE debug trace")
 add_boolean_option(UE_TIMING_TRACE     False "Activate UE timing trace")
 add_boolean_option(DEBUG_CONSOLE       False "disables stdout/stderr buffering")
+set(JSONLOGS $ENV{JSONLOGS})
 
 set (OCP_ITTI ${OPENAIR_DIR}/common/utils/ocp_itti)
 add_library(ITTI
@@ -1188,8 +1189,10 @@ add_library(UTIL
   ${OPENAIR_DIR}/common/utils/backtrace.c
   ${OPENAIR_DIR}/common/utils/time_meas.c
 )
-# uncomment line below to activate new logging formatting feature in JSON
-# target_compile_definitions(UTIL PUBLIC -DOAI_LOG_JSON)
+if (${JSONLOGS})
+  target_compile_definitions(UTIL PUBLIC -DOAI_LOG_JSON)
+endif()
+
 
 set(SECU_OSA_SRC
   ${OPENAIR2_DIR}/UTIL/OSA/osa_key_deriver.c
@@ -2548,8 +2551,10 @@ add_executable(tstlog
   ${OPENAIR_DIR}/common/utils/minimal_stub.c
   ${T_SOURCE}
   )                                                                                                                     
-target_link_libraries (tstlog pthread rt dl ${T_LIB} CONFIG_LIB UTIL uuid)
-
+target_link_libraries (tstlog pthread rt dl ${T_LIB} CONFIG_LIB UTIL)
+if (${JSONLOGS})
+  target_link_libraries (tstlog uuid)
+endif()
 # lte-softmodem is both eNB and UE implementation
 ###################################################
 
@@ -2592,7 +2597,9 @@ target_link_libraries (lte-softmodem ${LIBXML2_LIBRARIES})
 target_link_libraries (lte-softmodem pthread m CONFIG_LIB rt crypt ${CRYPTO_LIBRARIES} ${OPENSSL_LIBRARIES} sctp ${PROTOBUF_LIB}  ${CMAKE_DL_LIBS} ${LIBYAML_LIBRARIES})
 target_link_libraries (lte-softmodem ${LIB_LMS_LIBRARIES})
 target_link_libraries (lte-softmodem ${T_LIB})
-target_link_libraries (lte-softmodem uuid})
+if (${JSONLOGS})
+  target_link_libraries (lte-softmodem uuid})
+endif()
 
 
 add_executable(ocp-enb
@@ -2629,7 +2636,9 @@ target_link_libraries (ocp-enb
   ${RAL_LIB} ${NAS_UE_LIB} ITTI ${FLPT_MSG_LIB}  ${FLEXRAN_AGENT_LIB} ${FSPT_MSG_LIB}
   -Wl,--end-group z dl)
 target_link_libraries (ocp-enb ${LIBXML2_LIBRARIES} pthread m CONFIG_LIB rt crypt ${CRYPTO_LIBRARIES} ${OPENSSL_LIBRARIES} sctp ${PROTOBUF_LIB}  ${CMAKE_DL_LIBS} ${LIBYAML_LIBRARIES} ${LIB_LMS_LIBRARIES} ${T_LIB})
-target_link_libraries (ocp-enb uuid)
+if (${JSONLOGS})
+  target_link_libraries (ocp-enb uuid)
+endif()
 
 add_executable(oairu
   ${OPENAIR_TARGETS}/RT/USER/lte-ru.c
@@ -2649,7 +2658,10 @@ target_link_libraries (oairu
   PHY_COMMON PHY_RU UTIL
   -Wl,--end-group z dl)
 
-target_link_libraries (oairu pthread m CONFIG_LIB rt ${CMAKE_DL_LIBS} ${T_LIB} uuid)
+target_link_libraries (oairu pthread m CONFIG_LIB rt ${CMAKE_DL_LIBS} ${T_LIB})
+if (${JSONLOGS})
+  target_link_libraries (oairu uuid)
+endif()
 
 
 # lte-uesoftmodem is  UE implementation
@@ -2691,7 +2703,10 @@ target_link_libraries (lte-uesoftmodem
 target_link_libraries (lte-uesoftmodem ${LIBXML2_LIBRARIES})
 target_link_libraries (lte-uesoftmodem pthread m CONFIG_LIB rt crypt ${CRYPTO_LIBRARIES} ${OPENSSL_LIBRARIES} sctp ${CMAKE_DL_LIBS} ${LIBYAML_LIBRARIES} ${ATLAS_LIBRARIES})
 target_link_libraries (lte-uesoftmodem ${LIB_LMS_LIBRARIES})
-target_link_libraries (lte-uesoftmodem ${T_LIB} uuid)
+target_link_libraries (lte-uesoftmodem ${T_LIB})
+if (${JSONLOGS})
+  target_link_libraries (lte-uesoftmodem uuid)
+endif()
 
 # nr-softmodem
 ###################################################
@@ -2732,7 +2747,10 @@ target_link_libraries (nr-softmodem
 target_link_libraries (nr-softmodem ${LIBXML2_LIBRARIES})
 target_link_libraries (nr-softmodem pthread m CONFIG_LIB rt crypt ${CRYPTO_LIBRARIES} ${OPENSSL_LIBRARIES} sctp  ${XFORMS_LIBRARIES} ${PROTOBUF_LIB}  ${CMAKE_DL_LIBS} ${LIBYAML_LIBRARIES} ${ATLAS_LIBRARIES})
 target_link_libraries (nr-softmodem ${LIB_LMS_LIBRARIES})
-target_link_libraries (nr-softmodem ${T_LIB} uuid)
+target_link_libraries (nr-softmodem ${T_LIB})
+if (${JSONLOGS})
+  target_link_libraries (nr-softmodem uuid)
+endif()
 
 add_dependencies( nr-softmodem ldpc_orig ldpc_optim ldpc_optim8seg ldpc )
 
@@ -2773,7 +2791,10 @@ target_link_libraries (nr-uesoftmodem
 target_link_libraries (nr-uesoftmodem ${LIBXML2_LIBRARIES})
 target_link_libraries (nr-uesoftmodem pthread m CONFIG_LIB rt crypt ${CRYPTO_LIBRARIES} ${OPENSSL_LIBRARIES} sctp  ${XFORMS_LIBRARIES} ${CMAKE_DL_LIBS} ${LIBYAML_LIBRARIES} ${ATLAS_LIBRARIES})
 target_link_libraries (nr-uesoftmodem ${LIB_LMS_LIBRARIES})
-target_link_libraries (nr-uesoftmodem ${T_LIB} uuid)
+target_link_libraries (nr-uesoftmodem ${T_LIB})
+if (${JSONLOGS})
+  target_link_libraries (nr-uesoftmodem uuid)
+endif()
 
 add_dependencies( nr-uesoftmodem ldpc_orig ldpc_optim ldpc_optim8seg ldpc )
 if (CUDA_FOUND)
@@ -2796,8 +2817,11 @@ add_executable(dlsim_tm4
   )
 target_link_libraries (dlsim_tm4
   -Wl,--start-group SIMU_COMMON SIMU UTIL SCHED_LIB SCHED_RU_LIB PHY ITTI -Wl,--end-group
-  pthread m rt CONFIG_LIB ${ATLAS_LIBRARIES} ${T_LIB} uuid
+  pthread m rt CONFIG_LIB ${ATLAS_LIBRARIES} ${T_LIB}
   )
+if (${JSONLOGS})
+  target_link_libraries (dlsim_tm4 uuid)
+endif()
 
 add_executable(rftest
   ${OPENAIR_DIR}/openair1/PHY/TOOLS/calibration_test.c
@@ -2806,7 +2830,10 @@ add_executable(rftest
   ${OPENAIR_DIR}/executables/softmodem-common.c
   ${SHLIB_LOADER_SOURCES}
 )
-target_link_libraries(rftest minimal_lib CONFIG_LIB PHY_NR_COMMON UTIL pthread dl m forms ${T_LIB} uuid)
+target_link_libraries(rftest minimal_lib CONFIG_LIB PHY_NR_COMMON UTIL pthread dl m forms ${T_LIB})
+if (${JSONLOGS})
+  target_link_libraries (rftest uuid)
+endif()
 
 add_executable(polartest
   ${OPENAIR1_DIR}/PHY/CODING/TESTBENCH/polartest.c
@@ -2816,8 +2843,11 @@ add_executable(polartest
   )
 target_link_libraries(polartest
   -Wl,--start-group UTIL SIMU_COMMON  SIMU PHY_COMMON PHY_NR PHY_NR_COMMON PHY_NR_UE CONFIG_LIB -Wl,--end-group
-  m pthread ${ATLAS_LIBRARIES} dl uuid
+  m pthread ${ATLAS_LIBRARIES} dl
   )
+if (${JSONLOGS})
+  target_link_libraries (polartest uuid)
+endif()
 
 add_executable(smallblocktest
   ${OPENAIR1_DIR}/PHY/CODING/TESTBENCH/smallblocktest.c
@@ -2829,8 +2859,11 @@ add_executable(smallblocktest
 
 target_link_libraries(smallblocktest
   -Wl,--start-group UTIL SIMU_COMMON SIMU PHY_NR PHY_COMMON PHY_NR_COMMON CONFIG_LIB -Wl,--end-group
-  m pthread ${ATLAS_LIBRARIES} dl uuid
+  m pthread ${ATLAS_LIBRARIES} dl
   )
+if (${JSONLOGS})
+  target_link_libraries (smallblocktest uuid)
+endif()
 
 
 add_executable(ldpctest
@@ -2846,8 +2879,11 @@ if (CUDA_FOUND)
 endif (CUDA_FOUND)
 target_link_libraries(ldpctest
   -Wl,--start-group UTIL SIMU_COMMON  SIMU PHY_NR PHY_COMMON PHY_NR_COMMON CONFIG_LIB -Wl,--end-group
-  m pthread ${ATLAS_LIBRARIES} dl uuid
+  m pthread ${ATLAS_LIBRARIES} dl
   )
+if (${JSONLOGS})
+  target_link_libraries (ldpctest uuid)
+endif()
 
 add_executable(nr_dlschsim
   ${OPENAIR1_DIR}/SIMULATION/NR_PHY/dlschsim.c
@@ -2858,8 +2894,11 @@ add_executable(nr_dlschsim
   )
 target_link_libraries(nr_dlschsim
   -Wl,--start-group UTIL SIMU_COMMON SIMU PHY_COMMON PHY_NR_COMMON PHY_NR PHY_NR_UE SCHED_NR_LIB CONFIG_LIB MAC_NR_COMMON -Wl,--end-group
-  m pthread ${ATLAS_LIBRARIES} ${T_LIB} ITTI dl uuid
+  m pthread ${ATLAS_LIBRARIES} ${T_LIB} ITTI dl
   )
+if (${JSONLOGS})
+  target_link_libraries (nr_dlschsim uuid)
+endif()
 
 add_executable(nr_pbchsim
   ${OPENAIR1_DIR}/SIMULATION/NR_PHY/pbchsim.c
@@ -2869,8 +2908,11 @@ add_executable(nr_pbchsim
   )
 target_link_libraries(nr_pbchsim
   -Wl,--start-group UTIL SIMU_COMMON SIMU PHY_COMMON PHY_NR_COMMON PHY_NR PHY_NR_UE SCHED_NR_LIB CONFIG_LIB MAC_NR_COMMON -Wl,--end-group
-  m pthread ${ATLAS_LIBRARIES} ${T_LIB} ITTI dl uuid
+  m pthread ${ATLAS_LIBRARIES} ${T_LIB} ITTI dl
   )
+if (${JSONLOGS})
+  target_link_libraries (nr_pbchsim uuid)
+endif()
 
 #PUCCH ---> Prashanth
 add_executable(nr_pucchsim
@@ -2882,8 +2924,11 @@ add_executable(nr_pucchsim
   )
 target_link_libraries(nr_pucchsim
   -Wl,--start-group UTIL SIMU_COMMON SIMU PHY_COMMON PHY_NR_COMMON PHY_NR PHY_NR_UE SCHED_NR_LIB CONFIG_LIB MAC_NR_COMMON -Wl,--end-group
-  m pthread ${ATLAS_LIBRARIES} ${T_LIB} ITTI dl uuid
+  m pthread ${ATLAS_LIBRARIES} ${T_LIB} ITTI dl
   )
+if (${JSONLOGS})
+  target_link_libraries (nr_pucchsim uuid)
+endif()
 
 add_executable(nr_dlsim
   ${OPENAIR1_DIR}/SIMULATION/NR_PHY/dlsim.c
@@ -2899,8 +2944,11 @@ add_executable(nr_dlsim
   )
 target_link_libraries(nr_dlsim
   -Wl,--start-group UTIL SIMU_COMMON SIMU PHY_COMMON PHY_NR_COMMON PHY_NR PHY_NR_UE SCHED_NR_LIB SCHED_NR_UE_LIB MAC_NR MAC_UE_NR MAC_NR_COMMON RRC_LIB NR_RRC_LIB CONFIG_LIB L2_LTE_NR L2_NR HASHTABLE X2AP_ENB X2AP_LIB SECU_CN NGAP_GNB NFAPI_COMMON_LIB NFAPI_LIB NFAPI_PNF_LIB NFAPI_USER_LIB -lz -Wl,--end-group
-  m pthread ${ATLAS_LIBRARIES} ${T_LIB} ITTI ${OPENSSL_LIBRARIES} dl uuid
+  m pthread ${ATLAS_LIBRARIES} ${T_LIB} ITTI ${OPENSSL_LIBRARIES} dl
   )
+if (${JSONLOGS})
+  target_link_libraries (nr_dlsim uuid)
+endif()
 target_compile_definitions(nr_dlsim PUBLIC -DPHYSICAL_SIMULATOR)
 
 add_executable(nr_prachsim
@@ -2916,7 +2964,10 @@ add_executable(nr_prachsim
   ${SHLIB_LOADER_SOURCES})
 target_link_libraries(nr_prachsim
   -Wl,--start-group UTIL SIMU_COMMON SIMU PHY_COMMON PHY_NR_COMMON PHY_NR PHY_RU PHY_NR_UE MAC_NR_COMMON SCHED_NR_LIB SCHED_NR_UE_LIB MAC_NR MAC_UE_NR MAC_NR_COMMON RRC_LIB NR_RRC_LIB CONFIG_LIB L2_LTE_NR L2_NR HASHTABLE X2AP_ENB X2AP_LIB SECU_CN NGAP_GNB NFAPI_COMMON_LIB NFAPI_LIB NFAPI_PNF_LIB NFAPI_USER_LIB -lz -Wl,--end-group
-  m pthread ${ATLAS_LIBRARIES} ${T_LIB} ITTI ${OPENSSL_LIBRARIES} dl uuid)
+  m pthread ${ATLAS_LIBRARIES} ${T_LIB} ITTI ${OPENSSL_LIBRARIES} dl)
+if (${JSONLOGS})
+  target_link_libraries (nr_prachsim uuid)
+endif()
 
 add_executable(nr_ulschsim
   ${OPENAIR1_DIR}/SIMULATION/NR_PHY/ulschsim.c
@@ -2928,8 +2979,11 @@ add_executable(nr_ulschsim
   )
 target_link_libraries(nr_ulschsim
   -Wl,--start-group UTIL SIMU_COMMON SIMU PHY_COMMON PHY_NR_COMMON PHY_NR PHY_NR_UE SCHED_NR_LIB CONFIG_LIB MAC_NR_COMMON -Wl,--end-group
-  m pthread ${ATLAS_LIBRARIES} ${T_LIB} ITTI dl uuid
+  m pthread ${ATLAS_LIBRARIES} ${T_LIB} ITTI dl
   )
+if (${JSONLOGS})
+  target_link_libraries (nr_ulschsim uuid)
+endif()
 
 add_executable(nr_ulsim
   ${OPENAIR1_DIR}/SIMULATION/NR_PHY/ulsim.c
@@ -2945,8 +2999,11 @@ add_executable(nr_ulsim
   )
 target_link_libraries(nr_ulsim
   -Wl,--start-group UTIL SIMU_COMMON SIMU PHY_COMMON PHY_NR_COMMON PHY_NR PHY_NR_UE SCHED_NR_LIB SCHED_NR_UE_LIB MAC_NR MAC_UE_NR MAC_NR_COMMON RRC_LIB NR_RRC_LIB CONFIG_LIB L2_LTE_NR L2_NR HASHTABLE X2AP_ENB X2AP_LIB SECU_CN NGAP_GNB NFAPI_COMMON_LIB NFAPI_LIB NFAPI_PNF_LIB NFAPI_USER_LIB -lz -Wl,--end-group
-  m pthread ${ATLAS_LIBRARIES} ${T_LIB} ITTI ${OPENSSL_LIBRARIES} dl uuid
+  m pthread ${ATLAS_LIBRARIES} ${T_LIB} ITTI ${OPENSSL_LIBRARIES} dl
   )
+if (${JSONLOGS})
+  target_link_libraries (nr_ulsim uuid)
+endif()
 target_compile_definitions(nr_ulsim PUBLIC -DPHYSICAL_SIMULATOR)
 
 foreach(myExe dlsim dlsim_tm7 ulsim pbchsim scansim mbmssim pdcchsim pucchsim prachsim syncsim)
@@ -2963,8 +3020,11 @@ foreach(myExe dlsim dlsim_tm7 ulsim pbchsim scansim mbmssim pdcchsim pucchsim pr
     )
   target_link_libraries (${myExe}
     -Wl,--start-group SIMU_COMMON SIMU UTIL SCHED_LIB SCHED_RU_LIB SCHED_UE_LIB PHY_COMMON PHY_NR_COMMON PHY PHY_UE PHY_RU ITTI -Wl,--end-group
-    pthread m rt CONFIG_LIB ${ATLAS_LIBRARIES}  ${XFORMS_LIBRARIES} ${T_LIB} dl uuid
+    pthread m rt CONFIG_LIB ${ATLAS_LIBRARIES}  ${XFORMS_LIBRARIES} ${T_LIB} dl
     )
+if (${JSONLOGS})
+  target_link_libraries (${myExe} uuid)
+endif()
 
 endforeach(myExe)
 
@@ -2984,8 +3044,11 @@ foreach(myExe s1ap
     ${OPENAIR3_DIR}/TEST/test_${myExe}.c
     )
   target_link_libraries (test_${myExe}
-    -Wl,--start-group SECU_CN UTIL -Wl,--end-group m rt crypt ${CRYPTO_LIBRARIES} ${OPENSSL_LIBRARIES} CONFIG_LIB uuid
+    -Wl,--start-group SECU_CN UTIL -Wl,--end-group m rt crypt ${CRYPTO_LIBRARIES} ${OPENSSL_LIBRARIES} CONFIG_LIB
     )
+  if (${JSONLOGS})
+    target_link_libraries (test_${myExe} uuid)
+  endif()
 endforeach(myExe)
 
 # to be added
@@ -3123,7 +3186,10 @@ target_link_libraries (nr-ittisim
 target_link_libraries (nr-ittisim ${LIBXML2_LIBRARIES})
 target_link_libraries (nr-ittisim pthread m CONFIG_LIB rt crypt ${CRYPTO_LIBRARIES} ${OPENSSL_LIBRARIES} ${NETTLE_LIBRARIES} sctp  ${XFORMS_LIBRARIES} ${PROTOBUF_LIB}  ${CMAKE_DL_LIBS} ${LIBYAML_LIBRARIES} ${ATLAS_LIBRARIES})
 target_link_libraries (nr-ittisim ${LIB_LMS_LIBRARIES})
-target_link_libraries (nr-ittisim ${T_LIB} uuid)
+target_link_libraries (nr-ittisim ${T_LIB})
+if (${JSONLOGS})
+  target_link_libraries (nr-ittisim uuid)
+endif()
 
 add_dependencies( nr-ittisim ldpc_orig ldpc_optim ldpc_optim8seg ldpc )
 

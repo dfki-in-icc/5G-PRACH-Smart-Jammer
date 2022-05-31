@@ -44,7 +44,9 @@
 #include "common/config/config_userapi.h"
 #include <time.h>
 #include <sys/time.h>
-#include <uuid/uuid.h>
+#ifdef OAI_LOG_JSON
+  #include <uuid/uuid.h>
+#endif
 #include <errno.h>
 
 // main log variables
@@ -1301,7 +1303,8 @@ log_rotate_file(log_component_t *c) {
      * happen because this value is hardcoded for now.
      */
     snprintf(newfname, sizeof(fname), "%s-1.log", basename);
-    strncpy(fname, g_log->filelog_name, sizeof(fname));
+    strncpy(fname, g_log->filelog_name, sizeof(fname) - 1);
+    fname[sizeof(fname) - 1] = '\0';
     fclose(g_log->global_logfilep);
     rename(fname, newfname);
     g_log->global_logfilep = fopen(g_log->filelog_name, "w");
@@ -1329,7 +1332,8 @@ log_rotate_file(log_component_t *c) {
     }
 
     snprintf(newfname, sizeof(fname), "%s-1.log", basename);
-    strncpy(fname, c->filelog_name, sizeof(fname));
+    strncpy(fname, c->filelog_name, sizeof(fname) - 1);
+    fname[sizeof(fname) - 1] = '\0';
     fclose(c->stream);
     rename(fname, newfname);
     c->stream = fopen(c->filelog_name, "w");

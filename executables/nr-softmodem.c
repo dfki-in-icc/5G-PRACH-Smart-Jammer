@@ -314,22 +314,21 @@ int create_gNB_tasks(uint32_t gnb_nb) {
   }
 
   if (AMF_MODE_ENABLED) {
-
-   char*             gnb_ipv4_address_for_NGU      = NULL;
-   uint32_t          gnb_port_for_NGU              = 0;
-   char*             gnb_ipv4_address_for_S1U      = NULL;
-   uint32_t          gnb_port_for_S1U              = 0;
+    char             *gnb_ipv4_address_for_NGU      = NULL;
+    uint32_t          gnb_port_for_NGU              = 0;
+    char             *gnb_ipv4_address_for_S1U      = NULL;
+    uint32_t          gnb_port_for_S1U              = 0;
     paramdef_t NETParams[]  =  GNBNETPARAMS_DESC;
     char aprefix[MAX_OPTNAME_SIZE*2 + 8];
     sprintf(aprefix,"%s.[%i].%s",GNB_CONFIG_STRING_GNB_LIST,0,GNB_CONFIG_STRING_NETWORK_INTERFACES_CONFIG);
     config_get( NETParams,sizeof(NETParams)/sizeof(paramdef_t),aprefix);
-    
+
     for(int i = GNB_INTERFACE_NAME_FOR_NG_AMF_IDX; i <= GNB_IPV4_ADDRESS_FOR_NG_AMF_IDX; i++) {
       if( NETParams[i].strptr == NULL) {
-	LOG_E(NGAP, "No configuration in the file.\n");
-	NGAP_CONF_MODE = 0;
+        LOG_E(NGAP, "No configuration in the file.\n");
+        NGAP_CONF_MODE = 0;
       } else {
-	LOG_D(NGAP, "Configuration in the file: %s.\n",*NETParams[i].strptr);
+        LOG_D(NGAP, "Configuration in the file: %s.\n",*NETParams[i].strptr);
       }
     }
 
@@ -342,7 +341,6 @@ int create_gNB_tasks(uint32_t gnb_nb) {
       } else {
         LOG_I(NGAP, "Ngap task not created\n");
       }
-
     }
   }
 
@@ -586,9 +584,9 @@ static  void wait_nfapi_init(char *thread_name) {
 
 void init_pdcp(void) {
   uint32_t pdcp_initmask = (IS_SOFTMODEM_NOS1) ?
-    PDCP_USE_NETLINK_BIT | LINK_ENB_PDCP_TO_IP_DRIVER_BIT | ENB_NAS_USE_TUN_BIT | SOFTMODEM_NOKRNMOD_BIT:
-    LINK_ENB_PDCP_TO_GTPV1U_BIT;
-  
+                           PDCP_USE_NETLINK_BIT | LINK_ENB_PDCP_TO_IP_DRIVER_BIT | ENB_NAS_USE_TUN_BIT | SOFTMODEM_NOKRNMOD_BIT:
+                           LINK_ENB_PDCP_TO_GTPV1U_BIT;
+
   if (!get_softmodem_params()->nsa) {
     if (!NODE_IS_DU(RC.nrrrc[0]->node_type)) {
       pdcp_layer_init();
@@ -617,12 +615,13 @@ int main( int argc, char **argv ) {
   mode = normal_txrx;
   memset(&openair0_cfg[0],0,sizeof(openair0_config_t)*MAX_CARDS);
   memset(tx_max_power,0,sizeof(int)*MAX_NUM_CCs);
+
   if (logInit())
-    exit_fun("[SOFTMODEM] Error, logging configuration init failed\n");     
+    exit_fun("[SOFTMODEM] Error, logging configuration init failed\n");
+
   set_latency_target();
   printf("Reading in command-line options\n");
   get_options ();
-
   EPC_MODE_ENABLED = !IS_SOFTMODEM_NOS1;
 
   if (CONFIG_ISFLAGSET(CONFIG_ABORT) ) {
@@ -655,12 +654,15 @@ int main( int argc, char **argv ) {
   itti_init(TASK_MAX, tasks_info);
   // initialize mscgen log after ITTI
   init_opt();
+
   if(PDCP_USE_NETLINK && !IS_SOFTMODEM_NOS1) {
     netlink_init();
+
     if (get_softmodem_params()->nsa) {
       init_pdcp();
     }
   }
+
 #ifndef PACKAGE_VERSION
 #  define PACKAGE_VERSION "UNKNOWN-EXPERIMENTAL"
 #endif
@@ -672,7 +674,6 @@ int main( int argc, char **argv ) {
   // don't create if node doesn't connect to RRC/S1/GTP
   int ret=create_gNB_tasks(1);
   AssertFatal(ret==0,"cannot create ITTI tasks\n");
-
   /* Start the agent. If it is turned off in the configuration, it won't start */
   /*
   RCconfig_nr_flexran();
@@ -734,6 +735,7 @@ int main( int argc, char **argv ) {
   wait_gNBs();
   printf("About to Init RU threads RC.nb_RU:%d\n", RC.nb_RU);
   int sl_ahead=6;
+
   if (RC.nb_RU >0) {
     printf("Initializing RU threads\n");
     init_NR_RU(get_softmodem_params()->rf_config_file);
@@ -741,10 +743,10 @@ int main( int argc, char **argv ) {
     for (ru_id=0; ru_id<RC.nb_RU; ru_id++) {
       RC.ru[ru_id]->rf_map.card=0;
       RC.ru[ru_id]->rf_map.chain=CC_id+chain_offset;
-      if (ru_id==0) sl_ahead = RC.ru[ru_id]->sl_ahead;	
+
+      if (ru_id==0) sl_ahead = RC.ru[ru_id]->sl_ahead;
       else AssertFatal(RC.ru[ru_id]->sl_ahead != RC.ru[0]->sl_ahead,"RU %d has different sl_ahead %d than RU 0 %d\n",ru_id,RC.ru[ru_id]->sl_ahead,RC.ru[0]->sl_ahead);
     }
-    
   }
 
   config_sync_var=0;
@@ -761,7 +763,8 @@ int main( int argc, char **argv ) {
     // once all RUs are ready initialize the rest of the gNBs ((dependence on final RU parameters after configuration)
     printf("ALL RUs ready - init gNBs\n");
 
-    for (int idx=0;idx<RC.nb_nr_L1_inst;idx++) RC.gNB[idx]->if_inst->sl_ahead = sl_ahead;
+    for (int idx=0; idx<RC.nb_nr_L1_inst; idx++) RC.gNB[idx]->if_inst->sl_ahead = sl_ahead;
+
     if(IS_SOFTMODEM_DOSCOPE) {
       sleep(1);
       scopeParms_t p;
@@ -789,9 +792,7 @@ int main( int argc, char **argv ) {
   }
 
   printf("About to call end_configmodule() from %s() %s:%d\n", __FUNCTION__, __FILE__, __LINE__);
-
   // We have to set PARAMFLAG_NOFREE on right paramters before re-enabling end_configmodule()
-
   //end_configmodule();
   printf("Called end_configmodule() from %s() %s:%d\n", __FUNCTION__, __FILE__, __LINE__);
   // wait for end of program

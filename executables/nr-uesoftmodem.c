@@ -190,17 +190,21 @@ int create_tasks_nrue(uint32_t ue_nb) {
 
   if (ue_nb > 0) {
     LOG_I(NR_RRC,"create TASK_RRC_NRUE \n");
+
     if (itti_create_task (TASK_RRC_NRUE, rrc_nrue_task, NULL) < 0) {
       LOG_E(NR_RRC, "Create task for RRC UE failed\n");
       return -1;
     }
+
     if (get_softmodem_params()->nsa) {
       init_connections_with_lte_ue();
+
       if (itti_create_task (TASK_RRC_NSA_NRUE, recv_msgs_from_lte_ue, NULL) < 0) {
         LOG_E(NR_RRC, "Create task for RRC NSA nr-UE failed\n");
         return -1;
       }
     }
+
     if (itti_create_task (TASK_NAS_NRUE, nas_nrue_task, NULL) < 0) {
       LOG_E(NR_RRC, "Create task for NAS UE failed\n");
       return -1;
@@ -243,65 +247,68 @@ uint64_t set_nrUE_optmask(uint64_t bitmask) {
 nrUE_params_t *get_nrUE_params(void) {
   return &nrUE_params;
 }
-/* initialie thread pools used for NRUE processing paralleliation */ 
+/* initialie thread pools used for NRUE processing paralleliation */
 void init_tpools(uint8_t nun_dlsch_threads) {
-  char params[NR_RX_NB_TH*NR_NB_TH_SLOT*3+1]={0};
+  char params[NR_RX_NB_TH*NR_NB_TH_SLOT*3+1]= {0};
+
   for (int i=0; i<NR_RX_NB_TH*NR_NB_TH_SLOT; i++) {
     memcpy(params+(i*3),"-1,",3);
   }
+
   if (getenv("noThreads")) {
-     initTpool("n", &(nrUE_params.Tpool), false);
-     init_dlsch_tpool(0);
-   } else {
-     initTpool(params, &(nrUE_params.Tpool), false);
-     init_dlsch_tpool( nun_dlsch_threads);
-   }
+    initTpool("n", &(nrUE_params.Tpool), false);
+    init_dlsch_tpool(0);
+  } else {
+    initTpool(params, &(nrUE_params.Tpool), false);
+    init_dlsch_tpool( nun_dlsch_threads);
+  }
 }
 static void get_options(void) {
-
   nrUE_params.ofdm_offset_divisor = 8;
   paramdef_t cmdline_params[] =CMDLINE_NRUEPARAMS_DESC ;
   int numparams = sizeof(cmdline_params)/sizeof(paramdef_t);
   config_process_cmdline( cmdline_params,numparams,NULL);
-
-
 
   if (vcdflag > 0)
     ouput_vcd = 1;
 }
 
 // set PHY vars from command line
-void set_options(int CC_id, PHY_VARS_NR_UE *UE){
+void set_options(int CC_id, PHY_VARS_NR_UE *UE) {
   NR_DL_FRAME_PARMS *fp       = &UE->frame_parms;
   paramdef_t cmdline_params[] = CMDLINE_NRUE_PHYPARAMS_DESC ;
   int numparams               = sizeof(cmdline_params)/sizeof(paramdef_t);
-
   UE->mode = normal_txrx;
-
   config_get(cmdline_params,numparams,NULL);
-
   int pindex = config_paramidx_fromname(cmdline_params,numparams, CALIBRX_OPT);
+
   if ( (cmdline_params[pindex].paramflags &  PARAMFLAG_PARAMSET) != 0) UE->mode = rx_calib_ue;
-  
+
   pindex = config_paramidx_fromname(cmdline_params,numparams, CALIBRXMED_OPT);
+
   if ( (cmdline_params[pindex].paramflags &  PARAMFLAG_PARAMSET) != 0) UE->mode = rx_calib_ue_med;
 
-  pindex = config_paramidx_fromname(cmdline_params,numparams, CALIBRXBYP_OPT);              
+  pindex = config_paramidx_fromname(cmdline_params,numparams, CALIBRXBYP_OPT);
+
   if ( (cmdline_params[pindex].paramflags &  PARAMFLAG_PARAMSET) != 0) UE->mode = rx_calib_ue_byp;
 
-  pindex = config_paramidx_fromname(cmdline_params,numparams, DBGPRACH_OPT); 
+  pindex = config_paramidx_fromname(cmdline_params,numparams, DBGPRACH_OPT);
+
   if (cmdline_params[pindex].uptr)
     if ( *(cmdline_params[pindex].uptr) > 0) UE->mode = debug_prach;
 
-  pindex = config_paramidx_fromname(cmdline_params,numparams,NOL2CONNECT_OPT ); 
+  pindex = config_paramidx_fromname(cmdline_params,numparams,NOL2CONNECT_OPT );
+
   if (cmdline_params[pindex].uptr)
     if ( *(cmdline_params[pindex].uptr) > 0)  UE->mode = no_L2_connect;
 
   pindex = config_paramidx_fromname(cmdline_params,numparams,CALIBPRACH_OPT );
+
   if (cmdline_params[pindex].uptr)
     if ( *(cmdline_params[pindex].uptr) > 0) UE->mode = calib_prach_tx;
 
   pindex = config_paramidx_fromname(cmdline_params,numparams,DUMPFRAME_OPT );
+
   if ((cmdline_params[pindex].paramflags & PARAMFLAG_PARAMSET) != 0)
     UE->mode = rx_dump_frame;
 
@@ -309,28 +316,24 @@ void set_options(int CC_id, PHY_VARS_NR_UE *UE){
   tx_max_power[CC_id] = tx_max_power[0];
   rx_gain[0][CC_id]   = rx_gain[0][0];
   tx_gain[0][CC_id]   = tx_gain[0][0];
-
   // Set UE variables
   UE->rx_total_gain_dB     = (int)rx_gain[CC_id][0] + rx_gain_off;
   UE->tx_total_gain_dB     = (int)tx_gain[CC_id][0];
   UE->tx_power_max_dBm     = tx_max_power[CC_id];
   UE->rf_map.card          = card_offset;
   UE->rf_map.chain         = CC_id + chain_offset;
-
   LOG_I(PHY,"Set UE mode %d, UE_fo_compensation %d, UE_scan_carrier %d, UE_no_timing_correction %d \n, do_prb_interpolation %d\n",
-  	   UE->mode, UE->UE_fo_compensation, UE->UE_scan_carrier, UE->no_timing_correction, UE->prb_interpolation);
+        UE->mode, UE->UE_fo_compensation, UE->UE_scan_carrier, UE->no_timing_correction, UE->prb_interpolation);
 
   // Set FP variables
 
-  if (tddflag){
+  if (tddflag) {
     fp->frame_type = TDD;
     LOG_I(PHY, "Set UE frame_type %d\n", fp->frame_type);
   }
 
   LOG_I(PHY, "Set UE nb_rx_antenna %d, nb_tx_antenna %d, threequarter_fs %d, ssb_start_subcarrier %d\n", fp->nb_antennas_rx, fp->nb_antennas_tx, fp->threequarter_fs, fp->ssb_start_subcarrier);
-
   fp->ofdm_offset_divisor = nrUE_params.ofdm_offset_divisor;
-
 }
 
 void init_openair0(void) {
@@ -356,23 +359,18 @@ void init_openair0(void) {
     openair0_cfg[card].time_source = get_softmodem_params()->timing_source;
     openair0_cfg[card].tx_num_channels = min(4, frame_parms->nb_antennas_tx);
     openair0_cfg[card].rx_num_channels = min(4, frame_parms->nb_antennas_rx);
-
     LOG_I(PHY, "HW: Configuring card %d, sample_rate %f, tx/rx num_channels %d/%d, duplex_mode %s\n",
-      card,
-      openair0_cfg[card].sample_rate,
-      openair0_cfg[card].tx_num_channels,
-      openair0_cfg[card].rx_num_channels,
-      duplex_mode[openair0_cfg[card].duplex_mode]);
-
+          card,
+          openair0_cfg[card].sample_rate,
+          openair0_cfg[card].tx_num_channels,
+          openair0_cfg[card].rx_num_channels,
+          duplex_mode[openair0_cfg[card].duplex_mode]);
     nr_get_carrier_frequencies(PHY_vars_UE_g[0][0], &dl_carrier, &ul_carrier);
-
     nr_rf_card_config_freq(&openair0_cfg[card], ul_carrier, dl_carrier, freq_off);
     nr_rf_card_config_gain(&openair0_cfg[card], rx_gain_off);
-
     openair0_cfg[card].configFilename = get_softmodem_params()->rf_config_file;
 
     if (usrp_args) openair0_cfg[card].sdr_addrs = usrp_args;
-
   }
 }
 
@@ -386,9 +384,11 @@ static void init_pdcp(int ue_id) {
   if (IS_SOFTMODEM_NOKRNMOD) {
     pdcp_initmask = pdcp_initmask | UE_NAS_USE_TUN_BIT;
   }
+
   if (get_softmodem_params()->nsa && rlc_module_init(0) != 0) {
     LOG_I(RLC, "Problem at RLC initiation \n");
   }
+
   pdcp_layer_init();
   nr_pdcp_module_init(pdcp_initmask, ue_id);
   pdcp_set_rlc_data_req_func((send_rlc_data_req_func_t) rlc_data_req);
@@ -403,15 +403,16 @@ void *rrc_enb_process_msg(void *notUsed) {
 
 int main( int argc, char **argv ) {
   int set_exe_prio = 1;
+
   if (checkIfFedoraDistribution())
     if (checkIfGenericKernelOnFedora())
       if (checkIfInsideContainer())
         set_exe_prio = 0;
+
   if (set_exe_prio)
     set_priority(79);
 
-  if (mlockall(MCL_CURRENT | MCL_FUTURE) == -1)
-  {
+  if (mlockall(MCL_CURRENT | MCL_FUTURE) == -1) {
     fprintf(stderr, "mlockall: %s\n", strerror(errno));
     return EXIT_FAILURE;
   }
@@ -423,17 +424,18 @@ int main( int argc, char **argv ) {
   if ( load_configmodule(argc,argv,CONFIG_ENABLECMDLINEONLY) == NULL) {
     exit_fun("[SOFTMODEM] Error, configuration module init failed\n");
   }
+
   set_softmodem_sighandler();
   CONFIG_SETRTFLAG(CONFIG_NOEXITONHELP);
   memset(openair0_cfg,0,sizeof(openair0_config_t)*MAX_CARDS);
   memset(tx_max_power,0,sizeof(int)*MAX_NUM_CCs);
+
   // initialize logging
-  if (logInit())                                                                                                                                                
-    exit_fun("[SOFTMODEM] Error, logging configuration init failed\n");      
+  if (logInit())
+    exit_fun("[SOFTMODEM] Error, logging configuration init failed\n");
+
   // get options and fill parameters from configuration file
-
   get_options (); //Command-line options specific for NRUE
-
   get_common_options(SOFTMODEM_5GUE_BIT);
   CONFIG_CLEARRTFLAG(CONFIG_NOEXITONHELP);
 #if T_TRACER
@@ -442,10 +444,8 @@ int main( int argc, char **argv ) {
   init_tpools(nrUE_params.nr_dlsch_parallel);
   //randominit (0);
   set_taus_seed (0);
-
   cpuf=get_cpu_freq_GHz();
   itti_init(TASK_MAX, tasks_info);
-
   init_opt() ;
   load_nrLDPClib(NULL);
 
@@ -453,22 +453,20 @@ int main( int argc, char **argv ) {
     vcd_signal_dumper_init("/tmp/openair_dump_nrUE.vcd");
   }
 
-  #ifndef PACKAGE_VERSION
+#ifndef PACKAGE_VERSION
 #  define PACKAGE_VERSION "UNKNOWN-EXPERIMENTAL"
 #endif
   LOG_I(HW, "Version: %s\n", PACKAGE_VERSION);
-
   init_NR_UE(1,uecap_file,rrc_config_path);
-
   int mode_offset = get_softmodem_params()->nsa ? NUMBER_OF_UE_MAX : 1;
   uint16_t node_number = get_softmodem_params()->node_number;
   ue_id_g = (node_number == 0) ? 0 : node_number - 2;
   AssertFatal(ue_id_g >= 0, "UE id is expected to be nonnegative.\n");
+
   if(IS_SOFTMODEM_NOS1 || get_softmodem_params()->sa || get_softmodem_params()->nsa) {
     if(node_number == 0) {
       init_pdcp(0);
-    }
-    else {
+    } else {
       init_pdcp(mode_offset + ue_id_g);
     }
   }
@@ -477,6 +475,7 @@ int main( int argc, char **argv ) {
   NB_INST=1;
   PHY_vars_UE_g = malloc(sizeof(PHY_VARS_NR_UE **));
   PHY_vars_UE_g[0] = malloc(sizeof(PHY_VARS_NR_UE *)*MAX_NUM_CCs);
+
   if (get_softmodem_params()->emulate_l1) {
     RCconfig_nr_ue_L1();
     init_bler_table();
@@ -496,7 +495,6 @@ int main( int argc, char **argv ) {
       PHY_vars_UE_g[0][CC_id] = (PHY_VARS_NR_UE *)malloc(sizeof(PHY_VARS_NR_UE));
       UE[CC_id] = PHY_vars_UE_g[0][CC_id];
       memset(UE[CC_id],0,sizeof(PHY_VARS_NR_UE));
-
       set_options(CC_id, UE[CC_id]);
       NR_UE_MAC_INST_t *mac = get_mac_inst(0);
 
@@ -508,15 +506,13 @@ int main( int argc, char **argv ) {
                                   uplink_frequency_offset[CC_id][0],
                                   get_softmodem_params()->numerology,
                                   nr_band);
-      }
-      else{
+      } else {
         if(mac->if_module != NULL && mac->if_module->phy_config_request != NULL)
           mac->if_module->phy_config_request(&mac->phy_config);
 
         fapi_nr_config_request_t *nrUE_config = &UE[CC_id]->nrUE_config;
-
         nr_init_frame_parms_ue(&UE[CC_id]->frame_parms, nrUE_config,
-            *mac->scc->downlinkConfigCommon->frequencyInfoDL->frequencyBandList.list.array[0]);
+                               *mac->scc->downlinkConfigCommon->frequencyInfoDL->frequencyBandList.list.array[0]);
       }
 
       init_symbol_rotation(&UE[CC_id]->frame_parms);
@@ -564,8 +560,8 @@ int main( int argc, char **argv ) {
 // Read in each MCS file and build BLER-SINR-TB table
 static void init_bler_table(void) {
   memset(nr_bler_data, 0, sizeof(nr_bler_data));
-
   const char *awgn_results_dir = getenv("AWGN_RESULTS_DIR");
+
   if (!awgn_results_dir) {
     LOG_W(NR_MAC, "No $AWGN_RESULTS_DIR\n");
     return;
@@ -575,15 +571,18 @@ static void init_bler_table(void) {
     char fName[1024];
     snprintf(fName, sizeof(fName), "%s/mcs%d_awgn_5G.csv", awgn_results_dir, i);
     FILE *pFile = fopen(fName, "r");
+
     if (!pFile) {
       LOG_E(NR_MAC, "%s: open %s: %s\n", __func__, fName, strerror(errno));
       continue;
     }
+
     size_t bufSize = 1024;
-    char * line = NULL;
-    char * token;
-    char * temp = NULL;
+    char *line = NULL;
+    char *token;
+    char *temp = NULL;
     int nlines = 0;
+
     while (getline(&line, &bufSize, pFile) > 0) {
       if (!strncmp(line, "SNR", 3)) {
         continue;
@@ -596,6 +595,7 @@ static void init_bler_table(void) {
 
       token = strtok_r(line, ";", &temp);
       int ncols = 0;
+
       while (token != NULL) {
         if (ncols > NUM_BLER_COL) {
           LOG_E(NR_MAC, "BLER FILE ERROR - num of cols greater than expected\n");
@@ -604,11 +604,12 @@ static void init_bler_table(void) {
 
         nr_bler_data[i].bler_table[nlines][ncols] = strtof(token, NULL);
         ncols++;
-
         token = strtok_r(NULL, ";", &temp);
       }
+
       nlines++;
     }
+
     nr_bler_data[i].length = nlines;
     fclose(pFile);
   }
