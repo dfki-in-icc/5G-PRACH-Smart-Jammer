@@ -129,27 +129,27 @@ int phy_init_RU(RU_t *ru) {
 
     for (i=0; i<ru->nb_rx; i++) {
       ru->prach_rxsigF[0][i] = (int16_t *)malloc16_clear( fp->ofdm_symbol_size*12*2*sizeof(int16_t) );
-      LOG_D(PHY,"[INIT] prach_vars->rxsigF[%d] = %p\n",i,ru->prach_rxsigF[0][i]);
+      LOG_X(PHY,"[INIT] prach_vars->rxsigF[%d] = %p\n",i,ru->prach_rxsigF[0][i]);
 
       for (j=0; j<4; j++) {
         ru->prach_rxsigF_br[j][i] = (int16_t *)malloc16_clear( fp->ofdm_symbol_size*12*2*sizeof(int16_t) );
-        LOG_D(PHY,"[INIT] prach_vars_br->rxsigF[%d] = %p\n",i,ru->prach_rxsigF_br[j][i]);
+        LOG_X(PHY,"[INIT] prach_vars_br->rxsigF[%d] = %p\n",i,ru->prach_rxsigF_br[j][i]);
       }
     }
 
     AssertFatal(ru->num_eNB <= NUMBER_OF_eNB_MAX,"eNB instances %d > %d\n",
                 ru->num_eNB,NUMBER_OF_eNB_MAX);
-    LOG_D(PHY,"[INIT] %s() ru->num_eNB:%d \n", __FUNCTION__, ru->num_eNB);
+    LOG_X(PHY,"[INIT] %s() ru->num_eNB:%d \n", __FUNCTION__, ru->num_eNB);
     int starting_antenna_index=0;
 
     for (i=0; i<ru->idx; i++) starting_antenna_index+=ru->nb_tx;
 
     for (i=0; i<ru->num_eNB; i++) {
       for (p=0; p<15; p++) {
-        LOG_D(PHY,"[INIT] %s() nb_antenna_ports_eNB:%d \n", __FUNCTION__, ru->eNB_list[i]->frame_parms.nb_antenna_ports_eNB);
+        LOG_X(PHY,"[INIT] %s() nb_antenna_ports_eNB:%d \n", __FUNCTION__, ru->eNB_list[i]->frame_parms.nb_antenna_ports_eNB);
 
         if (p<ru->eNB_list[i]->frame_parms.nb_antenna_ports_eNB || p==5) {
-          LOG_D(PHY,"[INIT] %s() DO BEAM WEIGHTS nb_antenna_ports_eNB:%d nb_tx:%d\n", __FUNCTION__, ru->eNB_list[i]->frame_parms.nb_antenna_ports_eNB, ru->nb_tx);
+          LOG_X(PHY,"[INIT] %s() DO BEAM WEIGHTS nb_antenna_ports_eNB:%d nb_tx:%d\n", __FUNCTION__, ru->eNB_list[i]->frame_parms.nb_antenna_ports_eNB, ru->nb_tx);
           ru->beam_weights[i][p] = (int32_t **)malloc16_clear(ru->nb_tx*sizeof(int32_t *));
 
           for (j=0; j<ru->nb_tx; j++) {
@@ -164,16 +164,16 @@ int phy_init_RU(RU_t *ru) {
                 ((p==4) && (j==0))) {
               for (re=0; re<fp->ofdm_symbol_size; re++) {
                 ru->beam_weights[i][p][j][re] = 0x00007fff;
-                //LOG_D(PHY,"[INIT] lte_common_vars->beam_weights[%d][%d][%d][%d] = %d\n", i,p,j,re,ru->beam_weights[i][p][j][re]);
+                //LOG_X(PHY,"[INIT] lte_common_vars->beam_weights[%d][%d][%d][%d] = %d\n", i,p,j,re,ru->beam_weights[i][p][j][re]);
               }
             } else if (p>4) {
               for (re=0; re<fp->ofdm_symbol_size; re++) {
                 ru->beam_weights[i][p][j][re] = 0x00007fff/ru->nb_tx;
-                //LOG_D(PHY,"[INIT] lte_common_vars->beam_weights[%d][%d][%d][%d] = %d\n", i,p,j,re,ru->beam_weights[i][p][j][re]);
+                //LOG_X(PHY,"[INIT] lte_common_vars->beam_weights[%d][%d][%d][%d] = %d\n", i,p,j,re,ru->beam_weights[i][p][j][re]);
               }
             }
 
-            //LOG_D(PHY,"[INIT] lte_common_vars->beam_weights[%d][%d] = %p (%lu bytes)\n", i,j,ru->beam_weights[i][p][j], fp->ofdm_symbol_size*sizeof(int32_t));
+            //LOG_X(PHY,"[INIT] lte_common_vars->beam_weights[%d][%d] = %p (%lu bytes)\n", i,j,ru->beam_weights[i][p][j], fp->ofdm_symbol_size*sizeof(int32_t));
           } // for (j=0
         } // if (p<ru
       } // for p

@@ -420,7 +420,7 @@ int32_t generate_nr_prach(PHY_VARS_NR_UE *ue, uint8_t gNB_id, uint8_t slot){
   }
 
   #ifdef NR_PRACH_DEBUG
-    LOG_D(PHY, "PRACH [UE %d] Ncp %d, dftlen %d \n", Mod_id, Ncp, dftlen);
+    LOG_X(PHY, "PRACH [UE %d] Ncp %d, dftlen %d \n", Mod_id, Ncp, dftlen);
   #endif
 
   //actually what we should be checking here is how often the current prach crosses a 0.5ms boundary. I am not quite sure for which paramter set this would be the case, so I will ignore it for now and just check if the prach starts on a 0.5ms boundary

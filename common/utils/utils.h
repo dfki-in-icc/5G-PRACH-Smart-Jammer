@@ -88,7 +88,7 @@ static inline void *malloc_or_fail(size_t size) {
 }
 
 #if !defined (msg)
-# define msg(aRGS...) LOG_D(PHY, ##aRGS)
+# define msg(aRGS...) LOG_X(PHY, ##aRGS)
 #endif
 #ifndef malloc16
 #  ifdef __AVX2__

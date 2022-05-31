@@ -89,7 +89,7 @@ void feptx0(RU_t *ru,
 
   slot_offset = slot*(fp->samples_per_tti>>1); //slot_offset = subframe*fp->samples_per_tti + (slot*(fp->samples_per_tti>>1));
 
-  //LOG_D(PHY,"SFN/SF:RU:TX:%d/%d Generating slot %d\n",ru->proc.frame_tx, ru->proc.tti_tx,slot);
+  //LOG_X(PHY,"SFN/SF:RU:TX:%d/%d Generating slot %d\n",ru->proc.frame_tx, ru->proc.tti_tx,slot);
 
   for (aa=0; aa<ru->nb_tx; aa++) {
     if (fp->Ncp == EXTENDED) {
@@ -122,7 +122,7 @@ void feptx0(RU_t *ru,
                        10,
                        fp->ofdm_symbol_size>>2,
                        CYCLIC_PREFIX);
-          LOG_D(PHY,"SFN/SF:RU:TX:%d/%d Generating slot %d F(%d) t(%d) IS PMCH(%d)\n",
+          LOG_X(PHY,"SFN/SF:RU:TX:%d/%d Generating slot %d F(%d) t(%d) IS PMCH(%d)\n",
                     ru->proc.frame_tx,
                     ru->proc.tti_tx,
                     slot,
@@ -404,7 +404,7 @@ void feptx_ofdm(RU_t *ru,
 	}
       }
       else {
-	//LOG_D(PHY,"feptx_ofdm: Writing to position %d\n",slot_offset);
+	//LOG_X(PHY,"feptx_ofdm: Writing to position %d\n",slot_offset);
 	tx_offset = (int)slot_offset;
 	txdata = (int16_t*)&ru->common.txdata[aa][tx_offset];
 
@@ -443,7 +443,7 @@ void feptx_ofdm(RU_t *ru,
 //     }
 
      stop_meas(&ru->ofdm_mod_stats);
-     LOG_D(PHY,"feptx_ofdm (TXPATH): frame %d, subframe %d: txp (time %p) %d dB, txp (freq) %d dB\n",
+     LOG_X(PHY,"feptx_ofdm (TXPATH): frame %d, subframe %d: txp (time %p) %d dB, txp (freq) %d dB\n",
 	   frame,subframe,txdata,dB_fixed(signal_energy((int32_t*)txdata,fp->samples_per_tti)),
 	   dB_fixed(signal_energy_nodc(ru->common.txdataF_BF[aa],2*slot_sizeF)));
     }
@@ -623,7 +623,7 @@ extern void kill_fep_thread(RU_t *ru)
   proc->instance_cnt_fep         = 0;
   pthread_cond_signal(&proc->cond_fep);
   pthread_mutex_unlock( &proc->mutex_fep );
-  LOG_D(PHY, "Joining pthread_fep\n");
+  LOG_X(PHY, "Joining pthread_fep\n");
   pthread_join(proc->pthread_fep, NULL);
   pthread_mutex_destroy( &proc->mutex_fep );
   pthread_cond_destroy( &proc->cond_fep );
@@ -637,7 +637,7 @@ extern void kill_feptx_thread(RU_t *ru)
   proc->instance_cnt_feptx         = 0;
   pthread_cond_signal(&proc->cond_feptx);
   pthread_mutex_unlock( &proc->mutex_feptx );
-  LOG_D(PHY, "Joining pthread_feptx\n");
+  LOG_X(PHY, "Joining pthread_feptx\n");
   pthread_join(proc->pthread_feptx, NULL);
   pthread_mutex_destroy( &proc->mutex_feptx );
   pthread_cond_destroy( &proc->cond_feptx );

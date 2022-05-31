@@ -45,7 +45,7 @@
 #else 
 #define LOG_DCI_D(a...)
 #endif
-#define LOG_DCI_PARM(a...) LOG_D(PHY,"\t<-NR_PDCCH_DCI_TOOLS_DEBUG (nr_generate_ue_ul_dlsch_params_from_dci)" a)
+#define LOG_DCI_PARM(a...) LOG_X(PHY,"\t<-NR_PDCCH_DCI_TOOLS_DEBUG (nr_generate_ue_ul_dlsch_params_from_dci)" a)
 
 //#define DEBUG_DCI
 

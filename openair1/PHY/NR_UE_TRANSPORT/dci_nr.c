@@ -572,7 +572,7 @@ void nr_pdcch_extract_rbs_single(int32_t **rxdataF,
         //if RB to be treated is lower than middle system bandwidth then rxdataF pointed at (offset + c_br + symbol * ofdm_symbol_size): odd case
         rxF = &rxdataF[aarx][(frame_parms->first_carrier_offset + 12 * c_rb + (symbol * (frame_parms->ofdm_symbol_size)))+n_BWP_start*12];
 #ifdef NR_PDCCH_DCI_DEBUG
-        LOG_D(PHY,"in odd case c_rb (%d) is lower or equal than half N_RB_DL -> rxF = &rxdataF[aarx = (%d)][(frame_parms->first_carrier_offset + 12 * c_rb + (symbol * (frame_parms->ofdm_symbol_size))) = (%d)]\n",
+        LOG_X(PHY,"in odd case c_rb (%d) is lower or equal than half N_RB_DL -> rxF = &rxdataF[aarx = (%d)][(frame_parms->first_carrier_offset + 12 * c_rb + (symbol * (frame_parms->ofdm_symbol_size))) = (%d)]\n",
                c_rb,aarx,(frame_parms->first_carrier_offset + 12 * c_rb + (symbol * (frame_parms->ofdm_symbol_size))+n_BWP_start*12));
 #endif
       }else if (((frame_parms->first_carrier_offset + 12 * (c_rb + n_BWP_start)) >= (frame_parms->ofdm_symbol_size)) && ((frame_parms->N_RB_DL & 1) != 0)) {
@@ -581,7 +581,7 @@ void nr_pdcch_extract_rbs_single(int32_t **rxdataF,
         // if these conditions are true the pointer has to be situated at the 1st part of the rxdataF just after the first IQ symbols of the RB containing DC
         rxF = &rxdataF[aarx][(offset_t + (symbol * (frame_parms->ofdm_symbol_size)))]; // we point at the 1st part of the rxdataF in symbol
 #ifdef NR_PDCCH_DCI_DEBUG
-        LOG_D(PHY,"in odd case c_rb (%d) is higher than half N_RB_DL (not DC) -> rxF = &rxdataF[aarx = (%d)][(12*(c_rb - frame_parms->N_RB_DL) - 5 + (symbol * (frame_parms->ofdm_symbol_size))) = (%d)]\n",
+        LOG_X(PHY,"in odd case c_rb (%d) is higher than half N_RB_DL (not DC) -> rxF = &rxdataF[aarx = (%d)][(12*(c_rb - frame_parms->N_RB_DL) - 5 + (symbol * (frame_parms->ofdm_symbol_size))) = (%d)]\n",
                c_rb,aarx,(offset_t + (symbol * (frame_parms->ofdm_symbol_size))));
 #endif
       }
@@ -592,7 +592,7 @@ void nr_pdcch_extract_rbs_single(int32_t **rxdataF,
         // we have to treat the RB in two parts: first part from i=0 to 5, the data is at the end of rxdataF (pointing at the end of the table)
         rxF = &rxdataF[aarx][(frame_parms->first_carrier_offset + 12 * c_rb + (symbol * (frame_parms->ofdm_symbol_size)))+n_BWP_start*12];
 #ifdef NR_PDCCH_DCI_DEBUG
-        LOG_D(PHY,"in odd case c_rb (%d) is half N_RB_DL + 1 we treat DC case -> rxF = &rxdataF[aarx = (%d)][(frame_parms->first_carrier_offset + 12 * c_rb + (symbol * (frame_parms->ofdm_symbol_size))) = (%d)]\n",
+        LOG_X(PHY,"in odd case c_rb (%d) is half N_RB_DL + 1 we treat DC case -> rxF = &rxdataF[aarx = (%d)][(frame_parms->first_carrier_offset + 12 * c_rb + (symbol * (frame_parms->ofdm_symbol_size))) = (%d)]\n",
                c_rb,aarx,(frame_parms->first_carrier_offset + 12 * c_rb + (symbol * (frame_parms->ofdm_symbol_size))+n_BWP_start*12));
 #endif
         j = 0;
@@ -609,7 +609,7 @@ void nr_pdcch_extract_rbs_single(int32_t **rxdataF,
         // then we point at the begining of the symbol part of rxdataF do process second part of RB
         rxF = &rxdataF[aarx][((symbol * (frame_parms->ofdm_symbol_size)))]; // we point at the 1st part of the rxdataF in symbol
 #ifdef NR_PDCCH_DCI_DEBUG
-        LOG_D(PHY,"in odd case c_rb (%d) is half N_RB_DL +1 we treat DC case -> rxF = &rxdataF[aarx = (%d)][(symbol * (frame_parms->ofdm_symbol_size)) = (%d)]\n",
+        LOG_X(PHY,"in odd case c_rb (%d) is half N_RB_DL +1 we treat DC case -> rxF = &rxdataF[aarx = (%d)][(symbol * (frame_parms->ofdm_symbol_size)) = (%d)]\n",
                c_rb,aarx,(symbol * (frame_parms->ofdm_symbol_size)));
 #endif
         for (; i < 12; i++) {
@@ -635,7 +635,7 @@ void nr_pdcch_extract_rbs_single(int32_t **rxdataF,
           if ((i != 1) && (i != 5) && (i != 9)) {
             rxF_ext[j] = rxF[i];
 #ifdef NR_PDCCH_DCI_DEBUG
-            LOG_D(PHY,"RB[c_rb %d] \t RE[re %d] => rxF_ext[%d]=(%d,%d)\t rxF[%d]=(%d,%d)\n",
+            LOG_X(PHY,"RB[c_rb %d] \t RE[re %d] => rxF_ext[%d]=(%d,%d)\t rxF[%d]=(%d,%d)\n",
                    c_rb, i, j, *(short *) &rxF_ext[j],*(1 + (short *) &rxF_ext[j]), i,
                    *(short *) &rxF[i], *(1 + (short *) &rxF[i]));
 #endif
@@ -646,7 +646,7 @@ void nr_pdcch_extract_rbs_single(int32_t **rxdataF,
             j++;
           } else {
 #ifdef NR_PDCCH_DCI_DEBUG
-            LOG_D(PHY,"RB[c_rb %d] \t RE[re %d] => rxF_ext[%d]=(%d,%d)\t rxF[%d]=(%d,%d) \t\t <==> DM-RS PDCCH, this is a pilot symbol\n",
+            LOG_X(PHY,"RB[c_rb %d] \t RE[re %d] => rxF_ext[%d]=(%d,%d)\t rxF[%d]=(%d,%d) \t\t <==> DM-RS PDCCH, this is a pilot symbol\n",
                    c_rb, i, j, *(short *) &rxF_ext[j], *(1 + (short *) &rxF_ext[j]), i,
                    *(short *) &rxF[i], *(1 + (short *) &rxF[i]));
 #endif
@@ -833,10 +833,10 @@ int32_t nr_rx_pdcch(PHY_VARS_NR_UE *ue,
   int32_t avgP[4];
   int n_rb,rb_offset;
   get_coreset_rballoc(rel15->coreset.frequency_domain_resource,&n_rb,&rb_offset);
-  LOG_D(PHY,"pdcch coreset: freq %x, n_rb %d, rb_offset %d\n",
+  LOG_X(PHY,"pdcch coreset: freq %x, n_rb %d, rb_offset %d\n",
         rel15->coreset.frequency_domain_resource[0],n_rb,rb_offset);
   for (int s=rel15->coreset.StartSymbolIndex; s<(rel15->coreset.StartSymbolIndex+rel15->coreset.duration); s++) {
-    LOG_D(PHY,"in nr_pdcch_extract_rbs_single(rxdataF -> rxdataF_ext || dl_ch_estimates -> dl_ch_estimates_ext)\n");
+    LOG_X(PHY,"in nr_pdcch_extract_rbs_single(rxdataF -> rxdataF_ext || dl_ch_estimates -> dl_ch_estimates_ext)\n");
 
     nr_pdcch_extract_rbs_single(common_vars->common_vars_rx_data_per_thread[proc->thread_id].rxdataF,
                                 pdcch_vars->dl_ch_estimates,
@@ -848,8 +848,8 @@ int32_t nr_rx_pdcch(PHY_VARS_NR_UE *ue,
                                 n_rb,
                                 rel15->BWPStart);
 
-    LOG_D(PHY,"we enter nr_pdcch_channel_level(avgP=%d) => compute channel level based on ofdm symbol 0, pdcch_vars[eNB_id]->dl_ch_estimates_ext\n",*avgP);
-    LOG_D(PHY,"in nr_pdcch_channel_level(dl_ch_estimates_ext -> dl_ch_estimates_ext)\n");
+    LOG_X(PHY,"we enter nr_pdcch_channel_level(avgP=%d) => compute channel level based on ofdm symbol 0, pdcch_vars[eNB_id]->dl_ch_estimates_ext\n",*avgP);
+    LOG_X(PHY,"in nr_pdcch_channel_level(dl_ch_estimates_ext -> dl_ch_estimates_ext)\n");
     // compute channel level based on ofdm symbol 0
     nr_pdcch_channel_level(pdcch_vars->dl_ch_estimates_ext,
                            frame_parms,
@@ -865,14 +865,14 @@ int32_t nr_rx_pdcch(PHY_VARS_NR_UE *ue,
     log2_maxh = (log2_approx(avgs) / 2) + 5;  //+frame_parms->nb_antennas_rx;
 
 #ifdef UE_DEBUG_TRACE
-    LOG_D(PHY,"slot %d: pdcch log2_maxh = %d (%d,%d)\n",slot,log2_maxh,avgP[0],avgs);
+    LOG_X(PHY,"slot %d: pdcch log2_maxh = %d (%d,%d)\n",slot,log2_maxh,avgP[0],avgs);
 #endif
 #if T_TRACER
     T(T_UE_PHY_PDCCH_ENERGY, T_INT(0), T_INT(0), T_INT(frame%1024), T_INT(slot),
       T_INT(avgP[0]), T_INT(avgP[1]), T_INT(avgP[2]), T_INT(avgP[3]));
 #endif
-    LOG_D(PHY,"we enter nr_pdcch_channel_compensation(log2_maxh=%d)\n",log2_maxh);
-    LOG_D(PHY,"in nr_pdcch_channel_compensation(rxdataF_ext x dl_ch_estimates_ext -> rxdataF_comp)\n");
+    LOG_X(PHY,"we enter nr_pdcch_channel_compensation(log2_maxh=%d)\n",log2_maxh);
+    LOG_X(PHY,"in nr_pdcch_channel_compensation(rxdataF_ext x dl_ch_estimates_ext -> rxdataF_comp)\n");
     // compute LLRs for ofdm symbol 0 only
     nr_pdcch_channel_compensation(pdcch_vars->rxdataF_ext,
                                   pdcch_vars->dl_ch_estimates_ext,
@@ -883,12 +883,12 @@ int32_t nr_rx_pdcch(PHY_VARS_NR_UE *ue,
                                   log2_maxh,
                                   n_rb); // log2_maxh+I0_shift
     if (frame_parms->nb_antennas_rx > 1) {
-      LOG_D(PHY,"we enter nr_pdcch_detection_mrc(frame_parms->nb_antennas_rx=%d)\n", frame_parms->nb_antennas_rx);
+      LOG_X(PHY,"we enter nr_pdcch_detection_mrc(frame_parms->nb_antennas_rx=%d)\n", frame_parms->nb_antennas_rx);
       nr_pdcch_detection_mrc(frame_parms, pdcch_vars->rxdataF_comp,s);
     }
 
-    LOG_D(PHY,"we enter nr_pdcch_llr(for symbol %d), pdcch_vars[eNB_id]->rxdataF_comp ---> pdcch_vars[eNB_id]->llr \n",s);
-    LOG_D(PHY,"in nr_pdcch_llr(rxdataF_comp -> llr)\n");
+    LOG_X(PHY,"we enter nr_pdcch_llr(for symbol %d), pdcch_vars[eNB_id]->rxdataF_comp ---> pdcch_vars[eNB_id]->llr \n",s);
+    LOG_X(PHY,"in nr_pdcch_llr(rxdataF_comp -> llr)\n");
     nr_pdcch_llr(frame_parms,
                  pdcch_vars->rxdataF_comp,
                  pdcch_vars->llr,
@@ -906,7 +906,7 @@ int32_t nr_rx_pdcch(PHY_VARS_NR_UE *ue,
 #endif
   }
 
-  LOG_D(PHY,"we enter nr_pdcch_demapping_deinterleaving(), number of candidates %d\n",rel15->number_of_candidates);
+  LOG_X(PHY,"we enter nr_pdcch_demapping_deinterleaving(), number of candidates %d\n",rel15->number_of_candidates);
   nr_pdcch_demapping_deinterleaving((uint32_t *) pdcch_vars->llr,
                                     (uint32_t *) pdcch_vars->e_rx,
                                     rel15->coreset.duration,
@@ -919,8 +919,8 @@ int32_t nr_rx_pdcch(PHY_VARS_NR_UE *ue,
                                     rel15->CCE,
                                     rel15->L);
 
-  LOG_D(PHY,"we end nr_pdcch_unscrambling()\n");
-  LOG_D(PHY,"Ending nr_rx_pdcch() function\n");
+  LOG_X(PHY,"we end nr_pdcch_unscrambling()\n");
+  LOG_X(PHY,"Ending nr_rx_pdcch() function\n");
 
   return (0);
 }
@@ -1028,7 +1028,7 @@ uint8_t nr_dci_decoding_procedure(PHY_VARS_NR_UE *ue,
       uint32_t *z = (uint32_t *) &pdcch_vars->e_rx[e_rx_cand_idx];
       for (int index_z = 0; index_z < L*6; index_z++){
         for (int i=0; i<9; i++) {
-          LOG_D(PHY,"z[%d]=(%d,%d) \n", (9*index_z + i), *(int16_t *) &z[index_z + i],*(1 + (int16_t *) &z[index_z + i]));
+          LOG_X(PHY,"z[%d]=(%d,%d) \n", (9*index_z + i), *(int16_t *) &z[index_z + i],*(1 + (int16_t *) &z[index_z + i]));
         }
       }
 #endif
@@ -1036,17 +1036,16 @@ uint8_t nr_dci_decoding_procedure(PHY_VARS_NR_UE *ue,
                                          dci_estimation,
                                          1,
                                          NR_POLAR_DCI_MESSAGE_TYPE, dci_length, L);
-      // L5G_IOT
-      RegisterComplexMetric(PDCCH_IQ, "PDCCH_IQ", (int16_t*)pdcch_cmp_ptr, num_pdcch_symbol);
-      RegisterComplexMetric(PDCCH_CHEST, "PDCCH_CHEST", (int16_t*)pdcch_chest_ptr, num_pdcch_chest_symbol);
-      PROM_METRICS(PDCCH_LEVEL_0,"PDCCH_LEVEL_0",pdcch_power[0]);
-      PROM_METRICS(PDCCH_LEVEL_1,"PDCCH_LEVEL_1",pdcch_power[1]);
-
       n_rnti = rel15->rnti;
-      LOG_D(PHY, "(%i.%i) dci indication (rnti %x,dci format %s,n_CCE %d,payloadSize %d)\n",
+      LOG_X(PHY, "(%i.%i) dci indication (rnti %x,dci format %s,n_CCE %d,payloadSize %d)\n",
             proc->frame_rx, proc->nr_slot_rx,n_rnti,nr_dci_format_string[rel15->dci_format_options[k]],CCEind,dci_length);
       if (crc == n_rnti) {
-        LOG_D(PHY, "(%i.%i) Received dci indication (rnti %x,dci format %s,n_CCE %d,payloadSize %d,payload %llx)\n",
+        // L5G_IOT
+        RegisterComplexMetric(PDCCH_IQ, "PDCCH_IQ", (int16_t*)pdcch_cmp_ptr, num_pdcch_symbol);
+        RegisterComplexMetric(PDCCH_CHEST, "PDCCH_CHEST", (int16_t*)pdcch_chest_ptr, num_pdcch_chest_symbol);
+        PROM_METRICS(PDCCH_LEVEL_0,"PDCCH_LEVEL_0",pdcch_power[0]);
+        PROM_METRICS(PDCCH_LEVEL_1,"PDCCH_LEVEL_1",pdcch_power[1]);
+        LOG_X(PHY, "(%i.%i) Received dci indication (rnti %x,dci format %s,n_CCE %d,payloadSize %d,payload %llx)\n",
               proc->frame_rx, proc->nr_slot_rx,n_rnti,nr_dci_format_string[rel15->dci_format_options[k]],CCEind,dci_length,*(unsigned long long*)dci_estimation);
         uint16_t mb = nr_dci_false_detection(dci_estimation,tmp_e,L*108,n_rnti, NR_POLAR_DCI_MESSAGE_TYPE, dci_length, L);
         ue->dci_thres = (ue->dci_thres + mb) / 2;

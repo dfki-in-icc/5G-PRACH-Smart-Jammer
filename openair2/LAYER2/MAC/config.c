@@ -247,7 +247,7 @@ void config_mib(int                 Mod_idP,
   cfg->rf_config.dl_channel_bandwidth.value        = to_prb(dl_BandwidthP);
   cfg->rf_config.dl_channel_bandwidth.tl.tag = NFAPI_RF_CONFIG_DL_CHANNEL_BANDWIDTH_TAG;
   cfg->num_tlv++;
-  LOG_D(PHY,"%s() dl_BandwidthP:%d\n", __FUNCTION__, dl_BandwidthP);
+  LOG_X(PHY,"%s() dl_BandwidthP:%d\n", __FUNCTION__, dl_BandwidthP);
   cfg->rf_config.ul_channel_bandwidth.value        = to_prb(dl_BandwidthP);
   cfg->rf_config.ul_channel_bandwidth.tl.tag = NFAPI_RF_CONFIG_UL_CHANNEL_BANDWIDTH_TAG;
   cfg->num_tlv++;

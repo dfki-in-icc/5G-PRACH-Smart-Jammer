@@ -199,12 +199,12 @@ void generate_phich(LTE_DL_FRAME_PARMS *frame_parms,
     }
 
 #ifdef DEBUG_PHICH
-    LOG_D(PHY,"[PUSCH 0]PHICH d = ");
+    LOG_X(PHY,"[PUSCH 0]PHICH d = ");
 
     for (i=0; i<24; i+=2)
-      LOG_D(PHY,"(%d,%d)",d[i],d[i+1]);
+      LOG_X(PHY,"(%d,%d)",d[i],d[i+1]);
 
-    LOG_D(PHY,"\n");
+    LOG_X(PHY,"\n");
 #endif
 
     // modulation here
@@ -754,7 +754,7 @@ void generate_phich_top(PHY_VARS_eNB *eNB,
       LOG_E(PHY,"FATAL ERROR: illegal harq_pid, returning\n");
 	  return;
 	}
-    LOG_D(PHY,"[eNB %d][PUSCH %d] Frame %d subframe %d Generating PHICH, AMP %d  ngroup_PHICH %d/%d, nseq_PHICH %d : HI %d, first_rb %d)\n",
+    LOG_X(PHY,"[eNB %d][PUSCH %d] Frame %d subframe %d Generating PHICH, AMP %d  ngroup_PHICH %d/%d, nseq_PHICH %d : HI %d, first_rb %d)\n",
 	  eNB->Mod_id,harq_pid,proc->frame_tx,
 	  subframe,amp,ngroup_PHICH,Ngroup_PHICH,nseq_PHICH,
 	  phich->hi,

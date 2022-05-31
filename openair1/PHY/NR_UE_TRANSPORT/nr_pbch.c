@@ -290,7 +290,7 @@ void nr_pbch_channel_compensation(int **rxdataF_ext,
     }
   }
   // TODO L5G
-  RegisterComplexMetric(PBCH_IQ, "PBCH_IQ", (int16_t*)&rxdataF_comp[0], nb_re*12);
+  RegisterComplexMetric(PBCH_IQ, "PBCH_IQ", (int16_t*)&rxdataF_comp[0], nb_re);
 
 }
 

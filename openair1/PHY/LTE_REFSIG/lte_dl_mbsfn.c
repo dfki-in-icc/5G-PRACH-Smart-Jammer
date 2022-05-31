@@ -72,9 +72,9 @@ int lte_dl_mbsfn(PHY_VARS_eNB *eNB, int32_t *output,
     output[k] = qpsk[(eNB->lte_gold_mbsfn_table[subframe][l][mprime_dword]>>(2*mprime_qpsk_symb))&3];
     //output[k] = (lte_gold_table[eNB_offset][subframe][l][mprime_dword]>>(2*mprime_qpsk_symb))&3;
 #ifdef DEBUG_DL_MBSFN
-    LOG_D(PHY,"subframe %d, l %d, m %d, mprime %d, mprime_dword %d, mprime_qpsk_symbol %d\n",
+    LOG_X(PHY,"subframe %d, l %d, m %d, mprime %d, mprime_dword %d, mprime_qpsk_symbol %d\n",
           subframe,l,m,mprime,mprime_dword,mprime_qpsk_symb);
-    LOG_D(PHY,"index = %d (k %d)(%x)\n",(eNB->lte_gold_mbsfn_table[subframe][l][mprime_dword]>>(2*mprime_qpsk_symb))&3,k,eNB->lte_gold_mbsfn_table[subframe][l][mprime_dword]);
+    LOG_X(PHY,"index = %d (k %d)(%x)\n",(eNB->lte_gold_mbsfn_table[subframe][l][mprime_dword]>>(2*mprime_qpsk_symb))&3,k,eNB->lte_gold_mbsfn_table[subframe][l][mprime_dword]);
 #endif
     mprime++;
 #ifdef DEBUG_DL_MBSFN

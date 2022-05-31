@@ -4285,7 +4285,7 @@ void ue_meas_filtering( const protocol_ctxt_t *const ctxt_pP, const uint8_t eNB_
           LOG_D(RRC,"RSRP_dBm: %3.2f \n",get_RSRP(ctxt_pP->module_id,0,eNB_offset));;
           /*          LOG_D(RRC,"gain_loss_dB: %d \n",get_rx_total_gain_dB(ctxt_pP->module_id,0));
                 LOG_D(RRC,"gain_fixed_dB: %d \n",dB_fixed(frame_parms->N_RB_DL*12));*/
-          LOG_D(PHY,"[UE %d] Frame %d, RRC Measurements => rssi %3.1f dBm (digital: %3.1f dB)\n",
+          LOG_X(PHY,"[UE %d] Frame %d, RRC Measurements => rssi %3.1f dBm (digital: %3.1f dB)\n",
                 ctxt_pP->module_id,
                 ctxt_pP->frame,
                 10*log10(get_RSSI(ctxt_pP->module_id,0))-get_rx_total_gain_dB(ctxt_pP->module_id,0),

@@ -1052,6 +1052,7 @@ bool nr_ue_periodic_srs_scheduling(module_id_t mod_id, frame_t frame, slot_t slo
   return srs_scheduled;
 }
 
+extern int issue_dci_config ;
 // Performs :
 // 1. TODO: Call RRC for link status return to PHY
 // 2. TODO: Perform SR/BSR procedures for scheduling feedback
@@ -1083,7 +1084,15 @@ NR_UE_L2_STATE_t nr_ue_scheduler(nr_downlink_indication_t *dl_info, nr_uplink_in
       dcireq.frame     = rx_frame;
       dcireq.slot      = rx_slot;
       dcireq.dl_config_req.number_pdus = 0;
+//#define MINIMUM_DCI_CONFIG
+#ifdef MINIMUM_DCI_CONFIG
+      if (issue_dci_config == 1){
+        nr_ue_dcireq(&dcireq); //to be replaced with function pointer later
+        issue_dci_config = 0;
+      }
+#else
       nr_ue_dcireq(&dcireq); //to be replaced with function pointer later
+#endif
       mac->dl_config_request = dcireq.dl_config_req;
 
       fill_scheduled_response(&scheduled_response, &dcireq.dl_config_req, NULL, NULL, mod_id, cc_id, rx_frame, rx_slot, dl_info->thread_id);
@@ -2624,7 +2633,7 @@ void nr_ue_prach_scheduler(module_id_t module_idP, frame_t frameP, sub_frame_t s
       memset(prach_config_pdu, 0, sizeof(fapi_nr_ul_config_prach_pdu));
       fill_ul_config(ul_config, frameP, slotP, FAPI_NR_UL_CONFIG_TYPE_PRACH);
       pthread_mutex_unlock(&ul_config->mutex_ul_config);
-      LOG_D(PHY, "In %s: (%p) %d UL PDUs:\n", __FUNCTION__, ul_config, ul_config->number_pdus);
+      LOG_X(PHY, "In %s: (%p) %d UL PDUs:\n", __FUNCTION__, ul_config, ul_config->number_pdus);
 
       memset(prach_config_pdu, 0, sizeof(fapi_nr_ul_config_prach_pdu));
 

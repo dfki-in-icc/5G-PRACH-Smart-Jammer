@@ -4776,7 +4776,7 @@ OAI_UECapability_t *fill_ue_capability(char *UE_EUTRA_Capability_xer_fname, bool
       sprintf (&sdu[3 * i], "%02x.", UECapability.sdu[i]);
     }
 
-    LOG_D(PHY, "[RRC]UE Capability encoded, %s\n", sdu);
+    LOG_X(PHY, "[RRC]UE Capability encoded, %s\n", sdu);
     free(sdu);
   }
   return(&UECapability);

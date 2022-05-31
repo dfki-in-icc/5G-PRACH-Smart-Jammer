@@ -1058,7 +1058,7 @@ void update_harq_status(module_id_t module_id, uint8_t harq_pid, uint8_t ack_nac
   if (current_harq->active) {
     current_harq->ack = ack_nack;
     current_harq->ack_received = true;
-    LOG_D(PHY,"Updating harq_status for harq_id %d,ack/nak %d\n",harq_pid,current_harq->ack);
+    LOG_X(PHY,"Updating harq_status for harq_id %d,ack/nak %d\n",harq_pid,current_harq->ack);
   }
   else {
     //shouldn't get here
@@ -1246,7 +1246,7 @@ int nr_ue_dcireq(nr_dcireq_t *dcireq) {
   dl_config->sfn = UE_mac->dl_config_request.sfn;
   dl_config->slot = UE_mac->dl_config_request.slot;
 
-  LOG_D(PHY, "Entering UE DCI configuration frame %d slot %d \n", dcireq->frame, dcireq->slot);
+  LOG_X(PHY, "Entering UE DCI configuration frame %d slot %d \n", dcireq->frame, dcireq->slot);
 
   ue_dci_configuration(UE_mac, dl_config, dcireq->frame, dcireq->slot);
 

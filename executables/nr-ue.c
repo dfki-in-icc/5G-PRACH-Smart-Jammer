@@ -705,7 +705,7 @@ void processSlotTX(void *arg) {
   int tx_slot_type = nr_ue_slot_select(cfg, proc->frame_tx, proc->nr_slot_tx);
   uint8_t gNB_id = 0;
 
-  LOG_D(PHY,"%d.%d => slot type %d\n",proc->frame_tx,proc->nr_slot_tx,tx_slot_type);
+  LOG_X(PHY,"%d.%d => slot type %d\n",proc->frame_tx,proc->nr_slot_tx,tx_slot_type);
   if (tx_slot_type == NR_UPLINK_SLOT || tx_slot_type == NR_MIXED_SLOT){
 
     // trigger L2 to run ue_scheduler thru IF module
@@ -769,7 +769,7 @@ void processSlotRX(void *arg) {
 #else
     uint64_t a=rdtsc_oai();
     phy_procedures_nrUE_RX(UE, proc, gNB_id, get_nrUE_params()->nr_dlsch_parallel, &rxtxD->txFifo);
-    LOG_D(PHY, "In %s: slot %d, time %llu\n", __FUNCTION__, proc->nr_slot_rx, (rdtsc_oai()-a)/3500);
+    LOG_X(PHY, "In %s: slot %d, time %llu\n", __FUNCTION__, proc->nr_slot_rx, (rdtsc_oai()-a)/3500);
 #endif
 
     if(IS_SOFTMODEM_NOS1 || get_softmodem_params()->sa){
@@ -815,7 +815,7 @@ void processSlotRX(void *arg) {
                                proc);
       }
 
-      LOG_D(PHY, "Sending Uplink data \n");
+      LOG_X(PHY, "Sending Uplink data \n");
       nr_ue_pusch_common_procedures(UE,
                                     proc->nr_slot_tx,
                                     &UE->frame_parms,1);
@@ -824,7 +824,7 @@ void processSlotRX(void *arg) {
     if (UE->UE_mode[gNB_id] > NOT_SYNCHED && UE->UE_mode[gNB_id] < PUSCH) {
       nr_ue_prach_procedures(UE, proc, gNB_id);
     }
-    LOG_D(PHY,"****** end TX-Chain for AbsSubframe %d.%d ******\n", proc->frame_tx, proc->nr_slot_tx);
+    LOG_X(PHY,"****** end TX-Chain for AbsSubframe %d.%d ******\n", proc->frame_tx, proc->nr_slot_tx);
   }
 
   ue_ta_procedures(UE, proc->nr_slot_tx, proc->frame_tx);
@@ -1273,7 +1273,7 @@ void *UE_thread(void *arg) {
     //  memset(txp[i], 0, writeBlockSize);
     if (enable_parallel_pull == 0){ // L5G_IOT
       nbSlotProcessing++;
-      LOG_D(PHY,"Number of slots being processed at the moment: %d\n",nbSlotProcessing);
+      LOG_X(PHY,"Number of slots being processed at the moment: %d\n",nbSlotProcessing);
       pushTpool(&(get_nrUE_params()->Tpool), msgToPush);
     } // L5G_IOT
   } // while !oai_exit
@@ -1398,7 +1398,7 @@ void *pullthread(void* arg){
       LOG_E(PHY,"Decoded frame index (%d) is not compatible with current context (%d), UE should go back to synch mode\n",
             decoded_frame_rx, curMsg->proc.frame_rx);
     nbSlotProcessing++;
-    LOG_D(PHY,"Number of slots being processed at the moment: %d\n",nbSlotProcessing);
+    LOG_X(PHY,"Number of slots being processed at the moment: %d\n",nbSlotProcessing);
     pushTpool(&(get_nrUE_params()->Tpool), msgToPush);
     clock_gettime(CLOCK_MONOTONIC_RAW, &loc_ts);
 #ifdef FIFO_LOG

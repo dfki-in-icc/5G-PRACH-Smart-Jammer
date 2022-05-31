@@ -117,7 +117,7 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
 
   uint16_t nb_rb_pusch = pusch_pdu->rb_size;
 
-  LOG_D(PHY, "In %s: ch_offset %d, soffset %d, symbol_offset %d OFDM size %d, Ns = %d, k = %d symbol %d\n",
+  LOG_X(PHY, "In %s: ch_offset %d, soffset %d, symbol_offset %d OFDM size %d, Ns = %d, k = %d symbol %d\n",
         __FUNCTION__,
         ch_offset, soffset,
         symbol_offset,
@@ -181,7 +181,7 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
     AssertFatal(index >= 0, "Num RBs not configured according to 3GPP 38.211 section 6.3.1.4. For PUSCH with transform precoding, num RBs cannot be multiple of any other primenumber other than 2,3,5\n");
     AssertFatal(dmrs_seq != NULL, "DMRS low PAPR seq not found, check if DMRS sequences are generated");
 
-    LOG_D(PHY,"Transform Precoding params. u: %d, v: %d, index for dmrsseq: %d\n", u, v, index);
+    LOG_X(PHY,"Transform Precoding params. u: %d, v: %d, index for dmrsseq: %d\n", u, v, index);
     
     nr_pusch_lowpaprtype1_dmrs_rx(gNB, Ns, dmrs_seq, &pilot[0], 1000, 0, nb_rb_pusch, 0, pusch_pdu->dmrs_config_type);    
 
@@ -224,7 +224,7 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
     //if ((gNB->frame_parms.N_RB_UL&1)==0) {
 
     if (pusch_pdu->dmrs_config_type == pusch_dmrs_type1 && gNB->prb_interpolation == 0){
-      LOG_D(PHY,"PUSCH estimation DMRS type 1, Freq-domain interpolation");
+      LOG_X(PHY,"PUSCH estimation DMRS type 1, Freq-domain interpolation");
       // Treat first 2 pilots specially (left edge)
       ch[0] = (int16_t)(((int32_t)pil[0]*rxF[0] - (int32_t)pil[1]*rxF[1])>>15);
       ch[1] = (int16_t)(((int32_t)pil[0]*rxF[1] + (int32_t)pil[1]*rxF[0])>>15);
@@ -468,7 +468,7 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
 #endif    
     }
     else if (pusch_pdu->dmrs_config_type == pusch_dmrs_type2 && gNB->prb_interpolation == 0) { //pusch_dmrs_type2  |p_r,p_l,d,d,d,d,p_r,p_l,d,d,d,d|
-      LOG_D(PHY,"PUSCH estimation DMRS type 2, Freq-domain interpolation");
+      LOG_X(PHY,"PUSCH estimation DMRS type 2, Freq-domain interpolation");
       // Treat first DMRS specially (left edge)
 
         rxF   = (int16_t *)&rxdataF[aarx][soffset+(symbol_offset+nushift+re_offset)];
@@ -554,7 +554,7 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
     }
 
     else if (pusch_pdu->dmrs_config_type == pusch_dmrs_type1) {// this is case without frequency-domain linear interpolation, just take average of LS channel estimates of 6 DMRS REs and use a common value for the whole PRB
-      LOG_D(PHY,"PUSCH estimation DMRS type 1, no Freq-domain interpolation");
+      LOG_X(PHY,"PUSCH estimation DMRS type 1, no Freq-domain interpolation");
       int32_t ch_0, ch_1;
       // First PRB
       ch_0 = ((int32_t)pil[0]*rxF[0] - (int32_t)pil[1]*rxF[1])>>15;
@@ -769,7 +769,7 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
 #endif
     }
     else  { // this is case without frequency-domain linear interpolation, just take average of LS channel estimates of 4 DMRS REs and use a common value for the whole PRB
-      LOG_D(PHY,"PUSCH estimation DMRS type 2, no Freq-domain interpolation");
+      LOG_X(PHY,"PUSCH estimation DMRS type 2, no Freq-domain interpolation");
       int32_t ch_0, ch_1;
       //First PRB
       ch_0 = ((int32_t)pil[0]*rxF[0] - (int32_t)pil[1]*rxF[1])>>15;

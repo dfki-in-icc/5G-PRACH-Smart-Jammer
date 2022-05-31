@@ -45,6 +45,7 @@
 #include "common/config/config_userapi.h"
 #include <time.h>
 #include <sys/time.h>
+extern int    disable_shm_log ;
 
 // main log variables
 
@@ -68,10 +69,13 @@ mapping log_level_names[] = {
   {"warn",   OAILOG_WARNING},
   {"analysis", OAILOG_ANALYSIS},
   {"info",   OAILOG_INFO},
+  {"extra",  OAILOG_EXTRA},
   {"debug",  OAILOG_DEBUG},
   {"trace",  OAILOG_TRACE},
   {NULL, -1}
 };
+
+char dbgKind[][8]={"[E]","[W]","[A]","[I]","[X]","[D]","[T]"};
 
 mapping log_options[] = {
   {"nocolor", FLAG_NOCOLOR  },
@@ -339,7 +343,7 @@ void  log_getconfig(log_t *g_log)
     g_log->log_component[i].level = map_str_to_int(log_level_names,    *(logparams_level[i].strptr));
     set_log(i, g_log->log_component[i].level);
 
-    if (*(logparams_logfile[i].uptr) == 1)
+    if ((*(logparams_logfile[i].uptr) == 1) && (disable_shm_log ==0))
       set_component_filelog(i);
   }
 
@@ -379,7 +383,7 @@ void  log_getconfig(log_t *g_log)
 
   /* log globally enabled/disabled */
   set_glog_onlinelog(consolelog);
-  set_glog_filelog(1);
+  if (disable_shm_log == 0)  set_glog_filelog(1);
 }
 
 int register_log_component(char *name,
@@ -572,7 +576,7 @@ static inline int log_header(log_component_t *c,
   /* get time */
   gettimeofday(&oaiTime, NULL);
   time_st = localtime(&oaiTime.tv_sec);
-  snprintf(timeString, sizeof(timeString), "%d/%02d/%02d %02d:%02d:%02d.%06d ",
+  snprintf(timeString, sizeof(timeString), "%d/%02d/%02d %02d:%02d:%02d.%06d ", dbgKind[level],
            time_st->tm_year+1900,  time_st->tm_mon+1,  time_st->tm_mday,
            time_st->tm_hour, time_st->tm_min, time_st->tm_sec, oaiTime.tv_usec);
 
@@ -961,7 +965,8 @@ static void log_output_memory(log_component_t *c, const char *file, const char *
       if (write(fileno(c->stream), log_buffer, len)) {};
     }
     if ((level == OAILOG_INFO) || (level == OAILOG_DEBUG) || (level == OAILOG_EXTRA)){
-      if (write(fileno(c->stream_ram), log_buffer, len)) {};
+      if (disable_shm_log == 0)
+        if (write(fileno(c->stream_ram), log_buffer, len)) {};
     }
   }
 }

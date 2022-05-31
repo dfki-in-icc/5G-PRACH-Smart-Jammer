@@ -138,7 +138,7 @@ void rx_func(void *param) {
 
   if (NFAPI_MODE == NFAPI_MODE_PNF) {
     // I am a PNF and I need to let nFAPI know that we have a (sub)frame tick
-    //LOG_D(PHY, "oai_nfapi_slot_ind(frame:%u, slot:%d) ********\n", frame_rx, slot_rx);
+    //LOG_X(PHY, "oai_nfapi_slot_ind(frame:%u, slot:%d) ********\n", frame_rx, slot_rx);
     start_meas(&nfapi_meas);
     handle_nr_slot_ind(frame_rx, slot_rx);
     stop_meas(&nfapi_meas);
@@ -149,7 +149,7 @@ void rx_func(void *param) {
         gNB->UL_INFO.rach_ind.number_of_pdus ||
         gNB->UL_INFO.cqi_ind.number_of_cqis
        ) {
-      LOG_D(PHY, "UL_info[rx_ind:%05d:%d harqs:%05d:%d crcs:%05d:%d rach_pdus:%0d.%d:%d cqis:%d] RX:%04d%d TX:%04d%d \n",
+      LOG_X(PHY, "UL_info[rx_ind:%05d:%d harqs:%05d:%d crcs:%05d:%d rach_pdus:%0d.%d:%d cqis:%d] RX:%04d%d TX:%04d%d \n",
             NFAPI_SFNSF2DEC(gNB->UL_INFO.rx_ind.sfn_sf),   gNB->UL_INFO.rx_ind.rx_indication_body.number_of_pdus,
             NFAPI_SFNSF2DEC(gNB->UL_INFO.harq_ind.sfn_sf), gNB->UL_INFO.harq_ind.harq_indication_body.number_of_harqs,
             NFAPI_SFNSF2DEC(gNB->UL_INFO.crc_ind.sfn_sf),  gNB->UL_INFO.crc_ind.crc_indication_body.number_of_crcs,
@@ -232,7 +232,7 @@ void rx_func(void *param) {
   }
 
   stop_meas( &softmodem_stats_rxtx_sf );
-  LOG_D(PHY,"%s() Exit proc[rx:%d%d tx:%d%d]\n", __FUNCTION__, frame_rx, slot_rx, frame_tx, slot_tx);
+  LOG_X(PHY,"%s() Exit proc[rx:%d%d tx:%d%d]\n", __FUNCTION__, frame_rx, slot_rx, frame_tx, slot_tx);
 
   // Call the scheduler
   start_meas(&gNB->ul_indication_stats);
@@ -259,7 +259,7 @@ void rx_func(void *param) {
   }
     
 #if 0
-  LOG_D(PHY, "rxtx:%lld nfapi:%lld phy:%lld tx:%lld rx:%lld prach:%lld ofdm:%lld ",
+  LOG_X(PHY, "rxtx:%lld nfapi:%lld phy:%lld tx:%lld rx:%lld prach:%lld ofdm:%lld ",
         softmodem_stats_rxtx_sf.diff_now, nfapi_meas.diff_now,
         TICK_TO_US(gNB->phy_proc),
         TICK_TO_US(gNB->phy_proc_tx),
@@ -267,7 +267,7 @@ void rx_func(void *param) {
         TICK_TO_US(gNB->rx_prach),
         TICK_TO_US(gNB->ofdm_mod_stats),
         softmodem_stats_rxtx_sf.diff_now, nfapi_meas.diff_now);
-  LOG_D(PHY,
+  LOG_X(PHY,
         "dlsch[enc:%lld mod:%lld scr:%lld rm:%lld t:%lld i:%lld] rx_dft:%lld ",
         TICK_TO_US(gNB->dlsch_encoding_stats),
         TICK_TO_US(gNB->dlsch_modulation_stats),
@@ -276,19 +276,19 @@ void rx_func(void *param) {
         TICK_TO_US(gNB->dlsch_turbo_encoding_stats),
         TICK_TO_US(gNB->dlsch_interleaving_stats),
         TICK_TO_US(gNB->rx_dft_stats));
-  LOG_D(PHY," ulsch[ch:%lld freq:%lld dec:%lld demod:%lld ru:%lld ",
+  LOG_X(PHY," ulsch[ch:%lld freq:%lld dec:%lld demod:%lld ru:%lld ",
         TICK_TO_US(gNB->ulsch_channel_estimation_stats),
         TICK_TO_US(gNB->ulsch_freq_offset_estimation_stats),
         TICK_TO_US(gNB->ulsch_decoding_stats),
         TICK_TO_US(gNB->ulsch_demodulation_stats),
         TICK_TO_US(gNB->ulsch_rate_unmatching_stats));
-  LOG_D(PHY, "td:%lld dei:%lld dem:%lld llr:%lld tci:%lld ",
+  LOG_X(PHY, "td:%lld dei:%lld dem:%lld llr:%lld tci:%lld ",
         TICK_TO_US(gNB->ulsch_turbo_decoding_stats),
         TICK_TO_US(gNB->ulsch_deinterleaving_stats),
         TICK_TO_US(gNB->ulsch_demultiplexing_stats),
         TICK_TO_US(gNB->ulsch_llr_stats),
         TICK_TO_US(gNB->ulsch_tc_init_stats));
-  LOG_D(PHY, "tca:%lld tcb:%lld tcg:%lld tce:%lld l1:%lld l2:%lld]\n\n",
+  LOG_X(PHY, "tca:%lld tcb:%lld tcg:%lld tce:%lld l1:%lld l2:%lld]\n\n",
         TICK_TO_US(gNB->ulsch_tc_alpha_stats),
         TICK_TO_US(gNB->ulsch_tc_beta_stats),
         TICK_TO_US(gNB->ulsch_tc_gamma_stats),

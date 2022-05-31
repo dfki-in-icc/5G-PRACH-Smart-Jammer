@@ -94,7 +94,7 @@ void prach_procedures(PHY_VARS_eNB *eNB,
            frame,
            0,br_flag
           );
-  LOG_D(PHY,"[RAPROC] Frame %d, subframe %d : BR %d  Most likely preamble %d, energy %d dB delay %d (prach_energy counter %d), threshold %d, I0 %d\n",
+  LOG_X(PHY,"[RAPROC] Frame %d, subframe %d : BR %d  Most likely preamble %d, energy %d dB delay %d (prach_energy counter %d), threshold %d, I0 %d\n",
         frame,subframe,br_flag,
         max_preamble[0],
         max_preamble_energy[0]/10,
@@ -144,7 +144,7 @@ void prach_procedures(PHY_VARS_eNB *eNB,
   } else {
     if ((eNB->prach_energy_counter == 100) &&
         (max_preamble_energy[0] > eNB->measurements.prach_I0+eNB->prach_DTX_threshold)) {
-      LOG_D(PHY,"[eNB %d/%d][RAPROC] Frame %d, subframe %d Initiating RA procedure with preamble %d, energy %d.%d dB, delay %d\n",
+      LOG_X(PHY,"[eNB %d/%d][RAPROC] Frame %d, subframe %d Initiating RA procedure with preamble %d, energy %d.%d dB, delay %d\n",
             eNB->Mod_id,
             eNB->CC_id,
             frame,
@@ -169,7 +169,7 @@ void prach_procedures(PHY_VARS_eNB *eNB,
       eNB->preamble_list[0].instance_length                     = 0; //don't know exactly what this is
 
       if (NFAPI_MODE==NFAPI_MODE_PNF) {  // If NFAPI PNF then we need to send the message to the VNF
-        LOG_D(PHY,"Filling NFAPI indication for RACH : SFN_SF:%d TA %d, Preamble %d, rnti %x, rach_resource_type %d\n",
+        LOG_X(PHY,"Filling NFAPI indication for RACH : SFN_SF:%d TA %d, Preamble %d, rnti %x, rach_resource_type %d\n",
               NFAPI_SFNSF2DEC(eNB->UL_INFO.rach_ind.sfn_sf),
               eNB->preamble_list[0].preamble_rel8.timing_advance,
               eNB->preamble_list[0].preamble_rel8.preamble,
@@ -184,7 +184,7 @@ void prach_procedures(PHY_VARS_eNB *eNB,
     else {
       eNB->measurements.prach_I0 = ((eNB->measurements.prach_I0*900)>>10) + ((avg_preamble_energy[0]*124)>>10);
 
-      if (frame==0) LOG_D(PHY,"prach_I0 = %d.%d dB\n",eNB->measurements.prach_I0/10,eNB->measurements.prach_I0%10);
+      if (frame==0) LOG_X(PHY,"prach_I0 = %d.%d dB\n",eNB->measurements.prach_I0/10,eNB->measurements.prach_I0%10);
 
       if (eNB->prach_energy_counter < 100) eNB->prach_energy_counter++;
     }

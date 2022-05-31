@@ -195,7 +195,7 @@ int generate_pbch_fembms(LTE_eNB_PBCH *eNB_pbch,
   pbch_E  = (frame_parms->Ncp==NORMAL) ? 1920 : 1728; //RE/RB * #RB * bits/RB (QPSK)
   //  pbch_E_bytes = pbch_coded_bits>>3;
 
-  LOG_D(PHY,"%s(eNB_pbch:%p txdataF:%p amp:%d frame_parms:%p pbch_pdu:%p frame_mod4:%d)\n", __FUNCTION__, eNB_pbch, txdataF, amp, frame_parms, pbch_pdu, frame_mod4==0);
+  LOG_X(PHY,"%s(eNB_pbch:%p txdataF:%p amp:%d frame_parms:%p pbch_pdu:%p frame_mod4:%d)\n", __FUNCTION__, eNB_pbch, txdataF, amp, frame_parms, pbch_pdu, frame_mod4==0);
 
   if (frame_mod4==0) {
     bzero(pbch_a,PBCH_A>>3);
@@ -233,7 +233,7 @@ int generate_pbch_fembms(LTE_eNB_PBCH *eNB_pbch,
     //#ifdef DEBUG_PBCH
 
     for (i=0; i<(PBCH_A>>3); i++)
-      LOG_D(PHY,"[PBCH] pbch_data[%d] = %x\n",i,pbch_a[i]);
+      LOG_X(PHY,"[PBCH] pbch_data[%d] = %x\n",i,pbch_a[i]);
 
     //#endif
 
@@ -260,7 +260,7 @@ int generate_pbch_fembms(LTE_eNB_PBCH *eNB_pbch,
 #ifdef DEBUG_PBCH_ENCODING
 
     for (i=0; i<16+PBCH_A; i++)
-      LOG_D(PHY,"%d : (%d,%d,%d)\n",i,*(eNB_pbch->pbch_d+96+(3*i)),*(eNB_pbch->pbch_d+97+(3*i)),*(eNB_pbch->pbch_d+98+(3*i)));
+      LOG_X(PHY,"%d : (%d,%d,%d)\n",i,*(eNB_pbch->pbch_d+96+(3*i)),*(eNB_pbch->pbch_d+97+(3*i)),*(eNB_pbch->pbch_d+98+(3*i)));
 
 #endif //DEBUG_PBCH_ENCODING
 
@@ -289,19 +289,19 @@ int generate_pbch_fembms(LTE_eNB_PBCH *eNB_pbch,
       #endif //DEBUG_PBCH
     */
 #ifdef DEBUG_PBCH_ENCODING
-    LOG_D(PHY,"Doing PBCH interleaving for %d coded bits, e %p\n",pbch_D,eNB_pbch->pbch_e);
+    LOG_X(PHY,"Doing PBCH interleaving for %d coded bits, e %p\n",pbch_D,eNB_pbch->pbch_e);
 #endif
     RCC = sub_block_interleaving_cc(pbch_D,eNB_pbch->pbch_d+96,eNB_pbch->pbch_w);
 
     lte_rate_matching_cc(RCC,pbch_E,eNB_pbch->pbch_w,eNB_pbch->pbch_e);
 
 #ifdef DEBUG_PBCH_ENCODING
-    LOG_D(PHY,"PBCH_e:\n");
+    LOG_X(PHY,"PBCH_e:\n");
 
     for (i=0; i<pbch_E; i++)
-      LOG_D(PHY,"%d %d\n",i,*(eNB_pbch->pbch_e+i));
+      LOG_X(PHY,"%d %d\n",i,*(eNB_pbch->pbch_e+i));
 
-    LOG_D(PHY,"\n");
+    LOG_X(PHY,"\n");
 #endif
 
 
@@ -361,7 +361,7 @@ int generate_pbch_fembms(LTE_eNB_PBCH *eNB_pbch,
     }
 
 #ifdef DEBUG_PBCH
-    LOG_D(PHY,"[PBCH] l=%d, pilots=%d\n",l,pilots);
+    LOG_X(PHY,"[PBCH] l=%d, pilots=%d\n",l,pilots);
 #endif
 
 
@@ -371,7 +371,7 @@ int generate_pbch_fembms(LTE_eNB_PBCH *eNB_pbch,
     for (rb=0; rb<6; rb++) {
 
 #ifdef DEBUG_PBCH
-      LOG_D(PHY,"RB %d, jj %d, re_offset %d, symbol_offset %d, pilots %d, nushift %d\n",rb,jj,re_offset, symbol_offset, pilots,frame_parms->nushift);
+      LOG_X(PHY,"RB %d, jj %d, re_offset %d, symbol_offset %d, pilots %d, nushift %d\n",rb,jj,re_offset, symbol_offset, pilots,frame_parms->nushift);
 #endif
       allocate_pbch_REs_in_RB(frame_parms,
                               txdataF,
@@ -475,7 +475,7 @@ int generate_pbch(LTE_eNB_PBCH *eNB_pbch,
   pbch_E  = (frame_parms->Ncp==NORMAL) ? 1920 : 1728; //RE/RB * #RB * bits/RB (QPSK)
   //  pbch_E_bytes = pbch_coded_bits>>3;
 
-  LOG_D(PHY,"%s(eNB_pbch:%p txdataF:%p amp:%d frame_parms:%p pbch_pdu:%p frame_mod4:%d)\n", __FUNCTION__, eNB_pbch, txdataF, amp, frame_parms, pbch_pdu, frame_mod4==0);
+  LOG_X(PHY,"%s(eNB_pbch:%p txdataF:%p amp:%d frame_parms:%p pbch_pdu:%p frame_mod4:%d)\n", __FUNCTION__, eNB_pbch, txdataF, amp, frame_parms, pbch_pdu, frame_mod4==0);
 
   if (frame_mod4==0) {
     bzero(pbch_a,PBCH_A>>3);
@@ -513,7 +513,7 @@ int generate_pbch(LTE_eNB_PBCH *eNB_pbch,
     //#ifdef DEBUG_PBCH
 
     for (i=0; i<(PBCH_A>>3); i++)
-      LOG_D(PHY,"[PBCH] pbch_data[%d] = %x\n",i,pbch_a[i]);
+      LOG_X(PHY,"[PBCH] pbch_data[%d] = %x\n",i,pbch_a[i]);
 
     //#endif
 
@@ -540,7 +540,7 @@ int generate_pbch(LTE_eNB_PBCH *eNB_pbch,
 #ifdef DEBUG_PBCH_ENCODING
 
     for (i=0; i<16+PBCH_A; i++)
-      LOG_D(PHY,"%d : (%d,%d,%d)\n",i,*(eNB_pbch->pbch_d+96+(3*i)),*(eNB_pbch->pbch_d+97+(3*i)),*(eNB_pbch->pbch_d+98+(3*i)));
+      LOG_X(PHY,"%d : (%d,%d,%d)\n",i,*(eNB_pbch->pbch_d+96+(3*i)),*(eNB_pbch->pbch_d+97+(3*i)),*(eNB_pbch->pbch_d+98+(3*i)));
 
 #endif //DEBUG_PBCH_ENCODING
 
@@ -569,19 +569,19 @@ int generate_pbch(LTE_eNB_PBCH *eNB_pbch,
       #endif //DEBUG_PBCH
     */
 #ifdef DEBUG_PBCH_ENCODING
-    LOG_D(PHY,"Doing PBCH interleaving for %d coded bits, e %p\n",pbch_D,eNB_pbch->pbch_e);
+    LOG_X(PHY,"Doing PBCH interleaving for %d coded bits, e %p\n",pbch_D,eNB_pbch->pbch_e);
 #endif
     RCC = sub_block_interleaving_cc(pbch_D,eNB_pbch->pbch_d+96,eNB_pbch->pbch_w);
 
     lte_rate_matching_cc(RCC,pbch_E,eNB_pbch->pbch_w,eNB_pbch->pbch_e);
 
 #ifdef DEBUG_PBCH_ENCODING
-    LOG_D(PHY,"PBCH_e:\n");
+    LOG_X(PHY,"PBCH_e:\n");
 
     for (i=0; i<pbch_E; i++)
-      LOG_D(PHY,"%d %d\n",i,*(eNB_pbch->pbch_e+i));
+      LOG_X(PHY,"%d %d\n",i,*(eNB_pbch->pbch_e+i));
 
-    LOG_D(PHY,"\n");
+    LOG_X(PHY,"\n");
 #endif
 
 
@@ -641,7 +641,7 @@ int generate_pbch(LTE_eNB_PBCH *eNB_pbch,
     }
 
 #ifdef DEBUG_PBCH
-    LOG_D(PHY,"[PBCH] l=%d, pilots=%d\n",l,pilots);
+    LOG_X(PHY,"[PBCH] l=%d, pilots=%d\n",l,pilots);
 #endif
 
 
@@ -651,7 +651,7 @@ int generate_pbch(LTE_eNB_PBCH *eNB_pbch,
     for (rb=0; rb<6; rb++) {
 
 #ifdef DEBUG_PBCH
-      LOG_D(PHY,"RB %d, jj %d, re_offset %d, symbol_offset %d, pilots %d, nushift %d\n",rb,jj,re_offset, symbol_offset, pilots,frame_parms->nushift);
+      LOG_X(PHY,"RB %d, jj %d, re_offset %d, symbol_offset %d, pilots %d, nushift %d\n",rb,jj,re_offset, symbol_offset, pilots,frame_parms->nushift);
 #endif
       allocate_pbch_REs_in_RB(frame_parms,
                               txdataF,

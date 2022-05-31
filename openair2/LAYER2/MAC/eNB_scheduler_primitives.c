@@ -526,7 +526,7 @@ pdcchalloc2ulframe(COMMON_channels_t *ccP,
     }
   }
 
-  LOG_D(PHY, "frame %d subframe %d: PUSCH frame = %d\n",
+  LOG_X(PHY, "frame %d subframe %d: PUSCH frame = %d\n",
         frame,
         n,
         ul_frame);
@@ -550,7 +550,7 @@ pdcchalloc2ulsubframe(COMMON_channels_t *ccP,
   else
     ul_subframe = ((n + 4) % 10);
 
-  LOG_D(PHY, "subframe %d: PUSCH subframe = %d\n",
+  LOG_X(PHY, "subframe %d: PUSCH subframe = %d\n",
         n,
         ul_subframe);
   return ul_subframe;

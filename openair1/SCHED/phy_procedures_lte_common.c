@@ -451,7 +451,7 @@ uint8_t get_reset_ack(LTE_DL_FRAME_PARMS *frame_parms,
     o_ACK[cw_idx] = harq_ack[subframe_dl0].ack;
     status = harq_ack[subframe_dl0].send_harq_status;
 
-    LOG_D(PHY,"dl subframe %d send_harq_status %d cw_idx %d, reset %d\n",subframe_dl0, status, cw_idx, do_reset);
+    LOG_X(PHY,"dl subframe %d send_harq_status %d cw_idx %d, reset %d\n",subframe_dl0, status, cw_idx, do_reset);
     if(do_reset)
     	harq_ack[subframe_dl0].send_harq_status = 0;
     //printf("get_ack: Getting ACK/NAK for PDSCH (subframe %d) => %d\n",subframe_dl,o_ACK[0]);
@@ -506,18 +506,18 @@ uint8_t get_reset_ack(LTE_DL_FRAME_PARMS *frame_parms,
 
       if (!do_reset && (subframe_ul < 10)) {
         if ((subframe_dl0 < 10) && (subframe_dl1 < 10)) {
-          LOG_D(PHY,"ul-sf#%d vDAI_UL[sf#%d]=%d Nbundled=%d: dlsf#%d ACK=%d harq_status=%d vDAI_DL=%d, dlsf#%d ACK=%d harq_status=%d vDAI_DL=%d, o_ACK[0]=%d status=%d\n",
+          LOG_X(PHY,"ul-sf#%d vDAI_UL[sf#%d]=%d Nbundled=%d: dlsf#%d ACK=%d harq_status=%d vDAI_DL=%d, dlsf#%d ACK=%d harq_status=%d vDAI_DL=%d, o_ACK[0]=%d status=%d\n",
               subframe_tx, subframe_ul, harq_ack[subframe_ul].vDAI_UL, status,
               subframe_dl0, harq_ack[subframe_dl0].ack, harq_ack[subframe_dl0].send_harq_status, harq_ack[subframe_dl0].vDAI_DL,
               subframe_dl1, harq_ack[subframe_dl1].ack, harq_ack[subframe_dl1].send_harq_status, harq_ack[subframe_dl1].vDAI_DL,
               o_ACK[cw_idx], status);
         } else if (subframe_dl0 < 10) {
-          LOG_D(PHY,"ul-sf#%d vDAI_UL[sf#%d]=%d Nbundled=%d: dlsf#%d ACK=%d status=%d vDAI_DL=%d, o_ACK[0]=%d status=%d\n",
+          LOG_X(PHY,"ul-sf#%d vDAI_UL[sf#%d]=%d Nbundled=%d: dlsf#%d ACK=%d status=%d vDAI_DL=%d, o_ACK[0]=%d status=%d\n",
               subframe_tx, subframe_ul, harq_ack[subframe_ul].vDAI_UL, status,
               subframe_dl0, harq_ack[subframe_dl0].ack, harq_ack[subframe_dl0].send_harq_status, harq_ack[subframe_dl0].vDAI_DL,
               o_ACK[cw_idx], status);
         }else if (subframe_dl1 < 10) {
-          LOG_D(PHY,"ul-sf#%d vDAI_UL[sf#%d]=%d Nbundled=%d: dlsf#%d ACK=%d status=%d vDAI_DL=%d, o_ACK[0]=%d status=%d\n",
+          LOG_X(PHY,"ul-sf#%d vDAI_UL[sf#%d]=%d Nbundled=%d: dlsf#%d ACK=%d status=%d vDAI_DL=%d, o_ACK[0]=%d status=%d\n",
               subframe_tx, subframe_ul, harq_ack[subframe_ul].vDAI_UL, status,
               subframe_dl1, harq_ack[subframe_dl1].ack, harq_ack[subframe_dl1].send_harq_status, harq_ack[subframe_dl1].vDAI_DL,
               o_ACK[cw_idx], status);
@@ -526,7 +526,7 @@ uint8_t get_reset_ack(LTE_DL_FRAME_PARMS *frame_parms,
 
       // reset ACK/NACK status
       if (do_reset) {
-        LOG_D(PHY,"ul-sf#%d ACK/NACK status resetting @ dci0-sf#%d, dci1x/2x-sf#%d, dci1x/2x-sf#%d\n", subframe_tx, subframe_ul, subframe_dl0, subframe_dl1);
+        LOG_X(PHY,"ul-sf#%d ACK/NACK status resetting @ dci0-sf#%d, dci1x/2x-sf#%d, dci1x/2x-sf#%d\n", subframe_tx, subframe_ul, subframe_dl0, subframe_dl1);
         if (subframe_ul < 10) {
           harq_ack[subframe_ul].vDAI_UL = 0xff;
         }
@@ -580,7 +580,7 @@ uint8_t get_reset_ack(LTE_DL_FRAME_PARMS *frame_parms,
       pN_bundled[0] = harq_ack[subframe_rx].vDAI_UL;
       status = harq_ack[subframe_dl0].send_harq_status + harq_ack[subframe_dl1].send_harq_status;
 
-      //LOG_D(PHY,"TDD Config3 UL Sfn %d, dl Sfn0 %d status %d o_Ack %d, dl Sfn1 %d status %d o_Ack %d subframe_rx %d N_bundled %d \n",
+      //LOG_X(PHY,"TDD Config3 UL Sfn %d, dl Sfn0 %d status %d o_Ack %d, dl Sfn1 %d status %d o_Ack %d subframe_rx %d N_bundled %d \n",
       //	  subframe_tx, subframe_dl0, harq_ack[subframe_dl0].send_harq_status,harq_ack[subframe_dl0].ack,
       //    subframe_dl1, harq_ack[subframe_dl1].send_harq_status,harq_ack[subframe_dl1].ack, subframe_rx, pN_bundled[0]);
       if (do_reset) {
@@ -631,7 +631,7 @@ uint8_t get_reset_ack(LTE_DL_FRAME_PARMS *frame_parms,
           pN_bundled[0] = harq_ack[subframe_rx].vDAI_UL;
           status = harq_ack[subframe_dl0].send_harq_status + harq_ack[subframe_dl1].send_harq_status + harq_ack[subframe_dl2].send_harq_status + harq_ack[subframe_dl3].send_harq_status;
 
-          LOG_D(PHY,"TDD Config3 UL Sfn %d, dl Sfn0 %d status %d o_Ack %d, dl Sfn1 %d status %d o_Ack %d dl Sfn2 %d status %d o_Ack %d dl Sfn3 %d status %d o_Ack %d subframe_rx %d N_bundled %d status %d\n",
+          LOG_X(PHY,"TDD Config3 UL Sfn %d, dl Sfn0 %d status %d o_Ack %d, dl Sfn1 %d status %d o_Ack %d dl Sfn2 %d status %d o_Ack %d dl Sfn3 %d status %d o_Ack %d subframe_rx %d N_bundled %d status %d\n",
                 subframe_tx, subframe_dl0, harq_ack[subframe_dl0].send_harq_status,harq_ack[subframe_dl0].ack,
               subframe_dl1, harq_ack[subframe_dl1].send_harq_status,harq_ack[subframe_dl1].ack,
               subframe_dl2, harq_ack[subframe_dl2].send_harq_status,harq_ack[subframe_dl2].ack,
@@ -851,7 +851,7 @@ dci_detect_mode_t dci_detect_mode_select(LTE_DL_FRAME_PARMS *frame_parms,uint8_t
     ret = Table_8_2_3gpp_36_213[frame_parms->tdd_config][subframe];
   }
 
-  LOG_D(PHY, "subframe %d: detect UL_DCI=%d, detect DL_DCI=%d\n", subframe, (ret & UL_DCI)>0, (ret & DL_DCI)>0);
+  LOG_X(PHY, "subframe %d: detect UL_DCI=%d, detect DL_DCI=%d\n", subframe, (ret & UL_DCI)>0, (ret & DL_DCI)>0);
   return ret;
 }
 
@@ -860,7 +860,7 @@ dci_detect_mode_t dci_detect_mode_select(LTE_DL_FRAME_PARMS *frame_parms,uint8_t
 uint8_t phich_subframe_to_harq_pid(LTE_DL_FRAME_PARMS *frame_parms,uint32_t frame,uint8_t subframe)
 {
 
-  LOG_D(PHY,"phich_subframe_to_harq_pid.c: frame %d, subframe %d\n",frame,subframe);
+  LOG_X(PHY,"phich_subframe_to_harq_pid.c: frame %d, subframe %d\n",frame,subframe);
   return(subframe2harq_pid(frame_parms,
                            phich_frame2_pusch_frame(frame_parms,frame,subframe),
                            phich_subframe2_pusch_subframe(frame_parms,subframe)));
@@ -957,7 +957,7 @@ int is_srs_occasion_common(LTE_DL_FRAME_PARMS *frame_parms,int frame_tx,int subf
   if(frame_parms->soundingrs_ul_config_common.enabled_flag)
   {
 
-    //LOG_D(PHY," SRS SUBFRAMECONFIG: %d\n", frame_parms->soundingrs_ul_config_common.srs_SubframeConfig);
+    //LOG_X(PHY," SRS SUBFRAMECONFIG: %d\n", frame_parms->soundingrs_ul_config_common.srs_SubframeConfig);
 
       uint8_t  TSFC;
       uint16_t deltaTSFC; // bitmap
@@ -988,9 +988,9 @@ int is_srs_occasion_common(LTE_DL_FRAME_PARMS *frame_parms,int frame_tx,int subf
           // This is a Sounding reference signal subframes
           isSubframeSRS = 1;
       }
-      LOG_D(PHY," ISTDD: %d, TSFC: %d, deltaTSFC: %d, AbsSubframeTX: %d.%d\n", frame_parms->frame_type, TSFC, deltaTSFC, frame_tx, subframe_tx);
+      LOG_X(PHY," ISTDD: %d, TSFC: %d, deltaTSFC: %d, AbsSubframeTX: %d.%d\n", frame_parms->frame_type, TSFC, deltaTSFC, frame_tx, subframe_tx);
   }
-  //LOG_D(PHY," isSubframeSRS %d\n", isSubframeSRS);
+  //LOG_X(PHY," isSubframeSRS %d\n", isSubframeSRS);
   return(isSubframeSRS);
 }
 

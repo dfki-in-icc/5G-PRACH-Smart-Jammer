@@ -133,7 +133,7 @@ int16_t get_index_for_dmrs_lowpapr_seq(int16_t num_dmrs_res) {
       break;
   }
 
-  LOG_D(PHY, "num_dmrs_res: %d    INDEX RETURNED:  %d", num_dmrs_res, index);
+  LOG_X(PHY, "num_dmrs_res: %d    INDEX RETURNED:  %d", num_dmrs_res, index);
 
   return index;
 }

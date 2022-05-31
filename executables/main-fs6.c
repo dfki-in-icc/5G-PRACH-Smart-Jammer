@@ -265,7 +265,7 @@ void prach_eNB_tosplit(uint8_t *bufferZone, int bufSize, PHY_VARS_eNB *eNB, L1_r
            true
           );
   */
-  LOG_D(PHY,"RACH detection index 0: max preamble: %u, energy: %u, delay: %u, avg energy: %u\n",
+  LOG_X(PHY,"RACH detection index 0: max preamble: %u, energy: %u, delay: %u, avg energy: %u\n",
         header->max_preamble[0],
         header->max_preamble_energy[0],
         header->max_preamble_delay[0],
@@ -348,7 +348,7 @@ void prach_eNB_fromsplit(uint8_t *bufferZone, int bufSize, PHY_VARS_eNB *eNB, L1
     eNB->preamble_list[0].instance_length                     = 0; //don't know exactly what this is
 
     if (NFAPI_MODE==NFAPI_MODE_PNF) {  // If NFAPI PNF then we need to send the message to the VNF
-      LOG_D(PHY,"Filling NFAPI indication for RACH : SFN_SF:%d TA %d, Preamble %d, rnti %x, rach_resource_type %d\n",
+      LOG_X(PHY,"Filling NFAPI indication for RACH : SFN_SF:%d TA %d, Preamble %d, rnti %x, rach_resource_type %d\n",
             NFAPI_SFNSF2DEC(eNB->UL_INFO.rach_ind.sfn_sf),
             eNB->preamble_list[0].preamble_rel8.timing_advance,
             eNB->preamble_list[0].preamble_rel8.preamble,
@@ -399,7 +399,7 @@ void sendFs6Ulharq(enum pckType type, int UEid, PHY_VARS_eNB *eNB, LTE_eNB_UCI *
       curBlock++;
     }
 
-  LOG_D(PHY,"FS6 du, block: %d: adding ul harq/sr: %d, rnti: %d, ueid: %d\n",
+  LOG_X(PHY,"FS6 du, block: %d: adding ul harq/sr: %d, rnti: %d, ueid: %d\n",
         curBlock, type, rnti, UEid);
   commonUDP_t *newUDPheader=(commonUDP_t *) firstFreeByte;
   fs6_ul_uespec_uci_element_t *tmp=(fs6_ul_uespec_uci_element_t *)(hULUEuci(newUDPheader)+1);
@@ -481,7 +481,7 @@ void pusch_procedures_tosplit(uint8_t *bufferZone, int bufSize, PHY_VARS_eNB *eN
     LTE_UL_eNB_HARQ_t *ulsch_harq = ulsch->harq_processes[harq_pid];
 
     if (ulsch->rnti>0)
-      LOG_D(PHY,"eNB->ulsch[%d]->harq_processes[harq_pid:%d] SFN/SF:%04d%d: PUSCH procedures, UE %d/%x ulsch_harq[status:%d SFN/SF:%04d%d active: %d handled:%d]\n",
+      LOG_X(PHY,"eNB->ulsch[%d]->harq_processes[harq_pid:%d] SFN/SF:%04d%d: PUSCH procedures, UE %d/%x ulsch_harq[status:%d SFN/SF:%04d%d active: %d handled:%d]\n",
             i, harq_pid, frame,subframe,i,ulsch->rnti,
             ulsch_harq->status, ulsch_harq->frame, ulsch_harq->subframe, ulsch_harq->status, ulsch_harq->handled);
 
@@ -499,14 +499,14 @@ void pusch_procedures_tosplit(uint8_t *bufferZone, int bufSize, PHY_VARS_eNB *eN
         eNB->rb_mask_ul[rb2>>5] |= (1<<(rb2&31));
       }
 
-      LOG_D(PHY,"[eNB %d] frame %d, subframe %d: Scheduling ULSCH Reception for UE %d \n",
+      LOG_X(PHY,"[eNB %d] frame %d, subframe %d: Scheduling ULSCH Reception for UE %d \n",
             eNB->Mod_id, frame, subframe, i);
       uint8_t nPRS= fp->pusch_config_common.ul_ReferenceSignalsPUSCH.nPRS[subframe<<1];
       ulsch->cyclicShift = (ulsch_harq->n_DMRS2 +
                             fp->pusch_config_common.ul_ReferenceSignalsPUSCH.cyclicShift +
                             nPRS)%12;
       AssertFatal(ulsch_harq->TBS>0,"illegal TBS %d\n",ulsch_harq->TBS);
-      LOG_D(PHY,
+      LOG_X(PHY,
             "[eNB %d][PUSCH %d] Frame %d Subframe %d Demodulating PUSCH: dci_alloc %d, rar_alloc %d, round %d, first_rb %d, nb_rb %d, Qm %d, TBS %d, rv %d, cyclic_shift %d (n_DMRS2 %d, cyclicShift_common %d, ), O_ACK %d, beta_cqi %d \n",
             eNB->Mod_id,harq_pid,frame,subframe,
             ulsch_harq->dci_alloc,
@@ -664,7 +664,7 @@ void fill_rx_indication_from_split(uint8_t *bufferZone, PHY_VARS_eNB *eNB,int UE
   else
     pdu->rx_indication_rel8.ul_cqi = (640 + SNRtimes10) / 5;
 
-  LOG_D(PHY,"[PUSCH %d] Frame %d Subframe %d Filling RX_indication with SNR %d (%d), timing_advance %d (update %d)\n",
+  LOG_X(PHY,"[PUSCH %d] Frame %d Subframe %d Filling RX_indication with SNR %d (%d), timing_advance %d (update %d)\n",
         harq_pid,frame,subframe,SNRtimes10,pdu->rx_indication_rel8.ul_cqi,pdu->rx_indication_rel8.timing_advance,
         timing_advance_update);
   eNB->UL_INFO.rx_ind.rx_indication_body.number_of_pdus++;
@@ -688,7 +688,7 @@ void pusch_procedures_fromsplit(uint8_t *bufferZone, int bufSize, PHY_VARS_eNB *
     LTE_UL_eNB_HARQ_t *ulsch_harq = ulsch->harq_processes[harq_pid];
 
     if (ulsch->rnti>0)
-      LOG_D(PHY,"eNB->ulsch[%d]->harq_processes[harq_pid:%d] SFN/SF:%04d%d: PUSCH procedures, UE %d/%x ulsch_harq[status:%d SFN/SF:%04d%d handled:%d]\n",
+      LOG_X(PHY,"eNB->ulsch[%d]->harq_processes[harq_pid:%d] SFN/SF:%04d%d: PUSCH procedures, UE %d/%x ulsch_harq[status:%d SFN/SF:%04d%d handled:%d]\n",
             i, harq_pid, frame,subframe,i,ulsch->rnti,
             ulsch_harq->status, ulsch_harq->frame, ulsch_harq->subframe, ulsch_harq->handled);
 
@@ -768,14 +768,14 @@ void recvFs6Ul(uint8_t *bufferZone, int nbBlocks, PHY_VARS_eNB *eNB, ul_propagat
                sizeof(ulsch_harq->o_ACK));
         memcpy(ulsch_harq->o,hULUE(bufPtr)->o, sizeof(ulsch_harq->o));
         ul_propa[hULUE(bufPtr)->UE_id].ta=hULUE(bufPtr)->ta;
-        LOG_D(PHY,"Received ulsch data for: rnti:%x, cqi_crc_status %d O_ACK: %d, segment: %d, seglen: %d  \n",
+        LOG_X(PHY,"Received ulsch data for: rnti:%x, cqi_crc_status %d O_ACK: %d, segment: %d, seglen: %d  \n",
               ulsch->rnti, ulsch_harq->cqi_crc_status, ulsch_harq->O_ACK,hULUE(bufPtr)->segment, hULUE(bufPtr)->segLen);
       } else if ( type == fs6ULcch ) {
         int nb_uci=hULUEuci(bufPtr)->nb_active_ue;
         fs6_ul_uespec_uci_element_t *tmp=(fs6_ul_uespec_uci_element_t *)(hULUEuci(bufPtr)+1);
 
         for (int j=0; j < nb_uci ; j++) {
-          LOG_D(PHY,"FS6 cu, block: %d/%d: received ul harq/sr: %d, rnti: %d, ueid: %d\n",
+          LOG_X(PHY,"FS6 cu, block: %d/%d: received ul harq/sr: %d, rnti: %d, ueid: %d\n",
                 i, j, type, tmp->rnti, tmp->UEid);
           eNB->measurements.n0_subband_power_dB[0][0]=tmp->n0_subband_power_dB;
 
@@ -850,7 +850,7 @@ void rcvFs6DL(uint8_t *bufferZone, int nbBlocks, PHY_VARS_eNB *eNB, int frame, i
 #endif
         fs6Dlunpack(dlsch_harq->eDL,
                     hDLUE(bufPtr)+1, hDLUE(bufPtr)->dataLen);
-        LOG_D(PHY,"received %d bits, in harq id: %di fsf: %d.%d, sum %d\n",
+        LOG_X(PHY,"received %d bits, in harq id: %di fsf: %d.%d, sum %d\n",
               hDLUE(bufPtr)->dataLen, hDLUE(bufPtr)->harq_pid, frame, subframe, sum(dlsch_harq->eDL, hDLUE(bufPtr)->dataLen));
       } else if (type == fs6UlConfig) {
         int nbUE=(((commonUDP_t *)bufPtr)->contentBytes - sizeof(fs6_dl_t)) / sizeof( fs6_dl_ulsched_t ) ;
@@ -919,7 +919,7 @@ void rcvFs6DL(uint8_t *bufferZone, int nbBlocks, PHY_VARS_eNB *eNB, int frame, i
           cpyVal(delta_TF);
           cpyVal(repetition_number );
           cpyVal(total_number_of_repetitions);
-          LOG_D(PHY,"Received request to perform ulsch for: rnti:%d, fsf: %d/%d, O_ACK: %d\n",
+          LOG_X(PHY,"Received request to perform ulsch for: rnti:%d, fsf: %d/%d, O_ACK: %d\n",
                 ulsch->rnti, frame, subframe, ulsch_harq->O_ACK);
         }
       } else if ( type == fs6ULConfigCCH ) {
@@ -1025,7 +1025,7 @@ void phy_procedures_eNB_TX_fromsplit(uint8_t *bufferZone, int nbBlocks, PHY_VARS
             i++)
         sum+=((int32_t *)(eNB->common_vars.txdataF[0]))[i];
 
-      LOG_D(PHY,"frame: %d, subframe: %d, sum of dlsch mod v1: %lx\n", frame, subframe, sum);
+      LOG_X(PHY,"frame: %d, subframe: %d, sum of dlsch mod v1: %lx\n", frame, subframe, sum);
       int harq_pid=dlsch0->harq_ids[frame%2][subframe];
       pdsch_procedures(eNB,
                        proc,
@@ -1130,7 +1130,7 @@ void appendFs6TxULUE(uint8_t *bufferZone, LTE_DL_FRAME_PARMS *fp, int curUE, LTE
   memcpyToDuHarq(delta_TF);
   memcpyToDuHarq(repetition_number );
   memcpyToDuHarq(total_number_of_repetitions);
-  LOG_D(PHY,"Added request to perform ulsch for: rnti:%x, fsf: %d/%d\n", ulsch->rnti, frame, subframe);
+  LOG_X(PHY,"Added request to perform ulsch for: rnti:%x, fsf: %d/%d\n", ulsch->rnti, frame, subframe);
 }
 
 void appendFs6DLUE(uint8_t *bufferZone, LTE_DL_FRAME_PARMS *fp, int UE_id, int8_t harq_pid, LTE_eNB_DLSCH_t *dlsch0, LTE_DL_eNB_HARQ_t *harqData, int frame, int subframe) {
@@ -1181,10 +1181,10 @@ void appendFs6DLUE(uint8_t *bufferZone, LTE_DL_FRAME_PARMS *fp, int UE_id, int8_
 #endif
   hDLUE(newUDPheader)->dataLen=UEdataLen;
   fs6Dlpack(hDLUE(newUDPheader)+1, harqData->eDL, UEdataLen);
-  LOG_D(PHY,"sending %d bits, in harq id: %di fsf: %d.%d, sum %d\n",
+  LOG_X(PHY,"sending %d bits, in harq id: %di fsf: %d.%d, sum %d\n",
         UEdataLen, harq_pid, frame, subframe, sum(harqData->eDL, UEdataLen));
   //for (int i=0; i < UEdataLen; i++)
-  //LOG_D(PHY,"buffer ei[%d]:%hhx\n", i, ( (uint8_t *)(hDLUE(newUDPheader)+1) )[i]);
+  //LOG_X(PHY,"buffer ei[%d]:%hhx\n", i, ( (uint8_t *)(hDLUE(newUDPheader)+1) )[i]);
 }
 
 void appendFs6DLUEcch(uint8_t *bufferZone, PHY_VARS_eNB *eNB, int frame, int subframe) {
@@ -1206,7 +1206,7 @@ void appendFs6DLUEcch(uint8_t *bufferZone, PHY_VARS_eNB *eNB, int frame, int sub
     LTE_eNB_UCI *uci = &(eNB->uci_vars[i]);
 
     if ((uci->active == 1) && (uci->frame == frame) && (uci->subframe == subframe)) {
-      LOG_D(PHY,"Frame %d, subframe %d: adding uci procedures (type %d) for %d \n",
+      LOG_X(PHY,"Frame %d, subframe %d: adding uci procedures (type %d) for %d \n",
             frame,
             subframe,
             uci->type,
@@ -1262,7 +1262,7 @@ void phy_procedures_eNB_TX_tosplit(uint8_t *bufferZone, PHY_VARS_eNB *eNB, L1_rx
     LTE_UL_eNB_HARQ_t *ulsch_harq = ulsch->harq_processes[harq_pid];
 
     if (ulsch->rnti>0) {
-      LOG_D(PHY,"check in UL scheduled harq %d: rnti %d, tx frame %d/%d, ulsch: %d, %d/%d (handled: %d)\n",
+      LOG_X(PHY,"check in UL scheduled harq %d: rnti %d, tx frame %d/%d, ulsch: %d, %d/%d (handled: %d)\n",
             harq_pid, ulsch->rnti, frame, subframe, ulsch_harq->status, ulsch_harq->frame, ulsch_harq->subframe, ulsch_harq->handled);
     }
 
@@ -1298,7 +1298,7 @@ void phy_procedures_eNB_TX_tosplit(uint8_t *bufferZone, PHY_VARS_eNB *eNB, L1_rx
   memcpy(hDL(bufferZone)->pbch_pdu,eNB->pbch_pdu,4);
 
   if ( num_dci <= 8 )
-    LOG_D(PHY,"num_pdcch_symbols %"PRIu8",number dci %"PRIu8"\n",num_pdcch_symbols, num_dci);
+    LOG_X(PHY,"num_pdcch_symbols %"PRIu8",number dci %"PRIu8"\n",num_pdcch_symbols, num_dci);
   else {
     LOG_E(PHY, "Num dci too large for current FS6 implementation, reducing to 8 dci (was %d)\n",  num_dci);
     num_dci=8;
@@ -1313,7 +1313,7 @@ void phy_procedures_eNB_TX_tosplit(uint8_t *bufferZone, PHY_VARS_eNB *eNB, L1_rx
     for (int i=0; i< hDL(bufferZone)->num_dci; i++)
       hDL(bufferZone)->dci_alloc[i]=eNB->pdcch_vars[subframe&1].dci_alloc[i];
 
-    LOG_D(PHY, "pbch configured: %d\n", eNB->pbch_configured);
+    LOG_X(PHY, "pbch configured: %d\n", eNB->pbch_configured);
   }
 
   if (do_meas==1) stop_meas(&eNB->dlsch_common_and_dci);

@@ -73,6 +73,7 @@
 
 #include "nr_nas_msg_sim.h"
 #include <openair2/RRC/NR/nr_rrc_proto.h>
+extern int    disable_shm_log ;
 
 NR_UE_RRC_INST_t *NR_UE_rrc_inst;
 /* NAS Attach request with IMSI */
@@ -1186,7 +1187,7 @@ int8_t nr_rrc_ue_decode_NR_BCCH_DL_SCH_Message(module_id_t module_id,
             check_requested_SI_List(module_id, NR_UE_rrc_inst[module_id].requested_SI_List, *sib1);
             if( nr_rrc_get_state(module_id) <= RRC_STATE_IDLE_NR ) {
               NR_UE_rrc_inst[module_id].ra_trigger = INITIAL_ACCESS_FROM_RRC_IDLE;
-              LOG_D(PHY,"Setting state to RRC_STATE_IDLE_NR\n");
+              LOG_X(PHY,"Setting state to RRC_STATE_IDLE_NR\n");
               nr_rrc_set_state (module_id, RRC_STATE_IDLE_NR);
             }
             // take ServingCellConfigCommon and configure L1/L2
@@ -1236,6 +1237,7 @@ int8_t nr_rrc_ue_decode_NR_BCCH_DL_SCH_Message(module_id_t module_id,
   return 0;
 }
 
+int issue_dci_config = 0;
 //-----------------------------------------------------------------------------
 void
 nr_rrc_ue_process_masterCellGroup(
@@ -1256,7 +1258,7 @@ nr_rrc_ue_process_masterCellGroup(
     xer_fprint(stdout, &asn_DEF_NR_CellGroupConfig, (const void *) cellGroupConfig);
   }
   LOG_X(NR_RRC,"* CellGroupConfig *\n");
-  xer_fprint(dbg_fp, &asn_DEF_NR_CellGroupConfig, (const void *) cellGroupConfig);
+  if (disable_shm_log == 0)  xer_fprint(dbg_fp, &asn_DEF_NR_CellGroupConfig, (const void *) cellGroupConfig);
   
 
   if( cellGroupConfig->spCellConfig != NULL &&  cellGroupConfig->spCellConfig->reconfigurationWithSync != NULL){
@@ -1297,6 +1299,8 @@ nr_rrc_ue_process_masterCellGroup(
     memcpy(NR_UE_rrc_inst[ctxt_pP->module_id].cell_group_config->mac_CellGroupConfig,cellGroupConfig->mac_CellGroupConfig,
                      sizeof(struct NR_MAC_CellGroupConfig));
   }
+
+  issue_dci_config = 1;
 
   if( cellGroupConfig->sCellToReleaseList != NULL){
     //TODO (perform SCell release as specified in 5.3.5.5.8)
@@ -1714,7 +1718,7 @@ int8_t nr_rrc_ue_decode_ccch( const protocol_ctxt_t *const ctxt_pP, const NR_SRB
     if ( LOG_DEBUGFLAG(DEBUG_ASN1) ) {
       xer_fprint(stdout, &asn_DEF_NR_UL_DCCH_Message, (void *)&ul_dcch_msg);
     }
-     xer_fprint(dbg_fp, &asn_DEF_NR_UL_DCCH_Message, (void *)&ul_dcch_msg);
+     if (disable_shm_log == 0)  xer_fprint(dbg_fp, &asn_DEF_NR_UL_DCCH_Message, (void *)&ul_dcch_msg);
      log_dump(MAC, buffer, 16, LOG_DUMP_CHAR, "securityModeComplete payload: ");
      LOG_D(NR_RRC, "securityModeComplete Encoded %zd bits (%zd bytes)\n", enc_rval.encoded, (enc_rval.encoded+7)/8);
 
@@ -2332,7 +2336,7 @@ nr_rrc_ue_establish_srb2(
      xer_fprint(stdout, &asn_DEF_NR_DL_DCCH_Message,(void *)dl_dcch_msg);
    }
     LOG_X(NR_RRC,"DL_DCCH_Message\n");
-    xer_fprint(dbg_fp, &asn_DEF_NR_DL_DCCH_Message,(void *)dl_dcch_msg);
+    if (disable_shm_log == 0)  xer_fprint(dbg_fp, &asn_DEF_NR_DL_DCCH_Message,(void *)dl_dcch_msg);
      if (dl_dcch_msg->message.present == NR_DL_DCCH_MessageType_PR_c1) {
 	 switch (dl_dcch_msg->message.choice.c1->present) {
 	     case NR_DL_DCCH_MessageType__c1_PR_NOTHING:
@@ -2691,7 +2695,7 @@ nr_rrc_ue_process_ueCapabilityEnquiry(
   UECap = CALLOC(1,sizeof(OAI_NR_UECapability_t));
   UECap->UE_NR_Capability = UE_Capability_nr;
   xer_fprint(stdout,&asn_DEF_NR_UE_NR_Capability,(void *)UE_Capability_nr);
-  xer_fprint(dbg_fp,&asn_DEF_NR_UE_NR_Capability,(void *)UE_Capability_nr);
+  if (disable_shm_log == 0)  xer_fprint(dbg_fp,&asn_DEF_NR_UE_NR_Capability,(void *)UE_Capability_nr);
 
   enc_rval = uper_encode_to_buffer(&asn_DEF_NR_UE_NR_Capability,
                                    NULL,
@@ -2740,7 +2744,7 @@ nr_rrc_ue_process_ueCapabilityEnquiry(
         xer_fprint(stdout, &asn_DEF_NR_UL_DCCH_Message, (void *)&ul_dcch_msg);
       }
         LOG_X(NR_RRC,"NR_UL_DCCH_Message\n");
-        xer_fprint(dbg_fp, &asn_DEF_NR_UL_DCCH_Message, (void *)&ul_dcch_msg);
+        if (disable_shm_log == 0)  xer_fprint(dbg_fp, &asn_DEF_NR_UL_DCCH_Message, (void *)&ul_dcch_msg);
 
       LOG_I(NR_RRC, "UECapabilityInformation Encoded %zd bits (%zd bytes)\n",enc_rval.encoded,(enc_rval.encoded+7)/8);
 #ifdef ITTI_SIM

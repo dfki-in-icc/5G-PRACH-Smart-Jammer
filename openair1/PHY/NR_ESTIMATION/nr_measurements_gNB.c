@@ -110,7 +110,7 @@ void gNB_I0_measurements(PHY_VARS_gNB *gNB,int slot, int first_symb,int num_symb
   int rb, offset, offset0, nb_symb[275], len;
   int32_t *ul_ch;
 
-  LOG_D(PHY,"slot %d Doing I0 for first_symb %d, num_symb %d\n",slot,first_symb,num_symb);
+  LOG_X(PHY,"slot %d Doing I0 for first_symb %d, num_symb %d\n",slot,first_symb,num_symb);
   for (int s=first_symb;s<(first_symb+num_symb);s++) {
     for (rb=0; rb<frame_parms->N_RB_UL; rb++) {
 
@@ -154,7 +154,7 @@ void gNB_I0_measurements(PHY_VARS_gNB *gNB,int slot, int first_symb,int num_symb
       n0_subband_tot_perPRB/=frame_parms->nb_antennas_rx;
       measurements->n0_subband_power_tot_dB[rb] = dB_fixed(n0_subband_tot_perPRB);
       measurements->n0_subband_power_tot_dBm[rb] = measurements->n0_subband_power_tot_dB[rb] - gNB->rx_total_gain_dB - dB_fixed(frame_parms->N_RB_UL);
-      LOG_D(PHY,"n0_subband_power_tot_dB[%d] => %d, over %d symbols\n",rb,measurements->n0_subband_power_tot_dB[rb],nb_symb[rb]);
+      LOG_X(PHY,"n0_subband_power_tot_dB[%d] => %d, over %d symbols\n",rb,measurements->n0_subband_power_tot_dB[rb],nb_symb[rb]);
       n0_subband_tot += n0_subband_tot_perPRB;
       nb_rb++;
     }
@@ -204,7 +204,7 @@ void nr_gnb_measurements(PHY_VARS_gNB *gNB, uint8_t ulsch_id, unsigned char harq
       rx_power[ulsch_id][aarx] += meas->rx_spatial_power[ulsch_id][aatx][aarx];
 
     }
-    LOG_D(PHY, "[ULSCH ID %d] RX power in antenna %d = %d\n", ulsch_id, aarx, rx_power[ulsch_id][aarx]);
+    LOG_X(PHY, "[ULSCH ID %d] RX power in antenna %d = %d\n", ulsch_id, aarx, rx_power[ulsch_id][aarx]);
 
     rx_power_tot[ulsch_id] += rx_power[ulsch_id][aarx];
 
@@ -216,7 +216,7 @@ void nr_gnb_measurements(PHY_VARS_gNB *gNB, uint8_t ulsch_id, unsigned char harq
   meas->wideband_cqi_tot[ulsch_id] = dB_fixed2(rx_power_tot[ulsch_id], meas->n0_power_tot);
   meas->rx_rssi_dBm[ulsch_id] = rx_power_avg_dB[ulsch_id] + 30 - 10 * log10(pow(2, 30)) - (rx_gain - rx_gain_offset) - dB_fixed(fp->ofdm_symbol_size);
 
-  LOG_D(PHY, "[ULSCH %d] RSSI %d dBm/RE, RSSI (digital) %d dB (N_RB_UL %d), WBand CQI tot %d dB, N0 Power tot %d, RX Power tot %d\n",
+  LOG_X(PHY, "[ULSCH %d] RSSI %d dBm/RE, RSSI (digital) %d dB (N_RB_UL %d), WBand CQI tot %d dB, N0 Power tot %d, RX Power tot %d\n",
     ulsch_id,
     meas->rx_rssi_dBm[ulsch_id],
     rx_power_avg_dB[ulsch_id],

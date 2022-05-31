@@ -1277,8 +1277,8 @@ int main(int argc, char **argv)
 	   ((gNB_dlsch->harq_process.f[i] == 1) && (UE_llr[i] >= 0)))
 	  {
 	    if(errors_scrambling == 0) {
-	      LOG_D(PHY,"\n");
-	      LOG_D(PHY,"First bit in error in unscrambling = %d\n",i);
+	      LOG_X(PHY,"\n");
+	      LOG_X(PHY,"First bit in error in unscrambling = %d\n",i);
 	    }
 	    errors_scrambling++;
 	  }
@@ -1292,7 +1292,7 @@ int main(int argc, char **argv)
 	
 	if (estimated_output_bit[i] != test_input_bit[i]) {
 	  if(errors_bit == 0)
-	    LOG_D(PHY,"First bit in error in decoding = %d (errors scrambling %d)\n",i,errors_scrambling);
+	    LOG_X(PHY,"First bit in error in decoding = %d (errors scrambling %d)\n",i,errors_scrambling);
 	  errors_bit++;
 	}
 	

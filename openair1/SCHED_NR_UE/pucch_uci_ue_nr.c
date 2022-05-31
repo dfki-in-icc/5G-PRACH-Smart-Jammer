@@ -241,7 +241,7 @@ void pucch_procedures_ue_nr(PHY_VARS_NR_UE *ue,
       tx_amp = AMP;
 
 
-      LOG_D(PHY,"Generation of PUCCH format %d at frame.slot %d.%d\n",pucch_pdu->format_type,proc->frame_tx,nr_slot_tx);
+      LOG_X(PHY,"Generation of PUCCH format %d at frame.slot %d.%d\n",pucch_pdu->format_type,proc->frame_tx,nr_slot_tx);
 
       switch(pucch_pdu->format_type) {
         case 0:

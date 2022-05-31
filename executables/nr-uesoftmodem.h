@@ -40,7 +40,8 @@
     /* L5G_IOT */\
     {"enable_prometheus",        CONFIG_HLP_EN_PROM,     PARAMFLAG_BOOL,  strptr:(char **)&prometheus_en_flag,      defstrval:0,     TYPE_INT, 0}, \
     {"prometheus_port",          CONFIG_HLP_PROM_PORT,   0,               strptr:(uint32_t*)&prometheus_port,       defuintval:1234, TYPE_UINT32, 0}, \
-    {"parallel_pull",            CONFIG_HLP_PARA_PULL,   PARAMFLAG_BOOL,  strptr:(char **)&para_pull_flag,          defstrval:0,     TYPE_INT, 0} \
+    {"parallel_pull",            CONFIG_HLP_PARA_PULL,   PARAMFLAG_BOOL,  strptr:(char **)&para_pull_flag,          defstrval:0,     TYPE_INT, 0}, \
+    {"disable-shm-log",          CONFIG_HLP_DIS_SHMLOG,  PARAMFLAG_BOOL,  strptr:(char **)&shm_log_disable_flag,    defstrval:0,     TYPE_INT, 0}, \
 }
 
 /*------------------------------------------------------------------------------------------------------------------------------------------*/

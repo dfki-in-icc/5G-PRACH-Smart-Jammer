@@ -262,7 +262,7 @@ void lte_eNB_I0_measurements_emul(PHY_VARS_eNB *eNB,
                                   uint8_t sect_id)
 {
 
-  LOG_D(PHY,"EMUL lte_eNB_IO_measurements_emul: eNB %d, sect %d\n",eNB->Mod_id,sect_id);
+  LOG_X(PHY,"EMUL lte_eNB_IO_measurements_emul: eNB %d, sect %d\n",eNB->Mod_id,sect_id);
 }
 
 

@@ -265,7 +265,7 @@ int dlsch_encoding_all(PHY_VARS_eNB *eNB,
     return(-1);
   }
   
-  LOG_D(PHY,"B %d, harq_pid %d\n",
+  LOG_X(PHY,"B %d, harq_pid %d\n",
 	dlsch->harq_processes[harq_pid]->B,
 	dlsch->harq_ids[frame%2][subframe]);
 

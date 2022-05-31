@@ -57,7 +57,7 @@ int nr_generate_pbch_dmrs(uint32_t *gold_pbch_dmrs,
   int16_t mod_dmrs[NR_PBCH_DMRS_LENGTH<<1];
   uint8_t idx=0;
   uint8_t nushift = config->cell_config.phy_cell_id.value &3;
-  LOG_D(PHY, "PBCH DMRS mapping started at symbol %d shift %d\n", ssb_start_symbol+1, nushift);
+  LOG_X(PHY, "PBCH DMRS mapping started at symbol %d shift %d\n", ssb_start_symbol+1, nushift);
 
   /// QPSK modulation
   for (int m=0; m<NR_PBCH_DMRS_LENGTH; m++) {
@@ -236,7 +236,7 @@ int nr_generate_pbch(nfapi_nr_dl_tti_ssb_pdu *ssb_pdu,
   uint8_t nushift;
   uint32_t unscrambling_mask;
   uint64_t a_reversed=0;
-  LOG_D(PHY, "PBCH generation started\n");
+  LOG_X(PHY, "PBCH generation started\n");
   ///Payload generation
   NR_gNB_PBCH m_pbch;
   NR_gNB_PBCH *pbch = &m_pbch;
@@ -267,7 +267,7 @@ int nr_generate_pbch(nfapi_nr_dl_tti_ssb_pdu *ssb_pdu,
   else
     pbch->pbch_a |= ((config->ssb_table.ssb_subcarrier_offset.value>>4)&1)<<29; //MSB of k_SSB (bit index 4)
 
-  LOG_D(PHY,"After extra byte: pbch_a = 0x%08x\n",pbch->pbch_a);
+  LOG_X(PHY,"After extra byte: pbch_a = 0x%08x\n",pbch->pbch_a);
 
   // Payload interleaving
 

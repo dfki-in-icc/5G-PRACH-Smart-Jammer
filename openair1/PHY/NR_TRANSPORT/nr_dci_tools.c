@@ -75,14 +75,14 @@ void nr_fill_cce_list(PHY_VARS_gNB *gNB, uint16_t n_shift, uint8_t m) {
 
   tmp = L * (( Y + (m*N_cce)/(L*M_s_max) + n_CI ) % CEILIDIV(N_cce,L));
 
-  LOG_D(PHY, "CCE list generation for candidate %d: bundle size %d ilv size %d tmp %d\n", m, bsize, R, tmp);
+  LOG_X(PHY, "CCE list generation for candidate %d: bundle size %d ilv size %d tmp %d\n", m, bsize, R, tmp);
   for (uint8_t cce_idx=0; cce_idx<L; cce_idx++) {
     cce = &dci_alloc->cce_list[cce_idx];
     cce->cce_idx = tmp + cce_idx;
-    LOG_D(PHY, "cce_idx %d\n", cce->cce_idx);
+    LOG_X(PHY, "cce_idx %d\n", cce->cce_idx);
 
     if (pdcch_params->cr_mapping_type == NFAPI_NR_CCE_REG_MAPPING_INTERLEAVED) {
-      LOG_D(PHY, "Interleaved CCE to REG mapping\n");
+      LOG_X(PHY, "Interleaved CCE to REG mapping\n");
       uint8_t j = cce->cce_idx, j_prime;
       uint8_t r,c,idx;
 
@@ -91,25 +91,25 @@ void nr_fill_cce_list(PHY_VARS_gNB *gNB, uint16_t n_shift, uint8_t m) {
         r = j_prime%R;
         c = (j_prime-r)/R;
         idx = (r*C + c + n_shift)%(N_reg/bsize);
-        LOG_D(PHY, "bundle idx = %d \n j = %d \t j_prime = %d \t r = %d \t c = %d\n", idx, j , j_prime, r, c);
+        LOG_X(PHY, "bundle idx = %d \n j = %d \t j_prime = %d \t r = %d \t c = %d\n", idx, j , j_prime, r, c);
 
         for (uint8_t reg_idx=0; reg_idx<bsize; reg_idx++) {
           reg = &cce->reg_list[reg_idx];
           reg->reg_idx = bsize*idx + reg_idx;
           reg->start_sc_idx = (reg->reg_idx/pdcch_params->n_symb) * NR_NB_SC_PER_RB;
           reg->symb_idx = reg->reg_idx % pdcch_params->n_symb;
-          LOG_D(PHY, "reg %d symbol %d start subcarrier %d\n", reg->reg_idx, reg->symb_idx, reg->start_sc_idx);
+          LOG_X(PHY, "reg %d symbol %d start subcarrier %d\n", reg->reg_idx, reg->symb_idx, reg->start_sc_idx);
         }
       }
     }
     else { // NFAPI_NR_CCE_REG_MAPPING_NON_INTERLEAVED
-      LOG_D(PHY, "Non interleaved CCE to REG mapping\n");
+      LOG_X(PHY, "Non interleaved CCE to REG mapping\n");
       for (uint8_t reg_idx=0; reg_idx<NR_NB_REG_PER_CCE; reg_idx++) {
         reg = &cce->reg_list[reg_idx];
         reg->reg_idx = cce->cce_idx*NR_NB_REG_PER_CCE + reg_idx;
         reg->start_sc_idx = (reg->reg_idx/pdcch_params->n_symb) * NR_NB_SC_PER_RB;
         reg->symb_idx = reg->reg_idx % pdcch_params->n_symb;
-        LOG_D(PHY, "reg %d symbol %d start subcarrier %d\n", reg->reg_idx, reg->symb_idx, reg->start_sc_idx);
+        LOG_X(PHY, "reg %d symbol %d start subcarrier %d\n", reg->reg_idx, reg->symb_idx, reg->start_sc_idx);
       }
 
     }
@@ -154,14 +154,14 @@ void nr_fill_cce_list(nr_cce_t cce_list[MAX_DCI_CORESET][NR_MAX_PDCCH_AGG_LEVEL]
       C = N_reg/(bsize*R);
     }
     
-    if (pdcch_pdu_rel15->dci_pdu[d].RNTI != 0xFFFF) LOG_D(PHY, "CCE list generation for candidate %d: bundle size %d ilv size %d CceIndex %d\n", m, bsize, R, pdcch_pdu_rel15->dci_pdu[d].CceIndex);
+    if (pdcch_pdu_rel15->dci_pdu[d].RNTI != 0xFFFF) LOG_X(PHY, "CCE list generation for candidate %d: bundle size %d ilv size %d CceIndex %d\n", m, bsize, R, pdcch_pdu_rel15->dci_pdu[d].CceIndex);
     for (uint8_t cce_idx=0; cce_idx<L; cce_idx++) {
       cce = &cce_list[d][cce_idx];
       cce->cce_idx = pdcch_pdu_rel15->dci_pdu[d].CceIndex + cce_idx;
-      LOG_D(PHY, "cce_idx %d\n", cce->cce_idx);
+      LOG_X(PHY, "cce_idx %d\n", cce->cce_idx);
       
       if (pdcch_pdu_rel15->CceRegMappingType == NFAPI_NR_CCE_REG_MAPPING_INTERLEAVED) {
-	LOG_D(PHY, "Interleaved CCE to REG mapping\n");
+	LOG_X(PHY, "Interleaved CCE to REG mapping\n");
 	uint8_t j = cce->cce_idx, j_prime;
 	uint8_t r,c,idx;
 	
@@ -170,25 +170,25 @@ void nr_fill_cce_list(nr_cce_t cce_list[MAX_DCI_CORESET][NR_MAX_PDCCH_AGG_LEVEL]
 	  r = j_prime%R;
 	  c = (j_prime-r)/R;
 	  idx = (r*C + c + n_shift)%(N_reg/bsize);
-	  LOG_D(PHY, "bundle idx = %d \n j = %d \t j_prime = %d \t r = %d \t c = %d\n", idx, j , j_prime, r, c);
+	  LOG_X(PHY, "bundle idx = %d \n j = %d \t j_prime = %d \t r = %d \t c = %d\n", idx, j , j_prime, r, c);
 	  
 	  for (uint8_t reg_idx=0; reg_idx<bsize; reg_idx++) {
 	    reg = &cce->reg_list[reg_idx];
 	    reg->reg_idx = bsize*idx + reg_idx;
 	    reg->start_sc_idx = reg->reg_idx * NR_NB_SC_PER_RB;
 	    reg->symb_idx = 0;
-	    LOG_D(PHY, "reg %d symbol %d start subcarrier %d\n", reg->reg_idx, reg->symb_idx, reg->start_sc_idx);
+	    LOG_X(PHY, "reg %d symbol %d start subcarrier %d\n", reg->reg_idx, reg->symb_idx, reg->start_sc_idx);
 	  }
 	}
       }
       else { // NFAPI_NR_CCE_REG_MAPPING_NON_INTERLEAVED
-	LOG_D(PHY, "Non interleaved CCE to REG mapping\n");
+	LOG_X(PHY, "Non interleaved CCE to REG mapping\n");
 	for (uint8_t reg_idx=0; reg_idx<NR_NB_REG_PER_CCE; reg_idx++) {
 	  reg = &cce->reg_list[reg_idx];
 	  reg->reg_idx = cce->cce_idx*NR_NB_REG_PER_CCE + reg_idx;
 	  reg->start_sc_idx = reg->reg_idx * NR_NB_SC_PER_RB;
 	  reg->symb_idx = 0;
-	  LOG_D(PHY, "reg %d symbol %d start subcarrier %d\n", reg->reg_idx, reg->symb_idx, reg->start_sc_idx);
+	  LOG_X(PHY, "reg %d symbol %d start subcarrier %d\n", reg->reg_idx, reg->symb_idx, reg->start_sc_idx);
 	}
 	
       }

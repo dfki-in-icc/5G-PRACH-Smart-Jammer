@@ -90,7 +90,7 @@ void nr_generate_pucch0(PHY_VARS_NR_UE *ue,
   // the value of u,v (delta always 0 for PUCCH) has to be calculated according to TS 38.211 Subclause 6.3.2.2.1
   uint8_t u[2]={0,0},v[2]={0,0};
 
-  LOG_D(PHY,"pucch0: slot %d nr_symbols %d, start_symbol %d, prb_start %d, second_hop_prb %d,  group_hop_flag %d, sequence_hop_flag %d, mcs %d\n",
+  LOG_X(PHY,"pucch0: slot %d nr_symbols %d, start_symbol %d, prb_start %d, second_hop_prb %d,  group_hop_flag %d, sequence_hop_flag %d, mcs %d\n",
         nr_slot_tx,pucch_pdu->nr_of_symbols,pucch_pdu->start_symbol_index,pucch_pdu->prb_start,pucch_pdu->second_hop_prb,pucch_pdu->group_hop_flag,pucch_pdu->sequence_hop_flag,pucch_pdu->mcs);
 
 #ifdef DEBUG_NR_PUCCH_TX
@@ -824,7 +824,7 @@ static inline void nr_pucch2_3_4_scrambling(uint16_t M_bit,uint16_t rnti,uint16_
     s = lte_gold_generic(&x1, &x2, (iprime==0) ? 1 : 0);
     B=((uint32_t*)B64)[iprime];
     for (int n=0;n<M_bit2;n+=8)
-      LOG_D(PHY,"PUCCH2 encoded %d : %d,%d,%d,%d,%d,%d,%d,%d\n",n,
+      LOG_X(PHY,"PUCCH2 encoded %d : %d,%d,%d,%d,%d,%d,%d,%d\n",n,
 	    (B>>n)&1,
 	    (B>>(n+1))&1,
 	    (B>>(n+2))&1,

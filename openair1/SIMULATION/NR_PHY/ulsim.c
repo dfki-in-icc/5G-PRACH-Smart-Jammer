@@ -1199,7 +1199,7 @@ int main(int argc, char **argv)
         phy_procedures_nrUE_TX(UE, &UE_proc, gNB_id);
 
         /* We need to call common sending function to send signal */
-        LOG_D(PHY, "Sending Uplink data \n");
+        LOG_X(PHY, "Sending Uplink data \n");
         nr_ue_pusch_common_procedures(UE,
                                       slot,
                                       &UE->frame_parms,1);

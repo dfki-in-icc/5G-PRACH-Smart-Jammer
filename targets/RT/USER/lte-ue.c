@@ -822,14 +822,14 @@ static void *UE_thread_rxn_txnp4(void *arg)
         (UE->frame_parms.frame_type == FDD) ||
         (sf_type == SF_S)) {
       if (UE->frame_parms.frame_type == TDD) {
-        LOG_D(PHY, "%s,TDD%d,%s: calling UE_RX\n",
+        LOG_X(PHY, "%s,TDD%d,%s: calling UE_RX\n",
               threadname,
               UE->frame_parms.tdd_config,
               (sf_type==SF_DL? "SF_DL" :
                (sf_type==SF_UL? "SF_UL" :
                 (sf_type==SF_S ? "SF_S"  : "UNKNOWN_SF_TYPE"))));
       } else {
-        LOG_D(PHY, "%s,%s,%s: calling UE_RX\n",
+        LOG_X(PHY, "%s,%s,%s: calling UE_RX\n",
               threadname,
               (UE->frame_parms.frame_type==FDD? "FDD":
                (UE->frame_parms.frame_type==TDD? "TDD":"UNKNOWN_DUPLEX_MODE")),
@@ -1240,7 +1240,7 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg)
     } //for (Mod_id=0; Mod_id<NB_UE_INST; Mod_id++)
 
     if (UL_INFO->crc_ind.crc_indication_body.number_of_crcs > 0) {
-      //LOG_D(PHY,"UL_info->crc_ind.crc_indication_body.number_of_crcs:%d CRC_IND:SFN/SF:%d\n", UL_info->crc_ind.crc_indication_body.number_of_crcs, NFAPI_SFNSF2DEC(UL_info->crc_ind.sfn_sf));
+      //LOG_X(PHY,"UL_info->crc_ind.crc_indication_body.number_of_crcs:%d CRC_IND:SFN/SF:%d\n", UL_info->crc_ind.crc_indication_body.number_of_crcs, NFAPI_SFNSF2DEC(UL_info->crc_ind.sfn_sf));
       //LOG_I(MAC, "ul_config_req_UE_MAC 2.2, SFN/SF of PNF counter:%d.%d, number_of_crcs: %d \n", timer_frame, timer_subframe, UL_INFO->crc_ind.crc_indication_body.number_of_crcs);
       send_standalone_msg(UL_INFO, UL_INFO->crc_ind.header.message_id);
       sent_any = true;
@@ -1250,7 +1250,7 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg)
 
     if (UL_INFO->rx_ind.rx_indication_body.number_of_pdus > 0) {
 
-      //LOG_D(PHY,"UL_info->rx_ind.number_of_pdus:%d RX_IND:SFN/SF:%d\n", UL_info->rx_ind.rx_indication_body.number_of_pdus, NFAPI_SFNSF2DEC(UL_info->rx_ind.sfn_sf));
+      //LOG_X(PHY,"UL_info->rx_ind.number_of_pdus:%d RX_IND:SFN/SF:%d\n", UL_info->rx_ind.rx_indication_body.number_of_pdus, NFAPI_SFNSF2DEC(UL_info->rx_ind.sfn_sf));
       //LOG_I(MAC, "ul_config_req_UE_MAC 2.3, SFN/SF of PNF counter:%d.%d, number_of_pdus: %d \n", timer_frame, timer_subframe, UL_INFO->rx_ind.rx_indication_body.number_of_pdus);
       send_standalone_msg(UL_INFO, UL_INFO->rx_ind.header.message_id);
       sent_any = true;
@@ -1550,13 +1550,13 @@ static void *UE_phy_stub_single_thread_rxn_txnp4(void *arg)
           (UE->frame_parms.frame_type == FDD) ||
           (sf_type == SF_S)) {
         if (UE->frame_parms.frame_type == TDD) {
-          LOG_D(PHY, "TDD%d,%s: calling UE_RX\n",
+          LOG_X(PHY, "TDD%d,%s: calling UE_RX\n",
                 UE->frame_parms.tdd_config,
                 (sf_type==SF_DL? "SF_DL" :
                  (sf_type==SF_UL? "SF_UL" :
                   (sf_type==SF_S ? "SF_S"  : "UNKNOWN_SF_TYPE"))));
         } else {
-          LOG_D(PHY, "%s,%s: calling UE_RX\n",
+          LOG_X(PHY, "%s,%s: calling UE_RX\n",
                 (UE->frame_parms.frame_type==FDD? "FDD":
                  (UE->frame_parms.frame_type==TDD? "TDD":"UNKNOWN_DUPLEX_MODE")),
                 (sf_type==SF_DL? "SF_DL" :
@@ -1653,7 +1653,7 @@ static void *UE_phy_stub_single_thread_rxn_txnp4(void *arg)
       } while(end_flag == 0);
 
       if (UL_INFO->crc_ind.crc_indication_body.number_of_crcs>0) {
-        //LOG_D(PHY,"UL_info->crc_ind.crc_indication_body.number_of_crcs:%d CRC_IND:SFN/SF:%d\n", UL_info->crc_ind.crc_indication_body.number_of_crcs, NFAPI_SFNSF2DEC(UL_info->crc_ind.sfn_sf));
+        //LOG_X(PHY,"UL_info->crc_ind.crc_indication_body.number_of_crcs:%d CRC_IND:SFN/SF:%d\n", UL_info->crc_ind.crc_indication_body.number_of_crcs, NFAPI_SFNSF2DEC(UL_info->crc_ind.sfn_sf));
         //LOG_I(MAC, "ul_config_req_UE_MAC 2.2, SFN/SF of PNF counter:%d.%d, number_of_crcs: %d \n", timer_frame, timer_subframe, UL_INFO->crc_ind.crc_indication_body.number_of_crcs);
         oai_nfapi_crc_indication(&UL_INFO->crc_ind);
         //LOG_I(MAC, "ul_config_req_UE_MAC 2.21 \n");
@@ -1661,7 +1661,7 @@ static void *UE_phy_stub_single_thread_rxn_txnp4(void *arg)
       }
 
       if (UL_INFO->rx_ind.rx_indication_body.number_of_pdus>0) {
-        //LOG_D(PHY,"UL_info->rx_ind.number_of_pdus:%d RX_IND:SFN/SF:%d\n", UL_info->rx_ind.rx_indication_body.number_of_pdus, NFAPI_SFNSF2DEC(UL_info->rx_ind.sfn_sf));
+        //LOG_X(PHY,"UL_info->rx_ind.number_of_pdus:%d RX_IND:SFN/SF:%d\n", UL_info->rx_ind.rx_indication_body.number_of_pdus, NFAPI_SFNSF2DEC(UL_info->rx_ind.sfn_sf));
         //LOG_I(MAC, "ul_config_req_UE_MAC 2.3, SFN/SF of PNF counter:%d.%d, number_of_pdus: %d \n", timer_frame, timer_subframe, UL_INFO->rx_ind.rx_indication_body.number_of_pdus);
         oai_nfapi_rx_ind(&UL_INFO->rx_ind);
 
@@ -1818,13 +1818,13 @@ static void *UE_phy_stub_thread_rxn_txnp4(void *arg)
         (UE->frame_parms.frame_type == FDD) ||
         (sf_type == SF_S)) {
       if (UE->frame_parms.frame_type == TDD) {
-        LOG_D(PHY, "TDD%d,%s: calling UE_RX\n",
+        LOG_X(PHY, "TDD%d,%s: calling UE_RX\n",
               UE->frame_parms.tdd_config,
               (sf_type==SF_DL? "SF_DL" :
                (sf_type==SF_UL? "SF_UL" :
                 (sf_type==SF_S ? "SF_S"  : "UNKNOWN_SF_TYPE"))));
       } else {
-        LOG_D(PHY, "%s,%s: calling UE_RX\n",
+        LOG_X(PHY, "%s,%s: calling UE_RX\n",
               (UE->frame_parms.frame_type==FDD? "FDD":
                (UE->frame_parms.frame_type==TDD? "TDD":"UNKNOWN_DUPLEX_MODE")),
               (sf_type==SF_DL? "SF_DL" :
@@ -2135,7 +2135,7 @@ void *UE_thread(void *arg)
 	  usleep(300);
         }
 
-        LOG_D(PHY,"Process Subframe %d thread Idx %d \n", sub_frame, UE->current_thread_id[sub_frame]);
+        LOG_X(PHY,"Process Subframe %d thread Idx %d \n", sub_frame, UE->current_thread_id[sub_frame]);
         thread_idx++;
 
         if(thread_idx>=RX_NB_TH)
@@ -2171,7 +2171,7 @@ void *UE_thread(void *arg)
                 UE->rx_offset_diff = 1;
             }
 
-            LOG_D(PHY,"AbsSubframe %d.%d SET rx_off_diff to %d rx_offset %d \n",proc->frame_rx,sub_frame,UE->rx_offset_diff,UE->rx_offset);
+            LOG_X(PHY,"AbsSubframe %d.%d SET rx_off_diff to %d rx_offset %d \n",proc->frame_rx,sub_frame,UE->rx_offset_diff,UE->rx_offset);
             readBlockSize=UE->frame_parms.samples_per_tti -
                           UE->frame_parms.ofdm_symbol_size -
                           UE->frame_parms.nb_prefix_samples0 -

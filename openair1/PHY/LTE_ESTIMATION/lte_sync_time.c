@@ -111,17 +111,17 @@ int lte_sync_time_init(LTE_DL_FRAME_PARMS *frame_parms ) { // LTE_UE_COMMON *com
 
 void lte_sync_time_free(void) {
   if (primary_synch0_time) {
-    LOG_D(PHY,"Freeing primary_sync0_time ...\n");
+    LOG_X(PHY,"Freeing primary_sync0_time ...\n");
     free(primary_synch0_time);
   }
 
   if (primary_synch1_time) {
-    LOG_D(PHY,"Freeing primary_sync1_time ...\n");
+    LOG_X(PHY,"Freeing primary_sync1_time ...\n");
     free(primary_synch1_time);
   }
 
   if (primary_synch2_time) {
-    LOG_D(PHY,"Freeing primary_sync2_time ...\n");
+    LOG_X(PHY,"Freeing primary_sync2_time ...\n");
     free(primary_synch2_time);
   }
 

@@ -73,7 +73,7 @@ void generate_pucch1x(int32_t **txdataF,
   uint8_t Ncs1                      = frame_parms->pucch_config_common.nCS_AN;
   uint8_t Ncs1_div_deltaPUCCH_Shift = Ncs1/deltaPUCCH_Shift;
 
-  LOG_D(PHY,"generate_pucch Start [deltaPUCCH_Shift %d, NRB2 %d, Ncs1_div_deltaPUCCH_Shift %d, n1_pucch %d]\n", deltaPUCCH_Shift, NRB2, Ncs1_div_deltaPUCCH_Shift,n1_pucch);
+  LOG_X(PHY,"generate_pucch Start [deltaPUCCH_Shift %d, NRB2 %d, Ncs1_div_deltaPUCCH_Shift %d, n1_pucch %d]\n", deltaPUCCH_Shift, NRB2, Ncs1_div_deltaPUCCH_Shift,n1_pucch);
 
 
   uint32_t u0 = (frame_parms->Nid_cell + frame_parms->pusch_config_common.ul_ReferenceSignalsPUSCH.grouphop[subframe<<1]) % 30;
@@ -100,9 +100,9 @@ void generate_pucch1x(int32_t **txdataF,
   printf("[PHY] PUCCH: cNcs1/deltaPUCCH_Shift %d, Nprime %d, n1_pucch %d\n",thres,Nprime,n1_pucch);
 #endif
 
-  LOG_D(PHY,"[PHY] PUCCH: n1_pucch %d, thres %d Ncs1_div_deltaPUCCH_Shift %d (12/deltaPUCCH_Shift) %d Nprime_div_deltaPUCCH_Shift %d \n",
+  LOG_X(PHY,"[PHY] PUCCH: n1_pucch %d, thres %d Ncs1_div_deltaPUCCH_Shift %d (12/deltaPUCCH_Shift) %d Nprime_div_deltaPUCCH_Shift %d \n",
 		              n1_pucch, thres, Ncs1_div_deltaPUCCH_Shift, (int)(12/deltaPUCCH_Shift), Nprime_div_deltaPUCCH_Shift);
-  LOG_D(PHY,"[PHY] PUCCH: deltaPUCCH_Shift %d, Nprime %d\n",deltaPUCCH_Shift,Nprime);
+  LOG_X(PHY,"[PHY] PUCCH: deltaPUCCH_Shift %d, Nprime %d\n",deltaPUCCH_Shift,Nprime);
 
 
   N_UL_symb = (frame_parms->Ncp==0) ? 7 : 6;
@@ -516,7 +516,7 @@ void generate_pucch2x(int32_t **txdataF,
   m = n2_pucch/12;
 
 #ifdef DEBUG_PUCCH_TX
-  LOG_D(PHY,"[PHY] PUCCH: n2_pucch %d m %d\n",n2_pucch,m);
+  LOG_X(PHY,"[PHY] PUCCH: n2_pucch %d m %d\n",n2_pucch,m);
 #endif
 
   nsymb_slot0  = ((fp->Ncp==0) ? 7 : 6);
@@ -555,7 +555,7 @@ void generate_pucch2x(int32_t **txdataF,
           re_offset -= (fp->ofdm_symbol_size);
 
 #ifdef DEBUG_PUCCH_TX
-      LOG_D(PHY,"[PHY] PUCCH subframe %d (%d,%d,%d,%d) => %d,%d\n",subframe,l,i,re_offset-1,m,((int16_t *)&z[j])[0],((int16_t *)&z[j])[1]);
+      LOG_X(PHY,"[PHY] PUCCH subframe %d (%d,%d,%d,%d) => %d,%d\n",subframe,l,i,re_offset-1,m,((int16_t *)&z[j])[0],((int16_t *)&z[j])[1]);
 #endif
     }
   }

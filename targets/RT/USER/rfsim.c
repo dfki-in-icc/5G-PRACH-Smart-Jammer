@@ -204,7 +204,7 @@ int UE_trx_read(openair0_device *device, openair0_timestamp *ptimestamp, void **
   int read_size;
   int sptti = PHY_vars_UE_g[UE_id][CC_id]->frame_parms.samples_per_tti;
   *ptimestamp = sim.last_UE_rx_timestamp[UE_id][CC_id];
-  LOG_D(PHY,"UE %d DL simulation 0: UE_trx_read nsamps %d TS %llu (%llu, offset %d) antenna %d\n",
+  LOG_X(PHY,"UE %d DL simulation 0: UE_trx_read nsamps %d TS %llu (%llu, offset %d) antenna %d\n",
         UE_id,
         nsamps,
         (unsigned long long)sim.current_UE_rx_timestamp[UE_id][CC_id],
@@ -234,7 +234,7 @@ int UE_trx_read(openair0_device *device, openair0_timestamp *ptimestamp, void **
     sim.subframe_UE_mask|=(1<<UE_id);
     LOG_D(SIM,"Setting UE_id %d mask to busy (%d)\n",UE_id,sim.subframe_UE_mask);
     pthread_mutex_unlock(&sim.subframe_mutex);
-    LOG_D(PHY,"UE %d: DL simulation 4: UE_trx_read generating DL subframe %d (Ts %llu, current TS %llu,nsamps %d)\n",
+    LOG_X(PHY,"UE %d: DL simulation 4: UE_trx_read generating DL subframe %d (Ts %llu, current TS %llu,nsamps %d)\n",
           UE_id,subframe,(unsigned long long)*ptimestamp,
           (unsigned long long)sim.current_UE_rx_timestamp[UE_id][CC_id],
           nsamps);
@@ -251,7 +251,7 @@ int UE_trx_read(openair0_device *device, openair0_timestamp *ptimestamp, void **
               UE_id,
               CC_id);
     VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_SIM_DO_DL_SIGNAL,0);
-    LOG_D(PHY,"UE %d: DL simulation 6: UE_trx_read @ TS %"PRIi64" (%"PRIi64")=> frame %d, subframe %d\n",
+    LOG_X(PHY,"UE %d: DL simulation 6: UE_trx_read @ TS %"PRIi64" (%"PRIi64")=> frame %d, subframe %d\n",
           UE_id, sim.current_UE_rx_timestamp[UE_id][CC_id],
           sim.last_UE_rx_timestamp[UE_id][CC_id],
           (int)((sim.last_UE_rx_timestamp[UE_id][CC_id]/(sptti*10))&1023),
@@ -280,7 +280,7 @@ int ru_trx_write(openair0_device *device,openair0_timestamp timestamp, void **bu
   }
 
   sim.ru_amp[ru_id] = sqrt(sim.ru_amp[ru_id]);
-  LOG_D(PHY,"Setting amp for RU %d to %f (%d)\n",ru_id,sim.ru_amp[ru_id], dB_fixed((double)signal_energy((int32_t *)buff[0],frame_parms->ofdm_symbol_size)));
+  LOG_X(PHY,"Setting amp for RU %d to %f (%d)\n",ru_id,sim.ru_amp[ru_id], dB_fixed((double)signal_energy((int32_t *)buff[0],frame_parms->ofdm_symbol_size)));
   // tell top-level we are done
   pthread_mutex_lock(&sim.subframe_mutex);
   sim.subframe_ru_mask|=(1<<ru_id);

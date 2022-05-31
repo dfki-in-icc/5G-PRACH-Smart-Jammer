@@ -363,7 +363,7 @@ int nr_ulsch_encoding(PHY_VARS_NR_UE *ue,
 
 ///////////
 ///////////////////////////////////////////////////////////////////////////////
-    LOG_D(PHY,"setting ndi to %d from pusch_data\n", harq_process->pusch_pdu.pusch_data.new_data_indicator);
+    LOG_X(PHY,"setting ndi to %d from pusch_data\n", harq_process->pusch_pdu.pusch_data.new_data_indicator);
     harq_process->ndi = harq_process->pusch_pdu.pusch_data.new_data_indicator;
   }
   F = harq_process->F;
@@ -380,7 +380,7 @@ int nr_ulsch_encoding(PHY_VARS_NR_UE *ue,
     }
 
 
-    LOG_D(PHY,"Rate Matching, Code segment %d (coded bits (G) %u, unpunctured/repeated bits per code segment %d, mod_order %d, nb_rb %d, rvidx %d)...\n",
+    LOG_X(PHY,"Rate Matching, Code segment %d (coded bits (G) %u, unpunctured/repeated bits per code segment %d, mod_order %d, nb_rb %d, rvidx %d)...\n",
 	  r,
 	  G,
 	  Kr*3,

@@ -1005,7 +1005,7 @@ int pnf_p7_slot_ind(pnf_p7_t* pnf_p7, uint16_t phy_id, uint16_t sfn, uint16_t sl
 			if(pnf_p7->_public.tx_data_req_fn)
 			{	
 				//NFAPI_TRACE(NFAPI_TRACE_INFO, "Calling tx_data_req_fn in SFN/slot %d.%d \n",sfn,slot);
-				LOG_D(PHY, "Process tx_data SFN/slot %d.%d buffer index: %d \n",sfn_tx,slot_tx,buffer_index_tx);	
+				LOG_X(PHY, "Process tx_data SFN/slot %d.%d buffer index: %d \n",sfn_tx,slot_tx,buffer_index_tx);	
 				(pnf_p7->_public.tx_data_req_fn)(&(pnf_p7->_public), tx_slot_buffer->tx_data_req);
 			}
 		}
@@ -1025,7 +1025,7 @@ int pnf_p7_slot_ind(pnf_p7_t* pnf_p7, uint16_t phy_id, uint16_t sfn, uint16_t sl
 		{
 			if(pnf_p7->_public.dl_tti_req_fn)
 			{
-				LOG_D(PHY, "Process dl_tti SFN/slot %d.%d buffer index: %d \n",sfn_tx,slot_tx,buffer_index_tx);
+				LOG_X(PHY, "Process dl_tti SFN/slot %d.%d buffer index: %d \n",sfn_tx,slot_tx,buffer_index_tx);
 				(pnf_p7->_public.dl_tti_req_fn)(NULL, &(pnf_p7->_public), tx_slot_buffer->dl_tti_req);
 			}
 		}
@@ -1046,7 +1046,7 @@ int pnf_p7_slot_ind(pnf_p7_t* pnf_p7, uint16_t phy_id, uint16_t sfn, uint16_t sl
 			if(pnf_p7->_public.ul_dci_req_fn)
 			{   
 				//NFAPI_TRACE(NFAPI_TRACE_INFO, "Calling UL_dci_req_fn in SFN/slot %d.%d \n",sfn,slot);
-				LOG_D(PHY, "Process ul_dci SFN/slot %d.%d buffer index: %d \n",sfn_tx,slot_tx,buffer_index_tx);
+				LOG_X(PHY, "Process ul_dci SFN/slot %d.%d buffer index: %d \n",sfn_tx,slot_tx,buffer_index_tx);
  				(pnf_p7->_public.ul_dci_req_fn)(NULL, &(pnf_p7->_public), tx_slot_buffer->ul_dci_req);
 			}
 		}
@@ -1084,7 +1084,7 @@ int pnf_p7_slot_ind(pnf_p7_t* pnf_p7, uint16_t phy_id, uint16_t sfn, uint16_t sl
 		{
 			deallocate_nfapi_dl_tti_request(tx_slot_buffer->dl_tti_req, pnf_p7);
 			tx_slot_buffer->dl_tti_req = 0;
-			LOG_D(PHY,"SFN/slot %d.%d Buffer index : %d freed \n",sfn_tx,slot_tx,buffer_index_tx);
+			LOG_X(PHY,"SFN/slot %d.%d Buffer index : %d freed \n",sfn_tx,slot_tx,buffer_index_tx);
 		}
 
 		if(tx_slot_buffer->tx_data_req != 0)
@@ -1117,7 +1117,7 @@ int pnf_p7_slot_ind(pnf_p7_t* pnf_p7, uint16_t phy_id, uint16_t sfn, uint16_t sl
 			{
 				pnf_p7->_public.dummy_slot.ul_tti_req->SFN = sfn;
 				pnf_p7->_public.dummy_slot.ul_tti_req->Slot = slot;
-				LOG_D(PHY, "Process ul_tti SFN/slot %d.%d buffer index: %d \n",sfn,slot,buffer_index_rx);
+				LOG_X(PHY, "Process ul_tti SFN/slot %d.%d buffer index: %d \n",sfn,slot,buffer_index_rx);
 				(pnf_p7->_public.ul_tti_req_fn)(NULL, &(pnf_p7->_public), pnf_p7->_public.dummy_slot.ul_tti_req);
 			}
 		}

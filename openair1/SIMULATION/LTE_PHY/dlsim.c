@@ -1805,7 +1805,7 @@ int main(int argc, char **argv) {
 
         if (UE->proc.proc_rxtx[UE->current_thread_id[subframe]].frame_rx % 10 == 0) {
           UE->bitrate[eNB_id] = (UE->total_TBS[eNB_id] - UE->total_TBS_last[eNB_id])*10;
-          LOG_D(PHY,"[UE %d] Calculating bitrate: total_TBS = %d, total_TBS_last = %d, bitrate = %d kbits/s\n",UE->Mod_id,UE->total_TBS[eNB_id],UE->total_TBS_last[eNB_id],
+          LOG_X(PHY,"[UE %d] Calculating bitrate: total_TBS = %d, total_TBS_last = %d, bitrate = %d kbits/s\n",UE->Mod_id,UE->total_TBS[eNB_id],UE->total_TBS_last[eNB_id],
                 UE->bitrate[eNB_id]/1000);
           UE->total_TBS_last[eNB_id] = UE->total_TBS[eNB_id];
         }

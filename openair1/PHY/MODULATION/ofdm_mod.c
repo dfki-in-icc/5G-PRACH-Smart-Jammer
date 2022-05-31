@@ -298,7 +298,7 @@ void do_OFDM_mod(int32_t **txdataF, int32_t **txdata, uint32_t frame,uint16_t ne
   for (aa=0; aa<frame_parms->nb_antennas_tx; aa++) {
     if (is_pmch_subframe(frame,next_slot>>1,frame_parms)) {
       if ((next_slot%2)==0) {
-        LOG_D(PHY,"Frame %d, subframe %d: Doing MBSFN modulation (slot_offset %d)\n",frame,next_slot>>1,slot_offset);
+        LOG_X(PHY,"Frame %d, subframe %d: Doing MBSFN modulation (slot_offset %d)\n",frame,next_slot>>1,slot_offset);
         PHY_ofdm_mod(&txdataF[aa][slot_offset_F],        // input
                      &txdata[aa][slot_offset],         // output
                      frame_parms->ofdm_symbol_size,                
@@ -314,7 +314,7 @@ void do_OFDM_mod(int32_t **txdataF, int32_t **txdata, uint32_t frame,uint16_t ne
                        frame_parms->nb_prefix_samples,               // number of prefix samples
                        CYCLIC_PREFIX);
         else {
-          LOG_D(PHY,"Frame %d, subframe %d: Doing PDCCH modulation\n",frame,next_slot>>1);
+          LOG_X(PHY,"Frame %d, subframe %d: Doing PDCCH modulation\n",frame,next_slot>>1);
           normal_prefix_mod(&txdataF[aa][slot_offset_F],
                             &txdata[aa][slot_offset],
                             2,
@@ -352,7 +352,7 @@ void apply_nr_rotation(NR_DL_FRAME_PARMS *fp,
 
   for (int sidx=0;sidx<nsymb;sidx++) {
 
-    LOG_D(PHY,"Rotating symbol %d, slot %d, symbol_subframe_index %d, length %d (%d,%d)\n",
+    LOG_X(PHY,"Rotating symbol %d, slot %d, symbol_subframe_index %d, length %d (%d,%d)\n",
       first_symbol + sidx,
       slot,
       sidx + first_symbol + symb_offset,

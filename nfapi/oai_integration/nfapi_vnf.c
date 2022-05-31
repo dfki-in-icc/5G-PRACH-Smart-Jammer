@@ -500,9 +500,9 @@ int wake_gNB_rxtx(PHY_VARS_gNB *gNB, uint16_t sfn, uint16_t slot) {
     return(-1);
   }
 
-  //LOG_D(PHY,"%s() About to attempt pthread_mutex_unlock\n", __FUNCTION__);
+  //LOG_X(PHY,"%s() About to attempt pthread_mutex_unlock\n", __FUNCTION__);
   pthread_mutex_unlock( &L1_proc->mutex );
-  //LOG_D(PHY,"%s() UNLOCKED pthread_mutex_unlock\n", __FUNCTION__);
+  //LOG_X(PHY,"%s() UNLOCKED pthread_mutex_unlock\n", __FUNCTION__);
   return(0);
 }
 
@@ -534,7 +534,7 @@ int wake_eNB_rxtx(PHY_VARS_eNB *eNB, uint16_t sfn, uint16_t sf) {
     old_sfn = sfn;
 
     if (old_sf == 0 && old_sfn % 100==0)
-      LOG_D(PHY,
+      LOG_X(PHY,
             "[eNB] sfn/sf:%d%d old_sfn/sf:%d%d proc[rx:%d%d]\n",
             sfn,
             sf,
@@ -581,7 +581,7 @@ int wake_eNB_rxtx(PHY_VARS_eNB *eNB, uint16_t sfn, uint16_t sf) {
   L1_proc->frame_tx     = (L1_proc->subframe_rx > (9-sf_ahead)) ? (L1_proc->frame_rx+1)&1023 : L1_proc->frame_rx;
   L1_proc->subframe_tx  = (L1_proc->subframe_rx + sf_ahead)%10;
 
-  //LOG_D(PHY, "sfn/sf:%d%d proc[rx:%d%d] L1_proc[instance_cnt_rxtx:%d rx:%d%d] About to wake rxtx thread\n\n", sfn, sf, proc->frame_rx, proc->subframe_rx, L1_proc->instance_cnt_rxtx, L1_proc->frame_rx, L1_proc->subframe_rx);
+  //LOG_X(PHY, "sfn/sf:%d%d proc[rx:%d%d] L1_proc[instance_cnt_rxtx:%d rx:%d%d] About to wake rxtx thread\n\n", sfn, sf, proc->frame_rx, proc->subframe_rx, L1_proc->instance_cnt_rxtx, L1_proc->frame_rx, L1_proc->subframe_rx);
 
   // the thread can now be woken up
   if (pthread_cond_signal(&L1_proc->cond) != 0) {
@@ -624,7 +624,7 @@ int phy_slot_indication(struct nfapi_vnf_p7_config *config, uint16_t phy_id, uin
   if (RC.gNB && RC.gNB[0]->configured) {
     // uint16_t sfn = NFAPI_SFNSF2SFN(sfn_sf);
     // uint16_t sf = NFAPI_SFNSF2SF(sfn_sf);
-    LOG_D(PHY,"[VNF] slot indication sfn:%d slot:%d\n", sfn, slot);
+    LOG_X(PHY,"[VNF] slot indication sfn:%d slot:%d\n", sfn, slot);
     wake_gNB_rxtx(RC.gNB[0], sfn, slot); // DONE: find NR equivalent
   } else {
     NFAPI_TRACE(NFAPI_TRACE_INFO, "[VNF] %s() RC.gNB:%p\n", __FUNCTION__, RC.gNB);
@@ -646,7 +646,7 @@ int phy_subframe_indication(struct nfapi_vnf_p7_config *config, uint16_t phy_id,
   if (RC.eNB && RC.eNB[0][0]->configured) {
     uint16_t sfn = NFAPI_SFNSF2SFN(sfn_sf);
     uint16_t sf = NFAPI_SFNSF2SF(sfn_sf);
-    //LOG_D(PHY,"[VNF] subframe indication sfn_sf:%d sfn:%d sf:%d\n", sfn_sf, sfn, sf);
+    //LOG_X(PHY,"[VNF] subframe indication sfn_sf:%d sfn:%d sf:%d\n", sfn_sf, sfn, sf);
     wake_eNB_rxtx(RC.eNB[0][0], sfn, sf);
   } else {
     NFAPI_TRACE(NFAPI_TRACE_INFO, "[VNF] %s() RC.eNB:%p\n", __FUNCTION__, RC.eNB);
@@ -1015,7 +1015,7 @@ int phy_rx_indication(struct nfapi_vnf_p7_config *config, nfapi_rx_indication_t 
         memcpy(dest_pdu->rx_ind_data, src_pdu->rx_ind_data, dest_pdu->rx_indication_rel8.length);
       }
 
-      LOG_D(PHY, "%s() NFAPI SFN/SF:%d PDUs:%zu [PDU:%d] handle:%d rnti:%04x length:%d offset:%d ul_cqi:%d ta:%d data:%p\n",
+      LOG_X(PHY, "%s() NFAPI SFN/SF:%d PDUs:%zu [PDU:%d] handle:%d rnti:%04x length:%d offset:%d ul_cqi:%d ta:%d data:%p\n",
           __FUNCTION__,
           NFAPI_SFNSF2DEC(ind->sfn_sf), number_of_pdus, i,
           dest_pdu->rx_ue_information.handle,
@@ -1042,7 +1042,7 @@ int phy_rx_indication(struct nfapi_vnf_p7_config *config, nfapi_rx_indication_t 
     assert(dest_pdu->rx_indication_rel8.length <= NFAPI_RX_IND_DATA_MAX);
     memcpy(dest_pdu->rx_ind_data, src_pdu->rx_ind_data, dest_pdu->rx_indication_rel8.length);
 
-    LOG_D(PHY, "%s() NFAPI SFN/SF:%d PDUs:%d [PDU:%d] handle:%d rnti:%04x length:%d offset:%d ul_cqi:%d ta:%d data:%p\n",
+    LOG_X(PHY, "%s() NFAPI SFN/SF:%d PDUs:%d [PDU:%d] handle:%d rnti:%04x length:%d offset:%d ul_cqi:%d ta:%d data:%p\n",
           __FUNCTION__,
           NFAPI_SFNSF2DEC(ind->sfn_sf), ind->rx_indication_body.number_of_pdus, i,
           dest_pdu->rx_ue_information.handle,
@@ -1942,7 +1942,7 @@ int oai_nfapi_tx_data_req(nfapi_nr_tx_data_request_t *tx_data_req)
   nfapi_vnf_p7_config_t *p7_config = vnf.p7_vnfs[0].config;
   tx_data_req->header.phy_id = 1; // DJP HACK TODO FIXME - need to pass this around!!!!
   tx_data_req->header.message_id = NFAPI_NR_PHY_MSG_TYPE_TX_DATA_REQUEST;
-  //LOG_D(PHY, "[VNF] %s() TX_REQ sfn_sf:%d number_of_pdus:%d\n", __FUNCTION__, NFAPI_SFNSF2DEC(tx_req->sfn_sf), tx_req->tx_request_body.number_of_pdus);
+  //LOG_X(PHY, "[VNF] %s() TX_REQ sfn_sf:%d number_of_pdus:%d\n", __FUNCTION__, NFAPI_SFNSF2DEC(tx_req->sfn_sf), tx_req->tx_request_body.number_of_pdus);
   int retval = nfapi_vnf_p7_tx_data_req(p7_config, tx_data_req);
 
   if (retval!=0) {
@@ -1959,7 +1959,7 @@ int oai_nfapi_tx_req(nfapi_tx_request_t *tx_req)
   nfapi_vnf_p7_config_t *p7_config = vnf.p7_vnfs[0].config;
   tx_req->header.phy_id = 1; // DJP HACK TODO FIXME - need to pass this around!!!!
   tx_req->header.message_id = NFAPI_TX_REQUEST;
-  //LOG_D(PHY, "[VNF] %s() TX_REQ sfn_sf:%d number_of_pdus:%d\n", __FUNCTION__, NFAPI_SFNSF2DEC(tx_req->sfn_sf), tx_req->tx_request_body.number_of_pdus);
+  //LOG_X(PHY, "[VNF] %s() TX_REQ sfn_sf:%d number_of_pdus:%d\n", __FUNCTION__, NFAPI_SFNSF2DEC(tx_req->sfn_sf), tx_req->tx_request_body.number_of_pdus);
   int retval = nfapi_vnf_p7_tx_req(p7_config, tx_req);
 
   if (retval!=0) {
@@ -1975,7 +1975,7 @@ int oai_nfapi_ul_dci_req(nfapi_nr_ul_dci_request_t *ul_dci_req) {
   nfapi_vnf_p7_config_t *p7_config = vnf.p7_vnfs[0].config;
   ul_dci_req->header.phy_id = 1; // DJP HACK TODO FIXME - need to pass this around!!!!
   ul_dci_req->header.message_id = NFAPI_NR_PHY_MSG_TYPE_UL_DCI_REQUEST;
-  //LOG_D(PHY, "[VNF] %s() HI_DCI0_REQ sfn_sf:%d dci:%d hi:%d\n", __FUNCTION__, NFAPI_SFNSF2DEC(hi_dci0_req->sfn_sf), hi_dci0_req->hi_dci0_request_body.number_of_dci, hi_dci0_req->hi_dci0_request_body.number_of_hi);
+  //LOG_X(PHY, "[VNF] %s() HI_DCI0_REQ sfn_sf:%d dci:%d hi:%d\n", __FUNCTION__, NFAPI_SFNSF2DEC(hi_dci0_req->sfn_sf), hi_dci0_req->hi_dci0_request_body.number_of_dci, hi_dci0_req->hi_dci0_request_body.number_of_hi);
   int retval = nfapi_vnf_p7_ul_dci_req(p7_config, ul_dci_req);
 
   if (retval!=0) {
@@ -1991,7 +1991,7 @@ int oai_nfapi_hi_dci0_req(nfapi_hi_dci0_request_t *hi_dci0_req) {
   nfapi_vnf_p7_config_t *p7_config = vnf.p7_vnfs[0].config;
   hi_dci0_req->header.phy_id = 1; // DJP HACK TODO FIXME - need to pass this around!!!!
   hi_dci0_req->header.message_id = NFAPI_HI_DCI0_REQUEST;
-  //LOG_D(PHY, "[VNF] %s() HI_DCI0_REQ sfn_sf:%d dci:%d hi:%d\n", __FUNCTION__, NFAPI_SFNSF2DEC(hi_dci0_req->sfn_sf), hi_dci0_req->hi_dci0_request_body.number_of_dci, hi_dci0_req->hi_dci0_request_body.number_of_hi);
+  //LOG_X(PHY, "[VNF] %s() HI_DCI0_REQ sfn_sf:%d dci:%d hi:%d\n", __FUNCTION__, NFAPI_SFNSF2DEC(hi_dci0_req->sfn_sf), hi_dci0_req->hi_dci0_request_body.number_of_dci, hi_dci0_req->hi_dci0_request_body.number_of_hi);
   int retval = nfapi_vnf_p7_hi_dci0_req(p7_config, hi_dci0_req);
 
   if (retval!=0) {
@@ -2047,8 +2047,8 @@ int oai_nfapi_ul_config_req(nfapi_ul_config_request_t *ul_config_req) {
   nfapi_vnf_p7_config_t *p7_config = vnf.p7_vnfs[0].config;
   ul_config_req->header.phy_id = 1; // DJP HACK TODO FIXME - need to pass this around!!!!
   ul_config_req->header.message_id = NFAPI_UL_CONFIG_REQUEST;
-  //LOG_D(PHY, "[VNF] %s() header message_id:%02x\n", __FUNCTION__, ul_config_req->header.message_id);
-  //LOG_D(PHY, "[VNF] %s() UL_CONFIG sfn_sf:%d PDUs:%d rach_prach_frequency_resources:%d srs_present:%d\n", __FUNCTION__, NFAPI_SFNSF2DEC(ul_config_req->sfn_sf), ul_config_req->ul_config_request_body.number_of_pdus, ul_config_req->ul_config_request_body.rach_prach_frequency_resources, ul_config_req->ul_config_request_body.srs_present);
+  //LOG_X(PHY, "[VNF] %s() header message_id:%02x\n", __FUNCTION__, ul_config_req->header.message_id);
+  //LOG_X(PHY, "[VNF] %s() UL_CONFIG sfn_sf:%d PDUs:%d rach_prach_frequency_resources:%d srs_present:%d\n", __FUNCTION__, NFAPI_SFNSF2DEC(ul_config_req->sfn_sf), ul_config_req->ul_config_request_body.number_of_pdus, ul_config_req->ul_config_request_body.rach_prach_frequency_resources, ul_config_req->ul_config_request_body.srs_present);
 
   int num_pdus = ul_config_req->ul_config_request_body.number_of_pdus;
   nfapi_ul_config_request_pdu_t *pdu_list = ul_config_req->ul_config_request_body.ul_config_pdu_list;

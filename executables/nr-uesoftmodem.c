@@ -101,6 +101,7 @@ int config_sync_var=-1;
 // L5G_IOT
 int use_prometheus = 0;
 int enable_parallel_pull = 0;
+int disable_shm_log = 0;
 
 // not used in UE
 instance_t CUuniqInstance=0;
@@ -120,6 +121,7 @@ int                 vcdflag = 0;
 int      prometheus_en_flag = 0;
 uint32_t    prometheus_port = 1234;
 int          para_pull_flag = 0;
+int    shm_log_disable_flag = 0;
 
 double          rx_gain_off = 0.0;
 char             *usrp_args = NULL;
@@ -267,6 +269,7 @@ static void get_options(void) {
   // L5G_IOT
   if (prometheus_en_flag > 0)  use_prometheus = 1;
   if (para_pull_flag > 0)  enable_parallel_pull = 1;
+  if (shm_log_disable_flag > 0)  disable_shm_log = 1; else disable_shm_log = 0;
 
   if (vcdflag > 0)
     ouput_vcd = 1;
@@ -422,11 +425,10 @@ int main( int argc, char **argv ) {
   CONFIG_SETRTFLAG(CONFIG_NOEXITONHELP);
   memset(openair0_cfg,0,sizeof(openair0_config_t)*MAX_CARDS);
   memset(tx_max_power,0,sizeof(int)*MAX_NUM_CCs);
+  // get options and fill parameters from configuration file
+  get_options (); //Command-line options specific for NRUE
   // initialize logging
   logInit();
-  // get options and fill parameters from configuration file
-
-  get_options (); //Command-line options specific for NRUE
 
   get_common_options(SOFTMODEM_5GUE_BIT);
   CONFIG_CLEARRTFLAG(CONFIG_NOEXITONHELP);

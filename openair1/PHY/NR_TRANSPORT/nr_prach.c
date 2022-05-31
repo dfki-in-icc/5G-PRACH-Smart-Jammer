@@ -59,7 +59,7 @@ int16_t find_nr_prach(PHY_VARS_gNB *gNB,int frame, int slot, find_type_t type) {
 
   AssertFatal(gNB!=NULL,"gNB is null\n");
   for (uint16_t i=0; i<NUMBER_OF_NR_PRACH_MAX; i++) {
-    LOG_D(PHY,"searching for PRACH in %d.%d prach_index %d=> %d.%d\n", frame,slot,i,
+    LOG_X(PHY,"searching for PRACH in %d.%d prach_index %d=> %d.%d\n", frame,slot,i,
 	  gNB->prach_vars.list[i].frame,gNB->prach_vars.list[i].slot);
 		if((type == SEARCH_EXIST_OR_FREE) &&
 		  (gNB->prach_vars.list[i].frame == -1) &&
@@ -105,7 +105,7 @@ int16_t find_nr_prach_ru(RU_t *ru,int frame,int slot, find_type_t type) {
   AssertFatal(ru!=NULL,"ru is null\n");
   pthread_mutex_lock(&ru->prach_list_mutex);
   for (uint16_t i=0; i<NUMBER_OF_NR_RU_PRACH_MAX; i++) {
-    LOG_D(PHY,"searching for PRACH in %d.%d : prach_index %d=> %d.%d\n", frame,slot,i,
+    LOG_X(PHY,"searching for PRACH in %d.%d : prach_index %d=> %d.%d\n", frame,slot,i,
 	  ru->prach_list[i].frame,ru->prach_list[i].slot);
 		if((type == SEARCH_EXIST_OR_FREE) &&
 		  (ru->prach_list[i].frame == -1) &&
@@ -181,7 +181,7 @@ void rx_nr_prach_ru(RU_t *ru,
     sample_offset_slot = (prachStartSymbol==0?0:prachStartSymbol*(fp->ofdm_symbol_size+fp->nb_prefix_samples));
   //to be checked for mu=0;
 
-  LOG_D(PHY,"frame %d, slot %d: doing rx_nr_prach_ru for format %d, numRA %d, prachStartSymbol %d, prachOccasion %d\n",frame,slot,prachFormat,numRA,prachStartSymbol,prachOccasion);
+  LOG_X(PHY,"frame %d, slot %d: doing rx_nr_prach_ru for format %d, numRA %d, prachStartSymbol %d, prachOccasion %d\n",frame,slot,prachFormat,numRA,prachStartSymbol,prachOccasion);
 
   rxsigF            = ru->prach_rxsigF[prachOccasion];
 
@@ -199,7 +199,7 @@ void rx_nr_prach_ru(RU_t *ru,
   int16_t *prach2;
 
   if (prach_sequence_length == 0) {
-    LOG_D(PHY,"PRACH (ru %d) in %d.%d, format %d, msg1_frequencyStart %d\n",
+    LOG_X(PHY,"PRACH (ru %d) in %d.%d, format %d, msg1_frequencyStart %d\n",
 	  ru->idx,frame,slot2,prachFormat,msg1_frequencystart);
     AssertFatal(prachFormat<4,"Illegal prach format %d for length 839\n",prachFormat);
     switch (prachFormat) {
@@ -222,7 +222,7 @@ void rx_nr_prach_ru(RU_t *ru,
     }
   }
   else {
-    LOG_D(PHY,"PRACH (ru %d) in %d.%d, format %s, msg1_frequencyStart %d,startSymbol %d\n",
+    LOG_X(PHY,"PRACH (ru %d) in %d.%d, format %s, msg1_frequencyStart %d,startSymbol %d\n",
 	  ru->idx,frame,slot,prachfmt[prachFormat],msg1_frequencystart,prachStartSymbol);
 
     switch (prachFormat) {
@@ -271,7 +271,7 @@ void rx_nr_prach_ru(RU_t *ru,
   }
   // Do forward transform
   if (LOG_DEBUGFLAG(PRACH)) {
-    LOG_D(PHY,"rx_prach: Doing PRACH FFT for nb_rx:%d Ncp:%d\n",ru->nb_rx, Ncp);
+    LOG_X(PHY,"rx_prach: Doing PRACH FFT for nb_rx:%d Ncp:%d\n",ru->nb_rx, Ncp);
   }
 
   
@@ -653,7 +653,7 @@ void rx_nr_prach_ru(RU_t *ru,
     //LOG_M("ru_rxsigF_tmp.m","rxsFtmp", rxsigF[aa], dftlen*2*reps, 1, 1);
 
     //Coherent combining of PRACH repetitions (assumes channel does not change, to be revisted for "long" PRACH)
-    LOG_D(PHY,"Doing PRACH combining of %d reptitions N_ZC %d\n",reps,N_ZC);
+    LOG_X(PHY,"Doing PRACH combining of %d reptitions N_ZC %d\n",reps,N_ZC);
     int16_t rxsigF_tmp[N_ZC<<1];
     //    if (k+N_ZC > dftlen) { // PRACH signal is split around DC 
     int16_t *rxsigF2=rxsigF[aa];
@@ -733,12 +733,12 @@ void rx_nr_prach(PHY_VARS_gNB *gNB,
   uint8_t prach_fmt = prach_pdu->prach_format;
   uint16_t N_ZC = (prach_sequence_length==0)?839:139;
 
-  LOG_D(PHY,"L1 PRACH RX: rooSequenceIndex %d, numRootSeqeuences %d, NCS %d, N_ZC %d, format %d \n",rootSequenceIndex,numrootSequenceIndex,NCS,N_ZC,prach_fmt);
+  LOG_X(PHY,"L1 PRACH RX: rooSequenceIndex %d, numRootSeqeuences %d, NCS %d, N_ZC %d, format %d \n",rootSequenceIndex,numrootSequenceIndex,NCS,N_ZC,prach_fmt);
 
   prach_ifft        = gNB->prach_vars.prach_ifft;
   prachF            = gNB->prach_vars.prachF;
   if (LOG_DEBUGFLAG(PRACH)){
-    if ((frame&1023) < 20) LOG_D(PHY,"PRACH (gNB) : running rx_prach for subframe %d, msg1_frequencystart %d, rootSequenceIndex %d\n", subframe,msg1_frequencystart,rootSequenceIndex);
+    if ((frame&1023) < 20) LOG_X(PHY,"PRACH (gNB) : running rx_prach for subframe %d, msg1_frequencystart %d, rootSequenceIndex %d\n", subframe,msg1_frequencystart,rootSequenceIndex);
   }
 
   start_meas(&gNB->rx_prach);
@@ -763,7 +763,7 @@ void rx_nr_prach(PHY_VARS_gNB *gNB,
 
     if (LOG_DEBUGFLAG(PRACH)){
       int en = dB_fixed(signal_energy((int32_t*)&rxsigF[0][0],(N_ZC==839) ? 840: 140));
-      if (en>60) LOG_D(PHY,"frame %d, subframe %d : Trying preamble %d \n",frame,subframe,preamble_index);
+      if (en>60) LOG_X(PHY,"frame %d, subframe %d : Trying preamble %d \n",frame,subframe,preamble_index);
     }
     if (restricted_set == 0) {
       // This is the relative offset in the root sequence table (5.7.2-4 from 36.211) for the given preamble index
@@ -846,7 +846,7 @@ void rx_nr_prach(PHY_VARS_gNB *gNB,
 		       frame,subframe,preamble_index,NCS,N_ZC/NCS,preamble_offset,preamble_shift,en);
     }
 
-    LOG_D(PHY,"PRACH RX preamble_index %d, preamble_offset %d\n",preamble_index,preamble_offset);
+    LOG_X(PHY,"PRACH RX preamble_index %d, preamble_offset %d\n",preamble_index,preamble_offset);
 
 
     if (new_dft == 1) {
@@ -854,7 +854,7 @@ void rx_nr_prach(PHY_VARS_gNB *gNB,
 
       Xu=(int16_t*)gNB->X_u[preamble_offset-first_nonzero_root_idx];
 
-      LOG_D(PHY,"PRACH RX new dft preamble_offset-first_nonzero_root_idx %d\n",preamble_offset-first_nonzero_root_idx);
+      LOG_X(PHY,"PRACH RX new dft preamble_offset-first_nonzero_root_idx %d\n",preamble_offset-first_nonzero_root_idx);
 
 
       memset(prach_ifft,0,((N_ZC==839) ? 2048 : 256)*sizeof(int32_t));
@@ -916,7 +916,7 @@ void rx_nr_prach(PHY_VARS_gNB *gNB,
       lev = (int32_t)prach_ifft[(preamble_shift2+i)];
       levdB = dB_fixed_times10(lev);
       if (levdB>*max_preamble_energy) {
-	      LOG_D(PHY,"preamble_index %d, delay %d en %d dB > %d dB\n",preamble_index,i,levdB,*max_preamble_energy);
+	      LOG_X(PHY,"preamble_index %d, delay %d en %d dB > %d dB\n",preamble_index,i,levdB,*max_preamble_energy);
 	      *max_preamble_energy  = levdB;
 	      *max_preamble_delay   = i; // Note: This has to be normalized to the 30.72 Ms/s sampling rate 
 	      *max_preamble         = preamble_index;

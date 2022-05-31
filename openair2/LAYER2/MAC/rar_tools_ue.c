@@ -64,7 +64,7 @@ uint16_t ue_process_rar(const module_id_t module_idP, const int CC_id, const fra
     }
 
     if (rarh->RAPID == preamble_index) {
-      LOG_D(PHY, "Found RAR with the intended RAPID %d\n",
+      LOG_X(PHY, "Found RAR with the intended RAPID %d\n",
             rarh->RAPID);
       rar = (uint8_t *) (dlsch_buffer + n_rarh + (n_rarpy - 1) * 6);
       UE_mac_inst[module_idP].UE_mode[0] = RA_RESPONSE;

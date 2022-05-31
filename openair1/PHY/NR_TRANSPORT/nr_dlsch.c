@@ -494,7 +494,7 @@ void nr_generate_pdsch(processingData_L1tx_t *msgTx,
                   W_prec = nr_W_4l_4p[pmi][ap];
                 break;
               default:
-                LOG_D(PHY,"Precoding 1,2, or 4 antenna ports are currently supported\n");
+                LOG_X(PHY,"Precoding 1,2, or 4 antenna ports are currently supported\n");
                 W_prec = nr_W_1l_2p[pmi][ap];
                 break;
             }
@@ -533,7 +533,7 @@ void nr_generate_pdsch(processingData_L1tx_t *msgTx,
 	gNB->common_vars.beam_id[0][slot*frame_parms->symbols_per_slot+j] = rel15->precodingAndBeamforming.prgs_list[0].dig_bf_interface_list[0].beam_idx;
     }
     else {
-      LOG_D(PHY,"beam index for PDSCH allocation already taken\n");
+      LOG_X(PHY,"beam index for PDSCH allocation already taken\n");
     }
   }// dlsch loop
 }

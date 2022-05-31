@@ -106,7 +106,7 @@ void dlsch_scrambling(LTE_DL_FRAME_PARMS *frame_parms,
       // rule for BL/CE UEs from Section 6.3.1 in 36.211
       x2=  (dlsch->rnti<<14) + (q<<13) + ((((j0+j)*Nacc)%10)<<9) + frame_parms->Nid_cell;
 
-      if ((frame&1023) < 200) LOG_D(PHY,"Scrambling init for (i0 %d, i %d, j0 %d, j %d, Nacc %d) => x2 %d\n",i0,i,j0,j,Nacc,x2);
+      if ((frame&1023) < 200) LOG_X(PHY,"Scrambling init for (i0 %d, i %d, j0 %d, j %d, Nacc %d) => x2 %d\n",i0,i,j0,j,Nacc,x2);
     } else
       x2 = (dlsch->rnti<<14) + (q<<13) + ((Ns>>1)<<9) + frame_parms->Nid_cell; //this is c_init in 36.211 Sec 6.3.1 for PDSCH
   } else {

@@ -2228,7 +2228,7 @@ uint8_t get_downlink_ack(NR_UE_MAC_INST_t *mac,
           sched_slot %= slots_per_frame;
           sched_frame++;
         }
-        LOG_D(PHY,"HARQ pid %d is active for %d.%d (dl_slot %d, feedback_to_ul %d, is_common %d\n",dl_harq_pid, sched_frame,sched_slot,current_harq->dl_slot,current_harq->feedback_to_ul,current_harq->is_common);
+        LOG_X(PHY,"HARQ pid %d is active for %d.%d (dl_slot %d, feedback_to_ul %d, is_common %d\n",dl_harq_pid, sched_frame,sched_slot,current_harq->dl_slot,current_harq->feedback_to_ul,current_harq->is_common);
         /* check if current tx slot should transmit downlink acknowlegment */
         if (sched_frame == frame && sched_slot == slot) {
 

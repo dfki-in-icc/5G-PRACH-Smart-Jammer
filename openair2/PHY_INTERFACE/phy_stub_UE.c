@@ -208,7 +208,7 @@ void fill_crc_indication_UE_MAC(int Mod_id,
 
   UL_INFO->crc_ind.crc_indication_body.number_of_crcs++;
 
-  LOG_D(PHY,
+  LOG_X(PHY,
         "%s() rnti:%04x pdus:%d\n",
         __FUNCTION__,
         pdu->rx_ue_information.rnti,
@@ -469,7 +469,7 @@ void fill_uci_harq_indication_UE_MAC(int Mod_id,
     AssertFatal(1 == 0, "only format 1a/b for now, received \n");
 
   UL_INFO->harq_ind.harq_indication_body.number_of_harqs++;
-  LOG_D(PHY,
+  LOG_X(PHY,
         "Incremented eNB->UL_INFO.harq_ind.number_of_harqs:%d\n",
         UL_INFO->harq_ind.harq_indication_body.number_of_harqs);
 
@@ -484,7 +484,7 @@ void handle_nfapi_ul_pdu_UE_MAC(module_id_t Mod_id,
                                 int index,
                                 nfapi_ul_config_request_t *ul_config_req) {
   if (ul_config_pdu->pdu_type == NFAPI_UL_CONFIG_ULSCH_PDU_TYPE) {
-    LOG_D(PHY,
+    LOG_X(PHY,
           "Applying UL config for UE, rnti %x for frame %d, subframe %d\n",
           (ul_config_pdu->ulsch_pdu.ulsch_pdu_rel8).rnti,
           frame,
@@ -710,7 +710,7 @@ int ul_config_req_UE_MAC(nfapi_ul_config_request_t *req,
                          int timer_frame,
                          int timer_subframe,
                          module_id_t Mod_id) {
-  LOG_D(PHY,
+  LOG_X(PHY,
         "[PNF] UL_CONFIG_REQ %s() sfn_sf:%d pdu:%d "
         "rach_prach_frequency_resources:%d srs_present:%u\n",
         __FUNCTION__,
@@ -761,7 +761,7 @@ int ul_config_req_UE_MAC(nfapi_ul_config_request_t *req,
 }
 
 int tx_req_UE_MAC(nfapi_tx_request_t *req) {
-  LOG_D(PHY,
+  LOG_X(PHY,
         "%s() SFN/SF:%d/%d PDUs:%d\n",
         __FUNCTION__,
         NFAPI_SFNSF2SFN(req->sfn_sf),
@@ -769,7 +769,7 @@ int tx_req_UE_MAC(nfapi_tx_request_t *req) {
         req->tx_request_body.number_of_pdus);
 
   for (int i = 0; i < req->tx_request_body.number_of_pdus; i++) {
-    LOG_D(PHY,
+    LOG_X(PHY,
           "%s() SFN/SF:%d/%d number_of_pdus:%d [PDU:%d] pdu_length:%d "
           "pdu_index:%d num_segments:%d\n",
           __FUNCTION__,

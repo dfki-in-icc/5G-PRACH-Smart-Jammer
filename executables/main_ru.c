@@ -197,13 +197,13 @@ int main ( int argc, char **argv )
   if (config_isparamset(RUParamList.paramarray[j], RU_SDR_CLK_SRC)) {
     if (strcmp(*(RUParamList.paramarray[j][RU_SDR_CLK_SRC].strptr), "internal") == 0) {
       ru->openair0_cfg.clock_source = internal;
-      LOG_D(PHY, "RU clock source set as internal\n");
+      LOG_X(PHY, "RU clock source set as internal\n");
     } else if (strcmp(*(RUParamList.paramarray[j][RU_SDR_CLK_SRC].strptr), "external") == 0) {
       ru->openair0_cfg.clock_source = external;
-      LOG_D(PHY, "RU clock source set as external\n");
+      LOG_X(PHY, "RU clock source set as external\n");
     } else if (strcmp(*(RUParamList.paramarray[j][RU_SDR_CLK_SRC].strptr), "gpsdo") == 0) {
       ru->openair0_cfg.clock_source = gpsdo;
-      LOG_D(PHY, "RU clock source set as gpsdo\n");
+      LOG_X(PHY, "RU clock source set as gpsdo\n");
     } else {
       LOG_E(PHY, "Erroneous RU clock source in the provided configuration file: '%s'\n", *(RUParamList.paramarray[j][RU_SDR_CLK_SRC].strptr));
     }
@@ -215,13 +215,13 @@ int main ( int argc, char **argv )
   if (config_isparamset(RUParamList.paramarray[j], RU_SDR_TME_SRC)) {
     if (strcmp(*(RUParamList.paramarray[j][RU_SDR_TME_SRC].strptr), "internal") == 0) {
       ru->openair0_cfg.time_source = internal;
-      LOG_D(PHY, "RU time source set as internal\n");
+      LOG_X(PHY, "RU time source set as internal\n");
     } else if (strcmp(*(RUParamList.paramarray[j][RU_SDR_TME_SRC].strptr), "external") == 0) {
       ru->openair0_cfg.time_source = external;
-      LOG_D(PHY, "RU time source set as external\n");
+      LOG_X(PHY, "RU time source set as external\n");
     } else if (strcmp(*(RUParamList.paramarray[j][RU_SDR_TME_SRC].strptr), "gpsdo") == 0) {
       ru->openair0_cfg.time_source = gpsdo;
-      LOG_D(PHY, "RU time source set as gpsdo\n");
+      LOG_X(PHY, "RU time source set as gpsdo\n");
     } else {
       LOG_E(PHY, "Erroneous RU time source in the provided configuration file: '%s'\n", *(RUParamList.paramarray[j][RU_SDR_CLK_SRC].strptr));
     }

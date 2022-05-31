@@ -92,7 +92,7 @@
       #include "UTIL/queue.h"
     #endif
     #include "common/utils/LOG/log.h"
-    #define msg(aRGS...) LOG_D(PHY, ##aRGS)
+    #define msg(aRGS...) LOG_X(PHY, ##aRGS)
 #endif
 
 

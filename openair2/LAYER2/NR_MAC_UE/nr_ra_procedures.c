@@ -585,7 +585,7 @@ void nr_get_prach_resources(module_id_t mod_id,
     mac->scc->uplinkConfigCommon->initialUplinkBWP->rach_ConfigCommon->choice.setup : 
     mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP.rach_ConfigCommon->choice.setup;
 
-  LOG_D(PHY, "In %s: getting PRACH resources frame (first_Msg3 %d)\n", __FUNCTION__, ra->first_Msg3);
+  LOG_X(PHY, "In %s: getting PRACH resources frame (first_Msg3 %d)\n", __FUNCTION__, ra->first_Msg3);
 
   if (rach_ConfigDedicated) {
     if (rach_ConfigDedicated->cfra){

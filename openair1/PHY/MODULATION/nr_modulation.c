@@ -138,7 +138,7 @@ void nr_modulation(uint32_t *in,
   __m128i *out128;
 #endif
 
-  LOG_D(PHY,"nr_modulation: length %d, mod_order %d\n",length,mod_order);
+  LOG_X(PHY,"nr_modulation: length %d, mod_order %d\n",length,mod_order);
 
   switch (mod_order) {
 
@@ -253,7 +253,7 @@ void nr_layer_mapping(int16_t **mod_symbs,
                       uint16_t n_symbs,
                       int16_t **tx_layers)
 {
-  LOG_D(PHY,"Doing layer mapping for %d layers, %d symbols\n",n_layers,n_symbs);
+  LOG_X(PHY,"Doing layer mapping for %d layers, %d symbols\n",n_layers,n_symbs);
 
   switch (n_layers) {
 

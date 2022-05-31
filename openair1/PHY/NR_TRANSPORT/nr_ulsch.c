@@ -43,7 +43,7 @@ int16_t find_nr_ulsch(uint16_t rnti, PHY_VARS_gNB *gNB,find_type_t type) {
   for (i=0; i<gNB->number_of_nr_ulsch_max; i++) {
     AssertFatal(gNB->ulsch[i]!=NULL,"gNB->ulsch[%d] is null\n",i);
     AssertFatal(gNB->ulsch[i][0]!=NULL,"gNB->ulsch[%d][0] is null\n",i);
-    LOG_D(PHY,"searching for rnti %x : ulsch_index %d=> harq_mask %x, rnti %x, first_free_index %d\n", rnti,i,gNB->ulsch[i][0]->harq_mask,gNB->ulsch[i][0]->rnti,first_free_index);
+    LOG_X(PHY,"searching for rnti %x : ulsch_index %d=> harq_mask %x, rnti %x, first_free_index %d\n", rnti,i,gNB->ulsch[i][0]->harq_mask,gNB->ulsch[i][0]->rnti,first_free_index);
     if ((gNB->ulsch[i][0]->harq_mask >0) &&
         (gNB->ulsch[i][0]->rnti==rnti))       return i;
     else if ((gNB->ulsch[i][0]->harq_mask == 0) && (first_free_index==-1)) first_free_index=i;
@@ -77,7 +77,7 @@ void nr_fill_ulsch(PHY_VARS_gNB *gNB,
   ulsch->harq_processes[harq_pid]->status= NR_ACTIVE;
   memcpy((void*)&ulsch->harq_processes[harq_pid]->ulsch_pdu, (void*)ulsch_pdu, sizeof(nfapi_nr_pusch_pdu_t));
 
-  LOG_D(PHY,"Initializing nFAPI for ULSCH, UE %d, harq_pid %d\n",ulsch_id,harq_pid);
+  LOG_X(PHY,"Initializing nFAPI for ULSCH, UE %d, harq_pid %d\n",ulsch_id,harq_pid);
 
 }
 

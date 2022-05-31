@@ -518,7 +518,7 @@ void* ru_thread_control( void* param )
 
       if (ru->state == RU_RUN && ru->if_south != LOCAL_RF){
 	LTE_DL_FRAME_PARMS *fp = &ru->eNB_list[0]->frame_parms;	
-	LOG_D(PHY,"Check MBSFN SF changes\n");
+	LOG_X(PHY,"Check MBSFN SF changes\n");
 	if(fp->num_MBSFN_config != ru_sf_update){
 		ru_sf_update = fp->num_MBSFN_config;
 		LOG_W(PHY,"RU SF should be updated ... calling send_update_rru(ru)\n");
@@ -530,7 +530,7 @@ void* ru_thread_control( void* param )
       if ((len = ru->ifdevice.trx_ctlrecv_func(&ru->ifdevice,
 					       &rru_config_msg,
 					       msg_len))<0) {
-	LOG_D(PHY,"Waiting msg for RU %d\n", ru->idx);     
+	LOG_X(PHY,"Waiting msg for RU %d\n", ru->idx);     
       }
       else
 	{
