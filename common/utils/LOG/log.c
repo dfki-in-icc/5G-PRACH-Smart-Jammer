@@ -964,7 +964,7 @@ static void log_output_memory(log_component_t *c, const char *file, const char *
     if ((level <= OAILOG_INFO ) && (level != OAILOG_EXTRA)){
       if (write(fileno(c->stream), log_buffer, len)) {};
     }
-    if ((level == OAILOG_INFO) || (level == OAILOG_DEBUG) || (level == OAILOG_EXTRA)){
+    if ((level <= OAILOG_INFO) || (level == OAILOG_DEBUG) || (level == OAILOG_EXTRA)){
       if (disable_shm_log == 0)
         if (write(fileno(c->stream_ram), log_buffer, len)) {};
     }
