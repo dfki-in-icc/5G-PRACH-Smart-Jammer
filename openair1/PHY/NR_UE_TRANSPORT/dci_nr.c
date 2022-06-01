@@ -836,7 +836,7 @@ int32_t nr_rx_pdcch(PHY_VARS_NR_UE *ue,
   LOG_X(PHY,"pdcch coreset: freq %x, n_rb %d, rb_offset %d\n",
         rel15->coreset.frequency_domain_resource[0],n_rb,rb_offset);
   for (int s=rel15->coreset.StartSymbolIndex; s<(rel15->coreset.StartSymbolIndex+rel15->coreset.duration); s++) {
-    LOG_X(PHY,"in nr_pdcch_extract_rbs_single(rxdataF -> rxdataF_ext || dl_ch_estimates -> dl_ch_estimates_ext)\n");
+    LOG_D(PHY,"in nr_pdcch_extract_rbs_single(rxdataF -> rxdataF_ext || dl_ch_estimates -> dl_ch_estimates_ext)\n");
 
     nr_pdcch_extract_rbs_single(common_vars->common_vars_rx_data_per_thread[proc->thread_id].rxdataF,
                                 pdcch_vars->dl_ch_estimates,
@@ -849,7 +849,7 @@ int32_t nr_rx_pdcch(PHY_VARS_NR_UE *ue,
                                 rel15->BWPStart);
 
     LOG_X(PHY,"we enter nr_pdcch_channel_level(avgP=%d) => compute channel level based on ofdm symbol 0, pdcch_vars[eNB_id]->dl_ch_estimates_ext\n",*avgP);
-    LOG_X(PHY,"in nr_pdcch_channel_level(dl_ch_estimates_ext -> dl_ch_estimates_ext)\n");
+    LOG_D(PHY,"in nr_pdcch_channel_level(dl_ch_estimates_ext -> dl_ch_estimates_ext)\n");
     // compute channel level based on ofdm symbol 0
     nr_pdcch_channel_level(pdcch_vars->dl_ch_estimates_ext,
                            frame_parms,
@@ -872,7 +872,7 @@ int32_t nr_rx_pdcch(PHY_VARS_NR_UE *ue,
       T_INT(avgP[0]), T_INT(avgP[1]), T_INT(avgP[2]), T_INT(avgP[3]));
 #endif
     LOG_X(PHY,"we enter nr_pdcch_channel_compensation(log2_maxh=%d)\n",log2_maxh);
-    LOG_X(PHY,"in nr_pdcch_channel_compensation(rxdataF_ext x dl_ch_estimates_ext -> rxdataF_comp)\n");
+    LOG_D(PHY,"in nr_pdcch_channel_compensation(rxdataF_ext x dl_ch_estimates_ext -> rxdataF_comp)\n");
     // compute LLRs for ofdm symbol 0 only
     nr_pdcch_channel_compensation(pdcch_vars->rxdataF_ext,
                                   pdcch_vars->dl_ch_estimates_ext,
@@ -887,8 +887,8 @@ int32_t nr_rx_pdcch(PHY_VARS_NR_UE *ue,
       nr_pdcch_detection_mrc(frame_parms, pdcch_vars->rxdataF_comp,s);
     }
 
-    LOG_X(PHY,"we enter nr_pdcch_llr(for symbol %d), pdcch_vars[eNB_id]->rxdataF_comp ---> pdcch_vars[eNB_id]->llr \n",s);
-    LOG_X(PHY,"in nr_pdcch_llr(rxdataF_comp -> llr)\n");
+    LOG_D(PHY,"we enter nr_pdcch_llr(for symbol %d), pdcch_vars[eNB_id]->rxdataF_comp ---> pdcch_vars[eNB_id]->llr \n",s);
+    LOG_D(PHY,"in nr_pdcch_llr(rxdataF_comp -> llr)\n");
     nr_pdcch_llr(frame_parms,
                  pdcch_vars->rxdataF_comp,
                  pdcch_vars->llr,
@@ -906,7 +906,7 @@ int32_t nr_rx_pdcch(PHY_VARS_NR_UE *ue,
 #endif
   }
 
-  LOG_X(PHY,"we enter nr_pdcch_demapping_deinterleaving(), number of candidates %d\n",rel15->number_of_candidates);
+  LOG_D(PHY,"we enter nr_pdcch_demapping_deinterleaving(), number of candidates %d\n",rel15->number_of_candidates);
   nr_pdcch_demapping_deinterleaving((uint32_t *) pdcch_vars->llr,
                                     (uint32_t *) pdcch_vars->e_rx,
                                     rel15->coreset.duration,

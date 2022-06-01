@@ -298,7 +298,7 @@ void ue_dci_configuration(NR_UE_MAC_INST_t *mac, fapi_nr_dl_config_request_t *dl
 	      pdcch_ConfigCommon->choice.setup->searchSpaceSIB1=calloc(1,sizeof(*pdcch_ConfigCommon->choice.setup->searchSpaceSIB1));
 	    }
 	    *pdcch_ConfigCommon->choice.setup->searchSpaceSIB1 = 0;
-	    LOG_X(NR_MAC, "[DCI_CONFIG] Configure SearchSpace#0 of the initial BWP\n");
+	    LOG_D(NR_MAC, "[DCI_CONFIG] Configure SearchSpace#0 of the initial BWP\n");
 	  }
 	  if (ss->searchSpaceType->choice.common->dci_Format0_0_AndFormat1_0){
 	    // check available SS IDs
@@ -306,7 +306,7 @@ void ue_dci_configuration(NR_UE_MAC_INST_t *mac, fapi_nr_dl_config_request_t *dl
 	      if (ss->searchSpaceId == *pdcch_ConfigCommon->choice.setup->ra_SearchSpace){
 		switch(ra->ra_state){
 		case WAIT_RAR:
-		  LOG_X(NR_MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in Type1-PDCCH common random access search space (RA-Msg2)\n");
+		  LOG_D(NR_MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in Type1-PDCCH common random access search space (RA-Msg2)\n");
 		  rel15->num_dci_options = 1;
 		  rel15->dci_format_options[0] = NR_DL_DCI_FORMAT_1_0;
 		  if (get_softmodem_params()->sa) {
@@ -317,7 +317,7 @@ void ue_dci_configuration(NR_UE_MAC_INST_t *mac, fapi_nr_dl_config_request_t *dl
 		  fill_dci_search_candidates(ss, rel15);
 		  break;
 		case WAIT_CONTENTION_RESOLUTION:
-		  LOG_X(NR_MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in Type1-PDCCH common random access search space (RA-Msg4)\n");
+		  LOG_D(NR_MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in Type1-PDCCH common random access search space (RA-Msg4)\n");
 		  rel15->num_dci_options = 1;
 		  rel15->dci_format_options[0] = NR_DL_DCI_FORMAT_1_0;
 		  config_dci_pdu(mac, rel15, dl_config, NR_RNTI_TC, -1);
@@ -388,7 +388,7 @@ void ue_dci_configuration(NR_UE_MAC_INST_t *mac, fapi_nr_dl_config_request_t *dl
 	      (ra->ra_state == RA_SUCCEEDED || get_softmodem_params()->phy_test) &&
               mac->crnti > 0) {
 	      // Monitors DCI 01 and 11 scrambled with C-RNTI, or CS-RNTI(s), or SP-CSI-RNTI
-            LOG_X(NR_MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in the user specific search space\n");
+            LOG_D(NR_MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in the user specific search space\n");
             rel15->num_dci_options = 2;
             rel15->dci_format_options[0] = NR_DL_DCI_FORMAT_1_1;
             rel15->dci_format_options[1] = NR_UL_DCI_FORMAT_0_1;
