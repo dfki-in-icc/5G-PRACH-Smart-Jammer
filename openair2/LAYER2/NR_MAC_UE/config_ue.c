@@ -669,7 +669,7 @@ int nr_rrc_mac_config_req_ue(
     if (sccP != NULL) {
 
       mac->scc_SIB=sccP;
-      LOG_D(NR_MAC, "In %s: Keeping ServingCellConfigCommonSIB\n", __FUNCTION__);
+      LOG_X(NR_MAC, "In %s: Keeping ServingCellConfigCommonSIB\n", __FUNCTION__);
       config_common_ue_sa(mac,module_id,cc_idP);
 
       int num_slots_ul = nr_slots_per_frame[mac->mib->subCarrierSpacingCommon];

@@ -168,7 +168,7 @@ void nr_ue_init_mac(module_id_t module_idP) {
 //  mac->PHR_reporting_active = 0;
 
   for (i = 0; i < NR_MAX_NUM_LCID; i++) {
-    LOG_D(NR_MAC, "[UE%d] Applying default logical channel config for LCGID %d\n",
+    LOG_X(NR_MAC, "[UE%d] Applying default logical channel config for LCGID %d\n",
 		  module_idP, i);
     mac->scheduling_info.Bj[i] = -1;
     mac->scheduling_info.bucket_size[i] = -1;
@@ -386,7 +386,7 @@ int8_t nr_ue_decode_BCCH_DL_SCH(module_id_t module_id,
                                 uint8_t *pduP,
                                 uint32_t pdu_len) {
   if(ack_nack) {
-    LOG_D(NR_MAC, "Decoding NR-BCCH-DL-SCH-Message (SIB1 or SI)\n");
+    LOG_X(NR_MAC, "Decoding NR-BCCH-DL-SCH-Message (SIB1 or SI)\n");
     nr_mac_rrc_data_ind_ue(module_id, cc_id, gNB_index, 0, 0, 0, NR_BCCH_DL_SCH, (uint8_t *) pduP, pdu_len);
   }
   else
@@ -668,7 +668,7 @@ int8_t nr_ue_process_dci_time_dom_resource_assignment(NR_UE_MAC_INST_t *mac,
         return -1;
       }
       
-      LOG_D(NR_MAC,"Filling Time-Domain Allocation from pusch_TimeDomainAllocationList\n");
+      LOG_X(NR_MAC,"Filling Time-Domain Allocation from pusch_TimeDomainAllocationList\n");
       int startSymbolAndLength = pusch_TimeDomainAllocationList->list.array[time_domain_ind]->startSymbolAndLength;
       int S,L;
       SLIV2SL(startSymbolAndLength,&S,&L);
@@ -676,7 +676,7 @@ int8_t nr_ue_process_dci_time_dom_resource_assignment(NR_UE_MAC_INST_t *mac,
       pusch_config_pdu->nr_of_symbols=L;
     }
     else {
-      LOG_D(NR_MAC,"Filling Time-Domain Allocation from tables\n");
+      LOG_X(NR_MAC,"Filling Time-Domain Allocation from tables\n");
 //      k_offset = table_6_1_2_1_1_2_time_dom_res_alloc_A[time_domain_ind-1][0];
       sliv_S   = table_6_1_2_1_1_2_time_dom_res_alloc_A[time_domain_ind][1];
       sliv_L   = table_6_1_2_1_1_2_time_dom_res_alloc_A[time_domain_ind][2];
@@ -686,8 +686,8 @@ int8_t nr_ue_process_dci_time_dom_resource_assignment(NR_UE_MAC_INST_t *mac,
       pusch_config_pdu->nr_of_symbols = sliv_L;
       pusch_config_pdu->start_symbol_index = sliv_S;
     }
-    LOG_D(NR_MAC,"start_symbol = %i\n", pusch_config_pdu->start_symbol_index);
-    LOG_D(NR_MAC,"number_symbols = %i\n", pusch_config_pdu->nr_of_symbols);
+    LOG_X(NR_MAC,"start_symbol = %i\n", pusch_config_pdu->start_symbol_index);
+    LOG_X(NR_MAC,"number_symbols = %i\n", pusch_config_pdu->nr_of_symbols);
   }
   return 0;
 }
@@ -1556,7 +1556,7 @@ void nr_ue_configure_pucch(NR_UE_MAC_INST_t *mac,
 
   pucch_pdu->rnti = rnti;
 
-  LOG_D(NR_MAC,"initial_pucch_id %d, pucch_resource %p\n",pucch->initial_pucch_id,pucch->pucch_resource);
+  LOG_X(NR_MAC,"initial_pucch_id %d, pucch_resource %p\n",pucch->initial_pucch_id,pucch->pucch_resource);
   // configure pucch from Table 9.2.1-1
   if (pucch->initial_pucch_id > -1 &&
       pucch->pucch_resource == NULL) {
@@ -2459,7 +2459,7 @@ int8_t nr_ue_get_SR(module_id_t module_idP, frame_t frameP, slot_t slot){
   DevCheck(module_idP < (int) NB_UE_INST, module_idP, NB_NR_UE_MAC_INST, 0);
   NR_UE_MAC_INST_t *mac = get_mac_inst(module_idP);
   DSR_TRANSMAX_t dsr_TransMax = sr_n64; // todo
-  LOG_D(NR_MAC, "[UE %d] Frame %d slot %d send SR indication (SR_COUNTER/dsr_TransMax %d/%d), SR_pending %d\n",
+  LOG_X(NR_MAC, "[UE %d] Frame %d slot %d send SR indication (SR_COUNTER/dsr_TransMax %d/%d), SR_pending %d\n",
         module_idP, frameP, slot,
         mac->scheduling_info.SR_COUNTER,
         (1 << (2 + dsr_TransMax)),
@@ -2467,7 +2467,7 @@ int8_t nr_ue_get_SR(module_id_t module_idP, frame_t frameP, slot_t slot){
 
   if ((mac->scheduling_info.SR_pending == 1) &&
       (mac->scheduling_info.SR_COUNTER < (1 << (2 + dsr_TransMax)))) {
-    LOG_D(NR_MAC, "[UE %d] Frame %d slot %d PHY asks for SR (SR_COUNTER/dsr_TransMax %d/%d), SR_pending %d, increment SR_COUNTER\n",
+    LOG_X(NR_MAC, "[UE %d] Frame %d slot %d PHY asks for SR (SR_COUNTER/dsr_TransMax %d/%d), SR_pending %d, increment SR_COUNTER\n",
           module_idP, frameP, slot,
           mac->scheduling_info.SR_COUNTER,
           (1 << (2 + dsr_TransMax)),
@@ -3116,20 +3116,20 @@ uint8_t nr_extract_dci_info(NR_UE_MAC_INST_t *mac,
       pos+=3;
       dci_pdu_rel15->pdsch_to_harq_feedback_timing_indicator.val = (*dci_pdu>>(dci_size-pos))&7;
 
-      LOG_D(NR_MAC,"N_RB = %i\n", N_RB);
-      LOG_D(NR_MAC,"dci_size = %i\n", dci_size);
-      LOG_D(NR_MAC,"fsize = %i\n", fsize);
-      LOG_D(NR_MAC,"dci_pdu_rel15->format_indicator = %i\n", dci_pdu_rel15->format_indicator);
-      LOG_D(NR_MAC,"dci_pdu_rel15->frequency_domain_assignment.val = %i\n", dci_pdu_rel15->frequency_domain_assignment.val);
-      LOG_D(NR_MAC,"dci_pdu_rel15->time_domain_assignment.val = %i\n", dci_pdu_rel15->time_domain_assignment.val);
-      LOG_D(NR_MAC,"dci_pdu_rel15->vrb_to_prb_mapping.val = %i\n", dci_pdu_rel15->vrb_to_prb_mapping.val);
-      LOG_D(NR_MAC,"dci_pdu_rel15->mcs = %i\n", dci_pdu_rel15->mcs);
-      LOG_D(NR_MAC,"dci_pdu_rel15->rv = %i\n", dci_pdu_rel15->rv);
-      LOG_D(NR_MAC,"dci_pdu_rel15->harq_pid = %i\n", dci_pdu_rel15->harq_pid);
-      LOG_D(NR_MAC,"dci_pdu_rel15->dai[0].val = %i\n", dci_pdu_rel15->dai[0].val);
-      LOG_D(NR_MAC,"dci_pdu_rel15->tpc = %i\n", dci_pdu_rel15->tpc);
-      LOG_D(NR_MAC,"dci_pdu_rel15->pucch_resource_indicator = %i\n", dci_pdu_rel15->pucch_resource_indicator);
-      LOG_D(NR_MAC,"dci_pdu_rel15->pdsch_to_harq_feedback_timing_indicator.val = %i\n", dci_pdu_rel15->pdsch_to_harq_feedback_timing_indicator.val);
+      LOG_X(NR_MAC,"N_RB = %i\n", N_RB);
+      LOG_X(NR_MAC,"dci_size = %i\n", dci_size);
+      LOG_X(NR_MAC,"fsize = %i\n", fsize);
+      LOG_X(NR_MAC,"dci_pdu_rel15->format_indicator = %i\n", dci_pdu_rel15->format_indicator);
+      LOG_X(NR_MAC,"dci_pdu_rel15->frequency_domain_assignment.val = %i\n", dci_pdu_rel15->frequency_domain_assignment.val);
+      LOG_X(NR_MAC,"dci_pdu_rel15->time_domain_assignment.val = %i\n", dci_pdu_rel15->time_domain_assignment.val);
+      LOG_X(NR_MAC,"dci_pdu_rel15->vrb_to_prb_mapping.val = %i\n", dci_pdu_rel15->vrb_to_prb_mapping.val);
+      LOG_X(NR_MAC,"dci_pdu_rel15->mcs = %i\n", dci_pdu_rel15->mcs);
+      LOG_X(NR_MAC,"dci_pdu_rel15->rv = %i\n", dci_pdu_rel15->rv);
+      LOG_X(NR_MAC,"dci_pdu_rel15->harq_pid = %i\n", dci_pdu_rel15->harq_pid);
+      LOG_X(NR_MAC,"dci_pdu_rel15->dai[0].val = %i\n", dci_pdu_rel15->dai[0].val);
+      LOG_X(NR_MAC,"dci_pdu_rel15->tpc = %i\n", dci_pdu_rel15->tpc);
+      LOG_X(NR_MAC,"dci_pdu_rel15->pucch_resource_indicator = %i\n", dci_pdu_rel15->pucch_resource_indicator);
+      LOG_X(NR_MAC,"dci_pdu_rel15->pdsch_to_harq_feedback_timing_indicator.val = %i\n", dci_pdu_rel15->pdsch_to_harq_feedback_timing_indicator.val);
 
       break;
     }
@@ -3561,18 +3561,18 @@ void nr_ue_process_mac_pdu(nr_downlink_indication_t *dl_info,
           }
         }
         if (i == (mac_subheader_len+mac_sdu_len)) {
-          LOG_D(NR_MAC, "%s() Invalid CCCH message!, pdu_len: %d\n", __func__, pdu_len);
+          LOG_X(NR_MAC, "%s() Invalid CCCH message!, pdu_len: %d\n", __func__, pdu_len);
           done = 1;
           break;
         }
 
         if ( mac_sdu_len > 0 ) {
-          LOG_D(NR_MAC,"DL_SCH_LCID_CCCH (e.g. RRCSetup) with payload len %d\n", mac_sdu_len);
+          LOG_X(NR_MAC,"DL_SCH_LCID_CCCH (e.g. RRCSetup) with payload len %d\n", mac_sdu_len);
           for (int i = 0; i < mac_subheader_len; i++) {
-            LOG_D(NR_MAC, "MAC header %d: 0x%x\n", i, pduP[i]);
+            LOG_X(NR_MAC, "MAC header %d: 0x%x\n", i, pduP[i]);
           }
           for (int i = 0; i < mac_sdu_len; i++) {
-            LOG_D(NR_MAC, "%d: 0x%x\n", i, pduP[mac_subheader_len + i]);
+            LOG_X(NR_MAC, "%d: 0x%x\n", i, pduP[mac_subheader_len + i]);
           }
           nr_mac_rrc_data_ind_ue(module_idP, CC_id, gNB_index, frameP, 0, mac->crnti, CCCH, pduP+mac_subheader_len, mac_sdu_len);
         }
@@ -3737,7 +3737,7 @@ void nr_ue_process_mac_pdu(nr_downlink_indication_t *dl_info,
                   mac_subheader_len = 2;
                 }
 
-                LOG_D(NR_MAC, "[UE %d] Frame %d : DLSCH -> DL-DTCH %d (gNB %d, %d bytes)\n", module_idP, frameP, rx_lcid, gNB_index, mac_sdu_len);
+                LOG_X(NR_MAC, "[UE %d] Frame %d : DLSCH -> DL-DTCH %d (gNB %d, %d bytes)\n", module_idP, frameP, rx_lcid, gNB_index, mac_sdu_len);
 
                 #if defined(ENABLE_MAC_PAYLOAD_DEBUG)
                     LOG_T(MAC, "[UE %d] First 32 bytes of DLSCH : \n", module_idP);
@@ -3812,13 +3812,13 @@ int nr_write_ce_ulsch_pdu(uint8_t *mac_ce,
     mac_ce_size = sizeof(NR_SINGLE_ENTRY_PHR_MAC_CE);
     mac_ce += mac_ce_size;
     mac_ce_len += mac_ce_size + sizeof(NR_MAC_SUBHEADER_FIXED);
-    LOG_D(NR_MAC, "[UE] Generating ULSCH PDU : power_headroom pdu %p mac_ce %p b\n",
+    LOG_X(NR_MAC, "[UE] Generating ULSCH PDU : power_headroom pdu %p mac_ce %p b\n",
           pdu, mac_ce);
   }
 
   if (crnti && (!get_softmodem_params()->sa && get_softmodem_params()->do_ra && mac->ra.ra_state != RA_SUCCEEDED)) {
 
-    LOG_D(NR_MAC, "In %s: generating C-RNTI MAC CE with C-RNTI %x\n", __FUNCTION__, (*crnti));
+    LOG_X(NR_MAC, "In %s: generating C-RNTI MAC CE with C-RNTI %x\n", __FUNCTION__, (*crnti));
 
     // MAC CE fixed subheader
     ((NR_MAC_SUBHEADER_FIXED *) mac_ce)->R = 0;
@@ -3850,7 +3850,7 @@ int nr_write_ce_ulsch_pdu(uint8_t *mac_ce,
     mac_ce_size = sizeof(NR_BSR_SHORT_TRUNCATED);
     mac_ce += mac_ce_size;
     mac_ce_len += mac_ce_size + sizeof(NR_MAC_SUBHEADER_FIXED);
-    LOG_D(NR_MAC, "[UE] Generating ULSCH PDU : truncated_bsr Buffer_size %d LcgID %d pdu %p mac_ce %p\n",
+    LOG_X(NR_MAC, "[UE] Generating ULSCH PDU : truncated_bsr Buffer_size %d LcgID %d pdu %p mac_ce %p\n",
           truncated_bsr->Buffer_size, truncated_bsr->LcgID, pdu, mac_ce);
 
   } else if (short_bsr) {
@@ -3868,7 +3868,7 @@ int nr_write_ce_ulsch_pdu(uint8_t *mac_ce,
     mac_ce_size = sizeof(NR_BSR_SHORT);
     mac_ce += mac_ce_size;
     mac_ce_len += mac_ce_size + sizeof(NR_MAC_SUBHEADER_FIXED);
-    LOG_D(NR_MAC, "[UE] Generating ULSCH PDU : short_bsr Buffer_size %d LcgID %d pdu %p mac_ce %p\n",
+    LOG_X(NR_MAC, "[UE] Generating ULSCH PDU : short_bsr Buffer_size %d LcgID %d pdu %p mac_ce %p\n",
           short_bsr->Buffer_size, short_bsr->LcgID, pdu, mac_ce);
   } else if (long_bsr) {
 
@@ -3933,7 +3933,7 @@ int nr_write_ce_ulsch_pdu(uint8_t *mac_ce,
       *Buffer_size_ptr++ = long_bsr->Buffer_size7;
     }
     ((NR_MAC_SUBHEADER_SHORT *) mac_pdu_subheader_ptr)->L = mac_ce_size = (uint8_t*) Buffer_size_ptr - (uint8_t*) mac_ce;
-    LOG_D(NR_MAC, "[UE] Generating ULSCH PDU : long_bsr size %d Lcgbit 0x%02x Buffer_size %d %d %d %d %d %d %d %d\n", mac_ce_size, *((uint8_t*) mac_ce),
+    LOG_X(NR_MAC, "[UE] Generating ULSCH PDU : long_bsr size %d Lcgbit 0x%02x Buffer_size %d %d %d %d %d %d %d %d\n", mac_ce_size, *((uint8_t*) mac_ce),
           ((NR_BSR_LONG *) mac_ce)->Buffer_size0, ((NR_BSR_LONG *) mac_ce)->Buffer_size1, ((NR_BSR_LONG *) mac_ce)->Buffer_size2, ((NR_BSR_LONG *) mac_ce)->Buffer_size3,
           ((NR_BSR_LONG *) mac_ce)->Buffer_size4, ((NR_BSR_LONG *) mac_ce)->Buffer_size5, ((NR_BSR_LONG *) mac_ce)->Buffer_size6, ((NR_BSR_LONG *) mac_ce)->Buffer_size7);
     // update pointer and length
@@ -4003,7 +4003,7 @@ int nr_ue_process_rar(nr_downlink_indication_t *dl_info, NR_UL_TIME_ALIGNMENT_t 
   NR_MAC_RAR *rar          = (NR_MAC_RAR *) (dlsch_buffer + 1);   // RAR subPDU pointer
   uint8_t preamble_index   = ra->ra_PreambleIndex;
 
-  LOG_D(NR_MAC, "In %s:[%d.%d]: [UE %d][RAPROC] invoking MAC for received RAR (current preamble %d)\n", __FUNCTION__, frame, slot, mod_id, preamble_index);
+  LOG_X(NR_MAC, "In %s:[%d.%d]: [UE %d][RAPROC] invoking MAC for received RAR (current preamble %d)\n", __FUNCTION__, frame, slot, mod_id, preamble_index);
 
   while (1) {
     n_subheaders++;

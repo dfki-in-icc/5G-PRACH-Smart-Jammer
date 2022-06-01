@@ -680,12 +680,12 @@ uint8_t nr_ue_get_rach(NR_PRACH_RESOURCES_t *prach_resources,
        ((MAX_FRAME_NUMBER + frame - prach_resources->sync_frame) % MAX_FRAME_NUMBER) > 150) {
       prach_resources->init_msg1 = 1;
     } else {
-      LOG_D(NR_MAC,"PRACH Condition not met: frame %d, prach_resources->sync_frame %d\n",frame,prach_resources->sync_frame);
+      LOG_X(NR_MAC,"PRACH Condition not met: frame %d, prach_resources->sync_frame %d\n",frame,prach_resources->sync_frame);
       return 0;
     }
   }
 
-  LOG_D(NR_MAC, "In %s: [UE %d][%d.%d]: init_msg1 %d, ra_state %d, RA_active %d\n",
+  LOG_X(NR_MAC, "In %s: [UE %d][%d.%d]: init_msg1 %d, ra_state %d, RA_active %d\n",
     __FUNCTION__,
     mod_id,
     frame,
@@ -699,7 +699,7 @@ uint8_t nr_ue_get_rach(NR_PRACH_RESOURCES_t *prach_resources,
     if (ra->RA_active == 0) {
       /* RA not active - checking if RRC is ready to initiate the RA procedure */
 
-      LOG_D(NR_MAC, "In %s: RA not active. Checking for data to transmit from upper layers...\n", __FUNCTION__);
+      LOG_X(NR_MAC, "In %s: RA not active. Checking for data to transmit from upper layers...\n", __FUNCTION__);
 
       const uint8_t lcid = UL_SCH_LCID_CCCH;
       const uint8_t sh_size = sizeof(NR_MAC_SUBHEADER_FIXED);
@@ -721,7 +721,7 @@ uint8_t nr_ue_get_rach(NR_PRACH_RESOURCES_t *prach_resources,
 
         // CCCH PDU
         size_sdu = nr_mac_rrc_data_req_ue(mod_id, CC_id, gNB_id, frame, CCCH, pdu);
-        LOG_D(NR_MAC, "In %s: [UE %d][%d.%d]: Requested RRCConnectionRequest, got %d bytes for LCID 0x%02x \n", __FUNCTION__, mod_id, frame, nr_slot_tx, size_sdu, lcid);
+        LOG_X(NR_MAC, "In %s: [UE %d][%d.%d]: Requested RRCConnectionRequest, got %d bytes for LCID 0x%02x \n", __FUNCTION__, mod_id, frame, nr_slot_tx, size_sdu, lcid);
 
         if (size_sdu > 0) {
 
@@ -775,7 +775,7 @@ uint8_t nr_ue_get_rach(NR_PRACH_RESOURCES_t *prach_resources,
 
       if (size_sdu > 0 && (ra->generate_nr_prach == GENERATE_PREAMBLE || get_softmodem_params()->nsa)) {
 
-        LOG_D(NR_MAC, "In %s: [UE %d][%d.%d]: starting initialisation Random Access Procedure...\n", __FUNCTION__, mod_id, frame, nr_slot_tx);
+        LOG_X(NR_MAC, "In %s: [UE %d][%d.%d]: starting initialisation Random Access Procedure...\n", __FUNCTION__, mod_id, frame, nr_slot_tx);
 
         // Init RA procedure
         init_RA(mod_id, prach_resources, setup, rach_ConfigGeneric, rach_ConfigDedicated);
@@ -787,7 +787,7 @@ uint8_t nr_ue_get_rach(NR_PRACH_RESOURCES_t *prach_resources,
         // Padding: fill remainder with 0
         if (TBS_max - ra->Msg3_size > 0) {
           AssertFatal(TBS_max > ra->Msg3_size, "In %s: allocated resources are not enough for Msg3!\n", __FUNCTION__);
-          LOG_D(NR_MAC, "In %s: remaining %d bytes, filling with padding\n", __FUNCTION__, TBS_max - ra->Msg3_size);
+          LOG_X(NR_MAC, "In %s: remaining %d bytes, filling with padding\n", __FUNCTION__, TBS_max - ra->Msg3_size);
           ((NR_MAC_SUBHEADER_FIXED *) pdu)->R = 0;
           ((NR_MAC_SUBHEADER_FIXED *) pdu)->LCID = UL_SCH_LCID_PADDING;
           pdu += sizeof(NR_MAC_SUBHEADER_FIXED);
@@ -797,9 +797,9 @@ uint8_t nr_ue_get_rach(NR_PRACH_RESOURCES_t *prach_resources,
         }
 
         // Dumping ULSCH payload
-        LOG_D(NR_MAC, "In %s: dumping UL Msg3 MAC PDU with length %d: \n", __FUNCTION__, TBS_max);
+        LOG_X(NR_MAC, "In %s: dumping UL Msg3 MAC PDU with length %d: \n", __FUNCTION__, TBS_max);
         for(int k = 0; k < TBS_max; k++) {
-          LOG_D(NR_MAC,"(%i): %i\n", k, payload[k]);
+          LOG_X(NR_MAC,"(%i): %i\n", k, payload[k]);
         }
 
         // Msg3 was initialized with TBS_max bytes because the RA_Msg3_size will only be known after

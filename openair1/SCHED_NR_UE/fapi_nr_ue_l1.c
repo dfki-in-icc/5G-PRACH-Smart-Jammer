@@ -97,7 +97,7 @@ int8_t nr_ue_scheduled_response_stub(nr_scheduled_response_t *scheduled_response
                 rx_ind->pdu_list[j].ul_cqi = 255;
                 char buffer[1024];
                 hexdump(rx_ind->pdu_list[j].pdu, rx_ind->pdu_list[j].pdu_length, buffer, sizeof(buffer));
-                LOG_D(NR_MAC, "Hexdump of pdu %s before queuing rx_ind\n",
+                LOG_X(NR_MAC, "Hexdump of pdu %s before queuing rx_ind\n",
                       buffer);
               }
 
@@ -110,8 +110,8 @@ int8_t nr_ue_scheduled_response_stub(nr_scheduled_response_t *scheduled_response
               {
                 crc_ind->crc_list[j].handle = pusch_config_pdu->handle;
                 crc_ind->crc_list[j].harq_id = pusch_config_pdu->pusch_data.harq_process_id;
-                LOG_D(NR_MAC, "This is the harq pid %d for crc_list[%d]\n", crc_ind->crc_list[j].harq_id, j);
-                LOG_D(NR_MAC, "This is sched sfn/sl [%d %d] and crc sfn/sl [%d %d]\n",
+                LOG_X(NR_MAC, "This is the harq pid %d for crc_list[%d]\n", crc_ind->crc_list[j].harq_id, j);
+                LOG_X(NR_MAC, "This is sched sfn/sl [%d %d] and crc sfn/sl [%d %d]\n",
                       scheduled_response->frame, scheduled_response->slot, crc_ind->sfn, crc_ind->slot);
                 crc_ind->crc_list[j].num_cb = pusch_config_pdu->pusch_data.num_cb;
                 crc_ind->crc_list[j].rnti = pusch_config_pdu->rnti;

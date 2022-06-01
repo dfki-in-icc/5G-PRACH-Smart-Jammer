@@ -122,7 +122,7 @@ void handle_nr_uci(NR_UL_IND_t *UL_info)
 
       case NFAPI_NR_UCI_FORMAT_0_1_PDU_TYPE: {
         const nfapi_nr_uci_pucch_pdu_format_0_1_t *uci_pdu = &uci_list[i].pucch_pdu_format_0_1;
-        LOG_D(NR_MAC, "The received uci has sfn slot %d %d, num_ucis %d and pdu_size %d\n",
+        LOG_X(NR_MAC, "The received uci has sfn slot %d %d, num_ucis %d and pdu_size %d\n",
                 UL_info->uci_ind.sfn, UL_info->uci_ind.slot, num_ucis, uci_list[i].pdu_size);
         handle_nr_uci_pucch_0_1(mod_id, frame, slot, uci_pdu);
         break;
@@ -192,7 +192,7 @@ void handle_nr_ulsch(NR_UL_IND_t *UL_info)
       AssertFatal(crc->rnti == rx->rnti, "mis-match between CRC RNTI %04x and RX RNTI %04x\n",
                   crc->rnti, rx->rnti);
 
-      LOG_D(NR_MAC,
+      LOG_X(NR_MAC,
             "%4d.%2d Calling rx_sdu (CRC %s/tb_crc_status %d)\n",
             UL_info->frame,
             UL_info->slot,
@@ -396,19 +396,19 @@ void NR_UL_indication(NR_UL_IND_t *UL_info) {
   if (get_softmodem_params()->emulate_l1)
   {
     if (gnb_rach_ind_queue.num_items > 0) {
-      LOG_D(NR_MAC, "gnb_rach_ind_queue size = %zu\n", gnb_rach_ind_queue.num_items);
+      LOG_X(NR_MAC, "gnb_rach_ind_queue size = %zu\n", gnb_rach_ind_queue.num_items);
       rach_ind = get_queue(&gnb_rach_ind_queue);
       AssertFatal(rach_ind->number_of_pdus > 0, "Invalid number of PDUs\n");
       UL_info->rach_ind = *rach_ind;
     }
     if (gnb_uci_ind_queue.num_items > 0) {
-      LOG_D(NR_MAC, "gnb_uci_ind_queue size = %zu\n", gnb_uci_ind_queue.num_items);
+      LOG_X(NR_MAC, "gnb_uci_ind_queue size = %zu\n", gnb_uci_ind_queue.num_items);
       uci_ind = get_queue(&gnb_uci_ind_queue);
       AssertFatal(uci_ind->num_ucis > 0, "Invalid number of PDUs\n");
       UL_info->uci_ind = *uci_ind;
     }
     if (gnb_rx_ind_queue.num_items > 0 && gnb_crc_ind_queue.num_items > 0) {
-      LOG_D(NR_MAC, "gnb_rx_ind_queue size = %zu and gnb_crc_ind_queue size = %zu\n",
+      LOG_X(NR_MAC, "gnb_rx_ind_queue size = %zu and gnb_crc_ind_queue size = %zu\n",
             gnb_rx_ind_queue.num_items, gnb_crc_ind_queue.num_items);
       rx_ind = get_queue(&gnb_rx_ind_queue);
       int sfn_slot = NFAPI_SFNSLOT2HEX(rx_ind->sfn, rx_ind->slot);

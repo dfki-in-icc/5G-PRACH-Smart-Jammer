@@ -335,7 +335,7 @@ uint32_t schedule_control_sib1(module_id_t module_id,
   uint16_t *vrb_map = cc->vrb_map;
 
   if (gNB_mac->sched_ctrlCommon == NULL){
-    LOG_D(NR_MAC,"schedule_control_common: Filling nr_mac->sched_ctrlCommon\n");
+    LOG_X(NR_MAC,"schedule_control_common: Filling nr_mac->sched_ctrlCommon\n");
     gNB_mac->sched_ctrlCommon = calloc(1,sizeof(*gNB_mac->sched_ctrlCommon));
     gNB_mac->sched_ctrlCommon->search_space = calloc(1,sizeof(*gNB_mac->sched_ctrlCommon->search_space));
     gNB_mac->sched_ctrlCommon->coreset = calloc(1,sizeof(*gNB_mac->sched_ctrlCommon->coreset));
@@ -600,15 +600,15 @@ void schedule_nr_sib1(module_id_t module_idP, frame_t frameP, sub_frame_t slotP)
        (type0_PDCCH_CSS_config->num_rbs > 0) &&
        (type0_PDCCH_CSS_config->active == true)) {
 
-      LOG_D(NR_MAC,"(%d.%d) SIB1 transmission: ssb_index %d\n", frameP, slotP, type0_PDCCH_CSS_config->ssb_index);
+      LOG_X(NR_MAC,"(%d.%d) SIB1 transmission: ssb_index %d\n", frameP, slotP, type0_PDCCH_CSS_config->ssb_index);
 
       // Get SIB1
       uint8_t sib1_payload[NR_MAX_SIB_LENGTH/8];
       uint8_t sib1_sdu_length = mac_rrc_nr_data_req(module_idP, CC_id, frameP, BCCH, SI_RNTI, 1, sib1_payload);
-      LOG_D(NR_MAC,"sib1_sdu_length = %i\n", sib1_sdu_length);
-      LOG_D(NR_MAC,"SIB1: \n");
+      LOG_X(NR_MAC,"sib1_sdu_length = %i\n", sib1_sdu_length);
+      LOG_X(NR_MAC,"SIB1: \n");
       for (int k=0;k<sib1_sdu_length;k++)
-        LOG_D(NR_MAC,"byte %d : %x\n",k,((uint8_t*)sib1_payload)[k]);
+        LOG_X(NR_MAC,"byte %d : %x\n",k,((uint8_t*)sib1_payload)[k]);
 
       int startSymbolIndex = 0;
       int nrOfSymbols = 0;

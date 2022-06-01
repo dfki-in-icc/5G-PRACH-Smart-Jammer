@@ -236,7 +236,7 @@ static void L1_nsa_prach_procedures(frame_t frame, int slot, fapi_nr_ul_config_p
     free(rach_ind->pdu_list);
     free(rach_ind);
   }
-  LOG_D(NR_MAC, "We have successfully filled the rach_ind queue with the recently filled rach ind\n");
+  LOG_X(NR_MAC, "We have successfully filled the rach_ind queue with the recently filled rach ind\n");
 }
 
 static bool sfn_slot_matcher(void *wanted, void *candidate)
@@ -310,12 +310,12 @@ static void process_queued_nr_nfapi_msgs(NR_UE_MAC_INST_t *mac, int sfn_slot)
   nfapi_nr_dl_tti_request_t *dl_tti_request = get_queue(&nr_dl_tti_req_queue);
   nfapi_nr_ul_dci_request_t *ul_dci_request = get_queue(&nr_ul_dci_req_queue);
 
-  LOG_D(NR_MAC, "Try to get a ul_tti_req for sfn/slot %d %d from queue with %lu items\n",
+  LOG_X(NR_MAC, "Try to get a ul_tti_req for sfn/slot %d %d from queue with %lu items\n",
         NFAPI_SFNSLOT2SFN(mac->nr_ue_emul_l1.active_harq_sfn_slot),NFAPI_SFNSLOT2SLOT(mac->nr_ue_emul_l1.active_harq_sfn_slot), nr_ul_tti_req_queue.num_items);
   nfapi_nr_ul_tti_request_t *ul_tti_request = unqueue_matching(&nr_ul_tti_req_queue, MAX_QUEUE_SIZE, sfn_slot_matcher, &mac->nr_ue_emul_l1.active_harq_sfn_slot);
   if (!ul_tti_request)
   {
-      LOG_D(NR_MAC, "Try to get a ul_tti_req from seprate queue because dl_tti_req was late\n");
+      LOG_X(NR_MAC, "Try to get a ul_tti_req from seprate queue because dl_tti_req was late\n");
       ul_tti_request = unqueue_matching(&nr_wait_ul_tti_req_queue, MAX_QUEUE_SIZE, sfn_slot_matcher, &mac->nr_ue_emul_l1.active_harq_sfn_slot);
   }
 
@@ -468,20 +468,20 @@ static void *NRUE_phy_stub_standalone_pnf_task(void *arg)
     int slot = NFAPI_SFNSLOT2SLOT(sfn_slot);
     if (sfn_slot == last_sfn_slot)
     {
-      LOG_D(NR_MAC, "repeated sfn_sf = %d.%d\n",
+      LOG_X(NR_MAC, "repeated sfn_sf = %d.%d\n",
             frame, slot);
       continue;
     }
     last_sfn_slot = sfn_slot;
 
-    LOG_D(NR_MAC, "The received sfn/slot [%d %d] from proxy\n",
+    LOG_X(NR_MAC, "The received sfn/slot [%d %d] from proxy\n",
           frame, slot);
 
     module_id_t mod_id = 0;
     NR_UE_MAC_INST_t *mac = get_mac_inst(mod_id);
     if (get_softmodem_params()->sa && mac->mib == NULL)
     {
-      LOG_D(NR_MAC, "We haven't gotten MIB. Lets see if we received it\n");
+      LOG_X(NR_MAC, "We haven't gotten MIB. Lets see if we received it\n");
       nr_ue_dl_indication(&mac->dl_info, &ul_time_alignment);
       process_queued_nr_nfapi_msgs(mac, sfn_slot);
     }
@@ -533,7 +533,7 @@ static void *NRUE_phy_stub_standalone_pnf_task(void *arg)
                       mac->scc_SIB->tdd_UL_DL_ConfigurationCommon,
                       ul_info.slot_tx, mac->frame_type))
     {
-      LOG_D(NR_MAC, "Slot %d. calling nr_ue_ul_ind() from %s\n", ul_info.slot_tx, __FUNCTION__);
+      LOG_X(NR_MAC, "Slot %d. calling nr_ue_ul_ind() from %s\n", ul_info.slot_tx, __FUNCTION__);
       nr_ue_ul_indication(&ul_info);
       check_nr_prach(mac, &ul_info, &prach_resources);
     }

@@ -61,7 +61,7 @@ void nr_fill_nfapi_pucch(module_id_t mod_id,
   memset(pucch_pdu, 0, sizeof(nfapi_nr_pucch_pdu_t));
   future_ul_tti_req->n_pdus += 1;
 
-  LOG_D(NR_MAC,
+  LOG_X(NR_MAC,
         "%s %4d.%2d Scheduling pucch reception in %4d.%2d: bits SR %d, DAI %d, CSI %d on res %d\n",
         pucch->dai_c>0 ? "pucch_acknak" : "",
         frame,
@@ -79,7 +79,7 @@ void nr_fill_nfapi_pucch(module_id_t mod_id,
   NR_BWP_UplinkDedicated_t *ubwpd;
   ubwpd = cg ? cg->spCellConfig->spCellConfigDedicated->uplinkConfig->initialUplinkBWP:NULL;
 
-  LOG_D(NR_MAC,"pucch_acknak: %d.%d Calling nr_configure_pucch (ubwpd %p,r_pucch %d) pucch in %d.%d\n",frame,slot,ubwpd,pucch->r_pucch,pucch->frame,pucch->ul_slot);
+  LOG_X(NR_MAC,"pucch_acknak: %d.%d Calling nr_configure_pucch (ubwpd %p,r_pucch %d) pucch in %d.%d\n",frame,slot,ubwpd,pucch->r_pucch,pucch->frame,pucch->ul_slot);
   nr_configure_pucch(pucch_pdu,
                      scc,
                      UE_info->CellGroup[UE_id],
@@ -152,7 +152,7 @@ void nr_schedule_pucch(int Mod_idP,
           || frameP != curr_pucch->frame
           || slotP != curr_pucch->ul_slot)
         continue;
-      LOG_D(NR_MAC,"Scheduling PUCCH[%d] RX for UE %d in %d.%d O_ack %d\n",i,UE_id,curr_pucch->frame,curr_pucch->ul_slot,O_ack);
+      LOG_X(NR_MAC,"Scheduling PUCCH[%d] RX for UE %d in %d.%d O_ack %d\n",i,UE_id,curr_pucch->frame,curr_pucch->ul_slot,O_ack);
       nr_fill_nfapi_pucch(Mod_idP, frameP, slotP, curr_pucch, UE_id);
       memset(curr_pucch, 0, sizeof(*curr_pucch));
     }
@@ -713,7 +713,7 @@ void nr_csi_meas_reporting(int Mod_idP,
       // preparation is done in first slot of tdd period
       if (frame % (period / n_slots_frame) != offset / n_slots_frame)
         continue;
-      LOG_D(NR_MAC, "CSI reporting in frame %d slot %d\n", frame, sched_slot);
+      LOG_X(NR_MAC, "CSI reporting in frame %d slot %d\n", frame, sched_slot);
 
       const NR_PUCCH_CSI_Resource_t *pucchcsires = csirep->reportConfigType.choice.periodic->pucch_CSI_ResourceList.list.array[0];
       const NR_PUCCH_ResourceSet_t *pucchresset = pucch_Config->resourceSetToAddModList->list.array[1]; // set with formats >1
@@ -802,7 +802,7 @@ static void handle_dl_harq(module_id_t mod_id,
     harq->ndi ^= 1;
     NR_mac_stats_t *stats = &UE_info->mac_stats[UE_id];
     stats->dlsch_errors++;
-    LOG_D(NR_MAC, "retransmission error for UE %d (total %"PRIu64")\n", UE_id, stats->dlsch_errors);
+    LOG_X(NR_MAC, "retransmission error for UE %d (total %"PRIu64")\n", UE_id, stats->dlsch_errors);
   } else {
     add_tail_nr_list(&UE_info->UE_sched_ctrl[UE_id].retrans_dl_harq, harq_pid);
     harq->round++;
@@ -946,7 +946,7 @@ void tci_handling(module_id_t Mod_idP, int UE_id, frame_t frame, slot_t slot) {
   //if strongest measured RSRP is configured
   strongest_ssb_rsrp = get_measured_rsrp(sched_ctrl->CSI_report.ssb_cri_report.RSRP);
   ssb_rsrp[idx * nb_of_csi_ssb_report] = strongest_ssb_rsrp;
-  LOG_D(NR_MAC,"ssb_rsrp = %d\n",strongest_ssb_rsrp);
+  LOG_X(NR_MAC,"ssb_rsrp = %d\n",strongest_ssb_rsrp);
 
   //if current ssb rsrp is greater than better rsrp
   if(ssb_rsrp[idx * nb_of_csi_ssb_report] > better_rsrp_reported) {
@@ -967,7 +967,7 @@ void tci_handling(module_id_t Mod_idP, int UE_id, frame_t frame, slot_t slot) {
   if(ssb_index[target_ssb_beam_index] != ssb_index[curr_ssb_beam_index] && ssb_rsrp[target_ssb_beam_index] > ssb_rsrp[curr_ssb_beam_index]) {
     if( ssb_rsrp[target_ssb_beam_index] - ssb_rsrp[curr_ssb_beam_index] > L1_RSRP_HYSTERIS) {
       is_triggering_ssb_beam_switch = 1;
-      LOG_D(NR_MAC, "Triggering ssb beam switching using tci\n");
+      LOG_X(NR_MAC, "Triggering ssb beam switching using tci\n");
     }
   }
 
@@ -1435,7 +1435,7 @@ void handle_nr_uci_pucch_0_1(module_id_t mod_id,
       DevAssert(harq->is_waiting);
       const int8_t pid = sched_ctrl->feedback_dl_harq.head;
       remove_front_nr_list(&sched_ctrl->feedback_dl_harq);
-      LOG_D(NR_MAC,"bit %d pid %d ack/nack %d\n",harq_bit,pid,harq_value);
+      LOG_X(NR_MAC,"bit %d pid %d ack/nack %d\n",harq_bit,pid,harq_value);
       handle_dl_harq(mod_id, UE_id, pid, harq_value == 0 && harq_confidence == 0);
       if (harq_confidence == 1)  UE_info->mac_stats[UE_id].pucch0_DTX++;
     }
@@ -1445,7 +1445,7 @@ void handle_nr_uci_pucch_0_1(module_id_t mod_id,
   if (uci_01->pduBitmap & 0x1 && uci_01->sr->sr_indication && uci_01->sr->sr_confidence_level == 0 && uci_01->ul_cqi >= 148) {
     // SR detected with SNR >= 10dB
     sched_ctrl->SR |= true;
-    LOG_D(NR_MAC, "SR UE %04x ul_cqi %d\n", uci_01->rnti, uci_01->ul_cqi);
+    LOG_X(NR_MAC, "SR UE %04x ul_cqi %d\n", uci_01->rnti, uci_01->ul_cqi);
   }
 
   // tpc (power control) only if we received AckNack or positive SR. For a
@@ -1546,7 +1546,7 @@ int nr_acknack_scheduling(int mod_id,
    * * each UE has dedicated PUCCH Format 0 resources, and we use index 0! */
   NR_UE_sched_ctrl_t *sched_ctrl = &RC.nrmac[mod_id]->UE_info.UE_sched_ctrl[UE_id];
   NR_sched_pucch_t *pucch = &sched_ctrl->sched_pucch[0];
-  LOG_D(NR_MAC, "In %s: %d.%d Trying to allocate pucch, current DAI %d\n", __FUNCTION__, frame, slot, pucch->dai_c);
+  LOG_X(NR_MAC, "In %s: %d.%d Trying to allocate pucch, current DAI %d\n", __FUNCTION__, frame, slot, pucch->dai_c);
 
   pucch->r_pucch=r_pucch;
   AssertFatal(pucch->csi_bits == 0,
@@ -1560,7 +1560,7 @@ int nr_acknack_scheduling(int mod_id,
      * the same slot again */
     const int f = pucch->frame;
     const int s = pucch->ul_slot;
-    LOG_D(NR_MAC, "In %s: %d.%d DAI = 2 pucch currently in %d.%d, advancing by 1 slot\n", __FUNCTION__, frame, slot, f, s);
+    LOG_X(NR_MAC, "In %s: %d.%d DAI = 2 pucch currently in %d.%d, advancing by 1 slot\n", __FUNCTION__, frame, slot, f, s);
     nr_fill_nfapi_pucch(mod_id, frame, slot, pucch, UE_id);
     memset(pucch, 0, sizeof(*pucch));
     pucch->frame = s == n_slots_frame - 1 ? (f + 1) % 1024 : f;
@@ -1587,7 +1587,7 @@ int nr_acknack_scheduling(int mod_id,
     }
   }
 
-  LOG_D(NR_MAC, "In %s: pucch_acknak 1. DL %d.%d, UL_ACK %d.%d, DAI_C %d\n", __FUNCTION__, frame, slot, pucch->frame, pucch->ul_slot, pucch->dai_c);
+  LOG_X(NR_MAC, "In %s: pucch_acknak 1. DL %d.%d, UL_ACK %d.%d, DAI_C %d\n", __FUNCTION__, frame, slot, pucch->frame, pucch->ul_slot, pucch->dai_c);
 
   // this is hardcoded for now as ue specific only if we are not on the initialBWP (to be fixed to allow ue_Specific also on initialBWP
   NR_CellGroupConfig_t *cg = RC.nrmac[mod_id]->UE_info.CellGroup[UE_id];
@@ -1608,7 +1608,7 @@ int nr_acknack_scheduling(int mod_id,
   int max_fb_time = 0;
   get_pdsch_to_harq_feedback(mod_id, UE_id, bwp_Id, ss_type, &max_fb_time, pdsch_to_harq_feedback);
 
-  LOG_D(NR_MAC, "In %s: 1b. DL %d.%d, UL_ACK %d.%d, DAI_C %d\n", __FUNCTION__, frame,slot,pucch->frame,pucch->ul_slot,pucch->dai_c);
+  LOG_X(NR_MAC, "In %s: 1b. DL %d.%d, UL_ACK %d.%d, DAI_C %d\n", __FUNCTION__, frame,slot,pucch->frame,pucch->ul_slot,pucch->dai_c);
   /* there is a HARQ. Check whether we can use it for this ACKNACK */
   if (pucch->dai_c > 0) {
     /* this UE already has a PUCCH occasion */
@@ -1628,7 +1628,7 @@ int nr_acknack_scheduling(int mod_id,
       const int f = pucch->frame;
       const int s = pucch->ul_slot;
       const int n_slots_frame = nr_slots_per_frame[*scc->ssbSubcarrierSpacing];
-      LOG_D(NR_MAC, "In %s: %d.%d DAI > 0, cannot reach timing for pucch in %d.%d, advancing slot by 1 and trying again\n", __FUNCTION__, frame, slot, f, s);
+      LOG_X(NR_MAC, "In %s: %d.%d DAI > 0, cannot reach timing for pucch in %d.%d, advancing slot by 1 and trying again\n", __FUNCTION__, frame, slot, f, s);
       nr_fill_nfapi_pucch(mod_id, frame, slot, pucch, UE_id);
       memset(pucch, 0, sizeof(*pucch));
       pucch->frame = s == n_slots_frame - 1 ? (f + 1) % 1024 : f;
@@ -1642,11 +1642,11 @@ int nr_acknack_scheduling(int mod_id,
     pucch->timing_indicator = i;
     pucch->dai_c++;
     // retain old resource indicator, and we are good
-    LOG_D(NR_MAC, "In %s: %d.%d. DAI > 0, pucch allocated for %d.%d (index %d)\n", __FUNCTION__, frame,slot,pucch->frame,pucch->ul_slot,pucch->timing_indicator);
+    LOG_X(NR_MAC, "In %s: %d.%d. DAI > 0, pucch allocated for %d.%d (index %d)\n", __FUNCTION__, frame,slot,pucch->frame,pucch->ul_slot,pucch->timing_indicator);
     return 0;
   }
 
-  LOG_D(NR_MAC, "In %s: %d.%d DAI = 0, looking for new pucch occasion\n", __FUNCTION__, frame, slot);
+  LOG_X(NR_MAC, "In %s: %d.%d DAI = 0, looking for new pucch occasion\n", __FUNCTION__, frame, slot);
   /* we need to find a new PUCCH occasion */
 
   /*(Re)Inizialization of timing information*/
@@ -1667,7 +1667,7 @@ int nr_acknack_scheduling(int mod_id,
   while ((n_slots_frame + pucch->ul_slot - slot) % n_slots_frame <= max_fb_time) {
     int i = 0;
     while (i < 8) {
-      LOG_D(NR_MAC, "In %s: pdsch_to_harq_feedback[%d] = %d (pucch->ul_slot %d - slot %d)\n", __FUNCTION__,
+      LOG_X(NR_MAC, "In %s: pdsch_to_harq_feedback[%d] = %d (pucch->ul_slot %d - slot %d)\n", __FUNCTION__,
             i,pdsch_to_harq_feedback[i],pucch->ul_slot,slot);
       int diff = pucch->ul_slot - slot;
       if (diff<0)
@@ -1691,7 +1691,7 @@ int nr_acknack_scheduling(int mod_id,
       pucch->ul_slot = (s + 1) % n_slots_frame;
   }
   if (ind_found==-1) {
-    LOG_D(NR_MAC,
+    LOG_X(NR_MAC,
           "%4d.%2d could not find pdsch_to_harq_feedback for UE %d: earliest "
           "ack slot %d\n",
           frame,
@@ -1736,7 +1736,7 @@ int nr_acknack_scheduling(int mod_id,
 
   pucch->timing_indicator = ind_found; // index in the list of timing indicators
 
-  LOG_D(NR_MAC, "In %s: 2. DAI 0 DL %d.%d, UL_ACK %d.%d (index %d)\n", __FUNCTION__, frame,slot,pucch->frame,pucch->ul_slot,pucch->timing_indicator);
+  LOG_X(NR_MAC, "In %s: 2. DAI 0 DL %d.%d, UL_ACK %d.%d (index %d)\n", __FUNCTION__, frame,slot,pucch->frame,pucch->ul_slot,pucch->timing_indicator);
 
   pucch->dai_c++;
   pucch->resource_indicator = 0; // each UE has dedicated PUCCH resources
@@ -1825,10 +1825,10 @@ void nr_sr_reporting(int Mod_idP, frame_t SFN, sub_frame_t slot)
       find_period_offest_SR(SchedulingRequestResourceConfig,&SR_period,&SR_offset);
       // convert to int to avoid underflow of uint
       int sfn_sf = SFN * n_slots_frame + slot;
-      LOG_D(NR_MAC,"SR_resource_id %d: SR_period %d, SR_offset %d\n",SR_resource_id,SR_period,SR_offset);
+      LOG_X(NR_MAC,"SR_resource_id %d: SR_period %d, SR_offset %d\n",SR_resource_id,SR_period,SR_offset);
       if ((sfn_sf - SR_offset) % SR_period != 0)
         continue;
-      LOG_D(NR_MAC, "%4d.%2d Scheduling Request identified\n", SFN, slot);
+      LOG_X(NR_MAC, "%4d.%2d Scheduling Request identified\n", SFN, slot);
       NR_PUCCH_ResourceId_t *PucchResourceId = SchedulingRequestResourceConfig->resource;
 
       int found = -1;
@@ -1860,7 +1860,7 @@ void nr_sr_reporting(int Mod_idP, frame_t SFN, sub_frame_t slot)
             && pdu->initial_cyclic_shift == pucch_res->format.choice.format0->initialCyclicShift
             && pdu->nr_of_symbols == pucch_res->format.choice.format0->nrofSymbols
             && pdu->start_symbol_index == pucch_res->format.choice.format0->startingSymbolIndex) {
-          LOG_D(NR_MAC,"%4d.%2d adding SR_flag 1 to PUCCH nFAPI SR for RNTI %04x\n", SFN, slot, pdu->rnti);
+          LOG_X(NR_MAC,"%4d.%2d adding SR_flag 1 to PUCCH nFAPI SR for RNTI %04x\n", SFN, slot, pdu->rnti);
           pdu->sr_flag = 1;
           nfapi_allocated = true;
           break;

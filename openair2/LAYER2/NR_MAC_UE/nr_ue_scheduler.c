@@ -84,7 +84,7 @@ void fill_ul_config(fapi_nr_ul_config_request_t *ul_config, frame_t frame_tx, in
   ul_config->sfn = frame_tx;
   ul_config->number_pdus++;
 
-  LOG_D(NR_MAC, "In %s: Set config request for UL transmission in [%d.%d], number of UL PDUs: %d\n", __FUNCTION__, ul_config->sfn, ul_config->slot, ul_config->number_pdus);
+  LOG_X(NR_MAC, "In %s: Set config request for UL transmission in [%d.%d], number of UL PDUs: %d\n", __FUNCTION__, ul_config->sfn, ul_config->slot, ul_config->number_pdus);
 
 }
 
@@ -151,7 +151,7 @@ long get_k2(NR_UE_MAC_INST_t *mac, uint8_t time_domain_ind) {
               "Slot offset K2 (%ld) cannot be less than DURATION_RX_TO_TX (%d). K2 set according to min_rxtxtime in config file.\n",
               k2,DURATION_RX_TO_TX);
 
-  LOG_D(NR_MAC, "get_k2(): k2 is %ld\n", k2);
+  LOG_X(NR_MAC, "get_k2(): k2 is %ld\n", k2);
   return k2;
 }
 
@@ -186,7 +186,7 @@ fapi_nr_ul_config_request_t *get_ul_config_request(NR_UE_MAC_INST_t *mac, int sl
   num_slots_ul=6;
   index = (slot % (num_slots_ul>>1))+(num_slots_ul>>1)*(int)(slot/10);
   
-  LOG_D(NR_MAC, "In %s slots per %s: %d, num_slots_ul %d, index %d\n",
+  LOG_X(NR_MAC, "In %s slots per %s: %d, num_slots_ul %d, index %d\n",
                 __FUNCTION__,
                 tdd_config ? "TDD" : "FDD",
                 num_slots_per_tdd,
@@ -377,7 +377,7 @@ void ul_ports_config(NR_UE_MAC_INST_t * mac, nfapi_nr_ue_pusch_pdu_t *pusch_conf
   }
   long *max_length = NULL;
   long *dmrs_type = NULL;
-  LOG_D(NR_MAC,"transformPrecoder %s\n",transformPrecoder==NR_PUSCH_Config__transformPrecoder_disabled?"disabled":"enabled");
+  LOG_X(NR_MAC,"transformPrecoder %s\n",transformPrecoder==NR_PUSCH_Config__transformPrecoder_disabled?"disabled":"enabled");
 
   if (pusch_Config->dmrs_UplinkForPUSCH_MappingTypeA) {
     max_length = pusch_Config->dmrs_UplinkForPUSCH_MappingTypeA->choice.setup->maxLength;
@@ -388,7 +388,7 @@ void ul_ports_config(NR_UE_MAC_INST_t * mac, nfapi_nr_ue_pusch_pdu_t *pusch_conf
     dmrs_type = pusch_Config->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup->dmrs_Type;
   }
 
-  LOG_D(NR_MAC,"MappingType%s max_length %s, dmrs_type %s, antenna_ports %d\n",pusch_Config->dmrs_UplinkForPUSCH_MappingTypeA?"A":"B",max_length?"len2":"len1",dmrs_type?"type2":"type1",dci->antenna_ports.val);
+  LOG_X(NR_MAC,"MappingType%s max_length %s, dmrs_type %s, antenna_ports %d\n",pusch_Config->dmrs_UplinkForPUSCH_MappingTypeA?"A":"B",max_length?"len2":"len1",dmrs_type?"type2":"type1",dci->antenna_ports.val);
   if ((transformPrecoder == NR_PUSCH_Config__transformPrecoder_enabled) &&
     (dmrs_type == NULL) && (max_length == NULL)) { // tables 7.3.1.1.2-6
       pusch_config_pdu->num_dmrs_cdm_grps_no_data = 2; //TBC
@@ -543,7 +543,7 @@ void ul_ports_config(NR_UE_MAC_INST_t * mac, nfapi_nr_ue_pusch_pdu_t *pusch_conf
       //pusch_config_pdu->n_front_load_symb = table_7_3_1_1_2_23[dci->antenna_ports.val][5]; //FIXME
     }
   }
-  LOG_D(NR_MAC,"num_dmrs_cdm_grps_no_data %d, dmrs_ports %d\n",pusch_config_pdu->num_dmrs_cdm_grps_no_data,pusch_config_pdu->dmrs_ports);
+  LOG_X(NR_MAC,"num_dmrs_cdm_grps_no_data %d, dmrs_ports %d\n",pusch_config_pdu->num_dmrs_cdm_grps_no_data,pusch_config_pdu->dmrs_ports);
 }
 
 // Configuration of Msg3 PDU according to clauses:
@@ -649,10 +649,10 @@ int nr_config_pusch_pdu(NR_UE_MAC_INST_t *mac,
     pusch_config_pdu->nr_of_symbols = NrOfSymbols;
 
     l_prime_mask = get_l_prime(NrOfSymbols, mappingtype, add_pos, dmrslength, StartSymbolIndex, mac->scc ? mac->scc->dmrs_TypeA_Position : mac->mib->dmrs_TypeA_Position);
-    LOG_D(NR_MAC, "MSG3 start_sym:%d NR Symb:%d mappingtype:%d, DMRS_MASK:%x\n", pusch_config_pdu->start_symbol_index, pusch_config_pdu->nr_of_symbols, mappingtype, l_prime_mask);
+    LOG_X(NR_MAC, "MSG3 start_sym:%d NR Symb:%d mappingtype:%d, DMRS_MASK:%x\n", pusch_config_pdu->start_symbol_index, pusch_config_pdu->nr_of_symbols, mappingtype, l_prime_mask);
 
     #ifdef DEBUG_MSG3
-    LOG_D(NR_MAC, "In %s BWP assignment (BWP (start %d, size %d) \n", __FUNCTION__, pusch_config_pdu->bwp_start, pusch_config_pdu->bwp_size);
+    LOG_X(NR_MAC, "In %s BWP assignment (BWP (start %d, size %d) \n", __FUNCTION__, pusch_config_pdu->bwp_start, pusch_config_pdu->bwp_size);
     #endif
 
     // MCS
@@ -783,7 +783,7 @@ int nr_config_pusch_pdu(NR_UE_MAC_INST_t *mac,
       else
         AssertFatal(1==0,"SequenceGroupHopping or sequenceHopping are NOT Supported\n");
 
-      LOG_D(NR_MAC,"TRANSFORM PRECODING IS ENABLED. CDM groups: %d, U: %d \n", pusch_config_pdu->num_dmrs_cdm_grps_no_data,
+      LOG_X(NR_MAC,"TRANSFORM PRECODING IS ENABLED. CDM groups: %d, U: %d \n", pusch_config_pdu->num_dmrs_cdm_grps_no_data,
                 pusch_config_pdu->dfts_ofdm.low_papr_group_number);
     }
 
@@ -879,13 +879,13 @@ int nr_config_pusch_pdu(NR_UE_MAC_INST_t *mac,
         if(valid_ptrs_setup==true) {
           pusch_config_pdu->pdu_bit_map |= PUSCH_PDU_BITMAP_PUSCH_PTRS;
         }
-        LOG_D(NR_MAC, "UL PTRS values: PTRS time den: %d, PTRS freq den: %d\n", pusch_config_pdu->pusch_ptrs.ptrs_time_density, pusch_config_pdu->pusch_ptrs.ptrs_freq_density);
+        LOG_X(NR_MAC, "UL PTRS values: PTRS time den: %d, PTRS freq den: %d\n", pusch_config_pdu->pusch_ptrs.ptrs_time_density, pusch_config_pdu->pusch_ptrs.ptrs_freq_density);
       }
     }
 
   }
 
-  LOG_D(NR_MAC, "In %s: received UL grant (rb_start %d, rb_size %d, start_symbol_index %d, nr_of_symbols %d) for RNTI type %s \n",
+  LOG_X(NR_MAC, "In %s: received UL grant (rb_start %d, rb_size %d, start_symbol_index %d, nr_of_symbols %d) for RNTI type %s \n",
     __FUNCTION__,
     pusch_config_pdu->rb_start,
     pusch_config_pdu->rb_size,
@@ -1143,7 +1143,7 @@ NR_UE_L2_STATE_t nr_ue_scheduler(nr_downlink_indication_t *dl_info, nr_uplink_in
       pthread_mutex_lock(&ul_config->mutex_ul_config);
       if ((ul_info->slot_tx == ul_config->slot && ul_info->frame_tx == ul_config->sfn) && ul_config->number_pdus > 0){
 
-        LOG_D(NR_MAC, "In %s:[%d.%d]: number of UL PDUs: %d with UL transmission in [%d.%d]\n", __FUNCTION__, frame_tx, slot_tx, ul_config->number_pdus, ul_config->sfn, ul_config->slot);
+        LOG_X(NR_MAC, "In %s:[%d.%d]: number of UL PDUs: %d with UL transmission in [%d.%d]\n", __FUNCTION__, frame_tx, slot_tx, ul_config->number_pdus, ul_config->sfn, ul_config->slot);
 
         uint8_t ulsch_input_buffer_array[NFAPI_MAX_NUM_UL_PDU][MAX_ULSCH_PAYLOAD_BYTES];
         nr_scheduled_response_t scheduled_response;
@@ -1162,18 +1162,18 @@ NR_UE_L2_STATE_t nr_ue_scheduler(nr_downlink_indication_t *dl_info, nr_uplink_in
           if (ulcfg_pdu->pdu_type == FAPI_NR_UL_CONFIG_TYPE_PUSCH) {
             int mac_pdu_exist = 0;
             uint16_t TBS_bytes = ulcfg_pdu->pusch_config_pdu.pusch_data.tb_size;
-            LOG_D(NR_MAC,"harq_id %d, NDI %d NDI_DCI %d, TBS_bytes %d (ra_state %d)\n",
+            LOG_X(NR_MAC,"harq_id %d, NDI %d NDI_DCI %d, TBS_bytes %d (ra_state %d)\n",
                   ulcfg_pdu->pusch_config_pdu.pusch_data.harq_process_id,
                   mac->UL_ndi[ulcfg_pdu->pusch_config_pdu.pusch_data.harq_process_id],
                   ulcfg_pdu->pusch_config_pdu.pusch_data.new_data_indicator,
                   TBS_bytes,ra->ra_state);
             if (ra->ra_state == WAIT_RAR && !ra->cfra){
               memcpy(ulsch_input_buffer, mac->ulsch_pdu.payload, TBS_bytes);
-              LOG_D(NR_MAC,"[RAPROC] Msg3 to be transmitted:\n");
+              LOG_X(NR_MAC,"[RAPROC] Msg3 to be transmitted:\n");
               for (int k = 0; k < TBS_bytes; k++) {
-                LOG_D(NR_MAC,"(%i): 0x%x\n",k,mac->ulsch_pdu.payload[k]);
+                LOG_X(NR_MAC,"(%i): 0x%x\n",k,mac->ulsch_pdu.payload[k]);
               }
-              LOG_D(NR_MAC,"Flipping NDI for harq_id %d (Msg3)\n",ulcfg_pdu->pusch_config_pdu.pusch_data.new_data_indicator);
+              LOG_X(NR_MAC,"Flipping NDI for harq_id %d (Msg3)\n",ulcfg_pdu->pusch_config_pdu.pusch_data.new_data_indicator);
               mac->UL_ndi[ulcfg_pdu->pusch_config_pdu.pusch_data.harq_process_id] = ulcfg_pdu->pusch_config_pdu.pusch_data.new_data_indicator;
               mac->first_ul_tx[ulcfg_pdu->pusch_config_pdu.pusch_data.harq_process_id] = 0;
               mac_pdu_exist = 1;
@@ -1190,7 +1190,7 @@ NR_UE_L2_STATE_t nr_ue_scheduler(nr_downlink_indication_t *dl_info, nr_uplink_in
                 mac_pdu_exist = 1;
               }
 
-              LOG_D(NR_MAC,"Flipping NDI for harq_id %d\n",ulcfg_pdu->pusch_config_pdu.pusch_data.new_data_indicator);
+              LOG_X(NR_MAC,"Flipping NDI for harq_id %d\n",ulcfg_pdu->pusch_config_pdu.pusch_data.new_data_indicator);
               mac->UL_ndi[ulcfg_pdu->pusch_config_pdu.pusch_data.harq_process_id] = ulcfg_pdu->pusch_config_pdu.pusch_data.new_data_indicator;
               mac->first_ul_tx[ulcfg_pdu->pusch_config_pdu.pusch_data.harq_process_id] = 0;
 
@@ -1257,7 +1257,7 @@ NR_UE_L2_STATE_t nr_ue_scheduler(nr_downlink_indication_t *dl_info, nr_uplink_in
     mac->scheduling_info.SR_pending = 1;
     // Regular BSR trigger
     mac->BSR_reporting_active |= NR_BSR_TRIGGER_REGULAR;
-    LOG_D(NR_MAC, "[UE %d][BSR] Regular BSR Triggered Frame %d slot %d SR for PUSCH is pending\n",
+    LOG_X(NR_MAC, "[UE %d][BSR] Regular BSR Triggered Frame %d slot %d SR for PUSCH is pending\n",
           mod_id, txFrameP, txSlotP);
   }
   return UE_CONNECTION_OK;
@@ -1314,7 +1314,7 @@ nr_update_bsr(module_id_t module_idP, frame_t frameP, slot_t slotP, uint8_t gNB_
       lcid_bytes_in_buffer[lcid] = rlc_status.bytes_in_buffer;
 
       if (rlc_status.bytes_in_buffer > 0) {
-        LOG_D(NR_MAC,"[UE %d] PDCCH Tick : LCID%d LCGID%d has data to transmit =%d bytes at frame %d slot %d\n",
+        LOG_X(NR_MAC,"[UE %d] PDCCH Tick : LCID%d LCGID%d has data to transmit =%d bytes at frame %d slot %d\n",
               module_idP, lcid,lcgid,rlc_status.bytes_in_buffer,frameP,slotP);
         mac->scheduling_info.LCID_status[lcid] = LCID_NOT_EMPTY;
 
@@ -1347,7 +1347,7 @@ nr_update_bsr(module_id_t module_idP, frame_t frameP, slot_t slotP, uint8_t gNB_
 
   // Check whether a regular BSR can be triggered according to the first cases in 38.321
   if (num_lcid_with_data) {
-    LOG_D(NR_MAC, "[UE %d] PDCCH Tick at frame %d slot %d: NumLCID with data=%d Reordered LCID0=%d LCID1=%d LCID2=%d\n",
+    LOG_X(NR_MAC, "[UE %d] PDCCH Tick at frame %d slot %d: NumLCID with data=%d Reordered LCID0=%d LCID1=%d LCID2=%d\n",
           module_idP, frameP, slotP, num_lcid_with_data,
           lcid_reordered_array[0], lcid_reordered_array[1],
           lcid_reordered_array[2]);
@@ -1361,7 +1361,7 @@ nr_update_bsr(module_id_t module_idP, frame_t frameP, slot_t slotP, uint8_t gNB_
        */
       {
         bsr_regular_triggered = TRUE;
-        LOG_D(NR_MAC, "[UE %d] PDCCH Tick : MAC BSR Triggered LCID%d LCGID%d data become available at frame %d slot %d\n",
+        LOG_X(NR_MAC, "[UE %d] PDCCH Tick : MAC BSR Triggered LCID%d LCGID%d data become available at frame %d slot %d\n",
               module_idP, lcid,
               mac->scheduling_info.LCGID[lcid],
               frameP, slotP);
@@ -1617,7 +1617,7 @@ int nr_ue_pusch_scheduler(NR_UE_MAC_INST_t *mac,
 
   }
 
-  LOG_D(NR_MAC, "In %s: currently at [%d.%d] UL transmission in [%d.%d] (k2 %d delta %d)\n", __FUNCTION__, current_frame, current_slot, *frame_tx, *slot_tx, k2, delta);
+  LOG_X(NR_MAC, "In %s: currently at [%d.%d] UL transmission in [%d.%d] (k2 %d delta %d)\n", __FUNCTION__, current_frame, current_slot, *frame_tx, *slot_tx, k2, delta);
 
   return 0;
 
@@ -1686,7 +1686,7 @@ static void build_ro_list(NR_UE_MAC_INST_t *mac) {
   prach_config_info_p = get_prach_config_info(mac->frequency_range, config_index, unpaired);
 
   // Identify the proper PRACH Configuration Index table according to the operating frequency
-  LOG_D(NR_MAC,"mu = %u, PRACH config index  = %u, unpaired = %u\n", mu, config_index, unpaired);
+  LOG_X(NR_MAC,"mu = %u, PRACH config index  = %u, unpaired = %u\n", mu, config_index, unpaired);
 
   if (mac->frequency_range == FR2) { //FR2
 
@@ -1719,7 +1719,7 @@ static void build_ro_list(NR_UE_MAC_INST_t *mac) {
     prach_conf_start_symbol = prach_config_info_p[5];
     N_t_slot = prach_config_info_p[7];
     N_dur = prach_config_info_p[8];
-    LOG_D(NR_MAC,"N_t_slot %d, N_dur %d\n",N_t_slot,N_dur);
+    LOG_X(NR_MAC,"N_t_slot %d, N_dur %d\n",N_t_slot,N_dur);
     if (prach_config_info_p[1] != -1)
       format2 = (uint8_t) prach_config_info_p[1];
     format = ((uint8_t) prach_config_info_p[0]) | (format2<<8);
@@ -1735,7 +1735,7 @@ static void build_ro_list(NR_UE_MAC_INST_t *mac) {
   prach_assoc_pattern.nb_of_prach_conf_period_in_max_period = MAX_NB_PRACH_CONF_PERIOD_IN_ASSOCIATION_PATTERN_PERIOD / x;
   nb_of_frames_per_prach_conf_period = x;
 
-  LOG_D(NR_MAC,"nb_of_prach_conf_period_in_max_period %d\n", prach_assoc_pattern.nb_of_prach_conf_period_in_max_period);
+  LOG_X(NR_MAC,"nb_of_prach_conf_period_in_max_period %d\n", prach_assoc_pattern.nb_of_prach_conf_period_in_max_period);
 
   // Fill in the PRACH occasions table for every slot in every frame in every PRACH configuration periods in the maximum association pattern period
   // ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -1747,14 +1747,14 @@ static void build_ro_list(NR_UE_MAC_INST_t *mac) {
     prach_assoc_pattern.prach_conf_period_list[prach_conf_period_idx].nb_of_frame = nb_of_frames_per_prach_conf_period;
     prach_assoc_pattern.prach_conf_period_list[prach_conf_period_idx].nb_of_slot = nr_slots_per_frame[mu];
 
-    LOG_D(NR_MAC,"PRACH Conf Period Idx %d\n", prach_conf_period_idx);
+    LOG_X(NR_MAC,"PRACH Conf Period Idx %d\n", prach_conf_period_idx);
 
     // For every frames in a PRACH configuration period
     // ------------------------------------------------
     for (prach_conf_period_frame_idx=0; prach_conf_period_frame_idx<nb_of_frames_per_prach_conf_period; prach_conf_period_frame_idx++) {
       frame = (prach_conf_period_idx * nb_of_frames_per_prach_conf_period) + prach_conf_period_frame_idx;
 
-      LOG_D(NR_MAC,"PRACH Conf Period Frame Idx %d - Frame %d\n", prach_conf_period_frame_idx, frame);
+      LOG_X(NR_MAC,"PRACH Conf Period Frame Idx %d - Frame %d\n", prach_conf_period_frame_idx, frame);
       // Is it a valid frame for this PRACH configuration index? (n_sfn mod x = y)
       if ( (frame%x)==y || (frame%x)==y2 ) {
 
@@ -1781,7 +1781,7 @@ static void build_ro_list(NR_UE_MAC_INST_t *mac) {
 
             for (n_prach_occ_in_time=0; n_prach_occ_in_time<N_t_slot; n_prach_occ_in_time++) {
               uint8_t start_symbol = prach_conf_start_symbol + n_prach_occ_in_time * N_dur;
-              LOG_D(NR_MAC,"PRACH Occ in time %d\n", n_prach_occ_in_time);
+              LOG_X(NR_MAC,"PRACH Occ in time %d\n", n_prach_occ_in_time);
 
               for (n_prach_occ_in_freq=0; n_prach_occ_in_freq<nb_fdm; n_prach_occ_in_freq++) {
                 prach_occasion_info_t *prach_occasion_p = &prach_assoc_pattern.prach_conf_period_list[prach_conf_period_idx].prach_occasion_slot_map[prach_conf_period_frame_idx][slot].prach_occasion[n_prach_occ_in_time][n_prach_occ_in_freq];
@@ -1793,7 +1793,7 @@ static void build_ro_list(NR_UE_MAC_INST_t *mac) {
                 prach_occasion_p->format = format;
                 prach_assoc_pattern.prach_conf_period_list[prach_conf_period_idx].nb_of_prach_occasion++;
 
-                LOG_D(NR_MAC,"Adding a PRACH occasion: frame %u, slot-symbol %d-%d, occ_in_time-occ_in-freq %d-%d, nb ROs in conf period %d, for this slot: RO# in time %d, RO# in freq %d\n",
+                LOG_X(NR_MAC,"Adding a PRACH occasion: frame %u, slot-symbol %d-%d, occ_in_time-occ_in-freq %d-%d, nb ROs in conf period %d, for this slot: RO# in time %d, RO# in freq %d\n",
                     frame, slot, start_symbol, n_prach_occ_in_time, n_prach_occ_in_freq, prach_assoc_pattern.prach_conf_period_list[prach_conf_period_idx].nb_of_prach_occasion,
                     prach_assoc_pattern.prach_conf_period_list[prach_conf_period_idx].prach_occasion_slot_map[prach_conf_period_frame_idx][slot].nb_of_prach_occasion_in_time,
                     prach_assoc_pattern.prach_conf_period_list[prach_conf_period_idx].prach_occasion_slot_map[prach_conf_period_frame_idx][slot].nb_of_prach_occasion_in_freq);
@@ -1822,14 +1822,14 @@ static void build_ssb_list(NR_UE_MAC_INST_t *mac) {
         ssb_bitmap = &scc->ssb_PositionsInBurst->choice.shortBitmap;
 
         ssb_positionsInBurst = BIT_STRING_to_uint8(ssb_bitmap);
-        LOG_D(NR_MAC,"SSB config: SSB_positions_in_burst 0x%lx\n", ssb_positionsInBurst);
+        LOG_X(NR_MAC,"SSB config: SSB_positions_in_burst 0x%lx\n", ssb_positionsInBurst);
 
         for (uint8_t bit_nb=3; bit_nb<=3; bit_nb--) {
           // If SSB is transmitted
           if ((ssb_positionsInBurst>>bit_nb) & 0x01) {
             ssb_list.nb_tx_ssb++;
             ssb_list.tx_ssb[ssb_idx].transmitted = true;
-            LOG_D(NR_MAC,"SSB idx %d transmitted\n", ssb_idx);
+            LOG_X(NR_MAC,"SSB idx %d transmitted\n", ssb_idx);
           }
           ssb_idx++;
         }
@@ -1838,14 +1838,14 @@ static void build_ssb_list(NR_UE_MAC_INST_t *mac) {
         ssb_bitmap = &scc->ssb_PositionsInBurst->choice.mediumBitmap;
 
         ssb_positionsInBurst = BIT_STRING_to_uint8(ssb_bitmap);
-        LOG_D(NR_MAC,"SSB config: SSB_positions_in_burst 0x%lx\n", ssb_positionsInBurst);
+        LOG_X(NR_MAC,"SSB config: SSB_positions_in_burst 0x%lx\n", ssb_positionsInBurst);
 
         for (uint8_t bit_nb=7; bit_nb<=7; bit_nb--) {
           // If SSB is transmitted
           if ((ssb_positionsInBurst>>bit_nb) & 0x01) {
             ssb_list.nb_tx_ssb++;
             ssb_list.tx_ssb[ssb_idx].transmitted = true;
-            LOG_D(NR_MAC,"SSB idx %d transmitted\n", ssb_idx);
+            LOG_X(NR_MAC,"SSB idx %d transmitted\n", ssb_idx);
           }
           ssb_idx++;
         }
@@ -1854,14 +1854,14 @@ static void build_ssb_list(NR_UE_MAC_INST_t *mac) {
         ssb_bitmap = &scc->ssb_PositionsInBurst->choice.longBitmap;
 
         ssb_positionsInBurst = BIT_STRING_to_uint64(ssb_bitmap);
-        LOG_D(NR_MAC,"SSB config: SSB_positions_in_burst 0x%lx\n", ssb_positionsInBurst);
+        LOG_X(NR_MAC,"SSB config: SSB_positions_in_burst 0x%lx\n", ssb_positionsInBurst);
 
         for (uint8_t bit_nb=63; bit_nb<=63; bit_nb--) {
           // If SSB is transmitted
           if ((ssb_positionsInBurst>>bit_nb) & 0x01) {
             ssb_list.nb_tx_ssb++;
             ssb_list.tx_ssb[ssb_idx].transmitted = true;
-            LOG_D(NR_MAC,"SSB idx %d transmitted\n", ssb_idx);
+            LOG_X(NR_MAC,"SSB idx %d transmitted\n", ssb_idx);
           }
           ssb_idx++;
         }
@@ -1877,14 +1877,14 @@ static void build_ssb_list(NR_UE_MAC_INST_t *mac) {
 
     ssb_positionsInBurst = BIT_STRING_to_uint8(ssb_bitmap);
 
-    LOG_D(NR_MAC,"SSB config: SSB_positions_in_burst 0x%lx\n", ssb_positionsInBurst);
+    LOG_X(NR_MAC,"SSB config: SSB_positions_in_burst 0x%lx\n", ssb_positionsInBurst);
 
     for (uint8_t bit_nb=7; bit_nb<=7; bit_nb--) {
       // If SSB is transmitted
       if ((ssb_positionsInBurst>>bit_nb) & 0x01) {
         ssb_list.nb_tx_ssb++;
         ssb_list.tx_ssb[ssb_idx].transmitted = true;
-        LOG_D(NR_MAC,"SSB idx %d transmitted\n", ssb_idx);
+        LOG_X(NR_MAC,"SSB idx %d transmitted\n", ssb_idx);
       }
       ssb_idx++;
     }
@@ -1946,14 +1946,14 @@ static void map_ssb_to_ro(NR_UE_MAC_INST_t *mac) {
       AssertFatal(1 == 0, "Unsupported ssb_perRACH_config %d\n", ssb_perRACH_config);
       break;
   }
-  LOG_D(NR_MAC,"SSB rach ratio %d, Multiple SSB per RO %d\n", ssb_rach_ratio, multiple_ssb_per_ro);
+  LOG_X(NR_MAC,"SSB rach ratio %d, Multiple SSB per RO %d\n", ssb_rach_ratio, multiple_ssb_per_ro);
 
   // Evaluate the number of PRACH configuration periods required to map all the SSBs and set the association period
   // ==============================================================================================================
   // WIP: Assumption for now is that all the PRACH configuration periods within a maximum association pattern period have the same number of PRACH occasions
   //      (No PRACH occasions are conflicting with SSBs nor TDD_UL_DL_ConfigurationCommon schedule)
   //      There is only one possible association period which can contain up to 16 PRACH configuration periods
-  LOG_D(NR_MAC,"Evaluate the number of PRACH configuration periods required to map all the SSBs and set the association period\n");
+  LOG_X(NR_MAC,"Evaluate the number of PRACH configuration periods required to map all the SSBs and set the association period\n");
   if (true == multiple_ssb_per_ro) {
     required_nb_of_prach_occasion = ((ssb_list.nb_tx_ssb-1) + ssb_rach_ratio) / ssb_rach_ratio;
   }
@@ -1990,7 +1990,7 @@ static void map_ssb_to_ro(NR_UE_MAC_INST_t *mac) {
   prach_assoc_pattern.prach_association_period_list[0].nb_of_frame = prach_assoc_pattern.prach_association_period_list[0].nb_of_prach_conf_period * prach_assoc_pattern.prach_conf_period_list[0].nb_of_frame;
   prach_assoc_pattern.nb_of_frame = prach_assoc_pattern.prach_association_period_list[0].nb_of_frame;
 
-  LOG_D(NR_MAC,"Assoc period %d, Nb of frames in assoc period %d\n",
+  LOG_X(NR_MAC,"Assoc period %d, Nb of frames in assoc period %d\n",
         prach_assoc_pattern.prach_association_period_list[0].nb_of_prach_conf_period,
         prach_assoc_pattern.prach_association_period_list[0].nb_of_frame);
 
@@ -2002,7 +2002,7 @@ static void map_ssb_to_ro(NR_UE_MAC_INST_t *mac) {
   prach_conf_period_t *prach_conf_period_p;
 
   // Map all the association periods within the association pattern period
-  LOG_D(NR_MAC,"Proceed to the SSB to RO mapping\n");
+  LOG_X(NR_MAC,"Proceed to the SSB to RO mapping\n");
   for (association_period_idx=0; association_period_idx<prach_assoc_pattern.nb_of_assoc_period; association_period_idx++) {
     uint8_t n_prach_conf=0; // PRACH Configuration period index within the association period
     uint8_t frame=0;
@@ -2050,10 +2050,10 @@ static void map_ssb_to_ro(NR_UE_MAC_INST_t *mac) {
                     ssb_list.tx_ssb[ssb_idx].nb_mapped_ro++;
                     AssertFatal(MAX_NB_RO_PER_SSB_IN_ASSOCIATION_PATTERN > ssb_list.tx_ssb[ssb_idx].nb_mapped_ro,"Too many mapped ROs (%d) to a single SSB\n", ssb_list.tx_ssb[ssb_idx].nb_mapped_ro);
 
-                    LOG_D(NR_MAC,"Mapped ssb_idx %u to RO slot-symbol %u-%u, %u-%u-%u/%u\n",
+                    LOG_X(NR_MAC,"Mapped ssb_idx %u to RO slot-symbol %u-%u, %u-%u-%u/%u\n",
                           ssb_idx, ro_p->slot, ro_p->start_symbol, slot, ro_in_time, ro_in_freq,
                           prach_conf_period_p->prach_occasion_slot_map[frame][slot].nb_of_prach_occasion_in_freq);
-                    LOG_D(NR_MAC,"Nb mapped ROs for this ssb idx: in the association period only %u\n", ssb_list.tx_ssb[ssb_idx].nb_mapped_ro);
+                    LOG_X(NR_MAC,"Nb mapped ROs for this ssb idx: in the association period only %u\n", ssb_list.tx_ssb[ssb_idx].nb_mapped_ro);
 
                     // If all the required SSBs are mapped to this RO, exit the loop of SSBs
                     if (ro_p->nb_mapped_ssb == ssb_rach_ratio) {
@@ -2100,7 +2100,7 @@ static void map_ssb_to_ro(NR_UE_MAC_INST_t *mac) {
       for (ssb_idx=0; ssb_idx<MAX_NB_SSB; ssb_idx++) {
         uint8_t nb_mapped_ro_in_association_period=0; // Reset the nb of mapped ROs for the new SSB index
 
-	      LOG_D(NR_MAC,"Checking ssb_idx %d => %d\n",
+	      LOG_X(NR_MAC,"Checking ssb_idx %d => %d\n",
 	      ssb_idx,ssb_list.tx_ssb[ssb_idx].transmitted);
 
         // Map only the transmitted ssb_idx
@@ -2128,10 +2128,10 @@ static void map_ssb_to_ro(NR_UE_MAC_INST_t *mac) {
                                 ssb_list.tx_ssb[ssb_idx].nb_mapped_ro);
                     nb_mapped_ro_in_association_period++;
 
-                    LOG_D(NR_MAC,"Mapped ssb_idx %u to RO slot-symbol %u-%u, %u-%u-%u/%u\n",
+                    LOG_X(NR_MAC,"Mapped ssb_idx %u to RO slot-symbol %u-%u, %u-%u-%u/%u\n",
                           ssb_idx, ro_p->slot, ro_p->start_symbol, slot, ro_in_time, ro_in_freq,
                           prach_conf_period_p->prach_occasion_slot_map[frame][slot].nb_of_prach_occasion_in_freq);
-                    LOG_D(NR_MAC,"Nb mapped ROs for this ssb idx: in the association period only %u / total %u\n",
+                    LOG_X(NR_MAC,"Nb mapped ROs for this ssb idx: in the association period only %u / total %u\n",
                           ssb_list.tx_ssb[ssb_idx].nb_mapped_ro, nb_mapped_ro_in_association_period);
 
                     // Exit the loop if this SSB has been mapped to all the required ROs
@@ -2195,9 +2195,9 @@ static int get_nr_prach_info_from_ssb_index(uint8_t ssb_idx,
   //      - exact slot number
   //      - frame offset
   ssb_info_p = &ssb_list.tx_ssb[ssb_idx];
-  LOG_D(NR_MAC,"checking for prach : ssb_info_p->nb_mapped_ro %d\n",ssb_info_p->nb_mapped_ro);
+  LOG_X(NR_MAC,"checking for prach : ssb_info_p->nb_mapped_ro %d\n",ssb_info_p->nb_mapped_ro);
   for (uint8_t n_mapped_ro=0; n_mapped_ro<ssb_info_p->nb_mapped_ro; n_mapped_ro++) {
-    LOG_D(NR_MAC,"%d.%d: mapped_ro[%d]->frame.slot %d.%d, prach_assoc_pattern.nb_of_frame %d\n",
+    LOG_X(NR_MAC,"%d.%d: mapped_ro[%d]->frame.slot %d.%d, prach_assoc_pattern.nb_of_frame %d\n",
           frame,slot,n_mapped_ro,ssb_info_p->mapped_ro[n_mapped_ro]->frame,ssb_info_p->mapped_ro[n_mapped_ro]->slot,prach_assoc_pattern.nb_of_frame);
     if ((slot == ssb_info_p->mapped_ro[n_mapped_ro]->slot) &&
         (ssb_info_p->mapped_ro[n_mapped_ro]->frame == (frame % prach_assoc_pattern.nb_of_frame))) {
@@ -2265,17 +2265,17 @@ void build_ssb_to_ro_map(NR_UE_MAC_INST_t *mac) {
   memset(&ssb_list, 0, sizeof(ssb_list_info_t));
 
   // Build the list of all the valid RACH occasions in the maximum association pattern period according to the PRACH config
-  LOG_D(NR_MAC,"Build RO list\n");
+  LOG_X(NR_MAC,"Build RO list\n");
   build_ro_list(mac);
 
   // Build the list of all the valid/transmitted SSBs according to the config
-  LOG_D(NR_MAC,"Build SSB list\n");
+  LOG_X(NR_MAC,"Build SSB list\n");
   build_ssb_list(mac);
 
   // Map the transmitted SSBs to the ROs and create the association pattern according to the config
-  LOG_D(NR_MAC,"Map SSB to RO\n");
+  LOG_X(NR_MAC,"Map SSB to RO\n");
   map_ssb_to_ro(mac);
-  LOG_D(NR_MAC,"Map SSB to RO done\n");
+  LOG_X(NR_MAC,"Map SSB to RO done\n");
 }
 
 
@@ -2347,7 +2347,7 @@ void nr_ue_pucch_scheduler(module_id_t module_idP, frame_t frameP, int slotP, in
     return;
 
   if (N_UCI > 0) {
-    LOG_D(NR_MAC,"%d.%d configure pucch, O_SR %d, O_ACK %d, O_CSI %d\n",frameP,slotP,O_SR,O_ACK,O_CSI);
+    LOG_X(NR_MAC,"%d.%d configure pucch, O_SR %d, O_ACK %d, O_CSI %d\n",frameP,slotP,O_SR,O_ACK,O_CSI);
     pucch->resource_set_id = find_pucch_resource_set(mac, O_ACK + O_CSI);
     select_pucch_resource(mac, pucch);
     fapi_nr_ul_config_request_t *ul_config = get_ul_config_request(mac, slotP);
@@ -2364,7 +2364,7 @@ void nr_ue_pucch_scheduler(module_id_t module_idP, frame_t frameP, int slotP, in
                           pucch,
                           pucch_pdu,
                           O_SR, O_ACK, O_CSI);
-    LOG_D(NR_MAC,"Configuring pucch, is_common = %d\n",pucch->is_common);
+    LOG_X(NR_MAC,"Configuring pucch, is_common = %d\n",pucch->is_common);
     nr_scheduled_response_t scheduled_response;
     fill_scheduled_response(&scheduled_response, NULL, ul_config, NULL, module_idP, 0 /*TBR fix*/, frameP, slotP, thread_id);
     if(mac->if_module != NULL && mac->if_module->scheduled_response != NULL)
@@ -2650,7 +2650,7 @@ void nr_ue_prach_scheduler(module_id_t module_idP, frame_t frameP, sub_frame_t s
       prach_config_pdu->restricted_set = prach_config->restricted_set_config;
       prach_config_pdu->freq_msg1 = prach_config->num_prach_fd_occasions_list[prach_occasion_info_p->fdm].k1;
 
-      LOG_D(NR_MAC,"Selected RO Frame %u, Slot %u, Symbol %u, Fdm %u\n", frameP, prach_config_pdu->prach_slot, prach_config_pdu->prach_start_symbol, prach_config_pdu->num_ra);
+      LOG_X(NR_MAC,"Selected RO Frame %u, Slot %u, Symbol %u, Fdm %u\n", frameP, prach_config_pdu->prach_slot, prach_config_pdu->prach_start_symbol, prach_config_pdu->num_ra);
 
       // Search which SSB is mapped in the RO (among all the SSBs mapped to this RO)
       for (prach_config_pdu->ssb_nb_in_ro=0; prach_config_pdu->ssb_nb_in_ro<prach_occasion_info_p->nb_mapped_ssb; prach_config_pdu->ssb_nb_in_ro++) {
@@ -2849,7 +2849,7 @@ int nr_ue_get_sdu_mac_ce_pre(module_id_t module_idP,
       && (mac->scheduling_info.periodicBSR_SF == 0)) {
     // Trigger BSR Periodic
     mac->BSR_reporting_active |= NR_BSR_TRIGGER_PERIODIC;
-    LOG_D(NR_MAC, "[UE %d] MAC BSR Triggered PeriodicBSR Timer expiry at frame%d subframe %d TBS=%d\n",
+    LOG_X(NR_MAC, "[UE %d] MAC BSR Triggered PeriodicBSR Timer expiry at frame%d subframe %d TBS=%d\n",
           module_idP, frameP, subframe, buflen);
   }
 
@@ -2986,7 +2986,7 @@ void nr_ue_get_sdu_mac_ce_post(module_id_t module_idP,
     mac_ce_p->bsr_l->Buffer_size5 = mac->scheduling_info.BSR[5];
     mac_ce_p->bsr_l->Buffer_size6 = mac->scheduling_info.BSR[6];
     mac_ce_p->bsr_l->Buffer_size7 = mac->scheduling_info.BSR[7];
-    LOG_D(NR_MAC, "[UE %d] Frame %d subframe %d BSR Trig=%d report LONG BSR (level LCGID0 %d,level LCGID1 %d,level LCGID2 %d,level LCGID3 %d level LCGID4 %d,level LCGID5 %d,level LCGID6 %d,level LCGID7 %d)\n",
+    LOG_X(NR_MAC, "[UE %d] Frame %d subframe %d BSR Trig=%d report LONG BSR (level LCGID0 %d,level LCGID1 %d,level LCGID2 %d,level LCGID3 %d level LCGID4 %d,level LCGID5 %d,level LCGID6 %d,level LCGID7 %d)\n",
           module_idP, frameP, subframe,
           mac->BSR_reporting_active,
           mac->scheduling_info.BSR[0],
@@ -3005,7 +3005,7 @@ void nr_ue_get_sdu_mac_ce_post(module_id_t module_idP,
       mac_ce_p->bsr_s = NULL;
       mac_ce_p->bsr_t->LcgID = lcg_id_bsr_trunc;
       mac_ce_p->bsr_t->Buffer_size = mac->scheduling_info.BSR[lcg_id_bsr_trunc];
-      LOG_D(NR_MAC, "[UE %d] Frame %d subframe %d BSR Trig=%d report TRUNCATED BSR with level %d for LCGID %d\n",
+      LOG_X(NR_MAC, "[UE %d] Frame %d subframe %d BSR Trig=%d report TRUNCATED BSR with level %d for LCGID %d\n",
             module_idP, frameP, subframe,
             mac->BSR_reporting_active,
             mac->scheduling_info.BSR[lcg_id_bsr_trunc], lcg_id_bsr_trunc);
@@ -3013,29 +3013,29 @@ void nr_ue_get_sdu_mac_ce_post(module_id_t module_idP,
       mac_ce_p->bsr_t = NULL;
       mac_ce_p->bsr_s->LcgID = lcg_id_bsr_trunc;
       mac_ce_p->bsr_s->Buffer_size = mac->scheduling_info.BSR[lcg_id_bsr_trunc];
-      LOG_D(NR_MAC, "[UE %d] Frame %d subframe %d BSR Trig=%d report SHORT BSR with level %d for LCGID %d\n",
+      LOG_X(NR_MAC, "[UE %d] Frame %d subframe %d BSR Trig=%d report SHORT BSR with level %d for LCGID %d\n",
             module_idP, frameP, subframe,
             mac->BSR_reporting_active,
             mac->scheduling_info.BSR[lcg_id_bsr_trunc], lcg_id_bsr_trunc);
     }
   }
 
-  LOG_D(NR_MAC, "[UE %d][SR] Gave SDU to PHY, clearing any scheduling request\n", module_idP);
+  LOG_X(NR_MAC, "[UE %d][SR] Gave SDU to PHY, clearing any scheduling request\n", module_idP);
   mac->scheduling_info.SR_pending = 0;
   mac->scheduling_info.SR_COUNTER = 0;
 
   /* Actions when a BSR is sent */
   if (mac_ce_p->bsr_ce_len) {
-    LOG_D(NR_MAC, "[UE %d] MAC BSR Sent !! bsr (ce%d,hdr%d) buff_len %d\n",
+    LOG_X(NR_MAC, "[UE %d] MAC BSR Sent !! bsr (ce%d,hdr%d) buff_len %d\n",
           module_idP, mac_ce_p->bsr_ce_len, mac_ce_p->bsr_header_len, buflen);
     // Reset ReTx BSR Timer
     mac->scheduling_info.retxBSR_SF = nr_get_sf_retxBSRTimer(mac->scheduling_info.retxBSR_Timer);
-    LOG_D(NR_MAC, "[UE %d] MAC ReTx BSR Timer Reset =%d\n", module_idP, mac->scheduling_info.retxBSR_SF);
+    LOG_X(NR_MAC, "[UE %d] MAC ReTx BSR Timer Reset =%d\n", module_idP, mac->scheduling_info.retxBSR_SF);
 
     // Reset Periodic Timer except when BSR is truncated
     if ((mac_ce_p->bsr_t == NULL) && (mac->scheduling_info.periodicBSR_Timer != NR_BSR_Config__periodicBSR_Timer_infinity)) {
       mac->scheduling_info.periodicBSR_SF = nr_get_sf_periodicBSRTimer(mac->scheduling_info.periodicBSR_Timer);
-      LOG_D(NR_MAC, "[UE %d] MAC Periodic BSR Timer Reset =%d\n",
+      LOG_X(NR_MAC, "[UE %d] MAC Periodic BSR Timer Reset =%d\n",
             module_idP,
             mac->scheduling_info.periodicBSR_SF);
     }
@@ -3096,7 +3096,7 @@ uint8_t nr_ue_get_sdu(module_id_t module_idP,
   mac_ce_p->tot_mac_ce_len = nr_ue_get_sdu_mac_ce_pre(module_idP, CC_id, frameP, subframe, gNB_index, ulsch_buffer, buflen, mac_ce_p);
   mac_ce_p->total_mac_pdu_header_len = mac_ce_p->tot_mac_ce_len;
 
-  LOG_D(NR_MAC, "In %s: [UE %d] [%d.%d] process UL transport block at with size TBS = %d bytes \n", __FUNCTION__, module_idP, frameP, subframe, buflen);
+  LOG_X(NR_MAC, "In %s: [UE %d] [%d.%d] process UL transport block at with size TBS = %d bytes \n", __FUNCTION__, module_idP, frameP, subframe, buflen);
 
   // Check for DCCH first
   // TO DO: Multiplex in the order defined by the logical channel prioritization
@@ -3104,7 +3104,7 @@ uint8_t nr_ue_get_sdu(module_id_t module_idP,
 
     buflen_remain = buflen - (mac_ce_p->total_mac_pdu_header_len + mac_ce_p->sdu_length_total + sh_size);
 
-    LOG_D(NR_MAC, "In %s: [UE %d] [%d.%d] UL-DXCH -> ULSCH, RLC with LCID 0x%02x (TBS %d bytes, sdu_length_total %d bytes, MAC header len %d bytes, buflen_remain %d bytes)\n",
+    LOG_X(NR_MAC, "In %s: [UE %d] [%d.%d] UL-DXCH -> ULSCH, RLC with LCID 0x%02x (TBS %d bytes, sdu_length_total %d bytes, MAC header len %d bytes, buflen_remain %d bytes)\n",
           __FUNCTION__,
           module_idP,
           frameP,
@@ -3142,7 +3142,7 @@ uint8_t nr_ue_get_sdu(module_id_t module_idP,
 
       if (sdu_length > 0) {
 
-        LOG_D(NR_MAC, "In %s: [UE %d] [%d.%d] UL-DXCH -> ULSCH, Generating UL MAC sub-PDU for SDU %d, length %d bytes, RB with LCID 0x%02x (buflen (TBS) %d bytes)\n",
+        LOG_X(NR_MAC, "In %s: [UE %d] [%d.%d] UL-DXCH -> ULSCH, Generating UL MAC sub-PDU for SDU %d, length %d bytes, RB with LCID 0x%02x (buflen (TBS) %d bytes)\n",
           __FUNCTION__,
           module_idP,
           frameP,
@@ -3173,7 +3173,7 @@ uint8_t nr_ue_get_sdu(module_id_t module_idP,
 
       } else {
         pdu -= sh_size;
-        LOG_D(NR_MAC, "In %s: no data to transmit for RB with LCID 0x%02x\n", __FUNCTION__, lcid);
+        LOG_X(NR_MAC, "In %s: no data to transmit for RB with LCID 0x%02x\n", __FUNCTION__, lcid);
         break;
       }
 
@@ -3182,7 +3182,7 @@ uint8_t nr_ue_get_sdu(module_id_t module_idP,
       //Update Buffer remain and BSR bytes after transmission
       mac->scheduling_info.LCID_buffer_remain[lcid] -= sdu_length;
       mac->scheduling_info.BSR_bytes[mac->scheduling_info.LCGID[lcid]] -= sdu_length;
-      LOG_D(NR_MAC, "[UE %d] Update BSR [%d.%d] BSR_bytes for LCG%d=%d\n",
+      LOG_X(NR_MAC, "[UE %d] Update BSR [%d.%d] BSR_bytes for LCG%d=%d\n",
             module_idP, frameP, subframe, mac->scheduling_info.LCGID[lcid],
             mac->scheduling_info.BSR_bytes[mac->scheduling_info.LCGID[lcid]]);
       if (mac->scheduling_info.BSR_bytes[mac->scheduling_info.LCGID[lcid]] < 0)
@@ -3196,7 +3196,7 @@ uint8_t nr_ue_get_sdu(module_id_t module_idP,
 
   if (mac_ce_p->tot_mac_ce_len > 0) {
 
-    LOG_D(NR_MAC, "In %s copying %d bytes of MAC CEs to the UL PDU \n", __FUNCTION__, mac_ce_p->tot_mac_ce_len);
+    LOG_X(NR_MAC, "In %s copying %d bytes of MAC CEs to the UL PDU \n", __FUNCTION__, mac_ce_p->tot_mac_ce_len);
     nr_write_ce_ulsch_pdu(pdu, mac, 0, NULL, mac_ce_p->bsr_t, mac_ce_p->bsr_s, mac_ce_p->bsr_l);
     pdu += (unsigned char) mac_ce_p->tot_mac_ce_len;
 
@@ -3212,7 +3212,7 @@ uint8_t nr_ue_get_sdu(module_id_t module_idP,
   // Compute final offset for padding and fill remainder of ULSCH with 0
   if (buflen_remain > 0) {
 
-    LOG_D(NR_MAC, "In %s filling remainder %d bytes to the UL PDU \n", __FUNCTION__, buflen_remain);
+    LOG_X(NR_MAC, "In %s filling remainder %d bytes to the UL PDU \n", __FUNCTION__, buflen_remain);
     ((NR_MAC_SUBHEADER_FIXED *) pdu)->R = 0;
     ((NR_MAC_SUBHEADER_FIXED *) pdu)->LCID = UL_SCH_LCID_PADDING;
 
