@@ -143,7 +143,7 @@ void config_common_ue_sa(NR_UE_MAC_INST_t *mac,
   mac->phy_config.Mod_id = module_id;
   mac->phy_config.CC_id = cc_idP;
 
-  LOG_D(MAC, "Entering SA UE Config Common\n");
+  LOG_X(MAC, "Entering SA UE Config Common\n");
 
   // carrier config
   cfg->carrier_config.dl_bandwidth = config_bandwidth(scc->downlinkConfigCommon.frequencyInfoDL.scs_SpecificCarrierList.list.array[0]->subcarrierSpacing,
@@ -293,7 +293,7 @@ void config_common_ue(NR_UE_MAC_INST_t *mac,
   mac->phy_config.CC_id = cc_idP;
   
   // carrier config
-  LOG_D(MAC, "Entering UE Config Common\n");
+  LOG_X(MAC, "Entering UE Config Common\n");
 
   AssertFatal(scc!=NULL,"scc cannot be null\n");
 
@@ -495,7 +495,7 @@ void config_bwp_ue(NR_UE_MAC_INST_t *mac, uint16_t *bwp_ind, uint8_t *dci_format
 
   }
 
-  LOG_D(MAC, "In %s setting DL_BWP_Id %ld UL_BWP_Id %ld \n", __FUNCTION__, mac->DL_BWP_Id, mac->UL_BWP_Id);
+  LOG_X(MAC, "In %s setting DL_BWP_Id %ld UL_BWP_Id %ld \n", __FUNCTION__, mac->DL_BWP_Id, mac->UL_BWP_Id);
 
 }
 void config_control_initial_ue(NR_UE_MAC_INST_t *mac){
@@ -744,7 +744,7 @@ int nr_rrc_mac_config_req_ue(
       mac->scheduling_info.retxBSR_SF =
         MAC_UE_BSR_TIMER_NOT_RUNNING;
       mac->BSR_reporting_active = NR_BSR_TRIGGER_NONE;
-      LOG_D(MAC, "[UE %d]: periodic BSR %d (SF), retx BSR %d (SF)\n",
+      LOG_X(MAC, "[UE %d]: periodic BSR %d (SF), retx BSR %d (SF)\n",
 			module_id,
             mac->scheduling_info.periodicBSR_SF,
             mac->scheduling_info.retxBSR_SF);

@@ -366,7 +366,7 @@ void static_dl(module_id_t mod_id,
     if (ue_sched_ctrl->pre_nb_available_rbs[CC_id] == 0)
       continue;
 
-    LOG_D(MAC,
+    LOG_X(MAC,
           "%4d.%d UE%d %d RBs allocated, pre MCS %d\n",
           frame,
           subframe,
@@ -391,7 +391,7 @@ void static_dl(module_id_t mod_id,
     }
   }
   if (print)
-    LOG_D(MAC, "%4d.%d DL scheduler allocation list: %s\n", frame, subframe, t);
+    LOG_X(MAC, "%4d.%d DL scheduler allocation list: %s\n", frame, subframe, t);
 }
 
 void static_ul(module_id_t mod_id,
@@ -481,7 +481,7 @@ void static_ul(module_id_t mod_id,
     print = 1;
     uint8_t harq_pid = subframe2harqpid(&RC.mac[mod_id]->common_channels[CC_id],
                                         sched_frame, sched_subframe);
-    LOG_D(MAC, "%4d.%d UE%d %d RBs (index %d) at start %d, pre MCS %d %s\n",
+    LOG_X(MAC, "%4d.%d UE%d %d RBs (index %d) at start %d, pre MCS %d %s\n",
           frame,
           subframe,
           UE_id,
@@ -509,7 +509,7 @@ void static_ul(module_id_t mod_id,
     }
   }
   if (print)
-    LOG_D(MAC,
+    LOG_X(MAC,
           "%4d.%d UL scheduler allocation list: %s\n",
           sched_frame,
           sched_subframe,

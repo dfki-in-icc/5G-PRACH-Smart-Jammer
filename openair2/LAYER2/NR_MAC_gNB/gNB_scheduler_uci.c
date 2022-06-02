@@ -1121,12 +1121,12 @@ void evaluate_rsrp_report(NR_UE_info_t *UE_info,
     if (NR_CSI_ReportConfig__reportQuantity_PR_ssb_Index_RSRP == reportQuantity_type) {
       sched_ctrl->CSI_report.ssb_cri_report.CRI_SSBRI[csi_ssb_idx] =
         *(csi_report->SSB_Index_list[cri_ssbri_bitlen>0?((curr_payload)&~(~1<<(cri_ssbri_bitlen-1))):cri_ssbri_bitlen]);
-      LOG_D(MAC,"SSB_index = %d\n",sched_ctrl->CSI_report.ssb_cri_report.CRI_SSBRI[csi_ssb_idx]);
+      LOG_X(MAC,"SSB_index = %d\n",sched_ctrl->CSI_report.ssb_cri_report.CRI_SSBRI[csi_ssb_idx]);
     }
     else {
       sched_ctrl->CSI_report.ssb_cri_report.CRI_SSBRI[csi_ssb_idx] =
         *(csi_report->CSI_Index_list[cri_ssbri_bitlen>0?((curr_payload)&~(~1<<(cri_ssbri_bitlen-1))):cri_ssbri_bitlen]);
-      LOG_D(MAC,"CSI-RS Resource Indicator = %d\n",sched_ctrl->CSI_report.ssb_cri_report.CRI_SSBRI[csi_ssb_idx]);
+      LOG_X(MAC,"CSI-RS Resource Indicator = %d\n",sched_ctrl->CSI_report.ssb_cri_report.CRI_SSBRI[csi_ssb_idx]);
     }
     *cumul_bits += cri_ssbri_bitlen;
 
@@ -1147,7 +1147,7 @@ void evaluate_rsrp_report(NR_UE_info_t *UE_info,
   // including ssb rsrp in mac stats
   stats->cumul_rsrp += strongest_ssb_rsrp;
   stats->num_rsrp_meas++;
-  LOG_D(MAC,"rsrp_id = %d rsrp = %d\n",
+  LOG_X(MAC,"rsrp_id = %d rsrp = %d\n",
         sched_ctrl->CSI_report.ssb_cri_report.RSRP,
         get_measured_rsrp(sched_ctrl->CSI_report.ssb_cri_report.RSRP));
 }
@@ -1208,7 +1208,7 @@ void evaluate_cqi_report(uint8_t *payload,
   if (cqi_bitlen > 4) {
     temp_cqi = pickandreverse_bits(payload, 4, cumul_bits);
     sched_ctrl->CSI_report.cri_ri_li_pmi_cqi_report.wb_cqi_2tb = temp_cqi;
-    LOG_D(MAC,"Wide-band CQI for the second TB %d\n", temp_cqi);
+    LOG_X(MAC,"Wide-band CQI for the second TB %d\n", temp_cqi);
   }
   sched_ctrl->set_mcs = TRUE;
 }
@@ -1305,7 +1305,7 @@ void extract_pucch_csi_report(NR_CSI_MeasConfig_t *csi_MeasConfig,
     // verify if report with current id has been scheduled for this frame and slot
     if ((n_slots_frame*frame + slot - offset)%period == 0) {
       reportQuantity_type = csi_report->reportQuantity_type;
-      LOG_D(MAC,"SFN/SF:%d/%d reportQuantity type = %d\n",frame,slot,reportQuantity_type);
+      LOG_X(MAC,"SFN/SF:%d/%d reportQuantity type = %d\n",frame,slot,reportQuantity_type);
       switch(reportQuantity_type){
         case NR_CSI_ReportConfig__reportQuantity_PR_cri_RSRP:
           evaluate_rsrp_report(UE_info,sched_ctrl,UE_id,csi_report_id,payload,&cumul_bits,reportQuantity_type);

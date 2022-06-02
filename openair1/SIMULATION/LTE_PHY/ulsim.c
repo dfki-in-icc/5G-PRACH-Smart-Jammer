@@ -171,7 +171,7 @@ fill_nfapi_ulsch_config_request(nfapi_ul_config_request_pdu_t *ul_config_pdu,
     ul_config_pdu->ulsch_cqi_ri_pdu.cqi_ri_information.cqi_ri_information_rel9.tl.tag = NFAPI_UL_CONFIG_REQUEST_CQI_RI_INFORMATION_REL9_TAG;
     ul_config_pdu->ulsch_cqi_ri_pdu.cqi_ri_information.cqi_ri_information_rel9.report_type = 1;
     ul_config_pdu->ulsch_cqi_ri_pdu.cqi_ri_information.cqi_ri_information_rel9.aperiodic_cqi_pmi_ri_report.number_of_cc = 1;
-    LOG_D(MAC, "report_type %d\n",ul_config_pdu->ulsch_cqi_ri_pdu.cqi_ri_information.cqi_ri_information_rel9.report_type);
+    LOG_X(MAC, "report_type %d\n",ul_config_pdu->ulsch_cqi_ri_pdu.cqi_ri_information.cqi_ri_information_rel9.report_type);
 
     if (p_eNB <= 2
         && (tmode == 3 || tmode == 4 || tmode == 8 || tmode == 9 || tmode == 10))

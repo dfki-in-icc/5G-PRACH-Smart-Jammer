@@ -45,7 +45,7 @@ static void *link_manager_sender_thread(void *_manager)
   int            size;
   int            priority;
 
-  LOG_D(MAC, "starting link manager sender thread\n");
+  LOG_X(MAC, "starting link manager sender thread\n");
 
   while (manager->run) {
     while ((size = message_get(manager->send_queue, &data, &priority)) > 0) {
@@ -54,7 +54,7 @@ static void *link_manager_sender_thread(void *_manager)
     }
   }
 
-  LOG_D(MAC, "link manager sender thread quits\n");
+  LOG_X(MAC, "link manager sender thread quits\n");
 
   return NULL;
 
@@ -70,7 +70,7 @@ static void *link_manager_receiver_thread(void *_manager)
   void           *data;
   int            size;
 
-  LOG_D(MAC, "starting link manager receiver thread\n");
+  LOG_X(MAC, "starting link manager receiver thread\n");
 
   while (manager->run) {
     if (link_receive_packet(manager->socket_link, &data, &size))
@@ -80,7 +80,7 @@ static void *link_manager_receiver_thread(void *_manager)
       goto error;
   }
 
-  LOG_D(MAC, "link manager receiver thread quits\n");
+  LOG_X(MAC, "link manager receiver thread quits\n");
 
   return NULL;
 
@@ -98,7 +98,7 @@ link_manager_t *create_link_manager(
   //pthread_attr_t attr;
   pthread_t      t;
 
-  LOG_D(MAC, "create new link manager\n");
+  LOG_X(MAC, "create new link manager\n");
 
   AssertFatal( (ret=calloc(1, sizeof(link_manager_t))) != NULL,"");
 

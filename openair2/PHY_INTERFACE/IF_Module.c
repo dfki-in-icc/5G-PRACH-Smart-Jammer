@@ -32,9 +32,9 @@ void handle_rach(UL_IND_t *UL_info) {
     {
       if (UL_RCC_INFO.rach_ind[j].rach_indication_body.number_of_preambles > 1)
       {
-        LOG_D(MAC, "handle_rach j: %d  UL_RCC_INFO.rach_ind[j].rach_indication_body.number_of_preambles: %d\n",
+        LOG_X(MAC, "handle_rach j: %d  UL_RCC_INFO.rach_ind[j].rach_indication_body.number_of_preambles: %d\n",
           j, UL_RCC_INFO.rach_ind[j].rach_indication_body.number_of_preambles);
-        LOG_D(MAC, "UL_info[Frame %d, Subframe %d] Calling initiate_ra_proc RACH:Frame: %d Subframe: %d\n",
+        LOG_X(MAC, "UL_info[Frame %d, Subframe %d] Calling initiate_ra_proc RACH:Frame: %d Subframe: %d\n",
           UL_info->frame, UL_info->subframe, NFAPI_SFNSF2SFN(UL_RCC_INFO.rach_ind[j].sfn_sf), NFAPI_SFNSF2SF(UL_RCC_INFO.rach_ind[j].sfn_sf));
       }
       AssertFatal(UL_RCC_INFO.rach_ind[j].rach_indication_body.number_of_preambles == 1, "More than 1 preamble not supported\n"); // dump frame/sf and all things in UL_RCC_INFO
@@ -54,7 +54,7 @@ void handle_rach(UL_IND_t *UL_info) {
     if (UL_info->rach_ind.rach_indication_body.number_of_preambles>0) {
       AssertFatal(UL_info->rach_ind.rach_indication_body.number_of_preambles==1,"More than 1 preamble not supported\n");
       UL_info->rach_ind.rach_indication_body.number_of_preambles=0;
-      LOG_D(MAC,"UL_info[Frame %d, Subframe %d] Calling initiate_ra_proc RACH:SFN/SF:%d\n",UL_info->frame,UL_info->subframe, NFAPI_SFNSF2DEC(UL_info->rach_ind.sfn_sf));
+      LOG_X(MAC,"UL_info[Frame %d, Subframe %d] Calling initiate_ra_proc RACH:SFN/SF:%d\n",UL_info->frame,UL_info->subframe, NFAPI_SFNSF2DEC(UL_info->rach_ind.sfn_sf));
       initiate_ra_proc(UL_info->module_id,
                        UL_info->CC_id,
                        NFAPI_SFNSF2SFN(UL_info->rach_ind.sfn_sf),
@@ -73,7 +73,7 @@ void handle_rach(UL_IND_t *UL_info) {
     for (i=0; i<UL_info->rach_ind_br.rach_indication_body.number_of_preambles; i++) {
       AssertFatal(UL_info->rach_ind_br.rach_indication_body.preamble_list[i].preamble_rel13.rach_resource_type>0,
                   "Got regular PRACH preamble, not BL/CE\n");
-      LOG_D(MAC,"Frame %d, Subframe %d Calling initiate_ra_proc (CE_level %d)\n",UL_info->frame,UL_info->subframe,
+      LOG_X(MAC,"Frame %d, Subframe %d Calling initiate_ra_proc (CE_level %d)\n",UL_info->frame,UL_info->subframe,
             UL_info->rach_ind_br.rach_indication_body.preamble_list[i].preamble_rel13.rach_resource_type-1);
       UL_info->rach_ind_br.rach_indication_body.number_of_preambles=0;
       initiate_ra_proc(UL_info->module_id,
@@ -248,7 +248,7 @@ void handle_ulsch(UL_IND_t *UL_info) {
                     j, UL_RCC_INFO.crc_ind[k].crc_indication_body.crc_pdu_list[j].crc_indication_rel8.crc_flag);
 
               if (UL_RCC_INFO.crc_ind[k].crc_indication_body.crc_pdu_list[j].crc_indication_rel8.crc_flag == 1) { // CRC error indication
-                LOG_D(MAC,"Frame %d, Subframe %d Calling rx_sdu (CRC error) \n",UL_info->frame,UL_info->subframe);
+                LOG_X(MAC,"Frame %d, Subframe %d Calling rx_sdu (CRC error) \n",UL_info->frame,UL_info->subframe);
                 rx_sdu(UL_info->module_id,
                        UL_info->CC_id,
                        NFAPI_SFNSF2SFN(UL_RCC_INFO.rx_ind[k].sfn_sf), //UL_info->frame,
@@ -259,7 +259,7 @@ void handle_ulsch(UL_IND_t *UL_info) {
                        UL_RCC_INFO.rx_ind[k].rx_indication_body.rx_pdu_list[i].rx_indication_rel8.timing_advance,
                        UL_RCC_INFO.rx_ind[k].rx_indication_body.rx_pdu_list[i].rx_indication_rel8.ul_cqi);
               } else {
-                LOG_D(MAC,"Frame %d, Subframe %d Calling rx_sdu (CRC ok) \n",UL_info->frame,UL_info->subframe);
+                LOG_X(MAC,"Frame %d, Subframe %d Calling rx_sdu (CRC ok) \n",UL_info->frame,UL_info->subframe);
                 rx_sdu(UL_info->module_id,
                        UL_info->CC_id,
                        NFAPI_SFNSF2SFN(UL_RCC_INFO.rx_ind[k].sfn_sf), //UL_info->frame,
@@ -299,7 +299,7 @@ void handle_ulsch(UL_IND_t *UL_info) {
             LOG_X(PHY, "UL_info->crc_ind.crc_indication_body.crc_pdu_list[%d].crc_indication_rel8.crc_flag:%d\n", j, UL_info->crc_ind.crc_indication_body.crc_pdu_list[j].crc_indication_rel8.crc_flag);
 
             if (UL_info->crc_ind.crc_indication_body.crc_pdu_list[j].crc_indication_rel8.crc_flag == 1) { // CRC error indication
-              LOG_D(MAC,"Frame %d, Subframe %d Calling rx_sdu (CRC error) \n",UL_info->frame,UL_info->subframe);
+              LOG_X(MAC,"Frame %d, Subframe %d Calling rx_sdu (CRC error) \n",UL_info->frame,UL_info->subframe);
               rx_sdu(UL_info->module_id,
                      UL_info->CC_id,
                      NFAPI_SFNSF2SFN(UL_info->rx_ind.sfn_sf), //UL_info->frame,
@@ -310,7 +310,7 @@ void handle_ulsch(UL_IND_t *UL_info) {
                      UL_info->rx_ind.rx_indication_body.rx_pdu_list[i].rx_indication_rel8.timing_advance,
                      UL_info->rx_ind.rx_indication_body.rx_pdu_list[i].rx_indication_rel8.ul_cqi);
             } else {
-              LOG_D(MAC,"Frame %d, Subframe %d Calling rx_sdu (CRC ok) \n",UL_info->frame,UL_info->subframe);
+              LOG_X(MAC,"Frame %d, Subframe %d Calling rx_sdu (CRC ok) \n",UL_info->frame,UL_info->subframe);
               rx_sdu(UL_info->module_id,
                      UL_info->CC_id,
                      NFAPI_SFNSF2SFN(UL_info->rx_ind.sfn_sf), //UL_info->frame,
@@ -717,7 +717,7 @@ void UL_indication(UL_IND_t *UL_info, void *proc) {
 
   if(UL_info->frame==1023&&UL_info->subframe==6) { // dl scheduling (0,0)
     frame_cnt= (frame_cnt + 1)%7; // to prevent frame_cnt get too big
-    LOG_D(MAC,"current (%d,%d) frame count dl is %d\n",UL_info->frame,UL_info->subframe,frame_cnt);
+    LOG_X(MAC,"current (%d,%d) frame count dl is %d\n",UL_info->frame,UL_info->subframe,frame_cnt);
   }
 
   if (NFAPI_MODE != NFAPI_MODE_PNF) {
@@ -744,7 +744,7 @@ void UL_indication(UL_IND_t *UL_info, void *proc) {
 
   if(sf_ahead_dl!=255) {
     mac->HI_DCI0_req[CC_id][(UL_info->subframe+sf_ahead_dl)%10].hi_dci0_request_body.number_of_hi                     = 0;
-    LOG_D(MAC,"current (%d,%d) clear HI_DCI0_req[0][%d]\n",UL_info->frame,UL_info->subframe,(UL_info->subframe+sf_ahead_dl)%10);
+    LOG_X(MAC,"current (%d,%d) clear HI_DCI0_req[0][%d]\n",UL_info->frame,UL_info->subframe,(UL_info->subframe+sf_ahead_dl)%10);
   }
 
   handle_ulsch(UL_info);

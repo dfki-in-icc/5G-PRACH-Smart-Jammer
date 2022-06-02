@@ -531,11 +531,11 @@ void phy_procedures_eNB_TX(PHY_VARS_eNB *eNB,
     if (is_fembms_pmch_subframe(frame,subframe,fp)) {
 #ifdef MBMS_NFAPI_SCHEDULER	    
       pmch_procedures(eNB,proc,1);
-      LOG_D(MAC,"frame %d, subframe %d -> PMCH\n",frame,subframe);
+      LOG_X(MAC,"frame %d, subframe %d -> PMCH\n",frame,subframe);
       return;
 #endif
     }else if(is_fembms_cas_subframe(frame,subframe,fp) || is_fembms_nonMBSFN_subframe(frame,subframe,fp)){
-         LOG_D(MAC,"frame %d, subframe %d -> CAS\n",frame,subframe);
+         LOG_X(MAC,"frame %d, subframe %d -> CAS\n",frame,subframe);
 	common_signal_procedures_fembms(eNB,proc->frame_tx, proc->subframe_tx);
 	//return;
     }

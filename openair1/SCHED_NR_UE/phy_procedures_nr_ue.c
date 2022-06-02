@@ -395,7 +395,7 @@ void nr_ue_pbch_procedures(uint8_t gNB_id,
 
 #ifdef DEBUG_PHY_PROC
     uint16_t frame_tx;
-    LOG_X(PHY,"[UE %d] frame %d, nr_slot_rx %d, Received PBCH (MIB): frame_tx %d. N_RB_DL %d\n",
+    LOG_D(PHY,"[UE %d] frame %d, nr_slot_rx %d, Received PBCH (MIB): frame_tx %d. N_RB_DL %d\n",
     ue->Mod_id,
     frame_rx,
     nr_slot_rx,
@@ -1403,7 +1403,7 @@ int phy_procedures_nrUE_RX(PHY_VARS_NR_UE *ue,
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PHY_PROCEDURES_UE_RX, VCD_FUNCTION_IN);
   start_meas(&ue->phy_proc_rx[proc->thread_id]);
 
-  LOG_X(PHY," ****** start RX-Chain for Frame.Slot %d.%d (energy %d dB)******  \n",
+  LOG_D(PHY," ****** start RX-Chain for Frame.Slot %d.%d (energy %d dB)******  \n",
         frame_rx%1024, nr_slot_rx,
         dB_fixed(signal_energy(ue->common_vars.common_vars_rx_data_per_thread[proc->thread_id].rxdataF[0],2048*14)));
 
@@ -1529,7 +1529,7 @@ int phy_procedures_nrUE_RX(PHY_VARS_NR_UE *ue,
 
   if (dci_cnt > 0) {
 
-    LOG_X(PHY,"[UE %d] Frame %d, nr_slot_rx %d: found %d DCIs\n", ue->Mod_id, frame_rx, nr_slot_rx, dci_cnt);
+    LOG_D(PHY,"[UE %d] Frame %d, nr_slot_rx %d: found %d DCIs\n", ue->Mod_id, frame_rx, nr_slot_rx, dci_cnt);
 
     NR_UE_DLSCH_t *dlsch = NULL;
     if (ue->dlsch[proc->thread_id][gNB_id][0]->active == 1){
@@ -1728,7 +1728,7 @@ int phy_procedures_nrUE_RX(PHY_VARS_NR_UE *ue,
   if (cpumeas(CPUMEAS_GETSTATE))
     LOG_X(PHY, "------FULL RX PROC [SFN %d]: %5.2f ------\n",nr_slot_rx,ue->phy_proc_rx[proc->thread_id].p_time/(cpuf*1000.0));
 
-  LOG_X(PHY," ****** end RX-Chain  for AbsSubframe %d.%d ******  \n", frame_rx%1024, nr_slot_rx);
+  LOG_D(PHY," ****** end RX-Chain  for AbsSubframe %d.%d ******  \n", frame_rx%1024, nr_slot_rx);
   return (0);
 }
 

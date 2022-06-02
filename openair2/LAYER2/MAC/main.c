@@ -155,7 +155,7 @@ void mac_top_init_eNB(void)
                 "can't ALLOCATE %zu Bytes for %d eNB_MAC_INST with size %zu \n",
                 RC.nb_macrlc_inst * sizeof(eNB_MAC_INST *),
                 RC.nb_macrlc_inst, sizeof(eNB_MAC_INST));
-    LOG_D(MAC,
+    LOG_X(MAC,
           "[MAIN] ALLOCATE %zu Bytes for %d eNB_MAC_INST @ %p\n",
           sizeof(eNB_MAC_INST), RC.nb_macrlc_inst, mac);
     bzero(mac[i], sizeof(eNB_MAC_INST));
@@ -272,7 +272,7 @@ int l2_init_eNB(void)
 
     rlcmac_init_global_param();
 
-    LOG_D(MAC, "[MAIN] ALL INIT OK\n");
+    LOG_X(MAC, "[MAIN] ALL INIT OK\n");
 
 
     return (1);

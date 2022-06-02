@@ -417,7 +417,7 @@ void nr_processDLSegment(void* arg) {
         LOG_X(PHY,"Segment %u CRC OK\n\033[0m",r);
 
         if (r==0) {
-          for (int i=0; i<10; i++) LOG_X(PHY,"byte %d : %x\n",i,((uint8_t *)llrProcBuf)[i]);
+          for (int i=0; i<10; i++) LOG_D(PHY,"byte %d : %x\n",i,((uint8_t *)llrProcBuf)[i]);
         }
 
         //Temporary hack

@@ -138,7 +138,7 @@ void nr_modulation(uint32_t *in,
   __m128i *out128;
 #endif
 
-  LOG_X(PHY,"nr_modulation: length %d, mod_order %d\n",length,mod_order);
+  LOG_D(PHY,"nr_modulation: length %d, mod_order %d\n",length,mod_order);
 
   switch (mod_order) {
 

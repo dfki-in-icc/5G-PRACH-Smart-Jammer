@@ -73,7 +73,7 @@ void fill_ul_config(fapi_nr_ul_config_request_t *ul_config, frame_t frame_tx, in
   if ((ul_config->slot != slot_tx || ul_config->sfn != frame_tx) &&
       ul_config->number_pdus != 0 &&
       !get_softmodem_params()->emulate_l1) {
-    LOG_D(MAC, "%d.%d %d.%d f clear ul_config %p t %d pdu %d\n", frame_tx, slot_tx, ul_config->sfn, ul_config->slot, ul_config, pdu_type, ul_config->number_pdus);
+    LOG_X(MAC, "%d.%d %d.%d f clear ul_config %p t %d pdu %d\n", frame_tx, slot_tx, ul_config->sfn, ul_config->slot, ul_config, pdu_type, ul_config->number_pdus);
     ul_config->number_pdus = 0;
     memset(ul_config->ul_config_list, 0, sizeof(ul_config->ul_config_list)); 
   }
@@ -377,7 +377,7 @@ void ul_ports_config(NR_UE_MAC_INST_t * mac, nfapi_nr_ue_pusch_pdu_t *pusch_conf
   }
   long *max_length = NULL;
   long *dmrs_type = NULL;
-  LOG_X(NR_MAC,"transformPrecoder %s\n",transformPrecoder==NR_PUSCH_Config__transformPrecoder_disabled?"disabled":"enabled");
+  LOG_D(NR_MAC,"transformPrecoder %s\n",transformPrecoder==NR_PUSCH_Config__transformPrecoder_disabled?"disabled":"enabled");
 
   if (pusch_Config->dmrs_UplinkForPUSCH_MappingTypeA) {
     max_length = pusch_Config->dmrs_UplinkForPUSCH_MappingTypeA->choice.setup->maxLength;
@@ -1110,7 +1110,7 @@ NR_UE_L2_STATE_t nr_ue_scheduler(nr_downlink_indication_t *dl_info, nr_uplink_in
         config_dci_pdu(mac, rel15, dl_config, mac->ra.ra_state == WAIT_RAR ? NR_RNTI_RA : NR_RNTI_TC , mac->ra.ss->searchSpaceId);
         fill_dci_search_candidates(mac->ra.ss, rel15);
         dl_config->number_pdus = 1;
-        LOG_D(MAC,"mac->cg %p: Calling fill_scheduled_response rnti %x, type0_pdcch, num_pdus %d\n",mac->cg,rel15->rnti,dl_config->number_pdus);
+        LOG_X(MAC,"mac->cg %p: Calling fill_scheduled_response rnti %x, type0_pdcch, num_pdus %d\n",mac->cg,rel15->rnti,dl_config->number_pdus);
         fill_scheduled_response(&scheduled_response, dl_config, NULL, NULL, mod_id, cc_id, rx_frame, rx_slot, dl_info->thread_id);
         if(mac->if_module != NULL && mac->if_module->scheduled_response != NULL)
           mac->if_module->scheduled_response(&scheduled_response);
@@ -2462,7 +2462,7 @@ void nr_schedule_csirs_reception(NR_UE_MAC_INST_t *mac, int frame, int slot) {
     csi_period_offset(NULL,nzpcsi->periodicityAndOffset,&period,&offset);
     if((frame*nr_slots_per_frame[mu]+slot-offset)%period != 0)
       continue;
-    LOG_D(MAC,"Scheduling reception of CSI-RS in frame %d slot %d\n",frame,slot);
+    LOG_X(MAC,"Scheduling reception of CSI-RS in frame %d slot %d\n",frame,slot);
     fapi_nr_dl_config_csirs_pdu_rel15_t *csirs_config_pdu = &dl_config->dl_config_list[dl_config->number_pdus].csirs_config_pdu.csirs_config_rel15;
 
     NR_CSI_RS_ResourceMapping_t  resourceMapping = nzpcsi->resourceMapping;
@@ -2776,7 +2776,7 @@ void nr_ue_sib1_scheduler(module_id_t module_idP,
     frame_s = 0; // same frame as ssb
     slot_s = mac->type0_PDCCH_CSS_config.n_c;
   }
-  LOG_D(MAC,"Calling fill_scheduled_response, type0_pdcch, num_pdus %d\n",dl_config->number_pdus);
+  LOG_X(MAC,"Calling fill_scheduled_response, type0_pdcch, num_pdus %d\n",dl_config->number_pdus);
   fill_scheduled_response(&scheduled_response, dl_config, NULL, NULL, module_idP, cc_id, frame_s, slot_s, 0); // TODO fix thread_id, for now assumed 0
 
   if (dl_config->number_pdus) {

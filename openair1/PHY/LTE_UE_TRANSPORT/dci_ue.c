@@ -1747,7 +1747,7 @@ int get_nCCE_offset_l1(int *CCE_table,
     }
 
 
-    LOG_D(MAC,"rnti %x, Yk = %d, nCCE %d (nCCE/L %d),nb_cand %d\n",rnti,Yk,nCCE,nCCE/L,nb_candidates);
+    LOG_X(MAC,"rnti %x, Yk = %d, nCCE %d (nCCE/L %d),nb_cand %d\n",rnti,Yk,nCCE,nCCE/L,nb_candidates);
 
     for (m = 0 ; m < nb_candidates ; m++) {
       search_space_free = 1;

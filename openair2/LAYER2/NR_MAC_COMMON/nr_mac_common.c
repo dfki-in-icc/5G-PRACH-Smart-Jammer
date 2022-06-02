@@ -388,7 +388,7 @@ const char *prachfmt[]={"0","1","2","3", "A1","A2","A3","B1","B4","C0","C2","A1/
 
 uint16_t get_NCS(uint8_t index, uint16_t format0, uint8_t restricted_set_config) {
 
-  LOG_D(MAC,"get_NCS: indx %d,format0 %d, restriced_set_config %d\n",
+  LOG_X(MAC,"get_NCS: indx %d,format0 %d, restriced_set_config %d\n",
 	index,format0,restricted_set_config);
 
   if (format0 < 3) {
@@ -1524,7 +1524,7 @@ int get_nr_prach_occasion_info_from_index(uint8_t index,
         format2 = (uint8_t) table_6_3_3_2_4_prachConfig_Index[index][1];
         
       *format = ((uint8_t) table_6_3_3_2_4_prachConfig_Index[index][0]) | (format2<<8);
-      LOG_D(MAC,"Getting Total PRACH info from index %d absoluteFrequencyPointA %u mu %u frame_type %u start_symbol %u N_t_slot %u N_dur %u N_RA_sfn = %u\n",
+      LOG_X(MAC,"Getting Total PRACH info from index %d absoluteFrequencyPointA %u mu %u frame_type %u start_symbol %u N_t_slot %u N_dur %u N_RA_sfn = %u\n",
             index,
             pointa,
             mu,
@@ -1583,7 +1583,7 @@ int get_nr_prach_occasion_info_from_index(uint8_t index,
         if (table_6_3_3_2_2_prachConfig_Index[index][1] != -1)
           format2 = (uint8_t) table_6_3_3_2_2_prachConfig_Index[index][1];
         *format = ((uint8_t) table_6_3_3_2_2_prachConfig_Index[index][0]) | (format2<<8);
-        LOG_D(MAC,"Getting Total PRACH info from index %d absoluteFrequencyPointA %u mu %u frame_type %u start_symbol %u N_t_slot %u N_dur %u \n",
+        LOG_X(MAC,"Getting Total PRACH info from index %d absoluteFrequencyPointA %u mu %u frame_type %u start_symbol %u N_t_slot %u N_dur %u \n",
               index,
               pointa,
               mu,
@@ -1647,7 +1647,7 @@ int get_nr_prach_info_from_index(uint8_t index,
           if (table_6_3_3_2_4_prachConfig_Index[index][1] != -1)
             format2 = (uint8_t) table_6_3_3_2_4_prachConfig_Index[index][1];
           *format = ((uint8_t) table_6_3_3_2_4_prachConfig_Index[index][0]) | (format2<<8);
-          LOG_D(MAC,"Frame %d slot %d: Getting PRACH info from index %d absoluteFrequencyPointA %u mu %u frame_type %u start_symbol %u N_t_slot %u N_dur %u N_RA_slot %u RA_sfn_index %u\n",
+          LOG_X(MAC,"Frame %d slot %d: Getting PRACH info from index %d absoluteFrequencyPointA %u mu %u frame_type %u start_symbol %u N_t_slot %u N_dur %u N_RA_slot %u RA_sfn_index %u\n",
                 frame,
                 slot,
                 index,
@@ -1697,7 +1697,7 @@ int get_nr_prach_info_from_index(uint8_t index,
             if (table_6_3_3_2_3_prachConfig_Index[index][1] != -1)
               format2 = (uint8_t) table_6_3_3_2_3_prachConfig_Index[index][1];
             *format = ((uint8_t) table_6_3_3_2_3_prachConfig_Index[index][0]) | (format2<<8);
-            LOG_D(MAC,"Frame %d slot %d: Getting PRACH info from index %d (col 6 %lu) absoluteFrequencyPointA %u mu %u frame_type %u start_symbol %u N_t_slot %u N_dur %u N_RA_slot %u RA_sfn_index %u \n", frame,
+            LOG_X(MAC,"Frame %d slot %d: Getting PRACH info from index %d (col 6 %lu) absoluteFrequencyPointA %u mu %u frame_type %u start_symbol %u N_t_slot %u N_dur %u N_RA_slot %u RA_sfn_index %u \n", frame,
               slot,
               index, table_6_3_3_2_3_prachConfig_Index[index][6],
               pointa,
@@ -1743,7 +1743,7 @@ int get_nr_prach_info_from_index(uint8_t index,
             if (table_6_3_3_2_2_prachConfig_Index[index][1] != -1)
               format2 = (uint8_t) table_6_3_3_2_2_prachConfig_Index[index][1];
             *format = ((uint8_t) table_6_3_3_2_2_prachConfig_Index[index][0]) | (format2<<8);
-            LOG_D(MAC,"Frame %d slot %d: Getting PRACH info from index %d absoluteFrequencyPointA %u mu %u frame_type %u start_symbol %u N_t_slot %u N_dur %u \n",
+            LOG_X(MAC,"Frame %d slot %d: Getting PRACH info from index %d absoluteFrequencyPointA %u mu %u frame_type %u start_symbol %u N_t_slot %u N_dur %u \n",
                   frame,
                   slot,
                   index,
@@ -1831,7 +1831,7 @@ uint8_t compute_nr_root_seq(NR_RACH_ConfigCommon_t *rach_config,
     else {
       r = L_ra/NCS;
       found_sequences = (nb_preambles/r) + (nb_preambles%r!=0); //ceil(nb_preambles/r)
-      LOG_D(MAC, "Computing NR root sequences: found %u sequences\n", found_sequences);
+      LOG_X(MAC, "Computing NR root sequences: found %u sequences\n", found_sequences);
       return (found_sequences);
     }
   }
@@ -1869,7 +1869,7 @@ uint8_t compute_nr_root_seq(NR_RACH_ConfigCommon_t *rach_config,
         AssertFatal(1==0,"Procedure to find nb of sequences for restricted type B not implemented yet");
       }
     }
-    LOG_D(MAC, "Computing NR root sequences: found %u sequences\n", found_sequences);
+    LOG_X(MAC, "Computing NR root sequences: found %u sequences\n", found_sequences);
     return found_sequences;
   }
 }
@@ -2075,7 +2075,7 @@ void nr_get_tbs_dl(nfapi_nr_dl_tti_pdsch_pdu *pdsch_pdu,
                    uint8_t numdmrscdmgroupnodata,
                    uint8_t tb_scaling) {
 
-  LOG_D(MAC, "TBS calculation\n");
+  LOG_X(MAC, "TBS calculation\n");
 
   nfapi_nr_dl_tti_pdsch_pdu_rel15_t *pdsch_rel15 = &pdsch_pdu->pdsch_pdu_rel15;
   uint16_t N_PRB_oh = x_overhead;
@@ -2092,7 +2092,7 @@ void nr_get_tbs_dl(nfapi_nr_dl_tti_pdsch_pdu *pdsch_pdu,
   uint8_t Imcs = pdsch_rel15->mcsIndex[0];
   uint16_t dmrs_length = get_num_dmrs(pdsch_rel15->dlDmrsSymbPos);
   uint16_t N_RE_prime = NR_NB_SC_PER_RB*N_sh_symb - N_PRB_DMRS*dmrs_length - N_PRB_oh;
-  LOG_D(MAC, "N_RE_prime %d for %d symbols %d DMRS per PRB and %d overhead\n", N_RE_prime, N_sh_symb, N_PRB_DMRS, N_PRB_oh);
+  LOG_X(MAC, "N_RE_prime %d for %d symbols %d DMRS per PRB and %d overhead\n", N_RE_prime, N_sh_symb, N_PRB_DMRS, N_PRB_oh);
 
   uint16_t R;
   uint32_t TBS=0;
@@ -2121,7 +2121,7 @@ void nr_get_tbs_dl(nfapi_nr_dl_tti_pdsch_pdu *pdsch_pdu,
   //  pdsch_rel15->nb_mod_symbols = N_RE_prime*pdsch_rel15->n_prb*pdsch_rel15->nb_codewords;
   pdsch_rel15->mcsTable[0] = table_idx;
 
-  LOG_D(MAC, "TBS %d bytes: N_PRB_DMRS %d N_sh_symb %d N_PRB_oh %d R %d Qm %d table %d nb_symbols %d\n",
+  LOG_X(MAC, "TBS %d bytes: N_PRB_DMRS %d N_sh_symb %d N_PRB_oh %d R %d Qm %d table %d nb_symbols %d\n",
   TBS, N_PRB_DMRS, N_sh_symb, N_PRB_oh, R, Qm, table_idx,N_RE_prime*pdsch_rel15->rbSize*pdsch_rel15->NrOfCodewords );
 }
 
@@ -2431,7 +2431,7 @@ int32_t get_l_prime(uint8_t duration_in_symbols, uint8_t mapping_type, pusch_dmr
   AssertFatal(l_prime>=0,"invalid l_prime < 0\n");
 
   l_prime = (mapping_type == typeA) ? (l_prime | l0) : (l_prime << start_symbol);
-  LOG_D(MAC, " PUSCH DMRS MASK in HEX:%x\n", l_prime);
+  LOG_X(MAC, " PUSCH DMRS MASK in HEX:%x\n", l_prime);
 
   return l_prime;
 
@@ -3141,7 +3141,7 @@ int16_t fill_dmrs_mask(NR_PDSCH_Config_t *pdsch_Config,int dmrs_TypeA_Position,i
   int l0;int dmrs_AdditionalPosition = 0;
   NR_DMRS_DownlinkConfig_t *dmrs_config = NULL;
 
-  LOG_D(MAC, "NrofSymbols:%d, startSymbol:%d, mappingtype:%d, dmrs_TypeA_Position:%d\n", NrOfSymbols, startSymbol, mappingtype_fromDCI, dmrs_TypeA_Position);
+  LOG_X(MAC, "NrofSymbols:%d, startSymbol:%d, mappingtype:%d, dmrs_TypeA_Position:%d\n", NrOfSymbols, startSymbol, mappingtype_fromDCI, dmrs_TypeA_Position);
 
   if (dmrs_TypeA_Position == NR_ServingCellConfigCommon__dmrs_TypeA_Position_pos2) l0=2;
   else if (dmrs_TypeA_Position == NR_ServingCellConfigCommon__dmrs_TypeA_Position_pos3) l0=3;
@@ -3207,11 +3207,11 @@ int16_t fill_dmrs_mask(NR_PDSCH_Config_t *pdsch_Config,int dmrs_TypeA_Position,i
     l0 = 1<<l0 | 1<<(l0+1);
   }
 
-  LOG_D(MAC, "l0:%d, ld:%d,row:%d, column:%d, addpos:%d, maxlen:%d\n", l0, ld, row, column, dmrs_AdditionalPosition, length);
+  LOG_X(MAC, "l0:%d, ld:%d,row:%d, column:%d, addpos:%d, maxlen:%d\n", l0, ld, row, column, dmrs_AdditionalPosition, length);
   AssertFatal(l_prime>=0,"ERROR in configuration.Check Time Domain allocation of this Grant. l_prime < 1. row:%d, column:%d\n", row, column);
 
   l_prime = (mappingtype_fromDCI == typeA) ? (l_prime | l0) : (l_prime << startSymbol);
-  LOG_D(MAC, " PDSCH DMRS MASK in HEX:%x\n", l_prime);
+  LOG_X(MAC, " PDSCH DMRS MASK in HEX:%x\n", l_prime);
 
   return l_prime;
 }

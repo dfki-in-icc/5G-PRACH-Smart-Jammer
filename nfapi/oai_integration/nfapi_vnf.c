@@ -658,9 +658,9 @@ int phy_subframe_indication(struct nfapi_vnf_p7_config *config, uint16_t phy_id,
 }
 
 int phy_rach_indication(struct nfapi_vnf_p7_config *config, nfapi_rach_indication_t *ind) {
-  LOG_D(MAC, "%s() NFAPI SFN/SF:%d number_of_preambles:%u\n", __FUNCTION__, NFAPI_SFNSF2DEC(ind->sfn_sf), ind->rach_indication_body.number_of_preambles);
+  LOG_X(MAC, "%s() NFAPI SFN/SF:%d number_of_preambles:%u\n", __FUNCTION__, NFAPI_SFNSF2DEC(ind->sfn_sf), ind->rach_indication_body.number_of_preambles);
   struct PHY_VARS_eNB_s *eNB = RC.eNB[0][0];
-  LOG_D(MAC, "[VNF] RACH_IND eNB:%p sfn_sf:%d number_of_preambles:%d\n", eNB, NFAPI_SFNSF2DEC(ind->sfn_sf), ind->rach_indication_body.number_of_preambles);
+  LOG_X(MAC, "[VNF] RACH_IND eNB:%p sfn_sf:%d number_of_preambles:%d\n", eNB, NFAPI_SFNSF2DEC(ind->sfn_sf), ind->rach_indication_body.number_of_preambles);
   AssertFatal(pthread_mutex_lock(&eNB->UL_INFO_mutex)==0, "Mutex lock failed");
   if(NFAPI_MODE == NFAPI_MODE_VNF){
     int8_t index = NFAPI_SFNSF2SF(ind->sfn_sf);
@@ -673,7 +673,7 @@ int phy_rach_indication(struct nfapi_vnf_p7_config *config, nfapi_rach_indicatio
     for (int i=0; i<ind->rach_indication_body.number_of_preambles; i++) {
       if (ind->rach_indication_body.preamble_list[i].preamble_rel8.tl.tag == NFAPI_PREAMBLE_REL8_TAG) {
 
-        LOG_D(MAC, "preamble[%d]: rnti:%02x preamble:%d timing_advance:%d\n",
+        LOG_X(MAC, "preamble[%d]: rnti:%02x preamble:%d timing_advance:%d\n",
               i,
               ind->rach_indication_body.preamble_list[i].preamble_rel8.rnti,
               ind->rach_indication_body.preamble_list[i].preamble_rel8.preamble,
@@ -681,7 +681,7 @@ int phy_rach_indication(struct nfapi_vnf_p7_config *config, nfapi_rach_indicatio
               );
       }
       if(ind->rach_indication_body.preamble_list[i].preamble_rel13.tl.tag == NFAPI_PREAMBLE_REL13_TAG) {
-        LOG_D(MAC, "RACH PREAMBLE REL13 present\n");
+        LOG_X(MAC, "RACH PREAMBLE REL13 present\n");
       }
 
       UL_RCC_INFO.rach_ind[index].rach_indication_body.preamble_list[i] = ind->rach_indication_body.preamble_list[i];
@@ -692,7 +692,7 @@ int phy_rach_indication(struct nfapi_vnf_p7_config *config, nfapi_rach_indicatio
 
   for (int i=0; i<ind->rach_indication_body.number_of_preambles; i++) {
     if (ind->rach_indication_body.preamble_list[i].preamble_rel8.tl.tag == NFAPI_PREAMBLE_REL8_TAG) {
-      LOG_D(MAC, "preamble[%d]: rnti:%02x preamble:%d timing_advance:%d\n",
+      LOG_X(MAC, "preamble[%d]: rnti:%02x preamble:%d timing_advance:%d\n",
              i,
              ind->rach_indication_body.preamble_list[i].preamble_rel8.rnti,
              ind->rach_indication_body.preamble_list[i].preamble_rel8.preamble,
@@ -701,7 +701,7 @@ int phy_rach_indication(struct nfapi_vnf_p7_config *config, nfapi_rach_indicatio
     }
 
     if(ind->rach_indication_body.preamble_list[i].preamble_rel13.tl.tag == NFAPI_PREAMBLE_REL13_TAG) {
-      LOG_D(MAC, "RACH PREAMBLE REL13 present\n");
+      LOG_X(MAC, "RACH PREAMBLE REL13 present\n");
     }
 
     eNB->preamble_list[i] = ind->rach_indication_body.preamble_list[i];
@@ -859,7 +859,7 @@ int phy_nr_uci_indication(nfapi_nr_uci_indication_t *ind)
 
 int phy_harq_indication(struct nfapi_vnf_p7_config *config, nfapi_harq_indication_t *ind) {
   struct PHY_VARS_eNB_s *eNB = RC.eNB[0][0];
-  LOG_D(MAC, "%s() NFAPI SFN/SF:%d number_of_harqs:%u\n", __FUNCTION__, NFAPI_SFNSF2DEC(ind->sfn_sf), ind->harq_indication_body.number_of_harqs);
+  LOG_X(MAC, "%s() NFAPI SFN/SF:%d number_of_harqs:%u\n", __FUNCTION__, NFAPI_SFNSF2DEC(ind->sfn_sf), ind->harq_indication_body.number_of_harqs);
   AssertFatal(pthread_mutex_lock(&eNB->UL_INFO_mutex)==0, "Mutex lock failed");
   if(NFAPI_MODE == NFAPI_MODE_VNF){
     int8_t index = NFAPI_SFNSF2SF(ind->sfn_sf);
@@ -907,7 +907,7 @@ int phy_crc_indication(struct nfapi_vnf_p7_config *config, nfapi_crc_indication_
     for (int i=0; i<ind->crc_indication_body.number_of_crcs; i++) {
       memcpy(&UL_RCC_INFO.crc_ind[index].crc_indication_body.crc_pdu_list[i], &ind->crc_indication_body.crc_pdu_list[i], sizeof(ind->crc_indication_body.crc_pdu_list[0]));
 
-      LOG_D(MAC, "%s() NFAPI SFN/SF:%d CRC_IND:number_of_crcs:%u UL_INFO:crcs:%d PDU[%d] rnti:%04x UL_INFO:rnti:%04x\n",
+      LOG_X(MAC, "%s() NFAPI SFN/SF:%d CRC_IND:number_of_crcs:%u UL_INFO:crcs:%d PDU[%d] rnti:%04x UL_INFO:rnti:%04x\n",
           __FUNCTION__,
           NFAPI_SFNSF2DEC(ind->sfn_sf), ind->crc_indication_body.number_of_crcs, UL_RCC_INFO.crc_ind[index].crc_indication_body.number_of_crcs,
           i,
@@ -922,13 +922,13 @@ int phy_crc_indication(struct nfapi_vnf_p7_config *config, nfapi_crc_indication_
   dest_ind->crc_indication_body.crc_pdu_list = dest_pdu_list;
 
   if (ind->crc_indication_body.number_of_crcs==0)
-    LOG_D(MAC, "%s() NFAPI SFN/SF:%d IND:number_of_crcs:%u UL_INFO:crcs:%d\n", __FUNCTION__, NFAPI_SFNSF2DEC(ind->sfn_sf), ind->crc_indication_body.number_of_crcs,
+    LOG_X(MAC, "%s() NFAPI SFN/SF:%d IND:number_of_crcs:%u UL_INFO:crcs:%d\n", __FUNCTION__, NFAPI_SFNSF2DEC(ind->sfn_sf), ind->crc_indication_body.number_of_crcs,
           eNB->UL_INFO.crc_ind.crc_indication_body.number_of_crcs);
 
   assert(ind->crc_indication_body.number_of_crcs <= NFAPI_CRC_IND_MAX_PDU);
   for (int i=0; i<ind->crc_indication_body.number_of_crcs; i++) {
     memcpy(&dest_ind->crc_indication_body.crc_pdu_list[i], &ind->crc_indication_body.crc_pdu_list[i], sizeof(ind->crc_indication_body.crc_pdu_list[0]));
-    LOG_D(MAC, "%s() NFAPI SFN/SF:%d CRC_IND:number_of_crcs:%u UL_INFO:crcs:%d PDU[%d] rnti:%04x UL_INFO:rnti:%04x\n",
+    LOG_X(MAC, "%s() NFAPI SFN/SF:%d CRC_IND:number_of_crcs:%u UL_INFO:crcs:%d PDU[%d] rnti:%04x UL_INFO:rnti:%04x\n",
           __FUNCTION__,
           NFAPI_SFNSF2DEC(ind->sfn_sf), ind->crc_indication_body.number_of_crcs, eNB->UL_INFO.crc_ind.crc_indication_body.number_of_crcs,
           i,
@@ -988,7 +988,7 @@ int phy_rx_indication(struct nfapi_vnf_p7_config *config, nfapi_rx_indication_t 
   struct PHY_VARS_eNB_s *eNB = RC.eNB[0][0];
 
   if (ind->rx_indication_body.number_of_pdus==0) {
-    LOG_D(MAC, "%s() NFAPI SFN/SF:%d number_of_pdus:%u\n", __FUNCTION__, NFAPI_SFNSF2DEC(ind->sfn_sf), ind->rx_indication_body.number_of_pdus);
+    LOG_X(MAC, "%s() NFAPI SFN/SF:%d number_of_pdus:%u\n", __FUNCTION__, NFAPI_SFNSF2DEC(ind->sfn_sf), ind->rx_indication_body.number_of_pdus);
   }
 
   AssertFatal(pthread_mutex_lock(&eNB->UL_INFO_mutex)==0, "Mutex lock failed");
@@ -1110,13 +1110,13 @@ int phy_srs_indication(struct nfapi_vnf_p7_config *config, nfapi_srs_indication_
 
 int phy_sr_indication(struct nfapi_vnf_p7_config *config, nfapi_sr_indication_t *ind) {
   struct PHY_VARS_eNB_s *eNB = RC.eNB[0][0];
-  LOG_D(MAC, "%s() NFAPI SFN/SF:%d srs:%d\n", __FUNCTION__, NFAPI_SFNSF2DEC(ind->sfn_sf), ind->sr_indication_body.number_of_srs);
+  LOG_X(MAC, "%s() NFAPI SFN/SF:%d srs:%d\n", __FUNCTION__, NFAPI_SFNSF2DEC(ind->sfn_sf), ind->sr_indication_body.number_of_srs);
   AssertFatal(pthread_mutex_lock(&eNB->UL_INFO_mutex)==0, "Mutex lock failed");
   if(NFAPI_MODE == NFAPI_MODE_VNF){
     int8_t index = NFAPI_SFNSF2SF(ind->sfn_sf);
 
     UL_RCC_INFO.sr_ind[index] = *ind;
-    LOG_D(MAC,"%s() UL_INFO[%d].sr_ind.sr_indication_body.number_of_srs:%d\n", __FUNCTION__, index, eNB->UL_INFO.sr_ind.sr_indication_body.number_of_srs);
+    LOG_X(MAC,"%s() UL_INFO[%d].sr_ind.sr_indication_body.number_of_srs:%d\n", __FUNCTION__, index, eNB->UL_INFO.sr_ind.sr_indication_body.number_of_srs);
     if (ind->sr_indication_body.number_of_srs > 0) {
       assert(ind->sr_indication_body.number_of_srs <= NFAPI_SR_IND_MAX_PDU);
       UL_RCC_INFO.sr_ind[index].sr_indication_body.sr_pdu_list = malloc(sizeof(nfapi_sr_indication_pdu_t) * NFAPI_SR_IND_MAX_PDU);
@@ -1127,7 +1127,7 @@ int phy_sr_indication(struct nfapi_vnf_p7_config *config, nfapi_sr_indication_t 
         nfapi_sr_indication_pdu_t *dest_pdu = &UL_RCC_INFO.sr_ind[index].sr_indication_body.sr_pdu_list[i];
         nfapi_sr_indication_pdu_t *src_pdu = &ind->sr_indication_body.sr_pdu_list[i];
 
-        LOG_D(MAC, "SR_IND[PDU:%d %d][rnti:%x cqi:%d channel:%d]\n", index, i, src_pdu->rx_ue_information.rnti, src_pdu->ul_cqi_information.ul_cqi, src_pdu->ul_cqi_information.channel);
+        LOG_X(MAC, "SR_IND[PDU:%d %d][rnti:%x cqi:%d channel:%d]\n", index, i, src_pdu->rx_ue_information.rnti, src_pdu->ul_cqi_information.ul_cqi, src_pdu->ul_cqi_information.channel);
 
         memcpy(dest_pdu, src_pdu, sizeof(*src_pdu));
     }
@@ -1136,13 +1136,13 @@ int phy_sr_indication(struct nfapi_vnf_p7_config *config, nfapi_sr_indication_t 
   nfapi_sr_indication_pdu_t *dest_pdu_list = eNB->sr_pdu_list;
   *dest_ind = *ind;
   dest_ind->sr_indication_body.sr_pdu_list = dest_pdu_list;
-  LOG_D(MAC,"%s() eNB->UL_INFO.sr_ind.sr_indication_body.number_of_srs:%d\n", __FUNCTION__, eNB->UL_INFO.sr_ind.sr_indication_body.number_of_srs);
+  LOG_X(MAC,"%s() eNB->UL_INFO.sr_ind.sr_indication_body.number_of_srs:%d\n", __FUNCTION__, eNB->UL_INFO.sr_ind.sr_indication_body.number_of_srs);
 
   assert(eNB->UL_INFO.sr_ind.sr_indication_body.number_of_srs <= NFAPI_SR_IND_MAX_PDU);
   for (int i=0; i<eNB->UL_INFO.sr_ind.sr_indication_body.number_of_srs; i++) {
     nfapi_sr_indication_pdu_t *dest_pdu = &dest_ind->sr_indication_body.sr_pdu_list[i];
     nfapi_sr_indication_pdu_t *src_pdu = &ind->sr_indication_body.sr_pdu_list[i];
-    LOG_D(MAC, "SR_IND[PDU:%d][rnti:%x cqi:%d channel:%d]\n", i, src_pdu->rx_ue_information.rnti, src_pdu->ul_cqi_information.ul_cqi, src_pdu->ul_cqi_information.channel);
+    LOG_X(MAC, "SR_IND[PDU:%d][rnti:%x cqi:%d channel:%d]\n", i, src_pdu->rx_ue_information.rnti, src_pdu->ul_cqi_information.ul_cqi, src_pdu->ul_cqi_information.channel);
     memcpy(dest_pdu, src_pdu, sizeof(*src_pdu));
   }
   }
@@ -1186,7 +1186,7 @@ int phy_cqi_indication(struct nfapi_vnf_p7_config *config, nfapi_cqi_indication_
   // vnf_p7_info* p7_vnf = (vnf_p7_info*)(config->user_data);
   //mac_cqi_ind(p7_vnf->mac, ind);
   struct PHY_VARS_eNB_s *eNB = RC.eNB[0][0];
-  LOG_D(MAC, "%s() NFAPI SFN/SF:%d number_of_cqis:%u\n", __FUNCTION__, NFAPI_SFNSF2DEC(ind->sfn_sf), ind->cqi_indication_body.number_of_cqis);
+  LOG_X(MAC, "%s() NFAPI SFN/SF:%d number_of_cqis:%u\n", __FUNCTION__, NFAPI_SFNSF2DEC(ind->sfn_sf), ind->cqi_indication_body.number_of_cqis);
   AssertFatal(pthread_mutex_lock(&eNB->UL_INFO_mutex)==0, "Mutex lock failed");
   if(NFAPI_MODE == NFAPI_MODE_VNF){
     int8_t index = NFAPI_SFNSF2SF(ind->sfn_sf);
@@ -1205,7 +1205,7 @@ int phy_cqi_indication(struct nfapi_vnf_p7_config *config, nfapi_cqi_indication_
     assert(ind->cqi_indication_body.number_of_cqis <= NFAPI_CQI_IND_MAX_PDU);
     for (int i=0; i<ind->cqi_indication_body.number_of_cqis; i++) {
         nfapi_cqi_indication_pdu_t *src_pdu = &ind->cqi_indication_body.cqi_pdu_list[i];
-        LOG_D(MAC, "SR_IND[PDU:%d][rnti:%x cqi:%d channel:%d]\n", i, src_pdu->rx_ue_information.rnti,
+        LOG_X(MAC, "SR_IND[PDU:%d][rnti:%x cqi:%d channel:%d]\n", i, src_pdu->rx_ue_information.rnti,
                     src_pdu->ul_cqi_information.ul_cqi, src_pdu->ul_cqi_information.channel);
         memcpy(&UL_RCC_INFO.cqi_ind[index].cqi_indication_body.cqi_pdu_list[i],
                src_pdu, sizeof(nfapi_cqi_indication_pdu_t));
@@ -1221,7 +1221,7 @@ int phy_cqi_indication(struct nfapi_vnf_p7_config *config, nfapi_cqi_indication_
   assert(ind->cqi_indication_body.number_of_cqis <= NFAPI_CQI_IND_MAX_PDU);
   for(int i=0; i<ind->cqi_indication_body.number_of_cqis; i++) {
     nfapi_cqi_indication_pdu_t *src_pdu = &ind->cqi_indication_body.cqi_pdu_list[i];
-    LOG_D(MAC, "CQI_IND[PDU:%d][rnti:%x cqi:%d channel:%d]\n", i, src_pdu->rx_ue_information.rnti,
+    LOG_X(MAC, "CQI_IND[PDU:%d][rnti:%x cqi:%d channel:%d]\n", i, src_pdu->rx_ue_information.rnti,
                 src_pdu->ul_cqi_information.ul_cqi, src_pdu->ul_cqi_information.channel);
     memcpy(&dest_ind->cqi_indication_body.cqi_pdu_list[i],
            src_pdu, sizeof(nfapi_cqi_indication_pdu_t));
@@ -1241,7 +1241,7 @@ int phy_nr_slot_indication(nfapi_nr_slot_indication_scf_t *ind) {
   uint32_t vnf_sfn_slot = sfnslot_add_slot(ind->sfn, ind->slot, vnf_slot_ahead);
   uint16_t vnf_sfn = NFAPI_SFNSLOT2SFN(vnf_sfn_slot);
   uint8_t vnf_slot = NFAPI_SFNSLOT2SLOT(vnf_sfn_slot);
-  LOG_D(MAC, "VNF SFN/Slot %d.%d \n", vnf_sfn, vnf_slot);
+  LOG_X(MAC, "VNF SFN/Slot %d.%d \n", vnf_sfn, vnf_slot);
 
   nfapi_nr_slot_indication_scf_t *nr_slot_ind = CALLOC(1, sizeof(*nr_slot_ind));
   nr_slot_ind->header = ind->header;
@@ -1270,7 +1270,7 @@ int phy_nr_srs_indication(nfapi_nr_srs_indication_t *ind) {
   for (int i=0; i<ind->number_of_pdus; i++) {
     memcpy(&gNB->UL_INFO.srs_ind.pdu_list[i], &ind->pdu_list[i], sizeof(ind->pdu_list[0]));
 
-    LOG_D(MAC, "%s() NFAPI SFN/Slot:%d.%d SRS_IND:number_of_pdus:%d UL_INFO:pdus:%d\n",
+    LOG_X(MAC, "%s() NFAPI SFN/Slot:%d.%d SRS_IND:number_of_pdus:%d UL_INFO:pdus:%d\n",
         __FUNCTION__,
         ind->sfn,ind->slot, ind->number_of_pdus, gNB->UL_INFO.srs_ind.number_of_pdus
         );

@@ -133,7 +133,7 @@ void handle_nr_uci(NR_UL_IND_t *UL_info)
           handle_nr_uci_pucch_2_3_4(mod_id, frame, slot, uci_pdu);
           break;
         }
-      LOG_D(MAC, "UCI handled \n");
+      LOG_X(MAC, "UCI handled \n");
     }
   }
 

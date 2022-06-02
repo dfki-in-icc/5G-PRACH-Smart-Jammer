@@ -161,7 +161,7 @@ void calculate_preferred_ul_tda(module_id_t module_id, const NR_BWP_Uplink_t *ub
       nrmac->preferred_ul_tda[bwp_id][slot] = 0;
     else if (nr_mix_slots && sched_slot % nr_slots_period == tdd->nrofDownlinkSlots)
       nrmac->preferred_ul_tda[bwp_id][slot] = tdaMi;
-    LOG_D(MAC, "DL slot %d UL slot %d preferred_ul_tda %d\n", slot, sched_slot, nrmac->preferred_ul_tda[bwp_id][slot]);
+    LOG_X(MAC, "DL slot %d UL slot %d preferred_ul_tda %d\n", slot, sched_slot, nrmac->preferred_ul_tda[bwp_id][slot]);
   }
 
   if (tdd && k2 < tdd->nrofUplinkSlots) {

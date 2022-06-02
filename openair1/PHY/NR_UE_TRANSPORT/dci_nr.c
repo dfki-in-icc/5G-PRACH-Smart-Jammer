@@ -848,7 +848,7 @@ int32_t nr_rx_pdcch(PHY_VARS_NR_UE *ue,
                                 n_rb,
                                 rel15->BWPStart);
 
-    LOG_X(PHY,"we enter nr_pdcch_channel_level(avgP=%d) => compute channel level based on ofdm symbol 0, pdcch_vars[eNB_id]->dl_ch_estimates_ext\n",*avgP);
+    LOG_D(PHY,"we enter nr_pdcch_channel_level(avgP=%d) => compute channel level based on ofdm symbol 0, pdcch_vars[eNB_id]->dl_ch_estimates_ext\n",*avgP);
     LOG_D(PHY,"in nr_pdcch_channel_level(dl_ch_estimates_ext -> dl_ch_estimates_ext)\n");
     // compute channel level based on ofdm symbol 0
     nr_pdcch_channel_level(pdcch_vars->dl_ch_estimates_ext,
@@ -919,8 +919,8 @@ int32_t nr_rx_pdcch(PHY_VARS_NR_UE *ue,
                                     rel15->CCE,
                                     rel15->L);
 
-  LOG_X(PHY,"we end nr_pdcch_unscrambling()\n");
-  LOG_X(PHY,"Ending nr_rx_pdcch() function\n");
+  LOG_D(PHY,"we end nr_pdcch_unscrambling()\n");
+  LOG_D(PHY,"Ending nr_rx_pdcch() function\n");
 
   return (0);
 }
@@ -1037,7 +1037,7 @@ uint8_t nr_dci_decoding_procedure(PHY_VARS_NR_UE *ue,
                                          1,
                                          NR_POLAR_DCI_MESSAGE_TYPE, dci_length, L);
       n_rnti = rel15->rnti;
-      LOG_X(PHY, "(%i.%i) dci indication (rnti %x,dci format %s,n_CCE %d,payloadSize %d)\n",
+      LOG_D(PHY, "(%i.%i) dci indication (rnti %x,dci format %s,n_CCE %d,payloadSize %d)\n",
             proc->frame_rx, proc->nr_slot_rx,n_rnti,nr_dci_format_string[rel15->dci_format_options[k]],CCEind,dci_length);
       if (crc == n_rnti) {
         // L5G_IOT
@@ -1045,7 +1045,7 @@ uint8_t nr_dci_decoding_procedure(PHY_VARS_NR_UE *ue,
         RegisterComplexMetric(PDCCH_CHEST, "PDCCH_CHEST", (int16_t*)pdcch_chest_ptr, num_pdcch_chest_symbol);
         PROM_METRICS(PDCCH_LEVEL_0,"PDCCH_LEVEL_0",pdcch_power[0]);
         PROM_METRICS(PDCCH_LEVEL_1,"PDCCH_LEVEL_1",pdcch_power[1]);
-        LOG_X(PHY, "(%i.%i) Received dci indication (rnti %x,dci format %s,n_CCE %d,payloadSize %d,payload %llx)\n",
+        LOG_D(PHY, "(%i.%i) Received dci indication (rnti %x,dci format %s,n_CCE %d,payloadSize %d,payload %llx)\n",
               proc->frame_rx, proc->nr_slot_rx,n_rnti,nr_dci_format_string[rel15->dci_format_options[k]],CCEind,dci_length,*(unsigned long long*)dci_estimation);
         uint16_t mb = nr_dci_false_detection(dci_estimation,tmp_e,L*108,n_rnti, NR_POLAR_DCI_MESSAGE_TYPE, dci_length, L);
         ue->dci_thres = (ue->dci_thres + mb) / 2;

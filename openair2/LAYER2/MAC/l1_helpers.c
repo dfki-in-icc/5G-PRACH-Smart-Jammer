@@ -106,7 +106,7 @@ int8_t get_deltaP_rampup(module_id_t module_idP, uint8_t CC_id)
     AssertFatal(CC_id == 0,
 		"Transmission on secondary CCs is not supported yet\n");
 
-    LOG_D(MAC, "[PUSCH]%d dB\n",
+    LOG_X(MAC, "[PUSCH]%d dB\n",
 	  UE_mac_inst[module_idP].RA_PREAMBLE_TRANSMISSION_COUNTER << 1);
     return ((int8_t)
 	    (UE_mac_inst[module_idP].

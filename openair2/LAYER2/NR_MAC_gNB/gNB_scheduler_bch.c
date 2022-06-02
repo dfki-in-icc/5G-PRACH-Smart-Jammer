@@ -134,7 +134,7 @@ void schedule_ssb(frame_t frame, sub_frame_t slot,
   dl_config_pdu->ssb_pdu.ssb_pdu_rel15.precoding_and_beamforming.prgs_list[0].dig_bf_interface_list[0].beam_idx = beam_index;
   dl_req->nPDUs++;
 
-  LOG_D(MAC,"Scheduling ssb %d at frame %d and slot %d\n",i_ssb,frame,slot);
+  LOG_X(MAC,"Scheduling ssb %d at frame %d and slot %d\n",i_ssb,frame,slot);
 
 }
 
@@ -164,7 +164,7 @@ void schedule_nr_mib(module_id_t module_idP, frame_t frameP, sub_frame_t slotP) 
       // flag to avoid sending an empty MIB in the first frames of execution since gNB doesn't get at the beginning in frame 0 slot 0
       gNB->first_MIB = false;
 
-      LOG_D(MAC,
+      LOG_X(MAC,
             "[gNB %d] Frame %d : MIB->BCH  CC_id %d, Received %d bytes\n",
             module_idP,
             frameP,
@@ -388,7 +388,7 @@ uint32_t schedule_control_sib1(module_id_t module_id,
   // Calculate number of PRB_DMRS
   uint8_t N_PRB_DMRS = gNB_mac->sched_ctrlCommon->pdsch_semi_static.numDmrsCdmGrpsNoData * 6;
   uint16_t dmrs_length = get_num_dmrs(dlDmrsSymbPos);
-  LOG_D(MAC,"dlDmrsSymbPos %x\n",dlDmrsSymbPos);
+  LOG_X(MAC,"dlDmrsSymbPos %x\n",dlDmrsSymbPos);
   int rbSize = 0;
   uint32_t TBS = 0;
   do {
@@ -411,14 +411,14 @@ uint32_t schedule_control_sib1(module_id_t module_id,
   gNB_mac->sched_ctrlCommon->sched_pdsch.rbSize = rbSize;
   gNB_mac->sched_ctrlCommon->sched_pdsch.rbStart = 0;
 
-  LOG_D(MAC,"mcs = %i\n", gNB_mac->sched_ctrlCommon->sched_pdsch.mcs);
-  LOG_D(MAC,"startSymbolIndex = %i\n", startSymbolIndex);
-  LOG_D(MAC,"nrOfSymbols = %i\n", nrOfSymbols);
-  LOG_D(MAC, "rbSize = %i\n", gNB_mac->sched_ctrlCommon->sched_pdsch.rbSize);
-  LOG_D(MAC,"TBS = %i\n", TBS);
-  LOG_D(MAC,"dmrs_length %d\n",dmrs_length);
-  LOG_D(MAC,"N_PRB_DMRS = %d\n",N_PRB_DMRS);
-  LOG_D(MAC,"mappingtype = %d\n", mappingtype);
+  LOG_X(MAC,"mcs = %i\n", gNB_mac->sched_ctrlCommon->sched_pdsch.mcs);
+  LOG_X(MAC,"startSymbolIndex = %i\n", startSymbolIndex);
+  LOG_X(MAC,"nrOfSymbols = %i\n", nrOfSymbols);
+  LOG_X(MAC, "rbSize = %i\n", gNB_mac->sched_ctrlCommon->sched_pdsch.rbSize);
+  LOG_X(MAC,"TBS = %i\n", TBS);
+  LOG_X(MAC,"dmrs_length %d\n",dmrs_length);
+  LOG_X(MAC,"N_PRB_DMRS = %d\n",N_PRB_DMRS);
+  LOG_X(MAC,"mappingtype = %d\n", mappingtype);
   // Mark the corresponding RBs as used
   fill_pdcch_vrb_map(gNB_mac,
                      CC_id,
@@ -500,7 +500,7 @@ void nr_fill_nfapi_dl_sib1_pdu(int Mod_idP,
   pdsch_pdu_rel15->StartSymbolIndex = StartSymbolIndex;
   pdsch_pdu_rel15->NrOfSymbols = NrOfSymbols;
   pdsch_pdu_rel15->dlDmrsSymbPos = dlDmrsSymbPos;
-  LOG_D(MAC,"dlDmrsSymbPos = 0x%x\n", pdsch_pdu_rel15->dlDmrsSymbPos);
+  LOG_X(MAC,"dlDmrsSymbPos = 0x%x\n", pdsch_pdu_rel15->dlDmrsSymbPos);
 
   /* Fill PDCCH DL DCI PDU */
   nfapi_nr_dl_dci_pdu_t *dci_pdu = &pdcch_pdu_rel15->dci_pdu[pdcch_pdu_rel15->numDlDci];
@@ -547,20 +547,20 @@ void nr_fill_nfapi_dl_sib1_pdu(int Mod_idP,
                      pdsch_pdu_rel15->BWPSize,
                      0);
 
-  LOG_D(MAC,"BWPSize: %i\n", pdcch_pdu_rel15->BWPSize);
-  LOG_D(MAC,"BWPStart: %i\n", pdcch_pdu_rel15->BWPStart);
-  LOG_D(MAC,"SubcarrierSpacing: %i\n", pdcch_pdu_rel15->SubcarrierSpacing);
-  LOG_D(MAC,"CyclicPrefix: %i\n", pdcch_pdu_rel15->CyclicPrefix);
-  LOG_D(MAC,"StartSymbolIndex: %i\n", pdcch_pdu_rel15->StartSymbolIndex);
-  LOG_D(MAC,"DurationSymbols: %i\n", pdcch_pdu_rel15->DurationSymbols);
-  for(int n=0;n<6;n++) LOG_D(MAC,"FreqDomainResource[%i]: %x\n",n, pdcch_pdu_rel15->FreqDomainResource[n]);
-  LOG_D(MAC,"CceRegMappingType: %i\n", pdcch_pdu_rel15->CceRegMappingType);
-  LOG_D(MAC,"RegBundleSize: %i\n", pdcch_pdu_rel15->RegBundleSize);
-  LOG_D(MAC,"InterleaverSize: %i\n", pdcch_pdu_rel15->InterleaverSize);
-  LOG_D(MAC,"CoreSetType: %i\n", pdcch_pdu_rel15->CoreSetType);
-  LOG_D(MAC,"ShiftIndex: %i\n", pdcch_pdu_rel15->ShiftIndex);
-  LOG_D(MAC,"precoderGranularity: %i\n", pdcch_pdu_rel15->precoderGranularity);
-  LOG_D(MAC,"numDlDci: %i\n", pdcch_pdu_rel15->numDlDci);
+  LOG_X(MAC,"BWPSize: %i\n", pdcch_pdu_rel15->BWPSize);
+  LOG_X(MAC,"BWPStart: %i\n", pdcch_pdu_rel15->BWPStart);
+  LOG_X(MAC,"SubcarrierSpacing: %i\n", pdcch_pdu_rel15->SubcarrierSpacing);
+  LOG_X(MAC,"CyclicPrefix: %i\n", pdcch_pdu_rel15->CyclicPrefix);
+  LOG_X(MAC,"StartSymbolIndex: %i\n", pdcch_pdu_rel15->StartSymbolIndex);
+  LOG_X(MAC,"DurationSymbols: %i\n", pdcch_pdu_rel15->DurationSymbols);
+  for(int n=0;n<6;n++) LOG_X(MAC,"FreqDomainResource[%i]: %x\n",n, pdcch_pdu_rel15->FreqDomainResource[n]);
+  LOG_X(MAC,"CceRegMappingType: %i\n", pdcch_pdu_rel15->CceRegMappingType);
+  LOG_X(MAC,"RegBundleSize: %i\n", pdcch_pdu_rel15->RegBundleSize);
+  LOG_X(MAC,"InterleaverSize: %i\n", pdcch_pdu_rel15->InterleaverSize);
+  LOG_X(MAC,"CoreSetType: %i\n", pdcch_pdu_rel15->CoreSetType);
+  LOG_X(MAC,"ShiftIndex: %i\n", pdcch_pdu_rel15->ShiftIndex);
+  LOG_X(MAC,"precoderGranularity: %i\n", pdcch_pdu_rel15->precoderGranularity);
+  LOG_X(MAC,"numDlDci: %i\n", pdcch_pdu_rel15->numDlDci);
 
 }
 

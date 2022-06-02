@@ -269,7 +269,7 @@ Msg3_transmitted(module_id_t module_idP, uint8_t CC_id,
   AssertFatal(CC_id == 0,
               "Transmission on secondary CCs is not supported yet\n");
   // start contention resolution timer
-  LOG_D(MAC,
+  LOG_X(MAC,
         "[UE %d][RAPROC] Frame %d : Msg3_tx: Setting contention resolution timer\n",
         module_idP, frameP);
   UE_mac_inst[module_idP].RA_contention_resolution_cnt = 0;
@@ -294,7 +294,7 @@ PRACH_RESOURCES_t *ue_get_rach(module_id_t module_idP, int CC_id,
   // Modification for phy_stub_ue operation
   if(NFAPI_MODE == NFAPI_UE_STUB_PNF || NFAPI_MODE == NFAPI_MODE_STANDALONE_PNF) { // phy_stub_ue mode
     UE_mode = UE_mac_inst[module_idP].UE_mode[0];
-    LOG_D(MAC, "ue_get_rach , UE_mode: %d", UE_mode);
+    LOG_X(MAC, "ue_get_rach , UE_mode: %d", UE_mode);
   } else { // Full stack mode
     UE_mode = get_ue_mode(module_idP,0,eNB_indexP);
   }
@@ -311,7 +311,7 @@ PRACH_RESOURCES_t *ue_get_rach(module_id_t module_idP, int CC_id,
               "Transmission on secondary CCs is not supported yet\n");
 
   if (UE_mode == PRACH) {
-    LOG_D(MAC, "ue_get_rach 3, RA_active value: %d", UE_mac_inst[module_idP].RA_active);
+    LOG_X(MAC, "ue_get_rach 3, RA_active value: %d", UE_mac_inst[module_idP].RA_active);
 
     if (UE_mac_inst[module_idP].radioResourceConfigCommon) {
       rach_ConfigCommon =
@@ -346,7 +346,7 @@ PRACH_RESOURCES_t *ue_get_rach(module_id_t module_idP, int CC_id,
                                      + 1], eNB_indexP,
                                  0);
       Size16 = (uint16_t) Size;
-      //  LOG_D(MAC,"[UE %d] Frame %d: Requested RRCConnectionRequest, got %d bytes\n",module_idP,frameP,Size);
+      //  LOG_X(MAC,"[UE %d] Frame %d: Requested RRCConnectionRequest, got %d bytes\n",module_idP,frameP,Size);
       LOG_I(RRC,
             "[FRAME %05d][RRC_UE][MOD %02d][][--- MAC_DATA_REQ (RRCConnectionRequest eNB %d) --->][MAC_UE][MOD %02d][]\n",
             frameP, module_idP, eNB_indexP, module_idP);
@@ -409,14 +409,14 @@ PRACH_RESOURCES_t *ue_get_rach(module_id_t module_idP, int CC_id,
                                                                               );
 
         if (UE_mac_inst[module_idP].crnti_before_ho)
-          LOG_D(MAC,
+          LOG_X(MAC,
                 "[UE %d] Frame %d : UL-DCCH -> ULSCH, HO RRCConnectionReconfigurationComplete (%x, %x), RRC message has %d bytes to send throug PRACH (mac header len %d)\n",
                 module_idP, frameP,
                 UE_mac_inst[module_idP].crnti,
                 UE_mac_inst[module_idP].crnti_before_ho,
                 rlc_status.bytes_in_buffer, dcch_header_len);
         else
-          LOG_D(MAC,
+          LOG_X(MAC,
                 "[UE %d] Frame %d : UL-DCCH -> ULSCH, RRC message has %d bytes to send through PRACH(mac header len %d)\n",
                 module_idP, frameP, rlc_status.bytes_in_buffer,
                 dcch_header_len);
@@ -427,7 +427,7 @@ PRACH_RESOURCES_t *ue_get_rach(module_id_t module_idP, int CC_id,
                                       );
 
         if(sdu_lengths > 0)
-          LOG_D(MAC, "[UE %d] TX Got %d bytes for DCCH\n",
+          LOG_X(MAC, "[UE %d] TX Got %d bytes for DCCH\n",
                 module_idP, sdu_lengths);
         else
           LOG_E(MAC, "[UE %d] TX DCCH error\n",
@@ -487,7 +487,7 @@ PRACH_RESOURCES_t *ue_get_rach(module_id_t module_idP, int CC_id,
         return (&UE_mac_inst[module_idP].RA_prach_resources);
       }
     } else {    // RACH is active
-      LOG_D(MAC,
+      LOG_X(MAC,
             "[MAC][UE %d][RAPROC] frameP %d, subframe %d: RA Active, window cnt %d (RA_tx_frame %d, RA_tx_subframe %d)\n",
             module_idP, frameP, subframeP,
             UE_mac_inst[module_idP].RA_window_cnt,
@@ -524,7 +524,7 @@ PRACH_RESOURCES_t *ue_get_rach(module_id_t module_idP, int CC_id,
         UE_mac_inst[module_idP].RA_window_cnt -=
           ((10 * frame_diff) +
            (subframeP - UE_mac_inst[module_idP].RA_tx_subframe));
-        LOG_D(MAC,
+        LOG_X(MAC,
               "[MAC][UE %d][RAPROC] frameP %d, subframe %d: RA Active, adjusted window cnt %d\n",
               module_idP, frameP, subframeP,
               UE_mac_inst[module_idP].RA_window_cnt);
@@ -587,7 +587,7 @@ PRACH_RESOURCES_t *ue_get_rach(module_id_t module_idP, int CC_id,
 
         if (UE_mac_inst[module_idP].
             RA_PREAMBLE_TRANSMISSION_COUNTER == preambleTransMax) {
-          LOG_D(MAC,
+          LOG_X(MAC,
                 "[UE %d] Frame %d: Maximum number of RACH attempts (%d)\n",
                 module_idP, frameP, preambleTransMax);
           // send message to RRC
@@ -610,7 +610,7 @@ PRACH_RESOURCES_t *ue_get_rach(module_id_t module_idP, int CC_id,
       }
     }
   } else if (UE_mode == PUSCH) {
-    LOG_D(MAC,
+    LOG_X(MAC,
           "[UE %d] FATAL: Should not have checked for RACH in PUSCH yet ...",
           module_idP);
     AssertFatal(1 == 0, "");

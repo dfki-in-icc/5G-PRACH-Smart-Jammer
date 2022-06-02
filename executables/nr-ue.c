@@ -454,7 +454,7 @@ static void *NRUE_phy_stub_standalone_pnf_task(void *arg)
     nr_phy_channel_params_t *ch_info = get_queue(&nr_chan_param_queue);
     if (!slot_ind && !ch_info)
     {
-      LOG_D(MAC, "get nr_sfn_slot_queue and nr_chan_param_queue == NULL!\n");
+      LOG_X(MAC, "get nr_sfn_slot_queue and nr_chan_param_queue == NULL!\n");
       continue;
     }
     if (slot_ind) {
@@ -487,7 +487,7 @@ static void *NRUE_phy_stub_standalone_pnf_task(void *arg)
     }
     if (mac->scc == NULL && mac->scc_SIB == NULL)
     {
-      LOG_D(MAC, "[NSA] mac->scc == NULL and [SA] mac->scc_SIB == NULL!\n");
+      LOG_X(MAC, "[NSA] mac->scc == NULL and [SA] mac->scc_SIB == NULL!\n");
       continue;
     }
 
@@ -815,7 +815,7 @@ void processSlotRX(void *arg) {
                                proc);
       }
 
-      LOG_X(PHY, "Sending Uplink data \n");
+      LOG_D(PHY, "Sending Uplink data \n");
       nr_ue_pusch_common_procedures(UE,
                                     proc->nr_slot_tx,
                                     &UE->frame_parms,1);
@@ -824,7 +824,7 @@ void processSlotRX(void *arg) {
     if (UE->UE_mode[gNB_id] > NOT_SYNCHED && UE->UE_mode[gNB_id] < PUSCH) {
       nr_ue_prach_procedures(UE, proc, gNB_id);
     }
-    LOG_X(PHY,"****** end TX-Chain for AbsSubframe %d.%d ******\n", proc->frame_tx, proc->nr_slot_tx);
+    LOG_D(PHY,"****** end TX-Chain for AbsSubframe %d.%d ******\n", proc->frame_tx, proc->nr_slot_tx);
   }
 
   ue_ta_procedures(UE, proc->nr_slot_tx, proc->frame_tx);

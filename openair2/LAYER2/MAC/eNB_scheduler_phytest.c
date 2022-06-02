@@ -81,7 +81,7 @@ schedule_ue_spec_phy_test(
   N_RB_DL         = to_prb(cc->mib->message.dl_Bandwidth);
 
   for (CC_id=0; CC_id<MAX_NUM_CCs; CC_id++) {
-    LOG_D(MAC, "doing schedule_ue_spec for CC_id %d\n",CC_id);
+    LOG_X(MAC, "doing schedule_ue_spec for CC_id %d\n",CC_id);
     dl_req        = &eNB->DL_req[CC_id].dl_config_request_body;
 
     if (mbsfn_flag[CC_id]>0)
@@ -89,7 +89,7 @@ schedule_ue_spec_phy_test(
 
     nb_rb = conv_nprb(0,rb_alloc,N_RB_DL);
     TBS = get_TBS_DL(mcs,nb_rb);
-    LOG_D(MAC,"schedule_ue_spec_phy_test: subframe %d/%d: nb_rb=%d, TBS=%d, mcs=%d harq_pid=%d (rb_alloc=%x, N_RB_DL=%d) pdu_number = %d \n", frameP, subframeP, nb_rb, TBS, mcs, harq_pid, rb_alloc,
+    LOG_X(MAC,"schedule_ue_spec_phy_test: subframe %d/%d: nb_rb=%d, TBS=%d, mcs=%d harq_pid=%d (rb_alloc=%x, N_RB_DL=%d) pdu_number = %d \n", frameP, subframeP, nb_rb, TBS, mcs, harq_pid, rb_alloc,
           N_RB_DL, dl_req->number_pdu);
     dl_config_pdu                                                         = &dl_req->dl_config_pdu_list[dl_req->number_pdu];
     memset((void *)dl_config_pdu,0,sizeof(nfapi_dl_config_request_pdu_t));
@@ -114,14 +114,14 @@ schedule_ue_spec_phy_test(
 
     if (cc[CC_id].tdd_Config != NULL) { //TDD
       dl_config_pdu->dci_dl_pdu.dci_dl_pdu_rel8.downlink_assignment_index = dai;
-      LOG_D(MAC,"[eNB %d] Initial transmission CC_id %d : harq_pid %d, dai %d, mcs %d\n",
+      LOG_X(MAC,"[eNB %d] Initial transmission CC_id %d : harq_pid %d, dai %d, mcs %d\n",
             module_idP,CC_id,harq_pid,dai,mcs);
     } else {
-      LOG_D(MAC,"[eNB %d] Initial transmission CC_id %d : harq_pid %d, mcs %d\n",
+      LOG_X(MAC,"[eNB %d] Initial transmission CC_id %d : harq_pid %d, mcs %d\n",
             module_idP,CC_id,harq_pid,mcs);
     }
 
-    LOG_D(MAC,"Checking feasibility pdu %d (new sdu)\n",dl_req->number_pdu);
+    LOG_X(MAC,"Checking feasibility pdu %d (new sdu)\n",dl_req->number_pdu);
 
     if (!CCE_allocation_infeasible(module_idP,CC_id,1,subframeP,dl_config_pdu->dci_dl_pdu.dci_dl_pdu_rel8.aggregation_level,rnti)) {
       //ue_sched_ctl->round[CC_id][harq_pid] = 0;
@@ -131,7 +131,7 @@ schedule_ue_spec_phy_test(
       //eNB->DL_req[CC_id].header.message_id = NFAPI_DL_CONFIG_REQUEST;
       // Toggle NDI for next time
       /*
-      LOG_D(MAC,"CC_id %d Frame %d, subframeP %d: Toggling Format1 NDI for UE %d (rnti %x/%d) oldNDI %d\n",
+      LOG_X(MAC,"CC_id %d Frame %d, subframeP %d: Toggling Format1 NDI for UE %d (rnti %x/%d) oldNDI %d\n",
       CC_id, frameP,subframeP,UE_id,
       rnti,harq_pid,UE_info->UE_template[CC_id][UE_id].oldNDI[harq_pid]);
 
@@ -286,7 +286,7 @@ void schedule_ulsch_phy_test(module_id_t module_idP,frame_t frameP,sub_frame_t s
 
     for(ul_req_index = 0; ul_req_index < ul_req->number_of_pdus; ul_req_index++) {
       if(ul_req->ul_config_pdu_list[ul_req_index].pdu_type == NFAPI_UL_CONFIG_UCI_HARQ_PDU_TYPE) {
-        LOG_D(MAC,"Frame %d, Subframe %d:rnti %x ul_req_index %d Switched UCI HARQ to ULSCH HARQ(first)\n",frameP,subframeP,rnti,ul_req_index);
+        LOG_X(MAC,"Frame %d, Subframe %d:rnti %x ul_req_index %d Switched UCI HARQ to ULSCH HARQ(first)\n",frameP,subframeP,rnti,ul_req_index);
         break;
       }
     }

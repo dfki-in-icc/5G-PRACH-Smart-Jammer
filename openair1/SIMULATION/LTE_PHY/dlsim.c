@@ -277,7 +277,7 @@ fill_tx_req(nfapi_tx_request_body_t *tx_req_body,
             uint16_t                pdu_index,
             uint8_t                 *pdu) {
   nfapi_tx_request_pdu_t *TX_req = &tx_req_body->tx_pdu_list[tx_req_body->number_of_pdus];
-  LOG_D(MAC, "Filling TX_req %d for pdu length %d\n",
+  LOG_X(MAC, "Filling TX_req %d for pdu length %d\n",
         tx_req_body->number_of_pdus, pdu_length);
   TX_req->pdu_length                 = pdu_length;
   TX_req->pdu_index                  = pdu_index;

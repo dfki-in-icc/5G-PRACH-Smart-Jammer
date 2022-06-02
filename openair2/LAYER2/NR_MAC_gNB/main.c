@@ -160,7 +160,7 @@ void mac_top_init_gNB(void)
                   RC.nb_nr_macrlc_inst * sizeof(gNB_MAC_INST *),
                   RC.nb_nr_macrlc_inst, sizeof(gNB_MAC_INST));
       
-      LOG_D(MAC,"[MAIN] ALLOCATE %zu Bytes for %d gNB_MAC_INST @ %p\n",sizeof(gNB_MAC_INST), RC.nb_nr_macrlc_inst, RC.mac);
+      LOG_X(MAC,"[MAIN] ALLOCATE %zu Bytes for %d gNB_MAC_INST @ %p\n",sizeof(gNB_MAC_INST), RC.nb_nr_macrlc_inst, RC.mac);
       
       bzero(RC.nrmac[i], sizeof(gNB_MAC_INST));
       

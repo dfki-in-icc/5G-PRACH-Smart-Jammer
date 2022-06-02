@@ -141,7 +141,7 @@ void calculate_preferred_dl_tda(module_id_t module_id, const NR_BWP_Downlink_t *
       nrmac->preferred_dl_tda[bwp_id][i] = 0;
     else if (nr_mix_slots && i % nr_slots_period == tdd->nrofDownlinkSlots)
       nrmac->preferred_dl_tda[bwp_id][i] = tdaMi;
-    LOG_D(MAC, "slot %d preferred_dl_tda %d\n", i, nrmac->preferred_dl_tda[bwp_id][i]);
+    LOG_X(MAC, "slot %d preferred_dl_tda %d\n", i, nrmac->preferred_dl_tda[bwp_id][i]);
   }
 }
 
@@ -427,7 +427,7 @@ int get_mcs_from_bler(module_id_t mod_id, int CC_id, frame_t frame, sub_frame_t 
     bler_stats->last_frame_slot = now;
     bler_stats->mcs = max(9, bler_stats->mcs - 1);
     memcpy(bler_stats->dlsch_rounds, stats->dlsch_rounds, sizeof(stats->dlsch_rounds));
-    LOG_D(MAC, "%4d.%2d: %d retx in 3rd round, setting MCS to %d and restarting window\n", frame, slot, dret3x, bler_stats->mcs);
+    LOG_X(MAC, "%4d.%2d: %d retx in 3rd round, setting MCS to %d and restarting window\n", frame, slot, dret3x, bler_stats->mcs);
     return bler_stats->mcs;
   }*/
   if (diff < BLER_UPDATE_FRAME * n)
@@ -459,7 +459,7 @@ int get_mcs_from_bler(module_id_t mod_id, int CC_id, frame_t frame, sub_frame_t 
   bler_stats->last_frame_slot = now;
   bler_stats->mcs = new_mcs;
   memcpy(bler_stats->dlsch_rounds, stats->dlsch_rounds, sizeof(stats->dlsch_rounds));
-  LOG_D(MAC, "%4d.%2d MCS %d -> %d (dtx %d, dretx %d, BLER wnd %.3f avg %.6f, dretx2 %d, RD2 BLER wnd %.3f avg %.6f)\n",
+  LOG_X(MAC, "%4d.%2d MCS %d -> %d (dtx %d, dretx %d, BLER wnd %.3f avg %.6f, dretx2 %d, RD2 BLER wnd %.3f avg %.6f)\n",
         frame, slot, old_mcs, new_mcs, dtx, dretx, bler_window, bler_stats->bler, dretx2, rd2_bler_wnd, bler_stats->rd2_bler);
   return new_mcs;
 }
@@ -621,7 +621,7 @@ bool allocate_dl_retransmission(module_id_t module_id,
                                  &new_tbs,
                                  &new_rbSize);
     if (!success || new_tbs != retInfo->tb_size) {
-      LOG_D(MAC, "%s(): new TBsize %d of new TDA does not match old TBS %d\n", __func__, new_tbs, retInfo->tb_size);
+      LOG_X(MAC, "%s(): new TBsize %d of new TDA does not match old TBS %d\n", __func__, new_tbs, retInfo->tb_size);
       return false; /* the maximum TBsize we might have is smaller than what we need */
     }
     /* we can allocate it. Overwrite the time_domain_allocation, the number
@@ -654,7 +654,7 @@ bool allocate_dl_retransmission(module_id_t module_id,
                                       Y);
 
   if (CCEIndex<0) {
-    LOG_D(MAC, "%4d.%2d could not find CCE for DL DCI retransmission UE %d/RNTI %04x\n",
+    LOG_X(MAC, "%4d.%2d could not find CCE for DL DCI retransmission UE %d/RNTI %04x\n",
           frame, slot, UE_id, UE_info->rnti[UE_id]);
     return false;
   }
@@ -663,7 +663,7 @@ bool allocate_dl_retransmission(module_id_t module_id,
    * allocation after CCE alloc fail would be more complex) */
   const int alloc = nr_acknack_scheduling(module_id, UE_id, frame, slot, -1, 0);
   if (alloc<0) {
-    LOG_D(MAC,
+    LOG_X(MAC,
           "%s(): could not find PUCCH for UE %d/%04x@%d.%d\n",
           __func__,
           UE_id,
@@ -804,7 +804,7 @@ void pf_dl(module_id_t module_id,
     int rbStart = 0; // start wrt BWPstart
 
     if (sched_ctrl->available_dl_harq.head < 0) {
-      LOG_D(MAC, "UE %d RNTI %04x has no free HARQ process, skipping\n", UE_id, UE_info->rnti[UE_id]);
+      LOG_X(MAC, "UE %d RNTI %04x has no free HARQ process, skipping\n", UE_id, UE_info->rnti[UE_id]);
       continue;
     }
 

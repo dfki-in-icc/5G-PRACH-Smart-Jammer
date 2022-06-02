@@ -1123,9 +1123,9 @@ int nr_ue_dl_indication(nr_downlink_indication_t *dl_info, NR_UL_TIME_ALIGNMENT_
   } else {
     // UL indication after reception of DCI or DL PDU
     if (dl_info && dl_info->dci_ind && dl_info->dci_ind->number_of_dcis) {
-      LOG_D(MAC,"[L2][IF MODULE][DL INDICATION][DCI_IND]\n");
+      LOG_X(MAC,"[L2][IF MODULE][DL INDICATION][DCI_IND]\n");
       for (int i = 0; i < dl_info->dci_ind->number_of_dcis; i++) {
-        LOG_D(MAC,">>>NR_IF_Module i=%d, dl_info->dci_ind->number_of_dcis=%d\n",i,dl_info->dci_ind->number_of_dcis);
+        LOG_X(MAC,">>>NR_IF_Module i=%d, dl_info->dci_ind->number_of_dcis=%d\n",i,dl_info->dci_ind->number_of_dcis);
         nr_scheduled_response_t scheduled_response;
         int8_t ret = handle_dci(dl_info->module_id,
                                 dl_info->cc_id,
@@ -1162,7 +1162,7 @@ int nr_ue_dl_indication(nr_downlink_indication_t *dl_info, NR_UL_TIME_ALIGNMENT_
 
       for (int i=0; i<dl_info->rx_ind->number_pdus; ++i) {
 
-        LOG_D(MAC, "In %s sending DL indication to MAC. 1 PDU type %d of %d total number of PDUs \n",
+        LOG_X(MAC, "In %s sending DL indication to MAC. 1 PDU type %d of %d total number of PDUs \n",
           __FUNCTION__,
           dl_info->rx_ind->rx_indication_body[i].pdu_type,
           dl_info->rx_ind->number_pdus);

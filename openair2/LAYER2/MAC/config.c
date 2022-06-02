@@ -786,7 +786,7 @@ int rrc_mac_config_req_eNB(module_id_t Mod_idP,
   eNB_MAC_INST *eNB = RC.mac[Mod_idP];
   UE_info_t *UE_info= &eNB->UE_info;
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_RRC_MAC_CONFIG, VCD_FUNCTION_IN);
-  LOG_D(MAC, "RC.mac:%p mib:%p\n", RC.mac, mib);
+  LOG_X(MAC, "RC.mac:%p mib:%p\n", RC.mac, mib);
 
   if (mib != NULL) {
     if (RC.mac == NULL)
@@ -971,7 +971,7 @@ int rrc_mac_config_req_eNB(module_id_t Mod_idP,
   }
 
   if (nonMBSFN_SubframeConfig != NULL) {
-    LOG_D(MAC,
+    LOG_X(MAC,
           "[eNB %d][CONFIG] Received a non MBSFN subframe allocation pattern (%x,%x):%x for FeMBMS-CAS\n",
           Mod_idP, nonMBSFN_SubframeConfig->subframeAllocation_r14.buf[0],nonMBSFN_SubframeConfig->subframeAllocation_r14.buf[1],
           nonMBSFN_SubframeConfig->subframeAllocation_r14.buf[0]<<1 | nonMBSFN_SubframeConfig->subframeAllocation_r14.buf[1]>>7 );
@@ -1057,7 +1057,7 @@ int rrc_mac_config_req_eNB(module_id_t Mod_idP,
     }
   }
 
-  LOG_D(MAC, "%s() %s:%d RC.mac[Mod_idP]->if_inst->PHY_config_req:%p\n", __FUNCTION__, __FILE__, __LINE__, RC.mac[Mod_idP]->if_inst->PHY_config_req);
+  LOG_X(MAC, "%s() %s:%d RC.mac[Mod_idP]->if_inst->PHY_config_req:%p\n", __FUNCTION__, __FILE__, __LINE__, RC.mac[Mod_idP]->if_inst->PHY_config_req);
 
   // if in nFAPI mode
   if (

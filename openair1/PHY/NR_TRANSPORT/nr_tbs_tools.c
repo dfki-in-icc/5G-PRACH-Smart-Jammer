@@ -51,6 +51,6 @@ uint32_t nr_get_E(uint32_t G, uint8_t C, uint8_t Qm, uint8_t Nl, uint8_t r) {
   else
       E = Nl*Qm*((G/(Nl*Qm*Cprime))+1);
 
-  LOG_X(PHY,"nr_get_E : (G %d, C %d, Qm %d, Nl %d, r %d), E %d\n",G, C, Qm, Nl, r, E);
+  LOG_D(PHY,"nr_get_E : (G %d, C %d, Qm %d, Nl %d, r %d), E %d\n",G, C, Qm, Nl, r, E);
   return E;
 }

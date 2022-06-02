@@ -88,7 +88,7 @@ void nr_schedule_css_dlsch_phytest(module_id_t   module_idP,
   */
 
   for (CC_id=0; CC_id<MAX_NUM_CCs; CC_id++) {
-    LOG_D(MAC, "Scheduling common search space DCI type 1 dlBWP BW.firstRB %d.%d\n",
+    LOG_X(MAC, "Scheduling common search space DCI type 1 dlBWP BW.firstRB %d.%d\n",
 	  dlBWP_carrier_bandwidth,
 	  NRRIV2PRBOFFSET(scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters.locationAndBandwidth, MAX_BWP_SIZE));
     
@@ -200,7 +200,7 @@ void nr_schedule_css_dlsch_phytest(module_id_t   module_idP,
     pdu_rel15->pucch_resource_indicator = 7;
     pdu_rel15->pdsch_to_harq_feedback_timing_indicator = 7;
     
-    LOG_D(MAC, "[gNB scheduler phytest] DCI type 1 payload: freq_alloc %d, time_alloc %d, vrb to prb %d, mcs %d tb_scaling %d ndi %d rv %d\n",
+    LOG_X(MAC, "[gNB scheduler phytest] DCI type 1 payload: freq_alloc %d, time_alloc %d, vrb to prb %d, mcs %d tb_scaling %d ndi %d rv %d\n",
 	  pdu_rel15->frequency_domain_assignment,
 	  pdu_rel15->time_domain_assignment,
 	  pdu_rel15->vrb_to_prb_mapping,
@@ -213,7 +213,7 @@ void nr_schedule_css_dlsch_phytest(module_id_t   module_idP,
     params_rel15->rnti_type = NFAPI_NR_RNTI_C;
     params_rel15->dci_format = NFAPI_NR_DL_DCI_FORMAT_1_0;
     //params_rel15->aggregation_level = 1;
-    LOG_D(MAC, "DCI type 1 params: rnti %x, rnti_type %d, dci_format %d\n \
+    LOG_X(MAC, "DCI type 1 params: rnti %x, rnti_type %d, dci_format %d\n \
                 coreset params: mux_pattern %d, n_rb %d, n_symb %d, rb_offset %d  \n \
                 ss params : nb_ss_sets_per_slot %d, first symb %d, nb_slots %d, sfn_mod2 %d, first slot %d\n",
 	  params_rel15->rnti,
@@ -229,7 +229,7 @@ void nr_schedule_css_dlsch_phytest(module_id_t   module_idP,
 	  params_rel15->sfn_mod2,
 	  params_rel15->first_slot);
     nr_get_tbs_dl(&dl_tti_pdsch_pdu->pdsch_pdu, dl_tti_dci_pdu->dci_dl_pdu,0);
-    LOG_D(MAC, "DLSCH PDU: start PRB %d n_PRB %d start symbol %d nb_symbols %d nb_layers %d nb_codewords %d mcs %d\n",
+    LOG_X(MAC, "DLSCH PDU: start PRB %d n_PRB %d start symbol %d nb_symbols %d nb_layers %d nb_codewords %d mcs %d\n",
 	  pdsch_pdu_rel15->rbStart,
 	  pdsch_pdu_rel15->rbSize,
 	  pdsch_pdu_rel15->StartSymbolIndex,
@@ -360,7 +360,7 @@ void nr_preprocessor_phytest(module_id_t module_id,
 
   const int alloc = nr_acknack_scheduling(module_id, UE_id, frame, slot, -1, 0);
   if (alloc < 0) {
-    LOG_D(MAC,
+    LOG_X(MAC,
           "%s(): could not find PUCCH for UE %d/%04x@%d.%d\n",
           __func__,
           UE_id,
@@ -408,7 +408,7 @@ void nr_preprocessor_phytest(module_id_t module_id,
   for (int rb = 0; rb < sched_pdsch->rbSize; rb++)
     vrb_map[rb + sched_pdsch->rbStart + BWPStart] = SL_to_bitmap(ps->startSymbolIndex, ps->nrOfSymbols);
 
-  if ((frame&127) == 0) LOG_D(MAC,"phytest: %d.%d DL mcs %d, DL rbStart %d, DL rbSize %d\n", frame, slot, sched_pdsch->mcs, rbStart,rbSize);
+  if ((frame&127) == 0) LOG_X(MAC,"phytest: %d.%d DL mcs %d, DL rbStart %d, DL rbSize %d\n", frame, slot, sched_pdsch->mcs, rbStart,rbSize);
 }
 
 uint32_t target_ul_mcs = 9;

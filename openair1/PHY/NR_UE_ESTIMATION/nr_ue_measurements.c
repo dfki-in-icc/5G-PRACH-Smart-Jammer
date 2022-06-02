@@ -62,7 +62,7 @@ int16_t get_nr_PL(uint8_t Mod_id, uint8_t CC_id, uint8_t gNB_index){
 
     pathloss = (int16_t)(referenceSignalPower - ue->measurements.rsrp_dBm[gNB_index]);
 
-    LOG_D(MAC, "In %s: pathloss %d dB, UE RX total gain %d dB, referenceSignalPower %ld dBm/RE (%f mW), RSRP %d dBm (%f mW)\n",
+    LOG_X(MAC, "In %s: pathloss %d dB, UE RX total gain %d dB, referenceSignalPower %ld dBm/RE (%f mW), RSRP %d dBm (%f mW)\n",
       __FUNCTION__,
       pathloss,
       ue->rx_total_gain_dB,

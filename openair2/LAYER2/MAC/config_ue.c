@@ -160,7 +160,7 @@ rrc_mac_config_req_ue(module_id_t Mod_idP,
       LCGID[logicalChannelIdentity] =
         *logicalChannelConfig->ul_SpecificParameters->
         logicalChannelGroup;
-      LOG_D(MAC,
+      LOG_X(MAC,
             "[CONFIG][UE %d] LCID %ld is attached to the LCGID %ld\n",
             Mod_idP, logicalChannelIdentity,
             *logicalChannelConfig->
@@ -256,7 +256,7 @@ rrc_mac_config_req_ue(module_id_t Mod_idP,
     UE_mac_inst[Mod_idP].scheduling_info.retxBSR_SF =
       MAC_UE_BSR_TIMER_NOT_RUNNING;
     UE_mac_inst[Mod_idP].BSR_reporting_active = BSR_TRIGGER_NONE;
-    LOG_D(MAC, "[UE %d]: periodic BSR %d (SF), retx BSR %d (SF)\n",
+    LOG_X(MAC, "[UE %d]: periodic BSR %d (SF), retx BSR %d (SF)\n",
           Mod_idP,
           UE_mac_inst[Mod_idP].scheduling_info.periodicBSR_SF,
           UE_mac_inst[Mod_idP].scheduling_info.retxBSR_SF);
@@ -297,7 +297,7 @@ rrc_mac_config_req_ue(module_id_t Mod_idP,
       get_db_dl_PathlossChange(UE_mac_inst[Mod_idP].
                                scheduling_info.PathlossChange);
     UE_mac_inst[Mod_idP].PHR_reporting_active = 0;
-    LOG_D(MAC,
+    LOG_X(MAC,
           "[UE %d] config PHR (%d): periodic %d (SF) prohibit %d (SF)  pathlosschange %d (db) \n",
           Mod_idP,
           (mac_MainConfig->phr_Config) ? mac_MainConfig->
@@ -347,7 +347,7 @@ rrc_mac_config_req_ue(module_id_t Mod_idP,
   }
 
   if (mobilityControlInfo != NULL) {
-    LOG_D(MAC, "[UE%d] MAC Reset procedure triggered by RRC eNB %d \n",
+    LOG_X(MAC, "[UE%d] MAC Reset procedure triggered by RRC eNB %d \n",
           Mod_idP, eNB_index);
     ue_mac_reset(Mod_idP, eNB_index);
 

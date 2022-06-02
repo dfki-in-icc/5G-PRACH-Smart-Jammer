@@ -1075,7 +1075,7 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg)
       }
     }
     if (hi_dci0_req != NULL) {
-      LOG_D(MAC, "hi_dci0_req pdus: %u Frame: %d Subframe: %d\n",
+      LOG_X(MAC, "hi_dci0_req pdus: %u Frame: %d Subframe: %d\n",
       hi_dci0_req->hi_dci0_request_body.number_of_dci,
       NFAPI_SFNSF2SFN(hi_dci0_req->sfn_sf), NFAPI_SFNSF2SF(hi_dci0_req->sfn_sf));
     }
@@ -1095,7 +1095,7 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg)
         LOG_I(MAC, "dl_config_req: %s\n", dl_str);
         free(dl_str);
       }
-      LOG_D(MAC, "tx_req pdus: %d\n", tx_req_pdu_list->num_pdus);
+      LOG_X(MAC, "tx_req pdus: %d\n", tx_req_pdu_list->num_pdus);
 
       // Handling dl_config_req and tx_req:
       nfapi_dl_config_request_body_t *dl_config_req_body = &dl_config_req->dl_config_request_body;
@@ -1151,7 +1151,7 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg)
 #endif
       int rx_frame = NFAPI_SFNSF2SF(sfn_sf) < 4 ? (NFAPI_SFNSF2SFN(sfn_sf) + 1023) % 1024 : NFAPI_SFNSF2SFN(sfn_sf); // subtracting 4 from subframe_tx
       int rx_subframe = NFAPI_SFNSF2SF(sfn_sf) < 4 ? NFAPI_SFNSF2SF(sfn_sf) + 6 : NFAPI_SFNSF2SF(sfn_sf) - 4;
-      LOG_D(MAC, "rx_frame %d rx_subframe %d\n", rx_frame, rx_subframe);
+      LOG_X(MAC, "rx_frame %d rx_subframe %d\n", rx_frame, rx_subframe);
       if (UE->mac_enabled == 1) {
         ret = ue_scheduler(ue_Mod_id,
                            rx_frame,
@@ -1185,7 +1185,7 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg)
           {
             UE_mac_inst[ue_Mod_id].UE_mode[0] = PRACH;
           }
-          LOG_D(MAC, "UE_mode: %d\n", UE_mac_inst[ue_Mod_id].UE_mode[0]);
+          LOG_X(MAC, "UE_mode: %d\n", UE_mac_inst[ue_Mod_id].UE_mode[0]);
           if (UE_mac_inst[ue_Mod_id].UE_mode[0] == PRACH)
           { //&& ue_Mod_id == next_Mod_id) {
             next_ra_frame++;
@@ -1202,7 +1202,7 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg)
                   LOG_I(MAC, "preamble_received_tar_power: %d\n",
                         prach_resources->ra_PREAMBLE_RECEIVED_TARGET_POWER);
                   UE_mac_inst[ue_Mod_id].ra_frame = NFAPI_SFNSF2SFN(sfn_sf);
-                  LOG_D(MAC, "UE_phy_stub_thread_rxn_txnp4 before RACH, Mod_id: %d frame %d subframe %d\n", ue_Mod_id, NFAPI_SFNSF2SFN(sfn_sf), NFAPI_SFNSF2SF(sfn_sf));
+                  LOG_X(MAC, "UE_phy_stub_thread_rxn_txnp4 before RACH, Mod_id: %d frame %d subframe %d\n", ue_Mod_id, NFAPI_SFNSF2SFN(sfn_sf), NFAPI_SFNSF2SF(sfn_sf));
                   fill_rach_indication_UE_MAC(ue_Mod_id, NFAPI_SFNSF2SFN(sfn_sf), NFAPI_SFNSF2SF(sfn_sf), UL_INFO, prach_resources->ra_PreambleIndex, prach_resources->ra_RNTI);
                   sent_any = true;
                   Msg1_transmitted(ue_Mod_id, 0, NFAPI_SFNSF2SFN(sfn_sf), 0);
@@ -1266,7 +1266,7 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg)
     }
 
     if (UL_INFO->harq_ind.harq_indication_body.number_of_harqs > 0) {
-      //LOG_D(MAC, "ul_config_req_UE_MAC 2.4, SFN/SF of PNF counter:%d.%d, number_of_harqs: %d \n", timer_frame, timer_subframe, UL_INFO->harq_ind.harq_indication_body.number_of_harqs);
+      //LOG_X(MAC, "ul_config_req_UE_MAC 2.4, SFN/SF of PNF counter:%d.%d, number_of_harqs: %d \n", timer_frame, timer_subframe, UL_INFO->harq_ind.harq_indication_body.number_of_harqs);
         send_standalone_msg(UL_INFO, UL_INFO->harq_ind.header.message_id);
         sent_any = true;
       //LOG_I(MAC, "ul_config_req_UE_MAC 2.41 \n");
@@ -1433,7 +1433,7 @@ static void *UE_phy_stub_single_thread_rxn_txnp4(void *arg)
       while (phy_stub_ticking->ticking_var < 0) {
         // most of the time, the thread is waiting here
         //pthread_cond_wait( &proc->cond_rxtx, &proc->mutex_rxtx )
-        LOG_D(MAC,"Waiting for ticking_var\n");
+        LOG_X(MAC,"Waiting for ticking_var\n");
         pthread_cond_wait( &phy_stub_ticking->cond_ticking, &phy_stub_ticking->mutex_ticking);
       }
 
@@ -1484,7 +1484,7 @@ static void *UE_phy_stub_single_thread_rxn_txnp4(void *arg)
 
       while (phy_stub_ticking->num_single_thread[ue_thread_id] < 0) {
         // most of the time, the thread is waiting here
-        LOG_D(MAC,"Waiting for single_thread (ue_thread_id %d)\n",ue_thread_id);
+        LOG_X(MAC,"Waiting for single_thread (ue_thread_id %d)\n",ue_thread_id);
         pthread_cond_wait( &phy_stub_ticking->cond_single_thread, &phy_stub_ticking->mutex_single_thread);
       }
 
@@ -1542,7 +1542,7 @@ static void *UE_phy_stub_single_thread_rxn_txnp4(void *arg)
     for (ue_index=0; ue_index < ue_num; ue_index++) {
       ue_Mod_id = ue_thread_id + NB_THREAD_INST*ue_index;
       UE = PHY_vars_UE_g[ue_Mod_id][0];
-      //LOG_D(MAC, "UE_phy_stub_single_thread_rxn_txnp4, NB_UE_INST:%d, Mod_id:%d \n", NB_UE_INST, Mod_id);
+      //LOG_X(MAC, "UE_phy_stub_single_thread_rxn_txnp4, NB_UE_INST:%d, Mod_id:%d \n", NB_UE_INST, Mod_id);
       //UE = PHY_vars_UE_g[Mod_id][0];
       lte_subframe_t sf_type = subframe_select( &UE->frame_parms, proc->subframe_rx);
 
@@ -1613,7 +1613,7 @@ static void *UE_phy_stub_single_thread_rxn_txnp4(void *arg)
 
                 if(prach_resources!=NULL ) {
                   UE_mac_inst[ue_Mod_id].ra_frame = proc->frame_rx;
-                  LOG_D(MAC, "UE_phy_stub_thread_rxn_txnp4 before RACH, Mod_id: %d frame %d subframe %d\n", ue_Mod_id,proc->frame_tx, proc->subframe_tx);
+                  LOG_X(MAC, "UE_phy_stub_thread_rxn_txnp4 before RACH, Mod_id: %d frame %d subframe %d\n", ue_Mod_id,proc->frame_tx, proc->subframe_tx);
                   fill_rach_indication_UE_MAC(ue_Mod_id, proc->frame_tx,proc->subframe_tx, UL_INFO, prach_resources->ra_PreambleIndex, prach_resources->ra_RNTI);
                   Msg1_transmitted(ue_Mod_id, 0, proc->frame_tx, 0);
                   UE_mac_inst[ue_Mod_id].UE_mode[0] = RA_RESPONSE;
@@ -1679,7 +1679,7 @@ static void *UE_phy_stub_single_thread_rxn_txnp4(void *arg)
       }
 
       if(UL_INFO->harq_ind.harq_indication_body.number_of_harqs>0) {
-        //LOG_D(MAC, "ul_config_req_UE_MAC 2.4, SFN/SF of PNF counter:%d.%d, number_of_harqs: %d \n", timer_frame, timer_subframe, UL_INFO->harq_ind.harq_indication_body.number_of_harqs);
+        //LOG_X(MAC, "ul_config_req_UE_MAC 2.4, SFN/SF of PNF counter:%d.%d, number_of_harqs: %d \n", timer_frame, timer_subframe, UL_INFO->harq_ind.harq_indication_body.number_of_harqs);
         oai_nfapi_harq_indication(&UL_INFO->harq_ind);
         //LOG_I(MAC, "ul_config_req_UE_MAC 2.41 \n");
         UL_INFO->harq_ind.harq_indication_body.number_of_harqs =0;
@@ -1796,7 +1796,7 @@ static void *UE_phy_stub_thread_rxn_txnp4(void *arg)
     while (phy_stub_ticking->ticking_var < 0) {
       // most of the time, the thread is waiting here
       //pthread_cond_wait( &proc->cond_rxtx, &proc->mutex_rxtx )
-      LOG_D(MAC,"Waiting for ticking_var\n");
+      LOG_X(MAC,"Waiting for ticking_var\n");
       pthread_cond_wait( &phy_stub_ticking->cond_ticking, &phy_stub_ticking->mutex_ticking);
     }
 
@@ -2572,7 +2572,7 @@ static void *timer_thread( void *param )
 
   T_0 = (uint64_t) t_start.tv_sec*1000000000 + t_start.tv_nsec;
 
-  LOG_D(MAC, "timer_thread(), T_0 value: %" PRId64 "\n", T_0);
+  LOG_X(MAC, "timer_thread(), T_0 value: %" PRId64 "\n", T_0);
 
   while (!oai_exit) {
     // these are local subframe/frame counters to check that we are in synch with the fronthaul timing.
@@ -2599,7 +2599,7 @@ static void *timer_thread( void *param )
         exit_fun("nothing to add");
       }
     } else
-      LOG_D(MAC, "timer_thread() Timing problem! ticking_var value:%d \n \n \n", phy_stub_ticking->ticking_var);
+      LOG_X(MAC, "timer_thread() Timing problem! ticking_var value:%d \n \n \n", phy_stub_ticking->ticking_var);
 
     AssertFatal(pthread_mutex_unlock(&phy_stub_ticking->mutex_ticking) ==0,"");
     start_meas(&UE->timer_stats);

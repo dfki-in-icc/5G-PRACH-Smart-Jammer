@@ -96,7 +96,7 @@ long nr_get_Pcmax(module_id_t mod_id){
 
     p_max += *p_Max;
 
-    LOG_D(MAC, "In %s maximum UL transmission power p_max is %ld dBm \n", __FUNCTION__, p_max);
+    LOG_X(MAC, "In %s maximum UL transmission power p_max is %ld dBm \n", __FUNCTION__, p_max);
 
     P_cmax_l = min(p_max - delta_TC_c, (P_powerclass - delta_P_powerclass) - max(max(MPR_c + delta_MPR_c, A_MPR_c) + delta_T_IB_c + delta_TC_c + delta_rx_SRS, P_MPR_c));
 
@@ -112,7 +112,7 @@ long nr_get_Pcmax(module_id_t mod_id){
 
   P_cmax = (P_cmax_h + P_cmax_l) / 2;
 
-  LOG_D(MAC, "In %s configured maximum output power:  %ld dBm <= PCMAX %ld dBm <= %ld dBm \n", __FUNCTION__, P_cmax_l, P_cmax, P_cmax_h);
+  LOG_X(MAC, "In %s configured maximum output power:  %ld dBm <= PCMAX %ld dBm <= %ld dBm \n", __FUNCTION__, P_cmax_l, P_cmax, P_cmax_h);
 
   return P_cmax;
 
