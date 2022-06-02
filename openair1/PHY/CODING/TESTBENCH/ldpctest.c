@@ -250,7 +250,7 @@ int test_ldpc(short max_iterations,
 		  printf("Not supported");
   else
 	  printf("Not supported");
-
+/*
   //find minimum value in all sets of lifting size
   Zc=0;
 
@@ -263,8 +263,11 @@ int test_ldpc(short max_iterations,
       break;
     }
   }
+*/
+  int C,K,F;
+  nr_segmentation(NULL,NULL, block_length,&C,&K,&Zc,&F,BG);
 
-  printf("ldpc_test: codeword_length %d, n_segments %d, block_length %d, BG %d, Zc %d, Kb %d\n",n_segments *block_length, n_segments, block_length, BG, Zc, Kb);
+printf("ldpc_test: codeword_length %d, n_segments %d, block_length %d, K %d, F %d, BG %d, Zc %d, Kb %d\n",n_segments *block_length, n_segments, block_length, K, F, BG, Zc, Kb);
   no_punctured_columns=(int)((nrows-2)*Zc+block_length-block_length*(1/((float)nom_rate/(float)denom_rate)))/Zc;
   //  printf("puncture:%d\n",no_punctured_columns);
   removed_bit=(nrows-no_punctured_columns-2) * Zc+block_length-(int)(block_length/((float)nom_rate/(float)denom_rate));
@@ -272,7 +275,7 @@ int test_ldpc(short max_iterations,
 
   impp.gen_code=1;
   if (ntrials==0)
-    encoder_orig(test_input,channel_input, Zc, BG, block_length, BG, &impp);
+    encoder_orig(test_input,channel_input, Zc, BG, K, BG, &impp);
   impp.gen_code=0;
   for (int trial=0; trial < ntrials; trial++)
   {
@@ -280,7 +283,7 @@ int test_ldpc(short max_iterations,
     //// encoder
     start_meas(&time);
     for(int j=0;j<n_segments;j++) {
-      encoder_orig(&(test_input[j]), &(channel_input[j]),Zc,Kb,block_length,BG,&impp);
+      encoder_orig(&(test_input[j]), &(channel_input[j]),Zc,Kb,K,BG,&impp);
     }
     stop_meas(&time);
 
@@ -294,13 +297,13 @@ int test_ldpc(short max_iterations,
     for(int j=0;j<(n_segments/8+1);j++) {
     	start_meas(time_optim);
     	impp.macro_num=j;
-    	nrLDPC_encoder(test_input,channel_input_optim,Zc,Kb,block_length, BG, &impp);
+    	nrLDPC_encoder(test_input,channel_input_optim,Zc,Kb,K, BG, &impp);
     	stop_meas(time_optim);
     }
     
     if (ntrials==1)    
       for (int j=0;j<n_segments;j++)
-        for (int i = 0; i < block_length+(nrows-no_punctured_columns) * Zc - removed_bit; i++)
+        for (int i = 0; i < K/*block_length+(nrows-no_punctured_columns) * Zc - removed_bit*/; i++)
           if (channel_input[j][i]!=channel_input_optim[j][i]) {
             printf("differ in seg %u pos %u (%u,%u)\n", j, i, channel_input[j][i], channel_input_optim[j][i]);
             return (-1);
@@ -358,7 +361,7 @@ int test_ldpc(short max_iterations,
         decParams[j].R=code_rate_vec[R_ind];//13;
         decParams[j].numMaxIter=max_iterations;
         decParams[j].outMode = nrLDPC_outMode_BIT;
-        decParams[j].block_length=block_length;
+        decParams[j].block_length=K;
         nrLDPC_initcall(&decParams[j], (int8_t*)channel_output_fixed[j], (int8_t*)estimated_output[j]);
       }
       for(int j=0;j<n_segments;j++) {
@@ -366,10 +369,10 @@ int test_ldpc(short max_iterations,
         n_iter = nrLDPC_decoder(&decParams[j], (int8_t*)channel_output_fixed[j], (int8_t*)estimated_output[j], &decoder_profiler);
         stop_meas(time_decoder);
         //count errors
-        if ( memcmp(estimated_output[j], test_input[j], block_length/8 ) != 0 ) {
+        if ( memcmp(estimated_output[j], test_input[j], K/8 ) != 0 ) {
           segment_bler++;
         }
-        for (int i=0; i<block_length; i++)
+        for (int i=0; i<K; i++)
         {
           unsigned char estoutputbit = (estimated_output[j][i/8]&(1<<(i&7)))>>(i&7);
           unsigned char inputbit = (test_input[j][i/8]&(1<<(i&7)))>>(i&7); // Further correct for multiple segments
