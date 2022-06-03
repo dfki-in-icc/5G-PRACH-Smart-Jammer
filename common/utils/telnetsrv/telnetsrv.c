@@ -136,7 +136,7 @@ void set_sched(pthread_t tid, int pid, int priority) {
   char strpolicy[10];
 
   //sched_get_priority_max(SCHED_FIFO)
-#if !INHIBIT_REALTIME_SCHEDULER
+#if !SANITIZE_ADDRESS
   if (priority < NICE_MIN) {
     policy=SCHED_FIFO;
     sprintf(strpolicy,"%s","fifo");
@@ -153,7 +153,7 @@ void set_sched(pthread_t tid, int pid, int priority) {
     sprintf(strpolicy,"%s","idle");
     schedp.sched_priority=0;
   } else
-#endif //INHIBIT_REALTIME_SCHEDULER
+#endif //SANITIZE_ADDRESS
   {
     policy=SCHED_OTHER;
     sprintf(strpolicy,"%s","other");

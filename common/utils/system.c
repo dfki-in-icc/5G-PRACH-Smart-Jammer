@@ -234,7 +234,7 @@ void threadCreate(pthread_t* t, void * (*func)(void*), void * param, char* name,
   ret=pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
   AssertFatal(ret==0,"ret: %d, errno: %d\n",ret, errno);
   
-#if INHIBIT_REALTIME_SCHEDULER
+#if SANITIZE_ADDRESS
   LOG_E(UTIL, "Not using realtime scheduler\n");
 #else
   if (checkIfFedoraDistribution())
@@ -263,7 +263,7 @@ void threadCreate(pthread_t* t, void * (*func)(void*), void * param, char* name,
     ret=pthread_attr_setschedparam(&attr, &sparam);
     AssertFatal(ret==0,"ret: %d, errno: %d\n",ret, errno);
   }
-#endif // INHIBIT_REALTIME_SCHEDULER
+#endif // SANITIZE_ADDRESS
   
   ret=pthread_create(t, &attr, func, param);
   AssertFatal(ret==0,"ret: %d, errno: %d\n",ret, errno);

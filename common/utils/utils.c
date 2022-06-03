@@ -127,7 +127,7 @@ void *memcpy1(void *dst,const void *src,size_t n) {
 
 void set_priority(int priority)
 {
-#if !INHIBIT_REALTIME_SCHEDULER
+#if !SANITIZE_ADDRESS
   struct sched_param param =
   {
     .sched_priority = priority,
@@ -138,5 +138,5 @@ void set_priority(int priority)
     fprintf(stderr, "sched_setscheduler: %s\n", strerror(errno));
     abort();
   }
-#endif // INHIBIT_REALTIME_SCHEDULER
+#endif // SANITIZE_ADDRESS
 }

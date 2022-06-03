@@ -266,7 +266,6 @@ if (SANITIZE_ADDRESS)
   # wrong in the pthread library, or something subtly wrong in this CMakeLists.txt.
   # Regardless, either you are interested in pushing the performance, or you're interested in debugability,
   # so for now, disabling the RT scheduler while enabling the sanitzer seems to be a reasonable compromise.
-  add_definitions("-DINHIBIT_REALTIME_SCHEDULER")
 endif ()
 
 add_definitions("-DASN_DISABLE_OER_SUPPORT")
