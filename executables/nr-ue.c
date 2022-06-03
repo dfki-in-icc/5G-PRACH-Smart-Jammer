@@ -131,7 +131,7 @@ static void *nrL1_UE_stats_thread(void *param)
   const int max_len = 16384;
   char output[max_len];
   char filename[30];
-  snprintf(filename, 29, "nrL1_UE_stats-%d.log", ue->Mod_id);
+  snprintf(filename, 29, "/dev/shm/nrL1_UE_stats-%d.log", ue->Mod_id);
   filename[29] = 0;
   FILE *fd = fopen(filename, "w");
   AssertFatal(fd != NULL, "Cannot open %s\n", filename);
@@ -140,9 +140,15 @@ static void *nrL1_UE_stats_thread(void *param)
     sleep(1);
     const int len = dump_L1_UE_meas_stats(ue, output, max_len);
     AssertFatal(len < max_len, "exceeded length\n");
-    fwrite(output, len + 1, 1, fd); // + 1 for terminating NULL byte
+    time_t t = time(NULL);
+    struct tm *local = localtime(&t);
+    char buf[128];
+    strftime(buf,sizeof(buf),"%Y/%m/%d/ %H:%M:%S\n",local);
+    fprintf(fd,"%s",buf);
+    fprintf(fd,"%s\n",output); // + 1 for terminating NULL byte
+    // fwrite(output, len + 1, 1, fd); // + 1 for terminating NULL byte
     fflush(fd);
-    fseek(fd, 0, SEEK_SET);
+//    fseek(fd, 0, SEEK_SET);
   }
   fclose(fd);
 

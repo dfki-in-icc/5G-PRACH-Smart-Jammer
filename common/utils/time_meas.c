@@ -38,6 +38,7 @@ static time_stats_t  **measur_table;
 notifiedFIFO_t measur_fifo;
 double get_cpu_freq_GHz(void)
 {
+  #if 0
   if (cpu_freq_GHz <1 ) {
   time_stats_t ts = {0};
   reset_meas(&ts);
@@ -48,6 +49,16 @@ double get_cpu_freq_GHz(void)
   cpu_freq_GHz = (double)ts.diff/1000000000;
   printf("CPU Freq is %f \n", cpu_freq_GHz);
   }
+  #else
+  char buf[128];
+  system("lscpu | grep 'CPU MHz' | awk '{ print $3}' > /dev/shm/@tmp");
+  FILE* fp=fopen("/dev/shm/@tmp","r");
+  fgets(buf,sizeof(buf),fp);
+  fclose(fp);
+  cpu_freq_GHz = atof(buf)/1000.0;
+  printf("CPU Freq is %f \n", cpu_freq_GHz);
+  #endif
+
   return cpu_freq_GHz;
 }
 
@@ -150,6 +161,7 @@ int print_meas_log(time_stats_t *ts,
               ((ts->diff/ts->trials/cpu_freq_GHz/1000.0)/(sf_exec_time->diff/sf_exec_time->trials/cpu_freq_GHz/1000.0))*100,  // percentage
               ts->trials);
     }
+    ts->max = 0;
   }
   return stroff;
 }
