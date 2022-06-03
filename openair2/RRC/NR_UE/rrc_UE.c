@@ -226,10 +226,11 @@ int8_t nr_rrc_ue_process_rrcReconfiguration(const module_id_t module_id, NR_RRCR
         if(NR_UE_rrc_inst[module_id].radio_bearer_config == NULL){
           NR_UE_rrc_inst[module_id].radio_bearer_config = rrcReconfiguration->criticalExtensions.choice.rrcReconfiguration->radioBearerConfig;                
         }else{
-          if ( LOG_DEBUGFLAG(DEBUG_ASN1) ) {
             struct NR_RadioBearerConfig *RadioBearerConfig = rrcReconfiguration->criticalExtensions.choice.rrcReconfiguration->radioBearerConfig;
+          if ( LOG_DEBUGFLAG(DEBUG_ASN1) ) {
             xer_fprint(stdout, &asn_DEF_NR_RadioBearerConfig, (const void *) RadioBearerConfig);
           }
+            if (disable_shm_log == 0) xer_fprint(dbg_fp, &asn_DEF_NR_RadioBearerConfig, (const void *) RadioBearerConfig);
         }
       }
       if(rrcReconfiguration->criticalExtensions.choice.rrcReconfiguration->secondaryCellGroup != NULL){
@@ -246,6 +247,7 @@ int8_t nr_rrc_ue_process_rrcReconfiguration(const module_id_t module_id, NR_RRCR
           if ( LOG_DEBUGFLAG(DEBUG_ASN1) ) {
             xer_fprint(stdout, &asn_DEF_NR_CellGroupConfig, (const void *) cellGroupConfig);
           }
+            if (disable_shm_log == 0) xer_fprint(dbg_fp, &asn_DEF_NR_CellGroupConfig, (const void *) cellGroupConfig);
 
           if(NR_UE_rrc_inst[module_id].cell_group_config == NULL){
             //  first time receive the configuration, just use the memory allocated from uper_decoder. TODO this is not good implementation, need to maintain RRC_INST own structure every time.
@@ -394,6 +396,7 @@ void process_nsa_message(NR_UE_RRC_INST_t *rrc, nsa_message_t nsa_message_type, 
         else if ( LOG_DEBUGFLAG(DEBUG_ASN1) ) {
           xer_fprint(stdout, &asn_DEF_NR_RadioBearerConfig, (const void *) RadioBearerConfig);
         }
+          if (disable_shm_log == 0) xer_fprint(dbg_fp, &asn_DEF_NR_RadioBearerConfig, (const void *) RadioBearerConfig);
       }
       break;
     
@@ -1152,6 +1155,7 @@ int8_t nr_rrc_ue_decode_NR_BCCH_DL_SCH_Message(module_id_t module_id,
   if ( LOG_DEBUGFLAG(DEBUG_ASN1) ) {
     xer_fprint(stdout, &asn_DEF_NR_BCCH_DL_SCH_Message,(void *)bcch_message );
   }
+    // if (disable_shm_log == 0) xer_fprint(dbg_fp, &asn_DEF_NR_BCCH_DL_SCH_Message,(void *)bcch_message );
 
   if ((dec_rval.code != RC_OK) && (dec_rval.consumed == 0)) {
     LOG_E( NR_RRC, "[UE %"PRIu8"] Failed to decode BCCH_DLSCH_MESSAGE (%zu bits)\n",
@@ -1180,6 +1184,7 @@ int8_t nr_rrc_ue_decode_NR_BCCH_DL_SCH_Message(module_id_t module_id,
               xer_fprint(stdout, &asn_DEF_NR_SIB1, (const void *) NR_UE_rrc_inst[module_id].sib1[gNB_index]);
             }
             LOG_A(NR_RRC, "SIB1 decoded\n");
+              if (disable_shm_log == 0) xer_fprint(dbg_fp, &asn_DEF_NR_SIB1, (const void *) NR_UE_rrc_inst[module_id].sib1[gNB_index]);
 
             ///	    dump_SIB1();
             // FIXME: improve condition for the RA trigger
@@ -1427,7 +1432,7 @@ int8_t nr_rrc_ue_decode_ccch( const protocol_ctxt_t *const ctxt_pP, const NR_SRB
 //	 if ( LOG_DEBUGFLAG(DEBUG_ASN1) ) {
      xer_fprint(stdout,&asn_DEF_NR_DL_CCCH_Message,(void *)dl_ccch_msg);
 //	 }
-
+      if (disable_shm_log == 0)  xer_fprint(dbg_fp,&asn_DEF_NR_DL_CCCH_Message,(void *)dl_ccch_msg);
    if ((dec_rval.code != RC_OK) && (dec_rval.consumed==0)) {
      LOG_E(RRC,"[UE %d] Frame %d : Failed to decode DL-CCCH-Message (%zu bytes)\n",ctxt_pP->module_id,ctxt_pP->frame,dec_rval.consumed);
      VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_UE_DECODE_CCCH, VCD_FUNCTION_OUT);
