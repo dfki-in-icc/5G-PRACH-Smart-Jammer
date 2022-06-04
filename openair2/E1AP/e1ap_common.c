@@ -34,18 +34,29 @@ e1ap_upcp_inst_t *getCxtE1(E1_t type, instance_t instance) {
   return type ? e1ap_up_inst[instance] : e1ap_cp_inst[instance];
 }
 
-int e1ap_assoc_id(bool isCu, instance_t instance) {
-  return 0;
+int e1ap_assoc_id(E1_t type, instance_t instance) {
+  if (type == CPtype) {
+    AssertFatal(e1ap_cp_inst[instance] != NULL, "Trying to access uninitiated instance of CUCP\n");
+    return e1ap_cp_inst[instance]->setupReq.assoc_id;
+  } else if (type == UPtype) {
+    AssertFatal(e1ap_up_inst[instance] != NULL, "Trying to access uninitiated instance of CUUP\n");
+    return e1ap_up_inst[instance]->setupReq.assoc_id;
+  } else {
+    AssertFatal(false, "Unknown CU type\n");
+  }
+  return -1;
 }
 
 void createE1inst(E1_t type, instance_t instance, e1ap_setup_req_t *req) {
   if (type == CPtype) {
     AssertFatal(e1ap_cp_inst[instance] == NULL, "Double call to E1 CP instance %d\n", (int)instance);
     e1ap_cp_inst[instance] = (e1ap_upcp_inst_t *) calloc(1, sizeof(e1ap_upcp_inst_t));
-  } else {
+  } else if (type == UPtype) {
     AssertFatal(e1ap_up_inst[instance] == NULL, "Double call to E1 UP instance %d\n", (int)instance);
     e1ap_up_inst[instance] = (e1ap_upcp_inst_t *) calloc(1, sizeof(e1ap_upcp_inst_t));
     memcpy(&e1ap_up_inst[instance]->setupReq, req, sizeof(e1ap_setup_req_t));
+  } else {
+    AssertFatal(false, "Unknown CU type\n");
   }
 }
 
@@ -76,7 +87,7 @@ E1AP_TransactionID_t E1AP_get_next_transaction_identifier() {
   int freeIdx;
 
   while (!isTransacIdValid) {
-    genTransacId = rand();
+    genTransacId = rand() & 255;
     isTransacIdValid = check_transac_id(genTransacId, &freeIdx);
   }
 
@@ -143,7 +154,7 @@ int e1ap_decode_pdu(E1AP_E1AP_PDU_t *pdu, const uint8_t *const buffer, uint32_t 
   asn_dec_rval_t dec_ret;
   DevAssert(buffer != NULL);
   dec_ret = aper_decode(NULL,
-                        &asn_DEF_F1AP_F1AP_PDU,
+                        &asn_DEF_E1AP_E1AP_PDU,
                         (void **)&pdu,
                         buffer,
                         length,
@@ -151,9 +162,9 @@ int e1ap_decode_pdu(E1AP_E1AP_PDU_t *pdu, const uint8_t *const buffer, uint32_t 
                         0);
 
   if (asn1_xer_print_e1ap) {
-    LOG_E(F1AP, "----------------- ASN1 DECODER PRINT START----------------- \n");
+    LOG_E(E1AP, "----------------- ASN1 DECODER PRINT START----------------- \n");
     xer_fprint(stdout, &asn_DEF_E1AP_E1AP_PDU, pdu);
-    LOG_E(F1AP, "----------------- ASN1 DECODER PRINT END ----------------- \n");
+    LOG_E(E1AP, "----------------- ASN1 DECODER PRINT END ----------------- \n");
   }
 
   if (dec_ret.code != RC_OK) {
@@ -179,7 +190,7 @@ int e1ap_decode_pdu(E1AP_E1AP_PDU_t *pdu, const uint8_t *const buffer, uint32_t 
   return -1;
 }
 
-int e1ap_encode_send(bool isCu, instance_t instance, E1AP_E1AP_PDU_t *pdu, uint16_t stream, const char *func) {
+int e1ap_encode_send(E1_t type, instance_t instance, E1AP_E1AP_PDU_t *pdu, uint16_t stream, const char *func) {
   DevAssert(pdu != NULL);
 
   if (asn1_xer_print_e1ap) {
@@ -197,15 +208,15 @@ int e1ap_encode_send(bool isCu, instance_t instance, E1AP_E1AP_PDU_t *pdu, uint1
   }
 
   void *buffer = NULL;
-  ssize_t encoded = aper_encode_to_new_buffer(&asn_DEF_E1AP_E1AP_PDU, 0, pdu, buffer);
+  ssize_t encoded = aper_encode_to_new_buffer(&asn_DEF_E1AP_E1AP_PDU, 0, pdu, &buffer);
 
   if (encoded < 0) {
     LOG_E(E1AP, "%s: Failed to encode E1AP message\n", func);
     return -1;
   } else {
-    MessageDef *message = itti_alloc_new_message(isCu?TASK_CUCP_E1:TASK_CUUP_E1, 0, SCTP_DATA_REQ);
+    MessageDef *message = itti_alloc_new_message((type==CPtype)?TASK_CUCP_E1:TASK_CUUP_E1, 0, SCTP_DATA_REQ);
     sctp_data_req_t *s = &message->ittiMsg.sctp_data_req;
-    s->assoc_id      = e1ap_assoc_id(isCu,instance);
+    s->assoc_id      = e1ap_assoc_id(type, instance);
     s->buffer        = buffer;
     s->buffer_length = encoded;
     s->stream        = stream;

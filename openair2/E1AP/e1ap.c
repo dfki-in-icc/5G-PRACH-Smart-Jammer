@@ -92,7 +92,7 @@ int e1ap_handle_message(instance_t instance, uint32_t assoc_id,
   return ret;
 }
 
-void cuup_task_handle_sctp_data_ind(instance_t instance, sctp_data_ind_t *sctp_data_ind) {
+void cuxp_task_handle_sctp_data_ind(instance_t instance, sctp_data_ind_t *sctp_data_ind) {
   int result;
   DevAssert(sctp_data_ind != NULL);
   e1ap_handle_message(instance, sctp_data_ind->assoc_id,
@@ -205,7 +205,7 @@ int e1apCUUP_send_SETUP_REQUEST(instance_t instance) {
     MCC_MNC_TO_PLMNID(setup->plmns[i].mcc, setup->plmns[i].mnc, setup->plmns[i].mnc_digit_length, &supportedPLMN->pLMN_Identity);
   }
 
-  e1ap_encode_send(0, instance, &pdu, 0, __func__);
+  e1ap_encode_send(UPtype, instance, &pdu, 0, __func__);
   return 0;
 }
 
@@ -228,7 +228,7 @@ int e1apCUCP_send_SETUP_RESPONSE(instance_t instance,
   ieC1->value.present              = E1AP_GNB_CU_UP_E1SetupResponseIEs__value_PR_TransactionID;
   ieC1->value.choice.TransactionID = e1ap_setup_resp->transac_id;
 
-  e1ap_encode_send(0, instance, &pdu, 0, __func__);
+  e1ap_encode_send(CPtype, instance, &pdu, 0, __func__);
   return 0;
 }
 
@@ -259,7 +259,7 @@ int e1apCUCP_send_SETUP_FAILURE(instance_t instance,
   ieC2->value.choice.Cause.present = E1AP_Cause_PR_radioNetwork; //choose this accordingly
   ieC2->value.choice.Cause.choice.radioNetwork = E1AP_CauseRadioNetwork_unspecified;
 
-  e1ap_encode_send(0, instance, &pdu, 0, __func__);
+  e1ap_encode_send(CPtype, instance, &pdu, 0, __func__);
   return 0;
 }
 
@@ -408,7 +408,7 @@ int e1apCUUP_send_CONFIGURATION_UPDATE(instance_t instance) {
     TRANSPORT_LAYER_ADDRESS_IPv4_TO_BIT_STRING(1234, &TNLAtoRemove->tNLAssociationTransportLayerAddress.choice.endpoint_IP_Address); // TODO: correct me
   }
 
-  e1ap_encode_send(0, instance, &pdu, 0, __func__);
+  e1ap_encode_send(UPtype, instance, &pdu, 0, __func__);
   return 0;
 }
 
@@ -632,7 +632,7 @@ int e1apCUCP_send_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
     }
   }
 
-  e1ap_encode_send(0, instance, &pdu, 0, __func__);
+  e1ap_encode_send(CPtype, instance, &pdu, 0, __func__);
   return 0;
 }
 
@@ -757,7 +757,7 @@ int e1apCUUP_send_BEARER_CONTEXT_SETUP_RESPONSE(instance_t instance,
       }
     }
   }
-  e1ap_encode_send(0, instance, &pdu, 0, __func__);
+  e1ap_encode_send(UPtype, instance, &pdu, 0, __func__);
   return 0;
 }
 
@@ -1116,6 +1116,27 @@ void cucp_task_send_sctp_init_req(instance_t instance, char *my_addr) {
   itti_send_msg_to_task(TASK_SCTP, instance, message_p);
 }
 
+void cucp_task_handle_sctp_association_ind(instance_t instance, sctp_new_association_ind_t *sctp_new_association_ind) {
+  createE1inst(CPtype, instance, NULL);
+  e1ap_setup_req_t *setup_req = &getCxtE1(CPtype, instance)->setupReq;
+  setup_req->assoc_id         = sctp_new_association_ind->assoc_id;
+  setup_req->sctp_in_streams  = sctp_new_association_ind->in_streams;
+  setup_req->sctp_out_streams = sctp_new_association_ind->out_streams;
+  setup_req->default_sctp_stream_id = 0;
+}
+
+void cucp_task_handle_sctp_association_resp(instance_t instance, sctp_new_association_resp_t *sctp_new_association_resp) {
+  DevAssert(sctp_new_association_resp != NULL);
+
+  if (sctp_new_association_resp->sctp_state != SCTP_STATE_ESTABLISHED) {
+    LOG_W(E1AP, "Received unsuccessful result for SCTP association (%u), instance %ld, cnx_id %u\n",
+          sctp_new_association_resp->sctp_state,
+          instance,
+          sctp_new_association_resp->ulp_cnx_id);
+    return;
+  }
+}
+
 void *E1AP_CUCP_task(void *arg) {
   LOG_I(E1AP, "Starting E1AP at CU CP\n");
   MessageDef *msg = NULL;
@@ -1123,11 +1144,24 @@ void *E1AP_CUCP_task(void *arg) {
 
   while (1) {
     itti_receive_msg(TASK_CUCP_E1, &msg);
+    instance_t myInstance=ITTI_MSG_DESTINATION_INSTANCE(msg);
 
     switch (ITTI_MSG_ID(msg)) {
+      case SCTP_NEW_ASSOCIATION_IND:
+        LOG_I(E1AP, "CUCP Task Received SCTP_NEW_ASSOCIATION_IND for instance %ld\n", myInstance);
+        cucp_task_handle_sctp_association_ind(ITTI_MSG_ORIGIN_INSTANCE(msg),
+                                              &msg->ittiMsg.sctp_new_association_ind);
+        break;
+
+      case SCTP_NEW_ASSOCIATION_RESP:
+        LOG_I(E1AP, "CUCP Task Received SCTP_NEW_ASSOCIATION_RESP for instance %ld\n", myInstance);
+        cucp_task_handle_sctp_association_resp(ITTI_MSG_ORIGIN_INSTANCE(msg),
+                                               &msg->ittiMsg.sctp_new_association_resp);
+        break;
+
       case E1AP_SETUP_REQ:
         LOG_I(E1AP, "CUCP Task Received E1AP_SETUP_REQ for instance %ld. Initializing SCTP listener\n",
-              ITTI_MSG_DESTINATION_INSTANCE(msg));
+              myInstance);
         e1ap_setup_req_t *req = &E1AP_SETUP_REQ(msg);
         char *ipaddr;
         if (req->CUCP_e1_ip_address.ipv4 == 0) {
@@ -1137,6 +1171,11 @@ void *E1AP_CUCP_task(void *arg) {
         else
           ipaddr = req->CUCP_e1_ip_address.ipv4_address;
         cucp_task_send_sctp_init_req(0, ipaddr);
+        break;
+
+      case SCTP_DATA_IND:
+        LOG_I(E1AP, "CUCP Task Received SCTP_DATA_IND\n");
+        cuxp_task_handle_sctp_data_ind(myInstance, &msg->ittiMsg.sctp_data_ind);
         break;
 
       default:
@@ -1172,7 +1211,7 @@ void *E1AP_CUUP_task(void *arg) {
 
       case SCTP_DATA_IND:
         LOG_I(E1AP, "CUUP Task Received SCTP_DATA_IND\n");
-        cuup_task_handle_sctp_data_ind(myInstance, &msg->ittiMsg.sctp_data_ind);
+        cuxp_task_handle_sctp_data_ind(myInstance, &msg->ittiMsg.sctp_data_ind);
         break;
 
       default:
