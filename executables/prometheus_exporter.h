@@ -28,6 +28,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <pthread.h>
+#include <semaphore.h>
+#include <unistd.h>
 
 #define NUM_MAX_PROM_ELEMENTS  100
 #define MAX_COMPLEX_ELM_SIZE   8192
@@ -145,6 +147,16 @@ enum PromMetricSwitchID {
   ul_mcs,
   ul_tbs,  // 6
   pss_peak_power  // 7
+};
+
+struct thdata {
+    pthread_t           th;
+    sem_t               sync;
+    sem_t               start;
+    int                 index;
+    int16_t*            pdata;
+    int32_t             size;
+    char                label[256];
 };
 
 extern uint8_t  Prom_switch_state[NUM_PROM_SETTINGS];

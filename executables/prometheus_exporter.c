@@ -222,8 +222,33 @@ void *PrometheusNodeExporter_thread(void* arg){
   }
 }
 
+struct thdata       thdata[ NUM_MAX_COMPLEX_ELEMENTS ];
+void *cp_thread(void* arg){
+  struct thdata* pth = (struct thdata*) arg;
+  while(1){
+      /* sync */
+    sem_post(&pth->sync);
+    sem_wait(&pth->start);
+
+    if (Realtime_switch_state[pth->index] != 0){
+      strcpy(complex_metrics.complex_element[pth->index].label,pth->label);
+      pthread_mutex_lock(&mutex_real);
+      memcpy(complex_metrics.complex_element[pth->index].iq_data, pth->pdata, sizeof(int32_t)*pth->size);
+      pthread_mutex_unlock(&mutex_real);
+      complex_metrics.complex_element[pth->index].size = pth->size;
+    }
+
+    /* sync */
+    sem_post(&pth->sync);
+  }
+
+  /* done */
+  return (void *) NULL;
+}
+
 void init_PrometheusNodeExporter_thread(void* arg){
     pthread_t thread_prom;
+    char ThreadName[128][ NUM_MAX_COMPLEX_ELEMENTS ];
 
     for (int i=0;i<NUM_PROM_ELEMENTS;i++){
       strcpy(prom_metrics.metric_element[i].metric_name,"not_set");
@@ -240,6 +265,19 @@ void init_PrometheusNodeExporter_thread(void* arg){
       &thread_prom, PrometheusNodeExporter_thread /* function */, (void *) arg,
 	    "PrometheusNodeExporter_thread" /* name */, -1 /* affinity */, SCHED_OAI /* priority */);
       pthread_setname_np(thread_prom, "Prome_thread");
+
+    for (int i=0;i< NUM_MAX_COMPLEX_ELEMENTS; i++){
+      thdata[i].index = i;
+      printf("copy thread create %d\n",i);
+      sem_init(&thdata[i].sync, 0, 0);
+      sem_init(&thdata[i].start, 0, 0);
+      if (pthread_create(
+        &thdata[i].th, NULL, cp_thread,  (void*) &thdata[i]) != 0) {
+        printf("pthread_create failed ");
+      }
+      sprintf(ThreadName,"PrmCP_Thread_%d",i);
+      pthread_setname_np(thdata[i].th, ThreadName);
+    }
 
     printf("[PHY] PrometheusNodeExporter_thread created ( %s )\n",__FUNCTION__);
 }
@@ -264,11 +302,17 @@ int RegisterComplexMetric(uint32_t key, char* label, int16_t* ptr, uint32_t size
 
   if (key < NUM_MAX_COMPLEX_ELEMENTS){
     if (Realtime_switch_state[key] == 0) return ret_code;
+#if 0
     strcpy(complex_metrics.complex_element[key].label,label);
     pthread_mutex_lock(&mutex_real);
     memcpy(complex_metrics.complex_element[key].iq_data, ptr, sizeof(int32_t)*size);
     pthread_mutex_unlock(&mutex_real);
     complex_metrics.complex_element[key].size = size;
+#endif
+    thdata[key].pdata = ptr;
+    thdata[key].size = size;
+    strcpy(thdata[key].label,label);
+    sem_post(&thdata[key].start);
     ret_code = 0;
   }
   return ret_code;
