@@ -19,10 +19,10 @@
 #define NFAPI_NR_MAX_NB_SEARCH_SPACES 40
 
 #define NFAPI_MAX_NUM_UL_UE_PER_GROUP 6
-#define NFAPI_MAX_NUM_UL_PDU 8
-#define NFAPI_MAX_NUM_UCI_INDICATION 8
-#define NFAPI_MAX_NUM_GROUPS 8
-#define NFAPI_MAX_NUM_CB 8
+#define NFAPI_MAX_NUM_UL_PDU 16
+#define NFAPI_MAX_NUM_UCI_INDICATION 16
+#define NFAPI_MAX_NUM_GROUPS 16
+#define NFAPI_MAX_NUM_CB 16
 
 // Extension to the generic structures for single tlv values
 

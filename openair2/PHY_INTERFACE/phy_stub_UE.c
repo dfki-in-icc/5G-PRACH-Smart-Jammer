@@ -850,6 +850,8 @@ void dl_config_req_UE_MAC_dci(int sfn,
       for (int ue_id = 0; ue_id < num_ue; ue_id++) {
         if (UE_mac_inst[ue_id].UE_mode[0] == NOT_SYNCHED)
           continue;
+        LOG_I(MAC, "%s() ue_id %d UE_mode %d\n",
+              __func__, ue_id, UE_mac_inst[ue_id].UE_mode[0]);
         ue_decode_si(ue_id, 0, sfn, 0,
             tx_req_pdu_list->pdus[pdu_index].segments[0].segment_data,
             tx_req_pdu_list->pdus[pdu_index].segments[0].segment_length);

@@ -42,7 +42,7 @@
 #include "openair2/NR_PHY_INTERFACE/NR_IF_Module.h"
 
 #define NR_NUM_MCS 29
-#define NUM_SINR 372
+#define NR_NUM_SINR 372
 #define NUM_BLER_COL 13
 #define NUM_NFAPI_SLOT 20
 #define NR_NUM_LAYER 1
@@ -86,7 +86,7 @@ typedef struct
 typedef struct
 {
     uint16_t length;
-    float bler_table[NUM_SINR][NUM_BLER_COL];
+    float bler_table[NR_NUM_SINR][NUM_BLER_COL];
 } nr_bler_struct;
 
 extern nr_bler_struct nr_bler_data[NR_NUM_MCS];

@@ -4694,13 +4694,13 @@ uint8_t check_trigger_meas_event(
       float adj_db = adj_eNB_rsrp_db + ofn + ocn - hys;
       float src_db = src_eNB_rsrp_db + ofs + ocs - 1;
       if (src_db < adj_db)
-          LOG_D(RRC,"\t\t src_eNB_rsrp_db (%f) + ofs (%d) + ocs (%d) -1  %f  < adj_eNB_rsrp_db (%f) + ofn (%d) + ocn (%d) - hys (%d) %f !!!!HO!!!\n",
+          LOG_D(RRC,"\t\t src_eNB_rsrp_db (%f) + ofs (%ld) + ocs (%ld) -1  %f  < adj_eNB_rsrp_db (%f) + ofn (%ld) + ocn (%ld) - hys (%ld) %f !!!!HO!!!\n",
                       src_eNB_rsrp_db, ofs, ocs,
                       src_eNB_rsrp_db + ofs + ocs -1,
                       adj_eNB_rsrp_db, ofn, ocn, hys,
                       adj_eNB_rsrp_db + ofn + ocn - hys);
       else 
-          LOG_D(RRC,"\t\t src_eNB_rsrp_db (%f) + ofs (%d) + ocs (%d) %f  >= adj_eNB_rsrp_db (%f) + ofn (%d) + ocn (%d) - hys (%d) %f\n",
+          LOG_D(RRC,"\t\t src_eNB_rsrp_db (%f) + ofs (%ld) + ocs (%ld) %f  >= adj_eNB_rsrp_db (%f) + ofn (%ld) + ocn (%ld) - hys (%ld) %f\n",
                       src_eNB_rsrp_db, ofs, ocs,
                       src_eNB_rsrp_db + ofs + ocs,
                       adj_eNB_rsrp_db, ofn, ocn, hys,

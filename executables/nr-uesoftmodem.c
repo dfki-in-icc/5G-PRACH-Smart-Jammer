@@ -590,7 +590,7 @@ static void init_bler_table(void) {
         continue;
       }
 
-      if (nlines > NUM_SINR) {
+      if (nlines > NR_NUM_SINR) {
         LOG_E(NR_MAC, "BLER FILE ERROR - num lines greater than expected - file: %s\n", fName);
         abort();
       }
@@ -643,7 +643,7 @@ static void init_mimo_bler_table(void) {
         continue;
       }
 
-      if (nlines > NUM_SINR) {
+      if (nlines > NR_NUM_SINR) {
         LOG_E(NR_MAC, "BLER FILE ERROR - num lines greater than expected - file: %s\n", fName);
         abort();
       }
