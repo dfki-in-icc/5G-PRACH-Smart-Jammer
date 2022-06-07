@@ -233,7 +233,7 @@ int e1apCUCP_send_SETUP_RESPONSE(instance_t instance,
 }
 
 int e1apCUCP_send_SETUP_FAILURE(instance_t instance,
-                                e1ap_setup_resp_t *e1ap_setup_resp) {
+                                long transac_id) {
   E1AP_E1AP_PDU_t pdu = {0};
   /* Create */
   /* 0. pdu Type */
@@ -249,7 +249,7 @@ int e1apCUCP_send_SETUP_FAILURE(instance_t instance,
   ieC1->id                         = E1AP_ProtocolIE_ID_id_TransactionID;
   ieC1->criticality                = E1AP_Criticality_reject;
   ieC1->value.present              = E1AP_GNB_CU_UP_E1SetupResponseIEs__value_PR_TransactionID;
-  ieC1->value.choice.TransactionID = e1ap_setup_resp->transac_id;
+  ieC1->value.choice.TransactionID = transac_id;
   /* mandatory */
   /* c2. cause (integer value) */
   asn1cSequenceAdd(out->protocolIEs.list, E1AP_GNB_CU_UP_E1SetupFailureIEs_t, ieC2);
@@ -311,6 +311,16 @@ int e1apCUCP_handle_SETUP_REQUEST(instance_t instance,
   }
 
   /* Create ITTI message and send to queue */
+  MessageDef *msg_p = itti_alloc_new_message(TASK_CUCP_E1, instance, E1AP_SETUP_REQ);
+  memcpy(&E1AP_SETUP_REQ(msg_p), req, sizeof(e1ap_setup_req_t));
+
+  if (req->supported_plmns > 0) {
+    itti_send_msg_to_task(TASK_RRC_GNB, instance, msg_p);
+  } else {
+    e1apCUCP_send_SETUP_FAILURE(instance, req->transac_id);
+    itti_free(TASK_CUCP_E1, msg_p);
+    return -1;
+  }
 
   return 0;
 }
@@ -1141,6 +1151,7 @@ void *E1AP_CUCP_task(void *arg) {
   LOG_I(E1AP, "Starting E1AP at CU CP\n");
   MessageDef *msg = NULL;
   e1ap_common_init();
+  int result;
 
   while (1) {
     itti_receive_msg(TASK_CUCP_E1, &msg);
@@ -1178,16 +1189,27 @@ void *E1AP_CUCP_task(void *arg) {
         cuxp_task_handle_sctp_data_ind(myInstance, &msg->ittiMsg.sctp_data_ind);
         break;
 
+      case E1AP_SETUP_RESP:
+        LOG_I(E1AP, "CUCP Task Received E1AP_SETUP_RESP\n");
+        e1apCUCP_send_SETUP_RESPONSE(myInstance, &E1AP_SETUP_RESP(msg));
+        break;
+
       default:
         LOG_E(E1AP, "Unknown message received in TASK_CUCP_E1\n");
         break;
     }
+
+    result = itti_free(ITTI_MSG_ORIGIN_ID(msg), msg);
+    AssertFatal(result == EXIT_SUCCESS, "Failed to free memory (%d) in E1AP_CUCP_task!\n", result);
+    msg = NULL;
+
   }
 }
 
 void *E1AP_CUUP_task(void *arg) {
   LOG_I(E1AP, "Starting E1AP at CU UP\n");
   e1ap_common_init();
+  int result;
 
   // SCTP
   while (1) {
@@ -1218,6 +1240,11 @@ void *E1AP_CUUP_task(void *arg) {
         LOG_E(E1AP, "Unknown message received in TASK_CUUP_E1\n");
         break;
     }
+
+    result = itti_free(ITTI_MSG_ORIGIN_ID(msg), msg);
+    AssertFatal(result == EXIT_SUCCESS, "Failed to free memory (%d) in E1AP_CUUP_task!\n", result);
+    msg = NULL;
+
   }
 }
 

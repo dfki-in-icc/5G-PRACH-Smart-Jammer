@@ -3876,6 +3876,26 @@ void nr_rrc_subframe_process(protocol_ctxt_t *const ctxt_pP, const int CC_id) {
   }
 }
 
+void rrc_gNB_process_e1_setup_req(e1ap_setup_req_t *req, instance_t instance) {
+
+  AssertFatal(req->supported_plmns <= PLMN_LIST_MAX_SIZE, "Supported PLMNs is more than PLMN_LIST_MAX_SIZE\n");
+  gNB_RRC_INST *rrc = RC.nrrrc[0]; //TODO: remove hardcoding of RC index here
+  MessageDef *msg_p = itti_alloc_new_message(TASK_RRC_GNB, instance, E1AP_SETUP_RESP);
+
+  e1ap_setup_resp_t *resp = &E1AP_SETUP_RESP(msg_p);
+  resp->transac_id = req->transac_id;
+
+  for (int i=0; i < req->supported_plmns; i++) {
+    if (rrc->configuration.mcc[i] == req->plmns[i].mcc &&
+        rrc->configuration.mnc[i] == req->plmns[i].mnc) {
+      LOG_E(NR_RRC, "PLMNs received from CUUP (mcc:%d, mnc:%d) did not match with PLMNs in RRC (mcc:%d, mnc:%d)\n",
+            req->plmns[i].mcc, req->plmns[i].mnc, rrc->configuration.mcc[i], rrc->configuration.mnc[i]);
+    }
+  }
+
+  itti_send_msg_to_task(TASK_CUCP_E1, instance, msg_p);
+}
+
 ///---------------------------------------------------------------------------------------------------------------///
 ///---------------------------------------------------------------------------------------------------------------///
 void *rrc_gnb_task(void *args_p) {
@@ -4032,6 +4052,11 @@ void *rrc_gnb_task(void *args_p) {
 
       case NGAP_UE_CONTEXT_RELEASE_COMMAND:
         rrc_gNB_process_NGAP_UE_CONTEXT_RELEASE_COMMAND(msg_p, msg_name_p, instance);
+        break;
+
+      case E1AP_SETUP_REQ:
+        LOG_I(NR_RRC, "Received E1AP_SETUP_REQ for instance %d\n", (int)instance);
+        rrc_gNB_process_e1_setup_req(&E1AP_SETUP_REQ(msg_p), instance);
         break;
 
       default:
@@ -4239,3 +4264,4 @@ void nr_rrc_trigger(protocol_ctxt_t *ctxt, int CC_id, int frame, int subframe)
   LOG_D(NR_RRC, "Time in RRC: %u/ %u \n", frame, subframe);
   itti_send_msg_to_task(TASK_RRC_GNB, ctxt->module_id, message_p);
 }
+
