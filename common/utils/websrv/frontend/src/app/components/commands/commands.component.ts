@@ -11,7 +11,7 @@ import { RowCtrl } from 'src/app/controls/row.control';
 import { VarCtrl } from 'src/app/controls/var.control';
 import { DialogService } from 'src/app/services/dialog.service';
 import { LoadingService } from 'src/app/services/loading.service';
-
+import { forkJoin } from 'rxjs';
 
 @Component({
   selector: 'app-commands',
@@ -76,16 +76,18 @@ export class CommandsComponent {
   }
 
   onCmdSubmit(control: CmdCtrl) {
-    this.selectedCmd = control.api()
 
-    let obs = control.confirm
-      ? this.dialogService.openConfirmDialog(control.confirm).pipe(
-        filter(confirmed => confirmed))
+    this.selectedCmd = control.api()
+    const obsp = control.confirm
+      ? this.dialogService.openConfirmDialog(control.confirm)
       : control.question
       ? this.dialogService.openQuestionDialog(this.selectedModule!.modulename() + " " + control.modulename(), control)
-      : of(null)
-     
-    obs = this.commandsApi.runCommand$(control!.api(), control!.question ? this.selectedModule!.modulename() : `${this.selectedModule!.nameFC.value}`)
+      : of(true) 
+    const obsparam = forkJoin ([obsp]);
+  obsparam.subscribe ( results => { console.log('result: ', results[0]);
+	if ( !results[0] )
+	  return of(null);
+    const obs= this.commandsApi.runCommand$(control!.api(), control!.question ? this.selectedModule!.modulename() : `${this.selectedModule!.nameFC.value}`)
     this.rows$ = obs.pipe(
       mergeMap(resp => {
         if (resp.display[0]) return this.dialogService.openCmdDialog(resp, 'cmd ' + control.nameFC.value + ' response:')
@@ -122,7 +124,10 @@ export class CommandsComponent {
         return controls
       })
     );
-  }
+    return of(null);
+  }); // subscribe results
+  return of(null);
+}
 
   onParamSubmit(control: RowCtrl) {
     this.commandsApi.setRow$(control.api(), this.selectedModule?.nameFC.value).subscribe();

@@ -101,7 +101,7 @@ export class DialogService {
     }
 
     this.isDialogOpen = true;
-
+   
     return this._dialog.open(ConfirmDialogComponent, {
       width: '300px',
       data: { title: question }
@@ -115,7 +115,7 @@ export class DialogService {
     if (this.isDialogOpen) {
       return of(control);
     }
-
+ 
     this.isDialogOpen = true;
 
     const dialogRef = this._dialog.open(QuestionDialogComponent, {
