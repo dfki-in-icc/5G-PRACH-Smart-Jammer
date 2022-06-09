@@ -1,0 +1,549 @@
+/*
+ * Copyright 2022 Sequans Communications.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include "msg.sidl"
+
+// SIDL common TTCN types and definitions.
+#include "TtcnCommon.sidl"
+
+METADATA_VAR(itf_name, "Sys");
+
+// TTCN namespaces
+METADATA_VAR(namespaces, "EUTRA_ASP_TypeDefs");
+
+typedef B128_Type B128_Key_Type;
+typedef ASN_ENUM(ASN_NAME(CipheringAlgorithm_r12)) CipheringAlgorithm_r12_Type;
+typedef SIDL_DYNAMIC_OF_STRUCT(SecurityActTime_Type, SecurityActTimeList_Type); /* 1..tsc_MaxRB */
+
+struct CellAttenuationConfig_Type {
+	EUTRA_CellId_Type CellId;
+	struct Attenuation_Type Attenuation;
+	SIDL_OPTIONAL_OF_STRUCT(TimingInfo_Type, TimingInfo);
+};
+
+SIDL_UNION_ENUM(PdcpCountGetReq_Type) {
+	PdcpCountGetReq_Type_UNBOUND_VALUE,
+	PdcpCountGetReq_Type_AllRBs,
+	PdcpCountGetReq_Type_SingleRB
+};
+SIDL_UNION_BEGIN(PdcpCountGetReq_Type) {
+	SIDL_UNION_CASE(PdcpCountGetReq_Type_AllRBs)
+		Null_Type AllRBs;
+	SIDL_UNION_CASE(PdcpCountGetReq_Type_SingleRB)
+		struct RadioBearerId_Type SingleRB;
+} SIDL_UNION_END;
+
+SIDL_UNION_ENUM(Pdcp_CountReq_Type) {
+	Pdcp_CountReq_Type_UNBOUND_VALUE,
+	Pdcp_CountReq_Type_Get,
+	Pdcp_CountReq_Type_Set
+};
+SIDL_UNION_BEGIN(Pdcp_CountReq_Type) {
+	SIDL_UNION_CASE(Pdcp_CountReq_Type_Get)
+		struct PdcpCountGetReq_Type Get;
+	SIDL_UNION_CASE(Pdcp_CountReq_Type_Set)
+		SIDL_DYNAMIC_OF_STRUCT(PdcpCountInfo_Type, Set);
+} SIDL_UNION_END;
+
+typedef enum {
+	PDCP_SNLength5,
+	PDCP_SNLength7,
+	PDCP_SNLength12,
+	PDCP_SNLength16
+} PDCP_SNLength_Type;
+
+struct PDCP_ROHC_Mode_Type {
+	PDCP_SNLength_Type SN_Size;
+};
+
+struct PDCP_NonROHC_Mode_Type {
+	PDCP_SNLength_Type SN_Size;
+};
+
+SIDL_UNION_ENUM(PDCP_TestModeInfo_Type) {
+	PDCP_TestModeInfo_Type_UNBOUND_VALUE,
+	PDCP_TestModeInfo_Type_PDCP_ROHC_Mode,
+	PDCP_TestModeInfo_Type_PDCP_NonROHC_Mode
+};
+SIDL_UNION_BEGIN(PDCP_TestModeInfo_Type) {
+	SIDL_UNION_CASE(PDCP_TestModeInfo_Type_ROHC_Mode)
+		struct PDCP_ROHC_Mode_Type PDCP_ROHC_Mode;
+	SIDL_UNION_CASE(PDCP_TestModeInfo_Type_NonROHC_Mode)
+		struct PDCP_NonROHC_Mode_Type PDCP_NonROHC_Mode;
+} SIDL_UNION_END;
+
+SIDL_UNION_ENUM(PDCP_TestModeConfig_Type) {
+	PDCP_TestModeConfig_Type_UNBOUND_VALUE,
+	PDCP_TestModeConfig_Type_None,
+	PDCP_TestModeConfig_Type_Info
+};
+SIDL_UNION_BEGIN(PDCP_TestModeConfig_Type) {
+	SIDL_UNION_CASE(PDCP_TestModeConfig_Type_None)
+		Null_Type None;
+	SIDL_UNION_CASE(PDCP_TestModeConfig_Type_Info)
+		struct PDCP_TestModeInfo_Type Info;
+} SIDL_UNION_END;
+
+SIDL_UNION_ENUM(PDCP_Config_Type) {
+	PDCP_Config_UNBOUND_VALUE,
+	PDCP_Config_Type_R8
+};
+SIDL_UNION_BEGIN(PDCP_Config_Type) {
+	SIDL_UNION_CASE(PDCP_Config_Type_R8)
+		struct ASN_NAME(PDCP_Config) R8;
+} SIDL_UNION_END;
+
+SIDL_UNION_ENUM(PDCP_RBConfig_Type) {
+	PDCP_RBConfig_Type_UNBOUND_VALUE,
+	PDCP_RBConfig_Type_Srb,
+	PDCP_RBConfig_Type_Drb,
+	PDCP_RBConfig_Type_Transparent
+};
+SIDL_UNION_BEGIN(PDCP_RBConfig_Type) {
+	SIDL_UNION_CASE(PDCP_RBConfig_Type_Srb)
+		Null_Type Srb;
+	SIDL_UNION_CASE(PDCP_RBConfig_Type_Drb)
+		struct PDCP_Config_Type Drb;
+	SIDL_UNION_CASE(PDCP_RBConfig_Type_Transparent)
+		Null_Type Transparent;
+} SIDL_UNION_END;
+
+struct PDCP_ConfigInfo_Type {
+	SIDL_OPTIONAL_OF_STRUCT(PDCP_RBConfig_Type, Rb);
+	SIDL_OPTIONAL_OF_STRUCT(PDCP_TestModeConfig_Type, TestMode);
+};
+
+SIDL_UNION_ENUM(PDCP_Configuration_Type) {
+	PDCP_Configuration_Type_UNBOUND_VALUE,
+	PDCP_Configuration_Type_None,
+	PDCP_Configuration_Type_Config
+};
+SIDL_UNION_BEGIN(PDCP_Configuration_Type) {
+	SIDL_UNION_CASE(PDCP_Configuration_Type_None)
+		Null_Type None;
+	SIDL_UNION_CASE(PDCP_Configuration_Type_Config)
+		struct PDCP_ConfigInfo_Type Config;
+} SIDL_UNION_END;
+
+SIDL_UNION_ENUM(UL_AM_RLC_Type) {
+	UL_AM_RLC_Type_UNBOUND_VALUE,
+	UL_AM_RLC_Type_R8
+};
+SIDL_UNION_BEGIN(UL_AM_RLC_Type) {
+	SIDL_UNION_CASE(UL_AM_RLC_Type_R8)
+		struct ASN_NAME(UL_AM_RLC) R8;
+} SIDL_UNION_END;
+
+SIDL_UNION_ENUM(DL_AM_RLC_Type) {
+	DL_AM_RLC_Type_UNBOUND_VALUE,
+	DL_AM_RLC_Type_R8
+};
+SIDL_UNION_BEGIN(DL_AM_RLC_Type) {
+	SIDL_UNION_CASE(DL_AM_RLC_Type_R8)
+		struct ASN_NAME(DL_AM_RLC) R8;
+} SIDL_UNION_END;
+
+SIDL_UNION_ENUM(UL_UM_RLC_Type) {
+	UL_UM_RLC_Type_UNBOUND_VALUE,
+	UL_UM_RLC_Type_R8
+};
+SIDL_UNION_BEGIN(UL_UM_RLC_Type) {
+	SIDL_UNION_CASE(UL_UM_RLC_Type_R8)
+		struct ASN_NAME(UL_UM_RLC) R8;
+} SIDL_UNION_END;
+
+SIDL_UNION_ENUM(DL_UM_RLC_Type) {
+	DL_UM_RLC_Type_UNBOUND_VALUE,
+	DL_UM_RLC_Type_R8
+};
+SIDL_UNION_BEGIN(DL_UM_RLC_Type) {
+	SIDL_UNION_CASE(DL_UM_RLC_Type_R8)
+		struct ASN_NAME(DL_UM_RLC) R8;
+} SIDL_UNION_END;
+
+struct SS_RLC_AM_Type {
+	SIDL_OPTIONAL_OF_STRUCT(UL_AM_RLC_Type, Tx);
+	SIDL_OPTIONAL_OF_STRUCT(DL_AM_RLC_Type, Rx);
+	SIDL_OPTIONAL_OF_STRUCT(ASN_NAME(RLC_Config_v1250), ExtendedLI);
+};
+
+struct SS_RLC_UM_Bi_Directional_Type {
+	SIDL_OPTIONAL_OF_STRUCT_WITH_PFX(SS_RLC_UM_Bi_Directional_Type, UL_UM_RLC_Type, Tx);
+	SIDL_OPTIONAL_OF_STRUCT_WITH_PFX(SS_RLC_UM_Bi_Directional_Type, DL_UM_RLC_Type, Rx);
+};
+
+struct SS_RLC_UM_Uni_Directional_UL_Type {
+	SIDL_OPTIONAL_OF_STRUCT_WITH_PFX(SS_RLC_UM_Uni_Directional_UL_Type, DL_UM_RLC_Type, Rx);
+};
+
+struct SS_RLC_UM_Uni_Directional_DL_Type {
+	SIDL_OPTIONAL_OF_STRUCT_WITH_PFX(SS_RLC_UM_Uni_Directional_DL_Type, UL_UM_RLC_Type, Tx);
+};
+
+SIDL_UNION_ENUM(RLC_RbConfig_Type) {
+	RLC_RbConfig_Type_UNBOUND_VALUE,
+	RLC_RbConfig_Type_AM,
+	RLC_RbConfig_Type_UM,
+	RLC_RbConfig_Type_UM_OnlyUL,
+	RLC_RbConfig_Type_UM_OnlyDL,
+	RLC_RbConfig_Type_TM
+};
+SIDL_UNION_BEGIN(RLC_RbConfig_Type) {
+	SIDL_UNION_CASE(RLC_RbConfig_Type_AM)
+		struct SS_RLC_AM_Type AM;
+	SIDL_UNION_CASE(RLC_RbConfig_Type_UM)
+		struct SS_RLC_UM_Bi_Directional_Type UM;
+	SIDL_UNION_CASE(RLC_RbConfig_Type_UM_OnlyUL)
+		struct SS_RLC_UM_Uni_Directional_UL_Type UM_OnlyUL;
+	SIDL_UNION_CASE(RLC_RbConfig_Type_UM_OnlyDL)
+		struct SS_RLC_UM_Uni_Directional_DL_Type UM_OnlyDL;
+	SIDL_UNION_CASE(RLC_RbConfig_Type_TM)
+		Null_Type TM;
+} SIDL_UNION_END;
+
+typedef enum {
+	RLC_ACK_Prohibit_Prohibit,
+	RLC_ACK_Prohibit_Continue
+} RLC_ACK_Prohibit_Type;
+
+typedef enum {
+	RLC_NotACK_NextRLC_PDU_Start
+} RLC_NotACK_NextRLC_PDU_Type;
+
+typedef uint16_t RLC_AM_SequenceNumber_Type;
+
+SIDL_UNION_ENUM(RLC_TestModeInfo_Type) {
+	RLC_TestModeInfo_Type_UNBOUND_VALUE,
+	RLC_TestModeInfo_Type_AckProhibit,
+	RLC_TestModeInfo_Type_NotACK_NextRLC_PDU,
+	RLC_TestModeInfo_Type_ModifyVTS,
+	RLC_TestModeInfo_Type_TransparentMode_UMDwith5BitSN,
+	RLC_TestModeInfo_Type_TransparentMode_UMDwith10BitSN,
+	RLC_TestModeInfo_Type_TransparentMode_AMD
+};
+SIDL_UNION_BEGIN(RLC_TestModeInfo_Type) {
+	SIDL_UNION_CASE(RLC_TestModeInfo_Type_AckProhibit)
+		RLC_ACK_Prohibit_Type AckProhibit;
+	SIDL_UNION_CASE(RLC_TestModeInfo_Type_NotACK_NextRLC_PDU)
+		RLC_NotACK_NextRLC_PDU_Type NotACK_NextRLC_PDU;
+	SIDL_UNION_CASE(RLC_TestModeInfo_Type_ModifyVTS)
+		RLC_AM_SequenceNumber_Type ModifyVTS;
+	SIDL_UNION_CASE(RLC_TestModeInfo_Type_TransparentMode_UMDwith5BitSN)
+		Null_Type TransparentMode_UMDwith5BitSN;
+	SIDL_UNION_CASE(RLC_TestModeInfo_Type_TransparentMode_UMDwith10BitSN)
+		Null_Type TransparentMode_UMDwith10BitSN;
+	SIDL_UNION_CASE(RLC_TestModeInfo_Type_TransparentMode_AMD)
+		Null_Type TransparentMode_AMD;
+} SIDL_UNION_END;
+
+SIDL_UNION_ENUM(RLC_TestModeConfig_Type) {
+	RLC_TestModeConfig_Type_UNBOUND_VALUE,
+	RLC_TestModeConfig_Type_None,
+	RLC_TestModeConfig_Type_Info
+};
+SIDL_UNION_BEGIN(RLC_TestModeConfig_Type) {
+	SIDL_UNION_CASE(RLC_TestModeConfig_Type_None)
+		Null_Type None;
+	SIDL_UNION_CASE(RLC_TestModeConfig_Type_Info)
+		struct RLC_TestModeInfo_Type Info;
+} SIDL_UNION_END;
+
+struct RLC_Configuration_Type {
+	SIDL_OPTIONAL_OF_STRUCT(RLC_RbConfig_Type, Rb);
+	SIDL_OPTIONAL_OF_STRUCT(RLC_TestModeConfig_Type, TestMode);
+};
+
+typedef int32_t TestLogicalChannelId_Type;
+
+struct MAC_Test_DLLogChID_Type {
+	TestLogicalChannelId_Type LogChId;
+	Null_Type ConfigLchId;
+};
+
+typedef enum {
+	MAC_Test_SCH_NoHeaderManipulation_NormalMode,
+	MAC_Test_SCH_NoHeaderManipulation_DL_SCH_Only,
+	MAC_Test_SCH_NoHeaderManipulation_DL_UL_SCH,
+} MAC_Test_SCH_NoHeaderManipulation_Type;
+
+struct MAC_TestModeInfo_Type {
+	struct MAC_Test_DLLogChID_Type DiffLogChId;
+	MAC_Test_SCH_NoHeaderManipulation_Type No_HeaderManipulation;
+};
+
+SIDL_UNION_ENUM(MAC_TestModeConfig_Type) {
+	MAC_TestModeConfig_Type_UNBOUND_VALUE,
+	MAC_TestModeConfig_Type_None,
+	MAC_TestModeConfig_Type_Info
+};
+SIDL_UNION_BEGIN(MAC_TestModeConfig_Type) {
+	SIDL_UNION_CASE(MAC_TestModeConfig_Type_None)
+		Null_Type None;
+	SIDL_UNION_CASE(MAC_TestModeConfig_Type_Info)
+		struct MAC_TestModeInfo_Type Info;
+} SIDL_UNION_END;
+
+typedef ASN_ENUM(ASN_NAME(LogicalChannelConfig, ul_SpecificParameters, prioritisedBitRate)) PrioritizedBitRate_Type;
+
+struct MAC_LogicalChannelConfig_Type {
+	int32_t Priority;
+	PrioritizedBitRate_Type PrioritizedBitRate;
+	SIDL_OPTIONAL(Null_Type, LAA_UL_Allowed);
+};
+
+struct MAC_Configuration_Type {
+	SIDL_OPTIONAL_OF_STRUCT(MAC_LogicalChannelConfig_Type, LogicalChannel);
+	SIDL_OPTIONAL_OF_STRUCT(MAC_TestModeConfig_Type, TestMode);
+};
+
+typedef uint8_t LogicalChannelId_Type;
+
+struct RadioBearerConfigInfo_Type {
+	SIDL_OPTIONAL_OF_STRUCT(PDCP_Configuration_Type, Pdcp);
+	SIDL_OPTIONAL_OF_STRUCT(RLC_Configuration_Type, Rlc);
+	SIDL_OPTIONAL(LogicalChannelId_Type, LogicalChannelId);
+	SIDL_OPTIONAL_OF_STRUCT(MAC_Configuration_Type, Mac);
+	SIDL_OPTIONAL(bool, DiscardULData);
+};
+
+SIDL_UNION_ENUM(RadioBearerConfig_Type) {
+	RadioBearerConfig_Type_UNBOUND_VALUE,
+	RadioBearerConfig_Type_AddOrReconfigure,
+	RadioBearerConfig_Type_Release
+};
+SIDL_UNION_BEGIN (RadioBearerConfig_Type) {
+	SIDL_UNION_CASE(RadioBearerConfig_Type_AddOrReconfigure)
+		struct RadioBearerConfigInfo_Type AddOrReconfigure;
+	SIDL_UNION_CASE(RadioBearerConfig_Type_Release)
+		Null_Type Release;
+} SIDL_UNION_END;
+
+struct RadioBearer_Type {
+	struct RadioBearerId_Type Id;
+	struct RadioBearerConfig_Type Config;
+};
+
+struct PdcpSQN_Type {
+	PdcpCountFormat_Type Format;
+	int32_t Value;
+};
+
+SIDL_UNION_ENUM(PDCP_ActTime_Type) {
+	PDCP_ActTime_Type_UNBOUND_VALUE,
+	PDCP_ActTime_Type_None,
+	PDCP_ActTime_Type_SQN
+};
+SIDL_UNION_BEGIN(PDCP_ActTime_Type) {
+	SIDL_UNION_CASE(PDCP_ActTime_Type_None)
+		Null_Type None;
+	SIDL_UNION_CASE(PDCP_ActTime_Type_SQN)
+		struct PdcpSQN_Type SQN;
+} SIDL_UNION_END;
+
+struct SecurityActTime_Type {
+	struct RadioBearerId_Type RadioBearerId;
+	struct PDCP_ActTime_Type UL;
+	struct PDCP_ActTime_Type DL;
+};
+
+struct AS_IntegrityInfo_Type {
+	CipheringAlgorithm_r12_Type Algorithm;
+	B128_Key_Type KRRCint;
+	SIDL_OPTIONAL(SecurityActTimeList_Type, ActTimeList);
+};
+
+struct AS_CipheringInfo_Type {
+	CipheringAlgorithm_r12_Type Algorithm;
+	B128_Key_Type KRRCenc;
+	B128_Key_Type KUPenc;
+	SecurityActTimeList_Type ActTimeList;
+};
+
+struct AS_SecStartRestart_Type {
+	SIDL_OPTIONAL_OF_STRUCT(AS_IntegrityInfo_Type, Integrity);
+	SIDL_OPTIONAL_OF_STRUCT(AS_CipheringInfo_Type, Ciphering);
+};
+
+SIDL_UNION_ENUM(AS_Security_Type) {
+	AS_Security_Type_UNBOUND_VALUE,
+	AS_Security_Type_StartRestart,
+	AS_Security_Type_Release
+};
+SIDL_UNION_BEGIN(AS_Security_Type) {
+	SIDL_UNION_CASE(AS_Security_Type_StartRestart)
+		struct AS_SecStartRestart_Type StartRestart;
+	SIDL_UNION_CASE(AS_Security_Type_Release)
+		Null_Type Release;
+} SIDL_UNION_END;
+
+struct UE_CategoryInfo_Type {
+	UE_Category_Type ue_Category;
+	SIDL_OPTIONAL(UE_Category_v1020_Type, ue_Category_V1020);
+	SIDL_OPTIONAL(UE_Category_v1170_Type, ue_Category_v1170);
+	SIDL_OPTIONAL(UE_Category_v11a0_Type, ue_Category_v11a0);
+	SIDL_OPTIONAL(UE_Category_v1250_Type, ue_Category_v1250);
+	SIDL_OPTIONAL(UE_CategoryDL_r12_Type, ue_CategoryDL_r12);
+	SIDL_OPTIONAL(UE_CategoryDL_v1260_Type, ue_CategoryDL_v1260);
+	SIDL_OPTIONAL(UE_CategoryDL_v1310_Type, ue_CategoryDL_v1310);
+	SIDL_OPTIONAL(UE_CategoryDL_v1330_Type, ue_CategoryDL_v1330);
+	SIDL_OPTIONAL(UE_CategoryDL_v1350_Type, ue_CategoryDL_v1350);
+	SIDL_OPTIONAL(UE_CategoryDL_v1460_Type, ue_CategoryDL_v1460);
+};
+
+typedef SIDL_DYNAMIC(int32_t, SubframeOffsetList_Type);
+
+struct PagingTrigger_Type {
+	struct ASN_NAME(PCCH_Message) Paging;
+	SIDL_OPTIONAL(SubframeOffsetList_Type, SubframeOffsetList);
+};
+
+SIDL_UNION_ENUM(SystemRequest_Type) {
+	SystemRequest_Type_UNBOUND_VALUE,
+	SystemRequest_Type_Cell,
+	SystemRequest_Type_CellAttenuationList,
+	SystemRequest_Type_RadioBearerList,
+	SystemRequest_Type_EnquireTiming = 4,
+	SystemRequest_Type_AS_Security,
+	// SystemRequest_Type_Sps,
+	SystemRequest_Type_Paging = 7,
+	// SystemRequest_Type_L1MacIndCtrl,
+	// SystemRequest_Type_RlcIndCtrl,
+	SystemRequest_Type_PdcpCount = 10,
+	// SystemRequest_Type_PdcpHandoverControl,
+	// SystemRequest_Type_L1__TestMode,
+	// SystemRequest_Type_PdcchOrder,
+	// SystemRequest_Type_ActivateScell,
+	// SystemRequest_Type_MbmsConfig,
+	// SystemRequest_Type_PDCCH__MCCH__ChangeNotification,
+	// SystemRequest_Type_MSI__Config,
+	SystemRequest_Type_UE_Cat_Info = 18,
+	// SystemRequest_Type_OCNG__Config,
+	// SystemRequest_Type_PdcchTddConfigOrder,
+	// SystemRequest_Type_DirectIndicationInfo,
+	// SystemRequest_Type_LAA__SubframeConfiguration,
+	// SystemRequest_Type_MultipleUlSps
+};
+SIDL_UNION_BEGIN(SystemRequest_Type) {
+	SIDL_UNION_CASE(SystemRequest_Type_Cell)
+		struct CellConfigRequest_Type Cell;
+	SIDL_UNION_CASE(SystemRequest_Type_CellAttenuationList)
+		SIDL_DYNAMIC_OF_STRUCT(CellAttenuationConfig_Type, CellAttenuationList);
+	SIDL_UNION_CASE(SystemRequest_Type_RadioBearerList)
+		SIDL_DYNAMIC_OF_STRUCT(RadioBearer_Type, RadioBearerList);
+	SIDL_UNION_CASE(SystemRequest_Type_EnquireTiming)
+		Null_Type EnquireTiming;
+	SIDL_UNION_CASE(SystemRequest_Type_AS_Security)
+		struct AS_Security_Type AS_Security;
+	// SIDL_UNION_CASE(SystemRequest_Type_Sps)
+	SIDL_UNION_CASE(SystemRequest_Type_Paging)
+		struct PagingTrigger_Type Paging;
+	// SIDL_UNION_CASE(SystemRequest_Type_L1MacIndCtrl)
+	// SIDL_UNION_CASE(SystemRequest_Type_RlcIndCtrl)
+	SIDL_UNION_CASE(SystemRequest_Type_PdcpCount)
+		struct Pdcp_CountReq_Type PdcpCount;
+	// SIDL_UNION_CASE(SystemRequest_Type_PdcpHandoverControl)
+	// SIDL_UNION_CASE(SystemRequest_Type_L1__TestMode)
+	// SIDL_UNION_CASE(SystemRequest_Type_PdcchOrder)
+	// SIDL_UNION_CASE(SystemRequest_Type_ActivateScell)
+	// SIDL_UNION_CASE(SystemRequest_Type_MbmsConfig)
+	// SIDL_UNION_CASE(SystemRequest_Type_PDCCH__MCCH__ChangeNotification)
+	// SIDL_UNION_CASE(SystemRequest_Type_MSI__Config)
+	SIDL_UNION_CASE(SystemRequest_Type_UE_Cat_Info)
+		struct UE_CategoryInfo_Type UE_Cat_Info;
+	// SIDL_UNION_CASE(SystemRequest_Type_OCNG__Config)
+	// SIDL_UNION_CASE(SystemRequest_Type_PdcchTddConfigOrder)
+	// SIDL_UNION_CASE(SystemRequest_Type_DirectIndicationInfo)
+	// SIDL_UNION_CASE(SystemRequest_Type_LAA__SubframeConfiguration)
+	// SIDL_UNION_CASE(SystemRequest_Type_MultipleUlSp)
+} SIDL_UNION_END;
+
+SIDL_UNION_ENUM(SystemConfirm_Type) {
+	SystemConfirm_Type_UNBOUND_VALUE,
+	SystemConfirm_Type_Cell,
+	SystemConfirm_Type_CellAttenuationList,
+	SystemConfirm_Type_RadioBearerList,
+	SystemConfirm_Type_EnquireTiming,
+	SystemConfirm_Type_AS_Security,
+	SystemConfirm_Type_Sps,
+	SystemConfirm_Type_Paging,
+	SystemConfirm_Type_L1MacIndCtrl,
+	SystemConfirm_Type_RlcIndCtrl,
+	SystemConfirm_Type_PdcpCount,
+	SystemConfirm_Type_PdcpHandoverControl,
+	SystemConfirm_Type_L1_TestMode,
+	SystemConfirm_Type_PdcchOrder,
+	SystemConfirm_Type_ActivateScell,
+	SystemConfirm_Type_MbmsConfig,
+	SystemConfirm_Type_PDCCH_MCCH_ChangeNotification,
+	SystemConfirm_Type_MSI_Config,
+	SystemConfirm_Type_UE_Cat_Info,
+	SystemConfirm_Type_OCNG_Config,
+	SystemConfirm_Type_DirectIndicationInfo
+};
+SIDL_UNION_BEGIN(SystemConfirm_Type) {
+	SIDL_UNION_CASE(SystemConfirm_Type_Cell)
+		Null_Type Cell;
+	SIDL_UNION_CASE(SystemConfirm_Type_CellAttenuationList)
+		Null_Type CellAttenuationList;
+	SIDL_UNION_CASE(SystemConfirm_Type_RadioBearerList)
+		Null_Type RadioBearerList;
+	SIDL_UNION_CASE(SystemConfirm_Type_EnquireTiming)
+		Null_Type EnquireTiming;
+	SIDL_UNION_CASE(SystemConfirm_Type_AS_Security)
+		Null_Type AS_Security;
+	SIDL_UNION_CASE(SystemConfirm_Type_Sps)
+		Null_Type Sps;
+	SIDL_UNION_CASE(SystemConfirm_Type_Paging)
+		Null_Type Paging;
+	SIDL_UNION_CASE(SystemConfirm_Type_L1MacIndCtrl)
+		Null_Type L1MacIndCtrl;
+	SIDL_UNION_CASE(SystemConfirm_Type_RlcIndCtrl)
+		Null_Type RlcIndCtrl;
+	SIDL_UNION_CASE(SystemConfirm_Type_PdcpCount)
+		struct Pdcp_CountCnf_Type PdcpCount;
+	SIDL_UNION_CASE(SystemConfirm_Type_PdcpHandoverControl)
+		Null_Type PdcpHandoverControl;
+	SIDL_UNION_CASE(SystemConfirm_Type_L1_TestMode)
+		Null_Type L1_TestMode;
+	SIDL_UNION_CASE(SystemConfirm_Type_PdcchOrder)
+		Null_Type PdcchOrder;
+	SIDL_UNION_CASE(SystemConfirm_Type_ActivateScell)
+		Null_Type ActivateScell;
+	SIDL_UNION_CASE(SystemConfirm_Type_MbmsConfig)
+		Null_Type MbmsConfig;
+	SIDL_UNION_CASE(SystemConfirm_Type_PDCCH_MCCH_ChangeNotification)
+		Null_Type PDCCH_MCCH_ChangeNotification;
+	SIDL_UNION_CASE(SystemConfirm_Type_MSI_Config)
+		Null_Type MSI_Config;
+	SIDL_UNION_CASE(SystemConfirm_Type_UE_Cat_Info)
+		Null_Type UE_Cat_Info;
+	SIDL_UNION_CASE(SystemConfirm_Type_OCNG_Config)
+		Null_Type OCNG_Config;
+	SIDL_UNION_CASE(SystemConfirm_Type_DirectIndicationInfo)
+		Null_Type DirectIndicationInfo;
+} SIDL_UNION_END;
+
+struct SYSTEM_CTRL_REQ {
+	struct ReqAspCommonPart_Type Common;
+	struct SystemRequest_Type Request;
+};
+
+struct SYSTEM_CTRL_CNF {
+	struct CnfAspCommonPart_Type Common;
+	struct SystemConfirm_Type Confirm;
+};
+
+COMMAND Process(const struct SYSTEM_CTRL_REQ* FromSS, struct SYSTEM_CTRL_CNF* ToSS);

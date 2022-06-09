@@ -1,0 +1,65 @@
+/*
+ * Copyright 2022 Sequans Communications.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include "msg.sidl"
+
+// SIDL common TTCN types and definitions.
+#include "TtcnCommon.sidl"
+
+METADATA_VAR(itf_name, "SysSrb");
+
+// TTCN namespaces
+METADATA_VAR(namespaces, "NasEmu_AspTypes_EUTRA");
+
+// Internal non-TTCN types
+METADATA_VAR(internal, "RRC_MSG_Request_Type RRC_MSG_Indication_Type");
+
+SIDL_UNION_ENUM(RRC_MSG_Request_Type) {
+	RRC_MSG_Request_Type_UNBOUND_VALUE,
+	RRC_MSG_Request_Type_Ccch,
+	RRC_MSG_Request_Type_Dcch
+};
+SIDL_UNION_BEGIN(RRC_MSG_Request_Type) {
+	SIDL_UNION_CASE(RRC_MSG_Request_Type_Ccch)
+		SIDL_DYNAMIC_WITH_PFX(RRC_MSG_Request_Type, uint8_t, Ccch);
+	SIDL_UNION_CASE(RRC_MSG_Request_Type_Dcch)
+		SIDL_DYNAMIC_WITH_PFX(RRC_MSG_Request_Type, uint8_t, Dcch);
+} SIDL_UNION_END;
+
+SIDL_UNION_ENUM(RRC_MSG_Indication_Type) {
+	RRC_MSG_Indication_Type_UNBOUND_VALUE,
+	RRC_MSG_Indication_Type_Ccch,
+	RRC_MSG_Indication_Type_Dcch
+};
+SIDL_UNION_BEGIN(RRC_MSG_Indication_Type) {
+	SIDL_UNION_CASE(RRC_MSG_Indication_Type_Ccch)
+		SIDL_DYNAMIC_WITH_PFX(RRC_MSG_Indication_Type, uint8_t, Ccch);
+	SIDL_UNION_CASE(RRC_MSG_Indication_Type_Dcch)
+		SIDL_DYNAMIC_WITH_PFX(RRC_MSG_Indication_Type, uint8_t, Dcch);
+} SIDL_UNION_END;
+
+struct EUTRA_RRC_PDU_REQ {
+	struct ReqAspCommonPart_Type Common;
+	struct RRC_MSG_Request_Type RrcPdu;
+};
+
+struct EUTRA_RRC_PDU_IND {
+	struct IndAspCommonPart_Type Common;
+	struct RRC_MSG_Indication_Type RrcPdu;
+};
+
+NOTIFY ProcessToSS(struct EUTRA_RRC_PDU_IND* ToSS);
+ONEWAY ProcessFromSS(const struct EUTRA_RRC_PDU_REQ* FromSS);

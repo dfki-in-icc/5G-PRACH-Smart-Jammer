@@ -1,0 +1,110 @@
+/*
+ * Copyright 2022 Sequans Communications.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include "msg.sidl"
+
+ONEWAY HelloFromSS(SIDL_ARRAY_IN_ARG(char, Str));
+
+NOTIFY HelloToSS(SIDL_ARRAY_OUT_ARG(char, Str));
+
+COMMAND Ping(uint32_t FromSS, uint32_t* ToSS);
+
+struct Complex {
+	int val;
+};
+
+struct Empty {
+	char dummy;
+};
+
+struct Empty2 {
+	char dummy;
+	int simple[3];
+	struct Complex complex[3];
+};
+
+struct EchoData {
+	char* str;
+	SIDL_ARRAY(struct Empty, empty);
+	struct Empty* eee;
+	struct Empty sss;
+};
+
+COMMAND Echo(const struct EchoData* FromSS, struct EchoData* ToSS);
+
+struct Output {
+	SIDL_DYNAMIC_OPTIONAL(char, Foo);
+	SIDL_ARRAY_OPTIONAL(char, Koo, 25);
+	SIDL_OPTIONAL(int, Bar);
+	SIDL_DYNAMIC(char, Zoo);
+	SIDL_ARRAY(char, Z);
+	SIDL_DYNAMIC_OF_STRUCT(Empty, Far);
+};
+
+SIDL_UNION_ENUM(TestUnion) {
+	TestUnion_Zero,
+	TestUnion_One,
+	TestUnion_Two,
+	TestUnion_Three
+};
+SIDL_UNION_BEGIN(TestUnion) {
+	SIDL_UNION_CASE(TestUnion_Zero)
+		int Zero;
+	SIDL_UNION_CASE(TestUnion_One)
+		int One;
+	SIDL_UNION_CASE(TestUnion_Two)
+		struct Empty Two;
+	SIDL_UNION_CASE(TestUnion_Three)
+		struct Empty Three;
+} SIDL_UNION_END;
+
+struct New {
+	SIDL_DYNAMIC_OF_STRUCT(Empty, dynamic_struct);
+	SIDL_DYNAMIC(int, dynamic_ints);
+	SIDL_OPTIONAL_OF_STRUCT(Empty, optional_struct_1);
+	SIDL_OPTIONAL_OF_STRUCT(Empty, optional_struct_2);
+	SIDL_OPTIONAL(int, optional_int_1);
+	SIDL_OPTIONAL(int, optional_int_2);
+	SIDL_OPTIONAL_OF_POINTER(char, optional_string_1);
+	SIDL_OPTIONAL_OF_POINTER(char, optional_string_2);
+	SIDL_ARRAY_OPTIONAL_OF_STRUCT(Empty, optional_struct_array_1, 2);
+	SIDL_ARRAY_OPTIONAL_OF_STRUCT(Empty, optional_struct_array_2, 2);
+	SIDL_ARRAY_OPTIONAL(int, optional_int_array_1, 2);
+	SIDL_ARRAY_OPTIONAL(int, optional_int_array_2, 2);
+	SIDL_DYNAMIC_OPTIONAL_OF_STRUCT(Empty, dynamic_optional_struct_1);
+	SIDL_DYNAMIC_OPTIONAL_OF_STRUCT(Empty, dynamic_optional_struct_2);
+	SIDL_DYNAMIC_OPTIONAL(int, dynamic_optional_int_1);
+	SIDL_DYNAMIC_OPTIONAL(int, dynamic_optional_int_2);
+	struct TestUnion* union_test_pointer;
+	struct TestUnion union_test;
+	SIDL_OPTIONAL_OF_STRUCT(TestUnion, optional_union_1);
+	SIDL_OPTIONAL_OF_STRUCT_POINTER(TestUnion, optional_union_pointer_1);
+	SIDL_OPTIONAL_OF_STRUCT(TestUnion, optional_union_2);
+	SIDL_DYNAMIC_OPTIONAL_OF_STRUCT(TestUnion, dynamic_optional_union_1);
+	SIDL_DYNAMIC_OPTIONAL_OF_STRUCT(TestUnion, dynamic_optional_union_2);
+};
+
+COMMAND Test1(const struct Output* out);
+COMMAND Test2(struct Output* out);
+
+typedef enum {
+	SomeEnum_Zero,
+	SomeEnum_One,
+	SomeEnum_Two,
+	SomeEnum_Three
+} SomeEnum;
+
+COMMAND Other(const struct Empty* in1, uint32_t in2, SIDL_ARRAY_IN_ARG(char, in3), const char* in4, bool in5, int in6, float in7, SomeEnum in8, SIDL_ARRAY_IN_ARG(struct Empty, in9), const struct Empty2* in10, const struct New* in11, struct Empty* out1, uint32_t* out2, SIDL_ARRAY_OUT_ARG(char, out3), char* out4, bool* out5, int* out6, float* out7, SomeEnum* out8, SIDL_ARRAY_OUT_ARG(struct Empty, out9), struct Empty2* out10, struct New* out11);

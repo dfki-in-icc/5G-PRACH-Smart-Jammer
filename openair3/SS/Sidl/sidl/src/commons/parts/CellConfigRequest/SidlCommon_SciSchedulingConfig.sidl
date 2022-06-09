@@ -1,0 +1,64 @@
+/*
+ * Copyright 2022 Sequans Communications.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#pragma once
+
+// SIDL keywords.
+#include "msg.sidl"
+
+// SIDL commons.
+#include "SidlCommon.sidl"
+
+typedef uint8_t Itrp_Type;
+
+struct SL_Sci0Config_Type {
+	struct UplinkHoppingControl_Type Hopping;
+	struct FreqDomainSchedulExplicit_Type FreqDomainSchedul;
+	Itrp_Type Itrp;
+};
+
+struct Sci0SchedulingConfig_Type {
+	SIDL_OPTIONAL(ASN_NAME(C_RNTI), SL_RNTI_r12);
+	SIDL_OPTIONAL(N_PSCCH_Type, N_PSCCH);
+	SIDL_OPTIONAL_OF_STRUCT(SL_Sci0Config_Type, SL_Sheduling);
+};
+
+struct SL_Sci1Config_Type {
+	BIT_STRING FreqResourceAllocation;
+	B4_Type TimeGap;
+};
+
+struct Sci1SchedulingConfig_Type {
+	SIDL_OPTIONAL(ASN_NAME(C_RNTI), SL_V_RNTI_r12);
+	SIDL_OPTIONAL(B3_Type, CarrierIndicator);
+	SIDL_OPTIONAL(BIT_STRING, LowestIndexOfChannelAllocation);
+	SIDL_OPTIONAL(B2_Type, SL_Index);
+	SIDL_OPTIONAL(B3_Type, SL_SPS_ConfigurationIndex);
+	SIDL_OPTIONAL(B1_Type, SL_SPS_ActivationRelease);
+	SIDL_OPTIONAL_OF_STRUCT(SL_Sci1Config_Type, SL_SCI1_Scheduling);
+};
+
+SIDL_UNION_ENUM(SciSchedulingConfig_Type) {
+	SciSchedulingConfig_Type_UNBOUND_VALUE,
+	SciSchedulingConfig_Type_SCI0,
+	SciSchedulingConfig_Type_SCI1
+};
+SIDL_UNION_BEGIN(SciSchedulingConfig_Type) {
+	SIDL_UNION_CASE(SciSchedulingConfig_Type_SCI0)
+		struct Sci0SchedulingConfig_Type SCI0;
+	SIDL_UNION_CASE(SciSchedulingConfig_Type_SCI1)
+		struct Sci1SchedulingConfig_Type SCI1;
+} SIDL_UNION_END;

@@ -155,6 +155,8 @@ set (NFAPI_USER_DIR  ${OPENAIR_DIR}/nfapi/oai_integration)
 set (OPENAIR1_DIR    ${OPENAIR_DIR}/openair1)
 set (OPENAIR2_DIR    ${OPENAIR_DIR}/openair2)
 set (OPENAIR3_DIR    ${OPENAIR_DIR}/openair3)
+set (SIDL_DIR        ${OPENAIR_DIR}/openair3/SS/Sidl/lib)
+set (SIDL_CMPLR      ${OPENAIR_DIR}/openair3/SS/Sidl/sidl)
 set (OPENAIR_TARGETS ${OPENAIR_DIR}/targets)
 set (OPENAIR3_DIR    ${OPENAIR_DIR}/openair3)
 set (OPENAIR_CMAKE   ${OPENAIR_DIR}/cmake_targets)
@@ -991,10 +993,12 @@ include_directories("${OPENAIR3_DIR}/NAS/COMMON/IES")
 include_directories("${OPENAIR3_DIR}/NAS/COMMON/UTIL")
 include_directories("${OPENAIR3_DIR}/SECU")
 include_directories("${OPENAIR3_DIR}/SCTP")
+include_directories("${OPENAIR3_DIR}/SS")
 include_directories("${OPENAIR3_DIR}/S1AP")
 include_directories("${OPENAIR2_DIR}/X2AP")
 include_directories("${OPENAIR2_DIR}/M2AP")
 include_directories("${OPENAIR2_DIR}/F1AP")
+include_directories("${OPENAIR3_DIR}/UDP")
 include_directories("${OPENAIR3_DIR}/ocp-gtpu")
 include_directories("${OPENAIR3_DIR}/M3AP")
 include_directories("${OPENAIR3_DIR}/MME_APP")
@@ -1202,6 +1206,11 @@ add_library(HASHTABLE
   ${OPENAIR_DIR}/common/utils/hashtable/obj_hashtable.c
 )
 include_directories(${OPENAIR_DIR}/common/utils/hashtable)
+
+add_library(msc MODULE ${OPENAIR_DIR}/common/utils/msc/msc.c )
+target_link_libraries (msc LFDS)
+
+include_directories(${OPENAIR_DIR}/common/utils/msc)
 
 add_library(UTIL
   ${OPENAIR2_DIR}/UTIL/LISTS/list.c
@@ -2096,6 +2105,26 @@ set (MME_APP_SRC
 add_library(MME_APP ${MME_APP_SRC})
 add_dependencies(MME_APP rrc_flag s1ap_flag x2_flag m2_flag m3_flag)
 
+#------------------------------------------------------
+include_directories (SIDL_SRC_DIR ${SIDL_CMPLR}/api)
+include_directories (SIDL_SRC_DIR ${SIDL_DIR}/acp/api)
+include_directories (SIDL_SRC_DIR ${SIDL_DIR}/adbg/api)
+include_directories (SIDL_SRC_DIR ${SIDL_DIR}/ser/api)
+set(SS_SRC
+  ${OPENAIR3_DIR}/SS/ss_eNB_port_man_task.c
+  ${OPENAIR3_DIR}/SS/ss_eNB_sys_task.c
+  ${OPENAIR3_DIR}/SS/ss_eNB_srb_task.c
+  ${OPENAIR3_DIR}/SS/ss_eNB_vng_task.c
+)
+file(GLOB ss_sidl ${SIDL_CMPLR}/src/*.c)
+file(GLOB ss_acp ${SIDL_DIR}/acp/src/*.c)
+file(GLOB ss_adbg ${SIDL_DIR}/adbg/src/*.c)
+file(GLOB ss_ser ${SIDL_DIR}/ser/src/*.c)
+
+add_library(SS_SERVER ${ss_sidl} ${ss_acp} ${ss_adbg} ${ss_ser} ${SS_SRC})
+add_dependencies(SS_SERVER rrc_flag)
+#------------------------------------------------------
+
 set(SCTP_SRC
   ${OPENAIR3_DIR}/SCTP/sctp_common.c
   ${OPENAIR3_DIR}/SCTP/sctp_eNB_task.c
@@ -2103,6 +2132,9 @@ set(SCTP_SRC
 )
 add_library(SCTP_CLIENT ${SCTP_SRC})
 add_dependencies(SCTP_CLIENT rrc_flag)
+
+add_library(UDP ${OPENAIR3_DIR}/UDP/udp_eNB_task.c)
+add_dependencies(UDP rrc_flag)
 
 set(NAS_SRC ${OPENAIR3_DIR}/NAS/)
 set(libnas_api_OBJS
@@ -2617,9 +2649,9 @@ add_dependencies(lte-softmodem rrc_flag s1ap_flag x2_flag oai_iqplayer)
 
 target_link_libraries (lte-softmodem
   -Wl,--start-group
-  RRC_LIB NR_RRC_LIB S1AP_LIB S1AP_ENB M2AP_LIB M2AP_ENB X2AP_LIB X2AP_ENB M3AP_LIB M3AP_ENB GTPV1U F1AP_LIB F1AP SECU_CN SECU_OSA UTIL HASHTABLE SCTP_CLIENT MME_APP SCHED_LIB SCHED_RU_LIB
+  RRC_LIB NR_RRC_LIB S1AP_LIB S1AP_ENB M2AP_LIB M2AP_ENB X2AP_LIB X2AP_ENB M3AP_LIB M3AP_ENB GTPV1U F1AP_LIB F1AP SECU_CN SECU_OSA UTIL HASHTABLE SCTP_CLIENT SS_SERVER MME_APP UDP SCHED_LIB SCHED_RU_LIB
   PHY_COMMON PHY PHY_RU  L2 L2_LTE NFAPI_COMMON_LIB NFAPI_LIB NFAPI_VNF_LIB NFAPI_PNF_LIB NFAPI_USER_LIB MISC_NFAPI_LTE_LIB
-  ${RAL_LIB} ${NAS_UE_LIB} ITTI ${FLPT_MSG_LIB} ${FLEXRAN_AGENT_LIB} ${FSPT_MSG_LIB}
+  ${MSC_LIB} ${RAL_LIB} ${NAS_UE_LIB} ITTI ${FLPT_MSG_LIB} ${FLEXRAN_AGENT_LIB} ${FSPT_MSG_LIB}
   -Wl,--end-group z dl)
 
 target_link_libraries (lte-softmodem ${LIBXML2_LIBRARIES})

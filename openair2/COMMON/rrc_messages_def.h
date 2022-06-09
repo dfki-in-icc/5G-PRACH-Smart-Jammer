@@ -54,6 +54,9 @@ MESSAGE_DEF(RRC_STATE_IND,              MESSAGE_PRIORITY_MED,       RrcStateInd,
 //-------------------------------------------------------------------------------------------//
 // eNB: ENB_APP -> RRC messages
 MESSAGE_DEF(RRC_CONFIGURATION_REQ,      MESSAGE_PRIORITY_MED,       RrcConfigurationReq,        rrc_configuration_req)
+MESSAGE_DEF(RRC_RBLIST_CFG_REQ,         MESSAGE_PRIORITY_MED,       RrcRblistCfgReq,            rrc_rblist_cfg_req)
+MESSAGE_DEF(RRC_UE_CAT_INFO,            MESSAGE_PRIORITY_MED,       rrcUECatInfo,               rrc_ue_cat_info)
+MESSAGE_DEF(RRC_AS_SECURITY_CONFIG_REQ, MESSAGE_PRIORITY_MED,       RrcAsSecurityConfigReq,     rrc_as_security_config_req)
 MESSAGE_DEF(NBIOTRRC_CONFIGURATION_REQ, MESSAGE_PRIORITY_MED,       NbIoTRrcConfigurationReq,   nbiotrrc_configuration_req)
 MESSAGE_DEF(NRRRC_CONFIGURATION_REQ,    MESSAGE_PRIORITY_MED,       gNB_RrcConfigurationReq,    nrrrc_configuration_req)
 

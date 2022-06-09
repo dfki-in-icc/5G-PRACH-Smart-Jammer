@@ -1,0 +1,252 @@
+/*
+ * Copyright 2022 Sequans Communications.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#pragma once
+
+// SIDL keywords.
+#include "msg.sidl"
+
+// SIDL commons.
+#include "SidlCommon.sidl"
+
+typedef BIT_STRING ContentionResolutionId_Type;
+
+struct RACH_ConfigCommon_R8andLater_Type {
+	struct ASN_NAME(RACH_ConfigCommon) rach_ConfigCommon;
+	SIDL_OPTIONAL_OF_STRUCT(ASN_NAME(RACH_ConfigCommon_v1250), rach_ConfigCommon_v1250);
+};
+
+SIDL_UNION_ENUM(RACH_ConfigCommon_Type) {
+	RACH_ConfigCommon_Type_UNBOUND_VALUE,
+	RACH_ConfigCommon_Type_R8andLater
+};
+SIDL_UNION_BEGIN(RACH_ConfigCommon_Type) {
+	SIDL_UNION_CASE(RACH_ConfigCommon_R8andLater)
+		struct RACH_ConfigCommon_R8andLater_Type R8andLater;
+} SIDL_UNION_END;
+
+SIDL_UNION_ENUM(RACH_ConfigDedicated_Type) {
+	RACH_ConfigDedicated_Type_UNBOUND_VALUE,
+	RACH_ConfigDedicated_Type_R8
+};
+SIDL_UNION_BEGIN(RACH_ConfigDedicated_Type) {
+	SIDL_UNION_CASE(RACH_ConfigDedicated_Type_R8)
+		struct ASN_NAME(RACH_ConfigDedicated) R8;
+} SIDL_UNION_END;
+
+SIDL_UNION_ENUM(RAR_RapIdCtrl_Type) {
+	RAR_RapIdCtrl_Type_UNBOUND_VALUE,
+	RAR_RapIdCtrl_Type_Automatic,
+	RAR_RapIdCtrl_Type_Unmatched
+};
+SIDL_UNION_BEGIN(RAR_RapIdCtrl_Type) {
+	SIDL_UNION_CASE(RAR_RapIdCtrl_Type_Automatic)
+		Null_Type Automatic;
+	SIDL_UNION_CASE(RAR_RapIdCtrl_Type_Unmatched)
+		Null_Type Unmatched;
+} SIDL_UNION_END;
+
+struct UplinkGrant_Type {
+	B1_Type HoppingFlag;
+	B10_Type RB_Allocation;
+	B4_Type ModAndCodScheme;
+	B3_Type TPC_Command;
+	B1_Type UL_Delay;
+	B1_Type CQI_Req;
+};
+
+SIDL_UNION_ENUM(TempC_RNTI_Type) {
+	TempC_RNTI_Type_UNBOUND_VALUE,
+	TempC_RNTI_Type_SameAsC_RNTI,
+	TempC_RNTI_Type_Explicit
+};
+SIDL_UNION_BEGIN(TempC_RNTI_Type) {
+	SIDL_UNION_CASE(TempC_RNTI_Type_SameAsC_RNTI)
+		Null_Type SameAsC_RNTI;
+	SIDL_UNION_CASE(TempC_RNTI_Type_Explicit)
+		ASN_NAME(C_RNTI) Explicit;
+} SIDL_UNION_END;
+
+struct UplinkGrantCE_ModeA_Type {
+	B4_Type Msg3_PUSCH_NB_Index;
+	B4_Type Msg3_PUSCH_ResAllocation;
+	B2_Type Msg3_PUSCH_Repetitions;
+	B3_Type MCS;
+	B3_Type TPC_Command;
+	B1_Type CSI_Req;
+	B1_Type UL_Delay;
+	B2_Type Msg3_4_MPDCCH_NB_Index;
+};
+
+struct UplinkGrantCE_ModeB_Type {
+	B2_Type Msg3_PUSCH_NB_Index;
+	B3_Type Msg3_PUSCH_ResAllocation;
+	B3_Type Msg3_PUSCH_Repetitions;
+	B2_Type TBS;
+	B2_Type Msg3_4_MPDCCH_NB_Index;
+};
+
+struct UplinkGrantCE_ModeB_Type_ModeB {
+	B2_Type Msg3_PUSCH_NB_Index;
+	B3_Type Msg3_PUSCH_ResAllocation;
+	B3_Type Msg3_PUSCH_Repetitions;
+	B2_Type TBS;
+	B2_Type Msg3_4_MPDCCH_NB_Index;
+};
+
+struct UplinkGrantCE_Mode_Type {
+	struct UplinkGrantCE_ModeA_Type CE_ModeA;
+	struct UplinkGrantCE_ModeB_Type CE_ModeB;
+};
+
+struct RandomAccessResponseParameters_Type {
+	struct RAR_RapIdCtrl_Type RapId;
+	struct UplinkGrant_Type InitialGrant;
+	RACH_TimingAdvance_Type TimingAdvance;
+	struct TempC_RNTI_Type TempC_RNTI;
+	SIDL_OPTIONAL_OF_STRUCT(UplinkGrantCE_Mode_Type, InitialGrantCE_Mode);
+};
+
+typedef SIDL_DYNAMIC_OF_STRUCT(RandomAccessResponseParameters_Type, RarList_Type);
+
+SIDL_UNION_ENUM(RandomAccessResponse_Type) {
+	RandomAccessResponse_Type_UNBOUND_VALUE,
+	RandomAccessResponse_Type_None,
+	RandomAccessResponse_Type_List
+};
+SIDL_UNION_BEGIN(RandomAccessResponse_Type) {
+	SIDL_UNION_CASE(RandomAccessResponse_Type_None)
+		Null_Type None;
+	SIDL_UNION_CASE(RandomAccessResponse_Type_List)
+		RarList_Type List;
+} SIDL_UNION_END;
+
+SIDL_UNION_ENUM(RandomAccessBackoffIndicator_Type) {
+	RandomAccessBackoffIndicator_Type_UNBOUND_VALUE,
+	RandomAccessBackoffIndicator_Type_None,
+	RandomAccessBackoffIndicator_Type_Index
+};
+SIDL_UNION_BEGIN(RandomAccessBackoffIndicator_Type) {
+	SIDL_UNION_CASE(RandomAccessBackoffIndicator_Type_None)
+		Null_Type None;
+	SIDL_UNION_CASE(RandomAccessBackoffIndicator_Type_Index)
+		uint8_t Index;
+} SIDL_UNION_END;
+
+struct RandomAccessResponseCtrl_Type {
+	struct DciDlInfoCommon_Type DciInfo;
+	struct RandomAccessResponse_Type Rar;
+	struct RandomAccessBackoffIndicator_Type BackoffInd;
+};
+
+SIDL_UNION_ENUM(RandomAccessResponseConfig_Type) {
+	RandomAccessResponseConfig_Type_UNBOUND_VALUE,
+	RandomAccessResponseConfig_Type_Ctrl,
+	RandomAccessResponseConfig_Type_Ctrl_CRC_Error,
+	RandomAccessResponseConfig_Type_None
+};
+SIDL_UNION_BEGIN(RandomAccessResponseConfig_Type) {
+	SIDL_UNION_CASE(RandomAccessResponseConfig_Type_Ctrl)
+		struct RandomAccessResponseCtrl_Type Ctrl;
+	SIDL_UNION_CASE(RandomAccessResponseConfig_Type_Ctrl_CRC_Error)
+		struct RandomAccessResponseCtrl_Type Ctrl_CRC_Error;
+	SIDL_UNION_CASE(RandomAccessResponseConfig_Type_None)
+		Null_Type None;
+} SIDL_UNION_END;
+
+SIDL_UNION_ENUM(ContentionResolution_ContainedId_Type) {
+	ContentionResolution_ContainedId_Type_UNBOUND_VALUE,
+	ContentionResolution_ContainedId_Type_XorMask,
+	ContentionResolution_ContainedId_Type_None
+};
+SIDL_UNION_BEGIN(ContentionResolution_ContainedId_Type) {
+	SIDL_UNION_CASE(ContentionResolution_ContainedId_Type_XorMask)
+		ContentionResolutionId_Type XorMask;
+	SIDL_UNION_CASE(ContentionResolution_ContainedId_Type_None)
+		Null_Type None;
+} SIDL_UNION_END;
+
+SIDL_UNION_ENUM(ContentionResolution_ContainedDlschSdu_Type) {
+	ContentionResolution_ContainedDlschSdu_Type_UNBOUND_VALUE,
+	ContentionResolution_ContainedDlschSdu_Type_RlcPduCCCH,
+	ContentionResolution_ContainedDlschSdu_Type_PdcpSduDCCH,
+	ContentionResolution_ContainedDlschSdu_Type_None
+};
+SIDL_UNION_BEGIN(ContentionResolution_ContainedDlschSdu_Type) {
+	SIDL_UNION_CASE(ContentionResolution_ContainedDlschSdu_Type_RlcPduCCCH)
+		OCTET_STRING RlcPduCCCH;
+	SIDL_UNION_CASE(ContentionResolution_ContainedDlschSdu_Type_PdcpSduDCCH)
+		OCTET_STRING PdcpSduDCCH;
+	SIDL_UNION_CASE(ContentionResolution_ContainedDlschSdu_Type_None)
+		Null_Type None;
+} SIDL_UNION_END;
+
+struct TCRNTI_ContentionResolutionMacPdu_Type {
+	struct ContentionResolution_ContainedId_Type ContainedId;
+	struct ContentionResolution_ContainedDlschSdu_Type ContainedRlcPdu;
+};
+
+SIDL_UNION_ENUM(TCRNTI_ContentionResolutionCtrl_Type) {
+	TCRNTI_ContentionResolutionCtrl_Type_UNBOUND_VALUE,
+	TCRNTI_ContentionResolutionCtrl_Type_MacPdu,
+	TCRNTI_ContentionResolutionCtrl_Type_MacPdu_CRC_Error,
+	TCRNTI_ContentionResolutionCtrl_Type_NoContResolID
+};
+SIDL_UNION_BEGIN(TCRNTI_ContentionResolutionCtrl_Type) {
+	SIDL_UNION_CASE(TCRNTI_ContentionResolutionCtrl_Type_MacPdu)
+		struct TCRNTI_ContentionResolutionMacPdu_Type MacPdu;
+	SIDL_UNION_CASE(TCRNTI_ContentionResolutionCtrl_Type_MacPdu_CRC_Error)
+		struct TCRNTI_ContentionResolutionMacPdu_Type MacPdu_CRC_Error;
+	SIDL_UNION_CASE(TCRNTI_ContentionResolutionCtrl_Type_NoContResolID)
+		Null_Type NoContResolID;
+} SIDL_UNION_END;
+
+SIDL_UNION_ENUM(CRNTI_ContentionResolutionCtrl_Type) {
+	CRNTI_ContentionResolutionCtrl_Type_UNBOUND_VALUE,
+	CRNTI_ContentionResolutionCtrl_Type_AutomaticGrant,
+	CRNTI_ContentionResolutionCtrl_Type_None
+};
+SIDL_UNION_BEGIN(CRNTI_ContentionResolutionCtrl_Type) {
+	SIDL_UNION_CASE(CRNTI_ContentionResolutionCtrl_AutomaticGrant)
+		struct DciUlInfo_Type AutomaticGrant;
+	SIDL_UNION_CASE(CRNTI_ContentionResolutionCtrl_None)
+		Null_Type None;
+} SIDL_UNION_END;
+
+SIDL_UNION_ENUM(ContentionResolutionCtrl_Type) {
+	ContentionResolutionCtrl_Type_UNBOUND_VALUE,
+	ContentionResolutionCtrl_Type_TCRNTI_Based,
+	ContentionResolutionCtrl_Type_CRNTI_Based
+};
+SIDL_UNION_BEGIN(ContentionResolutionCtrl_Type) {
+	SIDL_UNION_CASE(ContentionResolutionCtrl_Type_TCRNTI_Based)
+		struct TCRNTI_ContentionResolutionCtrl_Type TCRNTI_Based;
+	SIDL_UNION_CASE(ContentionResolutionCtrl_Type_CRNTI_Based)
+		struct CRNTI_ContentionResolutionCtrl_Type CRNTI_Based;
+} SIDL_UNION_END;
+
+struct RachProcedure_Type {
+	struct RandomAccessResponseConfig_Type RAResponse;
+	struct ContentionResolutionCtrl_Type ContentionResolutionCtrl;
+};
+
+typedef SIDL_DYNAMIC_OF_STRUCT(RachProcedure_Type, RachProcedureList_Type);
+
+struct RachProcedureConfig_Type {
+	SIDL_OPTIONAL_OF_STRUCT(RACH_ConfigCommon_Type, RACH_ConfigCommon);
+	SIDL_OPTIONAL_OF_STRUCT(RACH_ConfigDedicated_Type, RACH_ConfigDedicated);
+	SIDL_OPTIONAL(RachProcedureList_Type, RachProcedureList);
+};

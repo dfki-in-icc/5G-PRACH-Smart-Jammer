@@ -43,6 +43,12 @@
 #include "NR_RACH-ConfigCommon.h"
 #include "NR_ServingCellConfigCommon.h"
 #include "NR_ServingCellConfig.h"
+#include "LTE_LogicalChannelConfig.h"
+#include "LTE_SecurityAlgorithmConfig.h"
+#include "LTE_CipheringAlgorithm-r12.h"
+
+#define MAX_RBS (LTE_maxDRB + 3)
+
 //-------------------------------------------------------------------------------------------//
 // Messages for RRC logging
 #if defined(DISABLE_ITTI_XER_PRINT)
@@ -66,6 +72,12 @@
 #define RRC_STATE_IND(mSGpTR)           (mSGpTR)->ittiMsg.rrc_state_ind
 
 #define RRC_CONFIGURATION_REQ(mSGpTR)   (mSGpTR)->ittiMsg.rrc_configuration_req
+
+#define RRC_RBLIST_CFG_REQ(mSGpTR)      (mSGpTR)->ittiMsg.rrc_rblist_cfg_req
+
+#define RRC_UE_CAT_INFO(mSGpTR)      (mSGpTR)->ittiMsg.rrc_ue_cat_info
+
+#define RRC_AS_SECURITY_CONFIG_REQ(mSGpTR)      (mSGpTR)->ittiMsg.rrc_as_security_config_req
 
 #define NBIOTRRC_CONFIGURATION_REQ(mSGpTR)   (mSGpTR)->ittiMsg.nbiotrrc_configuration_req
 
@@ -94,6 +106,114 @@
 #define NAS_OAI_TUN_NSA(mSGpTR)         (mSGpTR)->ittiMsg.nas_oai_tun_nsa
 
 //-------------------------------------------------------------------------------------------//
+enum SecurityAct_Type_e {
+        Pdcp_Count_Srb = 0,
+        Pdcp_Count_DrbLongSQN = 1,
+        Pdcp_Count_DrbShortSQN = 2,
+        NrPdcp_Count_Srb = 3,
+        NrPdcp_Count_DrbSQN12 = 4,
+        NrPdcp_Count_DrbSQN18 = 5,
+};
+
+typedef enum SecurityAct_Type_e SecurityAct_Type_e;
+
+typedef struct ActTime_Type_s {
+      SecurityAct_Type_e format;
+      uint32_t sqn;
+}ActTime_Type;
+
+typedef struct SecurityActTimeType_s {
+        uint8_t       rb_id;
+        ActTime_Type  UL;
+        ActTime_Type  DL;
+}SecurityActTimeType;
+
+typedef struct SecurityActTimeList_s {
+        int size;
+        SecurityActTimeType SecurityActTime[MAX_RBS];
+}SecurityActTimeList;
+
+typedef struct AS_IntegrityInfo_s {
+        e_LTE_SecurityAlgorithmConfig__integrityProtAlgorithm integrity_algorithm;
+        uint8_t                  *kRRCint;
+        SecurityActTimeList      ActTimeList;
+}AS_IntegrityInfo;
+
+typedef struct AS_CipheringInfo_s {
+        LTE_CipheringAlgorithm_r12_t ciphering_algorithm;
+        uint8_t                  *kRRCenc;
+        uint8_t                  *kUPenc;
+        SecurityActTimeList      ActTimeList;
+}AS_CipheringInfo;
+
+typedef struct RrcAsSecurityConfigReq_s {
+        bool isIntegrityInfroPresent;
+        AS_IntegrityInfo Integrity;
+        bool isCipheringInfoPresent;
+        AS_CipheringInfo Ciphering;
+        int rnti;
+}RrcAsSecurityConfigReq;
+
+enum ue_CategoryDL_v1310_e {
+        ue_CategoryDL_v1310_e_n17 = 0,
+        ue_CategoryDL_v1310_e_m1 = 1,
+};
+
+typedef enum ue_CategoryDL_v1310_e ue_CategoryDL_v1310_e;
+
+enum ue_CategoryDL_v1350_e {
+        ue_CategoryDL_v1350_e_oneBis = 0,
+};
+
+typedef enum ue_CategoryDL_v1350_e ue_CategoryDL_v1350_e;
+
+typedef struct rrcUECatInfo_s {
+        uint8_t ue_Category;
+        bool is_ue_Category_V1020_present;
+        uint8_t ue_Category_V1020;
+        bool is_ue_Category_v1170_present;
+        uint8_t ue_Category_v1170;
+        bool is_ue_Category_v11a0_present;
+        uint8_t ue_Category_v11a0;
+        bool is_ue_Category_v1250_present;
+        uint8_t ue_Category_v1250;
+        bool is_ue_CategoryDL_r12_present;
+        uint8_t ue_CategoryDL_r12;
+        bool is_ue_CategoryDL_v1260_present;
+        uint8_t ue_CategoryDL_v1260;
+        bool is_ue_CategoryDL_v1310_present;
+        ue_CategoryDL_v1310_e ue_CategoryDL_v1310;
+        bool is_ue_CategoryDL_v1330_present;
+        uint8_t ue_CategoryDL_v1330;
+        bool is_ue_CategoryDL_v1350_present;
+        ue_CategoryDL_v1350_e ue_CategoryDL_v1350;
+        bool is_ue_CategoryDL_v1460_present;
+        uint8_t ue_CategoryDL_v1460;
+}rrcUECatInfo;
+
+typedef struct RadioBearerConfig_s {
+        bool isPDCPConfigValid;
+        bool isRLCConfigValid;
+        bool isLogicalChannelIdValid;
+        bool isMacConfigValid;
+        bool isDiscardULDataValid;
+        LTE_PDCP_Config_t Pdcp;
+        LTE_RLC_Config_t  Rlc;
+        long LogicalChannelId;
+        LTE_LogicalChannelConfig_t Mac;
+        bool DiscardULData;
+}RadioBearerConfig;
+
+typedef struct rb_info_s {
+  uint8_t  RbId;
+  RadioBearerConfig RbConfig;
+} rb_info;
+
+typedef struct RrcRblistCfgReq_s {
+  int rb_count;
+  rb_info rb_list[MAX_RBS];
+} RrcRblistCfgReq;
+
 typedef struct RrcStateInd_s {
   Rrc_State_t     state;
   Rrc_Sub_State_t sub_state;
@@ -329,6 +449,12 @@ typedef struct RrcConfigurationReq_s {
   long                           discRxPoolPS_ResourceConfig_subframeBitmap_choice_bs_bits_unused[MAX_NUM_CCs];
   //Nr secondary cell group SSB central frequency (for ENDC NSA)
   int                            nr_scg_ssb_freq;
+
+  //SS: Cell Config
+  long     q_RxLevMin;
+  long     q_QualMin;
+  long     p_MaxEUTRA;
+
 } RrcConfigurationReq;
 
 #define MAX_NUM_NBIOT_CELEVELS    3

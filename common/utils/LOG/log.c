@@ -465,6 +465,7 @@ int logInit (void)
   register_log_component("eRAL","",RAL_ENB);
   register_log_component("mRAL","",RAL_UE);
   register_log_component("ENB_APP","log",ENB_APP);
+  register_log_component("ENB_SS","log",ENB_SS);
   register_log_component("MCE_APP","log",MCE_APP);
   register_log_component("MME_APP","log",MME_APP);
   register_log_component("FLEXRAN_AGENT","log",FLEXRAN_AGENT);

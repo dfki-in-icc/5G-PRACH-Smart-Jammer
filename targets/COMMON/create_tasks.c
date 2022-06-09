@@ -28,6 +28,7 @@
   #include "sctp_eNB_task.h"
   #include "x2ap_eNB.h"
   #include "s1ap_eNB.h"
+  #include "udp_eNB_task.h"
   #include "gtpv1u_eNB_task.h"
   #if ENABLE_RAL
     #include "lteRALue.h"
@@ -40,6 +41,10 @@
 # include "openair2/LAYER2/MAC/mac_proto.h"
 #include <executables/split_headers.h> 
 #include <openair3/ocp-gtpu/gtp_itf.h>
+# include "ss_eNB_sys_task.h"
+# include "ss_eNB_port_man_task.h"
+# include "ss_eNB_srb_task.h"
+# include "ss_eNB_vng_task.h"
 
 extern RAN_CONTEXT_t RC;
 
@@ -49,6 +54,21 @@ int create_tasks(uint32_t enb_nb) {
   int rc;
 
   if (enb_nb == 0) return 0;
+
+  if (RC.mode >= SS_SOFTMODEM)
+  {
+    rc = itti_create_task(TASK_SS_PORTMAN, ss_eNB_port_man_task, NULL);
+    AssertFatal(rc >= 0, "Create task for SS manager failed\n");
+
+    rc = itti_create_task(TASK_SYS, ss_eNB_sys_task, NULL);
+    AssertFatal(rc >= 0, "Create task for SS failed\n");
+
+    rc = itti_create_task(TASK_SS_SRB, ss_eNB_srb_task, NULL);
+    AssertFatal(rc >= 0, "Create task for SS SRB failed\n");
+
+    rc = itti_create_task(TASK_VNG, ss_eNB_vng_task, NULL);
+    AssertFatal(rc >= 0, "Create task for SS VNG failed\n");
+  }
 
   LOG_I(ENB_APP, "Creating ENB_APP eNB Task\n");
   rc = itti_create_task (TASK_ENB_APP, eNB_app_task, NULL);
@@ -66,6 +86,10 @@ int create_tasks(uint32_t enb_nb) {
   if (EPC_MODE_ENABLED && !NODE_IS_DU(type) && ! ( split73==SPLIT73_DU ) ) {
     rc = itti_create_task(TASK_S1AP, s1ap_eNB_task, NULL);
     AssertFatal(rc >= 0, "Create task for S1AP failed\n");
+    if (!(get_softmodem_params()->emulate_rf)){
+      rc = itti_create_task(TASK_UDP, udp_eNB_task, NULL);
+      AssertFatal(rc >= 0, "Create task for UDP failed\n");
+    }
     rc = itti_create_task(TASK_GTPV1_U, gtpv1uTask, NULL);
     AssertFatal(rc >= 0, "Create task for GTPV1U failed\n");
   }

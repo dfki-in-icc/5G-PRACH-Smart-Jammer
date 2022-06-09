@@ -204,6 +204,22 @@ void RCconfig_L1(void) {
   }
 }
 
+void RCconfig_ssparam(void) {
+  paramdef_t SSConfig_Params[] = SSPARAMS_DESC;
+  paramlist_def_t SSConfig_ParamList = {CONFIG_SS,NULL,0};
+  config_getlist( &SSConfig_ParamList,SSConfig_Params,sizeof(SSConfig_Params)/sizeof(paramdef_t), NULL);
+
+  if ( SSConfig_ParamList.numelt > 0) {
+    RC.ss.hostIp              = strdup(*(SSConfig_ParamList.paramarray[0][CONFIG_SS_HOSTIP_IDX].strptr));
+    RC.ss.Sysport             = *(SSConfig_ParamList.paramarray[0][CONFIG_SS_SYSPORT_IDX].iptr);
+    RC.ss.Srbport             = *(SSConfig_ParamList.paramarray[0][CONFIG_SS_SRBPORT_IDX].iptr);
+    RC.ss.Vngport             = *(SSConfig_ParamList.paramarray[0][CONFIG_SS_VNGPORT_IDX].iptr);
+    RC.mode                   = *(SSConfig_ParamList.paramarray[0][CONFIG_SS_MODE_IDX].iptr);
+  }
+  LOG_A(ENB_APP,"SS_Config:SSMode %d, hostIp=%s, Sysport=%d, Srbport=%d  Vngport=%d\n",
+                  RC.mode, RC.ss.hostIp,RC.ss.Sysport,RC.ss.Srbport,RC.ss.Vngport);
+}
+
 void RCconfig_macrlc(int macrlc_has_f1[MAX_MAC_INST]) {
   int               j;
   paramdef_t MacRLC_Params[] = MACRLCPARAMS_DESC;
@@ -3206,6 +3222,7 @@ void read_config_and_init(void) {
   RCconfig_L1();
   LOG_I(PHY, "%s() RC.nb_L1_inst: %d\n", __FUNCTION__, RC.nb_L1_inst);
   RCconfig_macrlc(macrlc_has_f1);
+  RCconfig_ssparam();
   LOG_I(MAC, "%s() RC.nb_macrlc_inst: %d\n", __FUNCTION__, RC.nb_macrlc_inst);
 
   if (RC.nb_L1_inst > 0)

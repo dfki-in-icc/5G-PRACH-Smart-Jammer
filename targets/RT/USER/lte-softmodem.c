@@ -96,6 +96,11 @@ pthread_cond_t nfapi_sync_cond;
 pthread_mutex_t nfapi_sync_mutex;
 int nfapi_sync_var=-1; //!< protected by mutex \ref nfapi_sync_mutex
 
+/** FC Cell config */
+pthread_cond_t cell_config_done_cond;
+pthread_mutex_t cell_config_done_mutex;
+int cell_config_done=-1;
+
 
 pthread_cond_t sync_cond;
 pthread_mutex_t sync_mutex;

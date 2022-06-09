@@ -110,6 +110,16 @@ typedef enum {
   GROUP_COMMUNICATION_RELEASE_FAILURE
 } Group_Communication_Status_t;
 
+typedef enum {
+  SS_STATE_NOT_CONFIGURED = 0,
+  SS_STATE_CELL_CONFIGURED,
+  SS_STATE_CELL_ACTIVE,
+  SS_STATE_AS_SECURITY_ACTIVE,
+  SS_STATE_AS_RBS_ACTIVE,
+  SS_STATE_CELL_BROADCASTING,
+  SS_STATE_MAX_STATE
+} SS_STATE_t;
+
 struct GroupCommunicationEstablishReq {
   uint32_t sourceL2Id;
   uint32_t groupL2Id;
@@ -754,6 +764,13 @@ typedef struct {
   uint32_t                           sizeof_paging[MAX_MOBILES_PER_ENB];
 } rrc_eNB_carrier_data_t;
 
+typedef struct ss_config_s {
+  const char* hostIp;
+  int Sysport;
+  int Srbport;
+  int Vngport;
+  int State;
+} ss_config;
 
 typedef struct eNB_RRC_INST_s {
   /// southbound midhaul configuration

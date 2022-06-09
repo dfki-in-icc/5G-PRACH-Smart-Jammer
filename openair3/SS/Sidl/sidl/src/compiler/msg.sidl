@@ -1,0 +1,269 @@
+/*
+ * Copyright 2022 Sequans Communications.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#pragma once
+
+// SIDL commons.
+#include "SidlCompiler.h"
+
+/// Interface keyword (for "old style" SIDL interface).
+#define INTERFACE struct
+
+/// Dummy element for empty SIDL files,
+/// since source without any definition can't be compiled with castxml.
+#define SIDL_DUMMY(uNIQUE_ID) typedef void* _PP_CAT(_SIDL_DUMMY_, uNIQUE_ID)
+
+// The services keyword COMMAND, NOTIFY and ONEWAY are defined to be
+// arbitrary return types, synchronized with the SIDL compiler. This is how
+// the SIDL compiler recognize them for what they are after the
+// pre-processor as removed "COMMAND" and the like: any function defined
+// inside the compiled SIDL interface file with an "unsigned char" return
+// type will be processed as a COMMAND (see below), etc.
+
+/// Request/Response between interface client and server.
+#define COMMAND unsigned char
+
+/// Notification server -> client.
+#define NOTIFY unsigned int
+
+/// Asynchronous request client -> server.
+#define ONEWAY unsigned char*
+
+/// STS code.
+#define STS float
+
+/// Metadata var.
+#define METADATA float*
+#define GLOBAL_METADATA int*
+
+/// Defines status code.
+#define STS_CODE(nAME, cODE, sTRING) \
+	STS _PP_CAT(nAME, _codefct)(uint64_t code = cODE, const char* string = sTRING)
+
+/// Defines interface metadata var.
+#ifndef SIDL_C_CHECKING
+#define METADATA_VAR(nAME, sTRING) \
+	METADATA _PP_CAT(nAME, _metadata)(const char* string = sTRING)
+#define GLOBAL_METADATA_VAR(nAME, sTRING) \
+	GLOBAL_METADATA _PP_CAT(nAME, _metadata_global)(const char* string = sTRING)
+#else // SIDL_C_CHECKING
+#define METADATA_VAR(nAME, sTRING) SIDL_DUMMY(nAME)
+#define GLOBAL_METADATA_VAR(nAME, sTRING) SIDL_DUMMY(nAME)
+#endif // !SIDL_C_CHECKING
+
+/// Defines a maximum size for a variable size array.
+///
+/// This is mostly useful for the SIDL compiler, as it allows the compiler
+/// to compute the maximum sizes for the underlying messages when
+/// implementing a RPC interface, and providing a report at the end. This
+/// can let a developer use the report to size internal structures like
+/// buffers for example.
+///
+/// The size may still be useful with directly using the header in C mode,
+/// so the underlying enum is always defined.
+#define SIDL_MAX_SIZE(sTRUCT, fIELD, sIZE) \
+	enum _PP_JOIN3(_, sTRUCT, fIELD, maxsize) { _PP_JOIN3(__, maxsize, sTRUCT, fIELD) = sIZE }
+
+#define SIDL_STRUCT struct
+#define SIDL_ENUM enum
+#define SIDL_UNION union
+
+/// Defines enum for SIDL_UNION usage.
+#define SIDL_UNION_ENUM(nAME) SIDL_ENUM _PP_CAT(nAME, _Sel)
+
+#define SIDL_UNION_SEL(iD) _PP_CAT(iD, _Sel)
+#define SIDL_UNION_NAME(iD) _PP_CAT(iD, _Value)
+
+/// Defines SIDL union structure.
+#define SIDL_UNION_BEGIN(nAME) \
+	SIDL_STRUCT nAME { \
+		SIDL_ENUM SIDL_UNION_SEL(nAME) d; \
+		SIDL_UNION SIDL_UNION_NAME(nAME)
+
+#define SIDL_UNION_CASE(cASE)
+#define SIDL_UNION_CASE_DEFAULT
+#define SIDL_UNION_END v; }
+
+/// Naming convention: Dynamic array.
+#define SIDL_ARRAY(tYPE, nAME) \
+	size_t _PP_CAT(nAME, Qty); \
+	tYPE* _PP_CAT(nAME, Array)
+
+/// Naming convention: Dynamic array.
+#define SIDL_ARRAY_IN_ARG(tYPE, nAME) \
+	size_t _PP_CAT(nAME, Qty), const tYPE* _PP_CAT(nAME, Array)
+
+/// Naming convention: Dynamic array.
+#define SIDL_ARRAY_OUT_ARG(tYPE, nAME) \
+	size_t* _PP_CAT(nAME, Qty), tYPE* _PP_CAT(nAME, Array)
+
+/// Defines a dynamic field.
+///
+/// To indicate that the field is dynamic, the wrapper struct
+/// will be generated for the field.
+#define SIDL_DYNAMIC(tYPE, nAME) \
+	struct _PP_JOIN3(_, tYPE, nAME, Dynamic) { \
+		size_t d; \
+		tYPE* v; \
+	} nAME
+#define SIDL_DYNAMIC2(mOD, tYPE, nAME) \
+	struct _PP_JOIN3(_, tYPE, nAME, Dynamic) { \
+		size_t d; \
+		mOD tYPE* v; \
+	} nAME
+#define SIDL_DYNAMIC_WITH_PFX(pFX, tYPE, nAME) \
+	struct _PP_JOIN4(_, tYPE, pFX, nAME, Dynamic) { \
+		size_t d; \
+		tYPE* v; \
+	} nAME
+#define SIDL_DYNAMIC2_WITH_PFX(pFX, mOD, tYPE, nAME) \
+	struct _PP_JOIN4(_, tYPE, pFX, nAME, Dynamic) { \
+		size_t d; \
+		mOD tYPE* v; \
+	} nAME
+#define SIDL_DYNAMIC_OF_STRUCT(tYPE, nAME) SIDL_DYNAMIC2(struct, tYPE, nAME)
+#define SIDL_DYNAMIC_OF_ENUM(tYPE, nAME) SIDL_DYNAMIC2(enum, tYPE, nAME)
+#define SIDL_DYNAMIC_OF_STRUCT_WITH_PFX(pFX, tYPE, nAME) SIDL_DYNAMIC2_WITH_PFX(pFX, struct, tYPE, nAME)
+#define SIDL_DYNAMIC_OF_ENUM_WITH_PFX(pFX, tYPE, nAME) SIDL_DYNAMIC2_WITH_PFX(pFX, enum, tYPE, nAME)
+
+/// Defines an optional field.
+///
+/// To indicate that the field is optional, the wrapper struct
+/// will be generated for the field.
+#define SIDL_OPTIONAL(tYPE, nAME) \
+	struct _PP_JOIN3(_, tYPE, nAME, Optional) { \
+		bool d; \
+		tYPE v; \
+	} nAME
+#define SIDL_OPTIONAL2(mOD, tYPE, nAME) \
+	struct _PP_JOIN3(_, tYPE, nAME, Optional) { \
+		bool d; \
+		mOD tYPE v; \
+	} nAME
+#define SIDL_OPTIONAL_WITH_PFX(pFX, tYPE, nAME) \
+	struct _PP_JOIN4(_, tYPE, pFX, nAME, Optional) { \
+		bool d; \
+		tYPE v; \
+	} nAME
+#define SIDL_OPTIONAL2_WITH_PFX(pFX, mOD, tYPE, nAME) \
+	struct _PP_JOIN4(_, tYPE, pFX, nAME, Optional) { \
+		bool d; \
+		mOD tYPE v; \
+	} nAME
+#define SIDL_OPTIONAL_OF_STRUCT(tYPE, nAME) SIDL_OPTIONAL2(struct, tYPE, nAME)
+#define SIDL_OPTIONAL_OF_ENUM(tYPE, nAME) SIDL_OPTIONAL2(enum, tYPE, nAME)
+#define SIDL_OPTIONAL_OF_STRUCT_WITH_PFX(pFX, tYPE, nAME) SIDL_OPTIONAL2_WITH_PFX(pFX, struct, tYPE, nAME)
+#define SIDL_OPTIONAL_OF_ENUM_WITH_PFX(pFX, tYPE, nAME) SIDL_OPTIONAL2_WITH_PFX(pFX, enum, tYPE, nAME)
+#define SIDL_OPTIONAL_OF_POINTER(tYPE, nAME) \
+	struct _PP_JOIN3(_, tYPE, nAME, Optional) { \
+		bool d; \
+		tYPE* v; \
+	} nAME
+#define SIDL_OPTIONAL_OF_POINTER2(mOD, tYPE, nAME) \
+	struct _PP_JOIN3(_, tYPE, nAME, Optional) { \
+		bool d; \
+		mOD tYPE* v; \
+	} nAME
+#define SIDL_OPTIONAL_OF_POINTER_WITH_PFX(pFX, tYPE, nAME) \
+	struct _PP_JOIN4(_, tYPE, pFX, nAME, Optional) { \
+		bool d; \
+		tYPE* v; \
+	} nAME
+#define SIDL_OPTIONAL_OF_POINTER2_WITH_PFX(pFX, mOD, tYPE, nAME) \
+	struct _PP_JOIN4(_, tYPE, pFX, nAME, Optional) { \
+		bool d; \
+		mOD tYPE* v; \
+	} nAME
+#define SIDL_OPTIONAL_OF_STRUCT_POINTER(tYPE, nAME) SIDL_OPTIONAL_OF_POINTER2(struct, tYPE, nAME)
+#define SIDL_OPTIONAL_OF_ENUM_POINTER(tYPE, nAME) SIDL_OPTIONAL_OF_POINTER2(enum, tYPE, nAME)
+#define SIDL_OPTIONAL_OF_STRUCT_POINTER_WITH_PFX(pFX, tYPE, nAME) SIDL_OPTIONAL_OF_POINTER2(pFX, struct, tYPE, nAME)
+#define SIDL_OPTIONAL_OF_ENUM_POINTER_WITH_PFX(pFX, tYPE, nAME) SIDL_OPTIONAL_OF_POINTER2(pFX, enum, tYPE, nAME)
+
+/// Defines an optional dynamic field.
+///
+/// Equivalent to SIDL_OPTIONAL + SIDL_DYNAMIC.
+#define SIDL_DYNAMIC_OPTIONAL(tYPE, nAME) \
+	struct _PP_JOIN3(_, tYPE, nAME, DynamicOptional) { \
+		bool d; \
+		struct _PP_JOIN3(_, tYPE, nAME, Dynamic) { \
+			size_t d; \
+			tYPE* v; \
+		} v; \
+	} nAME
+#define SIDL_DYNAMIC_OPTIONAL2(mOD, tYPE, nAME) \
+	struct _PP_JOIN3(_, tYPE, nAME, DynamicOptional) { \
+		bool d; \
+		struct _PP_JOIN3(_, tYPE, nAME, Dynamic) { \
+			size_t d; \
+			mOD tYPE* v; \
+		} v; \
+	} nAME
+#define SIDL_DYNAMIC_OPTIONAL_WITH_PFX(pFX, tYPE, nAME) \
+	struct _PP_JOIN4(_, tYPE, pFX, nAME, DynamicOptional) { \
+		bool d; \
+		struct _PP_JOIN4(_, tYPE, pFX, nAME, Dynamic) { \
+			size_t d; \
+			tYPE* v; \
+		} v; \
+	} nAME
+#define SIDL_DYNAMIC_OPTIONAL2_WITH_PFX(pFX, mOD, tYPE, nAME) \
+	struct _PP_JOIN4(_, tYPE, pFX, nAME, DynamicOptional) { \
+		bool d; \
+		struct _PP_JOIN4(_, pFX, tYPE, nAME, Dynamic) { \
+			size_t d; \
+			mOD tYPE* v; \
+		} v; \
+	} nAME
+#define SIDL_DYNAMIC_OPTIONAL_OF_STRUCT(tYPE, nAME) SIDL_DYNAMIC_OPTIONAL2(struct, tYPE, nAME)
+#define SIDL_DYNAMIC_OPTIONAL_OF_ENUM(tYPE, nAME) SIDL_DYNAMIC_OPTIONAL2(enum, tYPE, nAME)
+#define SIDL_DYNAMIC_OPTIONAL_OF_STRUCT_WITH_PFX(pFX, tYPE, nAME) SIDL_DYNAMIC_OPTIONAL2_WITH_PFX(pFX, struct, tYPE, nAME)
+#define SIDL_DYNAMIC_OPTIONAL_OF_ENUM_WITH_PFX(pFX, tYPE, nAME) SIDL_DYNAMIC_OPTIONAL2_WITH_PFX(pFX, enum, tYPE, nAME)
+
+/// Defines an optional array (stack) field.
+///
+/// Similar to SIDL_OPTIONAL.
+#define SIDL_ARRAY_OPTIONAL(tYPE, nAME, sIZE) \
+	struct _PP_JOIN3(_, tYPE, nAME, ArrayOptional) { \
+		bool d; \
+		tYPE v[sIZE]; \
+	} nAME
+#define SIDL_ARRAY_OPTIONAL2(mOD, tYPE, nAME, sIZE) \
+	struct _PP_JOIN3(_, tYPE, nAME, ArrayOptional) { \
+		bool d; \
+		mOD tYPE v[sIZE]; \
+	} nAME
+#define SIDL_ARRAY_OPTIONAL_WITH_PFX(pFX, tYPE, nAME, sIZE) \
+	struct _PP_JOIN4(_, tYPE, pFX, nAME, ArrayOptional) { \
+		bool d; \
+		tYPE v[sIZE]; \
+	} nAME
+#define SIDL_ARRAY_OPTIONAL2_WITH_PFX(pFX, mOD, tYPE, nAME, sIZE) \
+	struct _PP_JOIN4(_, tYPE, pFX, nAME, ArrayOptional) { \
+		bool d; \
+		mOD tYPE v[sIZE]; \
+	} nAME
+#define SIDL_ARRAY_OPTIONAL_OF_STRUCT(tYPE, nAME, sIZE) SIDL_ARRAY_OPTIONAL2(struct, tYPE, nAME, sIZE)
+#define SIDL_ARRAY_OPTIONAL_OF_ENUM(tYPE, nAME, sIZE) SIDL_ARRAY_OPTIONAL2(enum, tYPE, nAME, sIZE)
+#define SIDL_ARRAY_OPTIONAL_OF_STRUCT_WITH_PFX(pFX, tYPE, nAME, sIZE) SIDL_ARRAY_OPTIONAL2_WITH_PFX(pFX, struct, tYPE, nAME, sIZE)
+#define SIDL_ARRAY_OPTIONAL_OF_ENUM_WITH_PFX(pFX, tYPE, nAME, sIZE) SIDL_ARRAY_OPTIONAL2_WITH_PFX(pFX, enum, tYPE, nAME, sIZE)
+
+/// Defines a static array (stack) field.
+#define SIDL_STATIC_ARRAY(tYPE, nAME, sIZE) \
+	tYPE nAME[sIZE]
+#define SIDL_STATIC_ARRAY2(mOD, tYPE, nAME, sIZE) \
+	mOD tYPE nAME[sIZE]
+#define SIDL_STATIC_ARRAY_OF_STRUCT(tYPE, nAME, sIZE) SIDL_STATIC_ARRAY2(struct, tYPE, nAME, sIZE)
+#define SIDL_STATIC_ARRAY_OF_ENUM(tYPE, nAME, sIZE) SIDL_STATIC_ARRAY2(enum, tYPE, nAME, sIZE)

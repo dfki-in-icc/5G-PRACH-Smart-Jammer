@@ -1,0 +1,127 @@
+/*
+ * Copyright 2022 Sequans Communications.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#pragma once
+
+// SIDL keywords.
+#include "msg.sidl"
+
+// SIDL commons.
+#include "SidlCommon.sidl"
+
+typedef ASN_ENUM(ASN_NAME(MAC_MainConfig, mac_MainConfig_v1020, sCellDeactivationTimer_r10)) MAC_MainConfig_ScellDeactivationTimer_Type;
+typedef struct ASN_NAME(CrossCarrierSchedulingConfig_r10, schedulingCellInfo_r10, other_r10) CrossSchedulingCarrierInfo_Type;
+typedef ASN_ENUM(ASN_NAME(TDD_Config, subframeAssignment)) TDD_SubframeAssignment_Type;
+
+typedef enum {
+	Scell_Cap_DlOnly,
+	Scell_Cap_UL_DL
+} Scell_Capability_Type;
+
+struct CrossCarrierScheduledCellsList_Type {
+	SIDL_OPTIONAL_OF_STRUCT(ASN_NAME(CrossCarrierSchedulingConfig_r10), crossCarrierSchedulingConfig_r10);
+	SIDL_OPTIONAL_OF_STRUCT(ASN_NAME(CrossCarrierSchedulingConfig_r13), crossCarrierSchedulingConfig_r13);
+};
+
+struct PrimaryCellInfo_Type {
+	EUTRA_CellIdList_Type AssociatedScellList;
+	SIDL_OPTIONAL_OF_STRUCT(ASN_NAME(MeasSubframePatternPCell_r10), MeasSubframePatternPCell);
+	SIDL_OPTIONAL_OF_STRUCT(CrossCarrierScheduledCellsList_Type, CrossCarrierScheduledCellsList);
+};
+
+SIDL_UNION_ENUM(ScellDeactivationTimer_Type) {
+	ScellDeactivationTimer_Type_UNBOUND_VALUE,
+	ScellDeactivationTimer_Type_NumberOfRadioFrames,
+	ScellDeactivationTimer_Type_Infinity
+};
+SIDL_UNION_BEGIN(ScellDeactivationTimer_Type) {
+	SIDL_UNION_CASE(ScellDeactivationTimer_Type_NumberOfRadioFrames)
+		MAC_MainConfig_ScellDeactivationTimer_Type NumberOfRadioFrames;
+	SIDL_UNION_CASE(ScellDeactivationTimer_Type_Infinity)
+		Null_Type Infinity;
+} SIDL_UNION_END;
+
+SIDL_UNION_ENUM(SchedulingCarrierConfig_Type) {
+	SchedulingCarrierConfig_Type_UNBOUND_VALUE,
+	SchedulingCarrierConfig_Type_Own,
+	SchedulingCarrierConfig_Type_CrossScheduled,
+};
+SIDL_UNION_BEGIN(SchedulingCarrierConfig_Type) {
+	SIDL_UNION_CASE(SchedulingCarrierConfig_Type_Own)
+		struct CrossCarrierScheduledCellsList_Type Own;
+	SIDL_UNION_CASE(SchedulingCarrierConfig_Type_CrossScheduled)
+		CrossSchedulingCarrierInfo_Type CrossScheduled;
+} SIDL_UNION_END;
+
+SIDL_UNION_ENUM(CrossCarrierSchedulingConfig_Type) {
+	CrossCarrierSchedulingConfig_Type_UNBOUND_VALUE,
+	CrossCarrierSchedulingConfig_Type_Config,
+	CrossCarrierSchedulingConfig_Type_None
+};
+SIDL_UNION_BEGIN(CrossCarrierSchedulingConfig_Type) {
+	SIDL_UNION_CASE(CrossCarrierSchedulingConfig_Type_Config)
+		struct SchedulingCarrierConfig_Type Config;
+	SIDL_UNION_CASE(CrossCarrierSchedulingConfig_Type_None)
+		Null_Type None;
+} SIDL_UNION_END;
+
+SIDL_UNION_ENUM(Pcell_Mode_Type) {
+	Pcell_Mode_Type_UNBOUND_VALUE,
+	Pcell_Mode_Type_FDD,
+	Pcell_Mode_Type_TDD
+};
+SIDL_UNION_BEGIN(Pcell_Mode_Type) {
+	SIDL_UNION_CASE(Pcell_Mode_Type_FDD)
+		Null_Type FDD;
+	SIDL_UNION_CASE(Pcell_Mode_Type_TDD)
+		TDD_SubframeAssignment_Type TDD;
+} SIDL_UNION_END;
+
+struct SecondaryCellInfo_Type {
+	EUTRA_CellId_Type AssociatedPcellId;
+	ASN_NAME(SCellIndex_r10) SCellIndex;
+	SIDL_OPTIONAL(Scell_Capability_Type, Scell_Capability);
+	SIDL_OPTIONAL_OF_STRUCT(ScellDeactivationTimer_Type, ScellDeactivationTimer);
+	SIDL_OPTIONAL_OF_STRUCT_WITH_PFX(SecondaryCellInfo_Type, CrossCarrierSchedulingConfig_Type, CrossCarrierSchedulingConfig);
+	SIDL_OPTIONAL(ASN_NAME(STAG_Id_r11), STAG_Id);
+	SIDL_OPTIONAL_OF_STRUCT_WITH_PFX(SecondaryCellInfo_Type, Pcell_Mode_Type, Pcell_Mode);
+};
+
+struct PSCellInfo_Type {
+	EUTRA_CellId_Type AssociatedPcellId;
+	ASN_NAME(SCellIndex_r10) SCellIndex;
+	EUTRA_CellIdList_Type AssociatedScellList;
+	SIDL_OPTIONAL_OF_STRUCT_WITH_PFX(PSCellInfo_Type, CrossCarrierSchedulingConfig_Type, CrossCarrierSchedulingConfig);
+	SIDL_OPTIONAL_OF_STRUCT_WITH_PFX(PSCellInfo_Type, Pcell_Mode_Type, Pcell_Mode);
+};
+
+SIDL_UNION_ENUM(ServingCellConfig_Type) {
+	ServingCellConfig_Type_UNBOUND_VALUE,
+	ServingCellConfig_Type_PCell,
+	ServingCellConfig_Type_SCell,
+	ServingCellConfig_Type_PSCell,
+	ServingCellConfig_Type_Release
+};
+SIDL_UNION_BEGIN(ServingCellConfig_Type) {
+	SIDL_UNION_CASE(ServingCellConfig_Type_PCell)
+		struct PrimaryCellInfo_Type PCell;
+	SIDL_UNION_CASE(ServingCellConfig_Type_SCell)
+		struct SecondaryCellInfo_Type SCell;
+	SIDL_UNION_CASE(ServingCellConfig_Type_PSCell)
+		struct PSCellInfo_Type PSCell;
+	SIDL_UNION_CASE(ServingCellConfig_Type_Release)
+		Null_Type Release;
+} SIDL_UNION_END;

@@ -1,0 +1,28 @@
+/*
+ * Copyright 2022 Sequans Communications.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#pragma once
+
+// SIDL keywords.
+#include "msg.sidl"
+
+typedef uint8_t OCTET_STRING_ELEMENT;
+typedef uint8_t BIT_STRING_ELEMENT; // the whole octet contains a bit flag 0 or 1
+
+typedef SIDL_DYNAMIC(OCTET_STRING_ELEMENT, OCTET_STRING);
+typedef SIDL_DYNAMIC(BIT_STRING_ELEMENT, BIT_STRING);
+
+typedef SIDL_DYNAMIC(int32_t, PREGEN_RECORD_OF_INTEGER);
