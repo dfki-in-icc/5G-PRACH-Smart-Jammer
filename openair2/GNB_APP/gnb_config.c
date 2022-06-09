@@ -82,6 +82,7 @@
 
 #include "RRC/NR/MESSAGES/asn1_msg.h"
 #include "openair2/LAYER2/nr_pdcp/nr_pdcp.h"
+#include "executables/softmodem-common.h"
 
 extern uint16_t sf_ahead;
 int macrlc_has_f1 = 0;
@@ -1245,6 +1246,9 @@ void RCconfig_NRRRC(MessageDef *msg_p, uint32_t i, gNB_RRC_INST *rrc) {
         NRRRC_CONFIGURATION_REQ (msg_p).scc = scc;
         NRRRC_CONFIGURATION_REQ (msg_p).scd = scd;
         NRRRC_CONFIGURATION_REQ (msg_p).enable_sdap = *GNBParamList.paramarray[i][GNB_ENABLE_SDAP_IDX].iptr;
+        if (get_softmodem_params()->nsa) {
+          NRRRC_CONFIGURATION_REQ (msg_p).enable_sdap = false;
+        }
         LOG_I(GNB_APP, "SDAP layer is %s\n", NRRRC_CONFIGURATION_REQ (msg_p).enable_sdap ? "enabled" : "disabled");
 
       }//

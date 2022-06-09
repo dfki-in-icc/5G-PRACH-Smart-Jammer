@@ -37,6 +37,7 @@
 #include "LAYER2/nr_rlc/nr_rlc_oai_api.h"
 #include <openair3/ocp-gtpu/gtp_itf.h>
 #include "openair2/SDAP/nr_sdap/nr_sdap.h"
+#include "executables/softmodem-common.h"
 
 #define TODO do { \
     printf("%s:%d:%s: todo\n", __FILE__, __LINE__, __FUNCTION__); \
@@ -489,9 +490,18 @@ static void *ue_tun_read_thread(void *_)
     uint8_t qfi = 7;
     int pdusession_id = 10;
 
-    sdap_data_req(&ctxt, SRB_FLAG_NO, rb_id, RLC_MUI_UNDEFINED,
-                  RLC_SDU_CONFIRM_NO, len, (unsigned char *)rx_buf,
-                  PDCP_TRANSMISSION_MODE_DATA, NULL, NULL, qfi, dc, pdusession_id);
+    if (get_softmodem_params()->nsa) {
+      LOG_I(PDCP, "Calling pdcp_data_req !!\n");
+      pdcp_data_req(&ctxt, SRB_FLAG_NO, rb_id, RLC_MUI_UNDEFINED,
+                    RLC_SDU_CONFIRM_NO, len, (unsigned char *)rx_buf,
+                    PDCP_TRANSMISSION_MODE_DATA, NULL, NULL);
+    }
+    else {
+      LOG_I(PDCP, "Calling sdap_data_req !!\n");
+      sdap_data_req(&ctxt, SRB_FLAG_NO, rb_id, RLC_MUI_UNDEFINED,
+                    RLC_SDU_CONFIRM_NO, len, (unsigned char *)rx_buf,
+                    PDCP_TRANSMISSION_MODE_DATA, NULL, NULL, qfi, dc, pdusession_id);
+    }
   }
 
   return NULL;
@@ -622,7 +632,7 @@ static void deliver_sdu_drb(void *_ue, nr_pdcp_entity_t *entity,
   if (IS_SOFTMODEM_NOS1 || UE_NAS_USE_TUN) {
     LOG_D(PDCP, "IP packet received with size %d, to be sent to SDAP interface, UE rnti: %d\n", size, ue->rnti);
     sdap_data_ind(entity->rb_id,
-                  entity->is_gnb,
+                  0,
                   entity->has_sdap,
                   entity->has_sdapULheader,
                   entity->pdusession_id,
@@ -962,9 +972,16 @@ static void add_drb_am(int is_gnb, int rnti, struct NR_DRB_ToAddMod *s,
       exit(-1);
     }
     pdusession_id = s->cnAssociation->choice.sdap_Config->pdu_Session;
-    has_sdapULheader = s->cnAssociation->choice.sdap_Config->sdap_HeaderUL == NR_SDAP_Config__sdap_HeaderUL_present ? 1 : 0;
-    has_sdapDLheader = s->cnAssociation->choice.sdap_Config->sdap_HeaderDL == NR_SDAP_Config__sdap_HeaderDL_present ? 1 : 0;
-    has_sdap = has_sdapULheader | has_sdapDLheader;
+    if (get_softmodem_params()->nsa) {
+      has_sdapULheader = 0;
+      has_sdapDLheader = 0;
+      has_sdap = has_sdapULheader | has_sdapDLheader;
+    }
+    else {
+      has_sdapULheader = s->cnAssociation->choice.sdap_Config->sdap_HeaderUL == NR_SDAP_Config__sdap_HeaderUL_present ? 1 : 0;
+      has_sdapDLheader = s->cnAssociation->choice.sdap_Config->sdap_HeaderDL == NR_SDAP_Config__sdap_HeaderDL_present ? 1 : 0;
+      has_sdap = has_sdapULheader | has_sdapDLheader;
+    }
     is_sdap_DefaultDRB = s->cnAssociation->choice.sdap_Config->defaultDRB == true ? 1 : 0;
     mappedQFIs2Add = (NR_QFI_t*)s->cnAssociation->choice.sdap_Config->mappedQoS_FlowsToAdd->list.array[0]; 
     mappedQFIs2AddCount = s->cnAssociation->choice.sdap_Config->mappedQoS_FlowsToAdd->list.count;
