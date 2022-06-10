@@ -4,7 +4,7 @@ import { of } from 'rxjs/internal/observable/of';
 import { map } from 'rxjs/internal/operators/map';
 import { mergeMap } from 'rxjs/internal/operators/mergeMap';
 import { filter } from 'rxjs/operators';
-import { CommandsApi, IArgType, IColumn, ICommand, IParam } from 'src/app/api/commands.api';
+import { CommandsApi, IVariable, IArgType, IColumn, ICommand, IParam } from 'src/app/api/commands.api';
 import { CmdCtrl } from 'src/app/controls/cmd.control';
 import { ParamFC } from 'src/app/controls/param.control';
 import { RowCtrl } from 'src/app/controls/row.control';
@@ -12,6 +12,7 @@ import { VarCtrl } from 'src/app/controls/var.control';
 import { DialogService } from 'src/app/services/dialog.service';
 import { LoadingService } from 'src/app/services/loading.service';
 import { forkJoin } from 'rxjs';
+import { DownloadService } from 'src/app/services/download.service';
 
 @Component({
   selector: 'app-commands',
@@ -38,7 +39,9 @@ export class CommandsComponent {
   constructor(
     public commandsApi: CommandsApi,
     public loadingService: LoadingService,
-    public dialogService: DialogService
+    public dialogService: DialogService,
+    public downloadService: DownloadService,
+    
   ) {
     this.vars$ = this.commandsApi.readVariables$().pipe(
       map((vars) => vars.map(ivar => new VarCtrl(ivar)))
@@ -65,7 +68,12 @@ export class CommandsComponent {
   }
 
   onVarSubmit(control: VarCtrl) {
-    this.commandsApi.setVariable$(control.api()).subscribe();
+	let selectedVar:IVariable = control.api();
+	if (selectedVar.type != IArgType.configfile)
+      this.commandsApi.setVariable$(selectedVar,"").subscribe();
+	if (selectedVar.type == IArgType.configfile) {
+      this.downloadService.getFile(selectedVar.value)
+    }     
   }
 
   onModuleVarsubmit(control: VarCtrl) {
@@ -78,54 +86,52 @@ export class CommandsComponent {
   onCmdSubmit(control: CmdCtrl) {
 
     this.selectedCmd = control.api()
-    const obsp = control.confirm
+    const obsparam = forkJoin ([control.confirm
       ? this.dialogService.openConfirmDialog(control.confirm)
       : control.question
       ? this.dialogService.openQuestionDialog(this.selectedModule!.modulename() + " " + control.modulename(), control)
-      : of(true) 
-    const obsparam = forkJoin ([obsp]);
-  obsparam.subscribe ( results => { console.log('result: ', results[0]);
-	if ( !results[0] )
-	  return of(null);
-    const obs= this.commandsApi.runCommand$(control!.api(), control!.question ? this.selectedModule!.modulename() : `${this.selectedModule!.nameFC.value}`)
-    this.rows$ = obs.pipe(
-      mergeMap(resp => {
-        if (resp.display[0]) return this.dialogService.openCmdDialog(resp, 'cmd ' + control.nameFC.value + ' response:')
-        else return of(resp)
-      }),
-      map(resp => {
+      : of(true)]);
+    obsparam.subscribe ( results => {
+	  if ( !results[0] )
+	    return of(null);
+      const obs= this.commandsApi.runCommand$(control!.api(), control!.question ? this.selectedModule!.modulename() : `${this.selectedModule!.nameFC.value}`)
+      this.rows$ = obs.pipe(
+        mergeMap(resp => {
+          if (resp.display[0]) return this.dialogService.openCmdDialog(resp, 'cmd ' + control.nameFC.value + ' response:')
+          else return of(resp)
+        }),
+        map(resp => {
 
-        let controls: RowCtrl[] = []
-        this.displayedColumns = []
+          let controls: RowCtrl[] = []
+          this.displayedColumns = []
 
-        if (resp.table) {
-          this.columns = resp.table.columns
-          this.displayedColumns = this.columns.map(col => col.name)
-          this.displayedColumns.push('button')
+          if (resp.table) {
+            this.columns = resp.table.columns
+            this.displayedColumns = this.columns.map(col => col.name)
+            this.displayedColumns.push('button')
 
-          for (let rawIndex = 0; rawIndex < resp.table.rows.length; rawIndex++) {
+            for (let rawIndex = 0; rawIndex < resp.table.rows.length; rawIndex++) {
 
-            let params: IParam[] = []
-            for (let i = 0; i < this.columns.length; i = i + 1) {
-              params.push({
-                value: resp.table.rows[rawIndex][i],
-                col: this.columns[i]
+              let params: IParam[] = []
+              for (let i = 0; i < this.columns.length; i = i + 1) {
+                params.push({
+                  value: resp.table.rows[rawIndex][i],
+                  col: this.columns[i]
+                })
+              }
+
+              controls[rawIndex] = new RowCtrl({
+                params: params,
+                rawIndex: rawIndex,
+                cmdName: this.selectedCmd!.name
               })
             }
-
-            controls[rawIndex] = new RowCtrl({
-              params: params,
-              rawIndex: rawIndex,
-              cmdName: this.selectedCmd!.name
-            })
           }
-        }
-
-        return controls
-      })
+          return controls
+        }) // map resp
     );
     return of(null);
-  }); // subscribe results
+  }); // subscribe obsparam results
   return of(null);
 }
 

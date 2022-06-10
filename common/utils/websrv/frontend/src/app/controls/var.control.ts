@@ -1,6 +1,6 @@
 import { FormControl, FormGroup } from '@angular/forms';
 import { IVariable } from '../api/commands.api';
-
+import { IArgType } from '../api/commands.api';
 
 const enum VariablesFCN {
   name = 'name',
@@ -11,10 +11,10 @@ const enum VariablesFCN {
 
 
 export class VarCtrl extends FormGroup {
-
+  type: IArgType;
   constructor(ivar: IVariable) {
     super({});
-
+    this.type=ivar.type;
     this.addControl(VariablesFCN.name, new FormControl(ivar.name));
     this.addControl(VariablesFCN.value, new FormControl(ivar.value));
     this.addControl(VariablesFCN.type, new FormControl(ivar.type));
@@ -62,6 +62,13 @@ export class VarCtrl extends FormGroup {
 
   set modifiableFC(control: FormControl) {
     this.setControl(VariablesFCN.modifiable, control);
+  }
+  
+  get btnTxtFC() {
+	  if ( this.type != IArgType.configfile )
+	    return "set"
+	  else
+	    return "download"
   }
 }
 

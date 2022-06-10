@@ -3,7 +3,7 @@
     <mat-grid-tile [colspan]="1" [rowspan]="2">
       <mat-card class="dashboard-card">
         <mat-card-header>
-          <mat-card-title>Softmodem variables</mat-card-title>
+          <mat-card-title>Connection info</mat-card-title>
         </mat-card-header>
         <mat-card-content class="dashboard-card-content">
           <div *ngIf="vars$ | async as vars">
@@ -14,7 +14,7 @@
               </mat-form-field>
               <button mat-raised-button color="primary" [disabled]="!variable.modifiableFC.value"
                 (click)="onVarSubmit(variable)">
-                set
+                {{ variable.btnTxtFC }}
               </button>
             </div>
           </div>

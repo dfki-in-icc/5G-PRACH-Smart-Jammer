@@ -29,7 +29,8 @@ export enum IArgType {
     list = "list",
     range = "range",
     number = "number",
-    string = "string"
+    string = "string",
+    configfile = "configfile"
 }
 
 export interface ICommand {
@@ -69,7 +70,7 @@ export interface IParam {
     col?: IColumn
 }
 
-const route = '/oaisoftmodem';
+export const route = '/oaisoftmodem';
 
 @Injectable({
     providedIn: 'root',
