@@ -44,6 +44,7 @@
 extern int proccmd_show(char *buf, int debug, telnet_printfunc_t prnt);
 extern int proccmd_thread(char *buf, int debug, telnet_printfunc_t prnt);
 extern int proccmd_exit(char *buf, int debug, telnet_printfunc_t prnt);
+extern int proccmd_restart(char *buf, int debug, telnet_printfunc_t prnt);
 extern int proccmd_log(char *buf, int debug, telnet_printfunc_t prnt);
 extern int proccmd_websrv_getdata(char *cmdbuff, int debug, void *data,telnet_printfunc_t prnt);
 telnetshell_vardef_t proc_vardef[] = {
@@ -66,10 +67,11 @@ telnetshell_vardef_t proc_vardef[] = {
 #define PROCCMD_THREAD_HELP_STRING " thread sub commands: \n\
  <thread id> aff <core>  :    set affinity of thread <thread id> to core <core> \n\
  <thread id> prio <prio> :    set scheduling parameters for thread <thread id>  \n\
-                   if prio < -20: linux scheduling policy set to FIFO, \n\
-                                  with priority = -20 - prio \n\
-                   if prio > 19: linux scheduling policy set to OTHER, \n\
-                                  with priority (nice value) =  prio \n\
+                  -100 < prio < 0:    linux scheduling policy set to FIFO, priority -prio, \n\
+                  -200 < prio < -100: linux scheduling policy set to RR, priority -(prio+100), \n\
+                   0 <= prio < 40:    linux scheduling policy set to NORMAL, nice value prio-20 \n\
+                   40 <= prio < 80:   linux scheduling policy set to BATCH, nice value prio-60 \n\
+                   prio >=80:         linux scheduling policy set to IDLE \n\
   use \"softmodem show thread\" to get <thread id> \n"
  
 
@@ -84,6 +86,7 @@ telnetshell_cmddef_t proc_cmdarray[] = {
    {"thread","(enter help for details)",proccmd_thread,{NULL},TELNETSRV_CMDFLAG_TELNETONLY,NULL},
    {"show threadsched","",proccmd_show,{(webfunc_t)proccmd_websrv_getdata}, TELNETSRV_CMDFLAG_WEBSRVONLY|TELNETSRV_CMDFLAG_GETWEBTBLDATA,NULL},
    {"exit","", proccmd_exit,{NULL},TELNETSRV_CMDFLAG_CONFEXEC,NULL},
+   {"restart","",proccmd_restart,{NULL},TELNETSRV_CMDFLAG_CONFEXEC,NULL},
    {"","",NULL},
 };
 #else

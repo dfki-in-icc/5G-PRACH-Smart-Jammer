@@ -1,8 +1,8 @@
 <h3>{{ data.title }}</h3>
-<div mat-dialog-content>
+<div mat-dialog-content >
   <mat-form-field appearance="fill">
     <label for="answer">{{data.control.question?.display}}</label>
-    <input id="answer" type="text" [formControl]="data.control.answerFC">
+    <input id="answer" type="text" style="width:10vw" [formControl]="data.control.answerFC">
   </mat-form-field>
 </div>
 <div fxLayoutGap=" 10px" mat-dialog-actions fxLayout="row" fxLayoutAlign="center start">

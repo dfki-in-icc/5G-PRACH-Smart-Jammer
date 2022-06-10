@@ -71,6 +71,24 @@ void websrv_printjson(char * label, json_t *jsonobj){
 }
 void websrv_gettbldata_response(struct _u_response * response,webdatadef_t * wdata) ;
 int websrv_callback_get_softmodemcmd(const struct _u_request * request, struct _u_response * response, void * user_data);
+/*------------------------------------------------------------------------------*/
+/* dump a request                                                               */
+void websrv_dump_request(const struct _u_request *request)
+{
+  LOG_I(UTIL,"[websrv] request %s, proto %s, verb %s, path %s\n",request->http_url, request->http_protocol, request->http_verb, request->http_verb);
+  if (request->map_post_body != NULL)
+    for (int i=0; i<u_map_count(request->map_post_body) ; i++)
+      LOG_I(UTIL,"[websrv] POST parameter %i %s : %s\n",i,u_map_enum_keys(request->map_post_body)[i], u_map_enum_values(request->map_post_body)[i]	);
+  if (request->map_cookie != NULL)
+    for (int i=0; i<u_map_count(request->map_cookie) ; i++)
+      LOG_I(UTIL,"[websrv] cookie variable %i %s : %s\n",i,u_map_enum_keys(request->map_cookie)[i], u_map_enum_values(request->map_cookie)[i]	);
+  if (request->map_header != NULL)
+    for (int i=0; i<u_map_count(request->map_header) ; i++)
+      LOG_I(UTIL,"[websrv] header variable %i %s : %s\n",i,u_map_enum_keys(request->map_header)[i], u_map_enum_values(request->map_header)[i]	);
+  if (request->map_url != NULL)
+    for (int i=0; i<u_map_count(request->map_url) ; i++)
+       LOG_I(UTIL,"[websrv] urlr variable %i %s : %s\n",i,u_map_enum_keys(request->map_url)[i], u_map_enum_values(request->map_url)[i]	);
+}
 /*-----------------------------------*/
 /* build a json body in a response */
 void websrv_jbody( struct _u_response * response, json_t *jbody) {
@@ -282,6 +300,27 @@ FILE *websrv_getfile(char *filename, struct _u_response * response) {
   return f;  
     
 }
+/*----------------------------------------------------------------------------*/
+/* callback to answer request of softmodem file                               */
+int websrv_callback_get_softmodemfile(const struct _u_request *request, struct _u_response *response, void *user_data) {
+  LOG_I(UTIL,"[websrv] %s received: %s %s\n",__FUNCTION__,request->http_verb,request->http_url);
+  websrv_dump_request(request);	
+  if (request->map_post_body == NULL) {
+	LOG_W(UTIL,"[websrv] No post parameters in: %s %s\n",request->http_verb,request->http_url);
+	websrv_string_response("Invalid file request, no post parameters", response, 404);
+  }
+  char *fname=(char *)u_map_get(request->map_post_body,"fname");
+  if (fname == NULL) {
+	LOG_W(UTIL,"[websrv] fname post parameters not found: %s %s\n",request->http_verb,request->http_url); 
+	websrv_string_response("Invalid file request, no file name in post parameters", response, 404);
+  }
+  if ( websrv_getfile(fname,response) == NULL) {
+	LOG_W(UTIL,"[websrv] file %s not found\n",fname); 
+	websrv_string_response("file not found", response, 501);
+  }
+   
+return U_CALLBACK_COMPLETE;
+}
 /*------------------------------------------------------------------------------------------------------------------------*/
 int websrv_callback_set_moduleparams(const struct _u_request *request, struct _u_response *response, void *user_data) {
   websrv_printf_start(response,200);
@@ -366,10 +405,8 @@ int websrv_callback_get_mainurl(const struct _u_request * request, struct _u_res
 
 /* default callback tries to find a file in the web server repo (path exctracted from <websrvparams.url>) and if found streams it */
  int websrv_callback_default (const struct _u_request * request, struct _u_response * response, void * user_data) {
- LOG_I(UTIL,"[websrv] Requested file is: %s %s\n",request->http_verb,request->http_url);
-  if (request->map_post_body != NULL)
-    for (int i=0; i<u_map_count(request->map_post_body) ; i++)
-      LOG_I(UTIL,"[websrv] POST parameter %i %s : %s\n",i,u_map_enum_keys(request->map_post_body)[i], u_map_enum_values(request->map_post_body)[i]	);
+  LOG_I(UTIL,"[websrv] Requested file is: %s %s\n",request->http_verb,request->http_url);
+  websrv_dump_request(request);
   char *tmpurl = strdup(websrvparams.url);
   char *srvdir = dirname(tmpurl);
   if (srvdir==NULL) {
@@ -734,18 +771,17 @@ int websrv_callback_get_softmodemmodules(const struct _u_request * request, stru
   return U_CALLBACK_COMPLETE;
 }
 /*---------------------------------------------------------------------------*/
-/* callback processing initial url (<address>/oaisoftmodem)*/
+/* callback processing first request (<address>/oaisoftmodem) after initial connection to server */
 
-/* get info on this modem */
+/* utility to add a line of info in status panel  */
 void websrv_add_modeminfo(json_t *modemvars, char *infoname, char *infoval, char *strtype) {
   json_t *info;
-  if(strcmp(strtype,"link")==0) {
-    char linkstr[255];
-    snprintf(linkstr,sizeof(linkstr),"<link href=\"%s\">",infoval);
-    info=json_pack("{s:s,s:s,s:s,s:b}","name",linkstr, "value",infoval, "type",strtype,"modifiable",0);
-  } else {
-    info=json_pack("{s:s,s:s,s:s,s:b}","name",infoname, "value",infoval, "type",strtype,"modifiable",0);
-  }
+  int modifiable=0;
+  if(strcmp(strtype,"configfile")==0)
+    modifiable=1;
+
+  info=json_pack("{s:s,s:s,s:s,s:b}","name",infoname, "value",infoval, "type",strtype,"modifiable",modifiable);
+ 
   if (info==NULL) {
 	  LOG_E(UTIL,"[websrv] cannot encode modem info %s response\n",infoname);
   } else {
@@ -756,14 +792,34 @@ void websrv_add_modeminfo(json_t *modemvars, char *infoname, char *infoval, char
 
 int websrv_callback_get_softmodemstatus(const struct _u_request * request, struct _u_response * response, void * user_data) {
   char ipstr[INET_ADDRSTRLEN];
-  
-  inet_ntop(AF_INET, &(((struct sockaddr_in *)request->client_address)->sin_addr), ipstr, INET_ADDRSTRLEN);
+  char srvinfo[255];
+  if (websrvparams.instance.bind_address != NULL)
+    inet_ntop(AF_INET, &(websrvparams.instance.bind_address->sin_addr), ipstr, INET_ADDRSTRLEN);
+  else
+    sprintf(ipstr,"%s","0.0.0.0");
+  snprintf(srvinfo,sizeof(srvinfo)-1,"%s:%hu %s",ipstr,websrvparams.instance.port, get_softmodem_function(NULL));
   json_t *modemvars = json_array();
-  websrv_add_modeminfo(modemvars,"connected to",ipstr,"string");
-  websrv_add_modeminfo(modemvars,"exec function",get_softmodem_function(NULL),"string");
-  websrv_add_modeminfo(modemvars,"config_file",CONFIG_GETCONFFILE,"link");
+  websrv_add_modeminfo(modemvars,"connected to",srvinfo,"string");
+  websrv_add_modeminfo(modemvars,"config_file",CONFIG_GETCONFFILE,"configfile");
   websrv_add_modeminfo(modemvars,"exec name",config_get_if()->argv[0],"string");
-  websrv_add_modeminfo(modemvars,"config debug mode",(config_get_if()->status != NULL)?"yes":"no","string");
+  int len=0;
+  int argc=0;
+  for (int i=1; config_get_if()->argv[i] != NULL; i++){
+    len += strlen(config_get_if()->argv[i]);
+    argc++;
+  }
+  char *cmdline=malloc(len+argc+10);
+  char* ptr=cmdline ;
+    for (int i=1 ; config_get_if()->argv[i] != NULL; i++){
+      ptr += sprintf(ptr,"%s ",config_get_if()->argv[i]);
+  }
+  websrv_add_modeminfo(modemvars,"command line",cmdline, "string");
+  if((config_get_if()->rtflags & CONFIG_SAVERUNCFG) && (config_get_if()->write_parsedcfg != NULL)) {
+	  config_get_if()->write_parsedcfg();
+	  
+	  websrv_add_modeminfo(modemvars,"Parsed config file",config_get_if()->tmpdir,"configfile");
+  }
+  
   
   int us=ulfius_add_header_to_response(response,"content-type" ,"application/json");
   if (us != U_OK){
@@ -852,7 +908,7 @@ void* websrv_autoinit() {
   //3 default_endpoint declaration, it tries to open the file with the url name as specified in the request.It looks for the file 
   ulfius_set_default_endpoint(&(websrvparams.instance), &websrv_callback_default, NULL);
 
-  // endpoints 
+  //4 endpoints corresponding to loaded telnet modules
   int (* callback_functions_var[3])(const struct _u_request * request, 
                                                struct _u_response * response,
                                                void * user_data) ={websrv_callback_get_softmodemstatus,websrv_callback_okset_softmodem_cmdvar,websrv_callback_set_softmodemvar};
@@ -864,10 +920,11 @@ void* websrv_autoinit() {
 	  register_module_endpoints( &(telnetparams->CmdParsers[i]) );
   }
   
-  /* callbacks to take care of modules not yet initialized, so not visible in telnet server data when this autoinit runs: */
+  /*5 callbacks to take care of modules not yet initialized, so not visible in telnet server data when this autoinit runs: */
   ulfius_add_endpoint_by_val(&(websrvparams.instance), "GET", "oaisoftmodem", "@module/commands", 10, websrv_callback_newmodule, telnetparams);
   ulfius_add_endpoint_by_val(&(websrvparams.instance), "GET", "oaisoftmodem", "@module/variables", 10, websrv_callback_newmodule, telnetparams);
-
+  //6 callback to handle file request
+  ulfius_add_endpoint_by_val(&(websrvparams.instance), "POST", "oaisoftmodem", "file", 0, &websrv_callback_get_softmodemfile, NULL);
   // Start the framework
   ret=U_ERROR;
   if (websrvparams.keyfile!=NULL && websrvparams.certfile!=NULL) {

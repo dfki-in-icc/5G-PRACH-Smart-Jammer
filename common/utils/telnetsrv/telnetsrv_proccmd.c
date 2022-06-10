@@ -71,6 +71,7 @@ char toksep[2];
   lptr= prntline;
 /*http://man7.org/linux/man-pages/man5/proc.5.html gives the structure of the stat file */
   int priority=0;
+  int nice=0;
   while( 	procfile_fields != NULL && fieldcnt < 42) {
     long int policy;
     if (strlen(procfile_fields) == 0)
@@ -105,6 +106,7 @@ char toksep[2];
 		     tdata->lines[tdata->numlines].val[fieldcnt-16]=strdup(procfile_fields);	
 		   }           
            lptr+=sprintf(lptr,"%3.3s ",procfile_fields);
+           nice=strtol(procfile_fields,NULL,0);
        break;
        case 23:   //vsize	       
            lptr+=sprintf(lptr,"%9.9s ",procfile_fields);
@@ -122,23 +124,23 @@ char toksep[2];
            switch(policy) {
               case SCHED_FIFO:
                    snprintf(strschedp,sizeof(strschedp),"%s ","rt:fifo");
-                   priority=priority+NICE_MIN+1;
+                   priority= priority+1;   //in /proc file system priority 1 to 99 mapped to -2 to -100
               break;
               case SCHED_OTHER:
                    snprintf(strschedp,sizeof(strschedp),"%s ","other");
-                   priority=priority-(NICE_MAX+1); // nice is 
+                   priority=nice-NICE_MIN; // linux nice is -20 to 19
               break;
               case SCHED_IDLE:
                    snprintf(strschedp,sizeof(strschedp),"%s ","idle");
-                   priority=0;
+                   priority=2*(NICE_MAX-NICE_MIN+1);
               break;
               case SCHED_BATCH:
                    snprintf(strschedp,sizeof(strschedp),"%s ","batch");
-                   priority=priority-(NICE_MAX+1)+(NICE_MAX-NICE_MIN+1);
+                   priority=(NICE_MAX-NICE_MIN+1)+nice-NICE_MIN;
               break;
               case SCHED_RR:
                    snprintf(strschedp,sizeof(strschedp),"%s ","rt:rr");
-                   priority=priority+NICE_MIN+1-100;
+                   priority= priority-99 ;
               break;
 #ifdef SCHED_DEADLINE
               case SCHED_DEADLINE:
@@ -153,7 +155,7 @@ char toksep[2];
            if (tdata != NULL) {
 		     tdata->lines[tdata->numlines].val[5]=strdup(strschedp);
 		     tdata->lines[tdata->numlines].val[6]=malloc(10);
-		     snprintf(tdata->lines[tdata->numlines].val[6],9,"(%i)",priority);	  	
+		     snprintf(tdata->lines[tdata->numlines].val[6],9,"%i",priority);	  	
 		   }              
        break;
        default:
@@ -216,7 +218,7 @@ struct dirent *entry;
 		tdata->columns[5].coltype=TELNET_VARTYPE_STRING|TELNET_CHECKVAL_RDONLY|TELNET_VAR_NEEDFREE;
         snprintf(tdata->columns[5].coltitle,sizeof(tdata->columns[5].coltitle),"sched policy");
 		tdata->columns[6].coltype=TELNET_VARTYPE_STRING|TELNET_VAR_NEEDFREE;
-		snprintf(tdata->columns[6].coltitle,sizeof(tdata->columns[6].coltitle)," ");			
+		snprintf(tdata->columns[6].coltitle,sizeof(tdata->columns[6].coltitle),"oai priority");			
 		tdata->numlines=0;											
 	}
 
@@ -509,7 +511,16 @@ int proccmd_exit(char *buf, int debug, telnet_printfunc_t prnt)
    exit_fun("telnet server received exit command\n");
    return 0;
 }
- 
+
+int proccmd_restart(char *buf, int debug, telnet_printfunc_t prnt)
+{
+   if (debug > 0)
+       prnt("process module received %s\n",buf);
+   end_configmodule();
+   configmodule_interface_t *cfg = config_get_if();
+   execvpe(cfg->argv[0],cfg->argv ,environ);
+   return 0;
+}
 
 int proccmd_log(char *buf, int debug, telnet_printfunc_t prnt)
 {

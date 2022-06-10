@@ -91,6 +91,7 @@ typedef struct configmodule_interface {
   configmodule_getlistfunc_t      getlist;
   configmodule_setfunc_t          set;
   configmodule_endfunc_t          end;
+  configmodule_endfunc_t          write_parsedcfg;
   uint32_t numptrs;
   uint32_t rtflags;
   char     *ptrs[CONFIG_MAX_ALLOCATEDPTRS];
@@ -136,6 +137,7 @@ extern configmodule_interface_t *cfgptr;
 #define CONFIG_ENABLECMDLINEONLY  (1<<1)
 extern configmodule_interface_t *load_configmodule(int argc, char **argv, uint32_t initflags);
 extern void end_configmodule(void);
+extern void write_parsedcfg(void);
 #define CONFIG_PRINTF_ERROR(f, x... ) if (isLogInitDone ()) { LOG_E(ENB_APP,f,x);} else {printf(f,x);}; if ( !CONFIG_ISFLAGSET(CONFIG_NOABORTONCHKF) ) exit_fun("exit because configuration failed\n");
 
 

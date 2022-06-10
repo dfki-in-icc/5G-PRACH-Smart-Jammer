@@ -603,9 +603,7 @@ int config_libconfig_init(char *cfgP[], int numP) {
   return 0;
 }
 
-
-void config_libconfig_end(void ) {
-  config_destroy(&(libconfig_privdata.cfg));
+void config_libconfig_write_parsedcfg(void) {
   if( cfgptr->rtflags & CONFIG_SAVERUNCFG ) {
       char *fname=strdup(libconfig_privdata.configfile);
       int newcfgflen = strlen( libconfig_privdata.configfile) + strlen(cfgptr->tmpdir) + 20;
@@ -624,6 +622,15 @@ void config_libconfig_end(void ) {
 	  config_destroy(&(libconfig_privdata.runtcfg));
       free(fname);
 	  free(newcfgf);
+  } else {
+	printf("[LIBCONFIG] Cannot create config file after parsing: CONFIG_SAVERUNCFG flag not specified\n");  
+  }
+}
+
+void config_libconfig_end(void ) {
+  config_destroy(&(libconfig_privdata.cfg));
+  if( cfgptr->rtflags & CONFIG_SAVERUNCFG ) {
+	  config_destroy(&(libconfig_privdata.runtcfg));
   }
   if ( libconfig_privdata.configfile != NULL ) {
     free(libconfig_privdata.configfile);

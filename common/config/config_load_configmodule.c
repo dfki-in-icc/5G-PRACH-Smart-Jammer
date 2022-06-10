@@ -97,6 +97,13 @@ int load_config_sharedlib(configmodule_interface_t *cfgptr) {
                __FILE__, __LINE__,fname, cfgptr->cfgmode);
         st = -1;
       }
+      sprintf (fname,"config_%s_write_parsedcfg",cfgptr->cfgmode);
+      cfgptr->write_parsedcfg = dlsym(lib_handle,fname);
+
+      if (cfgptr->write_parsedcfg == NULL ) {
+        printf("[CONFIG] %s %d no function %s for config mode %s\n",
+               __FILE__, __LINE__,fname, cfgptr->cfgmode);
+      }   
     }
 
     sprintf (fname,"config_%s_end",cfgptr->cfgmode);
@@ -106,6 +113,7 @@ int load_config_sharedlib(configmodule_interface_t *cfgptr) {
       printf("[CONFIG] %s %d no function %s for config mode %s\n",
              __FILE__, __LINE__,fname, cfgptr->cfgmode);
     }
+ 
   }
 
   return st;
@@ -355,10 +363,8 @@ configmodule_interface_t *load_configmodule(int argc,
   return cfgptr;
 }
 
-
-/* free memory allocated when reading parameters */
-/* config module could be initialized again after this call */
-void end_configmodule(void) {
+/* Possibly write config file, with parameters which have been read and  after command line parsing */
+void write_parsedcfg(void) {
   if ( cfgptr->status && (cfgptr->rtflags & CONFIG_SAVERUNCFG)) {
 	 printf_params("[CONFIG] Runtime params creation status: %i null values, %i errors, %i empty list or array, %i successfull \n",
 	               cfgptr->status->num_err_nullvalue,
@@ -367,6 +373,18 @@ void end_configmodule(void) {
 	               cfgptr->status->num_write);
 	               
   }
+  if (cfgptr != NULL) {
+    if (cfgptr->write_parsedcfg != NULL) {
+      printf ("[CONFIG] calling config module write_parsedcfg function...\n");
+      cfgptr->write_parsedcfg();
+    }
+  }
+}
+
+/* free memory allocated when reading parameters */
+/* config module could be initialized again after this call */
+void end_configmodule(void) {
+  write_parsedcfg();
   if (cfgptr != NULL) {
     if (cfgptr->end != NULL) {
       printf ("[CONFIG] calling config module end function...\n");

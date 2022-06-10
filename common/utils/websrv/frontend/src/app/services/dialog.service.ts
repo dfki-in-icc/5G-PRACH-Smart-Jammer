@@ -35,8 +35,10 @@ export class DialogService {
         body: error.error,
       },
       panelClass: 'errRespDialog',
-    }).afterClosed()
-      .pipe(tap(() => this.isDialogOpen = false));
+    })
+    .afterClosed()
+    .pipe(tap(() => this.isDialogOpen = false));
+      
   }
 
   openCmdDialog(resp: IResp, title?: string): Observable<IResp> {
@@ -123,7 +125,8 @@ export class DialogService {
       data: {
         title: title,
         control: control
-      }
+      },
+      panelClass: 'questionDialog',
     })
     
      return dialogRef

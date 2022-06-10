@@ -140,37 +140,34 @@ void set_sched(pthread_t tid, int pid, int priority) {
   struct sched_param schedp;
   int policy;
   char strpolicy[10];
+  int niceval=0;
 
-
-  if (priority < (NICE_MIN - 100 )) {
+  if (priority <  -100  && priority > -200) {  //RR priority 1 to 99 (high) mapped to oai priority -101 to -199 (high)
     policy=SCHED_RR;
     sprintf(strpolicy,"%s","RR"); 
-    schedp.sched_priority= -(priority + 100 - NICE_MIN); 
-  } else if (priority < NICE_MIN && priority >= (NICE_MIN - 100 )) { 
+    schedp.sched_priority= -(priority + 100 ); 
+  } else if (priority < 0 && priority > -100 ) { 
     policy=SCHED_FIFO;
     sprintf(strpolicy,"%s","fifo");
-    schedp.sched_priority=-(priority - NICE_MIN ) ;
-
-    if (   (schedp.sched_priority < sched_get_priority_min(SCHED_FIFO)) ||
-           (schedp.sched_priority > sched_get_priority_max(SCHED_FIFO)) ) {
-      client_printf("Error: %i invalid prio, should be %i to %i, \n",
-                    priority, NICE_MIN -sched_get_priority_min(SCHED_FIFO),
-                    NICE_MIN - sched_get_priority_max(SCHED_FIFO) );
-    }
-  } else if (priority >= NICE_MIN && priority <= NICE_MAX) {
+    schedp.sched_priority= -priority ;//fifo priority 1 to 99 (high) mapped to oai priority -1 to -99 (high)
+  } else if (priority >= 0 && priority <= (NICE_MAX-NICE_MIN)) { // other (normal) nice value -20 to 19 mapped to oai priority 0 to 39
     policy=SCHED_OTHER;
     sprintf(strpolicy,"%s","other");
     schedp.sched_priority=0;
-  } else if (priority > NICE_MAX && priority <= (NICE_MAX + (NICE_MAX - NICE_MIN ) +1)) {
+    niceval=priority+NICE_MIN;
+  } else if (priority > NICE_MAX-NICE_MIN && priority <= (2*(NICE_MAX-NICE_MIN)+1) ) {// batch (normal) nice value -20 to 19 mapped to oai priority 40 to 79
     policy=SCHED_BATCH;
     sprintf(strpolicy,"%s","batch");
+    niceval=priority+NICE_MIN-(NICE_MAX-NICE_MIN+1);
     schedp.sched_priority=0;
-  } else {
+  } else if (priority >  (2*(NICE_MAX-NICE_MIN)+1)){// fifo  mapped to oai priority 80
     policy=SCHED_IDLE;
     sprintf(strpolicy,"%s","idle");
     schedp.sched_priority=0;
+  } else {
+      client_printf("Error: %i invalid priority \n",priority );
+      return;
   }
-
   if( tid != 0) {
     rt = pthread_setschedparam(tid, policy, &schedp);
   } else if(pid > 0)  {
@@ -190,11 +187,11 @@ void set_sched(pthread_t tid, int pid, int priority) {
       rt = getpriority(PRIO_PROCESS,tid);
 
       if (rt != -1) {
-        rt = setpriority(PRIO_PROCESS,tid,schedp.sched_priority);
+        rt = setpriority(PRIO_PROCESS,tid,niceval);
 
         if (rt < 0) {
           client_printf("Error %i: %s trying to set nice value of thread %u to %i\n",
-                        errno,strerror(errno),tid,schedp.sched_priority);
+                        errno,strerror(errno),tid,niceval);
         }
       } else {
         client_printf("Error %i: %s trying to get nice value of thread %u \n",
@@ -203,17 +200,17 @@ void set_sched(pthread_t tid, int pid, int priority) {
     }
   }
 
-  if ( policy == SCHED_OTHER) {
+  if ( policy == SCHED_OTHER || policy==SCHED_BATCH) {
     if ( tid > 0 && tid != pthread_self()) {
       client_printf("setting nice value using a thread id not implemented....\n");
     } else if (pid > 0) {
       errno=0;
-      rt = setpriority(PRIO_PROCESS,pid,schedp.sched_priority);
+      rt = setpriority(PRIO_PROCESS,pid,niceval);
 
       if (rt != 0) {
         client_printf("Error %i: %s calling setpriority, \n",errno,strerror(errno));
       } else {
-        client_printf("nice value set to %i\n",schedp.sched_priority);
+        client_printf("nice value set to %i\n",niceval);
       }
     }
   }
@@ -529,7 +526,7 @@ int process_command(char *buf) {
   int rt;
   memset(modulename,0,sizeof(modulename));
   memset(cmd,0,sizeof(cmd));
-  
+  extern char **environ;  
 
   if (strncasecmp(buf,"ex",2) == 0)
     return CMDSTATUS_EXIT;
