@@ -6,7 +6,7 @@
 
 
 
-void nrLDPC_bnProc_BG2_generator_AVX2(int R)
+void nrLDPC_bnProc_BG2_generator_AVX2(const char *dir, int R)
 {
   const char *ratestr[3]={"15","13","23"};
 
@@ -16,13 +16,16 @@ void nrLDPC_bnProc_BG2_generator_AVX2(int R)
  // system("mkdir -p ../ldpc_gen_files");
 
   char fname[FILENAME_MAX+1];
-  sprintf(fname,"../ldpc_gen_files/bnProc/nrLDPC_bnProc_BG2_R%s_AVX2.h",ratestr[R]);
+  snprintf(fname, sizeof(fname), "%s/bnProc/nrLDPC_bnProc_BG2_R%s_AVX2.h", dir, ratestr[R]);
   FILE *fd=fopen(fname,"w");
-  if (fd == NULL) {printf("Cannot create \n");abort();}
+  if (fd == NULL) {
+    printf("Cannot create file %s\n", fname);
+    abort();
+  }
 
 
 
-    fprintf(fd,"void nrLDPC_bnProc_BG2_R%s_AVX2(int8_t* bnProcBuf,int8_t* bnProcBufRes,  int8_t* llrRes, uint16_t Z  ) {\n",ratestr[R]);
+    fprintf(fd,"static inline void nrLDPC_bnProc_BG2_R%s_AVX2(int8_t* bnProcBuf,int8_t* bnProcBufRes,  int8_t* llrRes, uint16_t Z  ) {\n",ratestr[R]);
     const uint8_t*  lut_numBnInBnGroups;
     const uint32_t* lut_startAddrBnGroups;
     const uint16_t* lut_startAddrBnGroupsLlr;
@@ -59,10 +62,6 @@ void nrLDPC_bnProc_BG2_generator_AVX2(int R)
 
 
 
-    fprintf(fd,"        __m256i* p_bnProcBuf; \n");
-    fprintf(fd,"        __m256i* p_bnProcBufRes; \n");
-    fprintf(fd,"        __m256i* p_llrRes; \n");
-    fprintf(fd,"        __m256i* p_res; \n");
      fprintf(fd,"        uint32_t M, i; \n");
 
 
