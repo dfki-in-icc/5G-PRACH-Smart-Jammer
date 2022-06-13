@@ -831,7 +831,6 @@ TARGET_LINK_LIBRARIES(benetel_5g pthread dl rt m numa)
 include_directories("${XRAN_DIR}")
 include_directories("${DPDK_DIR}")
 #include_directories("${INTEL_LIB_DIR}")
-include_directories("$ENV{XRAN_LIB_DIR}")
 
 set(ORAN_FHLIB_5G_SOURCE
     ${OPENAIR_TARGETS}/ARCH/ETHERNET/oran/5g/oran.cpp
