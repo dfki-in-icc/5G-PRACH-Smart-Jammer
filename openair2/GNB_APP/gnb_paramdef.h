@@ -83,7 +83,7 @@ typedef enum {
 #define GNB_CONFIG_STRING_ASN1_VERBOSITY                   "Asn1_verbosity"
 #define GNB_CONFIG_STRING_ACTIVE_GNBS                      "Active_gNBs"
 
-/** global parameter for virtual time */                   
+/** global parameter for virtual time */
 #define GNB_CONFIG_STRING_VIRTUAL_TIME                     "virtual_time"
 /*--------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*                                            global configuration parameters                                                                                   */
