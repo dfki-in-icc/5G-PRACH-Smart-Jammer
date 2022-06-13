@@ -1839,8 +1839,7 @@ char *nfapi_ul_config_req_to_string(nfapi_ul_config_request_t *req)
     return result;
 }
 
-/** TODO: FC: Rename to SF */
-void fill_ue_slot_indication_UE_MAC(int Mod_id,
+void fill_ue_sf_indication_UE_MAC(int Mod_id,
                                int frame,
                                int subframe,
 			       uint16_t ack_sfn_sf,

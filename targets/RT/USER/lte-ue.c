@@ -1232,9 +1232,8 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg)
         }
       }
 
-      /** TODO: FC */
-      if (1 /** UE is L2 Sim mode */) {
-        fill_ue_slot_indication_UE_MAC(ue_Mod_id, NFAPI_SFNSF2SFN(sfn_sf), NFAPI_SFNSF2SF(sfn_sf), sfn_sf, UL_INFO);
+      if (UE->virtual_time) {
+        fill_ue_sf_indication_UE_MAC(ue_Mod_id, NFAPI_SFNSF2SFN(sfn_sf), NFAPI_SFNSF2SF(sfn_sf), sfn_sf, UL_INFO);
       }
 
     } //for (Mod_id=0; Mod_id<NB_UE_INST; Mod_id++)
@@ -1281,8 +1280,7 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg)
       UL_INFO->sr_ind.sr_indication_body.number_of_srs = 0;
     }
 
-    /** TODO: FC Send UE_SLOT.indication here after processing everything */
-    if ( 1 /** UE is SS mode */ && UL_INFO->vt_ue_sf_ind.sfn_sf >= 0)
+    if ( UE->virtual_time && UL_INFO->vt_ue_sf_ind.sfn_sf != 0x4000)
     {
         LOG_D(MAC, "Sending UE_SLOT.indication at SFN: %d SF: %d for Ack'ing sfn: %d sf: %d \n", 
             NFAPI_SFNSF2SFN(sfn_sf), NFAPI_SFNSF2SF(sfn_sf), 
@@ -1290,7 +1288,7 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg)
             NFAPI_SFNSF2SF(UL_INFO->vt_ue_sf_ind.sfn_sf));
         send_standalone_msg(UL_INFO, UL_INFO->vt_ue_sf_ind.header.message_id);
         sent_any = true;
-        UL_INFO->vt_ue_sf_ind.sfn_sf = 0;
+        UL_INFO->vt_ue_sf_ind.sfn_sf = 0x4000; /** An ivalid value */
     }
 
     // De-allocate memory of nfapi requests copies before next subframe round

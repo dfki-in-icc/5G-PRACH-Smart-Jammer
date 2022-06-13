@@ -171,8 +171,8 @@ void hi_dci0_req_UE_MAC(int sfn,
                         nfapi_hi_dci0_request_pdu_t* bch,
                         int num_ue);
 
-// To send UE_SLOT.indication in virtual time, TODO: Change name to subframe_indication.
-void fill_ue_slot_indication_UE_MAC(int Mod_id,
+// To send UE_SF.indication in virtual time.
+void fill_ue_sf_indication_UE_MAC(int Mod_id,
                                     int frame,
                                     int subframe, 
                                     uint16_t ack_sfn_sf,

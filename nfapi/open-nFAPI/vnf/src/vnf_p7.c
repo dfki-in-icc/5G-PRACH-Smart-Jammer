@@ -434,14 +434,13 @@ void vnf_handle_subframe_indication(void *pRecvMsg, int recvMsgLen, vnf_p7_t* vn
             }
             else
             {
-		        uint8_t *p = (uint8_t *)pRecvMsg;
-			    /** TODO: FC: Change this way of extracting sfn_sf */
-			    uint16_t sfnsf = p[16] << 8 | p[17];
+                uint8_t *p = (uint8_t *) pRecvMsg;
+		uint16_t sfnsf = p[16] << 8 | p[17];
 
-			    vnf_p7->sf_start_time_hr = vnf_get_current_time_hr();
+	        vnf_p7->sf_start_time_hr = vnf_get_current_time_hr();
                 if(vnf_p7->_public.subframe_indication)
                 {
-			        send_mac_subframe_indications(vnf_p7, sfnsf);
+	            send_mac_subframe_indications(vnf_p7, sfnsf);
                 }
             }
 

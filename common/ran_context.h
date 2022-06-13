@@ -51,8 +51,6 @@
 
 
 typedef struct {
-  /// Mode of operation 0:Normal e/gNB operation 1:SS-mode
-  uint8_t mode;
   /// RAN context config file name
   char *config_file_name;
   /// Number of RRC instances in this node
@@ -117,6 +115,8 @@ typedef struct {
   pthread_cond_t ru_cond;
   /// System Simulator Config variables
   ss_config_t ss;
+  /// Virtual Time Mode Flag
+  uint8_t virtual_time;
 
 } RAN_CONTEXT_t;
 

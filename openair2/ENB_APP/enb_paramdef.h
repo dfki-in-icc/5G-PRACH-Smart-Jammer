@@ -177,6 +177,7 @@ typedef enum {
 #define ENB_CONFIG_STRING_ASN1_VERBOSITY           "Asn1_verbosity"
 #define ENB_CONFIG_STRING_ACTIVE_ENBS              "Active_eNBs"
 #define ENB_CONFIG_STRING_NOS1                     "noS1"
+#define ENB_CONFIG_STRING_VIRTUAL_TIME             "virtual_time"
 /*--------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*                                            global configuration parameters                                                                                   */
 /*   optname                          helpstr      paramflags          XXXptr        defXXXval                                        type           numelt     */
@@ -185,10 +186,12 @@ typedef enum {
     {ENB_CONFIG_STRING_ASN1_VERBOSITY,      NULL,     0,                   uptr:NULL,   defstrval:ENB_CONFIG_STRING_ASN1_VERBOSITY_NONE,   TYPE_STRING,      0},   \
     {ENB_CONFIG_STRING_ACTIVE_ENBS,         NULL,     0,                   uptr:NULL,   defstrval:NULL,                TYPE_STRINGLIST,  0},   \
     {ENB_CONFIG_STRING_NOS1,                NULL,     PARAMFLAG_BOOL,      uptr:NULL,   defintval:0,               TYPE_UINT,        0},   \
+    {ENB_CONFIG_STRING_VIRTUAL_TIME,        NULL,     PARAMFLAG_BOOL,      uptr:NULL,   defintval:0,               TYPE_UINT,        0},   \
   }
 #define ENB_ASN1_VERBOSITY_IDX                     0
 #define ENB_ACTIVE_ENBS_IDX                        1
 #define ENB_NOS1_IDX                               2
+#define ENB_VT_IDX                                 3
 
 
 /*------------------------------------------------------------------------------------------------------------------------------------------*/
@@ -332,6 +335,31 @@ typedef enum {
     { .s1 = { config_check_intval,   MNC_DIGIT_LENGTH_OKVALUES, 2 } }, \
   }
 
+/*-------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------*/
+
+/* SS configuration */
+
+#define CONFIG_SS                                          "SSConfig"
+#define CONFIG_SS_HOSTIP                                   "hostIp"
+#define CONFIG_SS_SYSPORT                                  "Sys_port"
+#define CONFIG_SS_SRBPORT                                  "Srb_port"
+#define CONFIG_SS_VNGPORT                                  "Vng_port"
+#define CONFIG_SS_MODE                                     "SSMode"
+
+#define CONFIG_SS_HOSTIP_IDX     0
+#define CONFIG_SS_SYSPORT_IDX    1
+#define CONFIG_SS_SRBPORT_IDX    2
+#define CONFIG_SS_VNGPORT_IDX    3
+#define CONFIG_SS_MODE_IDX    4
+
+#define SSPARAMS_DESC {                                                                  \
+{CONFIG_SS_HOSTIP          ,                     NULL,     0,          uptr:NULL,        defstrval:"0.0.0.0",      TYPE_STRING,   0},     \
+{CONFIG_SS_SYSPORT         ,                     NULL,     0,          uptr:NULL,        defintval:0000,           TYPE_UINT,     0},   \
+{CONFIG_SS_SRBPORT         ,                     NULL,     0,          uptr:NULL,        defintval:0000,           TYPE_UINT,     0},   \
+{CONFIG_SS_VNGPORT         ,                     NULL,     0,          uptr:NULL,        defintval:0000,           TYPE_UINT,     0},   \
+{CONFIG_SS_MODE            ,                     NULL,     0,          uptr:NULL,        defintval:0000,           TYPE_UINT,     0},   \
+}
 
 /*-------------------------------------------------------------------------------------------------------------------------------------------------*/
 #define ENB_CONFIG_STRING_MBMS_CONFIGURATION_DATA_LIST                     "mbms_configuration_data_list"

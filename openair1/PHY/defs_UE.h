@@ -838,6 +838,8 @@ typedef struct {
 
   openair0_device rfdevice;
   void *scopeData;
+  /// Flag to tell if UE is in Virtual time mode
+  uint8_t    virtual_time;
 } PHY_VARS_UE;
 
 /* this structure is used to pass both UE phy vars and

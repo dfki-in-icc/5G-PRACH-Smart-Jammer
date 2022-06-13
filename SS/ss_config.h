@@ -31,21 +31,16 @@
 #ifndef __SS_CONFIG_H__
 #define __SS_CONFIG_H__
 
-#if 0 /** TODO: FC */
 typedef enum ss_mode {
-  SS_ENB = 0x00,
-  SS_VT,
+  NO_SS   = 0,
+  SS_VT   = 1,
   SS_VT_SRB,
+  SS_NOVT
 } ss_mode_e;
-#else
-#define SS_ENB  		        (0x00)
-#define SS_SOFTMODEM    	    (0x01)
-#define SS_SOFTMODEM_SRB        (0x02)
-#endif
 
 typedef struct ss_config_s {
   /** SS mode of operation */
-  uint8_t mode; /* 0: Normal eNB/gNB, 1: SS-Mode */
+  ss_mode_e mode;
   /** IP Address where the TTCN engine is running */
   const char* hostIp;
   /** SYS port number */

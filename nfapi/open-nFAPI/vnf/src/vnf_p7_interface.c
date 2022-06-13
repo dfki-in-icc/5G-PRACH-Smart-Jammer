@@ -329,7 +329,7 @@ int nfapi_vnf_p7_start(nfapi_vnf_p7_config_t* config)
 		clock_gettime(CLOCK_MONOTONIC, &pselect_start);
 		//long millisecond = pselect_start.tv_nsec / 1e6;
 
-        if (RC.ss.mode == SS_ENB) /** TODO:FC: Can check for any other mode  other than VT */
+                if (RC.virtual_time)
 		{
 
 		if((last_millisecond == -1) || (millisecond == last_millisecond) || (millisecond == (last_millisecond + 1) % 1000) )
@@ -579,13 +579,11 @@ if (selectRetval==-1 && errno == 22)
 			}
 			sf_start = timespec_add(sf_start, sf_duration);
 			pselect_timeout = timespec_sub(sf_start, pselect_start);
-#if 1
-			/** FC : TODO: Need to fix */
+
 			if (pselect_timeout.tv_sec < 0 || pselect_timeout.tv_nsec < 0) {
 				pselect_timeout.tv_sec = sf_duration.tv_sec;
 				pselect_timeout.tv_nsec = sf_duration.tv_nsec;
 			}
-#endif
 		}
 	}
 
