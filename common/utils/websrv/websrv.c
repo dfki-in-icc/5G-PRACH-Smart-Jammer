@@ -55,6 +55,7 @@
   {"url",                          "<server url>\n",                0,                 strptr:&websrvparams.url,             defstrval:"index.html",         TYPE_STRING,    0 }, 
   {"cert",                         "<cert file>\n",                 0,                 strptr:&websrvparams.certfile,        defstrval:NULL,                 TYPE_STRING,    0 }, 
   {"key",                          "<key file>\n",                  0,                 strptr:&websrvparams.keyfile,         defstrval:NULL,                 TYPE_STRING,    0 },
+  {"rootca",                       "<root ca file>\n",              0,                 strptr:&websrvparams.rootcafile,      defstrval:NULL,                 TYPE_STRING,    0 },
 };
 int websrv_add_endpoint( char **http_method, int num_method, const char * url_prefix,const char * url_format,
                          int (* callback_function[])(const struct _u_request * request, 
@@ -300,8 +301,16 @@ FILE *websrv_getfile(char *filename, struct _u_response * response) {
   return f;  
     
 }
-/*----------------------------------------------------------------------------*/
-/* callback to answer request of softmodem file                               */
+
+int websrv_callback_auth(const struct _u_request *request, struct _u_response *response, void *user_data) {
+  LOG_I(UTIL,"[websrv] authenticating %s %s\n", request->http_verb,request->http_url);
+  websrv_dump_request(request);		
+
+//    return U_CALLBACK_ERROR;
+  return U_CALLBACK_CONTINUE;  
+}
+/*----------------------------------------------------------------------------------------------*/
+/* callback to answer a request to download a file from  the softmodem (example: a config file  */
 int websrv_callback_get_softmodemfile(const struct _u_request *request, struct _u_response *response, void *user_data) {
   LOG_I(UTIL,"[websrv] %s received: %s %s\n",__FUNCTION__,request->http_verb,request->http_url);
   websrv_dump_request(request);	
@@ -844,7 +853,7 @@ int websrv_add_endpoint( char **http_method, int num_method, const char * url_pr
                          void * user_data) {
   int status;
   int j=0;
-  int priority = (user_data == NULL)?10:0;
+  int priority = (user_data == NULL)?10:1;
   for (int i=0; i<num_method; i++) {
     status=ulfius_add_endpoint_by_val(&(websrvparams.instance),http_method[i],url_prefix,url_format,priority,callback_function[i],user_data);
     if (status != U_OK) {
@@ -900,10 +909,10 @@ void* websrv_autoinit() {
   
   // Endpoint list declaration
   //1: load the frontend code: files contained in the websrvparams.url directory
-  ulfius_add_endpoint_by_val(&(websrvparams.instance), "GET", websrvparams.url, NULL, 0, &websrv_callback_get_mainurl, NULL);
+  ulfius_add_endpoint_by_val(&(websrvparams.instance), "GET", websrvparams.url, NULL, 1, &websrv_callback_get_mainurl, NULL);
   //2: build the first page, when receiving the "oaisoftmodem" url 
 //  ulfius_add_endpoint_by_val(&(websrvparams.instance), "GET", "oaisoftmodem", "variables", 0, &websrv_callback_get_softmodemstatus, NULL);
-  ulfius_add_endpoint_by_val(&(websrvparams.instance), "GET", "oaisoftmodem", "commands", 0, &websrv_callback_get_softmodemmodules, NULL);
+  ulfius_add_endpoint_by_val(&(websrvparams.instance), "GET", "oaisoftmodem", "commands", 1, &websrv_callback_get_softmodemmodules, NULL);
 
   //3 default_endpoint declaration, it tries to open the file with the url name as specified in the request.It looks for the file 
   ulfius_set_default_endpoint(&(websrvparams.instance), &websrv_callback_default, NULL);
@@ -924,18 +933,24 @@ void* websrv_autoinit() {
   ulfius_add_endpoint_by_val(&(websrvparams.instance), "GET", "oaisoftmodem", "@module/commands", 10, websrv_callback_newmodule, telnetparams);
   ulfius_add_endpoint_by_val(&(websrvparams.instance), "GET", "oaisoftmodem", "@module/variables", 10, websrv_callback_newmodule, telnetparams);
   //6 callback to handle file request
-  ulfius_add_endpoint_by_val(&(websrvparams.instance), "POST", "oaisoftmodem", "file", 0, &websrv_callback_get_softmodemfile, NULL);
+  ulfius_add_endpoint_by_val(&(websrvparams.instance), "POST", "oaisoftmodem", "file", 1, &websrv_callback_get_softmodemfile, NULL);
   // Start the framework
   ret=U_ERROR;
   if (websrvparams.keyfile!=NULL && websrvparams.certfile!=NULL) {
-    char * key_pem = websrv_read_file(websrvparams.keyfile);
-    char * cert_pem = websrv_read_file(websrvparams.certfile);
-    if ( key_pem == NULL && cert_pem != NULL) {
-      ret = ulfius_start_secure_framework(&(websrvparams.instance), key_pem, cert_pem);
+    char *key_pem = websrv_read_file(websrvparams.keyfile);
+    char *cert_pem = websrv_read_file(websrvparams.certfile);
+    char *root_ca_pem = websrv_read_file(websrvparams.rootcafile);
+    if ( key_pem != NULL && cert_pem != NULL) {
+      ulfius_add_endpoint_by_val(&(websrvparams.instance), "*", "", "@anyword/*", 0, &websrv_callback_auth, NULL);	
+      if ( root_ca_pem == NULL) 
+        ret = ulfius_start_secure_framework(&(websrvparams.instance), key_pem, cert_pem);
+      else
+        ret = ulfius_start_secure_ca_trust_framework(&(websrvparams.instance), key_pem, cert_pem, root_ca_pem);
       free(key_pem);
       free(cert_pem);
+      free(root_ca_pem);
     } else {
-      LOG_E(UTIL,"[websrv] Unable to load key %s and cert %s_\n",websrvparams.keyfile,websrvparams.certfile);
+      LOG_E(UTIL,"[websrv] Unable to load key %s and cert %s\n",websrvparams.keyfile,websrvparams.certfile);
     }
   } else {
     ret = ulfius_start_framework(&(websrvparams.instance));
