@@ -410,7 +410,10 @@ void end_configmodule(void) {
 void free_configmodule(void) {
   if (cfgptr != NULL) {
     end_configmodule();
-    if( cfgptr->status != NULL) free(cfgptr->status);
+    if( cfgptr->status != NULL) {
+      free(cfgptr->status->debug_cfgname);
+      free(cfgptr->status);
+    }
     if( cfgptr->cfgmode != NULL) free(cfgptr->cfgmode);
 
     printf ("[CONFIG] free %i config parameter pointers\n",cfgptr->num_cfgP);

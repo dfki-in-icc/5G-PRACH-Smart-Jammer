@@ -607,21 +607,20 @@ void config_libconfig_write_parsedcfg(void) {
   if( cfgptr->rtflags & CONFIG_SAVERUNCFG ) {
       char *fname=strdup(libconfig_privdata.configfile);
       int newcfgflen = strlen( libconfig_privdata.configfile) + strlen(cfgptr->tmpdir) + 20;
-	  char *newcfgf = malloc( newcfgflen);
+	  cfgptr->status->debug_cfgname = realloc(cfgptr->status->debug_cfgname, newcfgflen);
 	  time_t t = time(NULL);
       struct tm tm = *localtime(&t);
-	  snprintf (newcfgf,newcfgflen, "%s/%s-run%d_%02d_%02d_%02d%02d",cfgptr->tmpdir,basename(fname),
+	  snprintf (cfgptr->status->debug_cfgname,newcfgflen, "%s/%s-run%d_%02d_%02d_%02d%02d",cfgptr->tmpdir,basename(fname),
 	           tm.tm_year + 1900,tm.tm_mon + 1,tm.tm_mday, tm.tm_hour, tm.tm_min);
-	  if ( config_write_file (&(libconfig_privdata.runtcfg) , newcfgf) != CONFIG_TRUE) {
+	  if ( config_write_file (&(libconfig_privdata.runtcfg) , cfgptr->status->debug_cfgname) != CONFIG_TRUE) {
 		 fprintf(stderr,"[LIBCONFIG] %s %d file %s - line %d: %s\n",__FILE__, __LINE__,
-            newcfgf, config_error_line(&(libconfig_privdata.runtcfg)),
+            cfgptr->status->debug_cfgname, config_error_line(&(libconfig_privdata.runtcfg)),
             config_error_text(&(libconfig_privdata.runtcfg)));
       } else {
-		 printf("[LIBCONFIG] file %s created successfully\n", newcfgf);  
+		 printf("[LIBCONFIG] file %s created successfully\n", cfgptr->status->debug_cfgname);  
 	  }
 	  config_destroy(&(libconfig_privdata.runtcfg));
       free(fname);
-	  free(newcfgf);
   } else {
 	printf("[LIBCONFIG] Cannot create config file after parsing: CONFIG_SAVERUNCFG flag not specified\n");  
   }
