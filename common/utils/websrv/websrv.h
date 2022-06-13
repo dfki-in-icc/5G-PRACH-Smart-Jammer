@@ -57,7 +57,8 @@ typedef struct {
      unsigned int   listenstdin;          // enable command input from stdin
      char *url;                           // url for the main (initial) web page 
      char *certfile;                      // cert file
-     char *keyfile;                       // key file    
+     char *keyfile;                       // key file  
+     char *rootcafile;                    // root ca file  
 } websrv_params_t;
 
 
