@@ -817,7 +817,7 @@ int websrv_callback_get_softmodemstatus(const struct _u_request * request, struc
   if((config_get_if()->rtflags & CONFIG_SAVERUNCFG) && (config_get_if()->write_parsedcfg != NULL)) {
 	  config_get_if()->write_parsedcfg();
 	  
-	  websrv_add_modeminfo(modemvars,"Parsed config file",config_get_if()->tmpdir,"configfile");
+	  websrv_add_modeminfo(modemvars,"Parsed config file",config_get_if()->status->debug_cfgname,"configfile");
   }
   
   

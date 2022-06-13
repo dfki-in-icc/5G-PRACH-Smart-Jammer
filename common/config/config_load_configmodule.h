@@ -68,15 +68,12 @@ typedef struct configmodule_status {
 	int num_paramgroups;
 	char ** paramgroups_names;
 	int num_err_nullvalue;
-    int emptyla;	
-	union {
-	  int num_err_read;
-	  int num_err_write;
-    };
-    union {
-	  int num_read;
-	  int num_write;
-    } ;
+        int emptyla;	
+	int num_err_read;
+	int num_err_write;
+	int num_read;
+	int num_write;
+	char *debug_cfgname;
 }configmodule_status_t;
 
 typedef struct configmodule_interface {
