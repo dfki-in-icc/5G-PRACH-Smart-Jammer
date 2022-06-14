@@ -36,6 +36,7 @@
 #include "assertions.h"
 #include "defs.h"
 #include "PHY/defs_nr_UE.h"
+#include "PHY/NR_REFSIG/dmrs_nr.h"
 #include "PHY/phy_extern_nr_ue.h"
 #include "PHY/MODULATION/modulation_UE.h"
 #include "PHY/NR_UE_TRANSPORT/nr_transport_ue.h"
@@ -609,6 +610,15 @@ int nr_ue_pdsch_procedures(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, int gNB_
 #endif
         }
       }
+    }
+
+    if (ue->chest_time == 1) { // averaging time domain channel estimates
+      nr_chest_time_domain_avg(&ue->frame_parms,
+                               ue->pdsch_vars[proc->thread_id][gNB_id]->dl_ch_estimates,
+                               dlsch0_harq->nb_symbols,
+                               dlsch0_harq->start_symbol,
+                               dlsch0_harq->dlDmrsSymbPos,
+                               pdsch_nb_rb);
     }
 
     uint16_t first_symbol_with_data = s0;
@@ -1379,7 +1389,6 @@ int is_pbch_in_slot(fapi_nr_config_request_t *config, int frame, int slot, NR_DL
   }
 }
 
-
 int phy_procedures_nrUE_RX(PHY_VARS_NR_UE *ue,
                            UE_nr_rxtx_proc_t *proc,
                            uint8_t gNB_id,
@@ -1680,6 +1689,23 @@ int phy_procedures_nrUE_RX(PHY_VARS_NR_UE *ue,
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PDSCH_PROC, VCD_FUNCTION_OUT);
 
  }
+
+  // do procedures for CSI-IM
+  if ((ue->csiim_vars[gNB_id]) && (ue->csiim_vars[gNB_id]->active == 1)) {
+    nr_ue_csi_im_procedures(ue, proc, gNB_id);
+    ue->csiim_vars[gNB_id]->active = 0;
+  }
+
+  // do procedures for CSI-RS
+  if ((ue->csirs_vars[gNB_id]) && (ue->csirs_vars[gNB_id]->active == 1)) {
+    for(int symb = 0; symb < NR_SYMBOLS_PER_SLOT; symb++) {
+      if(is_csi_rs_in_symbol(ue->csirs_vars[gNB_id]->csirs_config_pdu,symb)) {
+        nr_slot_fep(ue, proc, symb, nr_slot_rx);
+      }
+    }
+    nr_ue_csi_rs_procedures(ue, proc, gNB_id);
+    ue->csirs_vars[gNB_id]->active = 0;
+  }
 
   start_meas(&ue->generic_stat);
 

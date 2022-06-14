@@ -331,7 +331,7 @@ int nr_process_mac_pdu( instance_t module_idP,
                               0);
           break;
 
-        case UL_SCH_LCID_DTCH:
+        case UL_SCH_LCID_DTCH ... (UL_SCH_LCID_DTCH + 28):
           //  check if LCID is valid at current time.
 	  if (!get_mac_len(pduP, pdu_len, &mac_len, &mac_subheader_len))
 	    return 0;
@@ -803,8 +803,7 @@ static bool nr_UE_is_to_be_scheduled(const NR_ServingCellConfigCommon_t *scc,
   if (tdd) { // Force the default transmission in a full slot as early as possible in the UL portion of TDD period (last_ul_slot)
     num_slots_per_period = n*tdd_period_len[tdd->dl_UL_TransmissionPeriodicity]/10000;
     last_ul_slot=1+tdd->nrofDownlinkSlots;
-  }
-  else {
+  } else {
     num_slots_per_period = n;
     last_ul_slot = sched_ctrl->last_ul_slot;
   }
@@ -934,8 +933,7 @@ static bool allocate_ul_retransmission(gNB_MAC_INST *nrmac,
   }
 
   /* Find a free CCE */
-  const int cid = sched_ctrl->coreset->controlResourceSetId;
-  const uint16_t Y = get_Y(cid%3, slot, UE->rnti);
+  const uint32_t Y = get_Y(sched_ctrl->search_space, slot, UE->rnti);
   uint8_t nr_of_candidates;
   for (int i=0; i<5; i++) {
     // for now taking the lowest value among the available aggregation levels
@@ -1102,8 +1100,7 @@ void pf_ul(module_id_t module_id,
     if (B == 0 && do_sched) {
       /* if no data, pre-allocate 5RB */
       /* Find a free CCE */
-      const int cid = sched_ctrl->coreset->controlResourceSetId;
-      const uint16_t Y = get_Y(cid%3, slot, UE->rnti);
+      const uint32_t Y = get_Y(sched_ctrl->search_space, slot, UE->rnti);
       uint8_t nr_of_candidates;
       for (int i=0; i<5; i++) {
 	// for now taking the lowest value among the available aggregation levels
@@ -1217,8 +1214,7 @@ void pf_ul(module_id_t module_id,
 
     NR_UE_sched_ctrl_t *sched_ctrl = &iterator->UE->UE_sched_ctrl;
 
-    const int cid = sched_ctrl->coreset->controlResourceSetId;
-    const uint16_t Y = get_Y(cid%3, slot, iterator->UE->rnti);
+    const uint32_t Y = get_Y(sched_ctrl->search_space, slot, iterator->UE->rnti);
     uint8_t nr_of_candidates;
     for (int i=0; i<5; i++) {
       // for now taking the lowest value among the available aggregation levels
