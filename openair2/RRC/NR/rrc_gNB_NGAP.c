@@ -905,7 +905,7 @@ rrc_gNB_send_NGAP_PDUSESSION_SETUP_RESP(
   for (pdusession = 0; pdusession < ue_context_pP->ue_context.setup_pdu_sessions; pdusession++) {
     // if (xid == ue_context_pP->ue_context.pdusession[pdusession].xid) {
       if (ue_context_pP->ue_context.pduSession[pdusession].status == PDU_SESSION_STATUS_DONE) {
-        pdusession_setup_t * tmp=&NGAP_PDUSESSION_SETUP_RESP(msg_p).pdusessions[pdusession];
+        pdusession_setup_t * tmp=&NGAP_PDUSESSION_SETUP_RESP(msg_p).pdusessions[pdu_sessions_done];
         tmp->pdusession_id = ue_context_pP->ue_context.pduSession[pdusession].param.pdusession_id;
         // tmp->pdusession_id = 1;
         tmp->nb_of_qos_flow = ue_context_pP->ue_context.pduSession[pdusession].param.nb_qos;
@@ -969,9 +969,9 @@ rrc_gNB_process_NGAP_PDUSESSION_SETUP_REQ(
   uint16_t                        ue_initial_id;
   uint32_t                        gNB_ue_ngap_id;
   rrc_gNB_ue_context_t            *ue_context_p = NULL;
-  protocol_ctxt_t                 ctxt;
-  gtpv1u_gnb_create_tunnel_req_t  create_tunnel_req;
-  gtpv1u_gnb_create_tunnel_resp_t create_tunnel_resp;
+  protocol_ctxt_t                 ctxt={0};
+  gtpv1u_gnb_create_tunnel_req_t  create_tunnel_req={0};
+  gtpv1u_gnb_create_tunnel_resp_t create_tunnel_resp={0};
   uint8_t                         pdu_sessions_done;
   uint8_t                         inde_list[NR_NB_RB_MAX - 3]= {0};
   int                             ret = 0;

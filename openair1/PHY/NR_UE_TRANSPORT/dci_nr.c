@@ -80,8 +80,8 @@ char nr_dci_format_string[8][30] = {
 //static const int16_t conjugate[8]__attribute__((aligned(32))) = {-1,1,-1,1,-1,1,-1,1};
 
 
-void nr_pdcch_demapping_deinterleaving(uint32_t *llr,
-                                       uint32_t *z,
+static void nr_pdcch_demapping_deinterleaving(uint32_t *llr,
+                                       uint32_t *e_rx,
                                        uint8_t coreset_time_dur,
                                        uint8_t start_symbol,
                                        uint32_t coreset_nbr_rb,
@@ -142,7 +142,8 @@ void nr_pdcch_demapping_deinterleaving(uint32_t *llr,
 
   int B_rb = reg_bundle_size_L/coreset_time_dur; // nb of RBs occupied by each REG bundle
   int num_bundles_per_cce = 6/reg_bundle_size_L;
-  int max_bundles = NR_MAX_PDCCH_AGG_LEVEL*num_bundles_per_cce;
+  int n_cce = N_regs/6;
+  int max_bundles = n_cce*num_bundles_per_cce;
   int f_bundle_j_list[max_bundles];
 
   // for each bundle
@@ -187,10 +188,10 @@ void nr_pdcch_demapping_deinterleaving(uint32_t *llr,
             index_z = data_sc * rb_count;
             index_llr = (uint16_t) (f*B_rb + rb + symbol_idx * coreset_nbr_rb) * data_sc;
             for (int i = 0; i < data_sc; i++) {
-              z[index_z + i] = llr[index_llr + i];
+              e_rx[index_z + i] = llr[index_llr + i];
 #ifdef NR_PDCCH_DCI_DEBUG
               LOG_I(PHY,"[candidate=%d,symbol_idx=%d,cce=%d,REG bundle=%d,PRB=%d] z[%d]=(%d,%d) <-> \t llr[%d]=(%d,%d) \n",
-                    c_id,symbol_idx,cce_count,k,f*B_rb + rb,(index_z + i),*(int16_t *) &z[index_z + i],*(1 + (int16_t *) &z[index_z + i]),
+                    c_id,symbol_idx,cce_count,k,f*B_rb + rb,(index_z + i),*(int16_t *) &e_rx[index_z + i],*(1 + (int16_t *) &e_rx[index_z + i]),
                     (index_llr + i),*(int16_t *) &llr[index_llr + i], *(1 + (int16_t *) &llr[index_llr + i]));
 #endif
             }
@@ -359,10 +360,7 @@ void nr_pdcch_extract_rbs_single(int32_t **rxdataF,
    * According to this equations, DM-RS PDCCH are mapped on k where k%12==1 || k%12==5 || k%12==9
    *
    */
-  // the bitmap coreset_frq_domain contains 45 bits
-#define CORESET_FREQ_DOMAIN_BITMAP_SIZE   45
-  // each bit is associated to 6 RBs
-#define BIT_TO_NBR_RB_CORESET_FREQ_DOMAIN  6
+
 #define NBR_RE_PER_RB_WITH_DMRS           12
   // after removing the 3 DMRS RE, the RB contains 9 RE with PDCCH
 #define NBR_RE_PER_RB_WITHOUT_DMRS         9
@@ -686,9 +684,9 @@ int32_t nr_rx_pdcch(PHY_VARS_NR_UE *ue,
 
   // Pointers to extracted PDCCH symbols in frequency-domain.
   int32_t rx_size = 4*273*12;
-  int32_t rxdataF_ext[4*frame_parms->nb_antennas_rx][rx_size];
-  int32_t rxdataF_comp[4*frame_parms->nb_antennas_rx][rx_size];
-  int32_t pdcch_dl_ch_estimates_ext[4*frame_parms->nb_antennas_rx][rx_size];
+  __attribute__ ((aligned(32))) int32_t rxdataF_ext[4*frame_parms->nb_antennas_rx][rx_size];
+  __attribute__ ((aligned(32))) int32_t rxdataF_comp[4*frame_parms->nb_antennas_rx][rx_size];
+  __attribute__ ((aligned(32))) int32_t pdcch_dl_ch_estimates_ext[4*frame_parms->nb_antennas_rx][rx_size];
 
   // Pointer to llrs, 4-bit resolution.
   int32_t llr_size = 2*4*100*12;
@@ -798,7 +796,7 @@ int32_t nr_rx_pdcch(PHY_VARS_NR_UE *ue,
 
 
 
-void nr_pdcch_unscrambling(int16_t *z,
+void nr_pdcch_unscrambling(int16_t *e_rx,
                            uint16_t scrambling_RNTI,
                            uint32_t length,
                            uint16_t pdcch_DMRS_scrambling_id,
@@ -821,8 +819,10 @@ void nr_pdcch_unscrambling(int16_t *z,
       reset = 0;
     }
 
-    if (((s >> (i % 32)) & 1) == 1) z2[i] = -z[i];
-    else z2[i]=z[i];
+    if (((s >> (i % 32)) & 1) == 1)
+      z2[i] = -e_rx[i];
+    else
+      z2[i]=e_rx[i];
   }
 }
 
@@ -875,6 +875,7 @@ uint8_t nr_dci_decoding_procedure(PHY_VARS_NR_UE *ue,
     int L = rel15->L[j];
 
     // Loop over possible DCI lengths
+    
     for (int k = 0; k < rel15->num_dci_options; k++) {
       // skip this candidate if we've already found one with the
       // same rnti and format at a different aggregation level
@@ -893,10 +894,11 @@ uint8_t nr_dci_decoding_procedure(PHY_VARS_NR_UE *ue,
       LOG_D(PHY, "(%i.%i) Trying DCI candidate %d of %d number of candidates, CCE %d (%d), L %d, length %d, format %s\n",
             proc->frame_rx, proc->nr_slot_rx, j, rel15->number_of_candidates, CCEind, e_rx_cand_idx, L, dci_length, nr_dci_format_string[rel15->dci_format_options[k]]);
 
+
       nr_pdcch_unscrambling(&pdcch_e_rx[e_rx_cand_idx], rel15->coreset.scrambling_rnti, L*108, rel15->coreset.pdcch_dmrs_scrambling_id, tmp_e);
 
 #ifdef DEBUG_DCI_DECODING
-      uint32_t *z = (uint32_t *) &pdcch_vars->e_rx[e_rx_cand_idx];
+      uint32_t *z = (uint32_t *) &e_rx[e_rx_cand_idx];
       for (int index_z = 0; index_z < L*6; index_z++){
         for (int i=0; i<9; i++) {
           LOG_I(PHY,"z[%d]=(%d,%d) \n", (9*index_z + i), *(int16_t *) &z[9*index_z + i],*(1 + (int16_t *) &z[9*index_z + i]));
@@ -909,8 +911,8 @@ uint8_t nr_dci_decoding_procedure(PHY_VARS_NR_UE *ue,
                                          NR_POLAR_DCI_MESSAGE_TYPE, dci_length, L);
 
       n_rnti = rel15->rnti;
-      LOG_D(PHY, "(%i.%i) dci indication (rnti %x,dci format %s,n_CCE %d,payloadSize %d)\n",
-            proc->frame_rx, proc->nr_slot_rx,n_rnti,nr_dci_format_string[rel15->dci_format_options[k]],CCEind,dci_length);
+      LOG_D(PHY, "(%i.%i) dci indication (rnti %x,dci format %s,n_CCE %d,payloadSize %d,payload %llx )\n",
+            proc->frame_rx, proc->nr_slot_rx,n_rnti,nr_dci_format_string[rel15->dci_format_options[k]],CCEind,dci_length, *(unsigned long long*)dci_estimation);
       if (crc == n_rnti) {
         LOG_D(PHY, "(%i.%i) Received dci indication (rnti %x,dci format %s,n_CCE %d,payloadSize %d,payload %llx)\n",
               proc->frame_rx, proc->nr_slot_rx,n_rnti,nr_dci_format_string[rel15->dci_format_options[k]],CCEind,dci_length,*(unsigned long long*)dci_estimation);

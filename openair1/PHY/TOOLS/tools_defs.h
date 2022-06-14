@@ -33,32 +33,41 @@
 extern "C" {
 #endif
 
+#include <stdio.h>
 #include <stdint.h>
+#include <assert.h>
 #include "PHY/sse_intrin.h"
 
 #define CEILIDIV(a,b) ((a+b-1)/b)
 #define ROUNDIDIV(a,b) (((a<<1)+b)/(b<<1))
 
-struct complexd {
+typedef struct complexd {
   double r;
   double i;
-};
+} cd_t;
 
-struct complexf {
+typedef struct complexf {
   float r;
   float i;
-};
+} cf_t;
 
-struct complex16 {
+typedef struct complex16 {
   int16_t r;
   int16_t i;
-};
+} c16_t;
 
-struct complex32 {
+typedef struct complex32 {
   int32_t r;
   int32_t i;
-};
+} c32_t;
+  
+typedef struct complex64 {
+  int64_t r;
+  int64_t i;
+} c64_t;
 
+#define squaredMod(a) ((a).r*(a).r+(a).i*(a).i)
+#define csum(res, i1, i2) (res).r=(i1).r+(i2).r ; (res).i=(i1).i+(i2).i  
 //cmult_sv.h
 
 /*!\fn void multadd_real_vector_complex_scalar(int16_t *x,int16_t *alpha,int16_t *y,uint32_t N)
@@ -308,6 +317,65 @@ typedef enum dft_size_idx {
 
 #define SZ_iENUM(Sz) IDFT_ ## Sz,
 
+/*******************************************************************
+*
+* NAME :         get_dft
+*
+* PARAMETERS :   size of ofdm symbol
+*
+* RETURN :       function for discrete fourier transform
+*
+* DESCRIPTION :  get dft function depending of ofdm size
+*
+*********************************************************************/
+static inline
+dft_size_idx_t get_dft(int ofdm_symbol_size)
+{
+  switch (ofdm_symbol_size) {
+    case 128:
+      return DFT_128;
+    case 256:
+      return DFT_256;
+    case 512:
+      return DFT_512;
+    case 1024:
+      return DFT_1024;
+    case 1536:
+      return DFT_1536;
+    case 2048:
+      return DFT_2048;
+    case 3072:
+      return DFT_3072;
+    case 4096:
+      return DFT_4096;
+    case 6144:
+      return DFT_6144;
+    case 8192:
+      return DFT_8192;
+    case 9216:
+      return DFT_9216;
+    case 12288:
+      return DFT_12288;
+    case 18432:
+      return DFT_18432;
+    case 24576:
+      return DFT_24576;
+    case 36864:
+      return DFT_36864;
+    case 49152:
+      return DFT_49152;
+    case 73728:
+      return DFT_73728;
+    case 98304:
+      return DFT_98304;
+    default:
+      printf("function get_dft : unsupported ofdm symbol size \n");
+      assert(0);
+      break;
+ }
+ return DFT_SIZE_IDXTABLESIZE; // never reached and will trigger assertion in idft function;
+}
+
 typedef enum idft_size_idx {
   FOREACH_IDFTSZ(SZ_iENUM)
   IDFT_SIZE_IDXTABLESIZE
@@ -333,6 +401,64 @@ struct {
 
 #endif
 
+/*******************************************************************
+*
+* NAME :         get_idft
+*
+* PARAMETERS :   size of ofdm symbol
+*
+* RETURN :       index pointing to the dft func in the dft library
+*
+* DESCRIPTION :  get idft function depending of ofdm size
+*
+*********************************************************************/
+static inline
+idft_size_idx_t get_idft(int ofdm_symbol_size)
+{
+  switch (ofdm_symbol_size) {
+    case 128:
+      return IDFT_128;
+    case 256:
+      return IDFT_256;
+    case 512:
+      return IDFT_512;
+    case 1024:
+      return IDFT_1024;
+    case 1536:
+      return IDFT_1536;
+    case 2048:
+      return IDFT_2048;
+    case 3072:
+      return IDFT_3072;
+    case 4096:
+      return IDFT_4096;
+    case 6144:
+      return IDFT_6144;
+    case 8192:
+      return IDFT_8192;
+    case 9216:
+      return IDFT_9216;
+    case 12288:
+      return IDFT_12288;
+    case 18432:
+      return IDFT_18432;
+    case 24576:
+      return IDFT_24576;
+    case 36864:
+      return IDFT_36864;
+    case 49152:
+      return IDFT_49152;
+    case 73728:
+      return IDFT_73728;
+    case 98304:
+      return IDFT_98304;
+    default:
+      printf("function get_idft : unsupported ofdm symbol size \n");
+      assert(0);
+      break;
+ }
+ return IDFT_SIZE_IDXTABLESIZE; // never reached and will trigger assertion in idft function
+}
 
 
 /*!\fn int32_t rotate_cpx_vector(int16_t *x,int16_t *alpha,int16_t *y,uint32_t N,uint16_t output_shift)

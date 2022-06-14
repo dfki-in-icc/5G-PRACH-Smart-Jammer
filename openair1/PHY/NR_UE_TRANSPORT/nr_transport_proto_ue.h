@@ -63,10 +63,12 @@ void free_nr_ue_dlsch(NR_UE_DLSCH_t **dlsch, uint16_t N_RB_DL);
 */
 NR_UE_DLSCH_t *new_nr_ue_dlsch(uint8_t Kmimo,uint8_t Mdlharq,uint32_t Nsoft,uint8_t max_turbo_iterations,uint16_t N_RB_DL);
 
+void free_nr_ue_ulsch(NR_UE_ULSCH_t **ulschptr,
+                      uint16_t N_RB_UL,
+                      NR_DL_FRAME_PARMS* frame_parms);
 
-void free_nr_ue_ulsch(NR_UE_ULSCH_t **ulsch, uint16_t N_RB_UL);
 
-NR_UE_ULSCH_t *new_nr_ue_ulsch(uint16_t N_RB_UL, int number_of_harq_pids);
+NR_UE_ULSCH_t *new_nr_ue_ulsch(uint16_t N_RB_UL, int number_of_harq_pids, NR_DL_FRAME_PARMS* frame_parms);
 
 /** \brief This function computes the LLRs for ML (max-logsum approximation) dual-stream QPSK/QPSK reception.
     @param stream0_in Input from channel compensated (MR combined) stream 0
@@ -707,7 +709,8 @@ unsigned short nr_dlsch_extract_rbs_single(int **rxdataF,
                                         unsigned short nb_rb_pdsch,
                                         uint8_t n_dmrs_cdm_groups,
                                         NR_DL_FRAME_PARMS *frame_parms,
-                                        uint16_t dlDmrsSymbPos);
+                                        uint16_t dlDmrsSymbPos,
+                                        int chest_time_type);
 
 /** \fn dlsch_extract_rbs_multiple(int32_t **rxdataF,
     int32_t **dl_ch_estimates,
@@ -745,7 +748,8 @@ void nr_dlsch_extract_rbs(int **rxdataF,
                                         uint8_t n_dmrs_cdm_groups,
                                         uint8_t Nl,
                                         NR_DL_FRAME_PARMS *frame_parms,
-                                        uint16_t dlDmrsSymbPos);
+                                        uint16_t dlDmrsSymbPos,
+                                        int chest_time_type);
 
 /** \fn dlsch_extract_rbs_TM7(int32_t **rxdataF,
     int32_t **dl_bf_ch_estimates,
@@ -1011,8 +1015,7 @@ uint32_t  nr_dlsch_decoding(PHY_VARS_NR_UE *phy_vars_ue,
                          uint16_t nb_symb_sch,
                          uint8_t nr_slot_rx,
                          uint8_t harq_pid,
-                         uint8_t is_crnti,
-                         uint8_t llr8_flag);
+                         uint8_t is_crnti);
 
 int nr_ulsch_encoding(PHY_VARS_NR_UE *ue,
                      NR_UE_ULSCH_t *ulsch,
@@ -1456,16 +1459,6 @@ uint64_t cqi2hex(uint32_t cqi);
 
 uint16_t computeRIV(uint16_t N_RB_DL,uint16_t RBstart,uint16_t Lcrbs);
 
-
-/** \brief  This routine extracts a single subband PMI from a bitmap coming from UCI or the pmi_extend function
-    @param N_RB_DL number of resource blocks
-    @param mimo_mode
-    @param pmi_alloc subband PMI bitmap
-    @param rb resource block for which to extract PMI
-    @returns subband PMI
-*/
-uint8_t get_pmi(uint8_t N_RB_DL,MIMO_mode_t mode, uint32_t pmi_alloc,uint16_t rb);
-
 int get_nCCE_offset_l1(int *CCE_table,
                        const unsigned char L,
                        const int nCCE,
@@ -1567,7 +1560,7 @@ uint8_t get_num_prach_tdd(module_id_t Mod_id);
   @param frame_type 0-FDD, 1-TDD
   @returns 0-1 accordingly
 */
-uint8_t get_prach_fmt(uint8_t prach_ConfigIndex,lte_frame_type_t frame_type);
+uint8_t get_prach_fmt(uint8_t prach_ConfigIndex,frame_type_t frame_type);
 
 /*!
   \brief Helper for MAC, returns frequency index of PRACH resource in TDD for a particular configuration index
@@ -1589,7 +1582,7 @@ void compute_prach_seq(uint16_t rootSequenceIndex,
 		       uint8_t prach_ConfigIndex,
 		       uint8_t zeroCorrelationZoneConfig,
 		       uint8_t highSpeedFlag,
-		       lte_frame_type_t frame_type,
+		       frame_type_t frame_type,
 		       uint32_t X_u[64][839]);
 
 
@@ -1682,7 +1675,7 @@ int nr_rx_pdsch(PHY_VARS_NR_UE *ue,
              unsigned char i_mod,
 		unsigned char harq_pid);
 
-int32_t generate_nr_prach(PHY_VARS_NR_UE *ue, uint8_t gNB_id, uint8_t subframe);
+int32_t generate_nr_prach(PHY_VARS_NR_UE *ue, uint8_t gNB_id, int frame, uint8_t slot);
 
 void dump_nrdlsch(PHY_VARS_NR_UE *ue,uint8_t gNB_id,uint8_t nr_slot_rx,unsigned int *coded_bits_per_codeword,int round,  unsigned char harq_pid);
 /**@}*/
