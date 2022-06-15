@@ -212,6 +212,28 @@ void rrc_ue_process_sidelink_radioResourceConfig(
 void rrc_control_socket_init(void);
 
 
+
+/** \brief Process a RadioResourceConfig and configure PHY/MAC for SL communication/discovery
+    \param Mod_idP
+    \param eNB_index Index of corresponding CH/eNB
+    \param sib18 Pointer to SIB18 from SI message
+    \param sib19 Pointer to SIB19 from SI message
+    \param sl_CommConfig Pointer to SL_CommConfig RRCConnectionConfiguration
+    \param sl_DiscConfig Pointer to SL_DiscConfig RRCConnectionConfiguration */
+void rrc_ue_process_sidelink_radioResourceConfig(
+  module_id_t Mod_idP,
+  uint8_t eNB_index,
+  LTE_SystemInformationBlockType18_r12_t     *sib18,
+  LTE_SystemInformationBlockType19_r12_t     *sib19,
+  LTE_SL_CommConfig_r12_t* sl_CommConfig,
+  LTE_SL_DiscConfig_r12_t* sl_DiscConfig);
+
+/** \brief Init control socket to listen to incoming packets from ProSe App
+ *
+ */
+void rrc_control_socket_init(void);
+
+
 // eNB/CH RRC Procedures
 
 /**\brief Function to get the next transaction identifier.
@@ -687,5 +709,9 @@ extern pthread_mutex_t      lock_ue_freelist;
 void remove_UE_from_freelist(module_id_t mod_id, rnti_t rnti);
 void put_UE_in_freelist(module_id_t mod_id, rnti_t rnti, boolean_t removeFlag);
 void release_UE_in_freeList(module_id_t mod_id);
+
+int decode_MIB_SL(  const protocol_ctxt_t* const ctxt_pP,
+                    uint8_t*               const Sdu,
+                    const uint8_t                Sdu_len);
 
 /** @}*/

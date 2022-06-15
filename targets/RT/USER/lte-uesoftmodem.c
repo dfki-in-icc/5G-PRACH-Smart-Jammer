@@ -87,6 +87,7 @@ int nfapi_sync_var=-1; //!< protected by mutex \ref nfapi_sync_mutex
 
 
 uint16_t sf_ahead=4;
+uint8_t D2D_en = 0;  // Enabling D2D operations.
 int tddflag;
 char *emul_iface;
 
@@ -101,6 +102,8 @@ uint16_t runtime_phy_tx[29][6]; // SISO [MCS 0-28][RBs 0-5 : 6, 15, 25, 50, 75, 
 
 volatile int             oai_exit = 0;
 
+clock_source_t clock_source = internal;
+
 unsigned int                    mmapped_dma=0;
 
 
@@ -111,11 +114,19 @@ int32_t                  uplink_frequency_offset[MAX_NUM_CCs][4];
 
 int UE_scan = 1;
 int UE_scan_carrier = 0;
+int simL1flag = 0;
 
 runmode_t mode = normal_txrx;
 
 FILE *input_fd=NULL;
 int otg_enabled=0;
+int simL1=0;
+
+int sidelink_active=0;
+int SLonly=0;
+int synchRef=0;
+int slsynconly=0;
+int SLSCHtest=0;
 
 #if MAX_NUM_CCs == 1
 rx_gain_t                rx_gain_mode[MAX_NUM_CCs][4] = {{max_gain,max_gain,max_gain,max_gain}};
@@ -154,7 +165,10 @@ uint64_t num_missed_slots=0; // counter for the number of missed slots
 
 // prototypes from function implemented in lte-ue.c, probably should be elsewhere in a include file.
 extern void init_UE_stub_single_thread(int nb_inst,int eMBMS_active, int uecap_xer_in, char *emul_iface);
-extern PHY_VARS_UE *init_ue_vars(LTE_DL_FRAME_PARMS *frame_parms, uint8_t UE_id, uint8_t abstraction_flag);
+extern PHY_VARS_UE *init_ue_vars(LTE_DL_FRAME_PARMS *frame_parms,
+								 uint8_t UE_id, 
+								 uint8_t abstraction_flag,
+								 int sidelink_active);
 extern void get_uethreads_params(void);
 
 int transmission_mode=1;
@@ -397,12 +411,16 @@ void set_default_frame_parms(LTE_DL_FRAME_PARMS *frame_parms[MAX_NUM_CCs]) {
     downlink_frequency[CC_id][2] = downlink_frequency[CC_id][0];
     downlink_frequency[CC_id][3] = downlink_frequency[CC_id][0];
     frame_parms[CC_id]->dl_CarrierFreq=downlink_frequency[CC_id][0];
+    
   }
 }
 
-void init_openair0(LTE_DL_FRAME_PARMS *frame_parms,int rxgain) {
+void init_openair0(LTE_DL_FRAME_PARMS *frame_parms,int rxgain,int SLactive) {
   int card;
   int i;
+  
+  AssertFatal(frame_parms!=NULL,"frame_parms is null\n");
+  AssertFatal(SLactive == 0 || SLactive == 1, "Illegal SLactive %d\n",SLactive);
 
   for (card=0; card<MAX_CARDS; card++) {
     openair0_cfg[card].mmapped_dma=mmapped_dma;
@@ -456,11 +474,22 @@ void init_openair0(LTE_DL_FRAME_PARMS *frame_parms,int rxgain) {
       else
         openair0_cfg[card].tx_freq[i]=0.0;
 
-      if (i<openair0_cfg[card].rx_num_channels)
-        openair0_cfg[card].rx_freq[i] = downlink_frequency[0][i];
-      else
-        openair0_cfg[card].rx_freq[i]=0.0;
-
+      if (SLactive==0) {
+	      if (i<openair0_cfg[card].rx_num_channels)
+	        openair0_cfg[card].rx_freq[i] = downlink_frequency[0][i];
+	      else
+	        openair0_cfg[card].rx_freq[i]=0.0;
+      }
+      else { // assign DL and UL frequency alternately on antenna ports if SL is active
+	      int num_legacy_channels=openair0_cfg[card].rx_num_channels;
+	      if (i<num_legacy_channels) {
+	        openair0_cfg[card].rx_freq[i] = downlink_frequency[0][i];
+	        openair0_cfg[card].rx_freq[i+num_legacy_channels] = downlink_frequency[0][i]+uplink_frequency_offset[0][i];
+	        LOG_I(PHY,"Setting SL receiver @ %f\n",openair0_cfg[card].rx_freq[i+num_legacy_channels]);
+	      }
+	      else 
+	         openair0_cfg[card].rx_freq[i]=0.0;
+      }
       openair0_cfg[card].autocal[i] = 1;
       openair0_cfg[card].tx_gain[i] = tx_gain[0][i];
       openair0_cfg[card].rx_gain[i] = rxgain - rx_gain_off;
@@ -474,6 +503,25 @@ void init_openair0(LTE_DL_FRAME_PARMS *frame_parms,int rxgain) {
     }
 
     if (usrp_args) openair0_cfg[card].sdr_addrs = usrp_args;
+
+    if (usrp_clksrc) {
+      if (strcmp(usrp_clksrc, "internal") == 0) {
+        openair0_cfg[card].clock_source = internal;
+        LOG_D(PHY, "USRP clock source set as internal\n");
+      } else if (strcmp(usrp_clksrc, "external") == 0) {
+        openair0_cfg[card].clock_source = external;
+        LOG_D(PHY, "USRP clock source set as external\n");
+      } else if (strcmp(usrp_clksrc, "gpsdo") == 0) {
+        openair0_cfg[card].clock_source = gpsdo;
+        LOG_D(PHY, "USRP clock source set as gpsdo\n");
+      } else {
+        openair0_cfg[card].clock_source = internal;
+        LOG_I(PHY, "USRP clock source unknown ('%s'). defaulting to internal\n", usrp_clksrc);
+      }
+    } else {
+      openair0_cfg[card].clock_source = internal;
+      LOG_I(PHY, "USRP clock source not specified. defaulting to internal\n");
+    }
   }
 }
 
@@ -560,9 +608,15 @@ int main( int argc, char **argv ) {
     sf_ahead = 1;
   }
   printf("sf_ahead = %d\n", sf_ahead);
+  printf("D2D_en value: %d \n \n", D2D_en);
 
   EPC_MODE_ENABLED = !IS_SOFTMODEM_NOS1;
+  if (SLonly == 1 || synchRef==1) sidelink_active=1;
+  
+  
   printf("Running with %d UE instances\n",NB_UE_INST);
+
+  printf("sidelink_active: %d \n \n", sidelink_active);
 
   // Checking option of nums_ue_thread.
   if(NB_THREAD_INST < 1) {
@@ -626,7 +680,7 @@ int main( int argc, char **argv ) {
     for (int i=0; i<NB_UE_INST; i++) {
       for (CC_id=0; CC_id<MAX_NUM_CCs; CC_id++) {
         PHY_vars_UE_g[i] = malloc(sizeof(PHY_VARS_UE *)*MAX_NUM_CCs);
-        PHY_vars_UE_g[i][CC_id] = init_ue_vars(frame_parms[CC_id], i,abstraction_flag);
+        PHY_vars_UE_g[i][CC_id] = init_ue_vars(frame_parms[CC_id], i,abstraction_flag,sidelink_active);
 
         if (get_softmodem_params()->phy_test==1)
           PHY_vars_UE_g[i][CC_id]->mac_enabled = 0;
@@ -634,11 +688,10 @@ int main( int argc, char **argv ) {
           PHY_vars_UE_g[i][CC_id]->mac_enabled = 1;
       }
     }
-  } else init_openair0(frame_parms[0],(int)rx_gain[0][0]);
+  }else init_openair0(frame_parms[0],(int)rx_gain[0][0],(sidelink_active==1 && SLonly==0)?1:0);
 
 
   cpuf=get_cpu_freq_GHz();
-
   if (create_tasks_ue(NB_UE_INST) < 0) {
     printf("cannot create ITTI tasks\n");
     exit(-1); // need a softer mode
@@ -650,10 +703,10 @@ int main( int argc, char **argv ) {
 
   printf("ITTI tasks created\n");
   mlockall(MCL_CURRENT | MCL_FUTURE);
-  rt_sleep_ns(10*100000000ULL);
+  rt_sleep_ns(10*100000000ULL); */
   int eMBMS_active = 0;
 
-  if (NFAPI_MODE==NFAPI_UE_STUB_PNF) { // UE-STUB-PNF
+  if (NFAPI_MODE==NFAPI_UE_STUB_PNF || D2D_en ==1) { // UE-STUB-PNF
     config_sync_var=0;
     wait_nfapi_init("main?");
     //Panos: Temporarily we will be using single set of threads for multiple UEs.
@@ -675,8 +728,9 @@ int main( int argc, char **argv ) {
     init_UE_stub_single_thread(NB_UE_INST,eMBMS_active,uecap_xer_in,emul_iface);
     init_UE_standalone_thread(ue_id_g);
   } else {
-    init_UE(NB_UE_INST,eMBMS_active,uecap_xer_in,0,get_softmodem_params()->phy_test,UE_scan,UE_scan_carrier,mode,(int)rx_gain[0][0],tx_max_power[0],
-            frame_parms[0]);
+    printf("NB_UE_INST : %d ,eMBMS_active: %d,uecap_xer_in: %c,get_softmodem_params()->phy_test: %d ,UE_scan: %d,UE_scan_carrier: %d,(int)rx_gain[0][0]: %d ,tx_max_power[0]: %d,sidelink_active: %d,SLonly : %d,synchRef: %d,slsynconly: %d,SLSCHtest: %d\n",NB_UE_INST,eMBMS_active,uecap_xer_in,get_softmodem_params()->phy_test,UE_scan,UE_scan_carrier,(int)rx_gain[0][0],tx_max_power[0],sidelink_active,SLonly,synchRef,slsynconly,SLSCHtest);
+	  init_UE(NB_UE_INST,eMBMS_active,uecap_xer_in,0,get_softmodem_params()->phy_test,UE_scan,UE_scan_carrier,mode,(int)rx_gain[0][0],tx_max_power[0],
+			  frame_parms[0],sidelink_active,SLonly,synchRef,slsynconly,SLSCHtest);
   }
 
   if (get_softmodem_params()->phy_test==0) {
@@ -693,6 +747,20 @@ int main( int argc, char **argv ) {
       PHY_vars_UE_g[0][CC_id]->rf_map.chain=CC_id+(get_softmodem_params()->chain_offset);
     }
   }
+  //Panos: New location of create_tasks_ue
+
+   if (create_tasks_ue(NB_UE_INST) < 0) {
+    printf("cannot create ITTI tasks\n");
+    exit(-1); // need a softer mode
+  }
+
+  if (NFAPI_MODE==NFAPI_UE_STUB_PNF) { // UE-STUB-PNF
+    UE_config_stub_pnf();
+  }
+
+  printf("ITTI tasks created\n");
+  mlockall(MCL_CURRENT | MCL_FUTURE);
+  rt_sleep_ns(10*100000000ULL);
 
   if (input_fd) {
     printf("Reading in from file to antenna buffer %d\n",0);

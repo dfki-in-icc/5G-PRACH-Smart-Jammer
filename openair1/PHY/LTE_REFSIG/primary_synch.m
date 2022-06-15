@@ -23,6 +23,14 @@ primary_synch2_mod = zeros(1,72*2);
 primary_synch2_mod(1:2:end) = floor(32767*real(primary_synch2));
 primary_synch2_mod(2:2:end) = floor(32767*imag(primary_synch2));
 
+primary_synch0SL_mod = zeros(1,72*2);
+primary_synch0SL_mod(1:2:end) = floor(32767*real(primary_synch0_SL));
+primary_synch0SL_mod(2:2:end) = floor(32767*imag(primary_synch0_SL));
+
+primary_synch1SL_mod = zeros(1,72*2);
+primary_synch1SL_mod(1:2:end) = floor(32767*real(primary_synch1_SL));
+primary_synch1SL_mod(2:2:end) = floor(32767*imag(primary_synch1_SL));
+
 primary_synch0_mod2 = zeros(1,128);
 primary_synch0_mod2((128-35):128)=primary_synch0(1:36);
 primary_synch0_mod2(2:37)=primary_synch0(37:end);
@@ -58,6 +66,27 @@ fprintf(fd,'unsigned char primary_synch2_tab[72] = {');
 fprintf(fd,'%d,',primary_synch2_tab(1:end-1));
 fprintf(fd,'%d};\n',primary_synch2_tab(end));
 fclose(fd);
+
+primary_synch0_SL = [zeros(1,5) exp(-1j*pi*26*(0:30).*(1:31)/63) exp(-1j*pi*26*(32:62).*(33:63)/63) zeros(1,5)];
+primary_synch1_SL = [zeros(1,5) exp(-1j*pi*37*(0:30).*(1:31)/63) exp(-1j*pi*37*(32:62).*(33:63)/63) zeros(1,5)];
+
+primary_synch0SL_mod = zeros(1,72*2);
+primary_synch0SL_mod(1:2:end) = floor(32767*real(primary_synch0_SL));
+primary_synch0SL_mod(2:2:end) = floor(32767*imag(primary_synch0_SL));
+
+primary_synch1SL_mod = zeros(1,72*2);
+primary_synch1SL_mod(1:2:end) = floor(32767*real(primary_synch1_SL));
+primary_synch1SL_mod(2:2:end) = floor(32767*imag(primary_synch1_SL));
+
+fd = fopen('primary_synch_SL.h','w');
+fprintf(fd,'short primary_synch0SL[144] = {');
+fprintf(fd,'%d,',primary_synch0SL_mod(1:end-1));
+fprintf(fd,'%d};\n',primary_synch0SL_mod(end));
+fprintf(fd,'short primary_synch1SL[144] = {');
+fprintf(fd,'%d,',primary_synch1SL_mod(1:end-1));
+fprintf(fd,'%d};\n',primary_synch1SL_mod(end));
+fclose(fd);
+
 
 % for LEON we need to invert the endianess
 fd = fopen('primary_synch_leon.h','w');

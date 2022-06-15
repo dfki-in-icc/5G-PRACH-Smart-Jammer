@@ -98,6 +98,7 @@
 
 #define NB_RX_ANTENNAS_MAX 64
 
+#define TRP8_MAX 106
 
 typedef enum {TDD=1,FDD=0} frame_type_t;
 
@@ -370,6 +371,20 @@ typedef enum {
   deltaF_PUCCH_Format2b_deltaF2  = 2
 } deltaF_PUCCH_Format2b_t;
 
+/// Enumeration of SL_channel_config
+typedef enum {
+  NO_SL=0,
+  PSCCH_12_EVEN=1,
+  PSCCH_12_ODD=2,
+  PSCCH_34_EVEN=3,
+  PSCCH_34_ODD=4,
+  PSSCH_12=5,
+  PSSCH_34=6,
+  PSDCH=7,
+  PSBCH=8,
+  MAX_SLTYPES=9
+} SL_chan_t;
+
 /// DeltaFList-PUCCH from 36.331 RRC spec
 typedef struct {
   deltaF_PUCCH_Format1_t   deltaF_PUCCH_Format1;
@@ -575,9 +590,9 @@ typedef struct LTE_DL_FRAME_PARMS {
   /// EUTRA Band
   uint8_t eutra_band;
   /// DL carrier frequency
-  uint32_t dl_CarrierFreq;
+  uint64_t dl_CarrierFreq;
   /// UL carrier frequency
-  uint32_t ul_CarrierFreq;
+  uint64_t ul_CarrierFreq;
   /// TX attenuation
   uint32_t att_tx;
   /// RX attenuation
@@ -590,6 +605,8 @@ typedef struct LTE_DL_FRAME_PARMS {
   uint16_t Nid_cell;
   /// MBSFN Area ID
   uint16_t Nid_cell_mbsfn;
+  /// Sidelink Cell ID
+    uint16_t Nid_SL;
   /// Cyclic Prefix for DL (0=Normal CP, 1=Extended CP)
   lte_prefix_type_t Ncp;
   /// Cyclic Prefix for UL (0=Normal CP, 1=Extended CP)

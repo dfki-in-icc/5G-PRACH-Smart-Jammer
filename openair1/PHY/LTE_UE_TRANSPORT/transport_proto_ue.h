@@ -1149,17 +1149,28 @@ uint16_t rx_pbch_emul(PHY_VARS_UE *phy_vars_ue,
                       uint8_t eNB_id,
                       uint8_t pbch_phase);
 
+/*! \brief PBCH scrambling. Applies 36.211 PBCH scrambling procedure.
+  \param frame_parms Pointer to frame descriptor
+  \param coded_data Output of the coding and rate matching
+  \param length Length of the sequence
+  \param Flag to indicate that this is for PSBCH instead of PBCH*/
+void pbch_scrambling(LTE_DL_FRAME_PARMS *frame_parms,
+                     uint8_t* coded_data,
+                     uint32_t length,
+		             int SL_flag);
 
 /*! \brief PBCH unscrambling
   This is similar to pbch_scrabling with the difference that inputs are signed s16s (llr values) and instead of flipping bits we change signs.
   \param frame_parms Pointer to frame descriptor
   \param llr Output of the demodulator
   \param length Length of the sequence
-  \param frame_mod4 Frame number modulo 4*/
+  \param frame_mod4 Frame number modulo 4
+  \param SL_flag Flag to indicate SLBCH instead of BCH*/
 void pbch_unscrambling(LTE_DL_FRAME_PARMS *frame_parms,
                        int8_t *llr,
                        uint32_t length,
-                       uint8_t frame_mod4);
+                       uint8_t frame_mod4,
+		               int SL_flag);
 
 /*! \brief Top-level generation route for Sidelink BCH,PSS and SSS
   \param ue pointer to UE descriptor
@@ -1183,7 +1194,7 @@ void generate_sldch(PHY_VARS_UE *ue,SLDCH_t *sldch,int frame_tx,int subframe_tx)
   \param frame_tx Frame number
   \param subframe_tx subframe number
 */
-void generate_slsch(PHY_VARS_UE *ue,SLSCH_t *slss,int frame_tx,int subframe_tx);
+void generate_slsch(PHY_VARS_UE *ue,UE_rxtx_proc_t *proc,SLSCH_t *slss,int frame_tx,int subframe_tx);
 
 void generate_64qam_table(void);
 void generate_16qam_table(void);
@@ -1300,6 +1311,8 @@ uint8_t get_transmission_mode(module_id_t Mod_id, uint8_t CC_id, rnti_t rnti);
 */
 uint32_t conv_nprb(uint8_t ra_header,uint32_t rb_alloc,int N_RB_DL);
 
+void RIV2_alloc(uint16_t N_RB_DL,uint16_t RIV, int *Lcrbs, int *RBstart);
+
 int get_G(LTE_DL_FRAME_PARMS *frame_parms,uint16_t nb_rb,uint32_t *rb_alloc,uint8_t mod_order,uint8_t Nl,uint8_t num_pdcch_symbols,int frame,uint8_t subframe, uint8_t beamforming_mode);
 
 int adjust_G(LTE_DL_FRAME_PARMS *frame_parms,uint32_t *rb_alloc,uint8_t mod_order,uint8_t subframe);
@@ -1369,12 +1382,28 @@ int generate_drs_pusch(PHY_VARS_UE *ue,
                        unsigned int nb_rb,
                        uint8_t ant);
 
+/*!
+  \brief Sidelink from old code/// This function generates the downlink reference signal for the PUSCH according to 36.211 v8.6.0. The DRS occuies the RS defined by rb_alloc and the symbols 2 and 8 for extended CP and 3 and 10 for normal CP.
+*/
+
+int32_t generate_drs_pusch_SL(PHY_VARS_UE *phy_vars_ue,
+                           UE_rxtx_proc_t *proc,
+                           uint8_t eNB_id,
+                           int16_t amp,
+                           uint32_t subframe,
+                           uint32_t first_rb,
+                           uint32_t nb_rb,
+                           uint8_t ant,
+			   uint32_t *gh,
+			   int ljmod10);
+
 
 /*!
   \brief This function initializes the Group Hopping, Sequence Hopping and nPRS sequences for PUCCH/PUSCH according to 36.211 v8.6.0. It should be called after configuration of UE (reception of SIB2/3) and initial configuration of eNB (or after reconfiguration of cell-specific parameters).
   @param frame_parms Pointer to a LTE_DL_FRAME_PARMS structure (eNB or UE)*/
 void init_ul_hopping(LTE_DL_FRAME_PARMS *frame_parms);
 
+void generate_sl_grouphop(PHY_VARS_UE *ue);
 
 /*!
   \brief This function implements the initialization of paging parameters for UE (See Section 7, 36.304).It must be called after setting IMSImod1024 during UE startup and after receiving SIB2
@@ -1395,11 +1424,28 @@ void ulsch_modulation(int32_t **txdataF,
                       frame_t frame,
                       uint32_t subframe,
                       LTE_DL_FRAME_PARMS *frame_parms,
-                      LTE_UE_ULSCH_t *ulsch);
+                      LTE_UE_ULSCH_t *ulsch,
+		                  int slsch_flag,
+		                  uint32_t cinit);
 
 
+void ulsch_channel_compensation(int32_t **rxdataF_ext,
+                                int32_t **ul_ch_estimates_ext,
+                                int32_t **ul_ch_mag,
+                                int32_t **ul_ch_magb,
+                                int32_t **rxdataF_comp,
+                                LTE_DL_FRAME_PARMS *frame_parms,
+                                uint8_t symbol,
+                                uint8_t Qm,
+                                uint16_t nb_rb,
+                                uint8_t output_shift);
 
-
+void ulsch_detection_mrc(LTE_DL_FRAME_PARMS *frame_parms,
+                         int32_t **rxdataF_comp,
+                         int32_t **ul_ch_mag,
+                         int32_t **ul_ch_magb,
+                         uint8_t symbol,
+                         uint16_t nb_rb);
 
 
 int generate_ue_dlsch_params_from_dci(int frame,
@@ -1729,6 +1775,38 @@ double computeRhoB_UE(PDSCH_CONFIG_DEDICATED  *pdsch_config_dedicated,
   uint8_t n_antenna_port,
   LTE_UE_DLSCH_t *dlsch_ue);
 */
+
+int generate_slpss(int32_t **txdataF,
+		   short amp,
+		   LTE_DL_FRAME_PARMS *frame_parms,
+		   unsigned short symbol,
+		   int subframe);
+
+int generate_slsss(int32_t **txdataF,
+		   int subframe,
+		   int16_t amp,
+		   LTE_DL_FRAME_PARMS *frame_parms,
+		   uint16_t symbol);
+
+int rx_slsss(PHY_VARS_UE *ue,int32_t *tot_metric,uint8_t *phase_max,int Nid2);
+
+/*! \brief Top-level generation route for Sidelink BCH,PSS and SSS
+  \param ue pointer to UE descriptor
+  \param frame_tx Frame number
+  \param subframe_tx subframe number
+*/
+void check_and_generate_slss(PHY_VARS_UE *ue,int frame_tx,int subframe_tx);
+
+void check_and_generate_psdch(PHY_VARS_UE *ue,int frame_tx,int subframe_tx);
+
+int generate_slbch(int32_t **txdataF,
+		   short amp,
+		   LTE_DL_FRAME_PARMS *frame_parms,
+		   int subframe,
+		   uint8_t *slmib);
+
+int rx_psbch(PHY_VARS_UE *ue,int frame_rx,int subframe_rx);
+
 
 /**@}*/
 #endif

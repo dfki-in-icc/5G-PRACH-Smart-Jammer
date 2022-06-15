@@ -33,8 +33,19 @@ char* namepointer_log2;
 
 
 #include "PHY/LTE_REFSIG/primary_synch.h"
+#include "PHY/LTE_REFSIG/primary_synch_SL.h"
+int16_t *primary_synch0_time;
+int16_t *primary_synch1_time;
+int16_t *primary_synch2_time;
 
 
+int16_t *primary_synch0SL_time;
+int16_t *primary_synch1SL_time;
+int16_t *primary_synch0SL_time_rx;
+int16_t *primary_synch1SL_time_rx;
+
+
+//#include "PHY/CODING/vars.h"
 #include "PHY/LTE_TRANSPORT/transport_vars.h"
 #include "PHY/MODULATION/modulation_vars.h"
 
@@ -44,6 +55,15 @@ char* namepointer_log2;
 PHY_VARS_UE ***PHY_vars_UE_g;
 UL_RCC_IND_t UL_RCC_INFO;
 NR_UL_IND_t UL_INFO;
+
+//PHY_VARS_eNB ***PHY_vars_eNB_g;
+//PHY_VARS_RN **PHY_vars_RN_g;
+LTE_DL_FRAME_PARMS *lte_frame_parms_g;
+#else
+PHY_VARS_UE * PHY_vars_UE_g[MAX_UE][MAX_NUM_CCs]={NULL};
+PHY_VARS_eNB * PHY_vars_eNB_g[MAX_eNB][MAX_NUM_CCs]={NULL};
+#endif
+
 
 unsigned short rev[2048],rev_times4[8192],rev_half[1024];
 unsigned short rev256[256],rev512[512],rev1024[1024],rev4096[4096],rev2048[2048],rev8192[8192];

@@ -31,8 +31,18 @@
 #include "SIMULATION/ETH_TRANSPORT/proto.h"
 #include "executables/softmodem-common.h"
 
+#define CONFIG_HLP_CLK           "tells hardware to use a clock reference (0:internal, 1:external, 2:gpsdo)\n"
+#define CONFIG_HLP_DLF           "Set the downlink frequency for all component carriers\n"
 
+#define CONFIG_HLP_ENABLESL      "Enable SL functionality"
+#define CONFIG_HLP_SLONLY        "Use SL only (i.e. wire UE to off-network state)"
+#define CONFIG_HLP_SLSCHTEST     "Activate dummy transmission of SCI/SLSCH for testing"
+#define CONFIG_HLP_SYNCHREF      "Hard-wire UE as SynchRef UE for SL"
+#define CONFIG_HLP_SLSYNCONLY    "Run UE with only searching procedure for SynchREF"
+#define CONFIG_HLP_EMULIFACE     "Set the interface name for the multicast transport for emulation mode (e.g. eth0, lo, etc.)  \n"
 
+#define CONFIG_HLP_SNR           "Set average SNR in dB (for --siml1 option)\n"
+#define CONFIG_HLP_USRP_CLK_SRC              "USRP clock source: 'internal' or 'external'\n"
 /***************************************************************************************************************************************/
 /* command line options definitions, CMDLINE_XXXX_DESC macros are used to initialize paramdef_t arrays which are then used as argument
    when calling config_get or config_getlist functions                                                                                 */
@@ -101,13 +111,20 @@
     {"ue-scan-carrier",   CONFIG_HLP_UESCAN,      PARAMFLAG_BOOL,  iptr:&UE_scan_carrier,              defintval:0,          TYPE_INT,      0},   \
     {"ue-max-power",      NULL,                   0,               iptr:&(tx_max_power[0]),            defintval:23,         TYPE_INT,      0},   \
     {"emul-iface",        CONFIG_HLP_EMULIFACE,   0,               strptr:&emul_iface,                 defstrval:"lo",       TYPE_STRING, 100},   \
+    {"ue-enable-sl",      CONFIG_HLP_ENABLESL,   PARAMFLAG_BOOL,   iptr:&sidelink_active,              defintval:0,          TYPE_INT,      0}, \
+    {"ue-sl-only",        CONFIG_HLP_SLONLY,     PARAMFLAG_BOOL,   iptr:&SLonly,                       defintval:0,          TYPE_INT,      0}, \
+    {"ue-slsch-test",     CONFIG_HLP_SLSCHTEST,  PARAMFLAG_BOOL,   iptr:&SLSCHtest,                    defintval:0,          TYPE_INT,      0}, \
+    {"ue-synchref",       CONFIG_HLP_SYNCHREF,   PARAMFLAG_BOOL,   iptr:&synchRef,                     defintval:0,          TYPE_INT,      0}, \
+    {"ue-slsync-only",    CONFIG_HLP_SLSYNCONLY, PARAMFLAG_BOOL,   iptr:&slsynconly,                   defintval:0,          TYPE_INT,      0}, \
     {"L2-emul",           NULL,                   0,               u8ptr:&nfapi_mode,                  defuintval:3,         TYPE_UINT8,    0},   \
     {"num-ues",           NULL,                   0,               u16ptr:&(NB_UE_INST),               defuintval:1,         TYPE_UINT16,   0},   \
     {"nums_ue_thread",    NULL,                   0,               u16ptr:&(NB_THREAD_INST),           defuintval:1,         TYPE_UINT16,   0},   \
     {"r"  ,               CONFIG_HLP_PRB,         0,               u8ptr:&(frame_parms[0]->N_RB_DL),   defintval:25,         TYPE_UINT8,    0},   \
     {"dlsch-demod-shift", CONFIG_HLP_DLSHIFT,     0,               iptr:(int32_t *)&dlsch_demod_shift, defintval:0,          TYPE_INT,      0},   \
     {"usrp-args",         CONFIG_HLP_USRP_ARGS,   0,               strptr:(char **)&usrp_args,         defstrval:"type=b200",TYPE_STRING,   0},   \
+    {"usrp-clksrc",                CONFIG_HLP_USRP_CLK_SRC,0,               strptr:(char **)&usrp_clksrc,       defstrval:"internal", TYPE_STRING,   0},   \
     {"mmapped-dma",       CONFIG_HLP_DMAMAP,      PARAMFLAG_BOOL,  uptr:&mmapped_dma,                  defintval:0,          TYPE_INT,      0},   \
+    {"clock",                      CONFIG_HLP_CLK,         0,               uptr:&clock_source,                 defintval:0,          TYPE_UINT,     0},   \
     {"T" ,                CONFIG_HLP_TDD,         PARAMFLAG_BOOL,  iptr:&tddflag,                      defintval:0,          TYPE_INT,      0},   \
     {"A",                 CONFIG_HLP_TADV,        0,               iptr:&(timingadv),                  defintval:0,          TYPE_INT,      0},   \
     {"ue-idx-standalone", NULL,                   0,               u16ptr:&ue_idx_standalone,          defuintval:0xFFFF,    TYPE_UINT16,   0},   \
@@ -119,6 +136,7 @@
 /*   optname                   helpstr     paramflags     XXXptr                       defXXXval        type          numelt   */
 /*-----------------------------------------------------------------------------------------------------------------------------*/
 #define CMDLINE_UETHREADSPARAMS_DESC {  \
+    {"threadIQ",                NULL,      0,     iptr:&(threads.iq),                 defintval:1,     TYPE_INT,       0},   \
     {"threadOneSubframe",       NULL,      0,     iptr:&(threads.one),                defintval:1,     TYPE_INT,       0},   \
     {"threadTwoSubframe",       NULL,      0,     iptr:&(threads.two),                defintval:1,     TYPE_INT,       0},   \
     {"threadThreeSubframe",     NULL,      0,     iptr:&(threads.three),              defintval:1,     TYPE_INT,       0},   \
@@ -127,8 +145,10 @@
   }
 //    {"threadIQ",                NULL,      0,     iptr:&(threads.iq),                 defintval:1,     TYPE_INT,       0},
 
-#define DEFAULT_DLF 2680000000
-
+#define DEFAULT_DLF 5900000000L
+#define CMDLINE_PARAMS_DESC {  \
+    {"C" ,                      CONFIG_HLP_DLF,         0,                      uptr:&(downlink_frequency[0][0]),   defint64val:2680000000L,          TYPE_UINT64,      0},                     \
+  }
 
 uint64_t get_pdcp_optmask(void);
 extern pthread_cond_t sync_cond;
@@ -186,7 +206,12 @@ extern void init_UE(int nb_inst,
                     runmode_t mode,
                     int rxgain,
                     int txpowermax,
-                    LTE_DL_FRAME_PARMS *fp);
+                    LTE_DL_FRAME_PARMS *fp0,
+                    int sidelink_active,
+			              int SLonly,
+			              int isSynchRef,
+			              int slsynconly,
+			              int SLSCHtest);
 
 extern void init_thread(int sched_runtime, int sched_deadline, int sched_fifo, cpu_set_t *cpuset, char *name);
 
@@ -201,7 +226,7 @@ extern void kill_te_thread(PHY_VARS_eNB *);
 extern void init_ocm(void);
 extern void init_ue_devices(PHY_VARS_UE *);
 
-PHY_VARS_UE *init_ue_vars(LTE_DL_FRAME_PARMS *frame_parms, uint8_t UE_id, uint8_t abstraction_flag);
+PHY_VARS_UE *init_ue_vars(LTE_DL_FRAME_PARMS *frame_parms, uint8_t UE_id, uint8_t abstraction_flag,int sidelink_active);
 
 void init_eNB_afterRU(void);
 extern int stop_L1L2(module_id_t enb_id);
@@ -210,7 +235,7 @@ extern int restart_L1L2(module_id_t enb_id);
 extern void init_UE_stub_single_thread(int nb_inst, int eMBMS_active, int uecap_xer_in, char *emul_iface);
 extern void init_UE_standalone_thread(int ue_idx);
 
-extern PHY_VARS_UE *init_ue_vars(LTE_DL_FRAME_PARMS *frame_parms, uint8_t UE_id, uint8_t abstraction_flag);
+extern PHY_VARS_UE *init_ue_vars(LTE_DL_FRAME_PARMS *frame_parms, uint8_t UE_id, uint8_t abstraction_flag,int sidelink_active);
 
 extern void init_bler_table(void);
 

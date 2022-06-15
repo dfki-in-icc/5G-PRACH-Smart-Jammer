@@ -352,7 +352,7 @@ uint32_t generate_dummy_w(uint32_t D, uint8_t *w,uint8_t F) {
 
 uint32_t generate_dummy_w_cc(uint32_t D, uint8_t *w) {
   uint32_t RCC = (D>>5), ND;
-  uint32_t col,Kpi,index;
+  uint32_t row,col,Kpi,index;
   int32_t k;
 #ifdef RM_DEBUG_CC
   uint32_t nulled=0;
@@ -377,11 +377,11 @@ uint32_t generate_dummy_w_cc(uint32_t D, uint8_t *w) {
     printf("Col %d\n",col);
 #endif
     index = bitrev_cc[col];
-
-    if (index<ND) {
-      w[k]          = LTE_NULL;
-      w[Kpi+k]      = LTE_NULL;
-      w[(Kpi<<1)+k] = LTE_NULL;
+    for (row=0;row<RCC;row++){
+      if (index<ND) {
+	w[k]          = LTE_NULL;
+	w[Kpi+k]      = LTE_NULL;
+	w[(Kpi<<1)+k] = LTE_NULL;
 #ifdef RM_DEBUG_CC
       nulled+=3;
 #endif
@@ -417,7 +417,9 @@ uint32_t generate_dummy_w_cc(uint32_t D, uint8_t *w) {
 #ifdef RM_DEBUG_CC
     printf("k %d w (%d,%d,%d), index-ND %d index+32-ND %d\n",k,w[k],w[Kpi+k],w[(Kpi<<1)+k],index-ND,index+32-ND);
 #endif
-    k+=RCC;
+      index+=32;
+      k++;
+    }
   }
 
 #ifdef RM_DEBUG_CC

@@ -88,7 +88,7 @@ void do_forms2(FD_lte_scope *form,
         *llr,*llr_time;
   int ind;
   float avg, cum_avg;
-  extern int *sync_corr_ue0;
+  //extern int *sync_corr_ue0;
   //  uint16_t nsymb = (frame_parms->Ncp == 0) ? 14 : 12;
   llr = malloc(max(coded_bits_per_codeword,1920)*sizeof(float));
   llr_time = malloc(max(coded_bits_per_codeword,1920)*sizeof(float));
@@ -122,7 +122,7 @@ void do_forms2(FD_lte_scope *form,
   // sync_corr
   for (i=0; i<FRAME_LENGTH_COMPLEX_SAMPLES; i++) {
     time2[i] = (float) i;
-    sig2[i] = (float) sync_corr_ue0[i];
+    //sig2[i] = (float) sync_corr_ue0[i];
   }
 
   fl_set_xyplot_data(form->channel_t_im,time2,sig2,FRAME_LENGTH_COMPLEX_SAMPLES,"","","");

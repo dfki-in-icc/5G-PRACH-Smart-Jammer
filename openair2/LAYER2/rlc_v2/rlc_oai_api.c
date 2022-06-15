@@ -48,7 +48,9 @@ void mac_rlc_data_ind     (
   char                     *buffer_pP,
   const tb_size_t           tb_sizeP,
   num_tb_t                  num_tbP,
-  crc_t                    *crcs_pP)
+  crc_t                    *crcs_pP,
+  sl_reset_rlc_flag_t    sl_reset_rlc_flag
+  ) 
 {
   rlc_ue_t *ue;
   rlc_entity_t *rb;
@@ -169,6 +171,7 @@ mac_rlc_status_resp_t mac_rlc_status_ind(
   const eNB_flag_t        enb_flagP,
   const MBMS_flag_t       MBMS_flagP,
   const logical_chan_id_t channel_idP,
+  const tb_size_t         tb_sizeP,
   const uint32_t sourceL2Id,
   const uint32_t destinationL2Id
   )

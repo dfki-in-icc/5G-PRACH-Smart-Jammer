@@ -289,6 +289,21 @@ init_SI(
                                      configuration
                                     );
     LOG_I(RRC,"do_SIB23, size %d \n ", carrier->sizeof_SIB23);
+  //Call sidelink SI creation routine
+
+  RC.rrc[ctxt_pP->module_id]->carrier[CC_id].sizeof_SIB181921 = 0;
+  RC.rrc[ctxt_pP->module_id]->carrier[CC_id].SIB181921 = (uint8_t *) malloc16(128);
+  AssertFatal(RC.rrc[ctxt_pP->module_id]->carrier[CC_id].SIB181921!=NULL,"cannot allocate memory for SIB");
+  RC.rrc[ctxt_pP->module_id]->carrier[CC_id].sizeof_SIB181921 = do_SIB_SL(
+          ctxt_pP->module_id,
+          CC_id
+  #if defined(ENABLE_ITTI)
+          , configuration
+  #endif
+        );
+  AssertFatal(RC.rrc[ctxt_pP->module_id]->carrier[CC_id].sizeof_SIB181921 != 255,"FATAL, RC.rrc[mod].carrier[CC_id].sizeof_SIB181921 == 255");
+
+
     AssertFatal(carrier->sizeof_SIB23 != 255,"FATAL, RC.rrc[mod].carrier[CC_id].sizeof_SIB23 == 255");
     carrier->sizeof_SIB23_BR = 0;
 

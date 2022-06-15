@@ -140,6 +140,8 @@ int allocate_pbch_REs_in_RB(LTE_DL_FRAME_PARMS *frame_parms,
   return(0);
 }
 
+
+
 void pbch_scrambling_fembms(LTE_DL_FRAME_PARMS *frame_parms,
                      uint8_t *pbch_e,
                      uint32_t length)
@@ -165,6 +167,31 @@ void pbch_scrambling_fembms(LTE_DL_FRAME_PARMS *frame_parms,
   }
 }
 
+void pbch_scrambling(LTE_DL_FRAME_PARMS *frame_parms,
+                     uint8_t *pbch_e,
+                     uint32_t length,
+		     int SLflag)
+{
+  int i;
+  uint8_t reset;
+  uint32_t x1, x2, s=0;
+
+  reset = 1;
+  // x1 is set in lte_gold_generic
+  x2 = SLflag==0 ? frame_parms->Nid_cell : frame_parms->Nid_SL; //this is c_init in 36.211 Sec 6.6.1
+  //  msg("pbch_scrambling: Nid_cell = %d\n",x2);
+
+  for (i=0; i<length; i++) {
+    if ((i&0x1f)==0) {
+      s = lte_gold_generic(&x1, &x2, reset);
+      //      printf("lte_gold[%d]=%x\n",i,s);
+      reset = 0;
+    }
+
+    pbch_e[i] = (pbch_e[i]&1) ^ ((s>>(i&0x1f))&1);
+
+  }
+}
 int generate_pbch_fembms(LTE_eNB_PBCH *eNB_pbch,
                   int32_t **txdataF,
                   int amp,
@@ -418,7 +445,7 @@ int generate_pbch_fembms(LTE_eNB_PBCH *eNB_pbch,
 
   return(0);
 }
-
+/* Old one without SLflag
 void pbch_scrambling(LTE_DL_FRAME_PARMS *frame_parms,
                      uint8_t *pbch_e,
                      uint32_t length)
@@ -443,6 +470,7 @@ void pbch_scrambling(LTE_DL_FRAME_PARMS *frame_parms,
 
   }
 }
+*/
 
 //uint8_t pbch_d[96+(3*(16+PBCH_A))], pbch_w[3*3*(16+PBCH_A)],pbch_e[1920];  //one bit per byte
 int generate_pbch(LTE_eNB_PBCH *eNB_pbch,
@@ -602,7 +630,8 @@ int generate_pbch(LTE_eNB_PBCH *eNB_pbch,
 
     pbch_scrambling(frame_parms,
                     eNB_pbch->pbch_e,
-                    pbch_E);
+                    pbch_E,
+                    0);
 #ifdef DEBUG_PBCH
     if (frame_mod4==0) {
       LOG_M("pbch_e_s.m","pbch_e_s",

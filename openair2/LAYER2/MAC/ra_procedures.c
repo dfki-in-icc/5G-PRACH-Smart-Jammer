@@ -405,7 +405,7 @@ PRACH_RESOURCES_t *ue_get_rach(module_id_t module_idP, int CC_id,
         LOG_USEDINLOG_VAR(mac_rlc_status_resp_t,rlc_status)=mac_rlc_status_ind(module_idP,
             UE_mac_inst[module_idP].crnti,
             eNB_indexP, frameP, subframeP,
-            ENB_FLAG_NO, MBMS_FLAG_NO, DCCH, 0, 0
+            ENB_FLAG_NO, MBMS_FLAG_NO, DCCH,6, 0, 0
                                                                               );
 
         if (UE_mac_inst[module_idP].crnti_before_ho)

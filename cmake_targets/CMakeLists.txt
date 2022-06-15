@@ -1407,9 +1407,13 @@ add_library(dfts MODULE ${OPENAIR1_DIR}/PHY/TOOLS/oai_dfts.c )
 set(PHY_SRC_COMMON
   ${OPENAIR1_DIR}/PHY/LTE_TRANSPORT/dci_tools_common.c
   ${OPENAIR1_DIR}/PHY/LTE_TRANSPORT/lte_mcs.c
-#  ${OPENAIR1_DIR}/PHY/LTE_TRANSPORT/slss.c
-#  ${OPENAIR1_DIR}/PHY/LTE_TRANSPORT/sldch.c
-#  ${OPENAIR1_DIR}/PHY/LTE_TRANSPORT/slsch.c
+  ${OPENAIR1_DIR}/PHY/LTE_TRANSPORT/pbch.c                #Source files that had to be added after merge with sidelink
+  ${OPENAIR1_DIR}/PHY/LTE_TRANSPORT/ulsch_demodulation.c
+  ${OPENAIR1_DIR}/PHY/LTE_TRANSPORT/dlsch_modulation.c
+  ${OPENAIR1_DIR}/PHY/LTE_TRANSPORT/dci.c
+  ${OPENAIR1_DIR}/PHY/LTE_TRANSPORT/dlsch_coding.c
+  ${OPENAIR1_DIR}/PHY/LTE_TRANSPORT/pcfich.c
+  
   ${OPENAIR1_DIR}/PHY/LTE_UE_TRANSPORT/get_pmi.c
   ${OPENAIR1_DIR}/PHY/LTE_TRANSPORT/group_hopping.c
   ${OPENAIR1_DIR}/PHY/LTE_TRANSPORT/phich_common.c
@@ -1422,6 +1426,10 @@ set(PHY_SRC_COMMON
   ${OPENAIR1_DIR}/PHY/LTE_UE_TRANSPORT/srs_modulation.c
   ${OPENAIR1_DIR}/PHY/MODULATION/ofdm_mod.c
   ${OPENAIR1_DIR}/PHY/LTE_ESTIMATION/lte_sync_time.c
+  
+  ${OPENAIR1_DIR}/PHY/LTE_ESTIMATION/lte_ul_channel_estimation.c #Source files that had to be added after merge with sidelink
+  ${OPENAIR1_DIR}/PHY/LTE_ESTIMATION/freq_equalization.c
+  
   ${OPENAIR1_DIR}/PHY/LTE_REFSIG/lte_dl_cell_spec.c
   ${OPENAIR1_DIR}/PHY/LTE_REFSIG/lte_dl_uespec.c
   ${OPENAIR1_DIR}/PHY/LTE_REFSIG/lte_gold.c
@@ -1517,6 +1525,9 @@ set(PHY_SRC_UE
   ${OPENAIR1_DIR}/PHY/LTE_UE_TRANSPORT/prach_ue.c
   ${OPENAIR1_DIR}/PHY/LTE_UE_TRANSPORT/pmch_ue.c
   ${OPENAIR1_DIR}/PHY/LTE_UE_TRANSPORT/pch_ue.c
+  ${OPENAIR1_DIR}/PHY/LTE_UE_TRANSPORT/slpss.c  #Transfer sidelink source files to LTE_TRANSPORT_UE
+  ${OPENAIR1_DIR}/PHY/LTE_UE_TRANSPORT/slsss.c
+  ${OPENAIR1_DIR}/PHY/LTE_UE_TRANSPORT/slbch.c
   ${OPENAIR1_DIR}/PHY/LTE_UE_TRANSPORT/slss.c
   ${OPENAIR1_DIR}/PHY/LTE_UE_TRANSPORT/sldch.c
   ${OPENAIR1_DIR}/PHY/LTE_UE_TRANSPORT/slsch.c
@@ -1525,6 +1536,7 @@ set(PHY_SRC_UE
   ${OPENAIR1_DIR}/PHY/LTE_UE_TRANSPORT/ulsch_coding.c
   ${OPENAIR1_DIR}/PHY/LTE_UE_TRANSPORT/rar_tools_ue.c
   ${OPENAIR1_DIR}/PHY/LTE_UE_TRANSPORT/initial_sync.c
+  ${OPENAIR1_DIR}/PHY/LTE_UE_TRANSPORT/initial_syncSL.c
   ${OPENAIR1_DIR}/PHY/MODULATION/slot_fep.c
   ${OPENAIR1_DIR}/PHY/MODULATION/slot_fep_mbsfn.c
   ${OPENAIR1_DIR}/PHY/MODULATION/ul_7_5_kHz_ue.c

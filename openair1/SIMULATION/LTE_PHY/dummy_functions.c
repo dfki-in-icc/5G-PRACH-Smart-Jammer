@@ -32,7 +32,8 @@ void ue_decode_p(module_id_t module_idP, int CC_id, frame_t frame,
 		 uint8_t CH_index, void *pdu, uint16_t len){}
 
 void ue_decode_si(module_id_t module_idP, int CC_id, frame_t frame,
-		  uint8_t CH_index, void *pdu, uint16_t len){}
+		  uint8_t CH_index, void *pdu, uint16_t len,
+		  SLSS_t *slss, int *rxframe, int *rxsubframe){}
 
 void ue_decode_si_mbms(module_id_t module_idP, int CC_id, frame_t frame,
 		  uint8_t CH_index, void *pdu, uint16_t len){}

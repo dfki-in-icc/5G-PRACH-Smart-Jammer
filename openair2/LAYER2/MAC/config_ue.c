@@ -36,6 +36,7 @@
 #include "COMMON/platform_constants.h"
 #include "nfapi/oai_integration/vendor_ext.h"
 #include "SCHED_UE/sched_UE.h"
+#include "openair2/LAYER2/MAC/mac.h"
 #include "LTE_SystemInformationBlockType2.h"
 #include "LTE_RadioResourceConfigDedicated.h"
 #include "LTE_PRACH-ConfigSIB-v1310.h"
@@ -86,6 +87,9 @@ void ue_mac_reset(module_id_t module_idP, uint8_t eNB_index) {
   ue_init_mac(module_idP);  //This will hopefully do the rest of the MAC reset procedure
 }
 
+const uint32_t SC_Period[10] = {40,60,70,80,120,140,160,240,280,320};
+const uint32_t SubframeBitmapSL[7] = {4,8,12,16,30,40,42};
+
 int
 rrc_mac_config_req_ue(module_id_t Mod_idP,
                       int CC_idP,
@@ -114,12 +118,17 @@ rrc_mac_config_req_ue(module_id_t Mod_idP,
                       const uint32_t *const destinationL2Id,
                       uint8_t FeMBMS_Flag,
                       struct LTE_NonMBSFN_SubframeConfig_r14 *nonMBSFN_SubframeConfig,
-                      LTE_MBSFN_AreaInfoList_r9_t *mbsfn_AreaInfoList_fembms
+                      LTE_MBSFN_AreaInfoList_r9_t *mbsfn_AreaInfoList_fembms,
+                      const uint32_t * const groupL2Id,
+                      LTE_SL_Preconfiguration_r12_t *SL_Preconfiguration_r12,
+                      uint32_t directFrameNumber_r12,
+                      long directSubframeNumber_r12,
+                      long *sl_Bandwidth_r12
                      ) {
   int i;
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME
   (VCD_SIGNAL_DUMPER_FUNCTIONS_RRC_MAC_CONFIG, VCD_FUNCTION_IN);
-  LOG_I(MAC, "[CONFIG][UE %d] Configuring MAC/PHY from eNB %d\n",
+  LOG_D(MAC, "[CONFIG][UE %d] Configuring MAC/PHY from eNB %d\n",
         Mod_idP, eNB_index);
 
   if (tdd_Config != NULL) {
@@ -527,8 +536,266 @@ rrc_mac_config_req_ue(module_id_t Mod_idP,
     LOG_I(MAC, "[UE %d] Configuring LTE_NonMBSFN \n",
           Mod_idP);
     phy_config_sib1_fembms_ue(Mod_idP, CC_idP, 0, nonMBSFN_SubframeConfig);
+  
     UE_mac_inst[Mod_idP].non_mbsfn_SubframeConfig = nonMBSFN_SubframeConfig;
   }
+  
+  //for D2D
+
+  int j = 0;
+  int k = 0;
+  switch (config_action) {
+  case CONFIG_ACTION_ADD:
+     if (sourceL2Id){
+        UE_mac_inst[Mod_idP].sourceL2Id = *sourceL2Id;
+        LOG_I(MAC,"[UE %d] Configure source L2Id 0x%08x \n", Mod_idP, *sourceL2Id );
+     }
+
+     //store list of (S,D,G,LCID) for SL
+     if ((logicalChannelIdentity > 0) && (logicalChannelIdentity < MAX_NUM_LCID_DATA)) {
+        if (groupL2Id){
+           LOG_I(MAC,"[UE %d] Configure group L2Id 0x%08x\n", Mod_idP, *groupL2Id );
+           j = 0;
+           k = 0;
+           for (k = 0; k< MAX_NUM_LCID_DATA; k++) {
+              if ((UE_mac_inst[Mod_idP].sl_info[k].LCID == 0) && (UE_mac_inst[Mod_idP].sl_info[k].destinationL2Id == 0) && (UE_mac_inst[Mod_idP].sl_info[k].groupL2Id == 0) && (j == 0)) j = k+1;
+
+              if ((UE_mac_inst[Mod_idP].sl_info[k].groupL2Id == *groupL2Id) && (UE_mac_inst[Mod_idP].sl_info[k].LCID == 0 )) {
+                 UE_mac_inst[Mod_idP].sl_info[k].LCID = logicalChannelIdentity;
+                 break; //(LCID, G) already exists!
+              }
+
+              if ((UE_mac_inst[Mod_idP].sl_info[k].LCID == logicalChannelIdentity) && (UE_mac_inst[Mod_idP].sl_info[k].groupL2Id == *groupL2Id)) break; //(LCID, G) already exists!
+           }
+           if ((k == MAX_NUM_LCID_DATA) && (j > 0)) {
+              UE_mac_inst[Mod_idP].sl_info[j-1].LCID = logicalChannelIdentity;
+              UE_mac_inst[Mod_idP].sl_info[j-1].groupL2Id = *groupL2Id;
+              UE_mac_inst[Mod_idP].sl_info[j-1].sourceL2Id = *sourceL2Id;
+              UE_mac_inst[Mod_idP].numCommFlows++;
+
+           }
+           for (k = 0; k < MAX_NUM_LCID_DATA; k++) {
+              LOG_I(MAC,"[UE %d] logical channel %d channel id %d, groupL2Id %d\n", Mod_idP,k,UE_mac_inst[Mod_idP].sl_info[k].LCID, UE_mac_inst[Mod_idP].sl_info[k].groupL2Id );
+           }
+        }
+        if (destinationL2Id){
+           LOG_I(MAC,"[UE %d] Configure destination L2Id 0x%08x\n", Mod_idP, *destinationL2Id );
+           j = 0;
+           k = 0;
+           for (k = 0; k< MAX_NUM_LCID_DATA; k++) {
+              if ((UE_mac_inst[Mod_idP].sl_info[k].LCID == 0) &&  (UE_mac_inst[Mod_idP].sl_info[k].destinationL2Id == 0)  && (UE_mac_inst[Mod_idP].sl_info[k].groupL2Id == 0) && (j == 0)) j = k+1;
+              if ((UE_mac_inst[Mod_idP].sl_info[k].destinationL2Id == *destinationL2Id) && (UE_mac_inst[Mod_idP].sl_info[k].LCID == 0 )) {
+                 UE_mac_inst[Mod_idP].sl_info[k].LCID = logicalChannelIdentity;
+                 break; //(LCID, D) already exists!
+              }
+              if ((UE_mac_inst[Mod_idP].sl_info[k].LCID == logicalChannelIdentity) && (UE_mac_inst[Mod_idP].sl_info[k].destinationL2Id == *destinationL2Id)) break; //(LCID, D) already exists!
+           }
+           if ((k == MAX_NUM_LCID_DATA) && (j > 0)) {
+              UE_mac_inst[Mod_idP].sl_info[j-1].LCID = logicalChannelIdentity;
+              UE_mac_inst[Mod_idP].sl_info[j-1].destinationL2Id = *destinationL2Id;
+              UE_mac_inst[Mod_idP].sl_info[j-1].sourceL2Id = *sourceL2Id;
+              UE_mac_inst[Mod_idP].numCommFlows++;
+
+           }
+           for (k = 0; k < MAX_NUM_LCID_DATA; k++) {
+              LOG_I(MAC,"[UE %d] logical channel %d channel id %d, destinationL2Id %d\n", Mod_idP,k,UE_mac_inst[Mod_idP].sl_info[k].LCID, UE_mac_inst[Mod_idP].sl_info[k].destinationL2Id);
+           }
+        }
+     } else if ((logicalChannelIdentity >= MAX_NUM_LCID_DATA) && (logicalChannelIdentity < MAX_NUM_LCID)) {
+        LOG_I(MAC,"[UE %d] Configure LCID %d  for PC5S\n", Mod_idP, (int)logicalChannelIdentity );
+        j = 0;
+        k = 0;
+        for (k = MAX_NUM_LCID_DATA; k < MAX_NUM_LCID; k++) {
+           if ((UE_mac_inst[Mod_idP].sl_info[k].LCID == 0) && (UE_mac_inst[Mod_idP].sl_info[k].destinationL2Id == 0) && (UE_mac_inst[Mod_idP].sl_info[k].groupL2Id == 0) && (j == 0)) j = k+1;
+           if (destinationL2Id){
+              if ((UE_mac_inst[Mod_idP].sl_info[k].LCID == 0) && (UE_mac_inst[Mod_idP].sl_info[k].destinationL2Id == *destinationL2Id )) {
+                 UE_mac_inst[Mod_idP].sl_info[k].LCID = logicalChannelIdentity;
+                 break;
+              }
+           }
+           if ((UE_mac_inst[Mod_idP].sl_info[k].LCID == logicalChannelIdentity)) break;
+           //&& (UE_mac_inst[Mod_idP].sl_info[k].destinationL2Id == *destinationL2Id)) break; //(LCID, D) already exists!
+        }
+        if ((k == MAX_NUM_LCID) && (j > 0)) {
+           UE_mac_inst[Mod_idP].sl_info[j-1].LCID = logicalChannelIdentity;
+           if (destinationL2Id) UE_mac_inst[Mod_idP].sl_info[j-1].destinationL2Id = *destinationL2Id;
+           UE_mac_inst[Mod_idP].sl_info[j-1].sourceL2Id = *sourceL2Id;
+           UE_mac_inst[Mod_idP].numCommFlows++;
+
+        }
+        for (k = MAX_NUM_LCID_DATA; k < MAX_NUM_LCID; k++) {
+           LOG_I(MAC,"[UE %d] logical channel %d channel id %d, destinationL2Id %d\n", Mod_idP,k,UE_mac_inst[Mod_idP].sl_info[k].LCID, UE_mac_inst[Mod_idP].sl_info[k].destinationL2Id);
+        }
+     }
+
+
+     break;
+  case CONFIG_ACTION_REMOVE:
+     // OK for the moment since LCID is unique per flow
+     if ((logicalChannelIdentity > 0) && (logicalChannelIdentity < MAX_NUM_LCID_DATA)) {
+        LOG_I(MAC,"[UE %d] Remove (logicalChannelIdentity %d)\n", Mod_idP, (int)logicalChannelIdentity );
+        k = 0;
+        for (k = 0; k < MAX_NUM_LCID_DATA; k++) {
+           if (UE_mac_inst[Mod_idP].sl_info[k].LCID == logicalChannelIdentity) {
+              UE_mac_inst[Mod_idP].sl_info[k].LCID = 0;
+              //UE_mac_inst[Mod_idP].sl_info[k].destinationL2Id = 0;
+              //UE_mac_inst[Mod_idP].sl_info[k].groupL2Id = 0;
+              UE_mac_inst[Mod_idP].numCommFlows--;
+              break;
+           }
+        }
+
+        for (k = 0; k < MAX_NUM_LCID_DATA; k++) {
+           LOG_I(MAC,"[UE %d] channel id %d, destinationL2Id %d, groupL2Id %d\n", Mod_idP, UE_mac_inst[Mod_idP].sl_info[k].LCID, UE_mac_inst[Mod_idP].sl_info[k].destinationL2Id, UE_mac_inst[Mod_idP].sl_info[k].groupL2Id);
+        }
+     } else if ((logicalChannelIdentity >= MAX_NUM_LCID_DATA) && (logicalChannelIdentity < MAX_NUM_LCID)) {
+        //remove RBID for PCS5
+        LOG_I(MAC,"[UE %d] Remove (logicalChannelIdentity %d)\n", Mod_idP, (int)logicalChannelIdentity );
+        k = 0;
+        for (k = MAX_NUM_LCID_DATA; k < MAX_NUM_LCID; k++) {
+           if (UE_mac_inst[Mod_idP].sl_info[k].LCID == logicalChannelIdentity) {
+              UE_mac_inst[Mod_idP].sl_info[k].LCID = 0;
+              //UE_mac_inst[Mod_idP].sl_info[k].destinationL2Id = 0;
+              //UE_mac_inst[Mod_idP].sl_info[k].groupL2Id = 0;
+              UE_mac_inst[Mod_idP].numCommFlows--;
+              break;
+           }
+        }
+
+        for (k = MAX_NUM_LCID_DATA; k < MAX_NUM_LCID; k++) {
+           LOG_I(MAC,"[UE %d] channel id %d, destinationL2Id %d, groupL2Id %d\n", Mod_idP, UE_mac_inst[Mod_idP].sl_info[k].LCID, UE_mac_inst[Mod_idP].sl_info[k].destinationL2Id, UE_mac_inst[Mod_idP].sl_info[k].groupL2Id);
+        }
+     }
+
+     break;
+
+  default:
+     break;
+  }
+
+// SL Preconfiguration
+
+  if (SL_Preconfiguration_r12){
+
+
+    LOG_I(MAC,"Getting SL parameters\n");
+
+    UE_mac_inst[Mod_idP].SL_Preconfiguration = SL_Preconfiguration_r12;
+    // SLSS
+
+    UE_mac_inst[Mod_idP].slss.SL_OffsetIndicator   = SL_Preconfiguration_r12->preconfigSync_r12.syncOffsetIndicator1_r12;
+    // Note: Other synch parameters are ignored for now
+    UE_mac_inst[Mod_idP].slss.slss_id              = 170;//+(taus()%168);
+    // PSCCH
+    struct LTE_SL_PreconfigCommPool_r12 *preconfigpool = SL_Preconfiguration_r12->preconfigComm_r12.list.array[0];
+    UE_mac_inst[Mod_idP].slsch.N_SL_RB_SC                = preconfigpool->sc_TF_ResourceConfig_r12.prb_Num_r12;
+    UE_mac_inst[Mod_idP].slsch.prb_Start_SC              = preconfigpool->sc_TF_ResourceConfig_r12.prb_Start_r12;
+    UE_mac_inst[Mod_idP].slsch.prb_End_SC                = preconfigpool->sc_TF_ResourceConfig_r12.prb_End_r12;
+    UE_mac_inst[Mod_idP].slsch.N_SL_RB_data              = preconfigpool->data_TF_ResourceConfig_r12.prb_Num_r12;
+    UE_mac_inst[Mod_idP].slsch.prb_Start_data            = preconfigpool->data_TF_ResourceConfig_r12.prb_Start_r12;
+    UE_mac_inst[Mod_idP].slsch.prb_End_data              = preconfigpool->data_TF_ResourceConfig_r12.prb_End_r12;
+
+    LOG_I(MAC,"SLCCH Resource pool (%d,%d,%d)\n",
+          UE_mac_inst[Mod_idP].slsch.N_SL_RB_SC,
+          UE_mac_inst[Mod_idP].slsch.prb_Start_SC,
+          UE_mac_inst[Mod_idP].slsch.prb_End_SC);
+    LOG_I(MAC,"SLSCH Resource pool (%d,%d,%d)\n",
+          UE_mac_inst[Mod_idP].slsch.N_SL_RB_data,
+          UE_mac_inst[Mod_idP].slsch.prb_Start_data, 
+          UE_mac_inst[Mod_idP].slsch.prb_End_data);
+
+    AssertFatal(preconfigpool->sc_Period_r12<10,"Maximum supported sc_Period is 320ms (sc_Period_r12=%d)\n",
+		LTE_SL_PeriodComm_r12_sf320);
+    UE_mac_inst[Mod_idP].slsch.SL_SC_Period = SC_Period[preconfigpool->sc_Period_r12];
+    AssertFatal(preconfigpool->sc_TF_ResourceConfig_r12.offsetIndicator_r12.present == LTE_SL_OffsetIndicator_r12_PR_small_r12,
+		"offsetIndicator is limited to smaller format\n");
+
+    UE_mac_inst[Mod_idP].slsch.SL_OffsetIndicator      = preconfigpool->sc_TF_ResourceConfig_r12.offsetIndicator_r12.choice.small_r12;
+    UE_mac_inst[Mod_idP].slsch.SL_OffsetIndicator_data = preconfigpool->data_TF_ResourceConfig_r12.offsetIndicator_r12.choice.small_r12;
+    AssertFatal(preconfigpool->sc_TF_ResourceConfig_r12.subframeBitmap_r12.present <= LTE_SubframeBitmapSL_r12_PR_bs40_r12 ||
+		preconfigpool->sc_TF_ResourceConfig_r12.subframeBitmap_r12.present > LTE_SubframeBitmapSL_r12_PR_NOTHING,
+		"PSCCH bitmap limited to 42 bits\n");
+    UE_mac_inst[Mod_idP].slsch.SubframeBitmapSL_length = SubframeBitmapSL[preconfigpool->sc_TF_ResourceConfig_r12.subframeBitmap_r12.present-1];
+    UE_mac_inst[Mod_idP].slsch.bitmap1 = *((uint64_t*)preconfigpool->sc_TF_ResourceConfig_r12.subframeBitmap_r12.choice.bs40_r12.buf);
+
+    AssertFatal(SL_Preconfiguration_r12->ext1!=NULL,"there is no Rel13 extension in SL preconfiguration\n"); 
+    AssertFatal(SL_Preconfiguration_r12->ext1->preconfigDisc_r13!=NULL,"there is no SL discovery configuration\n");
+    AssertFatal(SL_Preconfiguration_r12->ext1->preconfigDisc_r13->discRxPoolList_r13.list.count==1,"Discover RX pool list count %d != 1\n",
+                SL_Preconfiguration_r12->ext1->preconfigDisc_r13->discRxPoolList_r13.list.count);
+    LTE_SL_PreconfigDiscPool_r13_t *discrxpool=SL_Preconfiguration_r12->ext1->preconfigDisc_r13->discRxPoolList_r13.list.array[0];
+
+  /// Discovery Type
+    UE_mac_inst[Mod_idP].sldch.type     = disc_type1;
+  /// Number of SL resource blocks (1-100)
+    UE_mac_inst[Mod_idP].sldch.N_SL_RB = discrxpool->tf_ResourceConfig_r13.prb_Num_r12;
+  /// prb-start (0-99)
+    UE_mac_inst[Mod_idP].sldch.prb_Start= discrxpool->tf_ResourceConfig_r13.prb_Start_r12;
+  /// prb-End (0-99)
+    UE_mac_inst[Mod_idP].sldch.prb_End = discrxpool->tf_ResourceConfig_r13.prb_End_r12;
+  /// SL-OffsetIndicator (0-10239)
+    AssertFatal(discrxpool->tf_ResourceConfig_r13.offsetIndicator_r12.present  == LTE_SL_OffsetIndicator_r12_PR_small_r12,
+                "offsetIndicator_r12 is not PR_small_r12\n");
+
+    UE_mac_inst[Mod_idP].sldch.offsetIndicator = discrxpool->tf_ResourceConfig_r13.offsetIndicator_r12.choice.small_r12 ;
+
+    AssertFatal(discrxpool->tf_ResourceConfig_r13.subframeBitmap_r12.present >  LTE_SubframeBitmapSL_r12_PR_NOTHING &&
+                discrxpool->tf_ResourceConfig_r13.subframeBitmap_r12.present <= LTE_SubframeBitmapSL_r12_PR_bs42_r12,
+                "illegal subframeBitmap %d\n",discrxpool->tf_ResourceConfig_r13.subframeBitmap_r12.present);
+  	 
+  /// PSDCH subframe bitmap (up to 100 bits, first 64)
+    switch (discrxpool->tf_ResourceConfig_r13.subframeBitmap_r12.present) {
+          case LTE_SubframeBitmapSL_r12_PR_NOTHING:
+           AssertFatal(1==0,"Should never get here\n");
+           break;
+  	  case LTE_SubframeBitmapSL_r12_PR_bs4_r12:
+           UE_mac_inst[Mod_idP].sldch.bitmap1 = *(uint64_t*)discrxpool->tf_ResourceConfig_r13.subframeBitmap_r12.choice.bs4_r12.buf;
+           UE_mac_inst[Mod_idP].sldch.bitmap_length = 4;
+	   break;
+          case LTE_SubframeBitmapSL_r12_PR_bs8_r12:
+           UE_mac_inst[Mod_idP].sldch.bitmap1 = *(uint64_t*)discrxpool->tf_ResourceConfig_r13.subframeBitmap_r12.choice.bs8_r12.buf;
+           UE_mac_inst[Mod_idP].sldch.bitmap_length = 9;
+	  break;
+          case LTE_SubframeBitmapSL_r12_PR_bs12_r12:
+           UE_mac_inst[Mod_idP].sldch.bitmap1 = *(uint64_t*)discrxpool->tf_ResourceConfig_r13.subframeBitmap_r12.choice.bs12_r12.buf;
+           UE_mac_inst[Mod_idP].sldch.bitmap_length = 12;
+	  break;
+          case LTE_SubframeBitmapSL_r12_PR_bs16_r12:
+           UE_mac_inst[Mod_idP].sldch.bitmap1 = *(uint64_t*)discrxpool->tf_ResourceConfig_r13.subframeBitmap_r12.choice.bs16_r12.buf;
+           UE_mac_inst[Mod_idP].sldch.bitmap_length = 16;
+	  break;
+          case LTE_SubframeBitmapSL_r12_PR_bs30_r12:
+           UE_mac_inst[Mod_idP].sldch.bitmap1 = *(uint64_t*)discrxpool->tf_ResourceConfig_r13.subframeBitmap_r12.choice.bs30_r12.buf;
+           UE_mac_inst[Mod_idP].sldch.bitmap_length = 30;
+	  break;
+          case LTE_SubframeBitmapSL_r12_PR_bs40_r12:
+           UE_mac_inst[Mod_idP].sldch.bitmap1 = *(uint64_t*)discrxpool->tf_ResourceConfig_r13.subframeBitmap_r12.choice.bs40_r12.buf;
+           UE_mac_inst[Mod_idP].sldch.bitmap_length = 40;
+	  break;
+          case LTE_SubframeBitmapSL_r12_PR_bs42_r12:
+           UE_mac_inst[Mod_idP].sldch.bitmap1 = *(uint64_t*)discrxpool->tf_ResourceConfig_r13.subframeBitmap_r12.choice.bs42_r12.buf;
+           UE_mac_inst[Mod_idP].sldch.bitmap_length = 42;
+	  break;
+    } 
+
+  /// PSDCH subframe bitmap (up to 100 bits, second 36)
+    UE_mac_inst[Mod_idP].sldch.bitmap2 = 0;
+
+  /// SL-Discovery Period
+    AssertFatal(LTE_SL_PreconfigDiscPool_r13__discPeriod_r13_spare == 15, "specifications have changed, update table\n");
+    int sldisc_period[LTE_SL_PreconfigDiscPool_r13__discPeriod_r13_spare] = {4,6,7,8,12,14,16,24,28,32,64,128,256,512,1024};
+    UE_mac_inst[Mod_idP].sldch.discPeriod = sldisc_period[discrxpool->discPeriod_r13];
+
+  /// Number of Repetitions (N_R)
+    UE_mac_inst[Mod_idP].sldch.numRepetitions = discrxpool->numRepetition_r13;
+  /// Number of retransmissions (numRetx-r12)
+    UE_mac_inst[Mod_idP].sldch.numRetx = discrxpool->numRetx_r13;
+
+    phy_config_SL(Mod_idP,&UE_mac_inst[Mod_idP].sldch,&UE_mac_inst[Mod_idP].slsch);
+
+  }
+  if (directFrameNumber_r12<1025) UE_mac_inst[Mod_idP].directFrameNumber_r12     = directFrameNumber_r12;
+  if (sl_Bandwidth_r12) UE_mac_inst[Mod_idP].sl_Bandwidth_r12        = *sl_Bandwidth_r12;
+
 
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME
   (VCD_SIGNAL_DUMPER_FUNCTIONS_RRC_MAC_CONFIG, VCD_FUNCTION_OUT);

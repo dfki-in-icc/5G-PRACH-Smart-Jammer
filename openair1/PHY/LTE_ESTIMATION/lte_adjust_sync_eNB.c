@@ -21,6 +21,7 @@
 
 #include "PHY/types.h"
 #include "PHY/defs_eNB.h"
+#include "PHY/phy_extern.h"
 
 #include "common/utils/LOG/vcd_signal_dumper.h"
 

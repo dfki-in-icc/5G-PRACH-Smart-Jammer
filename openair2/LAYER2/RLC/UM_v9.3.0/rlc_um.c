@@ -160,7 +160,8 @@ rlc_um_get_pdus (const protocol_ctxt_t *const ctxt_pP, void *argP) {
 
 //-----------------------------------------------------------------------------
 void
-rlc_um_rx (const protocol_ctxt_t *const ctxt_pP, void *argP, struct mac_data_ind data_indP) {
+rlc_um_rx (const protocol_ctxt_t *const ctxt_pP, void *argP, struct mac_data_ind data_indP
+               , sl_reset_rlc_flag_t    sl_reset_rlc_flag) {
   rlc_um_entity_t    *l_rlc_p = (rlc_um_entity_t *) argP;
   char  message_string[10000];
   mem_block_t        *tb_p;
@@ -498,8 +499,9 @@ rlc_um_mac_data_request (const protocol_ctxt_t *const ctxt_pP, void *rlc_pP,cons
 
 //-----------------------------------------------------------------------------
 void
-rlc_um_mac_data_indication (const protocol_ctxt_t *const ctxt_pP, void *rlc_pP, struct mac_data_ind data_indP) {
-  rlc_um_rx (ctxt_pP, rlc_pP, data_indP);
+rlc_um_mac_data_indication (const protocol_ctxt_t *const ctxt_pP, void *rlc_pP, struct mac_data_ind data_indP,
+                            sl_reset_rlc_flag_t    sl_reset_rlc_flag) {
+  rlc_um_rx (ctxt_pP, rlc_pP, data_indP, sl_reset_rlc_flag);
   rlc_um_check_timer_dar_time_out(ctxt_pP, rlc_pP);
 }
 

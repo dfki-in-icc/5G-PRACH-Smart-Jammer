@@ -65,6 +65,7 @@
 #include "platform_types.h"
 #include "PHY/LTE_UE_TRANSPORT/transport_ue.h"
 #include "PHY/LTE_TRANSPORT/transport_eNB.h" // for SIC
+#include "PHY/LTE_TRANSPORT/transport_common.h"
 #include <pthread.h>
 #include "assertions.h"
 
@@ -154,6 +155,9 @@ typedef struct {
 
   int sub_frame_start;
   int sub_frame_step;
+  unsigned long long gotIQs;
+  /// indicator that slot_fep has been done for subframe (for sidelink)
+  int sl_fep_done;
 } UE_rxtx_proc_t;
 
 /// Context data structure for eNB subframe processing
@@ -181,6 +185,34 @@ typedef struct {
   pthread_cond_t cond_synch;
   /// mutex for UE synch thread
   pthread_mutex_t mutex_synch;
+
+  /// pthread attributes for main UE thread
+  pthread_attr_t attr_ueSL;
+  /// scheduling parameters for main UE thread
+  struct sched_param sched_param_ueSL;
+  /// pthread descriptor main UE thread
+  pthread_t pthread_ueSL;
+
+  /// \brief Instance count for SL synch thread.
+  /// \internal This variable is protected by \ref mutex_synch.
+  int instance_cnt_synchSL;
+  /// pthread attributes for SL synch processing thread
+  pthread_attr_t attr_synchSL;
+  /// scheduling parameters for sL synch thread
+  struct sched_param sched_param_synchSL;
+  /// pthread descriptor SL synch thread
+  pthread_t pthread_synchSL;
+  /// condition variable for UE SL synch thread;
+  pthread_cond_t cond_synchSL;
+  /// mutex for UE sL synch thread
+  pthread_mutex_t mutex_synchSL;
+
+  /// instance count for synchronizing UE_thread (DL/UL) with UE_threadSL
+  int instance_cnt_SL;
+  /// condition variable for synchronizing UE_thread (DL/UL) with UE_threadSL
+  pthread_cond_t cond_SL;
+  /// mutex for synchronizing UE_thread (DL/UL) with UE_threadSL
+  pthread_mutex_t mutex_SL;
   /// instance count for eNBs
   int instance_cnt_eNBs;
   /// set of scheduling variables RXn-TXnp4 threads
@@ -336,6 +368,10 @@ typedef struct {
   /// - first index: rx antenna [0..nb_antennas_rx[
   /// - second index: sample [0..FRAME_LENGTH_COMPLEX_SAMPLES+2048[
   int32_t **rxdata;
+  /// \brief holds the received data vector used for SL primary synchronization (40ms)
+    /// - first index: rx antenna [0..nb_antennas_rx[
+    /// - second index: sample [0..4*FRAME_LENGTH_COMPLEX_SAMPLES+2048[
+    int16_t **rxdata_syncSL;
 
   LTE_UE_COMMON_PER_THREAD common_vars_rx_data_per_thread[RX_NB_TH_MAX];
 
@@ -536,7 +572,42 @@ typedef struct {
   int16_t *prach;
 } LTE_UE_PRACH;
 
+typedef struct {
+  /// \brief Received frequency-domain signal after extraction.
+  /// - first index: ? [0..7] (hard coded) FIXME! accessed via \c nb_antennas_rx
+  /// - second index: ? [0..168*N_RB_DL[
+  int32_t **rxdataF_ext;
+  /// \brief Hold the channel estimates in time domain based on DRS.
+  /// - first index: rx antenna id [0..nb_antennas_rx[
+  /// - second index: ? [0..4*ofdm_symbol_size[
+  int32_t **drs_ch_estimates_time;
+  /// \brief Hold the channel estimates in frequency domain based on DRS.
+  /// - first index: rx antenna id [0..nb_antennas_rx[
+  /// - second index: ? [0..12*N_RB_UL*frame_parms->symbols_per_tti[
+  int32_t **drs_ch_estimates;
+  /// \brief Holds the compensated signal.
+  /// - first index: rx antenna id [0..nb_antennas_rx[
+  /// - second index: ? [0..12*N_RB_UL*frame_parms->symbols_per_tti[
+  int32_t **rxdataF_comp;
+  /// received signal energy of PSCCH
+  int slcch_power;
+  /// \brief llr values.
+  /// - first index: ? [0..1179743] (hard coded)
+  int16_t *llr;
+} LTE_UE_PSCCH_RX;
 
+/// maximum size for N_SL_RB=100, SCI_A=1+13+7+5+11+8 = 45,
+#define SCI_A 45
+/// SCI_E=12 REs * (7-1) symbols * 2 bits/RE
+#define SCI_E (12*6*2)
+typedef struct {
+  /// Coded PSCCH bits (12 REs, 12 OFDM symbols, 2 bits/RE)
+  uint8_t f[SCI_E];
+  // interleaved PSSCH bits
+  uint8_t h[SCI_E];
+  // interleaved+scrambled PSSCH bits
+  uint8_t b_tilde[SCI_E];
+} LTE_UE_PSCCH_TX;
 
 typedef enum {
   /// do not detect any DCIs in the current subframe
@@ -556,6 +627,7 @@ typedef struct UE_SCAN_INFO_s {
   int32_t freq_offset_Hz[3][10];
 } UE_SCAN_INFO_t;
 
+#define MAX_SLDCH 16
 /// Top-level PHY Data Structure for UE
 typedef struct {
   /// \brief Module ID indicator for this instance
@@ -575,6 +647,10 @@ typedef struct {
   int UE_scan_carrier;
   /// \brief Indicator that UE is synchronized to an eNB
   int is_synchronized;
+  /// \brief Indicator that UE is synchronized to a SyncRef UE on SL
+  int is_synchronizedSL;
+  /// \brief Indicator that UE is an SynchRef UE
+  int is_SynchRef;
   /// Data structure for UE process scheduling
   UE_proc_t proc;
   /// Flag to indicate the UE shouldn't do timing correction at all
@@ -619,6 +695,8 @@ typedef struct {
   LTE_UE_PBCH      *pbch_vars[NUMBER_OF_CONNECTED_eNB_MAX];
   LTE_UE_PDCCH     *pdcch_vars[RX_NB_TH_MAX][NUMBER_OF_CONNECTED_eNB_MAX];
   LTE_UE_PRACH     *prach_vars[NUMBER_OF_CONNECTED_eNB_MAX];
+  LTE_UE_PSCCH_TX  *pscch_vars_tx;
+  LTE_UE_PSCCH_RX  *pscch_vars_rx;
   LTE_UE_DLSCH_t   *dlsch[RX_NB_TH_MAX][NUMBER_OF_CONNECTED_eNB_MAX][2]; // two RxTx Threads
   LTE_UE_ULSCH_t   *ulsch[NUMBER_OF_CONNECTED_eNB_MAX];
   LTE_UE_DLSCH_t   *dlsch_SI[NUMBER_OF_CONNECTED_eNB_MAX];
@@ -627,7 +705,50 @@ typedef struct {
   LTE_UE_DLSCH_t   *dlsch_MCH[NUMBER_OF_CONNECTED_eNB_MAX];
   // This is for SIC in the UE, to store the reencoded data
   LTE_eNB_DLSCH_t  *dlsch_eNB[NUMBER_OF_CONNECTED_eNB_MAX];
-
+  // Sidelink-specific variables
+  SL_chan_t        sl_chan;
+  LTE_eNB_DLSCH_t  *dlsch_slsch;
+  LTE_UE_ULSCH_t   *ulsch_slsch;
+  LTE_eNB_PUSCH    *pusch_slsch;
+  LTE_eNB_DLSCH_t  *dlsch_sldch;
+  LTE_UE_ULSCH_t   *ulsch_sldch;
+  LTE_eNB_PUSCH    *pusch_sldch[RX_NB_TH_MAX];
+  LTE_eNB_PUSCH    *pusch_slbch;
+  LTE_eNB_PUSCH    *pusch_slcch;
+  LTE_UE_DLSCH_t   *dlsch_rx_slsch;
+  LTE_UE_DLSCH_t   *dlsch_rx_sldch[MAX_SLDCH];
+  int              sldch_received[MAX_SLDCH];
+  int              sldch_rxcnt[MAX_SLDCH];
+  int              sldch_txcnt[MAX_SLDCH];
+  int              sldch_active;
+  int16_t          **sl_rxdataF[RX_NB_TH_MAX];
+  int16_t          **sl_rxdata_7_5kHz[RX_NB_TH_MAX];
+  int16_t          *slsch_dlsch_llr;
+  int16_t          *slsch_ulsch_llr;
+  int16_t          *sldch_dlsch_llr[RX_NB_TH_MAX];
+  int16_t          *sldch_ulsch_llr[RX_NB_TH_MAX];
+  SLSS_t           *slss;
+  SLSS_t          slss_rx;
+  SLSCH_t          *slsch;
+  SLSCH_t          slsch_rx;
+  int              slsch_active;
+  int              slsch_sdu_active;
+  int              slsch_rx_sdu_active;
+  int              slcch_received;
+  int              slsch_decoded;
+  uint8_t          sidelink_l2_emulation;
+  uint32_t         slsch_txcnt;
+  uint32_t         slsch_errors;
+  uint32_t         slsch_rxcnt[4];
+  SLDCH_t          *sldch;
+  SLDCH_t          sldch_rx;
+  int              sldch_sdu_active;
+  pthread_mutex_t  slss_mutex;
+  pthread_mutex_t  sldch_mutex;
+  pthread_mutex_t  slsch_mutex;
+  pthread_mutex_t  slsch_rx_mutex;
+  int              slbch_errors;
+  int              slbch_rxops;
   //Paging parameters
   uint32_t              IMSImod1024;
   uint32_t              PF;
@@ -658,7 +779,7 @@ typedef struct {
   uint32_t high_speed_flag;
   uint32_t perfect_ce;
   int16_t ch_est_alpha;
-  int generate_ul_signal[NUMBER_OF_CONNECTED_eNB_MAX];
+  int generate_ul_signal_LTE[10][NUMBER_OF_CONNECTED_eNB_MAX];
 
   UE_SCAN_INFO_t scan_info[NB_BANDS_MAX];
 
@@ -704,6 +825,19 @@ typedef struct {
   int dlsch_mtch_trials[MAX_MBSFN_AREA][NUMBER_OF_CONNECTED_eNB_MAX];
   int current_dlsch_cqi[NUMBER_OF_CONNECTED_eNB_MAX];
   unsigned char first_run_timing_advance[NUMBER_OF_CONNECTED_eNB_MAX];
+  uint8_t               sidelink_active;
+  uint8_t               SLonly;
+  uint8_t               SLsynconly;
+  uint8_t               SLSCHtest;
+  uint8_t               destination_id;
+  // DMRS group-hopping sequences for PSBCH (index 0) and 256 possible PSSCH (indices 1...256)
+  uint32_t              gh[257][20];
+  uint8_t               SLghinitialized;
+  uint8_t               slss_generated;
+  uint8_t               pscch_coded;
+  uint8_t               pscch_generated;
+  uint8_t               pssch_generated;
+  uint8_t               psdch_generated;
   uint8_t               generate_prach;
   uint8_t               prach_cnt;
   uint8_t               prach_PreambleIndex;
@@ -711,6 +845,8 @@ typedef struct {
   uint8_t               decode_SIB;
   uint8_t               decode_MIB;
   int              rx_offset; /// Timing offset
+  /// timing offset for SL
+  int rx_offsetSL;
   int              rx_offset_diff; /// Timing adjustment for ofdm symbol0 on HW USRP
   int              time_sync_cell;
   int              timing_advance; ///timing advance signalled from eNB

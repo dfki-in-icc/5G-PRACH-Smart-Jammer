@@ -394,7 +394,14 @@ int pdcp_fifo_read_input_sdus_fromnetlinksock (const protocol_ctxt_t *const  ctx
     hash_key_t                     key       = HASHTABLE_NOT_A_KEY_VALUE;
     hashtable_rc_t                 h_rc;
     pdcp_t                        *pdcp_p    = NULL;
-    static unsigned char pdcp_read_state_g =0;
+//TTN for D2D (PC5S)
+   int prose_addr_len;
+   char send_buf[BUFSIZE], receive_buf[BUFSIZE];
+   int bytes_received;
+   sidelink_pc5s_element *sl_pc5s_msg_recv = NULL;
+   sidelink_pc5s_element *sl_pc5s_msg_send = NULL;
+   pc5s_header_t *pc5s_header;
+	static unsigned char pdcp_read_state_g =0;
     rb_id_t          rab_id  = 0;
     VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME( VCD_SIGNAL_DUMPER_FUNCTIONS_PDCP_FIFO_READ, 1 );
     VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME( VCD_SIGNAL_DUMPER_FUNCTIONS_PDCP_FIFO_READ_BUFFER, 1 );

@@ -142,7 +142,8 @@ void mac_rlc_data_ind     (
   char                     *buffer_pP,
   const tb_size_t           tb_sizeP,
   num_tb_t                  num_tbP,
-  crc_t                    *crcs_pP)
+  crc_t                    *crcs_pP,
+  sl_reset_rlc_flag_t    sl_reset_rlc_flag)
 {
   nr_rlc_ue_t *ue;
   nr_rlc_entity_t *rb;

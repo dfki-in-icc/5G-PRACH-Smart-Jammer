@@ -495,7 +495,8 @@ void mac_out_of_sync_ind(module_id_t module_idP, frame_t frameP,
                          uint16_t CH_index);
 
 void ue_decode_si(module_id_t module_idP, int CC_id, frame_t frame,
-                  uint8_t CH_index, void *pdu, uint16_t len);
+		  uint8_t CH_index, void *pdu, uint16_t len,
+		  SLSS_t *slss, int *rxframe, int *rxsubframe);
 
 void ue_decode_si_mbms(module_id_t module_idP, int CC_id, frame_t frame,
                        uint8_t CH_index, void *pdu, uint16_t len);
@@ -580,7 +581,7 @@ SLDCH_t *ue_get_sldch(module_id_t module_idP, int CC_id,frame_t frameP, sub_fram
 @param subframe_tx TX subframe index
 @returns pointer to SLSCH_t descriptor
 */
-SLSCH_t *ue_get_slsch(module_id_t module_idP, int CC_id,frame_t frameP, sub_frame_t subframe);
+SLSCH_t *ue_get_slsch(module_id_t module_idP, int CC_id,frame_t frameP, sub_frame_t subframe, int slsch_test);
 
 /* \brief Function called by PHY to retrieve information to be transmitted using the RA procedure.  If the UE is not in PUSCH mode for a particular eNB index, this is assumed to be an Msg3 and MAC attempts to retrieves the CCCH message from RRC. If the UE is in PUSCH mode for a particular eNB index and PUCCH format 0 (Scheduling Request) is not activated, the MAC may use this resource for random-access to transmit a BSR along with the C-RNTI control element (see 5.1.4 from 36.321)
 @param Mod_id Index of UE instance
@@ -1006,8 +1007,16 @@ int rrc_mac_config_req_ue(module_id_t module_idP,
                           const uint32_t *const destinationL2Id,
                           uint8_t FeMBMS_Flag,
                           struct LTE_NonMBSFN_SubframeConfig_r14 *nonMBSFN_SubframeConfig,
-                          LTE_MBSFN_AreaInfoList_r9_t *mbsfn_AreaInfoList_fembms
+                          LTE_MBSFN_AreaInfoList_r9_t *mbsfn_AreaInfoList_fembms,
+                          const uint32_t * const groupL2Id,
+			                 LTE_SL_Preconfiguration_r12_t *SL_Preconfiguration_r12_t,
+			                 uint32_t directFrame_r12,
+			                 long directSubframe_r12,
+			                 long *sl_Bandwidth_r12
                          );
+
+
+
 
 
 uint16_t getRIV(uint16_t N_RB_DL, uint16_t RBstart, uint16_t Lcrbs);

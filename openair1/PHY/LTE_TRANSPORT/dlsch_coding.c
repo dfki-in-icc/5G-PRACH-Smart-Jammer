@@ -44,7 +44,7 @@
 #include <syscall.h>
 #include <common/utils/threadPool/thread-pool.h>
 
-//#define DEBUG_DLSCH_CODING
+#define DEBUG_DLSCH_CODING 1
 //#define DEBUG_DLSCH_FREE 1
 
 /*
@@ -529,5 +529,109 @@ int dlsch_encoding_fembms_pmch(PHY_VARS_eNB *eNB,
 
   return(0);
 }
+//Used only for sidelink
+int dlsch_encoding0(LTE_DL_FRAME_PARMS *frame_parms,
+                   unsigned char *a,
+                   uint8_t num_pdcch_symbols,
+                   LTE_eNB_DLSCH_t *dlsch,
+                   int frame,
+                   uint8_t subframe,
+                   time_stats_t *rm_stats,
+                   time_stats_t *te_stats,
+                   time_stats_t *i_stats) {
+  
+  unsigned char harq_pid = dlsch->harq_ids[frame%2][subframe];
+  if((harq_pid < 0) || (harq_pid >= dlsch->Mdlharq)) {
+    LOG_E(PHY,"dlsch_encoding illegal harq_pid %d %s:%d\n", harq_pid, __FILE__, __LINE__);
+    return(-1);
+  }
+
+  LTE_DL_eNB_HARQ_t *hadlsch=dlsch->harq_processes[harq_pid];
+  uint8_t beamforming_mode=0;
+  VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_ENB_DLSCH_ENCODING, VCD_FUNCTION_IN);
+
+  if(hadlsch->mimo_mode == TM7)
+    beamforming_mode = 7;
+  else if(hadlsch->mimo_mode == TM8)
+    beamforming_mode = 8;
+  else if(hadlsch->mimo_mode == TM9_10)
+    beamforming_mode = 9;
+
+  unsigned int G;
+  unsigned short nb_rb = hadlsch->nb_rb;
+  unsigned char mod_order;
+  mod_order = hadlsch->Qm;
+
+  if (num_pdcch_symbols > 0) G= get_G(frame_parms,hadlsch->nb_rb,
+	                                    hadlsch->rb_alloc,
+	                                    hadlsch->Qm, // mod order
+	                                    hadlsch->Nl,
+	                                    num_pdcch_symbols,
+	                                    frame,subframe,beamforming_mode);
+  else G = nb_rb * ((frame_parms->Ncp == 0)?12:10) * 12 * mod_order; // SLSCH Coding                                   
+
+  
 
 
+  //  if (hadlsch->Ndi == 1) {  // this is a new packet
+  if (hadlsch->round == 0) {  // this is a new packet
+    // Add 24-bit crc (polynomial A) to payload
+    unsigned int A=hadlsch->TBS; //6228;
+    unsigned int crc = crc24a(a,
+                 A)>>8;
+    a[A>>3] = ((uint8_t *)&crc)[2];
+    a[1+(A>>3)] = ((uint8_t *)&crc)[1];
+    a[2+(A>>3)] = ((uint8_t *)&crc)[0];
+    //    printf("CRC %x (A %d)\n",crc,A);
+    hadlsch->B = A+24;
+    //    hadlsch->b = a;
+    memcpy(hadlsch->b,a,(A/8)+4);
+    
+    if (lte_segmentation(hadlsch->b,
+                         hadlsch->c,
+                         hadlsch->B,
+                         &hadlsch->C,
+                         &hadlsch->Cplus,
+                         &hadlsch->Cminus,
+                         &hadlsch->Kplus,
+                         &hadlsch->Kminus,
+                         &hadlsch->F)<0)
+      return(-1);
+  }
+ 
+  for (int r=0, r_offset=0; r<hadlsch->C; r++) {
+    
+    union turboReqUnion id= {.s={dlsch->rnti,frame,subframe,r,0}};
+    notifiedFIFO_elt_t *req=newNotifiedFIFO_elt(sizeof(turboEncode_t), id.p, NULL, TPencode);
+    turboEncode_t * rdata=(turboEncode_t *) NotifiedFifoData(req);
+    rdata->input=hadlsch->c[r];
+    rdata->Kr_bytes= ( r<hadlsch->Cminus ? hadlsch->Kminus : hadlsch->Kplus) >>3;
+    rdata->filler=(r==0) ? hadlsch->F : 0;
+    rdata->r=r;
+    rdata->harq_pid=harq_pid;
+    rdata->dlsch=dlsch;
+    rdata->rm_stats=rm_stats;
+    rdata->te_stats=te_stats;
+    rdata->i_stats=i_stats;
+    rdata->round=hadlsch->round;
+    rdata->r_offset=r_offset;
+    rdata->G=G;
+    
+  
+    TPencode(rdata);
+    delNotifiedFIFO_elt(req);
+    
+    
+    int Qm=hadlsch->Qm;
+    int C=hadlsch->C;
+    int Nl=hadlsch->Nl;
+    int Gp = G/Nl/Qm;
+    int GpmodC = Gp%C;
+    if (r < (C-(GpmodC)))
+      r_offset += Nl*Qm * (Gp/C);
+    else
+      r_offset += Nl*Qm * ((GpmodC==0?0:1) + (Gp/C));
+  }
+  VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_ENB_DLSCH_ENCODING, VCD_FUNCTION_OUT);
+  return(0);
+}

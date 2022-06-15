@@ -294,6 +294,7 @@ rlc_op_status_t rrc_rlc_config_asn1_req (
   const uint32_t );
 
 
+
 /*! \fn void rb_free_rlc_union (void *rlcu_pP)
  * \brief  Free the rlc memory contained in the RLC embedded in the rlc_union_t
  *  struct pointed by of the rlcu_pP parameter. Free the rlc_union_t struct also.
@@ -414,7 +415,7 @@ tbs_size_t            mac_rlc_data_req     (const module_id_t, const rnti_t, con
 * \param[in]  crcs             Array of CRC decoding.
 */
 void                  mac_rlc_data_ind     (const module_id_t, const rnti_t, const eNB_index_t,const frame_t, const  eNB_flag_t, const  MBMS_flag_t, logical_chan_id_t, char *, tb_size_t, num_tb_t,
-    crc_t * );
+                                              crc_t *, sl_reset_rlc_flag_t );
 
 /*! \fn mac_rlc_status_resp_t mac_rlc_status_ind     (const module_id_t mod_idP, const rnti_t rntiP, const frame_t frameP, const sub_frame_t subframeP, const  eNB_flag_t eNB_flagP, const  MBMS_flag_t MBMS_flagP, logical_chan_id_t rb_idP)
 * \brief    Interface with MAC layer, request and set the number of bytes scheduled for transmission by the RLC instance corresponding to the radio bearer identifier.
@@ -427,7 +428,7 @@ void                  mac_rlc_data_ind     (const module_id_t, const rnti_t, con
 * \param[in]  rb_idP           Radio bearer identifier.
 * \return     The maximum number of bytes that the RLC instance can send in the next transmission sequence.
 */
-mac_rlc_status_resp_t mac_rlc_status_ind   (const module_id_t, const rnti_t, const eNB_index_t, const frame_t, const sub_frame_t, const  eNB_flag_t, const  MBMS_flag_t, logical_chan_id_t
+mac_rlc_status_resp_t mac_rlc_status_ind   (const module_id_t, const rnti_t, const eNB_index_t, const frame_t, const sub_frame_t, const  eNB_flag_t, const  MBMS_flag_t, logical_chan_id_t, tb_size_t
     ,const uint32_t sourceL2Id
     ,const uint32_t destinationL2Id
                                            );

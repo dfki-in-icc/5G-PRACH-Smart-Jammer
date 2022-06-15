@@ -375,7 +375,9 @@ void ulsch_modulation(int32_t **txdataF,
                       uint32_t frame,
                       uint32_t subframe,
                       LTE_DL_FRAME_PARMS *frame_parms,
-                      LTE_UE_ULSCH_t *ulsch)
+                      LTE_UE_ULSCH_t *ulsch,
+		              int slsch_flag,
+		              uint32_t cinit)
 {
 
   uint8_t qam64_table_offset_re = 0;
@@ -399,13 +401,23 @@ void ulsch_modulation(int32_t **txdataF,
   uint32_t x1, x2, s=0;
   uint8_t c;
 
+  if (slsch_flag ==0) {
+    harq_pid = subframe2harq_pid(frame_parms,frame,subframe);
+    // x1 is set in lte_gold_generic
+    x2 = (ulsch->rnti<<14) + (subframe<<9) + frame_parms->Nid_cell; //this is c_init in 36.211 Sec 6.3.1
+  }
+  else {
+    harq_pid = 0;
+    x2 = cinit;
+    LOG_D(PHY,"Setting seed for SL to %x\n",x2);
+  }
+
   if (!ulsch) {
     printf("ulsch_modulation.c: Null ulsch\n");
     return;
   }
 
-  // x1 is set in lte_gold_generic
-  x2 = (ulsch->rnti<<14) + (subframe<<9) + frame_parms->Nid_cell; //this is c_init in 36.211 Sec 6.3.1
+
 
   if (harq_pid>=8) {
     printf("ulsch_modulation.c: Illegal harq_pid %d\n",harq_pid);

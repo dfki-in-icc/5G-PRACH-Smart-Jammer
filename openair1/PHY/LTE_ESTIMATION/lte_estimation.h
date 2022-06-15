@@ -64,6 +64,10 @@ int lte_sync_time(int **rxdata,
                   LTE_DL_FRAME_PARMS *frame_parms,
                   int *eNB_id);
 
+int lte_sync_timeSL(PHY_VARS_UE *ue,
+		    int *ind,
+		    int64_t *lev,
+		    int64_t *avg);
 /*!
 \brief This function performs the coarse frequency and PSS synchronization.
 The algorithm uses a frequency-domain correlation.  It scans over 20 MHz/10ms signal chunks using each of the 3 PSS finding the most likely (strongest) carriers and their frequency offset (+-2.5 kHz).
@@ -229,6 +233,8 @@ int32_t lte_ul_channel_estimation(LTE_DL_FRAME_PARMS *frame_parms,
                               module_id_t UE_id,
                               uint8_t l,
                               uint8_t Ns);
+
+
 
 int32_t lte_ul_channel_estimation_RRU(LTE_DL_FRAME_PARMS *frame_parms,
                                       int32_t **ul_ch_estimates,

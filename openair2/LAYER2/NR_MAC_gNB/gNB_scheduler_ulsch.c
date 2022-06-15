@@ -357,7 +357,8 @@ int nr_process_mac_pdu( instance_t module_idP,
                            (char *)(pduP + mac_subheader_len),
                            mac_len,
                            1,
-                           NULL);
+                           NULL,
+                           SL_RESET_RLC_FLAG_NO);
 
           /* Updated estimated buffer when receiving data */
           if (sched_ctrl->estimated_ul_buffer >= mac_len)

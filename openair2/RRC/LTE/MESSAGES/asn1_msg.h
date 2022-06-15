@@ -132,6 +132,13 @@ uint8_t do_SIB1_MBMS(rrc_eNB_carrier_data_t *carrier,int Mod_id,int CC_id, RrcCo
 
 uint8_t do_SIB23(uint8_t Mod_id,int CC_id, BOOLEAN_t brOption,
   RrcConfigurationReq *configuration
+);
+
+uint8_t do_SIB_SL(uint8_t Mod_id,
+                 int CC_id
+#if defined(ENABLE_ITTI)
+  , RrcConfigurationReq *configuration
+#endif
                 );
 
 /**
@@ -408,5 +415,7 @@ uint8_t do_SecurityModeCommand(
   const uint8_t Transaction_id,
   const uint8_t cipheringAlgorithm,
   const uint8_t integrityProtAlgorithm);
+
+uint8_t do_MIB_SL(const protocol_ctxt_t* const ctxt_pP, const uint8_t eNB_index, int absSF, uint8_t in_coverage);
 
 #endif  /* __RRC_LTE_MESSAGES_ASN1_MSG__H__ */

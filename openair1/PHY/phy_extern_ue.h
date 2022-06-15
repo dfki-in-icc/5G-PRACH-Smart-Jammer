@@ -43,9 +43,19 @@ extern PHY_VARS_UE ***PHY_vars_UE_g;
 extern short primary_synch0[144];
 extern short primary_synch1[144];
 extern short primary_synch2[144];
+extern short primary_synch0SL[144];
+extern short primary_synch1SL[144];
 extern unsigned char primary_synch0_tab[72];
 extern unsigned char primary_synch1_tab[72];
 extern unsigned char primary_synch2_tab[72];
+
+//extern int64_t *sync_corr_ue0; //!< index [0..10*samples_per_tti[
+//extern int64_t *sync_corr_ue1; //!< index [0..10*samples_per_tti[
+//extern int64_t *sync_corr_ue2; //!< index [0..10*samples_per_tti[
+extern int16_t *primary_synch0SL_time;
+extern int16_t *primary_synch1SL_time;
+extern int16_t *primary_synch0SL_time_rx;
+extern int16_t *primary_synch1SL_time_rx;
 
 extern int flagMag;
 //extern short **txdataF_rep_tmp;

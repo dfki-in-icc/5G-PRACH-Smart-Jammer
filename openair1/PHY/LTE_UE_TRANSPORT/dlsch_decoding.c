@@ -148,6 +148,9 @@ LTE_UE_DLSCH_t *new_ue_dlsch(uint8_t Kmimo,uint8_t Mdlharq,uint32_t Nsoft,uint8_
   return(NULL);
 }
 
+
+
+
 uint32_t  dlsch_decoding(PHY_VARS_UE *phy_vars_ue,
                          short *dlsch_llr,
                          LTE_DL_FRAME_PARMS *frame_parms,
@@ -816,3 +819,4 @@ int dlsch_encoding_SIC(PHY_VARS_UE *ue,
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_ENB_DLSCH_ENCODING, VCD_FUNCTION_OUT);
   return(0);
 }
+

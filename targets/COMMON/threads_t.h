@@ -3,6 +3,7 @@
 
 typedef struct threads_s {
   int main;
+  int iq;
   int sync;
   int one;
   int two;

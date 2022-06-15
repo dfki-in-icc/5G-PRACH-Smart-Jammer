@@ -91,10 +91,13 @@
 #define DIRECT_COMMUNICATION_ESTABLISH_RSP  6
 #define GROUP_COMMUNICATION_RELEASE_REQ     7
 #define GROUP_COMMUNICATION_RELEASE_RSP     8
-#define PC5S_ESTABLISH_REQ                  9
-#define PC5S_ESTABLISH_RSP                  10
-#define PC5_DISCOVERY_MESSAGE             11
-
+#define DIRECT_COMMUNICATION_RELEASE_REQ    9
+#define DIRECT_COMMUNICATION_RELEASE_RSP    10
+#define PC5S_ESTABLISH_REQ                  11
+#define PC5S_ESTABLISH_RSP                  12
+#define PC5_DISCOVERY_MESSAGE               13
+#define PC5S_RELEASE_REQ                    14
+#define PC5S_RELEASE_RSP                    15
 
 #define PC5_DISCOVERY_PAYLOAD_SIZE      29
 
@@ -141,6 +144,10 @@ struct PC5SEstablishRsp {
   uint32_t slrbid_lcid30;
 };
 
+typedef enum {
+   PC5S_RELEASE_OK = 0,
+   PC5S_RELEASE_FAILURE
+} PC5S_Release_Status_t;
 
 //PC5_DISCOVERY MESSAGE
 typedef struct  {
@@ -148,20 +155,25 @@ typedef struct  {
   uint32_t measuredPower;
 }  __attribute__((__packed__)) PC5DiscoveryMessage ;
 
+typedef enum {
+   DIRECT_COMMUNICATION_RELEASE_OK = 0,
+   DIRECT_COMMUNICATION_RELEASE_FAILURE
+} Direct_Communication_Status_t;
 
 struct sidelink_ctrl_element {
-  unsigned short type;
-  union {
-    struct GroupCommunicationEstablishReq group_comm_establish_req;
-    struct DirectCommunicationEstablishReq direct_comm_establish_req;
-    Group_Communication_Status_t group_comm_release_rsp;
-    //struct DirectCommunicationReleaseReq  direct_comm_release_req;
-    SL_UE_STATE_t ue_state;
-    int slrb_id;
-    struct PC5SEstablishReq pc5s_establish_req;
-    struct PC5SEstablishRsp pc5s_establish_rsp;
-    PC5DiscoveryMessage pc5_discovery_message;
-  } sidelinkPrimitive;
+   unsigned short type;
+   union {
+      struct GroupCommunicationEstablishReq group_comm_establish_req;
+      struct DirectCommunicationEstablishReq direct_comm_establish_req;
+      Group_Communication_Status_t group_comm_release_rsp;
+      Direct_Communication_Status_t direct_comm_release_rsp;
+      PC5S_Release_Status_t pc5s_release_rsp;
+      SL_UE_STATE_t ue_state;
+      int slrb_id;
+      struct PC5SEstablishReq pc5s_establish_req;
+      struct PC5SEstablishRsp pc5s_establish_rsp;
+      PC5DiscoveryMessage pc5_discovery_message;
+   } sidelinkPrimitive;
 };
 
 
@@ -693,6 +705,8 @@ typedef struct {
   uint8_t                           sizeof_SIB1;
   uint8_t                           *SIB23;
   uint8_t                           sizeof_SIB23;
+  uint8_t                           *SIB181921;
+  uint8_t                           sizeof_SIB181921;
   uint8_t                           *SIB1_BR;
   uint8_t                           sizeof_SIB1_BR;
   uint8_t                           *SIB23_BR;
@@ -872,7 +886,9 @@ typedef struct UE_RRC_INST_s {
   LTE_SystemInformationBlockType19_r12_t *sib19[NB_CNX_UE];
   LTE_SystemInformationBlockType21_r14_t *sib21[NB_CNX_UE];
 
-  LTE_SBCCH_SL_BCH_MessageType_t   mib_sl[NB_CNX_UE];
+  LTE_SBCCH_SL_BCH_MessageType_t   SL_mib_tx;
+  LTE_SBCCH_SL_BCH_MessageType_t   *mib_sl[NB_CNX_UE];
+  uint8_t                           SL_MIB[5];
   /// Preconfiguration for Sidelink
   struct LTE_SL_Preconfiguration_r12 *SL_Preconfiguration[NB_CNX_UE];
   //source L2 Id
@@ -881,6 +897,7 @@ typedef struct UE_RRC_INST_s {
   uint32_t groupL2Id;
   //current destination
   uint32_t destinationL2Id;
+  SL_INFO sl_info[MAX_NUM_LCID];
   //List of destinations
   uint32_t destinationList[MAX_NUM_DEST];
   //sl_discovery..

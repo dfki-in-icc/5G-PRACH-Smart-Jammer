@@ -64,7 +64,7 @@
 #include "LTE_BCCH-BCH-Message-MBMS.h"
 #include "LTE_BCCH-DL-SCH-Message-MBMS.h"
 #include "LTE_SystemInformationBlockType1-MBMS-r14.h"
-#include "LTE_NonMBSFN-SubframeConfig-r14.h"
+#include "LTE_SL-Preconfiguration-r12.h"
 #include "LTE_RadioResourceConfigCommonSIB.h"
 #include "nfapi_interface.h"
 #include "PHY_INTERFACE/IF_Module.h"
@@ -125,6 +125,7 @@
 #define LCGID3 3
 /*!\brief Maximum number of logical chanels */
 #define MAX_NUM_LCID 11
+#define MAX_NUM_LCID_DATA 8
 /*!\brief Maximum number od control elemenets */
 #define MAX_NUM_CE 5
 /*!\brief Maximum number of random access process */
@@ -449,7 +450,9 @@ typedef struct {
 /*!\brief LCID of Carrier component activation/deactivation */
 #define CC_ACT_DEACT 27
 //TTN (for D2D)
-#define SL_DISCOVERY 8 //LCID (fake)
+/*!\brief Value of MIB-SL / SRB0 logical channel */
+#define MIBSLCH 8 // (fake)
+#define SL_DISCOVERY 9 //LCID (fake)
 #define MAX_NUM_DEST 10
 
 // ULSCH LCHAN IDs
@@ -1549,6 +1552,21 @@ typedef struct {
   // Bucket size per lcid
   int16_t bucket_size[MAX_NUM_LCID];
 } UE_SCHEDULING_INFO;
+
+
+typedef struct {
+   //SL source L2Id
+   uint32_t sourceL2Id;
+   //SL groupL2Id
+   uint32_t groupL2Id;
+   //SL destinationL2Id
+   uint32_t destinationL2Id;
+   //LCID
+   uint32_t  LCID;
+} SL_INFO;
+
+
+
 /*!\brief Top level UE MAC structure */
 
 typedef struct {
@@ -1600,7 +1618,7 @@ typedef struct {
   //List of destinations
   uint32_t destinationList[MAX_NUM_DEST];
   uint8_t numCommFlows;
-  uint32_t  SL_LCID[MAX_NUM_LCID];
+	SL_INFO sl_info[MAX_NUM_LCID];
   /// pointer to TDD Configuration (NULL for FDD)
   LTE_TDD_Config_t *tdd_Config;
   /// Number of adjacent cells to measure
@@ -1624,8 +1642,12 @@ typedef struct {
   int sltx_active;
   SLSCH_t slsch;
   SLDCH_t sldch;
+  SLSS_t slss;
   ULSCH_PDU slsch_pdu;
   int slsch_lcid;
+  uint32_t directFrameNumber_r12;
+  long directSubframeNumber_r12;
+  long sl_Bandwidth_r12;
   /// number of attempt for rach
   uint8_t RA_attempt_number;
   /// Random-access procedure flag

@@ -48,7 +48,7 @@ static int8_t m1_table[64*16*16*16] __attribute__ ((aligned(16)));
 
 
 // Set up Viterbi tables for SSE2 implementation
-void phy_generate_viterbi_tables_lte( void )
+void phy_generate_viterbi_tables_lte()
 {
 
   int8_t w[8],in0,in1,in2;

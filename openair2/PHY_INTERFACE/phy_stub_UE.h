@@ -62,7 +62,8 @@ extern bler_struct bler_data[NUM_MCS];
 extern nfapi_dl_config_request_t* dl_config_req;
 extern nfapi_ul_config_request_t* ul_config_req;
 extern nfapi_hi_dci0_request_t* hi_dci0_req;
-extern int	tx_req_num_elems;
+
+int	tx_req_num_elems;
 
 // This function should return all the sched_response config messages which concern a specific UE. Inside this
 // function we should somehow make the translation of config message's rnti to Mod_ID.

@@ -233,7 +233,9 @@ void mac_rlc_data_ind     (
   char                     *buffer_pP,
   const tb_size_t           tb_sizeP,
   num_tb_t                  num_tbP,
-  crc_t                    *crcs_pP) {
+  crc_t                    *crcs_pP,
+  sl_reset_rlc_flag_t    sl_reset_rlc_flag
+  ) {
   //-----------------------------------------------------------------------------
   rlc_mode_t             rlc_mode   = RLC_MODE_NONE;
   rlc_mbms_id_t         *mbms_id_p  = NULL;
@@ -296,7 +298,7 @@ void mac_rlc_data_ind     (
       break;
 
     case RLC_MODE_UM:
-      rlc_um_mac_data_indication(&ctxt, &rlc_union_p->rlc.um, data_ind);
+      rlc_um_mac_data_indication(&ctxt, &rlc_union_p->rlc.um, data_ind, sl_reset_rlc_flag);
       break;
 
     case RLC_MODE_TM:
@@ -316,6 +318,7 @@ mac_rlc_status_resp_t mac_rlc_status_ind(
   const eNB_flag_t        enb_flagP,
   const MBMS_flag_t       MBMS_flagP,
   const logical_chan_id_t channel_idP,
+  const tb_size_t         tb_sizeP,
   const uint32_t sourceL2Id,
   const uint32_t destinationL2Id
 ) {

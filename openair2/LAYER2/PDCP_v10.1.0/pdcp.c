@@ -66,6 +66,8 @@
 
 
 extern int otg_enabled;
+extern int sidelink_active;
+
 extern uint8_t nfapi_mode;
 #include "common/ran_context.h"
 extern RAN_CONTEXT_t RC;
@@ -599,10 +601,14 @@ boolean_t pdcp_data_req(
    * so we return TRUE afterwards
    */
 
-  for (pdcp_uid=0; pdcp_uid< MAX_MOBILES_PER_ENB; pdcp_uid++) {
-    if (pdcp_enb[ctxt_pP->module_id].rnti[pdcp_uid] == ctxt_pP->rnti )
-      break;
-  }
+  LOG_D(PDCP, "In pdcp_data_req(), MAX_MOBILES_PER_ENB: %d, ctxt_pP->module_id: %d, ctxt_pP->rnti: %d \n \n", MAX_MOBILES_PER_ENB, ctxt_pP->module_id, ctxt_pP->rnti);
+
+  if (!sidelink_active){
+	  for (pdcp_uid=0; pdcp_uid< MAX_MOBILES_PER_ENB; pdcp_uid++) {
+		  LOG_I(PDCP, "In pdcp_data_req(), pdcp_enb[ctxt_pP->module_id].rnti[pdcp_uid]: %d", pdcp_enb[ctxt_pP->module_id].rnti[pdcp_uid]);
+		  if (pdcp_enb[ctxt_pP->module_id].rnti[pdcp_uid] == ctxt_pP->rnti )
+			  break;
+	  }
 
   LOG_D(PDCP,"ueid %d lcid %d tx seq num %d\n", pdcp_uid, (int)(rb_idP+rb_offset), current_sn);
   Pdcp_stats_tx[ctxt_pP->module_id][pdcp_uid][rb_idP+rb_offset]++;
@@ -614,6 +620,7 @@ boolean_t pdcp_data_req(
   Pdcp_stats_tx_aiat_tmp_w[ctxt_pP->module_id][pdcp_uid][rb_idP+rb_offset]+= (pdcp_enb[ctxt_pP->module_id].sfn - Pdcp_stats_tx_iat[ctxt_pP->module_id][pdcp_uid][rb_idP+rb_offset]);
   Pdcp_stats_tx_iat[ctxt_pP->module_id][pdcp_uid][rb_idP+rb_offset]=pdcp_enb[ctxt_pP->module_id].sfn;
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PDCP_DATA_REQ,VCD_FUNCTION_OUT);
+  } //if (!sidelink_active)
   return ret;
 }
 
@@ -1759,7 +1766,9 @@ rrc_pdcp_config_asn1_req (
 
       DevCheck4(drb_id < LTE_maxDRB, drb_id, LTE_maxDRB, ctxt_pP->module_id, ctxt_pP->rnti);
       key = PDCP_COLL_KEY_VALUE(ctxt_pP->module_id, ctxt_pP->rnti, ctxt_pP->enb_flag, drb_id, SRB_FLAG_NO);
-      h_rc = hashtable_get(pdcp_coll_p, key, (void **)&pdcp_p);
+
+      LOG_I(PDCP, "rnti value: %d, DRB_ID: %ld \n", ctxt_pP->rnti, drb_id);
+      h_rc = hashtable_get(pdcp_coll_p, key, (void**)&pdcp_p);
 
       if (h_rc == HASH_TABLE_OK) {
         action = CONFIG_ACTION_MODIFY;

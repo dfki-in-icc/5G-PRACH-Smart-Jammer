@@ -33,8 +33,26 @@ char *namepointer_log2;
 
 
 #include "PHY/LTE_REFSIG/primary_synch.h"
+#include "PHY/LTE_REFSIG/primary_synch_SL.h"
+int16_t *primary_synch0_time;
+int16_t *primary_synch1_time;
+int16_t *primary_synch2_time;
 
+int16_t *primary_synch0SL_time;
+int16_t *primary_synch1SL_time;
+int16_t *primary_synch0SL_time_rx;
+int16_t *primary_synch1SL_time_rx;
+
+
+//PHY_VARS *PHY_vars;
+#ifndef OCP_FRAMEWORK
 PHY_VARS_UE ***PHY_vars_UE_g;
+LTE_DL_FRAME_PARMS *lte_frame_parms_g;
+#else
+PHY_VARS_UE *PHY_vars_UE_g[MAX_UE][MAX_NUM_CCs]= {NULL};
+
+#endif
+
 
 unsigned short rev[2048],rev_times4[8192],rev_half[1024];
 unsigned short rev256[256],rev512[512],rev1024[1024],rev4096[4096],rev2048[2048],rev8192[8192];

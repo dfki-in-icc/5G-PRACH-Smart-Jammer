@@ -623,7 +623,7 @@ int32_t phy_phase_compensation_top(uint32_t pilot_type,
                                    uint32_t last_pilot,
                                    int32_t ignore_prefix);
 
-int32_t dot_product(int16_t *x,
+int64_t dot_product(int16_t *x,
                     int16_t *y,
                     uint32_t N, //must be a multiple of 8
                     uint8_t output_shift);

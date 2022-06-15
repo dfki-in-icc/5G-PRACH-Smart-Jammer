@@ -66,6 +66,10 @@ mac_rrc_data_req_ue(
 )
 //--------------------------------------------------------------------------
 {
+ protocol_ctxt_t ctxt;
+
+  PROTOCOL_CTXT_SET_BY_MODULE_ID(&ctxt, Mod_idP, 0, 0, frameP/10, frameP%10,eNB_index);
+
   LOG_D(RRC,"[eNB %d] mac_rrc_data_req to SRB ID=%ld\n",Mod_idP,Srb_id);
   LOG_D(RRC,"[UE %d] Frame %d Filling SL DISCOVERY SRB_ID %ld\n",Mod_idP,frameP,Srb_id);
   LOG_D(RRC,"[UE %d] Frame %d buffer_pP status %d,\n",Mod_idP,frameP, UE_rrc_inst[Mod_idP].SL_Discovery[eNB_index].Tx_buffer.payload_size);
@@ -108,9 +112,26 @@ mac_rrc_data_req_ue(
     UE_rrc_inst[Mod_idP].Info[eNB_index].T300_active = 1;
     UE_rrc_inst[Mod_idP].Info[eNB_index].T300_cnt = 0;
     //      msg("[RRC][UE %d] Sending rach\n",Mod_id);
+      return(Ret_size);
+  }
+
+  else if (Srb_id == MIBCH)  {
+    int Ret_size = do_MIB_SL(&ctxt,eNB_index,frameP,0);
+    memcpy((void*)buffer_pP,(void*)UE_rrc_inst[Mod_idP].SL_MIB,Ret_size);
+    LOG_D(RRC,"MIB-SL for %d.%d: %x.%x.%x.%x.%x\n",frameP/10,frameP%10,buffer_pP[0],buffer_pP[1],buffer_pP[2],buffer_pP[3],buffer_pP[4]);
     return(Ret_size);
-  } else {
-    return 0;
+
+  } //TTN (for D2D)
+  
+  else if (Srb_id  == SL_DISCOVERY && UE_rrc_inst[Mod_idP].SL_Discovery[eNB_index].Tx_buffer.payload_size > 0){
+    LOG_I(RRC,"[UE %d] Frame %d Filling SL DISCOVERY SRB_ID %d\n",Mod_idP,frameP,Srb_id);
+    LOG_I(RRC,"[UE %d] Frame %d buffer_pP status %d,\n",Mod_idP,frameP, UE_rrc_inst[Mod_idP].SL_Discovery[eNB_index].Tx_buffer.payload_size);
+    
+    memcpy(&buffer_pP[0],&UE_rrc_inst[Mod_idP].SL_Discovery[eNB_index].Tx_buffer.Payload[0],UE_rrc_inst[Mod_idP].SL_Discovery[eNB_index].Tx_buffer.payload_size);
+    uint8_t Ret_size=UE_rrc_inst[Mod_idP].SL_Discovery[eNB_index].Tx_buffer.payload_size;
+    LOG_I(RRC,"[UE %d] Sending SL_Discovery, size %d bytes\n",Mod_idP,Ret_size);
+    UE_rrc_inst[Mod_idP].SL_Discovery[eNB_index].Tx_buffer.payload_size = 0;
+    return(Ret_size);
   }
 
   return(0);
@@ -249,6 +270,18 @@ mac_rrc_data_ind_ue(
       itti_send_msg_to_task (TASK_RRC_UE, ctxt.instance, message_p);
     }
   }
+    //TTN (for D2D)
+    if(srb_idP == SL_DISCOVERY) {
+    	LOG_I(RRC,"[UE %d] Received SDU (%d bytes) for SL_DISCOVERY on SRB %d\n",module_idP, sdu_lenP, srb_idP);
+    	decode_SL_Discovery_Message(&ctxt, eNB_indexP, sduP, sdu_lenP);
+    }
+
+    if (srb_idP == MIBSLCH) {
+      LOG_D(RRC,"[UE %d] Received SDU for MIBSL\n",module_idP);
+      if (decode_MIB_SL(&ctxt,(uint8_t* const) sduP,5)>=0) LOG_D(RRC,"Received  MIB_SL: %x.%x.%x.%x.%x\n",sduP[0],sduP[1],sduP[2],sduP[3],sduP[4]);
+      else                                LOG_E(RRC,"Received bogus MIB_SL\n");
+      
+    }
 
   //TTN (for D2D)
   if(srb_idP == SL_DISCOVERY) {

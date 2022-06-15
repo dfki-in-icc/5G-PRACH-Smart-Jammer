@@ -56,7 +56,10 @@ void lte_param_init(PHY_VARS_eNB **eNBp,
                     uint8_t pa,
                     uint8_t threequarter_fs,
                     uint8_t osf,
-                    uint32_t perfect_ce) {
+		            uint32_t perfect_ce,
+		            uint8_t sidelink_active,
+		            uint8_t SLonly) {
+
   LTE_DL_FRAME_PARMS *frame_parms;
   int i;
   PHY_VARS_eNB *eNB;
@@ -119,6 +122,8 @@ void lte_param_init(PHY_VARS_eNB **eNBp,
 
   for (i=0; i<3; i++)
     lte_gold(frame_parms,UE->lte_gold_table[i],Nid_cell+i);
+    UE->sidelink_active = sidelink_active;
+    UE->SLonly          = SLonly;
 
   printf("Calling init_lte_ue_signal\n");
   init_lte_ue_signal(UE,1,0);

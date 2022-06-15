@@ -41,6 +41,7 @@
 #include "PHY/MODULATION/modulation_UE.h"
 #include "PHY/LTE_ESTIMATION/lte_estimation.h"
 
+
 #undef MALLOC //there are two conflicting definitions, so we better make sure we don't use it at all
 //#undef FRAME_LENGTH_COMPLEX_SAMPLES //there are two conflicting definitions, so we better make sure we don't use it at all
 
@@ -63,12 +64,18 @@
 #include "common/config/config_userapi.h"
 #include "T.h"
 
+
 extern double cpuf;
 
+extern uint8_t D2D_en;
 
 #define FRAME_PERIOD    100000000ULL
 #define DAQ_PERIOD      66667ULL
 #define FIFO_PRIORITY   40
+
+typedef enum {
+  AWGN,
+} SCM_t_SL;
 
 typedef enum {
   pss=0,
@@ -80,14 +87,23 @@ void init_UE_threads(int);
 void init_UE_threads_stub(int);
 void init_UE_single_thread_stub(int);
 void *UE_thread(void *arg);
+void *UE_threadSL(void *arg);
+void init_UE(int nb_inst,int eMBMS_active, int uecap_xer_in, int timing_correction,int phy_test, int UE_scan, int UE_scan_carrier, runmode_t mode,int rxgain,int txpowermax,LTE_DL_FRAME_PARMS *fp0, int sidelink_active,int SLonly,int isSynchRef,int slsynconly,int SLSCHtest);
+//void init_UE(int nb_inst,int eMBMS_active, int uecap_xer_in, int timing_correction,int phy_test, int UE_scan, int UE_scan_carrier, runmode_t mode,int rxgain,int txpowermax,LTE_DL_FRAME_PARMS *fp);
+void init_UE_stub(int nb_inst,int,int,char *);
+void init_UE_stub_single_thread(int nb_inst,int,int,char *);
 int init_timer_thread(void);
+
+extern void oai_subframe_ind(uint16_t sfn, uint16_t sf);
 extern void multicast_link_start(void (*rx_handlerP) (unsigned int, char *),
                                  unsigned char _multicast_group,
                                  char *multicast_ifname);
 extern int multicast_link_write_sock(int groupP, char *dataP, uint32_t sizeP);
+extern int initial_syncSL(PHY_VARS_UE *ue);
 
 
 int tx_req_num_elems;
+extern int simL1flag;
 extern uint16_t sf_ahead;
 //extern int tx_req_UE_MAC1();
 
@@ -104,11 +120,11 @@ module_id_t next_Mod_id = 0;
 
 typedef struct eutra_band_s {
   int16_t band;
-  uint32_t ul_min;
-  uint32_t ul_max;
-  uint32_t dl_min;
-  uint32_t dl_max;
-  frame_type_t frame_type;
+  uint64_t ul_min;
+  uint64_t ul_max;
+  uint64_t dl_min;
+  uint64_t dl_max;
+  lte_frame_type_t frame_type;
 } eutra_band_t;
 
 typedef struct band_info_s {
@@ -147,11 +163,13 @@ static const eutra_band_t eutra_bands[] = {
   {41, 2496    * MHz, 2690    * MHz, 2496    * MHz, 2690    * MHz, TDD},
   {42, 3400    * MHz, 3600    * MHz, 3400    * MHz, 3600    * MHz, TDD},
   {43, 3600    * MHz, 3800    * MHz, 3600    * MHz, 3800    * MHz, TDD},
-  {44, 703    * MHz, 803    * MHz, 703    * MHz, 803    * MHz, TDD},
+  {44, 703     * MHz, 803     * MHz, 703     * MHz, 803     * MHz, TDD},
+  {99, 900     * MHz, 910     * MHz, 920     * MHz, 930     * MHz, FDD},
+  {47, 5855    * MHz, 5925    * MHz, 5855    * MHz, 5925    * MHz, TDD}
 };
 
 
-threads_t threads= {-1,-1,-1,-1,-1,-1,-1,-1};
+threads_t threads= {-1,-1,-1,-1,-1,-1,-1,-1,-1};
 
 pthread_t                       main_ue_thread;
 pthread_attr_t                  attr_UE_thread;
@@ -168,7 +186,8 @@ void phy_init_lte_ue_transport(PHY_VARS_UE *ue,int absraction_flag);
 
 PHY_VARS_UE *init_ue_vars(LTE_DL_FRAME_PARMS *frame_parms,
                           uint8_t UE_id,
-                          uint8_t abstraction_flag)
+			              uint8_t abstraction_flag,
+			              int sidelink_active)
 
 {
   PHY_VARS_UE *ue = (PHY_VARS_UE *)calloc(1,sizeof(PHY_VARS_UE));
@@ -181,6 +200,7 @@ PHY_VARS_UE *init_ue_vars(LTE_DL_FRAME_PARMS *frame_parms,
   ue->hw_timing_advance=get_softmodem_params()->hw_timing_advance;
   ue->Mod_id      = UE_id;
   ue->mac_enabled = 1;
+  ue->sidelink_active = sidelink_active;
 
   // In phy_stub_UE (MAC-to-MAC) mode these init functions don't need to get called. Is this correct?
   if (NFAPI_MODE!=NFAPI_UE_STUB_PNF && NFAPI_MODE!=NFAPI_MODE_STANDALONE_PNF) {
@@ -263,28 +283,45 @@ void init_UE(int nb_inst,
              runmode_t mode,
              int rxgain,
              int txpowermax,
-             LTE_DL_FRAME_PARMS *fp0) {
+             LTE_DL_FRAME_PARMS *fp0, 
+			       int sidelink_active,
+			       int SLonly,
+			       int isSynchRef,
+			       int slsynconly,
+			       int SLSCHtest)
+{
   PHY_VARS_UE *UE;
   int         inst;
   int         ret;
   LTE_DL_FRAME_PARMS *fp;
   LOG_I(PHY,"UE : Calling Layer 2 for initialization\n");
-  l2_init_ue(eMBMS_active,(uecap_xer_in==1)?uecap_xer:NULL,
-             0,// cba_group_active
-             0); // HO flag
+  
+  //***/ Change the order and call the next function call at the end
+  /*l2_init_ue(eMBMS_active,(uecap_xer_in==1)?uecap_xer:NULL,
+	     0,// cba_group_active
+	     0); // HO flag*/
 
   if (PHY_vars_UE_g==NULL) PHY_vars_UE_g = (PHY_VARS_UE ***)calloc(1+nb_inst,sizeof(PHY_VARS_UE **));
 
-  for (inst=0; inst<nb_inst; inst++) {
-    if (PHY_vars_UE_g[inst]==NULL) PHY_vars_UE_g[inst] = (PHY_VARS_UE **)calloc(1+MAX_NUM_CCs,sizeof(PHY_VARS_UE *));
+  for (inst=0;inst<nb_inst;inst++) {
+	  if (PHY_vars_UE_g[inst]==NULL) PHY_vars_UE_g[inst] = (PHY_VARS_UE**)calloc(1+MAX_NUM_CCs,sizeof(PHY_VARS_UE*));
+	 
+	  LOG_I(PHY,"Allocating UE context %d, (sidelink active %d, isSynchRef %d, SLonly %d)\n",inst,sidelink_active,isSynchRef,SLonly);
 
-    LOG_I(PHY,"Allocating UE context %d\n",inst);
-    PHY_vars_UE_g[inst][0] = init_ue_vars(fp0,inst,0);
-    // turn off timing control loop in UE
-    PHY_vars_UE_g[inst][0]->no_timing_correction = timing_correction;
-    UE = PHY_vars_UE_g[inst][0];
-    fp = &UE->frame_parms;
-    printf("PHY_vars_UE_g[0][0] = %p\n",UE);
+	  PHY_vars_UE_g[inst][0] = init_ue_vars(fp0,inst,0,sidelink_active);
+	  
+	  // turn off timing control loop in UE
+	  PHY_vars_UE_g[inst][0]->no_timing_correction = timing_correction;
+
+	  //Sidelink
+	  PHY_vars_UE_g[inst][0]->SLonly = SLonly;
+	  PHY_vars_UE_g[inst][0]->is_SynchRef = isSynchRef;
+	  PHY_vars_UE_g[inst][0]->SLsynconly  = slsynconly;
+	  PHY_vars_UE_g[inst][0]->SLSCHtest   = SLSCHtest;
+
+	  UE = PHY_vars_UE_g[inst][0];
+	  fp = &UE->frame_parms;
+	  printf("PHY_vars_UE_g[0][0] = %p\n",UE);
 
     if (phy_test==1)
       UE->mac_enabled = 0;
@@ -364,13 +401,24 @@ void init_UE(int nb_inst,
 
     UE->rfdevice.host_type = RAU_HOST;
     //    UE->rfdevice.type      = NONE_DEV;
-    AssertFatal(0 == pthread_create(&UE->proc.pthread_ue,
-                                    &UE->proc.attr_ue,
-                                    UE_thread,
-                                    (void *)UE), "");
+    PHY_VARS_UE *UE = PHY_vars_UE_g[inst][0];
+    if (UE->SLonly == 0)
+      AssertFatal(0 == pthread_create(&UE->proc.pthread_ue,
+				      &UE->proc.attr_ue,
+				      UE_thread,
+				      (void*)UE), "");
+    if (UE->sidelink_active == 1 && UE->SLonly == 1) //&& UE->SLonly == 0
+      AssertFatal(0 == pthread_create(&UE->proc.pthread_ueSL,
+				      &UE->proc.attr_ueSL,
+				      UE_threadSL,
+				      (void*)UE), "");
   }
 
   printf("UE threads created by %ld\n", gettid());
+  l2_init_ue(eMBMS_active,(uecap_xer_in==1)?uecap_xer:NULL,
+  	     0,// cba_group_active
+  	     0); // HO flag
+
 }
 
 // Initiating all UEs within a single set of threads for PHY_STUB. Future extensions -> multiple
@@ -381,6 +429,8 @@ void init_UE_stub_single_thread(int nb_inst,
                                 char *emul_iface) {
   int         inst;
   LOG_I(PHY,"UE : Calling Layer 2 for initialization, nb_inst: %d \n", nb_inst);
+
+  printf("In init_UE_stub_single_thread \n");
   l2_init_ue(eMBMS_active,(uecap_xer_in==1)?uecap_xer:NULL,
              0,// cba_group_active
              0); // HO flag
@@ -422,13 +472,15 @@ void init_UE_stub(int nb_inst,
                   char *emul_iface) {
   int         inst;
   LOG_I(PHY,"UE : Calling Layer 2 for initialization\n");
+    printf("In init_UE_stub \n");
+
   l2_init_ue(eMBMS_active,(uecap_xer_in==1)?uecap_xer:NULL,
              0,// cba_group_active
              0); // HO flag
 
   for (inst=0; inst<nb_inst; inst++) {
     LOG_I(PHY,"Initializing memory for UE instance %d (%p)\n",inst,PHY_vars_UE_g[inst]);
-    PHY_vars_UE_g[inst][0] = init_ue_vars(NULL,inst,0);
+    PHY_vars_UE_g[inst][0] = init_ue_vars(NULL,inst,0,0);
   }
 
   init_timer_thread();
@@ -741,6 +793,139 @@ static void *UE_thread_synch(void *arg) {
   return &UE_thread_synch_retval;
 }
 
+//extern int64_t* sync_corr_ue1;
+
+static void *UE_thread_synchSL(void *arg)
+{
+  //static int UE_thread_synch_retval;
+  int i;
+  //int hw_slot_offset;
+  PHY_VARS_UE *UE = (PHY_VARS_UE*) arg;
+  int current_band = 0;
+  //int current_offset = 0;
+  //sync_mode_t sync_mode = pbch;
+  int CC_id = UE->CC_id;
+  int ind;
+  int freq_offset=0;
+  char threadname[128];
+
+  UE->is_synchronizedSL = 0;
+  printf("UE_thread_syncSL in with PHY_vars_UE %p\n",arg);
+
+  cpu_set_t cpuset;
+  CPU_ZERO(&cpuset);
+  if ( threads.iq != -1 )
+    CPU_SET(threads.iq, &cpuset);
+  // this thread priority must be lower that the main acquisition thread
+  sprintf(threadname, "syncSL UE %d\n", UE->Mod_id);
+  init_thread(100000, 500000, FIFO_PRIORITY-1, &cpuset, threadname);
+
+  printf("starting UE synchSL thread (IC %d)\n",UE->proc.instance_cnt_synchSL);
+  ind = 0;
+ 
+  
+  do  {
+    current_band = eutra_bands[ind].band;
+    //JHNOTE
+    //printf( "Scanning band %d, dl_min %"PRIu32", ul_min %"PRIu32"\n", current_band, eutra_bands[ind].dl_min,eutra_bands[ind].ul_min);
+    printf( "Scanning band %d, dl_min %"PRIu64", ul_min %"PRIu64", dl_freq %"PRIu64"\n", current_band, eutra_bands[ind].dl_min,eutra_bands[ind].ul_min,UE->frame_parms.dl_CarrierFreq);
+  
+    if ((eutra_bands[ind].dl_min <= UE->frame_parms.dl_CarrierFreq) && (eutra_bands[ind].dl_max >= UE->frame_parms.dl_CarrierFreq)) {
+      for (i=0; i<4; i++)
+	uplink_frequency_offset[CC_id][i] = eutra_bands[ind].ul_min - eutra_bands[ind].dl_min;
+      
+      UE->frame_parms.ul_CarrierFreq = UE->frame_parms.dl_CarrierFreq+uplink_frequency_offset[CC_id][0];
+      break;
+    }
+    
+    ind++;
+  } while (ind < sizeof(eutra_bands) / sizeof(eutra_bands[0]));
+
+  //JHNOTE
+  LOG_I( PHY, "[SCHED][UE] Check absolute frequency SL %"PRIu64"(oai_exit %d, rx_num_channels %d)\n", UE->frame_parms.ul_CarrierFreq, oai_exit, openair0_cfg[0].rx_num_channels);
+    
+  for (i=0;i<openair0_cfg[UE->rf_map.card].rx_num_channels;i++) {
+    openair0_cfg[UE->rf_map.card].rx_freq[UE->rf_map.chain+i] = UE->frame_parms.ul_CarrierFreq;
+    openair0_cfg[UE->rf_map.card].tx_freq[UE->rf_map.chain+i] = UE->frame_parms.ul_CarrierFreq;
+    openair0_cfg[UE->rf_map.card].duplex_mode = duplex_mode_TDD;
+  }
+
+  /*while (sync_var<0)
+    pthread_cond_wait(&sync_cond, &sync_mutex);
+  pthread_mutex_unlock(&sync_mutex);*/
+
+  wait_sync("UE thread synchSL");
+
+  while (oai_exit==0) {
+    AssertFatal ( 0== pthread_mutex_lock(&UE->proc.mutex_synchSL), "");
+    while (UE->proc.instance_cnt_synchSL < 0)
+      // the thread waits here most of the time
+      pthread_cond_wait( &UE->proc.cond_synchSL, &UE->proc.mutex_synchSL );
+    AssertFatal ( 0== pthread_mutex_unlock(&UE->proc.mutex_synchSL), "");
+  
+    LOG_I(PHY,"Running initial synch with carrier offset %d, ue_scan_carrier %d\n",freq_offset,UE->UE_scan_carrier); 
+    // Do initial synch here
+    if (initial_syncSL(UE) >= 0)  {
+
+       LOG_I(PHY,"Found SynchRef UE\n");
+	    // rerun with new cell parameters and frequency-offset
+	    for (i=0; i<openair0_cfg[UE->rf_map.card].rx_num_channels; i++) {
+	      openair0_cfg[UE->rf_map.card].rx_gain[UE->rf_map.chain+i] = UE->rx_total_gain_dB;//-USRP_GAIN_OFFSET;
+	      if (UE->UE_scan_carrier == 1) {
+	        if (freq_offset >= 0)
+	          openair0_cfg[UE->rf_map.card].rx_freq[UE->rf_map.chain+i] += abs(UE->common_vars.freq_offset);
+	        else
+	          openair0_cfg[UE->rf_map.card].rx_freq[UE->rf_map.chain+i] -= abs(UE->common_vars.freq_offset);
+	        freq_offset=0;
+	      }
+	    }
+	//UE->rfdevice.trx_set_freq_func(&UE->rfdevice,&openair0_cfg[0],0);
+	//UE->rfdevice.trx_set_gains_func(&openair0,&openair0_cfg[0]);
+	//UE->rfdevice.trx_stop_func(&UE->rfdevice);
+	//sleep(1);
+	    if (UE->UE_scan_carrier == 1) {
+
+	      UE->UE_scan_carrier = 0;
+	    } else {
+	      AssertFatal ( 0== pthread_mutex_lock(&UE->proc.mutex_synch), "");
+        LOG_I(PHY,"Setting UE->is_synchronized to %d\n",UE->is_synchronized);
+	      UE->is_synchronizedSL = 1;
+	      AssertFatal ( 0== pthread_mutex_unlock(&UE->proc.mutex_synch), "");
+      }
+
+    }
+    else {
+     LOG_I(PHY,"No SynchRefUE found\n");
+/*
+      write_output("rxsig0.m","rxs0",&UE->common_vars.rxdata_syncSL[0][0],40*UE->frame_parms.samples_per_tti,1,1);
+      write_output("corr.m","corr1",sync_corr_ue1,40*UE->frame_parms.samples_per_tti,1,2);
+
+      exit(-1);
+*/
+      if (UE->UE_scan_carrier == 1) {
+         if (freq_offset>=0)
+           freq_offset+=100;
+         freq_offset*=-1;
+         if (abs(freq_offset) > 7500) 
+           AssertFatal(1==0, "[initial_sync] No cell synchronization found, abandoning\n" );
+      }
+      for (i=0; i<openair0_cfg[UE->rf_map.card].rx_num_channels; i++) {
+	      openair0_cfg[UE->rf_map.card].rx_freq[UE->rf_map.chain+i] = (double)UE->frame_parms.ul_CarrierFreq+freq_offset;
+	      openair0_cfg[UE->rf_map.card].tx_freq[UE->rf_map.chain+i] = (double)UE->frame_parms.ul_CarrierFreq+freq_offset;
+	      openair0_cfg[UE->rf_map.card].rx_gain[UE->rf_map.chain+i] = UE->rx_total_gain_dB;//-USRP_GAIN_OFFSET;
+	      if (UE->UE_scan_carrier==1)
+	        openair0_cfg[UE->rf_map.card].autocal[UE->rf_map.chain+i] = 1;
+      }
+      LOG_I(PHY,"Setting USRP freq to %f\n",openair0_cfg[UE->rf_map.card].rx_freq[0]);
+      //UE->rfdevice.trx_set_freq_func(&UE->rfdevice,&openair0_cfg[0],0);
+    }
+    AssertFatal ( 0== pthread_mutex_lock(&UE->proc.mutex_synchSL), "");
+    UE->proc.instance_cnt_synchSL--;
+// Remove this to go to steady-state mode
+    if (UE->SLsynconly==1) UE->is_synchronizedSL=0;
+    AssertFatal ( 0== pthread_mutex_unlock(&UE->proc.mutex_synchSL), "");
+  }
+}
 /*!
  * \brief This is the UE thread for RX subframe n and TX subframe n+4.
  * This thread performs the phy_procedures_UE_RX() on every received slot.
@@ -768,7 +953,11 @@ static void *UE_thread_rxn_txnp4(void *arg) {
   struct rx_tx_thread_data *rtd = arg;
   UE_rxtx_proc_t *proc = rtd->proc;
   PHY_VARS_UE    *UE   = rtd->UE;
+  int ret;
+
+  proc->instance_cnt_rxtx=-1;
   proc->subframe_rx=proc->sub_frame_start;
+
   char threadname[256];
   sprintf(threadname,"UE_%d_proc_%d", UE->Mod_id, proc->sub_frame_start);
   cpu_set_t cpuset;
@@ -776,16 +965,13 @@ static void *UE_thread_rxn_txnp4(void *arg) {
 
   if ( (proc->sub_frame_start+1)%RX_NB_TH == 0 && threads.one != -1 )
     CPU_SET(threads.one, &cpuset);
-
-  if ( RX_NB_TH > 1 && (proc->sub_frame_start+1)%RX_NB_TH == 1 && threads.two != -1 )
+  if ( (proc->sub_frame_start+1)%RX_NB_TH == 1 && threads.two != -1 )
     CPU_SET(threads.two, &cpuset);
-
-  if ( RX_NB_TH > 2 && (proc->sub_frame_start+1)%RX_NB_TH == 2 && threads.three != -1 )
+  if ( (proc->sub_frame_start+1)%RX_NB_TH == 2 && threads.three != -1 )
     CPU_SET(threads.three, &cpuset);
-
   //CPU_SET(threads.three, &cpuset);
-  init_thread(900000,1000000, FIFO_PRIORITY-1, &cpuset,
-              threadname);
+  init_thread(900000,1000000 , FIFO_PRIORITY-1, &cpuset,
+	      threadname);
 
   while (!oai_exit) {
     if (pthread_mutex_lock(&proc->mutex_rxtx) != 0) {
@@ -797,43 +983,92 @@ static void *UE_thread_rxn_txnp4(void *arg) {
       // most of the time, the thread is waiting here
       pthread_cond_wait( &proc->cond_rxtx, &proc->mutex_rxtx );
     }
+    if (pthread_mutex_unlock(&proc->mutex_rxtx) != 0) {
+      LOG_E( PHY, "[SCHED][UE] error unlocking mutex for UE RXn_TXnp4\n" );
+      exit_fun("nothing to add");
+    }
 
     // Process Rx data for one sub-frame
     lte_subframe_t sf_type = subframe_select( &UE->frame_parms, proc->subframe_rx);
-
-    if ((sf_type == SF_DL) ||
-        (UE->frame_parms.frame_type == FDD) ||
-        (sf_type == SF_S)) {
-      if (UE->frame_parms.frame_type == TDD) {
-        LOG_D(PHY, "%s,TDD%d,%s: calling UE_RX\n",
-              threadname,
-              UE->frame_parms.tdd_config,
-              (sf_type==SF_DL? "SF_DL" :
-               (sf_type==SF_UL? "SF_UL" :
-                (sf_type==SF_S ? "SF_S"  : "UNKNOWN_SF_TYPE"))));
-      } else {
-        LOG_D(PHY, "%s,%s,%s: calling UE_RX\n",
-              threadname,
-              (UE->frame_parms.frame_type==FDD? "FDD":
-               (UE->frame_parms.frame_type==TDD? "TDD":"UNKNOWN_DUPLEX_MODE")),
-              (sf_type==SF_DL? "SF_DL" :
-               (sf_type==SF_UL? "SF_UL" :
-                (sf_type==SF_S ? "SF_S"  : "UNKNOWN_SF_TYPE"))));
+    if (UE->SLonly == 0) {
+      if ((sf_type == SF_DL) ||
+	      (UE->frame_parms.frame_type == FDD) ||
+	      (sf_type == SF_S)) {
+	
+	      if (UE->frame_parms.frame_type == TDD) {
+	        LOG_D(PHY, "%s,TDD%d,%s: calling UE_RX\n",
+		      threadname,
+		      UE->frame_parms.tdd_config,
+		      (sf_type==SF_DL? "SF_DL" :
+		      (sf_type==SF_UL? "SF_UL" :
+		      (sf_type==SF_S ? "SF_S"  : "UNKNOWN_SF_TYPE"))));
+	      } else {
+	          LOG_D(PHY, "%s,%s,%s: calling UE_RX\n",
+	        	threadname,
+		        (UE->frame_parms.frame_type==FDD? "FDD":
+		        (UE->frame_parms.frame_type==TDD? "TDD":"UNKNOWN_DUPLEX_MODE")),
+		        (sf_type==SF_DL? "SF_DL" :
+		        (sf_type==SF_UL? "SF_UL" :
+		        (sf_type==SF_S ? "SF_S"  : "UNKNOWN_SF_TYPE"))));
+	      }
+        #ifdef UE_SLOT_PARALLELISATION
+	        phy_procedures_slot_parallelization_UE_RX( UE, proc, 0, 0, 1, UE->mode);
+        #else
+	        phy_procedures_UE_RX( UE, proc, 0, 0, 1, UE->mode);
+        #endif
       }
-
-#ifdef UE_SLOT_PARALLELISATION
-      phy_procedures_slot_parallelization_UE_RX( UE, proc, 0, 0, 1, UE->mode, no_relay, NULL );
-#else
-      phy_procedures_UE_RX(UE, proc, 0, 0, 1, UE->mode);
+      
+#if UE_TIMING_TRACE
+      start_meas(&UE->generic_stat);
 #endif
+      if (UE->mac_enabled==1) {
+	
+	ret = ue_scheduler(UE->Mod_id,
+			   proc->frame_rx,
+			   proc->subframe_rx,
+			   proc->frame_tx,
+			   proc->subframe_tx,
+			   subframe_select(&UE->frame_parms,proc->subframe_tx),
+			   0,
+			   0/*FIXME CC_id*/);
+	if ( ret != CONNECTION_OK) {
+	  LOG_E( PHY, "[UE %"PRIu8"] Frame %"PRIu32", subframe %u %s\n",
+		 UE->Mod_id, proc->frame_rx, proc->subframe_tx,get_connectionloss_errstr(ret) );
+	}
+      }
+#if UE_TIMING_TRACE
+      stop_meas(&UE->generic_stat);
+#endif
+      
+      
+      // Prepare the future Tx data
+      
+      if ((subframe_select( &UE->frame_parms, proc->subframe_tx) == SF_UL) ||
+	  (UE->frame_parms.frame_type == FDD) )
+	if (UE->mode != loop_through_memory)
+	  //phy_procedures_UE_TX(UE,proc,0,0,UE->mode,no_relay);
+	  phy_procedures_UE_TX(UE,proc,0,0,UE->mode);
+      
+      
+      
+      if ((subframe_select( &UE->frame_parms, proc->subframe_tx) == SF_S) &&
+	  (UE->frame_parms.frame_type == TDD))
+	if (UE->mode != loop_through_memory)
+	  phy_procedures_UE_S_TX(UE,0,0);
+      updateTimes(current, &t3, 10000, "Delay to process sub-frame (case 3)");
+      
+      
     }
 
-#if UE_TIMING_TRACE
-    start_meas(&UE->generic_stat);
-#endif
+    // This is for Sidelink
+    if (UE->sidelink_active == 1) { //&& UE->UE_mode[0]==PUSCH
 
-    if (UE->mac_enabled==1) {
-      int ret = ue_scheduler(UE->Mod_id,
+      phy_procedures_UE_SL_RX(UE,proc);
+
+      if (UE->SLonly==1 && 
+          UE->mac_enabled==1) {
+        
+          ret = ue_scheduler(UE->Mod_id,
                              proc->frame_rx,
                              proc->subframe_rx,
                              proc->frame_tx,
@@ -841,11 +1076,27 @@ static void *UE_thread_rxn_txnp4(void *arg) {
                              subframe_select(&UE->frame_parms,proc->subframe_tx),
                              0,
                              0/*FIXME CC_id*/);
+          if ( ret != CONNECTION_OK) {
+             char *txt;
+            switch (ret) {
+            case CONNECTION_LOST:
+              txt="RRC Connection lost, returning to PRACH";
+              break;
+            case PHY_RESYNCH:
+              txt="RRC Connection lost, trying to resynch";
+              break;
+            case RESYNCH:
+              txt="return to PRACH and perform a contention-free access";
+              break;
+            default:
+              txt="UNKNOWN RETURN CODE";
+            }
+            LOG_E( PHY, "[UE %"PRIu8"] Frame %"PRIu32", subframe %u %s\n",
+                   UE->Mod_id, proc->frame_rx, proc->subframe_tx,txt );
+          }
+      } // SLonly==1 && mac_enabled == 1
 
-      if ( ret != CONNECTION_OK) {
-        LOG_E( PHY, "[UE %"PRIu8"] Frame %"PRIu32", subframe %u %s\n",
-               UE->Mod_id, proc->frame_rx, proc->subframe_tx,get_connectionloss_errstr(ret) );
-      }
+      phy_procedures_UE_SL_TX(UE,proc);
     }
 
 #if UE_TIMING_TRACE
@@ -868,12 +1119,24 @@ static void *UE_thread_rxn_txnp4(void *arg) {
       if (pthread_cond_signal(&proc->cond_rxtx) != 0) abort();
     }
 
-    if (pthread_mutex_unlock(&proc->mutex_rxtx) != 0) {
-      LOG_E( PHY, "[SCHED][UE] error unlocking mutex for UE RXTX\n" );
-      exit_fun("noting to add");
+    if(UE->generate_prach==0) {
+    	LOG_D(PHY,"ULSCH %d.%d (generate_ul_signal_LTE %d): signal F energy %d dB (txdataF %p)\n",proc->frame_tx,proc->subframe_tx,UE->generate_ul_signal_LTE[proc->subframe_tx][0],dB_fixed(signal_energy(&UE->common_vars.txdataF[0][proc->subframe_tx*14*UE->frame_parms.ofdm_symbol_size],14*UE->frame_parms.ofdm_symbol_size)),&UE->common_vars.txdataF[0][proc->subframe_tx*14*UE->frame_parms.ofdm_symbol_size]);
+    	ulsch_common_procedures(UE,proc, (UE->generate_ul_signal_LTE[proc->subframe_tx][0] == 0));
     }
-  }
 
+ if (pthread_mutex_lock(&proc->mutex_rxtx) != 0) {
+	LOG_E( PHY, "[SCHED][UE] error locking mutex for UE RXTX\n" );
+	exit_fun("noting to add");
+      }
+      proc->instance_cnt_rxtx--;
+#if BASIC_SIMULATOR
+    if (pthread_cond_signal(&proc->cond_rxtx) != 0) abort();
+#endif
+      if (pthread_mutex_unlock(&proc->mutex_rxtx) != 0) {
+	LOG_E( PHY, "[SCHED][UE] error unlocking mutex for UE RXTX\n" );
+	exit_fun("noting to add");
+      }
+  }
   // thread finished
   free(arg);
   return &UE_thread_rxtx_retval;
@@ -2258,6 +2521,15 @@ void init_UE_threads(int inst) {
   pthread_cond_init(&UE->proc.cond_synch,NULL);
   UE->proc.instance_cnt_synch = -1;
   UE->is_synchronized = 0;
+
+  if (UE->sidelink_active == 1 && UE->SLonly==1) {
+    pthread_attr_init (&UE->proc.attr_ueSL);
+    pthread_attr_setstacksize(&UE->proc.attr_ueSL,8192);//5*PTHREAD_STACK_MIN);
+
+    pthread_mutex_init(&UE->proc.mutex_synchSL,NULL);
+    pthread_cond_init(&UE->proc.cond_synchSL,NULL);
+  }
+
   // the threads are not yet active, therefore access is allowed without locking
   int nb_threads=RX_NB_TH;
 
@@ -2284,8 +2556,14 @@ void init_UE_threads(int inst) {
     pthread_create(&UE->proc.proc_rxtx[i].pthread_slot1_dl_processing,NULL,UE_thread_slot1_dl_processing, rtd);
 #endif
   }
-
-  pthread_create(&UE->proc.pthread_synch,NULL,UE_thread_synch,(void *)UE);
+  if (UE->SLonly==0) pthread_create(&UE->proc.pthread_synch,NULL,UE_thread_synch,(void*)UE);
+  if (UE->sidelink_active==1) {
+    pthread_mutex_init(&UE->slss_mutex,NULL);
+    pthread_mutex_init(&UE->sldch_mutex,NULL);
+    pthread_mutex_init(&UE->slsch_mutex,NULL);
+    pthread_mutex_init(&UE->slsch_rx_mutex,NULL);
+    if(UE->SLonly==1) pthread_create(&UE->proc.pthread_synchSL,NULL,UE_thread_synchSL,(void*)UE);
+  }
 }
 
 
@@ -2410,7 +2688,254 @@ void init_UE_threads_stub(int inst) {
 }
 
 
-void fill_ue_band_info(void) {
+
+/*!
+ * \brief This is the main UE thread for SL connectivity
+ * This thread controls the other three UE threads:
+ * - UE_thread_rxn_txnp4 (even subframes)
+ * - UE_thread_rxn_txnp4 (odd subframes)
+ * - UE_thread_synch
+ * \param arg unused
+ * \returns a pointer to an int. The storage is not on the heap and must not be freed.
+ */
+
+void *UE_threadSL(void *arg) {
+
+
+  PHY_VARS_UE *UE = (PHY_VARS_UE *) arg;
+  //  int tx_enabled = 0;
+  int dummy_rx[UE->frame_parms.nb_antennas_rx][UE->frame_parms.samples_per_tti] __attribute__((aligned(32)));
+  openair0_timestamp timestamp;
+  void* rxp[NB_ANTENNAS_RX], *txp[NB_ANTENNAS_TX];
+  int start_rx_stream = 0;
+  int i;
+  int th_id;
+
+  static uint8_t thread_idx = 0;
+
+  cpu_set_t cpuset;
+  CPU_ZERO(&cpuset);
+  if ( threads.iq != -1 )
+    CPU_SET(threads.iq, &cpuset);
+  init_thread(100000, 500000, FIFO_PRIORITY, &cpuset,
+	      "UHD Thread SL");
+
+#ifdef NAS_UE
+  MessageDef *message_p;
+  message_p = itti_alloc_new_message(TASK_NAS_UE,0, INITIALIZE_MESSAGE);
+  itti_send_msg_to_task (TASK_NAS_UE, UE->Mod_id + NB_eNB_INST, message_p);
+#endif
+
+  int sub_frame=-1;
+  //int cumulated_shift=0;
+
+  UE->proc.instance_cnt_synchSL=-1;
+
+  /*while (sync_var<0)
+    pthread_cond_wait(&sync_cond, &sync_mutex);
+  pthread_mutex_unlock(&sync_mutex);*/
+
+  wait_sync("UE thread SL");
+
+  AssertFatal(UE->rfdevice.trx_start_func(&UE->rfdevice) == 0,"Could not start the device");
+
+  int subframe_delay=0; 
+  while (!oai_exit) {
+    AssertFatal ( 0== pthread_mutex_lock(&UE->proc.mutex_synch), "");
+    int instance_cnt_synch = UE->proc.instance_cnt_synchSL;
+    int is_synchronized    = UE->is_synchronizedSL;
+    AssertFatal ( 0== pthread_mutex_unlock(&UE->proc.mutex_synch), "");
+
+    LOG_D(PHY,"UHD Thread SL (is_synchronized %d, is_SynchRef %d\n",
+	  is_synchronized,UE->is_SynchRef);
+
+    if (is_synchronized == 0 && UE->is_SynchRef == 0) {
+      if (instance_cnt_synch < 0) {  // we can invoke the synch
+        subframe_delay=0;
+	      // grab 40 ms of signal and wakeup synch thread
+	      for (int i=0; i<UE->frame_parms.nb_antennas_rx; i++)
+	        rxp[i] = (void*)&UE->common_vars.rxdata_syncSL[i][0];
+        LOG_I(PHY,"Reading 40ms frame for initial synch\n");
+	      AssertFatal( UE->frame_parms.samples_per_tti*40 ==
+		    UE->rfdevice.trx_read_func(&UE->rfdevice,
+						&timestamp,
+						rxp,
+						UE->frame_parms.samples_per_tti*40,
+						UE->frame_parms.nb_antennas_rx), "");
+	      AssertFatal ( 0== pthread_mutex_lock(&UE->proc.mutex_synchSL), "");
+	      instance_cnt_synch = ++UE->proc.instance_cnt_synchSL;
+	      if (instance_cnt_synch == 0) {
+	        AssertFatal( 0 == pthread_cond_signal(&UE->proc.cond_synchSL), "");
+	      } else {
+	        LOG_E( PHY, "[SCHED][UE] UE sync thread busy!!\n" );
+	        exit_fun("nothing to add");
+	      }
+	      AssertFatal ( 0== pthread_mutex_unlock(&UE->proc.mutex_synchSL), "");
+      } else {
+	      // grab 10 ms of signal into dummy buffer
+
+	      for (int i=0; i<UE->frame_parms.nb_antennas_rx; i++)
+	        rxp[i] = (void*)&dummy_rx[i][0];
+	      for (int sf=0; sf<40; sf++,subframe_delay++) {
+	        UE->rfdevice.trx_read_func(&UE->rfdevice,
+				     &timestamp,
+				     rxp,
+				     UE->frame_parms.samples_per_tti,
+				     UE->frame_parms.nb_antennas_rx);
+        }
+      }
+      
+	
+    } // UE->is_synchronized==0 && UE->is_SynchRef==0
+    else {
+      if (start_rx_stream==0 && UE->is_SynchRef == 0) {
+	      start_rx_stream=1;
+        UE->slbch_errors=0;
+        UE->slbch_rxops=0;
+    	  if (UE->no_timing_correction==0) {
+	        LOG_I(PHY,"Resynchronizing RX by %d samples (mode = %d), subframe_delay %d\n",UE->rx_offsetSL,UE->mode,subframe_delay);
+          for (int i=0; i<UE->frame_parms.nb_antennas_rx; i++)
+            rxp[i] = (void*)&UE->common_vars.rxdata_syncSL[i][0];
+
+	        AssertFatal(UE->rx_offsetSL ==
+		      UE->rfdevice.trx_read_func(&UE->rfdevice,
+						 &timestamp,
+						 rxp,
+						 UE->rx_offsetSL,
+						 UE->frame_parms.nb_antennas_rx),"");
+        }
+	      UE->rx_offsetSL=0;
+	      UE->time_sync_cell=0;
+	      for (int i=0;i<RX_NB_TH;i++) UE->proc.proc_rxtx[i].frame_rx=(UE->proc.proc_rxtx[i].frame_rx+3+(subframe_delay/10))&1023; // +3 because we increment frame_rx below in subframe=0 and first pbch is received in +4 frames
+      } 
+      else { // This is steady-state mode
+	        sub_frame++;
+	        sub_frame%=10;
+	        UE_rxtx_proc_t *proc = &UE->proc.proc_rxtx[thread_idx];
+	        // update thread index for received subframe
+	        UE->current_thread_id[sub_frame] = thread_idx;
+	
+	        LOG_D(PHY,"Process SL Subframe %d thread Idx %d \n", sub_frame, UE->current_thread_id[sub_frame]);
+	
+	        thread_idx++;
+	        if(thread_idx>=RX_NB_TH)
+	          thread_idx = 0;
+	
+	
+	        for (i=0; i<UE->frame_parms.nb_antennas_rx; i++)
+	          rxp[i] = (void*)&UE->common_vars.rxdata[i][sub_frame*UE->frame_parms.samples_per_tti];
+	        for (i=0; i<UE->frame_parms.nb_antennas_tx; i++)
+	          txp[i] = (void*)&UE->common_vars.txdata[i][((sub_frame+2)%10)*UE->frame_parms.samples_per_tti];
+	
+	        int readBlockSize, writeBlockSize;
+	        if (sub_frame<9) {
+	          readBlockSize=UE->frame_parms.samples_per_tti;
+	          writeBlockSize=UE->frame_parms.samples_per_tti;
+	        } else {
+	          // set TO compensation to zero
+	  
+	          if (UE->is_SynchRef==0 && UE->is_synchronized ==0) { // use timing correction from SL
+	            UE->rx_offset_diff = 0;
+	    
+	          // compute TO compensation that should be applied for this frame
+	    
+	            if (UE->no_timing_correction == 0) {
+	              if ( UE->rx_offsetSL < 5*UE->frame_parms.samples_per_tti  &&
+		                                      UE->rx_offsetSL > 0 )
+		              UE->rx_offset_diff = -1 ;
+	              if ( UE->rx_offsetSL > 5*UE->frame_parms.samples_per_tti &&
+		                 UE->rx_offsetSL < 10*UE->frame_parms.samples_per_tti )
+		              UE->rx_offset_diff = 1;
+	            }
+	    
+	            LOG_D(PHY,"AbsSubframe %d.%d SET rx_off_diff to %d rx_offsetSL %d \n",proc->frame_rx,sub_frame,UE->rx_offset_diff,UE->rx_offsetSL);
+	          } //UE->is_SynchRef==0 && uE->is_synchronized==0
+	          // wait for DL thread to finish if DL synchronized
+	          if (UE->is_synchronized == 1) {
+	            AssertFatal(wait_on_condition(& UE->proc.mutex_SL,& UE->proc.cond_SL,& UE->proc.instance_cnt_SL,"UE_threadSL")>=0,
+			        "wait_on_condition failed\n");
+	            release_thread(&UE->proc.mutex_SL,&UE->proc.instance_cnt_SL,"UE_threadSL");
+	          }
+	          readBlockSize=UE->frame_parms.samples_per_tti - UE->rx_offset_diff;
+	          writeBlockSize=UE->frame_parms.samples_per_tti -UE->rx_offset_diff;
+	        }
+
+	        AssertFatal(readBlockSize ==
+		        UE->rfdevice.trx_read_func(&UE->rfdevice,
+					       &timestamp,
+					       rxp,
+					       readBlockSize,
+					       UE->frame_parms.nb_antennas_rx),"");
+
+	        AssertFatal( writeBlockSize ==
+		        UE->rfdevice.trx_write_func(&UE->rfdevice,
+						 timestamp+
+						 (2*UE->frame_parms.samples_per_tti) -
+						 openair0_cfg[0].tx_sample_advance,
+						 txp,
+						 writeBlockSize,
+						 UE->frame_parms.nb_antennas_tx,
+						 1),"");
+	
+	        if (UE->is_synchronized == 0) { 
+	          // IF we have no non-SL communications, wakeup RX/TX processing, otherwise it is done by main UE_thread
+	          pickTime(gotIQs);
+	          // operate on thread sf mod 2
+	          AssertFatal(pthread_mutex_lock(&proc->mutex_rxtx) ==0,"");
+	          if(sub_frame == 0) {
+	            //UE->proc.proc_rxtx[0].frame_rx++;
+	            //UE->proc.proc_rxtx[1].frame_rx++;
+	            for (th_id=0; th_id < RX_NB_TH; th_id++) {
+	              UE->proc.proc_rxtx[th_id].frame_rx++;
+                UE->proc.proc_rxtx[th_id].frame_rx&=1023;
+	            }
+	          }
+	          //UE->proc.proc_rxtx[0].gotIQs=readTime(gotIQs);
+	          //UE->proc.proc_rxtx[1].gotIQs=readTime(gotIQs);
+	          for (th_id=0; th_id < RX_NB_TH; th_id++) {
+	            UE->proc.proc_rxtx[th_id].gotIQs=readTime(gotIQs);
+	          }
+	          proc->subframe_rx=sub_frame;
+	          proc->subframe_tx=(sub_frame+4)%10;
+	          proc->frame_tx = (proc->frame_rx + (proc->subframe_rx>5?1:0))&1023;
+	          proc->timestamp_tx = timestamp+(4*UE->frame_parms.samples_per_tti);
+	  	  
+	          proc->instance_cnt_rxtx++;
+	          LOG_D( PHY, "[SCHED][UE %d] UE RX instance_cnt_rxtx %d subframe %d !!\n", UE->Mod_id, proc->instance_cnt_rxtx,proc->subframe_rx);
+	          if (proc->instance_cnt_rxtx == 0) {
+	            if (pthread_cond_signal(&proc->cond_rxtx) != 0) {
+	              LOG_E( PHY, "[SCHED][UE %d] ERROR pthread_cond_signal for UE RX thread\n", UE->Mod_id);
+	              exit_fun("nothing to add");
+	            }
+	          } else {
+	            LOG_E( PHY, "[SCHED][UE %d] UE RX thread busy (IC %d)!!\n", UE->Mod_id, proc->instance_cnt_rxtx);
+	            if (proc->instance_cnt_rxtx > 2)
+	              exit_fun("instance_cnt_rxtx > 2");
+	          }
+	  
+	          AssertFatal (pthread_cond_signal(&proc->cond_rxtx) ==0 ,"");
+	          AssertFatal(pthread_mutex_unlock(&proc->mutex_rxtx) ==0,"");
+	          initRefTimes(t1);
+	          initStaticTime(lastTime);
+	          updateTimes(lastTime, &t1, 20000, "Delay between two IQ acquisitions (case 1)");
+	          pickStaticTime(lastTime);
+	  
+	        } // UE->is_synchronized==0
+      } // start_rx_stream==1
+    }   //  UE->is_synchronized==0 && UE->is_SynchRef==0
+  } // while !oai_exit
+
+  for (int i=0; i<UE->frame_parms.nb_antennas_rx;i++) free(rxdata[i]);
+  
+  return NULL;
+}
+
+
+
+
+#ifdef OPENAIR2
+void fill_ue_band_info(void)
+{
   LTE_UE_EUTRA_Capability_t *UE_EUTRA_Capability = UE_rrc_inst[0].UECap->UE_EUTRA_Capability;
   int i,j;
   bands_to_scan.nbands = UE_EUTRA_Capability->rf_Parameters.supportedBandListEUTRA.list.count;
