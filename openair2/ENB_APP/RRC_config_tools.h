@@ -38,7 +38,7 @@ typedef struct eutra_band_s {
   uint64_t            ul_max;
   uint64_t            dl_min;
   uint64_t            dl_max;
-  lte_frame_type_t    frame_type;
+  frame_type_t    frame_type;
 } eutra_band_t;
 
 
