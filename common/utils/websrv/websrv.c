@@ -32,6 +32,8 @@
  #include <libgen.h>
  #include <jansson.h>
  #include <ulfius.h>
+ #include <gnutls/gnutls.h>
+ #include <gnutls/x509.h>
  #include "common/config/config_userapi.h"
  #include "common/utils/LOG/log.h"
  #include "common/utils/websrv/websrv.h"
@@ -303,9 +305,31 @@ FILE *websrv_getfile(char *filename, struct _u_response * response) {
 }
 
 int websrv_callback_auth(const struct _u_request *request, struct _u_response *response, void *user_data) {
+  char * dn = NULL, * issuer_dn = NULL;
+  size_t lbuf = 0, libuf = 0;
+  
   LOG_I(UTIL,"[websrv] authenticating %s %s\n", request->http_verb,request->http_url);
   websrv_dump_request(request);		
 
+
+  if (request->client_cert != NULL) {
+    gnutls_x509_crt_get_dn(request->client_cert, NULL, &lbuf);
+    gnutls_x509_crt_get_issuer_dn(request->client_cert, NULL, &libuf);
+    dn = malloc(lbuf + 1);
+    issuer_dn = malloc(libuf + 1);
+    if (dn != NULL && issuer_dn != NULL) {
+      gnutls_x509_crt_get_dn(request->client_cert, dn, &lbuf);
+      gnutls_x509_crt_get_issuer_dn(request->client_cert, issuer_dn, &libuf);
+      dn[lbuf] = '\0';
+      issuer_dn[libuf] = '\0';
+      LOG_I(UTIL, "[websrv] dn of the client: %s, dn of the issuer: %s \n", dn,issuer_dn);
+    }
+    free(dn);
+    free(issuer_dn);
+  } else {
+    ulfius_set_string_body_response(response, 400, "Invalid client certificate");
+    return U_CALLBACK_COMPLETE; 
+  }
 //    return U_CALLBACK_ERROR;
   return U_CALLBACK_CONTINUE;  
 }
@@ -432,6 +456,7 @@ int websrv_callback_get_mainurl(const struct _u_request * request, struct _u_res
   return U_CALLBACK_CONTINUE;
 }
 /* callback processing  url (<address>/oaisoftmodem/:module/variables or <address>/oaisoftmodem/:module/commands) */
+/* is called at low priority to process requests from a module initialized after the web server started           */
 int websrv_callback_newmodule(const struct _u_request * request, struct _u_response * response, void * user_data) {
 	LOG_I(UTIL,"[websrv] callback_newmodule received %s %s\n",request->http_verb,request->http_url);
 	if (user_data == NULL) {
@@ -710,15 +735,15 @@ int websrv_callback_get_softmodemcmd(const struct _u_request * request, struct _
 	cmdparser_t *modulestruct = (cmdparser_t *)user_data;
 	
 	LOG_I(UTIL,"[websrv] received  %s commands request\n", modulestruct->module);
-	    json_t *modulesubcom = json_array();
-        for(int j=0; modulestruct->cmd[j].cmdfunc != NULL ; j++) {
+	  json_t *modulesubcom = json_array();
+      for(int j=0; modulestruct->cmd[j].cmdfunc != NULL ; j++) {
 		  if(strcasecmp("help",modulestruct->cmd[j].cmdname) == 0 || ( modulestruct->cmd[j].cmdflags & TELNETSRV_CMDFLAG_TELNETONLY ) ) {
 			continue;
 		  }
 		json_t *acmd;
 		if (modulestruct->cmd[j].cmdflags &  TELNETSRV_CMDFLAG_CONFEXEC) {
 		  char confstr[256];
-		  snprintf(confstr,sizeof(confstr),"Execute %s ?",modulestruct->cmd[j].cmdname);
+		  snprintf(confstr,sizeof(confstr),"Confirm %s ?",modulestruct->cmd[j].cmdname);
 		  acmd =json_pack( "{s:s,s:s}", "name",modulestruct->cmd[j].cmdname,"confirm", confstr);
 		} else if (modulestruct->cmd[j].cmdflags &  TELNETSRV_CMDFLAG_NEEDPARAM) {
 			if (modulestruct->cmd[j].helpstr != NULL) {
@@ -728,28 +753,36 @@ int websrv_callback_get_softmodemcmd(const struct _u_request * request, struct _
 				char *pname = (question!=NULL)?strtok_r(helpcp,">]",&tokptr):NULL;
 				acmd =json_pack( "{s:s,s:{s:s,s:s,s:s}}", "name",modulestruct->cmd[j].cmdname,"question","display",
 				                (question==NULL)?"":question , "pname",(pname==NULL)?"Px":pname,"type","string");
-				free(pname);
+				free(helpcp);
 			}
 		}else {
 		  acmd =json_pack( "{s:s}", "name",modulestruct->cmd[j].cmdname);
 	    }
-		json_array_append(modulesubcom , acmd);
+	    json_t *jopts = json_array();
+	    if(modulestruct->cmd[j].cmdflags &  TELNETSRV_CMDFLAG_AUTOUPDATE) {
+		  json_array_append(jopts , json_string("update"));
         }
-        if (modulesubcom==NULL) {
+        if ( json_array_size(jopts) > 0 ) {
+		  json_t *cmdoptions=json_pack("{s:o}","options",jopts);
+		  json_object_update_missing(acmd, cmdoptions);
+	    }
+	    json_array_append(modulesubcom , acmd);
+      }
+      if (modulesubcom==NULL) {
 	      LOG_E(UTIL,"[websrv] cannot encode modulesubcom response for %s\n",modulestruct->module);
-        } else {
+      } else {
 	      websrv_printjson("modulesubcom",modulesubcom);
-        }             
-        int us=ulfius_add_header_to_response(response,"content-type" ,"application/json");
-        if (us != U_OK){
+      }             
+      int us=ulfius_add_header_to_response(response,"content-type" ,"application/json");
+      if (us != U_OK){
 	      ulfius_set_string_body_response(response, 500, "Internal server error (ulfius_add_header_to_response)");
 	      LOG_E(UTIL,"[websrv] cannot set response header type ulfius error %d \n",us);
-        }   
-        us=ulfius_set_json_body_response(response, 200, modulesubcom);
-        if (us != U_OK){
+      }   
+      us=ulfius_set_json_body_response(response, 200, modulesubcom);
+      if (us != U_OK){
 	      ulfius_set_string_body_response(response, 500, "Internal server error (ulfius_set_json_body_response)");
 	      LOG_E(UTIL,"[websrv] cannot set body response ulfius error %d \n",us);
-        }        
+      }        
 	return U_CALLBACK_COMPLETE;
 }
 

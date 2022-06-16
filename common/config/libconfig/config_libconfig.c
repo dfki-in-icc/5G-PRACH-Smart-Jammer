@@ -619,7 +619,6 @@ void config_libconfig_write_parsedcfg(void) {
       } else {
 		 printf("[LIBCONFIG] file %s created successfully\n", cfgptr->status->debug_cfgname);  
 	  }
-	  config_destroy(&(libconfig_privdata.runtcfg));
       free(fname);
   } else {
 	printf("[LIBCONFIG] Cannot create config file after parsing: CONFIG_SAVERUNCFG flag not specified\n");  

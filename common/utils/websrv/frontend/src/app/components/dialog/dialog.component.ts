@@ -1,5 +1,7 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, ViewChild, ElementRef, Inject, OnInit } from '@angular/core';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { DialogService } from 'src/app/services/dialog.service';
+import { CmdCtrl } from 'src/app/controls/cmd.control';
 
 @Component({
   selector: 'app-dialog',
@@ -7,8 +9,12 @@ import { MAT_DIALOG_DATA } from '@angular/material/dialog';
   styleUrls: ['./dialog.component.css'],
 })
 export class DialogComponent {
-  JSON = JSON
-  title = 'Angular-Interceptor';
+
   constructor(@Inject(MAT_DIALOG_DATA) public data: any) {
+	  
+  }
+  onUpdate(control: CmdCtrl) {
+      const obs= control.commandsApi.runCommand$(control!.api(),  control.modulename() )
+
   }
 }

@@ -33,12 +33,18 @@ export enum IArgType {
     configfile = "configfile"
 }
 
+export enum ICommandOptions {
+    update = "update",
+}
+
 export interface ICommand {
     name: string;
     confirm?: string;
     question?: IQuestion;
-    param?: IVariable ; 
+    param?: IVariable ;
+    options?:ICommandOptions[];
 }
+
 export interface IColumn { //should use IVariable ?
     name: string;
     type: IArgType;
