@@ -8102,11 +8102,11 @@ int nfapi_nr_p7_message_unpack(void *pMessageBuf, uint32_t messageBufLen, void *
 			{
 				if(config && config->unpack_p7_vendor_extension)
 				{
-				  result = (config->unpack_p7_vendor_extension)(pMessageHeader, &pReadPackedMessage, end, config);
+				        result = (config->unpack_p7_vendor_extension)(pMessageHeader, &pReadPackedMessage, end, config);
 				}
 				else
 				{
-				  NFAPI_TRACE(NFAPI_TRACE_ERROR, "%s VE NFAPI message ID %d. No ve decoder provided\n", __FUNCTION__, pMessageHeader->message_id);
+				        NFAPI_TRACE(NFAPI_TRACE_ERROR, "%s VE NFAPI message ID %d. No ve decoder provided\n", __FUNCTION__, pMessageHeader->message_id);
 				}
 			}
 			else
