@@ -91,8 +91,8 @@ extern "C" {
 # define  OAILOG_ERR      0 /*!< \brief critical error conditions, impact on "must have" functionalities */
 # define  OAILOG_WARNING  1 /*!< \brief warning conditions, shouldn't happen but doesn't impact "must have" functionalities */
 # define  OAILOG_ANALYSIS 2 /*!< \brief informational messages most people don't need, shouldn't impact real-time behavior */
-# define  OAILOG_EXTRA    3 /*!< \brief extra debug-level messages, for developers, may impact real-time behavior */
-# define  OAILOG_INFO     4 /*!< \brief informational messages most people don't need, shouldn't impact real-time behavior */
+# define  OAILOG_INFO     3 /*!< \brief informational messages most people don't need, shouldn't impact real-time behavior */
+# define  OAILOG_EXTRA    4 /*!< \brief extra debug-level messages, for developers, may impact real-time behavior */
 # define  OAILOG_DEBUG    5 /*!< \brief first level debug-level messages, for developers, may impact real-time behavior */
 # define  OAILOG_TRACE    6 /*!< \brief second level debug-level messages, for developers, likely impact real-time behavior*/
 

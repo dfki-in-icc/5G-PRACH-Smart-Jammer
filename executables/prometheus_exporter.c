@@ -249,9 +249,10 @@ void *cp_thread(void* arg){
 void init_PrometheusNodeExporter_thread(void* arg){
     pthread_t thread_prom;
     char ThreadName[128][ NUM_MAX_COMPLEX_ELEMENTS ];
-
+    char tmp[64];
     for (int i=0;i<NUM_PROM_ELEMENTS;i++){
-      strcpy(prom_metrics.metric_element[i].metric_name,"not_set");
+      sprintf(tmp,"not set (%d)",i);
+      strcpy(prom_metrics.metric_element[i].metric_name,tmp);
       prom_metrics.metric_element[i].metric_value = 0;
     }
 
@@ -268,7 +269,7 @@ void init_PrometheusNodeExporter_thread(void* arg){
 
     for (int i=0;i< NUM_MAX_COMPLEX_ELEMENTS; i++){
       thdata[i].index = i;
-      printf("copy thread create %d\n",i);
+      // printf("copy thread create %d\n",i);
       sem_init(&thdata[i].sync, 0, 0);
       sem_init(&thdata[i].start, 0, 0);
       if (pthread_create(
@@ -498,7 +499,7 @@ int MonitoringConfig(){
         // printf("%s : %s ",MetricSwitchNames[i],buf);
         if (strstr(buf,PromMetricSwitchNames[i]) != NULL){
           Prom_switch_state[i] = 1;
-          printf("-----> %s\n",PromMetricSwitchNames[i]);
+//          printf("-----> %s\n",PromMetricSwitchNames[i]);
         }
       }
       }

@@ -576,7 +576,7 @@ static inline int log_header(log_component_t *c,
   /* get time */
   gettimeofday(&oaiTime, NULL);
   time_st = localtime(&oaiTime.tv_sec);
-  snprintf(timeString, sizeof(timeString), "%d/%02d/%02d %02d:%02d:%02d.%06d ", dbgKind[level],
+  snprintf(timeString, sizeof(timeString), "%s %d/%02d/%02d %02d:%02d:%02d.%06d ", dbgKind[level],
            time_st->tm_year+1900,  time_st->tm_mon+1,  time_st->tm_mday,
            time_st->tm_hour, time_st->tm_min, time_st->tm_sec, oaiTime.tv_usec);
 
