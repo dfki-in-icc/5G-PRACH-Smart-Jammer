@@ -4906,10 +4906,7 @@ void ue_measurement_report_triggering(protocol_ctxt_t *const ctxt_pP, const uint
                     ue->measReportList[i][j] = NULL;
                   }
 
-                  UE_rrc_inst[ctxt_pP->module_id].measReportList[i][j] = NULL;
-                }
-
-                break;
+                  break;
 
               case LTE_ReportConfigEUTRA__triggerType__event__eventId_PR_eventA4:
                 LOG_D(RRC, "[UE %d] Frame %d : received an A4 event, neighbor becomes offset better than a threshold\n",
@@ -5480,58 +5477,7 @@ void *rrc_ue_task(void *args_p)
                 UE_rrc_inst[ue_mod_id].plmnID.MNCdigit3);
         }
 
-    case NAS_KENB_REFRESH_REQ:
-      memcpy((void *)UE_rrc_inst[ue_mod_id].kenb, (void *)NAS_KENB_REFRESH_REQ(msg_p).kenb, sizeof(UE_rrc_inst[ue_mod_id].kenb));
-      LOG_D(RRC, "[UE %d] Received %s: refreshed RRC::KeNB = "
-                 "%02x%02x%02x%02x"
-                 "%02x%02x%02x%02x"
-                 "%02x%02x%02x%02x"
-                 "%02x%02x%02x%02x"
-                 "%02x%02x%02x%02x"
-                 "%02x%02x%02x%02x"
-                 "%02x%02x%02x%02x"
-                 "%02x%02x%02x%02x\n",
-            ue_mod_id, ITTI_MSG_NAME(msg_p),
-            UE_rrc_inst[ue_mod_id].kenb[0], UE_rrc_inst[ue_mod_id].kenb[1], UE_rrc_inst[ue_mod_id].kenb[2], UE_rrc_inst[ue_mod_id].kenb[3],
-            UE_rrc_inst[ue_mod_id].kenb[4], UE_rrc_inst[ue_mod_id].kenb[5], UE_rrc_inst[ue_mod_id].kenb[6], UE_rrc_inst[ue_mod_id].kenb[7],
-            UE_rrc_inst[ue_mod_id].kenb[8], UE_rrc_inst[ue_mod_id].kenb[9], UE_rrc_inst[ue_mod_id].kenb[10], UE_rrc_inst[ue_mod_id].kenb[11],
-            UE_rrc_inst[ue_mod_id].kenb[12], UE_rrc_inst[ue_mod_id].kenb[13], UE_rrc_inst[ue_mod_id].kenb[14], UE_rrc_inst[ue_mod_id].kenb[15],
-            UE_rrc_inst[ue_mod_id].kenb[16], UE_rrc_inst[ue_mod_id].kenb[17], UE_rrc_inst[ue_mod_id].kenb[18], UE_rrc_inst[ue_mod_id].kenb[19],
-            UE_rrc_inst[ue_mod_id].kenb[20], UE_rrc_inst[ue_mod_id].kenb[21], UE_rrc_inst[ue_mod_id].kenb[22], UE_rrc_inst[ue_mod_id].kenb[23],
-            UE_rrc_inst[ue_mod_id].kenb[24], UE_rrc_inst[ue_mod_id].kenb[25], UE_rrc_inst[ue_mod_id].kenb[26], UE_rrc_inst[ue_mod_id].kenb[27],
-            UE_rrc_inst[ue_mod_id].kenb[28], UE_rrc_inst[ue_mod_id].kenb[29], UE_rrc_inst[ue_mod_id].kenb[30], UE_rrc_inst[ue_mod_id].kenb[31]);
-      break;
-
-    /* NAS messages */
-    case NAS_CELL_SELECTION_REQ:
-      LOG_D(RRC, "[UE %d] Received %s: state %d, plmnID (%d%d%d.%d%d%d), rat %x\n", ue_mod_id, ITTI_MSG_NAME(msg_p), rrc_get_state(ue_mod_id),
-            NAS_CELL_SELECTION_REQ(msg_p).plmnID.MCCdigit1,
-            NAS_CELL_SELECTION_REQ(msg_p).plmnID.MCCdigit2,
-            NAS_CELL_SELECTION_REQ(msg_p).plmnID.MCCdigit3,
-            NAS_CELL_SELECTION_REQ(msg_p).plmnID.MNCdigit1,
-            NAS_CELL_SELECTION_REQ(msg_p).plmnID.MNCdigit2,
-            NAS_CELL_SELECTION_REQ(msg_p).plmnID.MNCdigit3,
-            NAS_CELL_SELECTION_REQ(msg_p).rat);
-
-      if (rrc_get_state(ue_mod_id) == RRC_STATE_INACTIVE)
-      {
-        // have a look at MAC/main.c void dl_phy_sync_success(...)
-        openair_rrc_ue_init(ue_mod_id, 0);
-      }
-
-      /* Save cell selection criterion */
-      {
-        UE_rrc_inst[ue_mod_id].plmnID = NAS_CELL_SELECTION_REQ(msg_p).plmnID;
-        UE_rrc_inst[ue_mod_id].rat = NAS_CELL_SELECTION_REQ(msg_p).rat;
-        LOG_D(RRC, "[UE %d] Save cell selection criterion MCC %X%X%X MNC %X%X%X\n",
-              ue_mod_id,
-              UE_rrc_inst[ue_mod_id].plmnID.MCCdigit1,
-              UE_rrc_inst[ue_mod_id].plmnID.MCCdigit2,
-              UE_rrc_inst[ue_mod_id].plmnID.MCCdigit3,
-              UE_rrc_inst[ue_mod_id].plmnID.MNCdigit1,
-              UE_rrc_inst[ue_mod_id].plmnID.MNCdigit2,
-              UE_rrc_inst[ue_mod_id].plmnID.MNCdigit3);
-      }
+    
 
       switch (rrc_get_state(ue_mod_id))
       {
