@@ -706,7 +706,6 @@ void check_and_process_dci(nfapi_nr_dl_tti_request_t *dl_tti_request,
         slot = dl_tti_request->Slot;
         LOG_D(NR_PHY, "[%d, %d] dl_tti_request\n", frame, slot);
         copy_dl_tti_req_to_dl_info(&mac->dl_info, dl_tti_request);
-        free_and_zero(dl_tti_request);
     }
     /* This checks if the previously recevied DCI matches our current RNTI
        value. The assumption is that if the DCI matches our RNTI, then the
@@ -728,7 +727,6 @@ void check_and_process_dci(nfapi_nr_dl_tti_request_t *dl_tti_request,
         {
             LOG_D(NR_MAC, "Unexpected tx_data_req\n");
         }
-        free_and_zero(tx_data_request);
     }
     else if (ul_dci_request)
     {
@@ -736,7 +734,6 @@ void check_and_process_dci(nfapi_nr_dl_tti_request_t *dl_tti_request,
         slot = ul_dci_request->Slot;
         LOG_D(NR_PHY, "[%d, %d] ul_dci_request\n", frame, slot);
         copy_ul_dci_data_req_to_dl_info(&mac->dl_info, ul_dci_request);
-        free_and_zero(ul_dci_request);
     }
     else if (ul_tti_request)
     {
@@ -744,7 +741,6 @@ void check_and_process_dci(nfapi_nr_dl_tti_request_t *dl_tti_request,
         slot = ul_tti_request->Slot;
         LOG_T(NR_PHY, "[%d, %d] ul_tti_request\n", frame, slot);
         copy_ul_tti_data_req_to_dl_info(&mac->dl_info, ul_tti_request);
-        free_and_zero(ul_tti_request);
     }
     else
     {

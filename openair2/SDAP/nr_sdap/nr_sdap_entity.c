@@ -286,7 +286,26 @@ static void nr_sdap_rx_entity(nr_sdap_entity_t *entity,
      * 5.2.2 Downlink
      * deliver the retrieved SDAP SDU to the upper layer.
      */
+
+    /*
+      int sockd;
+
+      if (UE_NAS_USE_TUN) {
+        if (ue_id_g == 0) {
+          sockd = nas_sock_fd[ctxt_pP->module_id];
+        }
+        else {
+          sockd = nas_sock_fd[ue_id_g];
+        }
+      }
+      else {
+        sockd = nas_sock_fd[0];
+      }
+    */
+
     extern int nas_sock_fd[];
+
+    LOG_I(SDAP, "TUN: The opened socket with fd nas_sock_fd[0]=%d\n", nas_sock_fd[0]);
     int len = write(nas_sock_fd[0], &buf[offset], size-offset);
     LOG_D(SDAP, "RX Entity len : %d\n", len);
     LOG_D(SDAP, "RX Entity size : %d\n", size);
