@@ -703,7 +703,7 @@ int main( int argc, char **argv ) {
 
   printf("ITTI tasks created\n");
   mlockall(MCL_CURRENT | MCL_FUTURE);
-  rt_sleep_ns(10*100000000ULL); */
+  rt_sleep_ns(10*100000000ULL); 
   int eMBMS_active = 0;
 
   if (NFAPI_MODE==NFAPI_UE_STUB_PNF || D2D_en ==1) { // UE-STUB-PNF

@@ -109,6 +109,10 @@ extern uint16_t sf_ahead;
 
 void ue_stub_rx_handler(unsigned int, char *);
 
+
+int32_t **rxdata;
+int32_t **txdata;
+
 int timer_subframe = 0;
 int timer_frame = 0;
 SF_ticking *phy_stub_ticking = NULL;
@@ -124,7 +128,7 @@ typedef struct eutra_band_s {
   uint64_t ul_max;
   uint64_t dl_min;
   uint64_t dl_max;
-  lte_frame_type_t frame_type;
+  frame_type_t frame_type;
 } eutra_band_t;
 
 typedef struct band_info_s {
@@ -1055,7 +1059,7 @@ static void *UE_thread_rxn_txnp4(void *arg) {
 	  (UE->frame_parms.frame_type == TDD))
 	if (UE->mode != loop_through_memory)
 	  phy_procedures_UE_S_TX(UE,0,0);
-      updateTimes(current, &t3, 10000, "Delay to process sub-frame (case 3)");
+      
       
       
     }
@@ -2879,7 +2883,7 @@ void *UE_threadSL(void *arg) {
 	
 	        if (UE->is_synchronized == 0) { 
 	          // IF we have no non-SL communications, wakeup RX/TX processing, otherwise it is done by main UE_thread
-	          pickTime(gotIQs);
+	         
 	          // operate on thread sf mod 2
 	          AssertFatal(pthread_mutex_lock(&proc->mutex_rxtx) ==0,"");
 	          if(sub_frame == 0) {
@@ -2893,7 +2897,7 @@ void *UE_threadSL(void *arg) {
 	          //UE->proc.proc_rxtx[0].gotIQs=readTime(gotIQs);
 	          //UE->proc.proc_rxtx[1].gotIQs=readTime(gotIQs);
 	          for (th_id=0; th_id < RX_NB_TH; th_id++) {
-	            UE->proc.proc_rxtx[th_id].gotIQs=readTime(gotIQs);
+	            UE->proc.proc_rxtx[th_id].frame_rx++;
 	          }
 	          proc->subframe_rx=sub_frame;
 	          proc->subframe_tx=(sub_frame+4)%10;
@@ -2915,10 +2919,7 @@ void *UE_threadSL(void *arg) {
 	  
 	          AssertFatal (pthread_cond_signal(&proc->cond_rxtx) ==0 ,"");
 	          AssertFatal(pthread_mutex_unlock(&proc->mutex_rxtx) ==0,"");
-	          initRefTimes(t1);
-	          initStaticTime(lastTime);
-	          updateTimes(lastTime, &t1, 20000, "Delay between two IQ acquisitions (case 1)");
-	          pickStaticTime(lastTime);
+	        
 	  
 	        } // UE->is_synchronized==0
       } // start_rx_stream==1
@@ -2933,7 +2934,7 @@ void *UE_threadSL(void *arg) {
 
 
 
-#ifdef OPENAIR2
+
 void fill_ue_band_info(void)
 {
   LTE_UE_EUTRA_Capability_t *UE_EUTRA_Capability = UE_rrc_inst[0].UECap->UE_EUTRA_Capability;
