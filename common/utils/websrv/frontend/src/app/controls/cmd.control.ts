@@ -1,8 +1,5 @@
 import { FormControl, FormGroup } from '@angular/forms';
-import { ICommand } from '../api/commands.api';
-import { IQuestion } from '../api/commands.api';
-import { IArgType } from '../api/commands.api';
-
+import { CommandsApi, IArgType, ICommand, IQuestion, ICommandOptions } from 'src/app/api/commands.api';
 const enum CmdFCN {
   name = 'name',
   confirm = 'confirm',
@@ -14,7 +11,9 @@ export class CmdCtrl extends FormGroup {
   confirm?: string
   question?:IQuestion
   cmdname: string
-  constructor(cmd: ICommand) {
+  options?: ICommandOptions[]
+  commandsApi: CommandsApi
+  constructor(cmd: ICommand, commandsApi: CommandsApi) {
     super({});
 
     this.addControl(CmdFCN.name, new FormControl(cmd.name));
@@ -22,6 +21,8 @@ export class CmdCtrl extends FormGroup {
     this.confirm = cmd.confirm;
     this.question = cmd.question;
     this.cmdname = cmd.name;
+    this.options = cmd.options;
+    this.commandsApi = commandsApi;
   }
 
   api() {
@@ -29,7 +30,8 @@ export class CmdCtrl extends FormGroup {
       name: this.nameFC.value,
       param: this.question
         ? { name: this.question!.pname, value: this.answerFC.value, type: this.question!.type , modifiable: false }
-        : undefined
+        : undefined,
+      options: this.options
     };
 
     return doc;
@@ -38,7 +40,7 @@ export class CmdCtrl extends FormGroup {
   modulename() {
     return this.cmdname;
   }
-
+  
   get nameFC() {
     return this.get(CmdFCN.name) as FormControl;
   }

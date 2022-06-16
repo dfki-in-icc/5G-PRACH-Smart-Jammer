@@ -4,7 +4,7 @@ import { of } from 'rxjs/internal/observable/of';
 import { map } from 'rxjs/internal/operators/map';
 import { mergeMap } from 'rxjs/internal/operators/mergeMap';
 import { filter } from 'rxjs/operators';
-import { CommandsApi, IVariable, IArgType, IColumn, ICommand, IParam } from 'src/app/api/commands.api';
+import { CommandsApi, IVariable, IArgType, IColumn, ICommand, IParam, ICommandOptions } from 'src/app/api/commands.api';
 import { CmdCtrl } from 'src/app/controls/cmd.control';
 import { ParamFC } from 'src/app/controls/param.control';
 import { RowCtrl } from 'src/app/controls/row.control';
@@ -48,7 +48,7 @@ export class CommandsComponent {
     );
 
     this.modules$ = this.commandsApi.readCommands$().pipe(
-      map((cmds) => cmds.map(icmd => new CmdCtrl(icmd)))
+      map((cmds) => cmds.map(icmd => new CmdCtrl(icmd, this.commandsApi)))
     );
   }
 
@@ -59,7 +59,7 @@ export class CommandsComponent {
     this.selectedCmd = undefined
 
     this.modulecmds$ = this.commandsApi.readCommands$(`${control.nameFC.value}`).pipe(
-      map(icmds => icmds.map(icmd => new CmdCtrl(icmd)))
+      map(icmds => icmds.map(icmd => new CmdCtrl(icmd, this.commandsApi)))
     )
 
     this.modulevars$ = this.commandsApi.readVariables$(`${control.nameFC.value}`).pipe(
@@ -83,26 +83,14 @@ export class CommandsComponent {
       ).subscribe();
   }
 
-  onCmdSubmit(control: CmdCtrl) {
-
-    this.selectedCmd = control.api()
-    const obsparam = forkJoin ([control.confirm
-      ? this.dialogService.openConfirmDialog(control.confirm)
-      : control.question
-      ? this.dialogService.openQuestionDialog(this.selectedModule!.modulename() + " " + control.modulename(), control)
-      : of(true)]);
-    obsparam.subscribe ( results => {
-	  if ( !results[0] )
-	    return of(null);
+  execCmd(control: CmdCtrl) {
       const obs= this.commandsApi.runCommand$(control!.api(), control!.question ? this.selectedModule!.modulename() : `${this.selectedModule!.nameFC.value}`)
-      this.rows$ = obs.pipe(
-        mergeMap(resp => {
-          if (resp.display[0]) return this.dialogService.openCmdDialog(resp, 'cmd ' + control.nameFC.value + ' response:')
-          else return of(resp)
-        }),
-        map(resp => {
-
-          let controls: RowCtrl[] = []
+ //     this.rows$ = obs.pipe(
+        obs.subscribe(
+        resp => {
+          if (resp.display[0])  this.dialogService.openCmdDialog(control,resp, 'cmd ' + control.nameFC.value + ' response:')
+//          else return of(resp)
+          var controls: RowCtrl[] = []
           this.displayedColumns = []
 
           if (resp.table) {
@@ -127,10 +115,29 @@ export class CommandsComponent {
               })
             }
           }
-          return controls
-        }) // map resp
-    );
-    return of(null);
+          this.rows$=of(controls)
+          return this.rows$
+        },
+          err => console.error('execCmd error: ' + err),
+          () => console.log('execCmd completed: '),
+        ) // map resp
+        
+
+    return of(null);	  
+  }
+  
+  onCmdSubmit(control: CmdCtrl) {
+
+    this.selectedCmd = control.api()
+    const obsparam = forkJoin ([control.confirm
+      ? this.dialogService.openConfirmDialog(control.confirm)
+      : control.question
+      ? this.dialogService.openQuestionDialog(this.selectedModule!.modulename() + " " + control.modulename(), control)
+      : of(true)]);
+    obsparam.subscribe ( results => {
+	  if ( !results[0] )
+	    return of(null);
+    return(this.execCmd(control));
   }); // subscribe obsparam results
   return of(null);
 }

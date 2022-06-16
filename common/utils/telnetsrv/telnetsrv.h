@@ -88,6 +88,7 @@ typedef int(*qcmdfunc_t)(char*, int, telnet_printfunc_t prnt,void *arg);
 #define TELNETSRV_CMDFLAG_PRINTWEBTBLDATA      (1<<9)    // websrv Print as a single column table
 #define TELNETSRV_CMDFLAG_NEEDPARAM            (1<<10)   // websrv: The command needs a parameter
 #define TELNETSRV_CMDFLAG_WEBSRV_SETRETURNTBL  (1<<11)   // websrv: set callback returns a new table
+#define TELNETSRV_CMDFLAG_AUTOUPDATE           (1<<12)   // command can be re-submitted automatically for result update
 typedef struct cmddef {
     char cmdname[TELNET_CMD_MAXSIZE];
     char helpstr[TELNET_HELPSTR_SIZE];

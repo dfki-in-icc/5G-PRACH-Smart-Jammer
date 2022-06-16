@@ -1,17 +1,18 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { Injectable, ViewChild, ElementRef } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Observable } from 'rxjs/internal/Observable';
 import { of } from 'rxjs/internal/observable/of';
 import { tap } from 'rxjs/internal/operators/tap';
-import { IResp } from '../api/commands.api';
+import { IResp, ICommandOptions} from '../api/commands.api';
 import { ConfirmDialogComponent } from '../components/confirm/confirm.component';
 import { QuestionDialogComponent } from '../components/question/question.component';
 import { DialogComponent } from '../components/dialog/dialog.component';
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { CmdCtrl } from 'src/app/controls/cmd.control';
+import { CommandsComponent } from '../components/commands/commands.component';
 
 @Injectable({
   providedIn: 'root',
@@ -41,18 +42,28 @@ export class DialogService {
       
   }
 
-  openCmdDialog(resp: IResp, title?: string): Observable<IResp> {
+  openCmdDialog(control: CmdCtrl, resp: IResp, title?: string): Observable<IResp> {
     if (this.isDialogOpen || !resp.display.length) {
       return of(resp);
     }
     this.isDialogOpen = true;
     console.log('Open Cmd dialog');
+    var updatable=false;
+    if (control.options) {
+		for (let opt=0; opt < control.options.length ; opt++) {
+		  if (control.options[opt] == ICommandOptions.update) 
+		    updatable=true;
+		}
+    }	  
     const dialogRef = this._dialog.open(DialogComponent, {
       height: '80%',
       hasBackdrop: false,
+      
       data: {
+		control: control,
         title: title,
-        body: resp.display!.join("</p><p>")
+        body: resp.display!.join("</p><p>"),
+        updatable,
       },
       panelClass: 'cmdRespDialog',
     });
@@ -135,4 +146,5 @@ export class DialogService {
 
    
   }
+
 }

@@ -10,4 +10,5 @@
   <pre [innerHTML]="data.body"></pre>
 <mat-dialog-actions align="end">
   <button id="dialogclose" mat-button mat-dialog-close   >Close</button>
+  <button id="dialogupdate" mat-button (click)="onUpdate(data.control)" *ngIf="data.updatable" >Update</button>
 </mat-dialog-actions>
