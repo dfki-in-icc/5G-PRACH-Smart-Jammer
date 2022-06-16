@@ -396,7 +396,7 @@ int pdcp_fifo_read_input_sdus_fromnetlinksock (const protocol_ctxt_t *const  ctx
     pdcp_t                        *pdcp_p    = NULL;
 //TTN for D2D (PC5S)
    int prose_addr_len;
-   char send_buf[BUFSIZE], receive_buf[BUFSIZE];
+   char send_buf[MAX_MESSAGE_SIZE], receive_buf[MAX_MESSAGE_SIZE];
    int bytes_received;
    sidelink_pc5s_element *sl_pc5s_msg_recv = NULL;
    sidelink_pc5s_element *sl_pc5s_msg_send = NULL;

@@ -93,6 +93,7 @@
 
 //for D2D
 int ctrl_sock_fd;
+
 struct sockaddr_in prose_app_addr;
 static const char nsa_ipaddr[] = "127.0.0.1";
 static int from_nr_ue_fd = -1;
@@ -6423,7 +6424,7 @@ void *rrc_control_socket_thread_fct(void *arg) {
 			                      11,   // /indicates that there isno update in the subframe number
 			                      NULL );
       LOG_I(RRC, "Send GroupCommunicationEstablishResp to ProSe App\n");
-      memset(send_buf, 0, BUFSIZE);
+      memset(send_buf, 0, MAX_MESSAGE_SIZE);
       sl_ctrl_msg_send = calloc(1, sizeof(struct sidelink_ctrl_element));
       sl_ctrl_msg_send->type = GROUP_COMMUNICATION_ESTABLISH_RSP;
          sl_ctrl_msg_send->sidelinkPrimitive.slrb_id = group_comm_rbid; //slrb_id
@@ -6490,7 +6491,7 @@ void *rrc_control_socket_thread_fct(void *arg) {
 	                          11,   // /indicates that there isno update in the subframe number
 		                        NULL);
       LOG_I(RRC, "Send GroupCommunicationReleaseResponse to ProSe App \n");
-      memset(send_buf, 0, BUFSIZE);
+      memset(send_buf, 0, MAX_MESSAGE_SIZE);
       sl_ctrl_msg_send = calloc(1, sizeof(struct sidelink_ctrl_element));
       sl_ctrl_msg_send->type = GROUP_COMMUNICATION_RELEASE_RSP;
 
@@ -6642,7 +6643,7 @@ void *rrc_control_socket_thread_fct(void *arg) {
 	                          11,   // /indicates that there isno update in the subframe number
 	                          NULL );
       LOG_I(RRC, "Send DirectCommunicationEstablishResp to ProSe App\n");
-      memset(send_buf, 0, BUFSIZE);
+      memset(send_buf, 0, MAX_MESSAGE_SIZE);
       sl_ctrl_msg_send = calloc(1, sizeof(struct sidelink_ctrl_element));
       sl_ctrl_msg_send->type = DIRECT_COMMUNICATION_ESTABLISH_RSP;
       sl_ctrl_msg_send->sidelinkPrimitive.slrb_id = 3; //slrb_id
@@ -6874,7 +6875,7 @@ void *rrc_control_socket_thread_fct(void *arg) {
       }
 
          LOG_I(RRC,"Send PC5EstablishRsp to ProSe App\n");
-         memset(send_buf, 0, BUFSIZE);
+         memset(send_buf, 0, MAX_MESSAGE_SIZE);
          sl_ctrl_msg_send = calloc(1, sizeof(struct sidelink_ctrl_element));
          sl_ctrl_msg_send->type = PC5S_ESTABLISH_RSP;
          sl_ctrl_msg_send->sidelinkPrimitive.pc5s_establish_rsp.slrbid_lcid28 = pc5s_rbid;
