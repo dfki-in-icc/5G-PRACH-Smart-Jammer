@@ -1,5 +1,9 @@
 import { FormControl, FormGroup } from '@angular/forms';
 import { CommandsApi, IArgType, ICommand, IQuestion, ICommandOptions } from 'src/app/api/commands.api';
+import { Observable } from 'rxjs/internal/Observable';
+import { of } from 'rxjs/internal/observable/of';
+import { timer, Subscription} from 'rxjs';
+
 const enum CmdFCN {
   name = 'name',
   confirm = 'confirm',
@@ -12,7 +16,9 @@ export class CmdCtrl extends FormGroup {
   question?:IQuestion
   cmdname: string
   options?: ICommandOptions[]
-  commandsApi: CommandsApi
+  public ResUpdTimer?: Observable<number>
+  public ResUpdTimerSubscriber?: Subscription
+  updbtnname: string
   constructor(cmd: ICommand, commandsApi: CommandsApi) {
     super({});
 
@@ -22,7 +28,7 @@ export class CmdCtrl extends FormGroup {
     this.question = cmd.question;
     this.cmdname = cmd.name;
     this.options = cmd.options;
-    this.commandsApi = commandsApi;
+    this.updbtnname = "Start update"
   }
 
   api() {
@@ -40,6 +46,32 @@ export class CmdCtrl extends FormGroup {
   modulename() {
     return this.cmdname;
   }
+  
+  isResUpdatable():boolean {
+	if (this.options) {
+	  for (let opt=0; opt < this.options.length ; opt++) {
+	    if (this.options[opt] == ICommandOptions.update) 
+		  return true;
+	  }
+	} else {
+	  return false;
+	}
+	return false;
+  }
+
+  stopUpdate() {
+	if (this.ResUpdTimerSubscriber) {
+	  this.ResUpdTimerSubscriber.unsubscribe();
+	  this.updbtnname = "Start update"
+    }
+  } 
+  
+  startUpdate() {
+	if (this.ResUpdTimerSubscriber && this.ResUpdTimer) {  
+	  this.ResUpdTimerSubscriber=this.ResUpdTimer.subscribe();
+	  this.updbtnname = "Stop update"
+    }
+  }    
   
   get nameFC() {
     return this.get(CmdFCN.name) as FormControl;
