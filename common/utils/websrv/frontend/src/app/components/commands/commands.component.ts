@@ -11,8 +11,10 @@ import { RowCtrl } from 'src/app/controls/row.control';
 import { VarCtrl } from 'src/app/controls/var.control';
 import { DialogService } from 'src/app/services/dialog.service';
 import { LoadingService } from 'src/app/services/loading.service';
-import { forkJoin } from 'rxjs';
+import { forkJoin, timer } from 'rxjs';
 import { DownloadService } from 'src/app/services/download.service';
+
+
 
 @Component({
   selector: 'app-commands',
@@ -84,11 +86,20 @@ export class CommandsComponent {
   }
 
   execCmd(control: CmdCtrl) {
+	  if (control.isResUpdatable() && control.ResUpdTimer) {
+		if (!(control.ResUpdTimerSubscriber)) {
+	      control.ResUpdTimerSubscriber = control.ResUpdTimer.subscribe ( iteration => {
+		    console.log("Update timer fired" + iteration);
+		    if (control.updbtnname === "Stop update")
+		      this.execCmd(control);
+	      });
+	    }
+	  } 	  
       const obs= this.commandsApi.runCommand$(control!.api(), control!.question ? this.selectedModule!.modulename() : `${this.selectedModule!.nameFC.value}`)
  //     this.rows$ = obs.pipe(
         obs.subscribe(
         resp => {
-          if (resp.display[0])  this.dialogService.openCmdDialog(control,resp, 'cmd ' + control.nameFC.value + ' response:')
+          if (resp.display[0])  this.dialogService.updateCmdDialog(control,resp, 'cmd ' + control.nameFC.value + ' response:')
 //          else return of(resp)
           var controls: RowCtrl[] = []
           this.displayedColumns = []
@@ -137,6 +148,8 @@ export class CommandsComponent {
     obsparam.subscribe ( results => {
 	  if ( !results[0] )
 	    return of(null);
+	if (control.isResUpdatable())
+	  control.ResUpdTimer=timer(2000,1000);
     return(this.execCmd(control));
   }); // subscribe obsparam results
   return of(null);

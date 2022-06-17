@@ -14,7 +14,10 @@ export class DialogComponent {
 	  
   }
   onUpdate(control: CmdCtrl) {
-      const obs= control.commandsApi.runCommand$(control!.api(),  control.modulename() )
-
+	  if ( control.updbtnname==="Stop update" ){
+		  control.stopUpdate();
+      } else {
+		  control.startUpdate();	  
+	  }
   }
 }

@@ -19,6 +19,7 @@ import { CommandsComponent } from '../components/commands/commands.component';
 })
 export class DialogService {
   public isDialogOpen = false;
+  cmdDialogRef : any;
   constructor(
     private _dialog: MatDialog,
     private _snackBar: MatSnackBar,
@@ -43,9 +44,6 @@ export class DialogService {
   }
 
   openCmdDialog(control: CmdCtrl, resp: IResp, title?: string): Observable<IResp> {
-    if (this.isDialogOpen || !resp.display.length) {
-      return of(resp);
-    }
     this.isDialogOpen = true;
     console.log('Open Cmd dialog');
     var updatable=false;
@@ -55,7 +53,7 @@ export class DialogService {
 		    updatable=true;
 		}
     }	  
-    const dialogRef = this._dialog.open(DialogComponent, {
+    this.cmdDialogRef = this._dialog.open(DialogComponent, {
       height: '80%',
       hasBackdrop: false,
       
@@ -63,12 +61,12 @@ export class DialogService {
 		control: control,
         title: title,
         body: resp.display!.join("</p><p>"),
-        updatable,
+        updatable: updatable,
       },
       panelClass: 'cmdRespDialog',
     });
 
-    dialogRef.afterClosed().subscribe((_) => {
+    this.cmdDialogRef.afterClosed().subscribe(( ) => {
       console.log('The dialog was closed');
       this.isDialogOpen = false;
     });
@@ -76,6 +74,18 @@ export class DialogService {
     return of(resp)
   }
 
+  updateCmdDialog(control: CmdCtrl, resp: IResp, title?: string): Observable<IResp> {
+    if (this.cmdDialogRef && this.isDialogOpen && resp.display.length) {
+	  this.cmdDialogRef.componentInstance.data = {
+		control: control,
+        title: title,
+        body: resp.display!.join("</p><p>"),
+        updatable: true};
+      return of(resp);
+    } else {
+	  return this.openCmdDialog(control, resp, title);
+	}
+  }
 
   openVarRespDialog(resp: IResp): Observable<IResp> {
     if (this.isDialogOpen || !resp.display.length) {
