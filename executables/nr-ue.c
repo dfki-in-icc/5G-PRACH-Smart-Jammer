@@ -853,7 +853,8 @@ void dummyWrite(PHY_VARS_NR_UE *UE,openair0_timestamp timestamp, int writeBlockS
   for (int i=0; i<UE->frame_parms.nb_antennas_tx; i++)
     free(dummy_tx[i]);
 }
-
+int global_readframe=0;
+int temp_sync_frame=0;
 void readFrame(PHY_VARS_NR_UE *UE,  openair0_timestamp *timestamp, bool toTrash) {
 
   void *rxp[NB_ANTENNAS_RX];
@@ -886,7 +887,8 @@ void readFrame(PHY_VARS_NR_UE *UE,  openair0_timestamp *timestamp, bool toTrash)
           free(rxp[i]);
     }
   }
-
+  if(!toTrash) temp_sync_frame=global_readframe;
+  global_readframe++;
 }
 
 void syncInFrame(PHY_VARS_NR_UE *UE, openair0_timestamp *timestamp) {
@@ -1038,6 +1040,10 @@ void *UE_thread(void *arg) {
     AssertFatal( !syncRunning, "At this point synchronization can't be running\n");
 
     if (!UE->is_synchronized) {
+      if(((global_readframe-temp_sync_frame)%2)==0){
+        LOG_E(PHY, "dummy read\n");
+        readFrame(UE, &timestamp, true);
+      }
       readFrame(UE, &timestamp, false);
       notifiedFIFO_elt_t *Msg=newNotifiedFIFO_elt(sizeof(syncData_t),0,&nf,UE_synch);
       syncData_t *syncMsg=(syncData_t *)NotifiedFifoData(Msg);
