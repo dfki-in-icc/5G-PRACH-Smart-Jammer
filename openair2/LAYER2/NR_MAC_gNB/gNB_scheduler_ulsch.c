@@ -231,6 +231,8 @@ int nr_process_mac_pdu(module_id_t module_idP,
       uint16_t mac_len=0;
       uint16_t mac_subheader_len=sizeof(NR_MAC_SUBHEADER_FIXED);
       uint8_t rx_lcid = ((NR_MAC_SUBHEADER_FIXED *)pduP)->LCID;
+      if (!get_mac_len(pduP, pdu_len, &mac_len, &mac_subheader_len))
+        return 0;
 
         LOG_D(NR_MAC, "In %s: received UL-SCH sub-PDU with LCID 0x%x in %d.%d (remaining PDU length %d)\n", __func__, rx_lcid, frameP, slot, pdu_len);
 
@@ -280,6 +282,8 @@ int nr_process_mac_pdu(module_id_t module_idP,
                    to be a partial PDU at the end of this buffer, so here
                    we gracefully ignore that by returning 0. See:
                    https://gitlab.eurecom.fr/oai/openairinterface5g/-/issues/534 */
+               if (pdu_len < sizeof(NR_BSR_LONG))
+                return 0;
 	  if (!get_mac_len(pduP, pdu_len, &mac_len, &mac_subheader_len))
 		  return 0;
         	/* Extract long BSR value */
@@ -287,12 +291,7 @@ int nr_process_mac_pdu(module_id_t module_idP,
                NR_BSR_LONG *bsr_l = (NR_BSR_LONG *) ce_ptr;
                sched_ctrl->estimated_ul_buffer = 0;
 
-               n_Lcg = bsr_l->LcgID7 + bsr_l->LcgID6 + bsr_l->LcgID5 + bsr_l->LcgID4 +
-                       bsr_l->LcgID3 + bsr_l->LcgID2 + bsr_l->LcgID1 + bsr_l->LcgID0;
-
-               LOG_D(NR_MAC, "LONG BSR, LCG ID(7-0) %d/%d/%d/%d/%d/%d/%d/%d\n",
-                     bsr_l->LcgID7, bsr_l->LcgID6, bsr_l->LcgID5, bsr_l->LcgID4,
-                     bsr_l->LcgID3, bsr_l->LcgID2, bsr_l->LcgID1, bsr_l->LcgID0);
+               n_Lcg = 0;
 
                for (int n = 0; n < n_Lcg; n++){
                  LOG_D(NR_MAC, "LONG BSR, %d/%d (n/n_Lcg), BS Index %d, BS value < %d",
@@ -336,6 +335,8 @@ int nr_process_mac_pdu(module_id_t module_idP,
         	//fixed length
         	mac_len = 2;
         	/* Extract SINGLE ENTRY PHR elements for PHR calculation */
+        	if (pdu_len < sizeof(NR_SINGLE_ENTRY_PHR_MAC_CE))
+        	  return 0;
         	ce_ptr = &pduP[mac_subheader_len];
         	NR_SINGLE_ENTRY_PHR_MAC_CE *phr = (NR_SINGLE_ENTRY_PHR_MAC_CE *) ce_ptr;
         	/* Save the phr info */
@@ -478,7 +479,6 @@ int nr_process_mac_pdu(module_id_t module_idP,
                            mac_len,
                            1,
                            NULL);
-
           /* Updated estimated buffer when receiving data */
           if (sched_ctrl->estimated_ul_buffer >= mac_len)
             sched_ctrl->estimated_ul_buffer -= mac_len;
@@ -510,10 +510,10 @@ int nr_process_mac_pdu(module_id_t module_idP,
         if (pdu_len < 0) {
           LOG_E(NR_MAC, "In %s: residual UL MAC PDU in %d.%d with length < 0!, pdu_len %d \n", __func__, frameP, slot, pdu_len);
           LOG_E(NR_MAC, "MAC PDU ");
+          return 0;
           for (int i = 0; i < 20; i++) // Only printf 1st - 20nd bytes
             printf("%02x ", pduP[i]);
           printf("\n");
-          return 0;
         }
     }
   return 0;

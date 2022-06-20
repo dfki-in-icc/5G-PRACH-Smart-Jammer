@@ -253,7 +253,6 @@ static void process_queued_nr_nfapi_msgs(NR_UE_MAC_INST_t *mac, int sfn_slot)
     if (ul_tti_request_crc && ul_tti_request_crc->n_pdus > 0)
     {
       check_and_process_dci(NULL, NULL, NULL, ul_tti_request_crc);
-      //free_and_zero(ul_tti_request_crc);
     }
   }
 
@@ -265,10 +264,10 @@ static void process_queued_nr_nfapi_msgs(NR_UE_MAC_INST_t *mac, int sfn_slot)
       send_nsa_standalone_msg(&UL_INFO, rach_ind->header.message_id);
       for (int i = 0; i < rach_ind->number_of_pdus; i++)
       {
-        free(rach_ind->pdu_list[i].preamble_list);
+        free_and_zero(rach_ind->pdu_list[i].preamble_list);
       }
-      free(rach_ind->pdu_list);
-      free(rach_ind);
+      free_and_zero(rach_ind->pdu_list);
+      free_and_zero(rach_ind);
       nr_Msg1_transmitted(0, 0, NFAPI_SFNSLOT2SFN(sfn_slot), 0);
   }
   if (dl_tti_request)
@@ -281,8 +280,7 @@ static void process_queued_nr_nfapi_msgs(NR_UE_MAC_INST_t *mac, int sfn_slot)
             NFAPI_SFNSLOT2SFN(dl_tti_sfn_slot), NFAPI_SFNSLOT2SLOT(dl_tti_sfn_slot));
       if (get_softmodem_params()->nsa)
         save_nr_measurement_info(dl_tti_request);
-      free(dl_tti_request);
-      dl_tti_request = NULL;
+      free_and_zero(dl_tti_request);
     }
     else if (dl_tti_request->dl_tti_request_body.nPDUs > 0 && tx_data_request->Number_of_PDUs > 0)
     {
@@ -388,7 +386,6 @@ static void *NRUE_phy_stub_standalone_pnf_task(void *arg)
     }
     else if (ch_info) {
       sfn_slot = ch_info->sfn_slot;
-      free_and_zero(ch_info);
     }
 
     frame_t frame = NFAPI_SFNSLOT2SFN(sfn_slot);
@@ -397,6 +394,7 @@ static void *NRUE_phy_stub_standalone_pnf_task(void *arg)
     {
       LOG_D(NR_MAC, "repeated sfn_sf = %d.%d\n",
             frame, slot);
+      free_and_zero(ch_info);
       continue;
     }
     last_sfn_slot = sfn_slot;
@@ -413,6 +411,7 @@ static void *NRUE_phy_stub_standalone_pnf_task(void *arg)
     if (mac->scc == NULL && mac->scc_SIB == NULL)
     {
       LOG_D(MAC, "[NSA] mac->scc == NULL and [SA] mac->scc_SIB == NULL!\n");
+      free_and_zero(ch_info);
       continue;
     }
 
@@ -447,6 +446,7 @@ static void *NRUE_phy_stub_standalone_pnf_task(void *arg)
       mac->nr_ue_emul_l1.pmi = ch_info->csi[0].pmi;
       mac->nr_ue_emul_l1.ri = ch_info->csi[0].ri;
       mac->nr_ue_emul_l1.cqi = ch_info->csi[0].cqi;
+      free_and_zero(ch_info);
     }
 
     if (is_nr_DL_slot(get_softmodem_params()->nsa ?

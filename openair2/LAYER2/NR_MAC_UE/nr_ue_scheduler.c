@@ -3098,7 +3098,7 @@ uint8_t nr_ue_get_sdu(module_id_t module_idP,
 
   //nr_ue_get_sdu_mac_ce_pre updates all mac_ce related header field related to length
   mac_ce_p->tot_mac_ce_len = nr_ue_get_sdu_mac_ce_pre(module_idP, CC_id, frameP, subframe, gNB_index, ulsch_buffer, buflen, mac_ce_p);
-  mac_ce_p->total_mac_pdu_header_len = mac_ce_p->tot_mac_ce_len;
+  mac_ce_p->total_mac_pdu_header_len = mac_ce_p->tot_mac_ce_len * 2;
 
   LOG_D(NR_MAC, "In %s: [UE %d] [%d.%d] process UL transport block at with size TBS = %d bytes \n", __FUNCTION__, module_idP, frameP, subframe, buflen);
 
@@ -3201,7 +3201,7 @@ uint8_t nr_ue_get_sdu(module_id_t module_idP,
 
     LOG_D(NR_MAC, "In %s copying %d bytes of MAC CEs to the UL PDU \n", __FUNCTION__, mac_ce_p->tot_mac_ce_len);
     nr_write_ce_ulsch_pdu(pdu, mac, 0, NULL, mac_ce_p->bsr_t, mac_ce_p->bsr_s, mac_ce_p->bsr_l);
-    pdu += (unsigned char) mac_ce_p->tot_mac_ce_len;
+    //pdu += (unsigned char) mac_ce_p->tot_mac_ce_len;
 
     #ifdef ENABLE_MAC_PAYLOAD_DEBUG
     LOG_I(NR_MAC, "In %s: dumping MAC CE with length tot_mac_ce_len %d: \n", __FUNCTION__, mac_ce_p->tot_mac_ce_len);

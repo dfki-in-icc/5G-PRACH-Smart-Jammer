@@ -453,6 +453,7 @@ static void copy_dl_tti_req_to_dl_info(nr_downlink_indication_t *dl_info, nfapi_
             fill_mib_in_rx_ind(pdu_list, rx_ind, 0, FAPI_NR_RX_PDU_TYPE_SSB);
             NR_UL_TIME_ALIGNMENT_t ul_time_alignment;
             memset(&ul_time_alignment, 0, sizeof(ul_time_alignment));
+            nr_ue_scheduler(&mac->dl_info, NULL);
             nr_ue_dl_indication(&mac->dl_info, &ul_time_alignment);
         }
     }
@@ -1211,8 +1212,6 @@ int nr_ue_dl_indication(nr_downlink_indication_t *dl_info, NR_UL_TIME_ALIGNMENT_
         }
         memset(def_dci_pdu_rel15, 0, sizeof(*def_dci_pdu_rel15));
       }
-      free(dl_info->dci_ind);
-      dl_info->dci_ind = NULL;
     }
 
     if (dl_info->rx_ind != NULL) {
@@ -1234,7 +1233,7 @@ int nr_ue_dl_indication(nr_downlink_indication_t *dl_info, NR_UL_TIME_ALIGNMENT_
                                          (dl_info->rx_ind->rx_indication_body+i)->ssb_pdu.ssb_length,
                                          (dl_info->rx_ind->rx_indication_body+i)->ssb_pdu.ssb_start_subcarrier,
                                          (dl_info->rx_ind->rx_indication_body+i)->ssb_pdu.cell_id)) << FAPI_NR_RX_PDU_TYPE_SSB;
-	    free((dl_info->rx_ind->rx_indication_body+i)->ssb_pdu.pdu);
+            free((dl_info->rx_ind->rx_indication_body+i)->ssb_pdu.pdu);
             break;
           case FAPI_NR_RX_PDU_TYPE_SIB:
             ret_mask |= (handle_bcch_dlsch(dl_info->module_id,
@@ -1242,6 +1241,7 @@ int nr_ue_dl_indication(nr_downlink_indication_t *dl_info, NR_UL_TIME_ALIGNMENT_
                                            (dl_info->rx_ind->rx_indication_body+i)->pdsch_pdu.ack_nack,
                                            (dl_info->rx_ind->rx_indication_body+i)->pdsch_pdu.pdu,
                                            (dl_info->rx_ind->rx_indication_body+i)->pdsch_pdu.pdu_length)) << FAPI_NR_RX_PDU_TYPE_SIB;
+            free((dl_info->rx_ind->rx_indication_body+i)->pdsch_pdu.pdu);
             break;
           case FAPI_NR_RX_PDU_TYPE_DLSCH:
             ret_mask |= (handle_dlsch(dl_info, ul_time_alignment, i)) << FAPI_NR_RX_PDU_TYPE_DLSCH;
@@ -1253,8 +1253,6 @@ int nr_ue_dl_indication(nr_downlink_indication_t *dl_info, NR_UL_TIME_ALIGNMENT_
             break;
         }
       }
-      free(dl_info->rx_ind);
-      dl_info->rx_ind = NULL;
     }
 
     //clean up nr_downlink_indication_t *dl_info
