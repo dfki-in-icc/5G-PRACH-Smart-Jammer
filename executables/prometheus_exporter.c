@@ -181,9 +181,13 @@ void *PrometheusNodeExporter_thread(void* arg){
         bool bTop = true;
         strcpy(tmp_str,"");
         for (int i=0;i<NUM_PROM_ELEMENTS;i++){
-          sprintf(tmp_str,"%s   %d\n",
-            prom_metrics.metric_element[i].metric_name,
-            prom_metrics.metric_element[i].metric_value);
+          if ( strcmp(prom_metrics.metric_element[i].metric_name,"not_set")!=0 ){
+            sprintf(tmp_str,"%s   %d\n",
+              prom_metrics.metric_element[i].metric_name,
+              prom_metrics.metric_element[i].metric_value);
+          } else {
+            strcpy(tmp_str,"");
+          }
           if (bTop){
             strcpy(context,tmp_str);
             bTop = false;
@@ -249,10 +253,8 @@ void *cp_thread(void* arg){
 void init_PrometheusNodeExporter_thread(void* arg){
     pthread_t thread_prom;
     char ThreadName[128][ NUM_MAX_COMPLEX_ELEMENTS ];
-    char tmp[64];
     for (int i=0;i<NUM_PROM_ELEMENTS;i++){
-      sprintf(tmp,"not set (%d)",i);
-      strcpy(prom_metrics.metric_element[i].metric_name,tmp);
+      strcpy(prom_metrics.metric_element[i].metric_name,"not_set");
       prom_metrics.metric_element[i].metric_value = 0;
     }
 

@@ -862,7 +862,8 @@ int32_t nr_rx_pdcch(PHY_VARS_NR_UE *ue,
       avgs = cmax(avgs, avgP[aarx]);
     // L5G_IOT
     pdcch_power[s] = avgs;
-    log2_maxh = (log2_approx(avgs) / 2) + 5;  //+frame_parms->nb_antennas_rx;
+    // log2_maxh = (log2_approx(avgs) / 2) + 5;  //+frame_parms->nb_antennas_rx;
+    log2_maxh = (log2_approx(avgs) / 2) ;  //+frame_parms->nb_antennas_rx;
 
 #ifdef UE_DEBUG_TRACE
     LOG_X(PHY,"slot %d: pdcch log2_maxh = %d (%d,%d)\n",slot,log2_maxh,avgP[0],avgs);

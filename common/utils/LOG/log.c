@@ -883,6 +883,7 @@ const char logmem_log_level[NUM_LOG_LEVEL] = {
   [OAILOG_WARNING] = 'W',
   [OAILOG_ANALYSIS] = 'A',
   [OAILOG_INFO] = 'I',
+  [OAILOG_INFO] = 'X',
   [OAILOG_DEBUG] = 'D',
   [OAILOG_TRACE] = 'T',
 };
