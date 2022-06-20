@@ -538,6 +538,7 @@ int xran_fh_rx_read_slot(void *xranlib_, ru_info_t *ru, int frame, int slot){
   //int32_t flowId;
   void *ptr = NULL;
   int32_t  *pos = NULL;
+  int idx = 0;
 
         p_xran_dev_ctx_2 = xran_dev_get_ctx();
 #if 0
@@ -626,8 +627,10 @@ int xran_fh_rx_read_slot(void *xranlib_, ru_info_t *ru, int frame, int slot){
                        if(p_prbMapElm->compMethod == XRAN_COMPMETHOD_NONE) {
                           payload_len = p_prbMapElm->nRBSize*N_SC_PER_PRB*4L;
                           src1 = src2 + payload_len/2;
-                          rte_memcpy(dst1, src1, payload_len/2);
-                          rte_memcpy(dst2, src2, payload_len/2);
+              for (idx = 0; idx < payload_len/(2*sizeof(int16_t)); idx++) {
+                ((uint16_t *)dst1)[idx] = ntohs(((uint16_t *)src1)[idx]);
+                ((uint16_t *)dst2)[idx] = ntohs(((uint16_t *)src2)[idx]);
+              }
                        } else if (p_prbMapElm->compMethod == XRAN_COMPMETHOD_BLKFLOAT) {
                           struct xranlib_decompress_request  bfp_decom_req_2;
                           struct xranlib_decompress_response bfp_decom_rsp_2;
@@ -782,18 +785,10 @@ int xran_fh_tx_send_slot(void *xranlib_, ru_info_t *ru, int frame, int slot, uin
                        src2 = (uint8_t *)(pos + (p_prbMapElm->nRBStart*N_SC_PER_PRB + 3276/2) + 4096 - 3276);
                        if(p_prbMapElm->compMethod == XRAN_COMPMETHOD_NONE) {
 						   /* convert to Network order */
-						   for (idx = 0; idx < payload_len/(2*sizeof(int16_t)); idx++)
-						   {
-							   ((uint16_t *)dst1)[idx] = ((uint16_t *)src1)[idx]>>8
-								   | ((uint16_t *)src1)[idx]<<8;
-							   ((uint16_t *)dst2)[idx] = ((uint16_t *)src2)[idx]>>8
-								   | ((uint16_t *)src2)[idx]<<8;
-						   }
-
-#if 0
-						   rte_memcpy(dst1, src1, payload_len/2);
-						   rte_memcpy(dst2, src2, payload_len/2);
-#endif
+              for (idx = 0; idx < payload_len/(2*sizeof(int16_t)); idx++) {
+                ((uint16_t *)dst1)[idx] = htons(((uint16_t *)src1)[idx]);
+                ((uint16_t *)dst2)[idx] = htons(((uint16_t *)src2)[idx]);
+              }
 					   } else if (p_prbMapElm->compMethod == XRAN_COMPMETHOD_BLKFLOAT) {
 						   printf("idxElm=%d, compMeth==BLKFLOAT\n",idxElm);
 						   struct xranlib_compress_request  bfp_com_req;
