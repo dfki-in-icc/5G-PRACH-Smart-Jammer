@@ -899,6 +899,7 @@ int8_t nr_ue_process_dci(module_id_t module_id, int cc_id, uint8_t gNB_index, fr
     NR_PDSCH_Config_t *pdsch_config= (mac->DLbwp[0]) ? mac->DLbwp[0]->bwp_Dedicated->pdsch_Config->choice.setup : NULL;
     int is_common=0;
     if(rnti == SI_RNTI) {
+      is_common=2;
       NR_Type0_PDCCH_CSS_config_t type0_PDCCH_CSS_config = mac->type0_PDCCH_CSS_config;
       default_abc = type0_PDCCH_CSS_config.type0_pdcch_ss_mux_pattern;
       dl_config->dl_config_list[dl_config->number_pdus].pdu_type = FAPI_NR_DL_CONFIG_TYPE_SI_DLSCH;
@@ -1503,7 +1504,7 @@ void set_harq_status(NR_UE_MAC_INST_t *mac,
                      int slot) {
 
   NR_UE_HARQ_STATUS_t *current_harq = &mac->dl_harq_info[harq_id];
-
+  if(is_common==2) return;
   current_harq->active = true;
   current_harq->ack_received = false;
   current_harq->pucch_resource_indicator = pucch_id;
@@ -2219,7 +2220,8 @@ uint8_t get_downlink_ack(NR_UE_MAC_INST_t *mac,
     for (int dl_harq_pid = 0; dl_harq_pid < 16; dl_harq_pid++) {
 
       current_harq = &mac->dl_harq_info[dl_harq_pid];
-
+      if(current_harq->is_common==2) current_harq->active=0;
+      
       if (current_harq->active) {
 
         sched_slot = current_harq->dl_slot + current_harq->feedback_to_ul;
