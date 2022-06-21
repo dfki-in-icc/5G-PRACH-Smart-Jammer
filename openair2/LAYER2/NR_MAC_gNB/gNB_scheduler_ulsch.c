@@ -161,10 +161,10 @@ int nr_process_mac_pdu( instance_t module_idP,
                    to be a partial PDU at the end of this buffer, so here
                    we gracefully ignore that by returning 0. See:
                    https://gitlab.eurecom.fr/oai/openairinterface5g/-/issues/534 */
-               if (pdu_len < sizeof(NR_BSR_LONG))
-                return 0;
 	  if (!get_mac_len(pduP, pdu_len, &mac_len, &mac_subheader_len))
 		  return 0;
+                if (pdu_len < sizeof(NR_BSR_LONG))
+                       return 0;
         	/* Extract long BSR value */
                ce_ptr = &pduP[mac_subheader_len];
                NR_BSR_LONG *bsr_l = (NR_BSR_LONG *) ce_ptr;
