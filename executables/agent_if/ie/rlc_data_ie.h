@@ -147,8 +147,6 @@ typedef struct {
   uint32_t len;
 
   int64_t tstamp;
-//  uint16_t frame;
-//  uint8_t slot;
 } rlc_ind_msg_t;
 
 void free_rlc_ind_msg(rlc_ind_msg_t* src);
@@ -310,8 +308,6 @@ typedef struct{
 #ifdef __cplusplus
 }
 #endif
-
-
 
 #endif
 

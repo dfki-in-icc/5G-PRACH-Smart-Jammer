@@ -1,16 +1,16 @@
 #ifndef FLEXRIC_CONFIGURATION_FILE_H
 #define FLEXRIC_CONFIGURATION_FILE_H 
 
-typedef struct {
-  char conf_file[128];
-  char libs_dir[128];
-} args_t;
+#define FR_CONF_FILE_LEN 128
 
-char* get_near_ric_ip(args_t);
-int is_regular_file(const char *path);
-void print_usage(const char*);
-int parse_args(int argc, char** argv, args_t* args);
+typedef struct {
+  char conf_file[FR_CONF_FILE_LEN];
+  char libs_dir[FR_CONF_FILE_LEN];
+} fr_args_t;
+
+fr_args_t init_fr_args(int argc, char* argv[]);
+
+char* get_near_ric_ip(fr_args_t const*);
 
 #endif
-
 

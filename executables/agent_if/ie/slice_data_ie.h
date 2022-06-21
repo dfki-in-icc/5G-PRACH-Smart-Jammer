@@ -79,7 +79,7 @@ typedef struct{
 
 void free_slice_ind_hdr(slice_ind_hdr_t* src); 
 
-slice_ind_hdr_t cp_slice_ind_hdr(slice_ind_hdr_t* src);
+slice_ind_hdr_t cp_slice_ind_hdr(slice_ind_hdr_t const* src);
 
 bool eq_slice_ind_hdr(slice_ind_hdr_t* m0, slice_ind_hdr_t* m1);
 
@@ -324,7 +324,11 @@ typedef struct {
 
 void free_slice_ind_msg(slice_ind_msg_t* src); 
 
-slice_ind_msg_t cp_slice_ind_msg(slice_ind_msg_t* src);
+slice_ind_msg_t cp_slice_ind_msg(slice_ind_msg_t const* src);
+
+slice_conf_t cp_slice_conf(slice_conf_t const* src);
+
+ue_slice_conf_t cp_ue_slice_conf(ue_slice_conf_t const* src);
 
 bool eq_slice_ind_msg(slice_ind_msg_t const* m0, slice_ind_msg_t const* m1);
 

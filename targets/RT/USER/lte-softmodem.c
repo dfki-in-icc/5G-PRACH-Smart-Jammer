@@ -1239,10 +1239,14 @@ int main ( int argc, char **argv )
     const int mnc_digit_len = rrc->configuration.mnc_digit_length[0]; // 2;
     const int nb_id = rrc->configuration.cell_identity; //42;
     sm_io_ag_t io = {.read = read_RAN, .write = write_RAN};
-    args_t args = {.conf_file = "/usr/local/flexric/flexric.conf", .libs_dir = "/usr/local/flexric/"};
     printf("[E2 NODE]: mcc = %d mnc = %d mnc_digit = %d nd_id = %d \n", mcc, mnc, mnc_digit_len, nb_id);
 
-    init_agent_api(mcc, mnc, mnc_digit_len, nb_id, io, args);
+    int const agent_argc = 1;
+    char** agent_argv = NULL;
+    fr_args_t ric_args = init_fr_args(agent_argc, agent_argv);
+    strcpy(ric_args.conf_file, "/usr/local/flexric/flexric.conf");
+    strcpy(ric_args.libs_dir, "/usr/local/flexric/");
+    init_agent_api( mcc, mnc, mnc_digit_len, nb_id, io, &ric_args);
 //////////////////////////////////
 //////////////////////////////////
     

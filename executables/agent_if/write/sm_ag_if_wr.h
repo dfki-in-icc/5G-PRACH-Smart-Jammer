@@ -28,6 +28,7 @@
 #include "../ie/rlc_data_ie.h"
 #include "../ie/mac_data_ie.h"
 #include "../ie/slice_data_ie.h"
+#include "../ie/tc_data_ie.h"
 
 typedef enum{
   SUBSCRIBE_TIMER = 0,
@@ -35,6 +36,7 @@ typedef enum{
   RLC_CTRL_REQ_V0 = 2,
   PDCP_CTRL_REQ_V0 = 3,
   SLICE_CTRL_REQ_V0 = 4,
+  TC_CTRL_REQ_V0 = 5,
 
   SM_AGENT_IF_WRITE_V0_END,
 } sm_ag_if_wr_e;
@@ -46,6 +48,7 @@ typedef struct {
     rlc_ctrl_req_data_t rlc_ctrl;
     pdcp_ctrl_req_data_t pdcp_req_ctrl;
     slice_ctrl_req_data_t slice_req_ctrl;
+    tc_ctrl_req_data_t tc_req_ctrl;
   }; 
   sm_ag_if_wr_e type;
 } sm_ag_if_wr_t;

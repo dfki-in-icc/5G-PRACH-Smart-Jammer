@@ -29,14 +29,16 @@
 #include "../ie/rlc_data_ie.h"
 #include "../ie/pdcp_data_ie.h"
 #include "../ie/slice_data_ie.h"
+#include "../ie/tc_data_ie.h"
 
 
 
 typedef enum{
+  MAC_AGENT_IF_CTRL_ANS_V0,
+  RLC_AGENT_IF_CTRL_ANS_V0,
   PDCP_AGENT_IF_CTRL_ANS_V0, 
-  RLC_AGENT_IF_CTRL_ANS_V0, 
-  MAC_AGENT_IF_CTRL_ANS_V0, 
   SLICE_AGENT_IF_CTRL_ANS_V0,
+  TC_AGENT_IF_CTRL_ANS_V0,
 
   SM_AGENT_IF_ANS_V0_END,
 } sm_ag_if_ans_e;
@@ -47,6 +49,7 @@ typedef struct{
     rlc_ctrl_out_t rlc;
     pdcp_ctrl_out_t pdcp;
     slice_ctrl_out_t slice;
+    tc_ctrl_out_t tc;
   };
   sm_ag_if_ans_e type;
 } sm_ag_if_ans_t;
