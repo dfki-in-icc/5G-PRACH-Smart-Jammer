@@ -41,7 +41,8 @@ const char* PromMetricSwitchNames[] = {
   };
 const char* RealtimeMetricSwitchNames[] = {
   // real time monitor
-  "pbch_iq",  "pbch_ch",  "pdcch_iq",  "pdcch_ch",  "rar_iq",  "rar_ch",  "sib_iq",  "sib_ch", "sss_iq",
+  "pbch_iq",  "pbch_ch",  "pdcch_iq",  "pdcch_ch",  "rar_iq",  "rar_ch",  "sib_iq",  "sib_ch", "sss_iq", 
+  "pdsch_iq", "pdsch_chest"
   };
 
 const char* HttpMethod[]={  "GET","POST","PUT" };
@@ -171,6 +172,16 @@ void *PrometheusNodeExporter_thread(void* arg){
       if (strstr(DirPath,"iq/sss") != NULL){
         // printf("requsted iq/pdcch\n");
         metrics_to_monitor = SSS_IQ;
+      }
+      // PDSCH Channel '/chest/pdsch
+      if (strstr(DirPath,"chest/pdsch") != NULL){
+        // printf("requsted iq/pdcch\n");
+        metrics_to_monitor = PDSCH_CHEST;
+      }
+      // PDSCH Compensated I/Q '/iq/pdsch
+      if (strstr(DirPath,"iq/pdsch") != NULL){
+        // printf("requsted iq/pdcch\n");
+        metrics_to_monitor = PDSCH_IQ;
       }
       // Get Current Settings
       if (strstr(DirPath,"settings") != NULL){
@@ -493,15 +504,15 @@ int MonitoringConfig(){
     if (strstr(buf,"//") == NULL){
       //
       for (int i=0;i<NUM_REALTIME_SETTINGS;i++){
-        // printf("%s : %s ",MetricSwitchNames[i],buf);
         if (strstr(buf,RealtimeMetricSwitchNames[i]) != NULL){
           Realtime_switch_state[i] = 1;
+          printf("%s : %s ",RealtimeMetricSwitchNames[i],buf);
         }
       for (int i=0;i<NUM_PROM_SETTINGS;i++){
-        // printf("%s : %s ",MetricSwitchNames[i],buf);
+        // printf("%s : %s ",PromMetricSwitchNames[i],buf);
         if (strstr(buf,PromMetricSwitchNames[i]) != NULL){
           Prom_switch_state[i] = 1;
-//          printf("-----> %s\n",PromMetricSwitchNames[i]);
+         printf("-----> %s\n",PromMetricSwitchNames[i]);
         }
       }
       }

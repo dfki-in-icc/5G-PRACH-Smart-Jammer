@@ -133,6 +133,7 @@ static int nr_dlsch_llr(NR_UE_PDSCH **pdsch_vars,
                         uint8_t nr_slot_rx,
                         uint8_t beamforming_mode);
 
+int32_t dlsch_prom_buf[300];
 /* Main Function */
 int nr_rx_pdsch(PHY_VARS_NR_UE *ue,
                 UE_nr_rxtx_proc_t *proc,
@@ -480,8 +481,13 @@ int nr_rx_pdsch(PHY_VARS_NR_UE *ue,
                                   nb_rb_pdsch,
                                   pdsch_vars[gNB_id]->log2_maxh,
                                   measurements); // log2_maxh+I0_shift
+    // Copy sampled PDSCH compensation
+    for (int i=0; i < nb_rb_pdsch; i++){
+      dlsch_prom_buf[i] = pdsch_vars[gNB_id]->rxdataF_comp0[0][i*12];
     }
+    RegisterComplexMetric(PDSCH_IQ, "PDSCH_IQ", (int16_t*)&dlsch_prom_buf, nb_rb_pdsch);
 
+  }
   else if (dlsch0_harq->mimo_mode == NR_DUALSTREAM) {
     nr_dlsch_channel_compensation_core(pdsch_vars[gNB_id]->rxdataF_ext,
                                        pdsch_vars[gNB_id]->dl_ch_estimates_ext,
@@ -734,7 +740,7 @@ void nr_dlsch_deinterleaving(uint8_t symbol,
 //==============================================================================================
 // Pre-processing for LLR computation
 //==============================================================================================
-
+int32_t dlsch_ch_prom_buf[300];
 void nr_dlsch_channel_compensation(int **rxdataF_ext,
                                 int **dl_ch_estimates_ext,
                                 int **dl_ch_mag,
@@ -928,6 +934,12 @@ void nr_dlsch_channel_compensation(int **rxdataF_ext,
       if (pdsch_mode == RA_PDSCH){
         RegisterComplexMetric(RAR_IQ, "RAR_IQ", (int16_t*)&rxdataF_comp[0][symbol*nb_rb*12], nb_rb*12);
         RegisterComplexMetric(RAR_CHEST, "RA_CHEST", (int16_t*)&dl_ch_estimates_ext[0][symbol*nb_rb*12], nb_rb*12);
+      }
+      if (pdsch_mode == PDSCH){
+        for (int i=0;i<nb_rb;i++){
+          dlsch_ch_prom_buf[i] = dl_ch_estimates_ext[0][symbol*nb_rb*12 + i * 12];
+        }
+        RegisterComplexMetric(PDSCH_CHEST, "PDSCH_CHEST", (int16_t*)dlsch_ch_prom_buf, nb_rb);
       }
     }
   }

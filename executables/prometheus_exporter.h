@@ -115,6 +115,8 @@ enum complex_metrics_key{
   SIB_IQ,
   SIB_CHEST,
   SSS_IQ,
+  PDSCH_IQ,
+  PDSCH_CHEST,
   PROMETHEUS,
   SETTINGS
 };
@@ -122,7 +124,7 @@ enum complex_metrics_key{
 #define NUM_COMPLEX_METRICS_ELEMENTS 1
 #define NUM_METHOD 5
 #define NUM_PROM_SETTINGS 8
-#define NUM_REALTIME_SETTINGS 9
+#define NUM_REALTIME_SETTINGS 11
 
 enum MetricSwitchID {
   // real time monitor
