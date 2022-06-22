@@ -18,7 +18,10 @@ export class WebSocketService {
     public messages: Subject<Message>;
 
     constructor() {
-        this.messages = <Subject<Message>>this.connect(CHAT_URL).pipe(
+        this.subject = this.create(CHAT_URL);
+        console.log("Successfully connected: " + CHAT_URL);
+
+        this.messages = <Subject<Message>>this.subject.pipe(
             map(
                 (response: MessageEvent): Message => {
                     console.log(response.data);
@@ -27,16 +30,6 @@ export class WebSocketService {
                 }
             )
         );
-
-        this.subject = this.create('')
-    }
-
-    public connect(url: string): AnonymousSubject<MessageEvent> {
-        if (!this.subject) {
-            this.subject = this.create(url);
-            console.log("Successfully connected: " + url);
-        }
-        return this.subject;
     }
 
     private create(url: string): AnonymousSubject<MessageEvent> {
