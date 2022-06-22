@@ -725,7 +725,8 @@ void set_glog_filelog(int enable)
     strftime(buf,sizeof(buf),"_%Y%m%d%H%M%S.log",local);
     strcpy(buf2,g_log->filelog_name);
     strcat(buf2,buf);
-    fptr = fopen(buf2,"w");
+    // fptr = fopen(buf2,"w");
+    fptr = fopen("/dev/shm/nrue_proc.log","w");
 
     for (int c=0; c< MAX_LOG_COMPONENTS; c++ ) {
       close_component_filelog(c);
