@@ -934,10 +934,10 @@ void nr_dlsch_channel_compensation(int **rxdataF_ext,
           dlsch_ch_prom_buf[i] = dl_ch_estimates_ext[0][symbol*nb_rb*12 + i * 12];
         }
         RegisterComplexMetric(PDSCH_CHEST, "PDSCH_CHEST", (int16_t*)dlsch_ch_prom_buf, nb_rb);
-        for (int i=0; i < nb_rb_pdsch; i++){
+        for (int i=0; i < nb_rb; i++){
           dlsch_prom_buf[i] = rxdataF_comp[0][symbol*nb_rb*12 + i*12];
         }
-        RegisterComplexMetric(PDSCH_IQ, "PDSCH_IQ", (int16_t*)dlsch_prom_buf[0], nb_rb_pdsch);
+        RegisterComplexMetric(PDSCH_IQ, "PDSCH_IQ", (int16_t*)&dlsch_prom_buf[0], nb_rb);
       }
     }
   }
