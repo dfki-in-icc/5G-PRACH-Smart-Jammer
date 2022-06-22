@@ -161,10 +161,10 @@ int nr_process_mac_pdu( instance_t module_idP,
                    to be a partial PDU at the end of this buffer, so here
                    we gracefully ignore that by returning 0. See:
                    https://gitlab.eurecom.fr/oai/openairinterface5g/-/issues/534 */
-               if (pdu_len < sizeof(NR_BSR_LONG))
-                return 0;
 	  if (!get_mac_len(pduP, pdu_len, &mac_len, &mac_subheader_len))
 		  return 0;
+                if (pdu_len < sizeof(NR_BSR_LONG))
+                       return 0;
         	/* Extract long BSR value */
                ce_ptr = &pduP[mac_subheader_len];
                NR_BSR_LONG *bsr_l = (NR_BSR_LONG *) ce_ptr;
@@ -711,10 +711,12 @@ void nr_rx_sdu(const module_id_t gnb_mod_idP,
                 return;
               } else {
                 // The UE identified by C-RNTI still exists at the gNB
-                // Reset uplink failure flags/counters/timers at MAC and at RRC so gNB will resume again scheduling resources for this UE
-                UE_C->UE_sched_ctrl.pusch_consecutive_dtx_cnt = 0;
-                UE_C->UE_sched_ctrl.ul_failure = 0;
+                // Reset uplink failure flags/counters/timers at RRC
                 nr_mac_gNB_rrc_ul_failure_reset(gnb_mod_idP, frameP, slotP, ra->crnti);
+
+                // Reset HARQ processes
+                reset_dl_harq_list(&UE_C->UE_sched_ctrl);
+                reset_ul_harq_list(&UE_C->UE_sched_ctrl);
               }
             }
             LOG_I(NR_MAC, "Scheduling RA-Msg4 for TC_RNTI 0x%04x (state %d, frame %d, slot %d)\n",
