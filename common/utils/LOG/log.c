@@ -1012,7 +1012,7 @@ int logInit_log_mem (void)
 
 void close_log_mem(void){
   int fp;
-  char f_name[1024];
+  char f_name[1024]="nrue_proc.log";
 
   if(log_mem_flag==1){
     log_mem_d[0].enable_flag=0;
@@ -1022,7 +1022,7 @@ void close_log_mem(void){
       usleep(100);
     }
     if(log_mem_multi==1){
-      snprintf(f_name,1024, "%s_%d.log",log_mem_filename,log_mem_file_cnt);
+      // snprintf(f_name,1024, "%s_%d.log",log_mem_filename,log_mem_file_cnt);a
       fp=open(f_name, O_WRONLY | O_CREAT, 0666);
       int ret = write(fp, log_mem_d[0].buf_p, log_mem_d[0].buf_index);
       if ( ret < 0) {

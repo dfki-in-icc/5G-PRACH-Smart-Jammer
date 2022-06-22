@@ -481,12 +481,6 @@ int nr_rx_pdsch(PHY_VARS_NR_UE *ue,
                                   nb_rb_pdsch,
                                   pdsch_vars[gNB_id]->log2_maxh,
                                   measurements); // log2_maxh+I0_shift
-    // Copy sampled PDSCH compensation
-    for (int i=0; i < nb_rb_pdsch; i++){
-      dlsch_prom_buf[i] = pdsch_vars[gNB_id]->rxdataF_comp0[0][i*12];
-    }
-    RegisterComplexMetric(PDSCH_IQ, "PDSCH_IQ", (int16_t*)&dlsch_prom_buf, nb_rb_pdsch);
-
   }
   else if (dlsch0_harq->mimo_mode == NR_DUALSTREAM) {
     nr_dlsch_channel_compensation_core(pdsch_vars[gNB_id]->rxdataF_ext,
@@ -940,6 +934,10 @@ void nr_dlsch_channel_compensation(int **rxdataF_ext,
           dlsch_ch_prom_buf[i] = dl_ch_estimates_ext[0][symbol*nb_rb*12 + i * 12];
         }
         RegisterComplexMetric(PDSCH_CHEST, "PDSCH_CHEST", (int16_t*)dlsch_ch_prom_buf, nb_rb);
+        for (int i=0; i < nb_rb_pdsch; i++){
+          dlsch_prom_buf[i] = rxdataF_comp[0][symbol*nb_rb*12 + i*12];
+        }
+        RegisterComplexMetric(PDSCH_IQ, "PDSCH_IQ", (int16_t*)dlsch_prom_buf[0], nb_rb_pdsch);
       }
     }
   }

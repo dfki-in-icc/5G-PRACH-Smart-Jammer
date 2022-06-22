@@ -506,13 +506,13 @@ int MonitoringConfig(){
       for (int i=0;i<NUM_REALTIME_SETTINGS;i++){
         if (strstr(buf,RealtimeMetricSwitchNames[i]) != NULL){
           Realtime_switch_state[i] = 1;
-          printf("%s : %s ",RealtimeMetricSwitchNames[i],buf);
+          // printf("%s : %s ",RealtimeMetricSwitchNames[i],buf);
         }
       for (int i=0;i<NUM_PROM_SETTINGS;i++){
         // printf("%s : %s ",PromMetricSwitchNames[i],buf);
         if (strstr(buf,PromMetricSwitchNames[i]) != NULL){
           Prom_switch_state[i] = 1;
-         printf("-----> %s\n",PromMetricSwitchNames[i]);
+        //  printf("-----> %s\n",PromMetricSwitchNames[i]);
         }
       }
       }
