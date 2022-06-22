@@ -1,6 +1,6 @@
 <div class="grid-container">
   <mat-grid-list cols="2" rowHeight="200px">
-    <mat-grid-tile [colspan]="1" [rowspan]="1">
+    <mat-grid-tile [colspan]="2" [rowspan]="1">
       <mat-card class="dashboard-card">
         <mat-card-header>
           <mat-card-title>Angular + WebSockets</mat-card-title>
@@ -14,25 +14,24 @@
             <button (click)="sendMsg()">Send Message</button>
           </div>
 
-          <div>
-            <h1>Sent Messages</h1>
-            <ul>
-              <li *ngFor="let item of sent">Source: {{item.source}} -> Content {{item.content}}</li>
-            </ul>
-          </div>
-
-          <div>
-            <h1>Received Messages</h1>
-            <ul>
-              <li *ngFor="let item of received">Source: {{item.source}} -> Content {{item.content}}</li>
-            </ul>
-          </div>
-
         </mat-card-content>
       </mat-card>
     </mat-grid-tile>
 
-    <mat-grid-tile [colspan]="1" [rowspan]="1">
+    <mat-grid-tile [colspan]="1" [rowspan]="10">
+      <mat-card class="dashboard-card">
+        <mat-card-header>
+          <mat-card-title>Sent Messages</mat-card-title>
+        </mat-card-header>
+        <mat-card-content class="dashboard-card-content">
+          <ul>
+            <li *ngFor="let item of sent">Source: {{item.source}} -> Content {{item.content}}</li>
+          </ul>
+        </mat-card-content>
+      </mat-card>
+    </mat-grid-tile>
+
+    <mat-grid-tile [colspan]="1" [rowspan]="10">
       <mat-card class="dashboard-card">
         <mat-card-header>
           <mat-card-title>Received Messages</mat-card-title>
