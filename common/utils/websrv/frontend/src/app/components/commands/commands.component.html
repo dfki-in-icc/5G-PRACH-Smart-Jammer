@@ -100,9 +100,18 @@
                 </ng-template>
 
                 <ng-template #default>
-                  <mat-form-field>
-                    <input matInput [formControl]="row.paramsFA.controls[rawIndex]" [readonly]="!col.modifiable" />
-                  </mat-form-field>
+                  <ng-container *ngIf="col.modifiable; then modifiable else notModifiable">
+                  </ng-container>
+
+                  <ng-template #notModifiable>
+                    <h4> {{row.paramsFA.controls[rawIndex].value }}</h4>
+                  </ng-template>
+
+                  <ng-template #modifiable>
+                    <mat-form-field>
+                      <input matInput [formControl]="row.paramsFA.controls[rawIndex]" [readonly]="!col.modifiable" />
+                    </mat-form-field>
+                  </ng-template>
                 </ng-template>
 
               </mat-cell>
@@ -112,7 +121,7 @@
               <mat-header-cell *matHeaderCellDef> </mat-header-cell>
               <mat-cell *matCellDef="let row" fxLayoutAlign="center">
                 <button mat-raised-button color="primary" (click)="onParamSubmit(row)"
-                  [disabled]="!isRowModifiable(row) && row.pristine"> set </button>
+                  [disabled]="!isRowModifiable(row) || row.pristine"> set </button>
               </mat-cell>
             </div>
 
