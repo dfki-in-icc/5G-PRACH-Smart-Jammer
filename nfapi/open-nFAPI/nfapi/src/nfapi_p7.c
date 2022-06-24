@@ -3358,9 +3358,9 @@ int nfapi_nr_p7_message_pack(void *pMessageBuf, void *pPackedBuf, uint32_t packe
 	// process the header
 	if(!(push16(pMessageHeader->phy_id, &pWritePackedMessage, end) &&
 		 push16(pMessageHeader->message_id, &pWritePackedMessage, end) &&
-		 push16(0/*pMessageHeader->message_length*/, &pWritePackedMessage, end) &&
+		 push16(pMessageHeader->message_length, &pWritePackedMessage, end) &&
 		 push16(pMessageHeader->m_segment_sequence, &pWritePackedMessage, end) &&
-		 push32(0/*pMessageHeader->checksum*/, &pWritePackedMessage, end) &&
+		 push32(pMessageHeader->checksum, &pWritePackedMessage, end) &&
 		 push32(pMessageHeader->transmit_timestamp, &pWritePackedMessage, end)))
 	{
 		NFAPI_TRACE(NFAPI_TRACE_ERROR, "P7 Pack header failed\n");
