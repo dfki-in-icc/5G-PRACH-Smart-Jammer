@@ -61,6 +61,11 @@ typedef struct {
      char *rootcafile;                    // root ca file  
 } websrv_params_t;
 
-
-
+typedef struct {
+	 int32_t src;                             // message source
+     char    data[1408];                      // 64*22
+} websrv_msg_t;
+extern int websrv_init_websocket(websrv_params_t *websrvparams,char *module); 
+extern void websrv_dump_request(char *label, const struct _u_request *request);
+extern int websrv_string_response(char *astring, struct _u_response * response, int httpstatus) ;
 #endif

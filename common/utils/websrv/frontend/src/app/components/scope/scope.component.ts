@@ -1,6 +1,6 @@
 import { Component } from "@angular/core";
 import { FormControl } from "@angular/forms";
-import { Message, WebSocketService } from "src/app/services/websocket.service";
+import { Message, WebSocketService, webSockSrc } from "src/app/services/websocket.service";
 
 @Component({
   selector: 'app-scope',
@@ -22,12 +22,13 @@ export class ScopeComponent {
   }
 
   sendMsg() {
+	let strcontent = this.messageFC.value;
+	const byteArray = new TextEncoder().encode(strcontent);
     let message = {
-      source: '',
-      content: ''
+      source: webSockSrc.softscope,
+      content: byteArray.buffer
     };
-    message.source = 'localhost';
-    message.content = this.messageFC.value;
+    
 
     this.sent.push(message);
     this.wsService.messages.next(message);

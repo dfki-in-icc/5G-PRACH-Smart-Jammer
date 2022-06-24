@@ -5,11 +5,15 @@ import { AnonymousSubject } from 'rxjs/internal/Subject';
 import { Subject } from 'rxjs';
 import { map } from 'rxjs/operators';
 
-const CHAT_URL = 'ws://' + window.location.hostname + ':8089';
+const websockurl = 'ws://' + window.location.hostname + ":" + window.location.port + "/softscope";
 
+export enum webSockSrc {
+  softscope = 1,
+  logview = 2,
+}
 export interface Message {
-    source: string;
-    content: string;
+    source: webSockSrc;
+    content: ArrayBuffer;
 }
 
 @Injectable()
@@ -18,15 +22,22 @@ export class WebSocketService {
     public messages: Subject<Message>;
 
     constructor() {
-        this.subject = this.create(CHAT_URL);
-        console.log("Successfully connected: " + CHAT_URL);
+        this.subject = this.create(websockurl);
+        console.log("Successfully connected: " + websockurl);
 
         this.messages = <Subject<Message>>this.subject.pipe(
             map(
                 (response: MessageEvent): Message => {
-                    console.log(response.data);
-                    let data = JSON.parse(response.data)
-                    return data;
+                   if(response.data instanceof ArrayBuffer) {
+                      console.log("Received " + response.data.byteLength.toString() + " bytes");
+                      const src = new DataView(response.data, 0, 4);
+                      const enc = new TextDecoder("utf-8");
+                      const data = enc.decode(response.data.slice(4));
+                      console.log(data);                         
+                   } else {
+                     console.log(response.data);
+                   }
+                return response.data;
                 }
             )
         );
@@ -34,6 +45,7 @@ export class WebSocketService {
 
     private create(url: string): AnonymousSubject<MessageEvent> {
         let ws = new WebSocket(url);
+        ws.binaryType = "arraybuffer";
         let observable = new Observable((obs: Observer<MessageEvent>) => {
             ws.onmessage = obs.next.bind(obs);
             ws.onerror = obs.error.bind(obs);
