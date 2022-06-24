@@ -3356,16 +3356,18 @@ int nfapi_nr_p7_message_pack(void *pMessageBuf, void *pPackedBuf, uint32_t packe
 		return -1;
 	}
 	// process the header
-	if(!(push16(pMessageHeader->phy_id, &pWritePackedMessage, end) &&
-		 push16(pMessageHeader->message_id, &pWritePackedMessage, end) &&
-		 push16(pMessageHeader->message_length, &pWritePackedMessage, end) &&
-		 push16(pMessageHeader->m_segment_sequence, &pWritePackedMessage, end) &&
-		 push32(pMessageHeader->checksum, &pWritePackedMessage, end) &&
-		 push32(pMessageHeader->transmit_timestamp, &pWritePackedMessage, end)))
-	{
-		NFAPI_TRACE(NFAPI_TRACE_ERROR, "P7 Pack header failed\n");
-		return -1;
-	}
+	if (!push16(pMessageHeader->phy_id, &pWritePackedMessage, end))
+                return -1;
+	if (!push16(pMessageHeader->message_id, &pWritePackedMessage, end))
+                return -1;
+	if (!push16(pMessageHeader->message_length, &pWritePackedMessage, end))
+                return -1;
+	if (!push16(pMessageHeader->m_segment_sequence, &pWritePackedMessage, end))
+                return -1;
+	if (!push32(pMessageHeader->checksum, &pWritePackedMessage, end))
+                return -1;
+	if (!push32(pMessageHeader->transmit_timestamp, &pWritePackedMessage, end))
+                return -1;
 
         if (pMessageHeader->message_id != NFAPI_TIMING_INFO)
         {
@@ -7920,16 +7922,18 @@ int nfapi_nr_p7_message_unpack(void *pMessageBuf, uint32_t messageBufLen, void *
 	(void)memset(pUnpackedBuf, 0, unpackedBufLen);
 
 	// process the header
-	if(!(pull16(&pReadPackedMessage, &pMessageHeader->phy_id, end) &&
-		 pull16(&pReadPackedMessage, &pMessageHeader->message_id, end) &&
-		 pull16(&pReadPackedMessage, &pMessageHeader->message_length, end) &&
-		 pull16(&pReadPackedMessage, &pMessageHeader->m_segment_sequence, end) &&
-		 pull32(&pReadPackedMessage, &pMessageHeader->checksum, end) &&
-		 pull32(&pReadPackedMessage, &pMessageHeader->transmit_timestamp, end)))
-	{
-		NFAPI_TRACE(NFAPI_TRACE_ERROR, "P7 unpack header failed\n");
-		return -1;
-	}
+	if (!pull16(&pReadPackedMessage, &pMessageHeader->phy_id, end))
+                return -1;
+	if (!pull16(&pReadPackedMessage, &pMessageHeader->message_id, end))
+                return -1;
+	if (!pull16(&pReadPackedMessage, &pMessageHeader->message_length, end))
+                return -1;
+	if (!pull16(&pReadPackedMessage, &pMessageHeader->m_segment_sequence, end))
+                return -1;
+	if (!pull32(&pReadPackedMessage, &pMessageHeader->checksum, end))
+                return -1;
+	if (!pull32(&pReadPackedMessage, &pMessageHeader->transmit_timestamp, end))
+                return -1;
 
 	if((uint8_t*)(pMessageBuf + pMessageHeader->message_length) > end)
 	{
