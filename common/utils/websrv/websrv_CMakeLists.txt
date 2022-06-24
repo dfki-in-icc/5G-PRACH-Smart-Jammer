@@ -17,7 +17,7 @@ endif("${NPM}" STREQUAL "")
 
 # build the backend ( the embedded web server)
 set(WEBSRV_SOURCE
-    ${WEBSRVROOT}/websrv.c
+    ${WEBSRVROOT}/websrv.c ${WEBSRVROOT}/websrv_websockets.c
     )
 add_library(websrv MODULE ${WEBSRV_SOURCE} )
 target_link_libraries(websrv PRIVATE ulfius jansson)

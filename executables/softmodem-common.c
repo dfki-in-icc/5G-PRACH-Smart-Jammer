@@ -118,9 +118,7 @@ void get_common_options(uint32_t execmask) {
     set_softmodem_optmask(SOFTMODEM_TELNETCLT_BIT);
   }
 
-  if (start_telnetsrv) {
-    load_module_shlib("websrv",NULL,0,NULL);
-  }
+
   
   if (logmem_filename != NULL && strlen(logmem_filename) > 0) {
     log_mem_filename = &logmem_filename[0];
@@ -149,7 +147,11 @@ void get_common_options(uint32_t execmask) {
   if (do_forms) {
     set_softmodem_optmask(SOFTMODEM_DOSCOPE_BIT);
   }
-
+  
+  if (start_telnetsrv && start_websrv) {
+    load_module_shlib("websrv",NULL,0,NULL);
+  }
+  
   if(parallel_config != NULL) set_parallel_conf(parallel_config);
 
   if(worker_config != NULL)   set_worker_conf(worker_config);

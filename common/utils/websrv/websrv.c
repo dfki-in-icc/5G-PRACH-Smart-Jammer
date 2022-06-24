@@ -76,9 +76,9 @@ void websrv_gettbldata_response(struct _u_response * response,webdatadef_t * wda
 int websrv_callback_get_softmodemcmd(const struct _u_request * request, struct _u_response * response, void * user_data);
 /*------------------------------------------------------------------------------*/
 /* dump a request                                                               */
-void websrv_dump_request(const struct _u_request *request)
+void websrv_dump_request(char *label, const struct _u_request *request)
 {
-  LOG_I(UTIL,"[websrv] request %s, proto %s, verb %s, path %s\n",request->http_url, request->http_protocol, request->http_verb, request->http_verb);
+  LOG_I(UTIL,"[websrv] %s, request %s, proto %s, verb %s, path %s\n",label, request->http_url, request->http_protocol, request->http_verb, request->http_verb);
   if (request->map_post_body != NULL)
     for (int i=0; i<u_map_count(request->map_post_body) ; i++)
       LOG_I(UTIL,"[websrv] POST parameter %i %s : %s\n",i,u_map_enum_keys(request->map_post_body)[i], u_map_enum_values(request->map_post_body)[i]	);
@@ -90,7 +90,7 @@ void websrv_dump_request(const struct _u_request *request)
       LOG_I(UTIL,"[websrv] header variable %i %s : %s\n",i,u_map_enum_keys(request->map_header)[i], u_map_enum_values(request->map_header)[i]	);
   if (request->map_url != NULL)
     for (int i=0; i<u_map_count(request->map_url) ; i++)
-       LOG_I(UTIL,"[websrv] urlr variable %i %s : %s\n",i,u_map_enum_keys(request->map_url)[i], u_map_enum_values(request->map_url)[i]	);
+       LOG_I(UTIL,"[websrv] url variable %i %s : %s\n",i,u_map_enum_keys(request->map_url)[i], u_map_enum_values(request->map_url)[i]	);
 }
 /*-----------------------------------*/
 /* build a json body in a response */
@@ -285,7 +285,9 @@ FILE *websrv_getfile(char *filename, struct _u_response * response) {
   size_t nl = strlen(filename);
   if ( nl >= 3 && !strcmp(filename + nl - 3, "css"))
      content_type="text/css";
-
+  if ( nl >= 2 && !strcmp(filename + nl - 2, "js"))
+     content_type="text/javascript";
+     
   int ust=ulfius_add_header_to_response(response,"content-type" ,content_type);
   if (ust != U_OK){
 	  ulfius_set_string_body_response(response, 501, "Internal server error (ulfius_add_header_to_response)");
@@ -309,7 +311,7 @@ int websrv_callback_auth(const struct _u_request *request, struct _u_response *r
   size_t lbuf = 0, libuf = 0;
   
   LOG_I(UTIL,"[websrv] authenticating %s %s\n", request->http_verb,request->http_url);
-  websrv_dump_request(request);		
+  websrv_dump_request("authentication ",request);		
 
 
   if (request->client_cert != NULL) {
@@ -323,21 +325,26 @@ int websrv_callback_auth(const struct _u_request *request, struct _u_response *r
       dn[lbuf] = '\0';
       issuer_dn[libuf] = '\0';
       LOG_I(UTIL, "[websrv] dn of the client: %s, dn of the issuer: %s \n", dn,issuer_dn);
-    }
+    } else {
+      LOG_I(UTIL, "[websrv] dn of the client: %s, dn of the issuer: %s \n", (dn==NULL)?"null":dn,(issuer_dn==NULL)?"null":issuer_dn);
+      ulfius_set_string_body_response(response, 400, "Couldn't authenticate client");
+	}
     free(dn);
     free(issuer_dn);
   } else {
-    ulfius_set_string_body_response(response, 400, "Invalid client certificate");
-    return U_CALLBACK_COMPLETE; 
+	LOG_I(UTIL, "No client certificate\n");  
+    //ulfius_set_string_body_response(response, 400, "Invalid client certificate");
+    return U_CALLBACK_CONTINUE; 
   }
+  
 //    return U_CALLBACK_ERROR;
-  return U_CALLBACK_CONTINUE;  
+  return U_CALLBACK_ERROR;  
 }
 /*----------------------------------------------------------------------------------------------*/
 /* callback to answer a request to download a file from  the softmodem (example: a config file  */
 int websrv_callback_get_softmodemfile(const struct _u_request *request, struct _u_response *response, void *user_data) {
   LOG_I(UTIL,"[websrv] %s received: %s %s\n",__FUNCTION__,request->http_verb,request->http_url);
-  websrv_dump_request(request);	
+  websrv_dump_request("get softmodem file ",request);	
   if (request->map_post_body == NULL) {
 	LOG_W(UTIL,"[websrv] No post parameters in: %s %s\n",request->http_verb,request->http_url);
 	websrv_string_response("Invalid file request, no post parameters", response, 404);
@@ -439,7 +446,7 @@ int websrv_callback_get_mainurl(const struct _u_request * request, struct _u_res
 /* default callback tries to find a file in the web server repo (path exctracted from <websrvparams.url>) and if found streams it */
  int websrv_callback_default (const struct _u_request * request, struct _u_response * response, void * user_data) {
   LOG_I(UTIL,"[websrv] Requested file is: %s %s\n",request->http_verb,request->http_url);
-  websrv_dump_request(request);
+  websrv_dump_request("default ", request);
   char *tmpurl = strdup(websrvparams.url);
   char *srvdir = dirname(tmpurl);
   if (srvdir==NULL) {
@@ -967,6 +974,12 @@ void* websrv_autoinit() {
   ulfius_add_endpoint_by_val(&(websrvparams.instance), "GET", "oaisoftmodem", "@module/variables", 10, websrv_callback_newmodule, telnetparams);
   //6 callback to handle file request
   ulfius_add_endpoint_by_val(&(websrvparams.instance), "POST", "oaisoftmodem", "file", 1, &websrv_callback_get_softmodemfile, NULL);
+
+  // init for module specific interfaces */
+  if (IS_SOFTMODEM_DOSCOPE ) {
+	  websrv_init_websocket(&websrvparams,"softscope") ;
+  }
+    
   // Start the framework
   ret=U_ERROR;
   if (websrvparams.keyfile!=NULL && websrvparams.certfile!=NULL) {
@@ -974,7 +987,8 @@ void* websrv_autoinit() {
     char *cert_pem = websrv_read_file(websrvparams.certfile);
     char *root_ca_pem = websrv_read_file(websrvparams.rootcafile);
     if ( key_pem != NULL && cert_pem != NULL) {
-      ulfius_add_endpoint_by_val(&(websrvparams.instance), "*", "", "@anyword/*", 0, &websrv_callback_auth, NULL);	
+      ulfius_add_endpoint_by_val(&(websrvparams.instance), "*", "", "@anyword", 0, &websrv_callback_auth, NULL);
+      LOG_I(UTIL, "[websrv] priority 0 authentication endpoint added/n");	
       if ( root_ca_pem == NULL) 
         ret = ulfius_start_secure_framework(&(websrvparams.instance), key_pem, cert_pem);
       else
