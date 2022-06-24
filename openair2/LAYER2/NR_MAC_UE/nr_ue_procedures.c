@@ -3733,9 +3733,7 @@ void nr_ue_process_mac_pdu(nr_downlink_indication_t *dl_info,
         }
         break;
       case DL_SCH_LCID_PADDING:
-        done = 1;
-        //  end of MAC PDU, can ignore the rest.
-        break;
+        return;
         //  MAC SDU
       case DL_SCH_LCID_DCCH:
         //  check if LCID is valid at current time.
@@ -3745,6 +3743,10 @@ void nr_ue_process_mac_pdu(nr_downlink_indication_t *dl_info,
             {
 	      if (!get_mac_len(pduP, pdu_len, &mac_len, &mac_subheader_len))
 		    return;
+                if (pdu_len < sizeof(NR_MAC_SUBHEADER_FIXED)) {
+                    done = 1;
+                    break;
+                }
                 LOG_D(NR_MAC, "[UE %d] %4d.%2d : DLSCH -> DL-DTCH %d (gNB %d, %d bytes)\n", module_idP, frameP, slot, rx_lcid, gNB_index, mac_len);
 
                 #if defined(ENABLE_MAC_PAYLOAD_DEBUG)

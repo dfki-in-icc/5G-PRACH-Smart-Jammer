@@ -281,15 +281,13 @@ static void process_queued_nr_nfapi_msgs(NR_UE_MAC_INST_t *mac, int sfn_slot)
             NFAPI_SFNSLOT2SFN(dl_tti_sfn_slot), NFAPI_SFNSLOT2SLOT(dl_tti_sfn_slot));
       if (get_softmodem_params()->nsa)
         save_nr_measurement_info(dl_tti_request);
-      free_and_zero(dl_tti_request);
+
     }
     else if (dl_tti_request->dl_tti_request_body.nPDUs > 0 && tx_data_request->Number_of_PDUs > 0)
     {
       if (get_softmodem_params()->nsa)
         save_nr_measurement_info(dl_tti_request);
       check_and_process_dci(dl_tti_request, tx_data_request, NULL, NULL);
-      free_and_zero(dl_tti_request);
-      free_and_zero(tx_data_request);
     }
     else
     {
@@ -300,7 +298,6 @@ static void process_queued_nr_nfapi_msgs(NR_UE_MAC_INST_t *mac, int sfn_slot)
   if (ul_dci_request && ul_dci_request->numPdus > 0)
   {
     check_and_process_dci(NULL, NULL, ul_dci_request, NULL);
-    free_and_zero(ul_dci_request);
   }
 }
 
