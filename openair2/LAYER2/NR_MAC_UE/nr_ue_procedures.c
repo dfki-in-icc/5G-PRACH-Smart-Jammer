@@ -2602,7 +2602,6 @@ static int get_mcs_from_sinr(nr_bler_struct *nr_bler_data, float sinr)
 
   for (int n = NR_NUM_MCS-1; n >= 0; n--)
   {
-    CHECK_INDEX(nr_bler_data, n);
     float largest_sinr = (nr_bler_data[n].bler_table[nr_bler_data[n].length - 1][0]);
     float smallest_sinr = (nr_bler_data[n].bler_table[0][0]);
     if (sinr < largest_sinr && sinr > smallest_sinr)
@@ -2641,6 +2640,7 @@ uint8_t get_cri_ri_pmi_cqi_payload(NR_UE_MAC_INST_t *mac,
   static const uint8_t mcs_to_cqi[] = {0, 1, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9,
                                       10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15};
   float sinr = (mac->nr_ue_emul_l1.cqi - 640) * 0.1;
+  CHECK_INDEX(nr_bler_data, NR_NUM_MCS-1);
   int mcs = get_mcs_from_sinr(nr_bler_data, sinr);
     CHECK_INDEX(mcs_to_cqi, mcs);
   uint8_t cqi_index = mcs_to_cqi[mcs];
