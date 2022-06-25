@@ -27,6 +27,7 @@
 #include "E1AP_E1AP-PDU.h"
 #include "E1AP_TransactionID.h"
 #include "E1AP_PriorityLevel.h"
+#include "ngap_messages_types.h"
 
 #define E1AP_MAX_NUM_TRANSAC_IDS 4
 #define E1AP_MAX_NUM_PLMNS 4
@@ -44,7 +45,7 @@
 #define E1AP_BEARER_CONTEXT_SETUP_RESP(mSGpTR)     (mSGpTR)->ittiMsg.e1ap_bearer_setup_resp
 
 #define E1AP_PORT_NUMBER 25
-#define E1AP_SCTP_PPID 63
+#define E1AP_SCTP_PPID 64
 
 typedef f1ap_net_ip_address_t e1ap_net_ip_address_t;
 
@@ -101,6 +102,7 @@ typedef struct drb_to_setup_s {
 
 typedef struct qos_flow_to_setup_s {
   long id;
+  fiveQI_type_t fiveQI_type;
   long fiveQI;
   long qoSPriorityLevel;
   long packetDelayBudget;
@@ -116,6 +118,9 @@ typedef struct DRB_nGRAN_to_setup_s {
   long defaultDRB;
   long sDAP_Header_UL;
   long sDAP_Header_DL;
+  long pDCP_SN_Size_UL;
+  long pDCP_SN_Size_DL;
+  long rLC_Mode;
   int numCellGroups;
   cell_group_t cellGroupList[E1AP_MAX_NUM_CELL_GROUPS];
   int numQosFlow2Setup;
@@ -138,7 +143,7 @@ typedef struct e1ap_bearer_setup_req_s {
   uint64_t gNB_cu_cp_ue_id;
   uint64_t cipheringAlgorithm;
   char     encryptionKey[128];
-  long     bitRate;
+  long     ueDlAggMaxBitRate;
   PLMN_ID_t servingPLMNid;
   long activityNotificationLevel;
   int numDRBs;

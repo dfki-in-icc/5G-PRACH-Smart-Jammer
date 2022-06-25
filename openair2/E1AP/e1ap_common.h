@@ -41,4 +41,6 @@ int e1ap_assoc_id(E1_t type, instance_t instance);
 int e1ap_encode_send(E1_t type, instance_t instance, E1AP_E1AP_PDU_t *pdu, uint16_t stream, const char *func);
 
 void e1ap_common_init();
+
+void E1AP_free_transaction_identifier(E1AP_TransactionID_t id);
 #endif /* E1AP_COMMON_H_ */

@@ -1321,6 +1321,14 @@ int ngap_gNB_handle_pdusession_setup_request(uint32_t         assoc_id,
   NGAP_PDUSESSION_SETUP_REQ(message_p).gNB_ue_ngap_id = ue_desc_p->gNB_ue_ngap_id;
   NGAP_PDUSESSION_SETUP_REQ(message_p).amf_ue_ngap_id = ue_desc_p->amf_ue_ngap_id;
 
+  /* UE Aggregated Maximum Bitrate */
+  NGAP_FIND_PROTOCOLIE_BY_ID(NGAP_PDUSessionResourceSetupRequestIEs_t, ie, container,
+                         NGAP_ProtocolIE_ID_id_UEAggregateMaximumBitRate, true);
+  asn_INTEGER2ulong(&(ie->value.choice.UEAggregateMaximumBitRate.uEAggregateMaximumBitRateUL),
+                    &NGAP_PDUSESSION_SETUP_REQ(message_p).ueAggMaxBitRateUplink);
+  asn_INTEGER2ulong(&(ie->value.choice.UEAggregateMaximumBitRate.uEAggregateMaximumBitRateDL),
+                    &NGAP_PDUSESSION_SETUP_REQ(message_p).ueAggMaxBitRateDownlink);
+
   NGAP_FIND_PROTOCOLIE_BY_ID(NGAP_PDUSessionResourceSetupRequestIEs_t, ie, container,
                          NGAP_ProtocolIE_ID_id_PDUSessionResourceSetupListSUReq, true);
 
@@ -1334,9 +1342,13 @@ int ngap_gNB_handle_pdusession_setup_request(uint32_t         assoc_id,
       NGAP_PDUSessionResourceSetupRequestTransfer_t    *pdusessionTransfer_p   = NULL;
       NGAP_PDUSessionResourceSetupRequestTransferIEs_t *pdusessionTransfer_ies = NULL;
 
+      // PDU session ID
       item_p = (NGAP_PDUSessionResourceSetupItemSUReq_t *)ie->value.choice.PDUSessionResourceSetupListSUReq.list.array[i];
       NGAP_PDUSESSION_SETUP_REQ(message_p).pdusession_setup_params[i].pdusession_id = item_p->pDUSessionID;
 
+      // S-NSSAI
+      OCTET_STRING_TO_INT32(&item_p->s_NSSAI.sST, NGAP_PDUSESSION_SETUP_REQ(message_p).allowed_nssai[i].sST);
+      OCTET_STRING_TO_INT32(item_p->s_NSSAI.sD, *NGAP_PDUSESSION_SETUP_REQ(message_p).allowed_nssai[i].sD);
 
       // check for the NAS PDU
       if (item_p->pDUSessionNAS_PDU->size > 0 ) {
@@ -1422,10 +1434,14 @@ int ngap_gNB_handle_pdusession_setup_request(uint32_t         assoc_id,
               /* Set the QOS informations */
               NGAP_PDUSESSION_SETUP_REQ(message_p).pdusession_setup_params[i].qos[qosIdx].qfi = (uint8_t)qosFlowItem_p->qosFlowIdentifier;
               if(qosFlowItem_p->qosFlowLevelQosParameters.qosCharacteristics.present == NGAP_QosCharacteristics_PR_nonDynamic5QI){
+                NGAP_PDUSESSION_SETUP_REQ(message_p).pdusession_setup_params[i].qos[qosIdx].fiveQI_type = non_dynamic;
                 if(qosFlowItem_p->qosFlowLevelQosParameters.qosCharacteristics.choice.nonDynamic5QI != NULL){
                   NGAP_PDUSESSION_SETUP_REQ(message_p).pdusession_setup_params[i].qos[qosIdx].fiveQI = 
                     (uint64_t)qosFlowItem_p->qosFlowLevelQosParameters.qosCharacteristics.choice.nonDynamic5QI->fiveQI;
                 }
+              } else if (qosFlowItem_p->qosFlowLevelQosParameters.qosCharacteristics.present == NGAP_QosCharacteristics_PR_dynamic5QI)
+              {
+                NGAP_PDUSESSION_SETUP_REQ(message_p).pdusession_setup_params[i].qos[qosIdx].fiveQI_type = dynamic;
               }
               NGAP_PDUSESSION_SETUP_REQ(message_p).pdusession_setup_params[i].qos[qosIdx].allocation_retention_priority.priority_level =
                 qosFlowItem_p->qosFlowLevelQosParameters.allocationAndRetentionPriority.priorityLevelARP;

@@ -175,6 +175,7 @@ int e1apCUUP_send_SETUP_REQUEST(instance_t instance) {
   ieC1->value.present              = E1AP_GNB_CU_UP_E1SetupRequestIEs__value_PR_TransactionID;
   setup->transac_id = E1AP_get_next_transaction_identifier();
   ieC1->value.choice.TransactionID = setup->transac_id;
+  LOG_I(E1AP, "Transaction ID of setup request %ld\n", setup->transac_id);
   /* mandatory */
   /* c2. GNB_CU_ID (integer value) */
   asn1cSequenceAdd(e1SetupUP->protocolIEs.list, E1AP_GNB_CU_UP_E1SetupRequestIEs_t, ieC2);
@@ -341,11 +342,17 @@ int e1apCUUP_handle_SETUP_RESPONSE(instance_t instance,
   E1AP_GNB_CU_UP_E1SetupResponseIEs_t *ie;
 
   /* transac_id */
-  int transaction_id;
+  long transaction_id;
+  long old_transaction_id = getCxtE1(UPtype, instance)->setupReq.transac_id;
   F1AP_FIND_PROTOCOLIE_BY_ID(E1AP_GNB_CU_UP_E1SetupResponseIEs_t, ie, in,
                              E1AP_ProtocolIE_ID_id_TransactionID, true);
   transaction_id = ie->value.choice.TransactionID;
-  LOG_D(E1AP, "gNB CU UP E1 setup response transaction ID: %d\n", transaction_id);
+  LOG_D(E1AP, "gNB CU UP E1 setup response transaction ID: %ld\n", transaction_id);
+
+  if (old_transaction_id != transaction_id)
+    LOG_E(E1AP, "Transaction IDs do not match %ld != %ld\n", old_transaction_id, transaction_id);
+
+  E1AP_free_transaction_identifier(transaction_id);
 
   /* do the required processing */
 
@@ -527,21 +534,23 @@ int e1apCUCP_send_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
   ieC3->id                         = E1AP_ProtocolIE_ID_id_UEDLAggregateMaximumBitRate;
   ieC3->criticality                = E1AP_Criticality_reject;
   ieC3->value.present              = E1AP_BearerContextSetupRequestIEs__value_PR_BitRate;
-  asn_long2INTEGER(&ieC3->value.choice.BitRate, bearerCxt->bitRate);
+  asn_long2INTEGER(&ieC3->value.choice.BitRate, bearerCxt->ueDlAggMaxBitRate);
   /* mandatory */
   /* c4. Serving PLMN */
   asn1cSequenceAdd(out->protocolIEs.list, E1AP_BearerContextSetupRequestIEs_t, ieC4);
   ieC4->id                         = E1AP_ProtocolIE_ID_id_Serving_PLMN;
   ieC4->criticality                = E1AP_Criticality_ignore;
   ieC4->value.present              = E1AP_BearerContextSetupRequestIEs__value_PR_PLMN_Identity;
-  MCC_MNC_TO_PLMNID(bearerCxt->servingPLMNid.mcc, bearerCxt->servingPLMNid.mnc, bearerCxt->servingPLMNid.mnc_digit_length, &ieC4->value.choice.PLMN_Identity);
+  e1ap_setup_req_t *setup = &getCxtE1(CPtype, instance)->setupReq;
+  PLMN_ID_t *servingPLMN = setup->plmns; // First PLMN is serving PLMN. TODO: Remove hard coding here
+  MCC_MNC_TO_PLMNID(servingPLMN->mcc, servingPLMN->mnc, servingPLMN->mnc_digit_length, &ieC4->value.choice.PLMN_Identity);
   /* mandatory */
   /* Activity Notification Level */
   asn1cSequenceAdd(out->protocolIEs.list, E1AP_BearerContextSetupRequestIEs_t, ieC5);
   ieC5->id                         = E1AP_ProtocolIE_ID_id_ActivityNotificationLevel;
   ieC5->criticality                = E1AP_Criticality_reject;
   ieC5->value.present              = E1AP_BearerContextSetupRequestIEs__value_PR_ActivityNotificationLevel;
-  ieC5->value.choice.ActivityNotificationLevel = bearerCxt->activityNotificationLevel;
+  ieC5->value.choice.ActivityNotificationLevel = 2;// TODO: Remove hard coding
   /* mandatory */
   /*  */
   asn1cSequenceAdd(out->protocolIEs.list, E1AP_BearerContextSetupRequestIEs_t, ieC6);
@@ -612,6 +621,10 @@ int e1apCUCP_send_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
         ieC6_1_1->sDAP_Configuration.sDAP_Header_UL = j->sDAP_Header_UL;
         ieC6_1_1->sDAP_Configuration.sDAP_Header_DL = j->sDAP_Header_DL;
 
+        ieC6_1_1->pDCP_Configuration.pDCP_SN_Size_UL = j->pDCP_SN_Size_UL;
+        ieC6_1_1->pDCP_Configuration.pDCP_SN_Size_DL = j->pDCP_SN_Size_DL;
+        ieC6_1_1->pDCP_Configuration.rLC_Mode        = j->rLC_Mode;
+
         for (cell_group_t *k=j->cellGroupList; k < j->cellGroupList+j->numCellGroups; k++) {
           asn1cSequenceAdd(ieC6_1_1->cell_Group_Information.list, E1AP_Cell_Group_Information_Item_t, ieC6_1_1_1);
           ieC6_1_1_1->cell_Group_ID = k->id;
@@ -621,7 +634,7 @@ int e1apCUCP_send_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
           asn1cSequenceAdd(ieC6_1_1->qos_flow_Information_To_Be_Setup, E1AP_QoS_Flow_QoS_Parameter_Item_t, ieC6_1_1_1);
           ieC6_1_1_1->qoS_Flow_Identifier = k->id;
 
-          if (0) { // non Dynamic 5QI
+          if (k->fiveQI_type == non_dynamic) { // non Dynamic 5QI
             ieC6_1_1_1->qoSFlowLevelQoSParameters.qoS_Characteristics.present = E1AP_QoS_Characteristics_PR_non_Dynamic_5QI;
             asn1cCalloc(ieC6_1_1_1->qoSFlowLevelQoSParameters.qoS_Characteristics.choice.non_Dynamic_5QI, non_Dynamic_5QI);
             non_Dynamic_5QI->fiveQI = k->fiveQI;
@@ -825,7 +838,7 @@ int e1apCUUP_handle_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
                     "ie->criticality != E1AP_Criticality_reject\n");
         AssertFatal(ie->value.present == E1AP_BearerContextSetupRequestIEs__value_PR_BitRate,
                     "ie->value.present != E1AP_BearerContextSetupRequestIEs__value_PR_BitRate\n");
-        asn_INTEGER2long(&ie->value.choice.BitRate, &bearerCxt->bitRate);
+        asn_INTEGER2long(&ie->value.choice.BitRate, &bearerCxt->ueDlAggMaxBitRate);
         break;
 
       case E1AP_ProtocolIE_ID_id_Serving_PLMN:

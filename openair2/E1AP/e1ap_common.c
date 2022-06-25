@@ -96,6 +96,17 @@ E1AP_TransactionID_t E1AP_get_next_transaction_identifier() {
   return genTransacId;
 }
 
+void E1AP_free_transaction_identifier(E1AP_TransactionID_t id) {
+
+  for (int i=0; i < E1AP_MAX_NUM_TRANSAC_IDS; i++) {
+    if (id == transacID[i]) {
+      transacID[i] = 0;
+      return;
+    }
+  }
+  LOG_E(E1AP, "Couldn't find transaction ID %ld in list\n", id);
+}
+
 int e1ap_decode_initiating_message(E1AP_E1AP_PDU_t *pdu) {
   DevAssert(pdu != NULL);
 

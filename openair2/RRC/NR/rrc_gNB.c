@@ -3876,7 +3876,7 @@ void nr_rrc_subframe_process(protocol_ctxt_t *const ctxt_pP, const int CC_id) {
   }
 }
 
-void rrc_gNB_process_e1_setup_req(e1ap_setup_req_t *req, instance_t instance) {
+int rrc_gNB_process_e1_setup_req(e1ap_setup_req_t *req, instance_t instance) {
 
   AssertFatal(req->supported_plmns <= PLMN_LIST_MAX_SIZE, "Supported PLMNs is more than PLMN_LIST_MAX_SIZE\n");
   gNB_RRC_INST *rrc = RC.nrrrc[0]; //TODO: remove hardcoding of RC index here
@@ -3890,10 +3890,13 @@ void rrc_gNB_process_e1_setup_req(e1ap_setup_req_t *req, instance_t instance) {
         rrc->configuration.mnc[i] == req->plmns[i].mnc) {
       LOG_E(NR_RRC, "PLMNs received from CUUP (mcc:%d, mnc:%d) did not match with PLMNs in RRC (mcc:%d, mnc:%d)\n",
             req->plmns[i].mcc, req->plmns[i].mnc, rrc->configuration.mcc[i], rrc->configuration.mnc[i]);
+      return -1;
     }
   }
 
   itti_send_msg_to_task(TASK_CUCP_E1, instance, msg_p);
+
+  return 0;
 }
 
 ///---------------------------------------------------------------------------------------------------------------///
