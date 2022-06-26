@@ -1,45 +1,38 @@
 <div class="grid-container">
-  <mat-grid-list cols="2" rowHeight="200px">
-    <mat-grid-tile [colspan]="2" [rowspan]="1">
+  <mat-grid-list cols="10" rowHeight="100px">
+    <mat-grid-tile [colspan]="10" [rowspan]="1">
       <mat-card class="dashboard-card">
         <mat-card-header>
-          <mat-card-title>Angular + WebSockets</mat-card-title>
+          <mat-card-title>scope status</mat-card-title>
         </mat-card-header>
         <mat-card-content class="dashboard-card-content">
 
           <div FxLayoutAlign="row">
-            <mat-form-field>
-              <input input matInput [formControl]="messageFC" />
-            </mat-form-field>
-            <button (click)="sendMsg()">Send Message</button>
+              <label>{{ scopetime }}&nbsp; &nbsp; </label>
+              <label>{{ scopestatus }}</label>
           </div>
 
         </mat-card-content>
       </mat-card>
     </mat-grid-tile>
 
-    <mat-grid-tile [colspan]="1" [rowspan]="10">
+    <mat-grid-tile [colspan]="1" [rowspan]="20">
       <mat-card class="dashboard-card">
         <mat-card-header>
-          <mat-card-title>Sent Messages</mat-card-title>
+          <mat-card-title>Scope control</mat-card-title>
         </mat-card-header>
         <mat-card-content class="dashboard-card-content">
-          <ul>
-            <li *ngFor="let item of sent">Source: {{item.source}} -> Content {{item.content}}</li>
-          </ul>
+           <div FxLayoutAlign="row">
+            <button (click)="startorstop()">{{startstop}}</button>
+          </div>
         </mat-card-content>
       </mat-card>
     </mat-grid-tile>
 
-    <mat-grid-tile [colspan]="1" [rowspan]="10">
+    <mat-grid-tile [colspan]="9" [rowspan]="20">
       <mat-card class="dashboard-card">
-        <mat-card-header>
-          <mat-card-title>Received Messages</mat-card-title>
-        </mat-card-header>
         <mat-card-content class="dashboard-card-content">
-          <ul>
-            <li *ngFor="let item of received">Source: {{item.source}} -> Content {{item.content}}</li>
-          </ul>
+ 
         </mat-card-content>
       </mat-card>
     </mat-grid-tile>

@@ -39,7 +39,8 @@
  #include "executables/softmodem-common.h"
  #include "time.h"
  #include <arpa/inet.h>
- 
+
+static int scope_started=0;
 /* websocket callbacks as set in callback_websocket, the initial url endpoint which triggers the websocket init */
 void websrv_websocket_onclose_callback (const struct _u_request * request,
                                 struct _websocket_manager * websocket_manager,
@@ -63,26 +64,28 @@ void websrv_websocket_manager_callback(const struct _u_request * request,
     msg.src=htonl(1);
     snprintf(msg.data,sizeof(msg.data),"%d/%d/%d %d:%d:%d",loctime.tm_mday,loctime.tm_mon,loctime.tm_year+1900,loctime.tm_hour,loctime.tm_min,loctime.tm_sec);
 //    Send text message without fragmentation
-    if (ulfius_websocket_wait_close(websocket_manager, 2000) == U_WEBSOCKET_STATUS_OPEN) {
-      if (ulfius_websocket_send_message(websocket_manager, U_WEBSOCKET_OPCODE_TEXT,strlen(msg.data), msg.data ) != U_OK) {
-        LOG_W(UTIL,"Error sending websocket message\n");
-    }
-  }
+//    if (ulfius_websocket_wait_close(websocket_manager, 2000) == U_WEBSOCKET_STATUS_OPEN) {
+//      if (ulfius_websocket_send_message(websocket_manager, U_WEBSOCKET_OPCODE_TEXT,strlen(msg.data), msg.data ) != U_OK) {
+//        LOG_W(UTIL,"Error sending websocket message\n");
+//    }
+//  }
   
 
   // Send ping message
-  if (ulfius_websocket_wait_close(websocket_manager, 2000) == U_WEBSOCKET_STATUS_OPEN) {
-    if (ulfius_websocket_send_message(websocket_manager, U_WEBSOCKET_OPCODE_PING, 0, NULL) != U_OK) {
-      LOG_W(UTIL, "Error send ping message");
-    }
-  }
+ // if (ulfius_websocket_wait_close(websocket_manager, 2000) == U_WEBSOCKET_STATUS_OPEN) {
+ //   if (ulfius_websocket_send_message(websocket_manager, U_WEBSOCKET_OPCODE_PING, 0, NULL) != U_OK) {
+ //     LOG_W(UTIL, "Error send ping message");
+ //   }
+//  }
   sleep(1);
   // Send binary message without fragmentation
-  if (ulfius_websocket_wait_close(websocket_manager, 2000) == U_WEBSOCKET_STATUS_OPEN) {
-   if (ulfius_websocket_send_message(websocket_manager, U_WEBSOCKET_OPCODE_BINARY,strlen(msg.data)+sizeof(msg.src ), (char *)&msg) != U_OK) {
-     LOG_I(UTIL, "Error send binary message without fragmentation");
+  if(scope_started) {
+    if (ulfius_websocket_wait_close(websocket_manager, 2000) == U_WEBSOCKET_STATUS_OPEN) {
+     if (ulfius_websocket_send_message(websocket_manager, U_WEBSOCKET_OPCODE_BINARY,strlen(msg.data)+sizeof(msg.src ), (char *)&msg) != U_OK) {
+       LOG_I(UTIL, "Error send binary message without fragmentation");
+     }
    }
- }
+  }
 
   // Send JSON message without fragmentation
 
@@ -107,7 +110,13 @@ void websrv_websocket_incoming_message_callback (const struct _u_request * reque
     LOG_I(UTIL, "text payload '%.*s'", (int)last_message->data_len, last_message->data);
   } else if (last_message->opcode == U_WEBSOCKET_OPCODE_BINARY) {
 	websrv_msg_t *msg = (websrv_msg_t *)last_message->data;
-    LOG_I(UTIL, "binary payload from %i: %48s\n",msg->src,msg->data);
+    LOG_I(UTIL, "binary payload from %i: %s\n",htonl(msg->src),msg->data);
+    if (strncmp(msg->data,"start",5) == 0){
+        scope_started=1;
+    }
+    if (strncmp(msg->data,"stop",4) == 0){
+        scope_started=0;
+    }   
   }
 }
 

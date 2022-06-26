@@ -10,28 +10,40 @@ import { Message, WebSocketService, webSockSrc } from "src/app/services/websocke
 export class ScopeComponent {
 
   title = 'socketrv';
-  messageFC = new FormControl('');
-  received: Message[] = [];
-  sent: Message[] = [];
-
+  scopetime = '';
+  scopestatus = 'stopped';
+  startstop = 'start';
   constructor(private wsService: WebSocketService) {
-    wsService.messages.subscribe((msg: Message) => {
-      this.received.push(msg);
-      console.log("Response from websocket: " + msg);
+    wsService.messages.subscribe((msg: ArrayBuffer) => {
+      this.ProcessScopeMsg(this.wsService.DeserializeMessage(msg));
     });
   }
-
-  sendMsg() {
-	let strcontent = this.messageFC.value;
-	const byteArray = new TextEncoder().encode(strcontent);
+ 
+  DecodScopeBinmsg(message: ArrayBuffer) {
+     const enc = new TextDecoder("utf-8");
+     return enc.decode(message);
+  }
+  
+  ProcessScopeMsg (message: Message) {
+      this.scopestatus='started';
+      this.startstop='stop';
+      this.scopetime=this.DecodScopeBinmsg(message.content);
+  }
+  
+  sendMsg(strmessage : string) {
+	const byteArray = new TextEncoder().encode(strmessage);
     let message = {
       source: webSockSrc.softscope,
       content: byteArray.buffer
     };
-    
-
-    this.sent.push(message);
-    this.wsService.messages.next(message);
+    this.wsService.messages.next(this.wsService.SerializeMessage(message));
   }
 
+  startorstop() {
+    if (this.scopestatus === 'stopped') {
+        this.sendMsg('start');
+    } else {
+        this.sendMsg('stop');
+    }
+  }
 }
