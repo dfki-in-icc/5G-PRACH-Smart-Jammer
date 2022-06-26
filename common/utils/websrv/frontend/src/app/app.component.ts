@@ -6,5 +6,12 @@ import { Component } from '@angular/core';
   styleUrls: ['./app.component.css'],
 })
 export class AppComponent {
-  title = 'softmodem-ngx';
+  title = 'oai softmodem';
+  isscopeavailable = false;
+  scopelabel = '';
+  constructor() {
+    this.scopelabel = 'Scope';
+    this.isscopeavailable=true;
+  }
+
 }

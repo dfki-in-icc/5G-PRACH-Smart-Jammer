@@ -25,9 +25,15 @@ export class ScopeComponent {
   }
   
   ProcessScopeMsg (message: Message) {
-      this.scopestatus='started';
-      this.startstop='stop';
-      this.scopetime=this.DecodScopeBinmsg(message.content);
+      let msgcontent = this.DecodScopeBinmsg(message.content);
+      if (msgcontent === 'stopped') {
+        this.scopestatus='stopped';
+        this.startstop='start';
+      } else {
+        this.scopestatus='started';
+        this.startstop='stop';
+        this.scopetime=msgcontent;
+      }
   }
   
   sendMsg(strmessage : string) {

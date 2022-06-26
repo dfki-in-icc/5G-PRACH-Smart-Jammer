@@ -105,6 +105,7 @@ void websrv_websocket_incoming_message_callback (const struct _u_request * reque
                                          const struct _websocket_message * last_message,
                                          void * websocket_incoming_message_user_data) {
 
+
   LOG_I(UTIL, "Incoming message,  opcode: 0x%02x, mask: %d, len: %zu\n",  last_message->opcode, last_message->has_mask, last_message->data_len);
   if (last_message->opcode == U_WEBSOCKET_OPCODE_TEXT) {
     LOG_I(UTIL, "text payload '%.*s'", (int)last_message->data_len, last_message->data);
@@ -115,7 +116,13 @@ void websrv_websocket_incoming_message_callback (const struct _u_request * reque
         scope_started=1;
     }
     if (strncmp(msg->data,"stop",4) == 0){
+        websrv_msg_t msg;
+        msg.src=htonl(1);
         scope_started=0;
+        sprintf(msg.data,"stopped");
+        if (ulfius_websocket_send_message(websocket_manager, U_WEBSOCKET_OPCODE_BINARY,strlen(msg.data)+sizeof(msg.src ), (char *)&msg) != U_OK) {
+          LOG_I(UTIL, "Error sending stop ACK");
+     }
     }   
   }
 }
