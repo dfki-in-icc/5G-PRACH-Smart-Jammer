@@ -2,7 +2,7 @@
     <mat-tab label="Commands">
         <app-commands></app-commands>
     </mat-tab>
-    <mat-tab label="Scope">
+    <mat-tab label={{scopelabel}} disabled={{!isscopeavailable}}>
         <app-scope></app-scope>
     </mat-tab>
 </mat-tab-group>
