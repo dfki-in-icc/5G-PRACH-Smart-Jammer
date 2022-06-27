@@ -6,15 +6,15 @@
           <mat-card-title>Connection info</mat-card-title>
         </mat-card-header>
         <mat-card-content class="dashboard-card-content">
-          <div *ngIf="vars$ | async as vars">
-            <div *ngFor="let variable of vars">
+          <div *ngIf="infos$ | async as infos">
+            <div *ngFor="let info of infos">
               <mat-form-field>
-                <mat-label>{{ variable.nameFC.value }}</mat-label>
-                <input input matInput [formControl]="variable.valueFC" [readonly]="!variable.modifiableFC.value" />
+                <mat-label>{{ info.nameFC.value }}</mat-label>
+                <input input matInput [formControl]="info.valueFC" [readonly]="!info.modifiableFC.value" />
               </mat-form-field>
-              <button mat-raised-button color="primary" [disabled]="!variable.modifiableFC.value"
-                (click)="onVarSubmit(variable)">
-                {{ variable.btnTxtFC }}
+              <button mat-raised-button color="primary" [disabled]="!info.modifiableFC.value"
+                (click)="onInfoSubmit(info)">
+                {{ info.btnTxtFC }}
               </button>
             </div>
           </div>
@@ -32,12 +32,12 @@
             <mat-form-field>
               <mat-label>Module</mat-label>
               <mat-select (selectionChange)="onModuleSelect($event.value)">
-                <mat-option *ngFor="let module of modules" [value]="module"> {{ module.nameFC.value }}
+                <mat-option *ngFor="let module of modules" [value]="module"> {{ module.name }}
                 </mat-option>
               </mat-select>
             </mat-form-field>
           </div>
-          <div *ngIf="modulecmds$ | async as cmds">
+          <div *ngIf="cmds$ | async as cmds">
             <div *ngIf="cmds.length">
               <mat-chip-list>
                 <mat-chip *ngFor="let cmd of cmds" (click)="onCmdSubmit(cmd)"> {{cmd.nameFC.value}}
@@ -49,19 +49,19 @@
       </mat-card>
     </mat-grid-tile>
 
-    <mat-grid-tile *ngIf="modulevars$ | async as modulevars" [colspan]="1" [rowspan]="6">
-      <mat-card *ngIf="modulevars.length" class="dashboard-card">
+    <mat-grid-tile *ngIf="vars$ | async as vars" [colspan]="1" [rowspan]="6">
+      <mat-card *ngIf="vars.length" class="dashboard-card">
         <mat-card-header>
-          <mat-card-title>{{ selectedModule!.nameFC.value }} variables</mat-card-title>
+          <mat-card-title>{{ selectedModule!.name }} variables</mat-card-title>
         </mat-card-header>
         <mat-card-content class="dashboard-card-content">
-          <div *ngFor="let variable of modulevars">
+          <div *ngFor="let variable of vars">
             <mat-form-field>
               <mat-label>{{ variable.nameFC.value }}</mat-label>
               <input input matInput [formControl]="variable.valueFC" [readonly]="!variable.modifiableFC.value" />
             </mat-form-field>
             <button mat-raised-button color="primary" [disabled]="!variable.modifiableFC.value"
-              (click)="onModuleVarsubmit(variable)">
+              (click)="onVarsubmit(variable)">
               set
             </button>
           </div>
@@ -72,7 +72,7 @@
     <mat-grid-tile *ngIf="(rows$ | async)?.length" [colspan]="1" [rowspan]="20">
       <mat-card class="dashboard-card">
         <mat-card-header>
-          <mat-card-title>{{ selectedModule!.nameFC.value }} {{ selectedCmd!.name }} </mat-card-title>
+          <mat-card-title>{{ selectedModule!.name }} {{ selectedCmd!.name }} </mat-card-title>
         </mat-card-header>
         <mat-card-content class="dashboard-card-content">
 

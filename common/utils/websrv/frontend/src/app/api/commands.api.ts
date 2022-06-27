@@ -1,12 +1,17 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { environment } from 'src/environments/environment';
-export interface IVariable {
+export interface IInfo {
     name: string;
     value: string;
     type: IArgType;
     modifiable: boolean; //set command ?
 }
+
+export interface IModule {
+    name: string;
+}
+
 
 export enum ILogLvl {
     error = "error",
@@ -37,12 +42,19 @@ export enum ICommandOptions {
     update = "update",
 }
 
+export interface IVariable {
+    name: string;
+    value: string;
+    type: IArgType;
+    modifiable: boolean; //set command ?
+}
+
 export interface ICommand {
     name: string;
     confirm?: string;
     question?: IQuestion;
-    param?: IVariable ;
-    options?:ICommandOptions[];
+    param?: IVariable;
+    options?: ICommandOptions[];
 }
 
 export interface IColumn { //should use IVariable ?
@@ -63,9 +75,9 @@ export interface ITable {
     rows: IRow[];
 }
 export interface IQuestion {
-    display:string;
-    pname:string;
-    type:IArgType;
+    display: string;
+    pname: string;
+    type: IArgType;
 }
 export interface IResp {
     display: string[],
@@ -76,7 +88,7 @@ export interface IParam {
     col?: IColumn
 }
 
-export const route = '/oaisoftmodem';
+export const route = 'oaisoftmodem/';
 
 @Injectable({
     providedIn: 'root',
@@ -84,14 +96,22 @@ export const route = '/oaisoftmodem';
 export class CommandsApi {
     constructor(private httpClient: HttpClient) { }
 
-    public readVariables$ = (moduleName?: string) => this.httpClient.get<IVariable[]>(environment.backend + route + '/' + (moduleName ? ('/' + moduleName) : "") + '/variables/');
+    public readInfos$ = () => this.httpClient.get<IInfo[]>(environment.backend + route + 'variables/');
 
-    public readCommands$ = (moduleName?: string) => this.httpClient.get<ICommand[]>(environment.backend + route + '/' + (moduleName ? ('/' + moduleName) : "") + '/commands/');
+    public setInfo$ = (info: IInfo) => this.httpClient.post<IResp>(environment.backend + route + 'variables/', info);
 
-    public runCommand$ = (command: ICommand, moduleName: string) => this.httpClient.post<IResp>(environment.backend + route + '/' + moduleName + '/commands/', command);
+    public readModules$ = () => this.httpClient.get<IModule[]>(environment.backend + route + 'commands/');
 
-    public setVariable$ = (variable: IVariable, moduleName?: string) => this.httpClient.post<IResp>(environment.backend + route + (moduleName ? ('/' + moduleName) : "") + '/variables/', variable);
+    public readVariables$ = (moduleName: string) => this.httpClient.get<IInfo[]>(environment.backend + route + moduleName + '/variables/');
 
-    public setRow$ = (row: IRow2, moduleName: string) => this.httpClient.post<IResp>(environment.backend + route + '/' + moduleName + '/set', row);
+    public readCommands$ = (moduleName: string) => this.httpClient.get<ICommand[]>(environment.backend + route + moduleName + '/commands/');
+
+    public runCommand$ = (command: ICommand, moduleName: string) => {
+        return this.httpClient.post<IResp>(environment.backend + route + moduleName + '/commands/', command);
+    }
+
+    public setVariable$ = (variable: IInfo, moduleName: string) => this.httpClient.post<IResp>(environment.backend + route + moduleName + '/variables/', variable);
+
+    public setRow$ = (row: IRow2, moduleName: string) => this.httpClient.post<IResp>(environment.backend + route + moduleName + '/set/', row);
 
 }
