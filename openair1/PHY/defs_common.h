@@ -99,7 +99,7 @@
 #define NB_RX_ANTENNAS_MAX 64
 
 
-typedef enum {TDD=1,FDD=0} lte_frame_type_t;
+typedef enum {TDD=1,FDD=0} frame_type_t;
 
 typedef enum {EXTENDED=1,NORMAL=0} lte_prefix_type_t;
 
@@ -597,7 +597,7 @@ typedef struct LTE_DL_FRAME_PARMS {
   /// shift of pilot position in one RB
   uint8_t nushift;
   /// Frame type (0 FDD, 1 TDD)
-  lte_frame_type_t frame_type;
+  frame_type_t frame_type;
   /// TDD subframe assignment (0-7) (default = 3) (254=RX only, 255=TX only)
   uint8_t tdd_config;
   /// TDD S-subframe configuration (0-9)
@@ -907,7 +907,7 @@ typedef enum {no_relay=1,unicast_relay_type1,unicast_relay_type2, multicast_rela
 
 
 
-#define MCS_COUNT 28
+#define MCS_COUNT 29
 #define MCS_TABLE_LENGTH_MAX 64
 
 

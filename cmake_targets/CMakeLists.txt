@@ -208,17 +208,23 @@ if (CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7l")
 else (CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7l")
   if(EXISTS  "/proc/cpuinfo")
     file(STRINGS "/proc/cpuinfo" CPUINFO REGEX flags LIMIT_COUNT 1)
-    if (CPUINFO MATCHES "avx2")
-      set(C_FLAGS_PROCESSOR "${C_FLAGS_PROCESSOR} -mavx2")
+    message("NOAVX512 is ${NOAVX512}")
+    if (CPUINFO MATCHES "avx512bw" AND "${NOAVX512}" STREQUAL "False")
+      set(C_FLAGS_PROCESSOR "${C_FLAGS_PROCESSOR} -mavx512bw -march=skylake-avx512 -mtune=skylake-avx512 " )
       set(COMPILATION_AVX2 "True")
     else()
-      set(COMPILATION_AVX2 "False")
-    endif()
-    if (CPUINFO MATCHES "sse4_1")
-      set(C_FLAGS_PROCESSOR "${C_FLAGS_PROCESSOR} -msse4.1 -mpclmul")
-    endif()
-    if (CPUINFO MATCHES "ssse3")
-      set(C_FLAGS_PROCESSOR "${C_FLAGS_PROCESSOR} -mssse3")
+      if (CPUINFO MATCHES "avx2")
+        set(C_FLAGS_PROCESSOR "${C_FLAGS_PROCESSOR} -mavx2")
+        set(COMPILATION_AVX2 "True")
+      else()
+        set(COMPILATION_AVX2 "False")
+      endif()
+      if (CPUINFO MATCHES "sse4_1")
+        set(C_FLAGS_PROCESSOR "${C_FLAGS_PROCESSOR} -msse4.1 -mpclmul")
+      endif()
+      if (CPUINFO MATCHES "ssse3")
+        set(C_FLAGS_PROCESSOR "${C_FLAGS_PROCESSOR} -mssse3")
+      endif()
     endif()
   else()
     Message("/proc/cpuinfo does not exit. We will use manual CPU flags")
@@ -229,11 +235,11 @@ set(C_FLAGS_PROCESSOR " ${C_FLAGS_PROCESSOR} ${CFLAGS_PROCESSOR_USER}")
 
 Message("C_FLAGS_PROCESSOR is ${C_FLAGS_PROCESSOR}")
 
-if (CMAKE_SYSTEM_PROCESSOR MATCHES "x86")
-  if ( (NOT( C_FLAGS_PROCESSOR MATCHES "ssse3")) OR (NOT( C_FLAGS_PROCESSOR MATCHES "msse4.1")) )
-    Message(FATAL_ERROR "For x86 Architecture, you must have following flags: -mssse3 -msse4.1. The current detected flags are: ${C_FLAGS_PROCESSOR}. You can pass the flags manually in build script, for example: ./build_oai --cflags_processor \"-mssse3 -msse4.1 -mavx2\" ")
-  endif()
-endif()
+#if (CMAKE_SYSTEM_PROCESSOR MATCHES "x86")
+#  if ( (NOT( C_FLAGS_PROCESSOR MATCHES "ssse3")) OR (NOT( C_FLAGS_PROCESSOR MATCHES "msse4.1")) )
+#    Message(FATAL_ERROR "For x86 Architecture, you must have following flags: -mssse3 -msse4.1. The current detected flags are: ${C_FLAGS_PROCESSOR}. You can pass the flags manually in build script, for example: ./build_oai --cflags_processor \"-mssse3 -msse4.1 -mavx2\" ")
+#  endif()
+#endif()
 
 #
 # add autotools definitions that were maybe used!
@@ -252,6 +258,22 @@ add_boolean_option(SANITIZE_ADDRESS False "enable the address sanitizer (ASan)")
 if (SANITIZE_ADDRESS)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address -fno-omit-frame-pointer -fno-common")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer -fno-common")
+  # There seems to be some incompatibility with pthread_create and the RT scheduler, which
+  # results in pthread_create hanging.
+  #
+  # When we switch from Ubuntu 16.04 to 18.04, we found that running with the address sanitizer,
+  # the pthread_create function calls were not working. The inital thought was that we were
+  # trying to create a thread that was not-blocking and would eventually crash the machine during
+  # the run. After more debugging, we found that we would never even start the thread. We narrowed
+  # down the first two instances of pthread_create in the gNB and NR UE to be sctp_eNB_task and
+  # one_thread, respectively. We found that adding sleeps, and various other pauses to the threads
+  # had not effect. From there, we found that if we add an abort(); prior to the thread loop, we
+  # do not execute that. This indicated to us that the problem is not likely to be a non-blocking
+  # thread, but perhaps and issue with pthread_create itself. From there we begain to research the
+  # issue on the web. See: https://github.com/google/sanitizers/issues/1125
+  #
+  # Google searching indicates this appears to be a problem since at least 2018. This could be something
+  # wrong in the pthread library, or something subtly wrong in this CMakeLists.txt. Use Ubuntu 20.04 instead.
 endif ()
 
 add_definitions("-DASN_DISABLE_OER_SUPPORT")
@@ -767,6 +789,7 @@ target_link_libraries(oai_irisdevif SoapySDR)
 
 
 include_directories ("/usr/include/dpdk")
+include_directories ("/usr/include/x86_64-linux-gnu/dpdk")
 
 set(HWLIB_BENETEL_4G_SOURCE
   ${OPENAIR_TARGETS}/ARCH/ETHERNET/benetel/4g/benetel.c
@@ -779,7 +802,7 @@ add_library(benetel_4g MODULE ${HWLIB_BENETEL_4G_SOURCE} )
 
 set_target_properties(benetel_4g PROPERTIES COMPILE_FLAGS "-fvisibility=hidden -I$ENV{RTE_SDK}/$ENV{RTE_TARGET}/include")
 
-SET(DPDK_LIBS "-Wl,-rpath,$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -Wl,--whole-archive -L$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -ldpdk -Wl,--no-whole-archive")
+SET(DPDK_LIBS "-Wl,-rpath,$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -Wl,--whole-archive -L$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib  -Wl,--no-whole-archive")
 TARGET_LINK_LIBRARIES(benetel_4g ${DPDK_LIBS})
 TARGET_LINK_LIBRARIES(benetel_4g pthread dl rt m numa)
 
@@ -801,7 +824,7 @@ add_library(oran_fhlib_4g MODULE ${ORAN_FHLIB_4G_SOURCE})
 
 set_target_properties(oran_fhlib_4g PROPERTIES COMPILE_FLAGS "-fvisibility=hidden -march=native -I$ENV{RTE_SDK}/$ENV{RTE_TARGET}/include")
 
-SET(DPDK_LIBS "-Wl,-rpath,$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -Wl,--whole-archive -L$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -ldpdk -Wl,--no-whole-archive")
+SET(DPDK_LIBS "-Wl,-rpath,$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -Wl,--whole-archive -L$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib  -Wl,--no-whole-archive")
 TARGET_LINK_LIBRARIES(oran_fhlib_4g ${DPDK_LIBS})
 TARGET_LINK_LIBRARIES(oran_fhlib_4g -L${XRAN_LIB_DIR} -lxran)
 TARGET_LINK_LIBRARIES(oran_fhlib_4g -L${INTEL_LIB} -lirc)
@@ -821,7 +844,7 @@ add_library(benetel_5g MODULE ${HWLIB_BENETEL_5G_SOURCE} )
 
 set_target_properties(benetel_5g PROPERTIES COMPILE_FLAGS "-fvisibility=hidden -I$ENV{RTE_SDK}/$ENV{RTE_TARGET}/include")
 
-SET(DPDK_LIBS "-Wl,-rpath,$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -Wl,--whole-archive -L$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -ldpdk -Wl,--no-whole-archive")
+SET(DPDK_LIBS "-Wl,-rpath,$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -Wl,--whole-archive -L$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib  -Wl,--no-whole-archive")
 TARGET_LINK_LIBRARIES(benetel_5g ${DPDK_LIBS})
 TARGET_LINK_LIBRARIES(benetel_5g pthread dl rt m numa)
 
@@ -844,7 +867,7 @@ add_library(oran_fhlib_5g MODULE ${ORAN_FHLIB_5G_SOURCE})
 
 set_target_properties(oran_fhlib_5g PROPERTIES COMPILE_FLAGS "-fvisibility=hidden -march=native -I$ENV{RTE_SDK}/$ENV{RTE_TARGET}/include")
 
-SET(DPDK_LIBS "-Wl,-rpath,$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -Wl,--whole-archive -L$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -ldpdk -Wl,--no-whole-archive")
+SET(DPDK_LIBS "-Wl,-rpath,$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -Wl,--whole-archive -L$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib  -Wl,--no-whole-archive")
 TARGET_LINK_LIBRARIES(oran_fhlib_5g ${DPDK_LIBS})
 TARGET_LINK_LIBRARIES(oran_fhlib_5g -L$ENV{XRAN_LIB_DIR} -lxran)
 #TARGET_LINK_LIBRARIES(oran_fhlib_5g ${XRANFHI})
@@ -1440,8 +1463,11 @@ set(PHY_NR_CODINGIF
 )
 
 add_library(ldpc_orig MODULE ${PHY_LDPC_ORIG_SRC} )
+target_link_libraries(ldpc_orig PRIVATE ldpc_gen_HEADERS)
 add_library(ldpc_optim MODULE ${PHY_LDPC_OPTIM_SRC} )
+target_link_libraries(ldpc_optim PRIVATE ldpc_gen_HEADERS)
 add_library(ldpc_optim8seg MODULE ${PHY_LDPC_OPTIM8SEG_SRC} )
+target_link_libraries(ldpc_optim8seg PRIVATE ldpc_gen_HEADERS)
 add_library(ldpc_cl MODULE ${PHY_LDPC_CL_SRC} )
 target_link_libraries(ldpc_cl OpenCL)
 add_dependencies(ldpc_cl nrLDPC_decoder_kernels_CL)
@@ -1453,6 +1479,7 @@ if (CUDA_FOUND)
 endif (CUDA_FOUND)
 
 add_library(ldpc MODULE ${PHY_LDPC_OPTIM8SEGMULTI_SRC} )
+target_link_libraries(ldpc PRIVATE ldpc_gen_HEADERS)
 
 
 add_library(coding MODULE ${PHY_TURBOSRC} )
@@ -1598,9 +1625,10 @@ set(PHY_SRC_UE
 
   set(PHY_NR_SRC_COMMON
   ${OPENAIR1_DIR}/PHY/NR_TRANSPORT/nr_prach_common.c
-  ${OPENAIR1_DIR}/PHY/NR_UE_TRANSPORT/srs_modulation_nr.c
+  ${OPENAIR1_DIR}/PHY/NR_TRANSPORT/nr_csi_rs.c
   ${OPENAIR1_DIR}/PHY/NR_TRANSPORT/nr_scrambling.c
   ${OPENAIR1_DIR}/PHY/NR_REFSIG/scrambling_luts.c
+  ${OPENAIR1_DIR}/PHY/NR_UE_TRANSPORT/srs_modulation_nr.c
   )
 
   set(PHY_NR_SRC
@@ -1624,7 +1652,6 @@ set(PHY_SRC_UE
   ${OPENAIR1_DIR}/PHY/NR_TRANSPORT/nr_ulsch_demodulation.c
   ${OPENAIR1_DIR}/PHY/NR_REFSIG/ul_ref_seq_nr.c
   ${OPENAIR1_DIR}/PHY/NR_REFSIG/nr_dmrs_rx.c
-  ${OPENAIR1_DIR}/PHY/NR_TRANSPORT/nr_csi_rs.c
   ${OPENAIR1_DIR}/PHY/NR_REFSIG/nr_gold.c
   ${OPENAIR1_DIR}/PHY/NR_REFSIG/nr_gen_mod_table.c
   ${OPENAIR1_DIR}/PHY/NR_REFSIG/dmrs_nr.c
@@ -1672,6 +1699,7 @@ set(PHY_SRC_UE
   ${OPENAIR1_DIR}/PHY/NR_UE_TRANSPORT/dci_nr.c
   ${OPENAIR1_DIR}/PHY/NR_UE_TRANSPORT/dci_tools_nr.c
   ${OPENAIR1_DIR}/PHY/NR_UE_TRANSPORT/pucch_nr.c
+  ${OPENAIR1_DIR}/PHY/NR_UE_TRANSPORT/csi_rx.c
   ${OPENAIR1_DIR}/PHY/NR_TRANSPORT/nr_uci_tools_common.c
   ${OPENAIR1_DIR}/PHY/NR_UE_TRANSPORT/nr_ulsch_ue.c
   ${OPENAIR1_DIR}/PHY/NR_REFSIG/ul_ref_seq_nr.c
@@ -1981,6 +2009,7 @@ set (MAC_SRC_UE
 
 set (MAC_NR_SRC_UE
   ${NR_UE_PHY_INTERFACE_DIR}/NR_IF_Module.c
+  ${NR_UE_PHY_INTERFACE_DIR}/NR_Packet_Drop.c
   ${NR_UE_MAC_DIR}/config_ue.c
   ${NR_UE_MAC_DIR}/mac_vars.c
   ${NR_UE_MAC_DIR}/main_ue_nr.c
@@ -2898,6 +2927,7 @@ target_link_libraries(ldpctest
 add_executable(nr_dlschsim
   ${OPENAIR1_DIR}/SIMULATION/NR_PHY/dlschsim.c
   ${OPENAIR_DIR}/common/utils/nr/nr_common.c
+  ${OPENAIR_DIR}/executables/softmodem-common.c
   ${T_SOURCE}
   ${SHLIB_LOADER_SOURCES}
   )
@@ -2921,6 +2951,7 @@ target_link_libraries(nr_pbchsim
 add_executable(nr_pucchsim
   ${OPENAIR1_DIR}/SIMULATION/NR_PHY/pucchsim.c
   ${OPENAIR_DIR}/common/utils/nr/nr_common.c
+  ${OPENAIR_DIR}/executables/softmodem-common.c
   ${T_SOURCE}
   ${SHLIB_LOADER_SOURCES}
   )
@@ -2965,6 +2996,7 @@ target_link_libraries(nr_prachsim
 add_executable(nr_ulschsim
   ${OPENAIR1_DIR}/SIMULATION/NR_PHY/ulschsim.c
   ${OPENAIR_DIR}/common/utils/nr/nr_common.c
+  ${OPENAIR_DIR}/executables/softmodem-common.c
   ${PHY_INTERFACE_DIR}/queue_t.c
   ${T_SOURCE}
   ${SHLIB_LOADER_SOURCES}
@@ -3206,3 +3238,4 @@ ADD_CUSTOM_TARGET(oarf
 )
 
 include (${OPENAIR_DIR}/common/utils/telnetsrv/telnetsrv_CMakeLists.txt)
+include(${OPENAIR1_DIR}/PHY/CODING/nrLDPC_decoder/nrLDPC_tools/CMakeLists.txt)

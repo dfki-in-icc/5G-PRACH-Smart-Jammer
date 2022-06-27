@@ -106,23 +106,24 @@ queue_t nr_rach_ind_queue;
 
 static void *NRUE_phy_stub_standalone_pnf_task(void *arg);
 
-static int dump_L1_UE_meas_stats(PHY_VARS_NR_UE *ue, char *output, int max_len)
+static size_t dump_L1_UE_meas_stats(PHY_VARS_NR_UE *ue, char *output, size_t max_len)
 {
-  int stroff = 0;
-  stroff += print_meas_log(&ue->phy_proc_tx, "L1 TX processing", NULL, NULL, output);
-  stroff += print_meas_log(&ue->ulsch_encoding_stats, "ULSCH encoding", NULL, NULL, output + stroff);
-  stroff += print_meas_log(&ue->phy_proc_rx[0], "L1 RX processing t0", NULL, NULL, output + stroff);
-  stroff += print_meas_log(&ue->phy_proc_rx[1], "L1 RX processing t1", NULL, NULL, output + stroff);
-  stroff += print_meas_log(&ue->ue_ul_indication_stats, "UL Indication", NULL, NULL, output + stroff);
-  stroff += print_meas_log(&ue->rx_pdsch_stats, "PDSCH receiver", NULL, NULL, output + stroff);
-  stroff += print_meas_log(&ue->dlsch_decoding_stats[0], "PDSCH decoding t0", NULL, NULL, output + stroff);
-  stroff += print_meas_log(&ue->dlsch_decoding_stats[1], "PDSCH decoding t1", NULL, NULL, output + stroff);
-  stroff += print_meas_log(&ue->dlsch_deinterleaving_stats, " -> Deinterleive", NULL, NULL, output + stroff);
-  stroff += print_meas_log(&ue->dlsch_rate_unmatching_stats, " -> Rate Unmatch", NULL, NULL, output + stroff);
-  stroff += print_meas_log(&ue->dlsch_ldpc_decoding_stats, " ->  LDPC Decode", NULL, NULL, output + stroff);
-  stroff += print_meas_log(&ue->dlsch_unscrambling_stats, "PDSCH unscrambling", NULL, NULL, output + stroff);
-  stroff += print_meas_log(&ue->dlsch_rx_pdcch_stats, "PDCCH handling", NULL, NULL, output + stroff);
-  return stroff;
+  const char *begin = output;
+  const char *end = output + max_len;
+  output += print_meas_log(&ue->phy_proc_tx, "L1 TX processing", NULL, NULL, output, end - output);
+  output += print_meas_log(&ue->ulsch_encoding_stats, "ULSCH encoding", NULL, NULL, output, end - output);
+  output += print_meas_log(&ue->phy_proc_rx[0], "L1 RX processing t0", NULL, NULL, output, end - output);
+  output += print_meas_log(&ue->phy_proc_rx[1], "L1 RX processing t1", NULL, NULL, output, end - output);
+  output += print_meas_log(&ue->ue_ul_indication_stats, "UL Indication", NULL, NULL, output, end - output);
+  output += print_meas_log(&ue->rx_pdsch_stats, "PDSCH receiver", NULL, NULL, output, end - output);
+  output += print_meas_log(&ue->dlsch_decoding_stats[0], "PDSCH decoding t0", NULL, NULL, output, end - output);
+  output += print_meas_log(&ue->dlsch_decoding_stats[1], "PDSCH decoding t1", NULL, NULL, output, end - output);
+  output += print_meas_log(&ue->dlsch_deinterleaving_stats, " -> Deinterleive", NULL, NULL, output, end - output);
+  output += print_meas_log(&ue->dlsch_rate_unmatching_stats, " -> Rate Unmatch", NULL, NULL, output, end - output);
+  output += print_meas_log(&ue->dlsch_ldpc_decoding_stats, " ->  LDPC Decode", NULL, NULL, output, end - output);
+  output += print_meas_log(&ue->dlsch_unscrambling_stats, "PDSCH unscrambling", NULL, NULL, output, end - output);
+  output += print_meas_log(&ue->dlsch_rx_pdcch_stats, "PDCCH handling", NULL, NULL, output, end - output);
+  return output - begin;
 }
 
 static void *nrL1_UE_stats_thread(void *param)
@@ -573,17 +574,7 @@ static void UE_synch(void *arg) {
               openair0_cfg[UE->rf_map.card].rx_freq[0],
               openair0_cfg[UE->rf_map.card].tx_freq[0]);
 
-        if (UE->mode != loop_through_memory) {
-          UE->rfdevice.trx_set_freq_func(&UE->rfdevice,&openair0_cfg[0],0);
-          //UE->rfdevice.trx_set_gains_func(&openair0,&openair0_cfg[0]);
-          //UE->rfdevice.trx_stop_func(&UE->rfdevice);
-          // sleep(1);
-          /*if (UE->rfdevice.trx_start_func(&UE->rfdevice) != 0 ) {
-            LOG_E(HW,"Could not start the device\n");
-            oai_exit=1;
-            }*/
-        }
-
+        UE->rfdevice.trx_set_freq_func(&UE->rfdevice,&openair0_cfg[0],0);
         if (UE->UE_scan_carrier == 1) {
           UE->UE_scan_carrier = 0;
         } else {
@@ -602,8 +593,7 @@ static void UE_synch(void *arg) {
 
           LOG_I(PHY, "Initial sync failed: trying carrier off %d Hz\n", freq_offset);
 
-          if (UE->mode != loop_through_memory)
-            UE->rfdevice.trx_set_freq_func(&UE->rfdevice,&openair0_cfg[0],0);
+          UE->rfdevice.trx_set_freq_func(&UE->rfdevice,&openair0_cfg[0],0);
         }
 
         break;
@@ -624,7 +614,7 @@ void processSlotTX(void *arg) {
   int tx_slot_type = nr_ue_slot_select(cfg, proc->frame_tx, proc->nr_slot_tx);
   uint8_t gNB_id = 0;
 
-  LOG_D(PHY,"%d.%d => slot type %d\n",proc->frame_tx,proc->nr_slot_tx,tx_slot_type);
+  LOG_D(PHY,"processSlotTX %d.%d => slot type %d\n",proc->frame_tx,proc->nr_slot_tx,tx_slot_type);
   if (tx_slot_type == NR_UPLINK_SLOT || tx_slot_type == NR_MIXED_SLOT){
 
     // trigger L2 to run ue_scheduler thru IF module
@@ -648,7 +638,7 @@ void processSlotTX(void *arg) {
       stop_meas(&UE->ue_ul_indication_stats);
     }
 
-    if ((UE->mode != loop_through_memory) && (rxtxD->ue_sched_mode != NOT_PUSCH)) {
+    if (rxtxD->ue_sched_mode != NOT_PUSCH) {
       phy_procedures_nrUE_TX(UE,proc,0);
     }
   }
@@ -724,7 +714,8 @@ void processSlotRX(void *arg) {
       LOG_D(PHY, "Sending Uplink data \n");
       nr_ue_pusch_common_procedures(UE,
                                     proc->nr_slot_tx,
-                                    &UE->frame_parms,1);
+                                    &UE->frame_parms,
+                                    UE->frame_parms.nb_antennas_tx);
     }
 
     if (UE->UE_mode[gNB_id] > NOT_SYNCHED && UE->UE_mode[gNB_id] < PUSCH) {
@@ -738,9 +729,10 @@ void processSlotRX(void *arg) {
 
 void dummyWrite(PHY_VARS_NR_UE *UE,openair0_timestamp timestamp, int writeBlockSize) {
   void *dummy_tx[UE->frame_parms.nb_antennas_tx];
-
+  int16_t dummy_tx_data[UE->frame_parms.nb_antennas_tx][2*writeBlockSize]; // 2 because the function we call use pairs of int16_t implicitly as complex numbers
+  memset(dummy_tx_data, 0, sizeof(dummy_tx_data));
   for (int i=0; i<UE->frame_parms.nb_antennas_tx; i++)
-    dummy_tx[i]=malloc16_clear(writeBlockSize*4);
+    dummy_tx[i]=dummy_tx_data[i];
 
   AssertFatal( writeBlockSize ==
                UE->rfdevice.trx_write_func(&UE->rfdevice,
@@ -750,8 +742,6 @@ void dummyWrite(PHY_VARS_NR_UE *UE,openair0_timestamp timestamp, int writeBlockS
                UE->frame_parms.nb_antennas_tx,
                4),"");
 
-  for (int i=0; i<UE->frame_parms.nb_antennas_tx; i++)
-    free(dummy_tx[i]);
 }
 
 void readFrame(PHY_VARS_NR_UE *UE,  openair0_timestamp *timestamp, bool toTrash) {
@@ -793,7 +783,7 @@ void syncInFrame(PHY_VARS_NR_UE *UE, openair0_timestamp *timestamp) {
     *timestamp += UE->frame_parms.get_samples_per_slot(1,&UE->frame_parms);
     for ( int size=UE->rx_offset ; size > 0 ; size -= UE->frame_parms.samples_per_subframe ) {
       int unitTransfer=size>UE->frame_parms.samples_per_subframe ? UE->frame_parms.samples_per_subframe : size ;
-      // we write before read becasue gNB waits for UE to write and both executions halt
+      // we write before read because gNB waits for UE to write and both executions halt
       // this happens here as the read size is samples_per_subframe which is very much larger than samp_per_slot
       if (IS_SOFTMODEM_RFSIM) dummyWrite(UE,*timestamp, unitTransfer);
       AssertFatal(unitTransfer ==

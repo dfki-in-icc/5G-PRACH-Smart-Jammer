@@ -117,7 +117,6 @@ static int nr_dlsch_llr(NR_UE_PDSCH **pdsch_vars,
                         unsigned char first_symbol_flag,
                         unsigned char symbol,
                         unsigned short nb_rb,
-                        unsigned short round,
                         int32_t codeword_TB0,
                         int32_t codeword_TB1,
                         uint32_t len,
@@ -154,7 +153,6 @@ int nr_rx_pdsch(PHY_VARS_NR_UE *ue,
 
   unsigned char aatx=0,aarx=0;
 
-  unsigned short round;
   int avgs = 0;// rb;
   NR_DL_UE_HARQ_t *dlsch0_harq, *dlsch1_harq = NULL;
 
@@ -262,13 +260,6 @@ int nr_rx_pdsch(PHY_VARS_NR_UE *ue,
     return -1;
   }
 
-  dlsch0_harq->Qm = nr_get_Qm_dl(dlsch[0]->harq_processes[harq_pid]->mcs, dlsch[0]->harq_processes[harq_pid]->mcs_table);
-  dlsch0_harq->R = nr_get_code_rate_dl(dlsch[0]->harq_processes[harq_pid]->mcs, dlsch[0]->harq_processes[harq_pid]->mcs_table);
-  if (dlsch0_harq->Qm == 0 || dlsch0_harq->R == 0) {
-    LOG_W(MAC, "Invalid code rate or Mod order, likely due to unexpected DL DCI.\n");
-      return -1;
-  }
-
   #ifdef DEBUG_HARQ
     printf("[DEMOD] MIMO mode = %d\n", dlsch0_harq->mimo_mode);
     printf("[DEMOD] cw for TB0 = %d, cw for TB1 = %d\n", codeword_TB0, codeword_TB1);
@@ -278,8 +269,7 @@ int nr_rx_pdsch(PHY_VARS_NR_UE *ue,
   nb_rb_pdsch =  dlsch0_harq->nb_rb;
 
   DevAssert(dlsch0_harq);
-  round = dlsch0_harq->round;
-  //printf("round = %d\n", round);
+
 
   if (gNB_id > 2) {
     LOG_W(PHY, "In %s: Illegal gNB_id %d\n", __FUNCTION__, gNB_id);
@@ -329,7 +319,8 @@ int nr_rx_pdsch(PHY_VARS_NR_UE *ue,
                        dlsch0_harq->n_dmrs_cdm_groups,
                        dlsch0_harq->Nl,
                        frame_parms,
-                       dlsch0_harq->dlDmrsSymbPos);
+                       dlsch0_harq->dlDmrsSymbPos,
+                       ue->chest_time);
   stop_meas(&ue->generic_stat_bis[proc->thread_id][slot]);
   if (cpumeas(CPUMEAS_GETSTATE))
     LOG_D(PHY, "[AbsSFN %u.%d] Slot%d Symbol %d type %d: Pilot/Data extraction %5.2f \n",
@@ -522,7 +513,7 @@ int nr_rx_pdsch(PHY_VARS_NR_UE *ue,
                      rx_type, harq_pid,
                      gNB_id, gNB_id_i,
                      first_symbol_flag,
-                     i, nb_rb_pdsch, round,
+                     i, nb_rb_pdsch,
                      codeword_TB0, codeword_TB1,
                      pdsch_vars[gNB_id]->dl_valid_re[i-1],
                      nr_slot_rx, beamforming_mode);
@@ -1620,7 +1611,8 @@ unsigned short nr_dlsch_extract_rbs_single(int **rxdataF,
                                            unsigned short nb_rb_pdsch,
                                            uint8_t n_dmrs_cdm_groups,
                                            NR_DL_FRAME_PARMS *frame_parms,
-                                           uint16_t dlDmrsSymbPos)
+                                           uint16_t dlDmrsSymbPos,
+                                           int chest_time_type)
 {
   if (config_type == NFAPI_NR_DMRS_TYPE1) {
     AssertFatal(n_dmrs_cdm_groups == 1 || n_dmrs_cdm_groups == 2,
@@ -1631,7 +1623,12 @@ unsigned short nr_dlsch_extract_rbs_single(int **rxdataF,
   }
 
   const unsigned short start_re = (frame_parms->first_carrier_offset + start_rb * NR_NB_SC_PER_RB) % frame_parms->ofdm_symbol_size;
-  const int8_t validDmrsEst     = get_valid_dmrs_idx_for_channel_est(dlDmrsSymbPos, symbol);
+  int8_t validDmrsEst;
+
+  if (chest_time_type == 0)
+    validDmrsEst = get_valid_dmrs_idx_for_channel_est(dlDmrsSymbPos,symbol);
+  else
+    validDmrsEst = get_next_dmrs_symbol_in_slot(dlDmrsSymbPos,0,14); // get first dmrs symbol index
 
   for (unsigned char aarx = 0; aarx < frame_parms->nb_antennas_rx; aarx++) {
 
@@ -1718,7 +1715,8 @@ void nr_dlsch_extract_rbs(int **rxdataF,
                           uint8_t n_dmrs_cdm_groups,
                           uint8_t Nl,
                           NR_DL_FRAME_PARMS *frame_parms,
-                          uint16_t dlDmrsSymbPos)
+                          uint16_t dlDmrsSymbPos,
+                          int chest_time_type)
 {
 
   unsigned short k,rb;
@@ -1736,7 +1734,10 @@ void nr_dlsch_extract_rbs(int **rxdataF,
     nushift = (n_dmrs_cdm_groups -1)<<1;//delta in Table 7.4.1.1.2-2
   }
 
-  validDmrsEst = get_valid_dmrs_idx_for_channel_est(dlDmrsSymbPos,symbol);
+  if (chest_time_type == 0)
+    validDmrsEst = get_valid_dmrs_idx_for_channel_est(dlDmrsSymbPos,symbol);
+  else
+    validDmrsEst = get_next_dmrs_symbol_in_slot(dlDmrsSymbPos,0,14); // get first dmrs symbol index
 
   for (aarx=0; aarx<frame_parms->nb_antennas_rx; aarx++) {
 
@@ -2479,7 +2480,6 @@ static int nr_dlsch_llr(NR_UE_PDSCH **pdsch_vars,
                         unsigned char first_symbol_flag,
                         unsigned char symbol,
                         unsigned short nb_rb,
-                        unsigned short round,
                         int32_t codeword_TB0,
                         int32_t codeword_TB1,
                         uint32_t len,
@@ -2604,7 +2604,7 @@ static int nr_dlsch_llr(NR_UE_PDSCH **pdsch_vars,
   }
 
   if (dlsch1_harq) {
-    switch (nr_get_Qm_dl(dlsch1_harq->mcs,dlsch1_harq->mcs_table)) {
+    switch (dlsch1_harq->Qm) {
     case 2 :
       if (rx_type==rx_standard) {
         nr_dlsch_qpsk_llr(frame_parms,
