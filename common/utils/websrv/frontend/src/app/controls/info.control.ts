@@ -2,7 +2,7 @@ import { FormControl, FormGroup } from '@angular/forms';
 import { IInfo } from '../api/commands.api';
 import { IArgType } from '../api/commands.api';
 
-const enum VariablesFCN {
+const enum InfosFCN {
   name = 'name',
   value = "value",
   type = "type",
@@ -10,15 +10,15 @@ const enum VariablesFCN {
 }
 
 
-export class VarCtrl extends FormGroup {
+export class InfoCtrl extends FormGroup {
   type: IArgType;
   constructor(ivar: IInfo) {
     super({});
     this.type = ivar.type;
-    this.addControl(VariablesFCN.name, new FormControl(ivar.name));
-    this.addControl(VariablesFCN.value, new FormControl(ivar.value));
-    this.addControl(VariablesFCN.type, new FormControl(ivar.type));
-    this.addControl(VariablesFCN.modifiable, new FormControl(ivar.modifiable));
+    this.addControl(InfosFCN.name, new FormControl(ivar.name));
+    this.addControl(InfosFCN.value, new FormControl(ivar.value));
+    this.addControl(InfosFCN.type, new FormControl(ivar.type));
+    this.addControl(InfosFCN.modifiable, new FormControl(ivar.modifiable));
   }
 
   api() {
@@ -33,35 +33,35 @@ export class VarCtrl extends FormGroup {
   }
 
   get nameFC() {
-    return this.get(VariablesFCN.name) as FormControl;
+    return this.get(InfosFCN.name) as FormControl;
   }
 
   set nameFC(control: FormControl) {
-    this.setControl(VariablesFCN.name, control);
+    this.setControl(InfosFCN.name, control);
   }
 
   get valueFC() {
-    return this.get(VariablesFCN.value) as FormControl;
+    return this.get(InfosFCN.value) as FormControl;
   }
 
   set valueFC(control: FormControl) {
-    this.setControl(VariablesFCN.value, control);
+    this.setControl(InfosFCN.value, control);
   }
 
   get typeFC() {
-    return this.get(VariablesFCN.type) as FormControl;
+    return this.get(InfosFCN.type) as FormControl;
   }
 
   set typeFC(control: FormControl) {
-    this.setControl(VariablesFCN.type, control);
+    this.setControl(InfosFCN.type, control);
   }
 
   get modifiableFC() {
-    return this.get(VariablesFCN.modifiable) as FormControl;
+    return this.get(InfosFCN.modifiable) as FormControl;
   }
 
   set modifiableFC(control: FormControl) {
-    this.setControl(VariablesFCN.modifiable, control);
+    this.setControl(InfosFCN.modifiable, control);
   }
 
   get btnTxtFC() {

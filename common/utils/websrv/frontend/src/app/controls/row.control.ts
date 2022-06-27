@@ -15,6 +15,7 @@ export class RowCtrl extends FormGroup {
   }
 
   api() {
+
     const doc: IRow2 = {
       rawIndex: this.row.rawIndex,
       cmdName: this.row.cmdName,

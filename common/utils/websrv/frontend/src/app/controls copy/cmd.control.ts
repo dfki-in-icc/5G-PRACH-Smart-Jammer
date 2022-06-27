@@ -1,7 +1,7 @@
 import { FormArray, FormControl, FormGroup } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { Observable } from 'rxjs/internal/Observable';
-import { ICommand, ICommandOptions, IQuestion } from 'src/app/api/commands.api';
+import { ICommand, ICommandOptions, IQuestion } from '../api/commands.api';
 
 const enum CmdFCN {
   name = 'name',
@@ -44,6 +44,10 @@ export class CmdCtrl extends FormGroup {
     };
 
     return doc;
+  }
+
+  modulename() {
+    return this.cmdname;
   }
 
   isResUpdatable(): boolean {
