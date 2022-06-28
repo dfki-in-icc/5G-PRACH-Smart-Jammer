@@ -37,6 +37,16 @@ export class RowsFA extends FormArray {
       }
     })
 
+    const iparams: IParam[] = this.row.params.map(param => {
+      switch (param.col?.type) {
+        case IArgType.boolean:
+          return this.controls[this.row.rawIndex].value as string;
+
+        default:
+          return this.controls[this.row.rawIndex].value
+      }
+    })
+
     const doc: IRow = {
       rawIndex: this.row.rawIndex,
       cmdName: this.row.cmdName,
