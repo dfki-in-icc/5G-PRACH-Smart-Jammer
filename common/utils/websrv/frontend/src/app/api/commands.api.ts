@@ -32,6 +32,7 @@ export enum ILogOutput {
 export enum IArgType {
     boolean = "boolean",
     list = "list",
+    loglvl = "loglvl",
     range = "range",
     number = "number",
     string = "string",
@@ -56,23 +57,9 @@ export interface ICommand {
     param?: IVariable;
     options?: ICommandOptions[];
 }
-
-export interface IColumn { //should use IVariable ?
-    name: string;
-    type: IArgType;
-    modifiable: boolean; //set command ?
-}
-
-export type IRow = string[]
-
-export interface IRow2 {
-    params: IParam[],
-    rawIndex: number,
-    cmdName: string
-}
 export interface ITable {
     columns: IColumn[];
-    rows: IRow[];
+    rows: string[];
 }
 export interface IQuestion {
     display: string;
@@ -83,9 +70,21 @@ export interface IResp {
     display: string[],
     table?: ITable
 }
+
 export interface IParam {
     value: string,
     col?: IColumn
+}
+
+export interface IColumn { //should use IVariable ?
+    name: string;
+    type: IArgType;
+    modifiable: boolean; //set command ?
+}
+export interface IRow {
+    params: IParam[],
+    rawIndex: number,
+    cmdName: string
 }
 
 export const route = 'oaisoftmodem/';
@@ -106,12 +105,10 @@ export class CommandsApi {
 
     public readCommands$ = (moduleName: string) => this.httpClient.get<ICommand[]>(environment.backend + route + moduleName + '/commands/');
 
-    public runCommand$ = (command: ICommand, moduleName: string) => {
-        return this.httpClient.post<IResp>(environment.backend + route + moduleName + '/commands/', command);
-    }
+    public runCommand$ = (command: ICommand, moduleName: string) => this.httpClient.post<IResp>(environment.backend + route + moduleName + '/commands/', command);
 
-    public setVariable$ = (variable: IInfo, moduleName: string) => this.httpClient.post<IResp>(environment.backend + route + moduleName + '/variables/', variable);
+    public setCmdVariable$ = (variable: IInfo, moduleName: string) => this.httpClient.post<IResp>(environment.backend + route + moduleName + '/variables/', variable);
 
-    public setRow$ = (row: IRow2, moduleName: string) => this.httpClient.post<IResp>(environment.backend + route + moduleName + '/set/', row);
+    public setCmdParams$ = (row: IRow, moduleName: string) => this.httpClient.post<IResp>(environment.backend + route + moduleName + '/set/', row);
 
 }

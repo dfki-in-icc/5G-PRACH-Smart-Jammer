@@ -4,7 +4,7 @@ import { forkJoin, timer } from 'rxjs';
 import { Observable } from 'rxjs/internal/Observable';
 import { of } from 'rxjs/internal/observable/of';
 import { map } from 'rxjs/internal/operators/map';
-import { CommandsApi, IArgType, IColumn, ICommand, IInfo, IParam } from 'src/app/api/commands.api';
+import { CommandsApi, IArgType, IColumn, ICommand, IInfo, IParam, IRow } from 'src/app/api/commands.api';
 import { CmdCtrl } from 'src/app/controls/cmd.control';
 import { InfoCtrl } from 'src/app/controls/info.control';
 import { ModuleCtrl } from 'src/app/controls/module.control';
@@ -90,7 +90,7 @@ export class CommandsComponent {
   }
 
   onVarsubmit(control: VarCtrl) {
-    this.commandsApi.setVariable$(control.api(), this.selectedModule!.name)
+    this.commandsApi.setCmdVariable$(control.api(), this.selectedModule!.name)
       .pipe(
         map(resp => this.dialogService.openVarRespDialog(resp))
       ).subscribe();
@@ -150,11 +150,13 @@ export class CommandsComponent {
             })
           }
 
-          controls[rawIndex] = new RowCtrl({
+          const irow: IRow = {
             params: params,
             rawIndex: rawIndex,
             cmdName: this.selectedCmd!.name
-          })
+          }
+
+          controls[rawIndex] = new RowCtrl(irow)
         }
       }
       this.rows$ = of(controls)
@@ -169,7 +171,7 @@ export class CommandsComponent {
   }
 
   onParamSubmit(control: RowCtrl) {
-    this.commandsApi.setRow$(control.api(), this.selectedModule!.name).subscribe();
+    this.commandsApi.setCmdParams$(control.api(), this.selectedModule!.name).subscribe();
   }
 
   isRowModifiable(control: RowCtrl) {
