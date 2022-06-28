@@ -127,6 +127,7 @@ typedef struct telnetsrv_qmsg {
 #define TELNET_CHECKVAL_RDONLY      16
 #define TELNET_CHECKVAL_BOOL        32
 #define TELNET_VAR_NEEDFREE         64
+#define TELNET_CHECKVAL_LOGLVL      128
 typedef struct variabledef {
     char varname[TELNET_CMD_MAXSIZE];
     char vartype;

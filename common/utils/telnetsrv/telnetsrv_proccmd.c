@@ -325,7 +325,7 @@ int proccmd_websrv_getdata(char *cmdbuff, int debug, void *data, telnet_printfun
 		snprintf(logsdata->columns[0].coltitle,TELNET_CMD_MAXSIZE,"component");
         logsdata->columns[0].coltype = TELNET_VARTYPE_STRING | TELNET_CHECKVAL_RDONLY;
 		snprintf(logsdata->columns[1].coltitle,TELNET_CMD_MAXSIZE,"level");
-        logsdata->columns[1].coltype = TELNET_VARTYPE_STRING;
+        logsdata->columns[1].coltype = TELNET_VARTYPE_STRING|TELNET_CHECKVAL_LOGLVL;
 		snprintf(logsdata->columns[2].coltitle,TELNET_CMD_MAXSIZE,"enabled");
         logsdata->columns[2].coltype = TELNET_CHECKVAL_BOOL;
 		snprintf(logsdata->columns[3].coltitle,TELNET_CMD_MAXSIZE,"in file");

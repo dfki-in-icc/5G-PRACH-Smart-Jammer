@@ -199,6 +199,8 @@ void websrv_gettbldata_response(struct _u_response * response,webdatadef_t * wda
     for (int i=0; i<wdata->numcols; i++) {
       if(wdata->columns[i].coltype & TELNET_CHECKVAL_BOOL)
         coltype="boolean";
+      else if (wdata->columns[i].coltype & TELNET_CHECKVAL_LOGLVL)
+        coltype="loglvl";    
       else if (wdata->columns[i].coltype & TELNET_VARTYPE_STRING)
         coltype="string";
       else
