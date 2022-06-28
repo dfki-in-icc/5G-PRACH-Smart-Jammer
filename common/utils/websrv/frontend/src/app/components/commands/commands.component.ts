@@ -135,7 +135,6 @@ export class CommandsComponent {
     this.commandsApi.runCommand$(control!.api(), this.selectedModule!.name).subscribe(resp => {
       if (resp.display[0]) this.dialogService.updateCmdDialog(control, resp, 'cmd ' + control.nameFC.value + ' response:')
       //          else return of(resp)
-
       const controls: RowCtrl[] = []
       this.displayedColumns = []
 
@@ -160,7 +159,7 @@ export class CommandsComponent {
             cmdName: this.selectedCmd!.name
           }
 
-          controls[rawIndex] = new RowCtrl(irow)
+          controls[rawIndex] = new RowsFA(irow)
         }
       }
       this.rows$.next(controls)

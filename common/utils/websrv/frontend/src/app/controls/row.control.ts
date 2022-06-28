@@ -1,46 +1,46 @@
-import { FormArray, FormControl, FormGroup } from '@angular/forms';
+
+import { FormArray, FormControl } from '@angular/forms';
 import { IArgType, IParam, IRow } from '../api/commands.api';
-import { ParamCtrl } from './param.control';
 
 
+export class RowsFA extends FormArray {
 
-enum RowFCN {
-  paramsFA = 'params',
-}
+  constructor(public row: IRow) {
+    super([])
 
+    row.params.map(param => {
+      switch (param.col?.type) {
+        case IArgType.boolean:
+          this.controls[row.rawIndex] = new FormControl((param.value === 'true') ? true : false);
+          break;
 
-export class RowCtrl extends FormGroup {
+        case IArgType.loglvl:
+          this.controls[row.rawIndex] = new FormControl(param.value);
+          break;
 
-  cmdName: string
-  rawIndex: number
+        default:
+          this.controls[row.rawIndex] = new FormControl(param.value)
+      }
+    })
+  }
 
   constructor(row: IRow) {
     super({})
 
-    this.cmdName = row.cmdName
-    this.rawIndex = row.rawIndex
+    const iparams: IParam[] = this.row.params.map(param => {
+      switch (param.col?.type) {
+        case IArgType.boolean:
+          return this.controls[this.row.rawIndex].value as string;
 
-    this.addControl(RowFCN.paramsFA, new FormArray(row.params.map(param => new ParamCtrl(param))))
-  }
-
-  get paramsFA() {
-    return this.get(RowFCN.paramsFA) as FormArray
-  }
-
-  set paramsFA(fa: FormArray) {
-    this.setControl(RowFCN.paramsFA, fa);
-  }
-
-  get paramsCtrls(): ParamCtrl[] {
-    return this.paramsFA.controls as ParamCtrl[]
-  }
-
-  api() {
+        default:
+          return this.controls[this.row.rawIndex].value
+      }
+    })
 
     const doc: IRow = {
-      rawIndex: this.rawIndex,
-      cmdName: this.cmdName,
-      params: this.paramsCtrls.map(control => control.api())
+      rawIndex: this.row.rawIndex,
+      cmdName: this.row.cmdName,
+      params: iparams
     }
 
     return doc
