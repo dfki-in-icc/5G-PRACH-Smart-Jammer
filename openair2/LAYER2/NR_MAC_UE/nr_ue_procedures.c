@@ -3605,6 +3605,9 @@ void nr_ue_process_mac_pdu(nr_downlink_indication_t *dl_info,
         //  MSG4 RRC Setup 38.331
         //  variable length
         ret=get_mac_len(pduP, pdu_len, &mac_len, &mac_subheader_len);
+        if (!ret) {
+                return;
+        }
         AssertFatal(ret, "The mac_len (%d) has an invalid size. PDU len = %d! \n",
                     mac_len, pdu_len);
 

@@ -479,7 +479,7 @@ int vnf_nr_p7_pack_and_send_p7_msg(vnf_p7_t* vnf_p7, nfapi_p7_message_header_t* 
 	if(p7_connection)
 	{
 		int send_result = 0;
-		uint8_t  buffer[1024 * 32];
+		uint8_t  buffer[NFAPI_MAX_PACKED_MESSAGE_SIZE];
 
 		header->m_segment_sequence = NFAPI_P7_SET_MSS(0, 0, p7_connection->sequence_number);
 		
