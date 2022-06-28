@@ -1,5 +1,5 @@
 import { FormArray, FormGroup } from '@angular/forms';
-import { IRow2 } from '../api/commands.api';
+import { IRow } from '../api/commands.api';
 import { ParamFC } from './param.control';
 
 const enum RowFCN {
@@ -8,7 +8,7 @@ const enum RowFCN {
 
 export class RowCtrl extends FormGroup {
 
-  constructor(public row: IRow2) {
+  constructor(public row: IRow) {
     super({});
 
     this.addControl(RowFCN.params, new FormArray(row.params.map(param => new ParamFC(param))))
@@ -16,7 +16,7 @@ export class RowCtrl extends FormGroup {
 
   api() {
 
-    const doc: IRow2 = {
+    const doc: IRow = {
       rawIndex: this.row.rawIndex,
       cmdName: this.row.cmdName,
       params: this.paramsFA.controls.map(fc => (fc as ParamFC).api())
