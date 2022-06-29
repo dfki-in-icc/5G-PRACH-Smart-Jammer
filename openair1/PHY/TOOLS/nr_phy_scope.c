@@ -27,7 +27,15 @@
 #include "nr_phy_scope.h"
 #include "executables/softmodem-common.h"
 #include "executables/nr-softmodem-common.h"
+#ifndef WEBSRVSCOPE
 #include <forms.h>
+#  define STATICFORTHISCOMPILE static
+#else
+#include "common/utils/websrv/websrv_noforms.h"
+#  define STATICFORTHISCOMPILE
+#  include <ulfius.h>
+#endif
+#include "common/utils/websrv/websrv.h"
 
 #define TPUT_WINDOW_LENGTH 100
 #define ScaleZone 4
@@ -450,7 +458,7 @@ static void puschThroughtput (OAIgraph_t *graph, scopeData_t *p, int nb_UEs) {
   //    fl_set_xyplot_ybounds(form->pusch_tput,0,ymax);
   */
 }
-static OAI_phy_scope_t *create_phy_scope_gnb(void) {
+STATICFORTHISCOMPILE OAI_phy_scope_t *create_phy_scope_gnb(void) {
   FL_OBJECT *obj;
   OAI_phy_scope_t *fdui = calloc(( sizeof *fdui ),1);
   // Define form
@@ -792,7 +800,7 @@ static void uePdschThroughput  (scopeGraphData_t **data, OAIgraph_t *graph, PHY_
   fl_set_xyplot_ybounds(form->pdsch_tput,0,tput_ue_max[UE_id]);
   */
 }
-static OAI_phy_scope_t *create_phy_scope_nrue( int ID ) {
+STATICFORTHISCOMPILE OAI_phy_scope_t *create_phy_scope_nrue( int ID ) {
   FL_OBJECT *obj;
   OAI_phy_scope_t *fdui = calloc(( sizeof *fdui ),1);
   // Define form

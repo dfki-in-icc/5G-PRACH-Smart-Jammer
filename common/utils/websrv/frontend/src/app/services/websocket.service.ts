@@ -8,13 +8,16 @@ import { map } from 'rxjs/operators';
 const websockurl = 'ws://' + window.location.hostname + ":" + window.location.port + "/softscope";
 
 export enum webSockSrc {
-  softscope = 1,
-  logview = 2,
+  softscope = "s".charCodeAt(0),
+  logview = "l".charCodeAt(0),
 }
 export interface Message {
     source: webSockSrc;
+    msgtype: number;
     content: ArrayBuffer;
 }
+
+export const arraybuf_data_offset=4;
 
 @Injectable()
 export class WebSocketService {
@@ -33,7 +36,7 @@ export class WebSocketService {
                       return response.data;            
                    } else {
                      console.log(response.data);
-                     return new ArrayBuffer(5);
+                     return new ArrayBuffer(arraybuf_data_offset+1); //minimum size empty message
                    }
                 
                 }
@@ -64,19 +67,16 @@ export class WebSocketService {
     }
     
     public SerializeMessage( msg: Message) : ArrayBuffer {
-        let buff = new ArrayBuffer(msg.content.byteLength+4);
-        let fullbuff = new Uint8Array(buff, 0, buff.byteLength).set(new Uint8Array(msg.content), 4);
+        let buff = new ArrayBuffer(msg.content.byteLength+8);   // 64 bits (8 bytes) header 
+        let fullbuff = new Uint8Array(buff, 0, buff.byteLength).set(new Uint8Array(msg.content), 8);
         let buffview = new DataView(buff);
-        buffview.setInt32(0,msg.source);
-        
+        buffview.setUint8(0,msg.source);
+        buffview.setUint8(1,msg.msgtype);
         return buffview.buffer;      
     }
 
     public DeserializeMessage( msg: ArrayBuffer) : Message {
-        const src = new DataView(msg, 0, 4);
-
-        
-        
-        return { source: src.getInt32(0), content: msg.slice(4)};      
+        const src = new DataView(msg, 0, 8);       
+        return { source: src.getUint8(0), msgtype:  src.getUint8(1), content: msg.slice(8)};      
     }
 }

@@ -977,10 +977,10 @@ void* websrv_autoinit() {
   //6 callback to handle file request
   ulfius_add_endpoint_by_val(&(websrvparams.instance), "POST", "oaisoftmodem", "file", 1, &websrv_callback_get_softmodemfile, NULL);
 
-  // init for module specific interfaces */
-  if (IS_SOFTMODEM_DOSCOPE ) {
-	  websrv_init_websocket(&websrvparams,"softscope") ;
-  }
+  // init websocket */
+
+   websrv_init_websocket(&websrvparams,"softscope") ;
+
     
   // Start the framework
   ret=U_ERROR;
