@@ -253,7 +253,7 @@ NR_PDSCH_TimeDomainResourceAllocationList_t *choose_dl_tda_list(NR_PDSCH_Config_
     return(pdsch_TimeDomainAllocationList);
 }
 
-NR_PUSCH_TimeDomainResourceAllocationList_t *choose_ul_tda_list(NR_PUSCH_Config_t *pusch_Config,NR_PUSCH_ConfigCommon_t *pusch_ConfigCommon) {
+NR_PUSCH_TimeDomainResourceAllocationList_t *choose_ul_tda_list(const NR_PUSCH_Config_t *pusch_Config,NR_PUSCH_ConfigCommon_t *pusch_ConfigCommon) {
 
     NR_PUSCH_TimeDomainResourceAllocationList_t *pusch_TimeDomainAllocationList=NULL;
 
@@ -579,7 +579,7 @@ int8_t nr_ue_process_dci_time_dom_resource_assignment(NR_UE_MAC_INST_t *mac,
   if(pusch_config_pdu != NULL){
     if (pusch_TimeDomainAllocationList && use_default==false) {
       if (time_domain_ind >= pusch_TimeDomainAllocationList->list.count) {
-        LOG_E(MAC, "time_domain_ind %d >= pusch->TimeDomainAllocationList->list.count %d\n",
+        LOG_E(NR_MAC, "time_domain_ind %d >= pusch->TimeDomainAllocationList->list.count %d\n",
               time_domain_ind, pusch_TimeDomainAllocationList->list.count);
         pusch_config_pdu->start_symbol_index=0;
         pusch_config_pdu->nr_of_symbols=0;
@@ -2433,11 +2433,9 @@ int8_t nr_ue_get_SR(module_id_t module_idP, frame_t frameP, slot_t slot){
     // start the sr-prohibittimer : rel 9 and above
     if (mac->scheduling_info.sr_ProhibitTimer > 0) { // timer configured
       mac->scheduling_info.sr_ProhibitTimer--;
-      mac->scheduling_info.
-      sr_ProhibitTimer_Running = 1;
+      mac->scheduling_info.sr_ProhibitTimer_Running = 1;
     } else {
-      mac->scheduling_info.
-      sr_ProhibitTimer_Running = 0;
+      mac->scheduling_info.sr_ProhibitTimer_Running = 0;
     }
     //mac->ul_active =1;
     return (1);   //instruct phy to signal SR

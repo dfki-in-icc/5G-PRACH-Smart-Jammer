@@ -941,7 +941,7 @@ void tci_handling(NR_UE_info_t *UE, frame_t frame, slot_t slot) {
   uint8_t idx = 0;
 
   NR_UE_sched_ctrl_t *sched_ctrl = &UE->UE_sched_ctrl;
-  const int bwp_id = sched_ctrl->active_bwp ? 1 : 0;
+  const int bwp_id = sched_ctrl->active_bwp ? sched_ctrl->active_bwp->bwp_Id : 0;
   NR_CellGroupConfig_t *CellGroup = UE->CellGroup;
 
   //bwp indicator
@@ -1903,7 +1903,7 @@ void nr_sr_reporting(gNB_MAC_INST *nrmac, frame_t SFN, sub_frame_t slot)
   UE_iterator(nrmac->UE_info.list, UE) {
     NR_UE_sched_ctrl_t *sched_ctrl = &UE->UE_sched_ctrl;
 
-    if (sched_ctrl->ul_failure==1) continue;
+    if (sched_ctrl->ul_failure==1 || sched_ctrl->rrc_processing_timer>0) continue;
     NR_PUCCH_Config_t *pucch_Config = NULL;
     if (sched_ctrl->active_ubwp) {
       pucch_Config = sched_ctrl->active_ubwp->bwp_Dedicated->pucch_Config->choice.setup;
@@ -1915,7 +1915,6 @@ void nr_sr_reporting(gNB_MAC_INST *nrmac, frame_t SFN, sub_frame_t slot)
              UE->CellGroup->spCellConfig->spCellConfigDedicated->uplinkConfig->initialUplinkBWP->pucch_Config->choice.setup) {
       pucch_Config = UE->CellGroup->spCellConfig->spCellConfigDedicated->uplinkConfig->initialUplinkBWP->pucch_Config->choice.setup;
     }
-
     else continue;
     if (!pucch_Config->schedulingRequestResourceToAddModList) 
         continue;

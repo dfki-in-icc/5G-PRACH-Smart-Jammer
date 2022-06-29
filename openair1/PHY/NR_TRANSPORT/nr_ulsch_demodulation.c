@@ -3307,6 +3307,17 @@ int nr_rx_pusch_tp(PHY_VARS_gNB *gNB,
       }
     }
   }
+
+  if (gNB->chest_time == 1) { // averaging time domain channel estimates
+    nr_chest_time_domain_avg(frame_parms,
+                             gNB->pusch_vars[ulsch_id]->ul_ch_estimates,
+                             rel15_ul->nr_of_symbols,
+                             rel15_ul->start_symbol_index,
+                             rel15_ul->ul_dmrs_symb_pos,
+                             rel15_ul->rb_size);
+
+    gNB->pusch_vars[ulsch_id]->dmrs_symbol = get_next_dmrs_symbol_in_slot(rel15_ul->ul_dmrs_symb_pos, rel15_ul->start_symbol_index, rel15_ul->nr_of_symbols);
+  }
   stop_meas(&gNB->ulsch_channel_estimation_stats);
 
   start_meas(&gNB->rx_pusch_init_stats);
