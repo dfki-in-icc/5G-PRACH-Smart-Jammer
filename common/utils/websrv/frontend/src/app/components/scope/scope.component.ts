@@ -35,7 +35,11 @@ export class ScopeComponent {
     wsService.messages.subscribe((msg: ArrayBuffer) => {
       this.ProcessScopeMsg(this.wsService.DeserializeMessage(msg));
     });
+    this.sendMsg(SCOPEMSG_TYPE_STATUSUPD,'init');
   }
+  
+  ngOnInit() {
+  } 
  
   DecodScopeBinmsg(message: ArrayBuffer) {
      const enc = new TextDecoder("utf-8");
