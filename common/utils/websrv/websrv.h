@@ -61,10 +61,26 @@ typedef struct {
      char *rootcafile;                    // root ca file  
 } websrv_params_t;
 
+#define WEBSOCK_SRC_SCOPE                's'
 typedef struct {
-	 int32_t src;                             // message source
+	 unsigned char src;                       // message source
+	 unsigned char msgtype;                   // message type
+	 unsigned char hdr_unused[6];             // 6 unused char
      char    data[1408];                      // 64*22
 } websrv_msg_t;
+#define WEBSOCK_HEADSIZE (offsetof(websrv_msg_t, data))
+
+#define SCOPE_STATUSMASK_STARTED         1    // scope running or not
+
+#define SCOPEMSG_TYPE_STATUSUPD          1    // 
+#define SCOPEMSG_TYPE_REFRATE            2    //
+#define SCOPEMSG_TYPE_TIME               3    //
+#define SCOPEMSG_TYPE_DEFINEWINDOW       20   //
+typedef struct {
+	 uint64_t statusmask;                     // 
+	 uint32_t refrate;                        // in ms
+} websrv_scope_params_t;
+
 extern int websrv_init_websocket(websrv_params_t *websrvparams,char *module); 
 extern void websrv_dump_request(char *label, const struct _u_request *request);
 extern int websrv_string_response(char *astring, struct _u_response * response, int httpstatus) ;

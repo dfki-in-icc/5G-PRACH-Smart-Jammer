@@ -13,5 +13,7 @@ export class AppComponent {
     this.scopelabel = 'Scope';
     this.isscopeavailable=true;
   }
-
+  ScopeDisabled( disabled: boolean) {
+    this.isscopeavailable= !disabled; ;
+  }
 }

@@ -23,8 +23,12 @@
         </mat-card-header>
         <mat-card-content class="dashboard-card-content">
            <div FxLayoutAlign="row">
-            <button (click)="startorstop()">{{startstop}}</button>
-          </div>
+             <button (click)="startorstop()">{{startstop}}</button>
+           </div>
+           <div class="scope-slider">
+             <ngx-slider (userChange)="OnRefrateChange()" [(value)]="rfrate" [options]="options" formControlName="sliderControl"></ngx-slider>
+             <label for="rfrate"> refresh rate {{rfrate}}</label>
+           </div>         
         </mat-card-content>
       </mat-card>
     </mat-grid-tile>
