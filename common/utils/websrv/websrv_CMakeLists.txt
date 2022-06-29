@@ -16,12 +16,13 @@ if ("${NPM}" STREQUAL "")
 endif("${NPM}" STREQUAL "")
 
 # build the backend ( the embedded web server)
+
 set(WEBSRV_SOURCE
-    ${WEBSRVROOT}/websrv.c ${WEBSRVROOT}/websrv_websockets.c
+    ${WEBSRVROOT}/websrv.c ${WEBSRVROOT}/websrv_websockets.c ${OPENAIR_DIR}/openair1/PHY/TOOLS/nr_phy_scope.c
     )
 add_library(websrv MODULE ${WEBSRV_SOURCE} )
 target_link_libraries(websrv PRIVATE ulfius jansson)
-
+target_compile_definitions(websrv PUBLIC WEBSRVSCOPE)
 
 # build the frontend ( loaded from web server by browsers)
 add_custom_target (

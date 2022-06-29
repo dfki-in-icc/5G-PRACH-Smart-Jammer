@@ -1,6 +1,7 @@
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import { HttpClientModule } from '@angular/common/http';
 import { NgModule } from '@angular/core';
+import { NgxSliderModule } from '@angular-slider/ngx-slider';
 import { FlexLayoutModule } from '@angular/flex-layout';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -49,6 +50,7 @@ import { WebSocketService } from './services/websocket.service';
     FlexLayoutModule,
     MatDialogModule,
     DragDropModule,
+    NgxSliderModule,
     MatFormFieldModule,
     MatInputModule,
     ReactiveFormsModule,
