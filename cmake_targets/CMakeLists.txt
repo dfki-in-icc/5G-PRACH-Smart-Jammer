@@ -271,6 +271,7 @@ if (SANITIZE_ADDRESS)
   # wrong in the pthread library, or something subtly wrong in this CMakeLists.txt. Use Ubuntu 20.04 instead.
 endif ()
 
+add_boolean_option(INHIBIT_REALTIME_SCHEDULER False "Inhibit realtime scheduler")
 add_definitions("-DASN_DISABLE_OER_SUPPORT")
 
 #########################

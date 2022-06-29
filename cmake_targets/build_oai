@@ -455,6 +455,10 @@ function main() {
             grep -sq "Ubuntu 18.04" /etc/os-release && echo_error "Bug in OS with this option, see CMakeLists.txt"
             CMAKE_CMD="$CMAKE_CMD -DSANITIZE_ADDRESS=True"
             shift;;
+        --inhibit-rt)
+            grep -sq "Ubuntu 16.04" /etc/os-release && echo_error "Are you sure you want to inhibit the RT scheduler?"
+            CMAKE_CMD="$CMAKE_CMD -DINHIBIT_REALTIME_SCHEDULER=True"
+            shift;;
         --ittiSIM)
             ittiSIM=1
             CMAKE_CMD="$CMAKE_CMD -DITTI_SIM=True"
