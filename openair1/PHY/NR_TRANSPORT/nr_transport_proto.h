@@ -106,6 +106,8 @@ NR_gNB_DLSCH_t *new_gNB_dlsch(NR_DL_FRAME_PARMS *frame_parms,
                               uint8_t abstraction_flag,
                               uint16_t N_RB);
 
+void free_gNB_dlsch(NR_gNB_DLSCH_t **dlschptr, uint16_t N_RB, const NR_DL_FRAME_PARMS* frame_parms);
+
 /** \brief This function is the top-level entry point to PUSCH demodulation, after frequency-domain transformation and channel estimation.  It performs
     - RB extraction (signal and channel estimates)
     - channel compensation (matched filtering)
@@ -134,21 +136,22 @@ int nr_rx_pusch(PHY_VARS_gNB *gNB,
     @param nb_rb_pusch The number of RBs allocated (used for Resource Allocation Type 1 in NR)
     @param frame_parms, Pointer to frame descriptor structure
 */
-void nr_ulsch_extract_rbs_single(int32_t **rxdataF,
-                                 NR_gNB_PUSCH *pusch_vars,
-                                 int slot,
-                                 unsigned char symbol,
-                                 uint8_t is_dmrs_symbol,
-                                 nfapi_nr_pusch_pdu_t *pusch_pdu,
-                                 NR_DL_FRAME_PARMS *frame_parms);
+void nr_ulsch_extract_rbs(int32_t **rxdataF,
+                          NR_gNB_PUSCH *pusch_vars,
+                          int slot,
+                          unsigned char symbol,
+                          uint8_t is_dmrs_symbol,
+                          nfapi_nr_pusch_pdu_t *pusch_pdu,
+                          NR_DL_FRAME_PARMS *frame_parms);
 
 void nr_ulsch_scale_channel(int32_t **ul_ch_estimates_ext,
                             NR_DL_FRAME_PARMS *frame_parms,
-                            NR_gNB_ULSCH_t **ulsch_gNB,
-                            uint8_t symbol,
-                            uint8_t start_symbol,
-                            uint16_t nb_rb,
-                            pusch_dmrs_type_t pusch_dmrs_type);
+                            NR_gNB_ULSCH_t *ulsch_gNB,
+                            uint8_t symbol, 
+                            uint8_t is_dmrs_symbol,                           
+                            uint32_t len,
+                            uint8_t nrOfLayers,
+                            uint16_t nb_rb);
 
 /** \brief This function computes the average channel level over all allocated RBs and antennas (TX/RX) in order to compute output shift for compensated signal
     @param ul_ch_estimates_ext Channel estimates in allocated RBs
@@ -182,9 +185,10 @@ void nr_ulsch_channel_compensation(int **rxdataF_ext,
                                 int **ul_ch_mag,
                                 int **ul_ch_magb,
                                 int **rxdataF_comp,
-                                int **rho,
+                                int ***rho,
                                 NR_DL_FRAME_PARMS *frame_parms,
                                 unsigned char symbol,
+                                int length,
                                 uint8_t is_dmrs_symbol,
                                 unsigned char mod_order,
                                 uint8_t  nrOfLayers,
@@ -252,8 +256,8 @@ void nr_ulsch_64qam_llr(int32_t *rxdataF_comp,
     @param mod_order modulation order
 */
 void nr_ulsch_compute_llr(int32_t *rxdataF_comp,
-                          int32_t **ul_ch_mag,
-                          int32_t **ul_ch_magb,
+                          int32_t *ul_ch_mag,
+                          int32_t *ul_ch_magb,
                           int16_t  *ulsch_llr,
                           uint32_t nb_rb,
                           uint32_t nb_re,
@@ -296,6 +300,7 @@ int16_t find_nr_prach(PHY_VARS_gNB *gNB,int frame,int slot, find_type_t type);
 int16_t find_nr_prach_ru(RU_t *ru,int frame,int slot, find_type_t type);
 
 NR_gNB_PUCCH_t *new_gNB_pucch(void);
+void free_gNB_pucch(NR_gNB_PUCCH_t *pucch);
 
 void nr_fill_pucch(PHY_VARS_gNB *gNB,
                    int frame,
@@ -308,6 +313,7 @@ int nr_find_pucch(uint16_t rnti,
                   PHY_VARS_gNB *gNB);
 
 NR_gNB_SRS_t *new_gNB_srs(void);
+void free_gNB_srs(NR_gNB_SRS_t *srs);
 
 int nr_find_srs(uint16_t rnti,
                 int frame,
@@ -331,10 +337,11 @@ void init_prach_ru_list(RU_t *ru);
 void free_nr_ru_prach_entry(RU_t *ru, int prach_id);
 uint8_t get_nr_prach_duration(uint8_t prach_format);
 
-void nr_generate_csi_rs(PHY_VARS_gNB *gNB,
+void nr_generate_csi_rs(NR_DL_FRAME_PARMS frame_parms,
+                        int32_t **dataF,
                         int16_t amp,
-                        nfapi_nr_dl_tti_csi_rs_pdu_rel15_t csi_params,
-                        uint16_t cell_id,
+                        nr_csi_rs_info_t *nr_csi_rs_info,
+                        nfapi_nr_dl_tti_csi_rs_pdu_rel15_t *csi_params,
                         int slot);
 
 void free_nr_prach_entry(PHY_VARS_gNB *gNB, int prach_id);

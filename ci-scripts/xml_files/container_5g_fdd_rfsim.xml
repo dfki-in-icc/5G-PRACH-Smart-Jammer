@@ -33,12 +33,10 @@
  000013
  020011
  020012
- 100011
-        </TestCaseRequestedList>
-<!-- Not done yet because of code instability
  030011
  030012
--->
+ 100011
+        </TestCaseRequestedList>
         <TestCaseExclusionList></TestCaseExclusionList>
 
         <testCase id="000010">
@@ -104,13 +102,15 @@
                 <server_container_name>rfsim5g-oai-ext-dn</server_container_name>
                 <client_container_name>rfsim5g-oai-nr-ue</client_container_name>
                 <server_options>-u -i 1 -s</server_options>
-                <client_options>-B 12.1.1.2 -c 192.168.72.135 -u -i 1 -t 30 -b 1M</client_options>
+                <client_options>-B 12.1.1.2 -c 192.168.72.135 -u -i 1 -t 30 -b 3M</client_options>
         </testCase>
 
         <testCase id="100011">
                 <class>UndeployGenObject</class>
                 <desc>Undeploy all OAI 5G stack</desc>
                 <yaml_path>yaml_files/5g_fdd_rfsimulator</yaml_path>
+                <d_retx_th>5,0,0,0</d_retx_th>
+                <u_retx_th>5,0,0,0</u_retx_th>
         </testCase>
 
 </testCaseList>

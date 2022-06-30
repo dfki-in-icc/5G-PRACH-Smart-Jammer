@@ -59,7 +59,7 @@
 #include "defs_common.h"
 #include "impl_defs_top.h"
 
-#include "PHY/TOOLS/time_meas.h"
+#include "time_meas.h"
 #include "PHY/CODING/coding_defs.h"
 #include "PHY/TOOLS/tools_defs.h"
 #include "platform_types.h"
@@ -154,7 +154,6 @@ typedef struct {
 
   int sub_frame_start;
   int sub_frame_step;
-  unsigned long long gotIQs;
 } UE_rxtx_proc_t;
 
 /// Context data structure for eNB subframe processing
@@ -834,10 +833,10 @@ typedef struct {
   pthread_mutex_t timer_mutex;
   pthread_cond_t timer_cond;
   int instance_cnt_timer;
-
   /// RF and Interface devices per CC
 
   openair0_device rfdevice;
+  void *scopeData;
 } PHY_VARS_UE;
 
 /* this structure is used to pass both UE phy vars and

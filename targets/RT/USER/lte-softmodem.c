@@ -75,7 +75,6 @@ unsigned short config_frames[4] = {2,9,11,13};
 #include "common/utils/LOG/vcd_signal_dumper.h"
 #include "UTIL/OPT/opt.h"
 #include "enb_config.h"
-//#include "PHY/TOOLS/time_meas.h"
 
 #ifndef OPENAIR2
   #include "UTIL/OTG/otg_vars.h"
@@ -104,7 +103,6 @@ pthread_cond_t nfapi_sync_cond;
 pthread_mutex_t nfapi_sync_mutex;
 int nfapi_sync_var=-1; //!< protected by mutex \ref nfapi_sync_mutex
 
-uint16_t sf_ahead=4;
 
 pthread_cond_t sync_cond;
 pthread_mutex_t sync_mutex;
