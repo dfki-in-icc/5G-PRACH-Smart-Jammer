@@ -120,8 +120,8 @@
             <div matColumnDef="button">
               <mat-header-cell *matHeaderCellDef> </mat-header-cell>
               <mat-cell *matCellDef="let row" fxLayoutAlign="center">
-                <button mat-raised-button color="primary" (click)="onParamSubmit(row)"
-                  [disabled]="!isRowModifiable(row) || row.pristine"> set </button>
+                <button mat-raised-button color="primary" (click)="onParamSubmit(row)" [disabled]="row.pristine"> set
+                </button>
               </mat-cell>
             </div>
 
