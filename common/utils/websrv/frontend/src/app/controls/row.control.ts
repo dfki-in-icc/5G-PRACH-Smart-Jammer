@@ -1,44 +1,72 @@
-import { FormArray, FormControl } from '@angular/forms';
+import { FormArray, FormControl, FormGroup } from '@angular/forms';
 import { IArgType, IParam, IRow } from '../api/commands.api';
+import { ParamCtrl } from './param.control';
 
 
-export class RowsFA extends FormArray {
 
-  constructor(public row: IRow) {
-    super([])
+enum RowFCN {
+  paramsFA = 'params',
+}
 
-    row.params.map(param => {
-      switch (param.col?.type) {
+
+export class RowCtrl extends FormGroup {
+
+  cmdName: string
+  rawIndex: number
+
+  constructor(row: IRow) {
+    super({})
+
+    this.cmdName = row.cmdName
+    this.rawIndex = row.rawIndex
+
+    this.addControl(RowFCN.paramsFA, new FormArray(row.params.map(param => {
+      let control: FormControl
+      switch (param.col.type) {
         case IArgType.boolean:
-          this.controls[row.rawIndex] = new FormControl((param.value === 'true') ? true : false);
+          control = new FormControl((param.value === 'true') ? true : false);
           break;
 
         case IArgType.loglvl:
-          this.controls[row.rawIndex] = new FormControl(param.value);
+          control = new FormControl(param.value);
           break;
 
         default:
-          this.controls[row.rawIndex] = new FormControl(param.value)
+          control = new FormControl(param.value)
       }
-    })
+
+      if (!param.col.modifiable) control.disable()
+
+      return control
+
+    })))
+
+  }
+
+  get paramsFA() {
+    return this.get(RowFCN.paramsFA) as FormArray
+  }
+
+  set paramsFA(fa: FormArray) {
+    this.setControl(RowFCN.paramsFA, fa);
+  }
+
+  get paramsCtrls(): ParamCtrl[] {
+    return this.paramsFA.controls as ParamCtrl[]
+  }
+
+  addParamCtrl = (control: ParamCtrl) => {
+    this.paramsFA.push(control)
+
+    return this
   }
 
   api() {
 
-    const iparams: IParam[] = this.row.params.map(param => {
-      switch (param.col?.type) {
-        case IArgType.boolean:
-          return this.controls[this.row.rawIndex].value as string;
-
-        default:
-          return this.controls[this.row.rawIndex].value
-      }
-    })
-
     const doc: IRow = {
-      rawIndex: this.row.rawIndex,
-      cmdName: this.row.cmdName,
-      params: iparams
+      rawIndex: this.rawIndex,
+      cmdName: this.cmdName,
+      params: this.paramsCtrls.map(control => control.api())
     }
 
     return doc
