@@ -1225,6 +1225,15 @@ int RCconfig_RRC(uint32_t i, eNB_RRC_INST *rrc, int macrlc_has_f1) {
               }
 
               switch (ccparams_lte.N_RB_DL) {
+                case 6:
+                  if ((ccparams_lte.ue_multiple_max < 1) ||
+                      (ccparams_lte.ue_multiple_max > 4))
+                    AssertFatal (0,
+                                 "Failed to parse eNB configuration file %s, enb %u unknown value \"%d\" for ue_multiple_max choice: 1..4!\n",
+                                 RC.config_file_name, i, ccparams_lte.ue_multiple_max);
+
+                  break;
+
                 case 25:
                   if ((ccparams_lte.ue_multiple_max < 1) ||
                       (ccparams_lte.ue_multiple_max > 4))
@@ -1497,6 +1506,7 @@ int RCconfig_RRC(uint32_t i, eNB_RRC_INST *rrc, int macrlc_has_f1) {
               RRC_CONFIGURATION_REQ (msg_p).radioresourceconfig[j].ue_multiple_max= ccparams_lte.ue_multiple_max;
 
               switch (ccparams_lte.N_RB_DL) {
+                case 6:
                 case 25:
                   if ((ccparams_lte.ue_multiple_max < 1) ||
                       (ccparams_lte.ue_multiple_max > 4))

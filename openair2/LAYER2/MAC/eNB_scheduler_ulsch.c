@@ -1351,6 +1351,11 @@ schedule_ulsch(module_id_t module_idP,
      * This is totally arbitrary and might even be wrong.
      */
     switch (to_prb(cc[CC_id].ul_Bandwidth)) {
+      case 6:
+        cc->vrb_map_UL[0] = 1;
+        cc->vrb_map_UL[6] = 1;
+        break;
+
       case 25:
         cc->vrb_map_UL[0] = 1;
         cc->vrb_map_UL[24] = 1;

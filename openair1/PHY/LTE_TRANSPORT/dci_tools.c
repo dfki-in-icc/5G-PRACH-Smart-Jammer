@@ -1568,13 +1568,32 @@ void fill_mdci_and_dlsch(PHY_VARS_eNB *eNB,L1_rxtx_proc_t *proc,mDCI_ALLOC_t *dc
   }
 
   AssertFatal (fp->frame_type == FDD, "TDD is not supported yet for eMTC\n");
-  AssertFatal (fp->N_RB_DL == 25 || fp->N_RB_DL == 50 || fp->N_RB_DL == 100, "eMTC only with N_RB_DL = 25,50,100\n");
+  AssertFatal (fp->N_RB_DL == 6 || fp->N_RB_DL == 25 || fp->N_RB_DL == 50 || fp->N_RB_DL == 100, "eMTC only with N_RB_DL = 6,25,50,100\n");
 
   switch (rel13->dci_format) {
-    case 10:                     // Format 6-1A
+    case 10:
+    {
+      // Format 6-1A
       dci_alloc->format = format6_1A;
 
       switch (fp->N_RB_DL) {
+
+       case 6:
+          dci_alloc->dci_length = sizeof_DCI6_1A_1_4MHz_t;
+          ((DCI6_1A_1_4MHz_t *) dci_pdu)->type = 1;
+          ((DCI6_1A_1_4MHz_t *) dci_pdu)->hopping = rel13->frequency_hopping_enabled_flag;
+          ((DCI6_1A_1_4MHz_t *) dci_pdu)->rballoc = rel13->resource_block_coding;
+          ((DCI6_1A_1_4MHz_t *) dci_pdu)->mcs = rel13->mcs;
+          ((DCI6_1A_1_4MHz_t *) dci_pdu)->rep = rel13->pdsch_reptition_levels;
+          ((DCI6_1A_1_4MHz_t *) dci_pdu)->harq_pid = rel13->harq_process;
+          ((DCI6_1A_1_4MHz_t *) dci_pdu)->ndi = rel13->new_data_indicator;
+          ((DCI6_1A_1_4MHz_t *) dci_pdu)->rv_idx = rel13->redundancy_version;
+          ((DCI6_1A_1_4MHz_t *) dci_pdu)->TPC = rel13->tpc;
+          ((DCI6_1A_1_4MHz_t *) dci_pdu)->srs_req = rel13->srs_request;
+          ((DCI6_1A_1_4MHz_t *) dci_pdu)->harq_ack_off = rel13->harq_resource_offset;
+          ((DCI6_1A_1_4MHz_t *) dci_pdu)->dci_rep = rel13->dci_subframe_repetition_number;
+          break;
+
         case 25:
           dci_alloc->dci_length = sizeof_DCI6_1A_5MHz_t;
           ((DCI6_1A_5MHz_t *) dci_pdu)->type = 1;
@@ -1642,7 +1661,7 @@ void fill_mdci_and_dlsch(PHY_VARS_eNB *eNB,L1_rxtx_proc_t *proc,mDCI_ALLOC_t *dc
           break;
       }
 
-      break;
+      break;}
 
     case 11:                     // Format 6-1B
       dci_alloc->format = format6_1B;
@@ -1689,6 +1708,23 @@ void fill_mdci_and_dlsch(PHY_VARS_eNB *eNB,L1_rxtx_proc_t *proc,mDCI_ALLOC_t *dc
       dci_alloc->format = format6_2;
 
       switch (fp->N_RB_DL) {
+
+        case 6:
+          dci_alloc->dci_length = sizeof_DCI6_2_1_4MHz_t;
+          if (rel13->paging_direct_indication_differentiation_flag == 0) {
+
+              ((DCI6_2_di_1_4MHz_t *) dci_pdu)->type = 0;
+              ((DCI6_2_di_1_4MHz_t *) dci_pdu)->di_info = rel13->direct_indication;
+          } else {
+              ((DCI6_2_paging_1_4MHz_t *) dci_pdu)->type = 1;
+              ((DCI6_2_paging_1_4MHz_t *) dci_pdu)->rballoc = rel13->resource_block_coding;
+              ((DCI6_2_paging_1_4MHz_t *) dci_pdu)->mcs = rel13->mcs;
+              ((DCI6_2_paging_1_4MHz_t *) dci_pdu)->rep = rel13->pdsch_reptition_levels;
+              ((DCI6_2_paging_1_4MHz_t *) dci_pdu)->dci_rep = rel13->dci_subframe_repetition_number;
+          }
+
+          break;
+
         case 25:
           dci_alloc->dci_length = sizeof_DCI6_2_5MHz_t;
 
@@ -2175,7 +2211,20 @@ void fill_mpdcch_dci0 (PHY_VARS_eNB *eNB,
       if (frame_parms->frame_type == TDD) {
         AssertFatal(1==0,"TDD not supported for eMTC yet\n");
       } else {
-        AssertFatal(1==0,"6 PRBS not supported for eMTC\n");
+    	  dci_alloc->dci_length = sizeof_DCI6_0A_1_4MHz_t;
+    	  ((DCI6_0A_1_4MHz_t *) dci_pdu)->type = 0;
+    	  ((DCI6_0A_1_4MHz_t *) dci_pdu)->hopping = hopping;
+    	  ((DCI6_0A_1_4MHz_t *) dci_pdu)->rballoc = rballoc;
+    	  ((DCI6_0A_1_4MHz_t *) dci_pdu)->narrowband = narrowband;
+    	  ((DCI6_0A_1_4MHz_t *) dci_pdu)->mcs = mcs;
+    	  ((DCI6_0A_1_4MHz_t *) dci_pdu)->rep = rel13->pusch_repetition_levels;
+    	  ((DCI6_0A_1_4MHz_t *) dci_pdu)->harq_pid = rel13->harq_process;
+    	  ((DCI6_0A_1_4MHz_t *) dci_pdu)->ndi = ndi;
+    	  ((DCI6_0A_1_4MHz_t *) dci_pdu)->rv_idx = rel13->redudency_version;
+    	  ((DCI6_0A_1_4MHz_t *) dci_pdu)->TPC = TPC;
+    	  ((DCI6_0A_1_4MHz_t *) dci_pdu)->csi_req = cqi_req;
+    	  ((DCI6_0A_1_4MHz_t *) dci_pdu)->srs_req = rel13->srs_request;
+    	  ((DCI6_0A_1_4MHz_t *) dci_pdu)->dci_rep = rel13->dci_subframe_repetition_number;
       }
 
       break;

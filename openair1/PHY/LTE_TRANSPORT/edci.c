@@ -283,7 +283,7 @@ void generate_mdci_top(PHY_VARS_eNB *eNB, int frame, int subframe, int16_t amp, 
     AssertFatal(fp->frame_type == FDD, "TDD is not yet supported for MPDCCH\n");
     AssertFatal(fp->Ncp == NORMAL, "Extended Prefix not yet supported for MPDCCH\n");
     AssertFatal(mdci->L <= 24, "L is %d\n", mdci->L);
-    AssertFatal(fp->N_RB_DL == 50 || fp->N_RB_DL == 100, "Only N_RB_DL=50,100 for MPDCCH\n");
+    AssertFatal(fp->N_RB_DL == 6 || fp->N_RB_DL == 50 || fp->N_RB_DL == 100, "Only N_RB_DL=50,100 for MPDCCH\n");
     // Force MPDDCH format 5
     AssertFatal(mdci->number_of_prb_pairs == 6, "2 or 4 PRB pairs not support yet for MPDCCH\n");
     // These are to avoid unimplemented things
