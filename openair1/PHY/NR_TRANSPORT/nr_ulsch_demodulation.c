@@ -2205,13 +2205,13 @@ void nr_pusch_symbol_processing(void *arg) {
 
       if (gNB->pusch_vars[ulsch_id]->extraction_done[symbol]!=1) {
         start_meas(&gNB->ulsch_rbs_extraction_stats);
-        nr_ulsch_extract_rbs_single(gNB->common_vars.rxdataF,
-                                    gNB->pusch_vars[ulsch_id],
-                                    slot,
-                                    symbol,
-                                    dmrs_symbol_flag,
-                                    rel15_ul,
-                                    frame_parms);
+        nr_ulsch_extract_rbs(gNB->common_vars.rxdataF,
+                             gNB->pusch_vars[ulsch_id],
+                             slot,
+                             symbol,
+                             dmrs_symbol_flag,
+                             rel15_ul,
+                             frame_parms);
         stop_meas(&gNB->ulsch_rbs_extraction_stats);
       }
       //----------------------------------------------------------
@@ -3337,7 +3337,7 @@ int nr_rx_pusch_tp(PHY_VARS_gNB *gNB,
 
 
   start_meas(&gNB->ulsch_rbs_extraction_stats);
-  nr_ulsch_extract_rbs_single(gNB->common_vars.rxdataF,
+  nr_ulsch_extract_rbs(gNB->common_vars.rxdataF,
                               gNB->pusch_vars[ulsch_id],
                               slot,
                               meas_symbol,
