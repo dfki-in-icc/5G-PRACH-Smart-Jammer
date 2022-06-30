@@ -73,7 +73,7 @@ export interface IResp {
 
 export interface IParam {
     value: string,
-    col?: IColumn
+    col: IColumn
 }
 
 export interface IColumn { //should use IVariable ?

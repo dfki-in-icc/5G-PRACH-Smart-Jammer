@@ -31,7 +31,7 @@
           <div *ngIf="modules$ | async as modules" fxLaypout="row">
             <mat-form-field>
               <mat-label>Module</mat-label>
-              <mat-select (selectionChange)="onModuleSelect($event.value)">
+              <mat-select (selectionChange)="onModuleSelect($event.value)" [(value)]="selectedModule">
                 <mat-option *ngFor="let module of modules" [value]="module"> {{ module.name }}
                 </mat-option>
               </mat-select>
@@ -94,8 +94,8 @@
                 <div *ngIf="col.type === IArgType.boolean; then toggle else default"> </div>
 
                 <ng-template #toggle>
-                  <mat-slide-toggle [formControl]="row.paramsFA.controls[rawIndex]"
-                    [checked]="row.paramsFA.controls[rawIndex].value" [disabled]="!col.modifiable">
+                  <mat-slide-toggle [formControl]="row.paramsCtrls[rawIndex]"
+                    [checked]="row.paramsCtrls[rawIndex].value" [disabled]="!col.modifiable">
                   </mat-slide-toggle>
                 </ng-template>
 
@@ -104,12 +104,12 @@
                   </ng-container>
 
                   <ng-template #notModifiable>
-                    <h4> {{row.paramsFA.controls[rawIndex].value }}</h4>
+                    <h4> {{row.paramsCtrls[rawIndex].value }}</h4>
                   </ng-template>
 
                   <ng-template #modifiable>
                     <mat-form-field>
-                      <input matInput [formControl]="row.paramsFA.controls[rawIndex]" [readonly]="!col.modifiable" />
+                      <input matInput [formControl]="row.paramsCtrls[rawIndex]" [readonly]="!col.modifiable" />
                     </mat-form-field>
                   </ng-template>
                 </ng-template>

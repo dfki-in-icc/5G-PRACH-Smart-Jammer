@@ -4,9 +4,9 @@
 
 export const environment = {
   production: false,
-  // backend: 'http://192.168.1.67:8090/'
+  backend: 'http://192.168.1.62:8090/'
   // backend: 'http://localhost:8090/'
-  backend: 'http://10.133.10.168:8090/'
+  // backend: 'http://10.133.10.168:8090/'
 };
 
 /*
