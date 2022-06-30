@@ -94,8 +94,8 @@
                 <div *ngIf="col.type === IArgType.boolean; then toggle else default"> </div>
 
                 <ng-template #toggle>
-                  <mat-slide-toggle [formControl]="row.paramsCtrls[colIndex].valueFC"
-                    [checked]="row.paramsCtrls[colIndex].valueFC.value">
+                  <mat-slide-toggle [formControl]="row.paramsCtrls[rawIndex]"
+                    [checked]="row.paramsCtrls[rawIndex].value" [disabled]="!col.modifiable">
                   </mat-slide-toggle>
                 </ng-template>
 
@@ -104,12 +104,12 @@
                   </ng-container>
 
                   <ng-template #notModifiable>
-                    <h4> {{row.paramsCtrls[colIndex].valueFC.value }}</h4>
+                    <h4> {{row.paramsCtrls[rawIndex].value }}</h4>
                   </ng-template>
 
                   <ng-template #modifiable>
                     <mat-form-field>
-                      <input matInput [formControl]="row.paramsCtrls[colIndex].valueFC" />
+                      <input matInput [formControl]="row.paramsCtrls[rawIndex]" [readonly]="!col.modifiable" />
                     </mat-form-field>
                   </ng-template>
                 </ng-template>

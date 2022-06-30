@@ -135,6 +135,7 @@ export class CommandsComponent {
     this.commandsApi.runCommand$(control!.api(), this.selectedModule!.name).subscribe(resp => {
       if (resp.display[0]) this.dialogService.updateCmdDialog(control, resp, 'cmd ' + control.nameFC.value + ' response:')
       //          else return of(resp)
+
       const controls: RowCtrl[] = []
       this.displayedColumns = []
 
@@ -159,7 +160,7 @@ export class CommandsComponent {
             cmdName: this.selectedCmd!.name
           }
 
-          controls[rawIndex] = new RowsFA(irow)
+          controls[rawIndex] = new RowCtrl(irow)
         }
       }
       this.rows$.next(controls)
@@ -173,7 +174,7 @@ export class CommandsComponent {
   }
 
   onParamSubmit(control: RowCtrl) {
-    this.commandsApi.setCmdParams$(control.api(), this.selectedModule!.name).subscribe(() => this.execCmd(new CmdCtrl(this.selectedCmd!)));
+    this.commandsApi.setCmdParams$(control.api(), this.selectedModule!.name).subscribe();
   }
 
 
