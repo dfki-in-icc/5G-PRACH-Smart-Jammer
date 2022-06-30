@@ -8,8 +8,7 @@ import { CommandsApi, IArgType, IColumn, ICommand, IInfo, IParam, IRow } from 's
 import { CmdCtrl } from 'src/app/controls/cmd.control';
 import { InfoCtrl } from 'src/app/controls/info.control';
 import { ModuleCtrl } from 'src/app/controls/module.control';
-import { ParamFC } from 'src/app/controls/param.control';
-import { RowCtrl } from 'src/app/controls/row.control';
+import { RowsFA } from 'src/app/controls/row.control';
 import { VarCtrl } from 'src/app/controls/var.control';
 import { DialogService } from 'src/app/services/dialog.service';
 import { DownloadService } from 'src/app/services/download.service';
@@ -38,7 +37,7 @@ export class CommandsComponent {
   // command
   selectedCmd?: ICommand
   displayedColumns: string[] = []
-  rows$: Observable<RowCtrl[]> = new Observable<RowCtrl[]>()
+  rows$: Observable<RowsFA[]> = new Observable<RowsFA[]>()
   columns: IColumn[] = []
 
   constructor(
@@ -132,7 +131,7 @@ export class CommandsComponent {
     this.commandsApi.runCommand$(control!.api(), this.selectedModule!.name).subscribe(resp => {
       if (resp.display[0]) this.dialogService.updateCmdDialog(control, resp, 'cmd ' + control.nameFC.value + ' response:')
       //          else return of(resp)
-      var controls: RowCtrl[] = []
+      var controls: RowsFA[] = []
       this.displayedColumns = []
 
       if (resp.table) {
@@ -156,7 +155,7 @@ export class CommandsComponent {
             cmdName: this.selectedCmd!.name
           }
 
-          controls[rawIndex] = new RowCtrl(irow)
+          controls[rawIndex] = new RowsFA(irow)
         }
       }
       this.rows$ = of(controls)
@@ -170,16 +169,8 @@ export class CommandsComponent {
     return of(null);
   }
 
-  onParamSubmit(control: RowCtrl) {
+  onParamSubmit(control: RowsFA) {
     this.commandsApi.setCmdParams$(control.api(), this.selectedModule!.name).subscribe();
-  }
-
-  isRowModifiable(control: RowCtrl) {
-    const modif = control.paramsFA.controls
-      .map(paramFC => (paramFC as ParamFC).api().col!.modifiable)
-      .reduce((acc, next) => acc || next)
-
-    return modif
   }
 
 
