@@ -1174,7 +1174,6 @@ pdcp_data_ind(
 #endif
       pushNotifiedFIFO(&pdcp_sdu_list, new_sdu_p); 
 
-
     /* Print octets of incoming data in hexadecimal form */
       LOG_D(PDCP, "Following content has been received from RLC (%d,%d)(PDCP header has already been removed):\n",
           sdu_buffer_sizeP  - payload_offset + (int)sizeof(pdcp_data_ind_header_t),

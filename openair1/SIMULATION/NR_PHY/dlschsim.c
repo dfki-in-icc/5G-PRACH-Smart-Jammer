@@ -340,7 +340,9 @@ int main(int argc, char **argv)
 
 	logInit();
 	set_glog(loglvl);
+        #if T_TRACER
 	T_stdout = 1;
+        #endif
 
 	if (snr1set == 0)
 		snr1 = snr0 + 10;

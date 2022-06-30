@@ -505,7 +505,9 @@ int main(int argc, char **argv){
   // Configure log
   logInit();
   set_glog(loglvl);
+  #if T_TRACER
   T_stdout = 1;
+  #endif
   SET_LOG_DEBUG(PRACH); 
 
   // Configure gNB and RU

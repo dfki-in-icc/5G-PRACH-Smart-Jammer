@@ -415,7 +415,9 @@ int main(int argc, char **argv) {
   AssertFatal(load_configmodule(argc,argv,CONFIG_ENABLECMDLINEONLY) != NULL, "Cannot load configuration module, exiting\n");
   logInit();
   set_glog(OAILOG_INFO);
+#if T_TRACER
   T_stdout = 1;
+#endif
   // enable these lines if you need debug info
   // however itti will catch all signals, so ctrl-c won't work anymore
   // alternatively you can disable ITTI completely in CMakeLists.txt

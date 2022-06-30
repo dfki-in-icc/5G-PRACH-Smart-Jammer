@@ -339,7 +339,7 @@ add_boolean_option(DEBUG_PDCP_PAYLOAD  False "print PDCP PDU to stdout")  # if t
 add_boolean_option(DEBUG_MAC_INTERFACE False "print MAC-RLC PDU exchange to stdout") # if true, make sure that global and PDCP log levels are trace
 add_boolean_option(TRACE_RLC_PAYLOAD   False "print RLC PDU to stdout") # if true, make sure that global and PDCP log levels are trace
 add_boolean_option(PRINT_STATS         False "This adds the possibility to see the status")
-add_boolean_option(T_TRACER            False  "Activate the T tracer, a debugging/monitoring framework" )
+add_boolean_option(T_TRACER            True  "Activate the T tracer, a debugging/monitoring framework" )
 add_boolean_option(LATSEQ              False "Active Latency Sequence tools")
 add_boolean_option(UE_AUTOTEST_TRACE   False "Activate UE autotest specific logs")
 add_boolean_option(UE_DEBUG_TRACE      False "Activate UE debug trace")

@@ -130,13 +130,13 @@ int pdcp_fifo_flush_sdus(const protocol_ctxt_t *const  ctxt_pP) {
         }
        else
        {
-    if( LOG_DEBUGFLAG(DEBUG_PDCP) ) {
-      log_dump(PDCP, pdcpData, pdcpHead->data_size, LOG_DUMP_CHAR,"PDCP output to be sent to TUN interface: \n");
-    }
+         if( LOG_DEBUGFLAG(DEBUG_PDCP) ) {
+           log_dump(PDCP, pdcpData, pdcpHead->data_size, LOG_DUMP_CHAR,"PDCP output to be sent to TUN interface: \n");
+          }
 
-      ret = write(nas_sock_fd[pdcpHead->inst], pdcpData,pdcpHead->data_size );
-      LOG_T(PDCP,"[UE PDCP_FIFOS] ret %d TRIED TO PUSH DATA TO rb_id %d handle %d sizeToWrite %d\n",
-         ret,rb_id,nas_sock_fd[pdcpHead->inst],pdcpHead->data_size);
+          ret = write(nas_sock_fd[pdcpHead->inst], pdcpData,pdcpHead->data_size );
+          LOG_T(PDCP,"[UE PDCP_FIFOS] ret %d TRIED TO PUSH DATA TO rb_id %d handle %d sizeToWrite %d\n",
+                ret,rb_id,nas_sock_fd[pdcpHead->inst],pdcpHead->data_size);
        }
     } else if (ENB_NAS_USE_TUN) {
 

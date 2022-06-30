@@ -1668,28 +1668,6 @@ schedule_ulsch_rnti(module_id_t   module_idP,
 
       UE_info->eNB_UE_stats[CC_id][UE_id].ulsch_mcs2 = mcs;
 
-      uint8_t reserved_rb = 5;
-      uint8_t available_rb = 0;
-      switch (to_prb(cc[CC_id].ul_Bandwidth)) {
-        case 25:
-          available_rb = 25 - reserved_rb;
-          break;
-
-        case 50:
-          available_rb = 50 - reserved_rb;
-          break;
-
-        case 100:
-          available_rb = 100 - reserved_rb;
-          break;
-
-        default:
-          LOG_E(MAC, "RBs setting not handled. Todo.\n");
-          exit(1);
-      }
-      while (rb_table[rb_table_index] > available_rb && rb_table_index > 0)
-        rb_table_index--;
-
       UE_template_ptr->TBS_UL[harq_pid] = get_TBS_UL(mcs, rb_table[rb_table_index]);
       UE_info->eNB_UE_stats[CC_id][UE_id].total_rbs_used_rx += rb_table[rb_table_index];
       UE_info->eNB_UE_stats[CC_id][UE_id].ulsch_TBS = UE_template_ptr->TBS_UL[harq_pid];

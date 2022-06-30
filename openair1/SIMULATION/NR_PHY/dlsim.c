@@ -727,7 +727,9 @@ int main(int argc, char **argv)
 
   logInit();
   set_glog(loglvl);
+#if T_TRACER
   T_stdout = 1;
+#endif
   /* initialize the sin table */
   InitSinLUT();
 
