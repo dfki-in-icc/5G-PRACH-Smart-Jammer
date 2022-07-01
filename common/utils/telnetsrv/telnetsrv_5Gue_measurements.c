@@ -46,6 +46,7 @@
 
 #include "common/utils/LOG/log.h"
 #include "common/config/config_userapi.h"
+#include "common/utils/cpustats.h"
 #include "telnetsrv_measurements.h"
 #include "telnetsrv_ltemeasur_def.h"
 #include "telnetsrv_cpumeasur_def.h"
@@ -63,7 +64,9 @@ void measurcmd_display_pdcpcpu(telnet_printfunc_t prnt);
 static telnet_measurgroupdef_t nrUEmeasurgroups[] = {
 //  {"ue",   GROUP_LTESTATS,0, measurcmd_display_macstats,   {NULL}},
 //  {"rlc",   GROUP_LTESTATS,0, measurcmd_display_rlcstats,   {NULL}},
-  {"phycpu",GROUP_CPUSTATS,0, measurcmd_display_phycpu,     {NULL}},
+  {"phycpu"   , GROUP_CPUSTATS, 0, measurcmd_display_phycpu      , {NULL}},
+  {UE_STATS_L1, GROUP_CPUSTATS, 0, UEL1cpustats_measurcmd_display, {NULL}}
+  
 //  {"maccpu",GROUP_CPUSTATS,0, measurcmd_display_maccpu,      {NULL}},
 //  {"pdcpcpu",GROUP_CPUSTATS,0, measurcmd_display_pdcpcpu,      {NULL}},
 };
