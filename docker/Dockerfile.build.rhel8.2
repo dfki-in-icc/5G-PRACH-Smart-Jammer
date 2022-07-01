@@ -21,18 +21,25 @@
 #---------------------------------------------------------------------
 #
 # Dockerfile for the Open-Air-Interface BUILD service
-#   Valid for Ubuntu 18.04
+#   Valid for rhel8.2
 #
 #---------------------------------------------------------------------
 
 FROM ran-base:latest as ran-build
+
+# Copy the entitlements
+COPY ./etc-pki-entitlement /etc/pki/entitlement
+
+# Copy the subscription manager configurations
+COPY ./rhsm-conf /etc/rhsm
+COPY ./rhsm-ca /etc/rhsm/ca
 
 RUN rm -Rf /oai-ran
 WORKDIR /oai-ran
 COPY . .
 
 #run build_oai to build the target image
-RUN /bin/sh oaienv && \ 
+RUN /bin/sh oaienv && \
     cd cmake_targets && \
     mkdir -p log && \
     ./build_oai --eNB --gNB --RU --UE --nrUE --ninja --build-lib all -w USRP --verbose-ci --noavx512

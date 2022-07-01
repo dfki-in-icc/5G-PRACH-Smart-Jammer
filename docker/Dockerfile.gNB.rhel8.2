@@ -21,13 +21,17 @@
 #---------------------------------------------------------------------
 #
 # Dockerfile for the Open-Air-Interface BUILD service
-#   Valid for RHEL8
+#   Valid for RHEL8.2
 #
 #---------------------------------------------------------------------
 
 FROM ran-base:latest AS gnb-base
 
 FROM ran-build:latest AS gnb-build
+
+ARG COPY_AW2S_LIBRARY
+
+RUN if [[ -v COPY_AW2S_LIBRARY ]] ; then COPY ./libori.so /usr/local/lib ;fi
 
 RUN python3 ./docker/scripts/generateTemplate.py ./docker/scripts/gnb_parameters.yaml && \
     cp /oai-ran/docker/scripts/gnb_entrypoint.sh /oai-ran/docker/scripts/entrypoint.sh
