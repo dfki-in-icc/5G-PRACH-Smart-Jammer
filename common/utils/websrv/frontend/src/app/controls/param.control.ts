@@ -1,46 +1,68 @@
-import { ComponentFactoryResolver } from '@angular/core';
-import { FormControl } from '@angular/forms';
-import { IArgType, IParam } from '../api/commands.api';
+import { FormControl, FormGroup } from "@angular/forms";
+import { IArgType, IColumn, IParam } from "../api/commands.api";
 
 
-export class ParamFC extends FormControl {
+enum ParamFCN {
+  value = 'value',
+}
 
-  constructor(
-    public param: IParam
-  ) {
-    super((param.col!.type !== IArgType.boolean)
-      ? param.value
-      : ((param.value === 'true') ? true : false)
-    );
+
+export class ParamCtrl extends FormGroup {
+
+  col: IColumn
+
+  constructor(public param: IParam) {
+    super({})
+
+    this.col = param.col
+
+    let control: FormControl
+    switch (param.col.type) {
+      case IArgType.boolean:
+        control = new FormControl((param.value === 'true') ? true : false);
+        break;
+
+      case IArgType.loglvl:
+        control = new FormControl(param.value);
+        break;
+
+      default:
+        control = new FormControl(param.value)
+    }
+
+    if (!param.col.modifiable) control.disable()
+
+    this.addControl(ParamFCN.value, control)
+  }
+
+  get valueFC() {
+    return this.get(ParamFCN.value) as FormControl
+  }
+
+  set valueFC(fc: FormControl) {
+    this.setControl(ParamFCN.value, fc);
   }
 
   api() {
-
     let value: string
 
-    switch (this.param.col?.type) {
-
-      case IArgType.string:
+    switch (this.col.type) {
       case IArgType.boolean:
-        value = this.value as string;
+        value = String(this.valueFC.value);
         break;
 
-      case IArgType.list:
-      case IArgType.configfile:
-      case IArgType.range:
-      case IArgType.number:
-
       default:
-        value = String(this.value)
+        value = this.valueFC.value
     }
-
 
     const doc: IParam = {
       value: value,
-      col: this.param.col
-    };
+      col: this.col
+    }
 
-    return doc;
+    return doc
+
   }
+
 }
 

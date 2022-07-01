@@ -73,7 +73,7 @@ export interface IResp {
 
 export interface IParam {
     value: string,
-    col?: IColumn
+    col: IColumn
 }
 
 export interface IColumn { //should use IVariable ?
@@ -109,6 +109,8 @@ export class CommandsApi {
 
     public setCmdVariable$ = (variable: IInfo, moduleName: string) => this.httpClient.post<IResp>(environment.backend + route + moduleName + '/variables/', variable);
 
-    public setCmdParams$ = (row: IRow, moduleName: string) => this.httpClient.post<IResp>(environment.backend + route + moduleName + '/set/', row);
+    public setCmdParams$ = (row: IRow, moduleName: string) => {
+        return this.httpClient.post<IResp>(environment.backend + route + moduleName + '/set/', row);
+    }
 
 }

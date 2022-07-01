@@ -1,14 +1,15 @@
 import { Component } from '@angular/core';
-import { FormArray } from '@angular/forms';
-import { forkJoin, timer } from 'rxjs';
+import { AbstractControl, FormArray } from '@angular/forms';
+import { BehaviorSubject, forkJoin, timer } from 'rxjs';
 import { Observable } from 'rxjs/internal/Observable';
 import { of } from 'rxjs/internal/observable/of';
+import { filter } from 'rxjs/internal/operators/filter';
 import { map } from 'rxjs/internal/operators/map';
+import { tap } from 'rxjs/internal/operators/tap';
 import { CommandsApi, IArgType, IColumn, ICommand, IInfo, IParam, IRow } from 'src/app/api/commands.api';
 import { CmdCtrl } from 'src/app/controls/cmd.control';
 import { InfoCtrl } from 'src/app/controls/info.control';
 import { ModuleCtrl } from 'src/app/controls/module.control';
-import { ParamFC } from 'src/app/controls/param.control';
 import { RowCtrl } from 'src/app/controls/row.control';
 import { VarCtrl } from 'src/app/controls/var.control';
 import { DialogService } from 'src/app/services/dialog.service';
@@ -38,7 +39,7 @@ export class CommandsComponent {
   // command
   selectedCmd?: ICommand
   displayedColumns: string[] = []
-  rows$: Observable<RowCtrl[]> = new Observable<RowCtrl[]>()
+  rows$: BehaviorSubject<RowCtrl[]> = new BehaviorSubject<RowCtrl[]>([])
   columns: IColumn[] = []
 
   constructor(
@@ -53,7 +54,9 @@ export class CommandsComponent {
     );
 
     this.modules$ = this.commandsApi.readModules$().pipe(
-      map(imodules => imodules.map(imodule => new ModuleCtrl(imodule)))
+      map(imodules => imodules.map(imodule => new ModuleCtrl(imodule))),
+      filter(controls => controls.length > 0),
+      tap(controls => this.onModuleSelect(controls[0]))
     );
   }
 
@@ -132,7 +135,8 @@ export class CommandsComponent {
     this.commandsApi.runCommand$(control!.api(), this.selectedModule!.name).subscribe(resp => {
       if (resp.display[0]) this.dialogService.updateCmdDialog(control, resp, 'cmd ' + control.nameFC.value + ' response:')
       //          else return of(resp)
-      var controls: RowCtrl[] = []
+
+      const controls: RowCtrl[] = []
       this.displayedColumns = []
 
       if (resp.table) {
@@ -159,8 +163,7 @@ export class CommandsComponent {
           controls[rawIndex] = new RowCtrl(irow)
         }
       }
-      this.rows$ = of(controls)
-      return this.rows$
+      this.rows$.next(controls)
     },
       err => console.error('execCmd error: ' + err),
       () => console.log('execCmd completed: '),
@@ -171,15 +174,7 @@ export class CommandsComponent {
   }
 
   onParamSubmit(control: RowCtrl) {
-    this.commandsApi.setCmdParams$(control.api(), this.selectedModule!.name).subscribe();
-  }
-
-  isRowModifiable(control: RowCtrl) {
-    const modif = control.paramsFA.controls
-      .map(paramFC => (paramFC as ParamFC).api().col!.modifiable)
-      .reduce((acc, next) => acc || next)
-
-    return modif
+    this.commandsApi.setCmdParams$(control.api(), this.selectedModule!.name).subscribe(() => this.execCmd(new CmdCtrl(this.selectedCmd!)));
   }
 
 
