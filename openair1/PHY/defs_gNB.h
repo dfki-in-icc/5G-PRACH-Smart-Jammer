@@ -913,6 +913,7 @@ typedef struct PHY_VARS_gNB_s {
   int nbSymb;
   int nbDecode;
   uint8_t thread_pool_size;
+  int use_pusch_tp;
   int number_of_nr_dlsch_max;
   int number_of_nr_ulsch_max;
   void * scopeData;

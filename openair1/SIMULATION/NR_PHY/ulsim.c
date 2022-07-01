@@ -338,6 +338,7 @@ int main(int argc, char **argv)
   int ibwp_rboffset=41;
   int params_from_file = 0;
   int threadCnt=0;
+  int use_tpool = 0;
   int max_ldpc_iterations = 5;
   if ( load_configmodule(argc,argv,CONFIG_ENABLECMDLINEONLY) == 0 ) {
     exit_fun("[NR_ULSIM] Error, configuration module init failed\n");
@@ -487,6 +488,7 @@ int main(int argc, char **argv)
 
     case 'C':
       threadCnt = atoi(optarg);
+      use_tpool = 1;
       break;
 
     case 'u':
@@ -730,6 +732,7 @@ int main(int argc, char **argv)
   printf("Initializing thread pool with %s from threadCnt %d\n",tp_param,threadCnt);
   initTpool(tp_param, gNB->threadPool, threadCnt>1  ? true : false);
   initNotifiedFIFO(gNB->respDecode);
+  gNB->use_pusch_tp = use_tpool;
   gNB->L1_tx_free = (notifiedFIFO_t*) malloc(sizeof(notifiedFIFO_t));
   gNB->L1_tx_filled = (notifiedFIFO_t*) malloc(sizeof(notifiedFIFO_t));
   gNB->L1_tx_out = (notifiedFIFO_t*) malloc(sizeof(notifiedFIFO_t));

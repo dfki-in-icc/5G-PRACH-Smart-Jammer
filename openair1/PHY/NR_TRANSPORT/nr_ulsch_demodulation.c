@@ -303,16 +303,16 @@ void nr_idft(int32_t *z, uint32_t Msc_PUSCH)
 }
 
 
-void nr_ulsch_extract_rbs_single0(int32_t *rxdataF,
-                                  int32_t *chF,
-				  int32_t *rxFext,
-				  int32_t *chFext,
-				  int rxoffset,
-				  int choffset,
-				  int aarx,
-				  int is_dmrs_symbol,
-                                  nfapi_nr_pusch_pdu_t *pusch_pdu,
-                                  NR_DL_FRAME_PARMS *frame_parms)
+void nr_ulsch_extract_rbs0(int32_t *rxdataF,
+                           int32_t *chF,
+			   int32_t *rxFext,
+			   int32_t *chFext,
+			   int rxoffset,
+			   int choffset,
+			   int aarx,
+			   int is_dmrs_symbol,
+                           nfapi_nr_pusch_pdu_t *pusch_pdu,
+                           NR_DL_FRAME_PARMS *frame_parms)
 {
 
   uint8_t delta = 0;
@@ -531,10 +531,7 @@ void nr_ulsch_extract_rbs(int32_t **rxdataF,
                           nfapi_nr_pusch_pdu_t *pusch_pdu,
                           NR_DL_FRAME_PARMS *frame_parms) {
 
-  unsigned char aarx, aatx;
-  uint32_t rxF_ext_index = 0;
-  uint32_t ul_ch0_ext_index = 0;
-  uint32_t ul_ch0_index = 0;
+  unsigned char aarx;
   int16_t *rxF,*rxF_ext;
   int *ul_ch0,*ul_ch0_ext;
   int soffset = (slot&3)*frame_parms->symbols_per_slot*frame_parms->ofdm_symbol_size;
@@ -904,7 +901,7 @@ void nr_ulsch_channel_level(int **ul_ch_estimates_ext,
   uint32_t nb_rb_0 = len/12 + ((len%12)?1:0);
 
 #ifdef __AVX2__
-  int off = ((nb_rb&1) == 1)? 4:0;
+  int off = ((nb_rb_0&1) == 1)? 4:0;
 #else
   int off = 0;
 #endif
@@ -916,7 +913,7 @@ void nr_ulsch_channel_level(int **ul_ch_estimates_ext,
 
       ul_ch128=(__m128i *)&ul_ch_estimates_ext[aatx*frame_parms->nb_antennas_rx+aarx][symbol*(off+(nb_rb*12))];
 
-      for (rb = 0; rb < (len<12 ? 1 : len/12); rb++) {
+      for (rb = 0; rb < nb_rb_0; rb++) {
         avg128U = _mm_add_epi32(avg128U, _mm_srai_epi32(_mm_madd_epi16(ul_ch128[0], ul_ch128[0]), x));
         avg128U = _mm_add_epi32(avg128U, _mm_srai_epi32(_mm_madd_epi16(ul_ch128[1], ul_ch128[1]), x));
         avg128U = _mm_add_epi32(avg128U, _mm_srai_epi32(_mm_madd_epi16(ul_ch128[2], ul_ch128[2]), x));
@@ -1772,7 +1769,6 @@ void nr_ulsch_detection_mrc(NR_DL_FRAME_PARMS *frame_parms,
   int16x8_t *rxdataF_comp128_1,*ul_ch_mag128_1,*ul_ch_mag128_1b;
 #endif
   int32_t i;
-  uint32_t nb_rb_0 = length/12 + ((length%12)?1:0);
 
 #ifdef __AVX2__
   int off = ((nb_rb&1) == 1)? 4:0;
@@ -2158,21 +2154,22 @@ void nr_pusch_symbol_processing_noprecoding(void *arg) {
 
 
   for (int aa=0;aa<frame_parms->nb_antennas_rx;aa++) {
-    nr_ulsch_extract_rbs_single0(gNB->common_vars.rxdataF[aa],
-                                 gNB->pusch_vars[ulsch_id]->ul_ch_estimates[aa],
-                                 rxFext,
-                                 chFext,
-  	  		         soffset+(symbol * frame_parms->ofdm_symbol_size),
-	 		         gNB->pusch_vars[ulsch_id]->dmrs_symbol*frame_parms->ofdm_symbol_size,
-				 aa,
-                                 dmrs_symbol_flag, 
-                                 rel15_ul,
-                                 frame_parms);
+    nr_ulsch_extract_rbs0(gNB->common_vars.rxdataF[aa],
+                          gNB->pusch_vars[ulsch_id]->ul_ch_estimates[aa],
+                          rxFext,
+                          chFext,
+  	  		  soffset+(symbol * frame_parms->ofdm_symbol_size),
+	 		  gNB->pusch_vars[ulsch_id]->dmrs_symbol*frame_parms->ofdm_symbol_size,
+			  aa,
+                          dmrs_symbol_flag, 
+                          rel15_ul,
+                          frame_parms);
     inner_rx(rxFext,chFext,llr,aa,nb_re_pusch,gNB->pusch_vars[ulsch_id]->log2_maxh);
 
   }
 }
 
+/*
 void nr_pusch_symbol_processing(void *arg) {
     puschSymbolProc_t *rdata=(puschSymbolProc_t*)arg;
 
@@ -2289,8 +2286,8 @@ void nr_pusch_symbol_processing(void *arg) {
       //----------------------------------------------------------
       //--------------------- PTRS Processing --------------------
       //----------------------------------------------------------
-      /* In case PTRS is enabled then LLR will be calculated after PTRS symbols are processed *
-      * otherwise LLR are calculated for each symbol based upon DMRS channel estimates only. */
+      // In case PTRS is enabled then LLR will be calculated after PTRS symbols are processed 
+      //otherwise LLR are calculated for each symbol based upon DMRS channel estimates only. 
       if (rel15_ul->pdu_bit_map & PUSCH_PDU_BITMAP_PUSCH_PTRS) {
         start_meas(&gNB->ulsch_ptrs_processing_stats);
         nr_pusch_ptrs_processing(gNB,
@@ -2302,12 +2299,12 @@ void nr_pusch_symbol_processing(void *arg) {
                                  nb_re_pusch);
         stop_meas(&gNB->ulsch_ptrs_processing_stats);
 
-        /*  Subtract total PTRS RE's in the symbol from PUSCH RE's */
+        //  Subtract total PTRS RE's in the symbol from PUSCH RE's 
         gNB->pusch_vars[ulsch_id]->ul_valid_re_per_slot[symbol] -= gNB->pusch_vars[ulsch_id]->ptrs_re_per_slot;
       }
     }
 }
-
+*/
 /* Zero Forcing Rx function: nr_det_HhH()
  *
  *
