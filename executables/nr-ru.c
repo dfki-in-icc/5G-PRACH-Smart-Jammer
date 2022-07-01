@@ -1255,7 +1255,7 @@ void *ru_thread( void *param ) {
   int                frame    = 1023;
   char               threadname[40];
   int                initial_wait=0;
-  int                opp_enabled0 = opp_enabled;
+  // int                opp_enabled0 = opp_enabled;
 
   nfapi_nr_config_request_scf_t *cfg = &ru->config;
   // set default return value
@@ -1388,7 +1388,7 @@ void *ru_thread( void *param ) {
     }
     if (proc->frame_rx>=300)  {
       initial_wait=0;
-      opp_enabled = opp_enabled0;
+      // opp_enabled = opp_enabled0; commented line as fix for MR on statistics
     }
     if (initial_wait == 0 && ru->rx_fhaul.trials > 1000) reset_meas(&ru->rx_fhaul);
     proc->timestamp_tx = proc->timestamp_rx;

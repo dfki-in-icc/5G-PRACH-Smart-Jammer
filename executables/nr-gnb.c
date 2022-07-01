@@ -87,6 +87,8 @@
 #include <openair1/PHY/NR_TRANSPORT/nr_dlsch.h>
 #include <PHY/NR_ESTIMATION/nr_ul_estimation.h>
 
+#include "common/utils/cpustats.h"
+
 //#define USRP_DEBUG 1
 // Fix per CC openair rf/if device update
 // extern openair0_device openair0;
@@ -462,8 +464,12 @@ void init_gNB_Tpool(int inst) {
     pushNotifiedFIFO(gNB->L1_tx_free,msgL1Tx); // to unblock the process in the beginning
   }
 
-  if ((!get_softmodem_params()->emulate_l1) && (!IS_SOFTMODEM_NOSTATS_BIT))
-     threadCreate(&proc->L1_stats_thread,nrL1_stats_thread,(void*)gNB,"L1_stats",-1,OAI_PRIORITY_RT_LOW);
+  if ((!get_softmodem_params()->emulate_l1) && (!IS_SOFTMODEM_NOSTATS_BIT)){
+    bool ret = gNBL1cpustats_enable(gNB);
+    if (ret == false)
+        LOG_E(PHY,"Failure activating statistics thread L1 for gNB instance #%d", inst);
+    threadCreate(&proc->L1_stats_thread,nrL1_stats_thread,(void*)gNB,"L1_stats",-1,OAI_PRIORITY_RT_LOW);
+  }
 
   threadCreate(&proc->pthread_tx_reorder, tx_reorder_thread, (void *)gNB, "thread_tx_reorder", -1, OAI_PRIORITY_RT_MAX);
 

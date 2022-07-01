@@ -179,7 +179,10 @@ void gNB_dlsch_ulsch_scheduler(module_id_t module_idP,
   }
 
 
-  if ((slot == 0) && (frame & 127) == 0) {
+  if (
+      (!IS_SOFTMODEM_NOSTATS_BIT) &&
+      ((slot == 0) && (frame & 127) == 0)
+    ) {
      stats_output[0]='\0';
      dump_mac_stats(RC.nrmac[module_idP],stats_output,16384,true);
      LOG_I(NR_MAC,"Frame.Slot %d.%d\n%s\n",frame,slot,stats_output);
