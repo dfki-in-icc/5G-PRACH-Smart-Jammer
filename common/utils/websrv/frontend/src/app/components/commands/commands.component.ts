@@ -6,7 +6,7 @@ import { of } from 'rxjs/internal/observable/of';
 import { filter } from 'rxjs/internal/operators/filter';
 import { map } from 'rxjs/internal/operators/map';
 import { tap } from 'rxjs/internal/operators/tap';
-import { CommandsApi, IArgType, IColumn, ICommand, IInfo, IParam, IRow } from 'src/app/api/commands.api';
+import { CommandsApi, IArgType, IColumn, ICommand, IInfo, ILogLvl, IParam, IRow } from 'src/app/api/commands.api';
 import { CmdCtrl } from 'src/app/controls/cmd.control';
 import { InfoCtrl } from 'src/app/controls/info.control';
 import { ModuleCtrl } from 'src/app/controls/module.control';
@@ -26,6 +26,7 @@ import { LoadingService } from 'src/app/services/loading.service';
 export class CommandsComponent {
 
   IArgType = IArgType;
+  logLvlValues = Object.values(ILogLvl)
 
   // softmodem
   infos$: Observable<VarCtrl[]>
