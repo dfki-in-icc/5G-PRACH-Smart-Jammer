@@ -174,7 +174,7 @@ export class CommandsComponent {
   }
 
   onParamSubmit(control: RowCtrl) {
-    this.commandsApi.setCmdParams$(control.api(), this.selectedModule!.name).subscribe();
+    this.commandsApi.setCmdParams$(control.api(), this.selectedModule!.name).subscribe(() => this.execCmd(new CmdCtrl(this.selectedCmd!)));
   }
 
 
