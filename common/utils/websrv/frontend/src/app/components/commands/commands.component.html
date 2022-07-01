@@ -83,19 +83,19 @@
               See https://github.com/angular/material2/issues/12793 -->
 
 
-            <div *ngFor="let col of columns; index as rawIndex" matColumnDef="{{col.name}}">
+            <div *ngFor="let col of columns; index as colIndex" matColumnDef="{{col.name}}">
               <mat-header-cell *matHeaderCellDef fxLayoutAlign="center">
                 <div>
                   <h4>{{ col.name }}</h4>
                 </div>
               </mat-header-cell>
-              <mat-cell *matCellDef="let row; dataIndex as rowIndex" fxLayoutAlign="center">
+              <mat-cell *matCellDef="let row" fxLayoutAlign="center" [formGroup]="row">
 
                 <div *ngIf="col.type === IArgType.boolean; then toggle else default"> </div>
 
                 <ng-template #toggle>
-                  <mat-slide-toggle [formControl]="row.paramsCtrls[rawIndex]"
-                    [checked]="row.paramsCtrls[rawIndex].value" [disabled]="!col.modifiable">
+                  <mat-slide-toggle [formControl]="row.paramsCtrls[colIndex].valueFC"
+                    [checked]="row.paramsCtrls[colIndex].valueFC.value">
                   </mat-slide-toggle>
                 </ng-template>
 
@@ -104,12 +104,12 @@
                   </ng-container>
 
                   <ng-template #notModifiable>
-                    <h4> {{row.paramsCtrls[rawIndex].value }}</h4>
+                    <h4> {{row.paramsCtrls[colIndex].valueFC.value }}</h4>
                   </ng-template>
 
                   <ng-template #modifiable>
                     <mat-form-field>
-                      <input matInput [formControl]="row.paramsCtrls[rawIndex]" [readonly]="!col.modifiable" />
+                      <input matInput [formControl]="row.paramsCtrls[colIndex].valueFC" />
                     </mat-form-field>
                   </ng-template>
                 </ng-template>
