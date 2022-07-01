@@ -84,36 +84,33 @@
 
 
             <div *ngFor="let col of columns; index as colIndex" matColumnDef="{{col.name}}">
-              <mat-header-cell *matHeaderCellDef fxLayoutAlign="center">
+              <mat-header-cell *matHeaderCellDef fxLayoutAlign="start center">
                 <div>
                   <h4>{{ col.name }}</h4>
                 </div>
               </mat-header-cell>
-              <mat-cell *matCellDef="let row" fxLayoutAlign="center" [formGroup]="row">
+              <mat-cell *matCellDef="let row">
 
-                <div *ngIf="col.type === IArgType.boolean; then toggle else default"> </div>
-
-                <ng-template #toggle>
-                  <mat-slide-toggle [formControl]="row.paramsCtrls[rawIndex]"
-                    [checked]="row.paramsCtrls[rawIndex].value" [disabled]="!col.modifiable">
+                <div [ngSwitch]="col.type" [formGroup]="row" fxLayoutAlign="start center">
+                  <mat-slide-toggle *ngSwitchCase="IArgType.boolean" [formControl]="row.paramsCtrls[colIndex].valueFC"
+                    [checked]="row.paramsCtrls[colIndex].valueFC.value">
                   </mat-slide-toggle>
-                </ng-template>
 
-                <ng-template #default>
-                  <ng-container *ngIf="col.modifiable; then modifiable else notModifiable">
-                  </ng-container>
+                  <mat-form-field *ngSwitchCase="IArgType.loglvl">
+                    <mat-label>Log Level</mat-label>
+                    <mat-select [formControl]="row.paramsCtrls[colIndex].valueFC"
+                      [(value)]="row.paramsCtrls[colIndex].valueFC.value">
+                      <mat-option *ngFor="let level of logLvlValues" [value]="level"> {{ level }}
+                      </mat-option>
+                    </mat-select>
+                  </mat-form-field>
 
-                  <ng-template #notModifiable>
-                    <h4> {{row.paramsCtrls[rawIndex].value }}</h4>
-                  </ng-template>
-
-                  <ng-template #modifiable>
+                  <div *ngSwitchDefault>
                     <mat-form-field>
-                      <input matInput [formControl]="row.paramsCtrls[rawIndex]" [readonly]="!col.modifiable" />
+                      <input matInput [formControl]="row.paramsCtrls[colIndex].valueFC" [readonly]="col.modifiable" />
                     </mat-form-field>
-                  </ng-template>
-                </ng-template>
-
+                  </div>
+                </div>
               </mat-cell>
             </div>
 
