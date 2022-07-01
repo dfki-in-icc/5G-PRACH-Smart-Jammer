@@ -10,10 +10,12 @@ export class AppComponent {
   isscopeavailable = false;
   scopelabel = '';
   constructor() {
-    this.scopelabel = 'Scope';
-    this.isscopeavailable=true;
+    this.scopelabel = '';
+    this.isscopeavailable=false;
   }
-  ScopeDisabled( disabled: boolean) {
-    this.isscopeavailable= !disabled; ;
+  
+  onScopeEnabled( enabled: boolean) {
+    this.isscopeavailable= enabled;
+    this.scopelabel= enabled ? 'Scope' : '';
   }
 }

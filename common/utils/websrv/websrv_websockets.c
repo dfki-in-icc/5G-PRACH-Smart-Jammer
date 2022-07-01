@@ -39,10 +39,16 @@
  #include "executables/softmodem-common.h"
  #include "time.h"
  #include <arpa/inet.h>
+ #include "common/utils/websrv/websrv_noforms.h"
+ #include "openair1/PHY/TOOLS/phy_scope.h"
 
+ 
+ 
 static websrv_scope_params_t scope_params = {0,1000};
 
-
+void  websrv_scope_sendIQ(websrv_scopegraph_t *graph, float *I,float *Q,int sz) {
+	LOG_I(UTIL,"[websrv] sending %i IQ's graph %s id %i ue %i\n",sz,graph->graphtitle, graph->graphid, graph->sigid);
+};
 
 void websrv_websocket_send_scopemessage(char msg_type, char *msg_data, struct _websocket_manager * websocket_manager) {
 websrv_msg_t msg;
@@ -57,26 +63,27 @@ int st;
 
 void websrv_websocket_process_scopemessage(char msg_type, char *msg_data, struct _websocket_manager * websocket_manager) {
   uint32_t *intptr=(uint32_t *)msg_data; 
-	
+  LOG_I(UTIL,"[websrv] processing scope message type %i\n", msg_type);
   switch ( msg_type ) {
  
     case SCOPEMSG_TYPE_STATUSUPD:
       if (strncmp(msg_data,"init",4) == 0){
-        if (IS_SOFTMODEM_DOSCOPE) {     
-          LOG_I(UTIL,"[websrv] SoftScope started with XForms interface\n");
-          websrv_websocket_send_scopemessage(SCOPEMSG_TYPE_STATUSUPD, "disabled", websocket_manager);
-        } else {
+		  LOG_I(UTIL,"[websrv] SoftScope init....\n");
 		  if (IS_SOFTMODEM_GNB_BIT) {
 		  } else if (IS_SOFTMODEM_GNB_BIT) {
 			  create_phy_scope_gnb();
 		  } else if (IS_SOFTMODEM_5GUE_BIT) {
-			  create_phy_scope_nrue();
+//			  create_phy_scope_nrue();
 		  } else {
             LOG_I(UTIL,"[websrv] SoftScope web interface  not implemented for this softmodem\n");
             websrv_websocket_send_scopemessage(SCOPEMSG_TYPE_STATUSUPD, "disabled", websocket_manager);			  
 		  }
 	    }
-	  }    
+	    scope_params.statusmask |= SCOPE_STATUSMASK_AVAILABLE; 
+      if (strncmp(msg_data,"disabled",8) == 0){
+		LOG_I(UTIL,"[websrv] SoftScope disabled state client ack  \n");  
+        scope_params.statusmask = SCOPE_STATUSMASK_DISABLED;
+      }	    
       if (strncmp(msg_data,"start",5) == 0){
         scope_params.statusmask |= SCOPE_STATUSMASK_STARTED;
       }
@@ -114,38 +121,25 @@ void websrv_websocket_manager_callback(const struct _u_request * request,
 	linuxtime=time(NULL);	  
     localtime_r(&linuxtime,&loctime);
     snprintf(strtime,sizeof(strtime),"%d/%d/%d %d:%d:%d",loctime.tm_mday,loctime.tm_mon,loctime.tm_year+1900,loctime.tm_hour,loctime.tm_min,loctime.tm_sec);
-//    Send text message without fragmentation
-//    if (ulfius_websocket_wait_close(websocket_manager, 2000) == U_WEBSOCKET_STATUS_OPEN) {
-//      if (ulfius_websocket_send_message(websocket_manager, U_WEBSOCKET_OPCODE_TEXT,strlen(msg.data), msg.data ) != U_OK) {
-//        LOG_W(UTIL,"Error sending websocket message\n");
-//    }
-//  }
-  
-
-  // Send ping message
- // if (ulfius_websocket_wait_close(websocket_manager, 2000) == U_WEBSOCKET_STATUS_OPEN) {
- //   if (ulfius_websocket_send_message(websocket_manager, U_WEBSOCKET_OPCODE_PING, 0, NULL) != U_OK) {
- //     LOG_W(UTIL, "Error send ping message");
- //   }
-//  }
-//  sleep(1);
-  // Send binary message without fragmentation
-  if( (scope_params.statusmask & SCOPE_STATUSMASK_STARTED) ) {
-    if (ulfius_websocket_wait_close(websocket_manager, scope_params.refrate) == U_WEBSOCKET_STATUS_OPEN) {
-      websrv_websocket_send_scopemessage(SCOPEMSG_TYPE_TIME, strtime, websocket_manager);
+    if( (scope_params.statusmask & SCOPE_STATUSMASK_STARTED) ) {
+      if (ulfius_websocket_wait_close(websocket_manager, scope_params.refrate) == U_WEBSOCKET_STATUS_OPEN) {
+        websrv_websocket_send_scopemessage(SCOPEMSG_TYPE_TIME, strtime, websocket_manager);
+      }
     }
-  }
-
-
-  // Send JSON message without fragmentation
-
-// if (ulfius_websocket_wait_close(websocket_manager, 2000) == U_WEBSOCKET_STATUS_OPEN) {
-//    json_t * message = json_pack("{ss}", "send", json_string(strtime));
-//    if (ulfius_websocket_send_json_message(websocket_manager, message) != U_OK) {
-//   }
-//   json_decref(message);
-// }
-
+    if( (scope_params.statusmask == SCOPE_STATUSMASK_UNKNOWN) ) {
+	  if (ulfius_websocket_wait_close(websocket_manager, 2000) == U_WEBSOCKET_STATUS_OPEN) {
+        if (IS_SOFTMODEM_DOSCOPE | IS_SOFTMODEM_ENB_BIT | IS_SOFTMODEM_4GUE_BIT) {
+	      websrv_websocket_send_scopemessage(SCOPEMSG_TYPE_STATUSUPD, "disabled", websocket_manager);
+	    } else {     
+          websrv_websocket_send_scopemessage(SCOPEMSG_TYPE_STATUSUPD, "enabled", websocket_manager);
+        }
+      }
+    }
+    if( (scope_params.statusmask == SCOPE_STATUSMASK_DISABLED) ) {
+	  if (ulfius_websocket_wait_close(websocket_manager, 2000) == U_WEBSOCKET_STATUS_OPEN) {
+        sleep(10);
+      }
+    }      
   }
   LOG_I(UTIL, "Closing websocket_manager_callback...\n");
 }
@@ -161,7 +155,7 @@ void websrv_websocket_incoming_message_callback (const struct _u_request * reque
     LOG_I(UTIL, "text payload '%.*s'", (int)last_message->data_len, last_message->data);
   } else if (last_message->opcode == U_WEBSOCKET_OPCODE_BINARY) {
 	websrv_msg_t *msg = (websrv_msg_t *)last_message->data;
-    LOG_I(UTIL, "binary payload from %c type %i: %s\n",msg->src, (int)msg->msgtype, msg->data);
+    LOG_I(UTIL, "binary payload from %c type %i\n",msg->src, (int)msg->msgtype);
     switch(msg->src) {
 		case 's':
           websrv_websocket_process_scopemessage(msg->msgtype, msg->data,websocket_manager);
@@ -181,7 +175,6 @@ int websrv_callback_websocket (const struct _u_request * request, struct _u_resp
   int ret;
   
   websrv_dump_request("websocket ",request);
-  websrv_string_response("softscope", response, 200) ;
   if ((ret = ulfius_set_websocket_response(response, NULL, NULL, websrv_websocket_manager_callback, NULL, websrv_websocket_incoming_message_callback, NULL, websrv_websocket_onclose_callback, NULL)) == U_OK) {
     return U_CALLBACK_COMPLETE;
   } else {

@@ -21,7 +21,7 @@ export class ScopeComponent {
   scopestatus = 'stopped';
   startstop = 'start';
   rfrate = 2;
-  @Output() ScopeDisabled = new EventEmitter<boolean>();
+  @Output() ScopeEnabled = new EventEmitter<boolean>();
   
   sliderForm: FormGroup = new FormGroup({
   sliderControl: new FormControl()
@@ -36,6 +36,9 @@ export class ScopeComponent {
       this.ProcessScopeMsg(this.wsService.DeserializeMessage(msg));
     });
   }
+  
+  ngOnInit() {
+  } 
  
   DecodScopeBinmsg(message: ArrayBuffer) {
      const enc = new TextDecoder("utf-8");
@@ -44,14 +47,20 @@ export class ScopeComponent {
   
   
   ProcessScopeMsg (message: Message) {
+	  
 	  let msgcontent = this.DecodScopeBinmsg(message.content);
+	  console.log("Scope received msg type " + message.msgtype.toString() + " " + message.content);
 	  switch ( message.msgtype ) {		  
 		  case SCOPEMSG_TYPE_STATUSUPD:
             if (msgcontent === 'stopped') {
               this.scopestatus='stopped';
               this.startstop='start';
             } else if (msgcontent === 'disabled') {
-		      this.ScopeDisabled.emit(true);
+		      this.ScopeEnabled.emit(false);
+		      this.sendMsg(SCOPEMSG_TYPE_STATUSUPD,'disabled'); //Ack disabled message
+			} else if (msgcontent === 'enabled') {
+		      this.ScopeEnabled.emit(true);
+		      this.sendMsg(SCOPEMSG_TYPE_STATUSUPD,'init');
 			}
             break; 
           case SCOPEMSG_TYPE_TIME:
@@ -72,6 +81,7 @@ export class ScopeComponent {
       content: byteArray.buffer
     };
     this.wsService.messages.next(this.wsService.SerializeMessage(message));
+    console.log("Scope sent msg type " + type.toString() + " " + strmessage);
   }
 
   sendBinMsg(type: number, binmessage: number) {
@@ -84,6 +94,7 @@ export class ScopeComponent {
       content: buffview.buffer
     };
     this.wsService.messages.next(this.wsService.SerializeMessage(message));
+    console.log("Scope sent msg type " + type.toString() + " (binary content)");
   }
   
   startorstop() {

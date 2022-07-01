@@ -29,66 +29,21 @@
 #include "executables/nr-softmodem-common.h"
 #ifndef WEBSRVSCOPE
 #include <forms.h>
-#  define STATICFORTHISCOMPILE static
-#else
-#include "common/utils/websrv/websrv_noforms.h"
-#  define STATICFORTHISCOMPILE
-#  include <ulfius.h>
-#endif
-#include "common/utils/websrv/websrv.h"
 
-#define TPUT_WINDOW_LENGTH 100
-#define ScaleZone 4
-#define localBuff(NaMe,SiZe) float NaMe[SiZe]; memset(NaMe,0,sizeof(NaMe));
+#  define STATICFORXSCOPE static
+#else
+#  include "common/utils/websrv/websrv_noforms.h"
+#  define STATICFORXSCOPE
+#  include <ulfius.h>
+#  include "common/utils/websrv/websrv.h"
+#endif
+#include "phy_scope.h"
 
 
 const FL_COLOR rx_antenna_colors[4] = {FL_RED,FL_BLUE,FL_GREEN,FL_YELLOW};
 const FL_COLOR water_colors[4] = {FL_BLUE,FL_GREEN,FL_YELLOW,FL_RED};
 
-typedef c16_t scopeSample_t;
-#define SquaredNorm(VaR) ((VaR).r*(VaR).r+(VaR).i*(VaR).i)
 
-typedef struct {
-  int dataSize;
-  int elementSz;
-  int colSz;
-  int lineSz;
-} scopeGraphData_t;
-
-typedef struct OAIgraph {
-  FL_OBJECT *graph;
-  FL_OBJECT *text;
-  float maxX;
-  float maxY;
-  float minX;
-  float minY;
-  int x;
-  int y;
-  int w;
-  int h;
-  int waterFallh;
-  double *waterFallAvg;
-  boolean_t initDone;
-  int iteration;
-  void (*gNBfunct) (struct OAIgraph *graph, scopeData_t *p, int UE_id);
-  void (*nrUEfunct)(scopeGraphData_t **data, struct OAIgraph *graph, PHY_VARS_NR_UE *phy_vars_ue, int eNB_id, int UE_id);
-} OAIgraph_t;
-
-/* Forms and Objects */
-typedef struct {
-  FL_FORM    *phy_scope;
-  OAIgraph_t graph[20];
-  FL_OBJECT *button_0;
-} OAI_phy_scope_t;
-
-typedef struct {
-  FL_FORM    *stats_form;
-  void       *vdata;
-  char       *cdata;
-  long        ldata;
-  FL_OBJECT *stats_text;
-  FL_OBJECT *stats_button;
-} FD_stats_form;
 
 static void drawsymbol(FL_OBJECT *obj, int id,
                        FL_POINT *p, int n, int w, int h) {
@@ -408,8 +363,14 @@ static void puschIQ (OAIgraph_t *graph, scopeData_t *p, int nb_UEs) {
         I[k] = pusch_comp[k].r;
         Q[k] = pusch_comp[k].i;
       }
-
+#if WEBSRVSCOPE
+      websrv_scopegraph_t wsc;
+      wsc.sigid=ue;
+      snprintf(wsc.graphtitle,sizeof(wsc.graphtitle),"pusch");      
       oai_xygraph(graph,I,Q,sz,ue,10);
+#else
+      websrv_scope_sendIQ(I,Q,sz,&wsc);
+#endif
     }
   }
 }
@@ -458,7 +419,9 @@ static void puschThroughtput (OAIgraph_t *graph, scopeData_t *p, int nb_UEs) {
   //    fl_set_xyplot_ybounds(form->pusch_tput,0,ymax);
   */
 }
-STATICFORTHISCOMPILE OAI_phy_scope_t *create_phy_scope_gnb(void) {
+
+STATICFORXSCOPE OAI_phy_scope_t *create_phy_scope_gnb(void) {
+
   FL_OBJECT *obj;
   OAI_phy_scope_t *fdui = calloc(( sizeof *fdui ),1);
   // Define form
@@ -508,7 +471,7 @@ STATICFORTHISCOMPILE OAI_phy_scope_t *create_phy_scope_gnb(void) {
   return fdui;
 }
 static const int scope_enb_num_ue = 1;
-void phy_scope_gNB(OAI_phy_scope_t *form,
+STATICFORXSCOPE void phy_scope_gNB(OAI_phy_scope_t *form,
                    scopeData_t *p,
                    int UE_id) {
   static OAI_phy_scope_t *rememberForm=NULL;
@@ -563,7 +526,7 @@ static void copyRxdataF(int32_t *data, int slot,  void *scopeData) {
          scope->gNB->frame_parms.samples_per_slot_wCP*sizeof(int32_t));
 }
 
-void gNBinitScope(scopeParms_t *p) {
+static void gNBinitScope(scopeParms_t *p) {
   AssertFatal(p->gNB->scopeData=malloc(sizeof(scopeData_t)),"");
   scopeData_t *scope=(scopeData_t *) p->gNB->scopeData;
   scope->argc=p->argc;
@@ -800,7 +763,9 @@ static void uePdschThroughput  (scopeGraphData_t **data, OAIgraph_t *graph, PHY_
   fl_set_xyplot_ybounds(form->pdsch_tput,0,tput_ue_max[UE_id]);
   */
 }
-STATICFORTHISCOMPILE OAI_phy_scope_t *create_phy_scope_nrue( int ID ) {
+
+STATICFORXSCOPE OAI_phy_scope_t *create_phy_scope_nrue( int ID ) {
+
   FL_OBJECT *obj;
   OAI_phy_scope_t *fdui = calloc(( sizeof *fdui ),1);
   // Define form
@@ -871,7 +836,7 @@ STATICFORTHISCOMPILE OAI_phy_scope_t *create_phy_scope_nrue( int ID ) {
   return fdui;
 }
 
-void phy_scope_nrUE(scopeGraphData_t **UEliveData,
+static void phy_scope_nrUE(scopeGraphData_t **UEliveData,
                     OAI_phy_scope_t *form,
                     PHY_VARS_NR_UE *phy_vars_ue,
                     int eNB_id,
@@ -921,7 +886,7 @@ static void *nrUEscopeThread(void *arg) {
   pthread_exit((void *)arg);
 }
 
-void UEcopyData(PHY_VARS_NR_UE *ue, enum UEdataType type, void *dataIn, int elementSz, int colSz, int lineSz) {
+static void UEcopyData(PHY_VARS_NR_UE *ue, enum UEdataType type, void *dataIn, int elementSz, int colSz, int lineSz) {
   // Local static copy of the scope data bufs
   // The active data buf is alterned to avoid interference between the Scope thread (display) and the Rx thread (data input)
   // Index of "2" could be set to the number of Rx threads + 1
@@ -962,7 +927,7 @@ void UEcopyData(PHY_VARS_NR_UE *ue, enum UEdataType type, void *dataIn, int elem
   }
 }
 
-void nrUEinitScope(PHY_VARS_NR_UE *ue) {
+static void nrUEinitScope(PHY_VARS_NR_UE *ue) {
   AssertFatal(ue->scopeData=malloc(sizeof(scopeData_t)),"");
   scopeData_t *scope=(scopeData_t *) ue->scopeData;
   scope->copyData=UEcopyData;
