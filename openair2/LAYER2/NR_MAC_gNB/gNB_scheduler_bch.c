@@ -191,7 +191,7 @@ void schedule_nr_mib(module_id_t module_idP, frame_t frameP, sub_frame_t slotP) 
       NR_SubcarrierSpacing_t scs = *scc->ssbSubcarrierSpacing;
       const long band = *scc->downlinkConfigCommon->frequencyInfoDL->frequencyBandList.list.array[0];
       uint16_t offset_pointa = get_ssboffset_pointa(scc,band);
-      uint8_t ssbSubcarrierOffset = gNB->ssb_SubcarrierOffset>>scs;
+      uint8_t ssbSubcarrierOffset = gNB->ssb_SubcarrierOffset;
 
       const BIT_STRING_t *shortBitmap = &scc->ssb_PositionsInBurst->choice.shortBitmap;
       const BIT_STRING_t *mediumBitmap = &scc->ssb_PositionsInBurst->choice.mediumBitmap;
@@ -208,7 +208,7 @@ void schedule_nr_mib(module_id_t module_idP, frame_t frameP, sub_frame_t slotP) 
               // if start symbol is in current slot, schedule current SSB, fill VRB map and call get_type0_PDCCH_CSS_config_parameters
               if ((ssb_start_symbol/14) == rel_slot){
                 schedule_ssb(frameP, slotP, scc, dl_req, i_ssb, ssbSubcarrierOffset, offset_pointa, (*(uint32_t*)cc->MIB_pdu.payload) & ((1<<24)-1));
-                fill_ssb_vrb_map(cc, offset_pointa, ssb_start_symbol, CC_id);
+                fill_ssb_vrb_map(cc, offset_pointa, ssbSubcarrierOffset, ssb_start_symbol, CC_id);
                 if (get_softmodem_params()->sa == 1) {
                   get_type0_PDCCH_CSS_config_parameters(&gNB->type0_PDCCH_CSS_config[i_ssb],
                                                         frameP,
@@ -236,7 +236,7 @@ void schedule_nr_mib(module_id_t module_idP, frame_t frameP, sub_frame_t slotP) 
               // if start symbol is in current slot, schedule current SSB, fill VRB map and call get_type0_PDCCH_CSS_config_parameters
               if ((ssb_start_symbol/14) == rel_slot){
                 schedule_ssb(frameP, slotP, scc, dl_req, i_ssb, ssbSubcarrierOffset, offset_pointa, (*(uint32_t*)cc->MIB_pdu.payload) & ((1<<24)-1));
-                fill_ssb_vrb_map(cc, offset_pointa, ssb_start_symbol, CC_id);
+                fill_ssb_vrb_map(cc, offset_pointa, ssbSubcarrierOffset,ssb_start_symbol, CC_id);
                 if (get_softmodem_params()->sa == 1) {
                   get_type0_PDCCH_CSS_config_parameters(&gNB->type0_PDCCH_CSS_config[i_ssb],
                                                         frameP,
@@ -265,7 +265,7 @@ void schedule_nr_mib(module_id_t module_idP, frame_t frameP, sub_frame_t slotP) 
               // if start symbol is in current slot, schedule current SSB, fill VRB map and call get_type0_PDCCH_CSS_config_parameters
               if ((ssb_start_symbol/14) == rel_slot){
                 schedule_ssb(frameP, slotP, scc, dl_req, i_ssb, ssbSubcarrierOffset, offset_pointa, (*(uint32_t*)cc->MIB_pdu.payload) & ((1<<24)-1));
-                fill_ssb_vrb_map(cc, offset_pointa, ssb_start_symbol, CC_id);
+                fill_ssb_vrb_map(cc, offset_pointa, ssbSubcarrierOffset, ssb_start_symbol, CC_id);
                 const NR_TDD_UL_DL_Pattern_t *tdd = &scc->tdd_UL_DL_ConfigurationCommon->pattern1;
                 const int n_slots_frame = nr_slots_per_frame[*scc->ssbSubcarrierSpacing];
                 // FR2 is only TDD, to be fixed for flexible TDD
@@ -306,7 +306,7 @@ void schedule_nr_SI(module_id_t module_idP, frame_t frameP, sub_frame_t subframe
 //----------------------------------------  
 }
 
-void fill_ssb_vrb_map (NR_COMMON_channels_t *cc, int rbStart,  uint16_t symStart, int CC_id) {
+void fill_ssb_vrb_map (NR_COMMON_channels_t *cc, int rbStart,  int ssb_subcarrier_offset, uint16_t symStart, int CC_id) {
 
   AssertFatal(*cc->ServingCellConfigCommon->ssbSubcarrierSpacing !=
               NR_SubcarrierSpacing_kHz240,
@@ -314,7 +314,9 @@ void fill_ssb_vrb_map (NR_COMMON_channels_t *cc, int rbStart,  uint16_t symStart
 
   uint16_t *vrb_map = cc[CC_id].vrb_map;
 
-  for (int rb = 0; rb < 20; rb++)
+  int extra_prb = ssb_subcarrier_offset > 0 ? 1 : 0;
+  LOG_I(NR_MAC,"Filling SSB positions in VRBMAP starting at rb %d for %d PRBs\n",rbStart,(20+extra_prb));
+  for (int rb = 0; rb < (20+extra_prb); rb++)
     vrb_map[rbStart + rb] = SL_to_bitmap(symStart, 4);
 
 }
@@ -405,9 +407,10 @@ uint32_t schedule_control_sib1(module_id_t module_id,
                          rbSize, nrOfSymbols, N_PRB_DMRS * dmrs_length,0, 0,1) >> 3;
   } while (TBS < gNB_mac->sched_ctrlCommon->num_total_bytes);
 
-  AssertFatal(TBS>=gNB_mac->sched_ctrlCommon->num_total_bytes,"Couldn't allocate enough resources for %d bytes in SIB1 PDSCH\n",
-              gNB_mac->sched_ctrlCommon->num_total_bytes);
+  AssertFatal(TBS>=gNB_mac->sched_ctrlCommon->num_total_bytes,"Couldn't allocate enough resources for %d bytes in SIB1 PDSCH (start PRB %d)\n",
+              gNB_mac->sched_ctrlCommon->num_total_bytes,rbStart);
 
+  LOG_I(NR_MAC,"Allocated PDSCH for SIB1 (rbStart %d (absolute), rbSize %d)\n",rbStart,rbSize);
   gNB_mac->sched_ctrlCommon->sched_pdsch.rbSize = rbSize;
   gNB_mac->sched_ctrlCommon->sched_pdsch.rbStart = 0;
 
