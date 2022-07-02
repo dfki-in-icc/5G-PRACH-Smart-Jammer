@@ -410,7 +410,7 @@ uint32_t schedule_control_sib1(module_id_t module_id,
   AssertFatal(TBS>=gNB_mac->sched_ctrlCommon->num_total_bytes,"Couldn't allocate enough resources for %d bytes in SIB1 PDSCH (start PRB %d)\n",
               gNB_mac->sched_ctrlCommon->num_total_bytes,rbStart);
 
-  LOG_I(NR_MAC,"Allocated PDSCH for SIB1 (rbStart %d (absolute), rbSize %d)\n",rbStart,rbSize);
+  LOG_I(NR_MAC,"Allocated PDSCH for SIB1 (rbStart %d (absolute), rbSize %d, startSymbolIndex %d, nrOfSymbols %d)\n",rbStart,rbSize,startSymbolIndex,nrOfSymbols);
   gNB_mac->sched_ctrlCommon->sched_pdsch.rbSize = rbSize;
   gNB_mac->sched_ctrlCommon->sched_pdsch.rbStart = 0;
 

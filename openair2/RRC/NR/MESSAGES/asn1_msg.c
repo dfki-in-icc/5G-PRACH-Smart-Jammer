@@ -237,8 +237,7 @@ uint8_t do_MIB_NR(gNB_RRC_INST *rrc,uint32_t frame) {
     ssb_subcarrier_offset = (absolute_diff*scs_scaling)%24;
     LOG_I(NR_RRC,"Set ssb_subcarrier_offset to %d, absolute_diff %d, scs_scaling %d\n",ssb_subcarrier_offset,absolute_diff, scs_scaling);
   }
-  AssertFatal(ssb_subcarrier_offset < 16, "ssb_subcarrier_offset %d > 15\n",ssb_subcarrier_offset);
-  mib->message.choice.mib->ssb_SubcarrierOffset = ssb_subcarrier_offset;
+  mib->message.choice.mib->ssb_SubcarrierOffset = ssb_subcarrier_offset&15;
 
   /*
   * The SIB1 will be sent in this allocation (Type0-PDCCH) : 38.213, 13-4 Table and 38.213 13-11 to 13-14 tables
@@ -294,6 +293,9 @@ uint8_t do_MIB_NR(gNB_RRC_INST *rrc,uint32_t frame) {
   mib->message.choice.mib->cellBarred = NR_MIB__cellBarred_notBarred;
   //  assign_enum
   mib->message.choice.mib->intraFreqReselection = NR_MIB__intraFreqReselection_notAllowed;
+
+  LOG_I(NR_RRC,"MIB cellBarred %d intraFreqReselection %d\n",mib->message.choice.mib->cellBarred,mib->message.choice.mib->intraFreqReselection);
+
   //encode MIB to data
   enc_rval = uper_encode_to_buffer(&asn_DEF_NR_BCCH_BCH_Message,
                                    NULL,
