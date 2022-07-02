@@ -198,7 +198,6 @@ void schedule_nr_mib(module_id_t module_idP, frame_t frameP, sub_frame_t slotP) 
       const BIT_STRING_t *longBitmap = &scc->ssb_PositionsInBurst->choice.longBitmap;
 
       uint16_t ssb_start_symbol;
-
       switch (scc->ssb_PositionsInBurst->present) {
         case 1:
           // short bitmap (<3GHz) max 4 SSBs
@@ -207,6 +206,7 @@ void schedule_nr_mib(module_id_t module_idP, frame_t frameP, sub_frame_t slotP) 
               ssb_start_symbol = get_ssb_start_symbol(band,scs,i_ssb);
               // if start symbol is in current slot, schedule current SSB, fill VRB map and call get_type0_PDCCH_CSS_config_parameters
               if ((ssb_start_symbol/14) == rel_slot){
+                LOG_D(NR_MAC,"Generating SSB in %d.%d (%d,%d)\n",frameP,slotP,offset_pointa,ssbSubcarrierOffset);
                 schedule_ssb(frameP, slotP, scc, dl_req, i_ssb, ssbSubcarrierOffset, offset_pointa, (*(uint32_t*)cc->MIB_pdu.payload) & ((1<<24)-1));
                 fill_ssb_vrb_map(cc, offset_pointa, ssbSubcarrierOffset, ssb_start_symbol, CC_id);
                 if (get_softmodem_params()->sa == 1) {
@@ -315,7 +315,7 @@ void fill_ssb_vrb_map (NR_COMMON_channels_t *cc, int rbStart,  int ssb_subcarrie
   uint16_t *vrb_map = cc[CC_id].vrb_map;
 
   int extra_prb = ssb_subcarrier_offset > 0 ? 1 : 0;
-  LOG_I(NR_MAC,"Filling SSB positions in VRBMAP starting at rb %d for %d PRBs\n",rbStart,(20+extra_prb));
+  LOG_D(NR_MAC,"Filling SSB positions in VRBMAP starting at rb %d for %d PRBs\n",rbStart,(20+extra_prb));
   for (int rb = 0; rb < (20+extra_prb); rb++)
     vrb_map[rbStart + rb] = SL_to_bitmap(symStart, 4);
 
@@ -410,7 +410,7 @@ uint32_t schedule_control_sib1(module_id_t module_id,
   AssertFatal(TBS>=gNB_mac->sched_ctrlCommon->num_total_bytes,"Couldn't allocate enough resources for %d bytes in SIB1 PDSCH (start PRB %d)\n",
               gNB_mac->sched_ctrlCommon->num_total_bytes,rbStart);
 
-  LOG_I(NR_MAC,"Allocated PDSCH for SIB1 (rbStart %d (absolute), rbSize %d, startSymbolIndex %d, nrOfSymbols %d)\n",rbStart,rbSize,startSymbolIndex,nrOfSymbols);
+  LOG_D(NR_MAC,"Allocated PDSCH for SIB1 (rbStart %d (absolute), rbSize %d, startSymbolIndex %d, nrOfSymbols %d)\n",rbStart,rbSize,startSymbolIndex,nrOfSymbols);
   gNB_mac->sched_ctrlCommon->sched_pdsch.rbSize = rbSize;
   gNB_mac->sched_ctrlCommon->sched_pdsch.rbStart = 0;
 
