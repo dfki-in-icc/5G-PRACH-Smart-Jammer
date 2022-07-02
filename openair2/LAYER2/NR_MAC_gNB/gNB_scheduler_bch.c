@@ -134,7 +134,7 @@ void schedule_ssb(frame_t frame, sub_frame_t slot,
   dl_config_pdu->ssb_pdu.ssb_pdu_rel15.precoding_and_beamforming.prgs_list[0].dig_bf_interface_list[0].beam_idx = beam_index;
   dl_req->nPDUs++;
 
-  LOG_D(MAC,"Scheduling ssb %d at frame %d and slot %d\n",i_ssb,frame,slot);
+  LOG_D(NR_MAC,"Scheduling ssb %d at frame %d and slot %d, scoffset %d, offset_pointa %d\n",i_ssb,frame,slot,scoffset,offset_pointa);
 
 }
 
@@ -551,6 +551,7 @@ void nr_fill_nfapi_dl_sib1_pdu(int Mod_idP,
                      dci_format,
                      rnti_type,
                      pdsch_pdu_rel15->BWPSize,
+                     0,
                      0,
                      gNB_mac->cset0_bwp_size);
 
