@@ -267,7 +267,7 @@ int nr_generate_pbch(nfapi_nr_dl_tti_ssb_pdu *ssb_pdu,
   else
     pbch->pbch_a |= ((config->ssb_table.ssb_subcarrier_offset.value>>4)&1)<<29; //MSB of k_SSB (bit index 4)
 
-  LOG_D(PHY,"After extra byte: pbch_a = 0x%08x\n",pbch->pbch_a);
+  LOG_D(PHY,"After extra byte: pbch_a = 0x%08x (ssb_subcarrier_offset %d)\n",pbch->pbch_a,config->ssb_table.ssb_subcarrier_offset.value);
 
   // Payload interleaving
 
