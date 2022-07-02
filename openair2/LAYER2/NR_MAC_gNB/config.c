@@ -335,22 +335,20 @@ void config_common(int Mod_idP, int pdsch_AntennaPorts, int pusch_AntennaPorts, 
   cfg->num_tlv++;
 
   // SSB Table Configuration
-  int scs_scaling = 1<<(cfg->ssb_config.scs_common.value);
+  int scs_scaling = 1; // value for FR1 >= 3 GHz (15 kHz steps)
   if (scc->downlinkConfigCommon->frequencyInfoDL->absoluteFrequencyPointA < 600000)
-    scs_scaling = scs_scaling*3;
+    scs_scaling = scs_scaling*3; // conversion for FR1 < 3GHz, 5 kHz steps) 
   if (scc->downlinkConfigCommon->frequencyInfoDL->absoluteFrequencyPointA > 2016666)
-    scs_scaling = scs_scaling>>2;
+    scs_scaling = scs_scaling>>2; // conversion for FR2, 60 kHz steps)
   uint32_t absolute_diff = (*scc->downlinkConfigCommon->frequencyInfoDL->absoluteFrequencySSB - scc->downlinkConfigCommon->frequencyInfoDL->absoluteFrequencyPointA);
 
-  RC.nrmac[Mod_idP]->ssb_SubcarrierOffset = absolute_diff%(12*scs_scaling);
+  RC.nrmac[Mod_idP]->ssb_SubcarrierOffset = (absolute_diff*scs_scaling)%24;
   int sco = 31; // no SIB1
   if(get_softmodem_params()->sa) {
     sco = RC.nrmac[Mod_idP]->ssb_SubcarrierOffset;
-    if(frequency_range == FR1)
-      sco <<= cfg->ssb_config.scs_common.value; // 38.211 section 7.4.3.1 in FR1 it is expresses in terms of 15kHz SCS
   }
 
-  cfg->ssb_table.ssb_offset_point_a.value = absolute_diff/(12*scs_scaling) - 10; //absoluteFrequencySSB is the central frequency of SSB which is made by 20RBs in total
+  cfg->ssb_table.ssb_offset_point_a.value = absolute_diff/(12*(scs_scaling<<cfg->ssb_config.scs_common.value)) - 10; //absoluteFrequencySSB is the central frequency of SSB which is made by 20RBs in total
   cfg->ssb_table.ssb_offset_point_a.tl.tag = NFAPI_NR_CONFIG_SSB_OFFSET_POINT_A_TAG;
   cfg->num_tlv++;
   cfg->ssb_table.ssb_period.value = *scc->ssb_periodicityServingCell;
