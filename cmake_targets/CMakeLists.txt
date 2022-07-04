@@ -743,6 +743,15 @@ set(HWLIB_BLADERF_SOURCE
 add_library(oai_bladerfdevif MODULE ${HWLIB_BLADERF_SOURCE} )
 target_link_libraries(oai_bladerfdevif bladeRF)
 
+set (SKIQ_SDK $ENV{SKIQ_SDK})
+set (option_HWSKIQLIB_lib "-L ${SKIQ_SDK}/lib/support/x86_64.gcc/usr/lib/epiq ${SKIQ_SDK}/lib/libsidekiq__x86_64.gcc.a ${SKIQ_SDK}/arg_parser/lib/arg_parser__x86_64.gcc.a -lglib-2.0 -Wl,--enable-new-dtags -Wl,-rpath,/usr/lib/epiq ")
+add_library(oai_skiqdevif MODULE ${OPENAIR_TARGETS}/ARCH/SKIQ/USERSPACE/LIB/skiq_lib.c)
+FIND_LIBRARY(LIBSIDEKIQ NAMES "libsidekiq__x86_64.gcc.a" "arg_parser__x86_64.gcc.a" PATHS ${SKIQ_SDK}/lib NO_DEFAULT_PATH)
+target_link_libraries(oai_skiqdevif ${LIBSIDEKIQ})
+target_include_directories(oai_skiqdevif PRIVATE "${SKIQ_SDK}/sidekiq_core/inc")
+target_include_directories(oai_skiqdevif PRIVATE "${OPENAIR_TARGETS}/ARCH/SKIQ/USERSPACE/LIB/")
+set (CMAKE_SHARED_LINKER_FLAGS "-lglib-2.0 -Wl,--enable-new-dtags -Wl,-rpath,/usr/lib/epiq")
+
 include_directories("${OPENAIR_TARGETS}/ARCH/LMSSDR/USERSPACE/LIB/")
 
 set(HWLIB_LMSSDR_SOURCE

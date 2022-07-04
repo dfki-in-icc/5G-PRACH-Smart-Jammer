@@ -98,6 +98,8 @@ typedef enum {
   LMSSDR_DEV,
   /*!\brief device is Iris */
   IRIS_DEV,
+  /*!\brief device is SKIQ*/
+  SKIQ_DEV,
   /*!\brief device is NONE*/
   NONE_DEV,
   /*!\brief device is ADRV9371_ZC706 */

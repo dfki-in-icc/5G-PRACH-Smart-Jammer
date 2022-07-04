@@ -53,6 +53,7 @@ const char* devtype_names[MAX_RF_DEV_TYPE] = {
   "BLADERF",
   "LMSSDR",
   "IRIS",
+  "SKIQ",
   "No HW",
   "ADRV9371_ZC706",
   "UEDv2",

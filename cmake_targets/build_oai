@@ -110,7 +110,7 @@ Options:
 --UE-gen-nvram [output path]
    Specify gen_nvram_path (default \"$gen_nvram_path\")
 -w | --hardware
-   EXMIMO, USRP, BLADERF, LMSSDR, IRIS, ADRV9371_ZC706, SIMU, AW2SORI, None (Default)
+   EXMIMO, USRP, SKIQ, BLADERF, LMSSDR, IRIS, ADRV9371_ZC706, SIMU, AW2SORI, None (Default)
    Adds this RF board support (in external packages installation and in compilation)
 -t | --transport
    Selects the transport protocol type, options: None, Ethernet, benetel4g, benetel5g
@@ -300,7 +300,7 @@ function main() {
                 "EXMIMO")
                     HW="EXMIMO"
                     ;;
-                "USRP" | "BLADERF" | "LMSSDR" | "IRIS" | "ADRV9371_ZC706" | "SIMU" | "AW2SORI")
+                "USRP" | "SKIQ" | "BLADERF" | "LMSSDR" | "IRIS" | "ADRV9371_ZC706" | "SIMU" | "AW2SORI")
                     HW="OAI_"$2
                     ;;
                 "None")
@@ -584,6 +584,10 @@ function main() {
       #  flash_firmware_iris
       #fi
     fi
+    if [ "$HW" == "OAI_SKIQ" ] ; then
+      echo_info "installing packages for SKIQ support"
+      check_install_skiq_driver
+    fi
     echo_info "Installing protobuf/protobuf-c for flexran agent support"
     install_protobuf_c
     echo_success "protobuf/protobuf-c installation successful"
@@ -859,6 +863,15 @@ function main() {
               ln -sf liboai_usrpdevif.so liboai_device.so
               ln -sf $dbin/liboai_usrpdevif.so.$REL $dbin/liboai_device.so
               echo_info "liboai_device.so is linked to USRP device library"        
+          elif [ "$HW" == "OAI_SKIQ" ] ; then
+              if [ -f $SKIQ_SDK/sidekiq_core/inc ] ; then
+                  compilations \
+                      $build_dir oai_skiqdevif \
+                      liboai_skiqdevif.so $dbin/liboai_skiqdevif.so.$REL
+              fi
+              ln -s liboai_skiqdevif.so liboai_device.so
+              ln -s $dbin/liboai_skiqdevif.so.$REL $dbin/liboai_device.so
+              echo_info "liboai_device.so is linked to SIDEKIQ device library"
           elif [ "$HW" == "OAI_BLADERF" ] ; then
               if [ -f "/usr/include/libbladeRF.h" ] ; then
                   compilations \
