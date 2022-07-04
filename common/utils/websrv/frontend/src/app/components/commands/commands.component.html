@@ -106,6 +106,14 @@
                     </mat-select>
                   </mat-form-field>
 
+                  <mat-form-field *ngSwitchCase="IArgType.simuTypes">
+                    <mat-label>Simu Types</mat-label>
+                    <mat-select [formControl]="row.paramsCtrls[colIndex].valueFC"
+                      [(value)]="row.paramsCtrls[colIndex].valueFC.value">
+                      <mat-option *ngFor="let type of types$ | async" [value]="type"> {{ type }} </mat-option>
+                    </mat-select>
+                  </mat-form-field>
+
                   <div *ngSwitchDefault>
                     <mat-form-field>
                       <input matInput [formControl]="row.paramsCtrls[colIndex].valueFC" [readonly]="col.modifiable" />

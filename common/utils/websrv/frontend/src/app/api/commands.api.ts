@@ -36,7 +36,8 @@ export enum IArgType {
     range = "range",
     number = "number",
     string = "string",
-    configfile = "configfile"
+    configfile = "configfile",
+    simuTypes = "simuTypes",
 }
 
 export enum ICommandOptions {
