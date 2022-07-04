@@ -1,11 +1,12 @@
 import { Component } from '@angular/core';
-import { AbstractControl, FormArray } from '@angular/forms';
+import { FormArray } from '@angular/forms';
 import { BehaviorSubject, forkJoin, timer } from 'rxjs';
 import { Observable } from 'rxjs/internal/Observable';
 import { of } from 'rxjs/internal/observable/of';
 import { filter } from 'rxjs/internal/operators/filter';
 import { map } from 'rxjs/internal/operators/map';
 import { tap } from 'rxjs/internal/operators/tap';
+import { mergeMap, switchMap } from 'rxjs/operators';
 import { CommandsApi, IArgType, IColumn, ICommand, IInfo, ILogLvl, IParam, IRow } from 'src/app/api/commands.api';
 import { CmdCtrl } from 'src/app/controls/cmd.control';
 import { InfoCtrl } from 'src/app/controls/info.control';
@@ -17,6 +18,8 @@ import { DownloadService } from 'src/app/services/download.service';
 import { LoadingService } from 'src/app/services/loading.service';
 
 
+const CHANNEL_MOD_MODULE = "channelmod"
+const PREDEF_CMD = "show predef"
 
 @Component({
   selector: 'app-commands',
@@ -58,6 +61,19 @@ export class CommandsComponent {
       map(imodules => imodules.map(imodule => new ModuleCtrl(imodule))),
       filter(controls => controls.length > 0),
       tap(controls => this.onModuleSelect(controls[0]))
+    );
+  }
+
+  get types$() {
+    return this.modules$.pipe(
+      filter(modules => modules.map(module => module.name).includes(CHANNEL_MOD_MODULE)),
+      mergeMap(modules => this.commandsApi.readCommands$(modules[0]!.name)),
+      map(icmds => icmds.filter(cmd => cmd.name === PREDEF_CMD)),
+      filter(icmds => icmds.length > 0),
+      map(icmds => new CmdCtrl(icmds[0])),
+      mergeMap(control => this.commandsApi.runCommand$(control.api(), CHANNEL_MOD_MODULE)),
+      map(resp => resp.display.map(line => line.match('/\s*[0-9]*\s*(\S*)\n/gm')![0])),
+      tap(types => console.log(types.join(', ')))
     );
   }
 
@@ -104,31 +120,30 @@ export class CommandsComponent {
 
     this.selectedCmd = control.api()
 
-    const obsparam = forkJoin([control.confirm
+    const obsparam$ = forkJoin([control.confirm
       ? this.dialogService.openConfirmDialog(control.confirm)
       : control.question
         ? this.dialogService.openQuestionDialog(this.selectedModule! + " " + this.selectedModule!.name, control)
         : of(true)]);
 
-    obsparam.subscribe(results => {
-      if (!results[0])
-        return of(null);
-      if (control.isResUpdatable())
-        control.ResUpdTimer = timer(2000, 1000);
-      return this.execCmd(control);
-    });
-
-    // subscribe obsparam results
-    return of(null);
+    obsparam$.pipe(
+      switchMap(results => {
+        if (!results[0])
+          return of(null);
+        if (control.isResUpdatable())
+          control.ResUpdTimer = timer(2000, 1000);
+        return this.execCmd$(control);
+      }))
+      .subscribe();
   }
 
-  private execCmd(control: CmdCtrl) {
+  private execCmd$(control: CmdCtrl) {
     if (control.isResUpdatable() && control.ResUpdTimer) {
       if (!(control.ResUpdTimerSubscriber)) {
         control.ResUpdTimerSubscriber = control.ResUpdTimer.subscribe(iteration => {
           console.log("Update timer fired" + iteration);
           if (control.updbtnname === "Stop update")
-            this.execCmd(control);
+            this.execCmd$(control);
         });
       }
     }
@@ -175,8 +190,7 @@ export class CommandsComponent {
   }
 
   onParamSubmit(control: RowCtrl) {
-    this.commandsApi.setCmdParams$(control.api(), this.selectedModule!.name).subscribe();
+    this.commandsApi.setCmdParams$(control.api(), this.selectedModule!.name).subscribe(() => this.execCmd$(new CmdCtrl(this.selectedCmd!)));
   }
-
 
 }
