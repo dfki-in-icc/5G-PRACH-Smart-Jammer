@@ -71,7 +71,7 @@ void websrv_websocket_process_scopemessage(char msg_type, char *msg_data, struct
 		  LOG_I(UTIL,"[websrv] SoftScope init....\n");
 		  if (IS_SOFTMODEM_GNB_BIT) {
 		  } else if (IS_SOFTMODEM_GNB_BIT) {
-			  create_phy_scope_gnb();
+			 scope_params.form = create_phy_scope_gnb();
 		  } else if (IS_SOFTMODEM_5GUE_BIT) {
 //			  create_phy_scope_nrue();
 		  } else {
@@ -125,6 +125,7 @@ void websrv_websocket_manager_callback(const struct _u_request * request,
       if (ulfius_websocket_wait_close(websocket_manager, scope_params.refrate) == U_WEBSOCKET_STATUS_OPEN) {
         websrv_websocket_send_scopemessage(SCOPEMSG_TYPE_TIME, strtime, websocket_manager);
       }
+      
     }
     if( (scope_params.statusmask == SCOPE_STATUSMASK_UNKNOWN) ) {
 	  if (ulfius_websocket_wait_close(websocket_manager, 2000) == U_WEBSOCKET_STATUS_OPEN) {

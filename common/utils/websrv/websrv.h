@@ -82,6 +82,7 @@ typedef struct {
 typedef struct {
 	 uint64_t statusmask;                     // 
 	 uint32_t refrate;                        // in ms
+	 void  *form;
 } websrv_scope_params_t;
 
 typedef struct {

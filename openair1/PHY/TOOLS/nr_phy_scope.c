@@ -364,12 +364,13 @@ static void puschIQ (OAIgraph_t *graph, scopeData_t *p, int nb_UEs) {
         Q[k] = pusch_comp[k].i;
       }
 #if WEBSRVSCOPE
+
       websrv_scopegraph_t wsc;
       wsc.sigid=ue;
       snprintf(wsc.graphtitle,sizeof(wsc.graphtitle),"pusch");      
-      oai_xygraph(graph,I,Q,sz,ue,10);
-#else
       websrv_scope_sendIQ(I,Q,sz,&wsc);
+#else
+      oai_xygraph(graph,I,Q,sz,ue,10);
 #endif
     }
   }
@@ -536,7 +537,10 @@ static void gNBinitScope(scopeParms_t *p) {
   scope->slotFunc=copyRxdataF;
   AssertFatal(scope->liveData= calloc(p->gNB->frame_parms.samples_per_frame_wCP*sizeof(int32_t),1),"");
   pthread_t forms_thread;
+#ifndef WEBSRVSCOPE
   threadCreate(&forms_thread, scope_thread_gNB, p->gNB->scopeData, "scope", -1, OAI_PRIORITY_RT_LOW);
+#endif
+
 }
 static void ueWaterFall  (scopeGraphData_t **data, OAIgraph_t *graph, PHY_VARS_NR_UE *phy_vars_ue, int eNB_id, int UE_id) {
   // Received signal in time domain of receive antenna 0
