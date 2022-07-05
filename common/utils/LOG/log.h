@@ -129,6 +129,7 @@ extern "C" {
 #define FLAG_FILE_LINE   0x0040
 #define FLAG_TIME        0x0100
 #define FLAG_THREAD_ID   0x0200
+#define FLAG_JSON        0x0400 /*!< \brief: activate formatting in json*/
 #define FLAG_INITIALIZED 0x8000
 
 #define SET_LOG_OPTION(O)   g_log->flag = (g_log->flag | O)
@@ -267,7 +268,7 @@ typedef struct  {
   int               level;
   int               savedlevel;
   int               flag;
-  int               filelog;
+  int               filelog; // flag set to 1 when using a sink of type file, stdout if set to 0
   char              *filelog_name;
   FILE              *stream;
   log_vprint_func_t vprint;
@@ -284,6 +285,11 @@ typedef struct {
   char                   *filelog_name;
   uint64_t                debug_mask;
   uint64_t                dump_mask;
+  unsigned char           global_logfile;
+  FILE                   *global_logfilep;
+  off_t                   rotation_size;// in bytes, 0 means disabled
+  unsigned int            rotation_time;// in seconds. 0 means disabled
+  time_t                  rotation_start_time; // timestamp in seconds since Unix-Epoch
 } log_t;
 
 
@@ -302,26 +308,43 @@ extern "C" {
 /*--- INCLUDES ---------------------------------------------------------------*/
 #    include "log_if.h"
 /*----------------------------------------------------------------------------*/
+
 int  logInit (void);
 void logTerm (void);
 int  isLogInitDone (void);
+int register_log_component(char *name, char *fext,int compidx);
 void logRecord_mt(const char *file, const char *func, int line,int comp, int level, const char *format, ...) __attribute__ ((format (printf, 6, 7)));
 void vlogRecord_mt(const char *file, const char *func, int line, int comp, int level, const char *format, va_list args );
 void log_dump(int component, void *buffer, int buffsize,int datatype, const char *format, ... );
+/**
+ * set log level for log component and check also if the stream associated is open. If it is not, give priority to file sink
+ * type of log stream
+ * @return: 0(success), !=-0(failure)
+ */
 int  set_log(int component, int level);
-void set_glog(int level);
-
+/*
+ * @return: 0(success), !=-0(failure)
+ */
+int  set_glog(int level);
 void set_glog_onlinelog(int enable);
-void set_glog_filelog(int enable);
-void set_component_filelog(int comp);
+/**
+ * Set sink logging type globally. Sinks are of 2 types: stdout or file. You choose among them using ENABLE parameter
+ *
+ * @param enable if param is != 0, all the logs will be redirected to a global file, else logs will be redirected to stdout
+ * @return: 0(success), !=-0(failure)
+ */
+int set_glog_filelog(int enable);
+/*
+ * @return: 0(success), !=-0(failure)
+ */
+int set_component_filelog(int comp);
 void close_component_filelog(int comp);
 void set_component_consolelog(int comp);
+void logTerm (void);
+void logClean (void);
 int  map_str_to_int(mapping *map, const char *str);
 char *map_int_to_str(mapping *map, int val);
-void logClean (void);
 int  is_newline( char *str, int size);
-
-int register_log_component(char *name, char *fext, int compidx);
 
 #define LOG_MEM_SIZE 100*1024*1024
 #define LOG_MEM_FILE "./logmem.log"
@@ -374,6 +397,8 @@ int32_t write_file_matlab(const char *fname, const char *vname, void *data, int 
 #define LOG_CONFIG_STRING_GLOBAL_LOG_ONLINE                "global_log_online"
 #define LOG_CONFIG_STRING_GLOBAL_LOG_INFILE                "global_log_infile"
 #define LOG_CONFIG_STRING_GLOBAL_LOG_OPTIONS               "global_log_options"
+#define LOG_CONFIG_STRING_GLOBAL_LOG_ROT_SIZE              "global_log_rotation_size"
+#define LOG_CONFIG_STRING_GLOBAL_LOG_ROT_TIME              "global_log_rotation_time"
 
 #define LOG_CONFIG_LEVEL_FORMAT                            "%s_log_level"
 #define LOG_CONFIG_LOGFILE_FORMAT                          "%s_log_infile"
@@ -393,13 +418,14 @@ int32_t write_file_matlab(const char *fname, const char *vname, void *data, int 
 /*   optname                               help                                          paramflags         XXXptr               defXXXval                          type        numelt */
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 #define LOG_GLOBALPARAMS_DESC { \
-    {LOG_CONFIG_STRING_GLOBAL_LOG_LEVEL,   "Default log level for all componemts\n",              0, strptr:(char **)&gloglevel, defstrval:log_level_names[3].name, TYPE_STRING,     0}, \
+    {LOG_CONFIG_STRING_GLOBAL_LOG_LEVEL,   "Default log level for all components\n",              0, strptr:(char **)&gloglevel, defstrval:log_level_names[3].name, TYPE_STRING,     0}, \
     {LOG_CONFIG_STRING_GLOBAL_LOG_ONLINE,  "Default console output option, for all components\n", 0, iptr:&(consolelog),         defintval:1,                       TYPE_INT,        0}, \
-    {LOG_CONFIG_STRING_GLOBAL_LOG_OPTIONS, LOG_CONFIG_HELP_OPTIONS,                               0, strlistptr:NULL,            defstrlistval:NULL,                TYPE_STRINGLIST, 0} \
+    {LOG_CONFIG_STRING_GLOBAL_LOG_OPTIONS, LOG_CONFIG_HELP_OPTIONS,                               0, strlistptr:NULL,            defstrlistval:NULL,                TYPE_STRINGLIST, 0}, \
+    {LOG_CONFIG_STRING_GLOBAL_LOG_ROT_SIZE, "Log Rotation: maximum log size in MB for file rotation (0 to disable/default)\n",         0, uptr:&(rotationsize), defuintval:0, TYPE_UINT, 0},\
+    {LOG_CONFIG_STRING_GLOBAL_LOG_ROT_TIME, "Log Rotation: maximum elapsed time in seconds for file rotation (0 to disable/default)\n", 0, uptr:&(rotationtime), defuintval:0, TYPE_UINT, 0} \
   }
 
 #define LOG_OPTIONS_IDX   2
-
 
 /*----------------------------------------------------------------------------------*/
 /** @defgroup _debugging debugging macros
