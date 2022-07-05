@@ -1347,8 +1347,13 @@ int ngap_gNB_handle_pdusession_setup_request(uint32_t         assoc_id,
       NGAP_PDUSESSION_SETUP_REQ(message_p).pdusession_setup_params[i].pdusession_id = item_p->pDUSessionID;
 
       // S-NSSAI
-      OCTET_STRING_TO_INT32(&item_p->s_NSSAI.sST, NGAP_PDUSESSION_SETUP_REQ(message_p).allowed_nssai[i].sST);
-      OCTET_STRING_TO_INT32(item_p->s_NSSAI.sD, *NGAP_PDUSESSION_SETUP_REQ(message_p).allowed_nssai[i].sD);
+      OCTET_STRING_TO_INT8(&item_p->s_NSSAI.sST, NGAP_PDUSESSION_SETUP_REQ(message_p).allowed_nssai[i].sST);
+      if(item_p->s_NSSAI.sD != NULL) {
+        NGAP_PDUSESSION_SETUP_REQ(message_p).allowed_nssai[i].sD_flag = 1;
+        NGAP_PDUSESSION_SETUP_REQ(message_p).allowed_nssai[i].sD[0] = item_p->s_NSSAI.sD->buf[0];
+        NGAP_PDUSESSION_SETUP_REQ(message_p).allowed_nssai[i].sD[1] = item_p->s_NSSAI.sD->buf[1];
+        NGAP_PDUSESSION_SETUP_REQ(message_p).allowed_nssai[i].sD[2] = item_p->s_NSSAI.sD->buf[2];
+      }
 
       // check for the NAS PDU
       if (item_p->pDUSessionNAS_PDU->size > 0 ) {

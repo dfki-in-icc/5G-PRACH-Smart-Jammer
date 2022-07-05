@@ -554,7 +554,7 @@ rrc_gNB_process_NGAP_INITIAL_CONTEXT_SETUP_REQ(
           &ctxt,
           &create_tunnel_resp,
           &inde_list[0]);
-        ue_context_p->ue_context.setup_pdu_sessions += nb_pdusessions_tosetup;
+        ue_context_p->ue_context.setup_pdu_sessions +=  NGAP_INITIAL_CONTEXT_SETUP_REQ (msg_p).nb_of_pdusessions;
         ue_context_p->ue_context.established_pdu_sessions_flag = 1;
       }
 
@@ -807,6 +807,7 @@ rrc_gNB_process_NGAP_DOWNLINK_NAS(
         */
        switch (RC.nrrrc[ctxt.module_id]->node_type) {
         case ngran_gNB_CU:
+        case ngran_gNB_CUCP:          
           /* Transfer data to PDCP */
           nr_rrc_data_req (
               &ctxt,
@@ -948,7 +949,7 @@ rrc_gNB_send_NGAP_PDUSESSION_SETUP_RESP(
 }
 
 //------------------------------------------------------------------------------
-int
+void
 rrc_gNB_process_NGAP_PDUSESSION_SETUP_REQ(
   MessageDef *msg_p,
   const char *msg_name,
@@ -975,7 +976,7 @@ rrc_gNB_process_NGAP_PDUSESSION_SETUP_REQ(
   LOG_I(NR_RRC, "[gNB %ld] Received %s: ue_initial_id %d, gNB_ue_ngap_id %u \n",
     instance, msg_name, ue_initial_id, gNB_ue_ngap_id);
 
-  if (RC.nrrrc[ctxt.module_id]->cu_type == CPtype) { // E1 split CU-CP node
+  if (RC.nrrrc[ctxt.module_id]->node_type == ngran_gNB_CUCP) { // E1 split CU-CP node
     /* Configurations are referred from rrc_gNB_generate_dedicatedRRCReconfiguration() and
        rrc_gNB_process_RRCReconfigurationComplete()
 
@@ -1048,7 +1049,7 @@ rrc_gNB_process_NGAP_PDUSESSION_SETUP_REQ(
       NGAP_PDUSESSION_SETUP_REQ(msg_fail_p).gNB_ue_ngap_id = gNB_ue_ngap_id;
       // TODO add failure cause when defined!
       itti_send_msg_to_task (TASK_NGAP, instance, msg_fail_p);
-      return (-1);
+      return ;
     } else {
       memset(&create_tunnel_req, 0, sizeof(gtpv1u_gnb_create_tunnel_req_t));
       uint8_t nb_pdusessions_tosetup = NGAP_PDUSESSION_SETUP_REQ(msg_p).nb_pdusessions_tosetup;
@@ -1098,7 +1099,7 @@ rrc_gNB_process_NGAP_PDUSESSION_SETUP_REQ(
         ue_context_p->ue_context.ul_failure_timer = 20000; // set ul_failure to 20000 for triggering rrc_eNB_send_S1AP_UE_CONTEXT_RELEASE_REQ
         // rrc_gNB_free_UE(ctxt.module_id,ue_context_p);
         ue_context_p->ue_context.ul_failure_timer = 0;
-        return (0);
+        return ;
       }
       nr_rrc_gNB_process_GTPV1U_CREATE_TUNNEL_RESP(
         &ctxt,
@@ -1109,14 +1110,14 @@ rrc_gNB_process_NGAP_PDUSESSION_SETUP_REQ(
       // TEST 
       // ue_context_p->ue_context.pdusession[0].status = PDU_SESSION_STATUS_DONE;
       // rrc_gNB_send_NGAP_PDUSESSION_SETUP_RESP(&ctxt, ue_context_p, 0);
-      rrc_gNB_generate_dedicatedRRCReconfiguration(&ctxt, ue_context_p);
-      return(0);
+      rrc_gNB_generate_dedicatedRRCReconfiguration(&ctxt, ue_context_p, NULL);
+      return;
     }
     nr_rrc_gNB_process_GTPV1U_CREATE_TUNNEL_RESP(
       &ctxt,
       &create_tunnel_resp,
       &inde_list[0]);
-    ue_context_p->ue_context.setup_pdu_sessions += nb_pdusessions_tosetup;
+    ue_context_p->ue_context.setup_pdu_sessions += NGAP_PDUSESSION_SETUP_REQ(msg_p).nb_pdusessions_tosetup;
 
     // TEST 
     // ue_context_p->ue_context.pdusession[0].status = PDU_SESSION_STATUS_DONE;
@@ -1161,7 +1162,7 @@ rrc_gNB_process_NGAP_PDUSESSION_SETUP_REQ(
 
       itti_send_msg_to_task (TASK_CU_F1, ctxt.module_id, message_p);
     }
-    return(0);
+    return;
   }
 }
 

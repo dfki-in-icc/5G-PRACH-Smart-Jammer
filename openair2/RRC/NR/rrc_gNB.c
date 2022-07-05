@@ -369,10 +369,54 @@ rrc_gNB_generate_RRCSetup(
               ue_p->Srb0.Tx_buffer.payload_size,
               "[MSG] RRC Setup\n");
 
+<<<<<<< HEAD
   // activate release timer, if RRCSetupComplete not received after 100 frames, remove UE
   ue_context_pP->ue_context.ue_release_timer = 1;
   // remove UE after 10 frames after RRCConnectionRelease is triggered
   ue_context_pP->ue_context.ue_release_timer_thres = 1000;
+=======
+  switch (rrc->node_type) {
+    case ngran_gNB_CU:
+      // create an ITTI message
+      /* TODO: F1 IDs ar missing in RRC */
+      nr_rrc_pdcp_config_asn1_req(ctxt_pP,
+				  ue_context_pP->ue_context.SRB_configList,
+				  NULL,
+				  NULL,
+				  0,
+				  NULL,
+				  NULL,
+				  NULL,
+				  NULL,
+				  NULL,
+				  NULL,
+				  NULL);
+      message_p = itti_alloc_new_message (TASK_RRC_GNB, 0, F1AP_DL_RRC_MESSAGE);
+      F1AP_DL_RRC_MESSAGE (message_p).rrc_container        =  (uint8_t *)ue_p->Srb0.Tx_buffer.Payload;
+      F1AP_DL_RRC_MESSAGE (message_p).rrc_container_length = ue_p->Srb0.Tx_buffer.payload_size;
+      F1AP_DL_RRC_MESSAGE (message_p).gNB_CU_ue_id         = 0;
+      F1AP_DL_RRC_MESSAGE (message_p).gNB_DU_ue_id         = 0;
+      F1AP_DL_RRC_MESSAGE (message_p).old_gNB_DU_ue_id     = 0xFFFFFFFF; // unknown
+      F1AP_DL_RRC_MESSAGE (message_p).rnti                 = ue_p->rnti;
+      F1AP_DL_RRC_MESSAGE (message_p).srb_id               = CCCH;
+      F1AP_DL_RRC_MESSAGE (message_p).execute_duplication  = 1;
+      F1AP_DL_RRC_MESSAGE (message_p).RAT_frequency_priority_information.en_dc = 0;
+      itti_send_msg_to_task (TASK_CU_F1, ctxt_pP->module_id, message_p);
+      LOG_D(NR_RRC, "Send F1AP_DL_RRC_MESSAGE with ITTI\n");
+
+    break;
+
+  case ngran_gNB_DU:
+  case ngran_gNB_CUCP:
+  case ngran_gNB_CUUP:
+      // nothing to do for DU
+      AssertFatal(1==0,"nothing to do for DU\n");
+      break;
+
+    case ngran_gNB:
+    {
+      // rrc_mac_config_req_gNB
+>>>>>>> build, run in F1 mode until UE connect but pdu session still fails
 
   /* TODO: this should go through the E1 interface */
   apply_pdcp_config(ue_context_pP,ctxt_pP);
@@ -473,6 +517,7 @@ rrc_gNB_generate_RRCReject(
 
   switch (RC.nrrrc[ctxt_pP->module_id]->node_type) {
     case ngran_gNB_CU:
+    case ngran_gNB_CUCP:
       // create an ITTI message
       message_p = itti_alloc_new_message (TASK_RRC_GNB, 0, F1AP_DL_RRC_MESSAGE);
       F1AP_DL_RRC_MESSAGE (message_p).rrc_container        = (uint8_t *)ue_p->Srb0.Tx_buffer.Payload;
@@ -489,6 +534,7 @@ rrc_gNB_generate_RRCReject(
       break;
 
     case ngran_gNB_DU:
+    case ngran_gNB_CUUP:
       // nothing to do for DU
       AssertFatal(1==0,"nothing to do for DU\n");
       break;
@@ -686,6 +732,7 @@ rrc_gNB_generate_defaultRRCReconfiguration(
           ue_context_pP->ue_context.rnti);
   switch (RC.nrrrc[ctxt_pP->module_id]->node_type) {
     case ngran_gNB_CU:
+    case ngran_gNB_CUCP:
       nr_rrc_data_req(ctxt_pP,
                   DCCH,
                   rrc_gNB_mui++,
@@ -698,6 +745,7 @@ rrc_gNB_generate_defaultRRCReconfiguration(
       break;
 
     case ngran_gNB_DU:
+    case ngran_gNB_CUUP:
       // nothing to do for DU
       AssertFatal(1==0,"nothing to do for DU\n");
       break;
@@ -4101,6 +4149,7 @@ rrc_gNB_generate_SecurityModeCommand(
 
   switch (RC.nrrrc[ctxt_pP->module_id]->node_type) {
     case ngran_gNB_CU:
+    case ngran_gNB_CUCP:
       // create an ITTI message
       memcpy(ue_context_pP->ue_context.Srb1.Srb_info.Tx_buffer.Payload, buffer, size);
       ue_context_pP->ue_context.Srb1.Srb_info.Tx_buffer.payload_size = size;
@@ -4116,6 +4165,7 @@ rrc_gNB_generate_SecurityModeCommand(
       break;
 
     case ngran_gNB_DU:
+    case ngran_gNB_CUUP:
       // nothing to do for DU
       AssertFatal(1==0,"nothing to do for DU\n");
       break;
@@ -4164,6 +4214,7 @@ rrc_gNB_generate_UECapabilityEnquiry(
         size);
   switch (RC.nrrrc[ctxt_pP->module_id]->node_type) {
     case ngran_gNB_CU:
+    case ngran_gNB_CUCP:
       nr_rrc_data_req(
         ctxt_pP,
         DCCH,
@@ -4175,6 +4226,7 @@ rrc_gNB_generate_UECapabilityEnquiry(
       break;
 
     case ngran_gNB_DU:
+    case ngran_gNB_CUUP:
       // nothing to do for DU
       AssertFatal(1==0,"nothing to do for DU\n");
       break;

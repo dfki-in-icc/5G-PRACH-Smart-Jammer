@@ -101,7 +101,7 @@ rrc_gNB_send_NGAP_PDUSESSION_SETUP_RESP(
   uint8_t                   xid
 );
 
-int
+void
 rrc_gNB_process_NGAP_PDUSESSION_SETUP_REQ(
     MessageDef *msg_p,
     const char *msg_name,

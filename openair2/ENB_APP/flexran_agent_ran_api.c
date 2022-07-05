@@ -3677,6 +3677,8 @@ size_t flexran_get_capabilities(mid_t mod_id, Protocol__FlexBsCapability **caps)
     case ngran_eNB_CU:
     case ngran_ng_eNB_CU:
     case ngran_gNB_CU:
+    case ngran_gNB_CUCP:
+    case ngran_gNB_CUUP:
       n_caps = 4;
       *caps = calloc(n_caps, sizeof(Protocol__FlexBsCapability));
       AssertFatal(*caps, "could not allocate %zu bytes for Protocol__FlexBsCapability array\n",
@@ -3730,6 +3732,8 @@ uint32_t flexran_get_capabilities_mask(mid_t mod_id) {
     case ngran_eNB_CU:
     case ngran_ng_eNB_CU:
     case ngran_gNB_CU:
+    case ngran_gNB_CUCP:
+    case ngran_gNB_CUUP:
       mask = (1 << PROTOCOL__FLEX_BS_CAPABILITY__PDCP)
            | (1 << PROTOCOL__FLEX_BS_CAPABILITY__SDAP)
            | (1 << PROTOCOL__FLEX_BS_CAPABILITY__RRC)
