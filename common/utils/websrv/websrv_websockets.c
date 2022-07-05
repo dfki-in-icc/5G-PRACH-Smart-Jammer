@@ -68,7 +68,7 @@ void websrv_websocket_process_scopemessage(char msg_type, char *msg_data, struct
         } else {
 		  if (IS_SOFTMODEM_GNB_BIT) {
 		  } else if (IS_SOFTMODEM_GNB_BIT) {
-			  create_phy_scope_gnb();
+			 scope_params.form = create_phy_scope_gnb();
 		  } else if (IS_SOFTMODEM_5GUE_BIT) {
 			  create_phy_scope_nrue();
 		  } else {
@@ -114,25 +114,20 @@ void websrv_websocket_manager_callback(const struct _u_request * request,
 	linuxtime=time(NULL);	  
     localtime_r(&linuxtime,&loctime);
     snprintf(strtime,sizeof(strtime),"%d/%d/%d %d:%d:%d",loctime.tm_mday,loctime.tm_mon,loctime.tm_year+1900,loctime.tm_hour,loctime.tm_min,loctime.tm_sec);
-//    Send text message without fragmentation
-//    if (ulfius_websocket_wait_close(websocket_manager, 2000) == U_WEBSOCKET_STATUS_OPEN) {
-//      if (ulfius_websocket_send_message(websocket_manager, U_WEBSOCKET_OPCODE_TEXT,strlen(msg.data), msg.data ) != U_OK) {
-//        LOG_W(UTIL,"Error sending websocket message\n");
-//    }
-//  }
-  
-
-  // Send ping message
- // if (ulfius_websocket_wait_close(websocket_manager, 2000) == U_WEBSOCKET_STATUS_OPEN) {
- //   if (ulfius_websocket_send_message(websocket_manager, U_WEBSOCKET_OPCODE_PING, 0, NULL) != U_OK) {
- //     LOG_W(UTIL, "Error send ping message");
- //   }
-//  }
-//  sleep(1);
-  // Send binary message without fragmentation
-  if( (scope_params.statusmask & SCOPE_STATUSMASK_STARTED) ) {
-    if (ulfius_websocket_wait_close(websocket_manager, scope_params.refrate) == U_WEBSOCKET_STATUS_OPEN) {
-      websrv_websocket_send_scopemessage(SCOPEMSG_TYPE_TIME, strtime, websocket_manager);
+    if( (scope_params.statusmask & SCOPE_STATUSMASK_STARTED) ) {
+      if (ulfius_websocket_wait_close(websocket_manager, scope_params.refrate) == U_WEBSOCKET_STATUS_OPEN) {
+        websrv_websocket_send_scopemessage(SCOPEMSG_TYPE_TIME, strtime, websocket_manager);
+      }
+      
+    }
+    if( (scope_params.statusmask == SCOPE_STATUSMASK_UNKNOWN) ) {
+	  if (ulfius_websocket_wait_close(websocket_manager, 2000) == U_WEBSOCKET_STATUS_OPEN) {
+        if (IS_SOFTMODEM_DOSCOPE | IS_SOFTMODEM_ENB_BIT | IS_SOFTMODEM_4GUE_BIT) {
+	      websrv_websocket_send_scopemessage(SCOPEMSG_TYPE_STATUSUPD, "disabled", websocket_manager);
+	    } else {     
+          websrv_websocket_send_scopemessage(SCOPEMSG_TYPE_STATUSUPD, "enabled", websocket_manager);
+        }
+      }
     }
   }
 

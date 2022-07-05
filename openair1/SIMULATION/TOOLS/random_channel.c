@@ -2024,8 +2024,8 @@ int get_currentchannels_type(char *buf, int debug, void *vdata, telnet_printfunc
 	tdata->columns[1].coltype=TELNET_VARTYPE_STRING|TELNET_CHECKVAL_RDONLY;
 	snprintf(tdata->columns[2].coltitle,sizeof(tdata->columns[2].coltitle),"module owner");
 	tdata->columns[2].coltype=TELNET_VARTYPE_STRING|TELNET_CHECKVAL_RDONLY;	
-	snprintf(tdata->columns[3].coltitle,sizeof(tdata->columns[3].coltitle),"type");
-	tdata->columns[3].coltype=TELNET_VARTYPE_STRING;		
+	snprintf(tdata->columns[3].coltitle,sizeof(tdata->columns[3].coltitle),"algorithm");
+	tdata->columns[3].coltype=TELNET_VARTYPE_STRING|TELNET_CHECKVAL_SIMALGO;		
 	tdata->numlines=0;											
     for (int i=0; ((i < max_chan) && (i < TELNET_MAXLINE_NUM)); i++) {
       if (defined_channels[i] != NULL) {
