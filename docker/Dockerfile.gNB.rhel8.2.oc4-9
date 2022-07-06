@@ -25,9 +25,9 @@
 #
 #---------------------------------------------------------------------
 
-FROM image-registry.openshift-image-registry.svc:5000/oaicicd-ran/oai-ran-base:latest AS gnb-base
+FROM image-registry.openshift-image-registry.svc:5000/oaicicd-ran/oai-ran-base:develop AS gnb-base
 
-FROM image-registry.openshift-image-registry.svc:5000/oaicicd-ran/oai-ran-build:latest AS gnb-build
+FROM image-registry.openshift-image-registry.svc:5000/oaicicd-ran/oai-ran-build:develop AS gnb-build
 
 ARG COPY_AW2S_LIBRARY
 
