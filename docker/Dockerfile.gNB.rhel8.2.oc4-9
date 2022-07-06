@@ -25,13 +25,11 @@
 #
 #---------------------------------------------------------------------
 
-ARG REPOSITORY=image-registry.openshift-image-registry.svc:5000/oaicicd-ran
+ARG REPOSITORY=image-registry.openshift-image-registry.svc:5000/oaicicd-ran COPY_AW2S_LIBRARY
 
-FROM $REPO/ran-base:latest AS gnb-base
+FROM $REPOSITORY/ran-base:latest AS gnb-base
 
-FROM $REPO/ran-build:latest AS gnb-build
-
-ARG COPY_AW2S_LIBRARY
+FROM $REPOSITORY/ran-build:latest AS gnb-build
 
 RUN if [[ -v COPY_AW2S_LIBRARY ]] ; then COPY ./libori.so /usr/local/lib ;fi
 
