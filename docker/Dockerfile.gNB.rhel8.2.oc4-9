@@ -31,7 +31,7 @@ FROM image-registry.openshift-image-registry.svc:5000/oaicicd-ran/oai-ran-build:
 
 ARG COPY_AW2S_LIBRARY
 
-RUN if [[ -v COPY_AW2S_LIBRARY ]] ; then COPY ./libori.so /usr/local/lib ;fi
+COPY ./libori.so /usr/local/lib
 
 RUN python3 ./docker/scripts/generateTemplate.py ./docker/scripts/gnb_parameters.yaml && \
     cp /oai-ran/docker/scripts/gnb_entrypoint.sh /oai-ran/docker/scripts/entrypoint.sh
