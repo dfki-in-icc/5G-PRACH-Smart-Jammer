@@ -507,6 +507,12 @@ int e1apCUCP_send_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
   E1AP_E1AP_PDU_t pdu = {0};
   /* Create */
   /* 0. pdu Type */
+  e1ap_setup_req_t *setup = &getCxtE1(CPtype, instance)->setupReq;
+  if (!setup) {
+    LOG_E(E1AP, "got send_BEARER_CONTEXT_SETUP_REQUEST on not established instance (%ld)\n", instance);
+    return -1;
+  }
+
   pdu.present = E1AP_E1AP_PDU_PR_initiatingMessage;
   asn1cCalloc(pdu.choice.initiatingMessage, msg);
   msg->procedureCode = E1AP_ProcedureCode_id_bearerContextSetup;
@@ -527,7 +533,8 @@ int e1apCUCP_send_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
   ieC2->criticality                = E1AP_Criticality_reject;
   ieC2->value.present              = E1AP_BearerContextSetupRequestIEs__value_PR_SecurityInformation;
   ieC2->value.choice.SecurityInformation.securityAlgorithm.cipheringAlgorithm = bearerCxt->cipheringAlgorithm;
-  OCTET_STRING_fromBuf(&ieC2->value.choice.SecurityInformation.uPSecuritykey.encryptionKey, bearerCxt->encryptionKey, strlen(bearerCxt->encryptionKey));
+  OCTET_STRING_fromBuf(&ieC2->value.choice.SecurityInformation.uPSecuritykey.encryptionKey,
+                       bearerCxt->encryptionKey, strlen(bearerCxt->encryptionKey));
   /* mandatory */
   /* c3. UE DL Aggregate Maximum Bit Rate */
   asn1cSequenceAdd(out->protocolIEs.list, E1AP_BearerContextSetupRequestIEs_t, ieC3);
@@ -541,7 +548,6 @@ int e1apCUCP_send_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
   ieC4->id                         = E1AP_ProtocolIE_ID_id_Serving_PLMN;
   ieC4->criticality                = E1AP_Criticality_ignore;
   ieC4->value.present              = E1AP_BearerContextSetupRequestIEs__value_PR_PLMN_Identity;
-  e1ap_setup_req_t *setup = &getCxtE1(CPtype, instance)->setupReq;
   PLMN_ID_t *servingPLMN = setup->plmns; // First PLMN is serving PLMN. TODO: Remove hard coding here
   MCC_MNC_TO_PLMNID(servingPLMN->mcc, servingPLMN->mnc, servingPLMN->mnc_digit_length, &ieC4->value.choice.PLMN_Identity);
   /* mandatory */
@@ -600,7 +606,6 @@ int e1apCUCP_send_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
     for(pdu_session_to_setup_t *i=bearerCxt->pduSession; i < bearerCxt->pduSession+bearerCxt->numPDUSessions; i++) {
       asn1cSequenceAdd(pdu2Setup->list, E1AP_PDU_Session_Resource_To_Setup_Item_t, ieC6_1);
       ieC6_1->pDU_Session_ID = i->sessionId;
-
       ieC6_1->pDU_Session_Type = i->sessionType;
 
       INT32_TO_OCTET_STRING(i->sst, &ieC6_1->sNSSAI.sST);
@@ -791,6 +796,12 @@ int e1apCUUP_send_BEARER_CONTEXT_SETUP_FAILURE(instance_t instance) {
 
 int e1apCUUP_handle_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
                                                  E1AP_E1AP_PDU_t *pdu) {
+  e1ap_bearer_setup_req_t *bearerCxt = &getCxtE1(CPtype, instance)->bearerSetupReq;
+  if (!bearerCxt) {
+    LOG_E(E1AP, "got BEARER_CONTEXT_SETUP_REQUEST on not established instance (%ld)\n", instance);
+    return -1;
+  }
+  
   DevAssert(pdu != NULL);
   AssertFatal(pdu->present == E1AP_E1AP_PDU_PR_initiatingMessage,
               "pdu->present != E1AP_E1AP_PDU_PR_initiatingMessage\n");
@@ -803,8 +814,6 @@ int e1apCUUP_handle_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
 
   E1AP_BearerContextSetupRequest_t *in = &pdu->choice.initiatingMessage->value.choice.BearerContextSetupRequest;
   E1AP_BearerContextSetupRequestIEs_t *ie;
-
-  e1ap_bearer_setup_req_t *bearerCxt = &getCxtE1(CPtype, instance)->bearerSetupReq;
 
   MessageDef *msg = itti_alloc_new_message(TASK_CUUP_E1, 0, E1AP_BEARER_CONTEXT_SETUP_REQ);
 
@@ -1206,6 +1215,11 @@ void *E1AP_CUCP_task(void *arg) {
         LOG_I(E1AP, "CUCP Task Received E1AP_SETUP_RESP\n");
         e1apCUCP_send_SETUP_RESPONSE(myInstance, &E1AP_SETUP_RESP(msg));
         break;
+
+    case E1AP_BEARER_CONTEXT_SETUP_REQ:
+      LOG_I(E1AP, "CUCP Task Received E1AP_BEARER_CONTEXT_SETUP_REQ\n");
+      e1apCUCP_send_BEARER_CONTEXT_SETUP_REQUEST(myInstance, &E1AP_BEARER_CONTEXT_SETUP_REQ(msg));
+      break;
 
       default:
         LOG_E(E1AP, "Unknown message received in TASK_CUCP_E1\n");

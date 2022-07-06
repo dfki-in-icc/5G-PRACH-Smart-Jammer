@@ -316,23 +316,7 @@ void apply_macrlc_config(gNB_RRC_INST *rrc,
 
 }
 
-void apply_pdcp_config(rrc_gNB_ue_context_t         *const ue_context_pP,
-                       const protocol_ctxt_t        *const ctxt_pP ) {
 
-      nr_rrc_pdcp_config_asn1_req(ctxt_pP,
-                                  ue_context_pP->ue_context.SRB_configList,
-                                  NULL,
-                                  NULL,
-                                  0,
-                                  NULL,
-                                  NULL,
-                                  NULL,
-                                  NULL,
-                                  NULL,
-                                  NULL,
-                                  get_softmodem_params()->sa ? ue_context_pP->ue_context.masterCellGroup->rlc_BearerToAddModList : NULL);
-
-}
 
 //-----------------------------------------------------------------------------
 void
@@ -1340,19 +1324,21 @@ rrc_gNB_process_RRCReconfigurationComplete(
 
   LOG_D(NR_RRC,"Configuring PDCP DRBs/SRBs for UE %x\n",ue_context_pP->ue_context.rnti);
 
-  nr_rrc_pdcp_config_asn1_req(ctxt_pP,
-                              SRB_configList, // NULL,
-                              DRB_configList,
-                              DRB_Release_configList2,
-                              (ue_context_pP->ue_context.integrity_algorithm << 4)
-                              | ue_context_pP->ue_context.ciphering_algorithm,
-                              kRRCenc,
-                              kRRCint,
-                              kUPenc,
-                              kUPint,
-                              NULL,
-                              NULL,
-                              get_softmodem_params()->sa ? ue_context_pP->ue_context.masterCellGroup->rlc_BearerToAddModList : NULL);
+  nr_pdcp_add_srbs(ctxt_pP->enb_flag, ctxt_pP->rnti,
+                   SRB_configList,
+                   (ue_context_pP->ue_context.integrity_algorithm << 4)
+                   | ue_context_pP->ue_context.ciphering_algorithm,
+                   kRRCenc,
+                   kRRCint);
+                   
+  nr_pdcp_add_drbs(ctxt_pP->enb_flag, ctxt_pP->rnti,
+                   DRB_configList,
+                   (ue_context_pP->ue_context.integrity_algorithm << 4)
+                   | ue_context_pP->ue_context.ciphering_algorithm,
+                   kUPenc,
+                   kUPint,
+                   get_softmodem_params()->sa ? ue_context_pP->ue_context.masterCellGroup->rlc_BearerToAddModList : NULL);
+  
   /* Refresh SRBs/DRBs */
   if (!NODE_IS_CU(RC.nrrrc[ctxt_pP->module_id]->node_type)) {
     LOG_D(NR_RRC,"Configuring RLC DRBs/SRBs for UE %x\n",ue_context_pP->ue_context.rnti);
@@ -2188,27 +2174,6 @@ int nr_rrc_gNB_decode_ccch(protocol_ctxt_t    *const ctxt_pP,
           LOG_I(NR_RRC, PROTOCOL_NR_RRC_CTXT_UE_FMT"CALLING RLC CONFIG SRB1 (rbid %d)\n",
                 PROTOCOL_NR_RRC_CTXT_UE_ARGS(ctxt_pP),
                 Idx);
-          // nr_rrc_pdcp_config_asn1_req(ctxt_pP,
-          //                         ue_context_p->ue_context.SRB_configList,
-          //                         NULL,
-          //                         NULL,
-          //                         0xff,
-          //                         NULL,
-          //                         NULL,
-          //                         NULL,
-          //                         NULL,
-          //                         NULL,
-          //                         NULL,
-          //                         NULL);
-
-          // if (!NODE_IS_CU(RC.nrrrc[ctxt_pP->module_id]->node_type)) {
-            // nr_rrc_rlc_config_asn1_req(ctxt_pP,
-            //                         ue_context_p->ue_context.SRB_configList,
-            //                         NULL,
-            //                         NULL,
-            //                         NULL,
-            //                         NULL);
-          // }
         }
         break;
 

@@ -68,7 +68,6 @@ static void configure_nr_rrc(uint32_t gnb_id)
   msg_p = itti_alloc_new_message (TASK_GNB_APP, 0, NRRRC_CONFIGURATION_REQ);
 
   if (RC.nrrrc[gnb_id]) {
-    RC.nrrrc[gnb_id]->node_type=set_node_type();
     RCconfig_NRRRC(msg_p,gnb_id, RC.nrrrc[gnb_id]);
     
     LOG_I(GNB_APP, "RRC starting with node type %d\n", RC.nrrrc[gnb_id]->node_type);
@@ -143,7 +142,6 @@ void *gNB_app_task(void *args_p)
   uint32_t                        gnb_nb = RC.nb_nr_inst; 
   uint32_t                        gnb_id_start = 0;
   uint32_t                        gnb_id_end = gnb_id_start + gnb_nb;
-  uint32_t                        gnb_id;
   MessageDef                      *msg_p           = NULL;
   const char                      *msg_name        = NULL;
   instance_t                      instance;
@@ -172,13 +170,17 @@ void *gNB_app_task(void *args_p)
 
   RC.nrrrc = (gNB_RRC_INST **)malloc(RC.nb_nr_inst*sizeof(gNB_RRC_INST *));
   LOG_I(PHY, "%s() RC.nb_nr_inst:%d RC.nrrrc:%p\n", __FUNCTION__, RC.nb_nr_inst, RC.nrrrc);
-  for (gnb_id = gnb_id_start; (gnb_id < gnb_id_end) ; gnb_id++) {
+  for (int gnb_id = gnb_id_start; (gnb_id < gnb_id_end) ; gnb_id++) {
     RC.nrrrc[gnb_id] = (gNB_RRC_INST*)calloc(1,sizeof(gNB_RRC_INST));
     LOG_I(PHY, "%s() Creating RRC instance RC.nrrrc[%d]:%p (%d of %d)\n", __FUNCTION__, gnb_id, RC.nrrrc[gnb_id], gnb_id+1, gnb_id_end);
+    RC.nrrrc[gnb_id]->node_type=set_node_type();
     configure_nr_rrc(gnb_id);
   }
 
-  if (RC.nb_nr_inst > 0 && !get_softmodem_params()->nsa)  {
+  if (RC.nb_nr_inst > 0 &&
+      !get_softmodem_params()->nsa &&
+      !(RC.nrrrc[0]->node_type == ngran_gNB_DU))  {
+    // we start pdcp in both cuup (for drb) and cucp (for srb)
     init_pdcp();
   }
 

@@ -31,7 +31,7 @@ static e1ap_upcp_inst_t *e1ap_up_inst[NUMBER_OF_gNB_MAX] = {0};
 
 e1ap_upcp_inst_t *getCxtE1(E1_t type, instance_t instance) {
   AssertFatal( instance < sizeofArray(e1ap_cp_inst), "instance exceeds limit\n");
-  return type ? e1ap_up_inst[instance] : e1ap_cp_inst[instance];
+  return type == UPtype ? e1ap_up_inst[instance] : e1ap_cp_inst[instance];
 }
 
 int e1ap_assoc_id(E1_t type, instance_t instance) {

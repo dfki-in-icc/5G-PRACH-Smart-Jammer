@@ -25,7 +25,7 @@
 #define E1AP_COMMON_H_
 
 #include "openair2/COMMON/e1ap_messages_types.h"
-
+//#define ASN_DEBUG( x... )  LOG_I(ASN, x)
 int e1ap_decode_pdu(E1AP_E1AP_PDU_t *pdu, const uint8_t *const buffer, uint32_t length);
 
 e1ap_upcp_inst_t *getCxtE1(E1_t type, instance_t instance);

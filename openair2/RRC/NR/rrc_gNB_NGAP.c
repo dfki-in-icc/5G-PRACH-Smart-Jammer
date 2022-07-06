@@ -992,8 +992,7 @@ rrc_gNB_process_NGAP_PDUSESSION_SETUP_REQ(
        At CU-CP we configure the E1 bearer context setup parameters (PDU sessions, DRBs and 
        QoS flows) same as in these functions. At CU-UP we create PDU Sessions and allocate DRBs.
     */
-    MessageDef *msg_p = NULL;
-    msg_p = itti_alloc_new_message(TASK_CUCP_E1, 0, E1AP_BEARER_CONTEXT_SETUP_REQ);
+    MessageDef *msg_p = itti_alloc_new_message(TASK_CUCP_E1, 0, E1AP_BEARER_CONTEXT_SETUP_REQ);
     e1ap_bearer_setup_req_t *bearer_req = &E1AP_BEARER_CONTEXT_SETUP_REQ(msg_p);
     
     bearer_req->gNB_cu_cp_ue_id = gNB_ue_ngap_id;
