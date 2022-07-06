@@ -58,7 +58,8 @@ typedef struct {
      char *url;                           // url for the main (initial) web page 
      char *certfile;                      // cert file
      char *keyfile;                       // key file  
-     char *rootcafile;                    // root ca file  
+     char *rootcafile;                    // root ca file
+     void *telnetparams;                  // pointer to telnet server parameters type is telnetsrv_params_t, don't want to enforce telnet include here
 } websrv_params_t;
 
 #define WEBSOCK_SRC_SCOPE                's'
@@ -79,7 +80,7 @@ typedef struct {
 typedef struct {
 	 uint64_t statusmask;                     // 
 	 uint32_t refrate;                        // in ms
-	 void  *form;
+	 void  *form; 
 } websrv_scope_params_t;
 
 extern int websrv_init_websocket(websrv_params_t *websrvparams,char *module); 
