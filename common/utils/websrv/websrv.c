@@ -40,6 +40,7 @@
  #include "executables/softmodem-common.h"
  #define WEBSERVERCODE
  #include "common/utils/telnetsrv/telnetsrv.h"
+ #include "common/utils/load_module_shlib.h"
  #include <arpa/inet.h>
 
  
@@ -47,6 +48,7 @@
 
  static websrv_params_t websrvparams;
  static websrv_printf_t websrv_printf_buff;
+ static telnetsrv_params_t *dummy_telnetsrv_params=NULL;
  paramdef_t websrvoptions[] = {
   /*-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
   /*                                            configuration parameters for telnet utility                                                                                      */
@@ -799,7 +801,7 @@ int websrv_callback_get_softmodemcmd(const struct _u_request * request, struct _
 }
 
 int websrv_callback_get_softmodemmodules(const struct _u_request * request, struct _u_response * response, void * user_data) {
-  telnetsrv_params_t *telnetparams= get_telnetsrv_params();
+  telnetsrv_params_t *telnetparams= (telnetsrv_params_t *)websrvparams.telnetparams;
 
   json_t *cmdnames = json_array();
   for (int i=0; telnetparams->CmdParsers[i].var != NULL && telnetparams->CmdParsers[i].cmd != NULL; i++) {
@@ -936,10 +938,18 @@ void register_module_endpoints(cmdparser_t *module) {
 
 void* websrv_autoinit() {
   int ret;
-  telnetsrv_params_t *telnetparams= get_telnetsrv_params(); 
   memset(&websrvparams,0,sizeof(websrvparams));
   config_get( websrvoptions,sizeof(websrvoptions)/sizeof(paramdef_t),"websrv");
-  
+/* check if telnet server is loaded or not */
+  add_telnetcmd_func_t addcmd = (add_telnetcmd_func_t)get_shlibmodule_fptr("telnetsrv", TELNET_ADDCMD_FNAME);
+  if (addcmd != NULL) {
+     websrvparams.telnetparams= get_telnetsrv_params();
+  } else {
+	 LOG_I(UTIL,"[websrv], running without the telnet server\n");
+	 dummy_telnetsrv_params=calloc(1,sizeof(telnetsrv_params_t));
+	 websrvparams.telnetparams=dummy_telnetsrv_params;
+  }
+  telnetsrv_params_t *telnetparams=(telnetsrv_params_t *) websrvparams.telnetparams;
   
   
   if (ulfius_init_instance(&(websrvparams.instance), websrvparams.listenport, NULL, NULL) != U_OK) {
@@ -1024,5 +1034,6 @@ void* websrv_autoinit() {
 void websrv_end(void *webinst) {
   ulfius_stop_framework((struct _u_instance *)webinst);
   ulfius_clean_instance((struct _u_instance *)webinst);
+  free(dummy_telnetsrv_params);
   return;
 }

@@ -148,7 +148,7 @@ void get_common_options(uint32_t execmask) {
     set_softmodem_optmask(SOFTMODEM_DOSCOPE_BIT);
   }
   
-  if (start_telnetsrv && start_websrv) {
+  if (start_websrv) {
     load_module_shlib("websrv",NULL,0,NULL);
   }
   

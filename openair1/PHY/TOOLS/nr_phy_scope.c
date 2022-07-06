@@ -368,7 +368,7 @@ static void puschIQ (OAIgraph_t *graph, scopeData_t *p, int nb_UEs) {
       websrv_scopegraph_t wsc;
       wsc.sigid=ue;
       snprintf(wsc.graphtitle,sizeof(wsc.graphtitle),"pusch");      
-      websrv_scope_sendIQ(I,Q,sz,&wsc);
+      websrv_scope_sendIQ(&wsc,I,Q,sz);
 #else
       oai_xygraph(graph,I,Q,sz,ue,10);
 #endif
