@@ -43,6 +43,8 @@
  #include <arpa/inet.h>
 
  
+ //#define WEBSRV_AUTH
+
  static websrv_params_t websrvparams;
  static websrv_printf_t websrv_printf_buff;
  paramdef_t websrvoptions[] = {
@@ -311,13 +313,12 @@ FILE *websrv_getfile(char *filename, struct _u_response * response) {
 }
 
 int websrv_callback_auth(const struct _u_request *request, struct _u_response *response, void *user_data) {
-  char * dn = NULL, * issuer_dn = NULL;
-  size_t lbuf = 0, libuf = 0;
-  
   LOG_I(UTIL,"[websrv] authenticating %s %s\n", request->http_verb,request->http_url);
   websrv_dump_request("authentication ",request);		
 
-
+#ifdef WEBSRV_AUTH
+  char * dn = NULL, * issuer_dn = NULL;
+  size_t lbuf = 0, libuf = 0;
   if (request->client_cert != NULL) {
     gnutls_x509_crt_get_dn(request->client_cert, NULL, &lbuf);
     gnutls_x509_crt_get_issuer_dn(request->client_cert, NULL, &libuf);
@@ -340,7 +341,7 @@ int websrv_callback_auth(const struct _u_request *request, struct _u_response *r
     //ulfius_set_string_body_response(response, 400, "Invalid client certificate");
     return U_CALLBACK_CONTINUE; 
   }
-  
+#endif 
 //    return U_CALLBACK_ERROR;
   return U_CALLBACK_ERROR;  
 }
@@ -992,11 +993,15 @@ void* websrv_autoinit() {
     char *root_ca_pem = websrv_read_file(websrvparams.rootcafile);
     if ( key_pem != NULL && cert_pem != NULL) {
       ulfius_add_endpoint_by_val(&(websrvparams.instance), "*", "", "@anyword", 0, &websrv_callback_auth, NULL);
-      LOG_I(UTIL, "[websrv] priority 0 authentication endpoint added/n");	
+      LOG_I(UTIL, "[websrv] priority 0 authentication endpoint added/n");
+#ifdef WEBSRV_AUTH	
       if ( root_ca_pem == NULL) 
         ret = ulfius_start_secure_framework(&(websrvparams.instance), key_pem, cert_pem);
       else
         ret = ulfius_start_secure_ca_trust_framework(&(websrvparams.instance), key_pem, cert_pem, root_ca_pem);
+#else
+      ret = ulfius_start_framework(&(websrvparams.instance));
+#endif
       free(key_pem);
       free(cert_pem);
       free(root_ca_pem);
