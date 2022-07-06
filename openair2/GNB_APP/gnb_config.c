@@ -1149,7 +1149,8 @@ void RCconfig_NRRRC(MessageDef *msg_p, uint32_t i, gNB_RRC_INST *rrc) {
 
     printf("NRRRC %d: Southbound Transport %s\n",i,*(GNBParamList.paramarray[i][GNB_TRANSPORT_S_PREFERENCE_IDX].strptr));
 
-    if (strcmp(*(GNBParamList.paramarray[i][GNB_TRANSPORT_S_PREFERENCE_IDX].strptr), "f1") == 0) {
+    rrc->node_type = set_node_type();
+    if (NODE_IS_CU(rrc->node_type)) {
       paramdef_t SCTPParams[]  = GNBSCTPPARAMS_DESC;
       char aprefix[MAX_OPTNAME_SIZE*2 + 8];
       sprintf(aprefix,"%s.[%u].%s",GNB_CONFIG_STRING_GNB_LIST,i,GNB_CONFIG_STRING_SCTP_CONFIG);
@@ -1170,7 +1171,7 @@ void RCconfig_NRRRC(MessageDef *msg_p, uint32_t i, gNB_RRC_INST *rrc) {
       rrc->sctp_out_streams                      = (uint16_t)*(SCTPParams[GNB_SCTP_OUTSTREAMS_IDX].uptr);
     }
 
-    rrc->node_type = node_type;
+   
 
     rrc->nr_cellid        = (uint64_t)*(GNBParamList.paramarray[i][GNB_NRCELLID_IDX].u64ptr);
 
@@ -2330,15 +2331,14 @@ static ngran_node_t get_node_type(void)
     }
   }
 
-  if ((strcmp(*(GNBParamList.paramarray[0][GNB_TRANSPORT_S_PREFERENCE_IDX].strptr), "f1") == 0) &&
-      (strcmp(*(GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_CU_TYPE_IDX].strptr), "cp") == 0))
-    return ngran_gNB_CUCP;
-  else if ((strcmp(*(GNBParamList.paramarray[0][GNB_TRANSPORT_S_PREFERENCE_IDX].strptr), "f1") == 0) &&
-           (strcmp(*(GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_CU_TYPE_IDX].strptr), "up") == 0))
-    return ngran_gNB_CUUP;
-  else if (strcmp(*(GNBParamList.paramarray[0][GNB_TRANSPORT_S_PREFERENCE_IDX].strptr), "f1") == 0)
-    return ngran_gNB_CU;
-  else if (macrlc_has_f1 == 0)
+  if (strcmp(*(GNBParamList.paramarray[0][GNB_TRANSPORT_S_PREFERENCE_IDX].strptr), "f1") == 0) {
+    if ( GNBE1ParamList.paramarray == NULL || GNBE1ParamList.numelt == 0 )
+      return ngran_gNB_CU;
+    if (strcmp(*(GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_CU_TYPE_IDX].strptr), "cp") == 0)
+      return ngran_gNB_CUCP;
+    if (strcmp(*(GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_CU_TYPE_IDX].strptr), "up") == 0)
+      return ngran_gNB_CUUP;
+  } else if (macrlc_has_f1 == 0)
     return ngran_gNB;
   else
     return ngran_gNB_DU;
@@ -2373,7 +2373,7 @@ void nr_read_config_and_init(void) {
     RCconfig_NRRRC(msg_p,gnb_id, RC.nrrrc[gnb_id]);
   }
 
-  if (NODE_IS_CU(RC.nrrrc[0]->node_type)) {
+  if (NODE_IS_CU(RC.nrrrc[0]->node_type) && RC.nrrrc[0]->node_type != ngran_gNB_CUCP) {
     pdcp_layer_init();
 //    nr_DRB_preconfiguration(0x1234);
     rrc_init_nr_global_param();
