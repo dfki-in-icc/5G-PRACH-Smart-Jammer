@@ -16,7 +16,7 @@ import { VarCtrl } from 'src/app/controls/var.control';
 import { DialogService } from 'src/app/services/dialog.service';
 import { DownloadService } from 'src/app/services/download.service';
 import { LoadingService } from 'src/app/services/loading.service';
-
+import { ViewEncapsulation } from '@angular/core';
 
 const CHANNEL_MOD_MODULE = "channelmod"
 const PREDEF_CMD = "show predef"
@@ -24,7 +24,8 @@ const PREDEF_CMD = "show predef"
 @Component({
   selector: 'app-commands',
   templateUrl: './commands.component.html',
-  styleUrls: ['./commands.component.css'],
+  styleUrls: ['./commands.component.scss'],
+  encapsulation: ViewEncapsulation.None,
 })
 export class CommandsComponent {
 
