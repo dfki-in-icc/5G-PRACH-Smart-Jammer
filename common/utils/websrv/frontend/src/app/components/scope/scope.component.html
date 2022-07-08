@@ -8,8 +8,8 @@
         <mat-card-content class="dashboard-card-content">
 
           <div FxLayoutAlign="row">
-              <label>{{ scopetime }}&nbsp; &nbsp; </label>
-              <label>{{ scopestatus }}</label>
+            <label>{{ scopetime }}&nbsp; &nbsp; </label>
+            <label>{{ scopestatus }}</label>
           </div>
 
         </mat-card-content>
@@ -22,13 +22,33 @@
           <mat-card-title>Scope control</mat-card-title>
         </mat-card-header>
         <mat-card-content class="dashboard-card-content">
-           <div FxLayoutAlign="row">
-             <button (click)="startorstop()">{{startstop}}</button>
-           </div>
-           <div class="scope-slider">
-             <ngx-slider (userChange)="OnRefrateChange()" [(value)]="rfrate" [options]="options" formControlName="sliderControl"></ngx-slider>
-             <label for="rfrate"> refresh rate {{rfrate}}</label>
-           </div>         
+          <div FxLayoutAlign="row">
+            <button (click)="startorstop()">{{startstop}}</button>
+          </div>
+
+          <!-- ERROR Error: formControlName must be used with a parent formGroup directive.  You'll want to add a formGroup
+                    directive and pass it an existing FormGroup instance (you can create one in your class).
+
+                  Example:
+
+                  
+                <div [formGroup]="myGroup">
+                  <input formControlName="firstName">
+                </div>
+
+                In your class:
+
+                this.myGroup = new FormGroup({
+                    firstName: new FormControl()
+                });
+
+              -->
+
+          <div class="scope-slider">
+            <ngx-slider (userChange)="OnRefrateChange()" [(value)]="rfrate" [options]="options"
+              formControlName="sliderControl"></ngx-slider>
+            <label for="rfrate"> refresh rate {{rfrate}}</label>
+          </div>
         </mat-card-content>
       </mat-card>
     </mat-grid-tile>
@@ -36,7 +56,7 @@
     <mat-grid-tile [colspan]="9" [rowspan]="20">
       <mat-card class="dashboard-card">
         <mat-card-content class="dashboard-card-content">
- 
+
         </mat-card-content>
       </mat-card>
     </mat-grid-tile>

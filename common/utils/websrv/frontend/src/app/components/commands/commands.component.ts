@@ -6,7 +6,7 @@ import { of } from 'rxjs/internal/observable/of';
 import { filter } from 'rxjs/internal/operators/filter';
 import { map } from 'rxjs/internal/operators/map';
 import { tap } from 'rxjs/internal/operators/tap';
-import { mergeMap, switchMap } from 'rxjs/operators';
+import { switchMap } from 'rxjs/operators';
 import { CommandsApi, IArgType, IColumn, ICommand, IInfo, ILogLvl, IParam, IRow } from 'src/app/api/commands.api';
 import { CmdCtrl } from 'src/app/controls/cmd.control';
 import { InfoCtrl } from 'src/app/controls/info.control';
@@ -64,18 +64,18 @@ export class CommandsComponent {
     );
   }
 
-  get types$() {
-    return this.modules$.pipe(
-      filter(modules => modules.map(module => module.name).includes(CHANNEL_MOD_MODULE)),
-      mergeMap(modules => this.commandsApi.readCommands$(modules[0]!.name)),
-      map(icmds => icmds.filter(cmd => cmd.name === PREDEF_CMD)),
-      filter(icmds => icmds.length > 0),
-      map(icmds => new CmdCtrl(icmds[0])),
-      mergeMap(control => this.commandsApi.runCommand$(control.api(), CHANNEL_MOD_MODULE)),
-      map(resp => resp.display.map(line => line.match('/\s*[0-9]*\s*(\S*)\n/gm')![0])),
-      tap(types => console.log(types.join(', ')))
-    );
-  }
+  // get types$() {
+  //   return this.modules$.pipe(
+  //     filter(modules => modules.map(module => module.name).includes(CHANNEL_MOD_MODULE)),
+  //     mergeMap(modules => this.commandsApi.readCommands$(modules[0]!.name)),
+  //     map(icmds => icmds.filter(cmd => cmd.name === PREDEF_CMD)),
+  //     filter(icmds => icmds.length > 0),
+  //     map(icmds => new CmdCtrl(icmds[0])),
+  //     mergeMap(control => this.commandsApi.runCommand$(control.api(), CHANNEL_MOD_MODULE)),
+  //     map(resp => resp.display.map(line => line.match('/\s*[0-9]*\s*(\S*)\n/gm')![0])),
+  //     tap(types => console.log(types.join(', ')))
+  //   );
+  // }
 
   onInfoSubmit(control: InfoCtrl) {
     let info: IInfo = control.api();
