@@ -4,10 +4,7 @@
 
 export const environment = {
   production: false,
-  backend: 'http://192.168.1.68:8090/'
-  // backend: 'http://localhost:8090/'
-  // backend: 'http://10.133.10.153:8090/'
-  // backend: 'http://135.238.83.138:8090/'
+  backend: 'http://localhost:8090/'
 };
 
 

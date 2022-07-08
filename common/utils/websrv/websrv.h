@@ -71,7 +71,11 @@ typedef struct {
 } websrv_msg_t;
 #define WEBSOCK_HEADSIZE (offsetof(websrv_msg_t, data))
 
-#define SCOPE_STATUSMASK_STARTED         1    // scope running or not
+#define SCOPE_STATUSMASK_UNKNOWN         0        // websocket initialized, no scope request received
+#define SCOPE_STATUSMASK_AVAILABLE       1        // scope can be started (available in exec and not started with other if */
+#define SCOPE_STATUSMASK_STARTED         2        // scope running
+#define SCOPE_STATUSMASK_DISABLED        (1LL<<63)  // scope disabled (running with xform interface or not implemented in exec)
+
 
 #define SCOPEMSG_TYPE_STATUSUPD          1    // 
 #define SCOPEMSG_TYPE_REFRATE            2    //
@@ -83,7 +87,15 @@ typedef struct {
 	 void  *form; 
 } websrv_scope_params_t;
 
+
+typedef struct {
+  char graphid;
+  char graphtitle[64];
+  int sigid;
+} websrv_scopegraph_t;
+
 extern int websrv_init_websocket(websrv_params_t *websrvparams,char *module); 
 extern void websrv_dump_request(char *label, const struct _u_request *request);
 extern int websrv_string_response(char *astring, struct _u_response * response, int httpstatus) ;
+extern void  websrv_scope_sendIQ(websrv_scopegraph_t *graph,float *I,float*Q,int sz);
 #endif

@@ -20,42 +20,12 @@ export class RowCtrl extends FormGroup {
 
     this.cmdName = row.cmdName
     this.rawIndex = row.rawIndex
-
-    this.addControl(RowFCN.paramsFA, new FormArray(row.params.map(param => {
-      let control: FormControl
-      switch (param.col.type) {
-        case IArgType.boolean:
-          control = new FormControl((param.value === 'true') ? true : false);
-          break;
-
-        case IArgType.loglvl:
-          control = new FormControl(param.value);
-          break;
-
-        default:
-          control = new FormControl(param.value)
-      }
-
-      if (!param.col.modifiable) control.disable()
-
-      return control
-
-    })))
-
+    this.addControl(RowFCN.paramsFA, new FormArray(row.params.map(param => new ParamCtrl(param))))
   }
 
-  constructor(row: IRow) {
-    super({})
-
-    const iparams: IParam[] = this.row.params.map(param => {
-      switch (param.col?.type) {
-        case IArgType.boolean:
-          return this.controls[this.row.rawIndex].value as string;
-
-        default:
-          return this.controls[this.row.rawIndex].value
-      }
-    })
+  get paramsFA() {
+    return this.get(RowFCN.paramsFA) as FormArray
+  }
 
   set paramsFA(fa: FormArray) {
     this.setControl(RowFCN.paramsFA, fa);
@@ -63,12 +33,6 @@ export class RowCtrl extends FormGroup {
 
   get paramsCtrls(): ParamCtrl[] {
     return this.paramsFA.controls as ParamCtrl[]
-  }
-
-  addParamCtrl = (control: ParamCtrl) => {
-    this.paramsFA.push(control)
-
-    return this
   }
 
   api() {
