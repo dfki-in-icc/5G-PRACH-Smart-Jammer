@@ -3579,7 +3579,7 @@ static void rrc_DU_process_ue_context_modification_request(MessageDef *msg_p, co
 
   if(req->srbs_to_be_setup_length>0 || req->drbs_to_be_setup_length>0){
     cellGroupConfig = calloc(1, sizeof(NR_CellGroupConfig_t));
-    uint8_t drb_id_to_setup_start = 1;
+    uint8_t drb_id_to_setup_start = req->drbs_to_be_setup[0].drb_id;
     long drb_priority[1] = {13}; // For now, we assume only one drb per pdu sessions with a default preiority (will be dynamique in future)
     fill_mastercellGroupConfig(cellGroupConfig,
                                ue_context_p->ue_context.masterCellGroup,
@@ -3599,7 +3599,7 @@ static void rrc_DU_process_ue_context_modification_request(MessageDef *msg_p, co
       LOG_I(NR_RRC, "Send first DDD buffer status reporting towards the CU through an ITTI message to gtp-u \n");
       uint8_t drb_id = ue_context_p->ue_context.DRB_configList->list.array[0]->drb_Identity;
       rnti_t rnti   = ue_context_p->ue_context.rnti;
-      int rlc_tx_buffer_space = nr_rlc_get_available_tx_space(rnti, drb_id);
+      int rlc_tx_buffer_space = nr_rlc_get_available_tx_space(rnti, drb_id + 3);
       LOG_I(NR_RRC, "Reported in DDD drb_id:%d, rnti:%d\n", drb_id, rnti);
       MessageDef *msg = itti_alloc_new_message_sized(TASK_RRC_GNB, 0, GTPV1U_DU_BUFFER_REPORT_REQ,
                                      sizeof(gtpv1u_gnb_tunnel_data_req_t));

@@ -182,9 +182,9 @@ int DU_send_F1_SETUP_REQUEST(instance_t instance) {
 
     asn1cSequenceAdd(slice_support_list->list, F1AP_SliceSupportItem_t, SliceSupport_item);
     INT8_TO_OCTET_STRING(1,&SliceSupport_item->sNSSAI.sST);
-    asn1cCalloc(SliceSupport_item->sNSSAI.sD, tmp);
-    INT24_TO_OCTET_STRING(10203,tmp);
-    //INT24_TO_OCTET_STRING(1,tmp);
+      //asn1cCalloc(SliceSupport_item->sNSSAI.sD, tmp);
+      //INT24_TO_OCTET_STRING(10203,tmp);
+      //INT24_TO_OCTET_STRING(1,tmp);
     
     if (f1ap_req(false, instance)->fdd_flag) { // FDD
       nR_Mode_Info->present = F1AP_NR_Mode_Info_PR_fDD;
