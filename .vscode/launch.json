@@ -52,6 +52,19 @@
             "runtimeArgs": [
                 "--remote-debugging-port=9222"
             ]
+        },
+        {
+            "name": "Launch Firefox (4200 ng serve)",
+            "type": "firefox",
+            "request": "launch",
+            "reAttach": true,
+            "url": "http://localhost:4200",
+            "pathMappings": [
+                {
+                    "url": "webpack:///src",
+                    "path": "${workspaceFolder}/common/utils/websrv/frontend/src"
+                }
+            ]
         }
     ]
 }
