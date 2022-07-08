@@ -2,12 +2,21 @@ if ( "${OPENAIR_CMAKE}" STREQUAL "")
   message( FATAL_ERROR "oai Environment variables not set")
 endif ( "${OPENAIR_CMAKE}" STREQUAL "")
 set(WEBSRVROOT ${OPENAIR_DIR}/common/utils/websrv )
+set (WBACK TRUE)
+set (WFRONT TRUE)
 # websrv dependencies
 #set( ULFIUS "")
-find_library(ULFIUS NAMES "libulfius.so" REQUIRED NO_CACHE)
+find_library(ULFIUS NAMES "libulfius.so"  NO_CACHE)
 if ("${ULFIUS}" STREQUAL "")
   message( FATAL_ERROR "ulfius library (https://github.com/babelouest/ulfius) not found, install libulfius-dev (ubuntu) ")
+  set (WBACK FALSE)
 endif("${ULFIUS}" STREQUAL "")
+
+find_library(JSON NAMES "libjansson.so"  NO_CACHE )
+if ("${JSON}" STREQUAL "")
+  message( ERROR "libjansson not found, install libjansson-dev for ubuntu, jansson-devel for fedora")
+  set (WBACK FALSE)
+endif("${JSON}" STREQUAL "")
 
 #set (NPM "")
 find_program(NPM NAMES npm NO_CACHE)
@@ -15,14 +24,18 @@ if ("${NPM}" STREQUAL "")
   message( ERROR " npm is not installed, frontend won't be built. Possibly install npm, package is available for ubuntu and fedora")
 endif("${NPM}" STREQUAL "")
 
+
 # build the backend ( the embedded web server)
 
 set(WEBSRV_SOURCE
     ${WEBSRVROOT}/websrv.c ${WEBSRVROOT}/websrv_websockets.c ${OPENAIR_DIR}/openair1/PHY/TOOLS/nr_phy_scope.c
     )
-add_library(websrv MODULE ${WEBSRV_SOURCE} )
-target_link_libraries(websrv PRIVATE ulfius jansson)
-target_compile_definitions(websrv PUBLIC WEBSRVSCOPE)
+    
+if ( ${WBACK} )
+  add_library(websrv MODULE ${WEBSRV_SOURCE} )
+  target_link_libraries(websrv PRIVATE ulfius jansson)
+  target_compile_definitions(websrv PUBLIC WEBSRVSCOPE)
+endif ( ${WBACK} )
 
 # build the frontend ( loaded from web server by browsers)
 add_custom_target (
@@ -40,7 +53,10 @@ COMMAND npm run build
 DEPENDS websrvfront_installjsdep
 )
 #install built files, required at exec time
-install(TARGETS websrv DESTINATION bin)
+if ( ${WBACK} )
+  install(TARGETS websrv DESTINATION bin)
+endif ( ${WBACK} )
+
 if (EXISTS "${OPENAIR_CMAKE}/ran_build/build" AND IS_DIRECTORY "${OPENAIR_CMAKE}/ran_build/build")
      add_custom_command(TARGET websrvfront
                    POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${WEBSRVROOT}/frontend/dist/softmodem-ngx ${OPENAIR_CMAKE}/ran_build/build/websrv 

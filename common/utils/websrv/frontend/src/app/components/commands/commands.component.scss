@@ -1,5 +1,23 @@
-mat-form-field {
+.spaceddiv {
+  height: 40px;
+  width: 40vw;
+  display: flex;
+  justify-content: space-between;
+  margin: 0 auto;
+  padding: 10px 0;
+}
+
+.scrollablefield  {
   width: 80%;
+  height: 20px;
+  .mat-input-element {
+    overflow-x: auto;
+  }
+}
+
+.mat-card {
+  height: 95%;
+  overflow-y: auto;
 }
 
 .status {
