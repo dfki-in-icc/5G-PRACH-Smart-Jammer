@@ -116,7 +116,7 @@
 
                   <div *ngSwitchDefault>
                     <mat-form-field>
-                      <input matInput [formControl]="row.paramsCtrls[colIndex].valueFC" [readonly]="col.modifiable" />
+                      <input matInput [formControl]="row.paramsCtrls[colIndex].valueFC" [readonly]="!col.modifiable" />
                     </mat-form-field>
                   </div>
                 </div>
