@@ -440,6 +440,7 @@ typedef struct NR_sched_pdsch {
   /// only important for retransmissions; otherwise, the TDA in
   /// NR_pdsch_semi_static_t has precedence
   int time_domain_allocation;
+  uint8_t nrOfLayers;
 } NR_sched_pdsch_t;
 
 typedef struct NR_UE_harq {
@@ -673,7 +674,6 @@ typedef struct {
 } NR_UE_sched_ctrl_t;
 
 typedef struct {
-  boolean_t fiveG_connected;
   uicc_t *uicc;
 } NRUEcontext_t;
 
@@ -710,10 +710,13 @@ typedef struct {
   NR_UE_sched_ctrl_t UE_sched_ctrl;
   NR_mac_stats_t mac_stats;
   NR_CellGroupConfig_t *CellGroup;
+  char cg_buf[32768]; /* arbitrary size */
+  asn_enc_rval_t enc_rval;
   /// CCE indexing
   int m;
   // UE selected beam index
   uint8_t UE_beam_index;
+  bool Msg3_dcch_dtch;
   bool Msg4_ACKed;
   /// Sched CSI-RS: scheduling decisions
   NR_gNB_UCI_STATS_t uci_statS;

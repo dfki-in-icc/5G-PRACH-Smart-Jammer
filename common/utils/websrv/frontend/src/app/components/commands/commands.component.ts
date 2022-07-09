@@ -194,5 +194,4 @@ export class CommandsComponent {
     this.commandsApi.setCmdParams$(control.api(), this.selectedModule!.name).subscribe(() => this.execCmd$(new CmdCtrl(this.selectedCmd!)));
   }
 
-
 }

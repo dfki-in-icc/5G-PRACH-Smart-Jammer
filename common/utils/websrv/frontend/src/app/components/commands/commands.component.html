@@ -90,9 +90,7 @@
                 </div>
               </mat-header-cell>
               <mat-cell *matCellDef="let row">
-
                 <div  [ngSwitch]="col.type" [formGroup]="row" fxLayoutAlign="start center">
-
                   <mat-slide-toggle *ngSwitchCase="IArgType.boolean" [formControl]="row.paramsCtrls[colIndex].valueFC"
                     [checked]="row.paramsCtrls[colIndex].valueFC.value">
                   </mat-slide-toggle>

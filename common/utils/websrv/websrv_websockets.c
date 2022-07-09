@@ -29,16 +29,16 @@
  * \note
  * \warning
  */
- 
- #include <jansson.h>
- #include <ulfius.h>
+
  #include <gnutls/gnutls.h>
  #include <gnutls/x509.h>
+ #include <arpa/inet.h>
+ #include <jansson.h>
+ #include <ulfius.h>
  #include "common/utils/LOG/log.h"
  #include "common/utils/websrv/websrv.h"
  #include "executables/softmodem-common.h"
  #include "time.h"
- #include <arpa/inet.h>
  #include "common/utils/websrv/websrv_noforms.h"
  #include "openair1/PHY/TOOLS/phy_scope.h"
 
@@ -49,6 +49,7 @@ static websrv_scope_params_t scope_params = {0,1000};
 void  websrv_scope_sendIQ(websrv_scopegraph_t *graph, float *I,float *Q,int sz) {
 	LOG_I(UTIL,"[websrv] sending %i IQ's graph %s id %i ue %i\n",sz,graph->graphtitle, graph->graphid, graph->sigid);
 };
+
 
 void websrv_websocket_send_scopemessage(char msg_type, char *msg_data, struct _websocket_manager * websocket_manager) {
 websrv_msg_t msg;
@@ -63,6 +64,7 @@ int st;
 
 void websrv_websocket_process_scopemessage(char msg_type, char *msg_data, struct _websocket_manager * websocket_manager) {
   uint32_t *intptr=(uint32_t *)msg_data; 
+
   LOG_I(UTIL,"[websrv] processing scope message type %i\n", msg_type);
   switch ( msg_type ) {
  
@@ -70,7 +72,6 @@ void websrv_websocket_process_scopemessage(char msg_type, char *msg_data, struct
       if (strncmp(msg_data,"init",4) == 0){
 		  LOG_I(UTIL,"[websrv] SoftScope init....\n");
 		  if (IS_SOFTMODEM_GNB_BIT) {
-		  } else if (IS_SOFTMODEM_GNB_BIT) {
 			 scope_params.form = create_phy_scope_gnb();
 		  } else if (IS_SOFTMODEM_5GUE_BIT) {
 //			  create_phy_scope_nrue();
@@ -136,6 +137,7 @@ void websrv_websocket_manager_callback(const struct _u_request * request,
         }
       }
     }
+
     if( (scope_params.statusmask == SCOPE_STATUSMASK_DISABLED) ) {
 	  if (ulfius_websocket_wait_close(websocket_manager, 2000) == U_WEBSOCKET_STATUS_OPEN) {
         sleep(10);
@@ -176,6 +178,7 @@ int websrv_callback_websocket (const struct _u_request * request, struct _u_resp
   int ret;
   
   websrv_dump_request("websocket ",request);
+
   if ((ret = ulfius_set_websocket_response(response, NULL, NULL, websrv_websocket_manager_callback, NULL, websrv_websocket_incoming_message_callback, NULL, websrv_websocket_onclose_callback, NULL)) == U_OK) {
     return U_CALLBACK_COMPLETE;
   } else {

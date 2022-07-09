@@ -10,7 +10,6 @@ enum ParamFCN {
 export class ParamCtrl extends FormGroup {
 
   col: IColumn
-
   constructor(public param: IParam) {
     super({})
 

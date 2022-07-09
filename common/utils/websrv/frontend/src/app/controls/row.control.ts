@@ -1,3 +1,4 @@
+
 import { FormArray, FormControl, FormGroup } from '@angular/forms';
 import { IArgType, IParam, IRow } from '../api/commands.api';
 import { ParamCtrl } from './param.control';
@@ -19,7 +20,6 @@ export class RowCtrl extends FormGroup {
 
     this.cmdName = row.cmdName
     this.rawIndex = row.rawIndex
-
     this.addControl(RowFCN.paramsFA, new FormArray(row.params.map(param => new ParamCtrl(param))))
   }
 

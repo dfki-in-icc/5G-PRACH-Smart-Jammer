@@ -41,7 +41,6 @@ void mac_top_init_gNB(void);
 void process_CellGroup(NR_CellGroupConfig_t *CellGroup, NR_UE_sched_ctrl_t *sched_ctrl);
 
 void config_common(int Mod_idP,
-                   int ssb_SubcarrierOffset,
                    int pdsch_AntennaPorts,
                    int pusch_AntennaPorts,
                    NR_ServingCellConfigCommon_t *scc);
@@ -52,7 +51,6 @@ int nr_mac_enable_ue_rrc_processing_timer(module_id_t Mod_idP,
                                           uint32_t rrc_reconfiguration_delay);
 
 int rrc_mac_config_req_gNB(module_id_t Mod_idP,
-                           int ssb_SubcarrierOffset,
                            rrc_pdsch_AntennaPorts_t pdsch_AntennaPorts,
                            int pusch_AntennaPorts,
                            int sib1_tda,
@@ -420,16 +418,6 @@ int get_ulscs(nfapi_nr_config_request_t *cfg);
 
 int get_symbolsperslot(nfapi_nr_config_request_t *cfg);
 
-void config_nr_mib(int Mod_idP, 
-                   int CC_idP,
-                   int p_gNBP,
-                   int subCarrierSpacingCommon,
-                   uint32_t ssb_SubcarrierOffset,
-                   int dmrs_TypeA_Position,
-                   uint32_t pdcch_ConfigSIB1,
-                   int cellBarred,
-                   int intraFreqReselection);
-
 int nr_write_ce_dlsch_pdu(module_id_t module_idP,
                           const NR_UE_sched_ctrl_t *ue_sched_ctl,
                           unsigned char *mac_pdu,
@@ -471,6 +459,10 @@ void nr_rx_sdu(const module_id_t gnb_mod_idP,
 
 void create_dl_harq_list(NR_UE_sched_ctrl_t *sched_ctrl,
                          const NR_PDSCH_ServingCellConfig_t *pdsch);
+
+void reset_dl_harq_list(NR_UE_sched_ctrl_t *sched_ctrl);
+
+void reset_ul_harq_list(NR_UE_sched_ctrl_t *sched_ctrl);
 
 void handle_nr_ul_harq(const int CC_idP,
                        module_id_t mod_id,
@@ -522,10 +514,14 @@ int get_mcs_from_bler(const NR_bler_options_t *bler_options,
                       int max_mcs,
                       frame_t frame);
 
+void UL_tti_req_ahead_initialization(gNB_MAC_INST * gNB, NR_ServingCellConfigCommon_t *scc, int n, int CCid);
+
 void nr_sr_reporting(gNB_MAC_INST *nrmac, frame_t frameP, sub_frame_t slotP);
 
 size_t dump_mac_stats(gNB_MAC_INST *gNB, char *output, size_t strlen, bool reset_rsrp);
 
 void process_CellGroup(NR_CellGroupConfig_t *CellGroup, NR_UE_sched_ctrl_t *sched_ctrl);
+
+void abort_nr_dl_harq(NR_UE_info_t* UE, int8_t harq_pid);
 
 #endif /*__LAYER2_NR_MAC_PROTO_H__*/

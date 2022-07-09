@@ -6390,8 +6390,6 @@ FL_EXPORT Display * fl_display_( void ){};
 #define FL_TRUE         ( ! FL_FALSE )
 #endif
 
-
-
 #if defined __cplusplus
 }
 #endif

@@ -22,7 +22,6 @@ export class ScopeComponent {
   startstop = 'start';
   rfrate = 2;
   @Output() ScopeEnabled = new EventEmitter<boolean>();
-  
   sliderForm: FormGroup = new FormGroup({
   sliderControl: new FormControl()
   });
@@ -47,7 +46,6 @@ export class ScopeComponent {
   
   
   ProcessScopeMsg (message: Message) {
-	  
 	  let msgcontent = this.DecodScopeBinmsg(message.content);
 	  console.log("Scope received msg type " + message.msgtype.toString() + " " + message.content);
 	  switch ( message.msgtype ) {		  

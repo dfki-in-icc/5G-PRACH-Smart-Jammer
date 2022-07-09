@@ -206,7 +206,7 @@ void websrv_gettbldata_response(struct _u_response * response,webdatadef_t * wda
       else if (wdata->columns[i].coltype & TELNET_CHECKVAL_LOGLVL)
         coltype="loglvl";
       else if (wdata->columns[i].coltype & TELNET_CHECKVAL_SIMALGO)
-        coltype="simuTypes";          
+        coltype="string";//"simuTypes";          
       else if (wdata->columns[i].coltype & TELNET_VARTYPE_STRING)
         coltype="string";
       else

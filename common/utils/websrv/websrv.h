@@ -76,6 +76,7 @@ typedef struct {
 #define SCOPE_STATUSMASK_STARTED         2        // scope running
 #define SCOPE_STATUSMASK_DISABLED        (1LL<<63)  // scope disabled (running with xform interface or not implemented in exec)
 
+
 #define SCOPEMSG_TYPE_STATUSUPD          1    // 
 #define SCOPEMSG_TYPE_REFRATE            2    //
 #define SCOPEMSG_TYPE_TIME               3    //
@@ -85,6 +86,7 @@ typedef struct {
 	 uint32_t refrate;                        // in ms
 	 void  *form; 
 } websrv_scope_params_t;
+
 
 typedef struct {
   char graphid;

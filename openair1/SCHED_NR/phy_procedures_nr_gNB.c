@@ -50,19 +50,6 @@ uint8_t SSB_Table[38]={0,2,4,6,8,10,12,14,254,254,16,18,20,22,24,26,28,30,254,25
 
 extern uint8_t nfapi_mode;
 
-void nr_set_ssb_first_subcarrier(nfapi_nr_config_request_scf_t *cfg, NR_DL_FRAME_PARMS *fp) {
-
-  uint8_t sco = 0;
-  if (((fp->freq_range == nr_FR1) && (cfg->ssb_table.ssb_subcarrier_offset.value<24)) ||
-      ((fp->freq_range == nr_FR2) && (cfg->ssb_table.ssb_subcarrier_offset.value<12)) ) {
-    if (fp->freq_range == nr_FR1)
-      sco = cfg->ssb_table.ssb_subcarrier_offset.value>>cfg->ssb_config.scs_common.value;
-  }
-
-  fp->ssb_start_subcarrier = (12 * cfg->ssb_table.ssb_offset_point_a.value + sco);
-  LOG_D(PHY, "SSB first subcarrier %d (%d,%d)\n", fp->ssb_start_subcarrier,cfg->ssb_table.ssb_offset_point_a.value,sco);
-}
-
 void nr_common_signal_procedures (PHY_VARS_gNB *gNB,int frame,int slot,nfapi_nr_dl_tti_ssb_pdu ssb_pdu) {
 
   NR_DL_FRAME_PARMS *fp=&gNB->frame_parms;
@@ -84,7 +71,9 @@ void nr_common_signal_procedures (PHY_VARS_gNB *gNB,int frame,int slot,nfapi_nr_
   int ssb_start_symbol_abs = nr_get_ssb_start_symbol(fp,ssb_index); // computing the starting symbol for current ssb
   ssb_start_symbol = ssb_start_symbol_abs % fp->symbols_per_slot;  // start symbol wrt slot
 
-  nr_set_ssb_first_subcarrier(cfg, fp);  // setting the first subcarrier
+  // setting the first subcarrier
+  fp->ssb_start_subcarrier = (12 * cfg->ssb_table.ssb_offset_point_a.value + ssb_pdu.ssb_pdu_rel15.SsbSubcarrierOffset);
+  LOG_D(PHY, "SSB first subcarrier %d (%d,%d)\n", fp->ssb_start_subcarrier,cfg->ssb_table.ssb_offset_point_a.value,ssb_pdu.ssb_pdu_rel15.SsbSubcarrierOffset);
 
   LOG_D(PHY,"SS TX: frame %d, slot %d, start_symbol %d\n",frame,slot, ssb_start_symbol);
   nr_generate_pss(&txdataF[0][txdataF_offset], AMP, ssb_start_symbol, cfg, fp);
@@ -636,6 +625,7 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx) {
   /* those variables to log T_GNB_PHY_PUCCH_PUSCH_IQ only when we try to decode */
   int pucch_decode_done = 0;
   int pusch_decode_done = 0;
+  int phy_procedures_errors = 0;
 
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PHY_PROCEDURES_gNB_UESPEC_RX,1);
   LOG_D(PHY,"phy_procedures_gNB_uespec_RX frame %d, slot %d\n",frame_rx,slot_rx);
@@ -775,7 +765,8 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx) {
           if (no_sig) {
             LOG_D(PHY, "PUSCH not detected in frame %d, slot %d\n", frame_rx, slot_rx);
             nr_fill_indication(gNB, frame_rx, slot_rx, ULSCH_id, harq_pid, 1,1);
-            return 1;
+            phy_procedures_errors++;
+            continue;
           }
           gNB->pusch_vars[ULSCH_id]->ulsch_power_tot=0;
           gNB->pusch_vars[ULSCH_id]->ulsch_noise_power_tot=0;
@@ -799,7 +790,8 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx) {
                /* in case of phy_test mode, we still want to decode to measure execution time. 
                   Therefore, we don't yet call nr_fill_indication, it will be called later */
                nr_fill_indication(gNB,frame_rx, slot_rx, ULSCH_id, harq_pid, 1,1);
-               return 1;
+               phy_procedures_errors++;
+               continue;
              }
           } else {
             LOG_D(PHY, "PUSCH detected in %d.%d (%d,%d,%d)\n",frame_rx,slot_rx,
@@ -866,5 +858,5 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx) {
   }
 
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PHY_PROCEDURES_gNB_UESPEC_RX,0);
-  return 0;
+  return phy_procedures_errors;
 }

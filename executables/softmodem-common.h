@@ -101,6 +101,7 @@ extern "C"
 #define CONFIG_HLP_NFAPI         "Change the nFAPI mode for NR\n"
 #define CONFIG_L1_EMULATOR       "Run in L1 emulated mode (disable PHY layer)\n"
 #define CONFIG_HLP_CONTINUOUS_TX "perform continuous transmission, even in TDD mode (to work around USRP issues)\n"
+#define CONFIG_HLP_STATS_DISABLE "disable globally the stats generation and persistence"
 
 /*-----------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*                                            command line parameters common to eNodeB and UE                                                          */
@@ -171,6 +172,7 @@ extern int usrp_tx_thread;
     {"non-stop",             CONFIG_HLP_NONSTOP,      PARAMFLAG_BOOL, iptr:&NON_STOP,                     defintval:0,           TYPE_INT,    0},                     \
     {"emulate-l1",           CONFIG_L1_EMULATOR,      PARAMFLAG_BOOL, iptr:&EMULATE_L1,                   defintval:0,           TYPE_INT,    0},                     \
     {"continuous-tx",        CONFIG_HLP_CONTINUOUS_TX,PARAMFLAG_BOOL, iptr:&CONTINUOUS_TX,                defintval:0,           TYPE_INT,    0},                     \
+    {"disable-stats",        CONFIG_HLP_STATS_DISABLE, PARAMFLAG_BOOL, iptr:&stats_disabled,               defintval:0,           TYPE_INT,    0},                     \
   }
 
 #define CONFIG_HLP_NSA           "Enable NSA mode \n"
@@ -211,6 +213,7 @@ extern int usrp_tx_thread;
 #define SOFTMODEM_NONBIOT_BIT         (1<<2)
 #define SOFTMODEM_RFSIM_BIT           (1<<10)
 #define SOFTMODEM_SIML1_BIT           (1<<12)
+#define SOFTMODEM_DLSIM_BIT           (1<<13)
 #define SOFTMODEM_DOSCOPE_BIT         (1<<15)
 #define SOFTMODEM_RECPLAY_BIT         (1<<16)
 #define SOFTMODEM_TELNETCLT_BIT       (1<<17)
@@ -218,6 +221,7 @@ extern int usrp_tx_thread;
 #define SOFTMODEM_GNB_BIT             (1<<21)
 #define SOFTMODEM_4GUE_BIT            (1<<22)
 #define SOFTMODEM_5GUE_BIT            (1<<23)
+#define SOFTMODEM_NOSTATS_BIT         (1<<24)
 #define SOFTMODEM_FUNC_BITS (SOFTMODEM_ENB_BIT | SOFTMODEM_GNB_BIT | SOFTMODEM_5GUE_BIT | SOFTMODEM_4GUE_BIT)
 #define MAPPING_SOFTMODEM_FUNCTIONS {{"enb",SOFTMODEM_ENB_BIT},{"gnb",SOFTMODEM_GNB_BIT},{"4Gue",SOFTMODEM_4GUE_BIT},{"5Gue",SOFTMODEM_5GUE_BIT}}
 
@@ -227,6 +231,7 @@ extern int usrp_tx_thread;
 #define IS_SOFTMODEM_NONBIOT         ( get_softmodem_optmask() & SOFTMODEM_NONBIOT_BIT)
 #define IS_SOFTMODEM_RFSIM           ( get_softmodem_optmask() & SOFTMODEM_RFSIM_BIT)
 #define IS_SOFTMODEM_SIML1           ( get_softmodem_optmask() & SOFTMODEM_SIML1_BIT)
+#define IS_SOFTMODEM_DLSIM           ( get_softmodem_optmask() & SOFTMODEM_DLSIM_BIT)
 #define IS_SOFTMODEM_DOSCOPE         ( get_softmodem_optmask() & SOFTMODEM_DOSCOPE_BIT)
 #define IS_SOFTMODEM_IQPLAYER        ( get_softmodem_optmask() & SOFTMODEM_RECPLAY_BIT)
 #define IS_SOFTMODEM_TELNETCLT_BIT   ( get_softmodem_optmask() & SOFTMODEM_TELNETCLT_BIT)    
@@ -234,6 +239,7 @@ extern int usrp_tx_thread;
 #define IS_SOFTMODEM_GNB_BIT         ( get_softmodem_optmask() & SOFTMODEM_GNB_BIT)
 #define IS_SOFTMODEM_4GUE_BIT        ( get_softmodem_optmask() & SOFTMODEM_4GUE_BIT)
 #define IS_SOFTMODEM_5GUE_BIT        ( get_softmodem_optmask() & SOFTMODEM_5GUE_BIT)
+#define IS_SOFTMODEM_NOSTATS_BIT     ( get_softmodem_optmask() & SOFTMODEM_NOSTATS_BIT)
 
 typedef struct {
   uint64_t       optmask;
