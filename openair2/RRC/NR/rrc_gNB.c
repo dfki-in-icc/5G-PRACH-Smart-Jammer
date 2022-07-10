@@ -3868,6 +3868,10 @@ int rrc_gNB_process_e1_setup_req(e1ap_setup_req_t *req, instance_t instance) {
   return 0;
 }
 
+int rrc_gNB_process_e1_bearer_context_setup_req(e1ap_bearer_setup_req_t *req, instance_t instance) {
+  return -1;
+}
+
 ///---------------------------------------------------------------------------------------------------------------///
 ///---------------------------------------------------------------------------------------------------------------///
 void *rrc_gnb_task(void *args_p) {
@@ -4029,6 +4033,11 @@ void *rrc_gnb_task(void *args_p) {
       case E1AP_SETUP_REQ:
         LOG_I(NR_RRC, "Received E1AP_SETUP_REQ for instance %d\n", (int)instance);
         rrc_gNB_process_e1_setup_req(&E1AP_SETUP_REQ(msg_p), instance);
+        break;
+
+      case E1AP_BEARER_CONTEXT_SETUP_REQ:
+        LOG_I(NR_RRC, "Received E1AP_BEARER_CONTEXT_SETUP_REQ for instance %d\n", (int)instance);
+        rrc_gNB_process_e1_bearer_context_setup_req(&E1AP_BEARER_CONTEXT_SETUP_REQ(msg_p), instance);
         break;
 
       default:
