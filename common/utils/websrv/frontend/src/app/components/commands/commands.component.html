@@ -111,10 +111,11 @@
                       <mat-option *ngFor="let type of types$ | async" [value]="type"> {{ type }} </mat-option>
                     </mat-select>
                   </mat-form-field> -->
-
-                  <mat-form-field  *ngSwitchDefault>
-                      <input class="TableText" matInput [formControl]="row.paramsCtrls[colIndex].valueFC" [readonly]="!col.modifiable" />
-                  </mat-form-field>
+                  <div *ngSwitchDefault>
+                    <mat-form-field>
+                      <input matInput [formControl]="row.paramsCtrls[colIndex].valueFC" [readonly]="!col.modifiable" />
+                    </mat-form-field>
+                  </div>
                 </div>
               </mat-cell>
             </div>
