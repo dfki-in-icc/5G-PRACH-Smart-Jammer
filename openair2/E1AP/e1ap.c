@@ -25,7 +25,10 @@
 #include "e1ap_common.h"
 
 #define E1AP_NUM_MSG_HANDLERS 14
-
+typedef int (*e1ap_message_processing_t)(
+  instance_t            instance,
+  E1AP_E1AP_PDU_t       *message_p
+);
 e1ap_message_processing_t e1ap_message_processing[E1AP_NUM_MSG_HANDLERS][3] = {
 
   { 0, 0, 0 }, /* Reset */
@@ -556,46 +559,16 @@ int e1apCUCP_send_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
   ieC5->id                         = E1AP_ProtocolIE_ID_id_ActivityNotificationLevel;
   ieC5->criticality                = E1AP_Criticality_reject;
   ieC5->value.present              = E1AP_BearerContextSetupRequestIEs__value_PR_ActivityNotificationLevel;
-  ieC5->value.choice.ActivityNotificationLevel = 2;// TODO: Remove hard coding
+  ieC5->value.choice.ActivityNotificationLevel = E1AP_ActivityNotificationLevel_pdu_session;// TODO: Remove hard coding
   /* mandatory */
   /*  */
   asn1cSequenceAdd(out->protocolIEs.list, E1AP_BearerContextSetupRequestIEs_t, ieC6);
   ieC6->id = E1AP_ProtocolIE_ID_id_System_BearerContextSetupRequest;
   ieC6->criticality = E1AP_Criticality_reject;
-  if (0) { // EUTRAN
-    ieC6->value.choice.System_BearerContextSetupRequest.present = E1AP_System_BearerContextSetupRequest_PR_e_UTRAN_BearerContextSetupRequest;
-    E1AP_EUTRAN_BearerContextSetupRequest_t *msgEUTRAN = calloc(1, sizeof(E1AP_EUTRAN_BearerContextSetupRequest_t));
-    ieC6->value.choice.System_BearerContextSetupRequest.choice.e_UTRAN_BearerContextSetupRequest = (struct E1AP_ProtocolIE_Container *) msgEUTRAN;
-    msgEUTRAN->id = E1AP_ProtocolIE_ID_id_DRB_To_Setup_List_EUTRAN;
-    msgEUTRAN->value.present = E1AP_EUTRAN_BearerContextSetupRequest__value_PR_DRB_To_Setup_List_EUTRAN;
-    E1AP_DRB_To_Setup_List_EUTRAN_t *drb2Setup = &msgEUTRAN->value.choice.DRB_To_Setup_List_EUTRAN;
-
-    for (drb_to_setup_t *i=bearerCxt->DRBList; i < bearerCxt->DRBList+bearerCxt->numDRBs; i++) {
-      asn1cSequenceAdd(drb2Setup->list, E1AP_DRB_To_Setup_Item_EUTRAN_t, ieC6_1);
-      ieC6_1->dRB_ID = i->drbId;
-
-      ieC6_1->pDCP_Configuration.pDCP_SN_Size_UL = i->pDCP_SN_Size_UL;
-      ieC6_1->pDCP_Configuration.pDCP_SN_Size_DL = i->pDCP_SN_Size_DL;
-      ieC6_1->pDCP_Configuration.rLC_Mode        = i->rLC_Mode;
-
-      ieC6_1->eUTRAN_QoS.qCI = i->qci;
-      ieC6_1->eUTRAN_QoS.eUTRANallocationAndRetentionPriority.priorityLevel = i->qosPriorityLevel;
-      ieC6_1->eUTRAN_QoS.eUTRANallocationAndRetentionPriority.pre_emptionCapability = i->pre_emptionCapability;
-      ieC6_1->eUTRAN_QoS.eUTRANallocationAndRetentionPriority.pre_emptionVulnerability = i->pre_emptionVulnerability;
-
-      ieC6_1->s1_UL_UP_TNL_Information.present = E1AP_UP_TNL_Information_PR_gTPTunnel;
-      asn1cCalloc(ieC6_1->s1_UL_UP_TNL_Information.choice.gTPTunnel, gTPTunnel);
-      TRANSPORT_LAYER_ADDRESS_IPv4_TO_BIT_STRING(i->tlAddress, &gTPTunnel->transportLayerAddress);
-      INT32_TO_OCTET_STRING(i->teId, &gTPTunnel->gTP_TEID);
-
-      for (cell_group_t *j=i->cellGroupList; j < i->cellGroupList+i->numCellGroups; j++) {
-        asn1cSequenceAdd(ieC6_1->cell_Group_Information.list, E1AP_Cell_Group_Information_Item_t, ieC6_1_1);
-        ieC6_1_1->cell_Group_ID = j->id;
-      }
-    }
-  } else {
+  
     /* mandatory */
     /*  */
+    ieC6->value.present = E1AP_System_BearerContextSetupRequest_PR_nG_RAN_BearerContextSetupRequest;
     ieC6->value.choice.System_BearerContextSetupRequest.present = E1AP_System_BearerContextSetupRequest_PR_nG_RAN_BearerContextSetupRequest;
     E1AP_NG_RAN_BearerContextSetupRequest_t *msgNGRAN = calloc(1, sizeof(E1AP_NG_RAN_BearerContextSetupRequest_t));
     ieC6->value.choice.System_BearerContextSetupRequest.choice.nG_RAN_BearerContextSetupRequest = (struct E1AP_ProtocolIE_Container *) msgNGRAN;
@@ -656,7 +629,7 @@ int e1apCUCP_send_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
           ieC6_1_1_1->qoSFlowLevelQoSParameters.nGRANallocationRetentionPriority.pre_emptionCapability = k->pre_emptionCapability;
           ieC6_1_1_1->qoSFlowLevelQoSParameters.nGRANallocationRetentionPriority.pre_emptionVulnerability = k->pre_emptionVulnerability;
         }
-      }
+      
     }
   }
 

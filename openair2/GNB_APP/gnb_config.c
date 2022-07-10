@@ -2013,8 +2013,8 @@ int RCconfig_NR_DU_F1(MessageDef *msg_p, uint32_t i) {
         f1Setup->mib_length[k]                                 = rrc->carrier.sizeof_MIB;
 
         NR_BCCH_DL_SCH_Message_t *bcch_message = NULL;
-
-        asn_dec_rval_t dec_rval = uper_decode_complete( NULL,
+        asn_codec_ctx_t st={100*1000};
+        asn_dec_rval_t dec_rval = uper_decode_complete( &st,
             &asn_DEF_NR_BCCH_DL_SCH_Message,
             (void **)&bcch_message,
             (const void *)rrc->carrier.SIB1,

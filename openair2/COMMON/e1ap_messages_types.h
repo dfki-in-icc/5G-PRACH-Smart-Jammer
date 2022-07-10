@@ -24,9 +24,6 @@
 #ifndef E1AP_MESSAGES_TYPES_H
 #define E1AP_MESSAGES_TYPES_H
 
-#include "E1AP_E1AP-PDU.h"
-#include "E1AP_TransactionID.h"
-#include "E1AP_PriorityLevel.h"
 #include "ngap_messages_types.h"
 
 #define E1AP_MAX_NUM_TRANSAC_IDS 4
@@ -48,11 +45,6 @@
 #define E1AP_SCTP_PPID 64
 
 typedef f1ap_net_ip_address_t e1ap_net_ip_address_t;
-
-typedef int (*e1ap_message_processing_t)(
-  instance_t            instance,
-  E1AP_E1AP_PDU_t       *message_p
-);
 
 typedef struct PLMN_ID_s {
   int mcc;

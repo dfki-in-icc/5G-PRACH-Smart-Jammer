@@ -60,7 +60,7 @@ extern RAN_CONTEXT_t RC;
 #define GNB_REGISTER_RETRY_DELAY 10
 
 /*------------------------------------------------------------------------------*/
-static void configure_nr_rrc(uint32_t gnb_id)
+void configure_nr_rrc(uint32_t gnb_id)
 {
   MessageDef *msg_p = NULL;
   //  int CC_id;
@@ -81,7 +81,7 @@ static void configure_nr_rrc(uint32_t gnb_id)
 /*------------------------------------------------------------------------------*/
 
 
-static uint32_t gNB_app_register(uint32_t gnb_id_start, uint32_t gnb_id_end)//, const Enb_properties_array_t *enb_properties)
+uint32_t gNB_app_register(uint32_t gnb_id_start, uint32_t gnb_id_end)//, const Enb_properties_array_t *enb_properties)
 {
   uint32_t         gnb_id;
   MessageDef      *msg_p;
@@ -116,7 +116,7 @@ static uint32_t gNB_app_register(uint32_t gnb_id_start, uint32_t gnb_id_end)//, 
 
 
 /*------------------------------------------------------------------------------*/
-static uint32_t gNB_app_register_x2(uint32_t gnb_id_start, uint32_t gnb_id_end) {
+uint32_t gNB_app_register_x2(uint32_t gnb_id_start, uint32_t gnb_id_end) {
   uint32_t         gnb_id;
   MessageDef      *msg_p;
   uint32_t         register_gnb_x2_pending = 0;

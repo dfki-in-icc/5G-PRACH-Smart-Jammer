@@ -1006,8 +1006,8 @@ rrc_gNB_process_NGAP_PDUSESSION_SETUP_REQ(
       pdu->sessionId   = msg->pdusession_setup_params[i].pdusession_id;
       pdu->sessionType = msg->pdusession_setup_params[i].upf_addr.pdu_session_type;
       pdu->sst         = msg->allowed_nssai[i].sST;
-      pdu->integrityProtectionIndication       = 1; // Preferred. TODO: Remove hardcoding
-      pdu->confidentialityProtectionIndication = 1; // Preferred. TODO: Remove hardcoding
+      pdu->integrityProtectionIndication       = 2; //E1AP_IntegrityProtectionIndication_not_needed; // Preferred. TODO: Remove hardcoding
+      pdu->confidentialityProtectionIndication = 2; //E1AP_ConfidentialityProtectionIndication_not_needed; // Preferred. TODO: Remove hardcoding
       pdu->teId                                = msg->pdusession_setup_params[i].gtp_teid;
       memcpy(&pdu->tlAddress,
              msg->pdusession_setup_params[i].upf_addr.buffer,
