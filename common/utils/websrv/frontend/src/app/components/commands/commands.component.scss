@@ -1,10 +1,38 @@
 .spaceddiv {
-  height: 40px;
+  height: 45px;
   width: 40vw;
   display: flex;
   justify-content: space-between;
   margin: 0 auto;
   padding: 10px 0;
+}
+
+.TableRowdiv {
+  height: 38px;
+  display: flex;
+/*  justify-content: space-between;*/
+  margin: 2px;
+  width: 95%;
+  .item:nth-child(1n){
+    width: 10%;
+  }
+  .item {
+    width: 4%;
+    margin: 10px;
+  } 
+}
+.TableBtn {
+  height: 25px;
+  
+  align-items: center;
+  justify-content: center;
+  padding-bottom:4px;
+}
+
+.TableText {
+  display: flex;
+  width: 8em;
+  overflow-x: auto;
 }
 
 .scrollablefield  {
@@ -18,6 +46,7 @@
 .mat-card {
   height: 95%;
   overflow-y: auto;
+  overflow-x: scroll;
 }
 
 .status {

@@ -90,7 +90,7 @@
                 </div>
               </mat-header-cell>
               <mat-cell *matCellDef="let row">
-                <div  [ngSwitch]="col.type" [formGroup]="row" fxLayoutAlign="start center">
+                <div  class="TableRowdiv" [ngSwitch]="col.type" [formGroup]="row" fxLayoutAlign="start center">
                   <mat-slide-toggle *ngSwitchCase="IArgType.boolean" [formControl]="row.paramsCtrls[colIndex].valueFC"
                     [checked]="row.paramsCtrls[colIndex].valueFC.value">
                   </mat-slide-toggle>
@@ -112,11 +112,9 @@
                     </mat-select>
                   </mat-form-field> -->
 
-                  <div *ngSwitchDefault>
-                    <mat-form-field>
-                      <input matInput [formControl]="row.paramsCtrls[colIndex].valueFC" [readonly]="col.modifiable" />
-                    </mat-form-field>
-                  </div>
+                  <mat-form-field  *ngSwitchDefault>
+                      <input class="TableText" matInput [formControl]="row.paramsCtrls[colIndex].valueFC" [readonly]="!col.modifiable" />
+                  </mat-form-field>
                 </div>
               </mat-cell>
             </div>
@@ -124,7 +122,7 @@
             <div matColumnDef="button">
               <mat-header-cell *matHeaderCellDef> </mat-header-cell>
               <mat-cell *matCellDef="let row" fxLayoutAlign="center">
-                <button mat-raised-button color="primary" (click)="onParamSubmit(row)" [disabled]="row.pristine"> set
+                <button class="TableBtn" mat-raised-button color="primary" (click)="onParamSubmit(row)" [disabled]="row.pristine"> set
                 </button>
               </mat-cell>
             </div>
