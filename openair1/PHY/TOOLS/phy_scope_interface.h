@@ -62,6 +62,5 @@ typedef struct scopeData_s {
 
 int load_softscope(char *exectype, void *initarg);
 int end_forms(void) ;
-
 #define UEscopeCopy(ue, type, ...) if(ue->scopeData) ((scopeData_t*)ue->scopeData)->copyData(ue, type, ##__VA_ARGS__);
 #endif

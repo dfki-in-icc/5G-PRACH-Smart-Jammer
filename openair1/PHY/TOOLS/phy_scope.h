@@ -75,5 +75,7 @@ typedef struct {
 } FD_stats_form;
 #ifdef WEBSRVSCOPE
  extern OAI_phy_scope_t *create_phy_scope_gnb(void);
+ extern OAI_phy_scope_t *create_phy_scope_nrue(int ueid);
+ extern void phy_scope_gNB(OAI_phy_scope_t *form, scopeData_t *p, int UE_id);
 #endif
 #endif

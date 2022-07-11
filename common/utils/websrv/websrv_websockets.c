@@ -40,11 +40,14 @@
  #include "executables/softmodem-common.h"
  #include "time.h"
  #include "common/utils/websrv/websrv_noforms.h"
+ #include "common/ran_context.h"
  #include "openair1/PHY/TOOLS/phy_scope.h"
+ #include "openair1/PHY/TOOLS/phy_scope_interface.h" 
 
+extern PHY_VARS_NR_UE ***PHY_vars_UE_g;
  
- 
-static websrv_scope_params_t scope_params = {0,1000};
+static scopeData_t  scopedata; 
+static websrv_scope_params_t scope_params = {0,1000,NULL,&scopedata};
 
 void  websrv_scope_sendIQ(websrv_scopegraph_t *graph, float *I,float *Q,int sz) {
 	LOG_I(UTIL,"[websrv] sending %i IQ's graph %s id %i ue %i\n",sz,graph->graphtitle, graph->graphid, graph->sigid);
@@ -70,11 +73,15 @@ void websrv_websocket_process_scopemessage(char msg_type, char *msg_data, struct
  
     case SCOPEMSG_TYPE_STATUSUPD:
       if (strncmp(msg_data,"init",4) == 0){
-		  LOG_I(UTIL,"[websrv] SoftScope init....\n");
-		  if (IS_SOFTMODEM_GNB_BIT) {
-			 scope_params.form = create_phy_scope_gnb();
+          LOG_I(UTIL,"[websrv] SoftScope init....\n");
+		  if (IS_SOFTMODEM_GNB_BIT) {			 
+		     scopedata.ru=RC.ru[0];
+		     scopedata.gNB=RC.gNB[0];		 
+			 scope_params.scopeform = create_phy_scope_gnb();
 		  } else if (IS_SOFTMODEM_5GUE_BIT) {
-//			  create_phy_scope_nrue();
+			 scope_params.scopedata = PHY_vars_UE_g[0][0] ;
+			 nrUEinitScope(PHY_vars_UE_g[0][0]);
+			 scope_params.scopeform = create_phy_scope_nrue(scope_params.selectedData);
 		  } else {
             LOG_I(UTIL,"[websrv] SoftScope web interface  not implemented for this softmodem\n");
             websrv_websocket_send_scopemessage(SCOPEMSG_TYPE_STATUSUPD, "disabled", websocket_manager);			  
@@ -125,8 +132,13 @@ void websrv_websocket_manager_callback(const struct _u_request * request,
     if( (scope_params.statusmask & SCOPE_STATUSMASK_STARTED) ) {
       if (ulfius_websocket_wait_close(websocket_manager, scope_params.refrate) == U_WEBSOCKET_STATUS_OPEN) {
         websrv_websocket_send_scopemessage(SCOPEMSG_TYPE_TIME, strtime, websocket_manager);
-      }
-      
+		  if (IS_SOFTMODEM_GNB_BIT) {			 
+            phy_scope_gNB(scope_params.scopeform,  scope_params.scopedata, scope_params.selectedData);
+		  } 
+		  if (IS_SOFTMODEM_5GUE_BIT) {
+            phy_scope_nrUE(scope_params.scopeform, (PHY_VARS_NR_UE *)scope_params.scopedata,  0, scope_params.selectedData);
+		  }      
+      }      
     }
     if( (scope_params.statusmask == SCOPE_STATUSMASK_UNKNOWN) ) {
 	  if (ulfius_websocket_wait_close(websocket_manager, 2000) == U_WEBSOCKET_STATUS_OPEN) {

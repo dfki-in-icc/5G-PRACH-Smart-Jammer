@@ -141,7 +141,9 @@ static void oai_xygraph_getbuff(OAIgraph_t *graph, float **x, float **y, int len
   float *old_x;
   float *old_y;
   int old_len=-1;
-
+#if WEBSRVSCOPE
+  return;
+#endif
   if (graph->iteration >1)
     fl_get_xyplot_data_pointer(graph->graph, layer, &old_x, &old_y, &old_len);
 
@@ -168,6 +170,8 @@ static void oai_xygraph_getbuff(OAIgraph_t *graph, float **x, float **y, int len
 }
 
 static void oai_xygraph(OAIgraph_t *graph, float *x, float *y, int len, int layer, bool NoAutoScale) {
+	
+
   fl_redraw_object(graph->graph);
 
   if ( NoAutoScale && graph->iteration%NoAutoScale == 0) {
@@ -184,6 +188,12 @@ static void oai_xygraph(OAIgraph_t *graph, float *x, float *y, int len, int laye
   }
 
   graph->iteration++;
+#if WEBSRVSCOPE
+      websrv_scopegraph_t wsc;
+//      wsc.sigid=;
+//      snprintf(wsc.graphtitle,sizeof(wsc.graphtitle),graph->text->label);      
+      websrv_scope_sendIQ(&wsc,x,y,len);
+#endif
 }
 
 static void genericWaterFall (OAIgraph_t *graph, scopeSample_t *values, const int datasize, const int divisions, const char *label) {
@@ -360,15 +370,7 @@ static void puschIQ (OAIgraph_t *graph, scopeData_t *p, int nb_UEs) {
         Q[k] = pusch_comp[k].i;
       }
 
-#if WEBSRVSCOPE
-
-      websrv_scopegraph_t wsc;
-      wsc.sigid=ue;
-      snprintf(wsc.graphtitle,sizeof(wsc.graphtitle),"pusch");      
-      websrv_scope_sendIQ(&wsc,I,Q,sz);
-#else
       oai_xygraph(graph,I,Q,sz,ue,10);
-#endif
     }
   }
 }
@@ -468,7 +470,7 @@ STATICFORXSCOPE OAI_phy_scope_t *create_phy_scope_gnb(void) {
   return fdui;
 }
 static const int scope_enb_num_ue = 1;
-static void phy_scope_gNB(OAI_phy_scope_t *form,
+STATICFORXSCOPE void phy_scope_gNB(OAI_phy_scope_t *form,
                    scopeData_t *p,
                    int UE_id) {
   static OAI_phy_scope_t *rememberForm=NULL;
@@ -532,8 +534,8 @@ static void gNBinitScope(scopeParms_t *p) {
   scope->gNB=p->gNB;
   scope->slotFunc=copyRxdataF;
   AssertFatal(scope->liveData= calloc(p->gNB->frame_parms.samples_per_frame_wCP*sizeof(int32_t),1),"");
+#ifndef WEBSRVSCOPE 
   pthread_t forms_thread;
-#ifndef WEBSRVSCOPE
   threadCreate(&forms_thread, scope_thread_gNB, p->gNB->scopeData, "scope", -1, OAI_PRIORITY_RT_LOW);
 #endif
 
@@ -827,20 +829,20 @@ STATICFORXSCOPE OAI_phy_scope_t *create_phy_scope_nrue( int ID ) {
   fl_hide_object(fdui->button_0);
 #endif
   fl_end_form( );
-  fdui->phy_scope->fdui = fdui;
+  if (fdui->phy_scope)
+    fdui->phy_scope->fdui = fdui;
   char buf[100];
   sprintf(buf,"NR DL SCOPE UE %d", ID);
   fl_show_form (fdui->phy_scope, FL_PLACE_HOTSPOT, FL_FULLBORDER, buf);
   return fdui;
 }
 
-static void phy_scope_nrUE(scopeGraphData_t **UEliveData,
-                    OAI_phy_scope_t *form,
+STATICFORXSCOPE void phy_scope_nrUE( OAI_phy_scope_t *form,
                     PHY_VARS_NR_UE *phy_vars_ue,
                     int eNB_id,
                     int UE_id) {
   static OAI_phy_scope_t *remeberForm=NULL;
-
+  scopeGraphData_t **UEliveData = (( scopeData_t *)phy_vars_ue->scopeData)->liveData;
   if (form==NULL)
     form=remeberForm;
   else
@@ -872,8 +874,7 @@ static void *nrUEscopeThread(void *arg) {
 
   while (!oai_exit) {
     fl_freeze_form(form_nrue->phy_scope);
-    phy_scope_nrUE((( scopeData_t *)ue->scopeData)->liveData,
-                   form_nrue,
+    phy_scope_nrUE(form_nrue,
                    ue,
                    0,0);
     fl_unfreeze_form(form_nrue->phy_scope);
@@ -925,13 +926,15 @@ static void UEcopyData(PHY_VARS_NR_UE *ue, enum UEdataType type, void *dataIn, i
   }
 }
 
-static void nrUEinitScope(PHY_VARS_NR_UE *ue) {
+STATICFORXSCOPE void nrUEinitScope(PHY_VARS_NR_UE *ue) {
   AssertFatal(ue->scopeData=malloc(sizeof(scopeData_t)),"");
   scopeData_t *scope=(scopeData_t *) ue->scopeData;
   scope->copyData=UEcopyData;
   AssertFatal(scope->liveData=calloc(sizeof(scopeGraphData_t *), UEdataTypeNumberOfItems),"");
+#ifndef WEBSRVSCOPE
   pthread_t forms_thread;
   threadCreate(&forms_thread, nrUEscopeThread, ue, "scope", -1, OAI_PRIORITY_RT_LOW);
+#endif
 }
 
 void nrscope_autoinit(void *dataptr) {

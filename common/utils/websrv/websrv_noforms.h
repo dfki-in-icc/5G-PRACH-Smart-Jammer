@@ -3577,7 +3577,7 @@ FL_EXPORT FL_OBJECT * fl_add_canvas( int          type,
                                      FL_Coord     y,
                                      FL_Coord     w,
                                      FL_Coord     h,
-                                     const char * label ){return NULL;};
+                                     const char * label ){return label;};
 
 FL_EXPORT FL_OBJECT * fl_create_canvas( int          type,
                                         FL_Coord     x,
@@ -6091,7 +6091,7 @@ FL_EXPORT FL_OBJECT * fl_add_xyplot( int          t,
                                      FL_Coord     y,
                                      FL_Coord     w,
                                      FL_Coord     h,
-                                     const char * label ){return NULL;};
+                                     const char * label ){return label;};
 
 FL_EXPORT void fl_set_xyplot_data( FL_OBJECT  * ob,
                                    float      * x,

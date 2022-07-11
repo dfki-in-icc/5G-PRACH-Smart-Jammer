@@ -84,7 +84,9 @@ typedef struct {
 typedef struct {
 	 uint64_t statusmask;                     // 
 	 uint32_t refrate;                        // in ms
-	 void  *form; 
+	 void  *scopeform;                        // OAI_phy_scope_t pointer returned by create_phy_scope_xxx functions
+	 void  *scopedata;                        // scopeData_t pointer, filled at init time, contains pointers and functions to retrieve softmodem data
+     uint32_t selectedData;                   // index to UE/gNB 
 } websrv_scope_params_t;
 
 
