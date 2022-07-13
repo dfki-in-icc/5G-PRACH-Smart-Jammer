@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Chart.Name }}-svc
+  labels:
+    {{- include "oai-amf.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.servicehttp.type }}
+  {{- if eq .Values.servicehttp.type "ClusterIP" }}
+  clusterIP: None
+  {{- end }}  
+  ports:
+    - name: http1
+      port: {{ .Values.servicehttp.http1Port }}
+      targetPort: {{ .Values.servicehttp.http1Port }}
+      protocol: TCP
+    - name: http2
+      port: {{ .Values.servicehttp.http2Port }}
+      targetPort: {{ .Values.servicehttp.http2Port }}
+      protocol: TCP
+  selector:
+    {{- include "oai-amf.selectorLabels" . | nindent 4 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Chart.Name }}-sctp-svc
+  labels:
+    {{- include "oai-amf.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.servicesctp.type }}
+  {{- if eq .Values.servicesctp.type "ClusterIP" }}
+  clusterIP: None
+  {{- end }}  
+  ports:
+    - name: oai-amf
+      # Port accessible outside cluster
+      port: {{ .Values.servicesctp.sctpPort }}
+      # Port to forward to inside the pod
+      targetPort: {{ .Values.servicesctp.sctpPort }}
+      protocol: SCTP
+  selector:
+    {{- include "oai-amf.selectorLabels" . | nindent 4 }}

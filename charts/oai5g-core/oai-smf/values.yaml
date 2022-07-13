@@ -1,0 +1,139 @@
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+nfimage:
+  registry: local
+  repository: docker.io/oaisoftwarealliance/oai-smf          # dockerhub oaisoftwarealliance/oai-smf
+  version: v1.4.0    #image tag, develop tag for experimental features 
+  #pullPolicy: IfNotPresent or Never or Always
+  pullPolicy: IfNotPresent
+
+tcpdumpimage:
+  registry: local
+  repository: registry.redhat.io/openshift4/network-tools-rhel8
+  version: latest
+  #pullPolicy: IfNotPresent or Never or Always
+  pullPolicy: IfNotPresent
+
+
+# good to use when pulling images from docker-hub mention 
+# imagePullSecrets: 
+#   - name: "regcred"
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: "oai-smf-sa"
+
+podSecurityContext:
+  runAsUser: 0
+  runAsGroup: 0
+
+securityContext:
+  privileged: false
+
+service:
+  type: ClusterIP
+  n4Port: 8805
+  http1Port: 80
+  http2Port: 9090
+
+start:
+  smf: true
+  tcpdump: false  #start tcpdump collection to analyse but beware it will take a lot of space in the container/persistent volume
+
+# SMF needs two seperate interface one for http and other one for N4 to communicate with UPD. 
+# But for experimentation only one interface can be used. 
+# When you need multus:
+# 1. you want seperate interface for N4 and Nsmf 
+# 2. Your UPF is outside the cluster and the host machine can communicate but pods can not then you can provide ip-address in the same range as your host machine
+# 3. You want static ip-address for N4 interface, Namf can be discovered by its service name
+
+
+multus:
+  create: false
+  n4IPadd: "172.21.10.101"
+  n4Netmask: "22"
+  n4Gateway: "172.21.11.254"
+  hostInterface: "bond0"      # Interface of the host machine on which this pod will be scheduled
+
+config:
+  instance: "0"
+  pidDirectory: "/var/run"
+  smfInterfaceNameForN4: "eth0"  # net1 if multus creation is true else eth0
+  smfInterfaceNameForSBI: "eth0" 
+  smfInterfacePortForSBI: "80"
+  smfInterfaceHttp2PortForSBI: "9090"
+  smfApiVersion: "v1"
+  httpVersion: "1"          #default is HTTP v1 you can make it 2 HTTP V2
+  useNetworkInstance: "no"
+  enableUsageReporting: "no"
+  dnsIpv4Address: "172.21.3.100" # configure the dns for UE don't use Kubernetes DNS
+  dnsSecIpv4Address: "172.21.3.100" # configure the dns for UE don't use Kubernetes DNS
+  registerNrf: "yes" # if wants to use NRF registry and discovery
+  discoverUpf: "yes" # discovery UPF 
+  useLocalSubscriptionInfo: "yes" # If yes ip-allocation will be handled by SMF if no the information will be reterived from UDM
+  useFqdnDns: "yes" # use only when the DNS can resolve FQDN of other network functions
+  amfIpv4Address: "127.0.0.1" # configure if NRF is not used 
+  amfPort: "80" # configure if NRF is not used
+  amfApiVersion: "v1" # configure if NRF is not used
+  amfFqdn: "oai-amf-svc" # configure if NRF is not used
+  udmIpv4Address: "127.0.0.1" # configure if UDM is used
+  udmPort: "80" # configure if UDM is used
+  udmApiVersion: "v1" # configure if UDM is used
+  udmFqdn: "oai-udm-svc" # configure if UDM is used
+  nrfIpv4Address: "127.0.0.1" # configure if NRF can only be reached using ip-address
+  nrfPort : "80" 
+  nrfApiVersion: "v1"
+  nrfFqdn: "oai-nrf-svc" # configure if NRF can be reached using Kubernetes service
+  upfIpv4Address: "127.0.0.1" # configure if NRF is not used 
+  upfFqdn0: "localhost" # configure if NRF is not used and useFqdnDns is true when NRF is not used this value should be the service name of UPF example oai-spgwu-tiny-svc
+  domainAccess: "random"          #OPTIONAL: Only needed if the UPF requires
+  domainCore: "random"          #OPTIONAL: Only needed if the UPF requires
+  ueMtu: 1500
+  dnnNi0: "oai.ipv4"
+  pdusessiontype0: "IPv4"
+  ipv4dnnRange0: "12.1.1.2 - 12.1.1.40"
+  nssaiSst0: 1
+  nssaiSd0: 1
+  dnnNi1: "default"
+  pdusessiontype1: "IPv4"
+  ipv4dnnRange1: "12.1.1.41 - 12.1.1.80"
+  nssaiSst1: 222
+  nssaiSd1: 123
+  dnnNi2: "oai"
+  pdusessiontype2: "IPv4"
+  ipv4dnnRange2: "12.1.1.81 - 12.1.1.120"
+  nssaiSst2: 1
+  nssaiSd2: 1023
+
+      
+## currently only used by tcpdump container to store the tcpdump, this volume will be shared between all the network functions
+persistent:
+  sharedvolume: false  # should be true when if wants to store the tcpdump of all the network functions at same place
+  volumneName: nfs-client
+  size: 1Gi
+
+
+resources:
+  define: false
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+   cpu: 100m
+   memory: 256Mi
+
+readinessProbe: true
+
+livenessProbe: true
+
+terminationGracePeriodSeconds: 30
+
+nodeSelector: {}
+
+nodeName: 

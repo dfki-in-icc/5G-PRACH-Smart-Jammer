@@ -1,0 +1,140 @@
+mysql:
+  enabled: true
+  weight: 0
+  imagePullPolicy: IfNotPresent
+  oai5gdatabase: basic
+  imagePullSecrets: 
+    - name: "regcred"
+  persistence:
+    enabled: false
+oai-nrf:
+  enabled: true
+  weight: 1
+  nfimage:  # image name either locally present or in a public/private repository
+    repository: oai-amf
+    version: v1.4.0
+    # pullPolicy: IfNotPresent or Never or Always
+    pullPolicy: IfNotPresent
+  nodeSelector: {}
+oai-udr:
+  enabled: true
+  weight: 2
+  nfimage:  # image name either locally present or in a public/private repository
+    repository: oai-udr
+    version: v1.4.0                                    ## The branch to be used to pull from dockerhub
+    # pullPolicy: IfNotPresent or Never or Always
+    pullPolicy: IfNotPresent
+  nodeSelector: {}
+oai-udm:
+  enabled: true
+  weight: 3
+  nfimage:  # image name either locally present or in a public/private repository
+    repository: oai-udm
+    version: v1.4.0                                    ## The branch to be used to pull from dockerhub
+    # pullPolicy: IfNotPresent or Never or Always
+    pullPolicy: IfNotPresent
+  nodeSelector: {}
+oai-ausf:
+  enabled: true
+  weight: 4
+  nfimage:  # image name either locally present or in a public/private repository
+    repository: oai-ausf
+    version: v1.4.0                                    ## The branch to be used to pull from dockerhub
+    # pullPolicy: IfNotPresent or Never or Always
+    pullPolicy: IfNotPresent
+  nodeSelector: {}
+oai-amf:
+  enabled: true
+  weight: 5
+  nfimage:  # image name either locally present or in a public/private repository
+    repository: oai-amf
+    version: v1.4.0                                    ## The branch to be used to pull from dockerhub
+    # pullPolicy: IfNotPresent or Never or Always
+    pullPolicy: IfNotPresent
+  multus:
+    create: true
+    n1IPadd: "172.21.6.100"
+    n1Netmask: "22"
+    n1Gateway: "172.21.7.254"
+    hostInterface: "bond0"      # Interface of the host machine on which this pod will be scheduled
+  config:
+    amfInterfaceNameForNGAP: "net1" # If multus creation is true then net1 else eth0
+    amfInterfaceNameForN11: "eth0"  # Service based interface
+    externalAusf: "yes"
+    smfSelection: "yes"              # When the UE ip-addresses are defined in database SMF selection via NRF does not work so no SMF selection
+    sst0: "1"
+    sd0: "10203"
+    sst1: "1"
+    sd1: "1"
+    mcc: "208"
+    mnc: "99"
+    regionId: "128"
+    amfsetId: "1"
+    servedGuamiMcc0: "208"
+    servedGuamiMnc0: "99"
+    servedGuamiRegionId0: "128"
+    servedGuamiAmfSetId0: "1"
+    plmnSupportMcc: "208"
+    plmnSupportMnc: "99"
+    plmnSupportTac: "0x0001"
+    operatorKey: "c42449363bbad02b66d16bc975d77cc1"  # should be same as in subscriber database
+  nodeName: thesus 
+oai-spgwu-tiny:
+  enabled: true
+  weight: 6
+  nfimage:  # image name either locally present or in a public/private repository
+    repository: oai-spgwu-tiny
+    version: v1.4.0                                    ## The branch to be used to pull from dockerhub
+    # pullPolicy: IfNotPresent or Never or Always
+    pullPolicy: IfNotPresent
+  multus:
+    create: true
+    n3Ip: "172.21.6.101"
+    n3Netmask: "22"
+    sgiGw: "172.21.7.254"
+    hostInterface: "bond0"
+  config:
+    sgwS1uIf: "net1"  # n3 interface, net1 if gNB is outside the cluster network and multus creation is true else eth0
+    pgwSgiIf: "net1"  # net1 if gNB is outside the cluster network and multus creation is true else eth0 (important because it sends the traffic towards internet)
+    nssaiSst0: 1 # should match with SMF information
+    nssaiSd0: 10203  # should match with SMF information
+    dnn0: "oai" # should match with SMF information
+    nssaiSst1: 1 # should match with SMF information
+    nssaiSd1: 1  # should match with SMF information
+    dnn1: "oai.ipv4" # should match with SMF information
+    nssaiSst2: 222 # should match with SMF information
+    nssaiSd2: 123  # should match with SMF information
+    dnn2: "default" # should match with SMF information
+    mcc: 208 # should match with AMF and SMF
+    mnc: 99 # should match with AMF and SMF
+    netUeIp: "12.1.1.0/24"        #Make sure that the UE ip-address are allocated in this range
+  nodeName: 
+oai-smf:
+  enabled: true
+  weight: 7
+  nfimage:  # image name either locally present or in a public/private repository
+    repository: oai-smf
+    version: v1.4.0                                    ## The branch to be used to pull from dockerhub
+    # pullPolicy: IfNotPresent or Never or Always
+    pullPolicy: IfNotPresent
+  config:
+    useLocalSubscriptionInfo: "yes" #this means ip-address information will be fetched from UDR
+    ueMtu: 1500
+    dnsIpv4Address: "172.21.3.100" # configure the dns for UE don't use Kubernetes DNS
+    dnsSecIpv4Address: "172.21.3.100" # configure the dns for UE don't use Kubernetes DNS
+    dnnNi0: "oai.ipv4"
+    pdusessiontype0: "IPv4"
+    ipv4dnnRange0: "12.1.1.2 - 12.1.1.40"
+    nssaiSst0: 1
+    nssaiSd0: 1
+    dnnNi1: "default"
+    pdusessiontype1: "IPv4"
+    ipv4dnnRange1: "12.1.1.41 - 12.1.1.80"
+    nssaiSst1: 222
+    nssaiSd1: 123
+    dnnNi2: "oai"
+    pdusessiontype2: "IPv4"
+    ipv4dnnRange2: "12.1.1.81 - 12.1.1.120"
+    nssaiSst2: 1
+    nssaiSd2: 10203
+  nodeSelector: {}

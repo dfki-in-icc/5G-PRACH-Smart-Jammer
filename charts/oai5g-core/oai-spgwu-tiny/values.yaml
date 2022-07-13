@@ -1,0 +1,125 @@
+# Default values for oai-spgwu-tiny.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+nfimage:
+  registry: local
+  repository: docker.io/oaisoftwarealliance/oai-spgwu-tiny # dockerhub oaisoftwarealliance/oai-spgwu-tiny
+  version: v1.4.0           #image tag, develop tag for experimental features 
+  # pullPolicy: IfNotPresent or Never or Always
+  pullPolicy: IfNotPresent
+
+tcpdumpimage:
+  registry: local
+  repository: registry.redhat.io/openshift4/network-tools-rhel8
+  version: latest
+  #pullPolicy: IfNotPresent or Never or Always
+  pullPolicy: IfNotPresent
+
+
+# ## good to use when pulling images from docker-hub mention 
+# imagePullSecrets: 
+#   - name: "regcred"
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: "oai-spgwu-tiny"
+
+podSecurityContext:
+  runAsUser: 0
+  runAsGroup: 0
+
+securityContext:
+  privileged: true
+
+service:
+  pfcpServiceType: ClusterIP
+  gtpuServiceType: ClusterIP
+  pfcpPort: 8805 # default port no need to change unless necessary
+  gtpuPort: 2152 # default port no need to change unless necessary
+
+start:
+  spgwu: true
+  tcpdump: false
+
+# create an extra interface for N3 incase the gNB is outside the cluster network or there is a need to have dedicated interface for N3
+multus:
+  create: false
+  n3Ip: "172.21.10.102"
+  n3Netmask: "22"
+  sgiGw: "172.21.11.254"
+  hostInterface: "ens2f0np0"
+
+
+config:
+  gwId: 1 # no need to configure
+  mcc: 208 # should match with AMF and SMF
+  mnc: 99 # should match with AMF and SMF
+  realm: "3gpp.org" # no need to configure
+  pidDirectory: "/var/run" # no need to configure
+  sgwS1uIf: "eth0"  # net1 if gNB is outside the cluster network and multus creation is true else eth0
+  sgwSxIf: "eth0" # use for SMF communication
+  pgwSgiIf: "eth0"  # net1 if gNB is outside the cluster network and multus creation is true else eth0 (important because it sends the traffic towards internet)
+  s1uThreads: 1 # experimental to play with the performance of SPGWU
+  sxThreads: 1 # experimental to play with the performance of SPGWU
+  sgiThreads: 1 # experimental to play with the performance of SPGWU
+  threadS1Upriority: 88 # experimental to play with the performance of SPGWU
+  threadSXpriority: 88 # experimental to play with the performance of SPGWU
+  threadSGIpriority: 98 # experimental to play with the performance of SPGWU
+  netUeNatOption: "yes" # yes to get the traffic out towards internet
+  gtpExtentionHeaderPresent: "yes" # needed for 5G (Always true)
+  spgwc0IpAdd: "127.0.0.1" # SMF ip-address incase NRF is not used to initiate a PFCP session
+  bypassUlPfcpRules: "no"
+  enable5GFeatures: "yes" # This will make SPGWU to function as 5G UPF, if set no then it will work for 4G
+  registerNRF: "yes" 
+  useFqdnNrf: "yes"  # use FQDN to resolve nrf ip-address 
+  nrfIpv4Add: "127.0.0.1" # set it if nrf FQDN can not be resolved
+  nrfPort: "80"
+  nrfApiVersion: "v1" 
+  nrfFqdn: "oai-nrf-svc" # make sure this can be resolved by container dns
+  upfFqdn5g: "oai-spgwu-tiny-svc" # fqdn of upf 
+  nssaiSst0: 1 # should match with SMF information
+  nssaiSd0: 1  # should match with SMF information
+  dnn0: "oai" # should match with SMF information
+  nssaiSst1: 1 # should match with SMF information
+  nssaiSd1: 1  # should match with SMF information
+  dnn1: "oai" # should match with SMF information
+  nssaiSst2: 1 # should match with SMF information
+  nssaiSd2: 1  # should match with SMF information
+  dnn2: "oai" # should match with SMF information
+  nssaiSst3: 1 # should match with SMF information
+  nssaiSd3: 1  # should match with SMF information
+  dnn3: "oai" # should match with SMF information
+  netUeIp: "12.1.1.0/24"  # The range in which UE ip-address will be allocated should be configured the same in SMF
+
+
+## currently only used by tcpdump container to store the tcpdump, this volume will be shared between all the network functions
+persistent:
+  sharedvolume: false  # should be true when if wants to store the tcpdump of all the network functions at same place
+  volumneName: nfs-client
+  size: 1Gi
+
+
+resources:
+  define: false
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+   cpu: 100m
+   memory: 256Mi
+
+readinessProbe: true
+
+livenessProbe: true
+
+terminationGracePeriodSeconds: 30
+
+nodeSelector: {}
+
+nodeName: 

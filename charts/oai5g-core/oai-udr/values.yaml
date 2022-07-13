@@ -1,0 +1,90 @@
+# Default values for oai-udr.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+nfimage:
+  registry: local
+  repository: docker.io/oaisoftwarealliance/oai-udr # image name either locally present or in a public/private repository
+  version: v1.4.0 #image tag, develop tag for experimental features 
+  #pullPolicy: IfNotPresent or Never or Always
+  pullPolicy: IfNotPresent
+
+tcpdumpimage:
+  registry: local
+  repository: registry.redhat.io/openshift4/network-tools-rhel8
+  version: latest
+  #pullPolicy: IfNotPresent or Never or Always
+  pullPolicy: IfNotPresent
+
+
+# imagePullSecrets: 
+#   - name: "regcred"
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: "oai-udr-sa"
+
+podSecurityContext:
+  runAsUser: 0
+  runAsGroup: 0
+
+securityContext:
+  privileged: false
+
+service:
+  type: ClusterIP
+  http1Port: 80
+  http2Port: 8080
+
+start:
+  udr: true
+  tcpdump: false #start tcpdump collection to analyse but beware it will take a lot of space in the container/persistent volume
+
+config:
+  tz: "Europe/Paris"
+  instance: "0"
+  udrname: "oai-udr"
+  pidDirectory: "/var/run"
+  registerNrf: "no"
+  usehttp2: "no"
+  useFqdnDns: "yes"
+  udrInterfaceNameForNudr: "eth0"
+  udrInterfaceHttp1PortForNudr: "80"
+  udrInterfaceHttp2PortForNudr: "8080"
+  udrApiVersion: "v1"
+  nrfIpv4Address: "127.0.0.1"
+  nrfPort: "80"
+  nrfApiVersion: "v1"
+  nrfFqdn: "oai-nrf-svc"
+  mySqlServer: "mysql"
+  mySqlUser: "root"
+  mySqlPass: "linux"
+  mySqlDb: "oai_db"
+
+persistence:
+  sharedvolume: false
+  volumneName: nfs-client
+  size: 1Gi
+  
+resources:
+  define: false
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+   cpu: 100m
+   memory: 256Mi
+
+terminationGracePeriodSeconds: 30
+
+nodeSelector: {}
+
+nodeName:
+

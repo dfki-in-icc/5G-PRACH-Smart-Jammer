@@ -1,0 +1,91 @@
+# Default values for oai-udm.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+nfimage:
+  registry: local
+  repository: docker.io/oaisoftwarealliance/oai-udm          ## oaisoftwarealliance/oai-udm # image name either locally present or in a public/private repository
+  version: v1.4.0                         #image tag, develop tag for experimental features 
+  #pullPolicy: IfNotPresent or Never or Always
+  pullPolicy: Always
+
+tcpdumpimage:
+  registry: local
+  repository: registry.redhat.io/openshift4/network-tools-rhel8
+  version: latest
+  #pullPolicy: IfNotPresent or Never or Always
+  pullPolicy: IfNotPresent
+
+
+# ## good to use when pulling images from docker-hub mention 
+# imagePullSecrets: 
+#   - name: "regcred"
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: "oai-udm-sa"
+
+podSecurityContext:
+  runAsUser: 0
+  runAsGroup: 0
+
+securityContext:
+  privileged: false
+
+service:
+  type: ClusterIP
+  httpPort: 80
+
+start:
+  udm: true
+  tcpdump: false
+
+config:
+  tz: "Europe/Paris"
+  instance: "0"
+  pidDirectory: "/var/run"
+  udmName: "OAI_UDM"
+  sbiIfName: "eth0"
+  sbihttp1Port: "80"
+  sbihttp2Port: "9090"
+  udmVersionNb: "v1"
+  useFqdnDns: "yes"
+  udrIpAddress: "127.0.0.1"
+  udrPort: "80"
+  udrVersionNb: "v1"
+  udrFqdn: "oai-udr-svc"
+  nrfIpAddress: "127.0.0.1"
+  nrfPort: "80"
+  nrfVersion: "v1"
+  nrfFqdn: "oai-nrf-svc"
+
+persistence:
+  sharedvolume: false
+  volumneName: nfs-client
+  size: 1Gi
+
+resources:
+  define: false
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+   cpu: 100m
+   memory: 256Mi
+
+readinessProbe: true
+
+livenessProbe: true
+
+terminationGracePeriodSeconds: 30
+
+nodeSelector: {}
+
+nodeName: 
