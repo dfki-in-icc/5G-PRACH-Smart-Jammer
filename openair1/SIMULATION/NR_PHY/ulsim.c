@@ -350,6 +350,7 @@ int main(int argc, char **argv)
   /* initialize the sin-cos table */
    InitSinLUT();
 
+  int ct_ind=0;
   while ((c = getopt(argc, argv, "a:b:c:d:ef:g:h:i:kl:m:n:p:q:r:s:t:u:w:y:z:C:F:G:H:I:M:N:PR:S:T:U:L:ZW:")) != -1) {
     printf("handling optarg %c\n",c);
     switch (c) {
@@ -443,9 +444,8 @@ int main(int argc, char **argv)
       break;
       
     case 'i':
-      for(i=0; i < atoi(optarg); i++){
-        chest_type[i] = atoi(argv[optind++]);
-      }
+      printf("chest optarg %d\n",atoi(optarg));
+      chest_type[ct_ind++] = atoi(optarg);
       break;
 	
     case 'k':
@@ -816,6 +816,7 @@ int main(int argc, char **argv)
 //  nr_phy_config_request_sim(gNB,N_RB_DL,N_RB_DL,mu,0,0x01);
   gNB->chest_freq = chest_type[0];
   gNB->chest_time = chest_type[1];
+  printf("Setting chest to (%d,%d)\n",gNB->chest_freq,gNB->chest_time);
   phy_init_nr_gNB(gNB,0,1);
   N_RB_DL = gNB->frame_parms.N_RB_DL;
 
