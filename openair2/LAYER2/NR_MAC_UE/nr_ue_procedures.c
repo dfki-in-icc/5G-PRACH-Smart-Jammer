@@ -135,6 +135,7 @@ const initial_pucch_resource_t initial_pucch_resource[16] = {
 /* 15  */ {  1,       0,                 14,                   0,            4,       {    0,   3,    6,    9  }   },
 };
 
+int r_PUCCH;
 
 void nr_ue_init_mac(module_id_t module_idP) {
   int i;
@@ -1582,14 +1583,14 @@ void nr_ue_configure_pucch(NR_UE_MAC_INST_t *mac,
       RB_BWP_offset = initial_pucch_resource[pucch->initial_pucch_id].PRB_offset;
 
     int N_CS = initial_pucch_resource[pucch->initial_pucch_id].nb_CS_indexes;
-    pucch_pdu->prb_start = RB_BWP_offset + (pucch->initial_pucch_id/N_CS);
-    if (pucch->initial_pucch_id>>3 == 0) {
-      pucch_pdu->second_hop_prb = pucch_pdu->bwp_size - 1 - RB_BWP_offset - (pucch->initial_pucch_id/N_CS);
-      pucch_pdu->initial_cyclic_shift = initial_pucch_resource[pucch->initial_pucch_id].initial_CS_indexes[pucch->initial_pucch_id%N_CS];
+    pucch_pdu->prb_start = RB_BWP_offset + (r_PUCCH / N_CS);
+    if (r_PUCCH>>3 == 0) {
+      pucch_pdu->second_hop_prb = pucch_pdu->bwp_size - 1 - RB_BWP_offset - (r_PUCCH / N_CS);
+      pucch_pdu->initial_cyclic_shift = initial_pucch_resource[pucch->initial_pucch_id].initial_CS_indexes[r_PUCCH % N_CS];
     }
     else {
-      pucch_pdu->second_hop_prb = pucch_pdu->bwp_size - 1 - RB_BWP_offset - ((pucch->initial_pucch_id - 8)/N_CS);
-      pucch_pdu->initial_cyclic_shift =  initial_pucch_resource[pucch->initial_pucch_id].initial_CS_indexes[(pucch->initial_pucch_id - 8)%N_CS];
+      pucch_pdu->second_hop_prb = pucch_pdu->bwp_size - 1 - RB_BWP_offset - ((r_PUCCH - 8)/N_CS);
+      pucch_pdu->initial_cyclic_shift =  initial_pucch_resource[pucch->initial_pucch_id].initial_CS_indexes[(r_PUCCH - 8) % N_CS];
     }
     pucch_pdu->freq_hop_flag = 1;
     pucch_pdu->time_domain_occ_idx = 0;
@@ -1722,22 +1723,7 @@ void nr_ue_configure_pucch(NR_UE_MAC_INST_t *mac,
         pucch_pdu->nr_of_symbols = pucchres->format.choice.format1->nrofSymbols;
         pucch_pdu->start_symbol_index = pucchres->format.choice.format1->startingSymbolIndex;
         pucch_pdu->time_domain_occ_idx = pucchres->format.choice.format1->timeDomainOCC;
-        if (O_SR == 0 || pucch->sr_payload == 0) {  /* only ack is transmitted TS 36.213 9.2.3 UE procedure for reporting HARQ-ACK */
-          if (O_ACK == 1)
-            pucch_pdu->mcs = sequence_cyclic_shift_1_harq_ack_bit[pucch->ack_payload & 0x1];   /* only harq of 1 bit */
-          else
-            pucch_pdu->mcs = sequence_cyclic_shift_2_harq_ack_bits[pucch->ack_payload & 0x3];  /* only harq with 2 bits */
-        }
-        else { /* SR + eventually ack are transmitted TS 36.213 9.2.5.1 UE procedure for multiplexing HARQ-ACK or CSI and SR */
-          if (pucch->sr_payload == 1) {                /* positive scheduling request */
-            if (O_ACK == 1)
-              pucch_pdu->mcs = sequence_cyclic_shift_1_harq_ack_bit_positive_sr[pucch->ack_payload & 0x1];   /* positive SR and harq of 1 bit */
-            else if (O_ACK == 2)
-              pucch_pdu->mcs = sequence_cyclic_shift_2_harq_ack_bits_positive_sr[pucch->ack_payload & 0x3];  /* positive SR and harq with 2 bits */
-            else
-              pucch_pdu->mcs = 0;  /* only positive SR */
-          }
-        }
+        pucch_pdu->mcs = 0;
         break;
       case NR_PUCCH_Resource__format_PR_format2 :
         pucch_pdu->format_type = 2;
@@ -1749,6 +1735,7 @@ void nr_ue_configure_pucch(NR_UE_MAC_INST_t *mac,
         pucch_pdu->prb_size = compute_pucch_prb_size(2,pucchres->format.choice.format2->nrofPRBs,
                                                      O_uci+O_SR,O_CSI,pucch_Config->format2->choice.setup->maxCodeRate,
                                                      2,pucchres->format.choice.format2->nrofSymbols,8);
+        pucch_pdu->mcs = 0;
         break;
       case NR_PUCCH_Resource__format_PR_format3 :
         pucch_pdu->format_type = 3;
@@ -1777,6 +1764,7 @@ void nr_ue_configure_pucch(NR_UE_MAC_INST_t *mac,
         pucch_pdu->prb_size = compute_pucch_prb_size(3,pucchres->format.choice.format3->nrofPRBs,
                                                      O_uci+O_SR,O_CSI,pucch_Config->format3->choice.setup->maxCodeRate,
                                                      2-pucch_pdu->pi_2bpsk,pucchres->format.choice.format3->nrofSymbols-f3_dmrs_symbols,12);
+        pucch_pdu->mcs = 0;
         break;
       case NR_PUCCH_Resource__format_PR_format4 :
         pucch_pdu->format_type = 4;
@@ -2114,8 +2102,8 @@ void select_pucch_resource(NR_UE_MAC_INST_t *mac,
     if (N_CCE_0 == 0) {
       AssertFatal(1==0,"PUCCH No compatible pucch format found : at line %d in function %s of file %s \n", LINE_FILE , __func__, FILE_NAME);
     }
-    int r_PUCCH = ((2 * n_CCE_0)/N_CCE_0) + (2 * delta_PRI);
-    pucch->initial_pucch_id = r_PUCCH;
+    r_PUCCH = ((2 * n_CCE_0)/N_CCE_0) + (2 * delta_PRI);
+    // pucch->initial_pucch_id = r_PUCCH;
     pucch->pucch_resource = NULL;
   }
   else {
