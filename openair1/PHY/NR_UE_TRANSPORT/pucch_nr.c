@@ -290,6 +290,7 @@ void nr_generate_pucch1(PHY_VARS_NR_UE *ue,
     printf("\t [nr_generate_pucch1] entering function nr_group_sequence_hopping with n_hop=%d, nr_slot_tx=%d\n",
            n_hop,nr_slot_tx);
 #endif
+    mcs = pucch_pdu->mcs;
     pucch_GroupHopping_t pucch_GroupHopping = pucch_pdu->group_hop_flag + (pucch_pdu->sequence_hop_flag<<1);
     nr_group_sequence_hopping(pucch_GroupHopping,pucch_pdu->hopping_id,n_hop,nr_slot_tx,&u,&v); // calculating u and v value
     alpha = nr_cyclic_shift_hopping(pucch_pdu->hopping_id,m0,mcs,l,lprime,nr_slot_tx);
