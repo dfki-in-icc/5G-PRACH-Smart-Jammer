@@ -1560,13 +1560,13 @@ void nr_ue_configure_pucch(NR_UE_MAC_INST_t *mac,
 
   LOG_X(NR_MAC,"initial_pucch_id %d, pucch_resource %p\n",pucch->initial_pucch_id,pucch->pucch_resource);
   // configure pucch from Table 9.2.1-1
+  pucch->initial_pucch_id = 
+          mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP.pucch_ConfigCommon->choice.setup->pucch_ResourceCommon;
+
   if (pucch->initial_pucch_id > -1 &&
       pucch->pucch_resource == NULL) {
 
-    pucch->initial_pucch_id = 5;  // temporary modification FIX ME !!
-    pucch_pdu->format_type = 1;   // temporary modification FIX ME !!
-
-    // pucch_pdu->format_type = initial_pucch_resource[pucch->initial_pucch_id].format;
+    pucch_pdu->format_type = initial_pucch_resource[pucch->initial_pucch_id].format;
     pucch_pdu->start_symbol_index = initial_pucch_resource[pucch->initial_pucch_id].startingSymbolIndex;
     pucch_pdu->nr_of_symbols = initial_pucch_resource[pucch->initial_pucch_id].nrofSymbols;
 
@@ -1595,25 +1595,28 @@ void nr_ue_configure_pucch(NR_UE_MAC_INST_t *mac,
     pucch_pdu->freq_hop_flag = 1;
     pucch_pdu->time_domain_occ_idx = 0;
 
-    if (O_SR == 0 || pucch->sr_payload == 0) {  /* only ack is transmitted TS 36.213 9.2.3 UE procedure for reporting HARQ-ACK */
-      if (O_ACK == 1)
-        pucch_pdu->mcs = sequence_cyclic_shift_1_harq_ack_bit[pucch->ack_payload & 0x1];   /* only harq of 1 bit */
-      else
-        pucch_pdu->mcs = sequence_cyclic_shift_2_harq_ack_bits[pucch->ack_payload & 0x3];  /* only harq with 2 bits */
-    }
-    else { /* SR + eventually ack are transmitted TS 36.213 9.2.5.1 UE procedure for multiplexing HARQ-ACK or CSI and SR */
-      if (pucch->sr_payload == 1) {                /* positive scheduling request */
+    if (pucch_pdu->format_type == 1) pucch_pdu->mcs = 0;
+    else {
+      if (O_SR == 0 || pucch->sr_payload == 0) {  /* only ack is transmitted TS 36.213 9.2.3 UE procedure for reporting HARQ-ACK */
         if (O_ACK == 1)
-          pucch_pdu->mcs = sequence_cyclic_shift_1_harq_ack_bit_positive_sr[pucch->ack_payload & 0x1];   /* positive SR and harq of 1 bit */
-        else if (O_ACK == 2)
-          pucch_pdu->mcs = sequence_cyclic_shift_2_harq_ack_bits_positive_sr[pucch->ack_payload & 0x3];  /* positive SR and harq with 2 bits */
+          pucch_pdu->mcs = sequence_cyclic_shift_1_harq_ack_bit[pucch->ack_payload & 0x1];   /* only harq of 1 bit */
         else
-          pucch_pdu->mcs = 0;  /* only positive SR */
+          pucch_pdu->mcs = sequence_cyclic_shift_2_harq_ack_bits[pucch->ack_payload & 0x3];  /* only harq with 2 bits */
+      }
+      else { /* SR + eventually ack are transmitted TS 36.213 9.2.5.1 UE procedure for multiplexing HARQ-ACK or CSI and SR */
+        if (pucch->sr_payload == 1) {                /* positive scheduling request */
+          if (O_ACK == 1)
+            pucch_pdu->mcs = sequence_cyclic_shift_1_harq_ack_bit_positive_sr[pucch->ack_payload & 0x1];   /* positive SR and harq of 1 bit */
+          else if (O_ACK == 2)
+            pucch_pdu->mcs = sequence_cyclic_shift_2_harq_ack_bits_positive_sr[pucch->ack_payload & 0x3];  /* positive SR and harq with 2 bits */
+          else
+            pucch_pdu->mcs = 0;  /* only positive SR */
+        }
       }
     }
 
     // TODO verify if SR can be transmitted in this mode
-    pucch_pdu->n_bit = O_ACK;
+    pucch_pdu->n_bit = O_uci + O_SR;
     pucch_pdu->payload = (pucch->sr_payload << O_ACK) | pucch->ack_payload;
 
   }
