@@ -103,6 +103,11 @@ extern "C"
 #define CONFIG_L1_EMULATOR       "Run in L1 emulated mode (disable PHY layer)\n"
 #define CONFIG_HLP_CONTINUOUS_TX "perform continuous transmission, even in TDD mode (to work around USRP issues)\n"
 #define CONFIG_HLP_STATS_DISABLE "disable globally the stats generation and persistence"
+#define CONFIG_HLP_NTN_TRS       "softmodem params for ntn t-Reassembly timer"
+#define CONFIG_HLP_NTN_TRS_OFFSET  "softmodem params for ntn t-Reassembly timer offset in ms"
+#define CONFIG_HLP_NTN_TRD       "softmodem params for ntn t-Reordering timer"
+#define CONFIG_HLP_NTN_TRD_OFFSET       "softmodem params for ntn t-Reordering timer offset in ms"
+#define CONFIG_HLP_NTN_RTD       "softmodem params for ntn round trip delay ms"
 
 /*-----------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*                                            command line parameters common to eNodeB and UE                                                          */
@@ -134,6 +139,11 @@ extern "C"
 #define NON_STOP            softmodem_params.non_stop
 #define EMULATE_L1          softmodem_params.emulate_l1
 #define CONTINUOUS_TX       softmodem_params.continuous_tx
+#define NTN_TRS             softmodem_params.ntn_trs
+#define NTN_TRS_OFFSET      softmodem_params.ntn_trs_offset
+#define NTN_TRD             softmodem_params.ntn_trd
+#define NTN_TRD_OFFSET      softmodem_params.ntn_trd_offset
+#define NTN_RTD             softmodem_params.ntn_rtd
 
 #define DEFAULT_RFCONFIG_FILE    "/usr/local/etc/syriq/ue.band7.tm1.PRB100.NR40.dat";
 
@@ -176,6 +186,11 @@ extern int usrp_tx_thread;
     {"emulate-l1",           CONFIG_L1_EMULATOR,      PARAMFLAG_BOOL, iptr:&EMULATE_L1,                   defintval:0,           TYPE_INT,    0},                     \
     {"continuous-tx",        CONFIG_HLP_CONTINUOUS_TX,PARAMFLAG_BOOL, iptr:&CONTINUOUS_TX,                defintval:0,           TYPE_INT,    0},                     \
     {"disable-stats",        CONFIG_HLP_STATS_DISABLE, PARAMFLAG_BOOL, iptr:&stats_disabled,               defintval:0,           TYPE_INT,    0},                     \
+    {"ntn-trs",              CONFIG_HLP_NTN_TRS,       0,              u8ptr:&NTN_TRS,                     defintval:15,          TYPE_UINT8,  0},                     \
+    {"ntn-trs-offset",       CONFIG_HLP_NTN_TRS_OFFSET,0,              u16ptr:&NTN_TRS_OFFSET,             defintval:0,           TYPE_UINT16, 0},                     \
+    {"ntn-trd",              CONFIG_HLP_NTN_TRD,       0,              u8ptr:&NTN_TRD,                     defintval:36,          TYPE_UINT8,  0},                     \
+    {"ntn-trd-offset",       CONFIG_HLP_NTN_TRD_OFFSET,0,              u16ptr:&NTN_TRD_OFFSET,             defintval:0,           TYPE_UINT16, 0},                     \
+    {"ntn-rtd",              CONFIG_HLP_NTN_RTD,       0,              u16ptr:&NTN_RTD,                    defintval:0,           TYPE_UINT16, 0},                     \
   }
 
 #define CONFIG_HLP_NSA           "Enable NSA mode \n"
@@ -273,6 +288,11 @@ typedef struct {
   int            non_stop;
   int            emulate_l1;
   int            continuous_tx;
+  uint8_t        ntn_trs;
+  uint16_t       ntn_trs_offset;
+  uint8_t        ntn_trd;
+  uint16_t       ntn_trd_offset;
+  uint16_t       ntn_rtd;
 } softmodem_params_t;
 
 extern uint64_t get_softmodem_optmask(void);

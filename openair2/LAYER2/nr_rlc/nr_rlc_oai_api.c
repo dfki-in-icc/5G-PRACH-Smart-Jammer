@@ -107,7 +107,9 @@ void nr_drb_config(struct NR_RLC_Config *rlc_Config, NR_RLC_Config_PR rlc_config
       *rlc_Config->choice.um_Bi_Directional->ul_UM_RLC.sn_FieldLength = NR_SN_FieldLengthUM_size12;
       rlc_Config->choice.um_Bi_Directional->dl_UM_RLC.sn_FieldLength  = calloc(1, sizeof(*rlc_Config->choice.um_Bi_Directional->dl_UM_RLC.sn_FieldLength));
       *rlc_Config->choice.um_Bi_Directional->dl_UM_RLC.sn_FieldLength = NR_SN_FieldLengthUM_size12;
-      rlc_Config->choice.um_Bi_Directional->dl_UM_RLC.t_Reassembly    = NR_T_Reassembly_ms15;
+     // rlc_Config->choice.um_Bi_Directional->dl_UM_RLC.t_Reassembly    = NR_T_Reassembly_ms15;
+      rlc_Config->choice.um_Bi_Directional->dl_UM_RLC.t_Reassembly    = get_softmodem_params()->ntn_trs; // GETTING ENUM INDEX OF T_REASSEMBLY TIMER FROM THE CL
+
       break;
     case NR_RLC_Config_PR_am:
       // RLC AM Bearer configuration
@@ -890,9 +892,30 @@ static void add_drb_um(int rnti, struct NR_DRB_ToAddMod *s, NR_RLC_BearerConfig_
 
   switch (r->present) {
   case NR_RLC_Config_PR_um_Bi_Directional: {
+    //printf("\n\n\n\n ENB_NAS_USE_TUN %ld enb_flag %d\n\n\n\n",ENB_NAS_USE_TUN, enb_flag);
     struct NR_RLC_Config__um_Bi_Directional *um;
     um = r->choice.um_Bi_Directional;
-    t_reassembly = decode_t_reassembly(um->dl_UM_RLC.t_Reassembly);
+    // FOLLOWING TO BE USED WHEN HARQ IS DISABLED
+    {
+      t_reassembly = decode_t_reassembly(um->dl_UM_RLC.t_Reassembly); // THIS WILL COLLECT THE VALUE FROM ENUM CORRESPONDING
+      // TO THE INDEX PROVIDED FROM CLP
+      t_reassembly = t_reassembly + get_softmodem_params()->ntn_trs_offset; // THIS WILL ADD THE OFFSET VALUE PROVIDED FROM CLP
+    }
+
+    // FOLLOWING TO BE USED WHEN HARQ IS ENABLED DO AS 7.2.2.1 FROM 38.821
+    /*
+    {
+      if(ENB_NAS_USE_TUN) // IF THE FUNCTION IS CALLED BY GNB
+      {
+        t_reassembly = t_reassembly + (get_softmodem_params()->ntn_rtd)*NR_MAX_DLSCH_HARQ_PROCESSES;
+      }
+      else // IF THE FUNCTION IS CALLED BY UE
+      {
+        t_reassembly = t_reassembly + (get_softmodem_params()->ntn_rtd)*NR_MAX_ULSCH_HARQ_PROCESSES;
+      }
+    }
+    */
+
     if (*um->dl_UM_RLC.sn_FieldLength != *um->ul_UM_RLC.sn_FieldLength) {
       LOG_E(RLC, "%s:%d:%s: fatal\n", __FILE__, __LINE__, __FUNCTION__);
       exit(1);
@@ -961,6 +984,8 @@ rlc_op_status_t nr_rrc_rlc_config_asn1_req (const protocol_ctxt_t   * const ctxt
   int rnti = ctxt_pP->rnti;
   int i;
   int j;
+  //printf("\n\n\n\n ctxt_pP->enb_flag in gnb is %d \n\n\n\n", ctxt_pP->enb_flag);
+  //printf("\n\n\n\n ENB_NAS_USE_TUN %ld \n\n\n\n",ENB_NAS_USE_TUN);
 
   if (/*ctxt_pP->enb_flag != 1 ||*/ ctxt_pP->module_id != 0 /*||
       ctxt_pP->instance != 0 || ctxt_pP->eNB_index != 0 ||
