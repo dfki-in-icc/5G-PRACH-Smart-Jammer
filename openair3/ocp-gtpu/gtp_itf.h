@@ -20,6 +20,7 @@ typedef bool (*gtpCallback)(protocol_ctxt_t  *ctxt_pP,
                             const uint32_t *destinationL2Id);
 
 typedef bool (*gtpCallbackSDAP)(protocol_ctxt_t  *ctxt_pP,
+                                const ue_id_t        ue_id,
                                 const srb_flag_t     srb_flagP,
                                 const rb_id_t        rb_idP,
                                 const mui_t          muiP,
