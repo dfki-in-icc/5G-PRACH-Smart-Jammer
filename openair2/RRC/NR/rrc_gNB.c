@@ -3869,7 +3869,28 @@ int rrc_gNB_process_e1_setup_req(e1ap_setup_req_t *req, instance_t instance) {
 }
 
 int rrc_gNB_process_e1_bearer_context_setup_req(e1ap_bearer_setup_req_t *req, instance_t instance) {
-  return -1;
+
+  gtpv1u_gnb_create_tunnel_req_t  create_tunnel_req={0};
+  gtpv1u_gnb_create_tunnel_resp_t create_tunnel_resp={0};
+
+  for (int i=0; i < req->numPDUSessions; i++) {
+    pdu_session_to_setup_t *pdu = req->pduSession[i];
+    create_tunnel_req.pdusession_id[i] = pdu->sessionId;
+    create_tunnel_req.incoming_rb_id[i] = pdu->DRBnGRanList[0].id; // taking only the first DRB. TODO:change this
+    memcpy(&create_tunnel_req.dst_addr[i].buffer,
+           pdu->tlAddress,
+           sizeof(uint8_t)*20);
+    create_tunnel_req.outgoing_teid = pdu->teID;
+  }
+  create_tunnel_req.num_tunnels = req->numPDUSessions;
+  create_tunnel_req.rnti        = (req->gNB_cu_cp_ue_id & 0xFFFF);
+
+  ret = gtpv1u_create_ngu_tunnel(
+                                 instance,
+                                 &create_tunnel_req,
+                                 &create_tunnel_resp);
+
+  return 0;
 }
 
 ///---------------------------------------------------------------------------------------------------------------///
