@@ -45,6 +45,7 @@ import cls_containerize         #class Containerize for all container-based oper
 import cls_static_code_analysis #class for static code analysis
 import cls_ci_ueinfra			#class defining the multi Ue infrastrucure
 import cls_physim1          #class PhySim for physical simulators deploy and run
+import cls_cluster              # class for building/deploying on cluster
 
 import sshconnection 
 import epc
@@ -522,6 +523,7 @@ HTML = cls_oai_html.HTMLManagement()
 CONTAINERS = cls_containerize.Containerize()
 SCA = cls_static_code_analysis.StaticCodeAnalysis()
 PHYSIM = cls_physim1.PhySim()
+CLUSTER = cls_cluster.Cluster()
 
 ldpc=cls_physim.PhySim()    #create an instance for LDPC test using GPU or CPU build
 
@@ -531,7 +533,7 @@ ldpc=cls_physim.PhySim()    #create an instance for LDPC test using GPU or CPU b
 #-----------------------------------------------------------
 
 import args_parse
-py_param_file_present, py_params, mode = args_parse.ArgsParse(sys.argv,CiTestObj,RAN,HTML,EPC,ldpc,CONTAINERS,HELP,SCA,PHYSIM)
+py_param_file_present, py_params, mode = args_parse.ArgsParse(sys.argv,CiTestObj,RAN,HTML,EPC,ldpc,CONTAINERS,HELP,SCA,PHYSIM,CLUSTER)
 
 
 
@@ -913,6 +915,8 @@ elif re.match('^TesteNB$', mode, re.IGNORECASE) or re.match('^TestUE$', mode, re
 						RAN.prematureExit = True
 				elif action == 'Run_PhySim':
 					HTML=ldpc.Run_PhySim(HTML,CONST,id)
+				elif action == 'Cluster_Build_gNB':
+					CLUSTER.ClusterBuildgNB(HTML)
 				elif action == 'Build_Image':
 					CONTAINERS.BuildImage(HTML)
 				elif action == 'Copy_Image_to_Test':
