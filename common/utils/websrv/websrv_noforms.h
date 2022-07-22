@@ -3572,12 +3572,12 @@ FL_EXPORT FL_OBJECT * fl_create_generic_canvas( int          canvas_class,
                                                 FL_Coord     h,
                                                 const char * label ){return NULL;};
 
-FL_EXPORT FL_OBJECT * fl_add_canvas( int          type,
+extern FL_OBJECT * fl_add_canvas( int          type,
                                      FL_Coord     x,
                                      FL_Coord     y,
                                      FL_Coord     w,
                                      FL_Coord     h,
-                                     const char * label ){return label;};
+                                     const char * label );
 
 FL_EXPORT FL_OBJECT * fl_create_canvas( int          type,
                                         FL_Coord     x,
@@ -6086,20 +6086,20 @@ FL_EXPORT FL_OBJECT * fl_create_xyplot( int          t,
                                         FL_Coord     h,
                                         const char * label ){return NULL;};
 
-FL_EXPORT FL_OBJECT * fl_add_xyplot( int          t,
+extern FL_OBJECT * fl_add_xyplot( int          t,
                                      FL_Coord     x,
                                      FL_Coord     y,
                                      FL_Coord     w,
                                      FL_Coord     h,
-                                     const char * label ){return label;};
+                                     const char * label );
 
-FL_EXPORT void fl_set_xyplot_data( FL_OBJECT  * ob,
+void fl_set_xyplot_data( FL_OBJECT  * ob,
                                    float      * x,
                                    float      * y,
                                    int          n,
                                    const char * title,
                                    const char * xlabel,
-                                   const char * ylabel ){};
+                                   const char * ylabel );
 
 FL_EXPORT void fl_set_xyplot_data_double( FL_OBJECT  * ob,
                                           double     * x,
@@ -6136,12 +6136,12 @@ FL_EXPORT void fl_delete_xyplot_text( FL_OBJECT  * ob,
 FL_EXPORT int fl_set_xyplot_maxoverlays( FL_OBJECT * ob,
                                          int         maxover ){return 0;};
 
-FL_EXPORT void fl_add_xyplot_overlay( FL_OBJECT * ob,
+void fl_add_xyplot_overlay( FL_OBJECT * ob,
                                       int         id,
                                       float     * x,
                                       float     * y,
                                       int         n,
-                                      FL_COLOR    col ){};
+                                      FL_COLOR    col );
 
 FL_EXPORT int fl_add_xyplot_overlay_file( FL_OBJECT  * ob,
                                           int          id,
@@ -6182,16 +6182,16 @@ FL_EXPORT void fl_get_xyplot( FL_OBJECT * ob,
 
 FL_EXPORT int fl_get_xyplot_data_size( FL_OBJECT * obj ){return 0;};
 
-FL_EXPORT void fl_get_xyplot_data( FL_OBJECT * ob,
+void fl_get_xyplot_data( FL_OBJECT * ob,
                                    float     * x,
                                    float     * y,
-                                   int       * n ){};
+                                   int       * n );
 
-FL_EXPORT void fl_get_xyplot_data_pointer( FL_OBJECT  * ob,
+void fl_get_xyplot_data_pointer( FL_OBJECT  * ob,
                                            int          id,
                                            float     ** x,
                                            float     ** y,
-                                           int        *n ){*x=NULL; *y=NULL;*n=0;};
+                                           int        *n );
 
 FL_EXPORT void fl_get_xyplot_overlay_data( FL_OBJECT * ob,
                                            int         id,
@@ -6389,6 +6389,11 @@ FL_EXPORT Display * fl_display_( void ){};
 #define FL_FALSE        0
 #define FL_TRUE         ( ! FL_FALSE )
 #endif
+
+/*----------------------------------------------------------------------*/
+/* new functions for interfacing with webserver                          */
+
+extern int websrv_nf_getdata(FL_OBJECT *graph, int layer, websrv_scopedata_msg_t **msg) ;
 
 #if defined __cplusplus
 }

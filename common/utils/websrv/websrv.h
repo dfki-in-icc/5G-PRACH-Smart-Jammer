@@ -50,6 +50,7 @@ typedef struct {
 /* global variables used by the web server                                        */
 typedef struct {
 	 struct _u_instance instance;         // ulfius (web server) instance
+	 struct _websocket_manager * wm;      // web socket instance
      unsigned int dbglvl;                 // debug level of the server
      int priority;                        // server running priority
      unsigned int   listenport;           // ip port the telnet server is listening on
@@ -68,19 +69,31 @@ typedef struct {
 	 unsigned char msgtype;                   // message type
 	 unsigned char hdr_unused[6];             // 6 unused char
      char    data[1408];                      // 64*22
+     
 } websrv_msg_t;
+#define MAX_FLOAT_WEBSOCKMSG   200000//180
+typedef struct {
+	 unsigned char src;                          // message source
+	 unsigned char msgtype;                      // message type
+	 unsigned char msgseg;                       // message segment number
+	 unsigned char hdr_unused[5];                // 6 unused char
+     float         data_x[MAX_FLOAT_WEBSOCKMSG]; // 180*(32 bits)
+     float         data_y[MAX_FLOAT_WEBSOCKMSG]; // 180*(32 bits)
+} websrv_scopedata_msg_t;
 #define WEBSOCK_HEADSIZE (offsetof(websrv_msg_t, data))
 
-#define SCOPE_STATUSMASK_UNKNOWN         0        // websocket initialized, no scope request received
-#define SCOPE_STATUSMASK_AVAILABLE       1        // scope can be started (available in exec and not started with other if */
-#define SCOPE_STATUSMASK_STARTED         2        // scope running
+#define SCOPE_STATUSMASK_UNKNOWN         0          // websocket initialized, no scope request received
+#define SCOPE_STATUSMASK_AVAILABLE       1          // scope can be started (available in exec and not started with other if */
+#define SCOPE_STATUSMASK_STARTED         2          // scope running
 #define SCOPE_STATUSMASK_DISABLED        (1LL<<63)  // scope disabled (running with xform interface or not implemented in exec)
 
-
-#define SCOPEMSG_TYPE_STATUSUPD          1    // 
-#define SCOPEMSG_TYPE_REFRATE            2    //
-#define SCOPEMSG_TYPE_TIME               3    //
-#define SCOPEMSG_TYPE_DEFINEWINDOW       20   //
+/* values for websocket message type */
+/* websocket softscope message: */
+#define SCOPEMSG_TYPE_STATUSUPD          1    // scope status: available, started....
+#define SCOPEMSG_TYPE_REFRATE            2    // scope refresh delay
+#define SCOPEMSG_TYPE_TIME               3    // time
+#define SCOPEMSG_TYPE_DATA               10   // graph data
+#define SCOPEMSG_TYPE_DEFINEWINDOW       20   // scope window definition 
 typedef struct {
 	 uint64_t statusmask;                     // 
 	 uint32_t refrate;                        // in ms
@@ -90,14 +103,8 @@ typedef struct {
 } websrv_scope_params_t;
 
 
-typedef struct {
-  char graphid;
-  char graphtitle[64];
-  int sigid;
-} websrv_scopegraph_t;
-
 extern int websrv_init_websocket(websrv_params_t *websrvparams,char *module); 
 extern void websrv_dump_request(char *label, const struct _u_request *request);
 extern int websrv_string_response(char *astring, struct _u_response * response, int httpstatus) ;
-extern void  websrv_scope_sendIQ(websrv_scopegraph_t *graph,float *I,float*Q,int sz);
+extern void  websrv_scope_sendIQ(int n, websrv_scopedata_msg_t *msg);
 #endif

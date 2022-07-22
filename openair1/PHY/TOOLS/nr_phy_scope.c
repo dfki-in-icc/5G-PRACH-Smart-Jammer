@@ -30,10 +30,10 @@
 #include <forms.h>
 #  define STATICFORXSCOPE static
 #else
-#include "common/utils/websrv/websrv_noforms.h"
-#  define STATICFORXSCOPE
 #  include <ulfius.h>
 #  include "common/utils/websrv/websrv.h"
+#  include "common/utils/websrv/websrv_noforms.h"
+#  define STATICFORXSCOPE
 #endif
 #include "nr_phy_scope.h"
 #include "phy_scope.h"
@@ -141,9 +141,7 @@ static void oai_xygraph_getbuff(OAIgraph_t *graph, float **x, float **y, int len
   float *old_x;
   float *old_y;
   int old_len=-1;
-#if WEBSRVSCOPE
-  return;
-#endif
+
   if (graph->iteration >1)
     fl_get_xyplot_data_pointer(graph->graph, layer, &old_x, &old_y, &old_len);
 
@@ -171,7 +169,13 @@ static void oai_xygraph_getbuff(OAIgraph_t *graph, float **x, float **y, int len
 
 static void oai_xygraph(OAIgraph_t *graph, float *x, float *y, int len, int layer, bool NoAutoScale) {
 	
-
+#if WEBSRVSCOPE
+//      wsc.sigid=;
+//      snprintf(wsc.graphtitle,sizeof(wsc.graphtitle),graph->text->label); 
+  websrv_scopedata_msg_t *msg;
+  int n=websrv_nf_getdata(graph->graph, layer, &msg);   
+  websrv_scope_sendIQ(n,msg);
+#else
   fl_redraw_object(graph->graph);
 
   if ( NoAutoScale && graph->iteration%NoAutoScale == 0) {
@@ -188,11 +192,7 @@ static void oai_xygraph(OAIgraph_t *graph, float *x, float *y, int len, int laye
   }
 
   graph->iteration++;
-#if WEBSRVSCOPE
-      websrv_scopegraph_t wsc;
-//      wsc.sigid=;
-//      snprintf(wsc.graphtitle,sizeof(wsc.graphtitle),graph->text->label);      
-      websrv_scope_sendIQ(&wsc,x,y,len);
+
 #endif
 }
 
@@ -264,7 +264,6 @@ static void genericPowerPerAntena(OAIgraph_t  *graph, const int nb_ant, const sc
       for (int i=0; i<len; i++) {
         values[i] = SquaredNorm(data[ant][i]);
       }
-
       oai_xygraph(graph,time,values, len, ant, 10);
     }
   }
