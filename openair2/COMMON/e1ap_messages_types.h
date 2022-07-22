@@ -112,6 +112,8 @@ typedef struct DRB_nGRAN_to_setup_s {
   long sDAP_Header_DL;
   long pDCP_SN_Size_UL;
   long pDCP_SN_Size_DL;
+  long discardTimer;
+  long reorderingTimer;
   long rLC_Mode;
   int numCellGroups;
   cell_group_t cellGroupList[E1AP_MAX_NUM_CELL_GROUPS];
@@ -134,7 +136,9 @@ typedef struct pdu_session_to_setup_s {
 typedef struct e1ap_bearer_setup_req_s {
   uint64_t gNB_cu_cp_ue_id;
   uint64_t cipheringAlgorithm;
+  uint64_t integrityProtectionAlgorithm;
   char     encryptionKey[128];
+  char     integrityProtectionKey[128];
   long     ueDlAggMaxBitRate;
   PLMN_ID_t servingPLMNid;
   long activityNotificationLevel;

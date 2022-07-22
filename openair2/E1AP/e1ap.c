@@ -538,6 +538,12 @@ int e1apCUCP_send_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
   ieC2->value.choice.SecurityInformation.securityAlgorithm.cipheringAlgorithm = bearerCxt->cipheringAlgorithm;
   OCTET_STRING_fromBuf(&ieC2->value.choice.SecurityInformation.uPSecuritykey.encryptionKey,
                        bearerCxt->encryptionKey, strlen(bearerCxt->encryptionKey));
+
+  ieC2->value.choice.SecurityInformation.securityAlgorithm.integrityProtectionAlgorithm = (E1AP_IntegrityProtectionAlgorithm_t *) calloc(1, sizeof(E1AP_IntegrityProtectionAlgorithm_t));
+  *ieC2->value.choice.SecurityInformation.securityAlgorithm.integrityProtectionAlgorithm = bearerCxt->integrityProtectionAlgorithm;
+  ieC2->value.choice.SecurityInformation.uPSecuritykey.integrityProtectionKey = (E1AP_IntegrityProtectionKey_t *) calloc(1, sizeof(E1AP_IntegrityProtectionKey_t));
+  OCTET_STRING_fromBuf(ieC2->value.choice.SecurityInformation.uPSecuritykey.integrityProtectionKey,
+                       bearerCxt->integrityProtectionKey, strlen(bearerCxt->integrityProtectionKey));
   /* mandatory */
   /* c3. UE DL Aggregate Maximum Bit Rate */
   asn1cSequenceAdd(out->protocolIEs.list, E1AP_BearerContextSetupRequestIEs_t, ieC3);
@@ -598,6 +604,10 @@ int e1apCUCP_send_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
 
       ieC6_1_1->pDCP_Configuration.pDCP_SN_Size_UL = j->pDCP_SN_Size_UL;
       ieC6_1_1->pDCP_Configuration.pDCP_SN_Size_DL = j->pDCP_SN_Size_DL;
+      asn1cCallocOne(ieC6_1_1->pDCP_Configuration.discardTimer, j->discardTimer);
+      E1AP_T_ReorderingTimer_t *roTimer = calloc(1, sizeof(E1AP_T_ReorderingTimer_t));
+      ieC6_1_1->pDCP_Configuration.t_ReorderingTimer = roTimer;
+      roTimer->t_Reordering = j->reorderingTimer;
       ieC6_1_1->pDCP_Configuration.rLC_Mode        = j->rLC_Mode;
 
       for (cell_group_t *k=j->cellGroupList; k < j->cellGroupList+j->numCellGroups; k++) {
@@ -810,6 +820,14 @@ int e1apCUUP_handle_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
         memcpy(bearerCxt->encryptionKey,
                ie->value.choice.SecurityInformation.uPSecuritykey.encryptionKey.buf,
                ie->value.choice.SecurityInformation.uPSecuritykey.encryptionKey.size);
+        if (ie->value.choice.SecurityInformation.securityAlgorithm.integrityProtectionAlgorithm) {
+          bearerCxt->integrityProtectionAlgorithm = *ie->value.choice.SecurityInformation.securityAlgorithm.integrityProtectionAlgorithm;
+        }
+        if (ie->value.choice.SecurityInformation.uPSecuritykey.integrityProtectionKey) {
+          memcpy(bearerCxt->integrityProtectionKey,
+                 ie->value.choice.SecurityInformation.uPSecuritykey.integrityProtectionKey->buf,
+                 ie->value.choice.SecurityInformation.uPSecuritykey.integrityProtectionKey->size);
+        }
         break;
 
       case E1AP_ProtocolIE_ID_id_UEDLAggregateMaximumBitRate:

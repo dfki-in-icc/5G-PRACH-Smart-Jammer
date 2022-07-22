@@ -61,6 +61,7 @@
 #include <E1AP_GTPTunnel.h>
 #include <E1AP_Non-Dynamic5QIDescriptor.h>
 #include <E1AP_Dynamic5QIDescriptor.h>
+#include <E1AP_T-ReorderingTimer.h>
 #endif
 
 

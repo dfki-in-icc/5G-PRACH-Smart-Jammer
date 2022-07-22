@@ -997,7 +997,9 @@ rrc_gNB_process_NGAP_PDUSESSION_SETUP_REQ(
     
     bearer_req->gNB_cu_cp_ue_id = gNB_ue_ngap_id;
     bearer_req->cipheringAlgorithm = ue_context_p->ue_context.ciphering_algorithm;
-    memcpy(bearer_req->encryptionKey, ue_context_p->ue_context.kgnb, 128);
+    memcpy(bearer_req->encryptionKey, ue_context_p->ue_context.kgnb, strlen(ue_context_p->ue_context.kgnb));
+    bearer_req->integrityProtectionAlgorithm = ue_context_pP->ue_context.integrity_algorithm;
+    memcpy(bearer_req->integrityProtectionKey, ue_context_pP->ue_context.kgnb, strlen(ue_context_p->ue_context.kgnb));
     bearer_req->ueDlAggMaxBitRate = msg->ueAggMaxBitRateDownlink;
     
     bearer_req->numPDUSessions = msg->nb_pdusessions_tosetup;
@@ -1006,8 +1008,12 @@ rrc_gNB_process_NGAP_PDUSESSION_SETUP_REQ(
       pdu->sessionId   = msg->pdusession_setup_params[i].pdusession_id;
       pdu->sessionType = msg->pdusession_setup_params[i].upf_addr.pdu_session_type;
       pdu->sst         = msg->allowed_nssai[i].sST;
-      pdu->integrityProtectionIndication       = 2; //E1AP_IntegrityProtectionIndication_not_needed; // Preferred. TODO: Remove hardcoding
-      pdu->confidentialityProtectionIndication = 2; //E1AP_ConfidentialityProtectionIndication_not_needed; // Preferred. TODO: Remove hardcoding
+      if (rrc->security.do_drb_integrity) {
+        pdu->integrityProtectionIndication = E1AP_IntegrityProtectionIndication_required;
+      }
+      if (rrc->security.do_drb_ciphering) {
+        pdu->confidentialityProtectionIndication = E1AP_ConfidentialityProtectionIndication_required;
+      }
       pdu->teId                                = msg->pdusession_setup_params[i].gtp_teid;
       memcpy(&pdu->tlAddress,
              msg->pdusession_setup_params[i].upf_addr.buffer,
@@ -1024,6 +1030,9 @@ rrc_gNB_process_NGAP_PDUSESSION_SETUP_REQ(
         
         drb->pDCP_SN_Size_UL = E1AP_PDCP_SN_Size_s_18;
         drb->pDCP_SN_Size_DL = E1AP_PDCP_SN_Size_s_18;
+
+        drb->discardTimer = E1AP_DiscardTimer_infinity;
+        drb->reorderingTimer = E1AP_T_Reordering_ms0;
         
         drb->rLC_Mode = E1AP_RLC_Mode_rlc_am;
         

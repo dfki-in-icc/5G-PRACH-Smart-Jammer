@@ -3868,11 +3868,80 @@ int rrc_gNB_process_e1_setup_req(e1ap_setup_req_t *req, instance_t instance) {
   return 0;
 }
 
+void fill_DRB_configList(NR_DRB_ToAddModList_t *DRB_configList, pdu_session_to_setup_t *pdu) {
+
+  for (int i=0; i < pdu->numDRB2Setup; i++) {
+    DRB_nGRAN_to_setup_t *drb = pdu->DRBnGRanList + i;
+    asn1cSequenceAdd(DRB_configList->list, NR_DRB_ToAddMod_t, ie);
+    ie->drb_Identity = drb->id;
+    ie->cnAssociation = CALLOC(1, sizeof(*ie->cnAssociation));
+    ie->cnAssociation->present = NR_DRB_ToAddMod__cnAssociation_PR_sdap_Config;
+
+    // sdap_Config
+    NR_SDAP_Config_t *sdap_config = ie->cnAssociation->choice.sdap_config;
+    sdap_config = CALLOC(1, sizeof(*sdap_config));
+    memset(sdap_config, 0, sizeof(*sdap_config));
+    sdap_config->pdu_Session = pdu->sessionId;
+    sdap_config->sdap_HeaderDL = drb->sDAP_Header_DL;
+    sdap_config->sdap_HeaderUL = drb->sDAP_Header_UL;
+    sdap_config->defaultDRB = drb->defaultDRB;
+
+    sdap_config->mappedQoS_FlowsToAdd = calloc(1, sizeof(struct NR_SDAP_Config__mappedQoS_FlowsToAdd));
+    memset(sdap_config->mappedQoS_FlowsToAdd, 0, sizeof(struct NR_SDAP_Config__mappedQoS_FlowsToAdd));
+
+    for (int j=0; j < numQosFlow2Setup; j++) {
+      NR_QFI_t *qfi = calloc(1, sizeof(NR_QFI_t));
+      *qfi = drb->qosFlows[j].fiveQI;
+      ASN_SEQUENCE_ADD(&sdap_config->mappedQoS_FlowsToAdd->list, qfi);
+    }
+    sdap_config->mappedQoS_FlowsToRelease = NULL;
+
+    // pdcp_Config
+    ie->reestablishPDCP = NULL;
+    ie->recoverPDCP = NULL;
+    NR_PDCP_Config_t *pdcp_config = ie->pdcp_Config;
+    pdcp_config = calloc(1, sizeof(*pdcp_config));
+    memset(pdcp_config, 0, sizeof(*pdcp_config));
+    pdcp_config->drb = calloc(1,sizeof(*pdcp_config->drb));
+    pdcp_config->drb->discardTimer = calloc(1, sizeof(*pdcp_config->drb->discardTimer));
+    *pdcp_config->drb->discardTimer = drb->discardTimer;
+    pdcp_config->drb->pdcp_SN_SizeUL = calloc(1, sizeof(*pdcp_config->drb->pdcp_SN_SizeUL));
+    *pdcp_config->drb->pdcp_SN_SizeUL = drb->pDCP_SN_Size_UL;
+    pdcp_config->drb->pdcp_SN_SizeDL = calloc(1, sizeof(*pdcp_config->drb->pdcp_SN_SizeDL));
+    *pdcp_config->drb->pdcp_SN_SizeDL = drb->pDCP_SN_Size_DL;
+    pdcp_config->drb->headerCompression.present = NR_PDCP_Config__drb__headerCompression_PR_notUsed;
+    pdcp_config->drb->headerCompression.choice.notUsed = 0;
+
+    pdcp_config->drb->integrityProtection = NULL;
+    pdcp_config->drb->statusReportRequired = NULL;
+    pdcp_config->drb->outOfOrderDelivery = NULL;
+    pdcp_config->moreThanOneRLC = NULL;
+
+    pdcp_config->t_Reordering = calloc(1, sizeof(*drb->pdcp_config->t_Reordering));
+    *pdcp_config->t_Reordering = drb->reorderingTimer;
+    pdcp_config->ext1 = NULL;
+
+    if (drb->integrityProtectionIndication == 0 || // Required
+        drb->integrityProtectionIndication == 1) { // Preferred
+      pdcp_config->drb->integrityProtection = calloc(1, sizeof(*pdcp_config->drb->integrityProtection));
+      *pdcp_config->drb->integrityProtection = NR_PDCP_Config__drb__integrityProtection_enabled;
+    }
+
+    if (drb->confidentialityProtectionIndication == 0 || // Required
+        drb->confidentialityProtectionIndication == 1) { // Preferred
+      pdcp_config->ext1 = calloc(1, sizeof(*pdcp_config->ext1));
+      pdcp_config->ext1->cipheringDisabled = calloc(1, sizeof(*pdcp_config->ext1->cipheringDisabled));
+      *pdcp_config->ext1->cipheringDisabled = NR_PDCP_Config__ext1__cipheringDisabled_true;
+    }
+  }
+}
+
 int rrc_gNB_process_e1_bearer_context_setup_req(e1ap_bearer_setup_req_t *req, instance_t instance) {
 
   gtpv1u_gnb_create_tunnel_req_t  create_tunnel_req={0};
   gtpv1u_gnb_create_tunnel_resp_t create_tunnel_resp={0};
 
+  NR_DRB_ToAddModList_t *DRB_configList;
   for (int i=0; i < req->numPDUSessions; i++) {
     pdu_session_to_setup_t *pdu = req->pduSession[i];
     create_tunnel_req.pdusession_id[i] = pdu->sessionId;
@@ -3881,6 +3950,7 @@ int rrc_gNB_process_e1_bearer_context_setup_req(e1ap_bearer_setup_req_t *req, in
            pdu->tlAddress,
            sizeof(uint8_t)*20);
     create_tunnel_req.outgoing_teid = pdu->teID;
+    fill_DRB_configList(DRB_configList, pdu);
   }
   create_tunnel_req.num_tunnels = req->numPDUSessions;
   create_tunnel_req.rnti        = (req->gNB_cu_cp_ue_id & 0xFFFF);
@@ -3889,6 +3959,17 @@ int rrc_gNB_process_e1_bearer_context_setup_req(e1ap_bearer_setup_req_t *req, in
                                  instance,
                                  &create_tunnel_req,
                                  &create_tunnel_resp);
+
+  uint8_t *kRRCenc = NULL;
+  uint8_t *kRRCint = NULL;
+
+  nr_derive_key_rrc_enc(cipheringAlgorithm,
+                        encryptionKey,
+                        &kRRCenc);
+
+  nr_derive_key_rrc_int(integrityProtectionAlgorithm,
+                        integrityProtectionKey,
+                        &kRRCint);
 
   return 0;
 }
