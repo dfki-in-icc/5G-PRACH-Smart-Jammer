@@ -120,11 +120,13 @@ void init_mpdcch5ss1tab_normal_regular_subframe_evenNRBDL(PHY_VARS_eNB *eNB) {
 }
 
 // this table is the allocation of modulated MPDCCH format 5 symbols to REs, antenna ports 107,108
+// assuming TM1 (10 REs in symbols with CS-RS)
 // start symbol is symbol 2 and L'=24 => all 6 PRBs in the set
-// 8 symbols without DMRS = 8*12*6 REs = 576 REs
-// 4 symbols with DMRS (3 REs stolen per symbol = 4*9*6 REs = 216 REs
-// Total = 576+216 = 792 REs = 1584 bits
-static uint16_t mpdcch5ss2tab[792];
+// 5 symbols (2,3,8,9,10) without DMRS or CS-RS = 5*12*6 REs = 360 REs
+// 4 symbols (5,6,12,13) with DMRS (6 REs stolen per symbol for 2 antenna ports) = 4*6*6 REs = 144 REs
+// 3 symbols (4,7,11) with CS-RS (2 REs stolen per symbol) = 3*10*6 REs = 180 REs
+// Total = 360+144+180 = 684 REs =  1368 bits
+static uint16_t mpdcch5ss2tab[684];
 
 void init_mpdcch5ss2tab_normal_regular_subframe_evenNRBDL(PHY_VARS_eNB *eNB) {
   int             l, k, kmod, re=0;
@@ -151,33 +153,42 @@ void init_mpdcch5ss2tab_normal_regular_subframe_evenNRBDL(PHY_VARS_eNB *eNB) {
     }
   }
 
-  AssertFatal(re == 684, "RE count not equal to 684\n");
+  AssertFatal(re == 684, "MDPCCH 5 start symbol 2, RE count not equal to 684\n");
 }
 
 // this table is the allocation of modulated MPDCCH format 5 symbols to REs, antenna ports 107,108
+// assuming TM1 (10 REs in symbols with CS-RS)
 // start symbol is symbol 3 and L'=24 => all 6 PRBs in the set
-// 7 symbols without DMRS = 7*12*6 REs = 504 REs
-// 4 symbols with DMRS (3 REs stolen per symbol = 4*9*6 REs = 216 REs
-// Total = 504+216 = 720 REs = 1440 bits
-static uint16_t mpdcch5ss3tab[720];
+// 4 symbols (3,8,9,10) without DMRS or CS-RS = 4*12*6 REs = 288 REs
+// 4 symbols (5,6,12,13) with DMRS (6 REs stolen per symbol for 2 antenna ports) = 4*6*6 REs = 144 REs
+// 3 symbols (4,7,11) with CS-RS (2 REs stolen per symbol) = 3*10*6 REs = 180 REs
+// Total = 288+144+180 = 612 REs =  1224 bits
+static uint16_t mpdcch5ss3tab[612];
 void init_mpdcch5ss3tab_normal_regular_subframe_evenNRBDL(PHY_VARS_eNB *eNB) {
   int             l, k, kmod, re=0;
+  int nushift = eNB->frame_parms.Nid_cell % 6;
+  int nushiftp3 = (eNB->frame_parms.Nid_cell+3) % 6;
   LOG_D(PHY, "Inititalizing mpdcch5ss3tab for normal prefix, normal prefix, no PSS/SSS/PBCH, even N_RB_DL\n");
 
   for (l = 3; l < 14; l++) {
     for (k = 0; k < 72; k++) {
       kmod = k % 12;
-
-      if (((l != 5) && (l != 6) && (l != 12) && (l != 13)) || (kmod == 2) || (kmod == 3) || (kmod == 4) || (kmod == 7) || (kmod == 8) || (kmod == 9)) {
-        mpdcch5ss3tab[re] = (l * eNB->frame_parms.ofdm_symbol_size) + k;
+      // for symbols with CS-RS, skip them, there are no MPDCCH DMRS here
+      if ((((l == 4)||(l==11)) && (kmod != nushiftp3) && (kmod != (nushiftp3+6))) ||
+          ((l == 7) && (kmod != nushift) &&(kmod != (nushift+6)))) {  // CS RS
+        mpdcch5ss2tab[re] = (l * eNB->frame_parms.ofdm_symbol_size) + k;
         re++;
-      } else if ((kmod == 0) || (kmod == 5) || (kmod == 10)) {
-        mpdcch5ss3tab[re++] = (l * eNB->frame_parms.ofdm_symbol_size) + k;
+      }
+      // for symbols with CS-RS
+      if (((l!=4)&&(l!=7)&&(l!=11)) &&
+          (((l != 5) && (l != 6) && (l != 12) && (l != 13)) || (kmod == 2) || (kmod == 3) || (kmod == 4) || (kmod == 7) || (kmod == 8) || (kmod == 9))) {
+        mpdcch5ss2tab[re] = (l * eNB->frame_parms.ofdm_symbol_size) + k;
+        re++;
       }
     }
   }
 
-  AssertFatal(re == 720, "RE count not equal to 792\n");
+  AssertFatal(re == 612, "MPDDCH 5, start symbol 3 RE count not equal to 612\n");
 }
 
 // this table is the allocation of modulated MPDCCH format 3 symbols to REs, antenna ports 107,108
