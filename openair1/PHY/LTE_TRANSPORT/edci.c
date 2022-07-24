@@ -354,13 +354,17 @@ void generate_mdci_top(PHY_VARS_eNB *eNB, int frame, int subframe, int16_t amp, 
         break;
     }
 
-    int             re_offset = fp->first_carrier_offset + (12 * nb_i0) + (mdci->narrowband * 12 * 6);
-
+    int re_offset = fp->first_carrier_offset + (12 * nb_i0) + (mdci->narrowband * 12 * 6);
     if (re_offset > fp->ofdm_symbol_size)
       re_offset -= (fp->ofdm_symbol_size - 1);
+    // this is the offseted index for part of narrowand on the positive side of DC
+    // it is only used is the narrowband straddles the DC carrier
+    int re_offset2 = re_offset+1-fp->ofdm_symbol_size; 
 
     int32_t        *txF = &txdataF[0][symbol_offset+re_offset];
+    int32_t        *txF2 = &txdataF[0][symbol_offset+re_offset2];
     int32_t         yIQ;
+    int re_pos;
 
     for (i = 0; i < (coded_bits >> 1); i++) {
       // QPSK modulation to yIQ
@@ -368,7 +372,10 @@ void generate_mdci_top(PHY_VARS_eNB *eNB, int frame, int subframe, int16_t amp, 
       e_ptr++;
       ((int16_t *) & yIQ)[1] = (*e_ptr == 1) ? -gain_lin_QPSK : gain_lin_QPSK;
       e_ptr++;
-      txF[mpdcchtab[i]] = yIQ;
+      // check if current RE has crossed DC
+      re_pos = (mpdcchtab[i]%fp->ofdm_symbol_size)+re_offset;
+      if (re_pos<fp->ofdm_symbol_size) txF[mpdcchtab[i]] = yIQ;
+      else                             txF2[mpdcchtab[i]] = yIQ;
       /*
       LOG_I(PHY,"Frame %d, subframe %d: mpdcch pos %d (%d,%d) => (%d,%d)\n",
       frame,subframe,i,mpdcchtab[i]+re_offset,mpdcchtab[i]/fp->ofdm_symbol_size,
