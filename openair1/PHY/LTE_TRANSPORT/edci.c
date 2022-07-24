@@ -388,8 +388,8 @@ void generate_mdci_top(PHY_VARS_eNB *eNB, int frame, int subframe, int16_t amp, 
       if (re_pos<fp->ofdm_symbol_size) txF[mpdcchtab[i]] = yIQ;
       else                             txF2[mpdcchtab[i]] = yIQ;
       
-      LOG_I(PHY,"Frame %d, subframe %d: re_pos (%d,%d) mpdcch pos %d (%d,%d) => (%d,%d)\n",
-            frame,subframe,i,re_pos,mpdcchtab[i]/fp->ofdm_symbol_size,
+      LOG_I(PHY,"Frame %d, subframe %d: mpdcch_ind %d symbol %d re_pos %d => (%d,%d)\n",
+            frame,subframe,i,mpdcchtab[i]/fp->ofdm_symbol_size,re_pos,
             ((int16_t *) & yIQ)[0],((int16_t *) & yIQ)[1]);
     }
 
