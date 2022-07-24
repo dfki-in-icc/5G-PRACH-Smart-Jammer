@@ -387,10 +387,10 @@ void generate_mdci_top(PHY_VARS_eNB *eNB, int frame, int subframe, int16_t amp, 
       re_pos = (mpdcchtab[i]%fp->ofdm_symbol_size)+re_offset;
       if (re_pos<fp->ofdm_symbol_size) txF[mpdcchtab[i]] = yIQ;
       else                             txF2[mpdcchtab[i]] = yIQ;
-      /*
-      LOG_I(PHY,"Frame %d, subframe %d: mpdcch pos %d (%d,%d) => (%d,%d)\n",
-      frame,subframe,i,mpdcchtab[i]+re_offset,mpdcchtab[i]/fp->ofdm_symbol_size,
-      ((int16_t *) & yIQ)[0],((int16_t *) & yIQ)[1]);*/
+      
+      LOG_I(PHY,"Frame %d, subframe %d: re_pos (%d,%d) mpdcch pos %d (%d,%d) => (%d,%d)\n",
+            frame,subframe,i,re_pos,mpdcchtab[i]/fp->ofdm_symbol_size,
+            ((int16_t *) & yIQ)[0],((int16_t *) & yIQ)[1]);
     }
 
     if (mdci->transmission_type == 1) w=0; // distributed
