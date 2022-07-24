@@ -176,13 +176,13 @@ void init_mpdcch5ss3tab_normal_regular_subframe_evenNRBDL(PHY_VARS_eNB *eNB) {
       // for symbols with CS-RS, skip them, there are no MPDCCH DMRS here
       if ((((l == 4)||(l==11)) && (kmod != nushiftp3) && (kmod != (nushiftp3+6))) ||
           ((l == 7) && (kmod != nushift) &&(kmod != (nushift+6)))) {  // CS RS
-        mpdcch5ss2tab[re] = (l * eNB->frame_parms.ofdm_symbol_size) + k;
+        mpdcch5ss3tab[re] = (l * eNB->frame_parms.ofdm_symbol_size) + k;
         re++;
       }
       // for symbols with CS-RS
       if (((l!=4)&&(l!=7)&&(l!=11)) &&
           (((l != 5) && (l != 6) && (l != 12) && (l != 13)) || (kmod == 2) || (kmod == 3) || (kmod == 4) || (kmod == 7) || (kmod == 8) || (kmod == 9))) {
-        mpdcch5ss2tab[re] = (l * eNB->frame_parms.ofdm_symbol_size) + k;
+        mpdcch5ss3tab[re] = (l * eNB->frame_parms.ofdm_symbol_size) + k;
         re++;
       }
     }
