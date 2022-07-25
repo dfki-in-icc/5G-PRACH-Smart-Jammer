@@ -3,7 +3,8 @@ import { UntypedFormGroup,UntypedFormControl } from "@angular/forms";
 import { Message, WebSocketService, webSockSrc } from "src/app/services/websocket.service";
 import { NgxSliderModule, Options} from '@angular-slider/ngx-slider';
 import { Observable } from 'rxjs';
-import { ChartConfiguration, ScatterDataPoint } from 'chart.js';
+import { ChartDataset ChartConfiguration, ScatterDataPoint } from 'chart.js';
+import { MatTabsModule } from '@angular/material/tabs';
 
 const SCOPEMSG_TYPE_STATUSUPD=1;   
 const SCOPEMSG_TYPE_REFRATE=2;
