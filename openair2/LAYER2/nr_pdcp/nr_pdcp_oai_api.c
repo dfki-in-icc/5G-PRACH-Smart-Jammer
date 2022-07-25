@@ -882,12 +882,16 @@ static void add_srb(int is_gnb, int rnti, struct NR_SRB_ToAddMod *s,
 {
   nr_pdcp_entity_t *pdcp_srb;
   nr_pdcp_ue_t *ue;
-  int t_Reordering=3000;
+  int t_Reordering=3000; // it was already hardcoded ?
 
   int srb_id = s->srb_Identity;
-  if (s->pdcp_Config == NULL ||
-      s->pdcp_Config->t_Reordering == NULL) t_Reordering = 3000;
-  else t_Reordering = decode_t_reordering(*s->pdcp_Config->t_Reordering);
+  if (s->pdcp_Config == NULL || s->pdcp_Config->t_Reordering == NULL) {
+    t_Reordering = 3000; //
+    //t_Reordering = decode_t_reordering(get_softmodem_params()->ntn_trd) + get_softmodem_params()->ntn_trd_offset; // #NTN
+  } else {
+    t_Reordering = decode_t_reordering(*s->pdcp_Config->t_Reordering);
+    //t_Reordering = t_Reordering + get_softmodem_params()->ntn_trd_offset; // #NTN
+  }
 
   nr_pdcp_manager_lock(nr_pdcp_ue_manager);
   ue = nr_pdcp_manager_get_ue(nr_pdcp_ue_manager, rnti);
@@ -931,6 +935,7 @@ static void add_drb_am(int is_gnb, int rnti, struct NR_DRB_ToAddMod *s,
   int t_reordering = -1;
   if (s->pdcp_Config->t_Reordering != NULL) {
     t_reordering = decode_t_reordering(*s->pdcp_Config->t_Reordering);
+    printf("\n\n\n\n Came to line 954 add_drb_am and t_reordering is %d\n\n\n\n", t_reordering);
   }
 
   if (s->pdcp_Config->drb != NULL
@@ -1142,7 +1147,7 @@ void nr_DRB_preconfiguration(uint16_t crnti)
   drb_ToAddMod->pdcp_Config = calloc(1,sizeof(*drb_ToAddMod->pdcp_Config));
   drb_ToAddMod->pdcp_Config->drb = calloc(1,sizeof(*drb_ToAddMod->pdcp_Config->drb));
   drb_ToAddMod->pdcp_Config->drb->discardTimer = calloc(1,sizeof(*drb_ToAddMod->pdcp_Config->drb->discardTimer));
-  *drb_ToAddMod->pdcp_Config->drb->discardTimer=NR_PDCP_Config__drb__discardTimer_infinity;
+  *drb_ToAddMod->pdcp_Config->drb->discardTimer=NR_PDCP_Config__drb__discardTimer_infinity; //#NTN
   drb_ToAddMod->pdcp_Config->drb->pdcp_SN_SizeUL = calloc(1,sizeof(*drb_ToAddMod->pdcp_Config->drb->pdcp_SN_SizeUL));
   *drb_ToAddMod->pdcp_Config->drb->pdcp_SN_SizeUL = NR_PDCP_Config__drb__pdcp_SN_SizeUL_len18bits;
   drb_ToAddMod->pdcp_Config->drb->pdcp_SN_SizeDL = calloc(1,sizeof(*drb_ToAddMod->pdcp_Config->drb->pdcp_SN_SizeDL));
@@ -1156,7 +1161,8 @@ void nr_DRB_preconfiguration(uint16_t crnti)
   drb_ToAddMod->pdcp_Config->moreThanOneRLC = NULL;
 
   drb_ToAddMod->pdcp_Config->t_Reordering = calloc(1,sizeof(*drb_ToAddMod->pdcp_Config->t_Reordering));
-  *drb_ToAddMod->pdcp_Config->t_Reordering = NR_PDCP_Config__t_Reordering_ms3000;
+  //*drb_ToAddMod->pdcp_Config->t_Reordering = NR_PDCP_Config__t_Reordering_ms3000;
+  *drb_ToAddMod->pdcp_Config->t_Reordering = get_softmodem_params()->ntn_trd; // this will just provide the index of the enum
   drb_ToAddMod->pdcp_Config->ext1 = NULL;
 
   ASN_SEQUENCE_ADD(&rbconfig->drb_ToAddModList->list,drb_ToAddMod);
