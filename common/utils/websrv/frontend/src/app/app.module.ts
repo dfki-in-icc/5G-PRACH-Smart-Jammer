@@ -31,6 +31,7 @@ import { ScopeComponent } from './components/scope/scope.component';
 import { InterceptorProviders } from './interceptors/interceptors';
 import { LoadingService } from './services/loading.service';
 import { WebSocketService } from './services/websocket.service';
+import { NgChartsModule } from 'ng2-charts';
 
 @NgModule({
   declarations: [
@@ -63,7 +64,8 @@ import { WebSocketService } from './services/websocket.service';
     MatSlideToggleModule,
     MatGridListModule,
     MatCardModule,
-    MatTabsModule
+    MatTabsModule,
+    NgChartsModule
   ],
   providers: [
     // services

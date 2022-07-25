@@ -3,6 +3,7 @@ import { FormGroup,FormControl } from "@angular/forms";
 import { Message, WebSocketService, webSockSrc } from "src/app/services/websocket.service";
 import { NgxSliderModule, Options} from '@angular-slider/ngx-slider';
 import { Observable } from 'rxjs';
+import { ChartConfiguration, ScatterDataPoint } from 'chart.js';
 
 const SCOPEMSG_TYPE_STATUSUPD=1;   
 const SCOPEMSG_TYPE_REFRATE=2;
@@ -30,6 +31,25 @@ export class ScopeComponent {
     ceil: 3,
     step: 0.1
   };
+  
+  public IQDatasets: ChartConfiguration<'scatter'>['data']['datasets'] = [
+    {
+      data: [
+        { x: 1, y: 1 },
+        { x: 2, y: 3 },
+        { x: 3, y: -2 },
+        { x: 4, y: 4 },
+        { x: 5, y: -3},
+      ],
+      label: 'Series A',
+      pointRadius: 1,
+    },
+  ];
+
+  public IQOptions: ChartConfiguration<'scatter'>['options'] = {
+    responsive: false,
+  };
+  
   constructor(private wsService: WebSocketService) {
     wsService.messages.subscribe((msg: ArrayBuffer) => {
       this.ProcessScopeMsg(this.wsService.DeserializeMessage(msg));
