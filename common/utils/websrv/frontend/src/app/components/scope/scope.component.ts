@@ -1,5 +1,5 @@
 import { Component, Output, EventEmitter} from "@angular/core";
-import { FormGroup,FormControl } from "@angular/forms";
+import { UntypedFormGroup,UntypedFormControl } from "@angular/forms";
 import { Message, WebSocketService, webSockSrc } from "src/app/services/websocket.service";
 import { NgxSliderModule, Options} from '@angular-slider/ngx-slider';
 import { Observable } from 'rxjs';
@@ -23,8 +23,8 @@ export class ScopeComponent {
   startstop = 'start';
   rfrate = 2;
   @Output() ScopeEnabled = new EventEmitter<boolean>();
-  sliderForm: FormGroup = new FormGroup({
-  sliderControl: new FormControl()
+  sliderForm: UntypedFormGroup = new UntypedFormGroup({
+  sliderControl: new UntypedFormControl()
   });
   options: Options = {
     floor: 0.1,

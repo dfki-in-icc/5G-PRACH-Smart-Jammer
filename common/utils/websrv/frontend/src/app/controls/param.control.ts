@@ -1,4 +1,4 @@
-import { FormControl, FormGroup } from "@angular/forms";
+import { UntypedFormControl, UntypedFormGroup } from "@angular/forms";
 import { IArgType, IColumn, IParam } from "../api/commands.api";
 
 
@@ -7,7 +7,7 @@ enum ParamFCN {
 }
 
 
-export class ParamCtrl extends FormGroup {
+export class ParamCtrl extends UntypedFormGroup {
 
   col: IColumn
   constructor(public param: IParam) {
@@ -15,18 +15,18 @@ export class ParamCtrl extends FormGroup {
 
     this.col = param.col
 
-    let control: FormControl
+    let control: UntypedFormControl
     switch (param.col.type) {
       case IArgType.boolean:
-        control = new FormControl((param.value === 'true') ? true : false);
+        control = new UntypedFormControl((param.value === 'true') ? true : false);
         break;
 
       case IArgType.loglvl:
-        control = new FormControl(param.value);
+        control = new UntypedFormControl(param.value);
         break;
 
       default:
-        control = new FormControl(param.value)
+        control = new UntypedFormControl(param.value)
     }
 
     if (!param.col.modifiable) control.disable()
@@ -35,10 +35,10 @@ export class ParamCtrl extends FormGroup {
   }
 
   get valueFC() {
-    return this.get(ParamFCN.value) as FormControl
+    return this.get(ParamFCN.value) as UntypedFormControl
   }
 
-  set valueFC(fc: FormControl) {
+  set valueFC(fc: UntypedFormControl) {
     this.setControl(ParamFCN.value, fc);
   }
 

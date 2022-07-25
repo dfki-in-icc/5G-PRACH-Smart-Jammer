@@ -1,4 +1,4 @@
-import { FormArray, FormControl, FormGroup } from '@angular/forms';
+import { UntypedFormArray, UntypedFormControl, UntypedFormGroup } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { Observable } from 'rxjs/internal/Observable';
 import { ICommand, ICommandOptions, IQuestion } from 'src/app/api/commands.api';
@@ -10,7 +10,7 @@ const enum CmdFCN {
   answer = "answer"
 }
 
-export class CmdCtrl extends FormGroup {
+export class CmdCtrl extends UntypedFormGroup {
 
   confirm?: string
   question?: IQuestion
@@ -22,9 +22,9 @@ export class CmdCtrl extends FormGroup {
   constructor(cmd: ICommand) {
     super({});
 
-    this.addControl(CmdFCN.name, new FormControl(cmd.name));
-    this.addControl(CmdFCN.answer, new FormControl(""));
-    this.addControl(CmdFCN.vars, new FormArray([]));
+    this.addControl(CmdFCN.name, new UntypedFormControl(cmd.name));
+    this.addControl(CmdFCN.answer, new UntypedFormControl(""));
+    this.addControl(CmdFCN.vars, new UntypedFormArray([]));
 
 
     this.confirm = cmd.confirm;
@@ -73,22 +73,22 @@ export class CmdCtrl extends FormGroup {
   }
 
   get nameFC() {
-    return this.get(CmdFCN.name) as FormControl;
+    return this.get(CmdFCN.name) as UntypedFormControl;
   }
 
-  set nameFC(fc: FormControl) {
+  set nameFC(fc: UntypedFormControl) {
     this.setControl(CmdFCN.name, fc);
   }
 
   get answerFC() {
-    return this.get(CmdFCN.answer) as FormControl;
+    return this.get(CmdFCN.answer) as UntypedFormControl;
   }
 
   get varsFA() {
-    return this.get(CmdFCN.vars) as FormArray;
+    return this.get(CmdFCN.vars) as UntypedFormArray;
   }
 
-  set varsFA(fa: FormArray) {
+  set varsFA(fa: UntypedFormArray) {
     this.setControl(CmdFCN.vars, fa);
   }
 }

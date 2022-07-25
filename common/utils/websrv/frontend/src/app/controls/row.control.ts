@@ -1,5 +1,5 @@
 
-import { FormArray, FormControl, FormGroup } from '@angular/forms';
+import { UntypedFormArray, FormControl, UntypedFormGroup } from '@angular/forms';
 import { IArgType, IParam, IRow } from '../api/commands.api';
 import { ParamCtrl } from './param.control';
 
@@ -10,7 +10,7 @@ enum RowFCN {
 }
 
 
-export class RowCtrl extends FormGroup {
+export class RowCtrl extends UntypedFormGroup {
 
   cmdName: string
   rawIndex: number
@@ -20,14 +20,14 @@ export class RowCtrl extends FormGroup {
 
     this.cmdName = row.cmdName
     this.rawIndex = row.rawIndex
-    this.addControl(RowFCN.paramsFA, new FormArray(row.params.map(param => new ParamCtrl(param))))
+    this.addControl(RowFCN.paramsFA, new UntypedFormArray(row.params.map(param => new ParamCtrl(param))))
   }
 
   get paramsFA() {
-    return this.get(RowFCN.paramsFA) as FormArray
+    return this.get(RowFCN.paramsFA) as UntypedFormArray
   }
 
-  set paramsFA(fa: FormArray) {
+  set paramsFA(fa: UntypedFormArray) {
     this.setControl(RowFCN.paramsFA, fa);
   }
 

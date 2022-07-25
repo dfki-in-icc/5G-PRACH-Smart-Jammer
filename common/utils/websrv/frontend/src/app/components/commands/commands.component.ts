@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { FormArray } from '@angular/forms';
+import { UntypedFormArray } from '@angular/forms';
 import { BehaviorSubject, forkJoin, timer } from 'rxjs';
 import { Observable } from 'rxjs/internal/Observable';
 import { of } from 'rxjs/internal/observable/of';
@@ -96,7 +96,7 @@ export class CommandsComponent {
     this.cmds$ = this.commandsApi.readCommands$(module.name).pipe(
       map(icmds => icmds.map(icmd => new CmdCtrl(icmd))),
       map(cmds => {
-        module.cmdsFA = new FormArray(cmds)
+        module.cmdsFA = new UntypedFormArray(cmds)
         return module.cmdsFA.controls as CmdCtrl[]
       })
     )
@@ -104,7 +104,7 @@ export class CommandsComponent {
     this.vars$ = this.commandsApi.readVariables$(module.name).pipe(
       map(ivars => ivars.map(ivar => new VarCtrl(ivar))),
       map(vars => {
-        module.varsFA = new FormArray(vars)
+        module.varsFA = new UntypedFormArray(vars)
         return module.varsFA.controls as VarCtrl[]
       })
     )

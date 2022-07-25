@@ -1,4 +1,4 @@
-import { FormControl, FormGroup } from '@angular/forms';
+import { UntypedFormControl, UntypedFormGroup } from '@angular/forms';
 import { IInfo } from '../api/commands.api';
 import { IArgType } from '../api/commands.api';
 
@@ -10,15 +10,15 @@ const enum InfosFCN {
 }
 
 
-export class InfoCtrl extends FormGroup {
+export class InfoCtrl extends UntypedFormGroup {
   type: IArgType;
   constructor(ivar: IInfo) {
     super({});
     this.type = ivar.type;
-    this.addControl(InfosFCN.name, new FormControl(ivar.name));
-    this.addControl(InfosFCN.value, new FormControl(ivar.value));
-    this.addControl(InfosFCN.type, new FormControl(ivar.type));
-    this.addControl(InfosFCN.modifiable, new FormControl(ivar.modifiable));
+    this.addControl(InfosFCN.name, new UntypedFormControl(ivar.name));
+    this.addControl(InfosFCN.value, new UntypedFormControl(ivar.value));
+    this.addControl(InfosFCN.type, new UntypedFormControl(ivar.type));
+    this.addControl(InfosFCN.modifiable, new UntypedFormControl(ivar.modifiable));
   }
 
   api() {
@@ -33,34 +33,34 @@ export class InfoCtrl extends FormGroup {
   }
 
   get nameFC() {
-    return this.get(InfosFCN.name) as FormControl;
+    return this.get(InfosFCN.name) as UntypedFormControl;
   }
 
-  set nameFC(control: FormControl) {
+  set nameFC(control: UntypedFormControl) {
     this.setControl(InfosFCN.name, control);
   }
 
   get valueFC() {
-    return this.get(InfosFCN.value) as FormControl;
+    return this.get(InfosFCN.value) as UntypedFormControl;
   }
 
-  set valueFC(control: FormControl) {
+  set valueFC(control: UntypedFormControl) {
     this.setControl(InfosFCN.value, control);
   }
 
   get typeFC() {
-    return this.get(InfosFCN.type) as FormControl;
+    return this.get(InfosFCN.type) as UntypedFormControl;
   }
 
-  set typeFC(control: FormControl) {
+  set typeFC(control: UntypedFormControl) {
     this.setControl(InfosFCN.type, control);
   }
 
   get modifiableFC() {
-    return this.get(InfosFCN.modifiable) as FormControl;
+    return this.get(InfosFCN.modifiable) as UntypedFormControl;
   }
 
-  set modifiableFC(control: FormControl) {
+  set modifiableFC(control: UntypedFormControl) {
     this.setControl(InfosFCN.modifiable, control);
   }
 
