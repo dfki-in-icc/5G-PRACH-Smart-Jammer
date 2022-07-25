@@ -1086,6 +1086,39 @@ typedef struct nr_rxtx_thread_data_s {
   notifiedFIFO_t txFifo;
 }  nr_rxtx_thread_data_t;
 
+typedef struct NrChannelEstimate_s{
+  PHY_VARS_NR_UE *ue;
+  UE_nr_rxtx_proc_t *proc;
+  uint8_t gNB_id;
+  bool is_SI;
+  unsigned char Ns;
+  unsigned short p;
+  unsigned char symbol;
+  unsigned short BWPStart;
+  uint8_t config_type;
+  unsigned short bwp_start_subcarrier;
+  unsigned short nb_rb_pdsch;
+} nrChannelEstimate_t;
+
+typedef struct NrChannelCompensate_s {
+  int **rxdataF_ext;
+  int **dl_ch_estimates_ext;
+  int **dl_ch_mag0;
+  int **dl_ch_mag1;
+  int **dl_ch_magr;
+  int **rxdataF_comp;
+  int ***rho;
+  NR_DL_FRAME_PARMS *frame_parms;
+  uint8_t nb_aatx;
+  unsigned char symbol;
+  int length;
+  uint8_t first_symbol_flag;
+  unsigned char mod_order;
+  unsigned short nb_rb;
+  unsigned char output_shift;
+  PHY_NR_MEASUREMENTS *measurements;
+} NrChannelCompensate_t;
+
 typedef struct LDPCDecode_ue_s {
   PHY_VARS_NR_UE *phy_vars_ue;
   NR_DL_UE_HARQ_t *harq_process;

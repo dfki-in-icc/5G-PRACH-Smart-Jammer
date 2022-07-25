@@ -1540,6 +1540,35 @@ int nr_pdsch_channel_estimation(PHY_VARS_NR_UE *ue,
   return(0);
 }
 
+void* nr_pdsch_channel_estimation_th(void* arg)
+{
+  nrChannelEstimate_t *chestData = (nrChannelEstimate_t*) arg;
+  PHY_VARS_NR_UE *ue = chestData->ue;
+  UE_nr_rxtx_proc_t *proc = chestData->proc;
+  uint8_t gNB_id = chestData->gNB_id;
+  bool is_SI = chestData->is_SI;
+  unsigned char Ns = chestData->Ns;
+  unsigned short p = chestData->p;
+  unsigned char symbol = chestData->symbol;
+  unsigned short BWPStart = chestData->BWPStart;
+  uint8_t config_type = chestData->config_type;
+  unsigned short bwp_start_subcarrier = chestData->bwp_start_subcarrier;
+  unsigned short nb_rb_pdsch = chestData->nb_rb_pdsch;
+
+  nr_pdsch_channel_estimation(ue,
+                              proc,
+                              gNB_id,
+                              is_SI,
+                              Ns,
+                              p,
+                              symbol,
+                              BWPStart,
+                              config_type,
+                              bwp_start_subcarrier,
+                              nb_rb_pdsch);
+
+}
+
 /*******************************************************************
  *
  * NAME :         nr_pdsch_ptrs_processing

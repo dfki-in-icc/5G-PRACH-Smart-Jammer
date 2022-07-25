@@ -731,10 +731,33 @@ void nr_dlsch_deinterleaving(uint8_t symbol,
   free(bundle_deint);
 }
 
+int32_t dlsch_ch_prom_buf[300];
 //==============================================================================================
 // Pre-processing for LLR computation
 //==============================================================================================
-int32_t dlsch_ch_prom_buf[300];
+void* nr_dlsch_channel_compensation_th(void* arg){
+
+  NrChannelCompensate_t* Comp = (NrChannelCompensate_t*) arg;
+
+  nr_dlsch_channel_compensation(
+    Comp->rxdataF_ext,
+    Comp->dl_ch_estimates_ext,
+    Comp->dl_ch_mag0,
+    Comp->dl_ch_mag1,
+    Comp->dl_ch_magr,
+    Comp->rxdataF_comp,
+    Comp->rho,
+    Comp->frame_parms,
+    Comp->nb_aatx,
+    Comp->symbol,
+    Comp->length,
+    Comp->first_symbol_flag,
+    Comp->mod_order,
+    Comp->nb_rb,
+    Comp->output_shift,
+    Comp->measurements);
+}
+
 void nr_dlsch_channel_compensation(int **rxdataF_ext,
                                 int **dl_ch_estimates_ext,
                                 int **dl_ch_mag,

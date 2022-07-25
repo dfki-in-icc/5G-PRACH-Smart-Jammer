@@ -84,6 +84,26 @@ extern uint64_t downlink_frequency[MAX_NUM_CCs][4];
 uint32_t  pdsch_mode;
 unsigned int gain_table[31] = {100,112,126,141,158,178,200,224,251,282,316,359,398,447,501,562,631,708,794,891,1000,1122,1258,1412,1585,1778,1995,2239,2512,2818,3162};
 
+static tpool_t pool_dlsch_chest;
+void init_dlsch_chest_tpool(uint8_t num_threads) {
+  char *params = NULL;
+  char buf[16];
+  if( num_threads==0) {
+    params = calloc(1,2);
+    memcpy(params,"N",1);
+  }
+  else {
+    params = calloc(1,(num_threads*3)+1);
+    for (int i=0; i<num_threads; i++) {
+    sprintf(buf,"%2d,",i);
+    memcpy(params+(i*3),buf,3);
+    }
+  }
+
+  initNamedTpool(params, &pool_dlsch_chest, false,"dlsch_chest");
+  free(params);
+}
+
 void nr_fill_dl_indication(nr_downlink_indication_t *dl_ind,
                            fapi_nr_dci_indication_t *dci_ind,
                            fapi_nr_rx_indication_t *rx_ind,
@@ -544,6 +564,8 @@ int nr_ue_pdcch_procedures(uint8_t gNB_id,
 
 int nr_ue_pdsch_procedures(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, int gNB_id, PDSCH_t pdsch, NR_UE_DLSCH_t *dlsch0, NR_UE_DLSCH_t *dlsch1) {
 
+  #define CHEST_JOB_ID 0x1020
+
   int frame_rx = proc->frame_rx;
   int nr_slot_rx = proc->nr_slot_rx;
   int m;
@@ -567,7 +589,8 @@ int nr_ue_pdsch_procedures(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, int gNB_
 
     LOG_X(PHY,"[UE %d] PDSCH type %d active in nr_slot_rx %d, harq_pid %d (%d), rb_start %d, nb_rb %d, symbol_start %d, nb_symbols %d, DMRS mask %x, Nl %d\n",
           ue->Mod_id,pdsch,nr_slot_rx,harq_pid,dlsch0_harq->status,pdsch_start_rb,pdsch_nb_rb,s0,s1,dlsch0_harq->dlDmrsSymbPos, dlsch0_harq->Nl);
-
+#define PARALLEL_CHEST
+#ifndef PARALLEL_CHEST
     for (m = s0; m < (s0 +s1); m++) {
       if (dlsch0_harq->dlDmrsSymbPos & (1 << m)) {
         for (uint8_t aatx=0; aatx<dlsch0_harq->Nl; aatx++) {//for MIMO Config: it shall loop over no_layers
@@ -596,6 +619,56 @@ int nr_ue_pdsch_procedures(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, int gNB_
         }
       }
     }
+#else
+    notifiedFIFO_t nf;
+    initNotifiedFIFO(&nf);
+    uint32_t  num_chest_thread = 0;
+
+    for (m = s0; m < (s0 +s1); m++) {
+      if (dlsch0_harq->dlDmrsSymbPos & (1 << m)) {
+        for (uint8_t aatx=0; aatx<dlsch0_harq->Nl; aatx++) {//for MIMO Config: it shall loop over no_layers
+          LOG_D(PHY,"PDSCH Channel estimation gNB id %d, PDSCH antenna port %d, slot %d, symbol %d\n",0,aatx,nr_slot_rx,m);
+         LOG_I(PHY,"nr_pdsch_channel_estimation_th start ( symbol %d num_RB %d)\n",m, pdsch_nb_rb);
+
+          notifiedFIFO_elt_t *chset =
+                     newNotifiedFIFO_elt(sizeof(nrChannelEstimate_t), CHEST_JOB_ID/* + num_chest_thread*/, &nf, nr_pdsch_channel_estimation_th);
+          nrChannelEstimate_t *chestData = (nrChannelEstimate_t*) NotifiedFifoData(chset);
+
+          chestData->ue                    = ue;
+          chestData->proc                  = proc;
+          chestData->gNB_id                = gNB_id;
+          chestData->is_SI                 = is_SI;
+          chestData->Ns                    = nr_slot_rx;
+          chestData->p                     = get_dmrs_port(aatx,dlsch0_harq->dmrs_ports);
+          chestData->symbol                = m;
+          chestData->BWPStart              = BWPStart;
+          chestData->config_type           = dlsch0_harq->dmrsConfigType;
+          chestData->bwp_start_subcarrier  = ue->frame_parms.first_carrier_offset+(BWPStart + pdsch_start_rb)*12;
+          chestData->nb_rb_pdsch           = pdsch_nb_rb;
+
+          pushTpool(&(pool_dlsch_chest),chset);
+          num_chest_thread++;
+        }
+      }
+    }
+
+    // for (int r=0; r<num_chest_thread; r++) {
+    //   notifiedFIFO_elt_t *req=pullTpool(&nf, &(pool_dlsch_chest));
+    //   delNotifiedFIFO_elt(req);
+    // }
+    LOG_I(PHY,"waiting for thread to finish\n");
+    notifiedFIFO_elt_t *req;
+    int r = 0;
+    while (r < num_chest_thread){
+      if (req=tryPullTpool(&nf, &(pool_dlsch_chest))){
+        delNotifiedFIFO_elt(req);
+        r++;
+    // LOG_I(PHY,"channel_estimation thread %d finished\n",r);
+      }
+    }
+    LOG_I(PHY,"nr_pdsch_channel_estimation_th finished\n");
+
+#endif
 
     uint16_t first_symbol_with_data = s0;
     uint32_t dmrs_data_re;
