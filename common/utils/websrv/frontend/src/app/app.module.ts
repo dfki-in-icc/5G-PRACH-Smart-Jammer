@@ -34,49 +34,48 @@ import { WebSocketService } from './services/websocket.service';
 import { NgChartsModule } from 'ng2-charts';
 
 @NgModule({
-  declarations: [
-    AppComponent,
-    CommandsComponent,
-    ConfirmDialogComponent,
-    QuestionDialogComponent,
-    DialogComponent,
-    ScopeComponent
-  ],
-  imports: [
-    BrowserModule,
-    AppRoutingModule,
-    BrowserAnimationsModule,
-    HttpClientModule,
-    MatButtonModule,
-    FlexLayoutModule,
-    MatDialogModule,
-    DragDropModule,
-    NgxSliderModule,
-    MatFormFieldModule,
-    MatInputModule,
-    ReactiveFormsModule,
-    MatChipsModule,
-    MatProgressSpinnerModule,
-    MatToolbarModule,
-    MatTableModule,
-    MatSelectModule,
-    MatSnackBarModule,
-    MatSlideToggleModule,
-    MatGridListModule,
-    MatCardModule,
-    MatTabsModule,
-    NgChartsModule
-  ],
-  providers: [
-    // services
-    LoadingService,
-    WebSocketService,
-    // api
-    CommandsApi,
-    // interceptors
-    InterceptorProviders,
-  ],
-  bootstrap: [AppComponent],
-  entryComponents: [DialogComponent],
+    declarations: [
+        AppComponent,
+        CommandsComponent,
+        ConfirmDialogComponent,
+        QuestionDialogComponent,
+        DialogComponent,
+        ScopeComponent
+    ],
+    imports: [
+        BrowserModule,
+        AppRoutingModule,
+        BrowserAnimationsModule,
+        HttpClientModule,
+        MatButtonModule,
+        FlexLayoutModule,
+        MatDialogModule,
+        DragDropModule,
+        NgxSliderModule,
+        MatFormFieldModule,
+        MatInputModule,
+        ReactiveFormsModule,
+        MatChipsModule,
+        MatProgressSpinnerModule,
+        MatToolbarModule,
+        MatTableModule,
+        MatSelectModule,
+        MatSnackBarModule,
+        MatSlideToggleModule,
+        MatGridListModule,
+        MatCardModule,
+        MatTabsModule,
+        NgChartsModule
+    ],
+    providers: [
+        // services
+        LoadingService,
+        WebSocketService,
+        // api
+        CommandsApi,
+        // interceptors
+        InterceptorProviders,
+    ],
+    bootstrap: [AppComponent]
 })
 export class AppModule { }
