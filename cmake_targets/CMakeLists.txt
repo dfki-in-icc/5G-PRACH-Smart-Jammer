@@ -783,30 +783,6 @@ SET(DPDK_LIBS "-Wl,-rpath,$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -Wl,--whole-archive
 TARGET_LINK_LIBRARIES(benetel_4g ${DPDK_LIBS})
 TARGET_LINK_LIBRARIES(benetel_4g pthread dl rt m numa)
 
-# ORAN 4G library
-######################################################################
-
-include_directories("${XRAN_DIR}")
-include_directories("${DPDK_DIR}")
-include_directories("${INTEL_LIB}")
-
-set(ORAN_FHLIB_4G_SOURCE
-    ${OPENAIR_TARGETS}/ARCH/ETHERNET/oran/4g/oran.cpp
-    ${OPENAIR_TARGETS}/ARCH/ETHERNET/oran/4g/shared_buffers.c
-    ${OPENAIR_TARGETS}/ARCH/ETHERNET/oran/4g/low_oran.c
-    ${OPENAIR_TARGETS}/ARCH/ETHERNET/oran/4g/low_dpdk_oran.c
-    ${OPENAIR_TARGETS}/ARCH/ETHERNET/oran/4g/oran_isolate.c
-    )
-add_library(oran_fhlib_4g MODULE ${ORAN_FHLIB_4G_SOURCE})
-
-set_target_properties(oran_fhlib_4g PROPERTIES COMPILE_FLAGS "-fvisibility=hidden -march=native -I$ENV{RTE_SDK}/$ENV{RTE_TARGET}/include")
-
-SET(DPDK_LIBS "-Wl,-rpath,$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -Wl,--whole-archive -L$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -ldpdk -Wl,--no-whole-archive")
-TARGET_LINK_LIBRARIES(oran_fhlib_4g ${DPDK_LIBS})
-TARGET_LINK_LIBRARIES(oran_fhlib_4g -L${XRAN_LIB_DIR} -lxran)
-TARGET_LINK_LIBRARIES(oran_fhlib_4g -L${INTEL_LIB} -lirc)
-TARGET_LINK_LIBRARIES(oran_fhlib_4g pthread dl rt m numa)
-
 # Benetel 5G library
 ######################################################################
 
