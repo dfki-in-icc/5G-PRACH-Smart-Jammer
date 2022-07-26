@@ -193,6 +193,7 @@ typedef struct {
   uint16_t i0;
   CEmode_t CEmode;
 #endif
+  int inactivity_cnt;
 } LTE_eNB_DLSCH_t;
 
 

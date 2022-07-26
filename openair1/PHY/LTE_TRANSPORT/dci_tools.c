@@ -66,7 +66,7 @@ int find_dlsch(uint16_t rnti, PHY_VARS_eNB *eNB,find_type_t type) {
     } else {
       if ((eNB->dlsch[i][0]->harq_mask >0) &&
           (eNB->dlsch[i][0]->rnti==rnti))       return i;
-      else if ((eNB->dlsch[i][0]->harq_mask == 0) && (first_free_index==-1)) first_free_index=i;
+      else if ((eNB->dlsch[i][0]->harq_mask == 0 || eNB->dlsch[i][0]->inactivity_cnt>50) && (first_free_index==-1)) first_free_index=i;
     }
 
   }
@@ -349,6 +349,9 @@ void fill_dci_and_dlsch(PHY_VARS_eNB *eNB,
 #else
   dlsch0->active        = 1;
 #endif
+
+  dlsch0->inactivity_cnt = 0;
+  dlsch1->inactivity_cnt = 0;
 
   if (rel8->rnti_type == 2)
     dlsch0_harq->round    = 0;
@@ -1557,6 +1560,9 @@ void fill_mdci_and_dlsch(PHY_VARS_eNB *eNB,L1_rxtx_proc_t *proc,mDCI_ALLOC_t *dc
   dci_alloc->dmrs_scrambling_init = rel13->drms_scrambling_init;
   dci_alloc->i0 = rel13->initial_transmission_sf_io;
   UE_id = find_dlsch (rel13->rnti, eNB, SEARCH_EXIST_OR_FREE);
+  if (UE_id==-1) 
+     for (int i=0;i<NUMBER_OF_DLSCH_MAX;i++) 
+       LOG_E(PHY,"dlsch_list : DLSCH index %d=> harq_mask %x, rnti %x\n", i,eNB->dlsch[i][0]->harq_mask,eNB->dlsch[i][0]->rnti);
   AssertFatal (UE_id != -1, "no free or exiting dlsch_context\n");
   AssertFatal (UE_id < NUMBER_OF_DLSCH_MAX, "returned UE_id %d >= %d(NUMBER_OF_DLSCH_MAX)\n", UE_id, NUMBER_OF_DLSCH_MAX);
   dlsch0 = eNB->dlsch[UE_id][0];
@@ -1592,6 +1598,22 @@ void fill_mdci_and_dlsch(PHY_VARS_eNB *eNB,L1_rxtx_proc_t *proc,mDCI_ALLOC_t *dc
           ((DCI6_1A_1_4MHz_t *) dci_pdu)->srs_req = rel13->srs_request;
           ((DCI6_1A_1_4MHz_t *) dci_pdu)->harq_ack_off = rel13->harq_resource_offset;
           ((DCI6_1A_1_4MHz_t *) dci_pdu)->dci_rep = rel13->dci_subframe_repetition_number;
+          LOG_I(PHY,
+                "Frame %d, Subframe %d : Programming Format 6-1A DCI (1.4 MHz), type %d, hopping %d, rballoc %x, mcs %d, rep %d, harq_pid %d, ndi %d, rv %d, TPC %d, srs_req %d, harq_ack_off %d, dci_rep r%d => %x\n",
+                frame,subframe,
+                ((DCI6_1A_1_4MHz_t *) dci_pdu)->type,
+                ((DCI6_1A_1_4MHz_t *) dci_pdu)->hopping,
+                ((DCI6_1A_1_4MHz_t *) dci_pdu)->rballoc,
+                ((DCI6_1A_1_4MHz_t *) dci_pdu)->mcs,
+                ((DCI6_1A_1_4MHz_t *) dci_pdu)->rep,
+                ((DCI6_1A_1_4MHz_t *) dci_pdu)->harq_pid,
+                ((DCI6_1A_1_4MHz_t *) dci_pdu)->ndi,
+                ((DCI6_1A_1_4MHz_t *) dci_pdu)->rv_idx,
+                ((DCI6_1A_1_4MHz_t *) dci_pdu)->TPC,
+                ((DCI6_1A_1_4MHz_t *) dci_pdu)->srs_req,
+                ((DCI6_1A_1_4MHz_t *) dci_pdu)->harq_ack_off,
+                ((DCI6_1A_1_4MHz_t *) dci_pdu)->dci_rep,
+                ((uint32_t *)dci_pdu)[0]);
           break;
 
         case 25:
@@ -1829,6 +1851,7 @@ void fill_mdci_and_dlsch(PHY_VARS_eNB *eNB,L1_rxtx_proc_t *proc,mDCI_ALLOC_t *dc
   }
 
   dlsch0->active = 1;
+  dlsch0->inactivity_cnt = 1;
   dlsch0->harq_mask |= (1 << rel13->harq_process);
   dlsch0_harq->frame    = (subframe >= 8) ? ((frame + 1) & 1023) : frame;
   dlsch0_harq->subframe = (subframe + 2) % 10;

@@ -3445,7 +3445,8 @@ int dlsch_modulation(PHY_VARS_eNB* phy_vars_eNB,
   for (l=num_pdcch_symbols; l<nsymb; l++) {
 
   if (dlsch0 != NULL ) {
-     LOG_D(PHY,"Generating DLSCH (num_pdcch_symb %d harq_pid %d,mimo %d, pmi_alloc0 %lx, mod0 %d, mod1 %d, rb_alloc[0] %x)\n",
+     LOG_I(PHY,"Generating DLSCH frame.subframe.symbol %d.%d.%d : num_pdcch_symb %d harq_pid %d,mimo %d, pmi_alloc0 %lx, mod0 %d, mod1 %d, rb_alloc[0] %x)\n",
+            frame,subframe_offset,l,
             num_pdcch_symbols,harq_pid,
             dlsch0_harq->mimo_mode,
             pmi2hex_2Ar2(dlsch0_harq->pmi_alloc),
