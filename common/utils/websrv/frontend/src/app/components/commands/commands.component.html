@@ -75,15 +75,10 @@
           <mat-card-title>{{ selectedModule!.name }} {{ selectedCmd!.name }} </mat-card-title>
         </mat-card-header>
         <mat-card-content class="dashboard-card-content">
-
+           <div >
           <mat-table mat-table [dataSource]="rows$" multiTemplateDataRows class="mat-elevation-z8">
 
-            <!-- For anyone who has set the multiTemplateDataRows property of mat-table to true,
-              you can't use index. Instead you have use either dataIndex or renderIndex.
-              See https://github.com/angular/material2/issues/12793 -->
-
-
-            <div class="spaceddiv" *ngFor="let col of columns; index as colIndex" matColumnDef="{{col.name}}">
+            <div  *ngFor="let col of columns; index as colIndex" matColumnDef="{{col.name}}">
               <mat-header-cell *matHeaderCellDef fxLayoutAlign="start center">
                 <div>
                   <h4>{{ col.name }}</h4>
@@ -103,14 +98,6 @@
                       </mat-option>
                     </mat-select>
                   </mat-form-field>
-
-                  <!-- <mat-form-field *ngSwitchCase="IArgType.simuTypes">
-                    <mat-label>Simu Types</mat-label>
-                    <mat-select [formControl]="row.paramsCtrls[colIndex].valueFC"
-                      [(value)]="row.paramsCtrls[colIndex].valueFC.value">
-                      <mat-option *ngFor="let type of types$ | async" [value]="type"> {{ type }} </mat-option>
-                    </mat-select>
-                  </mat-form-field> -->
                   <div *ngSwitchDefault>
                     <mat-form-field>
                       <input matInput [formControl]="row.paramsCtrls[colIndex].valueFC" [readonly]="!col.modifiable" />
@@ -132,7 +119,7 @@
             <mat-row *matRowDef="let row; columns: displayedColumns"></mat-row>
 
           </mat-table>
-
+         </div>
         </mat-card-content>
       </mat-card>
     </mat-grid-tile>

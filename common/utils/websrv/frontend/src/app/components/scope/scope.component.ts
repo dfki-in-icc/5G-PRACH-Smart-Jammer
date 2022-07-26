@@ -1,10 +1,9 @@
 import { Component, Output, EventEmitter} from "@angular/core";
-import { UntypedFormGroup,UntypedFormControl } from "@angular/forms";
+import { FormGroup,FormControl } from "@angular/forms";
 import { Message, WebSocketService, webSockSrc } from "src/app/services/websocket.service";
 import { NgxSliderModule, Options} from '@angular-slider/ngx-slider';
 import { Observable } from 'rxjs';
-import { ChartDataset ChartConfiguration, ScatterDataPoint } from 'chart.js';
-import { MatTabsModule } from '@angular/material/tabs';
+import { ChartConfiguration, ScatterDataPoint } from 'chart.js';
 
 const SCOPEMSG_TYPE_STATUSUPD=1;   
 const SCOPEMSG_TYPE_REFRATE=2;
@@ -24,15 +23,14 @@ export class ScopeComponent {
   startstop = 'start';
   rfrate = 2;
   @Output() ScopeEnabled = new EventEmitter<boolean>();
-  sliderForm: UntypedFormGroup = new UntypedFormGroup({
-  sliderControl: new UntypedFormControl()
+  sliderForm: FormGroup = new FormGroup({
+  sliderControl: new FormControl()
   });
   options: Options = {
     floor: 0.1,
     ceil: 3,
     step: 0.1
   };
-  
   public IQDatasets: ChartConfiguration<'scatter'>['data']['datasets'] = [
     {
       data: [
@@ -43,14 +41,13 @@ export class ScopeComponent {
         { x: 5, y: -3},
       ],
       label: 'Series A',
-      pointRadius: 1,
+      pointRadius: 10,
     },
   ];
 
   public IQOptions: ChartConfiguration<'scatter'>['options'] = {
     responsive: false,
   };
-  
   constructor(private wsService: WebSocketService) {
     wsService.messages.subscribe((msg: ArrayBuffer) => {
       this.ProcessScopeMsg(this.wsService.DeserializeMessage(msg));

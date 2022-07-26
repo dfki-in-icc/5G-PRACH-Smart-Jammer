@@ -23,6 +23,7 @@
     "@angular/router": "^14.1.0",
     "chart.js": "^3.8.2",
     "moment": "^2.29.3",
+    "ng2-charts": "^4.0.0",
     "rxjs": "^6.6.6",
     "tslib": "^2.0.0",
     "zone.js": "^0.11.4"
