@@ -102,8 +102,8 @@ int config_sync_var=-1;
 int use_prometheus = 0;
 int enable_parallel_pull = 0;
 int disable_shm_log = 0;
-int num_chest_threads = 8;
-
+int num_chest_threads = 14;
+int num_rxdlsh_threads = 14;
 // not used in UE
 instance_t CUuniqInstance=0;
 instance_t DUuniqInstance=0;
@@ -260,6 +260,7 @@ void init_tpools(uint8_t nun_dlsch_threads) {
   free(params);
   init_dlsch_tpool( nun_dlsch_threads);
   init_dlsch_chest_tpool(num_chest_threads);
+  init_rxdlsch_tpool(num_rxdlsh_threads);
 }
 
 static void get_options(void) {

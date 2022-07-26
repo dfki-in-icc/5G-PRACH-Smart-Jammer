@@ -1119,6 +1119,22 @@ typedef struct NrChannelCompensate_s {
   PHY_NR_MEASUREMENTS *measurements;
 } NrChannelCompensate_t;
 
+typedef struct NrRxPDSCH_s {
+  PHY_VARS_NR_UE *ue;
+  UE_nr_rxtx_proc_t *proc;
+  PDSCH_t type;
+  unsigned char gNB_id;
+  unsigned char gNB_id_i;
+  uint32_t frame;
+  uint8_t nr_slot_rx;
+  unsigned char symbol;
+  unsigned char first_symbol_flag;
+  RX_type_t rx_type;
+  unsigned char i_mod;
+  unsigned char harq_pid;
+  int return_code;
+} NrRxPDSCH_t;
+
 typedef struct LDPCDecode_ue_s {
   PHY_VARS_NR_UE *phy_vars_ue;
   NR_DL_UE_HARQ_t *harq_process;

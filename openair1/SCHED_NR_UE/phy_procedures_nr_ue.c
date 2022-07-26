@@ -104,6 +104,26 @@ void init_dlsch_chest_tpool(uint8_t num_threads) {
   free(params);
 }
 
+static tpool_t pool_rxpdsch;
+void init_rxdlsch_tpool(uint8_t num_threads) {
+  char *params = NULL;
+  char buf[16];
+  if( num_threads==0) {
+    params = calloc(1,2);
+    memcpy(params,"N",1);
+  }
+  else {
+    params = calloc(1,(num_threads*3)+1);
+    for (int i=0; i<num_threads; i++) {
+    sprintf(buf,"%2d,",i);
+    memcpy(params+(i*3),buf,3);
+    }
+  }
+
+  initNamedTpool(params, &pool_rxpdsch, false,"dlsch_rx");
+  free(params);
+}
+
 void nr_fill_dl_indication(nr_downlink_indication_t *dl_ind,
                            fapi_nr_dci_indication_t *dci_ind,
                            fapi_nr_rx_indication_t *rx_ind,
@@ -571,6 +591,7 @@ int nr_ue_pdsch_procedures(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, int gNB_
   int m;
   int i_mod,gNB_id_i,dual_stream_UE;
   int first_symbol_flag=0;
+  int ret_code;
 
   if (!dlsch0)
     return 0;
@@ -628,7 +649,7 @@ int nr_ue_pdsch_procedures(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, int gNB_
       if (dlsch0_harq->dlDmrsSymbPos & (1 << m)) {
         for (uint8_t aatx=0; aatx<dlsch0_harq->Nl; aatx++) {//for MIMO Config: it shall loop over no_layers
           LOG_D(PHY,"PDSCH Channel estimation gNB id %d, PDSCH antenna port %d, slot %d, symbol %d\n",0,aatx,nr_slot_rx,m);
-         LOG_I(PHY,"nr_pdsch_channel_estimation_th start ( symbol %d num_RB %d)\n",m, pdsch_nb_rb);
+          LOG_X(PHY,"nr_pdsch_channel_estimation_th start ( symbol %d num_RB %d)\n",m, pdsch_nb_rb);
 
           notifiedFIFO_elt_t *chset =
                      newNotifiedFIFO_elt(sizeof(nrChannelEstimate_t), CHEST_JOB_ID/* + num_chest_thread*/, &nf, nr_pdsch_channel_estimation_th);
@@ -656,17 +677,17 @@ int nr_ue_pdsch_procedures(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, int gNB_
     //   notifiedFIFO_elt_t *req=pullTpool(&nf, &(pool_dlsch_chest));
     //   delNotifiedFIFO_elt(req);
     // }
-    LOG_I(PHY,"waiting for thread to finish\n");
+    LOG_X(PHY,"waiting for thread to finish\n");
     notifiedFIFO_elt_t *req;
     int r = 0;
     while (r < num_chest_thread){
       if (req=tryPullTpool(&nf, &(pool_dlsch_chest))){
         delNotifiedFIFO_elt(req);
         r++;
-    // LOG_I(PHY,"channel_estimation thread %d finished\n",r);
+        LOG_X(PHY,"channel_estimation thread %d finished\n",r);
       }
     }
-    LOG_I(PHY,"nr_pdsch_channel_estimation_th finished\n");
+    LOG_X(PHY,"nr_pdsch_channel_estimation_th finished\n");
 
 #endif
 
@@ -681,6 +702,9 @@ int nr_ue_pdsch_procedures(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, int gNB_
     while ((dmrs_data_re == 0) && (dlsch0_harq->dlDmrsSymbPos & (1 << first_symbol_with_data))) {
       first_symbol_with_data++;
     }
+
+#define COMPENSATION_THREAD
+#ifndef COMPENSATION_THREAD
 
     start_meas(&ue->rx_pdsch_stats);
     for (m = s0; m < (s1 + s0); m++) {
@@ -725,6 +749,75 @@ int nr_ue_pdsch_procedures(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, int gNB_
       }
     } // CRNTI active
     stop_meas(&ue->rx_pdsch_stats);
+
+#else
+
+    notifiedFIFO_t nf_pdsch;
+    initNotifiedFIFO(&nf_pdsch);
+    uint32_t  num_rxpdsch_thread = 0;
+    uint8_t slot = 0;
+
+    for (m = s0; m < (s1 + s0); m++) {
+ 
+      dual_stream_UE = 0;
+      gNB_id_i = gNB_id+1;
+      i_mod = 0;
+      if (m==first_symbol_with_data)
+        first_symbol_flag = 1;
+      else
+        first_symbol_flag = 0;
+
+      slot = 0;
+      if(m >= ue->frame_parms.symbols_per_slot>>1)
+        slot = 1;
+      start_meas(&ue->dlsch_llr_stats_parallelization[proc->thread_id][slot]);
+      // process DLSCH received symbols in the slot
+      // symbol by symbol processing (if data/DMRS are multiplexed is checked inside the function)
+      if (pdsch == PDSCH || pdsch == SI_PDSCH || pdsch == RA_PDSCH) {
+          NrRxPDSCH_t *rxpdsch = 
+  		      newNotifiedFIFO_elt(sizeof(NrRxPDSCH_t), CHEST_JOB_ID/* + num_chest_thread*/, &nf_pdsch, nr_rx_pdsch_th);
+          NrRxPDSCH_t *rxpdschData = (NrRxPDSCH_t*) NotifiedFifoData(rxpdsch);
+
+          rxpdschData->ue   = ue;
+          rxpdschData->proc = proc;
+          rxpdschData->type = pdsch;
+          rxpdschData->gNB_id = gNB_id;
+          rxpdschData->gNB_id_i = gNB_id_i;
+          rxpdschData->frame = frame_rx;
+          rxpdschData->nr_slot_rx = nr_slot_rx;
+          rxpdschData->symbol = m;
+          rxpdschData->first_symbol_flag = first_symbol_flag;
+          rxpdschData->rx_type = dual_stream_UE;
+          rxpdschData->i_mod = i_mod;
+          rxpdschData->harq_pid = harq_pid;
+
+          pushTpool(&(pool_rxpdsch),rxpdsch);
+          num_rxpdsch_thread++;
+      } else AssertFatal(1==0,"Not RA_PDSCH, SI_PDSCH or PDSCH\n");
+
+      if (cpumeas(CPUMEAS_GETSTATE))
+        LOG_D(PHY, "[AbsSFN %d.%d] LLR Computation Symbol %d %5.2f \n",frame_rx,nr_slot_rx,m,ue->dlsch_llr_stats_parallelization[proc->thread_id][slot].p_time/(cpuf*1000.0));
+      if(first_symbol_flag) {
+        proc->first_symbol_available = 1;
+      }
+    } // CRNTI active
+
+    LOG_D(PHY,"waiting for rx_pdsch thread to finish (num_rxpdsch_thread %d )\n",num_rxpdsch_thread);
+    NrRxPDSCH_t *rx_result;
+    r = 0;
+    ret_code = 0;
+    while (r < num_rxpdsch_thread){
+      if (rx_result=tryPullTpool(&nf_pdsch, &(pool_rxpdsch))){
+        if (rx_result->return_code == -1) ret_code = -1; 
+        delNotifiedFIFO_elt(rx_result);
+        r++;
+        LOG_D(PHY,"channel_estimation thread %d finished\n",r);
+      }
+    }
+    stop_meas(&ue->dlsch_llr_stats_parallelization[proc->thread_id][slot]);
+
+#endif
+
   }
   return 0;
 }

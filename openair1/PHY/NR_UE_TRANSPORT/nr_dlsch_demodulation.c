@@ -133,6 +133,23 @@ static int nr_dlsch_llr(NR_UE_PDSCH **pdsch_vars,
                         uint8_t nr_slot_rx,
                         uint8_t beamforming_mode);
 
+void* nr_rx_pdsch_th(void* args){
+  NrRxPDSCH_t* rxPDSCH = (NrRxPDSCH_t*) args;
+  rxPDSCH->return_code =
+    nr_rx_pdsch(rxPDSCH->ue,
+                rxPDSCH->proc,
+                rxPDSCH->type,
+                rxPDSCH->gNB_id,
+                rxPDSCH->gNB_id_i,
+                rxPDSCH->frame,
+                rxPDSCH->nr_slot_rx,
+                rxPDSCH->symbol,
+                rxPDSCH->first_symbol_flag,
+                rxPDSCH->rx_type,
+                rxPDSCH->i_mod,
+                rxPDSCH->harq_pid);
+}
+
 int32_t dlsch_prom_buf[300];
 /* Main Function */
 int nr_rx_pdsch(PHY_VARS_NR_UE *ue,
