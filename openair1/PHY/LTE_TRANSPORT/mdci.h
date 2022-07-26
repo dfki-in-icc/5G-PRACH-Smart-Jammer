@@ -79,104 +79,35 @@ typedef struct DCI6_0A_1_4MHz DCI6_0A_1_4MHz_t;
 ///  1.4MHZ_basic DCI Format Type 6-1A (1.4 MHz, FDD, rep2, no mod order override - 27 bits,TM!=9,TM!=6, no scheduling enhancement)
 struct DCI6_1A_1_4MHz {
   /// padding to fill 32 bit word
-	  uint32_t padding:6;
+  uint32_t padding:6;
+  // DCI subframe repetition number – 2 bits as defined in section 9.1.5 of 3GPP TS 36.213
+  uint32_t dci_rep:2;
+  //HARQ-ACK resource offset – 2 bits as defined in section 10.1 of 3GPP TS 36.213
+  uint32_t harq_ack_off:2;
+  // SRS request –1 bit. The interpretation of this field is provided in section 8.2 of 3GPP TS 36.213
+  uint32_t srs_req:1;
+  // Repetition number – 2 bits as defined in section 8.0 of 3GPP TS 36.213
+  uint32_t rep:2;
+  // HARQ process number – 3 bits
+  uint32_t harq_pid:3;
+  // New data indicator – 1 bit
+  uint32_t ndi:1;
+  // Redundancy version – 2 bits
+  uint32_t rv_idx:2;
+  // TPC command for scheduled PUSCH – 2 bits as defined in section 5.1.1.1 of 3GPP TS 36.213
+  uint32_t TPC:2;
+  // Modulation and coding scheme – 4 bits as defined in section 8.6 of 3GPP TS 36.213
+  uint32_t mcs:4;
+  // Resource block assignment 5 bits provide the resource allocation using UL resource allocation type 0 within the indicated narrowband
+  uint32_t rballoc:5;
+  // Frequency hopping flag – 1 bit, where value 0 indicates frequency hopping is not enabled and value 1 indicates frequency hopping is enabled as defined in section 5.3.4 of 3GPP TS 36.211
+  uint32_t hopping:1;
   //Flag format 6-0A/format 6-1A differentiation – 1 bit, where value 0 indicates format 6-0A and value 1 indicates format 6-1A
-      uint32_t type:1;
-     // Frequency hopping flag – 1 bit, where value 0 indicates frequency hopping is not enabled and value 1 indicates frequency hopping is enabled as defined in section 5.3.4 of 3GPP TS 36.211
-      uint32_t hopping:1;
-      // Resource block assignment 5 bits provide the resource allocation using UL resource allocation type 0 within the indicated narrowband
-          uint32_t rballoc:5;
-      // ceil(log2(floor(N_RB_UL/6))) MSB bits provide the narrowband index as defined in section 5.2.4 3GPP TS 36.211
-          //uint32_t narrowband:1;
-      // Modulation and coding scheme – 4 bits as defined in section 8.6 of 3GPP TS 36.213
-            uint32_t mcs:4;
-      // TPC command for scheduled PUSCH – 2 bits as defined in section 5.1.1.1 of 3GPP TS 36.213
-            uint32_t TPC:2;
-      // Redundancy version – 2 bits
-            uint32_t rv_idx:2;
-      // New data indicator – 1 bit
-            uint32_t ndi:1;
-      // HARQ process number – 3 bits
-            uint32_t harq_pid:3;
-      // Repetition number – 2 bits as defined in section 8.0 of 3GPP TS 36.213
-            uint32_t rep:2;
-      // SRS request –1 bit. The interpretation of this field is provided in section 8.2 of 3GPP TS 36.213
-            uint32_t srs_req:1;
-      //HARQ-ACK resource offset – 2 bits as defined in section 10.1 of 3GPP TS 36.213
-            uint32_t harq_ack_off:2;
-      // DCI subframe repetition number – 2 bits as defined in section 9.1.5 of 3GPP TS 36.213
-            uint32_t dci_rep:2;
-
+  uint32_t type:1;
 } __attribute__ ((__packed__));
 
 typedef struct DCI6_1A_1_4MHz DCI6_1A_1_4MHz_t;
 #define sizeof_DCI6_1A_1_4MHz_t 26
-
-
-
- // 1.4MHZ_basic DCI Format Type 6-1A (1.4 MHz, FDD, rep2, no mod order override - XX bits)
-/*struct DCI6_1A_1_4MHz {
-  /// padding to fill 32 bit word
-	  uint32_t padding:5;
-  //Flag format 6-0A/format 6-1A differentiation – 1 bit, where value 0 indicates format 6-0A and value 1 indicates format 6-1A
-  uint32_t type:1;
-  //=========================================================================
-  //Format 6-1A is used for random access procedure initiated by a PDCCH order only if format 6-1A CRC is scrambled with C-RNTI and all the remaining fields are set as follows:
-
-  // Resource block assignment 5 bits provide the resource allocation using UL resource allocation type 0 within the indicated narrowband
-    uint32_t rballoc:5;
-
-  // ceil(log2(floor(N_RB_UL/6))) MSB bits provide the narrowband index as defined in section 5.2.4 3GPP TS 36.211
-    uint32_t narrowband:1;
-
-    //Preamble Index – 6 bits
-    uint32_t preamble_idx:6;
-
-    //PRACH Mask Index – 4 bits,
-    uint32_t prach_idx:4;
-
-    // Starting CE level – 2 bits provide the PRACH starting CE level
-    uint32_t ce_level:2;
-    //==========================================================================
-      //format 6-1A is used for the compact scheduling of one PDSCH codeword in one cell
-     // Frequency hopping flag – 1 bit, where value 0 indicates frequency hopping is not enabled and value 1 indicates frequency hopping is enabled as defined in section 5.3.4 of 3GPP TS 36.211
-      uint32_t hopping:1;
-      // Resource block assignment 5 bits provide the resource allocation using UL resource allocation type 0 within the indicated narrowband
-          uint32_t rballoc:5;
-      // ceil(log2(floor(N_RB_UL/6))) MSB bits provide the narrowband index as defined in section 5.2.4 3GPP TS 36.211
-          uint32_t narrowband:1;
-      // Modulation and coding scheme – 4 bits as defined in section 8.6 of 3GPP TS 36.213
-            uint32_t mcs:4;
-      // TPC command for scheduled PUSCH – 2 bits as defined in section 5.1.1.1 of 3GPP TS 36.213
-            uint32_t TPC:2;
-      // Redundancy version – 2 bits
-            uint32_t rv_idx:2;
-      // New data indicator – 1 bit
-            uint32_t ndi:1;
-      // HARQ process number – 3 bits
-            uint32_t harq_pid:3;
-      // Repetition number – 2 bits as defined in section 8.0 of 3GPP TS 36.213
-            uint32_t rep:2;
-      // SRS request –1 bit. The interpretation of this field is provided in section 8.2 of 3GPP TS 36.213
-            uint32_t srs_req:1;
-      //HARQ-ACK resource offset – 2 bits as defined in section 10.1 of 3GPP TS 36.213
-            uint32_t harq_ack_off:2;
-      // DCI subframe repetition number – 2 bits as defined in section 9.1.5 of 3GPP TS 36.213
-            uint32_t dci_rep:2;
-      //========================================================================================
-    // Downlink Assignment Index . This field is reserved when the configured maximum repetition number is larger than 1 for either PDSCH or MPDCCH.
-            uint32_t dai:4;
-   //Antenna port(s) and scrambling identity – 2 bits indicating the values 0 to 3.This field is present only if PDSCH transmission is configured with TM9
-            uint32_t antenna:2;
-   // TPMI information for precoding – number of bits as specified in Table 5.3.3.1.3A-1 of 36.212. Only for TM6
-            uint32_t tpm1:4;
-   //PMI confirmation for precoding – 1 bit. This field is present only if PDSCH transmission is configured with TM6
-            uint32_t pmi:1;
-} __attribute__ ((__packed__));
-
-typedef struct DCI6_1A_1_4MHz DCI6_1A_1_4MHz_t;
-#define sizeof_DCI6_1A_1_4MHz_t 27 // extended by one bit to match DCI6_1A*/
-
 
 /// basic DCI Format Type 6-2 for paging (1_4 MHz)
 struct DCI6_2_paging_1_4MHz {
