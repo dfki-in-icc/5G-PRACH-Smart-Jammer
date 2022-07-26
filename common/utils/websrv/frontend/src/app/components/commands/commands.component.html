@@ -78,14 +78,14 @@
            <div >
           <mat-table mat-table [dataSource]="rows$" multiTemplateDataRows class="mat-elevation-z8">
 
-            <div  *ngFor="let col of columns; index as colIndex" matColumnDef="{{col.name}}">
+            <div  class="TableRowdiv" *ngFor="let col of columns; index as colIndex" matColumnDef="{{col.name}}">
               <mat-header-cell *matHeaderCellDef fxLayoutAlign="start center">
                 <div>
                   <h4>{{ col.name }}</h4>
                 </div>
               </mat-header-cell>
               <mat-cell *matCellDef="let row">
-                <div  class="TableRowdiv" [ngSwitch]="col.type" [formGroup]="row" fxLayoutAlign="start center">
+                <div   [ngSwitch]="col.type" [formGroup]="row" fxLayoutAlign="start center">
                   <mat-slide-toggle *ngSwitchCase="IArgType.boolean" [formControl]="row.paramsCtrls[colIndex].valueFC"
                     [checked]="row.paramsCtrls[colIndex].valueFC.value">
                   </mat-slide-toggle>
@@ -123,6 +123,5 @@
         </mat-card-content>
       </mat-card>
     </mat-grid-tile>
-
   </mat-grid-list>
 </div>

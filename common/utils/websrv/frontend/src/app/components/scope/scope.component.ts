@@ -1,13 +1,15 @@
-import { Component, Output, EventEmitter} from "@angular/core";
+import { Component, Output, EventEmitter, ViewChild} from "@angular/core";
 import { FormGroup,FormControl } from "@angular/forms";
 import { Message, WebSocketService, webSockSrc } from "src/app/services/websocket.service";
 import { NgxSliderModule, Options} from '@angular-slider/ngx-slider';
 import { Observable } from 'rxjs';
-import { ChartConfiguration, ScatterDataPoint } from 'chart.js';
+import { Chart, ChartConfiguration, ChartEvent, ChartType, ScatterDataPoint } from 'chart.js';
+import { BaseChartDirective } from 'ng2-charts';
 
 const SCOPEMSG_TYPE_STATUSUPD=1;   
 const SCOPEMSG_TYPE_REFRATE=2;
 const SCOPEMSG_TYPE_TIME=3;
+const SCOPEMSG_TYPE_DATA=10;
 
 @Component({
   selector: 'app-scope',
@@ -31,17 +33,14 @@ export class ScopeComponent {
     ceil: 3,
     step: 0.1
   };
+  
+  @ViewChild(BaseChartDirective) chart?: BaseChartDirective;
+  
   public IQDatasets: ChartConfiguration<'scatter'>['data']['datasets'] = [
     {
-      data: [
-        { x: 1, y: 1 },
-        { x: 2, y: 3 },
-        { x: 3, y: -2 },
-        { x: 4, y: 4 },
-        { x: 5, y: -3},
-      ],
+      data: [{x:0,y:0},{x:10,y:10}],
       label: 'Series A',
-      pointRadius: 10,
+      pointRadius: 0.5,
     },
   ];
 
@@ -83,6 +82,12 @@ export class ScopeComponent {
             this.scopestatus='started';
             this.startstop='stop';
             this.scopetime=msgcontent;
+            break;
+          case  SCOPEMSG_TYPE_DATA:
+            for ( let i=0;i<10; i++) {
+               this.IQDatasets[0].data[i]={ x: i, y: i};
+            }
+            this.chart?.update();
             break;
           default:
             break;

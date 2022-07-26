@@ -51,7 +51,7 @@ static websrv_scope_params_t scope_params = {0,1000,NULL,&scopedata};
 static websrv_params_t *websrvparams_ptr;
 
 void  websrv_scope_sendIQ(int n, websrv_scopedata_msg_t *msg) {
-	LOG_I(UTIL,"[websrv] sending %i IQ's /n",n);
+	LOG_I(UTIL,"[websrv] sending %i IQ's \n",n);
 /*    int k = (n/MAX_FLOAT_WEBSOCKMSG)  + 1;
     for (int i=0; i<k ; i++)
       for ( int j=0; j<MAX_FLOAT_WEBSOCKMSG && ((i*MAX_FLOAT_WEBSOCKMSG)+j)<n; j++) {
@@ -173,6 +173,7 @@ void websrv_websocket_manager_callback(const struct _u_request * request,
 	  sleep(1);
 	}    
   }
+  usleep(scope_params.refrate);
   LOG_I(UTIL, "Closing websocket_manager_callback...\n");
 }
 

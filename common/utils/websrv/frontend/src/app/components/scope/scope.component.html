@@ -53,18 +53,14 @@
       </mat-card>
     </mat-grid-tile>
 
-    <mat-grid-tile [colspan]="5" [rowspan]="10">
+    <mat-grid-tile [colspan]="5" [rowspan]="2">
       <mat-card class="dashboard-card">
         <mat-card-content class="dashboard-card-content">
-          <canvas baseChart
-            [datasets]="IQDatasets"
-            [options]="IQOptions"
-            [type]="'scatter'">
-          </canvas>
+ 
         </mat-card-content>
       </mat-card>
     </mat-grid-tile>
-    <mat-grid-tile [colspan]="5" [rowspan]="10">
+    <mat-grid-tile [colspan]="5" [rowspan]="2">
       <mat-card class="dashboard-card">
         <mat-card-content class="dashboard-card-content">
 
@@ -81,7 +77,11 @@
      <mat-grid-tile [colspan]="5" [rowspan]="10">
       <mat-card class="dashboard-card">
         <mat-card-content class="dashboard-card-content">
-
+         <canvas baseChart
+            [datasets]="IQDatasets"
+            [options]="IQOptions"
+            [type]="'scatter'">
+          </canvas>
         </mat-card-content>
       </mat-card>
     </mat-grid-tile>           
