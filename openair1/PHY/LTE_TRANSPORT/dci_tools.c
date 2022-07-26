@@ -2238,7 +2238,6 @@ void fill_mpdcch_dci0 (PHY_VARS_eNB *eNB,
     	  ((DCI6_0A_1_4MHz_t *) dci_pdu)->type = 0;
     	  ((DCI6_0A_1_4MHz_t *) dci_pdu)->hopping = hopping;
     	  ((DCI6_0A_1_4MHz_t *) dci_pdu)->rballoc = rballoc;
-    	  ((DCI6_0A_1_4MHz_t *) dci_pdu)->narrowband = narrowband;
     	  ((DCI6_0A_1_4MHz_t *) dci_pdu)->mcs = mcs;
     	  ((DCI6_0A_1_4MHz_t *) dci_pdu)->rep = rel13->pusch_repetition_levels;
     	  ((DCI6_0A_1_4MHz_t *) dci_pdu)->harq_pid = rel13->harq_process;

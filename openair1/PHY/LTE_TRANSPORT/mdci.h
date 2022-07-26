@@ -40,7 +40,7 @@
 ///  1.4MHZ_basic DCI Format Type 6-0A (1.4 MHz, FDD, rep2, no mod order override - XX bits)
 struct DCI6_0A_1_4MHz {
   /// padding to fill 32 bit word
-  uint32_t padding:6;
+  uint32_t padding:7;
   /// DCI subframe repetition number – 2 bits as defined in section 9.1.5 of 3GPP TS 36.213
   uint32_t dci_rep:2;
   /// SRS request –1 bit. The interpretation of this field is provided in section 8.2 of 3GPP TS 36.213
@@ -61,8 +61,6 @@ struct DCI6_0A_1_4MHz {
   uint32_t mcs:4;
   /// Resource block assignment 5 bits provide the resource allocation using UL resource allocation type 0 within the indicated narrowband
   uint32_t rballoc:5;
-  /// ceil(log2(floor(N_RB_UL/6))) MSB bits provide the narrowband index as defined in section 5.2.4 3GPP TS 36.211
-  uint32_t narrowband:1;
   /* Frequency hopping flag – 1 bit, where value 0 indicates frequency hopping is not enabled and value 1 indicates
   frequency hopping is enabled as defined in section 5.3.4 of 3GPP TS 36.211*/
   uint32_t hopping:1;
@@ -72,7 +70,7 @@ format 6-1A */
 } __attribute__ ((__packed__));
 
 typedef struct DCI6_0A_1_4MHz DCI6_0A_1_4MHz_t;
-#define sizeof_DCI6_0A_1_4MHz_t 27 // extended by one bit to match DCI6_1A
+#define sizeof_DCI6_0A_1_4MHz_t 25
 
 
 
@@ -86,16 +84,16 @@ struct DCI6_1A_1_4MHz {
   uint32_t harq_ack_off:2;
   // SRS request –1 bit. The interpretation of this field is provided in section 8.2 of 3GPP TS 36.213
   uint32_t srs_req:1;
-  // Repetition number – 2 bits as defined in section 8.0 of 3GPP TS 36.213
-  uint32_t rep:2;
-  // HARQ process number – 3 bits
-  uint32_t harq_pid:3;
-  // New data indicator – 1 bit
-  uint32_t ndi:1;
-  // Redundancy version – 2 bits
-  uint32_t rv_idx:2;
   // TPC command for scheduled PUSCH – 2 bits as defined in section 5.1.1.1 of 3GPP TS 36.213
   uint32_t TPC:2;
+  // Redundancy version – 2 bits
+  uint32_t rv_idx:2;
+  // New data indicator – 1 bit
+  uint32_t ndi:1;
+  // HARQ process number – 3 bits
+  uint32_t harq_pid:3;
+  // Repetition number – 2 bits as defined in section 8.0 of 3GPP TS 36.213
+  uint32_t rep:2;
   // Modulation and coding scheme – 4 bits as defined in section 8.6 of 3GPP TS 36.213
   uint32_t mcs:4;
   // Resource block assignment 5 bits provide the resource allocation using UL resource allocation type 0 within the indicated narrowband
