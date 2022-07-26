@@ -133,6 +133,7 @@ const initial_pucch_resource_t initial_pucch_resource[16] = {
 /* 15  */ {  1,       0,                 14,                   0,            4,       {    0,   3,    6,    9  }   },
 };
 
+extern nr_bler_struct nr_bler_data[NR_NUM_MCS];
 static int get_mcs_from_sinr(nr_bler_struct *nr_bler_data, float sinr);
 
 void nr_ue_init_mac(module_id_t module_idP) {
@@ -2003,7 +2004,7 @@ int find_pucch_resource_set(NR_UE_MAC_INST_t *mac, int uci_size) {
 *                processing slots of reception/transmission
 *                gNB_id identifier
 *
-* RETURN :       TRUE a valid resource has been found
+* RETURN :       true a valid resource has been found
 *
 * DESCRIPTION :  return tx harq process identifier for given transmission slot
 *                TS 38.213 9.2.1  PUCCH Resource Sets
@@ -2133,7 +2134,7 @@ uint8_t get_downlink_ack(NR_UE_MAC_INST_t *mac,
   int number_harq_feedback = 0;
   uint32_t dai_current = 0;
   uint32_t dai_max = 0;
-  bool two_transport_blocks = FALSE;
+  bool two_transport_blocks = false;
   int number_of_code_word = 1;
   int U_DAI_c = 0;
   int N_m_c_rx = 0;
@@ -2155,7 +2156,7 @@ uint8_t get_downlink_ack(NR_UE_MAC_INST_t *mac,
       bwpd->pdsch_Config->choice.setup &&
       bwpd->pdsch_Config->choice.setup->maxNrofCodeWordsScheduledByDCI &&
       bwpd->pdsch_Config->choice.setup->maxNrofCodeWordsScheduledByDCI[0] == 2) {
-    two_transport_blocks = TRUE;
+    two_transport_blocks = true;
     number_of_code_word = 2;
   }
 
@@ -2255,7 +2256,7 @@ uint8_t get_downlink_ack(NR_UE_MAC_INST_t *mac,
   * For a monitoring occasion of a PDCCH with DCI format 1_0 or DCI format 1_1 in at least one serving cell,
   * when a UE receives a PDSCH with one transport block and the value of higher layer parameter maxNrofCodeWordsScheduledByDCI is 2,
   * the HARQ-ACK response is associated with the first transport block and the UE generates a NACK for the second transport block
-  * if spatial bundling is not applied (HARQ-ACK-spatial-bundling-PUCCH = FALSE) and generates HARQ-ACK value of ACK for the second
+  * if spatial bundling is not applied (HARQ-ACK-spatial-bundling-PUCCH = false) and generates HARQ-ACK value of ACK for the second
   * transport block if spatial bundling is applied.
   */
 
@@ -2266,7 +2267,7 @@ uint8_t get_downlink_ack(NR_UE_MAC_INST_t *mac,
         ack_data[code_word][i] = 0;     /* nack data transport block which has been missed */
         number_harq_feedback++;
       }
-      if (two_transport_blocks == TRUE) {
+      if (two_transport_blocks == true) {
         dai_total[code_word][i] = dai[code_word][i]; /* for a single cell, dai_total is the same as dai of first cell */
       }
     }
@@ -2297,7 +2298,7 @@ uint8_t get_downlink_ack(NR_UE_MAC_INST_t *mac,
       o_ACK = o_ACK | (ack_data[1][m] << O_bit_number_cw1);
     }
 
-    if (two_transport_blocks == TRUE) {
+    if (two_transport_blocks == true) {
       O_bit_number_cw0 = (8 * j) + 2*(V_temp - 1);
     }
     else {
@@ -2312,7 +2313,7 @@ uint8_t get_downlink_ack(NR_UE_MAC_INST_t *mac,
     j = j + 1;
   }
 
-  if (two_transport_blocks == TRUE) {
+  if (two_transport_blocks == true) {
     O_ACK = 2 * ( 4 * j + V_temp2);  /* for two transport blocks */
   }
   else {
@@ -2434,11 +2435,9 @@ int8_t nr_ue_get_SR(module_id_t module_idP, frame_t frameP, slot_t slot){
     // start the sr-prohibittimer : rel 9 and above
     if (mac->scheduling_info.sr_ProhibitTimer > 0) { // timer configured
       mac->scheduling_info.sr_ProhibitTimer--;
-      mac->scheduling_info.
-      sr_ProhibitTimer_Running = 1;
+      mac->scheduling_info.sr_ProhibitTimer_Running = 1;
     } else {
-      mac->scheduling_info.
-      sr_ProhibitTimer_Running = 0;
+      mac->scheduling_info.sr_ProhibitTimer_Running = 0;
     }
     //mac->ul_active =1;
     return (1);   //instruct phy to signal SR
