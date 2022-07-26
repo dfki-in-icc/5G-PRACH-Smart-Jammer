@@ -79,7 +79,7 @@ typedef struct DCI6_0A_1_4MHz DCI6_0A_1_4MHz_t;
 ///  1.4MHZ_basic DCI Format Type 6-1A (1.4 MHz, FDD, rep2, no mod order override - 27 bits,TM!=9,TM!=6, no scheduling enhancement)
 struct DCI6_1A_1_4MHz {
   /// padding to fill 32 bit word
-	  uint32_t padding:5;
+	  uint32_t padding:6;
   //Flag format 6-0A/format 6-1A differentiation – 1 bit, where value 0 indicates format 6-0A and value 1 indicates format 6-1A
       uint32_t type:1;
      // Frequency hopping flag – 1 bit, where value 0 indicates frequency hopping is not enabled and value 1 indicates frequency hopping is enabled as defined in section 5.3.4 of 3GPP TS 36.211
@@ -87,7 +87,7 @@ struct DCI6_1A_1_4MHz {
       // Resource block assignment 5 bits provide the resource allocation using UL resource allocation type 0 within the indicated narrowband
           uint32_t rballoc:5;
       // ceil(log2(floor(N_RB_UL/6))) MSB bits provide the narrowband index as defined in section 5.2.4 3GPP TS 36.211
-          uint32_t narrowband:1;
+          //uint32_t narrowband:1;
       // Modulation and coding scheme – 4 bits as defined in section 8.6 of 3GPP TS 36.213
             uint32_t mcs:4;
       // TPC command for scheduled PUSCH – 2 bits as defined in section 5.1.1.1 of 3GPP TS 36.213
@@ -110,7 +110,7 @@ struct DCI6_1A_1_4MHz {
 } __attribute__ ((__packed__));
 
 typedef struct DCI6_1A_1_4MHz DCI6_1A_1_4MHz_t;
-#define sizeof_DCI6_1A_1_4MHz_t 27
+#define sizeof_DCI6_1A_1_4MHz_t 26
 
 
 

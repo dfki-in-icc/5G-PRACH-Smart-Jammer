@@ -394,7 +394,6 @@ schedule_SIB1_BR(module_id_t module_idP,
         N_S_NB = 0;
         Sj = NULL;
         break;
-#if 0
       case 25:
         m = 2;
         N_S_NB = 2;
@@ -418,7 +417,6 @@ schedule_SIB1_BR(module_id_t module_idP,
         N_S_NB = 14;
         Sj = Sj100;
         break;
-#endif
     }
 
     // Note: definition of k above and rvidx from 36.321 section 5.3.1
