@@ -1041,6 +1041,14 @@ void schedule_response(Sched_Rsp_t *Sched_INFO, void *arg) {
                   ul_config_pdu->pdu_type == NFAPI_UL_CONFIG_UCI_SR_HARQ_PDU_TYPE
                   ,
                   "Optional UL_PDU type %d not supported\n",ul_config_pdu->pdu_type);
+
+      /** FIXME: Temporary fix; not crashing anymore for No existing UE ULSCH */
+      if ((ul_config_pdu->pdu_type == NFAPI_UL_CONFIG_ULSCH_PDU_TYPE) && (find_ulsch(ul_config_pdu->ulsch_pdu.ulsch_pdu_rel8.rnti,eNB,SEARCH_EXIST_OR_FREE) < 0)) {
+        LOG_E(PHY, "No existing UE ULSCH for rnti %x\n", ul_config_pdu->ulsch_pdu.ulsch_pdu_rel8.rnti);
+        put_UE_in_freelist(Mod_id, ul_config_pdu->ulsch_pdu.ulsch_pdu_rel8.rnti, 1);
+        return;
+      }
+
       handle_nfapi_ul_pdu(eNB,proc,ul_config_pdu,UL_req->sfn_sf>>4,UL_req->sfn_sf&0xf,UL_req->ul_config_request_body.srs_present);
     }
   }
