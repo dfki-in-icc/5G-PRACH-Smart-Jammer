@@ -832,6 +832,73 @@ rrc_gNB_generate_defaultRRCReconfiguration(
   }
 }
 
+void fill_measConfig(NR_MeasConfig_t *meas_config) {
+
+  // Measurement Objects: Specifies what is to be measured. For NR and inter-RAT E-UTRA measurements, this may include
+  // cell-specific offsets, blacklisted cells to be ignored and whitelisted cells to consider for measurements.
+  meas_config->measObjectToAddModList = calloc(1, sizeof(*meas_config->measObjectToAddModList));
+  NR_MeasObjectToAddMod_t *measObj3 = calloc(1, sizeof(*measObj3));
+  measObj3->measObjectId = 3;
+  measObj3->measObject.present = NR_MeasObjectToAddMod__measObject_PR_measObjectNR;
+  measObj3->measObject.choice.measObjectNR = calloc(1, sizeof(*measObj3->measObject.choice.measObjectNR));
+  measObj3->measObject.choice.measObjectNR->ssbFrequency = calloc(1, sizeof(*measObj3->measObject.choice.measObjectNR->ssbFrequency));
+  *measObj3->measObject.choice.measObjectNR->ssbFrequency = 641280;
+  measObj3->measObject.choice.measObjectNR->ssbSubcarrierSpacing = calloc(1, sizeof(*measObj3->measObject.choice.measObjectNR->ssbSubcarrierSpacing));
+  *measObj3->measObject.choice.measObjectNR->ssbSubcarrierSpacing = NR_SubcarrierSpacing_kHz30;
+  measObj3->measObject.choice.measObjectNR->quantityConfigIndex = 1;
+  ASN_SEQUENCE_ADD(&meas_config->measObjectToAddModList->list, measObj3);
+
+  // Reporting Configuration: Specifies how reporting should be done. This could be periodic or event-triggered.
+  meas_config->reportConfigToAddModList = calloc(1, sizeof(*meas_config->reportConfigToAddModList));
+  NR_ReportConfigToAddMod_t *reportConfig_A3 = calloc(1, sizeof(*reportConfig_A3));
+  reportConfig_A3->reportConfigId = 3;
+  reportConfig_A3->reportConfig.present = NR_ReportConfigToAddMod__reportConfig_PR_reportConfigNR;
+  reportConfig_A3->reportConfig.choice.reportConfigNR = calloc(1, sizeof(*reportConfig_A3->reportConfig.choice.reportConfigNR));
+  reportConfig_A3->reportConfig.choice.reportConfigNR->reportType.present = NR_ReportConfigNR__reportType_PR_eventTriggered;
+  reportConfig_A3->reportConfig.choice.reportConfigNR->reportType.choice.eventTriggered = calloc(1, sizeof(*reportConfig_A3->reportConfig.choice.reportConfigNR->reportType.choice.eventTriggered));
+  reportConfig_A3->reportConfig.choice.reportConfigNR->reportType.choice.eventTriggered->eventId.present = NR_EventTriggerConfig__eventId_PR_eventA3;
+  reportConfig_A3->reportConfig.choice.reportConfigNR->reportType.choice.eventTriggered->eventId.choice.eventA3 = calloc(1, sizeof(*reportConfig_A3->reportConfig.choice.reportConfigNR->reportType.choice.eventTriggered->eventId.choice.eventA1));
+  reportConfig_A3->reportConfig.choice.reportConfigNR->reportType.choice.eventTriggered->eventId.choice.eventA3->a3_Offset.present = NR_MeasTriggerQuantityOffset_PR_rsrp;
+  reportConfig_A3->reportConfig.choice.reportConfigNR->reportType.choice.eventTriggered->eventId.choice.eventA3->a3_Offset.choice.rsrp = 0;
+  reportConfig_A3->reportConfig.choice.reportConfigNR->reportType.choice.eventTriggered->eventId.choice.eventA3->reportOnLeave = true;
+  reportConfig_A3->reportConfig.choice.reportConfigNR->reportType.choice.eventTriggered->eventId.choice.eventA3->hysteresis = 0;
+  reportConfig_A3->reportConfig.choice.reportConfigNR->reportType.choice.eventTriggered->eventId.choice.eventA3->timeToTrigger = NR_TimeToTrigger_ms40;
+  reportConfig_A3->reportConfig.choice.reportConfigNR->reportType.choice.eventTriggered->rsType = NR_NR_RS_Type_csi_rs;
+  reportConfig_A3->reportConfig.choice.reportConfigNR->reportType.choice.eventTriggered->reportInterval = NR_ReportInterval_ms120;
+  reportConfig_A3->reportConfig.choice.reportConfigNR->reportType.choice.eventTriggered->reportAmount = NR_EventTriggerConfig__reportAmount_infinity;
+  reportConfig_A3->reportConfig.choice.reportConfigNR->reportType.choice.eventTriggered->reportQuantityCell.rsrp = true;
+  reportConfig_A3->reportConfig.choice.reportConfigNR->reportType.choice.eventTriggered->reportQuantityCell.rsrq = true;
+  reportConfig_A3->reportConfig.choice.reportConfigNR->reportType.choice.eventTriggered->reportQuantityCell.sinr = true;
+  reportConfig_A3->reportConfig.choice.reportConfigNR->reportType.choice.eventTriggered->maxReportCells = 2;
+  reportConfig_A3->reportConfig.choice.reportConfigNR->reportType.choice.eventTriggered->includeBeamMeasurements = false;
+  ASN_SEQUENCE_ADD(&meas_config->reportConfigToAddModList->list, reportConfig_A3);
+
+  // Measurement ID: Identifies how to report measurements of a specific object. This is a many-to-many mapping: a
+  // measurement object could have multiple reporting configurations, a reporting configuration could apply to multiple
+  // objects. A unique ID is used for each object-to-report-config association. When UE sends a MeasurementReport
+  // message, a single ID and related measurements are included in the message.
+  meas_config->measIdToAddModList = calloc(1, sizeof(*meas_config->measIdToAddModList));
+  NR_MeasIdToAddMod_t *measId3 = calloc(1, sizeof(*measId3));
+  measId3->measId = 3;
+  measId3->measObjectId = 3;
+  measId3->reportConfigId = 3;
+  ASN_SEQUENCE_ADD(&meas_config->measIdToAddModList->list, measId3);
+
+  // Quantity Configuration: Specifies parameters for layer 3 filtering of measurements. Only after filtering, reporting
+  // criteria are evaluated. The formula used is F_n = (1-a)F_(n-1) + a*M_n, where M is the latest measurement, F is the
+  // filtered measurement, and ais based on configured filter coefficient.
+  meas_config->quantityConfig = calloc(1, sizeof(*meas_config->quantityConfig));
+  meas_config->quantityConfig->quantityConfigNR_List = calloc(1, sizeof(*meas_config->quantityConfig->quantityConfigNR_List));
+  NR_QuantityConfigNR_t *quantityConfig3 = calloc(1, sizeof(*quantityConfig3));
+  quantityConfig3->quantityConfigCell.csi_RS_FilterConfig.filterCoefficientRSRP = calloc(1, sizeof(*quantityConfig3->quantityConfigCell.csi_RS_FilterConfig.filterCoefficientRSRP));
+  *quantityConfig3->quantityConfigCell.csi_RS_FilterConfig.filterCoefficientRSRP = NR_FilterCoefficient_fc4;
+  quantityConfig3->quantityConfigCell.csi_RS_FilterConfig.filterCoefficientRSRQ = calloc(1, sizeof(*quantityConfig3->quantityConfigCell.csi_RS_FilterConfig.filterCoefficientRSRQ));
+  *quantityConfig3->quantityConfigCell.csi_RS_FilterConfig.filterCoefficientRSRQ = NR_FilterCoefficient_fc4;
+  quantityConfig3->quantityConfigCell.csi_RS_FilterConfig.filterCoefficientRS_SINR = calloc(1, sizeof(*quantityConfig3->quantityConfigCell.csi_RS_FilterConfig.filterCoefficientRS_SINR));
+  *quantityConfig3->quantityConfigCell.csi_RS_FilterConfig.filterCoefficientRS_SINR = NR_FilterCoefficient_fc4;
+  ASN_SEQUENCE_ADD(&meas_config->quantityConfig->quantityConfigNR_List->list, quantityConfig3);
+}
+
 //-----------------------------------------------------------------------------
 void
 rrc_gNB_generate_dedicatedRRCReconfiguration(
@@ -1027,20 +1094,24 @@ rrc_gNB_generate_dedicatedRRCReconfiguration(
     cellGroupConfig = cell_groupConfig_from_DU;
   }
 
+  NR_MeasConfig_t *meas_config = calloc(1, sizeof(NR_MeasConfig_t));
+  fill_measConfig(meas_config);
+
   size = do_RRCReconfiguration(ctxt_pP, buffer, sizeof(buffer),
-                                xid,
-                                *SRB_configList2,
-                                *DRB_configList,
-                                NULL,
-                                NULL,
-                                NULL,
-                                NULL,
-                                dedicatedNAS_MessageList,
-                                ue_context_pP,
-                                &rrc->carrier,
-                                &rrc->configuration,
-                                NULL,
-                                cellGroupConfig);
+                               xid,
+                               *SRB_configList2,
+                               *DRB_configList,
+                               NULL,
+                               NULL,
+                               NULL,
+                               meas_config,
+                               dedicatedNAS_MessageList,
+                               ue_context_pP,
+                               &rrc->carrier,
+                               &rrc->configuration,
+                               NULL,
+                               cellGroupConfig);
+
   LOG_DUMPMSG(NR_RRC,DEBUG_RRC,(char *)buffer,size,"[MSG] RRC Reconfiguration\n");
 
   /* Free all NAS PDUs */
