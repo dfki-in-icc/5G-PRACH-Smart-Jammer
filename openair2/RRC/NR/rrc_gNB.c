@@ -2680,6 +2680,11 @@ rrc_gNB_decode_dcch(
         ue_context_p->ue_context.ue_release_timer = 0;
         break;
 
+      case NR_UL_DCCH_MessageType__c1_PR_measurementReport:
+        LOG_W(NR_RRC, "TODO: Handle Measurement Report!\n");
+        xer_fprint(stdout, &asn_DEF_NR_UL_DCCH_Message, (void *)ul_dcch_msg);
+        break;
+
         case NR_UL_DCCH_MessageType__c1_PR_ulInformationTransfer:
             LOG_I(NR_RRC,"Recived RRC GNB UL Information Transfer \n");
             if(!ue_context_p) {
