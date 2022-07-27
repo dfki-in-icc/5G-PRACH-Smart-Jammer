@@ -70,7 +70,7 @@ format 6-1A */
 } __attribute__ ((__packed__));
 
 typedef struct DCI6_0A_1_4MHz DCI6_0A_1_4MHz_t;
-#define sizeof_DCI6_0A_1_4MHz_t 25
+#define sizeof_DCI6_0A_1_4MHz_t 26
 
 
 

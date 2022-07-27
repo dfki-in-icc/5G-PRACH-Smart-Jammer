@@ -356,7 +356,7 @@ typedef struct ccparams_eMTC_s {
 
 
 #define SI_INFO_BR_DESC(eMTCconfig) {					\
-{"si_Narrowband_r13", NULL,   0,           iptr:&eMTCconfig->si_Narrowband_r13,             defintval:5,             TYPE_UINT,       0}, \
+{"si_Narrowband_r13", NULL,   0,           iptr:&eMTCconfig->si_Narrowband_r13,             defintval:1,             TYPE_UINT,       0}, \
 {"si_TBS_r13",        NULL,   0,           iptr:&eMTCconfig->si_TBS_r13,                    defintval:5,             TYPE_UINT,       0} \
 }
 
