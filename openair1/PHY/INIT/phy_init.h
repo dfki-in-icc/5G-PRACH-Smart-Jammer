@@ -208,7 +208,7 @@ void phy_config_afterHO_ue(module_id_t Mod_id,
                            uint8_t ho_failed);
 
 /*!
-  \fn phy_config_afterHO_ue
+  \fn emulate_phy_config_afterHO_ue
   \brief Configure Common PHY parameters from mobilityControlInfo
   @param Mod_id
   @param CC_id
@@ -216,7 +216,7 @@ void phy_config_afterHO_ue(module_id_t Mod_id,
   @param mobilityControlInfo pointer to the mobility control information for handover
   @param ho_failed flag to indicated whether the ho was successful or not
  */
-void syn_config_afterHO_ue(module_id_t Mod_id,
+void emulate_phy_config_afterHO_ue(module_id_t Mod_id,
                            uint8_t CC_id,
                            uint8_t eNB_index,
                            LTE_MobilityControlInfo_t *mobilityControlInfo,

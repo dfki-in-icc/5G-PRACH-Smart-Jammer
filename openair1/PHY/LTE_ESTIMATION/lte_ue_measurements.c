@@ -122,7 +122,7 @@ double get_RSRP(module_id_t Mod_id,uint8_t CC_id,uint8_t eNB_index)
 
   PHY_VARS_UE *ue = PHY_vars_UE_g[Mod_id][CC_id];
 
-  if(NFAPI_MODE==NFAPI_UE_STUB_PNF || NFAPI_MODE==NFAPI_MODE_STANDALONE_PNF) {
+  if(NFAPI_MODE == NFAPI_UE_STUB_PNF || NFAPI_MODE == NFAPI_MODE_STANDALONE_PNF) {
     if (ue) {
       return ue->measurements.rsrp_filtered[eNB_index];
     }
@@ -140,7 +140,7 @@ uint32_t get_RSRQ(module_id_t Mod_id,uint8_t CC_id,uint8_t eNB_index)
 
   PHY_VARS_UE *ue = PHY_vars_UE_g[Mod_id][CC_id];
 
-  if(NFAPI_MODE==NFAPI_UE_STUB_PNF || NFAPI_MODE==NFAPI_MODE_STANDALONE_PNF) {
+  if(NFAPI_MODE == NFAPI_UE_STUB_PNF || NFAPI_MODE == NFAPI_MODE_STANDALONE_PNF) {
     if (ue) {
       return ue->measurements.rsrq_filtered[eNB_index];
     }

@@ -1017,7 +1017,7 @@ void *nrue_standalone_pnf_task(void *context)
       memcpy(ch_info, buffer, sizeof(*ch_info));
 
       if (ch_info->nb_of_csi > 1)
-        LOG_W(NR_PHY, "Expecting at most one SINR.\n");
+        LOG_W(NR_PHY, "Expecting only one CSI report.\n");
 
       // TODO: Update sinr field of slot_rnti_mcs to be array.
       for (int i = 0; i < ch_info->nb_of_csi; ++i)

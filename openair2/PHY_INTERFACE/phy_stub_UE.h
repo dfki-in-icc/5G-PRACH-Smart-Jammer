@@ -25,6 +25,7 @@
 #define NUM_SINR 100
 #define NUM_BLER_COL 13
 #define LTE_NUM_LAYER 1
+#define MAX_MEAS_CELLS 7
 
 // this mutex is used to set multiple UE's UL value in L2 FAPI simulator.
 extern FILL_UL_INFO_MUTEX_t fill_ul_mutex;
@@ -44,7 +45,7 @@ typedef struct
     uint16_t rnti[256];
     uint8_t mcs[256];
     float sinr;
-    float neicellsinr[7];
+    float neigh_cell_sinr[MAX_MEAS_CELLS];
     float rsrp[7];
     uint16_t pdu_size;
     bool drop_flag[256];
@@ -235,5 +236,6 @@ extern nfapi_hi_dci0_request_t* hi_dci0_req;
 extern int current_sfn_sf;
 
 extern sem_t sfn_semaphore;
+extern int num_enbs;
 
 #endif /* PHY_STUB_UE_H_ */

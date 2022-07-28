@@ -1976,13 +1976,11 @@ rrc_ue_process_rrcConnectionReconfiguration(
               ((r_r8->mobilityControlInfo->
                 newUE_Identity.buf[1]) | (r_r8->mobilityControlInfo->
                                           newUE_Identity.buf[0] << 8));
-          LOG_D(RRC, "source rnti = 0x%x vs  target rnti = 0x%x\n", ctxt_pP->rnti, ho_ctxt.rnti); 
+          LOG_D(RRC, "source rnti = 0x%x vs  target rnti = 0x%x\n", ctxt_pP->rnti, ho_ctxt.rnti);
           rrc_pdcp_config_req(ho_ctxt_pP, SRB_FLAG_YES, CONFIG_ACTION_ADD, ctxt_pP->module_id+DCCH,UNDEF_SECURITY_MODE);
           rrc_rlc_config_req(ho_ctxt_pP, SRB_FLAG_YES, MBMS_FLAG_NO, CONFIG_ACTION_ADD,ctxt_pP->module_id+DCCH, Rlc_info_am_config);
           rrc_pdcp_config_req (ho_ctxt_pP, SRB_FLAG_YES, CONFIG_ACTION_ADD, ctxt_pP->module_id+DCCH1,UNDEF_SECURITY_MODE);
           rrc_rlc_config_req(ho_ctxt_pP, SRB_FLAG_YES, MBMS_FLAG_NO, CONFIG_ACTION_ADD, ctxt_pP->module_id+DCCH1, Rlc_info_am_config);
-          // rrc_pdcp_config_req (ho_ctxt_pP, SRB_FLAG_NO, CONFIG_ACTION_ADD, ctxt_pP->module_id+DTCH,UNDEF_SECURITY_MODE);
-          // rrc_rlc_config_req(ho_ctxt_pP, SRB_FLAG_NO, MBMS_FLAG_NO, CONFIG_ACTION_ADD, ctxt_pP->module_id+DTCH, Rlc_info_am_config);
         }
         LOG_I(RRC,"Radio Resource Configuration is present\n");
         rrc_ue_process_radioResourceConfigDedicated(ho_ctxt_pP,
@@ -2101,15 +2099,11 @@ static void check_rlc_status(
   uint8_t lcid
 )
 {
-      rnti_t crnti = UE_mac_inst[ctxt_pP->module_id].crnti;
-      uint8_t lcgid = UE_mac_inst[ctxt_pP->module_id].scheduling_info.LCGID[lcid];
-      mac_rlc_status_resp_t rlc_status = mac_rlc_status_ind(ctxt_pP->module_id, crnti, 0,0,0,ENB_FLAG_NO,MBMS_FLAG_NO,
-                                      lcid,
-                                      0, 0
-                                     );
-      //if (rlc_status.bytes_in_buffer > 0)
-        LOG_I(MAC,"[UE %d] PDCCH Tick : LCID%d LCGID%d has data to transmit in check_rlc_status  >>>>>  %d bytes\n\n",
-              ctxt_pP->module_id, lcid,lcgid,rlc_status.bytes_in_buffer);
+  rnti_t crnti = UE_mac_inst[ctxt_pP->module_id].crnti;
+  uint8_t lcgid = UE_mac_inst[ctxt_pP->module_id].scheduling_info.LCGID[lcid];
+  mac_rlc_status_resp_t rlc_status = mac_rlc_status_ind(ctxt_pP->module_id, crnti, 0, 0, 0, ENB_FLAG_NO,MBMS_FLAG_NO, lcid, 0, 0);
+  LOG_D(MAC,"[UE %d] PDCCH Tick : LCID%d LCGID%d has data to transmit %d bytes\n\n",
+        ctxt_pP->module_id, lcid,lcgid,rlc_status.bytes_in_buffer);
 }
 
 /* 36.331, 5.3.5.4      Reception of an RRCConnectionReconfiguration including the mobilityControlInfo by the UE (handover) */
@@ -4299,8 +4293,8 @@ int decode_SI( const protocol_ctxt_t *const ctxt_pP, const uint8_t eNB_index ) {
 // layer 3 filtering of RSRP (EUTRA) measurements: 36.331, Sec. 5.5.3.2
 //-----------------------------------------------------------------------------
 void ue_meas_filtering( const protocol_ctxt_t *const ctxt_pP, const uint8_t eNB_index ) {
-  float k  = UE_rrc_inst[ctxt_pP->module_id].filter_coeff_rsrp; // 'a' in 36.331 Sec. 5.5.3.2
-  float a =  1/pow(2.0, k/4);
+  float k  = UE_rrc_inst[ctxt_pP->module_id].filter_coeff_rsrp;
+  float a =  1/pow(2.0, k/4); // 'a' in 36.331 Sec. 5.5.3.2
   float k1 = UE_rrc_inst[ctxt_pP->module_id].filter_coeff_rsrq;
   float a1 = 1/pow(2.0, k1/4);
   //float rsrp_db, rsrq_db;
@@ -4533,7 +4527,7 @@ void ue_measurement_report_triggering(protocol_ctxt_t *const ctxt_pP, const uint
               ttt_ms = timeToTrigger_ms[ue->ReportConfig[i][reportConfigId
                                         -1]->reportConfig.choice.reportConfigEUTRA.triggerType.choice.event.timeToTrigger];
               // Freq specific offset of neighbor cell freq
-              ofn = 1; //ofn = 5;//((ue->MeasObj[i][measObjId-1]->measObject.choice.measObjectEUTRA.offsetFreq != NULL) ?
+              ofn = 1;//((ue->MeasObj[i][measObjId-1]->measObject.choice.measObjectEUTRA.offsetFreq != NULL) ?
               // *ue->MeasObj[i][measObjId-1]->measObject.choice.measObjectEUTRA.offsetFreq : 15); //  /* 15 is the Default */
               // cellIndividualOffset of neighbor cell - not defined yet
               ocn = 0;
@@ -4554,14 +4548,14 @@ void ue_measurement_report_triggering(protocol_ctxt_t *const ctxt_pP, const uint
                   LOG_D(RRC,"[UE %d] Frame %d : A3 event: check if a neighboring cell becomes offset better than serving to trigger a measurement event \n",
                         ctxt_pP->module_id, ctxt_pP->frame);
 
-                  if ((ue->Info[0].State >= RRC_CONNECTED) &&
-                      (ue->Info[0].T304_active == 0 )      &&
-                      (ue->HandoverInfoUe.measFlag == 1)   &&
-                      (check_trigger_meas_event(
+                  if ((check_trigger_meas_event(
                          ctxt_pP->module_id,
                          ctxt_pP->frame,
                          eNB_index,
-                         i,j,ofn,ocn,hys,ofs,ocs,a3_offset,ttt_ms))) {
+                         i,j,ofn,ocn,hys,ofs,ocs,a3_offset,ttt_ms)) &&
+                      (ue->Info[0].State >= RRC_CONNECTED) &&
+                      (ue->Info[0].T304_active == 0 )      &&
+                      (ue->HandoverInfoUe.measFlag == 1)) {
                     //trigger measurement reporting procedure (36.331, section 5.5.5)
                     if (ue->measReportList[i][j] == NULL) {
                       ue->measReportList[i][j] = malloc(sizeof(MEAS_REPORT_LIST));
@@ -4569,13 +4563,11 @@ void ue_measurement_report_triggering(protocol_ctxt_t *const ctxt_pP, const uint
 
                     ue->measReportList[i][j]->measId = ue->MeasId[i][j]->measId;
                     ue->measReportList[i][j]->numberOfReportsSent = 0;
-                    LOG_D(RRC,"Calling rrc_ue_generate_MeasurementReport\n");
                     rrc_ue_generate_MeasurementReport(
                       ctxt_pP,
                       eNB_index);
                     ue->HandoverInfoUe.measFlag = 1;
                   } else {
-                    LOG_D(RRC,"measReportList = %p\n", ue->measReportList[i][j]);
                     if(ue->measReportList[i][j] != NULL) {
                       free(ue->measReportList[i][j]);
                     }
@@ -4669,9 +4661,6 @@ uint8_t check_trigger_meas_event(
   uint8_t eNB_offset;
   //  uint8_t currentCellIndex = frame_parms->Nid_cell;
   uint8_t tmp_offset;
-  float adj_eNB_rsrp_db;
-  float src_eNB_rsrp_db;
-  LOG_I(RRC,"[start of check_trigger_meas_event]\n");
   LOG_D(RRC,"[UE %d] ofn(%ld) ocn(%ld) hys(%ld) ofs(%ld) ocs(%ld) ttt(%ld) rssi %3.1f\n",
         ue_mod_idP,
         ofn,ocn,hys,ofs,ocs,ttt,
@@ -4681,30 +4670,14 @@ uint8_t check_trigger_meas_event(
 
   for (eNB_offset = 0; eNB_offset<1+get_n_adj_cells(ue_mod_idP,0); eNB_offset++) {
     /* RHS: Verify that idx 0 corresponds to currentCellIndex in rsrp array */
-    LOG_I(RRC,"\teNB_offset %u eNB_index %u NB_eNB_INST %u\n", eNB_offset, eNB_index, NB_eNB_INST);
     if((eNB_offset!=eNB_index)&&(eNB_offset<NB_eNB_INST)) {
       if(eNB_offset<eNB_index) {
         tmp_offset = eNB_offset;
       } else {
         tmp_offset = eNB_offset-1;
       }
-      adj_eNB_rsrp_db = UE_rrc_inst[ue_mod_idP].rsrp_db_filtered[eNB_offset];
-      src_eNB_rsrp_db = UE_rrc_inst[ue_mod_idP].rsrp_db_filtered[eNB_index];
-      float adj_db = adj_eNB_rsrp_db + ofn + ocn - hys;
-      float src_db = src_eNB_rsrp_db + ofs + ocs - 1;
-      if (src_db < adj_db)
-          LOG_D(RRC,"\t\t src_eNB_rsrp_db (%f) + ofs (%ld) + ocs (%ld) -1  %f  < adj_eNB_rsrp_db (%f) + ofn (%ld) + ocn (%ld) - hys (%ld) %f !!!!HO!!!\n",
-                      src_eNB_rsrp_db, ofs, ocs,
-                      src_eNB_rsrp_db + ofs + ocs -1,
-                      adj_eNB_rsrp_db, ofn, ocn, hys,
-                      adj_eNB_rsrp_db + ofn + ocn - hys);
-      else 
-          LOG_D(RRC,"\t\t src_eNB_rsrp_db (%f) + ofs (%ld) + ocs (%ld) %f  >= adj_eNB_rsrp_db (%f) + ofn (%ld) + ocn (%ld) - hys (%ld) %f\n",
-                      src_eNB_rsrp_db, ofs, ocs,
-                      src_eNB_rsrp_db + ofs + ocs,
-                      adj_eNB_rsrp_db, ofn, ocn, hys,
-                      adj_eNB_rsrp_db + ofn + ocn - hys);
-      if(adj_eNB_rsrp_db + ofn + ocn - hys > src_eNB_rsrp_db + ofs + ocs - 1 /*+a3_offset*/) {
+
+      if(UE_rrc_inst[ue_mod_idP].rsrp_db_filtered[eNB_offset]+ofn+ocn-hys > UE_rrc_inst[ue_mod_idP].rsrp_db_filtered[eNB_index]+ofs+ocs-1/*+a3_offset*/) {
         UE_rrc_inst->measTimer[ue_cnx_index][meas_index][tmp_offset] += 2; //Called every subframe = 2ms
         LOG_D(RRC,"[UE %d] Frame %d: Entry measTimer[%d][%d][%d]: %d currentCell: %d betterCell: %d \n",
               ue_mod_idP, frameP, ue_cnx_index,meas_index,tmp_offset,UE_rrc_inst->measTimer[ue_cnx_index][meas_index][tmp_offset],0,eNB_offset);
