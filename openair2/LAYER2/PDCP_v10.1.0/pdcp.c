@@ -2223,7 +2223,7 @@ void rrc_pdcp_config_req (
 //-----------------------------------------------------------------------------
 {
   pdcp_t *pdcp_p = NULL;
-  hash_key_t       key           = PDCP_COLL_KEY_VALUE(ctxt_pP->module_id, ctxt_pP->rnti, ctxt_pP->enb_flag, rb_idP >= DTCH ? rb_idP - 2:rb_idP, srb_flagP);
+  hash_key_t       key           = PDCP_COLL_KEY_VALUE(ctxt_pP->module_id, ctxt_pP->rnti, ctxt_pP->enb_flag, rb_idP >= DTCH ? rb_idP - 2 : rb_idP, srb_flagP);
   hashtable_rc_t   h_rc;
   h_rc = hashtable_get(pdcp_coll_p, key, (void **)&pdcp_p);
 

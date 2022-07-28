@@ -1291,7 +1291,7 @@ void *ue_standalone_pnf_task(void *context)
   bool tx_req_valid = false;
   bool dl_config_req_valid = false;
   uint16_t prev_sfn_sf = 0xFFFF;
-  uint16_t same_tick = 1;
+  uint16_t num_recvd_current_sfn_sf = 1;
   extern int num_enbs;
   while (true)
   {
@@ -1322,8 +1322,8 @@ void *ue_standalone_pnf_task(void *context)
       LOG_D(MAC, "Received sfn_slot[%hu] frame: %u, subframe: %u from phy_id %u\n", sfn_sf_info.phy_id,
             sfn_sf_info.sfn_sf >> 4, sfn_sf_info.sfn_sf & 15, phy_id);
       if (prev_sfn_sf == sfn_sf)
-        ++same_tick;
-      if (same_tick == num_enbs)
+        ++num_recvd_current_sfn_sf;
+      if (num_recvd_current_sfn_sf == num_enbs)
       {
         current_sfn_sf = sfn_sf;
 
@@ -1332,7 +1332,7 @@ void *ue_standalone_pnf_task(void *context)
           LOG_E(MAC, "sem_post() error\n");
           abort();
         }
-        same_tick = 1;
+        num_recvd_current_sfn_sf = 1;
       }
       prev_sfn_sf = sfn_sf;
     }
@@ -1343,8 +1343,8 @@ void *ue_standalone_pnf_task(void *context)
       uint16_t sfn_sf = ch_info.sfn_sf;
 
       if (prev_sfn_sf == sfn_sf)
-        ++same_tick;
-      if (same_tick == num_enbs)
+        ++num_recvd_current_sfn_sf;
+      if (num_recvd_current_sfn_sf == num_enbs)
       {
         current_sfn_sf = sfn_sf;;
 
@@ -1355,20 +1355,20 @@ void *ue_standalone_pnf_task(void *context)
         }
         uint16_t sf = ch_info.sfn_sf & 15;
         assert(sf < 10);
-        same_tick = 1;
+        num_recvd_current_sfn_sf = 1;
         if (ch_info.nb_of_csi > 1)
-          LOG_W(MAC, "Expecting at most one SINR.\n");
+          LOG_W(MAC, "Expecting one CSI report.\n");
 
         // TODO: Update sinr field of slot_rnti_mcs to be array.
         for (int i = 0; i < ch_info.nb_of_csi; ++i)
         {
           if (ch_info.csi[i].source > num_enbs)
             continue;
-          assert(ch_info.csi[i].source > 0 && ch_info.csi[i].source <= 7); // 7 : max number of adj cells.
+          assert(ch_info.csi[i].source > 0 && ch_info.csi[i].source <= MAX_MEAS_CELLS);
           sf_rnti_mcs[sf].rsrp[ch_info.csi[i].source - 1] = ch_info.csi[i].rsrp;
-          sf_rnti_mcs[sf].neicellsinr[ch_info.csi[i].source - 1] = ch_info.csi[i].sinr;
+          sf_rnti_mcs[sf].neigh_cell_sinr[ch_info.csi[i].source - 1] = ch_info.csi[i].sinr;
         }
-        sf_rnti_mcs[sf].sinr = sf_rnti_mcs[sf].neicellsinr[UE_mac_inst[0].targetPhysCellId];
+        sf_rnti_mcs[sf].sinr = sf_rnti_mcs[sf].neigh_cell_sinr[UE_mac_inst[0].targetPhysCellId];
         LOG_D(MAC, "Received_SINR[%d] = %f\n", sf, sf_rnti_mcs[sf].sinr);
       }
       prev_sfn_sf = sfn_sf;
@@ -1720,8 +1720,8 @@ static void print_rx_ind(nfapi_rx_indication_t *p)
       break;
     case NFAPI_HARQ_INDICATION:
       encoded_size = nfapi_p7_message_pack(&UL->harq_ind, buffer, sizeof(buffer), NULL);
-      LOG_I(MAC, "HARQ_IND sent to Proxy, Size: %d Frame %d Subframe %d num pdus %d\n", encoded_size,
-            NFAPI_SFNSF2SFN(UL->harq_ind.sfn_sf), NFAPI_SFNSF2SF(UL->harq_ind.sfn_sf),UL->harq_ind.harq_indication_body.number_of_harqs);
+      LOG_I(MAC, "HARQ_IND sent to Proxy, Size: %d Frame %d Subframe %d\n", encoded_size,
+            NFAPI_SFNSF2SFN(UL->harq_ind.sfn_sf), NFAPI_SFNSF2SF(UL->harq_ind.sfn_sf));
       break;
     case NFAPI_RX_SR_INDICATION:
       encoded_size = nfapi_p7_message_pack(&UL->sr_ind, buffer, sizeof(buffer), NULL);
@@ -2127,8 +2127,19 @@ static inline bool is_channel_modeling(void)
      mode. It does not crash for LTE mode. We have not implemented channel
      modeling for NSA mode yet. For now, we ensure only do do chanel modeling
      in LTE mode. */
-  extern int num_enbs;
-  return num_enbs < 2 && get_softmodem_params()->node_number == 0 && !get_softmodem_params()->nsa;
+  if (num_enbs >= 2) {
+    LOG_T(MAC, "It does not support channel modeling in LTE handover mode.\n");
+    return false;
+  }
+  if (get_softmodem_params()->node_number != 0) {
+    LOG_T(MAC, "It does not support channel modeling with open-source proxy.\n");
+    return false;
+  }
+  if (get_softmodem_params()->nsa) {
+    LOG_T(MAC, "It does not support channel modeling in NSA mode.\n");
+    return false;
+  }
+  return true;
 }
 
 static bool should_drop_transport_block(int sf, uint16_t rnti)

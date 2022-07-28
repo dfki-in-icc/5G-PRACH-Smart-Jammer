@@ -6157,7 +6157,7 @@ rrc_eNB_generate_HO_RRCConnectionReconfiguration(const protocol_ctxt_t *const ct
              sizeof(rrc_buf),
              xid,   //Transaction_id,
              NULL, // SRB_configList
-             *DRB_configList, //NULL,
+             *DRB_configList,
              NULL,  // DRB2_list,
              (struct LTE_SPS_Config *)NULL,   // *sps_Config,
              (struct LTE_PhysicalConfigDedicated *)*physicalConfigDedicated,

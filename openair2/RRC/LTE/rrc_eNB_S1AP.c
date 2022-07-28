@@ -2033,7 +2033,7 @@ int rrc_eNB_process_X2AP_TUNNEL_SETUP_REQ(instance_t instance, rrc_eNB_ue_contex
           ue_context_target_p->ue_context.enb_gtp_x2u_teid[inde_list[i]]  = create_tunnel_resp.enb_X2u_teid[i];
           ue_context_target_p->ue_context.enb_gtp_x2u_addrs[inde_list[i]] = create_tunnel_resp.enb_addr;
           ue_context_target_p->ue_context.enb_gtp_x2u_ebi[inde_list[i]]   = create_tunnel_resp.eps_bearer_id[i];
-          LOG_I(RRC, "rrc_eNB_process_X2AP_TUNNEL_SETUP_REQ tunnel (%u, %u) bearer UE context index %u, msg index %u, eps bearer id %u, gtp addr len %d \n",
+          LOG_D(RRC, "rrc_eNB_process_X2AP_TUNNEL_SETUP_REQ tunnel (%u, %u) bearer UE context index %u, msg index %u, eps bearer id %u, gtp addr len %d \n",
                 create_tunnel_resp.enb_X2u_teid[i],
                 ue_context_target_p->ue_context.enb_gtp_x2u_teid[inde_list[i]],
                 inde_list[i],

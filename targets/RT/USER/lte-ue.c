@@ -1260,18 +1260,18 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg) {
 
     if (UL_INFO->harq_ind.harq_indication_body.number_of_harqs > 0) {
       //LOG_D(MAC, "ul_config_req_UE_MAC 2.4, SFN/SF of PNF counter:%d.%d, number_of_harqs: %d \n", timer_frame, timer_subframe, UL_INFO->harq_ind.harq_indication_body.number_of_harqs);
-        UL_INFO->harq_ind.header.phy_id = UE->frame_parms.Nid_cell;
-        send_standalone_msg(UL_INFO, UL_INFO->harq_ind.header.message_id);
-        sent_any = true;
+      UL_INFO->harq_ind.header.phy_id = UE->frame_parms.Nid_cell;
+      send_standalone_msg(UL_INFO, UL_INFO->harq_ind.header.message_id);
+      sent_any = true;
       //LOG_I(MAC, "ul_config_req_UE_MAC 2.41 \n");
       UL_INFO->harq_ind.harq_indication_body.number_of_harqs = 0;
     }
 
     if (UL_INFO->sr_ind.sr_indication_body.number_of_srs > 0) {
       //LOG_I(MAC, "ul_config_req_UE_MAC 2.5, SFN/SF of PNF counter:%d.%d, number_of_srs: %d \n", timer_frame, timer_subframe, UL_INFO->sr_ind.sr_indication_body.number_of_srs);
-        UL_INFO->sr_ind.header.phy_id = UE->frame_parms.Nid_cell;
-        send_standalone_msg(UL_INFO, UL_INFO->sr_ind.header.message_id);
-        sent_any = true;
+      UL_INFO->sr_ind.header.phy_id = UE->frame_parms.Nid_cell;
+      send_standalone_msg(UL_INFO, UL_INFO->sr_ind.header.message_id);
+      sent_any = true;
       //LOG_I(MAC, "ul_config_req_UE_MAC 2.51 \n");
       UL_INFO->sr_ind.sr_indication_body.number_of_srs = 0;
     }

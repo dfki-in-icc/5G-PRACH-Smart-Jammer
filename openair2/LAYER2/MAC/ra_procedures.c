@@ -321,14 +321,6 @@ PRACH_RESOURCES_t *ue_get_rach(module_id_t module_idP, int CC_id,
       return (NULL);
     }
 
-    if (UE_mac_inst[module_idP].physicalConfigDedicated != NULL) {
-      LOG_I(RRC,"Checking scheduling_info.LCGID = %u\n",
-                  UE_mac_inst[module_idP].
-                 scheduling_info.BSR_bytes[UE_mac_inst[module_idP].
-                                           scheduling_info.LCGID
-                                           [DCCH]]
-          );
-    }
     if (UE_mac_inst[module_idP].RA_active == 0) {
       LOG_I(MAC, "RA not active\n");
       if (!UE_mac_inst[module_idP].physicalConfigDedicated) {
@@ -363,7 +355,6 @@ PRACH_RESOURCES_t *ue_get_rach(module_id_t module_idP, int CC_id,
               "[UE %d] Frame %d: Requested RRCConnectionRequest, got %d bytes\n",
               module_idP, frameP, Size);
       }
-    
       if (Size > 0) {
         UE_mac_inst[module_idP].RA_active = 1;
         UE_mac_inst[module_idP].RA_PREAMBLE_TRANSMISSION_COUNTER =
@@ -444,11 +435,10 @@ PRACH_RESOURCES_t *ue_get_rach(module_id_t module_idP, int CC_id,
         uint8_t access_mode = SCHEDULED_ACCESS;
         UE_mac_inst[module_idP].crnti = UE_mac_inst[module_idP].crnti_before_ho;
         UE_mac_inst[module_idP].RA_active = 1;
-        ue_get_sdu(module_idP, 0, frameP, subframeP, 0, ulsch_buff, 18, &access_mode);
+        ue_get_sdu(module_idP, 0, frameP, subframeP, 0, ulsch_buff, MAX_ULSCH_PAYLOAD_BYTES, &access_mode);
         UE_mac_inst[module_idP].RA_PREAMBLE_TRANSMISSION_COUNTER =
           1;
-        UE_mac_inst[module_idP].RA_Msg3_size = //rlc_status.bytes_in_buffer + dcch_header_len;
-          UE_mac_inst[module_idP].scheduling_info.BSR_bytes[0] + dcch_header_len;
+        UE_mac_inst[module_idP].RA_Msg3_size = UE_mac_inst[module_idP].scheduling_info.BSR_bytes[0] + dcch_header_len;
 
         UE_mac_inst[module_idP].RA_prachMaskIndex = 0;
         UE_mac_inst[module_idP].RA_prach_resources.Msg3 = ulsch_buff;

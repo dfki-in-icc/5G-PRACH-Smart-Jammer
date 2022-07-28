@@ -149,12 +149,20 @@ void ue_init_mac(module_id_t module_idP) {
     UE_mac_inst[module_idP].scheduling_info.LCID_buffer_remain[i] = 0;
   }
 
-  if(NFAPI_MODE==NFAPI_UE_STUB_PNF || NFAPI_MODE==NFAPI_MODE_STANDALONE_PNF) {
+  if(NFAPI_MODE == NFAPI_UE_STUB_PNF || NFAPI_MODE == NFAPI_MODE_STANDALONE_PNF) {
     pthread_mutex_init(&UE_mac_inst[module_idP].UL_INFO_mutex,NULL);
+    if (UE_mac_inst[module_idP].UE_mode[0] < PUSCH)
+    {
+      UE_mac_inst[module_idP].SI_Decoded = 0;
+      next_ra_frame = 0;
+    }
+    else
+    {
+      UE_mac_inst[module_idP].SI_Decoded = 1;
+      next_ra_frame = 500;
+    }
     UE_mac_inst[module_idP].UE_mode[0] = PRACH; //NOT_SYNCHED;
     UE_mac_inst[module_idP].first_ULSCH_Tx =0;
-    UE_mac_inst[module_idP].SI_Decoded = 1;
-    next_ra_frame = 500;
     next_Mod_id = 0;
   }
 }
@@ -200,7 +208,7 @@ unsigned char *parse_header(unsigned char *mac_header,
                       L_LSB & 0xff);
           mac_header_ptr += 3;
 #ifdef DEBUG_HEADER_PARSING
-          LOG_I(MAC, "[UE] parse long sdu, size %x \n", length);
+          LOG_D(MAC, "[UE] parse long sdu, size %x \n", length);
 #endif
         } else {  //if (((SCH_SUBHEADER_SHORT *)mac_header_ptr)->F == 0) {
           length = ((SCH_SUBHEADER_SHORT *) mac_header_ptr)->L;
@@ -209,7 +217,7 @@ unsigned char *parse_header(unsigned char *mac_header,
       }
 
 #ifdef DEBUG_HEADER_PARSING
-      LOG_I(MAC, "[UE] sdu %d lcid %d length %d (offset now %ld)\n",
+      LOG_D(MAC, "[UE] sdu %d lcid %d length %d (offset now %ld)\n",
             num_sdus, lcid, length, mac_header_ptr - mac_header);
 #endif
       rx_lcids[num_sdus] = lcid;
@@ -414,12 +422,10 @@ ue_send_sdu(module_id_t module_idP,
         case UE_CONT_RES:
           tx_sdu = &UE_mac_inst[module_idP].CCCH_pdu.payload[3];
           LOG_I(MAC,
-                "[UE %d][RAPROC] Frame %d : received contention resolution msg: %x.%x.%x.%x.%x.%x, Terminating RA procedure %x.%x.%x.%x.%x.%x\n",
+                "[UE %d][RAPROC] Frame %d : received contention resolution msg: %x.%x.%x.%x.%x.%x, Terminating RA procedure\n",
                 module_idP, frameP, payload_ptr[0], payload_ptr[1],
                 payload_ptr[2], payload_ptr[3], payload_ptr[4],
-                payload_ptr[5],
-                tx_sdu[0], tx_sdu[1], tx_sdu[2], tx_sdu[3], tx_sdu[4], tx_sdu[5]
-                );
+                payload_ptr[5]);
 
           if (UE_mac_inst[module_idP].RA_active == 1) {
             LOG_I(MAC,
@@ -427,12 +433,11 @@ ue_send_sdu(module_id_t module_idP,
                   module_idP, frameP);
             UE_mac_inst[module_idP].RA_active = 0;
             // check if RA procedure has finished completely (no contention)
-            
 
             //Note: 3 assumes sizeof(SCH_SUBHEADER_SHORT) + PADDING CE, which is when UL-Grant has TBS >= 9 (64 bits)
             // (other possibility is 1 for TBS=7 (SCH_SUBHEADER_FIXED), or 2 for TBS=8 (SCH_SUBHEADER_FIXED+PADDING or SCH_SUBHEADER_SHORT)
             for (i = 0; i < 6; i++)
-              if (tx_sdu[i] != payload_ptr[i] && payload_ptr[i] != 0) {
+              if (tx_sdu[i] != payload_ptr[i]) {
                 LOG_E(MAC,
                       "[UE %d][RAPROC] Contention detected, RA failed\n",
                       module_idP);
@@ -504,7 +509,7 @@ ue_send_sdu(module_id_t module_idP,
 #endif
 
       if (rx_lcids[i] == CCCH) {
-        LOG_I(MAC,
+        LOG_D(MAC,
               "[UE %d] rnti %x Frame %d : DLSCH -> DL-CCCH, RRC message (eNB %d, %d bytes)\n",
               module_idP, UE_mac_inst[module_idP].crnti, frameP,
               eNB_index, rx_lengths[i]);
@@ -528,7 +533,7 @@ ue_send_sdu(module_id_t module_idP,
                             0
                            );
       } else if ((rx_lcids[i] == DCCH) || (rx_lcids[i] == DCCH1)) {
-        LOG_I(MAC,"[UE %d] Frame %d : DLSCH -> DL-DCCH%d, RRC message (eNB %d, %d bytes)\n", module_idP, frameP, rx_lcids[i],eNB_index,rx_lengths[i]);
+        LOG_D(MAC,"[UE %d] Frame %d : DLSCH -> DL-DCCH%d, RRC message (eNB %d, %d bytes)\n", module_idP, frameP, rx_lcids[i],eNB_index,rx_lengths[i]);
         mac_rlc_data_ind(module_idP,
                          UE_mac_inst[module_idP].crnti,
                          eNB_index,
@@ -541,8 +546,7 @@ ue_send_sdu(module_id_t module_idP,
                          1,
                          NULL);
       } else if ((rx_lcids[i]  < NB_RB_MAX) && (rx_lcids[i] > DCCH1 )) {
-        LOG_I(MAC,"[UE %d] Frame %d : DLSCH -> DL-DTCH%d (eNB %d, %d bytes)\n", module_idP, frameP,rx_lcids[i], eNB_index,rx_lengths[i]);
-        rrc_update_ue_status(module_idP, eNB_index);
+        LOG_D(MAC,"[UE %d] Frame %d : DLSCH -> DL-DTCH%d (eNB %d, %d bytes)\n", module_idP, frameP,rx_lcids[i], eNB_index,rx_lengths[i]);
 #if defined(ENABLE_MAC_PAYLOAD_DEBUG)
         int j;
 
@@ -2428,7 +2432,7 @@ ue_get_sdu(module_id_t module_idP, int CC_id, frame_t frameP,
     if ((buflen >= 4) && (UE_mac_inst[module_idP].scheduling_info.BSR_bytes[0] > 0)) {
       bsr_header_len = 1;
       bsr_ce_len = sizeof(BSR_SHORT); //1 byte
-        UE_mac_inst[module_idP].scheduling_info.LCID_status[DCCH] = LCID_NOT_EMPTY;
+      UE_mac_inst[module_idP].scheduling_info.LCID_status[DCCH] = LCID_NOT_EMPTY;
     }
   }
   bsr_len = bsr_ce_len + bsr_header_len;
