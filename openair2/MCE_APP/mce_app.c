@@ -41,7 +41,7 @@
 # include "intertask_interface.h"
 #   include "s1ap_eNB.h"
 #   include "sctp_eNB_task.h"
-#   include "gtpv1u_eNB_task.h"
+#   include "openair3/ocp-gtpu/gtp_itf.h"
 #   include "flexran_agent.h"
 
 #   include "x2ap_eNB.h"

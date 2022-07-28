@@ -200,16 +200,16 @@ static void nr_sdap_rx_entity(nr_sdap_entity_t *entity,
     MessageDef *message_p = itti_alloc_new_message_sized(TASK_PDCP_ENB,
                                                          0,
                                                          GTPV1U_GNB_TUNNEL_DATA_REQ,
-                                                         sizeof(gtpv1u_gnb_tunnel_data_req_t)
+                                                         sizeof(gtpv1u_tunnel_data_req_t)
                                                            + size + GTPU_HEADER_OVERHEAD_MAX - offset);
     AssertFatal(message_p != NULL, "OUT OF MEMORY");
-    gtpv1u_gnb_tunnel_data_req_t *req = &GTPV1U_TUNNEL_DATA_REQ(message_p);
+    gtpv1u_tunnel_data_req_t *req = &GTPV1U_TUNNEL_DATA_REQ(message_p);
     uint8_t *gtpu_buffer_p = (uint8_t *) (req + 1);
     memcpy(gtpu_buffer_p + GTPU_HEADER_OVERHEAD_MAX, buf + offset, size - offset);
     req->buffer        = gtpu_buffer_p;
     req->length        = size - offset;
     req->offset        = GTPU_HEADER_OVERHEAD_MAX;
-    req->rnti          = ur_id;
+    req->rnti          = ue_id;
     req->pdusession_id = pdusession_id;
     LOG_D(SDAP, "%s()  sending message to gtp size %d\n", __func__,  size-offset);
     itti_send_msg_to_task(TASK_GTPV1_U, INSTANCE_DEFAULT, message_p);

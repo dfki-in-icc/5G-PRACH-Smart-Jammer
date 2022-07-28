@@ -88,7 +88,7 @@
 
 #include "nr_pdcp/nr_pdcp_entity.h"
 #include "pdcp.h"
-#include "gtpv1u_eNB_task.h"
+#include "openair3/ocp-gtpu/gtp_itf.h"
 
 
 #include "intertask_interface.h"
@@ -1648,7 +1648,7 @@ rrc_gNB_process_RRCConnectionReestablishmentComplete(
       }
     }
 
-    create_tunnel_req.rnti       = ctxt_pP->rnti; // warning put zero above
+    create_tunnel_req.ue_id         = ctxt_pP->rnti; // warning put zero above
     create_tunnel_req.num_tunnels    = j;
     ret = gtpv1u_update_ngu_tunnel(
             ctxt_pP->instance,
@@ -3406,10 +3406,10 @@ static void rrc_DU_process_ue_context_modification_request(MessageDef *msg_p, co
       int rlc_tx_buffer_space = nr_rlc_get_available_tx_space(rnti, drb_id);
       LOG_I(NR_RRC, "Reported in DDD drb_id:%d, rnti:%d\n", drb_id, rnti);
       MessageDef *msg = itti_alloc_new_message_sized(TASK_RRC_GNB, 0, GTPV1U_DU_BUFFER_REPORT_REQ,
-                                     sizeof(gtpv1u_gnb_tunnel_data_req_t));
+                                     sizeof(gtpv1u_tunnel_data_req_t));
       gtpv1u_DU_buffer_report_req_t *req=&GTPV1U_DU_BUFFER_REPORT_REQ(msg);
       req->pdusession_id = drb_id;
-      req->rnti = rnti;
+      req->ue_id = rnti;
       req->buffer_availability = rlc_tx_buffer_space; //10000000; //Hardcoding to be removed and read the actual RLC buffer availability instead
       extern instance_t DUuniqInstance;
       itti_send_msg_to_task(TASK_GTPV1_U, DUuniqInstance, msg);
@@ -3747,12 +3747,12 @@ void nr_rrc_subframe_process(protocol_ctxt_t *const ctxt_pP, const int CC_id) {
 
     if (fd) {
       if (ue_context_p->ue_context.Initialue_identity_5g_s_TMSI.presence == true) {
-        fprintf(fd,"NR RRC UE rnti %x: S-TMSI %x failure timer %d/8\n",
+        fprintf(fd,"NR RRC UE rnti %lx: S-TMSI %x failure timer %d/8\n",
                 ue_context_p->ue_id_rnti,
                 ue_context_p->ue_context.Initialue_identity_5g_s_TMSI.fiveg_tmsi,
                 ue_context_p->ue_context.ul_failure_timer);
       } else {
-        fprintf(fd,"NR RRC UE rnti %x failure timer %d/8\n",
+        fprintf(fd,"NR RRC UE rnti %lx failure timer %d/8\n",
                 ue_context_p->ue_id_rnti,
                 ue_context_p->ue_context.ul_failure_timer);
       }
@@ -3878,7 +3878,7 @@ void fill_DRB_configList(NR_DRB_ToAddModList_t *DRB_configList, pdu_session_to_s
     ie->cnAssociation->present = NR_DRB_ToAddMod__cnAssociation_PR_sdap_Config;
 
     // sdap_Config
-    NR_SDAP_Config_t *sdap_config = ie->cnAssociation->choice.sdap_config;
+    NR_SDAP_Config_t *sdap_config = ie->cnAssociation->choice.sdap_Config;
     sdap_config = CALLOC(1, sizeof(*sdap_config));
     memset(sdap_config, 0, sizeof(*sdap_config));
     sdap_config->pdu_Session = pdu->sessionId;
@@ -3887,15 +3887,15 @@ void fill_DRB_configList(NR_DRB_ToAddModList_t *DRB_configList, pdu_session_to_s
     sdap_config->defaultDRB = drb->defaultDRB;
 
     sdap_config->mappedQoS_FlowsToAdd = calloc(1, sizeof(struct NR_SDAP_Config__mappedQoS_FlowsToAdd));
-    memset(sdap_config->mappedQoS_FlowsToAdd, 0, sizeof(struct NR_SDAP_Config__mappedQoS_FlowsToAdd));
-
+    // LTSFIXME
+    int numQosFlow2Setup=0;
     for (int j=0; j < numQosFlow2Setup; j++) {
       NR_QFI_t *qfi = calloc(1, sizeof(NR_QFI_t));
       *qfi = drb->qosFlows[j].fiveQI;
       ASN_SEQUENCE_ADD(&sdap_config->mappedQoS_FlowsToAdd->list, qfi);
     }
     sdap_config->mappedQoS_FlowsToRelease = NULL;
-
+    /*
     // pdcp_Config
     ie->reestablishPDCP = NULL;
     ie->recoverPDCP = NULL;
@@ -3933,6 +3933,7 @@ void fill_DRB_configList(NR_DRB_ToAddModList_t *DRB_configList, pdu_session_to_s
       pdcp_config->ext1->cipheringDisabled = calloc(1, sizeof(*pdcp_config->ext1->cipheringDisabled));
       *pdcp_config->ext1->cipheringDisabled = NR_PDCP_Config__ext1__cipheringDisabled_true;
     }
+    */
   }
 }
 
@@ -3943,26 +3944,26 @@ int rrc_gNB_process_e1_bearer_context_setup_req(e1ap_bearer_setup_req_t *req, in
 
   NR_DRB_ToAddModList_t *DRB_configList;
   for (int i=0; i < req->numPDUSessions; i++) {
-    pdu_session_to_setup_t *pdu = req->pduSession[i];
+    pdu_session_to_setup_t *pdu = &req->pduSession[i];
     create_tunnel_req.pdusession_id[i] = pdu->sessionId;
     create_tunnel_req.incoming_rb_id[i] = pdu->DRBnGRanList[0].id; // taking only the first DRB. TODO:change this
     memcpy(&create_tunnel_req.dst_addr[i].buffer,
-           pdu->tlAddress,
-           sizeof(uint8_t)*20);
-    create_tunnel_req.outgoing_teid = pdu->teID;
+           &pdu->tlAddress,
+           sizeof(pdu->tlAddress));
+    create_tunnel_req.outgoing_teid[i] = pdu->teId;
     fill_DRB_configList(DRB_configList, pdu);
   }
   create_tunnel_req.num_tunnels = req->numPDUSessions;
-  create_tunnel_req.rnti        = (req->gNB_cu_cp_ue_id & 0xFFFF);
+  create_tunnel_req.ue_id        = (req->gNB_cu_cp_ue_id & 0xFFFF);
 
-  ret = gtpv1u_create_ngu_tunnel(
+  int ret = gtpv1u_create_ngu_tunnel(
                                  instance,
                                  &create_tunnel_req,
                                  &create_tunnel_resp);
 
   uint8_t *kRRCenc = NULL;
   uint8_t *kRRCint = NULL;
-
+  /*
   nr_derive_key_rrc_enc(cipheringAlgorithm,
                         encryptionKey,
                         &kRRCenc);
@@ -3970,7 +3971,7 @@ int rrc_gNB_process_e1_bearer_context_setup_req(e1ap_bearer_setup_req_t *req, in
   nr_derive_key_rrc_int(integrityProtectionAlgorithm,
                         integrityProtectionKey,
                         &kRRCint);
-
+  */
   return 0;
 }
 

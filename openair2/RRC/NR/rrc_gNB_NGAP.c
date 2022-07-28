@@ -39,8 +39,7 @@
 #include "pdcp.h"
 #include "pdcp_primitives.h"
 
-#include "gtpv1u_eNB_task.h"
-#include "gtpv1u_gNB_task.h"
+#include "openair3/ocp-gtpu/gtp_itf.h"
 #include <openair3/ocp-gtpu/gtp_itf.h>
 #include "RRC/LTE/rrc_eNB_GTPV1U.h"
 #include "RRC/NR/rrc_gNB_GTPV1U.h"
@@ -60,6 +59,7 @@
 #include "f1ap_messages_types.h"
 #include "E1AP_SDAP-Configuration.h"
 #include "E1AP_PDCP-Configuration.h"
+#include "openair2/E1AP/e1ap.h"
 
 extern RAN_CONTEXT_t RC;
 
@@ -532,7 +532,7 @@ rrc_gNB_process_NGAP_INITIAL_CONTEXT_SETUP_REQ(
         }
 
         ue_context_p->ue_context.nb_of_pdusessions = NGAP_INITIAL_CONTEXT_SETUP_REQ (msg_p).nb_of_pdusessions;
-        create_tunnel_req.rnti                     = ue_context_p->ue_context.rnti;
+        create_tunnel_req.ue_id                     = ue_context_p->ue_context.rnti;
         create_tunnel_req.num_tunnels              = pdu_sessions_done;
 
         ret = gtpv1u_create_ngu_tunnel(
@@ -997,9 +997,9 @@ rrc_gNB_process_NGAP_PDUSESSION_SETUP_REQ(
     
     bearer_req->gNB_cu_cp_ue_id = gNB_ue_ngap_id;
     bearer_req->cipheringAlgorithm = ue_context_p->ue_context.ciphering_algorithm;
-    memcpy(bearer_req->encryptionKey, ue_context_p->ue_context.kgnb, strlen(ue_context_p->ue_context.kgnb));
-    bearer_req->integrityProtectionAlgorithm = ue_context_pP->ue_context.integrity_algorithm;
-    memcpy(bearer_req->integrityProtectionKey, ue_context_pP->ue_context.kgnb, strlen(ue_context_p->ue_context.kgnb));
+    memcpy(bearer_req->encryptionKey, ue_context_p->ue_context.kgnb, sizeof(ue_context_p->ue_context.kgnb));
+    bearer_req->integrityProtectionAlgorithm = ue_context_p->ue_context.integrity_algorithm;
+    memcpy(bearer_req->integrityProtectionKey, ue_context_p->ue_context.kgnb, sizeof(ue_context_p->ue_context.kgnb));
     bearer_req->ueDlAggMaxBitRate = msg->ueAggMaxBitRateDownlink;
     
     bearer_req->numPDUSessions = msg->nb_pdusessions_tosetup;
@@ -1094,7 +1094,7 @@ rrc_gNB_process_NGAP_PDUSESSION_SETUP_REQ(
   ue_context_p->ue_context.nb_of_pdusessions = msg->nb_pdusessions_tosetup;
   ue_context_p->ue_context.gNB_ue_ngap_id    = msg->gNB_ue_ngap_id;
   ue_context_p->ue_context.amf_ue_ngap_id    = msg->amf_ue_ngap_id;
-  create_tunnel_req.rnti                     = ue_context_p->ue_context.rnti;
+  create_tunnel_req.ue_id                    = ue_context_p->ue_context.rnti;
   create_tunnel_req.num_tunnels              = pdu_sessions_done;
     
   ret = gtpv1u_create_ngu_tunnel(
@@ -1762,7 +1762,7 @@ rrc_gNB_process_NGAP_PDUSESSION_RELEASE_COMMAND(
       //gtp tunnel delete
       LOG_I(NR_RRC, "gtp tunnel delete \n");
       gtpv1u_gnb_delete_tunnel_req_t req={0};
-      req.rnti = ue_context_p->ue_context.rnti;
+      req.ue_id = ue_context_p->ue_context.rnti;
 
       for(i = 0; i < NB_RB_MAX; i++) {
         if(xid == ue_context_p->ue_context.pduSession[i].xid) {

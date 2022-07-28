@@ -688,20 +688,20 @@ rb_found:
   ctxt.rnti = ue->ue_id;
   if (RC.nrrrc != NULL && NODE_IS_CU(RC.nrrrc[0]->node_type)) {
     MessageDef  *message_p = itti_alloc_new_message_sized(TASK_PDCP_ENB, 0,
-							  GTPV1U_GNB_TUNNEL_DATA_REQ,
-							  sizeof(gtpv1u_gnb_tunnel_data_req_t)
+							  GTPV1U_TUNNEL_DATA_REQ,
+							  sizeof(gtpv1u_tunnel_data_req_t)
 							  + size
 							  + GTPU_HEADER_OVERHEAD_MAX);
     AssertFatal(message_p != NULL, "OUT OF MEMORY");
-    gtpv1u_gnb_tunnel_data_req_t *req=&GTPV1U_GNB_TUNNEL_DATA_REQ(message_p);
+    gtpv1u_tunnel_data_req_t *req=&GTPV1U_TUNNEL_DATA_REQ(message_p);
     uint8_t *gtpu_buffer_p = (uint8_t*)(req+1);
     memcpy(gtpu_buffer_p+GTPU_HEADER_OVERHEAD_MAX, 
 	   buf, size);
     req->buffer        = gtpu_buffer_p;
     req->length        = size;
     req->offset        = GTPU_HEADER_OVERHEAD_MAX;
-    req->rnti          = ue->ue_id;
-    req->pdusession_id = rb_id;
+    req->ue_id         = ue->ue_id;
+    req->bearer_id = rb_id;
     LOG_I(PDCP, "%s() (drb %d) sending message to gtp size %d\n",
 	  __func__, rb_id, size);
     extern instance_t CUuniqInstance;

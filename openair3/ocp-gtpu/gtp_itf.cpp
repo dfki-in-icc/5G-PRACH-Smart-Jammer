@@ -108,7 +108,7 @@ typedef struct gtpv1u_bearer_s {
 } gtpv1u_bearer_t;
 
 typedef struct {
-  map<int, gtpv1u_bearer_t> bearers;
+  map<ue_id_t, gtpv1u_bearer_t> bearers;
   teid_t outgoing_teid;
 } teidData_t;
 
@@ -188,7 +188,7 @@ instance_t legacyInstanceMapping=0;
     auto ptrRnti=insT->ue2te_mapping.find(RnTi);                        \
                                                                         \
   if (  ptrRnti==insT->ue2te_mapping.end() ) {                          \
-    LOG_E(GTPU, "[%ld] gtpv1uSend failed: while getting ue rnti %x in hashtable ue_mapping\n", instance, rnti); \
+    LOG_E(GTPU, "[%ld] gtpv1uSend failed: while getting ue id %x in hashtable ue_mapping\n", instance, rnti); \
     pthread_mutex_unlock(&globGtp.gtp_lock);                            \
     return;                                                             \
   }
@@ -197,7 +197,7 @@ instance_t legacyInstanceMapping=0;
     auto ptrRnti=insT->ue2te_mapping.find(RnTi);                        \
                                                                         \
   if (  ptrRnti==insT->ue2te_mapping.end() ) {                          \
-    LOG_E(GTPU, "[%ld] gtpv1uSend failed: while getting ue rnti %x in hashtable ue_mapping\n", instance, rnti); \
+    LOG_E(GTPU, "[%ld] gtpv1uSend failed: while getting ue id %x in hashtable ue_mapping\n", instance, rnti); \
     pthread_mutex_unlock(&globGtp.gtp_lock);                            \
     return GTPNOK;                                                             \
   }
@@ -281,58 +281,25 @@ static int gtpv1uCreateAndSendMsg(int h,
   return  !GTPNOK;
 }
 
-static void gtpv1uSend(instance_t instance, gtpv1u_enb_tunnel_data_req_t *req, bool seqNumFlag, bool npduNumFlag) {
+static void gtpv1uSend(instance_t instance, gtpv1u_tunnel_data_req_t *req, bool seqNumFlag, bool npduNumFlag) {
   uint8_t *buffer=req->buffer+req->offset;
   size_t length=req->length;
-  rnti_t rnti=req->rnti;
-  int  rab_id=req->rab_id;
-  pthread_mutex_lock(&globGtp.gtp_lock);
-  getInstRetVoid(compatInst(instance));
-  getRntiRetVoid(inst, rnti);
-
-  map<int, gtpv1u_bearer_t>::iterator ptr2=ptrRnti->second.bearers.find(rab_id);
-
-  if ( ptr2 == ptrRnti->second.bearers.end() ) {
-    LOG_E(GTPU,"[%ld] GTP-U instance: sending a packet to a non existant RNTI:RAB: %x/%x\n", instance, rnti, rab_id);
-    pthread_mutex_unlock(&globGtp.gtp_lock);
-    return;
-  }
-
-  LOG_D(GTPU,"[%ld] sending a packet to RNTI:RAB:teid %x/%x/%x, len %lu, oldseq %d, oldnum %d\n",
-        instance, rnti, rab_id,ptr2->second.teid_outgoing,length, ptr2->second.seqNum,ptr2->second.npduNum );
-
-  if(seqNumFlag)
-    ptr2->second.seqNum++;
-
-  if(npduNumFlag)
-    ptr2->second.npduNum++;
-
-  // copy to release the mutex
-  gtpv1u_bearer_t tmp=ptr2->second;
-  pthread_mutex_unlock(&globGtp.gtp_lock);
-  gtpv1uCreateAndSendMsg(
-      compatInst(instance), tmp.outgoing_ip_addr, tmp.outgoing_port, GTP_GPDU, tmp.teid_outgoing, buffer, length, seqNumFlag, npduNumFlag, tmp.seqNum, tmp.npduNum, NO_MORE_EXT_HDRS, NULL, 0);
-}
-
-static void gtpv1uSend2(instance_t instance, gtpv1u_gnb_tunnel_data_req_t *req, bool seqNumFlag, bool npduNumFlag) {
-  uint8_t *buffer=req->buffer+req->offset;
-  size_t length=req->length;
-  ue_id_t ue_id=req->ue_id;
-  int  rab_id=req->pdusession_id;
+  ue_id_t ueid=req->ue_id;
+  int  bearer_id=req->bearer_id;
   pthread_mutex_lock(&globGtp.gtp_lock);
   getInstRetVoid(compatInst(instance));
   getRntiRetVoid(inst, ue_id);
 
-  map<int, gtpv1u_bearer_t>::iterator ptr2=ptrRnti->second.bearers.find(rab_id);
+  auto ptr2=ptrUe->second.bearers.find(bearer_id);
 
-  if ( ptr2 == ptrRnti->second.bearers.end() ) {
-    LOG_D(GTPU,"GTP-U instance: %ld sending a packet to a non existant UE ID:RAB: %lu/%x\n", instance, ue_id, rab_id);
+  if ( ptr2 == ptrUe->second.bearers.end() ) {
+    LOG_E(GTPU,"[%ld] GTP-U instance: sending a packet to a non existant UE:RAB: %lx/%x\n", instance, ueid, bearer_id);
     pthread_mutex_unlock(&globGtp.gtp_lock);
     return;
   }
 
-  LOG_D(GTPU,"[%ld] GTP-U sending a packet to UE ID:RAB:teid %lu/%x/%x, len %lu, oldseq %d, oldnum %d\n",
-        instance, ue_id, rab_id,ptr2->second.teid_outgoing,length, ptr2->second.seqNum,ptr2->second.npduNum );
+  LOG_D(GTPU,"[%ld] sending a packet to UE:RAB:teid %lx/%x/%x, len %lu, oldseq %d, oldnum %d\n",
+        instance, ueid, bearer_id,ptr2->second.teid_outgoing,length, ptr2->second.seqNum,ptr2->second.npduNum );
 
   if(seqNumFlag)
     ptr2->second.seqNum++;
@@ -405,15 +372,15 @@ static void fillDlDeliveryStatusReport(extensionHeader_t *extensionHeader, uint3
 
 static void gtpv1uSendDlDeliveryStatus(instance_t instance, gtpv1u_DU_buffer_report_req_t *req){
   ue_id_t ue_id=req->ue_id;
-  int  rab_id=req->pdusession_id;
+  int  bearer_id=req->pdusession_id;
   pthread_mutex_lock(&globGtp.gtp_lock);
   getInstRetVoid(compatInst(instance));
   getRntiRetVoid(inst, ue_id);
 
-  map<int, gtpv1u_bearer_t>::iterator ptr2=ptrRnti->second.bearers.find(rab_id);
+  auto ptr2=ptrUe->second.bearers.find(bearer_id);
 
-  if ( ptr2 == ptrRnti->second.bearers.end() ) {
-    LOG_D(GTPU,"GTP-U instance: %ld sending a packet to a non existant UE ID:RAB: %lu/%x\n", instance, ue_id, rab_id);
+  if ( ptr2 == ptrUe->second.bearers.end() ) {
+    LOG_D(GTPU,"GTP-U instance: %ld sending a packet to a non existant UE ID:RAB: %lu/%x\n", instance, ue_id, bearer_id);
     pthread_mutex_unlock(&globGtp.gtp_lock);
     return;
   }
@@ -423,7 +390,7 @@ static void gtpv1uSendDlDeliveryStatus(instance_t instance, gtpv1u_DU_buffer_rep
   fillDlDeliveryStatusReport(extensionHeader, req->buffer_availability,0);
 
   LOG_I(GTPU,"[%ld] GTP-U sending DL Data Delivery status to UE ID:RAB:teid %lu/%x/%x, oldseq %d, oldnum %d\n",
-        instance, ue_id, rab_id,ptr2->second.teid_outgoing, ptr2->second.seqNum,ptr2->second.npduNum );
+        instance, ue_id, bearer_id,ptr2->second.teid_outgoing, ptr2->second.seqNum,ptr2->second.npduNum );
   // copy to release the mutex
   gtpv1u_bearer_t tmp=ptr2->second;
   pthread_mutex_unlock(&globGtp.gtp_lock);
@@ -431,23 +398,23 @@ static void gtpv1uSendDlDeliveryStatus(instance_t instance, gtpv1u_DU_buffer_rep
       compatInst(instance), tmp.outgoing_ip_addr, tmp.outgoing_port, GTP_GPDU, tmp.teid_outgoing, NULL, 0, false, false, 0, 0, NR_RAN_CONTAINER, extensionHeader->buffer, extensionHeader->length);
 }
 
-static void gtpv1uEndTunnel(instance_t instance, gtpv1u_enb_tunnel_data_req_t *req) {
-  rnti_t rnti=req->rnti;
-  int  rab_id=req->rab_id;
+static void gtpv1uEndTunnel(instance_t instance, gtpv1u_tunnel_data_req_t *req) {
+  ue_id_t ueid=req->ue_id;
+  int  bearer_id=req->bearer_id;
   pthread_mutex_lock(&globGtp.gtp_lock);
   getInstRetVoid(compatInst(instance));
-  getRntiRetVoid(inst, rnti);
+  getRntiRetVoid(inst, ue_id);
 
-  map<int, gtpv1u_bearer_t>::iterator ptr2=ptrRnti->second.bearers.find(rab_id);
+  auto ptr2=ptrUe->second.bearers.find(bearer_id);
 
-  if ( ptr2 == ptrRnti->second.bearers.end() ) {
-    LOG_E(GTPU,"[%ld] GTP-U sending a packet to a non existant RNTI:RAB: %x/%x\n", instance, rnti, rab_id);
+  if ( ptr2 == ptrUe->second.bearers.end() ) {
+    LOG_E(GTPU,"[%ld] GTP-U sending a packet to a non existant UE:RAB: %lx/%x\n", instance, ueid, bearer_id);
     pthread_mutex_unlock(&globGtp.gtp_lock);
     return;
   }
 
-  LOG_D(GTPU,"[%ld] sending a end packet packet to RNTI:RAB:teid %x/%x/%x\n",
-        instance, rnti, rab_id,ptr2->second.teid_outgoing);
+  LOG_D(GTPU,"[%ld] sending a end packet packet to UE:RAB:teid %lx/%x/%x\n",
+        instance, ueid, bearer_id,ptr2->second.teid_outgoing);
   gtpv1u_bearer_t tmp=ptr2->second;
   pthread_mutex_unlock(&globGtp.gtp_lock);
   Gtpv1uMsgHeaderT  msgHdr;
@@ -584,9 +551,9 @@ void GtpuUpdateTunnelOutgoingTeid(instance_t instance, ue_id_t ue_id, ebi_t bear
   getInstRetVoid(compatInst(instance));
   getRntiRetVoid(inst, ue_id);
 
-  map<int, gtpv1u_bearer_t>::iterator ptr2=ptrRnti->second.bearers.find(bearer_id);
+  auto ptr2=ptrUe->second.bearers.find(bearer_id);
 
-  if ( ptr2 == ptrRnti->second.bearers.end() ) {
+  if ( ptr2 == ptrUe->second.bearers.end() ) {
     LOG_E(GTPU,"[%ld] Update tunnel for a existing ue id %lu, but wrong bearer_id %u\n", instance, ue_id, bearer_id);
     pthread_mutex_unlock(&globGtp.gtp_lock);
     return;
@@ -680,9 +647,9 @@ teid_t newGtpuCreateTunnel(instance_t instance,
 int gtpv1u_create_s1u_tunnel(instance_t instance,
                              const gtpv1u_enb_create_tunnel_req_t  *create_tunnel_req,
                              gtpv1u_enb_create_tunnel_resp_t *create_tunnel_resp) {
-  LOG_D(GTPU, "[%ld] Start create tunnels for UE ID %lu, num_tunnels %d, sgw_S1u_teid %x\n",
+  LOG_D(GTPU, "[%ld] Start create tunnels for UE ID %u, num_tunnels %d, sgw_S1u_teid %x\n",
         instance,
-        create_tunnel_req->ue_id,
+        create_tunnel_req->rnti,
         create_tunnel_req->num_tunnels,
         create_tunnel_req->sgw_S1u_teid[0]);
   pthread_mutex_lock(&globGtp.gtp_lock);
@@ -699,7 +666,7 @@ int gtpv1u_create_s1u_tunnel(instance_t instance,
                 create_tunnel_req->eps_bearer_id[i]);
     int incoming_rb_id=create_tunnel_req->eps_bearer_id[i]-4;
     teid_t teid = newGtpuCreateTunnel(compatInst(instance),
-                                      create_tunnel_req->ue_id,
+                                      create_tunnel_req->rnti,
                                       incoming_rb_id,
                                       create_tunnel_req->eps_bearer_id[i],
                                       create_tunnel_req->sgw_S1u_teid[i],
@@ -709,7 +676,7 @@ int gtpv1u_create_s1u_tunnel(instance_t instance,
                                       pdcp_data_req,
                                       NULL);
     create_tunnel_resp->status=0;
-    create_tunnel_resp->ue_id=create_tunnel_req->ue_id;
+    create_tunnel_resp->rnti=create_tunnel_req->rnti;
     create_tunnel_resp->num_tunnels=create_tunnel_req->num_tunnels;
     create_tunnel_resp->enb_S1u_teid[i]=teid;
     create_tunnel_resp->eps_bearer_id[i] = create_tunnel_req->eps_bearer_id[i];
@@ -723,7 +690,7 @@ int gtpv1u_create_s1u_tunnel(instance_t instance,
 int gtpv1u_update_s1u_tunnel(
   const instance_t                              instance,
   const gtpv1u_enb_create_tunnel_req_t *const   create_tunnel_req,
-  const rnti                                    prior_rnti
+  const rnti_t                                  prior_rnti
 ) {
   LOG_D(GTPU, "[%ld] Start update tunnels for old RNTI %x, new RNTI %x, num_tunnels %d, sgw_S1u_teid %x, eps_bearer_id %x\n",
         instance,
@@ -743,7 +710,7 @@ int gtpv1u_update_s1u_tunnel(
   auto it=inst->ue2te_mapping.find(prior_rnti);
 
   if ( it != inst->ue2te_mapping.end() ) {
-    LOG_W(GTPU,"[%ld] Update a not existing tunnel, start create the new one (new ue id %lu, old ue id %lu)\n", instance, create_tunnel_req->rnti, prior_rnti);
+    LOG_W(GTPU,"[%ld] Update a not existing tunnel, start create the new one (new ue id %u, old ue id %u)\n", instance, create_tunnel_req->rnti, prior_rnti);
     pthread_mutex_unlock(&globGtp.gtp_lock);
     gtpv1u_enb_create_tunnel_resp_t tmp;
     (void)gtpv1u_create_s1u_tunnel(instance, create_tunnel_req, &tmp);
@@ -796,7 +763,7 @@ int gtpv1u_create_ngu_tunnel(  const instance_t instance,
 int gtpv1u_update_ngu_tunnel(
   const instance_t instanceP,
   const gtpv1u_gnb_create_tunnel_req_t *const  create_tunnel_req_pP,
-  const ue_id_t prior_ue_id;
+  const ue_id_t prior_ueid
 ) {
   AssertFatal( false, "to be developped\n");
   return GTPNOK;
@@ -827,7 +794,7 @@ int newGtpuDeleteAllTunnels(instance_t instance, ue_id_t ue_id) {
 
   inst->ue2te_mapping.erase(ptrRnti);
   pthread_mutex_unlock(&globGtp.gtp_lock);
-  LOG_I(GTPU, "[%ld] Deleted all tunnels for ue id %x (%d tunnels deleted)\n", instance, ue_id, nb);
+  LOG_I(GTPU, "[%ld] Deleted all tunnels for ue id %ld (%d tunnels deleted)\n", instance, ue_id, nb);
   return !GTPNOK;
 }
 
@@ -954,7 +921,7 @@ static int Gtpv1uHandleEndMarker(int h,
   ctxt.module_id = 0;
   ctxt.enb_flag = 1;
   ctxt.instance = inst->addr.originInstance;
-  ctxt.rnti = tunnel->second.rnti;
+  ctxt.rnti = tunnel->second.ue_id;
   ctxt.frame = 0;
   ctxt.subframe = 0;
   ctxt.eNB_index = 0;
@@ -1087,7 +1054,7 @@ static int Gtpv1uHandleGpdu(int h,
   ctxt.module_id = 0;
   ctxt.enb_flag = 1;
   ctxt.instance = inst->addr.originInstance;
-  ctxt.rnti = tunnel->second.rnti;
+  ctxt.rnti = tunnel->second.ue_id;
   ctxt.frame = 0;
   ctxt.subframe = 0;
   ctxt.eNB_index = 0;
@@ -1105,11 +1072,33 @@ static int Gtpv1uHandleGpdu(int h,
 
   if (sdu_buffer_size > 0) {
     if (qfi != -1 && tunnel->second.callBackSDAP) {
-      if (!tunnel->second.callBackSDAP(&ctxt, srb_flag, rb_id, mui, confirm, sdu_buffer_size, sdu_buffer, mode, &sourceL2Id, &destinationL2Id, qfi, rqi, tunnel->second.pdusession_id))
-        LOG_E(GTPU, "[%d] down layer refused incoming packet\n", h);
+      if ( !tunnel->second.callBackSDAP(&ctxt,
+                                        tunnel->second.ue_id,
+                                        srb_flag,
+                                        rb_id,
+                                        mui,
+                                        confirm,
+                                        sdu_buffer_size,
+                                        sdu_buffer,
+                                        mode,
+                                        &sourceL2Id,
+                                        &destinationL2Id,
+                                        qfi,
+                                        rqi,
+                                        tunnel->second.pdusession_id) )
+        LOG_E(GTPU,"[%d] down layer refused incoming packet\n", h);
     } else {
-      if (!tunnel->second.callBack(&ctxt, srb_flag, rb_id, mui, confirm, sdu_buffer_size, sdu_buffer, mode, &sourceL2Id, &destinationL2Id))
-        LOG_E(GTPU, "[%d] down layer refused incoming packet\n", h);
+      if ( !tunnel->second.callBack(&ctxt,
+                                    srb_flag,
+                                    rb_id,
+                                    mui,
+                                    confirm,
+                                    sdu_buffer_size,
+                                    sdu_buffer,
+                                    mode,
+                                    &sourceL2Id,
+                                    &destinationL2Id) )
+        LOG_E(GTPU,"[%d] down layer refused incoming packet\n", h);
     }
   }
 
@@ -1231,16 +1220,10 @@ void *gtpv1uTask(void *args)  {
 
       switch (ITTI_MSG_ID(message_p)) {
         // DATA TO BE SENT TO UDP
-        case GTPV1U_ENB_TUNNEL_DATA_REQ: {
-          gtpv1uSend(compatInst(ITTI_MSG_DESTINATION_INSTANCE(message_p)),
-                     &GTPV1U_ENB_TUNNEL_DATA_REQ(message_p), false, false);
-          itti_free(TASK_GTPV1_U, GTPV1U_ENB_TUNNEL_DATA_REQ(message_p).buffer);
-        }
-        break;
 
-        case GTPV1U_GNB_TUNNEL_DATA_REQ: {
-          gtpv1uSend2(compatInst(ITTI_MSG_DESTINATION_INSTANCE(message_p)),
-                      &GTPV1U_GNB_TUNNEL_DATA_REQ(message_p), false, false);
+        case GTPV1U_TUNNEL_DATA_REQ: {
+          gtpv1uSend(compatInst(ITTI_MSG_DESTINATION_INSTANCE(message_p)),
+                      &GTPV1U_TUNNEL_DATA_REQ(message_p), false, false);
         }
         break;
 
@@ -1259,8 +1242,8 @@ void *gtpv1uTask(void *args)  {
 
         case GTPV1U_ENB_END_MARKER_REQ:
           gtpv1uEndTunnel(compatInst(ITTI_MSG_DESTINATION_INSTANCE(message_p)),
-                          &GTPV1U_ENB_TUNNEL_DATA_REQ(message_p));
-          itti_free(TASK_GTPV1_U, GTPV1U_ENB_TUNNEL_DATA_REQ(message_p).buffer);
+                          &GTPV1U_TUNNEL_DATA_REQ(message_p));
+          itti_free(TASK_GTPV1_U, GTPV1U_TUNNEL_DATA_REQ(message_p).buffer);
           break;
 
         case GTPV1U_ENB_DATA_FORWARDING_REQ:
