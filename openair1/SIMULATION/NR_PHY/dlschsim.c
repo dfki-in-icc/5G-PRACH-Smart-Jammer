@@ -74,6 +74,11 @@ uint16_t n_rnti = 0x1234;
 openair0_config_t openair0_cfg[MAX_CARDS];
 
 void init_downlink_harq_status(NR_DL_UE_HARQ_t *dl_harq) {}
+nfapi_mode_t nfapi_mod;
+nfapi_mode_t nfapi_getmode(void) {
+  return nfapi_mod;
+}
+void nfapi_setmode(nfapi_mode_t nfapi_mode) { nfapi_mod=nfapi_mode; }
 
 
 nrUE_params_t nrUE_params={0};

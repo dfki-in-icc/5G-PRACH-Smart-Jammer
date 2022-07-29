@@ -23,7 +23,7 @@
 
 #ifndef E1AP_COMMON_H_
 #define E1AP_COMMON_H_
- 
+#include "openair2/E1AP/e1ap_default_values.h"
 #include "openair2/COMMON/e1ap_messages_types.h"
 int e1ap_decode_pdu(E1AP_E1AP_PDU_t *pdu, const uint8_t *const buffer, uint32_t length);
 

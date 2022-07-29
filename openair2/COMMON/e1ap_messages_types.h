@@ -41,9 +41,6 @@
 #define E1AP_BEARER_CONTEXT_SETUP_REQ(mSGpTR)      (mSGpTR)->ittiMsg.e1ap_bearer_setup_req
 #define E1AP_BEARER_CONTEXT_SETUP_RESP(mSGpTR)     (mSGpTR)->ittiMsg.e1ap_bearer_setup_resp
 
-#define E1AP_PORT_NUMBER 25
-#define E1AP_SCTP_PPID 64
-
 typedef f1ap_net_ip_address_t e1ap_net_ip_address_t;
 
 typedef struct PLMN_ID_s {

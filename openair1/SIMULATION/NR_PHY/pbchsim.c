@@ -59,13 +59,17 @@ RAN_CONTEXT_t RC;
 int32_t uplink_frequency_offset[MAX_NUM_CCs][4];
 
 double cpuf;
-//uint8_t nfapi_mode = 0;
 uint16_t NB_UE_INST = 1;
 
 // needed for some functions
 openair0_config_t openair0_cfg[MAX_CARDS];
 
 uint8_t const nr_rv_round_map[4] = {0, 2, 3, 1};
+
+nfapi_mode_t nfapi_mod;
+nfapi_mode_t nfapi_getmode(void) {
+  return nfapi_mod;
+}
 
 uint64_t get_softmodem_optmask(void) {return 0;}
 static softmodem_params_t softmodem_params;
