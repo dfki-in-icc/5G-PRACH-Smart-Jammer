@@ -29565,6 +29565,194 @@ static int _serSysEncPagingTrigger_Type(unsigned char* _buffer, size_t _size, si
 	return SIDL_STATUS_OK;
 }
 
+static int _serSysEncIndicationAndControlMode_Type_RachPreamble_Optional(unsigned char* _buffer, size_t _size, size_t* _lidx, const struct IndicationAndControlMode_Type_RachPreamble_Optional* p)
+{
+	(void)_size; // TODO: generate boundaries checking
+
+	HTON_8(&_buffer[*_lidx], p->d, _lidx);
+	if (!p->d) return SIDL_STATUS_OK;
+	{
+		size_t _tmp = (size_t)p->v;
+		HTON_32(&_buffer[*_lidx], _tmp, _lidx);
+	}
+
+	return SIDL_STATUS_OK;
+}
+
+static int _serSysEncIndicationAndControlMode_Type_SchedReq_Optional(unsigned char* _buffer, size_t _size, size_t* _lidx, const struct IndicationAndControlMode_Type_SchedReq_Optional* p)
+{
+	(void)_size; // TODO: generate boundaries checking
+
+	HTON_8(&_buffer[*_lidx], p->d, _lidx);
+	if (!p->d) return SIDL_STATUS_OK;
+	{
+		size_t _tmp = (size_t)p->v;
+		HTON_32(&_buffer[*_lidx], _tmp, _lidx);
+	}
+
+	return SIDL_STATUS_OK;
+}
+
+static int _serSysEncIndicationAndControlMode_Type_BSR_Optional(unsigned char* _buffer, size_t _size, size_t* _lidx, const struct IndicationAndControlMode_Type_BSR_Optional* p)
+{
+	(void)_size; // TODO: generate boundaries checking
+
+	HTON_8(&_buffer[*_lidx], p->d, _lidx);
+	if (!p->d) return SIDL_STATUS_OK;
+	{
+		size_t _tmp = (size_t)p->v;
+		HTON_32(&_buffer[*_lidx], _tmp, _lidx);
+	}
+
+	return SIDL_STATUS_OK;
+}
+
+static int _serSysEncIndicationAndControlMode_Type_UL_HARQ_Optional(unsigned char* _buffer, size_t _size, size_t* _lidx, const struct IndicationAndControlMode_Type_UL_HARQ_Optional* p)
+{
+	(void)_size; // TODO: generate boundaries checking
+
+	HTON_8(&_buffer[*_lidx], p->d, _lidx);
+	if (!p->d) return SIDL_STATUS_OK;
+	{
+		size_t _tmp = (size_t)p->v;
+		HTON_32(&_buffer[*_lidx], _tmp, _lidx);
+	}
+
+	return SIDL_STATUS_OK;
+}
+
+static int _serSysEncIndicationAndControlMode_Type_C_RNTI_Optional(unsigned char* _buffer, size_t _size, size_t* _lidx, const struct IndicationAndControlMode_Type_C_RNTI_Optional* p)
+{
+	(void)_size; // TODO: generate boundaries checking
+
+	HTON_8(&_buffer[*_lidx], p->d, _lidx);
+	if (!p->d) return SIDL_STATUS_OK;
+	{
+		size_t _tmp = (size_t)p->v;
+		HTON_32(&_buffer[*_lidx], _tmp, _lidx);
+	}
+
+	return SIDL_STATUS_OK;
+}
+
+static int _serSysEncIndicationAndControlMode_Type_PHR_Optional(unsigned char* _buffer, size_t _size, size_t* _lidx, const struct IndicationAndControlMode_Type_PHR_Optional* p)
+{
+	(void)_size; // TODO: generate boundaries checking
+
+	HTON_8(&_buffer[*_lidx], p->d, _lidx);
+	if (!p->d) return SIDL_STATUS_OK;
+	{
+		size_t _tmp = (size_t)p->v;
+		HTON_32(&_buffer[*_lidx], _tmp, _lidx);
+	}
+
+	return SIDL_STATUS_OK;
+}
+
+static int _serSysEncIndicationAndControlMode_Type_HarqError_Optional(unsigned char* _buffer, size_t _size, size_t* _lidx, const struct IndicationAndControlMode_Type_HarqError_Optional* p)
+{
+	(void)_size; // TODO: generate boundaries checking
+
+	HTON_8(&_buffer[*_lidx], p->d, _lidx);
+	if (!p->d) return SIDL_STATUS_OK;
+	{
+		size_t _tmp = (size_t)p->v;
+		HTON_32(&_buffer[*_lidx], _tmp, _lidx);
+	}
+
+	return SIDL_STATUS_OK;
+}
+
+static int _serSysEncIndicationAndControlMode_Type_PeriodicRI_Optional(unsigned char* _buffer, size_t _size, size_t* _lidx, const struct IndicationAndControlMode_Type_PeriodicRI_Optional* p)
+{
+	(void)_size; // TODO: generate boundaries checking
+
+	HTON_8(&_buffer[*_lidx], p->d, _lidx);
+	if (!p->d) return SIDL_STATUS_OK;
+	{
+		size_t _tmp = (size_t)p->v;
+		HTON_32(&_buffer[*_lidx], _tmp, _lidx);
+	}
+
+	return SIDL_STATUS_OK;
+}
+
+static int _serSysEncIndicationAndControlMode_Type_EPHR_Optional(unsigned char* _buffer, size_t _size, size_t* _lidx, const struct IndicationAndControlMode_Type_EPHR_Optional* p)
+{
+	(void)_size; // TODO: generate boundaries checking
+
+	HTON_8(&_buffer[*_lidx], p->d, _lidx);
+	if (!p->d) return SIDL_STATUS_OK;
+	{
+		size_t _tmp = (size_t)p->v;
+		HTON_32(&_buffer[*_lidx], _tmp, _lidx);
+	}
+
+	return SIDL_STATUS_OK;
+}
+
+static int _serSysEncIndicationAndControlMode_Type_PeriodicCQI_Optional(unsigned char* _buffer, size_t _size, size_t* _lidx, const struct IndicationAndControlMode_Type_PeriodicCQI_Optional* p)
+{
+	(void)_size; // TODO: generate boundaries checking
+
+	HTON_8(&_buffer[*_lidx], p->d, _lidx);
+	if (!p->d) return SIDL_STATUS_OK;
+	{
+		size_t _tmp = (size_t)p->v;
+		HTON_32(&_buffer[*_lidx], _tmp, _lidx);
+	}
+
+	return SIDL_STATUS_OK;
+}
+
+static int _serSysEncIndicationAndControlMode_Type_SRS_Optional(unsigned char* _buffer, size_t _size, size_t* _lidx, const struct IndicationAndControlMode_Type_SRS_Optional* p)
+{
+	(void)_size; // TODO: generate boundaries checking
+
+	HTON_8(&_buffer[*_lidx], p->d, _lidx);
+	if (!p->d) return SIDL_STATUS_OK;
+	{
+		size_t _tmp = (size_t)p->v;
+		HTON_32(&_buffer[*_lidx], _tmp, _lidx);
+	}
+
+	return SIDL_STATUS_OK;
+}
+
+static int _serSysEncIndicationAndControlMode_Type_DC_PHR_Optional(unsigned char* _buffer, size_t _size, size_t* _lidx, const struct IndicationAndControlMode_Type_DC_PHR_Optional* p)
+{
+	(void)_size; // TODO: generate boundaries checking
+
+	HTON_8(&_buffer[*_lidx], p->d, _lidx);
+	if (!p->d) return SIDL_STATUS_OK;
+	{
+		size_t _tmp = (size_t)p->v;
+		HTON_32(&_buffer[*_lidx], _tmp, _lidx);
+	}
+
+	return SIDL_STATUS_OK;
+}
+
+static int _serSysEncL1Mac_IndicationControl_Type(unsigned char* _buffer, size_t _size, size_t* _lidx, const struct L1Mac_IndicationControl_Type* p)
+{
+	(void)_size; // TODO: generate boundaries checking
+
+	_serSysEncIndicationAndControlMode_Type_RachPreamble_Optional(_buffer, _size, _lidx, &p->RachPreamble);
+	_serSysEncIndicationAndControlMode_Type_SchedReq_Optional(_buffer, _size, _lidx, &p->SchedReq);
+	_serSysEncIndicationAndControlMode_Type_BSR_Optional(_buffer, _size, _lidx, &p->BSR);
+	_serSysEncIndicationAndControlMode_Type_UL_HARQ_Optional(_buffer, _size, _lidx, &p->UL_HARQ);
+	_serSysEncIndicationAndControlMode_Type_C_RNTI_Optional(_buffer, _size, _lidx, &p->C_RNTI);
+	_serSysEncIndicationAndControlMode_Type_PHR_Optional(_buffer, _size, _lidx, &p->PHR);
+	_serSysEncIndicationAndControlMode_Type_HarqError_Optional(_buffer, _size, _lidx, &p->HarqError);
+	_serSysEncIndicationAndControlMode_Type_PeriodicRI_Optional(_buffer, _size, _lidx, &p->PeriodicRI);
+	_serSysEncIndicationAndControlMode_Type_EPHR_Optional(_buffer, _size, _lidx, &p->EPHR);
+	_serSysEncIndicationAndControlMode_Type_PeriodicCQI_Optional(_buffer, _size, _lidx, &p->PeriodicCQI);
+	_serSysEncIndicationAndControlMode_Type_SRS_Optional(_buffer, _size, _lidx, &p->SRS);
+	_serSysEncIndicationAndControlMode_Type_DC_PHR_Optional(_buffer, _size, _lidx, &p->DC_PHR);
+
+	return SIDL_STATUS_OK;
+}
+
 static int _serSysEncPdcpCountGetReq_Type_Value(unsigned char* _buffer, size_t _size, size_t* _lidx, const union PdcpCountGetReq_Type_Value* p, enum PdcpCountGetReq_Type_Sel d)
 {
 	(void)_size; // TODO: generate boundaries checking
@@ -29832,6 +30020,9 @@ static int _serSysEncSystemRequest_Type_Value(unsigned char* _buffer, size_t _si
 	}
 	if (d == SystemRequest_Type_Paging) {
 		_serSysEncPagingTrigger_Type(_buffer, _size, _lidx, &p->Paging);
+	}
+	if (d == SystemRequest_Type_L1MacIndCtrl) {
+		_serSysEncL1Mac_IndicationControl_Type(_buffer, _size, _lidx, &p->L1MacIndCtrl);
 	}
 	if (d == SystemRequest_Type_PdcpCount) {
 		_serSysEncPdcp_CountReq_Type(_buffer, _size, _lidx, &p->PdcpCount);
@@ -60526,6 +60717,206 @@ static int _serSysDecPagingTrigger_Type(const unsigned char* _buffer, size_t _si
 	return SIDL_STATUS_OK;
 }
 
+static int _serSysDecIndicationAndControlMode_Type_RachPreamble_Optional(const unsigned char* _buffer, size_t _size, size_t* _lidx, struct IndicationAndControlMode_Type_RachPreamble_Optional* p)
+{
+	(void)_size; // TODO: generate boundaries checking
+
+	NTOH_8(p->d, &_buffer[*_lidx], _lidx);
+	if (!p->d) return SIDL_STATUS_OK;
+	{
+		size_t _tmp;
+		NTOH_32(_tmp, &_buffer[*_lidx], _lidx);
+		p->v = (IndicationAndControlMode_Type)_tmp;
+	}
+
+	return SIDL_STATUS_OK;
+}
+
+static int _serSysDecIndicationAndControlMode_Type_SchedReq_Optional(const unsigned char* _buffer, size_t _size, size_t* _lidx, struct IndicationAndControlMode_Type_SchedReq_Optional* p)
+{
+	(void)_size; // TODO: generate boundaries checking
+
+	NTOH_8(p->d, &_buffer[*_lidx], _lidx);
+	if (!p->d) return SIDL_STATUS_OK;
+	{
+		size_t _tmp;
+		NTOH_32(_tmp, &_buffer[*_lidx], _lidx);
+		p->v = (IndicationAndControlMode_Type)_tmp;
+	}
+
+	return SIDL_STATUS_OK;
+}
+
+static int _serSysDecIndicationAndControlMode_Type_BSR_Optional(const unsigned char* _buffer, size_t _size, size_t* _lidx, struct IndicationAndControlMode_Type_BSR_Optional* p)
+{
+	(void)_size; // TODO: generate boundaries checking
+
+	NTOH_8(p->d, &_buffer[*_lidx], _lidx);
+	if (!p->d) return SIDL_STATUS_OK;
+	{
+		size_t _tmp;
+		NTOH_32(_tmp, &_buffer[*_lidx], _lidx);
+		p->v = (IndicationAndControlMode_Type)_tmp;
+	}
+
+	return SIDL_STATUS_OK;
+}
+
+static int _serSysDecIndicationAndControlMode_Type_UL_HARQ_Optional(const unsigned char* _buffer, size_t _size, size_t* _lidx, struct IndicationAndControlMode_Type_UL_HARQ_Optional* p)
+{
+	(void)_size; // TODO: generate boundaries checking
+
+	NTOH_8(p->d, &_buffer[*_lidx], _lidx);
+	if (!p->d) return SIDL_STATUS_OK;
+	{
+		size_t _tmp;
+		NTOH_32(_tmp, &_buffer[*_lidx], _lidx);
+		p->v = (IndicationAndControlMode_Type)_tmp;
+	}
+
+	return SIDL_STATUS_OK;
+}
+
+static int _serSysDecIndicationAndControlMode_Type_C_RNTI_Optional(const unsigned char* _buffer, size_t _size, size_t* _lidx, struct IndicationAndControlMode_Type_C_RNTI_Optional* p)
+{
+	(void)_size; // TODO: generate boundaries checking
+
+	NTOH_8(p->d, &_buffer[*_lidx], _lidx);
+	if (!p->d) return SIDL_STATUS_OK;
+	{
+		size_t _tmp;
+		NTOH_32(_tmp, &_buffer[*_lidx], _lidx);
+		p->v = (IndicationAndControlMode_Type)_tmp;
+	}
+
+	return SIDL_STATUS_OK;
+}
+
+static int _serSysDecIndicationAndControlMode_Type_PHR_Optional(const unsigned char* _buffer, size_t _size, size_t* _lidx, struct IndicationAndControlMode_Type_PHR_Optional* p)
+{
+	(void)_size; // TODO: generate boundaries checking
+
+	NTOH_8(p->d, &_buffer[*_lidx], _lidx);
+	if (!p->d) return SIDL_STATUS_OK;
+	{
+		size_t _tmp;
+		NTOH_32(_tmp, &_buffer[*_lidx], _lidx);
+		p->v = (IndicationAndControlMode_Type)_tmp;
+	}
+
+	return SIDL_STATUS_OK;
+}
+
+static int _serSysDecIndicationAndControlMode_Type_HarqError_Optional(const unsigned char* _buffer, size_t _size, size_t* _lidx, struct IndicationAndControlMode_Type_HarqError_Optional* p)
+{
+	(void)_size; // TODO: generate boundaries checking
+
+	NTOH_8(p->d, &_buffer[*_lidx], _lidx);
+	if (!p->d) return SIDL_STATUS_OK;
+	{
+		size_t _tmp;
+		NTOH_32(_tmp, &_buffer[*_lidx], _lidx);
+		p->v = (IndicationAndControlMode_Type)_tmp;
+	}
+
+	return SIDL_STATUS_OK;
+}
+
+static int _serSysDecIndicationAndControlMode_Type_PeriodicRI_Optional(const unsigned char* _buffer, size_t _size, size_t* _lidx, struct IndicationAndControlMode_Type_PeriodicRI_Optional* p)
+{
+	(void)_size; // TODO: generate boundaries checking
+
+	NTOH_8(p->d, &_buffer[*_lidx], _lidx);
+	if (!p->d) return SIDL_STATUS_OK;
+	{
+		size_t _tmp;
+		NTOH_32(_tmp, &_buffer[*_lidx], _lidx);
+		p->v = (IndicationAndControlMode_Type)_tmp;
+	}
+
+	return SIDL_STATUS_OK;
+}
+
+static int _serSysDecIndicationAndControlMode_Type_EPHR_Optional(const unsigned char* _buffer, size_t _size, size_t* _lidx, struct IndicationAndControlMode_Type_EPHR_Optional* p)
+{
+	(void)_size; // TODO: generate boundaries checking
+
+	NTOH_8(p->d, &_buffer[*_lidx], _lidx);
+	if (!p->d) return SIDL_STATUS_OK;
+	{
+		size_t _tmp;
+		NTOH_32(_tmp, &_buffer[*_lidx], _lidx);
+		p->v = (IndicationAndControlMode_Type)_tmp;
+	}
+
+	return SIDL_STATUS_OK;
+}
+
+static int _serSysDecIndicationAndControlMode_Type_PeriodicCQI_Optional(const unsigned char* _buffer, size_t _size, size_t* _lidx, struct IndicationAndControlMode_Type_PeriodicCQI_Optional* p)
+{
+	(void)_size; // TODO: generate boundaries checking
+
+	NTOH_8(p->d, &_buffer[*_lidx], _lidx);
+	if (!p->d) return SIDL_STATUS_OK;
+	{
+		size_t _tmp;
+		NTOH_32(_tmp, &_buffer[*_lidx], _lidx);
+		p->v = (IndicationAndControlMode_Type)_tmp;
+	}
+
+	return SIDL_STATUS_OK;
+}
+
+static int _serSysDecIndicationAndControlMode_Type_SRS_Optional(const unsigned char* _buffer, size_t _size, size_t* _lidx, struct IndicationAndControlMode_Type_SRS_Optional* p)
+{
+	(void)_size; // TODO: generate boundaries checking
+
+	NTOH_8(p->d, &_buffer[*_lidx], _lidx);
+	if (!p->d) return SIDL_STATUS_OK;
+	{
+		size_t _tmp;
+		NTOH_32(_tmp, &_buffer[*_lidx], _lidx);
+		p->v = (IndicationAndControlMode_Type)_tmp;
+	}
+
+	return SIDL_STATUS_OK;
+}
+
+static int _serSysDecIndicationAndControlMode_Type_DC_PHR_Optional(const unsigned char* _buffer, size_t _size, size_t* _lidx, struct IndicationAndControlMode_Type_DC_PHR_Optional* p)
+{
+	(void)_size; // TODO: generate boundaries checking
+
+	NTOH_8(p->d, &_buffer[*_lidx], _lidx);
+	if (!p->d) return SIDL_STATUS_OK;
+	{
+		size_t _tmp;
+		NTOH_32(_tmp, &_buffer[*_lidx], _lidx);
+		p->v = (IndicationAndControlMode_Type)_tmp;
+	}
+
+	return SIDL_STATUS_OK;
+}
+
+static int _serSysDecL1Mac_IndicationControl_Type(const unsigned char* _buffer, size_t _size, size_t* _lidx, struct L1Mac_IndicationControl_Type* p)
+{
+	(void)_size; // TODO: generate boundaries checking
+
+	_serSysDecIndicationAndControlMode_Type_RachPreamble_Optional(_buffer, _size, _lidx, &p->RachPreamble);
+	_serSysDecIndicationAndControlMode_Type_SchedReq_Optional(_buffer, _size, _lidx, &p->SchedReq);
+	_serSysDecIndicationAndControlMode_Type_BSR_Optional(_buffer, _size, _lidx, &p->BSR);
+	_serSysDecIndicationAndControlMode_Type_UL_HARQ_Optional(_buffer, _size, _lidx, &p->UL_HARQ);
+	_serSysDecIndicationAndControlMode_Type_C_RNTI_Optional(_buffer, _size, _lidx, &p->C_RNTI);
+	_serSysDecIndicationAndControlMode_Type_PHR_Optional(_buffer, _size, _lidx, &p->PHR);
+	_serSysDecIndicationAndControlMode_Type_HarqError_Optional(_buffer, _size, _lidx, &p->HarqError);
+	_serSysDecIndicationAndControlMode_Type_PeriodicRI_Optional(_buffer, _size, _lidx, &p->PeriodicRI);
+	_serSysDecIndicationAndControlMode_Type_EPHR_Optional(_buffer, _size, _lidx, &p->EPHR);
+	_serSysDecIndicationAndControlMode_Type_PeriodicCQI_Optional(_buffer, _size, _lidx, &p->PeriodicCQI);
+	_serSysDecIndicationAndControlMode_Type_SRS_Optional(_buffer, _size, _lidx, &p->SRS);
+	_serSysDecIndicationAndControlMode_Type_DC_PHR_Optional(_buffer, _size, _lidx, &p->DC_PHR);
+
+	return SIDL_STATUS_OK;
+}
+
 static int _serSysDecPdcpCountGetReq_Type_Value(const unsigned char* _buffer, size_t _size, size_t* _lidx, serMem_t _mem, union PdcpCountGetReq_Type_Value* p, enum PdcpCountGetReq_Type_Sel d)
 {
 	(void)_size; // TODO: generate boundaries checking
@@ -60801,6 +61192,9 @@ static int _serSysDecSystemRequest_Type_Value(const unsigned char* _buffer, size
 	}
 	if (d == SystemRequest_Type_Paging) {
 		_serSysDecPagingTrigger_Type(_buffer, _size, _lidx, _mem, &p->Paging);
+	}
+	if (d == SystemRequest_Type_L1MacIndCtrl) {
+		_serSysDecL1Mac_IndicationControl_Type(_buffer, _size, _lidx, &p->L1MacIndCtrl);
 	}
 	if (d == SystemRequest_Type_PdcpCount) {
 		_serSysDecPdcp_CountReq_Type(_buffer, _size, _lidx, _mem, &p->PdcpCount);

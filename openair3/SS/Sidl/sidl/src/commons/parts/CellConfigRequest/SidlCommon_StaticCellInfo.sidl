@@ -1,0 +1,108 @@
+/*
+ * Copyright 2022 Sequans Communications.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#pragma once
+
+// SIDL keywords.
+#include "msg.sidl"
+
+// SIDL commons.
+#include "SidlCommon.sidl"
+
+typedef ASN_ENUM(ASN_NAME(CarrierBandwidthEUTRA, dl_Bandwidth)) Dl_Bandwidth_Type;
+typedef ASN_ENUM(ASN_NAME(CarrierBandwidthEUTRA, ul_Bandwidth)) Ul_Bandwidth_Type;
+
+typedef Null EUTRA_FDD_Info_Type;
+
+typedef enum {
+	n_RB_SC_12,
+	n_RB_SC_24
+} EUTRA_RBSize_Type;
+
+typedef enum {
+	CyclicPrefix_normal,
+	CyclicPrefix_extended
+} EUTRA_CyclicPrefix_Type;
+
+struct TDD_Config_R8andLater_Type {
+	struct ASN_NAME(TDD_Config) R8;
+	SIDL_OPTIONAL_OF_STRUCT(ASN_NAME(TDD_Config_v1130), tdd_Config_v1130);
+};
+
+SIDL_UNION_ENUM(TDD_Config_Type) {
+	TDD_Config_Type_UNBOUND_VALUE,
+	TDD_Config_Type_R8andLater,
+};
+SIDL_UNION_BEGIN(TDD_Config_Type) {
+	SIDL_UNION_CASE(TDD_Config_Type_R8andLater)
+		struct TDD_Config_R8andLater_Type R8andLater;
+} SIDL_UNION_END;
+
+struct EUTRA_TDD_Info_Type {
+	struct TDD_Config_Type Configuration;
+};
+
+struct EUTRA_HalfDuplexFDD_Info_Type {
+};
+
+SIDL_UNION_ENUM(EUTRA_RAT_Type) {
+	EUTRA_RAT_Type_UNBOUND_VALUE,
+	EUTRA_RAT_Type_FDD,
+	EUTRA_RAT_Type_TDD,
+	EUTRA_RAT_Type_HalfDuplexFDD,
+};
+SIDL_UNION_BEGIN(EUTRA_RAT_Type) {
+	SIDL_UNION_CASE(EUTRA_RAT_Type_FDD)
+		EUTRA_FDD_Info_Type FDD;
+	SIDL_UNION_CASE(EUTRA_RAT_Type_TDD)
+		struct EUTRA_TDD_Info_Type TDD;
+	SIDL_UNION_CASE(EUTRA_RAT_Type_HalfDuplexFDD)
+		struct EUTRA_HalfDuplexFDD_Info_Type HalfDuplexFDD;
+} SIDL_UNION_END;
+
+struct CellTimingInfo_Type {
+	SIDL_OPTIONAL(uint8_t, TcOffset);
+	uint32_t Tcell;
+	uint16_t SfnOffset;
+	uint16_t HsfnOffset;
+};
+
+struct CommonStaticCellInfo_Type {
+	struct EUTRA_RAT_Type RAT;
+	ASN_NAME(PhysCellId) PhysicalCellId;
+	SIDL_OPTIONAL(ASN_NAME(CellIdentity), eNB_CellId);
+	int32_t EutraBand;
+	struct CellTimingInfo_Type CellTimingInfo;
+};
+
+struct DownlinkStaticCellInfo_Type {
+	int32_t Earfcn;
+	Dl_Bandwidth_Type Bandwidth;
+	EUTRA_RBSize_Type RBSize;
+	EUTRA_CyclicPrefix_Type CyclicPrefix;
+};
+
+struct UplinkStaticCellInfo_Type {
+	int32_t Earfcn;
+	Ul_Bandwidth_Type Bandwidth;
+	EUTRA_CyclicPrefix_Type CyclicPrefix;
+};
+
+struct StaticCellInfo_Type {
+	struct CommonStaticCellInfo_Type Common;
+	struct DownlinkStaticCellInfo_Type Downlink;
+	SIDL_OPTIONAL_OF_STRUCT(UplinkStaticCellInfo_Type, Uplink);
+};

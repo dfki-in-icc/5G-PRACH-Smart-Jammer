@@ -22,6 +22,7 @@
 #include "SidlBase.h"
 #include "SidlCommon.h"
 #include "SidlCommonBase.h"
+#include "SidlNrCommon.h"
 #include "SidlParts.h"
 #include "SidlVals.h"
 #include "TtcnCommon.h"

@@ -115,4 +115,7 @@ int acpCtxGetMsgKindFromId(int id);
 /** Gets sidl name from local id. */
 const char* acpCtxGetItfNameFrom_localId(int id);
 
+/** Gets message kind from name */
+int acpCtxGetMsgKindFromName(const char* name);
+
 SIDL_END_C_INTERFACE

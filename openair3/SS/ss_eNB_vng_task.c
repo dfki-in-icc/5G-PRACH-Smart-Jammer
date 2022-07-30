@@ -59,7 +59,7 @@ void ss_vng_send_cnf(uint8_t status, EUTRA_CellId_Type CellId)
     struct EUTRA_VNG_CTRL_CNF cnf;
     const size_t size = 16 * 1024;
 
-    unsigned char *buffer = (unsigned char *)acpMalloc(size);
+    unsigned char buffer[size];
 
     size_t msgSize = size;
     memset(&cnf, 0, sizeof(cnf));
@@ -84,7 +84,6 @@ void ss_vng_send_cnf(uint8_t status, EUTRA_CellId_Type CellId)
      */
     if (acpVngProcessEncSrv(ctx_vng_g, buffer, &msgSize, &cnf) != 0)
     {
-        acpFree(buffer);
         return;
     }
     /* Send message
@@ -94,15 +93,12 @@ void ss_vng_send_cnf(uint8_t status, EUTRA_CellId_Type CellId)
     {
         LOG_A(ENB_SS, "[VNG] acpSendMsg failed. Error : %d on fd: %d\n",
               status, acpGetSocketFd(ctx_vng_g));
-        acpFree(buffer);
         return;
     }
     else
     {
         LOG_A(ENB_SS, "[VNG] acpSendMsg Success \n");
     }
-    // Free allocated buffer
-    acpFree(buffer);
 }
 
 /*
@@ -152,8 +148,7 @@ ss_eNB_read_from_vng_socket(acpCtx_t ctx)
 {
     struct EUTRA_VNG_CTRL_REQ* req = NULL;
     const size_t size = 16 * 1024;
-    unsigned char *buffer = (unsigned char *)acpMalloc(size);
-    assert(buffer);
+    unsigned char buffer[size];
     size_t msgSize = size; //2
 
     assert(ctx);
@@ -170,17 +165,19 @@ ss_eNB_read_from_vng_socket(acpCtx_t ctx)
     	    {
     	    	// Message not mapped to user id,
     	    	// this error should not appear on server side for the messages received from clients
+                LOG_E(ENB_SS,"[SS-VNG] Message not mapped to user id \n");
     	    }
     	    else if (userId == -ACP_ERR_SIDL_FAILURE)
     	    {
     	    	// Server returned service error,
     	    	// this error should not appear on server side for the messages received from clients
+                LOG_E(ENB_SS,"[SS-VNG] Server returned service error \n");
     	    	SidlStatus sidlStatus = -1;
     	    	acpGetMsgSidlStatus(msgSize, buffer, &sidlStatus);
     	    }
     	    else
     	    {
-                LOG_A(ENB_SS, "[SS-VNG] Invalid userId: %d \n", userId);
+                LOG_E(ENB_SS, "[SS-VNG] Invalid userId: %d \n", userId);
     	    	break;
     	    }
     	}
@@ -188,6 +185,7 @@ ss_eNB_read_from_vng_socket(acpCtx_t ctx)
     	if (userId == 0)
     	{
     	    // No message (timeout on socket)
+            LOG_E(ENB_SS,"[SS-VNG] No message (timeout on socket) \n");
     	    break;
     	}
     	else if (userId == MSG_VngProcess_userId)
@@ -231,7 +229,6 @@ ss_eNB_read_from_vng_socket(acpCtx_t ctx)
     	        break;
     	}
     }
-    acpFree(buffer);
   //acpVngProcessFreeSrv(req);
 }
 

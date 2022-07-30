@@ -1,0 +1,181 @@
+/*
+ * Copyright 2022 Sequans Communications.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include "msg.sidl"
+#include "SidlCommonBase.sidl"
+
+// SIDL common TTCN types and definitions.
+#include "TtcnCommon.sidl"
+
+METADATA_VAR(itf_name, "SysInd");
+
+METADATA_VAR(rats, "EUTRA");
+
+// TTCN namespaces
+METADATA_VAR(namespaces, "EUTRA_ASP_TypeDefs");
+
+typedef uint8_t PrachPreambleIndex_Type;
+typedef Dummy_Type PRTPower_Type;
+typedef int LogicalChannelGroup_Type;
+
+typedef uint8_t PHR_Type;
+
+struct RachPreamble_Type {
+	PrachPreambleIndex_Type RAPID;
+	PRTPower_Type PRTPower;
+	SIDL_OPTIONAL(int, RepetitionsPerPreambleAttempt);
+};
+
+struct SL_BSR_Value_Type {
+	B4_Type DestinationIndex;
+	B2_Type LCG_ID;
+	B6_Type BufferSize;
+};
+
+typedef SIDL_DYNAMIC_OF_STRUCT(SL_BSR_Value_Type, SL_BSR_ValueList_Type);
+
+struct SL_BSR_MACHeader_Type {
+	B5_Type HeaderFieldLCID;
+	B1_Type HeaderFieldE;
+	B1_Type HeaderFieldF;
+	SL_BSR_ValueList_Type SL_BSR_Value;
+};
+
+typedef int BSR_Value_Type;
+
+struct Short_BSR_Type {
+	LogicalChannelGroup_Type LCG;
+	BSR_Value_Type Value;
+};
+
+struct Long_BSR_Type {
+	BSR_Value_Type Value_LCG1;
+	BSR_Value_Type Value_LCG2;
+	BSR_Value_Type Value_LCG3;
+	BSR_Value_Type Value_LCG4;
+};
+
+
+SIDL_UNION_ENUM(BSR_Type) {
+	BSR_Type_UNBOUND_VALUE,
+	BSR_Type_Short,
+	BSR_Type_Truncated,
+	BSR_Type_Long,
+	BSR_Type_Sidelink,
+};
+
+SIDL_UNION_BEGIN(BSR_Type) {
+	SIDL_UNION_CASE(BSR_Type)
+		struct Short_BSR_Type Short;
+	SIDL_UNION_CASE(BSR_Type)
+		struct Short_BSR_Type Truncated;
+	SIDL_UNION_CASE(BSR_Type)
+		struct Long_BSR_Type Long;
+	SIDL_UNION_CASE(BSR_Type)
+		struct SL_BSR_MACHeader_Type Sidelink;
+} SIDL_UNION_END;
+
+typedef enum  {
+	HARQ_Type_ack,
+	HARQ_Type_nack
+} HARQ_Type;
+
+struct HarqProcessInfo_Type {
+	HarqProcessId_Type Id;
+	int CURRENT_TX_NB;
+};
+
+SIDL_UNION_ENUM(HarqError_Type) {
+	HarqError_Type_UNBOUND_VALUE,
+	HarqError_Type_UL,
+	HarqError_Type_DL
+};
+SIDL_UNION_BEGIN(HarqError_Type) {
+	SIDL_UNION_CASE(HarqError_Type)
+		struct HarqProcessInfo_Type UL;
+	SIDL_UNION_CASE(HarqError_Type)
+		struct HarqProcessInfo_Type DL;
+} SIDL_UNION_END;
+
+struct RlcDiscardInd_Type {
+	int SequenceNumber;
+};
+
+typedef uint8_t RI_Type;
+
+typedef enum  {
+	SRSInd_Type_SRS_Start,
+	SRSInd_Type_SRS_Stop
+} SRSInd_Type;
+
+
+SIDL_UNION_ENUM(SystemIndication_Type) {
+	SystemIndication_Type_UNBOUND_VALUE,
+	SystemIndication_Type_Error,
+	SystemIndication_Type_RachPreamble,
+	SystemIndication_Type_SchedReq,
+	SystemIndication_Type_BSR,
+	SystemIndication_Type_UL_HARQ,
+	SystemIndication_Type_C_RNTI,
+	SystemIndication_Type_PHR,
+	SystemIndication_Type_HarqError,
+	SystemIndication_Type_RlcDiscardInd,
+	SystemIndication_Type_PeriodicRI,
+	SystemIndication_Type_EPHR,
+	SystemIndication_Type_CqiInd,
+	SystemIndication_Type_SrsInd,
+	SystemIndication_Type_DC_PHR,
+};
+
+
+SIDL_UNION_BEGIN(SystemIndication_Type) {
+	SIDL_UNION_CASE(SystemIndication_Type_Error)
+		CHAR_STRING Error;
+	SIDL_UNION_CASE(SystemIndication_Type_RachPreamble)
+		struct RachPreamble_Type RachPreamble;
+	SIDL_UNION_CASE(SystemIndication_Type_SchedReq)
+		Null_Type SchedReq;
+	SIDL_UNION_CASE(SystemIndication_Type_BSR)
+		struct BSR_Type BSR;
+	SIDL_UNION_CASE(SystemIndication_Type_UL_HARQ)
+		HARQ_Type UL_HARQ;
+	SIDL_UNION_CASE(SystemIndication_Type_C_RNTI)
+		C_RNTI C_RNTI;
+	SIDL_UNION_CASE(SystemIndication_Type_PHR)
+		PHR_Type PHR;
+	SIDL_UNION_CASE(SystemIndication_Type_HarqError)
+		struct HarqError_Type HarqError;
+	SIDL_UNION_CASE(SystemIndication_Type_RlcDiscardInd)
+		struct RlcDiscardInd_Type RlcDiscardInd;
+	SIDL_UNION_CASE(SystemIndication_Type_PeriodicRI)
+		RI_Type PeriodicRI;
+	SIDL_UNION_CASE(SystemIndication_Type_EPHR)
+		struct MAC_CTRL_ExtPowerHeadRoom_Type EPHR;
+	SIDL_UNION_CASE(SystemIndication_Type_CqiInd)
+		Null_Type CqiInd;
+	SIDL_UNION_CASE(SystemIndication_Type_SrsInd)
+		SRSInd_Type SrsInd;
+	SIDL_UNION_CASE(SystemIndication_Type_DC_PHR)
+		struct MAC_CTRL_DC_PowerHeadRoom_Type DC_PHR;
+} SIDL_UNION_END;
+
+
+struct SYSTEM_IND {
+	struct IndAspCommonPart_Type Common;
+	struct SystemIndication_Type Indication;
+};
+
+NOTIFY ProcessToSS(struct SYSTEM_IND* ToSS);

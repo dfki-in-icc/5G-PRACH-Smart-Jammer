@@ -53,6 +53,7 @@
 
 #include "intertask_interface.h"
 #include "common/ran_context.h"
+#include "executables/softmodem-common.h"
 
 #include "ss_eNB_port_man_task.h"
 #include "ss_eNB_context.h"
@@ -105,7 +106,7 @@ void ss_port_man_send_cnf(struct SYSTEM_CTRL_CNF recvCnf)
     const size_t size = 16 * 1024;
     uint32_t status;
 
-    unsigned char *buffer = (unsigned char *)acpMalloc(size);
+    unsigned char buffer[size];
 
     size_t msgSize = size;
     memset(&cnf, 0, sizeof(cnf));
@@ -169,7 +170,6 @@ void ss_port_man_send_cnf(struct SYSTEM_CTRL_CNF recvCnf)
      */
     if (acpSysProcessEncSrv(ctx_g, buffer, &msgSize, &cnf) != 0)
     {
-        acpFree(buffer);
         return;
     }
     /* Send message
@@ -179,15 +179,12 @@ void ss_port_man_send_cnf(struct SYSTEM_CTRL_CNF recvCnf)
     {
         LOG_A(ENB_SS, "[SS-PORTMAN] acpSendMsg failed. Error : %d on fd: %d\n",
               status, acpGetSocketFd(ctx_g));
-        acpFree(buffer);
         return;
     }
     else
     {
         LOG_A(ENB_SS, "[SS-PORTMAN] acpSendMsg Success \n");
     }
-    // Free allocated buffer
-    acpFree(buffer);
 }
 
 /*
@@ -199,16 +196,13 @@ void ss_port_man_send_cnf(struct SYSTEM_CTRL_CNF recvCnf)
  * newState: No impact on state machine.
  *
  */
-void ss_port_man_send_data(
-    instance_t instance,
-    task_id_t task_id,
-    ss_set_timinfo_t *tinfo)
+void ss_port_man_send_data(ss_set_timinfo_t *tinfo)
 {
     struct SYSTEM_CTRL_CNF cnf;
     const size_t size = 16 * 1024;
     uint32_t status;
 
-    unsigned char *buffer = (unsigned char *)acpMalloc(size);
+    unsigned char buffer[size];
 
     DevAssert(tinfo != NULL);
     DevAssert(tinfo->sfn >= 0);
@@ -248,7 +242,6 @@ void ss_port_man_send_data(
      */
     if (acpSysProcessEncSrv(ctx_g, buffer, &msgSize, &cnf) != 0)
     {
-        acpFree(buffer);
         return;
     }
 
@@ -259,15 +252,12 @@ void ss_port_man_send_data(
     {
         LOG_A(ENB_SS, "[SS-PORTMAN] acpSendMsg failed. Error : %d on fd: %d\n",
               status, acpGetSocketFd(ctx_g));
-        acpFree(buffer);
         return;
     }
     else
     {
         LOG_A(ENB_SS, "[SS-PORTMAN] acpSendMsg Success \n");
     }
-    // Free allocated buffer
-    acpFree(buffer);
 }
 
 /*
@@ -330,11 +320,12 @@ void ss_eNB_port_man_init(void)
 static inline void ss_eNB_read_from_socket(acpCtx_t ctx)
 {
     struct SYSTEM_CTRL_REQ *req = NULL;
+    struct SYSTEM_CTRL_REQ *itti_req = NULL;
     const size_t size = 16 * 1024;
     size_t msgSize = size; //2
-    unsigned char *buffer = (unsigned char *)acpMalloc(size);
-    assert(buffer);
+    unsigned char buffer[size];
 
+    itti_req = (struct SYSTEM_CTRL_REQ*)malloc(sizeof(struct SYSTEM_CTRL_REQ));
     int userId = acpRecvMsg(ctx, &msgSize, buffer);
 
     // Error handling
@@ -345,17 +336,20 @@ static inline void ss_eNB_read_from_socket(acpCtx_t ctx)
             // Message not mapped to user id,
             // this error should not appear on server side for the messages
             // received from clients
+            LOG_E(ENB_SS,"[SS-PORTMAN] Message not mapped to user id \n");
         }
         else if (userId == -ACP_ERR_SIDL_FAILURE)
         {
             // Server returned service error,
             // this error should not appear on server side for the messages
             // received from clients
+            LOG_E(ENB_SS,"[SS-PORTMAN] Server returned service error \n");
             SidlStatus sidlStatus = -1;
             acpGetMsgSidlStatus(msgSize, buffer, &sidlStatus);
         }
         else
         {
+            LOG_E(ENB_SS, "[SS_SRB] Invalid userId: %d \n", userId);
             return;
         }
     }
@@ -363,7 +357,7 @@ static inline void ss_eNB_read_from_socket(acpCtx_t ctx)
     {
         // No message (timeout on socket)
         //Send Dummy Wake up ITTI message to SRB task.
-        if (RC.mode >= SS_SOFTMODEM && RC.ss.State >= SS_STATE_CELL_ACTIVE)
+        if (get_softmodem_params()->mode >= SS_SOFTMODEM && RC.ss.State >= SS_STATE_CELL_ACTIVE)
         {
             LOG_A(ENB_SS,"[SS-PORTMAN] Sending Wake up signal to SRB task \n");
             MessageDef *message_p = itti_alloc_new_message(TASK_SS_PORTMAN, INSTANCE_DEFAULT, SS_RRC_PDU_IND);
@@ -397,7 +391,8 @@ static inline void ss_eNB_read_from_socket(acpCtx_t ctx)
             MessageDef *message_p = itti_alloc_new_message(TASK_SS_PORTMAN, INSTANCE_DEFAULT,  SS_SYS_PORT_MSG_IND);
             if (message_p)
             {
-                SS_SYS_PORT_MSG_IND(message_p).req = req;
+                memcpy(itti_req,req,sizeof(struct SYSTEM_CTRL_REQ));
+                SS_SYS_PORT_MSG_IND(message_p).req = itti_req;
                 SS_SYS_PORT_MSG_IND(message_p).userId = userId;
                 itti_send_msg_to_task(TASK_SYS, INSTANCE_DEFAULT, message_p);
             }
@@ -434,7 +429,7 @@ void *ss_port_man_process_itti_msg(void *notUsed)
         case SS_SET_TIM_INFO:
         {
             LOG_A(ENB_SS, "Received timing info \n");
-            ss_port_man_send_data(0, 0, &received_msg->ittiMsg.ss_set_timinfo);
+            ss_port_man_send_data(&received_msg->ittiMsg.ss_set_timinfo);
             result = itti_free(ITTI_MSG_ORIGIN_ID(received_msg), received_msg);
         }
         break;

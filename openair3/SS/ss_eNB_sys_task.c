@@ -54,6 +54,7 @@
 
 #include "intertask_interface.h"
 #include "common/ran_context.h"
+#include "executables/softmodem-common.h"
 
 #include "acpSys.h"
 #include "ss_eNB_sys_task.h"
@@ -438,11 +439,6 @@ int sys_add_reconfig_cell(struct CellConfigInfo_Type *AddOrReconfigure)
         RRC_CONFIGURATION_REQ(msg_p).mnc[i] = (((SIB1_CELL_ACCESS_REL_INFO.plmn_IdentityList.v->plmn_Identity.mnc.v[0])<<16) | ((SIB1_CELL_ACCESS_REL_INFO.plmn_IdentityList.v->plmn_Identity.mnc.v[1])<<8) | ((SIB1_CELL_ACCESS_REL_INFO.plmn_IdentityList.v->plmn_Identity.mnc.v[2])<<0));
       }
     }
-
-#if 0 /** FIXME: To be implemented later */
-    RRC_CONFIGURATION_REQ(msg_p).tac =
-    RRC_CONFIGURATION_REQ(msg_p).cell_identity =
-#endif
         }
       }
       LOG_A(ENB_SS, "Sending Cell configuration to RRC from SYSTEM_CTRL_REQ \n");
@@ -1927,12 +1923,12 @@ void *ss_eNB_sys_task(void *arg)
   sleep(5);
 
   // Set the state to NOT_CONFIGURED for Cell Config processing mode
-  if (RC.mode == SS_SOFTMODEM)
+  if (get_softmodem_params()->mode == SS_SOFTMODEM)
   {
     RC.ss.State = SS_STATE_NOT_CONFIGURED;
   }
   // Set the state to CELL_ACTIVE for SRB processing mode
-  else if (RC.mode == SS_SOFTMODEM_SRB)
+  else if (get_softmodem_params()->mode == SS_SOFTMODEM_SRB)
   {
     RC.ss.State = SS_STATE_CELL_ACTIVE;
   }

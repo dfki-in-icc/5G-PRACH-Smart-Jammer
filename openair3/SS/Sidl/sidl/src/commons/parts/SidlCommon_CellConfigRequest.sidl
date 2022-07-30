@@ -1,0 +1,93 @@
+/*
+ * Copyright 2022 Sequans Communications.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#pragma once
+
+// SIDL keywords.
+#include "msg.sidl"
+
+// SIDL commons.
+#include "SidlCommon.sidl"
+#include "CellConfigRequest/SidlCommon_StaticCellInfo.sidl"
+#include "CellConfigRequest/SidlCommon_InitialCellPower.sidl"
+#include "CellConfigRequest/SidlCommon_PhysicalLayerConfigDL.sidl"
+#include "CellConfigRequest/SidlCommon_PhysicalLayerConfigUL.sidl"
+#include "CellConfigRequest/SidlCommon_BcchConfig.sidl"
+#include "CellConfigRequest/SidlCommon_Bcch_BRConfig.sidl"
+#include "CellConfigRequest/SidlCommon_RachProcedureConfig.sidl"
+#include "CellConfigRequest/SidlCommon_CcchDcchDtchConfig.sidl"
+#include "CellConfigRequest/SidlCommon_ServingCellConfig.sidl"
+#include "CellConfigRequest/SidlCommon_SciSchedulingConfig.sidl"
+
+typedef struct ASN_NAME(PhysicalConfigDedicated, ce_Mode_r13) CE_Mode_r13_Type;
+
+typedef enum {
+	CellInitialConfig_PCell,
+	CellInitialConfig_Scell_Active,
+	CellInitialConfig_Scell_Inactive,
+	CellInitialConfig_PScell
+} CA_CellInitialConfig_Type;
+
+struct PcchConfig_Type {
+	SIDL_OPTIONAL_OF_STRUCT_WITH_PFX(PcchConfig_Type, DciDlInfoCommon_Type, DciInfo);
+	SIDL_OPTIONAL_OF_STRUCT(ASN_NAME(PCCH_Config_v1310), PCCH_Config_v13);
+};
+
+struct EIMTA_Config_Type {
+	struct ASN_NAME(EIMTA_MainConfig_r12) EIMTA_MainConfig_r12;
+	struct ASN_NAME(EIMTA_MainConfigServCell_r12) EIMTA_MainConfigServCell_r12;
+};
+
+struct BasicCellConfig_Type {
+	SIDL_OPTIONAL(CellConfigCapability_Type, ConfigCapability);
+	SIDL_OPTIONAL_OF_STRUCT(StaticCellInfo_Type, StaticCellInfo);
+	SIDL_OPTIONAL_OF_STRUCT(PhysicalLayerConfigDL_Type, PhysicalLayerConfigDL);
+	SIDL_OPTIONAL_OF_STRUCT(InitialCellPower_Type, InitialCellPower);
+	SIDL_OPTIONAL_OF_STRUCT(BcchConfig_Type, BcchConfig);
+	SIDL_OPTIONAL_OF_STRUCT(PcchConfig_Type, PcchConfig);
+	SIDL_OPTIONAL(CA_CellInitialConfig_Type, CA_CellInitialConfig);
+	SIDL_OPTIONAL_OF_STRUCT(Bcch_BRConfig_Type, BRBcchConfig);
+	SIDL_OPTIONAL_OF_STRUCT(ASN_NAME(LAA_SCellConfiguration_r13), LAA_SCellConfiguration);
+	SIDL_OPTIONAL_OF_STRUCT(ASN_NAME(LAA_SCellConfiguration_v1430), LAA_SCellConfiguration_v1430);
+};
+
+struct ActiveCellConfig_Type {
+	SIDL_OPTIONAL(ASN_NAME(C_RNTI), C_RNTI);
+	SIDL_OPTIONAL_OF_STRUCT(PhysicalLayerConfigUL_Type, PhysicalLayerConfigUL);
+	SIDL_OPTIONAL_OF_STRUCT(RachProcedureConfig_Type, RachProcedureConfig);
+	SIDL_OPTIONAL_OF_STRUCT(CcchDcchDtchConfig_Type, CcchDcchDtchConfig);
+	SIDL_OPTIONAL_OF_STRUCT(ServingCellConfig_Type, ServingCellConfig);
+	SIDL_OPTIONAL_OF_STRUCT(SciSchedulingConfig_Type, SciSchedulingConfig);
+	SIDL_OPTIONAL_OF_STRUCT(EIMTA_Config_Type, EIMTA_Config);
+	SIDL_OPTIONAL(CE_Mode_r13_Type, CE_Mode);
+};
+
+struct CellConfigInfo_Type {
+	SIDL_OPTIONAL_OF_STRUCT(BasicCellConfig_Type, Basic);
+	SIDL_OPTIONAL_OF_STRUCT(ActiveCellConfig_Type, Active);
+};
+
+SIDL_UNION_ENUM(CellConfigRequest_Type) {
+	CellConfigRequest_Type_UNBOUND_VALUE,
+	CellConfigRequest_Type_AddOrReconfigure,
+	CellConfigRequest_Type_Release,
+};
+SIDL_UNION_BEGIN(CellConfigRequest_Type) {
+	SIDL_UNION_CASE(CellConfigRequest_Type_AddOrReconfigure)
+		struct CellConfigInfo_Type AddOrReconfigure;
+	SIDL_UNION_CASE(CellConfigRequest_Type_Release)
+		Null_Type Release;
+} SIDL_UNION_END;

@@ -366,11 +366,11 @@ typedef enum {
 #define CONFIG_SS_MODE_IDX    4
 
 #define SSPARAMS_DESC {                                                                  \
-{CONFIG_SS_HOSTIP          ,                     NULL,     0,          uptr:NULL,        defstrval:"0.0.0.0",      TYPE_STRING,   0},     \
-{CONFIG_SS_SYSPORT         ,                     NULL,     0,          uptr:NULL,        defintval:0000,           TYPE_UINT,     0},   \
-{CONFIG_SS_SRBPORT         ,                     NULL,     0,          uptr:NULL,        defintval:0000,           TYPE_UINT,     0},   \
-{CONFIG_SS_VNGPORT         ,                     NULL,     0,          uptr:NULL,        defintval:0000,           TYPE_UINT,     0},   \
-{CONFIG_SS_MODE            ,                     NULL,     0,          uptr:NULL,        defintval:0000,           TYPE_UINT,     0},   \
+{CONFIG_SS_HOSTIP          ,                     "SS Host IP",      0,          uptr:NULL,        defstrval:"0.0.0.0",      TYPE_STRING,   0},     \
+{CONFIG_SS_SYSPORT         ,                     "SS Sys Port",     0,          uptr:NULL,        defintval:7777,           TYPE_UINT,     0},   \
+{CONFIG_SS_SRBPORT         ,                     "SS SRB Port",     0,          uptr:NULL,        defintval:7778,           TYPE_UINT,     0},   \
+{CONFIG_SS_VNGPORT         ,                     "SS VNG Port",     0,          uptr:NULL,        defintval:7779,           TYPE_UINT,     0},   \
+{CONFIG_SS_MODE            ,                     "SS Mode",         0,          uptr:NULL,        defintval:0,              TYPE_UINT,     0},   \
 }
 /*-------------------------------------------------------------------------------------------------------------------------------------------------*/
 #define ENB_CONFIG_STRING_MBMS_CONFIGURATION_DATA_LIST                     "mbms_configuration_data_list"

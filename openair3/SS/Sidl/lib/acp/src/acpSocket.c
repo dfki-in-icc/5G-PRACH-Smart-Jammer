@@ -37,7 +37,7 @@ int acpSocketConnect(IpAddress_t ipaddr, int port)
 	sin.sin_family = AF_INET;
 	sin.sin_port = htons(port);
 	sin.sin_addr.s_addr = ntohl(ipaddr.v.ipv4);
-
+	int client_fd = -1;
 	int sock = socket(AF_INET, SOCK_STREAM, 0);
 	if (sock < 0) {
 		ACP_DEBUG_EXIT_LOG(strerror(errno));
@@ -49,34 +49,29 @@ int acpSocketConnect(IpAddress_t ipaddr, int port)
 	const int keepalive_time = 30;
 	const int keepalive_intvl = 2;
 	const int keepalive_probes = 5;
+	const int syn_retries = 2; // Send a total of 3 SYN packets => Timeout ~7s
+
 	if (setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &keepalive, (socklen_t)sizeof(keepalive)) == -1) {
-		close(sock);
-		ACP_DEBUG_EXIT_LOG(strerror(errno));
-		return -1;
+		goto _error;
 	}
 	if (setsockopt(sock, IPPROTO_TCP, TCP_KEEPIDLE, &keepalive_time, (socklen_t)sizeof(keepalive_time)) == -1) {
-		close(sock);
-		ACP_DEBUG_EXIT_LOG(strerror(errno));
-		return -1;
+		goto _error;
 	}
 	if (setsockopt(sock, IPPROTO_TCP, TCP_KEEPINTVL, &keepalive_intvl, (socklen_t)sizeof(keepalive_intvl)) == -1) {
-		close(sock);
-		ACP_DEBUG_EXIT_LOG(strerror(errno));
-		return -1;
+		goto _error;
 	}
 	if (setsockopt(sock, IPPROTO_TCP, TCP_KEEPCNT, &keepalive_probes, (socklen_t)sizeof(keepalive_probes)) == -1) {
-		close(sock);
-		ACP_DEBUG_EXIT_LOG(strerror(errno));
-		return -1;
+		goto _error;
 	}
 
-	int arg = fcntl(sock, F_GETFL, NULL);
-	arg |= O_NONBLOCK;
-	fcntl(sock, F_SETFL, arg);
+	if (setsockopt(sock, IPPROTO_TCP, TCP_SYNCNT, &syn_retries, (socklen_t)sizeof(syn_retries)) == -1) {
+		goto _error;
+	}
 
-	if (connect(sock, (struct sockaddr*)&sin, sizeof(sin)) == -1) {
+	client_fd = connect(sock, (struct sockaddr*)&sin, sizeof(sin));
+	if (client_fd == -1) {
 		int myerrno = errno;
-		if (myerrno == EINPROGRESS) {
+		if (myerrno == EINPROGRESS || myerrno == EAGAIN) {
 			fd_set fdset;
 			FD_ZERO(&fdset);
 			FD_SET(sock, &fdset);
@@ -95,14 +90,24 @@ int acpSocketConnect(IpAddress_t ipaddr, int port)
 				}
 			}
 		}
-		close(sock);
-		ACP_DEBUG_EXIT_LOG(strerror(errno));
-		return -1;
+
+		if (myerrno) {
+			goto _error;
+		}
 	}
+
+	int arg = fcntl(sock, F_GETFL, NULL);
+	arg |= O_NONBLOCK;
+	fcntl(sock, F_SETFL, arg);
 
 	ACP_DEBUG_LOG("Connected to server: %s:%d", inet_ntoa(sin.sin_addr), port);
 	ACP_DEBUG_EXIT_LOG(NULL);
 	return sock;
+
+_error:
+	close(sock);
+	ACP_DEBUG_EXIT_LOG(strerror(errno));
+	return -1;
 }
 
 int acpSocketListen(IpAddress_t ipaddr, int port)

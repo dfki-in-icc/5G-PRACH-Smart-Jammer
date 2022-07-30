@@ -24,6 +24,8 @@ typedef uint8_t OCTET_STRING_ELEMENT;
 
 typedef uint8_t BIT_STRING_ELEMENT;
 
+typedef char CHAR_STRING_ELEMENT;
+
 struct OCTET_STRING_ELEMENT_OCTET_STRING_Dynamic {
 	size_t d;
 	OCTET_STRING_ELEMENT* v;
@@ -37,6 +39,13 @@ struct BIT_STRING_ELEMENT_BIT_STRING_Dynamic {
 };
 
 typedef struct BIT_STRING_ELEMENT_BIT_STRING_Dynamic BIT_STRING;
+
+struct CHAR_STRING_ELEMENT_CHAR_STRING_Dynamic {
+	size_t d;
+	CHAR_STRING_ELEMENT* v;
+};
+
+typedef struct CHAR_STRING_ELEMENT_CHAR_STRING_Dynamic CHAR_STRING;
 
 struct int32_t_PREGEN_RECORD_OF_INTEGER_Dynamic {
 	size_t d;

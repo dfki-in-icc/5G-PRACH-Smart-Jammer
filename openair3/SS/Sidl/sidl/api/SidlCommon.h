@@ -763,4 +763,56 @@ typedef UE_EUTRA_Capability_v1450_IEs_ue_CategoryDL_v1450 UE_CategoryDL_v1450_Ty
 
 typedef UE_EUTRA_Capability_v1460_IEs_ue_CategoryDL_v1460 UE_CategoryDL_v1460_Type;
 
+struct ScellBitMap_Type {
+	B7_Type Value;
+	B1_Type Reserved;
+};
+
+struct MAC_CTRL_PowerHeadRoom_Type {
+	B2_Type Reserved;
+	B6_Type Value;
+};
+
+struct B2_Type_Reserved_Optional {
+	bool d;
+	B2_Type v;
+};
+
+struct B6_Type_PCMaxc_Optional {
+	bool d;
+	B6_Type v;
+};
+
+struct PH_Record_Type {
+	B1_Type P_Bit;
+	B1_Type V_Bit;
+	B6_Type Valve;
+	struct B2_Type_Reserved_Optional Reserved;
+	struct B6_Type_PCMaxc_Optional PCMaxc;
+};
+
+struct PH_Record_Type_PH_RecordList_Type_Dynamic {
+	size_t d;
+	struct PH_Record_Type* v;
+};
+
+typedef struct PH_Record_Type_PH_RecordList_Type_Dynamic PH_RecordList_Type;
+
+struct PH_Record_Type_DC_PH_RecordList_Type_Dynamic {
+	size_t d;
+	struct PH_Record_Type* v;
+};
+
+typedef struct PH_Record_Type_DC_PH_RecordList_Type_Dynamic DC_PH_RecordList_Type;
+
+struct MAC_CTRL_ExtPowerHeadRoom_Type {
+	struct ScellBitMap_Type EPH_Octet1;
+	PH_RecordList_Type PH_RecordList;
+};
+
+struct MAC_CTRL_DC_PowerHeadRoom_Type {
+	struct ScellBitMap_Type DC_PH_Octet1;
+	DC_PH_RecordList_Type DC_PH_RecordList;
+};
+
 SIDL_END_C_INTERFACE

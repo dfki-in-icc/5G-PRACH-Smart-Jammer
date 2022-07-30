@@ -103,6 +103,7 @@ static void ss_send_srb_data(ss_rrc_pdu_ind_t *pdu_ind)
 	uint32_t status = 0;
         LTE_UL_DCCH_Message_t               *ul_dcch_msg = NULL;
         LTE_UL_CCCH_Message_t               *ul_ccch_msg = NULL;
+        asn_dec_rval_t                      dec_rval;
 
 	LOG_A(ENB_SS, "[SS_SRB] Reported rrc sdu_size:%d \t srb_id %d\n", pdu_ind->sdu_size, pdu_ind->srb_id);
 
@@ -144,14 +145,19 @@ static void ss_send_srb_data(ss_rrc_pdu_ind_t *pdu_ind)
 	/* Populate and Send the EUTRA RRC PDU IND to Client */
 	if (pdu_ind->srb_id == 0)
 	{
-		uper_decode(
-                      NULL,
-                      &asn_DEF_LTE_UL_CCCH_Message,
-                      (void **)&ul_ccch_msg,
-                      pdu_ind->sdu,
-                      pdu_ind->sdu_size,
-                      0,
-                      0);
+		dec_rval = uper_decode(
+                                 NULL,
+                                 &asn_DEF_LTE_UL_CCCH_Message,
+                                 (void **)&ul_ccch_msg,
+                                 pdu_ind->sdu,
+                                 pdu_ind->sdu_size,
+                                 0,
+                                 0);
+
+                if ((dec_rval.code != RC_OK) && (dec_rval.consumed == 0)) {
+                  LOG_E(ENB_SS, "Failed to decode ul_ccch_msg (%zu bytes)\n", dec_rval.consumed);
+                  ASN_STRUCT_FREE(asn_DEF_LTE_UL_CCCH_Message,ul_ccch_msg);
+                }
 
 		xer_fprint(stdout, &asn_DEF_LTE_UL_CCCH_Message, (void *)ul_ccch_msg);
 		ind.RrcPdu.d = RRC_MSG_Indication_Type_Ccch;
@@ -160,14 +166,19 @@ static void ss_send_srb_data(ss_rrc_pdu_ind_t *pdu_ind)
 	}
 	else
 	{
-		uper_decode(
-                      NULL,
-                      &asn_DEF_LTE_UL_DCCH_Message,
-                      (void **)&ul_dcch_msg,
-                      pdu_ind->sdu,
-                      pdu_ind->sdu_size,
-                      0,
-                      0);
+		dec_rval = uper_decode(
+                                 NULL,
+                                 &asn_DEF_LTE_UL_DCCH_Message,
+                                 (void **)&ul_dcch_msg,
+                                 pdu_ind->sdu,
+                                 pdu_ind->sdu_size,
+                                 0,
+                                 0);
+
+                if ((dec_rval.code != RC_OK) && (dec_rval.consumed == 0)) {
+                  LOG_E(ENB_SS, "Failed to decode ul_dcch_msg (%zu bytes)\n", dec_rval.consumed);
+                  ASN_STRUCT_FREE(asn_DEF_LTE_UL_DCCH_Message,ul_dcch_msg);
+                }
 
 		xer_fprint(stdout, &asn_DEF_LTE_UL_DCCH_Message, (void *)ul_dcch_msg);
 		ind.RrcPdu.d = RRC_MSG_Indication_Type_Dcch;
@@ -213,6 +224,7 @@ static void ss_task_handle_rrc_pdu_req(struct EUTRA_RRC_PDU_REQ *req)
 	assert(req);
         LTE_DL_DCCH_Message_t *dl_dcch_msg=NULL;
         LTE_DL_CCCH_Message_t *dl_ccch_msg=NULL;
+        asn_dec_rval_t         dec_rval;
 	MessageDef *message_p = itti_alloc_new_message(TASK_RRC_ENB, instance_g, SS_RRC_PDU_REQ);
 	assert(message_p);
 	if (message_p)
@@ -224,11 +236,16 @@ static void ss_task_handle_rrc_pdu_req(struct EUTRA_RRC_PDU_REQ *req)
 		{
 			SS_RRC_PDU_REQ(message_p).sdu_size = req->RrcPdu.v.Ccch.d;
 			memcpy(SS_RRC_PDU_REQ(message_p).sdu, req->RrcPdu.v.Ccch.v, req->RrcPdu.v.Ccch.d);
-			uper_decode(NULL,
-                                    &asn_DEF_LTE_DL_CCCH_Message,
-                                    (void **)&dl_ccch_msg,
-                                    (uint8_t *)SS_RRC_PDU_REQ(message_p).sdu,
-                                    SS_RRC_PDU_REQ(message_p).sdu_size,0,0);
+			dec_rval = uper_decode(NULL,
+                                               &asn_DEF_LTE_DL_CCCH_Message,
+                                               (void **)&dl_ccch_msg,
+                                               (uint8_t *)SS_RRC_PDU_REQ(message_p).sdu,
+                                               SS_RRC_PDU_REQ(message_p).sdu_size,0,0);
+
+                       if ((dec_rval.code != RC_OK) && (dec_rval.consumed == 0)) {
+                         LOG_E(ENB_SS, "Failed to decode dl_ccch_msg (%zu bytes)\n", dec_rval.consumed);
+                         ASN_STRUCT_FREE(asn_DEF_LTE_DL_CCCH_Message,dl_ccch_msg);
+                       }
 
 			xer_fprint(stdout,&asn_DEF_LTE_DL_CCCH_Message,(void *)dl_ccch_msg);
 		}
@@ -236,11 +253,16 @@ static void ss_task_handle_rrc_pdu_req(struct EUTRA_RRC_PDU_REQ *req)
 		{
 			SS_RRC_PDU_REQ(message_p).sdu_size = req->RrcPdu.v.Dcch.d;
 			memcpy(SS_RRC_PDU_REQ(message_p).sdu, req->RrcPdu.v.Dcch.v, req->RrcPdu.v.Dcch.d);
-			uper_decode(NULL,
-                                    &asn_DEF_LTE_DL_DCCH_Message,
-                                    (void **)&dl_dcch_msg,
-                                    (uint8_t *)SS_RRC_PDU_REQ(message_p).sdu,
-                                    SS_RRC_PDU_REQ(message_p).sdu_size,0,0);
+			dec_rval = uper_decode(NULL,
+                                               &asn_DEF_LTE_DL_DCCH_Message,
+                                               (void **)&dl_dcch_msg,
+                                               (uint8_t *)SS_RRC_PDU_REQ(message_p).sdu,
+                                               SS_RRC_PDU_REQ(message_p).sdu_size,0,0);
+
+                        if ((dec_rval.code != RC_OK) && (dec_rval.consumed == 0)) {
+                          LOG_E(ENB_SS, "Failed to decode dl_dcch_msg (%zu bytes)\n", dec_rval.consumed);
+                          ASN_STRUCT_FREE(asn_DEF_LTE_DL_DCCH_Message,dl_dcch_msg);
+                        }
 
 			xer_fprint(stdout,&asn_DEF_LTE_DL_DCCH_Message,(void *)dl_dcch_msg);
 		}
@@ -286,17 +308,19 @@ ss_eNB_read_from_srb_socket(acpCtx_t ctx)
 			{
 				// Message not mapped to user id,
 				// this error should not appear on server side for the messages received from clients
+                                LOG_E(ENB_SS,"[SS_SRB] Message not mapped to user id \n");
 			}
 			else if (userId == -ACP_ERR_SIDL_FAILURE)
 			{
 				// Server returned service error,
 				// this error should not appear on server side for the messages received from clients
+                                LOG_E(ENB_SS,"[SS_SRB] Server returned service error \n");
 				SidlStatus sidlStatus = -1;
 				acpGetMsgSidlStatus(msgSize, buffer, &sidlStatus);
 			}
 			else
 			{
-				LOG_A(ENB_SS, "[SS_SRB] Invalid userId: %d \n", userId);
+				LOG_E(ENB_SS, "[SS_SRB] Invalid userId: %d \n", userId);
 				break;
 			}
 		}
@@ -304,6 +328,7 @@ ss_eNB_read_from_srb_socket(acpCtx_t ctx)
 		if (userId == 0)
 		{
 			// No message (timeout on socket)
+                        LOG_E(ENB_SS,"[SS_SRB] No message (timeout on socket) \n");
 			break;
 		}
 		else if (MSG_SysSrbProcessFromSS_userId == userId)

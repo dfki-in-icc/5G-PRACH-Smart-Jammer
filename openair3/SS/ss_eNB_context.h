@@ -30,13 +30,6 @@
 
 #include "SidlCommon.h"
 
-#if 0
-#define SYS_L LOG_SYS(evId, SSConfig.sfn, SSConfig.sf, __VA_ARGS__) 
-#define SRB_L LOG_SRB(evId, SSConfig.sfn, SSConfig.sf, __VA_ARGS__) 
-#define DRB_L LOG_DRB(evId, SSConfig.sfn, SSConfig.sf, __VA_ARGS__)
-#define VNG_L LOG_VNG(evId, SSConfig.sfn, SSConfig.sf, __VA_ARGS__)
-#endif
-
 typedef enum SSEvents_E {
 	SS_PORTMAN_INVLALID_MSG = 1,
 	SS_PORTMAN_DUMMY_EVT,
@@ -62,8 +55,6 @@ typedef struct SSConfigContext_s {
   uint16_t curr_attn;
   uint16_t cellId;
   int16_t maxRefPower;
-  //TO DO: Need to remove one of the following cellId
-  EUTRA_CellId_Type ttcn_cell_id;
   uint16_t eutra_cellId;
 
   /** Timing info */

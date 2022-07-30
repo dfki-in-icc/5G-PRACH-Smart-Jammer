@@ -22,6 +22,7 @@
 #include "SidlBase.h"
 #include "SidlCommon.h"
 #include "SidlCommonBase.h"
+#include "SidlNrCommon.h"
 #include "SidlParts.h"
 #include "SidlVals.h"
 #include "TtcnCommon.h"
@@ -689,6 +690,88 @@ struct PagingTrigger_Type {
 	struct SubframeOffsetList_Type_SubframeOffsetList_Optional SubframeOffsetList;
 };
 
+enum IndicationAndControlMode_Type {
+	IndicationAndControlMode_enable = 0,
+	IndicationAndControlMode_disable = 1,
+};
+
+typedef enum IndicationAndControlMode_Type IndicationAndControlMode_Type;
+
+struct IndicationAndControlMode_Type_RachPreamble_Optional {
+	bool d;
+	IndicationAndControlMode_Type v;
+};
+
+struct IndicationAndControlMode_Type_SchedReq_Optional {
+	bool d;
+	IndicationAndControlMode_Type v;
+};
+
+struct IndicationAndControlMode_Type_BSR_Optional {
+	bool d;
+	IndicationAndControlMode_Type v;
+};
+
+struct IndicationAndControlMode_Type_UL_HARQ_Optional {
+	bool d;
+	IndicationAndControlMode_Type v;
+};
+
+struct IndicationAndControlMode_Type_C_RNTI_Optional {
+	bool d;
+	IndicationAndControlMode_Type v;
+};
+
+struct IndicationAndControlMode_Type_PHR_Optional {
+	bool d;
+	IndicationAndControlMode_Type v;
+};
+
+struct IndicationAndControlMode_Type_HarqError_Optional {
+	bool d;
+	IndicationAndControlMode_Type v;
+};
+
+struct IndicationAndControlMode_Type_PeriodicRI_Optional {
+	bool d;
+	IndicationAndControlMode_Type v;
+};
+
+struct IndicationAndControlMode_Type_EPHR_Optional {
+	bool d;
+	IndicationAndControlMode_Type v;
+};
+
+struct IndicationAndControlMode_Type_PeriodicCQI_Optional {
+	bool d;
+	IndicationAndControlMode_Type v;
+};
+
+struct IndicationAndControlMode_Type_SRS_Optional {
+	bool d;
+	IndicationAndControlMode_Type v;
+};
+
+struct IndicationAndControlMode_Type_DC_PHR_Optional {
+	bool d;
+	IndicationAndControlMode_Type v;
+};
+
+struct L1Mac_IndicationControl_Type {
+	struct IndicationAndControlMode_Type_RachPreamble_Optional RachPreamble;
+	struct IndicationAndControlMode_Type_SchedReq_Optional SchedReq;
+	struct IndicationAndControlMode_Type_BSR_Optional BSR;
+	struct IndicationAndControlMode_Type_UL_HARQ_Optional UL_HARQ;
+	struct IndicationAndControlMode_Type_C_RNTI_Optional C_RNTI;
+	struct IndicationAndControlMode_Type_PHR_Optional PHR;
+	struct IndicationAndControlMode_Type_HarqError_Optional HarqError;
+	struct IndicationAndControlMode_Type_PeriodicRI_Optional PeriodicRI;
+	struct IndicationAndControlMode_Type_EPHR_Optional EPHR;
+	struct IndicationAndControlMode_Type_PeriodicCQI_Optional PeriodicCQI;
+	struct IndicationAndControlMode_Type_SRS_Optional SRS;
+	struct IndicationAndControlMode_Type_DC_PHR_Optional DC_PHR;
+};
+
 enum SystemRequest_Type_Sel {
 	SystemRequest_Type_UNBOUND_VALUE = 0,
 	SystemRequest_Type_Cell = 1,
@@ -697,6 +780,7 @@ enum SystemRequest_Type_Sel {
 	SystemRequest_Type_EnquireTiming = 4,
 	SystemRequest_Type_AS_Security = 5,
 	SystemRequest_Type_Paging = 7,
+	SystemRequest_Type_L1MacIndCtrl = 8,
 	SystemRequest_Type_PdcpCount = 10,
 	SystemRequest_Type_UE_Cat_Info = 18,
 };
@@ -718,6 +802,7 @@ union SystemRequest_Type_Value {
 	Null_Type EnquireTiming;
 	struct AS_Security_Type AS_Security;
 	struct PagingTrigger_Type Paging;
+	struct L1Mac_IndicationControl_Type L1MacIndCtrl;
 	struct Pdcp_CountReq_Type PdcpCount;
 	struct UE_CategoryInfo_Type UE_Cat_Info;
 };

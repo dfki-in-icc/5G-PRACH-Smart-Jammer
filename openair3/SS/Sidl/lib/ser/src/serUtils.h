@@ -71,8 +71,8 @@ SIDL_BEGIN_C_INTERFACE
 		*(idx) += 4;                                \
 	}
 
-#define HTON_64(dst, src, idx)                  \
-	{                                           \
+#define HTON_64(dst, src, idx)                       \
+	{                                                \
 		*(dst) = ((uint64_t)(src) >> 56) & 0xFF;     \
 		*(dst + 1) = ((uint64_t)(src) >> 48) & 0xFF; \
 		*(dst + 2) = ((uint64_t)(src) >> 40) & 0xFF; \
@@ -81,11 +81,11 @@ SIDL_BEGIN_C_INTERFACE
 		*(dst + 5) = ((uint64_t)(src) >> 16) & 0xFF; \
 		*(dst + 6) = ((uint64_t)(src) >> 8) & 0xFF;  \
 		*(dst + 7) = ((uint64_t)(src) >> 0) & 0xFF;  \
-		*idx += 8;                              \
+		*idx += 8;                                   \
 	}
 
-#define NTOH_64(dst, src, idx)                             \
-	{                                                      \
+#define NTOH_64(dst, src, idx)                                  \
+	{                                                           \
 		(dst) = (((uint64_t)(((unsigned char*)src)[0]) << 56) | \
 				 ((uint64_t)(((unsigned char*)src)[1]) << 48) | \
 				 ((uint64_t)(((unsigned char*)src)[2]) << 40) | \
@@ -94,7 +94,7 @@ SIDL_BEGIN_C_INTERFACE
 				 ((uint64_t)(((unsigned char*)src)[5]) << 16) | \
 				 ((uint64_t)(((unsigned char*)src)[6]) << 8) |  \
 				 ((uint64_t)(((unsigned char*)src)[7]) << 0));  \
-		*(idx) += 8;                                       \
+		*(idx) += 8;                                            \
 	}
 
 SIDL_END_C_INTERFACE

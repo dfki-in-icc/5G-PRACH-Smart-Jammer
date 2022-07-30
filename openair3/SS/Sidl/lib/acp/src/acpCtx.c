@@ -304,3 +304,11 @@ int acpCtxGetMsgKindFromId(int id)
 	if (index < 0 || index >= (int)acpIdMapSize) return -ACP_ERR_SIDL_FAILURE;
 	return acpIdMap[index].kind;
 }
+
+
+int acpCtxGetMsgKindFromName(const char* name)
+{
+	int id = acpGetIndexFrom_name(name);
+	if (id < 0) return id;
+	return acpIdMap[id].kind;
+}

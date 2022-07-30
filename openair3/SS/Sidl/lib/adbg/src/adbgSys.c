@@ -29513,6 +29513,126 @@ static void _adbgSys__PagingTrigger_Type(acpCtx_t _ctx, const struct PagingTrigg
 	if (p->SubframeOffsetList.d) { adbgPrintLog(_ctx, " }"); };
 }
 
+static const char* adbgSys__IndicationAndControlMode_Type__ToString(IndicationAndControlMode_Type v)
+{
+	switch(v) {
+		case IndicationAndControlMode_enable: return "IndicationAndControlMode_enable";
+		case IndicationAndControlMode_disable: return "IndicationAndControlMode_disable";
+		default: return "Unknown";
+	}
+}
+
+static void _adbgSys__IndicationAndControlMode_Type_RachPreamble_Optional(acpCtx_t _ctx, const struct IndicationAndControlMode_Type_RachPreamble_Optional* p)
+{
+	if (!p->d) { adbgPrintLog(_ctx, "omit"); return; }
+	adbgPrintLog(_ctx, "%s (%d)", adbgSys__IndicationAndControlMode_Type__ToString(p->v), (int)p->v);
+}
+
+static void _adbgSys__IndicationAndControlMode_Type_SchedReq_Optional(acpCtx_t _ctx, const struct IndicationAndControlMode_Type_SchedReq_Optional* p)
+{
+	if (!p->d) { adbgPrintLog(_ctx, "omit"); return; }
+	adbgPrintLog(_ctx, "%s (%d)", adbgSys__IndicationAndControlMode_Type__ToString(p->v), (int)p->v);
+}
+
+static void _adbgSys__IndicationAndControlMode_Type_BSR_Optional(acpCtx_t _ctx, const struct IndicationAndControlMode_Type_BSR_Optional* p)
+{
+	if (!p->d) { adbgPrintLog(_ctx, "omit"); return; }
+	adbgPrintLog(_ctx, "%s (%d)", adbgSys__IndicationAndControlMode_Type__ToString(p->v), (int)p->v);
+}
+
+static void _adbgSys__IndicationAndControlMode_Type_UL_HARQ_Optional(acpCtx_t _ctx, const struct IndicationAndControlMode_Type_UL_HARQ_Optional* p)
+{
+	if (!p->d) { adbgPrintLog(_ctx, "omit"); return; }
+	adbgPrintLog(_ctx, "%s (%d)", adbgSys__IndicationAndControlMode_Type__ToString(p->v), (int)p->v);
+}
+
+static void _adbgSys__IndicationAndControlMode_Type_C_RNTI_Optional(acpCtx_t _ctx, const struct IndicationAndControlMode_Type_C_RNTI_Optional* p)
+{
+	if (!p->d) { adbgPrintLog(_ctx, "omit"); return; }
+	adbgPrintLog(_ctx, "%s (%d)", adbgSys__IndicationAndControlMode_Type__ToString(p->v), (int)p->v);
+}
+
+static void _adbgSys__IndicationAndControlMode_Type_PHR_Optional(acpCtx_t _ctx, const struct IndicationAndControlMode_Type_PHR_Optional* p)
+{
+	if (!p->d) { adbgPrintLog(_ctx, "omit"); return; }
+	adbgPrintLog(_ctx, "%s (%d)", adbgSys__IndicationAndControlMode_Type__ToString(p->v), (int)p->v);
+}
+
+static void _adbgSys__IndicationAndControlMode_Type_HarqError_Optional(acpCtx_t _ctx, const struct IndicationAndControlMode_Type_HarqError_Optional* p)
+{
+	if (!p->d) { adbgPrintLog(_ctx, "omit"); return; }
+	adbgPrintLog(_ctx, "%s (%d)", adbgSys__IndicationAndControlMode_Type__ToString(p->v), (int)p->v);
+}
+
+static void _adbgSys__IndicationAndControlMode_Type_PeriodicRI_Optional(acpCtx_t _ctx, const struct IndicationAndControlMode_Type_PeriodicRI_Optional* p)
+{
+	if (!p->d) { adbgPrintLog(_ctx, "omit"); return; }
+	adbgPrintLog(_ctx, "%s (%d)", adbgSys__IndicationAndControlMode_Type__ToString(p->v), (int)p->v);
+}
+
+static void _adbgSys__IndicationAndControlMode_Type_EPHR_Optional(acpCtx_t _ctx, const struct IndicationAndControlMode_Type_EPHR_Optional* p)
+{
+	if (!p->d) { adbgPrintLog(_ctx, "omit"); return; }
+	adbgPrintLog(_ctx, "%s (%d)", adbgSys__IndicationAndControlMode_Type__ToString(p->v), (int)p->v);
+}
+
+static void _adbgSys__IndicationAndControlMode_Type_PeriodicCQI_Optional(acpCtx_t _ctx, const struct IndicationAndControlMode_Type_PeriodicCQI_Optional* p)
+{
+	if (!p->d) { adbgPrintLog(_ctx, "omit"); return; }
+	adbgPrintLog(_ctx, "%s (%d)", adbgSys__IndicationAndControlMode_Type__ToString(p->v), (int)p->v);
+}
+
+static void _adbgSys__IndicationAndControlMode_Type_SRS_Optional(acpCtx_t _ctx, const struct IndicationAndControlMode_Type_SRS_Optional* p)
+{
+	if (!p->d) { adbgPrintLog(_ctx, "omit"); return; }
+	adbgPrintLog(_ctx, "%s (%d)", adbgSys__IndicationAndControlMode_Type__ToString(p->v), (int)p->v);
+}
+
+static void _adbgSys__IndicationAndControlMode_Type_DC_PHR_Optional(acpCtx_t _ctx, const struct IndicationAndControlMode_Type_DC_PHR_Optional* p)
+{
+	if (!p->d) { adbgPrintLog(_ctx, "omit"); return; }
+	adbgPrintLog(_ctx, "%s (%d)", adbgSys__IndicationAndControlMode_Type__ToString(p->v), (int)p->v);
+}
+
+static void _adbgSys__L1Mac_IndicationControl_Type(acpCtx_t _ctx, const struct L1Mac_IndicationControl_Type* p)
+{
+	adbgPrintLog(_ctx, "RachPreamble := ");
+	_adbgSys__IndicationAndControlMode_Type_RachPreamble_Optional(_ctx, &p->RachPreamble);
+	adbgPrintLog(_ctx, ", ");
+	adbgPrintLog(_ctx, "SchedReq := ");
+	_adbgSys__IndicationAndControlMode_Type_SchedReq_Optional(_ctx, &p->SchedReq);
+	adbgPrintLog(_ctx, ", ");
+	adbgPrintLog(_ctx, "BSR := ");
+	_adbgSys__IndicationAndControlMode_Type_BSR_Optional(_ctx, &p->BSR);
+	adbgPrintLog(_ctx, ", ");
+	adbgPrintLog(_ctx, "UL_HARQ := ");
+	_adbgSys__IndicationAndControlMode_Type_UL_HARQ_Optional(_ctx, &p->UL_HARQ);
+	adbgPrintLog(_ctx, ", ");
+	adbgPrintLog(_ctx, "C_RNTI := ");
+	_adbgSys__IndicationAndControlMode_Type_C_RNTI_Optional(_ctx, &p->C_RNTI);
+	adbgPrintLog(_ctx, ", ");
+	adbgPrintLog(_ctx, "PHR := ");
+	_adbgSys__IndicationAndControlMode_Type_PHR_Optional(_ctx, &p->PHR);
+	adbgPrintLog(_ctx, ", ");
+	adbgPrintLog(_ctx, "HarqError := ");
+	_adbgSys__IndicationAndControlMode_Type_HarqError_Optional(_ctx, &p->HarqError);
+	adbgPrintLog(_ctx, ", ");
+	adbgPrintLog(_ctx, "PeriodicRI := ");
+	_adbgSys__IndicationAndControlMode_Type_PeriodicRI_Optional(_ctx, &p->PeriodicRI);
+	adbgPrintLog(_ctx, ", ");
+	adbgPrintLog(_ctx, "EPHR := ");
+	_adbgSys__IndicationAndControlMode_Type_EPHR_Optional(_ctx, &p->EPHR);
+	adbgPrintLog(_ctx, ", ");
+	adbgPrintLog(_ctx, "PeriodicCQI := ");
+	_adbgSys__IndicationAndControlMode_Type_PeriodicCQI_Optional(_ctx, &p->PeriodicCQI);
+	adbgPrintLog(_ctx, ", ");
+	adbgPrintLog(_ctx, "SRS := ");
+	_adbgSys__IndicationAndControlMode_Type_SRS_Optional(_ctx, &p->SRS);
+	adbgPrintLog(_ctx, ", ");
+	adbgPrintLog(_ctx, "DC_PHR := ");
+	_adbgSys__IndicationAndControlMode_Type_DC_PHR_Optional(_ctx, &p->DC_PHR);
+}
+
 static void _adbgSys__PdcpCountGetReq_Type_Value(acpCtx_t _ctx, const union PdcpCountGetReq_Type_Value* p, enum PdcpCountGetReq_Type_Sel d)
 {
 	if (d == PdcpCountGetReq_Type_AllRBs) {
@@ -29755,6 +29875,12 @@ static void _adbgSys__SystemRequest_Type_Value(acpCtx_t _ctx, const union System
 	if (d == SystemRequest_Type_Paging) {
 		adbgPrintLog(_ctx, "Paging := { ");
 		_adbgSys__PagingTrigger_Type(_ctx, &p->Paging);
+		adbgPrintLog(_ctx, " }");
+		return;
+	}
+	if (d == SystemRequest_Type_L1MacIndCtrl) {
+		adbgPrintLog(_ctx, "L1MacIndCtrl := { ");
+		_adbgSys__L1Mac_IndicationControl_Type(_ctx, &p->L1MacIndCtrl);
 		adbgPrintLog(_ctx, " }");
 		return;
 	}

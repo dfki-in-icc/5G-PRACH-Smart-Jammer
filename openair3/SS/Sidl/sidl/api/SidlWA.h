@@ -25,4 +25,3 @@
 #ifdef C_RNTI
 #undef C_RNTI /* in case IDL is compiled with OAI eNB None type is also used by OAI source code */
 #endif
-

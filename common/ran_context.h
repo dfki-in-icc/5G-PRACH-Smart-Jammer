@@ -47,23 +47,9 @@
 #include "RRC/LTE/rrc_defs.h"
 #include "RRC/NR/nr_rrc_defs.h"
 #include <openair3/ocp-gtpu/gtpv1u_eNB_task.h>
-
-#define SS_ENB  0x00
-#define SS_SOFTMODEM    0x01
-#define SS_SOFTMODEM_SRB        0x02
-
-typedef struct RBConfig_s {
-        bool isRBConfigValid;
-        LTE_PDCP_Config_t PdcpCfg;
-        LTE_RLC_Config_t  RlcCfg;
-        long LogicalChannelId;
-        LTE_LogicalChannelConfig_t Mac;
-        bool DiscardULData;
-}RBConfig;
+#include <openair3/SS/ss_config.h>
 
 typedef struct {
-  /// Mode of eNB operation 0: Normal eNB operation 1: SS mode
-  uint8_t mode;
   /// RAN context config file name
   char *config_file_name;
   /// Number of RRC instances in this node

@@ -269,6 +269,8 @@ typedef struct {
   int            non_stop;
   int            emulate_l1;
   int            continuous_tx;
+  // Mode of eNB operation 0: Normal eNB operation 1: SS mode
+  uint8_t        mode;
 } softmodem_params_t;
 
 extern uint64_t get_softmodem_optmask(void);
