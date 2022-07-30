@@ -125,7 +125,7 @@ static void bitStrint_to_byteArray(unsigned char arr[], int bit_length, unsigned
   int len = 8;
   int byte_count = bit_length/len;
   int count = byte_count/2;
-  if(int_key == TRUE)
+  if(int_key == true)
   {
     for(int i=0;i<byte_count/2;i++)
     {
@@ -429,7 +429,7 @@ int sys_add_reconfig_cell(struct CellConfigInfo_Type *AddOrReconfigure)
     RRC_CONFIGURATION_REQ(msg_p).num_plmn = SIB1_CELL_ACCESS_REL_INFO.plmn_IdentityList.d;
 
     for (int i = 0; i < RRC_CONFIGURATION_REQ(msg_p).num_plmn; ++i) {
-      if(SIB1_CELL_ACCESS_REL_INFO.plmn_IdentityList.v->plmn_Identity.mcc.d == TRUE)
+      if(SIB1_CELL_ACCESS_REL_INFO.plmn_IdentityList.v->plmn_Identity.mcc.d == true)
       {
             RRC_CONFIGURATION_REQ(msg_p).mcc[i] = (((SIB1_CELL_ACCESS_REL_INFO.plmn_IdentityList.v->plmn_Identity.mcc.v[0])<<16) | ((SIB1_CELL_ACCESS_REL_INFO.plmn_IdentityList.v->plmn_Identity.mcc.v[1])<<8) | ((SIB1_CELL_ACCESS_REL_INFO.plmn_IdentityList.v->plmn_Identity.mcc.v[2])<<0));
       }
@@ -497,7 +497,7 @@ static void send_sys_cnf(enum ConfirmationResult_Type_Sel resType,
   MessageDef *message_p = itti_alloc_new_message(TASK_SYS, INSTANCE_DEFAULT, SS_SYS_PORT_MSG_CNF);
 
   /* The request has send confirm flag flase so do nothing in this funciton */
-  if (reqCnfFlag_g == FALSE)
+  if (reqCnfFlag_g == false)
   {
      LOG_A(ENB_SS, "[SYS] No confirm required\n");
      return ;
@@ -583,7 +583,7 @@ int sys_handle_cell_config_req(struct CellConfigRequest_Type *Cell)
   int returnState = RC.ss.State;
   enum SystemConfirm_Type_Sel cnfType = SystemConfirm_Type_Cell;
   enum ConfirmationResult_Type_Sel resType = ConfirmationResult_Type_Success;
-  bool resVal = TRUE;
+  bool resVal = true;
 
   switch (Cell->d)
   {
@@ -635,7 +635,7 @@ static int sys_handle_radiobearer_list(struct RadioBearer_Type_RadioBearerList_D
   int returnState = RC.ss.State;
   enum SystemConfirm_Type_Sel cnfType = SystemConfirm_Type_RadioBearerList;
   enum ConfirmationResult_Type_Sel resType = ConfirmationResult_Type_Success;
-  bool resVal = TRUE;
+  bool resVal = true;
   MessageDef *msg_p = itti_alloc_new_message(TASK_SYS, 0, RRC_RBLIST_CFG_REQ);
   if (msg_p)
   {
@@ -670,7 +670,7 @@ static int sys_handle_radiobearer_list(struct RadioBearer_Type_RadioBearerList_D
               }
               else if (BearerList->v[i].Config.v.AddOrReconfigure.Pdcp.v.v.Config.Rb.v.d == PDCP_RBConfig_Type_Drb)
               {
-                RRC_RBLIST_CFG_REQ(msg_p).rb_list[i].RbConfig.isPDCPConfigValid = TRUE;
+                RRC_RBLIST_CFG_REQ(msg_p).rb_list[i].RbConfig.isPDCPConfigValid = true;
                 if (BearerList->v[i].Config.v.AddOrReconfigure.Pdcp.v.v.Config.Rb.v.v.Drb.d == PDCP_Config_Type_R8)
                 {
                   if (BearerList->v[i].Config.v.AddOrReconfigure.Pdcp.v.v.Config.Rb.v.v.Drb.v.R8.discardTimer.d)
@@ -869,7 +869,7 @@ static int sys_handle_radiobearer_list(struct RadioBearer_Type_RadioBearerList_D
         {
           if (BearerList->v[i].Config.v.AddOrReconfigure.Rlc.v.Rb.d)
           {
-            RRC_RBLIST_CFG_REQ(msg_p).rb_list[i].RbConfig.isRLCConfigValid = TRUE;
+            RRC_RBLIST_CFG_REQ(msg_p).rb_list[i].RbConfig.isRLCConfigValid = true;
             if (BearerList->v[i].Config.v.AddOrReconfigure.Rlc.v.Rb.v.d == RLC_RbConfig_Type_AM)
             {
               RRC_RBLIST_CFG_REQ(msg_p).rb_list[i].RbConfig.Rlc.present = LTE_RLC_Config_PR_am;
@@ -939,7 +939,7 @@ static int sys_handle_radiobearer_list(struct RadioBearer_Type_RadioBearerList_D
 
         if (BearerList->v[i].Config.v.AddOrReconfigure.LogicalChannelId.d)
         {
-          RRC_RBLIST_CFG_REQ(msg_p).rb_list[i].RbConfig.isLogicalChannelIdValid = TRUE;
+          RRC_RBLIST_CFG_REQ(msg_p).rb_list[i].RbConfig.isLogicalChannelIdValid = true;
           RRC_RBLIST_CFG_REQ(msg_p).rb_list[i].RbConfig.LogicalChannelId = BearerList->v[i].Config.v.AddOrReconfigure.LogicalChannelId.v;
         }
         else
@@ -950,7 +950,7 @@ static int sys_handle_radiobearer_list(struct RadioBearer_Type_RadioBearerList_D
         /* Populate the MAC Configuration for the radio Bearer */
         if (BearerList->v[i].Config.v.AddOrReconfigure.Mac.d)
         {
-          RRC_RBLIST_CFG_REQ(msg_p).rb_list[i].RbConfig.isMacConfigValid = TRUE;
+          RRC_RBLIST_CFG_REQ(msg_p).rb_list[i].RbConfig.isMacConfigValid = true;
           if (BearerList->v[i].Config.v.AddOrReconfigure.Mac.v.LogicalChannel.d)
           {
             RRC_RBLIST_CFG_REQ(msg_p).rb_list[i].RbConfig.Mac.ul_SpecificParameters = CALLOC(1, sizeof(struct LTE_LogicalChannelConfig__ul_SpecificParameters));
@@ -967,12 +967,12 @@ static int sys_handle_radiobearer_list(struct RadioBearer_Type_RadioBearerList_D
 
         if (BearerList->v[i].Config.v.AddOrReconfigure.DiscardULData.d)
         {
-          RRC_RBLIST_CFG_REQ(msg_p).rb_list[i].RbConfig.isDiscardULDataValid = TRUE;
+          RRC_RBLIST_CFG_REQ(msg_p).rb_list[i].RbConfig.isDiscardULDataValid = true;
           RRC_RBLIST_CFG_REQ(msg_p).rb_list[i].RbConfig.DiscardULData = BearerList->v[i].Config.v.AddOrReconfigure.DiscardULData.v;
         }
         else
         {
-          RRC_RBLIST_CFG_REQ(msg_p).rb_list[i].RbConfig.DiscardULData = FALSE;
+          RRC_RBLIST_CFG_REQ(msg_p).rb_list[i].RbConfig.DiscardULData = false;
         }
       }
     }
@@ -1191,7 +1191,7 @@ static void sys_handle_paging_req(struct PagingTrigger_Type *pagingRequest, ss_s
 
   enum SystemConfirm_Type_Sel cnfType = SystemConfirm_Type_Paging;
   enum ConfirmationResult_Type_Sel resType = ConfirmationResult_Type_Success;
-  bool resVal = TRUE;
+  bool resVal = true;
   MessageDef *message_p = itti_alloc_new_message(TASK_SYS, 0,SS_SS_PAGING_IND);
   switch (pagingRequest->Paging.message.d)
   {
@@ -1303,7 +1303,7 @@ static void sys_handle_ue_cat_info_req(struct UE_CategoryInfo_Type *UE_Cat_Info)
 {
   enum SystemConfirm_Type_Sel cnfType = SystemConfirm_Type_UE_Cat_Info;
   enum ConfirmationResult_Type_Sel resType = ConfirmationResult_Type_Success;
-  bool resVal = TRUE;
+  bool resVal = true;
   MessageDef *message_p = itti_alloc_new_message(TASK_SYS, INSTANCE_DEFAULT, RRC_UE_CAT_INFO);
   if (message_p)
   {
@@ -1382,8 +1382,8 @@ static void sys_handle_as_security_req(struct AS_Security_Type *ASSecurity)
 {
   enum SystemConfirm_Type_Sel cnfType = SystemConfirm_Type_AS_Security;
   enum ConfirmationResult_Type_Sel resType = ConfirmationResult_Type_Success;
-  bool resVal = TRUE;
-  bool intKey = FALSE;
+  bool resVal = true;
+  bool intKey = false;
 
   MessageDef *msg_p = itti_alloc_new_message(TASK_SYS, 0, RRC_AS_SECURITY_CONFIG_REQ);
   if(msg_p)
@@ -1394,7 +1394,7 @@ static void sys_handle_as_security_req(struct AS_Security_Type *ASSecurity)
     {
       if(ASSecurity->v.StartRestart.Integrity.d == true)
       {
-        intKey = TRUE;
+        intKey = true;
         RRC_AS_SECURITY_CONFIG_REQ(msg_p).isIntegrityInfroPresent = true;
         RRC_AS_SECURITY_CONFIG_REQ(msg_p).Integrity.integrity_algorithm = ASSecurity->v.StartRestart.Integrity.v.Algorithm;
         RRC_AS_SECURITY_CONFIG_REQ(msg_p).Integrity.kRRCint = CALLOC(1,32);
@@ -1435,7 +1435,7 @@ static void sys_handle_as_security_req(struct AS_Security_Type *ASSecurity)
       }
       if(ASSecurity->v.StartRestart.Ciphering.d == true)
       {
-        intKey = FALSE;
+        intKey = false;
         RRC_AS_SECURITY_CONFIG_REQ(msg_p).isCipheringInfoPresent = true;
         RRC_AS_SECURITY_CONFIG_REQ(msg_p).Ciphering.ciphering_algorithm = ASSecurity->v.StartRestart.Ciphering.v.Algorithm;
         RRC_AS_SECURITY_CONFIG_REQ(msg_p).Ciphering.kRRCenc = CALLOC(1,16);
@@ -1629,21 +1629,21 @@ static void ss_task_sys_handle_req(struct SYSTEM_CTRL_REQ *req, ss_set_timinfo_t
  * req  - Request received from the TTCN via PORTMAN
  *
  * Out:
- * TRUE - If recevied command is supported by SYS State handler
- * FALSE -If received command is not supported by SYS Handler.
+ * true - If recevied command is supported by SYS State handler
+ * false -If received command is not supported by SYS Handler.
  *
  */
 bool valid_sys_msg(struct SYSTEM_CTRL_REQ *req)
 {
-  bool valid = FALSE;
+  bool valid = false;
   enum ConfirmationResult_Type_Sel resType = ConfirmationResult_Type_Success;
-  bool resVal = TRUE;
-  bool sendDummyCnf = TRUE;
+  bool resVal = true;
+  bool sendDummyCnf = true;
   enum SystemConfirm_Type_Sel cnfType = 0;
 
-  // if (req->Common.ControlInfo.CnfFlag == FALSE)
+  // if (req->Common.ControlInfo.CnfFlag == false)
   // {
-  //   return FALSE;
+  //   return false;
   // }
 
   LOG_A(ENB_SS, "[SYS] received req : %d for cell %d RC.ss.state %d \n",
@@ -1653,8 +1653,8 @@ bool valid_sys_msg(struct SYSTEM_CTRL_REQ *req)
   case SystemRequest_Type_Cell:
     if (RC.ss.State >= SS_STATE_NOT_CONFIGURED)
     {
-      valid = TRUE;
-      sendDummyCnf = FALSE;
+      valid = true;
+      sendDummyCnf = false;
       reqCnfFlag_g = req->Common.ControlInfo.CnfFlag;
     }
     else
@@ -1665,36 +1665,36 @@ bool valid_sys_msg(struct SYSTEM_CTRL_REQ *req)
   case SystemRequest_Type_EnquireTiming:
     if (RC.ss.State == SS_STATE_CELL_ACTIVE)
     {
-      valid = TRUE;
-      sendDummyCnf = FALSE;
+      valid = true;
+      sendDummyCnf = false;
        reqCnfFlag_g = req->Common.ControlInfo.CnfFlag;
     }
     break;
   case SystemRequest_Type_CellAttenuationList:
     if (RC.ss.State == SS_STATE_CELL_ACTIVE)
     {
-      valid = TRUE;
-      sendDummyCnf = FALSE;
+      valid = true;
+      sendDummyCnf = false;
        reqCnfFlag_g = req->Common.ControlInfo.CnfFlag;
     }
     break;
   case SystemRequest_Type_RadioBearerList:
     cnfType = SystemConfirm_Type_RadioBearerList;
-    valid = TRUE;
-    sendDummyCnf = FALSE;
+    valid = true;
+    sendDummyCnf = false;
      reqCnfFlag_g = req->Common.ControlInfo.CnfFlag;
     break;
   case SystemRequest_Type_AS_Security:
     cnfType = SystemConfirm_Type_AS_Security;
-    valid = TRUE;
-    sendDummyCnf = FALSE;
+    valid = true;
+    sendDummyCnf = false;
     reqCnfFlag_g = req->Common.ControlInfo.CnfFlag;
     break;
   case SystemRequest_Type_PdcpCount:
     if (RC.ss.State == SS_STATE_CELL_ACTIVE)
     {
-      valid = TRUE;
-      sendDummyCnf = FALSE;
+      valid = true;
+      sendDummyCnf = false;
        reqCnfFlag_g = req->Common.ControlInfo.CnfFlag;
     }
     //cnfType = SystemConfirm_Type_PdcpCount;
@@ -1704,14 +1704,14 @@ bool valid_sys_msg(struct SYSTEM_CTRL_REQ *req)
     cnfType = SystemConfirm_Type_UE_Cat_Info;
     break;
    case SystemRequest_Type_Paging:
-    valid = TRUE;
-    sendDummyCnf = FALSE;
+    valid = true;
+    sendDummyCnf = false;
     cnfType = SystemConfirm_Type_Paging;
     reqCnfFlag_g = req->Common.ControlInfo.CnfFlag;
     break;
   default:
-    valid = FALSE;
-    sendDummyCnf = FALSE;
+    valid = false;
+    sendDummyCnf = false;
   }
   if (sendDummyCnf)
   {
@@ -1808,7 +1808,7 @@ void *ss_eNB_sys_process_itti_msg(void *notUsed)
                       SS_GET_PDCP_CNT(received_msg).size);
       enum SystemConfirm_Type_Sel cnfType = SystemConfirm_Type_PdcpCount;
       enum ConfirmationResult_Type_Sel resType = ConfirmationResult_Type_Success;
-      bool resVal = TRUE;
+      bool resVal = true;
       struct Pdcp_CountCnf_Type PdcpCount;
 
 
@@ -1850,7 +1850,7 @@ void *ss_eNB_sys_process_itti_msg(void *notUsed)
       LOG_A(ENB_SS, "[SYS] received UDP_DATA_IND \n");
       enum SystemConfirm_Type_Sel cnfType;
       enum ConfirmationResult_Type_Sel resType = ConfirmationResult_Type_Success;
-      bool resVal = TRUE;
+      bool resVal = true;
 
       //if (attnCnf.header.preamble != 0xF00DC0DE ) break; /** TODO Log ! */
       memcpy(&hdr, (SS_SYS_PROXY_MSG_CNF(received_msg).buffer), sizeof(proxy_ss_header_t));
