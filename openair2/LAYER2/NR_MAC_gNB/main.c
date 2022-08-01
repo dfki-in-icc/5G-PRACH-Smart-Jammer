@@ -44,7 +44,10 @@
 
 extern RAN_CONTEXT_t RC;
 
-
+/*MACSTATSSTRLEN can be extended the range upto 32000
+ * only to print for more logs for UE connection check,
+ * however be mindful about the max recommended range of 16384
+ */
 #define MACSTATSSTRLEN 16384
 
 void *nrmac_stats_thread(void *arg) {
