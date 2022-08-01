@@ -873,6 +873,7 @@ check_install_oai_software() {
   fi
 
     install_asn1c_from_source $1
+    install_simde_from_source $1
 }
 
 install_asn1c_from_source(){
@@ -897,6 +898,15 @@ install_asn1c_from_source(){
         $SUDO rm -rf /tmp/asn1c
     fi
     ) > $asn1_install_log 2>&1
+}
+
+install_simde_from_source(){
+    echo_info "\nInstalling SIMDE from source without test cases (header files only)"
+    $SUDO rm -rf /tmp/simde
+    git clone https://github.com/simd-everywhere/simde-no-tests.git /tmp/simde
+    cd /tmp/simde
+    # brute force copy into /usr/include
+    $SUDO \cp -rv ../simde /usr/include
 }
 
 #################################################
