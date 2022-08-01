@@ -8593,8 +8593,6 @@ int nr_dlsch_64qam_64qam_llr(NR_DL_FRAME_PARMS *frame_parms,
              llr16,
              pllr_symbol);*/
 
-#ifdef __AVX2__
-
   // Round length up to multiple of 16 words
   uint32_t len256i = ((len+16)>>4)*16;
   int32_t *rxF_256i      = (int32_t*) malloc16_clear(len256i*4);
@@ -8632,16 +8630,6 @@ int nr_dlsch_64qam_64qam_llr(NR_DL_FRAME_PARMS *frame_parms,
   free16(ch_mag_256i, sizeof(ch_mag_256i));
   free16(ch_mag_i_256i, sizeof(ch_mag_i_256i));
   free16(rho_256i, sizeof(rho_256i));
-
-#else
-  qam64_qam64((short *)rxF,
-              (short *)rxF_i,
-              (short *)ch_mag,
-              (short *)ch_mag_i,
-              (short *)llr16,
-              (short *)rho,
-              len);
-#endif
 
   llr16 += (6*len);
   //*llr16p = (short *)llr16;

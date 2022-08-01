@@ -3,15 +3,13 @@
 #include <math.h>
 #include <stdint.h>
 
-#include <immintrin.h>
+#include "PHY/sse_intrin.h"
 
 void nr_polar_kernal_operation(uint8_t *u, uint8_t *d, uint16_t N)
 {
 	// Martino's algorithm to avoid multiplication for the generating matrix of polar codes
 	
 	uint32_t i,j;
-
-	#ifdef __AVX2__
 
 	__m256i A,B,C,D,E,U,zerosOnly, OUT;
 	__m256i inc;
@@ -57,19 +55,5 @@ void nr_polar_kernal_operation(uint8_t *u, uint8_t *d, uint16_t N)
                 }
 
 	}
-
-	#else
-
-        for(i=0; i<N; i++) // Create the elements of d=u*G_N ...
-        {
-                d[i]=0;
-                for(j=0; j<N; j++) // ... looking at all the elements of u
-                {
-                        d[i]=d[i] ^ (!( (j-i)& i ))*u[j];
-                        // it's like ((j-i)&i)==0
-                }
-        }
-	
-	#endif
 
 }

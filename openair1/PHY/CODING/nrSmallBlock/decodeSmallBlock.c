@@ -53,19 +53,11 @@ uint16_t decodeSmallBlock(int8_t *in, uint8_t len){
 			for (int k = 0; k < NR_SMALL_BLOCK_CODED_BITS; ++k)
 				Rhat[j] += in[k] * hadamard32InterleavedTransposed[j][k];
 
-#if defined(__AVX2__)
 		for (int i = 0; i < NR_SMALL_BLOCK_CODED_BITS; i += 16) {
 			__m256i a15_a0 = _mm256_loadu_si256((__m256i*)&Rhat[i]);
 			a15_a0 = _mm256_abs_epi16(a15_a0);
 			_mm256_storeu_si256((__m256i*)(&Rhatabs[i]), a15_a0);
 		}
-#else
-		for (int i = 0; i < NR_SMALL_BLOCK_CODED_BITS; i += 8) {
-			__m128i a7_a0 = _mm_loadu_si128((__m128i*)&Rhat[i]);
-			a7_a0 = _mm_abs_epi16(a7_a0);
-			_mm_storeu_si128((__m128i*)(&Rhatabs[i]), a7_a0);
-		}
-#endif
 		maxVal = Rhatabs[0];
 		for (int k = 1; k < jmax; ++k){
 			if (Rhatabs[k] > maxVal){
@@ -85,7 +77,6 @@ uint16_t decodeSmallBlock(int8_t *in, uint8_t len){
 	} else {
 		uint8_t maxRow = 0, maxCol = 0;
 
-#if defined(__AVX2__)
         int16_t maxVal = 0;
 		int DmatrixElementVal = 0;
 		int8_t DmatrixElement[NR_SMALL_BLOCK_CODED_BITS] = {0};
@@ -97,7 +88,7 @@ uint16_t decodeSmallBlock(int8_t *in, uint8_t len){
 			for (int k = 0; k < NR_SMALL_BLOCK_CODED_BITS; ++k) {
 				_maskH_256 = _mm256_loadu_si256 ((__m256i*)(&hadamard32InterleavedTransposed[k][0]));
 				_DmatrixElement_256 = _mm256_sign_epi8 (_Dmatrixj_256, _maskH_256);
-#if defined(__AVX512F__)
+#if 0 // Bell Labs - not yet available in simde (to be added in the future
 			    DmatrixElementVal = _mm512_reduce_add_epi32 (
 			    		            _mm512_add_epi32(
 			    				    _mm512_cvtepi8_epi32 (_mm256_extracti128_si256 (_DmatrixElement_256, 1)),
@@ -118,33 +109,6 @@ uint16_t decodeSmallBlock(int8_t *in, uint8_t len){
 			}
 		}
 		out = properOrderedBasisExtended[maxRow] | properOrderedBasis[maxCol] | ( (maxVal > 0) ? (uint16_t)0 : (uint16_t)1 );
-#else
-		int8_t Dmatrix[NR_SMALL_BLOCK_CODED_BITS][NR_SMALL_BLOCK_CODED_BITS] = {0};
-		int16_t DmatrixFHT[NR_SMALL_BLOCK_CODED_BITS][NR_SMALL_BLOCK_CODED_BITS] = {0};
-		uint16_t maxVal;
-		uint8_t rowLimit = 1<<(len-6);
-
-		for (int j = 0; j < ( rowLimit ); ++j)
-			for (int k = 0; k < NR_SMALL_BLOCK_CODED_BITS; ++k)
-				Dmatrix[j][k] = in[k] * maskD[j][k];
-
-		for (int i = 0; i < ( rowLimit ); ++i)
-			for (int j = 0; j < NR_SMALL_BLOCK_CODED_BITS; ++j)
-				for (int k = 0; k < NR_SMALL_BLOCK_CODED_BITS; ++k)
-					DmatrixFHT[i][j] += Dmatrix[i][k] * hadamard32InterleavedTransposed[j][k];
-
-		maxVal = abs(DmatrixFHT[0][0]);
-		for (int i = 0; i < ( rowLimit ); ++i)
-			for (int j = 0; j < NR_SMALL_BLOCK_CODED_BITS; ++j)
-				if (abs(DmatrixFHT[i][j]) > maxVal){
-					maxVal = abs(DmatrixFHT[i][j]);
-					maxRow = i;
-					maxCol = j;
-				}
-
-		out = properOrderedBasisExtended[maxRow] | properOrderedBasis[maxCol] | ( (DmatrixFHT[maxRow][maxCol] > 0) ? (uint16_t)0 : (uint16_t)1 );
-#endif
-
 #ifdef DEBUG_DECODESMALLBLOCK
 		for (int k = 0; k < NR_SMALL_BLOCK_CODED_BITS; ++k)
 					printf("[decodeSmallBlock]maxRow = %d maxCol = %d out[%d]=%d\n", maxRow, maxCol, k, ((uint32_t)out>>k)&1);

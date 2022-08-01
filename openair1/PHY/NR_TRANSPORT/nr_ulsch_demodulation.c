@@ -328,11 +328,7 @@ void nr_ulsch_extract_rbs(int32_t **rxdataF,
   start_re = (frame_parms->first_carrier_offset + (pusch_pdu->rb_start + pusch_pdu->bwp_start) * NR_NB_SC_PER_RB)%frame_parms->ofdm_symbol_size;
   nb_re_pusch = NR_NB_SC_PER_RB * pusch_pdu->rb_size;
 
-#ifdef __AVX2__
   int nb_re_pusch2 = nb_re_pusch + (nb_re_pusch&7);
-#else
-  int nb_re_pusch2 = nb_re_pusch;
-#endif
 
   for (aarx = 0; aarx < frame_parms->nb_antennas_rx; aarx++) {
 
@@ -426,11 +422,7 @@ void nr_ulsch_scale_channel(int **ul_ch_estimates_ext,
 
   ch_amp128 = _mm_set1_epi16(ch_amp); // Q3.13
 
-#ifdef __AVX2__
   int off = ((nb_rb&1) == 1)? 4:0;
-#else
-  int off = 0;
-#endif
 
   for (aatx = 0; aatx < nrOfLayers; aatx++) {
     for (aarx=0; aarx < frame_parms->nb_antennas_rx; aarx++) {
@@ -472,11 +464,7 @@ void nr_ulsch_channel_level(int **ul_ch_estimates_ext,
   
   uint32_t nb_rb_0 = len/12 + ((len%12)?1:0);
 
-#ifdef __AVX2__
   int off = ((nb_rb&1) == 1)? 4:0;
-#else
-  int off = 0;
-#endif
 
   for (aatx = 0; aatx < nrOfLayers; aatx++) {
     for (aarx = 0; aarx < frame_parms->nb_antennas_rx; aarx++) {
@@ -578,11 +566,7 @@ void nr_ulsch_channel_compensation(int **rxdataF_ext,
                                    unsigned short nb_rb,
                                    unsigned char output_shift) {
 
-#ifdef __AVX2__
   int off = ((nb_rb&1) == 1)? 4:0;
-#else
-  int off = 0;
-#endif
 
 #ifdef DEBUG_CH_COMP
   int16_t *rxF, *ul_ch;
@@ -1148,11 +1132,7 @@ void nr_ulsch_detection_mrc(NR_DL_FRAME_PARMS *frame_parms,
   int32_t i;
   uint32_t nb_rb_0 = length/12 + ((length%12)?1:0);
 
-#ifdef __AVX2__
   int off = ((nb_rb&1) == 1)? 4:0;
-#else
-  int off = 0;
-#endif
 
   if (n_rx > 1) {
     #if defined(__x86_64__) || defined(__i386__)
@@ -1548,11 +1528,7 @@ uint8_t nr_ulsch_zero_forcing_rx_2layers(int **rxdataF_comp,
   int *ch20, *ch30, *ch21, *ch31;
   uint32_t nb_rb_0 = length/12 + ((length%12)?1:0);
 
-  #ifdef __AVX2__
   int off = ((nb_rb&1) == 1)? 4:0;
-  #else
-  int off = 0;
-  #endif
 
   /* we need at least alignment to 16 bytes, let's put 32 to be sure
    * (maybe not necessary but doesn't hurt)
@@ -1976,11 +1952,7 @@ int nr_rx_pusch(PHY_VARS_gNB *gNB,
   }
   stop_meas(&gNB->ulsch_channel_estimation_stats);
 
-#ifdef __AVX2__
   int off = ((rel15_ul->rb_size&1) == 1)? 4:0;
-#else
-  int off = 0;
-#endif
   uint32_t rxdataF_ext_offset = 0;
 
   for(uint8_t symbol = rel15_ul->start_symbol_index; symbol < (rel15_ul->start_symbol_index + rel15_ul->nr_of_symbols); symbol++) {
@@ -2099,12 +2071,8 @@ int nr_rx_pusch(PHY_VARS_gNB *gNB,
       stop_meas(&gNB->ulsch_mrc_stats);
 
       if (rel15_ul->transform_precoding == transformPrecoder_enabled) {
-         #ifdef __AVX2__
         // For odd number of resource blocks need byte alignment to multiple of 8
         int nb_re_pusch2 = nb_re_pusch + (nb_re_pusch&7);
-        #else
-        int nb_re_pusch2 = nb_re_pusch;
-        #endif
 
         // perform IDFT operation on the compensated rxdata if transform precoding is enabled
         nr_idft(&gNB->pusch_vars[ulsch_id]->rxdataF_comp[0][symbol * nb_re_pusch2], nb_re_pusch);

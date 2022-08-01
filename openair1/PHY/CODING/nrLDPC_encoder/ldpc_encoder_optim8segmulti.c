@@ -61,7 +61,6 @@ int nrLDPC_encod(unsigned char **input,unsigned char **output,int Zc,int Kb,shor
   ///printf("macro_segment: %d\n", macro_segment);
   ///printf("macro_segment_end: %d\n", macro_segment_end );
 
-#ifdef __AVX2__
   __m256i shufmask = _mm256_set_epi64x(0x0303030303030303, 0x0202020202020202,0x0101010101010101, 0x0000000000000000);
   __m256i andmask  = _mm256_set1_epi64x(0x0102040810204080);  // every 8 bits -> 8 bytes, pattern repeats.
   __m256i zero256   = _mm256_setzero_si256();
@@ -75,7 +74,6 @@ int nrLDPC_encod(unsigned char **input,unsigned char **output,int Zc,int Kb,shor
   masks[5] = _mm256_set1_epi8(0x20);
   masks[6] = _mm256_set1_epi8(0x40);
   masks[7] = _mm256_set1_epi8(0x80);
-#endif
 
 
 
@@ -127,7 +125,6 @@ int nrLDPC_encod(unsigned char **input,unsigned char **output,int Zc,int Kb,shor
     }
   }
 #else
-#ifdef __AVX2__
   for (int i=0; i<block_length>>5; i++) {
     c256 = _mm256_and_si256(_mm256_cmpeq_epi8(_mm256_andnot_si256(_mm256_shuffle_epi8(_mm256_set1_epi32(((uint32_t*)input[macro_segment])[i]), shufmask),andmask),zero256),masks[0]);
     //for (j=1; j<n_segments; j++) {
@@ -146,9 +143,6 @@ int nrLDPC_encod(unsigned char **input,unsigned char **output,int Zc,int Kb,shor
       cc[i] |= (temp << (j-macro_segment));
     }
   }
-#else
-  AssertFatal(1==0,"Need AVX2 for this\n");
-#endif
 #endif
 
   if(impp->tinput != NULL) stop_meas(impp->tinput);
@@ -174,7 +168,6 @@ int nrLDPC_encod(unsigned char **input,unsigned char **output,int Zc,int Kb,shor
   memcpy(&output[0], &c[2*Zc], (block_length-2*Zc)*sizeof(unsigned char));
   memcpy(&output[block_length-2*Zc], &d[0], ((nrows-no_punctured_columns) * Zc-removed_bit)*sizeof(unsigned char));
   */
-#ifdef __AVX2__
   if ((((2*Zc)&31) == 0) && (((block_length-(2*Zc))&31) == 0)) {
     //AssertFatal(((2*Zc)&31) == 0,"2*Zc needs to be a multiple of 32 for now\n");
     //AssertFatal(((block_length-(2*Zc))&31) == 0,"block_length-(2*Zc) needs to be a multiple of 32 for now\n");
@@ -209,10 +202,6 @@ int nrLDPC_encod(unsigned char **input,unsigned char **output,int Zc,int Kb,shor
     	  for (int j=macro_segment; j < macro_segment_end; j++)
 	output[j][block_length-2*Zc+i] = (dd[i]>>(j-macro_segment))&1;
     }
-
-#else
-    AssertFatal(1==0,"Need AVX2 for now\n");
-#endif
 
   if(impp->toutput != NULL) stop_meas(impp->toutput);
   return 0;

@@ -37,7 +37,6 @@
 ///
 ///
 
-#undef __AVX2__
 #include "PHY/sse_intrin.h"
 
 #ifndef TEST_DEBUG
@@ -62,8 +61,6 @@
 #ifdef DEBUG_LOGMAP
   #define print_shorts(s,x) fprintf(fdsse4,"%s %d,%d,%d,%d,%d,%d,%d,%d\n",s,(x)[0],(x)[1],(x)[2],(x)[3],(x)[4],(x)[5],(x)[6],(x)[7])
 #endif
-
-#undef __AVX2__
 
 #ifdef DEBUG_LOGMAP
   FILE *fdsse4;
@@ -130,27 +127,16 @@ void compute_gamma16(llr_t *m11,llr_t *m10,llr_t *systematic,channel_t *y_parity
 #ifdef DEBUG_LOGMAP
   fprintf(fdsse4,"compute_gamma (sse_16bit), %p,%p,%p,%p,framelength %d\n",m11,m10,systematic,y_parity,frame_length);
 #endif
-#ifndef __AVX2__
-  K1=frame_length>>3;
-#else
-
   if ((frame_length&15) > 0)
     K1=(frame_length+1)>>4;
   else
     K1=frame_length>>4;
 
-#endif
-
   for (k=0; k<K1; k++) {
 #if defined(__x86_64__) || defined(__i386__)
-#ifndef __AVX2__
-    m11_128[k] = _mm_srai_epi16(_mm_adds_epi16(systematic128[k],y_parity128[k]),1);
-    m10_128[k] = _mm_srai_epi16(_mm_subs_epi16(systematic128[k],y_parity128[k]),1);
-#else
     ((__m256i *)m11_128)[k] = _mm256_srai_epi16(_mm256_adds_epi16(((__m256i *)systematic128)[k],((__m256i *)y_parity128)[k]),1);
     //    ((__m256i*)m10_128)[k] = _mm256_srai_epi16(_mm256_subs_epi16(((__m256i*)y_parity128)[k],((__m256i*)systematic128)[k]),1);
     ((__m256i *)m10_128)[k] = _mm256_srai_epi16(_mm256_subs_epi16(((__m256i *)systematic128)[k],((__m256i *)y_parity128)[k]),1);
-#endif
 #elif defined(__arm__)
     m11_128[k] = vhaddq_s16(systematic128[k],y_parity128[k]);
     m10_128[k] = vhsubq_s16(systematic128[k],y_parity128[k]);
@@ -168,7 +154,7 @@ void compute_gamma16(llr_t *m11,llr_t *m10,llr_t *systematic,channel_t *y_parity
   // Termination
 #if defined(__x86_64__) || defined(__i386__)
   m11_128[k] = _mm_srai_epi16(_mm_adds_epi16(systematic128[k+term_flag],y_parity128[k]),1);
-  //#ifndef __AVX2__
+  //#ifndef __WASAVX2__
 #if 1
   m10_128[k] = _mm_srai_epi16(_mm_subs_epi16(systematic128[k+term_flag],y_parity128[k]),1);
 #else
@@ -193,7 +179,7 @@ void compute_alpha16(llr_t *alpha,llr_t *beta,llr_t *m_11,llr_t *m_10,unsigned s
   int k,l,l2,K1,rerun_flag=0;
 #if defined(__x86_64__) || defined(__i386__)
   __m128i *alpha128=(__m128i *)alpha,*alpha_ptr,*m11p,*m10p;
-  //#ifndef __AVX2__
+  //#ifndef __WASAVX2__
 #if 1
   __m128i a0,a1,a2,a3,a4,a5,a6,a7;
   __m128i m_b0,m_b1,m_b2,m_b3,m_b4,m_b5,m_b6,m_b7;
@@ -222,7 +208,7 @@ void compute_alpha16(llr_t *alpha,llr_t *beta,llr_t *m_11,llr_t *m_10,unsigned s
   for (l=K1;; l=l2,rerun_flag=1) {
 #if defined(__x86_64__) || defined(__i386__)
     alpha128 = (__m128i *)alpha;
-    //#ifdef __AVX2__
+    //#ifdef __WASAVX2__
 #elif defined(__arm__)
     alpha128 = (int16x8_t *)alpha;
 #endif
@@ -310,7 +296,7 @@ void compute_alpha16(llr_t *alpha,llr_t *beta,llr_t *m_11,llr_t *m_10,unsigned s
     }
 
     alpha_ptr = &alpha128[0];
-    //#ifdef __AVX2__
+    //#ifdef __WASAVX2__
 #if defined(__x86_64__) || defined(__i386__)
     m11p = (__m128i *)m_11;
     m10p = (__m128i *)m_10;
@@ -323,7 +309,7 @@ void compute_alpha16(llr_t *alpha,llr_t *beta,llr_t *m_11,llr_t *m_10,unsigned s
          k<l;
          k++) {
 #if defined(__x86_64__) || defined(__i386__)
-      //#ifndef __AVX2__
+      //#ifndef __WASAVX2__
 #if 1
       a1=_mm_load_si128(&alpha_ptr[1]);
       a3=_mm_load_si128(&alpha_ptr[3]);
@@ -423,11 +409,11 @@ void compute_alpha16(llr_t *alpha,llr_t *beta,llr_t *m_11,llr_t *m_10,unsigned s
       alpha_max = vmaxq_s16(alpha_max,a7);
 #endif
       alpha_ptr+=8;
-      //#ifdef __AVX2__
+      //#ifdef __WASAVX2__
       m11p++;
       m10p++;
 #if defined(__x86_64__) || defined(__i386__)
-      //#ifndef __AVX2__
+      //#ifndef __WASAVX2__
 #if 1
       alpha_ptr[0] = _mm_subs_epi16(a0,alpha_max);
       alpha_ptr[1] = _mm_subs_epi16(a1,alpha_max);
@@ -527,7 +513,7 @@ void compute_beta16(llr_t *alpha,llr_t *beta,llr_t *m_11,llr_t *m_10,unsigned sh
   // termination for beta initialization
   //  fprintf(fdsse4,"beta init: offset8 %d\n",offset8_flag);
   m11=(int16_t)m_11[2+frame_length];
-  //#ifndef __AVX2__
+  //#ifndef __WASAVX2__
 #if 1
   m10=(int16_t)m_10[2+frame_length];
 #else
@@ -685,7 +671,7 @@ void compute_beta16(llr_t *alpha,llr_t *beta,llr_t *m_11,llr_t *m_10,unsigned sh
 #if defined(__x86_64__) || defined(__i386__)
       m11_128=((__m128i *)m_11)[k];
       m10_128=((__m128i *)m_10)[k];
-      //#ifndef __AVX2__
+      //#ifndef __WASAVX2__
 #if 1
       m_b0 = _mm_adds_epi16(beta_ptr[4],m11_128);  //m11
       m_b1 = _mm_subs_epi16(beta_ptr[4],m11_128);  //m00
@@ -720,7 +706,7 @@ void compute_beta16(llr_t *alpha,llr_t *beta,llr_t *m_11,llr_t *m_10,unsigned sh
       new75 = _mm256_subs_epi16(b24,m11m10_256);  //negative m10
 #endif
       beta_ptr-=8;
-      //#ifndef __AVX2__
+      //#ifndef __WASAVX2__
 #if 1
       beta_ptr[0] = _mm_max_epi16(m_b0,new0);
       beta_ptr[1] = _mm_max_epi16(m_b1,new1);
@@ -880,7 +866,7 @@ void compute_ext16(llr_t *alpha,llr_t *beta,llr_t *m_11,llr_t *m_10,llr_t *ext, 
       print_shorts("b6:",&beta_ptr[6]);
       print_shorts("b7:",&beta_ptr[7]);
     */
-    //#ifndef __AVX2__
+    //#ifndef __WASAVX2__
 #if 1
     m00_4 = _mm_adds_epi16(alpha_ptr[7],beta_ptr[3]); //ALPHA_BETA_4m00;
     m11_4 = _mm_adds_epi16(alpha_ptr[7],beta_ptr[7]); //ALPHA_BETA_4m11;

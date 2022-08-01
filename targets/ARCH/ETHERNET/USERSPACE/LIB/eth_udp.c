@@ -279,15 +279,9 @@ int trx_eth_write_udp(openair0_device *device, openair0_timestamp timestamp, voi
   int nsamps2;  // aligned to upper 32 or 16 byte boundary
   
 #if defined(__x86_64) || defined(__i386__)
-#ifdef __AVX2__
   nsamps2 = (nsamps+7)>>3;
   __m256i buff_tx[nsamps2+1];
   __m256i *buff_tx2=buff_tx+1;
-#else
-  nsamps2 = (nsamps+3)>>2;
-  __m128i buff_tx[nsamps2+2];
-  __m128i *buff_tx2=buff_tx+2;
-#endif
 #elif defined(__arm__) || defined(__aarch64__)
   nsamps2 = (nsamps+3)>>2;
   int16x8_t buff_tx[nsamps2+2];
@@ -300,11 +294,7 @@ int trx_eth_write_udp(openair0_device *device, openair0_timestamp timestamp, voi
     // bring TX data into 12 LSBs for softmodem RX
   for (int j=0; j<nsamps2; j++) {
 #if defined(__x86_64__) || defined(__i386__)
-#ifdef __AVX2__
     buff_tx2[j] = _mm256_slli_epi16(((__m256i *)buff)[j],4);
-#else
-    buff_tx2[j] = _mm_slli_epi16(((__m128i *)buff)[j],4);
-#endif
 #elif defined(__arm__)
     buff_tx2[j] = vshlq_n_s16(((int16x8_t *)buff)[j],4);
 #endif
@@ -403,15 +393,9 @@ int trx_eth_read_udp(openair0_device *device, openair0_timestamp *timestamp, voi
   int payload_size = UDP_PACKET_SIZE_BYTES(nsamps);
 
 #if defined(__x86_64__) || defined(__i386__)
-#ifdef __AVX2__
-    int nsamps2 = (payload_size>>5)+1;
+  int nsamps2 = (payload_size>>5)+1;
   __m256i temp_rx[nsamps2];
   char *temp_rx0 = ((char *)&temp_rx[1])-APP_HEADER_SIZE_BYTES;
-#else
-    int nsamps2 = (payload_size>>4)+1;
-  __m128i temp_rx[nsamps2];
-  char *temp_rx0 = ((char *)&temp_rx[1])-APP_HEADER_SIZE_BYTES;  
-#endif
 #elif defined(__arm__) || defined(__aarch64__)
   int nsamps2 = (payload_size>>4)+1;
   int16x8_t temp_rx[nsamps2];
@@ -479,11 +463,7 @@ int trx_eth_read_udp(openair0_device *device, openair0_timestamp *timestamp, voi
   // populate receive buffer in lower 12-bits from 16-bit representation
   for (int j=1; j<nsamps2; j++) {
 #if defined(__x86_64__) || defined(__i386__)
-#ifdef __AVX2__
        ((__m256i *)buff)[j-1] = _mm256_srai_epi16(temp_rx[j],2);
-#else
-       ((__m128i *)buff)[j-1] = _mm_srai_epi16(temp_rx[j],2);
-#endif
 #elif defined(__arm__)
        ((int16x8_t *)buff)[j] = vshrq_n_s16(temp_rx[i][j],2);
 #endif

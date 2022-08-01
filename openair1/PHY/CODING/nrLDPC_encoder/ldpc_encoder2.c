@@ -303,7 +303,6 @@ int ldpc_encoder_optim_8seg(unsigned char **test_input,unsigned char **channel_i
   char temp;
   int simd_size;
 
-#ifdef __AVX2__
   __m256i shufmask = _mm256_set_epi64x(0x0303030303030303, 0x0202020202020202,0x0101010101010101, 0x0000000000000000);
   __m256i andmask  = _mm256_set1_epi64x(0x0102040810204080);  // every 8 bits -> 8 bytes, pattern repeats.
   __m256i zero256   = _mm256_setzero_si256();
@@ -317,7 +316,6 @@ int ldpc_encoder_optim_8seg(unsigned char **test_input,unsigned char **channel_i
   masks[5] = _mm256_set1_epi8(0x20);
   masks[6] = _mm256_set1_epi8(0x40);
   masks[7] = _mm256_set1_epi8(0x80);
-#endif
 
   AssertFatal(n_segments>0&&n_segments<=8,"0 < n_segments %d <= 8\n",n_segments);
 
@@ -374,7 +372,6 @@ int ldpc_encoder_optim_8seg(unsigned char **test_input,unsigned char **channel_i
     }
   }
 #else
-#ifdef __AVX2__
   for (i=0; i<block_length>>5; i++) {
     c256 = _mm256_and_si256(_mm256_cmpeq_epi8(_mm256_andnot_si256(_mm256_shuffle_epi8(_mm256_set1_epi32(((uint32_t*)test_input[0])[i]), shufmask),andmask),zero256),masks[0]);
     for (j=1; j<n_segments; j++) {
@@ -391,9 +388,6 @@ int ldpc_encoder_optim_8seg(unsigned char **test_input,unsigned char **channel_i
       c[i] |= (temp << j);
     }
   }
-#else
-  AssertFatal(1==0,"Need AVX2 for this\n");
-#endif
 #endif
 
   if(tinput != NULL) stop_meas(tinput);
@@ -433,7 +427,6 @@ int ldpc_encoder_optim_8seg(unsigned char **test_input,unsigned char **channel_i
   memcpy(&channel_input[0], &c[2*Zc], (block_length-2*Zc)*sizeof(unsigned char));
   memcpy(&channel_input[block_length-2*Zc], &d[0], ((nrows-no_punctured_columns) * Zc-removed_bit)*sizeof(unsigned char));
   */
-#ifdef __AVX2__
   if ((((2*Zc)&31) == 0) && (((block_length-(2*Zc))&31) == 0)) {
     //AssertFatal(((2*Zc)&31) == 0,"2*Zc needs to be a multiple of 32 for now\n");
     //AssertFatal(((block_length-(2*Zc))&31) == 0,"block_length-(2*Zc) needs to be a multiple of 32 for now\n");
@@ -464,10 +457,6 @@ int ldpc_encoder_optim_8seg(unsigned char **test_input,unsigned char **channel_i
 	channel_input[j][block_length-2*Zc+i] = (d[i]>>j)&1;
     }
 
-#else
-    AssertFatal(1==0,"Need AVX2 for now\n");
-#endif
-
   if(toutput != NULL) stop_meas(toutput);
   return 0;
 }
@@ -490,7 +479,6 @@ int ldpc_encoder_optim_8seg_multi(unsigned char **test_input,unsigned char **cha
   //printf("macro_segment: %d\n", macro_segment);
   //printf("macro_segment_end: %d\n", macro_segment_end );
 
-#ifdef __AVX2__
   __m256i shufmask = _mm256_set_epi64x(0x0303030303030303, 0x0202020202020202,0x0101010101010101, 0x0000000000000000);
   __m256i andmask  = _mm256_set1_epi64x(0x0102040810204080);  // every 8 bits -> 8 bytes, pattern repeats.
   __m256i zero256   = _mm256_setzero_si256();
@@ -504,9 +492,6 @@ int ldpc_encoder_optim_8seg_multi(unsigned char **test_input,unsigned char **cha
   masks[5] = _mm256_set1_epi8(0x20);
   masks[6] = _mm256_set1_epi8(0x40);
   masks[7] = _mm256_set1_epi8(0x80);
-#endif
-
-
 
   //determine number of bits in codeword
   if (BG==1)
@@ -558,7 +543,6 @@ int ldpc_encoder_optim_8seg_multi(unsigned char **test_input,unsigned char **cha
     }
   }
 #else
-#ifdef __AVX2__
   for (i=0; i<block_length>>5; i++) {
     c256 = _mm256_and_si256(_mm256_cmpeq_epi8(_mm256_andnot_si256(_mm256_shuffle_epi8(_mm256_set1_epi32(((uint32_t*)test_input[macro_segment])[i]), shufmask),andmask),zero256),masks[0]);
     //for (j=1; j<n_segments; j++) {
@@ -577,9 +561,6 @@ int ldpc_encoder_optim_8seg_multi(unsigned char **test_input,unsigned char **cha
       c[i] |= (temp << (j-macro_segment));
     }
   }
-#else
-  AssertFatal(1==0,"Need AVX2 for this\n");
-#endif
 #endif
 
   if(tinput != NULL) stop_meas(tinput);
@@ -619,7 +600,6 @@ int ldpc_encoder_optim_8seg_multi(unsigned char **test_input,unsigned char **cha
   memcpy(&channel_input[0], &c[2*Zc], (block_length-2*Zc)*sizeof(unsigned char));
   memcpy(&channel_input[block_length-2*Zc], &d[0], ((nrows-no_punctured_columns) * Zc-removed_bit)*sizeof(unsigned char));
   */
-#ifdef __AVX2__
   if ((((2*Zc)&31) == 0) && (((block_length-(2*Zc))&31) == 0)) {
     //AssertFatal(((2*Zc)&31) == 0,"2*Zc needs to be a multiple of 32 for now\n");
     //AssertFatal(((block_length-(2*Zc))&31) == 0,"block_length-(2*Zc) needs to be a multiple of 32 for now\n");
@@ -654,10 +634,6 @@ int ldpc_encoder_optim_8seg_multi(unsigned char **test_input,unsigned char **cha
     	  for (j=macro_segment; j < macro_segment_end; j++)
 	channel_input[j][block_length-2*Zc+i] = (d[i]>>(j-macro_segment))&1;
     }
-
-#else
-    AssertFatal(1==0,"Need AVX2 for now\n");
-#endif
 
   if(toutput != NULL) stop_meas(toutput);
   return 0;

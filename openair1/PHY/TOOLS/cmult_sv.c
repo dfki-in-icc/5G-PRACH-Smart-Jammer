@@ -144,7 +144,6 @@ void multadd_real_four_symbols_vector_complex_scalar(int16_t *x,
   _m_empty();
 
 }
-#ifdef __AVX2__
 void rotate_cpx_vector(c16_t *x,
                       c16_t *alpha,
                       c16_t *y,
@@ -244,7 +243,7 @@ void rotate_cpx_vector(c16_t *x,
 
   return;
 }
-#endif
+
 /*
 int mult_vector32_scalar(int16_t *x1,
                          int x2,

@@ -21,7 +21,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
-#include <immintrin.h>
+#include "PHY/sse_intrin.h"
 #include "../../nrLDPCdecoder_defs.h"
 #include "../../nrLDPC_types.h"
 
@@ -43,8 +43,8 @@ void nrLDPC_bnProcPc_BG2_generator_AVX2(const char *dir, int R)
     abort();
   }
 
-//  fprintf(fd,"#include <stdint.h>\n");
-  //fprintf(fd,"#include <immintrin.h>\n");
+  // fprintf(fd,"#include <stdint.h>\n");
+  // fprintf(fd,"#include \"PHY/sse_intrin.h\"\n");
 
   fprintf(fd,"static inline void nrLDPC_bnProcPc_BG2_R%s_AVX2(int8_t* bnProcBuf,int8_t* bnProcBufRes,int8_t* llrRes ,  int8_t* llrProcBuf, uint16_t Z  ) {\n",ratestr[R]);
     const uint8_t*  lut_numBnInBnGroups;

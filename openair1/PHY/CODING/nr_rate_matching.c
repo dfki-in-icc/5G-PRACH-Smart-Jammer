@@ -40,7 +40,7 @@ void nr_interleaving_ldpc(uint32_t E, uint8_t Qm, uint8_t *e,uint8_t *f)
   memset(f,0,E*sizeof(uint8_t));
   uint8_t *e0,*e1,*e2,*e3,*e4,*e5,*e6,*e7;
   uint8_t *fp;
-#if 0 //def __AVX2__
+#if 0 //def __WASAVX2__
   __m256i tmp0,tmp1,tmp2,tmp0b,tmp1b,tmp3,tmp4,tmp5;
   __m256i *e0_256,*e1_256,*e2_256,*e3_256,*e4_256,*e5_256,*e6_256,*e7_256;
 

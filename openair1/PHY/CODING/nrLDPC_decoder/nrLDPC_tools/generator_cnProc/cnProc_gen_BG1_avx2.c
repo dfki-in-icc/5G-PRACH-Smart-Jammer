@@ -42,7 +42,7 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
   }
 
   fprintf(fd,"#include <stdint.h>\n");
-  fprintf(fd,"#include <immintrin.h>\n");
+  fprintf(fd,"#include \"PHY/sse_intrin.h\"\n");
 
 
   fprintf(fd,"static inline void nrLDPC_cnProc_BG1_R%s_AVX2(int8_t* cnProcBuf, int8_t* cnProcBufRes, uint16_t Z) {\n",ratestr[R]);

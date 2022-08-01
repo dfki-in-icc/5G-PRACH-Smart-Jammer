@@ -58,7 +58,6 @@
 #include "mex.h"
 #endif
 
-#ifdef __AVX2__
 #include "PHY/sse_intrin.h"
 
 //#define DEBUG_LOGMAP
@@ -66,10 +65,6 @@
 #ifdef DEBUG_LOGMAP
 #define print_shorts(s,x) fprintf(fdavx2,"%s %d,%d,%d,%d,%d,%d,%d,%d\n",s,(x)[0],(x)[1],(x)[2],(x)[3],(x)[4],(x)[5],(x)[6],(x)[7]);fprintf(fdavx2b,"%s %d,%d,%d,%d,%d,%d,%d,%d\n",s,(x)[8],(x)[9],(x)[10],(x)[11],(x)[12],(x)[13],(x)[14],(x)[15])
 FILE *fdavx2,*fdavx2b;
-#else
-
-#endif
-
 
 #define print_bytes(s,x) printf("%s %d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",s,(x)[0],(x)[1],(x)[2],(x)[3],(x)[4],(x)[5],(x)[6],(x)[7],(x)[8],(x)[9],(x)[10],(x)[11],(x)[12],(x)[13],(x)[14],(x)[15],(x)[16],(x)[17],(x)[18],(x)[19],(x)[20],(x)[21],(x)[22],(x)[23],(x)[24],(x)[25],(x)[26],(x)[27],(x)[28],(x)[29],(x)[30],(x)[31])
 
@@ -1278,7 +1273,7 @@ unsigned char phy_threegpplte_turbo_decoder16avx2(int16_t *y,
 #endif
   return(iteration_cnt);
 }
-#else  //__AVX2__
+#else
 unsigned char phy_threegpplte_turbo_decoder16avx2(int16_t *y,
 						  int16_t *y2,
 						  uint8_t *decoded_bytes,
@@ -1307,6 +1302,6 @@ void init_td16avx2(void)
     
 }
 
-#endif //__AVX2__
+#endif
 
 
