@@ -32,7 +32,6 @@
 #include <arpa/inet.h>
 
 #include "nfapi_nr_interface_scf.h"
-//#include "nfapi_vnf_interface.h"
 #include "nfapi_vnf.h"
 #include "nfapi.h"
 #include "vendor_ext.h"
@@ -1512,7 +1511,7 @@ int param_resp_cb(nfapi_vnf_config_t *config, int p5_idx, nfapi_param_response_t
   NFAPI_TRACE(NFAPI_TRACE_INFO, "[VNF] Received NFAPI_PARAM_RESP idx:%d phy_id:%d\n", p5_idx, resp->header.phy_id);
   vnf_info *vnf = (vnf_info *)(config->user_data);
   if (vnf->virtual_time)
-      printf("\n\n++++Virtual time enabled++++\n\n");
+      printf("[VNF] Virtual time enabled\n");
   vnf_p7_info *p7_vnf = vnf->p7_vnfs;
   pnf_info *pnf = vnf->pnfs;
   phy_info *phy = pnf->phys;
@@ -1685,7 +1684,7 @@ void configure_nr_nfapi_vnf(char *vnf_addr, int vnf_p5_port) {
   vnf.p7_vnfs[0].local_port = 50611;  
   //vnf.p7_vnfs[0].local_port = 50011;
   vnf.p7_vnfs[0].mac = (mac_t *)malloc(sizeof(mac_t));
-  vnf.virtual_time = RC.virtual_time;
+  vnf.virtual_time = get_softmodem_params()->virtual_time;
   nfapi_vnf_config_t *config = nfapi_vnf_config_create();
   config->malloc = malloc;
   config->free = free;
@@ -1736,7 +1735,7 @@ void configure_nfapi_vnf(char *vnf_addr, int vnf_p5_port) {
   //vnf.p7_vnfs[0].local_port = vnf.p7_vnfs[0].local_port; // 50001; // TODO: remove hardcode
   vnf.p7_vnfs[0].local_port = 50011;
   vnf.p7_vnfs[0].mac = (mac_t *)malloc(sizeof(mac_t));
-  vnf.virtual_time = RC.virtual_time;
+  vnf.virtual_time = get_softmodem_params()->virtual_time;
   nfapi_vnf_config_t *config = nfapi_vnf_config_create();
   config->malloc = malloc;
   config->free = free;

@@ -665,6 +665,10 @@ int main( int argc, char **argv ) {
 #endif
   LOG_I(HW, "Version: %s\n", PACKAGE_VERSION);
 
+  if (get_softmodem_params()->virtual_time) {
+    LOG_A(ENB_APP, "Running gNB in VIRTUAL TIME mode\n");
+  }
+
   if (RC.nb_nr_L1_inst > 0)
     RCconfig_NR_L1();
 

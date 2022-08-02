@@ -2187,7 +2187,7 @@ void vnf_dispatch_p7_message(void *pRecvMsg, int recvMsgLen, vnf_p7_t* vnf_p7)
 			vnf_handle_ue_release_resp(pRecvMsg, recvMsgLen, vnf_p7);
 			break;
 
-		case NFAPI_SUBFRAME_INDICATION: /** FC */
+		case NFAPI_SUBFRAME_INDICATION:
 			vnf_handle_subframe_indication(pRecvMsg, recvMsgLen, vnf_p7);
                         break;
 

@@ -101,7 +101,7 @@ extern "C"
 #define CONFIG_HLP_NFAPI         "Change the nFAPI mode for NR\n"
 #define CONFIG_L1_EMULATOR       "Run in L1 emulated mode (disable PHY layer)\n"
 #define CONFIG_HLP_CONTINUOUS_TX "perform continuous transmission, even in TDD mode (to work around USRP issues)\n"
-#define CONFIG_HLP_VIRT_TIME     "Enable virtual time mode\n"
+#define CONFIG_HLP_VIRT_TIME     "Enable virtual time mode (Flexible TTI duration). Works with L1 emulator only.\n"
 
 /*-----------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*                                            command line parameters common to eNodeB and UE                                                          */

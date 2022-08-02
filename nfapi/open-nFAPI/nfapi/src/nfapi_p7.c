@@ -7743,7 +7743,9 @@ int nfapi_p7_message_unpack(void *pMessageBuf, uint32_t messageBufLen, void *pUn
       }
       else
         return -1;
+
       break;
+
     case NFAPI_DL_CONFIG_REQUEST:
       if (check_unpack_length(NFAPI_DL_CONFIG_REQUEST, unpackedBufLen))
         result = unpack_dl_config_request(&pReadPackedMessage,  end, pMessageHeader, config);

@@ -47,7 +47,6 @@
 #include "RRC/LTE/rrc_defs.h"
 #include "RRC/NR/nr_rrc_defs.h"
 #include <openair3/ocp-gtpu/gtpv1u_eNB_task.h>
-#include "SS/ss_config.h"
 
 
 typedef struct {
@@ -113,10 +112,6 @@ typedef struct {
   pthread_mutex_t ru_mutex;
   /// condition variable for signaling setup completion of an RU
   pthread_cond_t ru_cond;
-  /// System Simulator Config variables
-  ss_config_t ss;
-  /// Virtual Time Mode Flag
-  uint8_t virtual_time;
 
 } RAN_CONTEXT_t;
 

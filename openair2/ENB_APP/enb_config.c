@@ -204,23 +204,6 @@ void RCconfig_L1(void) {
   }
 }
 
-void RCconfig_ssparam(void) {
-  paramdef_t SSConfig_Params[] = SSPARAMS_DESC;
-  paramlist_def_t SSConfig_ParamList = {CONFIG_SS,NULL,0};
-  config_getlist( &SSConfig_ParamList,SSConfig_Params,sizeof(SSConfig_Params)/sizeof(paramdef_t), NULL);
-
-  if ( SSConfig_ParamList.numelt > 0) {
-#if 0 /** To be enabled in the upcoming commits */
-    RC.ss.hostIp              = strdup(*(SSConfig_ParamList.paramarray[0][CONFIG_SS_HOSTIP_IDX].strptr));
-    RC.ss.Sysport             = *(SSConfig_ParamList.paramarray[0][CONFIG_SS_SYSPORT_IDX].iptr);
-    RC.ss.Srbport             = *(SSConfig_ParamList.paramarray[0][CONFIG_SS_SRBPORT_IDX].iptr);
-    RC.ss.Vngport             = *(SSConfig_ParamList.paramarray[0][CONFIG_SS_VNGPORT_IDX].iptr);
-#endif
-    RC.ss.mode		      = *(SSConfig_ParamList.paramarray[0][CONFIG_SS_MODE_IDX].iptr);
-  }
-  LOG_A(ENB_APP,"SS_Config:SSMode %d, hostIp=%s, Sysport=%d, Srbport=%d  Vngport=%d\n",
-		  RC.ss.mode, RC.ss.hostIp,RC.ss.Sysport,RC.ss.Srbport,RC.ss.Vngport);
-}
 
 void RCconfig_macrlc(int macrlc_has_f1[MAX_MAC_INST]) {
   int               j;
@@ -2942,10 +2925,6 @@ void RCConfig(void) {
   config_get( ENBSParams,sizeof(ENBSParams)/sizeof(paramdef_t),NULL);
   //EPC_MODE_ENABLED = ((*ENBSParams[ENB_NOS1_IDX].uptr) == 0);
   RC.nb_inst = ENBSParams[ENB_ACTIVE_ENBS_IDX].numelt;
-  RC.virtual_time = *ENBSParams[ENB_VT_IDX].uptr;
-
-  if (RC.virtual_time)
-      LOG_I(ENB_APP, "Running eNB in VIRTUAL TIME mode\n");
 
   if (RC.nb_inst > 0) {
     RC.nb_CC = (int *)malloc((1+RC.nb_inst)*sizeof(int));

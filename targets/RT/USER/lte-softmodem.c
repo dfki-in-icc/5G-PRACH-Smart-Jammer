@@ -556,6 +556,10 @@ int main ( int argc, char **argv )
 #endif
   LOG_I(HW, "Version: %s\n", PACKAGE_VERSION);
 
+  if (get_softmodem_params()->virtual_time) {
+    LOG_A(ENB_APP, "Running eNB in VIRTUAL TIME mode\n");
+  }
+
   /* Read configuration */
   if (RC.nb_inst > 0) {
     read_config_and_init();
