@@ -424,7 +424,7 @@ check_install_usrp_uhd_driver(){
         if [ $IS_CONTAINER -eq 0 ]
         then
             $SUDO $INSTALLER -y install python boost libusb-devel libusbx-devel boost-devel python-mako python-docutils $CMAKE
-            $SUDO -H pip install requests
+            $SUDO pip install requests
         else
             $SUDO $INSTALLER -y install boost boost-devel $CMAKE
             $SUDO pip3 install mako requests

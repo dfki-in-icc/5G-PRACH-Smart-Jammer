@@ -224,7 +224,7 @@ else (CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7l")
   endif()
 endif()
 
-set(C_FLAGS_PROCESSOR "${C_FLAGS_PROCESSOR} -march=native")
+set(C_FLAGS_PROCESSOR "${C_FLAGS_PROCESSOR} -fno-var-tracking-assignments -march=native")
 
 set(C_FLAGS_PROCESSOR " ${C_FLAGS_PROCESSOR} ${CFLAGS_PROCESSOR_USER}")
 
