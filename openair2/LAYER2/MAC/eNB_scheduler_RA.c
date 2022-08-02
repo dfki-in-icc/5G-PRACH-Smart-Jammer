@@ -1132,9 +1132,12 @@ check_Msg4_retransmission(module_id_t module_idP, int CC_idP,
 
   if (round != 8) {
     if (ra->rach_resource_type > 0 && round > 0) {
-      AssertFatal(1 == 0,
+      LOG_E(MAC, "TODO: need to implement the MSG4 re-transmission for BL/CE UEs, so gracefully free the UE for now rnti %x\n", ra->rnti);
+      put_UE_in_freelist(module_idP, ra->rnti, 1);
+      /*AssertFatal(1 == 0,
                   "Msg4 Retransmissions not handled yet for BL/CE UEs, Frame %d, subframeP %d harq_pid %d round %d, UE_id: %d \n",
                   frameP, subframeP, ra->harq_pid, round, UE_id);
+                  frameP, subframeP, ra->harq_pid, round, UE_id);*/
     } else {
       if ((ra->Msg4_frame == frameP)
           && (ra->Msg4_subframe == subframeP)) {
@@ -1278,6 +1281,9 @@ initiate_ra_proc(module_id_t module_idP,
   RA_t *ra = &cc->ra[0];
   struct LTE_PRACH_ConfigSIB_v1310 *ext4_prach = NULL;
   LTE_PRACH_ParametersListCE_r13_t *prach_ParametersListCE_r13 = NULL;
+
+  /** FIXME: 1.4 MHz we do not schedule any LTE UEs */
+  if (cc->mib->message.dl_Bandwidth == 6 && rach_resource_type == 0) return;
 
   if (cc->mib->message.schedulingInfoSIB1_BR_r13>0) {
     AssertFatal(cc->radioResourceConfigCommon_BR != NULL,"radioResourceConfigCommon_BR is null\n");

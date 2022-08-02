@@ -1058,7 +1058,8 @@ schedule_SI(module_id_t module_idP, frame_t frameP, sub_frame_t subframeP)
   start_meas(&eNB->schedule_si);
 
   // Only schedule LTE System Information in subframe 5
-  if (subframeP == 5) {
+  // and eMTC also enable at BW 1.4 MHz
+  if (subframeP == 5 && !((N_RB_DL == 6) && cc->mib->message.schedulingInfoSIB1_BR_r13 > 0)) {
     for (CC_id = 0; CC_id < MAX_NUM_CCs; CC_id++) {
       cc = &eNB->common_channels[CC_id];
       vrb_map = (void *) &cc->vrb_map;
