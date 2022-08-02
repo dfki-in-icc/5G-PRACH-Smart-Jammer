@@ -36,6 +36,7 @@
 #include <openair2/UTIL/OPT/opt.h>
 
 #include "LAYER2/NR_MAC_COMMON/nr_mac_extern.h"
+extern void process_CellGroup(NR_CellGroupConfig_t *CellGroup, NR_UE_sched_ctrl_t *sched_ctrl);
 
 int get_dci_format(NR_UE_sched_ctrl_t *sched_ctrl) {
 
@@ -710,10 +711,12 @@ void nr_rx_sdu(const module_id_t gnb_mod_idP,
                 return;
               } else {
                 // The UE identified by C-RNTI still exists at the gNB
-                // Reset uplink failure flags/counters/timers at MAC and at RRC so gNB will resume again scheduling resources for this UE
-                UE_C->UE_sched_ctrl.pusch_consecutive_dtx_cnt = 0;
-                UE_C->UE_sched_ctrl.ul_failure = 0;
+                // Reset uplink failure flags/counters/timers at RRC
                 nr_mac_gNB_rrc_ul_failure_reset(gnb_mod_idP, frameP, slotP, ra->crnti);
+
+                // Reset HARQ processes
+                reset_dl_harq_list(&UE_C->UE_sched_ctrl);
+                reset_ul_harq_list(&UE_C->UE_sched_ctrl);
               }
             }
             LOG_I(NR_MAC, "Scheduling RA-Msg4 for TC_RNTI 0x%04x (state %d, frame %d, slot %d)\n",
