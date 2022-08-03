@@ -121,7 +121,7 @@ typedef struct DRB_nGRAN_to_setup_s {
 typedef struct pdu_session_to_setup_s {
   long sessionId;
   long sessionType;
-  int32_t sst;
+  int8_t sst;
   long integrityProtectionIndication;
   long confidentialityProtectionIndication;
   in_addr_t tlAddress;

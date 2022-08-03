@@ -3895,7 +3895,7 @@ void fill_DRB_configList(NR_DRB_ToAddModList_t *DRB_configList, pdu_session_to_s
       ASN_SEQUENCE_ADD(&sdap_config->mappedQoS_FlowsToAdd->list, qfi);
     }
     sdap_config->mappedQoS_FlowsToRelease = NULL;
-    /*
+
     // pdcp_Config
     ie->reestablishPDCP = NULL;
     ie->recoverPDCP = NULL;
@@ -3917,23 +3917,22 @@ void fill_DRB_configList(NR_DRB_ToAddModList_t *DRB_configList, pdu_session_to_s
     pdcp_config->drb->outOfOrderDelivery = NULL;
     pdcp_config->moreThanOneRLC = NULL;
 
-    pdcp_config->t_Reordering = calloc(1, sizeof(*drb->pdcp_config->t_Reordering));
+    pdcp_config->t_Reordering = calloc(1, sizeof(*pdcp_config->t_Reordering));
     *pdcp_config->t_Reordering = drb->reorderingTimer;
     pdcp_config->ext1 = NULL;
 
-    if (drb->integrityProtectionIndication == 0 || // Required
-        drb->integrityProtectionIndication == 1) { // Preferred
+    if (pdu->integrityProtectionIndication == 0 || // Required
+        pdu->integrityProtectionIndication == 1) { // Preferred
       pdcp_config->drb->integrityProtection = calloc(1, sizeof(*pdcp_config->drb->integrityProtection));
       *pdcp_config->drb->integrityProtection = NR_PDCP_Config__drb__integrityProtection_enabled;
     }
 
-    if (drb->confidentialityProtectionIndication == 0 || // Required
-        drb->confidentialityProtectionIndication == 1) { // Preferred
+    if (pdu->confidentialityProtectionIndication == 0 || // Required
+        pdu->confidentialityProtectionIndication == 1) { // Preferred
       pdcp_config->ext1 = calloc(1, sizeof(*pdcp_config->ext1));
       pdcp_config->ext1->cipheringDisabled = calloc(1, sizeof(*pdcp_config->ext1->cipheringDisabled));
       *pdcp_config->ext1->cipheringDisabled = NR_PDCP_Config__ext1__cipheringDisabled_true;
     }
-    */
   }
 }
 
@@ -3942,7 +3941,7 @@ int rrc_gNB_process_e1_bearer_context_setup_req(e1ap_bearer_setup_req_t *req, in
   gtpv1u_gnb_create_tunnel_req_t  create_tunnel_req={0};
   gtpv1u_gnb_create_tunnel_resp_t create_tunnel_resp={0};
 
-  NR_DRB_ToAddModList_t *DRB_configList;
+  NR_DRB_ToAddModList_t DRB_configList;
   for (int i=0; i < req->numPDUSessions; i++) {
     pdu_session_to_setup_t *pdu = &req->pduSession[i];
     create_tunnel_req.pdusession_id[i] = pdu->sessionId;
@@ -3951,28 +3950,121 @@ int rrc_gNB_process_e1_bearer_context_setup_req(e1ap_bearer_setup_req_t *req, in
            &pdu->tlAddress,
            sizeof(pdu->tlAddress));
     create_tunnel_req.outgoing_teid[i] = pdu->teId;
-    fill_DRB_configList(DRB_configList, pdu);
+    fill_DRB_configList(&DRB_configList, pdu);
   }
   create_tunnel_req.num_tunnels = req->numPDUSessions;
-  create_tunnel_req.ue_id        = (req->gNB_cu_cp_ue_id & 0xFFFF);
+  create_tunnel_req.ue_id       = (req->gNB_cu_cp_ue_id & 0xFFFF);
 
   int ret = gtpv1u_create_ngu_tunnel(
                                  instance,
                                  &create_tunnel_req,
                                  &create_tunnel_resp);
+  if (ret != 0) {
+    LOG_E(NR_RRC,"rrc_gNB_process_NGAP_PDUSESSION_SETUP_REQ : gtpv1u_create_ngu_tunnel failed,start to release UE id %ld\n",
+          create_tunnel_req.ue_id);
+    return ret;
+  }
 
-  uint8_t *kRRCenc = NULL;
-  uint8_t *kRRCint = NULL;
-  /*
-  nr_derive_key_rrc_enc(cipheringAlgorithm,
-                        encryptionKey,
-                        &kRRCenc);
+  // Configure DRBs
+  uint8_t *kUPenc = NULL;
+  uint8_t *kUPint = NULL;
 
-  nr_derive_key_rrc_int(integrityProtectionAlgorithm,
-                        integrityProtectionKey,
-                        &kRRCint);
-  */
-  return 0;
+  nr_derive_key_rrc_enc(req->cipheringAlgorithm,
+                        (uint8_t *)req->encryptionKey,
+                        &kUPenc);
+
+  nr_derive_key_rrc_int(req->integrityProtectionAlgorithm,
+                        (uint8_t *)req->integrityProtectionKey,
+                        &kUPint);
+
+  nr_pdcp_add_drbs(false,
+                   create_tunnel_req.ue_id,
+                   &DRB_configList,
+                   (req->integrityProtectionAlgorithm << 4) | req->cipheringAlgorithm,
+                   kUPenc,
+                   kUPint,
+                   NULL);
+
+  MessageDef *message_p;
+  message_p = itti_alloc_new_message (TASK_RRC_GNB, instance, E1AP_BEARER_CONTEXT_SETUP_RESP);
+  e1ap_bearer_setup_resp_t *resp = &E1AP_BEARER_CONTEXT_SETUP_RESP(message_p);
+
+  resp->gNB_cu_cp_ue_id = req->gNB_cu_cp_ue_id;
+  resp->numPDUSessions = req->numPDUSessions;
+  for (int i=0; i < req->numPDUSessions; i++) {
+    pdu_session_setup_t    *pduSetup  = resp->pduSession + i;
+    pdu_session_to_setup_t *pdu2Setup = req->pduSession + i;
+
+    pduSetup->id = pdu2Setup->sessionId;
+    memcpy(&pduSetup->tlAddress, &pdu2Setup->tlAddress, sizeof(in_addr_t));
+    pduSetup->teId = pdu2Setup->teId;
+    pduSetup->numDRBSetup = pdu2Setup->numDRB2Setup;
+
+    for (int j=0; j < pdu2Setup->numDRB2Setup; j++) {
+      DRB_nGRAN_setup_t    *drbSetup  = pduSetup->DRBnGRanList + j;
+      DRB_nGRAN_to_setup_t *drb2Setup = pdu2Setup->DRBnGRanList + j;
+
+      drbSetup->id = drb2Setup->id;
+      drbSetup->numUpParam = 0;
+      drbSetup->numQosFlowSetup = drb2Setup->numQosFlow2Setup;
+
+      for (int k=0; k < drbSetup->numQosFlowSetup; k++) {
+        drbSetup->qosFlows[k].id = drb2Setup->qosFlows[k].id;
+      }
+    }
+  }
+  // At this point we don't have a way to know the DRBs that failed to setup
+  // We assume all DRBs to setup have are setup successfully so we always send successful outcome in response
+  // TODO: Modify nr_pdcp_add_drbs() to return DRB list that failed to setup to support E1AP
+
+  itti_send_msg_to_task(TASK_CUUP_E1, instance, message_p);
+
+  return ret;
+}
+
+void rrc_gNB_process_e1_bearer_context_setup_resp(e1ap_bearer_setup_resp_t *resp, instance_t instance) {
+  // Find the UE context from UE ID and send ITTI message to F1AP to send UE context modification message to DU
+
+  uint16_t ue_initial_id = 0; // Making an invalid UE initial ID
+  rrc_gNB_ue_context_t *ue_context_p = rrc_gNB_get_ue_context_from_ngap_ids(instance, ue_initial_id, resp->gNB_cu_cp_ue_id);
+  protocol_ctxt_t ctxt = {0};
+  PROTOCOL_CTXT_SET_BY_MODULE_ID(&ctxt, 0, GNB_FLAG_YES, ue_context_p->ue_context.rnti, 0, 0, 0);
+
+  /*Generate a UE context modification request message towards the DU to instruct the DU
+   *for SRB2 and DRB configuration and get the updates on master cell group config from the DU*/
+
+  // TODO: code repetition. very bad. And so many hard codings
+  MessageDef *message_p;
+  message_p = itti_alloc_new_message (TASK_RRC_GNB, 0, F1AP_UE_CONTEXT_MODIFICATION_REQ);
+  f1ap_ue_context_setup_t *req=&F1AP_UE_CONTEXT_MODIFICATION_REQ (message_p);
+  req->rnti             = ue_context_p->ue_context.rnti;
+  req->mcc              = RC.nrrrc[ctxt.module_id]->configuration.mcc[0];
+  req->mnc              = RC.nrrrc[ctxt.module_id]->configuration.mnc[0];
+  req->mnc_digit_length = RC.nrrrc[ctxt.module_id]->configuration.mnc_digit_length[0];
+  req->nr_cellid        = RC.nrrrc[ctxt.module_id]->nr_cellid;
+
+  /*Instruction towards the DU for SRB2 configuration*/
+  req->srbs_to_be_setup = malloc(1*sizeof(f1ap_srb_to_be_setup_t));
+  req->srbs_to_be_setup_length = 1;
+  f1ap_srb_to_be_setup_t *SRBs=req->srbs_to_be_setup;
+  SRBs[0].srb_id = 2;
+  SRBs[0].lcid = 2;
+
+  /*Instruction towards the DU for DRB configuration and tunnel creation*/
+  req->drbs_to_be_setup = malloc(1*sizeof(f1ap_drb_to_be_setup_t));
+  req->drbs_to_be_setup_length = 1;
+  f1ap_drb_to_be_setup_t *DRBs=req->drbs_to_be_setup;
+  LOG_D(RRC, "Length of DRB list:%d \n", req->drbs_to_be_setup_length);
+  DRBs[0].drb_id = 1;
+  DRBs[0].rlc_mode = RLC_MODE_AM;
+  DRBs[0].up_ul_tnl[0].tl_address = inet_addr(RC.nrrrc[ctxt.module_id]->eth_params_s.my_addr);
+  DRBs[0].up_ul_tnl[0].port=RC.nrrrc[ctxt.module_id]->eth_params_s.my_portd;
+  DRBs[0].up_ul_tnl_length = 1;
+  DRBs[0].up_dl_tnl[0].tl_address = inet_addr(RC.nrrrc[ctxt.module_id]->eth_params_s.remote_addr);
+  DRBs[0].up_dl_tnl[0].port=RC.nrrrc[ctxt.module_id]->eth_params_s.remote_portd;
+  DRBs[0].up_dl_tnl_length = 1;
+
+  itti_send_msg_to_task (TASK_CU_F1, ctxt.module_id, message_p);
 }
 
 ///---------------------------------------------------------------------------------------------------------------///
@@ -4141,6 +4233,11 @@ void *rrc_gnb_task(void *args_p) {
       case E1AP_BEARER_CONTEXT_SETUP_REQ:
         LOG_I(NR_RRC, "Received E1AP_BEARER_CONTEXT_SETUP_REQ for instance %d\n", (int)instance);
         rrc_gNB_process_e1_bearer_context_setup_req(&E1AP_BEARER_CONTEXT_SETUP_REQ(msg_p), instance);
+        break;
+
+      case E1AP_BEARER_CONTEXT_SETUP_RESP:
+        LOG_I(NR_RRC, "Received E1AP_BEARER_CONTEXT_SETUP_RESP for instance %d\n", (int)instance);
+        rrc_gNB_process_e1_bearer_context_setup_resp(&E1AP_BEARER_CONTEXT_SETUP_RESP(msg_p), instance);
         break;
 
       default:

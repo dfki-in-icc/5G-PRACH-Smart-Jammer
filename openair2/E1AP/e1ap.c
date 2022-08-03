@@ -573,18 +573,19 @@ int e1apCUCP_send_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
   ieC6->criticality   = E1AP_Criticality_reject;
   ieC6->value.present = E1AP_BearerContextSetupRequestIEs__value_PR_System_BearerContextSetupRequest;
   ieC6->value.choice.System_BearerContextSetupRequest.present = E1AP_System_BearerContextSetupRequest_PR_nG_RAN_BearerContextSetupRequest;
-  E1AP_NG_RAN_BearerContextSetupRequest_t *msgNGRAN = calloc(1, sizeof(E1AP_NG_RAN_BearerContextSetupRequest_t));
-  ieC6->value.choice.System_BearerContextSetupRequest.choice.nG_RAN_BearerContextSetupRequest = (struct E1AP_ProtocolIE_Container *) msgNGRAN;
+  E1AP_ProtocolIE_Container_4932P19_t *msgNGRAN_list = calloc(1, sizeof(E1AP_ProtocolIE_Container_4932P19_t));
+  ieC6->value.choice.System_BearerContextSetupRequest.choice.nG_RAN_BearerContextSetupRequest = (struct E1AP_ProtocolIE_Container *) msgNGRAN_list;
+  asn1cSequenceAdd(msgNGRAN_list->list, E1AP_NG_RAN_BearerContextSetupRequest_t, msgNGRAN);
   msgNGRAN->id = E1AP_ProtocolIE_ID_id_PDU_Session_Resource_To_Setup_List;
+  msgNGRAN->criticality = E1AP_Criticality_reject;
   msgNGRAN->value.present = E1AP_NG_RAN_BearerContextSetupRequest__value_PR_PDU_Session_Resource_To_Setup_List;
   E1AP_PDU_Session_Resource_To_Setup_List_t *pdu2Setup = &msgNGRAN->value.choice.PDU_Session_Resource_To_Setup_List;
-
   for(pdu_session_to_setup_t *i=bearerCxt->pduSession; i < bearerCxt->pduSession+bearerCxt->numPDUSessions; i++) {
     asn1cSequenceAdd(pdu2Setup->list, E1AP_PDU_Session_Resource_To_Setup_Item_t, ieC6_1);
     ieC6_1->pDU_Session_ID = i->sessionId;
     ieC6_1->pDU_Session_Type = i->sessionType;
 
-    INT32_TO_OCTET_STRING(i->sst, &ieC6_1->sNSSAI.sST);
+    INT8_TO_OCTET_STRING(i->sst, &ieC6_1->sNSSAI.sST);
 
     ieC6_1->securityIndication.integrityProtectionIndication = i->integrityProtectionIndication;
     ieC6_1->securityIndication.confidentialityProtectionIndication = i->confidentialityProtectionIndication;
@@ -636,7 +637,6 @@ int e1apCUCP_send_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
         ieC6_1_1_1->qoSFlowLevelQoSParameters.nGRANallocationRetentionPriority.pre_emptionCapability = k->pre_emptionCapability;
         ieC6_1_1_1->qoSFlowLevelQoSParameters.nGRANallocationRetentionPriority.pre_emptionVulnerability = k->pre_emptionVulnerability;
       }
-      
     }
   }
 
@@ -843,7 +843,10 @@ int e1apCUUP_handle_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
                     "ie->criticality != E1AP_Criticality_ignore\n");
         AssertFatal(ie->value.present == E1AP_BearerContextSetupRequestIEs__value_PR_PLMN_Identity,
                     "ie->value.present != E1AP_BearerContextSetupRequestIEs__value_PR_PLMN_Identity\n");
-        //TODO
+        PLMNID_TO_MCC_MNC(&ie->value.choice.PLMN_Identity,
+                          bearerCxt->servingPLMNid.mcc,
+                          bearerCxt->servingPLMNid.mnc,
+                          bearerCxt->servingPLMNid.mnc_digit_length);
         break;
 
       case E1AP_ProtocolIE_ID_id_ActivityNotificationLevel:
@@ -854,7 +857,105 @@ int e1apCUUP_handle_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
         bearerCxt->activityNotificationLevel = ie->value.choice.ActivityNotificationLevel;
         break;
 
-      // TODO: remaining IE handlers
+      case E1AP_ProtocolIE_ID_id_System_BearerContextSetupRequest:
+        AssertFatal(ie->criticality == E1AP_Criticality_reject,
+                    "ie->criticality != E1AP_Criticality_reject\n");
+        AssertFatal(ie->value.present == E1AP_BearerContextSetupRequestIEs__value_PR_System_BearerContextSetupRequest,
+                    "ie->value.present != E1AP_BearerContextSetupRequestIEs__value_PR_System_BearerContextSetupRequest\n");
+        AssertFatal(ie->value.choice.System_BearerContextSetupRequest.present ==
+                    E1AP_System_BearerContextSetupRequest_PR_nG_RAN_BearerContextSetupRequest,
+                    "ie->value.choice.System_BearerContextSetupRequest.present !="
+                    "E1AP_System_BearerContextSetupRequest_PR_nG_RAN_BearerContextSetupRequest\n");
+        AssertFatal(ie->value.choice.System_BearerContextSetupRequest.choice.nG_RAN_BearerContextSetupRequest,
+                    "nG_RAN_BearerContextSetupRequest is NULL\n");
+        E1AP_ProtocolIE_Container_4932P19_t *msgNGRAN_list = (E1AP_ProtocolIE_Container_4932P19_t *) ie->value.choice.System_BearerContextSetupRequest.choice.nG_RAN_BearerContextSetupRequest;
+        E1AP_NG_RAN_BearerContextSetupRequest_t *msgNGRAN = msgNGRAN_list->list.array[0];
+        AssertFatal(msgNGRAN_list->list.count == 1, "nG_RAN_BearerContextSetupRequest supports only 1 count for now\n");
+        AssertFatal(msgNGRAN->id == E1AP_ProtocolIE_ID_id_PDU_Session_Resource_To_Setup_List,
+                    "msgNGRAN->id (%ld) != E1AP_ProtocolIE_ID_id_PDU_Session_Resource_To_Setup_List\n", msgNGRAN->id);
+        AssertFatal(msgNGRAN->value.present =
+                    E1AP_NG_RAN_BearerContextSetupRequest__value_PR_PDU_Session_Resource_To_Setup_List,
+                    "msgNGRAN->value.present != E1AP_NG_RAN_BearerContextSetupRequest__value_PR_PDU_Session_Resource_To_Setup_List\n");
+
+        E1AP_PDU_Session_Resource_To_Setup_List_t *pdu2SetupList = &msgNGRAN->value.choice.PDU_Session_Resource_To_Setup_List;
+        for (int i=0; i < pdu2SetupList->list.count; i++) {
+          pdu_session_to_setup_t *pdu = bearerCxt->pduSession + i;
+          E1AP_PDU_Session_Resource_To_Setup_Item_t *pdu2Setup = pdu2SetupList->list.array[i];
+
+          pdu->sessionId = pdu2Setup->pDU_Session_ID;
+          pdu->sessionType = pdu2Setup->pDU_Session_Type;
+
+          OCTET_STRING_TO_INT8(&pdu2Setup->sNSSAI.sST, pdu->sst);
+
+          pdu->integrityProtectionIndication = pdu2Setup->securityIndication.integrityProtectionIndication;
+          pdu->confidentialityProtectionIndication = pdu2Setup->securityIndication.confidentialityProtectionIndication;
+
+          if (pdu2Setup->nG_UL_UP_TNL_Information.choice.gTPTunnel) { // Optional IE
+            AssertFatal(pdu2Setup->nG_UL_UP_TNL_Information.present = E1AP_UP_TNL_Information_PR_gTPTunnel,
+                        "pdu2Setup->nG_UL_UP_TNL_Information.present != E1AP_UP_TNL_Information_PR_gTPTunnel\n");
+            BIT_STRING_TO_TRANSPORT_LAYER_ADDRESS_IPv4(&pdu2Setup->nG_UL_UP_TNL_Information.choice.gTPTunnel->transportLayerAddress,
+                                                       pdu->tlAddress);
+            OCTET_STRING_TO_INT32(&pdu2Setup->nG_UL_UP_TNL_Information.choice.gTPTunnel->gTP_TEID, pdu->teId);
+          }
+
+          E1AP_DRB_To_Setup_List_NG_RAN_t *drb2SetupList = &pdu2Setup->dRB_To_Setup_List_NG_RAN;
+          for (int j=0; j < drb2SetupList->list.count; j++) {
+            DRB_nGRAN_to_setup_t *drb = pdu->DRBnGRanList + j;
+            E1AP_DRB_To_Setup_Item_NG_RAN_t *drb2Setup = drb2SetupList->list.array[j];
+
+            drb->id = drb2Setup->dRB_ID;
+
+            drb->defaultDRB = drb2Setup->sDAP_Configuration.defaultDRB;
+            drb->sDAP_Header_UL = drb2Setup->sDAP_Configuration.sDAP_Header_UL;
+            drb->sDAP_Header_DL = drb2Setup->sDAP_Configuration.sDAP_Header_DL;
+
+            drb->pDCP_SN_Size_UL = drb2Setup->pDCP_Configuration.pDCP_SN_Size_UL;
+            drb->pDCP_SN_Size_DL = drb2Setup->pDCP_Configuration.pDCP_SN_Size_DL;
+
+            if (drb2Setup->pDCP_Configuration.discardTimer) {
+              drb->discardTimer = *drb2Setup->pDCP_Configuration.discardTimer;
+            }
+
+            if (drb2Setup->pDCP_Configuration.t_ReorderingTimer) {
+              drb->reorderingTimer = drb2Setup->pDCP_Configuration.t_ReorderingTimer->t_Reordering;
+            }
+
+            drb->rLC_Mode = drb2Setup->pDCP_Configuration.rLC_Mode;
+
+            E1AP_Cell_Group_Information_t *cellGroupList = &drb2Setup->cell_Group_Information;
+            for (int k=0; k < cellGroupList->list.count; k++) {
+              E1AP_Cell_Group_Information_Item_t *cg2Setup = cellGroupList->list.array[k];
+
+              drb->cellGroupList[k].id = cg2Setup->cell_Group_ID;
+            }
+
+            E1AP_QoS_Flow_QoS_Parameter_List_t *qos2SetupList = &drb2Setup->qos_flow_Information_To_Be_Setup;
+            for (int k=0; k < qos2SetupList->list.count; k++) {
+              qos_flow_to_setup_t *qos = drb->qosFlows + k;
+              E1AP_QoS_Flow_QoS_Parameter_Item_t *qos2Setup = qos2SetupList->list.array[k];
+
+              qos->id = qos2Setup->qoS_Flow_Identifier;
+
+              if (qos2Setup->qoSFlowLevelQoSParameters.qoS_Characteristics.present ==
+                  E1AP_QoS_Characteristics_PR_non_Dynamic_5QI) {
+                qos->fiveQI_type = non_dynamic;
+                qos->fiveQI = qos2Setup->qoSFlowLevelQoSParameters.qoS_Characteristics.choice.non_Dynamic_5QI->fiveQI;
+              } else {
+                E1AP_Dynamic5QIDescriptor_t *dynamic5QI = qos2Setup->qoSFlowLevelQoSParameters.qoS_Characteristics.choice.dynamic_5QI;
+                qos->fiveQI_type = dynamic;
+                qos->qoSPriorityLevel = dynamic5QI->qoSPriorityLevel;
+                qos->packetDelayBudget = dynamic5QI->packetDelayBudget;
+                qos->packetError_scalar = dynamic5QI->packetErrorRate.pER_Scalar;
+                qos->packetError_exponent = dynamic5QI->packetErrorRate.pER_Exponent;
+              }
+
+              qos->priorityLevel = qos2Setup->qoSFlowLevelQoSParameters.nGRANallocationRetentionPriority.priorityLevel;
+              qos->pre_emptionCapability = qos2Setup->qoSFlowLevelQoSParameters.nGRANallocationRetentionPriority.pre_emptionCapability;
+              qos->pre_emptionVulnerability = qos2Setup->qoSFlowLevelQoSParameters.nGRANallocationRetentionPriority.pre_emptionVulnerability;
+            }
+          }
+        }
+        break;
 
       default:
         LOG_E(E1AP, "Handle for this IE is not implemented (or) invalid IE detected\n");
@@ -1249,6 +1350,11 @@ void *E1AP_CUUP_task(void *arg) {
       case SCTP_DATA_IND:
         LOG_I(E1AP, "CUUP Task Received SCTP_DATA_IND\n");
         cuxp_task_handle_sctp_data_ind(myInstance, &msg->ittiMsg.sctp_data_ind);
+        break;
+
+      case E1AP_BEARER_CONTEXT_SETUP_RESP:
+        LOG_I(E1AP, "CUUP Task Received E1AP_BEARER_CONTEXT_SETUP_RESP\n");
+        e1apCUUP_send_BEARER_CONTEXT_SETUP_RESPONSE(myInstance, &E1AP_BEARER_CONTEXT_SETUP_RESP(msg));
         break;
 
       default:
