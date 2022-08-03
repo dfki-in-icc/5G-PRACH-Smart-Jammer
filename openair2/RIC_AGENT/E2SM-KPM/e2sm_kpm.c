@@ -102,18 +102,18 @@ static void encode_e2sm_kpm_indication_header(ranid_t ranid, E2SM_KPM_E2SM_KPMv2
 #define MAX_GRANULARITY_INDEX   50
 uint8_t g_indMsgMeasInfoCnt = 0;
 uint8_t g_granularityIndx = 0;
-bool action_def_missing = FALSE;
+bool action_def_missing = false;
 E2SM_KPM_MeasurementInfoItem_KPMv2_t *g_indMsgMeasInfoItemArr[MAX_KPM_MEAS];
 E2SM_KPM_MeasurementRecordItem_KPMv2_t *g_indMsgMeasRecItemArr[MAX_GRANULARITY_INDEX][MAX_KPM_MEAS];
 E2SM_KPM_GranularityPeriod_KPMv2_t     *g_granulPeriod;
 E2SM_KPM_SubscriptionID_KPMv2_t    g_subscriptionID;
 
 kmp_meas_info_t e2sm_kpm_meas_info[MAX_KPM_MEAS] = {
-                                            {1, "RRC.ConnEstabAtt.sum", 0, FALSE},
-                                            {2, "RRC.ConnEstabSucc.sum", 0, FALSE},
-                                            {3, "RRC.ConnReEstabAtt.sum", 0, FALSE},
-                                            {4, "RRC.ConnMean", 0, FALSE},
-                                            {5, "RRC.ConnMax", 0, FALSE}
+                                            {1, "RRC.ConnEstabAtt.sum", 0, false},
+                                            {2, "RRC.ConnEstabSucc.sum", 0, false},
+                                            {3, "RRC.ConnReEstabAtt.sum", 0, false},
+                                            {4, "RRC.ConnMean", 0, false},
+                                            {5, "RRC.ConnMax", 0, false}
                                         };
 
 static ric_service_model_t e2sm_kpm_model = {
@@ -473,7 +473,7 @@ static int e2sm_kpm_gp_timer_expiry(
 
     for (i = 0; i < MAX_KPM_MEAS; i++)
     {
-        if (e2sm_kpm_meas_info[i].subscription_status == TRUE)
+        if (e2sm_kpm_meas_info[i].subscription_status == true)
         {
             g_indMsgMeasRecItemArr[g_granularityIndx][j] = 
                             (E2SM_KPM_MeasurementRecordItem_KPMv2_t *)calloc(1,sizeof(E2SM_KPM_MeasurementRecordItem_KPMv2_t));
@@ -559,7 +559,7 @@ e2sm_kpm_decode_and_handle_action_def(uint8_t *def_buf,
     /*Reset Subscriptions */
     for (i = 0; i < MAX_KPM_MEAS; i++)
     {
-        e2sm_kpm_meas_info[i].subscription_status = FALSE;
+        e2sm_kpm_meas_info[i].subscription_status = false;
     }
     g_indMsgMeasInfoCnt = 0; // resetting
    
@@ -578,7 +578,7 @@ e2sm_kpm_decode_and_handle_action_def(uint8_t *def_buf,
                                                      (uint8_t *)strdup(e2sm_kpm_meas_info[i].meas_type_name);
             g_indMsgMeasInfoItemArr[g_indMsgMeasInfoCnt]->measType.choice.measName.size =
                                                                 strlen(e2sm_kpm_meas_info[i].meas_type_name);
-            e2sm_kpm_meas_info[i].subscription_status = TRUE;
+            e2sm_kpm_meas_info[i].subscription_status = true;
             g_indMsgMeasInfoCnt++;
         }
         *g_granulPeriod = 10; //Hack
@@ -589,7 +589,7 @@ e2sm_kpm_decode_and_handle_action_def(uint8_t *def_buf,
         //*g_subscriptionID.buf = subsId;
 		g_subscriptionID = subsId; 
 
-        action_def_missing = TRUE; /* Granularity Timer will not start */
+        action_def_missing = true; /* Granularity Timer will not start */
         return 0;
     }
  
@@ -637,7 +637,7 @@ e2sm_kpm_decode_and_handle_action_def(uint8_t *def_buf,
 
                 if ( ( (localMeasID > 0) &&
                        (localMeasID < (MAX_KPM_MEAS+1) ) ) &&  /*Expecting KPM MeasID to be within limits */
-                     (e2sm_kpm_meas_info[localMeasID-1].subscription_status == FALSE) ) /*Avoid subscribing duplicate */
+                     (e2sm_kpm_meas_info[localMeasID-1].subscription_status == false) ) /*Avoid subscribing duplicate */
                 {
                     /* Set the Subscription Status */
                     g_indMsgMeasInfoItemArr[g_indMsgMeasInfoCnt] =
@@ -647,7 +647,7 @@ e2sm_kpm_decode_and_handle_action_def(uint8_t *def_buf,
                                                      (uint8_t *)strdup(e2sm_kpm_meas_info[localMeasID-1].meas_type_name);
                     g_indMsgMeasInfoItemArr[g_indMsgMeasInfoCnt]->measType.choice.measName.size =
                                                                 strlen(e2sm_kpm_meas_info[localMeasID-1].meas_type_name);
-                    e2sm_kpm_meas_info[localMeasID-1].subscription_status = TRUE;
+                    e2sm_kpm_meas_info[localMeasID-1].subscription_status = true;
                     g_indMsgMeasInfoCnt++;
                 }
                 else
@@ -704,7 +704,7 @@ encode_kpm_Indication_Msg(ric_agent_info_t* ric, ric_subscription_t *rs)
     E2SM_KPM_MeasurementRecord_KPMv2_t* meas_rec[MAX_GRANULARITY_INDEX];
     E2SM_KPM_MeasurementData_KPMv2_t* meas_data;
 
-    if (action_def_missing == TRUE)
+    if (action_def_missing == true)
     { 
         for (i = 0; i < MAX_KPM_MEAS; i++)
         {

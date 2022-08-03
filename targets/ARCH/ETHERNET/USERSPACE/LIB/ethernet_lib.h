@@ -41,6 +41,7 @@
 #include <sys/socket.h>
 #include <net/if.h>
 #include <netinet/ether.h>
+#include <common/utils/threadPool/thread-pool.h>
 
 #define MAX_INST 4
 #define DEFAULT_IF "lo"
@@ -209,6 +210,28 @@ typedef struct {
   short q;
 } iqoai_t ;
 
+typedef struct udpTXelem_s {
+  openair0_device *device;
+  openair0_timestamp timestamp;
+  void **buff;
+  int fd_ind;
+  int nant;
+  int nsamps;
+  int flags;
+} udpTXelem_t;
+
+struct udpTXReqId {
+  uint64_t TS;
+  int aid;
+  int length;
+  uint16_t spare;
+} __attribute__((packed));
+
+union udpTXReqUnion {
+  struct udpTXReqId s;
+  uint64_t p;
+};
+
 void dump_packet(char *title, unsigned char* pkt, int bytes, unsigned int tx_rx_flag);
 unsigned short calc_csum (unsigned short *buf, int nwords);
 void dump_dev(openair0_device *device);
@@ -219,6 +242,7 @@ void inline dump_txcounters(openair0_device *device);
 void dump_iqs(char * buff, int iq_cnt);
 
 void *udp_read_thread(void *arg);
+void *udp_write_thread(void *arg);
 
 /*! \fn int ethernet_tune (openair0_device *device, unsigned int option, int value);
 * \brief this function allows you to configure certain ethernet parameters in socket or device level
@@ -241,7 +265,7 @@ int ethernet_tune(openair0_device *device, unsigned int option, int value);
 * @ingroup  _oai
 */
 int eth_socket_init_udp(openair0_device *device);
-int trx_eth_write_udp(openair0_device *device, openair0_timestamp timestamp, void **buff, int nsamps, int flags);
+int trx_eth_write_udp(openair0_device *device, openair0_timestamp timestamp, void **buf, int fd_ind, int nsamps, int flags,int nant);
 int trx_eth_read_udp(openair0_device *device, openair0_timestamp *timestamp, uint32_t **buff, int nsamps);
 
 

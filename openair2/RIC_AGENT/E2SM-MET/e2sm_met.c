@@ -107,11 +107,11 @@ static ric_service_model_t e2sm_met_model = {
 };
 
 kmp_meas_info_t e2sm_met_meas_info[MAX_RECORD_ITEM] = {
-                                            {1, "RRC.ConnEstabAatt.sum", 0, FALSE},
-                                            {2, "RRC.ConnEstabSucc.sum", 0, FALSE},
-                                            {3, "RRC.ConnReEstabAtt.sum", 0, FALSE},
-                                            {4, "RRC.ConnMean", 0, FALSE},
-                                            {5, "RRC.ConnMax", 0, FALSE}
+                                            {1, "RRC.ConnEstabAatt.sum", 0, false},
+                                            {2, "RRC.ConnEstabSucc.sum", 0, false},
+                                            {3, "RRC.ConnReEstabAtt.sum", 0, false},
+                                            {4, "RRC.ConnMean", 0, false},
+                                            {5, "RRC.ConnMax", 0, false}
                                         };
 
 //!SECTION
@@ -539,13 +539,13 @@ encode_met_Indication_Msg(ric_agent_info_t* ric, ric_subscription_t *rs)
      //printf("UEs number at MAC: %d\n",nbue);
      //if (nbue <=0) continue;
 
-     NR_list_t *UE_list = &UE_info->list;
-     for (int k = UE_list->head; k >= 0; k = UE_list->next[k]) {
-        NR_UE_sched_ctrl_t *sched_ctrl = &UE_info->UE_sched_ctrl[k];    /*
+    int k = 0;
+    UE_iterator(RC.nrmac[0]->UE_info.list, UE) {
+    NR_UE_sched_ctrl_t *sched_ctrl = &UE->UE_sched_ctrl; /*
          * Measurement Record->MeasurementRecordItem (List)
          */
-        const rnti_t rnti = UE_info->rnti[k];
-        NR_mac_stats_t *stats = &UE_info->mac_stats[k];
+        const rnti_t rnti = UE->rnti;
+        NR_mac_stats_t *stats = &UE->mac_stats;
         meas_rec[k] = (E2SM_MET_MeasurementRecord_t *)calloc(1, sizeof(E2SM_MET_MeasurementRecord_t));
         // meas_rec[k]->ueID = asn_int642INTEGER(meas_rec[k]->ueID,k);
         // int ret1 = asn_uint642INTEGER(&meas_rec[k]->ueID,tmp_id);
@@ -588,6 +588,7 @@ encode_met_Indication_Msg(ric_agent_info_t* ric, ric_subscription_t *rs)
         /* Enqueue Meas data items */
         ret = ASN_SEQUENCE_ADD(&meas_data->list, meas_rec[k]);
         DevAssert(ret == 0);
+        k++;
     }
 
    /*
