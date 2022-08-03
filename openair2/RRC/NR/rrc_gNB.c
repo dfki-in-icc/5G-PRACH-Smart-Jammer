@@ -3941,14 +3941,15 @@ int rrc_gNB_process_e1_bearer_context_setup_req(e1ap_bearer_setup_req_t *req, in
   gtpv1u_gnb_create_tunnel_req_t  create_tunnel_req={0};
   gtpv1u_gnb_create_tunnel_resp_t create_tunnel_resp={0};
 
-  NR_DRB_ToAddModList_t DRB_configList;
+  NR_DRB_ToAddModList_t DRB_configList = {0};
   for (int i=0; i < req->numPDUSessions; i++) {
     pdu_session_to_setup_t *pdu = &req->pduSession[i];
     create_tunnel_req.pdusession_id[i] = pdu->sessionId;
     create_tunnel_req.incoming_rb_id[i] = pdu->DRBnGRanList[0].id; // taking only the first DRB. TODO:change this
     memcpy(&create_tunnel_req.dst_addr[i].buffer,
            &pdu->tlAddress,
-           sizeof(pdu->tlAddress));
+           sizeof(uint8_t)*4);
+    create_tunnel_req.dst_addr[i].length = 32; // 8bits * 4bytes
     create_tunnel_req.outgoing_teid[i] = pdu->teId;
     fill_DRB_configList(&DRB_configList, pdu);
   }

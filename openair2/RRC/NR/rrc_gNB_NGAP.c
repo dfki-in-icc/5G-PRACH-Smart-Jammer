@@ -1017,7 +1017,7 @@ rrc_gNB_process_NGAP_PDUSESSION_SETUP_REQ(
       pdu->teId                                = msg->pdusession_setup_params[i].gtp_teid;
       memcpy(&pdu->tlAddress,
              msg->pdusession_setup_params[i].upf_addr.buffer,
-             sizeof(uint8_t)*20);
+             sizeof(uint8_t)*4);
       
       pdu->numDRB2Setup = 1; // One DRB per PDU Session. TODO: Remove hardcoding
       for (int j=0; j < pdu->numDRB2Setup; j++) {

@@ -671,12 +671,14 @@ int e1apCUUP_send_BEARER_CONTEXT_SETUP_RESPONSE(instance_t instance,
   ieC1->value.choice.GNB_CU_CP_UE_E1AP_ID = resp->gNB_cu_up_ue_id;
 
   asn1cSequenceAdd(out->protocolIEs.list, E1AP_BearerContextSetupResponseIEs_t, ieC3);
-  ieC3->id = E1AP_ProtocolIE_ID_id_System_BearerContextSetupRequest;
-  ieC3->criticality = E1AP_Criticality_reject;
+  ieC3->id            = E1AP_ProtocolIE_ID_id_System_BearerContextSetupRequest;
+  ieC3->criticality   = E1AP_Criticality_reject;
+  ieC3->value.present = E1AP_BearerContextSetupResponseIEs__value_PR_System_BearerContextSetupResponse;
   if (0) { // EUTRAN
     ieC3->value.choice.System_BearerContextSetupResponse.present = E1AP_System_BearerContextSetupResponse_PR_e_UTRAN_BearerContextSetupResponse;
-    E1AP_EUTRAN_BearerContextSetupResponse_t *msgEUTRAN = calloc(1, sizeof(E1AP_EUTRAN_BearerContextSetupResponse_t));
-    ieC3->value.choice.System_BearerContextSetupResponse.choice.e_UTRAN_BearerContextSetupResponse = (struct E1AP_ProtocolIE_Container *) msgEUTRAN;
+    E1AP_ProtocolIE_Container_4932P21_t *msgEUTRAN_list = calloc(1, sizeof(E1AP_ProtocolIE_Container_4932P21_t));
+    ieC3->value.choice.System_BearerContextSetupResponse.choice.e_UTRAN_BearerContextSetupResponse = (struct E1AP_ProtocolIE_Container *) msgEUTRAN_list;
+    asn1cSequenceAdd(msgEUTRAN_list->list, E1AP_EUTRAN_BearerContextSetupResponse_t, msgEUTRAN);
     msgEUTRAN->id = E1AP_ProtocolIE_ID_id_DRB_Setup_List_EUTRAN;
     msgEUTRAN->criticality = E1AP_Criticality_reject;
     msgEUTRAN->value.present = E1AP_EUTRAN_BearerContextSetupResponse__value_PR_DRB_Setup_List_EUTRAN;
@@ -701,8 +703,9 @@ int e1apCUUP_send_BEARER_CONTEXT_SETUP_RESPONSE(instance_t instance,
     }
   } else {
     ieC3->value.choice.System_BearerContextSetupResponse.present = E1AP_System_BearerContextSetupResponse_PR_nG_RAN_BearerContextSetupResponse;
-    E1AP_NG_RAN_BearerContextSetupResponse_t *msgNGRAN = calloc(1, sizeof(E1AP_NG_RAN_BearerContextSetupResponse_t));
-    ieC3->value.choice.System_BearerContextSetupResponse.choice.nG_RAN_BearerContextSetupResponse = (struct E1AP_ProtocolIE_Container *) msgNGRAN;
+    E1AP_ProtocolIE_Container_4932P22_t *msgNGRAN_list = calloc(1, sizeof(E1AP_ProtocolIE_Container_4932P22_t));
+    ieC3->value.choice.System_BearerContextSetupResponse.choice.nG_RAN_BearerContextSetupResponse = (struct E1AP_ProtocolIE_Container *) msgNGRAN_list;
+    asn1cSequenceAdd(msgNGRAN_list->list, E1AP_NG_RAN_BearerContextSetupResponse_t, msgNGRAN);
     msgNGRAN->id = E1AP_ProtocolIE_ID_id_DRB_Setup_List_EUTRAN;
     msgNGRAN->criticality = E1AP_Criticality_reject;
     msgNGRAN->value.present = E1AP_NG_RAN_BearerContextSetupResponse__value_PR_PDU_Session_Resource_Setup_List;
@@ -776,8 +779,8 @@ int e1apCUUP_send_BEARER_CONTEXT_SETUP_FAILURE(instance_t instance) {
 
 int e1apCUUP_handle_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
                                                  E1AP_E1AP_PDU_t *pdu) {
-  e1ap_bearer_setup_req_t *bearerCxt = &getCxtE1(UPtype, instance)->bearerSetupReq;
-  if (!bearerCxt) {
+  e1ap_upcp_inst_t *e1_inst = getCxtE1(UPtype, instance);
+  if (!e1_inst) {
     LOG_E(E1AP, "got BEARER_CONTEXT_SETUP_REQUEST on not established instance (%ld)\n", instance);
     return -1;
   }
@@ -797,6 +800,7 @@ int e1apCUUP_handle_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
 
   MessageDef *msg = itti_alloc_new_message(TASK_CUUP_E1, 0, E1AP_BEARER_CONTEXT_SETUP_REQ);
 
+  e1ap_bearer_setup_req_t *bearerCxt = &E1AP_BEARER_CONTEXT_SETUP_REQ(msg);
   LOG_I(E1AP, "Bearer context setup number of IEs %d\n", in->protocolIEs.list.count);
 
   for (int i=0; i < in->protocolIEs.list.count; i++) {
@@ -878,6 +882,7 @@ int e1apCUUP_handle_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
                     "msgNGRAN->value.present != E1AP_NG_RAN_BearerContextSetupRequest__value_PR_PDU_Session_Resource_To_Setup_List\n");
 
         E1AP_PDU_Session_Resource_To_Setup_List_t *pdu2SetupList = &msgNGRAN->value.choice.PDU_Session_Resource_To_Setup_List;
+        bearerCxt->numPDUSessions = pdu2SetupList->list.count;
         for (int i=0; i < pdu2SetupList->list.count; i++) {
           pdu_session_to_setup_t *pdu = bearerCxt->pduSession + i;
           E1AP_PDU_Session_Resource_To_Setup_Item_t *pdu2Setup = pdu2SetupList->list.array[i];
@@ -899,6 +904,7 @@ int e1apCUUP_handle_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
           }
 
           E1AP_DRB_To_Setup_List_NG_RAN_t *drb2SetupList = &pdu2Setup->dRB_To_Setup_List_NG_RAN;
+          pdu->numDRB2Setup = drb2SetupList->list.count;
           for (int j=0; j < drb2SetupList->list.count; j++) {
             DRB_nGRAN_to_setup_t *drb = pdu->DRBnGRanList + j;
             E1AP_DRB_To_Setup_Item_NG_RAN_t *drb2Setup = drb2SetupList->list.array[j];
@@ -923,6 +929,7 @@ int e1apCUUP_handle_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
             drb->rLC_Mode = drb2Setup->pDCP_Configuration.rLC_Mode;
 
             E1AP_Cell_Group_Information_t *cellGroupList = &drb2Setup->cell_Group_Information;
+            drb->numCellGroups = cellGroupList->list.count;
             for (int k=0; k < cellGroupList->list.count; k++) {
               E1AP_Cell_Group_Information_Item_t *cg2Setup = cellGroupList->list.array[k];
 
@@ -930,6 +937,7 @@ int e1apCUUP_handle_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
             }
 
             E1AP_QoS_Flow_QoS_Parameter_List_t *qos2SetupList = &drb2Setup->qos_flow_Information_To_Be_Setup;
+            drb->numQosFlow2Setup = qos2SetupList->list.count;
             for (int k=0; k < qos2SetupList->list.count; k++) {
               qos_flow_to_setup_t *qos = drb->qosFlows + k;
               E1AP_QoS_Flow_QoS_Parameter_Item_t *qos2Setup = qos2SetupList->list.array[k];
