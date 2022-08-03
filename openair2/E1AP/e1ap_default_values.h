@@ -20,5 +20,5 @@
  */
 
 #define E1AP_PORT_NUMBER (30924)
-#define E1AP_SCTP_PPID   (63)
+#define E1AP_SCTP_PPID   (64)
 
