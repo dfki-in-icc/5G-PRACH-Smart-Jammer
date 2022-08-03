@@ -36,7 +36,6 @@
 
 #include "met_debug.h"
 #include "openair2/LAYER2/NR_MAC_gNB/nr_mac_gNB.h"
-
 extern RAN_CONTEXT_t RC;
 
 

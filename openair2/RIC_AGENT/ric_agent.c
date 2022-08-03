@@ -486,7 +486,11 @@ void *ric_agent_task(void *args)
         }
     }
     gNB_MAC_INST *gNB_mac = RC.nrmac[0];
+<<<<<<< HEAD
     NR_UEs_t *UE_info = &gNB_mac->UE_info;
+=======
+    NR_UE_info_t *UE_info = &gNB_mac->UE_info;
+>>>>>>> 69d037263ed14b497aeb9e7316b18b027893ec1a
     while (1) {
         itti_receive_msg(TASK_RIC_AGENT, &msg);
 
