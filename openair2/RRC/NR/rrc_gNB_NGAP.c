@@ -245,7 +245,7 @@ rrc_gNB_NGAP_get_ue_ids(
 }
 
 //------------------------------------------------------------------------------
-static struct rrc_gNB_ue_context_s *
+struct rrc_gNB_ue_context_s *
 rrc_gNB_get_ue_context_from_ngap_ids(
     const instance_t  instanceP,
     const uint16_t    ue_initial_idP,

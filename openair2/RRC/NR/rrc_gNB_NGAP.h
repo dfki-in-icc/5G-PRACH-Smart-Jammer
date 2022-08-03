@@ -189,4 +189,10 @@ nr_rrc_pdcp_config_security(
     const uint8_t          send_security_mode_command
 );
 
+struct rrc_gNB_ue_context_s *
+rrc_gNB_get_ue_context_from_ngap_ids(
+    const instance_t  instanceP,
+    const uint16_t    ue_initial_idP,
+    const uint32_t    gNB_ue_ngap_idP
+);
 #endif
