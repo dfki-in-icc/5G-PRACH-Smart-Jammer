@@ -11,6 +11,10 @@ if [[ -v USE_VOLUMED_CONF ]]; then cp $PREFIX/etc/mounted.conf $PREFIX/etc/nr-ue
 # if none, pick the default
 if [ ! -f $PREFIX/etc/nr-ue.conf ]; then cp $PREFIX/etc/nr-ue-sim.conf $PREFIX/etc/nr-ue.conf; fi
 
+# Resolve GNB FQDN
+GNB_FQDN=${GNB_FQDN:-oai-gnb-svc}
+if ($USE_FQDN); then RFSIMULATOR=(`getent hosts $GNB_FQDN | awk '{print $1}'`); fi
+
 # Only this template will be manipulated
 CONFIG_FILES=`ls $PREFIX/etc/nr-ue.conf || true`
 
