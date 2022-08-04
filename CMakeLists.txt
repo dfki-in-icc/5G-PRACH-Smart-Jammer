@@ -1829,6 +1829,7 @@ set(NR_RLC_SRC
 
 set(NR_PDCP_SRC
   ${OPENAIR2_DIR}/LAYER2/nr_pdcp/nr_pdcp_oai_api.c
+  ${OPENAIR2_DIR}/LAYER2/nr_pdcp/nr_pdcp_e1_api.c
   ${OPENAIR2_DIR}/LAYER2/nr_pdcp/nr_pdcp_ue_manager.c
   ${OPENAIR2_DIR}/LAYER2/nr_pdcp/nr_pdcp_entity.c
   ${OPENAIR2_DIR}/LAYER2/nr_pdcp/nr_pdcp_sdu.c

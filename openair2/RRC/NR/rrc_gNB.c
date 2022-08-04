@@ -100,6 +100,7 @@
 #include <openair3/ocp-gtpu/gtp_itf.h>
 #include <openair2/RRC/NR/nr_rrc_proto.h>
 #include "LAYER2/nr_rlc/nr_rlc_oai_api.h"
+#include "openair2/LAYER2/nr_pdcp/nr_pdcp_e1_api.h"
 
 #include "BIT_STRING.h"
 #include "assertions.h"
@@ -3977,13 +3978,12 @@ int rrc_gNB_process_e1_bearer_context_setup_req(e1ap_bearer_setup_req_t *req, in
                         (uint8_t *)req->integrityProtectionKey,
                         &kUPint);
 
-  nr_pdcp_add_drbs(false,
-                   create_tunnel_req.ue_id,
-                   &DRB_configList,
-                   (req->integrityProtectionAlgorithm << 4) | req->cipheringAlgorithm,
-                   kUPenc,
-                   kUPint,
-                   NULL);
+  nr_pdcp_e1_add_drbs(false,
+                      create_tunnel_req.ue_id,
+                      &DRB_configList,
+                      (req->integrityProtectionAlgorithm << 4) | req->cipheringAlgorithm,
+                      kUPenc,
+                      kUPint);
 
   MessageDef *message_p;
   message_p = itti_alloc_new_message (TASK_RRC_GNB, instance, E1AP_BEARER_CONTEXT_SETUP_RESP);

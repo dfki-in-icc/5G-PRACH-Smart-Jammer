@@ -37,6 +37,7 @@
 #include "LAYER2/nr_rlc/nr_rlc_oai_api.h"
 #include <openair3/ocp-gtpu/gtp_itf.h>
 #include "openair2/SDAP/nr_sdap/nr_sdap.h"
+#include "nr_pdcp_e1_api.h"
 
 #define TODO do { \
     printf("%s:%d:%s: todo\n", __FILE__, __LINE__, __FUNCTION__); \
@@ -909,11 +910,11 @@ static void add_srb(int is_gnb, int rnti, struct NR_SRB_ToAddMod *s,
   nr_pdcp_manager_unlock(nr_pdcp_ue_manager);
 }
 
-static void add_drb_am(int is_gnb, int rnti, struct NR_DRB_ToAddMod *s,
-                       int ciphering_algorithm,
-                       int integrity_algorithm,
-                       unsigned char *ciphering_key,
-                       unsigned char *integrity_key)
+void add_drb_am(int is_gnb, int rnti, struct NR_DRB_ToAddMod *s,
+                int ciphering_algorithm,
+                int integrity_algorithm,
+                unsigned char *ciphering_key,
+                unsigned char *integrity_key)
 {
   nr_pdcp_entity_t *pdcp_drb;
   nr_pdcp_ue_t *ue;
