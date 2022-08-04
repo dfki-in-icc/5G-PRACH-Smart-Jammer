@@ -26,7 +26,10 @@
  * The host CPU needs to have support for SSE2 at least. SSE3 and SSE4.1 functions are emulated if the CPU lacks support for them.
  * This will slow down the softmodem, but may be valuable if only offline signal processing is required.
  *
- * Has been revamped in July 2022 to rely on SIMD Everywhere (simde) by bruno.mongazon-cazavet@nokia-bell-labs.com
+ * Has been revamped in August 2022 to rely on SIMD Everywhere (SIMDE)
+ * All avx2 code is mapped to SIMDE
+ * avx512 code is not mapped to SIMDE
+ * by bruno.mongazon-cazavet@nokia-bell-labs.com
  *
  * \author S. Held, Laurent THOMAS
  * \email sebastian.held@imst.de, laurent.thomas@open-cells.com	
@@ -54,115 +57,9 @@
 #include <simde/x86/avx2.h>
 #include <simde/x86/fma.h>
 
-/* SIMDE requires inclusion of individual files */
-#define SIMDE_X86_AVX512BW_ENABLE_NATIVE_ALIASES
-#include <simde/x86/avx512/2intersect.h>
-#include <simde/x86/avx512/4dpwssd.h>
-#include <simde/x86/avx512/4dpwssds.h>
-#include <simde/x86/avx512/abs.h>
-#include <simde/x86/avx512/add.h>
-#include <simde/x86/avx512/adds.h>
-#include <simde/x86/avx512/and.h>
-#include <simde/x86/avx512/andnot.h>
-#include <simde/x86/avx512/avg.h>
-#include <simde/x86/avx512/bitshuffle.h>
-#include <simde/x86/avx512/blend.h>
-#include <simde/x86/avx512/broadcast.h>
-#include <simde/x86/avx512/cast.h>
-#include <simde/x86/avx512/cmpeq.h>
-#include <simde/x86/avx512/cmpge.h>
-#include <simde/x86/avx512/cmpgt.h>
-#include <simde/x86/avx512/cmp.h>
-#include <simde/x86/avx512/cmple.h>
-#include <simde/x86/avx512/cmplt.h>
-#include <simde/x86/avx512/cmpneq.h>
-#include <simde/x86/avx512/compress.h>
-#include <simde/x86/avx512/conflict.h>
-#include <simde/x86/avx512/copysign.h>
-#include <simde/x86/avx512/cvt.h>
-#include <simde/x86/avx512/cvts.h>
-#include <simde/x86/avx512/cvtt.h>
-#include <simde/x86/avx512/dbsad.h>
-#include <simde/x86/avx512/div.h>
-#include <simde/x86/avx512/dpbf16.h>
-#include <simde/x86/avx512/dpbusd.h>
-#include <simde/x86/avx512/dpbusds.h>
-#include <simde/x86/avx512/dpwssd.h>
-#include <simde/x86/avx512/dpwssds.h>
-#include <simde/x86/avx512/expand.h>
-#include <simde/x86/avx512/extract.h>
-#include <simde/x86/avx512/fixupimm.h>
-#include <simde/x86/avx512/fixupimm_round.h>
-#include <simde/x86/avx512/flushsubnormal.h>
-#include <simde/x86/avx512/fmadd.h>
-#include <simde/x86/avx512/fmsub.h>
-#include <simde/x86/avx512/fnmadd.h>
-#include <simde/x86/avx512/fnmsub.h>
-#include <simde/x86/avx512/insert.h>
-#include <simde/x86/avx512/kshift.h>
-#include <simde/x86/avx512/load.h>
-#include <simde/x86/avx512/loadu.h>
-#include <simde/x86/avx512/lzcnt.h>
-#include <simde/x86/avx512/madd.h>
-#include <simde/x86/avx512/maddubs.h>
-#include <simde/x86/avx512/max.h>
-#include <simde/x86/avx512/min.h>
-#include <simde/x86/avx512/mov.h>
-#include <simde/x86/avx512/mov_mask.h>
-#include <simde/x86/avx512/movm.h>
-#include <simde/x86/avx512/mul.h>
-#include <simde/x86/avx512/mulhi.h>
-#include <simde/x86/avx512/mulhrs.h>
-#include <simde/x86/avx512/mullo.h>
-#include <simde/x86/avx512/multishift.h>
-#include <simde/x86/avx512/negate.h>
-#include <simde/x86/avx512/or.h>
-#include <simde/x86/avx512/packs.h>
-#include <simde/x86/avx512/packus.h>
-#include <simde/x86/avx512/permutex2var.h>
-#include <simde/x86/avx512/permutexvar.h>
-#include <simde/x86/avx512/popcnt.h>
-#include <simde/x86/avx512/range.h>
-#include <simde/x86/avx512/range_round.h>
-#include <simde/x86/avx512/rol.h>
-#include <simde/x86/avx512/rolv.h>
-#include <simde/x86/avx512/ror.h>
-#include <simde/x86/avx512/rorv.h>
-#include <simde/x86/avx512/round.h>
-#include <simde/x86/avx512/roundscale.h>
-#include <simde/x86/avx512/roundscale_round.h>
-#include <simde/x86/avx512/sad.h>
-#include <simde/x86/avx512/set1.h>
-#include <simde/x86/avx512/set4.h>
-#include <simde/x86/avx512/set.h>
-#include <simde/x86/avx512/setone.h>
-#include <simde/x86/avx512/setr4.h>
-#include <simde/x86/avx512/setr.h>
-#include <simde/x86/avx512/setzero.h>
-#include <simde/x86/avx512/shldv.h>
-#include <simde/x86/avx512/shuffle.h>
-#include <simde/x86/avx512/sll.h>
-#include <simde/x86/avx512/slli.h>
-#include <simde/x86/avx512/sllv.h>
-#include <simde/x86/avx512/sqrt.h>
-#include <simde/x86/avx512/sra.h>
-#include <simde/x86/avx512/srai.h>
-#include <simde/x86/avx512/srav.h>
-#include <simde/x86/avx512/srl.h>
-#include <simde/x86/avx512/srli.h>
-#include <simde/x86/avx512/srlv.h>
-#include <simde/x86/avx512/store.h>
-#include <simde/x86/avx512/storeu.h>
-#include <simde/x86/avx512/sub.h>
-#include <simde/x86/avx512/subs.h>
-#include <simde/x86/avx512/ternarylogic.h>
-#include <simde/x86/avx512/test.h>
-#include <simde/x86/avx512/testn.h>
-#include <simde/x86/avx512/types.h>
-#include <simde/x86/avx512/unpackhi.h>
-#include <simde/x86/avx512/unpacklo.h>
-#include <simde/x86/avx512/xor.h>
-#include <simde/x86/avx512/xorsign.h>
+#if defined(_OAI_AVX512_) && (defined(__AVX512BW__) || defined(__AVX512F__))
+#include <immintrin.h>
+#endif
 
 #elif defined(__arm__)
 

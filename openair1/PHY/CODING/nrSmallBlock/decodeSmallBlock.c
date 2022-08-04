@@ -54,9 +54,9 @@ uint16_t decodeSmallBlock(int8_t *in, uint8_t len){
 				Rhat[j] += in[k] * hadamard32InterleavedTransposed[j][k];
 
 		for (int i = 0; i < NR_SMALL_BLOCK_CODED_BITS; i += 16) {
-			__m256i a15_a0 = _mm256_loadu_si256((__m256i*)&Rhat[i]);
-			a15_a0 = _mm256_abs_epi16(a15_a0);
-			_mm256_storeu_si256((__m256i*)(&Rhatabs[i]), a15_a0);
+			__m256i a15_a0 = simde_mm256_loadu_si256((__m256i*)&Rhat[i]);
+			a15_a0 = simde_mm256_abs_epi16(a15_a0);
+			simde_mm256_storeu_si256((__m256i*)(&Rhatabs[i]), a15_a0);
 		}
 		maxVal = Rhatabs[0];
 		for (int k = 1; k < jmax; ++k){
@@ -80,23 +80,23 @@ uint16_t decodeSmallBlock(int8_t *in, uint8_t len){
         int16_t maxVal = 0;
 		int DmatrixElementVal = 0;
 		int8_t DmatrixElement[NR_SMALL_BLOCK_CODED_BITS] = {0};
-		__m256i _in_256 = _mm256_loadu_si256 ((__m256i*)&in[0]);
+		__m256i _in_256 = simde_mm256_loadu_si256 ((__m256i*)&in[0]);
 		__m256i _maskD_256, _Dmatrixj_256, _maskH_256, _DmatrixElement_256;
 		for (int j = 0; j < ( 1<<(len-6) ); ++j) {
-			_maskD_256 = _mm256_loadu_si256 ((__m256i*)(&maskD[j][0]));
-			_Dmatrixj_256 = _mm256_sign_epi8 (_in_256, _maskD_256);
+			_maskD_256 = simde_mm256_loadu_si256 ((__m256i*)(&maskD[j][0]));
+			_Dmatrixj_256 = simde_mm256_sign_epi8 (_in_256, _maskD_256);
 			for (int k = 0; k < NR_SMALL_BLOCK_CODED_BITS; ++k) {
-				_maskH_256 = _mm256_loadu_si256 ((__m256i*)(&hadamard32InterleavedTransposed[k][0]));
-				_DmatrixElement_256 = _mm256_sign_epi8 (_Dmatrixj_256, _maskH_256);
-#if 0 // Bell Labs - not yet available in simde (to be added in the future
+				_maskH_256 = simde_mm256_loadu_si256 ((__m256i*)(&hadamard32InterleavedTransposed[k][0]));
+				_DmatrixElement_256 = simde_mm256_sign_epi8 (_Dmatrixj_256, _maskH_256);
+#if defined(__AVX512F__) && defined(_OAI_AVX512_)
 			    DmatrixElementVal = _mm512_reduce_add_epi32 (
 			    		            _mm512_add_epi32(
-			    				    _mm512_cvtepi8_epi32 (_mm256_extracti128_si256 (_DmatrixElement_256, 1)),
-								    _mm512_cvtepi8_epi32 (_mm256_castsi256_si128 (_DmatrixElement_256))
+			    				    _mm512_cvtepi8_epi32 (simde_mm256_extracti128_si256 (_DmatrixElement_256, 1)),
+								    _mm512_cvtepi8_epi32 (simde_mm256_castsi256_si128 (_DmatrixElement_256))
 			    		            				)
 															);
 #else
-				_mm256_storeu_si256((__m256i*)(&DmatrixElement[0]), _DmatrixElement_256);
+				simde_mm256_storeu_si256((__m256i*)(&DmatrixElement[0]), _DmatrixElement_256);
 				for (int i = 0; i < NR_SMALL_BLOCK_CODED_BITS; ++i)
 					DmatrixElementVal += DmatrixElement[i];
 #endif
