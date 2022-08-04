@@ -1022,7 +1022,7 @@ rrc_gNB_process_NGAP_PDUSESSION_SETUP_REQ(
       pdu->numDRB2Setup = 1; // One DRB per PDU Session. TODO: Remove hardcoding
       for (int j=0; j < pdu->numDRB2Setup; j++) {
         DRB_nGRAN_to_setup_t *drb = pdu->DRBnGRanList + j;
-        drb->id = i + j;
+        drb->id = i + j + 1;
         drb->defaultDRB = E1AP_DefaultDRB_true;
         
         drb->sDAP_Header_UL = !(rrc->configuration.enable_sdap);

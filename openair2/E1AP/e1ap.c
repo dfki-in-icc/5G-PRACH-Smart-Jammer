@@ -668,10 +668,10 @@ int e1apCUUP_send_BEARER_CONTEXT_SETUP_RESPONSE(instance_t instance,
   ieC2->id                         = E1AP_ProtocolIE_ID_id_gNB_CU_UP_UE_E1AP_ID;
   ieC2->criticality                = E1AP_Criticality_reject;
   ieC2->value.present              = E1AP_BearerContextSetupResponseIEs__value_PR_GNB_CU_UP_UE_E1AP_ID;
-  ieC1->value.choice.GNB_CU_CP_UE_E1AP_ID = resp->gNB_cu_up_ue_id;
+  ieC2->value.choice.GNB_CU_CP_UE_E1AP_ID = resp->gNB_cu_up_ue_id;
 
   asn1cSequenceAdd(out->protocolIEs.list, E1AP_BearerContextSetupResponseIEs_t, ieC3);
-  ieC3->id            = E1AP_ProtocolIE_ID_id_System_BearerContextSetupRequest;
+  ieC3->id            = E1AP_ProtocolIE_ID_id_System_BearerContextSetupResponse;
   ieC3->criticality   = E1AP_Criticality_reject;
   ieC3->value.present = E1AP_BearerContextSetupResponseIEs__value_PR_System_BearerContextSetupResponse;
   if (0) { // EUTRAN
@@ -706,7 +706,7 @@ int e1apCUUP_send_BEARER_CONTEXT_SETUP_RESPONSE(instance_t instance,
     E1AP_ProtocolIE_Container_4932P22_t *msgNGRAN_list = calloc(1, sizeof(E1AP_ProtocolIE_Container_4932P22_t));
     ieC3->value.choice.System_BearerContextSetupResponse.choice.nG_RAN_BearerContextSetupResponse = (struct E1AP_ProtocolIE_Container *) msgNGRAN_list;
     asn1cSequenceAdd(msgNGRAN_list->list, E1AP_NG_RAN_BearerContextSetupResponse_t, msgNGRAN);
-    msgNGRAN->id = E1AP_ProtocolIE_ID_id_DRB_Setup_List_EUTRAN;
+    msgNGRAN->id = E1AP_ProtocolIE_ID_id_PDU_Session_Resource_Setup_List;
     msgNGRAN->criticality = E1AP_Criticality_reject;
     msgNGRAN->value.present = E1AP_NG_RAN_BearerContextSetupResponse__value_PR_PDU_Session_Resource_Setup_List;
     E1AP_PDU_Session_Resource_Setup_List_t *pduSetup = &msgNGRAN->value.choice.PDU_Session_Resource_Setup_List;
@@ -738,7 +738,9 @@ int e1apCUUP_send_BEARER_CONTEXT_SETUP_RESPONSE(instance_t instance,
         }
       }
 
-      ieC3_1->dRB_Failed_List_NG_RAN = calloc(1, sizeof(E1AP_DRB_Failed_List_NG_RAN_t));
+      if (i->numDRBFailed > 0)
+        ieC3_1->dRB_Failed_List_NG_RAN = calloc(1, sizeof(E1AP_DRB_Failed_List_NG_RAN_t));
+
       for (DRB_nGRAN_failed_t *j=i->DRBnGRanFailedList; j < i->DRBnGRanFailedList+i->numDRBFailed; j++) {
         asn1cSequenceAdd(ieC3_1->dRB_Failed_List_NG_RAN->list, E1AP_DRB_Failed_Item_NG_RAN_t, ieC3_1_1);
         ieC3_1_1->dRB_ID = j->id;
@@ -990,9 +992,9 @@ int e1apCUCP_handle_BEARER_CONTEXT_SETUP_RESPONSE(instance_t instance,
   E1AP_BearerContextSetupResponse_t *in = &pdu->choice.successfulOutcome->value.choice.BearerContextSetupResponse;
   E1AP_BearerContextSetupResponseIEs_t *ie;
 
-  e1ap_bearer_setup_resp_t *bearerCxt = &getCxtE1(CPtype, instance)->bearerSetupResp;
-
   MessageDef *msg = itti_alloc_new_message(TASK_CUCP_E1, 0, E1AP_BEARER_CONTEXT_SETUP_RESP);
+
+  e1ap_bearer_setup_resp_t *bearerCxt = &E1AP_BEARER_CONTEXT_SETUP_RESP(msg);
 
   LOG_I(E1AP, "Bearer context setup response number of IEs %d\n", in->protocolIEs.list.count);
 
@@ -1000,6 +1002,14 @@ int e1apCUCP_handle_BEARER_CONTEXT_SETUP_RESPONSE(instance_t instance,
     ie = in->protocolIEs.list.array[i];
 
     switch(ie->id) {
+      case E1AP_ProtocolIE_ID_id_gNB_CU_CP_UE_E1AP_ID:
+        AssertFatal(ie->criticality == E1AP_Criticality_reject,
+                    "ie->criticality != E1AP_Criticality_reject\n");
+        AssertFatal(ie->value.present == E1AP_BearerContextSetupResponseIEs__value_PR_GNB_CU_CP_UE_E1AP_ID,
+                    "ie->value.present != E1AP_BearerContextSetupRequestIEs__value_PR_GNB_CU_CP_UE_E1AP_ID\n");
+        bearerCxt->gNB_cu_cp_ue_id = ie->value.choice.GNB_CU_CP_UE_E1AP_ID;
+        break;
+
       case E1AP_ProtocolIE_ID_id_gNB_CU_UP_UE_E1AP_ID:
         AssertFatal(ie->criticality == E1AP_Criticality_reject,
                     "ie->criticality != E1AP_Criticality_reject\n");
@@ -1343,7 +1353,7 @@ void *E1AP_CUUP_task(void *arg) {
 
     switch (ITTI_MSG_ID(msg)) {
       case E1AP_SETUP_REQ:
-        LOG_I(E1AP, "CUUP Task Received E1AP_SETUP_REQ\n");
+        LOG_I(E1AP, "CUUP Task Received E1AP_SETUP_REQ for instance %ld\n", myInstance);
         e1ap_setup_req_t *msgSetup = &E1AP_SETUP_REQ(msg);
         createE1inst(UPtype, myInstance, msgSetup);
 
@@ -1351,17 +1361,17 @@ void *E1AP_CUUP_task(void *arg) {
         break;
 
       case SCTP_NEW_ASSOCIATION_RESP:
-        LOG_I(E1AP, "CUUP Task Received SCTP_NEW_ASSOCIATION_RESP\n");
+        LOG_I(E1AP, "CUUP Task Received SCTP_NEW_ASSOCIATION_RESP for instance %ld\n", myInstance);
         cuup_task_handle_sctp_association_resp(myInstance, &msg->ittiMsg.sctp_new_association_resp);
         break;
 
       case SCTP_DATA_IND:
-        LOG_I(E1AP, "CUUP Task Received SCTP_DATA_IND\n");
+        LOG_I(E1AP, "CUUP Task Received SCTP_DATA_IND for instance %ld\n", myInstance);
         cuxp_task_handle_sctp_data_ind(myInstance, &msg->ittiMsg.sctp_data_ind);
         break;
 
       case E1AP_BEARER_CONTEXT_SETUP_RESP:
-        LOG_I(E1AP, "CUUP Task Received E1AP_BEARER_CONTEXT_SETUP_RESP\n");
+        LOG_I(E1AP, "CUUP Task Received E1AP_BEARER_CONTEXT_SETUP_RESP %ld\n", myInstance);
         e1apCUUP_send_BEARER_CONTEXT_SETUP_RESPONSE(myInstance, &E1AP_BEARER_CONTEXT_SETUP_RESP(msg));
         break;
 

@@ -3878,9 +3878,9 @@ void fill_DRB_configList(NR_DRB_ToAddModList_t *DRB_configList, pdu_session_to_s
     ie->cnAssociation->present = NR_DRB_ToAddMod__cnAssociation_PR_sdap_Config;
 
     // sdap_Config
-    NR_SDAP_Config_t *sdap_config = ie->cnAssociation->choice.sdap_Config;
-    sdap_config = CALLOC(1, sizeof(*sdap_config));
+    NR_SDAP_Config_t *sdap_config = CALLOC(1, sizeof(*sdap_config));
     memset(sdap_config, 0, sizeof(*sdap_config));
+    ie->cnAssociation->choice.sdap_Config = sdap_config;
     sdap_config->pdu_Session = pdu->sessionId;
     sdap_config->sdap_HeaderDL = drb->sDAP_Header_DL;
     sdap_config->sdap_HeaderUL = drb->sDAP_Header_UL;
@@ -3888,8 +3888,7 @@ void fill_DRB_configList(NR_DRB_ToAddModList_t *DRB_configList, pdu_session_to_s
 
     sdap_config->mappedQoS_FlowsToAdd = calloc(1, sizeof(struct NR_SDAP_Config__mappedQoS_FlowsToAdd));
     // LTSFIXME
-    int numQosFlow2Setup=0;
-    for (int j=0; j < numQosFlow2Setup; j++) {
+    for (int j=0; j < drb->numQosFlow2Setup; j++) {
       NR_QFI_t *qfi = calloc(1, sizeof(NR_QFI_t));
       *qfi = drb->qosFlows[j].fiveQI;
       ASN_SEQUENCE_ADD(&sdap_config->mappedQoS_FlowsToAdd->list, qfi);
@@ -3899,9 +3898,9 @@ void fill_DRB_configList(NR_DRB_ToAddModList_t *DRB_configList, pdu_session_to_s
     // pdcp_Config
     ie->reestablishPDCP = NULL;
     ie->recoverPDCP = NULL;
-    NR_PDCP_Config_t *pdcp_config = ie->pdcp_Config;
-    pdcp_config = calloc(1, sizeof(*pdcp_config));
+    NR_PDCP_Config_t *pdcp_config = calloc(1, sizeof(*pdcp_config));
     memset(pdcp_config, 0, sizeof(*pdcp_config));
+    ie->pdcp_Config = pdcp_config;
     pdcp_config->drb = calloc(1,sizeof(*pdcp_config->drb));
     pdcp_config->drb->discardTimer = calloc(1, sizeof(*pdcp_config->drb->discardTimer));
     *pdcp_config->drb->discardTimer = drb->discardTimer;
@@ -4006,17 +4005,25 @@ int rrc_gNB_process_e1_bearer_context_setup_req(e1ap_bearer_setup_req_t *req, in
       DRB_nGRAN_to_setup_t *drb2Setup = pdu2Setup->DRBnGRanList + j;
 
       drbSetup->id = drb2Setup->id;
-      drbSetup->numUpParam = 0;
-      drbSetup->numQosFlowSetup = drb2Setup->numQosFlow2Setup;
 
+      /* TODO: Set dummy values for UP Parameters for now */
+      drbSetup->numUpParam = 1;
+      for (int k=0; k < drbSetup->numUpParam; k++) {
+        drbSetup->UpParamList[k].tlAddress = 0;
+        drbSetup->UpParamList[k].teId      = 0;
+      }
+
+      drbSetup->numQosFlowSetup = drb2Setup->numQosFlow2Setup;
       for (int k=0; k < drbSetup->numQosFlowSetup; k++) {
         drbSetup->qosFlows[k].id = drb2Setup->qosFlows[k].id;
       }
     }
+
+    // At this point we don't have a way to know the DRBs that failed to setup
+    // We assume all DRBs to setup have are setup successfully so we always send successful outcome in response
+    // TODO: Modify nr_pdcp_add_drbs() to return DRB list that failed to setup to support E1AP
+    pduSetup->numDRBFailed = 0;
   }
-  // At this point we don't have a way to know the DRBs that failed to setup
-  // We assume all DRBs to setup have are setup successfully so we always send successful outcome in response
-  // TODO: Modify nr_pdcp_add_drbs() to return DRB list that failed to setup to support E1AP
 
   itti_send_msg_to_task(TASK_CUUP_E1, instance, message_p);
 
