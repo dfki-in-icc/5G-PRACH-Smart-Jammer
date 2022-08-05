@@ -481,7 +481,7 @@ static void *ue_tun_read_thread(void *_)
     ctxt.subframe = 0;
     ctxt.eNB_index = 0;
     ctxt.brOption = 0;
-    ctxt.rnti = 0;
+    ctxt.rnti = ue_id;
 
     bool dc = SDAP_HDR_UL_DATA_PDU;
     extern uint8_t nas_qfi;
@@ -1048,8 +1048,8 @@ void nr_pdcp_add_srbs(eNB_flag_t enb_flag, rnti_t rnti,
               security_modeP & 0x0f, (security_modeP >> 4) & 0x0f,
               kRRCenc, kRRCint);
     }
-  }
-  LOG_W(PDCP, "nr_pdcp_add_srbs() with void list\n");
+  } else
+    LOG_W(PDCP, "nr_pdcp_add_srbs() with void list\n");
   if (kRRCenc)
     free(kRRCenc);
   if (kRRCint)
