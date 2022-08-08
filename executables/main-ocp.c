@@ -727,7 +727,7 @@ void ocp_tx_rf(RU_t *ru, L1_rxtx_proc_t *proc) {
 
 #if defined(__x86_64) || defined(__i386__)
     sf_extension = (sf_extension)&0xfffffff8;
-#elif defined(__arm__)
+#elif defined(__arm__) || defined(__aarch64__)
     sf_extension = (sf_extension)&0xfffffffc;
 #endif
 

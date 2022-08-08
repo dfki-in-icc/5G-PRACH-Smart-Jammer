@@ -198,30 +198,27 @@ message("CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE}")
 add_list_string_option(CMAKE_BUILD_TYPE "RelWithDebInfo" "Choose the type of build, options are: None(CMAKE_CXX_FLAGS or CMAKE_C_FLAGS used) Debug Release RelWithDebInfo MinSizeRel." Debug Release RelWithDebInfo MinSizeRel)
 
 Message("Architecture is ${CMAKE_SYSTEM_PROCESSOR}")
-if (CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7l")
-  set(C_FLAGS_PROCESSOR "-gdwarf-2 -mfloat-abi=hard -mfpu=neon -lgcc -lrt")
-else (CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7l")
-  if(EXISTS  "/proc/cpuinfo")
-    file(STRINGS "/proc/cpuinfo" CPUINFO REGEX flags LIMIT_COUNT 1)
-    message("AVX512 is ${AVX512}")
-    if (CPUINFO MATCHES "avx512bw" AND "${AVX512}" STREQUAL "True")
+# in case /proc/cpuinfo exists we want to inspect available Intrinsics
+# -so not to go always through SIMDE emulation
+# -so to behave specifically in regard of AVX512 support  
+if(EXISTS  "/proc/cpuinfo")
+   file(STRINGS "/proc/cpuinfo" CPUINFO REGEX flags LIMIT_COUNT 1)
+   message("AVX512 is ${AVX512}")
+   if (CPUINFO MATCHES "avx512bw" AND "${AVX512}" STREQUAL "True")
       set(C_FLAGS_PROCESSOR "${C_FLAGS_PROCESSOR} -D_OAI_AVX512_")
-    endif()
-    if (CPUINFO MATCHES "avx2")
+   endif()
+   if (CPUINFO MATCHES "avx2")
       set(C_FLAGS_PROCESSOR "${C_FLAGS_PROCESSOR} -DSIMDE_X86_AVX2_NATIVE")
-    endif()
-    if (CPUINFO MATCHES "sse4_1")
+   endif()
+   if (CPUINFO MATCHES "sse4_1")
       set(C_FLAGS_PROCESSOR "${C_FLAGS_PROCESSOR} -DSIMDE_X86_SSE4_1_NATIVE")
-    endif()
-    if (CPUINFO MATCHES "sse4_2")
+   endif()
+   if (CPUINFO MATCHES "sse4_2")
       set(C_FLAGS_PROCESSOR "${C_FLAGS_PROCESSOR} -DSIMDE_X86_SSE4_2_NATIVE")
-    endif()
-    if (CPUINFO MATCHES "ssse3")
+   endif()
+   if (CPUINFO MATCHES "ssse3")
       set(C_FLAGS_PROCESSOR "${C_FLAGS_PROCESSOR} -DSIMDE_X86_SSSE3_NATIVE")
-    endif()
-  else()
-    Message("/proc/cpuinfo does not exit. We will use manual CPU flags")
-  endif()
+   endif()
 endif()
 
 set(C_FLAGS_PROCESSOR "${C_FLAGS_PROCESSOR} -fno-var-tracking-assignments -march=native")
@@ -229,12 +226,6 @@ set(C_FLAGS_PROCESSOR "${C_FLAGS_PROCESSOR} -fno-var-tracking-assignments -march
 set(C_FLAGS_PROCESSOR " ${C_FLAGS_PROCESSOR} ${CFLAGS_PROCESSOR_USER}")
 
 Message("C_FLAGS_PROCESSOR is ${C_FLAGS_PROCESSOR}")
-
-#if (CMAKE_SYSTEM_PROCESSOR MATCHES "x86")
-#  if ( (NOT( C_FLAGS_PROCESSOR MATCHES "ssse3")) OR (NOT( C_FLAGS_PROCESSOR MATCHES "msse4.1")) )
-#    Message(FATAL_ERROR "For x86 Architecture, you must have following flags: -mssse3 -msse4.1. The current detected flags are: ${C_FLAGS_PROCESSOR}. You can pass the flags manually in build script, for example: ./build_oai --cflags_processor \"-mssse3 -msse4.1 -mavx2\" ")
-#  endif()
-#endif()
 
 #
 # add autotools definitions that were maybe used!
@@ -828,8 +819,8 @@ TARGET_LINK_LIBRARIES(benetel_5g pthread dl rt m numa)
 
 include_directories ("${OPENAIR_TARGETS}/ARCH/COMMON")
 
-Message("DEADLINE_SCHEDULER flag  is ${DEADLINE_SCHEDULER}")
-Message("CPU_Affinity flag is ${CPU_AFFINITY}")
+#Message("DEADLINE_SCHEDULER flag  is ${DEADLINE_SCHEDULER}")
+#Message("CPU_Affinity flag is ${CPU_AFFINITY}")
 
 ##############################################################
 #    ???!!! TO BE DOCUMENTED OPTIONS !!!???

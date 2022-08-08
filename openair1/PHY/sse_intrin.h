@@ -26,10 +26,14 @@
  * The host CPU needs to have support for SSE2 at least. SSE3 and SSE4.1 functions are emulated if the CPU lacks support for them.
  * This will slow down the softmodem, but may be valuable if only offline signal processing is required.
  *
- * Has been revamped in August 2022 to rely on SIMD Everywhere (SIMDE)
- * All avx2 code is mapped to SIMDE
- * avx512 code is not mapped to SIMDE
+ * 
+ * Has been changed in August 2022 to rely on SIMD Everywhere (SIMDE) from MIT
  * by bruno.mongazon-cazavet@nokia-bell-labs.com
+ *
+ * All avx2 code is mapped to SIMDE which transparently rely on avx2 HW or SIMDE emulation 
+ * avx512 code is not mapped to SIMDE
+ *   if --avx512 build flag set and AVX512 HW available, avx512 code is mapped to AVX512 HW
+ *   in all other cases, AVX512 is emulated by OAI specific code using avx2 (possibly itself SIMDE emulated)
  *
  * \author S. Held, Laurent THOMAS
  * \email sebastian.held@imst.de, laurent.thomas@open-cells.com	
@@ -46,7 +50,6 @@
 
 /* x86 processors */
 
-#define SIMDE_X86_AVX2_ENABLE_NATIVE_ALIASES
 #include <simde/x86/mmx.h>
 #include <simde/x86/sse.h>
 #include <simde/x86/sse2.h>
@@ -61,9 +64,9 @@
 #include <immintrin.h>
 #endif
 
-#elif defined(__arm__)
+#elif defined(__arm__) || defined(__aarch64__)
 
-#define SIMDE_ARM_NEON_A64V8_ENABLE_NATIVE_ALIASES
+/* ARM processors */
 
 #include <simde/arm/neon.h>
 
@@ -75,7 +78,7 @@
 
 #if defined(__x86_64__) || defined(__i386__)
   #define vect128 __m128i
-#elif defined(__arm__)
+#elif defined(__arm__) || defined(__aarch64__)
   #define vect128 int16x8_t
 #endif
 
@@ -93,7 +96,7 @@ static inline vect128 mulByConjugate128(vect128 *a, vect128 *b, int8_t output_sh
   vect128 lowPart = _mm_unpacklo_epi32(realPart,imagPart);
   vect128 highPart = _mm_unpackhi_epi32(realPart,imagPart);
   return ( _mm_packs_epi32(lowPart,highPart));
-#elif defined(__arm__)
+#elif defined(__arm__) || defined(__aarch64__)
   AssertFatal(false, "not developped\n");
 #endif
 }
@@ -111,7 +114,7 @@ static inline vect128 mulByConjugate128(vect128 *a, vect128 *b, int8_t output_sh
            _mm_extract_epi16(x,6),\
            _mm_extract_epi16(x,7));\
   }
-#elif defined(__arm__)
+#elif defined(__arm__) || defined(__aarch64__)
   displaySamples128(vect) {}
 //TBD
 #endif

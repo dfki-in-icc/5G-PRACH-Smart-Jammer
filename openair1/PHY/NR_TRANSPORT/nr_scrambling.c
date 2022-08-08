@@ -37,7 +37,7 @@ void nr_codeword_scrambling(uint8_t *in,
   s=lte_gold_generic(&x1, &x2, 1);
   for (int i=0; i<((size>>5)+((size&0x1f) > 0 ? 1 : 0)); i++) {
     __m256i c = ((__m256i*)in)[i];
-    uint32_t in32 = _mm256_movemask_epi8(_mm256_slli_epi16(c,7));
+    uint32_t in32 = simde_mm256_movemask_epi8(simde_mm256_slli_epi16(c,7));
     out[i]=(in32^s);
     LOG_D(PHY,"in[%d] %x => %x\n",i,in32,out[i]);
     s=lte_gold_generic(&x1, &x2, 0);

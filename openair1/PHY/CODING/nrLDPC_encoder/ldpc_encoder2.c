@@ -38,6 +38,7 @@
 #include "common/utils/LOG/log.h"
 #include "time_meas.h"
 #include "defs.h"
+#include "PHY/sse_intrin.h"
 
 #include "ldpc384_byte.c"
 #include "ldpc352_byte.c"
@@ -303,19 +304,19 @@ int ldpc_encoder_optim_8seg(unsigned char **test_input,unsigned char **channel_i
   char temp;
   int simd_size;
 
-  __m256i shufmask = _mm256_set_epi64x(0x0303030303030303, 0x0202020202020202,0x0101010101010101, 0x0000000000000000);
-  __m256i andmask  = _mm256_set1_epi64x(0x0102040810204080);  // every 8 bits -> 8 bytes, pattern repeats.
-  __m256i zero256   = _mm256_setzero_si256();
+  __m256i shufmask = simde_mm256_set_epi64x(0x0303030303030303, 0x0202020202020202,0x0101010101010101, 0x0000000000000000);
+  __m256i andmask  = simde_mm256_set1_epi64x(0x0102040810204080);  // every 8 bits -> 8 bytes, pattern repeats.
+  __m256i zero256   = simde_mm256_setzero_si256();
   __m256i masks[8];
   register __m256i c256;
-  masks[0] = _mm256_set1_epi8(0x1);
-  masks[1] = _mm256_set1_epi8(0x2);
-  masks[2] = _mm256_set1_epi8(0x4);
-  masks[3] = _mm256_set1_epi8(0x8);
-  masks[4] = _mm256_set1_epi8(0x10);
-  masks[5] = _mm256_set1_epi8(0x20);
-  masks[6] = _mm256_set1_epi8(0x40);
-  masks[7] = _mm256_set1_epi8(0x80);
+  masks[0] = simde_mm256_set1_epi8(0x1);
+  masks[1] = simde_mm256_set1_epi8(0x2);
+  masks[2] = simde_mm256_set1_epi8(0x4);
+  masks[3] = simde_mm256_set1_epi8(0x8);
+  masks[4] = simde_mm256_set1_epi8(0x10);
+  masks[5] = simde_mm256_set1_epi8(0x20);
+  masks[6] = simde_mm256_set1_epi8(0x40);
+  masks[7] = simde_mm256_set1_epi8(0x80);
 
   AssertFatal(n_segments>0&&n_segments<=8,"0 < n_segments %d <= 8\n",n_segments);
 
@@ -373,9 +374,9 @@ int ldpc_encoder_optim_8seg(unsigned char **test_input,unsigned char **channel_i
   }
 #else
   for (i=0; i<block_length>>5; i++) {
-    c256 = _mm256_and_si256(_mm256_cmpeq_epi8(_mm256_andnot_si256(_mm256_shuffle_epi8(_mm256_set1_epi32(((uint32_t*)test_input[0])[i]), shufmask),andmask),zero256),masks[0]);
+    c256 = simde_mm256_and_si256(simde_mm256_cmpeq_epi8(simde_mm256_andnot_si256(simde_mm256_shuffle_epi8(simde_mm256_set1_epi32(((uint32_t*)test_input[0])[i]), shufmask),andmask),zero256),masks[0]);
     for (j=1; j<n_segments; j++) {
-      c256 = _mm256_or_si256(_mm256_and_si256(_mm256_cmpeq_epi8(_mm256_andnot_si256(_mm256_shuffle_epi8(_mm256_set1_epi32(((uint32_t*)test_input[j])[i]), shufmask),andmask),zero256),masks[j]),c256);
+      c256 = simde_mm256_or_si256(simde_mm256_and_si256(simde_mm256_cmpeq_epi8(simde_mm256_andnot_si256(simde_mm256_shuffle_epi8(simde_mm256_set1_epi32(((uint32_t*)test_input[j])[i]), shufmask),andmask),zero256),masks[j]),c256);
     }
     ((__m256i *)c)[i] = c256;
   }
@@ -437,12 +438,12 @@ int ldpc_encoder_optim_8seg(unsigned char **test_input,unsigned char **channel_i
     //  if (((block_length-(2*Zc))&31)>0) l1++;
     
     for (i=0;i<l1;i++)
-      for (j=0;j<n_segments;j++) ((__m256i *)channel_input[j])[i] = _mm256_and_si256(_mm256_srai_epi16(c256p[i],j),masks[0]);
+      for (j=0;j<n_segments;j++) ((__m256i *)channel_input[j])[i] = simde_mm256_and_si256(simde_mm256_srai_epi16(c256p[i],j),masks[0]);
     
     //  if ((((nrows-no_punctured_columns) * Zc-removed_bit)&31)>0) l2++;
     
     for (i1=0;i1<l2;i1++,i++)
-      for (j=0;j<n_segments;j++) ((__m256i *)channel_input[j])[i] = _mm256_and_si256(_mm256_srai_epi16(d256p[i1],j),masks[0]);
+      for (j=0;j<n_segments;j++) ((__m256i *)channel_input[j])[i] = simde_mm256_and_si256(simde_mm256_srai_epi16(d256p[i1],j),masks[0]);
   }
   else {
 #ifdef DEBUG_LDPC
@@ -479,19 +480,19 @@ int ldpc_encoder_optim_8seg_multi(unsigned char **test_input,unsigned char **cha
   //printf("macro_segment: %d\n", macro_segment);
   //printf("macro_segment_end: %d\n", macro_segment_end );
 
-  __m256i shufmask = _mm256_set_epi64x(0x0303030303030303, 0x0202020202020202,0x0101010101010101, 0x0000000000000000);
-  __m256i andmask  = _mm256_set1_epi64x(0x0102040810204080);  // every 8 bits -> 8 bytes, pattern repeats.
-  __m256i zero256   = _mm256_setzero_si256();
+  __m256i shufmask = simde_mm256_set_epi64x(0x0303030303030303, 0x0202020202020202,0x0101010101010101, 0x0000000000000000);
+  __m256i andmask  = simde_mm256_set1_epi64x(0x0102040810204080);  // every 8 bits -> 8 bytes, pattern repeats.
+  __m256i zero256   = simde_mm256_setzero_si256();
   __m256i masks[8];
   register __m256i c256;
-  masks[0] = _mm256_set1_epi8(0x1);
-  masks[1] = _mm256_set1_epi8(0x2);
-  masks[2] = _mm256_set1_epi8(0x4);
-  masks[3] = _mm256_set1_epi8(0x8);
-  masks[4] = _mm256_set1_epi8(0x10);
-  masks[5] = _mm256_set1_epi8(0x20);
-  masks[6] = _mm256_set1_epi8(0x40);
-  masks[7] = _mm256_set1_epi8(0x80);
+  masks[0] = simde_mm256_set1_epi8(0x1);
+  masks[1] = simde_mm256_set1_epi8(0x2);
+  masks[2] = simde_mm256_set1_epi8(0x4);
+  masks[3] = simde_mm256_set1_epi8(0x8);
+  masks[4] = simde_mm256_set1_epi8(0x10);
+  masks[5] = simde_mm256_set1_epi8(0x20);
+  masks[6] = simde_mm256_set1_epi8(0x40);
+  masks[7] = simde_mm256_set1_epi8(0x80);
 
   //determine number of bits in codeword
   if (BG==1)
@@ -544,10 +545,10 @@ int ldpc_encoder_optim_8seg_multi(unsigned char **test_input,unsigned char **cha
   }
 #else
   for (i=0; i<block_length>>5; i++) {
-    c256 = _mm256_and_si256(_mm256_cmpeq_epi8(_mm256_andnot_si256(_mm256_shuffle_epi8(_mm256_set1_epi32(((uint32_t*)test_input[macro_segment])[i]), shufmask),andmask),zero256),masks[0]);
+    c256 = simde_mm256_and_si256(simde_mm256_cmpeq_epi8(simde_mm256_andnot_si256(simde_mm256_shuffle_epi8(simde_mm256_set1_epi32(((uint32_t*)test_input[macro_segment])[i]), shufmask),andmask),zero256),masks[0]);
     //for (j=1; j<n_segments; j++) {
     for (j=macro_segment+1; j < macro_segment_end; j++) {
-      c256 = _mm256_or_si256(_mm256_and_si256(_mm256_cmpeq_epi8(_mm256_andnot_si256(_mm256_shuffle_epi8(_mm256_set1_epi32(((uint32_t*)test_input[j])[i]), shufmask),andmask),zero256),masks[j-macro_segment]),c256);
+      c256 = simde_mm256_or_si256(simde_mm256_and_si256(simde_mm256_cmpeq_epi8(simde_mm256_andnot_si256(simde_mm256_shuffle_epi8(simde_mm256_set1_epi32(((uint32_t*)test_input[j])[i]), shufmask),andmask),zero256),masks[j-macro_segment]),c256);
     }
     ((__m256i *)c)[i] = c256;
   }
@@ -610,15 +611,15 @@ int ldpc_encoder_optim_8seg_multi(unsigned char **test_input,unsigned char **cha
     //  if (((block_length-(2*Zc))&31)>0) l1++;
 
     for (i=0;i<l1;i++)
-      //for (j=0;j<n_segments;j++) ((__m256i *)channel_input[j])[i] = _mm256_and_si256(_mm256_srai_epi16(c256p[i],j),masks[0]);
-    	for (j=macro_segment; j < macro_segment_end; j++) ((__m256i *)channel_input[j])[i] = _mm256_and_si256(_mm256_srai_epi16(c256p[i],j-macro_segment),masks[0]);
+      //for (j=0;j<n_segments;j++) ((__m256i *)channel_input[j])[i] = simde_mm256_and_si256(simde_mm256_srai_epi16(c256p[i],j),masks[0]);
+    	for (j=macro_segment; j < macro_segment_end; j++) ((__m256i *)channel_input[j])[i] = simde_mm256_and_si256(simde_mm256_srai_epi16(c256p[i],j-macro_segment),masks[0]);
 
 
     //  if ((((nrows-no_punctured_columns) * Zc-removed_bit)&31)>0) l2++;
 
     for (i1=0;i1<l2;i1++,i++)
-      //for (j=0;j<n_segments;j++) ((__m256i *)channel_input[j])[i] = _mm256_and_si256(_mm256_srai_epi16(d256p[i1],j),masks[0]);
-    	for (j=macro_segment; j < macro_segment_end; j++)  ((__m256i *)channel_input[j])[i] = _mm256_and_si256(_mm256_srai_epi16(d256p[i1],j-macro_segment),masks[0]);
+      //for (j=0;j<n_segments;j++) ((__m256i *)channel_input[j])[i] = simde_mm256_and_si256(simde_mm256_srai_epi16(d256p[i1],j),masks[0]);
+    	for (j=macro_segment; j < macro_segment_end; j++)  ((__m256i *)channel_input[j])[i] = simde_mm256_and_si256(simde_mm256_srai_epi16(d256p[i1],j-macro_segment),masks[0]);
   }
   else {
 #ifdef DEBUG_LDPC

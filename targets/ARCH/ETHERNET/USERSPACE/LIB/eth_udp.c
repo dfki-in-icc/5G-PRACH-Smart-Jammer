@@ -45,6 +45,7 @@
 
 #include "common_lib.h"
 #include "ethernet_lib.h"
+#include "openair1/PHY/sse_intrin.h"
 
 //#define DEBUG 1
 
@@ -294,8 +295,8 @@ int trx_eth_write_udp(openair0_device *device, openair0_timestamp timestamp, voi
     // bring TX data into 12 LSBs for softmodem RX
   for (int j=0; j<nsamps2; j++) {
 #if defined(__x86_64__) || defined(__i386__)
-    buff_tx2[j] = _mm256_slli_epi16(((__m256i *)buff)[j],4);
-#elif defined(__arm__)
+    buff_tx2[j] = simde_mm256_slli_epi16(((__m256i *)buff)[j],4);
+#elif defined(__arm__) || defined(__aarch64__)
     buff_tx2[j] = vshlq_n_s16(((int16x8_t *)buff)[j],4);
 #endif
   }
@@ -463,8 +464,8 @@ int trx_eth_read_udp(openair0_device *device, openair0_timestamp *timestamp, voi
   // populate receive buffer in lower 12-bits from 16-bit representation
   for (int j=1; j<nsamps2; j++) {
 #if defined(__x86_64__) || defined(__i386__)
-       ((__m256i *)buff)[j-1] = _mm256_srai_epi16(temp_rx[j],2);
-#elif defined(__arm__)
+       ((__m256i *)buff)[j-1] = simde_mm256_srai_epi16(temp_rx[j],2);
+#elif defined(__arm__) || defined(__aarch64__)
        ((int16x8_t *)buff)[j] = vshrq_n_s16(temp_rx[i][j],2);
 #endif
   }

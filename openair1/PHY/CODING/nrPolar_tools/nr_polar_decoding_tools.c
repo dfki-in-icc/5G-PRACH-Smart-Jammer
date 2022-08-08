@@ -270,10 +270,10 @@ void applyFtoleft(const t_nrPolar_params *pp, decoder_node_t *node) {
       for (int i=0;i<avx2len;i++) {
 	a256       =((__m256i*)alpha_v)[i];
 	b256       =((__m256i*)alpha_v)[i+avx2len];
-	absa256    =_mm256_abs_epi16(a256);
-	absb256    =_mm256_abs_epi16(b256);
-	minabs256  =_mm256_min_epi16(absa256,absb256);
-	((__m256i*)alpha_l)[i] =_mm256_sign_epi16(minabs256,_mm256_sign_epi16(a256,b256));
+	absa256    =simde_mm256_abs_epi16(a256);
+	absb256    =simde_mm256_abs_epi16(b256);
+	minabs256  =simde_mm256_min_epi16(absa256,absb256);
+	((__m256i*)alpha_l)[i] =simde_mm256_sign_epi16(minabs256,simde_mm256_sign_epi16(a256,b256));
       }
     }
     else if (avx2mod == 8) {
@@ -339,8 +339,8 @@ void applyGtoright(const t_nrPolar_params *pp,decoder_node_t *node) {
       
       for (int i=0;i<avx2len;i++) {
 	((__m256i *)alpha_r)[i] = 
-	  _mm256_subs_epi16(((__m256i *)alpha_v)[i+avx2len],
-			    _mm256_sign_epi16(((__m256i *)alpha_v)[i],
+	  simde_mm256_subs_epi16(((__m256i *)alpha_v)[i+avx2len],
+			    simde_mm256_sign_epi16(((__m256i *)alpha_v)[i],
 					      ((__m256i *)betal)[i]));	
       }
     }
@@ -382,7 +382,7 @@ void computeBeta(const t_nrPolar_params *pp,decoder_node_t *node) {
     if (avx2mod == 0) {
       int avx2len = node->Nv/2/16;
       for (int i=0;i<avx2len;i++) {
-	((__m256i*)betav)[i] = _mm256_or_si256(_mm256_cmpeq_epi16(((__m256i*)betar)[i],
+	((__m256i*)betav)[i] = simde_mm256_or_si256(simde_mm256_cmpeq_epi16(((__m256i*)betar)[i],
 								  ((__m256i*)betal)[i]),allones);
       }
     }

@@ -706,7 +706,7 @@ void qam64_qam16_avx2(short *stream0_in,
   __m256i  y0i_five_over_sqrt_21;
   __m256i  y0i_seven_over_sqrt_21;
 
-#elif defined(__arm__)
+#elif defined(__arm__) || defined(__aarch64__)
 
 #endif
   int i,j;
@@ -2179,7 +2179,7 @@ void qam64_qam16_avx2(short *stream0_in,
     stream0_out[j + 94] = ((short *)&y1i)[15];
     stream0_out[j + 95] = ((short *)&y2i)[15];
 
-#elif defined(__arm__)
+#elif defined(__arm__) || defined(__aarch64__)
 
 #endif
   }
@@ -2266,7 +2266,7 @@ void qam64_qam64_avx2(int32_t *stream0_in,
   __m256i ch_mag_int_with_sigma2;
   __m256i two_ch_mag_int_with_sigma2;
   __m256i three_ch_mag_int_with_sigma2;
-#elif defined(__arm__)
+#elif defined(__arm__) || defined(__aarch64__)
 
 #endif
 
@@ -4019,7 +4019,7 @@ void qam64_qam64_avx2(int32_t *stream0_in,
     stream0_out[j + 94] = ((short *)&y1i)[15];
     stream0_out[j + 95] = ((short *)&y2i)[15];
 
-#elif defined(__arm__)
+#elif defined(__arm__) || defined(__aarch64__)
 
 #endif
 
