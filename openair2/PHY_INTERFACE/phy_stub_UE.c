@@ -1693,7 +1693,7 @@ static void print_rx_ind(nfapi_rx_indication_t *p)
       break;
     case NFAPI_SUBFRAME_INDICATION:
       encoded_size = nfapi_p7_message_pack(&UL->vt_ue_sf_ind, buffer, sizeof(buffer), NULL);
-      LOG_I(MAC, "UE_SF_IND sent to Proxy, Size: %d\n", encoded_size);
+      LOG_D(MAC, "UE_SF_IND sent to Proxy, Size: %d\n", encoded_size);
       break;
 
     default:
