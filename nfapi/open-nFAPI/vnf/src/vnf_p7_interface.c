@@ -333,7 +333,7 @@ int nfapi_vnf_p7_start(nfapi_vnf_p7_config_t* config)
 		clock_gettime(CLOCK_MONOTONIC, &pselect_start);
 		//long millisecond = pselect_start.tv_nsec / 1e6;
 
-		if (vt)
+		if (!vt)
 		{
 			if((last_millisecond == -1) || (millisecond == last_millisecond) || (millisecond == (last_millisecond + 1) % 1000) )
 			{

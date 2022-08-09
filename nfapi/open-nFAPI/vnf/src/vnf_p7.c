@@ -25,6 +25,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <assert.h>
+#include "softmodem-common.h"
 
 #include "nfapi_vnf.h"
 #include "vnf_p7.h"
@@ -451,10 +452,10 @@ void vnf_handle_subframe_indication(void *pRecvMsg, int recvMsgLen, vnf_p7_t* vn
 int send_mac_slot_indications(vnf_p7_t* vnf_p7, uint16_t sfn, uint16_t slot)
 {
 	nfapi_vnf_p7_connection_info_t* curr = vnf_p7->p7_connections;
-        vnf_info *vinfo = (vnf_info *)vnf_p7->_public.user_data;
-	while(curr != 0)
+	
+        while(curr != 0)
 	{
-		if(curr->in_sync == 1 && !vinfo->virtual_time)
+		if(curr->in_sync == 1 && get_softmodem_params()->virtual_time)
 		{
 			// ask for subframes in the future
 			//uint16_t sfn_sf_adv = increment_sfn_sf_by(curr->sfn_sf, 2);
@@ -464,7 +465,7 @@ int send_mac_slot_indications(vnf_p7_t* vnf_p7, uint16_t sfn, uint16_t slot)
 			//printf("\nsfn:%d, slot:%d\n",curr->sfn,curr->slot);
 	                vnf_p7->_public.slot_indication(&(vnf_p7->_public), curr->phy_id, curr->sfn,curr->slot);
 		}
-                else if (vinfo->virtual_time)
+                else if (get_softmodem_params()->virtual_time)
                 {
                         vnf_p7->_public.slot_indication(&(vnf_p7->_public), curr->phy_id, sfn, slot);
                 }
@@ -478,10 +479,10 @@ int send_mac_slot_indications(vnf_p7_t* vnf_p7, uint16_t sfn, uint16_t slot)
 int send_mac_subframe_indications(vnf_p7_t* vnf_p7, uint16_t sfn_sf)
 {
 	nfapi_vnf_p7_connection_info_t* curr = vnf_p7->p7_connections;
-        vnf_info *vinfo = (vnf_info *)vnf_p7->_public.user_data;
-	while(curr != 0)
+	
+        while(curr != 0)
 	{
-		if(curr->in_sync == 1 && !vinfo->virtual_time)
+		if(curr->in_sync == 1 && !get_softmodem_params()->virtual_time)
 		{
 			// ask for subframes in the future
 			//uint16_t sfn_sf_adv = increment_sfn_sf_by(curr->sfn_sf, 2);
@@ -490,7 +491,7 @@ int send_mac_subframe_indications(vnf_p7_t* vnf_p7, uint16_t sfn_sf)
             // suggestion fix by Haruki NAOI
 		        vnf_p7->_public.subframe_indication(&(vnf_p7->_public), curr->phy_id, curr->sfn_sf);
 		}
-                else if (vinfo->virtual_time)
+                else if (get_softmodem_params()->virtual_time)
                 {
                         vnf_p7->_public.subframe_indication(&(vnf_p7->_public), curr->phy_id, sfn_sf);
                 }

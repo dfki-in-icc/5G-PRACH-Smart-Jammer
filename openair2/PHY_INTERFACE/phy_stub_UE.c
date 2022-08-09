@@ -1451,7 +1451,14 @@ void *ue_standalone_pnf_task(void *context)
         break;
       }
       default:
-        LOG_E(MAC, "Case Statement has no corresponding nfapi message\n");
+        if (header.message_id >= NFAPI_VENDOR_EXT_MSG_MIN && header.message_id <= NFAPI_VENDOR_EXT_MSG_MAX )
+        {
+          LOG_I(MAC, "Unsupported vendor extension received\n");
+        }
+        else
+        {
+          LOG_E(MAC, "Case Statement has no corresponding nfapi message\n");
+        }
         break;
       }
     }
