@@ -976,7 +976,6 @@ void logClean (void)
   int i;
 
   if(isLogInitDone()) {
-    //LOG_UI(PHY,"\n");
     if (!g_log->global_logfile) {
       for (i=MIN_LOG_COMPONENTS; i < MAX_LOG_COMPONENTS; i++)
         close_component_filelog(i);
