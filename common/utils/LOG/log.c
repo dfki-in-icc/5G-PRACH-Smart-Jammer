@@ -125,18 +125,14 @@ log_formatter_json( char       *logbuffer,
   if (logbuffer_size < 15)
     return false;
 
-  size_t avail = logbuffer_size - 15;
+  const char *endp = logbuffer + logbuffer_size - 15;
   char *begp = logbuffer;
   
-  strcpy(begp, "{");
-  int nprinted = 1;
-  avail -= nprinted;
-  begp += nprinted;
+  *begp = '{';
+  begp += 1;
 
-  if (level < OAILOG_TRACE)
-  {
-    if (flag & FLAG_THREAD)
-    {
+  if (level < OAILOG_TRACE) {
+    if (flag & FLAG_THREAD) {
       char threadname[16]; // Max 16 chars as per man of pthread_getname_np()
       if (pthread_getname_np(pthread_self(), threadname, sizeof(threadname)) != 0)
         strcpy(threadname, "???");
