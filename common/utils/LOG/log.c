@@ -133,10 +133,8 @@ log_formatter_json( char       *logbuffer,
   avail -= nprinted;
   begp += nprinted;
 
-  if (level < OAILOG_TRACE)
-  {
-    if (flag & FLAG_THREAD)
-    {
+  if (level < OAILOG_TRACE) {
+    if (flag & FLAG_THREAD) {
       char threadname[16]; // Max 16 chars as per man of pthread_getname_np()
       if (pthread_getname_np(pthread_self(), threadname, sizeof(threadname)) != 0)
         strcpy(threadname, "???");
