@@ -1050,12 +1050,8 @@ static void log_output_memory(log_component_t *c, const char *file, const char *
   if (g_log->flag & FLAG_JSON) 
   {
     if (!((g_log->flag | c->flag) & FLAG_NOCOLOR)) 
-    {
-      int n = snprintf(log_buffer, MAX_LOG_TOTAL, "%s", log_level_highlight_start[level]);
-      if ((n < 0) || ((size_t) n > MAX_LOG_TOTAL))
-        return;
-      len = n;
-    }
+      len = snprintf(log_buffer, MAX_LOG_TOTAL, "%s", log_level_highlight_start[level]);
+    
 
     if (log_formatter_json( log_buffer + len, 
                             MAX_LOG_TOTAL - len, 
