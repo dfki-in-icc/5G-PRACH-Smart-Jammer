@@ -125,13 +125,11 @@ log_formatter_json( char       *logbuffer,
   if (logbuffer_size < 15)
     return false;
 
-  size_t avail = logbuffer_size - 15;
+  const char *endp = logbuffer + logbuffer_size - 15;
   char *begp = logbuffer;
   
-  strcpy(begp, "{");
-  int nprinted = 1;
-  avail -= nprinted;
-  begp += nprinted;
+  *begp = '{';
+  begp += 1;
 
   if (level < OAILOG_TRACE) {
     if (flag & FLAG_THREAD) {
