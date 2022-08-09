@@ -816,6 +816,10 @@ void RCconfig_nr_macrlc() {
   }
   paramdef_t MacRLC_Params[] = MACRLCPARAMS_DESC;
   paramlist_def_t MacRLC_ParamList = {CONFIG_STRING_MACRLC_LIST,NULL,0};
+  /* map parameter checking array instances to parameter definition array instances */
+  checkedparam_t config_check_MacRLCParams [] = MACRLCPARAMS_CHECK;
+  for (int i = 0; i < sizeof(MacRLC_Params) / sizeof(paramdef_t); ++i)
+    MacRLC_Params[i].chkPptr = &(config_check_MacRLCParams[i]);
   config_getlist( &MacRLC_ParamList,MacRLC_Params,sizeof(MacRLC_Params)/sizeof(paramdef_t), NULL);    
   
   if ( MacRLC_ParamList.numelt > 0) {
@@ -828,6 +832,7 @@ void RCconfig_nr_macrlc() {
       RC.nb_nr_mac_CC[j] = *(MacRLC_ParamList.paramarray[j][MACRLC_CC_IDX].iptr);
       RC.nrmac[j]->pusch_target_snrx10                   = *(MacRLC_ParamList.paramarray[j][MACRLC_PUSCHTARGETSNRX10_IDX].iptr);
       RC.nrmac[j]->pucch_target_snrx10                   = *(MacRLC_ParamList.paramarray[j][MACRLC_PUCCHTARGETSNRX10_IDX].iptr);
+      RC.nrmac[j]->ul_prbblack_SNR_threshold             = *(MacRLC_ParamList.paramarray[j][MACRLC_UL_PRBBLACK_SNR_THRESHOLD_IDX].iptr);
       RC.nrmac[j]->pucch_failure_thres                   = *(MacRLC_ParamList.paramarray[j][MACRLC_PUCCHFAILURETHRES_IDX].iptr);
       RC.nrmac[j]->pusch_failure_thres                   = *(MacRLC_ParamList.paramarray[j][MACRLC_PUSCHFAILURETHRES_IDX].iptr);
      
@@ -886,11 +891,12 @@ void RCconfig_nr_macrlc() {
       dl_bler_options->upper = *(MacRLC_ParamList.paramarray[j][MACRLC_DL_BLER_TARGET_UPPER_IDX].dblptr);
       dl_bler_options->lower = *(MacRLC_ParamList.paramarray[j][MACRLC_DL_BLER_TARGET_LOWER_IDX].dblptr);
       dl_bler_options->max_mcs = *(MacRLC_ParamList.paramarray[j][MACRLC_DL_MAX_MCS_IDX].u8ptr);
+      dl_bler_options->harq_round_max = *(MacRLC_ParamList.paramarray[j][MACRLC_DL_HARQ_ROUND_MAX_IDX].u8ptr);
       NR_bler_options_t *ul_bler_options = &RC.nrmac[j]->ul_bler;
       ul_bler_options->upper = *(MacRLC_ParamList.paramarray[j][MACRLC_UL_BLER_TARGET_UPPER_IDX].dblptr);
       ul_bler_options->lower = *(MacRLC_ParamList.paramarray[j][MACRLC_UL_BLER_TARGET_LOWER_IDX].dblptr);
       ul_bler_options->max_mcs = *(MacRLC_ParamList.paramarray[j][MACRLC_UL_MAX_MCS_IDX].u8ptr);
-      RC.nrmac[j]->harq_round_max = *(MacRLC_ParamList.paramarray[j][MACRLC_HARQ_ROUND_MAX_IDX].u8ptr);
+      ul_bler_options->harq_round_max = *(MacRLC_ParamList.paramarray[j][MACRLC_UL_HARQ_ROUND_MAX_IDX].u8ptr);
       RC.nrmac[j]->min_grant_prb = *(MacRLC_ParamList.paramarray[j][MACRLC_MIN_GRANT_PRB_IDX].u8ptr);
       RC.nrmac[j]->min_grant_mcs = *(MacRLC_ParamList.paramarray[j][MACRLC_MIN_GRANT_MCS_IDX].u8ptr);
       RC.nrmac[j]->num_ulprbbl = num_prbbl;
