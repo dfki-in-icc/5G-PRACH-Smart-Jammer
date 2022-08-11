@@ -83,6 +83,8 @@ static int DEFRUTPCORES[] = {-1,-1,-1,-1};
 
 extern int oai_exit;
 
+uint16_t sl_ahead;
+
 extern struct timespec timespec_sub(struct timespec lhs, struct timespec rhs);
 extern struct timespec timespec_add(struct timespec lhs, struct timespec rhs);
 extern void  nr_phy_free_RU(RU_t *);
