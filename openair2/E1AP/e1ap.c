@@ -1018,6 +1018,51 @@ int e1apCUCP_handle_BEARER_CONTEXT_SETUP_RESPONSE(instance_t instance,
         bearerCxt->gNB_cu_up_ue_id = ie->value.choice.GNB_CU_UP_UE_E1AP_ID;
         break;
 
+      case E1AP_ProtocolIE_ID_id_System_BearerContextSetupResponse:
+        AssertFatal(ie->criticality == E1AP_Criticality_reject,
+                    "ie->criticality != E1AP_Criticality_reject\n");
+        AssertFatal(ie->value.present == E1AP_BearerContextSetupResponseIEs__value_PR_System_BearerContextSetupResponse,
+                    "ie->value.present != E1AP_BearerContextSetupResponseIEs__value_PR_System_BearerContextSetupResponse\n");
+        AssertFatal(ie->value.choice.System_BearerContextSetupResponse.present ==
+                    E1AP_System_BearerContextSetupResponse_PR_nG_RAN_BearerContextSetupResponse,
+                    "ie->value.choice.System_BearerContextSetupResponse.present !="
+                    "E1AP_System_BearerContextSetupResponse_PR_nG_RAN_BearerContextSetupResponse\n");
+        E1AP_ProtocolIE_Container_4932P22_t *msgNGRAN_list = (E1AP_ProtocolIE_Container_4932P22_t *) ie->value.choice.System_BearerContextSetupResponse.choice.nG_RAN_BearerContextSetupResponse;
+        AssertFatal(msgNGRAN_list->list.count == 1, "Array count more than 1 not supported\n");
+        E1AP_NG_RAN_BearerContextSetupResponse_t *msgNGRAN = msgNGRAN_list->list.array[0];
+        AssertFatal(msgNGRAN->id == E1AP_ProtocolIE_ID_id_PDU_Session_Resource_Setup_List,
+                    "msgNGRAN->id != E1AP_ProtocolIE_ID_id_PDU_Session_Resource_Setup_List\n");
+        AssertFatal(msgNGRAN->criticality == E1AP_Criticality_reject,
+                    "msgNGRAN->criticality != E1AP_Criticality_reject\n");
+        AssertFatal(msgNGRAN->value.present == E1AP_NG_RAN_BearerContextSetupResponse__value_PR_PDU_Session_Resource_Setup_List,
+                    "msgNGRAN->value.present != E1AP_NG_RAN_BearerContextSetupResponse__value_PR_PDU_Session_Resource_Setup_List\n");
+        E1AP_PDU_Session_Resource_Setup_List_t *pduSetupList = &msgNGRAN->value.choice.PDU_Session_Resource_Setup_List;
+        bearerCxt->numPDUSessions = pduSetupList->list.count;
+
+        for (int i=0; i < pduSetupList->list.count; i++) {
+          pdu_session_setup_t *pduSetup = bearerCxt->pduSession + i;
+          E1AP_PDU_Session_Resource_Setup_Item_t *pdu = pduSetupList->list.array[i];
+          pduSetup->id = pdu->pDU_Session_ID;
+
+          if (pdu->nG_DL_UP_TNL_Information.choice.gTPTunnel) {
+            AssertFatal(pdu->nG_DL_UP_TNL_Information.present == E1AP_UP_TNL_Information_PR_gTPTunnel,
+                        "pdu->nG_DL_UP_TNL_Information.present != E1AP_UP_TNL_Information_PR_gTPTunnel\n");
+            BIT_STRING_TO_TRANSPORT_LAYER_ADDRESS_IPv4(&pdu->nG_DL_UP_TNL_Information.choice.gTPTunnel->transportLayerAddress,
+                                                  pduSetup->tlAddress);
+            OCTET_STRING_TO_INT32(&pdu->nG_DL_UP_TNL_Information.choice.gTPTunnel->gTP_TEID,
+                                  pduSetup->teId);
+          }
+
+          pduSetup->numDRBSetup = pdu->dRB_Setup_List_NG_RAN.list.count;
+          for (int j=0; j < pdu->dRB_Setup_List_NG_RAN.list.count; j++) {
+            DRB_nGRAN_setup_t *drbSetup = pduSetup->DRBnGRanList + j;
+            E1AP_DRB_Setup_Item_NG_RAN_t *drb = pdu->dRB_Setup_List_NG_RAN.list.array[j];
+
+            drbSetup->id = drb->dRB_ID;
+          }
+        }
+        break;
+
       // TODO: remaining IE handlers
 
       default:
