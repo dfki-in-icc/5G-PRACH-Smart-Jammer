@@ -202,6 +202,10 @@ static void rrc_gNB_mac_rrc_init(gNB_RRC_INST *rrc)
   switch (rrc->node_type) {
     case ngran_gNB_CUCP:
       rrc->cu_if.nr_e1_bearer_cxt_msg_transfer = bearer_context_setup_e1ap;
+      break;
+    case ngran_gNB_CUUP:
+      // CUUP should not have a RRC instance but we let it for now
+      break;
     case ngran_gNB_CU:
       mac_rrc_dl_f1ap_init(&rrc->mac_rrc);
       rrc->mac_rrc.nr_e1_bearer_cxt_msg_transfer = bearer_context_setup_direct;
