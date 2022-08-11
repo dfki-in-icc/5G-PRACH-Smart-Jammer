@@ -218,3 +218,10 @@ void nr_pdcp_add_drbs(eNB_flag_t enb_flag, rnti_t rnti,
                       uint8_t                  *const kUPenc,
                       uint8_t                  *const kUPint,
                       struct NR_CellGroupConfig__rlc_BearerToAddModList *rlc_bearer2add_list);
+
+void bearer_context_setup_direct(e1ap_bearer_setup_req_t *req,
+                                 instance_t instance);
+
+void bearer_context_setup_e1ap(e1ap_bearer_setup_req_t *req,
+                                 instance_t instance);
+
