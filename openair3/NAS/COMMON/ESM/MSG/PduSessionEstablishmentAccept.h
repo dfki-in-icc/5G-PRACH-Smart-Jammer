@@ -50,4 +50,7 @@ typedef struct pdu_session_establishment_accept_msg_s {
   qos_rules_t qos_rules;  /* Authorized QoS Rules */
 } pdu_session_establishment_accept_msg_t; /* PDU Session Establishment Accept 24.501 Table 8.3.2.1.1 */
 
+/* Function to process PDU SESSION ESTABLISHMENT ACCEPT message, so we can get the QFI and PDU Session ID from CN  */
+void process_pdu_session_establishment_accept(uint8_t *buffer);
+
 #endif

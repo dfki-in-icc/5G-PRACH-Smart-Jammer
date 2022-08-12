@@ -22,3 +22,7 @@
 #include "PduSessionEstablishmentAccept.h"
 #include "openair3/PDU/nr_ue_pdu.h"
 #include "common/utils/LOG/log.h"
+
+void process_pdu_session_establishment_accept(uint8_t *buffer){
+  
+}
