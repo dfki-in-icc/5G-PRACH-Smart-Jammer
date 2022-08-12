@@ -49,4 +49,6 @@ void nr_pdu_data_req(protocol_ctxt_t *ctxt_p,
                      const bool dc,
                      const uint8_t pdusession_id);
 
+nr_ue_pdu_t *nr_ue_pdu_get(uint8_t pdusession_id);
+
 #endif

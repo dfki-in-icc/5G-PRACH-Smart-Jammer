@@ -48,3 +48,19 @@ void nr_pdu_data_req(protocol_ctxt_t *ctxt_p,
                 PDCP_TRANSMISSION_MODE_DATA, NULL, NULL, qfi, dc, pdusession_id);
   return;
 }
+
+nr_ue_pdu_t *nr_ue_pdu_get(uint8_t pdusession_id) {
+  nr_ue_pdu_t *pdu;
+  pdu = pdus.llist;
+
+  if(pdu == NULL)
+    return NULL;
+
+  while((pdu->pdusession_id != pdusession_id && pdu->next_pdu != NULL))
+    pdu = pdu->next_pdu;
+
+  if(pdu->pdusession_id == pdusession_id)
+    return pdu;
+
+  return NULL;
+}
