@@ -736,7 +736,6 @@ void check_and_process_dci(nfapi_nr_dl_tti_request_t *dl_tti_request,
         slot = ul_tti_request->Slot;
         LOG_T(NR_PHY, "[%d, %d] ul_tti_request\n", frame, slot);
         copy_ul_tti_data_req_to_dl_info(&mac->dl_info, ul_tti_request);
-        free_and_zero(ul_tti_request);
     }
     else
     {

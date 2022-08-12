@@ -470,7 +470,7 @@ static void deliver_sdu(void *_ue, nr_rlc_entity_t *entity, char *buf, int size)
   int is_mbms;
 
   /* TODO: be sure it's fine to check rnti for MBMS */
-  is_mbms = get_softmodem()->nsa ? ue->rnti == 0xfffd : 0;
+  is_mbms = get_softmodem_params()->nsa ? ue->rnti == 0xfffd : 0;
 
   /* is it SRB? */
   for (i = 0; i < sizeofArray(ue->srb); i++) {
