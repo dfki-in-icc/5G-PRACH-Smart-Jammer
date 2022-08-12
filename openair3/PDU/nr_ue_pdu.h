@@ -24,4 +24,21 @@
 
 #define NULLQFI (0)
 
+#include "openair2/SDAP/nr_sdap/nr_sdap.h"
+
+/* Send data to PDU Layer */
+void nr_pdu_data_req(protocol_ctxt_t *ctxt_p,
+                     const srb_flag_t srb_flag,
+                     const rb_id_t rb_id,
+                     const mui_t mui,
+                     const confirm_t confirm,
+                     const sdu_size_t sdu_buffer_size,
+                     unsigned char *const sdu_buffer,
+                     const pdcp_transmission_mode_t pt_mode,
+                     const uint32_t *sourceL2Id,
+                     const uint32_t *destinationL2Id,
+                     const uint8_t qfi,
+                     const bool dc,
+                     const uint8_t pdusession_id);
+
 #endif

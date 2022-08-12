@@ -21,3 +21,22 @@
 
 #include "openair3/PDU/nr_ue_pdu.h"
 #include "openair2/COMMON/platform_types.h"
+
+void nr_pdu_data_req(protocol_ctxt_t *ctxt_p,
+                     const srb_flag_t srb_flag,
+                     const rb_id_t rb_id,
+                     const mui_t mui,
+                     const confirm_t confirm,
+                     const sdu_size_t sdu_buffer_size,
+                     unsigned char *const sdu_buffer,
+                     const pdcp_transmission_mode_t pt_mode,
+                     const uint32_t *sourceL2Id,
+                     const uint32_t *destinationL2Id,
+                     const uint8_t qfi,
+                     const bool dc,
+                     const uint8_t pdusession_id) {
+  LOG_D(PDU, "Sending data to SDAP with PDU Session ID [%u], QFI [%u] \n", pdusession_id, qfi);
+  sdap_data_req(ctxt_p, SRB_FLAG_NO, rb_id, 0, 0, sdu_buffer_size, (unsigned char *)sdu_buffer,
+                PDCP_TRANSMISSION_MODE_DATA, NULL, NULL, qfi, dc, pdusession_id);
+  return;
+}
