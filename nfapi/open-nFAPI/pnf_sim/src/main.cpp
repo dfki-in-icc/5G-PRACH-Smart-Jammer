@@ -357,7 +357,6 @@ void pnf_sim_trace(nfapi_trace_level_t level, const char* message, ...)
 
 void set_thread_priority(int priority)
 {
-#if !INHIBIT_REALTIME_SCHEDULER
 	//printf("%s(priority:%d)\n", __FUNCTION__, priority);
 
 	pthread_attr_t ptAttr;
@@ -382,7 +381,6 @@ void set_thread_priority(int priority)
 	{
 		printf("failed to set sched param\n");
 	}
-#endif // INHIBIT_REALTIME_SCHEDULER
 }
 
 

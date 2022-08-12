@@ -72,12 +72,10 @@ void reset_stats(FL_OBJECT *button, long arg) {
 
 static void *scope_thread_UE(void *arg) {
   char stats_buffer[16384];
-#if !INHIBIT_REALTIME_SCHEDULER
   struct sched_param sched_param;
   sched_param.sched_priority = sched_get_priority_min(SCHED_FIFO)+1;
   sched_setscheduler(0, SCHED_FIFO,&sched_param);
   printf("Scope thread has priority %d\n",sched_param.sched_priority);
-#endif // INHIBIT_REALTIME_SCHEDULER
 
   while (!oai_exit) {
     //      dump_ue_stats (PHY_vars_UE_g[0][0], &PHY_vars_UE_g[0][0]->proc.proc_rxtx[0],stats_buffer, 0, mode,rx_input_level_dBm);

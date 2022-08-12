@@ -674,10 +674,8 @@ void *vcd_dumper_thread_rt(void *args)
 
   return 0; //signal_mask(); //function defined at common/utils/ocp_itti/intertask_interface.cpp
 
-#if !INHIBIT_REALTIME_SCHEDULER
   sched_param.sched_priority = sched_get_priority_min(SCHED_FIFO) + 1;
   sched_setscheduler(0, SCHED_FIFO, &sched_param);
-#endif // INHIBIT_REALTIME_SCHEDULER
 
   while(1) {
     if (vcd_fifo.read_index == (vcd_fifo.write_index & VCD_FIFO_MASK)) {
