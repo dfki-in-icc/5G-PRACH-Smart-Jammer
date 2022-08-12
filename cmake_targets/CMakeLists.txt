@@ -1881,6 +1881,7 @@ set(L2_NR_SRC
   ${NR_RRC_DIR}/rrc_gNB_reconfig.c
   ${NR_RRC_DIR}/rrc_gNB_UE_context.c
   ${NR_RRC_DIR}/rrc_gNB_NGAP.c
+  ${OPENAIR3_DIR}/PDU/nr_ue_pdu.c
   )
 
 set(L2_SRC_UE
@@ -1913,6 +1914,7 @@ set(NR_L2_SRC_UE
   ${NR_UE_RRC_DIR}/rrc_UE.c
   ${NR_UE_RRC_DIR}/rrc_nsa.c
   ${NR_RRC_DIR}/nr_rrc_config.c
+  ${NR_PDU_SRC}
   )
 
 set (MAC_SRC
@@ -2077,6 +2079,10 @@ include_directories("${OPENAIR1_DIR}/SCHED_NR_UE")
 
 # L3 Libs
 ##########################
+
+set(NR_PDU_SRC
+  ${OPENAIR3_DIR}/PDU/nr_ue_pdu.c
+  )
 
 # CN libs
 ##########################
@@ -2348,6 +2354,7 @@ set(libnrnas_emm_msg_OBJS
   ${NAS_SRC}COMMON/EMM/MSG/RegistrationComplete.c
   ${NAS_SRC}COMMON/EMM/MSG/FGSUplinkNasTransport.c
   ${NAS_SRC}COMMON/ESM/MSG/PduSessionEstablishRequest.c
+  ${NAS_SRC}COMMON/ESM/MSG/PduSessionEstablishmentAccept.c
   )
 
 set(libnrnas_ies_OBJS
@@ -2369,6 +2376,7 @@ add_library(LIB_NAS_SIMUE
   ${NAS_SRC}UE/nas_proc.c
   ${NAS_SRC}UE/nas_user.c
   ${NAS_SRC}NR_UE/nr_nas_msg_sim.c
+  ${OPENAIR3_DIR}/PDU/nr_ue_pdu.c
   ${libnas_api_OBJS}
   ${libnas_ue_api_OBJS}
   ${libnas_emm_msg_OBJS}
