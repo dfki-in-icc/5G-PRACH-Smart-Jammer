@@ -67,4 +67,7 @@ void nr_ue_pdu_qfi_add(nr_ue_pdu_t *pdu, uint8_t qfi);
 /* Function to modify QFI of PDU Session */
 void nr_ue_pdu_qfi_modify(nr_ue_pdu_t *pdu, uint8_t qfi);
 
+/* Function to delete QFI from PDU Session */
+void nr_ue_pdu_qfi_delete(nr_ue_pdu_t *pdu, uint8_t qfi);
+
 #endif

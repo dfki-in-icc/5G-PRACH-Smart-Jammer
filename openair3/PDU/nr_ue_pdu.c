@@ -133,3 +133,12 @@ void nr_ue_pdu_qfi_modify(nr_ue_pdu_t *pdu, uint8_t qfi) {
 
   return;
 }
+
+void nr_ue_pdu_qfi_delete(nr_ue_pdu_t *pdu, uint8_t qfi) {
+  if(qfi <= MAX_QFI) {
+    pdu->qfi[qfi] = NULLQFI;
+    LOG_D(PDU, "QFI [%u] deleted from PDU Session with ID: [%u]", qfi, pdu->pdusession_id);
+  }
+
+  return;
+}
