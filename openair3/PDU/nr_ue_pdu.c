@@ -49,6 +49,25 @@ void nr_pdu_data_req(protocol_ctxt_t *ctxt_p,
   return;
 }
 
+void nr_ue_pdu_new(uint8_t qfi, uint8_t pdusession_id) {
+  if(nr_ue_pdu_get(pdusession_id)) {
+    LOG_D(PDU, "PDU Session already established with ID: %u\n", pdusession_id);
+    nr_ue_pdu_t *existing_pdu = nr_ue_pdu_get(pdusession_id);
+    nr_ue_pdu_qfi_add(existing_pdu, qfi);
+    return;
+  }
+
+  LOG_D(PDU, "Creating PDU Session with ID: [%u] and QFI: [%u]\n", pdusession_id, qfi);
+  nr_ue_pdu_t *pdu;
+  pdu = calloc(1, sizeof(nr_ue_pdu_t));
+  pdu->qfi[qfi]      = qfi;
+  pdu->default_qfi   = qfi;
+  pdu->pdusession_id = pdusession_id;
+  pdu->next_pdu = pdus.llist;
+  pdus.llist    = pdu;
+  return;
+}
+
 nr_ue_pdu_t *nr_ue_pdu_get(uint8_t pdusession_id) {
   nr_ue_pdu_t *pdu;
   pdu = pdus.llist;
@@ -63,4 +82,13 @@ nr_ue_pdu_t *nr_ue_pdu_get(uint8_t pdusession_id) {
     return pdu;
 
   return NULL;
+}
+
+void nr_ue_pdu_qfi_add(nr_ue_pdu_t *pdu, uint8_t qfi) {
+  if(pdu->qfi[qfi] == NULLQFI && qfi <= MAX_QFI) {
+    pdu->qfi[qfi] = qfi;
+    LOG_D(PDU, "QFI [%u] added to PDU Session with ID: [%u]", pdu->qfi[qfi], pdu->pdusession_id);
+  }
+
+  return;
 }
