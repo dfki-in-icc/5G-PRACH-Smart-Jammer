@@ -124,3 +124,12 @@ void nr_ue_pdu_qfi_add(nr_ue_pdu_t *pdu, uint8_t qfi) {
 
   return;
 }
+
+void nr_ue_pdu_qfi_modify(nr_ue_pdu_t *pdu, uint8_t qfi) {
+  if(qfi <= MAX_QFI) {
+    pdu->qfi[qfi] = qfi;
+    LOG_D(PDU, "QFI [%u] modified from PDU Session with ID: [%u]", pdu->qfi[qfi], pdu->pdusession_id);
+  }
+
+  return;
+}
