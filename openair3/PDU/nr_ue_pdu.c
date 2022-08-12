@@ -22,6 +22,14 @@
 #include "openair3/PDU/nr_ue_pdu.h"
 #include "openair2/COMMON/platform_types.h"
 
+typedef struct {
+  /* PDU Layer Linked List, every element is a PDU Session*/
+  nr_ue_pdu_t *llist;
+} nr_ue_pdu_list;
+
+/* Global struct with all the PDU Sessions */
+static nr_ue_pdu_list pdus;
+
 void nr_pdu_data_req(protocol_ctxt_t *ctxt_p,
                      const srb_flag_t srb_flag,
                      const rb_id_t rb_id,
