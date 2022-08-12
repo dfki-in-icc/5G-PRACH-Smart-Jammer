@@ -24,31 +24,83 @@
 
 #include <stdint.h>
 
-typedef struct qos_rule_s {
-  uint8_t qos_rule_id;        /* QoS rule identifier */
-  uint16_t qos_rule_length;   /* Length of QoS Rule */
-  uint8_t rule_oc;            /* Rule operation code (3bits) */
-  uint8_t dqr_bit;            /* DQR bit (1 bit) */
-  uint8_t nb_packet_filters;  /* Number of packet filters (4 bits) (=m)*/
-  uint8_t qos_rule_pr;        /* QoS rule precedence */
-  uint8_t qfi;                /* QoS Flow Identifier */
-} qos_rule_t; /* QoS Rule as defined in 24.501 Figure 9.11.4.13.2 */
+/* Mandatory Presence - START */
 
-typedef struct qos_rules_s {
-  uint8_t qos_rules_IE;         /* QoS rules IEI */
-  uint16_t qos_rules_IE_length; /* Length of QoS rules IE (=u)*/
-  qos_rule_t qos_rule;          /* QoS rule */
-} qos_rules_t; /* QoS Rules IE as defined in 24.501 9.11.4.13 */
+typedef struct packet_filter_component_s {
+  uint8_t pf_comp_type; /* Packet Filter Component Type */
+} packet_filter_component_t; /* TS 24.501 Figure 9.11.4.13.3 */
+
+typedef struct packet_filter_create_qos_rule_s {
+  uint8_t pf_dir; /* Packet filter direction */
+  uint8_t pf_id;  /* Packet filter identifier */
+  uint8_t length; /* Length of packet filter contents */
+  packet_filter_component_t *pfc; 
+} packet_filter_create_qos_rule_t; /* TS 24.501 Figure 9.11.4.13.4 */
+
+typedef struct packet_filter_modify_qos_rule_s {
+  uint8_t pf_id;  /* Packet filter identifier */
+} packet_filter_modify_qos_rule_t;
+
+typedef struct packet_filter_s {
+  union pf_type {
+    packet_filter_create_qos_rule_t create;
+    packet_filter_modify_qos_rule_t modify;
+  } pf_type;
+} packet_filter_t;
+
+typedef struct qos_rule_s {
+  uint8_t  id;          /* QoS rule identifier */
+  uint16_t length;      /* Length of QoS Rule */
+  uint8_t  oc;          /* Rule operation code (3bits) */
+  uint8_t  dqr;         /* DQR bit (1 bit) */
+  uint8_t  nb_pf;       /* Number of packet filters (4 bits) */
+  packet_filter_t *pf;  /* Packet filter list */
+  uint8_t  prcd;        /* QoS rule precedence */
+  uint8_t  qfi;         /* QoS Flow Identifier */
+} qos_rule_t;
+
+typedef struct auth_qos_rules_s {
+  uint16_t length;      /* Length of QoS rules IE */
+  qos_rule_t *qos_rule; /* QoS rule linked list */
+} auth_qos_rule_t; /* QoS Rule as defined in 24.501 Figure 9.11.4.13.2 */
+
+typedef struct session_ambr_s {
+  uint8_t  length;  /* Length of Session-AMBR contents */
+  uint8_t  unit_dl; /* Unit for Session-AMBR for downlink */
+  uint16_t sess_dl; /* Session-AMBR for downlink */
+  uint8_t  unit_ul; /* Unit for Session-AMBR for uplink */
+  uint16_t sess_ul; /* Session-AMBR for uplink */
+} session_ambr_t; /* TS 24.501 Figure 9.11.4.14.1 */
+
+/* Mandatory Presence - END */
 
 typedef struct pdu_session_establishment_accept_msg_s {
-  uint8_t epd;            /* Extended Protocol Discriminator */
-  uint8_t pdu_id;         /* PDU Session ID */
-  uint8_t pti;            /* Procedure Transaction Identity */
-  uint8_t msg_id;         /* PDU Session Establishment Accept Message Identity */
-  uint8_t pdu_type;       /* PDU Session Type (4 bits) */
-  uint8_t ssc_mode;       /*  SSC Mode (4 bits) */
-  qos_rules_t qos_rules;  /* Authorized QoS Rules */
-} pdu_session_establishment_accept_msg_t; /* PDU Session Establishment Accept 24.501 Table 8.3.2.1.1 */
+  /* Mandatory presence */
+  uint8_t epd;               /* Extended Protocol Discriminator */
+  uint8_t pdu_id;            /* PDU Session ID */
+  uint8_t pti;               /* Procedure Transaction Identity */
+  uint8_t msg_type;          /* Message Type */
+  uint8_t pdu_type;          /* PDU Session Type */
+  uint8_t ssc_mode;          /* SSC mode */
+  auth_qos_rule_t qos_rules; /* Authorized QoS rules */
+  session_ambr_t  sess_ambr; /* Session-AMBR */
+  /* Optional presence */
+} pdu_session_establishment_accept_msg_t; /* 24.501 Table 8.3.2.1.1 */
+
+typedef struct security_protected_plain_nas_5gs_msg_s {
+  uint8_t  epd;       /* Extended Protocol Discriminator */
+  uint8_t  sht;       /* Security Header Type */
+  uint8_t  msg_type;  /* Message Type */
+  uint8_t  cont_type; /* Payload Container Type */
+  uint16_t cont_len;  /* Payload Container Length */
+} security_protected_plain_nas_5gs_msg_t; 
+
+typedef struct security_protected_nas_5gs_msg_s {
+  uint8_t epd; /* Extended Protocol Discriminator */
+  uint8_t sht; /* Security Header Type */
+  int     mac; /* Message Authentication Code */
+  uint8_t sqn; /* Sequence Number */
+} security_protected_nas_5gs_msg_t; /* 24.501 Figure 9.1.1.2 */
 
 /* Function to process PDU SESSION ESTABLISHMENT ACCEPT message, so we can get the QFI and PDU Session ID from CN  */
 void process_pdu_session_establishment_accept(uint8_t *buffer);
