@@ -84,6 +84,16 @@ nr_ue_pdu_t *nr_ue_pdu_get(uint8_t pdusession_id) {
   return NULL;
 }
 
+nr_ue_pdu_t *nr_ue_pdu_get_default() {
+  nr_ue_pdu_t *pdu;
+  pdu = pdus.llist;
+
+  if(pdu == NULL)
+    return NULL;
+
+  return pdu;
+}
+
 void nr_ue_pdu_qfi_add(nr_ue_pdu_t *pdu, uint8_t qfi) {
   if(pdu->qfi[qfi] == NULLQFI && qfi <= MAX_QFI) {
     pdu->qfi[qfi] = qfi;

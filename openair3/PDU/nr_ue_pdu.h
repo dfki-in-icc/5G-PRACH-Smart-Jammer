@@ -53,6 +53,8 @@ void nr_pdu_data_req(protocol_ctxt_t *ctxt_p,
 void nr_ue_pdu_new(uint8_t qfi, uint8_t pdusession_id);
 /* Get PDU entity using pdusession_id */
 nr_ue_pdu_t *nr_ue_pdu_get(uint8_t pdusession_id);
+/* Returns the default PDU Session (1st PDU Session in the Linked List) */
+nr_ue_pdu_t *nr_ue_pdu_get_default(void);
 /* Function to add QFI to PDU Session */
 void nr_ue_pdu_qfi_add(nr_ue_pdu_t *pdu, uint8_t qfi);
 
