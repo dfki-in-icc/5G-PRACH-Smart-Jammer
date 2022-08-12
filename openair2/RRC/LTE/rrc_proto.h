@@ -124,16 +124,6 @@ rrc_ue_generate_RRCConnectionRequest(
   const uint8_t                eNB_index
 );
 
-/** \brief Generates/Encodes RRCConnectionReconfigurationComplete message at UE
- *  \param ctxt_pP Running context
- *  \param eNB_index Index of corresponding eNB/CH
- *  \param Transaction_id RRC transaction identifier
- */
-void rrc_ue_generate_RRCConnectionReconfigurationComplete(const protocol_ctxt_t *const ctxt_pP,
-                                                                 const uint8_t eNB_index,
-                                                                 const uint8_t Transaction_id,
-                                                                 OCTET_STRING_t *str);
-
 /** \brief process the received rrcConnectionReconfiguration message at UE
     \param ctxt_pP Running context
     \param *rrcConnectionReconfiguration pointer to the sturcture

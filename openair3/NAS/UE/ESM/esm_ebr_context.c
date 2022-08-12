@@ -200,7 +200,7 @@ int esm_ebr_context_create(
           int            netmask      = 32;
           char           broadcast[INET_ADDRSTRLEN];
           struct in_addr in_addr;
-          char           command_line[1024];
+          char           command_line[500];
           int            res = -1;
 
           switch (pdn->type) {

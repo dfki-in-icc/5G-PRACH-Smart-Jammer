@@ -715,12 +715,12 @@ void check_and_process_dci(nfapi_nr_dl_tti_request_t *dl_tti_request,
             slot = tx_data_request->Slot;
             LOG_I(NR_PHY, "[%d, %d] PDSCH in tx_request\n", frame, slot);
             copy_tx_data_req_to_dl_info(&mac->dl_info, tx_data_request);
-            free_and_zero(tx_data_request);
         }
         else
         {
             LOG_D(NR_MAC, "Unexpected tx_data_req\n");
         }
+        free_and_zero(tx_data_request);
     }
     else if (ul_dci_request)
     {
@@ -736,6 +736,7 @@ void check_and_process_dci(nfapi_nr_dl_tti_request_t *dl_tti_request,
         slot = ul_tti_request->Slot;
         LOG_T(NR_PHY, "[%d, %d] ul_tti_request\n", frame, slot);
         copy_ul_tti_data_req_to_dl_info(&mac->dl_info, ul_tti_request);
+        free_and_zero(ul_tti_request);
     }
     else
     {
@@ -1260,8 +1261,9 @@ int nr_ue_dl_indication(nr_downlink_indication_t *dl_info, NR_UL_TIME_ALIGNMENT_
         }
       }
       free(dl_info->rx_ind);
-      dl_info->rx_ind  = NULL;
+      dl_info->rx_ind = NULL;
     }
+    free(dl_info->rx_ind);
   }
   return 0;
 }

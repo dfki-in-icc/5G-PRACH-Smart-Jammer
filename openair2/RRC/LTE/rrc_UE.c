@@ -162,6 +162,10 @@ static void rrc_ue_generate_RRCConnectionSetupComplete(
  *  \param eNB_index Index of corresponding eNB/CH
  *  \param Transaction_id RRC transaction identifier
  */
+static void rrc_ue_generate_RRCConnectionReconfigurationComplete(const protocol_ctxt_t *const ctxt_pP,
+                                                                 const uint8_t eNB_index,
+                                                                 const uint8_t Transaction_id,
+                                                                 OCTET_STRING_t *str);
 
 static void rrc_ue_generate_MeasurementReport(protocol_ctxt_t *const ctxt_pP, uint8_t eNB_index );
 
@@ -2183,7 +2187,6 @@ rrc_ue_process_mobilityControlInfo(
                         (struct LTE_NonMBSFN_SubframeConfig_r14 *)NULL,
                         (LTE_MBSFN_AreaInfoList_r9_t *)NULL
                        );
-
   // Re-establish PDCP for all RBs that are established
   // rrc_pdcp_config_req (ue_mod_idP+NB_eNB_INST, frameP, 0, CONFIG_ACTION_ADD, ue_mod_idP+DCCH);
   // rrc_pdcp_config_req (ue_mod_idP+NB_eNB_INST, frameP, 0, CONFIG_ACTION_ADD, ue_mod_idP+DCCH1);

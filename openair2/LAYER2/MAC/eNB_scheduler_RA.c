@@ -655,6 +655,7 @@ generate_Msg4(module_id_t module_idP,
   dl_config_pdu = &dl_req_body->dl_config_pdu_list[dl_req_body->number_pdu];
   N_RB_DL = to_prb(cc[CC_idP].mib->message.dl_Bandwidth);
   UE_id = find_UE_id(module_idP, ra->rnti);
+
   if (UE_id < 0) {
     LOG_E(MAC, "Can't find UE for t-crnti %x, kill RA procedure for this UE\n",
           ra->rnti);
@@ -678,6 +679,7 @@ generate_Msg4(module_id_t module_idP,
    LOG_D(MAC,
    "[eNB %d][RAPROC] CC_id %d Frame %d, subframeP %d: UE_id %d, rrc_sdu_length %d\n",
    module_idP, CC_idP, frameP, subframeP, UE_id, rrc_sdu_length);*/
+
   if (ra->rach_resource_type > 0) {
     ra->harq_pid = 0;
     // Generate DCI + repetitions first

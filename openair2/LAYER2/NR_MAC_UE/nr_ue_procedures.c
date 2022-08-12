@@ -50,6 +50,7 @@
 #include "NR_MAC_UE/mac_extern.h"
 #include "NR_MAC_COMMON/nr_mac_extern.h"
 #include "common/utils/nr/nr_common.h"
+#include "openair2/NR_UE_PHY_INTERFACE/NR_Packet_Drop.h"
 
 /* PHY */
 #include "PHY/NR_TRANSPORT/nr_dci.h"
@@ -132,9 +133,6 @@ const initial_pucch_resource_t initial_pucch_resource[16] = {
 /* 14  */ {  1,       0,                 14,                   4,            4,       {    0,   3,    6,    9  }   },
 /* 15  */ {  1,       0,                 14,                   0,            4,       {    0,   3,    6,    9  }   },
 };
-
-extern nr_bler_struct nr_bler_data[NR_NUM_MCS];
-static int get_mcs_from_sinr(nr_bler_struct *nr_bler_data, float sinr);
 
 static uint8_t nr_extract_dci_info(NR_UE_MAC_INST_t *mac,
                             uint8_t dci_format,
@@ -2594,34 +2592,6 @@ uint8_t nr_get_csi_payload(NR_UE_MAC_INST_t *mac,
   return (n_csi_bits);
 }
 
-static int get_mcs_from_sinr(nr_bler_struct *nr_bler_data, float sinr)
-{
-  if (sinr < (nr_bler_data[0].bler_table[0][0]))
-  {
-    LOG_I(NR_MAC, "The SINR found is smaller than first MCS table\n");
-    return 0;
-  }
-
-  if (sinr > (nr_bler_data[NR_NUM_MCS-1].bler_table[nr_bler_data[NR_NUM_MCS-1].length - 1][0]))
-  {
-    LOG_I(NR_MAC, "The SINR found is larger than last MCS table\n");
-    return NR_NUM_MCS-1;
-  }
-
-  for (int n = NR_NUM_MCS-1; n >= 0; n--)
-  {
-    float largest_sinr = (nr_bler_data[n].bler_table[nr_bler_data[n].length - 1][0]);
-    float smallest_sinr = (nr_bler_data[n].bler_table[0][0]);
-    if (sinr < largest_sinr && sinr > smallest_sinr)
-    {
-      LOG_I(NR_MAC, "The SINR found in MCS %d table\n", n);
-      return n;
-    }
-  }
-  LOG_E(NR_MAC, "Unable to get an MCS value.\n");
-  abort();
-}
-
 uint8_t get_ssb_rsrp_payload(NR_UE_MAC_INST_t *mac,
                              PUCCH_sched_t *pucch,
                              struct NR_CSI_ReportConfig *csi_reportconfig,
@@ -3663,9 +3633,6 @@ void nr_ue_process_mac_pdu(nr_downlink_indication_t *dl_info,
         //  MSG4 RRC Setup 38.331
         //  variable length
         ret=get_mac_len(pduP, pdu_len, &mac_len, &mac_subheader_len);
-        if (!ret) {
-                return;
-        }
         AssertFatal(ret, "The mac_len (%d) has an invalid size. PDU len = %d! \n",
                     mac_len, pdu_len);
 
@@ -3794,7 +3761,9 @@ void nr_ue_process_mac_pdu(nr_downlink_indication_t *dl_info,
         }
         break;
       case DL_SCH_LCID_PADDING:
-        return;
+        done = 1;
+        //  end of MAC PDU, can ignore the rest.
+        break;
         //  MAC SDU
       case DL_SCH_LCID_DCCH:
         //  check if LCID is valid at current time.
@@ -3804,10 +3773,6 @@ void nr_ue_process_mac_pdu(nr_downlink_indication_t *dl_info,
             {
 	      if (!get_mac_len(pduP, pdu_len, &mac_len, &mac_subheader_len))
 		    return;
-                if (pdu_len < sizeof(NR_MAC_SUBHEADER_FIXED)) {
-                    done = 1;
-                    break;
-                }
                 LOG_D(NR_MAC, "[UE %d] %4d.%2d : DLSCH -> DL-DTCH %d (gNB %d, %d bytes)\n", module_idP, frameP, slot, rx_lcid, gNB_index, mac_len);
 
                 #if defined(ENABLE_MAC_PAYLOAD_DEBUG)

@@ -404,15 +404,11 @@ void init_UE_stub_single_thread(int nb_inst,
 }
 
 int num_enbs = 1;
-void init_UE_standalone_thread(int ue_idx)
-{
-  pthread_t thread;
-  LOG_D(MAC, "num_enbs = %d\n", num_enbs);
-
+void init_UE_standalone_thread(int ue_idx) {
   int standalone_tx_port = 3211 + ue_idx * 2;
   int standalone_rx_port = 3212 + ue_idx * 2;
   ue_init_standalone_socket(standalone_tx_port, standalone_rx_port);
-
+  pthread_t thread;
 
   if (pthread_create(&thread, NULL, ue_standalone_pnf_task, NULL) != 0) {
     LOG_E(MAC, "pthread_create failed for calling ue_standalone_pnf_task");

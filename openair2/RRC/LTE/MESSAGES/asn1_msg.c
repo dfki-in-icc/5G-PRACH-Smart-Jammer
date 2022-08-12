@@ -4192,7 +4192,6 @@ uint8_t do_MeasurementReport(uint8_t Mod_id, uint8_t *buffer, size_t buffer_size
   struct LTE_MeasResultEUTRA *measresulteutra2;
   measresulteutra2 = CALLOC(1,sizeof(*measresulteutra2));
   measresulteutra2->physCellId=phy_id;//1;
-
   struct LTE_MeasResultEUTRA__cgi_Info *measresult_cgi2;
   measresult_cgi2 = CALLOC(1,sizeof(*measresult_cgi2));
   memset(&measresult_cgi2->cellGlobalId.plmn_Identity,0,sizeof(measresult_cgi2->cellGlobalId.plmn_Identity));
@@ -4224,7 +4223,6 @@ uint8_t do_MeasurementReport(uint8_t Mod_id, uint8_t *buffer, size_t buffer_size
   measresult_cgi2->cellGlobalId.cellIdentity.buf[3]=0x00;
   measresult_cgi2->cellGlobalId.cellIdentity.size=4;
   measresult_cgi2->cellGlobalId.cellIdentity.bits_unused=4;
-
   measresult_cgi2->trackingAreaCode.buf = MALLOC(2);
   measresult_cgi2->trackingAreaCode.buf[0]=0x00;
   measresult_cgi2->trackingAreaCode.buf[1]=0x05;

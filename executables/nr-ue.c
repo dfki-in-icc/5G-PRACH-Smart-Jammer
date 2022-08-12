@@ -281,7 +281,7 @@ static void process_queued_nr_nfapi_msgs(NR_UE_MAC_INST_t *mac, int sfn_slot)
             NFAPI_SFNSLOT2SFN(dl_tti_sfn_slot), NFAPI_SFNSLOT2SLOT(dl_tti_sfn_slot));
       if (get_softmodem_params()->nsa)
         save_nr_measurement_info(dl_tti_request);
-
+      free_and_zero(dl_tti_request);
     }
     else if (dl_tti_request->dl_tti_request_body.nPDUs > 0 && tx_data_request->Number_of_PDUs > 0)
     {
@@ -384,6 +384,7 @@ static void *NRUE_phy_stub_standalone_pnf_task(void *arg)
     }
     else if (ch_info) {
       sfn_slot = ch_info->sfn_slot;
+      free_and_zero(ch_info);
     }
 
     frame_t frame = NFAPI_SFNSLOT2SFN(sfn_slot);
@@ -392,7 +393,6 @@ static void *NRUE_phy_stub_standalone_pnf_task(void *arg)
     {
       LOG_D(NR_MAC, "repeated sfn_sf = %d.%d\n",
             frame, slot);
-      free_and_zero(ch_info);
       continue;
     }
     last_sfn_slot = sfn_slot;
@@ -409,7 +409,6 @@ static void *NRUE_phy_stub_standalone_pnf_task(void *arg)
     if (mac->scc == NULL && mac->scc_SIB == NULL)
     {
       LOG_D(MAC, "[NSA] mac->scc == NULL and [SA] mac->scc_SIB == NULL!\n");
-      free_and_zero(ch_info);
       continue;
     }
 

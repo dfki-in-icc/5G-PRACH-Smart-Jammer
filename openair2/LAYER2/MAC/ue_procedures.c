@@ -149,15 +149,13 @@ void ue_init_mac(module_id_t module_idP) {
     UE_mac_inst[module_idP].scheduling_info.LCID_buffer_remain[i] = 0;
   }
 
-  if(NFAPI_MODE == NFAPI_UE_STUB_PNF || NFAPI_MODE == NFAPI_MODE_STANDALONE_PNF) {
+  if (NFAPI_MODE == NFAPI_UE_STUB_PNF || NFAPI_MODE == NFAPI_MODE_STANDALONE_PNF) {
     pthread_mutex_init(&UE_mac_inst[module_idP].UL_INFO_mutex,NULL);
-    if (UE_mac_inst[module_idP].UE_mode[0] < PUSCH)
-    {
+    if (UE_mac_inst[module_idP].UE_mode[0] < PUSCH) {
       UE_mac_inst[module_idP].SI_Decoded = 0;
       next_ra_frame = 0;
     }
-    else
-    {
+    else {
       UE_mac_inst[module_idP].SI_Decoded = 1;
       next_ra_frame = 500;
     }
@@ -420,7 +418,6 @@ ue_send_sdu(module_id_t module_idP,
       LOG_I(MAC, "ce %d : %d\n",i,rx_ces[i]);
       switch (rx_ces[i]) {
         case UE_CONT_RES:
-          tx_sdu = &UE_mac_inst[module_idP].CCCH_pdu.payload[3];
           LOG_I(MAC,
                 "[UE %d][RAPROC] Frame %d : received contention resolution msg: %x.%x.%x.%x.%x.%x, Terminating RA procedure\n",
                 module_idP, frameP, payload_ptr[0], payload_ptr[1],
@@ -433,6 +430,7 @@ ue_send_sdu(module_id_t module_idP,
                   module_idP, frameP);
             UE_mac_inst[module_idP].RA_active = 0;
             // check if RA procedure has finished completely (no contention)
+            tx_sdu = &UE_mac_inst[module_idP].CCCH_pdu.payload[3];
 
             //Note: 3 assumes sizeof(SCH_SUBHEADER_SHORT) + PADDING CE, which is when UL-Grant has TBS >= 9 (64 bits)
             // (other possibility is 1 for TBS=7 (SCH_SUBHEADER_FIXED), or 2 for TBS=8 (SCH_SUBHEADER_FIXED+PADDING or SCH_SUBHEADER_SHORT)

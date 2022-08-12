@@ -850,8 +850,6 @@ void dl_config_req_UE_MAC_dci(int sfn,
       for (int ue_id = 0; ue_id < num_ue; ue_id++) {
         if (UE_mac_inst[ue_id].UE_mode[0] == NOT_SYNCHED)
           continue;
-        LOG_I(MAC, "%s() ue_id %d UE_mode %d\n",
-              __func__, ue_id, UE_mac_inst[ue_id].UE_mode[0]);
         ue_decode_si(ue_id, 0, sfn, 0,
             tx_req_pdu_list->pdus[pdu_index].segments[0].segment_data,
             tx_req_pdu_list->pdus[pdu_index].segments[0].segment_length);
@@ -2128,15 +2126,15 @@ static inline bool is_channel_modeling(void)
      modeling for NSA mode yet. For now, we ensure only do do chanel modeling
      in LTE mode. */
   if (num_enbs >= 2) {
-    LOG_T(MAC, "It does not support channel modeling in LTE handover mode.\n");
+    LOG_T(MAC, "Channel modeling is not supported in LTE handover mode.\n");
     return false;
   }
   if (get_softmodem_params()->node_number != 0) {
-    LOG_T(MAC, "It does not support channel modeling with open-source proxy.\n");
+    LOG_T(MAC, "Channel modeling is not supported in open-source proxy.\n");
     return false;
   }
   if (get_softmodem_params()->nsa) {
-    LOG_T(MAC, "It does not support channel modeling in NSA mode.\n");
+    LOG_T(MAC, "Channel modeling is not supported in NSA mode.\n");
     return false;
   }
   return true;

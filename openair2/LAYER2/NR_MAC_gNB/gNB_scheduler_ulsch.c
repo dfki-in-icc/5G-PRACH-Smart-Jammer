@@ -173,7 +173,12 @@ int nr_process_mac_pdu( instance_t module_idP,
                NR_BSR_LONG *bsr_l = (NR_BSR_LONG *) ce_ptr;
                sched_ctrl->estimated_ul_buffer = 0;
 
-               n_Lcg = 0;
+               n_Lcg = bsr_l->LcgID7 + bsr_l->LcgID6 + bsr_l->LcgID5 + bsr_l->LcgID4 +
+                       bsr_l->LcgID3 + bsr_l->LcgID2 + bsr_l->LcgID1 + bsr_l->LcgID0;
+
+               LOG_D(NR_MAC, "LONG BSR, LCG ID(7-0) %d/%d/%d/%d/%d/%d/%d/%d\n",
+                     bsr_l->LcgID7, bsr_l->LcgID6, bsr_l->LcgID5, bsr_l->LcgID4,
+                     bsr_l->LcgID3, bsr_l->LcgID2, bsr_l->LcgID1, bsr_l->LcgID0);
 
                for (int n = 0; n < n_Lcg; n++){
                  LOG_D(NR_MAC, "LONG BSR, %d/%d (n/n_Lcg), BS Index %d, BS value < %d",
