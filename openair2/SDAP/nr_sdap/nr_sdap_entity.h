@@ -34,7 +34,7 @@
 #define SDAP_HDR_UL_DATA_PDU        (1)
 #define SDAP_HDR_UL_CTRL_PDU        (0)
 #define SDAP_HDR_LENGTH             (1)
-#define SDAP_MAX_QFI                (64)
+#define MAX_QFI                     (64)
 #define SDAP_MAP_RULE_EMPTY         (0)
 #define AVLBL_DRB                   (5)
 #define SDAP_NO_MAPPING_RULE        (0)
@@ -73,7 +73,7 @@ typedef struct nr_sdap_entity_s {
   uint16_t rnti;
   rb_id_t default_drb;
   int pdusession_id;
-  qfi2drb_t qfi2drb_table[SDAP_MAX_QFI];
+  qfi2drb_t qfi2drb_table[MAX_QFI];
 
   void (*qfi2drb_map_update)(struct nr_sdap_entity_s *entity, uint8_t qfi, rb_id_t drb, bool hasSdap);
   void (*qfi2drb_map_delete)(struct nr_sdap_entity_s *entity, uint8_t qfi);

@@ -26,6 +26,14 @@
 
 #include "openair2/SDAP/nr_sdap/nr_sdap.h"
 
+typedef struct nr_ue_pdu_s {
+  uint8_t qfi[MAX_QFI];
+  uint8_t pdusession_id;
+  uint8_t default_qfi;
+
+  struct nr_ue_pdu_s *next_pdu;
+} nr_ue_pdu_t;
+
 /* Send data to PDU Layer */
 void nr_pdu_data_req(protocol_ctxt_t *ctxt_p,
                      const srb_flag_t srb_flag,

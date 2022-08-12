@@ -297,7 +297,7 @@ static void nr_sdap_rx_entity(nr_sdap_entity_t *entity,
 }
 
 void nr_sdap_qfi2drb_map_update(nr_sdap_entity_t *entity, uint8_t qfi, rb_id_t drb, bool hasSdap) {
-  if(qfi < SDAP_MAX_QFI &&
+  if(qfi < MAX_QFI &&
      qfi > SDAP_MAP_RULE_EMPTY &&
      drb > 0 &&
      drb <= AVLBL_DRB)
