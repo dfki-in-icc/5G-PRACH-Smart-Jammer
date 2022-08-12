@@ -95,9 +95,17 @@ nfapi_ue_release_request_body_t release_rntis;
 //Fixme: Uniq dirty DU instance, by global var, datamodel need better management
 instance_t DUuniqInstance=0;
 instance_t CUuniqInstance=0;
-teid_t newGtpuCreateTunnel(instance_t instance, rnti_t rnti, int incoming_bearer_id, int outgoing_bearer_id, teid_t outgoing_teid,
-                           transport_layer_addr_t remoteAddr, int port, gtpCallback callBack) {
-return 0;
+teid_t newGtpuCreateTunnel(instance_t instance,
+                           rnti_t rnti,
+                           int incoming_bearer_id,
+                           int outgoing_bearer_id,
+                           teid_t outgoing_teid,
+                           int qfi,
+                           transport_layer_addr_t remoteAddr,
+                           int port,
+                           gtpCallback callBack,
+                           gtpCallbackSDAP callBackSDAP) {
+  return 0;
 }
 
 int newGtpuDeleteAllTunnels(instance_t instance, rnti_t rnti) {
@@ -725,7 +733,7 @@ int main(int argc, char **argv)
   else sprintf(tp_param,"n");
   int s_offset = 0,slen=0;
   for (int icpu=1; icpu<threadCnt; icpu++) {
-    slen=sprintf(tp_param+1+s_offset,",%d",-1/*icpu*2*/);
+    slen=sprintf(tp_param+1+s_offset,",%d",icpu*2);
     s_offset += slen;
   }
 
@@ -1614,7 +1622,7 @@ int main(int argc, char **argv)
       printStatIndent2(&gNB->rx_pusch_init_stats,"RX PUSCH Initialization time");
       printStatIndent2(&gNB->rx_pusch_symbol_processing_stats,"RX PUSCH Symbol Processing time");
       printStatIndent2(&gNB->ulsch_ptrs_processing_stats,"ULSCH PTRS Processing time");
-      if (threadCnt == 1) {
+      if (use_tpool==0) {
         printStatIndent2(&gNB->ulsch_rbs_extraction_stats,"ULSCH rbs extraction time");
         printStatIndent2(&gNB->ulsch_channel_compensation_stats,"ULSCH channel compensation time");
         printStatIndent2(&gNB->ulsch_mrc_stats,"ULSCH mrc computation");

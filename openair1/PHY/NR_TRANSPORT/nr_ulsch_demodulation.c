@@ -2993,7 +2993,7 @@ uint8_t nr_ulsch_zero_forcing_rx_2layers(int **rxdataF_comp,
 }
 
 /* Main Function */
- int nr_rx_pusch(PHY_VARS_gNB *gNB,
+int nr_rx_pusch(PHY_VARS_gNB *gNB,
 		 uint8_t ulsch_id,
 		 uint32_t frame,
 		 uint8_t slot,

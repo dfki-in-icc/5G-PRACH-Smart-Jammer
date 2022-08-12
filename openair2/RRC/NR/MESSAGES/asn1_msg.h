@@ -73,9 +73,7 @@ uint8_t do_MIB_NR(gNB_RRC_INST *rrc,
 @param carrier pointer to Carrier information
 @param configuration Pointer Configuration Request structure  
 @return size of encoded bit stream in bytes*/
-uint8_t do_SIB1_NR(rrc_gNB_carrier_data_t *carrier,
-  gNB_RrcConfigurationReq *configuration
-                  );
+uint16_t do_SIB1_NR(rrc_gNB_carrier_data_t *carrier, gNB_RrcConfigurationReq *configuration);
 
 uint8_t do_SIB23_NR(rrc_gNB_carrier_data_t *carrier,
                     gNB_RrcConfigurationReq *configuration);
@@ -114,6 +112,7 @@ void fill_initial_cellGroupConfig(int uid,
                                   const gNB_RrcConfigurationReq *configuration);
 
 void update_cellGroupConfig(NR_CellGroupConfig_t *cellGroupConfig,
+                            const int uid,
                             NR_UE_NR_Capability_t *uecap,
                             const gNB_RrcConfigurationReq *configuration);
 

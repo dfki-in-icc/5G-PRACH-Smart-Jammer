@@ -42,16 +42,16 @@
 #include "openair2/LAYER2/NR_MAC_gNB/nr_mac_gNB.h"
 #include <openair3/ocp-gtpu/gtp_itf.h>
 
-boolean_t lteDURecvCb( protocol_ctxt_t  *ctxt_pP,
-                       const srb_flag_t     srb_flagP,
-                       const rb_id_t        rb_idP,
-                       const mui_t          muiP,
-                       const confirm_t      confirmP,
-                       const sdu_size_t     sdu_buffer_sizeP,
-                       unsigned char *const sdu_buffer_pP,
-                       const pdcp_transmission_mode_t modeP,
-                       const uint32_t *sourceL2Id,
-                       const uint32_t *destinationL2Id) {
+bool lteDURecvCb(protocol_ctxt_t  *ctxt_pP,
+                 const srb_flag_t     srb_flagP,
+                 const rb_id_t        rb_idP,
+                 const mui_t          muiP,
+                 const confirm_t      confirmP,
+                 const sdu_size_t     sdu_buffer_sizeP,
+                 unsigned char *const sdu_buffer_pP,
+                 const pdcp_transmission_mode_t modeP,
+                 const uint32_t *sourceL2Id,
+                 const uint32_t *destinationL2Id) {
   // The buffer comes from the stack in gtp-u thread, we have a make a separate buffer to enqueue in a inter-thread message queue
   mem_block_t *sdu=get_free_mem_block(sdu_buffer_sizeP, __func__);
   memcpy(sdu->data,  sdu_buffer_pP,  sdu_buffer_sizeP);
@@ -187,14 +187,16 @@ int DU_handle_UE_CONTEXT_SETUP_REQUEST(instance_t       instance,
         transport_layer_addr_t addr;
         memcpy(addr.buffer, &drb_p->up_ul_tnl[0].tl_address, sizeof(drb_p->up_ul_tnl[0].tl_address));
         addr.length=sizeof(drb_p->up_ul_tnl[0].tl_address)*8;
-        drb_p->up_dl_tnl[0].teid=newGtpuCreateTunnel(INSTANCE_DEFAULT,
-                                 f1ap_ue_context_setup_req->rnti,
-                                 drb_p->drb_id,
-                                 drb_p->drb_id,
-                                 drb_p->up_ul_tnl[0].teid,
-                                 addr,
-                                 drb_p->up_ul_tnl[0].port,
-                                 lteDURecvCb);
+        drb_p->up_dl_tnl[0].teid = newGtpuCreateTunnel(INSTANCE_DEFAULT,
+                                                       f1ap_ue_context_setup_req->rnti,
+                                                       drb_p->drb_id,
+                                                       drb_p->drb_id,
+                                                       drb_p->up_ul_tnl[0].teid,
+                                                       -1, // no qfi
+                                                       addr,
+                                                       drb_p->up_ul_tnl[0].port,
+                                                       lteDURecvCb,
+                                                       NULL);
         drb_p->up_dl_tnl_length++;
       }
     }
@@ -704,7 +706,7 @@ int DU_send_UE_CONTEXT_RELEASE_REQUEST(instance_t instance,
       LOG_E(F1AP,"Not found rnti: %x\n", rnti);
   } else {
     for (int n = 0; n < MAX_MOBILES_PER_ENB; ++n) {
-      if (RC.mac[instance]->UE_info.active[n] == TRUE
+      if (RC.mac[instance]->UE_info.active[n] == true
           && rnti == UE_RNTI(instance, n)) {
         UE_out_of_sync = RC.mac[instance]->UE_info.UE_sched_ctrl[n].ul_out_of_sync;
         break;
@@ -856,7 +858,7 @@ int DU_handle_UE_CONTEXT_RELEASE_COMMAND(instance_t       instance,
 
   if(RC.rrc && RC.rrc[instance]->node_type == ngran_eNB_DU){
     for (int n = 0; n < MAX_MOBILES_PER_ENB; ++n) {
-      if (RC.mac[instance]->UE_info.active[n] == TRUE
+      if (RC.mac[instance]->UE_info.active[n] == true
           && rnti == UE_RNTI(instance, n)) {
         UE_out_of_sync = RC.mac[instance]->UE_info.UE_sched_ctrl[n].ul_out_of_sync;
         break;
@@ -1171,14 +1173,16 @@ int DU_handle_UE_CONTEXT_MODIFICATION_REQUEST(instance_t       instance,
         transport_layer_addr_t addr;
           memcpy(addr.buffer, &drb_p->up_ul_tnl[0].tl_address, sizeof(drb_p->up_ul_tnl[0].tl_address));
           addr.length=sizeof(drb_p->up_ul_tnl[0].tl_address)*8;
-          drb_p->up_dl_tnl[0].teid=newGtpuCreateTunnel(INSTANCE_DEFAULT,
-                               f1ap_ue_context_modification_req->rnti,
-                               drb_p->drb_id,
-                               drb_p->drb_id,
-                               drb_p->up_ul_tnl[0].teid,
-                               addr,
-                               drb_p->up_ul_tnl[0].port,
-                               lteDURecvCb);
+          drb_p->up_dl_tnl[0].teid = newGtpuCreateTunnel(INSTANCE_DEFAULT,
+                                                         f1ap_ue_context_modification_req->rnti,
+                                                         drb_p->drb_id,
+                                                         drb_p->drb_id,
+                                                         drb_p->up_ul_tnl[0].teid,
+                                                         -1, // no qfi
+                                                         addr,
+                                                         drb_p->up_ul_tnl[0].port,
+                                                         lteDURecvCb,
+                                                         NULL);
           drb_p->up_dl_tnl_length++;
       }
     }
