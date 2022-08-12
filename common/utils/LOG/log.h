@@ -216,6 +216,7 @@ typedef enum {
   UDP_,
   GTPU,
   SDAP,
+  PDU,
   SPGW,
   S1AP,
   F1AP,
