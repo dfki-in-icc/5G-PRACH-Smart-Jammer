@@ -94,6 +94,28 @@ nr_ue_pdu_t *nr_ue_pdu_get_default() {
   return pdu;
 }
 
+void nr_ue_pdu_delete(uint8_t pdusession_id) {
+  nr_ue_pdu_t *pdu;
+  pdu = pdus.llist;
+
+  if(pdu->pdusession_id == pdusession_id) {
+    pdus.llist = pdus.llist->next_pdu;
+    free(pdu);
+  } else {
+    nr_ue_pdu_t *pduPrev = NULL;
+
+    while(pdu->pdusession_id != pdusession_id && pdu->next_pdu != NULL) {
+      pduPrev = pdu;
+      pdu = pdu->next_pdu;
+    }
+
+    if(pdu->pdusession_id != pdusession_id) {
+      pduPrev->next_pdu = pdu->next_pdu;
+      free(pdu);
+    }
+  }
+}
+
 void nr_ue_pdu_qfi_add(nr_ue_pdu_t *pdu, uint8_t qfi) {
   if(pdu->qfi[qfi] == NULLQFI && qfi <= MAX_QFI) {
     pdu->qfi[qfi] = qfi;
