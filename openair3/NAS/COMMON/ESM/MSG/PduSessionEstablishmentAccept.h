@@ -114,10 +114,10 @@ typedef struct security_protected_plain_nas_5gs_msg_s {
 } security_protected_plain_nas_5gs_msg_t; 
 
 typedef struct security_protected_nas_5gs_msg_s {
-  uint8_t epd; /* Extended Protocol Discriminator */
-  uint8_t sht; /* Security Header Type */
-  int     mac; /* Message Authentication Code */
-  uint8_t sqn; /* Sequence Number */
+  uint8_t  epd; /* Extended Protocol Discriminator */
+  uint8_t  sht; /* Security Header Type */
+  uint32_t mac; /* Message Authentication Code */
+  uint8_t  sqn; /* Sequence Number */
 } security_protected_nas_5gs_msg_t; /* 24.501 Figure 9.1.1.2 */
 
 /* Function to process PDU SESSION ESTABLISHMENT ACCEPT message, so we can get the QFI and PDU Session ID from CN  */

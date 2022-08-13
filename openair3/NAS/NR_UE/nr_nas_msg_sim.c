@@ -38,6 +38,7 @@
 #include "aka_functions.h"
 #include "secu_defs.h"
 #include "PduSessionEstablishRequest.h"
+#include "PduSessionEstablishmentAccept.h"
 #include "intertask_interface.h"
 #include "openair2/RRC/NAS/nas_config.h"
 #include <openair3/UICC/usim_interface.h>
@@ -904,6 +905,7 @@ void *nas_nrue_task(void *args_p)
             LOG_I(NAS, "Send NAS_UPLINK_DATA_REQ message(PduSessionEstablishRequest)\n");
           }
         } else if(msg_type == FGS_PDU_SESSION_ESTABLISHMENT_ACC){
+            process_pdu_session_establishment_accept(pdu_buffer);
             uint8_t offset = 0;
             uint8_t *payload_container = NULL;
             offset += SECURITY_PROTECTED_5GS_NAS_MESSAGE_HEADER_LENGTH;

@@ -24,5 +24,15 @@
 #include "common/utils/LOG/log.h"
 
 void process_pdu_session_establishment_accept(uint8_t *buffer){
+  uint8_t offset = 0;
+
+  security_protected_nas_5gs_msg_t sec_nas_hdr;
   
+  sec_nas_hdr.epd = *(buffer + (offset++));
+  sec_nas_hdr.sht = *(buffer + (offset++));
+  sec_nas_hdr.mac = htonl(*(int*)(buffer+offset));
+  offset+=sizeof(sec_nas_hdr.mac);
+  sec_nas_hdr.sqn = *(buffer + (offset++));
+
+  return;
 }
