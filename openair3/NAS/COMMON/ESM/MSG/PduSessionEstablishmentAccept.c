@@ -21,9 +21,10 @@
 
 #include "PduSessionEstablishmentAccept.h"
 #include "openair3/PDU/nr_ue_pdu.h"
+#include "nr_nas_msg_sim.h"
 #include "common/utils/LOG/log.h"
 
-void process_pdu_session_establishment_accept(uint8_t *buffer){
+void process_pdu_session_establishment_accept(uint8_t *buffer, uint32_t msg_length){
   uint8_t offset = 0;
 
   security_protected_nas_5gs_msg_t       sec_nas_hdr;
@@ -41,6 +42,8 @@ void process_pdu_session_establishment_accept(uint8_t *buffer){
   sec_nas_msg.payload_type = *(buffer + (offset++));
   sec_nas_msg.payload_len  = htons(*(uint16_t*)(buffer + offset));
   offset+=sizeof(sec_nas_msg.payload_len);
+
+  uint8_t payload_length = sec_nas_msg.payload_len;
 
   return;
 }

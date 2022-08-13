@@ -905,7 +905,7 @@ void *nas_nrue_task(void *args_p)
             LOG_I(NAS, "Send NAS_UPLINK_DATA_REQ message(PduSessionEstablishRequest)\n");
           }
         } else if(msg_type == FGS_PDU_SESSION_ESTABLISHMENT_ACC){
-            process_pdu_session_establishment_accept(pdu_buffer);
+            process_pdu_session_establishment_accept(pdu_buffer, NAS_CONN_ESTABLI_CNF (msg_p).nasMsg.length);
             uint8_t offset = 0;
             uint8_t *payload_container = NULL;
             offset += SECURITY_PROTECTED_5GS_NAS_MESSAGE_HEADER_LENGTH;
