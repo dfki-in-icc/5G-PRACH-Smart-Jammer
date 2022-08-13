@@ -106,11 +106,11 @@ typedef struct pdu_session_establishment_accept_msg_s {
 } pdu_session_establishment_accept_msg_t; /* 24.501 Table 8.3.2.1.1 */
 
 typedef struct security_protected_plain_nas_5gs_msg_s {
-  uint8_t  epd;       /* Extended Protocol Discriminator */
-  uint8_t  sht;       /* Security Header Type */
-  uint8_t  msg_type;  /* Message Type */
-  uint8_t  cont_type; /* Payload Container Type */
-  uint16_t cont_len;  /* Payload Container Length */
+  uint8_t  epd;           /* Extended Protocol Discriminator */
+  uint8_t  sht;           /* Security Header Type */
+  uint8_t  msg_type;      /* Message Type */
+  uint8_t  payload_type;  /* Payload Container Type */
+  uint16_t payload_len;   /* Payload Container Length */
 } security_protected_plain_nas_5gs_msg_t; 
 
 typedef struct security_protected_nas_5gs_msg_s {
