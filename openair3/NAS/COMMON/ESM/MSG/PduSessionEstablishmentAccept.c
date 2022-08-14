@@ -174,7 +174,7 @@ void process_pdu_session_establishment_accept(uint8_t *buffer, uint32_t msg_leng
           apn[i] = *(buffer + offset + i);
           ++i;
         }
-        LOG_D(NAS, "PDU SESSION ESTABLISHMENT ACCEPT - APN: %s", apn);
+        LOG_D(NAS, "PDU SESSION ESTABLISHMENT ACCEPT - APN: %s\n", apn);
         offset += psea_msg.dnn_ie.dnn_length;
         psea_iei = *(buffer + offset++);
         break;
