@@ -145,7 +145,7 @@ typedef struct security_protected_plain_nas_5gs_msg_s {
   uint8_t  msg_type;      /* Message Type */
   uint8_t  payload_type;  /* Payload Container Type */
   uint16_t payload_len;   /* Payload Container Length */
-} security_protected_plain_nas_5gs_msg_t; 
+} security_protected_plain_nas_5gs_msg_t;
 
 typedef struct security_protected_nas_5gs_msg_s {
   uint8_t  epd; /* Extended Protocol Discriminator */
