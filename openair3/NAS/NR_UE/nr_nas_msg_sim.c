@@ -906,27 +906,6 @@ void *nas_nrue_task(void *args_p)
           }
         } else if(msg_type == FGS_PDU_SESSION_ESTABLISHMENT_ACC){
             process_pdu_session_establishment_accept(pdu_buffer, NAS_CONN_ESTABLI_CNF (msg_p).nasMsg.length);
-            uint8_t offset = 0;
-            uint8_t *payload_container = NULL;
-            offset += SECURITY_PROTECTED_5GS_NAS_MESSAGE_HEADER_LENGTH;
-            uint16_t payload_container_length = htons(((dl_nas_transport_t *)(pdu_buffer + offset))->payload_container_length);
-            if ((payload_container_length >= PAYLOAD_CONTAINER_LENGTH_MIN) && (payload_container_length <= PAYLOAD_CONTAINER_LENGTH_MAX)) {
-              offset += (PLAIN_5GS_NAS_MESSAGE_HEADER_LENGTH + 3);
-            }
-
-            if (offset < NAS_CONN_ESTABLI_CNF(msg_p).nasMsg.length) {
-              payload_container = pdu_buffer + offset;
-            }
-            offset = 0;
-            uint8_t pdu_id = *(pdu_buffer+14);
-            while(offset < payload_container_length) {
-              if (*(payload_container + offset) == 0x79) {
-                uint8_t qfi = *(payload_container+offset+3);
-                set_qfi_pduid(qfi, pdu_id);
-                break;
-              }
-              offset++;
-            }
           }
 
         break;

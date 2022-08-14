@@ -185,5 +185,7 @@ void process_pdu_session_establishment_accept(uint8_t *buffer, uint32_t msg_leng
     }
   }
 
+  set_qfi_pduid(qos_rule.qfi, psea_msg.pdu_id);
+
   return;
 }
