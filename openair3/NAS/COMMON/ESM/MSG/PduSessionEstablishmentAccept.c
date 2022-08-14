@@ -23,6 +23,7 @@
 #include "openair3/PDU/nr_ue_pdu.h"
 #include "nr_nas_msg_sim.h"
 #include "common/utils/LOG/log.h"
+#include "openair2/RRC/NAS/nas_config.h"
 
 void process_pdu_session_establishment_accept(uint8_t *buffer, uint32_t msg_length){
   uint8_t offset = 0;
