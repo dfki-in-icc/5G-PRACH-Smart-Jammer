@@ -24,27 +24,30 @@
 
 #include <stdint.h>
 
-/* Mandatory Presence - START */
+/* Rule operation codes - TS 24.501 Table 9.11.4.13.1 */
+#define ROC_CREATE_NEW_QOS_RULE                     0b001
+#define ROC_DELETE_QOS_RULE                         0b010
+#define ROC_MODIFY_QOS_RULE_ADD_PACKET_FILTERS      0b011
+#define ROC_MODIFY_QOS_RULE_REPLACE_PACKET_FILTERS  0b100
+#define ROC_MODIFY_QOS_RULE_DELETE_PACKET_FILTERS   0b101
+#define ROC_MODIFY_QOS_RULE_WITHOUT_PACKET_FILTERS  0b110
 
-typedef struct packet_filter_component_s {
-  uint8_t pf_comp_type; /* Packet Filter Component Type */
-} packet_filter_component_t; /* TS 24.501 Figure 9.11.4.13.3 */
+/* Mandatory Presence - START */
 
 typedef struct packet_filter_create_qos_rule_s {
   uint8_t pf_dir; /* Packet filter direction */
   uint8_t pf_id;  /* Packet filter identifier */
   uint8_t length; /* Length of packet filter contents */
-  packet_filter_component_t *pfc; 
-} packet_filter_create_qos_rule_t; /* TS 24.501 Figure 9.11.4.13.4 */
+} packet_filter_type1_t; /* TS 24.501 Figure 9.11.4.13.3 */
 
 typedef struct packet_filter_modify_qos_rule_s {
   uint8_t pf_id;  /* Packet filter identifier */
-} packet_filter_modify_qos_rule_t;
+} packet_filter_type2_t; /* TS 24.501 Figure 9.11.4.13.4 */
 
 typedef struct packet_filter_s {
   union pf_type {
-    packet_filter_create_qos_rule_t create;
-    packet_filter_modify_qos_rule_t modify;
+    packet_filter_type1_t type_1;
+    packet_filter_type2_t type_2;
   } pf_type;
 } packet_filter_t;
 
@@ -54,14 +57,12 @@ typedef struct qos_rule_s {
   uint8_t  oc;          /* Rule operation code (3bits) */
   uint8_t  dqr;         /* DQR bit (1 bit) */
   uint8_t  nb_pf;       /* Number of packet filters (4 bits) */
-  packet_filter_t *pf;  /* Packet filter list */
   uint8_t  prcd;        /* QoS rule precedence */
   uint8_t  qfi;         /* QoS Flow Identifier */
 } qos_rule_t;
 
 typedef struct auth_qos_rules_s {
   uint16_t length;      /* Length of QoS rules IE */
-  qos_rule_t *qos_rule; /* QoS rule linked list */
 } auth_qos_rule_t; /* QoS Rule as defined in 24.501 Figure 9.11.4.13.2 */
 
 typedef struct session_ambr_s {
