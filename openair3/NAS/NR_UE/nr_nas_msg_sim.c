@@ -920,20 +920,6 @@ void *nas_nrue_task(void *args_p)
             offset = 0;
             uint8_t pdu_id = *(pdu_buffer+14);
             while(offset < payload_container_length) {
-	      // Fixme: this is not good 'type' 0x29 searching in TLV like structure
-	      // AND fix dirsty code copy hereafter of the same!!!
-              if (*(payload_container + offset) == 0x29) { // PDU address IEI
-                if ((*(payload_container+offset+1) == 0x05) && (*(payload_container +offset+2) == 0x01)) { // IPV4
-                  nas_getparams();
-                  sprintf(baseNetAddress, "%d.%d", *(payload_container+offset+3), *(payload_container+offset+4));
-                  int third_octet = *(payload_container+offset+5);
-                  int fourth_octet = *(payload_container+offset+6);
-                  LOG_I(NAS, "Received PDU Session Establishment Accept, UE IP: %d.%d.%d.%d\n",
-                    *(payload_container+offset+3), *(payload_container+offset+4),
-                    *(payload_container+offset+5), *(payload_container+offset+6));
-                  nas_config(1,third_octet,fourth_octet,"oaitun_ue");
-                }
-              }
               if (*(payload_container + offset) == 0x79) {
                 uint8_t qfi = *(payload_container+offset+3);
                 set_qfi_pduid(qfi, pdu_id);
