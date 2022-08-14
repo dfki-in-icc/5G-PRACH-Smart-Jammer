@@ -49,6 +49,9 @@
 #define ROC_MODIFY_QOS_RULE_DELETE_PACKET_FILTERS   0b101
 #define ROC_MODIFY_QOS_RULE_WITHOUT_PACKET_FILTERS  0b110
 
+/* DNN - ASCII Codes */
+#define ASCII_ACK 0x06
+
 /* Mandatory Presence - START */
 
 typedef struct packet_filter_create_qos_rule_s {
@@ -95,17 +98,27 @@ typedef struct session_ambr_s {
 /* Optional Presence - START */
 
 typedef struct pdu_address_s {
-  uint8_t pdu_iei;    /* PDU Address IEI (0x29) */
-  uint8_t pdu_length; /* Length of PDU address contents */
-  uint8_t pdu_type;   /* PDU session type value */
-  int     pdu_addr;   /* PDU address information */
+  uint8_t pdu_iei;        /* PDU Address IEI (0x29) */
+  uint8_t pdu_length;     /* Length of PDU address contents */
+  uint8_t pdu_type;       /* PDU session type value */
+  uint8_t pdu_addr_oct1;  /* PDU address information (1st Octet)*/
+  uint8_t pdu_addr_oct2;  /* PDU address information (2nd Octet)*/
+  uint8_t pdu_addr_oct3;  /* PDU address information (3rd Octet)*/
+  uint8_t pdu_addr_oct4;  /* PDU address information (4th Octet)*/
 } pdu_address_t; /* TS 24.501 9.11.4.10 */
 
 typedef struct dnn_s {
   uint8_t dnn_iei;    /* DNN IEI (0x25) */
   uint8_t dnn_length; /* Length of DNN contents */
-  uint8_t *dnn;       /* DNN Value */
 } dnn_t; /* TS 24.501 9.11.2.1A */
+
+typedef struct ext_pP_t {
+  uint16_t length;
+} ext_pP_t; /* TS 24.008 10.5.6.3A - Ommited only length is processed*/
+
+typedef struct qos_fd_s {
+  uint16_t length;
+} qos_fd_t; /* TS 24.501 9.11.4.12 - Ommited only length is processed*/
 
 /* Optional Presence - STOP */
 
@@ -120,8 +133,10 @@ typedef struct pdu_session_establishment_accept_msg_s {
   auth_qos_rule_t qos_rules; /* Authorized QoS rules */
   session_ambr_t  sess_ambr; /* Session-AMBR */
   /* Optional presence */
-  dnn_t         dnn;         /* Data Network Name */
-  pdu_address_t pdu_addr;    /* PDU Address */
+  dnn_t         dnn_ie;      /* Data Network Name */
+  pdu_address_t pdu_addr_ie; /* PDU Address */
+  ext_pP_t      ext_pp_ie;      /* Extended Protocol Configuration Options */
+  qos_fd_t      qos_fd_ie;      /* QoS flow descriptions */
 } pdu_session_establishment_accept_msg_t; /* 24.501 Table 8.3.2.1.1 */
 
 typedef struct security_protected_plain_nas_5gs_msg_s {
