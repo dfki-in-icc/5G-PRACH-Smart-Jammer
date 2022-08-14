@@ -69,10 +69,8 @@ void process_pdu_session_establishment_accept(uint8_t *buffer, uint32_t msg_leng
   qos_rule.nb_pf  =  *(buffer + (offset++)) & 0x0F;
 
   if(qos_rule.nb_pf) {
-
     /* This supports the capture of only one packet rule, 
        it should be changed for multiple packet rules */
-
     packet_filter_t pf;
     if(qos_rule.oc == ROC_CREATE_NEW_QOS_RULE ||
                       ROC_MODIFY_QOS_RULE_ADD_PACKET_FILTERS ||
@@ -80,8 +78,7 @@ void process_pdu_session_establishment_accept(uint8_t *buffer, uint32_t msg_leng
       pf.pf_type.type_1.pf_dir = (*(buffer + offset) & 0x30) >> 4;
       pf.pf_type.type_1.pf_id  =  *(buffer + offset++) & 0x0F;
       pf.pf_type.type_1.length =  *(buffer + offset++);
-
-     offset += (qos_rule.nb_pf * pf.pf_type.type_1.length); /* Ommit the Packet filter List */
+      offset += (qos_rule.nb_pf * pf.pf_type.type_1.length); /* Ommit the Packet filter List */
     } else if (qos_rule.oc == ROC_MODIFY_QOS_RULE_DELETE_PACKET_FILTERS) {
       offset += qos_rule.nb_pf;
     }
