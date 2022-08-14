@@ -44,10 +44,7 @@ void nr_pdu_data_req(protocol_ctxt_t *ctxt_p,
                      unsigned char *const sdu_buffer,
                      const pdcp_transmission_mode_t pt_mode,
                      const uint32_t *sourceL2Id,
-                     const uint32_t *destinationL2Id,
-                     const uint8_t qfi,
-                     const bool dc,
-                     const uint8_t pdusession_id);
+                     const uint32_t *destinationL2Id);
 
 /* Create new PDU Session */
 void nr_ue_pdu_new(uint8_t qfi, uint8_t pdusession_id);

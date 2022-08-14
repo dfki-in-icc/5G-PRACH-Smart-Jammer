@@ -39,10 +39,11 @@ void nr_pdu_data_req(protocol_ctxt_t *ctxt_p,
                      unsigned char *const sdu_buffer,
                      const pdcp_transmission_mode_t pt_mode,
                      const uint32_t *sourceL2Id,
-                     const uint32_t *destinationL2Id,
-                     const uint8_t qfi,
-                     const bool dc,
-                     const uint8_t pdusession_id) {
+                     const uint32_t *destinationL2Id) {
+  nr_ue_pdu_t *default_pdu_session = nr_ue_pdu_get_default();
+  bool dc = SDAP_HDR_UL_DATA_PDU;
+  uint8_t pdusession_id = default_pdu_session->pdusession_id;
+  uint8_t qfi           = default_pdu_session->default_qfi;
   LOG_D(PDU, "Sending data to SDAP with PDU Session ID [%u], QFI [%u] \n", pdusession_id, qfi);
   sdap_data_req(ctxt_p, SRB_FLAG_NO, rb_id, 0, 0, sdu_buffer_size, (unsigned char *)sdu_buffer,
                 PDCP_TRANSMISSION_MODE_DATA, NULL, NULL, qfi, dc, pdusession_id);

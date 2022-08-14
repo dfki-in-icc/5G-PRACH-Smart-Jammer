@@ -484,13 +484,9 @@ static void *ue_tun_read_thread(void *_)
 
     ctxt.rnti = rnti;
 
-    bool dc = SDAP_HDR_UL_DATA_PDU;
-    extern uint8_t nas_qfi;
-    extern uint8_t nas_pduid;
-
     nr_pdu_data_req(&ctxt, SRB_FLAG_NO, rb_id, RLC_MUI_UNDEFINED,
                    RLC_SDU_CONFIRM_NO, len, (unsigned char *)rx_buf,
-                   PDCP_TRANSMISSION_MODE_DATA, NULL, NULL, nas_qfi, dc, nas_pduid);
+                   PDCP_TRANSMISSION_MODE_DATA, NULL, NULL);
   }
 
   return NULL;
