@@ -24,6 +24,23 @@
 
 #include <stdint.h>
 
+/* PDU Session Establish Accept Optional IE Identifiers - TS 24.501 Table 8.3.2.1.1 */
+#define IEI_5GSM_CAUSE      0x59
+#define IEI_PDU_ADDRESS     0x29
+#define IEI_RQ_TIMER_VALUE  0x56
+#define IEI_SNSSAI          0x22
+#define IEI_ALWAYSON_PDU    0x80
+#define IEI_MAPPED_EPS      0x75
+#define IEI_EAP_MSG         0x78
+#define IEI_AUTH_QOS_DESC   0x79
+#define IEI_EXT_CONF_OPT    0x7b
+#define IEI_DNN             0x25
+
+/* PDU Session type value - TS 24.501 Table 9.11.4.10.1*/
+#define PDU_SESSION_TYPE_IPV4   0b001
+#define PDU_SESSION_TYPE_IPV6   0b010
+#define PDU_SESSION_TYPE_IPV4V6 0b011
+
 /* Rule operation codes - TS 24.501 Table 9.11.4.13.1 */
 #define ROC_CREATE_NEW_QOS_RULE                     0b001
 #define ROC_DELETE_QOS_RULE                         0b010
@@ -103,7 +120,8 @@ typedef struct pdu_session_establishment_accept_msg_s {
   auth_qos_rule_t qos_rules; /* Authorized QoS rules */
   session_ambr_t  sess_ambr; /* Session-AMBR */
   /* Optional presence */
-
+  dnn_t         dnn;         /* Data Network Name */
+  pdu_address_t pdu_addr;    /* PDU Address */
 } pdu_session_establishment_accept_msg_t; /* 24.501 Table 8.3.2.1.1 */
 
 typedef struct security_protected_plain_nas_5gs_msg_s {
