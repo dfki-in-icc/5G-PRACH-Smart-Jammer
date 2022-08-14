@@ -44,8 +44,6 @@ void process_pdu_session_establishment_accept(uint8_t *buffer, uint32_t msg_leng
   sec_nas_msg.payload_len  = htons(*(uint16_t*)(buffer + offset));
   offset+=sizeof(sec_nas_msg.payload_len);
 
-  uint8_t payload_length = sec_nas_msg.payload_len;
-
   /* Mandatory Presence IEs */
 
   psea_msg.epd      = *(buffer + (offset++));
