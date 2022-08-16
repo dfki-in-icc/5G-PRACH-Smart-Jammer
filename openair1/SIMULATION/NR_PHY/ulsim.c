@@ -704,6 +704,8 @@ int main(int argc, char **argv)
 
   LOG_I( PHY,"++++++++++++++++++++++++++++++++++++++++++++++%i+++++++++++++++++++++++++++++++++++++++++",loglvl);  
 
+  mlockall(MCL_CURRENT | MCL_FUTURE);
+
   if (openair0_cfg[0].threequarter_fs == 1) sampling_frequency*=.75;
 
   UE2gNB = new_channel_desc_scm(n_tx, n_rx, channel_model,
@@ -741,6 +743,7 @@ int main(int argc, char **argv)
   initTpool(tp_param, gNB->threadPool, threadCnt>1  ? true : false);
   initNotifiedFIFO(gNB->respDecode);
   gNB->use_pusch_tp = use_tpool;
+  gNB->num_pusch_symbols_per_thread = 1;
   gNB->L1_tx_free = (notifiedFIFO_t*) malloc(sizeof(notifiedFIFO_t));
   gNB->L1_tx_filled = (notifiedFIFO_t*) malloc(sizeof(notifiedFIFO_t));
   gNB->L1_tx_out = (notifiedFIFO_t*) malloc(sizeof(notifiedFIFO_t));

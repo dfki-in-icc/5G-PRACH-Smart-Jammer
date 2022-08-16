@@ -2121,52 +2121,60 @@ void nr_pusch_symbol_processing_noprecoding(void *arg) {
   nfapi_nr_pusch_pdu_t *rel15_ul=rdata->rel15_ul;
   int ulsch_id=rdata->ulsch_id;
   int slot=rdata->slot;
-  int symbol=rdata->symbol;
-  int dmrs_symbol_flag = (rel15_ul->ul_dmrs_symb_pos >> symbol) & 0x01;
-  int nb_re_pusch = gNB->pusch_vars[ulsch_id]->ul_valid_re_per_slot[symbol];
-  // this needs to be reworded for parrellization, we need a table which give dmrs symbol location
-  // used for chennel estimate, they are being run in parallel!
-  if (dmrs_symbol_flag == 1) {
-    if ((rel15_ul->ul_dmrs_symb_pos >> ((symbol + 1) % frame_parms->symbols_per_slot)) & 0x01)
-      AssertFatal(1==0,"Double DMRS configuration is not yet supported\n");
+  int16_t *llr=rdata->llr;
+  int16_t *s=rdata->s;
 
-    gNB->pusch_vars[ulsch_id]->dmrs_symbol = symbol;
-  }
+  for (int symbol = rdata->startSymbol;symbol < rdata->startSymbol+rdata->numSymbols;symbol++) {
+    int dmrs_symbol_flag = (rel15_ul->ul_dmrs_symb_pos >> symbol) & 0x01;
+    int nb_re_pusch = gNB->pusch_vars[ulsch_id]->ul_valid_re_per_slot[symbol];
+    // this needs to be reworded for parrellization, we need a table which give dmrs symbol location
+    // used for chennel estimate, they are being run in parallel!
+    if (dmrs_symbol_flag == 1) {
+      if ((rel15_ul->ul_dmrs_symb_pos >> ((symbol + 1) % frame_parms->symbols_per_slot)) & 0x01)
+        AssertFatal(1==0,"Double DMRS configuration is not yet supported\n");
 
-  LOG_D(PHY,"symbol %d: nb_re_pusch %d, DMRS symbl used for Chest :%d \n", symbol, nb_re_pusch, gNB->pusch_vars[ulsch_id]->dmrs_symbol);
+      gNB->pusch_vars[ulsch_id]->dmrs_symbol = symbol;
+    }
 
-  if (nb_re_pusch == 0) return;
+    LOG_D(PHY,"symbol %d: nb_re_pusch %d, DMRS symbl used for Chest :%d \n", symbol, nb_re_pusch, gNB->pusch_vars[ulsch_id]->dmrs_symbol);
 
-
-  void (*inner_rx)(int *,int *,int16_t *,int,int,int);
-
-  if      (rel15_ul->qam_mod_order == 2) inner_rx = inner_rx_qpsk;
-  else if (rel15_ul->qam_mod_order == 4) inner_rx = inner_rx_16qam;
-  else if (rel15_ul->qam_mod_order == 6) inner_rx = inner_rx_64qam;
-  else if (rel15_ul->qam_mod_order == 8) inner_rx = inner_rx_256qam;
-  else    AssertFatal(1==0,"rel15_ul->qam_mod_order %d, pusch_pdu->dmrs_config_type %d\n",
-	  	      rel15_ul->qam_mod_order,rel15_ul->dmrs_config_type);
-
-  int soffset   = (slot&3)*frame_parms->symbols_per_slot*frame_parms->ofdm_symbol_size;
-  int16_t *llr  = &gNB->pusch_vars[ulsch_id]->llr[gNB->pusch_vars[ulsch_id]->llr_offset[symbol]];
-  int32_t rxFext[nb_re_pusch] __attribute__((aligned(32)));
-  int32_t chFext[nb_re_pusch] __attribute__((aligned(32)));
+    if (nb_re_pusch == 0) continue;
 
 
-  for (int aa=0;aa<frame_parms->nb_antennas_rx;aa++) {
-    nr_ulsch_extract_rbs0(gNB->common_vars.rxdataF[aa],
-                          gNB->pusch_vars[ulsch_id]->ul_ch_estimates[aa],
-                          rxFext,
-                          chFext,
-  	  		  soffset+(symbol * frame_parms->ofdm_symbol_size),
-	 		  gNB->pusch_vars[ulsch_id]->dmrs_symbol*frame_parms->ofdm_symbol_size,
-			  aa,
-                          dmrs_symbol_flag, 
-                          rel15_ul,
-                          frame_parms);
-    inner_rx(rxFext,chFext,llr,aa,nb_re_pusch,gNB->pusch_vars[ulsch_id]->log2_maxh);
+    void (*inner_rx)(int *,int *,int16_t *,int,int,int);
 
-  }
+    if      (rel15_ul->qam_mod_order == 2) inner_rx = inner_rx_qpsk;
+    else if (rel15_ul->qam_mod_order == 4) inner_rx = inner_rx_16qam;
+    else if (rel15_ul->qam_mod_order == 6) inner_rx = inner_rx_64qam;
+    else if (rel15_ul->qam_mod_order == 8) inner_rx = inner_rx_256qam;
+    else    AssertFatal(1==0,"rel15_ul->qam_mod_order %d, pusch_pdu->dmrs_config_type %d\n",
+  	   	        rel15_ul->qam_mod_order,rel15_ul->dmrs_config_type);
+
+    int soffset   = (slot&3)*frame_parms->symbols_per_slot*frame_parms->ofdm_symbol_size;
+    int32_t rxFext[nb_re_pusch] __attribute__((aligned(32)));
+    int32_t chFext[nb_re_pusch] __attribute__((aligned(32)));
+    int16_t llr16[nb_re_pusch*rel15_ul->qam_mod_order] __attribute__((aligned(32)));
+    for (int aa=0;aa<frame_parms->nb_antennas_rx;aa++) {
+      nr_ulsch_extract_rbs0(gNB->common_vars.rxdataF[aa],
+                            gNB->pusch_vars[ulsch_id]->ul_ch_estimates[aa],
+                            rxFext,
+                            chFext,
+  	    		    soffset+(symbol * frame_parms->ofdm_symbol_size),
+	 		    gNB->pusch_vars[ulsch_id]->dmrs_symbol*frame_parms->ofdm_symbol_size,
+			    aa,
+                            dmrs_symbol_flag, 
+                            rel15_ul,
+                            frame_parms);
+      inner_rx(rxFext,chFext,llr16,aa,nb_re_pusch,gNB->pusch_vars[ulsch_id]->log2_maxh);
+    }
+    // unscrambling
+    __m64 *llr64 = (__m64 *) llr;
+    for (int i=0;i<(nb_re_pusch*rel15_ul->qam_mod_order)>>2;i++) {
+       llr64[i] = _mm_mullo_pi16(((__m64 *)llr16)[i],((__m64 *)s)[i]);
+    }
+    s+=(nb_re_pusch*rel15_ul->qam_mod_order);
+    llr+=(nb_re_pusch*rel15_ul->qam_mod_order);
+  }    
 }
 
 /*
@@ -3258,6 +3266,7 @@ int nr_rx_pusch_tp(PHY_VARS_gNB *gNB,
   nfapi_nr_pusch_pdu_t *rel15_ul = &gNB->ulsch[ulsch_id]->harq_processes[harq_pid]->ulsch_pdu;
 
 
+
   gNB->pusch_vars[ulsch_id]->dmrs_symbol = INVALID_VALUE;
   gNB->pusch_vars[ulsch_id]->cl_done = 0;
   memset(gNB->pusch_vars[ulsch_id]->extraction_done,0,14*sizeof(int));
@@ -3318,6 +3327,28 @@ int nr_rx_pusch_tp(PHY_VARS_gNB *gNB,
   stop_meas(&gNB->ulsch_channel_estimation_stats);
 
   start_meas(&gNB->rx_pusch_init_stats);
+
+  // Scrambling initialization
+  int number_dmrs_symbols=0;
+  for (int l = rel15_ul->start_symbol_index; l < rel15_ul->start_symbol_index + rel15_ul->nr_of_symbols; l++)
+    number_dmrs_symbols += ((rel15_ul->ul_dmrs_symb_pos)>>l)&0x01;
+
+  int nb_re_dmrs;
+  if (rel15_ul->dmrs_config_type==pusch_dmrs_type1)
+    nb_re_dmrs = 6*rel15_ul->num_dmrs_cdm_grps_no_data;
+  else
+    nb_re_dmrs = 4*rel15_ul->num_dmrs_cdm_grps_no_data;
+
+  int G = nr_get_G(rel15_ul->rb_size,
+               rel15_ul->nr_of_symbols,
+               nb_re_dmrs,
+               number_dmrs_symbols, // number of dmrs symbols irrespective of single or double symbol dmrs
+               rel15_ul->qam_mod_order,
+               rel15_ul->nrOfLayers);
+  // initialize scrambling sequence
+  int16_t s[G+16] __attribute__((aligned(32)));
+
+  nr_codeword_unscrambling_init(s,G,0,rel15_ul->data_scrambling_id,rel15_ul->rnti); 
   void (*nr_pusch_symbol_processing_ptr)(void*) = &nr_pusch_symbol_processing_noprecoding;
 //  void (*nr_pusch_symbol_processing_ptr)(void*) = &nr_pusch_symbol_processing;
 
@@ -3365,15 +3396,19 @@ int nr_rx_pusch_tp(PHY_VARS_gNB *gNB,
   gNB->pusch_vars[ulsch_id]->extraction_done[meas_symbol]=1;
   stop_meas(&gNB->rx_pusch_init_stats);
   start_meas(&gNB->rx_pusch_symbol_processing_stats);
+  int numSymbols=gNB->num_pusch_symbols_per_thread;
   for(uint8_t symbol = rel15_ul->start_symbol_index; 
       symbol < (rel15_ul->start_symbol_index + rel15_ul->nr_of_symbols); 
-      symbol++) {
-
-    gNB->pusch_vars[ulsch_id]->ul_valid_re_per_slot[symbol] = get_nb_re_pusch(frame_parms,rel15_ul,symbol);
-    gNB->pusch_vars[ulsch_id]->llr_offset[symbol] = (symbol==rel15_ul->start_symbol_index) ? 
-                                                    0 : 
-                                                    gNB->pusch_vars[ulsch_id]->llr_offset[symbol-1] + gNB->pusch_vars[ulsch_id]->ul_valid_re_per_slot[symbol-1] * rel15_ul->qam_mod_order;
-    if (gNB->pusch_vars[ulsch_id]->ul_valid_re_per_slot[symbol] > 0)  {
+      symbol+=numSymbols) {
+    int total_res=0;
+    for (int s = 0; s<numSymbols;s++) { 
+	gNB->pusch_vars[ulsch_id]->ul_valid_re_per_slot[symbol+s] = get_nb_re_pusch(frame_parms,rel15_ul,symbol+s);
+        gNB->pusch_vars[ulsch_id]->llr_offset[symbol+s] = ((symbol+s)==rel15_ul->start_symbol_index) ? 
+                                                          0 : 
+                                                          gNB->pusch_vars[ulsch_id]->llr_offset[symbol+s-1] + gNB->pusch_vars[ulsch_id]->ul_valid_re_per_slot[symbol+s-1] * rel15_ul->qam_mod_order;
+	total_res+=gNB->pusch_vars[ulsch_id]->ul_valid_re_per_slot[symbol+s];
+    }	
+    if (total_res > 0)  {
       union puschSymbolReqUnion id = {.s={ulsch_id,frame,slot,0}};
       id.p=1+symbol;
       notifiedFIFO_elt_t *req=newNotifiedFIFO_elt(sizeof(puschSymbolProc_t),id.p,gNB->respPuschSymb,nr_pusch_symbol_processing_ptr);
@@ -3382,8 +3417,11 @@ int nr_rx_pusch_tp(PHY_VARS_gNB *gNB,
       rdata->frame_parms=frame_parms;
       rdata->rel15_ul = rel15_ul;
       rdata->slot = slot;
-      rdata->symbol = symbol;
+      rdata->startSymbol = symbol;
+      rdata->numSymbols = numSymbols;
       rdata->ulsch_id=ulsch_id;
+      rdata->llr = &gNB->pusch_vars[ulsch_id]->llr[gNB->pusch_vars[ulsch_id]->llr_offset[symbol]];
+      rdata->s   = &s[gNB->pusch_vars[ulsch_id]->llr_offset[symbol]];
       pushTpool(gNB->threadPool,req);
       gNB->nbSymb++;
       LOG_D(PHY,"%d.%d Added symbol %d (count %d) to process, in pipe\n",frame,slot,symbol,gNB->nbSymb);

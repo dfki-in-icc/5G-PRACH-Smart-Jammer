@@ -908,6 +908,7 @@ typedef struct PHY_VARS_gNB_s {
   int nbDecode;
   uint8_t thread_pool_size;
   int use_pusch_tp;
+  int num_pusch_symbols_per_thread;
   int number_of_nr_dlsch_max;
   int number_of_nr_ulsch_max;
   void * scopeData;
@@ -919,7 +920,10 @@ typedef struct puschSymbolProc_s {
   nfapi_nr_pusch_pdu_t *rel15_ul;
   int ulsch_id;
   int slot;
-  int symbol;
+  int startSymbol;
+  int numSymbols;
+  int16_t *llr;
+  int16_t *s;
 } puschSymbolProc_t;
 
 struct puschSymbolReqId {
