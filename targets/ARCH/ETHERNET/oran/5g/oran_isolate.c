@@ -288,6 +288,9 @@ void oran_fh_if4p5_south_in(RU_t *ru,
   ru_info_t ru_info;
   ru_info.nb_rx = ru->nb_rx;
   ru_info.rxdataF = ru->common.rxdataF;
+  ru_info.prach_buf = (int *)ru->prach_rxsigF[0][0];//index: [prach_oca][ant_id]
+
+  read_prach_data(&ru_info, *frame, *slot);
 
   int ret = xran_fh_rx_read_slot(s->oran_priv, &ru_info, *frame, *slot);  
 

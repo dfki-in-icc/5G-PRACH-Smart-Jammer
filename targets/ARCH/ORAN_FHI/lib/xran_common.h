@@ -348,6 +348,7 @@ uint8_t xran_get_num_ant_elm(void *pHandle);
 enum xran_category xran_get_ru_category(void *pHandle);
 
 struct xran_device_ctx *xran_dev_get_ctx(void);
+int xran_is_prach_slot(uint32_t subframe_id, uint32_t slot_id);
 
 int xran_register_cb_mbuf2ring(xran_ethdi_mbuf_send_fn mbuf_send_cp, xran_ethdi_mbuf_send_fn mbuf_send_up);
 
