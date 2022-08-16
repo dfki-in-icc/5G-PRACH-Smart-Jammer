@@ -204,10 +204,11 @@ Message("Architecture is ${CMAKE_SYSTEM_PROCESSOR}")
 if(EXISTS  "/proc/cpuinfo")
    file(STRINGS "/proc/cpuinfo" CPUINFO REGEX flags LIMIT_COUNT 1)
    message("AVX512 is ${AVX512}")
+   message("AVX2 is ${AVX2}")
    if (CPUINFO MATCHES "avx512bw" AND "${AVX512}" STREQUAL "True")
       set(C_FLAGS_PROCESSOR "${C_FLAGS_PROCESSOR} -D_OAI_AVX512_")
    endif()
-   if (CPUINFO MATCHES "avx2")
+   if (CPUINFO MATCHES "avx2" AND "${AVX2}" STREQUAL "True")
       set(C_FLAGS_PROCESSOR "${C_FLAGS_PROCESSOR} -DSIMDE_X86_AVX2_NATIVE")
    endif()
    if (CPUINFO MATCHES "sse4_1")
@@ -3074,7 +3075,7 @@ function(make_driver name dir)
   endforeach()
   CONFIGURE_FILE(${OPENAIR_CMAKE}/tools/Kbuild.cmake ${OPENAIR_BIN_DIR}/${name}/Kbuild)
   add_custom_command(OUTPUT ${name}.ko
-    COMMAND make -j2 -C ${module_build_path} M=${OPENAIR_BIN_DIR}/${name}
+    COMMAND make -C ${module_build_path} M=${OPENAIR_BIN_DIR}/${name}
     WORKING_DIRECTORY ${OPENAIR_BIN_DIR}/${name}
     COMMENT "building ${module}.ko"
     VERBATIM

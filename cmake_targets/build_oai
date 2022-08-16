@@ -56,6 +56,7 @@ DISABLE_HARDWARE_DEPENDENCY="False"
 CMAKE_BUILD_TYPE="RelWithDebInfo"
 CMAKE_CMD="$CMAKE"
 AVX512="False"
+AVX2="True"
 BUILD_ECLIPSE=0
 NR="False"
 OPTIONAL_LIBRARIES="telnetsrv enbscope uescope nrscope"
@@ -169,6 +170,8 @@ Options:
    Deprecated, replaced by --avx512
 --avx512
    Build with AVX512 if it is present on CPU
+--noavx2
+   Disable AVX2 Intrinsics (always use SIMDE emulation)
 -k | --skip-shared-libraries
    Skip build for shared libraries to reduce compilation time when building frequently for debugging purposes
 --ninja
@@ -450,6 +453,10 @@ function main() {
             AVX512="True"
             echo_info "Enabling AVX512"
             shift 1;;
+        --noavx2)
+            AVX2="False"
+            echo_info "Disabling AVX2"
+            shift 1;;
         -k | --skip-shared-libraries)
             SKIP_SHARED_LIB_FLAG="True"
             echo_info "Skipping build of shared libraries, rfsimulator and transport protocol libraries"
@@ -637,7 +644,7 @@ function main() {
   cd  $DIR/$BUILD_DIR/build
   if [[ ${#CMAKE_C_FLAGS[@]} > 0 ]]; then CMAKE_CMD="$CMAKE_CMD -DCMAKE_C_FLAGS=\"${CMAKE_C_FLAGS[*]}\""; fi
   if [[ ${#CMAKE_CXX_FLAGS[@]} > 0 ]]; then CMAKE_CMD="$CMAKE_CMD -DCMAKE_CXX_FLAGS=\"${CMAKE_CXX_FLAGS[*]}\""; fi
-  CMAKE_CMD="$CMAKE_CMD -DAVX512=\"${AVX512[*]}\""
+  CMAKE_CMD="$CMAKE_CMD -DAVX512=\"${AVX512[*]}\" -DAVX2=\"${AVX2[*]}\""
   echo_info "running $CMAKE_CMD"
   eval $CMAKE_CMD ../..
   

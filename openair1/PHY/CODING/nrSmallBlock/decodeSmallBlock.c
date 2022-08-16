@@ -79,7 +79,9 @@ uint16_t decodeSmallBlock(int8_t *in, uint8_t len){
 
         int16_t maxVal = 0;
 		int DmatrixElementVal = 0;
+#if !defined(__AVX512F__) || !defined(_OAI_AVX512_)
 		int8_t DmatrixElement[NR_SMALL_BLOCK_CODED_BITS] = {0};
+#endif		
 		__m256i _in_256 = simde_mm256_loadu_si256 ((__m256i*)&in[0]);
 		__m256i _maskD_256, _Dmatrixj_256, _maskH_256, _DmatrixElement_256;
 		for (int j = 0; j < ( 1<<(len-6) ); ++j) {
