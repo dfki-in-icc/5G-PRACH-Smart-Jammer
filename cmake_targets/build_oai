@@ -587,6 +587,11 @@ function main() {
     echo_info "Installing protobuf/protobuf-c for flexran agent support"
     install_protobuf_c
     echo_success "protobuf/protobuf-c installation successful"
+
+    echo_info "Installing DPDK latest version for ORAN"
+    install_dpdk_from_archive
+    echo_success "DPDK installation successful"
+
   fi
 
   if [ "$INSTALL_OPTIONAL" = "1" ] ; then
@@ -949,6 +954,14 @@ function main() {
               ln -sf $dbin/libbenetel_5g.so.$REL $dbin/liboai_transpro.so
               echo_info "liboai_transpro.so is linked to BENETEL4G transport"
 	  fi
+          if [ "$TP" == "oran_fhlib_5g" ]; then
+              compilations \
+                  $BUILD_DIR oran_fhlib_5g \
+                  liboran_fhlib_5g.so $dbin/liboran_fhlib_5g.$REL
+              ln -sf liboran_fhlib_5g.so liboai_transpro.so
+              ln -sf $dbin/liboran_fhlib_5g.so.$REL $dbin/liboai_transpro.so
+              echo_info "liboai_transpro.so is linked to oran_fhlib_5G transport"
+          fi
       fi
   fi
 

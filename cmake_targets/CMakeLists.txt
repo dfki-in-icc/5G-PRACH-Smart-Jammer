@@ -150,15 +150,20 @@ if("${OPENAIR_DIR}" STREQUAL "")
   string(REGEX REPLACE "/cmake_targets.*$" "" OPENAIR_DIR ${CMAKE_CURRENT_BINARY_DIR})
 endif()
 
-set (NFAPI_DIR       ${OPENAIR_DIR}/nfapi/open-nFAPI)
-set (NFAPI_USER_DIR  ${OPENAIR_DIR}/nfapi/oai_integration)
-set (OPENAIR1_DIR    ${OPENAIR_DIR}/openair1)
-set (OPENAIR2_DIR    ${OPENAIR_DIR}/openair2)
-set (OPENAIR3_DIR    ${OPENAIR_DIR}/openair3)
-set (OPENAIR_TARGETS ${OPENAIR_DIR}/targets)
-set (OPENAIR3_DIR    ${OPENAIR_DIR}/openair3)
-set (OPENAIR_CMAKE   ${OPENAIR_DIR}/cmake_targets)
-set (OPENAIR_BIN_DIR ${CMAKE_CURRENT_BINARY_DIR}${CMAKE_FILES_DIRECTORY})
+set (NFAPI_DIR            ${OPENAIR_DIR}/nfapi/open-nFAPI)
+set (NFAPI_USER_DIR       ${OPENAIR_DIR}/nfapi/oai_integration)
+set (OPENAIR1_DIR         ${OPENAIR_DIR}/openair1)
+set (OPENAIR2_DIR         ${OPENAIR_DIR}/openair2)
+set (OPENAIR3_DIR         ${OPENAIR_DIR}/openair3)
+set (OPENAIR_TARGETS      ${OPENAIR_DIR}/targets)
+set (OPENAIR3_DIR         ${OPENAIR_DIR}/openair3)
+set (OPENAIR_CMAKE        ${OPENAIR_DIR}/cmake_targets)
+set (OPENAIR_BIN_DIR      ${CMAKE_CURRENT_BINARY_DIR}${CMAKE_FILES_DIRECTORY})
+
+set(XRAN_FHLIB_5G_FULL_DIR          ${OPENAIR_DIR}/targets/ARCH/XRAN_FHI_LIB)
+set(XRAN_FHLIB_5G_INCLUDE_DIR       ${OPENAIR_DIR}/targets/ARCH/XRAN_FHI_LIB/XRAN/include)
+set(XRAN_FHLIB_5G_SRC_DIR           ${OPENAIR_DIR}/targets/ARCH/XRAN_FHI_LIB/XRAN/src)
+set(XRAN_FHLIB_5G_WRAPPER_DIR       ${OPENAIR_DIR}/targets/ARCH/XRAN_FHI_LIB/XRAN/wrapper)
 
 project (OpenAirInterface)
 
@@ -207,18 +212,23 @@ else (CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7l")
     if (CPUINFO MATCHES "avx512bw" AND "${NOAVX512}" STREQUAL "False")
       set(C_FLAGS_PROCESSOR "${C_FLAGS_PROCESSOR} -mavx512bw -march=skylake-avx512 -mtune=skylake-avx512 " )
       set(COMPILATION_AVX2 "True")
+      message("CPU matched AVX512")
     else()
       if (CPUINFO MATCHES "avx2")
         set(C_FLAGS_PROCESSOR "${C_FLAGS_PROCESSOR} -mavx2")
         set(COMPILATION_AVX2 "True")
+        message("CPU matched AVX2")
       else()
         set(COMPILATION_AVX2 "False")
+        message("CPU don't matched AVX2")
       endif()
       if (CPUINFO MATCHES "sse4_1")
         set(C_FLAGS_PROCESSOR "${C_FLAGS_PROCESSOR} -msse4.1 -mpclmul")
+        message("CPU matched sse4_1")
       endif()
       if (CPUINFO MATCHES "ssse3")
         set(C_FLAGS_PROCESSOR "${C_FLAGS_PROCESSOR} -mssse3")
+        message("CPU matched ssse3")
       endif()
     endif()
   else()
@@ -817,6 +827,100 @@ set_target_properties(benetel_5g PROPERTIES COMPILE_FLAGS "-fvisibility=hidden -
 SET(DPDK_LIBS "-Wl,-rpath,$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -Wl,--whole-archive -L$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -ldpdk -Wl,--no-whole-archive")
 TARGET_LINK_LIBRARIES(benetel_5g ${DPDK_LIBS})
 TARGET_LINK_LIBRARIES(benetel_5g pthread dl rt m numa)
+
+##########################################################
+
+# ORAN FHI LIB 5G library
+######################################################################
+
+set(XRAN_FHLIB_5G
+    ${XRAN_FHLIB_5G_INCLUDE_DIR}/xran_compression.h
+    ${XRAN_FHLIB_5G_INCLUDE_DIR}/xran_compression.hpp
+    ${XRAN_FHLIB_5G_INCLUDE_DIR}/xran_cp_api.h
+    ${XRAN_FHLIB_5G_INCLUDE_DIR}/xran_fh_o_du.h
+    ${XRAN_FHLIB_5G_INCLUDE_DIR}/xran_lib_mlog_tasks_id.h
+    ${XRAN_FHLIB_5G_INCLUDE_DIR}/xran_mlog_lnx.h
+    ${XRAN_FHLIB_5G_INCLUDE_DIR}/xran_pkt.h
+    ${XRAN_FHLIB_5G_INCLUDE_DIR}/xran_pkt_cp.h
+    ${XRAN_FHLIB_5G_INCLUDE_DIR}/xran_pkt_up.h
+    ${XRAN_FHLIB_5G_INCLUDE_DIR}/xran_sync_api.h
+    ${XRAN_FHLIB_5G_INCLUDE_DIR}/xran_timer.h
+    ${XRAN_FHLIB_5G_INCLUDE_DIR}/xran_transport.h
+    ${XRAN_FHLIB_5G_INCLUDE_DIR}/xran_up_api.h
+    ${XRAN_FHLIB_5G_INCLUDE_DIR}/xran_bfp_byte_packing_utils.hpp
+    ${XRAN_FHLIB_5G_INCLUDE_DIR}/xran_bfp_utils.hpp
+    ${XRAN_FHLIB_5G_INCLUDE_DIR}/xran_cb_proc.h
+    ${XRAN_FHLIB_5G_INCLUDE_DIR}/xran_common.h
+    ${XRAN_FHLIB_5G_INCLUDE_DIR}/xran_cp_proc.h
+    ${XRAN_FHLIB_5G_INCLUDE_DIR}/xran_dev.h
+    ${XRAN_FHLIB_5G_INCLUDE_DIR}/xran_ecpri_owd_measurements.h
+    ${XRAN_FHLIB_5G_INCLUDE_DIR}/xran_frame_struct.h
+    ${XRAN_FHLIB_5G_INCLUDE_DIR}/xran_main.h
+    ${XRAN_FHLIB_5G_INCLUDE_DIR}/xran_mem_mgr.h
+    ${XRAN_FHLIB_5G_INCLUDE_DIR}/xran_mod_compression.h
+    ${XRAN_FHLIB_5G_INCLUDE_DIR}/xran_prach_cfg.h
+    ${XRAN_FHLIB_5G_INCLUDE_DIR}/xran_printf.h
+    ${XRAN_FHLIB_5G_INCLUDE_DIR}/xran_rx_proc.h
+    ${XRAN_FHLIB_5G_INCLUDE_DIR}/xran_tx_proc.h
+    ${XRAN_FHLIB_5G_INCLUDE_DIR}/ethdi.h
+    ${XRAN_FHLIB_5G_INCLUDE_DIR}/ethernet.h
+
+    ${XRAN_FHLIB_5G_SRC_DIR}/xran_bfp_cplane8.cpp
+    ${XRAN_FHLIB_5G_SRC_DIR}/xran_bfp_cplane8_snc.cpp
+    ${XRAN_FHLIB_5G_SRC_DIR}/xran_bfp_cplane16.cpp
+    ${XRAN_FHLIB_5G_SRC_DIR}/xran_bfp_cplane16_snc.cpp
+    ${XRAN_FHLIB_5G_SRC_DIR}/xran_bfp_cplane32.cpp
+    ${XRAN_FHLIB_5G_SRC_DIR}/xran_bfp_cplane32_snc.cpp
+    ${XRAN_FHLIB_5G_SRC_DIR}/xran_bfp_cplane64.cpp
+    ${XRAN_FHLIB_5G_SRC_DIR}/xran_bfp_cplane64_snc.cpp
+    ${XRAN_FHLIB_5G_SRC_DIR}/xran_bfp_ref.cpp
+    ${XRAN_FHLIB_5G_SRC_DIR}/xran_bfp_uplane.cpp
+    ${XRAN_FHLIB_5G_SRC_DIR}/xran_bfp_uplane_9b16rb.cpp
+    ${XRAN_FHLIB_5G_SRC_DIR}/xran_bfp_uplane_snc.cpp
+    ${XRAN_FHLIB_5G_SRC_DIR}/xran_cb_proc.c
+    ${XRAN_FHLIB_5G_SRC_DIR}/xran_common.c
+    ${XRAN_FHLIB_5G_SRC_DIR}/xran_compression.cpp
+    ${XRAN_FHLIB_5G_SRC_DIR}/xran_compression_snc.cpp
+    ${XRAN_FHLIB_5G_SRC_DIR}/xran_cp_api.c
+    ${XRAN_FHLIB_5G_SRC_DIR}/xran_cp_proc.c
+    ${XRAN_FHLIB_5G_SRC_DIR}/xran_delay_measurement.c
+    ${XRAN_FHLIB_5G_SRC_DIR}/xran_dev.c
+    ${XRAN_FHLIB_5G_SRC_DIR}/xran_frame_struct.c
+    ${XRAN_FHLIB_5G_SRC_DIR}/xran_main.c
+    ${XRAN_FHLIB_5G_SRC_DIR}/xran_mem_mgr.c
+    ${XRAN_FHLIB_5G_SRC_DIR}/xran_mod_compression.cpp
+    ${XRAN_FHLIB_5G_SRC_DIR}/xran_rx_proc.c
+    ${XRAN_FHLIB_5G_SRC_DIR}/xran_tx_proc.c
+    ${XRAN_FHLIB_5G_SRC_DIR}/xran_sync_api.c
+    ${XRAN_FHLIB_5G_SRC_DIR}/xran_timer.c
+    ${XRAN_FHLIB_5G_SRC_DIR}/xran_transport.c
+    ${XRAN_FHLIB_5G_SRC_DIR}/xran_ul_tables.c
+    ${XRAN_FHLIB_5G_SRC_DIR}/xran_up_api.c
+    ${XRAN_FHLIB_5G_SRC_DIR}/ethdi.c
+    ${XRAN_FHLIB_5G_SRC_DIR}/ethernet.c
+
+    ${XRAN_FHLIB_5G_WRAPPER_DIR}/common_typedef_xran.h
+    ${XRAN_FHLIB_5G_WRAPPER_DIR}/common.hpp
+    ${XRAN_FHLIB_5G_WRAPPER_DIR}/json.hpp
+    ${XRAN_FHLIB_5G_WRAPPER_DIR}/oran.h
+    ${XRAN_FHLIB_5G_WRAPPER_DIR}/oran_isolate.h
+    ${XRAN_FHLIB_5G_WRAPPER_DIR}/xran_lib_wrap.hpp
+    ${XRAN_FHLIB_5G_WRAPPER_DIR}/common.cpp
+    ${XRAN_FHLIB_5G_WRAPPER_DIR}/oran.cpp
+    ${XRAN_FHLIB_5G_WRAPPER_DIR}/oran_isolate.c
+    ${XRAN_FHLIB_5G_WRAPPER_DIR}/xran_lib_wrap.cpp
+    )
+
+add_library(oran_fhlib_5g MODULE ${XRAN_FHLIB_5G})
+
+target_include_directories(oran_fhlib_5g PUBLIC ${XRAN_FHLIB_5G_INCLUDE_DIR})
+
+set_target_properties(oran_fhlib_5g PROPERTIES COMPILE_FLAGS "-fvisibility=hidden -march=native -I$ENV{RTE_SDK}/$ENV{RTE_TARGET}/include")
+
+SET(ORAN_DPDK_LIBS "-Wl,-rpath /usr/local/lib/x86_64-linux-gnu -L/usr/local/lib/x86_64-linux-gnu -lrte_node -lrte_graph -lrte_bpf -lrte_flow_classify -lrte_pipeline -lrte_table -lrte_port -lrte_fib -lrte_ipsec -lrte_vhost -lrte_stack -lrte_security -lrte_sched -lrte_reorder -lrte_rib -lrte_rawdev -lrte_pdump -lrte_power -lrte_member -lrte_lpm -lrte_latencystats -lrte_kni -lrte_jobstats -lrte_ip_frag -lrte_gso -lrte_gro -lrte_eventdev -lrte_efd -lrte_distributor -lrte_cryptodev -lrte_compressdev -lrte_cfgfile -lrte_bitratestats -lrte_bbdev -lrte_acl -lrte_timer -lrte_hash -lrte_metrics -lrte_cmdline -lrte_pci -lrte_ethdev -lrte_meter -lrte_net -lrte_mbuf -lrte_mempool -lrte_rcu -lrte_ring -lrte_eal -lrte_telemetry -lrte_kvargs -Wl,--whole-archive -L/usr/local/lib64 -lrte_common_cpt -lrte_common_dpaax -lrte_common_iavf -lrte_common_octeontx -lrte_common_octeontx2 -lrte_bus_dpaa -lrte_bus_fslmc -lrte_bus_ifpga -lrte_bus_pci -lrte_bus_vdev -lrte_bus_vmbus -lrte_mempool_bucket -lrte_mempool_dpaa -lrte_mempool_dpaa2 -lrte_mempool_octeontx -lrte_mempool_octeontx2 -lrte_mempool_ring -lrte_mempool_stack -Wl,--no-whole-archive -lrte_node -lrte_graph -lrte_bpf -lrte_flow_classify -lrte_pipeline -lrte_table -lrte_port -lrte_fib -lrte_ipsec -lrte_vhost -lrte_stack -lrte_security -lrte_sched -lrte_reorder -lrte_rib -lrte_pdump -lrte_power -lrte_member -lrte_lpm -lrte_latencystats -lrte_kni -lrte_jobstats -lrte_ip_frag -lrte_gso -lrte_gro -lrte_eventdev -lrte_efd -lrte_distributor -lrte_cryptodev -lrte_compressdev -lrte_cfgfile -lrte_bitratestats -lrte_bbdev -lrte_acl -lrte_timer -lrte_hash -lrte_metrics -lrte_cmdline -lrte_pci -lrte_ethdev -lrte_meter -lrte_net -lrte_mbuf -lrte_mempool -lrte_rcu -lrte_ring -lrte_eal -lrte_telemetry -lrte_kvargs -Wl,-Bdynamic -pthread -lm -ldl -lnuma -lpcap")
+
+target_link_libraries(oran_fhlib_5g ${ORAN_DPDK_LIBS})
+target_link_libraries(oran_fhlib_5g pthread dl rt m numa)
 
 ##########################################################
 
