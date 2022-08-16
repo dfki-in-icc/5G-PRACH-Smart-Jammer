@@ -80,6 +80,7 @@ static int DEFBFW[] = {0x00007fff};
 #include <nfapi/oai_integration/vendor_ext.h>
 
 extern volatile int oai_exit;
+uint16_t sl_ahead;
 
 extern struct timespec timespec_sub(struct timespec lhs, struct timespec rhs);
 extern struct timespec timespec_add(struct timespec lhs, struct timespec rhs);
@@ -1535,7 +1536,7 @@ void init_RU_proc(RU_t *ru) {
 
   pthread_mutex_init( &proc->mutex_emulateRF,NULL);
   pthread_cond_init( &proc->cond_emulateRF, NULL);
-  threadCreate( &proc->pthread_FH, ru_thread, (void *)ru, "thread_FH", -1, OAI_PRIORITY_RT_MAX );
+  threadCreate( &proc->pthread_FH, ru_thread, (void *)ru, "thread_FH", 36, OAI_PRIORITY_RT_MAX );
 
   if(emulate_rf)
     threadCreate( &proc->pthread_emulateRF, emulatedRF_thread, (void *)proc, "emulateRF", -1, OAI_PRIORITY_RT );

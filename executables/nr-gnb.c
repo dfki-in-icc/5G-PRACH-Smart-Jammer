@@ -430,10 +430,13 @@ void init_gNB_Tpool(int inst) {
   int threadCnt = min(numCPU, gNB->thread_pool_size);
   if (threadCnt < 2) LOG_E(PHY,"Number of threads for gNB should be more than 1. Allocated only %d\n",threadCnt);
   char pool[80];
-  sprintf(pool,"-1");
+  int cpuno = 32;
+  sprintf(pool,"%d", cpuno);
+
   int s_offset = 0;
-  for (int icpu=1; icpu<threadCnt; icpu++) {
-    sprintf(pool+2+s_offset,",-1");
+  for (int icpu = 1; icpu < threadCnt; icpu++) {
+    cpuno++;
+    sprintf(pool+2+s_offset,",%d", cpuno);
     s_offset += 3;
   }
   if (getenv("noThreads")) strcpy(pool, "n");
@@ -467,10 +470,9 @@ void init_gNB_Tpool(int inst) {
   }
 
   if (!get_softmodem_params()->emulate_l1) 
-     threadCreate(&proc->L1_stats_thread,nrL1_stats_thread,(void*)gNB,"L1_stats",-1,OAI_PRIORITY_RT_LOW);
+    threadCreate(&proc->L1_stats_thread, nrL1_stats_thread,(void*)gNB, "L1_stats", 37, OAI_PRIORITY_RT_LOW);
 
-  threadCreate(&proc->pthread_tx_reorder, tx_reorder_thread, (void *)gNB, "thread_tx_reorder", -1, OAI_PRIORITY_RT_MAX);
-
+  threadCreate(&proc->pthread_tx_reorder, tx_reorder_thread, (void *)gNB, "thread_tx_reorder", 38, OAI_PRIORITY_RT_MAX);
 }
 
 
