@@ -43,6 +43,8 @@ typedef struct ru_info_s{
 	int nb_tx;
 	int32_t **txdataF_BF;
 
+        // Needed for Prach
+        int *prach_buf;
 } ru_info_t;
 
 #ifdef __cplusplus
