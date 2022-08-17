@@ -438,7 +438,7 @@ static void *NRUE_phy_stub_standalone_pnf_task(void *arg)
     mac->dl_info.thread_id = 0;
     mac->dl_info.dci_ind = NULL;
     mac->dl_info.rx_ind = NULL;
-    if(ch_info)
+    if (ch_info)
     {
       mac->nr_ue_emul_l1.pmi = ch_info->csi[0].pmi;
       mac->nr_ue_emul_l1.ri = ch_info->csi[0].ri;

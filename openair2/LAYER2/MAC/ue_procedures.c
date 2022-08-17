@@ -2432,6 +2432,7 @@ ue_get_sdu(module_id_t module_idP, int CC_id, frame_t frameP,
       UE_mac_inst[module_idP].scheduling_info.LCID_status[DCCH] = LCID_NOT_EMPTY;
     }
   }
+
   bsr_len = bsr_ce_len + bsr_header_len;
   phr_ce_len =
     (UE_mac_inst[module_idP].PHR_reporting_active ==

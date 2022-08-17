@@ -306,7 +306,6 @@ PRACH_RESOURCES_t *ue_get_rach(module_id_t module_idP, int CC_id,
   int32_t frame_diff = 0;
   uint8_t dcch_header_len = 0;
   static uint8_t ulsch_buff[MAX_ULSCH_PAYLOAD_BYTES];
-
   AssertFatal(CC_id == 0,
               "Transmission on secondary CCs is not supported yet\n");
 
@@ -436,10 +435,11 @@ PRACH_RESOURCES_t *ue_get_rach(module_id_t module_idP, int CC_id,
         ue_get_sdu(module_idP, 0, frameP, subframeP, 0, ulsch_buff, MAX_ULSCH_PAYLOAD_BYTES, &access_mode);
         UE_mac_inst[module_idP].RA_PREAMBLE_TRANSMISSION_COUNTER =
           1;
-        UE_mac_inst[module_idP].RA_Msg3_size = UE_mac_inst[module_idP].scheduling_info.BSR_bytes[0] + dcch_header_len;
-
+        UE_mac_inst[module_idP].RA_Msg3_size =
+          UE_mac_inst[module_idP].scheduling_info.BSR_bytes[0] + dcch_header_len;
         UE_mac_inst[module_idP].RA_prachMaskIndex = 0;
-        UE_mac_inst[module_idP].RA_prach_resources.Msg3 = ulsch_buff;
+        UE_mac_inst[module_idP].RA_prach_resources.Msg3 =
+          ulsch_buff;
         UE_mac_inst[module_idP].RA_backoff_cnt = 0; // add the backoff condition here if we have it from a previous RA reponse which failed (i.e. backoff indicator)
         AssertFatal(rach_ConfigCommon != NULL,
                     "[UE %d] FATAL Frame %d: rach_ConfigCommon is NULL !!!\n",
@@ -458,7 +458,6 @@ PRACH_RESOURCES_t *ue_get_rach(module_id_t module_idP, int CC_id,
         UE_mac_inst[module_idP].RA_backoff_frame = frameP;
         UE_mac_inst[module_idP].RA_backoff_subframe = subframeP;
         Size16 = (uint16_t) rlc_status.bytes_in_buffer;
-
         // Fill in preamble and PRACH resource
         get_prach_resources(module_idP, CC_id, eNB_indexP,
                             subframeP, 1, NULL);

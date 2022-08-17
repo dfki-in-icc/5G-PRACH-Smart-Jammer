@@ -66,7 +66,6 @@ typedef struct
     bool drop_flag[MAX_NR_CHAN_PARAMS];
     bool latest;
     uint8_t area_code;
-
 } slot_rnti_mcs_s;
 
 typedef struct

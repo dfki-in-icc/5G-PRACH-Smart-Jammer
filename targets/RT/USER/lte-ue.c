@@ -948,8 +948,7 @@ uint64_t clock_usec(void) {
   return (uint64_t)t.tv_sec * 1000000 + (t.tv_nsec / 1000);
 }
 
-void reset_UE_phy_stub_standalone()
-{
+void reset_UE_phy_stub_standalone() {
   reset_queue(&dl_config_req_tx_req_queue);
   reset_queue(&ul_config_req_queue);
   reset_queue(&hi_dci0_req_queue);

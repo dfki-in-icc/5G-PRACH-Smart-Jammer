@@ -1309,7 +1309,6 @@ void *ue_standalone_pnf_task(void *context)
        the length of the message. This works because sizeof(uint16_t) < sizeof(nfapi_p7_message_header_t)
        and sizeof(phy_channel_params_t) < sizeof(nfapi_p7_message_header_t) and
        sizeof(uint16_t) != sizeof(phy_channel_params_t). */
-    
     if (len == sizeof(sfn_sf_info_t))
     {
       sfn_sf_info_t sfn_sf_info;
