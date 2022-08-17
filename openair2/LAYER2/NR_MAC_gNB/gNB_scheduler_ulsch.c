@@ -39,7 +39,10 @@
 
 //#define SRS_IND_DEBUG
 
-const int get_ul_tda(const gNB_MAC_INST *nrmac, const NR_ServingCellConfigCommon_t *scc, int slot) {
+const int get_ul_tda(const gNB_MAC_INST *nrmac,
+                     const NR_ServingCellConfigCommon_t *scc,
+                     const NR_CellGroupConfig_t *cellGroupConfig,
+                     int slot) {
 
   /* there is a mixed slot only when in TDD */
   const NR_TDD_UL_DL_Pattern_t *tdd = scc->tdd_UL_DL_ConfigurationCommon ? &scc->tdd_UL_DL_ConfigurationCommon->pattern1 : NULL;
@@ -48,8 +51,13 @@ const int get_ul_tda(const gNB_MAC_INST *nrmac, const NR_ServingCellConfigCommon
   if (tdd && tdd->nrofUplinkSymbols > 1) { // if there is uplink symbols in mixed slot
     const int nr_slots_period = tdd->nrofDownlinkSlots + tdd->nrofUplinkSlots + 1;
     if ((slot%nr_slots_period) == tdd->nrofDownlinkSlots)
-      return 1;
+      return 2;
   }
+
+  if ((cellGroupConfig == NULL) || (cellGroupConfig && cellGroupConfig->spCellConfig == NULL)) {
+    return 1;
+  }
+
   return 0; // if FDD or not mixed slot in TDD, for now use default TDA (TODO handle CSI-RS slots)
 }
 
@@ -1067,7 +1075,7 @@ void pf_ul(module_id_t module_id,
     LOG_D(NR_MAC,"pf_ul: UE %04x harq_pid %d\n",UE->rnti,sched_pusch->ul_harq_pid);
     if (sched_pusch->ul_harq_pid >= 0) {
       /* Allocate retransmission*/
-      const int tda = get_ul_tda(nrmac, scc, sched_pusch->slot);
+      const int tda = get_ul_tda(nrmac, scc, UE->CellGroup, sched_pusch->slot);
       bool r = allocate_ul_retransmission(nrmac, frame, slot, rballoc_mask, &n_rb_sched, UE, sched_pusch->ul_harq_pid, sib1, scc, tda);
       if (!r) {
         LOG_D(NR_MAC, "%4d.%2d UL retransmission UE RNTI %04x can NOT be allocated\n", frame, slot, UE->rnti);
@@ -1142,7 +1150,7 @@ void pf_ul(module_id_t module_id,
        * every TTI if we can save it, so check whether TDA, or
        * num_dmrs_cdm_grps_no_data has changed and only then recompute */
       const uint8_t nrOfLayers = 1;
-      const int tda = get_ul_tda(nrmac, scc, sched_pusch->slot);
+      const int tda = get_ul_tda(nrmac, scc, UE->CellGroup, sched_pusch->slot);
       if (ps->time_domain_allocation != tda
           || ps->nrOfLayers != nrOfLayers) {
         nr_set_pusch_semi_static(current_BWP,
@@ -1249,7 +1257,7 @@ void pf_ul(module_id_t module_id,
      * every TTI if we can save it, so check whether TDA, or
      * num_dmrs_cdm_grps_no_data has changed and only then recompute */
     const uint8_t nrOfLayers = 1;
-    const int tda = get_ul_tda(nrmac, scc, sched_pusch->slot);
+    const int tda = get_ul_tda(nrmac, scc, iterator->UE->CellGroup, sched_pusch->slot);
     if (ps->time_domain_allocation != tda
         || ps->nrOfLayers != nrOfLayers) {
       nr_set_pusch_semi_static(current_BWP,
@@ -1339,11 +1347,11 @@ bool nr_fr1_ulsch_preprocessor(module_id_t module_id, frame_t frame, sub_frame_t
   NR_UE_sched_ctrl_t *sched_ctrl = &nr_mac->UE_info.list[0]->UE_sched_ctrl;
   NR_UE_UL_BWP_t *current_BWP = &nr_mac->UE_info.list[0]->current_UL_BWP;
   int mu = current_BWP->scs;
-  const int temp_tda = get_ul_tda(nr_mac, scc, slot);
+  const int temp_tda = get_ul_tda(nr_mac, scc, nr_mac->UE_info.list[0]->CellGroup, slot);
   int K2 = get_K2(current_BWP->tdaList, temp_tda, mu);
   const int sched_frame = (frame + (slot + K2 >= nr_slots_per_frame[mu])) & 1023;
   const int sched_slot = (slot + K2) % nr_slots_per_frame[mu];
-  const int tda = get_ul_tda(nr_mac, scc, sched_slot);
+  const int tda = get_ul_tda(nr_mac, scc, nr_mac->UE_info.list[0]->CellGroup, sched_slot);
   if (tda < 0)
     return false;
   DevAssert(K2 == get_K2(current_BWP->tdaList, tda, mu));

@@ -2917,7 +2917,7 @@ void nr_mac_update_timers(module_id_t module_id,
 
         NR_pusch_semi_static_t *ups = &sched_ctrl->pusch_semi_static;
         const uint8_t nrOfLayers = 1;
-        const int utda = get_ul_tda(RC.nrmac[module_id], scc, slot);
+        const int utda = get_ul_tda(RC.nrmac[module_id], scc, UE->CellGroup, slot);
 
         nr_set_pusch_semi_static(&UE->current_UL_BWP,
                                  scc,

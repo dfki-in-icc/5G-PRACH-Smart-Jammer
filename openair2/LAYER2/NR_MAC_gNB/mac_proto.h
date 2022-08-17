@@ -473,7 +473,10 @@ uint8_t get_mcs_from_cqi(int mcs_table, int cqi_table, int cqi_idx);
 uint8_t set_dl_nrOfLayers(NR_UE_sched_ctrl_t *sched_ctrl);
 
 const int get_dl_tda(const gNB_MAC_INST *nrmac, const NR_ServingCellConfigCommon_t *scc, int slot);
-const int get_ul_tda(const gNB_MAC_INST *nrmac, const NR_ServingCellConfigCommon_t *scc, int slot);
+const int get_ul_tda(const gNB_MAC_INST *nrmac,
+                     const NR_ServingCellConfigCommon_t *scc,
+                     const NR_CellGroupConfig_t *cellGroupConfig,
+                     int slot);
 
 bool find_free_CCE(sub_frame_t slot, NR_UE_info_t *UE);
 

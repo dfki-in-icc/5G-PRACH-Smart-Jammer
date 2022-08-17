@@ -551,6 +551,14 @@ void nr_rrc_config_ul_tda(NR_ServingCellConfigCommon_t *scc, int min_fb_delay){
   pusch_timedomainresourceallocation->startSymbolAndLength = get_SLIV(0,13);
   ASN_SEQUENCE_ADD(&scc->uplinkConfigCommon->initialUplinkBWP->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList->list,pusch_timedomainresourceallocation); 
 
+  // UL TDA index 1 is basic slot configuration starting in symbol 0 til the last but two symbols because of pucch-ConfigCommon (PUCCH resource set 0 has 2 symbols)
+  pusch_timedomainresourceallocation = CALLOC(1,sizeof(struct NR_PUSCH_TimeDomainResourceAllocation));
+  pusch_timedomainresourceallocation->k2  = CALLOC(1,sizeof(long));
+  *pusch_timedomainresourceallocation->k2 = k2;
+  pusch_timedomainresourceallocation->mappingType = NR_PUSCH_TimeDomainResourceAllocation__mappingType_typeB;
+  pusch_timedomainresourceallocation->startSymbolAndLength = get_SLIV(0,12);
+  ASN_SEQUENCE_ADD(&scc->uplinkConfigCommon->initialUplinkBWP->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList->list,pusch_timedomainresourceallocation);
+
   if(frame_type==TDD) {
     if(scc->tdd_UL_DL_ConfigurationCommon) {
       int ul_symb = scc->tdd_UL_DL_ConfigurationCommon->pattern1.nrofUplinkSymbols;
