@@ -2702,9 +2702,6 @@ uint8_t get_csirs_RI_PMI_CQI_payload(NR_UE_MAC_INST_t *mac,
           int cqi_bitlen = csi_report->csi_meas_bitlen.cqi_bitlen[mac->csirs_measurements.rank_indicator];
           int padding_bitlen = n_bits - (cri_bitlen + ri_bitlen + pmi_x1_bitlen + pmi_x2_bitlen + cqi_bitlen);
 
-          uint8_t ri_index = mac->nr_ue_emul_l1.ri; // 0: rank 1, 1: rank 2 for 2x2 MIMO case.
-          uint8_t pmi_index = mac->nr_ue_emul_l1.pmi;
-
           if (get_softmodem_params()->emulate_l1) {
             static const uint8_t mcs_to_cqi[] = {0, 1, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9,
                                                 10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15};
