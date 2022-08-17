@@ -1136,7 +1136,7 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg) {
       UE = PHY_vars_UE_g[ue_Mod_id][0];
       for (int i = 0; i < NB_eNB_INST; i++) {
         UE->measurements.rsrp_filtered[i] = update_measurements(sfn_sf, i);
-        UE->measurements.rsrq_filtered[i] = UE->measurements.rsrp_filtered[i]/20;
+        UE->measurements.rsrq_filtered[i] = UE->measurements.rsrp_filtered[i] / 20;
       }
 
 #if UE_TIMING_TRACE

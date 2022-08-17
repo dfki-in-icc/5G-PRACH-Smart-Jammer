@@ -31,7 +31,7 @@
 #define NUM_BLER_COL 13
 #define NUM_NFAPI_SLOT 20
 #define NR_NUM_LAYER 1
-#define MAX_CHAN_PARAMS 256
+#define MAX_NR_CHAN_PARAMS 256
 
 typedef struct NR_UL_TIME_ALIGNMENT NR_UL_TIME_ALIGNMENT_t;
 
@@ -58,12 +58,12 @@ typedef struct nr_phy_channel_params_t
 typedef struct
 {
     uint8_t slot;
-    uint16_t rnti[256];
-    uint8_t mcs[256];
-    uint8_t rvIndex[256];
+    uint16_t rnti[MAX_NR_CHAN_PARAMS];
+    uint8_t mcs[MAX_NR_CHAN_PARAMS];
+    uint8_t rvIndex[MAX_NR_CHAN_PARAMS];
     float sinr;
     uint16_t num_pdus;
-    bool drop_flag[256];
+    bool drop_flag[MAX_NR_CHAN_PARAMS];
     bool latest;
     uint8_t area_code;
 

@@ -134,6 +134,7 @@ const initial_pucch_resource_t initial_pucch_resource[16] = {
 /* 15  */ {  1,       0,                 14,                   0,            4,       {    0,   3,    6,    9  }   },
 };
 
+
 static uint8_t nr_extract_dci_info(NR_UE_MAC_INST_t *mac,
                             uint8_t dci_format,
                             uint8_t dci_length,
@@ -2591,6 +2592,7 @@ uint8_t nr_get_csi_payload(NR_UE_MAC_INST_t *mac,
   }
   return (n_csi_bits);
 }
+
 
 uint8_t get_ssb_rsrp_payload(NR_UE_MAC_INST_t *mac,
                              PUCCH_sched_t *pucch,

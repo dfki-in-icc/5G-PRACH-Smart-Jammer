@@ -84,7 +84,7 @@ void ue_mac_reset(module_id_t module_idP, uint8_t eNB_index) {
   UE_mac_inst[module_idP].RA_prach_resources.ra_PreambleIndex = 0;  // check!
   UE_mac_inst[module_idP].RA_prach_resources.ra_RACH_MaskIndex = 0;
   ue_init_mac(module_idP);  //This will hopefully do the rest of the MAC reset procedure
-  if(NFAPI_MODE == NFAPI_UE_STUB_PNF || NFAPI_MODE == NFAPI_MODE_STANDALONE_PNF) {
+  if (NFAPI_MODE == NFAPI_UE_STUB_PNF || NFAPI_MODE == NFAPI_MODE_STANDALONE_PNF) {
     LOG_D(MAC, "reset queues\n");
     reset_UE_phy_stub_standalone();
   }
@@ -473,7 +473,7 @@ rrc_mac_config_req_ue(module_id_t Mod_idP,
           UE_mac_inst[Mod_idP].crnti_before_ho,
           UE_mac_inst[Mod_idP].crnti,
           UE_mac_inst[Mod_idP].crnti);
-    if(NFAPI_MODE != NFAPI_UE_STUB_PNF && NFAPI_MODE != NFAPI_MODE_STANDALONE_PNF)
+    if (NFAPI_MODE != NFAPI_UE_STUB_PNF && NFAPI_MODE != NFAPI_MODE_STANDALONE_PNF)
       phy_config_afterHO_ue(Mod_idP, 0, eNB_index, mobilityControlInfo, 0);
     else
       emulate_phy_config_afterHO_ue(Mod_idP, 0, eNB_index, mobilityControlInfo, 0);

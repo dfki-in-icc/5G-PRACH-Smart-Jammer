@@ -1048,13 +1048,13 @@ rlc_op_status_t rrc_rlc_config_req   (
         } else {
           rlc_entity_t            *rlc_am;
           rlc_am = new_rlc_entity_am(100000,
-                                    100000,
-                                    deliver_sdu, ue,
-                                    successful_delivery, ue,
-                                    max_retx_reached, ue,
-                                    t_reordering, t_status_prohibit,
-                                    t_poll_retransmit,
-                                    poll_pdu, poll_byte, max_retx_threshold);
+                                     100000,
+                                     deliver_sdu, ue,
+                                     successful_delivery, ue,
+                                     max_retx_reached, ue,
+                                     t_reordering, t_status_prohibit,
+                                     t_poll_retransmit,
+                                     poll_pdu, poll_byte, max_retx_threshold);
           rlc_ue_add_srb_rlc_entity(ue, rb_idP, rlc_am);
 
           LOG_D(RLC, "added rb %d to UE RNTI 0x%x\n", (int)rb_idP, ctxt_pP->rnti);
@@ -1065,13 +1065,13 @@ rlc_op_status_t rrc_rlc_config_req   (
         } else {
           rlc_entity_t            *rlc_am;
           rlc_am = new_rlc_entity_am(100000,
-                                    100000,
-                                    deliver_sdu, ue,
-                                    successful_delivery, ue,
-                                    max_retx_reached, ue,
-                                    t_reordering, t_status_prohibit,
-                                    t_poll_retransmit,
-                                    poll_pdu, poll_byte, max_retx_threshold);
+                                     100000,
+                                     deliver_sdu, ue,
+                                     successful_delivery, ue,
+                                     max_retx_reached, ue,
+                                     t_reordering, t_status_prohibit,
+                                     t_poll_retransmit,
+                                     poll_pdu, poll_byte, max_retx_threshold);
           rlc_ue_add_drb_rlc_entity(ue, rb_idP - 2, rlc_am);
 
           LOG_D(RLC, "added rb %d to UE RNTI %x\n", (int)rb_idP, ctxt_pP->rnti);

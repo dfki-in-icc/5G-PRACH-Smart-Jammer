@@ -492,7 +492,6 @@ rx_sdu(const module_id_t enb_mod_idP,
             UE_scheduling_control->crnti_reconfigurationcomplete_flag = 1;
             UE_info->UE_template[UE_PCCID(enb_mod_idP, UE_id)][UE_id].configured = 1;
             current_rnti = old_rnti;
-            // prepare transmission of Msg4
             RA_t *ra = (RA_t *) & RC.mac[enb_mod_idP]->common_channels[CC_idP].ra[0];
             ra->rnti = old_rnti;
             ra->state = MSG4;

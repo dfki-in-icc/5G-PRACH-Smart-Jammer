@@ -655,9 +655,6 @@ int main( int argc, char **argv ) {
     //init_UE_stub(1,eMBMS_active,uecap_xer_in,emul_iface);
     init_UE_stub_single_thread(NB_UE_INST,eMBMS_active,uecap_xer_in,emul_iface);
   } else if (NFAPI_MODE==NFAPI_MODE_STANDALONE_PNF) {
-    LOG_D(MAC, "NB_eNB_INST = %d\n", NB_eNB_INST);
-    NB_eNB_INST = num_enbs;
-    LOG_D(MAC, "num_enbs = %d, NB_eNB_INST = %d\n", num_enbs, NB_eNB_INST);
     init_queue(&dl_config_req_tx_req_queue);
     init_queue(&hi_dci0_req_queue);
     init_queue(&ul_config_req_queue);

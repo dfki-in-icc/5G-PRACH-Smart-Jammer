@@ -2425,8 +2425,7 @@ ue_get_sdu(module_id_t module_idP, int CC_id, frame_t frameP,
       }
     }
   }
-  else if (UE_mac_inst[module_idP].RA_active == 1)
-  {
+  else if (UE_mac_inst[module_idP].RA_active == 1) {
     if ((buflen >= 4) && (UE_mac_inst[module_idP].scheduling_info.BSR_bytes[0] > 0)) {
       bsr_header_len = 1;
       bsr_ce_len = sizeof(BSR_SHORT); //1 byte
