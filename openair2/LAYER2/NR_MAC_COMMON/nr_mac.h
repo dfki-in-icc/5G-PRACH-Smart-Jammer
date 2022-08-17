@@ -121,16 +121,12 @@ typedef struct {
 } __attribute__ ((__packed__)) NR_MAC_SUBHEADER_FIXED;
 
 static inline int get_mac_len(uint8_t* pdu, int pdu_len, uint16_t *mac_ce_len, uint16_t *mac_subheader_len) {
-  if (pdu_len < sizeof(NR_MAC_SUBHEADER_LONG)) {
-    LOG_I(NR_MAC, "Return false due to pdu_len %d < %lu sizeof(NR_MAC_SUBHEADER_SHORT)\n", pdu_len, sizeof(NR_MAC_SUBHEADER_SHORT));
+  if ( pdu_len < sizeof(NR_MAC_SUBHEADER_LONG))
     return false;
-  }
   NR_MAC_SUBHEADER_SHORT *s = (NR_MAC_SUBHEADER_SHORT*) pdu;
   NR_MAC_SUBHEADER_LONG *l = (NR_MAC_SUBHEADER_LONG*) pdu;
-  if (s->F && pdu_len < sizeof(NR_MAC_SUBHEADER_LONG)) {
-    LOG_I(NR_MAC, "Return false due to s->F %u  and pdu_len %d < %lu sizeof(NR_MAC_SUBHEADER_LONG)\n", s->F, pdu_len, sizeof(NR_MAC_SUBHEADER_LONG));
+  if (s->F && pdu_len < sizeof(NR_MAC_SUBHEADER_LONG))
     return false;
-  }
   if (s->F) {
     *mac_subheader_len = sizeof(*l);
     *mac_ce_len = ntohs(l->L);

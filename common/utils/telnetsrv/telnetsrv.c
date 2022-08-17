@@ -151,8 +151,7 @@ void set_sched(pthread_t tid, int pid, int priority) {
     policy=SCHED_IDLE;
     sprintf(strpolicy,"%s","idle");
     schedp.sched_priority=0;
-  } else
-  {
+  } else {
     policy=SCHED_OTHER;
     sprintf(strpolicy,"%s","other");
     schedp.sched_priority=0;
