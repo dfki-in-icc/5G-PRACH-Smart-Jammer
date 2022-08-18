@@ -729,6 +729,9 @@ void RCconfig_NR_L1(void) {
       RC.gNB[j]->prach_thres        = *(L1_ParamList.paramarray[j][L1_PRACH_DTX_THRESHOLD].uptr);
       RC.gNB[j]->pusch_thres        = *(L1_ParamList.paramarray[j][L1_PUSCH_DTX_THRESHOLD].uptr);
       RC.gNB[j]->max_ldpc_iterations = *(L1_ParamList.paramarray[j][L1_MAX_LDPC_ITERATIONS].uptr);
+      RC.gNB[j]->TX_AMP             = (int16_t)(32768.0/pow(10.0,.05*(double)(*L1_ParamList.paramarray[j][L1_TX_AMP_BACKOFF_dB].uptr)));
+      LOG_I(PHY,"TX_AMP = %d (-%d dBFS)\n",RC.gNB[j]->TX_AMP,*L1_ParamList.paramarray[j][L1_TX_AMP_BACKOFF_dB].uptr);
+      AssertFatal(RC.gNB[j]->TX_AMP > 300,"TX_AMP is too small\n");
       RC.gNB[j]->num_ulprbbl        = num_prbbl;
       RC.gNB[j]->ap_N1              = N1;
       RC.gNB[j]->ap_N2              = N2;

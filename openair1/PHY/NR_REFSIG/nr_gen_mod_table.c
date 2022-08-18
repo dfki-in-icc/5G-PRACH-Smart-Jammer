@@ -47,7 +47,7 @@ void nr_generate_modulation_table() {
   for (i=0; i<4; i++) {
     nr_qpsk_mod_table[i*2]   = (short)(1-2*(i&1))*val*sqrt2*sqrt2;
     nr_qpsk_mod_table[i*2+1] = (short)(1-2*((i>>1)&1))*val*sqrt2*sqrt2;
-    //printf("%d j%d\n",nr_qpsk_mod_table[i*2],nr_qpsk_mod_table[i*2+1]);
+    //printf("QPSK : %d j%d\n",nr_qpsk_mod_table[i*2],nr_qpsk_mod_table[i*2+1]);
   }
 
 #if defined(__SSE2__)
@@ -57,7 +57,6 @@ void nr_generate_modulation_table() {
     for (j=0; j<4; j++) {
       table[i*8+(j*2)]   = (short)(1-2*((i>>(j*2))&1))*val*sqrt2*sqrt2;
       table[i*8+(j*2)+1] = (short)(1-2*((i>>(j*2+1))&1))*val*sqrt2*sqrt2;
-      //printf("%d j%d\n",nr_qpsk_byte_mod_table[i*8+(j*2)],nr_qpsk_byte_mod_table[i*8+(j*2)+1]);
     }
   }
 #endif
@@ -68,7 +67,7 @@ void nr_generate_modulation_table() {
     for (j=0; j<2; j++) {
       table[i*4+(j*2)]   = (short)((1-2*((i>>(j*4))&1))*(2-(1-2*((i>>(j*4+2))&1))))*val*sqrt10*sqrt2;
       table[i*4+(j*2)+1] = (short)((1-2*((i>>(j*4+1))&1))*(2-(1-2*((i>>(j*4+3))&1))))*val*sqrt10*sqrt2;
-     //printf("%d j%d\n",nr_16qam_byte_mod_table[i*4+(j*2)],nr_16qam_byte_mod_table[i*4+(j*2)+1]);
+      //printf("%d j%d\n",nr_16qam_byte_mod_table[i*4+(j*2)],nr_16qam_byte_mod_table[i*4+(j*2)+1]);
     }
   }
 
@@ -76,7 +75,7 @@ void nr_generate_modulation_table() {
   for (i=0; i<16; i++) {
     table[i*2]   = (short)((1-2*(i&1))*(2-(1-2*((i>>2)&1))))*val*sqrt10*sqrt2;
     table[i*2+1] = (short)((1-2*((i>>1)&1))*(2-(1-2*((i>>3)&1))))*val*sqrt10*sqrt2;
-    //printf("%d j%d\n",table[i*2],table[i*2+1]);
+   // printf("%d j%d\n",table[i*2],table[i*2+1]);
   }
 
   //64QAM

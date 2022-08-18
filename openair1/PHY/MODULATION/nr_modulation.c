@@ -146,8 +146,9 @@ void nr_modulation(uint32_t *in,
   case 2:
     nr_mod_table128 = (__m128i*) nr_qpsk_byte_mod_table;
     out128 = (__m128i*) out;
-    for (i=0; i<length/8; i++)
+    for (i=0; i<length/8; i++) 
       out128[i] = nr_mod_table128[in_bytes[i]];
+
     // the bits that are left out
     i = i*8/2;
     nr_mod_table32 = (int32_t*) nr_qpsk_mod_table;

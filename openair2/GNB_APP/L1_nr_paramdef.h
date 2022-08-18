@@ -52,6 +52,7 @@
 #define CONFIG_STRING_L1_PRACH_DTX_THRESHOLD               "prach_dtx_threshold"
 #define CONFIG_STRING_L1_PUSCH_DTX_THRESHOLD               "pusch_dtx_threshold"
 #define CONFIG_STRING_L1_MAX_LDPC_ITERATIONS               "max_ldpc_iterations"
+#define CONFIG_STRING_L1_TX_AMP_BACKOFF_dB                 "tx_amp_backoff_dB"
 /*----------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*                                            L1 configuration parameters                                                                             */
 /*   optname                                         helpstr   paramflags    XXXptr              defXXXval                  type           numelt     */
@@ -72,6 +73,7 @@
 {CONFIG_STRING_L1_PRACH_DTX_THRESHOLD,               NULL,      0,         uptr:NULL,           defintval:150,             TYPE_UINT,     0},         \
 {CONFIG_STRING_L1_PUSCH_DTX_THRESHOLD,               NULL,      0,         uptr:NULL,           defintval:50,              TYPE_UINT,     0},         \
 {CONFIG_STRING_L1_MAX_LDPC_ITERATIONS,               NULL,      0,         uptr:NULL,           defintval:5,               TYPE_UINT,     0},          \
+{CONFIG_STRING_L1_TX_AMP_BACKOFF_dB,                 NULL,      0,         uptr:NULL,           defintval:36,               TYPE_UINT,     0},          \
 }
 #define L1_CC_IDX                                          0
 #define L1_TRANSPORT_N_PREFERENCE_IDX                      1
@@ -88,6 +90,7 @@
 #define L1_PRACH_DTX_THRESHOLD                             12
 #define L1_PUSCH_DTX_THRESHOLD                             13
 #define L1_MAX_LDPC_ITERATIONS                             14
+#define L1_TX_AMP_BACKOFF_dB                               15
 
 /*----------------------------------------------------------------------------------------------------------------------------------------------------*/
 #endif

@@ -765,6 +765,8 @@ typedef struct PHY_VARS_gNB_s {
   uint8_t pbch_configured;
   char gNB_generate_rar;
 
+  // reference amplitude for TX 
+  int16_t TX_AMP;
   // PUCCH0 Look-up table for cyclic-shifts
   NR_gNB_PUCCH0_LUT_t pucch0_lut;
 
