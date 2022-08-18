@@ -3023,7 +3023,7 @@ target_link_libraries (nr-softmodem pthread m ${CONFIG_LIB} rt crypt ${CRYPTO_LI
 target_link_libraries (nr-softmodem ${LIB_LMS_LIBRARIES})
 target_link_libraries (nr-softmodem ${T_LIB})
 
-add_dependencies( nr-softmodem ldpc_orig ldpc_optim ldpc_optim8seg ldpc ldpc_offload)
+add_dependencies( nr-softmodem ldpc_orig ldpc_optim ldpc_optim8seg ldpc)
 
 if(EXISTS  "/usr/local/lib64/librte_pmd_hpac_sdfec_pmd.so")
 add_dependencies( nr-softmodem ldpc_offload)
@@ -3316,7 +3316,7 @@ add_executable(nr_ulsim
   ${SHLIB_LOADER_SOURCES}
   )
 
-add_dependencies( nr_ulsim ldpc_orig ldpc_optim ldpc_optim8seg ldpc ldpc_offload)
+add_dependencies( nr_ulsim ldpc_orig ldpc_optim ldpc_optim8seg ldpc)
 
 if(EXISTS  "/usr/local/lib64/librte_pmd_hpac_sdfec_pmd.so")
 add_dependencies( nr_ulsim ldpc_offload)
