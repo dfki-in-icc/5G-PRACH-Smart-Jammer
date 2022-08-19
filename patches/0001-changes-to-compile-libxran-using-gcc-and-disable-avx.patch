@@ -1,0 +1,103 @@
+From 600acce33fb9fefbd6fbd1f546404b55d19c51fa Mon Sep 17 00:00:00 2001
+From: "rajeshwari.p" <rajeshwari.p@vvdntech.in>
+Date: Fri, 19 Aug 2022 17:18:12 +0530
+Subject: [PATCH] changes to compile libxran using gcc and  disable avx512
+
+Signed-off-by: rajeshwari.p <rajeshwari.p@vvdntech.in>
+---
+ fhi_lib/build.sh     |  6 +++---
+ fhi_lib/lib/Makefile | 23 ++++++++++++-----------
+ 2 files changed, 15 insertions(+), 14 deletions(-)
+
+diff --git a/fhi_lib/build.sh b/fhi_lib/build.sh
+index 22859b5..e24e46f 100755
+--- a/fhi_lib/build.sh
++++ b/fhi_lib/build.sh
+@@ -72,9 +72,9 @@ echo "MLOG      = ${MLOG}"
+ cd $XRAN_FH_LIB_DIR
+ make $COMMAND_LINE MLOG=${MLOG} LIBXRANSO=${LIBXRANSO} #DEBUG=1 VERBOSE=1
+ 
+-echo 'Building xRAN Test Application'
+-cd $XRAN_FH_APP_DIR
+-make $COMMAND_LINE MLOG=${MLOG} #DEBUG=1 VERBOSE=1
++#echo 'Building xRAN Test Application'
++#cd $XRAN_FH_APP_DIR
++#make $COMMAND_LINE MLOG=${MLOG} #DEBUG=1 VERBOSE=1
+ 
+ if [ -z ${GTEST_ROOT+x} ];
+ then
+diff --git a/fhi_lib/lib/Makefile b/fhi_lib/lib/Makefile
+index 579a0c6..c553fda 100644
+--- a/fhi_lib/lib/Makefile
++++ b/fhi_lib/lib/Makefile
+@@ -23,11 +23,11 @@ MYCUSTOMSPACE1='------------------------------------------------------------'
+ ##############################################################
+ #  Tools configuration
+ ##############################################################
+-CC  := icc
+-CPP := icpc
++CC  := gcc
++#CPP := icpc
+ AS := as
+ AR := ar
+-LD := icc
++LD := gcc
+ OBJDUMP := objdump
+ 
+ ifeq ($(SHELL),cmd.exe)
+@@ -95,9 +95,10 @@ CC_FLAGS += -std=gnu11 -Wall -Wno-deprecated-declarations  \
+         -fPIC \
+ 	-Wall \
+ 	-Wimplicit-function-declaration \
+-	-g -O3 -wd1786
++	-g -O3 -mssse3 \
++  -march=native
+ 
+-CPP_FLAGS := -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -D_GNU_SOURCE -D_REENTRANT -pipe -no-prec-div \
++#CPP_FLAGS := -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -D_GNU_SOURCE -D_REENTRANT -pipe -no-prec-div \
+                 -no-prec-div -fp-model fast=2 -fPIC \
+                 -no-prec-sqrt  -falign-functions=16 -fast-transcendentals \
+         -Werror -Wno-unused-variable -std=c++11 -mcmodel=large
+@@ -121,14 +122,14 @@ PROJECT_OBJ_DIR := build/obj
+ CC_OBJS := $(patsubst %.c,%.o,$(CC_SRC))
+ CPP_OBJS := $(patsubst %.cpp,%.o,$(CPP_SRC))
+ AS_OBJS := $(patsubst %.s,%.o,$(AS_SRC))
+-OBJS    := $(CC_OBJS) $(CPP_OBJS) $(AS_OBJS) $(LIBS)
++OBJS    := $(CC_OBJS) $(AS_OBJS) $(LIBS)
+ DIRLIST := $(addprefix $(PROJECT_OBJ_DIR)/,$(sort $(dir $(OBJS))))
+ 
+ CC_OBJTARGETS := $(addprefix $(PROJECT_OBJ_DIR)/,$(CC_OBJS))
+ CPP_OBJTARGETS := $(addprefix $(PROJECT_OBJ_DIR)/,$(CPP_OBJS))
+ 
+ AS_OBJTARGETS := $(addprefix $(PROJECT_OBJ_DIR)/,$(AS_OBJS))
+-CPP_COMP       := -O3 -xcore-avx512 -restrict -g -fasm-blocks
++CPP_COMP       := -O3 -xcore-avx512 -restrict -g
+ CC_FLAGS_FULL  := $(CC_FLAGS)  $(INC) $(DEF)
+ CPP_FLAGS_FULL := $(CPP_FLAGS) $(CPP_COMP) $(INC) $(DEF)
+ 
+@@ -160,7 +161,7 @@ $(CPP_DEPS) :
+ 	@$(CPP) -MM $(subst __up__,../,$(subst __dep__,,$@)) -MT $(PROJECT_OBJ_DIR)/$(patsubst %.cpp,%.o,$(subst __up__,../,$(subst __dep__,,$@))) $(CPP_FLAGS_FULL) >> $(PROJECT_DEP_FILE)
+ 
+ .PHONY : generate_deps
+-generate_deps : clear_dep $(CC_DEPS) $(CPP_DEPS)
++generate_deps : clear_dep $(CC_DEPS)
+ 
+ 
+ .PHONY : echo_start_build
+@@ -211,10 +212,10 @@ welcome_line :
+ 
+ debug :  all
+ release :  all
+-$(PROJECT_BINARY) : $(DIRLIST) echo_start_build $(GENERATE_DEPS) $(PRE_BUILD) $(CC_OBJTARGETS) $(CPP_OBJTARGETS) $(AS_OBJTARGETS)
++$(PROJECT_BINARY) : $(DIRLIST) echo_start_build $(GENERATE_DEPS) $(PRE_BUILD) $(CC_OBJTARGETS) $(AS_OBJTARGETS)
+ 	@echo [AR]    $(subst $(BUILDDIR)/,,$@)
+ ifeq ($(XRAN_LIB_SO),)
+-	@$(AR) $(AR_FLAGS) $@ $(CC_OBJTARGETS) $(CPP_OBJTARGETS) $(AS_OBJTARGETS)
++	@$(AR) $(AR_FLAGS) $@ $(CC_OBJTARGETS) $(AS_OBJTARGETS)
+ else
+-	@$(CC) $(CC_OBJTARGETS) $(CPP_OBJTARGETS) $(AS_OBJTARGETS) -shared -fPIC -o $@
++	@$(CC) $(CC_OBJTARGETS) $(AS_OBJTARGETS) -shared -fPIC -o $@
+ endif
+-- 
+2.25.1
+
