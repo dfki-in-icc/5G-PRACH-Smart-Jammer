@@ -1,0 +1,25 @@
+From 6f9c9298c9130fdf4905fa1971c561a869f413bf Mon Sep 17 00:00:00 2001
+From: "thamizhselvan.k" <thamizhselvan.k@vvdntech.in>
+Date: Wed, 17 Aug 2022 10:11:41 +0530
+Subject: [PATCH 2/8] returning proper slot_id
+
+Signed-off-by: thamizhselvan.k <thamizhselvan.k@vvdntech.in>
+---
+ fhi_lib/lib/src/xran_main.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/fhi_lib/lib/src/xran_main.c b/fhi_lib/lib/src/xran_main.c
+index 17acc2a..8f5705e 100644
+--- a/fhi_lib/lib/src/xran_main.c
++++ b/fhi_lib/lib/src/xran_main.c
+@@ -609,6 +609,7 @@ static inline int8_t xran_check_updl_seqid(void *pHandle, uint8_t cc_id, uint8_t
+ 
+ uint32_t xran_slotid_convert(uint16_t slot_id, uint16_t dir) //dir = 0, from PHY slotid to xran spec slotid as defined in 5.3.2, dir=1, from xran slotid to phy slotid
+ {
++    return slot_id;
+ #ifdef FCN_ADAPT
+     return slot_id;
+ #endif
+-- 
+2.25.1
+

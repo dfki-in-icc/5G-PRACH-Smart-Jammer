@@ -1,0 +1,34 @@
+From 729d8b701c1391aecf933443eeb21fcfb0a745ec Mon Sep 17 00:00:00 2001
+From: "thamizhselvan.k" <thamizhselvan.k@vvdntech.in>
+Date: Wed, 17 Aug 2022 16:26:49 +0530
+Subject: [PATCH 3/8] commenting the pkt validate at process_mbuf to avoid
+ prach packet dropping
+
+Signed-off-by: thamizhselvan.k <thamizhselvan.k@vvdntech.in>
+---
+ fhi_lib/lib/src/xran_common.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/fhi_lib/lib/src/xran_common.c b/fhi_lib/lib/src/xran_common.c
+index c4cb3fb..5bbacf7 100644
+--- a/fhi_lib/lib/src/xran_common.c
++++ b/fhi_lib/lib/src/xran_common.c
+@@ -192,6 +192,7 @@ int process_mbuf(struct rte_mbuf *pkt)
+         return MBUF_FREE;
+     }
+ 
++#if 0
+     valid_res = xran_pkt_validate(NULL,
+                                 pkt,
+                                 iq_samp_buf,
+@@ -213,6 +214,7 @@ int process_mbuf(struct rte_mbuf *pkt)
+         print_dbg("valid_res is wrong [%d] ant %u (%u : %u : %u : %u) seq %u num_bytes %d\n", valid_res, Ant_ID, frame_id, subframe_id, slot_id, symb_id, seq.seq_id, num_bytes);
+         return MBUF_FREE;
+     }
++#endif
+ 
+     if (Ant_ID >= p_x_ctx->srs_cfg.eAxC_offset && p_x_ctx->fh_init.srsEnable) {
+         /* SRS packet has ruportid = 2*num_eAxc + ant_id */
+-- 
+2.25.1
+

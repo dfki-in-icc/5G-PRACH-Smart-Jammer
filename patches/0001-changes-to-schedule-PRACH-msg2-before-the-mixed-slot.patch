@@ -1,0 +1,59 @@
+From 75895e33a3f11e98caadeebf052896937f9c231d Mon Sep 17 00:00:00 2001
+From: "thamizhselvan.k" <thamizhselvan.k@vvdntech.in>
+Date: Wed, 17 Aug 2022 00:29:24 +0530
+Subject: [PATCH] changes to schedule PRACH msg2 before the mixed slot
+
+Signed-off-by: thamizhselvan.k <thamizhselvan.k@vvdntech.in>
+---
+ openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_RA.c | 7 ++++---
+ openair2/RRC/NR/nr_rrc_config.c               | 2 +-
+ 2 files changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_RA.c b/openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_RA.c
+index 745fc1ae2b..6516fe254f 100644
+--- a/openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_RA.c
++++ b/openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_RA.c
+@@ -419,6 +419,7 @@ void nr_schedule_msg2(uint16_t rach_frame, uint16_t rach_slot,
+   if (tdd) {
+     last_dl_slot_period = tdd->nrofDownlinkSymbols == 0? (tdd->nrofDownlinkSlots-1) : tdd->nrofDownlinkSlots;
+     tdd_period_slot = n_slots_frame/get_nb_periods_per_frame(tdd->dl_UL_TransmissionPeriodicity);
++    last_dl_slot_period = last_dl_slot_period - 1;
+   }
+   else{
+     if(frame_type == TDD)
+@@ -892,7 +893,7 @@ void nr_get_Msg3alloc(module_id_t module_id,
+   const NR_TDD_UL_DL_Pattern_t *tdd = scc->tdd_UL_DL_ConfigurationCommon ? &scc->tdd_UL_DL_ConfigurationCommon->pattern1 : NULL;
+   const int n_slots_frame = nr_slots_per_frame[mu];
+   uint8_t k2 = 0;
+-  if (frame_type == TDD) {
++  if (0) {
+     int nb_periods_per_frame = get_nb_periods_per_frame(scc->tdd_UL_DL_ConfigurationCommon->pattern1.dl_UL_TransmissionPeriodicity);
+     int nb_slots_per_period = ((1<<mu)*10)/nb_periods_per_frame;
+     for (int i=0; i<pusch_TimeDomainAllocationList->list.count; i++) {
+@@ -920,8 +921,8 @@ void nr_get_Msg3alloc(module_id_t module_id,
+     AssertFatal(ra->Msg3_tda_id < 16, "Couldn't find an appropriate TD allocation for Msg3\n");
+   }
+   else {
+-    ra->Msg3_tda_id = 0;
+-    k2 = *pusch_TimeDomainAllocationList->list.array[0]->k2;
++    ra->Msg3_tda_id = 2;
++    k2 = *pusch_TimeDomainAllocationList->list.array[2]->k2;
+     temp_slot = current_slot + k2 + DELTA[mu]; // msg3 slot according to 8.3 in 38.213
+     ra->Msg3_slot = temp_slot%nr_slots_per_frame[mu];
+   }
+diff --git a/openair2/RRC/NR/nr_rrc_config.c b/openair2/RRC/NR/nr_rrc_config.c
+index f67fb93c23..18468f607f 100644
+--- a/openair2/RRC/NR/nr_rrc_config.c
++++ b/openair2/RRC/NR/nr_rrc_config.c
+@@ -568,7 +568,7 @@ void nr_rrc_config_ul_tda(NR_ServingCellConfigCommon_t *scc, int min_fb_delay){
+         int nb_slots_per_period = ((1<<mu) * 10)/nb_periods_per_frame;
+         struct NR_PUSCH_TimeDomainResourceAllocation *pusch_timedomainresourceallocation_msg3 = CALLOC(1,sizeof(struct NR_PUSCH_TimeDomainResourceAllocation));
+         pusch_timedomainresourceallocation_msg3->k2  = CALLOC(1,sizeof(long));
+-        *pusch_timedomainresourceallocation_msg3->k2 = nb_slots_per_period - DELTA[mu];
++        *pusch_timedomainresourceallocation_msg3->k2 = nb_slots_per_period - DELTA[mu] + 2;
+         if(*pusch_timedomainresourceallocation_msg3->k2 < min_fb_delay)
+           *pusch_timedomainresourceallocation_msg3->k2 += nb_slots_per_period;
+         AssertFatal(*pusch_timedomainresourceallocation_msg3->k2<33,"Computed k2 for msg3 %ld is larger than the range allowed by RRC (0..32)\n",
+-- 
+2.25.1
+
