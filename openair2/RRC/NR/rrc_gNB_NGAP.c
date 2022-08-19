@@ -1013,15 +1013,22 @@ rrc_gNB_process_NGAP_PDUSESSION_SETUP_REQ(
     if (rrc->security.do_drb_ciphering) {
       pdu->confidentialityProtectionIndication = E1AP_ConfidentialityProtectionIndication_required;
     }
-    pdu->teId                                = msg->pdusession_setup_params[i].gtp_teid;
+    pdu->teId = msg->pdusession_setup_params[i].gtp_teid;
     memcpy(&pdu->tlAddress,
            msg->pdusession_setup_params[i].upf_addr.buffer,
            sizeof(uint8_t)*4);
 
+    ue_context_p->ue_context.pduSession[i].param = msg->pdusession_setup_params[i];
+    ue_context_p->ue_context.nb_of_pdusessions   = msg->nb_pdusessions_tosetup;
+    ue_context_p->ue_context.gNB_ue_ngap_id      = msg->gNB_ue_ngap_id;
+    ue_context_p->ue_context.amf_ue_ngap_id      = msg->amf_ue_ngap_id;
     pdu->numDRB2Setup = 1; // One DRB per PDU Session. TODO: Remove hardcoding
+    ue_context_p->ue_context.setup_pdu_sessions += pdu->numDRB2Setup;
     for (int j=0; j < pdu->numDRB2Setup; j++) {
       DRB_nGRAN_to_setup_t *drb = pdu->DRBnGRanList + j;
+
       drb->id = i + j + 1;
+
       drb->defaultDRB = E1AP_DefaultDRB_true;
 
       drb->sDAP_Header_UL = !(rrc->configuration.enable_sdap);
