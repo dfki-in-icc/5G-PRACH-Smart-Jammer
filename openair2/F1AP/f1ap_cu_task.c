@@ -186,7 +186,7 @@ void *F1AP_CU_task(void *arg) {
       case F1AP_UE_CONTEXT_MODIFICATION_REQ:
         LOG_I(F1AP, "CU Task received F1AP_UE_CONTEXT_MODIFICATION_REQ\n");
         CU_send_UE_CONTEXT_MODIFICATION_REQUEST(ITTI_MSG_DESTINATION_INSTANCE(received_msg),
-                                                &F1AP_UE_CONTEXT_MODIFICATION_REQ(received_msg));
+                                                &F1AP_UE_CONTEXT_SETUP_REQ(received_msg));
         break;
 
       case F1AP_UE_CONTEXT_RELEASE_CMD: // from rrc

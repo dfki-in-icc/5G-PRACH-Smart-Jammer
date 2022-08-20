@@ -101,6 +101,7 @@
 #include <openair2/RRC/NR/nr_rrc_proto.h>
 #include "LAYER2/nr_rlc/nr_rlc_oai_api.h"
 #include "openair2/LAYER2/nr_pdcp/nr_pdcp_e1_api.h"
+#include "openair2/F1AP/f1ap_common.h"
 
 #include "BIT_STRING.h"
 #include "assertions.h"
@@ -4057,16 +4058,48 @@ int drb_config_gtpu_create_e1(e1ap_bearer_setup_req_t *req,
   return ret;
 }
 
-int rrc_gNB_process_e1_bearer_context_setup_req(e1ap_bearer_setup_req_t *req, instance_t instance) {
+void gNB_CU_create_up_ul_tunnel(e1ap_bearer_setup_resp_t *resp,
+                                e1ap_bearer_setup_req_t *req,
+                                instance_t instance,
+                                ue_id_t ue_id) {
+
+  for (int i=0; i < req->numPDUSessions; i++) {
+    pdu_session_to_setup_t *pdu = req->pduSession + i;
+
+    transport_layer_addr_t addr;
+    int size = sizeof(pdu->tlAddress_dl);
+    memcpy(addr.buffer,
+           &pdu->tlAddress_dl,
+           size);
+    addr.length = size * 8;
+
+    resp->pduSession[i].tlAddress = pdu->tlAddress;
+    resp->pduSession[i].teId = newGtpuCreateTunnel(getCxt(CUtype, instance)->gtpInst,
+                                                   ue_id,
+                                                   pdu->DRBnGRanList[0].id,
+                                                   pdu->DRBnGRanList[0].id,
+                                                   0xFFFF, // We will set the right value from DU answer
+                                                   -1, // no qfi
+                                                   addr,
+                                                   pdu->tl_port_dl,
+                                                   cu_f1u_data_req,
+                                                   NULL);
+  }
+}
+
+void rrc_gNB_process_e1_bearer_context_setup_req(e1ap_bearer_setup_req_t *req, instance_t instance) {
 
   gtpv1u_gnb_create_tunnel_req_t  create_tunnel_req={0};
   gtpv1u_gnb_create_tunnel_resp_t create_tunnel_resp={0};
 
-  int ret = drb_config_gtpu_create_e1(req, &create_tunnel_req, &create_tunnel_resp, instance);
+  // GTP tunnel for UL
+  drb_config_gtpu_create_e1(req, &create_tunnel_req, &create_tunnel_resp, instance);
 
   MessageDef *message_p;
   message_p = itti_alloc_new_message (TASK_RRC_GNB, instance, E1AP_BEARER_CONTEXT_SETUP_RESP);
   e1ap_bearer_setup_resp_t *resp = &E1AP_BEARER_CONTEXT_SETUP_RESP(message_p);
+
+  gNB_CU_create_up_ul_tunnel(resp, req, instance, req->gNB_cu_cp_ue_id);
 
   resp->gNB_cu_cp_ue_id = req->gNB_cu_cp_ue_id;
   resp->numPDUSessions = req->numPDUSessions;
@@ -4107,11 +4140,11 @@ int rrc_gNB_process_e1_bearer_context_setup_req(e1ap_bearer_setup_req_t *req, in
   }
 
   itti_send_msg_to_task(TASK_CUUP_E1, instance, message_p);
-
-  return ret;
 }
 
-void prepare_and_send_ue_context_modification_f1(rrc_gNB_ue_context_t *ue_context_p) {
+void prepare_and_send_ue_context_modification_f1(rrc_gNB_ue_context_t *ue_context_p,
+                                                 e1ap_bearer_setup_resp_t *e1ap_resp,
+                                                 e1ap_bearer_setup_req_t *e1ap_req) {
 
   /*Generate a UE context modification request message towards the DU to instruct the DU
    *for SRB2 and DRB configuration and get the updates on master cell group config from the DU*/
@@ -4121,7 +4154,7 @@ void prepare_and_send_ue_context_modification_f1(rrc_gNB_ue_context_t *ue_contex
   // TODO: So many hard codings
   MessageDef *message_p;
   message_p = itti_alloc_new_message (TASK_RRC_GNB, 0, F1AP_UE_CONTEXT_MODIFICATION_REQ);
-  f1ap_ue_context_setup_t *req=&F1AP_UE_CONTEXT_MODIFICATION_REQ (message_p);
+  f1ap_ue_context_setup_t *req=&F1AP_UE_CONTEXT_SETUP_REQ (message_p);
   req->rnti             = ue_context_p->ue_context.rnti;
   req->mcc              = RC.nrrrc[ctxt.module_id]->configuration.mcc[0];
   req->mnc              = RC.nrrrc[ctxt.module_id]->configuration.mnc[0];
@@ -4136,18 +4169,20 @@ void prepare_and_send_ue_context_modification_f1(rrc_gNB_ue_context_t *ue_contex
   SRBs[0].lcid = 2;
 
   /*Instruction towards the DU for DRB configuration and tunnel creation*/
-  req->drbs_to_be_setup = malloc(1*sizeof(f1ap_drb_to_be_setup_t));
-  req->drbs_to_be_setup_length = 1;
-  f1ap_drb_to_be_setup_t *DRBs=req->drbs_to_be_setup;
-  LOG_D(RRC, "Length of DRB list:%d \n", req->drbs_to_be_setup_length);
-  DRBs[0].drb_id = 1;
-  DRBs[0].rlc_mode = RLC_MODE_AM;
-  DRBs[0].up_ul_tnl[0].tl_address = inet_addr(RC.nrrrc[ctxt.module_id]->eth_params_s.my_addr);
-  DRBs[0].up_ul_tnl[0].port=RC.nrrrc[ctxt.module_id]->eth_params_s.my_portd;
-  DRBs[0].up_ul_tnl_length = 1;
-  DRBs[0].up_dl_tnl[0].tl_address = inet_addr(RC.nrrrc[ctxt.module_id]->eth_params_s.remote_addr);
-  DRBs[0].up_dl_tnl[0].port=RC.nrrrc[ctxt.module_id]->eth_params_s.remote_portd;
-  DRBs[0].up_dl_tnl_length = 1;
+  req->drbs_to_be_setup_length = e1ap_req->numPDUSessions;
+  req->drbs_to_be_setup = malloc(1*sizeof(f1ap_drb_to_be_setup_t)*req->drbs_to_be_setup_length);
+  for (int i=0; i < e1ap_req->numPDUSessions; i++) {
+    f1ap_drb_to_be_setup_t *DRBs =  req->drbs_to_be_setup + i;
+    DRBs[i].drb_id = e1ap_req->pduSession[i].DRBnGRanList[0].id;
+    DRBs[i].rlc_mode = RLC_MODE_AM;
+    DRBs[i].up_ul_tnl[0].tl_address = e1ap_req->pduSession[i].tlAddress;
+    DRBs[i].up_ul_tnl[0].port = e1ap_req->pduSession[i].tl_port;
+    DRBs[i].up_ul_tnl[0].teid = e1ap_resp->pduSession[i].teId;
+    DRBs[i].up_ul_tnl_length = 1;
+    DRBs[i].up_dl_tnl[0].tl_address = e1ap_req->pduSession[i].tlAddress_dl;
+    DRBs[i].up_dl_tnl[0].port = e1ap_req->pduSession[i].tl_port_dl;
+    DRBs[i].up_dl_tnl_length = 1;
+  }
 
   itti_send_msg_to_task (TASK_CU_F1, ctxt.module_id, message_p);
 }
@@ -4160,6 +4195,8 @@ void bearer_context_setup_direct(e1ap_bearer_setup_req_t *req, instance_t instan
   PROTOCOL_CTXT_SET_BY_MODULE_ID(&ctxt, 0, GNB_FLAG_YES, ue_context_p->ue_context.rnti, 0, 0, 0);
 
   fill_DRB_configList(&ctxt, ue_context_p);
+
+  // GTP tunnel for UL
   int ret = drb_config_gtpu_create(&ctxt,
                                    ue_context_p,
                                    req,
@@ -4171,7 +4208,19 @@ void bearer_context_setup_direct(e1ap_bearer_setup_req_t *req, instance_t instan
   if(!NODE_IS_CU(RC.nrrrc[ctxt.module_id]->node_type)){
     rrc_gNB_generate_dedicatedRRCReconfiguration(&ctxt, ue_context_p, NULL);
   } else {
-    prepare_and_send_ue_context_modification_f1(ue_context_p);
+    for (int i=0; i < req->numPDUSessions; i++) {
+      pdu_session_to_setup_t *pdu = req->pduSession + i;
+
+      pdu->tlAddress    = inet_addr(RC.nrrrc[ctxt.module_id]->eth_params_s.my_addr);
+      pdu->tl_port       = RC.nrrrc[ctxt.module_id]->eth_params_s.my_portd;
+      pdu->tlAddress_dl = inet_addr(RC.nrrrc[ctxt.module_id]->eth_params_s.remote_addr);
+      pdu->tl_port_dl    = RC.nrrrc[ctxt.module_id]->eth_params_s.remote_portd;
+    }
+
+    e1ap_bearer_setup_resp_t resp; // Used to store teids
+    gNB_CU_create_up_ul_tunnel(&resp, req, instance, ue_context_p->ue_context.rnti);
+
+    prepare_and_send_ue_context_modification_f1(ue_context_p, &resp, req);
   }
   // call the code that sends UE context modification message to DU
 }
@@ -4217,7 +4266,21 @@ void rrc_gNB_process_e1_bearer_context_setup_resp(e1ap_bearer_setup_resp_t *resp
 
   ue_context_p->ue_context.setup_pdu_sessions += resp->numPDUSessions;
 
-  prepare_and_send_ue_context_modification_f1(ue_context_p);
+  // TODO: SV: combine e1ap_bearer_setup_req_t and e1ap_bearer_setup_resp_t and minimize assignments
+  e1ap_bearer_setup_req_t req;
+  req.numPDUSessions = resp->numPDUSessions;
+  for (int i=0; i < resp->numPDUSessions; i++) {
+    pdu_session_to_setup_t *pdu = req.pduSession + i;
+
+    pdu->DRBnGRanList[0].id = resp->pduSession[i].DRBnGRanList[0].id;
+
+    pdu->tlAddress    = inet_addr(RC.nrrrc[ctxt.module_id]->eth_params_s.my_addr);
+    pdu->tl_port       = RC.nrrrc[ctxt.module_id]->eth_params_s.my_portd;
+    pdu->tlAddress_dl = inet_addr(RC.nrrrc[ctxt.module_id]->eth_params_s.remote_addr);
+    pdu->tl_port_dl    = RC.nrrrc[ctxt.module_id]->eth_params_s.remote_portd;
+
+  }
+  prepare_and_send_ue_context_modification_f1(ue_context_p, resp, &req);
 }
 
 ///---------------------------------------------------------------------------------------------------------------///

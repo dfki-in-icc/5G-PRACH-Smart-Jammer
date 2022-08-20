@@ -125,7 +125,11 @@ typedef struct pdu_session_to_setup_s {
   long integrityProtectionIndication;
   long confidentialityProtectionIndication;
   in_addr_t tlAddress;
+  in_addr_t tlAddress_dl;
   int32_t teId;
+  int32_t teId_dl;
+  int tl_port;
+  int tl_port_dl;
   long numDRB2Setup;
   DRB_nGRAN_to_setup_t DRBnGRanList[E1AP_MAX_NUM_NGRAN_DRB];
 } pdu_session_to_setup_t;
