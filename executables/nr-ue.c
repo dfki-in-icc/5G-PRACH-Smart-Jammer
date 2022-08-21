@@ -32,7 +32,6 @@
 #include "PHY/NR_UE_TRANSPORT/nr_transport_proto_ue.h"
 #include "executables/softmodem-common.h"
 #include "LAYER2/nr_pdcp/nr_pdcp_entity.h"
-#include "SCHED_NR_UE/pucch_uci_ue_nr.h"
 #include "openair2/NR_UE_PHY_INTERFACE/NR_IF_Module.h"
 
 /*
@@ -123,6 +122,7 @@ static size_t dump_L1_UE_meas_stats(PHY_VARS_NR_UE *ue, char *output, size_t max
   output += print_meas_log(&ue->dlsch_ldpc_decoding_stats, " ->  LDPC Decode", NULL, NULL, output, end - output);
   output += print_meas_log(&ue->dlsch_unscrambling_stats, "PDSCH unscrambling", NULL, NULL, output, end - output);
   output += print_meas_log(&ue->dlsch_rx_pdcch_stats, "PDCCH handling", NULL, NULL, output, end - output);
+  output += print_meas_log(&ue->total_proc, "Total slot processing", NULL, NULL, output, end - output);
   return output - begin;
 }
 
@@ -605,11 +605,8 @@ static void UE_synch(void *arg) {
   }
 }
 
-void processSlotTX(void *arg) {
+void processSlotTX(PHY_VARS_NR_UE *UE, UE_nr_rxtx_proc_t *proc) {
 
-  nr_rxtx_thread_data_t *rxtxD = (nr_rxtx_thread_data_t *) arg;
-  UE_nr_rxtx_proc_t *proc = &rxtxD->proc;
-  PHY_VARS_NR_UE    *UE   = rxtxD->UE;
   fapi_nr_config_request_t *cfg = &UE->nrUE_config;
   int tx_slot_type = nr_ue_slot_select(cfg, proc->frame_tx, proc->nr_slot_tx);
   uint8_t gNB_id = 0;
@@ -632,28 +629,58 @@ void processSlotTX(void *arg) {
       ul_indication.frame_tx  = proc->frame_tx;
       ul_indication.slot_tx   = proc->nr_slot_tx;
       ul_indication.thread_id = proc->thread_id;
-      ul_indication.ue_sched_mode = rxtxD->ue_sched_mode;
+      ul_indication.ue_sched_mode = SCHED_ALL;
 
       UE->if_inst->ul_indication(&ul_indication);
       stop_meas(&UE->ue_ul_indication_stats);
     }
 
-    if (rxtxD->ue_sched_mode != NOT_PUSCH) {
-      phy_procedures_nrUE_TX(UE,proc,0);
+    start_meas(&UE->phy_proc_tx);
+    phy_procedures_nrUE_TX(UE,proc,0);
+    stop_meas(&UE->phy_proc_tx);
+  }
+}
+
+void processSlotRX(PHY_VARS_NR_UE *UE, UE_nr_rxtx_proc_t *proc) {
+
+  fapi_nr_config_request_t *cfg = &UE->nrUE_config;
+  int rx_slot_type = nr_ue_slot_select(cfg, proc->frame_rx, proc->nr_slot_rx);
+  uint8_t gNB_id = 0;
+  NR_UE_PDCCH_CONFIG phy_pdcch_config={0};
+
+  if (rx_slot_type == NR_DOWNLINK_SLOT || rx_slot_type == NR_MIXED_SLOT){
+
+    if(UE->if_inst != NULL && UE->if_inst->dl_indication != NULL) {
+      nr_downlink_indication_t dl_indication;
+      nr_fill_dl_indication(&dl_indication, NULL, NULL, proc, UE, gNB_id, &phy_pdcch_config);
+      UE->if_inst->dl_indication(&dl_indication, NULL);
+    }
+
+    // Process Rx data for one sub-frame
+#ifdef UE_SLOT_PARALLELISATION
+    phy_procedures_slot_parallelization_nrUE_RX( UE, proc, 0, 0, 1, no_relay, NULL );
+#else
+    uint64_t a=rdtsc_oai();
+    start_meas(&UE->phy_proc_rx[proc->thread_id]);
+    phy_procedures_nrUE_RX(UE, proc, gNB_id, get_nrUE_params()->nr_dlsch_parallel, &phy_pdcch_config);
+    stop_meas(&UE->phy_proc_rx[proc->thread_id]);
+    LOG_D(PHY, "In %s: slot %d, time %llu\n", __FUNCTION__, proc->nr_slot_rx, (rdtsc_oai()-a)/3500);
+#endif
+
+    if(IS_SOFTMODEM_NOS1 || get_softmodem_params()->sa){
+      NR_UE_MAC_INST_t *mac = get_mac_inst(0);
+      protocol_ctxt_t ctxt;
+      PROTOCOL_CTXT_SET_BY_MODULE_ID(&ctxt, UE->Mod_id, ENB_FLAG_NO, mac->crnti, proc->frame_rx, proc->nr_slot_rx, 0);
+      pdcp_run(&ctxt);
     }
   }
 }
 
-void processSlotRX(void *arg) {
-
+void UE_processing(void *arg) {
   nr_rxtx_thread_data_t *rxtxD = (nr_rxtx_thread_data_t *) arg;
   UE_nr_rxtx_proc_t *proc = &rxtxD->proc;
   PHY_VARS_NR_UE    *UE   = rxtxD->UE;
-  fapi_nr_config_request_t *cfg = &UE->nrUE_config;
-  int rx_slot_type = nr_ue_slot_select(cfg, proc->frame_rx, proc->nr_slot_rx);
-  int tx_slot_type = nr_ue_slot_select(cfg, proc->frame_tx, proc->nr_slot_tx);
-  uint8_t gNB_id = 0;
-  NR_UE_PDCCH_CONFIG phy_pdcch_config={0};
+    start_meas(&UE->total_proc);
 
   if (IS_SOFTMODEM_NOS1 || get_softmodem_params()->sa) {
     /* send tick to RLC and PDCP every ms */
@@ -665,68 +692,11 @@ void processSlotRX(void *arg) {
     }
   }
 
-  if (rx_slot_type == NR_DOWNLINK_SLOT || rx_slot_type == NR_MIXED_SLOT){
-
-    if(UE->if_inst != NULL && UE->if_inst->dl_indication != NULL) {
-      nr_downlink_indication_t dl_indication;
-      nr_fill_dl_indication(&dl_indication, NULL, NULL, proc, UE, gNB_id, &phy_pdcch_config);
-      UE->if_inst->dl_indication(&dl_indication, NULL);
-    }
-
-  // Process Rx data for one sub-frame
-#ifdef UE_SLOT_PARALLELISATION
-    phy_procedures_slot_parallelization_nrUE_RX( UE, proc, 0, 0, 1, no_relay, NULL );
-#else
-    uint64_t a=rdtsc_oai();
-    phy_procedures_nrUE_RX(UE, proc, gNB_id, get_nrUE_params()->nr_dlsch_parallel, &phy_pdcch_config, &rxtxD->txFifo);
-    LOG_D(PHY, "In %s: slot %d, time %llu\n", __FUNCTION__, proc->nr_slot_rx, (rdtsc_oai()-a)/3500);
-#endif
-
-    if(IS_SOFTMODEM_NOS1 || get_softmodem_params()->sa){
-      NR_UE_MAC_INST_t *mac = get_mac_inst(0);
-      protocol_ctxt_t ctxt;
-      PROTOCOL_CTXT_SET_BY_MODULE_ID(&ctxt, UE->Mod_id, ENB_FLAG_NO, mac->crnti, proc->frame_rx, proc->nr_slot_rx, 0);
-      pdcp_run(&ctxt);
-    }
-
-    // Wait for PUSCH processing to finish
-    notifiedFIFO_elt_t *res;
-    res = pullTpool(&rxtxD->txFifo,&(get_nrUE_params()->Tpool));
-    if (res == NULL)
-      return; // Tpool has been stopped
-    delNotifiedFIFO_elt(res);
-
-    // calling UL_indication to schedule things other than PUSCH (eg, PUCCH)
-    rxtxD->ue_sched_mode = NOT_PUSCH;
-    processSlotTX(rxtxD);
-
-  } else {
-    rxtxD->ue_sched_mode = SCHED_ALL;
-    processSlotTX(rxtxD);
-  }
-
-  if (tx_slot_type == NR_UPLINK_SLOT || tx_slot_type == NR_MIXED_SLOT){
-    if (UE->UE_mode[gNB_id] <= PUSCH) {
-      if (get_softmodem_params()->usim_test==0) {
-        pucch_procedures_ue_nr(UE,
-                               gNB_id,
-                               proc);
-      }
-
-      LOG_D(PHY, "Sending Uplink data \n");
-      nr_ue_pusch_common_procedures(UE,
-                                    proc->nr_slot_tx,
-                                    &UE->frame_parms,
-                                    UE->frame_parms.nb_antennas_tx);
-    }
-
-    if (UE->UE_mode[gNB_id] > NOT_SYNCHED && UE->UE_mode[gNB_id] < PUSCH) {
-      nr_ue_prach_procedures(UE, proc, gNB_id);
-    }
-    LOG_D(PHY,"****** end TX-Chain for AbsSubframe %d.%d ******\n", proc->frame_tx, proc->nr_slot_tx);
-  }
-
+  processSlotRX(UE, proc);
+  processSlotTX(UE, proc);
   ue_ta_procedures(UE, proc->nr_slot_tx, proc->frame_tx);
+    stop_meas(&UE->total_proc);
+
 }
 
 void dummyWrite(PHY_VARS_NR_UE *UE,openair0_timestamp timestamp, int writeBlockSize) {
@@ -854,9 +824,7 @@ void *UE_thread(void *arg) {
   int absolute_slot=0, decoded_frame_rx=INT_MAX, trashed_frames=0;
 
   for (int i=0; i<NR_RX_NB_TH+1; i++) {// NR_RX_NB_TH working + 1 we are making to be pushed
-    notifiedFIFO_elt_t *newElt = newNotifiedFIFO_elt(sizeof(nr_rxtx_thread_data_t), RX_JOB_ID,&nf,processSlotRX);
-    nr_rxtx_thread_data_t *curMsg=(nr_rxtx_thread_data_t *)NotifiedFifoData(newElt);
-    initNotifiedFIFO(&curMsg->txFifo);
+    notifiedFIFO_elt_t *newElt = newNotifiedFIFO_elt(sizeof(nr_rxtx_thread_data_t), RX_JOB_ID,&nf,UE_processing);
     pushNotifiedFIFO_nothreadSafe(&freeBlocks, newElt);
   }
 
@@ -866,7 +834,7 @@ void *UE_thread(void *arg) {
       nb += abortNotifiedFIFOJob(&nf, RX_JOB_ID);
       LOG_I(PHY,"Number of aborted slots %d\n",nb);
       for (int i=0; i<nb; i++)
-        pushNotifiedFIFO_nothreadSafe(&freeBlocks, newNotifiedFIFO_elt(sizeof(nr_rxtx_thread_data_t), RX_JOB_ID,&nf,processSlotRX));
+        pushNotifiedFIFO_nothreadSafe(&freeBlocks, newNotifiedFIFO_elt(sizeof(nr_rxtx_thread_data_t), RX_JOB_ID,&nf,UE_processing));
       nbSlotProcessing = 0;
       UE->is_synchronized = 0;
       UE->lost_sync = 0;
@@ -1018,7 +986,7 @@ void *UE_thread(void *arg) {
       if (tmp->proc.decoded_frame_rx != -1)
         decoded_frame_rx=(((mac->mib->systemFrameNumber.buf[0] >> mac->mib->systemFrameNumber.bits_unused)<<4) | tmp->proc.decoded_frame_rx);
       else
-         decoded_frame_rx=-1;
+        decoded_frame_rx=-1;
 
       pushNotifiedFIFO_nothreadSafe(&freeBlocks,res);
     }

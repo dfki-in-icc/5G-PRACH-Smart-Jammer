@@ -969,6 +969,7 @@ typedef struct {
   time_stats_t dlsch_modulation_SIC_stats;
   time_stats_t dlsch_llr_stripping_unit_SIC_stats;
   time_stats_t dlsch_unscrambling_SIC_stats;
+  time_stats_t total_proc;
 
 #if ENABLE_RAL
   hash_table_t    *ral_thresholds_timed;
@@ -987,7 +988,6 @@ typedef struct nr_rxtx_thread_data_s {
   UE_nr_rxtx_proc_t proc;
   PHY_VARS_NR_UE    *UE;
   NR_UE_SCHED_MODE_t ue_sched_mode;
-  notifiedFIFO_t txFifo;
 }  nr_rxtx_thread_data_t;
 
 typedef struct LDPCDecode_ue_s {
