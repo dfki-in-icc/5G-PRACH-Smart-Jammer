@@ -127,12 +127,9 @@ int phy_procedures_nrUE_RX(PHY_VARS_NR_UE *ue,
                            UE_nr_rxtx_proc_t *proc,
                            uint8_t gNB_id,
                            uint8_t dlsch_parallel,
-                           NR_UE_PDCCH_CONFIG *phy_pdcch_config,
-                           notifiedFIFO_t *txFifo);
+                           NR_UE_PDCCH_CONFIG *phy_pdcch_config);
 
 int phy_procedures_slot_parallelization_nrUE_RX(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, uint8_t eNB_id, uint8_t abstraction_flag, uint8_t do_pdcch_flag, relaying_type_t r_type);
-
-void processSlotTX(void *arg);
 
 #ifdef UE_SLOT_PARALLELISATION
   void *UE_thread_slot1_dl_processing(void *arg);

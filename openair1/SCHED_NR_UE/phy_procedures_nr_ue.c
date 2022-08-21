@@ -53,6 +53,7 @@
 #include "executables/nr-uesoftmodem.h"
 #include "LAYER2/NR_MAC_UE/mac_proto.h"
 #include "LAYER2/NR_MAC_UE/nr_l1_helpers.h"
+#include "SCHED_NR_UE/pucch_uci_ue_nr.h"
 
 //#define DEBUG_PHY_PROC
 #define NR_PDCCH_SCHED
@@ -294,24 +295,38 @@ void phy_procedures_nrUE_TX(PHY_VARS_NR_UE *ue,
 
   LOG_D(PHY,"****** start TX-Chain for AbsSubframe %d.%d ******\n", frame_tx, slot_tx);
 
-  start_meas(&ue->phy_proc_tx);
-
   if (ue->UE_mode[gNB_id] <= PUSCH){
 
     for (uint8_t harq_pid = 0; harq_pid < ue->ulsch[proc->thread_id][gNB_id]->number_harq_processes_for_pusch; harq_pid++) {
       if (ue->ulsch[proc->thread_id][gNB_id]->harq_processes[harq_pid]->status == ACTIVE)
         nr_ue_ulsch_procedures(ue, harq_pid, frame_tx, slot_tx, proc->thread_id, gNB_id);
     }
+
+    if (get_softmodem_params()->usim_test==0) {
+      pucch_procedures_ue_nr(ue,
+                             gNB_id,
+                             proc);
+    }
+
+    LOG_D(PHY, "Sending Uplink data \n");
+    nr_ue_pusch_common_procedures(ue,
+                                  proc->nr_slot_tx,
+                                  &ue->frame_parms,
+                                  ue->frame_parms.nb_antennas_tx);
+
   }
 
   if (ue->UE_mode[gNB_id] == PUSCH) {
     ue_srs_procedures_nr(ue, proc, gNB_id);
   }
 
+  if (ue->UE_mode[gNB_id] > NOT_SYNCHED && ue->UE_mode[gNB_id] < PUSCH) {
+    nr_ue_prach_procedures(ue, proc, gNB_id);
+  }
+
+  LOG_D(PHY,"****** end TX-Chain for AbsSubframe %d.%d ******\n", proc->frame_tx, proc->nr_slot_tx);
+
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PHY_PROCEDURES_UE_TX, VCD_FUNCTION_OUT);
-  stop_meas(&ue->phy_proc_tx);
-
-
 }
 
 void nr_ue_measurement_procedures(uint16_t l,
@@ -1326,8 +1341,7 @@ int phy_procedures_nrUE_RX(PHY_VARS_NR_UE *ue,
                            UE_nr_rxtx_proc_t *proc,
                            uint8_t gNB_id,
                            uint8_t dlsch_parallel,
-                           NR_UE_PDCCH_CONFIG *phy_pdcch_config,
-                           notifiedFIFO_t *txFifo) {
+                           NR_UE_PDCCH_CONFIG *phy_pdcch_config) {
 
   int frame_rx = proc->frame_rx;
   int nr_slot_rx = proc->nr_slot_rx;
@@ -1336,7 +1350,6 @@ int phy_procedures_nrUE_RX(PHY_VARS_NR_UE *ue,
   NR_DL_FRAME_PARMS *fp = &ue->frame_parms;
   
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PHY_PROCEDURES_UE_RX, VCD_FUNCTION_IN);
-  start_meas(&ue->phy_proc_rx[proc->thread_id]);
 
   LOG_D(PHY," ****** start RX-Chain for Frame.Slot %d.%d (energy %d dB)******  \n",
         frame_rx%1024, nr_slot_rx,
@@ -1516,14 +1529,6 @@ int phy_procedures_nrUE_RX(PHY_VARS_NR_UE *ue,
 
 #endif //NR_PDCCH_SCHED
 
-  // Start PUSCH processing here. It runs in parallel with PDSCH processing
-  notifiedFIFO_elt_t *newElt = newNotifiedFIFO_elt(sizeof(nr_rxtx_thread_data_t), proc->nr_slot_tx,txFifo,processSlotTX);
-  nr_rxtx_thread_data_t *curMsg=(nr_rxtx_thread_data_t *)NotifiedFifoData(newElt);
-  curMsg->proc = *proc;
-  curMsg->UE = ue;
-  curMsg->ue_sched_mode = ONLY_PUSCH;
-  pushTpool(&(get_nrUE_params()->Tpool), newElt);
-  start_meas(&ue->generic_stat);
   // do procedures for C-RNTI
   int ret_pdsch = 0;
   if (ue->dlsch[proc->thread_id][gNB_id][0]->active == 1) {
@@ -1710,7 +1715,6 @@ int phy_procedures_nrUE_RX(PHY_VARS_NR_UE *ue,
 
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PHY_PROCEDURES_UE_RX, VCD_FUNCTION_OUT);
 
-  stop_meas(&ue->phy_proc_rx[proc->thread_id]);
   if (cpumeas(CPUMEAS_GETSTATE))
     LOG_D(PHY, "------FULL RX PROC [SFN %d]: %5.2f ------\n",nr_slot_rx,ue->phy_proc_rx[proc->thread_id].p_time/(cpuf*1000.0));
 
