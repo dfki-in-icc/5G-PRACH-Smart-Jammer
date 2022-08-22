@@ -1015,5 +1015,13 @@ typedef struct LDPCDecode_ue_s {
   time_stats_t ts_ldpc_decode;
 } ldpcDecode_ue_t;
 
+typedef struct sample_log_thread_data_s {
+  PHY_VARS_NR_UE *UE;
+  int slot;
+  int frame;
+  int thread_id;
+} sample_log_thead_data_t;
+
+
 #include "SIMULATION/ETH_TRANSPORT/defs.h"
 #endif

@@ -188,7 +188,26 @@ void nr_dlsch_unscrambling(int16_t *llr, uint32_t size, uint8_t q, uint32_t Nid,
   nr_codeword_unscrambling(llr, size, q, Nid, n_RNTI);
 }
 
-bool nr_ue_postDecode(PHY_VARS_NR_UE *phy_vars_ue, notifiedFIFO_elt_t *req, bool last, notifiedFIFO_t *nf_p) {
+void log_iq_samples(void *arg) {
+
+  char filename[100];
+  sample_log_thead_data_t *data = (sample_log_thead_data_t *) arg;
+  PHY_VARS_NR_UE *ue = data->UE;
+  FILE *fpt;
+
+  sprintf(filename, "rxdataF_%d,%d.bin", data->frame, data->slot);
+
+  fpt = fopen(filename, "wb");
+  LOG_I(PHY, "Writing %d IQ samples to file %s\n", ue->frame_parms.get_samples_per_slot(data->slot, &ue->frame_parms), filename);
+  fwrite(ue->common_vars.common_vars_rx_data_per_thread[data->thread_id].rxdataF[0],
+         sizeof(int32_t),
+         ue->frame_parms.get_samples_per_slot(data->slot, &ue->frame_parms),
+         fpt);
+  fclose(fpt);
+}
+
+bool nr_ue_postDecode(PHY_VARS_NR_UE *phy_vars_ue, notifiedFIFO_elt_t *req, bool last, notifiedFIFO_t *nf_p,
+                      UE_nr_rxtx_proc_t *proc) {
   ldpcDecode_ue_t *rdata = (ldpcDecode_ue_t*) NotifiedFifoData(req);
   NR_DL_UE_HARQ_t *harq_process = rdata->harq_process;
   NR_UE_DLSCH_t *dlsch = (NR_UE_DLSCH_t *) rdata->dlsch;
@@ -242,6 +261,16 @@ bool nr_ue_postDecode(PHY_VARS_NR_UE *phy_vars_ue, notifiedFIFO_elt_t *req, bool
       //}
       dlsch->last_iteration_cnt = dlsch->max_ldpc_iterations + 1;
       LOG_D(PHY, "DLSCH received nok \n");
+      // we simple launch a thread to write the IQ samples of failed slot for analysis
+      notifiedFIFO_t samp_log_res;
+      initNotifiedFIFO(&samp_log_res);
+      notifiedFIFO_elt_t *log_req=newNotifiedFIFO_elt(sizeof(sample_log_thead_data_t), 0, &samp_log_res, log_iq_samples);
+      sample_log_thead_data_t * log_data=(sample_log_thead_data_t *) NotifiedFifoData(log_req);
+      log_data->UE = phy_vars_ue;
+      log_data->slot = proc->nr_slot_rx;
+      log_data->frame = proc->frame_rx;
+      log_data->thread_id = proc->thread_id;
+      pushTpool(&(pool_dl),log_req);
     }
     return true; //stop
   }
@@ -620,7 +649,7 @@ uint32_t nr_dlsch_decoding(PHY_VARS_NR_UE *phy_vars_ue,
     bool last = false;
     if (r == nbDecode - 1)
       last = true;
-    bool stop = nr_ue_postDecode(phy_vars_ue, req, last, &nf);
+    bool stop = nr_ue_postDecode(phy_vars_ue, req, last, &nf, proc);
     delNotifiedFIFO_elt(req);
     if (stop)
       break;
