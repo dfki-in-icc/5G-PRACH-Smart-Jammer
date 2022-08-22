@@ -990,6 +990,62 @@ void check_xran_ptp_sync()
 }
 #endif
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+int read_prach_data(ru_info_t *ru, int frame, int slot)
+{
+    p_xran_dev_ctx_2 = xran_dev_get_ctx();
+    struct rte_mbuf *mb;
+
+    /* calculate tti and subframe_id from frame, slot num */
+    int tti = 10 * (frame) + (slot);
+
+    /* MP_2022: retrieve how to know XRAN port ID value */
+    void *xran_device_ctx = NULL;
+    uint32_t portId = (uint32_t) xran_dev_ctx_get_port_id(xran_device_ctx);
+
+    uint32_t subframe = XranGetSubFrameNum(tti, 2, 10);
+    uint32_t is_prach_slot = xran_is_prach_slot(portId, subframe, (slot % 2));
+    int sym_idx = 0;
+
+    struct xran_prach_cp_config *pPrachCPConfig = &(p_xran_dev_ctx_2->PrachCPConfig);
+
+    /* If it is PRACH slot, copy prach IQ from XRAN PRACH buffer to OAI PRACH buffer */
+    if(is_prach_slot)
+    {
+
+        for(sym_idx = 0; sym_idx < pPrachCPConfig->numSymbol; sym_idx++) 
+        {
+            mb = (struct rte_mbuf *) p_xran_dev_ctx_2->sFHPrachRxBbuIoBufCtrl[tti % 40][0][0].sBufferList.pBuffers[sym_idx].pCtrl;
+            if(mb) 
+            {
+                uint16_t *dst, *src;
+                int idx = 0;
+                dst = (uint16_t * )((uint8_t *)ru->prach_buf + (sym_idx*576));
+                src = (uint16_t *) ((uint8_t *) p_xran_dev_ctx_2->sFHPrachRxBbuIoBufCtrl[tti % 40][0][0].sBufferList.pBuffers[sym_idx].pData);
+
+                /* convert Network order to host order */
+                for (idx = 0; idx < 576/2; idx++)
+                {
+                    dst[idx] = ntohs(src[idx]);
+                }
+
+            } 
+            else 
+            {
+                /* TODO: Unlikely this code never gets executed */
+                printf("%s():%d, There is no prach ctrl data for symb %d\n", __func__, __LINE__, sym_idx);
+            }
+        }
+    }
+
+    return(0);
+}
+#ifdef __cplusplus
+}
+#endif
 
 
 
