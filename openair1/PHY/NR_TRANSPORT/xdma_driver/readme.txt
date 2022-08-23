@@ -52,7 +52,6 @@ sudo mv libxdma_ldpc_dec.so /usr/lib
 cd openairinterface5g/openair1/PHY/NR_TRANSPORT/xdma_driver/tests
 
 sudo ./load_driver.sh
-
 ------------------------------------------------------------------------
 *** Run OAI ***
 cd openairinterface5g
@@ -67,6 +66,9 @@ sudo ./build_oai -I
 #for simulation
 sudo ./build_oai -c -C -P
 
-sudo ./phy_simulators/build/nr_ulsim -s 40
+sudo ./phy_simulators/build/nr_ulsim
+-s : SNR
+-o : Enabled FPGA module (default is disabled)
 
+#Notice: We create a folder contain FPGA LDPC decoder file "refer_datasheet.log" in /PHY/NR_TRANSPORTS/xdma_driver/log
 

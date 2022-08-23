@@ -3230,7 +3230,7 @@ add_executable(nr_dlschsim
   )
 target_link_libraries(nr_dlschsim
   -Wl,--start-group UTIL SIMU_COMMON SIMU PHY_COMMON PHY_NR_COMMON PHY_NR PHY_NR_UE SCHED_NR_LIB CONFIG_LIB MAC_NR_COMMON -Wl,--end-group
-  m pthread ${ATLAS_LIBRARIES} ${T_LIB} ITTI dl
+  m pthread ${ATLAS_LIBRARIES} ${T_LIB} ITTI dl -Wl,--no-as-needed xdma_ldpc_dec
   )
 
 add_executable(nr_pbchsim
@@ -3245,7 +3245,7 @@ add_executable(nr_pbchsim
   )
 target_link_libraries(nr_pbchsim
   -Wl,--start-group UTIL SIMU_COMMON SIMU PHY_COMMON PHY_NR_COMMON PHY_NR PHY_NR_UE SCHED_NR_LIB CONFIG_LIB MAC_NR_COMMON -Wl,--end-group
-  m pthread ${ATLAS_LIBRARIES} ${T_LIB} ITTI dl
+  m pthread ${ATLAS_LIBRARIES} ${T_LIB} ITTI dl -Wl,--no-as-needed xdma_ldpc_dec
   )
 
 #PUCCH ---> Prashanth
@@ -3262,7 +3262,7 @@ add_executable(nr_pucchsim
   )
 target_link_libraries(nr_pucchsim
   -Wl,--start-group UTIL SIMU_COMMON SIMU PHY_COMMON PHY_NR_COMMON PHY_NR PHY_NR_UE SCHED_NR_LIB CONFIG_LIB MAC_NR_COMMON -Wl,--end-group
-  m pthread ${ATLAS_LIBRARIES} ${T_LIB} ITTI dl
+  m pthread ${ATLAS_LIBRARIES} ${T_LIB} ITTI dl  -Wl,--no-as-needed xdma_ldpc_dec
   )
 
 add_executable(nr_dlsim
@@ -3281,7 +3281,7 @@ add_executable(nr_dlsim
   )
 target_link_libraries(nr_dlsim
   -Wl,--start-group UTIL SIMU_COMMON SIMU PHY_COMMON PHY_NR_COMMON PHY_NR PHY_NR_UE SCHED_NR_LIB SCHED_NR_UE_LIB MAC_NR MAC_UE_NR MAC_NR_COMMON RRC_LIB NR_RRC_LIB CONFIG_LIB L2_LTE_NR L2_NR HASHTABLE X2AP_ENB X2AP_LIB SECU_CN NGAP_GNB -Wl,--end-group
-  m pthread ${ATLAS_LIBRARIES} ${T_LIB} ITTI ${OPENSSL_LIBRARIES} dl
+  m pthread ${ATLAS_LIBRARIES} ${T_LIB} ITTI ${OPENSSL_LIBRARIES} dl -Wl,--no-as-needed xdma_ldpc_dec
   )
 target_compile_definitions(nr_dlsim PUBLIC -DPHYSICAL_SIMULATOR)
 
@@ -3300,7 +3300,7 @@ add_executable(nr_prachsim
   ${SHLIB_LOADER_SOURCES})
 target_link_libraries(nr_prachsim
   -Wl,--start-group UTIL SIMU_COMMON SIMU PHY_COMMON PHY_NR_COMMON PHY_NR PHY_RU PHY_NR_UE MAC_NR_COMMON SCHED_NR_LIB SCHED_NR_UE_LIB MAC_NR MAC_UE_NR MAC_NR_COMMON RRC_LIB NR_RRC_LIB CONFIG_LIB L2_LTE_NR L2_NR HASHTABLE X2AP_ENB X2AP_LIB SECU_CN NGAP_GNB -Wl,--end-group
-  m pthread ${ATLAS_LIBRARIES} ${T_LIB} ITTI ${OPENSSL_LIBRARIES} dl)
+  m pthread ${ATLAS_LIBRARIES} ${T_LIB} ITTI ${OPENSSL_LIBRARIES} dl -Wl,--no-as-needed xdma_ldpc_dec)
 
 add_executable(nr_ulschsim
   ${OPENAIR1_DIR}/SIMULATION/NR_PHY/ulschsim.c
@@ -3314,9 +3314,11 @@ add_executable(nr_ulschsim
   )
 target_link_libraries(nr_ulschsim
   -Wl,--start-group UTIL SIMU_COMMON SIMU PHY_COMMON PHY_NR_COMMON PHY_NR PHY_NR_UE SCHED_NR_LIB CONFIG_LIB MAC_NR_COMMON -Wl,--end-group
-  m pthread ${ATLAS_LIBRARIES} ${T_LIB} ITTI dl
+  m pthread ${ATLAS_LIBRARIES} ${T_LIB} ITTI dl -Wl,--no-as-needed xdma_ldpc_dec
   )
 
+link_directories(${OPENAIR1_DIR}/PHY/NR_TRANSPORT/nr_ldpc_decoding_pym.h) # Link include <nr_ldpc_decoding_pym.h> file
+link_libraries(${OPENAIR_DIR}/cmake_targets/phy_simulators/libxdma_ldpc_dec.so) # Link lib <xdma_ldpc_dec.so> file
 add_executable(nr_ulsim
   ${OPENAIR1_DIR}/SIMULATION/NR_PHY/ulsim.c
   ${OPENAIR_DIR}/common/utils/threadPool/thread-pool.c
@@ -3331,9 +3333,10 @@ add_executable(nr_ulsim
   ${T_SOURCE}
   ${SHLIB_LOADER_SOURCES}
   )
+
 target_link_libraries(nr_ulsim
-  -Wl,--start-group UTIL SIMU_COMMON SIMU xdma_ldpc_dec PHY_COMMON PHY_NR_COMMON PHY_NR PHY_NR_UE SCHED_NR_LIB SCHED_NR_UE_LIB MAC_NR MAC_UE_NR MAC_NR_COMMON RRC_LIB NR_RRC_LIB CONFIG_LIB L2_LTE_NR L2_NR HASHTABLE X2AP_ENB X2AP_LIB SECU_CN NGAP_GNB -Wl,--end-group
-  m pthread ${ATLAS_LIBRARIES} ${T_LIB} ITTI ${OPENSSL_LIBRARIES} dl
+  -Wl,--start-group UTIL SIMU_COMMON SIMU PHY_COMMON PHY_NR_COMMON PHY_NR PHY_NR_UE SCHED_NR_LIB SCHED_NR_UE_LIB MAC_NR MAC_UE_NR MAC_NR_COMMON RRC_LIB NR_RRC_LIB CONFIG_LIB L2_LTE_NR L2_NR HASHTABLE X2AP_ENB X2AP_LIB SECU_CN NGAP_GNB -Wl,--end-group
+  m pthread ${ATLAS_LIBRARIES} ${T_LIB} ITTI ${OPENSSL_LIBRARIES} dl -Wl,--no-as-needed xdma_ldpc_dec
   )
 target_compile_definitions(nr_ulsim PUBLIC -DPHYSICAL_SIMULATOR)
 

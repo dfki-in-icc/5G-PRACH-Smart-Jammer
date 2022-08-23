@@ -849,6 +849,9 @@ typedef struct PHY_VARS_gNB_s {
   /// counter to average prach energh over first 100 prach opportunities
   int prach_energy_counter;
 
+  /// set 1 to enables FPGA LDPC function. if == 0, use OAI origin LDPC decoded function 
+  int fpga_enabled;
+
   int pucch0_thres;
   int pusch_thres;
   int prach_thres;
@@ -881,9 +884,10 @@ typedef struct PHY_VARS_gNB_s {
   time_stats_t ul_indication_stats;
   time_stats_t ulsch_decoding_stats;
   time_stats_t ulsch_rate_unmatching_stats;
-  time_stats_t ulsch_ldpc_decoding_stats;
   time_stats_t ulsch_deinterleaving_stats;
   time_stats_t ulsch_unscrambling_stats;
+  time_stats_t ulsch_ldpc_decoding_stats;
+  time_stats_t ulsch_ldpc_fpga_time_stats;
   time_stats_t ulsch_channel_estimation_stats;
   time_stats_t ulsch_ptrs_processing_stats;
   time_stats_t ulsch_channel_compensation_stats;

@@ -1,8 +1,8 @@
-cmd_/home/isip/Desktop/oai_push/oaiv1/openairinterface5g/openair1/PHY/NR_TRANSPORT/xdma_driver/xdma/libxdma.o := gcc -Wp,-MD,/home/isip/Desktop/oai_push/oaiv1/openairinterface5g/openair1/PHY/NR_TRANSPORT/xdma_driver/xdma/.libxdma.o.d  -nostdinc -isystem /usr/lib/gcc/x86_64-linux-gnu/5/include  -I./arch/x86/include -I./arch/x86/include/generated  -I./include -I./arch/x86/include/uapi -I./arch/x86/include/generated/uapi -I./include/uapi -I./include/generated/uapi -include ./include/linux/kconfig.h -Iubuntu/include  -D__KERNEL__ -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs -fno-strict-aliasing -fno-common -fshort-wchar -Werror-implicit-function-declaration -Werror=return-type -Wno-format-security -std=gnu89 -fno-PIE -mno-sse -mno-mmx -mno-sse2 -mno-3dnow -mno-avx -m64 -falign-jumps=1 -falign-loops=1 -mno-80387 -mno-fp-ret-in-387 -mpreferred-stack-boundary=3 -mskip-rax-setup -mtune=generic -mno-red-zone -mcmodel=kernel -funit-at-a-time -DCONFIG_X86_X32_ABI -DCONFIG_AS_CFI=1 -DCONFIG_AS_CFI_SIGNAL_FRAME=1 -DCONFIG_AS_CFI_SECTIONS=1 -DCONFIG_AS_FXSAVEQ=1 -DCONFIG_AS_SSSE3=1 -DCONFIG_AS_CRC32=1 -DCONFIG_AS_AVX=1 -DCONFIG_AS_AVX2=1 -DCONFIG_AS_AVX512=1 -DCONFIG_AS_SHA1_NI=1 -DCONFIG_AS_SHA256_NI=1 -pipe -Wno-sign-compare -fno-asynchronous-unwind-tables -mindirect-branch=thunk-extern -mindirect-branch-register -fno-jump-tables -fno-delete-null-pointer-checks -O2 --param=allow-store-data-races=0 -DCC_HAVE_ASM_GOTO -Wframe-larger-than=1024 -fstack-protector-strong -Wno-unused-but-set-variable -fno-omit-frame-pointer -fno-optimize-sibling-calls -fno-var-tracking-assignments -pg -mfentry -DCC_USING_FENTRY -Wdeclaration-after-statement -Wno-pointer-sign -Wno-array-bounds -Wno-maybe-uninitialized -fno-strict-overflow -fno-merge-all-constants -fmerge-constants -fno-stack-check -fconserve-stack -Werror=implicit-int -Werror=strict-prototypes -Werror=date-time -Werror=incompatible-pointer-types -Werror=designated-init -I/home/isip/Desktop/oai_push/oaiv1/openairinterface5g/openair1/PHY/NR_TRANSPORT/xdma_driver/include  -DMODULE  -DKBUILD_BASENAME='"libxdma"'  -DKBUILD_MODNAME='"xdma"' -c -o /home/isip/Desktop/oai_push/oaiv1/openairinterface5g/openair1/PHY/NR_TRANSPORT/xdma_driver/xdma/libxdma.o /home/isip/Desktop/oai_push/oaiv1/openairinterface5g/openair1/PHY/NR_TRANSPORT/xdma_driver/xdma/libxdma.c
+cmd_/home/isip/Documents/abby/eurecom/openairinterface5g/openair1/PHY/NR_TRANSPORT/xdma_driver/xdma/libxdma.o := gcc -Wp,-MD,/home/isip/Documents/abby/eurecom/openairinterface5g/openair1/PHY/NR_TRANSPORT/xdma_driver/xdma/.libxdma.o.d  -nostdinc -isystem /usr/lib/gcc/x86_64-linux-gnu/5/include  -I./arch/x86/include -I./arch/x86/include/generated  -I./include -I./arch/x86/include/uapi -I./arch/x86/include/generated/uapi -I./include/uapi -I./include/generated/uapi -include ./include/linux/kconfig.h -Iubuntu/include  -D__KERNEL__ -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs -fno-strict-aliasing -fno-common -fshort-wchar -Werror-implicit-function-declaration -Werror=return-type -Wno-format-security -std=gnu89 -fno-PIE -mno-sse -mno-mmx -mno-sse2 -mno-3dnow -mno-avx -m64 -falign-jumps=1 -falign-loops=1 -mno-80387 -mno-fp-ret-in-387 -mpreferred-stack-boundary=3 -mskip-rax-setup -mtune=generic -mno-red-zone -mcmodel=kernel -funit-at-a-time -DCONFIG_X86_X32_ABI -DCONFIG_AS_CFI=1 -DCONFIG_AS_CFI_SIGNAL_FRAME=1 -DCONFIG_AS_CFI_SECTIONS=1 -DCONFIG_AS_FXSAVEQ=1 -DCONFIG_AS_SSSE3=1 -DCONFIG_AS_CRC32=1 -DCONFIG_AS_AVX=1 -DCONFIG_AS_AVX2=1 -DCONFIG_AS_AVX512=1 -DCONFIG_AS_SHA1_NI=1 -DCONFIG_AS_SHA256_NI=1 -pipe -Wno-sign-compare -fno-asynchronous-unwind-tables -mindirect-branch=thunk-extern -mindirect-branch-register -fno-jump-tables -fno-delete-null-pointer-checks -O2 --param=allow-store-data-races=0 -DCC_HAVE_ASM_GOTO -Wframe-larger-than=1024 -fstack-protector-strong -Wno-unused-but-set-variable -fno-omit-frame-pointer -fno-optimize-sibling-calls -fno-var-tracking-assignments -pg -mfentry -DCC_USING_FENTRY -Wdeclaration-after-statement -Wno-pointer-sign -Wno-array-bounds -Wno-maybe-uninitialized -fno-strict-overflow -fno-merge-all-constants -fmerge-constants -fno-stack-check -fconserve-stack -Werror=implicit-int -Werror=strict-prototypes -Werror=date-time -Werror=incompatible-pointer-types -Werror=designated-init -I/home/isip/Documents/abby/eurecom/openairinterface5g/openair1/PHY/NR_TRANSPORT/xdma_driver/include  -DMODULE  -DKBUILD_BASENAME='"libxdma"'  -DKBUILD_MODNAME='"xdma"' -c -o /home/isip/Documents/abby/eurecom/openairinterface5g/openair1/PHY/NR_TRANSPORT/xdma_driver/xdma/libxdma.o /home/isip/Documents/abby/eurecom/openairinterface5g/openair1/PHY/NR_TRANSPORT/xdma_driver/xdma/libxdma.c
 
-source_/home/isip/Desktop/oai_push/oaiv1/openairinterface5g/openair1/PHY/NR_TRANSPORT/xdma_driver/xdma/libxdma.o := /home/isip/Desktop/oai_push/oaiv1/openairinterface5g/openair1/PHY/NR_TRANSPORT/xdma_driver/xdma/libxdma.c
+source_/home/isip/Documents/abby/eurecom/openairinterface5g/openair1/PHY/NR_TRANSPORT/xdma_driver/xdma/libxdma.o := /home/isip/Documents/abby/eurecom/openairinterface5g/openair1/PHY/NR_TRANSPORT/xdma_driver/xdma/libxdma.c
 
-deps_/home/isip/Desktop/oai_push/oaiv1/openairinterface5g/openair1/PHY/NR_TRANSPORT/xdma_driver/xdma/libxdma.o := \
+deps_/home/isip/Documents/abby/eurecom/openairinterface5g/openair1/PHY/NR_TRANSPORT/xdma_driver/xdma/libxdma.o := \
     $(wildcard include/config/block/id.h) \
     $(wildcard include/config/bar/num.h) \
   include/linux/compiler_types.h \
@@ -863,7 +863,7 @@ deps_/home/isip/Desktop/oai_push/oaiv1/openairinterface5g/openair1/PHY/NR_TRANSP
   include/uapi/asm-generic/siginfo.h \
   include/linux/task_io_accounting.h \
     $(wildcard include/config/task/io/accounting.h) \
-  /home/isip/Desktop/oai_push/oaiv1/openairinterface5g/openair1/PHY/NR_TRANSPORT/xdma_driver/xdma/libxdma.h \
+  /home/isip/Documents/abby/eurecom/openairinterface5g/openair1/PHY/NR_TRANSPORT/xdma_driver/xdma/libxdma.h \
   include/generated/uapi/linux/version.h \
   include/linux/uaccess.h \
   arch/x86/include/asm/uaccess.h \
@@ -995,9 +995,9 @@ deps_/home/isip/Desktop/oai_push/oaiv1/openairinterface5g/openair1/PHY/NR_TRANSP
   include/asm-generic/pci.h \
   include/linux/pci-dma-compat.h \
   include/linux/swait.h \
-  /home/isip/Desktop/oai_push/oaiv1/openairinterface5g/openair1/PHY/NR_TRANSPORT/xdma_driver/include/libxdma_api.h \
-  /home/isip/Desktop/oai_push/oaiv1/openairinterface5g/openair1/PHY/NR_TRANSPORT/xdma_driver/xdma/cdev_sgdma.h \
-  /home/isip/Desktop/oai_push/oaiv1/openairinterface5g/openair1/PHY/NR_TRANSPORT/xdma_driver/xdma/xdma_thread.h \
+  /home/isip/Documents/abby/eurecom/openairinterface5g/openair1/PHY/NR_TRANSPORT/xdma_driver/include/libxdma_api.h \
+  /home/isip/Documents/abby/eurecom/openairinterface5g/openair1/PHY/NR_TRANSPORT/xdma_driver/xdma/cdev_sgdma.h \
+  /home/isip/Documents/abby/eurecom/openairinterface5g/openair1/PHY/NR_TRANSPORT/xdma_driver/xdma/xdma_thread.h \
   include/linux/kthread.h \
     $(wildcard include/config/blk/cgroup.h) \
   include/linux/cgroup.h \
@@ -1040,6 +1040,6 @@ deps_/home/isip/Desktop/oai_push/oaiv1/openairinterface5g/openair1/PHY/NR_TRANSP
     $(wildcard include/config/arch/wants/dynamic/task/struct.h) \
   include/linux/signal.h \
 
-/home/isip/Desktop/oai_push/oaiv1/openairinterface5g/openair1/PHY/NR_TRANSPORT/xdma_driver/xdma/libxdma.o: $(deps_/home/isip/Desktop/oai_push/oaiv1/openairinterface5g/openair1/PHY/NR_TRANSPORT/xdma_driver/xdma/libxdma.o)
+/home/isip/Documents/abby/eurecom/openairinterface5g/openair1/PHY/NR_TRANSPORT/xdma_driver/xdma/libxdma.o: $(deps_/home/isip/Documents/abby/eurecom/openairinterface5g/openair1/PHY/NR_TRANSPORT/xdma_driver/xdma/libxdma.o)
 
-$(deps_/home/isip/Desktop/oai_push/oaiv1/openairinterface5g/openair1/PHY/NR_TRANSPORT/xdma_driver/xdma/libxdma.o):
+$(deps_/home/isip/Documents/abby/eurecom/openairinterface5g/openair1/PHY/NR_TRANSPORT/xdma_driver/xdma/libxdma.o):
