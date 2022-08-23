@@ -739,8 +739,8 @@ uint32_t num_act_rb(NR_UEs_t* UE_info)
     for(int rb_id = 1; rb_id < 6; ++rb_id ){
       nr_rlc_statistics_t rlc = {0};
       const int srb_flag = 0;
-      const int rc = nr_rlc_get_statistics(rnti, srb_flag, rb_id, &rlc);
-      if(rc == 1) ++act_rb;
+      const bool rc = nr_rlc_get_statistics(rnti, srb_flag, rb_id, &rlc);
+      if(rc) ++act_rb;
     }
   }
   return act_rb;
@@ -771,15 +771,20 @@ void read_rlc_sm(rlc_ind_msg_t* data)
     uint16_t const rnti = UE->rnti;
     //for every LC ID
     for(int rb_id = 1; rb_id < 6; ++rb_id ){
+
+      // activate the rlc to calculate the average tx time
+      nr_rlc_activate_avg_time_to_tx(rnti, rb_id, 1);
+
       nr_rlc_statistics_t rb_rlc = {0};
       const int srb_flag = 0;
-      const int rc = nr_rlc_get_statistics(rnti, srb_flag, rb_id, &rb_rlc);
-      if(rc == 0) continue;
+      const bool rc = nr_rlc_get_statistics(rnti, srb_flag, rb_id, &rb_rlc);
+      if(!rc) continue;
       rlc_radio_bearer_stats_t* sm_rb = &data->rb[i];
 
+      /* TX */
       sm_rb->txpdu_pkts = rb_rlc.txpdu_pkts;
       sm_rb->txpdu_bytes =  rb_rlc.txpdu_bytes;        /* aggregated amount of transmitted bytes in RLC PDUs */
-      sm_rb->txpdu_wt_ms =  rb_rlc.txpdu_wt_ms;      /* aggregated head-of-line tx packet waiting time to be transmitted (i.e. send to the MAC layer) */
+      sm_rb->txpdu_wt_ms += rb_rlc.txsdu_avg_time_to_tx;      /* aggregated head-of-line tx packet waiting time to be transmitted (i.e. send to the MAC layer) */
       sm_rb->txpdu_dd_pkts = rb_rlc.txpdu_dd_pkts;      /* aggregated number of dropped or discarded tx packets by RLC */
       sm_rb->txpdu_dd_bytes = rb_rlc.txpdu_dd_bytes;     /* aggregated amount of bytes dropped or discarded tx packets by RLC */
       sm_rb->txpdu_retx_pkts = rb_rlc.txpdu_retx_pkts;    /* aggregated number of tx pdus/pkts to be re-transmitted (only applicable to RLC AM) */
@@ -853,9 +858,9 @@ void read_pdcp_sm(pdcp_ind_msg_t* data)
       nr_pdcp_statistics_t pdcp = {0};
 
       const int srb_flag = 0;
-      const int rc = nr_pdcp_get_statistics(rnti, srb_flag, rb_id, &pdcp);
+      const bool rc = nr_pdcp_get_statistics(rnti, srb_flag, rb_id, &pdcp);
 
-      if(rc == 0) continue;
+      if(!rc) continue;
 
       pdcp_radio_bearer_stats_t* rd = &data->rb[i];
 

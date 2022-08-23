@@ -1132,7 +1132,7 @@ void nr_rlc_activate_avg_time_to_tx(
     rb->avg_time_is_on = is_on;
     time_average_reset(rb->txsdu_avg_time_to_tx);
   } else {
-    LOG_E(RLC, "[%s] Radio Bearer (channel ID %d) is NULL for UE with rnti %x\n", __FUNCTION__, channel_id, rnti);
+    LOG_D(RLC, "[%s] Radio Bearer (channel ID %d) is NULL for UE with rnti %x\n", __FUNCTION__, channel_id, rnti);
   }
 
   nr_rlc_manager_unlock(nr_rlc_ue_manager);
