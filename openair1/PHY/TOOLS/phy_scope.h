@@ -56,6 +56,9 @@ typedef struct OAIgraph {
   int iteration;
   void (*gNBfunct) (struct OAIgraph *graph, scopeData_t *p, int UE_id);
   void (*nrUEfunct)(scopeGraphData_t **data, struct OAIgraph *graph, PHY_VARS_NR_UE *phy_vars_ue, int eNB_id, int UE_id);
+  bool enabled;
+  char chartid;
+  char datasetid;
 } OAIgraph_t;
 
 /* Forms and Objects */

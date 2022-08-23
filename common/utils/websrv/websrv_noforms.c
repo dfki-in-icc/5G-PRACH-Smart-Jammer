@@ -40,25 +40,35 @@
 #define MAX_LAYER 8
 
 
-/* replacement for xforms function used in xforms softscope */ 
+/* replacement for xforms function used in xforms softscope */
+typedef struct {             
+websrv_scopedata_msg_t    *buf;                  
+} websrv_scopedata_layermsgs_t;
+
 typedef struct {
 char                      * title;              /* overall title                */
-websrv_scopedata_msg_t    buff[MAX_LAYER];     /*  buff per layer */
+websrv_scopedata_layermsgs_t    buff[MAX_LAYER];     /*  buff per layer */
 int                       n[MAX_LAYER];         /* total points */                   
 } FLI_XYPLOT_SPEC;
 
 
                                      
                                      
-FL_OBJECT * fl_add_xyplot( int          t,
+FL_OBJECT * websrv_fl_add_xyplot( int          t,
                               FL_Coord     x,
                               FL_Coord     y,
                               FL_Coord     w,
                               FL_Coord     h,
                               const char * label ){
     FL_OBJECT *obj;
-    obj = calloc( 1, sizeof (*obj) );
+    obj = calloc( 1, sizeof (FL_OBJECT) );
+    AssertFatal(obj!=NULL,"Cannot allocate scope object for %s\n",label);
     obj->spec = calloc( 1, sizeof (FLI_XYPLOT_SPEC) );
+    AssertFatal(obj->spec!=NULL,"Cannot allocate scope object buffers for %s\n",label);
+    FLI_XYPLOT_SPEC *spec=(FLI_XYPLOT_SPEC *)obj->spec;
+	for (int j=0; j<MAX_LAYER;j++) {
+	  spec->buff[j].buf=(websrv_scopedata_msg_t *)calloc( 1, sizeof(websrv_scopedata_msg_t ) );
+	}
     obj->objclass  = FL_XYPLOT;
     obj->type      = t;
 
@@ -66,52 +76,55 @@ FL_OBJECT * fl_add_xyplot( int          t,
     obj->y         = y;
     obj->w         = w;
     obj->h         = h;
- 
+    LOG_I(UTIL,"[websrv], scope object for \"%s\" allocated obj at %p spec at %p\n",label,obj,obj->spec);
 
     return obj;
 
 };
 
-FL_OBJECT * fl_add_canvas( int          type,
+FL_OBJECT * websrv_fl_add_canvas( int          type,
                           FL_Coord     x,
                           FL_Coord     y,
                           FL_Coord     w,
                           FL_Coord     h,
                           const char * label ){
- return fl_add_xyplot(type, x,y,w,h,label);
+ return websrv_fl_add_xyplot(type, x,y,w,h,label);
 }
 
 
 
 
-void fl_add_xyplot_overlay( FL_OBJECT * ob,
+void websrv_fl_add_xyplot_overlay( FL_OBJECT * ob,
                             int         id,
                             float     * x,
                             float     * y,
                             int         n,
                             FL_COLOR    col ){
 FLI_XYPLOT_SPEC *spec = (FLI_XYPLOT_SPEC *)(ob->spec);
-spec->n[id]	=n;	
+
 int k = (n/MAX_FLOAT_WEBSOCKMSG)  + 1;
+spec->n[id]=n;	 
 for (int i=0; i<k ; i++)
+  {   
   for ( int j=0; j<MAX_FLOAT_WEBSOCKMSG && ((i*MAX_FLOAT_WEBSOCKMSG)+j)<n; j++) {
-	spec->buff[id].data_x[j]=x[(i*MAX_FLOAT_WEBSOCKMSG)+j];
-	spec->buff[id].data_y[j]=y[(i*MAX_FLOAT_WEBSOCKMSG)+j];
+	spec->buff[id].buf[i].data_x[j]=x[(i*MAX_FLOAT_WEBSOCKMSG)+j];
+	spec->buff[id].buf[i].data_y[j]=y[(i*MAX_FLOAT_WEBSOCKMSG)+j];
+    }
   }
 };
 
-void fl_set_xyplot_data( FL_OBJECT  * ob,
+void websrv_fl_set_xyplot_data( FL_OBJECT  * ob,
                          float      * x,
                          float      * y,
                          int          n,
                          const char * title,
                          const char * xlabel,
                          const char * ylabel ){
-  fl_add_xyplot_overlay(ob,	0, x,y,n,	FL_YELLOWGREEN);				 
+  websrv_fl_add_xyplot_overlay(ob,	0, x,y,n,	FL_YELLOWGREEN);				 
 };
 
 
-void fl_get_xyplot_data( FL_OBJECT * ob,
+void websrv_fl_get_xyplot_data( FL_OBJECT * ob,
                          float     * x,
                          float     * y,
                          int       * n ){
@@ -119,23 +132,25 @@ FLI_XYPLOT_SPEC *spec = (FLI_XYPLOT_SPEC *)(ob->spec);
 *n=spec->n[0];	
 };
 
-void fl_get_xyplot_data_pointer( FL_OBJECT  * ob,
+void websrv_fl_get_xyplot_data_pointer( FL_OBJECT  * ob,
                                  int          id,
                                  float     ** x,
                                  float     ** y,
                                  int        *n ){
 FLI_XYPLOT_SPEC *spec = (FLI_XYPLOT_SPEC *)(ob->spec);
-*x=spec->buff[id].data_x;
-*y=spec->buff[id].data_y;
+*x=spec->buff[0].buf[id].data_x;
+*y=spec->buff[0].buf[id].data_y;
 *n=spec->n[id];
 };
 
 /*----------------------------------------------------------------------*/
 /* new functions for interfacing with webserver                          */
 
-int websrv_nf_getdata(FL_OBJECT *graph, int layer, websrv_scopedata_msg_t **msg) {
+int websrv_nf_getdata(FL_OBJECT *graph, int layer, websrv_scopedata_msg_t **msg, int *nummsg) {
 	FLI_XYPLOT_SPEC *spec = (FLI_XYPLOT_SPEC *)(graph->spec);
-	*msg=&(spec->buff[layer]);
+	*msg=spec->buff[layer].buf;
+	*nummsg=(spec->n[layer]/MAX_FLOAT_WEBSOCKMSG);
+	if ((spec->n[layer]%MAX_FLOAT_WEBSOCKMSG) != 0) (*nummsg)++;
 	return spec->n[layer];
 }
 

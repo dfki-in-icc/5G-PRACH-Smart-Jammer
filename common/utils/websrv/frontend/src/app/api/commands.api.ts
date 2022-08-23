@@ -41,7 +41,7 @@ export enum IArgType {
 }
 
 export enum ICommandOptions {
-    update = "update",
+    update = "update",         // result can be updated, triggers update button on result page when set
 }
 
 export interface IVariable {
@@ -87,6 +87,7 @@ export interface IRow {
     rawIndex: number,
     cmdName: string
 }
+
 
 export const route = 'oaisoftmodem/';
 

@@ -27,13 +27,20 @@
 #include "executables/softmodem-common.h"
 #include "executables/nr-softmodem-common.h"
 #ifndef WEBSRVSCOPE
-#include <forms.h>
+#  define SCOPEMSG_DATAID_IQ 0
+#  include <forms.h>
 #  define STATICFORXSCOPE static
 #else
 #  include <ulfius.h>
 #  include "common/utils/websrv/websrv.h"
 #  include "common/utils/websrv/websrv_noforms.h"
 #  define STATICFORXSCOPE
+#  define fl_add_canvas                 websrv_fl_add_canvas
+#  define fl_add_xyplot                 websrv_fl_add_xyplot
+#  define fl_add_xyplot_overlay         websrv_fl_add_xyplot_overlay 
+#  define fl_set_xyplot_data            websrv_fl_set_xyplot_data
+#  define fl_get_xyplot_data            websrv_fl_get_xyplot_data
+#  define fl_get_xyplot_data_pointer    websrv_fl_get_xyplot_data_pointer
 #endif
 #include "nr_phy_scope.h"
 #include "phy_scope.h"
@@ -146,7 +153,7 @@ static void oai_xygraph_getbuff(OAIgraph_t *graph, float **x, float **y, int len
     fl_get_xyplot_data_pointer(graph->graph, layer, &old_x, &old_y, &old_len);
 
   if (old_len != len) {
-    LOG_W(HW,"allocating graph of %d scope\n", len);
+    LOG_W(HW,"allocating graph of %d points\n", len);
     float values[len];
     float time[len];
 
@@ -160,7 +167,7 @@ static void oai_xygraph_getbuff(OAIgraph_t *graph, float **x, float **y, int len
       fl_add_xyplot_overlay(graph->graph,layer,time,values,len,rx_antenna_colors[layer]);
 
     fl_get_xyplot_data_pointer(graph->graph, layer, &old_x, &old_y, &old_len);
-    AssertFatal(old_len==len,"");
+    AssertFatal(old_len==len,"graph len %i old_len %i\n",len, old_len);
   }
 
   *x=old_x;
@@ -172,9 +179,18 @@ static void oai_xygraph(OAIgraph_t *graph, float *x, float *y, int len, int laye
 #if WEBSRVSCOPE
 //      wsc.sigid=;
 //      snprintf(wsc.graphtitle,sizeof(wsc.graphtitle),graph->text->label); 
-  websrv_scopedata_msg_t *msg;
-  int n=websrv_nf_getdata(graph->graph, layer, &msg);   
-  websrv_scope_sendIQ(n,msg);
+  websrv_scopedata_msg_t *msg=NULL;
+  int nm=0;
+    int n=websrv_nf_getdata(graph->graph, layer, &msg, &nm); 
+    for (int i=0; i<nm ;i++) {  
+	  msg[i].msgtype=SCOPEMSG_TYPE_DATA ;
+      msg[i].chartid=graph->chartid;
+      msg[i].datasetid=graph->datasetid;
+      msg[i].msgseg=i;
+      msg[i].update=(i== (nm-1) ? 1 : 0); 
+      int len = (i == (nm-1) ? (n%MAX_FLOAT_WEBSOCKMSG) :MAX_FLOAT_WEBSOCKMSG );   
+      websrv_scope_sendIQ(len,&(msg[i]));
+    }
 #else
   fl_redraw_object(graph->graph);
 
@@ -449,6 +465,9 @@ STATICFORXSCOPE OAI_phy_scope_t *create_phy_scope_gnb(void) {
                                    "PUSCH I/Q of MF Output", FL_YELLOW );
   fl_get_object_bbox(fdui->graph[3].graph,&x, &y,&w, &h);
   curY+=h;
+  fdui->graph[4].enabled=true;
+  fdui->graph[4].chartid=SCOPEMSG_DATAID_IQ;
+  fdui->graph[4].datasetid=0;
   // I/Q PUCCH comp (format 1)
   fdui->graph[5] = gNBcommonGraph( pucchEnergy, FL_POINTS_XYPLOT, 0, curY, 300, 100,
                                    "PUCCH1 Energy (SR)", FL_YELLOW );
@@ -485,13 +504,15 @@ STATICFORXSCOPE void phy_scope_gNB(OAI_phy_scope_t *form,
   int i=0;
 
   while (form->graph[i].graph) {
-    form->graph[i].gNBfunct(form->graph+i, p, UE_id);
+	if (form->graph[i].enabled)
+      form->graph[i].gNBfunct(form->graph+i, p, UE_id);
     i++;
   }
 
   //fl_check_forms();
 }
 
+#ifndef WEBSRVSCOPE
 static void *scope_thread_gNB(void *arg) {
   scopeData_t *p=(scopeData_t *) arg;
   size_t stksize=0;
@@ -516,6 +537,7 @@ static void *scope_thread_gNB(void *arg) {
 
   return NULL;
 }
+#endif
 
 static void copyRxdataF(int32_t *data, int slot,  void *scopeData) {
   scopeData_t *scope=(scopeData_t *)scopeData;
@@ -796,6 +818,9 @@ STATICFORXSCOPE OAI_phy_scope_t *create_phy_scope_nrue( int ID ) {
                                    FL_POINTS_XYPLOT, 500, curY, 300, 100, "PBCH I/Q of MF Output", FL_GREEN );
   fl_get_object_bbox(fdui->graph[3].graph,&x, &y,&w, &h);
   curY+=h;
+  fdui->graph[4].enabled=true;
+  fdui->graph[4].chartid=SCOPEMSG_DATAID_IQ;
+  fdui->graph[4].datasetid=0;  
   // LLR of PDCCH
   fdui->graph[5] = nrUEcommonGraph(uePcchLLR,
                                    FL_POINTS_XYPLOT, 0, curY, 500, 100, "PDCCH Log-Likelihood Ratios (LLR, mag)", FL_CYAN );
@@ -804,6 +829,9 @@ STATICFORXSCOPE OAI_phy_scope_t *create_phy_scope_nrue( int ID ) {
                                    FL_POINTS_XYPLOT, 500, curY, 300, 100, "PDCCH I/Q of MF Output", FL_CYAN );
   fl_get_object_bbox(fdui->graph[5].graph,&x, &y,&w, &h);
   curY+=h;
+  fdui->graph[6].enabled=true;
+  fdui->graph[6].chartid=SCOPEMSG_DATAID_IQ;
+  fdui->graph[6].datasetid=1;  
   // LLR of PDSCH
   fdui->graph[7] = nrUEcommonGraph(uePdschLLR,
                                    FL_POINTS_XYPLOT, 0, curY, 500, 200, "PDSCH Log-Likelihood Ratios (LLR, mag)", FL_YELLOW );
@@ -812,6 +840,9 @@ STATICFORXSCOPE OAI_phy_scope_t *create_phy_scope_nrue( int ID ) {
                                    FL_POINTS_XYPLOT, 500, curY, 300, 200, "PDSCH I/Q of MF Output", FL_YELLOW );
   fl_get_object_bbox(fdui->graph[8].graph,&x, &y,&w, &h);
   curY+=h;
+  fdui->graph[8].enabled=true;
+  fdui->graph[8].chartid=SCOPEMSG_DATAID_IQ;
+  fdui->graph[8].datasetid=2;  
   // Throughput on PDSCH
   fdui->graph[9] = nrUEcommonGraph(uePdschThroughput,
                                    FL_NORMAL_XYPLOT, 0, curY, 500, 100, "PDSCH Throughput [frame]/[kbit/s]", FL_WHITE );
@@ -853,13 +884,15 @@ STATICFORXSCOPE void phy_scope_nrUE( OAI_phy_scope_t *form,
   int i=0;
 
   while (form->graph[i].graph) {
-    form->graph[i].nrUEfunct(UEliveData, form->graph+i, phy_vars_ue, eNB_id, UE_id);
+	if ( form->graph[i].enabled)
+      form->graph[i].nrUEfunct(UEliveData, form->graph+i, phy_vars_ue, eNB_id, UE_id);
     i++;
   }
 
   //fl_check_forms();
 }
 
+#ifndef WEBSRVSCOPE
 static void *nrUEscopeThread(void *arg) {
   PHY_VARS_NR_UE *ue=(PHY_VARS_NR_UE *)arg;
   size_t stksize;
@@ -883,6 +916,7 @@ static void *nrUEscopeThread(void *arg) {
 
   pthread_exit((void *)arg);
 }
+#endif
 
 static void UEcopyData(PHY_VARS_NR_UE *ue, enum UEdataType type, void *dataIn, int elementSz, int colSz, int lineSz) {
   // Local static copy of the scope data bufs

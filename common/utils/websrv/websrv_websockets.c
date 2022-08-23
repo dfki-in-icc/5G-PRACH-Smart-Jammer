@@ -51,7 +51,6 @@ static websrv_scope_params_t scope_params = {0,1000,NULL,&scopedata};
 static websrv_params_t *websrvparams_ptr;
 
 void  websrv_scope_sendIQ(int n, websrv_scopedata_msg_t *msg) {
-	LOG_I(UTIL,"[websrv] sending %i IQ's \n",n);
 /*    int k = (n/MAX_FLOAT_WEBSOCKMSG)  + 1;
     for (int i=0; i<k ; i++)
       for ( int j=0; j<MAX_FLOAT_WEBSOCKMSG && ((i*MAX_FLOAT_WEBSOCKMSG)+j)<n; j++) {
@@ -60,10 +59,9 @@ void  websrv_scope_sendIQ(int n, websrv_scopedata_msg_t *msg) {
   }
 */
   msg->src=WEBSOCK_SRC_SCOPE ;
-  msg->msgtype=SCOPEMSG_TYPE_DATA ;
   int st = ulfius_websocket_send_message( websrvparams_ptr->wm, U_WEBSOCKET_OPCODE_BINARY,(n*2*sizeof(float))+WEBSOCK_HEADSIZE, (char *)msg);
   if (st != U_OK)
-    LOG_I(UTIL, "Error sending scope message, status %i\n",st);   
+    LOG_I(UTIL, "Error sending scope IQs, status %i\n",st);   
 };
 
 
@@ -86,28 +84,34 @@ void websrv_websocket_process_scopemessage(char msg_type, char *msg_data, struct
  
     case SCOPEMSG_TYPE_STATUSUPD:
       if (strncmp(msg_data,"init",4) == 0){
+		  if ( scope_params.statusmask != SCOPE_STATUSMASK_UNKNOWN)
+		    break;
           LOG_I(UTIL,"[websrv] SoftScope init....\n");
 		  if (IS_SOFTMODEM_GNB_BIT) {			 
 		     scopedata.ru=RC.ru[0];
 		     scopedata.gNB=RC.gNB[0];		 
 			 scope_params.scopeform = create_phy_scope_gnb();
+			 scope_params.statusmask |= SCOPE_STATUSMASK_AVAILABLE; 
 		  } else if (IS_SOFTMODEM_5GUE_BIT) {
 			 scope_params.scopedata = PHY_vars_UE_g[0][0] ;
 			 nrUEinitScope(PHY_vars_UE_g[0][0]);
 			 scope_params.scopeform = create_phy_scope_nrue(scope_params.selectedData);
+			 scope_params.statusmask |= SCOPE_STATUSMASK_AVAILABLE;
 		  } else {
             LOG_I(UTIL,"[websrv] SoftScope web interface  not implemented for this softmodem\n");
             websrv_websocket_send_scopemessage(SCOPEMSG_TYPE_STATUSUPD, "disabled", websocket_manager);			  
 		  }
-	    }
-	    scope_params.statusmask |= SCOPE_STATUSMASK_AVAILABLE; 
+	    }	    
       if (strncmp(msg_data,"disabled",8) == 0){
 		LOG_I(UTIL,"[websrv] SoftScope disabled state client ack  \n");  
         scope_params.statusmask = SCOPE_STATUSMASK_DISABLED;
       }	    
       if (strncmp(msg_data,"start",5) == 0){
+		if ( scope_params.statusmask != SCOPE_STATUSMASK_AVAILABLE)
+		  break;
         scope_params.statusmask |= SCOPE_STATUSMASK_STARTED;
-        scope_params.selectedData=1; // 1 UE to be received from GUI
+        scope_params.selectedData=1; // 1 UE to be received from GUI (for xNB scope's 
+        websrv_websocket_send_scopemessage(SCOPEMSG_TYPE_STATUSUPD, "started", websocket_manager);
       }
       if (strncmp(msg_data,"stop",4) == 0){        
         scope_params.statusmask &= ~SCOPE_STATUSMASK_STARTED;
@@ -115,7 +119,7 @@ void websrv_websocket_process_scopemessage(char msg_type, char *msg_data, struct
         }
       break;
     case SCOPEMSG_TYPE_REFRATE:
-      scope_params.refrate = (htonl(*intptr))*100;
+      scope_params.refrate = (htonl(*intptr));
       break;
     default:
       LOG_W(UTIL,"[websrv] Unknown scope message type: %c /n",msg_type);
@@ -128,6 +132,7 @@ void websrv_websocket_onclose_callback (const struct _u_request * request,
                                 struct _websocket_manager * websocket_manager,
                                 void * websocket_onclose_user_data) {
   websrv_dump_request("websocket close ",request);
+  scope_params.statusmask = SCOPE_STATUSMASK_UNKNOWN;
 }
 
 /* function executed by ulfius in a dedicated thread, should not terminate while client connection is up */
@@ -140,40 +145,44 @@ void websrv_websocket_manager_callback(const struct _u_request * request,
   websrvparams->wm = websocket_manager;
   time_t linuxtime;
   struct tm loctime;
-  
+  uint64_t lcount=0;  
+  int wst;
   while(1) {
 	char strtime[64];
-	linuxtime=time(NULL);	  
-    localtime_r(&linuxtime,&loctime);
-    snprintf(strtime,sizeof(strtime),"%d/%d/%d %d:%d:%d",loctime.tm_mday,loctime.tm_mon,loctime.tm_year+1900,loctime.tm_hour,loctime.tm_min,loctime.tm_sec);
-    if( (scope_params.statusmask & SCOPE_STATUSMASK_STARTED) ) {
-      if (ulfius_websocket_wait_close(websocket_manager, scope_params.refrate) == U_WEBSOCKET_STATUS_OPEN) {
-        websrv_websocket_send_scopemessage(SCOPEMSG_TYPE_TIME, strtime, websocket_manager);
+//	wst=ulfius_websocket_wait_close(websocket_manager, 100 /* ms */) ;
+//    if (wst == U_WEBSOCKET_STATUS_OPEN) {
+	  if( lcount%10 == 0 && (scope_params.statusmask & SCOPE_STATUSMASK_STARTED)) {	
+		linuxtime=time(NULL); 
+        localtime_r(&linuxtime,&loctime);
+        snprintf(strtime,sizeof(strtime),"%d/%d/%d %d:%d:%d",loctime.tm_mday,loctime.tm_mon,loctime.tm_year+1900,loctime.tm_hour,loctime.tm_min,loctime.tm_sec);		
+	    websrv_websocket_send_scopemessage(SCOPEMSG_TYPE_TIME, strtime, websocket_manager);
+	  }
+      if( ( (lcount % scope_params.refrate) == 0) && (scope_params.statusmask & SCOPE_STATUSMASK_STARTED) ) {        
 		  if (IS_SOFTMODEM_GNB_BIT) {			 
             phy_scope_gNB(scope_params.scopeform,  scope_params.scopedata, scope_params.selectedData);
 		  } 
 		  if (IS_SOFTMODEM_5GUE_BIT) {
             phy_scope_nrUE(scope_params.scopeform, (PHY_VARS_NR_UE *)scope_params.scopedata,  0, scope_params.selectedData);
 		  }      
-      }      
-    }
-    else if( (scope_params.statusmask == SCOPE_STATUSMASK_UNKNOWN) ) {
-	  if (ulfius_websocket_wait_close(websocket_manager, 2000) == U_WEBSOCKET_STATUS_OPEN) {
+      } else if( (scope_params.statusmask == SCOPE_STATUSMASK_UNKNOWN) ) {
         if (IS_SOFTMODEM_DOSCOPE | IS_SOFTMODEM_ENB_BIT | IS_SOFTMODEM_4GUE_BIT) {
 	      websrv_websocket_send_scopemessage(SCOPEMSG_TYPE_STATUSUPD, "disabled", websocket_manager);
 	    } else {     
           websrv_websocket_send_scopemessage(SCOPEMSG_TYPE_STATUSUPD, "enabled", websocket_manager);
         }
-      }
-    }
-
-    else if( (scope_params.statusmask == SCOPE_STATUSMASK_DISABLED) ) {
-      sleep(10);
-    }  else {
-	  sleep(1);
-	}    
-  }
-  usleep(scope_params.refrate);
+      } else if( (scope_params.statusmask == SCOPE_STATUSMASK_DISABLED) ) {
+      }  else {
+	  } 
+	lcount++; 
+//  } else if (wst == U_WEBSOCKET_STATUS_ERROR) {
+//	  LOG_I(UTIL,"Websocket error, errno %s\n",strerror(errno));
+//	  break;
+//  } else {
+//	  LOG_I(UTIL,"Websocket has been  closed\n");
+//	  break;	  
+//  }
+  usleep(100000);
+} /* while */
   LOG_I(UTIL, "Closing websocket_manager_callback...\n");
 }
 
@@ -209,7 +218,9 @@ int websrv_callback_websocket (const struct _u_request * request, struct _u_resp
   int ret;
   
   websrv_dump_request("websocket ",request);
-
+  if ( scope_params.statusmask != SCOPE_STATUSMASK_UNKNOWN) {
+	  scope_params.statusmask = SCOPE_STATUSMASK_UNKNOWN;
+  }
   if ((ret = ulfius_set_websocket_response(response, NULL, NULL, websrv_websocket_manager_callback, user_data, websrv_websocket_incoming_message_callback,user_data, websrv_websocket_onclose_callback, user_data)) == U_OK) {
     return U_CALLBACK_COMPLETE;
   } else {

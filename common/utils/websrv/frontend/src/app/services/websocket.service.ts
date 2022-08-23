@@ -1,10 +1,8 @@
 // src\app\services\websocket.service.ts
 import { Injectable } from "@angular/core";
 import { Observable, Observer } from 'rxjs';
-import { AnonymousSubject } from 'rxjs/internal/Subject';
 import { Subject } from 'rxjs';
 import { map } from 'rxjs/operators';
-
 const websockurl = 'ws://' + window.location.hostname + ":" + window.location.port + "/softscope";
 
 export enum webSockSrc {
@@ -14,6 +12,10 @@ export enum webSockSrc {
 export interface Message {
     source: webSockSrc;
     msgtype: number;
+    chartid: number;
+    dataid:  number;
+    segnum:  number;
+    update:  boolean;
     content: ArrayBuffer;
 }
 
@@ -21,7 +23,7 @@ export const arraybuf_data_offset=4;
 
 @Injectable()
 export class WebSocketService {
-    private subject: AnonymousSubject<MessageEvent>;
+    private subject: Subject<MessageEvent>;
     public messages: Subject<ArrayBuffer>;
 
     constructor() {
@@ -44,7 +46,7 @@ export class WebSocketService {
         );
     }
 
-    private create(url: string): AnonymousSubject<MessageEvent> {
+    private create(url: string): Subject<MessageEvent> {
         let ws = new WebSocket(url);
         ws.binaryType = "arraybuffer";
         let observable = new Observable((obs: Observer<MessageEvent>) => {
@@ -63,7 +65,7 @@ export class WebSocketService {
                 }
             }
         };
-        return new AnonymousSubject<MessageEvent>(observer, observable);
+        return Subject.create(observer, observable);
     }
     
     public SerializeMessage( msg: Message) : ArrayBuffer {
@@ -77,6 +79,12 @@ export class WebSocketService {
 
     public DeserializeMessage( msg: ArrayBuffer) : Message {
         const src = new DataView(msg, 0, 8);       
-        return { source: src.getUint8(0), msgtype:  src.getUint8(1), content: msg.slice(8)};      
+        return { source: src.getUint8(0), 
+			     msgtype:  src.getUint8(1), 
+			     chartid: src.getUint8(3), 
+			     dataid: src.getUint8(4),
+			     segnum: src.getUint8(2),  
+			     update: (src.getUint8(5) == 1)?true:false,
+			     content: msg.slice(8)};      
     }
 }

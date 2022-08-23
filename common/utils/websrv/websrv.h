@@ -71,12 +71,18 @@ typedef struct {
      char    data[1408];                      // 64*22
      
 } websrv_msg_t;
-#define MAX_FLOAT_WEBSOCKMSG   200000//180
+#define MAX_FLOAT_WEBSOCKMSG   180000
+
+#define SCOPEMSG_DATAID_IQ 1
+
 typedef struct {
 	 unsigned char src;                          // message source
 	 unsigned char msgtype;                      // message type
 	 unsigned char msgseg;                       // message segment number
-	 unsigned char hdr_unused[5];                // 6 unused char
+	 unsigned char chartid;                      // identify chart (scope window)
+	 unsigned char datasetid;                    // identify dataset in chart
+	 unsigned char update;                       // should chart be updated
+	 unsigned char hdr_unused[2];                // 2 unused char
      float         data_x[MAX_FLOAT_WEBSOCKMSG]; // 180*(32 bits)
      float         data_y[MAX_FLOAT_WEBSOCKMSG]; // 180*(32 bits)
 } websrv_scopedata_msg_t;
@@ -96,7 +102,7 @@ typedef struct {
 #define SCOPEMSG_TYPE_DEFINEWINDOW       20   // scope window definition 
 typedef struct {
 	 uint64_t statusmask;                     // 
-	 uint32_t refrate;                        // in ms
+	 uint32_t refrate;                        // in 100 ms
 	 void  *scopeform;                        // OAI_phy_scope_t pointer returned by create_phy_scope_xxx functions
 	 void  *scopedata;                        // scopeData_t pointer, filled at init time, contains pointers and functions to retrieve softmodem data
      uint32_t selectedData;                   // index to UE/gNB 

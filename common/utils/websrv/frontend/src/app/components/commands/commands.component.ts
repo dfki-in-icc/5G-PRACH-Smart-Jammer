@@ -1,11 +1,11 @@
 import { Component } from '@angular/core';
 import { UntypedFormArray } from '@angular/forms';
 import { BehaviorSubject, forkJoin, timer } from 'rxjs';
-import { Observable } from 'rxjs/internal/Observable';
-import { of } from 'rxjs/internal/observable/of';
-import { filter } from 'rxjs/internal/operators/filter';
-import { map } from 'rxjs/internal/operators/map';
-import { tap } from 'rxjs/internal/operators/tap';
+import { Observable } from 'rxjs';
+import { of } from 'rxjs';
+import { filter } from 'rxjs/operators';
+import { map } from 'rxjs/operators';
+import { tap } from 'rxjs/operators';
 import { switchMap } from 'rxjs/operators';
 import { CommandsApi, IArgType, IColumn, ICommand, IInfo, ILogLvl, IParam, IRow } from 'src/app/api/commands.api';
 import { CmdCtrl } from 'src/app/controls/cmd.control';

@@ -22,32 +22,13 @@
           <mat-card-title>Scope control</mat-card-title>
         </mat-card-header>
         <mat-card-content class="dashboard-card-content">
-          <div FxLayoutAlign="row">
+		  <div [formGroup]="scopectrlgroup">
             <button (click)="startorstop()">{{startstop}}</button>
-          </div>
-
-          <!-- ERROR Error: formControlName must be used with a parent formGroup directive.  You'll want to add a formGroup
-                    directive and pass it an existing FormGroup instance (you can create one in your class).
-
-                  Example:
-
-                  
-                <div [formGroup]="myGroup">
-                  <input formControlName="firstName">
-                </div>
-
-                In your class:
-
-                this.myGroup = new FormGroup({
-                    firstName: new FormControl()
-                });
-
-              -->
-
-          <div class="scope-slider">
-            <ngx-slider (userChange)="OnRefrateChange()" [(value)]="rfrate" [options]="options"
-              formControlName="sliderControl"></ngx-slider>
-            <label for="rfrate"> refresh rate {{rfrate}}</label>
+            <div class="scope-slider">
+              <ngx-slider (userChange)="OnRefrateChange()" [(value)]="rfrate" [options]="options"
+                formControlName="sliderControl"></ngx-slider>
+              <label for="rfrate"> refresh rate {{rfrate}}</label>
+            </div>
           </div>
         </mat-card-content>
       </mat-card>
@@ -77,11 +58,13 @@
      <mat-grid-tile [colspan]="5" [rowspan]="10">
       <mat-card class="dashboard-card">
         <mat-card-content class="dashboard-card-content">
-         <canvas baseChart
-            [datasets]="IQDatasets"
-            [options]="IQOptions"
-            [type]="'scatter'">
-          </canvas>
+			<div class="chart-container" style="position: relative; height:50vh; width:50vw">
+              <canvas baseChart
+                [datasets]="IQDatasets"
+                [options]="IQOptions"
+                [type]="'scatter'">
+              </canvas>
+            </div>
         </mat-card-content>
       </mat-card>
     </mat-grid-tile>           

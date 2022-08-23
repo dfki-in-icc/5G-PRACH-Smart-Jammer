@@ -1360,7 +1360,7 @@ FL_EXPORT void fl_get_object_bbox( FL_OBJECT * obj,
                                    FL_Coord  * x,
                                    FL_Coord  * y,
                                    FL_Coord  * w,
-                                   FL_Coord  * h ){};
+                                   FL_Coord  * h ){*x = *y = *w = *h =0; };
 
 #define fl_compute_object_geometry   fl_get_object_bbox
 
@@ -3572,7 +3572,7 @@ FL_EXPORT FL_OBJECT * fl_create_generic_canvas( int          canvas_class,
                                                 FL_Coord     h,
                                                 const char * label ){return NULL;};
 
-extern FL_OBJECT * fl_add_canvas( int          type,
+extern FL_OBJECT * websrv_fl_add_canvas( int          type,
                                      FL_Coord     x,
                                      FL_Coord     y,
                                      FL_Coord     w,
@@ -6086,14 +6086,14 @@ FL_EXPORT FL_OBJECT * fl_create_xyplot( int          t,
                                         FL_Coord     h,
                                         const char * label ){return NULL;};
 
-extern FL_OBJECT * fl_add_xyplot( int          t,
+extern FL_OBJECT * websrv_fl_add_xyplot( int          t,
                                      FL_Coord     x,
                                      FL_Coord     y,
                                      FL_Coord     w,
                                      FL_Coord     h,
                                      const char * label );
 
-void fl_set_xyplot_data( FL_OBJECT  * ob,
+extern void websrv_fl_set_xyplot_data( FL_OBJECT  * ob,
                                    float      * x,
                                    float      * y,
                                    int          n,
@@ -6136,7 +6136,7 @@ FL_EXPORT void fl_delete_xyplot_text( FL_OBJECT  * ob,
 FL_EXPORT int fl_set_xyplot_maxoverlays( FL_OBJECT * ob,
                                          int         maxover ){return 0;};
 
-void fl_add_xyplot_overlay( FL_OBJECT * ob,
+extern void websrv_fl_add_xyplot_overlay( FL_OBJECT * ob,
                                       int         id,
                                       float     * x,
                                       float     * y,
@@ -6182,12 +6182,12 @@ FL_EXPORT void fl_get_xyplot( FL_OBJECT * ob,
 
 FL_EXPORT int fl_get_xyplot_data_size( FL_OBJECT * obj ){return 0;};
 
-void fl_get_xyplot_data( FL_OBJECT * ob,
+extern void websrv_fl_get_xyplot_data( FL_OBJECT * ob,
                                    float     * x,
                                    float     * y,
                                    int       * n );
 
-void fl_get_xyplot_data_pointer( FL_OBJECT  * ob,
+extern void websrv_fl_get_xyplot_data_pointer( FL_OBJECT  * ob,
                                            int          id,
                                            float     ** x,
                                            float     ** y,
@@ -6391,9 +6391,9 @@ FL_EXPORT Display * fl_display_( void ){};
 #endif
 
 /*----------------------------------------------------------------------*/
-/* new functions for interfacing with webserver                          */
+/* new functions for interfacing with webserver                         */
 
-extern int websrv_nf_getdata(FL_OBJECT *graph, int layer, websrv_scopedata_msg_t **msg) ;
+extern int websrv_nf_getdata(FL_OBJECT *graph, int layer, websrv_scopedata_msg_t **msg, int *nm) ;
 
 #if defined __cplusplus
 }
