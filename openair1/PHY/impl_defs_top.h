@@ -272,19 +272,18 @@
 #define TDD_CONFIG_NB_FRAMES                     (2)
 #define NR_MAX_SLOTS_PER_FRAME                   (160)                    /* number of slots per frame */
 
+#ifndef NO_RAT_NR
+  #define DURATION_RX_TO_TX           (5)  /* for NR this will certainly depends to such UE capability which is not yet defined */
+#else
+  #define DURATION_RX_TO_TX           (6)   /* For LTE, this duration is fixed to 4 and it is linked to LTE standard for both modes FDD/TDD */
+#endif
+
 /* FFS_NR_TODO it defines ue capability which is the number of slots     */
 /* - between reception of pdsch and tarnsmission of its acknowlegment    */
 /* - between reception of un uplink grant and its related transmission   */
 /* - FIXME temprarily set to 5 to avoid timing issues at OAI UE in rfsimulator */
 /* - issues caused by no rendez-vous point between TX and RX in the OAI UE     */
-#define NR_UE_CAPABILITY_SLOT_RX_TO_TX           (5) 
-
-#ifndef NO_RAT_NR
-  #define DURATION_RX_TO_TX           (NR_UE_CAPABILITY_SLOT_RX_TO_TX)  /* for NR this will certainly depends to such UE capability which is not yet defined */
-#else
-  #define DURATION_RX_TO_TX           (6)   /* For LTE, this duration is fixed to 4 and it is linked to LTE standard for both modes FDD/TDD */
-#endif
-
+#define NR_UE_CAPABILITY_SLOT_RX_TO_TX           (DURATION_RX_TO_TX + NR_RX_NB_TH)
 
 #define NR_MAX_HARQ_PROCESSES                    (16)
 #define NR_MAX_ULSCH_HARQ_PROCESSES              (NR_MAX_HARQ_PROCESSES)  /* cf 38.214 6.1 UE procedure for receiving the physical uplink shared channel */
