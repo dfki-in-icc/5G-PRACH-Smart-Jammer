@@ -28,7 +28,9 @@ endif("${NPM}" STREQUAL "")
 # build the backend ( the embedded web server)
 
 set(WEBSRV_SOURCE
-    ${WEBSRVROOT}/websrv.c ${WEBSRVROOT}/websrv_websockets.c  ${WEBSRVROOT}/websrv_noforms.c ${OPENAIR_DIR}/openair1/PHY/TOOLS/nr_phy_scope.c
+    ${WEBSRVROOT}/websrv.c ${WEBSRVROOT}/websrv_websockets.c  
+    ${WEBSRVROOT}/websrv_scope.c ${WEBSRVROOT}/websrv_noforms.c 
+    ${OPENAIR_DIR}/openair1/PHY/TOOLS/nr_phy_scope.c
     )
     
 if ( ${WBACK} )

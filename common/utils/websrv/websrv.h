@@ -108,9 +108,15 @@ typedef struct {
      uint32_t selectedData;                   // index to UE/gNB 
 } websrv_scope_params_t;
 
-
+extern void websrv_init_scope(websrv_params_t *websrvparams) ;
 extern int websrv_init_websocket(websrv_params_t *websrvparams,char *module); 
 extern void websrv_dump_request(char *label, const struct _u_request *request);
 extern int websrv_string_response(char *astring, struct _u_response * response, int httpstatus) ;
 extern void  websrv_scope_sendIQ(int n, websrv_scopedata_msg_t *msg);
+extern int websrv_callback_okset_softmodem_cmdvar(const struct _u_request * request, struct _u_response * response, void * user_data);
+extern int websrv_add_endpoint( char **http_method, int num_method, const char * url_prefix,const char * url_format,
+                         int (* callback_function[])(const struct _u_request * request, 
+                                                   struct _u_response * response,
+                                                   void * user_data),
+                         void * user_data);
 #endif

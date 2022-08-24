@@ -5,6 +5,7 @@ import { NgxSliderModule, Options} from '@angular-slider/ngx-slider';
 import { Observable } from 'rxjs';
 import { Chart, ChartConfiguration, ChartOptions, ChartEvent, ChartType, ScatterDataPoint } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
+import {IGraphDesc, IScopeDesc, IScopeCmd,  ScopeApi  } from 'src/app/api/scope.api';
 
 const SCOPEMSG_TYPE_STATUSUPD=1;   
 const SCOPEMSG_TYPE_REFRATE=2;
@@ -80,7 +81,7 @@ export class ScopeComponent {
     plugins: { legend: { display: false, },  tooltip: { enabled: false, }, },
   };
   
-  constructor(private wsService: WebSocketService) {
+  constructor(private wsService: WebSocketService,public scopeApi: ScopeApi ) {
     wsService.messages.subscribe((msg: ArrayBuffer) => {
       this.ProcessScopeMsg(this.wsService.DeserializeMessage(msg));
     });
@@ -175,6 +176,8 @@ export class ScopeComponent {
   startorstop() {
     if (this.scopestatus === 'stopped') {
         this.sendMsg(SCOPEMSG_TYPE_STATUSUPD,'start');
+        this.scopeApi.setScopeParams$({name:"startstop",value:"start"}).subscribe();
+        
     } else {
         this.sendMsg(SCOPEMSG_TYPE_STATUSUPD,'stop');
     }
