@@ -46,8 +46,8 @@ KPIListSelectgNB::KPIListSelectgNB(QWidget *parent) : QComboBox(parent)
   this->addItem("I/Q PUSCH", 0);
   this->addItem("LLR PUSCH", 1);
   this->addItem("Channel Response", 2);
-  this->addItem("I/Q PUCCH", 3);
-  this->addItem("LLR PUCCH", 4);
+  this->addItem("KPI4", 3);
+  this->addItem("KPI5", 4);
   this->addItem("KPI6", 5);
 }
 KPIListSelectgNB::~KPIListSelectgNB()
@@ -99,10 +99,6 @@ void PainterWidgetgNB::makeConnections()
     else if (this->indexToPlot == 2)
     {
       connect(timer, &QTimer::timeout, this, &PainterWidgetgNB::KPI_ChannelResponse);
-    }
-    else if (this->indexToPlot == 4)
-    {
-      connect(timer, &QTimer::timeout, this, &PainterWidgetgNB::KPI_PucchLLR);
     }
 
     timer->start(100); // paintPixmap_xx every 100ms
@@ -271,44 +267,6 @@ void PainterWidgetgNB::KPI_ChannelResponse()
 
 
   update();
-}
-
-void PainterWidgetgNB::KPI_PucchLLR()
-{
-    // erase the previous paint
-    this->pix->fill(QColor(240,240,240));
-
-    //paint the axis and I/Q samples
-    scopeData_t *tmp=(scopeData_t *)this->p->gNB->scopeData;
-    scopeGraphData_t **data = (scopeGraphData_t **) tmp->liveData;
-
-    const int sz= data[pucchllr]->colSz * data[pucchllr]->lineSz;
-    int16_t *pucch_llr = (int16_t*) (data[pucchllr]+1);
-
-    float *llr, *bit;
-
-    /*
-    float llrBuffer[sz] = { 0 }, bitBuffer[sz] = { 0 };
-
-
-    llr = llrBuffer;
-    bit = bitBuffer;
-
-    for (int i=0; i<sz; i++)
-    {
-      llr[i] = (float) pucch_llr[i];
-      bit[i] = (float) i;
-    }
-
-
-    QColor MarkerColor(0, 255, 255);
-    const QString xLabel = QString("Symbol Index");
-    const QString yLabel = QString("LLR");
-    createPixMap(bit, llr, sz, MarkerColor, xLabel, yLabel, false);
-    */
-
-    update();
-
 }
 
 void PainterWidgetgNB::createPixMap(float *xData, float *yData, int len, QColor MarkerColor,
@@ -1459,7 +1417,9 @@ void *nrgNBQtscopeThread(void *arg)
   PainterWidgetgNB pwidgetgnbCombo1(combo1, p);   // I/Q PUSCH
   PainterWidgetgNB pwidgetgnbCombo2(combo2, p);   // LLR PUSCH
   PainterWidgetgNB pwidgetgnbCombo3(combo3, p);   // Channel Response
-  PainterWidgetgNB pwidgetgnbCombo5(combo5, p);   // LLR PUCCH
+  PainterWidgetgNB pwidgetgnbCombo4(combo4, p);   //
+  PainterWidgetgNB pwidgetgnbCombo5(combo5, p);   //
+  PainterWidgetgNB pwidgetgnbCombo6(combo6, p);   //
 
 
   while (true)
@@ -1489,11 +1449,11 @@ void *nrgNBQtscopeThread(void *arg)
     RightLayout->addStretch(); // space for later plots
 
     RightLayout->addWidget(combo4);
-    //RightLayout->addWidget(&pwidgetgnbCombo4,20);
+    RightLayout->addWidget(&pwidgetgnbCombo4,20);
     RightLayout->addStretch(); // space for later plots
 
     RightLayout->addWidget(combo6);      //
-    //RightLayout->addWidget(&pwidgetuePdcchLLR,20);
+    RightLayout->addWidget(&pwidgetgnbCombo6,20);
     RightLayout->addStretch(); // space for later plots
 
 
@@ -1507,6 +1467,9 @@ void *nrgNBQtscopeThread(void *arg)
     pwidgetgnbCombo1.makeConnections();
     pwidgetgnbCombo2.makeConnections();
     pwidgetgnbCombo3.makeConnections();
+    pwidgetgnbCombo4.makeConnections();
+    pwidgetgnbCombo5.makeConnections();
+    pwidgetgnbCombo6.makeConnections();
 
     // display the main window
     window->show();

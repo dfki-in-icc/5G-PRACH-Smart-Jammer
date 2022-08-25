@@ -157,7 +157,6 @@ public slots:
     void KPI_PuschIQ();
     void KPI_PuschLLR();
     void KPI_ChannelResponse();
-    void KPI_PucchLLR();
 
 private:
     scopeData_t *p;
