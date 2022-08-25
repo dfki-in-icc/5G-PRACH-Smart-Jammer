@@ -489,13 +489,11 @@ static void *ue_tun_read_thread(void *_)
     extern uint8_t nas_pduid;
 
     if (get_softmodem_params()->nsa) {
-      LOG_I(PDCP, "Calling pdcp_data_req !!\n");
       pdcp_data_req(&ctxt, SRB_FLAG_NO, rb_id, RLC_MUI_UNDEFINED,
                     RLC_SDU_CONFIRM_NO, len, (unsigned char *)rx_buf,
                     PDCP_TRANSMISSION_MODE_DATA, NULL, NULL);
     }
     else {
-      LOG_I(PDCP, "Calling sdap_data_req !!\n");
       sdap_data_req(&ctxt, SRB_FLAG_NO, rb_id, RLC_MUI_UNDEFINED,
                     RLC_SDU_CONFIRM_NO, len, (unsigned char *)rx_buf,
                     PDCP_TRANSMISSION_MODE_DATA, NULL, NULL, nas_qfi, dc, nas_pduid);

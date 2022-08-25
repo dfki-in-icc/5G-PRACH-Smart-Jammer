@@ -611,13 +611,12 @@ void schedule_nr_sib1(module_id_t module_idP, frame_t frameP, sub_frame_t slotP)
 
       // Data to be transmitted
       bzero(tx_req->TLVs[0].value.direct,MAX_NUM_NR_DLSCH_SEGMENTS_PER_LAYER*1056);
+      memcpy(tx_req->TLVs[0].value.direct, sib1_payload, sib1_sdu_length);
 
-      tx_req->PDU_length = TBS + 4;
+      tx_req->PDU_length = TBS;
       tx_req->PDU_index  = pdu_index;
       tx_req->num_TLV = 1;
-      tx_req->TLVs[0].tag = 0;
-      tx_req->TLVs[0].length = TBS;
-      memcpy(tx_req->TLVs[0].value.direct, sib1_payload, sib1_sdu_length);
+      tx_req->TLVs[0].length = TBS + 2;
       gNB_mac->TX_req[CC_id].Number_of_PDUs++;
       gNB_mac->TX_req[CC_id].SFN = frameP;
       gNB_mac->TX_req[CC_id].Slot = slotP;
