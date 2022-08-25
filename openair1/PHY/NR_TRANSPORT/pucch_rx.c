@@ -51,6 +51,8 @@
 
 #include "nfapi/oai_integration/vendor_ext.h"
 
+#include "PHY/TOOLS/phy_scope_interface.h"
+
 #include "T.h"
 
 //#define DEBUG_NR_PUCCH_RX 1
@@ -1688,6 +1690,8 @@ void nr_decode_pucch2(PHY_VARS_gNB *gNB,
               ((int16_t*)&llrs[half_prb])[7]);
       } // half_prb
     } // symb
+
+    gNBscopeCopy(gNB, pucchllr, llrs, sizeof(__m128i), 2*pucch_pdu->prb_size, pucch_pdu->nr_of_symbols);
     // run polar decoder on llrs
     decoderState = polar_decoder_int16((int16_t*)llrs, decodedPayload, 0, 2,nb_bit,pucch_pdu->prb_size);
     LOG_D(PHY,"UCI decoderState %d, payload[0] %llu\n",decoderState,(unsigned long long)decodedPayload[0]);

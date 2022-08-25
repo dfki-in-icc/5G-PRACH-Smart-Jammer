@@ -67,6 +67,7 @@ extern "C"
 #define CONFIG_HLP_ULF           "Set the uplink frequency offset for all component carriers\n"
 #define CONFIG_HLP_CHOFF         "Channel id offset\n"
 #define CONFIG_HLP_SOFTS         "Enable soft scope and L1 and L2 stats (Xforms)\n"
+#define CONFIG_HLP_SOFTS_QT      "Enable soft scope and L1 and L2 stats (QT)\n"
 #define CONFIG_HLP_EXMCAL        "Calibrate the EXMIMO borad, available files: exmimo2_2arxg.lime exmimo2_2brxg.lime \n"
 #define CONFIG_HLP_ITTIL         "Generate ITTI analyzser logs (similar to wireshark logs but with more details)\n"
 #define CONFIG_HLP_DLMCS         "Set the maximum downlink MCS\n"
@@ -153,6 +154,7 @@ extern int usrp_tx_thread;
     {"CO" ,                  CONFIG_HLP_ULF,          0,              iptr:&(uplink_frequency_offset[0][0]), defintval:0,        TYPE_INT,    0},                     \
     {"a" ,                   CONFIG_HLP_CHOFF,        0,              iptr:&CHAIN_OFFSET,                 defintval:0,           TYPE_INT,    0},                     \
     {"d" ,                   CONFIG_HLP_SOFTS,        PARAMFLAG_BOOL, uptr:(uint32_t *)&do_forms,         defintval:0,           TYPE_INT8,   0},                     \
+    {"dqt" ,                 CONFIG_HLP_SOFTS_QT,     PARAMFLAG_BOOL, uptr:(uint32_t *)&do_forms_qt,      defintval:0,           TYPE_INT8,   0},                     \
     {"q" ,                   CONFIG_HLP_STMON,        PARAMFLAG_BOOL, iptr:&opp_enabled,                  defintval:0,           TYPE_INT,    0},                     \
     {"numerology" ,          CONFIG_HLP_NUMEROLOGY,   PARAMFLAG_BOOL, iptr:&NUMEROLOGY,                   defintval:1,           TYPE_INT,    0},                     \
     {"band" ,                CONFIG_HLP_BAND,         PARAMFLAG_BOOL, iptr:&BAND,                         defintval:78,          TYPE_INT,    0},                     \
@@ -220,6 +222,8 @@ extern int usrp_tx_thread;
 #define SOFTMODEM_4GUE_BIT            (1<<22)
 #define SOFTMODEM_5GUE_BIT            (1<<23)
 #define SOFTMODEM_NOSTATS_BIT         (1<<24)
+#define SOFTMODEM_DOSCOPE_QT_BIT      (1<<25)
+
 #define SOFTMODEM_FUNC_BITS (SOFTMODEM_ENB_BIT | SOFTMODEM_GNB_BIT | SOFTMODEM_5GUE_BIT | SOFTMODEM_4GUE_BIT)
 #define MAPPING_SOFTMODEM_FUNCTIONS {{"enb",SOFTMODEM_ENB_BIT},{"gnb",SOFTMODEM_GNB_BIT},{"4Gue",SOFTMODEM_4GUE_BIT},{"5Gue",SOFTMODEM_5GUE_BIT}}
 
@@ -231,6 +235,7 @@ extern int usrp_tx_thread;
 #define IS_SOFTMODEM_SIML1           ( get_softmodem_optmask() & SOFTMODEM_SIML1_BIT)
 #define IS_SOFTMODEM_DLSIM           ( get_softmodem_optmask() & SOFTMODEM_DLSIM_BIT)
 #define IS_SOFTMODEM_DOSCOPE         ( get_softmodem_optmask() & SOFTMODEM_DOSCOPE_BIT)
+#define IS_SOFTMODEM_DOSCOPE_QT      ( get_softmodem_optmask() & SOFTMODEM_DOSCOPE_QT_BIT)
 #define IS_SOFTMODEM_IQPLAYER        ( get_softmodem_optmask() & SOFTMODEM_RECPLAY_BIT)
 #define IS_SOFTMODEM_TELNETCLT_BIT   ( get_softmodem_optmask() & SOFTMODEM_TELNETCLT_BIT)    
 #define IS_SOFTMODEM_ENB_BIT         ( get_softmodem_optmask() & SOFTMODEM_ENB_BIT)

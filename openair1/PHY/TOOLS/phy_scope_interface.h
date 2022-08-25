@@ -42,6 +42,8 @@ typedef struct {
 } scopeParms_t;
 
 enum UEdataType {
+  pucchllr,
+  pucchRxDataF_comp,
   pbchDlChEstimateTime,
   pbchLlr,
   pbchRxdataF_comp,
@@ -58,10 +60,12 @@ typedef struct scopeData_s {
   void *liveData;
   void (*slotFunc)(int32_t *data, int slot,  void *scopeData);
   void (*copyData)(PHY_VARS_NR_UE *,enum UEdataType, void *data, int elementSz, int colSz, int lineSz);
+  void (*copyDatagNB)(PHY_VARS_gNB *,enum UEdataType, void *data, int elementSz, int colSz, int lineSz);
 } scopeData_t;
 
 int load_softscope(char *exectype, void *initarg);
 int end_forms(void) ;
 
 #define UEscopeCopy(ue, type, ...) if(ue->scopeData) ((scopeData_t*)ue->scopeData)->copyData(ue, type, ##__VA_ARGS__);
+#define gNBscopeCopy(gNB, type, data, elementSZ, colSz, lineSz) if(gNB->scopeData) ((scopeData_t*)gNB->scopeData)->copyDatagNB(gNB, type, data, elementSZ, colSz, lineSz);
 #endif

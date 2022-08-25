@@ -24,17 +24,23 @@
 #ifndef QT_SCOPE_MAINWINDOW_H
 #define QT_SCOPE_MAINWINDOW_H
 
-#include <QWidget>
 #include <QComboBox>
 #include <QMessageBox>
+
+#include <QtCharts>
+#include <QChartView>
+#include <QLineSeries>
 
 extern "C" {
 #include <common/utils/system.h>
 #include "PHY/defs_gNB.h"
 #include "PHY/defs_nr_UE.h"
+#include "PHY/defs_RU.h"
+#include "executables/softmodem-common.h"
+#include "phy_scope_interface.h"
 }
 
-// drop-down list
+// drop-down list UE
 class KPIListSelect : public QComboBox
 {
     Q_OBJECT
@@ -44,7 +50,20 @@ public:
 	~KPIListSelect();
 
 private:
-    
+
+};
+
+// drop-down list gNB
+class KPIListSelectgNB : public QComboBox
+{
+    Q_OBJECT
+
+public:
+    explicit KPIListSelectgNB(QWidget *parent = 0);
+	~KPIListSelectgNB();
+
+private:
+
 };
 
 
@@ -54,41 +73,96 @@ class PainterWidget : public QWidget
     Q_OBJECT
 
 public:
-    PainterWidget(PHY_VARS_NR_UE *ue);
+    PainterWidget(QComboBox *parent, PHY_VARS_NR_UE *ue);
+    void makeConnections();
     QPixmap *pix;
     QTimer *timer;
+    int chartHight, chartWidth;
+    QComboBox *parentWindow;
+
+    QTimer *timerWaterFallTime;
+
+
+    // for waterfill graphs
+    int waterFallh;
+    int iteration;
+    double *waterFallAvg;
+    bool isWaterFallTimeActive;
+
+    enum UEdataType {
+        uePdschIQ,
+        uePbchIQ,
+        uePdcchIQ,
+        uePdschLLR,
+        uePbchLLR,
+        uePdcchLLR,
+        ueWaterFallTime
+    };
+
 
 protected:
     void paintEvent(QPaintEvent *event);
+    void resizeEvent(QResizeEvent *event) override;
 
 public slots:
-    void paintPixmap();
+
+    // IQ constellations
+    void paintPixmap_uePdschIQ();
+    void paintPixmap_uePbchIQ();
+    void paintPixmap_uePdcchIQ();
+
+
+    // LLR plots 
+    void paintPixmap_uePdschLLR();
+    void paintPixmap_uePbchLLR();
+    void paintPixmap_uePdcchLLR();
+
+    // Waterfall
+    void paintPixmap_ueWaterFallTime();
+
+    void paintPixmap_ueChannelResponse();
 
 private:
 	PHY_VARS_NR_UE *ue;
+    int indexToPlot;
+    int previousIndex;
+    int chartBaseHeight;
+    int chartBaseWidth;
+
 };
 
-// Accumulated painting including all previous data, all painted first on a pixmap, then on the widget
-class AccumWidget : public QWidget
+
+// Paint class for gNB
+class PainterWidgetgNB : public QWidget
 {
     Q_OBJECT
 
 public:
-    AccumWidget(PHY_VARS_NR_UE *ue);
+    PainterWidgetgNB(QComboBox *parent, scopeData_t *p);
+    void makeConnections();
+    void createPixMap(float *xData, float *yData, int len, QColor MarkerColor, const QString xLabel, const QString yLabel, bool scaleX);
+
+
     QPixmap *pix;
     QTimer *timer;
+    int chartHight, chartWidth;
+    int nb_UEs;
+
+    QComboBox *parentWindow;
 
 protected:
     void paintEvent(QPaintEvent *event);
 
 public slots:
-    void paintPixmap();
+    void KPI_PuschIQ();
+    void KPI_PuschLLR();
+    void KPI_ChannelResponse();
+    void KPI_PucchLLR();
 
 private:
-	PHY_VARS_NR_UE *ue;
-
+    scopeData_t *p;
+    int indexToPlot;
 };
-
 
 
 #endif // QT_SCOPE_MAINWINDOW_H
