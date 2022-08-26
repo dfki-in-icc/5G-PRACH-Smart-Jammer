@@ -1086,7 +1086,8 @@ int e1apCUCP_handle_BEARER_CONTEXT_SETUP_FAILURE(instance_t instance,
   BEARER CONTEXT MODIFICATION REQUEST
 */
 
-int e1apCUCP_send_BEARER_CONTEXT_MODIFICATION_REQUEST(instance_t instance) {
+int e1apCUCP_send_BEARER_CONTEXT_MODIFICATION_REQUEST(instance_t instance,
+                                                      e1ap_bearer_setup_req_t *req) {
   AssertFatal(false,"Not implemented yet\n");
   return -1;
 }
@@ -1371,6 +1372,11 @@ void *E1AP_CUCP_task(void *arg) {
       case E1AP_BEARER_CONTEXT_SETUP_REQ:
         LOG_I(E1AP, "CUCP Task Received E1AP_BEARER_CONTEXT_SETUP_REQ\n");
         e1apCUCP_send_BEARER_CONTEXT_SETUP_REQUEST(myInstance, &E1AP_BEARER_CONTEXT_SETUP_REQ(msg));
+        break;
+
+      case E1AP_BEARER_CONTEXT_MODIFICATION_REQ:
+        LOG_I(E1AP, "CUCP Task Received E1AP_BEARER_CONTEXT_MODIFICATION_REQ\n");
+        e1apCUCP_send_BEARER_CONTEXT_MODIFICATION_REQUEST(myInstance, &E1AP_BEARER_CONTEXT_SETUP_REQ(msg));
         break;
 
       default:

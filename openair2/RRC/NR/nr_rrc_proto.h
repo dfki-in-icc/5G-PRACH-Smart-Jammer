@@ -225,3 +225,9 @@ void bearer_context_setup_direct(e1ap_bearer_setup_req_t *req,
 void bearer_context_setup_e1ap(e1ap_bearer_setup_req_t *req,
                                  instance_t instance);
 
+void ue_cxt_mod_send_e1ap(MessageDef *msg,
+                          instance_t instance);
+
+void ue_cxt_mod_direct(MessageDef *msg,
+                       instance_t instance);
+

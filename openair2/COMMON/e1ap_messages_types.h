@@ -36,10 +36,11 @@
 #define E1AP_MAX_NUM_DRBS 4
 #define E1AP_MAX_NUM_UP_PARAM 4
 
-#define E1AP_SETUP_REQ(mSGpTR)                     (mSGpTR)->ittiMsg.e1ap_setup_req
-#define E1AP_SETUP_RESP(mSGpTR)                    (mSGpTR)->ittiMsg.e1ap_setup_resp
-#define E1AP_BEARER_CONTEXT_SETUP_REQ(mSGpTR)      (mSGpTR)->ittiMsg.e1ap_bearer_setup_req
-#define E1AP_BEARER_CONTEXT_SETUP_RESP(mSGpTR)     (mSGpTR)->ittiMsg.e1ap_bearer_setup_resp
+#define E1AP_SETUP_REQ(mSGpTR)                            (mSGpTR)->ittiMsg.e1ap_setup_req
+#define E1AP_SETUP_RESP(mSGpTR)                           (mSGpTR)->ittiMsg.e1ap_setup_resp
+#define E1AP_BEARER_CONTEXT_SETUP_REQ(mSGpTR)             (mSGpTR)->ittiMsg.e1ap_bearer_setup_req
+#define E1AP_BEARER_CONTEXT_SETUP_RESP(mSGpTR)            (mSGpTR)->ittiMsg.e1ap_bearer_setup_resp
+#define E1AP_BEARER_CONTEXT_MODIFICATION_REQ(mSGpTR)      (mSGpTR)->ittiMsg.e1ap_bearer_setup_req
 
 typedef f1ap_net_ip_address_t e1ap_net_ip_address_t;
 
@@ -112,6 +113,8 @@ typedef struct DRB_nGRAN_to_setup_s {
   long discardTimer;
   long reorderingTimer;
   long rLC_Mode;
+  in_addr_t tlAddress;
+  int teId;
   int numCellGroups;
   cell_group_t cellGroupList[E1AP_MAX_NUM_CELL_GROUPS];
   int numQosFlow2Setup;
@@ -136,6 +139,7 @@ typedef struct pdu_session_to_setup_s {
 
 typedef struct e1ap_bearer_setup_req_s {
   uint64_t gNB_cu_cp_ue_id;
+  rnti_t   rnti;
   uint64_t cipheringAlgorithm;
   uint64_t integrityProtectionAlgorithm;
   char     encryptionKey[128];

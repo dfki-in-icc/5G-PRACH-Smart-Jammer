@@ -546,7 +546,11 @@ instance_t gtpv1Init(openAddr_t context) {
   return id;
 }
 
-void GtpuUpdateTunnelOutgoingTeid(instance_t instance, ue_id_t ue_id, ebi_t bearer_id, teid_t newOutgoingTeid) {
+void GtpuUpdateTunnelOutgoingPair(instance_t instance,
+                                  ue_id_t ue_id,
+                                  ebi_t bearer_id,
+                                  teid_t newOutgoingTeid,
+                                  transport_layer_addr_t newRemoteAddr) {
   pthread_mutex_lock(&globGtp.gtp_lock);
   getInstRetVoid(compatInst(instance));
   getRntiRetVoid(inst, ue_id);
@@ -560,7 +564,36 @@ void GtpuUpdateTunnelOutgoingTeid(instance_t instance, ue_id_t ue_id, ebi_t bear
   }
 
   ptr2->second.teid_outgoing = newOutgoingTeid;
-  LOG_I(GTPU, "[%ld] Tunnel Outgoing TEID updated to %x \n", instance, ptr2->second.teid_outgoing);
+
+  int addrs_length_in_bytes = newRemoteAddr.length / 8;
+
+  switch (addrs_length_in_bytes) {
+    case 4:
+      memcpy(&ptr2->second.outgoing_ip_addr,newRemoteAddr.buffer,4);
+      break;
+
+    case 16:
+      memcpy(ptr2->second.outgoing_ip6_addr.s6_addr,newRemoteAddr.buffer,
+             16);
+      break;
+
+    case 20:
+      memcpy(&ptr2->second.outgoing_ip_addr,newRemoteAddr.buffer,4);
+      memcpy(ptr2->second.outgoing_ip6_addr.s6_addr,
+             newRemoteAddr.buffer+4,
+             16);
+
+    default:
+      AssertFatal(false, "SGW Address size impossible");
+  }
+
+  char ip4[INET_ADDRSTRLEN];
+  char ip6[INET6_ADDRSTRLEN];
+  LOG_I(GTPU, "[%ld] Tunnel Outgoing TEID updated to %x, remote IPv4 to: %s, IPv6 to: %s\n",
+        instance,
+        ptr2->second.teid_outgoing,
+        inet_ntop(AF_INET,(void *)&ptr2->second.outgoing_ip_addr, ip4,INET_ADDRSTRLEN ),
+        inet_ntop(AF_INET6,(void *)ptr2->second.outgoing_ip6_addr.s6_addr, ip6, INET6_ADDRSTRLEN));
   pthread_mutex_unlock(&globGtp.gtp_lock);
   return;
 }
@@ -619,7 +652,7 @@ teid_t newGtpuCreateTunnel(instance_t instance,
 
     case 20:
       memcpy(&tmp->outgoing_ip_addr,remoteAddr.buffer,4);
-      memcpy(&tmp->outgoing_ip6_addr.s6_addr,
+      memcpy(tmp->outgoing_ip6_addr.s6_addr,
              remoteAddr.buffer+4,
              16);
 

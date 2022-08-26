@@ -51,6 +51,7 @@ void createE1inst(E1_t type, instance_t instance, e1ap_setup_req_t *req) {
   if (type == CPtype) {
     AssertFatal(e1ap_cp_inst[instance] == NULL, "Double call to E1 CP instance %d\n", (int)instance);
     e1ap_cp_inst[instance] = (e1ap_upcp_inst_t *) calloc(1, sizeof(e1ap_upcp_inst_t));
+    memcpy(&e1ap_cp_inst[instance]->setupReq, req, sizeof(e1ap_setup_req_t));
   } else if (type == UPtype) {
     AssertFatal(e1ap_up_inst[instance] == NULL, "Double call to E1 UP instance %d\n", (int)instance);
     e1ap_up_inst[instance] = (e1ap_upcp_inst_t *) calloc(1, sizeof(e1ap_upcp_inst_t));

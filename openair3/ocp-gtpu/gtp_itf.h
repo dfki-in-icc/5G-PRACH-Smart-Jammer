@@ -91,7 +91,13 @@ extern "C" {
                              int port,
                              gtpCallback callBack,
                              gtpCallbackSDAP callBackSDAP);
-  void GtpuUpdateTunnelOutgoingTeid(instance_t instance, ue_id_t ue_id, ebi_t bearer_id, teid_t newOutgoingTeid);
+
+  void GtpuUpdateTunnelOutgoingPair(instance_t instance,
+                                    ue_id_t ue_id,
+                                    ebi_t bearer_id,
+                                    teid_t newOutgoingTeid,
+                                    transport_layer_addr_t newRemoteAddr);
+
   int newGtpuDeleteAllTunnels(instance_t instance, ue_id_t ue_id);
   int newGtpuDeleteTunnels(instance_t instance, ue_id_t ue_id, int nbTunnels, pdusessionid_t *pdusession_id);
   instance_t gtpv1Init(openAddr_t context);

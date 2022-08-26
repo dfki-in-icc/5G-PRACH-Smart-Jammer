@@ -468,11 +468,13 @@ typedef struct {
 } nr_security_configuration_t;
 
 typedef void (*nr_e1_bearer_cxt_msg_transfer_func_t)(e1ap_bearer_setup_req_t *req, instance_t instance);
+typedef void (*nr_e1_ue_cxt_mod_msg_transfer_func_t)(MessageDef *msg, instance_t instance);
 
 typedef struct nr_mac_rrc_dl_if_s {
   /* TODO add other message types as necessary */
   dl_rrc_message_transfer_func_t dl_rrc_message_transfer;
   nr_e1_bearer_cxt_msg_transfer_func_t nr_e1_bearer_cxt_msg_transfer;
+  nr_e1_ue_cxt_mod_msg_transfer_func_t nr_e1_ue_cxt_mod_msg_transfer;
 } nr_mac_rrc_dl_if_t;
 
 //---NR---(completely change)---------------------

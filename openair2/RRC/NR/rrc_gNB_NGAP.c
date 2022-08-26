@@ -497,12 +497,14 @@ rrc_gNB_process_NGAP_INITIAL_CONTEXT_SETUP_REQ(
       return (-1);
     } else {
       PROTOCOL_CTXT_SET_BY_INSTANCE(&ctxt, instance, GNB_FLAG_YES, ue_context_p->ue_context.rnti, 0, 0);
+      gNB_RRC_INST *rrc = RC.nrrrc[ctxt.module_id];
       ue_context_p->ue_context.gNB_ue_ngap_id = NGAP_INITIAL_CONTEXT_SETUP_REQ (msg_p).gNB_ue_ngap_id;
       ue_context_p->ue_context.amf_ue_ngap_id = NGAP_INITIAL_CONTEXT_SETUP_REQ (msg_p).amf_ue_ngap_id;
       ue_context_p->ue_context.nas_pdu_flag = NGAP_INITIAL_CONTEXT_SETUP_REQ (msg_p).nas_pdu_flag;
 
       uint8_t nb_pdusessions_tosetup = NGAP_INITIAL_CONTEXT_SETUP_REQ (msg_p).nb_of_pdusessions;
       if (nb_pdusessions_tosetup != 0) {
+        AssertFatal(rrc->node_type != ngran_gNB_CUCP, "PDU sessions in Initial context setup request not handled by E1 yet\n");
         gtpv1u_gnb_create_tunnel_req_t  create_tunnel_req={0};
         for (int i = 0; i < NR_NB_RB_MAX - 3; i++) {
           if(ue_context_p->ue_context.pduSession[i].status >= PDU_SESSION_STATUS_DONE)
@@ -992,6 +994,7 @@ rrc_gNB_process_NGAP_PDUSESSION_SETUP_REQ(
   e1ap_bearer_setup_req_t *bearer_req = calloc(1, sizeof(e1ap_bearer_setup_req_t));
 
   bearer_req->gNB_cu_cp_ue_id = gNB_ue_ngap_id;
+  bearer_req->rnti = ue_context_p->ue_context.rnti;
   bearer_req->cipheringAlgorithm = ue_context_p->ue_context.ciphering_algorithm;
   memcpy(bearer_req->encryptionKey, ue_context_p->ue_context.kgnb, sizeof(ue_context_p->ue_context.kgnb));
   bearer_req->integrityProtectionAlgorithm = ue_context_p->ue_context.integrity_algorithm;

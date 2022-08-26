@@ -700,10 +700,15 @@ int CU_handle_UE_CONTEXT_SETUP_RESPONSE(instance_t       instance,
       F1AP_GTPTunnel_t *dl_up_tnl0 = dl_up_tnl_info_p->dLUPTNLInformation.choice.gTPTunnel;
       BIT_STRING_TO_TRANSPORT_LAYER_ADDRESS_IPv4(&dl_up_tnl0->transportLayerAddress, drb_p->up_dl_tnl[0].tl_address);
       OCTET_STRING_TO_INT32(&dl_up_tnl0->gTP_TEID, drb_p->up_dl_tnl[0].teid);
-      GtpuUpdateTunnelOutgoingTeid(getCxt(CUtype, instance)->gtpInst,
+      transport_layer_addr_t addr;
+      int sz=sizeof(drb_p->up_dl_tnl[0].tl_address);
+      memcpy(addr.buffer, &drb_p->up_dl_tnl[0].tl_address, sz);
+      addr.length = sz*8;
+      GtpuUpdateTunnelOutgoingPair(getCxt(CUtype, instance)->gtpInst,
                                    f1ap_ue_context_setup_resp->rnti,
                                    (ebi_t)drbs_setup_item_p->dRBID,
-                                   drb_p->up_dl_tnl[0].teid);
+                                   drb_p->up_dl_tnl[0].teid,
+                                   addr);
     }
   }
 
@@ -1691,10 +1696,6 @@ int CU_handle_UE_CONTEXT_MODIFICATION_RESPONSE(instance_t       instance,
         F1AP_GTPTunnel_t *dl_up_tnl0 = dl_up_tnl_info_p->dLUPTNLInformation.choice.gTPTunnel;
         BIT_STRING_TO_TRANSPORT_LAYER_ADDRESS_IPv4(&dl_up_tnl0->transportLayerAddress, drb_p->up_dl_tnl[0].tl_address);
         OCTET_STRING_TO_INT32(&dl_up_tnl0->gTP_TEID, drb_p->up_dl_tnl[0].teid);
-        GtpuUpdateTunnelOutgoingTeid(getCxt(CUtype, instance)->gtpInst,
-                     f1ap_ue_context_modification_resp->rnti,
-                     (ebi_t)drbs_setupmod_item_p->dRBID,
-                     drb_p->up_dl_tnl[0].teid);
       }
     }
     // SRBs_FailedToBeSetupMod_List
