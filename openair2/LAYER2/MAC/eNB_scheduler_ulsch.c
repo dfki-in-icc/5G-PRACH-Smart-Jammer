@@ -807,19 +807,14 @@ rx_sdu(const module_id_t enb_mod_idP,
             /* Program Msg4 PDCCH+DLSCH/MPDCCH transmission 4 subframes from now,
               * Check if this is ok for BL/CE, or if the rule is different
               */
-            if (ra->rach_resource_type > 0)
-            {
-              //Special handling for BL/CE
-              ra->Msg4_frame = ((frameP%2)== 0)?  frameP+1: frameP;
-              if(subframeP > 5)
-              {
-                ra->Msg4_frame += 2 ;
-              }
+            if (ra->rach_resource_type > 0) {
+              // Special handling for BL/CE
+              ra->Msg4_frame = frameP % 2 == 0 ? frameP + 1 : frameP;
+              if (subframeP > 5)
+                ra->Msg4_frame += 2;
               ra->Msg4_subframe = 6;
-             }
-             else
-             {
-               ra->Msg4_frame = frameP + ((subframeP > 5) ? 1 : 0);
+             } else {
+               ra->Msg4_frame = frameP + (subframeP > 5 ? 1 : 0);
                ra->Msg4_subframe = (subframeP + 4) % 10;
              }
            }
