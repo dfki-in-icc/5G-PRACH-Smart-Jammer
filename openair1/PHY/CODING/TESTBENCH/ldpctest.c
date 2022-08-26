@@ -215,41 +215,39 @@ int test_ldpc(short max_iterations,
   }
 
   if (nom_rate == 1)
-	  if (denom_rate == 5)
-		  if (BG == 2)
-			  R_ind = 0;
-		  else
-			  printf("Not supported");
-	  else if (denom_rate == 3)
-		  R_ind = 1;
-	  else if (denom_rate == 2)
-		  //R_ind = 3;
-  	  	  printf("Not supported");
-	  else
-		  printf("Not supported");
-
+    if (denom_rate == 5)
+      if (BG == 2)
+        R_ind = 0;
+      else
+        printf("Not supported");
+    else if (denom_rate == 3)
+      R_ind = 1;
+    else if (denom_rate == 2)
+     //R_ind = 3;
+     printf("Not supported");
+    else
+      printf("Not supported");
   else if (nom_rate == 2)
-	  if (denom_rate == 5)
-		  //R_ind = 2;
-  	  	  printf("Not supported");
-	  else if (denom_rate == 3)
-		  R_ind = 4;
-	  else
-		  printf("Not supported");
-
+    if (denom_rate == 5)
+      //R_ind = 2;
+      printf("Not supported");
+    else if (denom_rate == 3)
+      R_ind = 4;
+    else
+      printf("Not supported");
   else if ((nom_rate == 22) && (denom_rate == 30))
-		  //R_ind = 5;
-  	  	  printf("Not supported");
+    //R_ind = 5;
+    printf("Not supported");
   else if ((nom_rate == 22) && (denom_rate == 27))
-		  //R_ind = 6;
-  	  	  printf("Not supported");
+    //R_ind = 6;
+    printf("Not supported");
   else if ((nom_rate == 22) && (denom_rate == 25))
-	  if (BG == 1)
-		  R_ind = 7;
-	  else
-		  printf("Not supported");
+    if (BG == 1)
+      R_ind = 7;
+    else
+    printf("Not supported");
   else
-	  printf("Not supported");
+    printf("Not supported");
 
   //find minimum value in all sets of lifting size
   Zc=0;

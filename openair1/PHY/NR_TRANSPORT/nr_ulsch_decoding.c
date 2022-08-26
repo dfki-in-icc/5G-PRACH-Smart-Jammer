@@ -445,27 +445,11 @@ uint32_t nr_ulsch_decoding(PHY_VARS_gNB *phy_vars_gNB,
   if ((A <=292) || ((A<=3824) && (Coderate <= 0.6667)) || Coderate <= 0.25){
     p_decParams->BG = 2;
     kc = 52;
-    if (Coderate < 0.3333) {
-      p_decParams->R = 15;
-    }
-    else if (Coderate <0.6667) {
-      p_decParams->R = 13;
-    }
-    else {
-      p_decParams->R = 23;
-    }
+    p_decParams->R = 15;
   } else {
     p_decParams->BG = 1;
     kc = 68;
-    if (Coderate < 0.6667) {
-      p_decParams->R = 13;
-    }
-    else if (Coderate <0.8889) {
-      p_decParams->R = 23;
-    }
-    else {
-      p_decParams->R = 89;
-    }
+    p_decParams->R = 13;
   }
   
   NR_gNB_SCH_STATS_t *stats=NULL;
