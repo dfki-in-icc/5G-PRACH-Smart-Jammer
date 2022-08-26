@@ -309,11 +309,11 @@ schedule_SIB1_BR(module_id_t module_idP,
   COMMON_channels_t *cc;
   uint8_t *vrb_map;
   int first_rb = -1;
-  int N_RB_DL;	/** Bandwidth in RB */
+  int N_RB_DL;
   nfapi_dl_config_request_pdu_t *dl_config_pdu;
   nfapi_tx_request_pdu_t *TX_req;
   nfapi_dl_config_request_body_t *dl_req;
-  int m, i, N_S_NB; /** */
+  int m, i, N_S_NB;
   int *Sj;
   int n_NB = 0;
   int TBS;
@@ -341,7 +341,6 @@ schedule_SIB1_BR(module_id_t module_idP,
             continue;
 
           break;
-#if 0
         case 1:   // repetition 8
           k = frameP & 3;
           AssertFatal(N_RB_DL > 15,
@@ -373,7 +372,6 @@ schedule_SIB1_BR(module_id_t module_idP,
             continue;
 
           break;
-#endif
       }
 
     // if we get here we have to schedule SIB1_BR in this frame/subframe
@@ -483,10 +481,7 @@ schedule_SIB1_BR(module_id_t module_idP,
     dl_config_pdu->dlsch_pdu.dlsch_pdu_rel8.num_bf_vector = 1;
     // Rel10 fields
     dl_config_pdu->dlsch_pdu.dlsch_pdu_rel10.tl.tag = NFAPI_DL_CONFIG_REQUEST_DLSCH_PDU_REL10_TAG;
-    if (N_RB_DL > 10)
-        dl_config_pdu->dlsch_pdu.dlsch_pdu_rel10.pdsch_start = 3;
-    else
-        dl_config_pdu->dlsch_pdu.dlsch_pdu_rel10.pdsch_start = 4;
+    dl_config_pdu->dlsch_pdu.dlsch_pdu_rel10.pdsch_start = N_RB_DL > 10 ? 3 : 4;
     // Rel13 fields
     dl_config_pdu->dlsch_pdu.dlsch_pdu_rel13.tl.tag = NFAPI_DL_CONFIG_REQUEST_DLSCH_PDU_REL13_TAG;
     dl_config_pdu->dlsch_pdu.dlsch_pdu_rel13.ue_type = 1; // CEModeA UE TODO: To be made configurable */
@@ -1058,12 +1053,15 @@ schedule_SI(module_id_t module_idP, frame_t frameP, sub_frame_t subframeP)
   start_meas(&eNB->schedule_si);
 
   // Only schedule LTE System Information in subframe 5
-  // and eMTC also enable at BW 1.4 MHz
-  if (subframeP == 5 && !((N_RB_DL == 6) && cc->mib->message.schedulingInfoSIB1_BR_r13 > 0)) {
+  if (subframeP == 5) {
     for (CC_id = 0; CC_id < MAX_NUM_CCs; CC_id++) {
       cc = &eNB->common_channels[CC_id];
       vrb_map = (void *) &cc->vrb_map;
       N_RB_DL = to_prb(cc->mib->message.dl_Bandwidth);
+
+      // if eMTC also enabled at BW 1.4 MHz, do not schedule.
+      if ((N_RB_DL == 6) && cc->mib->message.schedulingInfoSIB1_BR_r13 > 0) continue;
+
       dl_config_request = &eNB->DL_req[CC_id];
       dl_req = &eNB->DL_req[CC_id].dl_config_request_body;
       bcch_sdu_length = mac_rrc_data_req(module_idP, CC_id, frameP, BCCH, 0xFFFF,1, &cc->BCCH_pdu.payload[0], 0); // not used in this case

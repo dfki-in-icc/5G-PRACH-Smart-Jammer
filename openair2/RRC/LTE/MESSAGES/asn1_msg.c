@@ -3103,7 +3103,7 @@ uint8_t do_RRCConnectionSetup_BR(
   epdcch_setconfig_r11->ext2->mpdcch_config_r13->choice.setup.mpdcch_StartSF_UESS_r13.present        = LTE_EPDCCH_SetConfig_r11__ext2__mpdcch_config_r13__setup__mpdcch_StartSF_UESS_r13_PR_fdd_r13;
   epdcch_setconfig_r11->ext2->mpdcch_config_r13->choice.setup.mpdcch_StartSF_UESS_r13.choice.fdd_r13 = LTE_EPDCCH_SetConfig_r11__ext2__mpdcch_config_r13__setup__mpdcch_StartSF_UESS_r13__fdd_r13_v1;
   epdcch_setconfig_r11->ext2->mpdcch_config_r13->choice.setup.mpdcch_NumRepetition_r13               = LTE_EPDCCH_SetConfig_r11__ext2__mpdcch_config_r13__setup__mpdcch_NumRepetition_r13_r1;
-  epdcch_setconfig_r11->ext2->mpdcch_config_r13->choice.setup.mpdcch_Narrowband_r13                  = 1; // note: this is narrowband index 2
+  epdcch_setconfig_r11->ext2->mpdcch_config_r13->choice.setup.mpdcch_Narrowband_r13                  = 1; // note: this is the first narrowband
   ASN_SEQUENCE_ADD(physicalConfigDedicated2->ext4->epdcch_Config_r11->config_r11.choice.setup.setConfigToAddModList_r11, epdcch_setconfig_r11);
   // FIXME allocate physicalConfigDedicated2->ext7
   physicalConfigDedicated2->ext7 = CALLOC(1, sizeof(struct LTE_PhysicalConfigDedicated__ext7));
