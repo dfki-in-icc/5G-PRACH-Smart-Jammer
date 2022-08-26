@@ -1,7 +1,6 @@
 import { Component, Output, EventEmitter, ViewChild} from "@angular/core";
 import { FormGroup,FormControl } from "@angular/forms";
 import { Message, WebSocketService, webSockSrc } from "src/app/services/websocket.service";
-import { NgxSliderModule, Options} from '@angular-slider/ngx-slider';
 import { Observable } from 'rxjs';
 import { Chart, ChartConfiguration, ChartOptions, ChartEvent, ChartType, ScatterDataPoint } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
@@ -22,23 +21,17 @@ const SCOPEMSG_DATA_IQ=1;
 
 export class ScopeComponent {
 
-  title = 'socketrv';
+  scopetitle = '';
   scopetime = '';
   scopestatus = 'stopped';
   startstop = 'start';
   rfrate = 2;
+  
+  channel_list = [""];
+  selected_channels = [""];
+  
   @Output() ScopeEnabled = new EventEmitter<boolean>();
-  sliderForm: FormGroup = new FormGroup({
-  sliderControl: new FormControl()
-  });
-  options: Options = {
-    floor: 0.1,
-    ceil: 30,
-    step: 0.1
-  };
-  scopectrlgroup = new FormGroup({
-                    firstName: new FormControl()
-                  });
+
   @ViewChild(BaseChartDirective) chart?: BaseChartDirective;
 
   public IQDatasets: ChartConfiguration<'scatter'>['data']['datasets'] = [
@@ -95,24 +88,26 @@ export class ScopeComponent {
      return enc.decode(message);
   }
 
+  configScope(resp: IScopeDesc) {
+	  this.scopetitle=resp.title;
+	  for (let graphIndex = 0; graphIndex < resp.graphs.length; graphIndex++) {
+		  this.channel_list[graphIndex]=resp.graphs[graphIndex].title;
+	  }
+  }
   
   ProcessScopeMsg (message: Message) {	  
 	  switch ( message.msgtype ) {		  
 		  case SCOPEMSG_TYPE_STATUSUPD:
 		    let msgcontent = this.DecodScopeBinmsgToString(message.content);
-            if (msgcontent === 'stopped') {
-              this.scopestatus='stopped';
-              this.startstop='start';
-            } else if (msgcontent === 'disabled') {
+            if (msgcontent === 'disabled') {
 		      this.ScopeEnabled.emit(false);
 		      this.sendMsg(SCOPEMSG_TYPE_STATUSUPD,'disabled'); //Ack disabled message
 			} else if (msgcontent === 'enabled') {
 		      this.ScopeEnabled.emit(true);
-		      this.sendMsg(SCOPEMSG_TYPE_STATUSUPD,'init'); //Ack enabled message, ask server to initialize
-			} else if (msgcontent === 'started') {
-              this.scopestatus='started';
-              this.startstop='stop';
-			} else {
+		      this.scopeApi.getScopeInfos$().subscribe(resp => {
+				  this.configScope(resp);
+		        });
+			}  else {
 			  console.log("Scope received  " + msgcontent + ", unknown status update");
 			}
             break; 
@@ -175,15 +170,34 @@ export class ScopeComponent {
   
   startorstop() {
     if (this.scopestatus === 'stopped') {
-        this.sendMsg(SCOPEMSG_TYPE_STATUSUPD,'start');
-        this.scopeApi.setScopeParams$({name:"startstop",value:"start"}).subscribe();
-        
+        this.scopeApi.setScopeParams$({name:"startstop",value:"start"}).subscribe(
+          () => {
+			 this.scopestatus='started';
+             this.startstop='stop';
+		  },
+		  err => {
+		  }
+        );   
     } else {
-        this.sendMsg(SCOPEMSG_TYPE_STATUSUPD,'stop');
+        this.scopeApi.setScopeParams$({name:"startstop",value:"stop"}).subscribe(
+          () => {
+			 this.scopestatus='stopped';
+             this.startstop='start';
+		  },
+		  err => {
+		  }        
+        );      
     }
   }
   
   OnRefrateChange() {
-	 this.sendBinMsg(SCOPEMSG_TYPE_REFRATE,this.rfrate*10); 
+	 this.scopeApi.setScopeParams$({name:"refrate",value:(this.rfrate*10).toString()}).subscribe(); 
   }
+  
+  channelsChanged(value: string[]) {
+//	if (event.isUserInput) {
+  if (value.length > 0)
+    console.log(value[0]);
+ //   this.selected_channels = ;
+    }  
 }

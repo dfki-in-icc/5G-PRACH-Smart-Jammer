@@ -5,7 +5,8 @@ import { route } from 'src/app/api/commands.api';
 
 export enum IScopeGraphType {
     IQs = "IQs",
-    LLR = "LLR"
+    LLR = "LLR",
+    UNSUP = "UNSUP"
 }
 
 export interface IGraphDesc {
@@ -33,6 +34,6 @@ export class ScopeApi {
 
     public getScopeInfos$ = () => this.httpClient.get<IScopeDesc>(environment.backend + route + 'scopectrl/');
 
-    public setScopeParams$ = (cmd: IScopeCmd) => this.httpClient.post<IScopeCmd>(environment.backend + route + 'scopectrl/', cmd);
+    public setScopeParams$ = (cmd: IScopeCmd) => this.httpClient.post(environment.backend + route + 'scopectrl/', cmd);
 
 }

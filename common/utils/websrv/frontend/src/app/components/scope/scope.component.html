@@ -3,7 +3,7 @@
     <mat-grid-tile [colspan]="11" [rowspan]="1">
       <mat-card class="dashboard-card">
         <mat-card-header>
-          <mat-card-title>scope status</mat-card-title>
+          <mat-card-title>{{ scopetitle }}</mat-card-title>
         </mat-card-header>
         <mat-card-content class="dashboard-card-content">
 
@@ -22,15 +22,28 @@
           <mat-card-title>Scope control</mat-card-title>
         </mat-card-header>
         <mat-card-content class="dashboard-card-content">
-		  <div [formGroup]="scopectrlgroup">
-            <button (click)="startorstop()">{{startstop}}</button>
-            <div class="scope-slider">
-              <ngx-slider (userChange)="OnRefrateChange()" [(value)]="rfrate" [options]="options"
-                formControlName="sliderControl"></ngx-slider>
-              <label for="rfrate"> refresh rate {{rfrate}}</label>
-            </div>
-          </div>
-        </mat-card-content>
+		    <button mat-mini-fab color="warn" (click)="startorstop()">{{startstop}</button>
+            <br><br>
+            <div class="scope-slider-div">
+            <label id="scope-slider-labelid" class="scope-slider-label">refresh rate</label>
+            <label class="scope-slider-value-label"> {{rfrate}} </label>
+            </div>           
+            <mat-slider class="scope-slider" min=".1" max="30" step="0.1" [value]="rfrate" 
+                        aria-labelledby="cope-slider-labelid" vertical="true" thumbLabel="true" 
+                        [(ngModel)]="rfrate" (change)="OnRefrateChange()" > 
+            </mat-slider>
+            <br><br>
+	        <mat-list-item class="channelselect" role="listitem">
+		      <mat-form-field class="select-form">
+			  <mat-select placeholder="Channels(IQ view)" name="ChannelsSelect" class="ChannelsSelect" multiple [value]="selected_channels" (selectionChange)="channelsChanged($event.value)" >
+				 <mat-option *ngFor="let channel of channel_list" [value]="channel" >
+					{{channel}}
+				 </mat-option>
+			  </mat-select>
+		      </mat-form-field>
+	        </mat-list-item>            
+          
+        </mat-card-content> 
       </mat-card>
     </mat-grid-tile>
 

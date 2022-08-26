@@ -33,10 +33,6 @@ mat-form-field {
   text-align: center;
 }
 
-.scope-slider.ngx-slider-pointer {
-  width: 14px;
-  height: 4px;
-  background-color: white;
-  border-radius: 1;
-  cursor: move;
+.scope-slider {
+  width: 90%;
 }

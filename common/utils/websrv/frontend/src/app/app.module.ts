@@ -1,8 +1,9 @@
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import { HttpClientModule } from '@angular/common/http';
 import { NgModule } from '@angular/core';
-import { NgxSliderModule } from '@angular-slider/ngx-slider';
+import { MatSliderModule } from '@angular/material/slider';
 import { FlexLayoutModule } from '@angular/flex-layout';
+import { FormsModule } from '@angular/forms';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -18,6 +19,7 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatListModule} from '@angular/material/list';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { CommandsApi } from './api/commands.api';
@@ -33,6 +35,7 @@ import { InterceptorProviders } from './interceptors/interceptors';
 import { LoadingService } from './services/loading.service';
 import { WebSocketService } from './services/websocket.service';
 import { NgChartsModule } from 'ng2-charts';
+import { CommonModule } from '@angular/common';
 
 @NgModule({
     declarations: [
@@ -46,20 +49,22 @@ import { NgChartsModule } from 'ng2-charts';
     imports: [
         BrowserModule,
         AppRoutingModule,
+        FormsModule,
+        ReactiveFormsModule ,
         BrowserAnimationsModule,
         HttpClientModule,
         MatButtonModule,
         FlexLayoutModule,
         MatDialogModule,
         DragDropModule,
-        NgxSliderModule,
+        MatSliderModule,
         MatFormFieldModule,
         MatInputModule,
-        ReactiveFormsModule,
         MatChipsModule,
         MatProgressSpinnerModule,
         MatToolbarModule,
         MatTableModule,
+        MatListModule,
         MatSelectModule,
         MatSnackBarModule,
         MatSlideToggleModule,
