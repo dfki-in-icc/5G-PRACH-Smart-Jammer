@@ -4193,7 +4193,7 @@ void rrc_gNB_process_e1_bearer_context_setup_req(e1ap_bearer_setup_req_t *req, i
 
     pduSetup->id = pdu2Setup->sessionId;
     memcpy(&pduSetup->tlAddress,
-           &create_tunnel_resp_N3.gnb_addr.buffer,
+           &getCxtE1(UPtype, instance)->setupReq.IPv4AddressN3,
            sizeof(in_addr_t));
     pduSetup->teId = create_tunnel_resp_N3.gnb_NGu_teid[i];
     pduSetup->numDRBSetup = pdu2Setup->numDRB2Setup;
@@ -4306,13 +4306,14 @@ void rrc_gNB_process_e1_bearer_context_setup_resp(e1ap_bearer_setup_resp_t *resp
   PROTOCOL_CTXT_SET_BY_MODULE_ID(&ctxt, 0, GNB_FLAG_YES, ue_context_p->ue_context.rnti, 0, 0, 0);
 
   gtpv1u_gnb_create_tunnel_resp_t create_tunnel_resp={0};
+  create_tunnel_resp.num_tunnels = resp->numPDUSessions;
   for (int i=0; i < resp->numPDUSessions; i++) {
     create_tunnel_resp.pdusession_id[i]  = resp->pduSession[i].id;
     create_tunnel_resp.gnb_NGu_teid[i] = resp->pduSession[i].teId;
     memcpy(create_tunnel_resp.gnb_addr.buffer,
            &resp->pduSession[i].tlAddress,
            sizeof(in_addr_t));
-    create_tunnel_resp.gnb_addr.length = sizeof(in_addr_t) * 8; // IPv4 bit length
+    create_tunnel_resp.gnb_addr.length = sizeof(in_addr_t); // IPv4 byte length
   }
 
   nr_rrc_gNB_process_GTPV1U_CREATE_TUNNEL_RESP(&ctxt,

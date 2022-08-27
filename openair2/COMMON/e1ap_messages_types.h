@@ -67,6 +67,8 @@ typedef struct e1ap_setup_req_s {
   long                  cn_support;
   int                   port_cuup;
   int                   port_cucp;
+  in_addr_t             IPv4AddressN3;
+  int                   portN3;
 } e1ap_setup_req_t;
 
 typedef struct e1ap_setup_resp_s {

@@ -1839,6 +1839,13 @@ int RCconfig_NR_CU_E1(MessageDef *msg_p, uint32_t i) {
     strcpy(e1Setup->CUUP_e1_ip_address.ipv4_address, *(GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_IPV4_ADDRESS_CUUP].strptr));
     e1Setup->CUUP_e1_ip_address.ipv4 = 1;
     e1Setup->port_cuup = *GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_PORT_CUUP].uptr;
+    if (!strcmp(*(GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_CU_TYPE_IDX].strptr),
+        "up")) {
+      inet_pton(AF_INET,
+                *(GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_IPV4_ADDRESS_N3].strptr),
+                &e1Setup->IPv4AddressN3);
+      e1Setup->portN3 = *GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_PORT_N3].uptr;
+    }
 
     e1Setup->cn_support = *GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_CN_SUPPORT].uptr;
   }
