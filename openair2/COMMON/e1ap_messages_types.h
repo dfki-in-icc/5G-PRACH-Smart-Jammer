@@ -35,6 +35,8 @@
 #define E1AP_MAX_NUM_DRBS 4
 #define E1AP_MAX_NUM_DRBS 4
 #define E1AP_MAX_NUM_UP_PARAM 4
+#define E1AP_GTP_INST_N3 10
+#define E1AP_GTP_INST_F1U 11
 
 #define E1AP_SETUP_REQ(mSGpTR)                            (mSGpTR)->ittiMsg.e1ap_setup_req
 #define E1AP_SETUP_RESP(mSGpTR)                           (mSGpTR)->ittiMsg.e1ap_setup_resp
@@ -74,6 +76,12 @@ typedef struct e1ap_setup_resp_s {
 typedef struct cell_group_s {
   long id;
 } cell_group_t;
+
+typedef struct up_params_s {
+  in_addr_t tlAddress;
+  long teId;
+  int cell_group_id;
+} up_params_t;
 
 typedef struct drb_to_setup_s {
   long drbId;
@@ -115,6 +123,8 @@ typedef struct DRB_nGRAN_to_setup_s {
   long rLC_Mode;
   in_addr_t tlAddress;
   int teId;
+  int numDlUpParam;
+  up_params_t DlUpParamList[E1AP_MAX_NUM_UP_PARAM];
   int numCellGroups;
   cell_group_t cellGroupList[E1AP_MAX_NUM_CELL_GROUPS];
   int numQosFlow2Setup;
@@ -135,10 +145,13 @@ typedef struct pdu_session_to_setup_s {
   int tl_port_dl;
   long numDRB2Setup;
   DRB_nGRAN_to_setup_t DRBnGRanList[E1AP_MAX_NUM_NGRAN_DRB];
+  long numDRB2Modify;
+  DRB_nGRAN_to_setup_t DRBnGRanModList[E1AP_MAX_NUM_NGRAN_DRB];
 } pdu_session_to_setup_t;
 
 typedef struct e1ap_bearer_setup_req_s {
   uint64_t gNB_cu_cp_ue_id;
+  uint64_t gNB_cu_up_ue_id;
   rnti_t   rnti;
   uint64_t cipheringAlgorithm;
   uint64_t integrityProtectionAlgorithm;
@@ -151,12 +164,9 @@ typedef struct e1ap_bearer_setup_req_s {
   drb_to_setup_t DRBList[E1AP_MAX_NUM_DRBS];
   int numPDUSessions;
   pdu_session_to_setup_t pduSession[E1AP_MAX_NUM_PDU_SESSIONS];
+  int numPDUSessionsMod;
+  pdu_session_to_setup_t pduSessionMod[E1AP_MAX_NUM_PDU_SESSIONS];
 } e1ap_bearer_setup_req_t;
-
-typedef struct up_params_s {
-  in_addr_t tlAddress;
-  long teId;
-} up_params_t;
 
 typedef struct drb_setup_s {
   int drbId;
@@ -205,6 +215,8 @@ typedef struct e1ap_bearer_setup_resp_s {
 
 typedef struct e1ap_upcp_inst_s {
   uint32_t                assoc_id;
+  instance_t              gtpInstN3;
+  instance_t              gtpInstF1U;
   e1ap_setup_req_t        setupReq;
   e1ap_bearer_setup_req_t bearerSetupReq;
   e1ap_bearer_setup_resp_t bearerSetupResp;

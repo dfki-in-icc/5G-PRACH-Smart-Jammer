@@ -3597,27 +3597,28 @@ static void rrc_CU_process_ue_context_setup_response(MessageDef *msg_p, const ch
 }
 
 static void update_UL_UP_tunnel_info(e1ap_bearer_setup_req_t *req, instance_t instance, ue_id_t ue_id) {
-  for (int i=0; i < req->numPDUSessions; i++) {
-    for (int j=0; j < req->pduSession[i].numDRB2Setup; j++) {
-      DRB_nGRAN_to_setup_t *drb_p = req->pduSession[i].DRBnGRanList + j;
+  for (int i=0; i < req->numPDUSessionsMod; i++) {
+    for (int j=0; j < req->pduSessionMod[i].numDRB2Modify; j++) {
+      DRB_nGRAN_to_setup_t *drb_p = req->pduSessionMod[i].DRBnGRanModList + j;
 
       transport_layer_addr_t newRemoteAddr;
       newRemoteAddr.length = 32; // IPv4
       memcpy(newRemoteAddr.buffer,
-             &drb_p->tlAddress,
+             &drb_p->DlUpParamList[0].tlAddress,
              sizeof(in_addr_t));
 
       GtpuUpdateTunnelOutgoingPair(instance,
                                    ue_id,
                                    (ebi_t)drb_p->id,
-                                   drb_p->teId,
+                                   drb_p->DlUpParamList[0].teId,
                                    newRemoteAddr);
     }
   }
 }
 
 void rrc_CUUP_process_bearer_context_mod_req(e1ap_bearer_setup_req_t *req, instance_t instance) {
-  update_UL_UP_tunnel_info(req, instance, req->gNB_cu_cp_ue_id);
+  instance_t gtpInst = getCxtE1(UPtype, instance)->gtpInstF1U;
+  update_UL_UP_tunnel_info(req, gtpInst, req->gNB_cu_cp_ue_id);
   // TODO: send bearer cxt mod response
 }
 
@@ -3652,18 +3653,19 @@ static void rrc_CU_process_ue_context_modification_response(MessageDef *msg_p, c
 
   MessageDef *msg_e1 = itti_alloc_new_message(TASK_CUCP_E1, instance, E1AP_BEARER_CONTEXT_MODIFICATION_REQ);
   e1ap_bearer_setup_req_t *req = &E1AP_BEARER_CONTEXT_SETUP_REQ(msg_e1);
-  req->numPDUSessions = ue_context_p->ue_context.nb_of_pdusessions;
+  req->numPDUSessionsMod = ue_context_p->ue_context.nb_of_pdusessions;
   req->gNB_cu_cp_ue_id = ue_context_p->ue_context.gNB_ue_ngap_id;
   req->rnti = ue_context_p->ue_context.rnti;
-  for (int i=0; i < req->numPDUSessions; i++) {
-    req->pduSession[i].numDRB2Setup = resp->drbs_to_be_setup_length;
+  for (int i=0; i < req->numPDUSessionsMod; i++) {
+    req->pduSessionMod[i].numDRB2Modify = resp->drbs_to_be_setup_length;
     for (int j=0; j < resp->drbs_to_be_setup_length; j++) {
       f1ap_drb_to_be_setup_t *drb_f1 = resp->drbs_to_be_setup + j;
-      DRB_nGRAN_to_setup_t *drb_e1 = req->pduSession[i].DRBnGRanList + j;
+      DRB_nGRAN_to_setup_t *drb_e1 = req->pduSessionMod[i].DRBnGRanModList + j;
 
       drb_e1->id = drb_f1->drb_id;
-      drb_e1->tlAddress = drb_f1->up_dl_tnl[0].tl_address;
-      drb_e1->teId = drb_f1->up_dl_tnl[0].teid;
+      drb_e1->numDlUpParam = drb_f1->up_dl_tnl_length;
+      drb_e1->DlUpParamList[0].tlAddress = drb_f1->up_dl_tnl[0].tl_address;
+      drb_e1->DlUpParamList[0].teId = drb_f1->up_dl_tnl[0].teid;
     }
   }
 
@@ -4167,7 +4169,8 @@ void rrc_gNB_process_e1_bearer_context_setup_req(e1ap_bearer_setup_req_t *req, i
   gtpv1u_gnb_create_tunnel_resp_t create_tunnel_resp_N3={0};
 
   // GTP tunnel for UL
-  drb_config_N3gtpu_create_e1(req, &create_tunnel_resp_N3, instance);
+  instance_t gtpInst = getCxtE1(UPtype, instance)->gtpInstN3;
+  drb_config_N3gtpu_create_e1(req, &create_tunnel_resp_N3, gtpInst);
 
   MessageDef *message_p;
   message_p = itti_alloc_new_message (TASK_RRC_GNB, instance, E1AP_BEARER_CONTEXT_SETUP_RESP);
@@ -4175,10 +4178,12 @@ void rrc_gNB_process_e1_bearer_context_setup_req(e1ap_bearer_setup_req_t *req, i
 
   int remote_port = RC.nrrrc[ctxt.module_id]->eth_params_s.remote_portd;
   in_addr_t my_addr;
-  memcpy(&my_addr,
-         &getCxtE1(UPtype, instance)->setupReq.CUUP_e1_ip_address.ipv4_address,
-         sizeof(my_addr));
-  gNB_CU_create_up_ul_tunnel(resp, req, instance, req->gNB_cu_cp_ue_id, remote_port, my_addr);
+  inet_pton(AF_INET,
+            getCxtE1(UPtype, instance)->setupReq.CUUP_e1_ip_address.ipv4_address,
+            &my_addr);
+
+  gtpInst = getCxtE1(UPtype, instance)->gtpInstF1U;
+  gNB_CU_create_up_ul_tunnel(resp, req, gtpInst, req->gNB_cu_cp_ue_id, remote_port, my_addr);
 
   resp->gNB_cu_cp_ue_id = req->gNB_cu_cp_ue_id;
   resp->numPDUSessions = req->numPDUSessions;
@@ -4278,6 +4283,11 @@ void bearer_context_setup_e1ap(e1ap_bearer_setup_req_t *req, instance_t instance
 
   // create ITTI msg and send to CUCP E1 task to send via SCTP
   // then in CUUP the function rrc_gNB_process_e1_bearer_context_setup_req
+  rrc_gNB_ue_context_t *ue_context_p = rrc_gNB_get_ue_context(RC.nrrrc[GNB_INSTANCE_TO_MODULE_ID(instance)], req->rnti);
+  protocol_ctxt_t ctxt = {0};
+  PROTOCOL_CTXT_SET_BY_MODULE_ID(&ctxt, 0, GNB_FLAG_YES, ue_context_p->ue_context.rnti, 0, 0, 0);
+
+  fill_DRB_configList(&ctxt, ue_context_p);
   MessageDef *msg_p = itti_alloc_new_message(TASK_CUCP_E1, instance, E1AP_BEARER_CONTEXT_SETUP_REQ);
   e1ap_bearer_setup_req_t *bearer_req = &E1AP_BEARER_CONTEXT_SETUP_REQ(msg_p);
   memcpy(bearer_req, req, sizeof(e1ap_bearer_setup_req_t));
@@ -4485,6 +4495,11 @@ void *rrc_gnb_task(void *args_p) {
       case E1AP_BEARER_CONTEXT_SETUP_RESP:
         LOG_I(NR_RRC, "Received E1AP_BEARER_CONTEXT_SETUP_RESP for instance %d\n", (int)instance);
         rrc_gNB_process_e1_bearer_context_setup_resp(&E1AP_BEARER_CONTEXT_SETUP_RESP(msg_p), instance);
+        break;
+
+      case E1AP_BEARER_CONTEXT_MODIFICATION_REQ:
+        LOG_I(NR_RRC, "Received E1AP_BEARER_CONTEXT_MODIFICATION_REQ for instance %d\n", (int)instance);
+        rrc_CUUP_process_bearer_context_mod_req(&E1AP_BEARER_CONTEXT_SETUP_REQ(msg_p), instance);
         break;
 
       default:

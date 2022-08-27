@@ -53,6 +53,9 @@ int e1apCUCP_handle_BEARER_CONTEXT_SETUP_RESPONSE(instance_t instance,
 int e1apCUCP_handle_BEARER_CONTEXT_SETUP_FAILURE(instance_t instance,
                                                  E1AP_E1AP_PDU_t *pdu);
 
+int e1apCUUP_handle_BEARER_CONTEXT_MODIFICATION_REQUEST(instance_t instance,
+                                                        E1AP_E1AP_PDU_t *pdu);
+
 void *E1AP_CUUP_task(void *arg);
 
 void *E1AP_CUCP_task(void *arg);
