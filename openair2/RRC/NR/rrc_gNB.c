@@ -203,6 +203,7 @@ static void rrc_gNB_mac_rrc_init(gNB_RRC_INST *rrc)
 {
   switch (rrc->node_type) {
     case ngran_gNB_CUCP:
+      mac_rrc_dl_f1ap_init(&rrc->mac_rrc);
       rrc->mac_rrc.nr_e1_bearer_cxt_msg_transfer = bearer_context_setup_e1ap;
       rrc->mac_rrc.nr_e1_ue_cxt_mod_msg_transfer = ue_cxt_mod_send_e1ap;
       break;
@@ -210,11 +211,15 @@ static void rrc_gNB_mac_rrc_init(gNB_RRC_INST *rrc)
       // CUUP should not have a RRC instance but we let it for now
       break;
     case ngran_gNB_CU:
-    case ngran_gNB:
       mac_rrc_dl_f1ap_init(&rrc->mac_rrc);
       rrc->mac_rrc.nr_e1_bearer_cxt_msg_transfer = bearer_context_setup_direct;
       rrc->mac_rrc.nr_e1_ue_cxt_mod_msg_transfer = ue_cxt_mod_direct;
       break;
+    case ngran_gNB:
+      mac_rrc_dl_direct_init(&rrc->mac_rrc);
+      rrc->mac_rrc.nr_e1_bearer_cxt_msg_transfer = bearer_context_setup_direct;
+      rrc->mac_rrc.nr_e1_ue_cxt_mod_msg_transfer = ue_cxt_mod_direct;
+       break;
     case ngran_gNB_DU:
       /* silently drop this, as we currently still need the RRC at the DU. As
        * soon as this is not the case anymore, we can add the AssertFatal() */
@@ -369,7 +374,12 @@ rrc_gNB_generate_RRCSetup(
   ue_context_pP->ue_context.ue_release_timer_thres = 1000;
 
   /* TODO: this should go through the E1 interface */
-  apply_pdcp_config(ue_context_pP,ctxt_pP);
+  nr_pdcp_add_srbs(ctxt_pP->enb_flag,
+                   ctxt_pP->rnti,
+                   ue_context_pP->ue_context.SRB_configList,
+                   0,
+                   NULL,
+                   NULL);
 
   f1ap_dl_rrc_message_t dl_rrc = {
     .old_gNB_DU_ue_id = 0xFFFFFF,
@@ -3670,7 +3680,7 @@ static void rrc_CU_process_ue_context_modification_response(MessageDef *msg_p, c
   }
 
   // send the F1 response message up to update F1-U tunnel info
-  rrc->cu_if.nr_e1_ue_cxt_mod_msg_transfer(msg_e1, instance);
+  rrc->mac_rrc.nr_e1_ue_cxt_mod_msg_transfer(msg_e1, instance);
 
   NR_CellGroupConfig_t *cellGroupConfig = NULL;
 
