@@ -1012,9 +1012,14 @@ rrc_gNB_process_NGAP_PDUSESSION_SETUP_REQ(
     pdu->sst         = msg->allowed_nssai[i].sST;
     if (rrc->security.do_drb_integrity) {
       pdu->integrityProtectionIndication = E1AP_IntegrityProtectionIndication_required;
+    } else {
+      pdu->integrityProtectionIndication = E1AP_IntegrityProtectionIndication_not_needed;
     }
+
     if (rrc->security.do_drb_ciphering) {
       pdu->confidentialityProtectionIndication = E1AP_ConfidentialityProtectionIndication_required;
+    } else {
+      pdu->confidentialityProtectionIndication = E1AP_ConfidentialityProtectionIndication_not_needed;
     }
     pdu->teId = msg->pdusession_setup_params[i].gtp_teid;
     memcpy(&pdu->tlAddress,
