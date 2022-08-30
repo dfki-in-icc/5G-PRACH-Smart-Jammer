@@ -99,9 +99,7 @@ void du_task_handle_sctp_data_ind(instance_t instance, sctp_data_ind_t *sctp_dat
 static instance_t du_create_gtpu_instance_to_cu(char *CUaddr, uint16_t CUport, char *DUaddr, uint16_t DUport) {
   openAddr_t tmp= {0};
   strncpy(tmp.originHost, DUaddr, sizeof(tmp.originHost)-1);
-  strncpy(tmp.destinationHost, CUaddr, sizeof(tmp.destinationHost)-1);
   sprintf(tmp.originService, "%d", DUport);
-  sprintf(tmp.destinationService, "%d", CUport);
   return gtpv1Init(tmp);
 }
 

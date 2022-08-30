@@ -1250,8 +1250,7 @@ void RCconfig_NRRRC(MessageDef *msg_p, uint32_t i, gNB_RRC_INST *rrc) {
   config_security(rrc);
 }//End RCconfig_NRRRC function
 
-instance_t RCconfig_nr_gtpu(void) {
-
+static int get_NGU_S1U_addr(char *addr, int *port) {
   int               num_gnbs                      = 0;
   char*             gnb_ipv4_address_for_NGU      = NULL;
   uint32_t          gnb_port_for_NGU              = 0;
@@ -1272,19 +1271,28 @@ instance_t RCconfig_nr_gtpu(void) {
   sprintf(gtpupath,"%s.[%i].%s",GNB_CONFIG_STRING_GNB_LIST,0,GNB_CONFIG_STRING_NETWORK_INTERFACES_CONFIG);
   config_get(NETParams,sizeof(NETParams)/sizeof(paramdef_t),gtpupath); 
   char *cidr=NULL, *address = NULL;
-  int port;
-  instance_t ret_inst;
   if (NETParams[1].strptr != NULL) {
     LOG_I(GTPU, "SA mode \n");
     address = strtok_r(gnb_ipv4_address_for_NGU, "/", &cidr);
-    port=gnb_port_for_NGU;
+    *port=gnb_port_for_NGU;
   } else { 
     LOG_I(GTPU, "NSA mode \n");
     address = strtok_r(gnb_ipv4_address_for_S1U, "/", &cidr);
-    port=gnb_port_for_S1U;
+    *port=gnb_port_for_S1U;
   }
+  if (address == NULL) return 1;
+  else {
+    strcpy(addr, address);
+    return 0;
+  }
+}
 
-  if (address) {
+instance_t RCconfig_nr_gtpu(void) {
+  char address[160];
+  int port;
+  int ret = get_NGU_S1U_addr(address, &port);
+  instance_t ret_inst;
+  if (!ret) {
     eth_params_t IPaddr;
     IPaddr.my_addr = address;
     IPaddr.my_portd = port;
@@ -1840,14 +1848,14 @@ int RCconfig_NR_CU_E1(MessageDef *msg_p, uint32_t i) {
     strcpy(e1Setup->CUUP_e1_ip_address.ipv4_address, *(GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_IPV4_ADDRESS_CUUP].strptr));
     e1Setup->CUUP_e1_ip_address.ipv4 = 1;
     e1Setup->port_cuup = *GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_PORT_CUUP].uptr;
-    if (!strcmp(*(GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_CU_TYPE_IDX].strptr),
-        "up")) {
+    char N3Addr[160];
+    int N3Port;
+    if (!get_NGU_S1U_addr(N3Addr, &N3Port)) {;
       inet_pton(AF_INET,
-                *(GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_IPV4_ADDRESS_N3].strptr),
+                N3Addr,
                 &e1Setup->IPv4AddressN3);
-      e1Setup->portN3 = *GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_PORT_N3].uptr;
+      e1Setup->portN3 = N3Port;
     }
-
     e1Setup->cn_support = *GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_CN_SUPPORT].uptr;
   }
 
