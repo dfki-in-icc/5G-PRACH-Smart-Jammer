@@ -103,6 +103,7 @@
 #include "openair2/LAYER2/nr_pdcp/nr_pdcp_e1_api.h"
 #include "openair2/F1AP/f1ap_common.h"
 #include "openair2/E1AP/e1ap_common.h"
+#include "openair2/SDAP/nr_sdap/nr_sdap_entity.h"
 
 #include "BIT_STRING.h"
 #include "assertions.h"
@@ -253,6 +254,8 @@ char openair_rrc_gNB_configuration(const module_id_t gnb_mod_idP, gNB_RrcConfigu
   rrc->ngap_id2_ngap_ids    = hashtable_create (NUMBER_OF_UE_MAX * 2, NULL, NULL);
   rrc->configuration = *configuration;
   rrc->carrier.servingcellconfigcommon = configuration->scc;
+  extern instance_t *N3GTPUInst;
+  N3GTPUInst = &rrc->gtpInstN3;
   rrc->carrier.servingcellconfig = configuration->scd;
   nr_rrc_config_ul_tda(configuration->scc,configuration->minRXTXTIME);
    /// System Information INIT
@@ -3618,7 +3621,7 @@ static void update_UL_UP_tunnel_info(e1ap_bearer_setup_req_t *req, instance_t in
              sizeof(in_addr_t));
 
       GtpuUpdateTunnelOutgoingPair(instance,
-                                   ue_id,
+                                   (ue_id & 0xFFFF),
                                    (ebi_t)drb_p->id,
                                    drb_p->DlUpParamList[0].teId,
                                    newRemoteAddr);
@@ -4117,15 +4120,15 @@ int drb_config_N3gtpu_create_e1(e1ap_bearer_setup_req_t *req,
   uint8_t *kUPenc = NULL;
   uint8_t *kUPint = NULL;
 
-  nr_derive_key_rrc_enc(req->cipheringAlgorithm,
-                        (uint8_t *)req->encryptionKey,
-                        &kUPenc);
+  nr_derive_key_up_enc(req->cipheringAlgorithm,
+                       (uint8_t *)req->encryptionKey,
+                       &kUPenc);
 
-  nr_derive_key_rrc_int(req->integrityProtectionAlgorithm,
-                        (uint8_t *)req->integrityProtectionKey,
-                        &kUPint);
+  nr_derive_key_up_int(req->integrityProtectionAlgorithm,
+                       (uint8_t *)req->integrityProtectionKey,
+                       &kUPint);
 
-  nr_pdcp_e1_add_drbs(false,
+  nr_pdcp_e1_add_drbs(true, // set this to notify PDCP that his not UE
                       create_tunnel_req.ue_id,
                       &DRB_configList,
                       (req->integrityProtectionAlgorithm << 4) | req->cipheringAlgorithm,
@@ -4153,7 +4156,7 @@ void gNB_CU_create_up_ul_tunnel(e1ap_bearer_setup_resp_t *resp,
       drbSetup->numUpParam = 1;
       drbSetup->UpParamList[0].tlAddress = my_addr;
       drbSetup->UpParamList[0].teId = newGtpuCreateTunnel(gtpInst,
-                                                          ue_id,
+                                                          (ue_id & 0xFFFF),
                                                           drb2Setup->id,
                                                           drb2Setup->id,
                                                           0xFFFF, // We will set the right value from DU answer
@@ -4266,13 +4269,14 @@ void bearer_context_setup_direct(e1ap_bearer_setup_req_t *req, instance_t instan
 
   fill_DRB_configList(&ctxt, ue_context_p);
 
+  gNB_RRC_INST *rrc = RC.nrrrc[ctxt.module_id];
   // GTP tunnel for UL
   int ret = drb_config_gtpu_create(&ctxt,
                                    ue_context_p,
                                    req,
                                    ue_context_p->ue_context.DRB_configList,
                                    ue_context_p->ue_context.SRB_configList,
-                                   instance);
+                                   rrc->gtpInstN3);
   if (ret < 0) AssertFatal(false, "Unable to configure DRB or to create GTP Tunnel\n");
 
   if(!NODE_IS_CU(RC.nrrrc[ctxt.module_id]->node_type)) {

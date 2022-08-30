@@ -23,6 +23,8 @@
 
 #include "e1ap.h"
 #include "e1ap_common.h"
+#include "gnb_config.h"
+#include "openair2/SDAP/nr_sdap/nr_sdap_entity.h"
 
 #define E1AP_NUM_MSG_HANDLERS 14
 typedef int (*e1ap_message_processing_t)(
@@ -1429,6 +1431,13 @@ int e1apCUCP_handle_send_DATA_USAGE_REPORT(instance_t instance,
   return -1;
 }
 
+static instance_t cuup_task_create_gtpu_instance_to_du(eth_params_t *IPaddrs) {
+  openAddr_t tmp= {0};
+  strncpy(tmp.originHost, IPaddrs->my_addr, sizeof(tmp.originHost)-1);
+  sprintf(tmp.originService, "%d",  IPaddrs->my_portd);
+  return gtpv1Init(tmp);
+}
+
 void cuup_task_send_sctp_association_req(instance_t instance, e1ap_setup_req_t *e1ap_setup_req) {
   DevAssert(e1ap_setup_req != NULL);
   MessageDef                 *message_p                   = NULL;
@@ -1467,6 +1476,18 @@ void cuup_task_handle_sctp_association_resp(instance_t instance, sctp_new_associ
   e1ap_cuup_setup_req->sctp_in_streams        = sctp_new_association_resp->in_streams;
   e1ap_cuup_setup_req->sctp_out_streams       = sctp_new_association_resp->out_streams;
   e1ap_cuup_setup_req->default_sctp_stream_id = 0;
+
+  eth_params_t IPaddr;
+  IPaddr.my_addr = e1ap_cuup_setup_req->CUUP_e1_ip_address.ipv4_address;
+  IPaddr.my_portd = e1ap_cuup_setup_req->port_cuup;
+  getCxtE1(UPtype, instance)->gtpInstF1U = cuup_task_create_gtpu_instance_to_du(&IPaddr);
+  AssertFatal(getCxtE1(UPtype, instance)->gtpInstF1U>0,"Failed to create CUUP F1-U UDP listener");
+  extern instance_t CUuniqInstance;
+  CUuniqInstance = getCxtE1(UPtype, instance)->gtpInstF1U;
+
+  getCxtE1(UPtype, instance)->gtpInstN3 = RCconfig_nr_gtpu();
+  AssertFatal(getCxtE1(UPtype, instance)->gtpInstN3>0,"Failed to create CUUP N3 UDP listener");
+  N3GTPUInst = &getCxtE1(UPtype, instance)->gtpInstN3;
 
   e1apCUUP_send_SETUP_REQUEST(instance);
 }

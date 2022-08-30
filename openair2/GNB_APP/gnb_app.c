@@ -35,7 +35,6 @@
 #include <split_headers.h>
 
 #include "gnb_app.h"
-#include "gnb_config.h"
 #include "assertions.h"
 #include "common/ran_context.h"
 
@@ -53,6 +52,7 @@
 #include <openair2/LAYER2/nr_pdcp/nr_pdcp.h>
 #include "openair2/LAYER2/PDCP_v10.1.0/pdcp.h"
 #include "openair2/E1AP/e1ap.h"
+#include "gnb_config.h"
 extern unsigned char NB_gNB_INST;
 
 extern RAN_CONTEXT_t RC;
@@ -103,7 +103,6 @@ uint32_t gNB_app_register(uint32_t gnb_id_start, uint32_t gnb_id_end)//, const E
 
         itti_send_msg_to_task (TASK_NGAP, GNB_MODULE_ID_TO_INSTANCE(gnb_id), msg_p);
       }
-      if (gnb_id == 0) RCconfig_nr_gtpu();
     }
 
     LOG_I(GNB_APP,"[gNB %d] gNB_app_register for instance %d\n", gnb_id, GNB_MODULE_ID_TO_INSTANCE(gnb_id));

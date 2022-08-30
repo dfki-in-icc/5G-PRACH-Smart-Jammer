@@ -80,6 +80,7 @@ unsigned short config_frames[4] = {2,9,11,13};
 #include "gnb_paramdef.h"
 #include <openair3/ocp-gtpu/gtp_itf.h>
 #include "nfapi/oai_integration/vendor_ext.h"
+#include "gnb_config.h"
 
 pthread_cond_t nfapi_sync_cond;
 pthread_mutex_t nfapi_sync_mutex;
@@ -403,6 +404,12 @@ int create_gNB_tasks(void) {
     if (itti_create_task (TASK_RRC_GNB, rrc_gnb_task, NULL) < 0) {
       LOG_E(NR_RRC, "Create task for NR RRC gNB failed\n");
       return -1;
+    }
+
+    // If CU
+    if ((RC.nrrrc[gnb_id_start]->node_type == ngran_gNB_CU) ||
+        (RC.nrrrc[gnb_id_start]->node_type == ngran_gNB)) {
+      RC.nrrrc[gnb_id_start]->gtpInstN3 = RCconfig_nr_gtpu();
     }
 
     //Use check on x2ap to consider the NSA scenario 

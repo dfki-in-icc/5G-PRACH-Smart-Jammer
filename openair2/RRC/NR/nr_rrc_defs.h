@@ -500,6 +500,9 @@ typedef struct gNB_RRC_INST_s {
   // RRC configuration
   gNB_RrcConfigurationReq configuration;
 
+  // gNB N3 GTPU instance
+  instance_t gtpInstN3;
+
   // other PLMN parameters
   /// Mobile country code
   int mcc;

@@ -1250,7 +1250,7 @@ void RCconfig_NRRRC(MessageDef *msg_p, uint32_t i, gNB_RRC_INST *rrc) {
   config_security(rrc);
 }//End RCconfig_NRRRC function
 
-int RCconfig_nr_gtpu(void ) {
+instance_t RCconfig_nr_gtpu(void) {
 
   int               num_gnbs                      = 0;
   char*             gnb_ipv4_address_for_NGU      = NULL;
@@ -1273,6 +1273,7 @@ int RCconfig_nr_gtpu(void ) {
   config_get(NETParams,sizeof(NETParams)/sizeof(paramdef_t),gtpupath); 
   char *cidr=NULL, *address = NULL;
   int port;
+  instance_t ret_inst;
   if (NETParams[1].strptr != NULL) {
     LOG_I(GTPU, "SA mode \n");
     address = strtok_r(gnb_ipv4_address_for_NGU, "/", &cidr);
@@ -1284,19 +1285,19 @@ int RCconfig_nr_gtpu(void ) {
   }
 
   if (address) {
-    MessageDef *message;
-    message = itti_alloc_new_message(TASK_GNB_APP, 0, GTPV1U_REQ);
-    AssertFatal(message!=NULL,"");
-    IPV4_STR_ADDR_TO_INT_NWBO (address, GTPV1U_REQ(message).localAddr, "BAD IP ADDRESS FORMAT FOR gNB NG_U !\n" );
-    LOG_I(GTPU,"Configuring GTPu address : %s -> %x\n",address,GTPV1U_REQ(message).localAddr);
-    GTPV1U_REQ(message).localPort = port;
-    strcpy(GTPV1U_REQ(message).localAddrStr,address);
-    sprintf(GTPV1U_REQ(message).localPortStr,"%d", port);
-    itti_send_msg_to_task (TASK_GTPV1_U, 0, message); // data model is wrong: gtpu doesn't have enb_id (or module_id)
+    eth_params_t IPaddr;
+    IPaddr.my_addr = address;
+    IPaddr.my_portd = port;
+    openAddr_t tmp= {0};
+    strncpy(tmp.originHost, IPaddr.my_addr, sizeof(tmp.originHost)-1);
+    sprintf(tmp.originService, "%d",  IPaddr.my_portd);
+    strcpy(tmp.destinationService, tmp.originService);
+    LOG_I(GTPU,"Configuring GTPu address : %s, port : %s\n", tmp.originHost, tmp.originService);
+    ret_inst = gtpv1Init(tmp);
   } else
     LOG_E(GTPU,"invalid address for NGU or S1U\n");
   
-return 0;
+  return ret_inst;
 }
 
 int RCconfig_NR_NG(MessageDef *msg_p, uint32_t i) {
