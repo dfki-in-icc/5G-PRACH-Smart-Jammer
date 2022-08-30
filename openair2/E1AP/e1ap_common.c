@@ -164,7 +164,7 @@ int e1ap_decode_unsuccessful_outcome(E1AP_E1AP_PDU_t *pdu) {
   return 0;
 }
 
-int asn1_xer_print_e1ap = 1;
+int asn1_xer_print;
 
 int e1ap_decode_pdu(E1AP_E1AP_PDU_t *pdu, const uint8_t *const buffer, uint32_t length) {
   asn_dec_rval_t dec_ret;
@@ -177,7 +177,7 @@ int e1ap_decode_pdu(E1AP_E1AP_PDU_t *pdu, const uint8_t *const buffer, uint32_t 
                         0,
                         0);
 
-  if (asn1_xer_print_e1ap) {
+  if (asn1_xer_print) {
     LOG_E(E1AP, "----------------- ASN1 DECODER PRINT START----------------- \n");
     xer_fprint(stdout, &asn_DEF_E1AP_E1AP_PDU, pdu);
     LOG_E(E1AP, "----------------- ASN1 DECODER PRINT END ----------------- \n");
@@ -209,7 +209,7 @@ int e1ap_decode_pdu(E1AP_E1AP_PDU_t *pdu, const uint8_t *const buffer, uint32_t 
 int e1ap_encode_send(E1_t type, instance_t instance, E1AP_E1AP_PDU_t *pdu, uint16_t stream, const char *func) {
   DevAssert(pdu != NULL);
 
-  if (asn1_xer_print_e1ap) {
+  if (asn1_xer_print) {
     LOG_E(E1AP, "----------------- ASN1 ENCODER PRINT START ----------------- \n");
     xer_fprint(stdout, &asn_DEF_E1AP_E1AP_PDU, pdu);
     LOG_E(E1AP, "----------------- ASN1 ENCODER PRINT END----------------- \n");

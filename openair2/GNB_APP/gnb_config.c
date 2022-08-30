@@ -1288,16 +1288,16 @@ static int get_NGU_S1U_addr(char *addr, int *port) {
 }
 
 instance_t RCconfig_nr_gtpu(void) {
-  char address[160];
+  char address[64];
   int port;
   int ret = get_NGU_S1U_addr(address, &port);
-  instance_t ret_inst;
+  instance_t ret_inst = 0;
   if (!ret) {
     eth_params_t IPaddr;
     IPaddr.my_addr = address;
     IPaddr.my_portd = port;
     openAddr_t tmp= {0};
-    strncpy(tmp.originHost, IPaddr.my_addr, sizeof(tmp.originHost)-1);
+    strcpy(tmp.originHost, IPaddr.my_addr);
     sprintf(tmp.originService, "%d",  IPaddr.my_portd);
     strcpy(tmp.destinationService, tmp.originService);
     LOG_I(GTPU,"Configuring GTPu address : %s, port : %s\n", tmp.originHost, tmp.originService);
@@ -1848,7 +1848,7 @@ int RCconfig_NR_CU_E1(MessageDef *msg_p, uint32_t i) {
     strcpy(e1Setup->CUUP_e1_ip_address.ipv4_address, *(GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_IPV4_ADDRESS_CUUP].strptr));
     e1Setup->CUUP_e1_ip_address.ipv4 = 1;
     e1Setup->port_cuup = *GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_PORT_CUUP].uptr;
-    char N3Addr[160];
+    char N3Addr[64];
     int N3Port;
     if (!get_NGU_S1U_addr(N3Addr, &N3Port)) {;
       inet_pton(AF_INET,
