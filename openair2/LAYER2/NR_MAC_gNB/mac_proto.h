@@ -438,6 +438,7 @@ void handle_nr_ul_harq(const int CC_idP,
                        sub_frame_t slot,
                        const nfapi_nr_crc_t *crc_pdu);
 
+
 void handle_nr_srs_measurements(const module_id_t module_id,
                                 const frame_t frame,
                                 const sub_frame_t slot,
@@ -447,6 +448,8 @@ void handle_nr_srs_measurements(const module_id_t module_id,
                                 const uint8_t wide_band_snr,
                                 const uint8_t num_reported_symbols,
                                 nfapi_nr_srs_indication_reported_symbol_t* reported_symbol_list);
+
+float returnULBLER(void);
 
 int16_t ssb_index_from_prach(module_id_t module_idP,
                              frame_t frameP,

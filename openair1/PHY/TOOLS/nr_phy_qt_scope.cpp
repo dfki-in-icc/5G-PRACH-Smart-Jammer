@@ -46,9 +46,9 @@ KPIListSelectgNB::KPIListSelectgNB(QWidget *parent) : QComboBox(parent)
   this->addItem("I/Q PUSCH", 0);
   this->addItem("LLR PUSCH", 1);
   this->addItem("Channel Response", 2);
-  this->addItem("KPI4", 3);
-  this->addItem("KPI5", 4);
-  this->addItem("KPI6", 5);
+  this->addItem("UL BLER", 3);
+  this->addItem("DL BLER", 4);
+  this->addItem("DL MCS", 5);
 }
 KPIListSelectgNB::~KPIListSelectgNB()
 {
@@ -66,6 +66,29 @@ PainterWidgetgNB::PainterWidgetgNB(QComboBox *parent, scopeData_t *p)
     this->nb_UEs = 1;
 
     this->indexToPlot = this->parentWindow->currentIndex();
+
+    //
+    this->extendKPIgNB.UP_BLER = -1.0;
+    this->idx_ULBLER = 0;
+
+    this->seriesULBLER = new QLineSeries();
+    QColor MarkerColor(255, 0, 0);
+    this->seriesULBLER->setColor(MarkerColor);
+    //
+
+    // DL BLER
+    this->extendKPIgNB_1.DL_BLER = 0.0;
+    this->extendKPIgNB_1.idx_DLBLER = 0;
+    this->seriesDLBLER = new QLineSeries();
+    this->seriesDLBLER->setColor(QColor(0, 255, 0));
+
+    // DL MCS
+    this->extendKPIgNB_1.idx_DLMCS = 0;
+    this->extendKPIgNB_1.DL_MCS = 0.0;
+    this->seriesDLMCS = new QLineSeries();
+    this->seriesDLMCS->setColor(QColor(0,0,255));
+
+
 
     makeConnections();
 
@@ -85,6 +108,7 @@ void PainterWidgetgNB::paintEvent(QPaintEvent *)
 
 void PainterWidgetgNB::makeConnections()
 {
+    getKPIgNB(&this->extendKPIgNB_1);
 
     disconnect(timer, nullptr, nullptr, nullptr);
 
@@ -100,9 +124,172 @@ void PainterWidgetgNB::makeConnections()
     {
       connect(timer, &QTimer::timeout, this, &PainterWidgetgNB::KPI_ChannelResponse);
     }
+    else if (this->indexToPlot == 3)
+    {
+      this->extendKPIgNB.UP_BLER = returnULBLER();
+      this->idx_ULBLER++;
+      if (this->idx_ULBLER > this->chartWidth)
+      {
+        this->seriesULBLER = new QLineSeries();
+        this->seriesULBLER->setColor(QColor(255, 0, 0));
+        this->idx_ULBLER = 0;
+      }
+      connect(timer, &QTimer::timeout, this, &PainterWidgetgNB::KPI_UL_BLER);
+    }
+    else if (this->indexToPlot == 4)
+    {
+      this->extendKPIgNB_1.idx_DLBLER++;
+      if (this->extendKPIgNB_1.idx_DLBLER > this->chartWidth)
+      {
+        this->extendKPIgNB_1.idx_DLBLER = 0;
+        this->seriesDLBLER = new QLineSeries();
+        this->seriesDLBLER->setColor(QColor(0, 255, 0));
+      }
+      connect(timer, &QTimer::timeout, this, &PainterWidgetgNB::KPI_DL_BLER);
+    }
+    else if (this->indexToPlot == 5)
+    {
+      this->extendKPIgNB_1.idx_DLMCS++;
+      if (this->extendKPIgNB_1.idx_DLMCS > this->chartWidth)
+      {
+        this->extendKPIgNB_1.idx_DLMCS = 0;
+        this->seriesDLMCS = new QLineSeries();
+        this->seriesDLMCS->setColor(QColor(0, 0, 0));
+      }
+      connect(timer, &QTimer::timeout, this, &PainterWidgetgNB::KPI_DL_MCS);
+    }
 
     timer->start(100); // paintPixmap_xx every 100ms
 
+}
+
+
+void PainterWidgetgNB::KPI_DL_MCS()
+{
+  // erase the previous paint
+  this->pix->fill(QColor(240,240,240));
+
+  float Xpaint, Ypaint;
+  Xpaint = this->extendKPIgNB_1.idx_DLMCS;
+  Ypaint = this->extendKPIgNB_1.DL_MCS;
+  this->seriesDLMCS->append(Xpaint, Ypaint);
+
+  QChart *chart = new QChart();
+  chart->legend()->hide();
+
+  int nofTicks = 6;
+  QValueAxis *axisX = new QValueAxis;
+  axisX->setTickCount(nofTicks);
+  axisX->setRange(0 , this->chartWidth);
+  axisX->setTitleText("Time Index (calc window: 100 ms)");
+  chart->addAxis(axisX, Qt::AlignBottom);
+
+  QValueAxis *axisY = new QValueAxis;
+  axisY->setTickCount(nofTicks);
+  axisY->setRange(-1, 1.5);
+  axisY->setTitleText("DL MCS");
+  chart->addAxis(axisY, Qt::AlignLeft);
+
+
+  chart->addSeries(this->seriesDLMCS);
+
+  this->seriesDLMCS->attachAxis(axisX);
+  this->seriesDLMCS->attachAxis(axisY);
+
+  QChartView *chartView = new QChartView(chart);
+  chartView->resize(this->chartWidth, this->chartHight);
+
+  QPixmap p = chartView->grab();
+  *this->pix = p;
+
+  update();
+}
+
+
+void PainterWidgetgNB::KPI_DL_BLER()
+{
+  // erase the previous paint
+  this->pix->fill(QColor(240,240,240));
+
+  float Xpaint, Ypaint;
+  Xpaint = this->extendKPIgNB_1.idx_DLBLER;
+  Ypaint = this->extendKPIgNB_1.DL_BLER;
+  this->seriesDLBLER->append(Xpaint, Ypaint);
+
+  QChart *chart = new QChart();
+  chart->legend()->hide();
+
+  int nofTicks = 6;
+  QValueAxis *axisX = new QValueAxis;
+  axisX->setTickCount(nofTicks);
+  axisX->setRange(0 , this->chartWidth);
+  axisX->setTitleText("Time Index (calc window: 100 ms)");
+  chart->addAxis(axisX, Qt::AlignBottom);
+
+  QValueAxis *axisY = new QValueAxis;
+  axisY->setTickCount(nofTicks);
+  axisY->setRange(-1, 1.5);
+  axisY->setTitleText("DL BLER");
+  chart->addAxis(axisY, Qt::AlignLeft);
+
+
+  chart->addSeries(this->seriesDLBLER);
+
+  this->seriesDLBLER->attachAxis(axisX);
+  this->seriesDLBLER->attachAxis(axisY);
+
+  QChartView *chartView = new QChartView(chart);
+  chartView->resize(this->chartWidth, this->chartHight);
+
+  QPixmap p = chartView->grab();
+  *this->pix = p;
+
+  update();
+}
+
+
+void PainterWidgetgNB::KPI_UL_BLER()
+{
+  // erase the previous paint
+  this->pix->fill(QColor(240,240,240));
+
+  std::cout << "UL BLER: " << this->extendKPIgNB.UP_BLER << std::endl;
+
+  float Xpaint, Ypaint;
+  Xpaint = this->idx_ULBLER;
+  std::cout << "*** FromWidget: " << this->extendKPIgNB.UP_BLER << std::endl;
+  Ypaint = this->extendKPIgNB.UP_BLER;
+  this->seriesULBLER->append(Xpaint, Ypaint);
+
+  QChart *chart = new QChart();
+  chart->legend()->hide();
+
+  int nofTicks = 6;
+  QValueAxis *axisX = new QValueAxis;
+  axisX->setTickCount(nofTicks);
+  axisX->setRange(0 , this->chartWidth);
+  axisX->setTitleText("Time Index (calc window: 100 ms)");
+  chart->addAxis(axisX, Qt::AlignBottom);
+
+  QValueAxis *axisY = new QValueAxis;
+  axisY->setTickCount(nofTicks);
+  axisY->setRange(-1, 1.5);
+  axisY->setTitleText("UL BLER");
+  chart->addAxis(axisY, Qt::AlignLeft);
+
+
+  chart->addSeries(this->seriesULBLER);
+
+  this->seriesULBLER->attachAxis(axisX);
+  this->seriesULBLER->attachAxis(axisY);
+
+  QChartView *chartView = new QChartView(chart);
+  chartView->resize(this->chartWidth, this->chartHight);
+
+  QPixmap p = chartView->grab();
+  *this->pix = p;
+
+  update();
 }
 
 void PainterWidgetgNB::KPI_PuschIQ()
@@ -268,6 +455,8 @@ void PainterWidgetgNB::KPI_ChannelResponse()
 
   update();
 }
+
+
 
 void PainterWidgetgNB::createPixMap(float *xData, float *yData, int len, QColor MarkerColor,
                                     const QString xLabel, const QString yLabel, bool scaleX)

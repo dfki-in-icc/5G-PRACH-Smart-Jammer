@@ -35,6 +35,25 @@
 #include <openair1/PHY/defs_nr_UE.h>
 
 typedef struct {
+  float UP_BLER;    // Uplink BLock Error Rate
+  float UP_MCS;    // Uplink MCS
+
+  float DL_BLER;    // Downlink BLock Error Rate
+  float DL_MCS;    // Downlink MCS
+}extended_kpi;
+
+typedef struct {
+  float UL_BLER;    // Uplink BLock Error Rate
+  float UL_MCS;    // Uplink MCS
+
+  float DL_BLER;    // Downlink BLock Error Rate
+  float DL_MCS;    // Downlink MCS
+
+  int idx_DLBLER;
+  int idx_DLMCS;
+}extended_kpi_gNB;
+
+typedef struct {
   int *argc;
   char **argv;
   RU_t *ru;
@@ -68,4 +87,7 @@ int end_forms(void) ;
 
 #define UEscopeCopy(ue, type, ...) if(ue->scopeData) ((scopeData_t*)ue->scopeData)->copyData(ue, type, ##__VA_ARGS__);
 #define gNBscopeCopy(gNB, type, data, elementSZ, colSz, lineSz) if(gNB->scopeData) ((scopeData_t*)gNB->scopeData)->copyDatagNB(gNB, type, data, elementSZ, colSz, lineSz);
+
+void getKPIgNB(extended_kpi_gNB* kpiStructure);
+
 #endif

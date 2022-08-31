@@ -38,6 +38,17 @@
 #include "LAYER2/NR_MAC_COMMON/nr_mac_extern.h"
 
 //#define SRS_IND_DEBUG
+static int nofBlocks = 0;
+static int nofErrors = 0;
+
+int get_dci_format(NR_UE_sched_ctrl_t *sched_ctrl) {
+
+  int dci_format = sched_ctrl->search_space && sched_ctrl->search_space->searchSpaceType &&
+                   sched_ctrl->search_space->searchSpaceType->present == NR_SearchSpace__searchSpaceType_PR_ue_Specific ?
+                   NR_UL_DCI_FORMAT_0_1 : NR_UL_DCI_FORMAT_0_0;
+
+  return(dci_format);
+}
 
 const int get_ul_tda(const gNB_MAC_INST *nrmac, const NR_ServingCellConfigCommon_t *scc, int slot) {
 
@@ -425,6 +436,8 @@ int nr_process_mac_pdu(instance_t module_idP,
 
 void abort_nr_ul_harq(NR_UE_info_t *UE, int8_t harq_pid)
 {
+
+  nofErrors++;
   NR_UE_sched_ctrl_t *sched_ctrl = &UE->UE_sched_ctrl;
   NR_UE_ul_harq_t *harq = &sched_ctrl->ul_harq_processes[harq_pid];
 
@@ -438,6 +451,16 @@ void abort_nr_ul_harq(NR_UE_info_t *UE, int8_t harq_pid)
   sched_ctrl->sched_ul_bytes -= harq->sched_pusch.tb_size;
   if (sched_ctrl->sched_ul_bytes < 0)
     sched_ctrl->sched_ul_bytes = 0;
+}
+
+float returnULBLER(void)
+{
+  float BLER = (float) nofErrors / (float) nofBlocks;
+
+  nofErrors = 0;
+  nofBlocks = 0;
+
+  return BLER;
 }
 
 void handle_nr_ul_harq(const int CC_idP,
@@ -481,12 +504,15 @@ void handle_nr_ul_harq(const int CC_idP,
     }
     harq_pid = sched_ctrl->feedback_ul_harq.head;
   }
+
+
   remove_front_nr_list(&sched_ctrl->feedback_ul_harq);
   NR_UE_ul_harq_t *harq = &sched_ctrl->ul_harq_processes[harq_pid];
   DevAssert(harq->is_waiting);
   harq->feedback_slot = -1;
   harq->is_waiting = false;
   if (!crc_pdu->tb_crc_status) {
+    nofBlocks++;
     harq->ndi ^= 1;
     harq->round = 0;
     LOG_D(NR_MAC,
@@ -494,7 +520,11 @@ void handle_nr_ul_harq(const int CC_idP,
           harq_pid,
           crc_pdu->rnti);
     add_tail_nr_list(&sched_ctrl->available_ul_harq, harq_pid);
+
   } else if (harq->round >= RC.nrmac[mod_id]->ul_bler.harq_round_max  - 1) {
+
+  } else if (harq->round >= RC.nrmac[mod_id]->harq_round_max  - 1) {
+    nofBlocks++;
     abort_nr_ul_harq(UE, harq_pid);
     LOG_D(NR_MAC,
           "RNTI %04x: Ulharq id %d crc failed in all rounds\n",
@@ -508,6 +538,8 @@ void handle_nr_ul_harq(const int CC_idP,
           crc_pdu->rnti);
     add_tail_nr_list(&sched_ctrl->retrans_ul_harq, harq_pid);
   }
+
+  printf("nofBlocks: %i, nofErrors: %i, rnti: %u \n", nofBlocks, nofErrors, crc_pdu->rnti);
 }
 
 /*

@@ -38,6 +38,7 @@ extern "C" {
 #include "PHY/defs_RU.h"
 #include "executables/softmodem-common.h"
 #include "phy_scope_interface.h"
+#include "openair2/LAYER2/NR_MAC_gNB/mac_proto.h"
 }
 
 // drop-down list UE
@@ -142,13 +143,20 @@ public:
     void makeConnections();
     void createPixMap(float *xData, float *yData, int len, QColor MarkerColor, const QString xLabel, const QString yLabel, bool scaleX);
 
-
     QPixmap *pix;
     QTimer *timer;
     int chartHight, chartWidth;
     int nb_UEs;
 
     QComboBox *parentWindow;
+
+    extended_kpi extendKPIgNB;
+    extended_kpi_gNB extendKPIgNB_1;
+    int idx_ULBLER;
+
+    QLineSeries *seriesULBLER;
+    QLineSeries *seriesDLBLER;
+    QLineSeries *seriesDLMCS;
 
 protected:
     void paintEvent(QPaintEvent *event);
@@ -157,6 +165,9 @@ public slots:
     void KPI_PuschIQ();
     void KPI_PuschLLR();
     void KPI_ChannelResponse();
+    void KPI_UL_BLER();
+    void KPI_DL_BLER();
+    void KPI_DL_MCS();
 
 private:
     scopeData_t *p;

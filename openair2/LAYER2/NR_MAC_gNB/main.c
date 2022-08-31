@@ -42,7 +42,11 @@
 #include "common/ran_context.h"
 #include "executables/softmodem-common.h"
 
+#include "openair1/PHY/TOOLS/phy_scope_interface.h"
+
 extern RAN_CONTEXT_t RC;
+static float DL_BLER = 0.0;
+static float DL_MCS = 0.0;
 
 
 #define MACSTATSSTRLEN 16000
@@ -71,6 +75,12 @@ void *nrmac_stats_thread(void *arg) {
   }
   fclose(file);
   return NULL;
+}
+
+void getKPIgNB(extended_kpi_gNB* kpiStructure)
+{
+  kpiStructure->DL_BLER = DL_BLER;
+  kpiStructure->DL_MCS = DL_MCS;
 }
 
 void clear_mac_stats(gNB_MAC_INST *gNB) {
@@ -123,7 +133,11 @@ size_t dump_mac_stats(gNB_MAC_INST *gNB, char *output, size_t strlen, bool reset
                        stats->dl.errors,
                        stats->pucch0_DTX,
                        sched_ctrl->dl_bler_stats.bler,
-                       sched_ctrl->dl_bler_stats.mcs);
+                       sched_ctrl->dl_bler_stats.mcs);    
+    
+    DL_BLER = sched_ctrl->dl_bler_stats.bler;
+    DL_MCS = sched_ctrl->dl_bler_stats.mcs;
+    
     if (reset_rsrp) {
       stats->num_rsrp_meas = 0;
       stats->cumul_rsrp = 0;
