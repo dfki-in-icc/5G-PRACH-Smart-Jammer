@@ -434,7 +434,7 @@ static void *enb_tun_read_thread(void *_)
     ctxt.subframe = 0;
     ctxt.eNB_index = 0;
     ctxt.brOption = 0;
-    ctxt.rnti = 0;
+    ctxt.rnti = (rnti_t) ue_id;
 
     uint8_t qfi = 7;
     bool rqi = 0;
