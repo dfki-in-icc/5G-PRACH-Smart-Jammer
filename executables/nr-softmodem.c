@@ -314,20 +314,23 @@ int create_gNB_tasks(void) {
 
   RC.nrrrc = (gNB_RRC_INST **)malloc(RC.nb_nr_inst*sizeof(gNB_RRC_INST *));
   LOG_I(PHY, "%s() RC.nb_nr_inst:%d RC.nrrrc:%p\n", __FUNCTION__, RC.nb_nr_inst, RC.nrrrc);
-  for (int gnb_id = gnb_id_start; (gnb_id < gnb_id_end) ; gnb_id++) {
-    RC.nrrrc[gnb_id] = (gNB_RRC_INST*)calloc(1,sizeof(gNB_RRC_INST));
-    LOG_I(PHY, "%s() Creating RRC instance RC.nrrrc[%d]:%p (%d of %d)\n", __FUNCTION__, gnb_id, RC.nrrrc[gnb_id], gnb_id+1, gnb_id_end);
-    configure_nr_rrc(gnb_id);
+  ngran_node_t node_type = get_node_type();
+  if (node_type != ngran_gNB_CUUP) {
+    for (int gnb_id = gnb_id_start; (gnb_id < gnb_id_end) ; gnb_id++) {
+      RC.nrrrc[gnb_id] = (gNB_RRC_INST*)calloc(1,sizeof(gNB_RRC_INST));
+      LOG_I(PHY, "%s() Creating RRC instance RC.nrrrc[%d]:%p (%d of %d)\n", __FUNCTION__, gnb_id, RC.nrrrc[gnb_id], gnb_id+1, gnb_id_end);
+      configure_nr_rrc(gnb_id);
+    }
   }
 
   if (RC.nb_nr_inst > 0 &&
       !get_softmodem_params()->nsa &&
-      !(RC.nrrrc[0]->node_type == ngran_gNB_DU))  {
+      !(node_type == ngran_gNB_DU))  {
     // we start pdcp in both cuup (for drb) and cucp (for srb)
     init_pdcp();
   }
 
-  if (is_x2ap_enabled() ) { //&& !NODE_IS_DU(RC.rrc[0]->node_type)
+  if (is_x2ap_enabled() ) { //&& !NODE_IS_DU(node_type)
 	  LOG_I(X2AP, "X2AP enabled \n");
 	  __attribute__((unused)) uint32_t x2_register_gnb_pending = gNB_app_register_x2 (gnb_id_start, gnb_id_end);
   }
@@ -335,8 +338,8 @@ int create_gNB_tasks(void) {
   /* For the CU case the gNB registration with the AMF might have to take place after the F1 setup, as the PLMN info
      * can originate from the DU. Add check on whether x2ap is enabled to account for ENDC NSA scenario.*/
   if ((get_softmodem_params()->sa || is_x2ap_enabled()) &&
-      !NODE_IS_DU(RC.nrrrc[0]->node_type) &&
-      RC.nrrrc[gnb_id_start]->node_type != ngran_gNB_CUUP) {
+      !NODE_IS_DU(node_type) &&
+      node_type != ngran_gNB_CUUP) {
     /* Try to register each gNB */
     //registered_gnb = 0;
     __attribute__((unused)) uint32_t register_gnb_pending = gNB_app_register (gnb_id_start, gnb_id_end);
@@ -364,8 +367,8 @@ int create_gNB_tasks(void) {
   }
 
   if (get_softmodem_params()->sa &&
-      !NODE_IS_DU(RC.nrrrc[0]->node_type) &&
-      RC.nrrrc[gnb_id_start]->node_type != ngran_gNB_CUUP ) {
+      !NODE_IS_DU(node_type) &&
+      node_type != ngran_gNB_CUUP ) {
 
     char*             gnb_ipv4_address_for_NGU      = NULL;
     uint32_t          gnb_port_for_NGU              = 0;
@@ -401,19 +404,21 @@ int create_gNB_tasks(void) {
 
     LOG_I(NR_RRC,"Creating NR RRC gNB Task\n");
 
-    if (itti_create_task (TASK_RRC_GNB, rrc_gnb_task, NULL) < 0) {
-      LOG_E(NR_RRC, "Create task for NR RRC gNB failed\n");
-      return -1;
+    if (node_type != ngran_gNB_CUUP) {
+      if (itti_create_task (TASK_RRC_GNB, rrc_gnb_task, NULL) < 0) {
+        LOG_E(NR_RRC, "Create task for NR RRC gNB failed\n");
+        return -1;
+      }
     }
 
     // If CU
-    if ((RC.nrrrc[gnb_id_start]->node_type == ngran_gNB_CU) ||
-        (RC.nrrrc[gnb_id_start]->node_type == ngran_gNB)) {
+    if ((node_type == ngran_gNB_CU) ||
+        (node_type == ngran_gNB)) {
       RC.nrrrc[gnb_id_start]->gtpInstN3 = RCconfig_nr_gtpu();
     }
 
     //Use check on x2ap to consider the NSA scenario 
-    if((is_x2ap_enabled() || get_softmodem_params()->sa) && (RC.nrrrc[0]->node_type != ngran_gNB_CUCP) ) {
+    if((is_x2ap_enabled() || get_softmodem_params()->sa) && (node_type != ngran_gNB_CUCP) ) {
       if (itti_create_task (TASK_GTPV1_U, &gtpv1uTask, NULL) < 0) {
         LOG_E(GTPU, "Create task for GTPV1U failed\n");
         return -1;
@@ -643,7 +648,7 @@ void init_pdcp(void) {
     LINK_ENB_PDCP_TO_GTPV1U_BIT;
   
   if (!get_softmodem_params()->nsa) {
-    if (!NODE_IS_DU(RC.nrrrc[0]->node_type)) {
+    if (!NODE_IS_DU(get_node_type())) {
       pdcp_layer_init();
       nr_pdcp_module_init(pdcp_initmask, 0);
     }

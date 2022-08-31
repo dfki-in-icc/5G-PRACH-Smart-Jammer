@@ -38,6 +38,7 @@
 #include <openair3/ocp-gtpu/gtp_itf.h>
 #include "openair2/SDAP/nr_sdap/nr_sdap.h"
 #include "nr_pdcp_e1_api.h"
+#include "gnb_config.h"
 
 #define TODO do { \
     printf("%s:%d:%s: todo\n", __FILE__, __LINE__, __FUNCTION__); \
@@ -57,6 +58,8 @@ static uint64_t pdcp_optmask;
 
 uint8_t first_dcch = 0;
 uint8_t proto_agent_flag = 0;
+
+static ngran_node_t node_type;
 
 /****************************************************************************/
 /* rlc_data_req queue - begin                                               */
@@ -528,6 +531,10 @@ int pdcp_fifo_flush_sdus(const protocol_ctxt_t *const ctxt_pP)
   return 0;
 }
 
+static void set_node_type() {
+  node_type = get_node_type();
+}
+
 void pdcp_layer_init(void)
 {
   /* hack: be sure to initialize only once */
@@ -543,7 +550,9 @@ void pdcp_layer_init(void)
 
   nr_pdcp_ue_manager = new_nr_pdcp_ue_manager(1);
 
-  if ((RC.nrrrc == NULL) || (!NODE_IS_CU(RC.nrrrc[0]->node_type))) {
+  set_node_type();
+
+  if ((RC.nrrrc == NULL) || (!NODE_IS_CU(node_type))) {
     init_nr_rlc_data_req_queue();
   }
 
@@ -687,7 +696,7 @@ rb_found:
   ctxt.brOption = 0;
 
   ctxt.rnti = ue->ue_id;
-  if (RC.nrrrc != NULL && NODE_IS_CU(RC.nrrrc[0]->node_type)) {
+  if (RC.nrrrc != NULL && NODE_IS_CU(node_type)) {
     MessageDef  *message_p = itti_alloc_new_message_sized(TASK_PDCP_ENB, 0,
 							  GTPV1U_TUNNEL_DATA_REQ,
 							  sizeof(gtpv1u_tunnel_data_req_t)
@@ -788,7 +797,7 @@ srb_found:
   LOG_D(PDCP, "%s(): (srb %d) calling rlc_data_req size %d\n", __func__, srb_id, size);
   //for (i = 0; i < size; i++) printf(" %2.2x", (unsigned char)memblock->data[i]);
   //printf("\n");
-  if ((RC.nrrrc == NULL) || (!NODE_IS_CU(RC.nrrrc[0]->node_type))) {
+  if ((RC.nrrrc == NULL) || (!NODE_IS_CU(node_type))) {
     ctxt.module_id = 0;
     ctxt.enb_flag = 1;
     ctxt.instance = 0;

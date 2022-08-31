@@ -23,6 +23,7 @@
 
 #include "e1ap.h"
 #include "e1ap_common.h"
+#include "e1ap_api.h"
 #include "gnb_config.h"
 #include "openair2/SDAP/nr_sdap/nr_sdap_entity.h"
 
@@ -773,6 +774,7 @@ int e1apCUUP_send_BEARER_CONTEXT_SETUP_RESPONSE(instance_t instance,
     }
   }
   e1ap_encode_send(UPtype, instance, &pdu, 0, __func__);
+  free(resp);
   return 0;
 }
 
@@ -802,9 +804,7 @@ int e1apCUUP_handle_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
   E1AP_BearerContextSetupRequest_t *in = &pdu->choice.initiatingMessage->value.choice.BearerContextSetupRequest;
   E1AP_BearerContextSetupRequestIEs_t *ie;
 
-  MessageDef *msg = itti_alloc_new_message(TASK_CUUP_E1, 0, E1AP_BEARER_CONTEXT_SETUP_REQ);
-
-  e1ap_bearer_setup_req_t *bearerCxt = &E1AP_BEARER_CONTEXT_SETUP_REQ(msg);
+  e1ap_bearer_setup_req_t *bearerCxt = calloc(1, sizeof(e1ap_bearer_setup_req_t));
   LOG_I(E1AP, "Bearer context setup number of IEs %d\n", in->protocolIEs.list.count);
 
   for (int i=0; i < in->protocolIEs.list.count; i++) {
@@ -975,9 +975,8 @@ int e1apCUUP_handle_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
     }
   }
 
-  itti_send_msg_to_task(TASK_RRC_GNB, instance, msg);
+  CUUP_process_e1_bearer_context_setup_req(bearerCxt, instance);
   return 0;
-
 }
 
 int e1apCUCP_handle_BEARER_CONTEXT_SETUP_RESPONSE(instance_t instance,
@@ -1210,9 +1209,7 @@ int e1apCUUP_handle_BEARER_CONTEXT_MODIFICATION_REQUEST(instance_t instance,
   E1AP_BearerContextModificationRequest_t *in = &pdu->choice.initiatingMessage->value.choice.BearerContextModificationRequest;
   E1AP_BearerContextModificationRequestIEs_t *ie;
 
-  MessageDef *msg = itti_alloc_new_message(TASK_CUUP_E1, 0, E1AP_BEARER_CONTEXT_MODIFICATION_REQ);
-
-  e1ap_bearer_setup_req_t *bearerCxt = &E1AP_BEARER_CONTEXT_SETUP_REQ(msg);
+  e1ap_bearer_setup_req_t *bearerCxt = calloc(1, sizeof(e1ap_bearer_setup_req_t));
   LOG_I(E1AP, "Bearer context setup number of IEs %d\n", in->protocolIEs.list.count);
 
   for (int i=0; i < in->protocolIEs.list.count; i++) {
@@ -1297,7 +1294,7 @@ int e1apCUUP_handle_BEARER_CONTEXT_MODIFICATION_REQUEST(instance_t instance,
     }
   }
 
-  itti_send_msg_to_task(TASK_RRC_GNB, instance, msg);
+  CUUP_process_bearer_context_mod_req(bearerCxt, instance);
   return 0;
 }
 
@@ -1629,11 +1626,6 @@ void *E1AP_CUUP_task(void *arg) {
       case SCTP_DATA_IND:
         LOG_I(E1AP, "CUUP Task Received SCTP_DATA_IND for instance %ld\n", myInstance);
         cuxp_task_handle_sctp_data_ind(myInstance, &msg->ittiMsg.sctp_data_ind);
-        break;
-
-      case E1AP_BEARER_CONTEXT_SETUP_RESP:
-        LOG_I(E1AP, "CUUP Task Received E1AP_BEARER_CONTEXT_SETUP_RESP %ld\n", myInstance);
-        e1apCUUP_send_BEARER_CONTEXT_SETUP_RESPONSE(myInstance, &E1AP_BEARER_CONTEXT_SETUP_RESP(msg));
         break;
 
       default:

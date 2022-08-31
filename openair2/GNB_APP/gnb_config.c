@@ -87,7 +87,7 @@
 extern uint16_t sf_ahead;
 int macrlc_has_f1 = 0;
 
-static ngran_node_t get_node_type(void);
+ngran_node_t get_node_type(void);
 
 extern int config_check_band_frequencies(int ind, int16_t band, uint64_t downlink_frequency,
                                          int32_t uplink_frequency_offset, uint32_t  frame_type);
@@ -1848,6 +1848,7 @@ int RCconfig_NR_CU_E1(MessageDef *msg_p, uint32_t i) {
     strcpy(e1Setup->CUUP_e1_ip_address.ipv4_address, *(GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_IPV4_ADDRESS_CUUP].strptr));
     e1Setup->CUUP_e1_ip_address.ipv4 = 1;
     e1Setup->port_cuup = *GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_PORT_CUUP].uptr;
+    e1Setup->remoteDUPort = e1Setup->port_cuup; // set same as local port for now TODO: get from F1 config
     char N3Addr[64];
     int N3Port;
     if (!get_NGU_S1U_addr(N3Addr, &N3Port)) {;
@@ -2289,7 +2290,7 @@ int gNB_app_handle_f1ap_gnb_cu_configuration_update(f1ap_gnb_cu_configuration_up
   return(ret);
 }
 
-static ngran_node_t get_node_type(void)
+ngran_node_t get_node_type(void)
 {
   paramdef_t        MacRLC_Params[] = MACRLCPARAMS_DESC;
   paramlist_def_t   MacRLC_ParamList = {CONFIG_STRING_MACRLC_LIST,NULL,0};

@@ -147,12 +147,13 @@ void *gNB_app_task(void *args_p)
 
   int cell_to_activate = 0;
   itti_mark_task_ready (TASK_GNB_APP);
+  ngran_node_t node_type = get_node_type();
 
   if (RC.nb_nr_inst > 0) {
-    if (RC.nrrrc[0]->node_type == ngran_gNB_CUCP ||
-        RC.nrrrc[0]->node_type == ngran_gNB_CU ||
-        RC.nrrrc[0]->node_type == ngran_eNB_CU ||
-        RC.nrrrc[0]->node_type == ngran_ng_eNB_CU) {
+    if (node_type == ngran_gNB_CUCP ||
+        node_type == ngran_gNB_CU ||
+        node_type == ngran_eNB_CU ||
+        node_type == ngran_ng_eNB_CU) {
     
       if (itti_create_task(TASK_CU_F1, F1AP_CU_task, NULL) < 0) {
         LOG_E(F1AP, "Create task for F1AP CU failed\n");
@@ -160,7 +161,7 @@ void *gNB_app_task(void *args_p)
       }
     }
     
-    if (RC.nrrrc[0]->node_type == ngran_gNB_CUCP) {
+    if (node_type == ngran_gNB_CUCP) {
       
       if (itti_create_task(TASK_CUCP_E1, E1AP_CUCP_task, NULL) < 0) {
         LOG_E(E1AP, "Create task for E1AP CP failed\n");
@@ -174,7 +175,7 @@ void *gNB_app_task(void *args_p)
       
     }
 
-    if (RC.nrrrc[0]->node_type == ngran_gNB_CUUP) {
+    if (node_type == ngran_gNB_CUUP) {
       if (itti_create_task(TASK_CUUP_E1, E1AP_CUUP_task, NULL) < 0) {
         LOG_E(E1AP, "Create task for E1AP UP failed\n");
         AssertFatal(1==0, "exiting");
@@ -187,7 +188,7 @@ void *gNB_app_task(void *args_p)
       itti_send_msg_to_task(TASK_CUUP_E1, GNB_MODULE_ID_TO_INSTANCE(0), msg_p);
     }
 
-    if (NODE_IS_DU(RC.nrrrc[0]->node_type)) {
+    if (NODE_IS_DU(node_type)) {
       
       if (itti_create_task(TASK_DU_F1, F1AP_DU_task, NULL) < 0) {
         LOG_E(F1AP, "Create task for F1AP DU failed\n");
@@ -263,7 +264,7 @@ void *gNB_app_task(void *args_p)
       break;
 
     case F1AP_SETUP_RESP:
-      AssertFatal(NODE_IS_DU(RC.nrrrc[0]->node_type), "Should not have received F1AP_SETUP_RESP in CU/gNB\n");
+      AssertFatal(NODE_IS_DU(node_type), "Should not have received F1AP_SETUP_RESP in CU/gNB\n");
 
       LOG_I(GNB_APP, "Received %s: associated ngran_gNB_CU %s with %d cells to activate\n", ITTI_MSG_NAME (msg_p),
       F1AP_SETUP_RESP(msg_p).gNB_CU_name,F1AP_SETUP_RESP(msg_p).num_cells_to_activate);
@@ -273,7 +274,7 @@ void *gNB_app_task(void *args_p)
 
       break;
     case F1AP_GNB_CU_CONFIGURATION_UPDATE:
-      AssertFatal(NODE_IS_DU(RC.nrrrc[0]->node_type), "Should not have received F1AP_GNB_CU_CONFIGURATION_UPDATE in CU/gNB\n");
+      AssertFatal(NODE_IS_DU(node_type), "Should not have received F1AP_GNB_CU_CONFIGURATION_UPDATE in CU/gNB\n");
 
       LOG_I(GNB_APP, "Received %s: associated ngran_gNB_CU %s with %d cells to activate\n", ITTI_MSG_NAME (msg_p),
       F1AP_GNB_CU_CONFIGURATION_UPDATE(msg_p).gNB_CU_name,F1AP_GNB_CU_CONFIGURATION_UPDATE(msg_p).num_cells_to_activate);

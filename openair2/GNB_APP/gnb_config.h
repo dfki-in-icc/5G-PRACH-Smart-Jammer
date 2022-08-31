@@ -109,6 +109,7 @@ int gNB_app_handle_f1ap_setup_resp(f1ap_setup_resp_t *resp);
 int gNB_app_handle_f1ap_gnb_cu_configuration_update(f1ap_gnb_cu_configuration_update_t *gnb_cu_cfg_update);
 void nr_read_config_and_init(void);
 int RCconfig_NR_CU_E1(MessageDef *msg_p, uint32_t i);
+ngran_node_t get_node_type(void);
 
 #endif /* GNB_CONFIG_H_ */
 /** @} */
