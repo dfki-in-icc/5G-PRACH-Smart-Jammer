@@ -88,8 +88,6 @@
 
 #include "nr_pdcp/nr_pdcp_entity.h"
 #include "pdcp.h"
-#include "openair3/ocp-gtpu/gtp_itf.h"
-
 
 #include "intertask_interface.h"
 #include "SIMULATION/TOOLS/sim.h" // for taus
@@ -105,6 +103,7 @@
 #include "openair2/E1AP/e1ap_common.h"
 #include "openair2/SDAP/nr_sdap/nr_sdap_entity.h"
 #include "openair2/E1AP/e1ap_api.h"
+#include "cucp_cuup_if.h"
 
 #include "BIT_STRING.h"
 #include "assertions.h"
@@ -201,23 +200,20 @@ static void init_NR_SI(gNB_RRC_INST *rrc, gNB_RrcConfigurationReq *configuration
   }
 }
 
-static void rrc_gNB_mac_rrc_init(gNB_RRC_INST *rrc)
+static void rrc_gNB_CU_DU_init(gNB_RRC_INST *rrc)
 {
   switch (rrc->node_type) {
     case ngran_gNB_CUCP:
       mac_rrc_dl_f1ap_init(&rrc->mac_rrc);
-      rrc->mac_rrc.nr_e1_bearer_cxt_msg_transfer = bearer_context_setup_e1ap;
-      rrc->mac_rrc.nr_e1_ue_cxt_mod_msg_transfer = ue_cxt_mod_send_e1ap;
+      cucp_cuup_message_transfer_e1ap_init(rrc);
       break;
     case ngran_gNB_CU:
       mac_rrc_dl_f1ap_init(&rrc->mac_rrc);
-      rrc->mac_rrc.nr_e1_bearer_cxt_msg_transfer = bearer_context_setup_direct;
-      rrc->mac_rrc.nr_e1_ue_cxt_mod_msg_transfer = ue_cxt_mod_direct;
+      cucp_cuup_message_transfer_direct_init(rrc);
       break;
     case ngran_gNB:
       mac_rrc_dl_direct_init(&rrc->mac_rrc);
-      rrc->mac_rrc.nr_e1_bearer_cxt_msg_transfer = bearer_context_setup_direct;
-      rrc->mac_rrc.nr_e1_ue_cxt_mod_msg_transfer = ue_cxt_mod_direct;
+      cucp_cuup_message_transfer_direct_init(rrc);
        break;
     case ngran_gNB_DU:
       /* silently drop this, as we currently still need the RRC at the DU. As
@@ -243,7 +239,7 @@ char openair_rrc_gNB_configuration(const module_id_t gnb_mod_idP, gNB_RrcConfigu
   rrc->module_id = gnb_mod_idP;
   rrc->Nb_ue = 0;
   rrc->carrier.Srb0.Active = 0;
-  rrc_gNB_mac_rrc_init(rrc);
+  rrc_gNB_CU_DU_init(rrc);
   uid_linear_allocator_init(&rrc->uid_allocator);
   RB_INIT(&rrc->rrc_ue_head);
   rrc->initial_id2_s1ap_ids = hashtable_create (NUMBER_OF_UE_MAX * 2, NULL, NULL);
@@ -1320,85 +1316,6 @@ rrc_gNB_generate_dedicatedRRCReconfiguration_release(
                                           *RC.nrrrc[ctxt_pP->module_id]->carrier.servingcellconfigcommon->ssbSubcarrierSpacing,
                                           delay_ms);
   }
-}
-
-int drb_config_gtpu_create(const protocol_ctxt_t *const ctxt_p,
-                           rrc_gNB_ue_context_t  *ue_context_p,
-                           e1ap_bearer_setup_req_t *req,
-                           NR_DRB_ToAddModList_t *DRB_configList,
-                           NR_SRB_ToAddModList_t *SRB_configList,
-                           instance_t instance) {
-
-  gtpv1u_gnb_create_tunnel_req_t  create_tunnel_req={0};
-  gtpv1u_gnb_create_tunnel_resp_t create_tunnel_resp={0};
-
-  for (int i=0; i < ue_context_p->ue_context.nb_of_pdusessions; i++) {
-    pdu_session_param_t *pdu = ue_context_p->ue_context.pduSession + i;
-    create_tunnel_req.pdusession_id[i] = pdu->param.pdusession_id;
-    create_tunnel_req.incoming_rb_id[i] = i + 1;
-    create_tunnel_req.outgoing_qfi[i] = req->pduSession[i].DRBnGRanList[0].qosFlows[0].id;
-    memcpy(&create_tunnel_req.dst_addr[i].buffer,
-           &pdu->param.upf_addr.buffer,
-           sizeof(uint8_t)*20);
-    create_tunnel_req.dst_addr[i].length = pdu->param.upf_addr.length;
-    create_tunnel_req.outgoing_teid[i] = pdu->param.gtp_teid;
-  }
-  create_tunnel_req.num_tunnels = ue_context_p->ue_context.nb_of_pdusessions;
-  create_tunnel_req.ue_id       = ue_context_p->ue_context.rnti;
-
-  int ret = gtpv1u_create_ngu_tunnel(instance,
-                                     &create_tunnel_req,
-                                     &create_tunnel_resp);
-
-  if (ret != 0) {
-    LOG_E(NR_RRC,"rrc_gNB_process_NGAP_PDUSESSION_SETUP_REQ : gtpv1u_create_ngu_tunnel failed,start to release UE rnti %ld\n",
-          create_tunnel_req.ue_id);
-    return ret;
-  }
-
-  nr_rrc_gNB_process_GTPV1U_CREATE_TUNNEL_RESP(ctxt_p,
-                                               &create_tunnel_resp);
-
-  uint8_t *kRRCenc = NULL;
-  uint8_t *kRRCint = NULL;
-  uint8_t *kUPenc = NULL;
-  uint8_t *kUPint = NULL;
-  /* Derive the keys from kgnb */
-  if (DRB_configList != NULL) {
-    nr_derive_key_up_enc(ue_context_p->ue_context.ciphering_algorithm,
-                         ue_context_p->ue_context.kgnb,
-                         &kUPenc);
-    nr_derive_key_up_int(ue_context_p->ue_context.integrity_algorithm,
-                         ue_context_p->ue_context.kgnb,
-                         &kUPint);
-  }
-
-  nr_derive_key_rrc_enc(ue_context_p->ue_context.ciphering_algorithm,
-                        ue_context_p->ue_context.kgnb,
-                        &kRRCenc);
-  nr_derive_key_rrc_int(ue_context_p->ue_context.integrity_algorithm,
-                        ue_context_p->ue_context.kgnb,
-                        &kRRCint);
-  /* Refresh SRBs/DRBs */
-
-  LOG_D(NR_RRC,"Configuring PDCP DRBs/SRBs for UE %x\n",ue_context_p->ue_context.rnti);
-
-  nr_pdcp_add_srbs(ctxt_p->enb_flag, ctxt_p->rnti,
-                   SRB_configList,
-                   (ue_context_p->ue_context.integrity_algorithm << 4)
-                   | ue_context_p->ue_context.ciphering_algorithm,
-                   kRRCenc,
-                   kRRCint);
-                   
-  nr_pdcp_add_drbs(ctxt_p->enb_flag, ctxt_p->rnti,
-                   DRB_configList,
-                   (ue_context_p->ue_context.integrity_algorithm << 4)
-                   | ue_context_p->ue_context.ciphering_algorithm,
-                   kUPenc,
-                   kUPint,
-                   get_softmodem_params()->sa ? ue_context_p->ue_context.masterCellGroup->rlc_BearerToAddModList : NULL);
-  
-  return ret;
 }
 
 //-----------------------------------------------------------------------------
@@ -3607,21 +3524,6 @@ static void rrc_CU_process_ue_context_setup_response(MessageDef *msg_p, const ch
 
 }
 
-void ue_cxt_mod_send_e1ap(MessageDef *msg, instance_t instance) {
-  int module_id = 0;
-  itti_send_msg_to_task(TASK_CUCP_E1, module_id, msg);
-}
-
-void ue_cxt_mod_direct(MessageDef *msg, instance_t instance) {
-  e1ap_bearer_setup_req_t *req = &E1AP_BEARER_CONTEXT_SETUP_REQ(msg);
-  instance_t gtpInst = getCxt(CUtype, instance)->gtpInst;
-
-  update_UL_UP_tunnel_info(req, gtpInst, req->rnti);
-
-  int result = itti_free (ITTI_MSG_ORIGIN_ID(msg), msg);
-  AssertFatal (result == EXIT_SUCCESS, "Failed to free memory (%d)!\n", result);
-}
-
 static void rrc_CU_process_ue_context_modification_response(MessageDef *msg_p, const char *msg_name, instance_t instance){
 
   f1ap_ue_context_setup_t *resp=&F1AP_UE_CONTEXT_SETUP_RESP(msg_p);
@@ -3636,16 +3538,15 @@ static void rrc_CU_process_ue_context_modification_response(MessageDef *msg_p, c
   gNB_RRC_INST *rrc = RC.nrrrc[ctxt.module_id];
   struct rrc_gNB_ue_context_s *ue_context_p = rrc_gNB_get_ue_context(rrc, ctxt.rnti);
 
-  MessageDef *msg_e1 = itti_alloc_new_message(TASK_CUCP_E1, instance, E1AP_BEARER_CONTEXT_MODIFICATION_REQ);
-  e1ap_bearer_setup_req_t *req = &E1AP_BEARER_CONTEXT_SETUP_REQ(msg_e1);
-  req->numPDUSessionsMod = ue_context_p->ue_context.nb_of_pdusessions;
-  req->gNB_cu_cp_ue_id = ue_context_p->ue_context.gNB_ue_ngap_id;
-  req->rnti = ue_context_p->ue_context.rnti;
-  for (int i=0; i < req->numPDUSessionsMod; i++) {
-    req->pduSessionMod[i].numDRB2Modify = resp->drbs_to_be_setup_length;
+  e1ap_bearer_setup_req_t req = {0};
+  req.numPDUSessionsMod = ue_context_p->ue_context.nb_of_pdusessions;
+  req.gNB_cu_cp_ue_id = ue_context_p->ue_context.gNB_ue_ngap_id;
+  req.rnti = ue_context_p->ue_context.rnti;
+  for (int i=0; i < req.numPDUSessionsMod; i++) {
+    req.pduSessionMod[i].numDRB2Modify = resp->drbs_to_be_setup_length;
     for (int j=0; j < resp->drbs_to_be_setup_length; j++) {
       f1ap_drb_to_be_setup_t *drb_f1 = resp->drbs_to_be_setup + j;
-      DRB_nGRAN_to_setup_t *drb_e1 = req->pduSessionMod[i].DRBnGRanModList + j;
+      DRB_nGRAN_to_setup_t *drb_e1 = req.pduSessionMod[i].DRBnGRanModList + j;
 
       drb_e1->id = drb_f1->drb_id;
       drb_e1->numDlUpParam = drb_f1->up_dl_tnl_length;
@@ -3655,7 +3556,7 @@ static void rrc_CU_process_ue_context_modification_response(MessageDef *msg_p, c
   }
 
   // send the F1 response message up to update F1-U tunnel info
-  rrc->mac_rrc.nr_e1_ue_cxt_mod_msg_transfer(msg_e1, instance);
+  rrc->cucp_cuup.cucp_cuup_bearer_context_mod(&req, instance);
 
   NR_CellGroupConfig_t *cellGroupConfig = NULL;
 
@@ -4028,55 +3929,6 @@ void prepare_and_send_ue_context_modification_f1(rrc_gNB_ue_context_t *ue_contex
   }
 
   itti_send_msg_to_task (TASK_CU_F1, ctxt.module_id, message_p);
-}
-
-void bearer_context_setup_direct(e1ap_bearer_setup_req_t *req, instance_t instance) {
-
-  rrc_gNB_ue_context_t *ue_context_p = rrc_gNB_get_ue_context(RC.nrrrc[GNB_INSTANCE_TO_MODULE_ID(instance)], req->rnti);
-  protocol_ctxt_t ctxt = {0};
-  PROTOCOL_CTXT_SET_BY_MODULE_ID(&ctxt, 0, GNB_FLAG_YES, ue_context_p->ue_context.rnti, 0, 0, 0);
-
-  fill_DRB_configList(&ctxt, ue_context_p);
-
-  gNB_RRC_INST *rrc = RC.nrrrc[ctxt.module_id];
-  // GTP tunnel for UL
-  int ret = drb_config_gtpu_create(&ctxt,
-                                   ue_context_p,
-                                   req,
-                                   ue_context_p->ue_context.DRB_configList,
-                                   ue_context_p->ue_context.SRB_configList,
-                                   rrc->gtpInstN3);
-  if (ret < 0) AssertFatal(false, "Unable to configure DRB or to create GTP Tunnel\n");
-
-  if(!NODE_IS_CU(RC.nrrrc[ctxt.module_id]->node_type)) {
-    rrc_gNB_generate_dedicatedRRCReconfiguration(&ctxt, ue_context_p, NULL);
-  } else {
-    e1ap_bearer_setup_resp_t resp; // Used to store teids
-    int remote_port = RC.nrrrc[ctxt.module_id]->eth_params_s.remote_portd;
-    in_addr_t my_addr = inet_addr(RC.nrrrc[ctxt.module_id]->eth_params_s.my_addr);
-    instance_t gtpInst = getCxt(CUtype, instance)->gtpInst;
-    gNB_CU_create_up_ul_tunnel(&resp, req, gtpInst, ue_context_p->ue_context.rnti, remote_port, my_addr);
-
-    prepare_and_send_ue_context_modification_f1(ue_context_p, &resp);
-  }
-  // call the code that sends UE context modification message to DU
-}
-
-void bearer_context_setup_e1ap(e1ap_bearer_setup_req_t *req, instance_t instance) {
-
-  // create ITTI msg and send to CUCP E1 task to send via SCTP
-  // then in CUUP the function rrc_gNB_process_e1_bearer_context_setup_req
-  rrc_gNB_ue_context_t *ue_context_p = rrc_gNB_get_ue_context(RC.nrrrc[GNB_INSTANCE_TO_MODULE_ID(instance)], req->rnti);
-  protocol_ctxt_t ctxt = {0};
-  PROTOCOL_CTXT_SET_BY_MODULE_ID(&ctxt, 0, GNB_FLAG_YES, ue_context_p->ue_context.rnti, 0, 0, 0);
-
-  fill_DRB_configList(&ctxt, ue_context_p);
-  MessageDef *msg_p = itti_alloc_new_message(TASK_CUCP_E1, instance, E1AP_BEARER_CONTEXT_SETUP_REQ);
-  e1ap_bearer_setup_req_t *bearer_req = &E1AP_BEARER_CONTEXT_SETUP_REQ(msg_p);
-  memcpy(bearer_req, req, sizeof(e1ap_bearer_setup_req_t));
-
-  itti_send_msg_to_task (TASK_CUCP_E1, instance, msg_p);
-
 }
 
 void rrc_gNB_process_e1_bearer_context_setup_resp(e1ap_bearer_setup_resp_t *resp, instance_t instance) {

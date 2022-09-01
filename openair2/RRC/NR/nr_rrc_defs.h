@@ -43,6 +43,7 @@
 #include "COMMON/platform_constants.h"
 #include "COMMON/platform_types.h"
 #include "mac_rrc_dl.h"
+#include "cucp_cuup_if.h"
 
 //#include "COMMON/mac_rrc_primitives.h"
 
@@ -467,15 +468,15 @@ typedef struct {
   int do_drb_integrity;
 } nr_security_configuration_t;
 
-typedef void (*nr_e1_bearer_cxt_msg_transfer_func_t)(e1ap_bearer_setup_req_t *req, instance_t instance);
-typedef void (*nr_e1_ue_cxt_mod_msg_transfer_func_t)(MessageDef *msg, instance_t instance);
-
 typedef struct nr_mac_rrc_dl_if_s {
   /* TODO add other message types as necessary */
   dl_rrc_message_transfer_func_t dl_rrc_message_transfer;
-  nr_e1_bearer_cxt_msg_transfer_func_t nr_e1_bearer_cxt_msg_transfer;
-  nr_e1_ue_cxt_mod_msg_transfer_func_t nr_e1_ue_cxt_mod_msg_transfer;
 } nr_mac_rrc_dl_if_t;
+
+typedef struct cucp_cuup_if_s {
+  cucp_cuup_bearer_context_setup_func_t cucp_cuup_bearer_context_setup;
+  cucp_cuup_bearer_context_setup_func_t cucp_cuup_bearer_context_mod;
+} cucp_cuup_if_t;
 
 //---NR---(completely change)---------------------
 typedef struct gNB_RRC_INST_s {
@@ -531,6 +532,7 @@ typedef struct gNB_RRC_INST_s {
   nr_security_configuration_t security;
 
   nr_mac_rrc_dl_if_t mac_rrc;
+  cucp_cuup_if_t cucp_cuup;
 
 } gNB_RRC_INST;
 

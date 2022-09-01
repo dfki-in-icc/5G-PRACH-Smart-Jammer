@@ -1072,7 +1072,7 @@ rrc_gNB_process_NGAP_PDUSESSION_SETUP_REQ(
     }
   }
 
-  rrc->mac_rrc.nr_e1_bearer_cxt_msg_transfer(&bearer_req, instance);
+  rrc->cucp_cuup.cucp_cuup_bearer_context_setup(&bearer_req, instance);
   return;
 }
 
