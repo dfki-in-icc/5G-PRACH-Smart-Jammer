@@ -21,6 +21,9 @@
  *      contact@openairinterface.org
  */
 
+#ifndef E1AP_API_H
+#define E1AP_API_H
+
 #include "e1ap.h"
 #include "e1ap_common.h"
 #include "NR_DRB-ToAddModList.h"
@@ -37,3 +40,5 @@ void update_UL_UP_tunnel_info(e1ap_bearer_setup_req_t *req, instance_t instance,
 void CUUP_process_e1_bearer_context_setup_req(e1ap_bearer_setup_req_t *req, instance_t instance);
 
 void CUUP_process_bearer_context_mod_req(e1ap_bearer_setup_req_t *req, instance_t instance);
+
+#endif

@@ -164,8 +164,6 @@ int e1ap_decode_unsuccessful_outcome(E1AP_E1AP_PDU_t *pdu) {
   return 0;
 }
 
-int asn1_xer_print;
-
 int e1ap_decode_pdu(E1AP_E1AP_PDU_t *pdu, const uint8_t *const buffer, uint32_t length) {
   asn_dec_rval_t dec_ret;
   DevAssert(buffer != NULL);
