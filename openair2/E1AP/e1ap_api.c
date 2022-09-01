@@ -191,7 +191,7 @@ void CUUP_process_e1_bearer_context_setup_req(e1ap_bearer_setup_req_t *req, inst
   instance_t gtpInst = getCxtE1(UPtype, instance)->gtpInstN3;
   drb_config_N3gtpu_create(req, &create_tunnel_resp_N3, gtpInst);
 
-  e1ap_bearer_setup_resp_t *resp = calloc(1, sizeof(e1ap_bearer_setup_resp_t));
+  e1ap_bearer_setup_resp_t resp = {0};
 
   int remote_port = getCxtE1(UPtype, instance)->setupReq.remoteDUPort;
   in_addr_t my_addr;
@@ -200,12 +200,12 @@ void CUUP_process_e1_bearer_context_setup_req(e1ap_bearer_setup_req_t *req, inst
             &my_addr);
 
   gtpInst = getCxtE1(UPtype, instance)->gtpInstF1U;
-  gNB_CU_create_up_ul_tunnel(resp, req, gtpInst, req->gNB_cu_cp_ue_id, remote_port, my_addr);
+  gNB_CU_create_up_ul_tunnel(&resp, req, gtpInst, req->gNB_cu_cp_ue_id, remote_port, my_addr);
 
-  resp->gNB_cu_cp_ue_id = req->gNB_cu_cp_ue_id;
-  resp->numPDUSessions = req->numPDUSessions;
+  resp.gNB_cu_cp_ue_id = req->gNB_cu_cp_ue_id;
+  resp.numPDUSessions = req->numPDUSessions;
   for (int i=0; i < req->numPDUSessions; i++) {
-    pdu_session_setup_t    *pduSetup  = resp->pduSession + i;
+    pdu_session_setup_t    *pduSetup  = resp.pduSession + i;
     pdu_session_to_setup_t *pdu2Setup = req->pduSession + i;
 
     pduSetup->id = pdu2Setup->sessionId;
@@ -221,8 +221,7 @@ void CUUP_process_e1_bearer_context_setup_req(e1ap_bearer_setup_req_t *req, inst
     pduSetup->numDRBFailed = 0;
   }
 
-  e1apCUUP_send_BEARER_CONTEXT_SETUP_RESPONSE(instance, resp);
-  free(req);
+  e1apCUUP_send_BEARER_CONTEXT_SETUP_RESPONSE(instance, &resp);
 }
 
 void update_UL_UP_tunnel_info(e1ap_bearer_setup_req_t *req, instance_t instance, ue_id_t ue_id) {
@@ -248,7 +247,6 @@ void update_UL_UP_tunnel_info(e1ap_bearer_setup_req_t *req, instance_t instance,
 void CUUP_process_bearer_context_mod_req(e1ap_bearer_setup_req_t *req, instance_t instance) {
   instance_t gtpInst = getCxtE1(UPtype, instance)->gtpInstF1U;
   update_UL_UP_tunnel_info(req, gtpInst, req->gNB_cu_cp_ue_id);
-  free(req);
   // TODO: send bearer cxt mod response
 }
 

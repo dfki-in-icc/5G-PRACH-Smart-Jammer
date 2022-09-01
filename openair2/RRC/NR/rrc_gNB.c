@@ -4074,7 +4074,6 @@ void bearer_context_setup_e1ap(e1ap_bearer_setup_req_t *req, instance_t instance
   MessageDef *msg_p = itti_alloc_new_message(TASK_CUCP_E1, instance, E1AP_BEARER_CONTEXT_SETUP_REQ);
   e1ap_bearer_setup_req_t *bearer_req = &E1AP_BEARER_CONTEXT_SETUP_REQ(msg_p);
   memcpy(bearer_req, req, sizeof(e1ap_bearer_setup_req_t));
-  free(req);
 
   itti_send_msg_to_task (TASK_CUCP_E1, instance, msg_p);
 

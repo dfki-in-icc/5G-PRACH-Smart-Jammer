@@ -1304,7 +1304,7 @@ instance_t RCconfig_nr_gtpu(void) {
     ret_inst = gtpv1Init(tmp);
   } else
     LOG_E(GTPU,"invalid address for NGU or S1U\n");
-  
+
   return ret_inst;
 }
 

@@ -774,7 +774,6 @@ int e1apCUUP_send_BEARER_CONTEXT_SETUP_RESPONSE(instance_t instance,
     }
   }
   e1ap_encode_send(UPtype, instance, &pdu, 0, __func__);
-  free(resp);
   return 0;
 }
 
@@ -804,7 +803,7 @@ int e1apCUUP_handle_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
   E1AP_BearerContextSetupRequest_t *in = &pdu->choice.initiatingMessage->value.choice.BearerContextSetupRequest;
   E1AP_BearerContextSetupRequestIEs_t *ie;
 
-  e1ap_bearer_setup_req_t *bearerCxt = calloc(1, sizeof(e1ap_bearer_setup_req_t));
+  e1ap_bearer_setup_req_t bearerCxt = {0};
   LOG_I(E1AP, "Bearer context setup number of IEs %d\n", in->protocolIEs.list.count);
 
   for (int i=0; i < in->protocolIEs.list.count; i++) {
@@ -816,7 +815,7 @@ int e1apCUUP_handle_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
                     "ie->criticality != E1AP_Criticality_reject\n");
         AssertFatal(ie->value.present == E1AP_BearerContextSetupRequestIEs__value_PR_GNB_CU_CP_UE_E1AP_ID,
                     "ie->value.present != E1AP_BearerContextSetupRequestIEs__value_PR_GNB_CU_CP_UE_E1AP_ID\n");
-        bearerCxt->gNB_cu_cp_ue_id = ie->value.choice.GNB_CU_CP_UE_E1AP_ID;
+        bearerCxt.gNB_cu_cp_ue_id = ie->value.choice.GNB_CU_CP_UE_E1AP_ID;
         break;
 
       case E1AP_ProtocolIE_ID_id_SecurityInformation:
@@ -824,15 +823,15 @@ int e1apCUUP_handle_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
                     "ie->criticality != E1AP_Criticality_reject\n");
         AssertFatal(ie->value.present == E1AP_BearerContextSetupRequestIEs__value_PR_SecurityInformation,
                     "ie->value.present != E1AP_BearerContextSetupRequestIEs__value_PR_SecurityInformation\n");
-        bearerCxt->cipheringAlgorithm = ie->value.choice.SecurityInformation.securityAlgorithm.cipheringAlgorithm;
-        memcpy(bearerCxt->encryptionKey,
+        bearerCxt.cipheringAlgorithm = ie->value.choice.SecurityInformation.securityAlgorithm.cipheringAlgorithm;
+        memcpy(bearerCxt.encryptionKey,
                ie->value.choice.SecurityInformation.uPSecuritykey.encryptionKey.buf,
                ie->value.choice.SecurityInformation.uPSecuritykey.encryptionKey.size);
         if (ie->value.choice.SecurityInformation.securityAlgorithm.integrityProtectionAlgorithm) {
-          bearerCxt->integrityProtectionAlgorithm = *ie->value.choice.SecurityInformation.securityAlgorithm.integrityProtectionAlgorithm;
+          bearerCxt.integrityProtectionAlgorithm = *ie->value.choice.SecurityInformation.securityAlgorithm.integrityProtectionAlgorithm;
         }
         if (ie->value.choice.SecurityInformation.uPSecuritykey.integrityProtectionKey) {
-          memcpy(bearerCxt->integrityProtectionKey,
+          memcpy(bearerCxt.integrityProtectionKey,
                  ie->value.choice.SecurityInformation.uPSecuritykey.integrityProtectionKey->buf,
                  ie->value.choice.SecurityInformation.uPSecuritykey.integrityProtectionKey->size);
         }
@@ -843,7 +842,7 @@ int e1apCUUP_handle_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
                     "ie->criticality != E1AP_Criticality_reject\n");
         AssertFatal(ie->value.present == E1AP_BearerContextSetupRequestIEs__value_PR_BitRate,
                     "ie->value.present != E1AP_BearerContextSetupRequestIEs__value_PR_BitRate\n");
-        asn_INTEGER2long(&ie->value.choice.BitRate, &bearerCxt->ueDlAggMaxBitRate);
+        asn_INTEGER2long(&ie->value.choice.BitRate, &bearerCxt.ueDlAggMaxBitRate);
         break;
 
       case E1AP_ProtocolIE_ID_id_Serving_PLMN:
@@ -852,9 +851,9 @@ int e1apCUUP_handle_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
         AssertFatal(ie->value.present == E1AP_BearerContextSetupRequestIEs__value_PR_PLMN_Identity,
                     "ie->value.present != E1AP_BearerContextSetupRequestIEs__value_PR_PLMN_Identity\n");
         PLMNID_TO_MCC_MNC(&ie->value.choice.PLMN_Identity,
-                          bearerCxt->servingPLMNid.mcc,
-                          bearerCxt->servingPLMNid.mnc,
-                          bearerCxt->servingPLMNid.mnc_digit_length);
+                          bearerCxt.servingPLMNid.mcc,
+                          bearerCxt.servingPLMNid.mnc,
+                          bearerCxt.servingPLMNid.mnc_digit_length);
         break;
 
       case E1AP_ProtocolIE_ID_id_ActivityNotificationLevel:
@@ -862,7 +861,7 @@ int e1apCUUP_handle_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
                     "ie->criticality != E1AP_Criticality_reject\n");
         AssertFatal(ie->value.present == E1AP_BearerContextSetupRequestIEs__value_PR_ActivityNotificationLevel,
                     "ie->value.present != E1AP_BearerContextSetupRequestIEs__value_PR_ActivityNotificationLevel\n");
-        bearerCxt->activityNotificationLevel = ie->value.choice.ActivityNotificationLevel;
+        bearerCxt.activityNotificationLevel = ie->value.choice.ActivityNotificationLevel;
         break;
 
       case E1AP_ProtocolIE_ID_id_System_BearerContextSetupRequest:
@@ -886,9 +885,9 @@ int e1apCUUP_handle_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
                     "msgNGRAN->value.present != E1AP_NG_RAN_BearerContextSetupRequest__value_PR_PDU_Session_Resource_To_Setup_List\n");
 
         E1AP_PDU_Session_Resource_To_Setup_List_t *pdu2SetupList = &msgNGRAN->value.choice.PDU_Session_Resource_To_Setup_List;
-        bearerCxt->numPDUSessions = pdu2SetupList->list.count;
+        bearerCxt.numPDUSessions = pdu2SetupList->list.count;
         for (int i=0; i < pdu2SetupList->list.count; i++) {
-          pdu_session_to_setup_t *pdu = bearerCxt->pduSession + i;
+          pdu_session_to_setup_t *pdu = bearerCxt.pduSession + i;
           E1AP_PDU_Session_Resource_To_Setup_Item_t *pdu2Setup = pdu2SetupList->list.array[i];
 
           pdu->sessionId = pdu2Setup->pDU_Session_ID;
@@ -975,7 +974,7 @@ int e1apCUUP_handle_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
     }
   }
 
-  CUUP_process_e1_bearer_context_setup_req(bearerCxt, instance);
+  CUUP_process_e1_bearer_context_setup_req(&bearerCxt, instance);
   return 0;
 }
 
@@ -1209,7 +1208,7 @@ int e1apCUUP_handle_BEARER_CONTEXT_MODIFICATION_REQUEST(instance_t instance,
   E1AP_BearerContextModificationRequest_t *in = &pdu->choice.initiatingMessage->value.choice.BearerContextModificationRequest;
   E1AP_BearerContextModificationRequestIEs_t *ie;
 
-  e1ap_bearer_setup_req_t *bearerCxt = calloc(1, sizeof(e1ap_bearer_setup_req_t));
+  e1ap_bearer_setup_req_t bearerCxt = {0};
   LOG_I(E1AP, "Bearer context setup number of IEs %d\n", in->protocolIEs.list.count);
 
   for (int i=0; i < in->protocolIEs.list.count; i++) {
@@ -1221,7 +1220,7 @@ int e1apCUUP_handle_BEARER_CONTEXT_MODIFICATION_REQUEST(instance_t instance,
                     "ie->criticality != E1AP_Criticality_reject\n");
         AssertFatal(ie->value.present == E1AP_BearerContextModificationRequestIEs__value_PR_GNB_CU_CP_UE_E1AP_ID,
                     "ie->value.present != E1AP_BearerContextModificationRequestIEs__value_PR_GNB_CU_CP_UE_E1AP_ID\n");
-        bearerCxt->gNB_cu_cp_ue_id = ie->value.choice.GNB_CU_CP_UE_E1AP_ID;
+        bearerCxt.gNB_cu_cp_ue_id = ie->value.choice.GNB_CU_CP_UE_E1AP_ID;
         break;
 
       case E1AP_ProtocolIE_ID_id_gNB_CU_UP_UE_E1AP_ID:
@@ -1229,7 +1228,7 @@ int e1apCUUP_handle_BEARER_CONTEXT_MODIFICATION_REQUEST(instance_t instance,
                     "ie->criticality != E1AP_Criticality_reject\n");
         AssertFatal(ie->value.present == E1AP_BearerContextModificationRequestIEs__value_PR_GNB_CU_UP_UE_E1AP_ID,
                     "ie->value.present != E1AP_BearerContextModificationRequestIEs__value_PR_GNB_CU_UP_UE_E1AP_ID\n");
-        bearerCxt->gNB_cu_up_ue_id = ie->value.choice.GNB_CU_UP_UE_E1AP_ID;
+        bearerCxt.gNB_cu_up_ue_id = ie->value.choice.GNB_CU_UP_UE_E1AP_ID;
         break;
 
       case E1AP_ProtocolIE_ID_id_System_BearerContextModificationRequest:
@@ -1253,9 +1252,9 @@ int e1apCUUP_handle_BEARER_CONTEXT_MODIFICATION_REQUEST(instance_t instance,
                     "msgNGRAN->value.present != E1AP_NG_RAN_BearerContextModificationRequest__value_PR_PDU_Session_Resource_To_Modify_List\n");
 
         E1AP_PDU_Session_Resource_To_Modify_List_t *pdu2ModList = &msgNGRAN->value.choice.PDU_Session_Resource_To_Modify_List;
-        bearerCxt->numPDUSessionsMod = pdu2ModList->list.count;
+        bearerCxt.numPDUSessionsMod = pdu2ModList->list.count;
         for (int i=0; i < pdu2ModList->list.count; i++) {
-          pdu_session_to_setup_t *pdu = bearerCxt->pduSessionMod + i;
+          pdu_session_to_setup_t *pdu = bearerCxt.pduSessionMod + i;
           E1AP_PDU_Session_Resource_To_Modify_Item_t *pdu2Mod = pdu2ModList->list.array[i];
 
           pdu->sessionId = pdu2Mod->pDU_Session_ID;
@@ -1294,7 +1293,7 @@ int e1apCUUP_handle_BEARER_CONTEXT_MODIFICATION_REQUEST(instance_t instance,
     }
   }
 
-  CUUP_process_bearer_context_mod_req(bearerCxt, instance);
+  CUUP_process_bearer_context_mod_req(&bearerCxt, instance);
   return 0;
 }
 

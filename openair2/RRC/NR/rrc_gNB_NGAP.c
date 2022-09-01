@@ -991,22 +991,22 @@ rrc_gNB_process_NGAP_PDUSESSION_SETUP_REQ(
      At CU-CP we configure the E1 bearer context setup parameters (PDU sessions, DRBs and 
      QoS flows) same as in these functions. At CU-UP we create PDU Sessions and allocate DRBs.
   */
-  e1ap_bearer_setup_req_t *bearer_req = calloc(1, sizeof(e1ap_bearer_setup_req_t));
+  e1ap_bearer_setup_req_t bearer_req;
 
-  bearer_req->gNB_cu_cp_ue_id = gNB_ue_ngap_id;
-  bearer_req->rnti = ue_context_p->ue_context.rnti;
-  bearer_req->cipheringAlgorithm = ue_context_p->ue_context.ciphering_algorithm;
-  memcpy(bearer_req->encryptionKey, ue_context_p->ue_context.kgnb, sizeof(ue_context_p->ue_context.kgnb));
-  bearer_req->integrityProtectionAlgorithm = ue_context_p->ue_context.integrity_algorithm;
-  memcpy(bearer_req->integrityProtectionKey, ue_context_p->ue_context.kgnb, sizeof(ue_context_p->ue_context.kgnb));
-  bearer_req->ueDlAggMaxBitRate = msg->ueAggMaxBitRateDownlink;
+  bearer_req.gNB_cu_cp_ue_id = gNB_ue_ngap_id;
+  bearer_req.rnti = ue_context_p->ue_context.rnti;
+  bearer_req.cipheringAlgorithm = ue_context_p->ue_context.ciphering_algorithm;
+  memcpy(bearer_req.encryptionKey, ue_context_p->ue_context.kgnb, sizeof(ue_context_p->ue_context.kgnb));
+  bearer_req.integrityProtectionAlgorithm = ue_context_p->ue_context.integrity_algorithm;
+  memcpy(bearer_req.integrityProtectionKey, ue_context_p->ue_context.kgnb, sizeof(ue_context_p->ue_context.kgnb));
+  bearer_req.ueDlAggMaxBitRate = msg->ueAggMaxBitRateDownlink;
 
-  bearer_req->numPDUSessions = msg->nb_pdusessions_tosetup;
+  bearer_req.numPDUSessions = msg->nb_pdusessions_tosetup;
 
-  for (int i=0; i < bearer_req->numPDUSessions; i++) {
+  for (int i=0; i < bearer_req.numPDUSessions; i++) {
     ue_context_p->ue_context.pduSession[i].param = msg->pdusession_setup_params[i];
 
-    pdu_session_to_setup_t *pdu = bearer_req->pduSession + i;
+    pdu_session_to_setup_t *pdu = bearer_req.pduSession + i;
     pdu->sessionId   = msg->pdusession_setup_params[i].pdusession_id;
     pdu->sessionType = msg->pdusession_setup_params[i].upf_addr.pdu_session_type;
     pdu->sst         = msg->allowed_nssai[i].sST;
@@ -1072,7 +1072,7 @@ rrc_gNB_process_NGAP_PDUSESSION_SETUP_REQ(
     }
   }
 
-  rrc->mac_rrc.nr_e1_bearer_cxt_msg_transfer(bearer_req, instance);
+  rrc->mac_rrc.nr_e1_bearer_cxt_msg_transfer(&bearer_req, instance);
   return;
 }
 
