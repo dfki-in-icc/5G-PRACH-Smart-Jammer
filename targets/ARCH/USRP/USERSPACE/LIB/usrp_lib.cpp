@@ -576,6 +576,7 @@ void *trx_usrp_write_thread(void * arg){
       ret = (int)s->tx_stream->send(buff_ptrs, nsamps, s->tx_md);
     }
     else {
+      //LOG_X(RLC,"-----> usrp start send\n");
       ret = (int)s->tx_stream->send(&(((int16_t *)buff_tx[0])[0]), nsamps, s->tx_md);
     }
 

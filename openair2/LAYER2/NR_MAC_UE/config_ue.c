@@ -262,6 +262,7 @@ void config_common_ue_sa(NR_UE_MAC_INST_t *mac,
       AssertFatal(1==0,"msg1 FDM identifier %ld undefined (0,1,2,3) \n", scc->uplinkConfigCommon->initialUplinkBWP.rach_ConfigCommon->choice.setup->rach_ConfigGeneric.msg1_FDM);
   }
 
+  LOG_X(NR_MAC,"cfg->prach_config.num_prach_fd_occasions %d\n",cfg->prach_config.num_prach_fd_occasions);
   cfg->prach_config.num_prach_fd_occasions_list = (fapi_nr_num_prach_fd_occasions_t *) malloc(cfg->prach_config.num_prach_fd_occasions*sizeof(fapi_nr_num_prach_fd_occasions_t));
   for (int i=0; i<cfg->prach_config.num_prach_fd_occasions; i++) {
     cfg->prach_config.num_prach_fd_occasions_list[i].num_prach_fd_occasions = i;

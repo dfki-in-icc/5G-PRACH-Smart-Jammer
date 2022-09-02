@@ -85,8 +85,136 @@ char nr_dci_format_string[8][30] = {
   #define LOG_I(A,B...) printf(B)
 #endif
 
+#define CCE_TRIAL
+#ifdef CCE_TRIAL
+static void nr_pdcch_demapping_deinterleaving(uint32_t *llr,
+                                       uint32_t *e_rx,
+                                       uint8_t coreset_time_dur,
+                                       uint8_t start_symbol,
+                                       uint32_t coreset_nbr_rb,
+                                       uint8_t reg_bundle_size_L,
+                                       uint8_t coreset_interleaver_size_R,
+                                       uint8_t n_shift,
+                                       uint8_t number_of_candidates,
+                                       uint16_t *CCE,
+                                       uint8_t *L) {
+  /*
+   * This function will do demapping and deinterleaving from llr containing demodulated symbols
+   * Demapping will regroup in REG and bundles
+   * Deinterleaving will order the bundles
+   *
+   * In the following example we can see the process. The llr contains the demodulated IQs, but they are not ordered from REG 0,1,2,..
+   * In e_rx (z) we will order the REG ids and group them into bundles.
+   * Then we will put the bundles in the correct order as indicated in subclause 7.3.2.2
+   *
+   llr --------------------------> e_rx (z) ----> e_rx (z)
+   |   ...
+   |   ...
+   |   REG 26
+   symbol 2    |   ...
+   |   ...
+   |   REG 5
+   |   REG 2
 
+   |   ...
+   |   ...
+   |   REG 25
+   symbol 1    |   ...
+   |   ...
+   |   REG 4
+   |   REG 1
 
+   |   ...
+   |   ...                           ...              ...
+   |   REG 24 (bundle 7)             ...              ...
+   symbol 0    |   ...                           bundle 3         bundle 6
+   |   ...                           bundle 2         bundle 1
+   |   REG 3                         bundle 1         bundle 7
+   |   REG 0  (bundle 0)             bundle 0         bundle 0
+
+  */
+  int c = 0, r = 0;
+  uint16_t f_bundle_j = 0;
+  uint32_t coreset_C = 0;
+  uint16_t index_z, index_llr;
+  int coreset_interleaved = 0;
+  int N_regs = coreset_nbr_rb*coreset_time_dur;
+
+  if (reg_bundle_size_L != 0) { // interleaving will be done only if reg_bundle_size_L != 0
+    coreset_interleaved = 1;
+    coreset_C = (uint32_t) (N_regs / (coreset_interleaver_size_R * reg_bundle_size_L));
+  } else {
+    reg_bundle_size_L = 6;
+  }
+
+  int B_rb = reg_bundle_size_L/coreset_time_dur; // nb of RBs occupied by each REG bundle
+  int num_bundles_per_cce = 6/reg_bundle_size_L;
+  int n_cce = N_regs/6;
+  int max_bundles = n_cce*num_bundles_per_cce;
+  int f_bundle_j_list[max_bundles];
+
+  // for each bundle
+  for (int nb = 0; nb < max_bundles; nb++) {
+    if (coreset_interleaved == 0) f_bundle_j = nb;
+    else {
+      if (r == coreset_interleaver_size_R) {
+        r = 0;
+        c++;
+      }
+      f_bundle_j = ((r * coreset_C) + c + n_shift) % (N_regs / reg_bundle_size_L);
+      r++;
+    }
+    f_bundle_j_list[nb] = f_bundle_j;
+  }
+
+  // Get cce_list indices by bundle index in ascending order
+  int f_bundle_j_list_ord[number_of_candidates][max_bundles];
+  for (int c_id = 0; c_id < number_of_candidates; c_id++ ) {
+    int start_bund_cand = CCE[c_id]*num_bundles_per_cce;
+    int max_bund_per_cand = L[c_id]*num_bundles_per_cce;
+    int f_bundle_j_list_id = 0;
+    for(int nb = 0; nb < max_bundles; nb++) {
+      for(int bund_cand = start_bund_cand; bund_cand < start_bund_cand+max_bund_per_cand; bund_cand++){
+        if (f_bundle_j_list[bund_cand] == nb) {
+          f_bundle_j_list_ord[c_id][f_bundle_j_list_id] = nb;
+          f_bundle_j_list_id++;
+
+        }
+      }
+    }
+  }
+
+  int rb_count = 0;
+  int data_sc = 9; // 9 sub-carriers with data per PRB
+  for (int c_id = 0; c_id < number_of_candidates; c_id++ ) {
+    for (int symbol_idx = 0; symbol_idx < coreset_time_dur; symbol_idx++) {
+      for (int cce_count = 0; cce_count < L[c_id]; cce_count ++) {
+        for (int k=0; k<NR_NB_REG_PER_CCE/reg_bundle_size_L; k++) { // loop over REG bundles
+          int f = f_bundle_j_list_ord[c_id][k+NR_NB_REG_PER_CCE*cce_count/reg_bundle_size_L];
+          for(int rb=0; rb<B_rb; rb++) { // loop over the RBs of the bundle
+            index_z = data_sc * rb_count;
+            index_llr = (uint16_t) (f*B_rb + rb + symbol_idx * coreset_nbr_rb) * data_sc;
+            //if (CCE[c_id] != 0) index_z=index_llr;
+            for (int i = 0; i < data_sc; i++) {
+              e_rx[index_z + i] = llr[index_llr + i];
+#ifdef NR_PDCCH_DCI_DEBUG
+              LOG_D(PHY,"[candidate=%d,symbol_idx=%d,cce=%d,REG bundle=%d,PRB=%d] z[%d]=(%d,%d) <-> \t llr[%d]=(%d,%d) \n",
+                    c_id,symbol_idx,cce_count,k,f*B_rb + rb,(index_z + i),*(int16_t *) &e_rx[index_z + i],*(1 + (int16_t *) &e_rx[index_z + i]),
+                    (index_llr + i),*(int16_t *) &llr[index_llr + i], *(1 + (int16_t *) &llr[index_llr + i]));
+#endif
+            }
+              //LOG_X(RLC,"[candidate=%d,symbol_idx=%d,cce=%d,REG bundle=%d,PRB=%d] z[%d]=(%d,%d) <-> \t llr[%d]=(%d,%d) \n",
+              //      c_id,symbol_idx,cce_count,k,f*B_rb + rb,(index_z ),*(int16_t *) &e_rx[index_z ],*(1 + (int16_t *) &e_rx[index_z ]),
+              //      (index_llr),*(int16_t *) &llr[index_llr ], *(1 + (int16_t *) &llr[index_llr ]));
+            rb_count++;
+          }
+        }
+      }
+    }
+  }
+}
+
+#else
 //static const int16_t conjugate[8]__attribute__((aligned(32))) = {-1,1,-1,1,-1,1,-1,1};
 void nr_pdcch_demapping_deinterleaving(uint32_t *llr,
                                        uint32_t *z,
@@ -175,6 +303,7 @@ void nr_pdcch_demapping_deinterleaving(uint32_t *llr,
     for (int p = 0; p < (coreset_nbr_rb/reg_bundle_size_L); p++) {
       for (int p2 = CCE[c_id]; p2 < CCE[c_id] + L[c_id]; p2++) {
         AssertFatal(p2<2*NR_MAX_PDCCH_AGG_LEVEL,"number_of_candidates %d : p2 %d,  CCE[%d] %d, L[%d] %d\n",number_of_candidates,p2,c_id,CCE[c_id],c_id,L[c_id]);
+        // LOG_X(RLC,"number_of_candidates %d : p2 %d,  CCE[%d] %d, L[%d] %d\n",number_of_candidates,p2,c_id,CCE[c_id],c_id,L[c_id]);
         if (f_bundle_j_list[p2] == p) {
           AssertFatal(f_bundle_j_list_id < 2*NR_MAX_PDCCH_AGG_LEVEL,"f_bundle_j_list_id %d\n",f_bundle_j_list_id);
           f_bundle_j_list_ord[f_bundle_j_list_id][c_id] = p;
@@ -209,6 +338,7 @@ void nr_pdcch_demapping_deinterleaving(uint32_t *llr,
     }
   }
 }
+#endif
 
 //void nr_pdcch_demapping_deinterleaving(uint32_t *llr,
 //                                       uint32_t *z,
@@ -1022,6 +1152,8 @@ uint8_t nr_dci_decoding_procedure(PHY_VARS_NR_UE *ue,
 
       LOG_D(PHY, "Trying DCI candidate %d of %d number of candidates, CCE %d (%d), L %d, length %d, format %s\n",
             j, rel15->number_of_candidates, CCEind, e_rx_cand_idx, L, dci_length,nr_dci_format_string[rel15->dci_format_options[k]]);
+      // LOG_X(RLC, "Trying DCI candidate %d of %d number of candidates, CCE %d (%d), L %d, length %d, format %s\n",
+            // j, rel15->number_of_candidates, CCEind, e_rx_cand_idx, L, dci_length,nr_dci_format_string[rel15->dci_format_options[k]]);
 
       nr_pdcch_unscrambling(&pdcch_vars->e_rx[e_rx_cand_idx], rel15->coreset.scrambling_rnti, L*108, rel15->coreset.pdcch_dmrs_scrambling_id, tmp_e);
 
@@ -1039,7 +1171,9 @@ uint8_t nr_dci_decoding_procedure(PHY_VARS_NR_UE *ue,
                                          NR_POLAR_DCI_MESSAGE_TYPE, dci_length, L);
       n_rnti = rel15->rnti;
       LOG_D(PHY, "(%i.%i) dci indication (rnti %x,dci format %s,n_CCE %d,payloadSize %d)\n",
-            proc->frame_rx, proc->nr_slot_rx,n_rnti,nr_dci_format_string[rel15->dci_format_options[k]],CCEind,dci_length);
+           proc->frame_rx, proc->nr_slot_rx,n_rnti,nr_dci_format_string[rel15->dci_format_options[k]],CCEind,dci_length);
+      // LOG_X(RLC, "[dummy RLC] (%i.%i) dci indication (rnti %x,dci format %s,n_CCE %d,payloadSize %d)\n",
+      //      proc->frame_rx, proc->nr_slot_rx,n_rnti,nr_dci_format_string[rel15->dci_format_options[k]],CCEind,dci_length);
       if (crc == n_rnti) {
         // L5G_IOT
         RegisterComplexMetric(PDCCH_IQ, "PDCCH_IQ", (int16_t*)pdcch_cmp_ptr, num_pdcch_symbol);
@@ -1047,6 +1181,7 @@ uint8_t nr_dci_decoding_procedure(PHY_VARS_NR_UE *ue,
         PROM_METRICS(PDCCH_LEVEL_0,"PDCCH_LEVEL_0",pdcch_power[0]);
         PROM_METRICS(PDCCH_LEVEL_1,"PDCCH_LEVEL_1",pdcch_power[1]);
         LOG_D(PHY, "(%i.%i) Received dci indication (rnti %x,dci format %s,n_CCE %d,payloadSize %d,payload %llx)\n",
+        // LOG_X(RLC, "[dummy RLC] (%i.%i) Received dci indication (rnti %x,dci format %s,n_CCE %d,payloadSize %d,payload %llx)\n",
               proc->frame_rx, proc->nr_slot_rx,n_rnti,nr_dci_format_string[rel15->dci_format_options[k]],CCEind,dci_length,*(unsigned long long*)dci_estimation);
         uint16_t mb = nr_dci_false_detection(dci_estimation,tmp_e,L*108,n_rnti, NR_POLAR_DCI_MESSAGE_TYPE, dci_length, L);
         ue->dci_thres = (ue->dci_thres + mb) / 2;
@@ -1063,15 +1198,19 @@ uint8_t nr_dci_decoding_procedure(PHY_VARS_NR_UE *ue,
           dci_ind->dci_list[dci_ind->number_of_dcis].dci_format  = rel15->dci_format_options[k];
           dci_ind->dci_list[dci_ind->number_of_dcis].payloadSize = dci_length;
           memcpy((void*)dci_ind->dci_list[dci_ind->number_of_dcis].payloadBits,(void*)dci_estimation,8);
+          LOG_X(RLC, "[dummy RLC] (%i.%i) DCI Received  rnti %x for DCI format %d n_CCE %d payload_size %d payload %llx \n",
+             proc->frame_rx, proc->nr_slot_rx, n_rnti, rel15->dci_format_options[k], CCEind, dci_length, *(unsigned long long*)dci_estimation);
           dci_ind->number_of_dcis++;
           break;    // If DCI is found, no need to check for remaining DCI lengths
         }
       } else {
-        LOG_D(PHY,"(%i.%i) Decoded crc %x does not match rnti %x for DCI format %d\n", proc->frame_rx, proc->nr_slot_rx, crc, n_rnti, rel15->dci_format_options[k]);
+        // LOG_D(PHY,"(%i.%i) Decoded crc %x does not match rnti %x for DCI format %d\n", proc->frame_rx, proc->nr_slot_rx, crc, n_rnti, rel15->dci_format_options[k]);
+        //LOG_X(RLC, "[dummy RLC] (%i.%i) Decoded crc %x does not match rnti %x for DCI format %d\n", proc->frame_rx, proc->nr_slot_rx, crc, n_rnti, rel15->dci_format_options[k]);
       }
     }
     e_rx_cand_idx += 9*L*6*2; //e_rx index for next candidate (L CCEs, 6 REGs per CCE and 9 REs per REG and 2 uint16_t per RE)
   }
+
   //pdcch_vars->nb_search_space = 0;
   return(dci_ind->number_of_dcis);
 }

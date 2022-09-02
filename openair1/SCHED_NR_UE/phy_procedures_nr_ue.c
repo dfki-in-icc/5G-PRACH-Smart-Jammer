@@ -95,8 +95,9 @@ void init_dlsch_chest_tpool(uint8_t num_threads) {
   else {
     params = calloc(1,(num_threads*3)+1);
     for (int i=0; i<num_threads; i++) {
-    sprintf(buf,"%2d,",i);
-    memcpy(params+(i*3),buf,3);
+    // sprintf(buf,"%2d,",i);
+    // memcpy(params+(i*3),buf,3);
+    memcpy(params+(i*3),"-1,",3);
     }
   }
 
@@ -115,8 +116,9 @@ void init_rxdlsch_tpool(uint8_t num_threads) {
   else {
     params = calloc(1,(num_threads*3)+1);
     for (int i=0; i<num_threads; i++) {
-    sprintf(buf,"%2d,",i);
-    memcpy(params+(i*3),buf,3);
+    // sprintf(buf,"%2d,",i);
+    // memcpy(params+(i*3),buf,3);
+    memcpy(params+(i*3),"-1,",3);
     }
   }
 
@@ -292,15 +294,18 @@ void ue_ta_procedures(PHY_VARS_NR_UE *ue, int slot_tx, int frame_tx){
       uint16_t ofdm_symbol_size = ue->frame_parms.ofdm_symbol_size;
       uint16_t bw_scaling = get_bw_scaling(ofdm_symbol_size);
 
+      uint32_t prev = ue->timing_advance ;
       ue->timing_advance += (ul_time_alignment->ta_command - 31) * bw_scaling;
 
-      LOG_X(PHY, "In %s: [UE %d] [%d.%d] Got timing advance command %u from MAC, new value is %d\n",
+      LOG_X(RLC, "In %s: [UE %d] [%d.%d] Got timing advance command %u from MAC, old value %d -> new value is %d  bwscaling %d\n",
+      // LOG_X(PHY, "In %s: [UE %d] [%d.%d] Got timing advance command %u from MAC, new value is %d\n",
         __FUNCTION__,
         ue->Mod_id,
         frame_tx,
         slot_tx,
         ul_time_alignment->ta_command,
-        ue->timing_advance);
+        prev, ue->timing_advance,
+        bw_scaling);
 
       ul_time_alignment->ta_frame = -1;
       ul_time_alignment->ta_slot = -1;
@@ -327,9 +332,18 @@ void phy_procedures_nrUE_TX(PHY_VARS_NR_UE *ue,
   start_meas(&ue->phy_proc_tx);
 
   if (ue->UE_mode[gNB_id] <= PUSCH){
+
+    //char buf[64];
+    //strcpy(buf,"");
+    //for (int i=0;i<ue->ulsch[proc->thread_id][gNB_id][0]->number_harq_processes_for_pusch;i++){
+    //  sprintf(buf,"%s %d",buf,ue->ulsch[proc->thread_id][gNB_id][0]->harq_processes[i]->status);
+    //}
+    //LOG_X(RLC,"--> Trigger nr_ue_ulsch_procedures  starus %s\n",buf);
+    
     for (uint8_t harq_pid = 0; harq_pid < ue->ulsch[proc->thread_id][gNB_id][0]->number_harq_processes_for_pusch; harq_pid++) {
       if (ue->ulsch[proc->thread_id][gNB_id][0]->harq_processes[harq_pid]->status == ACTIVE)
         nr_ue_ulsch_procedures(ue, harq_pid, frame_tx, slot_tx, proc->thread_id, gNB_id);
+        // LOG_X(RLC,"nr_ue_ulsch_procedures finished harq_id %d  @ %d : %d \n",harq_pid, frame_tx ,slot_tx);
     }
   }
 
@@ -649,7 +663,7 @@ int nr_ue_pdsch_procedures(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, int gNB_
       if (dlsch0_harq->dlDmrsSymbPos & (1 << m)) {
         for (uint8_t aatx=0; aatx<dlsch0_harq->Nl; aatx++) {//for MIMO Config: it shall loop over no_layers
           LOG_D(PHY,"PDSCH Channel estimation gNB id %d, PDSCH antenna port %d, slot %d, symbol %d\n",0,aatx,nr_slot_rx,m);
-          LOG_X(PHY,"nr_pdsch_channel_estimation_th start ( symbol %d num_RB %d)\n",m, pdsch_nb_rb);
+          // LOG_X(RLC,"nr_pdsch_channel_estimation_th start ( symbol %d num_RB %d)\n",m, pdsch_nb_rb);
 
           notifiedFIFO_elt_t *chset =
                      newNotifiedFIFO_elt(sizeof(nrChannelEstimate_t), CHEST_JOB_ID/* + num_chest_thread*/, &nf, nr_pdsch_channel_estimation_th);
@@ -811,7 +825,7 @@ int nr_ue_pdsch_procedures(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, int gNB_
         if (rx_result->return_code == -1) ret_code = -1; 
         delNotifiedFIFO_elt(rx_result);
         r++;
-        LOG_D(PHY,"channel_estimation thread %d finished\n",r);
+        LOG_D(PHY,"rx_pdsch thread %d finished\n",r);
       }
     }
     stop_meas(&ue->dlsch_llr_stats_parallelization[proc->thread_id][slot]);
@@ -1547,7 +1561,7 @@ int is_pbch_in_slot(fapi_nr_config_request_t *config, int frame, int slot, NR_DL
   }
 }
 
-
+// extern uint32_t disable_pdcch;
 int phy_procedures_nrUE_RX(PHY_VARS_NR_UE *ue,
                            UE_nr_rxtx_proc_t *proc,
                            uint8_t gNB_id,
@@ -1659,6 +1673,7 @@ int phy_procedures_nrUE_RX(PHY_VARS_NR_UE *ue,
   }
 
   dci_cnt = 0;
+  // if ( disable_pdcch ==0 )
   for(int n_ss = 0; n_ss<pdcch_vars->nb_search_space; n_ss++) {
     double temp_power=0.0;
     double temp_power_db=0.0;

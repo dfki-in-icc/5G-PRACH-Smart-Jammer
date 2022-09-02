@@ -58,7 +58,7 @@ void nr_generate_pucch0(PHY_VARS_NR_UE *ue,
                         fapi_nr_ul_config_pucch_pdu *pucch_pdu) {
 
 #ifdef DEBUG_NR_PUCCH_TX
-  printf("\t [nr_generate_pucch0] start function at slot(nr_slot_tx)=%d\n",nr_slot_tx);
+  printf("\t [nr_generate_pucch0] %d\n",nr_slot_tx);
 #endif
   /*
    * Implement TS 38.211 Subclause 6.3.2.3.1 Sequence generation
@@ -168,6 +168,7 @@ void nr_generate_pucch0(PHY_VARS_NR_UE *ue,
   }
 }
 
+// extern uint32_t disable_pdcch;
 void nr_generate_pucch1(PHY_VARS_NR_UE *ue,
                         int32_t **txdataF,
                         NR_DL_FRAME_PARMS *frame_parms,
@@ -182,10 +183,10 @@ void nr_generate_pucch1(PHY_VARS_NR_UE *ue,
   uint16_t startingPRB = pucch_pdu->prb_start + pucch_pdu->bwp_start;
   uint8_t timeDomainOCC = pucch_pdu->time_domain_occ_idx;
 
-#ifdef DEBUG_NR_PUCCH_TX
-  printf("\t [nr_generate_pucch1] start function at slot(nr_slot_tx)=%d payload=%lu m0=%d nrofSymbols=%d startingSymbolIndex=%d startingPRB=%d second_hop_prb=%d timeDomainOCC=%d nr_bit=%d\n",
-         nr_slot_tx,payload,m0,nrofSymbols,startingSymbolIndex,startingPRB,pucch_pdu->second_hop_prb,timeDomainOCC,pucch_pdu->n_bit);
-#endif
+//#ifdef DEBUG_NR_PUCCH_TX
+  LOG_I(PHY,"\t [nr_generate_pucch1] start function at slot(nr_slot_tx)=%d amp %d  payload=%lu m0=%d nrofSymbols=%d startingSymbolIndex=%d startingPRB=%d second_hop_prb=%d timeDomainOCC=%d nr_bit=%d\n",
+         nr_slot_tx, amp, payload,m0,nrofSymbols,startingSymbolIndex,startingPRB,pucch_pdu->second_hop_prb,timeDomainOCC,pucch_pdu->n_bit);
+//#endif
   /*
    * Implement TS 38.211 Subclause 6.3.2.4.1 Sequence modulation
    *
@@ -445,8 +446,8 @@ void nr_generate_pucch1(PHY_VARS_NR_UE *ue,
       }
     }
 
-    if ((intraSlotFrequencyHopping == 1) && (l<floor(nrofSymbols/2))) { // intra-slot hopping enabled, we need to calculate new offset PRB
-      startingPRB = startingPRB + pucch_pdu->second_hop_prb;
+    if ((intraSlotFrequencyHopping == 1) && (l==floor(nrofSymbols/2))) { // intra-slot hopping enabled, we need to calculate new offset PRB
+      startingPRB = pucch_pdu->second_hop_prb;
     }
 
     if ((startingPRB <  (frame_parms->N_RB_DL>>1)) && ((frame_parms->N_RB_DL & 1) == 0)) { // if number RBs in bandwidth is even and current PRB is lower band
@@ -502,6 +503,10 @@ void nr_generate_pucch1(PHY_VARS_NR_UE *ue,
 
     if (l%2 == 1) i+=12;
   }
+
+  LOG_I(PHY,"\t [nr_generate_pucch1] finished\n");
+
+  // disable_pdcch = 0;
 }
 
 #if 0

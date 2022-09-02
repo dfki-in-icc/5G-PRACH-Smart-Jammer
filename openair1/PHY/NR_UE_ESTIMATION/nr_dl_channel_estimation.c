@@ -673,10 +673,11 @@ int nr_pdsch_channel_estimation(PHY_VARS_NR_UE *ue,
   k = bwp_start_subcarrier;
   int re_offset = k;
 
-#ifdef DEBUG_CH
-  printf("PDSCH Channel Estimation : ThreadId %d, gNB_id %d ch_offset %d, symbol_offset %d OFDM size %d, Ncp=%d, Ns=%d, k=%d symbol %d\n",proc->thread_id, gNB_id,ch_offset,symbol_offset,ue->frame_parms.ofdm_symbol_size,
+//#ifdef DEBUG_CH
+  LOG_D(RLC,"PDSCH Channel Estimation : ThreadId %d, gNB_id %d ch_offset %d, symbol_offset %d OFDM size %d, Ncp=%d, Ns=%d, k=%d symbol %d\n",proc->thread_id, gNB_id,ch_offset,symbol_offset,ue->frame_parms.ofdm_symbol_size,
          ue->frame_parms.Ncp,Ns,k, symbol);
-#endif
+//#endif
+ if(nb_rb_pdsch==0) return -1;
 
   // generate pilot for gNB port number 1000+p
   uint16_t rb_offset = (bwp_start_subcarrier - ue->frame_parms.first_carrier_offset) / 12;

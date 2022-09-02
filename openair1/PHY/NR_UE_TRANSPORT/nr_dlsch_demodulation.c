@@ -434,8 +434,10 @@ int nr_rx_pdsch(PHY_VARS_NR_UE *ue,
       for (aatx=0;aatx<n_tx;aatx++)
         for (aarx=0;aarx<n_rx;aarx++) {
           //LOG_I(PHY, "nb_rb %d len %d avg_%d_%d Power per SC is %d\n",nb_rb, len,aarx, aatx,avg[aatx*frame_parms->nb_antennas_rx+aarx]);
+          LOG_X(PHY, "nb_rb %d len %d avg_%d_%d Power per SC is %d\n",nb_rb, len,aarx, aatx,avg[aatx*frame_parms->nb_antennas_rx+aarx]);
           avgs = cmax(avgs,avg[(aatx*frame_parms->nb_antennas_rx)+aarx]);
           //LOG_I(PHY, "avgs Power per SC is %d\n", avgs);
+          LOG_X(PHY, "avgs Power per SC is %d\n", avgs);
           median[(aatx*frame_parms->nb_antennas_rx)+aarx] = avg[(aatx*frame_parms->nb_antennas_rx)+aarx];
         }
 
@@ -456,6 +458,7 @@ int nr_rx_pdsch(PHY_VARS_NR_UE *ue,
 
       pdsch_vars[gNB_id]->log2_maxh = (log2_approx(avgs)/2) + 1;
       //LOG_I(PHY, "avgs Power per SC is %d lg2_maxh %d\n", avgs,  pdsch_vars[gNB_id]->log2_maxh);
+      LOG_X(PHY, "avgs Power per SC is %d lg2_maxh %d\n", avgs,  pdsch_vars[gNB_id]->log2_maxh);
     }
     LOG_X(PHY,"[DLSCH] AbsSubframe %d.%d log2_maxh = %d [log2_maxh0 %d log2_maxh1 %d] (%d,%d)\n",
           frame%1024,
@@ -960,6 +963,8 @@ void nr_dlsch_channel_compensation(int **rxdataF_ext,
         rxdataF128+=3;
         rxdataF_comp128+=3;
       }
+        RegisterComplexMetric(RAR_IQ, "RAR_IQ", (int16_t*)&rxdataF_comp[0][symbol*nb_rb*12], nb_rb*12);
+        RegisterComplexMetric(RAR_CHEST, "RA_CHEST", (int16_t*)&dl_ch_estimates_ext[0][symbol*nb_rb*12], nb_rb*12);
       // TODO L5G
       if (pdsch_mode == SI_PDSCH){
         RegisterComplexMetric(SIB_IQ, "SIB_IQ", (int16_t*)&rxdataF_comp[0][symbol*nb_rb*12], nb_rb*12);

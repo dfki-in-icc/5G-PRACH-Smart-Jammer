@@ -560,7 +560,12 @@ typedef struct ssb_list_info {
 } ssb_list_info_t;
 
 void config_dci_pdu(NR_UE_MAC_INST_t *mac, fapi_nr_dl_config_dci_dl_pdu_rel15_t *rel15, fapi_nr_dl_config_request_t *dl_config, int rnti_type, int ss_id);
+#define CCE_TRIAL
+#ifdef CCE_TRIAL
+void fill_dci_search_candidates(NR_SearchSpace_t *ss,fapi_nr_dl_config_dci_dl_pdu_rel15_t *rel15, int slot, int rnti);
+#else
 void fill_dci_search_candidates(NR_SearchSpace_t *ss,fapi_nr_dl_config_dci_dl_pdu_rel15_t *rel15);
+#endif
 
 /*@}*/
 #endif /*__LAYER2_MAC_DEFS_H__ */

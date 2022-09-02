@@ -1541,7 +1541,7 @@ void nr_ue_configure_pucch(NR_UE_MAC_INST_t *mac,
   int scs;
   NR_BWP_UplinkCommon_t *initialUplinkBWP;
   if (mac->scc) initialUplinkBWP = mac->scc->uplinkConfigCommon->initialUplinkBWP;
-  else          initialUplinkBWP = &mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP;
+  else          initialUplinkBWP = &mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP; 
   NR_BWP_Uplink_t *ubwp = mac->ULbwp[0];
   if (mac->cg && ubwp &&
       mac->cg->spCellConfig &&
@@ -1558,10 +1558,11 @@ void nr_ue_configure_pucch(NR_UE_MAC_INST_t *mac,
 
   pucch_pdu->rnti = rnti;
 
-  LOG_X(NR_MAC,"initial_pucch_id %d, pucch_resource %p\n",pucch->initial_pucch_id,pucch->pucch_resource);
   // configure pucch from Table 9.2.1-1
   pucch->initial_pucch_id = 
-          mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP.pucch_ConfigCommon->choice.setup->pucch_ResourceCommon;
+          *mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP.pucch_ConfigCommon->choice.setup->pucch_ResourceCommon;
+
+  LOG_X(NR_MAC,"initial_pucch_id %d, pucch_resource %p\n",pucch->initial_pucch_id,pucch->pucch_resource);
 
   if (pucch->initial_pucch_id > -1 &&
       pucch->pucch_resource == NULL) {
@@ -1618,6 +1619,9 @@ void nr_ue_configure_pucch(NR_UE_MAC_INST_t *mac,
     // TODO verify if SR can be transmitted in this mode
     pucch_pdu->n_bit = O_uci + O_SR;
     pucch_pdu->payload = (pucch->sr_payload << O_ACK) | pucch->ack_payload;
+    LOG_X(NR_MAC,"msg4 pucch %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n"
+      ,pucch_pdu->format_type,pucch_pdu->start_symbol_index,pucch_pdu->nr_of_symbols,pucch_pdu->bwp_size,pucch_pdu->bwp_start,pucch_pdu->prb_size,pucch_pdu->prb_start,pucch_pdu->second_hop_prb,pucch_pdu->initial_cyclic_shift,pucch_pdu->freq_hop_flag
+      ,pucch_pdu->time_domain_occ_idx,pucch_pdu->mcs,pucch_pdu->n_bit,pucch_pdu->payload);
 
   }
   else if (pucch->pucch_resource != NULL) {
@@ -1837,6 +1841,7 @@ void nr_ue_configure_pucch(NR_UE_MAC_INST_t *mac,
       AssertFatal(1==0,"Group hopping flag undefined (0,1,2) \n");
     }
 
+  LOG_X(NR_MAC,"msg4 pucch hop %d %d %d\n",pucch_pdu->group_hop_flag,pucch_pdu->sequence_hop_flag,pucch_pdu->hopping_id);
 
 }
 
@@ -4080,6 +4085,8 @@ int nr_ue_process_rar(nr_downlink_indication_t *dl_info, NR_UL_TIME_ALIGNMENT_t 
     // TA command
     ul_time_alignment->apply_ta = 1;
     ul_time_alignment->ta_command = 31 + rar->TA2 + (rar->TA1 << 5);
+    LOG_X(RLC,"(rar) ta_command  %d rar->TA2 %d  rar->TA1 %d ( <<5 %d )\n",
+            ul_time_alignment->ta_command, rar->TA2, rar->TA1, rar->TA1 << 5);
 
 #ifdef DEBUG_RAR
     // CSI

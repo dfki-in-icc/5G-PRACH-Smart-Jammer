@@ -208,10 +208,12 @@ void pucch_procedures_ue_nr(PHY_VARS_NR_UE *ue,
   int       nr_slot_tx = proc->nr_slot_tx;
   fapi_nr_ul_config_pucch_pdu *pucch_pdu;
   NR_UE_PUCCH *pucch_vars = ue->pucch_vars[proc->thread_id][gNB_id];
+  uint32_t active_found = 0;
 
   for (int i=0; i<2; i++) {
     if(pucch_vars->active[i]) {
 
+      active_found ++;
       pucch_pdu = &pucch_vars->pucch_pdu[i];
       uint16_t nb_of_prbs = pucch_pdu->prb_size;
       /* Generate PUCCH signal according to its format and parameters */
@@ -242,9 +244,11 @@ void pucch_procedures_ue_nr(PHY_VARS_NR_UE *ue,
 
 
       LOG_X(PHY,"Generation of PUCCH format %d at frame.slot %d.%d\n",pucch_pdu->format_type,proc->frame_tx,nr_slot_tx);
+      LOG_X(RLC,"Generation of PUCCH format %d at frame.slot %d.%d\n",pucch_pdu->format_type,proc->frame_tx,nr_slot_tx);
 
       switch(pucch_pdu->format_type) {
         case 0:
+          LOG_X(RLC,"nr_generate_pucch 0   @slot %d\n",nr_slot_tx);
           nr_generate_pucch0(ue,
                              ue->common_vars.txdataF,
                              &ue->frame_parms,
@@ -253,6 +257,7 @@ void pucch_procedures_ue_nr(PHY_VARS_NR_UE *ue,
                              pucch_pdu);
           break;
         case 1:
+          LOG_X(RLC,"nr_generate_pucch 1   @slot %d\n",nr_slot_tx);
           nr_generate_pucch1(ue,
                              ue->common_vars.txdataF,
                              &ue->frame_parms,
@@ -261,6 +266,7 @@ void pucch_procedures_ue_nr(PHY_VARS_NR_UE *ue,
                              pucch_pdu);
           break;
         case 2:
+          LOG_X(RLC,"nr_generate_pucch 2   @slot %d\n",nr_slot_tx);
           nr_generate_pucch2(ue,
                              ue->common_vars.txdataF,
                              &ue->frame_parms,
@@ -270,6 +276,7 @@ void pucch_procedures_ue_nr(PHY_VARS_NR_UE *ue,
           break;
         case 3:
         case 4:
+          LOG_X(RLC,"nr_generate_pucch 3 4   @slot %d\n",nr_slot_tx);
           nr_generate_pucch3_4(ue,
                                ue->common_vars.txdataF,
                                &ue->frame_parms,
@@ -281,6 +288,7 @@ void pucch_procedures_ue_nr(PHY_VARS_NR_UE *ue,
     }
     pucch_vars->active[i] = false;
   }
+  //if (active_found == 0) LOG_X(RLC,"no active pucch  @slot %d\n",nr_slot_tx);
 }
 
 

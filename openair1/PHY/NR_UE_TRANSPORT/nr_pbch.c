@@ -579,7 +579,7 @@ int nr_rx_pbch( PHY_VARS_NR_UE *ue,
     decoded_output[i] = (uint8_t)((payload>>((3-i)<<3))&0xff);
 
   frame_parms->half_frame_bit = ((nr_ue_pbch_vars->xtra_byte>>4)&0x01); // computing the half frame index from the extra byte
-
+  LOG_X(PHY,"ssb_index   %d\n",i_ssb);
   frame_parms->ssb_index = i_ssb;  // ssb index corresponds to i_ssb for Lmax = 4,8
   if (Lmax == 64) {   // for Lmax = 64 ssb index 4th,5th and 6th bits are in extra byte
     for (int i=0; i<3; i++)

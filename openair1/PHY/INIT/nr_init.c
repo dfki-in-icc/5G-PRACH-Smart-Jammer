@@ -535,6 +535,7 @@ void nr_phy_config_request(NR_PHY_Config_t *phy_config) {
     return;
   }
 
+  LOG_I(PHY,"accessing PRACH occasion list\n");
   fd_occasion = 0;
   nfapi_nr_prach_config_t *prach_config = &gNB_config->prach_config;
   short_sequence = prach_config->prach_sequence_length.value;

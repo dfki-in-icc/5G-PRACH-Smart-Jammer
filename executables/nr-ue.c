@@ -711,7 +711,7 @@ void processSlotTX(void *arg) {
   int tx_slot_type = nr_ue_slot_select(cfg, proc->frame_tx, proc->nr_slot_tx);
   uint8_t gNB_id = 0;
 
-  LOG_X(PHY,"%d.%d => slot type %d\n",proc->frame_tx,proc->nr_slot_tx,tx_slot_type);
+  // LOG_X(PHY,"%d.%d => slot type %d\n",proc->frame_tx,proc->nr_slot_tx,tx_slot_type);
   if (tx_slot_type == NR_UPLINK_SLOT || tx_slot_type == NR_MIXED_SLOT){
 
     // trigger L2 to run ue_scheduler thru IF module
@@ -799,7 +799,7 @@ void processSlotRX(void *arg) {
 #else
     // calling UL_indication to schedule things other than PUSCH (eg, PUCCH)
     rxtxD->ue_sched_mode = NOT_PUSCH;
-    if(tx_slot_type==NR_MIXED_SLOT) rxtxD->ue_sched_mode = SCHED_ALL;
+    // if(tx_slot_type==NR_MIXED_SLOT) rxtxD->ue_sched_mode = SCHED_ALL;
     processSlotTX(rxtxD);
 
     // Wait for PUSCH processing to finish
@@ -809,16 +809,19 @@ void processSlotRX(void *arg) {
 #endif
 
   } else {
+    // UL Slot
     rxtxD->ue_sched_mode = SCHED_ALL;
     processSlotTX(rxtxD);
   }
 
+  //LOG_X(RLC,"tx_slot_type %d ( NR_UPLINK_SLOT %d  NR_MIXED_SLOT %d )\n", tx_slot_type, NR_UPLINK_SLOT, NR_MIXED_SLOT);
   if (tx_slot_type == NR_UPLINK_SLOT || tx_slot_type == NR_MIXED_SLOT){
     if (UE->UE_mode[gNB_id] <= PUSCH) {
       if (get_softmodem_params()->usim_test==0) {
         pucch_procedures_ue_nr(UE,
                                gNB_id,
                                proc);
+        //LOG_X(RLC,"pucch_procedures_ue_nr finished @ %d : %d \n",proc->frame_tx, proc->nr_slot_tx);
       }
 
       LOG_D(PHY, "Sending Uplink data \n");
@@ -1148,6 +1151,7 @@ void *UE_thread(void *arg) {
         LOG_E(PHY, "get_samples_per_slot != trx_read_func \n");
         UE->lost_sync=1;
       }
+      // LOG_X(RLC,"Got USRP data!\n");
     // L5G_IOT
     PROM_METRICS(RX_OFFSET,"rx_offset",UE->rx_offset)
     if( slot_nr==(nb_slot_frame-1)) {
@@ -1201,7 +1205,8 @@ void *UE_thread(void *arg) {
     writeTimestamp = timestamp+
       UE->frame_parms.get_samples_slot_timestamp(slot_nr,&UE->frame_parms,DURATION_RX_TO_TX
       - NR_RX_NB_TH) - firstSymSamp - openair0_cfg[0].tx_sample_advance -
-      UE->N_TA_offset - timing_advance;
+      // UE->N_TA_offset - timing_advance - (-3*32);
+      UE->N_TA_offset - 192;
 
     // but use current UE->timing_advance value to compute writeBlockSize
     if (UE->timing_advance != timing_advance) {
@@ -1272,6 +1277,13 @@ void *UE_thread(void *arg) {
     } else {
       flags = 1;
     }
+
+    if (enable_parallel_pull !=0){
+      usleep(150);  // wait for ul to finish
+    }
+
+    //LOG_X(RLC,"-----> slot to send: %d\n",((slot_nr + DURATION_RX_TO_TX - NR_RX_NB_TH) % nb_slot_frame) - UE->rx_offset_diff);
+
     if (flags || IS_SOFTMODEM_RFSIM)
                   UE->rfdevice.trx_write_func(&UE->rfdevice,
                                               writeTimestamp,

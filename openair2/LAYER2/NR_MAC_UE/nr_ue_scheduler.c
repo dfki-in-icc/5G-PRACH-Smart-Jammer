@@ -64,6 +64,22 @@
 
 static prach_association_pattern_t prach_assoc_pattern;
 static ssb_list_info_t ssb_list;
+uint32_t get_Y(NR_SearchSpace_t *ss, int slot, rnti_t rnti) {
+
+  if(ss->searchSpaceType->present == NR_SearchSpace__searchSpaceType_PR_common)
+    return 0;
+
+  const int cid = *ss->controlResourceSetId%3;
+  const uint32_t A[3] = {39827, 39829, 39839};
+  const uint32_t D = 65537;
+  uint32_t Y;
+
+  Y = (A[cid] * rnti) % D;
+  for (int s = 0; s < slot; s++)
+    Y = (A[cid] * Y) % D;
+
+  return Y;
+}
 
 void fill_ul_config(fapi_nr_ul_config_request_t *ul_config, frame_t frame_tx, int slot_tx, uint8_t pdu_type){
 
@@ -147,9 +163,10 @@ long get_k2(NR_UE_MAC_INST_t *mac, uint8_t time_domain_ind) {
     k2 = *pusch_TimeDomainAllocationList->list.array[time_domain_ind]->k2;
   }
 
-  AssertFatal(k2 >= DURATION_RX_TO_TX,
-              "Slot offset K2 (%ld) cannot be less than DURATION_RX_TO_TX (%d). K2 set according to min_rxtxtime in config file.\n",
-              k2,DURATION_RX_TO_TX);
+  LOG_X(NR_MAC," Slot offset K2 = %ld ( index = %d )\n",k2,time_domain_ind);
+  // AssertFatal(k2 >= DURATION_RX_TO_TX,
+  //             "Slot offset K2 (%ld) cannot be less than DURATION_RX_TO_TX (%d). K2 set according to min_rxtxtime in config file.\n",
+  //             k2,DURATION_RX_TO_TX);
 
   LOG_X(NR_MAC, "get_k2(): k2 is %ld\n", k2);
   return k2;
@@ -763,7 +780,8 @@ int nr_config_pusch_pdu(NR_UE_MAC_INST_t *mac,
 
     /* TRANSFORM PRECODING ------------------------------------------------------------------------------------------*/
 
-    if (pusch_config_pdu->transform_precoding == NR_PUSCH_Config__transformPrecoder_enabled) {
+    // if (pusch_config_pdu->transform_precoding == NR_PUSCH_Config__transformPrecoder_enabled) {
+      if (0) {
 
       pusch_config_pdu->num_dmrs_cdm_grps_no_data = 2;
 
@@ -839,7 +857,10 @@ int nr_config_pusch_pdu(NR_UE_MAC_INST_t *mac,
       add_pos = (NR_DMRS_ulconfig->dmrs_AdditionalPosition == NULL) ? 2 : *NR_DMRS_ulconfig->dmrs_AdditionalPosition;
       dmrslength = NR_DMRS_ulconfig->maxLength == NULL ? pusch_len1 : pusch_len2;
     }
-
+    if (*dci_format == NR_UL_DCI_FORMAT_0_0) {
+      add_pos=2;
+      pusch_config_pdu->num_dmrs_cdm_grps_no_data = 2;
+    }
     /* DMRS */
     l_prime_mask = get_l_prime(pusch_config_pdu->nr_of_symbols,
                                mappingtype, add_pos, dmrslength,
@@ -861,6 +882,10 @@ int nr_config_pusch_pdu(NR_UE_MAC_INST_t *mac,
 
     else N_PRB_oh = 0;
 
+    if (*dci_format == NR_UL_DCI_FORMAT_0_0) {
+      add_pos=2;
+      pusch_config_pdu->num_dmrs_cdm_grps_no_data = 2;
+    }
     /* PTRS */
     if (mac->ULbwp[0] &&
 	mac->ULbwp[0]->bwp_Dedicated &&
@@ -884,7 +909,7 @@ int nr_config_pusch_pdu(NR_UE_MAC_INST_t *mac,
     }
 
   }
-
+  LOG_X(NR_MAC,"TRANSFORM PRECODING IS ENABLED. CDM groups: %d \n", pusch_config_pdu->num_dmrs_cdm_grps_no_data);
   LOG_X(NR_MAC, "In %s: received UL grant (rb_start %d, rb_size %d, start_symbol_index %d, nr_of_symbols %d) for RNTI type %s \n",
     __FUNCTION__,
     pusch_config_pdu->rb_start,
@@ -1109,7 +1134,12 @@ NR_UE_L2_STATE_t nr_ue_scheduler(nr_downlink_indication_t *dl_info, nr_uplink_in
         if (mac->ra.ra_state == WAIT_CONTENTION_RESOLUTION)
           rel15->dci_format_options[1] = NR_UL_DCI_FORMAT_0_0; // msg3 retransmission
         config_dci_pdu(mac, rel15, dl_config, mac->ra.ra_state == WAIT_RAR ? NR_RNTI_RA : NR_RNTI_TC , mac->ra.ss->searchSpaceId);
+        #define CCE_TRIAL        
+        #ifdef CCE_TRIAL
+        fill_dci_search_candidates(mac->ra.ss, rel15, -1, -1);
+        #else
         fill_dci_search_candidates(mac->ra.ss, rel15);
+        #endif
         dl_config->number_pdus = 1;
         LOG_X(MAC,"mac->cg %p: Calling fill_scheduled_response rnti %x, type0_pdcch, num_pdus %d\n",mac->cg,rel15->rnti,dl_config->number_pdus);
         fill_scheduled_response(&scheduled_response, dl_config, NULL, NULL, mod_id, cc_id, rx_frame, rx_slot, dl_info->thread_id);
@@ -1180,12 +1210,14 @@ NR_UE_L2_STATE_t nr_ue_scheduler(nr_downlink_indication_t *dl_info, nr_uplink_in
               mac_pdu_exist = 1;
             } else {
 
-              if ((mac->UL_ndi[ulcfg_pdu->pusch_config_pdu.pusch_data.harq_process_id] != ulcfg_pdu->pusch_config_pdu.pusch_data.new_data_indicator ||
-                  mac->first_ul_tx[ulcfg_pdu->pusch_config_pdu.pusch_data.harq_process_id]==1) &&
-                  ((get_softmodem_params()->phy_test == 1) ||
+              // if ((mac->UL_ndi[ulcfg_pdu->pusch_config_pdu.pusch_data.harq_process_id] != ulcfg_pdu->pusch_config_pdu.pusch_data.new_data_indicator ||
+              //     mac->first_ul_tx[ulcfg_pdu->pusch_config_pdu.pusch_data.harq_process_id]==1) &&
+              //     ((get_softmodem_params()->phy_test == 1) ||
+              //     (ra->ra_state == RA_SUCCEEDED) ||
+              //     (ra->ra_state == WAIT_RAR && ra->cfra))){
+              if (((get_softmodem_params()->phy_test == 1) ||
                   (ra->ra_state == RA_SUCCEEDED) ||
                   (ra->ra_state == WAIT_RAR && ra->cfra))){
-
                 // Getting IP traffic to be transmitted
                 nr_ue_get_sdu(mod_id, cc_id,frame_tx, slot_tx, gNB_index, ulsch_input_buffer, TBS_bytes);
                 mac_pdu_exist = 1;
@@ -2605,6 +2637,13 @@ void nr_ue_prach_scheduler(module_id_t module_idP, frame_t frameP, sub_frame_t s
   ra->generate_nr_prach = GENERATE_IDLE; // Reset flag for PRACH generation
   NR_TDD_UL_DL_ConfigCommon_t *tdd_config = scc==NULL ? scc_SIB->tdd_UL_DL_ConfigurationCommon : scc->tdd_UL_DL_ConfigurationCommon;
 
+  LOG_X(NR_MAC,"prach_ConfigurationIndex %d  msg1_FDM %d  msg1_FrequencyStart %d  zeroCorrelationZoneConfig %d\n",
+     scc_SIB->uplinkConfigCommon->initialUplinkBWP.rach_ConfigCommon->choice.setup->rach_ConfigGeneric.prach_ConfigurationIndex,
+     scc_SIB->uplinkConfigCommon->initialUplinkBWP.rach_ConfigCommon->choice.setup->rach_ConfigGeneric.msg1_FDM,
+     scc_SIB->uplinkConfigCommon->initialUplinkBWP.rach_ConfigCommon->choice.setup->rach_ConfigGeneric.msg1_FrequencyStart,
+     scc_SIB->uplinkConfigCommon->initialUplinkBWP.rach_ConfigCommon->choice.setup->rach_ConfigGeneric.zeroCorrelationZoneConfig);
+
+
   if (is_nr_UL_slot(tdd_config, slotP, mac->frame_type)) {
 
     // WIP Need to get the proper selected ssb_idx
@@ -2620,11 +2659,16 @@ void nr_ue_prach_scheduler(module_id_t module_idP, frame_t frameP, sub_frame_t s
     if (is_nr_prach_slot && ra->ra_state == RA_UE_IDLE) {
       AssertFatal(NULL != prach_occasion_info_p,"PRACH Occasion Info not returned in a valid NR Prach Slot\n");
 
+    LOG_X(NR_MAC,"Occasion  start_smb %d  fdm  %d  slot %d  frame %d  nb_mapped ssb %d format %d\n",
+        prach_occasion_info_p->start_symbol, prach_occasion_info_p->fdm, prach_occasion_info_p->slot,
+        prach_occasion_info_p->frame, prach_occasion_info_p->nb_mapped_ssb, prach_occasion_info_p->format);
+
       ra->generate_nr_prach = GENERATE_PREAMBLE;
 
       format = prach_occasion_info_p->format;
       format0 = format & 0xff;        // single PRACH format
       format1 = (format >> 8) & 0xff; // dual PRACH format
+      LOG_X(NR_MAC,"prach_occasion_info_p->format %d  format0 %d  format1 %d\n",format,format0,format1);
       AssertFatal(ul_config->number_pdus < sizeof(ul_config->ul_config_list) / sizeof(ul_config->ul_config_list[0]),
                   "Number of PDUS in ul_config = %d > ul_config_list num elements", ul_config->number_pdus);
 
@@ -2651,6 +2695,7 @@ void nr_ue_prach_scheduler(module_id_t module_idP, frame_t frameP, sub_frame_t s
       prach_config_pdu->restricted_set = prach_config->restricted_set_config;
       prach_config_pdu->freq_msg1 = prach_config->num_prach_fd_occasions_list[prach_occasion_info_p->fdm].k1;
 
+      LOG_X(NR_MAC,"prach start symbol %d  msg1-fdm  %d \n",prach_config_pdu->prach_start_symbol, prach_config_pdu->num_ra);
       LOG_X(NR_MAC,"Selected RO Frame %u, Slot %u, Symbol %u, Fdm %u\n", frameP, prach_config_pdu->prach_slot, prach_config_pdu->prach_start_symbol, prach_config_pdu->num_ra);
 
       // Search which SSB is mapped in the RO (among all the SSBs mapped to this RO)
@@ -2763,8 +2808,12 @@ void nr_ue_sib1_scheduler(module_id_t module_idP,
   rel15->num_dci_options = 1;
   rel15->dci_format_options[0] = NR_DL_DCI_FORMAT_1_0;
   config_dci_pdu(mac, rel15, dl_config, NR_RNTI_SI, -1);
+  #define CCE_TRIAL
+  #ifdef CCE_TRIAL
+  fill_dci_search_candidates(mac->search_space_zero, rel15, -1, -1);
+  #else
   fill_dci_search_candidates(mac->search_space_zero, rel15);
-
+  #endif
   if(mac->type0_PDCCH_CSS_config.type0_pdcch_ss_mux_pattern == 1){
     // same frame as ssb
     if ((mac->type0_PDCCH_CSS_config.frame & 0x1) == mac->type0_PDCCH_CSS_config.sfn_c)

@@ -131,7 +131,7 @@ void nr_ue_ulsch_procedures(PHY_VARS_NR_UE *UE,
   uint8_t  num_of_codewords = 1; // tmp assumption
   int      N_PRB_oh = 0; // higher layer (RRC) parameter xOverhead in PUSCH-ServingCellConfig
   uint16_t number_dmrs_symbols = 0;
-
+  double beta_ulsch = 1.0;
   for (cwd_index = 0;cwd_index < num_of_codewords; cwd_index++) {
 
     NR_UE_ULSCH_t *ulsch_ue = UE->ulsch[thread_id][gNB_id][cwd_index];
@@ -156,7 +156,11 @@ void nr_ue_ulsch_procedures(PHY_VARS_NR_UE *UE,
       start_sc -= frame_parms->ofdm_symbol_size;
 
     ulsch_ue->Nid_cell    = frame_parms->Nid_cell;
-
+    if(cdm_grps_no_data==2){
+      beta_ulsch=0.708;
+    }else if(cdm_grps_no_data==3){
+      beta_ulsch=0.57743;
+    }
     for (int i = start_symbol; i < start_symbol + number_of_symbols; i++) {
       if((ul_dmrs_symb_pos >> i) & 0x01)
         number_dmrs_symbols += 1;
@@ -164,8 +168,10 @@ void nr_ue_ulsch_procedures(PHY_VARS_NR_UE *UE,
 
     nb_dmrs_re_per_rb = ((dmrs_type == pusch_dmrs_type1) ? 6:4)*cdm_grps_no_data;
 
-    LOG_X(PHY,"ulsch %x : start_rb %d bwp_start %d start_sc %d start_symbol %d num_symbols %d cdmgrpsnodata %d num_dmrs %d dmrs_re_per_rb %d\n",
-          rnti,start_rb,pusch_pdu->bwp_start,start_sc,start_symbol,number_of_symbols,cdm_grps_no_data,number_dmrs_symbols,nb_dmrs_re_per_rb);
+    // LOG_X(PHY,"ulsch %x : start_rb %d bwp_start %d start_sc %d start_symbol %d num_symbols %d cdmgrpsnodata %d num_dmrs %d dmrs_re_per_rb %d\n",
+    //       rnti,start_rb,pusch_pdu->bwp_start,start_sc,start_symbol,number_of_symbols,cdm_grps_no_data,number_dmrs_symbols,nb_dmrs_re_per_rb);
+    LOG_X(RLC,"--> ulsch (rnti %x harq_process %d) : start_rb %d bwp_start %d start_sc %d start_symbol %d num_symbols %d cdmgrpsnodata %d num_dmrs %d dmrs_re_per_rb %d\n",
+          rnti, harq_pid, start_rb, pusch_pdu->bwp_start, start_sc,start_symbol,number_of_symbols,cdm_grps_no_data,number_dmrs_symbols,nb_dmrs_re_per_rb);
 
     // TbD num_of_mod_symbols is set but never used
     N_RE_prime = NR_NB_SC_PER_RB*number_of_symbols - nb_dmrs_re_per_rb*number_dmrs_symbols - N_PRB_oh;
@@ -267,7 +273,6 @@ void nr_ue_ulsch_procedures(PHY_VARS_NR_UE *UE,
                       Nl,
                       available_bits/mod_order,
                       tx_layers);
-
   ///////////
   ////////////////////////////////////////////////////////////////////////
 
@@ -444,7 +449,6 @@ void nr_ue_ulsch_procedures(PHY_VARS_NR_UE *UE,
 
               ((int16_t*)txdataF[ap])[(sample_offsetF)<<1] = (Wt[l_prime[0]]*Wf[k_prime]*AMP*mod_dmrs[dmrs_idx<<1]) >> 15;
               ((int16_t*)txdataF[ap])[((sample_offsetF)<<1) + 1] = (Wt[l_prime[0]]*Wf[k_prime]*AMP*mod_dmrs[(dmrs_idx<<1) + 1]) >> 15;
-
             }
 
           #ifdef DEBUG_PUSCH_MAPPING
@@ -467,9 +471,10 @@ void nr_ue_ulsch_procedures(PHY_VARS_NR_UE *UE,
           ptrs_idx++;
 
         } else if (!is_dmrs_sym || allowed_xlsch_re_in_dmrs_symbol(k, start_sc, frame_parms->ofdm_symbol_size, cdm_grps_no_data, dmrs_type)) {
-
-          ((int16_t*)txdataF[ap])[(sample_offsetF)<<1]       = ((int16_t *) ulsch_ue->y)[m<<1];
-          ((int16_t*)txdataF[ap])[((sample_offsetF)<<1) + 1] = ((int16_t *) ulsch_ue->y)[(m<<1) + 1];
+          ((int16_t*)txdataF[ap])[(sample_offsetF)<<1]       = (int16_t)((double)(((int16_t *) ulsch_ue->y)[m<<1])*beta_ulsch);
+          ((int16_t*)txdataF[ap])[((sample_offsetF)<<1) + 1] = (int16_t)((double)(((int16_t *) ulsch_ue->y)[(m<<1) + 1])*beta_ulsch);
+          //((int16_t*)txdataF[ap])[(sample_offsetF)<<1]       = ((int16_t *) ulsch_ue->y)[m<<1];
+          //((int16_t*)txdataF[ap])[((sample_offsetF)<<1) + 1] = ((int16_t *) ulsch_ue->y)[(m<<1) + 1];
 
         #ifdef DEBUG_PUSCH_MAPPING
           printf("m %d\t l %d \t k %d \t txdataF: %d %d\n",
@@ -496,7 +501,6 @@ void nr_ue_ulsch_procedures(PHY_VARS_NR_UE *UE,
   NR_UL_UE_HARQ_t *harq_process_ulsch=NULL;
   harq_process_ulsch = UE->ulsch[thread_id][gNB_id][0]->harq_processes[harq_pid];
   harq_process_ulsch->status = SCH_IDLE;
-
   ///////////
   ////////////////////////////////////////////////////////////////////////
 

@@ -1825,18 +1825,23 @@ uint8_t compute_nr_root_seq(NR_RACH_ConfigCommon_t *rach_config,
   uint32_t w;
   uint8_t found_preambles = 0;
   uint8_t found_sequences = 0;
-
+  LOG_X(NR_MAC,"=== compute_nr_root_seq  (config index %d  ncs_index %d  format0 %x  NCS %d  L_ra %d )\n",
+                                            config_index, ncs_index, format0, NCS, L_ra);
   if (rach_config->restrictedSetConfig == 0) {
-    if (NCS == 0) return nb_preambles;
+    if (NCS == 0) {
+      LOG_X(NR_MAC,"=== rach_config->restrictedSetConfig == 0 (nb_preambles %d)\n",nb_preambles);
+      return nb_preambles;
+    }
     else {
       r = L_ra/NCS;
       found_sequences = (nb_preambles/r) + (nb_preambles%r!=0); //ceil(nb_preambles/r)
-      LOG_X(MAC, "Computing NR root sequences: found %u sequences\n", found_sequences);
+      LOG_X(NR_MAC, "Computing NR root sequences: found %u sequences\n", found_sequences);
       return (found_sequences);
     }
   }
   else{
     index = rach_config->prach_RootSequenceIndex.choice.l839;
+    LOG_X(NR_MAC,"=== rach_config->restrictedSetConfig != 0\n");
     while (found_preambles < nb_preambles) {
       u = table_63313[index%(L_ra-1)];
 
@@ -3031,7 +3036,8 @@ uint16_t nr_dci_size(const NR_BWP_DownlinkCommon_t *initialDownlinkBWP,
       }
       // DMRS sequence init
       size += 1;
-      size=49;
+      // size=49;
+      size=51;
       break;
 
     case NR_DL_DCI_FORMAT_2_0:
