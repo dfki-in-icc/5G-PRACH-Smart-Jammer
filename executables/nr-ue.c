@@ -1026,6 +1026,10 @@ void *UE_thread(void *arg) {
       LOG_E(PHY,"Decoded frame index (%d) is not compatible with current context (%d), UE should go back to synch mode\n",
             decoded_frame_rx, curMsg->proc.frame_rx);
 
+    nbSlotProcessing++;
+    LOG_D(PHY,"Number of slots being processed at the moment: %d\n",nbSlotProcessing);
+    pushTpool(&(get_nrUE_params()->Tpool), msgToPush);
+
     // use previous timing_advance value to compute writeTimestamp
     writeTimestamp = timestamp+
       UE->frame_parms.get_samples_slot_timestamp(slot_nr,&UE->frame_parms,DURATION_RX_TO_TX
@@ -1078,10 +1082,6 @@ void *UE_thread(void *arg) {
     
     for (int i=0; i<UE->frame_parms.nb_antennas_tx; i++)
       memset(txp[i], 0, writeBlockSize);
-
-    nbSlotProcessing++;
-    LOG_D(PHY,"Number of slots being processed at the moment: %d\n",nbSlotProcessing);
-    pushTpool(&(get_nrUE_params()->Tpool), msgToPush);
 
   } // while !oai_exit
 
