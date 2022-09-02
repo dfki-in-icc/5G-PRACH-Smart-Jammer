@@ -709,7 +709,8 @@ unsigned short nr_dlsch_extract_rbs_single(int **rxdataF,
                                         unsigned short nb_rb_pdsch,
                                         uint8_t n_dmrs_cdm_groups,
                                         NR_DL_FRAME_PARMS *frame_parms,
-                                        uint16_t dlDmrsSymbPos);
+                                        uint16_t dlDmrsSymbPos,
+                                        int chest_time_type);
 
 /** \fn dlsch_extract_rbs_multiple(int32_t **rxdataF,
     int32_t **dl_ch_estimates,
@@ -747,7 +748,8 @@ void nr_dlsch_extract_rbs(int **rxdataF,
                                         uint8_t n_dmrs_cdm_groups,
                                         uint8_t Nl,
                                         NR_DL_FRAME_PARMS *frame_parms,
-                                        uint16_t dlDmrsSymbPos);
+                                        uint16_t dlDmrsSymbPos,
+                                        int chest_time_type);
 
 /** \fn dlsch_extract_rbs_TM7(int32_t **rxdataF,
     int32_t **dl_bf_ch_estimates,
@@ -853,10 +855,6 @@ void construct_HhH_elements(int *ch0conj_ch0,
                          int32_t *after_mf_11,
                          unsigned short nb_rb);
 
-void squared_matrix_element(int32_t *Hh_h_00,
-                            int32_t *Hh_h_00_sq,
-                            unsigned short nb_rb);
-
 void dlsch_channel_level_TM34_meas(int *ch00,
                                    int *ch01,
                                    int *ch10,
@@ -883,19 +881,15 @@ void nr_dlsch_detection_mrc(int **rxdataF_comp,
                             unsigned short nb_rb,
                             int length);
 
-void det_HhH(int32_t *after_mf_00,
-             int32_t *after_mf_01,
-             int32_t *after_mf_10,
-             int32_t *after_mf_11,
-             int32_t *det_fin_128,
-             unsigned short nb_rb);
+void nr_conjch0_mult_ch1(int *ch0,
+                         int *ch1,
+                         int32_t *ch0conj_ch1,
+                         unsigned short nb_rb,
+                         unsigned char output_shift0);
 
-void numer(int32_t *Hh_h_00_sq,
-           int32_t *Hh_h_01_sq,
-           int32_t *Hh_h_10_sq,
-           int32_t *Hh_h_11_sq,
-           int32_t *num_fin,
-           unsigned short nb_rb);
+void nr_a_sum_b(__m128i *input_x,
+                __m128i *input_y,
+                unsigned short nb_rb);
 
 uint8_t rank_estimation_tm3_tm4(int *dl_ch_estimates_00,
                                 int *dl_ch_estimates_01,

@@ -69,6 +69,10 @@ void free_gNB_dlsch(NR_gNB_DLSCH_t **dlschptr,
     free16(harq->b, a_segments * 1056);
     harq->b = NULL;
   }
+  if (harq->f) {
+    free16(harq->f, N_RB * NR_SYMBOLS_PER_SLOT * NR_NB_SC_PER_RB * 8 * NR_MAX_NB_LAYERS);
+    harq->f = NULL;
+  }
   for (int r = 0; r < a_segments; r++) {
     free(harq->c[r]);
     harq->c[r] = NULL;
@@ -119,7 +123,6 @@ NR_gNB_DLSCH_t *new_gNB_dlsch(NR_DL_FRAME_PARMS *frame_parms,
   bzero(dlsch,sizeof(NR_gNB_DLSCH_t));
   dlsch->Kmimo = Kmimo;
   dlsch->Mdlharq = Mdlharq;
-  dlsch->Mlimit = 4;
   dlsch->Nsoft = Nsoft;
 
   int txdataf_size = frame_parms->N_RB_DL*NR_SYMBOLS_PER_SLOT*NR_NB_SC_PER_RB*8; // max pdsch encoded length for each layer
@@ -176,6 +179,10 @@ NR_gNB_DLSCH_t *new_gNB_dlsch(NR_DL_FRAME_PARMS *frame_parms,
     AssertFatal(harq->c[r], "cannot allocate harq->c[%d]\n", r);
     bzero(harq->c[r], 8448);
   }
+
+  harq->f = malloc16(N_RB * NR_SYMBOLS_PER_SLOT * NR_NB_SC_PER_RB * 8 * NR_MAX_NB_LAYERS);
+  AssertFatal(harq->f, "cannot allocate harq->f\n");
+  bzero(harq->f, N_RB * NR_SYMBOLS_PER_SLOT * NR_NB_SC_PER_RB * 8 * NR_MAX_NB_LAYERS);
 
   return(dlsch);
 }
@@ -418,11 +425,13 @@ int nr_dlsch_encoding(PHY_VARS_gNB *gNB,
     encoder_implemparams_t* perJobImpp=(encoder_implemparams_t*)NotifiedFifoData(req);
     *perJobImpp=impp;
     perJobImpp->macro_num=j;
-    pushTpool(gNB->threadPool,req);
+    pushTpool(&gNB->threadPool, req);
     nbJobs++;
   }
   while(nbJobs) {
-    notifiedFIFO_elt_t *req=pullTpool(&nf, gNB->threadPool);
+    notifiedFIFO_elt_t *req=pullTpool(&nf, &gNB->threadPool);
+    if (req == NULL)
+      break; // Tpool has been stopped
     delNotifiedFIFO_elt(req);
     nbJobs--;
 

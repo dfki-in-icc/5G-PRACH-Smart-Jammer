@@ -253,7 +253,7 @@ class EPCManagement():
 			logging.debug('Starting OAI CN5G')
 			mySSH.command('if [ -d ' + self.SourceCodePath + '/scripts ]; then echo ' + self.Password + ' | sudo -S rm -Rf ' + self.SourceCodePath + '/scripts ; fi', '\$', 5)
 			mySSH.command('mkdir -p ' + self.SourceCodePath + '/scripts', '\$', 5)
-			mySSH.command('cd /opt/oai-cn5g-fed-v1.3/docker-compose', '\$', 5)
+			mySSH.command('cd /opt/oai-cn5g-fed-v1.4/docker-compose', '\$', 5)
 			mySSH.command('python3 ./core-network.py '+self.cfgDeploy, '\$', 60)
 			if re.search('start-mini-as-ue', self.cfgDeploy):
 				dFile = 'docker-compose-mini-nrf-asue.yaml'
@@ -311,6 +311,8 @@ class EPCManagement():
 				tmp = str(response[0],'utf-8')
 				self.MmeIPAddress = tmp.rstrip()
 				logging.debug('AMF IP Address ' + self.MmeIPAddress)
+			else:
+				logging.error('no container with name oai-amf found, could not retrieve AMF IP address')
 			mySSH.close()
 
 	def CheckHSSProcess(self, status_queue):
@@ -535,7 +537,7 @@ class EPCManagement():
 				mySSH.command('docker logs ' + c + ' > ' + self.SourceCodePath + '/logs/' + c + '.log', '\$', 5)
 
 			logging.debug('Terminating OAI CN5G')
-			mySSH.command('cd /opt/oai-cn5g-fed-v1.3/docker-compose', '\$', 5)
+			mySSH.command('cd /opt/oai-cn5g-fed-v1.4/docker-compose', '\$', 5)
 			mySSH.command('python3 ./core-network.py '+self.cfgUnDeploy, '\$', 60)
 			mySSH.command('docker volume prune --force || true', '\$', 60)
 			time.sleep(2)

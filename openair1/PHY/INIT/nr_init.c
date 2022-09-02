@@ -544,8 +544,8 @@ int phy_init_nr_gNB(PHY_VARS_gNB *gNB,
   gNB->nr_gold_pdsch_dmrs = (uint32_t ****)malloc16(fp->slots_per_frame*sizeof(uint32_t ***));
   uint32_t ****pdsch_dmrs             = gNB->nr_gold_pdsch_dmrs;
 
-  // ceil(((NB_RB*6(k)*2(QPSK)/32) // 3 RE *2(QPSK)
-  int pdsch_dmrs_init_length =  ((fp->N_RB_DL*12)>>5)+1;
+  // ceil(((NB_RB*12(k)*2(QPSK)/32) // 3 RE *2(QPSK)
+  const int pdsch_dmrs_init_length =  ((fp->N_RB_DL*24)>>5)+1;
   for (int slot=0; slot<fp->slots_per_frame; slot++) {
     pdsch_dmrs[slot] = (uint32_t ***)malloc16(fp->symbols_per_slot*sizeof(uint32_t **));
     AssertFatal(pdsch_dmrs[slot]!=NULL, "NR init: pdsch_dmrs for slot %d - malloc failed\n", slot);
@@ -596,37 +596,26 @@ int phy_init_nr_gNB(PHY_VARS_gNB *gNB,
   // CSI RS init
   // ceil((NB_RB*8(max allocation per RB)*2(QPSK))/32)
   int csi_dmrs_init_length =  ((fp->N_RB_DL<<4)>>5)+1;
-  gNB->nr_csi_rs_info = (nr_csi_rs_info_t *)malloc16_clear(sizeof(nr_csi_rs_info_t));
-  gNB->nr_csi_rs_info->nr_gold_csi_rs = (uint32_t ***)malloc16(fp->slots_per_frame*sizeof(uint32_t **));
-  AssertFatal(gNB->nr_csi_rs_info->nr_gold_csi_rs!=NULL, "NR init: csi reference signal malloc failed\n");
+  gNB->nr_csi_info = (nr_csi_info_t *)malloc16_clear(sizeof(nr_csi_info_t));
+  gNB->nr_csi_info->nr_gold_csi_rs = (uint32_t ***)malloc16(fp->slots_per_frame * sizeof(uint32_t **));
+  AssertFatal(gNB->nr_csi_info->nr_gold_csi_rs != NULL, "NR init: csi reference signal malloc failed\n");
   for (int slot=0; slot<fp->slots_per_frame; slot++) {
-    gNB->nr_csi_rs_info->nr_gold_csi_rs[slot] = (uint32_t **)malloc16(fp->symbols_per_slot*sizeof(uint32_t *));
-    AssertFatal(gNB->nr_csi_rs_info->nr_gold_csi_rs[slot]!=NULL, "NR init: csi reference signal for slot %d - malloc failed\n", slot);
+    gNB->nr_csi_info->nr_gold_csi_rs[slot] = (uint32_t **)malloc16(fp->symbols_per_slot * sizeof(uint32_t *));
+    AssertFatal(gNB->nr_csi_info->nr_gold_csi_rs[slot] != NULL, "NR init: csi reference signal for slot %d - malloc failed\n", slot);
     for (int symb=0; symb<fp->symbols_per_slot; symb++) {
-      gNB->nr_csi_rs_info->nr_gold_csi_rs[slot][symb] = (uint32_t *)malloc16(csi_dmrs_init_length*sizeof(uint32_t));
-      AssertFatal(gNB->nr_csi_rs_info->nr_gold_csi_rs[slot][symb]!=NULL, "NR init: csi reference signal for slot %d symbol %d - malloc failed\n", slot, symb);
+      gNB->nr_csi_info->nr_gold_csi_rs[slot][symb] = (uint32_t *)malloc16(csi_dmrs_init_length * sizeof(uint32_t));
+      AssertFatal(gNB->nr_csi_info->nr_gold_csi_rs[slot][symb] != NULL, "NR init: csi reference signal for slot %d symbol %d - malloc failed\n", slot, symb);
     }
   }
 
-  gNB->nr_csi_rs_info->csi_gold_init = cfg->cell_config.phy_cell_id.value;
-  nr_init_csi_rs(&gNB->frame_parms, gNB->nr_csi_rs_info->nr_gold_csi_rs, cfg->cell_config.phy_cell_id.value);
+  gNB->nr_csi_info->csi_gold_init = cfg->cell_config.phy_cell_id.value;
+  nr_init_csi_rs(&gNB->frame_parms, gNB->nr_csi_info->nr_gold_csi_rs, cfg->cell_config.phy_cell_id.value);
 
   for (int id=0; id<NUMBER_OF_NR_SRS_MAX; id++) {
     gNB->nr_srs_info[id] = (nr_srs_info_t *)malloc16_clear(sizeof(nr_srs_info_t));
-    gNB->nr_srs_info[id]->sc_list = (uint16_t *) malloc16_clear(6*fp->N_RB_UL*sizeof(uint16_t));
-    gNB->nr_srs_info[id]->srs_generated_signal = (int32_t*)malloc16_clear(fp->ofdm_symbol_size*MAX_NUM_NR_SRS_SYMBOLS*sizeof(int32_t));
-    gNB->nr_srs_info[id]->noise_power = (uint32_t*)malloc16_clear(sizeof(uint32_t));
-    gNB->nr_srs_info[id]->srs_received_signal = (int32_t **)malloc16(Prx*sizeof(int32_t*));
-    gNB->nr_srs_info[id]->srs_ls_estimated_channel = (int32_t **)malloc16(Prx*sizeof(int32_t*));
-    gNB->nr_srs_info[id]->srs_estimated_channel_freq = (int32_t **)malloc16(Prx*sizeof(int32_t*));
-    gNB->nr_srs_info[id]->srs_estimated_channel_time = (int32_t **)malloc16(Prx*sizeof(int32_t*));
-    gNB->nr_srs_info[id]->srs_estimated_channel_time_shifted = (int32_t **)malloc16(Prx*sizeof(int32_t*));
-    for (i=0;i<Prx;i++){
-      gNB->nr_srs_info[id]->srs_received_signal[i] = (int32_t*)malloc16_clear(fp->ofdm_symbol_size*MAX_NUM_NR_SRS_SYMBOLS*sizeof(int32_t));
-      gNB->nr_srs_info[id]->srs_ls_estimated_channel[i] = (int32_t*)malloc16_clear(fp->ofdm_symbol_size*MAX_NUM_NR_SRS_SYMBOLS*sizeof(int32_t));
-      gNB->nr_srs_info[id]->srs_estimated_channel_freq[i] = (int32_t*)malloc16_clear(fp->ofdm_symbol_size*MAX_NUM_NR_SRS_SYMBOLS*sizeof(int32_t));
-      gNB->nr_srs_info[id]->srs_estimated_channel_time[i] = (int32_t*)malloc16_clear(fp->ofdm_symbol_size*MAX_NUM_NR_SRS_SYMBOLS*sizeof(int32_t));
-      gNB->nr_srs_info[id]->srs_estimated_channel_time_shifted[i] = (int32_t*)malloc16_clear(fp->ofdm_symbol_size*MAX_NUM_NR_SRS_SYMBOLS*sizeof(int32_t));
+    gNB->nr_srs_info[id]->srs_generated_signal = (int32_t**)malloc16_clear(MAX_NUM_NR_SRS_AP*sizeof(int32_t*));
+    for(int ap=0; ap<MAX_NUM_NR_SRS_AP; ap++) {
+      gNB->nr_srs_info[id]->srs_generated_signal[ap] = (int32_t*)malloc16_clear(fp->ofdm_symbol_size*MAX_NUM_NR_SRS_SYMBOLS*sizeof(int32_t));
     }
   }
 
@@ -640,9 +629,10 @@ int phy_init_nr_gNB(PHY_VARS_gNB *gNB,
 
   gNB->first_run_I0_measurements = 1;
 
-  common_vars->rxdata  = (int32_t **)malloc16(Prx*sizeof(int32_t*));
   common_vars->txdataF = (int32_t **)malloc16(Ptx*sizeof(int32_t*));
   common_vars->rxdataF = (int32_t **)malloc16(Prx*sizeof(int32_t*));
+  /* Do NOT allocate per-antenna txdataF/rxdataF: the gNB gets a pointer to the
+   * RU to copy/recover freq-domain memory from there */
   common_vars->beam_id = (uint8_t **)malloc16(Ptx*sizeof(uint8_t*));
 
   for (i=0;i<Ptx;i++){
@@ -652,10 +642,6 @@ int phy_init_nr_gNB(PHY_VARS_gNB *gNB,
           fp->samples_per_frame_wCP*sizeof(int32_t));
     common_vars->beam_id[i] = (uint8_t*)malloc16_clear(fp->symbols_per_slot*fp->slots_per_frame*sizeof(uint8_t));
     memset(common_vars->beam_id[i],255,fp->symbols_per_slot*fp->slots_per_frame);
-  }
-  for (i=0;i<Prx;i++){
-    common_vars->rxdataF[i] = (int32_t*)malloc16_clear(fp->samples_per_frame_wCP*sizeof(int32_t));
-    common_vars->rxdata[i] = (int32_t*)malloc16_clear(fp->samples_per_frame*sizeof(int32_t));
   }
   common_vars->debugBuff = (int32_t*)malloc16_clear(fp->samples_per_frame*sizeof(int32_t)*100);	
   common_vars->debugBuff_sample_offset = 0; 
@@ -775,31 +761,20 @@ void phy_free_nr_gNB(PHY_VARS_gNB *gNB)
   }
   free_and_zero(pusch_dmrs);
 
-  uint32_t ***nr_gold_csi_rs = gNB->nr_csi_rs_info->nr_gold_csi_rs;
+  uint32_t ***nr_gold_csi_rs = gNB->nr_csi_info->nr_gold_csi_rs;
   for (int slot = 0; slot < fp->slots_per_frame; slot++) {
     for (int symb = 0; symb < fp->symbols_per_slot; symb++)
       free_and_zero(nr_gold_csi_rs[slot][symb]);
     free_and_zero(nr_gold_csi_rs[slot]);
   }
   free_and_zero(nr_gold_csi_rs);
-  free_and_zero(gNB->nr_csi_rs_info);
+  free_and_zero(gNB->nr_csi_info);
 
   for (int id = 0; id < NUMBER_OF_NR_SRS_MAX; id++) {
-    for (int i = 0; i < Prx; i++) {
-      free_and_zero(gNB->nr_srs_info[id]->srs_received_signal[i]);
-      free_and_zero(gNB->nr_srs_info[id]->srs_ls_estimated_channel[i]);
-      free_and_zero(gNB->nr_srs_info[id]->srs_estimated_channel_freq[i]);
-      free_and_zero(gNB->nr_srs_info[id]->srs_estimated_channel_time[i]);
-      free_and_zero(gNB->nr_srs_info[id]->srs_estimated_channel_time_shifted[i]);
+    for(int i=0; i<MAX_NUM_NR_SRS_AP; i++) {
+      free_and_zero(gNB->nr_srs_info[id]->srs_generated_signal[i]);
     }
-    free_and_zero(gNB->nr_srs_info[id]->sc_list);
     free_and_zero(gNB->nr_srs_info[id]->srs_generated_signal);
-    free_and_zero(gNB->nr_srs_info[id]->noise_power);
-    free_and_zero(gNB->nr_srs_info[id]->srs_received_signal);
-    free_and_zero(gNB->nr_srs_info[id]->srs_ls_estimated_channel);
-    free_and_zero(gNB->nr_srs_info[id]->srs_estimated_channel_freq);
-    free_and_zero(gNB->nr_srs_info[id]->srs_estimated_channel_time);
-    free_and_zero(gNB->nr_srs_info[id]->srs_estimated_channel_time_shifted);
     free_and_zero(gNB->nr_srs_info[id]);
   }
 
@@ -814,13 +789,9 @@ void phy_free_nr_gNB(PHY_VARS_gNB *gNB)
     free_and_zero(common_vars->beam_id[i]);
   }
 
-  for (int i = 0; i < Prx; ++i) {
-    free_and_zero(common_vars->rxdataF[i]);
-    free_and_zero(common_vars->rxdata[i]);
-  }
-
+  /* Do NOT free per-antenna txdataF/rxdataF: the gNB gets a pointer to the
+   * RU's txdataF/rxdataF, and the RU will free that */
   free_and_zero(common_vars->txdataF);
-  free_and_zero(common_vars->rxdata);
   free_and_zero(common_vars->rxdataF);
   free_and_zero(common_vars->beam_id);
 
@@ -1050,7 +1021,7 @@ void init_nr_transport(PHY_VARS_gNB *gNB) {
 
     LOG_I(PHY,"Allocating Transport Channel Buffers for ULSCH  %d/%d\n",i,gNB->number_of_nr_ulsch_max);
 
-    gNB->ulsch[i] = new_gNB_ulsch(MAX_LDPC_ITERATIONS, fp->N_RB_UL);
+    gNB->ulsch[i] = new_gNB_ulsch(gNB->max_ldpc_iterations, fp->N_RB_UL);
 
     if (!gNB->ulsch[i]) {
       LOG_E(PHY,"Can't get gNB ulsch structures\n");

@@ -132,12 +132,9 @@ typedef struct {
   // RRC measurements
   uint32_t rssi;
   int n_adj_cells;
-  unsigned int adj_cell_id[6];
-  uint32_t rsrq[7];
   uint32_t rsrp[7];
-  float rsrp_filtered[7]; // after layer 3 filtering
-  float rsrq_filtered[7];
   short rsrp_dBm[7];
+  int ssb_rsrp_dBm[64];
   // common measurements
   //! estimated noise power (linear)
   unsigned int   n0_power[NB_ANTENNAS_RX];
@@ -773,11 +770,10 @@ typedef struct {
 
   uint32_t X_u[64][839];
 
-
-  uint32_t perfect_ce;
   // flag to activate PRB based averaging of channel estimates
   // when off, defaults to frequency domain interpolation
-  int prb_interpolation;
+  int chest_freq;
+  int chest_time;
   int generate_ul_signal[NUMBER_OF_CONNECTED_gNB_MAX];
 
   UE_NR_SCAN_INFO_t scan_info[NB_BANDS_MAX];
@@ -865,6 +861,8 @@ typedef struct {
   /// N0 (used for abstraction)
   double N0;
 
+  uint8_t max_ldpc_iterations;
+
   /// PDSCH Varaibles
   PDSCH_CONFIG_DEDICATED pdsch_config_dedicated[NUMBER_OF_CONNECTED_gNB_MAX];
 
@@ -877,8 +875,8 @@ typedef struct {
   /// SRS variables
   nr_srs_info_t *nr_srs_info;
 
-  /// CSI-RS variables
-  nr_csi_rs_info_t *nr_csi_rs_info;
+  /// CSI variables
+  nr_csi_info_t *nr_csi_info;
 
   //#if defined(UPGRADE_RAT_NR)
 #if 1
@@ -977,8 +975,8 @@ typedef struct {
   SLIST_HEAD(ral_thresholds_gen_poll_s, ral_threshold_phy_t) ral_thresholds_gen_polled[RAL_LINK_PARAM_GEN_MAX];
   SLIST_HEAD(ral_thresholds_lte_poll_s, ral_threshold_phy_t) ral_thresholds_lte_polled[RAL_LINK_PARAM_LTE_MAX];
 #endif
-  
-  int dl_stats[5];
+  int dl_errors;
+  int dl_stats[8];
   void* scopeData;
 } PHY_VARS_NR_UE;
 

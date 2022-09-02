@@ -47,7 +47,7 @@
 #include "common/utils/LOG/log.h"
 #include "common/config/config_userapi.h"
 #include "telnetsrv_measurements.h"
-
+#include "common/utils/cpustats.h"
 
 static char                    *grouptypes[] = {"ltestats","cpustats"};
 static double                  cpufreq;
@@ -284,6 +284,94 @@ int measurcmd_async(char *buf, int debug, telnet_printfunc_t prnt) {
 
   free(subcmd);
   return CMDSTATUS_FOUND;
+}
+
+/**
+ * Parse command "measur enable STATNAME" and take action. STATNAME can be retrieved from 'measur show groups '
+ * 
+ * @param[in] buf   buffer containing the command to be parsed. Expected "<stats name>"
+ * @param[in] debug if > 0, it print debugging information on the log file for telnet
+ * @param[in] prnt  printing function for telnet CLI
+ * 
+ * @return 0(success), error code otherwise
+ */
+int 
+measurcmd_enablestats(char *buf, int debug, telnet_printfunc_t prnt)
+{
+  char *statname = NULL;
+  int ret = CMDSTATUS_NOTFOUND;
+
+  if (debug > 0)
+    prnt("measurcmd_enablestats received %s\n", buf);
+
+  if (buf == NULL)
+	  return ret;  
+
+  if (sscanf(buf, "%ms\n", &statname) != 1){
+    prnt("Error parsing commandline for enable stats: %s\n", strerror(errno));
+    return ret;
+  }
+  
+  if (strcmp (statname, UE_STATS_L1) == 0){
+    if (UEL1cpustats_enable() ==false)
+      prnt ("Error when enabling statistics. See log file of UE for exact cause\n");
+    else
+      ret = CMDSTATUS_FOUND;
+  } else if (strcmp (statname, GNB_STATS_L1) == 0){
+    if (gNBL1cpustats_enable(RC.gNB[0]) == false)
+      prnt ("Error when enabling statistics. See log file of gNB for exact cause\n");
+    else
+      ret = CMDSTATUS_FOUND;
+  } else if (strcmp (statname, GNB_STATS_L2_MAC) == 0){
+    prnt ("Nothing to do for this type of statistic. Already activated\n");
+    ret = CMDSTATUS_FOUND;
+  } else {
+      prnt ("ERR: unsupported stat %s\n", statname);
+  }
+
+  return ret;
+}
+
+/**
+ * Parse command "measur disable STATNAME" and take action. STATNAME can be retrieved from 'measur show groups '
+ * 
+ * @param[in] buf   buffer containing the command to be parsed. Expected "<stats name>"
+ * @param[in] debug if > 0, it print debugging information on the log file for telnet
+ * @param[in] prnt  printing function for telnet CLI
+ * 
+ * @return 0(success), error code otherwise
+ */
+int 
+measurcmd_disablestats(char *buf, int debug, telnet_printfunc_t prnt)
+{
+  char *statname = NULL; 
+  int ret = CMDSTATUS_NOTFOUND;
+
+  if (debug > 0)
+    prnt("measurcmd_disablestats received %s\n", buf);
+
+  if (buf == NULL)
+	  return ret;  
+
+  if (sscanf(buf, "%ms\n", &statname) != 1){
+    prnt("Error parsing commandline for disable stats: %s\n", strerror(errno));
+    return ret;
+  }
+  
+  if (strcmp (statname, UE_STATS_L1) == 0){
+    UEL1cpustats_disable();
+    ret = CMDSTATUS_FOUND;
+  } else if (strcmp (statname, GNB_STATS_L1) == 0){
+    gNBL1cpustats_disable();
+    ret = CMDSTATUS_FOUND;
+  } else if (strcmp (statname, GNB_STATS_L2_MAC) == 0){
+    prnt ("Nothing to do for this type of statistic. They are always activated\n");
+    ret = CMDSTATUS_FOUND;
+  } else {
+      prnt ("ERR: unsupported statistic to be disabled: %s\n", statname);
+  }
+
+  return ret;
 }
 /*-------------------------------------------------------------------------------------*/
 

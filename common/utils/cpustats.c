@@ -86,19 +86,19 @@ UEL1cpustats_display(telnet_printfunc_t prnt)
 
   char output[TELNET_MAX_MSGLENGTH];
   int stroff = 0;
-  stroff += print_meas_log(&ue->phy_proc_tx                 , "L1 TX processing"    , NULL, NULL, output);
-  stroff += print_meas_log(&ue->ulsch_encoding_stats        , "ULSCH encoding"      , NULL, NULL, output + stroff);
-  stroff += print_meas_log(&ue->phy_proc_rx[0]              , "L1 RX processing t0" , NULL, NULL, output + stroff);
-  stroff += print_meas_log(&ue->phy_proc_rx[1]              , "L1 RX processing t1" , NULL, NULL, output + stroff);
-  stroff += print_meas_log(&ue->ue_ul_indication_stats      , "UL Indication"       , NULL, NULL, output + stroff);
-  stroff += print_meas_log(&ue->rx_pdsch_stats              , "PDSCH receiver"      , NULL, NULL, output + stroff);
-  stroff += print_meas_log(&ue->dlsch_decoding_stats[0]     , "PDSCH decoding t0"   , NULL, NULL, output + stroff);
-  stroff += print_meas_log(&ue->dlsch_decoding_stats[1]     , "PDSCH decoding t1"   , NULL, NULL, output + stroff);
-  stroff += print_meas_log(&ue->dlsch_deinterleaving_stats  , " -> Deinterleive"    , NULL, NULL, output + stroff);
-  stroff += print_meas_log(&ue->dlsch_rate_unmatching_stats , " -> Rate Unmatch"    , NULL, NULL, output + stroff);
-  stroff += print_meas_log(&ue->dlsch_ldpc_decoding_stats   , " ->  LDPC Decode"    , NULL, NULL, output + stroff);
-  stroff += print_meas_log(&ue->dlsch_unscrambling_stats    , "PDSCH unscrambling"  , NULL, NULL, output + stroff);
-  stroff += print_meas_log(&ue->dlsch_rx_pdcch_stats        , "PDCCH handling"      , NULL, NULL, output + stroff);
+  stroff += print_meas_log(&ue->phy_proc_tx                 , "L1 TX processing"    , NULL, NULL, output         , TELNET_MAX_MSGLENGTH - stroff);
+  stroff += print_meas_log(&ue->ulsch_encoding_stats        , "ULSCH encoding"      , NULL, NULL, output + stroff, TELNET_MAX_MSGLENGTH - stroff );
+  stroff += print_meas_log(&ue->phy_proc_rx[0]              , "L1 RX processing t0" , NULL, NULL, output + stroff, TELNET_MAX_MSGLENGTH - stroff);
+  stroff += print_meas_log(&ue->phy_proc_rx[1]              , "L1 RX processing t1" , NULL, NULL, output + stroff, TELNET_MAX_MSGLENGTH - stroff);
+  stroff += print_meas_log(&ue->ue_ul_indication_stats      , "UL Indication"       , NULL, NULL, output + stroff, TELNET_MAX_MSGLENGTH - stroff);
+  stroff += print_meas_log(&ue->rx_pdsch_stats              , "PDSCH receiver"      , NULL, NULL, output + stroff, TELNET_MAX_MSGLENGTH - stroff);
+  stroff += print_meas_log(&ue->dlsch_decoding_stats[0]     , "PDSCH decoding t0"   , NULL, NULL, output + stroff, TELNET_MAX_MSGLENGTH - stroff);
+  stroff += print_meas_log(&ue->dlsch_decoding_stats[1]     , "PDSCH decoding t1"   , NULL, NULL, output + stroff, TELNET_MAX_MSGLENGTH - stroff);
+  stroff += print_meas_log(&ue->dlsch_deinterleaving_stats  , " -> Deinterleive"    , NULL, NULL, output + stroff, TELNET_MAX_MSGLENGTH - stroff);
+  stroff += print_meas_log(&ue->dlsch_rate_unmatching_stats , " -> Rate Unmatch"    , NULL, NULL, output + stroff, TELNET_MAX_MSGLENGTH - stroff);
+  stroff += print_meas_log(&ue->dlsch_ldpc_decoding_stats   , " ->  LDPC Decode"    , NULL, NULL, output + stroff, TELNET_MAX_MSGLENGTH - stroff);
+  stroff += print_meas_log(&ue->dlsch_unscrambling_stats    , "PDSCH unscrambling"  , NULL, NULL, output + stroff, TELNET_MAX_MSGLENGTH - stroff);
+  stroff += print_meas_log(&ue->dlsch_rx_pdcch_stats        , "PDCCH handling"      , NULL, NULL, output + stroff, TELNET_MAX_MSGLENGTH - stroff);
   
   prnt("%s\n", output);
 }
@@ -192,39 +192,41 @@ UEL1cpustats_measurcmd_display (telnet_printfunc_t prnt)
 
 /* Display info from specific instance of gNB and from radio unit */
 static void 
-gNBL1cpustats_display(telnet_printfunc_t prnt, PHY_VARS_gNB *gNB )
+gNBL1cpustats_display(telnet_printfunc_t prnt, PHY_VARS_gNB *gNB)
 {
   RU_t *ru = getglobal_ru();
 
-  // XXX: this implementation that uses print_meas_log() should be fixed using a dynamically allocated buffer instead of a plain one that is prone to sigSEGV
-  //      as behind the scenes is implemented with sprintf(). For the moment it is ok as it fits the TELNET_MAX_MSGLENGTH.
   char output[TELNET_MAX_MSGLENGTH]; 
   int stroff = 0;
-  stroff += print_meas_log(&gNB->phy_proc_tx            , "L1 Tx processing"    , NULL, NULL, output);
-  stroff += print_meas_log(&gNB->dlsch_encoding_stats   , "DLSCH encoding"      , NULL, NULL, output+stroff);
-  stroff += print_meas_log(&gNB->phy_proc_rx            , "L1 Rx processing"    , NULL, NULL, output+stroff);
-  stroff += print_meas_log(&gNB->ul_indication_stats    , "UL Indication"       , NULL, NULL, output+stroff);
-  stroff += print_meas_log(&gNB->rx_pusch_stats         , "PUSCH inner-receiver", NULL, NULL, output+stroff);
-  stroff += print_meas_log(&gNB->ulsch_decoding_stats   , "PUSCH decoding"      , NULL, NULL, output+stroff);
-  stroff += print_meas_log(&gNB->schedule_response_stats, "Schedule Response"   , NULL, NULL, output+stroff);
+  prnt("%s\n");
+  // XXX: header will be printed automatically by print_meas_log() just the first time it is called in the program. It means that if you
+  // use a mechanism like 'loop measur show gnb_L1', you will lose the header after the first iteration.
+  // You should fix the logic of 'print_meas_log() to avoid it printing any header.
+  stroff += print_meas_log(&gNB->phy_proc_tx            , "L1 Tx processing"    , NULL, NULL, output       , TELNET_MAX_MSGLENGTH - stroff);
+  stroff += print_meas_log(&gNB->dlsch_encoding_stats   , "DLSCH encoding"      , NULL, NULL, output+stroff, TELNET_MAX_MSGLENGTH - stroff);
+  stroff += print_meas_log(&gNB->phy_proc_rx            , "L1 Rx processing"    , NULL, NULL, output+stroff, TELNET_MAX_MSGLENGTH - stroff);
+  stroff += print_meas_log(&gNB->ul_indication_stats    , "UL Indication"       , NULL, NULL, output+stroff, TELNET_MAX_MSGLENGTH - stroff);
+  stroff += print_meas_log(&gNB->rx_pusch_stats         , "PUSCH inner-receiver", NULL, NULL, output+stroff, TELNET_MAX_MSGLENGTH - stroff);
+  stroff += print_meas_log(&gNB->ulsch_decoding_stats   , "PUSCH decoding"      , NULL, NULL, output+stroff, TELNET_MAX_MSGLENGTH - stroff);
+  stroff += print_meas_log(&gNB->schedule_response_stats, "Schedule Response"   , NULL, NULL, output+stroff, TELNET_MAX_MSGLENGTH - stroff);
   if (ru->feprx) 
-    stroff += print_meas_log(&ru->ofdm_demod_stats      , "feprx"               , NULL, NULL, output+stroff);
+    stroff += print_meas_log(&ru->ofdm_demod_stats      , "feprx"               , NULL, NULL, output+stroff, TELNET_MAX_MSGLENGTH - stroff);
 
   if (ru->feptx_ofdm) {
-    stroff += print_meas_log(&ru->precoding_stats       , "feptx_prec"          , NULL, NULL, output+stroff);
-    stroff += print_meas_log(&ru->txdataF_copy_stats    , "txdataF_copy"        , NULL, NULL, output+stroff);
-    stroff += print_meas_log(&ru->ofdm_mod_stats        , "feptx_ofdm"          , NULL, NULL, output+stroff);
-    stroff += print_meas_log(&ru->ofdm_total_stats      , "feptx_total"         , NULL, NULL, output+stroff);
+    stroff += print_meas_log(&ru->precoding_stats       , "feptx_prec"          , NULL, NULL, output+stroff, TELNET_MAX_MSGLENGTH - stroff);
+    stroff += print_meas_log(&ru->txdataF_copy_stats    , "txdataF_copy"        , NULL, NULL, output+stroff, TELNET_MAX_MSGLENGTH - stroff);
+    stroff += print_meas_log(&ru->ofdm_mod_stats        , "feptx_ofdm"          , NULL, NULL, output+stroff, TELNET_MAX_MSGLENGTH - stroff);
+    stroff += print_meas_log(&ru->ofdm_total_stats      , "feptx_total"         , NULL, NULL, output+stroff, TELNET_MAX_MSGLENGTH - stroff);
   }
 
   if (ru->fh_north_asynch_in) 
-    stroff += print_meas_log(&ru->rx_fhaul              , "rx_fhaul"            , NULL, NULL, output+stroff);
+    stroff += print_meas_log(&ru->rx_fhaul              , "rx_fhaul"            , NULL, NULL, output+stroff, TELNET_MAX_MSGLENGTH - stroff);
 
-  stroff += print_meas_log(&ru->tx_fhaul                , "tx_fhaul"            , NULL, NULL, output+stroff);
+  stroff += print_meas_log(&ru->tx_fhaul                , "tx_fhaul"            , NULL, NULL, output+stroff, TELNET_MAX_MSGLENGTH - stroff);
 
   if (ru->fh_north_out) {
-    stroff += print_meas_log(&ru->compression           , "compression"         , NULL, NULL, output+stroff);
-    stroff += print_meas_log(&ru->transport             , "transport"           , NULL, NULL, output+stroff);
+    stroff += print_meas_log(&ru->compression           , "compression"         , NULL, NULL, output+stroff, TELNET_MAX_MSGLENGTH - stroff);
+    stroff += print_meas_log(&ru->transport             , "transport"           , NULL, NULL, output+stroff, TELNET_MAX_MSGLENGTH - stroff);
   }
 
   prnt("%s\n", output);

@@ -217,7 +217,7 @@ void oai_create_enb(void) {
   }
 
   // This will cause phy_config_request to be installed. That will result in RRC configuring the PHY
-  // that will result in eNB->configured being set to TRUE.
+  // that will result in eNB->configured being set to true.
   // See we need to wait for that to happen otherwise the NFAPI message exchanges won't contain the right parameter values
   if (RC.eNB[0][0]->if_inst==0 || RC.eNB[0][0]->if_inst->PHY_config_req==0 || RC.eNB[0][0]->if_inst->schedule_response==0) {
     NFAPI_TRACE(NFAPI_TRACE_INFO, "RC.eNB[0][0]->if_inst->PHY_config_req is not installed - install it\n");
@@ -267,7 +267,7 @@ void oai_create_gnb(void) {
 
 
   // This will cause phy_config_request to be installed. That will result in RRC configuring the PHY
-  // that will result in gNB->configured being set to TRUE.
+  // that will result in gNB->configured being set to true.
   // See we need to wait for that to happen otherwise the NFAPI message exchanges won't contain the right parameter values
   if (RC.gNB[0]->if_inst==0 || RC.gNB[0]->if_inst->NR_PHY_config_req==0 || RC.gNB[0]->if_inst->NR_Schedule_response==0) {
     NFAPI_TRACE(NFAPI_TRACE_INFO, "RC.gNB[0][0]->if_inst->NR_PHY_config_req is not installed - install it\n");
@@ -1687,7 +1687,6 @@ int nr_config_resp_cb(nfapi_vnf_config_t *config, int p5_idx, nfapi_nr_config_re
   nfapi_nr_start_request_scf_t req;
   NFAPI_TRACE(NFAPI_TRACE_INFO, "[VNF] Received NFAPI_CONFIG_RESP idx:%d phy_id:%d\n", p5_idx, resp->header.phy_id);
   NFAPI_TRACE(NFAPI_TRACE_INFO, "[VNF] Calling oai_enb_init()\n");
-  oai_enb_init(); // TODO: change to gnb
   memset(&req, 0, sizeof(req));
   req.header.message_id = NFAPI_NR_PHY_MSG_TYPE_START_REQUEST;
   req.header.phy_id = resp->header.phy_id;

@@ -91,12 +91,12 @@ int measurcmd_disablestats(char *buf, int debug, telnet_printfunc_t prnt);
 
 
 telnetshell_cmddef_t measur_cmdarray[] = {
-  {"show"    , "groups | <group name> | inq" , measurcmd_show         },
-  {"cpustats", "[enable | disable]"          , measurcmd_cpustats     },
-  {"enable"  , "<stat name>"                 , measurcmd_enablestats  },
-  {"disable" , "<stat name>"                 , measurcmd_disablestats },
-  {"async"   , "[enable | disable]"          , measurcmd_async        },
-  {""        , ""                            , NULL                   }
+  {"show", "groups | <group name> | inq" , measurcmd_show},
+  {"cpustats", "[enable | disable]", measurcmd_cpustats},
+  {"enable", "<stat name>", measurcmd_enablestats},
+  {"disable", "<stat name>", measurcmd_disablestats},
+  {"async", "[enable | disable]", measurcmd_async},
+  {"", "", NULL}
 };
 
 telnetshell_vardef_t measur_vardef[] = {

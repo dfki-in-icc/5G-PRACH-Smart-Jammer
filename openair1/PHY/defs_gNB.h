@@ -96,6 +96,8 @@ typedef struct {
   uint32_t subframe;
   /// MIMO mode for this DLSCH
   MIMO_mode_t mimo_mode;
+  /// Interleaver outputs
+  uint8_t *f;
   /// LDPC lifting size
   uint32_t Z;
 } NR_DL_gNB_HARQ_t;
@@ -186,8 +188,6 @@ typedef struct {
   uint8_t codebook_index;
   /// Maximum number of HARQ processes
   uint8_t Mdlharq;
-  /// Maximum number of HARQ rounds
-  uint8_t Mlimit;
   /// MIMO transmission mode indicator for this sub-frame
   uint8_t Kmimo;
   /// Nsoft parameter related to UE Category
@@ -343,8 +343,6 @@ typedef struct {
 typedef struct {
   /// Pointers to 16 HARQ processes for the ULSCH
   NR_UL_gNB_HARQ_t *harq_processes[NR_MAX_ULSCH_HARQ_PROCESSES];
-  /// Current HARQ process id
-  int harq_process_id[NR_MAX_SLOTS_PER_FRAME];
   /// HARQ process mask, indicates which processes are currently active
   uint16_t harq_mask;
   /// ACK/NAK Bundling flag
@@ -371,8 +369,6 @@ typedef struct {
   uint8_t cyclicShift;
   /// for cooperative communication
   uint8_t cooperation_flag;
-  /// Maximum number of HARQ rounds
-  uint8_t Mlimit;
   /// Maximum number of LDPC iterations
   uint8_t max_ldpc_iterations;
   /// number of iterations used in last LDPC decoding
@@ -400,10 +396,6 @@ typedef struct {
 } NR_gNB_SRS_t;
 
 typedef struct {
-  /// \brief Pointers (dynamic) to the received data in the time domain.
-  /// - first index: rx antenna [0..nb_antennas_rx[
-  /// - second index: ? [0..2*ofdm_symbol_size*frame_parms->symbols_per_tti[
-  int32_t **rxdata;
   /// \brief Pointers (dynamic) to the received data in the frequency domain.
   /// - first index: rx antenna [0..nb_antennas_rx[
   /// - second index: ? [0..2*ofdm_symbol_size*frame_parms->symbols_per_tti[
@@ -763,8 +755,8 @@ typedef struct PHY_VARS_gNB_s {
   /// SRS variables
   nr_srs_info_t *nr_srs_info[NUMBER_OF_NR_SRS_MAX];
 
-  /// CSI-RS variables
-  nr_csi_rs_info_t *nr_csi_rs_info;
+  /// CSI variables
+  nr_csi_info_t *nr_csi_info;
 
   uint8_t pbch_configured;
   char gNB_generate_rar;
@@ -826,7 +818,11 @@ typedef struct PHY_VARS_gNB_s {
   int              **dl_precoder_SgNB[3];
   char             log2_maxp; /// holds the maximum channel/precoder coefficient
 
-  int  prb_interpolation;
+  int max_ldpc_iterations;
+  /// indicate the channel estimation technique in time domain
+  int chest_time;
+  /// indicate the channel estimation technique in freq domain
+  int chest_freq;
 
   /// if ==0 enables phy only test mode
   int mac_enabled;
@@ -890,13 +886,13 @@ typedef struct PHY_VARS_gNB_s {
   time_stats_t rx_dft_stats;
   time_stats_t ulsch_freq_offset_estimation_stats;
   */
-  notifiedFIFO_t *respDecode;
-  notifiedFIFO_t *resp_L1;
-  notifiedFIFO_t *L1_tx_free;
-  notifiedFIFO_t *L1_tx_filled;
-  notifiedFIFO_t *L1_tx_out;
-  notifiedFIFO_t *resp_RU_tx;
-  tpool_t *threadPool;
+  notifiedFIFO_t respDecode;
+  notifiedFIFO_t resp_L1;
+  notifiedFIFO_t L1_tx_free;
+  notifiedFIFO_t L1_tx_filled;
+  notifiedFIFO_t L1_tx_out;
+  notifiedFIFO_t resp_RU_tx;
+  tpool_t threadPool;
   int nbDecode;
   uint8_t thread_pool_size;
   int number_of_nr_dlsch_max;

@@ -38,6 +38,7 @@
 #include "PHY/NR_REFSIG/ptrs_nr.h"
 #include "common/utils/LOG/vcd_signal_dumper.h"
 #include "common/utils/nr/nr_common.h"
+#include "executables/softmodem-common.h"
 
 //#define DEBUG_DLSCH
 //#define DEBUG_DLSCH_MAPPING
@@ -102,7 +103,7 @@ void nr_generate_pdsch(processingData_L1tx_t *msgTx,
     uint32_t ***pdsch_dmrs = gNB->nr_gold_pdsch_dmrs[slot];
     uint16_t dmrs_symbol_map = rel15->dlDmrsSymbPos;//single DMRS: 010000100 Double DMRS 110001100
     uint8_t dmrs_len = get_num_dmrs(rel15->dlDmrsSymbPos);
-    uint16_t nb_re = ((12*rel15->NrOfSymbols)-nb_re_dmrs*dmrs_len-xOverhead)*rel15->rbSize*rel15->nrOfLayers;
+    uint32_t nb_re = ((12*rel15->NrOfSymbols)-nb_re_dmrs*dmrs_len-xOverhead)*rel15->rbSize*rel15->nrOfLayers;
     uint8_t Qm = rel15->qamModOrder[0];
     uint32_t encoded_length = nb_re*Qm;
     int16_t mod_dmrs[n_dmrs<<1] __attribute__ ((aligned(16)));
@@ -122,7 +123,6 @@ void nr_generate_pdsch(processingData_L1tx_t *msgTx,
                           rel15->dlDmrsSymbPos);
       n_ptrs = (rel15->rbSize + rel15->PTRSFreqDensity - 1)/rel15->PTRSFreqDensity;
     }
-    int16_t mod_ptrs[n_ptrs<<1] __attribute__ ((aligned(16)));
 
     /// CRC, coding, interleaving and rate matching
     AssertFatal(harq->pdu!=NULL,"harq->pdu is null\n");
@@ -152,6 +152,9 @@ void nr_generate_pdsch(processingData_L1tx_t *msgTx,
     }
     printf("\n");
 #endif
+
+    if (IS_SOFTMODEM_DLSIM)
+      memcpy(harq->f, output, encoded_length);
 
     for (int q=0; q<rel15->NrOfCodewords; q++) {
       /// scrambling
@@ -251,7 +254,7 @@ void nr_generate_pdsch(processingData_L1tx_t *msgTx,
 	     1+dmrs_Type,nl, Wt[0], Wt[1], Wf[0], Wf[1], delta, l_prime, l0, dmrs_symbol);
 #endif
 
-      uint16_t m=0, dmrs_idx=0;
+      uint32_t m=0, dmrs_idx=0;
 
       // Loop Over OFDM symbols:
       for (int l=rel15->StartSymbolIndex; l<rel15->StartSymbolIndex+rel15->NrOfSymbols; l++) {
@@ -298,12 +301,14 @@ void nr_generate_pdsch(processingData_L1tx_t *msgTx,
 
         /* calculate if current symbol is PTRS symbols */
         ptrs_idx = 0;
-
+        int16_t *mod_ptrs = NULL;
         if(rel15->pduBitmap & 0x1) {
           ptrs_symbol = is_ptrs_symbol(l,dlPtrsSymPos);
           if(ptrs_symbol) {
             /* PTRS QPSK Modulation for each OFDM symbol in a slot */
             LOG_D(PHY,"Doing ptrs modulation for symbol %d, n_ptrs %d\n",l,n_ptrs);
+            int16_t mod_ptrsBuf[n_ptrs<<1] __attribute__ ((aligned(16)));
+            mod_ptrs =mod_ptrsBuf;
             nr_modulation(pdsch_dmrs[l][rel15->SCID], (n_ptrs<<1), DMRS_MOD_ORDER, mod_ptrs);
           }
         }
