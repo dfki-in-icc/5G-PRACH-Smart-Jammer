@@ -4,7 +4,7 @@ import { Message, WebSocketService, webSockSrc } from "src/app/services/websocke
 import { Observable } from 'rxjs';
 import { Chart, ChartConfiguration, ChartOptions, ChartEvent, ChartType, ScatterDataPoint } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
-import {IGraphDesc, IScopeDesc, IScopeCmd,  ScopeApi  } from 'src/app/api/scope.api';
+import {IGraphDesc, IScopeGraphType, IScopeDesc, IScopeCmd,  ScopeApi  } from 'src/app/api/scope.api';
 
 const SCOPEMSG_TYPE_STATUSUPD=1;   
 const SCOPEMSG_TYPE_REFRATE=2;
@@ -25,9 +25,10 @@ export class ScopeComponent {
   scopetime = '';
   scopestatus = 'stopped';
   startstop = 'start';
+  startstop_color = 'warn';
   rfrate = 2;
   
-  channel_list = [""];
+  iqgraph_list : IGraphDesc[] = [];
   selected_channels = [""];
   
   @Output() ScopeEnabled = new EventEmitter<boolean>();
@@ -74,13 +75,14 @@ export class ScopeComponent {
     plugins: { legend: { display: false, },  tooltip: { enabled: false, }, },
   };
   
-  constructor(private wsService: WebSocketService,public scopeApi: ScopeApi ) {
+  constructor(private wsService: WebSocketService,private scopeApi: ScopeApi ) {
     wsService.messages.subscribe((msg: ArrayBuffer) => {
       this.ProcessScopeMsg(this.wsService.DeserializeMessage(msg));
-    });
+    });	  
   }
   
   ngOnInit() {
+
   } 
  
   DecodScopeBinmsgToString(message: ArrayBuffer) {
@@ -91,7 +93,9 @@ export class ScopeComponent {
   configScope(resp: IScopeDesc) {
 	  this.scopetitle=resp.title;
 	  for (let graphIndex = 0; graphIndex < resp.graphs.length; graphIndex++) {
-		  this.channel_list[graphIndex]=resp.graphs[graphIndex].title;
+		  if (resp.graphs[graphIndex].type === IScopeGraphType.IQs ) {
+		    this.iqgraph_list.push(resp.graphs[graphIndex]);
+		  }
 	  }
   }
   
@@ -168,12 +172,26 @@ export class ScopeComponent {
     console.log("Scope sent msg type " + type.toString() + " (binary content)");
   }
   
+  SendScopeParams(name:string, value:string, graphid:number):boolean {
+	let result=false;
+	this.scopeApi.setScopeParams$({name:name,value:value,graphid:graphid}).subscribe(
+          () => {
+			 result=true;
+		  },
+		  err => {
+			 result=false;
+		  }
+	);
+	return result;
+  }
+  
   startorstop() {
     if (this.scopestatus === 'stopped') {
         this.scopeApi.setScopeParams$({name:"startstop",value:"start"}).subscribe(
           () => {
 			 this.scopestatus='started';
              this.startstop='stop';
+             this.startstop_color='started';
 		  },
 		  err => {
 		  }
@@ -183,6 +201,7 @@ export class ScopeComponent {
           () => {
 			 this.scopestatus='stopped';
              this.startstop='start';
+             this.startstop_color='warn';
 		  },
 		  err => {
 		  }        
@@ -195,9 +214,16 @@ export class ScopeComponent {
   }
   
   channelsChanged(value: string[]) {
-//	if (event.isUserInput) {
-  if (value.length > 0)
-    console.log(value[0]);
- //   this.selected_channels = ;
-    }  
+    this.selected_channels=value;
+    for (let i=0; i<this.iqgraph_list.length; i++) {
+	  let enabled="false";
+	  for (let j=0; j<value.length; j++) {
+		  if( this.iqgraph_list[i].title === value[j]) {
+			  enabled="true";
+			  break;
+		  }
+	  }
+	  this.SendScopeParams("enabled",enabled,this.iqgraph_list[i].srvidx);
+    } 
+  }  
 }

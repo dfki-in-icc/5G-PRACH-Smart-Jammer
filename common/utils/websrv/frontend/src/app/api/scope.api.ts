@@ -13,6 +13,7 @@ export interface IGraphDesc {
     title: string;
     type: IScopeGraphType;
     id:   number;
+    srvidx: number;
 }
 
 export interface IScopeDesc {
@@ -22,7 +23,7 @@ export interface IScopeDesc {
 
 export interface IScopeCmd {
     name: string;
-    graphid?: number;
+    graphid?: number;   // the graph srvidx 
     value:   string;
 }
 

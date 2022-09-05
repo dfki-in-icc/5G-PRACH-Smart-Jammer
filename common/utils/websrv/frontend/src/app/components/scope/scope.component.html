@@ -22,7 +22,7 @@
           <mat-card-title>Scope control</mat-card-title>
         </mat-card-header>
         <mat-card-content class="dashboard-card-content">
-		    <button mat-mini-fab color="warn" (click)="startorstop()">{{startstop}</button>
+		    <button mat-mini-fab color={{startstop_color}} (click)="startorstop()">{{startstop}}</button>
             <br><br>
             <div class="scope-slider-div">
             <label id="scope-slider-labelid" class="scope-slider-label">refresh rate</label>
@@ -36,8 +36,8 @@
 	        <mat-list-item class="channelselect" role="listitem">
 		      <mat-form-field class="select-form">
 			  <mat-select placeholder="Channels(IQ view)" name="ChannelsSelect" class="ChannelsSelect" multiple [value]="selected_channels" (selectionChange)="channelsChanged($event.value)" >
-				 <mat-option *ngFor="let channel of channel_list" [value]="channel" >
-					{{channel}}
+				 <mat-option *ngFor="let graph of iqgraph_list" [value]="graph.title" >
+					{{graph.title}}
 				 </mat-option>
 			  </mat-select>
 		      </mat-form-field>

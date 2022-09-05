@@ -165,7 +165,12 @@ int websrv_scope_callback_set_params (const struct _u_request * request, struct 
 				httpstatus=400;
 			 }		 
 		 } else if (strcmp(vname,"refrate") == 0) {
-           scope_params.refrate = (uint32_t)strtol(vval,NULL,10);			 
+           scope_params.refrate = (uint32_t)strtol(vval,NULL,10);
+		 } else if (strcmp(vname,"enabled") == 0) {
+           J=json_object_get(jsbody, "graphid"); 
+           const int gid = json_integer_value(J); 
+           OAI_phy_scope_t *sp = (OAI_phy_scope_t *)scope_params.scopeform;  
+           sp->graph[gid].enabled = (strcmp(vval,"true")==0)?true:false;      			 
 		 } else {
                httpstatus=500;
                websrv_printf("Unknown scope command: %s\n",vname );
@@ -187,8 +192,8 @@ int websrv_scope_callback_get_desc (const struct _u_request * request, struct _u
 	  sprintf(chname,"ch%i",sp->graph[i].datasetid);
 	  if (sp->graph[i].chartid == SCOPEMSG_DATAID_IQ) {
 	    strcpy(gtype,"IQs");	  
-        json_t *agraph=json_pack("{s:s,s:s,s:i}","title",chname,"type",gtype,
-                                "id", sp->graph[i].datasetid );
+        json_t *agraph=json_pack("{s:s,s:s,s:i,s:i}","title",chname,"type",gtype,
+                                "id", sp->graph[i].datasetid,"srvidx",i );
         json_array_append_new(jgraph,agraph);    
       }
     }

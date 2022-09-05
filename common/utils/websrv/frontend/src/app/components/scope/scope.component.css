@@ -36,3 +36,7 @@ mat-form-field {
 .scope-slider {
   width: 90%;
 }
+
+.mat-mini-fab.mat-started {
+  background-color: #00a825;
+}

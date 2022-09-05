@@ -69,7 +69,7 @@
       </mat-card>
     </mat-grid-tile>
 
-    <mat-grid-tile *ngIf="(rows$ | async)?.length" [colspan]="1" [rowspan]="4">
+   <mat-grid-tile *ngIf="(rows$ | async)?.length" [colspan]="1" [rowspan]="4">
       <mat-card class="dashboard-card">
         <mat-card-header>
           <mat-card-title>{{ selectedModule!.name }} {{ selectedCmd!.name }} </mat-card-title>
@@ -84,27 +84,27 @@
                   <h4>{{ col.name }}</h4>
                 </div>
               </mat-header-cell>
-              <mat-cell *matCellDef="let row">
+               <mat-cell *matCellDef="let row">
                 <div   [ngSwitch]="col.type" [formGroup]="row" fxLayoutAlign="start center">
                   <mat-slide-toggle *ngSwitchCase="IArgType.boolean" [formControl]="row.paramsCtrls[colIndex].valueFC"
                     [checked]="row.paramsCtrls[colIndex].valueFC.value">
                   </mat-slide-toggle>
-
-                  <mat-form-field *ngSwitchCase="IArgType.loglvl">
-                    <mat-label>Log Level</mat-label>
+                 <mat-list-item role="listitem">
+                 <mat-form-field *ngSwitchCase="IArgType.loglvl">
                     <mat-select [formControl]="row.paramsCtrls[colIndex].valueFC"
                       [(value)]="row.paramsCtrls[colIndex].valueFC.value">
                       <mat-option *ngFor="let level of logLvlValues" [value]="level"> {{ level }}
                       </mat-option>
                     </mat-select>
-                  </mat-form-field>
+                    </mat-form-field>
+                    </mat-list-item>  
                   <div *ngSwitchDefault>
                     <mat-form-field>
                       <input matInput [formControl]="row.paramsCtrls[colIndex].valueFC" [readonly]="!col.modifiable" />
                     </mat-form-field>
                   </div>
                 </div>
-              </mat-cell>
+              </mat-cell> 
             </div>
 
             <div matColumnDef="button">
@@ -122,6 +122,6 @@
          </div>
         </mat-card-content>
       </mat-card>
-    </mat-grid-tile>
+    </mat-grid-tile> 
   </mat-grid-list>
 </div>

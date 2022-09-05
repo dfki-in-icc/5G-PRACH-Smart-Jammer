@@ -79,6 +79,7 @@ import { CommonModule } from '@angular/common';
         WebSocketService,
         // api
         CommandsApi,
+        ScopeApi,
         // interceptors
         InterceptorProviders,
     ],
