@@ -157,29 +157,29 @@ static char * gNBL2pstats_gethdrline2(char *bufhdr, size_t maxlen)
   return bufhdr;
 }
 
-static const char *scale_number (float n, int width) 
-{
-  static char buf[128];
-  buf[0] = '\0';
-  
-  if (width >= snprintf(buf, sizeof(buf), "%*.0f", width, n))
-    return buf;
-
-  char *plabel;
-  char scale_labels[] =  { 'k', 'M', 'G', 'T', 'P', 'E', 0 };// E=exabytes are enough, no need for zettabytes and over
-  for (plabel = scale_labels; *plabel != 0; plabel++) 
-  {
-    n /= 1024.0;
-    if (width >= snprintf(buf, sizeof(buf), "%*.1f%c", width, n, *plabel))
-      return buf;
-      // let's retry with one decimal less to see if fits.
-    if (width >= snprintf(buf, sizeof(buf), "%*.0f%c", width, n, *plabel))
-      return buf;
-  }
-  // worst case...
-  snprintf(buf, sizeof(buf), "%*s" , width, "?");
-  return buf;
-}
+static const char *scale_number (float n, int width)    
+{    
+  static char buf[128];    
+  buf[0] = '\0';   
+    
+  if (width >= snprintf(buf, sizeof(buf), "%*.0f", width, n))    
+    return buf;    
+    
+  char *plabel;    
+  char scale_labels[] =  { 'k', 'M', 'G', 'T', 'P', 'E', 0 };// E=exabytes are enough, no need for zettabytes and over    
+  for (plabel = scale_labels; *plabel != 0; plabel++)    
+  {    
+    n /= 1000.0;    
+    if (width >= snprintf(buf, sizeof(buf), "%*.1f%c", width - 1, n, *plabel))    
+      return buf;    
+      // let's retry with one decimal less to see if fits.    
+    if (width >= snprintf(buf, sizeof(buf), "%*.0f%c",  width - 1, n, *plabel))    
+      return buf;    
+  }    
+  // worst case...    
+  snprintf(buf, sizeof(buf), "%*s" , width, "?");    
+  return buf;    
+}   
 
 /** 
  * Display UE statistics collected at gNB node related to MAC protocol (OSI Layer 2). This is for the moment limited to one instance of gNB
