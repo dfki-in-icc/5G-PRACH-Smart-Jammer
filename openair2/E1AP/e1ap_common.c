@@ -23,8 +23,11 @@
 
 #include <time.h>
 #include <stdlib.h>
-#include "e1ap.h"
 #include "e1ap_common.h"
+#include "e1ap_default_values.h"
+#include "e1ap_asnc.h"
+#include "targets/COMMON/openairinterface5g_limits.h"
+#include "common/utils/ocp_itti/intertask_interface.h"
 
 static e1ap_upcp_inst_t *e1ap_cp_inst[NUMBER_OF_gNB_MAX] = {0};
 static e1ap_upcp_inst_t *e1ap_up_inst[NUMBER_OF_gNB_MAX] = {0};

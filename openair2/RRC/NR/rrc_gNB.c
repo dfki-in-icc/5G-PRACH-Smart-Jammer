@@ -100,9 +100,7 @@
 #include "LAYER2/nr_rlc/nr_rlc_oai_api.h"
 #include "openair2/LAYER2/nr_pdcp/nr_pdcp_e1_api.h"
 #include "openair2/F1AP/f1ap_common.h"
-#include "openair2/E1AP/e1ap_common.h"
 #include "openair2/SDAP/nr_sdap/nr_sdap_entity.h"
-#include "openair2/E1AP/e1ap_api.h"
 #include "cucp_cuup_if.h"
 
 #include "BIT_STRING.h"

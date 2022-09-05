@@ -24,9 +24,8 @@
 #ifndef E1AP_API_H
 #define E1AP_API_H
 
-#include "e1ap.h"
-#include "e1ap_common.h"
-#include "NR_DRB-ToAddModList.h"
+#include "platform_types.h"
+#include "openair2/COMMON/e1ap_messages_types.h"
 
 void CUUP_process_e1_bearer_context_setup_req(e1ap_bearer_setup_req_t *req, instance_t instance);
 

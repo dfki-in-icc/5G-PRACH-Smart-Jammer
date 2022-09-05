@@ -57,9 +57,7 @@
 #include "NGAP_Cause.h"
 #include "NGAP_CauseRadioNetwork.h"
 #include "f1ap_messages_types.h"
-#include "E1AP_SDAP-Configuration.h"
-#include "E1AP_PDCP-Configuration.h"
-#include "openair2/E1AP/e1ap.h"
+#include "openair2/E1AP/e1ap_asnc.h"
 
 extern RAN_CONTEXT_t RC;
 

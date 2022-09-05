@@ -79,6 +79,7 @@ nfapi_mode_t nfapi_getmode(void) {
 }
 void nfapi_setmode(nfapi_mode_t nfapi_mode) { nfapi_mod=nfapi_mode; }
 
+NR_IF_Module_t *NR_IF_Module_init(int Mod_id) {return(NULL);}
 
 int nr_postDecode_sim(PHY_VARS_gNB *gNB, notifiedFIFO_elt_t *req) {
   ldpcDecode_t *rdata = (ldpcDecode_t*) NotifiedFifoData(req);

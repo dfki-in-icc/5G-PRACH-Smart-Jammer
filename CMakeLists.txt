@@ -1829,7 +1829,6 @@ set(NR_RLC_SRC
 
 set(NR_PDCP_SRC
   ${OPENAIR2_DIR}/LAYER2/nr_pdcp/nr_pdcp_oai_api.c
-  ${OPENAIR2_DIR}/LAYER2/nr_pdcp/nr_pdcp_e1_api.c
   ${OPENAIR2_DIR}/LAYER2/nr_pdcp/nr_pdcp_ue_manager.c
   ${OPENAIR2_DIR}/LAYER2/nr_pdcp/nr_pdcp_entity.c
   ${OPENAIR2_DIR}/LAYER2/nr_pdcp/nr_pdcp_sdu.c
@@ -1900,8 +1899,6 @@ set(L2_NR_SRC
   ${NR_RRC_DIR}/L2_nr_interface.c
   ${NR_RRC_DIR}/mac_rrc_dl_direct.c
   ${NR_RRC_DIR}/mac_rrc_dl_f1ap.c
-  ${NR_RRC_DIR}/cucp_cuup_direct.c
-  ${NR_RRC_DIR}/cucp_cuup_e1ap.c
   ${NR_RRC_DIR}/nr_rrc_config.c
   ${NR_RRC_DIR}/rrc_gNB_nsa.c
   ${NR_RRC_DIR}/rrc_gNB_internode.c
@@ -2066,6 +2063,15 @@ add_library(L2_NR
   ${L2_NR_SRC}
   ${MAC_NR_SRC}
   ${GNB_APP_SRC}
+  )
+
+add_library(E1_IF
+  ${NR_RRC_DIR}/cucp_cuup_direct.c
+  ${NR_RRC_DIR}/cucp_cuup_e1ap.c
+  )
+
+add_library(E1_PDCP_IF
+  ${OPENAIR2_DIR}/LAYER2/nr_pdcp/nr_pdcp_e1_api.c
   )
 
 target_link_libraries(L2_NR PRIVATE E1AP)
@@ -2792,7 +2798,7 @@ target_link_libraries (nr-softmodem
   -Wl,--start-group
   UTIL HASHTABLE SCTP_CLIENT SCHED_LIB SCHED_RU_LIB SCHED_NR_LIB PHY_NR PHY PHY_COMMON PHY_NR_COMMON PHY_RU GTPV1U SECU_CN SECU_OSA
   ITTI ${FLPT_MSG_LIB} ${FLEXRAN_AGENT_LIB} ${RAL_LIB} ${NAS_UE_LIB} RRC_LIB NR_RRC_LIB
-  NGAP_LIB NGAP_GNB S1AP_LIB S1AP_ENB L2_LTE_NR E1AP L2_NR MAC_NR_COMMON NFAPI_COMMON_LIB NFAPI_LIB NFAPI_VNF_LIB NFAPI_PNF_LIB NFAPI_USER_LIB
+  NGAP_LIB NGAP_GNB S1AP_LIB S1AP_ENB L2_LTE_NR E1_IF L2_NR MAC_NR_COMMON NFAPI_COMMON_LIB NFAPI_LIB NFAPI_VNF_LIB NFAPI_PNF_LIB NFAPI_USER_LIB
   X2AP_LIB X2AP_ENB F1AP_LIB F1AP M2AP_LIB M2AP_ENB M3AP_LIB M3AP_ENB ${FSPT_MSG_LIB}
   -Wl,--end-group z dl)
 

@@ -28,15 +28,15 @@
 #include "softmodem-common.h"
 #include "nr_rrc_proto.h"
 #include "nr_rrc_extern.h"
-#include "openair2/E1AP/e1ap_common.h"
+#include "openair2/COMMON/e1ap_messages_types.h"
 #include "UTIL/OSA/osa_defs.h"
 #include "nr_pdcp/nr_pdcp_entity.h"
 #include "openair2/LAYER2/nr_pdcp/nr_pdcp_e1_api.h"
 #include <openair2/RRC/NR/rrc_gNB_UE_context.h>
 #include "openair3/ocp-gtpu/gtp_itf.h"
-#include "openair2/F1AP/f1ap_common.h"
 #include "rrc_gNB_GTPV1U.h"
 #include "common/ran_context.h"
+#include "openair2/F1AP/f1ap_common.h"
 
 extern RAN_CONTEXT_t RC;
 

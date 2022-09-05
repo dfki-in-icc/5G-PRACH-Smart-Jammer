@@ -24,13 +24,8 @@
 #ifndef __E1AP_H_
 #define __E1AP_H_
 
-#include <common/utils/LOG/log.h>
-#include "openairinterface5g_limits.h"
-#include <openair2/RRC/NR/MESSAGES/asn1_msg.h>
 #include "openair2/COMMON/e1ap_messages_types.h"
-#include "openair3/UTILS/conversions.h"
-#include "openair2/F1AP/f1ap_common.h"
-#include "openair2/E1AP/e1ap_common.h"
+#include "e1ap_asnc.h"
 
 #endif
 

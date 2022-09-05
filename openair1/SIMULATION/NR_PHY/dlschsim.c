@@ -80,12 +80,13 @@ nfapi_mode_t nfapi_getmode(void) {
 }
 void nfapi_setmode(nfapi_mode_t nfapi_mode) { nfapi_mod=nfapi_mode; }
 
-
 nrUE_params_t nrUE_params={0};
 
 nrUE_params_t *get_nrUE_params(void) {
   return &nrUE_params;
 }
+
+NR_IF_Module_t *NR_IF_Module_init(int Mod_id) {return(NULL);}
 
 int main(int argc, char **argv)
 {

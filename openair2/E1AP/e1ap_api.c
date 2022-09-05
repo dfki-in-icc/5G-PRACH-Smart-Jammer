@@ -21,18 +21,24 @@
  *      contact@openairinterface.org
  */
 
+#include <arpa/inet.h>
 #include "e1ap_api.h"
 #include "UTIL/OSA/osa_defs.h"
 #include "nr_pdcp/nr_pdcp_entity.h"
 #include "openair2/LAYER2/nr_pdcp/nr_pdcp_e1_api.h"
 #include "openair2/RRC/NR/cucp_cuup_if.h"
+#include "openair2/RRC/LTE/MESSAGES/asn1_msg.h"
 #include "openair3/ocp-gtpu/gtp_itf.h"
+#include "e1ap_asnc.h"
+#include "e1ap_common.h"
+#include "e1ap.h"
 
+struct NR_DRB_ToAddMod;
 static void fill_DRB_configList_e1(NR_DRB_ToAddModList_t *DRB_configList, pdu_session_to_setup_t *pdu) {
 
   for (int i=0; i < pdu->numDRB2Setup; i++) {
     DRB_nGRAN_to_setup_t *drb = pdu->DRBnGRanList + i;
-    asn1cSequenceAdd(DRB_configList->list, NR_DRB_ToAddMod_t, ie);
+    asn1cSequenceAdd(DRB_configList->list, struct NR_DRB_ToAddMod, ie);
     ie->drb_Identity = drb->id;
     ie->cnAssociation = CALLOC(1, sizeof(*ie->cnAssociation));
     ie->cnAssociation->present = NR_DRB_ToAddMod__cnAssociation_PR_sdap_Config;

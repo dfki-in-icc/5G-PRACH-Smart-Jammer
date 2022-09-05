@@ -16,7 +16,68 @@ int oai_nfapi_nr_uci_indication(nfapi_nr_uci_indication_t *ind) { return(0);  }
 int oai_nfapi_nr_rach_indication(nfapi_nr_rach_indication_t *ind) { return(0);  }
 
 int32_t get_uldl_offset(int nr_bandP)                                       { return(0);  }
-NR_IF_Module_t *NR_IF_Module_init(int Mod_id)                               {return(NULL);}
 
 int dummy_nr_ue_dl_indication(nr_downlink_indication_t *dl_info)            { return(0);  }
 int dummy_nr_ue_ul_indication(nr_uplink_indication_t *ul_info)              { return(0);  }
+void cucp_cuup_message_transfer_e1ap_init(gNB_RRC_INST *rrc) {}
+void cucp_cuup_message_transfer_direct_init(gNB_RRC_INST *rrc) {}
+teid_t newGtpuCreateTunnel(instance_t instance,
+                           ue_id_t ue_id,
+                           int incoming_bearer_id,
+                           int outgoing_bearer_id,
+                           teid_t outgoing_teid,
+                           int qfi,
+                           transport_layer_addr_t remoteAddr,
+                           int port,
+                           gtpCallback callBack,
+                           gtpCallbackSDAP callBackSDAP) {
+  return 0;
+}
+
+int newGtpuDeleteAllTunnels(instance_t instance, ue_id_t ue_id) {
+  return 0;
+}
+
+instance_t gtpv1Init(openAddr_t context) {return 0;}
+
+void GtpuUpdateTunnelOutgoingPair(instance_t instance,
+                                  ue_id_t ue_id,
+                                  ebi_t bearer_id,
+                                  teid_t newOutgoingTeid,
+                                  transport_layer_addr_t newRemoteAddr) {}
+
+int
+gtpv1u_create_ngu_tunnel(
+  const instance_t instanceP,
+  const gtpv1u_gnb_create_tunnel_req_t *  const create_tunnel_req_pP,
+        gtpv1u_gnb_create_tunnel_resp_t * const create_tunnel_resp_pP){
+  return 0;
+}
+
+int
+gtpv1u_update_ngu_tunnel(
+  const instance_t                              instanceP,
+  const gtpv1u_gnb_create_tunnel_req_t *const  create_tunnel_req_pP,
+  const ue_id_t                                 ue_id 
+){
+  return 0;
+}
+
+int gtpv1u_delete_s1u_tunnel(const instance_t instance, const gtpv1u_enb_delete_tunnel_req_t *const req_pP) {
+  return 0;
+}
+
+int gtpv1u_delete_ngu_tunnel( const instance_t instance,
+			      gtpv1u_gnb_delete_tunnel_req_t *req) {
+  return 0;
+}
+
+int
+gtpv1u_create_s1u_tunnel(
+  const instance_t                              instanceP,
+  const gtpv1u_enb_create_tunnel_req_t *const  create_tunnel_req_pP,
+  gtpv1u_enb_create_tunnel_resp_t *const create_tunnel_resp_pP
+) {
+  return 0;
+}
+

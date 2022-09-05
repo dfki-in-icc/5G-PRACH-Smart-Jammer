@@ -26,6 +26,12 @@
 #include "e1ap_api.h"
 #include "gnb_config.h"
 #include "openair2/SDAP/nr_sdap/nr_sdap_entity.h"
+#include "openair3/UTILS/conversions.h"
+#include "openair2/RRC/NR/MESSAGES/asn1_msg.h"
+#include "openairinterface5g_limits.h"
+#include "common/utils/LOG/log.h"
+#include "openair2/F1AP/f1ap_common.h"
+#include "e1ap_default_values.h"
 
 #define E1AP_NUM_MSG_HANDLERS 14
 typedef int (*e1ap_message_processing_t)(
