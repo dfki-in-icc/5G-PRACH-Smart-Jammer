@@ -267,6 +267,10 @@ void configure_dlsch(NR_UE_DLSCH_t *dlsch0,
   LOG_X(MAC, ">>>> \tdlsch0->g_pucch = %d\tdlsch0_harq.mcs = %d\n", dlsch0->g_pucch, dlsch0_harq->mcs);
 }
 
+extern uint32_t pucch_configured;
+extern fapi_nr_ul_config_pucch_pdu* pucch_pdu_msg4;
+extern uint32_t initial_pucch;
+extern uint32_t rrc_setup_received;
 int8_t nr_ue_scheduled_response(nr_scheduled_response_t *scheduled_response){
 
   bool found = false;
@@ -357,7 +361,8 @@ int8_t nr_ue_scheduled_response(nr_scheduled_response_t *scheduled_response){
         nfapi_nr_ue_pusch_pdu_t *pusch_config_pdu;
         /* PUCCH */
         fapi_nr_ul_config_pucch_pdu *pucch_config_pdu;
-        LOG_X(PHY, "%d.%d ul B ul_config %p t %d pdu_done %d number_pdus %d\n", scheduled_response->frame, slot, ul_config, pdu_type, pdu_done, ul_config->number_pdus);
+        // LOG_X(PHY, "%d.%d ul B ul_config %p t %d pdu_done %d number_pdus %d\n", scheduled_response->frame, slot, ul_config, pdu_type, pdu_done, ul_config->number_pdus);
+        LOG_X(RLC, "pucch ul_config  %d.%d ul B ul_config %p pdu_type %d (2: pucch, 3:pusch) pdu_done %d number_pdus %d\n", scheduled_response->frame, slot, ul_config, pdu_type, pdu_done, ul_config->number_pdus);
         /* SRS */
         fapi_nr_ul_config_srs_pdu *srs_config_pdu;
 
@@ -409,9 +414,26 @@ int8_t nr_ue_scheduled_response(nr_scheduled_response_t *scheduled_response){
         case (FAPI_NR_UL_CONFIG_TYPE_PUCCH):
           found = false;
           pucch_config_pdu = &ul_config->ul_config_list[i].pucch_config_pdu;
+          LOG_X(RLC,"initial_pucch %d, pucch_pdu_msg4 %d\n",initial_pucch, pucch_pdu_msg4);
+  #define WAIT_FOR_PUCCH_CONFIGURED
+  #ifdef WAIT_FOR_PUCCH_CONFIGURED
+              while (pucch_configured == 0 ) usleep(5);
+              pucch_configured = 0;
+  #endif
+          if ((initial_pucch ==1) && (pucch_pdu_msg4 != null)){
+            LOG_X(RLC,"pucch config replaced\n");
+            pucch_config_pdu = pucch_pdu_msg4;
+            if (rrc_setup_received ==1) initial_pucch = 0;
+          }
           for(int j=0; j<2; j++) {
             if(pucch_vars->active[j] == false) {
-              LOG_X(PHY,"%d.%d Copying pucch pdu to UE PHY\n",scheduled_response->frame,slot);
+              // LOG_X(PHY,"%d.%d Copying pucch pdu to UE PHY\n",scheduled_response->frame,slot);
+              LOG_X(RLC,"%d.%d Copying pucch pdu to UE PHY (j= %d) pucch_config_pdu %p\n",scheduled_response->frame,slot,j,pucch_config_pdu);
+  // #define WAIT_FOR_PUCCH_CONFIGURED
+  // #ifdef WAIT_FOR_PUCCH_CONFIGURED
+  //             while (pucch_configured == 0 ) usleep(5);
+  //             pucch_configured = 0;
+  // #endif
               memcpy((void*)&(pucch_vars->pucch_pdu[j]), (void*)pucch_config_pdu, sizeof(fapi_nr_ul_config_pucch_pdu));
               pucch_vars->active[j] = true;
               found = true;

@@ -579,7 +579,8 @@ void ue_dci_configuration(NR_UE_MAC_INST_t *mac, fapi_nr_dl_config_request_t *dl
       }
     }
   } else {
-    AssertFatal(1==0,"Handle DCI searching when CellGroup without dedicated BWP\n");
+//    AssertFatal(1==0,"Handle DCI searching when CellGroup without dedicated BWP\n");
+   LOG_E(NR_MAC,"Handle DCI searching when CellGroup without dedicated BWP\n");
   }
   // Search space 0, CORESET ID 0
 

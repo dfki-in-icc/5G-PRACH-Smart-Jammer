@@ -50,13 +50,14 @@
 
 //#define ONE_OVER_SQRT2 23170 // 32767/sqrt(2) = 23170 (ONE_OVER_SQRT2)
 
+extern uint32_t disable_pdcch;
 void nr_generate_pucch0(PHY_VARS_NR_UE *ue,
                         int32_t **txdataF,
                         NR_DL_FRAME_PARMS *frame_parms,
                         int16_t amp,
                         int nr_slot_tx,
                         fapi_nr_ul_config_pucch_pdu *pucch_pdu) {
-
+  LOG_I(PHY,"\t [nr_generate_pucch0] sequence generation\n");
 #ifdef DEBUG_NR_PUCCH_TX
   printf("\t [nr_generate_pucch0] %d\n",nr_slot_tx);
 #endif
@@ -166,9 +167,10 @@ void nr_generate_pucch0(PHY_VARS_NR_UE *ue,
         re_offset-=frame_parms->ofdm_symbol_size;
     }
   }
+  disable_pdcch = 0;
+  LOG_X(RLC,"PDCCH Enabled\n");
 }
 
-// extern uint32_t disable_pdcch;
 void nr_generate_pucch1(PHY_VARS_NR_UE *ue,
                         int32_t **txdataF,
                         NR_DL_FRAME_PARMS *frame_parms,
@@ -506,7 +508,8 @@ void nr_generate_pucch1(PHY_VARS_NR_UE *ue,
 
   LOG_I(PHY,"\t [nr_generate_pucch1] finished\n");
 
-  // disable_pdcch = 0;
+  disable_pdcch = 0;
+  LOG_X(RLC,"PDCCH Enabled\n");
 }
 
 #if 0

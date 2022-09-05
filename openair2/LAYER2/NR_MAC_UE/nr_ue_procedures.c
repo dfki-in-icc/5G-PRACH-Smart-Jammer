@@ -1524,7 +1524,7 @@ void set_harq_status(NR_UE_MAC_INST_t *mac,
         harq_id, frame, slot, frame, (slot + data_toul_fb));
 }
 
-
+uint32_t initial_pucch = 0;
 void nr_ue_configure_pucch(NR_UE_MAC_INST_t *mac,
                            int slot,
                            uint16_t rnti,
@@ -1567,6 +1567,8 @@ void nr_ue_configure_pucch(NR_UE_MAC_INST_t *mac,
   if (pucch->initial_pucch_id > -1 &&
       pucch->pucch_resource == NULL) {
 
+    initial_pucch = 1;
+    LOG_X(RLC,"[ %s ] pucch resource is null  (pucch_pdu %p)\n", __FUNCTION__, pucch_pdu);
     pucch_pdu->format_type = initial_pucch_resource[pucch->initial_pucch_id].format;
     pucch_pdu->start_symbol_index = initial_pucch_resource[pucch->initial_pucch_id].startingSymbolIndex;
     pucch_pdu->nr_of_symbols = initial_pucch_resource[pucch->initial_pucch_id].nrofSymbols;
@@ -1625,6 +1627,8 @@ void nr_ue_configure_pucch(NR_UE_MAC_INST_t *mac,
 
   }
   else if (pucch->pucch_resource != NULL) {
+
+    LOG_X(RLC,"[ %s ] pucch resource is *not* null (pucch %p)\n", __FUNCTION__, pucch);
 
     NR_PUCCH_Resource_t *pucchres = pucch->pucch_resource;
 

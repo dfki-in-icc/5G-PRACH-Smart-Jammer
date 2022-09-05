@@ -1561,7 +1561,7 @@ int is_pbch_in_slot(fapi_nr_config_request_t *config, int frame, int slot, NR_DL
   }
 }
 
-// extern uint32_t disable_pdcch;
+extern uint32_t disable_pdcch;
 int phy_procedures_nrUE_RX(PHY_VARS_NR_UE *ue,
                            UE_nr_rxtx_proc_t *proc,
                            uint8_t gNB_id,
@@ -1673,7 +1673,7 @@ int phy_procedures_nrUE_RX(PHY_VARS_NR_UE *ue,
   }
 
   dci_cnt = 0;
-  // if ( disable_pdcch ==0 )
+  if ( disable_pdcch ==0 )
   for(int n_ss = 0; n_ss<pdcch_vars->nb_search_space; n_ss++) {
     double temp_power=0.0;
     double temp_power_db=0.0;

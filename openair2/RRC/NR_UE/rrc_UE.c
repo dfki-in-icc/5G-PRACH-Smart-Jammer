@@ -1345,7 +1345,8 @@ nr_rrc_ue_process_masterCellGroup(
   }
 }
 
-// uint32_t disable_pdcch = 0;
+uint32_t disable_pdcch = 0;
+uint32_t rrc_setup_received = 0;
 /*--------------------------------------------------*/
 static void rrc_ue_generate_RRCSetupComplete(
   const protocol_ctxt_t *const ctxt_pP,
@@ -1420,7 +1421,6 @@ static void rrc_ue_generate_RRCSetupComplete(
   itti_send_msg_to_task (TASK_RRC_GNB_SIM, ctxt_pP->instance, message_p);
 #endif
 
-  // disable_pdcch = 1;
 }
 
 int8_t nr_rrc_ue_decode_ccch( const protocol_ctxt_t *const ctxt_pP, const NR_SRB_INFO *const Srb_info, const uint8_t gNB_index ){
@@ -1472,6 +1472,10 @@ int8_t nr_rrc_ue_decode_ccch( const protocol_ctxt_t *const ctxt_pP, const NR_SRB
 	       ctxt_pP->frame,
 	       ctxt_pP->rnti);
 
+  disable_pdcch = 1;
+  LOG_X(RLC,"PDCCH Disabled\n");
+  rrc_setup_received = 1;
+  
 	 // Get configuration
 	 // Release T300 timer
 	 NR_UE_rrc_inst[ctxt_pP->module_id].Info[gNB_index].T300_active = 0;
