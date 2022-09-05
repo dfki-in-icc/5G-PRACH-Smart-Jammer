@@ -395,7 +395,7 @@ void nr_processDLSegment(void* arg) {
       no_iteration_ldpc = dlsch->max_ldpc_iterations;
       rdata->decodeIterations = no_iteration_ldpc;
     } else {
-      LOG_D(PHY,"CRC NOT OK\n");
+      LOG_D(PHY,"CRC NOT OK crc_type=%d\n", (int)crc_type);
     }
 
     nb_total_decod++;

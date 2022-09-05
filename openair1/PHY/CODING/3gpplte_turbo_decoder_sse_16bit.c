@@ -301,7 +301,6 @@ void compute_alpha16(llr_t *alpha,llr_t *beta,llr_t *m_11,llr_t *m_10,unsigned s
          k<l;
          k++) {
 #if defined(__x86_64__) || defined(__i386__)
-#if 1
       a1=_mm_load_si128(&alpha_ptr[1]);
       a3=_mm_load_si128(&alpha_ptr[3]);
       a5=_mm_load_si128(&alpha_ptr[5]);
@@ -341,30 +340,6 @@ void compute_alpha16(llr_t *alpha,llr_t *beta,llr_t *m_11,llr_t *m_10,unsigned s
       alpha_max = _mm_max_epi16(alpha_max,a5);
       alpha_max = _mm_max_epi16(alpha_max,a6);
       alpha_max = _mm_max_epi16(alpha_max,a7);
-#else
-      a02=_mm256_load_si256(&alpha_ptr256[0]);
-      a13=_mm256_load_si256(&alpha_ptr256[1]);
-      a64=_mm256_load_si256(&alpha_ptr256[2]);
-      a75=_mm256_load_si256(&alpha_ptr256[3]);
-      m11m10_256 = _mm256_insertf128_si256(m11m10_256,*m11p,0);
-      m11m10_256 = _mm256_insertf128_si256(m11m10_256,*m10p,1);
-      m_b01 = _mm256_adds_epi16(a13,m11m10_256); //negative m10
-      m_b23 = _mm256_subs_epi16(a75,m11m10_256); //negative m10
-      m_b45 = _mm256_subs_epi16(a13,m11m10_256); //negative m10
-      m_b67 = _mm256_adds_epi16(a75,m11m10_256); //negative m10
-      new01 = _mm256_subs_epi16(a02,m11m10_256);  //negative m10
-      new23 = _mm256_adds_epi16(a64,m11m10_256);  //negative m10
-      new45 = _mm256_adds_epi16(a02,m11m10_256);  //negative m10
-      new67 = _mm256_subs_epi16(a64,m11m10_256);  //negative m10
-      a01   = _mm256_max_epi16(m_b01,new01);
-      a23   = _mm256_max_epi16(m_b23,new23);
-      a45   = _mm256_max_epi16(m_b45,new45);
-      a67   = _mm256_max_epi16(m_b67,new67);
-      alpha_max = _mm256_max_epi16(a01,a23);
-      alpha_max = _mm256_max_epi16(alpha_max,a45);
-      alpha_max = _mm256_max_epi16(alpha_max,a67);
-      alpha_max = _mm256_max_epi16(alpha_max,_mm256_permutevar8x32_epi32(alpha_max,_mm256_set_epi32(3,2,1,0,7,6,5,4)));
-#endif
 #elif defined(__arm__) || defined(__aarch64__)
       m_b0 = vqaddq_s16(alpha_ptr[1],*m11p);  // m11
       m_b4 = vqsubq_s16(alpha_ptr[1],*m11p);  // m00=-m11
@@ -403,7 +378,6 @@ void compute_alpha16(llr_t *alpha,llr_t *beta,llr_t *m_11,llr_t *m_10,unsigned s
       m11p++;
       m10p++;
 #if defined(__x86_64__) || defined(__i386__)
-#if 1
       alpha_ptr[0] = _mm_subs_epi16(a0,alpha_max);
       alpha_ptr[1] = _mm_subs_epi16(a1,alpha_max);
       alpha_ptr[2] = _mm_subs_epi16(a2,alpha_max);
@@ -412,16 +386,6 @@ void compute_alpha16(llr_t *alpha,llr_t *beta,llr_t *m_11,llr_t *m_10,unsigned s
       alpha_ptr[5] = _mm_subs_epi16(a5,alpha_max);
       alpha_ptr[6] = _mm_subs_epi16(a6,alpha_max);
       alpha_ptr[7] = _mm_subs_epi16(a7,alpha_max);
-#else
-      a01   = _mm256_subs_epi16(a01,alpha_max);
-      a23   = _mm256_subs_epi16(a23,alpha_max);
-      a45   = _mm256_subs_epi16(a45,alpha_max);
-      a67   = _mm256_subs_epi16(a67,alpha_max);
-      alpha_ptr256[0] = _mm256_permute2x128_si256(a01,a23,0x20);  //a02
-      alpha_ptr256[1] = _mm256_permute2x128_si256(a01,a23,0x13);  //a13
-      alpha_ptr256[2] = _mm256_permute2x128_si256(a45,a67,0x02);  //a64
-      alpha_ptr256[3] = _mm256_permute2x128_si256(a45,a67,0x31);  //a75
-#endif
 #elif defined(__arm__) || defined(__aarch64__)
       alpha_ptr[0] = vqsubq_s16(a0,alpha_max);
       alpha_ptr[1] = vqsubq_s16(a1,alpha_max);
@@ -659,7 +623,6 @@ void compute_beta16(llr_t *alpha,llr_t *beta,llr_t *m_11,llr_t *m_10,unsigned sh
 #if defined(__x86_64__) || defined(__i386__)
       m11_128=((__m128i *)m_11)[k];
       m10_128=((__m128i *)m_10)[k];
-#if 1
       m_b0 = _mm_adds_epi16(beta_ptr[4],m11_128);  //m11
       m_b1 = _mm_subs_epi16(beta_ptr[4],m11_128);  //m00
       m_b2 = _mm_subs_epi16(beta_ptr[5],m10_128);  //m01
@@ -676,24 +639,8 @@ void compute_beta16(llr_t *alpha,llr_t *beta,llr_t *m_11,llr_t *m_10,unsigned sh
       new5 = _mm_adds_epi16(beta_ptr[2],m10_128);  //m10
       new6 = _mm_adds_epi16(beta_ptr[3],m11_128);  //m11
       new7 = _mm_subs_epi16(beta_ptr[3],m11_128);  //m00
-#else
-      b01=_mm256_load_si256(&((_m256i *)beta_ptr)[0]);
-      b23=_mm256_load_si256(&((_m256i *)beta_ptr)[1]);
-      b45=_mm256_load_si256(&((_m256i *)beta_ptr)[2]);
-      b67=_mm256_load_si256(&((_m256i *)beta_ptr)[3]);
-      m11m10_256 = _mm256_insertf128_si256(m11m10_256,m11_128,0);
-      m11m10_256 = _mm256_insertf128_si256(m11m10_256,m10_128,1);
-      m_b02 = _mm256_adds_epi16(b45,m11m10_256); //negative m10
-      m_b13 = _mm256_subs_epi16(b45,m11m10_256); //negative m10
-      m_b64 = _mm256_subs_epi16(b67,m11m10_256); //negative m10
-      m_b75 = _mm256_adds_epi16(b67,m11m10_256); //negative m10
-      new02 = _mm256_subs_epi16(b01,m11m10_256);  //negative m10
-      new13 = _mm256_adds_epi16(b01,m11m10_256);  //negative m10
-      new64 = _mm256_adds_epi16(b23,m11m10_256);  //negative m10
-      new75 = _mm256_subs_epi16(b24,m11m10_256);  //negative m10
-#endif
+
       beta_ptr-=8;
-#if 1
       beta_ptr[0] = _mm_max_epi16(m_b0,new0);
       beta_ptr[1] = _mm_max_epi16(m_b1,new1);
       beta_ptr[2] = _mm_max_epi16(m_b2,new2);
@@ -717,24 +664,6 @@ void compute_beta16(llr_t *alpha,llr_t *beta,llr_t *m_11,llr_t *m_10,unsigned sh
       beta_ptr[5] = _mm_subs_epi16(beta_ptr[5],beta_max);
       beta_ptr[6] = _mm_subs_epi16(beta_ptr[6],beta_max);
       beta_ptr[7] = _mm_subs_epi16(beta_ptr[7],beta_max);
-#else
-      b02   = _mm256_max_epi16(m_b02,new02);
-      b13   = _mm256_max_epi16(m_b13,new13);
-      b64   = _mm256_max_epi16(m_b64,new64);
-      b75   = _mm256_max_epi16(m_b75,new75);
-      beta_max = _mm256_max_epi16(b02,b13);
-      beta_max = _mm256_max_epi16(beta_max,b64);
-      beta_max = _mm256_max_epi16(beta_max,b75);
-      beta_max = _mm256_max_epi16(beta_max,_mm256_permutevar8x32_epi32(betaa_max,_mm256_set_epi32(3,2,1,0,7,6,5,4)));
-      b02   = _mm256_subs_epi16(b02,beta_max);
-      b13   = _mm256_subs_epi16(b13,beta_max);
-      b64   = _mm256_subs_epi16(b64,beta_max);
-      b75   = _mm256_subs_epi16(b75,beta_max);
-      ((_m256i *)beta_ptr)[0]) = _mm256_permute2x128_si256(b02,b13,0x02); //b01
-      ((_m256i *)beta_ptr)[1]) = _mm256_permute2x128_si256(b02,b13,0x31); //b23
-      ((_m256i *)beta_ptr)[2]) = _mm256_permute2x128_si256(b64,b75,0x13); //b45
-      ((_m256i *)beta_ptr)[3]) = _mm256_permute2x128_si256(b64,b75,0x20); //b67
-#endif
 #elif defined(__arm__) || defined(__aarch64__)
       m11_128=((int16x8_t *)m_11)[k];
       m10_128=((int16x8_t *)m_10)[k];
