@@ -48,6 +48,10 @@
 
 // main log variables
 
+// Fixme: a better place to be shure it is called 
+void read_cpu_hardware (void) __attribute__ ((constructor));
+void read_cpu_hardware (void) {__builtin_cpu_init(); }
+
 log_mem_cnt_t log_mem_d[2];
 int log_mem_flag=0;
 int log_mem_multi=1;
@@ -380,8 +384,8 @@ void  log_getconfig(log_t *g_log)
 }
 
 int register_log_component(char *name,
-		                   char *fext,
-						   int compidx)
+                           char *fext,
+                           int compidx)
 {
   int computed_compidx=compidx;
 
@@ -542,11 +546,11 @@ static inline int log_header(log_component_t *c,
 
   char l[32];
   if (flag & FLAG_FILE_LINE && flag & FLAG_FUNCT )
-    snprintf(l, sizeof l, "(%s:%d) ", func, line);
+    snprintf(l, sizeof l, "(%.23s:%d) ", func, line);
   else if (flag & FLAG_FILE_LINE)
     snprintf(l, sizeof l, "(%d) ", line);
   else if (flag & FLAG_FUNCT)
-    snprintf(l, sizeof l, "(%s) ", func);
+    snprintf(l, sizeof l, "(%.28s) ", func);
   else
     l[0] = 0;
 
@@ -800,15 +804,13 @@ void logClean (void)
   int i;
 
   if(isLogInitDone()) {
-    LOG_UI(PHY,"\n");
-
     for (i=MIN_LOG_COMPONENTS; i < MAX_LOG_COMPONENTS; i++) {
       close_component_filelog(i);
     }
   }
 }
 
-extern volatile int oai_exit;//extern int oai_exit;
+extern int oai_exit;
 void flush_mem_to_file(void)
 {
   int fp;

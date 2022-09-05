@@ -71,7 +71,7 @@ pthread_cond_t sync_cond;
 pthread_mutex_t sync_mutex;
 int sync_var=-1; //!< protected by mutex \ref sync_mutex.
 int config_sync_var=-1;
-volatile int oai_exit = 0;
+int oai_exit = 0;
 double cpuf;
 THREAD_STRUCT thread_struct;
 
@@ -1271,11 +1271,7 @@ int main ( int argc, char **argv ) {
         L1proc->respEncode=(notifiedFIFO_t *) malloc(sizeof(notifiedFIFO_t));
         L1proc->respDecode=(notifiedFIFO_t *) malloc(sizeof(notifiedFIFO_t));
 
-        if ( strlen(get_softmodem_params()->threadPoolConfig) > 0 )
-          initTpool(get_softmodem_params()->threadPoolConfig, L1proc->threadPool, true);
-        else
-          initTpool("n", L1proc->threadPool, true);
-
+        initTpool(get_softmodem_params()->threadPoolConfig, L1proc->threadPool,cpumeas(CPUMEAS_GETSTATE));
         initNotifiedFIFO(L1proc->respEncode);
         initNotifiedFIFO(L1proc->respDecode);
       }

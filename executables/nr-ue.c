@@ -678,7 +678,7 @@ void processSlotRX(void *arg) {
     phy_procedures_slot_parallelization_nrUE_RX( UE, proc, 0, 0, 1, no_relay, NULL );
 #else
     uint64_t a=rdtsc_oai();
-    phy_procedures_nrUE_RX(UE, proc, gNB_id, get_nrUE_params()->nr_dlsch_parallel, &phy_pdcch_config, &rxtxD->txFifo);
+    phy_procedures_nrUE_RX(UE, proc, gNB_id, &phy_pdcch_config, &rxtxD->txFifo);
     LOG_D(PHY, "In %s: slot %d, time %llu\n", __FUNCTION__, proc->nr_slot_rx, (rdtsc_oai()-a)/3500);
 #endif
 
@@ -692,6 +692,8 @@ void processSlotRX(void *arg) {
     // Wait for PUSCH processing to finish
     notifiedFIFO_elt_t *res;
     res = pullTpool(&rxtxD->txFifo,&(get_nrUE_params()->Tpool));
+    if (res == NULL)
+      return; // Tpool has been stopped
     delNotifiedFIFO_elt(res);
 
     // calling UL_indication to schedule things other than PUSCH (eg, PUCCH)
@@ -860,8 +862,8 @@ void *UE_thread(void *arg) {
 
   while (!oai_exit) {
     if (UE->lost_sync) {
-      int nb = abortTpool(&(get_nrUE_params()->Tpool),RX_JOB_ID);
-      nb += abortNotifiedFIFO(&nf, RX_JOB_ID);
+      int nb = abortTpoolJob(&(get_nrUE_params()->Tpool),RX_JOB_ID);
+      nb += abortNotifiedFIFOJob(&nf, RX_JOB_ID);
       LOG_I(PHY,"Number of aborted slots %d\n",nb);
       for (int i=0; i<nb; i++)
         pushNotifiedFIFO_nothreadSafe(&freeBlocks, newNotifiedFIFO_elt(sizeof(nr_rxtx_thread_data_t), RX_JOB_ID,&nf,processSlotRX));
@@ -1008,6 +1010,8 @@ void *UE_thread(void *arg) {
 
     while (nbSlotProcessing >= NR_RX_NB_TH) {
       res=pullTpool(&nf, &(get_nrUE_params()->Tpool));
+      if (res == NULL)
+        break; // Tpool has been stopped
       nbSlotProcessing--;
       nr_rxtx_thread_data_t *tmp=(nr_rxtx_thread_data_t *)res->msgData;
 

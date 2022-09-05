@@ -44,7 +44,7 @@
 #include <executables/split_headers.h>
 
 extern WORKER_CONF_t get_thread_worker_conf(void);
-extern volatile int oai_exit;
+extern int oai_exit;
 
 
 
@@ -335,7 +335,10 @@ int ulsch_decoding_data(PHY_VARS_eNB *eNB, L1_rxtx_proc_t *proc,
     }
 
     union turboReqUnion id= {.s={ulsch->rnti,proc->frame_rx,proc->subframe_rx,0,0}};
-    notifiedFIFO_elt_t *req=newNotifiedFIFO_elt(sizeof(turboDecode_t), id.p, proc->respDecode, processULSegment);
+    notifiedFIFO_elt_t *req=newNotifiedFIFO_elt(sizeof(turboDecode_t),
+                                                id.p,
+                                                proc->respDecode,
+                                                processULSegment);
     turboDecode_t * rdata=(turboDecode_t *) NotifiedFifoData(req);
 
     rdata->eNB=eNB;

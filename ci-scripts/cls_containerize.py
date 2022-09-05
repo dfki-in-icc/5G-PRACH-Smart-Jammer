@@ -532,6 +532,25 @@ class Containerize():
 			# don't delete such that we might recover the zips
 			#mySSH.command('rm -f build_log_' + self.testCase_id + '.zip','\$', 5)
 
+		# we do not analyze the logs (we assume the proxy builds fine at this stage),
+		# but need to have the following information to correctly display the HTML
+		files = {}
+		errorandwarnings = {}
+		errorandwarnings['errors'] = 0
+		errorandwarnings['warnings'] = 0
+		errorandwarnings['status'] = True
+		files['Target Image Creation'] = errorandwarnings
+		self.collectInfo['proxy'] = files
+		mySSH.command('docker image inspect --format=\'Size = {{.Size}} bytes\' proxy:' + tag, '\$', 5)
+		result = re.search('Size *= *(?P<size>[0-9\-]+) *bytes', mySSH.getBefore())
+		if result is not None:
+			imageSize = float(result.group('size')) / 1000000
+			logging.debug('\u001B[1m   proxy size is ' + ('%.0f' % imageSize) + ' Mbytes\u001B[0m')
+			self.allImagesSize['proxy'] = str(round(imageSize,1)) + ' Mbytes'
+		else:
+			logging.debug('proxy size is unknown')
+			self.allImagesSize['proxy'] = 'unknown'
+
 		# Cleaning any created tmp volume
 		mySSH.command(self.cli + ' volume prune --force || true','\$', 15)
 		mySSH.close()
@@ -560,9 +579,17 @@ class Containerize():
 			lUserName = self.eNB2UserName
 			lPassWord = self.eNB2Password
 		lSsh.open(lIpAddr, lUserName, lPassWord)
-		lSsh.command('docker save ' + self.imageToCopy + ':' + imageTag + ' | gzip > ' + self.imageToCopy + '-' + imageTag + '.tar.gz', '\$', 60)
-		lSsh.copyin(lIpAddr, lUserName, lPassWord, '~/' + self.imageToCopy + '-' + imageTag + '.tar.gz', '.')
+		lSsh.command('docker save ' + self.imageToCopy + ':' + imageTag + ' | gzip --fast > ' + self.imageToCopy + '-' + imageTag + '.tar.gz', '\$', 60)
+		ret = lSsh.copyin(lIpAddr, lUserName, lPassWord, '~/' + self.imageToCopy + '-' + imageTag + '.tar.gz', '.')
+		if ret != 0:
+			HTML.CreateHtmlTestRow('N/A', 'KO', CONST.ALL_PROCESSES_OK)
+			self.exitStatus = 1
+			return False
 		lSsh.command('rm ' + self.imageToCopy + '-' + imageTag + '.tar.gz', '\$', 60)
+		if lSsh.getBefore().count('cannot remove'):
+			HTML.CreateHtmlTestRow('file not created by docker save', 'KO', CONST.ALL_PROCESSES_OK)
+			self.exitStatus = 1
+			return False
 		lSsh.close()
 
 		# Going to the Test Server
@@ -580,15 +607,26 @@ class Containerize():
 			lPassWord = self.eNB2Password
 		lSsh.open(lIpAddr, lUserName, lPassWord)
 		lSsh.copyout(lIpAddr, lUserName, lPassWord, './' + self.imageToCopy + '-' + imageTag + '.tar.gz', '~')
+		# copyout has no return code and will quit if something fails
 		lSsh.command('docker rmi ' + self.imageToCopy + ':' + imageTag, '\$', 10)
 		lSsh.command('docker load < ' + self.imageToCopy + '-' + imageTag + '.tar.gz', '\$', 60)
+		if lSsh.getBefore().count('o such file') or lSsh.getBefore().count('invalid tar header'):
+			logging.debug(lSsh.getBefore())
+			HTML.CreateHtmlTestRow('problem during docker load', 'KO', CONST.ALL_PROCESSES_OK)
+			self.exitStatus = 1
+			return False
 		lSsh.command('rm ' + self.imageToCopy + '-' + imageTag + '.tar.gz', '\$', 60)
+		if lSsh.getBefore().count('cannot remove'):
+			HTML.CreateHtmlTestRow('file not copied during scp?', 'KO', CONST.ALL_PROCESSES_OK)
+			self.exitStatus = 1
+			return False
 		lSsh.close()
 
 		if os.path.isfile('./' + self.imageToCopy + '-' + imageTag + '.tar.gz'):
 			os.remove('./' + self.imageToCopy + '-' + imageTag + '.tar.gz')
 
 		HTML.CreateHtmlTestRow('N/A', 'OK', CONST.ALL_PROCESSES_OK)
+		return True
 
 	def DeployObject(self, HTML, EPC):
 		if self.eNB_serverId[self.eNB_instance] == '0':
@@ -637,7 +675,7 @@ class Containerize():
 		result = re.search('service=(?P<svc_name>[a-zA-Z0-9\_]+)', mySSH.getBefore())
 		if result is not None:
 			svcName = result.group('svc_name')
-			mySSH.command('docker-compose --file ci-docker-compose.yml up -d ' + svcName, '\$', 10)
+			mySSH.command('docker-compose --file ci-docker-compose.yml up -d ' + svcName, '\$', 15)
 
 		# Checking Status
 		mySSH.command('docker-compose --file ci-docker-compose.yml config', '\$', 5)
@@ -664,6 +702,9 @@ class Containerize():
 		logging.debug(' -- ' + str(unhealthyNb) + ' unhealthy container(s)')
 		logging.debug(' -- ' + str(startingNb) + ' still starting container(s)')
 
+		self.testCase_id = HTML.testCase_id
+		self.eNB_logFile[self.eNB_instance] = 'enb_' + self.testCase_id + '.log'
+
 		status = False
 		if healthyNb == 1:
 			cnt = 0
@@ -678,10 +719,11 @@ class Containerize():
 					status = True
 					logging.info('\u001B[1m Deploying OAI object Pass\u001B[0m')
 					time.sleep(10)
+		else:
+			# containers are unhealthy, so we won't start. However, logs are stored at the end
+			# in UndeployObject so we here store the logs of the unhealthy container to report it
+			mySSH.command('docker logs ' + containerName + ' > ' + lSourcePath + '/cmake_targets/' + self.eNB_logFile[self.eNB_instance], '\$', 30)
 		mySSH.close()
-
-		self.testCase_id = HTML.testCase_id
-		self.eNB_logFile[self.eNB_instance] = 'enb_' + self.testCase_id + '.log'
 
 		if status:
 			HTML.CreateHtmlTestRow('N/A', 'OK', CONST.ALL_PROCESSES_OK)
@@ -914,12 +956,26 @@ class Containerize():
 		logging.debug(cmd)
 		subprocess.run(cmd, shell=True)
 
-		# if the containers are running, recover the logs!
+		# check which containers are running for log recovery later
 		cmd = 'cd ' + self.yamlPath[0] + ' && docker-compose -f docker-compose-ci.yml ps --all'
 		logging.debug(cmd)
-		deployStatus = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT, universal_newlines=True, timeout=30)
+		deployStatusLogs = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT, universal_newlines=True, timeout=30)
+
+		# Stop the containers to shut down objects
+		logging.debug('\u001B[1m Stopping containers \u001B[0m')
+		cmd = 'cd ' + self.yamlPath[0] + ' && docker-compose -f docker-compose-ci.yml stop'
+		logging.debug(cmd)
+		try:
+			deployStatus = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT, universal_newlines=True, timeout=100)
+		except Exception as e:
+			self.exitStatus = 1
+			logging.error('Could not stop containers')
+			HTML.CreateHtmlTestRow('Could not stop', 'KO', CONST.ALL_PROCESSES_OK)
+			logging.error('\u001B[1m Undeploying OAI Object(s) FAILED\u001B[0m')
+			return
+
 		anyLogs = False
-		for state in deployStatus.split('\n'):
+		for state in deployStatusLogs.split('\n'):
 			res = re.search('Name|----------', state)
 			if res is not None:
 				continue
