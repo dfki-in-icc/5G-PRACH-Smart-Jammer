@@ -304,7 +304,7 @@ void ue_ip_change_rx_flags(struct net_device *dev_pP, int flagsP) {
 
 //---------------------------------------------------------------------------
 
-#if  LINUX_VERSION_CODE >= KERNEL_VERSION(5,6,0) || RHEL_RELEASE_CODE == 2055
+#if  LINUX_VERSION_CODE >= KERNEL_VERSION(5,6,0) || (defined RHEL_RELEASE_CODE && RHEL_RELEASE_CODE == 2055)
 void ue_ip_tx_timeout(struct net_device *dev_pP, unsigned int txqueue)
 #else
 void ue_ip_tx_timeout(struct net_device *dev_pP)
