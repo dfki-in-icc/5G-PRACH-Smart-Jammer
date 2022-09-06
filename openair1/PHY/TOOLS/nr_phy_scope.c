@@ -181,16 +181,13 @@ static void oai_xygraph(OAIgraph_t *graph, float *x, float *y, int len, int laye
 //      snprintf(wsc.graphtitle,sizeof(wsc.graphtitle),graph->text->label); 
   websrv_scopedata_msg_t *msg=NULL;
   int nm=0;
-    int n=websrv_nf_getdata(graph->graph, layer, &msg, &nm); 
-    for (int i=0; i<nm ;i++) {  
-	  msg[i].msgtype=SCOPEMSG_TYPE_DATA ;
-      msg[i].chartid=graph->chartid;
-      msg[i].datasetid=graph->datasetid;
-      msg[i].msgseg=i;
-      msg[i].update=(i== (nm-1) ? 1 : 0); 
-      int len = (i == (nm-1) ? (n%MAX_FLOAT_WEBSOCKMSG) :MAX_FLOAT_WEBSOCKMSG );   
-      websrv_scope_sendIQ(len,&(msg[i]));
-    }
+      websrv_nf_getdata(graph->graph, layer, &msg, &nm); 
+	  msg->msgtype=SCOPEMSG_TYPE_DATA ;
+      msg->chartid=graph->chartid;
+      msg->datasetid=graph->datasetid;
+      msg->msgseg=0;
+      msg->update= 1;  
+      websrv_scope_sendIQ(len,msg);
 #else
   fl_redraw_object(graph->graph);
 
@@ -206,10 +203,10 @@ static void oai_xygraph(OAIgraph_t *graph, float *x, float *y, int len, int laye
 
     setRange(graph, minX-5, maxX+5, minY-5, maxY+5);
   }
-
+#endif
   graph->iteration++;
 
-#endif
+
 }
 
 static void genericWaterFall (OAIgraph_t *graph, scopeSample_t *values, const int datasize, const int divisions, const char *label) {

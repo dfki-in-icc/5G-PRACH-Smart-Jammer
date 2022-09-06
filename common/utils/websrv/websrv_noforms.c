@@ -76,6 +76,8 @@ FL_OBJECT * websrv_fl_add_xyplot( int          t,
     obj->y         = y;
     obj->w         = w;
     obj->h         = h;
+    if (label)
+      obj->label = strdup(label);
     LOG_I(UTIL,"[websrv], scope object for \"%s\" allocated obj at %p spec at %p\n",label,obj,obj->spec);
 
     return obj;
@@ -102,14 +104,31 @@ void websrv_fl_add_xyplot_overlay( FL_OBJECT * ob,
                             FL_COLOR    col ){
 FLI_XYPLOT_SPEC *spec = (FLI_XYPLOT_SPEC *)(ob->spec);
 
-int k = (n/MAX_FLOAT_WEBSOCKMSG)  + 1;
-spec->n[id]=n;	 
-for (int i=0; i<k ; i++)
-  {   
-  for ( int j=0; j<MAX_FLOAT_WEBSOCKMSG && ((i*MAX_FLOAT_WEBSOCKMSG)+j)<n; j++) {
-	spec->buff[id].buf[i].data_x[j]=x[(i*MAX_FLOAT_WEBSOCKMSG)+j];
-	spec->buff[id].buf[i].data_y[j]=y[(i*MAX_FLOAT_WEBSOCKMSG)+j];
-    }
+if (n>MAX_FLOAT_WEBSOCKMSG) {
+   LOG_E(UTIL,"Buffer %i too small for %i iqs...\n",id,n);
+   return;
+}
+
+  
+  spec->n[id]=n; 
+  spec->buff[id].buf[0].data_xy[0]=x[0];
+  spec->buff[id].buf[0].data_xy[1]=y[0];
+  for ( int i=1; i<n; i++) {
+	if (x[i-1] <= x[i] ) {
+	  spec->buff[id].buf[0].data_xy[2*i]=x[i];
+	  spec->buff[id].buf[0].data_xy[(2*i)+1]=y[i];
+	} else {
+	  for (int j=0; j<i; j++) {
+	     if (spec->buff[id].buf[0].data_xy[2*j]>x[i]) {
+		   for (int k=i;k>=j;k--) {
+	         spec->buff[id].buf[0].data_xy[2*(k+1)]=spec->buff[id].buf[0].data_xy[2*k];
+	         spec->buff[id].buf[0].data_xy[(2*(k+1))+1]=spec->buff[id].buf[0].data_xy[(2*k)+1];
+		   }
+	       spec->buff[id].buf[0].data_xy[2*j]=x[i];
+	       spec->buff[id].buf[0].data_xy[(2*j)+1]=y[i];
+	    }
+      }
+	}
   }
 };
 
@@ -138,8 +157,8 @@ void websrv_fl_get_xyplot_data_pointer( FL_OBJECT  * ob,
                                  float     ** y,
                                  int        *n ){
 FLI_XYPLOT_SPEC *spec = (FLI_XYPLOT_SPEC *)(ob->spec);
-*x=spec->buff[0].buf[id].data_x;
-*y=spec->buff[0].buf[id].data_y;
+*x=spec->buff[0].buf[id].data_xy;
+*y=spec->buff[0].buf[id].data_xy;
 *n=spec->n[id];
 };
 

@@ -51,13 +51,12 @@ static websrv_scope_params_t scope_params = {0,1000,NULL,&scopedata};
 static websrv_params_t *websrvparams_ptr;
 
 void  websrv_scope_sendIQ(int n, websrv_scopedata_msg_t *msg) {
-/*    int k = (n/MAX_FLOAT_WEBSOCKMSG)  + 1;
-    for (int i=0; i<k ; i++)
-      for ( int j=0; j<MAX_FLOAT_WEBSOCKMSG && ((i*MAX_FLOAT_WEBSOCKMSG)+j)<n; j++) {
-	    spec->buff[id].data_x[j]=x[(i*MAX_FLOAT_WEBSOCKMSG)+j];
-	    spec->buff[id].data_y[j]=y[(i*MAX_FLOAT_WEBSOCKMSG)+j];
-  }
-*/
+/* 
+
+  for ( int i=0; i<n; i++) {  
+    msg->data_xy[2*i]=(i>(n/2))? 10 : -10;
+    msg->data_xy[(2*i)+1]= (i>(n/4))? 10 : -10; 
+  }*/
   msg->src=WEBSOCK_SRC_SCOPE ;
   int st = ulfius_websocket_send_message( websrvparams_ptr->wm, U_WEBSOCKET_OPCODE_BINARY,(n*2*sizeof(float))+WEBSOCK_HEADSIZE, (char *)msg);
   if (st != U_OK)
@@ -137,12 +136,11 @@ void websrv_scope_ws_close() {
  /*  callback to process control commands received from frontend */
 int websrv_scope_callback_set_params (const struct _u_request * request, struct _u_response * response, void * user_data) {
   websrv_dump_request("scope set params ", request);
-  	 websrv_printf_start(response,256);
 	 json_error_t jserr;
 	 json_t* jsbody = ulfius_get_json_body_request (request, &jserr);
      int httpstatus=404;
 	 if (jsbody == NULL) {
-	   websrv_printf("cannot find json body in %s %s\n",request->http_url, jserr.text );
+	   LOG_W(UTIL,"cannot find json body in %s %s\n",request->http_url, jserr.text );
        httpstatus=400;	 
 	 } else {
 	   websrv_printjson("websrv_scope_callback_set_params: ",jsbody);
@@ -161,39 +159,39 @@ int websrv_scope_callback_set_params (const struct _u_request * request, struct 
                  scope_params.statusmask &= ~SCOPE_STATUSMASK_STARTED;				 
 				 httpstatus=200;
 			 } else {
-				websrv_printf("invalid startstop command value: %s\n",vval);
+				LOG_W(UTIL,"invalid startstop command value: %s\n",vval);
 				httpstatus=400;
 			 }		 
 		 } else if (strcmp(vname,"refrate") == 0) {
            scope_params.refrate = (uint32_t)strtol(vval,NULL,10);
+           httpstatus=200;
 		 } else if (strcmp(vname,"enabled") == 0) {
            J=json_object_get(jsbody, "graphid"); 
            const int gid = json_integer_value(J); 
            OAI_phy_scope_t *sp = (OAI_phy_scope_t *)scope_params.scopeform;  
-           sp->graph[gid].enabled = (strcmp(vval,"true")==0)?true:false;      			 
+           sp->graph[gid].enabled = (strcmp(vval,"true")==0)?true:false; 
+           httpstatus=200;     			 
 		 } else {
                httpstatus=500;
-               websrv_printf("Unknown scope command: %s\n",vname );
+               LOG_W(UTIL,"Unknown scope command: %s\n",vname );
          }
      } //sbody
-  websrv_printf_end(httpstatus);
-  ulfius_set_empty_body_response(response, 200);
+  ulfius_set_empty_body_response(response, httpstatus);
   return U_CALLBACK_COMPLETE;
 }
  
 int websrv_scope_callback_get_desc (const struct _u_request * request, struct _u_response * response, void * user_data) {
   websrv_dump_request("scope get desc ", request);
   json_t *jgraph = json_array();
-  char chname[10];
   char gtype[20];
   char stitle[64];
   OAI_phy_scope_t *sp = (OAI_phy_scope_t *)scope_params.scopeform;
   for (int i=0; sp->graph[i].graph != NULL ; i++) {
-	  sprintf(chname,"ch%i",sp->graph[i].datasetid);
+	  
 	  if (sp->graph[i].chartid == SCOPEMSG_DATAID_IQ) {
 	    strcpy(gtype,"IQs");	  
-        json_t *agraph=json_pack("{s:s,s:s,s:i,s:i}","title",chname,"type",gtype,
-                                "id", sp->graph[i].datasetid,"srvidx",i );
+        json_t *agraph=json_pack("{s:s,s:s,s:i,s:i,s:i,s:i}","title",sp->graph[i].graph->label,"type",gtype,
+                                "id", sp->graph[i].datasetid,"srvidx",i,"w", sp->graph[i].w,"h",sp->graph[i].h);
         json_array_append_new(jgraph,agraph);    
       }
     }

@@ -83,8 +83,7 @@ typedef struct {
 	 unsigned char datasetid;                    // identify dataset in chart
 	 unsigned char update;                       // should chart be updated
 	 unsigned char hdr_unused[2];                // 2 unused char
-     float         data_x[MAX_FLOAT_WEBSOCKMSG]; // 180*(32 bits)
-     float         data_y[MAX_FLOAT_WEBSOCKMSG]; // 180*(32 bits)
+     float         data_xy[MAX_FLOAT_WEBSOCKMSG*2]; // 180*(32 bits)
 } websrv_scopedata_msg_t;
 #define WEBSOCK_HEADSIZE (offsetof(websrv_msg_t, data))
 

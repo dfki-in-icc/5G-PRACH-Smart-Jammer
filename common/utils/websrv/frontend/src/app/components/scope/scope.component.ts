@@ -119,16 +119,16 @@ export class ScopeComponent {
             this.scopetime=this.DecodScopeBinmsgToString(message.content);
             break;
           case  SCOPEMSG_TYPE_DATA:   
-            const bufferview = new DataView(message.content);
-            let bl=(bufferview.byteLength)/8;//8: 32 bits floats and two parts in buffer: one half for I one half for Q
+            const bufferview = new DataView(message.content);           
 			switch (message.chartid) {
 			  case SCOPEMSG_DATA_IQ:
-			    for ( let i=0;i<bl; i++) {
-                  this.IQDatasets[message.dataid].data[i+(message.segnum * bl)]={ x: bufferview.getFloat32(i), y: bufferview.getFloat32(i+bl)};
+			    for ( let i=0;i<bufferview.byteLength; i=i+8) {
+                  this.IQDatasets[message.dataid].data[i/8]={ x: bufferview.getFloat32(i, true), y: bufferview.getFloat32(i+4, true)};
                 }
                 if(message.update) {
-				  console.log("Scope update chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
+				  console.log("Starting scope update chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
                   this.chart?.update();
+                  console.log(" scope update completed chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
 			    }
               break;
                 default:
