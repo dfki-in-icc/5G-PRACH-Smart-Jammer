@@ -158,9 +158,10 @@ static void oai_xygraph_getbuff(OAIgraph_t *graph, float **x, float **y, int len
     float time[len];
 
     // make time in case we will use it
+#ifndef WEBSRVSCOPE  // triggers strange display in frontend
     for (int i=0; i<len; i++)
       time[i] = values[i] = i;
-
+#endif
     if (layer==0)
       fl_set_xyplot_data(graph->graph,time,values,len,"","","");
     else

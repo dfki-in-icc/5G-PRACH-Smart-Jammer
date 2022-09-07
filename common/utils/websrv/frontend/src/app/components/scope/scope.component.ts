@@ -27,7 +27,6 @@ export class ScopeComponent {
   startstop = 'start';
   startstop_color = 'warn';
   rfrate = 2;
-  
   iqgraph_list : IGraphDesc[] = [];
   selected_channels = [""];
   
@@ -38,32 +37,41 @@ export class ScopeComponent {
   public IQDatasets: ChartConfiguration<'scatter'>['data']['datasets'] = [
     {
       data: [],
-//      label: 'Series A',
+      label: '1',
       pointRadius: 0.5,
       showLine: false,
+      animation: false,
       fill:false,
       pointStyle: 'circle',
       pointBackgroundColor:'yellow',
+      backgroundColor:'yellow',
+      borderWidth:0,
       pointBorderColor:'yellow',
 //      parsing: false,
     },
     {
       data: [],
-//      label: 'Series A',
+      label: '2',
       pointRadius: 0.5,
       showLine: false,
+      animation: false,
       pointStyle: 'circle',
       pointBackgroundColor:'cyan',
+      backgroundColor:'cyan',
+      borderWidth:0,
       pointBorderColor:'cyan',
 //      parsing: false,
     },
     {
       data: [],
-//      label: 'Series A',
+      label: '3',
       pointRadius: 0.5,      
       showLine: false,
+      animation: false,
       pointStyle: 'circle',
       pointBackgroundColor:'red',
+      backgroundColor:'red',
+      borderWidth:0,
       pointBorderColor:'red',
 //      parsing: false,
     }       
@@ -72,7 +80,7 @@ export class ScopeComponent {
   public IQOptions: ChartConfiguration<'scatter'>['options'] = {
     responsive: false,
     aspectRatio: 1,
-    plugins: { legend: { display: false, },  tooltip: { enabled: false, }, },
+    plugins: { legend: { display: true, labels:{boxWidth: 10, boxHeight: 10}},  tooltip: { enabled: false, }, },
   };
   
   constructor(private wsService: WebSocketService,private scopeApi: ScopeApi ) {
@@ -95,8 +103,10 @@ export class ScopeComponent {
 	  for (let graphIndex = 0; graphIndex < resp.graphs.length; graphIndex++) {
 		  if (resp.graphs[graphIndex].type === IScopeGraphType.IQs ) {
 		    this.iqgraph_list.push(resp.graphs[graphIndex]);
+		    this.IQDatasets[resp.graphs[graphIndex].id].label=resp.graphs[resp.graphs[graphIndex].id].title;
 		  }
 	  }
+	  this.chart?.update();
   }
   
   ProcessScopeMsg (message: Message) {	  

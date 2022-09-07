@@ -109,7 +109,7 @@ if (n>MAX_FLOAT_WEBSOCKMSG) {
    return;
 }
 
-  
+/* copy and sort the chart data on x to improve frontend perf */  
   spec->n[id]=n; 
   spec->buff[id].buf[0].data_xy[0]=x[0];
   spec->buff[id].buf[0].data_xy[1]=y[0];
