@@ -47,6 +47,7 @@
 #include "openair2/GNB_APP/gnb_paramdef.h"
 #include "targets/ARCH/ETHERNET/USERSPACE/LIB/if_defs.h"
 #include <stdio.h>
+#include "openair2/GNB_APP/MACRLC_nr_paramdef.h"
 
 #define MAX_IF_MODULES 100
 
@@ -81,8 +82,7 @@ void nrue_init_standalone_socket(int tx_port, int rx_port)
       LOG_E(NR_MAC, "Socket creation error standalone PNF\n");
       return;
     }
-    LOG_I(NR_MAC, "sin_family %d, remote_addr %p, &server_address.sin_addr %p\n ",
-          server_address.sin_family, stub_eth_params.remote_addr, &server_address.sin_addr);
+
     if (inet_pton(server_address.sin_family, stub_eth_params.remote_addr, &server_address.sin_addr) <= 0)
     {
       LOG_E(NR_MAC, "Invalid standalone PNF Address\n");
