@@ -466,7 +466,7 @@ int main( int argc, char **argv ) {
   PHY_vars_UE_g = malloc(sizeof(PHY_VARS_NR_UE **));
   PHY_vars_UE_g[0] = malloc(sizeof(PHY_VARS_NR_UE *)*MAX_NUM_CCs);
   if (get_softmodem_params()->emulate_l1) {
-    RCconfig_nr_ue_L1();
+    RCconfig_nr_ue_macrlc();
     init_bler_table();
     init_mimo_bler_table();
   }
