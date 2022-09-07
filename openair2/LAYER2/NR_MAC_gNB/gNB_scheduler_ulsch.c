@@ -130,6 +130,8 @@ int nr_process_mac_pdu( instance_t module_idP,
                //38.321 section 6.1.3.1
                //fixed length
                mac_len =1;
+               if (pdu_len < sizeof(NR_BSR_LONG))
+                      return 0;
                /* Extract short BSR value */
                ce_ptr = &pduP[mac_subheader_len];
                NR_BSR_SHORT *bsr_s = (NR_BSR_SHORT *) ce_ptr;
