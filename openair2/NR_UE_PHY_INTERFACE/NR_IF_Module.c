@@ -47,6 +47,7 @@
 #include "openair2/GNB_APP/gnb_paramdef.h"
 #include "targets/ARCH/ETHERNET/USERSPACE/LIB/if_defs.h"
 #include <stdio.h>
+#include "openair2/GNB_APP/MACRLC_nr_paramdef.h"
 
 #define MAX_IF_MODULES 100
 
@@ -1309,29 +1310,29 @@ int nr_ue_dcireq(nr_dcireq_t *dcireq) {
   return 0;
 }
 
-void RCconfig_nr_ue_L1(void) {
+void RCconfig_nr_ue_macrlc(void) {
   int j;
-  paramdef_t L1_Params[] = L1PARAMS_DESC;
-  paramlist_def_t L1_ParamList = {CONFIG_STRING_L1_LIST, NULL, 0};
+  paramdef_t MACRLC_Params[] = MACRLCPARAMS_DESC;
+  paramlist_def_t MACRLC_ParamList = {CONFIG_STRING_MACRLC_LIST, NULL, 0};
 
-  config_getlist(&L1_ParamList, L1_Params, sizeof(L1_Params) / sizeof(paramdef_t), NULL);
-  if (L1_ParamList.numelt > 0) {
-    for (j = 0; j < L1_ParamList.numelt; j++) {
-      if (strcmp(*(L1_ParamList.paramarray[j][L1_TRANSPORT_N_PREFERENCE_IDX].strptr), "nfapi") == 0) {
+  config_getlist(&MACRLC_ParamList, MACRLC_Params, sizeof(MACRLC_Params) / sizeof(paramdef_t), NULL);
+  if (MACRLC_ParamList.numelt > 0) {
+    for (j = 0; j < MACRLC_ParamList.numelt; j++) {
+      if (strcmp(*(MACRLC_ParamList.paramarray[j][MACRLC_TRANSPORT_N_PREFERENCE_IDX].strptr), "nfapi") == 0) {
         stub_eth_params.local_if_name = strdup(
-            *(L1_ParamList.paramarray[j][L1_LOCAL_N_IF_NAME_IDX].strptr));
+            *(MACRLC_ParamList.paramarray[j][MACRLC_LOCAL_N_IF_NAME_IDX].strptr));
         stub_eth_params.my_addr = strdup(
-            *(L1_ParamList.paramarray[j][L1_LOCAL_N_ADDRESS_IDX].strptr));
+            *(MACRLC_ParamList.paramarray[j][MACRLC_LOCAL_N_ADDRESS_IDX].strptr));
         stub_eth_params.remote_addr = strdup(
-            *(L1_ParamList.paramarray[j][L1_REMOTE_N_ADDRESS_IDX].strptr));
+            *(MACRLC_ParamList.paramarray[j][MACRLC_REMOTE_N_ADDRESS_IDX].strptr));
         stub_eth_params.my_portc =
-            *(L1_ParamList.paramarray[j][L1_LOCAL_N_PORTC_IDX].iptr);
+            *(MACRLC_ParamList.paramarray[j][MACRLC_LOCAL_N_PORTC_IDX].iptr);
         stub_eth_params.remote_portc =
-            *(L1_ParamList.paramarray[j][L1_REMOTE_N_PORTC_IDX].iptr);
+            *(MACRLC_ParamList.paramarray[j][MACRLC_REMOTE_N_PORTC_IDX].iptr);
         stub_eth_params.my_portd =
-            *(L1_ParamList.paramarray[j][L1_LOCAL_N_PORTD_IDX].iptr);
+            *(MACRLC_ParamList.paramarray[j][MACRLC_LOCAL_N_PORTD_IDX].iptr);
         stub_eth_params.remote_portd =
-            *(L1_ParamList.paramarray[j][L1_REMOTE_N_PORTD_IDX].iptr);
+            *(MACRLC_ParamList.paramarray[j][MACRLC_REMOTE_N_PORTD_IDX].iptr);
         stub_eth_params.transp_preference = ETH_UDP_MODE;
       }
     }
