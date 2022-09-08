@@ -245,6 +245,7 @@ typedef struct {
   NR_BCCH_DL_SCH_Message_t *sib1;
   NR_ServingCellConfigCommon_t *ServingCellConfigCommon;
   NR_ARFCN_ValueEUTRA_t ul_CarrierFreq;
+  
   long ul_Bandwidth;
   /// Outgoing MIB PDU for PHY
   MIB_PDU MIB_pdu;
@@ -851,6 +852,10 @@ typedef struct gNB_MAC_INST_s {
   uint8_t min_grant_mcs;
 
   nr_mac_rrc_ul_if_t mac_rrc;
+
+  //holds the SRS config for UEs of neighboring cells
+  //to be expanded to multiple users later
+  NR_SetupRelease_SRS_Config_t *setup_srs_config[1]; 
 } gNB_MAC_INST;
 
 #endif /*__LAYER2_NR_MAC_GNB_H__ */

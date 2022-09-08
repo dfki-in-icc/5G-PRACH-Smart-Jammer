@@ -39,11 +39,11 @@
 
 #include "NR_BCCH-BCH-Message.h"
 #include "NR_ServingCellConfigCommon.h"
+#include "NR_MIB.h"
 
 #include "LAYER2/NR_MAC_gNB/mac_proto.h"
 #include "SCHED_NR/phy_frame_config_nr.h"
-
-#include "NR_MIB.h"
+#include "RRC/NR/nr_rrc_config.h"
 #include "LAYER2/NR_MAC_COMMON/nr_mac_common.h"
 #include "../../../../nfapi/oai_integration/vendor_ext.h"
 /* Softmodem params */
@@ -639,6 +639,20 @@ int rrc_mac_config_req_gNB(module_id_t Mod_idP,
       process_CellGroup(CellGroup,&UE->UE_sched_ctrl);
     }
   }
+
+  //configure SRS for secondary cell
+  int curr_bwp = NRRIV2BW(scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters.locationAndBandwidth,MAX_BWP_SIZE);
+
+  RC.nrmac[Mod_idP]->setup_srs_config[0] = calloc(1,sizeof(NR_SetupRelease_SRS_Config_t));
+  config_srs(RC.nrmac[Mod_idP]->setup_srs_config[0],
+	     NULL,
+	     curr_bwp,
+	     0,   //lets assume ue_id = 0.
+	     0,   //res_id = 0 for initial BWP
+	     1);  //do_srsg
+
+
+  
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_RRC_MAC_CONFIG, VCD_FUNCTION_OUT);
 
   return 0;
