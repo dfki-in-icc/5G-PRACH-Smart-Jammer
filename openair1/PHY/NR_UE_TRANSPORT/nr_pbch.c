@@ -391,7 +391,9 @@ int nr_rx_pbch( PHY_VARS_NR_UE *ue,
                 uint8_t gNB_id,
                 uint8_t i_ssb,
                 MIMO_mode_t mimo_mode,
+                NR_UE_PDCCH_CONFIG *phy_pdcch_config,
                 fapiPbch_t *result) {
+
   NR_UE_COMMON *nr_ue_common_vars = &ue->common_vars;
   int max_h=0;
   int symbol;
@@ -415,7 +417,7 @@ int nr_rx_pbch( PHY_VARS_NR_UE *ue,
   int symbol_offset=1;
 
   if (ue->is_synchronized > 0)
-    symbol_offset=(ue->symbol_offset)%(frame_parms->symbols_per_slot);
+    symbol_offset=nr_get_ssb_start_symbol(frame_parms, i_ssb)%(frame_parms->symbols_per_slot);
   else
     symbol_offset=0;
 
@@ -429,8 +431,8 @@ int nr_rx_pbch( PHY_VARS_NR_UE *ue,
 
   for (symbol=1; symbol<4; symbol++) {
     const uint16_t nb_re=symbol == 2 ? 72 : 180;
-    struct complex16 rxdataF_ext[frame_parms->nb_antennas_rx][PBCH_MAX_RE_PER_SYMBOL];
-    struct complex16 dl_ch_estimates_ext[frame_parms->nb_antennas_rx][PBCH_MAX_RE_PER_SYMBOL];
+    __attribute__ ((aligned(32))) struct complex16 rxdataF_ext[frame_parms->nb_antennas_rx][PBCH_MAX_RE_PER_SYMBOL];
+    __attribute__ ((aligned(32))) struct complex16 dl_ch_estimates_ext[frame_parms->nb_antennas_rx][PBCH_MAX_RE_PER_SYMBOL];
     memset(dl_ch_estimates_ext,0, sizeof  dl_ch_estimates_ext);
     nr_pbch_extract(nr_ue_common_vars->common_vars_rx_data_per_thread[proc->thread_id].rxdataF,
                     estimateSz,
@@ -455,7 +457,7 @@ int nr_rx_pbch( PHY_VARS_NR_UE *ue,
 #ifdef DEBUG_PBCH
     LOG_I(PHY,"[PHY] PBCH log2_maxh = %d (%d)\n",nr_ue_pbch_vars->log2_maxh,max_h);
 #endif
-    struct complex16 rxdataF_comp[frame_parms->nb_antennas_rx][PBCH_MAX_RE_PER_SYMBOL];
+    __attribute__ ((aligned(32))) struct complex16 rxdataF_comp[frame_parms->nb_antennas_rx][PBCH_MAX_RE_PER_SYMBOL];
     nr_pbch_channel_compensation(rxdataF_ext,
                                  dl_ch_estimates_ext,
                                  nb_re,
@@ -577,7 +579,8 @@ int nr_rx_pbch( PHY_VARS_NR_UE *ue,
   nr_downlink_indication_t dl_indication;
   fapi_nr_rx_indication_t *rx_ind=calloc(sizeof(*rx_ind),1);
   uint16_t number_pdus = 1;
-  nr_fill_dl_indication(&dl_indication, NULL, rx_ind, proc, ue, gNB_id);
+
+  nr_fill_dl_indication(&dl_indication, NULL, rx_ind, proc, ue, gNB_id, phy_pdcch_config);
   nr_fill_rx_indication(rx_ind, FAPI_NR_RX_PDU_TYPE_SSB, gNB_id, ue, NULL, NULL, number_pdus, proc,(void *)result);
 
   if (ue->if_inst && ue->if_inst->dl_indication)

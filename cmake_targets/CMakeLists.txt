@@ -203,17 +203,23 @@ if (CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7l")
 else (CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7l")
   if(EXISTS  "/proc/cpuinfo")
     file(STRINGS "/proc/cpuinfo" CPUINFO REGEX flags LIMIT_COUNT 1)
-    if (CPUINFO MATCHES "avx2")
-      set(C_FLAGS_PROCESSOR "${C_FLAGS_PROCESSOR} -mavx2")
+    message("NOAVX512 is ${NOAVX512}")
+    if (CPUINFO MATCHES "avx512bw" AND "${NOAVX512}" STREQUAL "False")
+      set(C_FLAGS_PROCESSOR "${C_FLAGS_PROCESSOR} -mavx512bw -march=skylake-avx512 -mtune=skylake-avx512 " )
       set(COMPILATION_AVX2 "True")
     else()
-      set(COMPILATION_AVX2 "False")
-    endif()
-    if (CPUINFO MATCHES "sse4_1")
-      set(C_FLAGS_PROCESSOR "${C_FLAGS_PROCESSOR} -msse4.1 -mpclmul")
-    endif()
-    if (CPUINFO MATCHES "ssse3")
-      set(C_FLAGS_PROCESSOR "${C_FLAGS_PROCESSOR} -mssse3")
+      if (CPUINFO MATCHES "avx2")
+        set(C_FLAGS_PROCESSOR "${C_FLAGS_PROCESSOR} -mavx2")
+        set(COMPILATION_AVX2 "True")
+      else()
+        set(COMPILATION_AVX2 "False")
+      endif()
+      if (CPUINFO MATCHES "sse4_1")
+        set(C_FLAGS_PROCESSOR "${C_FLAGS_PROCESSOR} -msse4.1 -mpclmul")
+      endif()
+      if (CPUINFO MATCHES "ssse3")
+        set(C_FLAGS_PROCESSOR "${C_FLAGS_PROCESSOR} -mssse3")
+      endif()
     endif()
   else()
     Message("/proc/cpuinfo does not exit. We will use manual CPU flags")
@@ -224,11 +230,11 @@ set(C_FLAGS_PROCESSOR " ${C_FLAGS_PROCESSOR} ${CFLAGS_PROCESSOR_USER}")
 
 Message("C_FLAGS_PROCESSOR is ${C_FLAGS_PROCESSOR}")
 
-if (CMAKE_SYSTEM_PROCESSOR MATCHES "x86")
-  if ( (NOT( C_FLAGS_PROCESSOR MATCHES "ssse3")) OR (NOT( C_FLAGS_PROCESSOR MATCHES "msse4.1")) )
-    Message(FATAL_ERROR "For x86 Architecture, you must have following flags: -mssse3 -msse4.1. The current detected flags are: ${C_FLAGS_PROCESSOR}. You can pass the flags manually in build script, for example: ./build_oai --cflags_processor \"-mssse3 -msse4.1 -mavx2\" ")
-  endif()
-endif()
+#if (CMAKE_SYSTEM_PROCESSOR MATCHES "x86")
+#  if ( (NOT( C_FLAGS_PROCESSOR MATCHES "ssse3")) OR (NOT( C_FLAGS_PROCESSOR MATCHES "msse4.1")) )
+#    Message(FATAL_ERROR "For x86 Architecture, you must have following flags: -mssse3 -msse4.1. The current detected flags are: ${C_FLAGS_PROCESSOR}. You can pass the flags manually in build script, for example: ./build_oai --cflags_processor \"-mssse3 -msse4.1 -mavx2\" ")
+#  endif()
+#endif()
 
 #
 # add autotools definitions that were maybe used!
@@ -247,6 +253,28 @@ add_boolean_option(SANITIZE_ADDRESS False "enable the address sanitizer (ASan)")
 if (SANITIZE_ADDRESS)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address -fno-omit-frame-pointer -fno-common")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer -fno-common")
+  # There seems to be some incompatibility with pthread_create and the RT scheduler, which
+  # results in pthread_create hanging.
+  #
+  # When we switch from Ubuntu 16.04 to 18.04, we found that running with the address sanitizer,
+  # the pthread_create function calls were not working. The inital thought was that we were
+  # trying to create a thread that was not-blocking and would eventually crash the machine during
+  # the run. After more debugging, we found that we would never even start the thread. We narrowed
+  # down the first two instances of pthread_create in the gNB and NR UE to be sctp_eNB_task and
+  # one_thread, respectively. We found that adding sleeps, and various other pauses to the threads
+  # had not effect. From there, we found that if we add an abort(); prior to the thread loop, we
+  # do not execute that. This indicated to us that the problem is not likely to be a non-blocking
+  # thread, but perhaps and issue with pthread_create itself. From there we begain to research the
+  # issue on the web. See: https://github.com/google/sanitizers/issues/1125
+  #
+  # Google searching indicates this appears to be a problem since at least 2018. This could be something
+  # wrong in the pthread library, or something subtly wrong in this CMakeLists.txt. Use Ubuntu 20.04 instead.
+endif ()
+
+add_boolean_option(SANITIZE_UNDEFINED False "enable the undefined behavior sanitizer (UBSan)")
+if (SANITIZE_UNDEFINED)
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=undefined -fno-sanitize-recover=all")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined -fno-sanitize-recover=all")
 endif ()
 
 add_definitions("-DASN_DISABLE_OER_SUPPORT")
@@ -306,13 +334,9 @@ add_definitions("-DPACKAGE_BUGREPORT=\"openair4g-devel@lists.eurecom.fr\"")
 
 # Debug related options
 #########################################
-add_boolean_option(ASN_EMIT_DEBUG      False "ASN1 coder/decoder Debug")
-add_boolean_option(ASN_THREAD_SAFE     True "ASN1 coder/decoder Debug")
-add_boolean_option(MSG_PRINT           True "print debug messages")
+add_boolean_option(DEBUG_ASN1C      False "ASN1 coder/decoder Debug traces, see common/utils/config.h, the logs are regular OAI logs, in the log group 'ASN'")
 add_boolean_option(DISABLE_XER_PRINT   False "print XER Format")
 add_boolean_option(XER_PRINT           False "print XER Format")
-add_boolean_option(RRC_MSG_PRINT       False "print RRC messages")
-add_boolean_option(PDCP_MSG_PRINT      False "print PDCP messages to /tmp/pdcp.log")
 add_boolean_option(DEBUG_PDCP_PAYLOAD  False "print PDCP PDU to stdout")  # if true, make sure that global and PDCP log levels are trace
 add_boolean_option(DEBUG_MAC_INTERFACE False "print MAC-RLC PDU exchange to stdout") # if true, make sure that global and PDCP log levels are trace
 add_boolean_option(TRACE_RLC_PAYLOAD   False "print RLC PDU to stdout") # if true, make sure that global and PDCP log levels are trace
@@ -329,6 +353,12 @@ add_library(ITTI
   ${OPENAIR_DIR}/common/utils/backtrace.c
   )
 add_dependencies(ITTI rrc_flag)
+
+# asn1c skeletons have hardcoded this flag to make customized debug logs
+# OAI uses this feature to re-use OAI LOG_I(ASN, ...)
+if (DEBUG_ASN1C)
+  add_definitions(-DHAVE_CONFIG_H)
+endif()
 
 ##################################################
 # ASN.1 grammar C code generation & dependencies #
@@ -817,7 +847,6 @@ add_boolean_option(UE_EXPANSION             False         "enable UE_EXPANSION w
 add_boolean_option(PHY_TX_THREAD            False         "enable UE_EXPANSION with max 256 UE")
 add_boolean_option(PRE_SCD_THREAD           False         "enable UE_EXPANSION with max 256 UE")
 add_boolean_option(UESIM_EXPANSION          False         "enable UESIM_EXPANSION with max 256 UE")
-add_boolean_option(ITTI_SIM                 False         "enable itti simulator")
 
 ########################
 # Include order
@@ -1384,8 +1413,11 @@ set(PHY_NR_CODINGIF
 )
 
 add_library(ldpc_orig MODULE ${PHY_LDPC_ORIG_SRC} )
+target_link_libraries(ldpc_orig PRIVATE ldpc_gen_HEADERS)
 add_library(ldpc_optim MODULE ${PHY_LDPC_OPTIM_SRC} )
+target_link_libraries(ldpc_optim PRIVATE ldpc_gen_HEADERS)
 add_library(ldpc_optim8seg MODULE ${PHY_LDPC_OPTIM8SEG_SRC} )
+target_link_libraries(ldpc_optim8seg PRIVATE ldpc_gen_HEADERS)
 add_library(ldpc_cl MODULE ${PHY_LDPC_CL_SRC} )
 target_link_libraries(ldpc_cl OpenCL)
 add_dependencies(ldpc_cl nrLDPC_decoder_kernels_CL)
@@ -1397,6 +1429,7 @@ if (CUDA_FOUND)
 endif (CUDA_FOUND)
 
 add_library(ldpc MODULE ${PHY_LDPC_OPTIM8SEGMULTI_SRC} )
+target_link_libraries(ldpc PRIVATE ldpc_gen_HEADERS)
 
 
 add_library(coding MODULE ${PHY_TURBOSRC} )
@@ -1542,9 +1575,10 @@ set(PHY_SRC_UE
 
   set(PHY_NR_SRC_COMMON
   ${OPENAIR1_DIR}/PHY/NR_TRANSPORT/nr_prach_common.c
-  ${OPENAIR1_DIR}/PHY/NR_UE_TRANSPORT/srs_modulation_nr.c
+  ${OPENAIR1_DIR}/PHY/NR_TRANSPORT/nr_csi_rs.c
   ${OPENAIR1_DIR}/PHY/NR_TRANSPORT/nr_scrambling.c
   ${OPENAIR1_DIR}/PHY/NR_REFSIG/scrambling_luts.c
+  ${OPENAIR1_DIR}/PHY/NR_UE_TRANSPORT/srs_modulation_nr.c
   )
 
   set(PHY_NR_SRC
@@ -1568,7 +1602,6 @@ set(PHY_SRC_UE
   ${OPENAIR1_DIR}/PHY/NR_TRANSPORT/nr_ulsch_demodulation.c
   ${OPENAIR1_DIR}/PHY/NR_REFSIG/ul_ref_seq_nr.c
   ${OPENAIR1_DIR}/PHY/NR_REFSIG/nr_dmrs_rx.c
-  ${OPENAIR1_DIR}/PHY/NR_TRANSPORT/nr_csi_rs.c
   ${OPENAIR1_DIR}/PHY/NR_REFSIG/nr_gold.c
   ${OPENAIR1_DIR}/PHY/NR_REFSIG/nr_gen_mod_table.c
   ${OPENAIR1_DIR}/PHY/NR_REFSIG/dmrs_nr.c
@@ -1616,6 +1649,7 @@ set(PHY_SRC_UE
   ${OPENAIR1_DIR}/PHY/NR_UE_TRANSPORT/dci_nr.c
   ${OPENAIR1_DIR}/PHY/NR_UE_TRANSPORT/dci_tools_nr.c
   ${OPENAIR1_DIR}/PHY/NR_UE_TRANSPORT/pucch_nr.c
+  ${OPENAIR1_DIR}/PHY/NR_UE_TRANSPORT/csi_rx.c
   ${OPENAIR1_DIR}/PHY/NR_TRANSPORT/nr_uci_tools_common.c
   ${OPENAIR1_DIR}/PHY/NR_UE_TRANSPORT/nr_ulsch_ue.c
   ${OPENAIR1_DIR}/PHY/NR_REFSIG/ul_ref_seq_nr.c
@@ -1777,11 +1811,20 @@ set(NR_PDCP_SRC
   ${OPENAIR2_DIR}/LAYER2/nr_pdcp/nr_pdcp_timer_thread.c
   ${OPENAIR2_DIR}/LAYER2/nr_pdcp/nr_pdcp_security_nea2.c
   ${OPENAIR2_DIR}/LAYER2/nr_pdcp/nr_pdcp_integrity_nia2.c
+  ${OPENAIR2_DIR}/LAYER2/nr_pdcp/nr_pdcp_integrity_nia1.c
   ${OPENAIR2_DIR}/LAYER2/nr_pdcp/asn1_utils.c
+  #hack: include these files to compile the nr phy simulators
+  #these files should not be here, will be removed at some point when the
+  #computation is done directly inside nr_pdcp_integrity_nia1.c instead
+  #of reusing code of osa_stream_eia.c
+  ${OPENAIR2_DIR}/UTIL/OSA/osa_stream_eia.c
+  ${OPENAIR2_DIR}/UTIL/OSA/osa_snow3g.c
+  ${OPENAIR2_DIR}/UTIL/OSA/osa_rijndael.c
   )
 
 set(NR_SDAP_SRC
-  ${OPENAIR2_DIR}/SDAP/nr_sdap/nr_sdap_gnb.c
+  ${OPENAIR2_DIR}/SDAP/nr_sdap/nr_sdap.c
+  ${OPENAIR2_DIR}/SDAP/nr_sdap/nr_sdap_entity.c
   )
   
 set(L2_SRC
@@ -1830,6 +1873,8 @@ set(L2_NR_SRC
   ${NR_RRC_DIR}/rrc_gNB.c
   ${NR_RRC_DIR}/nr_rrc_common.c
   ${NR_RRC_DIR}/L2_nr_interface.c
+  ${NR_RRC_DIR}/mac_rrc_dl_direct.c
+  ${NR_RRC_DIR}/mac_rrc_dl_f1ap.c
   ${NR_RRC_DIR}/nr_rrc_config.c
   ${NR_RRC_DIR}/rrc_gNB_nsa.c
   ${NR_RRC_DIR}/rrc_gNB_internode.c
@@ -1867,6 +1912,7 @@ set(NR_L2_SRC_UE
   ${NR_RRC_DIR}/nr_rrc_config.c
   ${NR_UE_RRC_DIR}/rrc_UE.c
   ${NR_UE_RRC_DIR}/rrc_nsa.c
+  ${NR_RRC_DIR}/nr_rrc_config.c
   )
 
 set (MAC_SRC
@@ -1907,6 +1953,9 @@ set (MAC_NR_SRC
   ${NR_GNB_MAC_DIR}/gNB_scheduler_uci.c
   ${NR_GNB_MAC_DIR}/gNB_scheduler_srs.c
   ${NR_GNB_MAC_DIR}/gNB_scheduler_RA.c
+  ${NR_GNB_MAC_DIR}/mac_rrc_dl_handler.c
+  ${NR_GNB_MAC_DIR}/mac_rrc_ul_direct.c
+  ${NR_GNB_MAC_DIR}/mac_rrc_ul_f1ap.c
  )
 
 
@@ -1923,6 +1972,7 @@ set (MAC_SRC_UE
 
 set (MAC_NR_SRC_UE
   ${NR_UE_PHY_INTERFACE_DIR}/NR_IF_Module.c
+  ${NR_UE_PHY_INTERFACE_DIR}/NR_Packet_Drop.c
   ${NR_UE_MAC_DIR}/config_ue.c
   ${NR_UE_MAC_DIR}/mac_vars.c
   ${NR_UE_MAC_DIR}/main_ue_nr.c
@@ -2840,6 +2890,7 @@ target_link_libraries(ldpctest
 add_executable(nr_dlschsim
   ${OPENAIR1_DIR}/SIMULATION/NR_PHY/dlschsim.c
   ${OPENAIR_DIR}/common/utils/nr/nr_common.c
+  ${OPENAIR_DIR}/executables/softmodem-common.c
   ${T_SOURCE}
   ${SHLIB_LOADER_SOURCES}
   )
@@ -2863,6 +2914,7 @@ target_link_libraries(nr_pbchsim
 add_executable(nr_pucchsim
   ${OPENAIR1_DIR}/SIMULATION/NR_PHY/pucchsim.c
   ${OPENAIR_DIR}/common/utils/nr/nr_common.c
+  ${OPENAIR_DIR}/executables/softmodem-common.c
   ${T_SOURCE}
   ${SHLIB_LOADER_SOURCES}
   )
@@ -2907,6 +2959,7 @@ target_link_libraries(nr_prachsim
 add_executable(nr_ulschsim
   ${OPENAIR1_DIR}/SIMULATION/NR_PHY/ulschsim.c
   ${OPENAIR_DIR}/common/utils/nr/nr_common.c
+  ${OPENAIR_DIR}/executables/softmodem-common.c
   ${PHY_INTERFACE_DIR}/queue_t.c
   ${T_SOURCE}
   ${SHLIB_LOADER_SOURCES}
@@ -2982,7 +3035,7 @@ if (${T_TRACER})
   foreach(i
         #all "add_executable" definitions (except tests, rb_tool, updatefw)
         lte-softmodem lte-uesoftmodem nr-softmodem
-        nr-uesoftmodem dlsim dlsim_tm4 dlsim_tm7 nr-ittisim
+        nr-uesoftmodem dlsim dlsim_tm4 dlsim_tm7
         ulsim pbchsim scansim mbmssim pdcchsim pucchsim prachsim
         syncsim nr_ulsim nr_dlsim nr_dlschsim nr_pbchsim nr_pucchsim
         nr_ulschsim ldpctest polartest smallblocktest cu_test du_test
@@ -3068,50 +3121,6 @@ add_executable(rb_tool
 )
 target_include_directories(rb_tool PRIVATE ${OPENAIR2_DIR}/NETWORK_DRIVER/MESH/)
 
-# nr-ittisim
-###################################################
-
-add_executable(nr-ittisim
-  ${rrc_h}
-  ${nr_rrc_h}
-  ${OPENAIR2_DIR}/GNB_APP/gnb_app.c
-  ${OPENAIR2_DIR}/GNB_APP/gnb_config.c
-  ${OPENAIR_DIR}/executables/nr-gnb.c
-  ${OPENAIR_DIR}/executables/nr-ru.c
-  ${OPENAIR2_DIR}/SIMULATION/NR_RRC/itti_sim.c
-  ${OPENAIR_DIR}/executables/softmodem-common.c
-  ${OPENAIR1_DIR}/SIMULATION/TOOLS/taus.c
-  ${OPENAIR_TARGETS}/ARCH/COMMON/common_lib.c
-  ${OPENAIR_TARGETS}/ARCH/COMMON/record_player.c
-  ${OPENAIR2_DIR}/RRC/NAS/nas_config.c
-  ${OPENAIR2_DIR}/RRC/NAS/rb_config.c
-  ${OPENAIR1_DIR}/SIMULATION/ETH_TRANSPORT/netlink_init.c
-  ${OPENAIR3_DIR}/NAS/UE/nas_ue_task.c
-  ${OPENAIR_DIR}/common/utils/nr/nr_common.c
-  ${OPENAIR_DIR}/common/utils/lte/ue_power.c
-  ${OPENAIR_DIR}/common/utils/lte/prach_utils.c
-  ${OPENAIR2_DIR}/ENB_APP/flexran_agent_ran_api_to_fix.c
-  ${XFORMSINTERFACE_SOURCE}
-  ${T_SOURCE}
-  ${SHLIB_LOADER_SOURCES}
-  )
-
-target_link_libraries (nr-ittisim
-  -Wl,--start-group
-  UTIL HASHTABLE SCTP_CLIENT SCHED_LIB SCHED_RU_LIB SCHED_NR_LIB PHY_NR PHY PHY_COMMON PHY_NR_COMMON PHY_RU GTPV1U SECU_CN SECU_OSA
-  ITTI ${FLPT_MSG_LIB} ${FLEXRAN_AGENT_LIB} ${RAL_LIB} ${NAS_SIM_LIB} RRC_LIB NR_RRC_LIB
-  NGAP_LIB NGAP_GNB S1AP_LIB S1AP_ENB L2_LTE_NR L2_NR MAC_NR_COMMON NFAPI_COMMON_LIB NFAPI_LIB NFAPI_VNF_LIB NFAPI_PNF_LIB NFAPI_USER_LIB
-  X2AP_LIB X2AP_ENB F1AP_LIB F1AP M2AP_LIB M2AP_ENB M3AP_LIB M3AP_ENB ${FSPT_MSG_LIB}
-  PHY_NR_UE SCHED_NR_UE_LIB NR_L2_UE
-  -Wl,--end-group z dl)
-
-target_link_libraries (nr-ittisim ${LIBXML2_LIBRARIES})
-target_link_libraries (nr-ittisim pthread m CONFIG_LIB rt crypt ${CRYPTO_LIBRARIES} ${OPENSSL_LIBRARIES} ${NETTLE_LIBRARIES} sctp  ${XFORMS_LIBRARIES} ${PROTOBUF_LIB}  ${CMAKE_DL_LIBS} ${LIBYAML_LIBRARIES} ${ATLAS_LIBRARIES})
-target_link_libraries (nr-ittisim ${LIB_LMS_LIBRARIES})
-target_link_libraries (nr-ittisim ${T_LIB})
-
-add_dependencies( nr-ittisim ldpc_orig ldpc_optim ldpc_optim8seg ldpc )
-
 # ???
 ####################
 list(APPEND oai_nw_drv_src device.c common.c ioctl.c classifier.c tool.c)
@@ -3148,3 +3157,4 @@ ADD_CUSTOM_TARGET(oarf
 )
 
 include (${OPENAIR_DIR}/common/utils/telnetsrv/telnetsrv_CMakeLists.txt)
+include(${OPENAIR1_DIR}/PHY/CODING/nrLDPC_decoder/nrLDPC_tools/CMakeLists.txt)

@@ -332,6 +332,9 @@ The following features are valid for the gNB and the 5G-NR UE.
   - evalution of RSRP report
   - evaluation of CQI report
 - MAC scheduling of SR reception
+- Bandwidth part (BWP) operation
+  - Handle multiple dedicated BWPs
+  - BWP switching through RRCReconfiguration method
 
 **gNB RLC**
 - Send/Receive operations according to 38.322 Rel.16
@@ -350,6 +353,14 @@ The following features are valid for the gNB and the 5G-NR UE.
   - Radio bearer establishment/handling and association with PDCP entities
   - Interfaces with RRC, RLC 
   - Interfaces with gtp-u (data Tx/Rx over N3 and F1-U interfaces)
+
+**gNB SDAP**
+- Send/Receive operations according to 37.324 Rel.15
+  - Establishment/Handling of SDAP entities.
+  - Transfer of User Plane Data
+  - Mapping between a QoS flow and a DRB for both DL and UL
+  - Marking QoS flow ID in both DL and UL packets
+  - Reflective QoS flow to DRB mapping for UL SDAP data PDUs
 
 **gNB RRC**
 - NR RRC (38.331) Rel 16 messages using new asn1c 
@@ -400,6 +411,7 @@ The following features are valid for the gNB and the 5G-NR UE.
 - New gtp-u implementation supporting both N3 and F1-U interfaces according to 29.281 Rel.15
   - Interfaces with RRC, F1AP for tunnel creation
   - Interfaces with PDCP and RLC for data send/receive at the CU and DU respectively (F1-U interface)
+  - Interface with SDAP for data send/receive, capture of GTP-U Optional Header, GTP-U Extension Header and PDU Session Container.
 
 # OpenAirInterface 5G-NR UE Feature Set #
 
@@ -428,6 +440,10 @@ The following features are valid for the gNB and the 5G-NR UE.
    - PTRS support
    - Support for 1, 2 and 4 RX antennas
    - Support for up to 2 layers (currently limited to DMRS configuration type 2)
+* Measurements based on NR-CSIRS
+    - RI, PMI and CQI computation
+    - Support for 1 and 2 RX antennas
+    - Support for up to 2 layers
 *  NR-PUSCH (including Segmentation, LDPC encoding, rate matching, scrambling, modulation, RB mapping, etc).
    - PUSCH mapping type A and B
    - DMRS configuration type 1 and 2
@@ -476,14 +492,19 @@ The following features are valid for the gNB and the 5G-NR UE.
 * UCI processing
    - ACK/NACK processing
    - Triggering periodic SR
-   - CSI measurement reporting (SSB RSRP only)
-* DLSH scheduler
+   - CSI measurement reporting
+* DLSCH scheduler
    - Configuration of fapi PDU according to DCI
    - HARQ procedures
 * ULSCH scheduler
    - Configuration of fapi PDU according to DCI
+* NR-CSIRS scheduler
+  - Scheduling of NR-CSIRS reception
+  - Fill UCI for CSI measurement reporting
 * Scheduler procedures for SRS transmission
    - Periodic SRS transmission
+* Bandwidth part (BWP) operation
+   - Operation in configured dedicated BWP through RRCSetup or RRCReconfiguration
 
 
 **UE RLC**
@@ -501,6 +522,13 @@ The following features are valid for the gNB and the 5G-NR UE.
    - Sequence number management, SDU dicard and in-order delivery
    - Radio bearer establishment/handling and association with PDCP entities
    - Interfaces with RRC, RLC 
+
+**UE SDAP**
+*  Tx/Rx operations operations according to 37.324 Rel.15
+  - Establishment/Handling of SDAP entities.
+  - Transfer of User Plane Data
+  - Reflective Mapping
+  - RRC Signaling Mapping
 
 **UE RRC**
 * Integration of RRC messages and procedures supporting UE 5G SA connection according to 38.331 Rel.16 

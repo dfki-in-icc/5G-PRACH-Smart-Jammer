@@ -36,6 +36,8 @@ At the moment of writing this document interoperability with the following COTS 
  - [Quectel RM500Q-GL](https://www.quectel.com/product/5g-rm500q-gl/)
  - [Simcom SIMCOM8200EA](https://www.simcom.com/product/SIM8200EA_M2.html)
  - Huawei Mate 30 Pro
+ - Oneplus 8
+ - Google Pixel 5
 
  End-to-end control plane signaling to achieve a 5G SA connection, UE registration and PDU session establishment with the CN, as well as some basic user-plane traffic tests have been validated so far using SIMCOM/Quectel modules and Huawei Mate 30 pro. In terms of interoperability with different 5G Core Networks, so far this setup has been tested with:
  
@@ -48,7 +50,7 @@ At the moment of writing this document interoperability with the following COTS 
 ## 1.1  gNB build and configuration
 To get the code and build the gNB executable:
 
-### Ubuntu 18.04
+### Build gNB
 ```bash
     git clone https://gitlab.eurecom.fr/oai/openairinterface5g.git
     git checkout develop
@@ -56,42 +58,6 @@ To get the code and build the gNB executable:
     source oaienv
     cd cmake_targets/
     ./build_oai -I -w USRP #For OAI first time installation only to install software dependencies
-    ./build_oai --gNB -w USRP
-```
-
-### Ubuntu 20.04
-```bash
-    # Build UHD from source
-    # https://files.ettus.com/manual/page_build_guide.html
-    sudo apt-get install libboost-all-dev libusb-1.0-0-dev doxygen python3-docutils python3-mako python3-numpy python3-requests python3-ruamel.yaml python3-setuptools cmake build-essential
-    
-    git clone https://github.com/EttusResearch/uhd.git
-    cd uhd/host
-    mkdir build
-    cd build
-    cmake ../
-    make -j 4
-    make test # This step is optional
-    sudo make install
-    sudo ldconfig
-    sudo uhd_images_downloader
-
-
-    git clone https://gitlab.eurecom.fr/oai/openairinterface5g.git
-    git checkout develop
-    
-    # Install dependencies in Ubuntu 20.04
-    cd
-    cd openairinterface5g/
-    source oaienv
-    cd cmake_targets/
-    ./install_external_packages.ubuntu20
-    
-    # Build OAI gNB
-    cd
-    cd openairinterface5g/
-    source oaienv
-    cd cmake_targets/
     ./build_oai --gNB -w USRP
 ```
 
@@ -213,21 +179,6 @@ dnn= "oai";
 nssai_sst=1;
 nssai_sd=1;
 }
-```
-
-Alternatively, the values can be hardcoded/edited in source file ***openair3/UICC/usim_interface.c*** through the following lines:
-```bash
-#define UICC_PARAMS_DESC {\
-    {"imsi",             "USIM IMSI\n",          0,         strptr:&(uicc->imsiStr),              defstrval:"2089900007487",           TYPE_STRING,    0 },\
-    {"nmc_size"          "number of digits in NMC", 0,      iptr:&(uicc->nmc_size),               defintval:2,         TYPE_INT,       0 },\
-    {"key",              "USIM Ki\n",            0,         strptr:&(uicc->keyStr),               defstrval:"fec86ba6eb707ed08905757b1bb44b8f", TYPE_STRING,    0 },\
-    {"opc",              "USIM OPc\n",           0,         strptr:&(uicc->opcStr),               defstrval:"c42449363bbad02b66d16bc975d77cc1", TYPE_STRING,    0 },\
-    {"amf",              "USIM amf\n",           0,         strptr:&(uicc->amfStr),               defstrval:"8000",    TYPE_STRING,    0 },\
-    {"sqn",              "USIM sqn\n",           0,         strptr:&(uicc->sqnStr),               defstrval:"000000",  TYPE_STRING,    0 },\
-    {"dnn",              "UE dnn (apn)\n",       0,         strptr:&(uicc->dnnStr),               defstrval:"oai",     TYPE_STRING,    0 },\
-    {"nssai_sst",        "UE nssai\n",           0,         iptr:&(uicc->nssai_sst),              defintval:1,    TYPE_INT,    0 }, \
-    {"nssai_sd",         "UE nssai\n",           0,         iptr:&(uicc->nssai_sd),               defintval:1,    TYPE_INT,    0 }, \
-  };
 ```
 
 For interoperability with OAI or other CNs, it should be ensured that the configuration of the aforementioned parameters match the configuration of the corresponding subscribed user at the core network.

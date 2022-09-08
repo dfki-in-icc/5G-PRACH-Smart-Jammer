@@ -31,25 +31,19 @@
 #include "NR_MAC_gNB/mac_proto.h"
 #include "common/ran_context.h"
 #include "nfapi/oai_integration/vendor_ext.h"
+#include "common/utils/nr/nr_common.h"
 
 extern RAN_CONTEXT_t RC;
 
-void nr_configure_srs(nfapi_nr_srs_pdu_t *srs_pdu, int module_id, int CC_id, int UE_id, NR_SRS_Resource_t *srs_resource) {
+void nr_configure_srs(nfapi_nr_srs_pdu_t *srs_pdu, int module_id, int CC_id,NR_UE_info_t*  UE, NR_SRS_Resource_t *srs_resource) {
 
-  gNB_MAC_INST *nrmac = RC.nrmac[module_id];
-  NR_ServingCellConfigCommon_t *scc = nrmac->common_channels[CC_id].ServingCellConfigCommon;
-  NR_UE_info_t *UE_info = &nrmac->UE_info;
-  NR_UE_sched_ctrl_t *sched_ctrl = &UE_info->UE_sched_ctrl[UE_id];
+  NR_UE_UL_BWP_t *current_BWP = &UE->current_UL_BWP;
 
-  NR_BWP_t ubwp = sched_ctrl->active_ubwp ?
-                  sched_ctrl->active_ubwp->bwp_Common->genericParameters :
-                  scc->uplinkConfigCommon->initialUplinkBWP->genericParameters;
-
-  srs_pdu->rnti = UE_info->rnti[UE_id];
+  srs_pdu->rnti = UE->rnti;
   srs_pdu->handle = 0;
-  srs_pdu->bwp_size = NRRIV2BW(ubwp.locationAndBandwidth, MAX_BWP_SIZE);;
-  srs_pdu->bwp_start = NRRIV2PRBOFFSET(ubwp.locationAndBandwidth, MAX_BWP_SIZE);;
-  srs_pdu->subcarrier_spacing = ubwp.subcarrierSpacing;
+  srs_pdu->bwp_size = current_BWP->BWPSize;
+  srs_pdu->bwp_start = current_BWP->BWPStart;
+  srs_pdu->subcarrier_spacing = current_BWP->scs;
   srs_pdu->cyclic_prefix = 0;
   srs_pdu->num_ant_ports = srs_resource->nrofSRS_Ports;
   srs_pdu->num_symbols = srs_resource->resourceMapping.nrofSymbols;
@@ -82,17 +76,19 @@ void nr_configure_srs(nfapi_nr_srs_pdu_t *srs_pdu, int module_id, int CC_id, int
   srs_pdu->t_offset = get_nr_srs_offset(srs_resource->resourceType.choice.periodic->periodicityAndOffset_p);
 }
 
-void nr_fill_nfapi_srs(int module_id, int CC_id, int UE_id, sub_frame_t slot, NR_SRS_Resource_t *srs_resource) {
+void nr_fill_nfapi_srs(int module_id, int CC_id, NR_UE_info_t* UE, sub_frame_t slot, NR_SRS_Resource_t *srs_resource) {
 
   nfapi_nr_ul_tti_request_t *future_ul_tti_req = &RC.nrmac[module_id]->UL_tti_req_ahead[0][slot];
-
+  AssertFatal(future_ul_tti_req->n_pdus <
+              sizeof(future_ul_tti_req->pdus_list) / sizeof(future_ul_tti_req->pdus_list[0]),
+              "Invalid future_ul_tti_req->n_pdus %d\n", future_ul_tti_req->n_pdus);
   future_ul_tti_req->pdus_list[future_ul_tti_req->n_pdus].pdu_type = NFAPI_NR_UL_CONFIG_SRS_PDU_TYPE;
   future_ul_tti_req->pdus_list[future_ul_tti_req->n_pdus].pdu_size = sizeof(nfapi_nr_srs_pdu_t);
   nfapi_nr_srs_pdu_t *srs_pdu = &future_ul_tti_req->pdus_list[future_ul_tti_req->n_pdus].srs_pdu;
   memset(srs_pdu, 0, sizeof(nfapi_nr_srs_pdu_t));
   future_ul_tti_req->n_pdus += 1;
 
-  nr_configure_srs(srs_pdu, module_id, CC_id, UE_id, srs_resource);
+  nr_configure_srs(srs_pdu, module_id, CC_id, UE, srs_resource);
 }
 
 /*******************************************************************
@@ -109,34 +105,25 @@ void nr_fill_nfapi_srs(int module_id, int CC_id, int UE_id, sub_frame_t slot, NR
 void nr_schedule_srs(int module_id, frame_t frame) {
 
   gNB_MAC_INST *nrmac = RC.nrmac[module_id];
-  NR_UE_info_t *UE_info = &nrmac->UE_info;
-  const NR_list_t *UE_list = &UE_info->list;
+  NR_UEs_t *UE_info = &nrmac->UE_info;
 
-  for (int UE_id = UE_list->head; UE_id >= 0; UE_id = UE_list->next[UE_id]) {
-
+  UE_iterator(UE_info->list, UE) {
     const int CC_id = 0;
-    NR_ServingCellConfigCommon_t *scc = RC.nrmac[module_id]->common_channels[CC_id].ServingCellConfigCommon;
-    NR_CellGroupConfig_t *cg = UE_info->CellGroup[UE_id];
-    NR_UE_sched_ctrl_t *sched_ctrl = &UE_info->UE_sched_ctrl[UE_id];
+    NR_UE_sched_ctrl_t *sched_ctrl = &UE->UE_sched_ctrl;
+    NR_UE_UL_BWP_t *current_BWP = &UE->current_UL_BWP;
 
     sched_ctrl->sched_srs.frame = -1;
     sched_ctrl->sched_srs.slot = -1;
     sched_ctrl->sched_srs.srs_scheduled = false;
 
-    if(!UE_info->Msg4_ACKed[UE_id]) {
+    if((sched_ctrl->ul_failure == 1 && get_softmodem_params()->phy_test==0) ||
+       sched_ctrl->rrc_processing_timer > 0) {
       continue;
     }
 
-    NR_SRS_Config_t *srs_config = NULL;
-    if (cg &&
-        cg->spCellConfig &&
-        cg->spCellConfig->spCellConfigDedicated &&
-        cg->spCellConfig->spCellConfigDedicated->uplinkConfig &&
-        cg->spCellConfig->spCellConfigDedicated->uplinkConfig->initialUplinkBWP) {
-      srs_config = cg->spCellConfig->spCellConfigDedicated->uplinkConfig->initialUplinkBWP->srs_Config->choice.setup;
-    } else {
+    NR_SRS_Config_t *srs_config = current_BWP->srs_Config;
+    if (!srs_config)
       continue;
-    }
 
     for(int rs = 0; rs < srs_config->srs_ResourceSetToAddModList->list.count; rs++) {
 
@@ -164,19 +151,14 @@ void nr_schedule_srs(int module_id, frame_t frame) {
         continue;
       }
 
-      NR_BWP_t ubwp = sched_ctrl->active_ubwp ?
-                        sched_ctrl->active_ubwp->bwp_Common->genericParameters :
-                        scc->uplinkConfigCommon->initialUplinkBWP->genericParameters;
-
       uint16_t period = srs_period[srs_resource->resourceType.choice.periodic->periodicityAndOffset_p.present];
       uint16_t offset = get_nr_srs_offset(srs_resource->resourceType.choice.periodic->periodicityAndOffset_p);
-
-      int n_slots_frame = nr_slots_per_frame[ubwp.subcarrierSpacing];
+      int n_slots_frame = nr_slots_per_frame[current_BWP->scs];
 
       // Check if UE will transmit the SRS in this frame
       if ( ((frame - offset/n_slots_frame)*n_slots_frame)%period == 0) {
         LOG_D(NR_MAC,"Scheduling SRS reception for %d.%d\n", frame, offset%n_slots_frame);
-        nr_fill_nfapi_srs(module_id, CC_id, UE_id, offset%n_slots_frame, srs_resource);
+        nr_fill_nfapi_srs(module_id, CC_id, UE, offset%n_slots_frame, srs_resource);
         sched_ctrl->sched_srs.frame = frame;
         sched_ctrl->sched_srs.slot = offset%n_slots_frame;
         sched_ctrl->sched_srs.srs_scheduled = true;
@@ -200,12 +182,19 @@ void nr_schedule_srs(int module_id, frame_t frame) {
 void nr_schedule_srs_secondary(int module_id, frame_t frame, int UE_id) {
 
   const int CC_id = 0;
-  NR_ServingCellConfigCommon_t *scc = RC.nrmac[module_id]->common_channels[CC_id].ServingCellConfigCommon;
+  // lets configure SRS on the initial BWP. This will only work for cell sizes of 60MHz or lower.
+  // for anything else this needs to be adapted to use the dedicated BWP.
 
-  NR_SRS_Config_t *srs_config = fill_srs_config(scc,
-						1, //do_srsg
-						UE_id);
   
+  NR_ServingCellConfigCommon_t *scc = RC.nrmac[module_id]->common_channels[CC_id].ServingCellConfigCommon;
+  NR_SRS_Config_t *srs_config = RC.nrmac[module_id]->srs_config[0];
+
+  if(!scc) {
+    LOG_W(MAC,"no scc, returning\n");
+    return;
+  }
+
+    
   for(int rs = 0; rs < srs_config->srs_ResourceSetToAddModList->list.count; rs++) {
     
     // Find periodic resource set
@@ -238,11 +227,16 @@ void nr_schedule_srs_secondary(int module_id, frame_t frame, int UE_id) {
     uint16_t offset = get_nr_srs_offset(srs_resource->resourceType.choice.periodic->periodicityAndOffset_p);
     
     int n_slots_frame = nr_slots_per_frame[ubwp.subcarrierSpacing];
+
+    NR_UE_info_t dummy_ue_info;
+    dummy_ue_info.current_UL_BWP.BWPSize = NRRIV2BW(ubwp.locationAndBandwidth,MAX_BWP_SIZE);
+    dummy_ue_info.current_UL_BWP.BWPStart = NRRIV2PRBOFFSET(ubwp.locationAndBandwidth,MAX_BWP_SIZE);
+    dummy_ue_info.current_UL_BWP.scs = ubwp.subcarrierSpacing;
     
     // Check if UE will transmit the SRS in this frame
     if ( ((frame - offset/n_slots_frame)*n_slots_frame)%period == 0) {
       LOG_D(NR_MAC,"Scheduling SRS reception for %d.%d\n", frame, offset%n_slots_frame);
-      nr_fill_nfapi_srs(module_id, CC_id, UE_id, offset%n_slots_frame, srs_resource);
+      nr_fill_nfapi_srs(module_id, CC_id, &dummy_ue_info, offset%n_slots_frame, srs_resource);
 
     }
   }

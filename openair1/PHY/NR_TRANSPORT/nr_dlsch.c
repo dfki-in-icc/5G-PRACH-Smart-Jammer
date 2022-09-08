@@ -38,6 +38,7 @@
 #include "PHY/NR_REFSIG/ptrs_nr.h"
 #include "common/utils/LOG/vcd_signal_dumper.h"
 #include "common/utils/nr/nr_common.h"
+#include "executables/softmodem-common.h"
 
 //#define DEBUG_DLSCH
 //#define DEBUG_DLSCH_MAPPING
@@ -58,7 +59,6 @@ void nr_generate_pdsch(processingData_L1tx_t *msgTx,
 
   PHY_VARS_gNB *gNB = msgTx->gNB;
   NR_gNB_DLSCH_t *dlsch;
-  uint32_t ***pdsch_dmrs = gNB->nr_gold_pdsch_dmrs[slot];
   int32_t** txdataF = gNB->common_vars.txdataF;
   int16_t amp = AMP;
   int xOverhead = 0;
@@ -85,6 +85,8 @@ void nr_generate_pdsch(processingData_L1tx_t *msgTx,
     uint8_t dmrs_Type = rel15->dmrsConfigType;
     int nb_re_dmrs;
     uint16_t n_dmrs;
+    LOG_D(PHY,"pdsch: BWPStart %d, BWPSize %d, rbStart %d, rbsize %d\n",
+          rel15->BWPStart,rel15->BWPSize,rel15->rbStart,rel15->rbSize);
     if (rel15->dmrsConfigType==NFAPI_NR_DMRS_TYPE1) {
       nb_re_dmrs = 6*rel15->numDmrsCdmGrpsNoData;
     }
@@ -93,12 +95,17 @@ void nr_generate_pdsch(processingData_L1tx_t *msgTx,
     }
     n_dmrs = (rel15->BWPStart+rel15->rbStart+rel15->rbSize)*nb_re_dmrs;
 
+    if(rel15->dlDmrsScramblingId != gNB->pdsch_gold_init[rel15->SCID])  {
+      gNB->pdsch_gold_init[rel15->SCID] = rel15->dlDmrsScramblingId;
+      nr_init_pdsch_dmrs(gNB, rel15->SCID, rel15->dlDmrsScramblingId);
+    }
+
+    uint32_t ***pdsch_dmrs = gNB->nr_gold_pdsch_dmrs[slot];
     uint16_t dmrs_symbol_map = rel15->dlDmrsSymbPos;//single DMRS: 010000100 Double DMRS 110001100
     uint8_t dmrs_len = get_num_dmrs(rel15->dlDmrsSymbPos);
-    uint16_t nb_re = ((12*rel15->NrOfSymbols)-nb_re_dmrs*dmrs_len-xOverhead)*rel15->rbSize*rel15->nrOfLayers;
+    uint32_t nb_re = ((12*rel15->NrOfSymbols)-nb_re_dmrs*dmrs_len-xOverhead)*rel15->rbSize*rel15->nrOfLayers;
     uint8_t Qm = rel15->qamModOrder[0];
     uint32_t encoded_length = nb_re*Qm;
-    uint32_t scrambled_output[rel15->NrOfCodewords][(encoded_length>>5)+1];
     int16_t mod_dmrs[n_dmrs<<1] __attribute__ ((aligned(16)));
 
     /* PTRS */
@@ -116,7 +123,6 @@ void nr_generate_pdsch(processingData_L1tx_t *msgTx,
                           rel15->dlDmrsSymbPos);
       n_ptrs = (rel15->rbSize + rel15->PTRSFreqDensity - 1)/rel15->PTRSFreqDensity;
     }
-    int16_t mod_ptrs[n_ptrs<<1] __attribute__ ((aligned(16)));
 
     /// CRC, coding, interleaving and rate matching
     AssertFatal(harq->pdu!=NULL,"harq->pdu is null\n");
@@ -125,7 +131,7 @@ void nr_generate_pdsch(processingData_L1tx_t *msgTx,
     start_meas(dlsch_encoding_stats);
 
     if (nr_dlsch_encoding(gNB,
-                          harq->pdu, frame, slot, dlsch, frame_parms,output,tinput,tprep,tparity,toutput,
+                          frame, slot, harq, frame_parms,output,tinput,tprep,tparity,toutput,
                           dlsch_rate_matching_stats,
                           dlsch_interleaving_stats,
                           dlsch_segmentation_stats) == -1)
@@ -147,67 +153,71 @@ void nr_generate_pdsch(processingData_L1tx_t *msgTx,
     printf("\n");
 #endif
 
-    /// scrambling
-    start_meas(dlsch_scrambling_stats);
+    if (IS_SOFTMODEM_DLSIM)
+      memcpy(harq->f, output, encoded_length);
+
     for (int q=0; q<rel15->NrOfCodewords; q++) {
-      memset((void*)scrambled_output[q], 0, ((encoded_length>>5)+1)*sizeof(uint32_t));
+      /// scrambling
+      start_meas(dlsch_scrambling_stats);
+      uint32_t scrambled_output[(encoded_length>>5)+4]; // modulator acces by 4 bytes in some cases
+      memset(scrambled_output, 0, sizeof(scrambled_output));
+      if ( encoded_length > rel15->rbSize * NR_SYMBOLS_PER_SLOT * NR_NB_SC_PER_RB * Qm * rel15->nrOfLayers) abort();
       nr_pdsch_codeword_scrambling(output,
                                    encoded_length,
                                    q,
                                    rel15->dataScramblingId,
                                    rel15->rnti,
-                                   scrambled_output[q]);
-    }
-    
-    stop_meas(dlsch_scrambling_stats);
+                                   scrambled_output);
+
 #ifdef DEBUG_DLSCH
-    printf("PDSCH scrambling:\n");
-    for (int i=0; i<encoded_length>>8; i++) {
-      for (int j=0; j<8; j++)
-	printf("0x%08x\t", scrambled_output[0][(i<<3)+j]);
-      printf("\n");
-    }
-#endif
-    
-    /// Modulation
-    start_meas(dlsch_modulation_stats);
-    VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_gNB_PDSCH_MODULATION, 1);
-    for (int q=0; q<rel15->NrOfCodewords; q++)
-      nr_modulation(scrambled_output[q],
-		    encoded_length,
-		    Qm,
-		    mod_symbs[q]);
-    VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_gNB_PDSCH_MODULATION, 0);
-    stop_meas(dlsch_modulation_stats);
-#ifdef DEBUG_DLSCH
-    printf("PDSCH Modulation: Qm %d(%d)\n", Qm, nb_re);
-    for (int i=0; i<nb_re>>3; i++) {
-      for (int j=0; j<8; j++) {
-	printf("%d %d\t", mod_symbs[0][((i<<3)+j)<<1], mod_symbs[0][(((i<<3)+j)<<1)+1]);
+      printf("PDSCH scrambling:\n");
+      for (int i=0; i<encoded_length>>8; i++) {
+        for (int j=0; j<8; j++)
+          printf("0x%08x\t", scrambled_output[(i<<3)+j]);
+        printf("\n");
       }
-      printf("\n");
-    }
 #endif
+
+      stop_meas(dlsch_scrambling_stats);
+      /// Modulation
+      start_meas(dlsch_modulation_stats);
+      nr_modulation(scrambled_output,
+                    encoded_length,
+                    Qm,
+                    mod_symbs[q]);
+      VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_gNB_PDSCH_MODULATION, 0);
+      stop_meas(dlsch_modulation_stats);
+#ifdef DEBUG_DLSCH
+      printf("PDSCH Modulation: Qm %d(%d)\n", Qm, nb_re);
+      for (int i=0; i<nb_re>>3; i++) {
+        for (int j=0; j<8; j++) {
+          printf("%d %d\t", mod_symbs[0][((i<<3)+j)<<1], mod_symbs[0][(((i<<3)+j)<<1)+1]);
+        }
+        printf("\n");
+      }
+#endif
+    }
     
     start_meas(&gNB->dlsch_layer_mapping_stats); 
     /// Layer mapping
     nr_layer_mapping(mod_symbs,
-		     rel15->nrOfLayers,
-		     nb_re,
-		     tx_layers);
+                     rel15->nrOfLayers,
+                     nb_re,
+                     tx_layers);
 #ifdef DEBUG_DLSCH
     printf("Layer mapping (%d layers):\n", rel15->nrOfLayers);
     for (int l=0; l<rel15->nrOfLayers; l++)
       for (int i=0; i<(nb_re/rel15->nrOfLayers)>>3; i++) {
-	printf("layer %d, Re %d..%d : ",l,i<<3,(i<<3)+7);
-	for (int j=0; j<8; j++) {
-	  printf("l%d %d\t", tx_layers[l][((i<<3)+j)<<1], tx_layers[l][(((i<<3)+j)<<1)+1]);
-	}
-	printf("\n");
+        printf("layer %d, Re %d..%d : ",l,i<<3,(i<<3)+7);
+        for (int j=0; j<8; j++) {
+          printf("l%d %d\t", tx_layers[l][((i<<3)+j)<<1], tx_layers[l][(((i<<3)+j)<<1)+1]);
+        }
+        printf("\n");
       }
 #endif
 
     stop_meas(&gNB->dlsch_layer_mapping_stats); 
+
     /// Resource mapping
     
     // Non interleaved VRB to PRB mapping
@@ -222,13 +232,14 @@ void nr_generate_pdsch(processingData_L1tx_t *msgTx,
 
 #ifdef DEBUG_DLSCH_MAPPING
     printf("PDSCH resource mapping started (start SC %d\tstart symbol %d\tN_PRB %d\tnb_re %d,nb_layers %d)\n",
-	   start_sc, rel15->StartSymbolIndex, rel15->rbSize, nb_re,rel15->nrOfLayers);
+           start_sc, rel15->StartSymbolIndex, rel15->rbSize, nb_re,rel15->nrOfLayers);
 #endif
 
     start_meas(&gNB->dlsch_resource_mapping_stats);
     for (int nl=0; nl<rel15->nrOfLayers; nl++) {
 
       int dmrs_port = get_dmrs_port(nl,rel15->dmrsPorts);
+
       // DMRS params for this dmrs port
       get_Wt(Wt, dmrs_port, dmrs_Type);
       get_Wf(Wf, dmrs_port, dmrs_Type);
@@ -243,7 +254,7 @@ void nr_generate_pdsch(processingData_L1tx_t *msgTx,
 	     1+dmrs_Type,nl, Wt[0], Wt[1], Wf[0], Wf[1], delta, l_prime, l0, dmrs_symbol);
 #endif
 
-      uint16_t m=0, dmrs_idx=0;
+      uint32_t m=0, dmrs_idx=0;
 
       // Loop Over OFDM symbols:
       for (int l=rel15->StartSymbolIndex; l<rel15->StartSymbolIndex+rel15->NrOfSymbols; l++) {
@@ -275,7 +286,7 @@ void nr_generate_pdsch(processingData_L1tx_t *msgTx,
             l_prime = 0;
           }
           /// DMRS QPSK modulation
-          nr_modulation(pdsch_dmrs[l][0], n_dmrs*2, DMRS_MOD_ORDER, mod_dmrs); // currently only codeword 0 is modulated. Qm = 2 as DMRS is QPSK modulated
+          nr_modulation(pdsch_dmrs[l][rel15->SCID], n_dmrs*2, DMRS_MOD_ORDER, mod_dmrs); // Qm = 2 as DMRS is QPSK modulated
 
 #ifdef DEBUG_DLSCH
           printf("DMRS modulation (symbol %d, %d symbols, type %d):\n", l, n_dmrs, dmrs_Type);
@@ -290,13 +301,15 @@ void nr_generate_pdsch(processingData_L1tx_t *msgTx,
 
         /* calculate if current symbol is PTRS symbols */
         ptrs_idx = 0;
-
+        int16_t *mod_ptrs = NULL;
         if(rel15->pduBitmap & 0x1) {
           ptrs_symbol = is_ptrs_symbol(l,dlPtrsSymPos);
           if(ptrs_symbol) {
             /* PTRS QPSK Modulation for each OFDM symbol in a slot */
             LOG_D(PHY,"Doing ptrs modulation for symbol %d, n_ptrs %d\n",l,n_ptrs);
-            nr_modulation(pdsch_dmrs[l][0], (n_ptrs<<1), DMRS_MOD_ORDER, mod_ptrs);
+            int16_t mod_ptrsBuf[n_ptrs<<1] __attribute__ ((aligned(16)));
+            mod_ptrs =mod_ptrsBuf;
+            nr_modulation(pdsch_dmrs[l][rel15->SCID], (n_ptrs<<1), DMRS_MOD_ORDER, mod_ptrs);
           }
         }
         uint16_t k = start_sc;
@@ -306,7 +319,8 @@ void nr_generate_pdsch(processingData_L1tx_t *msgTx,
           for (int i=0; i<rel15->rbSize*NR_NB_SC_PER_RB; i++) {
             /* check if cuurent RE is PTRS RE*/
             is_ptrs_re = 0;
-            if (ptrs_symbol)
+            /* check for PTRS symbol and set flag for PTRS RE */
+            if(ptrs_symbol){
               is_ptrs_re = is_ptrs_subcarrier(k,
                                               rel15->rnti,
                                               nl,
@@ -316,6 +330,7 @@ void nr_generate_pdsch(processingData_L1tx_t *msgTx,
                                               rel15->PTRSReOffset,
                                               start_sc,
                                               frame_parms->ofdm_symbol_size);
+            }
             /* Map DMRS Symbol */
             if ( (dmrs_symbol_map & (1 << l)) &&
                  (k == ((start_sc+get_dmrs_freq_idx(n, k_prime, delta, dmrs_Type))%(frame_parms->ofdm_symbol_size)))) {
@@ -331,6 +346,7 @@ void nr_generate_pdsch(processingData_L1tx_t *msgTx,
               k_prime&=1;
               n+=(k_prime)?0:1;
             }
+            /* Map PTRS Symbol */
             else if(is_ptrs_re){
               txdataF_precoding[nl][((l*frame_parms->ofdm_symbol_size + k)<<1)    ] = (beta_ptrs*amp*mod_ptrs[ptrs_idx<<1]) >> 15;
               txdataF_precoding[nl][((l*frame_parms->ofdm_symbol_size + k)<<1) + 1] = (beta_ptrs*amp*mod_ptrs[(ptrs_idx<<1) + 1])>> 15;

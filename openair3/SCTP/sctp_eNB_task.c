@@ -318,7 +318,8 @@ sctp_handle_new_association_req_multi(
                            assoc_id, used_address);
             }
         } else {
-            SCTP_DEBUG("sctp_connectx SUCCESS, used %d addresses assoc_id %d\n",
+            SCTP_DEBUG("sctp_connectx SUCCESS, socket %d used %d addresses assoc_id %d\n",
+		       sd,
                        used_address,
                        assoc_id);
         }
@@ -750,7 +751,7 @@ static int sctp_create_new_listener(
     }
 
     if (server_type) {
-        if ((sd = socket(PF_INET, SOCK_SEQPACKET, IPPROTO_SCTP)) < 0) {
+        if ((sd = socket(AF_INET, SOCK_SEQPACKET, IPPROTO_SCTP)) < 0) {
             SCTP_ERROR("socket: %s:%d\n", strerror(errno), errno);
             free(addr);
             return -1;
@@ -822,7 +823,7 @@ static int sctp_create_new_listener(
         sctp_cnx = NULL;
         return -1;
     }
-
+    SCTP_DEBUG("Created listen socket: %d\n", sd);
     /* Insert new element at end of list */
     STAILQ_INSERT_TAIL(&sctp_cnx_list, sctp_cnx, entries);
     sctp_nb_cnx++;
@@ -858,7 +859,7 @@ sctp_eNB_accept_associations(
     struct sctp_cnx_list_elm_s *sctp_cnx)
 {
     int             client_sd;
-    struct sockaddr saddr;
+    struct sockaddr_in6 saddr;
     socklen_t       saddr_size;
 
     DevAssert(sctp_cnx != NULL);
@@ -867,14 +868,14 @@ sctp_eNB_accept_associations(
 
     /* There is a new client connecting. Accept it...
      */
-    if ((client_sd = accept(sctp_cnx->sd, &saddr, &saddr_size)) < 0) {
+    if ((client_sd = accept(sctp_cnx->sd, (struct sockaddr*)&saddr, &saddr_size)) < 0) {
         SCTP_ERROR("[%d] accept failed: %s:%d\n", sctp_cnx->sd, strerror(errno), errno);
     } else {
         struct sctp_cnx_list_elm_s *new_cnx;
         uint16_t port;
 
         /* This is an ipv6 socket */
-        port = ((struct sockaddr_in6*)&saddr)->sin6_port;
+        port = saddr.sin6_port;
 
         /* Contrary to BSD, client socket does not inherit O_NONBLOCK option */
         if (fcntl(client_sd, F_SETFL, O_NONBLOCK) < 0) {
@@ -1110,11 +1111,10 @@ void *sctp_eNB_process_itti_msg(void *notUsed)
 
     /* Check if there is a packet to handle */
     if (received_msg != NULL) {
+      LOG_D(SCTP,"Received message %d:%s\n",
+		 ITTI_MSG_ID(received_msg), ITTI_MSG_NAME(received_msg));
         switch (ITTI_MSG_ID(received_msg)) {
         case SCTP_INIT_MSG: {
-            SCTP_DEBUG("Received SCTP_INIT_MSG\n");
-
-            /* We received a new connection request */
             if (sctp_create_new_listener(
                         ITTI_MSG_DESTINATION_INSTANCE(received_msg),
                         ITTI_MSG_ORIGIN_ID(received_msg),
@@ -1126,11 +1126,7 @@ void *sctp_eNB_process_itti_msg(void *notUsed)
         break;
 
         case SCTP_INIT_MSG_MULTI_REQ: {
-            int multi_sd;
-
-            SCTP_DEBUG("Received SCTP_INIT_MSG_MULTI_REQ\n");
-
-            multi_sd = sctp_create_new_listener(
+           int multi_sd = sctp_create_new_listener(
                            ITTI_MSG_DESTINATION_INSTANCE(received_msg),
                            ITTI_MSG_ORIGIN_ID(received_msg),
                            &received_msg->ittiMsg.sctp_init_multi,1);

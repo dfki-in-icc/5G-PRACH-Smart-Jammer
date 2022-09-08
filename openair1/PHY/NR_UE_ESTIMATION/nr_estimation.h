@@ -44,8 +44,11 @@ int nr_pdcch_channel_estimation(PHY_VARS_NR_UE *ue,
                                 uint8_t gNB_id,
                                 unsigned char Ns,
                                 unsigned char symbol,
+                                unsigned short scrambling_id,
                                 unsigned short coreset_start_subcarrier,
-                                unsigned short nb_rb_coreset);
+                                unsigned short nb_rb_coreset,
+                                int32_t pdcch_est_size,
+                                int32_t pdcch_dl_ch_estimates[][pdcch_est_size]);
 
 int nr_pbch_dmrs_correlation(PHY_VARS_NR_UE *ue,
                              UE_nr_rxtx_proc_t *proc,
@@ -74,6 +77,8 @@ int nr_pdsch_channel_estimation(PHY_VARS_NR_UE *ue,
                                 unsigned char Ns,
                                 unsigned short p,
                                 unsigned char symbol,
+                                unsigned char nscid,
+                                unsigned short scrambling_id,
                                 unsigned short BWPStart,
                                 uint8_t config_type,
                                 unsigned short bwp_start_subcarrier,
@@ -93,11 +98,10 @@ void nr_ue_measurements(PHY_VARS_NR_UE *ue,
                         UE_nr_rxtx_proc_t *proc,
                         uint8_t slot);
 
-void nr_ue_rsrp_measurements(PHY_VARS_NR_UE *ue,
-                             uint8_t gNB_index,
-                             UE_nr_rxtx_proc_t *proc,
-                             uint8_t slot,
-                             uint8_t abstraction_flag);
+void nr_ue_ssb_rsrp_measurements(PHY_VARS_NR_UE *ue,
+                                 uint8_t gNB_index,
+                                 UE_nr_rxtx_proc_t *proc,
+                                 uint8_t slot);
 
 void nr_ue_rrc_measurements(PHY_VARS_NR_UE *ue,
                             UE_nr_rxtx_proc_t *proc,

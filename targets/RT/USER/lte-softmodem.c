@@ -96,7 +96,6 @@ pthread_cond_t nfapi_sync_cond;
 pthread_mutex_t nfapi_sync_mutex;
 int nfapi_sync_var=-1; //!< protected by mutex \ref nfapi_sync_mutex
 
-uint16_t sf_ahead=4;
 
 pthread_cond_t sync_cond;
 pthread_mutex_t sync_mutex;
@@ -107,7 +106,7 @@ uint16_t runtime_phy_rx[29][6]; // SISO [MCS 0-28][RBs 0-5 : 6, 15, 25, 50, 75, 
 uint16_t runtime_phy_tx[29][6]; // SISO [MCS 0-28][RBs 0-5 : 6, 15, 25, 50, 75, 100]
 
 
-volatile int             oai_exit = 0;
+int oai_exit = 0;
 
 uint64_t                 downlink_frequency[MAX_NUM_CCs][4];
 int32_t                  uplink_frequency_offset[MAX_NUM_CCs][4];

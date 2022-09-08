@@ -307,8 +307,8 @@ void init_downlink_harq_status(NR_DL_UE_HARQ_t *dl_harq)
 {
   dl_harq->status = SCH_IDLE;
   dl_harq->first_rx = 1;
-  dl_harq->round  = 0;
-  dl_harq->DCINdi = 1;
+  dl_harq->DLround  = 0;
+  dl_harq->Ndi = 2; // set to an invalid value
   dl_harq->ack = DL_ACKNACK_NO_SET;
 }
 
@@ -329,65 +329,42 @@ void init_downlink_harq_status(NR_DL_UE_HARQ_t *dl_harq)
 *
 *********************************************************************/
 
-void downlink_harq_process(NR_DL_UE_HARQ_t *dl_harq, int harq_pid, int ndi, int rv, uint8_t rnti_type) {
+void downlink_harq_process(NR_DL_UE_HARQ_t *dl_harq, int harq_pid, int dci_ndi, int rv, uint8_t rnti_type) {
 
   if (rnti_type == _SI_RNTI_ ||
       rnti_type == _P_RNTI_ ||
       rnti_type == _RA_RNTI_) {
-    dl_harq->round = 0;
+    dl_harq->DLround = 0;
     dl_harq->status = ACTIVE;
     dl_harq->first_rx = 1;
-  }
-  else{
-    switch(rv){
-      case 0:
-        dl_harq->round = 0;
-        dl_harq->status = ACTIVE;
-        dl_harq->first_rx = 1;
-        if (dl_harq->DCINdi == ndi)
-          LOG_E(PHY,"Warning! rv %d indicates new transmission but new ndi %d is the same as old ndi %d\n",rv,ndi,dl_harq->DCINdi);
-        dl_harq->DCINdi = ndi;
-        break;
-      case 1:
-        dl_harq->round = 3;
-        dl_harq->status = ACTIVE;
-        dl_harq->first_rx = 0;
-        if (dl_harq->DCINdi != ndi) {
-          LOG_E(PHY,"Missed previous DCI detections. NDI toggled but rv %d does not correspond to first reception\n",rv);
-          dl_harq->first_rx = 1;
-          dl_harq->DCINdi = ndi;
-        }
-        else if (dl_harq->ack == 1)
-          dl_harq->status = SCH_IDLE;
-        break;
-      case 2:
-        dl_harq->round = 1;
-        dl_harq->status = ACTIVE;
-        dl_harq->first_rx = 0;
-        if (dl_harq->DCINdi != ndi) {
-          LOG_E(PHY,"Missed previous DCI detections. NDI toggled but rv %d does not correspond to first reception\n",rv);
-          dl_harq->first_rx = 1;
-          dl_harq->DCINdi = ndi;
-        }
-        else if (dl_harq->ack == 1)
-          dl_harq->status = SCH_IDLE;
-        break;
-      case 3:
-        dl_harq->round = 2;
-        dl_harq->status = ACTIVE;
-        dl_harq->first_rx = 0;
-        if (dl_harq->DCINdi != ndi) {
-          LOG_E(PHY,"Missed previous DCI detections. NDI toggled but rv %d does not correspond to first reception\n",rv);
-          dl_harq->first_rx = 1;
-          dl_harq->DCINdi = ndi;
-        }
-        else if (dl_harq->ack == 1)
-          dl_harq->status = SCH_IDLE;
-        break;
-      default:
-        AssertFatal(1==0,"Invalid value for rv %d\n",rv);
+  }  else {
+    LOG_D(PHY,"receive harq process: %p harqPid=%d, rv=%d, ndi=%d, rntiType=%d new transmission= %s\n",
+	  dl_harq, harq_pid, rv, dci_ndi, rnti_type, dl_harq->Ndi != dci_ndi ? "yes":"no");
+    AssertFatal(rv<4 && rv>=0, "invalid redondancy version %d\n", rv);
+    if (dci_ndi!=dl_harq->Ndi) {
+      if (dl_harq->ack == DL_NACK)
+        LOG_D(PHY,"New transmission on a harq pid (%d) never acknowledged\n", harq_pid);
+      else
+         LOG_D(PHY,"Starting new transmission on a harq pid (%d)\n", harq_pid);
+    } else {
+      if (dl_harq->ack != DL_NACK)
+        LOG_D(PHY,"gNB asked for retransmission even if we sent ACK\n");
+      else
+        LOG_D(PHY,"Starting retransmission on a harq pid (%d), rv (%d)\n", harq_pid, rv);
     }
-  }
 
+    if (dci_ndi!=dl_harq->Ndi) {
+      dl_harq->first_rx = true;
+      dl_harq->DLround = 0;
+    } else {
+      dl_harq->first_rx = false;
+      dl_harq->DLround++;
+    }
+    
+    dl_harq->status = ACTIVE;
+
+    dl_harq->Ndi = dci_ndi;
+    //dl_harq->status = SCH_IDLE;
+   }
 }
 

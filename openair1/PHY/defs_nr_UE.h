@@ -132,12 +132,9 @@ typedef struct {
   // RRC measurements
   uint32_t rssi;
   int n_adj_cells;
-  unsigned int adj_cell_id[6];
-  uint32_t rsrq[7];
   uint32_t rsrp[7];
-  float rsrp_filtered[7]; // after layer 3 filtering
-  float rsrq_filtered[7];
   short rsrp_dBm[7];
+  int ssb_rsrp_dBm[64];
   // common measurements
   //! estimated noise power (linear)
   unsigned int   n0_power[NB_ANTENNAS_RX];
@@ -279,10 +276,6 @@ typedef struct {
   /// - first index: ? [0..7] (hard coded) FIXME! accessed via \c nb_antennas_rx
   /// - second index: ? [0..168*N_RB_DL[
   int32_t **dl_ch_estimates_ext;
-  /// \brief Downlink channel estimates extracted in PRBS.
-  /// - first index: ? [0..7] (hard coded) FIXME! accessed via \c nb_antennas_rx
-  /// - second index: ? [0..168*N_RB_DL[
-  int32_t **dl_ch_ptrs_estimates_ext;
   /// \brief Downlink beamforming channel estimates in frequency domain.
   /// - first index: ? [0..7] (hard coded) FIXME! accessed via \c nb_antennas_rx
   /// - second index: samples? [0..symbols_per_tti*(ofdm_symbol_size+LTE_CE_FILTER_LENGTH)[
@@ -550,60 +543,20 @@ typedef struct {
 } NR_UE_PDCCH_SEARCHSPACE;
 #endif
 typedef struct {
-  /// \brief Pointers to extracted PDCCH symbols in frequency-domain.
-  /// - first index: ? [0..7] (hard coded) FIXME! accessed via \c nb_antennas_rx
-  /// - second index: ? [0..168*N_RB_DL[
-  int32_t **rxdataF_ext;
-  /// \brief Pointers to extracted and compensated PDCCH symbols in frequency-domain.
-  /// - first index: ? [0..7] (hard coded) FIXME! accessed via \c nb_antennas_rx
-  /// - second index: ? [0..168*N_RB_DL[
-  int32_t **rxdataF_comp;
-  /// \brief Hold the channel estimates in frequency domain.
-  /// - first index: ? [0..7] (hard coded) FIXME! accessed via \c nb_antennas_rx
-  /// - second index: samples? [0..symbols_per_tti*(ofdm_symbol_size+LTE_CE_FILTER_LENGTH)[
-  int32_t **dl_ch_estimates;
-  /// \brief Hold the channel estimates in time domain (used for tracking).
-  /// - first index: ? [0..7] (hard coded) FIXME! accessed via \c nb_antennas_rx
-  /// - second index: samples? [0..2*ofdm_symbol_size[
-  int32_t **dl_ch_estimates_time;
-  /// \brief Pointers to extracted channel estimates of PDCCH symbols.
-  /// - first index: ? [0..7] (hard coded) FIXME! accessed via \c nb_antennas_rx
-  /// - second index: ? [0..168*N_RB_DL[
-  int32_t **dl_ch_estimates_ext;
-  /// \brief Pointers to channel cross-correlation vectors for multi-gNB detection.
-  /// - first index: rx antenna [0..nb_antennas_rx[
-  /// - second index: ? [0..]
-  int32_t **rho;
-  /// \brief Pointer to llrs, 4-bit resolution.
-  /// - first index: ? [0..48*N_RB_DL[
-  int16_t *llr;
-  /// \brief Pointer to llrs, 16-bit resolution.
-  /// - first index: ? [0..96*N_RB_DL[
-  int16_t *llr16;
-  /// \brief \f$\overline{w}\f$ from 36-211.
-  /// - first index: ? [0..48*N_RB_DL[
-  int16_t *wbar;
-  /// \brief PDCCH/DCI e-sequence (input to rate matching).
-  /// - first index: ? [0..96*N_RB_DL[
-  int16_t *e_rx;
-  /// Total number of PDU errors (diagnostic mode)
-  uint32_t dci_errors;
+  int nb_search_space;
+  uint16_t sfn;
+  uint16_t slot;
+  fapi_nr_dl_config_dci_dl_pdu_rel15_t pdcch_config[FAPI_NR_MAX_SS];
+} NR_UE_PDCCH_CONFIG;
+
+typedef struct {
   /// Total number of PDU received
   uint32_t dci_received;
   /// Total number of DCI False detection (diagnostic mode)
   uint32_t dci_false;
   /// Total number of DCI missed (diagnostic mode)
   uint32_t dci_missed;
-  /// nCCE for PDCCH per subframe
-  uint8_t nCCE[10];
-  //Check for specific DCIFormat and AgregationLevel
-  uint8_t dciFormat;
-  uint8_t agregationLevel;
-  int nb_search_space;
-  fapi_nr_dl_config_dci_dl_pdu_rel15_t pdcch_config[FAPI_NR_MAX_SS];
-  // frame and slot for sib1 in initial sync
-  uint16_t sfn;
-  uint16_t slot;
+
   /*
 #ifdef NR_PDCCH_DEFS_NR_UE
   int nb_searchSpaces;
@@ -637,6 +590,16 @@ typedef struct {
   int16_t *prach;
   fapi_nr_ul_config_prach_pdu prach_pdu;
 } NR_UE_PRACH;
+
+typedef struct {
+  bool active;
+  fapi_nr_dl_config_csiim_pdu_rel15_t csiim_config_pdu;
+} NR_UE_CSI_IM;
+
+typedef struct {
+  bool active;
+  fapi_nr_dl_config_csirs_pdu_rel15_t csirs_config_pdu;
+} NR_UE_CSI_RS;
 
 typedef struct {
   bool active;
@@ -751,6 +714,8 @@ typedef struct {
   NR_UE_PBCH      *pbch_vars[NUMBER_OF_CONNECTED_gNB_MAX];
   NR_UE_PDCCH     *pdcch_vars[RX_NB_TH_MAX][NUMBER_OF_CONNECTED_gNB_MAX];
   NR_UE_PRACH     *prach_vars[NUMBER_OF_CONNECTED_gNB_MAX];
+  NR_UE_CSI_IM    *csiim_vars[NUMBER_OF_CONNECTED_gNB_MAX];
+  NR_UE_CSI_RS    *csirs_vars[NUMBER_OF_CONNECTED_gNB_MAX];
   NR_UE_SRS       *srs_vars[NUMBER_OF_CONNECTED_gNB_MAX];
   NR_UE_PUCCH     *pucch_vars[RX_NB_TH_MAX][NUMBER_OF_CONNECTED_gNB_MAX];
   NR_UE_DLSCH_t   *dlsch[RX_NB_TH_MAX][NUMBER_OF_CONNECTED_gNB_MAX][NR_MAX_NB_LAYERS>4 ? 2:1]; // two RxTx Threads
@@ -789,7 +754,10 @@ typedef struct {
   uint32_t ****nr_gold_pdsch[NUMBER_OF_CONNECTED_eNB_MAX];
 
   // Scrambling IDs used in PDSCH DMRS
-  uint16_t scramblingID[2];
+  uint16_t scramblingID_dlsch[2];
+
+  // Scrambling IDs used in PUSCH DMRS
+  uint16_t scramblingID_ulsch[2];
 
   /// PDCCH DMRS
   uint32_t ***nr_gold_pdcch[NUMBER_OF_CONNECTED_eNB_MAX];
@@ -798,15 +766,14 @@ typedef struct {
   uint16_t scramblingID_pdcch;
 
   /// PUSCH DMRS sequence
-  uint32_t ***nr_gold_pusch_dmrs;
+  uint32_t ****nr_gold_pusch_dmrs;
 
   uint32_t X_u[64][839];
 
-
-  uint32_t perfect_ce;
   // flag to activate PRB based averaging of channel estimates
   // when off, defaults to frequency domain interpolation
-  int prb_interpolation;
+  int chest_freq;
+  int chest_time;
   int generate_ul_signal[NUMBER_OF_CONNECTED_gNB_MAX];
 
   UE_NR_SCAN_INFO_t scan_info[NB_BANDS_MAX];
@@ -894,6 +861,8 @@ typedef struct {
   /// N0 (used for abstraction)
   double N0;
 
+  uint8_t max_ldpc_iterations;
+
   /// PDSCH Varaibles
   PDSCH_CONFIG_DEDICATED pdsch_config_dedicated[NUMBER_OF_CONNECTED_gNB_MAX];
 
@@ -905,6 +874,9 @@ typedef struct {
 
   /// SRS variables
   nr_srs_info_t *nr_srs_info;
+
+  /// CSI variables
+  nr_csi_info_t *nr_csi_info;
 
   //#if defined(UPGRADE_RAT_NR)
 #if 1
@@ -1003,8 +975,8 @@ typedef struct {
   SLIST_HEAD(ral_thresholds_gen_poll_s, ral_threshold_phy_t) ral_thresholds_gen_polled[RAL_LINK_PARAM_GEN_MAX];
   SLIST_HEAD(ral_thresholds_lte_poll_s, ral_threshold_phy_t) ral_thresholds_lte_polled[RAL_LINK_PARAM_LTE_MAX];
 #endif
-  
-  int dl_stats[5];
+  int dl_errors;
+  int dl_stats[8];
   void* scopeData;
 } PHY_VARS_NR_UE;
 

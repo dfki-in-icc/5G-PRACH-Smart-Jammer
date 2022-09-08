@@ -372,36 +372,30 @@ class RANManagement():
 			else:
 				pcapfile_prefix="gnb_"
 			mySSH.open(lIpAddr, lUserName, lPassWord)
-			mySSH.command('ip addr show | awk -f /tmp/active_net_interfaces.awk | egrep -v "lo|tun"', '\$', 5)
-			result = re.search('interfaceToUse=(?P<eth_interface>[a-zA-Z0-9\-\_]+)done', mySSH.getBefore())
-			if result is not None:
-				eth_interface = result.group('eth_interface')
-				fltr = 'port 38412 or port 36412 or port 36422' # NGAP, S1AP, X2AP
-				logging.debug('\u001B[1m Launching tshark on interface ' + eth_interface + ' with filter "' + fltr + '"\u001B[0m')
-				pcapfile = pcapfile_prefix + self.testCase_id + '_log.pcap'
-				mySSH.command('echo ' + lPassWord + ' | sudo -S rm -f /tmp/' + pcapfile , '\$', 5)
-				mySSH.command('echo $USER; nohup sudo -E tshark  -i ' + eth_interface + ' -f "' + fltr + '" -w /tmp/' + pcapfile + ' > /dev/null 2>&1 &','\$', 5)
+			eth_interface = 'any'
+			fltr = 'sctp'
+			logging.debug('\u001B[1m Launching tshark on xNB on interface ' + eth_interface + ' with filter "' + fltr + '"\u001B[0m')
+			pcapfile = pcapfile_prefix + self.testCase_id + '_log.pcap'
+			mySSH.command('echo ' + lPassWord + ' | sudo -S rm -f /tmp/' + pcapfile , '\$', 5)
+			mySSH.command('echo $USER; nohup sudo -E tshark  -i ' + eth_interface + ' -f "' + fltr + '" -w /tmp/' + pcapfile + ' > /dev/null 2>&1 &','\$', 5)
 			mySSH.close()
 			
 
 
 		# If tracer options is on, running tshark on EPC side and capture traffic b/ EPC and eNB
-		result = re.search('T_stdout', str(self.Initialize_eNB_args))
-		if (result is not None):
+		if EPC.IPAddress != "none":
 			localEpcIpAddr = EPC.IPAddress
 			localEpcUserName = EPC.UserName
 			localEpcPassword = EPC.Password
 			mySSH.open(localEpcIpAddr, localEpcUserName, localEpcPassword)
-			mySSH.command('ip addr show | awk -f /tmp/active_net_interfaces.awk | egrep -v "lo|tun"', '\$', 5)
-			result = re.search('interfaceToUse=(?P<eth_interface>[a-zA-Z0-9\-\_]+)done', mySSH.getBefore())
-			if result is not None:
-				eth_interface = result.group('eth_interface')
-				fltr = 'port 38412 or port 36412 or port 36422' # NGAP, S1AP, X2AP
-				logging.debug('\u001B[1m Launching tshark on interface ' + eth_interface + ' with filter "' + fltr + '"\u001B[0m')
-				self.epcPcapFile = 'enb_' + self.testCase_id + '_s1log.pcap'
-				mySSH.command('echo ' + localEpcPassword + ' | sudo -S rm -f /tmp/' + self.epcPcapFile , '\$', 5)
-				mySSH.command('echo $USER; nohup sudo tshark -f "host ' + lIpAddr +'" -i ' + eth_interface + ' -f "' + fltr + '" -w /tmp/' + self.epcPcapFile + ' > /tmp/tshark.log 2>&1 &', localEpcUserName, 5)
+			eth_interface = 'any'
+			fltr = 'sctp'
+			logging.debug('\u001B[1m Launching tshark on EPC on interface ' + eth_interface + ' with filter "' + fltr + '"\u001B[0m')
+			self.epcPcapFile = 'enb_' + self.testCase_id + '_s1log.pcap'
+			mySSH.command('echo ' + localEpcPassword + ' | sudo -S rm -f /tmp/' + self.epcPcapFile , '\$', 5)
+			mySSH.command('echo $USER; nohup sudo tshark -f "host ' + lIpAddr +'" -i ' + eth_interface + ' -f "' + fltr + '" -w /tmp/' + self.epcPcapFile + ' > /tmp/tshark.log 2>&1 &', localEpcUserName, 5)
 			mySSH.close()
+
 		mySSH.open(lIpAddr, lUserName, lPassWord)
 		mySSH.command('cd ' + lSourcePath, '\$', 5)
 		# Initialize_eNB_args usually start with -O and followed by the location in repository
@@ -519,23 +513,19 @@ class RANManagement():
 				logging.error('\u001B[1;37;41m eNB/gNB/ocp-eNB logging system did not show got sync! \u001B[0m')
 				HTML.CreateHtmlTestRow(self.air_interface[self.eNB_instance] + ' -O ' + config_file + extra_options, 'KO', CONST.ALL_PROCESSES_OK)
 				# In case of T tracer recording, we need to kill tshark on EPC side
-				result = re.search('T_stdout', str(self.Initialize_eNB_args))
-				if (result is not None):
-					localEpcIpAddr = EPC.IPAddress
-					localEpcUserName = EPC.UserName
-					localEpcPassword = EPC.Password
-					mySSH.open(localEpcIpAddr, localEpcUserName, localEpcPassword)
-					logging.debug('\u001B[1m Stopping tshark \u001B[0m')
-					mySSH.command('echo ' + localEpcPassword + ' | sudo -S killall --signal SIGKILL tshark', '\$', 5)
-					if self.epcPcapFile  != '':
-						time.sleep(0.5)
-						mySSH.command('echo ' + localEpcPassword + ' | sudo -S chmod 666 /tmp/' + self.epcPcapFile, '\$', 5)
-					mySSH.close()
-					time.sleep(1)
-					if self.epcPcapFile != '':
-						copyin_res = mySSH.copyin(localEpcIpAddr, localEpcUserName, localEpcPassword, '/tmp/' + self.epcPcapFile, '.')
-						if (copyin_res == 0):
-							mySSH.copyout(lIpAddr, lUserName, lPassWord, self.epcPcapFile, lSourcePath + '/cmake_targets/.')
+				localEpcIpAddr = EPC.IPAddress
+				localEpcUserName = EPC.UserName
+				localEpcPassword = EPC.Password
+				mySSH.open(localEpcIpAddr, localEpcUserName, localEpcPassword)
+				logging.debug('\u001B[1m Stopping tshark on EPC \u001B[0m')
+				mySSH.command('echo ' + localEpcPassword + ' | sudo -S killall --signal SIGKILL tshark', '\$', 5)
+				if self.epcPcapFile  != '':
+					mySSH.command('echo ' + localEpcPassword + ' | sudo -S chmod 666 /tmp/' + self.epcPcapFile, '\$', 5)
+				mySSH.close()
+				if self.epcPcapFile != '':
+					copyin_res = mySSH.copyin(localEpcIpAddr, localEpcUserName, localEpcPassword, '/tmp/' + self.epcPcapFile, '.')
+					if (copyin_res == 0):
+						mySSH.copyout(lIpAddr, lUserName, lPassWord, self.epcPcapFile, lSourcePath + '/cmake_targets/.')
 				self.prematureExit = True
 				return
 			else:
@@ -654,18 +644,16 @@ class RANManagement():
 				time.sleep(5)
 		mySSH.command('rm -f my-lte-softmodem-run' + str(self.eNB_instance) + '.sh', '\$', 5)
 		#stopping tshark (valid if eNB and enabled in xml, will not harm otherwise)
-		logging.debug('\u001B[1m Stopping tshark \u001B[0m')
+		logging.debug('\u001B[1m Stopping tshark on xNB \u001B[0m')
 		mySSH.command('echo ' + lPassWord + ' | sudo -S killall --signal SIGKILL tshark', '\$', 5)
 		time.sleep(1)
 		mySSH.close()
-		# If tracer options is on, stopping tshark on EPC side
-		result = re.search('T_stdout', str(self.Initialize_eNB_args))
-		if (result is not None):
+		if EPC.IPAddress != "none" and EPC.IPAddress != '':
 			localEpcIpAddr = EPC.IPAddress
 			localEpcUserName = EPC.UserName
 			localEpcPassword = EPC.Password
+			logging.debug('\u001B[1m Stopping tshark on EPC (' + localEpcIpAddr + ') \u001B[0m')
 			mySSH.open(localEpcIpAddr, localEpcUserName, localEpcPassword)
-			logging.debug('\u001B[1m Stopping tshark \u001B[0m')
 			mySSH.command('echo ' + localEpcPassword + ' | sudo -S killall --signal SIGKILL tshark', '\$', 5)
 			time.sleep(1)
 			if self.epcPcapFile != '':
@@ -677,13 +665,13 @@ class RANManagement():
 		# if T tracer was run with option 0 (no logs), analyze logs
 		# from textlog, otherwise do normal analysis (e.g., option 2)
 		result = re.search('T_stdout 0', str(self.Initialize_eNB_args))
-		enbLogFile = self.eNBLogFiles[int(self.eNB_instance)]
-		raw_record_file = enbLogFile.replace('.log', '_record.raw')
-		replay_log_file = enbLogFile.replace('.log', '_replay.log')
 		if (result is not None):
 			logging.debug('\u001B[1m Replaying RAW record file\u001B[0m')
 			mySSH.open(lIpAddr, lUserName, lPassWord)
 			mySSH.command('cd ' + lSourcePath + '/common/utils/T/tracer/', '\$', 5)
+			enbLogFile = self.eNBLogFiles[int(self.eNB_instance)]
+			raw_record_file = enbLogFile.replace('.log', '_record.raw')
+			replay_log_file = enbLogFile.replace('.log', '_replay.log')
 			extracted_txt_file = enbLogFile.replace('.log', '_extracted_messages.txt')
 			extracted_log_file = enbLogFile.replace('.log', '_extracted_messages.log')
 			mySSH.command('./extract_config -i ' + lSourcePath + '/cmake_targets/' + raw_record_file + ' > ' + lSourcePath + '/cmake_targets/' + extracted_txt_file, '\$', 5)
@@ -706,8 +694,6 @@ class RANManagement():
 				mySSH.copyin(lIpAddr, lUserName, lPassWord, lSourcePath + '/cmake_targets/*stats.log', '.')
 				mySSH.copyin(lIpAddr, lUserName, lPassWord, lSourcePath + '/cmake_targets/*.pickle', '.')
 				mySSH.copyin(lIpAddr, lUserName, lPassWord, lSourcePath + '/cmake_targets/*.png', '.')
-				mySSH.copyin(lIpAddr, lUserName, lPassWord, lSourcePath + '/cmake_targets/'+raw_record_file, '.')
-				mySSH.copyin(lIpAddr, lUserName, lPassWord, lSourcePath + '/cmake_targets/'+replay_log_file, '.')
 				#
 				copyin_res = mySSH.copyin(lIpAddr, lUserName, lPassWord, lSourcePath + '/cmake_targets/' + fileToAnalyze, '.')
 				if (copyin_res == -1):
@@ -723,9 +709,7 @@ class RANManagement():
 					mySSH.copyout(self.eNBIPAddress, self.eNBUserName, self.eNBPassword, './nrL1_stats.log', self.eNBSourceCodePath + '/cmake_targets/')
 					mySSH.copyout(self.eNBIPAddress, self.eNBUserName, self.eNBPassword, './nrMAC_stats.log', self.eNBSourceCodePath + '/cmake_targets/')
 					mySSH.copyout(self.eNBIPAddress, self.eNBUserName, self.eNBPassword, './gnb_stats_monitor.pickle', self.eNBSourceCodePath + '/cmake_targets/')
-					mySSH.copyout(self.eNBIPAddress, self.eNBUserName, self.eNBPassword, './gnb_stats_monitor.png', self.eNBSourceCodePath + '/cmake_targets/')#RH 21/02/2002 this does not work, there are more than 1 png file
-					mySSH.copyout(self.eNBIPAddress, self.eNBUserName, self.eNBPassword,'./'+raw_record_file, self.eNBSourceCodePath + '/cmake_targets/')
-					mySSH.copyout(self.eNBIPAddress, self.eNBUserName, self.eNBPassword,'./'+replay_log_file, self.eNBSourceCodePath + '/cmake_targets/')
+					mySSH.copyout(self.eNBIPAddress, self.eNBUserName, self.eNBPassword, './gnb_stats_monitor.png', self.eNBSourceCodePath + '/cmake_targets/')
 					#
 					mySSH.copyout(self.eNBIPAddress, self.eNBUserName, self.eNBPassword, './' + fileToAnalyze, self.eNBSourceCodePath + '/cmake_targets/')
 				logging.debug('\u001B[1m Analyzing ' + nodeB_prefix + 'NB logfile \u001B[0m ' + fileToAnalyze)
@@ -826,6 +810,9 @@ class RANManagement():
 		RealTimeProcessingIssue = False
 		DLRetxIssue = False
 		ULRetxIssue = False
+		nrRrcRcfgComplete = 0
+		harqFeedbackPast = 0
+		showedByeMsg = False # last line is Bye. -> stopped properly
 	
 		line_cnt=0 #log file line counter
 		for line in enb_log_file.readlines():
@@ -999,8 +986,25 @@ class RANManagement():
 			for k in keys:
 				result = re.search(k, line)
 				if result is not None:
+					ue_prefix = 'ue0'
+					ue_res = re.search('UE ID 1|UE 1:', line)
+					if ue_res is not None:
+						ue_prefix = 'ue1'
+					ue_res = re.search('UE ID 2|UE 2:', line)
+					if ue_res is not None:
+						ue_prefix = 'ue2'
+					ue_res = re.search('UE ID 3|UE 3:', line)
+					if ue_res is not None:
+						ue_prefix = 'ue3'
 					#remove 1- all useless char before relevant info (ulsch or dlsch) 2- trailing char
-					dlsch_ulsch_stats[k]=re.sub(r'^.*\]\s+', r'' , line.rstrip())
+					dlsch_ulsch_stats[ue_prefix+k]=re.sub(r'^.*\]\s+', r'' , line.rstrip())
+
+			result = re.search('Received NR_RRCReconfigurationComplete from UE', str(line))
+			if result is not None:
+				nrRrcRcfgComplete += 1
+			result = re.search('HARQ feedback is in the past', str(line))
+			if result is not None:
+				harqFeedbackPast += 1
 
 
 			#count "problem receiving samples" msg
@@ -1020,6 +1024,12 @@ class RANManagement():
 				result = re.search(k, line)
 				if result is not None:
 					gnb_markers[k].append(line_cnt)
+
+			# check whether e/gNB log finishes with "Bye." message
+			# Note that it is "=" not "|=" so not only is the regex
+			# asking for EOF (\Z) but we also only retain the last
+			# line's result
+			showedByeMsg = re.search(r'^Bye.\n\Z', str(line), re.MULTILINE) is not None
 
 		enb_log_file.close()
 
@@ -1087,6 +1097,14 @@ class RANManagement():
 				htmleNBFailureMsg += statMsg + '\n'
 			if gnbTxWriteThreadEnabled:
 				statMsg = nodeB_prefix + 'NB ran with TX Write thread enabled'
+				logging.debug('\u001B[1;30;43m ' + statMsg + ' \u001B[0m')
+				htmleNBFailureMsg += statMsg + '\n'
+			if nrRrcRcfgComplete > 0:
+				statMsg = nodeB_prefix + 'NB showed ' + str(nrRrcRcfgComplete) + ' "Received NR_RRCReconfigurationComplete from UE" message(s)'
+				logging.debug('\u001B[1;30;43m ' + statMsg + ' \u001B[0m')
+				htmleNBFailureMsg += statMsg + '\n'
+			if harqFeedbackPast > 0:
+				statMsg = nodeB_prefix + 'NB showed ' + str(harqFeedbackPast) + ' "HARQ feedback is in the past" message(s)'
 				logging.debug('\u001B[1;30;43m ' + statMsg + ' \u001B[0m')
 				htmleNBFailureMsg += statMsg + '\n'
 			#FR1 NSA test : add new markers to make sure gNB is used
@@ -1196,6 +1214,13 @@ class RANManagement():
 				statMsg = 'No real time stats found in the log file\n'
 				logging.debug('No real time stats found in the log file')
 				htmleNBFailureMsg += statMsg
+
+			if not showedByeMsg:
+				logging.debug('\u001B[1;37;41m ' + nodeB_prefix + 'NB did not show "Bye." message at end, it likely did not stop properly! \u001B[0m')
+				htmleNBFailureMsg += 'No Bye. message found, did not stop properly\n'
+				global_status = CONST.ENB_SHUTDOWN_NO_BYE
+			else:
+				logging.debug('"Bye." message found at end.')
 
 		else:
 			#Removing UE log
