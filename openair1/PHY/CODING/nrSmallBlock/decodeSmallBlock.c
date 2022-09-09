@@ -79,7 +79,7 @@ uint16_t decodeSmallBlock(int8_t *in, uint8_t len){
 
         int16_t maxVal = 0;
 		int DmatrixElementVal = 0;
-#if !defined(__AVX512F__) || !defined(_OAI_AVX512_)
+#if !defined(__AVX512F__)
 		int8_t DmatrixElement[NR_SMALL_BLOCK_CODED_BITS] = {0};
 #endif		
 		__m256i _in_256 = simde_mm256_loadu_si256 ((__m256i*)&in[0]);
@@ -90,7 +90,7 @@ uint16_t decodeSmallBlock(int8_t *in, uint8_t len){
 			for (int k = 0; k < NR_SMALL_BLOCK_CODED_BITS; ++k) {
 				_maskH_256 = simde_mm256_loadu_si256 ((__m256i*)(&hadamard32InterleavedTransposed[k][0]));
 				_DmatrixElement_256 = simde_mm256_sign_epi8 (_Dmatrixj_256, _maskH_256);
-#if defined(__AVX512F__) && defined(_OAI_AVX512_)
+#if defined(__AVX512F__)
 			    DmatrixElementVal = _mm512_reduce_add_epi32 (
 			    		            _mm512_add_epi32(
 			    				    _mm512_cvtepi8_epi32 (simde_mm256_extracti128_si256 (_DmatrixElement_256, 1)),

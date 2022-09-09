@@ -200,13 +200,13 @@ add_list_string_option(CMAKE_BUILD_TYPE "RelWithDebInfo" "Choose the type of bui
 Message("Architecture is ${CMAKE_SYSTEM_PROCESSOR}")
 # in case /proc/cpuinfo exists we want to inspect available Intrinsics
 # -so not to go always through SIMDE emulation
-# -so to behave specifically in regard of AVX512 support  
+# -so to avoid AVX512 instructions generation by gcc   
 if(EXISTS  "/proc/cpuinfo")
    file(STRINGS "/proc/cpuinfo" CPUINFO REGEX flags LIMIT_COUNT 1)
    message("AVX512 is ${AVX512}")
    message("AVX2 is ${AVX2}")
-   if (CPUINFO MATCHES "avx512bw" AND "${AVX512}" STREQUAL "True")
-      set(C_FLAGS_PROCESSOR "${C_FLAGS_PROCESSOR} -D_OAI_AVX512_")
+   if ("${AVX512}" STREQUAL "False")
+      set(C_FLAGS_PROCESSOR "${C_FLAGS_PROCESSOR} -mno-avx512f")
    endif()
    if (CPUINFO MATCHES "avx2" AND "${AVX2}" STREQUAL "True")
       set(C_FLAGS_PROCESSOR "${C_FLAGS_PROCESSOR} -DSIMDE_X86_AVX2_NATIVE")
@@ -223,8 +223,6 @@ if(EXISTS  "/proc/cpuinfo")
 endif()
 
 set(C_FLAGS_PROCESSOR "${C_FLAGS_PROCESSOR} -fno-var-tracking-assignments -march=native")
-
-set(C_FLAGS_PROCESSOR " ${C_FLAGS_PROCESSOR} ${CFLAGS_PROCESSOR_USER}")
 
 Message("C_FLAGS_PROCESSOR is ${C_FLAGS_PROCESSOR}")
 
@@ -846,9 +844,6 @@ endif ()
 ##########################################################
 
 include_directories ("${OPENAIR_TARGETS}/ARCH/COMMON")
-
-#Message("DEADLINE_SCHEDULER flag  is ${DEADLINE_SCHEDULER}")
-#Message("CPU_Affinity flag is ${CPU_AFFINITY}")
 
 ##############################################################
 #    ???!!! TO BE DOCUMENTED OPTIONS !!!???
@@ -3110,7 +3105,7 @@ function(make_driver name dir)
   endforeach()
   CONFIGURE_FILE(${OPENAIR_CMAKE}/tools/Kbuild.cmake ${OPENAIR_BIN_DIR}/${name}/Kbuild)
   add_custom_command(OUTPUT ${name}.ko
-    COMMAND make -C ${module_build_path} M=${OPENAIR_BIN_DIR}/${name}
+    COMMAND make -C ${module_build_path} M=${OPENAIR_BIN_DIR}/${name} -j$(nproc)
     WORKING_DIRECTORY ${OPENAIR_BIN_DIR}/${name}
     COMMENT "building ${module}.ko"
     VERBATIM

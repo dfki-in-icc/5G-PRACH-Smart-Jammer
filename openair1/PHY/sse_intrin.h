@@ -30,10 +30,13 @@
  * Has been changed in August 2022 to rely on SIMD Everywhere (SIMDE) from MIT
  * by bruno.mongazon-cazavet@nokia-bell-labs.com
  *
- * All avx2 code is mapped to SIMDE which transparently rely on avx2 HW or SIMDE emulation 
- * avx512 code is not mapped to SIMDE
- *   if --avx512 build flag set and AVX512 HW available, avx512 code is mapped to AVX512 HW
- *   in all other cases, AVX512 is emulated by OAI specific code using avx2 (possibly itself SIMDE emulated)
+ * All AVX22 code is mapped to SIMDE which transparently relies on AVX2 HW (avx2-capable host) or SIMDE emulation
+ * (non-avx2-capable host).
+ * To force using SIMDE emulation on avx2-capable host use the --noavx2 flag. 
+ * avx512 code is not mapped to SIMDE. It depends on --noavx512 flag.
+ * If the --noavx512 is set the OAI AVX512 emulation using AVX2 is used.
+ * If the --noavx512 is not set, AVX512 HW is used on avx512-capable host while OAI AVX512 emulation using AVX2
+ * is used on non-avx512-capable host. 
  *
  * \author S. Held, Laurent THOMAS
  * \email sebastian.held@imst.de, laurent.thomas@open-cells.com	
@@ -60,7 +63,7 @@
 #include <simde/x86/avx2.h>
 #include <simde/x86/fma.h>
 
-#if defined(_OAI_AVX512_) && (defined(__AVX512BW__) || defined(__AVX512F__))
+#if defined(__AVX512BW__) || defined(__AVX512F__)
 #include <immintrin.h>
 #endif
 

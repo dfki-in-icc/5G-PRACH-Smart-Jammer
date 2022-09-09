@@ -55,7 +55,7 @@ BUILD_COVERITY_SCAN=0
 DISABLE_HARDWARE_DEPENDENCY="False"
 CMAKE_BUILD_TYPE="RelWithDebInfo"
 CMAKE_CMD="$CMAKE"
-AVX512="False"
+AVX512="True"
 AVX2="True"
 BUILD_ECLIPSE=0
 NR="False"
@@ -128,15 +128,13 @@ Options:
 -x | --xforms
    Will compile with software oscilloscope features
 --HWLAT
-    Makes test program for haw latency tests
+   Makes test program for haw latency tests
 --HWLAT_TEST
-  Compiles a hw latency test program
+   Compiles a hw latency test program
 --verbose-ci
-  Compile with verbose instructions in CI Docker env
+   Compile with verbose instructions in CI Docker env
 --verbose-compile
    Shows detailed compilation instructions in makefile
---cflags_processor
-   Manually Add CFLAGS of processor if they are not detected correctly by script. Only add these flags if you know your processor supports them. Example flags: -msse3 -msse4.1 -msse4.2 -mavx2
 --build-doxygen
    Builds doxygen based documentation.
 --build-coverity-scan
@@ -167,11 +165,9 @@ Options:
 --usrp-recplay
    Build for I/Q record-playback modes
 --noavx512
-   Deprecated, replaced by --avx512
---avx512
-   Build with AVX512 if it is present on CPU
+   Disable AVX512 intrinsics whatever processor capability is
 --noavx2
-   Disable AVX2 Intrinsics (always use SIMDE emulation)
+   Disable AVX2 intrinsics if processor supports it or use SIMDE emulation
 -k | --skip-shared-libraries
    Skip build for shared libraries to reduce compilation time when building frequently for debugging purposes
 --ninja
@@ -366,10 +362,6 @@ function main() {
             VERBOSE_COMPILE=1
             echo_info "Will compile with verbose instructions"
             shift;;
-       --cflags_processor)
-            CMAKE_CMD="$CMAKE_CMD -DCFLAGS_PROCESSOR_USER=\"$2\""
-            echo_info "Setting CPU FLAGS from USER to: $2"
-            shift 2;;
        --build-doxygen)
 	        BUILD_DOXYGEN=1
             echo_info "Will build doxygen support"
@@ -447,15 +439,12 @@ function main() {
             fi
             shift 2;;		
         --noavx512)
-            echo_info "Deprecated, by default no AVX512, use --avx512 to Enable AVX512"
-            shift 1;;
-        --avx512)
-            AVX512="True"
-            echo_info "Enabling AVX512"
+            AVX512="False"
+            echo_info "Disabling AVX512 instructions"
             shift 1;;
         --noavx2)
             AVX2="False"
-            echo_info "Disabling AVX2"
+            echo_info "Disabling AVX2 instructions"
             shift 1;;
         -k | --skip-shared-libraries)
             SKIP_SHARED_LIB_FLAG="True"

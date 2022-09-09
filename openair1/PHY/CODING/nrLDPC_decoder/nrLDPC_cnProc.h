@@ -41,7 +41,7 @@
    \param Z Lifting size
 */
 
-#if defined(__AVX512BW__) && defined(_OAI_AVX512_)
+#if defined(__AVX512BW__)
 #include "nrLDPC_cnProc_avx512.h"
 #else
 static inline void nrLDPC_cnProc_BG2(t_nrLDPC_lut* p_lut, int8_t* cnProcBuf, int8_t* cnProcBufRes, uint16_t Z)
