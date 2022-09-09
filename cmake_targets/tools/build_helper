@@ -386,7 +386,7 @@ check_install_usrp_uhd_driver(){
     elif [[ "$OS_BASEDISTRO" == "fedora" ]]; then
         if [ $IS_CONTAINER -eq 0 ]
         then
-            $SUDO $INSTALLER -y install python boost libusb-devel libusbx-devel boost-devel python-mako python-docutils cmake3
+            $SUDO $INSTALLER -y install python boost libusb-devel libusbx-devel boost-devel python-mako python-docutils cmake
             $SUDO -H pip install requests
         else
             $SUDO $INSTALLER -y install boost boost-devel cmake3
