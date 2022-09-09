@@ -3,13 +3,12 @@
     <mat-grid-tile [colspan]="11" [rowspan]="1">
       <mat-card class="dashboard-card">
         <mat-card-header>
-          <mat-card-title>{{ scopetitle }}</mat-card-title>
+          <mat-card-title>{{ scopetitle }} {{ scopesubtitle }}</mat-card-title>
         </mat-card-header>
         <mat-card-content class="dashboard-card-content">
 
           <div FxLayoutAlign="row">
-            <label>{{ scopetime }}&nbsp; &nbsp; </label>
-            <label>{{ scopestatus }}</label>
+            <label>{{ scopetime }} {{ scopestatus }} &nbsp; &nbsp; </label>
           </div>
 
         </mat-card-content>
@@ -25,11 +24,11 @@
 		    <button mat-mini-fab color={{startstop_color}} (click)="startorstop()">{{startstop}}</button>
             <br><br>
             <div class="scope-slider-div">
-            <label id="scope-slider-labelid" class="scope-slider-label">refresh rate</label>
+            <label id="scope-slider-refrate-labelid" class="scope-slider-label">refresh rate</label>
             <label class="scope-slider-value-label"> {{rfrate}} </label>
             </div>           
             <mat-slider class="scope-slider" min=".1" max="30" step="0.1" [value]="rfrate" 
-                        aria-labelledby="cope-slider-labelid" vertical="true" thumbLabel="true" 
+                        aria-labelledby="scope-slider-refrate-labelid" vertical="true" thumbLabel="true" 
                         [(ngModel)]="rfrate" (change)="OnRefrateChange()" > 
             </mat-slider>
             <br><br>
@@ -41,8 +40,17 @@
 				 </mat-option>
 			  </mat-select>
 		      </mat-form-field>
-	        </mat-list-item>            
-          
+	        </mat-list-item>
+	        <br><br>        
+            <mat-list-item class="UEselect" role="listitem">
+		      <mat-form-field class="select-form">
+			  <mat-select placeholder="UE select" name="UESelect" class="UESelect" [value]="selected_UE" (selectionChange)="UEChanged($event.value)" >
+				 <mat-option *ngFor="let UE of UE_list" [value]="UE.id" >
+					{{UE.id}}
+				 </mat-option>
+			  </mat-select>
+		      </mat-form-field>
+	        </mat-list-item>             
         </mat-card-content> 
       </mat-card>
     </mat-grid-tile>
@@ -54,30 +62,47 @@
         </mat-card-content>
       </mat-card>
     </mat-grid-tile>
-    <mat-grid-tile [colspan]="5" [rowspan]="2">
+    
+    <mat-grid-tile [colspan]="5" [rowspan]="2">		
       <mat-card class="dashboard-card">
         <mat-card-content class="dashboard-card-content">
 
         </mat-card-content>
       </mat-card>
     </mat-grid-tile> 
-    <mat-grid-tile [colspan]="5" [rowspan]="10">
+
+    <mat-grid-tile [colspan]="5" [rowspan]="3">
       <mat-card class="dashboard-card">
         <mat-card-content class="dashboard-card-content">
-
+			<div class="chart-container" style=" height:40%; width:80%">
+              <canvas baseChart
+                [datasets]=" LLRDatasets"
+                [options]="LLROptions"
+                [type]="'scatter'">
+              </canvas>
+            </div>  
         </mat-card-content>
       </mat-card>
     </mat-grid-tile> 
-     <mat-grid-tile [colspan]="5" [rowspan]="10">
+        
+     <mat-grid-tile [colspan]="5" [rowspan]="5">
       <mat-card class="dashboard-card">
         <mat-card-content class="dashboard-card-content">
-			<div class="chart-container" style="position: relative; height:50vh; width:50vw">
+			<div class="chart-container" >
               <canvas baseChart
                 [datasets]="IQDatasets"
                 [options]="IQOptions"
                 [type]="'scatter'">
               </canvas>
-            </div>
+            </div> 
+            <div class="scope-slider-div">
+            <label id="scope-slider-range-labelid" class="scope-slider-label">range</label>
+            <label class="scope-slider-value-label"> {{range}} </label>
+            </div>           
+            <mat-slider class="scope-slider" min=".1" max="100" step="0.1" [value]="range" 
+                        aria-labelledby="scope-slider-range-labelid" thumbLabel="true" 
+                        [(ngModel)]="range" (change)="OnRangeChange()" > 
+            </mat-slider>            
         </mat-card-content>
       </mat-card>
     </mat-grid-tile>           

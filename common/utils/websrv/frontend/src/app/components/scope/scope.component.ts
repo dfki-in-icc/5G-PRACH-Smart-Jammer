@@ -1,10 +1,10 @@
-import { Component, Output, EventEmitter, ViewChild} from "@angular/core";
+import { Component, Output, EventEmitter, QueryList, ViewChild, ViewChildren } from "@angular/core";
 import { FormGroup,FormControl } from "@angular/forms";
 import { Message, WebSocketService, webSockSrc } from "src/app/services/websocket.service";
 import { Observable } from 'rxjs';
 import { Chart, ChartConfiguration, ChartOptions, ChartEvent, ChartType, ScatterDataPoint } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
-import {IGraphDesc, IScopeGraphType, IScopeDesc, IScopeCmd,  ScopeApi  } from 'src/app/api/scope.api';
+import {IGraphDesc, IScopeGraphType, IScopeDesc, IScopeCmd, IUEDesc,  ScopeApi  } from 'src/app/api/scope.api';
 
 const SCOPEMSG_TYPE_STATUSUPD=1;   
 const SCOPEMSG_TYPE_REFRATE=2;
@@ -22,22 +22,29 @@ const SCOPEMSG_DATA_IQ=1;
 export class ScopeComponent {
 
   scopetitle = '';
+  scopesubtitle = '';
   scopetime = '';
   scopestatus = 'stopped';
   startstop = 'start';
   startstop_color = 'warn';
   rfrate = 2;
+  range = 50;
   iqgraph_list : IGraphDesc[] = [];
   selected_channels = [""];
+  llrgraph_list : IGraphDesc[] = [];  
+  UE_list : IUEDesc[] =[{id:0},{id:1},{id:2},{id:3},{id:4}];
+  selected_UE : number = 0;
+  
   
   @Output() ScopeEnabled = new EventEmitter<boolean>();
 
-  @ViewChild(BaseChartDirective) chart?: BaseChartDirective;
-
+  //@ViewChild(BaseChartDirective) chart?: BaseChartDirective;
+  @ViewChildren(BaseChartDirective) charts?: QueryList<BaseChartDirective>;
+  
   public IQDatasets: ChartConfiguration<'scatter'>['data']['datasets'] = [
     {
       data: [],
-      label: '1',
+      label: 'C1',
       pointRadius: 0.5,
       showLine: false,
       animation: false,
@@ -51,7 +58,7 @@ export class ScopeComponent {
     },
     {
       data: [],
-      label: '2',
+      label: 'C2',
       pointRadius: 0.5,
       showLine: false,
       animation: false,
@@ -64,7 +71,7 @@ export class ScopeComponent {
     },
     {
       data: [],
-      label: '3',
+      label: 'C3',
       pointRadius: 0.5,      
       showLine: false,
       animation: false,
@@ -77,20 +84,85 @@ export class ScopeComponent {
     }       
   ];
 
+  public LLRDatasets: ChartConfiguration<'scatter'>['data']['datasets'] = [
+    {
+      data: [],
+      label: 'LLR1',
+      pointRadius: 0.5,
+      showLine: false,
+      animation: false,
+      fill:false,
+      pointStyle: 'circle',
+      pointBackgroundColor:'yellow',
+      backgroundColor:'yellow',
+      borderWidth:0,
+      pointBorderColor:'yellow',
+      parsing: false,
+    },
+    {
+      data: [],
+      label: 'LL2',
+      pointRadius: 0.5,
+      showLine: false,
+      animation: false,
+      pointStyle: 'circle',
+      pointBackgroundColor:'cyan',
+      backgroundColor:'cyan',
+      borderWidth:0,
+      pointBorderColor:'cyan',
+      parsing: false,
+    },
+    {
+      data: [],
+      label: 'LLR3',
+      pointRadius: 0.5,      
+      showLine: false,
+      animation: false,
+      pointStyle: 'circle',
+      pointBackgroundColor:'red',
+      backgroundColor:'red',
+      borderWidth:0,
+      pointBorderColor:'red',
+      parsing: false,
+    }       
+  ];
+
   public IQOptions: ChartConfiguration<'scatter'>['options'] = {
     responsive: false,
     aspectRatio: 1,
+//    scales: {
+//      xAxes: {
+//		  min: -5,
+//		  max:5,
+//      }
+//    },
+    plugins: { legend: { display: true, labels:{boxWidth: 10, boxHeight: 10}},  tooltip: { enabled: false, }, },
+  };
+
+  public LLROptions: ChartConfiguration<'scatter'>['options'] = {
+    responsive: false,
+    aspectRatio: 3,
+    scales: {
+      xAxes: {
+		  min: -1,
+		  max:1,
+      }
+    },
     plugins: { legend: { display: true, labels:{boxWidth: 10, boxHeight: 10}},  tooltip: { enabled: false, }, },
   };
   
   constructor(private wsService: WebSocketService,private scopeApi: ScopeApi ) {
+	console.log("Scope constructor ");
     wsService.messages.subscribe((msg: ArrayBuffer) => {
       this.ProcessScopeMsg(this.wsService.DeserializeMessage(msg));
     });	  
   }
   
   ngOnInit() {
-
+     console.log("Scope ngOnInit ");
+     this.UEChanged(this.selected_UE);
+     this.OnRefrateChange();
+     this.OnRangeChange();
   } 
  
   DecodScopeBinmsgToString(message: ArrayBuffer) {
@@ -100,13 +172,20 @@ export class ScopeComponent {
 
   configScope(resp: IScopeDesc) {
 	  this.scopetitle=resp.title;
-	  for (let graphIndex = 0; graphIndex < resp.graphs.length; graphIndex++) {
-		  if (resp.graphs[graphIndex].type === IScopeGraphType.IQs ) {
+	  this.iqgraph_list.length=0;
+	  this.llrgraph_list.length=0;
+	  for (let graphIndex = 0; graphIndex < resp.graphs.length; graphIndex++) { 
+		  if (resp.graphs[graphIndex].type == IScopeGraphType.IQs ) {
 		    this.iqgraph_list.push(resp.graphs[graphIndex]);
-		    this.IQDatasets[resp.graphs[graphIndex].id].label=resp.graphs[resp.graphs[graphIndex].id].title;
+		    this.IQDatasets[this.iqgraph_list.length - 1].label=resp.graphs[graphIndex].title;
+		  }
+		  if (resp.graphs[graphIndex].type == IScopeGraphType.LLR ) {
+		    this.llrgraph_list.push(resp.graphs[graphIndex]);
+		    this.LLRDatasets[this.llrgraph_list.length - 1].label=resp.graphs[graphIndex].title;	    
 		  }
 	  }
-	  this.chart?.update();
+	  this.charts?.forEach((child) => {
+        child.chart?.update() });		  
   }
   
   ProcessScopeMsg (message: Message) {	  
@@ -137,7 +216,7 @@ export class ScopeComponent {
                 }
                 if(message.update) {
 				  console.log("Starting scope update chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
-                  this.chart?.update();
+		          this.charts?.forEach((child,index) => { child.chart?.update() });                  
                   console.log(" scope update completed chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
 			    }
               break;
@@ -223,6 +302,9 @@ export class ScopeComponent {
 	 this.scopeApi.setScopeParams$({name:"refrate",value:(this.rfrate*10).toString()}).subscribe(); 
   }
   
+  OnRangeChange() {
+	 this.scopeApi.setScopeParams$({name:"iqrange",value:(this.range).toString()}).subscribe();
+  } 
   channelsChanged(value: string[]) {
     this.selected_channels=value;
     for (let i=0; i<this.iqgraph_list.length; i++) {
@@ -233,7 +315,13 @@ export class ScopeComponent {
 			  break;
 		  }
 	  }
-	  this.SendScopeParams("enabled",enabled,this.iqgraph_list[i].srvidx);
+	  this.SendScopeParams("enabled",enabled,this.iqgraph_list[i].srvidx);	  
     } 
   }  
+  
+  UEChanged(value: number) {
+    this.selected_UE=value;
+    this.scopesubtitle= "UE " + value.toString();
+	this.SendScopeParams("UEselect",value.toString(),0);
+  }    
 }

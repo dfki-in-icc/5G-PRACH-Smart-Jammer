@@ -29,6 +29,10 @@
 #define ScaleZone 4
 #define localBuff(NaMe,SiZe) float NaMe[SiZe]; memset(NaMe,0,sizeof(NaMe));
 
+/* scope chart window id's, used to select which frontend chart to use for displaying data */
+#define SCOPEMSG_DATAID_IQ 1
+#define SCOPEMSG_DATAID_LLR 2
+
 typedef c16_t scopeSample_t;
 #define SquaredNorm(VaR) ((VaR).r*(VaR).r+(VaR).i*(VaR).i)
 

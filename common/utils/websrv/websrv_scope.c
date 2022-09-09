@@ -47,7 +47,7 @@
  extern PHY_VARS_NR_UE ***PHY_vars_UE_g;
  
 static scopeData_t  scopedata; 
-static websrv_scope_params_t scope_params = {0,1000,NULL,&scopedata};
+static websrv_scope_params_t scope_params = {0,1000,NULL,&scopedata,10e4};
 static websrv_params_t *websrvparams_ptr;
 
 void  websrv_scope_sendIQ(int n, websrv_scopedata_msg_t *msg) {
@@ -96,7 +96,7 @@ void websrv_scope_manager(uint64_t lcount,websrv_params_t *websrvparams) {
 	  }
       if( ( (lcount % scope_params.refrate) == 0) && (scope_params.statusmask & SCOPE_STATUSMASK_STARTED) ) {        
 		  if (IS_SOFTMODEM_GNB_BIT) {			 
-            phy_scope_gNB(scope_params.scopeform,  scope_params.scopedata, scope_params.selectedData);
+            phy_scope_gNB(scope_params.scopeform,  scope_params.scopedata, 1);
 		  } 
 		  if (IS_SOFTMODEM_5GUE_BIT) {
             phy_scope_nrUE(scope_params.scopeform, (PHY_VARS_NR_UE *)scope_params.scopedata,  0, scope_params.selectedData);
@@ -152,7 +152,7 @@ int websrv_scope_callback_set_params (const struct _u_request * request, struct 
 			 if( strcmp(vval,"start") == 0) {
 				if ( scope_params.statusmask & SCOPE_STATUSMASK_AVAILABLE) {
                   scope_params.statusmask |= SCOPE_STATUSMASK_STARTED;
-                  scope_params.selectedData=1; // 1 UE to be received from GUI (for xNB scope's 
+                  scope_params.selectedData=0; // 1 UE to be received from GUI (for xNB scope's 
                  }
 				 httpstatus=200;
 			 } else if( strcmp(vval,"stop") == 0) {
@@ -170,7 +170,13 @@ int websrv_scope_callback_set_params (const struct _u_request * request, struct 
            const int gid = json_integer_value(J); 
            OAI_phy_scope_t *sp = (OAI_phy_scope_t *)scope_params.scopeform;  
            sp->graph[gid].enabled = (strcmp(vval,"true")==0)?true:false; 
-           httpstatus=200;     			 
+           httpstatus=200;
+		 } else if (strcmp(vname,"iqrange") == 0) {
+           scope_params.iqrange = (uint32_t)strtof(vval,NULL);
+           httpstatus=200;                     
+		 } else if (strcmp(vname,"UEselect") == 0) {
+           scope_params.selectedData=strtol(vval,NULL,10);
+           httpstatus=200;               			                 			 
 		 } else {
                httpstatus=500;
                LOG_W(UTIL,"Unknown scope command: %s\n",vname );
@@ -187,13 +193,23 @@ int websrv_scope_callback_get_desc (const struct _u_request * request, struct _u
   char stitle[64];
   OAI_phy_scope_t *sp = (OAI_phy_scope_t *)scope_params.scopeform;
   for (int i=0; sp->graph[i].graph != NULL ; i++) {
-	  
-	  if (sp->graph[i].chartid == SCOPEMSG_DATAID_IQ) {
-	    strcpy(gtype,"IQs");	  
-        json_t *agraph=json_pack("{s:s,s:s,s:i,s:i,s:i,s:i}","title",sp->graph[i].graph->label,"type",gtype,
-                                "id", sp->graph[i].datasetid,"srvidx",i,"w", sp->graph[i].w,"h",sp->graph[i].h);
-        json_array_append_new(jgraph,agraph);    
+	  json_t *agraph =NULL;
+	  switch (sp->graph[i].chartid )  {
+		case SCOPEMSG_DATAID_IQ:
+	      strcpy(gtype,"IQs");	  
+          agraph=json_pack("{s:s,s:s,s:i,s:i,s:i,s:i}","title",sp->graph[i].graph->label,"type",gtype,
+                           "id", sp->graph[i].datasetid,"srvidx",i,"w", sp->graph[i].w,"h",sp->graph[i].h);
+          break;
+		case SCOPEMSG_DATAID_LLR:
+	      strcpy(gtype,"LLR");	  
+          agraph=json_pack("{s:s,s:s,s:i,s:i,s:i,s:i}","title",sp->graph[i].graph->label,"type",gtype,
+                           "id", sp->graph[i].datasetid,"srvidx",i,"w", sp->graph[i].w,"h",sp->graph[i].h);
+          break;          
+        default:
+          break;       
       }
+      if (agraph != NULL)
+        json_array_append_new(jgraph,agraph);
     }
   if (IS_SOFTMODEM_GNB_BIT) {			 
 	strcpy(stitle,"gNB scope");
@@ -214,3 +230,7 @@ void websrv_init_scope(websrv_params_t *websrvparams) {
   websrv_add_endpoint(http_methods,3,"oaisoftmodem","scopectrl" ,callback_functions_scope, websrvparams);
 
  }
+
+websrv_scope_params_t *websrv_scope_getparams(void) {
+	return &scope_params;
+}

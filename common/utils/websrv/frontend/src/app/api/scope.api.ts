@@ -27,6 +27,9 @@ export interface IScopeCmd {
     value:   string;
 }
 
+export interface IUEDesc {
+    id: number;
+}
 @Injectable({
     providedIn: 'root',
 })

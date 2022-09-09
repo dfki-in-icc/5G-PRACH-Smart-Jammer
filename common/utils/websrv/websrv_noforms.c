@@ -113,12 +113,17 @@ if (n>MAX_FLOAT_WEBSOCKMSG) {
   spec->n[id]=n; 
   spec->buff[id].buf[0].data_xy[0]=x[0];
   spec->buff[id].buf[0].data_xy[1]=y[0];
+  int I=0;
+  float r=websrv_scope_getparams()->iqrange;
   for ( int i=1; i<n; i++) {
+	if( x[i] < -r && y[i] < -r) continue;
+	if( x[i] > r && y[i] > r) continue;
+	
 	if (x[i-1] <= x[i] ) {
-	  spec->buff[id].buf[0].data_xy[2*i]=x[i];
-	  spec->buff[id].buf[0].data_xy[(2*i)+1]=y[i];
+	  spec->buff[id].buf[0].data_xy[2*I]=x[i];
+	  spec->buff[id].buf[0].data_xy[(2*I)+1]=y[i];
 	} else {
-	  for (int j=0; j<i; j++) {
+	  for (int j=0; j<I; j++) {
 	     if (spec->buff[id].buf[0].data_xy[2*j]>x[i]) {
 		   for (int k=i;k>=j;k--) {
 	         spec->buff[id].buf[0].data_xy[2*(k+1)]=spec->buff[id].buf[0].data_xy[2*k];
@@ -129,6 +134,7 @@ if (n>MAX_FLOAT_WEBSOCKMSG) {
 	    }
       }
 	}
+	I++;
   }
 };
 

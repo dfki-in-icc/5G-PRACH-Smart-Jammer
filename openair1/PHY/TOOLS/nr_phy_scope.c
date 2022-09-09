@@ -27,7 +27,6 @@
 #include "executables/softmodem-common.h"
 #include "executables/nr-softmodem-common.h"
 #ifndef WEBSRVSCOPE
-#  define SCOPEMSG_DATAID_IQ 0
 #  include <forms.h>
 #  define STATICFORXSCOPE static
 #else
@@ -102,6 +101,11 @@ static void commonGraph(OAIgraph_t *graph, int type, FL_Coord x, FL_Coord y, FL_
   graph->minY=0;
   graph->initDone=false;
   graph->iteration=0;
+#ifdef WEBSRVSCOPE
+  graph->enabled=false;
+#else
+  graph->enabled=true;
+#endif
 }
 
 static OAIgraph_t gNBcommonGraph( void (*funct) (OAIgraph_t *graph, scopeData_t *p, int UE_id),
@@ -158,10 +162,10 @@ static void oai_xygraph_getbuff(OAIgraph_t *graph, float **x, float **y, int len
     float time[len];
 
     // make time in case we will use it
-#ifndef WEBSRVSCOPE  // triggers strange display in frontend
+//#ifndef WEBSRVSCOPE  // triggers strange display in frontend
     for (int i=0; i<len; i++)
       time[i] = values[i] = i;
-#endif
+//#endif
     if (layer==0)
       fl_set_xyplot_data(graph->graph,time,values,len,"","","");
     else
@@ -458,14 +462,16 @@ STATICFORXSCOPE OAI_phy_scope_t *create_phy_scope_gnb(void) {
   // LLR of PUSCH
   fdui->graph[3] = gNBcommonGraph( puschLLR, FL_POINTS_XYPLOT, 0, curY, 500, 200,
                                    "PUSCH Log-Likelihood Ratios (LLR, mag)", FL_YELLOW );
+  fdui->graph[3].chartid=SCOPEMSG_DATAID_LLR;         //tells websrv frontend to use LLR chart for displaying 
+  fdui->graph[3].datasetid=0;                         //tells websrv frontend to use dataset index 0 in LLR chart                                    
   // I/Q PUSCH comp
   fdui->graph[4] = gNBcommonGraph( puschIQ, FL_POINTS_XYPLOT, 500, curY, 300, 200,
                                    "PUSCH I/Q of MF Output", FL_YELLOW );
   fl_get_object_bbox(fdui->graph[3].graph,&x, &y,&w, &h);
   curY+=h;
-  fdui->graph[4].enabled=true;
-  fdui->graph[4].chartid=SCOPEMSG_DATAID_IQ;
-  fdui->graph[4].datasetid=0;
+  
+  fdui->graph[4].chartid=SCOPEMSG_DATAID_IQ;  //tells websrv frontend to use constellation chart for displaying
+  fdui->graph[4].datasetid=0;                 //tells websrv frontend to use dataset 0 of constellation chart
   // I/Q PUCCH comp (format 1)
   fdui->graph[5] = gNBcommonGraph( pucchEnergy, FL_POINTS_XYPLOT, 0, curY, 300, 100,
                                    "PUCCH1 Energy (SR)", FL_YELLOW );
@@ -475,6 +481,8 @@ STATICFORXSCOPE OAI_phy_scope_t *create_phy_scope_gnb(void) {
                                    "PUCCH I/Q of MF Output", FL_YELLOW );
   fl_get_object_bbox(fdui->graph[6].graph,&x, &y,&w, &h);
   curY+=h;
+  fdui->graph[6].chartid=SCOPEMSG_DATAID_IQ;  //tells websrv frontend to use constellation chart for displaying
+  fdui->graph[6].datasetid=1;                 //tells websrv frontend to use dataset 1 of constellation chart  
   // Throughput on PUSCH
   fdui->graph[7] = gNBcommonGraph( puschThroughtput, FL_NORMAL_XYPLOT, 0, curY, 500, 100,
                                    "PUSCH Throughput [frame]/[kbit/s]", FL_WHITE );
@@ -811,36 +819,39 @@ STATICFORXSCOPE OAI_phy_scope_t *create_phy_scope_nrue( int ID ) {
   fdui->graph[3] = nrUEcommonGraph(uePbchLLR,
                                    FL_POINTS_XYPLOT, 0, curY, 500, 100, "PBCH Log-Likelihood Ratios (LLR, mag)", FL_GREEN );
   fl_set_xyplot_xgrid(fdui->graph[3].graph,FL_GRID_MAJOR);
+  fdui->graph[3].chartid=SCOPEMSG_DATAID_LLR;         //tells websrv frontend to use LLR chart for displaying 
+  fdui->graph[3].datasetid=0;                         //tells websrv frontend to use dataset index 0 in LLR chart 
   // I/Q PBCH comp
   fdui->graph[4] = nrUEcommonGraph(uePbchIQ,
                                    FL_POINTS_XYPLOT, 500, curY, 300, 100, "PBCH I/Q of MF Output", FL_GREEN );
   fl_get_object_bbox(fdui->graph[3].graph,&x, &y,&w, &h);
-  curY+=h;
-  fdui->graph[4].enabled=true;
-  fdui->graph[4].chartid=SCOPEMSG_DATAID_IQ;
-  fdui->graph[4].datasetid=0;  
+  curY+=h;                   
+  fdui->graph[4].chartid=SCOPEMSG_DATAID_IQ;         //tells websrv frontend to use constellation chart for displaying
+  fdui->graph[4].datasetid=0;                        //tells websrv frontend which dataset to use in the window
   // LLR of PDCCH
   fdui->graph[5] = nrUEcommonGraph(uePcchLLR,
                                    FL_POINTS_XYPLOT, 0, curY, 500, 100, "PDCCH Log-Likelihood Ratios (LLR, mag)", FL_CYAN );
+  fdui->graph[5].chartid=SCOPEMSG_DATAID_LLR;         //tells websrv frontend to use LLR chart for displaying 
+  fdui->graph[5].datasetid=1;                         //tells websrv frontend to use dataset index 1 in LLR chart                                  
   // I/Q PDCCH comp
   fdui->graph[6] = nrUEcommonGraph(uePcchIQ,
                                    FL_POINTS_XYPLOT, 500, curY, 300, 100, "PDCCH I/Q of MF Output", FL_CYAN );
   fl_get_object_bbox(fdui->graph[5].graph,&x, &y,&w, &h);
   curY+=h;
-  fdui->graph[6].enabled=true;
-  fdui->graph[6].chartid=SCOPEMSG_DATAID_IQ;
-  fdui->graph[6].datasetid=1;  
+  fdui->graph[6].chartid=SCOPEMSG_DATAID_IQ;          //tells websrv frontend to use constellation chart for displaying
+  fdui->graph[6].datasetid=1;                         //tells websrv frontend which dataset to use in the window
   // LLR of PDSCH
   fdui->graph[7] = nrUEcommonGraph(uePdschLLR,
                                    FL_POINTS_XYPLOT, 0, curY, 500, 200, "PDSCH Log-Likelihood Ratios (LLR, mag)", FL_YELLOW );
+   fdui->graph[7].chartid=SCOPEMSG_DATAID_LLR;         //tells websrv frontend to use LLR chart for displaying 
+   fdui->graph[7].datasetid=2;                         //tells websrv frontend to use dataset index 2 in LLR chart      
   // I/Q PDSCH comp
   fdui->graph[8] = nrUEcommonGraph(uePdschIQ,
                                    FL_POINTS_XYPLOT, 500, curY, 300, 200, "PDSCH I/Q of MF Output", FL_YELLOW );
   fl_get_object_bbox(fdui->graph[8].graph,&x, &y,&w, &h);
   curY+=h;
-  fdui->graph[8].enabled=true;
-  fdui->graph[8].chartid=SCOPEMSG_DATAID_IQ;
-  fdui->graph[8].datasetid=2;  
+  fdui->graph[8].chartid=SCOPEMSG_DATAID_IQ;         //tells websrv frontend to use constellation chart for displaying
+  fdui->graph[8].datasetid=2;                        //tells websrv frontend which dataset to use in the window
   // Throughput on PDSCH
   fdui->graph[9] = nrUEcommonGraph(uePdschThroughput,
                                    FL_NORMAL_XYPLOT, 0, curY, 500, 100, "PDSCH Throughput [frame]/[kbit/s]", FL_WHITE );

@@ -73,7 +73,6 @@ typedef struct {
 } websrv_msg_t;
 #define MAX_FLOAT_WEBSOCKMSG   180000
 
-#define SCOPEMSG_DATAID_IQ 1
 
 typedef struct {
 	 unsigned char src;                          // message source
@@ -105,6 +104,7 @@ typedef struct {
 	 void  *scopeform;                        // OAI_phy_scope_t pointer returned by create_phy_scope_xxx functions
 	 void  *scopedata;                        // scopeData_t pointer, filled at init time, contains pointers and functions to retrieve softmodem data
      uint32_t selectedData;                   // index to UE/gNB 
+     float    iqrange;                        // iq chart scales limit
 } websrv_scope_params_t;
 
 extern void websrv_printjson(char * label, json_t *jsonobj);
@@ -129,4 +129,5 @@ extern int websrv_add_endpoint( char **http_method, int num_method, const char *
                                                    struct _u_response * response,
                                                    void * user_data),
                          void * user_data);
+extern websrv_scope_params_t *websrv_scope_getparams(void);
 #endif
