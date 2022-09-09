@@ -101,7 +101,8 @@ void free_list(NR_UE_SSB *node) {
 }
 
 
-int nr_pbch_detection(UE_nr_rxtx_proc_t * proc, PHY_VARS_NR_UE *ue, int pbch_initial_symbol, NR_UE_PDCCH_CONFIG *phy_pdcch_config)
+int nr_pbch_detection(UE_nr_rxtx_proc_t * proc, PHY_VARS_NR_UE *ue, int pbch_initial_symbol, NR_UE_PDCCH_CONFIG *phy_pdcch_config,
+                      nr_ue_phy_vars_data_t *phy_vars)
 {
   NR_DL_FRAME_PARMS *frame_parms=&ue->frame_parms;
   int ret =-1;
@@ -127,7 +128,7 @@ int nr_pbch_detection(UE_nr_rxtx_proc_t * proc, PHY_VARS_NR_UE *ue, int pbch_ini
       start_meas(&ue->dlsch_channel_estimation_stats);
       // computing correlation between received DMRS symbols and transmitted sequence for current i_ssb and n_hf
       for(int i=pbch_initial_symbol; i<pbch_initial_symbol+3;i++)
-          nr_pbch_dmrs_correlation(ue,proc,0,0,i,i-pbch_initial_symbol,current_ssb);
+          nr_pbch_dmrs_correlation(ue,proc,0,0,i,i-pbch_initial_symbol,current_ssb, phy_vars->rxdataF);
       stop_meas(&ue->dlsch_channel_estimation_stats);
       
       current_ssb->metric = current_ssb->c_re*current_ssb->c_re + current_ssb->c_im*current_ssb->c_im;
@@ -152,7 +153,7 @@ int nr_pbch_detection(UE_nr_rxtx_proc_t * proc, PHY_VARS_NR_UE *ue, int pbch_ini
 
     for(int i=pbch_initial_symbol; i<pbch_initial_symbol+3;i++)
       nr_pbch_channel_estimation(ue,estimateSz, dl_ch_estimates, dl_ch_estimates_time, 
-                                 proc,0,0,i,i-pbch_initial_symbol,temp_ptr->i_ssb,temp_ptr->n_hf);
+                                 proc,0,0,i,i-pbch_initial_symbol,temp_ptr->i_ssb,temp_ptr->n_hf, phy_vars->rxdataF);
 
     stop_meas(&ue->dlsch_channel_estimation_stats);
     fapiPbch_t result;
@@ -160,13 +161,14 @@ int nr_pbch_detection(UE_nr_rxtx_proc_t * proc, PHY_VARS_NR_UE *ue, int pbch_ini
                      proc,
                      estimateSz,
                      dl_ch_estimates,
-                     ue->pbch_vars[0],
+                     phy_vars->pbch_vars[0],
                      frame_parms,
                      0,
                      temp_ptr->i_ssb,
                      SISO,
                      phy_pdcch_config,
-                     &result);
+                     &result,
+                     phy_vars);
 
     temp_ptr=temp_ptr->next_ssb;
   }
@@ -203,7 +205,8 @@ char prefix_string[2][9] = {"NORMAL","EXTENDED"};
 
 int nr_initial_sync(UE_nr_rxtx_proc_t *proc,
                     PHY_VARS_NR_UE *ue,
-                    int n_frames, int sa)
+                    int n_frames, int sa,
+                    nr_ue_phy_vars_data_t *phy_vars)
 {
 
   int32_t sync_pos, sync_pos_frame; // k_ssb, N_ssb_crb, sync_pos2,
@@ -299,6 +302,7 @@ int nr_initial_sync(UE_nr_rxtx_proc_t *proc,
       for(int i=0; i<4;i++)
         nr_slot_fep_init_sync(ue,
                               proc,
+                              phy_vars,
                               i,
                               0,
                               is*fp->samples_per_frame+ue->ssb_offset);
@@ -308,7 +312,7 @@ int nr_initial_sync(UE_nr_rxtx_proc_t *proc,
 #endif
 
       int freq_offset_sss = 0;
-      ret = rx_sss_nr(ue, proc, &metric_tdd_ncp, &phase_tdd_ncp, &freq_offset_sss);
+      ret = rx_sss_nr(ue, proc, &metric_tdd_ncp, &phase_tdd_ncp, &freq_offset_sss, phy_vars);
 
       accumulated_freq_offset += freq_offset_sss;
 
@@ -338,7 +342,7 @@ int nr_initial_sync(UE_nr_rxtx_proc_t *proc,
 
       if (ret==0) { //we got sss channel
         nr_gold_pbch(ue);
-        ret = nr_pbch_detection(proc, ue, 1, &phy_pdcch_config);  // start pbch detection at first symbol after pss
+        ret = nr_pbch_detection(proc, ue, 1, &phy_pdcch_config, phy_vars);  // start pbch detection at first symbol after pss
       }
 
       if (ret == 0) {
@@ -362,7 +366,7 @@ int nr_initial_sync(UE_nr_rxtx_proc_t *proc,
           nr_gold_pdsch(ue, i, ue->scramblingID_dlsch[i]);
         }
 
-        nr_init_csi_rs(fp, ue->nr_csi_info->nr_gold_csi_rs, fp->Nid_cell);
+        nr_init_csi_rs(fp, phy_vars->nr_csi_info->nr_gold_csi_rs, fp->Nid_cell);
 
         // initialize the pusch dmrs
         for (int i=0; i<NR_NB_NSCID; i++) {
@@ -441,7 +445,7 @@ int nr_initial_sync(UE_nr_rxtx_proc_t *proc,
 
 // send sync status to higher layers later when timing offset converge to target timing
 
-      ue->pbch_vars[0]->pdu_errors_conseq=0;
+      phy_vars->pbch_vars[0]->pdu_errors_conseq=0;
 
     }
 
@@ -472,9 +476,9 @@ int nr_initial_sync(UE_nr_rxtx_proc_t *proc,
 #endif
 
     ue->UE_mode[0] = NOT_SYNCHED;
-    ue->pbch_vars[0]->pdu_errors_last=ue->pbch_vars[0]->pdu_errors;
-    ue->pbch_vars[0]->pdu_errors++;
-    ue->pbch_vars[0]->pdu_errors_conseq++;
+    phy_vars->pbch_vars[0]->pdu_errors_last=phy_vars->pbch_vars[0]->pdu_errors;
+    phy_vars->pbch_vars[0]->pdu_errors++;
+    phy_vars->pbch_vars[0]->pdu_errors_conseq++;
 
   }
 
@@ -547,6 +551,7 @@ int nr_initial_sync(UE_nr_rxtx_proc_t *proc,
       for (uint16_t l=start_symb; l<start_symb+nb_symb_pdcch; l++) {
         nr_slot_fep_init_sync(ue,
                               proc,
+                              phy_vars,
                               l, // the UE PHY has no notion of the symbols to be monitored in the search space
                               phy_pdcch_config.slot,
                               is*fp->samples_per_frame+phy_pdcch_config.sfn*fp->samples_per_frame+ue->rx_offset);
@@ -561,12 +566,13 @@ int nr_initial_sync(UE_nr_rxtx_proc_t *proc,
                                       fp->first_carrier_offset+(phy_pdcch_config.pdcch_config[n_ss].BWPStart + coreset_start_rb)*12,
                                       coreset_nb_rb,
                                       pdcch_est_size,
-                                      pdcch_dl_ch_estimates);
+                                      pdcch_dl_ch_estimates,
+                                      phy_vars->rxdataF);
 
       }
-      int  dci_cnt = nr_ue_pdcch_procedures(gnb_id, ue, proc, pdcch_est_size, pdcch_dl_ch_estimates, &phy_pdcch_config, n_ss);
+      int  dci_cnt = nr_ue_pdcch_procedures(gnb_id, ue, proc, pdcch_est_size, pdcch_dl_ch_estimates, &phy_pdcch_config, n_ss, phy_vars);
       if (dci_cnt>0){
-        NR_UE_DLSCH_t *dlsch = ue->dlsch_SI[gnb_id];
+        NR_UE_DLSCH_t *dlsch = phy_vars->dlsch_SI[gnb_id];
         if (dlsch && (dlsch->active == 1)) {
           uint8_t harq_pid = dlsch->current_harq_pid;
           NR_DL_UE_HARQ_t *dlsch0_harq = dlsch->harq_processes[harq_pid];
@@ -576,6 +582,7 @@ int nr_initial_sync(UE_nr_rxtx_proc_t *proc,
           for (uint16_t m=start_symb_sch;m<(nb_symb_sch+start_symb_sch) ; m++){
             nr_slot_fep_init_sync(ue,
                                   proc,
+                                  phy_vars,
                                   m,
                                   phy_pdcch_config.slot,  // same slot and offset as pdcch
                                   is*fp->samples_per_frame+phy_pdcch_config.sfn*fp->samples_per_frame+ue->rx_offset);
@@ -585,19 +592,20 @@ int nr_initial_sync(UE_nr_rxtx_proc_t *proc,
                                            proc,
                                            gnb_id,
                                            SI_PDSCH,
-                                           ue->dlsch_SI[gnb_id],
-                                           NULL);
+                                           phy_vars->dlsch_SI[gnb_id],
+                                           NULL,
+                                           phy_vars);
           if (ret >= 0)
             dec = nr_ue_dlsch_procedures(ue,
                                          proc,
                                          gnb_id,
                                          SI_PDSCH,
-                                         ue->dlsch_SI[gnb_id],
+                                         phy_vars->dlsch_SI[gnb_id],
                                          NULL,
                                          &ue->dlsch_SI_errors[gnb_id]);
 
           // deactivate dlsch once dlsch proc is done
-          ue->dlsch_SI[gnb_id]->active = 0;
+          phy_vars->dlsch_SI[gnb_id]->active = 0;
         }
       }
     }

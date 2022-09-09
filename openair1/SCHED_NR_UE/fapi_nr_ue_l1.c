@@ -352,16 +352,14 @@ int8_t nr_ue_scheduled_response(nr_scheduled_response_t *scheduled_response){
   if(scheduled_response != NULL){
 
     module_id_t module_id = scheduled_response->module_id;
-    uint8_t cc_id = scheduled_response->CC_id, thread_id;
     int slot = scheduled_response->slot;
 
-    // Note: we have to handle the thread IDs for this. To be revisited completely.
-    thread_id = scheduled_response->thread_id;
+    nr_ue_phy_vars_data_t *phy_vars = (nr_ue_phy_vars_data_t *) scheduled_response->phy_data;
     NR_UE_DLSCH_t *dlsch0 = NULL;
-    NR_UE_ULSCH_t *ulsch = PHY_vars_UE_g[module_id][cc_id]->ulsch[thread_id][0];
-    NR_UE_PUCCH *pucch_vars = PHY_vars_UE_g[module_id][cc_id]->pucch_vars[thread_id][0];
-    NR_UE_CSI_IM *csiim_vars = PHY_vars_UE_g[module_id][cc_id]->csiim_vars[0];
-    NR_UE_CSI_RS *csirs_vars = PHY_vars_UE_g[module_id][cc_id]->csirs_vars[0];
+    NR_UE_ULSCH_t *ulsch = phy_vars->ulsch[0];
+    NR_UE_PUCCH *pucch_vars = phy_vars->pucch_vars[0];
+    NR_UE_CSI_IM *csiim_vars = phy_vars->csiim_vars[0];
+    NR_UE_CSI_RS *csirs_vars = phy_vars->csirs_vars[0];
     NR_UE_PDCCH_CONFIG *phy_pdcch_config = NULL;
 
     if(scheduled_response->dl_config != NULL){
@@ -380,7 +378,7 @@ int8_t nr_ue_scheduled_response(nr_scheduled_response_t *scheduled_response){
         switch(dl_config->dl_config_list[i].pdu_type) {
           case FAPI_NR_DL_CONFIG_TYPE_DCI:
             if (NULL == phy_pdcch_config) {
-              phy_pdcch_config = (NR_UE_PDCCH_CONFIG *)scheduled_response->phy_data;
+              phy_pdcch_config = (NR_UE_PDCCH_CONFIG *)phy_vars->phy_pdcch_config;
               phy_pdcch_config->nb_search_space = 0;
             }
             pdcch_config = &dl_config->dl_config_list[i].dci_config_pdu.dci_config_rel15;
@@ -402,7 +400,7 @@ int8_t nr_ue_scheduled_response(nr_scheduled_response_t *scheduled_response){
             break;
           case FAPI_NR_DL_CONFIG_TYPE_RA_DLSCH:
             dlsch_config_pdu = &dl_config->dl_config_list[i].dlsch_config_pdu.dlsch_config_rel15;
-            dlsch0 = PHY_vars_UE_g[module_id][cc_id]->dlsch_ra[0];
+            dlsch0 = phy_vars->dlsch_ra[0];
             dlsch0->rnti_type = _RA_RNTI_;
             dlsch0->harq_processes[dlsch_config_pdu->harq_process_nbr]->status = ACTIVE;
             configure_dlsch(dlsch0, dlsch_config_pdu, module_id,
@@ -410,7 +408,7 @@ int8_t nr_ue_scheduled_response(nr_scheduled_response_t *scheduled_response){
             break;
           case FAPI_NR_DL_CONFIG_TYPE_SI_DLSCH:
             dlsch_config_pdu = &dl_config->dl_config_list[i].dlsch_config_pdu.dlsch_config_rel15;
-            dlsch0 = PHY_vars_UE_g[module_id][cc_id]->dlsch_SI[0];
+            dlsch0 = phy_vars->dlsch_SI[0];
             dlsch0->rnti_type = _SI_RNTI_;
             dlsch0->harq_processes[dlsch_config_pdu->harq_process_nbr]->status = ACTIVE;
             configure_dlsch(dlsch0, dlsch_config_pdu, module_id,
@@ -418,7 +416,7 @@ int8_t nr_ue_scheduled_response(nr_scheduled_response_t *scheduled_response){
             break;
           case FAPI_NR_DL_CONFIG_TYPE_DLSCH:
             dlsch_config_pdu = &dl_config->dl_config_list[i].dlsch_config_pdu.dlsch_config_rel15;
-            dlsch0 = PHY_vars_UE_g[module_id][cc_id]->dlsch[thread_id][0][0];
+            dlsch0 = phy_vars->dlsch[0][0];
             configure_dlsch(dlsch0, dlsch_config_pdu, module_id,
                             dl_config->dl_config_list[i].dlsch_config_pdu.rnti);
             break;
@@ -516,7 +514,7 @@ int8_t nr_ue_scheduled_response(nr_scheduled_response_t *scheduled_response){
         case (FAPI_NR_UL_CONFIG_TYPE_PRACH):
           // prach config pdu
           prach_config_pdu = &ul_config->ul_config_list[i].prach_config_pdu;
-          memcpy((void*)&(PHY_vars_UE_g[module_id][cc_id]->prach_vars[gNB_id]->prach_pdu), (void*)prach_config_pdu, sizeof(fapi_nr_ul_config_prach_pdu));
+          memcpy((void*)&(phy_vars->prach_vars[gNB_id]->prach_pdu), (void*)prach_config_pdu, sizeof(fapi_nr_ul_config_prach_pdu));
           ul_config->ul_config_list[i].pdu_type = FAPI_NR_UL_CONFIG_TYPE_DONE; // not handle it any more
           pdu_done++;
           LOG_D(PHY, "%d.%d ul A ul_config %p t %d pdu_done %d number_pdus %d\n", scheduled_response->frame, slot, ul_config, pdu_type, pdu_done, ul_config->number_pdus);
@@ -530,8 +528,8 @@ int8_t nr_ue_scheduled_response(nr_scheduled_response_t *scheduled_response){
         case (FAPI_NR_UL_CONFIG_TYPE_SRS):
           // srs config pdu
           srs_config_pdu = &ul_config->ul_config_list[i].srs_config_pdu;
-          memcpy((void*)&(PHY_vars_UE_g[module_id][cc_id]->srs_vars[gNB_id]->srs_config_pdu), (void*)srs_config_pdu, sizeof(fapi_nr_ul_config_srs_pdu));
-          PHY_vars_UE_g[module_id][cc_id]->srs_vars[gNB_id]->active = true;
+          memcpy((void*)&(phy_vars->srs_vars[gNB_id]->srs_config_pdu), (void*)srs_config_pdu, sizeof(fapi_nr_ul_config_srs_pdu));
+          phy_vars->srs_vars[gNB_id]->active = true;
           ul_config->ul_config_list[i].pdu_type = FAPI_NR_UL_CONFIG_TYPE_DONE; // not handle it any more
           pdu_done++;
         break;

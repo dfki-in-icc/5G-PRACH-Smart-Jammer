@@ -129,8 +129,6 @@ int phy_procedures_nrUE_RX(PHY_VARS_NR_UE *ue,
                            uint8_t dlsch_parallel,
                            NR_UE_PDCCH_CONFIG *phy_pdcch_config);
 
-int phy_procedures_slot_parallelization_nrUE_RX(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, uint8_t eNB_id, uint8_t abstraction_flag, uint8_t do_pdcch_flag, relaying_type_t r_type);
-
 #ifdef UE_SLOT_PARALLELISATION
   void *UE_thread_slot1_dl_processing(void *arg);
 #endif
@@ -402,7 +400,8 @@ void nr_fill_rx_indication(fapi_nr_rx_indication_t *rx_ind,
                            NR_UE_DLSCH_t *dlsch1,
                            uint16_t n_pdus,
                            UE_nr_rxtx_proc_t *proc,
-                           void *typeSpecific);
+                           void *typeSpecific,
+                           nr_ue_phy_vars_data_t *phy_vars);
 
 bool nr_ue_dlsch_procedures(PHY_VARS_NR_UE *ue,
                             UE_nr_rxtx_proc_t *proc,
@@ -415,7 +414,8 @@ bool nr_ue_dlsch_procedures(PHY_VARS_NR_UE *ue,
 int nr_ue_pdsch_procedures(PHY_VARS_NR_UE *ue,
                            UE_nr_rxtx_proc_t *proc,
                            int eNB_id, PDSCH_t pdsch,
-                           NR_UE_DLSCH_t *dlsch0, NR_UE_DLSCH_t *dlsch1);
+                           NR_UE_DLSCH_t *dlsch0, NR_UE_DLSCH_t *dlsch1,
+                           nr_ue_phy_vars_data_t *phy_vars);
 
 int nr_ue_pdcch_procedures(uint8_t gNB_id,
                            PHY_VARS_NR_UE *ue,
@@ -423,11 +423,12 @@ int nr_ue_pdcch_procedures(uint8_t gNB_id,
                            int32_t pdcch_est_size,
                            int32_t pdcch_dl_ch_estimates[][pdcch_est_size],
                            NR_UE_PDCCH_CONFIG *phy_pdcch_config,
-                           int n_ss);
+                           int n_ss,
+                           nr_ue_phy_vars_data_t *phy_vars);
 
-int nr_ue_csi_im_procedures(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, uint8_t gNB_id);
+int nr_ue_csi_im_procedures(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, uint8_t gNB_id, nr_ue_phy_vars_data_t *phy_vars);
 
-int nr_ue_csi_rs_procedures(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, uint8_t gNB_id);
+int nr_ue_csi_rs_procedures(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, uint8_t gNB_id, nr_ue_phy_vars_data_t *phy_vars);
 
 #endif
 

@@ -43,7 +43,8 @@ int nr_pbch_dmrs_correlation(PHY_VARS_NR_UE *ue,
                              unsigned char Ns,
                              unsigned char symbol,
                              int dmrss,
-                             NR_UE_SSB *current_ssb)
+                             NR_UE_SSB *current_ssb,
+                             int **rxdataF)
 {
   int pilot[200] __attribute__((aligned(16)));
   unsigned short k;
@@ -55,7 +56,6 @@ int nr_pbch_dmrs_correlation(PHY_VARS_NR_UE *ue,
   uint8_t nushift;
   uint8_t ssb_index=current_ssb->i_ssb;
   uint8_t n_hf=current_ssb->n_hf;
-  int **rxdataF=ue->common_vars.common_vars_rx_data_per_thread[proc->thread_id].rxdataF;
 
   nushift =  ue->frame_parms.Nid_cell%4;
   ue->frame_parms.nushift = nushift;
@@ -208,7 +208,8 @@ int nr_pbch_channel_estimation(PHY_VARS_NR_UE *ue,
                                unsigned char symbol,
                                int dmrss,
                                uint8_t ssb_index,
-                               uint8_t n_hf)
+                               uint8_t n_hf,
+                               int **rxdataF)
 {
   int pilot[200] __attribute__((aligned(16)));
   unsigned short k;
@@ -218,7 +219,6 @@ int nr_pbch_channel_estimation(PHY_VARS_NR_UE *ue,
   //int slot_pbch;
 
   uint8_t nushift;
-   int **rxdataF=ue->common_vars.common_vars_rx_data_per_thread[proc->thread_id].rxdataF;
 
   nushift =  ue->frame_parms.Nid_cell%4;
   ue->frame_parms.nushift = nushift;
@@ -472,7 +472,8 @@ int nr_pdcch_channel_estimation(PHY_VARS_NR_UE *ue,
                                 unsigned short coreset_start_subcarrier,
                                 unsigned short nb_rb_coreset,
                                 int32_t pdcch_est_size,
-                                int32_t pdcch_dl_ch_estimates[][pdcch_est_size])
+                                int32_t pdcch_dl_ch_estimates[][pdcch_est_size],
+                                int **rxdataF)
 {
 
   unsigned char aarx;
@@ -480,8 +481,6 @@ int nr_pdcch_channel_estimation(PHY_VARS_NR_UE *ue,
   unsigned int pilot_cnt;
   int16_t ch[2],*pil,*rxF,*dl_ch;
   int ch_offset,symbol_offset;
-
-  int **rxdataF=ue->common_vars.common_vars_rx_data_per_thread[proc->thread_id].rxdataF;
 
   ch_offset     = ue->frame_parms.ofdm_symbol_size*symbol;
 
@@ -703,7 +702,8 @@ int nr_pdsch_channel_estimation(PHY_VARS_NR_UE *ue,
                                 unsigned short BWPStart,
                                 uint8_t config_type,
                                 unsigned short bwp_start_subcarrier,
-                                unsigned short nb_rb_pdsch)
+                                unsigned short nb_rb_pdsch,
+                                nr_ue_phy_vars_data_t *phy_vars)
 {
   int pilot[3280] __attribute__((aligned(16)));
   unsigned char aarx;
@@ -712,10 +712,10 @@ int nr_pdsch_channel_estimation(PHY_VARS_NR_UE *ue,
   int16_t ch_l[2],ch_r[2],ch[2],*pil,*rxF,*dl_ch;
   int16_t *fl=NULL,*fm=NULL,*fr=NULL,*fml=NULL,*fmr=NULL,*fmm=NULL,*fdcl=NULL,*fdcr=NULL,*fdclh=NULL,*fdcrh=NULL, *frl=NULL, *frr=NULL;
   int ch_offset,symbol_offset;
+  int **rxdataF = phy_vars->rxdataF;
 
   uint8_t nushift;
-  int **dl_ch_estimates = ue->pdsch_vars[proc->thread_id][gNB_id]->dl_ch_estimates;
-  int **rxdataF=ue->common_vars.common_vars_rx_data_per_thread[proc->thread_id].rxdataF;
+  int **dl_ch_estimates = phy_vars->pdsch_vars[gNB_id]->dl_ch_estimates;
 
   ch_offset     = ue->frame_parms.ofdm_symbol_size*symbol;
 

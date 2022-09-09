@@ -397,7 +397,8 @@ int nr_init_frame_parms(nfapi_nr_config_request_scf_t *config, NR_DL_FRAME_PARMS
 int nr_init_frame_parms_ue(NR_DL_FRAME_PARMS *frame_parms, fapi_nr_config_request_t *config, uint16_t nr_band);
 void nr_init_frame_parms_ue_sa(NR_DL_FRAME_PARMS *frame_parms, uint64_t downlink_frequency, int32_t uplink_frequency_offset, uint8_t mu, uint16_t nr_band);
 int init_nr_ue_signal(PHY_VARS_NR_UE *ue,int nb_connected_eNB);
-void term_nr_ue_signal(PHY_VARS_NR_UE *ue, int nb_connected_gNB);
+void term_nr_ue_signal(PHY_VARS_NR_UE *ue, int nb_connected_gNB, nr_ue_phy_vars_data_t *phy_vars);
+void init_phy_vars(PHY_VARS_NR_UE *ue, nr_ue_phy_vars_data_t *phy_vars);
 void init_nr_ue_transport(PHY_VARS_NR_UE *ue);
 void init_N_TA_offset(PHY_VARS_NR_UE *ue);
 void nr_dump_frame_parms(NR_DL_FRAME_PARMS *frame_parms);

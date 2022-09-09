@@ -41,7 +41,8 @@ void nr_adjust_synch_ue(NR_DL_FRAME_PARMS *frame_parms,
                         uint8_t frame,
                         uint8_t subframe,
                         unsigned char clear,
-                        short coef)
+                        short coef,
+                        nr_ue_phy_vars_data_t *phy_vars)
 {
 
   static int count_max_pos_ok = 0;
@@ -110,8 +111,8 @@ void nr_adjust_synch_ue(NR_DL_FRAME_PARMS *frame_parms,
       //mac_resynch();
       //dl_phy_sync_success(ue->Mod_id,frame,0,1);//ue->common_vars.eNb_id);
       ue->UE_mode[0] = PRACH;
-      ue->prach_resources[gNB_id]->sync_frame = frame;
-      ue->prach_resources[gNB_id]->init_msg1 = 0;
+      phy_vars->prach_resources[gNB_id]->sync_frame = frame;
+      phy_vars->prach_resources[gNB_id]->init_msg1 = 0;
     } else {
       ue->UE_mode[0] = PUSCH;
     }

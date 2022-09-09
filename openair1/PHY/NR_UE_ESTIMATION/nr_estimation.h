@@ -48,7 +48,8 @@ int nr_pdcch_channel_estimation(PHY_VARS_NR_UE *ue,
                                 unsigned short coreset_start_subcarrier,
                                 unsigned short nb_rb_coreset,
                                 int32_t pdcch_est_size,
-                                int32_t pdcch_dl_ch_estimates[][pdcch_est_size]);
+                                int32_t pdcch_dl_ch_estimates[][pdcch_est_size],
+                                int **rxdataF);
 
 int nr_pbch_dmrs_correlation(PHY_VARS_NR_UE *ue,
                              UE_nr_rxtx_proc_t *proc,
@@ -56,19 +57,21 @@ int nr_pbch_dmrs_correlation(PHY_VARS_NR_UE *ue,
                              unsigned char Ns,
                              unsigned char symbol,
                              int dmrss,
-                             NR_UE_SSB *current_ssb);
+                             NR_UE_SSB *current_ssb,
+                             int **rxdataF);
 
 int nr_pbch_channel_estimation(PHY_VARS_NR_UE *ue,
                                int estimateSz,
-			       struct complex16 dl_ch_estimates [][estimateSz],
-			       struct complex16 dl_ch_estimates_time [][estimateSz],
-			       UE_nr_rxtx_proc_t *proc,
+                               struct complex16 dl_ch_estimates [][estimateSz],
+                               struct complex16 dl_ch_estimates_time [][estimateSz],
+                               UE_nr_rxtx_proc_t *proc,
                                uint8_t gNB_id,
                                unsigned char Ns,
                                unsigned char symbol,
                                int dmrss,
                                uint8_t ssb_index,
-                               uint8_t n_hf);
+                               uint8_t n_hf,
+                               int **rxdataF);
 
 int nr_pdsch_channel_estimation(PHY_VARS_NR_UE *ue,
                                 UE_nr_rxtx_proc_t *proc,
@@ -82,17 +85,19 @@ int nr_pdsch_channel_estimation(PHY_VARS_NR_UE *ue,
                                 unsigned short BWPStart,
                                 uint8_t config_type,
                                 unsigned short bwp_start_subcarrier,
-                                unsigned short nb_rb_pdsch);
+                                unsigned short nb_rb_pdsch,
+                                nr_ue_phy_vars_data_t *phy_vars);
 
 void nr_adjust_synch_ue(NR_DL_FRAME_PARMS *frame_parms,
                         PHY_VARS_NR_UE *ue,
                         module_id_t gNB_id,
-			int estimateSz,
-			struct complex16 dl_ch_estimates_time [][estimateSz],
+                        int estimateSz,
+                        struct complex16 dl_ch_estimates_time [][estimateSz],
                         uint8_t frame,
                         uint8_t subframe,
                         unsigned char clear,
-                        short coef);
+                        short coef,
+                        nr_ue_phy_vars_data_t *phy_vars);
                       
 void nr_ue_measurements(PHY_VARS_NR_UE *ue,
                         UE_nr_rxtx_proc_t *proc,

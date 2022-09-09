@@ -118,6 +118,9 @@ typedef struct {
     fapi_nr_dci_indication_t *dci_ind;
 
     NR_UE_SCHED_MODE_t ue_sched_mode;
+    /// PHY specific data structure that can be passed on to L2 via nr_downlink_indication_t and
+    /// back to L1 via the nr_scheduled_response_t 
+    void *phy_data;
 
 } nr_uplink_indication_t;
 

@@ -417,15 +417,15 @@ int generate_srs_nr(nfapi_nr_srs_pdu_t *srs_config_pdu,
 *                send srs according to current configuration
 *
 *********************************************************************/
-int ue_srs_procedures_nr(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, uint8_t gNB_id)
+int ue_srs_procedures_nr(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, uint8_t gNB_id, nr_ue_phy_vars_data_t *phy_vars)
 {
 
-  if(!ue->srs_vars[0]->active) {
+  if(!phy_vars->srs_vars[0]->active) {
     return -1;
   }
-  ue->srs_vars[0]->active = false;
+  phy_vars->srs_vars[0]->active = false;
 
-  nfapi_nr_srs_pdu_t *srs_config_pdu = (nfapi_nr_srs_pdu_t*)&ue->srs_vars[0]->srs_config_pdu;
+  nfapi_nr_srs_pdu_t *srs_config_pdu = (nfapi_nr_srs_pdu_t*)&phy_vars->srs_vars[0]->srs_config_pdu;
 
 #ifdef SRS_DEBUG
   LOG_I(NR_PHY,"Frame = %i, slot = %i\n", proc->frame_tx, proc->nr_slot_tx);
@@ -457,7 +457,7 @@ int ue_srs_procedures_nr(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, uint8_t gN
   NR_DL_FRAME_PARMS *frame_parms = &(ue->frame_parms);
   uint16_t symbol_offset = (frame_parms->symbols_per_slot - 1 - srs_config_pdu->time_start_position)*frame_parms->ofdm_symbol_size;
 
-  if (generate_srs_nr(srs_config_pdu, frame_parms, &ue->common_vars.txdataF[gNB_id][symbol_offset], ue->nr_srs_info,
+  if (generate_srs_nr(srs_config_pdu, frame_parms, &ue->common_vars.txdataF[gNB_id][symbol_offset], phy_vars->nr_srs_info,
                       AMP, proc->frame_tx, proc->nr_slot_tx) == 0) {
     return 0;
   } else {

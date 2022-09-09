@@ -392,9 +392,9 @@ int nr_rx_pbch( PHY_VARS_NR_UE *ue,
                 uint8_t i_ssb,
                 MIMO_mode_t mimo_mode,
                 NR_UE_PDCCH_CONFIG *phy_pdcch_config,
-                fapiPbch_t *result) {
+                fapiPbch_t *result,
+                nr_ue_phy_vars_data_t *phy_vars) {
 
-  NR_UE_COMMON *nr_ue_common_vars = &ue->common_vars;
   int max_h=0;
   int symbol;
   //uint8_t pbch_a[64];
@@ -422,9 +422,8 @@ int nr_rx_pbch( PHY_VARS_NR_UE *ue,
     symbol_offset=0;
 
 #ifdef DEBUG_PBCH
-  //printf("address dataf %p",nr_ue_common_vars->common_vars_rx_data_per_thread[proc->thread_id].rxdataF);
   write_output("rxdataF0_pbch.m","rxF0pbch",
-               &nr_ue_common_vars->common_vars_rx_data_per_thread[proc->thread_id].rxdataF[0][(symbol_offset+1)*frame_parms->ofdm_symbol_size],frame_parms->ofdm_symbol_size*3,1,1);
+               &phy_vars->rxdataF[0][(symbol_offset+1)*frame_parms->ofdm_symbol_size],frame_parms->ofdm_symbol_size*3,1,1);
 #endif
   // symbol refers to symbol within SSB. symbol_offset is the offset of the SSB wrt start of slot
   double log2_maxh;
@@ -434,7 +433,7 @@ int nr_rx_pbch( PHY_VARS_NR_UE *ue,
     __attribute__ ((aligned(32))) struct complex16 rxdataF_ext[frame_parms->nb_antennas_rx][PBCH_MAX_RE_PER_SYMBOL];
     __attribute__ ((aligned(32))) struct complex16 dl_ch_estimates_ext[frame_parms->nb_antennas_rx][PBCH_MAX_RE_PER_SYMBOL];
     memset(dl_ch_estimates_ext,0, sizeof  dl_ch_estimates_ext);
-    nr_pbch_extract(nr_ue_common_vars->common_vars_rx_data_per_thread[proc->thread_id].rxdataF,
+    nr_pbch_extract(phy_vars->rxdataF,
                     estimateSz,
                     dl_ch_estimates,
                     rxdataF_ext,
@@ -581,7 +580,7 @@ int nr_rx_pbch( PHY_VARS_NR_UE *ue,
   uint16_t number_pdus = 1;
 
   nr_fill_dl_indication(&dl_indication, NULL, rx_ind, proc, ue, gNB_id, phy_pdcch_config);
-  nr_fill_rx_indication(rx_ind, FAPI_NR_RX_PDU_TYPE_SSB, gNB_id, ue, NULL, NULL, number_pdus, proc,(void *)result);
+  nr_fill_rx_indication(rx_ind, FAPI_NR_RX_PDU_TYPE_SSB, gNB_id, ue, NULL, NULL, number_pdus, proc,(void *)result, phy_vars);
 
   if (ue->if_inst && ue->if_inst->dl_indication)
     ue->if_inst->dl_indication(&dl_indication, NULL);

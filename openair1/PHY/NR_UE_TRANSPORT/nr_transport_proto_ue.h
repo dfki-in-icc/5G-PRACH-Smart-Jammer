@@ -1041,8 +1041,8 @@ void nr_ue_ulsch_procedures(PHY_VARS_NR_UE *UE,
                                unsigned char harq_pid,
                                uint32_t frame,
                                uint8_t slot,
-                               uint8_t thread_id,
-                               int gNB_id);
+                               int gNB_id,
+                               nr_ue_phy_vars_data_t *phy_vars);
 
 
 /** \brief This function does IFFT for PUSCH
@@ -1074,7 +1074,8 @@ int32_t nr_rx_pdcch(PHY_VARS_NR_UE *ue,
                     int32_t pdcch_est_size,
                     int32_t pdcch_dl_ch_estimates[][pdcch_est_size],
                     int16_t *pdcch_e_rx,
-                    fapi_nr_dl_config_dci_dl_pdu_rel15_t *rel15);
+                    fapi_nr_dl_config_dci_dl_pdu_rel15_t *rel15,
+                    int **rxdataF);
 
 
 /*! \brief Extract PSS and SSS resource elements
@@ -1121,20 +1122,22 @@ int rx_sss(PHY_VARS_NR_UE *phy_vars_ue,int32_t *tot_metric,uint8_t *flip_max,uin
 */
 int nr_rx_pbch( PHY_VARS_NR_UE *ue,
                 UE_nr_rxtx_proc_t *proc,
-		const int estimateSz,
-		struct complex16 dl_ch_estimates[][estimateSz],
+                const int estimateSz,
+                struct complex16 dl_ch_estimates[][estimateSz],
                 NR_UE_PBCH *nr_ue_pbch_vars,
                 NR_DL_FRAME_PARMS *frame_parms,
                 uint8_t eNB_id,
                 uint8_t i_ssb,
                 MIMO_mode_t mimo_mode,
                 NR_UE_PDCCH_CONFIG *phy_pdcch_config,
-                fapiPbch_t* result);
+                fapiPbch_t* result,
+                nr_ue_phy_vars_data_t *phy_vars);
 
 int nr_pbch_detection(UE_nr_rxtx_proc_t *proc,
-		              PHY_VARS_NR_UE *ue,
+                      PHY_VARS_NR_UE *ue,
                       int pbch_initial_symbol,
-                      NR_UE_PDCCH_CONFIG *phy_pdcch_config);
+                      NR_UE_PDCCH_CONFIG *phy_pdcch_config,
+                      nr_ue_phy_vars_data_t *phy_vars);
 
 uint16_t rx_pbch_emul(PHY_VARS_NR_UE *phy_vars_ue,
                       uint8_t eNB_id,
@@ -1397,7 +1400,8 @@ void generate_RIV_tables(void);
 int nr_initial_sync(UE_nr_rxtx_proc_t *proc,
                     PHY_VARS_NR_UE *phy_vars_ue, 
                     int n_frames,
-                    int sa);
+                    int sa,
+                    nr_ue_phy_vars_data_t *phy_vars);
 
 /*!
   \brief This function gets the carrier frequencies either from FP or command-line-set global variables, depending on the availability of the latter
@@ -1665,9 +1669,10 @@ int nr_rx_pdsch(PHY_VARS_NR_UE *ue,
              unsigned char first_symbol_flag,
              RX_type_t rx_type,
              unsigned char i_mod,
-		unsigned char harq_pid);
+             unsigned char harq_pid,
+             nr_ue_phy_vars_data_t *phy_vars);
 
-int32_t generate_nr_prach(PHY_VARS_NR_UE *ue, uint8_t gNB_id, int frame, uint8_t slot);
+int32_t generate_nr_prach(PHY_VARS_NR_UE *ue, uint8_t gNB_id, int frame, uint8_t slot, nr_ue_phy_vars_data_t *phy_vars);
 
 void dump_nrdlsch(PHY_VARS_NR_UE *ue,uint8_t gNB_id,uint8_t nr_slot_rx,unsigned int *coded_bits_per_codeword,int round,  unsigned char harq_pid);
 /**@}*/

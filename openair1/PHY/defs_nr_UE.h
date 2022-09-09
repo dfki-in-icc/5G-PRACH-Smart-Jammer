@@ -214,15 +214,6 @@ typedef struct {
 } PHY_NR_MEASUREMENTS;
 
 typedef struct {
-
-  /// \brief Holds the received data in the frequency domain.
-  /// - first index: rx antenna [0..nb_antennas_rx[
-  /// - second index: symbol [0..28*ofdm_symbol_size[
-  int32_t **rxdataF;
-
-} NR_UE_COMMON_PER_THREAD;
-
-typedef struct {
   bool active[2];
   fapi_nr_ul_config_pucch_pdu pucch_pdu[2];
   } NR_UE_PUCCH;
@@ -244,8 +235,6 @@ typedef struct {
   /// - first index: rx antenna [0..nb_antennas_rx[
   /// - second index: sample [0..2*FRAME_LENGTH_COMPLEX_SAMPLES+2048[
   int32_t **rxdata;
-
-  NR_UE_COMMON_PER_THREAD common_vars_rx_data_per_thread[RX_NB_TH_MAX];
 
   /// holds output of the sync correlator
   int32_t *sync_corr;
@@ -699,31 +688,17 @@ typedef struct {
   uint8_t ho_triggered;
   /// threshold for false dci detection
   int dci_thres;
-  /// \brief Measurement variables.
-  PHY_NR_MEASUREMENTS measurements;
   NR_DL_FRAME_PARMS  frame_parms;
   /// \brief Frame parame before ho used to recover if ho fails.
   NR_DL_FRAME_PARMS  frame_parms_before_ho;
   NR_UE_COMMON    common_vars;
 
+  /// \brief Measurement variables.
+  PHY_NR_MEASUREMENTS measurements;
+
   nr_ue_if_module_t *if_inst;
 
   fapi_nr_config_request_t nrUE_config;
-
-  NR_UE_PDSCH     *pdsch_vars[RX_NB_TH_MAX][NUMBER_OF_CONNECTED_gNB_MAX+1]; // two RxTx Threads
-  NR_UE_PBCH      *pbch_vars[NUMBER_OF_CONNECTED_gNB_MAX];
-  NR_UE_PDCCH     *pdcch_vars[RX_NB_TH_MAX][NUMBER_OF_CONNECTED_gNB_MAX];
-  NR_UE_PRACH     *prach_vars[NUMBER_OF_CONNECTED_gNB_MAX];
-  NR_UE_CSI_IM    *csiim_vars[NUMBER_OF_CONNECTED_gNB_MAX];
-  NR_UE_CSI_RS    *csirs_vars[NUMBER_OF_CONNECTED_gNB_MAX];
-  NR_UE_SRS       *srs_vars[NUMBER_OF_CONNECTED_gNB_MAX];
-  NR_UE_PUCCH     *pucch_vars[RX_NB_TH_MAX][NUMBER_OF_CONNECTED_gNB_MAX];
-  NR_UE_DLSCH_t   *dlsch[RX_NB_TH_MAX][NUMBER_OF_CONNECTED_gNB_MAX][NR_MAX_NB_LAYERS>4 ? 2:1]; // two RxTx Threads
-  NR_UE_ULSCH_t   *ulsch[RX_NB_TH_MAX][NUMBER_OF_CONNECTED_gNB_MAX];
-  NR_UE_DLSCH_t   *dlsch_SI[NUMBER_OF_CONNECTED_gNB_MAX];
-  NR_UE_DLSCH_t   *dlsch_ra[NUMBER_OF_CONNECTED_gNB_MAX];
-  NR_UE_DLSCH_t   *dlsch_p[NUMBER_OF_CONNECTED_gNB_MAX];
-  NR_UE_DLSCH_t   *dlsch_MCH[NUMBER_OF_CONNECTED_gNB_MAX];
 
   //Paging parameters
   uint32_t              IMSImod1024;
@@ -736,6 +711,7 @@ typedef struct {
   uint8_t               pucch_payload[22];
 
   UE_MODE_t           UE_mode[NUMBER_OF_CONNECTED_gNB_MAX];
+  pthread_mutex_t     mutex_UE_mode;
   /// cell-specific reference symbols
   //uint32_t lte_gold_table[7][20][2][14];
 
@@ -780,7 +756,6 @@ typedef struct {
 
   char ulsch_no_allocation_counter[NUMBER_OF_CONNECTED_gNB_MAX];
 
-  NR_PRACH_RESOURCES_t *prach_resources[NUMBER_OF_CONNECTED_gNB_MAX];
   int turbo_iterations, turbo_cntl_iterations;
   /// \brief ?.
   /// - first index: gNB [0..NUMBER_OF_CONNECTED_gNB_MAX[ (hard coded)
@@ -823,6 +798,7 @@ typedef struct {
   uint16_t         symbol_offset;  /// offset in terms of symbols for detected ssb in sync
   int              rx_offset;      /// Timing offset
   int              rx_offset_diff; /// Timing adjustment for ofdm symbol0 on HW USRP
+  pthread_mutex_t  mutex_rx_offset;
   int              max_pos_fil;    /// Timing offset IIR filter
   int              time_sync_cell;
 
@@ -871,12 +847,6 @@ typedef struct {
 
   /// PUSCH contention-based access vars
   PUSCH_CA_CONFIG_DEDICATED  pusch_ca_config_dedicated[NUMBER_OF_eNB_MAX]; // lola
-
-  /// SRS variables
-  nr_srs_info_t *nr_srs_info;
-
-  /// CSI variables
-  nr_csi_info_t *nr_csi_info;
 
   //#if defined(UPGRADE_RAT_NR)
 #if 1
@@ -979,8 +949,35 @@ typedef struct {
   int dl_errors;
   int dl_stats[8];
   void* scopeData;
+  notifiedFIFO_t childProcRes;
 } PHY_VARS_NR_UE;
 
+typedef struct nr_ue_phy_vars_data_s {
+  NR_UE_PDSCH   *pdsch_vars[NUMBER_OF_CONNECTED_gNB_MAX+1];
+  NR_UE_PBCH    *pbch_vars[NUMBER_OF_CONNECTED_gNB_MAX];
+  NR_UE_PDCCH   *pdcch_vars[NUMBER_OF_CONNECTED_gNB_MAX];
+  NR_UE_PRACH   *prach_vars[NUMBER_OF_CONNECTED_gNB_MAX];
+  NR_UE_CSI_IM  *csiim_vars[NUMBER_OF_CONNECTED_gNB_MAX];
+  NR_UE_CSI_RS  *csirs_vars[NUMBER_OF_CONNECTED_gNB_MAX];
+  NR_UE_SRS     *srs_vars[NUMBER_OF_CONNECTED_gNB_MAX];
+  NR_UE_PUCCH   *pucch_vars[NUMBER_OF_CONNECTED_gNB_MAX];
+  NR_UE_DLSCH_t *dlsch[NUMBER_OF_CONNECTED_gNB_MAX][NR_MAX_NB_LAYERS>4 ? 2:1];
+  NR_UE_ULSCH_t *ulsch[NUMBER_OF_CONNECTED_gNB_MAX];
+  NR_UE_DLSCH_t *dlsch_SI[NUMBER_OF_CONNECTED_gNB_MAX];
+  NR_UE_DLSCH_t *dlsch_ra[NUMBER_OF_CONNECTED_gNB_MAX];
+  NR_UE_DLSCH_t *dlsch_p[NUMBER_OF_CONNECTED_gNB_MAX];
+  NR_UE_DLSCH_t *dlsch_MCH[NUMBER_OF_CONNECTED_gNB_MAX];
+  NR_PRACH_RESOURCES_t *prach_resources[NUMBER_OF_CONNECTED_gNB_MAX];
+  NR_UE_PDCCH_CONFIG phy_pdcch_config;
+  /// SRS variables
+  nr_srs_info_t *nr_srs_info;
+  /// CSI variables
+  nr_csi_info_t *nr_csi_info;
+
+  int **rxdataF;
+  time_stats_t pbch_channel_estimation_stats;
+  time_stats_t generic_stat_bis[LTE_SLOTS_PER_SUBFRAME];
+} nr_ue_phy_vars_data_t;
 /* this structure is used to pass both UE phy vars and
  * proc to the function UE_thread_rxn_txnp4
  */
@@ -988,7 +985,11 @@ typedef struct nr_rxtx_thread_data_s {
   UE_nr_rxtx_proc_t proc;
   PHY_VARS_NR_UE    *UE;
   NR_UE_SCHED_MODE_t ue_sched_mode;
-}  nr_rxtx_thread_data_t;
+  int dci_count;
+  int gnb_id;
+  int dlsch_parallel;
+  nr_ue_phy_vars_data_t phy_vars;
+} nr_rxtx_thread_data_t;
 
 typedef struct LDPCDecode_ue_s {
   PHY_VARS_NR_UE *phy_vars_ue;

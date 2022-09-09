@@ -558,7 +558,7 @@ static void UE_synch(void *arg) {
       uint64_t dl_carrier, ul_carrier;
       nr_get_carrier_frequencies(UE, &dl_carrier, &ul_carrier);
 
-      if (nr_initial_sync(&syncD->proc, UE, 2, get_softmodem_params()->sa) == 0) {
+      if (nr_initial_sync(&syncD->proc, UE, 2, get_softmodem_params()->sa, syncD->phy_vars) == 0) {
         freq_offset = UE->common_vars.freq_offset; // frequency offset computed with pss in initial sync
         hw_slot_offset = ((UE->rx_offset<<1) / UE->frame_parms.samples_per_subframe * UE->frame_parms.slots_per_subframe) +
                          round((float)((UE->rx_offset<<1) % UE->frame_parms.samples_per_subframe)/UE->frame_parms.samples_per_slot0);
@@ -605,8 +605,10 @@ static void UE_synch(void *arg) {
   }
 }
 
-void processSlotTX(PHY_VARS_NR_UE *UE, UE_nr_rxtx_proc_t *proc) {
-
+void processSlotTX(void *arg) {
+  nr_rxtx_thread_data_t *rxtxD = (nr_rxtx_thread_data_t *) arg;
+  UE_nr_rxtx_proc_t *proc = &rxtxD->proc;
+  PHY_VARS_NR_UE    *UE   = rxtxD->UE;
   fapi_nr_config_request_t *cfg = &UE->nrUE_config;
   int tx_slot_type = nr_ue_slot_select(cfg, proc->frame_tx, proc->nr_slot_tx);
   uint8_t gNB_id = 0;
@@ -628,51 +630,68 @@ void processSlotTX(PHY_VARS_NR_UE *UE, UE_nr_rxtx_proc_t *proc) {
       ul_indication.slot_rx   = proc->nr_slot_rx;
       ul_indication.frame_tx  = proc->frame_tx;
       ul_indication.slot_tx   = proc->nr_slot_tx;
-      ul_indication.thread_id = proc->thread_id;
       ul_indication.ue_sched_mode = SCHED_ALL;
+      ul_indication.phy_data = (void*)&rxtxD->phy_vars;
 
       UE->if_inst->ul_indication(&ul_indication);
       stop_meas(&UE->ue_ul_indication_stats);
     }
 
     start_meas(&UE->phy_proc_tx);
-    phy_procedures_nrUE_TX(UE,proc,0);
+    phy_procedures_nrUE_TX(UE,proc,0,&rxtxD->phy_vars);
+    ue_ta_procedures(UE, proc->nr_slot_tx, proc->frame_tx);
     stop_meas(&UE->phy_proc_tx);
   }
 }
 
-void processSlotRX(PHY_VARS_NR_UE *UE, UE_nr_rxtx_proc_t *proc) {
+int process_PDCCH_rx(PHY_VARS_NR_UE *UE, nr_rxtx_thread_data_t *rxtxD) {
 
   fapi_nr_config_request_t *cfg = &UE->nrUE_config;
+  UE_nr_rxtx_proc_t *proc = rxtxD->proc;
   int rx_slot_type = nr_ue_slot_select(cfg, proc->frame_rx, proc->nr_slot_rx);
-  uint8_t gNB_id = 0;
-  NR_UE_PDCCH_CONFIG phy_pdcch_config={0};
 
   if (rx_slot_type == NR_DOWNLINK_SLOT || rx_slot_type == NR_MIXED_SLOT){
 
     if(UE->if_inst != NULL && UE->if_inst->dl_indication != NULL) {
       nr_downlink_indication_t dl_indication;
-      nr_fill_dl_indication(&dl_indication, NULL, NULL, proc, UE, gNB_id, &phy_pdcch_config);
+      nr_fill_dl_indication(&dl_indication, NULL, NULL, proc, UE, gNB_id, &rxtxD->phy_vars);
       UE->if_inst->dl_indication(&dl_indication, NULL);
     }
+  }
 
-    // Process Rx data for one sub-frame
-#ifdef UE_SLOT_PARALLELISATION
-    phy_procedures_slot_parallelization_nrUE_RX( UE, proc, 0, 0, 1, no_relay, NULL );
-#else
-    uint64_t a=rdtsc_oai();
-    start_meas(&UE->phy_proc_rx[proc->thread_id]);
-    phy_procedures_nrUE_RX(UE, proc, gNB_id, get_nrUE_params()->nr_dlsch_parallel, &phy_pdcch_config);
-    stop_meas(&UE->phy_proc_rx[proc->thread_id]);
-    LOG_D(PHY, "In %s: slot %d, time %llu\n", __FUNCTION__, proc->nr_slot_rx, (rdtsc_oai()-a)/3500);
-#endif
+  int dci_count = phy_procedures_nrUE_RX_SSB_PDCCH(UE, rxtxD, gNB_id, &phy_pdcch_config);
 
-    if(IS_SOFTMODEM_NOS1 || get_softmodem_params()->sa){
-      NR_UE_MAC_INST_t *mac = get_mac_inst(0);
-      protocol_ctxt_t ctxt;
-      PROTOCOL_CTXT_SET_BY_MODULE_ID(&ctxt, UE->Mod_id, ENB_FLAG_NO, mac->crnti, proc->frame_rx, proc->nr_slot_rx, 0);
-      pdcp_run(&ctxt);
-    }
+  if ((proc->frame_rx%64 == 0) && (proc->nr_slot_rx==0)) {
+    LOG_I(NR_PHY,"============================================\n");
+    // fixed text + 8 HARQs rounds à 10 ("999999999/") + NULL
+    // if we use 999999999 HARQs, that should be sufficient for at least 138 hours
+    const size_t harq_output_len = 31 + 10 * 8 + 1;
+    char output[harq_output_len];
+    char *p = output;
+    const char *end = output + harq_output_len;
+    p += snprintf(p, end - p, "Harq round stats for Downlink: %d", ue->dl_stats[0]);
+    for (int round = 1; round < 16 && (round < 3 || ue->dl_stats[round] != 0); ++round)
+      p += snprintf(p, end - p,"/%d", ue->dl_stats[round]);
+    LOG_I(NR_PHY,"%s/0\n", output);
+
+    LOG_I(NR_PHY,"============================================\n");
+  }
+
+  return dci_count;
+}
+
+void process_PDSCH_rx(void *arg) {
+  nr_rxtx_thread_data_t *rxtxD = (nr_rxtx_thread_data_t *) arg;
+  UE_nr_rxtx_proc_t *proc = &rxtxD->proc;
+  PHY_VARS_NR_UE    *UE   = rxtxD->UE;
+
+  phy_procedures_nrUE_RX_PDSCH(UE, proc, rxtxD->gnb_id, rxtxD->dlsch_parallel, rxtxD->dci_count, rxtxD->phy_vars);
+
+  if(IS_SOFTMODEM_NOS1 || get_softmodem_params()->sa){
+    NR_UE_MAC_INST_t *mac = get_mac_inst(0);
+    protocol_ctxt_t ctxt;
+    PROTOCOL_CTXT_SET_BY_MODULE_ID(&ctxt, UE->Mod_id, ENB_FLAG_NO, mac->crnti, proc->frame_rx, proc->nr_slot_rx, 0);
+    pdcp_run(&ctxt);
   }
 }
 
@@ -680,7 +699,8 @@ void UE_processing(void *arg) {
   nr_rxtx_thread_data_t *rxtxD = (nr_rxtx_thread_data_t *) arg;
   UE_nr_rxtx_proc_t *proc = &rxtxD->proc;
   PHY_VARS_NR_UE    *UE   = rxtxD->UE;
-    start_meas(&UE->total_proc);
+  uint8_t gNB_id = 0;
+  start_meas(&UE->total_proc);
 
   if (IS_SOFTMODEM_NOS1 || get_softmodem_params()->sa) {
     /* send tick to RLC and PDCP every ms */
@@ -692,10 +712,25 @@ void UE_processing(void *arg) {
     }
   }
 
-  processSlotRX(UE, proc);
-  processSlotTX(UE, proc);
-  ue_ta_procedures(UE, proc->nr_slot_tx, proc->frame_tx);
-    stop_meas(&UE->total_proc);
+  start_meas(&UE->phy_proc_rx[proc->thread_id]);
+  int dci_count = process_PDCCH_rx(UE, rxtxD);
+
+  notifiedFIFO_elt_t *res = pullNotifiedFIFO(&UE->childProcRes);
+  nr_rxtx_thread_data_t *curMsg=(nr_rxtx_thread_data_t *)NotifiedFifoData(res);
+  curMsg->dci_count = dci_count;
+  curMsg->slot = proc->nr_slot_rx;
+  curMsg->frame = proc->frame_rx;
+  res->processingFunc = process_PDSCH_rx;
+  pushTpool(&(get_nrUE_params()->Tpool), res);
+
+  notifiedFIFO_elt_t *res = pullNotifiedFIFO(&UE->childProcRes);
+  nr_rxtx_thread_data_t *curMsg=(nr_rxtx_thread_data_t *)NotifiedFifoData(res);
+  curMsg->slot = proc->nr_slot_tx;
+  curMsg->frame = proc->frame_tx;
+  res->processingFunc = processSlotTX;
+  pushTpool(&(get_nrUE_params()->Tpool), res);
+
+  stop_meas(&UE->total_proc);
 
 }
 
@@ -823,8 +858,17 @@ void *UE_thread(void *arg) {
   const int nb_slot_frame = UE->frame_parms.slots_per_frame;
   int absolute_slot=0, decoded_frame_rx=INT_MAX, trashed_frames=0;
 
-  for (int i=0; i<NR_RX_NB_TH+1; i++) {// NR_RX_NB_TH working + 1 we are making to be pushed
-    notifiedFIFO_elt_t *newElt = newNotifiedFIFO_elt(sizeof(nr_rxtx_thread_data_t), RX_JOB_ID,&nf,UE_processing);
+  initNotifiedFIFO(&UE->childProcRes);
+  for (int i=0; i<(NR_RX_NB_TH+1); i++) {// NR_RX_NB_TH working + 1 we are making to be pushed
+    notifiedFIFO_elt_t *newElt = newNotifiedFIFO_elt(sizeof(nr_rxtx_thread_data_t), RX_JOB_ID, &nf, UE_processing);
+    nr_rxtx_thread_data_t *curMsg = (nr_rxtx_thread_data_t *)NotifiedFifoData(newElt);
+    init_phy_vars(UE, &curMsg->phy_vars); 
+    for (int j=0; j < NR_NB_TH_SLOT; j++) {
+      notifiedFIFO_elt_t *newElt_in = newNotifiedFIFO_elt(sizeof(nr_rxtx_thread_data_t), TX_JOB_ID, &UE->childProcRes, NULL);
+      nr_rxtx_thread_data_t *curMsg_in = (nr_rxtx_thread_data_t *)NotifiedFifoData(newElt_in);
+      init_phy_vars(UE, &curMsg_in->phy_vars); 
+      pushNotifiedFIFO_nothreadSafe(&UE->childProcRes, newElt_in);
+    }
     pushNotifiedFIFO_nothreadSafe(&freeBlocks, newElt);
   }
 
@@ -834,7 +878,11 @@ void *UE_thread(void *arg) {
       nb += abortNotifiedFIFOJob(&nf, RX_JOB_ID);
       LOG_I(PHY,"Number of aborted slots %d\n",nb);
       for (int i=0; i<nb; i++)
-        pushNotifiedFIFO_nothreadSafe(&freeBlocks, newNotifiedFIFO_elt(sizeof(nr_rxtx_thread_data_t), RX_JOB_ID,&nf,UE_processing));
+        pushNotifiedFIFO_nothreadSafe(&freeBlocks, newNotifiedFIFO_elt(sizeof(nr_rxtx_thread_data_t), RX_JOB_ID, &nf, UE_processing));
+      nb = abortTpoolJob(&(get_nrUE_params()->Tpool),TX_JOB_ID);
+      nb += abortNotifiedFIFOJob(&nf, TX_JOB_ID);
+      for (int i=0; i<nb; i++)
+        pushNotifiedFIFO_nothreadSafe(&freeBlocks, newNotifiedFIFO_elt(sizeof(nr_rxtx_thread_data_t), TX_JOB_ID, &nf, NULL));
       nbSlotProcessing = 0;
       UE->is_synchronized = 0;
       UE->lost_sync = 0;

@@ -112,12 +112,13 @@ float_t get_nr_RSRP(module_id_t Mod_id,uint8_t CC_id,uint8_t gNB_index)
 
 void nr_ue_measurements(PHY_VARS_NR_UE *ue,
                         UE_nr_rxtx_proc_t *proc,
-                        uint8_t slot)
+                        uint8_t slot,
+                        nr_ue_phy_vars_data_t *phy_vars)
 {
   int aarx, aatx, gNB_id = 0;
   NR_DL_FRAME_PARMS *frame_parms = &ue->frame_parms;
   int ch_offset = frame_parms->ofdm_symbol_size*2;
-  NR_UE_DLSCH_t *dlsch = ue->dlsch[proc->thread_id][gNB_id][0];
+  NR_UE_DLSCH_t *dlsch = phy_vars->dlsch[gNB_id][0];
   uint8_t harq_pid = dlsch->current_harq_pid;
   int N_RB_DL = dlsch->harq_processes[harq_pid]->nb_rb;
 
@@ -134,7 +135,7 @@ void nr_ue_measurements(PHY_VARS_NR_UE *ue,
 
       for (aatx = 0; aatx < frame_parms->nb_antenna_ports_gNB; aatx++){
 
-        ue->measurements.rx_spatial_power[gNB_id][aatx][aarx] = (signal_energy_nodc(&ue->pdsch_vars[proc->thread_id][0]->dl_ch_estimates[gNB_id][ch_offset], N_RB_DL*NR_NB_SC_PER_RB));
+        ue->measurements.rx_spatial_power[gNB_id][aatx][aarx] = (signal_energy_nodc(&phy_vars->pdsch_vars[0]->dl_ch_estimates[gNB_id][ch_offset], N_RB_DL*NR_NB_SC_PER_RB));
 
         if (ue->measurements.rx_spatial_power[gNB_id][aatx][aarx]<0)
           ue->measurements.rx_spatial_power[gNB_id][aatx][aarx] = 0;
@@ -207,7 +208,8 @@ void nr_ue_measurements(PHY_VARS_NR_UE *ue,
 void nr_ue_ssb_rsrp_measurements(PHY_VARS_NR_UE *ue,
                                  int ssb_index,
                                  UE_nr_rxtx_proc_t *proc,
-                                 uint8_t slot) {
+                                 uint8_t slot,
+                                 nr_ue_phy_vars_data_t *phy_vars) {
 
   int k_start = 56;
   int k_end   = 183;
@@ -229,7 +231,7 @@ void nr_ue_ssb_rsrp_measurements(PHY_VARS_NR_UE *ue,
 
   for (int aarx = 0; aarx < ue->frame_parms.nb_antennas_rx; aarx++) {
 
-    int16_t *rxF_sss = (int16_t *)&ue->common_vars.common_vars_rx_data_per_thread[proc->thread_id].rxdataF[aarx][(l_sss*ue->frame_parms.ofdm_symbol_size) + ssb_offset];
+    int16_t *rxF_sss = (int16_t *)&phy_vars->rxdataF[aarx][(l_sss*ue->frame_parms.ofdm_symbol_size) + ssb_offset];
 
     for(int k = k_start; k < k_end; k++){
 
@@ -245,9 +247,9 @@ void nr_ue_ssb_rsrp_measurements(PHY_VARS_NR_UE *ue,
 
   rsrp /= nb_re;
   ue->measurements.ssb_rsrp_dBm[ssb_index] = 10*log10(rsrp) +
-                                             30 - 10*log10(pow(2,30)) -
-                                             ((int)openair0_cfg[0].rx_gain[0] - (int)openair0_cfg[0].rx_gain_offset[0]) -
-                                             dB_fixed(ue->frame_parms.ofdm_symbol_size);
+                                                   30 - 10*log10(pow(2,30)) -
+                                                   ((int)openair0_cfg[0].rx_gain[0] - (int)openair0_cfg[0].rx_gain_offset[0]) -
+                                                   dB_fixed(ue->frame_parms.ofdm_symbol_size);
 
   LOG_D(PHY, "In %s: [UE %d] ssb %d SS-RSRP: %d dBm/RE (%d)\n",
     __FUNCTION__,
@@ -262,7 +264,8 @@ void nr_ue_ssb_rsrp_measurements(PHY_VARS_NR_UE *ue,
 // - psd_awgn (AWGN power spectral density):     dBm/Hz
 void nr_ue_rrc_measurements(PHY_VARS_NR_UE *ue,
                             UE_nr_rxtx_proc_t *proc,
-                            uint8_t slot){
+                            uint8_t slot,
+                            nr_ue_phy_vars_data_t *phy_vars){
 
   uint8_t k;
   int aarx, nb_nulls;
@@ -283,7 +286,7 @@ void nr_ue_rrc_measurements(PHY_VARS_NR_UE *ue,
 
     nb_nulls = 0;
     ue->measurements.n0_power[aarx] = 0;
-    rxF_sss = (int16_t *)&ue->common_vars.common_vars_rx_data_per_thread[proc->thread_id].rxdataF[aarx][(l_sss*ue->frame_parms.ofdm_symbol_size) + ssb_offset];
+    rxF_sss = (int16_t *)&phy_vars->rxdataF[aarx][(l_sss*ue->frame_parms.ofdm_symbol_size) + ssb_offset];
 
     //-ve spectrum from SSS
     for(k = k_left; k < k_left + k_length; k++){

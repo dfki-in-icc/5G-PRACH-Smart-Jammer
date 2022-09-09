@@ -50,11 +50,13 @@ int slot_fep(PHY_VARS_UE *phy_vars_ue,
 
 int nr_slot_fep(PHY_VARS_NR_UE *phy_vars_ue,
                 UE_nr_rxtx_proc_t *proc,
+                nr_ue_phy_vars_data_t *phy_vars,
                 unsigned char l,
                 unsigned char Ns);
 
 int nr_slot_fep_init_sync(PHY_VARS_NR_UE *ue,
                           UE_nr_rxtx_proc_t *proc,
+                          nr_ue_phy_vars_data_t *phy_vars,
                           unsigned char symbol,
                           unsigned char Ns,
                           int sample_offset);

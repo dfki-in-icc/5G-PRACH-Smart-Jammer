@@ -57,12 +57,12 @@ extern const char *prachfmt[];
 // - idft for short sequence assumes we are transmitting starting in symbol 0 of a PRACH slot
 // - Assumes that PRACH SCS is same as PUSCH SCS @ 30 kHz, take values for formats 0-2 and adjust for others below
 // - Preamble index different from 0 is not detected by gNB
-int32_t generate_nr_prach(PHY_VARS_NR_UE *ue, uint8_t gNB_id, int frame, uint8_t slot){
+int32_t generate_nr_prach(PHY_VARS_NR_UE *ue, uint8_t gNB_id, int frame, uint8_t slot, nr_ue_phy_vars_data_t *phy_vars){
 
   NR_DL_FRAME_PARMS *fp=&ue->frame_parms;
   fapi_nr_config_request_t *nrUE_config = &ue->nrUE_config;
-  NR_PRACH_RESOURCES_t *prach_resources = ue->prach_resources[gNB_id];
-  fapi_nr_ul_config_prach_pdu *prach_pdu = &ue->prach_vars[gNB_id]->prach_pdu;
+  NR_PRACH_RESOURCES_t *prach_resources = phy_vars->prach_resources[gNB_id];
+  fapi_nr_ul_config_prach_pdu *prach_pdu = &phy_vars->prach_vars[gNB_id]->prach_pdu;
 
   uint8_t Mod_id, fd_occasion, preamble_index, restricted_set, not_found;
   uint16_t rootSequenceIndex, prach_fmt_id, NCS, *prach_root_sequence_map, preamble_offset = 0;
@@ -79,8 +79,8 @@ int32_t generate_nr_prach(PHY_VARS_NR_UE *ue, uint8_t gNB_id, int frame, uint8_t
   dftlen                  = 0;
   first_nonzero_root_idx  = 0;
   prach                   = prach_tmp;
-  prachF                  = ue->prach_vars[gNB_id]->prachF;
-  amp                     = ue->prach_vars[gNB_id]->amp;
+  prachF                  = phy_vars->prach_vars[gNB_id]->prachF;
+  amp                     = phy_vars->prach_vars[gNB_id]->amp;
   Mod_id                  = ue->Mod_id;
   prach_sequence_length   = nrUE_config->prach_config.prach_sequence_length;
   N_ZC                    = (prach_sequence_length == 0) ? 839:139;
