@@ -315,7 +315,11 @@ install_usrp_uhd_driver_from_source(){
     rm -rf /tmp/uhd
     git clone https://github.com/EttusResearch/uhd.git
     cd uhd
-    git checkout tags/v4.0.0.0
+    if [[ -v UHD_VERSION ]]; then
+        git checkout tags/v${UHD_VERSION}
+    else
+        git checkout tags/v4.0.0.0
+    fi
     mkdir -p host/build
     cd host/build
     $CMAKE ../
