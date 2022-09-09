@@ -113,7 +113,7 @@ int phy_procedures_RN_UE_RX(unsigned char last_slot, unsigned char next_slot, re
   @param proc Pointer to RXn-TXnp4 proc information
   @param eNB_id Local id of eNB on which to act
 */
-void phy_procedures_nrUE_TX(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, uint8_t eNB_id);
+void phy_procedures_nrUE_TX(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, uint8_t eNB_id, nr_ue_phy_vars_data_t *phy_vars);
 
 /*! \brief Scheduling for UE RX procedures in normal subframes.
   @param ue                     Pointer to UE variables on which to act
@@ -129,6 +129,17 @@ int phy_procedures_nrUE_RX(PHY_VARS_NR_UE *ue,
                            uint8_t dlsch_parallel,
                            NR_UE_PDCCH_CONFIG *phy_pdcch_config);
 
+int phy_procedures_nrUE_RX_SSB_PDCCH(PHY_VARS_NR_UE *ue,
+                                     nr_rxtx_thread_data_t *rxtxD,
+                                     uint8_t gNB_id,
+                                     NR_UE_PDCCH_CONFIG *phy_pdcch_config);
+
+void phy_procedures_nrUE_RX_PDSCH(PHY_VARS_NR_UE *ue,
+                                  UE_nr_rxtx_proc_t *proc,
+                                  uint8_t gNB_id,
+                                  uint8_t dlsch_parallel,
+                                  int dci_cnt,
+                                  nr_ue_phy_vars_data_t *phy_vars);
 #ifdef UE_SLOT_PARALLELISATION
   void *UE_thread_slot1_dl_processing(void *arg);
 #endif
@@ -227,7 +238,7 @@ void ra_succeeded(uint8_t Mod_id,uint8_t CC_id,uint8_t eNB_index);
     @param
     @param
  */
-void nr_ue_prach_procedures(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, uint8_t gNB_id);
+void nr_ue_prach_procedures(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, uint8_t gNB_id, nr_ue_phy_vars_data_t *phy_vars);
 
 int is_nr_prach_subframe(NR_DL_FRAME_PARMS *frame_parms, uint32_t frame, uint8_t subframe);
 
@@ -400,8 +411,7 @@ void nr_fill_rx_indication(fapi_nr_rx_indication_t *rx_ind,
                            NR_UE_DLSCH_t *dlsch1,
                            uint16_t n_pdus,
                            UE_nr_rxtx_proc_t *proc,
-                           void *typeSpecific,
-                           nr_ue_phy_vars_data_t *phy_vars);
+                           void *typeSpecific);
 
 bool nr_ue_dlsch_procedures(PHY_VARS_NR_UE *ue,
                             UE_nr_rxtx_proc_t *proc,
@@ -409,7 +419,8 @@ bool nr_ue_dlsch_procedures(PHY_VARS_NR_UE *ue,
                             PDSCH_t pdsch,
                             NR_UE_DLSCH_t *dlsch0,
                             NR_UE_DLSCH_t *dlsch1,
-                            int *dlsch_errors);
+                            int *dlsch_errors,
+                            nr_ue_phy_vars_data_t *phy_vars);
 
 int nr_ue_pdsch_procedures(PHY_VARS_NR_UE *ue,
                            UE_nr_rxtx_proc_t *proc,

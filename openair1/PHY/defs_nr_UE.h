@@ -976,7 +976,46 @@ typedef struct nr_ue_phy_vars_data_s {
 
   int **rxdataF;
   time_stats_t pbch_channel_estimation_stats;
+  time_stats_t dlsch_rx_pdcch_stats;
+  time_stats_t rx_pdsch_stats;
   time_stats_t generic_stat_bis[LTE_SLOTS_PER_SUBFRAME];
+  time_stats_t dlsch_llr_stats_parallelization[LTE_SLOTS_PER_SUBFRAME];
+  time_stats_t dlsch_procedures_stat;
+  time_stats_t dlsch_unscrambling_stats;
+  time_stats_t dlsch_decoding_stats;
+
+  /// \brief ?.
+  /// - first index: gNB [0..NUMBER_OF_CONNECTED_gNB_MAX[ (hard coded)
+  uint32_t total_TBS[NUMBER_OF_CONNECTED_gNB_MAX];
+  /// \brief ?.
+  /// - first index: gNB [0..NUMBER_OF_CONNECTED_gNB_MAX[ (hard coded)
+  uint32_t total_TBS_last[NUMBER_OF_CONNECTED_gNB_MAX];
+  /// \brief ?.
+  /// - first index: gNB [0..NUMBER_OF_CONNECTED_gNB_MAX[ (hard coded)
+  uint32_t bitrate[NUMBER_OF_CONNECTED_gNB_MAX];
+  /// \brief ?.
+  /// - first index: gNB [0..NUMBER_OF_CONNECTED_gNB_MAX[ (hard coded)
+  uint32_t total_received_bits[NUMBER_OF_CONNECTED_gNB_MAX];
+  int dlsch_errors[NUMBER_OF_CONNECTED_gNB_MAX];
+  int dlsch_errors_last[NUMBER_OF_CONNECTED_gNB_MAX];
+  int dlsch_received[NUMBER_OF_CONNECTED_gNB_MAX];
+  int dlsch_received_last[NUMBER_OF_CONNECTED_gNB_MAX];
+  int dlsch_fer[NUMBER_OF_CONNECTED_gNB_MAX];
+  int dlsch_SI_received[NUMBER_OF_CONNECTED_gNB_MAX];
+  int dlsch_SI_errors[NUMBER_OF_CONNECTED_gNB_MAX];
+  int dlsch_ra_received[NUMBER_OF_CONNECTED_gNB_MAX];
+  int dlsch_ra_errors[NUMBER_OF_CONNECTED_gNB_MAX];
+  int dlsch_p_received[NUMBER_OF_CONNECTED_gNB_MAX];
+  int dlsch_p_errors[NUMBER_OF_CONNECTED_gNB_MAX];
+  int dlsch_mch_received_sf[MAX_MBSFN_AREA][NUMBER_OF_CONNECTED_gNB_MAX];
+  int dlsch_mch_received[NUMBER_OF_CONNECTED_gNB_MAX];
+  int dlsch_mcch_received[MAX_MBSFN_AREA][NUMBER_OF_CONNECTED_gNB_MAX];
+  int dlsch_mtch_received[MAX_MBSFN_AREA][NUMBER_OF_CONNECTED_gNB_MAX];
+  int dlsch_mcch_errors[MAX_MBSFN_AREA][NUMBER_OF_CONNECTED_gNB_MAX];
+  int dlsch_mtch_errors[MAX_MBSFN_AREA][NUMBER_OF_CONNECTED_gNB_MAX];
+  int dlsch_mcch_trials[MAX_MBSFN_AREA][NUMBER_OF_CONNECTED_gNB_MAX];
+  int dlsch_mtch_trials[MAX_MBSFN_AREA][NUMBER_OF_CONNECTED_gNB_MAX];
+  int current_dlsch_cqi[NUMBER_OF_CONNECTED_gNB_MAX];
 } nr_ue_phy_vars_data_t;
 /* this structure is used to pass both UE phy vars and
  * proc to the function UE_thread_rxn_txnp4

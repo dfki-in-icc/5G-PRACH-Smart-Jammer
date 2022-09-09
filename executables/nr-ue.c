@@ -155,24 +155,15 @@ void init_nr_ue_vars(PHY_VARS_NR_UE *ue,
                      uint8_t abstraction_flag)
 {
 
-  int nb_connected_gNB = 1, gNB_id;
+  int nb_connected_gNB = 1;
 
   ue->Mod_id      = UE_id;
   ue->mac_enabled = 1;
   ue->if_inst     = nr_ue_if_module_init(0);
   ue->dci_thres   = 0;
 
-  // Setting UE mode to NOT_SYNCHED by default
-  for (gNB_id = 0; gNB_id < nb_connected_gNB; gNB_id++){
-    ue->UE_mode[gNB_id] = NOT_SYNCHED;
-    ue->prach_resources[gNB_id] = (NR_PRACH_RESOURCES_t *)malloc16_clear(sizeof(NR_PRACH_RESOURCES_t));
-  }
-
   // initialize all signal buffers
   init_nr_ue_signal(ue, nb_connected_gNB);
-
-  // intialize transport
-  init_nr_ue_transport(ue);
 
   // init N_TA offset
   init_N_TA_offset(ue);
@@ -457,8 +448,8 @@ static void *NRUE_phy_stub_standalone_pnf_task(void *arg)
     {
       LOG_D(NR_MAC, "Slot %d. calling nr_ue_ul_ind() and nr_ue_pucch_scheduler() from %s\n", ul_info.slot_tx, __FUNCTION__);
       nr_ue_scheduler(NULL, &ul_info);
-      nr_ue_prach_scheduler(mod_id, ul_info.frame_tx, ul_info.slot_tx, ul_info.thread_id);
-      nr_ue_pucch_scheduler(mod_id, ul_info.frame_tx, ul_info.slot_tx, ul_info.thread_id);
+      nr_ue_prach_scheduler(mod_id, ul_info.frame_tx, ul_info.slot_tx, NULL);
+      nr_ue_pucch_scheduler(mod_id, ul_info.frame_tx, ul_info.slot_tx, NULL);
       check_nr_prach(mac, &ul_info, &prach_resources);
     }
     if (!IS_SOFTMODEM_NOS1 && get_softmodem_params()->sa) {
@@ -558,7 +549,7 @@ static void UE_synch(void *arg) {
       uint64_t dl_carrier, ul_carrier;
       nr_get_carrier_frequencies(UE, &dl_carrier, &ul_carrier);
 
-      if (nr_initial_sync(&syncD->proc, UE, 2, get_softmodem_params()->sa, syncD->phy_vars) == 0) {
+      if (nr_initial_sync(&syncD->proc, UE, 2, get_softmodem_params()->sa, &syncD->phy_vars) == 0) {
         freq_offset = UE->common_vars.freq_offset; // frequency offset computed with pss in initial sync
         hw_slot_offset = ((UE->rx_offset<<1) / UE->frame_parms.samples_per_subframe * UE->frame_parms.slots_per_subframe) +
                          round((float)((UE->rx_offset<<1) % UE->frame_parms.samples_per_subframe)/UE->frame_parms.samples_per_slot0);
@@ -647,19 +638,19 @@ void processSlotTX(void *arg) {
 int process_PDCCH_rx(PHY_VARS_NR_UE *UE, nr_rxtx_thread_data_t *rxtxD) {
 
   fapi_nr_config_request_t *cfg = &UE->nrUE_config;
-  UE_nr_rxtx_proc_t *proc = rxtxD->proc;
+  UE_nr_rxtx_proc_t *proc = &rxtxD->proc;
   int rx_slot_type = nr_ue_slot_select(cfg, proc->frame_rx, proc->nr_slot_rx);
 
   if (rx_slot_type == NR_DOWNLINK_SLOT || rx_slot_type == NR_MIXED_SLOT){
 
     if(UE->if_inst != NULL && UE->if_inst->dl_indication != NULL) {
       nr_downlink_indication_t dl_indication;
-      nr_fill_dl_indication(&dl_indication, NULL, NULL, proc, UE, gNB_id, &rxtxD->phy_vars);
+      nr_fill_dl_indication(&dl_indication, NULL, NULL, proc, UE, rxtxD->gnb_id, &rxtxD->phy_vars);
       UE->if_inst->dl_indication(&dl_indication, NULL);
     }
   }
 
-  int dci_count = phy_procedures_nrUE_RX_SSB_PDCCH(UE, rxtxD, gNB_id, &phy_pdcch_config);
+  int dci_count = phy_procedures_nrUE_RX_SSB_PDCCH(UE, rxtxD, rxtxD->gnb_id, &rxtxD->phy_vars.phy_pdcch_config);
 
   if ((proc->frame_rx%64 == 0) && (proc->nr_slot_rx==0)) {
     LOG_I(NR_PHY,"============================================\n");
@@ -669,9 +660,9 @@ int process_PDCCH_rx(PHY_VARS_NR_UE *UE, nr_rxtx_thread_data_t *rxtxD) {
     char output[harq_output_len];
     char *p = output;
     const char *end = output + harq_output_len;
-    p += snprintf(p, end - p, "Harq round stats for Downlink: %d", ue->dl_stats[0]);
-    for (int round = 1; round < 16 && (round < 3 || ue->dl_stats[round] != 0); ++round)
-      p += snprintf(p, end - p,"/%d", ue->dl_stats[round]);
+    p += snprintf(p, end - p, "Harq round stats for Downlink: %d", UE->dl_stats[0]);
+    for (int round = 1; round < 16 && (round < 3 || UE->dl_stats[round] != 0); ++round)
+      p += snprintf(p, end - p,"/%d", UE->dl_stats[round]);
     LOG_I(NR_PHY,"%s/0\n", output);
 
     LOG_I(NR_PHY,"============================================\n");
@@ -685,7 +676,7 @@ void process_PDSCH_rx(void *arg) {
   UE_nr_rxtx_proc_t *proc = &rxtxD->proc;
   PHY_VARS_NR_UE    *UE   = rxtxD->UE;
 
-  phy_procedures_nrUE_RX_PDSCH(UE, proc, rxtxD->gnb_id, rxtxD->dlsch_parallel, rxtxD->dci_count, rxtxD->phy_vars);
+  phy_procedures_nrUE_RX_PDSCH(UE, proc, rxtxD->gnb_id, rxtxD->dlsch_parallel, rxtxD->dci_count, &rxtxD->phy_vars);
 
   if(IS_SOFTMODEM_NOS1 || get_softmodem_params()->sa){
     NR_UE_MAC_INST_t *mac = get_mac_inst(0);
@@ -716,17 +707,17 @@ void UE_processing(void *arg) {
   int dci_count = process_PDCCH_rx(UE, rxtxD);
 
   notifiedFIFO_elt_t *res = pullNotifiedFIFO(&UE->childProcRes);
-  nr_rxtx_thread_data_t *curMsg=(nr_rxtx_thread_data_t *)NotifiedFifoData(res);
+  nr_rxtx_thread_data_t *curMsg = (nr_rxtx_thread_data_t *)NotifiedFifoData(res);
   curMsg->dci_count = dci_count;
-  curMsg->slot = proc->nr_slot_rx;
-  curMsg->frame = proc->frame_rx;
+  curMsg->gnb_id = gNB_id;
+  curMsg->proc = *proc;
   res->processingFunc = process_PDSCH_rx;
   pushTpool(&(get_nrUE_params()->Tpool), res);
 
-  notifiedFIFO_elt_t *res = pullNotifiedFIFO(&UE->childProcRes);
-  nr_rxtx_thread_data_t *curMsg=(nr_rxtx_thread_data_t *)NotifiedFifoData(res);
-  curMsg->slot = proc->nr_slot_tx;
-  curMsg->frame = proc->frame_tx;
+  res = pullNotifiedFIFO(&UE->childProcRes);
+  curMsg = (nr_rxtx_thread_data_t *)NotifiedFifoData(res);
+  curMsg->gnb_id = gNB_id;
+  curMsg->proc = *proc;
   res->processingFunc = processSlotTX;
   pushTpool(&(get_nrUE_params()->Tpool), res);
 

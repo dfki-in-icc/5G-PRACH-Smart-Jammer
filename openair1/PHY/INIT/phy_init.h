@@ -399,7 +399,6 @@ void nr_init_frame_parms_ue_sa(NR_DL_FRAME_PARMS *frame_parms, uint64_t downlink
 int init_nr_ue_signal(PHY_VARS_NR_UE *ue,int nb_connected_eNB);
 void term_nr_ue_signal(PHY_VARS_NR_UE *ue, int nb_connected_gNB, nr_ue_phy_vars_data_t *phy_vars);
 void init_phy_vars(PHY_VARS_NR_UE *ue, nr_ue_phy_vars_data_t *phy_vars);
-void init_nr_ue_transport(PHY_VARS_NR_UE *ue);
 void init_N_TA_offset(PHY_VARS_NR_UE *ue);
 void nr_dump_frame_parms(NR_DL_FRAME_PARMS *frame_parms);
 int phy_init_nr_gNB(PHY_VARS_gNB *gNB, unsigned char is_secondary_gNB, unsigned char lowmem_flag);

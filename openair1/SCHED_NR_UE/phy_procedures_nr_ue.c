@@ -123,8 +123,7 @@ void nr_fill_rx_indication(fapi_nr_rx_indication_t *rx_ind,
                            NR_UE_DLSCH_t *dlsch1,
                            uint16_t n_pdus,
                            UE_nr_rxtx_proc_t *proc,
-                           void *typeSpecific,
-                           nr_ue_phy_vars_data_t *phy_vars){
+                           void *typeSpecific){
 
   NR_DL_FRAME_PARMS *frame_parms = &ue->frame_parms;
 
@@ -175,7 +174,7 @@ void nr_fill_rx_indication(fapi_nr_rx_indication_t *rx_ind,
       rx_ind->rx_indication_body[n_pdus - 1].ssb_pdu.ssb_length = frame_parms->Lmax;
       rx_ind->rx_indication_body[n_pdus - 1].ssb_pdu.cell_id = frame_parms->Nid_cell;
       rx_ind->rx_indication_body[n_pdus - 1].ssb_pdu.ssb_start_subcarrier = frame_parms->ssb_start_subcarrier;
-      rx_ind->rx_indication_body[n_pdus - 1].ssb_pdu.rsrp_dBm = phy_vars->measurements.ssb_rsrp_dBm[frame_parms->ssb_index];
+      rx_ind->rx_indication_body[n_pdus - 1].ssb_pdu.rsrp_dBm = ue->measurements.ssb_rsrp_dBm[frame_parms->ssb_index];
     break;
     case FAPI_NR_CSIRS_IND:
       memcpy(&rx_ind->rx_indication_body[n_pdus - 1].csirs_measurements,
@@ -323,7 +322,7 @@ void phy_procedures_nrUE_TX(PHY_VARS_NR_UE *ue,
   }
 
   if (ue->UE_mode[gNB_id] > NOT_SYNCHED && ue->UE_mode[gNB_id] < PUSCH) {
-    nr_ue_prach_procedures(ue, proc, gNB_id);
+    nr_ue_prach_procedures(ue, proc, gNB_id, phy_vars);
   }
 
   LOG_D(PHY,"****** end TX-Chain for AbsSubframe %d.%d ******\n", proc->frame_tx, proc->nr_slot_tx);
@@ -356,13 +355,13 @@ void nr_ue_measurement_procedures(uint16_t l,
 #if T_TRACER
     if(slot == 0)
       T(T_UE_PHY_MEAS, T_INT(gNB_id),  T_INT(ue->Mod_id), T_INT(frame_rx%1024), T_INT(nr_slot_rx),
-	T_INT((int)(10*log10(phy_vars->measurements.rsrp[0])-phy_vars->rx_total_gain_dB)),
-	T_INT((int)phy_vars->measurements.rx_rssi_dBm[0]),
-	T_INT((int)(phy_vars->measurements.rx_power_avg_dB[0] - phy_vars->measurements.n0_power_avg_dB)),
-	T_INT((int)phy_vars->measurements.rx_power_avg_dB[0]),
-	T_INT((int)phy_vars->measurements.n0_power_avg_dB),
-	T_INT((int)phy_vars->measurements.wideband_cqi_avg[0]),
-	T_INT((int)phy_vars->common_vars.freq_offset));
+	T_INT((int)(10*log10(ue->measurements.rsrp[0])-ue->rx_total_gain_dB)),
+	T_INT((int)ue->measurements.rx_rssi_dBm[0]),
+	T_INT((int)(ue->measurements.rx_power_avg_dB[0] - ue->measurements.n0_power_avg_dB)),
+	T_INT((int)ue->measurements.rx_power_avg_dB[0]),
+	T_INT((int)ue->measurements.n0_power_avg_dB),
+	T_INT((int)ue->measurements.wideband_cqi_avg[0]),
+	T_INT((int)ue->common_vars.freq_offset));
 #endif
   }
 
@@ -375,7 +374,7 @@ void nr_ue_measurement_procedures(uint16_t l,
 
 
     //printf("start adjust gain power avg db %d\n", ue->measurements.rx_power_avg_dB[gNB_id]);
-    phy_adjust_gain_nr (ue,phy_vars->measurements.rx_power_avg_dB[gNB_id],gNB_id, phy_vars);
+    phy_adjust_gain_nr (ue,ue->measurements.rx_power_avg_dB[gNB_id],gNB_id, phy_vars);
     
     VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_UE_GAIN_CONTROL, VCD_FUNCTION_OUT);
 
@@ -406,7 +405,7 @@ static void nr_ue_pbch_procedures(uint8_t gNB_id,
                    proc,
                    estimateSz,
                    dl_ch_estimates,
-                   ue->pbch_vars[gNB_id],
+                   phy_vars->pbch_vars[gNB_id],
                    &ue->frame_parms,
                    gNB_id,
                    (ue->frame_parms.ssb_index)&7,
@@ -855,16 +854,16 @@ bool nr_ue_dlsch_procedures(PHY_VARS_NR_UE *ue,
     switch (pdsch) {
       case RA_PDSCH:
         nr_fill_dl_indication(&dl_indication, NULL, rx_ind, proc, ue, gNB_id, NULL);
-        nr_fill_rx_indication(rx_ind, FAPI_NR_RX_PDU_TYPE_RAR, gNB_id, ue, dlsch0, NULL, number_pdus, proc, NULL, phy_vars);
+        nr_fill_rx_indication(rx_ind, FAPI_NR_RX_PDU_TYPE_RAR, gNB_id, ue, dlsch0, NULL, number_pdus, proc, NULL);
         ue->UE_mode[gNB_id] = RA_RESPONSE;
         break;
       case PDSCH:
         nr_fill_dl_indication(&dl_indication, NULL, rx_ind, proc, ue, gNB_id, NULL);
-        nr_fill_rx_indication(rx_ind, FAPI_NR_RX_PDU_TYPE_DLSCH, gNB_id, ue, dlsch0, NULL, number_pdus, proc, NULL, phy_vars);
+        nr_fill_rx_indication(rx_ind, FAPI_NR_RX_PDU_TYPE_DLSCH, gNB_id, ue, dlsch0, NULL, number_pdus, proc, NULL);
         break;
       case SI_PDSCH:
         nr_fill_dl_indication(&dl_indication, NULL, rx_ind, proc, ue, gNB_id, NULL);
-        nr_fill_rx_indication(rx_ind, FAPI_NR_RX_PDU_TYPE_SIB, gNB_id, ue, dlsch0, NULL, number_pdus, proc, NULL, phy_vars);
+        nr_fill_rx_indication(rx_ind, FAPI_NR_RX_PDU_TYPE_SIB, gNB_id, ue, dlsch0, NULL, number_pdus, proc, NULL);
         break;
       default:
         break;
@@ -1353,11 +1352,11 @@ int phy_procedures_nrUE_RX_SSB_PDCCH(PHY_VARS_NR_UE *ue,
                                      uint8_t gNB_id,
                                      NR_UE_PDCCH_CONFIG *phy_pdcch_config) {
 
+  UE_nr_rxtx_proc_t *proc = &rxtxD->proc;
   int frame_rx = proc->frame_rx;
   int nr_slot_rx = proc->nr_slot_rx;
   fapi_nr_config_request_t *cfg = &ue->nrUE_config;
-  UE_nr_rxtx_proc_t *proc = rxtxD->proc;
-  nr_ue_phy_vars_data_t *phy_vars = rxtxD->phy_vars;
+  nr_ue_phy_vars_data_t *phy_vars = &rxtxD->phy_vars;
 
   NR_DL_FRAME_PARMS *fp = &ue->frame_parms;
   
@@ -1407,7 +1406,7 @@ int phy_procedures_nrUE_RX_SSB_PDCCH(PHY_VARS_NR_UE *ue,
           nr_ue_ssb_rsrp_measurements(ue, ssb_index, proc, nr_slot_rx, phy_vars);
 
           // resetting ssb index for PBCH detection if there is a stronger SSB index
-          if(phy_vars->measurements.ssb_rsrp_dBm[ssb_index] > phy_vars->measurements.ssb_rsrp_dBm[fp->ssb_index])
+          if(ue->measurements.ssb_rsrp_dBm[ssb_index] > ue->measurements.ssb_rsrp_dBm[fp->ssb_index])
             fp->ssb_index = ssb_index;
 
           if(ssb_index == fp->ssb_index) {
@@ -1487,10 +1486,11 @@ int phy_procedures_nrUE_RX_SSB_PDCCH(PHY_VARS_NR_UE *ue,
 
 
     }
-    dci_cnt = dci_cnt + nr_ue_pdcch_procedures(gNB_id, ue, proc, pdcch_est_size, pdcch_dl_ch_estimates, phy_pdcch_config, n_ss);
+    dci_cnt = dci_cnt + nr_ue_pdcch_procedures(gNB_id, ue, proc, pdcch_est_size, pdcch_dl_ch_estimates, phy_pdcch_config, n_ss, phy_vars);
   }
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_UE_SLOT_FEP_PDCCH, VCD_FUNCTION_OUT);
 #endif //NR_PDCCH_SCHED
+  return dci_cnt;
 }
 
 void phy_procedures_nrUE_RX_PDSCH(PHY_VARS_NR_UE *ue,
@@ -1502,9 +1502,7 @@ void phy_procedures_nrUE_RX_PDSCH(PHY_VARS_NR_UE *ue,
 
   int frame_rx                    = proc->frame_rx;
   int nr_slot_rx                  = proc->nr_slot_rx;
-  fapi_nr_config_request_t *cfg   = &ue->nrUE_config;
 
-  NR_DL_FRAME_PARMS *fp = &ue->frame_parms;
   if (dci_cnt > 0) {
 
     LOG_D(PHY,"[UE %d] Frame %d, nr_slot_rx %d: found %d DCIs\n", ue->Mod_id, frame_rx, nr_slot_rx, dci_cnt);
@@ -1625,7 +1623,8 @@ void phy_procedures_nrUE_RX_PDSCH(PHY_VARS_NR_UE *ue,
                            RA_PDSCH,
                            phy_vars->dlsch_ra[gNB_id],
                            NULL,
-                           &phy_vars->dlsch_ra_errors[gNB_id]);
+                           &phy_vars->dlsch_ra_errors[gNB_id],
+                           phy_vars);
 
     // deactivate dlsch once dlsch proc is done
     phy_vars->dlsch_ra[gNB_id]->active = 0;
@@ -1651,14 +1650,10 @@ void phy_procedures_nrUE_RX_PDSCH(PHY_VARS_NR_UE *ue,
 			   PDSCH,
 			   phy_vars->dlsch[gNB_id][0],
 			   dlsch1,
-			   &phy_vars->dlsch_errors[gNB_id]);
+			   &phy_vars->dlsch_errors[gNB_id],
+         phy_vars);
 
   stop_meas(&phy_vars->dlsch_procedures_stat);
-  if (cpumeas(CPUMEAS_GETSTATE)) {
-    LOG_D(PHY, "[SFN %d] Slot1:       Pdsch Proc %5.2f\n",nr_slot_rx,phy_vars->pdsch_procedures_stat.p_time/(cpuf*1000.0));
-    LOG_D(PHY, "[SFN %d] Slot0 Slot1: Dlsch Proc %5.2f\n",nr_slot_rx,phy_vars->dlsch_procedures_stat.p_time/(cpuf*1000.0));
-  }
-
   // deactivate dlsch once dlsch proc is done
   phy_vars->dlsch[gNB_id][0]->active = 0;
 
@@ -1696,7 +1691,6 @@ void phy_procedures_nrUE_RX_PDSCH(PHY_VARS_NR_UE *ue,
     phy_vars->csirs_vars[gNB_id]->active = 0;
   }
 
-  start_meas(&phy_vars->generic_stat);
 
   if (nr_slot_rx==9) {
     if (frame_rx % 10 == 0) {
@@ -1706,7 +1700,6 @@ void phy_procedures_nrUE_RX_PDSCH(PHY_VARS_NR_UE *ue,
       phy_vars->dlsch_errors_last[gNB_id] = phy_vars->dlsch_errors[gNB_id];
       phy_vars->dlsch_received_last[gNB_id] = phy_vars->dlsch_received[gNB_id];
     }
-
 
     phy_vars->bitrate[gNB_id] = (phy_vars->total_TBS[gNB_id] - phy_vars->total_TBS_last[gNB_id])*100;
     phy_vars->total_TBS_last[gNB_id] = phy_vars->total_TBS[gNB_id];
@@ -1722,14 +1715,7 @@ void phy_procedures_nrUE_RX_PDSCH(PHY_VARS_NR_UE *ue,
 
   }
 
-  stop_meas(&phy_vars->generic_stat);
-  if (cpumeas(CPUMEAS_GETSTATE))
-    LOG_D(PHY,"after tubo until end of Rx %5.2f \n",phy_vars->generic_stat.p_time/(cpuf*1000.0));
-
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PHY_PROCEDURES_UE_RX, VCD_FUNCTION_OUT);
-
-  if (cpumeas(CPUMEAS_GETSTATE))
-    LOG_D(PHY, "------FULL RX PROC [SFN %d]: %5.2f ------\n",nr_slot_rx,phy_vars->phy_proc_rx.p_time/(cpuf*1000.0));
 
   LOG_D(PHY," ****** end RX-Chain for Frame.Slot %d.%d (energy %d dB)******  \n",
         frame_rx%1024, nr_slot_rx,

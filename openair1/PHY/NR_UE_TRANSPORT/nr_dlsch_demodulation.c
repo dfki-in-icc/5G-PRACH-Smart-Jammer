@@ -470,7 +470,7 @@ int nr_rx_pdsch(PHY_VARS_NR_UE *ue,
     nbSymb = dlsch1_harq->nb_symbols;
     pduBitmap = dlsch1_harq->pduBitmap;
   }
-
+  
   /* Check for PTRS bitmap and process it respectively */
   if((pduBitmap & 0x1) && (type == PDSCH)) {
     nr_pdsch_ptrs_processing(ue,
@@ -485,7 +485,7 @@ int nr_rx_pdsch(PHY_VARS_NR_UE *ue,
                              dlsch[0]->rnti,rx_type);
     pdsch_vars[gNB_id]->dl_valid_re[symbol-1] -= pdsch_vars[gNB_id]->ptrs_re_per_slot[0][symbol];
   }
-
+  
   /* at last symbol in a slot calculate LLR's for whole slot */
   if(symbol == (startSymbIdx + nbSymb -1)) {
     for(uint8_t i =startSymbIdx; i < (startSymbIdx+nbSymb);i++) {
@@ -508,7 +508,7 @@ int nr_rx_pdsch(PHY_VARS_NR_UE *ue,
                    pdsch_vars[gNB_id]->dl_valid_re[i-1],
                    nr_slot_rx, beamforming_mode);
     }
-
+    
     int dmrs_type = dlsch[0]->harq_processes[harq_pid]->dmrsConfigType;
     uint8_t nb_re_dmrs;
     uint16_t dmrs_len = get_num_dmrs(dlsch[0]->harq_processes[harq_pid]->dlDmrsSymbPos);
@@ -540,7 +540,7 @@ int nr_rx_pdsch(PHY_VARS_NR_UE *ue,
 #ifdef DEBUG_PDSCH_RX
   char filename[50];
   uint8_t aa = 0;
-
+  
   snprintf(filename, 50, "rxdataF0_symb_%d_nr_slot_rx_%d.m", symbol, nr_slot_rx);
   write_output(filename, "rxdataF0", &phy_vars->rxdataF[0][0], NR_SYMBOLS_PER_SLOT*frame_parms->ofdm_symbol_size, 1, 1);
 

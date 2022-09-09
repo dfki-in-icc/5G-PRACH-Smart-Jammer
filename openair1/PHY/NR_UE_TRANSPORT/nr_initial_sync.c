@@ -602,7 +602,8 @@ int nr_initial_sync(UE_nr_rxtx_proc_t *proc,
                                          SI_PDSCH,
                                          phy_vars->dlsch_SI[gnb_id],
                                          NULL,
-                                         &ue->dlsch_SI_errors[gnb_id]);
+                                         &ue->dlsch_SI_errors[gnb_id],
+                                         phy_vars);
 
           // deactivate dlsch once dlsch proc is done
           phy_vars->dlsch_SI[gnb_id]->active = 0;

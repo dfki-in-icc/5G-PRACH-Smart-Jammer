@@ -143,6 +143,12 @@ void init_phy_vars(PHY_VARS_NR_UE *ue, nr_ue_phy_vars_data_t *phy_vars) {
   NR_UE_CSI_RS **const csirs_vars        = phy_vars->csirs_vars;
   NR_UE_SRS **const srs_vars             = phy_vars->srs_vars;
 
+  // Setting UE mode to NOT_SYNCHED by default
+  for (int gNB_id = 0; gNB_id < ue->n_connected_gNB; gNB_id++){
+    ue->UE_mode[gNB_id] = NOT_SYNCHED;
+    phy_vars->prach_resources[gNB_id] = (NR_PRACH_RESOURCES_t *)malloc16_clear(sizeof(NR_PRACH_RESOURCES_t));
+  }
+
   /////////////////////////PUCCH init/////////////////////////
   ///////////
   for (int gNB_id = 0; gNB_id < ue->n_connected_gNB; gNB_id++) {
@@ -397,6 +403,7 @@ int init_nr_ue_signal(PHY_VARS_NR_UE *ue, int nb_connected_gNB)
 void term_nr_ue_signal(PHY_VARS_NR_UE *ue, int nb_connected_gNB, nr_ue_phy_vars_data_t *phy_vars)
 {
   const NR_DL_FRAME_PARMS* fp = &ue->frame_parms;
+  const int N_RB_DL = fp->N_RB_DL;
   phy_term_nr_top();
 
   for (int gNB_id = 0; gNB_id < ue->n_connected_gNB; gNB_id++) {
@@ -488,8 +495,8 @@ void term_nr_ue_signal(PHY_VARS_NR_UE *ue, int nb_connected_gNB, nr_ue_phy_vars_
       free_nr_ue_dlsch(&phy_vars->dlsch[gNB_id][j], N_RB_DL);
     }
     free_nr_ue_ulsch(&phy_vars->ulsch[gNB_id], N_RB_DL, &ue->frame_parms);
-    free_nr_ue_dlsch(&ue->dlsch_SI[gNB_id], N_RB_DL);
-    free_nr_ue_dlsch(&ue->dlsch_ra[gNB_id], N_RB_DL);
+    free_nr_ue_dlsch(&phy_vars->dlsch_SI[gNB_id], N_RB_DL);
+    free_nr_ue_dlsch(&phy_vars->dlsch_ra[gNB_id], N_RB_DL);
   }
 
   free_and_zero(ue->sinr_CQI_dB);

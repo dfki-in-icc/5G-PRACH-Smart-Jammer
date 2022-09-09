@@ -378,7 +378,7 @@ int8_t nr_ue_scheduled_response(nr_scheduled_response_t *scheduled_response){
         switch(dl_config->dl_config_list[i].pdu_type) {
           case FAPI_NR_DL_CONFIG_TYPE_DCI:
             if (NULL == phy_pdcch_config) {
-              phy_pdcch_config = (NR_UE_PDCCH_CONFIG *)phy_vars->phy_pdcch_config;
+              phy_pdcch_config = &phy_vars->phy_pdcch_config;
               phy_pdcch_config->nb_search_space = 0;
             }
             pdcch_config = &dl_config->dl_config_list[i].dci_config_pdu.dci_config_rel15;

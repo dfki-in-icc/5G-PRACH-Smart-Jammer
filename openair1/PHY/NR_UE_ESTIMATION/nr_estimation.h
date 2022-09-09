@@ -101,20 +101,24 @@ void nr_adjust_synch_ue(NR_DL_FRAME_PARMS *frame_parms,
                       
 void nr_ue_measurements(PHY_VARS_NR_UE *ue,
                         UE_nr_rxtx_proc_t *proc,
-                        uint8_t slot);
+                        uint8_t slot,
+                        nr_ue_phy_vars_data_t *phy_vars);
 
 void nr_ue_ssb_rsrp_measurements(PHY_VARS_NR_UE *ue,
                                  uint8_t gNB_index,
                                  UE_nr_rxtx_proc_t *proc,
-                                 uint8_t slot);
+                                 uint8_t slot,
+                                 nr_ue_phy_vars_data_t *phy_vars);
 
 void nr_ue_rrc_measurements(PHY_VARS_NR_UE *ue,
                             UE_nr_rxtx_proc_t *proc,
-                            uint8_t slot);
+                            uint8_t slot,
+                            nr_ue_phy_vars_data_t *phy_vars);
 
 void phy_adjust_gain_nr(PHY_VARS_NR_UE *ue,
                         uint32_t rx_power_fil_dB,
-                        uint8_t gNB_id);
+                        uint8_t gNB_id,
+                        nr_ue_phy_vars_data_t *phy_vars);
 
 int16_t get_nr_PL(uint8_t Mod_id, uint8_t CC_id, uint8_t gNB_index);
 
