@@ -1129,14 +1129,12 @@ int nr_rx_pbch( PHY_VARS_NR_UE *ue,
                 uint8_t eNB_id,
                 uint8_t i_ssb,
                 MIMO_mode_t mimo_mode,
-                NR_UE_PDCCH_CONFIG *phy_pdcch_config,
                 fapiPbch_t* result,
                 nr_ue_phy_vars_data_t *phy_vars);
 
 int nr_pbch_detection(UE_nr_rxtx_proc_t *proc,
                       PHY_VARS_NR_UE *ue,
                       int pbch_initial_symbol,
-                      NR_UE_PDCCH_CONFIG *phy_pdcch_config,
                       nr_ue_phy_vars_data_t *phy_vars);
 
 uint16_t rx_pbch_emul(PHY_VARS_NR_UE *phy_vars_ue,

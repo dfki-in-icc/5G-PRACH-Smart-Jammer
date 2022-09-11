@@ -538,29 +538,32 @@ int nr_rx_pdsch(PHY_VARS_NR_UE *ue,
 
   // Please keep it: useful for debugging
 #ifdef DEBUG_PDSCH_RX
-  char filename[50];
+  int len = 100;
+  char filename[len];
   uint8_t aa = 0;
   
-  snprintf(filename, 50, "rxdataF0_symb_%d_nr_slot_rx_%d.m", symbol, nr_slot_rx);
+  snprintf(filename, len, "rxdataF0_symb_%d_nr_slot_rx_%d_frame_%d.m", symbol, nr_slot_rx, frame);
   write_output(filename, "rxdataF0", &phy_vars->rxdataF[0][0], NR_SYMBOLS_PER_SLOT*frame_parms->ofdm_symbol_size, 1, 1);
 
-  snprintf(filename, 50, "dl_ch_estimates0%d_symb_%d_nr_slot_rx_%d.m", aa, symbol, nr_slot_rx);
+  snprintf(filename, len, "dl_ch_estimates0%d_symb_%d_nr_slot_rx_%d_frame_%d.m", aa, symbol, nr_slot_rx, frame);
   write_output(filename, "dl_ch_estimates", &pdsch_vars[gNB_id]->dl_ch_estimates[aa][0], NR_SYMBOLS_PER_SLOT*frame_parms->ofdm_symbol_size, 1, 1);
 
-  snprintf(filename, 50, "rxdataF_ext0%d_symb_%d_nr_slot_rx_%d.m", aa, symbol, nr_slot_rx);
+  snprintf(filename, len, "rxdataF_ext0%d_symb_%d_nr_slot_rx_%d_frame_%d.m", aa, symbol, nr_slot_rx, frame);
   write_output(filename, "rxdataF_ext", &pdsch_vars[gNB_id]->rxdataF_ext[aa][0], NR_SYMBOLS_PER_SLOT*frame_parms->N_RB_DL*NR_NB_SC_PER_RB, 1, 1);
 
-  snprintf(filename, 50, "dl_ch_estimates_ext0%d_symb_%d_nr_slot_rx_%d.m", aa, symbol, nr_slot_rx);
+  snprintf(filename, len, "dl_ch_estimates_ext0%d_symb_%d_nr_slot_rx_%d_frame_%d.m", aa, symbol, nr_slot_rx, frame);
   write_output(filename, "dl_ch_estimates_ext00", &pdsch_vars[gNB_id]->dl_ch_estimates_ext[aa][0], NR_SYMBOLS_PER_SLOT*frame_parms->N_RB_DL*NR_NB_SC_PER_RB, 1, 1);
 
-  snprintf(filename, 50, "rxdataF_comp0%d_symb_%d_nr_slot_rx_%d.m", aa, symbol, nr_slot_rx);
+  snprintf(filename, len, "rxdataF_comp0%d_symb_%d_nr_slot_rx_%d_frame_%d.m", aa, symbol, nr_slot_rx, frame);
   write_output(filename, "rxdataF_comp00", &pdsch_vars[gNB_id]->rxdataF_comp0[aa][0], NR_SYMBOLS_PER_SLOT*frame_parms->N_RB_DL*NR_NB_SC_PER_RB, 1, 1);
-/*
+
   for (int i=0; i < 2; i++){
-    snprintf(filename, 50,  "llr%d_symb_%d_nr_slot_rx_%d.m", i, symbol, nr_slot_rx);
-    write_output(filename,"llr",  &pdsch_vars[gNB_id]->llr[i][0], (NR_SYMBOLS_PER_SLOT*nb_rb_pdsch*NR_NB_SC_PER_RB*dlsch1_harq->Qm) - 4*(nb_rb_pdsch*4*dlsch1_harq->Qm), 1, 0);
+    NR_DL_UE_HARQ_t *dlsch_debug = ((i == 0) ? dlsch0_harq : dlsch1_harq);
+    if (dlsch_debug == NULL) break;
+    snprintf(filename, len,  "llr%d_symb_%d_nr_slot_rx_%d_frame_%d.m", i, symbol, nr_slot_rx, frame);
+    write_output(filename,"llr",  &pdsch_vars[gNB_id]->llr[i][0], (NR_SYMBOLS_PER_SLOT*nb_rb_pdsch*NR_NB_SC_PER_RB*dlsch_debug->Qm) - 4*(nb_rb_pdsch*4*dlsch_debug->Qm), 1, 0);
   }
-*/
+
 #endif
 
 #if T_TRACER

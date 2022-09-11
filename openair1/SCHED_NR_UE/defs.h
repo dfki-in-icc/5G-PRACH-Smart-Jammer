@@ -131,8 +131,7 @@ int phy_procedures_nrUE_RX(PHY_VARS_NR_UE *ue,
 
 int phy_procedures_nrUE_RX_SSB_PDCCH(PHY_VARS_NR_UE *ue,
                                      nr_rxtx_thread_data_t *rxtxD,
-                                     uint8_t gNB_id,
-                                     NR_UE_PDCCH_CONFIG *phy_pdcch_config);
+                                     uint8_t gNB_id);
 
 void phy_procedures_nrUE_RX_PDSCH(PHY_VARS_NR_UE *ue,
                                   UE_nr_rxtx_proc_t *proc,
@@ -433,7 +432,6 @@ int nr_ue_pdcch_procedures(uint8_t gNB_id,
                            UE_nr_rxtx_proc_t *proc,
                            int32_t pdcch_est_size,
                            int32_t pdcch_dl_ch_estimates[][pdcch_est_size],
-                           NR_UE_PDCCH_CONFIG *phy_pdcch_config,
                            int n_ss,
                            nr_ue_phy_vars_data_t *phy_vars);
 

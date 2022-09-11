@@ -2778,11 +2778,19 @@ void nr_ue_prach_scheduler(module_id_t module_idP, frame_t frameP, sub_frame_t s
             AssertFatal(1 == 0, "Invalid PRACH format");
         }
       } // if format1
-
-      fill_scheduled_response(&scheduled_response, NULL, ul_config, NULL, module_idP, 0 /*TBR fix*/, frameP, slotP, phy_data);
-      if(mac->if_module != NULL && mac->if_module->scheduled_response != NULL)
-        mac->if_module->scheduled_response(&scheduled_response);
     } // is_nr_prach_slot
+    // moved this function call from PHY to MAC and send RA state via scheduled response
+    nr_ue_phy_vars_data_t *phy_vars = (nr_ue_phy_vars_data_t *) phy_data;
+    phy_vars->ra_state = nr_ue_get_rach(phy_vars->prach_resources[module_idP],
+                                        prach_config_pdu,
+                                        module_idP,
+                                        0,
+                                        frameP,
+                                        0,
+                                        slotP);
+    fill_scheduled_response(&scheduled_response, NULL, ul_config, NULL, module_idP, 0 /*TBR fix*/, frameP, slotP, phy_data);
+    if(mac->if_module != NULL && mac->if_module->scheduled_response != NULL)
+      mac->if_module->scheduled_response(&scheduled_response);
   } // if is_nr_UL_slot
 }
 

@@ -650,7 +650,7 @@ int process_PDCCH_rx(PHY_VARS_NR_UE *UE, nr_rxtx_thread_data_t *rxtxD) {
     }
   }
 
-  int dci_count = phy_procedures_nrUE_RX_SSB_PDCCH(UE, rxtxD, rxtxD->gnb_id, &rxtxD->phy_vars.phy_pdcch_config);
+  int dci_count = phy_procedures_nrUE_RX_SSB_PDCCH(UE, rxtxD, rxtxD->gnb_id);
 
   if ((proc->frame_rx%64 == 0) && (proc->nr_slot_rx==0)) {
     LOG_I(NR_PHY,"============================================\n");
@@ -706,21 +706,29 @@ void UE_processing(void *arg) {
   start_meas(&UE->phy_proc_rx[proc->thread_id]);
   int dci_count = process_PDCCH_rx(UE, rxtxD);
 
-  notifiedFIFO_elt_t *res = pullNotifiedFIFO(&UE->childProcRes);
+  notifiedFIFO_elt_t *res = pullNotifiedFIFO_nothreadSafe(&UE->childProcFree);
   nr_rxtx_thread_data_t *curMsg = (nr_rxtx_thread_data_t *)NotifiedFifoData(res);
   curMsg->dci_count = dci_count;
   curMsg->gnb_id = gNB_id;
   curMsg->proc = *proc;
+  curMsg->phy_vars = rxtxD->phy_vars;
+  //memcpy(curMsg->phy_vars.dlsch_ra[gNB_id], rxtxD->phy_vars.dlsch_ra[gNB_id], sizeof(NR_UE_DLSCH_t));
   res->processingFunc = process_PDSCH_rx;
   pushTpool(&(get_nrUE_params()->Tpool), res);
 
-  res = pullNotifiedFIFO(&UE->childProcRes);
+  res = pullNotifiedFIFO_nothreadSafe(&UE->childProcFree);
   curMsg = (nr_rxtx_thread_data_t *)NotifiedFifoData(res);
   curMsg->gnb_id = gNB_id;
   curMsg->proc = *proc;
   res->processingFunc = processSlotTX;
   pushTpool(&(get_nrUE_params()->Tpool), res);
 
+  int processedThr = 0;
+  while (processedThr < NR_NB_TH_SLOT) {
+    res = pullNotifiedFIFO(&UE->childProcRes);
+    pushNotifiedFIFO_nothreadSafe(&UE->childProcFree, res);
+    processedThr++;
+  }
   stop_meas(&UE->total_proc);
 
 }
@@ -850,15 +858,18 @@ void *UE_thread(void *arg) {
   int absolute_slot=0, decoded_frame_rx=INT_MAX, trashed_frames=0;
 
   initNotifiedFIFO(&UE->childProcRes);
+  initNotifiedFIFO_nothreadSafe(&UE->childProcFree);
   for (int i=0; i<(NR_RX_NB_TH+1); i++) {// NR_RX_NB_TH working + 1 we are making to be pushed
     notifiedFIFO_elt_t *newElt = newNotifiedFIFO_elt(sizeof(nr_rxtx_thread_data_t), RX_JOB_ID, &nf, UE_processing);
     nr_rxtx_thread_data_t *curMsg = (nr_rxtx_thread_data_t *)NotifiedFifoData(newElt);
+    curMsg->UE = UE;
     init_phy_vars(UE, &curMsg->phy_vars); 
     for (int j=0; j < NR_NB_TH_SLOT; j++) {
       notifiedFIFO_elt_t *newElt_in = newNotifiedFIFO_elt(sizeof(nr_rxtx_thread_data_t), TX_JOB_ID, &UE->childProcRes, NULL);
       nr_rxtx_thread_data_t *curMsg_in = (nr_rxtx_thread_data_t *)NotifiedFifoData(newElt_in);
+      curMsg_in->UE = UE;
       init_phy_vars(UE, &curMsg_in->phy_vars); 
-      pushNotifiedFIFO_nothreadSafe(&UE->childProcRes, newElt_in);
+      pushNotifiedFIFO_nothreadSafe(&UE->childProcFree, newElt_in);
     }
     pushNotifiedFIFO_nothreadSafe(&freeBlocks, newElt);
   }
@@ -890,7 +901,8 @@ void *UE_thread(void *arg) {
           // shift the frame index with all the frames we trashed meanwhile we perform the synch search
           decoded_frame_rx=(decoded_frame_rx + UE->init_sync_frame + trashed_frames) % MAX_FRAME_NUMBER;
         }
-        delNotifiedFIFO_elt(res);
+        res->processingFunc = UE_processing;
+        pushNotifiedFIFO_nothreadSafe(&freeBlocks, res);
         start_rx_stream=0;
       } else {
         readFrame(UE, &timestamp, true);
@@ -903,7 +915,8 @@ void *UE_thread(void *arg) {
 
     if (!UE->is_synchronized) {
       readFrame(UE, &timestamp, false);
-      notifiedFIFO_elt_t *Msg=newNotifiedFIFO_elt(sizeof(syncData_t),0,&nf,UE_synch);
+      notifiedFIFO_elt_t *Msg=pullNotifiedFIFO_nothreadSafe(&freeBlocks);
+      Msg->processingFunc = UE_synch;
       syncData_t *syncMsg=(syncData_t *)NotifiedFifoData(Msg);
       syncMsg->UE=UE;
       memset(&syncMsg->proc, 0, sizeof(syncMsg->proc));

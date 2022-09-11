@@ -950,6 +950,7 @@ typedef struct {
   int dl_stats[8];
   void* scopeData;
   notifiedFIFO_t childProcRes;
+  notifiedFIFO_t childProcFree;
 } PHY_VARS_NR_UE;
 
 typedef struct nr_ue_phy_vars_data_s {
@@ -969,6 +970,7 @@ typedef struct nr_ue_phy_vars_data_s {
   NR_UE_DLSCH_t *dlsch_MCH[NUMBER_OF_CONNECTED_gNB_MAX];
   NR_PRACH_RESOURCES_t *prach_resources[NUMBER_OF_CONNECTED_gNB_MAX];
   NR_UE_PDCCH_CONFIG phy_pdcch_config;
+  int ra_state;
   /// SRS variables
   nr_srs_info_t *nr_srs_info;
   /// CSI variables
