@@ -1501,14 +1501,12 @@ void set_harq_status(NR_UE_MAC_INST_t *mac,
   // FIXME k0 != 0 currently not taken into consideration
   current_harq->dl_frame = frame;
   current_harq->dl_slot = slot;
-  if (get_softmodem_params()->emulate_l1) {
-    int scs = get_softmodem_params()->numerology;
-    int slots_per_frame = nr_slots_per_frame[scs];
-    slot += data_toul_fb;
-    if (slot >= slots_per_frame) {
-      frame = (frame + 1) % 1024;
-      slot %= slots_per_frame;
-    }
+  int scs = get_softmodem_params()->numerology;
+  int slots_per_frame = nr_slots_per_frame[scs];
+  slot += data_toul_fb;
+  if (slot >= slots_per_frame) {
+    frame = (frame + 1) % 1024;
+    slot %= slots_per_frame;
   }
 
   LOG_D(NR_PHY,"Setting harq_status for harq_id %d, dl %d.%d, sched ul %d.%d\n",

@@ -723,6 +723,13 @@ typedef struct {
 #endif
 
 
+  NR_UE_DLSCH_t *dlsch[NUMBER_OF_CONNECTED_gNB_MAX][NR_MAX_NB_LAYERS>4 ? 2:1];
+  NR_UE_ULSCH_t *ulsch[NUMBER_OF_CONNECTED_gNB_MAX];
+  NR_UE_DLSCH_t *dlsch_SI[NUMBER_OF_CONNECTED_gNB_MAX];
+  NR_UE_DLSCH_t *dlsch_ra[NUMBER_OF_CONNECTED_gNB_MAX];
+  NR_UE_DLSCH_t *dlsch_p[NUMBER_OF_CONNECTED_gNB_MAX];
+  NR_UE_DLSCH_t *dlsch_MCH[NUMBER_OF_CONNECTED_gNB_MAX];
+
   /// PBCH DMRS sequence
   uint32_t nr_gold_pbch[2][64][NR_PBCH_DMRS_LENGTH_DWORD];
 

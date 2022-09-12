@@ -207,8 +207,8 @@ int nr_ulsch_encoding(PHY_VARS_NR_UE *ue,
   LOG_D(NR_PHY, "harq_pid %d harq_process->ndi %d, pusch_data.new_data_indicator %d\n",
         harq_pid,harq_process->ndi,harq_process->pusch_pdu.pusch_data.new_data_indicator);
 
-  //if (harq_process->first_tx == 1 ||
-  //    harq_process->ndi != harq_process->pusch_pdu.pusch_data.new_data_indicator) {  // this is a new packet
+  if (harq_process->first_tx == 1 ||
+      harq_process->ndi != harq_process->pusch_pdu.pusch_data.new_data_indicator) {  // this is a new packet
 #ifdef DEBUG_ULSCH_CODING
   printf("encoding thinks this is a new packet \n");
 #endif
@@ -352,7 +352,7 @@ int nr_ulsch_encoding(PHY_VARS_NR_UE *ue,
 ///////////////////////////////////////////////////////////////////////////////
     LOG_D(PHY,"setting ndi to %d from pusch_data\n", harq_process->pusch_pdu.pusch_data.new_data_indicator);
     harq_process->ndi = harq_process->pusch_pdu.pusch_data.new_data_indicator;
-  //}
+  }
   F = harq_process->F;
   Kr = harq_process->K;
 
