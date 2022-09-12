@@ -570,6 +570,11 @@ int nr_initial_sync(UE_nr_rxtx_proc_t *proc,
 
       }
       int  dci_cnt = nr_ue_pdcch_procedures(gnb_id, ue, proc, pdcch_est_size, pdcch_dl_ch_estimates, n_ss, phy_vars);
+      //fill dci indication
+      nr_downlink_indication_t dl_indication;
+      nr_fill_dl_indication(&dl_indication, phy_vars->dci_ind+n_ss, NULL, proc, ue, gnb_id, phy_vars);
+      // send to mac and get PDSCH config on thread phy_vars
+      ue->if_inst->dl_indication(&dl_indication, NULL);
       if (dci_cnt>0){
         NR_UE_DLSCH_t *dlsch = phy_vars->dlsch_SI[gnb_id];
         if (dlsch && (dlsch->active == 1)) {

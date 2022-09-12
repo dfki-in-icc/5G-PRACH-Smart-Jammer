@@ -442,6 +442,7 @@ typedef struct {
   nr_emulated_l1_t nr_ue_emul_l1;
 
   pthread_mutex_t mutex_dl_info;
+  pthread_mutex_t mutex_mac;
 
 } NR_UE_MAC_INST_t;
 

@@ -940,7 +940,6 @@ uint8_t nr_dci_decoding_procedure(PHY_VARS_NR_UE *ue,
     }
     e_rx_cand_idx += 9*L*6*2; //e_rx index for next candidate (L CCEs, 6 REGs per CCE and 9 REs per REG and 2 uint16_t per RE)
   }
-  phy_pdcch_config->nb_search_space = 0;
   return(dci_ind->number_of_dcis);
 }
 

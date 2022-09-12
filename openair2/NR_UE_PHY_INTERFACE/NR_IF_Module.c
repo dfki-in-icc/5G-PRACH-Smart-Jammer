@@ -1128,9 +1128,11 @@ int nr_ue_ul_indication(nr_uplink_indication_t *ul_info){
   NR_UE_L2_STATE_t ret=0;
   module_id_t module_id = ul_info->module_id;
   NR_UE_MAC_INST_t *mac = get_mac_inst(module_id);
+  pthread_mutex_lock(&mac->mutex_mac);
 
   if (ul_info->ue_sched_mode == ONLY_PUSCH) {
     ret = nr_ue_scheduler(NULL, ul_info);
+    pthread_mutex_unlock(&mac->mutex_mac);
     return 0;
   }
   if (ul_info->ue_sched_mode == SCHED_ALL) {
@@ -1161,6 +1163,7 @@ int nr_ue_ul_indication(nr_uplink_indication_t *ul_info){
     break;
   }
 
+  pthread_mutex_unlock(&mac->mutex_mac);
   return 0;
 }
 
@@ -1169,6 +1172,7 @@ int nr_ue_dl_indication(nr_downlink_indication_t *dl_info, NR_UL_TIME_ALIGNMENT_
   uint32_t ret_mask = 0x0;
   module_id_t module_id = dl_info->module_id;
   NR_UE_MAC_INST_t *mac = get_mac_inst(module_id);
+  pthread_mutex_lock(&mac->mutex_mac);
   fapi_nr_dl_config_request_t *dl_config = &mac->dl_config_request;
 
   if ((!dl_info->dci_ind && !dl_info->rx_ind)) {
@@ -1209,8 +1213,6 @@ int nr_ue_dl_indication(nr_downlink_indication_t *dl_info, NR_UL_TIME_ALIGNMENT_
         }
         memset(def_dci_pdu_rel15, 0, sizeof(*def_dci_pdu_rel15));
       }
-      free(dl_info->dci_ind);
-      dl_info->dci_ind = NULL;
     }
 
     if (dl_info->rx_ind != NULL) {
@@ -1262,12 +1264,11 @@ int nr_ue_dl_indication(nr_downlink_indication_t *dl_info, NR_UL_TIME_ALIGNMENT_
     }
 
     //clean up nr_downlink_indication_t *dl_info
-    free(dl_info->dci_ind);
-    dl_info->dci_ind = NULL;
     free(dl_info->rx_ind);
     dl_info->rx_ind  = NULL;
 
   }
+  pthread_mutex_unlock(&mac->mutex_mac);
   return 0;
 }
 

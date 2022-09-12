@@ -645,6 +645,7 @@ int process_PDCCH_rx(PHY_VARS_NR_UE *UE, nr_rxtx_thread_data_t *rxtxD) {
 
     if(UE->if_inst != NULL && UE->if_inst->dl_indication != NULL) {
       nr_downlink_indication_t dl_indication;
+      memset(&rxtxD->phy_vars.phy_pdcch_config, 0, sizeof(NR_UE_PDCCH_CONFIG));
       nr_fill_dl_indication(&dl_indication, NULL, NULL, proc, UE, rxtxD->gnb_id, &rxtxD->phy_vars);
       UE->if_inst->dl_indication(&dl_indication, NULL);
     }
@@ -708,11 +709,16 @@ void UE_processing(void *arg) {
 
   notifiedFIFO_elt_t *res = pullNotifiedFIFO_nothreadSafe(&UE->childProcFree);
   nr_rxtx_thread_data_t *curMsg = (nr_rxtx_thread_data_t *)NotifiedFifoData(res);
+  for (int i=0; i < rxtxD->phy_vars.phy_pdcch_config.nb_search_space; i++) {
+    //fill dci indication
+    nr_downlink_indication_t dl_indication;
+    nr_fill_dl_indication(&dl_indication, rxtxD->phy_vars.dci_ind+i, NULL, proc, UE, gNB_id, &curMsg->phy_vars);
+    // send to mac and get PDSCH config on thread phy_vars
+    UE->if_inst->dl_indication(&dl_indication, NULL);
+  }
   curMsg->dci_count = dci_count;
   curMsg->gnb_id = gNB_id;
   curMsg->proc = *proc;
-  curMsg->phy_vars = rxtxD->phy_vars;
-  //memcpy(curMsg->phy_vars.dlsch_ra[gNB_id], rxtxD->phy_vars.dlsch_ra[gNB_id], sizeof(NR_UE_DLSCH_t));
   res->processingFunc = process_PDSCH_rx;
   pushTpool(&(get_nrUE_params()->Tpool), res);
 
@@ -848,9 +854,13 @@ void *UE_thread(void *arg) {
   notifiedFIFO_t freeBlocks;
   initNotifiedFIFO_nothreadSafe(&freeBlocks);
 
+  pthread_mutex_init(&UE->mutex_UE_mode, NULL);
+  pthread_mutex_init(&UE->mutex_rx_offset, NULL);
+  NR_UE_MAC_INST_t *mac = get_mac_inst(0);
+  pthread_mutex_init(&mac->mutex_mac, NULL);
+
   int nbSlotProcessing=0;
   int thread_idx=0;
-  NR_UE_MAC_INST_t *mac = get_mac_inst(0);
   int timing_advance = UE->timing_advance;
 
   bool syncRunning=false;

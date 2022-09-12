@@ -970,6 +970,7 @@ typedef struct nr_ue_phy_vars_data_s {
   NR_UE_DLSCH_t *dlsch_MCH[NUMBER_OF_CONNECTED_gNB_MAX];
   NR_PRACH_RESOURCES_t *prach_resources[NUMBER_OF_CONNECTED_gNB_MAX];
   NR_UE_PDCCH_CONFIG phy_pdcch_config;
+  fapi_nr_dci_indication_t *dci_ind;
   int ra_state;
   /// SRS variables
   nr_srs_info_t *nr_srs_info;
@@ -978,11 +979,12 @@ typedef struct nr_ue_phy_vars_data_s {
 
   int **rxdataF;
   time_stats_t pbch_channel_estimation_stats;
+  time_stats_t pbch_decoding_stats;
+  time_stats_t pdcch_decoding_stats;
+  time_stats_t pdsch_procedures_stats;
   time_stats_t dlsch_rx_pdcch_stats;
   time_stats_t rx_pdsch_stats;
-  time_stats_t generic_stat_bis[LTE_SLOTS_PER_SUBFRAME];
-  time_stats_t dlsch_llr_stats_parallelization[LTE_SLOTS_PER_SUBFRAME];
-  time_stats_t dlsch_procedures_stat;
+  time_stats_t dlsch_procedures_stats;
   time_stats_t dlsch_unscrambling_stats;
   time_stats_t dlsch_decoding_stats;
 

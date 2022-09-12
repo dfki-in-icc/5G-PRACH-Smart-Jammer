@@ -152,7 +152,7 @@ void init_phy_vars(PHY_VARS_NR_UE *ue, nr_ue_phy_vars_data_t *phy_vars) {
   /////////////////////////PUCCH init/////////////////////////
   ///////////
   for (int gNB_id = 0; gNB_id < ue->n_connected_gNB; gNB_id++) {
-    phy_vars->pucch_vars[gNB_id] = (NR_UE_PUCCH *)malloc16(sizeof(NR_UE_PUCCH));
+    phy_vars->pucch_vars[gNB_id] = (NR_UE_PUCCH *)malloc16_clear(sizeof(NR_UE_PUCCH));
     for (int i=0; i<2; i++)
       phy_vars->pucch_vars[gNB_id]->active[i] = false;
   }
@@ -198,7 +198,7 @@ void init_phy_vars(PHY_VARS_NR_UE *ue, nr_ue_phy_vars_data_t *phy_vars) {
       phy_vars->nr_csi_info->nr_gold_csi_rs[slot] = (uint32_t **)malloc16(fp->symbols_per_slot * sizeof(uint32_t *));
       AssertFatal(phy_vars->nr_csi_info->nr_gold_csi_rs[slot] != NULL, "NR init: csi reference signal for slot %d - malloc failed\n", slot);
       for (int symb=0; symb<fp->symbols_per_slot; symb++) {
-        phy_vars->nr_csi_info->nr_gold_csi_rs[slot][symb] = (uint32_t *)malloc16(csi_dmrs_init_length * sizeof(uint32_t));
+        phy_vars->nr_csi_info->nr_gold_csi_rs[slot][symb] = (uint32_t *)malloc16_clear(csi_dmrs_init_length * sizeof(uint32_t));
         AssertFatal(phy_vars->nr_csi_info->nr_gold_csi_rs[slot][symb] != NULL, "NR init: csi reference signal for slot %d symbol %d - malloc failed\n", slot, symb);
       }
     }
@@ -238,6 +238,18 @@ void init_phy_vars(PHY_VARS_NR_UE *ue, nr_ue_phy_vars_data_t *phy_vars) {
   for(int i=0; i<5; i++)
     ue->dl_stats[i] = 0;
 
+  int max_search_spaces = 10;
+  phy_vars->dci_ind = calloc(max_search_spaces, sizeof(fapi_nr_dci_indication_t));
+
+  reset_meas(&phy_vars->pbch_channel_estimation_stats);
+  reset_meas(&phy_vars->pbch_decoding_stats);
+  reset_meas(&phy_vars->pdcch_decoding_stats);
+  reset_meas(&phy_vars->pdsch_procedures_stats);
+  reset_meas(&phy_vars->dlsch_rx_pdcch_stats);
+  reset_meas(&phy_vars->rx_pdsch_stats);
+  reset_meas(&phy_vars->dlsch_procedures_stats);
+  reset_meas(&phy_vars->dlsch_unscrambling_stats);
+  reset_meas(&phy_vars->dlsch_decoding_stats);
 }
 
 
