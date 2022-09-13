@@ -630,7 +630,7 @@ static void deliver_sdu_drb(void *_ue, nr_pdcp_entity_t *entity,
   if (IS_SOFTMODEM_NOS1 || UE_NAS_USE_TUN) {
     LOG_D(PDCP, "IP packet received with size %d, to be sent to SDAP interface, UE rnti: %d\n", size, ue->rnti);
     sdap_data_ind(entity->rb_id,
-                  0,
+                  entity->is_gnb,
                   entity->has_sdap,
                   entity->has_sdapULheader,
                   entity->pdusession_id,
