@@ -463,7 +463,6 @@ void rrc_ue_generate_RRCConnectionRequest( const protocol_ctxt_t *const ctxt_pP,
 }
 
 
-mui_t rrc_mui=0;
 
 
 /* NAS Attach request with IMSI */

@@ -48,7 +48,6 @@
 
 typedef rlc_op_status_t  (*send_rlc_data_req_func_t)(const protocol_ctxt_t *const,
 						     const srb_flag_t, const MBMS_flag_t,
-						     const rb_id_t, const mui_t,
     confirm_t, sdu_size_t, mem_block_t *,const uint32_t *const, const uint32_t *const);
 
 typedef bool (pdcp_data_ind_t)( const protocol_ctxt_t *, const srb_flag_t,
@@ -229,7 +228,7 @@ typedef struct pdcp_mbms_s {
  * under targets/TEST/PDCP/
  */
 
-/*! \fn bool pdcp_data_req(const protocol_ctxt_t* const  , srb_flag_t , rb_id_t , mui_t , confirm_t ,sdu_size_t , unsigned char* , pdcp_transmission_mode_t )
+/*! \fn bool pdcp_data_req(const protocol_ctxt_t* const  , srb_flag_t , rb_id_t , confirm_t ,sdu_size_t , unsigned char* , pdcp_transmission_mode_t )
 * \brief This functions handles data transfer requests coming either from RRC or from IP
 * \param[in] ctxt_pP        Running context.
 * \param[in] rab_id         Radio Bearer ID
@@ -246,7 +245,6 @@ typedef struct pdcp_mbms_s {
 bool pdcp_data_req(protocol_ctxt_t  *ctxt_pP,
                    const srb_flag_t srb_flagP,
                    const rb_id_t rb_id,
-                   const mui_t muiP,
                    const confirm_t confirmP,
                    const sdu_size_t sdu_buffer_size,
                    unsigned char *const sdu_buffer,
@@ -257,7 +255,6 @@ bool pdcp_data_req(protocol_ctxt_t  *ctxt_pP,
 bool cu_f1u_data_req(protocol_ctxt_t  *ctxt_pP,
                      const srb_flag_t srb_flagP,
                      const rb_id_t rb_id,
-                     const mui_t muiP,
                      const confirm_t confirmP,
                      const sdu_size_t sdu_buffer_size,
                      unsigned char *const sdu_buffer,
@@ -423,7 +420,7 @@ int pdcp_fifo_flush_mbms_sdus                      ( const protocol_ctxt_t *cons
 int pdcp_fifo_read_input_mbms_sdus_fromtun       ( const protocol_ctxt_t *const  ctxt_pP);
 rlc_op_status_t cu_send_to_du(const protocol_ctxt_t *const ctxt_pP,
 			       const srb_flag_t srb_flagP, const MBMS_flag_t MBMS_flagP,
-			       const rb_id_t rb_idP, const mui_t muiP,
+			       const rb_id_t rb_idP, 
 			       confirm_t confirmP, sdu_size_t sdu_sizeP, mem_block_t *sdu_pP, const uint32_t *const, const uint32_t *const);
 
 /*

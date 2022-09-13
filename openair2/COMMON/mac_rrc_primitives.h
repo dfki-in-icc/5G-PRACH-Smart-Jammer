@@ -363,9 +363,9 @@ typedef struct {
       ,uint32_t sourceL2Id
       ,uint32_t destinationL2Id
                                                   );
-  signed int (*rrc_rlc_data_req)(module_id_t, rb_id_t, mui_t, confirm_t, sdu_size_t, char *);
+  signed int (*rrc_rlc_data_req)(module_id_t, rb_id_t, confirm_t, sdu_size_t, char *);
   void (*rrc_rlc_register_rrc) (void (*rrc_data_indP)(module_id_t, rb_id_t, sdu_size_t, char * ),
-                                void  (*rrc_data_confP) (module_id_t, rb_id_t, mui_t ) ) ;
+                                void  (*rrc_data_confP) (module_id_t, rb_id_t) ) ;
   void (*mrbch_phy_sync_failure) (uint8_t Mod_id, frame_t frame, uint8_t Free_ch_index);
   void (*dl_phy_sync_success) (uint8_t Mod_id, frame_t frame, uint8_t eNB_index);
 } MAC_RLC_XFACE;

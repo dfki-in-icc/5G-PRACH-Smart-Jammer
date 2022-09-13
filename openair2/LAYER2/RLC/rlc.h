@@ -66,7 +66,6 @@ typedef uint64_t hash_key_t;
 #define  RLC_OP_STATUS_INTERNAL_ERROR    2
 #define  RLC_OP_STATUS_OUT_OF_RESSOURCES 3
 
-#define  RLC_MUI_UNDEFINED     (mui_t)0
 
 #define  RLC_RB_UNALLOCATED    (rb_id_t)0
 #define  RLC_LC_UNALLOCATED    (logical_chan_id_t)0
@@ -142,7 +141,6 @@ extern void (*rlc_rrc_data_ind)(
 extern void (*rlc_rrc_data_conf)(
   const protocol_ctxt_t *const ctxtP,
   const rb_id_t         rb_idP,
-  const mui_t           muiP,
   const rlc_tx_status_t statusP) __attribute__ ((aligned(32)));
 
 typedef void (rrc_data_ind_cb_t)(
@@ -154,7 +152,6 @@ typedef void (rrc_data_ind_cb_t)(
 typedef void (rrc_data_conf_cb_t)(
   const protocol_ctxt_t *const ctxtP,
   const rb_id_t         rb_idP,
-  const mui_t           muiP,
   const rlc_tx_status_t statusP);
 
 
@@ -360,7 +357,7 @@ rlc_op_status_t rrc_rlc_config_req   (
   const  rb_id_t,
   rlc_info_t );
 
-/*! \fn rlc_op_status_t rrc_rlc_data_req     (const protocol_ctxt_t* const ctxtP, const  MBMS_flag_t MBMS_flagP, const  rb_id_t rb_idP, mui_t muiP, confirm_t confirmP, sdu_size_t sdu_sizeP, char* sduP)
+/*! \fn rlc_op_status_t rrc_rlc_data_req     (const protocol_ctxt_t* const ctxtP, const  MBMS_flag_t MBMS_flagP, const  rb_id_t rb_idP, confirm_t confirmP, sdu_size_t sdu_sizeP, char* sduP)
 * \brief  Function for RRC to send a SDU through a Signalling Radio Bearer.
 * \param[in]  ctxtP            Running context.
 * \param[in]  MBMS_flag        Flag to indicate whether this is an MBMS service (1) or not (0)
@@ -371,9 +368,9 @@ rlc_op_status_t rrc_rlc_config_req   (
 * \param[in]  sduP             SDU.
 * \return     A status about the processing, OK or error code.
 */
-rlc_op_status_t rrc_rlc_data_req     (const protocol_ctxt_t *const, const  MBMS_flag_t, const  rb_id_t, mui_t, confirm_t, sdu_size_t, char *);
+rlc_op_status_t rrc_rlc_data_req     (const protocol_ctxt_t *const, const  MBMS_flag_t, const  rb_id_t, confirm_t, sdu_size_t, char *);
 
-/*! \fn void  rrc_rlc_register_rrc ( void (*rrc_data_indP)  (const protocol_ctxt_t* const ctxtP, const  rb_id_t rb_idP, sdu_size_t sdu_sizeP, char* sduP), void (*rrc_data_confP) (const protocol_ctxt_t* const ctxtP, const  rb_id_t rb_idP, mui_t muiP, rlc_tx_status_t statusP)
+/*! \fn void  rrc_rlc_register_rrc ( void (*rrc_data_indP)  (const protocol_ctxt_t* const ctxtP, const  rb_id_t rb_idP, sdu_size_t sdu_sizeP, char* sduP), void (*rrc_data_confP) (const protocol_ctxt_t* const ctxtP, const  rb_id_t rb_idP, rlc_tx_status_t statusP)
 * \brief  This function is called by RRC to register its DATA-INDICATE and DATA-CONFIRM handlers to RLC layer.
 * \param[in]  rrc_data_indP       Pointer on RRC data indicate function.
 * \param[in]  rrc_data_confP      Pointer on RRC data confirm callback function.
@@ -460,7 +457,7 @@ void rlc_util_print_hex_octets(
 
 
 
-/*! \fn rlc_op_status_t rlc_data_req     (const protocol_ctxt_t* const ctxtP, const  srb_flag_t srb_flagP,  const  MBMS_flag_t MBMS_flagP, const  rb_id_t rb_idP, mui_t muiP, confirm_t confirmP, sdu_size_t sdu_sizeP, mem_block_t *sduP)
+/*! \fn rlc_op_status_t rlc_data_req     (const protocol_ctxt_t* const ctxtP, const  srb_flag_t srb_flagP,  const  MBMS_flag_t MBMS_flagP, const  rb_id_t rb_idP, confirm_t confirmP, sdu_size_t sdu_sizeP, mem_block_t *sduP)
 * \brief    Interface with higher layers, map request to the RLC corresponding to the radio bearer.
 * \param[in]  ctxtP            Running context.
 * \param[in]  srb_flagP        Flag to indicate SRB (1) or DRB (0)
@@ -477,7 +474,6 @@ rlc_op_status_t rlc_data_req     (
   const  srb_flag_t,
   const  MBMS_flag_t,
   const  rb_id_t,
-  const  mui_t,
   const confirm_t,
   const sdu_size_t,
   mem_block_t *const,
@@ -515,7 +511,6 @@ void rlc_data_conf(
   const protocol_ctxt_t *const,
   const  srb_flag_t,
   const  rb_id_t,
-  const mui_t,
   const rlc_tx_status_t );
 
 
@@ -628,7 +623,6 @@ void du_rlc_data_req(const protocol_ctxt_t *const ctxt_pP,
                      const srb_flag_t   srb_flagP,
                      const MBMS_flag_t  MBMS_flagP,
                      const rb_id_t      rb_idP,
-                     const mui_t        muiP,
                      confirm_t    confirmP,
                      sdu_size_t   sdu_sizeP,
                      mem_block_t *sdu_pP);

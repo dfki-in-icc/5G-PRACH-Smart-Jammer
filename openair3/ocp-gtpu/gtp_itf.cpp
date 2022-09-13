@@ -959,7 +959,6 @@ static int Gtpv1uHandleEndMarker(int h,
   ctxt.brOption = 0;
   const srb_flag_t     srb_flag=SRB_FLAG_NO;
   const rb_id_t        rb_id=tunnel->second.incoming_rb_id;
-  const mui_t          mui=RLC_MUI_UNDEFINED;
   const confirm_t      confirm=RLC_SDU_CONFIRM_NO;
   const pdcp_transmission_mode_t mode=PDCP_TRANSMISSION_MODE_DATA;
   const uint32_t sourceL2Id=0;
@@ -1079,7 +1078,6 @@ static int Gtpv1uHandleGpdu(int h,
   ctxt.brOption = 0;
   const srb_flag_t     srb_flag=SRB_FLAG_NO;
   const rb_id_t        rb_id=tunnel->second.incoming_rb_id;
-  const mui_t          mui=RLC_MUI_UNDEFINED;
   const confirm_t      confirm=RLC_SDU_CONFIRM_NO;
   const sdu_size_t     sdu_buffer_size=msgBufLen-offset;
   unsigned char *const sdu_buffer=msgBuf+offset;

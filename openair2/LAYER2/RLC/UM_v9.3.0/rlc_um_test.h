@@ -24,7 +24,6 @@
 
 void rlc_um_v9_3_0_test_windows_5(void);
 void rlc_um_v9_3_0_test_windows_10(void);
-void rlc_um_v9_3_0_test_data_conf(module_id_t module_idP, rb_id_t rb_idP, mui_t muiP, rlc_tx_status_t statusP);
 void rlc_um_v9_3_0_test_send_sdu(rlc_um_entity_t *um_txP, int sdu_indexP);
 void rlc_um_v9_3_0_test_exchange_pdus(rlc_um_entity_t *um_txP,rlc_um_entity_t *um_RxP, uint16_t bytes_txP,uint16_t bytes_rxP);
 void rlc_um_v9_3_0_test_exchange_delayed_pdus(rlc_um_entity_t *um_txP, rlc_um_entity_t *um_rxP, uint16_t bytes_txP, uint16_t bytes_rxP, signed int time_tx_delayedP,

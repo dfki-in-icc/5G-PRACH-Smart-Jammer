@@ -33,7 +33,6 @@
 #include <unistd.h>
 
 extern RAN_CONTEXT_t RC;
-extern mui_t rrc_eNB_mui;
 
 int rrc_eNB_generate_RRCConnectionReconfiguration_endc(protocol_ctxt_t *ctxt,
                                                        rrc_eNB_ue_context_t *ue_context,

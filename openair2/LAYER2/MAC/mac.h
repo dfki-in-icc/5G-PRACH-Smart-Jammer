@@ -1733,7 +1733,6 @@ typedef struct {
 typedef struct {
   volatile uint8_t flag;
   rnti_t rnti;
-  mui_t  rrc_eNB_mui;
 } RRC_release_ctrl_t;
 
 typedef struct {
@@ -1743,7 +1742,6 @@ typedef struct {
 
 typedef  struct {
   uint8_t                      rrc_mui_num;
-  mui_t                        rrc_mui[128];
 } mac_rlc_am_muilist_t;
 
 #include "mac_proto.h"

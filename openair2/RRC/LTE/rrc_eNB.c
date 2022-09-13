@@ -107,7 +107,6 @@ extern eNB_MAC_INST                *eNB_mac_inst;
 extern UE_MAC_INST                 *UE_mac_inst;
 
 
-mui_t                               rrc_eNB_mui = 0;
 
 extern uint32_t to_earfcn_DL(int eutra_bandP, uint32_t dl_CarrierFreq, uint32_t bw);
 extern int rrc_eNB_process_security(const protocol_ctxt_t *const ctxt_pP, rrc_eNB_ue_context_t *const ue_context_pP, security_capabilities_t *security_capabilities_pP);

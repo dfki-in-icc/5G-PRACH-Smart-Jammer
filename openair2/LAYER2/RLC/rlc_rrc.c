@@ -763,7 +763,6 @@ rlc_op_status_t rrc_rlc_data_req     (
   const protocol_ctxt_t *const ctxt_pP,
   const MBMS_flag_t MBMS_flagP,
   const rb_id_t     rb_idP,
-  const mui_t       muiP,
   const confirm_t   confirmP,
   const sdu_size_t  sdu_sizeP,
   char *sduP) {

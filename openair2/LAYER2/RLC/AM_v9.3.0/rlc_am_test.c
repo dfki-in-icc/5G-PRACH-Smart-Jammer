@@ -607,7 +607,6 @@ void rlc_am_v9_3_0_test_exchange_pdus(rlc_am_entity_t *am_txP,
   //display_mem_load();
 }
 //-----------------------------------------------------------------------------
-void rlc_am_v9_3_0_test_data_conf(module_id_t module_idP, rb_id_t rb_idP, mui_t muiP, rlc_tx_status_t statusP)
 //-----------------------------------------------------------------------------
 {
   if (statusP == RLC_SDU_CONFIRM_YES) {

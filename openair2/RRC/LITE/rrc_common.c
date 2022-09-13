@@ -51,7 +51,6 @@
 extern RAN_CONTEXT_t RC;
 extern UE_MAC_INST *UE_mac_inst;
 
-extern mui_t rrc_eNB_mui;
 
 //configure  BCCH & CCCH Logical Channels and associated rrc_buffers, configure associated SRBs
 //-----------------------------------------------------------------------------

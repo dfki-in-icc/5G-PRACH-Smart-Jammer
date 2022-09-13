@@ -65,7 +65,6 @@ typedef struct rlc_am_tx_sdu_management {
   mem_block_t            *mem_block;          /*!< \brief SDU embedded in a mem_block_t. */
   uint8_t                   *first_byte;         /*!< \brief Pointer on SDU payload. */
   frame_t                 sdu_creation_time;  /*!< \brief Time stamped with mac_xface->frame. */
-  mui_t                   mui;                /*!< \brief Message Unit Identifier, still here for historical reasons (no LTE-PDCP compliant now). */
   sdu_size_t              sdu_remaining_size; /*!< \brief Remaining size in bytes to be filled in a PDU. */
   sdu_size_t              sdu_segmented_size; /*!< \brief Bytes already segmented in a/several PDU(s). */
   sdu_size_t              sdu_size;           /*!< \brief SDU size in bytes. */

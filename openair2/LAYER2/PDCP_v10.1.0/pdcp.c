@@ -143,7 +143,6 @@ bool cu_f1u_data_req(
   protocol_ctxt_t  *ctxt_pP,
   const srb_flag_t srb_flagP,
   const rb_id_t rb_id,
-  const mui_t muiP,
   const confirm_t confirmP,
   const sdu_size_t sdu_buffer_size,
   unsigned char *const sdu_buffer,
@@ -207,7 +206,6 @@ uint64_t get_pdcp_optmask(void) {
 
 rlc_op_status_t cu_send_to_du(const protocol_ctxt_t *const ctxt,
 			       const srb_flag_t srb_flag, const MBMS_flag_t MBMS_flag,
-			       const rb_id_t rb_id, const mui_t mui,
 			       confirm_t confirm, sdu_size_t size, mem_block_t *sdu,
                                const uint32_t *const sourceID, const uint32_t *const destID) {
   uint8_t *gtpu_buffer_p = itti_malloc(TASK_PDCP_ENB, TASK_GTPV1_U,
@@ -242,7 +240,6 @@ rlc_op_status_t cu_send_to_du(const protocol_ctxt_t *const ctxt,
 bool pdcp_data_req(protocol_ctxt_t  *ctxt_pP,
                    const srb_flag_t     srb_flagP,
                    const rb_id_t        rb_idP,
-                   const mui_t          muiP,
                    const confirm_t      confirmP,
                    const sdu_size_t     sdu_buffer_sizeP,
                    unsigned char *const sdu_buffer_pP,

@@ -807,7 +807,6 @@ rrc_eNB_process_S1AP_DOWNLINK_NAS(
   MessageDef *msg_p,
   const char *msg_name,
   instance_t instance,
-  mui_t *rrc_eNB_mui
 )
 //------------------------------------------------------------------------------
 {

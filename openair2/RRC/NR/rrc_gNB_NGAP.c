@@ -753,7 +753,6 @@ rrc_gNB_process_NGAP_DOWNLINK_NAS(
   MessageDef *msg_p,
   const char *msg_name,
   instance_t  instance,
-  mui_t      *rrc_gNB_mui
 )
 //------------------------------------------------------------------------------
 {

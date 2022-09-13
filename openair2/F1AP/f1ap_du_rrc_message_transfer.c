@@ -530,7 +530,6 @@ int DU_handle_DL_RRC_MESSAGE_TRANSFER(instance_t       instance,
                               , MBMS_FLAG_NO
                               , srb_id
                               , 0
-                              , 0
                               , rrc_dl_sdu_len
                               , pdcp_pdu_p
                               ,NULL

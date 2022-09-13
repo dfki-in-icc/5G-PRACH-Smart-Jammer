@@ -121,7 +121,6 @@ typedef uint8_t            mac_enb_index_t;
 //-----------------------------------------------------------------------------
 // RLC TYPES
 //-----------------------------------------------------------------------------
-typedef unsigned int       mui_t;
 typedef unsigned int       confirm_t;
 typedef unsigned int       rlc_tx_status_t;
 typedef int16_t            rlc_sn_t;

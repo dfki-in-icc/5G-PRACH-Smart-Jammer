@@ -45,7 +45,6 @@
 bool lteDURecvCb(protocol_ctxt_t  *ctxt_pP,
                  const srb_flag_t     srb_flagP,
                  const rb_id_t        rb_idP,
-                 const mui_t          muiP,
                  const confirm_t      confirmP,
                  const sdu_size_t     sdu_buffer_sizeP,
                  unsigned char *const sdu_buffer_pP,
@@ -1224,7 +1223,7 @@ int DU_handle_UE_CONTEXT_MODIFICATION_REQUEST(instance_t       instance,
       ctxt.eNB_index = instance;
       mem_block_t *pdcp_pdu_p = get_free_mem_block(ieRRC->value.choice.RRCContainer.size, __func__);
       memcpy(&pdcp_pdu_p->data[0], ieRRC->value.choice.RRCContainer.buf, ieRRC->value.choice.RRCContainer.size);
-      du_rlc_data_req(&ctxt, 1, 0x00, 1, 1, 0, ieRRC->value.choice.RRCContainer.size, pdcp_pdu_p);
+      du_rlc_data_req(&ctxt, 1, 0x00, 1, 0, ieRRC->value.choice.RRCContainer.size, pdcp_pdu_p);
     } else {
       LOG_E(F1AP, " RRCContainer in UEContextModificationRequestIEs size id 0\n");
     }

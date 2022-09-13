@@ -35,7 +35,6 @@
 bool sdap_data_req(protocol_ctxt_t *ctxt_p,
                    const srb_flag_t srb_flag,
                    const rb_id_t rb_id,
-                   const mui_t mui,
                    const confirm_t confirm,
                    const sdu_size_t sdu_buffer_size,
                    unsigned char *const sdu_buffer,

@@ -128,7 +128,6 @@ nr_rrc_ue_generate_rrcReestablishmentComplete(
   uint8_t gNB_index
 );
 
-mui_t nr_rrc_mui=0;
 
 static Rrc_State_NR_t nr_rrc_get_state (module_id_t ue_mod_idP) {
   return NR_UE_rrc_inst[ue_mod_idP].nrRrcState;

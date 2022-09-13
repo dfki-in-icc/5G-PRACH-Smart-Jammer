@@ -83,7 +83,6 @@ typedef struct {
   srb_flag_t      srb_flagP;
   MBMS_flag_t     MBMS_flagP;
   rb_id_t         rb_idP;
-  mui_t           muiP;
   confirm_t       confirmP;
   sdu_size_t      sdu_sizeP;
   mem_block_t     *sdu_pP;
@@ -151,7 +150,6 @@ static void enqueue_rlc_data_req(const protocol_ctxt_t *const ctxt_pP,
                                  const srb_flag_t   srb_flagP,
                                  const MBMS_flag_t  MBMS_flagP,
                                  const rb_id_t      rb_idP,
-                                 const mui_t        muiP,
                                  confirm_t    confirmP,
                                  sdu_size_t   sdu_sizeP,
                                  mem_block_t *sdu_pP)
@@ -188,7 +186,6 @@ void du_rlc_data_req(const protocol_ctxt_t *const ctxt_pP,
                      const srb_flag_t   srb_flagP,
                      const MBMS_flag_t  MBMS_flagP,
                      const rb_id_t      rb_idP,
-                     const mui_t        muiP,
                      confirm_t    confirmP,
                      sdu_size_t   sdu_sizeP,
                      mem_block_t *sdu_pP)
@@ -1277,7 +1274,6 @@ void pdcp_config_set_security(
 
 static bool pdcp_data_req_srb(protocol_ctxt_t  *ctxt_pP,
                               const rb_id_t rb_id,
-                              const mui_t muiP,
                               const confirm_t confirmP,
                               const sdu_size_t sdu_buffer_size,
                               unsigned char *const sdu_buffer)
@@ -1323,7 +1319,6 @@ static bool pdcp_data_req_srb(protocol_ctxt_t  *ctxt_pP,
 
 static bool pdcp_data_req_drb(protocol_ctxt_t  *ctxt_pP,
                               const rb_id_t rb_id,
-                              const mui_t muiP,
                               const confirm_t confirmP,
                               const sdu_size_t sdu_buffer_size,
                               unsigned char *const sdu_buffer)
@@ -1369,7 +1364,6 @@ static bool pdcp_data_req_drb(protocol_ctxt_t  *ctxt_pP,
 bool cu_f1u_data_req(protocol_ctxt_t  *ctxt_pP,
                      const srb_flag_t srb_flagP,
                      const rb_id_t rb_id,
-                     const mui_t muiP,
                      const confirm_t confirmP,
                      const sdu_size_t sdu_buffer_size,
                      unsigned char *const sdu_buffer,
@@ -1395,7 +1389,6 @@ bool cu_f1u_data_req(protocol_ctxt_t  *ctxt_pP,
 bool pdcp_data_req(protocol_ctxt_t  *ctxt_pP,
                    const srb_flag_t srb_flagP,
                    const rb_id_t rb_id,
-                   const mui_t muiP,
                    const confirm_t confirmP,
                    const sdu_size_t sdu_buffer_size,
                    unsigned char *const sdu_buffer,

@@ -110,7 +110,6 @@ extern RAN_CONTEXT_t RC;
 
 static inline uint64_t bitStr_to_uint64(BIT_STRING_t *asn);
 
-mui_t                               rrc_gNB_mui = 0;
 uint8_t first_rrcreconfiguration = 0;
 
 ///---------------------------------------------------------------------------------------------------------------///
@@ -119,7 +118,6 @@ uint8_t first_rrcreconfiguration = 0;
 bool DURecvCb(protocol_ctxt_t  *ctxt_pP,
               const srb_flag_t     srb_flagP,
               const rb_id_t        rb_idP,
-              const mui_t          muiP,
               const confirm_t      confirmP,
               const sdu_size_t     sdu_buffer_sizeP,
               unsigned char *const sdu_buffer_pP,

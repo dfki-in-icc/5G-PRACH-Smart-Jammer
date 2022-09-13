@@ -160,7 +160,7 @@ void rrc_eNB_send_S1AP_UE_CONTEXT_RELEASE_CPLT(
 
 /* Down link procedures */
 
-/*! \fn rrc_eNB_process_S1AP_DOWNLINK_NAS(MessageDef *msg_p, const char *msg_name, instance_t instance, mui_t *rrc_eNB_mui)
+/*! \fn rrc_eNB_process_S1AP_DOWNLINK_NAS(MessageDef *msg_p, const char *msg_name, instance_t instance)
  *\brief process a S1AP_DOWNLINK_NAS message received from S1AP and transfer the embedded NAS message to UE.
  *\param msg_p Message received by RRC.
  *\param msg_name Message name.
@@ -168,7 +168,7 @@ void rrc_eNB_send_S1AP_UE_CONTEXT_RELEASE_CPLT(
  *\param rrc_eNB_mui Counter for lower level message identification.
  *\return 0 when successful, -1 if the UE index can not be retrieved.
  */
-int rrc_eNB_process_S1AP_DOWNLINK_NAS(MessageDef *msg_p, const char *msg_name, instance_t instance, mui_t *rrc_eNB_mui);
+int rrc_eNB_process_S1AP_DOWNLINK_NAS(MessageDef *msg_p, const char *msg_name, instance_t instance);
 
 /*! \fn rrc_eNB_process_S1AP_INITIAL_CONTEXT_SETUP_REQ(MessageDef *msg_p, const char *msg_name, instance_t instance)
  *\brief process a S1AP_INITIAL_CONTEXT_SETUP_REQ message received from S1AP.

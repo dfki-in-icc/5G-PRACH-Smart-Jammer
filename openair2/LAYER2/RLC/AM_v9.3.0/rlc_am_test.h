@@ -37,7 +37,6 @@ rlc_am_entity_t       g_am_rx;
 
 void rlc_am_v9_3_0_test_windows();
 void rlc_am_v9_3_0_test_read_write_bit_field();
-void rlc_am_v9_3_0_test_data_conf(module_id_t module_idP, rb_id_t rb_idP, mui_t muiP, rlc_tx_status_t statusP);
 void rlc_am_v9_3_0_test_send_sdu(rlc_am_entity_t *am_txP, int sdu_indexP);
 void rlc_am_v9_3_0_test_exchange_pdus(rlc_am_entity_t *am_txP,rlc_am_entity_t *am_RxP,
                       uint16_t bytes_txP,uint16_t bytes_rxP);

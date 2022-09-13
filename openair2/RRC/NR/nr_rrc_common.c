@@ -46,7 +46,6 @@
 
 extern RAN_CONTEXT_t RC;
 extern UE_MAC_INST *UE_mac_inst;
-extern mui_t rrc_gNB_mui;
 
 //-----------------------------------------------------------------------------
 int rrc_init_nr_global_param(void){

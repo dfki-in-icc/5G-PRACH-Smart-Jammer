@@ -48,7 +48,6 @@ uint8_t
 rrc_data_req(
   const protocol_ctxt_t   *const ctxt_pP,
   const rb_id_t                  rb_idP,
-  const mui_t                    muiP,
   const confirm_t                confirmP,
   const sdu_size_t               sdu_sizeP,
   uint8_t                 *const buffer_pP,

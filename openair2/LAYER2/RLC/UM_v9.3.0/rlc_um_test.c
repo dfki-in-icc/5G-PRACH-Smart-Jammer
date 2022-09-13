@@ -510,7 +510,6 @@ void rlc_um_v9_3_0_test_exchange_delayed_pdus(rlc_um_entity_t *um_txP,
 }
 
 //-----------------------------------------------------------------------------
-void rlc_um_v9_3_0_test_data_conf(module_id_t module_idP, rb_id_t rb_idP, mui_t muiP, rlc_tx_status_t statusP)
 //-----------------------------------------------------------------------------
 {
   if (statusP == RLC_SDU_CONFIRM_YES) {
