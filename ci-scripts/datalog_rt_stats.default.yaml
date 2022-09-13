@@ -8,17 +8,16 @@ ColNames :
   - Average vs Reference Deviation (Reference Value; Acceptability Threshold)
 Ref : 
   feprx : 60.0
-  feptx_prec : 8.0
-  feptx_ofdm : 50.0
-  feptx_total : 75.0
-  L1 Tx processing : 300.0
-  DLSCH encoding : 230.0
-  L1 Rx processing : 175.0
-  PUSCH inner-receiver : 100.0
-  #PUSCH decoding : 180.0
-  PUSCH decoding : 240.0
-  DL & UL scheduling timing : 37.0
-  UL Indication : 38.0
+  feptx_prec : 10.0
+  feptx_ofdm : 40.0
+  feptx_total : 70.0
+  L1 Tx processing : 180.0
+  DLSCH encoding : 130.0
+  L1 Rx processing : 220.0
+  PUSCH inner-receiver : 120.0
+  PUSCH decoding : 140.0
+  DL & UL scheduling timing : 12.0
+  UL Indication : 28.0
 Threshold :
   feprx : 1.25
   feptx_prec : 1.25
