@@ -184,20 +184,20 @@ instance_t legacyInstanceMapping=0;
   gtpEndPoint * inst=&instChk->second;
 
 
-#define getRntiRetVoid(insT, RnTi)                                            \
-    auto ptrRnti=insT->ue2te_mapping.find(RnTi);                        \
+#define getUeRetVoid(insT, Ue)                                            \
+    auto ptrUe=insT->ue2te_mapping.find(Ue);                        \
                                                                         \
-  if (  ptrRnti==insT->ue2te_mapping.end() ) {                          \
-    LOG_E(GTPU, "[%ld] gtpv1uSend failed: while getting ue id %x in hashtable ue_mapping\n", instance, rnti); \
+  if (  ptrUe==insT->ue2te_mapping.end() ) {                          \
+    LOG_E(GTPU, "[%ld] gtpv1uSend failed: while getting ue id %ld in hashtable ue_mapping\n", instance, ue_id); \
     pthread_mutex_unlock(&globGtp.gtp_lock);                            \
     return;                                                             \
   }
   
-#define getRntiRetInt(insT, RnTi)                                            \
-    auto ptrRnti=insT->ue2te_mapping.find(RnTi);                        \
+#define getUeRetInt(insT, Ue)                                            \
+    auto ptrUe=insT->ue2te_mapping.find(Ue);                        \
                                                                         \
-  if (  ptrRnti==insT->ue2te_mapping.end() ) {                          \
-    LOG_E(GTPU, "[%ld] gtpv1uSend failed: while getting ue id %x in hashtable ue_mapping\n", instance, rnti); \
+  if (  ptrUe==insT->ue2te_mapping.end() ) {                          \
+    LOG_E(GTPU, "[%ld] gtpv1uSend failed: while getting ue id %ld in hashtable ue_mapping\n", instance, ue_id); \
     pthread_mutex_unlock(&globGtp.gtp_lock);                            \
     return GTPNOK;                                                             \
   }
@@ -284,22 +284,22 @@ static int gtpv1uCreateAndSendMsg(int h,
 static void gtpv1uSend(instance_t instance, gtpv1u_tunnel_data_req_t *req, bool seqNumFlag, bool npduNumFlag) {
   uint8_t *buffer=req->buffer+req->offset;
   size_t length=req->length;
-  ue_id_t ueid=req->ue_id;
+  ue_id_t ue_id=req->ue_id;
   int  bearer_id=req->bearer_id;
   pthread_mutex_lock(&globGtp.gtp_lock);
   getInstRetVoid(compatInst(instance));
-  getRntiRetVoid(inst, ue_id);
+  getUeRetVoid(inst, ue_id);
 
   auto ptr2=ptrUe->second.bearers.find(bearer_id);
 
   if ( ptr2 == ptrUe->second.bearers.end() ) {
-    LOG_E(GTPU,"[%ld] GTP-U instance: sending a packet to a non existant UE:RAB: %lx/%x\n", instance, ueid, bearer_id);
+    LOG_E(GTPU,"[%ld] GTP-U instance: sending a packet to a non existant UE:RAB: %lx/%x\n", instance, ue_id, bearer_id);
     pthread_mutex_unlock(&globGtp.gtp_lock);
     return;
   }
 
   LOG_D(GTPU,"[%ld] sending a packet to UE:RAB:teid %lx/%x/%x, len %lu, oldseq %d, oldnum %d\n",
-        instance, ueid, bearer_id,ptr2->second.teid_outgoing,length, ptr2->second.seqNum,ptr2->second.npduNum );
+        instance, ue_id, bearer_id,ptr2->second.teid_outgoing,length, ptr2->second.seqNum,ptr2->second.npduNum );
 
   if(seqNumFlag)
     ptr2->second.seqNum++;
@@ -375,7 +375,7 @@ static void gtpv1uSendDlDeliveryStatus(instance_t instance, gtpv1u_DU_buffer_rep
   int  bearer_id=req->pdusession_id;
   pthread_mutex_lock(&globGtp.gtp_lock);
   getInstRetVoid(compatInst(instance));
-  getRntiRetVoid(inst, ue_id);
+  getUeRetVoid(inst, ue_id);
 
   auto ptr2=ptrUe->second.bearers.find(bearer_id);
 
@@ -399,22 +399,22 @@ static void gtpv1uSendDlDeliveryStatus(instance_t instance, gtpv1u_DU_buffer_rep
 }
 
 static void gtpv1uEndTunnel(instance_t instance, gtpv1u_tunnel_data_req_t *req) {
-  ue_id_t ueid=req->ue_id;
+  ue_id_t ue_id=req->ue_id;
   int  bearer_id=req->bearer_id;
   pthread_mutex_lock(&globGtp.gtp_lock);
   getInstRetVoid(compatInst(instance));
-  getRntiRetVoid(inst, ue_id);
+  getUeRetVoid(inst, ue_id);
 
   auto ptr2=ptrUe->second.bearers.find(bearer_id);
 
   if ( ptr2 == ptrUe->second.bearers.end() ) {
-    LOG_E(GTPU,"[%ld] GTP-U sending a packet to a non existant UE:RAB: %lx/%x\n", instance, ueid, bearer_id);
+    LOG_E(GTPU,"[%ld] GTP-U sending a packet to a non existant UE:RAB: %lx/%x\n", instance, ue_id, bearer_id);
     pthread_mutex_unlock(&globGtp.gtp_lock);
     return;
   }
 
   LOG_D(GTPU,"[%ld] sending a end packet packet to UE:RAB:teid %lx/%x/%x\n",
-        instance, ueid, bearer_id,ptr2->second.teid_outgoing);
+        instance, ue_id, bearer_id,ptr2->second.teid_outgoing);
   gtpv1u_bearer_t tmp=ptr2->second;
   pthread_mutex_unlock(&globGtp.gtp_lock);
   Gtpv1uMsgHeaderT  msgHdr;
@@ -553,7 +553,7 @@ void GtpuUpdateTunnelOutgoingPair(instance_t instance,
                                   transport_layer_addr_t newRemoteAddr) {
   pthread_mutex_lock(&globGtp.gtp_lock);
   getInstRetVoid(compatInst(instance));
-  getRntiRetVoid(inst, ue_id);
+  getUeRetVoid(inst, ue_id);
 
   auto ptr2=ptrUe->second.bearers.find(bearer_id);
 
@@ -814,18 +814,18 @@ int newGtpuDeleteAllTunnels(instance_t instance, ue_id_t ue_id) {
         instance, ue_id);
   pthread_mutex_lock(&globGtp.gtp_lock);
   getInstRetInt(compatInst(instance));
-  getRntiRetInt(inst, ue_id);
+  getUeRetInt(inst, ue_id);
 
   int nb=0;
 
-  for (auto j=ptrRnti->second.bearers.begin();
-       j!=ptrRnti->second.bearers.end();
+  for (auto j=ptrUe->second.bearers.begin();
+       j!=ptrUe->second.bearers.end();
        ++j) {
     inst->te2ue_mapping.erase(j->second.teid_incoming);
     nb++;
   }
 
-  inst->ue2te_mapping.erase(ptrRnti);
+  inst->ue2te_mapping.erase(ptrUe);
   pthread_mutex_unlock(&globGtp.gtp_lock);
   LOG_I(GTPU, "[%ld] Deleted all tunnels for ue id %ld (%d tunnels deleted)\n", instance, ue_id, nb);
   return !GTPNOK;
@@ -843,23 +843,23 @@ int newGtpuDeleteTunnels(instance_t instance, ue_id_t ue_id, int nbTunnels, pdus
         instance, ue_id);
   pthread_mutex_lock(&globGtp.gtp_lock);
   getInstRetInt(compatInst(instance));
-  getRntiRetInt(inst, ue_id);
+  getUeRetInt(inst, ue_id);
   int nb=0;
 
   for (int i=0; i<nbTunnels; i++) {
-    auto ptr2=ptrRnti->second.bearers.find(pdusession_id[i]);
+    auto ptr2=ptrUe->second.bearers.find(pdusession_id[i]);
 
-    if ( ptr2 == ptrRnti->second.bearers.end() ) {
-      LOG_E(GTPU,"[%ld] GTP-U instance: delete of not existing tunnel UE ID:RAB: %x/%x\n", instance, ud_id, pdusession_id[i]);
+    if ( ptr2 == ptrUe->second.bearers.end() ) {
+      LOG_E(GTPU,"[%ld] GTP-U instance: delete of not existing tunnel UE ID:RAB: %ld/%x\n", instance, ue_id, pdusession_id[i]);
     } else {
       inst->te2ue_mapping.erase(ptr2->second.teid_incoming);
       nb++;
     }
   }
 
-  if (ptrRnti->second.bearers.size() == 0 )
+  if (ptrUe->second.bearers.size() == 0 )
     // no tunnels on this ue id, erase the ue entry
-    inst->ue2te_mapping.erase(ptrRnti);
+    inst->ue2te_mapping.erase(ptrUe);
 
   pthread_mutex_unlock(&globGtp.gtp_lock);
   LOG_I(GTPU, "[%ld] Deleted all tunnels for ue id %lu (%d tunnels deleted)\n", instance, ue_id, nb);
