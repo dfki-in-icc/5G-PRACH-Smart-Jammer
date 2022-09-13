@@ -13,6 +13,7 @@ const SCOPEMSG_TYPE_DATA=10;
 
 
 const SCOPEMSG_DATA_IQ=1;
+const SCOPEMSG_DATA_LLR=2;
 @Component({
   selector: 'app-scope',
   templateUrl: './scope.component.html',
@@ -31,10 +32,11 @@ export class ScopeComponent {
   range = 50;
   iqgraph_list : IGraphDesc[] = [];
   selected_channels = [""];
+  selected_llrchannels = [""];
   llrgraph_list : IGraphDesc[] = [];  
   UE_list : IUEDesc[] =[{id:0},{id:1},{id:2},{id:3},{id:4}];
   selected_UE : number = 0;
-  
+
   
   @Output() ScopeEnabled = new EventEmitter<boolean>();
 
@@ -128,7 +130,7 @@ export class ScopeComponent {
   ];
 
   public IQOptions: ChartConfiguration<'scatter'>['options'] = {
-    responsive: false,
+    responsive: true,
     aspectRatio: 1,
 //    scales: {
 //      xAxes: {
@@ -140,13 +142,16 @@ export class ScopeComponent {
   };
 
   public LLROptions: ChartConfiguration<'scatter'>['options'] = {
-    responsive: false,
+    responsive: true,
     aspectRatio: 3,
     scales: {
       xAxes: {
-		  min: -1,
-		  max:1,
-      }
+		  min: 0,
+      },
+      yAxes: {
+		  min: -100,
+		  max: 100
+      }     
     },
     plugins: { legend: { display: true, labels:{boxWidth: 10, boxHeight: 10}},  tooltip: { enabled: false, }, },
   };
@@ -208,11 +213,13 @@ export class ScopeComponent {
             this.scopetime=this.DecodScopeBinmsgToString(message.content);
             break;
           case  SCOPEMSG_TYPE_DATA:   
-            const bufferview = new DataView(message.content);           
+            const bufferview = new DataView(message.content);
+            this.IQDatasets[message.dataid].data.length=0;
+            
 			switch (message.chartid) {
 			  case SCOPEMSG_DATA_IQ:
-			    for ( let i=0;i<bufferview.byteLength; i=i+8) {
-                  this.IQDatasets[message.dataid].data[i/8]={ x: bufferview.getFloat32(i, true), y: bufferview.getFloat32(i+4, true)};
+			    for ( let i=0;i<bufferview.byteLength; i=i+4) {
+                  this.IQDatasets[message.dataid].data[i/4]={ x:bufferview.getInt16(i, true) , y: bufferview.getInt16(i+2, true)};
                 }
                 if(message.update) {
 				  console.log("Starting scope update chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
@@ -220,6 +227,16 @@ export class ScopeComponent {
                   console.log(" scope update completed chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
 			    }
               break;
+			  case SCOPEMSG_DATA_LLR:
+			    for ( let i=0;i<bufferview.byteLength; i=i+4) {
+                  this.LLRDatasets[message.dataid].data[i/4]={ x: bufferview.getInt16(i, true), y: bufferview.getInt16(i+2, true)};
+                }
+                if(message.update) {
+				  console.log("Starting scope update chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
+		          this.charts?.forEach((child,index) => { child.chart?.update() });                  
+                  console.log(" scope update completed chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
+			    }
+              break;              
                 default:
                 break;
 		      }
@@ -305,6 +322,7 @@ export class ScopeComponent {
   OnRangeChange() {
 	 this.scopeApi.setScopeParams$({name:"iqrange",value:(this.range).toString()}).subscribe();
   } 
+  
   channelsChanged(value: string[]) {
     this.selected_channels=value;
     for (let i=0; i<this.iqgraph_list.length; i++) {
@@ -318,7 +336,20 @@ export class ScopeComponent {
 	  this.SendScopeParams("enabled",enabled,this.iqgraph_list[i].srvidx);	  
     } 
   }  
-  
+
+  llrchannelsChanged(value: string[]) {
+    this.selected_llrchannels=value;
+    for (let i=0; i<this.llrgraph_list.length; i++) {
+	  let enabled="false";
+	  for (let j=0; j<value.length; j++) {
+		  if( this.llrgraph_list[i].title === value[j]) {
+			  enabled="true";
+			  break;
+		  }
+	  }
+	  this.SendScopeParams("enabled",enabled,this.llrgraph_list[i].srvidx);	  
+    } 
+  }    
   UEChanged(value: number) {
     this.selected_UE=value;
     this.scopesubtitle= "UE " + value.toString();

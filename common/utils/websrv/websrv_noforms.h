@@ -6189,7 +6189,7 @@ extern void websrv_fl_get_xyplot_data( FL_OBJECT * ob,
 
 extern void websrv_fl_get_xyplot_data_pointer( FL_OBJECT  * ob,
                                            int          id,
-                                           float     ** x,
+                                           float       ** x,
                                            float     ** y,
                                            int        *n );
 
@@ -6393,7 +6393,7 @@ FL_EXPORT Display * fl_display_( void ){};
 /*----------------------------------------------------------------------*/
 /* new functions for interfacing with webserver                         */
 
-extern int websrv_nf_getdata(FL_OBJECT *graph, int layer, websrv_scopedata_msg_t **msg, int *nm) ;
+extern int websrv_nf_getdata(FL_OBJECT *graph, int layer, websrv_scopedata_msg_t **msg) ;
 
 #if defined __cplusplus
 }

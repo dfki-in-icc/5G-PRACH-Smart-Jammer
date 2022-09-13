@@ -47,7 +47,7 @@
  extern PHY_VARS_NR_UE ***PHY_vars_UE_g;
  
 static scopeData_t  scopedata; 
-static websrv_scope_params_t scope_params = {0,1000,NULL,&scopedata,10e4};
+static websrv_scope_params_t scope_params = {0,1000,NULL,&scopedata,65535};
 static websrv_params_t *websrvparams_ptr;
 
 void  websrv_scope_sendIQ(int n, websrv_scopedata_msg_t *msg) {
@@ -58,7 +58,7 @@ void  websrv_scope_sendIQ(int n, websrv_scopedata_msg_t *msg) {
     msg->data_xy[(2*i)+1]= (i>(n/4))? 10 : -10; 
   }*/
   msg->src=WEBSOCK_SRC_SCOPE ;
-  int st = ulfius_websocket_send_message( websrvparams_ptr->wm, U_WEBSOCKET_OPCODE_BINARY,(n*2*sizeof(float))+WEBSOCK_HEADSIZE, (char *)msg);
+  int st = ulfius_websocket_send_message( websrvparams_ptr->wm, U_WEBSOCKET_OPCODE_BINARY,(n*2*sizeof(int16_t))+WEBSOCK_HEADSIZE, (char *)msg);
   if (st != U_OK)
     LOG_I(UTIL, "Error sending scope IQs, status %i\n",st);   
 };
@@ -172,7 +172,7 @@ int websrv_scope_callback_set_params (const struct _u_request * request, struct 
            sp->graph[gid].enabled = (strcmp(vval,"true")==0)?true:false; 
            httpstatus=200;
 		 } else if (strcmp(vname,"iqrange") == 0) {
-           scope_params.iqrange = (uint32_t)strtof(vval,NULL);
+           scope_params.iqrange = (float)strtof(vval,NULL);
            httpstatus=200;                     
 		 } else if (strcmp(vname,"UEselect") == 0) {
            scope_params.selectedData=strtol(vval,NULL,10);

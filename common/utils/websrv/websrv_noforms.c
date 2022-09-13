@@ -104,7 +104,7 @@ void websrv_fl_add_xyplot_overlay( FL_OBJECT * ob,
                             FL_COLOR    col ){
 FLI_XYPLOT_SPEC *spec = (FLI_XYPLOT_SPEC *)(ob->spec);
 
-if (n>MAX_FLOAT_WEBSOCKMSG) {
+if (n>MAX_NIQ_WEBSOCKMSG) {
    LOG_E(UTIL,"Buffer %i too small for %i iqs...\n",id,n);
    return;
 }
@@ -115,9 +115,12 @@ if (n>MAX_FLOAT_WEBSOCKMSG) {
   spec->buff[id].buf[0].data_xy[1]=y[0];
   int I=0;
   float r=websrv_scope_getparams()->iqrange;
+  int newn=n;
   for ( int i=1; i<n; i++) {
-	if( x[i] < -r && y[i] < -r) continue;
-	if( x[i] > r && y[i] > r) continue;
+	if( x[i] < -r || y[i] < -r ||  x[i] > r || y[i] > r) {
+		n--;
+		continue;
+    }
 	
 	if (x[i-1] <= x[i] ) {
 	  spec->buff[id].buf[0].data_xy[2*I]=x[i];
@@ -158,24 +161,21 @@ FLI_XYPLOT_SPEC *spec = (FLI_XYPLOT_SPEC *)(ob->spec);
 };
 
 void websrv_fl_get_xyplot_data_pointer( FL_OBJECT  * ob,
-                                 int          id,
-                                 float     ** x,
-                                 float     ** y,
+                                 int        id,
+                                 float    ** x,
+                                 float    ** y,
                                  int        *n ){
 FLI_XYPLOT_SPEC *spec = (FLI_XYPLOT_SPEC *)(ob->spec);
-*x=spec->buff[0].buf[id].data_xy;
-*y=spec->buff[0].buf[id].data_xy;
 *n=spec->n[id];
 };
 
 /*----------------------------------------------------------------------*/
 /* new functions for interfacing with webserver                          */
 
-int websrv_nf_getdata(FL_OBJECT *graph, int layer, websrv_scopedata_msg_t **msg, int *nummsg) {
+
+int websrv_nf_getdata(FL_OBJECT *graph, int layer, websrv_scopedata_msg_t **msg) {
 	FLI_XYPLOT_SPEC *spec = (FLI_XYPLOT_SPEC *)(graph->spec);
 	*msg=spec->buff[layer].buf;
-	*nummsg=(spec->n[layer]/MAX_FLOAT_WEBSOCKMSG);
-	if ((spec->n[layer]%MAX_FLOAT_WEBSOCKMSG) != 0) (*nummsg)++;
 	return spec->n[layer];
 }
 

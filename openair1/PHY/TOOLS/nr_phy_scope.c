@@ -68,7 +68,49 @@ static void dl_traffic_on_off( FL_OBJECT *button, long arg) {
 #endif
 
 #define WATERFALL 10000
+#ifdef WEBSRVSCOPE
+int websrv_cpbuff_tomsg(OAIgraph_t *graph, scopeSample_t *c,int n, int id) {
+  int I=0;
+  int16_t r=websrv_scope_getparams()->iqrange;
+  int newn=n; 
+  websrv_scopedata_msg_t *msg;
+  websrv_nf_getdata(graph->graph, id,&msg);
+  
+  if (n>MAX_NIQ_WEBSOCKMSG) {
+    LOG_E(UTIL,"Buffer id %i too small for %i iqs...\n",id,n);
+    return 0;
+  }
+/* copy and sort the chart data on x to improve frontend perf */  
+  
+  for ( int i=0; i<n; i++) {
+	if( c[i].r < -r || c[i].i < -r ||  c[i].r > r || c[i].i > r) {
+		newn--;
+		continue;
+    }
+	
+	if ( msg->data_xy[2*I]<= c[i].r ) {
+	  msg->data_xy[2*I]=c[i].r;
+	  msg->data_xy[(2*I)+1]=c[i].i;
+	  I++;
+	} else {
+	  for (int j=I; j>=0; j--) {
+	     if (msg->data_xy[2*j] <= c[i].r || j==0) {
+		   for (int k=I;k>=j;k--) {
+	         msg->data_xy[2*(k+1)]=msg->data_xy[2*k];
+	         msg->data_xy[(2*(k+1))+1]=msg->data_xy[(2*k)+1];
+		   }
+	       msg->data_xy[2*j]=c[i].r;
+	       msg->data_xy[(2*j)+1]=c[i].i;
+	       I++;
+	       break;
+	    }
+      }
+	}
+  }
 
+  return newn;
+}
+#endif
 static void commonGraph(OAIgraph_t *graph, int type, FL_Coord x, FL_Coord y, FL_Coord w, FL_Coord h, const char *label, FL_COLOR pointColor) {
   if (type==WATERFALL) {
     graph->waterFallh=h-15;
@@ -148,7 +190,7 @@ static void setRange(OAIgraph_t *graph, float minX, float maxX, float minY, floa
   }
 }
 
-static void oai_xygraph_getbuff(OAIgraph_t *graph, float **x, float **y, int len, int layer) {
+static void oai_xygraph_getbuff(OAIgraph_t *graph, float  **x, float **y, int len, int layer) {
   float *old_x;
   float *old_y;
   int old_len=-1;
@@ -162,10 +204,9 @@ static void oai_xygraph_getbuff(OAIgraph_t *graph, float **x, float **y, int len
     float time[len];
 
     // make time in case we will use it
-//#ifndef WEBSRVSCOPE  // triggers strange display in frontend
+
     for (int i=0; i<len; i++)
       time[i] = values[i] = i;
-//#endif
     if (layer==0)
       fl_set_xyplot_data(graph->graph,time,values,len,"","","");
     else
@@ -181,12 +222,12 @@ static void oai_xygraph_getbuff(OAIgraph_t *graph, float **x, float **y, int len
 
 static void oai_xygraph(OAIgraph_t *graph, float *x, float *y, int len, int layer, bool NoAutoScale) {
 	
-#if WEBSRVSCOPE
+#ifdef WEBSRVSCOPE
 //      wsc.sigid=;
 //      snprintf(wsc.graphtitle,sizeof(wsc.graphtitle),graph->text->label); 
   websrv_scopedata_msg_t *msg=NULL;
-  int nm=0;
-      websrv_nf_getdata(graph->graph, layer, &msg, &nm); 
+  
+      websrv_nf_getdata(graph->graph, layer, &msg); 
 	  msg->msgtype=SCOPEMSG_TYPE_DATA ;
       msg->chartid=graph->chartid;
       msg->datasetid=graph->datasetid;
@@ -358,12 +399,15 @@ static void puschLLR (OAIgraph_t *graph, scopeData_t *p, int nb_UEs) {
          p->gNB->pusch_vars[ue]->llr ) {
       int16_t *pusch_llr = (int16_t *)p->gNB->pusch_vars[ue]->llr;
       float *llr, *bit;
+#ifdef WEBSRVSCOPE
+      websrv_cpbuff_tomsg(graph,pusch_llr ,coded_bits_per_codeword, ue);
+#else      
       oai_xygraph_getbuff(graph, &bit, &llr, coded_bits_per_codeword, ue);
 
       for (int i=0; i<coded_bits_per_codeword; i++) {
         llr[i] = (float) pusch_llr[i];
       }
-
+#endif
       oai_xygraph(graph,bit,llr,coded_bits_per_codeword,ue,10);
     }
   }
@@ -372,22 +416,25 @@ static void puschLLR (OAIgraph_t *graph, scopeData_t *p, int nb_UEs) {
 static void puschIQ (OAIgraph_t *graph, scopeData_t *p, int nb_UEs) {
   NR_DL_FRAME_PARMS *frame_parms=&p->gNB->frame_parms;
   int sz=frame_parms->N_RB_UL*12*frame_parms->symbols_per_slot;
-
+  int newsz=sz;
   for (int ue=0; ue<nb_UEs; ue++) {
     if ( p->gNB->pusch_vars &&
          p->gNB->pusch_vars[ue] &&
          p->gNB->pusch_vars[ue]->rxdataF_comp &&
          p->gNB->pusch_vars[ue]->rxdataF_comp[0] ) {
-      scopeSample_t *pusch_comp = (scopeSample_t *) p->gNB->pusch_vars[ue]->rxdataF_comp[0];
-      float *I, *Q;
+         scopeSample_t *pusch_comp = (scopeSample_t *) p->gNB->pusch_vars[ue]->rxdataF_comp[0];
+         float *I, *Q;
+#ifdef WEBSRVSCOPE
+      newsz =  websrv_cpbuff_tomsg(graph,pusch_comp ,sz, 0);
+#else
       oai_xygraph_getbuff(graph, &I, &Q, sz, ue);
-
       for (int k=0; k<sz; k++ ) {
         I[k] = pusch_comp[k].r;
         Q[k] = pusch_comp[k].i;
       }
+#endif
 
-      oai_xygraph(graph,I,Q,sz,ue,10);
+      oai_xygraph(graph,I,Q,newsz,ue,10);
     }
   }
 }
@@ -662,18 +709,24 @@ static void uePbchIQ  (scopeGraphData_t **data, OAIgraph_t *graph, PHY_VARS_NR_U
   // PBCH I/Q of MF Output
   if (!data[pbchRxdataF_comp])
     return;
-
+  
+  
   scopeSample_t *pbch_comp = (scopeSample_t *) (data[pbchRxdataF_comp]+1);
   const int sz=data[pbchRxdataF_comp]->lineSz;
+  int newsz=sz;
   float *I, *Q;
+#ifdef WEBSRVSCOPE
+     newsz =  websrv_cpbuff_tomsg(graph,pbch_comp ,sz, 0);
+#else
+
   oai_xygraph_getbuff(graph, &I, &Q, sz, 0);
 
   for (int i=0; i<sz; i++) {
     I[i]=pbch_comp[i].r;
     Q[i]=pbch_comp[i].i;
   }
-
-  oai_xygraph(graph, I, Q, sz, 0, true);
+#endif  
+  oai_xygraph(graph, I, Q, newsz, 0, true);
 }
 
 static void uePcchLLR  (scopeGraphData_t **data, OAIgraph_t *graph, PHY_VARS_NR_UE *phy_vars_ue, int eNB_id, int UE_id) {
@@ -701,19 +754,22 @@ static void uePcchIQ  (scopeGraphData_t **data, OAIgraph_t *graph, PHY_VARS_NR_U
     return;
 
   const int sz=data[pdcchRxdataF_comp]->lineSz;
+  int newsz=sz;
   //const int antennas=data[pdcchRxdataF_comp]->colSz;
   // We take the first antenna only for now
   float *I, *Q;
-  oai_xygraph_getbuff(graph, &I, &Q, sz, 0);
-
   scopeSample_t *pdcch_comp = (scopeSample_t *) (data[pdcchRxdataF_comp]+1);
+#ifdef WEBSRVSCOPE
+      newsz =  websrv_cpbuff_tomsg(graph,pdcch_comp ,sz, 0);
+#else
+  oai_xygraph_getbuff(graph, &I, &Q, sz, 0);
 
   for (int i=0; i<sz; i++) {
     I[i] = pdcch_comp[i].r;
     Q[i] = pdcch_comp[i].i;
   }
-
-  oai_xygraph(graph,I,Q,sz,0,10);
+#endif
+  oai_xygraph(graph,I,Q,newsz,0,10);
 }
 static void uePdschLLR  (scopeGraphData_t **data, OAIgraph_t *graph, PHY_VARS_NR_UE *phy_vars_ue, int eNB_id, int UE_id) {
   // PDSCH LLRs
@@ -749,7 +805,9 @@ static void uePdschIQ  (scopeGraphData_t **data, OAIgraph_t *graph, PHY_VARS_NR_
 
   NR_DL_FRAME_PARMS *frame_parms = &phy_vars_ue->frame_parms;
   int sz=7*2*frame_parms->N_RB_DL*12; // size of the malloced buffer
+  int newsz=sz;
   float *I, *Q;
+
   oai_xygraph_getbuff(graph, &I, &Q, sz*RX_NB_TH_MAX, 0);
   int base=0;
   memset(I+base, 0, sz*RX_NB_TH_MAX * sizeof(*I));

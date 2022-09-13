@@ -15,7 +15,7 @@
       </mat-card>
     </mat-grid-tile>
 
-    <mat-grid-tile [colspan]="1" [rowspan]="20">
+    <mat-grid-tile [colspan]="1" [rowspan]="8">
       <mat-card class="dashboard-card">
         <mat-card-header>
           <mat-card-title>Scope control</mat-card-title>
@@ -31,16 +31,6 @@
                         aria-labelledby="scope-slider-refrate-labelid" vertical="true" thumbLabel="true" 
                         [(ngModel)]="rfrate" (change)="OnRefrateChange()" > 
             </mat-slider>
-            <br><br>
-	        <mat-list-item class="channelselect" role="listitem">
-		      <mat-form-field class="select-form">
-			  <mat-select placeholder="Channels(IQ view)" name="ChannelsSelect" class="ChannelsSelect" multiple [value]="selected_channels" (selectionChange)="channelsChanged($event.value)" >
-				 <mat-option *ngFor="let graph of iqgraph_list" [value]="graph.title" >
-					{{graph.title}}
-				 </mat-option>
-			  </mat-select>
-		      </mat-form-field>
-	        </mat-list-item>
 	        <br><br>        
             <mat-list-item class="UEselect" role="listitem">
 		      <mat-form-field class="select-form">
@@ -74,35 +64,64 @@
     <mat-grid-tile [colspan]="5" [rowspan]="3">
       <mat-card class="dashboard-card">
         <mat-card-content class="dashboard-card-content">
-			<div class="chart-container" style=" height:40%; width:80%">
-              <canvas baseChart
+			<div fxLayout="column">
+			  <div  fxFlex="1 1 90% ">
+              <canvas baseChart width="90%"
                 [datasets]=" LLRDatasets"
                 [options]="LLROptions"
                 [type]="'scatter'">
               </canvas>
-            </div>  
+              </div>
+            <div fxFlex="0 1 10%"  style="width:60%">
+	        <mat-list-item class="llrchannelselect" role="listitem">
+		      <mat-form-field class="select-form">
+			  <mat-select placeholder="Channels(llr view)" name="llrChannelsSelect" class="ChannelsSelect" multiple [value]="selected_llrchannels" (selectionChange)="llrchannelsChanged($event.value)" >
+				 <mat-option *ngFor="let graph of llrgraph_list" [value]="graph.title" >
+					{{graph.title}}
+				 </mat-option>
+			  </mat-select>
+		      </mat-form-field>
+	        </mat-list-item> 
+	        </div>
+	      </div>                 
         </mat-card-content>
       </mat-card>
     </mat-grid-tile> 
         
-     <mat-grid-tile [colspan]="5" [rowspan]="5">
+     <mat-grid-tile [colspan]="5" [rowspan]="6">
       <mat-card class="dashboard-card">
-        <mat-card-content class="dashboard-card-content">
-			<div class="chart-container" >
-              <canvas baseChart
+        <mat-card-content>
+		  <div fxLayout="column">
+			<div  fxFlex="1 1 90% ">
+              <canvas baseChart height="80%"
                 [datasets]="IQDatasets"
                 [options]="IQOptions"
                 [type]="'scatter'">
               </canvas>
             </div> 
+            <br><br>
+            <div fxFlex="0 1 5%"  style="width:60%">
+	        <mat-list-item class="channelselect" role="listitem">
+		      <mat-form-field class="select-form">
+			  <mat-select placeholder="Channels(IQ view)" name="ChannelsSelect" class="ChannelsSelect" multiple [value]="selected_channels" (selectionChange)="channelsChanged($event.value)" >
+				 <mat-option *ngFor="let graph of iqgraph_list" [value]="graph.title" >
+					{{graph.title}}
+				 </mat-option>
+			  </mat-select>
+		      </mat-form-field>
+	        </mat-list-item>
+	        </div>
+	        <div fxFlex="0 1 5%">            
             <div class="scope-slider-div">
             <label id="scope-slider-range-labelid" class="scope-slider-label">range</label>
             <label class="scope-slider-value-label"> {{range}} </label>
             </div>           
-            <mat-slider class="scope-slider" min=".1" max="100" step="0.1" [value]="range" 
+            <mat-slider class="scope-slider" min="0" max="65535" step="100" [value]="range" 
                         aria-labelledby="scope-slider-range-labelid" thumbLabel="true" 
                         [(ngModel)]="range" (change)="OnRangeChange()" > 
-            </mat-slider>            
+            </mat-slider>
+            </div>
+          </div>
         </mat-card-content>
       </mat-card>
     </mat-grid-tile>           
