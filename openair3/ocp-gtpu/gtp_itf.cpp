@@ -1176,12 +1176,10 @@ void gtpv1uReceiver(int h) {
   } else {
     if ( udpDataLen < (int)sizeof(Gtpv1uMsgHeaderT) ) {
       LOG_W(GTPU, "[%d] received malformed gtp packet \n", h);
-      return;
     }
     Gtpv1uMsgHeaderT* msg=(Gtpv1uMsgHeaderT*) udpData;
     if ( (int)(ntohs(msg->msgLength) + sizeof(Gtpv1uMsgHeaderT)) != udpDataLen ) {
       LOG_W(GTPU, "[%d] received malformed gtp packet length\n", h);
-      return;
     }
     LOG_D(GTPU, "[%d] Received GTP data, msg type: %x\n", h, msg->msgType);
     switch(msg->msgType) {
