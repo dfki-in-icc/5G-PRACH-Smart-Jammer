@@ -589,18 +589,25 @@ void ue_dci_configuration(NR_UE_MAC_INST_t *mac, fapi_nr_dl_config_request_t *dl
     }
   } else {
 //    AssertFatal(1==0,"Handle DCI searching when CellGroup without dedicated BWP\n");
-    /*NR_SetupRelease_PDCCH_ConfigCommon_t *pdcch_ConfigCommon = bwp_Common->pdcch_ConfigCommon;
+    NR_SetupRelease_PDCCH_ConfigCommon_t *pdcch_ConfigCommon = bwp_Common->pdcch_ConfigCommon;
     fapi_nr_dl_config_dci_dl_pdu_rel15_t *rel15 = &dl_config->dl_config_list[dl_config->number_pdus].dci_config_pdu.dci_config_rel15;
-    NR_SearchSpace_t *ss = mac->SSpace[0][1];
-    LOG_I(NR_MAC,"Handle DCI searching when CellGroup without dedicated BWP lets wait paging\n");
-    if (pdcch_ConfigCommon &&
-      pdcch_ConfigCommon->choice.setup->pagingSearchSpace) {
-      LOG_I(NR_MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in Type1-PDCCH common random access search space (RA-Msg2)\n");
-      rel15->num_dci_options = 1;
-      rel15->dci_format_options[0] = NR_DL_DCI_FORMAT_1_0;
-      config_dci_pdu(mac, rel15, dl_config, 0xFFFE, -1);
-      fill_dci_search_candidates(ss, rel15, -1, -1);
-    }*/
+    if(mac->scc_SIB) {
+      commonSearchSpaceList = mac->scc_SIB->downlinkConfigCommon.initialDownlinkBWP.pdcch_ConfigCommon->choice.setup->commonSearchSpaceList;
+      ss_id = *mac->scc_SIB->downlinkConfigCommon.initialDownlinkBWP.pdcch_ConfigCommon->choice.setup->pagingSearchSpace;
+      NR_SearchSpace_t *ss=NULL;
+      if(ss_id>-1){
+        for (int i = 0; i < commonSearchSpaceList->list.count; i++) {
+          ss = commonSearchSpaceList->list.array[i];
+          if (ss->searchSpaceId == ss_id) break;
+        }
+        LOG_I(NR_MAC,"Handle DCI searching when CellGroup without dedicated BWP lets wait paging\n");
+        LOG_D(NR_MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in Type1-PDCCH common random access search space (RA-Msg2)\n");
+        rel15->num_dci_options = 1;
+        rel15->dci_format_options[0] = NR_DL_DCI_FORMAT_1_0;
+        config_dci_pdu(mac, rel15, dl_config, 0xFFFE, -1);
+        fill_dci_search_candidates(ss, rel15, -1, -1);
+      }
+    }
   }
   // Search space 0, CORESET ID 0
 
