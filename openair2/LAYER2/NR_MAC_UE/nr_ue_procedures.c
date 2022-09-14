@@ -957,6 +957,14 @@ int8_t nr_ue_process_dci(module_id_t module_id, int cc_id, uint8_t gNB_index, fr
         dlsch_config_pdu_1_0->BWPStart = mac->type0_PDCCH_CSS_config.cset_start_rb;
         LOG_I(MAC,"get NR_RNTI_TC and recieve\n");
     }
+    if (rnti == P_RNTI) {
+        dl_config->dl_config_list[dl_config->number_pdus].pdu_type = FAPI_NR_DL_CONFIG_TYPE_P_DLSCH;
+        dlsch_config_pdu_1_0->BWPSize = mac->type0_PDCCH_CSS_config.num_rbs;
+        dlsch_config_pdu_1_0->BWPStart = mac->type0_PDCCH_CSS_config.cset_start_rb;
+        dlsch_config_pdu_1_0->SubcarrierSpacing = mac->scc_SIB->downlinkConfigCommon.initialDownlinkBWP.genericParameters.subcarrierSpacing;
+        is_common=1;
+        LOG_I(MAC,"get NR_RNTI_P and recieve\n");
+    }
     /* IDENTIFIER_DCI_FORMATS */
     /* FREQ_DOM_RESOURCE_ASSIGNMENT_DL */
     if (nr_ue_process_dci_freq_dom_resource_assignment(NULL,dlsch_config_pdu_1_0,0,dlsch_config_pdu_1_0->BWPSize,dci->frequency_domain_assignment.val) < 0) {
@@ -2770,6 +2778,9 @@ void nr_ue_send_sdu(nr_downlink_indication_t *dl_info, NR_UL_TIME_ALIGNMENT_t *u
     case FAPI_NR_RX_PDU_TYPE_RAR:
     nr_ue_process_rar(dl_info, ul_time_alignment, pdu_id);
     break;
+    case FAPI_NR_RX_PDU_TYPE_PCH:
+    nr_ue_process_pch(dl_info, ul_time_alignment, pdu_id);
+    break;
     default:
     break;
   }
@@ -4225,5 +4236,22 @@ int nr_ue_process_rar(nr_downlink_indication_t *dl_info, NR_UL_TIME_ALIGNMENT_t 
   }
 
   return ret;
+
+}
+
+int nr_ue_process_pch(nr_downlink_indication_t *dl_info, NR_UL_TIME_ALIGNMENT_t *ul_time_alignment, int pdu_id){
+
+  module_id_t mod_id       = dl_info->module_id;
+  frame_t frame            = dl_info->frame;
+  uint8_t CC_id          = dl_info->cc_id;
+  int slot                 = dl_info->slot;
+  uint8_t gNB_index      = dl_info->gNB_index;
+  NR_UE_MAC_INST_t *mac    = get_mac_inst(mod_id);
+  uint8_t n_subPDUs        = 0;  // number of RAR payloads
+  uint8_t n_subheaders     = 0;  // number of MAC RAR subheaders
+  uint8_t *dlsch_buffer    = dl_info->rx_ind->rx_indication_body[pdu_id].pdsch_pdu.pdu;
+  int len    = dl_info->rx_ind->rx_indication_body[pdu_id].pdsch_pdu.pdu_length;
+   LOG_I(NR_MAC, "recieved PCH %d %d %d %d %d\n", pdu_id, mod_id, frame, slot, len);
+  nr_mac_rrc_data_ind_ue(mod_id, CC_id, frame, 0, P_RNTI, PCCH, dlsch_buffer, len);
 
 }
