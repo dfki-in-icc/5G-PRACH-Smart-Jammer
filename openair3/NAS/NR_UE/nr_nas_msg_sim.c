@@ -44,13 +44,16 @@
 #include <openair3/NAS/COMMON/NR_NAS_defs.h>
 #include <openair1/PHY/phy_extern_nr_ue.h>
 #include <openair1/SIMULATION/ETH_TRANSPORT/proto.h>
+#include <openair2/RRC/NR_UE/rrc_defs.h>
 
 uint8_t  *registration_request_buf;
 uint32_t  registration_request_len;
 extern char *baseNetAddress;
 extern uint16_t NB_UE_INST;
 static ue_sa_security_key_t ** ue_security_key;
+extern NR_UE_RRC_INST_t *NR_UE_rrc_inst;
 long fiveG_S_TMSI[MAX_MOBILES_PER_GNB*MAX_gNB];
+uint8_t fiveG_GUTI[MAX_MOBILES_PER_GNB*MAX_gNB][14];
 
 static int nas_protected_security_header_encode(
   char                                       *buffer,

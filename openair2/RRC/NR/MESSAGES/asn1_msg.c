@@ -41,6 +41,8 @@
 #include <per_encoder.h>
 #include <nr/nr_common.h>
 
+#include <openair2/RRC/NR_UE/rrc_defs.h>
+
 #include "asn1_msg.h"
 #include "../nr_rrc_proto.h"
 #include "RRC/NR/nr_rrc_extern.h"
@@ -149,7 +151,7 @@ typedef struct xer_sprint_string_s {
 extern unsigned char NB_gNB_INST;
 
 extern RAN_CONTEXT_t RC;
-
+extern NR_UE_RRC_INST_t *NR_UE_rrc_inst;
 extern long fiveG_S_TMSI[MAX_MOBILES_PER_GNB*MAX_gNB];
 /*
  * This is a helper function for xer_sprint, which directs all incoming data

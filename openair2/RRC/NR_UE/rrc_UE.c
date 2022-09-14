@@ -44,7 +44,7 @@
 #include "NR_RRCReconfiguration.h"
 #include "NR_MeasConfig.h"
 #include "NR_UL-DCCH-Message.h"
-
+#include "NR_PCCH-Message.h"
 #include "rrc_list.h"
 #include "rrc_defs.h"
 #include "rrc_proto.h"
@@ -2466,6 +2466,8 @@ int nr_rrc_mac_release_uespec(module_id_t module_id,int cc_idP,uint8_t gNB_index
    unsigned int  ue_mod_id;
    int           result;
    NR_SRB_INFO   *srb_info_p;
+   asn_dec_rval_t dec_rval;
+   NR_PCCH_Message_t *dl_pcch_msg=NULL;
    protocol_ctxt_t  ctxt;
    itti_mark_task_ready (TASK_RRC_NRUE);
 
@@ -2516,8 +2518,7 @@ int nr_rrc_mac_release_uespec(module_id_t module_id,int cc_idP,uint8_t gNB_index
          break;
       /* PCCH messages  paging */
       case NR_RRC_PCCH_DATA_REQ:
-        NR_DL_PCCH_Message_t *dl_pcch_msg=NULL;
-        int dec_rval = uper_decode(NULL,
+        dec_rval = uper_decode(NULL,
            			  &asn_DEF_NR_PCCH_Message,
            			  (void **)&dl_pcch_msg,
            			  (uint8_t *)NR_RRC_PCCH_DATA_REQ(msg_p).sdu_p,
@@ -2527,7 +2528,6 @@ int nr_rrc_mac_release_uespec(module_id_t module_id,int cc_idP,uint8_t gNB_index
         NR_UE_MAC_INST_t *mac = get_mac_inst(ue_mod_id);
         RA_config_t *ra = &mac->ra;
         ra->ra_state = RA_UE_IDLE;
-        PHY_vars_UE_g[ue_mod_id][0]->mod_id_idle = false;
         NR_UE_rrc_inst[ue_mod_id].paging_flag = 1;
         
        /* 
