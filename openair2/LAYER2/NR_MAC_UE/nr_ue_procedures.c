@@ -3005,13 +3005,44 @@ uint8_t nr_extract_dci_info(NR_UE_MAC_INST_t *mac,
       break;
 
     case NR_RNTI_P:
-      /*
       // Short Messages Indicator  E2 bits
-      for (int i=0; i<2; i++)
-      dci_pdu |= (((uint64_t)dci_pdu_rel15->short_messages_indicator>>(1-i))&1)<<(dci_size-pos++);
+      pos+=2;
+      int short_msg_ind = (*dci_pdu>>(dci_size-pos))&0x03;
       // Short Messages  E8 bits
-      for (int i=0; i<8; i++)
-      *dci_pdu |= (((uint64_t)dci_pdu_rel15->short_messages>>(7-i))&1)<<(dci_size-pos++);
+      pos+=8;
+      int short_msg = (*dci_pdu>>(dci_size-pos))&0x0ff;
+      N_RB = mac->type0_PDCCH_CSS_config.num_rbs;
+      // Freq domain assignment 0-16 bit
+      fsize = (int)ceil( log2( (N_RB*(N_RB+1))>>1 ) );
+      pos+=fsize;
+      dci_pdu_rel15->frequency_domain_assignment.val = (*dci_pdu>>(dci_size-pos))&((1<<fsize)-1);
+
+      // Time domain assignment 4 bit
+      pos+=4;
+      dci_pdu_rel15->time_domain_assignment.val = (*dci_pdu>>(dci_size-pos))&0xf;
+
+      // VRB to PRB mapping 1 bit
+      pos++;
+      dci_pdu_rel15->vrb_to_prb_mapping.val = (*dci_pdu>>(dci_size-pos))&0x1;
+
+      // MCS 5bit  //bit over 32, so dci_pdu ++
+      pos+=5;
+      dci_pdu_rel15->mcs = (*dci_pdu>>(dci_size-pos))&0x1f;
+
+      // Redundancy version  2 bit
+      pos+=2;
+      dci_pdu_rel15->tb_scaling = (*dci_pdu>>(dci_size-pos))&3;
+
+      LOG_I(MAC,"N_RB = %i\n", N_RB);
+      LOG_I(MAC,"dci_size = %i\n", dci_size);
+      LOG_I(MAC,"short_msg_ind = %i\n", short_msg_ind);
+      LOG_I(MAC,"short_msg = %i\n", short_msg);
+      LOG_I(MAC,"fsize = %i\n", fsize);
+      LOG_I(MAC,"dci_pdu_rel15->frequency_domain_assignment.val = %i\n", dci_pdu_rel15->frequency_domain_assignment.val);
+      LOG_I(MAC,"dci_pdu_rel15->time_domain_assignment.val = %i\n", dci_pdu_rel15->time_domain_assignment.val);
+      LOG_I(MAC,"dci_pdu_rel15->vrb_to_prb_mapping.val = %i\n", dci_pdu_rel15->vrb_to_prb_mapping.val);
+      LOG_I(MAC,"dci_pdu_rel15->mcs = %i\n", dci_pdu_rel15->mcs);
+      LOG_I(MAC,"dci_pdu_rel15->tb_scaling = %i\n", dci_pdu_rel15->tb_scaling);
       // Freq domain assignment 0-16 bit
       fsize = (int)ceil( log2( (N_RB*(N_RB+1))>>1 ) );
       for (int i=0; i<fsize; i++)
@@ -3028,7 +3059,6 @@ uint8_t nr_extract_dci_info(NR_UE_MAC_INST_t *mac,
       // TB scaling 2 bit
       for (int i=0; i<2; i++)
       *dci_pdu |= (((uint64_t)dci_pdu_rel15->tb_scaling>>(1-i))&1)<<(dci_size-pos++);
-      */	
 	
       break;
   	

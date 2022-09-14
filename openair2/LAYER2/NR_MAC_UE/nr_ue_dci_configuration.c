@@ -592,7 +592,7 @@ void ue_dci_configuration(NR_UE_MAC_INST_t *mac, fapi_nr_dl_config_request_t *dl
     NR_SetupRelease_PDCCH_ConfigCommon_t *pdcch_ConfigCommon = bwp_Common->pdcch_ConfigCommon;
     fapi_nr_dl_config_dci_dl_pdu_rel15_t *rel15 = &dl_config->dl_config_list[dl_config->number_pdus].dci_config_pdu.dci_config_rel15;
     if(mac->scc_SIB) {
-      commonSearchSpaceList = mac->scc_SIB->downlinkConfigCommon.initialDownlinkBWP.pdcch_ConfigCommon->choice.setup->commonSearchSpaceList;
+      struct NR_PDCCH_ConfigCommon__commonSearchSpaceList * commonSearchSpaceList = mac->scc_SIB->downlinkConfigCommon.initialDownlinkBWP.pdcch_ConfigCommon->choice.setup->commonSearchSpaceList;
       ss_id = *mac->scc_SIB->downlinkConfigCommon.initialDownlinkBWP.pdcch_ConfigCommon->choice.setup->pagingSearchSpace;
       NR_SearchSpace_t *ss=NULL;
       if(ss_id>-1){
@@ -604,7 +604,7 @@ void ue_dci_configuration(NR_UE_MAC_INST_t *mac, fapi_nr_dl_config_request_t *dl
         LOG_D(NR_MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in Type1-PDCCH common random access search space (RA-Msg2)\n");
         rel15->num_dci_options = 1;
         rel15->dci_format_options[0] = NR_DL_DCI_FORMAT_1_0;
-        config_dci_pdu(mac, rel15, dl_config, 0xFFFE, -1);
+        config_dci_pdu(mac, rel15, dl_config, NR_RNTI_P, -1);
         fill_dci_search_candidates(ss, rel15, -1, -1);
       }
     }
