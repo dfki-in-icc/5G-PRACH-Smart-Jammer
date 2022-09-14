@@ -749,7 +749,6 @@ int nr_config_pusch_pdu(NR_UE_MAC_INST_t *mac,
 
       /* BANDWIDTH_PART_IND */
       if (dci->bwp_indicator.val != 1) {
-        LOG_W(NR_MAC, "bwp_indicator != 1! Possibly due to false DCI. Ignoring DCI!\n");
         //TODO L5G
         dci->bwp_indicator.val=1;
         //return -1;
