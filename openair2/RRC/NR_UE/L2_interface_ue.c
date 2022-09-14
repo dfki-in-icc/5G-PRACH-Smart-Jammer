@@ -107,6 +107,34 @@ nr_mac_rrc_data_ind_ue(
         }
         break;
 
+      case PCCH:
+        if (pdu_len>0) {
+          LOG_T(NR_RRC,"[UE %d] Received SDU for PCCH on SRB %u from gNB %d\n",module_id,channel & RAB_OFFSET,gNB_index);
+
+          MessageDef *message_p;
+          uint8_t *message_buffer;
+          int msg_sdu_size = PCCH_SDU_SIZE;
+
+          if (pdu_len > msg_sdu_size) {
+            LOG_E(NR_RRC, "SDU larger than PCCH SDU buffer size (%d, %d)", sdu_size, msg_sdu_size);
+            sdu_size = msg_sdu_size;
+          } else {
+            sdu_size =  pdu_len;
+          }
+
+          message_p = itti_alloc_new_message (TASK_MAC_UE, 0, NR_RRC_PCCH_DATA_REQ);
+          message_buffer = itti_malloc (TASK_MAC_UE, TASK_RRC_NRUE, sdu_size);
+          memcpy (message_buffer, pduP, sdu_size);
+          NR_RRC_PCCH_DATA_REQ (message_p).sdu_size  = sdu_size;
+          NR_RRC_PCCH_DATA_REQ (message_p).sdu_p     = message_buffer;
+          NR_RRC_PCCH_DATA_REQ (message_p).mode      = PDCP_TRANSMISSION_MODE_TRANSPARENT;  /* not used */
+          NR_RRC_PCCH_DATA_REQ (message_p).rnti      = P_RNTI;
+          NR_RRC_PCCH_DATA_REQ (message_p).tmsi      = 0;
+          NR_RRC_PCCH_DATA_REQ (message_p).CC_id     = 0;
+          itti_send_msg_to_task (TASK_RRC_NRUE, GNB_MODULE_ID_TO_INSTANCE( module_id ), message_p);
+        }
+        break;
+      
       default:
         break;
     }

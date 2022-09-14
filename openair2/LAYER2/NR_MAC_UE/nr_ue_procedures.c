@@ -4251,7 +4251,7 @@ int nr_ue_process_pch(nr_downlink_indication_t *dl_info, NR_UL_TIME_ALIGNMENT_t 
   uint8_t n_subheaders     = 0;  // number of MAC RAR subheaders
   uint8_t *dlsch_buffer    = dl_info->rx_ind->rx_indication_body[pdu_id].pdsch_pdu.pdu;
   int len    = dl_info->rx_ind->rx_indication_body[pdu_id].pdsch_pdu.pdu_length;
-   LOG_I(NR_MAC, "recieved PCH %d %d %d %d %d\n", pdu_id, mod_id, frame, slot, len);
-  nr_mac_rrc_data_ind_ue(mod_id, CC_id, frame, 0, P_RNTI, PCCH, dlsch_buffer, len);
+  LOG_I(NR_MAC, "recieved PCH %d %d %d %d %d\n", pdu_id, mod_id, frame, slot, len);
+  nr_mac_rrc_data_ind_ue(mod_id, CC_id, gNB_index,frame, 0, P_RNTI, PCCH, dlsch_buffer, len);
 
 }

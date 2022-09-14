@@ -2511,7 +2511,32 @@ int nr_rrc_mac_release_uespec(module_id_t module_id,int cc_idP,uint8_t gNB_index
                                   srb_info_p,
                                   NR_RRC_MAC_CCCH_DATA_IND (msg_p).gnb_index);
          break;
-
+      /* PCCH messages  paging */
+      case NR_RRC_PCCH_DATA_REQ:
+        NR_DL_PCCH_Message_t *dl_pcch_msg=NULL;
+        dec_rval = uper_decode(NULL,
+           			  &asn_DEF_NR_DL_PCCH_Message,
+           			  (void **)&dl_pcch_msg,
+           			  (uint8_t *)NR_RRC_PCCH_DATA_REQ(msg_p).sdu_p,
+           			  NR_RRC_PCCH_DATA_REQ(msg_p).sdu_size,0,0);
+        xer_fprint(stdout, &asn_DEF_NR_DL_PCCH_Message, (const void *) dl_pcch_msg);
+        PHY_vars_UE_g[ue_mod_id][0]->UE_mode[0] = PRACH;
+        NR_UE_MAC_INST_t *mac = get_mac_inst(ue_mod_id);
+        RA_config_t *ra = &mac->ra;
+        ra->ra_state = RA_UE_IDLE;
+        PHY_vars_UE_g[ue_mod_id][0]->mod_id_idle = false;
+        NR_UE_rrc_inst[ue_mod_id].paging_flag = 1;
+        
+       /* 
+        if(fiveG_S_TMSI[ue_mod_id]==NR_RRC_PCCH_DATA_REQ(msg_p).tmsi && nr_rrc_get_state(ue_mod_id) == RRC_STATE_IDLE_NR){
+          NR_UE_rrc_inst[ue_mod_id].paging_flag = 1;
+          nr_rrc_ue_generate_RRCSetupRequest( ue_mod_id, 0 );
+        }
+        else if( fiveG_S_TMSI[ue_mod_id]==NR_RRC_PCCH_DATA_REQ(msg_p).tmsi && nr_rrc_get_state(ue_mod_id) != RRC_STATE_IDLE_NR)
+          LOG_W(NR_RRC, "[UE %d] UE is not idle\n", ue_mod_id);
+        else
+          LOG_W(NR_RRC, "[UE %d] UE tmsi %lx is not match paging tmsi %lx\n", ue_mod_id, fiveG_S_TMSI[ue_mod_id], NR_RRC_PCCH_DATA_REQ(msg_p).tmsi);*/
+        break;
       /* PDCP messages */
       case NR_RRC_DCCH_DATA_IND:
         PROTOCOL_CTXT_SET_BY_MODULE_ID(&ctxt, NR_RRC_DCCH_DATA_IND (msg_p).module_id, GNB_FLAG_NO, NR_RRC_DCCH_DATA_IND (msg_p).rnti, NR_RRC_DCCH_DATA_IND (msg_p).frame, 0,NR_RRC_DCCH_DATA_IND (msg_p).gNB_index);

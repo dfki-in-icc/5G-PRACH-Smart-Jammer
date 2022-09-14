@@ -59,6 +59,7 @@
 #define BCCH_SDU_SIZE                           (512)
 #define BCCH_SDU_MBMS_SIZE                      (512)
 #define CCCH_SDU_SIZE                           (512)
+#define PCCH_SDU_SIZE                           (512)
 #define MCCH_SDU_SIZE                           (512)
 #define PCCH_SDU_SIZE                           (512)
 

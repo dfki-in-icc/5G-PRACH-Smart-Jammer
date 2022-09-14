@@ -1192,6 +1192,9 @@ int nr_ue_dl_indication(nr_downlink_indication_t *dl_info, NR_UL_TIME_ALIGNMENT_
           case FAPI_NR_RX_PDU_TYPE_RAR:
             ret_mask |= (handle_dlsch(dl_info, ul_time_alignment, i)) << FAPI_NR_RX_PDU_TYPE_RAR;
             break;
+          case FAPI_NR_RX_PDU_TYPE_PCH:
+            ret_mask |= (handle_dlsch(dl_info, ul_time_alignment, i)) << FAPI_NR_RX_PDU_TYPE_PCH;
+            break;
           default:
             break;
         }

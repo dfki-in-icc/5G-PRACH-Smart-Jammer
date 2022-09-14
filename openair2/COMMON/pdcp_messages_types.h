@@ -40,6 +40,7 @@
 // gNB
 #define NR_RRC_DCCH_DATA_REQ(mSGpTR)            (mSGpTR)->ittiMsg.nr_rrc_dcch_data_req
 #define NR_RRC_DCCH_DATA_IND(mSGpTR)            (mSGpTR)->ittiMsg.nr_rrc_dcch_data_ind
+#define NR_RRC_PCCH_DATA_REQ(mSGpTR)            (mSGpTR)->ittiMsg.nr_rrc_pcch_data_req
 
 //-------------------------------------------------------------------------------------------//
 // Messages between RRC and PDCP layers
@@ -106,5 +107,14 @@ typedef struct RrcPcchDataReq_s {
   uint8_t      ue_index;
   uint8_t      CC_id;
 } RrcPcchDataReq;
+
+typedef struct NRRrcPcchDataReq_s {
+  uint32_t     sdu_size;
+  uint8_t      CC_id;
+  uint8_t      mode;
+  uint16_t     rnti;
+  long         tmsi;
+  uint8_t      *sdu_p;
+} NRRrcPcchDataReq;
 
 #endif /* PDCP_MESSAGES_TYPES_H_ */
