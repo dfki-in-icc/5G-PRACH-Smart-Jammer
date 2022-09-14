@@ -2110,6 +2110,7 @@ void nr_get_tbs_dl(nfapi_nr_dl_tti_pdsch_pdu *pdsch_pdu,
                        pdsch_rel15->rbSize,
                        N_sh_symb,
                        N_PRB_DMRS*dmrs_length,
+		       0,
                        N_PRB_oh,
                        tb_scaling,
 		       pdsch_rel15->nrOfLayers)>>3;

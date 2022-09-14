@@ -61,7 +61,7 @@
 #include "common/utils/LOG/log.h"
 #include "common/utils/LOG/vcd_signal_dumper.h"
 
-//#define DEBUG_MIB
+#define DEBUG_MIB
 //#define ENABLE_MAC_PAYLOAD_DEBUG 1
 //#define DEBUG_EXTRACT_DCI
 //#define DEBUG_RAR
@@ -959,6 +959,7 @@ int8_t nr_ue_process_dci(module_id_t module_id, int cc_id, uint8_t gNB_index, fr
                                                dlsch_config_pdu_1_0->number_rbs,
                                                dlsch_config_pdu_1_0->number_symbols,
                                                nb_re_dmrs*get_num_dmrs(dlsch_config_pdu_1_0->dlDmrsSymbPos),
+					       0,
                                                nb_rb_oh, 0, 1);
 
     int bw_tbslbrm;
@@ -1398,7 +1399,8 @@ int8_t nr_ue_process_dci(module_id_t module_id, int cc_id, uint8_t gNB_index, fr
                                                dlsch_config_pdu_1_1->number_rbs,
                                                dlsch_config_pdu_1_1->number_symbols,
                                                nb_re_dmrs*get_num_dmrs(dlsch_config_pdu_1_1->dlDmrsSymbPos),
-                                               nb_rb_oh, 0, Nl);
+                                               0,
+					       nb_rb_oh, 0, Nl);
 
     // TBS_LBRM according to section 5.4.2.1 of 38.212
     long *maxMIMO_Layers = mac->cg->spCellConfig->spCellConfigDedicated->pdsch_ServingCellConfig->choice.setup->ext1->maxMIMO_Layers;

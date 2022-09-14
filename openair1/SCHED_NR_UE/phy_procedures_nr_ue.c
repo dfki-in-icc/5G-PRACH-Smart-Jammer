@@ -1452,12 +1452,13 @@ int phy_procedures_nrUE_RX(PHY_VARS_NR_UE *ue,
     get_coreset_rballoc(phy_pdcch_config->pdcch_config[0].coreset.frequency_domain_resource,&coreset_nb_rb,&coreset_start_rb);
 
   uint8_t dci_cnt = 0;
+  LOG_D(PHY,"pdcch : num_ss %d, nb_symb %d\n",phy_pdcch_config->nb_search_space,nb_symb_pdcch);
   for(int n_ss = 0; n_ss<phy_pdcch_config->nb_search_space; n_ss++) {
     for (uint16_t l=0; l<nb_symb_pdcch; l++) {
 
       // note: this only works if RBs for PDCCH are contigous!
-      LOG_D(PHY, "pdcch_channel_estimation: first_carrier_offset %d, BWPStart %d, coreset_start_rb %d, coreset_nb_rb %d\n",
-            fp->first_carrier_offset, phy_pdcch_config->pdcch_config[n_ss].BWPStart, coreset_start_rb, coreset_nb_rb);
+      LOG_D(PHY, "pdcch_channel_estimation: first_carrier_offset %d, BWPStart %d, coreset_start_rb %d, coreset_nb_rb %d, scrambling_id %d\n",
+            fp->first_carrier_offset, phy_pdcch_config->pdcch_config[n_ss].BWPStart, coreset_start_rb, coreset_nb_rb, phy_pdcch_config->pdcch_config[n_ss].coreset.pdcch_dmrs_scrambling_id);
 
       if (coreset_nb_rb > 0)
         nr_pdcch_channel_estimation(ue,

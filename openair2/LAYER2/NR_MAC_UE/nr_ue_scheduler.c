@@ -949,6 +949,7 @@ int nr_config_pusch_pdu(NR_UE_MAC_INST_t *mac,
                                                         pusch_config_pdu->rb_size,
                                                         pusch_config_pdu->nr_of_symbols,
                                                         nb_dmrs_re_per_rb*number_dmrs_symbols,
+							0,
                                                         N_PRB_oh,
                                                         0, // TBR to verify tb scaling
                                                         pusch_config_pdu->nrOfLayers)>>3;

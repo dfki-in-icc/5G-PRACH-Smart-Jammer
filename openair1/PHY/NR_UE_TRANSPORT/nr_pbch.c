@@ -428,7 +428,7 @@ int nr_rx_pbch( PHY_VARS_NR_UE *ue,
 #endif
   // symbol refers to symbol within SSB. symbol_offset is the offset of the SSB wrt start of slot
   double log2_maxh;
-
+  LOG_D(PHY,"Starting PBCH demdoulation i_ssb %d\n",i_ssb);
   for (symbol=1; symbol<4; symbol++) {
     const uint16_t nb_re=symbol == 2 ? 72 : 180;
     __attribute__ ((aligned(32))) struct complex16 rxdataF_ext[frame_parms->nb_antennas_rx][PBCH_MAX_RE_PER_SYMBOL];

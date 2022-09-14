@@ -50,8 +50,8 @@ int32_t nr_dlsch_demod_shift = 0;
 
 //#define DEBUG_HARQ
 //#define DEBUG_PHY
-//#define DEBUG_DLSCH_DEMOD
-//#define DEBUG_PDSCH_RX
+#define DEBUG_DLSCH_DEMOD
+#define DEBUG_PDSCH_RX
 
 // [MCS][i_mod (0,1,2) = (2,4,6)]
 //unsigned char offset_mumimo_llr_drange_fix=0;
@@ -329,6 +329,7 @@ int nr_rx_pdsch(PHY_VARS_NR_UE *ue,
   int nl = dlsch0_harq->Nl;
   int n_rx = frame_parms->nb_antennas_rx;
   nb_re_pdsch = (pilots==1)? ((config_type==NFAPI_NR_DMRS_TYPE1)?nb_rb_pdsch*(12-6*dlsch0_harq->n_dmrs_cdm_groups): nb_rb_pdsch*(12-4*dlsch0_harq->n_dmrs_cdm_groups)) : (nb_rb_pdsch*12);
+  LOG_D(PHY,"[AbsSFN %u.%d] symbol %d nb_re_pdsch %d\n",frame,nr_slot_rx,symbol,nb_re_pdsch);
   //----------------------------------------------------------
   //--------------------- Channel Scaling --------------------
   //----------------------------------------------------------
@@ -556,19 +557,19 @@ int nr_rx_pdsch(PHY_VARS_NR_UE *ue,
   uint8_t aa = 0;
   
   snprintf(filename, 50, "rxdataF0_symb_%d_nr_slot_rx_%d.m", symbol, nr_slot_rx);
-  write_output(filename, "rxdataF0", &common_vars->common_vars_rx_data_per_thread[proc->thread_id].rxdataF[0][0], NR_SYMBOLS_PER_SLOT*frame_parms->ofdm_symbol_size, 1, 1);
+  write_output(filename, "rxdataF0", &common_vars->common_vars_rx_data_per_thread[proc->thread_id].rxdataF[0][frame_parms->ofdm_symbol_size*symbol], frame_parms->ofdm_symbol_size, 1, 1);
 
   snprintf(filename, 50, "dl_ch_estimates0%d_symb_%d_nr_slot_rx_%d.m", aa, symbol, nr_slot_rx);
-  write_output(filename, "dl_ch_estimates", &pdsch_vars[gNB_id]->dl_ch_estimates[aa][0], NR_SYMBOLS_PER_SLOT*frame_parms->ofdm_symbol_size, 1, 1);
+  write_output(filename, "dl_ch_estimates", &pdsch_vars[gNB_id]->dl_ch_estimates[aa][frame_parms->ofdm_symbol_size*symbol],frame_parms->ofdm_symbol_size, 1, 1);
 
   snprintf(filename, 50, "rxdataF_ext0%d_symb_%d_nr_slot_rx_%d.m", aa, symbol, nr_slot_rx);
-  write_output(filename, "rxdataF_ext", &pdsch_vars[gNB_id]->rxdataF_ext[aa][0], NR_SYMBOLS_PER_SLOT*frame_parms->N_RB_DL*NR_NB_SC_PER_RB, 1, 1);
+  write_output(filename, "rxdataF_ext", &pdsch_vars[gNB_id]->rxdataF_ext[aa][symbol*frame_parms->N_RB_DL*NR_NB_SC_PER_RB], frame_parms->N_RB_DL*NR_NB_SC_PER_RB, 1, 1);
 
   snprintf(filename, 50, "dl_ch_estimates_ext0%d_symb_%d_nr_slot_rx_%d.m", aa, symbol, nr_slot_rx);
-  write_output(filename, "dl_ch_estimates_ext00", &pdsch_vars[gNB_id]->dl_ch_estimates_ext[aa][0], NR_SYMBOLS_PER_SLOT*frame_parms->N_RB_DL*NR_NB_SC_PER_RB, 1, 1);
+  write_output(filename, "dl_ch_estimates_ext00", &pdsch_vars[gNB_id]->dl_ch_estimates_ext[aa][symbol*frame_parms->N_RB_DL*NR_NB_SC_PER_RB], frame_parms->N_RB_DL*NR_NB_SC_PER_RB, 1, 1);
 
   snprintf(filename, 50, "rxdataF_comp0%d_symb_%d_nr_slot_rx_%d.m", aa, symbol, nr_slot_rx);
-  write_output(filename, "rxdataF_comp00", &pdsch_vars[gNB_id]->rxdataF_comp0[aa][0], NR_SYMBOLS_PER_SLOT*frame_parms->N_RB_DL*NR_NB_SC_PER_RB, 1, 1);
+  write_output(filename, "rxdataF_comp00", &pdsch_vars[gNB_id]->rxdataF_comp0[aa][symbol*frame_parms->N_RB_DL*NR_NB_SC_PER_RB], frame_parms->N_RB_DL*NR_NB_SC_PER_RB, 1, 1);
 /*
   for (int i=0; i < 2; i++){
     snprintf(filename, 50,  "llr%d_symb_%d_nr_slot_rx_%d.m", i, symbol, nr_slot_rx);

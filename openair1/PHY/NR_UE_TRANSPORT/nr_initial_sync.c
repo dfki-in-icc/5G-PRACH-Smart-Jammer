@@ -549,7 +549,7 @@ int nr_initial_sync(UE_nr_rxtx_proc_t *proc,
                               l, // the UE PHY has no notion of the symbols to be monitored in the search space
                               phy_pdcch_config.slot,
                               is*fp->samples_per_frame+phy_pdcch_config.sfn*fp->samples_per_frame+ue->rx_offset);
-
+        proc->nr_slot_rx = phy_pdcch_config.slot;
         if (coreset_nb_rb > 0)
           nr_pdcch_channel_estimation(ue,
                                       proc,

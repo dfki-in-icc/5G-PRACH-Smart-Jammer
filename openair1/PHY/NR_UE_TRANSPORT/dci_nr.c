@@ -60,7 +60,7 @@ char nr_dci_format_string[8][30] = {
 //#define DEBUG_DCI_DECODING 1
 
 //#define NR_LTE_PDCCH_DCI_SWITCH
-//#define NR_PDCCH_DCI_DEBUG            // activates NR_PDCCH_DCI_DEBUG logs
+#define NR_PDCCH_DCI_DEBUG            // activates NR_PDCCH_DCI_DEBUG logs
 #ifdef NR_PDCCH_DCI_DEBUG
 #define LOG_DDD(a, ...) printf("<-NR_PDCCH_DCI_DEBUG (%s)-> " a, __func__, ##__VA_ARGS__ )
 #else
@@ -140,6 +140,8 @@ static void nr_pdcch_demapping_deinterleaving(uint32_t *llr,
     reg_bundle_size_L = 6;
   }
 
+  LOG_D(PHY,"PDCCH interleaver, N_regs %d, coreset_interleaver_size_R %d, reg_bundle_size_L %d => coreset_C %d\n",
+	N_regs,coreset_interleaver_size_R,reg_bundle_size_L,coreset_C);
   int B_rb = reg_bundle_size_L/coreset_time_dur; // nb of RBs occupied by each REG bundle
   int num_bundles_per_cce = 6/reg_bundle_size_L;
   int n_cce = N_regs/6;
@@ -710,6 +712,9 @@ int32_t nr_rx_pdcch(PHY_VARS_NR_UE *ue,
                                 n_rb,
                                 rel15->BWPStart);
 
+    char filename[50];
+    snprintf(filename, 50, "pdcch_rxdataF_ext_%d_nr_slot_rx_%d.m",s,slot);
+    write_output(filename,"pdcch_rxdataF_ext",rxdataF_ext,n_rb*9,1,1);
     LOG_D(PHY,"we enter nr_pdcch_channel_level(avgP=%d) => compute channel level based on ofdm symbol 0, pdcch_vars[eNB_id]->dl_ch_estimates_ext\n",*avgP);
     LOG_D(PHY,"in nr_pdcch_channel_level(dl_ch_estimates_ext -> dl_ch_estimates_ext)\n");
     // compute channel level based on ofdm symbol 0
@@ -724,11 +729,11 @@ int32_t nr_rx_pdcch(PHY_VARS_NR_UE *ue,
     for (aarx = 0; aarx < frame_parms->nb_antennas_rx; aarx++)
       avgs = cmax(avgs, avgP[aarx]);
 
-    log2_maxh = (log2_approx(avgs) / 2) + 5;  //+frame_parms->nb_antennas_rx;
+    log2_maxh = (log2_approx(avgs) / 2) + 3;  //+frame_parms->nb_antennas_rx;
 
-#ifdef UE_DEBUG_TRACE
+//#ifdef UE_DEBUG_TRACE
     LOG_D(PHY,"slot %d: pdcch log2_maxh = %d (%d,%d)\n",slot,log2_maxh,avgP[0],avgs);
-#endif
+//#endif
 #if T_TRACER
     T(T_UE_PHY_PDCCH_ENERGY, T_INT(0), T_INT(0), T_INT(frame%1024), T_INT(slot),
       T_INT(avgP[0]), T_INT(avgP[1]), T_INT(avgP[2]), T_INT(avgP[3]));
@@ -745,6 +750,9 @@ int32_t nr_rx_pdcch(PHY_VARS_NR_UE *ue,
                                   log2_maxh,
                                   n_rb); // log2_maxh+I0_shift
 
+    snprintf(filename, 50, "pdcch_rxdataF_comp_%d_nr_slot_rx_%d.m",s,slot);
+    write_output(filename,"pdcch_rxdataF_comp",rxdataF_comp,n_rb*9,1,1);
+
     UEscopeCopy(ue, pdcchRxdataF_comp, rxdataF_comp, sizeof(struct complex16), frame_parms->nb_antennas_rx, rx_size);
 
     if (frame_parms->nb_antennas_rx > 1) {
@@ -760,7 +768,8 @@ int32_t nr_rx_pdcch(PHY_VARS_NR_UE *ue,
                  llr,
                  s,
                  n_rb);
-
+    snprintf(filename, 50, "pdcch_llr_%d_nr_slot_rx_%d.m",s,slot);
+    write_output(filename,"pdcch_llr",llr,n_rb*18,1,0);
     UEscopeCopy(ue, pdcchLlr, llr, sizeof(int16_t), 1, llr_size);
 
 #if T_TRACER
@@ -775,7 +784,9 @@ int32_t nr_rx_pdcch(PHY_VARS_NR_UE *ue,
 #endif
   }
 
-  LOG_D(PHY,"we enter nr_pdcch_demapping_deinterleaving(), number of candidates %d\n",rel15->number_of_candidates);
+  LOG_D(PHY,"we enter nr_pdcch_demapping_deinterleaving(), number of candidates %d, RegBundleSize %d, InterleaverSize %d,ShiftIndex %d\n",rel15->number_of_candidates,rel15->coreset.RegBundleSize,
+                                    rel15->coreset.InterleaverSize,
+                                    rel15->coreset.ShiftIndex);
   nr_pdcch_demapping_deinterleaving((uint32_t *) llr,
                                     (uint32_t *) pdcch_e_rx,
                                     rel15->coreset.duration,
@@ -787,10 +798,6 @@ int32_t nr_rx_pdcch(PHY_VARS_NR_UE *ue,
                                     rel15->number_of_candidates,
                                     rel15->CCE,
                                     rel15->L);
-
-  LOG_D(PHY,"we end nr_pdcch_demapping_deinterleaving()\n");
-  LOG_D(PHY,"Ending nr_rx_pdcch() function\n");
-
   return (0);
 }
 

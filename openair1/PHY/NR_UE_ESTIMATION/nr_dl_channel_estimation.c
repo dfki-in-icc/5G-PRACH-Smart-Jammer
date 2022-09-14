@@ -34,8 +34,8 @@
 //#define DEBUG_PDSCH
 //#define DEBUG_PDCCH
 
-#define CH_INTERP 0
-#define NO_INTERP 1
+#define CH_INTERP 1
+#define NO_INTERP 0
 
 int nr_pbch_dmrs_correlation(PHY_VARS_NR_UE *ue,
                              UE_nr_rxtx_proc_t *proc,
@@ -488,10 +488,8 @@ int nr_pdcch_channel_estimation(PHY_VARS_NR_UE *ue,
   symbol_offset = ue->frame_parms.ofdm_symbol_size*symbol;
 
 
-#ifdef DEBUG_PDCCH
-  printf("PDCCH Channel Estimation : ThreadId %d, gNB_id %d ch_offset %d, OFDM size %d, Ncp=%d, Ns=%d, symbol %d\n",
-         proc->thread_id, gNB_id,ch_offset,ue->frame_parms.ofdm_symbol_size,ue->frame_parms.Ncp,Ns,symbol);
-#endif
+  LOG_D(PHY,"PDCCH Channel Estimation : gNB_id %d ch_offset %d, OFDM size %d, Ncp=%d, Ns=%d, symbol %d, scrambling_id %d, coreset_start_subcarrier %d\n",
+         gNB_id,ch_offset,ue->frame_parms.ofdm_symbol_size,ue->frame_parms.Ncp,Ns,symbol,scrambling_id,coreset_start_subcarrier);
 
 #if CH_INTERP
   int16_t *fl = filt16a_l1;
@@ -736,12 +734,14 @@ int nr_pdsch_channel_estimation(PHY_VARS_NR_UE *ue,
   }
   int8_t delta = get_delta(p, config_type);
 
+  LOG_D(PHY,"nscid %d, scrambling_id %d, ue->scramblingID_dlsch %d\n",nscid,scrambling_id,ue->scramblingID_dlsch[nscid]);
   // checking if re-initialization of scrambling IDs is needed
   if (scrambling_id != ue->scramblingID_dlsch[nscid]){
     ue->scramblingID_dlsch[nscid] = scrambling_id;
     nr_gold_pdsch(ue, nscid, scrambling_id);
   }
 
+  LOG_D(PHY,"generating dmrs (RX) for slot %d, symbol %d, is_SI %d, rb_offset %d\n",Ns,symbol,is_SI,rb_offset);
   nr_pdsch_dmrs_rx(ue, Ns, ue->nr_gold_pdsch[gNB_id][Ns][symbol][0], &pilot[0], 1000+p, 0, nb_rb_pdsch+rb_offset, config_type);
 
   if (config_type == NFAPI_NR_DMRS_TYPE1){

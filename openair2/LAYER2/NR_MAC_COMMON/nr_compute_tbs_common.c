@@ -41,6 +41,7 @@ uint32_t nr_compute_tbs(uint16_t Qm,
                         uint16_t nb_rb,
                         uint16_t nb_symb_sch,
                         uint16_t nb_dmrs_prb,
+			int num_ssb_re,
                         uint16_t nb_rb_oh,
                         uint8_t tb_scaling,
                         uint8_t Nl)
@@ -49,7 +50,7 @@ uint32_t nr_compute_tbs(uint16_t Qm,
   LOG_D(NR_MAC, "In %s: nb_symb_sch %d, nb_dmrs_prb %d, nb_rb %d, nb_rb_oh %d, tb_scaling %d Nl %d\n", __FUNCTION__, nb_symb_sch, nb_dmrs_prb, nb_rb, nb_rb_oh, tb_scaling, Nl);
 
   const uint32_t nbp_re = NR_NB_SC_PER_RB * nb_symb_sch - nb_dmrs_prb - nb_rb_oh;
-  const uint32_t nb_re = min(156, nbp_re) * nb_rb;
+  const uint32_t nb_re = (min(156, nbp_re) * nb_rb) - num_ssb_re;
   // Intermediate number of information bits
   // Rx1024 is tabulated as 10 times the actual code rate
   const uint32_t R_5 = R/5; // R can be fractional so we can't divide by 10
