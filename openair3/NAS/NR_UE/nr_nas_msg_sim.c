@@ -50,6 +50,7 @@ uint32_t  registration_request_len;
 extern char *baseNetAddress;
 extern uint16_t NB_UE_INST;
 static ue_sa_security_key_t ** ue_security_key;
+long fiveG_S_TMSI[MAX_MOBILES_PER_GNB*MAX_gNB];
 
 static int nas_protected_security_header_encode(
   char                                       *buffer,
@@ -379,12 +380,12 @@ void generateRegistrationRequest(as_nas_info_t *initialNasMsg, int Mod_id) {
   mm_msg->registration_request.fgsregistrationtype = INITIAL_REGISTRATION;
   mm_msg->registration_request.naskeysetidentifier.naskeysetidentifier = 1;
   size += 1;
-  if(0){
+  if(NR_UE_rrc_inst[Mod_id].paging_flag == 1){
     mm_msg->registration_request.fgsmobileidentity.guti.typeofidentity = FGS_MOBILE_IDENTITY_5G_GUTI;
-    mm_msg->registration_request.fgsmobileidentity.guti.amfregionid = 0xca;
-    mm_msg->registration_request.fgsmobileidentity.guti.amfpointer = 0;
-    mm_msg->registration_request.fgsmobileidentity.guti.amfsetid = 1016;
-    mm_msg->registration_request.fgsmobileidentity.guti.tmsi = 10;
+    mm_msg->registration_request.fgsmobileidentity.guti.amfregionid = fiveG_GUTI[Mod_id][7];
+    mm_msg->registration_request.fgsmobileidentity.guti.amfpointer = fiveG_GUTI[Mod_id][9] & 0x3F;
+    mm_msg->registration_request.fgsmobileidentity.guti.amfsetid = (fiveG_GUTI[Mod_id][8] << 2) | fiveG_GUTI[Mod_id][9] >> 6;
+    mm_msg->registration_request.fgsmobileidentity.guti.tmsi = fiveG_GUTI[Mod_id][10] | fiveG_GUTI[Mod_id][1] | fiveG_GUTI[Mod_id][12] | fiveG_GUTI[Mod_id][13];
     mm_msg->registration_request.fgsmobileidentity.guti.mncdigit1 =
       uicc->nmc_size==2 ? uicc->imsiStr[3]-'0' :  uicc->imsiStr[4]-'0';
     mm_msg->registration_request.fgsmobileidentity.guti.mncdigit2 =
@@ -800,7 +801,27 @@ uint8_t get_msg_type(uint8_t *pdu_buffer, uint32_t length) {
 
   return msg_type;
 }
-
+void get_5g_tmsi(uint8_t * pdu_buffer,int length,int Mod_id){
+  uint8_t msg_type = *(pdu_buffer + 12);
+  if(msg_type == 0x77){
+    memcpy(fiveG_GUTI[Mod_id], pdu_buffer + 12, 14);
+    printf("5G_GUTI: ");
+    for (int i=0;i<14;i++) {
+      printf("%02x ", fiveG_GUTI[Mod_id][i]);
+    }
+    printf("\n");
+    long tmsi=(long)(*(pdu_buffer + 20))<<40 |
+              (long)(*(pdu_buffer + 21))<<32 |
+              *(pdu_buffer + 22)<<24 |
+              *(pdu_buffer + 23)<<16 |
+              *(pdu_buffer + 24)<<8 |
+              *(pdu_buffer + 25);
+    LOG_I(NAS, "UE %d 5g_tmsi %lx\n",Mod_id,tmsi);
+    fiveG_S_TMSI[Mod_id]=tmsi;
+  } else {
+    LOG_E(NAS, "Received unexpected message %x\n", msg_type);
+  }
+}
 void *nas_nrue_task(void *args_p)
 {
   MessageDef           *msg_p;
@@ -877,7 +898,9 @@ void *nas_nrue_task(void *args_p)
 
         if(msg_type == REGISTRATION_ACCEPT){
           LOG_I(NAS, "[UE] Received REGISTRATION ACCEPT message\n");
-
+          //save ue imsi
+          int len=NAS_CONN_ESTABLI_CNF (msg_p).nasMsg.length;
+          get_5g_tmsi(pdu_buffer,len,Mod_id);
           as_nas_info_t initialNasMsg;
           memset(&initialNasMsg, 0, sizeof(as_nas_info_t));
           generateRegistrationComplete(Mod_id,&initialNasMsg, NULL);
@@ -930,6 +953,9 @@ void *nas_nrue_task(void *args_p)
                     *(payload_container+offset+3), *(payload_container+offset+4),
                     *(payload_container+offset+5), *(payload_container+offset+6));
                   nas_config(1,third_octet,fourth_octet,"oaitun_ue");
+                  if (NR_UE_rrc_inst[Mod_id].paging_flag == 1) {
+                    NR_UE_rrc_inst[Mod_id].paging_flag = 0;
+                  }
                   break;
                 }
               }
@@ -1002,6 +1028,9 @@ void *nas_nrue_task(void *args_p)
 			*(payload_container+offset+3), *(payload_container+offset+4),
 			*(payload_container+offset+5), *(payload_container+offset+6));
 		  nas_config(1,third_octet,fourth_octet,"oaitun_ue");
+      if (NR_UE_rrc_inst[Mod_id].paging_flag == 1) {
+        NR_UE_rrc_inst[Mod_id].paging_flag = 0;
+      }
 		  break;
 		}
 	      }

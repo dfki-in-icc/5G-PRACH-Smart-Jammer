@@ -75,6 +75,8 @@
 #include <openair2/RRC/NR/nr_rrc_proto.h>
 extern int    disable_shm_log ;
 
+extern long fiveG_S_TMSI[MAX_MOBILES_PER_GNB*MAX_gNB];
+extern PHY_VARS_NR_UE ***PHY_vars_UE_g;
 NR_UE_RRC_INST_t *NR_UE_rrc_inst;
 /* NAS Attach request with IMSI */
 static const char  nr_nas_attach_req_imsi[] = {
@@ -413,6 +415,7 @@ NR_UE_RRC_INST_t* openair_rrc_top_init_ue_nr(char* uecap_file, char* rrc_config_
   if(NB_NR_UE_INST > 0){
     NR_UE_rrc_inst = (NR_UE_RRC_INST_t *)calloc(NB_NR_UE_INST , sizeof(NR_UE_RRC_INST_t));
     for(nr_ue=0;nr_ue<NB_NR_UE_INST;nr_ue++){
+      NR_UE_rrc_inst[nr_ue].paging_flag = 0;
       // fill UE-NR-Capability @ UE-CapabilityRAT-Container here.
       NR_UE_rrc_inst[nr_ue].selected_plmn_identity = 1;
 
@@ -2514,12 +2517,12 @@ int nr_rrc_mac_release_uespec(module_id_t module_id,int cc_idP,uint8_t gNB_index
       /* PCCH messages  paging */
       case NR_RRC_PCCH_DATA_REQ:
         NR_DL_PCCH_Message_t *dl_pcch_msg=NULL;
-        dec_rval = uper_decode(NULL,
-           			  &asn_DEF_NR_DL_PCCH_Message,
+        int dec_rval = uper_decode(NULL,
+           			  &asn_DEF_NR_PCCH_Message,
            			  (void **)&dl_pcch_msg,
            			  (uint8_t *)NR_RRC_PCCH_DATA_REQ(msg_p).sdu_p,
            			  NR_RRC_PCCH_DATA_REQ(msg_p).sdu_size,0,0);
-        xer_fprint(stdout, &asn_DEF_NR_DL_PCCH_Message, (const void *) dl_pcch_msg);
+        xer_fprint(stdout, &asn_DEF_NR_PCCH_Message, (const void *) dl_pcch_msg);
         PHY_vars_UE_g[ue_mod_id][0]->UE_mode[0] = PRACH;
         NR_UE_MAC_INST_t *mac = get_mac_inst(ue_mod_id);
         RA_config_t *ra = &mac->ra;
