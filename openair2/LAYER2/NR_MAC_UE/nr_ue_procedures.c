@@ -911,6 +911,11 @@ int8_t nr_ue_process_dci(module_id_t module_id, int cc_id, uint8_t gNB_index, fr
     } else {
       if (ra->RA_window_cnt >= 0 && rnti == ra->ra_rnti){
         dl_config->dl_config_list[dl_config->number_pdus].pdu_type = FAPI_NR_DL_CONFIG_TYPE_RA_DLSCH;
+      } else if (rnti == P_RNTI) {
+        dl_config->dl_config_list[dl_config->number_pdus].pdu_type = FAPI_NR_DL_CONFIG_TYPE_P_DLSCH;
+        dlsch_config_pdu_1_0->BWPSize = mac->type0_PDCCH_CSS_config.num_rbs;
+        dlsch_config_pdu_1_0->BWPStart = mac->type0_PDCCH_CSS_config.cset_start_rb;
+        is_common=1;
       } else {
         dl_config->dl_config_list[dl_config->number_pdus].pdu_type = FAPI_NR_DL_CONFIG_TYPE_DLSCH;
       }
@@ -1068,7 +1073,7 @@ int8_t nr_ue_process_dci(module_id_t module_id, int cc_id, uint8_t gNB_index, fr
       return -1;
     }
 
-   if(rnti != ra->ra_rnti && rnti != SI_RNTI)
+   if(rnti != ra->ra_rnti && rnti != SI_RNTI && rnti != P_RNTI)
      AssertFatal(1+dci->pdsch_to_harq_feedback_timing_indicator.val>=DURATION_RX_TO_TX,"PDSCH to HARQ feedback time (%d) cannot be less than DURATION_RX_TO_TX (%d).\n",
                  1+dci->pdsch_to_harq_feedback_timing_indicator.val,DURATION_RX_TO_TX);
 
@@ -3043,23 +3048,7 @@ uint8_t nr_extract_dci_info(NR_UE_MAC_INST_t *mac,
       LOG_I(MAC,"dci_pdu_rel15->vrb_to_prb_mapping.val = %i\n", dci_pdu_rel15->vrb_to_prb_mapping.val);
       LOG_I(MAC,"dci_pdu_rel15->mcs = %i\n", dci_pdu_rel15->mcs);
       LOG_I(MAC,"dci_pdu_rel15->tb_scaling = %i\n", dci_pdu_rel15->tb_scaling);
-      // Freq domain assignment 0-16 bit
-      fsize = (int)ceil( log2( (N_RB*(N_RB+1))>>1 ) );
-      for (int i=0; i<fsize; i++)
-      *dci_pdu |= (((uint64_t)dci_pdu_rel15->frequency_domain_assignment>>(fsize-i-1))&1)<<(dci_size-pos++);
-      // Time domain assignment 4 bit
-      for (int i=0; i<4; i++)
-      *dci_pdu |= (((uint64_t)dci_pdu_rel15->time_domain_assignment>>(3-i))&1)<<(dci_size-pos++);
-      // VRB to PRB mapping 1 bit
-      *dci_pdu |= ((uint64_t)dci_pdu_rel15->vrb_to_prb_mapping.val&1)<<(dci_size-pos++);
-      // MCS 5 bit
-      for (int i=0; i<5; i++)
-      *dci_pdu |= (((uint64_t)dci_pdu_rel15->mcs>>(4-i))&1)<<(dci_size-pos++);
-	
-      // TB scaling 2 bit
-      for (int i=0; i<2; i++)
-      *dci_pdu |= (((uint64_t)dci_pdu_rel15->tb_scaling>>(1-i))&1)<<(dci_size-pos++);
-	
+
       break;
   	
     case NR_RNTI_SI:

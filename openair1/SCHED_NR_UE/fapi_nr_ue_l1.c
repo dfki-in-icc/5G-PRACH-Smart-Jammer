@@ -322,6 +322,14 @@ int8_t nr_ue_scheduled_response(nr_scheduled_response_t *scheduled_response){
             configure_dlsch(dlsch0, dlsch_config_pdu, module_id,
                             dl_config->dl_config_list[i].dlsch_config_pdu.rnti);
             break;
+          case FAPI_NR_DL_CONFIG_TYPE_P_DLSCH:
+            dlsch_config_pdu = &dl_config->dl_config_list[i].dlsch_config_pdu.dlsch_config_rel15;
+            dlsch0 = PHY_vars_UE_g[module_id][cc_id]->dlsch_p[0];
+            dlsch0->rnti_type = _P_RNTI_;
+            dlsch0->harq_processes[dlsch_config_pdu->harq_process_nbr]->status = ACTIVE;
+            configure_dlsch(dlsch0, dlsch_config_pdu, module_id,
+                            dl_config->dl_config_list[i].dlsch_config_pdu.rnti);
+            break;
           case FAPI_NR_DL_CONFIG_TYPE_SI_DLSCH:
             dlsch_config_pdu = &dl_config->dl_config_list[i].dlsch_config_pdu.dlsch_config_rel15;
             dlsch0 = PHY_vars_UE_g[module_id][cc_id]->dlsch_SI[0];

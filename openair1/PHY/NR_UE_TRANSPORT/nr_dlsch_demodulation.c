@@ -219,6 +219,13 @@ int nr_rx_pdsch(PHY_VARS_NR_UE *ue,
 
     break;
 
+  case P_PDSCH:
+    pdsch_vars = ue->pdsch_vars[proc->thread_id];
+    dlsch = &ue->dlsch_p[gNB_id];
+    dlsch0_harq = dlsch[0]->harq_processes[harq_pid];
+
+    break;
+
   case PDSCH:
     pdsch_vars = ue->pdsch_vars[proc->thread_id];
     dlsch = ue->dlsch[proc->thread_id][gNB_id];

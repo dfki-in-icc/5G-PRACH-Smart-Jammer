@@ -737,7 +737,7 @@ int nr_ue_pdsch_procedures(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, int gNB_
       start_meas(&ue->dlsch_llr_stats_parallelization[proc->thread_id][slot]);
       // process DLSCH received symbols in the slot
       // symbol by symbol processing (if data/DMRS are multiplexed is checked inside the function)
-      if (pdsch == PDSCH || pdsch == SI_PDSCH || pdsch == RA_PDSCH) {
+      if (pdsch == PDSCH || pdsch == SI_PDSCH || pdsch == RA_PDSCH || pdsch == P_PDSCH) {
         // L5G_IOT
         pdsch_mode = pdsch;
         if (nr_rx_pdsch(ue,
@@ -787,7 +787,7 @@ int nr_ue_pdsch_procedures(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, int gNB_
       start_meas(&ue->dlsch_llr_stats_parallelization[proc->thread_id][slot]);
       // process DLSCH received symbols in the slot
       // symbol by symbol processing (if data/DMRS are multiplexed is checked inside the function)
-      if (pdsch == PDSCH || pdsch == SI_PDSCH || pdsch == RA_PDSCH) {
+      if (pdsch == PDSCH || pdsch == SI_PDSCH || pdsch == RA_PDSCH || pdsch == P_PDSCH) {
           NrRxPDSCH_t *rxpdsch = 
   		      newNotifiedFIFO_elt(sizeof(NrRxPDSCH_t), CHEST_JOB_ID/* + num_chest_thread*/, &nf_pdsch, nr_rx_pdsch_th);
           NrRxPDSCH_t *rxpdschData = (NrRxPDSCH_t*) NotifiedFifoData(rxpdsch);
@@ -993,6 +993,10 @@ bool nr_ue_dlsch_procedures(PHY_VARS_NR_UE *ue,
         nr_fill_dl_indication(&dl_indication, NULL, rx_ind, proc, ue, gNB_id);
         nr_fill_rx_indication(rx_ind, FAPI_NR_RX_PDU_TYPE_RAR, gNB_id, ue, dlsch0, NULL, number_pdus, proc);
         ue->UE_mode[gNB_id] = RA_RESPONSE;
+        break;
+      case P_PDSCH:
+        nr_fill_dl_indication(&dl_indication, NULL, rx_ind, proc, ue, gNB_id);
+        nr_fill_rx_indication(rx_ind, FAPI_NR_RX_PDU_TYPE_DLSCH, gNB_id, ue, dlsch0, NULL, number_pdus, proc);
         break;
       case PDSCH:
         nr_fill_dl_indication(&dl_indication, NULL, rx_ind, proc, ue, gNB_id);
@@ -1719,6 +1723,8 @@ int phy_procedures_nrUE_RX(PHY_VARS_NR_UE *ue,
       dlsch = ue->dlsch_SI[0];
     } else if (ue->dlsch_ra[0]->active == 1){
       dlsch = ue->dlsch_ra[0];
+    } else if (ue->dlsch_p[0]->active == 1){
+      dlsch = ue->dlsch_p[0];
     }
 
     if (dlsch) {

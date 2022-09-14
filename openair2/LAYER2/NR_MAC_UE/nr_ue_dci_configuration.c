@@ -600,8 +600,7 @@ void ue_dci_configuration(NR_UE_MAC_INST_t *mac, fapi_nr_dl_config_request_t *dl
           ss = commonSearchSpaceList->list.array[i];
           if (ss->searchSpaceId == ss_id) break;
         }
-        LOG_I(NR_MAC,"Handle DCI searching when CellGroup without dedicated BWP lets wait paging\n");
-        LOG_D(NR_MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in Type1-PDCCH common random access search space (RA-Msg2)\n");
+        LOG_D(NR_MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in Type1-PDCCH common P-RNTI\n");
         rel15->num_dci_options = 1;
         rel15->dci_format_options[0] = NR_DL_DCI_FORMAT_1_0;
         config_dci_pdu(mac, rel15, dl_config, NR_RNTI_P, -1);
