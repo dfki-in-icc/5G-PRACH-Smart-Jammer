@@ -2518,6 +2518,7 @@ int nr_rrc_mac_release_uespec(module_id_t module_id,int cc_idP,uint8_t gNB_index
          break;
       /* PCCH messages  paging */
       case NR_RRC_PCCH_DATA_REQ:
+	LOG_I(NR_RRC, "[UE %d] Recieved Paging\n",ue_mod_id);
         dec_rval = uper_decode(NULL,
            			  &asn_DEF_NR_PCCH_Message,
            			  (void **)&dl_pcch_msg,
