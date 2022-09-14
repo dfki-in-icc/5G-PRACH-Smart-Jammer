@@ -2311,7 +2311,7 @@ nr_rrc_ue_establish_srb2(
  #endif
 
  }
-
+int nr_rrc_mac_release_uespec(module_id_t module_id,int cc_idP,uint8_t gNB_index);
  // from NR SRB1
  //-----------------------------------------------------------------------------
  int
@@ -2379,16 +2379,21 @@ nr_rrc_ue_establish_srb2(
 	       msg_p = itti_alloc_new_message(TASK_RRC_NRUE, 0, NAS_CONN_RELEASE_IND);
 
 	       if((dl_dcch_msg->message.choice.c1->choice.rrcRelease->criticalExtensions.present == NR_RRCRelease__criticalExtensions_PR_rrcRelease) &&
-		    (dl_dcch_msg->message.choice.c1->present == NR_DL_DCCH_MessageType__c1_PR_rrcRelease)){
-		     if(dl_dcch_msg->message.choice.c1->choice.rrcRelease->criticalExtensions.choice.rrcRelease->deprioritisationReq!=NULL){
-		     dl_dcch_msg->message.choice.c1->choice.rrcRelease->criticalExtensions.choice.rrcRelease->deprioritisationReq->deprioritisationTimer =
-		     NR_RRCRelease_IEs__deprioritisationReq__deprioritisationTimer_min5;
-		     dl_dcch_msg->message.choice.c1->choice.rrcRelease->criticalExtensions.choice.rrcRelease->deprioritisationReq->deprioritisationType =
-		     NR_RRCRelease_IEs__deprioritisationReq__deprioritisationType_frequency;
-		     }
-		 }
+           (dl_dcch_msg->message.choice.c1->present == NR_DL_DCCH_MessageType__c1_PR_rrcRelease)){
+           if(dl_dcch_msg->message.choice.c1->choice.rrcRelease->criticalExtensions.choice.rrcRelease->deprioritisationReq!=NULL){
+             dl_dcch_msg->message.choice.c1->choice.rrcRelease->criticalExtensions.choice.rrcRelease->deprioritisationReq->deprioritisationTimer =
+             NR_RRCRelease_IEs__deprioritisationReq__deprioritisationTimer_min5;
+             dl_dcch_msg->message.choice.c1->choice.rrcRelease->criticalExtensions.choice.rrcRelease->deprioritisationReq->deprioritisationType =
+             NR_RRCRelease_IEs__deprioritisationReq__deprioritisationType_frequency;
+           }
+         }
+         nr_rrc_set_state (ctxt_pP->module_id, RRC_STATE_IDLE_NR);
+         nr_rrc_set_sub_state( ctxt_pP->module_id, RRC_SUB_STATE_IDLE_NR );
+         pdcp_remove_UE(ctxt_pP);
+         rrc_rlc_remove_ue(ctxt_pP);
+         nr_rrc_mac_release_uespec(ctxt_pP->module_id,0,0);
 
-		  itti_send_msg_to_task(TASK_NAS_UE, ctxt_pP->instance, msg_p);
+         itti_send_msg_to_task(TASK_NAS_UE, ctxt_pP->instance, msg_p);
 		  break;
 	     case NR_DL_DCCH_MessageType__c1_PR_ueCapabilityEnquiry:
          LOG_I(NR_RRC, "[UE %d] Received Capability Enquiry (gNB %d)\n", ctxt_pP->module_id,gNB_indexP);

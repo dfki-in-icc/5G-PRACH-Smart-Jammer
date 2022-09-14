@@ -2642,7 +2642,7 @@ uint16_t nr_dci_size(const NR_BWP_DownlinkCommon_t *initialDownlinkBWP,
         srs_config = cg->spCellConfig->spCellConfigDedicated->uplinkConfig->initialUplinkBWP->srs_Config->choice.setup;
     }
   }
-  else if (cg){
+  else if (cg && cg->spCellConfig){
     bwpd=cg->spCellConfig->spCellConfigDedicated->initialDownlinkBWP;
     bwpc=initialDownlinkBWP;
     ubwpd=cg->spCellConfig->spCellConfigDedicated->uplinkConfig->initialUplinkBWP; 

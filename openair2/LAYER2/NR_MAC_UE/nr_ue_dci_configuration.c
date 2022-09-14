@@ -234,6 +234,15 @@ void config_dci_pdu(NR_UE_MAC_INST_t *mac, fapi_nr_dl_config_dci_dl_pdu_rel15_t 
     rel15->dci_length_options[0] = nr_dci_size(initialDownlinkBWP,initialUplinkBWP, mac->cg, &mac->def_dci_pdu_rel15[rel15->dci_format_options[0]], rel15->dci_format_options[0], NR_RNTI_RA, rel15->BWPSize, bwp_id);
     break;
     case NR_RNTI_P:
+    // we use the initial DL BWP
+    sps = initialDownlinkBWP->genericParameters.cyclicPrefix == NULL ? 14 : 12;
+    monitoringSymbolsWithinSlot = (ss->monitoringSymbolsWithinSlot->buf[0]<<(sps-8)) | (ss->monitoringSymbolsWithinSlot->buf[1]>>(16-sps));
+    rel15->rnti = 0xFFFE;
+    rel15->BWPStart = NRRIV2PRBOFFSET(initialDownlinkBWP->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
+    rel15->BWPSize = mac->type0_PDCCH_CSS_config.num_rbs;
+    rel15->BWPStart = mac->type0_PDCCH_CSS_config.cset_start_rb;
+    rel15->SubcarrierSpacing = initialDownlinkBWP->genericParameters.subcarrierSpacing;
+    rel15->dci_length_options[0] = nr_dci_size(initialDownlinkBWP,initialUplinkBWP, mac->cg, &mac->def_dci_pdu_rel15[rel15->dci_format_options[0]], rel15->dci_format_options[0], NR_RNTI_P, rel15->BWPSize, bwp_id);
     break;
     case NR_RNTI_CS:
     break;
@@ -580,7 +589,18 @@ void ue_dci_configuration(NR_UE_MAC_INST_t *mac, fapi_nr_dl_config_request_t *dl
     }
   } else {
 //    AssertFatal(1==0,"Handle DCI searching when CellGroup without dedicated BWP\n");
-   LOG_E(NR_MAC,"Handle DCI searching when CellGroup without dedicated BWP\n");
+    /*NR_SetupRelease_PDCCH_ConfigCommon_t *pdcch_ConfigCommon = bwp_Common->pdcch_ConfigCommon;
+    fapi_nr_dl_config_dci_dl_pdu_rel15_t *rel15 = &dl_config->dl_config_list[dl_config->number_pdus].dci_config_pdu.dci_config_rel15;
+    NR_SearchSpace_t *ss = mac->SSpace[0][1];
+    LOG_I(NR_MAC,"Handle DCI searching when CellGroup without dedicated BWP lets wait paging\n");
+    if (pdcch_ConfigCommon &&
+      pdcch_ConfigCommon->choice.setup->pagingSearchSpace) {
+      LOG_I(NR_MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in Type1-PDCCH common random access search space (RA-Msg2)\n");
+      rel15->num_dci_options = 1;
+      rel15->dci_format_options[0] = NR_DL_DCI_FORMAT_1_0;
+      config_dci_pdu(mac, rel15, dl_config, 0xFFFE, -1);
+      fill_dci_search_candidates(ss, rel15, -1, -1);
+    }*/
   }
   // Search space 0, CORESET ID 0
 

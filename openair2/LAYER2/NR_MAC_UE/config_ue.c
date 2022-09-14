@@ -841,3 +841,24 @@ int nr_rrc_mac_config_req_ue(
     return 0;
 
 }
+int nr_rrc_mac_release_uespec(
+    module_id_t                     module_id,
+    int                             cc_idP,
+    uint8_t                         gNB_index){
+    NR_UE_MAC_INST_t *mac = get_mac_inst(module_id);
+    RA_config_t *ra = &mac->ra;
+    fapi_nr_config_request_t *cfg = &mac->phy_config.config_req;
+    //TODO L5G
+      mac->servCellIndex = 0;
+      mac->DL_BWP_Id = 0;
+      mac->UL_BWP_Id = 0;
+      sleep(1);
+      mac->initDLbwp=NULL;
+      mac->initULbwp=NULL;
+      mac->cg->mac_CellGroupConfig=NULL;
+      mac->cg->spCellConfig=NULL;
+      mac->cg->physicalCellGroupConfig=NULL;
+      mac->cg->rlc_BearerToAddModList=NULL;
+      //mac->cg=NULL;
+}
+
