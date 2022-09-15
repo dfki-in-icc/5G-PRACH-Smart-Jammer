@@ -433,7 +433,7 @@ boolean_t pdcp_data_req(
 #if LATSEQ
       if (!srb_flagP) {
         uint16_t ipid = sdu_buffer_pP[4] << 8 | sdu_buffer_pP[5];
-        LATSEQ_P("D pdcp.in--pdcp.tx","len%d:rnti%d:ipid%x.drb%d.gsn%d.psn%d", sdu_buffer_sizeP, ctxt_pP->rnti, ipid, rb_idP, 0, current_sn);
+        LATSEQ_P("D pdcp.in--pdcp.tx","len%d:rnti%d:ipid0x%x.drb%d.gsn%d.psn%d", sdu_buffer_sizeP, ctxt_pP->rnti, ipid, rb_idP, 0, current_sn);
       }
 #endif
 
@@ -1071,9 +1071,6 @@ pdcp_data_ind(
             rb_id + 4,
             sdu_buffer_sizeP - payload_offset );
       //LOG_T(PDCP,"Sending to GTPV1U %d bytes\n", sdu_buffer_sizeP - payload_offset);
-#if LATSEQ
-      LATSEQ_P("U pdcp.rx--gtp.out","len%d:rnti%d:drb%d.psn%d",sdu_buffer_sizeP, ctxt_pP->rnti, rb_id, sequence_number);
-#endif
       gtpu_buffer_p = itti_malloc(TASK_PDCP_ENB, TASK_GTPV1_U,
                                   sdu_buffer_sizeP - payload_offset + GTPU_HEADER_OVERHEAD_MAX);
       AssertFatal(gtpu_buffer_p != NULL, "OUT OF MEMORY");
@@ -1085,6 +1082,10 @@ pdcp_data_ind(
       GTPV1U_ENB_TUNNEL_DATA_REQ(message_p).offset       = GTPU_HEADER_OVERHEAD_MAX;
       GTPV1U_ENB_TUNNEL_DATA_REQ(message_p).rnti         = ctxt_pP->rnti;
       GTPV1U_ENB_TUNNEL_DATA_REQ(message_p).rab_id       = rb_id + 4;
+#if LATSEQ
+      uint16_t ipid = gtpu_buffer_p[GTPU_HEADER_OVERHEAD_MAX+4] << 8 | gtpu_buffer_p[GTPU_HEADER_OVERHEAD_MAX+5];
+      LATSEQ_P("U pdcp.rx--gtp.out","len%d:rnti%d:drb%d.psn%d.ipid0x%x", sdu_buffer_sizeP, ctxt_pP->rnti, rb_id, sequence_number, ipid);
+#endif
       itti_send_msg_to_task(TASK_GTPV1_U, INSTANCE_DEFAULT, message_p);
       packet_forwarded = TRUE;
     }

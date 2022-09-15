@@ -904,7 +904,8 @@ static int Gtpv1uHandleGpdu(int h,
   pthread_mutex_unlock(&globGtp.gtp_lock);
 #if LATSEQ
   uint16_t ipid = sdu_buffer[4] << 8 | sdu_buffer[5];
-  LATSEQ_P("D ip.in--pdcp.in", "len%d:rnti%u:ipid0x%x.teid%u.drb%u", sdu_buffer_size, tunnel->second.rnti, ipid, msgHdr->teid, rb_id);
+  //auto teid = inst->ue2te_mapping.find(ntohl(msgHdr->teid))->second.teid_incoming;
+  LATSEQ_P("D ip.in--pdcp.in", "len%d:rnti%u:ipid0x%x.drb%u", sdu_buffer_size, tunnel->second.rnti, ipid, rb_id);
 #endif
   if(is_gnb && qfi){
     if ( !tunnel->second.callBackSDAP(&ctxt,
