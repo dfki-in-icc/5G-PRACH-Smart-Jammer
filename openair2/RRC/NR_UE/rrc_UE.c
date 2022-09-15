@@ -1426,7 +1426,7 @@ static void rrc_ue_generate_RRCSetupComplete(
 #endif
 
 }
-
+int rach_retry_timer=0;
 int8_t nr_rrc_ue_decode_ccch( const protocol_ctxt_t *const ctxt_pP, const NR_SRB_INFO *const Srb_info, const uint8_t gNB_index ){
 
   NR_DL_CCCH_Message_t *dl_ccch_msg=NULL;
@@ -1500,6 +1500,7 @@ int8_t nr_rrc_ue_decode_ccch( const protocol_ctxt_t *const ctxt_pP, const NR_SRB
 					  dl_ccch_msg->message.choice.c1->choice.rrcSetup->rrc_TransactionIdentifier,
 					  NR_UE_rrc_inst[ctxt_pP->module_id].selected_plmn_identity);
 	 rval = 0;
+   rach_retry_timer=1;
 	 break;
 
        default:

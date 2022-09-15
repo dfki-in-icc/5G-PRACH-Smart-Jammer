@@ -136,7 +136,7 @@ const initial_pucch_resource_t initial_pucch_resource[16] = {
 };
 
 int r_PUCCH;
-
+extern rach_retry_timer;
 void nr_ue_init_mac(module_id_t module_idP) {
   int i;
 
@@ -3255,6 +3255,7 @@ uint8_t nr_extract_dci_info(NR_UE_MAC_INST_t *mac,
 	   if (cfg->pucch_config.pucch_GroupHopping.value)
 	   dci_pdu->= ((uint64_t)*dci_pdu>>(dci_size-pos)ul_sul_indicator&1)<<(dci_size-pos++);
 	*/
+        rach_retry_timer=0;
 	break;
 	
       case NR_RNTI_TC:
