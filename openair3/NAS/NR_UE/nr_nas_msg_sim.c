@@ -440,6 +440,95 @@ void generateRegistrationRequest(as_nas_info_t *initialNasMsg, int Mod_id) {
 
 }
 
+void generateServiceRequest(as_nas_info_t *initialNasMsg, int Mod_id) {
+  int size = 0;
+  int len = 33;
+  unsigned char * nas_msg;
+  nas_stream_cipher_t stream_cipher;
+  uint8_t             mac[4];
+  uicc_t * uicc=checkUicc(Mod_id);
+  fgs_nas_message_security_protected_t *sp_msg;
+  initialNasMsg->data = (Byte_t *)malloc(len * sizeof(Byte_t));
+  initialNasMsg->length = len;
+  nas_msg=(unsigned char *)initialNasMsg->data;
+  // set header
+  ((unsigned char*)nas_msg)[size]=FGS_MOBILITY_MANAGEMENT_MESSAGE;
+  size++;
+  ((unsigned char*)nas_msg)[size]=PLAIN_5GS_MSG;
+  size++;
+  ((unsigned char*)nas_msg)[size]=0x4C;
+  size++;
+  
+  //Servicetype
+  ((unsigned char*)nas_msg)[size]=0x21;
+  size++;
+  //5GS mobile identity
+  ((unsigned char*)nas_msg)[size]=0x00;
+  size++;
+  ((unsigned char*)nas_msg)[size]=0x07;
+  size++;
+  ((unsigned char*)nas_msg)[size]=0xf4;
+  size++;
+  ((unsigned char*)nas_msg)[size]=fiveG_GUTI[Mod_id][8];
+  size++;
+  ((unsigned char*)nas_msg)[size]=fiveG_GUTI[Mod_id][9];
+  size++;
+  ((unsigned char*)nas_msg)[size]=fiveG_GUTI[Mod_id][10];
+  size++;
+  ((unsigned char*)nas_msg)[size]=fiveG_GUTI[Mod_id][11];
+  size++;
+  ((unsigned char*)nas_msg)[size]=fiveG_GUTI[Mod_id][12];
+  size++;
+  ((unsigned char*)nas_msg)[size]=fiveG_GUTI[Mod_id][13];
+  size++;
+  
+  //NAS message container
+  ((unsigned char*)nas_msg)[size]=0x71;
+  size++;
+  ((unsigned char*)nas_msg)[size]=0;
+  size++;
+  ((unsigned char*)nas_msg)[size]=17;
+  size++;
+  //header
+  ((unsigned char*)nas_msg)[size]=FGS_MOBILITY_MANAGEMENT_MESSAGE;
+  size++;
+  ((unsigned char*)nas_msg)[size]=PLAIN_5GS_MSG;
+  size++;
+  ((unsigned char*)nas_msg)[size]=0x4C;
+  size++;
+  //Servicetype
+  ((unsigned char*)nas_msg)[size]=0x21;
+  size++;
+  //5GS mobile identity
+  ((unsigned char*)nas_msg)[size]=0x00;
+  size++;
+  ((unsigned char*)nas_msg)[size]=0x07;
+  size++;
+  ((unsigned char*)nas_msg)[size]=0xf4;
+  size++;
+  ((unsigned char*)nas_msg)[size]=fiveG_GUTI[Mod_id][8];
+  size++;
+  ((unsigned char*)nas_msg)[size]=fiveG_GUTI[Mod_id][9];
+  size++;
+  ((unsigned char*)nas_msg)[size]=fiveG_GUTI[Mod_id][10];
+  size++;
+  ((unsigned char*)nas_msg)[size]=fiveG_GUTI[Mod_id][11];
+  size++;
+  ((unsigned char*)nas_msg)[size]=fiveG_GUTI[Mod_id][12];
+  size++;
+  ((unsigned char*)nas_msg)[size]=fiveG_GUTI[Mod_id][13];
+  size++;
+  //uplink
+  ((unsigned char*)nas_msg)[size]=0x01;
+  size++;
+  ((unsigned char*)nas_msg)[size]=0x00;
+  size++;
+  //downlink
+  ((unsigned char*)nas_msg)[size]=0x01;
+  size++;
+  ((unsigned char*)nas_msg)[size]=0x00;
+  size++;
+}
 void generateIdentityResponse(as_nas_info_t *initialNasMsg, uint8_t identitytype, uicc_t* uicc, int Mod_id) {
   int size = sizeof(mm_msg_header_t);
   fgs_nas_message_t nas_msg;
