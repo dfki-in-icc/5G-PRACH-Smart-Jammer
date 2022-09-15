@@ -440,7 +440,7 @@ void generateRegistrationRequest(as_nas_info_t *initialNasMsg, int Mod_id) {
 
 }
 
-void generateIdentityResponse(as_nas_info_t *initialNasMsg, uint8_t identitytype, uicc_t* uicc) {
+void generateIdentityResponse(as_nas_info_t *initialNasMsg, uint8_t identitytype, uicc_t* uicc, int Mod_id) {
   int size = sizeof(mm_msg_header_t);
   fgs_nas_message_t nas_msg;
   memset(&nas_msg, 0, sizeof(fgs_nas_message_t));
@@ -473,6 +473,23 @@ void generateIdentityResponse(as_nas_info_t *initialNasMsg, uint8_t identitytype
     mm_msg->fgs_identity_response.fgsmobileidentity.suci.mccdigit3 = uicc->imsiStr[2]-'0';
     memcpy(mm_msg->registration_request.fgsmobileidentity.suci.schemeoutput, uicc->imsiStr+3+uicc->nmc_size, strlen(uicc->imsiStr) - (3+uicc->nmc_size));
     size += sizeof(Suci5GSMobileIdentity_t);
+  }else{
+    mm_msg->fgs_identity_response.fgsmobileidentity.guti.typeofidentity = FGS_MOBILE_IDENTITY_5G_GUTI;
+    mm_msg->fgs_identity_response.fgsmobileidentity.guti.amfregionid = fiveG_GUTI[Mod_id][7];
+    mm_msg->fgs_identity_response.fgsmobileidentity.guti.amfpointer = fiveG_GUTI[Mod_id][9] & 0x3F;
+    mm_msg->fgs_identity_response.fgsmobileidentity.guti.amfsetid = (fiveG_GUTI[Mod_id][8] << 2) | fiveG_GUTI[Mod_id][9] >> 6;
+    mm_msg->fgs_identity_response.fgsmobileidentity.guti.tmsi = fiveG_GUTI[Mod_id][10] | fiveG_GUTI[Mod_id][1] | fiveG_GUTI[Mod_id][12] | fiveG_GUTI[Mod_id][13];
+    mm_msg->fgs_identity_response.fgsmobileidentity.guti.mncdigit1 =
+      uicc->nmc_size==2 ? uicc->imsiStr[3]-'0' :  uicc->imsiStr[4]-'0';
+    mm_msg->fgs_identity_response.fgsmobileidentity.guti.mncdigit2 =
+      uicc->nmc_size==2 ? uicc->imsiStr[4]-'0' :  uicc->imsiStr[5]-'0';
+    mm_msg->fgs_identity_response.fgsmobileidentity.guti.mncdigit3 =
+      uicc->nmc_size==2 ? 0xf : uicc->imsiStr[3]-'0';
+    mm_msg->fgs_identity_response.fgsmobileidentity.guti.mccdigit1 = uicc->imsiStr[0]-'0';
+    mm_msg->fgs_identity_response.fgsmobileidentity.guti.mccdigit2 = uicc->imsiStr[1]-'0';
+    mm_msg->fgs_identity_response.fgsmobileidentity.guti.mccdigit3 = uicc->imsiStr[2]-'0';
+
+    size += 13;
   }
 
   // encode the message
@@ -996,7 +1013,7 @@ void *nas_nrue_task(void *args_p)
         switch(msg_type){
 
           case FGS_IDENTITY_REQUEST:
-	            generateIdentityResponse(&initialNasMsg,*(pdu_buffer+3), uicc);
+	            generateIdentityResponse(&initialNasMsg,*(pdu_buffer+3), uicc, Mod_id);
               break;
           case FGS_AUTHENTICATION_REQUEST:
 	            generateAuthenticationResp(Mod_id,&initialNasMsg, pdu_buffer, uicc);
@@ -1044,7 +1061,7 @@ void *nas_nrue_task(void *args_p)
     case REGISTRATION_ACCEPT :
       {
       LOG_I(NAS, "[UE] Received REGISTRATION ACCEPT message\n");
-
+      get_5g_tmsi(pdu_buffer,NAS_DOWNLINK_DATA_IND (msg_p).nasMsg.length,Mod_id);
       as_nas_info_t initialNasMsg;
       memset(&initialNasMsg, 0, sizeof(as_nas_info_t));
       generateRegistrationComplete(Mod_id,&initialNasMsg, NULL);

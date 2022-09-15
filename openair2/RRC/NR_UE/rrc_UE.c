@@ -2525,10 +2525,12 @@ int nr_rrc_mac_release_uespec(module_id_t module_id,int cc_idP,uint8_t gNB_index
            			  (void **)&dl_pcch_msg,
            			  (uint8_t *)NR_RRC_PCCH_DATA_REQ(msg_p).sdu_p,
            			  NR_RRC_PCCH_DATA_REQ(msg_p).sdu_size,0,0);
-        xer_fprint(stdout, &asn_DEF_NR_PCCH_Message, (const void *) dl_pcch_msg);
+	if (disable_shm_log == 0) xer_fprint(dbg_fp, &asn_DEF_NR_PCCH_Message, (const void *) dl_pcch_msg);
+	else xer_fprint(stdout, &asn_DEF_NR_PCCH_Message, (const void *) dl_pcch_msg);
         NR_UE_MAC_INST_t *mac = get_mac_inst(ue_mod_id);
 	mac->cg=NULL;
 	NR_UE_rrc_inst[ue_mod_id].paging_flag = 1;
+	NR_UE_rrc_inst[ue_mod_id].SRB2_config[0] = NULL;
 	nr_rrc_ue_generate_RRCSetupRequest(ue_mod_id, 0);
 	phy_init_ue_harq(PHY_vars_UE_g[ue_mod_id][0]);
 	RA_config_t *ra = &mac->ra;
