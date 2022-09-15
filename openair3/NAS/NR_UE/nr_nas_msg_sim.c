@@ -442,7 +442,8 @@ void generateRegistrationRequest(as_nas_info_t *initialNasMsg, int Mod_id) {
 
 void generateServiceRequest(as_nas_info_t *initialNasMsg, int Mod_id) {
   int size = 0;
-  int len = 33;
+  int len = 40;
+  uint8_t sn=2;
   unsigned char * nas_msg;
   nas_stream_cipher_t stream_cipher;
   uint8_t             mac[4];
@@ -454,7 +455,24 @@ void generateServiceRequest(as_nas_info_t *initialNasMsg, int Mod_id) {
   // set header
   ((unsigned char*)nas_msg)[size]=FGS_MOBILITY_MANAGEMENT_MESSAGE;
   size++;
-  ((unsigned char*)nas_msg)[size]=PLAIN_5GS_MSG;
+  ((unsigned char*)nas_msg)[size]=0x01;
+  size++;
+  //auth code
+  ((unsigned char*)nas_msg)[size]=0x00;
+  size++;
+  ((unsigned char*)nas_msg)[size]=0x00;
+  size++;
+  ((unsigned char*)nas_msg)[size]=0x00;
+  size++;
+  ((unsigned char*)nas_msg)[size]=0x00;
+  size++;
+  //sn
+  ((unsigned char*)nas_msg)[size]=sn;
+  size++;
+  // set header
+  ((unsigned char*)nas_msg)[size]=FGS_MOBILITY_MANAGEMENT_MESSAGE;
+  size++;
+  ((unsigned char*)nas_msg)[size]=0x00;
   size++;
   ((unsigned char*)nas_msg)[size]=0x4C;
   size++;
@@ -489,6 +507,23 @@ void generateServiceRequest(as_nas_info_t *initialNasMsg, int Mod_id) {
   size++;
   ((unsigned char*)nas_msg)[size]=17;
   size++;
+/*  // set header
+  ((unsigned char*)nas_msg)[size]=FGS_MOBILITY_MANAGEMENT_MESSAGE;
+  size++;
+  ((unsigned char*)nas_msg)[size]=0x01;
+  size++;
+  //auth code
+  ((unsigned char*)nas_msg)[size]=0x00;
+  size++;
+  ((unsigned char*)nas_msg)[size]=0x00;
+  size++;
+  ((unsigned char*)nas_msg)[size]=0x00;
+  size++;
+  ((unsigned char*)nas_msg)[size]=0x00;
+  size++;
+  //sn
+  ((unsigned char*)nas_msg)[size]=sn;
+  size++;*/
   //header
   ((unsigned char*)nas_msg)[size]=FGS_MOBILITY_MANAGEMENT_MESSAGE;
   size++;
@@ -528,6 +563,22 @@ void generateServiceRequest(as_nas_info_t *initialNasMsg, int Mod_id) {
   size++;
   ((unsigned char*)nas_msg)[size]=0x00;
   size++;
+  stream_cipher.key        = ue_security_key[Mod_id]->knas_int;
+  stream_cipher.key_length = 16;
+  stream_cipher.count      = 1;
+  stream_cipher.bearer     = 1;
+  stream_cipher.direction  = 0;
+  stream_cipher.message    = (unsigned char *)(initialNasMsg->data + 6);
+  /* length in bits */
+  stream_cipher.blength    = (initialNasMsg->length - 6) << 3;
+
+  // only for Type of integrity protection algorithm: 128-5G-IA2 (2)
+  nas_stream_encrypt_eia2(
+    &stream_cipher,
+    mac);
+  for(int i = 0; i < 4; i++){
+     //initialNasMsg->data[2+i] = mac[i];
+  }
 }
 void generateIdentityResponse(as_nas_info_t *initialNasMsg, uint8_t identitytype, uicc_t* uicc, int Mod_id) {
   int size = sizeof(mm_msg_header_t);
