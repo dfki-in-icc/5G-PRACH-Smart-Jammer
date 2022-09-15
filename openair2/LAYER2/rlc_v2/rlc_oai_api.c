@@ -95,7 +95,7 @@ void mac_rlc_data_ind     (
 
   if (rb != NULL) {
     rb->set_time(rb, rlc_current_time);
-    rb->recv_pdu(rb, buffer_pP, tb_sizeP);
+    rb->recv_pdu(rb, buffer_pP, tb_sizeP, channel_idP, frameP);
   } else {
     LOG_E(RLC, "%s:%d:%s: fatal: no RB found (rnti %d channel ID %d)\n",
           __FILE__, __LINE__, __FUNCTION__, rnti, channel_id);
@@ -127,9 +127,16 @@ tbs_size_t mac_rlc_data_req(
   rlc_manager_lock(rlc_ue_manager);
   ue = rlc_manager_get_ue(rlc_ue_manager, rntiP);
 
+  logical_chan_id_t lcid;
   switch (channel_idP) {
-  case 1 ... 2: rb = ue->srb[channel_idP - 1]; break;
-  case 3 ... 7: rb = ue->drb[channel_idP - 3]; break;
+  case 1 ... 2:
+    lcid = channel_idP - 1;
+    rb = ue->srb[lcid]; 
+    break;
+  case 3 ... 7:
+    lcid = channel_idP - 3;
+    rb = ue->drb[lcid];
+    break;
   default:      rb = NULL;                     break;
   }
 
@@ -144,7 +151,7 @@ tbs_size_t mac_rlc_data_req(
   if (rb != NULL) {
     rb->set_time(rb, rlc_current_time);
     maxsize = tb_sizeP;
-    ret = rb->generate_pdu(rb, buffer_pP, maxsize);
+    ret = rb->generate_pdu(rb, buffer_pP, maxsize, channel_idP, frameP);
   } else {
     LOG_E(RLC, "%s:%d:%s: fatal: data req for unknown RB\n", __FILE__, __LINE__, __FUNCTION__);
     exit(1);
@@ -152,7 +159,6 @@ tbs_size_t mac_rlc_data_req(
   }
 
   rlc_manager_unlock(rlc_ue_manager);
-
   if (enb_flagP)
     T(T_ENB_RLC_MAC_DL, T_INT(module_idP), T_INT(rntiP),
       T_INT(channel_idP), T_INT(ret));
@@ -654,7 +660,8 @@ static void add_srb(int rnti, int module_id, struct LTE_SRB_ToAddMod *s)
                                max_retx_reached, ue,
                                t_reordering, t_status_prohibit,
                                t_poll_retransmit,
-                               poll_pdu, poll_byte, max_retx_threshold);
+                               poll_pdu, poll_byte, max_retx_threshold, srb_id,
+                               rnti);
     rlc_ue_add_srb_rlc_entity(ue, srb_id, rlc_am);
 
     LOG_D(RLC, "%s:%d:%s: added SRB %d to UE RNTI %x\n", __FILE__, __LINE__, __FUNCTION__, srb_id, rnti);
@@ -731,7 +738,8 @@ static void add_drb_am(int rnti, int module_id, struct LTE_DRB_ToAddMod *s)
                                max_retx_reached, ue,
                                t_reordering, t_status_prohibit,
                                t_poll_retransmit,
-                               poll_pdu, poll_byte, max_retx_threshold);
+                               poll_pdu, poll_byte, max_retx_threshold, drb_id,
+                               rnti);
     rlc_ue_add_drb_rlc_entity(ue, drb_id, rlc_am);
 
     LOG_D(RLC, "%s:%d:%s: added DRB %d to UE RNTI %x\n", __FILE__, __LINE__, __FUNCTION__, drb_id, rnti);
@@ -801,7 +809,9 @@ static void add_drb_um(int rnti, int module_id, struct LTE_DRB_ToAddMod *s)
                                1000000,
                                deliver_sdu, ue,
                                t_reordering,
-                               sn_field_length);
+                               sn_field_length,
+                               drb_id,
+                               rnti);
     rlc_ue_add_drb_rlc_entity(ue, drb_id, rlc_um);
 
     LOG_D(RLC, "%s:%d:%s: added DRB %d to UE RNTI %x\n", __FILE__, __LINE__, __FUNCTION__, drb_id, rnti);
@@ -917,8 +927,9 @@ rlc_op_status_t rrc_rlc_config_asn1_req (const protocol_ctxt_t   * const ctxt_pP
                                      1000000,
                                      deliver_sdu, ue,
                                      0,//LTE_T_Reordering_ms0,//t_reordering,
-                                     5//LTE_SN_FieldLength_size5//sn_field_length
-                                    );
+                                     5,//LTE_SN_FieldLength_size5//sn_field_length
+                                     drb_id,
+                                     mbms_rnti);
           rlc_ue_add_drb_rlc_entity(ue, drb_id, rlc_um);
 
           LOG_D(RLC, "%s:%d:%s: added DRB %d to UE RNTI %x\n", __FILE__, __LINE__, __FUNCTION__, (int)drb_id, mbms_rnti);

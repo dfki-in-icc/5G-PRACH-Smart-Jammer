@@ -70,6 +70,7 @@ static const uint16_t S1AP_ENCRYPTION_EEA2_MASK = 0x4000;
 /* Masks for S1AP Integrity algorithms, EIA0 is always supported (not coded) */
 static const uint16_t S1AP_INTEGRITY_EIA1_MASK = 0x8000;
 static const uint16_t S1AP_INTEGRITY_EIA2_MASK = 0x4000;
+static const uint16_t S1AP_INTEGRITY_EIA3_MASK = 0x2000;
 
 #define INTEGRITY_ALGORITHM_NONE LTE_SecurityAlgorithmConfig__integrityProtAlgorithm_eia0_v920
 
@@ -386,6 +387,15 @@ static LTE_CipheringAlgorithm_r12_t rrc_eNB_select_ciphering(uint16_t algorithms
  *\return the selected algorithm.
  */
 static e_LTE_SecurityAlgorithmConfig__integrityProtAlgorithm rrc_eNB_select_integrity(uint16_t algorithms) {
+  if (algorithms & S1AP_INTEGRITY_EIA3_MASK) {  // not sure on mask
+    /* TEMPORARY patch to fallback in eia2 instead of unsupported by eNB eia3*/
+    if (algorithms & S1AP_INTEGRITY_EIA2_MASK) {
+      return LTE_SecurityAlgorithmConfig__integrityProtAlgorithm_eia2;
+    }
+    else {
+      return LTE_SecurityAlgorithmConfig__integrityProtAlgorithm_eia3_v1130;
+    }
+  }
   if (algorithms & S1AP_INTEGRITY_EIA2_MASK) {
     return LTE_SecurityAlgorithmConfig__integrityProtAlgorithm_eia2;
   }

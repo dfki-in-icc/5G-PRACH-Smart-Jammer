@@ -24,6 +24,7 @@
 
 typedef struct rlc_sdu_t {
   int upper_layer_id;
+  int sdu_num;
   char *data;
   int size;
   /* next_byte indicates the starting byte to use to construct a new PDU */
@@ -32,7 +33,7 @@ typedef struct rlc_sdu_t {
   struct rlc_sdu_t *next;
 } rlc_sdu_t;
 
-rlc_sdu_t *rlc_new_sdu(char *buffer, int size, int upper_layer_id);
+rlc_sdu_t *rlc_new_sdu(char *buffer, int size, int upper_layer_id, int sdu_num);
 void rlc_free_sdu(rlc_sdu_t *sdu);
 void rlc_sdu_list_add(rlc_sdu_t **list, rlc_sdu_t **end, rlc_sdu_t *sdu);
 

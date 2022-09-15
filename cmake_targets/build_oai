@@ -392,6 +392,10 @@ function main() {
             CMAKE_CMD="$CMAKE_CMD -DT_TRACER=False"
             echo_info "Disabling the T tracer"
             shift 1;;
+       --enable-latseq)
+            CMAKE_CMD="$CMAKE_CMD -DLATSEQ=True"
+            echo info "Enabling Latency Sequence measures"
+            shift 1;;
        --disable-hardware-dependency)
             echo_info "Disabling hardware dependency for compiling software"
             DISABLE_HARDWARE_DEPENDENCY="True"

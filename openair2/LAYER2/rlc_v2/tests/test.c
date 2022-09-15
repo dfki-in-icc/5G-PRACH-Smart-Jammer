@@ -213,7 +213,7 @@ int test_main(void)
                                   successful_delivery_enb, NULL,
                                   max_retx_reached_enb, NULL,
                                   test[pos+3], test[pos+4], test[pos+5],
-                                  test[pos+6], test[pos+7], test[pos+8]);
+                                  test[pos+6], test[pos+7], test[pos+8],0,0);
           pos += 9;
           break;
         case UE_AM:
@@ -222,19 +222,19 @@ int test_main(void)
                                  successful_delivery_ue, NULL,
                                  max_retx_reached_ue, NULL,
                                  test[pos+3], test[pos+4], test[pos+5],
-                                 test[pos+6], test[pos+7], test[pos+8]);
+                                 test[pos+6], test[pos+7], test[pos+8],0,0);
           pos += 9;
           break;
         case ENB_UM:
           enb = new_rlc_entity_um(test[pos+1], test[pos+2],
                                   deliver_sdu_enb_um, NULL,
-                                  test[pos+3], test[pos+4]);
+                                  test[pos+3], test[pos+4],0);
           pos += 5;
           break;
         case UE_UM:
           ue = new_rlc_entity_um(test[pos+1], test[pos+2],
                                  deliver_sdu_ue_um, NULL,
-                                 test[pos+3], test[pos+4]);
+                                 test[pos+3], test[pos+4],0);
           pos += 5;
           break;
         case ENB_SDU:

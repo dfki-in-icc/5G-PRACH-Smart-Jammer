@@ -37,7 +37,6 @@
 #include "hashtable.h"
 #include "assertions.h"
 #include "common/utils/LOG/vcd_signal_dumper.h"
-
 //#define DEBUG_MAC_INTERFACE 1
 
 //-----------------------------------------------------------------------------
@@ -74,9 +73,11 @@ struct mac_data_ind mac_rlc_deserialize_tb (
       LOG_T(RLC, "[MAC-RLC] DUMP RX PDU(%d bytes):\n", tb_sizeP);
       rlc_util_print_hex_octets(RLC, ((struct mac_tb_ind *) (tb_p->data))->data_ptr, tb_sizeP);
 #endif
+
       nb_tb_read = nb_tb_read + 1;
       tbs_size   = tbs_size   + tb_sizeP;
       list_add_tail_eurecom(tb_p, &data_ind.data);
+      
     }
 
     num_tbP = num_tbP - 1;
@@ -218,6 +219,7 @@ tbs_size_t mac_rlc_data_req(
     T(T_ENB_RLC_MAC_DL, T_INT(module_idP), T_INT(rntiP), T_INT(channel_idP), T_INT(ret_tb_size));
 
 #endif
+
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_MAC_RLC_DATA_REQ,VCD_FUNCTION_OUT);
   return ret_tb_size;
 }
@@ -282,6 +284,7 @@ void mac_rlc_data_ind     (
     rlc_mode = RLC_MODE_NONE;
     //AssertFatal (0 , "%s RLC not configured lcid %u ! (h_rc %d)\n", __FUNCTION__,channel_idP,h_rc);
   }
+/*
 
   struct mac_data_ind data_ind = mac_rlc_deserialize_tb(buffer_pP, tb_sizeP, num_tbP, crcs_pP);
 

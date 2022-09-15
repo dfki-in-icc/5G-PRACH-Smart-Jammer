@@ -85,6 +85,27 @@ gtpv1u_new_data_req(
   uint32_t buf_len,
   uint32_t buf_offset);*/
 
+
+// typedef struct gtpv1u_data_s {
+//  /* nwgtpv1u stack internal data */
+//  NwGtpv1uStackHandleT  gtpv1u_stack;
+//
+//  /* RB tree of UEs */
+//  hash_table_t         *ue_mapping;   // PDCP->GTPV1U
+//  hash_table_t         *teid_mapping; // GTPV1U -> PDCP
+//
+//  //RB_HEAD(gtpv1u_ue_map, gtpv1u_ue_data_s) gtpv1u_ue_map_head;
+//  /* Local IP address to use */
+//  in_addr_t             enb_ip_address_for_S1u_S12_S4_up;
+//  /* UDP internal data */
+//  //udp_data_t            udp_data;
+//
+//  uint16_t              seq_num;
+//  uint16_t              tx_seq_num;
+//  uint8_t               restart_counter;
+//
+//} gtpv1u_data_t;
+
 int   gtpv1u_eNB_init(void);
 void *gtpv1u_eNB_process_itti_msg(void *);
 void *gtpv1u_eNB_task(void *args);

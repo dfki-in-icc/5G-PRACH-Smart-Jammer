@@ -30,6 +30,9 @@
 #include "rlc_primitives.h"
 #include "list.h"
 #include "LAYER2/MAC/mac_extern.h"
+#if LATSEQ
+  #include "common/utils/LATSEQ/latseq.h"
+#endif
 //-----------------------------------------------------------------------------
 void
 rlc_tm_send_sdu (
@@ -67,7 +70,20 @@ rlc_tm_send_sdu (
 #endif
 
     memcpy (&rlc_pP->output_sdu_in_construction->data[rlc_pP->output_sdu_size_to_write], srcP, length_in_bytes);
-
+#if LATSEQ
+    if (rlc_pP->is_data_plane) {
+      //there is 2 cases for pdcp sn lenght. Put the 2 possibilities...
+      // Copied from these functions
+      // pdcp_get_sequence_number_of_pdu_with_short_sn
+      // pdcp_get_sequence_number_of_pdu_with_long_sn
+      uint8_t psn_short = (uint8_t)((unsigned char *)rlc_pP->output_sdu_in_construction->data)[0] & 0x7F;
+      uint16_t psn_long = 0x00;
+      psn_long = (uint8_t)((unsigned char *)rlc_pP->output_sdu_in_construction->data)[0] & 0x0F;
+      psn_long <<= 8;
+      psn_long |= (uint8_t)((unsigned char *)rlc_pP->output_sdu_in_construction->data)[1] & 0xFF;
+      LATSEQ_P("U mac.demux--pdcp.rx","len%d:rnti%d:drb%d.lcid%d.psn%d.psn%d.fm%d", length_in_bytes, ctxt_pP->rnti, rlc_pP->rb_id, rlc_pP->channel_id, psn_short, psn_long, ctxt_pP->frame);
+    }
+#endif
     rlc_data_ind (
       ctxt_pP,
       BOOL_NOT(rlc_pP->is_data_plane),
@@ -114,12 +130,14 @@ rlc_tm_no_segment (
     ((struct mac_tb_req *) (pdu_p->data))->first_bit = 0;
     ((struct mac_tb_req *) (pdu_p->data))->tb_size = rlc_pP->rlc_pdu_size >> 3;
     list_add_tail_eurecom (pdu_p, &rlc_pP->pdus_to_mac_layer);
-
     rlc_pP->buffer_occupancy -= (sdu_mngt_p->sdu_size >> 3);
     free_mem_block (rlc_pP->input_sdus[rlc_pP->current_sdu_index], __func__);
     rlc_pP->input_sdus[rlc_pP->current_sdu_index] = NULL;
     rlc_pP->current_sdu_index = (rlc_pP->current_sdu_index + 1) % rlc_pP->size_input_sdus_buffer;
     rlc_pP->nb_sdu -= 1;
+#if LATSEQ
+    LATSEQ_P("D rlc.tx.tm--mac.mux","len%d:rnti%d:drb%d.lcid%d.rsdu%d.fm%d", sdu_mngt_p->sdu_size, ctxt_pP->rnti, rlc_pP->rb_id, rlc_pP->channel_id, rlc_pP->current_sdu_index, ctxt_pP->frame);
+#endif
   }
 }
 //-----------------------------------------------------------------------------
@@ -223,7 +241,13 @@ rlc_tm_data_req (
          rlc_p->current_sdu_index,
          rlc_p->next_sdu_index);
 #endif
-
+#if LATSEQ
+  // Not necessary to detect userplane, because if it is the case
+  // then a rebuilding, no user data at input point
+  // but input point may belongs to userplane only
+  uint8_t seqnum = (uint8_t)((unsigned char *)&sdu_pP->data)[1];
+  LATSEQ_P("D pdcp.tx--rlc.tx.tm","len%d:rnti%d:drb%d.lcid%d.psn%d.rsdu%d", ((struct rlc_um_data_req *) (sdu_pP->data))->data_size, ctxt_pP->rnti, rlc_p->rb_id, rlc_p->channel_id, seqnum, rlc_p->current_sdu_index);
+#endif
   // not in 3GPP specification but the buffer may be full if not correctly configured
   if (rlc_p->input_sdus[rlc_p->next_sdu_index] == NULL) {
     ((struct rlc_tm_tx_sdu_management *) (sdu_pP->data))->sdu_size = ((struct rlc_tm_data_req *) (sdu_pP->data))->data_size;

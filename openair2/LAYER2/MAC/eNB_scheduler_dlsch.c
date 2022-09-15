@@ -58,6 +58,9 @@
 #include <dlfcn.h>
 
 #include "T.h"
+#if LATSEQ
+  #include "common/utils/LATSEQ/latseq.h"
+#endif
 
 #define ENABLE_MAC_PAYLOAD_DEBUG
 //#define DEBUG_eNB_SCHEDULER 1
@@ -753,7 +756,6 @@ schedule_ue_spec(module_id_t module_idP,
                   round_DL,
                   ue_template->oldmcs1[harq_pid]);
           }
-
           dl_req->tl.tag = NFAPI_DL_CONFIG_REQUEST_BODY_TAG;
           eNB->DL_req[CC_id].sfn_sf = frameP<<4 | subframeP;
           eNB->DL_req[CC_id].header.message_id = NFAPI_DL_CONFIG_REQUEST;
@@ -947,6 +949,9 @@ schedule_ue_spec(module_id_t module_idP,
 
         LOG_D(MAC, "dlsch_mcs before and after the rate matching = (%d, %d), TBS %d, nb_rb %d\n",
               eNB_UE_stats->dlsch_mcs1, mcs, TBS, nb_rb);
+#if LATSEQ
+        LATSEQ_P("I mac.sched.down", "mcs%d.tbs%d.nrb%d:rnti%d:lcid%d", eNB_UE_stats->dlsch_mcs1, TBS, nb_rb, rnti, sdu_lcids[0]);
+#endif
 
         int post_padding = TBS - header_length_total - sdu_length_total - ta_len > 2;
         int padding = post_padding ? 0 : TBS - header_length_total - sdu_length_total - ta_len;
@@ -1186,6 +1191,9 @@ schedule_ue_spec(module_id_t module_idP,
                                     dlsch_pdu->payload[0]);
         LOG_D(MAC, "Filled NFAPI configuration for DCI/DLSCH/TXREQ %d, new SDU\n",
               eNB->pdu_index[CC_id]);
+#if LATSEQ
+        LATSEQ_P("D mac.mux--mac.txreq","len%d:rnti%d:lcid%d.txreq%d.reqfm%d.harq%d.sfn%d", TBS, rnti, sdu_lcids[0], eNB->pdu_index[CC_id], frameP, harq_pid, eNB->TX_req[CC_id].sfn_sf);
+#endif
         eNB->pdu_index[CC_id]++;
         program_dlsch_acknak(module_idP,
                              CC_id,

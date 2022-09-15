@@ -76,6 +76,13 @@ unsigned short config_frames[4] = {2,9,11,13};
 #include "UTIL/OPT/opt.h"
 #include "enb_config.h"
 
+#ifndef OPENAIR2
+  #include "UTIL/OTG/otg_vars.h"
+#endif
+
+#if LATSEQ
+  #include <common/utils/LATSEQ/latseq.h>
+#endif
 
 #include "create_tasks.h"
 
@@ -536,6 +543,7 @@ int main ( int argc, char **argv )
 #if T_TRACER
   T_Config_Init();
 #endif
+
   //randominit (0);
   set_taus_seed (0);
   printf("configuring for RAU/RRU\n");
@@ -545,6 +553,9 @@ int main ( int argc, char **argv )
   }
 
   cpuf=get_cpu_freq_GHz();
+#if LATSEQ
+  init_latseq("/tmp/lte_softmodem", (uint64_t)(cpuf*1000000000LL));
+#endif
   printf("ITTI init, useMME: %i\n",EPC_MODE_ENABLED);
   itti_init(TASK_MAX, tasks_info);
 
@@ -738,7 +749,12 @@ int main ( int argc, char **argv )
   LOG_I(ENB_APP,"oai_exit=%d\n",oai_exit);
   // stop threads
 
+#if LATSEQ
+  close_latseq(); //close before end of threads
+#endif
+
   #if 0 //Disable clean up because this tends to crash (and unnecessary)
+
   if (RC.nb_inst == 0 || !NODE_IS_CU(node_type)) {
     if(IS_SOFTMODEM_DOSCOPE)
       end_forms();

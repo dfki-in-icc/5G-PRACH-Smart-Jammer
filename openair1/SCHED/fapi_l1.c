@@ -37,6 +37,9 @@
 #include "nfapi/oai_integration/vendor_ext.h"
 #include "nfapi_pnf_interface.h"
 #include "fapi_l1.h"
+#if LATSEQ
+  #include "common/utils/LATSEQ/latseq.h"
+#endif
 
 #include "common/ran_context.h"
 extern RAN_CONTEXT_t RC;
@@ -231,6 +234,12 @@ void handle_nfapi_dlsch_pdu(PHY_VARS_eNB *eNB,int frame,int subframe,L1_rxtx_pro
     LOG_E(PHY,"illegal harq_pid %d %s:%d\n", harq_pid, __FILE__, __LINE__);
     return;
   }
+#if LATSEQ
+  if (rel8->rnti != 0xFFFF) {
+    uint16_t sfn_sf = (uint16_t)((frame << 4 ) | subframe);
+    LATSEQ_P("D mac.txreq--mac.harq.down", "len%d:rnti%d:txreq%d.harq%d.sfn%d", rel8->length, rel8->rnti, rel8->pdu_index, harq_pid, sfn_sf);
+  }
+#endif
 
   dlsch0_harq     = dlsch0->harq_processes[harq_pid];
   dlsch1_harq     = dlsch1->harq_processes[harq_pid];

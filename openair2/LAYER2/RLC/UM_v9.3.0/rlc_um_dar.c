@@ -31,6 +31,10 @@
 #include "list.h"
 #include "common/utils/LOG/log.h"
 #include "common/utils/LOG/vcd_signal_dumper.h"
+#if LATSEQ
+  #include "common/utils/LATSEQ/latseq.h"
+#endif
+
 //-----------------------------------------------------------------------------
 signed int rlc_um_get_pdu_infos(
   const protocol_ctxt_t* const ctxt_pP,
@@ -338,7 +342,10 @@ rlc_um_try_reassembly(
         }
         continue;
       }
-
+#if LATSEQ
+      if (rlc_pP->is_data_plane)
+        LATSEQ_P("U rlc.rx.um--rlc.unseg.um","len%d:rnti%d:drb%d.lcid%d.rsn%d.fm%d", size, ctxt_pP->rnti, rlc_pP->rb_id, rlc_pP->channel_id, rlc_pP->last_reassemblied_sn, ctxt_pP->frame);
+#endif
       if (e == RLC_E_FIXED_PART_DATA_FIELD_FOLLOW) {
         switch (fi) {
         case RLC_FI_1ST_BYTE_DATA_IS_1ST_BYTE_SDU_LAST_BYTE_DATA_IS_LAST_BYTE_SDU:
@@ -1040,6 +1047,7 @@ rlc_um_receive_process_dar (
     return;
   }
 
+
   RLC_UM_MUTEX_LOCK(&rlc_pP->lock_dar_buffer, ctxt_pP, rlc_pP);
 
   in_window = rlc_um_in_window(ctxt_pP, rlc_pP, rlc_pP->vr_uh - rlc_pP->rx_um_window_size, sn, rlc_pP->vr_ur);
@@ -1099,7 +1107,9 @@ rlc_um_receive_process_dar (
     mem_block_t *pdu = rlc_um_remove_pdu_from_dar_buffer(ctxt_pP, rlc_pP, sn);
     free_mem_block(pdu, __func__);
   }
-
+#if LATSEQ
+  LATSEQ_P("U mac.demux--rlc.rx.um","len%d:rnti%d:drb%d.lcid%d.rsn%d.fm%d", tb_sizeP, ctxt_pP->rnti, rlc_pP->rb_id, rlc_pP->channel_id, sn, ctxt_pP->frame);
+#endif
   rlc_um_store_pdu_in_dar_buffer(ctxt_pP, rlc_pP, pdu_mem_pP, sn);
 
 

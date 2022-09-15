@@ -46,7 +46,9 @@ rlc_entity_t *new_rlc_entity_am(
     int t_poll_retransmit,
     int poll_pdu,
     int poll_byte,
-    int max_retx_threshold)
+    int max_retx_threshold,
+    unsigned int channel_id,
+    int ue_rnti)
 {
   rlc_entity_am_t *ret;
 
@@ -87,6 +89,8 @@ rlc_entity_t *new_rlc_entity_am(
   ret->poll_pdu           = poll_pdu;
   ret->poll_byte          = poll_byte;
   ret->max_retx_threshold = max_retx_threshold;
+  ret->channel_id         = channel_id;
+  ret->ue_rnti            = ue_rnti;
 
   return (rlc_entity_t *)ret;
 }
@@ -98,7 +102,9 @@ rlc_entity_t *new_rlc_entity_um(
                       char *buf, int size),
     void *deliver_sdu_data,
     int t_reordering,
-    int sn_field_length)
+    int sn_field_length,
+    unsigned int channel_id,
+    int ue_rnti)
 {
   rlc_entity_um_t *ret;
 
@@ -129,6 +135,8 @@ rlc_entity_t *new_rlc_entity_um(
   ret->rx_maxsize         = rx_maxsize;
   ret->tx_maxsize         = tx_maxsize;
   ret->t_reordering       = t_reordering;
+  ret->channel_id         = channel_id;
+  ret->ue_rnti            = ue_rnti;
 
   if (sn_field_length == 5)
     ret->sn_modulus = 32;

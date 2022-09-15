@@ -35,6 +35,10 @@
 #include "list.h"
 #include "LAYER2/MAC/mac_extern.h"
 #include "common/utils/LOG/log.h"
+#if LATSEQ
+  #include "common/utils/LATSEQ/latseq.h"
+#endif
+
 
 //-----------------------------------------------------------------------------
 inline void
@@ -126,6 +130,20 @@ rlc_um_send_sdu (const protocol_ctxt_t* const ctxt_pP, rlc_um_entity_t *rlc_pP)
       rlc_um_v9_3_0_test_data_ind (rlc_pP->module_id, rlc_pP->rb_id, rlc_pP->output_sdu_size_to_write, rlc_pP->output_sdu_in_construction);
 #else
       // msg("[RLC] DATA IND ON MOD_ID %d RB ID %d, size %d\n",rlc_pP->module_id, rlc_pP->rb_id, ctxt_pP->frame,rlc_pP->output_sdu_size_to_write);
+#if LATSEQ
+      //there is 2 cases for pdcp sn lenght. Put the 2 possibilities...
+      // Copied from these functions
+      // pdcp_get_sequence_number_of_pdu_with_short_sn
+      // pdcp_get_sequence_number_of_pdu_with_long_sn
+      //if (rlc_pP->is_data_plane) {
+      uint8_t psn_short = (uint8_t)((unsigned char *)(rlc_pP->output_sdu_in_construction)->data)[0] & 0x7F;
+      uint16_t psn_long = 0x00;
+      psn_long = (uint8_t)((unsigned char *)(rlc_pP->output_sdu_in_construction)->data)[0] & 0x0F;
+      psn_long <<= 8;
+      psn_long |= (uint8_t)((unsigned char *)(rlc_pP->output_sdu_in_construction)->data)[1] & 0xFF;
+      LATSEQ_P("U rlc.unseg.um--pdcp.rx","len%d:rnti%d:drb%d.lcid%d.rsn%d.psn%d.psn%d.fm%d", rlc_pP->output_sdu_size_to_write, ctxt_pP->rnti, rlc_pP->rb_id, rlc_pP->channel_id, rlc_pP->last_reassemblied_sn, psn_short, psn_long, ctxt_pP->frame);
+      //}
+#endif
       rlc_data_ind (
         ctxt_pP,
         BOOL_NOT(rlc_pP->is_data_plane),

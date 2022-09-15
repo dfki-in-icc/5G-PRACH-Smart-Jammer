@@ -61,6 +61,9 @@ unsigned short config_frames[4] = {2,9,11,13};
 #include "common/utils/LOG/log.h"
 #include "common/utils/LOG/vcd_signal_dumper.h"
 #include "UTIL/OPT/opt.h"
+#if LATSEQ
+  "common/utils/LATSEQ/latseq.h"
+#endif
 
 #include "intertask_interface.h"
 
@@ -651,7 +654,12 @@ int main( int argc, char **argv ) {
   }
 
   cpuf=get_cpu_freq_GHz();
+
+#if LATSEQ
+  init_latseq("/tmp/nr_softmodem", (uint64_t)(cpuf*1000000000LL));
+#endif
   itti_init(TASK_MAX, tasks_info);
+
   // initialize mscgen log after ITTI
   init_opt();
   if(PDCP_USE_NETLINK && !IS_SOFTMODEM_NOS1) {
@@ -823,6 +831,9 @@ int main( int argc, char **argv ) {
       }
 
   #endif*/
+  #if LATSEQ
+    close_latseq(); //close befire head of threads
+  #endif
   printf("stopping MODEM threads\n");
   // cleanup
   stop_gNB(NB_gNB_INST);

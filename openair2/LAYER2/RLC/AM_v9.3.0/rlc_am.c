@@ -38,6 +38,9 @@
 #include "common/utils/LOG/log.h"
 #include "LTE_UL-AM-RLC.h"
 #include "LTE_DL-AM-RLC.h"
+#if LATSEQ
+  #include "common/utils/LATSEQ/latseq.h"
+#endif
 
 //-----------------------------------------------------------------------------
 uint32_t
@@ -645,6 +648,10 @@ rlc_am_mac_data_request (
             LOG_UI(RLC,"%s\n",message_string);
           } /* LOG_DEBUGFLAG(DEBUG_RLC) */
         }
+#if LATSEQ
+    LATSEQ_P("D rlc.seg.am--mac.mux","len%d:rnti%d:drb%d.lcid%d.rsn%d.reqfm%d", tb_size_in_bytes, ctxt_pP->rnti, l_rlc_p->rb_id, l_rlc_p->channel_id, pdu_info.sn , ctxt_pP->frame);
+    //.so%d : pdu_info.so
+#endif
       } else {
         if (rlc_am_get_control_pdu_infos(rlc_am_pdu_sn_10_p, &tb_size_in_bytes, &l_rlc_p->control_pdu_info) >= 0) {
           tb_size_in_bytes   = ((struct mac_tb_req *) (tb_p->data))->tb_size; //tb_size_in_bytes modified by rlc_am_get_control_pdu_infos!
@@ -885,7 +892,13 @@ rlc_am_data_req (
       message_string_size += sprintf(&message_string[message_string_size], " |\n");
       LOG_UI(RLC, "%s\n", message_string);
     } /* LOG_DEBUGFLAG(RLC) */
-
+#if LATSEQ
+    // Not necessary to detect userplane, because if it is the case
+    // then a rebuilding, no user data at input point
+    // but input point may belongs to userplane only
+    uint8_t seqnum = ((uint8_t *)(&sdu_pP->data[data_offset]))[1];
+    LATSEQ_P("D pdcp.tx--rlc.tx.am","len%d:rnti%d:drb%d.psn%d.lcid%d.rsdu%d", ((struct rlc_am_data_req *) (sdu_pP->data))->data_size, ctxt_pP->rnti, l_rlc_p->rb_id, seqnum, l_rlc_p->channel_id, l_rlc_p->next_sdu_index);
+#endif
     l_rlc_p->stat_tx_pdcp_sdu   += 1;
     l_rlc_p->stat_tx_pdcp_bytes += data_size;
     l_rlc_p->input_sdus[l_rlc_p->next_sdu_index].mui      = mui;
@@ -907,6 +920,9 @@ rlc_am_data_req (
     l_rlc_p->input_sdus[l_rlc_p->next_sdu_index].flags.no_new_sdu_segmented_in_last_pdu = 0;
     //l_rlc_p->input_sdus[l_rlc_p->next_sdu_index].li_index_for_discard = -1;
     l_rlc_p->next_sdu_index = (l_rlc_p->next_sdu_index + 1) % RLC_AM_SDU_CONTROL_BUFFER_SIZE;
+#if LATSEQ
+    LATSEQ_P("I rlc.am.txbuf","occ%d:drb%d", l_rlc_p->sdu_buffer_occupancy, l_rlc_p->rb_id);
+#endif
 
     if (l_rlc_p->channel_id <3) {
       LOG_I(RLC, PROTOCOL_RLC_AM_CTXT_FMT" RLC_AM_DATA_REQ size %d Bytes,  NB SDU %d current_sdu_index=%d next_sdu_index=%d conf %d mui %d vtA %d vtS %d\n",

@@ -37,6 +37,7 @@ typedef enum hashtable_return_code_e {
   HASH_TABLE_KEY_ALREADY_EXISTS      = 3,
   HASH_TABLE_BAD_PARAMETER_HASHTABLE = 4,
   HASH_TABLE_SYSTEM_ERROR            = 5,
+  HASH_TABLE_NONE                    = 6,
   HASH_TABLE_CODE_MAX
 } hashtable_rc_t;
 

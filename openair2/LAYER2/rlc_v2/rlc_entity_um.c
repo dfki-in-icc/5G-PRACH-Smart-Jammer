@@ -26,6 +26,9 @@
 #include <string.h>
 
 #include "LOG/log.h"
+#if LATSEQ
+  #include "common/utils/LATSEQ/latseq.h"
+#endif
 
 /*************************************************************************/
 /* PDU RX functions                                                      */
@@ -228,7 +231,7 @@ static void rlc_um_reception_actions(rlc_entity_um_t *entity,
   }
 }
 
-void rlc_entity_um_recv_pdu(rlc_entity_t *_entity, char *buffer, int size)
+void rlc_entity_um_recv_pdu(rlc_entity_t *_entity, char *buffer, int size, const logical_chan_id_t channel_id, const frame_t frame)
 {
 #define R(d) do { if (rlc_pdu_decoder_in_error(&d)) goto err; } while (0)
   rlc_entity_um_t *entity = (rlc_entity_um_t *)_entity;
@@ -420,7 +423,7 @@ rlc_entity_buffer_status_t rlc_entity_um_buffer_status(
   return ret;
 }
 
-int rlc_entity_um_generate_pdu(rlc_entity_t *_entity, char *buffer, int size)
+int rlc_entity_um_generate_pdu(rlc_entity_t *_entity, char *buffer, int size, const logical_chan_id_t channel_id, const frame_t frame)
 {
   rlc_entity_um_t      *entity = (rlc_entity_um_t *)_entity;
   tx_pdu_size_t        pdu_size;
@@ -537,9 +540,11 @@ int rlc_entity_um_generate_pdu(rlc_entity_t *_entity, char *buffer, int size)
   }
   if (entity->tx_list == NULL)
     entity->tx_end = NULL;
-
   /* update VT(US) */
   entity->vt_us = (entity->vt_us + 1) % entity->sn_modulus;
+#if LATSEQ
+  LATSEQ_P("D rlc.tx.um--rlc.seg.um", "len%d:rnti%d:drb%d.lcid%d.rtime%d.rsn%d", pdu_size.header_size + pdu_size.data_size, entity->ue_rnti, entity->channel_id , entity->channel_id, entity->t_current, entity->vt_us);
+#endif
 
   return pdu_size.header_size + pdu_size.data_size;
 }
@@ -567,8 +572,9 @@ void rlc_entity_um_recv_sdu(rlc_entity_t *_entity, char *buffer, int size,
   }
 
   entity->tx_size += size;
-
-  sdu = rlc_new_sdu(buffer, size, sdu_id);
+  entity->tx_num += 1;
+// no access to ctxt_pP ???
+  sdu = rlc_new_sdu(buffer, size, sdu_id, entity->tx_num);
   rlc_sdu_list_add(&entity->tx_list, &entity->tx_end, sdu);
 }
 
@@ -689,6 +695,7 @@ static void clear_entity(rlc_entity_um_t *entity)
   entity->tx_list = NULL;
   entity->tx_end = NULL;
   entity->tx_size = 0;
+  entity->tx_num = 0;
 }
 
 void rlc_entity_um_reestablishment(rlc_entity_t *_entity)

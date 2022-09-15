@@ -453,8 +453,8 @@ rlc_am_rx_pdu_status_t rlc_am_rx_list_handle_pdu_segment(
               LOG_D(RLC, PROTOCOL_RLC_AM_CTXT_FMT"[PROCESS RX PDU SEGMENT SN=%d SOSTART=%d] PDU SEGMENT INSERTED AFTER PDU SEGMENT WITH SOEND=%d\n",
                           PROTOCOL_RLC_AM_CTXT_ARGS(ctxt_pP,rlc_pP),pdu_rx_info_p->sn,so_start_segment,
 						  pdu_info_previous_cursor_p->so + pdu_info_previous_cursor_p->payload_size - 1);
-
 			  list2_insert_after_element(tb_pP, previous_cursor_p, &rlc_pP->receiver_buffer);
+
 			  return RLC_AM_DATA_PDU_STATUS_OK;
 		  }
 
@@ -538,7 +538,6 @@ rlc_am_rx_pdu_status_t rlc_am_rx_list_handle_pdu_segment(
               LOG_D(RLC, PROTOCOL_RLC_AM_CTXT_FMT"[PROCESS RX PDU SEGMENT SN=%d SOSTART=%d SOEND=%d] PDU SEGMENT INSERTED BEFORE PDU SEGMENT WITH SOSTART=%d\n",
                             PROTOCOL_RLC_AM_CTXT_ARGS(ctxt_pP,rlc_pP),pdu_rx_info_p->sn,so_start_segment,so_end_segment,
 							pdu_info_cursor_p->so);
-
 			  list2_insert_before_element(tb_pP, cursor_p, &rlc_pP->receiver_buffer);
 			  return RLC_AM_DATA_PDU_STATUS_OK;
 		  }
@@ -606,7 +605,6 @@ rlc_am_rx_pdu_status_t rlc_am_rx_list_handle_pdu_segment(
 	              LOG_D(RLC, PROTOCOL_RLC_AM_CTXT_FMT"[PROCESS RX PDU SEGMENT SN=%d SOSTART=%d] PDU SEGMENT INSERTED AFTER PDU SEGMENT WITH SOEND=%d\n",
 	                          PROTOCOL_RLC_AM_CTXT_ARGS(ctxt_pP,rlc_pP),pdu_rx_info_p->sn,so_start_segment,
 							  pdu_info_previous_cursor_p->so + pdu_info_previous_cursor_p->payload_size - 1);
-
 				  list2_insert_after_element(tb_pP, previous_cursor_p, &rlc_pP->receiver_buffer);
 				  return RLC_AM_DATA_PDU_STATUS_OK;
 			  }
@@ -705,7 +703,6 @@ rlc_am_rx_pdu_status_t rlc_am_rx_list_handle_pdu_segment(
 	  if (trunc_segment != NULL) {
 		  LOG_I(RLC, PROTOCOL_RLC_AM_CTXT_FMT"[PROCESS RX PDU SEGMENT]  CREATE SEGMENT FROM SEGMENT OFFSET=%d DATA LENGTH=%d SN=%d\n",
 						  PROTOCOL_RLC_AM_CTXT_ARGS(ctxt_pP,rlc_pP),so_start_segment - pdu_rx_info_p->so,so_end_segment - so_start_segment + 1,pdu_rx_info_p->sn);
-
 		  if (previous_cursor_p != NULL) {
 			  list2_insert_after_element(trunc_segment, previous_cursor_p, &rlc_pP->receiver_buffer);
 		  }
@@ -779,7 +776,6 @@ rlc_am_rx_pdu_status_t rlc_am_rx_list_handle_pdu(
                             pdu_info_cursor_p->sn);
 	          list2_insert_before_element(tb_pP, cursor_p, &rlc_pP->receiver_buffer);
 	      }
-
 		  return pdu_status;
 	  }
 
@@ -811,14 +807,12 @@ rlc_am_rx_pdu_status_t rlc_am_rx_list_handle_pdu(
 
 	      LOG_D(RLC, PROTOCOL_RLC_AM_CTXT_FMT"[PROCESS RX PDU]  PDU REPLACES STORED PDU SEGMENTS SN=%d\n",
 	              PROTOCOL_RLC_AM_CTXT_ARGS(ctxt_pP,rlc_pP),pdu_rx_info_p->sn);
-
 	      if (previous_cursor_p != NULL) {
 	          list2_insert_after_element(tb_pP, previous_cursor_p, &rlc_pP->receiver_buffer);
 	      }
 	      else {
 	          list2_insert_before_element(tb_pP, cursor_next_p, &rlc_pP->receiver_buffer);
 	      }
-
 		  return pdu_status;
 	  } // End SN != vrR or SO != 0
 	  else {

@@ -24,6 +24,7 @@
 
 #include <stdint.h>
 
+#include "platform_types.h"
 #include "rlc_entity.h"
 #include "rlc_pdu.h"
 #include "rlc_sdu.h"
@@ -226,6 +227,8 @@ typedef struct {
   int poll_pdu;              /* -1 means infinity */
   int poll_byte;             /* -1 means infinity */
   int max_retx_threshold;
+  unsigned int channel_id;
+  int ue_rnti;
 
   /* runtime rx */
   int vr_r;
@@ -255,6 +258,7 @@ typedef struct {
   rlc_rx_pdu_segment_t *rx_list;
   int                  rx_size;
   int                  rx_maxsize;
+  //int                  rx_num;
 
   /* reassembly management */
   rlc_am_reassemble_t    reassemble;
@@ -264,6 +268,7 @@ typedef struct {
   rlc_sdu_t *tx_end;
   int       tx_size;
   int       tx_maxsize;
+  int       tx_num;
 
   rlc_tx_pdu_segment_t *wait_list;
   rlc_tx_pdu_segment_t *retransmit_list;
@@ -273,10 +278,10 @@ typedef struct {
 
 void rlc_entity_am_recv_sdu(rlc_entity_t *entity, char *buffer, int size,
                             int sdu_id);
-void rlc_entity_am_recv_pdu(rlc_entity_t *entity, char *buffer, int size);
+void rlc_entity_am_recv_pdu(rlc_entity_t *_entity, char *buffer, int size, const logical_chan_id_t channel_id, const frame_t frame);
 rlc_entity_buffer_status_t rlc_entity_am_buffer_status(
     rlc_entity_t *entity, int maxsize);
-int rlc_entity_am_generate_pdu(rlc_entity_t *entity, char *buffer, int size);
+int rlc_entity_am_generate_pdu(rlc_entity_t *_entity, char *buffer, int size, const logical_chan_id_t channel_id, const frame_t frame);
 void rlc_entity_am_set_time(rlc_entity_t *entity, uint64_t now);
 void rlc_entity_am_discard_sdu(rlc_entity_t *entity, int sdu_id);
 void rlc_entity_am_reestablishment(rlc_entity_t *entity);

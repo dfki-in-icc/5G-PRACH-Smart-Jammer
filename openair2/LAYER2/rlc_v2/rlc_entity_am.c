@@ -26,6 +26,9 @@
 #include <string.h>
 
 #include "LOG/log.h"
+#if LATSEQ
+  #include "common/utils/LATSEQ/latseq.h"
+#endif
 
 /*************************************************************************/
 /* PDU RX functions                                                      */
@@ -196,6 +199,14 @@ static void rlc_am_reassemble(rlc_entity_am_t *entity)
        */
       if (r->data_pos != r->start->size ||
           (r->fi & 1) == 0) {
+#if LATSEQ
+        uint8_t psn_short = (uint8_t)r->sdu[0] & 0x7F;
+        uint16_t psn_long = 0x00;
+        psn_long = (uint8_t)r->sdu[0] & 0x0F;
+        psn_long <<= 8;
+        psn_long |= (uint8_t)r->sdu[1] & 0xFF;
+        LATSEQ_P("U rlc.reas.am--pdcp.rx", "len%d:rnti%d:drb%d.rsn%d.rso%d.psn%d.psn%d", r->sdu_pos, entity->ue_rnti, entity->channel_id, r->sn, r->so, psn_short, psn_long);
+#endif
         /* SDU is full - deliver to higher layer */
         entity->common.deliver_sdu(entity->common.deliver_sdu_data,
                                    (rlc_entity_t *)entity,
@@ -357,6 +368,9 @@ static void consider_retransmission(rlc_entity_am_t *entity,
    * for the RLC code to keep going with this segment (we only remove
    * a segment that was ACKed)
    */
+#if LATSEQ
+  LATSEQ_P("D rlc.seg.am--rlc.retx.am", "len%d:rnti%d:drb%d.rsn%d.rso%d.rretx%d",cur->data_size, entity->ue_rnti, entity->channel_id, cur->sn, cur->so, cur->retx_count);
+#endif
   entity->retransmit_list = rlc_tx_pdu_list_add(sn_compare_tx, entity,
                                                 entity->retransmit_list, cur);
 }
@@ -569,7 +583,7 @@ static void finalize_ack_nack_processing(rlc_entity_am_t *entity)
   cleanup_sdu_list(entity);
 }
 
-void rlc_entity_am_recv_pdu(rlc_entity_t *_entity, char *buffer, int size)
+void rlc_entity_am_recv_pdu(rlc_entity_t *_entity, char *buffer, int size, const logical_chan_id_t channel_id, const frame_t frame)
 {
 #define R(d) do { if (rlc_pdu_decoder_in_error(&d)) goto err; } while (0)
   rlc_entity_am_t *entity = (rlc_entity_am_t *)_entity;
@@ -617,6 +631,10 @@ void rlc_entity_am_recv_pdu(rlc_entity_t *_entity, char *buffer, int size)
   e  = rlc_pdu_decoder_get_bits(&decoder, 1); R(decoder);
   sn = rlc_pdu_decoder_get_bits(&decoder, 10); R(decoder);
 
+#if LATSEQ
+  LATSEQ_P("I rlc.rxbuf.am", "occ%d:rnti%d:drb%d", entity->rx_size + size, entity->ue_rnti, entity->channel_id);
+#endif
+
   /* dicard PDU if rx buffer is full */
   if (entity->rx_size + size > entity->rx_maxsize) {
     LOG_D(RLC, "%s:%d:%s: warning: discard PDU, RX buffer full\n",
@@ -638,7 +656,9 @@ void rlc_entity_am_recv_pdu(rlc_entity_t *_entity, char *buffer, int size)
     lsf = 1;
     so = 0;
   }
-
+#if LATSEQ
+  LATSEQ_P("U mac.demux--rlc.rx.am", "len%d:rnti%d:drb%d.lcid%d.rsn%d.rso%d.rfi%d.fm%d", size, entity->ue_rnti, entity->channel_id, channel_id, sn, so, fi, frame);
+#endif
   packet_count = 1;
 
   /* go to start of data */
@@ -693,6 +713,10 @@ void rlc_entity_am_recv_pdu(rlc_entity_t *_entity, char *buffer, int size)
 
   /* put in pdu reception list */
   entity->rx_size += size;
+  //entity->rx_num += 1;
+#if LATSEQ
+  LATSEQ_P("U rlc.rx.am--rlc.reas.am", "len%d:rnti%d:drb%d.rsn%d.rso%d.rfi%d", size, entity->ue_rnti, entity->channel_id, sn, so, fi);
+#endif
   pdu_segment = rlc_rx_new_pdu_segment(sn, so, size, lsf, buffer, data_start);
   entity->rx_list = rlc_rx_pdu_segment_list_add(sn_compare_rx, entity,
                                                 entity->rx_list, pdu_segment);
@@ -1268,6 +1292,9 @@ static int serialize_pdu(rlc_entity_am_t *entity, char *buffer, int bufsize,
     li = sdu->size - sdu_start_byte;
     if (outpos + li >= pdu->data_size)
       li = pdu->data_size - outpos;
+#if LATSEQ
+    LATSEQ_P("D rlc.tx.am--rlc.seg.am", "len%d:rnti%d:drb%d.sdu%d.rsn%d.rfi%d", sdu->size, entity->ue_rnti, entity->channel_id, sdu->sdu_num, pdu->sn, fi);
+#endif
     memcpy(out+outpos, sdu->data + sdu_start_byte, li);
     outpos += li;
     sdu_start_byte = 0;
@@ -1279,7 +1306,7 @@ static int serialize_pdu(rlc_entity_am_t *entity, char *buffer, int bufsize,
   return header_size + pdu->data_size;
 }
 
-static int generate_tx_pdu(rlc_entity_am_t *entity, char *buffer, int bufsize)
+static int generate_tx_pdu(rlc_entity_am_t *entity, char *buffer, int bufsize, int *sn, int *so)
 {
   int                  vt_ms;
   tx_pdu_size_t        pdu_size;
@@ -1302,6 +1329,7 @@ static int generate_tx_pdu(rlc_entity_am_t *entity, char *buffer, int bufsize)
   pdu = rlc_tx_new_pdu();
 
   pdu->sn = entity->vt_s;
+  *sn = pdu->sn;
   entity->vt_s = (entity->vt_s + 1) % 1024;
 
   /* go to first SDU (skip those already fully processed) */
@@ -1321,6 +1349,7 @@ static int generate_tx_pdu(rlc_entity_am_t *entity, char *buffer, int bufsize)
    * segment goes to retransmit list)
    */
   pdu->retx_count = -1;
+  *so = pdu->so;
 
   /* reserve SDU bytes */
   cursize = 0;
@@ -1333,6 +1362,9 @@ static int generate_tx_pdu(rlc_entity_am_t *entity, char *buffer, int bufsize)
   }
 
   pdu->data_size = cursize;
+// #if LATSEQ
+//   LATSEQ_P("D rlc.tx.am--rlc.seg.am", "len%d:rnti%d:drb%d.sdu%d.rsn%d.rso%d", cursize, entity->ue_rnti, entity->channel_id, ((rlc_sdu_t*)(pdu->start_sdu))->sdu_num, pdu->sn, pdu->so);
+// #endif
 
   /* put PDU at the end of the wait list */
   entity->wait_list = rlc_tx_pdu_list_append(entity->wait_list, pdu);
@@ -1409,7 +1441,7 @@ static void resegment(rlc_tx_pdu_segment_t *pdu, int size)
   pdu->next = new_pdu;
 }
 
-static int generate_retx_pdu(rlc_entity_am_t *entity, char *buffer, int size)
+static int generate_retx_pdu(rlc_entity_am_t *entity, char *buffer, int size, int *sn, int *so)
 {
   rlc_tx_pdu_segment_t *pdu;
   int orig_size;
@@ -1438,7 +1470,8 @@ static int generate_retx_pdu(rlc_entity_am_t *entity, char *buffer, int size)
     p = 1;
     entity->force_poll = 0;
   }
-
+  *sn = pdu->sn;
+  *so = pdu->so;
   return serialize_pdu(entity, buffer, orig_size, pdu, p);
 }
 
@@ -1502,10 +1535,12 @@ rlc_entity_buffer_status_t rlc_entity_am_buffer_status(
   return ret;
 }
 
-int rlc_entity_am_generate_pdu(rlc_entity_t *_entity, char *buffer, int size)
+int rlc_entity_am_generate_pdu(rlc_entity_t *_entity, char *buffer, int size, const logical_chan_id_t channel_id, const frame_t frame)
 {
   rlc_entity_am_t *entity = (rlc_entity_am_t *)_entity;
   int ret;
+  int pdu_sn=0;
+  int pdu_so=0;
 
   if (status_to_report(entity)) {
     ret = generate_status(entity, buffer, size);
@@ -1514,12 +1549,19 @@ int rlc_entity_am_generate_pdu(rlc_entity_t *_entity, char *buffer, int size)
   }
 
   if (entity->retransmit_list != NULL) {
-    ret = generate_retx_pdu(entity, buffer, size);
+    ret = generate_retx_pdu(entity, buffer, size, &pdu_sn, &pdu_so);
     if (ret != 0)
+#if LATSEQ
+      LATSEQ_P("D rlc.retx.am--mac.mux", "len%d:rnti%d:drb%d.lcid%d.rsn%d.rso%d.fm%d", ret, entity->ue_rnti, entity->channel_id, channel_id, pdu_sn, pdu_so, frame);
+#endif
       return ret;
   }
 
-  return generate_tx_pdu(entity, buffer, size);
+  ret = generate_tx_pdu(entity, buffer, size, &pdu_sn, &pdu_so);
+#if LATSEQ
+  LATSEQ_P("D rlc.seg.am--mac.mux", "len%d:rnti%d:drb%d.lcid%d.rsn%d.rso%d.reqfm%d", ret, entity->ue_rnti, entity->channel_id, channel_id, pdu_sn, pdu_so, frame);
+#endif
+  return ret;
 }
 
 /*************************************************************************/
@@ -1541,13 +1583,28 @@ void rlc_entity_am_recv_sdu(rlc_entity_t *_entity, char *buffer, int size,
   if (entity->tx_size + size > entity->tx_maxsize) {
     LOG_D(RLC, "%s:%d:%s: warning: SDU rejected, SDU buffer full\n",
           __FILE__, __LINE__, __FUNCTION__);
+#if LATSEQ
+    uint16_t seqnum = 0x00;
+    seqnum = buffer[0] & 0x0F;
+    seqnum <<= 8;
+    seqnum |= buffer[1] & 0xFF;
+    LATSEQ_P("D pdcp.tx--rlc.drop.am", "len%d:rnti%d:drb%d.psn%d", size, entity->ue_rnti, entity->channel_id, seqnum);
+#endif
     return;
   }
 
   entity->tx_size += size;
-
-  sdu = rlc_new_sdu(buffer, size, sdu_id);
+  entity->tx_num += 1;
+  sdu = rlc_new_sdu(buffer, size, sdu_id, entity->tx_num);
   rlc_sdu_list_add(&entity->tx_list, &entity->tx_end, sdu);
+#if LATSEQ
+  uint16_t seqnum = 0x00;
+  seqnum = buffer[0] & 0x0F;
+  seqnum <<= 8;
+  seqnum |= buffer[1] & 0xFF;
+  LATSEQ_P("D pdcp.tx--rlc.tx.am", "len%d:rnti%d:drb%d.psn%d.sdu%d", size, entity->ue_rnti, entity->channel_id, seqnum, entity->tx_num);
+  LATSEQ_P("I rlc.txbuf.am", "occ%d:rnti%d:drb%d", entity->tx_size, entity->ue_rnti, entity->channel_id);
+#endif
 }
 
 /*************************************************************************/
@@ -1765,6 +1822,7 @@ static void clear_entity(rlc_entity_am_t *entity)
   entity->tx_list = NULL;
   entity->tx_end = NULL;
   entity->tx_size = 0;
+  entity->tx_num = 0;
 
   free_pdu_segment_list(entity->wait_list);
   free_pdu_segment_list(entity->retransmit_list);

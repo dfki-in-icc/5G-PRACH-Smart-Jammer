@@ -19,6 +19,9 @@ extern "C" {
 #include <openair2/LAYER2/PDCP_v10.1.0/pdcp.h>
 #include "openair2/SDAP/nr_sdap/nr_sdap.h"
 //#include <openair1/PHY/phy_extern.h>
+#if LATSEQ
+  #include "common/utils/LATSEQ/latseq.h"
+#endif
 
 static boolean_t is_gnb = false;
 
@@ -225,6 +228,10 @@ static void gtpv1uSend(instance_t instance, gtpv1u_enb_tunnel_data_req_t *req, b
   // copy to release the mutex
   gtpv1u_bearer_t tmp=ptr2->second;
   pthread_mutex_unlock(&globGtp.gtp_lock);
+#if LATSEQ
+  uint16_t ipid = buffer[4] << 8 | buffer[5];
+  LATSEQ_P("U gtp.out--ip.out","len%d:rnti%d:drb%d.teid%d.gsn%d.npdu%d.ipid0x%x", length, rnti, rab_id - 4, tmp.teid_outgoing, tmp.seqNum, tmp.npduNum, ipid);
+#endif
   gtpv1uCreateAndSendMsg(compatInst(instance),
                          tmp.outgoing_ip_addr,
                          tmp.outgoing_port,
@@ -895,7 +902,10 @@ static int Gtpv1uHandleGpdu(int h,
   const uint32_t sourceL2Id=0;
   const uint32_t destinationL2Id=0;
   pthread_mutex_unlock(&globGtp.gtp_lock);
-
+#if LATSEQ
+  uint16_t ipid = sdu_buffer[4] << 8 | sdu_buffer[5];
+  LATSEQ_P("D ip.in--pdcp.in", "len%d:rnti%u:ipid0x%x.teid%u.drb%u", sdu_buffer_size, tunnel->second.rnti, ipid, msgHdr->teid, rb_id);
+#endif
   if(is_gnb && qfi){
     if ( !tunnel->second.callBackSDAP(&ctxt,
                                       srb_flag,

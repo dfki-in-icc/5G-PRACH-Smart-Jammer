@@ -43,6 +43,10 @@
 #include "transport_proto.h"
 #include <executables/split_headers.h>
 
+#if LATSEQ
+  #include "common/utils/LATSEQ/latseq.h"
+#endif
+
 extern WORKER_CONF_t get_thread_worker_conf(void);
 extern volatile int oai_exit;
 
@@ -357,6 +361,9 @@ int ulsch_decoding_data(PHY_VARS_eNB *eNB, L1_rxtx_proc_t *proc,
     int sz=Kr_bytes - Fbytes - ((ulsch_harq->C>1)?3:0);
     pushTpool(proc->threadPool,req);
     proc->nbDecode++;
+#if LATSEQ
+    LATSEQ_P("U phy.in.proc--mac.harq.up", "len%d::ue%d.cbseg%d.fm%d.subfm%d", sz, rdata->UEid, r, rdata->frame, rdata->subframe);
+#endif
     LOG_D(PHY,"Added a block to decode, in pipe: %d\n",proc->nbDecode);
     r_offset+=E;
     offset+=sz;	    

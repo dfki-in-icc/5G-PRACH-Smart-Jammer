@@ -24,6 +24,8 @@
 
 #include <stdint.h>
 
+#include "platform_types.h"
+
 #define SDU_MAX 16000   /* maximum PDCP SDU size is 8188, let's take more */
 
 typedef struct {
@@ -34,10 +36,10 @@ typedef struct {
 
 typedef struct rlc_entity_t {
   /* functions provided by the RLC module */
-  void (*recv_pdu)(struct rlc_entity_t *entity, char *buffer, int size);
+  void (*recv_pdu)(struct rlc_entity_t *entity, char *buffer, int size, const logical_chan_id_t channel_id, const frame_t frame);
   rlc_entity_buffer_status_t (*buffer_status)(
       struct rlc_entity_t *entity, int maxsize);
-  int (*generate_pdu)(struct rlc_entity_t *entity, char *buffer, int size);
+  int (*generate_pdu)(struct rlc_entity_t *entity, char *buffer, int size, const logical_chan_id_t channel_id, const frame_t frame);
 
   void (*recv_sdu)(struct rlc_entity_t *entity, char *buffer, int size,
                    int sdu_id);
@@ -83,7 +85,9 @@ rlc_entity_t *new_rlc_entity_am(
     int t_poll_retransmit,
     int poll_pdu,
     int poll_byte,
-    int max_retx_threshold);
+    int max_retx_threshold,
+    unsigned int channel_id,
+    int ue_rnti);
 
 rlc_entity_t *new_rlc_entity_um(
     int rx_maxsize,
@@ -92,6 +96,8 @@ rlc_entity_t *new_rlc_entity_um(
                       char *buf, int size),
     void *deliver_sdu_data,
     int t_reordering,
-    int sn_field_length);
+    int sn_field_length,
+    unsigned int channel_id,
+    int ue_rnti);
 
 #endif /* _RLC_ENTITY_H_ */

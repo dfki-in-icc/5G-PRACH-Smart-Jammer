@@ -64,6 +64,10 @@ static int DEFENBS[] = {0};
 #include <openair2/LAYER2/MAC/mac_vars.h>
 #include <openair2/RRC/LTE/rrc_vars.h>
 
+#if LATSEQ
+  #include "common/utils/LATSEQ/latseq.h"
+#endif
+
 pthread_cond_t nfapi_sync_cond;
 pthread_mutex_t nfapi_sync_mutex;
 int nfapi_sync_var=-1; //!< protected by mutex \ref nfapi_sync_mutex
@@ -677,7 +681,7 @@ void rx_rf(RU_t *ru, L1_rxtx_proc_t *proc) {
     exit_fun("Exiting IQ record/playback");
 #else
     //exit_fun( "problem receiving samples" );
-    LOG_E(PHY, "problem receiving samples");
+    LOG_E(PHY, "problem receiving samples\n");
 #endif
   }
 
@@ -689,6 +693,11 @@ void rx_rf(RU_t *ru, L1_rxtx_proc_t *proc) {
 
   old_ts=timestamp_rx;
   setAllfromTS(timestamp_rx, proc);
+
+#if LATSEQ
+  LATSEQ_P("U phy.in.ant--phy.in.proc","len%d::fm%d.subfm%d", rxs, proc->frame_rx, proc->subframe_rx);
+#endif
+
 }
 
 void ocp_tx_rf(RU_t *ru, L1_rxtx_proc_t *proc) {
@@ -733,6 +742,11 @@ void ocp_tx_rf(RU_t *ru, L1_rxtx_proc_t *proc) {
 #elif defined(__arm__)
     sf_extension = (sf_extension)&0xfffffffc;
 #endif
+
+#if LATSEQ
+    LATSEQ_P("D phy.out.proc--phy.out.ant","len%d::fm%d.subfm%d",siglen, proc->frame_tx, proc->subframe_tx);
+#endif
+
 
     for (i=0; i<ru->nb_tx; i++)
       txp[i] = (void *)&ru->common.txdata[i][(proc->subframe_tx*fp->samples_per_tti)-sf_extension];
@@ -1038,18 +1052,17 @@ void set_default_frame_parms(LTE_DL_FRAME_PARMS *frame_parms[MAX_NUM_CCs]) {
 
 void init_pdcp(void) {
   if (!NODE_IS_DU(RC.rrc[0]->node_type)) {
-    pdcp_layer_init();
+    pdcp_layer_init();  //gdb
     uint32_t pdcp_initmask = (IS_SOFTMODEM_NOS1) ?
                              (PDCP_USE_NETLINK_BIT | LINK_ENB_PDCP_TO_IP_DRIVER_BIT) : LINK_ENB_PDCP_TO_GTPV1U_BIT;
 
-    if (IS_SOFTMODEM_NOS1)
+    if (IS_SOFTMODEM_NOS1)  //gdb
       pdcp_initmask = pdcp_initmask | ENB_NAS_USE_TUN_BIT | SOFTMODEM_NOKRNMOD_BIT  ;
 
     pdcp_initmask = pdcp_initmask | ENB_NAS_USE_TUN_W_MBMS_BIT;
 
     if ( split73!=SPLIT73_DU)
       pdcp_module_init(pdcp_initmask, 0);
-
     if (NODE_IS_CU(RC.rrc[0]->node_type)) {
       //pdcp_set_rlc_data_req_func(proto_agent_send_rlc_data_req);
     } else {
@@ -1154,7 +1167,9 @@ int main ( int argc, char **argv ) {
   set_softmodem_sighandler();
   cpuf=get_cpu_freq_GHz();
   set_taus_seed (0);
-
+#if LATSEQ
+  init_latseq("/tmp/main_ocp", (uint64_t)(cpuf*1000000000LL));
+#endif
   if (opp_enabled ==1)
     reset_opp_meas();
 
@@ -1338,6 +1353,9 @@ int main ( int argc, char **argv ) {
   oai_exit=1;
   LOG_I(ENB_APP,"oai_exit=%d\n",oai_exit);
   // stop threads
+  #if LATSEQ
+    close_latseq(); //close before end of threads
+  #endif
 
   if (RC.nb_inst == 0 || !NODE_IS_CU(node_type)) {
     if(IS_SOFTMODEM_DOSCOPE)

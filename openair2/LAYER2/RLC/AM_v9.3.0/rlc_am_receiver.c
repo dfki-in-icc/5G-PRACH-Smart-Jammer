@@ -29,7 +29,9 @@
 #include "list.h"
 #include "LAYER2/MAC/mac_extern.h"
 #include "common/utils/LOG/log.h"
-
+#if LATSEQ
+  #include "common/utils/LATSEQ/latseq.h"
+#endif
 
 //-----------------------------------------------------------------------------
 signed int
@@ -345,6 +347,7 @@ rlc_am_receive_process_data_pdu (
             rlc_pP->vr_ms,
             rlc_pP->vr_x);
 
+
       pdu_status = rlc_am_rx_list_check_duplicate_insert_pdu(ctxt_pP, rlc_pP,tb_pP);
       if (pdu_status != RLC_AM_DATA_PDU_STATUS_OK) {
         rlc_pP->stat_rx_data_pdu_dropped     += 1;
@@ -521,7 +524,11 @@ if( (((rlc_am_rx_pdu_management_t*)(tb_pP->data))->all_segments_received) == (pd
       LOG_D(RLC, PROTOCOL_RLC_AM_CTXT_FMT"[PROCESS RX PDU]  PDU DISCARDED BAD HEADER FORMAT SN=%d\n",
             PROTOCOL_RLC_AM_CTXT_ARGS(ctxt_pP,rlc_pP),pdu_info_p->sn);
   }
-
+#if LATSEQ
+  // rlc_pP->vr_r fix pas terrible mais qui fera l'affaire pour l'instant
+  if (pdu_status == RLC_AM_DATA_PDU_STATUS_OK)
+    LATSEQ_P("U mac.demux--rlc.rx.am", "len%d:rnti%d:drb%d.lcid%d.rsn%d.rso%d.fm%d", tb_size_in_bytesP, ctxt_pP->rnti, rlc_pP->rb_id, rlc_pP->channel_id, rlc_pP->vr_r, pdu_info_p->so, ctxt_pP->frame);
+#endif
   if (pdu_status != RLC_AM_DATA_PDU_STATUS_OK) {
 	  /* Discard received block if out of window, duplicate or header error */
       free_mem_block (tb_pP, __func__);

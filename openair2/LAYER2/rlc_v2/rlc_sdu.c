@@ -26,13 +26,14 @@
 
 #include "LOG/log.h"
 
-rlc_sdu_t *rlc_new_sdu(char *buffer, int size, int upper_layer_id)
+rlc_sdu_t *rlc_new_sdu(char *buffer, int size, int upper_layer_id, int sdu_num)
 {
   rlc_sdu_t *ret = calloc(1, sizeof(rlc_sdu_t));
   if (ret == NULL)
     goto oom;
 
   ret->upper_layer_id = upper_layer_id;
+  ret->sdu_num = sdu_num;
 
   ret->data = malloc(size);
   if (ret->data == NULL)

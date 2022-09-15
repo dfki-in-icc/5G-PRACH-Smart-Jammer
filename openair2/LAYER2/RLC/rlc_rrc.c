@@ -576,7 +576,7 @@ rlc_union_t *rrc_rlc_add_rlc   (
   hash_key_t             key         = HASHTABLE_NOT_A_KEY_VALUE;
   hashtable_rc_t         h_rc;
   hash_key_t             key_lcid    = HASHTABLE_NOT_A_KEY_VALUE;
-  hashtable_rc_t         h_lcid_rc;
+  hashtable_rc_t         h_lcid_rc   = HASH_TABLE_NONE;
   rlc_union_t           *rlc_union_p = NULL;
   rlc_mbms_id_t         *mbms_id_p  = NULL;
   logical_chan_id_t      lcid            = 0;

@@ -73,6 +73,10 @@ static int DEFBFW[] = {0x00007fff};
 #include "SIMULATION/ETH_TRANSPORT/proto.h"
 
 #include "T.h"
+#if LATSEQ
+  #include "common/utils/LATSEQ/latseq.h"
+#endif
+
 
 #include "executables/softmodem-common.h"
 
@@ -704,6 +708,10 @@ void rx_rf(RU_t *ru,
   //LOG_I(PHY,"timestamp_rx %lu, frame %d(%d), subframe %d(%d)\n",ru->timestamp_rx,proc->frame_rx,frame,proc->tti_rx,subframe);
   VCD_SIGNAL_DUMPER_DUMP_VARIABLE_BY_NAME( VCD_SIGNAL_DUMPER_VARIABLES_TRX_TS, proc->timestamp_rx&0xffffffff );
 
+#if LATSEQ
+  LATSEQ_P("U phy.in.ant--phy.in.proc","len%d::fm%d.subfm%d", rxs, proc->frame_rx, proc->tti_rx);
+#endif
+
   if (rxs != fp->samples_per_tti) {
 #if defined(USRP_REC_PLAY)
     exit_fun("Exiting IQ record/playback");
@@ -766,6 +774,10 @@ void tx_rf(RU_t *ru,
 #endif
 #elif defined(__arm__)
     sf_extension = (sf_extension)&0xfffffffc;
+#endif
+
+#if LATSEQ
+    LATSEQ_P("D phy.out.proc--phy.out.ant","len%d::fm%d.subfm%d",siglen, frame, subframe);
 #endif
 
     for (i=0; i<ru->nb_tx; i++)

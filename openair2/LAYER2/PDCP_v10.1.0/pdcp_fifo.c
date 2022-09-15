@@ -57,6 +57,9 @@ extern int otg_enabled;
 #include "UTIL/OTG/otg_tx.h"
 #include "nfapi/oai_integration/vendor_ext.h"
 #include "common/utils/LOG/vcd_signal_dumper.h"
+#if LATSEQ
+  #include "common/utils/LATSEQ/latseq.h"
+#endif
 #include "platform_constants.h"
 #include "pdcp.h"
 
@@ -127,20 +130,31 @@ int pdcp_fifo_flush_sdus(const protocol_ctxt_t *const  ctxt_pP) {
         }
        else
        {
-	 if( LOG_DEBUGFLAG(DEBUG_PDCP) ) 
-	   log_dump(PDCP, pdcpData, pdcpHead->data_size, LOG_DUMP_CHAR,"PDCP output to be sent to TUN interface: \n");
-	 ret = write(nas_sock_fd[pdcpHead->inst], pdcpData,pdcpHead->data_size );
-	 LOG_T(PDCP,"[UE PDCP_FIFOS] ret %d TRIED TO PUSH DATA TO rb_id %d handle %d sizeToWrite %d\n",
-	       ret,rb_id,nas_sock_fd[pdcpHead->inst],pdcpHead->data_size);
+    if( LOG_DEBUGFLAG(DEBUG_PDCP) ) {
+      log_dump(PDCP, pdcpData, pdcpHead->data_size, LOG_DUMP_CHAR,"PDCP output to be sent to TUN interface: \n");
+    }
+
+      ret = write(nas_sock_fd[pdcpHead->inst], pdcpData,pdcpHead->data_size );
+      LOG_T(PDCP,"[UE PDCP_FIFOS] ret %d TRIED TO PUSH DATA TO rb_id %d handle %d sizeToWrite %d\n",
+         ret,rb_id,nas_sock_fd[pdcpHead->inst],pdcpHead->data_size);
        }
     } else if (ENB_NAS_USE_TUN) {
-      if( LOG_DEBUGFLAG(DEBUG_PDCP) ) 
-	log_dump(PDCP, pdcpData, pdcpHead->data_size, LOG_DUMP_CHAR,"PDCP output to be sent to TUN interface: \n");
+
+      if( LOG_DEBUGFLAG(DEBUG_PDCP) ) {
+        log_dump(PDCP, pdcpData, pdcpHead->data_size, LOG_DUMP_CHAR,"PDCP output to be sent to TUN interface: \n");
+      }
+#if LATSEQ
+      LATSEQ_P("U pdcp.out.nas--ip.out", "len%d:rnti%d:drb%d.sock%d.lid%d.fm%d", pdcpHead->data_size, ctxt_pP->rnti, rb_id, nas_sock_fd[0], pdcpHead->destinationL2Id, ctxt_pP->frame);
+#endif
       ret = write(nas_sock_fd[0], pdcpData, pdcpHead->data_size);
        LOG_T(PDCP,"[NB PDCP_FIFOS] ret %d TRIED TO PUSH DATA TO rb_id %d handle %d sizeToWrite %d\n",ret,rb_id,nas_sock_fd[0],pdcpHead->data_size);
     } else if (PDCP_USE_NETLINK) {
       int sizeToWrite= sizeof (pdcp_data_ind_header_t) + pdcpHead->data_size;
+#if LATSEQ
+      LATSEQ_P("U pdcp.out.nl--ip.out", "len%d:rnti%d:drb%d.sock%d.lid%d.fm%d", sizeToWrite, ctxt_pP->rnti, rb_id, nas_sock_fd[0], pdcpHead->destinationL2Id, ctxt_pP->frame);
+#endif
       memcpy(NLMSG_DATA(nas_nlh_tx), (uint8_t *) pdcpHead,  sizeToWrite);
+
       nas_nlh_tx->nlmsg_len = sizeToWrite;
       ret = sendmsg(nas_sock_fd[0],&nas_msg_tx,0);
     }  //  PDCP_USE_NETLINK
@@ -272,7 +286,9 @@ int pdcp_fifo_read_input_sdus_fromtun (const protocol_ctxt_t *const  ctxt_pP) {
       LOG_D(PDCP, "[FRAME %5u][UE][IP][INSTANCE %ld][RB %ld][--- PDCP_DATA_REQ / %d Bytes --->][PDCP][MOD %u][UE %04x][RB %ld]\n",
             ctxt.frame, ctxt.instance, rab_id, len, ctxt.module_id,
             ctxt.rnti, rab_id);
-
+#if LATSEQ
+      LATSEQ_P("D ip.in--pdcp.in.tun", "len%d:rnti%d:drb%d", len, ctxt.rnti, rab_id);
+#endif
 #if defined  ENABLE_PDCP_PAYLOAD_DEBUG
       LOG_I(PHY, "TUN interface output received from PDCP: \n");
       for (int i = 0; i < 128; i++) {
@@ -400,7 +416,6 @@ int pdcp_fifo_read_input_sdus_fromnetlinksock (const protocol_ctxt_t *const  ctx
     VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME( VCD_SIGNAL_DUMPER_FUNCTIONS_PDCP_FIFO_READ_BUFFER, 1 );
     len = recvmsg(nas_sock_fd[0], &nas_msg_rx, 0);
     VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME( VCD_SIGNAL_DUMPER_FUNCTIONS_PDCP_FIFO_READ_BUFFER, 0 );
-
     if (len > 0) {
       for (nas_nlh_rx = (struct nlmsghdr *) nl_rx_buf;
            NLMSG_OK (nas_nlh_rx, len);
@@ -463,6 +478,9 @@ int pdcp_fifo_read_input_sdus_fromnetlinksock (const protocol_ctxt_t *const  ctx
                       ctxt.module_id,
                       ctxt.rnti,
                       rab_id);
+#if LATSEQ
+                LATSEQ_P("D ip--pdcp.in.nl", "len%d:rnti%d:drb%d", pdcp_read_header_g.data_size, ctxt.rnti, rab_id);
+#endif
                 pdcp_data_req(&ctxt,
                               SRB_FLAG_NO,
                               rab_id,

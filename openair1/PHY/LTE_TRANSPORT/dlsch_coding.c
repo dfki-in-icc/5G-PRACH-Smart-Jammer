@@ -40,6 +40,9 @@
 #include "SCHED/sched_eNB.h"
 #include "common/utils/LOG/vcd_signal_dumper.h"
 #include "common/utils/LOG/log.h"
+#if LATSEQ
+  #include "common/utils/LATSEQ/latseq.h"
+#endif
 #include "targets/RT/USER/lte-softmodem.h"
 #include <syscall.h>
 #include <common/utils/threadPool/thread-pool.h>
@@ -373,8 +376,16 @@ int dlsch_encoding(PHY_VARS_eNB *eNB,
     //    printf("CRC %x (A %d)\n",crc,A);
     hadlsch->B = A+24;
     //    hadlsch->b = a;
+    // LATSEQ
+/*
+#if LATSEQ
+    LATSEQ_P_TEST("D mac.txreq--mac.harq","rnti%d:harq%d.fm%d.subfm%d",dlsch->rnti, harq_pid, frame, subframe);
+#endif
+*/
+
+    // END_LATSEQ
     memcpy(hadlsch->b,a,(A/8)+4);
-    
+
     if (lte_segmentation(hadlsch->b,
                          hadlsch->c,
                          hadlsch->B,

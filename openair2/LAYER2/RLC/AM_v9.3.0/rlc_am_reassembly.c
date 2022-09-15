@@ -30,6 +30,10 @@
 #include "list.h"
 //#include "LAYER2/MAC/extern.h"
 #include "common/utils/LOG/log.h"
+#if LATSEQ
+  #include "common/utils/LATSEQ/latseq.h"
+#endif
+
 
 //-----------------------------------------------------------------------------
 inline void
@@ -150,6 +154,20 @@ rlc_am_send_sdu (
 
 #if !ENABLE_ITTI
       RLC_AM_MUTEX_UNLOCK(&rlc_pP->lock_input_sdus);
+#endif
+
+#if LATSEQ
+      //there is 2 cases for pdcp sn lenght. Put the 2 possibilities...
+      // Copied from these functions
+      // pdcp_get_sequence_number_of_pdu_with_short_sn
+      // pdcp_get_sequence_number_of_pdu_with_long_sn
+
+      uint8_t psn_short = (uint8_t)((unsigned char *)rlc_pP->output_sdu_in_construction->data)[0] & 0x7F;
+      uint16_t psn_long = 0x00;
+      psn_long = (uint8_t)((unsigned char *)rlc_pP->output_sdu_in_construction->data)[0] & 0x0F;
+      psn_long <<= 8;
+      psn_long |= (uint8_t)((unsigned char *)rlc_pP->output_sdu_in_construction->data)[1] & 0xFF;
+      LATSEQ_P("U rlc.rx.am--pdcp.rx","len%d:rnti%d:drb%d.lcid%d.rsn%d.psn%d.psn%d.fm%d", rlc_pP->output_sdu_size_to_write, ctxt_pP->rnti, rlc_pP->rb_id, rlc_pP->channel_id, rlc_pP->vr_r, psn_short, psn_long, ctxt_pP->frame);
 #endif
       rlc_data_ind (ctxt_pP,
                     BOOL_NOT(rlc_pP->is_data_plane),

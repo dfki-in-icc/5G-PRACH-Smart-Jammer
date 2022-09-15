@@ -82,6 +82,11 @@ hash_table_t  *pdcp_coll_p = NULL;
   static int mbms_socket = -1;
 #endif
 
+#if LATSEQ
+  #include "common/utils/LATSEQ/latseq.h"
+#endif
+
+
 uint32_t Pdcp_stats_tx_window_ms[MAX_eNB][MAX_MOBILES_PER_ENB];
 uint32_t Pdcp_stats_tx_bytes[MAX_eNB][MAX_MOBILES_PER_ENB][NB_RB_MAX];
 uint32_t Pdcp_stats_tx_bytes_w[MAX_eNB][MAX_MOBILES_PER_ENB][NB_RB_MAX];
@@ -114,6 +119,7 @@ int pdcp_pc5_sockfd;
 struct sockaddr_in prose_ctrl_addr;
 struct sockaddr_in prose_pdcp_addr;
 struct sockaddr_in pdcp_sin;
+
 /* pdcp module parameters and related functions*/
 static pdcp_params_t pdcp_params= {0,NULL};
 rnti_t                 pdcp_UE_UE_module_id_to_rnti[MAX_MOBILES_PER_ENB];
@@ -424,6 +430,13 @@ boolean_t pdcp_data_req(
         VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PDCP_DATA_REQ,VCD_FUNCTION_OUT);
         return FALSE;
       }
+#if LATSEQ
+      if (!srb_flagP) {
+        uint16_t ipid = sdu_buffer_pP[4] << 8 | sdu_buffer_pP[5];
+        LATSEQ_P("D pdcp.in--pdcp.tx","len%d:rnti%d:ipid%x.drb%d.gsn%d.psn%d", sdu_buffer_sizeP, ctxt_pP->rnti, ipid, rb_idP, 0, current_sn);
+      }
+#endif
+
 
       LOG_D(PDCP, "Sequence number %d is assigned to current PDU\n", current_sn);
       /* Then append data... */
@@ -1042,6 +1055,7 @@ pdcp_data_ind(
     return TRUE;
   }
 
+
   // XXX Decompression would be done at this point
   /*
    * After checking incoming sequence number PDCP header
@@ -1057,6 +1071,9 @@ pdcp_data_ind(
             rb_id + 4,
             sdu_buffer_sizeP - payload_offset );
       //LOG_T(PDCP,"Sending to GTPV1U %d bytes\n", sdu_buffer_sizeP - payload_offset);
+#if LATSEQ
+      LATSEQ_P("U pdcp.rx--gtp.out","len%d:rnti%d:drb%d.psn%d",sdu_buffer_sizeP, ctxt_pP->rnti, rb_id, sequence_number);
+#endif
       gtpu_buffer_p = itti_malloc(TASK_PDCP_ENB, TASK_GTPV1_U,
                                   sdu_buffer_sizeP - payload_offset + GTPU_HEADER_OVERHEAD_MAX);
       AssertFatal(gtpu_buffer_p != NULL, "OUT OF MEMORY");
@@ -1147,10 +1164,17 @@ pdcp_data_ind(
       memcpy(pdcpHead+1,
              &sdu_buffer_pP->data[payload_offset],
              sdu_buffer_sizeP - payload_offset);
+
       if( LOG_DEBUGFLAG(DEBUG_PDCP) )
-	log_dump(PDCP, pdcpHead+1, min(sdu_buffer_sizeP - payload_offset,30) , LOG_DUMP_CHAR,
-	         "Printing first bytes of PDCP SDU before adding it to the list: \n");
+        log_dump(PDCP, pdcpHead+1, min(sdu_buffer_sizeP - payload_offset,30) , LOG_DUMP_CHAR,
+        "Printing first bytes of PDCP SDU before adding it to the list: \n");
+#if LATSEQ
+      if (srb_flagP == FALSE) {
+        LATSEQ_P("U pdcp.rx--pdcp.out","len%d:rnti%d:drb%d.lid%d.psn%d.fm%d",(sdu_buffer_sizeP - payload_offset), ctxt_pP->rnti, rb_id, pdcpHead->destinationL2Id, sequence_number, ctxt_pP->frame);
+      }
+#endif
       pushNotifiedFIFO(&pdcp_sdu_list, new_sdu_p); 
+
 
     /* Print octets of incoming data in hexadecimal form */
       LOG_D(PDCP, "Following content has been received from RLC (%d,%d)(PDCP header has already been removed):\n",

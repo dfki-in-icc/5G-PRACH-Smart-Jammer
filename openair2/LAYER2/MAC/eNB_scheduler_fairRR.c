@@ -49,6 +49,9 @@
 #include "rlc.h"
 #include "common/utils/lte/prach_utils.h"
 #include "T.h"
+#if LATSEQ
+  #include "common/utils/LATSEQ/latseq.h"
+#endif
 
 
 #ifdef PHY_TX_THREAD
@@ -2079,6 +2082,9 @@ schedule_ue_spec_fairRR(module_id_t module_idP,
                                     0, //number of PRBs treated as one subband, not used here
                                     0 // number of beamforming vectors, not used here
                                    );
+#if LATSEQ
+            LATSEQ_P("D mac.mux--mac.txreq","len%d:rnti%d:lcid%d.txreq%d.reqfm%d.harq%d.sfn%d", TBS, rnti, sdu_lcids[0], eNB->pdu_index[CC_id], frameP, harq_pid, eNB->TX_req[CC_id].sfn_sf);
+#endif
             dl_req->number_pdu++;
             eNB->TX_req[CC_id].sfn_sf = fill_nfapi_tx_req(&eNB->TX_req[CC_id].tx_request_body,
                                         (frameP*10)+subframeP,

@@ -60,6 +60,9 @@
 #include "common/utils/lte/prach_utils.h"
 
 #include "T.h"
+#if LATSEQ
+  #include "common/utils/LATSEQ/latseq.h"
+#endif
 
 #include "common/ran_context.h"
 extern RAN_CONTEXT_t RC;
@@ -169,6 +172,11 @@ rx_sdu(const module_id_t enb_mod_idP,
        * lte_est_timing_advance_pusch, maybe it's not necessary?
        * maybe it's even not correct at all?
        */
+
+#if LATSEQ
+      LATSEQ_P("I phy.srs", "ucqi%d:ru%d.ue%d:", ul_cqi, CC_idP, UE_id);
+#endif
+
       UE_scheduling_control->ta_update_f = ((double)UE_scheduling_control->ta_update_f * 3 + (double)timing_advance) / 4;
       UE_scheduling_control->ta_update = (int)UE_scheduling_control->ta_update_f;
       int tmp_snr = (5 * ul_cqi - 640) / 10;
@@ -444,7 +452,9 @@ rx_sdu(const module_id_t enb_mod_idP,
           if (UE_template_ptr->phr_info > 40) {
             UE_template_ptr->phr_info = 40;
           }
-
+#if LATSEQ
+          LATSEQ_P("I mac.ind", "phr%d:ue%d:", UE_template_ptr->phr_info, UE_id);
+#endif
           LOG_D(MAC, "[eNB %d] CC_id %d MAC CE_LCID %d : Received PHR PH = %d (db)\n",
                 enb_mod_idP,
                 CC_idP,
@@ -594,6 +604,9 @@ rx_sdu(const module_id_t enb_mod_idP,
           int bsr = 0;
           bsr = payload_ptr[0] & 0x3f;
           lcgid_updated[lcgid] = 1;
+#if LATSEQ
+          LATSEQ_P("I mac.ind", "bsr%d.len%d:ue%d:lcgid%d", bsr, BSR_TABLE[bsr], UE_id, lcgid);
+#endif
           /* Update buffer info */
           UE_template_ptr->ul_buffer_info[lcgid] = BSR_TABLE[bsr];
           UE_template_ptr->estimated_ul_buffer =
@@ -646,6 +659,12 @@ rx_sdu(const module_id_t enb_mod_idP,
             UE_template_ptr->ul_buffer_info[LCGID1] +
             UE_template_ptr->ul_buffer_info[LCGID2] +
             UE_template_ptr->ul_buffer_info[LCGID3];
+#if LATSEQ
+          LATSEQ_P("I mac.ind", "bsr%d.len%d:ue%d:lcgid%d", bsr0, BSR_TABLE[bsr0], UE_id, 0);
+          LATSEQ_P("I mac.ind", "bsr%d.len%d:ue%d:lcgid%d", bsr1, BSR_TABLE[bsr1], UE_id, 1);
+          LATSEQ_P("I mac.ind", "bsr%d.len%d:ue%d:lcgid%d", bsr2, BSR_TABLE[bsr2], UE_id, 2);
+          LATSEQ_P("I mac.ind", "bsr%d.len%d:ue%d:lcgid%d", bsr3, BSR_TABLE[bsr3], UE_id, 3);
+#endif
           LOG_D(MAC, "[eNB %d] CC_id %d MAC CE_LCID %d: Received long BSR. Size is LCGID0 = %u LCGID1 = %u LCGID2 = %u LCGID3 = %u\n",
                 enb_mod_idP,
                 CC_idP,
@@ -965,6 +984,9 @@ rx_sdu(const module_id_t enb_mod_idP,
               }
             }
 
+#if LATSEQ
+              LATSEQ_P("U mac.harq.up--mac.demux", "len%d:rnti%d:ue%d.lcid%d.fm%d.subfm%d", rx_lengths[i], current_rnti, UE_id, rx_lcids[i], frameP, subframeP);
+#endif
               mac_rlc_data_ind(enb_mod_idP, current_rnti, enb_mod_idP, frameP, ENB_FLAG_YES, MBMS_FLAG_NO, rx_lcids[i], (char *) payload_ptr, rx_lengths[i], 1, NULL);
               UE_info->eNB_UE_stats[CC_idP][UE_id].num_pdu_rx[rx_lcids[i]] += 1;
               UE_info->eNB_UE_stats[CC_idP][UE_id].num_bytes_rx[rx_lcids[i]] += rx_lengths[i];
@@ -1481,8 +1503,8 @@ schedule_ulsch_rnti(module_id_t   module_idP,
                 rnti);
 
     /* Seems unused, only for debug */
-    RC.eNB[module_idP][CC_id]->pusch_stats_BO[UE_id][(frameP * 10) + subframeP] =
-        UE_template_ptr->estimated_ul_buffer;
+//    RC.eNB[module_idP][CC_id]->pusch_stats_BO[UE_id][(frameP * 10) + subframeP] = 
+//      UE_template_ptr->estimated_ul_buffer;
     VCD_SIGNAL_DUMPER_DUMP_VARIABLE_BY_NAME(VCD_SIGNAL_DUMPER_VARIABLES_UE0_BO,
                                             UE_template_ptr->estimated_ul_buffer);
 
@@ -1646,6 +1668,27 @@ schedule_ulsch_rnti(module_id_t   module_idP,
 
       UE_info->eNB_UE_stats[CC_id][UE_id].ulsch_mcs2 = mcs;
 
+      uint8_t reserved_rb = 5;
+      uint8_t available_rb = 0;
+      switch (to_prb(cc[CC_id].ul_Bandwidth)) {
+        case 25:
+          available_rb = 25 - reserved_rb;
+          break;
+
+        case 50:
+          available_rb = 50 - reserved_rb;
+          break;
+
+        case 100:
+          available_rb = 100 - reserved_rb;
+          break;
+
+        default:
+          LOG_E(MAC, "RBs setting not handled. Todo.\n");
+          exit(1);
+      }
+      while (rb_table[rb_table_index] > available_rb && rb_table_index > 0)
+        rb_table_index--;
 
       UE_template_ptr->TBS_UL[harq_pid] = get_TBS_UL(mcs, rb_table[rb_table_index]);
       UE_info->eNB_UE_stats[CC_id][UE_id].total_rbs_used_rx += rb_table[rb_table_index];
@@ -1662,6 +1705,9 @@ schedule_ulsch_rnti(module_id_t   module_idP,
         T_INT(rb_table[rb_table_index]),
         T_INT(UE_template_ptr->TBS_UL[harq_pid]),
         T_INT(ndi));
+#if LATSEQ
+      LATSEQ_P("I mac.sched.up", "mcs%d.tbs%d.nrb%d:ue%d:fm%d.subfm%d", mcs, UE_info->eNB_UE_stats[CC_id][UE_id].ulsch_TBS, rb_table[rb_table_index], UE_id, frameP, subframeP);
+#endif
       /* Store information for possible retransmission */
       UE_template_ptr->nb_rb_ul[harq_pid] = rb_table[rb_table_index];
       UE_template_ptr->first_rb_ul[harq_pid] = UE_template_ptr->pre_first_nb_rb_ul;

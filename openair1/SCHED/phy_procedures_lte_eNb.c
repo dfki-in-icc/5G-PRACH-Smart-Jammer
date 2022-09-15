@@ -41,6 +41,9 @@
 #include <common/utils/system.h>
 #include "common/utils/LOG/vcd_signal_dumper.h"
 #include <nfapi/oai_integration/nfapi_pnf.h>
+#if LATSEQ
+  #include "common/utils/LATSEQ/latseq.h"
+#endif
 
 #include "assertions.h"
 
@@ -682,6 +685,13 @@ void phy_procedures_eNB_TX(PHY_VARS_eNB *eNB,
                 dlsch0->harq_ids[frame%2][6],
                 dlsch0->harq_ids[frame%2][7]);
       } else {
+
+#if LATSEQ
+//dci is always 1
+        if(dlsch0->rnti != 0xFFFF)  // Corresponds to a broadcast rnti
+          LATSEQ_P("D mac.harq.down--phy.out.proc","len%d:rnti%d:harq%d.fm%d.subfm%d", dlsch0->harq_processes[harq_pid]->TBS/8,dlsch0->rnti, harq_pid, frame, subframe);
+#endif
+
         if (dlsch_procedures(eNB,
                              proc,
                              harq_pid,
@@ -1317,15 +1327,13 @@ void postDecode(L1_rxtx_proc_t *proc, notifiedFIFO_elt_t *req) {
   bool decodeSucess=rdata->decodeIterations <= rdata->maxIterations;
   ulsch_harq->processedSegments++;
   LOG_D(PHY, "processing result of segment: %d, ue %d, processed %d/%d\n",
-	rdata->segment_r, rdata->UEid, ulsch_harq->processedSegments, rdata->nbSegments);
+    rdata->segment_r, rdata->UEid, ulsch_harq->processedSegments, rdata->nbSegments);
   proc->nbDecode--;
   LOG_D(PHY,"remain to decoded in subframe: %d\n", proc->nbDecode);
-  if (decodeSucess)  {
+  if (decodeSucess) {
     int Fbytes=(rdata->segment_r==0) ? rdata->Fbits>>3 : 0;
     int sz=(rdata->Kr>>3) - Fbytes - ((ulsch_harq->C>1)?3:0);
-    memcpy(ulsch_harq->decodedBytes+rdata->offset,
-	   rdata->decoded_bytes+Fbytes,
-	   sz);
+    memcpy(ulsch_harq->decodedBytes+rdata->offset, rdata->decoded_bytes+Fbytes, sz);
   } else {
     if ( rdata->nbSegments != ulsch_harq->processedSegments ) {
       int nb=abortTpool(proc->threadPool, req->key);
@@ -1333,76 +1341,82 @@ void postDecode(L1_rxtx_proc_t *proc, notifiedFIFO_elt_t *req) {
       proc->nbDecode-=nb;
       LOG_D(PHY,"uplink segment error %d/%d, aborted %d segments\n",rdata->segment_r,rdata->nbSegments, nb);
       AssertFatal(ulsch_harq->processedSegments+nb == rdata->nbSegments,"processed: %d, aborted: %d, total %d\n",
-		  ulsch_harq->processedSegments, nb, rdata->nbSegments);
+      ulsch_harq->processedSegments, nb, rdata->nbSegments);
       ulsch_harq->processedSegments=rdata->nbSegments;
     }
   }
 
   // if this UE segments are all done
   if ( rdata->nbSegments == ulsch_harq->processedSegments) {
-      //compute the expected ULSCH RX power (for the stats)
-      int i=rdata->UEid;
-      ulsch_harq->delta_TF = get_hundred_times_delta_IF_eNB(eNB,i,rdata->harq_pid, 0); // 0 means bw_factor is not considered
-      if (RC.mac != NULL) { /* ulsim does not use RC.mac context. */
-	if (ulsch_harq->cqi_crc_status == 1) {
-	  fill_ulsch_cqi_indication(eNB,rdata->frame,rdata->subframe,ulsch_harq,ulsch->rnti);
-	  RC.mac[eNB->Mod_id]->UE_info.UE_sched_ctrl[i].cqi_req_flag &= (~(1 << rdata->subframe));
-	} else {
-	  if(RC.mac[eNB->Mod_id]->UE_info.UE_sched_ctrl[i].cqi_req_flag & (1 << rdata->subframe) ) {
-	    RC.mac[eNB->Mod_id]->UE_info.UE_sched_ctrl[i].cqi_req_flag &= (~(1 << rdata->subframe));
-	    RC.mac[eNB->Mod_id]->UE_info.UE_sched_ctrl[i].cqi_req_timer=30;
-	    LOG_D(PHY,"Frame %d,Subframe %d, We're supposed to get a cqi here. Set cqi_req_timer to 30.\n",rdata->frame,rdata->subframe);
-	  }
-	}
+    //compute the expected ULSCH RX power (for the stats)
+    int i=rdata->UEid;
+    ulsch_harq->delta_TF = get_hundred_times_delta_IF_eNB(eNB,i,rdata->harq_pid, 0); // 0 means bw_factor is not considered
+    if (RC.mac != NULL) { /* ulsim does not use RC.mac context. */
+      if (ulsch_harq->cqi_crc_status == 1) {
+        fill_ulsch_cqi_indication(eNB,rdata->frame,rdata->subframe,ulsch_harq,ulsch->rnti);
+        RC.mac[eNB->Mod_id]->UE_info.UE_sched_ctrl[i].cqi_req_flag &= (~(1 << rdata->subframe));
+      } else {
+        if(RC.mac[eNB->Mod_id]->UE_info.UE_sched_ctrl[i].cqi_req_flag & (1 << rdata->subframe) ) {
+          RC.mac[eNB->Mod_id]->UE_info.UE_sched_ctrl[i].cqi_req_flag &= (~(1 << rdata->subframe));
+          RC.mac[eNB->Mod_id]->UE_info.UE_sched_ctrl[i].cqi_req_timer=30;
+          LOG_D(PHY,"Frame %d,Subframe %d, We're supposed to get a cqi here. Set cqi_req_timer to 30.\n",rdata->frame,rdata->subframe);
+        }
       }
-	
-      if (!decodeSucess) {
-        T(T_ENB_PHY_ULSCH_UE_NACK, T_INT(eNB->Mod_id), T_INT(rdata->frame), T_INT(rdata->subframe), T_INT(ulsch->rnti),
-          T_INT(rdata->harq_pid));
-	fill_crc_indication(eNB,i,rdata->frame,rdata->subframe,1); // indicate NAK to MAC
-	fill_rx_indication(eNB,i,rdata->frame,rdata->subframe);  // indicate SDU to MAC
-	LOG_D(PHY,"[eNB %d][PUSCH %d] frame %d subframe %d UE %d Error receiving ULSCH, round %d/%d (ACK %d,%d)\n",
-	      eNB->Mod_id,rdata->harq_pid,
-	      rdata->frame,rdata->subframe, i,
-	      ulsch_harq->round,
-	      ulsch->Mlimit,
-	      ulsch_harq->o_ACK[0],
-	      ulsch_harq->o_ACK[1]);
-	  
-	if (ulsch_harq->round >= 3)  {
-	  ulsch_harq->status  = SCH_IDLE;
-	  ulsch_harq->handled = 0;
-	  ulsch->harq_mask   &= ~(1 << rdata->harq_pid);
-	  ulsch_harq->round   = 0;
-	}
-	/* Mark the HARQ process to release it later if max transmission reached
-	 * (see below).
-	 * MAC does not send the max transmission count, we have to deal with it
-	 * locally in PHY.
-	 */
-	ulsch_harq->handled = 1;
-      }  // ulsch in error
-      else if(ulsch_harq->repetition_number == ulsch_harq->total_number_of_repetitions){
-	fill_crc_indication(eNB,i,rdata->frame,rdata->subframe,0); // indicate ACK to MAC
-	fill_rx_indication(eNB,i,rdata->frame,rdata->subframe);  // indicate SDU to MAC
-	ulsch_harq->status = SCH_IDLE;
-	ulsch->harq_mask &= ~(1 << rdata->harq_pid);
-	for (int j=0;j<NUMBER_OF_ULSCH_MAX;j++) 
-           if (eNB->ulsch_stats[j].rnti == ulsch->rnti) {
-              eNB->ulsch_stats[j].total_bytes_rx+=ulsch_harq->TBS;
-              for (int aa=0;aa<eNB->frame_parms.nb_antennas_rx;aa++) {
-                eNB->ulsch_stats[j].ulsch_power[aa] = dB_fixed_x10(eNB->pusch_vars[rdata->UEid]->ulsch_power[aa]);
-                eNB->ulsch_stats[j].ulsch_noise_power[aa] = dB_fixed_x10(eNB->pusch_vars[rdata->UEid]->ulsch_noise_power[aa]); 
-              }
-              break;
-           }
-        T (T_ENB_PHY_ULSCH_UE_ACK, T_INT(eNB->Mod_id), T_INT(rdata->frame), T_INT(rdata->subframe), T_INT(ulsch->rnti),
-           T_INT(rdata->harq_pid));
-      }  // ulsch not in error
-	
-      if (ulsch_harq->O_ACK>0)
-	fill_ulsch_harq_indication(eNB,ulsch_harq,ulsch->rnti,rdata->frame,rdata->subframe,ulsch->bundling);
-  } 
+    }
+
+    if (!decodeSucess) {
+      T(T_ENB_PHY_ULSCH_UE_NACK, T_INT(eNB->Mod_id), T_INT(rdata->frame), T_INT(rdata->subframe), T_INT(ulsch->rnti), T_INT(rdata->harq_pid));
+#if LATSEQ
+      LATSEQ_P("I mac.harq.up", "nack%d:ue%d:harq%d.fm%d.subfm%d", ulsch_harq->round, rdata->UEid, rdata->harq_pid, rdata->frame, rdata->subframe);
+#endif
+      fill_crc_indication(eNB,i,rdata->frame,rdata->subframe,1); // indicate NAK to MAC
+      fill_rx_indication(eNB,i,rdata->frame,rdata->subframe);  // indicate SDU to MAC
+
+      LOG_D(PHY,"[eNB %d][PUSCH %d] frame %d subframe %d UE %d Error receiving ULSCH, round %d/%d (ACK %d,%d)\n",
+            eNB->Mod_id,rdata->harq_pid,
+            rdata->frame,rdata->subframe, i,
+            ulsch_harq->round,
+            ulsch->Mlimit,
+            ulsch_harq->o_ACK[0],
+            ulsch_harq->o_ACK[1]);
+        
+      if (ulsch_harq->round >= 3)  {
+        ulsch_harq->status  = SCH_IDLE;
+        ulsch_harq->handled = 0;
+        ulsch->harq_mask   &= ~(1 << rdata->harq_pid);
+        ulsch_harq->round   = 0;
+      }
+      /* Mark the HARQ process to release it later if max transmission reached
+        * (see below).
+        * MAC does not send the max transmission count, we have to deal with it
+        * locally in PHY.
+        */
+      ulsch_harq->handled = 1;
+    }  // ulsch in error
+    else if(ulsch_harq->repetition_number == ulsch_harq->total_number_of_repetitions) {
+#if LATSEQ
+      LATSEQ_P("I mac.harq.up", "nack%d:ue%d:harq%d.fm%d.subfm%d", 0, rdata->UEid, rdata->harq_pid, rdata->frame, rdata->subframe);
+#endif
+      fill_crc_indication(eNB,i,rdata->frame,rdata->subframe,0); // indicate ACK to MAC
+      fill_rx_indication(eNB,i,rdata->frame,rdata->subframe);  // indicate SDU to MAC
+      ulsch_harq->status = SCH_IDLE;
+      ulsch->harq_mask &= ~(1 << rdata->harq_pid);
+      for (int j=0;j<NUMBER_OF_ULSCH_MAX;j++) {
+        if (eNB->ulsch_stats[j].rnti == ulsch->rnti) {
+          eNB->ulsch_stats[j].total_bytes_rx+=ulsch_harq->TBS;
+          for (int aa=0;aa<eNB->frame_parms.nb_antennas_rx;aa++) {
+            eNB->ulsch_stats[j].ulsch_power[aa] = dB_fixed_x10(eNB->pusch_vars[rdata->UEid]->ulsch_power[aa]);
+            eNB->ulsch_stats[j].ulsch_noise_power[aa] = dB_fixed_x10(eNB->pusch_vars[rdata->UEid]->ulsch_noise_power[aa]); 
+          }
+          break;
+        }
+      }
+      T (T_ENB_PHY_ULSCH_UE_ACK, T_INT(eNB->Mod_id), T_INT(rdata->frame), T_INT(rdata->subframe), T_INT(ulsch->rnti), T_INT(rdata->harq_pid));
+    }  // ulsch not in error
+
+    if (ulsch_harq->O_ACK>0)
+      fill_ulsch_harq_indication(eNB,ulsch_harq,ulsch->rnti,rdata->frame,rdata->subframe,ulsch->bundling);
+  }
 }
 
 void pusch_procedures(PHY_VARS_eNB *eNB,L1_rxtx_proc_t *proc) {
@@ -1498,13 +1512,20 @@ void pusch_procedures(PHY_VARS_eNB *eNB,L1_rxtx_proc_t *proc) {
       ulsch->harq_mask &= ~(1 << harq_pid);
       LOG_W (PHY, "Removing stale ULSCH config for UE %x harq_pid %d (harq_mask is now 0x%2.2x)\n", ulsch->rnti, harq_pid, ulsch->harq_mask);
     }
+/*
+#if LATSEQ
+    LATSEQ_P_TEST("U phy.in.proc--mac.demux","ue%d.rnti%d.fm%d:harq%d.round%d.subfm%d",i, ulsch->rnti, frame, harq_pid, ulsch_harq->round, subframe);
+#endif
+*/
   }   //   for (i=0; i<NUMBER_OF_ULSCH_MAX; i++)
+
   
   while (proc->nbDecode > 0) {
     notifiedFIFO_elt_t *req=pullTpool(proc->respDecode, proc->threadPool);
     postDecode(proc, req);
     delNotifiedFIFO_elt(req);
   }
+
 }
 
 extern int      oai_exit;

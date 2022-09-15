@@ -163,6 +163,7 @@ int emm_proc_security_mode_command(nas_user_t *user, int native_ksi, int ksi,
   if ( (reea != eea) || (reia != eia) ) {
     LOG_TRACE(WARNING, "EMM-PROC  - Replayed UE security capabilities "
               "rejected");
+    //printf("EMM_CAUSE_UE_SECURITY_MISMATCH : eai = %hhu reia = %hhu\n", eia, reia);
     emm_cause = EMM_CAUSE_UE_SECURITY_MISMATCH;
 
     /* XXX - For testing purpose UE always accepts EIA0
