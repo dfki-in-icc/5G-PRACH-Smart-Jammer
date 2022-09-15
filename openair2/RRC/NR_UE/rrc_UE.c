@@ -77,6 +77,7 @@ extern int    disable_shm_log ;
 
 extern long fiveG_S_TMSI[MAX_MOBILES_PER_GNB*MAX_gNB];
 extern PHY_VARS_NR_UE ***PHY_vars_UE_g;
+void phy_init_ue_harq(PHY_VARS_NR_UE *ue);
 NR_UE_RRC_INST_t *NR_UE_rrc_inst;
 /* NAS Attach request with IMSI */
 static const char  nr_nas_attach_req_imsi[] = {
@@ -2525,11 +2526,14 @@ int nr_rrc_mac_release_uespec(module_id_t module_id,int cc_idP,uint8_t gNB_index
            			  (uint8_t *)NR_RRC_PCCH_DATA_REQ(msg_p).sdu_p,
            			  NR_RRC_PCCH_DATA_REQ(msg_p).sdu_size,0,0);
         xer_fprint(stdout, &asn_DEF_NR_PCCH_Message, (const void *) dl_pcch_msg);
-        PHY_vars_UE_g[ue_mod_id][0]->UE_mode[0] = PRACH;
         NR_UE_MAC_INST_t *mac = get_mac_inst(ue_mod_id);
-        RA_config_t *ra = &mac->ra;
+	mac->cg=NULL;
+	NR_UE_rrc_inst[ue_mod_id].paging_flag = 1;
+	nr_rrc_ue_generate_RRCSetupRequest(ue_mod_id, 0);
+	phy_init_ue_harq(PHY_vars_UE_g[ue_mod_id][0]);
+	RA_config_t *ra = &mac->ra;
         ra->ra_state = RA_UE_IDLE;
-        NR_UE_rrc_inst[ue_mod_id].paging_flag = 1;
+	PHY_vars_UE_g[ue_mod_id][0]->UE_mode[0] = PRACH;
         
        /* 
         if(fiveG_S_TMSI[ue_mod_id]==NR_RRC_PCCH_DATA_REQ(msg_p).tmsi && nr_rrc_get_state(ue_mod_id) == RRC_STATE_IDLE_NR){

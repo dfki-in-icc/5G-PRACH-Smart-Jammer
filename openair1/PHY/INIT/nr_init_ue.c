@@ -777,7 +777,22 @@ void phy_init_nr_top(PHY_VARS_NR_UE *ue) {
   //init_unscrambling_lut();
   //set_taus_seed(1328);
 }
-
+void phy_init_ue_harq(PHY_VARS_NR_UE *ue) {
+  for (int i = 0; i < NUMBER_OF_CONNECTED_gNB_MAX; i++) {
+    for (int j=0; j<2; j++) {
+      for (int k=0; k<RX_NB_TH_MAX; k++) {
+        for(int l=0;l<NR_MAX_DLSCH_HARQ_PROCESSES;l++){
+          init_downlink_harq_status(ue->dlsch[k][i][j]->harq_processes[l]);
+        }
+        for(int l=0;l<NR_MAX_ULSCH_HARQ_PROCESSES;l++){
+          ue->ulsch[k][i][j]->harq_processes[l]->subframe_scheduling_flag = 0;
+          ue->ulsch[k][i][j]->harq_processes[l]->first_tx = 1;
+        }
+      }
+    }
+    ue->transmission_mode[i] = ue->frame_parms.nb_antenna_ports_gNB==1 ? 1 : 2;
+  }
+}
 void phy_term_nr_top(void)
 {
   free_ul_reference_signal_sequences();
