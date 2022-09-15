@@ -596,6 +596,137 @@ static void UE_synch(void *arg) {
   }
 }
 
+void writeTX_radio(nr_rxtx_thread_data_t *rxtxD) {
+  PHY_VARS_NR_UE *UE    = rxtxD->UE;
+  NR_UE_MAC_INST_t *mac = (NR_UE_MAC_INST_t *)rxtxD->mac;
+  const int slot        = rxtxD->proc.nr_slot_tx;
+  const int slot_rx     = rxtxD->proc.nr_slot_rx;
+  const int frame       = rxtxD->proc.frame_tx;
+  const int frame_rx    = rxtxD->proc.frame_rx;
+  int nb_slot_frame     = UE->frame_parms.slots_per_frame;
+  if (frame_rx != 1023) {
+    AssertFatal(((frame*nb_slot_frame+slot)-(frame_rx*nb_slot_frame+slot_rx) > 0),
+                "Tx slot %d cannot come before Rx slot %d\n", slot, slot_rx);
+  }
+  int timing_advance    = UE->timing_advance_previous;
+  void *txp[NB_ANTENNAS_TX];
+
+  for (int i=0; i<UE->frame_parms.nb_antennas_tx; i++)
+    txp[i] = (void *)&UE->common_vars.txdata[i][UE->frame_parms.get_samples_slot_timestamp(
+             slot, &UE->frame_parms, 0)];
+
+  int writeBlockSize;
+  if (slot_rx < (nb_slot_frame - 1))
+    writeBlockSize = UE->frame_parms.get_samples_per_slot(slot, &UE->frame_parms);
+  else
+    writeBlockSize = UE->frame_parms.get_samples_per_slot(slot, &UE->frame_parms) - UE->rx_offset_diff;
+
+  openair0_timestamp writeTimestamp;
+  // use previous timing_advance value to compute writeTimestamp
+  writeTimestamp = rxtxD->proc.timestamp_tx +
+                   UE->frame_parms.get_samples_slot_timestamp(slot_rx, &UE->frame_parms, DURATION_RX_TO_TX) -
+                   (openair0_cfg[0].tx_sample_advance + UE->N_TA_offset + timing_advance);
+
+  // but use current UE->timing_advance value to compute writeBlockSize
+  if (UE->timing_advance != timing_advance) {
+    writeBlockSize -= UE->timing_advance - timing_advance;
+    UE->timing_advance_previous = UE->timing_advance;
+  }
+
+  int flags = 0;
+
+  if (openair0_cfg[0].duplex_mode == duplex_mode_TDD && !get_softmodem_params()->continuous_tx) {
+
+    uint8_t tdd_period = mac->phy_config.config_req.tdd_table.tdd_period_in_slots;
+    int nrofUplinkSlots, nrofUplinkSymbols;
+    if (mac->scc) {
+      nrofUplinkSlots = mac->scc->tdd_UL_DL_ConfigurationCommon->pattern1.nrofUplinkSlots;
+      nrofUplinkSymbols = mac->scc->tdd_UL_DL_ConfigurationCommon->pattern1.nrofUplinkSymbols;
+    }
+    else {
+      nrofUplinkSlots = mac->scc_SIB->tdd_UL_DL_ConfigurationCommon->pattern1.nrofUplinkSlots;
+      nrofUplinkSymbols = mac->scc_SIB->tdd_UL_DL_ConfigurationCommon->pattern1.nrofUplinkSymbols;
+    }
+
+    int slot_tx_usrp = slot;
+    uint8_t  num_UL_slots = nrofUplinkSlots + (nrofUplinkSymbols != 0);
+    uint8_t first_tx_slot = tdd_period - num_UL_slots;
+
+    if (slot_tx_usrp % tdd_period == first_tx_slot)
+      flags = 2;
+    else if (slot_tx_usrp % tdd_period == first_tx_slot + num_UL_slots - 1)
+      flags = 3;
+    else if (slot_tx_usrp % tdd_period > first_tx_slot)
+      flags = 1;
+  } else {
+    flags = 1;
+  }
+
+  LOG_D(PHY, "Writing samples to radio frame.slot %d.%d\n", frame, slot);
+  if (flags || IS_SOFTMODEM_RFSIM)
+    AssertFatal(writeBlockSize ==
+                UE->rfdevice.trx_write_func(&UE->rfdevice,
+                                            writeTimestamp,
+                                            txp,
+                                            writeBlockSize,
+                                            UE->frame_parms.nb_antennas_tx,
+                                            flags),"");
+  
+  for (int i=0; i<UE->frame_parms.nb_antennas_tx; i++)
+    memset(txp[i], 0, writeBlockSize);
+}
+
+void *writeTX_reorderThread(void *arg) {
+
+  PHY_VARS_NR_UE *UE = (PHY_VARS_NR_UE *) arg;
+  int maxNumMsg = 5;
+  notifiedFIFO_elt_t *waitingMsg[maxNumMsg+1];
+  memset(waitingMsg, 0, (maxNumMsg+1)*sizeof(notifiedFIFO_elt_t*));
+  notifiedFIFO_elt_t *res;
+  nr_rxtx_thread_data_t *rxtxD;
+  int current_slot;
+  int previous_slot = DURATION_RX_TO_TX-1;
+  int numMsg = 0;
+  int slots_per_frame = UE->frame_parms.slots_per_frame;
+  initNotifiedFIFO(&UE->TXwriteFIFO);
+  while (1) {
+    if (numMsg > maxNumMsg)
+      AssertFatal(0, "Reorder buffer is full\n");
+
+    res = pullNotifiedFIFO(&UE->TXwriteFIFO);
+    rxtxD = (nr_rxtx_thread_data_t *)NotifiedFifoData(res);
+    current_slot = rxtxD->proc.nr_slot_tx;
+    LOG_D(PHY, "current slot %d, previous slot %d\n", current_slot, previous_slot);
+
+    if (current_slot == previous_slot)
+      AssertFatal(0, "Should not be here\n");
+    else {
+      waitingMsg[numMsg++] = res;
+      LOG_D(PHY, "waiting to send %d\n", numMsg);
+    }
+
+    for (int j=0; j < maxNumMsg; j++) {
+      for (int i=0; i < maxNumMsg; i++) {
+        if (waitingMsg[i]) {
+          rxtxD = (nr_rxtx_thread_data_t *)NotifiedFifoData(waitingMsg[i]);
+          current_slot = rxtxD->proc.nr_slot_tx;
+          if (current_slot == (previous_slot+1)%slots_per_frame) {
+            LOG_D(PHY, "Sending to TX write %d\n", current_slot);
+            writeTX_radio(rxtxD);
+            if (current_slot == slots_per_frame-1)
+              previous_slot = -1; // next frame
+            else
+              previous_slot = current_slot;
+            delNotifiedFIFO_elt(waitingMsg[i]);
+            waitingMsg[i] = NULL;
+            numMsg--;
+          }
+        }
+      }
+    }
+  }
+}
+
 void processSlotTX(void *arg) {
   nr_rxtx_thread_data_t *rxtxD = (nr_rxtx_thread_data_t *) arg;
   UE_nr_rxtx_proc_t *proc = &rxtxD->proc;
@@ -633,6 +764,14 @@ void processSlotTX(void *arg) {
     ue_ta_procedures(UE, proc->nr_slot_tx, proc->frame_tx);
     stop_meas(&UE->phy_proc_tx);
   }
+
+  notifiedFIFO_elt_t *newElt = newNotifiedFIFO_elt(sizeof(nr_rxtx_thread_data_t), 0, NULL, NULL);
+  nr_rxtx_thread_data_t *curMsg = (nr_rxtx_thread_data_t *)NotifiedFifoData(newElt);
+  curMsg->proc = *proc;
+  curMsg->UE = UE;
+  curMsg->mac = rxtxD->mac;
+  pushNotifiedFIFO(&UE->TXwriteFIFO, newElt);
+
 }
 
 int process_PDCCH_rx(PHY_VARS_NR_UE *UE, nr_rxtx_thread_data_t *rxtxD) {
@@ -707,7 +846,7 @@ void UE_processing(void *arg) {
   start_meas(&UE->phy_proc_rx[proc->thread_id]);
   int dci_count = process_PDCCH_rx(UE, rxtxD);
 
-  notifiedFIFO_elt_t *res = pullNotifiedFIFO_nothreadSafe(&UE->childProcFree);
+  notifiedFIFO_elt_t *res = pullNotifiedFIFO(&UE->childProcRes);
   nr_rxtx_thread_data_t *curMsg = (nr_rxtx_thread_data_t *)NotifiedFifoData(res);
   for (int i=0; i < rxtxD->phy_vars.phy_pdcch_config.nb_search_space; i++) {
     //fill dci indication
@@ -722,19 +861,14 @@ void UE_processing(void *arg) {
   res->processingFunc = process_PDSCH_rx;
   pushTpool(&(get_nrUE_params()->Tpool), res);
 
-  res = pullNotifiedFIFO_nothreadSafe(&UE->childProcFree);
+  res = pullNotifiedFIFO(&UE->childProcRes);
   curMsg = (nr_rxtx_thread_data_t *)NotifiedFifoData(res);
   curMsg->gnb_id = gNB_id;
   curMsg->proc = *proc;
+  curMsg->mac = rxtxD->mac;
   res->processingFunc = processSlotTX;
   pushTpool(&(get_nrUE_params()->Tpool), res);
 
-  int processedThr = 0;
-  while (processedThr < NR_NB_TH_SLOT) {
-    res = pullNotifiedFIFO(&UE->childProcRes);
-    pushNotifiedFIFO_nothreadSafe(&UE->childProcFree, res);
-    processedThr++;
-  }
   stop_meas(&UE->total_proc);
 
 }
@@ -839,8 +973,8 @@ void *UE_thread(void *arg) {
   //this thread should be over the processing thread to keep in real time
   PHY_VARS_NR_UE *UE = (PHY_VARS_NR_UE *) arg;
   //  int tx_enabled = 0;
-  openair0_timestamp timestamp, writeTimestamp;
-  void *rxp[NB_ANTENNAS_RX], *txp[NB_ANTENNAS_TX];
+  openair0_timestamp timestamp;
+  void *rxp[NB_ANTENNAS_RX];
   int start_rx_stream = 0;
   AssertFatal(0== openair0_device_load(&(UE->rfdevice), &openair0_cfg[0]), "");
   UE->rfdevice.host_type = RAU_HOST;
@@ -861,25 +995,24 @@ void *UE_thread(void *arg) {
 
   int nbSlotProcessing=0;
   int thread_idx=0;
-  int timing_advance = UE->timing_advance;
 
   bool syncRunning=false;
   const int nb_slot_frame = UE->frame_parms.slots_per_frame;
   int absolute_slot=0, decoded_frame_rx=INT_MAX, trashed_frames=0;
+  UE->timing_advance_previous = 0;
 
   initNotifiedFIFO(&UE->childProcRes);
-  initNotifiedFIFO_nothreadSafe(&UE->childProcFree);
   for (int i=0; i<(NR_RX_NB_TH+1); i++) {// NR_RX_NB_TH working + 1 we are making to be pushed
     notifiedFIFO_elt_t *newElt = newNotifiedFIFO_elt(sizeof(nr_rxtx_thread_data_t), RX_JOB_ID, &nf, UE_processing);
     nr_rxtx_thread_data_t *curMsg = (nr_rxtx_thread_data_t *)NotifiedFifoData(newElt);
     curMsg->UE = UE;
     init_phy_vars(UE, &curMsg->phy_vars); 
-    for (int j=0; j < NR_NB_TH_SLOT; j++) {
+    for (int j=0; j < 1; j++) {
       notifiedFIFO_elt_t *newElt_in = newNotifiedFIFO_elt(sizeof(nr_rxtx_thread_data_t), TX_JOB_ID, &UE->childProcRes, NULL);
       nr_rxtx_thread_data_t *curMsg_in = (nr_rxtx_thread_data_t *)NotifiedFifoData(newElt_in);
       curMsg_in->UE = UE;
       init_phy_vars(UE, &curMsg_in->phy_vars); 
-      pushNotifiedFIFO_nothreadSafe(&UE->childProcFree, newElt_in);
+      pushNotifiedFIFO_nothreadSafe(&UE->childProcRes, newElt_in);
     }
     pushNotifiedFIFO_nothreadSafe(&freeBlocks, newElt);
   }
@@ -969,6 +1102,7 @@ void *UE_thread(void *arg) {
     AssertFatal((msgToPush=pullNotifiedFIFO_nothreadSafe(&freeBlocks)) != NULL,"chained list failure");
     nr_rxtx_thread_data_t *curMsg=(nr_rxtx_thread_data_t *)NotifiedFifoData(msgToPush);
     curMsg->UE=UE;
+    curMsg->mac = (void *)mac;
     // update thread index for received subframe
     curMsg->proc.thread_id   = thread_idx;
     curMsg->proc.CC_id       = UE->CC_id;
@@ -993,22 +1127,17 @@ void *UE_thread(void *arg) {
       rxp[i] = (void *)&UE->common_vars.rxdata[i][firstSymSamp+
                UE->frame_parms.get_samples_slot_timestamp(slot_nr,&UE->frame_parms,0)];
 
-    for (int i=0; i<UE->frame_parms.nb_antennas_tx; i++)
-      txp[i] = (void *)&UE->common_vars.txdata[i][UE->frame_parms.get_samples_slot_timestamp(
-               ((slot_nr + DURATION_RX_TO_TX - NR_RX_NB_TH)%nb_slot_frame),&UE->frame_parms,0)];
-
-    int readBlockSize, writeBlockSize;
+    int readBlockSize;
 
     if (slot_nr<(nb_slot_frame - 1)) {
       readBlockSize=get_readBlockSize(slot_nr, &UE->frame_parms);
-      writeBlockSize=UE->frame_parms.get_samples_per_slot((slot_nr + DURATION_RX_TO_TX - NR_RX_NB_TH) % nb_slot_frame, &UE->frame_parms);
     } else {
       UE->rx_offset_diff = computeSamplesShift(UE);
       readBlockSize=get_readBlockSize(slot_nr, &UE->frame_parms) -
                     UE->rx_offset_diff;
-      writeBlockSize=UE->frame_parms.get_samples_per_slot((slot_nr + DURATION_RX_TO_TX - NR_RX_NB_TH) % nb_slot_frame, &UE->frame_parms)- UE->rx_offset_diff;
     }
 
+    LOG_D(PHY, "Reading samples from radio frame.slot %d.%d\n", curMsg->proc.frame_rx, slot_nr);
     AssertFatal(readBlockSize ==
                 UE->rfdevice.trx_read_func(&UE->rfdevice,
                                            &timestamp,
@@ -1032,9 +1161,7 @@ void *UE_thread(void *arg) {
         LOG_E(PHY,"can't compensate: diff =%d\n", first_symbols);
     }
 
-    curMsg->proc.timestamp_tx = timestamp+
-      UE->frame_parms.get_samples_slot_timestamp(slot_nr,&UE->frame_parms,DURATION_RX_TO_TX) 
-      - firstSymSamp;
+    curMsg->proc.timestamp_tx = timestamp - firstSymSamp;
 
     notifiedFIFO_elt_t *res;
 
@@ -1056,59 +1183,6 @@ void *UE_thread(void *arg) {
     if (decoded_frame_rx>0 && decoded_frame_rx != curMsg->proc.frame_rx)
       LOG_E(PHY,"Decoded frame index (%d) is not compatible with current context (%d), UE should go back to synch mode\n",
             decoded_frame_rx, curMsg->proc.frame_rx);
-
-    // use previous timing_advance value to compute writeTimestamp
-    writeTimestamp = timestamp+
-      UE->frame_parms.get_samples_slot_timestamp(slot_nr,&UE->frame_parms,DURATION_RX_TO_TX
-      - NR_RX_NB_TH) - firstSymSamp - openair0_cfg[0].tx_sample_advance -
-      UE->N_TA_offset - timing_advance;
-
-    // but use current UE->timing_advance value to compute writeBlockSize
-    if (UE->timing_advance != timing_advance) {
-      writeBlockSize -= UE->timing_advance - timing_advance;
-      timing_advance = UE->timing_advance;
-    }
-
-    int flags = 0;
-
-    if (openair0_cfg[0].duplex_mode == duplex_mode_TDD && !get_softmodem_params()->continuous_tx) {
-
-      uint8_t tdd_period = mac->phy_config.config_req.tdd_table.tdd_period_in_slots;
-      int nrofUplinkSlots, nrofUplinkSymbols;
-      if (mac->scc) {
-        nrofUplinkSlots = mac->scc->tdd_UL_DL_ConfigurationCommon->pattern1.nrofUplinkSlots;
-        nrofUplinkSymbols = mac->scc->tdd_UL_DL_ConfigurationCommon->pattern1.nrofUplinkSymbols;
-      }
-      else {
-        nrofUplinkSlots = mac->scc_SIB->tdd_UL_DL_ConfigurationCommon->pattern1.nrofUplinkSlots;
-        nrofUplinkSymbols = mac->scc_SIB->tdd_UL_DL_ConfigurationCommon->pattern1.nrofUplinkSymbols;
-      }
-
-      int slot_tx_usrp = slot_nr + DURATION_RX_TO_TX - NR_RX_NB_TH;
-      uint8_t  num_UL_slots = nrofUplinkSlots + (nrofUplinkSymbols != 0);
-      uint8_t first_tx_slot = tdd_period - num_UL_slots;
-
-      if (slot_tx_usrp % tdd_period == first_tx_slot)
-        flags = 2;
-      else if (slot_tx_usrp % tdd_period == first_tx_slot + num_UL_slots - 1)
-        flags = 3;
-      else if (slot_tx_usrp % tdd_period > first_tx_slot)
-        flags = 1;
-    } else {
-      flags = 1;
-    }
-
-    if (flags || IS_SOFTMODEM_RFSIM)
-      AssertFatal(writeBlockSize ==
-                  UE->rfdevice.trx_write_func(&UE->rfdevice,
-                                              writeTimestamp,
-                                              txp,
-                                              writeBlockSize,
-                                              UE->frame_parms.nb_antennas_tx,
-                                              flags),"");
-    
-    for (int i=0; i<UE->frame_parms.nb_antennas_tx; i++)
-      memset(txp[i], 0, writeBlockSize);
 
     nbSlotProcessing++;
     LOG_D(PHY,"Number of slots being processed at the moment: %d\n",nbSlotProcessing);
@@ -1147,6 +1221,8 @@ void init_NR_UE_threads(int nb_inst) {
       pthread_t stat_pthread;
       threadCreate(&stat_pthread, nrL1_UE_stats_thread, UE, "L1_UE_stats", -1, OAI_PRIORITY_RT_LOW);
     }
+    pthread_t txReorder;
+    threadCreate(&txReorder, writeTX_reorderThread, (void *)UE, "TXReorder", -1, OAI_PRIORITY_RT_MAX);
   }
 }
 

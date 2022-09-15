@@ -812,6 +812,7 @@ typedef struct {
   /// Timing Advance updates variables
   /// Timing advance update computed from the TA command signalled from gNB
   int                      timing_advance;
+  int                      timing_advance_previous;
   int                      N_TA_offset; ///timing offset used in TDD
   NR_UL_TIME_ALIGNMENT_t   ul_time_alignment[NUMBER_OF_CONNECTED_gNB_MAX];
 
@@ -957,7 +958,7 @@ typedef struct {
   int dl_stats[8];
   void* scopeData;
   notifiedFIFO_t childProcRes;
-  notifiedFIFO_t childProcFree;
+  notifiedFIFO_t TXwriteFIFO;
 } PHY_VARS_NR_UE;
 
 typedef struct nr_ue_phy_vars_data_s {
@@ -1034,6 +1035,7 @@ typedef struct nr_ue_phy_vars_data_s {
 typedef struct nr_rxtx_thread_data_s {
   UE_nr_rxtx_proc_t proc;
   PHY_VARS_NR_UE    *UE;
+  void *mac;
   NR_UE_SCHED_MODE_t ue_sched_mode;
   int dci_count;
   int gnb_id;

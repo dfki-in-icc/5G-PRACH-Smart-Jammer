@@ -822,6 +822,37 @@ bool nr_ue_dlsch_procedures(PHY_VARS_NR_UE *ue,
                             pdsch==PDSCH);
     stop_meas(&phy_vars->dlsch_decoding_stats);
 
+#ifdef DEBUG_PDSCH_RX
+  if (ret>dlsch0->max_ldpc_iterations) {
+    NR_DL_FRAME_PARMS *frame_parms = &ue->frame_parms;
+    int len = 100;
+    char filename[len];
+    uint8_t aa = 0;
+    
+    LOG_I(PHY, "Writing matlab files for frame.slot %d.%d\n", frame_rx, nr_slot_rx);
+    snprintf(filename, len, "rxdataF0_nr_slot_rx_%d_frame_%d.m", nr_slot_rx, frame_rx);
+    write_output(filename, "rxdataF0", &phy_vars->rxdataF[0][0], NR_SYMBOLS_PER_SLOT*frame_parms->ofdm_symbol_size, 1, 1);
+
+    snprintf(filename, len, "dl_ch_estimates0%d_nr_slot_rx_%d_frame_%d.m", aa, nr_slot_rx, frame_rx);
+    write_output(filename, "dl_ch_estimates", &phy_vars->pdsch_vars[gNB_id]->dl_ch_estimates[aa][0], NR_SYMBOLS_PER_SLOT*frame_parms->ofdm_symbol_size, 1, 1);
+
+    snprintf(filename, len, "rxdataF_ext0%d_nr_slot_rx_%d_frame_%d.m", aa, nr_slot_rx, frame_rx);
+    write_output(filename, "rxdataF_ext", &phy_vars->pdsch_vars[gNB_id]->rxdataF_ext[aa][0], NR_SYMBOLS_PER_SLOT*frame_parms->N_RB_DL*NR_NB_SC_PER_RB, 1, 1);
+
+    snprintf(filename, len, "dl_ch_estimates_ext0%d_nr_slot_rx_%d_frame_%d.m", aa, nr_slot_rx, frame_rx);
+    write_output(filename, "dl_ch_estimates_ext00", &phy_vars->pdsch_vars[gNB_id]->dl_ch_estimates_ext[aa][0], NR_SYMBOLS_PER_SLOT*frame_parms->N_RB_DL*NR_NB_SC_PER_RB, 1, 1);
+
+    snprintf(filename, len, "rxdataF_comp0%d_nr_slot_rx_%d_frame_%d.m", aa, nr_slot_rx, frame_rx);
+    write_output(filename, "rxdataF_comp00", &phy_vars->pdsch_vars[gNB_id]->rxdataF_comp0[aa][0], NR_SYMBOLS_PER_SLOT*frame_parms->N_RB_DL*NR_NB_SC_PER_RB, 1, 1);
+
+    for (int i=0; i < 2; i++){
+      if (i == 1 && dlsch1 == NULL) break;
+      NR_DL_UE_HARQ_t *dlsch_debug = ((i == 0) ? dlsch0->harq_processes[harq_pid] : dlsch1->harq_processes[harq_pid]);
+      snprintf(filename, len,  "llr%d_nr_slot_rx_%d_frame_%d.m", i, nr_slot_rx, frame_rx);
+      write_output(filename,"llr",  &phy_vars->pdsch_vars[gNB_id]->llr[i][0], (NR_SYMBOLS_PER_SLOT*dlsch_debug->nb_rb*NR_NB_SC_PER_RB*dlsch_debug->Qm) - 4*(dlsch_debug->nb_rb*4*dlsch_debug->Qm), 1, 0);
+    }
+  }
+#endif
     LOG_T(PHY,"dlsch decoding, ret = %d\n", ret);
 
 
