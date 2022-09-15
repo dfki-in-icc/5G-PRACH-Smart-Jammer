@@ -1381,7 +1381,11 @@ static void rrc_ue_generate_RRCSetupComplete(
 #else
     if (get_softmodem_params()->sa) {
       as_nas_info_t initialNasMsg;
-      generateRegistrationRequest(&initialNasMsg, ctxt_pP->module_id);
+      if (NR_UE_rrc_inst[Mod_id].paging_flag == 1) {
+        generateServiceRequest(&initialNasMsg, ctxt_pP->module_id);
+      }else{
+        generateRegistrationRequest(&initialNasMsg, ctxt_pP->module_id);
+      }
       nas_msg = (char*)initialNasMsg.data;
       nas_msg_length = initialNasMsg.length;
     } else {
