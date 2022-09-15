@@ -1076,7 +1076,8 @@ bool nr_ue_periodic_srs_scheduling(module_id_t mod_id, frame_t frame, slot_t slo
   }
   return srs_scheduled;
 }
-
+extern int rach_retry_timer;
+extern PHY_VARS_NR_UE ***PHY_vars_UE_g;
 extern int issue_dci_config ;
 // Performs :
 // 1. TODO: Call RRC for link status return to PHY
@@ -1257,7 +1258,24 @@ NR_UE_L2_STATE_t nr_ue_scheduler(nr_downlink_indication_t *dl_info, nr_uplink_in
       pthread_mutex_unlock(&ul_config->mutex_ul_config);
     }
   }
-
+  if (dl_info){
+  if(rach_retry_timer>0){
+    rach_retry_timer++;
+    if(rach_retry_timer>5000){
+      LOG_E(MAC,"rach timer is over. let's retry\n");
+      NR_UE_MAC_INST_t *mac = get_mac_inst(dl_info->module_id);
+      mac->servCellIndex = 0;
+      mac->DL_BWP_Id = 0;
+      mac->UL_BWP_Id = 0;
+      mac->cg=NULL;
+      RA_config_t *ra = &mac->ra;
+      phy_init_ue_harq(PHY_vars_UE_g[dl_info->module_id][0]);
+      ra->ra_state = RA_UE_IDLE;
+      PHY_vars_UE_g[dl_info->module_id][0]->UE_mode[0] = PRACH;
+      rach_retry_timer=0;
+    }
+  }
+  }
   if (dl_info) {
     return (UE_CONNECTION_OK);
   }

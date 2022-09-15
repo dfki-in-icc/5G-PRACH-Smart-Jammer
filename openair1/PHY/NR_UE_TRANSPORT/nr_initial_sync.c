@@ -116,7 +116,7 @@ int nr_pbch_detection(UE_nr_rxtx_proc_t * proc, PHY_VARS_NR_UE *ue, int pbch_ini
 
   uint8_t  N_L = (frame_parms->Lmax == 4)? 4:8;
   uint8_t  N_hf = (frame_parms->Lmax == 4)? 2:1;
-
+  N_L = 1;
   // loops over possible pbch dmrs cases to retrive best estimated i_ssb (and n_hf for Lmax=4) for multiple ssb detection
   for (int hf = 0; hf < N_hf; hf++) {
     for (int l = 0; l < N_L ; l++) {
@@ -587,7 +587,6 @@ int nr_initial_sync(UE_nr_rxtx_proc_t *proc,
                                          ue->dlsch_SI[gnb_id],
                                          NULL,
                                          &ue->dlsch_SI_errors[gnb_id]);
-
           // deactivate dlsch once dlsch proc is done
           ue->dlsch_SI[gnb_id]->active = 0;
         }

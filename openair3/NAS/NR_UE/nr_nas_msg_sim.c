@@ -560,7 +560,7 @@ void generateIdentityResponse(as_nas_info_t *initialNasMsg, uint8_t identitytype
     mm_msg->fgs_identity_response.fgsmobileidentity.suci.mccdigit1 = uicc->imsiStr[0]-'0';
     mm_msg->fgs_identity_response.fgsmobileidentity.suci.mccdigit2 = uicc->imsiStr[1]-'0';
     mm_msg->fgs_identity_response.fgsmobileidentity.suci.mccdigit3 = uicc->imsiStr[2]-'0';
-    memcpy(mm_msg->registration_request.fgsmobileidentity.suci.schemeoutput, uicc->imsiStr+3+uicc->nmc_size, strlen(uicc->imsiStr) - (3+uicc->nmc_size));
+    memcpy(mm_msg->fgs_identity_response.fgsmobileidentity.suci.schemeoutput, uicc->imsiStr+3+uicc->nmc_size, strlen(uicc->imsiStr) - (3+uicc->nmc_size));
     size += sizeof(Suci5GSMobileIdentity_t);
   }else{
     mm_msg->fgs_identity_response.fgsmobileidentity.guti.typeofidentity = FGS_MOBILE_IDENTITY_5G_GUTI;
