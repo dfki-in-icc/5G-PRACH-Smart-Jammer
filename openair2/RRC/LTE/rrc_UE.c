@@ -115,6 +115,8 @@ extern void pdcp_config_set_security(
 
 void rrc_ue_process_securityModeCommand( const protocol_ctxt_t *const ctxt_pP, LTE_SecurityModeCommand_t *const securityModeCommand, const uint8_t eNB_index );
 
+static void rrc_pdcp_config_security(const protocol_ctxt_t *const ctxt_pP, uint8_t eNB_index);
+
 static int decode_SI( const protocol_ctxt_t *const ctxt_pP, const uint8_t eNB_index );
 
 static int decode_SI_MBMS( const protocol_ctxt_t *const ctxt_pP, const uint8_t eNB_index );
@@ -1902,6 +1904,71 @@ static bool is_nr_r15_config_present(LTE_RRCConnectionReconfiguration_r8_IEs_t *
 #undef chk
 }
 
+//------------------------------------------------------------------------------
+static void
+rrc_pdcp_config_security(
+  const protocol_ctxt_t *const ctxt_pP,
+  uint8_t eNB_index
+)
+//------------------------------------------------------------------------------
+{
+  uint8_t                            *kRRCenc = NULL;
+  uint8_t                            *kRRCint = NULL;
+  uint8_t                            *kUPenc = NULL;
+  pdcp_t                             *pdcp_p   = NULL;
+  static int                          print_keys= 1;
+  hashtable_rc_t                      h_rc;
+  hash_key_t                          key;
+
+  UE_RRC_INST *ue = &UE_rrc_inst[ctxt_pP->module_id];
+  uint8_t KeNB_star[32] = { 0 };
+  const uint8_t security_modeP = (ue->ciphering_algorithm) | (ue->integrity_algorithm << 4);
+
+  AssertFatal(ue->MeasObj[eNB_index][0] != NULL, "measurement object not to be NULL");
+  uint32_t freq = ue->MeasObj[eNB_index][0]->measObject.choice.measObjectEUTRA.carrierFreq;
+  int target_physCellId = UE_rrc_inst[ctxt_pP->module_id].HandoverInfoUe.targetCellId;
+
+  derive_keNB_star(ue->kenb, target_physCellId, freq, true, KeNB_star);
+  memcpy(ue->kenb, KeNB_star, 32);
+
+  derive_key_up_enc(ue->ciphering_algorithm, KeNB_star, &kUPenc);
+  derive_key_rrc_enc(ue->ciphering_algorithm, KeNB_star, &kRRCenc);
+  derive_key_rrc_int(ue->integrity_algorithm, KeNB_star, &kRRCint);
+
+  if (!IS_SOFTMODEM_IQPLAYER) {
+    SET_LOG_DUMP(DEBUG_SECURITY);
+  }
+
+  if (LOG_DUMPFLAG(DEBUG_SECURITY)) {
+    if (print_keys == 1) {
+      print_keys = 0;
+      LOG_DUMPMSG(RRC, DEBUG_SECURITY, KeNB_star, 32,"\nKeNB*:");
+      LOG_DUMPMSG(RRC, DEBUG_SECURITY, kRRCenc, 32,"\nKRRCenc:");
+      LOG_DUMPMSG(RRC, DEBUG_SECURITY, kRRCint, 32,"\nKRRCint:");
+    }
+  }
+
+  key = PDCP_COLL_KEY_VALUE(ctxt_pP->module_id, ctxt_pP->rnti, ctxt_pP->enb_flag, DCCH, SRB_FLAG_YES);
+  h_rc = hashtable_get(pdcp_coll_p, key, (void **)&pdcp_p);
+
+  if (h_rc == HASH_TABLE_OK) {
+    pdcp_config_set_security(
+      ctxt_pP,
+      pdcp_p,
+      DCCH,
+      DCCH+2,
+      security_modeP,
+      kRRCenc,
+      kRRCint,
+      kUPenc);
+  } else {
+    LOG_E(RRC,
+          PROTOCOL_RRC_CTXT_UE_FMT"Could not get PDCP instance for SRB DCCH %u\n",
+          PROTOCOL_RRC_CTXT_UE_ARGS(ctxt_pP),
+          DCCH);
+  }
+}
+
 //-----------------------------------------------------------------------------
 void
 rrc_ue_process_rrcConnectionReconfiguration(
@@ -1985,6 +2052,7 @@ rrc_ue_process_rrcConnectionReconfiguration(
           rrc_rlc_config_req(ho_ctxt_pP, SRB_FLAG_YES, MBMS_FLAG_NO, CONFIG_ACTION_ADD,ctxt_pP->module_id+DCCH, Rlc_info_am_config);
           rrc_pdcp_config_req (ho_ctxt_pP, SRB_FLAG_YES, CONFIG_ACTION_ADD, ctxt_pP->module_id+DCCH1,UNDEF_SECURITY_MODE);
           rrc_rlc_config_req(ho_ctxt_pP, SRB_FLAG_YES, MBMS_FLAG_NO, CONFIG_ACTION_ADD, ctxt_pP->module_id+DCCH1, Rlc_info_am_config);
+          rrc_pdcp_config_security(ctxt_pP, eNB_index);
         }
         LOG_I(RRC,"Radio Resource Configuration is present\n");
         rrc_ue_process_radioResourceConfigDedicated(ho_ctxt_pP,
