@@ -442,7 +442,7 @@ void generateRegistrationRequest(as_nas_info_t *initialNasMsg, int Mod_id) {
 
 void generateServiceRequest(as_nas_info_t *initialNasMsg, int Mod_id) {
   int size = 0;
-  int len = 40;
+  int len = 44;
   uint8_t sn=2;
   unsigned char * nas_msg;
   nas_stream_cipher_t stream_cipher;
@@ -505,7 +505,7 @@ void generateServiceRequest(as_nas_info_t *initialNasMsg, int Mod_id) {
   size++;
   ((unsigned char*)nas_msg)[size]=0;
   size++;
-  ((unsigned char*)nas_msg)[size]=17;
+  ((unsigned char*)nas_msg)[size]=21;
   size++;
 /*  // set header
   ((unsigned char*)nas_msg)[size]=FGS_MOBILITY_MANAGEMENT_MESSAGE;
@@ -554,18 +554,26 @@ void generateServiceRequest(as_nas_info_t *initialNasMsg, int Mod_id) {
   ((unsigned char*)nas_msg)[size]=fiveG_GUTI[Mod_id][13];
   size++;
   //uplink
-  ((unsigned char*)nas_msg)[size]=0x01;
+  ((unsigned char*)nas_msg)[size]=0x40;
+  size++;
+  ((unsigned char*)nas_msg)[size]=0x02;
+  size++;
+  ((unsigned char*)nas_msg)[size]=0x02;
   size++;
   ((unsigned char*)nas_msg)[size]=0x00;
   size++;
   //downlink
-  ((unsigned char*)nas_msg)[size]=0x01;
+  ((unsigned char*)nas_msg)[size]=0x50;
+  size++;
+  ((unsigned char*)nas_msg)[size]=0x02;
+  size++;
+  ((unsigned char*)nas_msg)[size]=0x02;
   size++;
   ((unsigned char*)nas_msg)[size]=0x00;
   size++;
   stream_cipher.key        = ue_security_key[Mod_id]->knas_int;
   stream_cipher.key_length = 16;
-  stream_cipher.count      = 1;
+  stream_cipher.count      = sn;
   stream_cipher.bearer     = 1;
   stream_cipher.direction  = 0;
   stream_cipher.message    = (unsigned char *)(initialNasMsg->data + 6);
@@ -577,8 +585,13 @@ void generateServiceRequest(as_nas_info_t *initialNasMsg, int Mod_id) {
     &stream_cipher,
     mac);
   for(int i = 0; i < 4; i++){
-     //initialNasMsg->data[2+i] = mac[i];
+     initialNasMsg->data[2+i] = mac[i];
   }
+
+  uint8_t *kamf = ue_security_key[Mod_id]->kamf;
+  uint8_t *kgnb = ue_security_key[Mod_id]->kgnb;
+  derive_kgnb(kamf,sn,kgnb);
+  nas_itti_kgnb_refresh_req(ue_security_key[Mod_id]->kgnb,Mod_id);
 }
 void generateIdentityResponse(as_nas_info_t *initialNasMsg, uint8_t identitytype, uicc_t* uicc, int Mod_id) {
   int size = sizeof(mm_msg_header_t);
