@@ -1261,7 +1261,7 @@ NR_UE_L2_STATE_t nr_ue_scheduler(nr_downlink_indication_t *dl_info, nr_uplink_in
   if (dl_info){
   if(rach_retry_timer>0){
     rach_retry_timer++;
-    if(rach_retry_timer>5000){
+    if(rach_retry_timer>200){
       LOG_E(MAC,"rach timer is over. let's retry\n");
       NR_UE_MAC_INST_t *mac = get_mac_inst(dl_info->module_id);
       mac->servCellIndex = 0;

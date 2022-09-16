@@ -28,6 +28,8 @@ typedef void nr_pdcp_ue_manager_t;
 
 typedef struct nr_pdcp_ue_t {
   int rnti;
+  uint16_t module_id;
+  int nas_sock_fd;
   nr_pdcp_entity_t *srb[3];
   nr_pdcp_entity_t *drb[5];
 } nr_pdcp_ue_t;

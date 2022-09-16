@@ -233,7 +233,7 @@ typedef struct {
 } pdcp_data_ind_queue;
 
 static pdcp_data_ind_queue pq;
-
+extern int nas_sock_fd[MAX_MOBILES_PER_ENB];
 static void do_pdcp_data_ind(
   const protocol_ctxt_t *const  ctxt_pP,
   const srb_flag_t srb_flagP,
@@ -261,6 +261,8 @@ static void do_pdcp_data_ind(
 
   nr_pdcp_manager_lock(nr_pdcp_ue_manager);
   ue = nr_pdcp_manager_get_ue(nr_pdcp_ue_manager, rnti);
+  ue->module_id = ctxt_pP->module_id;
+  ue->nas_sock_fd = nas_sock_fd[ctxt_pP->module_id];
 
   if (srb_flagP == 1) {
     if (rb_id < 1 || rb_id > 2)
@@ -474,7 +476,7 @@ static void *ue_tun_read_thread(void *_)
 
     LOG_D(PDCP, "%s(): nas_sock_fd read returns len %d\n", __func__, len);
     nr_pdcp_manager_lock(nr_pdcp_ue_manager);
-    rnti = nr_pdcp_get_rnti_bysock(nr_pdcp_ue_manager, nas_sock_fd[i]);
+    rnti = nr_pdcp_get_rnti_bysock(nr_pdcp_ue_manager, nas_sock_fd[0]);
     ue = nr_pdcp_manager_get_ue(nr_pdcp_ue_manager, rnti);
     nr_pdcp_manager_unlock(nr_pdcp_ue_manager);
     //TODO L5G
