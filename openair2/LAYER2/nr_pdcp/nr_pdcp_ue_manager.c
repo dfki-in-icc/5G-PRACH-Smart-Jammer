@@ -210,3 +210,17 @@ int nr_pdcp_get_first_rnti(nr_pdcp_ue_manager_t *_m)
     return -1;
   return m->ue_list[0]->rnti;
 }
+
+int nr_pdcp_get_rnti_bysock(nr_pdcp_ue_manager_t *_m, int sock)
+{
+  nr_pdcp_ue_manager_internal_t *m = _m;
+  int i;
+
+  for (i = 0; i < m->ue_count; i++)
+    if (m->ue_list[i]->nas_sock_fd == sock)
+      return m->ue_list[i]->rnti;
+
+  LOG_E(PDCP, "no rnti found\n");
+  return 0;
+}
+

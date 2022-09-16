@@ -64,5 +64,5 @@ void nr_pdcp_ue_add_drb_pdcp_entity(nr_pdcp_ue_t *ue, int drb_id,
 
 /* returns -1 if no UE */
 int nr_pdcp_get_first_rnti(nr_pdcp_ue_manager_t *m);
-
+int nr_pdcp_get_rnti_bysock(nr_pdcp_ue_manager_t *_m, int sock);
 #endif /* _NR_PDCP_UE_MANAGER_H_ */

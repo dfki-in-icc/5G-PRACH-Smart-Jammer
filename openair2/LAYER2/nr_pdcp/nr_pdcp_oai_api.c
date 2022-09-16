@@ -474,7 +474,7 @@ static void *ue_tun_read_thread(void *_)
 
     LOG_D(PDCP, "%s(): nas_sock_fd read returns len %d\n", __func__, len);
     nr_pdcp_manager_lock(nr_pdcp_ue_manager);
-    rnti = nr_pdcp_get_first_rnti(nr_pdcp_ue_manager);
+    rnti = nr_pdcp_get_rnti_bysock(nr_pdcp_ue_manager, nas_sock_fd[i]);
     ue = nr_pdcp_manager_get_ue(nr_pdcp_ue_manager, rnti);
     nr_pdcp_manager_unlock(nr_pdcp_ue_manager);
     //TODO L5G
