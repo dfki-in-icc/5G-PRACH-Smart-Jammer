@@ -92,15 +92,15 @@
       <mat-card class="dashboard-card">
         <mat-card-content>
 		  <div fxLayout="column">
-			<div  fxFlex="1 1 90% ">
-              <canvas baseChart height="80%"
+			<div  fxFlex="1 1 80% " style="width:60%">
+              <canvas baseChart
                 [datasets]="IQDatasets"
                 [options]="IQOptions"
                 [type]="'scatter'">
               </canvas>
             </div> 
             <br><br>
-            <div fxFlex="0 1 5%"  style="width:60%">
+            <div fxFlex="0 1 10%"  style="width:60%">
 	        <mat-list-item class="channelselect" role="listitem">
 		      <mat-form-field class="select-form">
 			  <mat-select placeholder="Channels(IQ view)" name="ChannelsSelect" class="ChannelsSelect" multiple [value]="selected_channels" (selectionChange)="channelsChanged($event.value)" >
@@ -114,11 +114,11 @@
 	        <div fxFlex="0 1 5%">            
             <div class="scope-slider-div">
             <label id="scope-slider-range-labelid" class="scope-slider-label">range</label>
-            <label class="scope-slider-value-label"> {{range}} </label>
+            <label class="scope-slider-value-label"> {{iqsliderval}} </label>
             </div>           
-            <mat-slider class="scope-slider" min="0" max="65535" step="100" [value]="range" 
+            <mat-slider class="scope-slider" min="0" [max]="iqslidermax" [step]="iqsliderstep" [value]="iqsliderval" 
                         aria-labelledby="scope-slider-range-labelid" thumbLabel="true" 
-                        [(ngModel)]="range" (change)="OnRangeChange()" > 
+                        [(ngModel)]="iqsliderval" (change)="OnIQsliderChange()" > 
             </mat-slider>
             </div>
           </div>

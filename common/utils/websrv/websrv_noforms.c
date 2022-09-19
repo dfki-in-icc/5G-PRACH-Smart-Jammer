@@ -95,52 +95,6 @@ FL_OBJECT * websrv_fl_add_canvas( int          type,
 
 
 
-
-void websrv_fl_add_xyplot_overlay( FL_OBJECT * ob,
-                            int         id,
-                            float     * x,
-                            float     * y,
-                            int         n,
-                            FL_COLOR    col ){
-FLI_XYPLOT_SPEC *spec = (FLI_XYPLOT_SPEC *)(ob->spec);
-
-if (n>MAX_NIQ_WEBSOCKMSG) {
-   LOG_E(UTIL,"Buffer %i too small for %i iqs...\n",id,n);
-   return;
-}
-
-/* copy and sort the chart data on x to improve frontend perf */  
-  spec->n[id]=n; 
-  spec->buff[id].buf[0].data_xy[0]=x[0];
-  spec->buff[id].buf[0].data_xy[1]=y[0];
-  int I=0;
-  float r=websrv_scope_getparams()->iqrange;
-  int newn=n;
-  for ( int i=1; i<n; i++) {
-	if( x[i] < -r || y[i] < -r ||  x[i] > r || y[i] > r) {
-		n--;
-		continue;
-    }
-	
-	if (x[i-1] <= x[i] ) {
-	  spec->buff[id].buf[0].data_xy[2*I]=x[i];
-	  spec->buff[id].buf[0].data_xy[(2*I)+1]=y[i];
-	} else {
-	  for (int j=0; j<I; j++) {
-	     if (spec->buff[id].buf[0].data_xy[2*j]>x[i]) {
-		   for (int k=i;k>=j;k--) {
-	         spec->buff[id].buf[0].data_xy[2*(k+1)]=spec->buff[id].buf[0].data_xy[2*k];
-	         spec->buff[id].buf[0].data_xy[(2*(k+1))+1]=spec->buff[id].buf[0].data_xy[(2*k)+1];
-		   }
-	       spec->buff[id].buf[0].data_xy[2*j]=x[i];
-	       spec->buff[id].buf[0].data_xy[(2*j)+1]=y[i];
-	    }
-      }
-	}
-	I++;
-  }
-};
-
 void websrv_fl_set_xyplot_data( FL_OBJECT  * ob,
                          float      * x,
                          float      * y,

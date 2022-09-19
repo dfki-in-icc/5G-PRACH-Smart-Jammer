@@ -36,9 +36,7 @@
 #  define STATICFORXSCOPE
 #  define fl_add_canvas                 websrv_fl_add_canvas
 #  define fl_add_xyplot                 websrv_fl_add_xyplot
-#  define fl_add_xyplot_overlay         websrv_fl_add_xyplot_overlay 
 #  define fl_set_xyplot_data            websrv_fl_set_xyplot_data
-#  define fl_get_xyplot_data            websrv_fl_get_xyplot_data
 #  define fl_get_xyplot_data_pointer    websrv_fl_get_xyplot_data_pointer
 #endif
 #include "nr_phy_scope.h"
@@ -69,7 +67,8 @@ static void dl_traffic_on_off( FL_OBJECT *button, long arg) {
 
 #define WATERFALL 10000
 #ifdef WEBSRVSCOPE
-int websrv_cpbuff_tomsg(OAIgraph_t *graph, scopeSample_t *c,int n, int id) {
+/* copy data from softmodem buffer to message body */
+int websrv_cpiqbuff_tomsg(OAIgraph_t *graph, scopeSample_t *c,int n, int id, int base) {
   int I=0;
   int16_t r=websrv_scope_getparams()->iqrange;
   int newn=n; 
@@ -81,27 +80,28 @@ int websrv_cpbuff_tomsg(OAIgraph_t *graph, scopeSample_t *c,int n, int id) {
     return 0;
   }
 /* copy and sort the chart data on x to improve frontend perf */  
-  
+  int16_t *data_xy=msg->data_xy+base;
+  int16_t max_x= INT16_MIN;
   for ( int i=0; i<n; i++) {
 	if( c[i].r < -r || c[i].i < -r ||  c[i].r > r || c[i].i > r) {
 		newn--;
 		continue;
     }
 	
-	if ( msg->data_xy[2*I]<= c[i].r ) {
-	  msg->data_xy[2*I]=c[i].r;
-	  msg->data_xy[(2*I)+1]=c[i].i;
-	  I++;
+	if ( max_x <= c[i].r ) {
+	  data_xy[I]=max_x=c[i].r;
+	  data_xy[I+1]=c[i].i;
+	  I=I+2;
 	} else {
-	  for (int j=I; j>=0; j--) {
-	     if (msg->data_xy[2*j] <= c[i].r || j==0) {
-		   for (int k=I;k>=j;k--) {
-	         msg->data_xy[2*(k+1)]=msg->data_xy[2*k];
-	         msg->data_xy[(2*(k+1))+1]=msg->data_xy[(2*k)+1];
+	  for (int j=I+(base*2); j>=0; j=j-2) {
+	     if (msg->data_xy[j] <= c[i].r || j==0) {
+		   for (int k=I+(base*2) ; k>j ; k=k-2) {
+	         msg->data_xy[k+2]=msg->data_xy[k];
+	         msg->data_xy[k+3]=msg->data_xy[k+1];
 		   }
-	       msg->data_xy[2*j]=c[i].r;
-	       msg->data_xy[(2*j)+1]=c[i].i;
-	       I++;
+	       msg->data_xy[j+2]=c[i].r;
+	       msg->data_xy[j+3]=c[i].i;
+	       I=I+2;
 	       break;
 	    }
       }
@@ -109,6 +109,24 @@ int websrv_cpbuff_tomsg(OAIgraph_t *graph, scopeSample_t *c,int n, int id) {
   }
 
   return newn;
+}
+
+int websrv_cpllrbuff_tomsg(OAIgraph_t *graph, int16_t *llrs,int n, int id) {
+
+  websrv_scopedata_msg_t *msg;
+  websrv_nf_getdata(graph->graph, id,&msg);
+  
+  if (n>MAX_NIQ_WEBSOCKMSG) {
+    LOG_E(UTIL,"Buffer id %i too small for %i iqs...\n",id,n);
+    return 0;
+  }
+
+
+  for ( int i=0; i<n; i++) {
+	  msg->data_xy[2*i]=(int16_t)i;
+	  msg->data_xy[(2*i)+1]=llrs[i];
+	} 
+  return n;
 }
 #endif
 static void commonGraph(OAIgraph_t *graph, int type, FL_Coord x, FL_Coord y, FL_Coord w, FL_Coord h, const char *label, FL_COLOR pointColor) {
@@ -189,7 +207,7 @@ static void setRange(OAIgraph_t *graph, float minX, float maxX, float minY, floa
     fl_set_xyplot_ybounds(graph->graph, graph->minY*1.2, graph->maxY*1.2);
   }
 }
-
+#ifndef WEBSRVSCOPE
 static void oai_xygraph_getbuff(OAIgraph_t *graph, float  **x, float **y, int len, int layer) {
   float *old_x;
   float *old_y;
@@ -219,6 +237,7 @@ static void oai_xygraph_getbuff(OAIgraph_t *graph, float  **x, float **y, int le
   *x=old_x;
   *y=old_y;
 }
+#endif
 
 static void oai_xygraph(OAIgraph_t *graph, float *x, float *y, int len, int layer, bool NoAutoScale) {
 	
@@ -400,9 +419,9 @@ static void puschLLR (OAIgraph_t *graph, scopeData_t *p, int nb_UEs) {
       int16_t *pusch_llr = (int16_t *)p->gNB->pusch_vars[ue]->llr;
       float *llr, *bit;
 #ifdef WEBSRVSCOPE
-      websrv_cpbuff_tomsg(graph,pusch_llr ,coded_bits_per_codeword, ue);
+      websrv_cpllrbuff_tomsg(graph,pusch_llr ,coded_bits_per_codeword, ue);
 #else      
-      oai_xygraph_getbuff(graph, &bit, &llr, coded_bits_per_codeword, ue);
+      oai_xygraph_getbuff(graph, &bit, &llr, coded_bits_per_codeword, ue,0);
 
       for (int i=0; i<coded_bits_per_codeword; i++) {
         llr[i] = (float) pusch_llr[i];
@@ -425,7 +444,7 @@ static void puschIQ (OAIgraph_t *graph, scopeData_t *p, int nb_UEs) {
          scopeSample_t *pusch_comp = (scopeSample_t *) p->gNB->pusch_vars[ue]->rxdataF_comp[0];
          float *I, *Q;
 #ifdef WEBSRVSCOPE
-      newsz =  websrv_cpbuff_tomsg(graph,pusch_comp ,sz, 0);
+      newsz =  websrv_cpiqbuff_tomsg(graph,pusch_comp ,sz, 0,0);
 #else
       oai_xygraph_getbuff(graph, &I, &Q, sz, ue);
       for (int k=0; k<sz; k++ ) {
@@ -716,7 +735,7 @@ static void uePbchIQ  (scopeGraphData_t **data, OAIgraph_t *graph, PHY_VARS_NR_U
   int newsz=sz;
   float *I, *Q;
 #ifdef WEBSRVSCOPE
-     newsz =  websrv_cpbuff_tomsg(graph,pbch_comp ,sz, 0);
+     newsz =  websrv_cpiqbuff_tomsg(graph,pbch_comp ,sz, 0,0);
 #else
 
   oai_xygraph_getbuff(graph, &I, &Q, sz, 0);
@@ -760,7 +779,7 @@ static void uePcchIQ  (scopeGraphData_t **data, OAIgraph_t *graph, PHY_VARS_NR_U
   float *I, *Q;
   scopeSample_t *pdcch_comp = (scopeSample_t *) (data[pdcchRxdataF_comp]+1);
 #ifdef WEBSRVSCOPE
-      newsz =  websrv_cpbuff_tomsg(graph,pdcch_comp ,sz, 0);
+      newsz =  websrv_cpiqbuff_tomsg(graph,pdcch_comp ,sz, 0,0);
 #else
   oai_xygraph_getbuff(graph, &I, &Q, sz, 0);
 
@@ -805,27 +824,31 @@ static void uePdschIQ  (scopeGraphData_t **data, OAIgraph_t *graph, PHY_VARS_NR_
 
   NR_DL_FRAME_PARMS *frame_parms = &phy_vars_ue->frame_parms;
   int sz=7*2*frame_parms->N_RB_DL*12; // size of the malloced buffer
-  int newsz=sz;
+  int newsz=0;
   float *I, *Q;
-
-  oai_xygraph_getbuff(graph, &I, &Q, sz*RX_NB_TH_MAX, 0);
   int base=0;
+
+#ifndef WEBSRVSCOPE
+  oai_xygraph_getbuff(graph, &I, &Q, sz*RX_NB_TH_MAX, 0);
   memset(I+base, 0, sz*RX_NB_TH_MAX * sizeof(*I));
   memset(Q+base, 0, sz*RX_NB_TH_MAX * sizeof(*Q));
-
+#endif
   for (int thr=0 ; thr < RX_NB_TH_MAX ; thr ++ ) {
     scopeSample_t *pdsch_comp = (scopeSample_t *) phy_vars_ue->pdsch_vars[thr][eNB_id]->rxdataF_comp0[0];
-
+#ifdef WEBSRVSCOPE
+    newsz += websrv_cpiqbuff_tomsg(graph, pdsch_comp,sz, 0,base);
+#else 
     for (int s=0; s<sz; s++) {
       I[s+base] += pdsch_comp[s].r;
       Q[s+base] += pdsch_comp[s].i;
     }
-
+#endif
+    newsz += sz;
     base+=sz;
   }
 
   AssertFatal(base <= sz*RX_NB_TH_MAX, "");
-  oai_xygraph(graph,I,Q,sz*RX_NB_TH_MAX,0,10);
+  oai_xygraph(graph,I,Q,newsz,0,10);
 }
 static void uePdschThroughput  (scopeGraphData_t **data, OAIgraph_t *graph, PHY_VARS_NR_UE *phy_vars_ue, int eNB_id, int UE_id) {
   /*

@@ -29,7 +29,9 @@ export class ScopeComponent {
   startstop = 'start';
   startstop_color = 'warn';
   rfrate = 2;
-  range = 50;
+  iqslidermax=32767;
+  iqsliderstep=10;
+  iqsliderval=1000;
   iqgraph_list : IGraphDesc[] = [];
   selected_channels = [""];
   selected_llrchannels = [""];
@@ -99,7 +101,7 @@ export class ScopeComponent {
       backgroundColor:'yellow',
       borderWidth:0,
       pointBorderColor:'yellow',
-      parsing: false,
+ //     parsing: false,
     },
     {
       data: [],
@@ -167,7 +169,7 @@ export class ScopeComponent {
      console.log("Scope ngOnInit ");
      this.UEChanged(this.selected_UE);
      this.OnRefrateChange();
-     this.OnRangeChange();
+     this.OnIQsliderChange();
   } 
  
   DecodScopeBinmsgToString(message: ArrayBuffer) {
@@ -319,8 +321,8 @@ export class ScopeComponent {
 	 this.scopeApi.setScopeParams$({name:"refrate",value:(this.rfrate*10).toString()}).subscribe(); 
   }
   
-  OnRangeChange() {
-	 this.scopeApi.setScopeParams$({name:"iqrange",value:(this.range).toString()}).subscribe();
+  OnIQsliderChange() {
+	 this.scopeApi.setScopeParams$({name:"iqrange",value:(this.iqsliderval).toString()}).subscribe();
   } 
   
   channelsChanged(value: string[]) {

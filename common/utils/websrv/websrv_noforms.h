@@ -6136,12 +6136,12 @@ FL_EXPORT void fl_delete_xyplot_text( FL_OBJECT  * ob,
 FL_EXPORT int fl_set_xyplot_maxoverlays( FL_OBJECT * ob,
                                          int         maxover ){return 0;};
 
-extern void websrv_fl_add_xyplot_overlay( FL_OBJECT * ob,
+FL_EXPORT void fl_add_xyplot_overlay( FL_OBJECT * ob,
                                       int         id,
                                       float     * x,
                                       float     * y,
                                       int         n,
-                                      FL_COLOR    col );
+                                      FL_COLOR    col ){return;};
 
 FL_EXPORT int fl_add_xyplot_overlay_file( FL_OBJECT  * ob,
                                           int          id,
