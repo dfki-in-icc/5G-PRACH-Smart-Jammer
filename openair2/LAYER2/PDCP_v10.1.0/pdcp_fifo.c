@@ -87,6 +87,7 @@ extern struct msghdr nas_msg_rx;
 
 extern int gtpv1u_new_data_req( uint8_t  enb_module_idP, rnti_t   ue_rntiP, uint8_t  rab_idP, uint8_t *buffer_pP, uint32_t buf_lenP, uint32_t buf_offsetP);
 uint16_t ue_id_g; // Global variable to identify the ID for each UE. It is updated in main() of lte-uesoftmodem.c
+uint16_t enb_id_g; // Global variable to identify the ID for each eNB. It is updated in main() of lte-softmodem.c
 
 void debug_pdcp_pc5s_sdu(sidelink_pc5s_element *sl_pc5s_msg, char *title) {
   LOG_I(PDCP,"%s: \nPC5S message, header traffic_type: %d)\n", title, sl_pc5s_msg->pc5s_header.traffic_type);
@@ -217,6 +218,14 @@ int pdcp_fifo_read_input_sdus_fromtun (const protocol_ctxt_t *const  ctxt_pP) {
       sockd = nas_sock_fd[ue_id_g];
     }
   }
+  else if (ENB_NAS_USE_TUN) {
+    if (enb_id_g == 0) {
+      sockd = nas_sock_fd[ctxt_pP->module_id];
+    }
+    else {
+      sockd = nas_sock_fd[enb_id_g];
+    }
+  }
   else {
     sockd = nas_sock_fd[0];
   }
@@ -249,7 +258,7 @@ int pdcp_fifo_read_input_sdus_fromtun (const protocol_ctxt_t *const  ctxt_pP) {
     }
 
     if (UE_NAS_USE_TUN) {
-      key = PDCP_COLL_KEY_DEFAULT_DRB_VALUE(ctxt.module_id, ctxt.rnti, ctxt.enb_flag);
+      key = PDCP_COLL_KEY_VALUE(ctxt.module_id, ctxt.rnti, ctxt.enb_flag, rab_id, SRB_FLAG_NO);
       h_rc = hashtable_get(pdcp_coll_p, key, (void **)&pdcp_p);
     } else { // => ENB_NAS_USE_TUN
       /* Get the IP from a packet */

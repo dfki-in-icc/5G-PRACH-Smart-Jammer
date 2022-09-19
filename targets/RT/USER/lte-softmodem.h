@@ -112,7 +112,7 @@
     {"T" ,                CONFIG_HLP_TDD,         PARAMFLAG_BOOL,  iptr:&tddflag,                      defintval:0,          TYPE_INT,      0},   \
     {"A",                 CONFIG_HLP_TADV,        0,               iptr:&(timingadv),                  defintval:0,          TYPE_INT,      0},   \
     {"ue-idx-standalone", NULL,                   0,               u16ptr:&ue_idx_standalone,          defuintval:0xFFFF,    TYPE_UINT16,   0},   \
-    {"node-number",       NULL,                   0,               u16ptr:&node_number,                defuintval:2,         TYPE_UINT16,   0},   \
+    {"num-enbs",          NULL,                   0,               iptr:&num_enbs,                     defintval:1,          TYPE_INT,      0},   \
   }
 
 /*-----------------------------------------------------------------------------------------------------------------------------*/
@@ -137,7 +137,7 @@ extern pthread_mutex_t sync_mutex;
 extern int sync_var;
 
 extern uint16_t ue_id_g;
-extern uint16_t node_number;
+extern int num_enbs;
 
 extern uint64_t downlink_frequency[MAX_NUM_CCs][4];
 extern int32_t  uplink_frequency_offset[MAX_NUM_CCs][4];

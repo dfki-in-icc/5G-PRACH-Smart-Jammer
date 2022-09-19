@@ -188,11 +188,11 @@ void gen_usim_data(usim_data_conf_t *u, usim_data_t *usim_data,
 		network_record_t record = networks.items[user_plmns->operators.items[i]].record;
 		usim_data->pnn[i].fullname.type = USIM_PNN_FULLNAME_TAG;
 		usim_data->pnn[i].fullname.length = strlen(record.fullname);
-		strncpy((char*) usim_data->pnn[i].fullname.value, record.fullname,
+		memcpy((char*) usim_data->pnn[i].fullname.value, record.fullname,
 				usim_data->pnn[i].fullname.length);
 		usim_data->pnn[i].shortname.type = USIM_PNN_SHORTNAME_TAG;
 		usim_data->pnn[i].shortname.length = strlen(record.shortname);
-		strncpy((char*) usim_data->pnn[i].shortname.value, record.shortname,
+		memcpy((char*) usim_data->pnn[i].shortname.value, record.shortname,
 				usim_data->pnn[i].shortname.length);
 		usim_data->opl[i].plmn = record.plmn;
 		usim_data->opl[i].start = record.tac_start;

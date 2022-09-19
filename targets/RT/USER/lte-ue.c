@@ -403,6 +403,7 @@ void init_UE_stub_single_thread(int nb_inst,
   }
 }
 
+int num_enbs = 1;
 void init_UE_standalone_thread(int ue_idx) {
   int standalone_tx_port = 3211 + ue_idx * 2;
   int standalone_rx_port = 3212 + ue_idx * 2;
@@ -946,6 +947,13 @@ uint64_t clock_usec(void) {
 
   return (uint64_t)t.tv_sec * 1000000 + (t.tv_nsec / 1000);
 }
+
+void reset_UE_phy_stub_standalone() {
+  reset_queue(&dl_config_req_tx_req_queue);
+  reset_queue(&ul_config_req_queue);
+  reset_queue(&hi_dci0_req_queue);
+}
+
 /*!
  * \brief This is the UE thread for RX subframe n and TX subframe n+4.
  * This thread performs the phy_procedures_UE_RX() on every received slot.
@@ -1058,8 +1066,9 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg) {
       nfapi_tx_req_pdu_list_t *tx_req_pdu_list = dl_config_req_tx_req->tx_req_pdu_list;
       nfapi_dl_config_request_t *dl_config_req = dl_config_req_tx_req->dl_config_req;
       uint16_t dl_num_pdus = dl_config_req->dl_config_request_body.number_pdu;
-      LOG_I(MAC, "(OAI UE) Received dl_config_req from proxy at Frame: %d, Subframe: %d,"
+      LOG_I(MAC, "(OAI UE) Received dl_config_req from proxy PNF%d at Frame: %d, Subframe: %d,"
             " with number of PDUs: %u\n",
+            dl_config_req->header.phy_id,
             NFAPI_SFNSF2SFN(dl_config_req->sfn_sf), NFAPI_SFNSF2SF(dl_config_req->sfn_sf),
             dl_num_pdus);
 
@@ -1124,6 +1133,11 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg) {
     for (ue_index = 0; ue_index < ue_num; ue_index++) {
       ue_Mod_id = ue_thread_id + NB_THREAD_INST * ue_index; // Always 0 in standalone pnf mode
       UE = PHY_vars_UE_g[ue_Mod_id][0];
+      for (int i = 0; i < NB_eNB_INST; i++) {
+        UE->measurements.rsrp_filtered[i] = update_measurements(sfn_sf, i);
+        UE->measurements.rsrq_filtered[i] = UE->measurements.rsrp_filtered[i] / 20;
+      }
+
 #if UE_TIMING_TRACE
       start_meas(&UE->generic_stat);
 #endif
@@ -1172,13 +1186,14 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg) {
             if (is_prach_subframe(&UE->frame_parms, NFAPI_SFNSF2SFN(sfn_sf), NFAPI_SFNSF2SF(sfn_sf)) && UE_mac_inst[ue_Mod_id].SI_Decoded == 1) {
               // The one working strangely...
               //if (is_prach_subframe(&UE->frame_parms,NFAPI_SFNSF2SFN(sfn_sf), NFAPI_SFNSF2SF(sfn_sf) && Mod_id == (module_id_t) init_ra_UE) ) {
+              UL_INFO->rach_ind.header.phy_id = UE->frame_parms.Nid_cell;
               PRACH_RESOURCES_t *prach_resources = ue_get_rach(ue_Mod_id, 0, NFAPI_SFNSF2SFN(sfn_sf), 0, NFAPI_SFNSF2SF(sfn_sf));
 
               if (prach_resources != NULL) {
                 LOG_I(MAC, "preamble_received_tar_power: %d\n",
                       prach_resources->ra_PREAMBLE_RECEIVED_TARGET_POWER);
                 UE_mac_inst[ue_Mod_id].ra_frame = NFAPI_SFNSF2SFN(sfn_sf);
-                LOG_D(MAC, "UE_phy_stub_thread_rxn_txnp4 before RACH, Mod_id: %d frame %d subframe %d\n", ue_Mod_id, NFAPI_SFNSF2SFN(sfn_sf), NFAPI_SFNSF2SF(sfn_sf));
+                LOG_D(MAC, "UE_phy_stub_standalone_pnf_task before RACH, Mod_id: %d frame %d subframe %d\n", ue_Mod_id, NFAPI_SFNSF2SFN(sfn_sf), NFAPI_SFNSF2SF(sfn_sf));
                 fill_rach_indication_UE_MAC(ue_Mod_id, NFAPI_SFNSF2SFN(sfn_sf), NFAPI_SFNSF2SF(sfn_sf), UL_INFO, prach_resources->ra_PreambleIndex, prach_resources->ra_RNTI);
                 sent_any = true;
                 Msg1_transmitted(ue_Mod_id, 0, NFAPI_SFNSF2SFN(sfn_sf), 0);
@@ -1214,6 +1229,7 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg) {
     if (UL_INFO->crc_ind.crc_indication_body.number_of_crcs > 0) {
       //LOG_D(PHY,"UL_info->crc_ind.crc_indication_body.number_of_crcs:%d CRC_IND:SFN/SF:%d\n", UL_info->crc_ind.crc_indication_body.number_of_crcs, NFAPI_SFNSF2DEC(UL_info->crc_ind.sfn_sf));
       //LOG_I(MAC, "ul_config_req_UE_MAC 2.2, SFN/SF of PNF counter:%d.%d, number_of_crcs: %d \n", timer_frame, timer_subframe, UL_INFO->crc_ind.crc_indication_body.number_of_crcs);
+      UL_INFO->crc_ind.header.phy_id = UE->frame_parms.Nid_cell;
       send_standalone_msg(UL_INFO, UL_INFO->crc_ind.header.message_id);
       sent_any = true;
       //LOG_I(MAC, "ul_config_req_UE_MAC 2.21 \n");
@@ -1223,6 +1239,7 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg) {
     if (UL_INFO->rx_ind.rx_indication_body.number_of_pdus > 0) {
       //LOG_D(PHY,"UL_info->rx_ind.number_of_pdus:%d RX_IND:SFN/SF:%d\n", UL_info->rx_ind.rx_indication_body.number_of_pdus, NFAPI_SFNSF2DEC(UL_info->rx_ind.sfn_sf));
       //LOG_I(MAC, "ul_config_req_UE_MAC 2.3, SFN/SF of PNF counter:%d.%d, number_of_pdus: %d \n", timer_frame, timer_subframe, UL_INFO->rx_ind.rx_indication_body.number_of_pdus);
+      UL_INFO->rx_ind.header.phy_id = UE->frame_parms.Nid_cell;
       send_standalone_msg(UL_INFO, UL_INFO->rx_ind.header.message_id);
       sent_any = true;
       //LOG_I(MAC, "ul_config_req_UE_MAC 2.31 \n");
@@ -1230,6 +1247,7 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg) {
     }
 
     if (UL_INFO->cqi_ind.cqi_indication_body.number_of_cqis > 0) {
+      UL_INFO->cqi_ind.header.phy_id = UE->frame_parms.Nid_cell;
       send_standalone_msg(UL_INFO, UL_INFO->cqi_ind.header.message_id);
       sent_any = true;
       UL_INFO->cqi_ind.cqi_indication_body.number_of_cqis = 0;
@@ -1237,6 +1255,7 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg) {
 
     if (UL_INFO->harq_ind.harq_indication_body.number_of_harqs > 0) {
       //LOG_D(MAC, "ul_config_req_UE_MAC 2.4, SFN/SF of PNF counter:%d.%d, number_of_harqs: %d \n", timer_frame, timer_subframe, UL_INFO->harq_ind.harq_indication_body.number_of_harqs);
+      UL_INFO->harq_ind.header.phy_id = UE->frame_parms.Nid_cell;
       send_standalone_msg(UL_INFO, UL_INFO->harq_ind.header.message_id);
       sent_any = true;
       //LOG_I(MAC, "ul_config_req_UE_MAC 2.41 \n");
@@ -1245,6 +1264,7 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg) {
 
     if (UL_INFO->sr_ind.sr_indication_body.number_of_srs > 0) {
       //LOG_I(MAC, "ul_config_req_UE_MAC 2.5, SFN/SF of PNF counter:%d.%d, number_of_srs: %d \n", timer_frame, timer_subframe, UL_INFO->sr_ind.sr_indication_body.number_of_srs);
+      UL_INFO->sr_ind.header.phy_id = UE->frame_parms.Nid_cell;
       send_standalone_msg(UL_INFO, UL_INFO->sr_ind.header.message_id);
       sent_any = true;
       //LOG_I(MAC, "ul_config_req_UE_MAC 2.51 \n");

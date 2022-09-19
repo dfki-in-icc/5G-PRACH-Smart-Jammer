@@ -60,7 +60,7 @@
 #include <openair2/LAYER2/MAC/mac_proto.h>
 extern void mac_init_cell_params(int Mod_idP,int CC_idP);
 extern void phy_reset_ue(module_id_t Mod_id,uint8_t CC_id,uint8_t eNB_index);
-
+extern void reset_UE_phy_stub_standalone();
 
 
 /* sec 5.9, 36.321: MAC Reset Procedure */
@@ -84,6 +84,10 @@ void ue_mac_reset(module_id_t module_idP, uint8_t eNB_index) {
   UE_mac_inst[module_idP].RA_prach_resources.ra_PreambleIndex = 0;  // check!
   UE_mac_inst[module_idP].RA_prach_resources.ra_RACH_MaskIndex = 0;
   ue_init_mac(module_idP);  //This will hopefully do the rest of the MAC reset procedure
+  if (NFAPI_MODE == NFAPI_UE_STUB_PNF || NFAPI_MODE == NFAPI_MODE_STANDALONE_PNF) {
+    LOG_D(MAC, "reset queues\n");
+    reset_UE_phy_stub_standalone();
+  }
 }
 
 int
@@ -445,11 +449,14 @@ rrc_mac_config_req_ue(module_id_t Mod_idP,
     }
 
     // store the previous rnti in case of failure, and set thenew rnti
+    UE_mac_inst[Mod_idP].targetPhysCellId = mobilityControlInfo->targetPhysCellId;
     UE_mac_inst[Mod_idP].crnti_before_ho = UE_mac_inst[Mod_idP].crnti;
     UE_mac_inst[Mod_idP].crnti =
       ((mobilityControlInfo->
-        newUE_Identity.buf[0]) | (mobilityControlInfo->
-                                  newUE_Identity.buf[1] << 8));
+        newUE_Identity.buf[1]) | (mobilityControlInfo->
+                                  newUE_Identity.buf[0] << 8));
+    UE_mac_inst[Mod_idP].crnti_for_ho = UE_mac_inst[Mod_idP].crnti;
+    UE_mac_inst[Mod_idP].ho_active = true;
     LOG_I(MAC, "[UE %d] Received new identity %x from %d\n", Mod_idP,
           UE_mac_inst[Mod_idP].crnti, eNB_index);
     UE_mac_inst[Mod_idP].rach_ConfigDedicated =
@@ -460,9 +467,16 @@ rrc_mac_config_req_ue(module_id_t Mod_idP,
              (void *) mobilityControlInfo->rach_ConfigDedicated,
              sizeof(*mobilityControlInfo->rach_ConfigDedicated));
     }
-
-    phy_config_afterHO_ue(Mod_idP, 0, eNB_index, mobilityControlInfo,
-                          0);
+    LOG_D(MAC, "[UE %d] Old crnti 0x%x (%d) vs new crnti 0x%x (%d)\n",
+          Mod_idP,
+          UE_mac_inst[Mod_idP].crnti_before_ho,
+          UE_mac_inst[Mod_idP].crnti_before_ho,
+          UE_mac_inst[Mod_idP].crnti,
+          UE_mac_inst[Mod_idP].crnti);
+    if (NFAPI_MODE != NFAPI_UE_STUB_PNF && NFAPI_MODE != NFAPI_MODE_STANDALONE_PNF)
+      phy_config_afterHO_ue(Mod_idP, 0, eNB_index, mobilityControlInfo, 0);
+    else
+      emulate_phy_config_afterHO_ue(Mod_idP, 0, eNB_index, mobilityControlInfo, 0);
   }
 
   if (mbsfn_SubframeConfigList != NULL) {

@@ -2022,23 +2022,25 @@ int rrc_eNB_process_X2AP_TUNNEL_SETUP_REQ(instance_t instance, rrc_eNB_ue_contex
       create_tunnel_req.rnti           = ue_context_target_p->ue_context.rnti; // warning put zero above
       create_tunnel_req.num_tunnels    = e_rab_done;
       // NN: not sure if we should create a new tunnel: need to check teid, etc.
-      gtpv1u_create_x2u_tunnel(
-        instance,
-        &create_tunnel_req,
-        &create_tunnel_resp);
-      ue_context_target_p->ue_context.nb_x2u_e_rabs = create_tunnel_resp.num_tunnels;
+      if (!get_softmodem_params()->emulate_l1) {
+        gtpv1u_create_x2u_tunnel(
+          instance,
+          &create_tunnel_req,
+          &create_tunnel_resp);
+        ue_context_target_p->ue_context.nb_x2u_e_rabs = create_tunnel_resp.num_tunnels;
 
-      for (i = 0; i < create_tunnel_resp.num_tunnels; i++) {
-        ue_context_target_p->ue_context.enb_gtp_x2u_teid[inde_list[i]]  = create_tunnel_resp.enb_X2u_teid[i];
-        ue_context_target_p->ue_context.enb_gtp_x2u_addrs[inde_list[i]] = create_tunnel_resp.enb_addr;
-        ue_context_target_p->ue_context.enb_gtp_x2u_ebi[inde_list[i]]   = create_tunnel_resp.eps_bearer_id[i];
-        LOG_I(RRC, "rrc_eNB_process_X2AP_TUNNEL_SETUP_REQ tunnel (%u, %u) bearer UE context index %u, msg index %u, eps bearer id %u, gtp addr len %d \n",
-              create_tunnel_resp.enb_X2u_teid[i],
-              ue_context_target_p->ue_context.enb_gtp_x2u_teid[inde_list[i]],
-              inde_list[i],
-              i,
-              create_tunnel_resp.eps_bearer_id[i],
-              create_tunnel_resp.enb_addr.length);
+        for (i = 0; i < create_tunnel_resp.num_tunnels; i++) {
+          ue_context_target_p->ue_context.enb_gtp_x2u_teid[inde_list[i]]  = create_tunnel_resp.enb_X2u_teid[i];
+          ue_context_target_p->ue_context.enb_gtp_x2u_addrs[inde_list[i]] = create_tunnel_resp.enb_addr;
+          ue_context_target_p->ue_context.enb_gtp_x2u_ebi[inde_list[i]]   = create_tunnel_resp.eps_bearer_id[i];
+          LOG_D(RRC, "rrc_eNB_process_X2AP_TUNNEL_SETUP_REQ tunnel (%u, %u) bearer UE context index %u, msg index %u, eps bearer id %u, gtp addr len %d \n",
+                create_tunnel_resp.enb_X2u_teid[i],
+                ue_context_target_p->ue_context.enb_gtp_x2u_teid[inde_list[i]],
+                inde_list[i],
+                i,
+                create_tunnel_resp.eps_bearer_id[i],
+                create_tunnel_resp.enb_addr.length);
+        }
       }
     }
     return (0);
