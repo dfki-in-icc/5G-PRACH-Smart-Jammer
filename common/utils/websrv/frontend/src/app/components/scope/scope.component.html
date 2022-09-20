@@ -34,7 +34,7 @@
 	        <br><br>        
             <mat-list-item class="sigselect" role="listitem">
 		      <mat-form-field class="select-form">
-			  <mat-select placeholder="sig select" name="SigSelect" class="SigSelect" [value]="selected_sig" (selectionChange)="SigChanged($event.value)" >
+			  <mat-select placeholder="sig select" name="SigSelect" class="SigSelect" [value]="selected_sig.target_id" (selectionChange)="SigChanged($event.value)" >
 				 <mat-option *ngFor="let targetid of target_list" [value]="targetid" >
 					{{selected_sig.target_id}}
 				 </mat-option>

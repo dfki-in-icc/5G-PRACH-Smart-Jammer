@@ -104,7 +104,7 @@ void websrv_scope_manager(uint64_t lcount,websrv_params_t *websrvparams) {
       } else if( (scope_params.statusmask == SCOPE_STATUSMASK_UNKNOWN) ) {
           if (IS_SOFTMODEM_DOSCOPE | IS_SOFTMODEM_ENB_BIT | IS_SOFTMODEM_4GUE_BIT) {
 	        websrv_websocket_send_scopemessage(SCOPEMSG_TYPE_STATUSUPD, "disabled", websrvparams_ptr->wm);
-	      }		  
+	      }	else {	  
 		  if (IS_SOFTMODEM_GNB_BIT) {			 
 		     scopedata.ru=RC.ru[0];
 		     scopedata.gNB=RC.gNB[0];		 
@@ -120,7 +120,8 @@ void websrv_scope_manager(uint64_t lcount,websrv_params_t *websrvparams) {
 		  } else {
             LOG_I(UTIL,"[websrv] SoftScope web interface  not implemented for this softmodem\n");
             websrv_websocket_send_scopemessage(SCOPEMSG_TYPE_STATUSUPD, "disabled", websrvparams_ptr->wm);			  
-		  }  		               
+		  }
+	    }  		               
       }
 }
 
