@@ -49,8 +49,12 @@ LATSEQ_P with direction of I (Information) observed a scalar property at a point
 
 Get scripts on https://github.com/Orange-OpenSource/LatSeq/tools
 
-- latseq_checker : verify constitency of Latseq points before compiling
+- rdtsctots : convert rdtsc timestamp to unix timestamp value
 - latseq_logs : convert lseq log file into useful json file for statistics and visualization
+- filter_Is.awk : filter contextual informations
+- lseqj2any : generate waterfall to format gp or svg
+
+- latseq_checker : verify constitency of Latseq points before compiling
 - latseq_filter : filter output of latseq_logs
 - latseq_stats : perform statistic
 
@@ -241,6 +245,12 @@ Arguments:
 
 Example of usage of the full toolchain for LatSeq Analysis Module
 ./latseq_logs.py -l ~/latseq.simple.lseq -j 2>/dev/null | ./latseq_filter.sh journeys_downlinks_gsn.lfilt | ./latseq_stats.py -sj --print
+
+### lseqj2any
+
+generate waterfall
+
+cat uplink_burst.30102020_203233.lseqj | lseqj2any gp > uplink_burst.gp
 
 ## TEST_LATSEQ
 in targets/TEST/LATSEQ test_latseq test different part of latseq module

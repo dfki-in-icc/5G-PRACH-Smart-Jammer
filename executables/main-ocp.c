@@ -177,7 +177,7 @@ void init_transport(PHY_VARS_eNB *eNB) {
   }
 
   for (int i=0; i<NUMBER_OF_ULSCH_MAX; i++) {
-    LOG_D(PHY,"Allocating Transport Channel Buffer for ULSCH, UE %d\n",i);
+    LOG_D(PHY,"Allocating Transport Channel Buffers for ULSCH, UE %d\n",i);
     AssertFatal((eNB->ulsch[1+i] = new_eNB_ulsch(MAX_TURBO_ITERATIONS,fp->N_RB_UL, 0)) != NULL,
                 "Can't get eNB ulsch structures\n");
     // this is the transmission mode for the signalling channels
@@ -1052,17 +1052,18 @@ void set_default_frame_parms(LTE_DL_FRAME_PARMS *frame_parms[MAX_NUM_CCs]) {
 
 void init_pdcp(void) {
   if (!NODE_IS_DU(RC.rrc[0]->node_type)) {
-    pdcp_layer_init();  //gdb
+    pdcp_layer_init();
     uint32_t pdcp_initmask = (IS_SOFTMODEM_NOS1) ?
                              (PDCP_USE_NETLINK_BIT | LINK_ENB_PDCP_TO_IP_DRIVER_BIT) : LINK_ENB_PDCP_TO_GTPV1U_BIT;
 
-    if (IS_SOFTMODEM_NOS1)  //gdb
+    if (IS_SOFTMODEM_NOS1)
       pdcp_initmask = pdcp_initmask | ENB_NAS_USE_TUN_BIT | SOFTMODEM_NOKRNMOD_BIT  ;
 
     pdcp_initmask = pdcp_initmask | ENB_NAS_USE_TUN_W_MBMS_BIT;
 
     if ( split73!=SPLIT73_DU)
       pdcp_module_init(pdcp_initmask, 0);
+
     if (NODE_IS_CU(RC.rrc[0]->node_type)) {
       //pdcp_set_rlc_data_req_func(proto_agent_send_rlc_data_req);
     } else {

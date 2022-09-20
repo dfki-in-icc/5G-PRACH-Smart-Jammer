@@ -76,10 +76,6 @@ unsigned short config_frames[4] = {2,9,11,13};
 #include "UTIL/OPT/opt.h"
 #include "enb_config.h"
 
-#ifndef OPENAIR2
-  #include "UTIL/OTG/otg_vars.h"
-#endif
-
 #if LATSEQ
   #include <common/utils/LATSEQ/latseq.h>
 #endif

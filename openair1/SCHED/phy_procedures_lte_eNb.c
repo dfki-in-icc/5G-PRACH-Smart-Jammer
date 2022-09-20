@@ -1333,7 +1333,9 @@ void postDecode(L1_rxtx_proc_t *proc, notifiedFIFO_elt_t *req) {
   if (decodeSucess) {
     int Fbytes=(rdata->segment_r==0) ? rdata->Fbits>>3 : 0;
     int sz=(rdata->Kr>>3) - Fbytes - ((ulsch_harq->C>1)?3:0);
-    memcpy(ulsch_harq->decodedBytes+rdata->offset, rdata->decoded_bytes+Fbytes, sz);
+    memcpy(ulsch_harq->decodedBytes+rdata->offset,
+	   rdata->decoded_bytes+Fbytes,
+	   sz);
   } else {
     if ( rdata->nbSegments != ulsch_harq->processedSegments ) {
       int nb=abortTpool(proc->threadPool, req->key);
