@@ -27,8 +27,9 @@ export interface IScopeCmd {
     value:   string;
 }
 
-export interface IUEDesc {
-    id: number;
+export interface ISigDesc {
+	target_id: number;
+	antenna_id: number;
 }
 @Injectable({
     providedIn: 'root',

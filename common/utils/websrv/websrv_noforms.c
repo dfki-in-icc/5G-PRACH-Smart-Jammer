@@ -94,18 +94,6 @@ FL_OBJECT * websrv_fl_add_canvas( int          type,
 }
 
 
-
-void websrv_fl_set_xyplot_data( FL_OBJECT  * ob,
-                         float      * x,
-                         float      * y,
-                         int          n,
-                         const char * title,
-                         const char * xlabel,
-                         const char * ylabel ){
-  websrv_fl_add_xyplot_overlay(ob,	0, x,y,n,	FL_YELLOWGREEN);				 
-};
-
-
 void websrv_fl_get_xyplot_data( FL_OBJECT * ob,
                          float     * x,
                          float     * y,

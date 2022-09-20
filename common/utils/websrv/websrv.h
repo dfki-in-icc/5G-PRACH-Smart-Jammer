@@ -71,8 +71,8 @@ typedef struct {
      char    data[1408];                      // 64*22
      
 } websrv_msg_t;
-#define MAX_NIQ_WEBSOCKMSG   180000 //max number of iq's in pre-allocated buffer
-
+#define MAX_NIQ_WEBSOCKMSG   180000 //max number of 16 bits iq's in pre-allocated buffer
+#define MAX_LLR_WEBSOCKMSG    (MAX_NIQ_WEBSOCKMSG*2) //max number of 8 bits llr's in pre-allocated buffer
 
 typedef struct {
 	 unsigned char src;                          // message source
@@ -103,8 +103,11 @@ typedef struct {
 	 uint32_t refrate;                        // in 100 ms
 	 void  *scopeform;                        // OAI_phy_scope_t pointer returned by create_phy_scope_xxx functions
 	 void  *scopedata;                        // scopeData_t pointer, filled at init time, contains pointers and functions to retrieve softmodem data
-     uint32_t selectedData;                   // index to UE/gNB 
-     uint16_t   iqrange;                        // iq chart scales limit
+     uint32_t selectedTarget;                   // index to UE/gNB 
+     int   xmin;                              // data limit
+     int   xmax;
+     int   ymin;
+     int   ymax;
 } websrv_scope_params_t;
 
 extern void websrv_printjson(char * label, json_t *jsonobj);
@@ -121,7 +124,7 @@ extern int websrv_string_response(char *astring, struct _u_response * response, 
 extern void websrv_scope_ws_close() ;
 extern void websrv_scope_ws_cb(void *user_data);
 extern void websrv_scope_manager(uint64_t lcount,websrv_params_t *websrvparams);
-extern void  websrv_scope_sendIQ(int n, websrv_scopedata_msg_t *msg);
+extern void  websrv_scope_senddata(int numd,int dsize, websrv_scopedata_msg_t *msg);
 extern void websrv_websocket_process_scopemessage(char msg_type, char *msg_data, struct _websocket_manager * websocket_manager);
 extern int websrv_callback_okset_softmodem_cmdvar(const struct _u_request * request, struct _u_response * response, void * user_data);
 extern int websrv_add_endpoint( char **http_method, int num_method, const char * url_prefix,const char * url_format,

@@ -36,7 +36,6 @@
 #  define STATICFORXSCOPE
 #  define fl_add_canvas                 websrv_fl_add_canvas
 #  define fl_add_xyplot                 websrv_fl_add_xyplot
-#  define fl_set_xyplot_data            websrv_fl_set_xyplot_data
 #  define fl_get_xyplot_data_pointer    websrv_fl_get_xyplot_data_pointer
 #endif
 #include "nr_phy_scope.h"
@@ -70,7 +69,7 @@ static void dl_traffic_on_off( FL_OBJECT *button, long arg) {
 /* copy data from softmodem buffer to message body */
 int websrv_cpiqbuff_tomsg(OAIgraph_t *graph, scopeSample_t *c,int n, int id, int base) {
   int I=0;
-  int16_t r=websrv_scope_getparams()->iqrange;
+  websrv_scope_params_t *WP=websrv_scope_getparams();
   int newn=n; 
   websrv_scopedata_msg_t *msg;
   websrv_nf_getdata(graph->graph, id,&msg);
@@ -83,7 +82,7 @@ int websrv_cpiqbuff_tomsg(OAIgraph_t *graph, scopeSample_t *c,int n, int id, int
   int16_t *data_xy=msg->data_xy+base;
   int16_t max_x= INT16_MIN;
   for ( int i=0; i<n; i++) {
-	if( c[i].r < -r || c[i].i < -r ||  c[i].r > r || c[i].i > r) {
+	if( c[i].r < WP->xmin  || c[i].i < WP->ymin ||  c[i].r >  WP->xmax || c[i].i >  WP->ymax) {
 		newn--;
 		continue;
     }
@@ -107,7 +106,6 @@ int websrv_cpiqbuff_tomsg(OAIgraph_t *graph, scopeSample_t *c,int n, int id, int
       }
 	}
   }
-
   return newn;
 }
 
@@ -116,15 +114,13 @@ int websrv_cpllrbuff_tomsg(OAIgraph_t *graph, int16_t *llrs,int n, int id) {
   websrv_scopedata_msg_t *msg;
   websrv_nf_getdata(graph->graph, id,&msg);
   
-  if (n>MAX_NIQ_WEBSOCKMSG) {
+  if (n>MAX_LLR_WEBSOCKMSG) {
     LOG_E(UTIL,"Buffer id %i too small for %i iqs...\n",id,n);
     return 0;
   }
 
-
   for ( int i=0; i<n; i++) {
-	  msg->data_xy[2*i]=(int16_t)i;
-	  msg->data_xy[(2*i)+1]=llrs[i];
+	    ((char *)(msg->data_xy))[i]=(int8_t)llrs[i];
 	} 
   return n;
 }
@@ -252,7 +248,7 @@ static void oai_xygraph(OAIgraph_t *graph, float *x, float *y, int len, int laye
       msg->datasetid=graph->datasetid;
       msg->msgseg=0;
       msg->update= 1;  
-      websrv_scope_sendIQ(len,msg);
+      websrv_scope_senddata(len,(msg->chartid==SCOPEMSG_DATAID_LLR)?1:4, msg);
 #else
   fl_redraw_object(graph->graph);
 
@@ -411,7 +407,7 @@ static void frequencyResponse (OAIgraph_t *graph, PHY_VARS_gNB *phy_vars_gnb, RU
 static void puschLLR (OAIgraph_t *graph, scopeData_t *p, int nb_UEs) {
   //int Qm = 2;
   int coded_bits_per_codeword =3*8*6144+12; // (8*((3*8*6144)+12)); // frame_parms->N_RB_UL*12*Qm*frame_parms->symbols_per_tti;
-
+ 
   for (int ue=0; ue<nb_UEs; ue++) {
     if ( p->gNB->pusch_vars &&
          p->gNB->pusch_vars[ue] &&
@@ -421,7 +417,7 @@ static void puschLLR (OAIgraph_t *graph, scopeData_t *p, int nb_UEs) {
 #ifdef WEBSRVSCOPE
       websrv_cpllrbuff_tomsg(graph,pusch_llr ,coded_bits_per_codeword, ue);
 #else      
-      oai_xygraph_getbuff(graph, &bit, &llr, coded_bits_per_codeword, ue,0);
+      oai_xygraph_getbuff(graph, &bit, &llr, coded_bits_per_codeword, ue);
 
       for (int i=0; i<coded_bits_per_codeword; i++) {
         llr[i] = (float) pusch_llr[i];

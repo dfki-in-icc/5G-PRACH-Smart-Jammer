@@ -32,11 +32,11 @@
                         [(ngModel)]="rfrate" (change)="OnRefrateChange()" > 
             </mat-slider>
 	        <br><br>        
-            <mat-list-item class="UEselect" role="listitem">
+            <mat-list-item class="sigselect" role="listitem">
 		      <mat-form-field class="select-form">
-			  <mat-select placeholder="UE select" name="UESelect" class="UESelect" [value]="selected_UE" (selectionChange)="UEChanged($event.value)" >
-				 <mat-option *ngFor="let UE of UE_list" [value]="UE.id" >
-					{{UE.id}}
+			  <mat-select placeholder="sig select" name="SigSelect" class="SigSelect" [value]="selected_sig" (selectionChange)="SigChanged($event.value)" >
+				 <mat-option *ngFor="let targetid of target_list" [value]="targetid" >
+					{{selected_sig.target_id}}
 				 </mat-option>
 			  </mat-select>
 		      </mat-form-field>
@@ -112,14 +112,34 @@
 	        </mat-list-item>
 	        </div>
 	        <div fxFlex="0 1 5%">            
+            <div class="form-group" fxFlex="50%">  
             <div class="scope-slider-div">
-            <label id="scope-slider-range-labelid" class="scope-slider-label">range</label>
-            <label class="scope-slider-value-label"> {{iqsliderval}} </label>
-            </div>           
-            <mat-slider class="scope-slider" min="0" [max]="iqslidermax" [step]="iqsliderstep" [value]="iqsliderval" 
-                        aria-labelledby="scope-slider-range-labelid" thumbLabel="true" 
-                        [(ngModel)]="iqsliderval" (change)="OnIQsliderChange()" > 
+            <label id="xfilter" class="scope-slider-label"> xmin xmax: </label>
+            <label class="scope-slider-value-label"> {{iqxmin}} {{iqxmax}} </label>
+            </div> 				        
+            <mat-slider class="scope-slider" [min]="iqmin" max="0" invert="true" [step]="iqsliderstep" [value]="iqxmin" 
+                        aria-labelledby="xfilter" thumbLabel="true" 
+                        [(ngModel)]="iqxmin" (change)="OnIQxminsliderChange()" xmin> 
             </mat-slider>
+            <mat-slider class="scope-slider" min="0" [max]="iqmax" [step]="iqsliderstep" [value]="iqxmax" 
+                        aria-labelledby="xfilter" thumbLabel="true" 
+                        [(ngModel)]="iqxmax" (change)="OnIQxmaxsliderChange()" > 
+            </mat-slider> 
+            </div>
+            <div class="form-group" fxFlex="50%">
+            <div class="scope-slider-div">
+            <label id="yfilter" class="scope-slider-label"> ymin ymax: </label>
+            <label class="scope-slider-value-label"> {{iqymin}} {{iqymax}} </label>
+            </div> 					
+            <mat-slider class="scope-slider" [min]="iqmin" max="0" invert="true" [step]="iqsliderstep" [value]="iqymin" 
+                        aria-labelledby="yfilter" thumbLabel="true" 
+                        [(ngModel)]="iqymin" (change)="OnIQyminsliderChange()" > 
+            </mat-slider> 
+            <mat-slider class="scope-slider" min="0" [max]="iqmax" [step]="iqsliderstep" [value]="iqymax" 
+                        aria-labelledby="yfilter" thumbLabel="true" 
+                        [(ngModel)]="iqymax" (change)="OnIQymaxsliderChange()" > 
+            </mat-slider>
+            </div>                               
             </div>
           </div>
         </mat-card-content>

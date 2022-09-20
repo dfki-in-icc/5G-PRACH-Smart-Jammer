@@ -4,7 +4,7 @@ import { Message, WebSocketService, webSockSrc } from "src/app/services/websocke
 import { Observable } from 'rxjs';
 import { Chart, ChartConfiguration, ChartOptions, ChartEvent, ChartType, ScatterDataPoint } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
-import {IGraphDesc, IScopeGraphType, IScopeDesc, IScopeCmd, IUEDesc,  ScopeApi  } from 'src/app/api/scope.api';
+import {IGraphDesc, IScopeGraphType, IScopeDesc, IScopeCmd, ISigDesc,  ScopeApi  } from 'src/app/api/scope.api';
 
 const SCOPEMSG_TYPE_STATUSUPD=1;   
 const SCOPEMSG_TYPE_REFRATE=2;
@@ -29,15 +29,20 @@ export class ScopeComponent {
   startstop = 'start';
   startstop_color = 'warn';
   rfrate = 2;
-  iqslidermax=32767;
+  iqmax = 32767;
+  iqmin = -32767;
+
   iqsliderstep=10;
-  iqsliderval=1000;
+  iqxmin=this.iqmin;
+  iqymin=this.iqmin;
+  iqxmax=this.iqmax;
+  iqymax=this.iqmax;  
   iqgraph_list : IGraphDesc[] = [];
   selected_channels = [""];
   selected_llrchannels = [""];
   llrgraph_list : IGraphDesc[] = [];  
-  UE_list : IUEDesc[] =[{id:0},{id:1},{id:2},{id:3},{id:4}];
-  selected_UE : number = 0;
+  target_list : number[] = [0,1,2,3];
+  selected_sig : ISigDesc ={target_id:0, antenna_id:0};
 
   
   @Output() ScopeEnabled = new EventEmitter<boolean>();
@@ -162,14 +167,17 @@ export class ScopeComponent {
 	console.log("Scope constructor ");
     wsService.messages.subscribe((msg: ArrayBuffer) => {
       this.ProcessScopeMsg(this.wsService.DeserializeMessage(msg));
-    });	  
+    });  
   }
   
   ngOnInit() {
      console.log("Scope ngOnInit ");
-     this.UEChanged(this.selected_UE);
+     this.SigChanged(this.selected_sig.target_id);
      this.OnRefrateChange();
-     this.OnIQsliderChange();
+     this.OnIQxminsliderChange();
+     this.OnIQxmaxsliderChange();
+     this.OnIQyminsliderChange();
+     this.OnIQymaxsliderChange();    
   } 
  
   DecodScopeBinmsgToString(message: ArrayBuffer) {
@@ -230,8 +238,8 @@ export class ScopeComponent {
 			    }
               break;
 			  case SCOPEMSG_DATA_LLR:
-			    for ( let i=0;i<bufferview.byteLength; i=i+4) {
-                  this.LLRDatasets[message.dataid].data[i/4]={ x: bufferview.getInt16(i, true), y: bufferview.getInt16(i+2, true)};
+			    for ( let i=0;i<bufferview.byteLength;i++) {
+                  this.LLRDatasets[message.dataid].data[i]={ x: i, y: bufferview.getInt8(i)};
                 }
                 if(message.update) {
 				  console.log("Starting scope update chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
@@ -297,6 +305,9 @@ export class ScopeComponent {
     if (this.scopestatus === 'stopped') {
         this.scopeApi.setScopeParams$({name:"startstop",value:"start"}).subscribe(
           () => {
+			 this.IQDatasets.forEach((dataset) => { dataset.data.length=0 }) ;
+			 this.LLRDatasets.forEach((dataset) => { dataset.data.length=0 }) ;
+             this.charts?.forEach((child,index) => { child.chart?.update() });  			  
 			 this.scopestatus='started';
              this.startstop='stop';
              this.startstop_color='started';
@@ -310,6 +321,7 @@ export class ScopeComponent {
 			 this.scopestatus='stopped';
              this.startstop='start';
              this.startstop_color='warn';
+             this.charts?.forEach((child,index) => { child.chart?.update() });  
 		  },
 		  err => {
 		  }        
@@ -321,10 +333,18 @@ export class ScopeComponent {
 	 this.scopeApi.setScopeParams$({name:"refrate",value:(this.rfrate*10).toString()}).subscribe(); 
   }
   
-  OnIQsliderChange() {
-	 this.scopeApi.setScopeParams$({name:"iqrange",value:(this.iqsliderval).toString()}).subscribe();
+  OnIQxminsliderChange() {
+	 this.scopeApi.setScopeParams$({name:"xmin",value:(this.iqxmin).toString()}).subscribe();
   } 
-  
+  OnIQxmaxsliderChange() {
+	 this.scopeApi.setScopeParams$({name:"xmax",value:(this.iqxmax).toString()}).subscribe();
+  }   
+  OnIQyminsliderChange() {
+	 this.scopeApi.setScopeParams$({name:"ymin",value:(this.iqymin).toString()}).subscribe();
+  } 
+  OnIQymaxsliderChange() {
+	 this.scopeApi.setScopeParams$({name:"ymax",value:(this.iqymax).toString()}).subscribe();
+  }   
   channelsChanged(value: string[]) {
     this.selected_channels=value;
     for (let i=0; i<this.iqgraph_list.length; i++) {
@@ -352,9 +372,9 @@ export class ScopeComponent {
 	  this.SendScopeParams("enabled",enabled,this.llrgraph_list[i].srvidx);	  
     } 
   }    
-  UEChanged(value: number) {
-    this.selected_UE=value;
-    this.scopesubtitle= "UE " + value.toString();
-	this.SendScopeParams("UEselect",value.toString(),0);
+  SigChanged(value: number) {
+    this.selected_sig.target_id=value;
+    this.scopesubtitle=  value.toString();
+	this.SendScopeParams("TargetSelect",value.toString(),0);
   }    
 }

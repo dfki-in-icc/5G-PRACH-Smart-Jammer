@@ -50,7 +50,7 @@ static scopeData_t  scopedata;
 static websrv_scope_params_t scope_params = {0,1000,NULL,&scopedata,65535};
 static websrv_params_t *websrvparams_ptr;
 
-void  websrv_scope_sendIQ(int n, websrv_scopedata_msg_t *msg) {
+void  websrv_scope_senddata(int numd, int dsize, websrv_scopedata_msg_t *msg) {
 /* 
 
   for ( int i=0; i<n; i++) {  
@@ -58,7 +58,7 @@ void  websrv_scope_sendIQ(int n, websrv_scopedata_msg_t *msg) {
     msg->data_xy[(2*i)+1]= (i>(n/4))? 10 : -10; 
   }*/
   msg->src=WEBSOCK_SRC_SCOPE ;
-  int st = ulfius_websocket_send_message( websrvparams_ptr->wm, U_WEBSOCKET_OPCODE_BINARY,(n*2*sizeof(int16_t))+WEBSOCK_HEADSIZE, (char *)msg);
+  int st = ulfius_websocket_send_message( websrvparams_ptr->wm, U_WEBSOCKET_OPCODE_BINARY,(numd*dsize)+WEBSOCK_HEADSIZE, (char *)msg);
   if (st != U_OK)
     LOG_I(UTIL, "Error sending scope IQs, status %i\n",st);   
 };
@@ -99,7 +99,7 @@ void websrv_scope_manager(uint64_t lcount,websrv_params_t *websrvparams) {
             phy_scope_gNB(scope_params.scopeform,  scope_params.scopedata, 1);
 		  } 
 		  if (IS_SOFTMODEM_5GUE_BIT) {
-            phy_scope_nrUE(scope_params.scopeform, (PHY_VARS_NR_UE *)scope_params.scopedata,  0, scope_params.selectedData);
+            phy_scope_nrUE(scope_params.scopeform, (PHY_VARS_NR_UE *)scope_params.scopedata,  0, scope_params.selectedTarget);
 		  }      
       } else if( (scope_params.statusmask == SCOPE_STATUSMASK_UNKNOWN) ) {
           if (IS_SOFTMODEM_DOSCOPE | IS_SOFTMODEM_ENB_BIT | IS_SOFTMODEM_4GUE_BIT) {
@@ -114,7 +114,7 @@ void websrv_scope_manager(uint64_t lcount,websrv_params_t *websrvparams) {
 		  } else if (IS_SOFTMODEM_5GUE_BIT) {
 			 scope_params.scopedata = PHY_vars_UE_g[0][0] ;
 			 nrUEinitScope(PHY_vars_UE_g[0][0]);
-			 scope_params.scopeform = create_phy_scope_nrue(scope_params.selectedData);
+			 scope_params.scopeform = create_phy_scope_nrue(scope_params.selectedTarget);
 			 scope_params.statusmask |= SCOPE_STATUSMASK_AVAILABLE;
 			 websrv_websocket_send_scopemessage(SCOPEMSG_TYPE_STATUSUPD, "enabled", websrvparams_ptr->wm);
 		  } else {
@@ -152,7 +152,7 @@ int websrv_scope_callback_set_params (const struct _u_request * request, struct 
 			 if( strcmp(vval,"start") == 0) {
 				if ( scope_params.statusmask & SCOPE_STATUSMASK_AVAILABLE) {
                   scope_params.statusmask |= SCOPE_STATUSMASK_STARTED;
-                  scope_params.selectedData=0; // 1 UE to be received from GUI (for xNB scope's 
+                  scope_params.selectedTarget=0; // 1 UE to be received from GUI (for xNB scope's 
                  }
 				 httpstatus=200;
 			 } else if( strcmp(vval,"stop") == 0) {
@@ -171,11 +171,20 @@ int websrv_scope_callback_set_params (const struct _u_request * request, struct 
            OAI_phy_scope_t *sp = (OAI_phy_scope_t *)scope_params.scopeform;  
            sp->graph[gid].enabled = (strcmp(vval,"true")==0)?true:false; 
            httpstatus=200;
-		 } else if (strcmp(vname,"iqrange") == 0) {
-           scope_params.iqrange = (float)strtof(vval,NULL);
-           httpstatus=200;                     
-		 } else if (strcmp(vname,"UEselect") == 0) {
-           scope_params.selectedData=strtol(vval,NULL,10);
+		 } else if (strcmp(vname,"xmin") == 0) {
+           scope_params.xmin = strtol(vval,NULL,10);
+           httpstatus=200;   
+		 } else if (strcmp(vname,"xmax") == 0) {
+           scope_params.xmax = strtol(vval,NULL,10);
+           httpstatus=200;
+		 } else if (strcmp(vname,"ymin") == 0) {
+           scope_params.ymin = strtol(vval,NULL,10);
+           httpstatus=200;
+ 		 } else if (strcmp(vname,"ymax") == 0) {
+           scope_params.ymax = strtol(vval,NULL,10);
+           httpstatus=200;            
+		 } else if (strcmp(vname,"TargetSelect") == 0) {
+           scope_params.selectedTarget=strtol(vval,NULL,10);
            httpstatus=200;               			                 			 
 		 } else {
                httpstatus=500;
@@ -212,9 +221,9 @@ int websrv_scope_callback_get_desc (const struct _u_request * request, struct _u
         json_array_append_new(jgraph,agraph);
     }
   if (IS_SOFTMODEM_GNB_BIT) {			 
-	strcpy(stitle,"gNB scope");
+	strcpy(stitle,"gNB");
   } else if (IS_SOFTMODEM_5GUE_BIT) {
-    strcpy(stitle,"5G UE scope");
+    strcpy(stitle,"5GUE");
   } else {};
   json_t *jbody = json_pack("{s:s,s:o}","title",stitle,"graphs",jgraph);
   websrv_jbody(response,jbody);
