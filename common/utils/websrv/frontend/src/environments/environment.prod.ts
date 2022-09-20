@@ -4,5 +4,5 @@
 
 export const environment = {
   production: true,
-  backend: window.location.protocol + '//' + window.location.hostname + ':' + window.location.port + '/' //TODO window.location.origin ?
+  backend: window.location.hostname + ':' + window.location.port + '/'
 };

@@ -1,7 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { environment } from 'src/environments/environment';
-import { route } from 'src/app/api/commands.api';
 
 export enum IScopeGraphType {
     IQs = "IQs",
@@ -12,7 +11,7 @@ export enum IScopeGraphType {
 export interface IGraphDesc {
     title: string;
     type: IScopeGraphType;
-    id:   number;
+    id: number;
     srvidx: number;
 }
 
@@ -24,21 +23,24 @@ export interface IScopeDesc {
 export interface IScopeCmd {
     name: string;
     graphid?: number;   // the graph srvidx 
-    value:   string;
+    value: string;
 }
 
 export interface ISigDesc {
-	target_id: number;
-	antenna_id: number;
+    target_id: number;
+    antenna_id: number;
 }
+
+const route = 'oaisoftmodem/scopectrl/';
+
 @Injectable({
     providedIn: 'root',
 })
 export class ScopeApi {
     constructor(private httpClient: HttpClient) { }
 
-    public getScopeInfos$ = () => this.httpClient.get<IScopeDesc>(environment.backend + route + 'scopectrl/');
+    public getScopeInfos$ = () => this.httpClient.get<IScopeDesc>('http://' + environment.backend + route);
 
-    public setScopeParams$ = (cmd: IScopeCmd) => this.httpClient.post(environment.backend + route + 'scopectrl/', cmd);
+    public setScopeParams$ = (cmd: IScopeCmd) => this.httpClient.post('http://' + environment.backend + route, cmd);
 
 }

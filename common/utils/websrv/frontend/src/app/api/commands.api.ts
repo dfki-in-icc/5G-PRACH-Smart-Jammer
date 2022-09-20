@@ -97,22 +97,20 @@ export const route = 'oaisoftmodem/';
 export class CommandsApi {
     constructor(private httpClient: HttpClient) { }
 
-    public readInfos$ = () => this.httpClient.get<IInfo[]>(environment.backend + route + 'variables/');
+    public readInfos$ = () => this.httpClient.get<IInfo[]>('http://' + environment.backend + route + 'variables/');
 
-    public setInfo$ = (info: IInfo) => this.httpClient.post<IResp>(environment.backend + route + 'variables/', info);
+    public setInfo$ = (info: IInfo) => this.httpClient.post<IResp>('http://' + environment.backend + route + 'variables/', info);
 
-    public readModules$ = () => this.httpClient.get<IModule[]>(environment.backend + route + 'commands/');
+    public readModules$ = () => this.httpClient.get<IModule[]>('http://' + environment.backend + route + 'commands/');
 
-    public readVariables$ = (moduleName: string) => this.httpClient.get<IInfo[]>(environment.backend + route + moduleName + '/variables/');
+    public readVariables$ = (moduleName: string) => this.httpClient.get<IInfo[]>('http://' + environment.backend + route + moduleName + '/variables/');
 
-    public readCommands$ = (moduleName: string) => this.httpClient.get<ICommand[]>(environment.backend + route + moduleName + '/commands/');
+    public readCommands$ = (moduleName: string) => this.httpClient.get<ICommand[]>('http://' + environment.backend + route + moduleName + '/commands/');
 
-    public runCommand$ = (command: ICommand, moduleName: string) => this.httpClient.post<IResp>(environment.backend + route + moduleName + '/commands/', command);
+    public runCommand$ = (command: ICommand, moduleName: string) => this.httpClient.post<IResp>('http://' + environment.backend + route + moduleName + '/commands/', command);
 
-    public setCmdVariable$ = (variable: IInfo, moduleName: string) => this.httpClient.post<IResp>(environment.backend + route + moduleName + '/variables/', variable);
+    public setCmdVariable$ = (variable: IInfo, moduleName: string) => this.httpClient.post<IResp>('http://' + environment.backend + route + moduleName + '/variables/', variable);
 
-    public setCmdParams$ = (row: IRow, moduleName: string) => {
-        return this.httpClient.post<IResp>(environment.backend + route + moduleName + '/set/', row);
-    }
+    public setCmdParams$ = (row: IRow, moduleName: string) => this.httpClient.post<IResp>('http://' + environment.backend + route + moduleName + '/set/', row);
 
 }
