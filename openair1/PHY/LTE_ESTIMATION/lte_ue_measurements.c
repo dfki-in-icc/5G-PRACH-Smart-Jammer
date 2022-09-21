@@ -25,6 +25,7 @@
 #include "PHY/phy_extern_ue.h"
 #include "common/utils/LOG/log.h"
 #include "PHY/sse_intrin.h"
+#include "nfapi/oai_integration/vendor_ext.h"
 
 //#define k1 1000
 #define k1 ((long long int) 1000)
@@ -121,6 +122,12 @@ double get_RSRP(module_id_t Mod_id,uint8_t CC_id,uint8_t eNB_index)
 
   PHY_VARS_UE *ue = PHY_vars_UE_g[Mod_id][CC_id];
 
+  if (NFAPI_MODE == NFAPI_UE_STUB_PNF || NFAPI_MODE == NFAPI_MODE_STANDALONE_PNF) {
+    if (ue) {
+      return ue->measurements.rsrp_filtered[eNB_index];
+    }
+  }
+
   if (ue)
     return ((dB_fixed_times10(ue->measurements.rsrp[eNB_index]))/10.0-
 	    get_rx_total_gain_dB(Mod_id,0) -
@@ -132,6 +139,12 @@ uint32_t get_RSRQ(module_id_t Mod_id,uint8_t CC_id,uint8_t eNB_index)
 {
 
   PHY_VARS_UE *ue = PHY_vars_UE_g[Mod_id][CC_id];
+
+  if (NFAPI_MODE == NFAPI_UE_STUB_PNF || NFAPI_MODE == NFAPI_MODE_STANDALONE_PNF) {
+    if (ue) {
+      return ue->measurements.rsrq_filtered[eNB_index];
+    }
+  }
 
   if (ue)
     return ue->measurements.rsrq[eNB_index];

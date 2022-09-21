@@ -149,12 +149,18 @@ void ue_init_mac(module_id_t module_idP) {
     UE_mac_inst[module_idP].scheduling_info.LCID_buffer_remain[i] = 0;
   }
 
-  if(NFAPI_MODE==NFAPI_UE_STUB_PNF || NFAPI_MODE==NFAPI_MODE_STANDALONE_PNF) {
+  if (NFAPI_MODE == NFAPI_UE_STUB_PNF || NFAPI_MODE == NFAPI_MODE_STANDALONE_PNF) {
     pthread_mutex_init(&UE_mac_inst[module_idP].UL_INFO_mutex,NULL);
+    if (UE_mac_inst[module_idP].UE_mode[0] < PUSCH) {
+      UE_mac_inst[module_idP].SI_Decoded = 0;
+      next_ra_frame = 0;
+    }
+    else {
+      UE_mac_inst[module_idP].SI_Decoded = 1;
+      next_ra_frame = 500;
+    }
     UE_mac_inst[module_idP].UE_mode[0] = PRACH; //NOT_SYNCHED;
     UE_mac_inst[module_idP].first_ULSCH_Tx =0;
-    UE_mac_inst[module_idP].SI_Decoded = 0;
-    next_ra_frame = 0;
     next_Mod_id = 0;
   }
 }
@@ -2419,6 +2425,13 @@ ue_get_sdu(module_id_t module_idP, int CC_id, frame_t frameP,
       }
     }
   }
+  else if (UE_mac_inst[module_idP].RA_active == 1) {
+    if ((buflen >= 4) && (UE_mac_inst[module_idP].scheduling_info.BSR_bytes[0] > 0)) {
+      bsr_header_len = 1;
+      bsr_ce_len = sizeof(BSR_SHORT); //1 byte
+      UE_mac_inst[module_idP].scheduling_info.LCID_status[DCCH] = LCID_NOT_EMPTY;
+    }
+  }
 
   bsr_len = bsr_ce_len + bsr_header_len;
   phr_ce_len =
@@ -2835,7 +2848,7 @@ ue_get_sdu(module_id_t module_idP, int CC_id, frame_t frameP,
                                          sdu_lengths, // sdu length
                                          sdu_lcids, // sdu lcid
                                          phr_p, // power headroom
-                                         NULL,  // crnti
+                                         UE_mac_inst[module_idP].ho_active ? &UE_mac_inst[module_idP].crnti_for_ho : NULL,  // crnti
                                          bsr_t, // truncated bsr
                                          bsr_s, // short bsr
                                          bsr_l, post_padding);  // long_bsr
@@ -3292,7 +3305,11 @@ update_bsr(module_id_t module_idP, frame_t frameP,
         lcgid_buffer_remain[lcgid] += UE_mac_inst[module_idP].scheduling_info.LCID_buffer_remain[lcid];
       }
 
-      rlc_status = mac_rlc_status_ind(module_idP, UE_mac_inst[module_idP].crnti,eNB_index,frameP,subframeP,ENB_FLAG_NO,MBMS_FLAG_NO,
+      rnti_t crnti = UE_mac_inst[module_idP].crnti;
+      if (UE_mac_inst[module_idP].ho_active) {
+        crnti = UE_mac_inst[module_idP].crnti_before_ho;
+      }
+      rlc_status = mac_rlc_status_ind(module_idP, crnti, eNB_index,frameP,subframeP,ENB_FLAG_NO,MBMS_FLAG_NO,
                                       lcid,
                                       0, 0
                                      );

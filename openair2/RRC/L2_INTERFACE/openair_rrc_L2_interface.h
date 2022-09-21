@@ -154,4 +154,8 @@ void mac_in_sync_ind(
   const frame_t frameP,
   const uint16_t eNB_indexP);
 
+void rrc_update_ue_status(
+  const module_id_t module_idP,
+  const uint8_t eNB_indexP);
+
 #endif

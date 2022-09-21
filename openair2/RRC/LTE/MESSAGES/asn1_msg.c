@@ -4172,6 +4172,7 @@ uint8_t do_MeasurementReport(uint8_t Mod_id, uint8_t *buffer, size_t buffer_size
                              long rsrp_t, long rsrq_t) {
   asn_enc_rval_t enc_rval;
   LTE_UL_DCCH_Message_t ul_dcch_msg;
+  memset((void *)&ul_dcch_msg, 0, sizeof(ul_dcch_msg));
   LTE_MeasurementReport_t  *measurementReport;
   ul_dcch_msg.message.present                     = LTE_UL_DCCH_MessageType_PR_c1;
   ul_dcch_msg.message.choice.c1.present           = LTE_UL_DCCH_MessageType__c1_PR_measurementReport;
@@ -4197,29 +4198,34 @@ uint8_t do_MeasurementReport(uint8_t Mod_id, uint8_t *buffer, size_t buffer_size
   // measresult_cgi2->cellGlobalId.plmn_Identity.mcc=CALLOC(1,sizeof(measresult_cgi2->cellGlobalId.plmn_Identity.mcc));
   measresult_cgi2->cellGlobalId.plmn_Identity.mcc = CALLOC(1, sizeof(*measresult_cgi2->cellGlobalId.plmn_Identity.mcc));
   asn_set_empty(&measresult_cgi2->cellGlobalId.plmn_Identity.mcc->list);//.size=0;
-  LTE_MCC_MNC_Digit_t dummy;
-  dummy=2;
-  ASN_SEQUENCE_ADD(&measresult_cgi2->cellGlobalId.plmn_Identity.mcc->list,&dummy);
-  dummy=6;
-  ASN_SEQUENCE_ADD(&measresult_cgi2->cellGlobalId.plmn_Identity.mcc->list,&dummy);
-  dummy=2;
-  ASN_SEQUENCE_ADD(&measresult_cgi2->cellGlobalId.plmn_Identity.mcc->list,&dummy);
+
+  LTE_MCC_MNC_Digit_t dummy[6];
+  dummy[0]=3;
+  ASN_SEQUENCE_ADD(&measresult_cgi2->cellGlobalId.plmn_Identity.mcc->list,&dummy[0]);
+  dummy[1]=2;
+  ASN_SEQUENCE_ADD(&measresult_cgi2->cellGlobalId.plmn_Identity.mcc->list,&dummy[1]);
+  dummy[2]=0;
+  ASN_SEQUENCE_ADD(&measresult_cgi2->cellGlobalId.plmn_Identity.mcc->list,&dummy[2]);
   measresult_cgi2->cellGlobalId.plmn_Identity.mnc.list.size=0;
   measresult_cgi2->cellGlobalId.plmn_Identity.mnc.list.count=0;
-  dummy=8;
-  ASN_SEQUENCE_ADD(&measresult_cgi2->cellGlobalId.plmn_Identity.mnc.list,&dummy);
-  dummy=0;
-  ASN_SEQUENCE_ADD(&measresult_cgi2->cellGlobalId.plmn_Identity.mnc.list,&dummy);
+  dummy[3]=2;
+  ASN_SEQUENCE_ADD(&measresult_cgi2->cellGlobalId.plmn_Identity.mnc.list,&dummy[3]);
+  dummy[4]=3;
+  ASN_SEQUENCE_ADD(&measresult_cgi2->cellGlobalId.plmn_Identity.mnc.list,&dummy[4]);
+  dummy[5]=0;
+  ASN_SEQUENCE_ADD(&measresult_cgi2->cellGlobalId.plmn_Identity.mnc.list,&dummy[5]);
+
+  // cellIdentity is limited to 28 bits, hence bits_unused // 3GPP TS 23.003 (?)
   measresult_cgi2->cellGlobalId.cellIdentity.buf=MALLOC(8);
-  measresult_cgi2->cellGlobalId.cellIdentity.buf[0]=0x01;
-  measresult_cgi2->cellGlobalId.cellIdentity.buf[1]=0x48;
-  measresult_cgi2->cellGlobalId.cellIdentity.buf[2]=0x0f;
-  measresult_cgi2->cellGlobalId.cellIdentity.buf[3]=0x03;
+  measresult_cgi2->cellGlobalId.cellIdentity.buf[0]=0x00;
+  measresult_cgi2->cellGlobalId.cellIdentity.buf[1]=0x00;
+  measresult_cgi2->cellGlobalId.cellIdentity.buf[2]=0x00;
+  measresult_cgi2->cellGlobalId.cellIdentity.buf[3]=0x00;
   measresult_cgi2->cellGlobalId.cellIdentity.size=4;
   measresult_cgi2->cellGlobalId.cellIdentity.bits_unused=4;
   measresult_cgi2->trackingAreaCode.buf = MALLOC(2);
   measresult_cgi2->trackingAreaCode.buf[0]=0x00;
-  measresult_cgi2->trackingAreaCode.buf[1]=0x10;
+  measresult_cgi2->trackingAreaCode.buf[1]=0x05;
   measresult_cgi2->trackingAreaCode.size=2;
   measresult_cgi2->trackingAreaCode.bits_unused=0;
   measresulteutra2->cgi_Info=measresult_cgi2;

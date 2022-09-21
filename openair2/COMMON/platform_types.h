@@ -185,6 +185,7 @@ typedef enum config_action_e {
   CONFIG_ACTION_REMOVE            = 2,
   CONFIG_ACTION_MODIFY            = 3,
   CONFIG_ACTION_SET_SECURITY_MODE = 4,
+  CONFIG_ACTION_RESET             = 5,
   CONFIG_ACTION_MBMS_ADD          = 10,
   CONFIG_ACTION_MBMS_MODIFY       = 11
 } config_action_t;

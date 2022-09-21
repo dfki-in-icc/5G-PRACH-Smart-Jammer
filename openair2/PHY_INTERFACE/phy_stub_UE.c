@@ -485,8 +485,10 @@ void handle_nfapi_ul_pdu_UE_MAC(module_id_t Mod_id,
                                 nfapi_ul_config_request_t *ul_config_req) {
   if (ul_config_pdu->pdu_type == NFAPI_UL_CONFIG_ULSCH_PDU_TYPE) {
     LOG_D(PHY,
-          "Applying UL config for UE, rnti %x for frame %d, subframe %d\n",
+          "Applying UL config for UE, rnti %x rnti_ho 0x%x ho_active %d for frame %d, subframe %d\n",
           (ul_config_pdu->ulsch_pdu.ulsch_pdu_rel8).rnti,
+          UE_mac_inst[Mod_id].crnti_for_ho,
+          UE_mac_inst[Mod_id].ho_active,
           frame,
           subframe);
     uint8_t ulsch_buffer[5477] __attribute__((aligned(32)));
@@ -517,6 +519,10 @@ void handle_nfapi_ul_pdu_UE_MAC(module_id_t Mod_id,
         UE_mac_inst[Mod_id].UE_mode[0] = PUSCH;
         UE_mac_inst[Mod_id].first_ULSCH_Tx = 0;
 
+        if (UE_mac_inst[Mod_id].ho_active) {
+          UE_mac_inst[Mod_id].crnti = UE_mac_inst[Mod_id].crnti_for_ho;
+          UE_mac_inst[Mod_id].ho_active = false;
+        }
         // This should be done after the reception of the respective hi_dci0
         // UE_mac_inst[Mod_id].first_ULSCH_Tx = 0;
       } else {
@@ -825,7 +831,7 @@ void dl_config_req_UE_MAC_dci(int sfn,
               sfn, sf, dci->pdu_size,
               dlsch->dlsch_pdu.dlsch_pdu_rel8.pdu_index,
               tx_req_pdu_list->num_pdus);
-        if (node_number > 0 || !should_drop_transport_block(sf, dci->dci_dl_pdu.dci_dl_pdu_rel8.rnti))
+        if (get_softmodem_params()->node_number > 0 || !should_drop_transport_block(sf, dci->dci_dl_pdu.dci_dl_pdu_rel8.rnti))
         {
           ue_send_sdu(ue_id, 0, sfn, sf,
               tx_req_pdu_list->pdus[pdu_index].segments[0].segment_data,
@@ -1282,6 +1288,9 @@ void *ue_standalone_pnf_task(void *context)
   nfapi_dl_config_request_t dl_config_req;
   bool tx_req_valid = false;
   bool dl_config_req_valid = false;
+  uint16_t prev_sfn_sf = 0xFFFF;
+  uint16_t num_recvd_current_sfn_sf = 1;
+  extern int num_enbs;
   while (true)
   {
     ssize_t len = recvfrom(sd, buffer, sizeof(buffer), MSG_TRUNC, (struct sockaddr *)&server_address, &addr_len);
@@ -1300,40 +1309,66 @@ void *ue_standalone_pnf_task(void *context)
        the length of the message. This works because sizeof(uint16_t) < sizeof(nfapi_p7_message_header_t)
        and sizeof(phy_channel_params_t) < sizeof(nfapi_p7_message_header_t) and
        sizeof(uint16_t) != sizeof(phy_channel_params_t). */
-    if (len == sizeof(uint16_t))
+    if (len == sizeof(sfn_sf_info_t))
     {
-      uint16_t sfn_sf = 0;
-      memcpy((void *)&sfn_sf, buffer, sizeof(sfn_sf));
-      current_sfn_sf = sfn_sf;
+      sfn_sf_info_t sfn_sf_info;
+      memcpy((void *)&sfn_sf_info, buffer, sizeof(sfn_sf_info_t));
+      uint16_t sfn_sf = sfn_sf_info.sfn_sf;
+      uint16_t phy_id = sfn_sf_info.phy_id;
 
-      if (sem_post(&sfn_semaphore) != 0)
+      LOG_D(MAC, "Received sfn_slot[%hu] frame: %u, subframe: %u from phy_id %u\n", sfn_sf_info.phy_id,
+            sfn_sf_info.sfn_sf >> 4, sfn_sf_info.sfn_sf & 15, phy_id);
+      if (prev_sfn_sf == sfn_sf)
+        ++num_recvd_current_sfn_sf;
+      if (num_recvd_current_sfn_sf == num_enbs)
       {
-        LOG_E(MAC, "sem_post() error\n");
-        abort();
+        current_sfn_sf = sfn_sf;
+
+        if (sem_post(&sfn_semaphore) != 0)
+        {
+          LOG_E(MAC, "sem_post() error\n");
+          abort();
+        }
+        num_recvd_current_sfn_sf = 1;
       }
+      prev_sfn_sf = sfn_sf;
     }
     else if (get_message_id((const uint8_t *)buffer, len) == 0x0FFF) // 0x0FFF : channel info identifier.
     {
       phy_channel_params_t ch_info;
       memcpy(&ch_info, buffer, sizeof(phy_channel_params_t));
-      current_sfn_sf = ch_info.sfn_sf;
-      if (sem_post(&sfn_semaphore) != 0)
-      {
-        LOG_E(MAC, "sem_post() error\n");
-        abort();
-      }
-      uint16_t sf = ch_info.sfn_sf & 15;
-      assert(sf < 10);
+      uint16_t sfn_sf = ch_info.sfn_sf;
 
-      if (ch_info.nb_of_sinrs > 1)
-        LOG_W(MAC, "Expecting at most one SINR.\n");
-
-      // TODO: Update sinr field of slot_rnti_mcs to be array.
-      for (int i = 0; i < ch_info.nb_of_sinrs; ++i)
+      if (prev_sfn_sf == sfn_sf)
+        ++num_recvd_current_sfn_sf;
+      if (num_recvd_current_sfn_sf == num_enbs)
       {
-        sf_rnti_mcs[sf].sinr = ch_info.sinr[i];
-        LOG_D(MAC, "Received_SINR[%d] = %f\n", i, ch_info.sinr[i]);
+        current_sfn_sf = sfn_sf;;
+
+        if (sem_post(&sfn_semaphore) != 0)
+        {
+          LOG_E(MAC, "sem_post() error\n");
+          abort();
+        }
+        uint16_t sf = ch_info.sfn_sf & 15;
+        assert(sf < 10);
+        num_recvd_current_sfn_sf = 1;
+        if (ch_info.nb_of_csi > 1)
+          LOG_W(MAC, "Expecting one CSI report.\n");
+
+        // TODO: Update sinr field of slot_rnti_mcs to be array.
+        for (int i = 0; i < ch_info.nb_of_csi; ++i)
+        {
+          if (ch_info.csi[i].source > num_enbs)
+            continue;
+          assert(ch_info.csi[i].source > 0 && ch_info.csi[i].source <= MAX_MEAS_CELLS);
+          sf_rnti_mcs[sf].rsrp[ch_info.csi[i].source - 1] = ch_info.csi[i].rsrp;
+          sf_rnti_mcs[sf].neigh_cell_sinr[ch_info.csi[i].source - 1] = ch_info.csi[i].sinr;
+        }
+        sf_rnti_mcs[sf].sinr = sf_rnti_mcs[sf].neigh_cell_sinr[UE_mac_inst[0].targetPhysCellId];
+        LOG_D(MAC, "Received_SINR[%d] = %f\n", sf, sf_rnti_mcs[sf].sinr);
       }
+      prev_sfn_sf = sfn_sf;
     }
     else
     {
@@ -1341,6 +1376,11 @@ void *ue_standalone_pnf_task(void *context)
       if (nfapi_p7_message_header_unpack((void *)buffer, len, &header, sizeof(header), NULL) < 0)
       {
         LOG_E(MAC, "Header unpack failed for standalone pnf\n");
+        continue;
+      }
+      if (UE_mac_inst[0].targetPhysCellId != header.phy_id)
+      {
+        LOG_D(MAC, "Discarding the detached eNB%d message\n", header.phy_id);
         continue;
       }
       switch (header.message_id)
@@ -2084,7 +2124,19 @@ static inline bool is_channel_modeling(void)
      mode. It does not crash for LTE mode. We have not implemented channel
      modeling for NSA mode yet. For now, we ensure only do do chanel modeling
      in LTE mode. */
-  return node_number == 0 && !get_softmodem_params()->nsa;
+  if (num_enbs >= 2) {
+    LOG_T(MAC, "Channel modeling is not supported in LTE handover mode.\n");
+    return false;
+  }
+  if (get_softmodem_params()->node_number != 0) {
+    LOG_T(MAC, "Channel modeling is not supported in open-source proxy.\n");
+    return false;
+  }
+  if (get_softmodem_params()->nsa) {
+    LOG_T(MAC, "Channel modeling is not supported in NSA mode.\n");
+    return false;
+  }
+  return true;
 }
 
 static bool should_drop_transport_block(int sf, uint16_t rnti)
@@ -2100,7 +2152,7 @@ static bool should_drop_transport_block(int sf, uint16_t rnti)
   UE_STATE_t state = UE_rrc_inst[0].Info[0].State;
   if (state < RRC_CONNECTED)
   {
-    LOG_I(MAC, "Not dropping because state: %d", state);
+    LOG_I(MAC, "Not dropping because state: %d\n", state);
     return false;
   }
 
@@ -2147,4 +2199,9 @@ static bool should_drop_transport_block(int sf, uint16_t rnti)
     abort();
   }
   return false;
+}
+
+float update_measurements(uint16_t sfn_sf, int eNB_index)
+{
+  return sf_rnti_mcs[sfn_sf & 15].rsrp[eNB_index];
 }
