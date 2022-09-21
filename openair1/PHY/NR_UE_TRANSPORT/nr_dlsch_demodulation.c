@@ -563,13 +563,13 @@ int nr_rx_pdsch(PHY_VARS_NR_UE *ue,
   write_output(filename, "dl_ch_estimates", &pdsch_vars[gNB_id]->dl_ch_estimates[aa][frame_parms->ofdm_symbol_size*symbol],frame_parms->ofdm_symbol_size, 1, 1);
 
   snprintf(filename, 50, "rxdataF_ext0%d_symb_%d_nr_slot_rx_%d.m", aa, symbol, nr_slot_rx);
-  write_output(filename, "rxdataF_ext", &pdsch_vars[gNB_id]->rxdataF_ext[aa][symbol*frame_parms->N_RB_DL*NR_NB_SC_PER_RB], frame_parms->N_RB_DL*NR_NB_SC_PER_RB, 1, 1);
+  write_output(filename, "rxdataF_ext", &pdsch_vars[gNB_id]->rxdataF_ext[aa][symbol*nb_rb_pdsch*NR_NB_SC_PER_RB], nb_rb_pdsch*NR_NB_SC_PER_RB, 1, 1);
 
   snprintf(filename, 50, "dl_ch_estimates_ext0%d_symb_%d_nr_slot_rx_%d.m", aa, symbol, nr_slot_rx);
-  write_output(filename, "dl_ch_estimates_ext00", &pdsch_vars[gNB_id]->dl_ch_estimates_ext[aa][symbol*frame_parms->N_RB_DL*NR_NB_SC_PER_RB], frame_parms->N_RB_DL*NR_NB_SC_PER_RB, 1, 1);
+  write_output(filename, "dl_ch_estimates_ext00", &pdsch_vars[gNB_id]->dl_ch_estimates_ext[aa][symbol*nb_rb_pdsch*NR_NB_SC_PER_RB], nb_rb_pdsch*NR_NB_SC_PER_RB, 1, 1);
 
   snprintf(filename, 50, "rxdataF_comp0%d_symb_%d_nr_slot_rx_%d.m", aa, symbol, nr_slot_rx);
-  write_output(filename, "rxdataF_comp00", &pdsch_vars[gNB_id]->rxdataF_comp0[aa][symbol*frame_parms->N_RB_DL*NR_NB_SC_PER_RB], frame_parms->N_RB_DL*NR_NB_SC_PER_RB, 1, 1);
+  write_output(filename, "rxdataF_comp00", &pdsch_vars[gNB_id]->rxdataF_comp0[aa][symbol*nb_rb_pdsch*NR_NB_SC_PER_RB], nb_rb_pdsch*NR_NB_SC_PER_RB, 1, 1);
 /*
   for (int i=0; i < 2; i++){
     snprintf(filename, 50,  "llr%d_symb_%d_nr_slot_rx_%d.m", i, symbol, nr_slot_rx);
