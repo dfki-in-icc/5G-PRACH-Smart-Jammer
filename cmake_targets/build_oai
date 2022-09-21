@@ -162,8 +162,6 @@ Options:
    Build eclipse project files.
 --build-lib <libraries>
    Build optional shared library, <libraries> can be one or several of $OPTIONAL_LIBRARIES or \"all\"
---usrp-recplay
-   Build for I/Q record-playback modes
 --noavx512
    Disable AVX512 intrinsics whatever processor capability is
 --noavx2
