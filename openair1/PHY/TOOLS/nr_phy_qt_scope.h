@@ -32,13 +32,19 @@
 #include <QLineSeries>
 
 extern "C" {
+#include <simple_executable.h>
 #include <common/utils/system.h>
+#include "common/ran_context.h"
+#include <openair1/PHY/defs_gNB.h>
 #include "PHY/defs_gNB.h"
 #include "PHY/defs_nr_UE.h"
 #include "PHY/defs_RU.h"
 #include "executables/softmodem-common.h"
 #include "phy_scope_interface.h"
-#include "openair2/LAYER2/NR_MAC_gNB/mac_proto.h"
+#include <openair2/LAYER2/NR_MAC_gNB/mac_proto.h>
+#include "PHY/CODING/nrPolar_tools/nr_polar_defs.h"
+
+extern RAN_CONTEXT_t RC;
 }
 
 // drop-down list UE
@@ -90,16 +96,7 @@ public:
     double *waterFallAvg;
     bool isWaterFallTimeActive;
 
-    enum UEdataType {
-        uePdschIQ,
-        uePbchIQ,
-        uePdcchIQ,
-        uePdschLLR,
-        uePbchLLR,
-        uePdcchLLR,
-        ueWaterFallTime
-    };
-
+    extended_kpi_ue extendKPIUE;
 
 protected:
     void paintEvent(QPaintEvent *event);
@@ -150,13 +147,18 @@ public:
 
     QComboBox *parentWindow;
 
-    extended_kpi extendKPIgNB;
-    extended_kpi_gNB extendKPIgNB_1;
-    int idx_ULBLER;
+    extended_kpi_gNB extendKPIgNB;
+
+    NR_UE_info_t *targetUE;
 
     QLineSeries *seriesULBLER;
+    QLineSeries *seriesULMCS;
     QLineSeries *seriesDLBLER;
     QLineSeries *seriesDLMCS;
+    QLineSeries *seriesULThrou;
+    QLineSeries *seriesDLThrou;
+
+    float ul_thr_ue, dl_thr_ue;
 
 protected:
     void paintEvent(QPaintEvent *event);
@@ -166,12 +168,16 @@ public slots:
     void KPI_PuschLLR();
     void KPI_ChannelResponse();
     void KPI_UL_BLER();
+    void KPI_UL_MCS();
     void KPI_DL_BLER();
     void KPI_DL_MCS();
+    void KPI_UL_Throu();
+    void KPI_DL_Throu();
 
 private:
     scopeData_t *p;
     int indexToPlot;
+    int previousIndex;
 };
 
 

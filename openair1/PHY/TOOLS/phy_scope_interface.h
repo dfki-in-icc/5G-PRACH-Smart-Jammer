@@ -29,29 +29,51 @@
  * \note
  * \warning
  */
-#ifndef __PHY_SCOPE_INTERFACE_H__
-#define __PHY_SCOPE_INTERFACE_H__
+#ifndef __PHY_SCOPE_INTERFACE_H
+#define __PHY_SCOPE_INTERFACE_H
 #include <openair1/PHY/defs_gNB.h>
 #include <openair1/PHY/defs_nr_UE.h>
 
 typedef struct {
-  float UP_BLER;    // Uplink BLock Error Rate
-  float UP_MCS;    // Uplink MCS
+  // Uplink BLock Error Rate
+  int idx_ULBLER;
 
-  float DL_BLER;    // Downlink BLock Error Rate
-  float DL_MCS;    // Downlink MCS
-}extended_kpi;
+  // Uplink MCS
+  float UL_MCS_max;
+  int idx_ULMCS;
+
+  // Downlink BLock Error Rate
+  int idx_DLBLER;
+
+  // Downlink MCS
+  float DL_MCS_max;
+  int idx_DLMCS;
+
+  // UL Throughput
+  float UL_Throu_max;
+  int idx_ULThrou;
+
+  // DL Throughput
+  float DL_Throu_max;
+  int idx_DLThrou;
+
+}extended_kpi_gNB;
 
 typedef struct {
-  float UL_BLER;    // Uplink BLock Error Rate
-  float UL_MCS;    // Uplink MCS
+  int idx_BLER;
+  float DL_BLER;
 
-  float DL_BLER;    // Downlink BLock Error Rate
-  float DL_MCS;    // Downlink MCS
+  int idx_throu;
+  double throu;
 
-  int idx_DLBLER;
-  int idx_DLMCS;
-}extended_kpi_gNB;
+  int idx_mcs;
+  uint8_t dl_mcs;
+
+  int idx_nofRBs;
+  uint16_t nofRBs;
+
+}extended_kpi_ue;
+
 
 typedef struct {
   int *argc;
@@ -61,13 +83,11 @@ typedef struct {
 } scopeParms_t;
 
 enum UEdataType {
-  pucchllr,
-  pucchRxDataF_comp,
   pbchDlChEstimateTime,
-  pbchLlr,
-  pbchRxdataF_comp,
-  pdcchLlr,
   pdcchRxdataF_comp,
+  pdcchLlr,
+  pbchRxdataF_comp,
+  pbchLlr,
   UEdataTypeNumberOfItems
 };
 
@@ -77,17 +97,16 @@ typedef struct scopeData_s {
   RU_t *ru;
   PHY_VARS_gNB *gNB;
   void *liveData;
+  void *liveDataUE;
   void (*slotFunc)(int32_t *data, int slot,  void *scopeData);
   void (*copyData)(PHY_VARS_NR_UE *,enum UEdataType, void *data, int elementSz, int colSz, int lineSz);
-  void (*copyDatagNB)(PHY_VARS_gNB *,enum UEdataType, void *data, int elementSz, int colSz, int lineSz);
 } scopeData_t;
 
 int load_softscope(char *exectype, void *initarg);
 int end_forms(void) ;
 
 #define UEscopeCopy(ue, type, ...) if(ue->scopeData) ((scopeData_t*)ue->scopeData)->copyData(ue, type, ##__VA_ARGS__);
-#define gNBscopeCopy(gNB, type, data, elementSZ, colSz, lineSz) if(gNB->scopeData) ((scopeData_t*)gNB->scopeData)->copyDatagNB(gNB, type, data, elementSZ, colSz, lineSz);
 
-void getKPIgNB(extended_kpi_gNB* kpiStructure);
+void getKPIUE(extended_kpi_ue* kpiStructure);
 
 #endif

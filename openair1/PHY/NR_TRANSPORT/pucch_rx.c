@@ -1691,7 +1691,6 @@ void nr_decode_pucch2(PHY_VARS_gNB *gNB,
       } // half_prb
     } // symb
 
-    gNBscopeCopy(gNB, pucchllr, llrs, sizeof(__m128i), 2*pucch_pdu->prb_size, pucch_pdu->nr_of_symbols);
     // run polar decoder on llrs
     decoderState = polar_decoder_int16((int16_t*)llrs, decodedPayload, 0, 2,nb_bit,pucch_pdu->prb_size);
     LOG_D(PHY,"UCI decoderState %d, payload[0] %llu\n",decoderState,(unsigned long long)decodedPayload[0]);

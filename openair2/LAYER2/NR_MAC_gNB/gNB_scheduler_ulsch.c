@@ -538,8 +538,6 @@ void handle_nr_ul_harq(const int CC_idP,
           crc_pdu->rnti);
     add_tail_nr_list(&sched_ctrl->retrans_ul_harq, harq_pid);
   }
-
-  printf("nofBlocks: %i, nofErrors: %i, rnti: %u \n", nofBlocks, nofErrors, crc_pdu->rnti);
 }
 
 /*
