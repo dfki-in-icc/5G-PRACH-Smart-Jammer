@@ -40,7 +40,10 @@
 				 </mat-option>
 			  </mat-select>
 		      </mat-form-field>
-	        </mat-list-item>             
+	        </mat-list-item> 
+	        <br><br>
+	       <mat-slide-toggle [checked]="data_ACK" (change)="onDataACKchange()" [(ngModel)]="data_ACK">data ack
+           </mat-slide-toggle>            
         </mat-card-content> 
       </mat-card>
     </mat-grid-tile>
@@ -72,7 +75,7 @@
                 [type]="'scatter'">
               </canvas>
               </div>
-            <div fxFlex="0 1 10%"  style="width:60%">
+            <div fxFlex="0 1 5%"  style="width:60%">
 	        <mat-list-item class="llrchannelselect" role="listitem">
 		      <mat-form-field class="select-form">
 			  <mat-select placeholder="Channels(llr view)" name="llrChannelsSelect" class="ChannelsSelect" multiple [value]="selected_llrchannels" (selectionChange)="llrchannelsChanged($event.value)" >
@@ -83,6 +86,16 @@
 		      </mat-form-field>
 	        </mat-list-item> 
 	        </div>
+	        <div fxFlex="0 1 5%"  style="width:60%">
+              <div class="scope-slider-div">
+                <label id="scope-slider-ythresh-labelid" class="scope-slider-label">y threshold </label>
+                <label class="scope-slider-value-label"> {{llrythresh}} </label>
+              </div>           
+              <mat-slider class="scope-slider" min="0" max="100" step="1" [value]="llrythresh" 
+                        aria-labelledby="scope-slider-ythresh-labelid" thumbLabel="true" 
+                        [(ngModel)]="llrythresh" (change)="OnYthreshChange()" > 
+              </mat-slider>				
+			</div>
 	      </div>                 
         </mat-card-content>
       </mat-card>
@@ -112,33 +125,29 @@
 	        </mat-list-item>
 	        </div>
 	        <div fxFlex="0 1 5%">            
-            <div class="form-group" fxFlex="50%">  
-            <div class="scope-slider-div">
-            <label id="xfilter" class="scope-slider-label"> xmin xmax: </label>
-            <label class="scope-slider-value-label"> {{iqxmin}} {{iqxmax}} </label>
-            </div> 				        
-            <mat-slider class="scope-slider" [min]="iqmin" max="0" invert="true" [step]="iqsliderstep" [value]="iqxmin" 
-                        aria-labelledby="xfilter" thumbLabel="true" 
-                        [(ngModel)]="iqxmin" (change)="OnIQxminsliderChange()" xmin> 
-            </mat-slider>
-            <mat-slider class="scope-slider" min="0" [max]="iqmax" [step]="iqsliderstep" [value]="iqxmax" 
-                        aria-labelledby="xfilter" thumbLabel="true" 
-                        [(ngModel)]="iqxmax" (change)="OnIQxmaxsliderChange()" > 
-            </mat-slider> 
+            <div class="form-group" fxFlex="25%">  	
+            <mat-form-field appearance="fill">
+            <mat-label>xmin</mat-label>
+            <input matInput type="number" (change)="OnIQxminChange()" [value]="iqxmin" [(ngModel)]="iqxmin" min="iqmin" [max]="iqmax"> 
+            </mat-form-field>
             </div>
-            <div class="form-group" fxFlex="50%">
-            <div class="scope-slider-div">
-            <label id="yfilter" class="scope-slider-label"> ymin ymax: </label>
-            <label class="scope-slider-value-label"> {{iqymin}} {{iqymax}} </label>
-            </div> 					
-            <mat-slider class="scope-slider" [min]="iqmin" max="0" invert="true" [step]="iqsliderstep" [value]="iqymin" 
-                        aria-labelledby="yfilter" thumbLabel="true" 
-                        [(ngModel)]="iqymin" (change)="OnIQyminsliderChange()" > 
-            </mat-slider> 
-            <mat-slider class="scope-slider" min="0" [max]="iqmax" [step]="iqsliderstep" [value]="iqymax" 
-                        aria-labelledby="yfilter" thumbLabel="true" 
-                        [(ngModel)]="iqymax" (change)="OnIQymaxsliderChange()" > 
-            </mat-slider>
+            <div class="form-group" fxFlex="25%">
+            <mat-form-field appearance="fill">
+            <mat-label>xmax</mat-label>
+            <input matInput type="number" (change)="OnIQxmaxChange()" [value]="iqxmax" [(ngModel)]="iqxmax" min="iqmin" [max]="iqmax">
+            </mat-form-field>           			        
+            </div>
+            <div class="form-group" fxFlex="25%">	
+            <mat-form-field appearance="fill">
+            <mat-label>ymin</mat-label>
+            <input matInput type="number" (change)="OnIQyminChange()" [value]="iqymin" [(ngModel)]="iqymin" min="iqmin" [max]="iqmax"> 
+            </mat-form-field>
+            </div>
+            <div class="form-group" fxFlex="25%">
+            <mat-form-field appearance="fill">
+            <mat-label>ymax</mat-label>
+            <input matInput type="number" (change)="OnIQymaxChange()" [value]="iqymax" [(ngModel)]="iqymax" min="iqmin" [max]="iqmax">
+            </mat-form-field>     
             </div>                               
             </div>
           </div>

@@ -10,6 +10,7 @@ const SCOPEMSG_TYPE_STATUSUPD=1;
 const SCOPEMSG_TYPE_REFRATE=2;
 const SCOPEMSG_TYPE_TIME=3;
 const SCOPEMSG_TYPE_DATA=10;
+const SCOPEMSG_TYPE_DATAACK=11;
 
 
 const SCOPEMSG_DATA_IQ=1;
@@ -31,8 +32,7 @@ export class ScopeComponent {
   rfrate = 2;
   iqmax = 32767;
   iqmin = -32767;
-
-  iqsliderstep=10;
+  data_ACK=false;
   iqxmin=this.iqmin;
   iqymin=this.iqmin;
   iqxmax=this.iqmax;
@@ -43,7 +43,7 @@ export class ScopeComponent {
   llrgraph_list : IGraphDesc[] = [];  
   target_list : number[] = [0,1,2,3];
   selected_sig : ISigDesc ={target_id:0, antenna_id:0};
-
+  llrythresh=0;
   
   @Output() ScopeEnabled = new EventEmitter<boolean>();
 
@@ -63,7 +63,7 @@ export class ScopeComponent {
       backgroundColor:'yellow',
       borderWidth:0,
       pointBorderColor:'yellow',
-//      parsing: false,
+//    parsing: false,
     },
     {
       data: [],
@@ -174,10 +174,11 @@ export class ScopeComponent {
      console.log("Scope ngOnInit ");
      this.SigChanged(this.selected_sig.target_id);
      this.OnRefrateChange();
-     this.OnIQxminsliderChange();
-     this.OnIQxmaxsliderChange();
-     this.OnIQyminsliderChange();
-     this.OnIQymaxsliderChange();    
+     this.OnIQxminChange();
+     this.OnIQxmaxChange();
+     this.OnIQyminChange();
+     this.OnIQymaxChange();
+     this.OnYthreshChange();   
   } 
  
   DecodScopeBinmsgToString(message: ArrayBuffer) {
@@ -231,6 +232,7 @@ export class ScopeComponent {
 			    for ( let i=0;i<bufferview.byteLength; i=i+4) {
                   this.IQDatasets[message.dataid].data[i/4]={ x:bufferview.getInt16(i, true) , y: bufferview.getInt16(i+2, true)};
                 }
+                
                 if(message.update) {
 				  console.log("Starting scope update chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
 		          this.charts?.forEach((child,index) => { child.chart?.update() });                  
@@ -238,9 +240,14 @@ export class ScopeComponent {
 			    }
               break;
 			  case SCOPEMSG_DATA_LLR:
-			    for ( let i=0;i<bufferview.byteLength;i++) {
-                  this.LLRDatasets[message.dataid].data[i]={ x: i, y: bufferview.getInt8(i)};
+			    let xoffset=0;
+			    let d=0
+			    for ( let i=0;i<(bufferview.byteLength-1-4);i=i+2) {
+				  xoffset=xoffset+bufferview.getInt8(i+1);
+                  this.LLRDatasets[message.dataid].data[d]={ x: xoffset, y: bufferview.getInt8(i)};
+                  d++;
                 }
+                this.LLRDatasets[message.dataid].data[d]={ x:bufferview.getInt32(bufferview.byteLength-4, true) , y: 0};
                 if(message.update) {
 				  console.log("Starting scope update chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
 		          this.charts?.forEach((child,index) => { child.chart?.update() });                  
@@ -250,6 +257,8 @@ export class ScopeComponent {
                 default:
                 break;
 		      }
+		      
+		      this.sendMsg(SCOPEMSG_TYPE_DATAACK,"Chart " + message.chartid.toString() + ", dataset " + message.dataid.toString() );
           break;
           default:
             break;				
@@ -330,21 +339,22 @@ export class ScopeComponent {
   }
   
   OnRefrateChange() {
-	 this.scopeApi.setScopeParams$({name:"refrate",value:(this.rfrate*10).toString()}).subscribe(); 
+	 this.SendScopeParams("refrate",(this.rfrate*10).toString(),0); 
   }
   
-  OnIQxminsliderChange() {
-	 this.scopeApi.setScopeParams$({name:"xmin",value:(this.iqxmin).toString()}).subscribe();
+  OnIQxminChange() {
+	 this.SendScopeParams("xmin",(this.iqxmin).toString(),0);
   } 
-  OnIQxmaxsliderChange() {
-	 this.scopeApi.setScopeParams$({name:"xmax",value:(this.iqxmax).toString()}).subscribe();
+  OnIQxmaxChange() {
+	 this.SendScopeParams("xmax",(this.iqxmax).toString(),0);
   }   
-  OnIQyminsliderChange() {
-	 this.scopeApi.setScopeParams$({name:"ymin",value:(this.iqymin).toString()}).subscribe();
+  OnIQyminChange() {
+	 this.SendScopeParams("ymin",(this.iqymin).toString(),0);
   } 
-  OnIQymaxsliderChange() {
-	 this.scopeApi.setScopeParams$({name:"ymax",value:(this.iqymax).toString()}).subscribe();
+  OnIQymaxChange() {
+	 this.SendScopeParams("ymax",(this.iqymax).toString(),0);
   }   
+  
   channelsChanged(value: string[]) {
     this.selected_channels=value;
     for (let i=0; i<this.iqgraph_list.length; i++) {
@@ -376,5 +386,13 @@ export class ScopeComponent {
     this.selected_sig.target_id=value;
     this.scopesubtitle=  value.toString();
 	this.SendScopeParams("TargetSelect",value.toString(),0);
+  }
+  
+  onDataACKchange() {
+	this.SendScopeParams("DataAck",this.data_ACK.toString(),0);  
+  }
+   
+  OnYthreshChange() {
+	this.SendScopeParams("llrythresh",this.llrythresh.toString(),0);  
   }    
 }

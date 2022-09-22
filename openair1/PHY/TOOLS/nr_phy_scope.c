@@ -109,20 +109,46 @@ int websrv_cpiqbuff_tomsg(OAIgraph_t *graph, scopeSample_t *c,int n, int id, int
   return newn;
 }
 
-int websrv_cpllrbuff_tomsg(OAIgraph_t *graph, int16_t *llrs,int n, int id) {
+int websrv_cpllrbuff_tomsg(OAIgraph_t *graph, int16_t *llrs, int n, int id) {
 
   websrv_scopedata_msg_t *msg;
   websrv_nf_getdata(graph->graph, id,&msg);
-  
+  websrv_scope_params_t *WP=websrv_scope_getparams();
   if (n>MAX_LLR_WEBSOCKMSG) {
     LOG_E(UTIL,"Buffer id %i too small for %i iqs...\n",id,n);
     return 0;
   }
-
+  int newn=0;
+  int xoffset=1;
+  int maxx=0;
   for ( int i=0; i<n; i++) {
-	    ((char *)(msg->data_xy))[i]=(int8_t)llrs[i];
+	  if (llrs[i] >= WP->llr_ythresh || llrs[i] <= -WP->llr_ythresh ) {
+	    ((int8_t *)(msg->data_xy))[newn]=(int8_t)llrs[i];
+	    ((int8_t *)(msg->data_xy))[newn+1]=(int8_t)xoffset;
+	    maxx=maxx+xoffset;
+	    xoffset=1;
+	    newn=newn+2;
+	  } else {
+		xoffset++;
+	  }
 	} 
-  return n;
+
+
+  /*
+  for ( int i=0; i<(newn-1); i=i+2) {
+	  for (int j=i+2 ; j<(i+(xres*2)) && j<(newn-1); j=j+2) {
+         if ( ((msg->data_xy[j] - msg->data_xy[i]) <  yres) || 	((msg->data_xy[i] - msg->data_xy[j]) <  yres) ) {
+			 newn=newn-2;
+			 for (int k = j; k< newn; k++) {
+				((int8_t *)(msg->data_xy))[k] = (int8_t)msg->data_xy[k+2];
+				((int8_t *)(msg->data_xy))[k+1] = (int8_t)msg->data_xy[k+3];
+			 }
+	     }	  
+	  }
+  } */
+  ((int32_t *)(msg->data_xy))[newn]=n;
+  newn=newn+2;
+  return newn;
 }
 #endif
 static void commonGraph(OAIgraph_t *graph, int type, FL_Coord x, FL_Coord y, FL_Coord w, FL_Coord h, const char *label, FL_COLOR pointColor) {
@@ -414,8 +440,9 @@ static void puschLLR (OAIgraph_t *graph, scopeData_t *p, int nb_UEs) {
          p->gNB->pusch_vars[ue]->llr ) {
       int16_t *pusch_llr = (int16_t *)p->gNB->pusch_vars[ue]->llr;
       float *llr, *bit;
+      int nx=coded_bits_per_codeword;
 #ifdef WEBSRVSCOPE
-      websrv_cpllrbuff_tomsg(graph,pusch_llr ,coded_bits_per_codeword, ue);
+      nx=websrv_cpllrbuff_tomsg(graph,pusch_llr , coded_bits_per_codeword, ue);
 #else      
       oai_xygraph_getbuff(graph, &bit, &llr, coded_bits_per_codeword, ue);
 
@@ -423,7 +450,7 @@ static void puschLLR (OAIgraph_t *graph, scopeData_t *p, int nb_UEs) {
         llr[i] = (float) pusch_llr[i];
       }
 #endif
-      oai_xygraph(graph,bit,llr,coded_bits_per_codeword,ue,10);
+      oai_xygraph(graph,bit,llr,nx,ue,10);
     }
   }
 }

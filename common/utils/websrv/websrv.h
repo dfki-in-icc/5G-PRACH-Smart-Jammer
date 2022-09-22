@@ -89,6 +89,7 @@ typedef struct {
 #define SCOPE_STATUSMASK_UNKNOWN         0          // websocket initialized, no scope request received
 #define SCOPE_STATUSMASK_AVAILABLE       1          // scope can be started (available in exec and not started with other if */
 #define SCOPE_STATUSMASK_STARTED         2          // scope running
+#define SCOPE_STATUSMASK_DATAACK         4          // wait for data message acknowledge before sending
 #define SCOPE_STATUSMASK_DISABLED        (1LL<<63)  // scope disabled (running with xform interface or not implemented in exec)
 
 /* values for websocket message type */
@@ -97,6 +98,7 @@ typedef struct {
 #define SCOPEMSG_TYPE_REFRATE            2    // scope refresh delay
 #define SCOPEMSG_TYPE_TIME               3    // time
 #define SCOPEMSG_TYPE_DATA               10   // graph data
+#define SCOPEMSG_TYPE_DATAACK            11   // graph data reception and processing acknowledge
 #define SCOPEMSG_TYPE_DEFINEWINDOW       20   // scope window definition 
 typedef struct {
 	 uint64_t statusmask;                     // 
@@ -104,10 +106,11 @@ typedef struct {
 	 void  *scopeform;                        // OAI_phy_scope_t pointer returned by create_phy_scope_xxx functions
 	 void  *scopedata;                        // scopeData_t pointer, filled at init time, contains pointers and functions to retrieve softmodem data
      uint32_t selectedTarget;                   // index to UE/gNB 
-     int   xmin;                              // data limit
+     int   xmin;                              // iq view data limit
      int   xmax;
      int   ymin;
      int   ymax;
+     int   llr_ythresh;                       // llrview llr threshold
 } websrv_scope_params_t;
 
 extern void websrv_printjson(char * label, json_t *jsonobj);

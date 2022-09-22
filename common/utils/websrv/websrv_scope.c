@@ -49,7 +49,7 @@
 static scopeData_t  scopedata; 
 static websrv_scope_params_t scope_params = {0,1000,NULL,&scopedata,65535};
 static websrv_params_t *websrvparams_ptr;
-
+static int cansend=1;
 void  websrv_scope_senddata(int numd, int dsize, websrv_scopedata_msg_t *msg) {
 /* 
 
@@ -58,9 +58,12 @@ void  websrv_scope_senddata(int numd, int dsize, websrv_scopedata_msg_t *msg) {
     msg->data_xy[(2*i)+1]= (i>(n/4))? 10 : -10; 
   }*/
   msg->src=WEBSOCK_SRC_SCOPE ;
-  int st = ulfius_websocket_send_message( websrvparams_ptr->wm, U_WEBSOCKET_OPCODE_BINARY,(numd*dsize)+WEBSOCK_HEADSIZE, (char *)msg);
-  if (st != U_OK)
-    LOG_I(UTIL, "Error sending scope IQs, status %i\n",st);   
+  if (cansend || !(scope_params.statusmask & SCOPE_STATUSMASK_DATAACK)) {
+    int st = ulfius_websocket_send_message( websrvparams_ptr->wm, U_WEBSOCKET_OPCODE_BINARY,(numd*dsize)+WEBSOCK_HEADSIZE, (char *)msg);
+    if (st != U_OK)
+      LOG_I(UTIL, "Error sending scope IQs, status %i\n",st);
+    cansend=0; 
+  }  
 };
 
 
@@ -78,6 +81,9 @@ void websrv_websocket_process_scopemessage(char msg_type, char *msg_data, struct
         scope_params.statusmask = SCOPE_STATUSMASK_DISABLED;
       }	    
       break;
+    case SCOPEMSG_TYPE_DATAACK:
+      cansend=1;
+      break;      
     default:
       LOG_W(UTIL,"[websrv] Unprocessed scope message type: %c /n",msg_type);
       break;
@@ -186,7 +192,16 @@ int websrv_scope_callback_set_params (const struct _u_request * request, struct 
            httpstatus=200;            
 		 } else if (strcmp(vname,"TargetSelect") == 0) {
            scope_params.selectedTarget=strtol(vval,NULL,10);
-           httpstatus=200;               			                 			 
+           httpstatus=200;   
+		 } else if (strcmp(vname,"DataAck") == 0) {
+			 if (strcasecmp(vval,"true")==0)
+                scope_params.statusmask |= SCOPE_STATUSMASK_DATAACK;
+             else
+                scope_params.statusmask &= (~SCOPE_STATUSMASK_DATAACK);
+           httpstatus=200;
+		 } else if (strcmp(vname,"llrythresh") == 0) {
+                scope_params.llr_ythresh = strtol(vval,NULL,10);
+           httpstatus=200;                                        			                 	                       			                 			 
 		 } else {
                httpstatus=500;
                LOG_W(UTIL,"Unknown scope command: %s\n",vname );
