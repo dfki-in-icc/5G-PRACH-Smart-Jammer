@@ -1066,9 +1066,8 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg) {
       nfapi_tx_req_pdu_list_t *tx_req_pdu_list = dl_config_req_tx_req->tx_req_pdu_list;
       nfapi_dl_config_request_t *dl_config_req = dl_config_req_tx_req->dl_config_req;
       uint16_t dl_num_pdus = dl_config_req->dl_config_request_body.number_pdu;
-      LOG_I(MAC, "(OAI UE) Received dl_config_req from proxy PNF%d at Frame: %d, Subframe: %d,"
+      LOG_I(MAC, "(OAI UE) Received dl_config_req from proxy at Frame: %d, Subframe: %d,"
             " with number of PDUs: %u\n",
-            dl_config_req->header.phy_id,
             NFAPI_SFNSF2SFN(dl_config_req->sfn_sf), NFAPI_SFNSF2SF(dl_config_req->sfn_sf),
             dl_num_pdus);
 
@@ -1193,7 +1192,7 @@ static void *UE_phy_stub_standalone_pnf_task(void *arg) {
                 LOG_I(MAC, "preamble_received_tar_power: %d\n",
                       prach_resources->ra_PREAMBLE_RECEIVED_TARGET_POWER);
                 UE_mac_inst[ue_Mod_id].ra_frame = NFAPI_SFNSF2SFN(sfn_sf);
-                LOG_D(MAC, "UE_phy_stub_standalone_pnf_task before RACH, Mod_id: %d frame %d subframe %d\n", ue_Mod_id, NFAPI_SFNSF2SFN(sfn_sf), NFAPI_SFNSF2SF(sfn_sf));
+                LOG_D(MAC, "UE_phy_stub_thread_rxn_txnp4 before RACH, Mod_id: %d frame %d subframe %d\n", ue_Mod_id, NFAPI_SFNSF2SFN(sfn_sf), NFAPI_SFNSF2SF(sfn_sf));
                 fill_rach_indication_UE_MAC(ue_Mod_id, NFAPI_SFNSF2SFN(sfn_sf), NFAPI_SFNSF2SF(sfn_sf), UL_INFO, prach_resources->ra_PreambleIndex, prach_resources->ra_RNTI);
                 sent_any = true;
                 Msg1_transmitted(ue_Mod_id, 0, NFAPI_SFNSF2SFN(sfn_sf), 0);

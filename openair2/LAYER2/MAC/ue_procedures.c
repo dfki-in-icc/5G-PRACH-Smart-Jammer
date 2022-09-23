@@ -2428,7 +2428,7 @@ ue_get_sdu(module_id_t module_idP, int CC_id, frame_t frameP,
   else if (UE_mac_inst[module_idP].RA_active == 1) {
     if ((buflen >= 4) && (UE_mac_inst[module_idP].scheduling_info.BSR_bytes[0] > 0)) {
       bsr_header_len = 1;
-      bsr_ce_len = sizeof(BSR_SHORT); //1 byte
+      bsr_ce_len = sizeof(BSR_SHORT);
       UE_mac_inst[module_idP].scheduling_info.LCID_status[DCCH] = LCID_NOT_EMPTY;
     }
   }
@@ -3309,10 +3309,15 @@ update_bsr(module_id_t module_idP, frame_t frameP,
       if (UE_mac_inst[module_idP].ho_active) {
         crnti = UE_mac_inst[module_idP].crnti_before_ho;
       }
-      rlc_status = mac_rlc_status_ind(module_idP, crnti, eNB_index,frameP,subframeP,ENB_FLAG_NO,MBMS_FLAG_NO,
+      rlc_status = mac_rlc_status_ind(module_idP,
+                                      crnti,
+                                      eNB_index,
+                                      frameP,
+                                      subframeP,
+                                      ENB_FLAG_NO,
+                                      MBMS_FLAG_NO,
                                       lcid,
-                                      0, 0
-                                     );
+                                      0, 0);
       lcid_bytes_in_buffer[lcid] = rlc_status.bytes_in_buffer;
 
       if (rlc_status.bytes_in_buffer > 0) {

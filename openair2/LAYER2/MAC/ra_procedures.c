@@ -344,13 +344,10 @@ PRACH_RESOURCES_t *ue_get_rach(module_id_t module_idP, int CC_id,
                                    CCCH_pdu.payload[sizeof(SCH_SUBHEADER_SHORT) + 1], eNB_indexP,
                                    0);
         Size16 = (uint16_t) Size;
-        //  LOG_D(MAC,"[UE %d] Frame %d: Requested RRCConnectionRequest, got %d bytes\n",module_idP,frameP,Size);
         LOG_I(RRC,
-              "[FRAME %05d][RRC_UE][MOD %02d][][--- MAC_DATA_REQ (RRCConnectionRequest eNB %d) --->][MAC_UE][MOD %02d][]\n",
-              frameP, module_idP, eNB_indexP, module_idP);
-        LOG_I(MAC,
-              "[UE %d] Frame %d: Requested RRCConnectionRequest, got %d bytes\n",
-              module_idP, frameP, Size);
+              "[FRAME %05d][RRC_UE][MOD %02d][][--- MAC_DATA_REQ (RRCConnectionRequest eNB %d) --->]"
+              "[MAC_UE][MOD %02d][]. Got %d bytes\n",
+              frameP, module_idP, eNB_indexP, module_idP, Size);
       }
       if (Size > 0) {
         UE_mac_inst[module_idP].RA_active = 1;

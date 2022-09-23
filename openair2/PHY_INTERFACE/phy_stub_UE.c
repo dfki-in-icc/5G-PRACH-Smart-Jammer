@@ -2152,7 +2152,7 @@ static bool should_drop_transport_block(int sf, uint16_t rnti)
   UE_STATE_t state = UE_rrc_inst[0].Info[0].State;
   if (state < RRC_CONNECTED)
   {
-    LOG_I(MAC, "Not dropping because state: %d\n", state);
+    LOG_I(MAC, "Not dropping because state: %d", state);
     return false;
   }
 
