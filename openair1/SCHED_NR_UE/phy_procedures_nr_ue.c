@@ -572,7 +572,7 @@ int nr_ue_pdsch_procedures(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, int gNB_
 
   if (!dlsch0)
     return 0;
-  if (dlsch0->active == 0)
+  if (dlsch0->active == 0)  
     return 0;
 
   if (!dlsch1)  {

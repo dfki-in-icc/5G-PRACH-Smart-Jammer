@@ -539,6 +539,7 @@ int nr_initial_sync(UE_nr_rxtx_proc_t *proc,
     int32_t pdcch_est_size = ((((fp->symbols_per_slot*(fp->ofdm_symbol_size+LTE_CE_FILTER_LENGTH))+15)/16)*16);
     __attribute__ ((aligned(16))) int32_t pdcch_dl_ch_estimates[4*fp->nb_antennas_rx][pdcch_est_size];
 
+
     for(int n_ss = 0; n_ss<phy_pdcch_config.nb_search_space; n_ss++) {
       uint8_t nb_symb_pdcch = phy_pdcch_config.pdcch_config[n_ss].coreset.duration;
       int start_symb = phy_pdcch_config.pdcch_config[n_ss].coreset.StartSymbolIndex;
@@ -562,7 +563,7 @@ int nr_initial_sync(UE_nr_rxtx_proc_t *proc,
                                       pdcch_est_size,
                                       pdcch_dl_ch_estimates);
 
-      }
+      } //l
       int  dci_cnt = nr_ue_pdcch_procedures(gnb_id, ue, proc, pdcch_est_size, pdcch_dl_ch_estimates, &phy_pdcch_config, n_ss);
       if (dci_cnt>0){
         NR_UE_DLSCH_t *dlsch = ue->dlsch_SI[gnb_id];
@@ -572,35 +573,51 @@ int nr_initial_sync(UE_nr_rxtx_proc_t *proc,
           uint16_t nb_symb_sch = dlsch0_harq->nb_symbols;
           uint16_t start_symb_sch = dlsch0_harq->start_symbol;
 
-          for (uint16_t m=start_symb_sch;m<(nb_symb_sch+start_symb_sch) ; m++){
-            nr_slot_fep_init_sync(ue,
-                                  proc,
-                                  m,
-                                  phy_pdcch_config.slot,  // same slot and offset as pdcch
-                                  is*fp->samples_per_frame+phy_pdcch_config.sfn*fp->samples_per_frame+ue->rx_offset);
-          }
+          for(int re_offset=0;re_offset<273*6;re_offset++) {
+            for (int dir=-1;dir<2;dir+=2) {
+              LOG_I(PHY,"Trying f0 offset of %d REs\n",dir * re_offset);
+              uint64_t dl_CarrierFreq = fp->dl_CarrierFreq;
+              uint64_t ul_CarrierFreq = fp->ul_CarrierFreq;
+              fp->dl_CarrierFreq=dl_CarrierFreq+(dir*re_offset*30000);
+              fp->ul_CarrierFreq=ul_CarrierFreq+(dir*re_offset*30000);
+              init_symbol_rotation(fp);
+              for (uint16_t m=start_symb_sch;m<(nb_symb_sch+start_symb_sch) ; m++){
+                  nr_slot_fep_init_sync(ue,
+                                        proc,
+                                        m,
+                                        phy_pdcch_config.slot,  // same slot and offset as pdcch
+                                        is*fp->samples_per_frame+phy_pdcch_config.sfn*fp->samples_per_frame+ue->rx_offset);
+              }  
 
-          proc->nr_slot_rx = phy_pdcch_config.slot;
-          int ret = nr_ue_pdsch_procedures(ue,
-                                           proc,
-                                           gnb_id,
-                                           SI_PDSCH,
-                                           ue->dlsch_SI[gnb_id],
-                                           NULL);
-          if (ret >= 0)
-            dec = nr_ue_dlsch_procedures(ue,
-                                         proc,
-                                         gnb_id,
-                                         SI_PDSCH,
-                                         ue->dlsch_SI[gnb_id],
-                                         NULL,
-                                         &ue->dlsch_SI_errors[gnb_id]);
+              fp->dl_CarrierFreq=dl_CarrierFreq;
+              fp->ul_CarrierFreq=ul_CarrierFreq;
+              init_symbol_rotation(fp);
+              ue->dlsch_SI[gnb_id]->active=1;
+              proc->nr_slot_rx = phy_pdcch_config.slot;
+              int ret = nr_ue_pdsch_procedures(ue,
+                                               proc,
+                                               gnb_id,
+                                               SI_PDSCH,
+                                               ue->dlsch_SI[gnb_id],
+                                               NULL);
+               if (ret >= 0)
+                  dec = nr_ue_dlsch_procedures(ue,
+                                               proc,
+                                               gnb_id,
+                                               SI_PDSCH,
+                                               ue->dlsch_SI[gnb_id],
+                                               NULL,
+                                               &ue->dlsch_SI_errors[gnb_id]);
 
-          // deactivate dlsch once dlsch proc is done
-          ue->dlsch_SI[gnb_id]->active = 0;
-        }
-      }
-    }
+             // deactivate dlsch once dlsch proc is done
+               ue->dlsch_SI[gnb_id]->active = 0;
+               if (dec == true) break;
+	     } // dir
+             if (dec == true) break;
+           } // re_offset
+         } // dlsch_active 
+       } // dci_cnt
+    } // n_ss 
     if (dec == false) // sib1 not decoded
       ret = -1;
 

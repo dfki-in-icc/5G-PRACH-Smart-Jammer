@@ -50,8 +50,8 @@ int32_t nr_dlsch_demod_shift = 0;
 
 //#define DEBUG_HARQ
 //#define DEBUG_PHY
-#define DEBUG_DLSCH_DEMOD
-#define DEBUG_PDSCH_RX
+//#define DEBUG_DLSCH_DEMOD
+//#define DEBUG_PDSCH_RX
 
 // [MCS][i_mod (0,1,2) = (2,4,6)]
 //unsigned char offset_mumimo_llr_drange_fix=0;

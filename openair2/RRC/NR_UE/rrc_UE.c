@@ -1176,9 +1176,9 @@ int8_t nr_rrc_ue_decode_NR_BCCH_DL_SCH_Message(module_id_t module_id,
           sib1 = bcch_message->message.choice.c1->choice.systemInformationBlockType1;
           if (*(int64_t*)sib1 != 1) {
             NR_UE_rrc_inst[module_id].sib1[gNB_index] = sib1;
-            if( g_log->log_component[NR_RRC].level >= OAILOG_DEBUG ) {
+           // if( g_log->log_component[NR_RRC].level >= OAILOG_DEBUG ) {
               xer_fprint(stdout, &asn_DEF_NR_SIB1, (const void *) NR_UE_rrc_inst[module_id].sib1[gNB_index]);
-            }
+           // }
             LOG_A(NR_RRC, "SIB1 decoded\n");
 
             ///	    dump_SIB1();
