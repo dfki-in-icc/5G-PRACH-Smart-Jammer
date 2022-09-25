@@ -589,9 +589,6 @@ int nr_initial_sync(UE_nr_rxtx_proc_t *proc,
                                         is*fp->samples_per_frame+phy_pdcch_config.sfn*fp->samples_per_frame+ue->rx_offset);
               }  
 
-              fp->dl_CarrierFreq=dl_CarrierFreq;
-              fp->ul_CarrierFreq=ul_CarrierFreq;
-              init_symbol_rotation(fp);
               ue->dlsch_SI[gnb_id]->active=1;
               proc->nr_slot_rx = phy_pdcch_config.slot;
               int ret = nr_ue_pdsch_procedures(ue,
