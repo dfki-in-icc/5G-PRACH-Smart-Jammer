@@ -1069,16 +1069,17 @@ int main(int argc, char **argv)
   double blerStats[4][100];
   double berStats[4][100];
   double snrStats[100];
-  memset(errors_scrambling, 0, sizeof(uint32_t)*4*100);
-  memset(n_errors, 0, sizeof(int)*4*100);
-  memset(round_trials, 0, sizeof(int)*4*100);
-  memset(blerStats, 0, sizeof(double)*4*100);
-  memset(berStats, 0, sizeof(double)*4*100);
-  memset(snrStats, 0, sizeof(double)*100);
+  memset(errors_scrambling, 0, sizeof(errors_scrambling));
+  memset(n_errors, 0, sizeof(n_errors));
+  memset(round_trials, 0, sizeof(round_trials));
+  memset(blerStats, 0, sizeof(blerStats));
+  memset(berStats, 0, sizeof(berStats));
+  memset(snrStats, 0, sizeof(snrStats));
   for (SNR = snr0; SNR < snr1; SNR += snr_step) {
     varArray_t *table_rx=initVarArray(1000,sizeof(double));
     int error_flag = 0;
     n_false_positive = 0;
+    roundStats[snrRun] = 0;
     effRate[snrRun] = 0;
     effTP[snrRun] = 0;
     reset_meas(&gNB->phy_proc_rx);
@@ -1103,7 +1104,6 @@ int main(int argc, char **argv)
 
     crc_status = 1;
     errors_decoding = 0;
-    memset((void*)roundStats,0,50*sizeof(roundStats[0]));
     while (round<max_rounds && crc_status) {
       round_trials[round][snrRun]++;
       ulsch_ue->harq_processes[harq_pid]->round = round;
@@ -1581,7 +1581,7 @@ int main(int argc, char **argv)
     effRate[snrRun] /= (double)n_trials;
     
     printf("*****************************************\n");
-    printf("SNR %f: n_errors (%d/%d,%d/%d,%d/%d,%d/%d) (negative CRC), false_positive %d/%d, errors_scrambling (%u/%u,%u/%u,%u/%u,%u/%u\n", SNR, n_errors[0][snrRun], round_trials[0][snrRun],n_errors[1][snrRun], round_trials[1][snrRun],n_errors[2][snrRun], round_trials[2][snrRun],n_errors[3][snrRun], round_trials[3][snrRun], n_false_positive, n_trials, errors_scrambling[0][snrRun],available_bits*n_trials,errors_scrambling[1][snrRun],available_bits*n_trials,errors_scrambling[2][snrRun],available_bits*n_trials,errors_scrambling[3][snrRun],available_bits*n_trials);
+    printf("SNR %f: n_errors (%d/%d,%d/%d,%d/%d,%d/%d) (negative CRC), false_positive %d/%d, errors_scrambling (%u/%u,%u/%u,%u/%u,%u/%u\n", SNR, n_errors[0][snrRun], round_trials[0][snrRun],n_errors[1][snrRun], round_trials[1][snrRun],n_errors[2][snrRun], round_trials[2][snrRun],n_errors[3][snrRun], round_trials[3][snrRun], n_false_positive, n_trials, errors_scrambling[0][snrRun],available_bits*round_trials[0][snrRun],errors_scrambling[1][snrRun],available_bits*round_trials[1][snrRun],errors_scrambling[2][snrRun],available_bits*round_trials[2][snrRun],errors_scrambling[3][snrRun],available_bits*round_trials[3][snrRun]);
     printf("\n");
     blerStats[0][snrRun] = (double)n_errors[0][snrRun]/round_trials[0][snrRun];
     blerStats[1][snrRun] = (double)n_errors[1][snrRun]/round_trials[1][snrRun];
