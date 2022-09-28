@@ -112,6 +112,8 @@ typedef struct {
      int   ymin;
      int   ymax;
      int   llr_ythresh;                       // llrview llr threshold
+     int   llrxmin;                           //llr view x limits
+     int   llrxmax;
 } websrv_scope_params_t;
 
 extern void websrv_printjson(char * label, json_t *jsonobj);

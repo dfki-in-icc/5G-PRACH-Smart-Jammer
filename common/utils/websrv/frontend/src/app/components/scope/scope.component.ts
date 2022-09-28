@@ -30,13 +30,18 @@ export class ScopeComponent {
   startstop = 'start';
   startstop_color = 'warn';
   rfrate = 2;
+  data_ACK=false;
   iqmax = 32767;
   iqmin = -32767;
-  data_ACK=false;
+  llrmin = 0;
+  llrmax = 200000;
   iqxmin=this.iqmin;
   iqymin=this.iqmin;
   iqxmax=this.iqmax;
-  iqymax=this.iqmax;  
+  iqymax=this.iqmax; 
+  llrxmin=this.llrmin; 
+  llrxmax=this.llrmax; 
+   
   iqgraph_list : IGraphDesc[] = [];
   selected_channels = [""];
   selected_llrchannels = [""];
@@ -223,12 +228,14 @@ export class ScopeComponent {
             
 			switch (message.chartid) {
 			  case SCOPEMSG_DATA_IQ:
+               if(message.update) {
+				  console.log("Starting scope update chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
+			    }			  
 			    for ( let i=0;i<bufferview.byteLength; i=i+4) {
                   this.IQDatasets[message.dataid].data[i/4]={ x:bufferview.getInt16(i, true) , y: bufferview.getInt16(i+2, true)};
                 }
                 
                 if(message.update) {
-				  console.log("Starting scope update chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
 		          this.charts?.forEach((child,index) => { child.chart?.update() });                  
                   console.log(" scope update completed chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
 			    }
@@ -236,7 +243,8 @@ export class ScopeComponent {
 			  case SCOPEMSG_DATA_LLR:
                 if(message.update) {
 				  console.log("Starting scope update chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
-			    }			  
+			    }
+			    this.LLRDatasets[message.dataid].data.length=0;	  
 			    let xoffset=0;
 			    let d=0
 			    for ( let i=4;i<(bufferview.byteLength-1);i=i+2) {
@@ -326,6 +334,8 @@ export class ScopeComponent {
              this.OnIQyminChange();
              this.OnIQymaxChange();
              this.OnYthreshChange();
+             this.OnLLRxminChange();
+             this.OnLLRxmaxChange();
              this.wsService=new(WebSocketService) ;
              if (this.wsService)
                this.wsSubscription=this.wsService.messages.subscribe((msg: ArrayBuffer) => {
@@ -358,6 +368,13 @@ export class ScopeComponent {
   OnRefrateChange() {
 	 this.SendScopeParams("refrate",(this.rfrate*10).toString(),0); 
   }
+
+  OnLLRxminChange() {
+	 this.SendScopeParams("llrxmin",(this.llrxmin).toString(),0);
+  } 
+  OnLLRxmaxChange() {
+	 this.SendScopeParams("llrxmax",(this.llrxmax).toString(),0);
+  }   
   
   OnIQxminChange() {
 	 this.SendScopeParams("xmin",(this.iqxmin).toString(),0);

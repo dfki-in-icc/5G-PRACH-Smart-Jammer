@@ -130,8 +130,15 @@ int websrv_cpllrbuff_tomsg(OAIgraph_t *graph, int16_t *llrs, int n, int id) {
   int maxx=0;
   int xres=(n/1000 > CHAR_MAX)?CHAR_MAX:(n/1000);
   char latestllr=0;
-  for ( int i=0; i<n; i++) {
-	  if (  ( (llrs[i]-latestllr) >= WP->llr_ythresh+latestllr ) || ( (latestllr-llrs[i]) <= -WP->llr_ythresh ) || (xoffset>=xres) ) {
+  int imin=WP->llrxmin;
+  int imax=WP->llrxmax;
+ 
+  if(imax > n)
+    imax=n; 
+  if(imin > imax)
+    imin=imax;     
+  for ( int i=imin; i<imax; i++) {
+	  if ( ( (llrs[i]-latestllr) >= WP->llr_ythresh ) || ( (latestllr-llrs[i]) >= WP->llr_ythresh ) || (xoffset>=xres) ) {
 	    dptr[newn]=(int8_t)llrs[i];
 	    latestllr=llrs[i];
 	    dptr[newn+1]=(int8_t)xoffset;
@@ -736,6 +743,7 @@ static void uePbchFrequencyResp  (OAIgraph_t *graph, PHY_VARS_NR_UE *phy_vars_ue
   oai_xygraph(graph,freq,chest_f_abs,frame_parms->ofdm_symbol_size,0,10);
 }
 */
+
 static void uePbchLLR  (scopeGraphData_t **data, OAIgraph_t *graph, PHY_VARS_NR_UE *phy_vars_ue, int eNB_id, int UE_id) {
   // PBCH LLRs
   if ( !data[pbchLlr])
@@ -746,13 +754,17 @@ static void uePbchLLR  (scopeGraphData_t **data, OAIgraph_t *graph, PHY_VARS_NR_
   // We take the first antenna only for now
   int16_t *llrs = (int16_t *) (data[pbchLlr]+1);
   float *llr_pbch, *bit_pbch;
+  int nx=sz;
+#ifdef WEBSRVSCOPE
+      nx=websrv_cpllrbuff_tomsg(graph, llrs, sz, UE_id);
+#else  
   oai_xygraph_getbuff(graph, &bit_pbch, &llr_pbch, sz, 0);
 
   for (int i=0; i<sz; i++) {
     llr_pbch[i] = llrs[i];
   }
-
-  oai_xygraph(graph,bit_pbch,llr_pbch,sz,0,10);
+#endif
+  oai_xygraph(graph,bit_pbch,llr_pbch,nx,0,10);
 }
 
 static void uePbchIQ  (scopeGraphData_t **data, OAIgraph_t *graph, PHY_VARS_NR_UE *phy_vars_ue, int eNB_id, int UE_id) {

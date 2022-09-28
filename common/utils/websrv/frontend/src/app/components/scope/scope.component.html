@@ -64,7 +64,7 @@
       </mat-card>
     </mat-grid-tile> 
 
-    <mat-grid-tile [colspan]="5" [rowspan]="3">
+    <mat-grid-tile [colspan]="5" [rowspan]="4">
       <mat-card class="dashboard-card">
         <mat-card-content class="dashboard-card-content">
 			<div fxLayout="column">
@@ -75,8 +75,8 @@
                 [type]="'scatter'">
               </canvas>
               </div>
-            <div fxFlex="0 1 5%"  style="width:60%">
-	        <mat-list-item class="llrchannelselect" role="listitem">
+            <div fxFlex="0 1 5%"  style="width:100%">
+	        <div class="form-group" fxFlex="50%"> <mat-list-item class="llrchannelselect" role="listitem">
 		      <mat-form-field class="select-form">
 			  <mat-select placeholder="Channels(llr view)" name="llrChannelsSelect" class="ChannelsSelect" multiple [value]="selected_llrchannels" (selectionChange)="llrchannelsChanged($event.value)" >
 				 <mat-option *ngFor="let graph of llrgraph_list" [value]="graph.title" >
@@ -84,9 +84,8 @@
 				 </mat-option>
 			  </mat-select>
 		      </mat-form-field>
-	        </mat-list-item> 
-	        </div>
-	        <div fxFlex="0 1 5%"  style="width:60%">
+	        </mat-list-item> </div>            
+            <div class="form-group" fxFlex="50%">
               <div class="scope-slider-div">
                 <label id="scope-slider-ythresh-labelid" class="scope-slider-label">y threshold </label>
                 <label class="scope-slider-value-label"> {{llrythresh}} </label>
@@ -94,8 +93,25 @@
               <mat-slider class="scope-slider" min="0" max="100" step="1" [value]="llrythresh" 
                         aria-labelledby="scope-slider-ythresh-labelid" thumbLabel="true" 
                         [(ngModel)]="llrythresh" (change)="OnYthreshChange()" > 
-              </mat-slider>				
-			</div>
+              </mat-slider>
+            </div>				
+			</div>			
+	        <div fxFlex="0 1 5%">            
+            <div class="form-group" fxFlex="25%">  	
+            <mat-form-field appearance="fill">
+            <mat-label>xmin</mat-label>
+            <input matInput type="number" (change)="OnLLRxminChange()" [value]="llrxmin" [(ngModel)]="llrxmin" min="llrmin" [max]="llrmax"> 
+            </mat-form-field>
+            </div>
+            <div class="form-group" fxFlex="25%">
+            <mat-form-field appearance="fill">
+            <mat-label>xmax</mat-label>
+            <input matInput type="number" (change)="OnLLRxmaxChange()" [value]="llrxmax" [(ngModel)]="llrxmax" min="llrmin" [max]="llrmax">
+            </mat-form-field>           			        
+            </div>                              
+            </div>
+
+			
 	      </div>                 
         </mat-card-content>
       </mat-card>

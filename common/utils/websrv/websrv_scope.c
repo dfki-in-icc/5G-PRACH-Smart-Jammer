@@ -163,7 +163,13 @@ int websrv_scope_callback_set_params (const struct _u_request * request, struct 
            httpstatus=200;
  		 } else if (strcmp(vname,"ymax") == 0) {
            scope_params.ymax = strtol(vval,NULL,10);
-           httpstatus=200;            
+           httpstatus=200; 
+ 		 } else if (strcmp(vname,"llrxmax") == 0) {
+           scope_params.llrxmax = strtol(vval,NULL,10);
+           httpstatus=200;   
+ 		 } else if (strcmp(vname,"llrxmin") == 0) {
+           scope_params.llrxmin = strtol(vval,NULL,10);
+           httpstatus=200;                                 
 		 } else if (strcmp(vname,"TargetSelect") == 0) {
            scope_params.selectedTarget=strtol(vval,NULL,10);
            httpstatus=200;   
