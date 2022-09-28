@@ -4,6 +4,7 @@ import { Observable, Observer } from 'rxjs';
 import { Subject } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from "src/environments/environment";
+import { webSocket} from 'rxjs/webSocket';
 
 const websockurl = 'ws://' + environment.backend + 'softscope';
 
@@ -21,7 +22,7 @@ export interface Message {
     content: ArrayBuffer;
 }
 
-export const arraybuf_data_offset = 4;
+export const arraybuf_data_offset = 8;
 
 @Injectable()
 export class WebSocketService {
@@ -29,17 +30,17 @@ export class WebSocketService {
     public messages: Subject<ArrayBuffer>;
 
     constructor() {
-        this.subject = this.create(websockurl);
+        this.subject = this.create();
         console.log("Successfully connected: " + websockurl);
-
         this.messages = <Subject<ArrayBuffer>>this.subject.pipe(
             map(
                 (response: MessageEvent): ArrayBuffer => {
                     if (response.data instanceof ArrayBuffer) {
-                        console.log("Received binary message " + response.data.byteLength.toString() + " bytes");
+                        console.log("Received ArrayBuffer message ");
                         return response.data;
                     } else {
                         console.log(response.data);
+                        console.log("Received  message " );
                         return new ArrayBuffer(arraybuf_data_offset + 1); //minimum size empty message
                     }
 
@@ -48,8 +49,8 @@ export class WebSocketService {
         );
     }
 
-    private create(url: string): Subject<MessageEvent> {
-        let ws = new WebSocket(url);
+    private create(): Subject<MessageEvent> {
+        let ws = new WebSocket(websockurl);
         ws.binaryType = "arraybuffer";
         let observable = new Observable((obs: Observer<MessageEvent>) => {
             ws.onmessage = obs.next.bind(obs);
@@ -69,7 +70,7 @@ export class WebSocketService {
         };
         return Subject.create(observer, observable);
     }
-
+	
     public SerializeMessage(msg: Message): ArrayBuffer {
         let buff = new ArrayBuffer(msg.content.byteLength + 8);   // 64 bits (8 bytes) header 
         let fullbuff = new Uint8Array(buff, 0, buff.byteLength).set(new Uint8Array(msg.content), 8);

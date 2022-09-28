@@ -118,13 +118,23 @@ int websrv_cpllrbuff_tomsg(OAIgraph_t *graph, int16_t *llrs, int n, int id) {
     LOG_E(UTIL,"Buffer id %i too small for %i iqs...\n",id,n);
     return 0;
   }
-  int newn=0;
+  /* save number of points (xmax) at beginning of buffer, as we try to minimize data sent */ 
+  int32_t *iptr= (int32_t *)(msg->data_xy);
+  *iptr=n;
+  
+  /* for each point we save llr and the corresponding offset if llr's below the configured threshold have been skipped */
+  /* offset is saved in 8bits so llr always transmitted when offset reach the 8 bits max. offset relative to x of previously transmitted point */
+  char *dptr=(char *)(msg->data_xy);
+  int newn=4;
   int xoffset=1;
   int maxx=0;
+  int xres=(n/1000 > CHAR_MAX)?CHAR_MAX:(n/1000);
+  char latestllr=0;
   for ( int i=0; i<n; i++) {
-	  if (llrs[i] >= WP->llr_ythresh || llrs[i] <= -WP->llr_ythresh ) {
-	    ((int8_t *)(msg->data_xy))[newn]=(int8_t)llrs[i];
-	    ((int8_t *)(msg->data_xy))[newn+1]=(int8_t)xoffset;
+	  if (  ( (llrs[i]-latestllr) >= WP->llr_ythresh+latestllr ) || ( (latestllr-llrs[i]) <= -WP->llr_ythresh ) || (xoffset>=xres) ) {
+	    dptr[newn]=(int8_t)llrs[i];
+	    latestllr=llrs[i];
+	    dptr[newn+1]=(int8_t)xoffset;
 	    maxx=maxx+xoffset;
 	    xoffset=1;
 	    newn=newn+2;
@@ -133,11 +143,10 @@ int websrv_cpllrbuff_tomsg(OAIgraph_t *graph, int16_t *llrs, int n, int id) {
 	  }
 	} 
 
-
-  /*
-  for ( int i=0; i<(newn-1); i=i+2) {
+/* discard points which cannot be distinguished on graph: x and llr have almost identical values 
+  for ( int i=4; i<(newn-1); i=i+2) {
 	  for (int j=i+2 ; j<(i+(xres*2)) && j<(newn-1); j=j+2) {
-         if ( ((msg->data_xy[j] - msg->data_xy[i]) <  yres) || 	((msg->data_xy[i] - msg->data_xy[j]) <  yres) ) {
+         if ( ((dptr[j] - dptr[i]) <  yres) || 	((dptr[i] - dptr[j]) <  yres) ) {
 			 newn=newn-2;
 			 for (int k = j; k< newn; k++) {
 				((int8_t *)(msg->data_xy))[k] = (int8_t)msg->data_xy[k+2];
@@ -145,9 +154,8 @@ int websrv_cpllrbuff_tomsg(OAIgraph_t *graph, int16_t *llrs, int n, int id) {
 			 }
 	     }	  
 	  }
-  } */
-  ((int32_t *)(msg->data_xy))[newn]=n;
-  newn=newn+2;
+  } 
+*/
   return newn;
 }
 #endif
@@ -269,12 +277,12 @@ static void oai_xygraph(OAIgraph_t *graph, float *x, float *y, int len, int laye
   websrv_scopedata_msg_t *msg=NULL;
   
       websrv_nf_getdata(graph->graph, layer, &msg); 
-	  msg->msgtype=SCOPEMSG_TYPE_DATA ;
-      msg->chartid=graph->chartid;
-      msg->datasetid=graph->datasetid;
-      msg->msgseg=0;
-      msg->update= 1;  
-      websrv_scope_senddata(len,(msg->chartid==SCOPEMSG_DATAID_LLR)?1:4, msg);
+	  msg->header.msgtype=SCOPEMSG_TYPE_DATA ;
+      msg->header.chartid=graph->chartid;
+      msg->header.datasetid=graph->datasetid;
+      msg->header.msgseg=0;
+      msg->header.update= 1;  
+      websrv_scope_senddata(len,(msg->header.chartid==SCOPEMSG_DATAID_LLR)?1:4, msg);
 #else
   fl_redraw_object(graph->graph);
 

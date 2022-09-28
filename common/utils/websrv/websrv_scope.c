@@ -57,7 +57,7 @@ void  websrv_scope_senddata(int numd, int dsize, websrv_scopedata_msg_t *msg) {
     msg->data_xy[2*i]=(i>(n/2))? 10 : -10;
     msg->data_xy[(2*i)+1]= (i>(n/4))? 10 : -10; 
   }*/
-  msg->src=WEBSOCK_SRC_SCOPE ;
+  msg->header.src=WEBSOCK_SRC_SCOPE ;
   if (cansend || !(scope_params.statusmask & SCOPE_STATUSMASK_DATAACK)) {
     int st = ulfius_websocket_send_message( websrvparams_ptr->wm, U_WEBSOCKET_OPCODE_BINARY,(numd*dsize)+WEBSOCK_HEADSIZE, (char *)msg);
     if (st != U_OK)
@@ -90,56 +90,30 @@ void websrv_websocket_process_scopemessage(char msg_type, char *msg_data, struct
   }
 }
 
-void websrv_scope_manager(uint64_t lcount,websrv_params_t *websrvparams) {
+int websrv_scope_manager(uint64_t lcount,websrv_params_t *websrvparams) {
   time_t linuxtime;
   struct tm loctime;
   char strtime[64];
-	  if( lcount%10 == 0 && (scope_params.statusmask & SCOPE_STATUSMASK_STARTED)) {	
+    if (scope_params.statusmask & SCOPE_STATUSMASK_STARTED) {
+	  if( lcount%10 == 0 ) {	
 		linuxtime=time(NULL); 
         localtime_r(&linuxtime,&loctime);
         snprintf(strtime,sizeof(strtime),"%d/%d/%d %d:%d:%d",loctime.tm_mday,loctime.tm_mon,loctime.tm_year+1900,loctime.tm_hour,loctime.tm_min,loctime.tm_sec);		
 	    websrv_websocket_send_scopemessage(SCOPEMSG_TYPE_TIME, strtime, websrvparams_ptr->wm);
 	  }
-      if( ( (lcount % scope_params.refrate) == 0) && (scope_params.statusmask & SCOPE_STATUSMASK_STARTED) ) {        
+      if ( (lcount % scope_params.refrate) == 0) {        
 		  if (IS_SOFTMODEM_GNB_BIT) {			 
             phy_scope_gNB(scope_params.scopeform,  scope_params.scopedata, 1);
 		  } 
 		  if (IS_SOFTMODEM_5GUE_BIT) {
             phy_scope_nrUE(scope_params.scopeform, (PHY_VARS_NR_UE *)scope_params.scopedata,  0, scope_params.selectedTarget);
 		  }      
-      } else if( (scope_params.statusmask == SCOPE_STATUSMASK_UNKNOWN) ) {
-          if (IS_SOFTMODEM_DOSCOPE | IS_SOFTMODEM_ENB_BIT | IS_SOFTMODEM_4GUE_BIT) {
-	        websrv_websocket_send_scopemessage(SCOPEMSG_TYPE_STATUSUPD, "disabled", websrvparams_ptr->wm);
-	      }	else {	  
-		  if (IS_SOFTMODEM_GNB_BIT) {			 
-		     scopedata.ru=RC.ru[0];
-		     scopedata.gNB=RC.gNB[0];		 
-			 scope_params.scopeform = create_phy_scope_gnb();
-			 scope_params.statusmask |= SCOPE_STATUSMASK_AVAILABLE; 
-			 websrv_websocket_send_scopemessage(SCOPEMSG_TYPE_STATUSUPD, "enabled", websrvparams_ptr->wm);
-		  } else if (IS_SOFTMODEM_5GUE_BIT) {
-			 scope_params.scopedata = PHY_vars_UE_g[0][0] ;
-			 nrUEinitScope(PHY_vars_UE_g[0][0]);
-			 scope_params.scopeform = create_phy_scope_nrue(scope_params.selectedTarget);
-			 scope_params.statusmask |= SCOPE_STATUSMASK_AVAILABLE;
-			 websrv_websocket_send_scopemessage(SCOPEMSG_TYPE_STATUSUPD, "enabled", websrvparams_ptr->wm);
-		  } else {
-            LOG_I(UTIL,"[websrv] SoftScope web interface  not implemented for this softmodem\n");
-            websrv_websocket_send_scopemessage(SCOPEMSG_TYPE_STATUSUPD, "disabled", websrvparams_ptr->wm);			  
-		  }
-	    }  		               
-      }
-}
-
-void websrv_scope_ws_cb(void *user_data) {
-  if ( scope_params.statusmask != SCOPE_STATUSMASK_UNKNOWN) {
-	  scope_params.statusmask = SCOPE_STATUSMASK_UNKNOWN;
-  }
+      } 
+    }
+    return 0;
 }
  
-void websrv_scope_ws_close() {
-  scope_params.statusmask = SCOPE_STATUSMASK_UNKNOWN;
-}
+  
  /*  callback to process control commands received from frontend */
 int websrv_scope_callback_set_params (const struct _u_request * request, struct _u_response * response, void * user_data) {
   websrv_dump_request("scope set params ", request);
@@ -216,8 +190,31 @@ int websrv_scope_callback_get_desc (const struct _u_request * request, struct _u
   json_t *jgraph = json_array();
   char gtype[20];
   char stitle[64];
+  
+    scope_params.statusmask &= ~SCOPE_STATUSMASK_STARTED;
+    if (IS_SOFTMODEM_DOSCOPE | IS_SOFTMODEM_ENB_BIT | IS_SOFTMODEM_4GUE_BIT) {
+	  strcpy(stitle,"none");  
+	} else {	  
+	  if (IS_SOFTMODEM_GNB_BIT) {			 
+		scopedata.ru=RC.ru[0];
+		scopedata.gNB=RC.gNB[0];		 
+		scope_params.scopeform = create_phy_scope_gnb();
+		scope_params.statusmask |= SCOPE_STATUSMASK_AVAILABLE;
+		strcpy(stitle,"gNB"); 
+	  } else if (IS_SOFTMODEM_5GUE_BIT) {
+		scope_params.scopedata = PHY_vars_UE_g[0][0] ;
+		nrUEinitScope(PHY_vars_UE_g[0][0]);
+		scope_params.scopeform = create_phy_scope_nrue(scope_params.selectedTarget);
+		scope_params.statusmask |= SCOPE_STATUSMASK_AVAILABLE;
+		strcpy(stitle,"5GUE");
+	  } else {
+        LOG_I(UTIL,"[websrv] SoftScope web interface  not implemented for this softmodem\n");
+        strcpy(stitle,"none");    	  
+	  }
+	}  		               
   OAI_phy_scope_t *sp = (OAI_phy_scope_t *)scope_params.scopeform;
-  for (int i=0; sp->graph[i].graph != NULL ; i++) {
+  if(sp != NULL && (scope_params.statusmask & SCOPE_STATUSMASK_AVAILABLE))
+    for (int i=0; sp->graph[i].graph != NULL ; i++) {
 	  json_t *agraph =NULL;
 	  switch (sp->graph[i].chartid )  {
 		case SCOPEMSG_DATAID_IQ:
@@ -236,11 +233,6 @@ int websrv_scope_callback_get_desc (const struct _u_request * request, struct _u
       if (agraph != NULL)
         json_array_append_new(jgraph,agraph);
     }
-  if (IS_SOFTMODEM_GNB_BIT) {			 
-	strcpy(stitle,"gNB");
-  } else if (IS_SOFTMODEM_5GUE_BIT) {
-    strcpy(stitle,"5GUE");
-  } else {};
   json_t *jbody = json_pack("{s:s,s:o}","title",stitle,"graphs",jgraph);
   websrv_jbody(response,jbody);
   return U_CALLBACK_COMPLETE;

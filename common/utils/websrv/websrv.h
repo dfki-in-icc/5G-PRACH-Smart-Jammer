@@ -65,16 +65,6 @@ typedef struct {
 
 #define WEBSOCK_SRC_SCOPE                's'
 typedef struct {
-	 unsigned char src;                       // message source
-	 unsigned char msgtype;                   // message type
-	 unsigned char hdr_unused[6];             // 6 unused char
-     char    data[1408];                      // 64*22
-     
-} websrv_msg_t;
-#define MAX_NIQ_WEBSOCKMSG   180000 //max number of 16 bits iq's in pre-allocated buffer
-#define MAX_LLR_WEBSOCKMSG    (MAX_NIQ_WEBSOCKMSG*2) //max number of 8 bits llr's in pre-allocated buffer
-
-typedef struct {
 	 unsigned char src;                          // message source
 	 unsigned char msgtype;                      // message type
 	 unsigned char msgseg;                       // message segment number
@@ -82,6 +72,17 @@ typedef struct {
 	 unsigned char datasetid;                    // identify dataset in chart
 	 unsigned char update;                       // should chart be updated
 	 unsigned char hdr_unused[2];                // 2 unused char
+} websrv_msg_hdr_t;
+
+typedef struct {
+     websrv_msg_hdr_t header;
+     char    data[1408];                      // 64*22   
+} websrv_msg_t;
+#define MAX_NIQ_WEBSOCKMSG   180000 //max number of 16 bits iq's in pre-allocated buffer
+#define MAX_LLR_WEBSOCKMSG    (MAX_NIQ_WEBSOCKMSG*2) //max number of 8 bits llr's in pre-allocated buffer
+
+typedef struct {
+	 websrv_msg_hdr_t header;
      int16_t         data_xy[MAX_NIQ_WEBSOCKMSG*2]; // data buffer
 } websrv_scopedata_msg_t;
 #define WEBSOCK_HEADSIZE (offsetof(websrv_msg_t, data))
@@ -124,9 +125,8 @@ extern int websrv_init_websocket(websrv_params_t *websrvparams,char *module);
 extern void websrv_websocket_send_message(char msg_src, char msg_type, char *msg_data, struct _websocket_manager * websocket_manager);
 extern void websrv_dump_request(char *label, const struct _u_request *request);
 extern int websrv_string_response(char *astring, struct _u_response * response, int httpstatus) ;
-extern void websrv_scope_ws_close() ;
 extern void websrv_scope_ws_cb(void *user_data);
-extern void websrv_scope_manager(uint64_t lcount,websrv_params_t *websrvparams);
+extern int websrv_scope_manager(uint64_t lcount,websrv_params_t *websrvparams);
 extern void  websrv_scope_senddata(int numd,int dsize, websrv_scopedata_msg_t *msg);
 extern void websrv_websocket_process_scopemessage(char msg_type, char *msg_data, struct _websocket_manager * websocket_manager);
 extern int websrv_callback_okset_softmodem_cmdvar(const struct _u_request * request, struct _u_response * response, void * user_data);

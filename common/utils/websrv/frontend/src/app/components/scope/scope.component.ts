@@ -1,7 +1,7 @@
-import { Component, Output, EventEmitter, QueryList, ViewChild, ViewChildren } from "@angular/core";
+import { Component, Output, EventEmitter, QueryList, ViewChild, ViewChildren} from "@angular/core";
 import { FormGroup,FormControl } from "@angular/forms";
 import { Message, WebSocketService, webSockSrc } from "src/app/services/websocket.service";
-import { Observable } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
 import { Chart, ChartConfiguration, ChartOptions, ChartEvent, ChartType, ScatterDataPoint } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
 import {IGraphDesc, IScopeGraphType, IScopeDesc, IScopeCmd, ISigDesc,  ScopeApi  } from 'src/app/api/scope.api';
@@ -43,8 +43,9 @@ export class ScopeComponent {
   llrgraph_list : IGraphDesc[] = [];  
   target_list : number[] = [0,1,2,3];
   selected_sig : ISigDesc ={target_id:0, antenna_id:0};
-  llrythresh=0;
-  
+  llrythresh=5;
+  wsService?: WebSocketService;
+  wsSubscription?: Subscription; 
   @Output() ScopeEnabled = new EventEmitter<boolean>();
 
   //@ViewChild(BaseChartDirective) chart?: BaseChartDirective;
@@ -163,34 +164,35 @@ export class ScopeComponent {
     plugins: { legend: { display: true, labels:{boxWidth: 10, boxHeight: 10}},  tooltip: { enabled: false, }, },
   };
   
-  constructor(private wsService: WebSocketService,private scopeApi: ScopeApi ) {
-	console.log("Scope constructor ");
-    wsService.messages.subscribe((msg: ArrayBuffer) => {
-      this.ProcessScopeMsg(this.wsService.DeserializeMessage(msg));
-    });  
+  constructor(private scopeApi: ScopeApi ) {
+	console.log("Scope constructor ");	  
   }
   
   ngOnInit() {
-     console.log("Scope ngOnInit ");
-     this.SigChanged(this.selected_sig.target_id);
-     this.OnRefrateChange();
-     this.OnIQxminChange();
-     this.OnIQxmaxChange();
-     this.OnIQyminChange();
-     this.OnIQymaxChange();
-     this.OnYthreshChange();   
-  } 
- 
+     console.log("Scope ngOnInit "); 
+     this.scopeApi.getScopeInfos$().subscribe(resp => {
+	 this.configScope(resp);     
+     });  
+  }
+   
+  ngOnDestroy() {
+    this.wsSubscription?.unsubscribe(); 
+  }
+  
   DecodScopeBinmsgToString(message: ArrayBuffer) {
      const enc = new TextDecoder("utf-8");
      return enc.decode(message);
   }
 
   configScope(resp: IScopeDesc) {
-	  this.scopetitle=resp.title;
-	  this.iqgraph_list.length=0;
-	  this.llrgraph_list.length=0;
-	  for (let graphIndex = 0; graphIndex < resp.graphs.length; graphIndex++) { 
+	  if (resp.title === "none") {
+		  this.ScopeEnabled.emit(false);
+	  } else {
+		this.ScopeEnabled.emit(true);  
+	    this.scopetitle=resp.title;
+	    this.iqgraph_list.length=0;
+	    this.llrgraph_list.length=0;
+	    for (let graphIndex = 0; graphIndex < resp.graphs.length; graphIndex++) { 
 		  if (resp.graphs[graphIndex].type == IScopeGraphType.IQs ) {
 		    this.iqgraph_list.push(resp.graphs[graphIndex]);
 		    this.IQDatasets[this.iqgraph_list.length - 1].label=resp.graphs[graphIndex].title;
@@ -199,27 +201,19 @@ export class ScopeComponent {
 		    this.llrgraph_list.push(resp.graphs[graphIndex]);
 		    this.LLRDatasets[this.llrgraph_list.length - 1].label=resp.graphs[graphIndex].title;	    
 		  }
-	  }
-	  this.charts?.forEach((child) => {
-        child.chart?.update() });		  
+	    }
+	    this.charts?.forEach((child) => {
+          child.chart?.update() });
+      }		  
   }
   
-  ProcessScopeMsg (message: Message) {	  
+  ProcessScopeMsg (message: Message) {
+	  if (this.scopestatus === "starting") {  
+	    this.scopestatus='started';
+        this.startstop='stop';
+        this.startstop_color='started';	    
+	  }	  
 	  switch ( message.msgtype ) {		  
-		  case SCOPEMSG_TYPE_STATUSUPD:
-		    let msgcontent = this.DecodScopeBinmsgToString(message.content);
-            if (msgcontent === 'disabled') {
-		      this.ScopeEnabled.emit(false);
-		      this.sendMsg(SCOPEMSG_TYPE_STATUSUPD,'disabled'); //Ack disabled message
-			} else if (msgcontent === 'enabled') {
-		      this.ScopeEnabled.emit(true);
-		      this.scopeApi.getScopeInfos$().subscribe(resp => {
-				  this.configScope(resp);
-		        });
-			}  else {
-			  console.log("Scope received  " + msgcontent + ", unknown status update");
-			}
-            break; 
           case SCOPEMSG_TYPE_TIME:
             this.scopetime=this.DecodScopeBinmsgToString(message.content);
             break;
@@ -240,18 +234,20 @@ export class ScopeComponent {
 			    }
               break;
 			  case SCOPEMSG_DATA_LLR:
+                if(message.update) {
+				  console.log("Starting scope update chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
+			    }			  
 			    let xoffset=0;
 			    let d=0
-			    for ( let i=0;i<(bufferview.byteLength-1-4);i=i+2) {
+			    for ( let i=4;i<(bufferview.byteLength-1);i=i+2) {
 				  xoffset=xoffset+bufferview.getInt8(i+1);
                   this.LLRDatasets[message.dataid].data[d]={ x: xoffset, y: bufferview.getInt8(i)};
                   d++;
                 }
-                this.LLRDatasets[message.dataid].data[d]={ x:bufferview.getInt32(bufferview.byteLength-4, true) , y: 0};
+                this.LLRDatasets[message.dataid].data[d]={ x:bufferview.getInt32(0, true) , y: 0};
                 if(message.update) {
-				  console.log("Starting scope update chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
 		          this.charts?.forEach((child,index) => { child.chart?.update() });                  
-                  console.log(" scope update completed chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
+                  console.log(" scope update completed " + d.toString() + "points, ");
 			    }
               break;              
                 default:
@@ -266,35 +262,39 @@ export class ScopeComponent {
   }
   
   sendMsg(type: number, strmessage : string) {
-	const byteArray = new TextEncoder().encode(strmessage);
-    let message = {
-      source: webSockSrc.softscope,
-      msgtype: type,
-      chartid: 0,
-      dataid: 0,
-      segnum: 0,
-      update: false,
-      content: byteArray.buffer
-    };
-    this.wsService.messages.next(this.wsService.SerializeMessage(message));
-    console.log("Scope sent msg type " + type.toString() + " " + strmessage);
+	if ( this.wsService) {
+	  const byteArray = new TextEncoder().encode(strmessage);
+      let message = {
+        source: webSockSrc.softscope,
+        msgtype: type,
+        chartid: 0,
+        dataid: 0,
+        segnum: 0,
+        update: false,
+        content: byteArray.buffer
+      };
+      this.wsService.messages.next(this.wsService.SerializeMessage(message));
+      console.log("Scope sent msg type " + type.toString() + " " + strmessage);
+    }
   }
 
   sendBinMsg(type: number, binmessage: number) {
-    let buff = new ArrayBuffer(4);   
-    let buffview = new DataView(buff);
-    buffview.setUint32(0,binmessage);
-    let message = {
-      source: webSockSrc.softscope,
-      msgtype: type,
-      chartid: 0,
-      dataid: 0,
-      segnum:0,
-      update: false,
-      content: buffview.buffer
-    };
-    this.wsService.messages.next(this.wsService.SerializeMessage(message));
-    console.log("Scope sent msg type " + type.toString() + " (binary content)");
+	if ( this.wsService) {
+      let buff = new ArrayBuffer(4);   
+      let buffview = new DataView(buff);
+      buffview.setUint32(0,binmessage);
+      let message = {
+        source: webSockSrc.softscope,
+        msgtype: type,
+        chartid: 0,
+        dataid: 0,
+        segnum:0,
+        update: false,
+        content: buffview.buffer
+      };
+      this.wsService.messages.next(this.wsService.SerializeMessage(message));
+      console.log("Scope sent msg type " + type.toString() + " (binary content)");
+    }
   }
   
   SendScopeParams(name:string, value:string, graphid:number):boolean {
@@ -312,31 +312,48 @@ export class ScopeComponent {
   
   startorstop() {
     if (this.scopestatus === 'stopped') {
+ 		
         this.scopeApi.setScopeParams$({name:"startstop",value:"start"}).subscribe(
           () => {
 			 this.IQDatasets.forEach((dataset) => { dataset.data.length=0 }) ;
 			 this.LLRDatasets.forEach((dataset) => { dataset.data.length=0 }) ;
              this.charts?.forEach((child,index) => { child.chart?.update() });  			  
-			 this.scopestatus='started';
-             this.startstop='stop';
-             this.startstop_color='started';
+			 this.scopestatus='starting';
+             this.SigChanged(this.selected_sig.target_id);
+             this.OnRefrateChange();
+             this.OnIQxminChange();
+             this.OnIQxmaxChange();
+             this.OnIQyminChange();
+             this.OnIQymaxChange();
+             this.OnYthreshChange();
+             this.wsService=new(WebSocketService) ;
+             if (this.wsService)
+               this.wsSubscription=this.wsService.messages.subscribe((msg: ArrayBuffer) => {
+				if (this.wsService)   
+                  this.ProcessScopeMsg(this.wsService.DeserializeMessage(msg));
+             });            
 		  },
 		  err => {
+			  
 		  }
         );   
     } else {
         this.scopeApi.setScopeParams$({name:"startstop",value:"stop"}).subscribe(
           () => {
+             if ( this.wsSubscription)
+               this.wsSubscription.unsubscribe();
+             delete this.wsService ;   			  
 			 this.scopestatus='stopped';
              this.startstop='start';
              this.startstop_color='warn';
-             this.charts?.forEach((child,index) => { child.chart?.update() });  
+             this.charts?.forEach((child,index) => { child.chart?.update() }); 
+                        
 		  },
 		  err => {
 		  }        
-        );      
+        );
     }
-  }
+}
   
   OnRefrateChange() {
 	 this.SendScopeParams("refrate",(this.rfrate*10).toString(),0); 

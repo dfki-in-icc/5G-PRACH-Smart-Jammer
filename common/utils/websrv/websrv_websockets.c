@@ -33,6 +33,7 @@
  #include <gnutls/gnutls.h>
  #include <gnutls/x509.h>
  #include <arpa/inet.h>
+ #include <errno.h>
  #include <jansson.h>
  #include <ulfius.h>
  #include "common/utils/LOG/log.h"
@@ -45,20 +46,27 @@
 void websrv_websocket_send_message(char msg_src, char msg_type, char *msg_data, struct _websocket_manager * websocket_manager) {
 websrv_msg_t msg;
 int st;
-  msg.src=msg_src ;
-  msg.msgtype=msg_type;
+  msg.header.src=msg_src ;
+  msg.header.msgtype=msg_type;
   sprintf(msg.data,"%s",msg_data);
-  st = ulfius_websocket_send_message( websocket_manager, U_WEBSOCKET_OPCODE_BINARY,strlen(msg.data)+WEBSOCK_HEADSIZE, (char *)&msg);
+  int len=strlen(msg.data)+WEBSOCK_HEADSIZE;
+  st = ulfius_websocket_send_message( websocket_manager, U_WEBSOCKET_OPCODE_BINARY,len, (char *)&msg);
   if (st != U_OK)
-    LOG_I(UTIL, "Error sending scope message, status %i\n",st);
+    LOG_I(UTIL, "Error sending scope message, length %i status %i\n",len,st);
 }
 /* websocket callbacks as set in callback_websocket, the initial url endpoint which triggers the websocket init */
 /* function executed by ulfius when websocket is closed */
 void websrv_websocket_onclose_callback (const struct _u_request * request,
                                 struct _websocket_manager * websocket_manager,
                                 void * websocket_onclose_user_data) {
+  websrv_params_t *websrvparams = (websrv_params_t *)websocket_onclose_user_data;
   websrv_dump_request("websocket close ",request);
-  websrv_scope_ws_close();
+  websrvparams->wm=NULL;
+}
+
+void websrv_close_ws( websrv_params_t *websrvparams, char *source) {
+  LOG_W(UTIL,"[websrv] Websocket re-init, from %s....\n",source);
+  ulfius_websocket_send_close_signal(websrvparams->wm);
 }
 
 /* function executed by ulfius in a dedicated thread, should not terminate while client connection is up */
@@ -68,23 +76,28 @@ void websrv_websocket_manager_callback(const struct _u_request * request,
 
   websrv_dump_request("websocket manager ",request);
   websrv_params_t *websrvparams = (websrv_params_t *)websocket_manager_user_data;
+  while(websrvparams->wm != NULL) {
+	 LOG_I(UTIL,"[websrv] Waitting a previous websocket instance to close...\n");
+	 usleep(100000); 
+  }
   websrvparams->wm = websocket_manager;
-  uint64_t lcount=0;  
-  while(1) {
-	websrv_scope_manager(lcount, websrvparams);
-	
-//	wst=ulfius_websocket_wait_close(websocket_manager, 100 /* ms */) ;
-//    if (wst == U_WEBSOCKET_STATUS_OPEN) {
-
-	lcount++; 
-//  } else if (wst == U_WEBSOCKET_STATUS_ERROR) {
-//	  LOG_I(UTIL,"Websocket error, errno %s\n",strerror(errno));
-//	  break;
-//  } else {
-//	  LOG_I(UTIL,"Websocket has been  closed\n");
-//	  break;	  
-//  }
-  usleep(100000);
+  uint64_t lcount=0; 
+  int st=U_WEBSOCKET_STATUS_OPEN; 
+  while(st== U_WEBSOCKET_STATUS_OPEN) {
+    st=ulfius_websocket_status(websocket_manager /* ms */) ;
+    if (st == U_WEBSOCKET_STATUS_OPEN) {
+	   if (websrv_scope_manager(lcount, websrvparams) < 0) {
+		   websrv_close_ws( websrvparams, "ws scope manager");
+	   };		  
+	   lcount++; 
+    } else if (st == U_WEBSOCKET_STATUS_ERROR) {
+	  LOG_I(UTIL,"[websrv] manager: Websocket error, errno %s\n",strerror(errno));
+	  break;
+    } else {
+	  LOG_I(UTIL,"[websrv] manager: Websocket has been  closed\n");
+	  break;
+    }
+    usleep(100000);
   } /* while */
   LOG_I(UTIL, "Closing websocket_manager_callback...\n");
 }
@@ -96,20 +109,28 @@ void websrv_websocket_incoming_message_callback (const struct _u_request * reque
 
 
   LOG_I(UTIL, "Incoming message,  opcode: 0x%02x, mask: %d, len: %zu\n",  last_message->opcode, last_message->has_mask, last_message->data_len);
-  
+  websrv_params_t *websrvparams = (websrv_params_t *)websocket_incoming_message_user_data;
+  if ( websrvparams->wm != NULL && websrvparams->wm != websocket_manager) {
+	 websrv_close_ws( websrvparams, "ws incoming message callback"); 
+  }
   if (last_message->opcode == U_WEBSOCKET_OPCODE_TEXT) {
-    LOG_I(UTIL, "text payload '%.*s'", (int)last_message->data_len, last_message->data);
+    LOG_I(UTIL, "[websrv] text payload '%.*s'", (int)last_message->data_len, last_message->data);
   } else if (last_message->opcode == U_WEBSOCKET_OPCODE_BINARY) {
 	websrv_msg_t *msg = (websrv_msg_t *)last_message->data;
-    LOG_I(UTIL, "binary payload from %c type %i\n",msg->src, (int)msg->msgtype);
-    switch(msg->src) {
+    LOG_I(UTIL, "[websrv] binary payload from %c type %i\n",msg->header.src, (int)msg->header.msgtype);
+    switch(msg->header.src) {
 		case 's':
-          websrv_websocket_process_scopemessage(msg->msgtype, msg->data,websocket_manager);
+          websrv_websocket_process_scopemessage(msg->header.msgtype, msg->data,websocket_manager);
           break;
         default:
-          LOG_W(UTIL, "[websrv] Unknown message source: %c\n",msg->src);
+          LOG_W(UTIL, "[websrv] Unknown message source: %c\n",msg->header.src);
           break;
      }
+  } else if ( last_message->opcode == U_WEBSOCKET_OPCODE_CLOSE) {
+	  LOG_I(UTIL, "[websrv] websocket closed\n");
+
+  } else {
+	  LOG_I(UTIL, "[websrv] message ignored\n");
   }
 }
 
@@ -121,7 +142,10 @@ int websrv_callback_websocket (const struct _u_request * request, struct _u_resp
   int ret;
   
   websrv_dump_request("websocket ",request);
-  websrv_scope_ws_cb(user_data);
+  websrv_params_t *websrvparams = (websrv_params_t *)user_data;
+  if (websrvparams->wm != NULL) {
+    websrv_close_ws(websrvparams,"ws url callback");
+  }
   if ((ret = ulfius_set_websocket_response(response, NULL, NULL, websrv_websocket_manager_callback, user_data, websrv_websocket_incoming_message_callback,user_data, websrv_websocket_onclose_callback, user_data)) == U_OK) {
     return U_CALLBACK_COMPLETE;
   } else {
