@@ -438,7 +438,6 @@ int nr_generate_pbch(nfapi_nr_dl_tti_ssb_pdu *ssb_pdu,
   return 0;
 }
 
-
 int nr_generate_sl_pbch(nfapi_nr_dl_tti_ssb_pdu *ssb_pdu,
                      int32_t *txdataF,
                      int16_t amp,
@@ -458,12 +457,21 @@ int nr_generate_sl_pbch(nfapi_nr_dl_tti_ssb_pdu *ssb_pdu,
   NR_gNB_PBCH m_pbch;
   NR_gNB_PBCH *pbch = &m_pbch;
   memset((void *)pbch, 0, sizeof(NR_gNB_PBCH));
-  pbch->pbch_a=0;
+  pbch->pbch_a=0x0FFF; // set a0 to a11 to 1
+  pbch->pbch_a_interleaved = pbch->pbch_a; // skip interlevaing for Sidelink
   uint8_t ssb_index = ssb_pdu->ssb_pdu_rel15.SsbBlockIndex;
   uint8_t Lmax = frame_parms->Lmax;
 
   pbch->pbch_a_prime = 0;
 
+  #ifdef DEBUG_PBCH_ENCODING
+    printf("PSBCH payload = 0x%08x\n",pbch->pbch_a);
+  #endif
+
+#ifdef DEBUG_PBCH_ENCODING
+  printf("Interleaving:\n");
+  printf("pbch_a_interleaved: 0x%08x\n", pbch->pbch_a_interleaved);
+#endif
   // Encoder reversal
   for (int i=0; i<NR_POLAR_PBCH_PAYLOAD_BITS; i++)
     a_reversed |= (((uint64_t)pbch->pbch_a_prime>>i)&1)<<(31-i);
@@ -477,7 +485,7 @@ int nr_generate_sl_pbch(nfapi_nr_dl_tti_ssb_pdu *ssb_pdu,
   printf("Channel coding:\n");
 
   for (int i=0; i<NR_POLAR_PBCH_E_DWORD; i++)
-    printf("pbch_e[%d]: 0x%08x\t", i, pbch->pbch_e[i]);
+    printf("sl_pbch_e[%d]: 0x%08x\t", i, pbch->pbch_e[i]);
 
   printf("\n");
 #endif
@@ -488,8 +496,9 @@ int nr_generate_sl_pbch(nfapi_nr_dl_tti_ssb_pdu *ssb_pdu,
 #ifdef DEBUG_PBCH_ENCODING
   printf("Scrambling:\n");
 
-  for (int i=0; i<NR_POLAR_PBCH_E_DWORD; i++)
-    printf("pbch_e[%d]: 0x%08x\t", i, pbch->pbch_e[i]);
+  for (int i=0; i<NR_POLAR_PBCH_E_DWORD; i++) {
+    printf("sl_pbch_e[%d]: 0x%08x\t", i, pbch->pbch_e[i]);
+}
 
   printf("\n");
 #endif
@@ -601,7 +610,6 @@ int nr_generate_sl_pbch(nfapi_nr_dl_tti_ssb_pdu *ssb_pdu,
     if (k >= frame_parms->ofdm_symbol_size)
       k-=frame_parms->ofdm_symbol_size;
   }
-
 
   return 0;
 }
