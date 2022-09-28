@@ -77,7 +77,7 @@ fifo_dump_emos_UE emos_dump_UE;
 #include "T.h"
 
 //min
-#include "openair1/PHY/BF/cu_function.h"
+// #include "openair1/PHY/BF/cu_function.h"
 #include "openair1/PHY/BF/angle.h"
 
 char nr_mode_string[NUM_UE_MODE][20] = {"NOT SYNCHED","PRACH","RAR","RA_WAIT_CR", "PUSCH", "RESYNCH"};

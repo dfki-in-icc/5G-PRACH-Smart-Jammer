@@ -3318,6 +3318,9 @@ target_link_libraries(nr_ulschsim
   m pthread ${ATLAS_LIBRARIES} ${T_LIB} ITTI dl
   )
 
+# min
+link_directories(${OPENAIR1_DIR}/PHY/BF)
+
 add_executable(nr_ulsim
   ${OPENAIR1_DIR}/SIMULATION/NR_PHY/ulsim.c
   ${OPENAIR_DIR}/common/utils/threadPool/thread-pool.c

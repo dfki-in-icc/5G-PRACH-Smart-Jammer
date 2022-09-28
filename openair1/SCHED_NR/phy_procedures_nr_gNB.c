@@ -50,6 +50,16 @@
 
 #include "intertask_interface.h"
 
+/*! \file openairinterface5g/openair1/SCHED_NR/phy_procedures_nr_gNB.c
+ * \brief Integrate MUSIC & MVDR algorithm single user Op7.2
+ * \author NYCU OpinConnect Sendren Xu, Terng-Yin Hsu, Ming-Hsun Wu, Chao-Hung Hsu
+ * \email  sdxu@mail.ntust.edu.tw, tyhsu@cs.nctu.edu.tw, sam0104502@gmail.com, abby88771@gmail.com
+ * \date   28-9-2022
+ * \version 1.3
+ * \note
+ * \warning
+ */
+
 //#define DEBUG_RXDATA
 
 //min
@@ -632,6 +642,34 @@ void phy_procedures_gNB_common_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx) 
 
 }
 
+//[modify]
+void multi_phy_procedures_gNB_common_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx, int32_t **rxdata, int32_t **rxdataF, int antennas) {
+
+  uint8_t symbol;
+  unsigned char aa;
+    
+  for(symbol = 0; symbol < (gNB->frame_parms.Ncp==EXTENDED?12:14); symbol++) {
+    for (aa = 0; aa < antennas; aa++) {
+      nr_slot_fep_ul(&gNB->frame_parms,
+                     rxdata[aa],
+                     rxdataF[aa],
+                     symbol,
+                     slot_rx,
+                     0);
+    }
+  }
+
+  for (aa = 0; aa < antennas; aa++) {
+    apply_nr_rotation_ul(&gNB->frame_parms,
+			 rxdataF[aa],
+			 slot_rx,
+			 0,
+			 gNB->frame_parms.Ncp==EXTENDED?12:14,
+			 gNB->frame_parms.ofdm_symbol_size);
+  }
+
+    printf("\n-----------------------------------------\n");
+}
 int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx) {
   /* those variables to log T_GNB_PHY_PUCCH_PUSCH_IQ only when we try to decode */
   int pucch_decode_done = 0;

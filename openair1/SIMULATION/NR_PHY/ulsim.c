@@ -67,18 +67,23 @@
 #include "PHY/NR_REFSIG/ul_ref_seq_nr.h"
 //#define DEBUG_ULSIM
 
- /*! \file openairinterface5g/openair1/SIMULATION/NR_PHY/ulsim
- * \brief Integrate MVDR algorithm single user Op8
- * \author NYCU OpinConnect Terng-Yin Hsu, Sendren Xu, Min-Hsun Wu
- * \email  tyhsu@cs.nctu.edu.tw, sdxu@mail.ntust.edu.tw, sam0104502@gmail.com
- * \date   26-1-2022
- * \version 1.2
+ /*! \file openairinterface5g/openair1/SIMULATION/NR_PHY/ulsim.c
+ * \brief Integrate MUSIC & MVDR algorithm single user Op7.2
+ * \author NYCU OpinConnect Sendren Xu, Terng-Yin Hsu, Ming-Hsun Wu, Chao-Hung Hsu
+ * \email  sdxu@mail.ntust.edu.tw, tyhsu@cs.nctu.edu.tw, sam0104502@gmail.com, abby88771@gmail.com
+ * \date   28-9-2022
+ * \version 1.3
  * \note
  * \warning
  */
 
 //min
 #include "openair1/PHY/BF/angle.h"
+#define DOA_TD 0
+#define DOA_FD 1
+#define DOA_SAMPLE_FD 4096
+#define DOA_SAMPLE_TD 500
+
 LCHAN_DESC DCCH_LCHAN_DESC,DTCH_DL_LCHAN_DESC,DTCH_UL_LCHAN_DESC;
 rlc_info_t Rlc_info_um,Rlc_info_am_config;
 
@@ -617,7 +622,6 @@ int main(int argc, char **argv)
       global_SNR = atoi(optarg);
       printf("SNR is setting to %d\n", global_SNR);
       break;    
-
   ///////////////////////////////////////////////////////////////////////////  
     
 
@@ -1317,7 +1321,15 @@ int main(int argc, char **argv)
         }
     } /*End input_fd */
 
+    srand( time(NULL) );
+        int min = -60;
+        int max = 60;
+        int w = rand() % (max - min + 1) + min;
+        global_angle = w;
 
+    #if DOA_TD
+    global_QR_iteration = 10;
+    global_SNR = SNR;
     //min [start] channel beamforming (1*8)
     //////////////////////////////////////////////////////////////////////////////////////////////////////
     printf("\n-----------------------------------------\n");
@@ -1327,6 +1339,12 @@ int main(int argc, char **argv)
      rxdata_ch = (int32_t**)malloc16(global_antenna * sizeof(int32_t*));
     for (int aa=0; aa < global_antenna; aa++) {
       rxdata_ch[aa] = (int32_t*) malloc16_clear(2*(slot_offset+slot_length)*sizeof(int32_t));
+    }
+
+    int32_t **rxdata_ch_rx_0;
+     rxdata_ch_rx_0 = (int32_t**)malloc16(1 * sizeof(int32_t*));
+    for (int aa=0; aa < 1; aa++) {
+      rxdata_ch_rx_0[aa] = (int32_t*) malloc16_clear(2*(slot_offset+slot_length)*sizeof(int32_t));
     }
 
     int32_t **rxdata_ch_rx;
@@ -1341,25 +1359,9 @@ int main(int argc, char **argv)
     //copy data
     memcpy(&rxdata_ch[0][0], &gNB->common_vars.rxdata[0][0], (slot_offset+slot_length) * sizeof(int32_t));
 
-    //I,Q exchange position
-    for (int j = 0; j < (slot_offset+slot_length); j++) {
-        int16_t b;
-        b = ((int16_t*) &rxdata_ch[0][slot_offset])[(2*j)];
-        ((int16_t*) &rxdata_ch[0][slot_offset])[(2*j)] = ((int16_t*) &rxdata_ch[0][slot_offset])[(2*j)+1];
-        ((int16_t*) &rxdata_ch[0][slot_offset])[(2*j)+1] = b;
-    } 
-
     //rxdata 32bit to IQ 16bit
     int16_t *IQ = (int16_t*)malloc(2 * (slot_offset+slot_length) * sizeof(int16_t));
     memcpy(IQ, (int16_t*)&rxdata_ch[0][0], (slot_offset+slot_length) * sizeof(int32_t));
-    
-    //I,Q exchange position
-    for (int i = 0; i < (slot_offset+slot_length); i++) {
-        int16_t a;
-        a = IQ[2*i];
-        IQ[2*i] = IQ[2*i+1];
-        IQ[2*i+1] = a;  
-    }
     
     //produce beam_weights
     int8_t *bws_0 = (int8_t*)malloc( 2 * 8 * global_antenna * sizeof(int8_t)); 
@@ -1368,8 +1370,8 @@ int main(int argc, char **argv)
     //bw * stream
     for (int i = 0; i < global_antenna; i++) {
       for (int j = 0; j < slot_offset+slot_length; j++) {        
-        rxdata_ch[i][j*2] = ((bws_0[i*2] * IQ[j*2] - bws_0[i*2+1]  * IQ[j*2+1])); //re
-        rxdata_ch[i][j*2+1] = ((bws_0[i*2] * IQ[j*2+1] + IQ[j*2] * bws_0[i*2+1])); //im     
+        rxdata_ch[i][j*2] = ((bws_0[i*2] * IQ[j*2] - bws_0[i*2+1]  * IQ[j*2+1]))>>6; //re
+        rxdata_ch[i][j*2+1] = ((bws_0[i*2] * IQ[j*2+1] + IQ[j*2] * bws_0[i*2+1]))>>6; //im     
       }
     }
       
@@ -1394,10 +1396,10 @@ int main(int argc, char **argv)
     // use C to change to 0(MUSIC) or 1(MVDR)
     // start DOA algorithm 
     if(global_DOA_algorithm == 0){
-        MUSIC_init_16(rxdata_ch_music, result);
+        MUSIC_init_TD(rxdata_ch_music, result);
     }
     else if(global_DOA_algorithm == 1){
-        MVDR_init_16(rxdata_ch_music, result);
+        MVDR_init_TD(rxdata_ch_music, result);
     }
     
     printf("[END] MUSIC/MVDR \n");
@@ -1410,31 +1412,31 @@ int main(int argc, char **argv)
     //bw * stream
     for (int i = 0; i < global_antenna; i++) {
       for (int j = 0; j < slot_offset+slot_length; j++) {     
-        rxdata_ch[i][j*2] = ((bws_rx[i*2] * rxdata_ch[i][j*2]) - (bws_rx[i*2+1] * rxdata_ch[i][j*2+1]))>>6; //re >>14
-        rxdata_ch[i][j*2+1] = ((bws_rx[i*2] * rxdata_ch[i][j*2+1]) + (bws_rx[i*2+1] * rxdata_ch[i][j*2]))>>6; //im >>14
+        rxdata_ch[i][j*2] = ((bws_rx[i*2] * rxdata_ch[i][j*2]) - (bws_rx[i*2+1] * rxdata_ch[i][j*2+1]))>>6; //re
+        rxdata_ch[i][j*2+1] = ((bws_rx[i*2] * rxdata_ch[i][j*2+1]) + (bws_rx[i*2+1] * rxdata_ch[i][j*2]))>>6; //im
       }
     }
-    // 32bit to 2*16bit 
+    //antenna sum to rxdata
     for (int i = 0; i < global_antenna; i++) {
-        for (int j = 0; j < (slot_offset+slot_length); j++) {
-                //(&rxdata_ch_rx[i][0])[j*2] = rxdata_ch[i][j]; 
-                ((int16_t*) &rxdata_ch_rx[i][0])[(2*j)] = (int16_t)(rxdata_ch[i][(2*j)]);
-                ((int16_t*) &rxdata_ch_rx[i][0])[(2*j)+1] = (int16_t)(rxdata_ch[i][(2*j)+1]);
+        for (int j = 0; j < (slot_offset+slot_length); j++) { 
+            rxdata_ch_rx_0[0][(2*j)] += rxdata_ch[i][(2*j)];
+            rxdata_ch_rx_0[0][(2*j)+1] += rxdata_ch[i][(2*j)+1];
         } 
-    }
+    }   
+    // 2*16bit to 32bit  
+        for (int j = 0; j < (slot_offset+slot_length); j++) {
+                ((int16_t*) &rxdata_ch_rx[0][0])[(2*j)] = (int16_t)(rxdata_ch_rx_0[0][(2*j)]);
+                ((int16_t*) &rxdata_ch_rx[0][0])[(2*j)+1] = (int16_t)(rxdata_ch_rx_0[0][(2*j)+1]);
+        } 
 
-    //rxdata return to 0 and antenna sum to rxdata
+    //rxdata return to 0 
     memset(&gNB->common_vars.rxdata[0][0],0,(slot_offset+slot_length)*sizeof(int32_t));
-   for (int i = 0; i < global_antenna; i++) {
         for (int j = 0; j < (slot_offset+slot_length); j++) {
-            int ap = 0; 
-            //memset(&gNB->common_vars.rxdata[0][0],0,(slot_offset+slot_length)*sizeof(int32_t));
-            gNB->common_vars.rxdata[ap][j] += rxdata_ch_rx[i][j];
+            gNB->common_vars.rxdata[0][j] = rxdata_ch_rx[0][j];
         } 
-    }
 
     printf("[END] RX beamforming (8*1)\n");
-    printf("\n-----------------------------------------\n");;
+    printf("\n-----------------------------------------\n");
     //min [end] channel beamforming (1*8)
     
     // free memory
@@ -1443,22 +1445,174 @@ int main(int argc, char **argv)
         free(rxdata_ch_rx[i]);
     }
 
+    free(rxdata_ch_rx_0[0]);
     //  for (int i = 0; i < global_antenna; i++) {
     //     free(rxdata_ch_music[i]);
     // }   
 
         // free(rxdata_ch);
         free(rxdata_ch_rx);
+        free(rxdata_ch_rx_0);
         free(rxdata_ch_music);
         //free(rx_data_music);
         free(IQ);
         free(bws_0);
         free(bws_rx);
-
+    
+    #endif
     //////////////////////////////////////////////////////////////////////////////////////////////////////   
 
 
+    //min frequency domain
+    #if DOA_FD
+    global_QR_iteration = 10;
+    global_SNR = SNR;
+    printf("\n-----------------------------------------\n");
+    
+    // allocation memory 
+   int32_t **rxdata_ch;
+     rxdata_ch = (int32_t**)malloc16(global_antenna * sizeof(int32_t*));
+    for (int aa=0; aa < global_antenna; aa++) {
+      rxdata_ch[aa] = (int32_t*) malloc16_clear(2*(slot_offset+slot_length)*sizeof(int32_t));
+    }
 
+    int32_t **rxdata_ch_1;
+     rxdata_ch_1 = (int32_t**)malloc16(global_antenna * sizeof(int32_t*));
+    for (int aa=0; aa < global_antenna; aa++) {
+      rxdata_ch_1[aa] = (int32_t*) malloc16_clear(2*(slot_offset+slot_length)*sizeof(int32_t));
+    }
+
+    int32_t **rxdata_ch_2;
+     rxdata_ch_2 = (int32_t**)malloc16(global_antenna * sizeof(int32_t*));
+    for (int aa=0; aa < global_antenna; aa++) {
+      rxdata_ch_2[aa] = (int32_t*) malloc16_clear(2*(slot_offset+slot_length)*sizeof(int32_t));
+    }
+
+    int32_t **rxdataF_ch;
+     rxdataF_ch = (int32_t**)malloc16(global_antenna * sizeof(int32_t*));
+    for (int aa=0; aa < global_antenna; aa++) {
+      rxdataF_ch[aa] = (int32_t*) malloc16_clear(2*(slot_offset+slot_length)*sizeof(int32_t));
+    }
+
+    printf("[START] channel beamforming (1*8)\n");
+
+    //copy data
+    memcpy(&rxdata_ch[0][0], &gNB->common_vars.rxdata[0][0], (slot_offset+slot_length) * sizeof(int32_t));
+
+    //rxdata 32bit to IQ 16bit
+    int16_t *IQ = (int16_t*)malloc(2 * (slot_offset+slot_length) * sizeof(int16_t));
+    memcpy(IQ, (int16_t*)&rxdata_ch[0][0], (slot_offset+slot_length) * sizeof(int32_t));
+    
+    //produce beam_weights
+    int8_t *bws_0 = (int8_t*)malloc( 2 * 8 * global_antenna * sizeof(int8_t)); 
+    beam_weight_int8_t(bws_0, global_antenna, global_angle);
+
+
+    //bw * stream
+    for (int i = 0; i < global_antenna; i++) {
+      for (int j = 0; j < slot_offset+slot_length; j++) {        
+        rxdata_ch[i][j*2] = ((bws_0[i*2] * IQ[j*2] - bws_0[i*2+1] * IQ[j*2+1]))>>6; //re
+        rxdata_ch[i][j*2+1] = ((bws_0[i*2] * IQ[j*2+1] + IQ[j*2] * bws_0[i*2+1]))>>6; //im    
+      }
+    }
+
+    // 2*16bit to 32bit
+    for (int i = 0; i < global_antenna; i++) {
+        for (int j = 0; j < (slot_offset+slot_length); j++) {
+                ((int16_t*) &rxdata_ch_1[i][0])[(2*j)] = (int16_t)(rxdata_ch[i][(2*j)]);
+                ((int16_t*) &rxdata_ch_1[i][0])[(2*j)+1] = (int16_t)(rxdata_ch[i][(2*j)+1]);
+                // ((int16_t*) &rxdata_ch_1[i][0])[(2*j)] = (int16_t)(rxdata_ch[i][(2*j)+1]);
+                // ((int16_t*) &rxdata_ch_1[i][0])[(2*j)+1] =(int16_t)(rxdata_ch[i][(2*j)]); 
+         } 
+    }
+    printf("[END] channel beamforming (1*8)\n");
+    printf("\n-----------------------------------------\n");
+   #endif
+
+   #if DOA_FD
+        //[modify]
+        multi_phy_procedures_gNB_common_RX(gNB, frame, slot ,rxdata_ch_1, rxdataF_ch, global_antenna);
+    #else
+        //[original]
+        // phy_procedures_gNB_common_RX(gNB, frame, slot);
+    #endif    
+  
+    #if DOA_FD
+    printf("[START] MUSIC/MVDR \n");
+    float result[4] = {0};
+    int32_t *rxdata_ch_music_FD = (int32_t*)malloc(DOA_SAMPLE_FD * 14 * global_antenna * sizeof(int32_t));
+    
+    for (int i = 0; i < global_antenna; i++) {
+        for (int j = 0; j < DOA_SAMPLE_FD * 14; j++) { 
+            int k = j + i * DOA_SAMPLE_FD * 14;
+            rxdata_ch_music_FD[k] = (rxdataF_ch[i][j]);
+        } 
+    }
+    
+    printf("\n-----------------------------------------\n");
+    
+    // use C to change to 0(MUSIC) or 1(MVDR)
+    // start DOA algorithm 
+    if(global_DOA_algorithm == 0){
+        MUSIC_init_FD(rxdata_ch_music_FD, result);
+    }
+    else if(global_DOA_algorithm == 1){
+        MVDR_init_FD(rxdata_ch_music_FD, result);
+    }
+    
+    printf("[END] MUSIC/MVDR \n");
+    printf("\n-----------------------------------------\n");
+    
+    printf("[START] RX beamforming (FD) (8*1)\n");
+   
+    int8_t *bws_rx= (int8_t*)malloc( 2 * 8 * global_antenna * sizeof(int8_t));
+    beam_weight_int8_t(bws_rx, global_antenna,-((int)result[4]));
+    
+    for (int i = 0; i < global_antenna; i++) {
+      for (int j = 0; j < slot_offset+slot_length; j++) {     
+        rxdata_ch_1[i][j*2] = ((bws_rx[i*2] * rxdata_ch[i][j*2]) - (bws_rx[i*2+1] * rxdata_ch[i][j*2+1]))>>6; 
+        rxdata_ch_1[i][j*2+1] = ((bws_rx[i*2] * rxdata_ch[i][j*2+1]) + (bws_rx[i*2+1] * rxdata_ch[i][j*2]))>>6;
+      }
+    }
+
+    for (int i = 0; i < global_antenna; i++) {
+      for (int j = 0; j < slot_offset+slot_length; j++) {     
+        rxdata_ch_2[0][j*2] += rxdata_ch_1[i][j*2]; 
+        rxdata_ch_2[0][j*2+1] += rxdata_ch_1[i][j*2];
+      }
+    }
+    
+    //rxdata return to 0 and antenna sum to rxdata 
+    memset(&gNB->common_vars.rxdata[0][0],0,(slot_offset+slot_length)*sizeof(int32_t)); 
+        for (int j = 0; j < (slot_offset+slot_length); j++) {
+                ((int16_t*) &gNB->common_vars.rxdata[0][0])[(2*j)] = (int16_t)((rxdata_ch_2[0][(2*j)])/global_antenna);
+                ((int16_t*) &gNB->common_vars.rxdata[0][0])[(2*j)+1] = (int16_t)((rxdata_ch_2[0][(2*j)+1])/global_antenna);
+        }
+
+    printf("\n----------------------------------------------------\n");
+    printf("\n----------------------------------------------------\n");
+    
+    printf("[END] RX beamforming (FD) (8*1)\n");
+    printf("\n-----------------------------------------\n");
+    
+    // free memory
+    for (int i = 0; i < global_antenna; i++) {
+
+        free(rxdata_ch_1[i]);
+        free(rxdata_ch_2[i]);
+        free(rxdataF_ch[i]);
+
+    }
+        free(rxdataF_ch);
+        free(rxdata_ch_1);
+        free(rxdata_ch_2);
+        free(IQ);
+        free(bws_0);
+        free(rxdata_ch_music_FD);
+        free(bws_rx);
+    
+    #endif
+    ////////////////////////////////////////////////////
       if(pusch_pdu->pdu_bit_map & PUSCH_PDU_BITMAP_PUSCH_PTRS) {
         set_ptrs_symb_idx(&ptrsSymPos,
                           pusch_pdu->nr_of_symbols,
