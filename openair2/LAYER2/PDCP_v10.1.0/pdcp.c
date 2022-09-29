@@ -2333,7 +2333,6 @@ void rrc_pdcp_config_req (
           pdcp_p->next_pdcp_rx_sn = 0;
           pdcp_p->tx_hfn = 0;
           pdcp_p->rx_hfn = 0;
-          pdcp_p->rlc_mode = RLC_MODE_AM;
           /* SN of the last PDCP SDU delivered to upper layers */
           pdcp_p->last_submitted_pdcp_rx_sn = 4095;
 

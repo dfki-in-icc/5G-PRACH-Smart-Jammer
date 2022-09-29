@@ -220,7 +220,7 @@ void emulate_phy_config_afterHO_ue(module_id_t Mod_id,
                            uint8_t CC_id,
                            uint8_t eNB_index,
                            LTE_MobilityControlInfo_t *mobilityControlInfo,
-                           uint8_t ho_failed);
+                           bool ho_failed);
 
 /*!
   \fn void phy_config_sib2_eNB(module_id_t Mod_id,

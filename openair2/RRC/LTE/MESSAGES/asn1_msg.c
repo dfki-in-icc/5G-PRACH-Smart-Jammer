@@ -4215,12 +4215,16 @@ uint8_t do_MeasurementReport(uint8_t Mod_id, uint8_t *buffer, size_t buffer_size
   dummy[5]=0;
   ASN_SEQUENCE_ADD(&measresult_cgi2->cellGlobalId.plmn_Identity.mnc.list,&dummy[5]);
 
-  // cellIdentity is limited to 28 bits, hence bits_unused // 3GPP TS 23.003 (?)
+  /* cellIdentity cannot be more than 28 bits. See 3GPP TS 23.003.
+     The buf values below, need to be carfully selected to ensure that
+     it stays within the bounds of the 28 bits. Additionally, the
+     bits_unused variable is refering to the lower bits in the last octet
+     of buf. For example, buf[3] = 0x03 is out of bounds. */
   measresult_cgi2->cellGlobalId.cellIdentity.buf=MALLOC(8);
-  measresult_cgi2->cellGlobalId.cellIdentity.buf[0]=0x00;
-  measresult_cgi2->cellGlobalId.cellIdentity.buf[1]=0x00;
-  measresult_cgi2->cellGlobalId.cellIdentity.buf[2]=0x00;
-  measresult_cgi2->cellGlobalId.cellIdentity.buf[3]=0x00;
+  measresult_cgi2->cellGlobalId.cellIdentity.buf[0]=0x01;
+  measresult_cgi2->cellGlobalId.cellIdentity.buf[1]=0x48;
+  measresult_cgi2->cellGlobalId.cellIdentity.buf[2]=0x0f;
+  measresult_cgi2->cellGlobalId.cellIdentity.buf[3]=0x30;
   measresult_cgi2->cellGlobalId.cellIdentity.size=4;
   measresult_cgi2->cellGlobalId.cellIdentity.bits_unused=4;
   measresult_cgi2->trackingAreaCode.buf = MALLOC(2);

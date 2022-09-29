@@ -1318,6 +1318,12 @@ void *ue_standalone_pnf_task(void *context)
 
       LOG_D(MAC, "Received sfn_slot[%hu] frame: %u, subframe: %u from phy_id %u\n", sfn_sf_info.phy_id,
             sfn_sf_info.sfn_sf >> 4, sfn_sf_info.sfn_sf & 15, phy_id);
+      /* Note: We have to keep the two eNBs in sync in LTE HO mode.
+         To do this, we have to ensure that we receive subframes
+         from *both* eNBs prior to continuing to packet processing.
+         The checks below were added to ensure we keep both
+         eNBs in sync and we only process packets once we
+         have received sfn_sfs from both source and target eNBs. */
       if (prev_sfn_sf == sfn_sf)
         ++num_recvd_current_sfn_sf;
       if (num_recvd_current_sfn_sf == num_enbs)
@@ -1380,7 +1386,7 @@ void *ue_standalone_pnf_task(void *context)
       }
       if (UE_mac_inst[0].targetPhysCellId != header.phy_id)
       {
-        LOG_D(MAC, "Discarding the detached eNB%d message\n", header.phy_id);
+        LOG_W(MAC, "Discarding the detached eNB%d message\n", header.phy_id);
         continue;
       }
       switch (header.message_id)

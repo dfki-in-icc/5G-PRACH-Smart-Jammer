@@ -332,30 +332,25 @@ void phy_config_afterHO_ue(module_id_t Mod_id,uint8_t CC_id,uint8_t eNB_id, LTE_
 /*
  * Configures UE MAC and PHY with radioResourceCommon received in mobilityControlInfo IE during Handover
  */
-void emulate_phy_config_afterHO_ue(module_id_t Mod_id,uint8_t CC_id,uint8_t eNB_id, LTE_MobilityControlInfo_t *mobilityControlInfo, uint8_t ho_failed) {
-  if (mobilityControlInfo != NULL) {
-    LTE_RadioResourceConfigCommon_t *radioResourceConfigCommon = &mobilityControlInfo->radioResourceConfigCommon;
-    LOG_I(PHY,"radioResourceConfigCommon %p\n", radioResourceConfigCommon);
-    memcpy((void *)&PHY_vars_UE_g[Mod_id][CC_id]->frame_parms_before_ho,
-           (void *)&PHY_vars_UE_g[Mod_id][CC_id]->frame_parms,
-           sizeof(LTE_DL_FRAME_PARMS));
-    PHY_vars_UE_g[Mod_id][CC_id]->ho_triggered = 1;
-    LTE_DL_FRAME_PARMS *fp = &PHY_vars_UE_g[Mod_id][CC_id]->frame_parms;
-
-    LOG_I(PHY,"[UE%d] Handover triggered: Applying radioResourceConfigCommon from eNB %d\n",
-          Mod_id, eNB_id);
-    fp->prach_config_common.rootSequenceIndex                           = radioResourceConfigCommon->prach_Config.rootSequenceIndex;
-    fp->prach_config_common.prach_ConfigInfo.prach_ConfigIndex          = radioResourceConfigCommon->prach_Config.prach_ConfigInfo->prach_ConfigIndex;
-    fp->prach_config_common.prach_ConfigInfo.prach_FreqOffset           = radioResourceConfigCommon->prach_Config.prach_ConfigInfo->prach_FreqOffset;
-
-    //Target CellId
-    fp->Nid_cell = mobilityControlInfo->targetPhysCellId;
-    fp->nushift  = fp->Nid_cell%6;
-    LOG_I(PHY,"fp->Nid_cell (targetPhysCellId) = %u\n", fp->Nid_cell);
-  }
+void emulate_phy_config_afterHO_ue(module_id_t Mod_id, uint8_t CC_id, uint8_t eNB_id, LTE_MobilityControlInfo_t *mobilityControlInfo, bool ho_failed) {
+  DevAssert(mobilityControlInfo != NULL);
+  LTE_RadioResourceConfigCommon_t *radioResourceConfigCommon = &mobilityControlInfo->radioResourceConfigCommon;
+  LOG_I(PHY, "radioResourceConfigCommon %p\n", radioResourceConfigCommon);
+  memcpy((void *)&PHY_vars_UE_g[Mod_id][CC_id]->frame_parms_before_ho,
+         (void *)&PHY_vars_UE_g[Mod_id][CC_id]->frame_parms,
+         sizeof(LTE_DL_FRAME_PARMS));
+  PHY_vars_UE_g[Mod_id][CC_id]->ho_triggered = 1;
+  LTE_DL_FRAME_PARMS *fp = &PHY_vars_UE_g[Mod_id][CC_id]->frame_parms;
+  LOG_I(PHY, "[UE%d] Handover triggered: Applying radioResourceConfigCommon from eNB %d\n", Mod_id, eNB_id);
+  fp->prach_config_common.rootSequenceIndex                           = radioResourceConfigCommon->prach_Config.rootSequenceIndex;
+  fp->prach_config_common.prach_ConfigInfo.prach_ConfigIndex          = radioResourceConfigCommon->prach_Config.prach_ConfigInfo->prach_ConfigIndex;
+  fp->prach_config_common.prach_ConfigInfo.prach_FreqOffset           = radioResourceConfigCommon->prach_Config.prach_ConfigInfo->prach_FreqOffset;
+  fp->Nid_cell = mobilityControlInfo->targetPhysCellId;
+  fp->nushift  = fp->Nid_cell%6;
+  LOG_I(PHY, "fp->Nid_cell (targetPhysCellId) = %u\n", fp->Nid_cell);
 
   if (ho_failed) {
-    LOG_I(PHY,"[UE%d] Handover failed, triggering RACH procedure\n",Mod_id);
+    LOG_I(PHY, "[UE%d] Handover failed, triggering RACH procedure\n", Mod_id);
     memcpy((void *)&PHY_vars_UE_g[Mod_id][CC_id]->frame_parms,(void *)&PHY_vars_UE_g[Mod_id][CC_id]->frame_parms_before_ho, sizeof(LTE_DL_FRAME_PARMS));
     PHY_vars_UE_g[Mod_id][CC_id]->UE_mode[eNB_id] = PRACH;
   }
