@@ -232,7 +232,12 @@ int websrv_scope_callback_get_desc (const struct _u_request * request, struct _u
 	      strcpy(gtype,"LLR");	  
           agraph=json_pack("{s:s,s:s,s:i,s:i,s:i,s:i}","title",sp->graph[i].graph->label,"type",gtype,
                            "id", sp->graph[i].datasetid,"srvidx",i,"w", sp->graph[i].w,"h",sp->graph[i].h);
-          break;          
+          break;  
+		case SCOPEMSG_DATAID_WF:
+	      strcpy(gtype,"WF");	  
+          agraph=json_pack("{s:s,s:s,s:i,s:i,s:i,s:i}","title",sp->graph[i].graph->label,"type",gtype,
+                           "id", sp->graph[i].datasetid,"srvidx",i,"w", sp->graph[i].w,"h",sp->graph[i].h);
+          break;                   
         default:
           break;       
       }

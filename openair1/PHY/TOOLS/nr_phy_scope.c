@@ -109,7 +109,7 @@ int websrv_cpiqbuff_tomsg(OAIgraph_t *graph, scopeSample_t *c,int n, int id, int
   return newn;
 }
 
-int websrv_cpllrbuff_tomsg(OAIgraph_t *graph, int16_t *llrs, int n, int id) {
+int websrv_cpllrbuff_tomsg(OAIgraph_t *graph, int16_t *llrs, int n, int id, int iteration, int max_iteration) {
 
   websrv_scopedata_msg_t *msg;
   websrv_nf_getdata(graph->graph, id,&msg);
@@ -118,33 +118,34 @@ int websrv_cpllrbuff_tomsg(OAIgraph_t *graph, int16_t *llrs, int n, int id) {
     LOG_E(UTIL,"Buffer id %i too small for %i iqs...\n",id,n);
     return 0;
   }
-  /* save number of points (xmax) at beginning of buffer, as we try to minimize data sent */ 
-  int32_t *iptr= (int32_t *)(msg->data_xy);
-  *iptr=n;
-  
+  /* save number of points (xmax) at beginning of buffer, as we try to minimize data sent */
+  /* all iterations (UE pdschh case) have same n (number of data points) */ 
+  if (iteration == 0){
+    int32_t *iptr= (int32_t *)(msg->data_xy);
+    *iptr=n;
+  }
   /* for each point we save llr and the corresponding offset if llr's below the configured threshold have been skipped */
   /* offset is saved in 8bits so llr always transmitted when offset reach the 8 bits max. offset relative to x of previously transmitted point */
-  char *dptr=(char *)(msg->data_xy);
-  int newn=4;
+  int16_t *dptr=msg->data_xy;
+  int newn=2; //2 first int16 used for saving maxx 
   int xoffset=1;
-  int maxx=0;
   int xres=(n/1000 > CHAR_MAX)?CHAR_MAX:(n/1000);
-  char latestllr=0;
+  int16_t latestllr=0;
   int imin=WP->llrxmin;
   int imax=WP->llrxmax;
  
   if(imax > n)
     imax=n; 
   if(imin > imax)
-    imin=imax;     
+    imin=imax;    
+  /* to keep data sorted, we insert points of each iteration at their x position, */ 
   for ( int i=imin; i<imax; i++) {
 	  if ( ( (llrs[i]-latestllr) >= WP->llr_ythresh ) || ( (latestllr-llrs[i]) >= WP->llr_ythresh ) || (xoffset>=xres) ) {
-	    dptr[newn]=(int8_t)llrs[i];
+	    dptr[newn+iteration]=llrs[i];
 	    latestllr=llrs[i];
-	    dptr[newn+1]=(int8_t)xoffset;
-	    maxx=maxx+xoffset;
+	    dptr[newn+iteration+1]=(int16_t)xoffset;
 	    xoffset=1;
-	    newn=newn+2;
+	    newn=newn+max_iteration+2;
 	  } else {
 		xoffset++;
 	  }
@@ -289,7 +290,7 @@ static void oai_xygraph(OAIgraph_t *graph, float *x, float *y, int len, int laye
       msg->header.datasetid=graph->datasetid;
       msg->header.msgseg=0;
       msg->header.update= 1;  
-      websrv_scope_senddata(len,(msg->header.chartid==SCOPEMSG_DATAID_LLR)?1:4, msg);
+      websrv_scope_senddata(len,(msg->header.chartid==SCOPEMSG_DATAID_LLR)?2:4, msg);
 #else
   fl_redraw_object(graph->graph);
 
@@ -457,7 +458,7 @@ static void puschLLR (OAIgraph_t *graph, scopeData_t *p, int nb_UEs) {
       float *llr, *bit;
       int nx=coded_bits_per_codeword;
 #ifdef WEBSRVSCOPE
-      nx=websrv_cpllrbuff_tomsg(graph,pusch_llr , coded_bits_per_codeword, ue);
+      nx=websrv_cpllrbuff_tomsg(graph,pusch_llr , coded_bits_per_codeword, ue,0,0);
 #else      
       oai_xygraph_getbuff(graph, &bit, &llr, coded_bits_per_codeword, ue);
 
@@ -553,6 +554,8 @@ STATICFORXSCOPE OAI_phy_scope_t *create_phy_scope_gnb(void) {
   // Received signal
   fdui->graph[0] = gNBcommonGraph( gNBWaterFall, WATERFALL, 0, curY, 400, 100,
                                    "Received Signal (Time-Domain, one frame)", FL_RED );
+  fdui->graph[0].chartid=SCOPEMSG_DATAID_WF;         //tells websrv frontend to use WF chart for displaying 
+  fdui->graph[0].datasetid=0;                        //  not used for WF                                    
   // Time-domain channel response
   fdui->graph[1] = gNBcommonGraph( timeResponse, FL_NORMAL_XYPLOT, 410, curY, 400, 100,
                                    "SRS Frequency Response (samples, abs)", FL_RED );
@@ -563,6 +566,8 @@ STATICFORXSCOPE OAI_phy_scope_t *create_phy_scope_gnb(void) {
                                    "Channel Frequency domain (RE, one frame)", FL_RED );
   fl_get_object_bbox(fdui->graph[2].graph,&x, &y,&w, &h);
   curY+=h+20;
+  fdui->graph[2].chartid=SCOPEMSG_DATAID_WF;         //tells websrv frontend to use WF chart for displaying 
+  fdui->graph[2].datasetid=0;                        //  not used for WF   
   // LLR of PUSCH
   fdui->graph[3] = gNBcommonGraph( puschLLR, FL_POINTS_XYPLOT, 0, curY, 500, 200,
                                    "PUSCH Log-Likelihood Ratios (LLR, mag)", FL_YELLOW );
@@ -756,7 +761,7 @@ static void uePbchLLR  (scopeGraphData_t **data, OAIgraph_t *graph, PHY_VARS_NR_
   float *llr_pbch, *bit_pbch;
   int nx=sz;
 #ifdef WEBSRVSCOPE
-      nx=websrv_cpllrbuff_tomsg(graph, llrs, sz, UE_id);
+      nx=websrv_cpllrbuff_tomsg(graph, llrs, sz, UE_id,0,0);
 #else  
   oai_xygraph_getbuff(graph, &bit_pbch, &llr_pbch, sz, 0);
 
@@ -791,6 +796,8 @@ static void uePbchIQ  (scopeGraphData_t **data, OAIgraph_t *graph, PHY_VARS_NR_U
   oai_xygraph(graph, I, Q, newsz, 0, true);
 }
 
+
+
 static void uePcchLLR  (scopeGraphData_t **data, OAIgraph_t *graph, PHY_VARS_NR_UE *phy_vars_ue, int eNB_id, int UE_id) {
   // PDCCH LLRs
   if (!data[pdcchLlr])
@@ -800,15 +807,19 @@ static void uePcchLLR  (scopeGraphData_t **data, OAIgraph_t *graph, PHY_VARS_NR_
   //int Qm = 2;
   const int sz=data[pdcchLlr]->lineSz;
   float *llr, *bit;
-  oai_xygraph_getbuff(graph, &bit, &llr, sz, 0);
-
+  int nx=sz;
   int16_t *pdcch_llr = (int16_t *)(data[pdcchLlr]+1);
+  
+#ifdef WEBSRVSCOPE
+      nx=websrv_cpllrbuff_tomsg(graph, pdcch_llr, sz, UE_id,0,0);
+#else   
+  oai_xygraph_getbuff(graph, &bit, &llr, sz, 0);
 
   for (int i=0; i<sz; i++) {
     llr[i] = (float) pdcch_llr[i];
   }
-
-  oai_xygraph(graph,bit,llr,sz,0,10);
+#endif
+  oai_xygraph(graph,bit,llr,nx,0,10);
 }
 static void uePcchIQ  (scopeGraphData_t **data, OAIgraph_t *graph, PHY_VARS_NR_UE *phy_vars_ue, int eNB_id, int UE_id) {
   // PDCCH I/Q of MF Output
@@ -833,6 +844,9 @@ static void uePcchIQ  (scopeGraphData_t **data, OAIgraph_t *graph, PHY_VARS_NR_U
 #endif
   oai_xygraph(graph,I,Q,newsz,0,10);
 }
+
+
+
 static void uePdschLLR  (scopeGraphData_t **data, OAIgraph_t *graph, PHY_VARS_NR_UE *phy_vars_ue, int eNB_id, int UE_id) {
   // PDSCH LLRs
   if (!phy_vars_ue->pdsch_vars[0][eNB_id]->llr[0])
@@ -841,24 +855,31 @@ static void uePdschLLR  (scopeGraphData_t **data, OAIgraph_t *graph, PHY_VARS_NR
   int num_re = 4500;
   int Qm = 2;
   int coded_bits_per_codeword = num_re*Qm;
+  int newsz=0;
   float *llr, *bit;
+  
+#ifndef WEBSRVSCOPE
   oai_xygraph_getbuff(graph, &bit, &llr, coded_bits_per_codeword*RX_NB_TH_MAX, 0);
+#endif
   int base=0;
 
   for (int thr=0 ; thr < RX_NB_TH_MAX ; thr ++ ) {
     int16_t *pdsch_llr = (int16_t *) phy_vars_ue->pdsch_vars[thr][eNB_id]->llr[0]; // stream 0
-
+#ifdef WEBSRVSCOPE
+      newsz +=  websrv_cpllrbuff_tomsg(graph, pdsch_llr,coded_bits_per_codeword, 0,thr,RX_NB_TH_MAX);
+#else  
     for (int i=0; i<coded_bits_per_codeword; i++) {
       llr[base+i] = (float) pdsch_llr[i];
       bit[base+i] = (float) base+i;
     }
-
+    newsz +=  coded_bits_per_codeword;
+#endif
     base+=coded_bits_per_codeword;
   }
 
   AssertFatal(base <= coded_bits_per_codeword*RX_NB_TH_MAX, "");
   //fl_set_xyplot_xbounds(form->pdsch_llr,0,coded_bits_per_codeword);
-  oai_xygraph(graph,bit,llr,base,0,10);
+  oai_xygraph(graph,bit,llr,newsz,0,10);
 }
 static void uePdschIQ  (scopeGraphData_t **data, OAIgraph_t *graph, PHY_VARS_NR_UE *phy_vars_ue, int eNB_id, int UE_id) {
   // PDSCH I/Q of MF Output
@@ -885,8 +906,8 @@ static void uePdschIQ  (scopeGraphData_t **data, OAIgraph_t *graph, PHY_VARS_NR_
       I[s+base] += pdsch_comp[s].r;
       Q[s+base] += pdsch_comp[s].i;
     }
-#endif
     newsz += sz;
+#endif
     base+=sz;
   }
 
@@ -929,6 +950,8 @@ STATICFORXSCOPE OAI_phy_scope_t *create_phy_scope_nrue( int ID ) {
   // Received signal
   fdui->graph[0] = nrUEcommonGraph(ueWaterFall,
                                    WATERFALL, 0, curY, 400, 100, "Received Signal (Time-Domain, one frame)", FL_RED );
+  fdui->graph[0].chartid=SCOPEMSG_DATAID_WF;         //tells websrv frontend to use WF chart for displaying 
+  fdui->graph[0].datasetid=0;                        //  not used for WF 
   // Time-domain channel response
   fdui->graph[1] = nrUEcommonGraph(ueChannelResponse,
                                    FL_NORMAL_XYPLOT, 400, curY, 400, 100, "Channel Impulse Response (samples, abs)", FL_RED );
@@ -939,6 +962,8 @@ STATICFORXSCOPE OAI_phy_scope_t *create_phy_scope_nrue( int ID ) {
                                    WATERFALL, 0, curY, 800, 100, "Channel Frequency (RE, one slot)", FL_RED );
   fl_get_object_bbox(fdui->graph[2].graph,&x, &y,&w, &h);
   curY+=h+20;
+  fdui->graph[2].chartid=SCOPEMSG_DATAID_WF;         //tells websrv frontend to use WF chart for displaying 
+  fdui->graph[2].datasetid=0;                        //  not used for WF 
   // LLR of PBCH
   fdui->graph[3] = nrUEcommonGraph(uePbchLLR,
                                    FL_POINTS_XYPLOT, 0, curY, 500, 100, "PBCH Log-Likelihood Ratios (LLR, mag)", FL_GREEN );

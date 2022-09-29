@@ -32,6 +32,7 @@
 /* scope chart window id's, used to select which frontend chart to use for displaying data */
 #define SCOPEMSG_DATAID_IQ 1
 #define SCOPEMSG_DATAID_LLR 2
+#define SCOPEMSG_DATAID_WF  3
 
 typedef c16_t scopeSample_t;
 #define SquaredNorm(VaR) ((VaR).r*(VaR).r+(VaR).i*(VaR).i)

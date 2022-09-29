@@ -5,6 +5,7 @@ import { environment } from 'src/environments/environment';
 export enum IScopeGraphType {
     IQs = "IQs",
     LLR = "LLR",
+    WF  = "WF",
     UNSUP = "UNSUP"
 }
 

@@ -6,6 +6,8 @@ import { Chart, ChartConfiguration, ChartOptions, ChartEvent, ChartType, Scatter
 import { BaseChartDirective } from 'ng2-charts';
 import {IGraphDesc, IScopeGraphType, IScopeDesc, IScopeCmd, ISigDesc,  ScopeApi  } from 'src/app/api/scope.api';
 
+/*------------------------------------*/
+/* constants that must match backend (websrv.h or phy_scope.h) */
 const SCOPEMSG_TYPE_STATUSUPD=1;   
 const SCOPEMSG_TYPE_REFRATE=2;
 const SCOPEMSG_TYPE_TIME=3;
@@ -15,6 +17,8 @@ const SCOPEMSG_TYPE_DATAACK=11;
 
 const SCOPEMSG_DATA_IQ=1;
 const SCOPEMSG_DATA_LLR=2;
+const SCOPEMSG_DATA_WF=3;
+/*---------------------------------------*/
 @Component({
   selector: 'app-scope',
   templateUrl: './scope.component.html',
@@ -22,35 +26,44 @@ const SCOPEMSG_DATA_LLR=2;
 })
 
 export class ScopeComponent {
-
+//data for scope status area
   scopetitle = '';
   scopesubtitle = '';
   scopetime = '';
   scopestatus = 'stopped';
+ //data for scope control area 
   startstop = 'start';
   startstop_color = 'warn';
   rfrate = 2;
   data_ACK=false;
+ //data for scope iq constellation area    
+  iqgraph_list : IGraphDesc[] = [];
+  selected_channels = [""];
   iqmax = 32767;
   iqmin = -32767;
-  llrmin = 0;
-  llrmax = 200000;
   iqxmin=this.iqmin;
   iqymin=this.iqmin;
   iqxmax=this.iqmax;
-  iqymax=this.iqmax; 
-  llrxmin=this.llrmin; 
-  llrxmax=this.llrmax; 
-   
-  iqgraph_list : IGraphDesc[] = [];
-  selected_channels = [""];
+  iqymax=this.iqmax;  
+ //data for scope LLR area      
+  llrgraph_list : IGraphDesc[] = [];
   selected_llrchannels = [""];
-  llrgraph_list : IGraphDesc[] = [];  
   target_list : number[] = [0,1,2,3];
   selected_sig : ISigDesc ={target_id:0, antenna_id:0};
   llrythresh=5;
+  llrmin = 0;
+  llrmax = 200000;
+  llrxmin=this.llrmin; 
+  llrxmax=this.llrmax;   
+ //data for scope WatterFall area     
+  WFgraph_list : IGraphDesc[] = [];
+  selected_WF = "";
+  
+  
+  
   wsService?: WebSocketService;
-  wsSubscription?: Subscription; 
+  wsSubscription?: Subscription;
+   
   @Output() ScopeEnabled = new EventEmitter<boolean>();
 
   //@ViewChild(BaseChartDirective) chart?: BaseChartDirective;
@@ -142,6 +155,51 @@ export class ScopeComponent {
     }       
   ];
 
+  public WFDatasets: ChartConfiguration<'scatter'>['data']['datasets'] = [
+    {
+      data: [],
+      label: 'WF1',
+      pointRadius: 0.5,
+      showLine: false,
+      animation: false,
+      fill:false,
+      pointStyle: 'circle',
+      pointBackgroundColor:'yellow',
+      backgroundColor:'yellow',
+      borderWidth:0,
+      pointBorderColor:'yellow',
+//    parsing: false,
+    },
+    {
+      data: [],
+      label: 'WF2',
+      pointRadius: 0.5,
+      showLine: false,
+      animation: false,
+      pointStyle: 'circle',
+      pointBackgroundColor:'cyan',
+      backgroundColor:'cyan',
+      borderWidth:0,
+      pointBorderColor:'cyan',
+//      parsing: false,
+    },
+    {
+      data: [],
+      label: 'WF3',
+      pointRadius: 0.5,      
+      showLine: false,
+      animation: false,
+      pointStyle: 'circle',
+      pointBackgroundColor:'red',
+      backgroundColor:'red',
+      borderWidth:0,
+      pointBorderColor:'red',
+//      parsing: false,
+    }       
+  ];
+
+
+
   public IQOptions: ChartConfiguration<'scatter'>['options'] = {
     responsive: true,
     aspectRatio: 1,
@@ -161,14 +219,20 @@ export class ScopeComponent {
       xAxes: {
 		  min: 0,
       },
-      yAxes: {
-		  min: -100,
-		  max: 100
-      }     
+//      yAxes: {
+//		  min: -100,
+//		  max: 100
+//      }     
     },
     plugins: { legend: { display: true, labels:{boxWidth: 10, boxHeight: 10}},  tooltip: { enabled: false, }, },
   };
-  
+
+  public WFOptions: ChartConfiguration<'scatter'>['options'] = {
+    responsive: true,
+    aspectRatio: 5,
+    plugins: { legend: { display: true, labels:{boxWidth: 10, boxHeight: 10}},  tooltip: { enabled: false, }, },
+  }
+ 
   constructor(private scopeApi: ScopeApi ) {
 	console.log("Scope constructor ");	  
   }
@@ -206,6 +270,9 @@ export class ScopeComponent {
 		    this.llrgraph_list.push(resp.graphs[graphIndex]);
 		    this.LLRDatasets[this.llrgraph_list.length - 1].label=resp.graphs[graphIndex].title;	    
 		  }
+		  if (resp.graphs[graphIndex].type == IScopeGraphType.WF ) {
+		    this.WFgraph_list.push(resp.graphs[graphIndex]);	    
+		  }		  
 	    }
 	    this.charts?.forEach((child) => {
           child.chart?.update() });
@@ -247,9 +314,9 @@ export class ScopeComponent {
 			    this.LLRDatasets[message.dataid].data.length=0;	  
 			    let xoffset=0;
 			    let d=0
-			    for ( let i=4;i<(bufferview.byteLength-1);i=i+2) {
-				  xoffset=xoffset+bufferview.getInt8(i+1);
-                  this.LLRDatasets[message.dataid].data[d]={ x: xoffset, y: bufferview.getInt8(i)};
+			    for ( let i=4;i<(bufferview.byteLength-2);i=i+4) {
+				  xoffset=xoffset+bufferview.getInt16(i+2,true);
+                  this.LLRDatasets[message.dataid].data[d]={ x: xoffset, y: bufferview.getInt16(i,true)};
                   d++;
                 }
                 this.LLRDatasets[message.dataid].data[d]={ x:bufferview.getInt32(0, true) , y: 0};
@@ -415,13 +482,26 @@ export class ScopeComponent {
 	  }
 	  this.SendScopeParams("enabled",enabled,this.llrgraph_list[i].srvidx);	  
     } 
-  }    
+  }
+      
   SigChanged(value: number) {
     this.selected_sig.target_id=value;
     this.scopesubtitle=  value.toString();
 	this.SendScopeParams("TargetSelect",value.toString(),0);
   }
-  
+
+  WFChanged(value: string) {
+    this.selected_WF=value;
+    for (let i=0; i<this.WFgraph_list.length; i++) {
+	  if( this.WFgraph_list[i].title === value) {
+		this.SendScopeParams("enabled","true",this.WFgraph_list[i].srvidx);
+		this.WFDatasets[0].label=value; 
+	  } else {
+	    this.SendScopeParams("enabled","false",this.WFgraph_list[i].srvidx);
+	  }
+	}	
+  }
+    
   onDataACKchange() {
 	this.SendScopeParams("DataAck",this.data_ACK.toString(),0);  
   }
