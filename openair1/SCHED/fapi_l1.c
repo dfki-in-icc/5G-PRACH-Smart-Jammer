@@ -1045,7 +1045,6 @@ void schedule_response(Sched_Rsp_t *Sched_INFO, void *arg) {
       /** FIXME: Temporary fix; not crashing anymore for No existing UE ULSCH */
       if ((ul_config_pdu->pdu_type == NFAPI_UL_CONFIG_ULSCH_PDU_TYPE) && (find_ulsch(ul_config_pdu->ulsch_pdu.ulsch_pdu_rel8.rnti,eNB,SEARCH_EXIST_OR_FREE) < 0)) {
         LOG_E(PHY, "No existing UE ULSCH for rnti %x\n", ul_config_pdu->ulsch_pdu.ulsch_pdu_rel8.rnti);
-        put_UE_in_freelist(Mod_id, ul_config_pdu->ulsch_pdu.ulsch_pdu_rel8.rnti, 1);
         return;
       }
 
