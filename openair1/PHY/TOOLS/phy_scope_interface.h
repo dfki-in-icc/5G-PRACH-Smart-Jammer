@@ -35,43 +35,10 @@
 #include <openair1/PHY/defs_nr_UE.h>
 
 typedef struct {
-  // Uplink BLock Error Rate
-  int idx_ULBLER;
-
-  // Uplink MCS
-  float UL_MCS_max;
-  int idx_ULMCS;
-
-  // Downlink BLock Error Rate
-  int idx_DLBLER;
-
-  // Downlink MCS
-  float DL_MCS_max;
-  int idx_DLMCS;
-
-  // UL Throughput
-  float UL_Throu_max;
-  int idx_ULThrou;
-
-  // DL Throughput
-  float DL_Throu_max;
-  int idx_DLThrou;
-
-}extended_kpi_gNB;
-
-typedef struct {
-  int idx_BLER;
   float DL_BLER;
-
-  int idx_throu;
-  double throu;
-
-  int idx_mcs;
+  uint32_t blockSize;   // block size, to be used for throughput calculation
   uint8_t dl_mcs;
-
-  int idx_nofRBs;
   uint16_t nofRBs;
-
 }extended_kpi_ue;
 
 
@@ -92,12 +59,13 @@ enum UEdataType {
 };
 
 typedef struct scopeData_s {
+  int flag_streaming[UEdataTypeNumberOfItems];
   int *argc;
   char **argv;
   RU_t *ru;
   PHY_VARS_gNB *gNB;
-  void *liveData;
   void *liveDataUE;
+  void *liveData;
   void (*slotFunc)(int32_t *data, int slot,  void *scopeData);
   void (*copyData)(PHY_VARS_NR_UE *,enum UEdataType, void *data, int elementSz, int colSz, int lineSz);
 } scopeData_t;

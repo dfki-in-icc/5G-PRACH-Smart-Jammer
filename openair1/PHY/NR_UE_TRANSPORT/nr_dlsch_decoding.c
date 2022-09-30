@@ -76,11 +76,7 @@ void getKPIUE(extended_kpi_ue* kpiStructure)
   }
 
   kpiStructure->DL_BLER = dl_bler;
-  double blerTerm = 1.0 - (double)dl_bler;
-  double blockSieBits = (double)(blockSize << 3);
-
-  kpiStructure->throu = blerTerm * blockSieBits / 0.1;
-
+  kpiStructure->blockSize = blockSize;
   kpiStructure->dl_mcs = dl_mcs;
   kpiStructure->nofRBs = nofRBs;
 }

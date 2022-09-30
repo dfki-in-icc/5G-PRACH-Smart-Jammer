@@ -458,8 +458,12 @@ int nr_pbch_channel_estimation(PHY_VARS_NR_UE *ue,
     }
   }
 
-  if (dmrss == 2)
-    UEscopeCopy(ue, pbchDlChEstimateTime, (void*)dl_ch_estimates_time, sizeof(struct complex16), ue->frame_parms.nb_antennas_rx, ue->frame_parms.ofdm_symbol_size>>3);
+  scopeData_t *scope=(scopeData_t *)ue->scopeData;
+  if ((scope) && (dmrss == 2)){
+    int istreamingFlag = scope->flag_streaming[pbchDlChEstimateTime];
+    if (istreamingFlag == 1)
+        UEscopeCopy(ue, pbchDlChEstimateTime, (void*)dl_ch_estimates_time, sizeof(struct complex16), ue->frame_parms.nb_antennas_rx, idftsizeidx); // ue->frame_parms.ofdm_symbol_size>>3
+  }
 
 
   return(0);

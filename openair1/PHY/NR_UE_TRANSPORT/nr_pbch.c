@@ -487,8 +487,17 @@ int nr_rx_pbch( PHY_VARS_NR_UE *ue,
   }
 
   // legacy code use int16, but it is complex16
-  UEscopeCopy(ue, pbchRxdataF_comp, pbch_unClipped, sizeof(struct complex16), frame_parms->nb_antennas_rx, pbch_e_rx_idx/2);
-  UEscopeCopy(ue, pbchLlr, pbch_e_rx, sizeof(int16_t), frame_parms->nb_antennas_rx, pbch_e_rx_idx);
+  scopeData_t *scope=(scopeData_t *)ue->scopeData;
+  if (scope)
+  {
+    int istreamingFlag = scope->flag_streaming[pbchRxdataF_comp];
+    if (istreamingFlag == 1)
+      UEscopeCopy(ue, pbchRxdataF_comp, pbch_unClipped, sizeof(struct complex16), frame_parms->nb_antennas_rx, pbch_e_rx_idx/2);
+
+    istreamingFlag = scope->flag_streaming[pbchLlr];
+    if (istreamingFlag == 1)
+      UEscopeCopy(ue, pbchLlr, pbch_e_rx, sizeof(int16_t), frame_parms->nb_antennas_rx, pbch_e_rx_idx);
+  }
 #ifdef DEBUG_PBCH
   write_output("rxdataF_comp.m","rxFcomp",rxdataF_comp[0],240*3,1,1);
   short *p = (short *)rxdataF_comp[0]);

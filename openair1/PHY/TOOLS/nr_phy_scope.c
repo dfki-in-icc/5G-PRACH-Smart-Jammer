@@ -972,6 +972,8 @@ void nrUEinitScope(PHY_VARS_NR_UE *ue) {
   scopeData_t *scope=(scopeData_t *) ue->scopeData;
   scope->copyData=UEcopyData;
   AssertFatal(scope->liveData=calloc(sizeof(scopeGraphData_t *), UEdataTypeNumberOfItems),"");
+  for (int i=0; i<UEdataTypeNumberOfItems; i++)
+    scope->flag_streaming[i] = 1;
   pthread_t forms_thread;
   threadCreate(&forms_thread, nrUEscopeThread, ue, "scope", -1, OAI_PRIORITY_RT_LOW);
 }

@@ -47,6 +47,21 @@ extern "C" {
 extern RAN_CONTEXT_t RC;
 }
 
+typedef struct {
+  float max_value;
+  float min_value;
+  float avg_value;
+  int plot_idx;
+  uint64_t avg_idx;
+  uint64_t nof_retrans;    // especially for the KPI: nof retransmissions
+
+  QLineSeries *series;
+  QLineSeries *seriesMin;
+  QLineSeries *seriesMax;
+  QLineSeries *seriesAvg;
+}KPI_elements;
+
+
 // drop-down list UE
 class KPIListSelect : public QComboBox
 {
@@ -82,6 +97,8 @@ class PainterWidget : public QWidget
 public:
     PainterWidget(QComboBox *parent, PHY_VARS_NR_UE *ue);
     void makeConnections();
+    void resetKPIPlot(KPI_elements *inputStruct);
+    void resetKPIValues(KPI_elements *inputStruct);
     QPixmap *pix;
     QTimer *timer;
     int chartHight, chartWidth;
@@ -97,6 +114,11 @@ public:
     bool isWaterFallTimeActive;
 
     extended_kpi_ue extendKPIUE;
+
+    KPI_elements DLBLER;
+    KPI_elements DLMCS;
+    KPI_elements Throu;
+    KPI_elements nofRBs;
 
 protected:
     void paintEvent(QPaintEvent *event);
@@ -120,13 +142,16 @@ public slots:
 
     void paintPixmap_ueChannelResponse();
 
+    // Extended KPIs
+    void KPI_DL_BLER();
+    void KPI_DL_MCS();
+    void KPI_DL_Throu();
+    void KPI_Nof_RBs();
+
 private:
 	PHY_VARS_NR_UE *ue;
     int indexToPlot;
     int previousIndex;
-    int chartBaseHeight;
-    int chartBaseWidth;
-
 };
 
 
@@ -139,29 +164,33 @@ public:
     PainterWidgetgNB(QComboBox *parent, scopeData_t *p);
     void makeConnections();
     void createPixMap(float *xData, float *yData, int len, QColor MarkerColor, const QString xLabel, const QString yLabel, bool scaleX);
+    void resetKPIPlot(KPI_elements *inputStruct);
+    void resetKPIValues(KPI_elements *inputStruct);
 
     QPixmap *pix;
     QTimer *timer;
+    QTimer *timerRetrans;
     int chartHight, chartWidth;
     int nb_UEs;
 
     QComboBox *parentWindow;
 
-    extended_kpi_gNB extendKPIgNB;
+    KPI_elements ULBLER;
+    KPI_elements ULMCS;
+    KPI_elements DLBLER;
+    KPI_elements DLMCS;
+    KPI_elements ULThrou;
+    KPI_elements DLThrou;
+    KPI_elements nofRBs;
+    KPI_elements ULSNR;
+    KPI_elements DLSNR;
 
-    NR_UE_info_t *targetUE;
-
-    QLineSeries *seriesULBLER;
-    QLineSeries *seriesULMCS;
-    QLineSeries *seriesDLBLER;
-    QLineSeries *seriesDLMCS;
-    QLineSeries *seriesULThrou;
-    QLineSeries *seriesDLThrou;
-
-    float ul_thr_ue, dl_thr_ue;
+    KPI_elements ULRetrans[4];
+    KPI_elements DLRetrans[4];
 
 protected:
     void paintEvent(QPaintEvent *event);
+    void resizeEvent(QResizeEvent *event) override;
 
 public slots:
     void KPI_PuschIQ();
@@ -173,6 +202,11 @@ public slots:
     void KPI_DL_MCS();
     void KPI_UL_Throu();
     void KPI_DL_Throu();
+    void KPI_Nof_RBs();
+    void KPI_UL_SNR();
+    void KPI_DL_SNR();
+    void KPI_UL_Retrans();
+    void KPI_DL_Retrans();
 
 private:
     scopeData_t *p;
