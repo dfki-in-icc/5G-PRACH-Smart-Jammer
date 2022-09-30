@@ -449,8 +449,6 @@ void handle_nr_srs_measurements(const module_id_t module_id,
                                 const uint8_t num_reported_symbols,
                                 nfapi_nr_srs_indication_reported_symbol_t* reported_symbol_list);
 
-float returnULBLER(void);
-
 int16_t ssb_index_from_prach(module_id_t module_idP,
                              frame_t frameP,
                              sub_frame_t slotP,
