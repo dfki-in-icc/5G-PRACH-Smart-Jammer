@@ -6394,7 +6394,7 @@ FL_EXPORT Display * fl_display_( void ){};
 /* new functions for interfacing with webserver                         */
 
 extern int websrv_nf_getdata(FL_OBJECT *graph, int layer, websrv_scopedata_msg_t **msg) ;
-
+extern void websrv_free_xyplot( FL_OBJECT *obj );
 #if defined __cplusplus
 }
 #endif

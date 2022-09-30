@@ -58,7 +58,7 @@ export class ScopeComponent {
  //data for scope WatterFall area     
   WFgraph_list : IGraphDesc[] = [];
   selected_WF = "";
-  
+ 
   
   
   wsService?: WebSocketService;
@@ -157,35 +157,48 @@ export class ScopeComponent {
 
   public WFDatasets: ChartConfiguration<'scatter'>['data']['datasets'] = [
     {
-      data: [],
-      label: 'WF1',
+      data: [800*100],
+      label: 'WFblue',
       pointRadius: 0.5,
       showLine: false,
       animation: false,
       fill:false,
       pointStyle: 'circle',
-      pointBackgroundColor:'yellow',
-      backgroundColor:'yellow',
+      pointBackgroundColor:'blue',
+      backgroundColor:'blue',
       borderWidth:0,
-      pointBorderColor:'yellow',
-//    parsing: false,
+      pointBorderColor:'blue',
+ //     parsing: false,
     },
     {
-      data: [],
-      label: 'WF2',
+      data: [800*100],
+      label: 'WFgreen',
       pointRadius: 0.5,
       showLine: false,
       animation: false,
       pointStyle: 'circle',
-      pointBackgroundColor:'cyan',
-      backgroundColor:'cyan',
+      pointBackgroundColor:'green',
+      backgroundColor:'green',
       borderWidth:0,
-      pointBorderColor:'cyan',
+      pointBorderColor:'green',
 //      parsing: false,
     },
     {
-      data: [],
-      label: 'WF3',
+      data: [800*100],
+      label: 'WFyellow',
+      pointRadius: 0.5,      
+      showLine: false,
+      animation: false,
+      pointStyle: 'circle',
+      pointBackgroundColor:'yellow',
+      backgroundColor:'yellow',
+      borderWidth:0,
+      pointBorderColor:'yellow',
+//      parsing: false,
+    },
+    {
+      data: [800*100],
+      label: 'WFred',
       pointRadius: 0.5,      
       showLine: false,
       animation: false,
@@ -194,8 +207,8 @@ export class ScopeComponent {
       backgroundColor:'red',
       borderWidth:0,
       pointBorderColor:'red',
-//      parsing: false,
-    }       
+ //     parsing: false,
+    }              
   ];
 
 
@@ -230,9 +243,21 @@ export class ScopeComponent {
   public WFOptions: ChartConfiguration<'scatter'>['options'] = {
     responsive: true,
     aspectRatio: 5,
-    plugins: { legend: { display: true, labels:{boxWidth: 10, boxHeight: 10}},  tooltip: { enabled: false, }, },
+    scales: {
+    xAxes: {
+		  min: 0,
+		  max:800,
+      },
+    yAxes: {
+		  min: 0,
+		  max: 100,
+          reverse: true,
+      }
+    },           
+    plugins: { legend: { display: true, labels:{boxWidth: 10, boxHeight: 10}},  tooltip: { enabled: false, }, },    
   }
- 
+  
+
   constructor(private scopeApi: ScopeApi ) {
 	console.log("Scope constructor ");	  
   }
@@ -285,16 +310,20 @@ export class ScopeComponent {
         this.startstop='stop';
         this.startstop_color='started';	    
 	  }	  
+	  let d=0;
+	  let x=0;
+	  let y=0;
 	  switch ( message.msgtype ) {		  
           case SCOPEMSG_TYPE_TIME:
             this.scopetime=this.DecodScopeBinmsgToString(message.content);
             break;
           case  SCOPEMSG_TYPE_DATA:   
             const bufferview = new DataView(message.content);
-            this.IQDatasets[message.dataid].data.length=0;
+            
             
 			switch (message.chartid) {
 			  case SCOPEMSG_DATA_IQ:
+			  this.IQDatasets[message.dataid].data.length=0;
                if(message.update) {
 				  console.log("Starting scope update chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
 			    }			  
@@ -313,7 +342,7 @@ export class ScopeComponent {
 			    }
 			    this.LLRDatasets[message.dataid].data.length=0;	  
 			    let xoffset=0;
-			    let d=0
+			    d=0;
 			    for ( let i=4;i<(bufferview.byteLength-2);i=i+4) {
 				  xoffset=xoffset+bufferview.getInt16(i+2,true);
                   this.LLRDatasets[message.dataid].data[d]={ x: xoffset, y: bufferview.getInt16(i,true)};
@@ -324,7 +353,29 @@ export class ScopeComponent {
 		          this.charts?.forEach((child,index) => { child.chart?.update() });                  
                   console.log(" scope update completed " + d.toString() + "points, ");
 			    }
-              break;              
+              break;  
+			  case SCOPEMSG_DATA_WF:
+                if(message.update) {
+				  console.log("Starting scope update chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
+			    }			    
+			    for ( let i=2;i<(bufferview.byteLength-4);i=i+4) {
+			      x=bufferview.getInt16(i,true);
+				  y=bufferview.getInt16(i+2,true);  					
+				  for(let j=0; j<this.WFDatasets.length; j++){
+					if(j==message.dataid) {
+                      this.WFDatasets[j].data[x+x*y]={ x: x, y:y};
+                      this.WFDatasets[j].data[x+x*y]={ x: x, y:y};                     
+				    } else {
+                      this.WFDatasets[j].data[x+x*y]={ x: 0, y:0};
+                      this.WFDatasets[j].data[x+x*y]={ x: 0, y:0};						
+					}
+                  }
+                }
+                if(message.update) {
+		          this.charts?.forEach((child,index) => { child.chart?.update() });                  
+                  console.log(" scope update completed " + d.toString() + "points, ");
+			    }
+              break;                           
                 default:
                 break;
 		      }
@@ -492,6 +543,9 @@ export class ScopeComponent {
 
   WFChanged(value: string) {
     this.selected_WF=value;
+    for(let i=0; i<this.WFDatasets.length; i++) {
+		this.WFDatasets[i].data.length=0;
+	} 
     for (let i=0; i<this.WFgraph_list.length; i++) {
 	  if( this.WFgraph_list[i].title === value) {
 		this.SendScopeParams("enabled","true",this.WFgraph_list[i].srvidx);

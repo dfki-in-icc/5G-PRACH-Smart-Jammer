@@ -166,6 +166,27 @@ int websrv_cpllrbuff_tomsg(OAIgraph_t *graph, int16_t *llrs, int n, int id, int 
 */
   return newn;
 }
+void websrv_get_WF_buffers(OAIgraph_t *graph,websrv_scopedata_msg_t *msgp[]) {
+	
+  for(int i=0; i< sizeof(water_colors)/sizeof(FL_COLOR); i++) {
+	websrv_scopedata_msg_t *msg;
+    websrv_nf_getdata(graph->graph, i,&msg);
+    msg->header.msgtype=SCOPEMSG_TYPE_DATA ;
+    msg->header.chartid=graph->chartid;
+    msg->header.datasetid=i;
+    msg->header.msgseg=0;
+    msg->header.update=(i == (sizeof(water_colors)/sizeof(FL_COLOR)-1))? 1:0;
+    msg->data_xy[0]=0;
+    msgp[i]=msg;
+  }
+}
+
+void websrv_setpoint(int x,int y, websrv_scopedata_msg_t *msg){
+	msg->data_xy[0]++;
+	msg->data_xy[msg->data_xy[0]]=(int16_t)x;
+	msg->data_xy[0]++;
+	msg->data_xy[msg->data_xy[0]]=(int16_t)y;
+}
 #endif
 static void commonGraph(OAIgraph_t *graph, int type, FL_Coord x, FL_Coord y, FL_Coord w, FL_Coord h, const char *label, FL_COLOR pointColor) {
   if (type==WATERFALL) {
@@ -315,7 +336,10 @@ static void oai_xygraph(OAIgraph_t *graph, float *x, float *y, int len, int laye
 static void genericWaterFall (OAIgraph_t *graph, scopeSample_t *values, const int datasize, const int divisions, const char *label) {
   if ( values == NULL )
     return;
-
+#ifdef WEBSRVSCOPE
+  websrv_scopedata_msg_t *msgp[sizeof(water_colors)/sizeof(FL_COLOR)];
+  websrv_get_WF_buffers(graph,msgp);
+#endif
   fl_winset(FL_ObjWin(graph->graph));
   const int samplesPerPixel=datasize/graph->w;
   int displayPart=graph->waterFallh-ScaleZone;
@@ -351,10 +375,14 @@ static void genericWaterFall (OAIgraph_t *graph, scopeSample_t *values, const in
 
     if (val > avg*100 )
       col=3;
-
+#ifdef WEBSRVSCOPE
+    websrv_setpoint(pix,graph->iteration%displayPart,msgp[col]);
+#else
     fl_point(pix, graph->iteration%displayPart, water_colors[col]);
+#endif
   }
-
+  
+#ifndef WEBSRVSCOPE
   if (graph->initDone==false) {
     for ( int i=0; i < graph->waterFallh; i++ )
       for ( int j = 0 ; j < graph->w ; j++ )
@@ -368,6 +396,11 @@ static void genericWaterFall (OAIgraph_t *graph, scopeSample_t *values, const in
   }
 
   fl_set_object_label_f(graph->text, "%s, avg I/Q pow: %4.1f", label, 0/*sqrt(avg)*/);
+#else
+  for(int i=0; i<sizeof(water_colors)/sizeof(FL_COLOR);i++){
+    websrv_scope_senddata(msgp[i]->data_xy[0],2, msgp[i]);
+  }
+#endif
   graph->iteration++;
 }
 

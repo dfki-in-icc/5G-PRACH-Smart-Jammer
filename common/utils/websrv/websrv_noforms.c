@@ -84,6 +84,16 @@ FL_OBJECT * websrv_fl_add_xyplot( int          t,
 
 };
 
+void websrv_free_xyplot( FL_OBJECT *obj ){
+    FLI_XYPLOT_SPEC *spec=(FLI_XYPLOT_SPEC *)obj->spec;
+	for (int j=0; j<MAX_LAYER;j++) {
+	  free(spec->buff[j].buf);
+	}
+  free(obj->label);
+  free(spec);
+  free(obj);
+};
+
 FL_OBJECT * websrv_fl_add_canvas( int          type,
                           FL_Coord     x,
                           FL_Coord     y,
