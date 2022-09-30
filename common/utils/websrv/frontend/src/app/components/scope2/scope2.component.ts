@@ -2,12 +2,12 @@ import { Component, EventEmitter, Output, QueryList, ViewChildren } from "@angul
 import { BaseChartDirective } from 'ng2-charts';
 import { Subscription } from 'rxjs';
 import { IGraphDesc, IScopeDesc, IScopeGraphType, ISigDesc, ScopeApi } from 'src/app/api/scope.api';
-import { IQDatasets } from "src/app/dataSets/iq.dataset";
-import { LLRDatasets } from "src/app/dataSets/llr.dataset";
-import { WFDatasets } from "src/app/dataSets/wf.dataset";
-import { WebSocketService, webSockSrc } from "src/app/services/websocket.service";
+import { IQDatasets, IQOptions } from "src/app/dataSets/iq.dataset";
+import { LLRDatasets, LLROptions } from "src/app/dataSets/llr.dataset";
+import { WFDatasets, WFOptions } from "src/app/dataSets/wf.dataset";
+import { Message, WebSocketService2, webSockSrc } from "src/app/services/websocket2.service";
 
-export interface LogMessage {
+export interface ScopeMessage {
   msgtype: number;
   chartid: number;
   dataid: number;
@@ -16,7 +16,7 @@ export interface LogMessage {
   content: ArrayBuffer;
 }
 
-const deserialize = (msg: ArrayBuffer): LogMessage => {
+const deserialize = (msg: ArrayBuffer): ScopeMessage => {
   const src = new DataView(msg, 0, 8);
   return {
     msgtype: src.getUint8(1),
@@ -28,11 +28,10 @@ const deserialize = (msg: ArrayBuffer): LogMessage => {
   };
 }
 
-const serialize = (msg: LogMessage): ArrayBuffer => {
+const serialize = (msg: ScopeMessage): ArrayBuffer => {
   let buff = new ArrayBuffer(msg.content.byteLength + 8);   // 64 bits (8 bytes) header
   let fullbuff = new Uint8Array(buff, 0, buff.byteLength).set(new Uint8Array(msg.content), 8);
   let buffview = new DataView(buff);
-  buffview.setUint8(0, msg.source);
   buffview.setUint8(1, msg.msgtype);
   return buffview.buffer;
 }
@@ -57,6 +56,14 @@ const SCOPEMSG_DATA_WF = 3;
 })
 
 export class Scope2Component {
+
+  WFDatasets = WFDatasets
+  WFOptions = WFOptions
+  LLROptions = LLROptions
+  IQDatasets = IQDatasets
+  IQOptions = IQOptions
+  LLRDatasets = LLRDatasets
+
   //data for scope status area
   scopetitle = '';
   scopesubtitle = '';
@@ -99,7 +106,7 @@ export class Scope2Component {
 
   constructor(
     private scopeApi: ScopeApi,
-    private wsService: WebSocketService
+    private wsService: WebSocketService2
   ) { }
 
   ngOnInit() {
@@ -145,7 +152,7 @@ export class Scope2Component {
     }
   }
 
-  ProcessScopeMsg(message: LogMessage) {
+  ProcessScopeMsg(message: ScopeMessage) {
     if (this.scopestatus === "starting") {
       this.scopestatus = 'started';
       this.startstop = 'stop';
@@ -187,7 +194,7 @@ export class Scope2Component {
             }
             LLRDatasets[message.dataid].data[d] = { x: bufferview.getInt32(0, true), y: 0 };
             if (message.update) {
-              this.charts?.forEach((child, index) => { child.chart?.update() });
+              this.charts?.forEach(child => { child.chart?.update() });
               console.log(" scope update completed " + d.toString() + "points, ");
             }
             break;
@@ -213,38 +220,12 @@ export class Scope2Component {
       update: false,
       content: byteArray.buffer
     };
-    this.wsService.messages.next(this.wsService.SerializeMessage(message));
+    this.wsService.send(message);
     console.log("Scope sent msg type " + type.toString() + " " + strmessage);
   }
 
-  sendBinMsg(type: number, binmessage: number) {
-    let buff = new ArrayBuffer(4);
-    let buffview = new DataView(buff);
-    buffview.setUint32(0, binmessage);
-    let message = {
-      source: webSockSrc.softscope,
-      msgtype: type,
-      chartid: 0,
-      dataid: 0,
-      segnum: 0,
-      update: false,
-      content: buffview.buffer
-    };
-    this.wsService.messages.next(this.wsService.SerializeMessage(message));
-    console.log("Scope sent msg type " + type.toString() + " (binary content)");
-  }
-
-  SendScopeParams(name: string, value: string, graphid: number): boolean {
-    let result = false;
-    this.scopeApi.setScopeParams$({ name: name, value: value, graphid: graphid }).subscribe(
-      () => {
-        result = true;
-      },
-      err => {
-        result = false;
-      }
-    );
-    return result;
+  SendScopeParams(name: string, value: string, graphid: number) {
+    this.scopeApi.setScopeParams$({ name: name, value: value, graphid: graphid }).subscribe();
   }
 
   startorstop() {
@@ -265,10 +246,9 @@ export class Scope2Component {
           this.OnYthreshChange();
           this.OnLLRxminChange();
           this.OnLLRxmaxChange();
-          this.wsService = new (WebSocketService);
 
-          this.wsSubscription = this.wsService.messages.subscribe((msg: ArrayBuffer) => {
-            this.ProcessScopeMsg(this.wsService.DeserializeMessage(msg));
+          this.wsSubscription = this.wsService.registerScopeSocket().subscribe((msg: Message) => {
+            this.ProcessScopeMsg(deserialize(msg.content));
           });
         },
         err => {
