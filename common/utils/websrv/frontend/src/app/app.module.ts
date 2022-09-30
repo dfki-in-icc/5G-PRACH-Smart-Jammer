@@ -29,62 +29,62 @@ import { AppComponent } from './app.component';
 import { CommandsComponent } from './components/commands/commands.component';
 import { ConfirmDialogComponent } from './components/confirm/confirm.component';
 import { DialogComponent } from './components/dialog/dialog.component';
-import { LogComponent } from './components/log/log.component';
+import { Scope2Component } from './components/scope2/scope2.component';
 import { QuestionDialogComponent } from './components/question/question.component';
 import { ScopeComponent } from './components/scope/scope.component';
 import { InterceptorProviders } from './interceptors/interceptors';
 import { LoadingService } from './services/loading.service';
-import { RxWsService } from './services/rxws.service';
+import { WebSocketService2 } from './services/websocket2.service';
 import { WebSocketService } from './services/websocket.service';
 
 @NgModule({
-    declarations: [
-        AppComponent,
-        CommandsComponent,
-        LogComponent,
-        ConfirmDialogComponent,
-        QuestionDialogComponent,
-        DialogComponent,
-        ScopeComponent
-    ],
-    imports: [
-        BrowserModule,
-        AppRoutingModule,
-        FormsModule,
-        ReactiveFormsModule,
-        BrowserAnimationsModule,
-        HttpClientModule,
-        MatButtonModule,
-        FlexLayoutModule,
-        MatDialogModule,
-        DragDropModule,
-        MatSliderModule,
-        MatFormFieldModule,
-        MatInputModule,
-        MatChipsModule,
-        MatProgressSpinnerModule,
-        MatToolbarModule,
-        MatTableModule,
-        MatListModule,
-        MatSelectModule,
-        MatSnackBarModule,
-        MatSlideToggleModule,
-        MatGridListModule,
-        MatCardModule,
-        MatTabsModule,
-        NgChartsModule,
-    ],
-    providers: [
-        // services
-        LoadingService,
-        WebSocketService,
-        RxWsService,
-        // api
-        CommandsApi,
-        ScopeApi,
-        // interceptors
-        InterceptorProviders,
-    ],
-    bootstrap: [AppComponent]
+  declarations: [
+    AppComponent,
+    CommandsComponent,
+    Scope2Component,
+    ConfirmDialogComponent,
+    QuestionDialogComponent,
+    DialogComponent,
+    ScopeComponent
+  ],
+  imports: [
+    BrowserModule,
+    AppRoutingModule,
+    FormsModule,
+    ReactiveFormsModule,
+    BrowserAnimationsModule,
+    HttpClientModule,
+    MatButtonModule,
+    FlexLayoutModule,
+    MatDialogModule,
+    DragDropModule,
+    MatSliderModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatChipsModule,
+    MatProgressSpinnerModule,
+    MatToolbarModule,
+    MatTableModule,
+    MatListModule,
+    MatSelectModule,
+    MatSnackBarModule,
+    MatSlideToggleModule,
+    MatGridListModule,
+    MatCardModule,
+    MatTabsModule,
+    NgChartsModule,
+  ],
+  providers: [
+    // services
+    LoadingService,
+    WebSocketService,
+    WebSocketService2,
+    // api
+    CommandsApi,
+    ScopeApi,
+    // interceptors
+    InterceptorProviders,
+  ],
+  bootstrap: [AppComponent]
 })
 export class AppModule { }
