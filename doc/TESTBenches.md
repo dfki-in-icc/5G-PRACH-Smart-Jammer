@@ -83,6 +83,9 @@ Webhook
   - caracal + N310
   - pure performance test through phy-test scheduler, see command line for more
     details
+- [RAN-L2-Sim-Test-5G](https://jenkins-oai.eurecom.fr/job/RAN-L2-Sim-Test-4G/)
+  - obelix (eNB, 1x UE, OAI EPC)
+  - L2simulator: skips physical layer and uses proxy between eNB and UE
 - [RAN-L2-Sim-Test-5G](https://jenkins-oai.eurecom.fr/job/RAN-L2-Sim-Test-5G/)
   - obelix (gNB, 1x UE, OAI 5GC)
   - L2simulator: skips physical layer and uses proxy between gNB and UE,
@@ -102,8 +105,9 @@ Webhook
 - [RAN-RF-Sim-Test-5G](https://jenkins-oai.eurecom.fr/job/RAN-RF-Sim-Test-5G/)
   - obelix (gNB, 2x UE, OAI 5GC)
   - uses RFsimulator, TDD 40MHz, FDD 40MHz, F1 split
-- [RAN-RHEL8-Image-Builder](https://jenkins-oai.eurecom.fr/job/RAN-RHEL8-Image-Builder/)
-  - asterix: RHEL 8 image build using podman
+- [RAN-RHEL8-Cluster-Image-Builder](https://jenkins-oai.eurecom.fr/job/RAN-RHEL8-Cluster-Image-Builder/)
+  - asterix (`Asterix-OC-oaicicd-session` resource): RHEL 8 image build using
+    the OpenShift in Eurecom
 - [RAN-Ubuntu18-Image-Builder](https://jenkins-oai.eurecom.fr/job/RAN-Ubuntu18-Image-Builder/)
   - obelix: Ubuntu 18 image build using docker
 

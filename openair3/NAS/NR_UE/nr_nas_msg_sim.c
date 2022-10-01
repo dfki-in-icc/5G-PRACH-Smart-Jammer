@@ -44,6 +44,7 @@
 #include <openair3/NAS/COMMON/NR_NAS_defs.h>
 #include <openair1/PHY/phy_extern_nr_ue.h>
 #include <openair1/SIMULATION/ETH_TRANSPORT/proto.h>
+#include "openair2/SDAP/nr_sdap/nr_sdap.h"
 
 uint8_t  *registration_request_buf;
 uint32_t  registration_request_len;
@@ -732,16 +733,20 @@ static void generatePduSessionEstablishRequest(int Mod_id, uicc_t * uicc, as_nas
   mm_msg->uplink_nas_transport.pdusessionid = 10;
   mm_msg->uplink_nas_transport.requesttype = 1;
   size += 3;
-  mm_msg->uplink_nas_transport.snssai.length = 4;
+  const bool has_nssai_sd = uicc->nssai_sd != 0xffffff; // 0xffffff means "no SD", TS 23.003
+  const size_t nssai_len = has_nssai_sd ? 4 : 1;
+  mm_msg->uplink_nas_transport.snssai.length = nssai_len;
   //Fixme: it seems there are a lot of memory errors in this: this value was on the stack, 
   // but pushed  in a itti message to another thread
   // this kind of error seems in many places in 5G NAS
-  mm_msg->uplink_nas_transport.snssai.value=calloc(1,4);
+  mm_msg->uplink_nas_transport.snssai.value = calloc(1, nssai_len);
   mm_msg->uplink_nas_transport.snssai.value[0] = uicc->nssai_sst;
-  mm_msg->uplink_nas_transport.snssai.value[1] = (uicc->nssai_sd>>16)&0xFF;
-  mm_msg->uplink_nas_transport.snssai.value[2] = (uicc->nssai_sd>>8)&0xFF; 
-  mm_msg->uplink_nas_transport.snssai.value[3] = (uicc->nssai_sd)&0xFF;
-  size += (1+1+4);
+  if (has_nssai_sd) {
+    mm_msg->uplink_nas_transport.snssai.value[1] = (uicc->nssai_sd >> 16) & 0xFF;
+    mm_msg->uplink_nas_transport.snssai.value[2] = (uicc->nssai_sd >> 8)  & 0xFF;
+    mm_msg->uplink_nas_transport.snssai.value[3] = (uicc->nssai_sd)       & 0xFF;
+  }
+  size += 1 + 1 + nssai_len;
   int dnnSize=strlen(uicc->dnnStr);
   mm_msg->uplink_nas_transport.dnn.value=calloc(1,dnnSize+1);
   mm_msg->uplink_nas_transport.dnn.length = dnnSize + 1;
@@ -915,7 +920,7 @@ void *nas_nrue_task(void *args_p)
               payload_container = pdu_buffer + offset;
             }
             offset = 0;
-
+            uint8_t pdu_id = *(pdu_buffer+14);
             while(offset < payload_container_length) {
 	      // Fixme: this is not good 'type' 0x29 searching in TLV like structure
 	      // AND fix dirsty code copy hereafter of the same!!!
@@ -929,8 +934,12 @@ void *nas_nrue_task(void *args_p)
                     *(payload_container+offset+3), *(payload_container+offset+4),
                     *(payload_container+offset+5), *(payload_container+offset+6));
                   nas_config(1,third_octet,fourth_octet,"oaitun_ue");
-                  break;
                 }
+              }
+              if (*(payload_container + offset) == 0x79) {
+                uint8_t qfi = *(payload_container+offset+3);
+                set_qfi_pduid(qfi, pdu_id);
+                break;
               }
               offset++;
             }

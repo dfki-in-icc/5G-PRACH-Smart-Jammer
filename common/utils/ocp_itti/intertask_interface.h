@@ -262,10 +262,6 @@ void *rrc_enb_process_itti_msg(void *);
 #include <openair3/SCTP/sctp_eNB_task.h>
 #include <openair3/NGAP/ngap_gNB.h>
 
-#ifdef ITTI_SIM
-  #include <openair2/COMMON/itti_sim_messages_types.h>
-#endif
-
 /*
   static const char *const messages_definition_xml = {
   #include <messages_xml.h>
@@ -308,9 +304,11 @@ void *rrc_enb_process_msg(void *);
   TASK_DEF(TASK_BM,       TASK_PRIORITY_MED, 200, NULL, NULL)   \
   TASK_DEF(TASK_PHY_ENB,  TASK_PRIORITY_MED, 200, NULL, NULL)   \
   TASK_DEF(TASK_MAC_ENB,  TASK_PRIORITY_MED, 200, NULL, NULL)   \
+  TASK_DEF(TASK_MAC_GNB,  TASK_PRIORITY_MED, 200, NULL, NULL)   \
   TASK_DEF(TASK_RLC_ENB,  TASK_PRIORITY_MED, 200, NULL, NULL)   \
   TASK_DEF(TASK_RRC_ENB_NB_IoT,  TASK_PRIORITY_MED, 200, NULL, NULL) \
   TASK_DEF(TASK_PDCP_ENB, TASK_PRIORITY_MED, 200, NULL, NULL)   \
+  TASK_DEF(TASK_PDCP_GNB, TASK_PRIORITY_MED, 200, NULL, NULL)   \
   TASK_DEF(TASK_DATA_FORWARDING, TASK_PRIORITY_MED, 200, NULL, NULL)   \
   TASK_DEF(TASK_END_MARKER, TASK_PRIORITY_MED, 200, NULL, NULL)   \
   TASK_DEF(TASK_RRC_ENB,  TASK_PRIORITY_MED,  200, NULL,NULL)\
@@ -341,6 +339,8 @@ void *rrc_enb_process_msg(void *);
   TASK_DEF(TASK_GTPV1_U,  TASK_PRIORITY_MED,  1000,NULL, NULL)\
   TASK_DEF(TASK_CU_F1,    TASK_PRIORITY_MED,  200, NULL, NULL) \
   TASK_DEF(TASK_DU_F1,    TASK_PRIORITY_MED,  200, NULL, NULL) \
+  TASK_DEF(TASK_CUCP_E1,  TASK_PRIORITY_MED,  200, NULL, NULL) \
+  TASK_DEF(TASK_CUUP_E1,  TASK_PRIORITY_MED,  200, NULL, NULL) \
   TASK_DEF(TASK_RRC_UE_SIM,   TASK_PRIORITY_MED,  200, NULL, NULL)  \
   TASK_DEF(TASK_RRC_GNB_SIM,  TASK_PRIORITY_MED,  200, NULL, NULL)  \
   TASK_DEF(TASK_RRC_NSA_UE,   TASK_PRIORITY_MED,  200, NULL, NULL)  \
@@ -481,7 +481,7 @@ void itti_unsubscribe_event_fd(task_id_t task_id, int fd);
     \param events events list
     @returns number of events to handle
  **/
-int itti_get_events(task_id_t task_id, struct epoll_event **events);
+  int itti_get_events(task_id_t task_id, struct epoll_event *events, int nb_max_evts);
 
 /** \brief Retrieves a message in the queue associated to task_id.
    If the queue is empty, the thread is blocked till a new message arrives.

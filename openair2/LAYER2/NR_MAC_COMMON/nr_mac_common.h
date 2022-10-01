@@ -36,14 +36,29 @@
 #include "NR_CellGroupConfig.h"
 #include "nr_mac.h"
 #include "openair1/PHY/impl_defs_nr.h"
+#include "common/utils/nr/nr_common.h"
+
+typedef enum {
+  pusch_dmrs_pos0 = 0,
+  pusch_dmrs_pos1 = 1,
+  pusch_dmrs_pos2 = 2,
+  pusch_dmrs_pos3 = 3,
+} pusch_dmrs_AdditionalPosition_t;
+
+typedef enum {
+  typeA = 0,
+  typeB = 1
+} mappingType_t;
 
 uint32_t get_Y(NR_SearchSpace_t *ss, int slot, rnti_t rnti);
+
+uint8_t get_BG(uint32_t A, uint16_t R);
 
 uint64_t from_nrarfcn(int nr_bandP, uint8_t scs_index, uint32_t dl_nrarfcn);
 
 uint32_t to_nrarfcn(int nr_bandP, uint64_t dl_CarrierFreq, uint8_t scs_index, uint32_t bw);
 
-int16_t fill_dmrs_mask(NR_PDSCH_Config_t *pdsch_Config,int dmrs_TypeA_Position,int NrOfSymbols,int startSymbol,int mappingtype_fromDCI,int length);
+int16_t fill_dmrs_mask(const NR_PDSCH_Config_t *pdsch_Config,int dmrs_TypeA_Position,int NrOfSymbols,int startSymbol,mappingType_t mappingtype,int length);
 
 int is_nr_DL_slot(NR_TDD_UL_DL_ConfigCommon_t *tdd_UL_DL_ConfigurationCommon,slot_t slotP);
 
@@ -142,8 +157,11 @@ uint32_t nr_get_code_rate_ul(uint8_t Imcs, uint8_t table_idx);
 
 uint16_t get_nr_srs_offset(NR_SRS_PeriodicityAndOffset_t periodicityAndOffset);
 
-int get_bw_tbslbrm(int scc_bwpsize,
-                   NR_CellGroupConfig_t *cg);
+int get_dlbw_tbslbrm(int scc_bwpsize,
+                     NR_CellGroupConfig_t *cg);
+
+int get_ulbw_tbslbrm(int scc_bwpsize,
+                     NR_CellGroupConfig_t *cg);
 
 uint32_t nr_compute_tbslbrm(uint16_t table,
 			    uint16_t nb_rb,

@@ -47,8 +47,8 @@
 #undef MALLOC //there are two conflicting definitions, so we better make sure we don't use it at all
 //#undef FRAME_LENGTH_COMPLEX_SAMPLES //there are two conflicting definitions, so we better make sure we don't use it at all
 
-#include "../../ARCH/COMMON/common_lib.h"
-#include "../../ARCH/ETHERNET/USERSPACE/LIB/if_defs.h"
+#include "sdr/COMMON/common_lib.h"
+#include "sdr/ETHERNET/USERSPACE/LIB/if_defs.h"
 
 //#undef FRAME_LENGTH_COMPLEX_SAMPLES //there are two conflicting definitions, so we better make sure we don't use it at all
 
@@ -99,7 +99,7 @@ int config_sync_var=-1;
 uint16_t runtime_phy_rx[29][6]; // SISO [MCS 0-28][RBs 0-5 : 6, 15, 25, 50, 75, 100]
 uint16_t runtime_phy_tx[29][6]; // SISO [MCS 0-28][RBs 0-5 : 6, 15, 25, 50, 75, 100]
 
-volatile int             oai_exit = 0;
+int oai_exit = 0;
 
 unsigned int                    mmapped_dma=0;
 

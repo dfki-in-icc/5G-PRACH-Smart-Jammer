@@ -36,7 +36,7 @@
 
 void set_cset_offset(uint16_t);
 
-void mac_top_init_gNB(void);
+void mac_top_init_gNB(ngran_node_t node_type);
 
 void config_common(int Mod_idP,
                    int pdsch_AntennaPorts,
@@ -87,9 +87,8 @@ uint32_t schedule_control_sib1(module_id_t module_id,
                                int CC_id,
                                NR_Type0_PDCCH_CSS_config_t *type0_PDCCH_CSS_config,
                                int time_domain_allocation,
-                               int startSymbolIndex,
-                               int nrOfSymbols,
-                               uint16_t dlDmrsSymbPos,
+                               NR_pdsch_dmrs_t *dmrs_parms,
+                               NR_tda_info_t *tda_info,
                                uint8_t candidate_idx,
                                uint16_t num_total_bytes);
 
@@ -325,18 +324,16 @@ long get_K2(NR_PUSCH_TimeDomainResourceAllocationList_t *tdaList,
             int time_domain_assignment,
             int mu);
 
-void nr_set_pdsch_semi_static(const NR_UE_DL_BWP_t *dl_bwp,
-                              const NR_ServingCellConfigCommon_t *scc,
-                              int tda,
-                              uint8_t layers,
-                              NR_UE_sched_ctrl_t *sched_ctrl,
-                              NR_pdsch_semi_static_t *ps);
+NR_tda_info_t nr_get_pdsch_tda_info(const NR_UE_DL_BWP_t *dl_bwp,
+                                    const int tda);
 
-void nr_set_pusch_semi_static(const NR_UE_UL_BWP_t *ul_bwp,
-                              const NR_ServingCellConfigCommon_t *scc,
-                              int tda,
-                              uint8_t nrOfLayers,
-                              NR_pusch_semi_static_t *ps);
+NR_tda_info_t nr_get_pusch_tda_info(const NR_UE_UL_BWP_t *ul_bwp,
+                                    const int tda);
+
+NR_pusch_dmrs_t get_ul_dmrs_params(const NR_ServingCellConfigCommon_t *scc,
+                                   const NR_UE_UL_BWP_t *ul_bwp,
+                                   const NR_tda_info_t *tda_info,
+                                   const int Layers);
 
 uint8_t nr_get_tpc(int target, uint8_t cqi, int incr);
 
@@ -460,17 +457,18 @@ int16_t ssb_index_from_prach(module_id_t module_idP,
 
 void find_SSB_and_RO_available(module_id_t module_idP);
 
-void set_dl_dmrs_ports(NR_pdsch_semi_static_t *ps);
+NR_pdsch_dmrs_t get_dl_dmrs_params(const NR_ServingCellConfigCommon_t *scc,
+                                   const NR_UE_DL_BWP_t *BWP,
+                                   const NR_tda_info_t *tda_info,
+                                   const int Layers);
 
-uint16_t set_pm_index(NR_UE_sched_ctrl_t *sched_ctrl,
+uint16_t get_pm_index(const NR_UE_info_t *UE,
                       int layers,
-                      int N1, int N2,
-                      int xp_pdsch_antenna_ports,
-                      int codebook_mode);
+                      int xp_pdsch_antenna_ports);
 
 uint8_t get_mcs_from_cqi(int mcs_table, int cqi_table, int cqi_idx);
 
-uint8_t set_dl_nrOfLayers(NR_UE_sched_ctrl_t *sched_ctrl);
+uint8_t get_dl_nrOfLayers(const NR_UE_sched_ctrl_t *sched_ctrl, const nr_dci_format_t dci_format);
 
 const int get_dl_tda(const gNB_MAC_INST *nrmac, const NR_ServingCellConfigCommon_t *scc, int slot);
 const int get_ul_tda(const gNB_MAC_INST *nrmac, const NR_ServingCellConfigCommon_t *scc, int slot);
@@ -501,6 +499,13 @@ void nr_sr_reporting(gNB_MAC_INST *nrmac, frame_t frameP, sub_frame_t slotP);
 size_t dump_mac_stats(gNB_MAC_INST *gNB, char *output, size_t strlen, bool reset_rsrp);
 
 void process_CellGroup(NR_CellGroupConfig_t *CellGroup, NR_UE_sched_ctrl_t *sched_ctrl);
+
+void send_initial_ul_rrc_message(module_id_t        module_id,
+                                 int                CC_id,
+                                 const NR_UE_info_t *UE,
+                                 rb_id_t            srb_id,
+                                 const uint8_t      *sdu,
+                                 sdu_size_t         sdu_len);
 
 void abort_nr_dl_harq(NR_UE_info_t* UE, int8_t harq_pid);
 

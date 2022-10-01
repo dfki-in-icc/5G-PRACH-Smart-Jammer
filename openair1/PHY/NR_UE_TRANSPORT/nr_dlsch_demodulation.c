@@ -480,45 +480,45 @@ int nr_rx_pdsch(PHY_VARS_NR_UE *ue,
     nbSymb = dlsch1_harq->nb_symbols;
     pduBitmap = dlsch1_harq->pduBitmap;
   }
-
+  
   /* Check for PTRS bitmap and process it respectively */
   if((pduBitmap & 0x1) && (type == PDSCH)) {
     nr_pdsch_ptrs_processing(ue,
-			     pdsch_vars,
-			     frame_parms,
-			     dlsch0_harq,
-			     dlsch1_harq,
-			     gNB_id,
-			     nr_slot_rx,
-			     symbol,
-			     (nb_rb_pdsch*12),
-			     dlsch[0]->rnti,rx_type);
+                             pdsch_vars,
+                             frame_parms,
+                             dlsch0_harq,
+                             dlsch1_harq,
+                             gNB_id,
+                             nr_slot_rx,
+                             symbol,
+                             (nb_rb_pdsch*12),
+                             dlsch[0]->rnti,rx_type);
     pdsch_vars[gNB_id]->dl_valid_re[symbol-1] -= pdsch_vars[gNB_id]->ptrs_re_per_slot[0][symbol];
   }
-
+  
   /* at last symbol in a slot calculate LLR's for whole slot */
   if(symbol == (startSymbIdx + nbSymb -1)) {
     for(uint8_t i =startSymbIdx; i < (startSymbIdx+nbSymb);i++) {
       /* re evaluating the first symbol flag as LLR's are done in symbol loop  */
       if(i == startSymbIdx && i < 3) {
-	first_symbol_flag =1;
+        first_symbol_flag =1;
       }
       else {
-	first_symbol_flag=0;
+        first_symbol_flag=0;
       }
       /* Calculate LLR's for each symbol */
       nr_dlsch_llr(pdsch_vars, frame_parms,
-		   rxdataF_comp_ptr, dl_ch_mag_ptr,
-		   dlsch0_harq, dlsch1_harq,
-		   rx_type, harq_pid,
-		   gNB_id, gNB_id_i,
-		   first_symbol_flag,
-		   i, nb_rb_pdsch,
-		   codeword_TB0, codeword_TB1,
-		   pdsch_vars[gNB_id]->dl_valid_re[i-1],
-		   nr_slot_rx, beamforming_mode);
+                   rxdataF_comp_ptr, dl_ch_mag_ptr,
+                   dlsch0_harq, dlsch1_harq,
+                   rx_type, harq_pid,
+                   gNB_id, gNB_id_i,
+                   first_symbol_flag,
+                   i, nb_rb_pdsch,
+                   codeword_TB0, codeword_TB1,
+                   pdsch_vars[gNB_id]->dl_valid_re[i-1],
+                   nr_slot_rx, beamforming_mode);
     }
-
+    
     int dmrs_type = dlsch[0]->harq_processes[harq_pid]->dmrsConfigType;
     uint8_t nb_re_dmrs;
     uint16_t dmrs_len = get_num_dmrs(dlsch[0]->harq_processes[harq_pid]->dlDmrsSymbPos);
@@ -528,29 +528,29 @@ int nr_rx_pdsch(PHY_VARS_NR_UE *ue,
       nb_re_dmrs = 4*dlsch[0]->harq_processes[harq_pid]->n_dmrs_cdm_groups;
     }
     dlsch[0]->harq_processes[harq_pid]->G = nr_get_G(dlsch[0]->harq_processes[harq_pid]->nb_rb,
-						     dlsch[0]->harq_processes[harq_pid]->nb_symbols,
-						     nb_re_dmrs,
-						     dmrs_len,
-						     dlsch[0]->harq_processes[harq_pid]->Qm,
-						     dlsch[0]->harq_processes[harq_pid]->Nl);
+                                                     dlsch[0]->harq_processes[harq_pid]->nb_symbols,
+                                                     nb_re_dmrs,
+                                                     dmrs_len,
+                                                     dlsch[0]->harq_processes[harq_pid]->Qm,
+                                                     dlsch[0]->harq_processes[harq_pid]->Nl);
     nr_dlsch_layer_demapping(pdsch_vars[gNB_id]->llr,
-			     dlsch[0]->harq_processes[harq_pid]->Nl,
-			     dlsch[0]->harq_processes[harq_pid]->Qm,
-			     dlsch[0]->harq_processes[harq_pid]->G,
-			     codeword_TB0,
-			     codeword_TB1,
-			     pdsch_vars[gNB_id]->layer_llr);
+                             dlsch[0]->harq_processes[harq_pid]->Nl,
+                             dlsch[0]->harq_processes[harq_pid]->Qm,
+                             dlsch[0]->harq_processes[harq_pid]->G,
+                             codeword_TB0,
+                             codeword_TB1,
+                             pdsch_vars[gNB_id]->layer_llr);    
   }
-
+  
   stop_meas(&ue->generic_stat_bis[proc->thread_id][slot]);
   if (cpumeas(CPUMEAS_GETSTATE))
     LOG_D(PHY, "[AbsSFN %u.%d] Slot%d Symbol %d: LLR Computation  %5.2f \n",frame,nr_slot_rx,slot,symbol,ue->generic_stat_bis[proc->thread_id][slot].p_time/(cpuf*1000.0));
-
+  
   // Please keep it: useful for debugging
 #ifdef DEBUG_PDSCH_RX
   char filename[50];
   uint8_t aa = 0;
-
+  
   snprintf(filename, 50, "rxdataF0_symb_%d_nr_slot_rx_%d.m", symbol, nr_slot_rx);
   write_output(filename, "rxdataF0", &common_vars->common_vars_rx_data_per_thread[proc->thread_id].rxdataF[0][0], NR_SYMBOLS_PER_SLOT*frame_parms->ofdm_symbol_size, 1, 1);
 
@@ -1599,19 +1599,20 @@ void nr_dlsch_channel_level_median(int **dl_ch_estimates_ext,
 // Extraction functions
 //==============================================================================================
 
-unsigned short nr_dlsch_extract_rbs_single(int **rxdataF,
-                                           int **dl_ch_estimates,
-                                           int **rxdataF_ext,
-                                           int **dl_ch_estimates_ext,
-                                           unsigned char symbol,
-                                           uint8_t pilots,
-                                           uint8_t config_type,
-                                           unsigned short start_rb,
-                                           unsigned short nb_rb_pdsch,
-                                           uint8_t n_dmrs_cdm_groups,
-                                           NR_DL_FRAME_PARMS *frame_parms,
-                                           uint16_t dlDmrsSymbPos,
-                                           int chest_time_type)
+void nr_dlsch_extract_rbs(int **rxdataF,
+                          int **dl_ch_estimates,
+                          int **rxdataF_ext,
+                          int **dl_ch_estimates_ext,
+                          unsigned char symbol,
+                          uint8_t pilots,
+                          uint8_t config_type,
+                          unsigned short start_rb,
+                          unsigned short nb_rb_pdsch,
+                          uint8_t n_dmrs_cdm_groups,
+                          uint8_t Nl,
+                          NR_DL_FRAME_PARMS *frame_parms,
+                          uint16_t dlDmrsSymbPos,
+                          int chest_time_type)
 {
   if (config_type == NFAPI_NR_DMRS_TYPE1) {
     AssertFatal(n_dmrs_cdm_groups == 1 || n_dmrs_cdm_groups == 2,
@@ -1631,178 +1632,91 @@ unsigned short nr_dlsch_extract_rbs_single(int **rxdataF,
 
   for (unsigned char aarx = 0; aarx < frame_parms->nb_antennas_rx; aarx++) {
 
-    int32_t *dl_ch0     = &dl_ch_estimates[aarx][validDmrsEst * frame_parms->ofdm_symbol_size];
-    int32_t *dl_ch0_ext = &dl_ch_estimates_ext[aarx][symbol * nb_rb_pdsch * NR_NB_SC_PER_RB];
-    int32_t *rxF_ext    = &rxdataF_ext[aarx][symbol * nb_rb_pdsch * NR_NB_SC_PER_RB];
-    int32_t *rxF        = &rxdataF[aarx][symbol * frame_parms->ofdm_symbol_size];
+    int32_t *rxF_ext = &rxdataF_ext[aarx][symbol * nb_rb_pdsch * NR_NB_SC_PER_RB];
+    int32_t *rxF     = &rxdataF[aarx][symbol * frame_parms->ofdm_symbol_size];
 
-    if (pilots == 0) { //data symbol only
-      if (start_re + nb_rb_pdsch * NR_NB_SC_PER_RB <= frame_parms->ofdm_symbol_size) {
-        memcpy((void*)rxF_ext, (void*)&rxF[start_re], nb_rb_pdsch * NR_NB_SC_PER_RB * sizeof(int32_t));
-      } else {
-        int neg_length = frame_parms->ofdm_symbol_size - start_re;
-        int pos_length = nb_rb_pdsch * NR_NB_SC_PER_RB - neg_length;
+    for (unsigned char aatx = 0; aatx < Nl; aatx++) {
 
-        memcpy((void*)rxF_ext, (void*)&rxF[start_re], neg_length * sizeof(int32_t));
-        memcpy((void*)&rxF_ext[neg_length], (void*)rxF, pos_length * sizeof(int32_t));
+      int32_t *dl_ch0     = &dl_ch_estimates[(aatx*frame_parms->nb_antennas_rx)+aarx][validDmrsEst * frame_parms->ofdm_symbol_size];
+      int32_t *dl_ch0_ext = &dl_ch_estimates_ext[(aatx*frame_parms->nb_antennas_rx)+aarx][symbol * nb_rb_pdsch * NR_NB_SC_PER_RB];
+
+      if (pilots == 0) { //data symbol only
+        if (aatx == 0) {
+          if (start_re + nb_rb_pdsch * NR_NB_SC_PER_RB <= frame_parms->ofdm_symbol_size) {
+            memcpy(rxF_ext, &rxF[start_re], nb_rb_pdsch * NR_NB_SC_PER_RB * sizeof(int32_t));
+          } else {
+            int neg_length = frame_parms->ofdm_symbol_size - start_re;
+            int pos_length = nb_rb_pdsch * NR_NB_SC_PER_RB - neg_length;
+
+            memcpy(rxF_ext, &rxF[start_re], neg_length * sizeof(int32_t));
+            memcpy(&rxF_ext[neg_length], rxF, pos_length * sizeof(int32_t));
+          }
+        }
+        memcpy(dl_ch0_ext, dl_ch0, nb_rb_pdsch * NR_NB_SC_PER_RB * sizeof(int32_t));
       }
-      memcpy((void*)dl_ch0_ext, (void*)dl_ch0, nb_rb_pdsch * NR_NB_SC_PER_RB * sizeof(int32_t));
-    }
-    else if (config_type == NFAPI_NR_DMRS_TYPE1){
-      if (n_dmrs_cdm_groups == 1) { //data is multiplexed
-        unsigned short k = start_re;
-        for (unsigned short j = 0; j < 6*nb_rb_pdsch; j += 3) {
-          rxF_ext[j]      = rxF[k+1];
-          rxF_ext[j+1]    = rxF[k+3];
-          rxF_ext[j+2]    = rxF[k+5];
-          dl_ch0_ext[j]   = dl_ch0[1];
-          dl_ch0_ext[j+1] = dl_ch0[3];
-          dl_ch0_ext[j+2] = dl_ch0[5];
-          dl_ch0 += 6;
-          k += 6;
-          if (k >= frame_parms->ofdm_symbol_size)
-            k -= frame_parms->ofdm_symbol_size;
+      else if (config_type == NFAPI_NR_DMRS_TYPE1){
+        if (n_dmrs_cdm_groups == 1) { //data is multiplexed
+          if (aatx == 0) {
+            unsigned short k = start_re;
+            for (unsigned short j = 0; j < 6*nb_rb_pdsch; j += 3) {
+              rxF_ext[j]   = rxF[k+1];
+              rxF_ext[j+1] = rxF[k+3];
+              rxF_ext[j+2] = rxF[k+5];
+              k += 6;
+              if (k >= frame_parms->ofdm_symbol_size)
+                k -= frame_parms->ofdm_symbol_size;
+            }
+          }
+          for (unsigned short j = 0; j < 6*nb_rb_pdsch; j += 3) {
+            dl_ch0_ext[j]   = dl_ch0[1];
+            dl_ch0_ext[j+1] = dl_ch0[3];
+            dl_ch0_ext[j+2] = dl_ch0[5];
+            dl_ch0 += 6;
+          }
         }
       }
-    }
-    else {//NFAPI_NR_DMRS_TYPE2
-      if (n_dmrs_cdm_groups == 1) { //data is multiplexed
-        unsigned short k = start_re;
-        for (unsigned short j = 0; j < 8*nb_rb_pdsch; j += 4) {
-          rxF_ext[j]      = rxF[k+2];
-          rxF_ext[j+1]    = rxF[k+3];
-          rxF_ext[j+2]    = rxF[k+4];
-          rxF_ext[j+3]    = rxF[k+5];
-          dl_ch0_ext[j]   = dl_ch0[2];
-          dl_ch0_ext[j+1] = dl_ch0[3];
-          dl_ch0_ext[j+2] = dl_ch0[4];
-          dl_ch0_ext[j+3] = dl_ch0[5];
-          dl_ch0 += 6;
-          k += 6;
-          if (k >= frame_parms->ofdm_symbol_size)
-            k -= frame_parms->ofdm_symbol_size;
+      else {//NFAPI_NR_DMRS_TYPE2
+        if (n_dmrs_cdm_groups == 1) { //data is multiplexed
+          if (aatx == 0) {
+            unsigned short k = start_re;
+            for (unsigned short j = 0; j < 8*nb_rb_pdsch; j += 4) {
+              rxF_ext[j]   = rxF[k+2];
+              rxF_ext[j+1] = rxF[k+3];
+              rxF_ext[j+2] = rxF[k+4];
+              rxF_ext[j+3] = rxF[k+5];
+              k += 6;
+              if (k >= frame_parms->ofdm_symbol_size)
+                k -= frame_parms->ofdm_symbol_size;
+            }
+          }
+          for (unsigned short j = 0; j < 8*nb_rb_pdsch; j += 4) {
+            dl_ch0_ext[j]   = dl_ch0[2];
+            dl_ch0_ext[j+1] = dl_ch0[3];
+            dl_ch0_ext[j+2] = dl_ch0[4];
+            dl_ch0_ext[j+3] = dl_ch0[5];
+            dl_ch0 += 6;
+          }
         }
-      }
-      else if (n_dmrs_cdm_groups == 2) { //data is multiplexed
-        unsigned short k = start_re;
-        for (unsigned short j = 0; j < 4*nb_rb_pdsch; j += 2) {
-          rxF_ext[j]      = rxF[k+4];
-          rxF_ext[j+1]    = rxF[k+5];
-          dl_ch0_ext[j]   = dl_ch0[4];
-          dl_ch0_ext[j+1] = dl_ch0[5];
-          dl_ch0 += 6;
-          k += 6;
-          if (k >= frame_parms->ofdm_symbol_size)
-            k -= frame_parms->ofdm_symbol_size;
+        else if (n_dmrs_cdm_groups == 2) { //data is multiplexed
+          if (aatx == 0) {
+            unsigned short k = start_re;
+            for (unsigned short j = 0; j < 4*nb_rb_pdsch; j += 2) {
+              rxF_ext[j]   = rxF[k+4];
+              rxF_ext[j+1] = rxF[k+5];
+              k += 6;
+              if (k >= frame_parms->ofdm_symbol_size)
+                k -= frame_parms->ofdm_symbol_size;
+            }
+          }
+          for (unsigned short j = 0; j < 4*nb_rb_pdsch; j += 2) {
+            dl_ch0_ext[j]   = dl_ch0[4];
+            dl_ch0_ext[j+1] = dl_ch0[5];
+            dl_ch0 += 6;
+          }
         }
       }
     }
   }
-
-  return nb_rb_pdsch;
-}
-
-void nr_dlsch_extract_rbs(int **rxdataF,
-                          int **dl_ch_estimates,
-                          int **rxdataF_ext,
-                          int **dl_ch_estimates_ext,
-                          unsigned char symbol,
-                          uint8_t pilots,
-                          uint8_t config_type,
-                          unsigned short start_rb,
-                          unsigned short nb_rb_pdsch,
-                          uint8_t n_dmrs_cdm_groups,
-                          uint8_t Nl,
-                          NR_DL_FRAME_PARMS *frame_parms,
-                          uint16_t dlDmrsSymbPos,
-                          int chest_time_type)
-{
-
-  unsigned short k,rb;
-  unsigned char nushift,j,i,aarx,aatx;
-  int *dl_ch0,*dl_ch0_ext,*rxF,*rxF_ext;
-  int8_t validDmrsEst = 0; //store last DMRS Symbol index
-
-  if (config_type==NFAPI_NR_DMRS_TYPE1) {
-    AssertFatal(n_dmrs_cdm_groups == 1 || n_dmrs_cdm_groups == 2,
-                "n_dmrs_cdm_groups %d is illegal\n",n_dmrs_cdm_groups);
-    nushift = n_dmrs_cdm_groups -1;//delta in Table 7.4.1.1.2-1
-  } else {
-    AssertFatal(n_dmrs_cdm_groups == 1 || n_dmrs_cdm_groups == 2 || n_dmrs_cdm_groups == 3,
-                "n_dmrs_cdm_groups %d is illegal\n",n_dmrs_cdm_groups);
-    nushift = (n_dmrs_cdm_groups -1)<<1;//delta in Table 7.4.1.1.2-2
-  }
-
-  if (chest_time_type == 0)
-    validDmrsEst = get_valid_dmrs_idx_for_channel_est(dlDmrsSymbPos,symbol);
-  else
-    validDmrsEst = get_next_dmrs_symbol_in_slot(dlDmrsSymbPos,0,14); // get first dmrs symbol index
-
-  for (aarx=0; aarx<frame_parms->nb_antennas_rx; aarx++) {
-
-    k = frame_parms->first_carrier_offset + NR_NB_SC_PER_RB*start_rb;
-    if (k>=frame_parms->ofdm_symbol_size)
-      k = k-frame_parms->ofdm_symbol_size;
-
-    rxF_ext   = &rxdataF_ext[aarx][symbol*(nb_rb_pdsch*12)];
-    rxF       = &rxdataF[aarx][(k+(symbol*(frame_parms->ofdm_symbol_size)))];
-
-    for (aatx=0; aatx<Nl; aatx++) {
-
-      dl_ch0     = &dl_ch_estimates[(aatx*frame_parms->nb_antennas_rx)+aarx][(validDmrsEst*(frame_parms->ofdm_symbol_size))];
-      dl_ch0_ext = &dl_ch_estimates_ext[(aatx*frame_parms->nb_antennas_rx)+aarx][symbol*(nb_rb_pdsch*NR_NB_SC_PER_RB)];
-
-      for (rb = 0; rb < nb_rb_pdsch; rb++)
-      {
-        if (pilots==0) {//data symbol only
-          if (aatx==0) {//Extract Rx signal only
-            memcpy((void*)rxF_ext,(void*)rxF,12*sizeof(*rxF_ext));
-            rxF_ext+=12;
-          }
-          memcpy((void*)dl_ch0_ext,(void*)dl_ch0,12*sizeof(*dl_ch0_ext));//Extract Channel Estimate
-          dl_ch0_ext+=12;
-        }
-        else {//the symbol contains DMRS
-          j=0;
-          if (config_type==NFAPI_NR_DMRS_TYPE1) {
-            if (nushift == 0) {//data is multiplexed
-              for (i = (1-nushift); i<12; i+=2) {
-                if (aatx==0) rxF_ext[j]=rxF[i];
-                dl_ch0_ext[j]=dl_ch0[i];
-                j++;
-              }
-              dl_ch0_ext+=6;
-              if (aatx==0) rxF_ext+=6;
-            }
-          }
-          else {//NFAPI_NR_DMRS_TYPE2
-            for (i = (2+nushift); i<6; i++) {
-              if (aatx==0) rxF_ext[j]=rxF[i];
-              dl_ch0_ext[j]=dl_ch0[i];
-              j++;
-            }
-            for (i = (8+nushift); i<12; i++) {
-              if (aatx==0) rxF_ext[j]=rxF[i];
-              dl_ch0_ext[j]=dl_ch0[i];
-              j++;
-            }
-            dl_ch0_ext+= j;
-            if (aatx==0) rxF_ext+= j;
-          }
-        }
-
-        dl_ch0+=12;
-        if (aatx==0) {
-          rxF+=12;
-          k+=12;
-          if (k>=frame_parms->ofdm_symbol_size) {
-            k=k-(frame_parms->ofdm_symbol_size);
-            rxF       = &rxdataF[aarx][k+(symbol*(frame_parms->ofdm_symbol_size))];
-          }
-        }
-      }//rb
-    }//aatx
-  }//aarx
 }
 
 void nr_dlsch_detection_mrc(int **rxdataF_comp,
@@ -2439,9 +2353,9 @@ static void nr_dlsch_layer_demapping(int16_t **llr_cw,
   switch (Nl) {
     case 1:
       if (codeword_TB1 == -1)
-        memcpy((void*)llr_cw[0], (void*)llr_layers[0], (length)*sizeof(int16_t));
+        memcpy(llr_cw[0], llr_layers[0], (length)*sizeof(int16_t));
       else if (codeword_TB0 == -1)
-        memcpy((void*)llr_cw[1], (void*)llr_layers[0], (length)*sizeof(int16_t));
+        memcpy(llr_cw[1], llr_layers[0], (length)*sizeof(int16_t));
 
     break;
 

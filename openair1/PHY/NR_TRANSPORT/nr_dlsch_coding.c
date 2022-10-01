@@ -117,6 +117,7 @@ NR_gNB_DLSCH_t *new_gNB_dlsch(NR_DL_FRAME_PARMS *frame_parms,
     a_segments = a_segments/273 +1;
   }
 
+  LOG_I(PHY,"Allocating %d segments (MAX %d, N_PRB %d)\n",a_segments,MAX_NUM_NR_DLSCH_SEGMENTS_PER_LAYER,N_RB);
   uint32_t dlsch_bytes = a_segments*1056;  // allocated bytes per segment
   NR_gNB_DLSCH_t *dlsch = malloc16(sizeof(NR_gNB_DLSCH_t));
   AssertFatal(dlsch, "cannot allocate dlsch\n");
@@ -375,14 +376,7 @@ int nr_dlsch_encoding(PHY_VARS_gNB *gNB,
     memcpy(harq->b, a, (A / 8) + 3); // using 3 bytes to mimic the case of 24 bit crc
   }
 
-  // target_code_rate is in 0.1 units
-  float Coderate = (float) rel15->targetCodeRate[0] / 10240.0f;
-  LOG_D(PHY,"DLSCH Coderate %f\n",Coderate);
-
-  if ((A <=292) || ((A<=3824) && (Coderate <= 0.6667)) || Coderate <= 0.25)
-    impp.BG = 2;
-  else
-    impp.BG = 1;
+  impp.BG = rel15->maintenance_parms_v3.ldpcBaseGraph;
 
   start_meas(dlsch_segmentation_stats);
   impp.Kb = nr_segmentation(harq->b, harq->c, harq->B, &impp.n_segments, &impp.K, impp.Zc, &impp.F, impp.BG);
@@ -425,11 +419,13 @@ int nr_dlsch_encoding(PHY_VARS_gNB *gNB,
     encoder_implemparams_t* perJobImpp=(encoder_implemparams_t*)NotifiedFifoData(req);
     *perJobImpp=impp;
     perJobImpp->macro_num=j;
-    pushTpool(gNB->threadPool,req);
+    pushTpool(&gNB->threadPool, req);
     nbJobs++;
   }
   while(nbJobs) {
-    notifiedFIFO_elt_t *req=pullTpool(&nf, gNB->threadPool);
+    notifiedFIFO_elt_t *req=pullTpool(&nf, &gNB->threadPool);
+    if (req == NULL)
+      break; // Tpool has been stopped
     delNotifiedFIFO_elt(req);
     nbJobs--;
 

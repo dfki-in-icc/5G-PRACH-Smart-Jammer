@@ -42,6 +42,7 @@
 #include "PHY/defs_common.h"
 #include "PHY/CODING/nrLDPC_extern.h"
 #include "PHY/CODING/nrLDPC_decoder/nrLDPC_types.h"
+#include "executables/rt_profiling.h"
 
 #include "nfapi_nr_interface_scf.h"
 
@@ -396,10 +397,6 @@ typedef struct {
 } NR_gNB_SRS_t;
 
 typedef struct {
-  /// \brief Pointers (dynamic) to the received data in the time domain.
-  /// - first index: rx antenna [0..nb_antennas_rx[
-  /// - second index: ? [0..2*ofdm_symbol_size*frame_parms->symbols_per_tti[
-  int32_t **rxdata;
   /// \brief Pointers (dynamic) to the received data in the frequency domain.
   /// - first index: rx antenna [0..nb_antennas_rx[
   /// - second index: ? [0..2*ofdm_symbol_size*frame_parms->symbols_per_tti[
@@ -815,7 +812,7 @@ typedef struct PHY_VARS_gNB_s {
   double N0;
 
   unsigned char first_run_I0_measurements;
-
+  int ldpc_offload_flag;
 
   unsigned char    is_secondary_gNB; // primary by default
   unsigned char    is_init_sync;     /// Flag to tell if initial synchronization is performed. This affects how often the secondary eNB will listen to the PSS from the primary system.
@@ -848,6 +845,7 @@ typedef struct PHY_VARS_gNB_s {
   int pucch0_thres;
   int pusch_thres;
   int prach_thres;
+  int srs_thres;
   uint64_t bad_pucch;
   int num_ulprbbl;
   int ulprbbl[275];
@@ -897,21 +895,22 @@ typedef struct PHY_VARS_gNB_s {
   time_stats_t ulsch_freq_offset_estimation_stats;
   */
   notifiedFIFO_t *respPuschSymb;
-  notifiedFIFO_t *respDecode;
-  notifiedFIFO_t *resp_L1;
-  notifiedFIFO_t *L1_tx_free;
-  notifiedFIFO_t *L1_tx_filled;
-  notifiedFIFO_t *L1_tx_out;
-  notifiedFIFO_t *resp_RU_tx;
-  tpool_t *threadPool;
+  notifiedFIFO_t respDecode;
+  notifiedFIFO_t resp_L1;
+  notifiedFIFO_t L1_tx_free;
+  notifiedFIFO_t L1_tx_filled;
+  notifiedFIFO_t L1_tx_out;
+  notifiedFIFO_t resp_RU_tx;
+  tpool_t threadPool;
   int nbSymb;
   int nbDecode;
-  uint8_t thread_pool_size;
   int use_pusch_tp;
   int num_pusch_symbols_per_thread;
   int number_of_nr_dlsch_max;
   int number_of_nr_ulsch_max;
   void * scopeData;
+  /// structure for analyzing high-level RT measurements
+  rt_L1_profiling_t rt_L1_profiling; 
 } PHY_VARS_gNB;
 
 typedef struct puschSymbolProc_s {

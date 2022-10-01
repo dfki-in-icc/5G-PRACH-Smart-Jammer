@@ -50,10 +50,10 @@ Now pull images.
 
 ```bash
 $ docker pull mysql:5.7
-$ docker pull oaisoftwarealliance/oai-amf:latest
-$ docker pull oaisoftwarealliance/oai-nrf:latest
-$ docker pull oaisoftwarealliance/oai-smf:latest
-$ docker pull oaisoftwarealliance/oai-spgwu-tiny:latest
+$ docker pull oaisoftwarealliance/oai-amf:develop
+$ docker pull oaisoftwarealliance/oai-nrf:develop
+$ docker pull oaisoftwarealliance/oai-smf:develop
+$ docker pull oaisoftwarealliance/oai-spgwu-tiny:develop
 
 $ docker pull oaisoftwarealliance/oai-gnb:develop
 $ docker pull oaisoftwarealliance/oai-nr-ue:develop
@@ -62,10 +62,10 @@ $ docker pull oaisoftwarealliance/oai-nr-ue:develop
 And **re-tag** them for tutorials' docker-compose file to work.
 
 ```bash
-$ docker image tag oaisoftwarealliance/oai-amf:latest oai-amf:latest
-$ docker image tag oaisoftwarealliance/oai-nrf:latest oai-nrf:latest
-$ docker image tag oaisoftwarealliance/oai-smf:latest oai-smf:latest
-$ docker image tag oaisoftwarealliance/oai-spgwu-tiny:latest oai-spgwu-tiny:latest
+$ docker image tag oaisoftwarealliance/oai-amf:latest oai-amf:august-dev
+$ docker image tag oaisoftwarealliance/oai-nrf:latest oai-nrf:august-dev
+$ docker image tag oaisoftwarealliance/oai-smf:latest oai-smf:august-dev
+$ docker image tag oaisoftwarealliance/oai-spgwu-tiny:latest oai-spgwu-tiny:august-dev
 
 $ docker image tag oaisoftwarealliance/oai-gnb:develop oai-gnb:develop
 $ docker image tag oaisoftwarealliance/oai-nr-ue:develop oai-nr-ue:develop
@@ -274,7 +274,6 @@ Create entry for Second UE in docker-compose.yaml file as follows:
             OPC: 'C42449363BBAD02B66D16BC975D77CC1'
             DNN: oai
             NSSAI_SST: 1
-            NSSAI_SD: 1
             USE_ADDITIONAL_OPTIONS: -E --sa --rfsim -r 106 --numerology 1 -C 3619200000 --nokrnmod --log_config.global_log_options level,nocolor,time
         depends_on:
             - oai-gnb

@@ -3422,14 +3422,14 @@ int nr_rx_pusch_tp(PHY_VARS_gNB *gNB,
       rdata->ulsch_id=ulsch_id;
       rdata->llr = &gNB->pusch_vars[ulsch_id]->llr[gNB->pusch_vars[ulsch_id]->llr_offset[symbol]];
       rdata->s   = &s[gNB->pusch_vars[ulsch_id]->llr_offset[symbol]];
-      pushTpool(gNB->threadPool,req);
+      pushTpool(&gNB->threadPool,req);
       gNB->nbSymb++;
       LOG_D(PHY,"%d.%d Added symbol %d (count %d) to process, in pipe\n",frame,slot,symbol,gNB->nbSymb);
     }
   } // symbol loop
 
   while (gNB->nbSymb > 0) {
-    notifiedFIFO_elt_t *req=pullTpool(gNB->respPuschSymb, gNB->threadPool);
+    notifiedFIFO_elt_t *req=pullTpool(gNB->respPuschSymb, &gNB->threadPool);
     gNB->nbSymb--;
     delNotifiedFIFO_elt(req);
   }

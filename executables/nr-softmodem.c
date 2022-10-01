@@ -39,8 +39,8 @@
 #undef MALLOC //there are two conflicting definitions, so we better make sure we don't use it at all
 //#undef FRAME_LENGTH_COMPLEX_SAMPLES //there are two conflicting definitions, so we better make sure we don't use it at all
 
-#include "../../ARCH/COMMON/common_lib.h"
-#include "../../ARCH/ETHERNET/USERSPACE/LIB/if_defs.h"
+#include "sdr/COMMON/common_lib.h"
+#include "sdr/ETHERNET/USERSPACE/LIB/if_defs.h"
 
 //#undef FRAME_LENGTH_COMPLEX_SAMPLES //there are two conflicting definitions, so we better make sure we don't use it at all
 
@@ -93,7 +93,7 @@ int sync_var=-1; //!< protected by mutex \ref sync_mutex.
 int config_sync_var=-1;
 
 volatile int             start_gNB = 0;
-volatile int             oai_exit = 0;
+int oai_exit = 0;
 
 static int wait_for_sync = 0;
 
@@ -313,12 +313,12 @@ int create_gNB_tasks(uint32_t gnb_nb) {
     }
   }
 
-  if (AMF_MODE_ENABLED) {
+  if (get_softmodem_params()->sa) {
 
-   char*             gnb_ipv4_address_for_NGU      = NULL;
-   uint32_t          gnb_port_for_NGU              = 0;
-   char*             gnb_ipv4_address_for_S1U      = NULL;
-   uint32_t          gnb_port_for_S1U              = 0;
+    char*             gnb_ipv4_address_for_NGU      = NULL;
+    uint32_t          gnb_port_for_NGU              = 0;
+    char*             gnb_ipv4_address_for_S1U      = NULL;
+    uint32_t          gnb_port_for_S1U              = 0;
     paramdef_t NETParams[]  =  GNBNETPARAMS_DESC;
     char aprefix[MAX_OPTNAME_SIZE*2 + 8];
     sprintf(aprefix,"%s.[%i].%s",GNB_CONFIG_STRING_GNB_LIST,0,GNB_CONFIG_STRING_NETWORK_INTERFACES_CONFIG);
@@ -326,23 +326,17 @@ int create_gNB_tasks(uint32_t gnb_nb) {
     
     for(int i = GNB_INTERFACE_NAME_FOR_NG_AMF_IDX; i <= GNB_IPV4_ADDRESS_FOR_NG_AMF_IDX; i++) {
       if( NETParams[i].strptr == NULL) {
-	LOG_E(NGAP, "No configuration in the file.\n");
-	NGAP_CONF_MODE = 0;
+	LOG_E(NGAP, "No AMF configuration in the file.\n");
       } else {
 	LOG_D(NGAP, "Configuration in the file: %s.\n",*NETParams[i].strptr);
       }
     }
-
+    
     if (gnb_nb > 0) {
-      if(NGAP_CONF_MODE) {
-        if (itti_create_task (TASK_NGAP, ngap_gNB_task, NULL) < 0) {
-          LOG_E(NGAP, "Create task for NGAP failed\n");
-          return -1;
-        }
-      } else {
-        LOG_I(NGAP, "Ngap task not created\n");
+      if (itti_create_task (TASK_NGAP, ngap_gNB_task, NULL) < 0) {
+        LOG_E(NGAP, "Create task for NGAP failed\n");
+        return -1;
       }
-
     }
   }
 
@@ -359,8 +353,8 @@ int create_gNB_tasks(uint32_t gnb_nb) {
       return -1;
     }
 
-    //Use check on x2ap to consider the NSA scenario and check on AMF_MODE_ENABLED for the SA scenario
-    if(is_x2ap_enabled() || AMF_MODE_ENABLED) {
+    //Use check on x2ap to consider the NSA scenario and check for SA scenario
+    if(is_x2ap_enabled() || get_softmodem_params()->sa) {
       if (itti_create_task (TASK_GTPV1_U, &gtpv1uTask, NULL) < 0) {
         LOG_E(GTPU, "Create task for GTPV1U failed\n");
         return -1;
@@ -630,8 +624,6 @@ int main( int argc, char **argv ) {
   }
 
   openair0_cfg[0].threequarter_fs = threequarter_fs;
-  AMF_MODE_ENABLED = get_softmodem_params()->sa;
-  NGAP_CONF_MODE   = get_softmodem_params()->sa;
 
   if (get_softmodem_params()->do_ra)
     AssertFatal(get_softmodem_params()->phy_test == 0,"RA and phy_test are mutually exclusive\n");
@@ -716,9 +708,6 @@ int main( int argc, char **argv ) {
 
   printf("NFAPI MODE:%s\n", nfapi_mode_str);
 
-  if (NFAPI_MODE==NFAPI_MODE_VNF)
-    wait_nfapi_init("main?");
-
   printf("START MAIN THREADS\n");
   // start the main threads
   number_of_cards = 1;
@@ -787,60 +776,29 @@ int main( int argc, char **argv ) {
     pthread_mutex_unlock(&sync_mutex);
   }
 
-  printf("About to call end_configmodule() from %s() %s:%d\n", __FUNCTION__, __FILE__, __LINE__);
-
-  // We have to set PARAMFLAG_NOFREE on right paramters before re-enabling end_configmodule()
-
-  //end_configmodule();
-  printf("Called end_configmodule() from %s() %s:%d\n", __FUNCTION__, __FILE__, __LINE__);
   // wait for end of program
-  printf("TYPE <CTRL-C> TO TERMINATE\n");
-  //getchar();
   printf("Entering ITTI signals handler\n");
+  printf("TYPE <CTRL-C> TO TERMINATE\n");
   itti_wait_tasks_end();
   printf("Returned from ITTI signal handler\n");
   oai_exit=1;
   printf("oai_exit=%d\n",oai_exit);
-  // stop threads
-  /*#ifdef XFORMS
 
-      printf("waiting for XFORMS thread\n");
-
-      if (do_forms==1) {
-        pthread_join(forms_thread,&status);
-        fl_hide_form(form_stats->stats_form);
-        fl_free_form(form_stats->stats_form);
-
-          fl_hide_form(form_stats_l2->stats_form);
-          fl_free_form(form_stats_l2->stats_form);
-
-          for(UE_id=0; UE_id<scope_enb_num_ue; UE_id++) {
-      for(CC_id=0; CC_id<MAX_NUM_CCs; CC_id++) {
-        fl_hide_form(form_enb[CC_id][UE_id]->phy_scope_gNB);
-        fl_free_form(form_enb[CC_id][UE_id]->phy_scope_gNB);
-      }
-          }
-      }
-
-  #endif*/
-  printf("stopping MODEM threads\n");
   // cleanup
-  stop_gNB(NB_gNB_INST);
+  if (RC.nb_nr_L1_inst > 0)
+    stop_gNB(RC.nb_nr_L1_inst);
 
-  if (RC.nb_nr_L1_inst > 0) {
-    stop_RU(NB_RU);
-  }
+  if (RC.nb_RU > 0)
+    stop_RU(RC.nb_RU);
 
   /* release memory used by the RU/gNB threads (incomplete), after all
    * threads have been stopped (they partially use the same memory) */
-  for (int inst = 0; inst < NB_gNB_INST; inst++) {
-    //free_transport(RC.gNB[inst]);
-    phy_free_nr_gNB(RC.gNB[inst]);
+  for (int inst = 0; inst < RC.nb_RU; inst++) {
+    nr_phy_free_RU(RC.ru[inst]);
   }
 
-  for (int inst = 0; inst < NB_RU; inst++) {
-    kill_NR_RU_proc(inst);
-    nr_phy_free_RU(RC.ru[inst]);
+  for (int inst = 0; inst < RC.nb_nr_L1_inst; inst++) {
+    phy_free_nr_gNB(RC.gNB[inst]);
   }
 
   pthread_cond_destroy(&sync_cond);
@@ -851,10 +809,7 @@ int main( int argc, char **argv ) {
 
   // *** Handle per CC_id openair0
 
-  for(ru_id=0; ru_id<NB_RU; ru_id++) {
-    if (RC.ru[ru_id]->rfdevice.trx_end_func)
-      RC.ru[ru_id]->rfdevice.trx_end_func(&RC.ru[ru_id]->rfdevice);
-
+  for(ru_id = 0; ru_id < RC.nb_RU; ru_id++) {
     if (RC.ru[ru_id]->ifdevice.trx_end_func)
       RC.ru[ru_id]->ifdevice.trx_end_func(&RC.ru[ru_id]->ifdevice);
   }

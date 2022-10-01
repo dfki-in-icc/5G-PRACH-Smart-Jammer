@@ -182,9 +182,6 @@ typedef struct {
 
 typedef struct {
   /// \brief ?.
-  /// first index: ? [0..1023] (hard coded)
-  int16_t *prachF;
-  /// \brief ?.
   /// first index: ce_level [0..3]
   /// second index: rx antenna [0..63] (hard coded) \note Hard coded array size indexed by \c nb_antennas_rx.
   /// third index: frequency-domain sample [0..ofdm_symbol_size*12[
@@ -256,11 +253,9 @@ typedef struct {
   /// mutex for RXn-TXnp4 processing thread
   pthread_mutex_t mutex_RUs;
   tpool_t *threadPool;
-  int nbEncode;
   int nbDecode;
-  notifiedFIFO_t *respEncode;
   notifiedFIFO_t *respDecode;
-    pthread_mutex_t mutex_emulateRF;
+  pthread_mutex_t mutex_emulateRF;
   int instance_cnt_emulateRF;
   pthread_t pthread_emulateRF;
   pthread_attr_t attr_emulateRF;
@@ -734,11 +729,6 @@ typedef struct PHY_VARS_eNB_s {
   time_stats_t dlsch_turbo_encoding_preperation_stats;
   time_stats_t dlsch_turbo_encoding_segmentation_stats;
   time_stats_t dlsch_turbo_encoding_stats;
-  time_stats_t dlsch_turbo_encoding_waiting_stats;
-  time_stats_t dlsch_turbo_encoding_signal_stats;
-  time_stats_t dlsch_turbo_encoding_main_stats;
-  time_stats_t dlsch_turbo_encoding_wakeup_stats0;
-  time_stats_t dlsch_turbo_encoding_wakeup_stats1;
   time_stats_t dlsch_interleaving_stats;
 
   time_stats_t rx_dft_stats;

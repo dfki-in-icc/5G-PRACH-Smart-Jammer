@@ -108,7 +108,8 @@
 
 #include "PHY/NR_UE_TRANSPORT/dci_nr.h"
 #include <pthread.h>
-#include "targets/ARCH/COMMON/common_lib.h"
+#include "sdr/COMMON/common_lib.h"
+#include "NR_IF_Module.h"
 
 /// Context data structure for gNB subframe processing
 typedef struct {
@@ -132,12 +133,9 @@ typedef struct {
   // RRC measurements
   uint32_t rssi;
   int n_adj_cells;
-  unsigned int adj_cell_id[6];
-  uint32_t rsrq[7];
   uint32_t rsrp[7];
-  float rsrp_filtered[7]; // after layer 3 filtering
-  float rsrq_filtered[7];
   short rsrp_dBm[7];
+  int ssb_rsrp_dBm[64];
   // common measurements
   //! estimated noise power (linear)
   unsigned int   n0_power[NB_ANTENNAS_RX];
@@ -646,8 +644,6 @@ typedef struct NR_UL_TIME_ALIGNMENT {
   uint16_t         ta_command;
   uint8_t          tag_id;
 } NR_UL_TIME_ALIGNMENT_t;
-
-#include "NR_IF_Module.h"
 
 /// Top-level PHY Data Structure for UE
 typedef struct {
