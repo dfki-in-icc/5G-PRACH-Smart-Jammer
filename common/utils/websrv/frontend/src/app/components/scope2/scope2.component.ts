@@ -1,13 +1,13 @@
-import { Component, EventEmitter, Output, QueryList, ViewChildren } from "@angular/core";
+import { Component, EventEmitter, OnDestroy, OnInit, Output, QueryList, ViewChildren } from "@angular/core";
 import { BaseChartDirective } from 'ng2-charts';
 import { Subscription } from 'rxjs';
 import { IGraphDesc, IScopeDesc, IScopeGraphType, ISigDesc, ScopeApi } from 'src/app/api/scope.api';
-import { IQDatasets, IQOptions } from "src/app/dataSets/iq.dataset";
-import { LLRDatasets, LLROptions } from "src/app/dataSets/llr.dataset";
-import { WFDatasets, WFOptions } from "src/app/dataSets/wf.dataset";
-import { Message, WebSocketService2, webSockSrc } from "src/app/services/websocket2.service";
+import { IQDatasets, IQOptions } from "src/app/charts/iq.dataset";
+import { LLRDatasets, LLROptions } from "src/app/charts/llr.dataset";
+import { WFDatasets, WFOptions } from "src/app/charts/wf.dataset";
+import { arraybuf_data_offset, Message, WebSocketService2, webSockSrc } from "src/app/services/websocket2.service";
 
-export interface ScopeMessage {
+export interface RxScopeMessage {
   msgtype: number;
   chartid: number;
   dataid: number;
@@ -16,24 +16,34 @@ export interface ScopeMessage {
   content: ArrayBuffer;
 }
 
-const deserialize = (msg: ArrayBuffer): ScopeMessage => {
-  const src = new DataView(msg, 0, 8);
+const deserialize = (buff: ArrayBuffer): RxScopeMessage => {
+  const header = new DataView(buff, 0, arraybuf_data_offset);
   return {
-    msgtype: src.getUint8(1),
-    chartid: src.getUint8(3),
-    dataid: src.getUint8(4),
-    segnum: src.getUint8(2),
-    update: (src.getUint8(5) == 1) ? true : false,
-    content: msg.slice(8)
+    // source: src.getUint8(0),  //header
+    msgtype: header.getUint8(1),  //header
+    chartid: header.getUint8(3),  //header
+    dataid: header.getUint8(4),  //header
+    segnum: header.getUint8(2),  //header
+    update: (header.getUint8(5) == 1) ? true : false,  //header
+    content: buff.slice(arraybuf_data_offset)  // data
   };
 }
 
-const serialize = (msg: ScopeMessage): ArrayBuffer => {
-  let buff = new ArrayBuffer(msg.content.byteLength + 8);   // 64 bits (8 bytes) header
-  let fullbuff = new Uint8Array(buff, 0, buff.byteLength).set(new Uint8Array(msg.content), 8);
+const serialize = (msg: TxScopeMessage): ArrayBuffer => {
+
+  const byteArray = new TextEncoder().encode(msg.content);
+
+  let buff = new Uint8Array(byteArray.byteLength + arraybuf_data_offset);
+  buff.set(byteArray, arraybuf_data_offset) //data
   let buffview = new DataView(buff);
-  buffview.setUint8(1, msg.msgtype);
+  buffview.setUint8(1, msg.msgtype); //header
+
   return buffview.buffer;
+}
+
+export interface TxScopeMessage {
+  msgtype: number;
+  content: string;
 }
 
 /*------------------------------------*/
@@ -55,7 +65,7 @@ const SCOPEMSG_DATA_WF = 3;
   styleUrls: ['./scope2.component.css'],
 })
 
-export class Scope2Component {
+export class Scope2Component implements OnInit, OnDestroy {
 
   WFDatasets = WFDatasets
   WFOptions = WFOptions
@@ -152,27 +162,31 @@ export class Scope2Component {
     }
   }
 
-  ProcessScopeMsg(message: ScopeMessage) {
+  ProcessScopeMsg(message: RxScopeMessage) {
     if (this.scopestatus === "starting") {
       this.scopestatus = 'started';
       this.startstop = 'stop';
       this.startstop_color = 'started';
     }
+    let d = 0;
+    let x = 0;
+    let y = 0;
     switch (message.msgtype) {
       case SCOPEMSG_TYPE_TIME:
         this.scopetime = this.DecodScopeBinmsgToString(message.content);
         break;
       case SCOPEMSG_TYPE_DATA:
         const bufferview = new DataView(message.content);
-        IQDatasets[message.dataid].data.length = 0;
+
 
         switch (message.chartid) {
           case SCOPEMSG_DATA_IQ:
+            this.IQDatasets[message.dataid].data.length = 0;
             if (message.update) {
               console.log("Starting scope update chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
             }
             for (let i = 0; i < bufferview.byteLength; i = i + 4) {
-              IQDatasets[message.dataid].data[i / 4] = { x: bufferview.getInt16(i, true), y: bufferview.getInt16(i + 2, true) };
+              this.IQDatasets[message.dataid].data[i / 4] = { x: bufferview.getInt16(i, true), y: bufferview.getInt16(i + 2, true) };
             }
 
             if (message.update) {
@@ -184,17 +198,39 @@ export class Scope2Component {
             if (message.update) {
               console.log("Starting scope update chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
             }
-            LLRDatasets[message.dataid].data.length = 0;
+            this.LLRDatasets[message.dataid].data.length = 0;
             let xoffset = 0;
-            let d = 0
+            d = 0;
             for (let i = 4; i < (bufferview.byteLength - 2); i = i + 4) {
               xoffset = xoffset + bufferview.getInt16(i + 2, true);
-              LLRDatasets[message.dataid].data[d] = { x: xoffset, y: bufferview.getInt16(i, true) };
+              this.LLRDatasets[message.dataid].data[d] = { x: xoffset, y: bufferview.getInt16(i, true) };
               d++;
             }
-            LLRDatasets[message.dataid].data[d] = { x: bufferview.getInt32(0, true), y: 0 };
+            this.LLRDatasets[message.dataid].data[d] = { x: bufferview.getInt32(0, true), y: 0 };
             if (message.update) {
-              this.charts?.forEach(child => { child.chart?.update() });
+              this.charts?.forEach((child, index) => { child.chart?.update() });
+              console.log(" scope update completed " + d.toString() + "points, ");
+            }
+            break;
+          case SCOPEMSG_DATA_WF:
+            if (message.update) {
+              console.log("Starting scope update chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
+            }
+            for (let i = 2; i < (bufferview.byteLength - 4); i = i + 4) {
+              x = bufferview.getInt16(i, true);
+              y = bufferview.getInt16(i + 2, true);
+              for (let j = 0; j < this.WFDatasets.length; j++) {
+                if (j == message.dataid) {
+                  this.WFDatasets[j].data[x + x * y] = { x: x, y: y };
+                  this.WFDatasets[j].data[x + x * y] = { x: x, y: y };
+                } else {
+                  this.WFDatasets[j].data[x + x * y] = { x: 0, y: 0 };
+                  this.WFDatasets[j].data[x + x * y] = { x: 0, y: 0 };
+                }
+              }
+            }
+            if (message.update) {
+              this.charts?.forEach((child, index) => { child.chart?.update() });
               console.log(" scope update completed " + d.toString() + "points, ");
             }
             break;
@@ -210,17 +246,13 @@ export class Scope2Component {
   }
 
   sendMsg(type: number, strmessage: string) {
-    const byteArray = new TextEncoder().encode(strmessage);
-    let message = {
+    this.wsService.send({
       source: webSockSrc.softscope,
-      msgtype: type,
-      chartid: 0,
-      dataid: 0,
-      segnum: 0,
-      update: false,
-      content: byteArray.buffer
-    };
-    this.wsService.send(message);
+      fullbuff: serialize({
+        msgtype: type,
+        content: strmessage
+      })
+    });
     console.log("Scope sent msg type " + type.toString() + " " + strmessage);
   }
 
@@ -235,7 +267,7 @@ export class Scope2Component {
         () => {
           IQDatasets.forEach((dataset) => { dataset.data.length = 0 });
           LLRDatasets.forEach((dataset) => { dataset.data.length = 0 });
-          this.charts?.forEach((child, index) => { child.chart?.update() });
+          this.charts?.forEach((child) => { child.chart?.update() });
           this.scopestatus = 'starting';
           this.SigChanged(this.selected_sig.target_id);
           this.OnRefrateChange();
@@ -248,11 +280,8 @@ export class Scope2Component {
           this.OnLLRxmaxChange();
 
           this.wsSubscription = this.wsService.registerScopeSocket().subscribe((msg: Message) => {
-            this.ProcessScopeMsg(deserialize(msg.content));
+            this.ProcessScopeMsg(deserialize(msg.fullbuff));
           });
-        },
-        err => {
-
         }
       );
     } else {
@@ -262,10 +291,8 @@ export class Scope2Component {
           this.scopestatus = 'stopped';
           this.startstop = 'start';
           this.startstop_color = 'warn';
-          this.charts?.forEach((child, index) => { child.chart?.update() });
+          this.charts?.forEach(child => child.chart?.update());
 
-        },
-        err => {
         }
       );
     }
@@ -295,32 +322,20 @@ export class Scope2Component {
     this.SendScopeParams("ymax", (this.iqymax).toString(), 0);
   }
 
-  channelsChanged(value: string[]) {
-    this.selected_channels = value;
-    for (let i = 0; i < this.iqgraph_list.length; i++) {
-      let enabled = "false";
-      for (let j = 0; j < value.length; j++) {
-        if (this.iqgraph_list[i].title === value[j]) {
-          enabled = "true";
-          break;
-        }
-      }
-      this.SendScopeParams("enabled", enabled, this.iqgraph_list[i].srvidx);
-    }
+  channelsChanged(titles: string[]) {
+    this.selected_channels = titles;
+    this.iqgraph_list.forEach(graph => {
+      const [enabled] = titles.filter(value => graph.title === value)
+      this.SendScopeParams("enabled", enabled ? "true" : "false", graph.srvidx);
+    })
   }
 
-  llrchannelsChanged(value: string[]) {
-    this.selected_llrchannels = value;
-    for (let i = 0; i < this.llrgraph_list.length; i++) {
-      let enabled = "false";
-      for (let j = 0; j < value.length; j++) {
-        if (this.llrgraph_list[i].title === value[j]) {
-          enabled = "true";
-          break;
-        }
-      }
-      this.SendScopeParams("enabled", enabled, this.llrgraph_list[i].srvidx);
-    }
+  llrchannelsChanged(titles: string[]) {
+    this.selected_llrchannels = titles;
+    this.llrgraph_list.forEach(graph => {
+      const [enabled] = titles.filter(value => graph.title === value)
+      this.SendScopeParams("enabled", enabled ? "true" : "false", graph.srvidx);
+    })
   }
 
   SigChanged(value: number) {
@@ -331,14 +346,15 @@ export class Scope2Component {
 
   WFChanged(value: string) {
     this.selected_WF = value;
-    for (let i = 0; i < this.WFgraph_list.length; i++) {
-      if (this.WFgraph_list[i].title === value) {
-        this.SendScopeParams("enabled", "true", this.WFgraph_list[i].srvidx);
-        WFDatasets[0].label = value;
+    this.WFDatasets.forEach(item => item.data.length = 0)
+    this.WFgraph_list.forEach(graph => {
+      if (graph.title === value) {
+        this.SendScopeParams("enabled", "true", graph.srvidx);
+        this.WFDatasets[0].label = value;
       } else {
-        this.SendScopeParams("enabled", "false", this.WFgraph_list[i].srvidx);
+        this.SendScopeParams("enabled", "false", graph.srvidx);
       }
-    }
+    })
   }
 
   onDataACKchange() {

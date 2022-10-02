@@ -10,21 +10,22 @@ export enum webSockSrc {
 
 export interface Message {
   source: webSockSrc;
-  content: ArrayBuffer;
+  fullbuff: ArrayBuffer;
 }
+export const arraybuf_data_offset = 8;    // 64 bits (8 bytes) header
 
-const deserialize = (msg: ArrayBuffer): Message => {
-  const src = new DataView(msg, 0, 1); // 1 Byte header
+const deserialize = (buff: ArrayBuffer): Message => {
+  const header = new DataView(buff, 0, arraybuf_data_offset);  //header
   return {
-    source: src.getUint8(0),
-    content: msg.slice(1)
+    source: header.getUint8(0),
+    fullbuff: buff
   };
 }
 
 const serialize = (msg: Message): ArrayBuffer => {
-  let buff = new ArrayBuffer(msg.content.byteLength + 1);   // 1 Byte header
-  let buffview = new DataView(buff);
-  buffview.setUint8(0, msg.source);
+  let fullbuff = new ArrayBuffer(msg.fullbuff.byteLength);
+  let buffview = new DataView(fullbuff);
+  buffview.setUint8(0, msg.source); //header
   return buffview.buffer;
 }
 
