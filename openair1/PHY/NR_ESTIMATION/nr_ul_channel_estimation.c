@@ -41,6 +41,7 @@
 
 #define NO_INTERP 1
 #define dBc(x,y) (dB_fixed(((int32_t)(x))*(x) + ((int32_t)(y))*(y)))
+#define CH_UNROLLED 1
 
 void freq2time(uint16_t ofdm_symbol_size,
                int16_t *freq_signal,
@@ -100,6 +101,57 @@ __attribute__((always_inline)) inline c16_t c32x16cumulVectVectWithSteps(c16_t *
   return c16x32div(cumul, N);
 }
 
+
+__attribute__((always_inline)) inline c16_t c32x16cumulVectVectWithSteps6_2(c16_t *in1,
+                                                                            int *offset1,
+                                                                            c16_t *in2,
+                                                                            int *offset2) {
+
+  c32_t cumul={0}; 
+  c16_t *in1p = &in1[*offset1],*in2p = &in2[*offset2];
+  cumul=c32x16maddShift(in1p[0], in2p[0], cumul, 15);
+  cumul=c32x16maddShift(in1p[1], in2p[2], cumul, 15);
+  cumul=c32x16maddShift(in1p[2], in2p[4], cumul, 15);
+  cumul=c32x16maddShift(in1p[3], in2p[6], cumul, 15);
+  cumul=c32x16maddShift(in1p[4], in2p[8], cumul, 15);
+  cumul=c32x16maddShift(in1p[5], in2p[10], cumul, 15);
+  *offset1=*offset1+6;
+  *offset2=*offset2+12;
+  return c16x32div(cumul, 6);
+}
+
+__attribute__((always_inline)) inline c32_t c32x16cumulVectVectWithSteps3_2a(c16_t *in1,
+                                                                             int *offset1,
+                                                                             c16_t *in2,
+                                                                             int *offset2) {
+
+  int localOffset1=*offset1;
+  int localOffset2=*offset2;
+  c32_t cumul={0}; 
+  c16_t *in1p = &in1[*offset1],*in2p = &in2[*offset2];
+  cumul=c32x16maddShift(in1[localOffset1++], in2[localOffset2], cumul, 15);
+  cumul=c32x16maddShift(in1[localOffset1++], in2[localOffset2+2], cumul, 15);
+  cumul=c32x16maddShift(in1[localOffset1++], in2[localOffset2+4], cumul, 15);
+  *offset1=*offset1+3;
+  *offset2=*offset2+6;
+  return cumul;
+}
+__attribute__((always_inline)) inline c16_t c32x16cumulVectVectWithSteps3_2b(c32_t cumul,
+		                                                             c16_t *in1,
+                                                                             int *offset1,
+                                                                             c16_t *in2,
+                                                                             int *offset2) {
+
+  int localOffset1=*offset1;
+  int localOffset2=*offset2;
+  cumul=c32x16maddShift(in1[localOffset1++], in2[localOffset2], cumul, 15);
+  cumul=c32x16maddShift(in1[localOffset1++], in2[localOffset2+2], cumul, 15);
+  cumul=c32x16maddShift(in1[localOffset1++], in2[localOffset2+4], cumul, 15);
+  localOffset2= localOffset2 + 6;
+  *offset1=localOffset1;
+  *offset2=localOffset2;
+  return c16x32div(cumul, 6);
+}
 int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
                                 unsigned char Ns,
                                 unsigned short p,
@@ -401,12 +453,41 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
       int pil_offset = 0;
       int re_offset = k;
       c16_t ch;
-     
+#ifdef CH_UNROLLED
+      c32_t ch_tmp;
+      for (int l=0;l<l0;l++) { 
+        ch=c32x16cumulVectVectWithSteps6_2(pilot, &pil_offset, rxF, &re_offset);
+        ((__m128i *)ul_ch)[0] =  _mm_set1_epi32(*(int32_t*)&ch);
+        ((__m128i *)ul_ch)[1] =  _mm_set1_epi32(*(int32_t*)&ch);
+        ((__m128i *)ul_ch)[2] =  _mm_set1_epi32(*(int32_t*)&ch);
+        ul_ch+=12;
+      }
+      if (have_half_prb) {
+        ch_tmp = c32x16cumulVectVectWithSteps3_2a(pilot, &pil_offset, rxF, &re_offset);
+	re_offset-=symbolSize;
+        ch=c32x16cumulVectVectWithSteps3_2b(ch_tmp,pilot, &pil_offset, rxF, &re_offset);
+        ((__m128i *)ul_ch)[0] =  _mm_set1_epi32(*(int32_t*)&ch);
+        ((__m128i *)ul_ch)[1] =  _mm_set1_epi32(*(int32_t*)&ch);
+        ((__m128i *)ul_ch)[2] =  _mm_set1_epi32(*(int32_t*)&ch);
+        ul_ch+=12;
+
+      } else re_offset-=symbolSize;
+      for (int l=0;l<l1;l++) {
+        ch=c32x16cumulVectVectWithSteps6_2(pilot, &pil_offset, rxF, &re_offset);
+        ((__m128i *)ul_ch)[0] =  _mm_set1_epi32(*(int32_t*)&ch);
+        ((__m128i *)ul_ch)[1] =  _mm_set1_epi32(*(int32_t*)&ch);
+        ((__m128i *)ul_ch)[2] =  _mm_set1_epi32(*(int32_t*)&ch);
+        ul_ch+=12;
+      } 
+#else     
       for (int l=0;l<(l0+l1);l++) { 
         ch=c32x16cumulVectVectWithSteps(pilot, &pil_offset, 1, rxF, &re_offset, 2, symbolSize, 6);
-        for (c16_t *end=ul_ch+12; ul_ch<end; ul_ch++)
-          *ul_ch=ch;
+        ((__m128i *)ul_ch)[0] =  _mm_set1_epi32(*(int32_t*)&ch);
+        ((__m128i *)ul_ch)[1] =  _mm_set1_epi32(*(int32_t*)&ch);
+        ((__m128i *)ul_ch)[2] =  _mm_set1_epi32(*(int32_t*)&ch);
+        ul_ch+=12;
       }
+#endif
     } else  { // this is case without frequency-domain linear interpolation, just take average of LS channel estimates of 4 DMRS REs and use a common value for the whole PRB
       LOG_D(PHY,"PUSCH estimation DMRS type 2, no Freq-domain interpolation");
       c16_t *pil   = pilot;
