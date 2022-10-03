@@ -1133,6 +1133,7 @@ check_Msg4_retransmission(module_id_t module_idP, int CC_idP,
   if (round != 8) {
     if (ra->rach_resource_type > 0 && round > 0) {
       LOG_E(MAC, "TODO: need to implement the MSG4 re-transmission for BL/CE UEs, so gracefully free the UE for now rnti %x\n", ra->rnti);
+      put_UE_in_freelist(module_idP, ra->rnti, 1);
     } else {
       if ((ra->Msg4_frame == frameP)
           && (ra->Msg4_subframe == subframeP)) {
