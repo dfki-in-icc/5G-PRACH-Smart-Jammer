@@ -103,14 +103,15 @@ void nr_common_signal_procedures (PHY_VARS_gNB *gNB,int frame,int slot,nfapi_nr_
       gNB->common_vars.beam_id[0][slot*fp->symbols_per_slot+j] = cfg->ssb_table.ssb_beam_id_list[ssb_index].beam_id.value;
   }
 
-  nr_generate_sl_pbch(&ssb_pdu,
+  nr_generate_pbch(&ssb_pdu,
+                   gNB->nr_pbch_interleaver,
                    &txdataF[0][txdataF_offset],
                    AMP,
                    ssb_start_symbol,
                    n_hf, frame, cfg, fp);
 
-  nr_generate_pbch(&ssb_pdu,
-                   gNB->nr_pbch_interleaver,
+  /* Test placeholder for PSBCH */
+  nr_generate_sl_psbch(&ssb_pdu,
                    &txdataF[0][txdataF_offset],
                    AMP,
                    ssb_start_symbol,

@@ -301,9 +301,13 @@ int nr_generate_pbch(nfapi_nr_dl_tti_ssb_pdu *ssb_pdu,
   for (int i=0; i<NR_POLAR_PBCH_PAYLOAD_BITS; i++)
     a_reversed |= (((uint64_t)pbch->pbch_a_prime>>i)&1)<<(31-i);
 
+  printf("\n a_reversed %lx", a_reversed);
+
   /// CRC, coding and rate matching
   polar_encoder_fast (&a_reversed, (void*)pbch->pbch_e, 0, 0,
                       NR_POLAR_PBCH_MESSAGE_TYPE, NR_POLAR_PBCH_PAYLOAD_BITS, NR_POLAR_PBCH_AGGREGATION_LEVEL);
+
+  printf("\n pbch->pbch_e = %x \n", *pbch->pbch_e);
 
 #ifdef DEBUG_PBCH_ENCODING
   printf("Channel coding:\n");
@@ -438,7 +442,15 @@ int nr_generate_pbch(nfapi_nr_dl_tti_ssb_pdu *ssb_pdu,
   return 0;
 }
 
-int nr_generate_sl_pbch(nfapi_nr_dl_tti_ssb_pdu *ssb_pdu,
+typedef struct {
+  uint32_t coverageIndicator : 1;
+  uint32_t tddConfig : 12;
+  uint32_t DFN : 10;
+  uint32_t slotIndex : 7;
+  uint32_t reserved : 2;
+} PSBCH_payload;
+
+int nr_generate_sl_psbch(nfapi_nr_dl_tti_ssb_pdu *ssb_pdu,
                      int32_t *txdataF,
                      int16_t amp,
                      uint8_t ssb_start_symbol,
@@ -456,8 +468,17 @@ int nr_generate_sl_pbch(nfapi_nr_dl_tti_ssb_pdu *ssb_pdu,
   LOG_D(PHY, "PBCH SL generation started\n");
   NR_gNB_PBCH m_pbch;
   NR_gNB_PBCH *pbch = &m_pbch;
+  PSBCH_payload psbch_payload;
+
+  /* payload is 56 bits */
+  psbch_payload.coverageIndicator = 1;     // 1 bit
+  psbch_payload.tddConfig = 0xFFF;         // 12 bits for TDD configuration
+  psbch_payload.DFN = 0x3FF;               // 10 bits for DFN
+  psbch_payload.slotIndex = 0x2A;          // 7 bits for Slot Index //frame_parms->p_TDD_UL_DL_ConfigDedicated->slotIndex;
+  psbch_payload.reserved = 0;              // 2 bits reserved
+
   memset((void *)pbch, 0, sizeof(NR_gNB_PBCH));
-  pbch->pbch_a=0x0FFF; // set a0 to a11 to 1
+  pbch->pbch_a = *((uint32_t *)&psbch_payload);
   pbch->pbch_a_interleaved = pbch->pbch_a; // skip interlevaing for Sidelink
   uint8_t ssb_index = ssb_pdu->ssb_pdu_rel15.SsbBlockIndex;
   uint8_t Lmax = frame_parms->Lmax;
@@ -468,13 +489,9 @@ int nr_generate_sl_pbch(nfapi_nr_dl_tti_ssb_pdu *ssb_pdu,
     printf("PSBCH payload = 0x%08x\n",pbch->pbch_a);
   #endif
 
-#ifdef DEBUG_PBCH_ENCODING
-  printf("Interleaving:\n");
-  printf("pbch_a_interleaved: 0x%08x\n", pbch->pbch_a_interleaved);
-#endif
   // Encoder reversal
   for (int i=0; i<NR_POLAR_PBCH_PAYLOAD_BITS; i++)
-    a_reversed |= (((uint64_t)pbch->pbch_a_prime>>i)&1)<<(31-i);
+    a_reversed |= (((uint64_t)pbch->pbch_a_interleaved>>i)&1)<<(31-i);
 
   /// CRC, coding and rate matching
   polar_encoder_fast (&a_reversed, (void*)pbch->pbch_e, 0, 0,
@@ -485,7 +502,7 @@ int nr_generate_sl_pbch(nfapi_nr_dl_tti_ssb_pdu *ssb_pdu,
   printf("Channel coding:\n");
 
   for (int i=0; i<NR_POLAR_PBCH_E_DWORD; i++)
-    printf("sl_pbch_e[%d]: 0x%08x\t", i, pbch->pbch_e[i]);
+    printf("sl_pbch_e[%d]: 0x%08x\n", i, pbch->pbch_e[i]);
 
   printf("\n");
 #endif
@@ -497,7 +514,7 @@ int nr_generate_sl_pbch(nfapi_nr_dl_tti_ssb_pdu *ssb_pdu,
   printf("Scrambling:\n");
 
   for (int i=0; i<NR_POLAR_PBCH_E_DWORD; i++) {
-    printf("sl_pbch_e[%d]: 0x%08x\t", i, pbch->pbch_e[i]);
+    printf("sl_pbch_e[%d]: 0x%08x\n", i, pbch->pbch_e[i]);
 }
 
   printf("\n");

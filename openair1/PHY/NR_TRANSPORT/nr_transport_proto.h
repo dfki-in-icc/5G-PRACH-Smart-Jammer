@@ -97,7 +97,7 @@ int nr_generate_pbch(nfapi_nr_dl_tti_ssb_pdu *ssb_pdu,
 @param
 @returns 0 on success
  */
-int nr_generate_sl_pbch(nfapi_nr_dl_tti_ssb_pdu *ssb_pdu,
+int nr_generate_sl_psbch(nfapi_nr_dl_tti_ssb_pdu *ssb_pdu,
                      int32_t *txdataF,
                      int16_t amp,
                      uint8_t ssb_start_symbol,
