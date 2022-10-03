@@ -984,8 +984,27 @@ static bool allocate_ul_retransmission(gNB_MAC_INST *nrmac,
     while (rbStart < bwpSize && (rballoc_mask[rbStart] & slbitmap) != slbitmap)
       rbStart++;
     if (rbStart + retInfo->rbSize > bwpSize) {
-      LOG_W(NR_MAC, "cannot allocate retransmission of RNTI %04x: no resources (rbStart %d, retInfo->rbSize %d, bwpSize %d\n", UE->rnti, rbStart, retInfo->rbSize, bwpSize);
-      return false;
+      int rbSize = 0;
+      while (rbStart + rbSize < bwpSize && (rballoc_mask[rbStart + rbSize] & slbitmap) == slbitmap)
+        rbSize++;
+      uint32_t new_tbs;
+      uint16_t new_rbSize;
+      bool success = nr_find_nb_rb(retInfo->Qm,
+                                   retInfo->R,
+                                   1, // layers
+                                   retInfo->tda_info.nrOfSymbols,
+                                   retInfo->dmrs_info.N_PRB_DMRS * retInfo->dmrs_info.num_dmrs_symb,
+                                   retInfo->tb_size,
+                                   1, /* minimum of 1RB: need to find exact TBS, don't preclude any number */
+                                   rbSize,
+                                   &new_tbs,
+                                   &new_rbSize);
+      if(!success) {
+        LOG_W(NR_MAC, "cannot allocate retransmission of RNTI %04x: no resources (rbStart %d, retInfo->rbSize %d, bwpSize %d\n", UE->rnti, rbStart, retInfo->rbSize, bwpSize);
+        return false;
+      }
+      retInfo->tb_size = new_tbs;
+      retInfo->rbSize = new_rbSize;
     }
     LOG_D(NR_MAC, "%s(): retransmission keeping TDA %d and TBS %d\n", __func__, tda, retInfo->tb_size);
   } else {
@@ -1610,9 +1629,6 @@ void nr_schedule_ulsch(module_id_t module_id, frame_t frame, sub_frame_t slot)
       /* Save information on MCS, TBS etc for the current initial transmission
        * so we have access to it when retransmitting */
       cur_harq->sched_pusch = *sched_pusch;
-      /* save which time allocation has been used, to be used on
-       * retransmissions */
-      cur_harq->sched_pusch.time_domain_allocation = sched_pusch->time_domain_allocation;
       sched_ctrl->sched_ul_bytes += sched_pusch->tb_size;
       UE->mac_stats.ul.total_rbs += sched_pusch->rbSize;
 
