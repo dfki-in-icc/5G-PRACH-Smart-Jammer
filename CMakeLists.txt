@@ -890,6 +890,7 @@ add_library(SECU_OSA ${SECU_OSA_SRC})
 target_link_libraries(SECU_OSA ${NETTLE_LIBRARIES})
 
 set(SECU_CN_SRC
+  ${OPENAIR3_DIR}/SECU/secu_defs.c
   ${OPENAIR3_DIR}/SECU/kdf.c
   ${OPENAIR3_DIR}/SECU/rijndael.c
   ${OPENAIR3_DIR}/SECU/snow3g.c
