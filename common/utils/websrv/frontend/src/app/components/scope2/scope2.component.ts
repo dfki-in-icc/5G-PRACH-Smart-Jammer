@@ -1,7 +1,6 @@
 import { Component, EventEmitter, OnDestroy, OnInit, Output, QueryList, ViewChildren } from "@angular/core";
 import { BaseChartDirective } from 'ng2-charts';
 import { Subscription } from 'rxjs';
-import { catchError } from "rxjs/operators";
 import { IGraphDesc, IScopeDesc, IScopeGraphType, ISigDesc, ScopeApi } from 'src/app/api/scope.api';
 import { IQDatasets, IQOptions } from "src/app/charts/iq.dataset";
 import { LLRDatasets, LLROptions } from "src/app/charts/llr.dataset";
@@ -144,20 +143,21 @@ export class Scope2Component implements OnInit, OnDestroy {
       this.scopetitle = resp.title;
       this.iqgraph_list.length = 0;
       this.llrgraph_list.length = 0;
-      for (let graphIndex = 0; graphIndex < resp.graphs.length; graphIndex++) {
-        if (resp.graphs[graphIndex].type == IScopeGraphType.IQs) {
-          this.iqgraph_list.push(resp.graphs[graphIndex]);
-          IQDatasets[this.iqgraph_list.length - 1].label = resp.graphs[graphIndex].title;
+      resp.graphs.forEach(graph => {
+        if (graph.type == IScopeGraphType.IQs) {
+          this.iqgraph_list.push(graph);
+          IQDatasets[this.iqgraph_list.length - 1].label = graph.title;
         }
-        if (resp.graphs[graphIndex].type == IScopeGraphType.LLR) {
-          this.llrgraph_list.push(resp.graphs[graphIndex]);
-          LLRDatasets[this.llrgraph_list.length - 1].label = resp.graphs[graphIndex].title;
+        if (graph.type == IScopeGraphType.LLR) {
+          this.llrgraph_list.push(graph);
+          LLRDatasets[this.llrgraph_list.length - 1].label = graph.title;
         }
-        if (resp.graphs[graphIndex].type == IScopeGraphType.WF) {
-          this.WFgraph_list.push(resp.graphs[graphIndex]);
+        if (graph.type == IScopeGraphType.WF) {
+          this.WFgraph_list.push(graph);
         }
-      }
-      this.charts?.forEach((child) => {
+      })
+
+      this.charts?.forEach(child => {
         child.chart?.update()
       });
     }
@@ -191,7 +191,7 @@ export class Scope2Component implements OnInit, OnDestroy {
             }
 
             if (message.update) {
-              this.charts?.forEach((child, index) => { child.chart?.update() });
+              this.charts?.forEach(child => { child.chart?.update() });
               console.log(" scope2 update completed chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
             }
             break;
@@ -231,7 +231,7 @@ export class Scope2Component implements OnInit, OnDestroy {
               }
             }
             if (message.update) {
-              this.charts?.forEach((child, index) => { child.chart?.update() });
+              this.charts?.forEach(child => { child.chart?.update() });
               console.log(" scope2 update completed " + d.toString() + "points, ");
             }
             break;
@@ -268,7 +268,7 @@ export class Scope2Component implements OnInit, OnDestroy {
         () => {
           IQDatasets.forEach((dataset) => { dataset.data.length = 0 });
           LLRDatasets.forEach((dataset) => { dataset.data.length = 0 });
-          this.charts?.forEach((child) => { child.chart?.update() });
+          this.charts?.forEach(child => { child.chart?.update() });
           this.scopestatus = 'starting';
           this.SigChanged(this.selected_sig.target_id);
           this.OnRefrateChange();
