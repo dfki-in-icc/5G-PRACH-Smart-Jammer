@@ -30,7 +30,8 @@
 #include "../ie/pdcp_data_ie.h"
 #include "../ie/slice_data_ie.h"
 #include "../ie/tc_data_ie.h"
-
+#include "../ie/gtp_data_ie.h"
+#include "../ie/kpm_data_ie.h"
 
 
 typedef enum{
@@ -39,6 +40,7 @@ typedef enum{
   PDCP_AGENT_IF_CTRL_ANS_V0, 
   SLICE_AGENT_IF_CTRL_ANS_V0,
   TC_AGENT_IF_CTRL_ANS_V0,
+  GTP_AGENT_IF_CTRL_ANS_V0,
 
   SM_AGENT_IF_ANS_V0_END,
 } sm_ag_if_ans_e;
@@ -50,6 +52,7 @@ typedef struct{
     pdcp_ctrl_out_t pdcp;
     slice_ctrl_out_t slice;
     tc_ctrl_out_t tc;
+    gtp_ctrl_out_t gtp;
   };
   sm_ag_if_ans_e type;
 } sm_ag_if_ans_t;

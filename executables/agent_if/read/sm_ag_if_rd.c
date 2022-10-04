@@ -26,6 +26,8 @@
 #include "../ie/pdcp_data_ie.h"
 #include "../ie/slice_data_ie.h"
 #include "../ie/tc_data_ie.h"
+#include "../ie/gtp_data_ie.h"
+#include "../ie/kpm_data_ie.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -44,6 +46,10 @@ void free_sm_ag_if_rd(sm_ag_if_rd_t* d)
     free_slice_ind_data(&d->slice_stats);
   } else if(d->type == TC_STATS_V0){
     free_tc_ind_data(&d->tc_stats);
+  } else if(d->type == GTP_STATS_V0){
+    free_gtp_ind_data(&d->gtp_stats);
+  } else if(d->type == KPM_STATS_V0){
+    free_kpm_ind_data(&d->kpm_stats);
   } else {
     assert(0!=0 && "Unforeseen case");
   }
@@ -66,6 +72,10 @@ sm_ag_if_rd_t cp_sm_ag_if_rd(sm_ag_if_rd_t const* d)
     ans.slice_stats = cp_slice_ind_data(&d->slice_stats);
   } else if(ans.type == TC_STATS_V0) {
     ans.tc_stats = cp_tc_ind_data(&d->tc_stats);
+  } else if(ans.type == GTP_STATS_V0) {
+    ans.gtp_stats = cp_gtp_ind_data(&d->gtp_stats);
+  } else if(ans.type == KPM_STATS_V0) {
+    ans.kpm_stats = cp_kpm_ind_data(&d->kpm_stats);
   } else {
     assert("Unknown type or not implemented");
   }

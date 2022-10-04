@@ -31,7 +31,8 @@
 #include "../ie/pdcp_data_ie.h"
 #include "../ie/slice_data_ie.h"
 #include "../ie/tc_data_ie.h"
-
+#include "../ie/gtp_data_ie.h"
+#include "../ie/kpm_data_ie.h"
 
 typedef enum{
   MAC_STATS_V0,
@@ -39,7 +40,8 @@ typedef enum{
   PDCP_STATS_V0,
   SLICE_STATS_V0,
   TC_STATS_V0,
-
+  GTP_STATS_V0, 
+  KPM_STATS_V0, 
   SM_AGENT_IF_READ_V0_END,
 } sm_ag_if_rd_e;
 
@@ -51,6 +53,8 @@ typedef struct{
     pdcp_ind_data_t pdcp_stats;
     slice_ind_data_t slice_stats;
     tc_ind_data_t tc_stats;
+    gtp_ind_data_t gtp_stats;
+    kpm_ind_data_t kpm_stats;
   };
   sm_ag_if_rd_e type;
 } sm_ag_if_rd_t;
