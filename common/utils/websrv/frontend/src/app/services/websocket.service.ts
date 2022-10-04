@@ -4,7 +4,7 @@ import { Observable, Observer } from 'rxjs';
 import { Subject } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from "src/environments/environment";
-import { webSocket} from 'rxjs/webSocket';
+import { webSocket } from 'rxjs/webSocket';
 
 const websockurl = 'ws://' + environment.backend + 'softscope';
 
@@ -36,11 +36,11 @@ export class WebSocketService {
             map(
                 (response: MessageEvent): ArrayBuffer => {
                     if (response.data instanceof ArrayBuffer) {
-                        console.log("Received ArrayBuffer message ");
+                        console.log("Received ArrayBuffer message");
                         return response.data;
                     } else {
                         console.log(response.data);
-                        console.log("Received  message " );
+                        console.log("Received message");
                         return new ArrayBuffer(arraybuf_data_offset + 1); //minimum size empty message
                     }
 
@@ -70,7 +70,7 @@ export class WebSocketService {
         };
         return Subject.create(observer, observable);
     }
-	
+
     public SerializeMessage(msg: Message): ArrayBuffer {
         let buff = new ArrayBuffer(msg.content.byteLength + 8);   // 64 bits (8 bytes) header 
         let fullbuff = new Uint8Array(buff, 0, buff.byteLength).set(new Uint8Array(msg.content), 8);
@@ -90,6 +90,6 @@ export class WebSocketService {
             segnum: src.getUint8(2),
             update: (src.getUint8(5) == 1) ? true : false,
             content: msg.slice(8)
-        };
+        }
     }
 }
