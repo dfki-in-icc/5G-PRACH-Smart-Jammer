@@ -94,6 +94,7 @@ unsigned short config_frames[4] = {2,9,11,13};
 #include "openair2/LAYER2/nr_rlc/nr_rlc_oai_api.h"
 #include "openair2/LAYER2/nr_pdcp/nr_pdcp.h"
 #include "openair2/LAYER2/NR_MAC_gNB/nr_mac_gNB.h"
+#include "openair2/LAYER2/NR_MAC_gNB/mac_proto.h"
 #include <time.h>
 
 //////////////////////////////////
@@ -889,7 +890,159 @@ void read_pdcp_sm(pdcp_ind_msg_t* data)
   }
 }
 
+static
+void read_kpm_sm(kpm_ind_data_t* data)
+{
+  assert(data != NULL);
 
+  // Fill KPM indication header
+  kpm_ind_hdr_t* hdr = &data->hdr;
+  hdr->collectStartTime.len = 4;
+  hdr->collectStartTime.buf = calloc(1, 4);
+  assert(hdr->collectStartTime.buf != NULL && "memory exhausted");
+
+  int64_t t = time_now_us();
+  uint32_t t_truncated = t / 1000000;
+#if BYTE_ORDER == LITTLE_ENDIAN
+  t_truncated = __bswap_32 (t_truncated);
+#endif
+
+  memcpy(hdr->collectStartTime.buf, &t_truncated, 4);
+  hdr->fileFormatversion = NULL;
+  hdr->senderName = NULL;
+  hdr->senderType = NULL;
+  hdr->vendorName = NULL;
+
+  // Fill KPM indication message
+  kpm_ind_msg_t* msg = &data->msg;
+
+  // TODO: assign MeaData_len according to eventPeriod/granulPeriod from the action definition or subscription request
+  msg->MeasData_len = 1;
+  if (msg->MeasData_len > 0) {
+    msg->MeasData = calloc(msg->MeasData_len, sizeof(adapter_MeasDataItem_t));
+    assert(msg->MeasData != NULL && "Memory exhausted" );
+  }
+
+  // get the number of connected UEs
+  NR_UEs_t *UE_info = &RC.nrmac[mod_id]->UE_info;
+  size_t num_ues = 0;
+  UE_iterator(UE_info->list, ue) {
+    if (ue)
+      num_ues += 1;
+  }
+
+  if (num_ues > 0) {
+    // get the info to calculate the resource utilization
+    NR_ServingCellConfigCommon_t *scc = RC.nrmac[mod_id]->common_channels[0].ServingCellConfigCommon;
+    int cur_slot = RC.nrmac[mod_id]->slot;
+    // int num_dl_slots = scc->tdd_UL_DL_ConfigurationCommon->pattern1.nrofDownlinkSlots;
+    // get total number of available resource blocks
+    int n_rb_sched = 0;
+    if (UE_info->list[0] != NULL) {
+      /* Get bwpSize and TDA from the first UE */
+      /* This is temporary and it assumes all UEs have the same BWP and TDA*/
+      NR_UE_info_t *UE = UE_info->list[0];
+      NR_UE_sched_ctrl_t *sched_ctrl = &UE->UE_sched_ctrl;
+      NR_UE_DL_BWP_t *current_BWP = &UE->current_DL_BWP;
+      const int tda = get_dl_tda(RC.nrmac[mod_id], scc, cur_slot);
+      int startSymbolIndex, nrOfSymbols;
+      const struct NR_PDSCH_TimeDomainResourceAllocationList *tdaList = current_BWP->tdaList;
+      AssertFatal(tda < tdaList->list.count, "time_domain_allocation %d>=%d\n", tda, tdaList->list.count);
+      const int startSymbolAndLength = tdaList->list.array[tda]->startSymbolAndLength;
+      SLIV2SL(startSymbolAndLength, &startSymbolIndex, &nrOfSymbols);
+      const int coresetid = sched_ctrl->coreset->controlResourceSetId;
+      const uint16_t bwpSize = coresetid == 0 ? RC.nrmac[mod_id]->cset0_bwp_size : current_BWP->BWPSize;
+      const uint16_t BWPStart = coresetid == 0 ? RC.nrmac[mod_id]->cset0_bwp_start : current_BWP->BWPStart;
+      const uint16_t slbitmap = SL_to_bitmap(startSymbolIndex, nrOfSymbols);
+      uint16_t *vrb_map = RC.nrmac[mod_id]->common_channels[0].vrb_map;
+      uint16_t rballoc_mask[bwpSize];
+      for (int i = 0; i < bwpSize; i++) {
+        // calculate mask: init with "NOT" vrb_map:
+        // if any RB in vrb_map is blocked (1), the current RBG will be 0
+        rballoc_mask[i] = (~vrb_map[i + BWPStart]) & 0x3fff; //bitwise not and 14 symbols
+        // if all the pdsch symbols are free
+        if ((rballoc_mask[i] & slbitmap) == slbitmap) {
+          n_rb_sched++;
+        }
+      }
+    }
+
+    // TODO: assign the MeasData every granulPeriod
+    for (size_t i = 0; i < msg->MeasData_len; i++) {
+      adapter_MeasDataItem_t* item = &msg->MeasData[i];
+
+      // TODO: assign measRecord_len according to
+      //  (1) the length of Measurements Information List IE (format1) or
+      //  (2) Measurements Information Condition UE List IE (format2)
+      //  from the action definition or subscription request
+
+      // TODO: only support KPM format 1, and it only can handle one UE's information
+      //  assume to record one data: DL resource utilization
+      item->measRecord_len = 1;
+      if (item->measRecord_len > 0) {
+        item->measRecord = calloc(item->measRecord_len, sizeof(adapter_MeasRecord_t));
+        assert(item->measRecord != NULL && "Memory exhausted");
+      }
+
+      UE_iterator(UE_info->list, UE)
+      {
+        int dl_rb_usage = 0;
+        if (is_xlsch_in_slot(RC.nrmac[mod_id]->dlsch_slot_bitmap[cur_slot / 64], cur_slot))
+          dl_rb_usage = UE->mac_stats.dl.current_rbs*100/n_rb_sched;
+
+        // TODO: go through the measRecord according to the Measurements Information (format 1) or Information Condition UE (format 2) List IE
+        adapter_MeasRecord_t *record_PrbDlUsage = &item->measRecord[0];
+        record_PrbDlUsage->type = MeasRecord_int;
+        record_PrbDlUsage->int_val = dl_rb_usage;
+      }
+
+      // incompleteFlag = -1, the data is reliable
+      item->incompleteFlag = -1;
+    }
+
+    // TODO: assign MeasInfo_len according to the action definition or subscription request
+    msg->MeasInfo_len = 1;
+    if (msg->MeasInfo_len > 0) {
+      msg->MeasInfo = calloc(msg->MeasInfo_len, sizeof(MeasInfo_t));
+      assert(msg->MeasInfo != NULL && "Memory exhausted" );
+
+      MeasInfo_t* info = &msg->MeasInfo[0];
+      info->measType = MeasurementType_NAME;
+      char* measName = "PrbDlUsage";
+      info->measName.len = strlen(measName);
+      info->measName.buf = malloc(strlen(measName));
+      assert(info->measName.buf != NULL && "memory exhausted");
+      memcpy(info->measName.buf, measName, msg->MeasInfo[0].measName.len);
+
+      // TODO: assign labelInfo_len according to the action definition (?)
+      info->labelInfo_len = 1;
+      info->labelInfo = calloc(info->labelInfo_len, sizeof(adapter_LabelInfoList_t));
+      adapter_LabelInfoList_t* label = &info->labelInfo[0];
+      label->noLabel = calloc(1, sizeof(long));
+      *(label->noLabel) = 1;
+    }
+  } else {
+    for (size_t i = 0; i < msg->MeasData_len; i++) {
+      adapter_MeasDataItem_t* item = &msg->MeasData[i];
+      item->measRecord_len = 1;
+      if (item->measRecord_len > 0) {
+        item->measRecord = calloc(item->measRecord_len, sizeof(adapter_MeasRecord_t));
+        assert(item->measRecord != NULL && "Memory exhausted");
+      }
+
+      adapter_MeasRecord_t *record_nodata = &item->measRecord[0];
+      record_nodata->type = MeasRecord_int;
+      record_nodata->int_val = 0;
+
+      // incompleteFlag = 0, the data is not reliable
+      item->incompleteFlag = 0;
+    }
+    msg->MeasInfo_len = 0;
+    msg->MeasInfo = NULL;
+  }
+
+  msg->granulPeriod = NULL;
+}
 
 
 
@@ -900,19 +1053,17 @@ void read_RAN(sm_ag_if_rd_t* data)
   assert(data->type == MAC_STATS_V0
         || data->type == RLC_STATS_V0
         || data->type == PDCP_STATS_V0
+        || data->type == KPM_STATS_V0
         );
 
   if(data->type == MAC_STATS_V0 ){
     read_mac_sm(&data->mac_stats.msg);
-  //  printf("calling REAd MAC\n");
   }else if(data->type == RLC_STATS_V0) {
     read_rlc_sm(&data->rlc_stats.msg);
-  //  printf("calling REAd RLC\n");
   } else if(data->type == PDCP_STATS_V0){
     read_pdcp_sm(&data->pdcp_stats.msg);
-    //printf("calling REAd PDCP\n");
-//  } else if(RRC_STATS_V0){
-//    read_rrc_sm(&data->rrc_stats);
+  } else if(data->type == KPM_STATS_V0){
+    read_kpm_sm(&data->kpm_stats);
   } else {
     assert(0!=0 && "Unknown data type!");
   }
