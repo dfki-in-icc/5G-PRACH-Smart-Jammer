@@ -95,6 +95,7 @@ unsigned short config_frames[4] = {2,9,11,13};
 #include "openair2/LAYER2/nr_pdcp/nr_pdcp.h"
 #include "openair2/LAYER2/NR_MAC_gNB/nr_mac_gNB.h"
 #include "openair2/LAYER2/NR_MAC_gNB/mac_proto.h"
+#include "openair2/RRC/NR/rrc_gNB_UE_context.h"
 #include <time.h>
 
 //////////////////////////////////
@@ -830,7 +831,6 @@ void read_rlc_sm(rlc_ind_msg_t* data)
   }
 }
 
-
 static
 void read_pdcp_sm(pdcp_ind_msg_t* data)
 {
@@ -888,6 +888,50 @@ void read_pdcp_sm(pdcp_ind_msg_t* data)
       ++i;
     }
   }
+}
+
+static
+void read_gtp_sm(gtp_ind_msg_t* data)
+{
+  assert(data != NULL);
+
+  data->tstamp = time_now_us();
+
+  NR_UEs_t *UE_info = &RC.nrmac[mod_id]->UE_info;
+  size_t num_ues = 0;
+  UE_iterator(UE_info->list, ue) {
+    if (ue)
+      num_ues += 1;
+  }
+
+  data->len = num_ues;
+  if(data->len > 0){
+    data->ngut = calloc(data->len, sizeof(gtp_ngu_t_stats_t) );
+    assert(data->ngut != NULL);
+  }
+
+  size_t i = 0;
+  UE_iterator(UE_info->list, UE)
+  {
+    uint16_t const rnti = UE->rnti;
+    struct rrc_gNB_ue_context_s *ue_context_p = NULL;
+    ue_context_p = rrc_gNB_get_ue_context(RC.nrrrc[mod_id], rnti);
+    if (ue_context_p != NULL) {
+      int nb_pdu_session = ue_context_p->ue_context.setup_pdu_sessions - 1;
+      data->ngut[i].rnti = ue_context_p->ue_context.rnti;
+      data->ngut[i].teidgnb = ue_context_p->ue_context.pduSession[nb_pdu_session].param.gtp_teid;
+      // TODO: one PDU session has multiple QoS Flow
+      int nb_qos_flow = ue_context_p->ue_context.pduSession[nb_pdu_session].param.nb_qos -1;
+      data->ngut[i].qfi = ue_context_p->ue_context.pduSession[nb_pdu_session].param.qos[nb_qos_flow].qfi;
+      // TODO: not sure for the upf tunnel id
+      data->ngut[i].teidupf = ue_context_p->ue_context.gnb_gtp_teid[0];
+    } else {
+      LOG_W(NR_RRC,"rrc_gNB_get_ue_context return NULL\n");
+      if (data->ngut != NULL) free(data->ngut);
+    }
+    i++;
+  }
+
 }
 
 static
@@ -1053,6 +1097,7 @@ void read_RAN(sm_ag_if_rd_t* data)
   assert(data->type == MAC_STATS_V0
         || data->type == RLC_STATS_V0
         || data->type == PDCP_STATS_V0
+        || data->type == GTP_STATS_V0
         || data->type == KPM_STATS_V0
         );
 
@@ -1062,6 +1107,8 @@ void read_RAN(sm_ag_if_rd_t* data)
     read_rlc_sm(&data->rlc_stats.msg);
   } else if(data->type == PDCP_STATS_V0){
     read_pdcp_sm(&data->pdcp_stats.msg);
+  } else if(data->type == GTP_STATS_V0){
+    read_gtp_sm(&data->gtp_stats.msg);
   } else if(data->type == KPM_STATS_V0){
     read_kpm_sm(&data->kpm_stats);
   } else {
