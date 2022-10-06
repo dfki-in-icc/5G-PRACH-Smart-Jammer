@@ -1,95 +1,76 @@
-// src\app\services\websocket.service.ts
-import { Injectable } from "@angular/core";
-import { Observable, Observer } from 'rxjs';
-import { Subject } from 'rxjs';
-import { map } from 'rxjs/operators';
-import { environment } from "src/environments/environment";
-import { webSocket } from 'rxjs/webSocket';
 
-const websockurl = 'ws://' + environment.backend + 'softscope';
+import { Injectable } from '@angular/core';
+import { webSocket, WebSocketSubject } from 'rxjs/webSocket';
+import { environment } from "src/environments/environment";
 
 export enum webSockSrc {
     softscope = "s".charCodeAt(0),
     logview = "l".charCodeAt(0),
 }
+
 export interface Message {
     source: webSockSrc;
-    msgtype: number;
-    chartid: number;
-    dataid: number;
-    segnum: number;
-    update: boolean;
-    content: ArrayBuffer;
+    fullbuff: ArrayBuffer;
+}
+export const arraybuf_data_offset = 8;    // 64 bits (8 bytes) header
+
+const deserialize = (fullbuff: ArrayBuffer): Message => {
+    const header = new DataView(fullbuff, 0, arraybuf_data_offset);  //header
+    return {
+        source: header.getUint8(0),
+        fullbuff: fullbuff
+    };
 }
 
-export const arraybuf_data_offset = 8;
+const serialize = (msg: Message): ArrayBuffer => {
+    let buffview = new DataView(msg.fullbuff);
+    buffview.setUint8(0, msg.source); //header
+    return buffview.buffer;
+}
 
 @Injectable()
 export class WebSocketService {
-    private subject: Subject<MessageEvent>;
-    public messages: Subject<ArrayBuffer>;
+
+    public subject$: WebSocketSubject<Message>;
 
     constructor() {
-        this.subject = this.create();
-        console.log("Successfully connected: " + websockurl);
-        this.messages = <Subject<ArrayBuffer>>this.subject.pipe(
-            map(
-                (response: MessageEvent): ArrayBuffer => {
-                    if (response.data instanceof ArrayBuffer) {
-                        console.log("Received ArrayBuffer message");
-                        return response.data;
-                    } else {
-                        console.log(response.data);
-                        console.log("Received message");
-                        return new ArrayBuffer(arraybuf_data_offset + 1); //minimum size empty message
-                    }
-
-                }
-            )
-        );
-    }
-
-    private create(): Subject<MessageEvent> {
-        let ws = new WebSocket(websockurl);
-        ws.binaryType = "arraybuffer";
-        let observable = new Observable((obs: Observer<MessageEvent>) => {
-            ws.onmessage = obs.next.bind(obs);
-            ws.onerror = obs.error.bind(obs);
-            ws.onclose = obs.complete.bind(obs);
-            return ws.close.bind(ws);
+        this.subject$ = webSocket<Message>({
+            url: 'ws://' + environment.backend + 'softscope',
+            openObserver: { next: () => { console.log('WS connection established') } },
+            closeObserver: { next: () => { console.log('WS connextion closed') } },
+            serializer: msg => serialize(msg),
+            deserializer: msg => deserialize(msg.data),
+            binaryType: 'arraybuffer'
         });
-        let observer: Observer<MessageEvent> = {
-            error: (err: any) => null,
-            complete: () => null,
-            next: (data: any) => {
-                console.log('Message sent to websocket: ', data);
-                if (ws.readyState === WebSocket.OPEN) {
-                    ws.send(data);
-                }
-            }
-        };
-        return Subject.create(observer, observable);
     }
 
-    public SerializeMessage(msg: Message): ArrayBuffer {
-        let buff = new ArrayBuffer(msg.content.byteLength + 8);   // 64 bits (8 bytes) header 
-        let fullbuff = new Uint8Array(buff, 0, buff.byteLength).set(new Uint8Array(msg.content), 8);
-        let buffview = new DataView(buff);
-        buffview.setUint8(0, msg.source);
-        buffview.setUint8(1, msg.msgtype);
-        return buffview.buffer;
+    // public get scopeSubject$() {
+    //   return this.subject$.multiplex(
+    //     () => { console.log('WS scope2 connection established') },
+    //     () => { console.log('WS scope2 connection closed') },
+    //     msg => msg.source === webSockSrc.softscope,
+    //   );
+    // }
+
+    // public get loggerSubject$() {
+    //   return this.subject$.multiplex(
+    //     () => { console.log('WS logger connection established') },
+    //     () => { console.log('WS logger connection closed') },
+    //     msg => msg.source === webSockSrc.logview,
+    //   );
+    // }
+
+    public send(msg: Message) {
+        console.log('Message sent to websocket: ', msg.fullbuff);
+        this.subject$.next(msg);
     }
 
-    public DeserializeMessage(msg: ArrayBuffer): Message {
-        const src = new DataView(msg, 0, 8);
-        return {
-            source: src.getUint8(0),
-            msgtype: src.getUint8(1),
-            chartid: src.getUint8(3),
-            dataid: src.getUint8(4),
-            segnum: src.getUint8(2),
-            update: (src.getUint8(5) == 1) ? true : false,
-            content: msg.slice(8)
-        }
-    }
+    // public close() {
+    //   this.subject$.complete();
+    // }
+
+    // public error() {
+    //   this.subject$.error({ code: 4000, reason: 'I think our app just broke!' });
+    // }
 }
+
