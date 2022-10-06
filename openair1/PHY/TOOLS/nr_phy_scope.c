@@ -174,7 +174,6 @@ void websrv_get_WF_buffers(OAIgraph_t *graph,websrv_scopedata_msg_t *msgp[]) {
     msg->header.msgtype=SCOPEMSG_TYPE_DATA ;
     msg->header.chartid=graph->chartid;
     msg->header.datasetid=i;
-    msg->header.msgseg=0;
     msg->header.update=(i == (sizeof(water_colors)/sizeof(FL_COLOR)-1))? 1:0;
     msg->data_xy[0]=0;
     msgp[i]=msg;
@@ -398,6 +397,7 @@ static void genericWaterFall (OAIgraph_t *graph, scopeSample_t *values, const in
   fl_set_object_label_f(graph->text, "%s, avg I/Q pow: %4.1f", label, 0/*sqrt(avg)*/);
 #else
   for(int i=0; i<sizeof(water_colors)/sizeof(FL_COLOR);i++){
+	msgp[i]->header.msgseg=graph->iteration%displayPart;
     websrv_scope_senddata(msgp[i]->data_xy[0],2, msgp[i]);
   }
 #endif

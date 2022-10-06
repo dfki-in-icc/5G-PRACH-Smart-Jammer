@@ -51,13 +51,13 @@
     </mat-grid-tile>
     
 <!--  area for watter fall data display -->
-    <mat-grid-tile [colspan]="7" [rowspan]="2">
+    <mat-grid-tile [colspan]="7" [rowspan]="3">
       <mat-card class="dashboard-card">
         <mat-card-content class="dashboard-card-content">
 		  <div fxLayout="column">
 			<!-- area for the chart -->
-			<div  fxFlex="1 1 90% " style="width:100%">
-              <canvas baseChart
+			<div  fxFlex="1 1 90% "  style="width:100%">
+              <canvas baseChart id="wf"
                 [datasets]="WFDatasets"
                 [options]="WFOptions"
                 [type]="'scatter'">
@@ -95,7 +95,7 @@
         <mat-card-content class="dashboard-card-content">
 			<div fxLayout="column">
 			  <div  fxFlex="1 1 90% ">
-              <canvas baseChart width="90%"
+              <canvas baseChart id="llr" width="90%"
                 [datasets]=" LLRDatasets"
                 [options]="LLROptions"
                 [type]="'scatter'">
@@ -148,7 +148,7 @@
 		  <div fxLayout="column">
 			<!-- area for the chart -->
 			<div  fxFlex="1 1 80% " style="width:60%">
-              <canvas baseChart
+              <canvas baseChart  id="iqc"
                 [datasets]="IQDatasets"
                 [options]="IQOptions"
                 [type]="'scatter'">

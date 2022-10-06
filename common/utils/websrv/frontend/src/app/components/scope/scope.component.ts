@@ -1,4 +1,4 @@
-import { Component, Output, EventEmitter, QueryList, ViewChild, ViewChildren} from "@angular/core";
+import { Component, Output, EventEmitter, QueryList, ViewChild, ViewChildren, ElementRef} from "@angular/core";
 import { FormGroup,FormControl } from "@angular/forms";
 import { Message, WebSocketService, webSockSrc } from "src/app/services/websocket.service";
 import { Observable, Subscription } from 'rxjs';
@@ -58,17 +58,20 @@ export class ScopeComponent {
  //data for scope WatterFall area     
   WFgraph_list : IGraphDesc[] = [];
   selected_WF = "";
- 
+  llrchart?:Chart;
+  iqcchart?:Chart;  
+  wfchart?:Chart;
+  nwf:number[]=[0,0,0,0];
   
-  
+ // websocket service object and related subscription for message reception 
   wsService?: WebSocketService;
   wsSubscription?: Subscription;
+ 
    
   @Output() ScopeEnabled = new EventEmitter<boolean>();
 
-  //@ViewChild(BaseChartDirective) chart?: BaseChartDirective;
   @ViewChildren(BaseChartDirective) charts?: QueryList<BaseChartDirective>;
-  
+ 
   public IQDatasets: ChartConfiguration<'scatter'>['data']['datasets'] = [
     {
       data: [],
@@ -157,7 +160,7 @@ export class ScopeComponent {
 
   public WFDatasets: ChartConfiguration<'scatter'>['data']['datasets'] = [
     {
-      data: [800*100],
+      data: [],
       label: 'WFblue',
       pointRadius: 0.5,
       showLine: false,
@@ -171,7 +174,7 @@ export class ScopeComponent {
  //     parsing: false,
     },
     {
-      data: [800*100],
+      data: [],
       label: 'WFgreen',
       pointRadius: 0.5,
       showLine: false,
@@ -184,7 +187,7 @@ export class ScopeComponent {
 //      parsing: false,
     },
     {
-      data: [800*100],
+      data: [],
       label: 'WFyellow',
       pointRadius: 0.5,      
       showLine: false,
@@ -197,7 +200,7 @@ export class ScopeComponent {
 //      parsing: false,
     },
     {
-      data: [800*100],
+      data: [],
       label: 'WFred',
       pointRadius: 0.5,      
       showLine: false,
@@ -246,11 +249,11 @@ export class ScopeComponent {
     scales: {
     xAxes: {
 		  min: 0,
-		  max:800,
+//		  max:800,
       },
     yAxes: {
 		  min: 0,
-		  max: 100,
+		  max: 80,
           reverse: true,
       }
     },           
@@ -268,8 +271,13 @@ export class ScopeComponent {
 	 this.configScope(resp);     
      });  
   }
-   
+  
+  ngAfterViewInit() {
+
+  }   
+  
   ngOnDestroy() {
+	console.log("Scope ngOnDestroy "); 
     this.wsSubscription?.unsubscribe(); 
   }
   
@@ -332,8 +340,7 @@ export class ScopeComponent {
                 }
                 
                 if(message.update) {
-		          this.charts?.forEach((child,index) => { child.chart?.update() });                  
-                  console.log(" scope update completed chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
+                  this.iqcchart!.update();
 			    }
               break;
 			  case SCOPEMSG_DATA_LLR:
@@ -350,29 +357,29 @@ export class ScopeComponent {
                 }
                 this.LLRDatasets[message.dataid].data[d]={ x:bufferview.getInt32(0, true) , y: 0};
                 if(message.update) {
-		          this.charts?.forEach((child,index) => { child.chart?.update() });                  
-                  console.log(" scope update completed " + d.toString() + "points, ");
-			    }
+				    this.llrchart!.update();
+			    } 
+			    
               break;  
 			  case SCOPEMSG_DATA_WF:
                 if(message.update) {
 				  console.log("Starting scope update chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
+                  if (message.segnum ==0) {
+					 for(let i=0; i<this.WFDatasets.length; i++){
+						this.nwf[i]=0; 
+						this.WFDatasets[i].data.length=0;
+				     }
+				  }
 			    }			    
-			    for ( let i=2;i<(bufferview.byteLength-4);i=i+4) {
+			    for ( let i=2;i<bufferview.byteLength-2;i=i+4) {// first 16 bits in buffer contains the number of points in the message
 			      x=bufferview.getInt16(i,true);
-				  y=bufferview.getInt16(i+2,true);  					
-				  for(let j=0; j<this.WFDatasets.length; j++){
-					if(j==message.dataid) {
-                      this.WFDatasets[j].data[x+x*y]={ x: x, y:y};
-                      this.WFDatasets[j].data[x+x*y]={ x: x, y:y};                     
-				    } else {
-                      this.WFDatasets[j].data[x+x*y]={ x: 0, y:0};
-                      this.WFDatasets[j].data[x+x*y]={ x: 0, y:0};						
-					}
-                  }
-                }
+				  y=bufferview.getInt16(i+2,true); 
+				  this.wfchart!.scales.xAxes.max=bufferview.getInt16(bufferview.byteLength-4,true);					
+                  this.WFDatasets[message.dataid].data[this.nwf[message.dataid]]={ x: x, y:y};
+                  this.nwf[message.dataid]++;              
+			    }
                 if(message.update) {
-		          this.charts?.forEach((child,index) => { child.chart?.update() });                  
+				  this.wfchart!.update();          
                   console.log(" scope update completed " + d.toString() + "points, ");
 			    }
               break;                           
@@ -441,6 +448,9 @@ export class ScopeComponent {
  		
         this.scopeApi.setScopeParams$({name:"startstop",value:"start"}).subscribe(
           () => {
+             this.llrchart=Chart.getChart("llr"); 
+             this.iqcchart=Chart.getChart("iqc");
+             this.wfchart=Chart.getChart("wf");  
 			 this.IQDatasets.forEach((dataset) => { dataset.data.length=0 }) ;
 			 this.LLRDatasets.forEach((dataset) => { dataset.data.length=0 }) ;
              this.charts?.forEach((child,index) => { child.chart?.update() });  			  
@@ -549,7 +559,10 @@ export class ScopeComponent {
     for (let i=0; i<this.WFgraph_list.length; i++) {
 	  if( this.WFgraph_list[i].title === value) {
 		this.SendScopeParams("enabled","true",this.WFgraph_list[i].srvidx);
-		this.WFDatasets[0].label=value; 
+		this.WFDatasets[0].label=value;
+		this.WFDatasets[1].label="(>avg*2)";
+		this.WFDatasets[2].label="(>avg*10)";
+		this.WFDatasets[3].label="(>avg*100)"; 
 	  } else {
 	    this.SendScopeParams("enabled","false",this.WFgraph_list[i].srvidx);
 	  }
