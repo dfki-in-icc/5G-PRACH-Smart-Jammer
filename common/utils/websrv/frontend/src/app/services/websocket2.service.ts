@@ -14,11 +14,11 @@ export interface Message {
 }
 export const arraybuf_data_offset = 8;    // 64 bits (8 bytes) header
 
-const deserialize = (buff: ArrayBuffer): Message => {
-  const header = new DataView(buff, 0, arraybuf_data_offset);  //header
+const deserialize = (fullbuff: ArrayBuffer): Message => {
+  const header = new DataView(fullbuff, 0, arraybuf_data_offset);  //header
   return {
     source: header.getUint8(0),
-    fullbuff: buff
+    fullbuff: fullbuff
   };
 }
 
@@ -32,45 +32,45 @@ const serialize = (msg: Message): ArrayBuffer => {
 @Injectable()
 export class WebSocketService2 {
 
-  subject$: WebSocketSubject<Message>;
+  public subject$: WebSocketSubject<Message>;
 
   constructor() {
     this.subject$ = webSocket<Message>({
-      url: 'ws://' + environment.backend,
-      openObserver: { next: () => { console.log('connection established') } },
-      closeObserver: { next: () => { console.log('socket closed') } },
+      url: 'ws://' + environment.backend + 'softscope',
+      openObserver: { next: () => { console.log('WS connection established') } },
+      closeObserver: { next: () => { console.log('WS connextion closed') } },
       serializer: msg => serialize(msg),
       deserializer: msg => deserialize(msg.data),
       binaryType: 'arraybuffer'
     });
   }
 
-  public registerScopeSocket() {
+  public get scopeSubject$() {
     return this.subject$.multiplex(
-      () => { console.log('scope connection established') },
-      () => { console.log('scope connection closed') },
-      msg => msg.source === webSockSrc.softscope, // filter
+      () => { console.log('WS scope2 connection established') },
+      () => { console.log('WS scope2 connection closed') },
+      msg => msg.source === webSockSrc.softscope,
     );
   }
 
-  public registerLogSocket() {
+  public get loggerSubject$() {
     return this.subject$.multiplex(
-      () => { console.log('log connection established') },
-      () => { console.log('log connection closed') },
-      msg => msg.source === webSockSrc.logview, // filter
+      () => { console.log('WS logger connection established') },
+      () => { console.log('WS logger connection closed') },
+      msg => msg.source === webSockSrc.logview,
     );
   }
 
   public send(msg: Message) {
-    this.subject$.next(msg); // This will send a message to the server once a connection is made. Remember value is serialized with JSON.stringify by default!
+    this.subject$.next(msg);
   }
 
   public close() {
-    this.subject$.complete(); // Closes the connection.
+    this.subject$.complete();
   }
 
-  public error(err: any) {
-    this.subject$.error(err); // This will send an error message to the server + closes connection
+  public error() {
+    this.subject$.error({ code: 4000, reason: 'I think our app just broke!' });
   }
 }
 

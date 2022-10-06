@@ -1,6 +1,7 @@
 import { Component, EventEmitter, OnDestroy, OnInit, Output, QueryList, ViewChildren } from "@angular/core";
 import { BaseChartDirective } from 'ng2-charts';
 import { Subscription } from 'rxjs';
+import { catchError } from "rxjs/operators";
 import { IGraphDesc, IScopeDesc, IScopeGraphType, ISigDesc, ScopeApi } from 'src/app/api/scope.api';
 import { IQDatasets, IQOptions } from "src/app/charts/iq.dataset";
 import { LLRDatasets, LLROptions } from "src/app/charts/llr.dataset";
@@ -16,8 +17,8 @@ export interface RxScopeMessage {
   content: ArrayBuffer;
 }
 
-const deserialize = (buff: ArrayBuffer): RxScopeMessage => {
-  const header = new DataView(buff, 0, arraybuf_data_offset);
+const deserialize = (fullbuff: ArrayBuffer): RxScopeMessage => {
+  const header = new DataView(fullbuff, 0, arraybuf_data_offset);
   return {
     // source: src.getUint8(0),  //header
     msgtype: header.getUint8(1),  //header
@@ -25,7 +26,7 @@ const deserialize = (buff: ArrayBuffer): RxScopeMessage => {
     dataid: header.getUint8(4),  //header
     segnum: header.getUint8(2),  //header
     update: (header.getUint8(5) == 1) ? true : false,  //header
-    content: buff.slice(arraybuf_data_offset)  // data
+    content: fullbuff.slice(arraybuf_data_offset)  // data
   };
 }
 
@@ -33,9 +34,9 @@ const serialize = (msg: TxScopeMessage): ArrayBuffer => {
 
   const byteArray = new TextEncoder().encode(msg.content);
 
-  let buff = new Uint8Array(byteArray.byteLength + arraybuf_data_offset);
-  buff.set(byteArray, arraybuf_data_offset) //data
-  let buffview = new DataView(buff);
+  let arr = new Uint8Array(byteArray.byteLength + arraybuf_data_offset);
+  arr.set(byteArray, arraybuf_data_offset) //data
+  let buffview = new DataView(arr.buffer);
   buffview.setUint8(1, msg.msgtype); //header
 
   return buffview.buffer;
@@ -120,7 +121,7 @@ export class Scope2Component implements OnInit, OnDestroy {
   ) { }
 
   ngOnInit() {
-    console.log("Scope ngOnInit ");
+    console.log("Scope2 ngOnInit ");
     this.scopeApi.getScopeInfos$().subscribe(resp => {
       this.configScope(resp);
     });
@@ -183,7 +184,7 @@ export class Scope2Component implements OnInit, OnDestroy {
           case SCOPEMSG_DATA_IQ:
             this.IQDatasets[message.dataid].data.length = 0;
             if (message.update) {
-              console.log("Starting scope update chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
+              console.log("Starting scope2 update chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
             }
             for (let i = 0; i < bufferview.byteLength; i = i + 4) {
               this.IQDatasets[message.dataid].data[i / 4] = { x: bufferview.getInt16(i, true), y: bufferview.getInt16(i + 2, true) };
@@ -191,12 +192,12 @@ export class Scope2Component implements OnInit, OnDestroy {
 
             if (message.update) {
               this.charts?.forEach((child, index) => { child.chart?.update() });
-              console.log(" scope update completed chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
+              console.log(" scope2 update completed chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
             }
             break;
           case SCOPEMSG_DATA_LLR:
             if (message.update) {
-              console.log("Starting scope update chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
+              console.log("Starting scope2 update chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
             }
             this.LLRDatasets[message.dataid].data.length = 0;
             let xoffset = 0;
@@ -209,12 +210,12 @@ export class Scope2Component implements OnInit, OnDestroy {
             this.LLRDatasets[message.dataid].data[d] = { x: bufferview.getInt32(0, true), y: 0 };
             if (message.update) {
               this.charts?.forEach((child, index) => { child.chart?.update() });
-              console.log(" scope update completed " + d.toString() + "points, ");
+              console.log(" scope2 update completed " + d.toString() + " points, ");
             }
             break;
           case SCOPEMSG_DATA_WF:
             if (message.update) {
-              console.log("Starting scope update chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
+              console.log("Starting scope2 update chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
             }
             for (let i = 2; i < (bufferview.byteLength - 4); i = i + 4) {
               x = bufferview.getInt16(i, true);
@@ -231,7 +232,7 @@ export class Scope2Component implements OnInit, OnDestroy {
             }
             if (message.update) {
               this.charts?.forEach((child, index) => { child.chart?.update() });
-              console.log(" scope update completed " + d.toString() + "points, ");
+              console.log(" scope2 update completed " + d.toString() + "points, ");
             }
             break;
           default:
@@ -253,7 +254,7 @@ export class Scope2Component implements OnInit, OnDestroy {
         content: strmessage
       })
     });
-    console.log("Scope sent msg type " + type.toString() + " " + strmessage);
+    console.log("Scope2 sent msg type " + type.toString() + " " + strmessage);
   }
 
   SendScopeParams(name: string, value: string, graphid: number) {
@@ -279,9 +280,7 @@ export class Scope2Component implements OnInit, OnDestroy {
           this.OnLLRxminChange();
           this.OnLLRxmaxChange();
 
-          this.wsSubscription = this.wsService.registerScopeSocket().subscribe((msg: Message) => {
-            this.ProcessScopeMsg(deserialize(msg.fullbuff));
-          });
+          this.wsSubscription = this.wsService.subject$.subscribe((msg: Message) => this.ProcessScopeMsg(deserialize(msg.fullbuff)))
         }
       );
     } else {
@@ -292,7 +291,6 @@ export class Scope2Component implements OnInit, OnDestroy {
           this.startstop = 'start';
           this.startstop_color = 'warn';
           this.charts?.forEach(child => child.chart?.update());
-
         }
       );
     }
