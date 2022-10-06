@@ -1,5 +1,6 @@
 
 import { Injectable } from '@angular/core';
+import { delay, retryWhen } from 'rxjs/operators';
 import { webSocket, WebSocketSubject } from 'rxjs/webSocket';
 import { environment } from "src/environments/environment";
 
@@ -23,8 +24,7 @@ const deserialize = (fullbuff: ArrayBuffer): Message => {
 }
 
 const serialize = (msg: Message): ArrayBuffer => {
-  let fullbuff = new ArrayBuffer(msg.fullbuff.byteLength);
-  let buffview = new DataView(fullbuff);
+  let buffview = new DataView(msg.fullbuff);
   buffview.setUint8(0, msg.source); //header
   return buffview.buffer;
 }
@@ -45,32 +45,33 @@ export class WebSocketService2 {
     });
   }
 
-  public get scopeSubject$() {
-    return this.subject$.multiplex(
-      () => { console.log('WS scope2 connection established') },
-      () => { console.log('WS scope2 connection closed') },
-      msg => msg.source === webSockSrc.softscope,
-    );
-  }
+  // public get scopeSubject$() {
+  //   return this.subject$.multiplex(
+  //     () => { console.log('WS scope2 connection established') },
+  //     () => { console.log('WS scope2 connection closed') },
+  //     msg => msg.source === webSockSrc.softscope,
+  //   );
+  // }
 
-  public get loggerSubject$() {
-    return this.subject$.multiplex(
-      () => { console.log('WS logger connection established') },
-      () => { console.log('WS logger connection closed') },
-      msg => msg.source === webSockSrc.logview,
-    );
-  }
+  // public get loggerSubject$() {
+  //   return this.subject$.multiplex(
+  //     () => { console.log('WS logger connection established') },
+  //     () => { console.log('WS logger connection closed') },
+  //     msg => msg.source === webSockSrc.logview,
+  //   );
+  // }
 
   public send(msg: Message) {
+    console.log('Message sent to websocket: ', msg.fullbuff);
     this.subject$.next(msg);
   }
 
-  public close() {
-    this.subject$.complete();
-  }
+  // public close() {
+  //   this.subject$.complete();
+  // }
 
-  public error() {
-    this.subject$.error({ code: 4000, reason: 'I think our app just broke!' });
-  }
+  // public error() {
+  //   this.subject$.error({ code: 4000, reason: 'I think our app just broke!' });
+  // }
 }
 
