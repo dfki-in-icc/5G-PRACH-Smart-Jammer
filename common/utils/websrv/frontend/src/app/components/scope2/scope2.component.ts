@@ -1,6 +1,7 @@
 import { Component, EventEmitter, OnDestroy, OnInit, Output, QueryList, ViewChildren } from "@angular/core";
 import { BaseChartDirective } from 'ng2-charts';
 import { Subscription } from 'rxjs';
+import { delay, retryWhen } from "rxjs/operators";
 import { IGraphDesc, IScopeDesc, IScopeGraphType, ISigDesc, ScopeApi } from 'src/app/api/scope.api';
 import { IQDatasets, IQOptions } from "src/app/charts/iq.dataset";
 import { LLRDatasets, LLROptions } from "src/app/charts/llr.dataset";
@@ -135,7 +136,7 @@ export class Scope2Component implements OnInit, OnDestroy {
     return enc.decode(message);
   }
 
-  configScope(resp: IScopeDesc) {
+  private configScope(resp: IScopeDesc) {
     if (resp.title === "none") {
       this.ScopeEnabled.emit(false);
     } else {
@@ -163,7 +164,7 @@ export class Scope2Component implements OnInit, OnDestroy {
     }
   }
 
-  ProcessScopeMsg(message: RxScopeMessage) {
+  private ProcessScopeMsg(message: RxScopeMessage) {
     if (this.scopestatus === "starting") {
       this.scopestatus = 'started';
       this.startstop = 'stop';
@@ -192,7 +193,7 @@ export class Scope2Component implements OnInit, OnDestroy {
 
             if (message.update) {
               this.charts?.forEach(child => { child.chart?.update() });
-              console.log(" scope2 update completed chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
+              console.log("Scope2 update completed chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
             }
             break;
           case SCOPEMSG_DATA_LLR:
@@ -210,7 +211,7 @@ export class Scope2Component implements OnInit, OnDestroy {
             this.LLRDatasets[message.dataid].data[d] = { x: bufferview.getInt32(0, true), y: 0 };
             if (message.update) {
               this.charts?.forEach((child, index) => { child.chart?.update() });
-              console.log(" scope2 update completed " + d.toString() + " points, ");
+              console.log("Scope2 update completed " + d.toString() + " points, ");
             }
             break;
           case SCOPEMSG_DATA_WF:
@@ -232,7 +233,7 @@ export class Scope2Component implements OnInit, OnDestroy {
             }
             if (message.update) {
               this.charts?.forEach(child => { child.chart?.update() });
-              console.log(" scope2 update completed " + d.toString() + "points, ");
+              console.log("Scope2 update completed " + d.toString() + "points, ");
             }
             break;
           default:
@@ -280,7 +281,9 @@ export class Scope2Component implements OnInit, OnDestroy {
           this.OnLLRxminChange();
           this.OnLLRxmaxChange();
 
-          this.wsSubscription = this.wsService.subject$.subscribe((msg: Message) => this.ProcessScopeMsg(deserialize(msg.fullbuff)))
+          this.wsSubscription = this.wsService.subject$.subscribe(
+            (msg: Message) => this.ProcessScopeMsg(deserialize(msg.fullbuff))
+          )
         }
       );
     } else {
