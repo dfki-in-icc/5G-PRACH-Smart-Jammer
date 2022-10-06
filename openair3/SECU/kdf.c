@@ -24,7 +24,6 @@
 #include <stdint.h>
 #include <string.h>
 
-#include <openssl/core_names.h>
 #include <openssl/hmac.h>
 
 #include "kdf.h"
@@ -36,7 +35,7 @@ void kdf(const uint8_t key[32], byte_array_t data, size_t len, uint8_t out[len])
   assert(data.len != 0);
   assert(len != 0);
 
-  OSSL_LIB_CTX * library_context = OSSL_LIB_CTX_new();
+  OSSL_LIB_CTX* library_context = OSSL_LIB_CTX_new();
   assert(library_context != NULL);
 
   // A property query used for selecting the MAC implementation.
@@ -52,7 +51,9 @@ void kdf(const uint8_t key[32], byte_array_t data, size_t len, uint8_t out[len])
   /* The underlying digest to be used */
   OSSL_PARAM params[2] = {0};
   char digest_name[] = "SHA2-256";
-  params[0] = OSSL_PARAM_construct_utf8_string(OSSL_MAC_PARAM_DIGEST, digest_name, sizeof(digest_name));
+  char const* ossl_mac_param_digest = "digest";
+  params[0] = OSSL_PARAM_construct_utf8_string(ossl_mac_param_digest , digest_name, sizeof(digest_name));
+//OSSL_MAC_PARAM_DIGEST
   params[1] = OSSL_PARAM_construct_end();
 
   /* Initialise the HMAC operation */

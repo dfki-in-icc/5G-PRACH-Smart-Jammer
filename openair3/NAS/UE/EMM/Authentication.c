@@ -983,9 +983,9 @@ static int _authentication_kasme(const OctetString *autn,
             input_s[4],input_s[5],input_s[6],input_s[7],
             input_s[8],input_s[9],input_s[10],input_s[11],
             input_s[12],input_s[13]);
-  
+
   assert(ck->length + ik->length == 32);
-  byte_array_t data = {.len=offset, .buf= input_s};
+  byte_array_t data = {.len = offset, .buf = input_s};
   kdf(key, data, kasme->length, kasme->value);
 
   LOG_TRACE(INFO,"EMM-PROC  KASME (l=%d)%s",
