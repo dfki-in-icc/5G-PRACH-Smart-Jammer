@@ -321,7 +321,7 @@ export class ScopeComponent implements OnInit, OnDestroy {
     return enc.decode(message);
   }
 
-  configScope(resp: IScopeDesc) {
+  private configScope(resp: IScopeDesc) {
     if (resp.title === "none") {
       this.ScopeEnabled.emit(false);
     } else {
@@ -348,7 +348,7 @@ export class ScopeComponent implements OnInit, OnDestroy {
     }
   }
 
-  ProcessScopeMsg(message: RxScopeMessage) {
+  private ProcessScopeMsg(message: RxScopeMessage) {
     if (this.scopestatus === "starting") {
       this.scopestatus = 'started';
       this.startstop = 'stop';
@@ -430,7 +430,7 @@ export class ScopeComponent implements OnInit, OnDestroy {
     }
   }
 
-  sendMsg(type: number, strmessage: string) {
+  private sendMsg(type: number, strmessage: string) {
     this.wsService.send({
       source: webSockSrc.softscope,
       fullbuff: serialize({
@@ -441,17 +441,8 @@ export class ScopeComponent implements OnInit, OnDestroy {
     console.log("Scope sent msg type " + type.toString() + " " + strmessage);
   }
 
-  SendScopeParams(name: string, value: string, graphid: number): boolean {
-    let result = false;
-    this.scopeApi.setScopeParams$({ name: name, value: value, graphid: graphid }).subscribe(
-      () => {
-        result = true;
-      },
-      err => {
-        result = false;
-      }
-    );
-    return result;
+  private SendScopeParams(name: string, value: string, graphid: number) {
+    this.scopeApi.setScopeParams$({ name: name, value: value, graphid: graphid }).subscribe();
   }
 
   startorstop() {
