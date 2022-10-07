@@ -86,8 +86,12 @@ export class ScopeComponent implements OnInit, OnDestroy {
   //data for scope LLR area      
   llrgraph_list: IGraphDesc[] = [];
   selected_llrchannels = [""];
-  target_list: number[] = [0, 1, 2, 3];
-  selected_sig: ISigDesc = { target_id: 0, antenna_id: 0 };
+  sig_list: ISigDesc[] =[{target_id: 0, antenna_id: 0},
+                         {target_id: 1, antenna_id: 0},
+                         {target_id: 2, antenna_id: 0},
+                         {target_id: 3, antenna_id: 0},
+                        ];
+  selected_sig: ISigDesc = {target_id: 0, antenna_id: 0};
   llrythresh = 5;
   llrmin = 0;
   llrmax = 200000;
@@ -466,6 +470,13 @@ export class ScopeComponent implements OnInit, OnDestroy {
           this.OnYthreshChange();
           this.OnLLRxminChange();
           this.OnLLRxmaxChange();
+          this.channelsChanged(this.selected_channels);
+          this.llrchannelsChanged(this.selected_llrchannels);
+          this.WFChanged(this.selected_WF);
+          for (let i = 0; i < this.WFDatasets.length; i++) {
+            this.nwf[i] = 0;
+            this.WFDatasets[i].data.length = 0;
+          }          
           this.wsService = new (WebSocketService);
 
           this.wsSubscription = this.wsService.subject$.subscribe(
@@ -537,15 +548,16 @@ export class ScopeComponent implements OnInit, OnDestroy {
 
   SigChanged(value: number) {
     this.selected_sig.target_id = value;
-    this.scopesubtitle = value.toString();
+    if (this.scopetitle === "gNB")
+      this.scopesubtitle = " - sig from UE" + value.toString() + " antenna" + this.selected_sig.antenna_id;
+    else
+      this.scopesubtitle = " - sig from gNB" + value.toString()+ " antenna" + this.selected_sig.antenna_id;;    
     this.SendScopeParams("TargetSelect", value.toString(), 0);
   }
 
   WFChanged(value: string) {
     this.selected_WF = value;
-    for (let i = 0; i < this.WFDatasets.length; i++) {
-      this.WFDatasets[i].data.length = 0;
-    }
+  
     for (let i = 0; i < this.WFgraph_list.length; i++) {
       if (this.WFgraph_list[i].title === value) {
         this.SendScopeParams("enabled", "true", this.WFgraph_list[i].srvidx);
@@ -557,6 +569,10 @@ export class ScopeComponent implements OnInit, OnDestroy {
         this.SendScopeParams("enabled", "false", this.WFgraph_list[i].srvidx);
       }
     }
+    for (let i = 0; i < this.WFDatasets.length; i++) {
+      this.nwf[i] = 0;
+      this.WFDatasets[i].data.length = 0;
+    }    
   }
 
   onDataACKchange() {

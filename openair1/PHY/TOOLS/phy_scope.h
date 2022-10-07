@@ -87,6 +87,7 @@ typedef struct {
  extern void phy_scope_gNB(OAI_phy_scope_t *form, scopeData_t *p, int nb_UE);
  extern void phy_scope_nrUE( OAI_phy_scope_t *form,PHY_VARS_NR_UE *phy_vars_ue, int eNB_id,  int UE_id);
  extern void nrUEinitScope(PHY_VARS_NR_UE *ue);
+ extern void gNBinitScope(scopeParms_t *p);
  typedef  int16_t chart_data_t;
 #endif
 #endif

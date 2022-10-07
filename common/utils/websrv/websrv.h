@@ -116,20 +116,22 @@ typedef struct {
      int   llrxmax;
 } websrv_scope_params_t;
 
-extern void websrv_printjson(char * label, json_t *jsonobj);
+/*------------------------------------------------------------------------------------------------*/
+/* web server utilities:                                                                          */
 
-extern void websrv_printf_start(struct _u_response * response, int buffsize );
-extern void websrv_printf( const char *message,  ...);
-extern void websrv_printf_end(int httpstatus );
-extern void websrv_jbody( struct _u_response * response, json_t *jbody);
-extern void websrv_init_scope(websrv_params_t *websrvparams) ;
-extern int websrv_init_websocket(websrv_params_t *websrvparams,char *module); 
+extern void websrv_printjson(char * label, json_t *jsonobj);                     //debug:  dump a json object
+extern void websrv_jbody( struct _u_response * response, json_t *jbody);         // add a json body in a http response
+
+extern void websrv_printf_start(struct _u_response * response, int buffsize );   // start a printf, lock the buffer
+extern void websrv_printf( const char *message,  ...);                           // add characters in the printf locked buffer
+extern void websrv_printf_end(int httpstatus );                                  // add the printf buffer in the body of a http response, unlock the buffer
+extern void websrv_dump_request(char *label, const struct _u_request *request);  // debug: dump a http request
+extern int websrv_string_response(char *astring, struct _u_response * response, int httpstatus) ;  // add a string in a http response
+
+/* webserver API:                                                                                  */
+extern int websrv_init_websocket(websrv_params_t *websrvparams,char *module);
 extern void websrv_websocket_send_message(char msg_src, char msg_type, char *msg_data, struct _websocket_manager * websocket_manager);
-extern void websrv_dump_request(char *label, const struct _u_request *request);
-extern int websrv_string_response(char *astring, struct _u_response * response, int httpstatus) ;
-extern void websrv_scope_ws_cb(void *user_data);
-extern int websrv_scope_manager(uint64_t lcount,websrv_params_t *websrvparams);
-extern void  websrv_scope_senddata(int numd,int dsize, websrv_scopedata_msg_t *msg);
+
 extern void websrv_websocket_process_scopemessage(char msg_type, char *msg_data, struct _websocket_manager * websocket_manager);
 extern int websrv_callback_okset_softmodem_cmdvar(const struct _u_request * request, struct _u_response * response, void * user_data);
 extern int websrv_add_endpoint( char **http_method, int num_method, const char * url_prefix,const char * url_format,
@@ -137,5 +139,13 @@ extern int websrv_add_endpoint( char **http_method, int num_method, const char *
                                                    struct _u_response * response,
                                                    void * user_data),
                          void * user_data);
+
+/* scope interface API:                                                                               */                         
+extern void websrv_init_scope(websrv_params_t *websrvparams) ;                         
+extern void websrv_scope_ws_cb(void *user_data);
+extern int websrv_scope_manager(uint64_t lcount,websrv_params_t *websrvparams);
+extern void  websrv_scope_senddata(int numd,int dsize, websrv_scopedata_msg_t *msg);                         
 extern websrv_scope_params_t *websrv_scope_getparams(void);
+extern void websrv_scope_stop(void);
+/*-----------------------------------------------------------------------------------------------------------*/
 #endif

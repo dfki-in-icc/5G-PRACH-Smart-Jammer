@@ -61,6 +61,11 @@ uint64_t set_softmodem_optmask(uint64_t bitmask) {
   return softmodem_params.optmask;
 }
 
+uint64_t clear_softmodem_optmask(uint64_t bitmask) {
+  softmodem_params.optmask = softmodem_params.optmask & (~bitmask);
+  return softmodem_params.optmask;
+}
+
 softmodem_params_t *get_softmodem_params(void) {
   return &softmodem_params;
 }

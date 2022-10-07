@@ -62,6 +62,7 @@ void websrv_websocket_onclose_callback (const struct _u_request * request,
   websrv_params_t *websrvparams = (websrv_params_t *)websocket_onclose_user_data;
   websrv_dump_request("websocket close ",request);
   websrvparams->wm=NULL;
+  websrv_scope_stop();
 }
 
 void websrv_close_ws( websrv_params_t *websrvparams, char *source) {

@@ -694,7 +694,7 @@ static void copyRxdataF(int32_t *data, int slot,  void *scopeData) {
          scope->gNB->frame_parms.samples_per_slot_wCP*sizeof(int32_t));
 }
 
-static void gNBinitScope(scopeParms_t *p) {
+STATICFORXSCOPE void gNBinitScope(scopeParms_t *p) {
   AssertFatal(p->gNB->scopeData=malloc(sizeof(scopeData_t)),"");
   scopeData_t *scope=(scopeData_t *) p->gNB->scopeData;
   scope->argc=p->argc;

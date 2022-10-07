@@ -46,8 +46,8 @@
  
  extern PHY_VARS_NR_UE ***PHY_vars_UE_g;
  
-static scopeData_t  scopedata; 
-static websrv_scope_params_t scope_params = {0,1000,NULL,&scopedata,65535};
+
+static websrv_scope_params_t scope_params = {0,1000,NULL,NULL,65535};
 static websrv_params_t *websrvparams_ptr;
 static int cansend=1;
 void  websrv_scope_senddata(int numd, int dsize, websrv_scopedata_msg_t *msg) {
@@ -102,24 +102,58 @@ int websrv_scope_manager(uint64_t lcount,websrv_params_t *websrvparams) {
 	    websrv_websocket_send_scopemessage(SCOPEMSG_TYPE_TIME, strtime, websrvparams_ptr->wm);
 	  }
       if ( (lcount % scope_params.refrate) == 0) {        
-		  if (IS_SOFTMODEM_GNB_BIT) {			 
+		  if (IS_SOFTMODEM_GNB_BIT && (scope_params.statusmask & SCOPE_STATUSMASK_STARTED)) {			 
             phy_scope_gNB(scope_params.scopeform,  scope_params.scopedata, 1);
 		  } 
-		  if (IS_SOFTMODEM_5GUE_BIT) {
+		  if (IS_SOFTMODEM_5GUE_BIT && (scope_params.statusmask & SCOPE_STATUSMASK_STARTED)) {
             phy_scope_nrUE(scope_params.scopeform, (PHY_VARS_NR_UE *)scope_params.scopedata,  0, scope_params.selectedTarget);
 		  }      
       } 
     }
     return 0;
 }
- 
+/* free scope  resources, as websrv scope interface can be stopped and started */
+void websrv_scope_stop(void) {
+	 clear_softmodem_optmask(SOFTMODEM_DOSCOPE_BIT);
+     scope_params.statusmask &= ~SCOPE_STATUSMASK_STARTED;	
+     OAI_phy_scope_t *sp = (OAI_phy_scope_t *)scope_params.scopeform;
+     if(sp != NULL )
+       for (int i=0; sp->graph[i].graph != NULL ; i++) {
+		   websrv_free_xyplot(sp->graph[i].graph);
+	   }
+	 free(sp);
+	 scope_params.scopeform=NULL;    	 	
+}
+
+char *websrv_scope_initdata(void) {
+	  if (IS_SOFTMODEM_GNB_BIT) {
+		scopeParms_t p;			 
+		p.ru=RC.ru[0];
+		p.gNB=RC.gNB[0];
+		gNBinitScope(&p);
+		scope_params.scopedata=p.gNB->scopeData;		 
+		scope_params.scopeform = create_phy_scope_gnb();
+		scope_params.statusmask |= SCOPE_STATUSMASK_AVAILABLE;
+		return "gNB"; 
+	  } else if (IS_SOFTMODEM_5GUE_BIT) {
+		scope_params.scopedata = PHY_vars_UE_g[0][0] ;
+		nrUEinitScope(PHY_vars_UE_g[0][0]);
+		scope_params.scopeform = create_phy_scope_nrue(scope_params.selectedTarget);
+		scope_params.statusmask |= SCOPE_STATUSMASK_AVAILABLE;
+		return "5GUE";
+      } else {
+        LOG_I(UTIL,"[websrv] SoftScope web interface  not implemented for this softmodem\n");
+      }
+      return "none";  
+} /* websrv_scope_init */
   
  /*  callback to process control commands received from frontend */
 int websrv_scope_callback_set_params (const struct _u_request * request, struct _u_response * response, void * user_data) {
-  websrv_dump_request("scope set params ", request);
+     websrv_dump_request("scope set params ", request);
 	 json_error_t jserr;
 	 json_t* jsbody = ulfius_get_json_body_request (request, &jserr);
      int httpstatus=404;
+
 	 if (jsbody == NULL) {
 	   LOG_W(UTIL,"cannot find json body in %s %s\n",request->http_url, jserr.text );
        httpstatus=400;	 
@@ -132,12 +166,15 @@ int websrv_scope_callback_set_params (const struct _u_request * request, struct 
          if(strcmp(vname,"startstop") == 0) {
 			 if( strcmp(vval,"start") == 0) {
 				if ( scope_params.statusmask & SCOPE_STATUSMASK_AVAILABLE) {
+				  websrv_scope_initdata();
                   scope_params.statusmask |= SCOPE_STATUSMASK_STARTED;
                   scope_params.selectedTarget=0; // 1 UE to be received from GUI (for xNB scope's 
+                  set_softmodem_optmask(SOFTMODEM_DOSCOPE_BIT); // to trigger data copy in scope buffers
                  }
 				 httpstatus=200;
 			 } else if( strcmp(vval,"stop") == 0) {
-                 scope_params.statusmask &= ~SCOPE_STATUSMASK_STARTED;				 
+                 scope_params.statusmask &= ~SCOPE_STATUSMASK_STARTED;	
+                 clear_softmodem_optmask(SOFTMODEM_DOSCOPE_BIT);
 				 httpstatus=200;
 			 } else {
 				LOG_W(UTIL,"invalid startstop command value: %s\n",vval);
@@ -149,9 +186,13 @@ int websrv_scope_callback_set_params (const struct _u_request * request, struct 
 		 } else if (strcmp(vname,"enabled") == 0) {
            J=json_object_get(jsbody, "graphid"); 
            const int gid = json_integer_value(J); 
-           OAI_phy_scope_t *sp = (OAI_phy_scope_t *)scope_params.scopeform;  
-           sp->graph[gid].enabled = (strcmp(vval,"true")==0)?true:false; 
-           httpstatus=200;
+           OAI_phy_scope_t *sp = (OAI_phy_scope_t *)scope_params.scopeform;
+           if ( sp == NULL ) {
+             httpstatus=500;	 
+	       }  else {
+             sp->graph[gid].enabled = (strcmp(vval,"true")==0)?true:false; 
+             httpstatus=200;
+		   }
 		 } else if (strcmp(vname,"xmin") == 0) {
            scope_params.xmin = strtol(vval,NULL,10);
            httpstatus=200;   
@@ -197,27 +238,13 @@ int websrv_scope_callback_get_desc (const struct _u_request * request, struct _u
   char gtype[20];
   char stitle[64];
   
-    scope_params.statusmask &= ~SCOPE_STATUSMASK_STARTED;
+  
+    websrv_scope_stop();  // in case it's not the first connection
     if (IS_SOFTMODEM_DOSCOPE | IS_SOFTMODEM_ENB_BIT | IS_SOFTMODEM_4GUE_BIT) {
 	  strcpy(stitle,"none");  
 	} else {	  
-	  if (IS_SOFTMODEM_GNB_BIT) {			 
-		scopedata.ru=RC.ru[0];
-		scopedata.gNB=RC.gNB[0];		 
-		scope_params.scopeform = create_phy_scope_gnb();
-		scope_params.statusmask |= SCOPE_STATUSMASK_AVAILABLE;
-		strcpy(stitle,"gNB"); 
-	  } else if (IS_SOFTMODEM_5GUE_BIT) {
-		scope_params.scopedata = PHY_vars_UE_g[0][0] ;
-		nrUEinitScope(PHY_vars_UE_g[0][0]);
-		scope_params.scopeform = create_phy_scope_nrue(scope_params.selectedTarget);
-		scope_params.statusmask |= SCOPE_STATUSMASK_AVAILABLE;
-		strcpy(stitle,"5GUE");
-	  } else {
-        LOG_I(UTIL,"[websrv] SoftScope web interface  not implemented for this softmodem\n");
-        strcpy(stitle,"none");    	  
-	  }
-	}  		               
+      strcpy(stitle,websrv_scope_initdata());  	  
+	} 		               
   OAI_phy_scope_t *sp = (OAI_phy_scope_t *)scope_params.scopeform;
   if(sp != NULL && (scope_params.statusmask & SCOPE_STATUSMASK_AVAILABLE))
     for (int i=0; sp->graph[i].graph != NULL ; i++) {

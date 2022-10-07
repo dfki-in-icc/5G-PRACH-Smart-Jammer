@@ -29,7 +29,7 @@
             <label id="scope-slider-refrate-labelid" class="scope-slider-label">refresh rate</label>
             <label class="scope-slider-value-label"> {{rfrate}} </label>
             </div>           
-            <mat-slider class="scope-slider" min=".1" max="30" step="0.1" [value]="rfrate" 
+            <mat-slider class="scope-slider" min=".1" max="10" step="0.1" [value]="rfrate" 
                         aria-labelledby="scope-slider-refrate-labelid" vertical="true" thumbLabel="true" 
                         [(ngModel)]="rfrate" (change)="OnRefrateChange()" > 
             </mat-slider>
@@ -37,8 +37,8 @@
             <mat-list-item class="sigselect" role="listitem">
 		      <mat-form-field class="select-form">
 			  <mat-select placeholder="sig select" name="SigSelect" class="SigSelect" [value]="selected_sig.target_id" (selectionChange)="SigChanged($event.value)" >
-				 <mat-option *ngFor="let targetid of target_list" [value]="targetid" >
-					{{selected_sig.target_id}}
+				 <mat-option *ngFor="let targetid of sig_list" [value]="targetid.target_id" >
+					{{targetid.target_id}}
 				 </mat-option>
 			  </mat-select>
 		      </mat-form-field>
@@ -69,9 +69,10 @@
 	        <mat-list-item class="WFselect" role="listitem">
 		      <mat-form-field class="select-form">
 			  <mat-select placeholder="select data" name="WFSelect" class="WFSelect" [value]="selected_WF" (selectionChange)="WFChanged($event.value)" >
-				 <mat-option *ngFor="let graph of WFgraph_list" [value]="graph.title" >
+				 <mat-option *ngFor="let graph of WFgraph_list" [value]="graph.title" > 
 					{{graph.title}}
 				 </mat-option>
+				 <mat-option>none</mat-option>
 			  </mat-select>
 		      </mat-form-field>
 	        </mat-list-item>
