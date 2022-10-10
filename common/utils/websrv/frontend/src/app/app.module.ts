@@ -34,6 +34,7 @@ import { ScopeComponent } from './components/scope/scope.component';
 import { InterceptorProviders } from './interceptors/interceptors';
 import { LoadingService } from './services/loading.service';
 import { WebSocketService } from './services/websocket.service';
+import { LoggerComponent } from './components/logger/logger.component';
 
 @NgModule({
   declarations: [
@@ -42,7 +43,8 @@ import { WebSocketService } from './services/websocket.service';
     ConfirmDialogComponent,
     QuestionDialogComponent,
     DialogComponent,
-    ScopeComponent
+    ScopeComponent,
+    LoggerComponent
   ],
   imports: [
     BrowserModule,
