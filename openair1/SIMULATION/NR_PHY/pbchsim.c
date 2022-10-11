@@ -606,7 +606,7 @@ int main(int argc, char **argv)
         start_symbol = nr_get_ssb_start_symbol(frame_parms,i);
         int slot = start_symbol/14;
 
-        for (aa=0; aa<gNB->frame_parms.nb_antennas_tx; aa++) 
+        for (aa=0; aa<gNB->frame_parms.nb_antennas_tx; aa++)
           memset(gNB->common_vars.txdataF[aa],0,frame_parms->samples_per_slot_wCP*sizeof(int32_t));
 
         nr_common_signal_procedures (gNB,frame,slot,msgDataTx.ssb[i].ssb_pdu);
@@ -770,7 +770,7 @@ int main(int argc, char **argv)
 	ret = nr_rx_pbch(UE,
 										&proc,
 										estimateSz, 
-                    dl_ch_estimates,
+										dl_ch_estimates,
 										UE->pbch_vars[0],
 										frame_parms,
 										0,
@@ -783,7 +783,7 @@ int main(int argc, char **argv)
   ret = nr_rx_psbch(UE,
 										&proc,
 										estimateSz, 
-                    dl_ch_estimates,
+										dl_ch_estimates,
 										UE->pbch_vars[0],
 										frame_parms,
 										0,

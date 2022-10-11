@@ -38,7 +38,7 @@
 #include "executables/softmodem-common.h"
 
 //#define DEBUG_PBCH
-#define DEBUG_PBCH_ENCODING
+//#define DEBUG_PBCH_ENCODING
 //#define DEBUG_PBCH_DMRS
 
 extern short nr_qpsk_mod_table[8];
@@ -301,13 +301,9 @@ int nr_generate_pbch(nfapi_nr_dl_tti_ssb_pdu *ssb_pdu,
   for (int i=0; i<NR_POLAR_PBCH_PAYLOAD_BITS; i++)
     a_reversed |= (((uint64_t)pbch->pbch_a_prime>>i)&1)<<(31-i);
 
-  printf("\n a_reversed %lx", a_reversed);
-
   /// CRC, coding and rate matching
   polar_encoder_fast (&a_reversed, (void*)pbch->pbch_e, 0, 0,
                       NR_POLAR_PBCH_MESSAGE_TYPE, NR_POLAR_PBCH_PAYLOAD_BITS, NR_POLAR_PBCH_AGGREGATION_LEVEL);
-
-  printf("\n pbch->pbch_e = %x \n", *pbch->pbch_e);
 
 #ifdef DEBUG_PBCH_ENCODING
   printf("Channel coding:\n");
