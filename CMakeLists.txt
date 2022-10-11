@@ -83,27 +83,6 @@ else()
   include_directories(${OPENPGM_INCLUDE_DIRS})
 endif()
 
-pkg_search_module(NETTLE nettle)
-if(NOT ${NETTLE_FOUND})
-  message( FATAL_ERROR "PACKAGE nettle not found: some targets will fail. Run build_oai -I again!")
-else()
-  include_directories(${NETTLE_INCLUDE_DIRS})
-endif()
-
-message ("NETTLE VERSION_INSTALLED  = ${NETTLE_VERSION}")
-
-string(REGEX REPLACE "([0-9]+).*" "\\1" NETTLE_VERSION_MAJOR ${NETTLE_VERSION})
-string(REGEX REPLACE "[0-9]+\\.([0-9]+).*" "\\1" NETTLE_VERSION_MINOR ${NETTLE_VERSION})
-message ("NETTLE_VERSION_MAJOR = ${NETTLE_VERSION_MAJOR}")
-message ("NETTLE_VERSION_MINOR = ${NETTLE_VERSION_MINOR}")
-
-if ("${NETTLE_VERSION_MAJOR}" STREQUAL "" OR "${NETTLE_VERSION_MINOR}" STREQUAL "")
-  message( FATAL_ERROR "The nettle version not detected properly. Try to run build_oai -I again" )
-endif()
-
-add_definitions("-DNETTLE_VERSION_MAJOR=${NETTLE_VERSION_MAJOR}")
-add_definitions("-DNETTLE_VERSION_MINOR=${NETTLE_VERSION_MINOR}")
-
 pkg_search_module(XPM xpm)
 if(NOT ${XPM_FOUND})
   message("PACKAGE xpm not found: some targets will fail")
@@ -887,11 +866,11 @@ set(SECU_OSA_SRC
   ${OPENAIR2_DIR}/UTIL/OSA/osa_stream_eia.c
   )
 add_library(SECU_OSA ${SECU_OSA_SRC})
-target_link_libraries(SECU_OSA ${NETTLE_LIBRARIES})
 
 set(SECU_CN_SRC
   ${OPENAIR3_DIR}/SECU/secu_defs.c
   ${OPENAIR3_DIR}/SECU/kdf.c
+  ${OPENAIR3_DIR}/SECU/aes_128_ctr.c
   ${OPENAIR3_DIR}/SECU/rijndael.c
   ${OPENAIR3_DIR}/SECU/snow3g.c
   ${OPENAIR3_DIR}/SECU/key_nas_deriver.c
@@ -901,8 +880,6 @@ set(SECU_CN_SRC
   ${OPENAIR3_DIR}/SECU/nas_stream_eia2.c
   )
 add_library(SECU_CN ${SECU_CN_SRC})
-
-target_link_libraries(SECU_CN ${NETTLE_LIBRARIES})
 
 # Physical Channel Procedures Scheduling
 ################################"
@@ -2716,8 +2693,7 @@ endforeach(myExe)
 foreach(myExe s1ap
     secu_knas_encrypt_eia1
     secu_kenb
-    aes128_ctr_encrypt
-    aes128_ctr_decrypt
+    aes128_ctr
     secu_knas_encrypt_eea2
     secu_knas secu_knas_encrypt_eea1
     kdf

@@ -78,7 +78,7 @@ void kdf(const uint8_t key[32], byte_array_t data, size_t len, uint8_t out[len])
 }
 
 #else
-// core for 1.1.x or lower
+// code for 1.1.x or lower
 void kdf(const uint8_t key[32], byte_array_t data, size_t len, uint8_t out[len])
 {
   DevAssert(key != NULL);

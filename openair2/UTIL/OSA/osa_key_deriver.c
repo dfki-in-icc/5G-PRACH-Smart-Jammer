@@ -19,30 +19,14 @@
  *      contact@openairinterface.org
  */
 
-#include <stdint.h>
+#include "../../../openair3/SECU/kdf.h"
 
-#include <nettle/hmac.h>
+#include <stdint.h>
+#include <string.h>
 
 #include "osa_defs.h"
 #include "osa_internal.h"
 #include "common/utils/LOG/log.h"
-
-static inline
-void kdf(const uint8_t *s, const uint32_t s_length, const uint8_t *key,
-         const uint32_t key_length, uint8_t **out, uint32_t out_length)
-{
-  struct hmac_sha256_ctx ctx;
-
-  uint8_t *buffer;
-
-  buffer = malloc(sizeof(uint8_t) * out_length);
-
-  hmac_sha256_set_key(&ctx, key_length, key);
-  hmac_sha256_update(&ctx, s_length, s);
-  hmac_sha256_digest(&ctx, out_length, buffer);
-
-  *out = buffer;
-}
 
 /*!
  * @brief Derive the keys from key and perform truncate on the generated key to
@@ -58,10 +42,9 @@ void kdf(const uint8_t *s, const uint32_t s_length, const uint8_t *key,
  * @param[out] out Pointer to reference where output of KDF will be stored.
  * NOTE: knas is dynamically allocated by the KDF function
  */
-int derive_key(algorithm_type_dist_t alg_type, uint8_t alg_id,
-               const uint8_t key[32], uint8_t **out)
+int derive_key(algorithm_type_dist_t alg_type, uint8_t alg_id, const uint8_t key[32], uint8_t **out)
 {
-  uint8_t string[7];
+  uint8_t string[7] = {0};
 
   /* FC */
   string[0] = FC_ALG_KEY_DER;
@@ -84,7 +67,7 @@ int derive_key(algorithm_type_dist_t alg_type, uint8_t alg_id,
   {
     int i;
     char payload[6 * sizeof(string) + 1];
-    int  index = 0;
+    int index = 0;
 
     for (i = 0; i < sizeof(string); i++)
       index += sprintf(&payload[index], "0x%02x ", string[i]);
@@ -93,13 +76,17 @@ int derive_key(algorithm_type_dist_t alg_type, uint8_t alg_id,
   }
 #endif
 
-  kdf(string, 7, key, 32, out, 32);
+  byte_array_t data = {.buf = string, .len = 7};
+  if (*out == NULL) {
+    *out = malloc(sizeof(uint8_t) * 32);
+    DevAssert(*out != NULL && "Memory exhausted");
+  }
+  kdf(key, data, 32, *out);
 
   return 0;
 }
 
-int nr_derive_key(algorithm_type_dist_t alg_type, uint8_t alg_id,
-               const uint8_t key[32], uint8_t **out)
+int nr_derive_key(algorithm_type_dist_t alg_type, uint8_t alg_id, const uint8_t key[32], uint8_t **out)
 {
   uint8_t string[7];
 
@@ -120,9 +107,16 @@ int nr_derive_key(algorithm_type_dist_t alg_type, uint8_t alg_id,
   string[5] = 0x00;
   string[6] = 0x01;
 
-  kdf(string, 7, key, 32, out, 32);
+  byte_array_t data = {.buf = string, .len = 7};
+
+  if (*out == NULL) {
+    *out = malloc(sizeof(uint8_t) * 32);
+    DevAssert(*out != NULL && "Memory exhausted");
+  }
+  kdf(key, data, 32, *out);
+
   // in NR, we use the last 16 bytes, ignoring the first 16 ones
-  memcpy(*out, *out+16, 16);
+  memcpy(*out, *out + 16, 16);
 
   return 0;
 }
@@ -162,8 +156,7 @@ int nr_derive_key_ng_ran_star(uint16_t pci, uint64_t nr_arfcn_dl, const uint8_t 
 
 int derive_skgNB(const uint8_t *keNB, const uint16_t sk_counter, uint8_t *skgNB)
 {
-  uint8_t *out;
-  uint8_t s[5];
+  uint8_t s[5] = {0};
 
   /* FC is 0x1c (see 3gpp 33.401 annex A.15) */
   s[0] = 0x1c;
@@ -176,10 +169,8 @@ int derive_skgNB(const uint8_t *keNB, const uint16_t sk_counter, uint8_t *skgNB)
   s[3] = 0x00;
   s[4] = 0x02;
 
-  kdf(s, 5, keNB, 32, &out, 32);
-
-  memcpy(skgNB, out, 32);
-  free(out);
+  byte_array_t data = {.buf = s, .len = 5};
+  kdf(keNB, data, 32, skgNB);
 
   return 0;
 }
