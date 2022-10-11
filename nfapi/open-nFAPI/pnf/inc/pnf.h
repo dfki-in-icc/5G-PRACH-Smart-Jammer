@@ -20,7 +20,7 @@
 
 #include "nfapi_pnf_interface.h"
 
-#define NFAPI_MAX_PACKED_MESSAGE_SIZE 8192
+#define NFAPI_MAX_PACKED_MESSAGE_SIZE 16384
 
 typedef struct {
 

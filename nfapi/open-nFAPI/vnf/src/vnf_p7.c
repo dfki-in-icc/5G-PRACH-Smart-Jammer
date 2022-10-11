@@ -479,7 +479,7 @@ int vnf_nr_p7_pack_and_send_p7_msg(vnf_p7_t* vnf_p7, nfapi_p7_message_header_t* 
 	if(p7_connection)
 	{
 		int send_result = 0;
-		uint8_t  buffer[1024 * 32];
+		uint8_t  buffer[NFAPI_MAX_PACKED_MESSAGE_SIZE];
 
 		header->m_segment_sequence = NFAPI_P7_SET_MSS(0, 0, p7_connection->sequence_number);
 		
@@ -2593,7 +2593,7 @@ int vnf_p7_read_dispatch_message(vnf_p7_t* vnf_p7)
 						    __LINE__, recvfrom_result, header.message_length);
 					break;
 				}
-				NFAPI_TRACE(NFAPI_TRACE_INFO, "Calling vnf_nr_handle_p7_message from %d\n", __LINE__);
+				NFAPI_TRACE(NFAPI_TRACE_INFO, "Calling vnf_handle_p7_message from %d\n", __LINE__);
 				vnf_handle_p7_message(vnf_p7->rx_message_buffer, recvfrom_result, vnf_p7);
 				return 0;
 			}

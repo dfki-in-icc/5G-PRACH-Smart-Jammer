@@ -1122,8 +1122,10 @@ NR_UE_L2_STATE_t nr_ue_scheduler(nr_downlink_indication_t *dl_info, nr_uplink_in
       nr_ue_dcireq(&dcireq); //to be replaced with function pointer later
       mac->dl_config_request = dcireq.dl_config_req;
 
-      nr_schedule_csirs_reception(mac, rx_frame, rx_slot);
-      nr_schedule_csi_for_im(mac, rx_frame, rx_slot);
+      if (!get_softmodem_params()->emulate_l1) {
+        nr_schedule_csirs_reception(mac, rx_frame, rx_slot);
+        nr_schedule_csi_for_im(mac, rx_frame, rx_slot);
+      }
       dcireq.dl_config_req = mac->dl_config_request;
 
       fill_scheduled_response(&scheduled_response, &dcireq.dl_config_req, NULL, NULL, mod_id, cc_id, rx_frame, rx_slot, dl_info->thread_id, dl_info->phy_data);

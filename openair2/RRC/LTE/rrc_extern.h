@@ -72,7 +72,8 @@ extern UE_PF_PO_t UE_PF_PO[NFAPI_CC_MAX][MAX_MOBILES_PER_ENB];
 extern pthread_mutex_t ue_pf_po_mutex;
 
 extern uint16_t reestablish_rnti_map[MAX_MOBILES_PER_ENB][2];
-
+extern int derive_keNB_star(const uint8_t *kenb_32, const uint16_t pci, const uint32_t earfcn_dl,
+                      const bool is_rel8_only, uint8_t * kenb_star);
 #endif
 
 

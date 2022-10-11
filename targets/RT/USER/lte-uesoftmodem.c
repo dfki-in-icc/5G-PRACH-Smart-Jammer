@@ -271,7 +271,6 @@ void exit_function(const char *file, const char *function, const int line, const
 }
 
 extern int16_t dlsch_demod_shift;
-uint16_t node_number;
 static void get_options(void) {
   int CC_id=0;
   int tddflag=0;
@@ -535,8 +534,9 @@ int main( int argc, char **argv ) {
   uint8_t  abstraction_flag=0;
   // Default value for the number of UEs. It will hold,
   // if not changed from the command line option --num-ues
-  NB_UE_INST=1;
-  NB_THREAD_INST=1;
+  NB_UE_INST = 1;
+  NB_THREAD_INST = 1;
+  NB_eNB_INST = 1;
   configmodule_interface_t *config_mod;
   start_background_system();
   config_mod = load_configmodule(argc, argv, CONFIG_ENABLECMDLINEONLY);
@@ -588,15 +588,11 @@ int main( int argc, char **argv ) {
   itti_init(TASK_MAX, tasks_info);
 
   init_opt();
-  ue_id_g = (node_number == 0) ? 0 : node_number-2; //ue_id_g = 0, 1, ...,
-  if(node_number == 0)
-  {
-    init_pdcp(0);
-  }
-  else
-  {
-    init_pdcp(node_number-1);
-  }
+
+  uint16_t node_number = get_softmodem_params()->node_number; // node_number = 1, 2
+  ue_id_g = (node_number == 0) ? 0 : node_number - 1; // ue_id_g = 0, 1
+  AssertFatal(ue_id_g >= 0, "UE id is expected to be nonnegative.\n");
+  init_pdcp(ue_id_g + 1);
 
   //TTN for D2D
   printf ("RRC control socket\n");
@@ -659,6 +655,8 @@ int main( int argc, char **argv ) {
     //init_UE_stub(1,eMBMS_active,uecap_xer_in,emul_iface);
     init_UE_stub_single_thread(NB_UE_INST,eMBMS_active,uecap_xer_in,emul_iface);
   } else if (NFAPI_MODE==NFAPI_MODE_STANDALONE_PNF) {
+    NB_eNB_INST = num_enbs;
+    LOG_D(MAC, "num_enbs = %d, NB_eNB_INST = %d\n", num_enbs, NB_eNB_INST);
     init_queue(&dl_config_req_tx_req_queue);
     init_queue(&hi_dci0_req_queue);
     init_queue(&ul_config_req_queue);

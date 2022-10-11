@@ -78,7 +78,7 @@
 #define MAX_NUM_CORESET 12
 #define MAX_NUM_CCE 90
 /*!\brief Maximum number of random access process */
-#define NR_NB_RA_PROC_MAX 4
+#define NR_NB_RA_PROC_MAX 16
 #define MAX_NUM_OF_SSB 64
 
 #define MIN_NUM_PRBS_TO_SCHEDULE  5

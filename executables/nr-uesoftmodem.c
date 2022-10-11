@@ -158,8 +158,10 @@ uint32_t       N_RB_DL    = 106;
 uint8_t abstraction_flag=0;
 
 nr_bler_struct nr_bler_data[NR_NUM_MCS];
+nr_bler_struct nr_mimo_bler_data[NR_NUM_MCS];
 
 static void init_bler_table(void);
+static void init_mimo_bler_table(void);
 
 /*---------------------BMC: timespec helpers -----------------------------*/
 
@@ -446,16 +448,15 @@ int main( int argc, char **argv ) {
 
   init_NR_UE(1,uecap_file,rrc_config_path);
 
-  int mode_offset = get_softmodem_params()->nsa ? NUMBER_OF_UE_MAX : 1;
   uint16_t node_number = get_softmodem_params()->node_number;
-  ue_id_g = (node_number == 0) ? 0 : node_number - 2;
+  ue_id_g = (node_number == 0) ? 0 : node_number - 1;
   AssertFatal(ue_id_g >= 0, "UE id is expected to be nonnegative.\n");
   if(IS_SOFTMODEM_NOS1 || get_softmodem_params()->sa || get_softmodem_params()->nsa) {
     if(node_number == 0) {
       init_pdcp(0);
     }
     else {
-      init_pdcp(mode_offset + ue_id_g);
+      init_pdcp(node_number);
     }
   }
 
@@ -464,8 +465,9 @@ int main( int argc, char **argv ) {
   PHY_vars_UE_g = malloc(sizeof(PHY_VARS_NR_UE **));
   PHY_vars_UE_g[0] = malloc(sizeof(PHY_VARS_NR_UE *)*MAX_NUM_CCs);
   if (get_softmodem_params()->emulate_l1) {
-    RCconfig_nr_ue_L1();
+    RCconfig_nr_ue_macrlc();
     init_bler_table();
+    init_mimo_bler_table();
   }
 
   if (get_softmodem_params()->do_ra)
@@ -549,9 +551,9 @@ int main( int argc, char **argv ) {
 static void init_bler_table(void) {
   memset(nr_bler_data, 0, sizeof(nr_bler_data));
 
-  const char *awgn_results_dir = getenv("AWGN_RESULTS_DIR");
+  const char *awgn_results_dir = getenv("NR_AWGN_RESULTS_DIR");
   if (!awgn_results_dir) {
-    LOG_W(NR_MAC, "No $AWGN_RESULTS_DIR\n");
+    LOG_W(NR_MAC, "No $NR_AWGN_RESULTS_DIR\n");
     return;
   }
 
@@ -560,7 +562,7 @@ static void init_bler_table(void) {
     snprintf(fName, sizeof(fName), "%s/mcs%d_awgn_5G.csv", awgn_results_dir, i);
     FILE *pFile = fopen(fName, "r");
     if (!pFile) {
-      LOG_E(NR_MAC, "%s: open %s: %s\n", __func__, fName, strerror(errno));
+      LOG_E(NR_MAC, "open %s: %s\n", fName, strerror(errno));
       continue;
     }
     size_t bufSize = 1024;
@@ -573,7 +575,7 @@ static void init_bler_table(void) {
         continue;
       }
 
-      if (nlines > NUM_SINR) {
+      if (nlines > NR_NUM_SINR) {
         LOG_E(NR_MAC, "BLER FILE ERROR - num lines greater than expected - file: %s\n", fName);
         abort();
       }
@@ -594,6 +596,59 @@ static void init_bler_table(void) {
       nlines++;
     }
     nr_bler_data[i].length = nlines;
+    fclose(pFile);
+  }
+}
+
+// Read in each MCS file and build BLER-SINR-TB table
+static void init_mimo_bler_table(void) {
+  memset(nr_mimo_bler_data, 0, sizeof(nr_mimo_bler_data));
+
+  const char *awgn_results_dir = getenv("NR_MIMO2x2_AWGN_RESULTS_DIR");
+  if (!awgn_results_dir) {
+    LOG_W(NR_MAC, "No $NR_MIMO2x2_AWGN_RESULTS_DIR\n");
+    return;
+  }
+
+  for (unsigned int i = 0; i < NR_NUM_MCS; i++) {
+    char fName[1024];
+    snprintf(fName, sizeof(fName), "%s/mcs%d_cdlc_mimo2x2_dl.csv", awgn_results_dir, i);
+    FILE *pFile = fopen(fName, "r");
+    if (!pFile) {
+      LOG_E(NR_MAC, "open %s: %s\n", fName, strerror(errno));
+      continue;
+    }
+    size_t bufSize = 1024;
+    char * line = NULL;
+    char * token;
+    char * temp = NULL;
+    int nlines = 0;
+    while (getline(&line, &bufSize, pFile) > 0) {
+      if (!strncmp(line, "SNR", 3)) {
+        continue;
+      }
+
+      if (nlines > NR_NUM_SINR) {
+        LOG_E(NR_MAC, "BLER FILE ERROR - num lines greater than expected - file: %s\n", fName);
+        abort();
+      }
+
+      token = strtok_r(line, ";", &temp);
+      int ncols = 0;
+      while (token != NULL) {
+        if (ncols > NUM_BLER_COL) {
+          LOG_E(NR_MAC, "BLER FILE ERROR - num of cols greater than expected\n");
+          abort();
+        }
+
+        nr_mimo_bler_data[i].bler_table[nlines][ncols] = strtof(token, NULL);
+        ncols++;
+
+        token = strtok_r(NULL, ";", &temp);
+      }
+      nlines++;
+    }
+    nr_mimo_bler_data[i].length = nlines;
     fclose(pFile);
   }
 }

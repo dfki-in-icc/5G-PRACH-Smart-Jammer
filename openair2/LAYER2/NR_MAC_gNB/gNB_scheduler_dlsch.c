@@ -1314,10 +1314,11 @@ void nr_schedule_ue_spec(module_id_t module_id,
 
     const int ntx_req = gNB_mac->TX_req[CC_id].Number_of_PDUs;
     nfapi_nr_pdu_t *tx_req = &gNB_mac->TX_req[CC_id].pdu_list[ntx_req];
-    tx_req->PDU_length = TBS;
+    tx_req->PDU_length = TBS + 4;
     tx_req->PDU_index  = pduindex;
     tx_req->num_TLV = 1;
-    tx_req->TLVs[0].length = TBS + 2;
+    tx_req->TLVs[0].tag = 0;
+    tx_req->TLVs[0].length = TBS;
     memcpy(tx_req->TLVs[0].value.direct, harq->transportBlock, TBS);
     gNB_mac->TX_req[CC_id].Number_of_PDUs++;
     gNB_mac->TX_req[CC_id].SFN = frame;

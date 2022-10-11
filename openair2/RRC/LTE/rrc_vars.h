@@ -43,6 +43,7 @@ UE_RRC_INST *UE_rrc_inst = NULL;
 #define MAX_U32 0xFFFFFFFF
 
 extern uint16_t ue_id_g;
+extern uint16_t enb_id_g;
 
 uint8_t DRB2LCHAN[8];
 

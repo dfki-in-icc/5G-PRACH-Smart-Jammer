@@ -1557,6 +1557,8 @@ typedef struct {
   uint16_t crnti;
   /// C-RNTI of UE before HO
   rnti_t crnti_before_ho; ///user id (rnti) of connected UEs
+  rnti_t crnti_for_ho;
+  bool ho_active;
   /// uplink active flag
   uint8_t ul_active;
   /// pointer to RRC PHY configuration
@@ -1722,6 +1724,7 @@ typedef struct {
   // to make sure that different UEs RA starts within a number of frames difference.
 
   eth_params_t         eth_params_n;
+  LTE_PhysCellId_t     targetPhysCellId;
 
 } UE_MAC_INST;
 /*! \brief ID of the neighboring cells used for HO*/

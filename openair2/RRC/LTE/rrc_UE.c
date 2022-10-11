@@ -115,6 +115,8 @@ extern void pdcp_config_set_security(
 
 void rrc_ue_process_securityModeCommand( const protocol_ctxt_t *const ctxt_pP, LTE_SecurityModeCommand_t *const securityModeCommand, const uint8_t eNB_index );
 
+static void rrc_pdcp_config_security(const protocol_ctxt_t *const ctxt_pP, uint8_t eNB_index);
+
 static int decode_SI( const protocol_ctxt_t *const ctxt_pP, const uint8_t eNB_index );
 
 static int decode_SI_MBMS( const protocol_ctxt_t *const ctxt_pP, const uint8_t eNB_index );
@@ -1902,6 +1904,71 @@ static bool is_nr_r15_config_present(LTE_RRCConnectionReconfiguration_r8_IEs_t *
 #undef chk
 }
 
+//------------------------------------------------------------------------------
+static void
+rrc_pdcp_config_security(
+  const protocol_ctxt_t *const ctxt_pP,
+  uint8_t eNB_index
+)
+//------------------------------------------------------------------------------
+{
+  uint8_t                            *kRRCenc = NULL;
+  uint8_t                            *kRRCint = NULL;
+  uint8_t                            *kUPenc = NULL;
+  pdcp_t                             *pdcp_p   = NULL;
+  static int                          print_keys= 1;
+  hashtable_rc_t                      h_rc;
+  hash_key_t                          key;
+
+  UE_RRC_INST *ue = &UE_rrc_inst[ctxt_pP->module_id];
+  uint8_t KeNB_star[32] = { 0 };
+  const uint8_t security_modeP = (ue->ciphering_algorithm) | (ue->integrity_algorithm << 4);
+
+  AssertFatal(ue->MeasObj[eNB_index][0] != NULL, "measurement object not to be NULL");
+  uint32_t freq = ue->MeasObj[eNB_index][0]->measObject.choice.measObjectEUTRA.carrierFreq;
+  int target_physCellId = UE_rrc_inst[ctxt_pP->module_id].HandoverInfoUe.targetCellId;
+
+  derive_keNB_star(ue->kenb, target_physCellId, freq, true, KeNB_star);
+  memcpy(ue->kenb, KeNB_star, 32);
+
+  derive_key_up_enc(ue->ciphering_algorithm, KeNB_star, &kUPenc);
+  derive_key_rrc_enc(ue->ciphering_algorithm, KeNB_star, &kRRCenc);
+  derive_key_rrc_int(ue->integrity_algorithm, KeNB_star, &kRRCint);
+
+  if (!IS_SOFTMODEM_IQPLAYER) {
+    SET_LOG_DUMP(DEBUG_SECURITY);
+  }
+
+  if (LOG_DUMPFLAG(DEBUG_SECURITY)) {
+    if (print_keys == 1) {
+      print_keys = 0;
+      LOG_DUMPMSG(RRC, DEBUG_SECURITY, KeNB_star, 32,"\nKeNB*:");
+      LOG_DUMPMSG(RRC, DEBUG_SECURITY, kRRCenc, 32,"\nKRRCenc:");
+      LOG_DUMPMSG(RRC, DEBUG_SECURITY, kRRCint, 32,"\nKRRCint:");
+    }
+  }
+
+  key = PDCP_COLL_KEY_VALUE(ctxt_pP->module_id, ctxt_pP->rnti, ctxt_pP->enb_flag, DCCH, SRB_FLAG_YES);
+  h_rc = hashtable_get(pdcp_coll_p, key, (void **)&pdcp_p);
+
+  if (h_rc == HASH_TABLE_OK) {
+    pdcp_config_set_security(
+      ctxt_pP,
+      pdcp_p,
+      DCCH,
+      DCCH+2,
+      security_modeP,
+      kRRCenc,
+      kRRCint,
+      kUPenc);
+  } else {
+    LOG_E(RRC,
+          PROTOCOL_RRC_CTXT_UE_FMT"Could not get PDCP instance for SRB DCCH %u\n",
+          PROTOCOL_RRC_CTXT_UE_ARGS(ctxt_pP),
+          DCCH);
+  }
+}
+
 //-----------------------------------------------------------------------------
 void
 rrc_ue_process_rrcConnectionReconfiguration(
@@ -1972,8 +2039,23 @@ rrc_ue_process_rrcConnectionReconfiguration(
       }
 
       if (r_r8->radioResourceConfigDedicated) {
+        protocol_ctxt_t ho_ctxt = *ctxt_pP;
+        const protocol_ctxt_t *const ho_ctxt_pP = &ho_ctxt;
+        if (r_r8->mobilityControlInfo) {
+          // Re-establish PDCP for all RBs that are established
+          ho_ctxt.rnti =
+              ((r_r8->mobilityControlInfo->
+                newUE_Identity.buf[1]) | (r_r8->mobilityControlInfo->
+                                          newUE_Identity.buf[0] << 8));
+          LOG_D(RRC, "source rnti = 0x%x vs  target rnti = 0x%x\n", ctxt_pP->rnti, ho_ctxt.rnti);
+          rrc_pdcp_config_req(ho_ctxt_pP, SRB_FLAG_YES, CONFIG_ACTION_ADD, ctxt_pP->module_id+DCCH,UNDEF_SECURITY_MODE);
+          rrc_rlc_config_req(ho_ctxt_pP, SRB_FLAG_YES, MBMS_FLAG_NO, CONFIG_ACTION_ADD,ctxt_pP->module_id+DCCH, Rlc_info_am_config);
+          rrc_pdcp_config_req (ho_ctxt_pP, SRB_FLAG_YES, CONFIG_ACTION_ADD, ctxt_pP->module_id+DCCH1,UNDEF_SECURITY_MODE);
+          rrc_rlc_config_req(ho_ctxt_pP, SRB_FLAG_YES, MBMS_FLAG_NO, CONFIG_ACTION_ADD, ctxt_pP->module_id+DCCH1, Rlc_info_am_config);
+          rrc_pdcp_config_security(ctxt_pP, eNB_index);
+        }
         LOG_I(RRC,"Radio Resource Configuration is present\n");
-        rrc_ue_process_radioResourceConfigDedicated(ctxt_pP,
+        rrc_ue_process_radioResourceConfigDedicated(ho_ctxt_pP,
                                                     eNB_index,
                                                     r_r8->radioResourceConfigDedicated);
         r_r8->radioResourceConfigDedicated = NULL;
@@ -2084,6 +2166,18 @@ rrc_ue_process_rrcConnectionReconfiguration(
   } // critical extensions present
 }
 
+static void check_rlc_status(
+  const protocol_ctxt_t *const       ctxt_pP,
+  uint8_t lcid
+)
+{
+  rnti_t crnti = UE_mac_inst[ctxt_pP->module_id].crnti;
+  uint8_t lcgid = UE_mac_inst[ctxt_pP->module_id].scheduling_info.LCGID[lcid];
+  mac_rlc_status_resp_t rlc_status = mac_rlc_status_ind(ctxt_pP->module_id, crnti, 0, 0, 0, ENB_FLAG_NO,MBMS_FLAG_NO, lcid, 0, 0);
+  LOG_D(MAC,"[UE %d] PDCCH Tick : LCID%d LCGID%d has data to transmit %d bytes\n\n",
+        ctxt_pP->module_id, lcid,lcgid,rlc_status.bytes_in_buffer);
+}
+
 /* 36.331, 5.3.5.4      Reception of an RRCConnectionReconfiguration including the mobilityControlInfo by the UE (handover) */
 //-----------------------------------------------------------------------------
 void
@@ -2114,14 +2208,19 @@ rrc_ue_process_mobilityControlInfo(
     ASN_SEQUENCE_ADD (&(drb2release_list)->list,lcid);
   }
    */
-  //Removing SRB1 and SRB2 and DRB0
+  //Resetting SRB1 and SRB2 and DRB0
+
   LOG_I(RRC,"[UE %d] : Update needed for rrc_pdcp_config_req (deprecated) and rrc_rlc_config_req commands(deprecated)\n", ctxt_pP->module_id);
-  rrc_pdcp_config_req (ctxt_pP, SRB_FLAG_YES, CONFIG_ACTION_REMOVE, DCCH,UNDEF_SECURITY_MODE);
-  rrc_rlc_config_req(ctxt_pP, SRB_FLAG_YES, MBMS_FLAG_NO, CONFIG_ACTION_REMOVE,ctxt_pP->module_id+DCCH,Rlc_info_am_config);
-  rrc_pdcp_config_req (ctxt_pP, SRB_FLAG_YES, CONFIG_ACTION_REMOVE, DCCH1,UNDEF_SECURITY_MODE);
-  rrc_rlc_config_req(ctxt_pP, SRB_FLAG_YES,CONFIG_ACTION_REMOVE, MBMS_FLAG_NO,ctxt_pP->module_id+DCCH1,Rlc_info_am_config);
-  rrc_pdcp_config_req (ctxt_pP, SRB_FLAG_NO, CONFIG_ACTION_REMOVE, DTCH,UNDEF_SECURITY_MODE);
-  rrc_rlc_config_req(ctxt_pP, SRB_FLAG_NO,CONFIG_ACTION_REMOVE, MBMS_FLAG_NO,ctxt_pP->module_id+DTCH,Rlc_info_um);
+  rrc_pdcp_config_req (ctxt_pP, SRB_FLAG_YES, CONFIG_ACTION_RESET, ctxt_pP->module_id+DCCH,UNDEF_SECURITY_MODE);
+  rrc_rlc_config_req(ctxt_pP, SRB_FLAG_YES, MBMS_FLAG_NO, CONFIG_ACTION_RESET,ctxt_pP->module_id+DCCH, Rlc_info_am_config);
+  check_rlc_status(ctxt_pP, DCCH);
+  rrc_pdcp_config_req (ctxt_pP, SRB_FLAG_YES, CONFIG_ACTION_RESET, ctxt_pP->module_id+DCCH1,UNDEF_SECURITY_MODE);
+  rrc_rlc_config_req(ctxt_pP, SRB_FLAG_YES, MBMS_FLAG_NO, CONFIG_ACTION_RESET, ctxt_pP->module_id+DCCH1, Rlc_info_am_config);
+  check_rlc_status(ctxt_pP, DCCH1);
+  rrc_pdcp_config_req (ctxt_pP, SRB_FLAG_NO, CONFIG_ACTION_RESET, ctxt_pP->module_id+DTCH,UNDEF_SECURITY_MODE);
+  rrc_rlc_config_req(ctxt_pP, SRB_FLAG_NO, MBMS_FLAG_NO, CONFIG_ACTION_RESET, ctxt_pP->module_id+DTCH, Rlc_info_am_config);
+  check_rlc_status(ctxt_pP, DTCH);
+
   //Synchronisation to DL of target cell
   LOG_I(RRC,
         "HO: Reset PDCP and RLC for configured RBs.. \n[FRAME %05d][RRC_UE][MOD %02d][][--- MAC_CONFIG_REQ  (SRB2 eNB %d) --->][MAC_UE][MOD %02d][]\n",
@@ -2428,7 +2527,7 @@ rrc_ue_decode_dcch(
           }
 
           UE_RRC_INFO *info = &UE_rrc_inst[ctxt_pP->module_id].Info[eNB_indexP];
-          if (info->dl_dcch_msg != NULL) {
+          if ((info->dl_dcch_msg != NULL) && (target_eNB_index == 0xFF)) {
               SEQUENCE_free(&asn_DEF_LTE_DL_DCCH_Message, info->dl_dcch_msg, ASFM_FREE_EVERYTHING);
           }
           info->dl_dcch_msg = dl_dcch_msg;
@@ -4265,8 +4364,10 @@ int decode_SI( const protocol_ctxt_t *const ctxt_pP, const uint8_t eNB_index ) {
 // layer 3 filtering of RSRP (EUTRA) measurements: 36.331, Sec. 5.5.3.2
 //-----------------------------------------------------------------------------
 void ue_meas_filtering( const protocol_ctxt_t *const ctxt_pP, const uint8_t eNB_index ) {
-  float a  = UE_rrc_inst[ctxt_pP->module_id].filter_coeff_rsrp; // 'a' in 36.331 Sec. 5.5.3.2
-  float a1 = UE_rrc_inst[ctxt_pP->module_id].filter_coeff_rsrq;
+  float k  = UE_rrc_inst[ctxt_pP->module_id].filter_coeff_rsrp;
+  float a =  1/pow(2.0, k/4); // 'a' in 36.331 Sec. 5.5.3.2
+  float k1 = UE_rrc_inst[ctxt_pP->module_id].filter_coeff_rsrq;
+  float a1 = 1/pow(2.0, k1/4);
   //float rsrp_db, rsrq_db;
   uint8_t    eNB_offset;
 
@@ -4497,7 +4598,7 @@ void ue_measurement_report_triggering(protocol_ctxt_t *const ctxt_pP, const uint
               ttt_ms = timeToTrigger_ms[ue->ReportConfig[i][reportConfigId
                                         -1]->reportConfig.choice.reportConfigEUTRA.triggerType.choice.event.timeToTrigger];
               // Freq specific offset of neighbor cell freq
-              ofn = 5;//((ue->MeasObj[i][measObjId-1]->measObject.choice.measObjectEUTRA.offsetFreq != NULL) ?
+              ofn = 1;//((ue->MeasObj[i][measObjId-1]->measObject.choice.measObjectEUTRA.offsetFreq != NULL) ?
               // *ue->MeasObj[i][measObjId-1]->measObject.choice.measObjectEUTRA.offsetFreq : 15); //  /* 15 is the Default */
               // cellIndividualOffset of neighbor cell - not defined yet
               ocn = 0;
@@ -6333,6 +6434,20 @@ int decode_SL_Discovery_Message(
   return(0);
 }
 
+void
+rrc_update_ue_status(
+  const module_id_t module_idP,
+  const uint8_t      enb_indexP
+)
+{
+  if((UE_rrc_inst[module_idP].Info[enb_indexP].State == RRC_IDLE) &&
+      (UE_rrc_inst[module_idP].HandoverInfoUe.targetCellId != 0xFF)) {
+    UE_rrc_inst[module_idP].Info[enb_indexP].State = RRC_CONNECTED;
+    UE_rrc_inst[module_idP].Info[enb_indexP].handoverTarget = 0;
+    UE_rrc_inst[module_idP].HandoverInfoUe.targetCellId = 0xFF;
+    LOG_I(RRC,"[UE %d] State = RRC_CONNECTED\n", module_idP);
+  }
+}
 
 //-----------------------------------------------------------------------------
 RRC_status_t
@@ -6413,12 +6528,18 @@ rrc_rx_tx_ue(
 
     if (UE_rrc_inst[ctxt_pP->module_id].Info[enb_indexP].T304_cnt == 0) {
       UE_rrc_inst[ctxt_pP->module_id].Info[enb_indexP].T304_active = 0;
-      UE_rrc_inst[ctxt_pP->module_id].HandoverInfoUe.measFlag = 1;
-      LOG_E(RRC,"[UE %d] Handover failure..initiating connection re-establishment procedure... \n",
-            ctxt_pP->module_id);
-      //Implement 36.331, section 5.3.5.6 here
-      VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_RRC_RX_TX,VCD_FUNCTION_OUT);
-      return(RRC_Handover_failed);
+      if (UE_rrc_inst[ctxt_pP->module_id].Info[enb_indexP].State == RRC_IDLE) {
+        UE_rrc_inst[ctxt_pP->module_id].HandoverInfoUe.measFlag = 0;
+        return (RRC_OK);
+      }
+      else {
+        UE_rrc_inst[ctxt_pP->module_id].HandoverInfoUe.measFlag = 1;
+        LOG_E(RRC,"[UE %d] Handover failure..initiating connection re-establishment procedure... \n",
+              ctxt_pP->module_id);
+        //Implement 36.331, section 5.3.5.6 here
+        VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_RRC_RX_TX,VCD_FUNCTION_OUT);
+        return(RRC_Handover_failed);
+      }
     }
 
     UE_rrc_inst[ctxt_pP->module_id].Info[enb_indexP].T304_cnt--;
