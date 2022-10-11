@@ -39,7 +39,7 @@
 #include <openair1/PHY/NR_UE_TRANSPORT/nr_transport_proto_ue.h>
 #include <openair1/PHY/TOOLS/phy_scope_interface.h>
 
-#define DEBUG_PBCH
+//#define DEBUG_PBCH
 //#define DEBUG_PBCH_ENCODING
 
 //#include "PHY_INTERFACE/defs.h"
@@ -69,7 +69,7 @@ static uint16_t nr_pbch_extract(int **rxdataF,
     rx_offset = (rx_offset)%(frame_parms->ofdm_symbol_size);
     struct complex16 *rxF        = (struct complex16 *)&rxdataF[aarx][(symbol+s_offset)*frame_parms->ofdm_symbol_size];
     struct complex16 *rxF_ext    = rxdataF_ext[aarx];
-#if 0 //def DEBUG_PBCH
+#ifdef DEBUG_PBCH
     printf("extract_rbs (nushift %d): rx_offset=%d, symbol %u\n",frame_parms->nushift,
            (rx_offset + ((symbol+s_offset)*(frame_parms->ofdm_symbol_size))),symbol);
     int16_t *p = (int16_t *)rxF;
@@ -90,7 +90,7 @@ static uint16_t nr_pbch_extract(int **rxdataF,
               (i!=(nushiftmod4+4)) &&
               (i!=(nushiftmod4+8))) {
             rxF_ext[j]=rxF[rx_offset];
-#if 0//def DEBUG_PBCH
+#ifdef DEBUG_PBCH
             printf("rxF ext[%d] = (%d,%d) rxF [%u]= (%d,%d)\n",
 		   (9*rb) + j,
                    rxF_ext[j].r, rxF_ext[j].i,
@@ -112,7 +112,7 @@ static uint16_t nr_pbch_extract(int **rxdataF,
                 (i!=(nushiftmod4+4)) &&
                 (i!=(nushiftmod4+8))) {
               rxF_ext[j]=rxF[rx_offset];
-#if 0//def DEBUG_PBCH
+#ifdef DEBUG_PBCH
               printf("rxF ext[%d] = (%d,%d) rxF [%u]= (%d,%d)\n",(rb<4) ? (9*rb) + j : (9*(rb-12))+j,
 		     rxF_ext[j].r, rxF_ext[j].i,
                      rx_offset,
@@ -146,7 +146,7 @@ static uint16_t nr_pbch_extract(int **rxdataF,
               (i!=(nushiftmod4+4)) &&
               (i!=(nushiftmod4+8))) {
             dl_ch0_ext[j]=dl_ch0[i];
-#if 0 //def DEBUG_PBCH
+#ifdef DEBUG_PBCH
             if ((rb==0) && (i<2))
               printf("dl ch0 ext[%d] = (%d,%d)  dl_ch0 [%d]= (%d,%d)\n",j,
                      dl_ch0_ext[j].r, dl_ch0_ext[j].i,
@@ -166,7 +166,7 @@ static uint16_t nr_pbch_extract(int **rxdataF,
                 (i!=(nushiftmod4+4)) &&
                 (i!=(nushiftmod4+8))) {
               dl_ch0_ext[j]=dl_ch0[i];
-#if 0 //def DEBUG_PBCH
+#ifdef DEBUG_PBCH
               printf("dl ch0 ext[%d] = (%d,%d)  dl_ch0 [%d]= (%d,%d)\n",j,
                      dl_ch0_ext[j].r, dl_ch0_ext[j].i,
                      i,
@@ -455,7 +455,7 @@ int nr_rx_pbch( PHY_VARS_NR_UE *ue,
     }
 
 #ifdef DEBUG_PBCH
-    LOG_I(PHY,"[PHY] PBCH log2_maxh = %d (%d)\n",log2_maxh,max_h);
+    LOG_I(PHY,"[PHY] PBCH log2_maxh = %d (%d)\n",nr_ue_pbch_vars->log2_maxh,max_h);
 #endif
     __attribute__ ((aligned(32))) struct complex16 rxdataF_comp[frame_parms->nb_antennas_rx][PBCH_MAX_RE_PER_SYMBOL];
     nr_pbch_channel_compensation(rxdataF_ext,
@@ -489,9 +489,9 @@ int nr_rx_pbch( PHY_VARS_NR_UE *ue,
   // legacy code use int16, but it is complex16
   UEscopeCopy(ue, pbchRxdataF_comp, pbch_unClipped, sizeof(struct complex16), frame_parms->nb_antennas_rx, pbch_e_rx_idx/2);
   UEscopeCopy(ue, pbchLlr, pbch_e_rx, sizeof(int16_t), frame_parms->nb_antennas_rx, pbch_e_rx_idx);
-#if 0//def DEBUG_PBCH
-  //write_output("rxdataF_comp.m","rxFcomp",rxdataF_comp[0],240*3,1,1);
-  //short *p = (short *)rxdataF_comp[0]);
+#ifdef DEBUG_PBCH
+  write_output("rxdataF_comp.m","rxFcomp",rxdataF_comp[0],240*3,1,1);
+  short *p = (short *)rxdataF_comp[0]);
  
   for (int cnt = 0; cnt < 864  ; cnt++)
     printf("pbch rx llr %d\n",*(pbch_e_rx+cnt));
@@ -520,8 +520,6 @@ int nr_rx_pbch( PHY_VARS_NR_UE *ue,
   for (int i=0; i<NR_POLAR_PBCH_PAYLOAD_BITS; i++)
     a_reversed |= (((uint64_t)pbch_a_prime>>i)&1)<<(31-i);
 
-  printf("PBCH a_reversed  0x%x \n", a_reversed);
-
   pbch_a_prime = a_reversed;
   //payload un-scrambling
   M = (Lmax == 64)? (NR_POLAR_PBCH_PAYLOAD_BITS - 6) : (NR_POLAR_PBCH_PAYLOAD_BITS - 3);
@@ -536,7 +534,7 @@ int nr_rx_pbch( PHY_VARS_NR_UE *ue,
 
   for (int i=0; i<32; i++) {
     out |= ((pbch_a_interleaved>>i)&1)<<(pbch_deinterleaving_pattern[i]);
-#if 0 //def DEBUG_PBCH
+#ifdef DEBUG_PBCH
     printf("i %d in 0x%08x out 0x%08x ilv %d (in>>i)&1) 0x%08x\n", i, pbch_a_interleaved, out, pbch_deinterleaving_pattern[i], (pbch_a_interleaved>>i)&1);
 #endif
   }

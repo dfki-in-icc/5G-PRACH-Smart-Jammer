@@ -778,7 +778,7 @@ int main(int argc, char **argv)
 										SISO,
 										&phy_pdcch_config,
 										&result);
-
+                    
 	/* Side link rx PSBCH */
   ret = nr_rx_psbch(UE,
 										&proc,
