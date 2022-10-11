@@ -438,14 +438,6 @@ int nr_generate_pbch(nfapi_nr_dl_tti_ssb_pdu *ssb_pdu,
   return 0;
 }
 
-typedef struct {
-  uint32_t coverageIndicator : 1;
-  uint32_t tddConfig : 12;
-  uint32_t DFN : 10;
-  uint32_t slotIndex : 7;
-  uint32_t reserved : 2;
-} PSBCH_payload;
-
 int nr_generate_sl_psbch(nfapi_nr_dl_tti_ssb_pdu *ssb_pdu,
                      int32_t *txdataF,
                      int16_t amp,
