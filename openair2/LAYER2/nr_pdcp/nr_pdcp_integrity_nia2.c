@@ -21,62 +21,50 @@
 
 #include "nr_pdcp_integrity_nia2.h"
 
+#include <arpa/inet.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#include <openssl/cmac.h>
+
+#include "common/utils/assertions.h"
+#include "openair3/SECU/aes_128.h"
+#include "openair3/SECU/aes_128_cbc_cmac.h"
 
 void *nr_pdcp_integrity_nia2_init(unsigned char *integrity_key)
 {
-  CMAC_CTX *ctx;
-
-  ctx = CMAC_CTX_new();
-  if (ctx == NULL) abort();
-
-  CMAC_Init(ctx, integrity_key, 16, EVP_aes_128_cbc(), NULL);
-
-  return ctx;
+  // This is a hack. Reduce the 3 functions to just cipher?
+  return integrity_key;
 }
 
-static void compute_t(unsigned char *t, uint32_t count, int bearer,
-                      int direction)
+void nr_pdcp_integrity_nia2_integrity(void *integrity_context, unsigned char *out, unsigned char *buffer, int length, int bearer, int count, int direction)
 {
-  t[0] = (count >> 24) & 255;
-  t[1] = (count >> 16) & 255;
-  t[2] = (count >>  8) & 255;
-  t[3] = (count      ) & 255;
-  t[4] = ((bearer-1) << 3) | (direction << 2);
-  memset(&t[5], 0, 8-5);
-}
+  DevAssert(integrity_context != NULL);
+  DevAssert(out != NULL);
+  DevAssert(buffer != NULL);
+  DevAssert(length > -1);
+  DevAssert(bearer > -1 && bearer < 32);
+  DevAssert(count > -1);
 
-void nr_pdcp_integrity_nia2_integrity(void *integrity_context,
-                            unsigned char *out,
-                            unsigned char *buffer, int length,
-                            int bearer, int count, int direction)
-{
-  CMAC_CTX *ctx = integrity_context;
-  unsigned char t[8];
-  unsigned char mac[16];
-  size_t maclen;
+  uint8_t const *integrity_key = (uint8_t *)integrity_context;
+  aes_128_t k_iv = {0};
+  memcpy(&k_iv.key, integrity_key, sizeof(k_iv.key));
+  k_iv.type = AES_INITIALIZATION_VECTOR_16;
+  k_iv.iv16.d.bearer = bearer;
+  k_iv.iv16.d.direction = direction;
+  //  k_iv.iv_p.count = ntohl(count);
+  k_iv.iv16.d.count = htonl(count);
 
-  /* see 33.401 B.2.3 for the input to 128-EIA2
-   * (which is identical to 128-NIA2, see 33.501 D.3.1.3) */
-  compute_t(t, count, bearer, direction);
+  uint8_t result[16] = {0};
+  aes_128_cbc_cmac(&k_iv, length, buffer, sizeof(result), result);
 
-  CMAC_Init(ctx, NULL, 0, NULL, NULL);
-  CMAC_Update(ctx, t, 8);
-  CMAC_Update(ctx, buffer, length);
-  CMAC_Final(ctx, mac, &maclen);
-
-  /* AES CMAC (RFC 4493) outputs 128 bits but NR PDCP PDUs have a MAC-I of
-   * 32 bits (see 38.323 6.2). RFC 4493 2.1 says to truncate most significant
-   * bit first (so seems to say 33.401 B.2.3)
-   */
-  memcpy(out, mac, 4);
+  // AES CMAC (RFC 4493) outputs 128 bits but NR PDCP PDUs have a MAC-I of
+  // 32 bits (see 38.323 6.2). RFC 4493 2.1 says to truncate most significant
+  // bit first (so seems to say 33.401 B.2.3)
+  // Precondition: out should have enough space...
+  memcpy(out, result, 4);
 }
 
 void nr_pdcp_integrity_nia2_free_integrity(void *integrity_context)
 {
-  CMAC_CTX *ctx = integrity_context;
-  CMAC_CTX_free(ctx);
+  (void)integrity_context;
 }

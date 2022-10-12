@@ -19,15 +19,15 @@
  *      contact@openairinterface.org
  */
 
-#ifndef AES_128_CTR_OAI_H
-#define AES_128_CTR_OAI_H
+#ifndef SHA_256_HMAC_OAI_H
+#define SHA_256_HMAC_OAI_H 
 
-#include "aes_128.h"
-
-#include <endian.h>
 #include <stdint.h>
 #include <stdlib.h>
 
-void aes_128_ctr(const aes_128_t* k_iv, size_t len, uint8_t const plain[len], size_t len_out, uint8_t out[len_out]);
+#include "../../openair2/UTIL/ALG_DS/DS/byte_array.h"
+
+void sha_256_hmac(const uint8_t key[32], byte_array_t data, size_t len, uint8_t out[len]);
 
 #endif
+

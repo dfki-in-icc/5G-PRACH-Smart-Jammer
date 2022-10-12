@@ -19,8 +19,8 @@
  *      contact@openairinterface.org
  */
 
-#include "../../../openair3/SECU/aes_128_ctr.h"
-#include "../../../common/utils/assertions.h"
+#include "openair3/SECU/aes_128_ctr.h"
+#include "common/utils/assertions.h"
 
 #include "nr_pdcp_security_nea2.h"
 
@@ -44,12 +44,13 @@ void nr_pdcp_security_nea2_cipher(void *security_context, unsigned char *buffer,
   DevAssert(direction > -1 && direction < 2);
   DevAssert(count > -1);
 
-  aes_128_ctr_t p = {0};
+  aes_128_t p = {0};
   const uint8_t *ciphering_key = (uint8_t const *)security_context;
   memcpy(p.key, ciphering_key, 16);
-  p.iv_p.count = ntohl(count);
-  p.iv_p.bearer = bearer;
-  p.iv_p.direction = direction;
+  p.type = AES_INITIALIZATION_VECTOR_16;
+  p.iv16.d.count = ntohl(count);
+  p.iv16.d.bearer = bearer;
+  p.iv16.d.direction = direction;
 
   uint8_t out[length];
   memset(out, 0, length);

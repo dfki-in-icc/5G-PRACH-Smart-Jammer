@@ -25,8 +25,8 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "../../../openair3//SECU//aes_128_ctr.h"
 #include "common/utils/LOG/log.h"
+#include "openair3//SECU//aes_128_ctr.h"
 
 #include "assertions.h"
 #include "osa_defs.h"
@@ -149,11 +149,12 @@ int stream_encrypt_eea2(stream_cipher_t *stream_cipher, uint8_t **out)
     DevAssert(*out != NULL && "Memory exhausted");
   }
 
-  aes_128_ctr_t p = {0};
+  aes_128_t p = {0};
   memcpy(p.key, stream_cipher->key, stream_cipher->key_length);
-  p.iv_p.count = ntohl(stream_cipher->count);
-  p.iv_p.bearer = stream_cipher->bearer;
-  p.iv_p.direction = stream_cipher->direction;
+  p.type = AES_INITIALIZATION_VECTOR_16;
+  p.iv16.d.count = htonl(stream_cipher->count);
+  p.iv16.d.bearer = stream_cipher->bearer;
+  p.iv16.d.direction = stream_cipher->direction;
 
   DevAssert((stream_cipher->blength & 0x07) == 0 && "Cipher length must be multiple of one octet");
   const uint32_t byte_lenght = stream_cipher->blength >> 3;
