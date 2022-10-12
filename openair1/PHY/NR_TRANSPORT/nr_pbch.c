@@ -447,7 +447,6 @@ int nr_generate_sl_psbch(nfapi_nr_dl_tti_ssb_pdu *ssb_pdu,
                      nfapi_nr_config_request_scf_t *config,
                      NR_DL_FRAME_PARMS *frame_parms) {
   int k,l,m;
-  //int16_t a;
   int16_t mod_pbch_e[NR_POLAR_PBCH_E];
   uint8_t idx=0;
   uint16_t M;
@@ -456,7 +455,7 @@ int nr_generate_sl_psbch(nfapi_nr_dl_tti_ssb_pdu *ssb_pdu,
   LOG_D(PHY, "PBCH SL generation started\n");
   NR_gNB_PBCH m_pbch;
   NR_gNB_PBCH *pbch = &m_pbch;
-  PSBCH_payload psbch_payload;
+  PSBCH_payload psbch_payload;             // NR Side Link Payload for Rel 16
 
   /* payload is 56 bits */
   psbch_payload.coverageIndicator = 1;     // 1 bit

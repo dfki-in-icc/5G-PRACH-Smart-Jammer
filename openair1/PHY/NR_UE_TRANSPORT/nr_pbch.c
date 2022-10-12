@@ -427,7 +427,7 @@ int nr_rx_pbch( PHY_VARS_NR_UE *ue,
                &nr_ue_common_vars->common_vars_rx_data_per_thread[proc->thread_id].rxdataF[0][(symbol_offset+1)*frame_parms->ofdm_symbol_size],frame_parms->ofdm_symbol_size*3,1,1);
 #endif
   // symbol refers to symbol within SSB. symbol_offset is the offset of the SSB wrt start of slot
-  double log2_maxh;
+  double log2_maxh = 0;
 
   for (symbol=1; symbol<4; symbol++) {
     const uint16_t nb_re=symbol == 2 ? 72 : 180;
@@ -605,20 +605,10 @@ int nr_rx_psbch( PHY_VARS_NR_UE *ue,
   NR_UE_COMMON *nr_ue_common_vars = &ue->common_vars;
   int max_h=0;
   int symbol;
-  //uint8_t psbch_a[64];
-  //FT ?? cppcheck doesn't like psbch_a allocation because of line 525..and i don't get what this variable is for..
-  //uint8_t *psbch_a = malloc(sizeof(uint8_t) * NR_POLAR_PBCH_PAYLOAD_BITS);
   uint8_t nushift;
   uint16_t M;
   uint8_t Lmax=frame_parms->Lmax;
-  //uint16_t crc;
-  //unsigned short idx_demod =0;
   uint32_t decoderState=0;
-  //uint8_t decoderListSize = 8, pathMetricAppr = 0;
-  //time_stats_t polar_decoder_init,polar_rate_matching,decoding,bit_extraction,deinterleaving;
-  //time_stats_t path_metric,sorting,update_LLR;
-  // FT ?? cppcheck fix  memset(&psbch_a[0], 0, sizeof(uint8_t) * NR_POLAR_PBCH_PAYLOAD_BITS);
-  //printf("nr_pbch_ue nid_cell %d\n",frame_parms->Nid_cell);
   int16_t psbch_e_rx[960]= {0}; //Fixme: previous version erase only NR_POLAR_PBCH_E bytes
   int16_t psbch_unClipped[960]= {0};
   int psbch_e_rx_idx=0;
@@ -630,12 +620,11 @@ int nr_rx_psbch( PHY_VARS_NR_UE *ue,
     symbol_offset=0;
 
 #ifdef DEBUG_PBCH
-  //printf("address dataf %p",nr_ue_common_vars->common_vars_rx_data_per_thread[proc->thread_id].rxdataF);
   write_output("rxdataF0_pbch.m","rxF0pbch",
                &nr_ue_common_vars->common_vars_rx_data_per_thread[proc->thread_id].rxdataF[0][(symbol_offset+1)*frame_parms->ofdm_symbol_size],frame_parms->ofdm_symbol_size*3,1,1);
 #endif
   // symbol refers to symbol within SSB. symbol_offset is the offset of the SSB wrt start of slot
-  double log2_maxh;
+  double log2_maxh = 0;
 
   for (symbol=1; symbol<4; symbol++) {
     const uint16_t nb_re=symbol == 2 ? 72 : 180;
@@ -673,19 +662,6 @@ int nr_rx_psbch( PHY_VARS_NR_UE *ue,
                                  frame_parms,
 				 log2_maxh); // log2_maxh+I0_shift
 
-    /*if (frame_parms->nb_antennas_rx > 1)
-      pbch_detection_mrc(frame_parms,
-                         rxdataF_comp,
-                         symbol);*/
-
-    /*
-        if (mimo_mode == ALAMOUTI) {
-          nr_pbch_alamouti(frame_parms,rxdataF_comp,symbol);
-        } else if (mimo_mode != SISO) {
-          LOG_I(PHY,"[PBCH][RX] Unsupported MIMO mode\n");
-          return(-1);
-        }
-    */
     int nb=symbol==2 ? 144 : 360;
     nr_pbch_quantize(psbch_e_rx+psbch_e_rx_idx,
 		     (short *)rxdataF_comp[0],
@@ -697,10 +673,7 @@ int nr_rx_psbch( PHY_VARS_NR_UE *ue,
   // legacy code use int16, but it is complex16
   UEscopeCopy(ue, pbchRxdataF_comp, psbch_unClipped, sizeof(struct complex16), frame_parms->nb_antennas_rx, psbch_e_rx_idx/2);
   UEscopeCopy(ue, pbchLlr, psbch_e_rx, sizeof(int16_t), frame_parms->nb_antennas_rx, psbch_e_rx_idx);
-#if 0//def DEBUG_PBCH
-  //write_output("rxdataF_comp.m","rxFcomp",rxdataF_comp[0],240*3,1,1);
-  //short *p = (short *)rxdataF_comp[0]);
- 
+#ifdef DEBUG_PBCH
   for (int cnt = 0; cnt < 864  ; cnt++)
     printf("psbch rx llr %d\n",*(psbch_e_rx+cnt));
   
@@ -708,7 +681,6 @@ int nr_rx_psbch( PHY_VARS_NR_UE *ue,
   //un-scrambling
   M =  NR_POLAR_PBCH_E;
   nushift = (Lmax==4)? i_ssb&3 : i_ssb&7;
- // uint32_t unscrambling_mask = (Lmax==64)?0x100006D:0x1000041;
   uint32_t psbch_a_interleaved=0;
   uint32_t psbch_a_prime=0;
   nr_pbch_unscrambling(nr_ue_pbch_vars, psbch_e_rx, frame_parms->Nid_cell, nushift, M, NR_POLAR_PBCH_E,
@@ -721,46 +693,13 @@ int nr_rx_psbch( PHY_VARS_NR_UE *ue,
   if(decoderState)
     return(decoderState);
 
-  //  printf("polar decoder output 0x%08x\n",psbch_a_prime);
-  // Decoder reversal
-  uint32_t a_reversed=0;
-
+  uint32_t payload=0;
   for (int i=0; i<NR_POLAR_PBCH_PAYLOAD_BITS; i++)
-    a_reversed |= (((uint64_t)psbch_a_prime>>i)&1)<<(31-i);
+    payload |= (((uint64_t)psbch_a_prime>>i)&1)<<(31-i);
 
-  printf("PSBCH a_reversed received 0x%x \n", a_reversed);
-
-#if 0
-  psbch_a_prime = a_reversed;
-  //payload un-scrambling
-  M = (Lmax == 64)? (NR_POLAR_PBCH_PAYLOAD_BITS - 6) : (NR_POLAR_PBCH_PAYLOAD_BITS - 3);
-  nushift = ((psbch_a_prime>>24)&1) ^ (((psbch_a_prime>>6)&1)<<1);
-  psbch_a_interleaved=0;
-  nr_pbch_unscrambling(nr_ue_pbch_vars, psbch_e_rx, frame_parms->Nid_cell, nushift, M, NR_POLAR_PBCH_PAYLOAD_BITS,
-		       1, unscrambling_mask, psbch_a_prime, &psbch_a_interleaved);
-  //printf("nushift %d sfn 3rd %d 2nd %d", nushift,((psbch_a_prime>>6)&1), ((psbch_a_prime>>24)&1) );
-  //payload deinterleaving
-  //uint32_t in=0;
-  uint32_t out=0;
-
-  for (int i=0; i<32; i++) {
-    out |= ((psbch_a_interleaved>>i)&1)<<(pbch_deinterleaving_pattern[i]);
-#if 0 //def DEBUG_PBCH
-    printf("i %d in 0x%08x out 0x%08x ilv %d (in>>i)&1) 0x%08x\n", i, psbch_a_interleaved, out, pbch_deinterleaving_pattern[i], (psbch_a_interleaved>>i)&1);
-#endif
-  }
-
-  uint32_t out = a_reversed;
-  uint32_t payload = 0;
-  result->xtra_byte = (out>>24)&0xff;
-
-  for (int i=0; i<NR_POLAR_PBCH_PAYLOAD_BITS; i++)
-    payload |= ((out>>i)&1)<<(NR_POLAR_PBCH_PAYLOAD_BITS-i-1);
-#endif  
-
-  uint32_t payload = a_reversed;
-
+#ifdef DEBUG_PBCH
   printf("PSBCH payload received 0x%x \n", payload);
+#endif
   
   for (int i=0; i<3; i++)
     result->decoded_output[i] = (uint8_t)((payload>>((3-i)<<3))&0xff);
