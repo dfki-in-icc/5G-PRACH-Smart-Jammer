@@ -767,7 +767,7 @@ int main(int argc, char **argv)
         }
 	fapiPbch_t result;
 
-	ret = nr_rx_pbch(UE,
+  ret = nr_rx_pbch(UE,
                    &proc,
                    estimateSz, 
                    dl_ch_estimates,
