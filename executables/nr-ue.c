@@ -99,7 +99,8 @@
 typedef enum {
   pss = 0,
   pbch = 1,
-  si = 2
+  si = 2,
+  pbsch = 3,
 } sync_mode_t;
 
 queue_t nr_rach_ind_queue;
@@ -495,6 +496,7 @@ static void UE_synch(void *arg) {
   static int freq_offset=0;
   UE->is_synchronized = 0;
 
+  LOG_I(NR_MAC, "Melissa, we are here %s():%d. UE->UE_scan %d\n", __FUNCTION__, __LINE__, UE->UE_scan);
   if (UE->UE_scan == 0) {
 
     for (i=0; i<openair0_cfg[UE->rf_map.card].rx_num_channels; i++) {
@@ -509,57 +511,18 @@ static void UE_synch(void *arg) {
 
     }
 
-    sync_mode = pbch;
+    sync_mode = get_softmodem_params()->sl_mode == 2 ? pbsch : pbch;
+    LOG_I(NR_MAC, "Melissa, we are here %s():%d. sync_mode %d\n", __FUNCTION__, __LINE__, sync_mode);
+
   } else {
     LOG_E(PHY,"Fixme!\n");
-    /*
-    for (i=0; i<openair0_cfg[UE->rf_map.card].rx_num_channels; i++) {
-      downlink_frequency[UE->rf_map.card][UE->rf_map.chain+i] = bands_to_scan.band_info[CC_id].dl_min;
-      uplink_frequency_offset[UE->rf_map.card][UE->rf_map.chain+i] =
-        bands_to_scan.band_info[CC_id].ul_min-bands_to_scan.band_info[CC_id].dl_min;
-      openair0_cfg[UE->rf_map.card].rx_freq[UE->rf_map.chain+i] = downlink_frequency[CC_id][i];
-      openair0_cfg[UE->rf_map.card].tx_freq[UE->rf_map.chain+i] =
-        downlink_frequency[CC_id][i]+uplink_frequency_offset[CC_id][i];
-      openair0_cfg[UE->rf_map.card].rx_gain[UE->rf_map.chain+i] = UE->rx_total_gain_dB;
-    }
-    */
   }
 
-  LOG_W(PHY, "Starting sync detection\n");
+  LOG_W(PHY, "Melissa Starting sync detection\n");
 
   switch (sync_mode) {
-    /*
-    case pss:
-      LOG_I(PHY,"[SCHED][UE] Scanning band %d (%d), freq %u\n",bands_to_scan.band_info[current_band].band, current_band,bands_to_scan.band_info[current_band].dl_min+current_offset);
-      //lte_sync_timefreq(UE,current_band,bands_to_scan.band_info[current_band].dl_min+current_offset);
-      current_offset += 20000000; // increase by 20 MHz
-
-      if (current_offset > bands_to_scan.band_info[current_band].dl_max-bands_to_scan.band_info[current_band].dl_min) {
-        current_band++;
-        current_offset=0;
-      }
-
-      if (current_band==bands_to_scan.nbands) {
-        current_band=0;
-        oai_exit=1;
-      }
-
-      for (i=0; i<openair0_cfg[UE->rf_map.card].rx_num_channels; i++) {
-        downlink_frequency[UE->rf_map.card][UE->rf_map.chain+i] = bands_to_scan.band_info[current_band].dl_min+current_offset;
-        uplink_frequency_offset[UE->rf_map.card][UE->rf_map.chain+i] = bands_to_scan.band_info[current_band].ul_min-bands_to_scan.band_info[0].dl_min + current_offset;
-        openair0_cfg[UE->rf_map.card].rx_freq[UE->rf_map.chain+i] = downlink_frequency[CC_id][i];
-        openair0_cfg[UE->rf_map.card].tx_freq[UE->rf_map.chain+i] = downlink_frequency[CC_id][i]+uplink_frequency_offset[CC_id][i];
-        openair0_cfg[UE->rf_map.card].rx_gain[UE->rf_map.chain+i] = UE->rx_total_gain_dB;
-
-        if (UE->UE_scan_carrier) {
-          openair0_cfg[UE->rf_map.card].autocal[UE->rf_map.chain+i] = 1;
-        }
-      }
-
-      break;
-    */
     case pbch:
-      LOG_I(PHY, "[UE thread Synch] Running Initial Synch (mode %d)\n",UE->mode);
+      LOG_I(PHY, "Melissa [UE thread Synch] Running Initial Synch (mode %d)\n",UE->mode);
 
       uint64_t dl_carrier, ul_carrier;
       nr_get_carrier_frequencies(UE, &dl_carrier, &ul_carrier);
@@ -606,8 +569,13 @@ static void UE_synch(void *arg) {
 
       case si:
       default:
+        LOG_I(NR_MAC, "Melissa, we are here %s():%d.\n", __FUNCTION__, __LINE__);
         break;
       }
+     case pbsch:
+      LOG_I(PHY, "[UE thread Synch] Running Initial SL-Synch (mode %d)\n", UE->mode);
+      //if (nr_sl_initial_sync(&syncD->proc, UE, 2, get_softmodem_params()->sl_mode) == 2) {
+      break;
   }
 }
 
@@ -652,14 +620,17 @@ void processSlotTX(void *arg) {
 
 void processSlotRX(void *arg) {
 
+  LOG_I(NR_MAC, "Melissa, we are here %s():%d\n", __FUNCTION__, __LINE__);
   nr_rxtx_thread_data_t *rxtxD = (nr_rxtx_thread_data_t *) arg;
   UE_nr_rxtx_proc_t *proc = &rxtxD->proc;
   PHY_VARS_NR_UE    *UE   = rxtxD->UE;
   fapi_nr_config_request_t *cfg = &UE->nrUE_config;
+  LOG_I(NR_MAC, "Melissa, we are here %s():%d\n", __FUNCTION__, __LINE__);
   int rx_slot_type = nr_ue_slot_select(cfg, proc->frame_rx, proc->nr_slot_rx);
   int tx_slot_type = nr_ue_slot_select(cfg, proc->frame_tx, proc->nr_slot_tx);
   uint8_t gNB_id = 0;
   NR_UE_PDCCH_CONFIG phy_pdcch_config={0};
+  LOG_I(NR_MAC, "Melissa, we are here %s():%d\n", __FUNCTION__, __LINE__);
 
   if (IS_SOFTMODEM_NOS1 || get_softmodem_params()->sa) {
     /* send tick to RLC and PDCP every ms */
@@ -671,6 +642,8 @@ void processSlotRX(void *arg) {
     }
   }
 
+  LOG_I(NR_MAC, "Melissa, we are here %s():%d, rx_slot_type %d, tx_slot_type %d\n",
+        __FUNCTION__, __LINE__, rx_slot_type, tx_slot_type);
   if (rx_slot_type == NR_DOWNLINK_SLOT || rx_slot_type == NR_MIXED_SLOT){
 
     if(UE->if_inst != NULL && UE->if_inst->dl_indication != NULL) {
@@ -731,7 +704,7 @@ void processSlotRX(void *arg) {
     }
     LOG_D(PHY,"****** end TX-Chain for AbsSubframe %d.%d ******\n", proc->frame_tx, proc->nr_slot_tx);
   }
-
+  LOG_I(NR_MAC, "Melissa, we are here %s():%d\n", __FUNCTION__, __LINE__);
   ue_ta_procedures(UE, proc->nr_slot_tx, proc->frame_tx);
 }
 
@@ -843,12 +816,15 @@ void *UE_thread(void *arg) {
   UE->lost_sync = 0;
   UE->is_synchronized = 0;
   AssertFatal(UE->rfdevice.trx_start_func(&UE->rfdevice) == 0, "Could not start the device\n");
+  LOG_I(NR_MAC, "Melissa, we are here %s():%d\n", __FUNCTION__, __LINE__);
 
   notifiedFIFO_t nf;
   initNotifiedFIFO(&nf);
+  LOG_I(NR_MAC, "Melissa, we are here %s():%d\n", __FUNCTION__, __LINE__);
 
   notifiedFIFO_t freeBlocks;
   initNotifiedFIFO_nothreadSafe(&freeBlocks);
+  LOG_I(NR_MAC, "Melissa, we are here %s():%d\n", __FUNCTION__, __LINE__);
 
   int nbSlotProcessing=0;
   int thread_idx=0;
@@ -859,7 +835,9 @@ void *UE_thread(void *arg) {
   const int nb_slot_frame = UE->frame_parms.slots_per_frame;
   int absolute_slot=0, decoded_frame_rx=INT_MAX, trashed_frames=0;
 
+  LOG_I(NR_MAC, "Melissa, we are here %s():%d, NR_RX_NB_TH %d\n", __FUNCTION__, __LINE__, NR_RX_NB_TH);
   for (int i=0; i<NR_RX_NB_TH+1; i++) {// NR_RX_NB_TH working + 1 we are making to be pushed
+    LOG_I(NR_MAC, "Melissa, we are here %s():%d\n", __FUNCTION__, __LINE__);
     notifiedFIFO_elt_t *newElt = newNotifiedFIFO_elt(sizeof(nr_rxtx_thread_data_t), RX_JOB_ID,&nf,processSlotRX);
     nr_rxtx_thread_data_t *curMsg=(nr_rxtx_thread_data_t *)NotifiedFifoData(newElt);
     initNotifiedFIFO(&curMsg->txFifo);
@@ -868,6 +846,7 @@ void *UE_thread(void *arg) {
 
   while (!oai_exit) {
     if (UE->lost_sync) {
+      LOG_I(NR_MAC, "Melissa, we are here %s():%d.\n", __FUNCTION__, __LINE__);
       int nb = abortTpoolJob(&(get_nrUE_params()->Tpool),RX_JOB_ID);
       nb += abortNotifiedFIFOJob(&nf, RX_JOB_ID);
       LOG_I(PHY,"Number of aborted slots %d\n",nb);
@@ -879,6 +858,7 @@ void *UE_thread(void *arg) {
     }
 
     if (syncRunning) {
+      LOG_I(NR_MAC, "Melissa, we are here %s():%d.\n", __FUNCTION__, __LINE__);
       notifiedFIFO_elt_t *res=tryPullTpool(&nf,&(get_nrUE_params()->Tpool));
 
       if (res) {
@@ -901,6 +881,7 @@ void *UE_thread(void *arg) {
     AssertFatal( !syncRunning, "At this point synchronization can't be running\n");
 
     if (!UE->is_synchronized) {
+      LOG_I(NR_MAC, "Melissa, we are here %s():%d. UE is not synchronized\n", __FUNCTION__, __LINE__);
       readFrame(UE, &timestamp, false);
       notifiedFIFO_elt_t *Msg=newNotifiedFIFO_elt(sizeof(syncData_t),0,&nf,UE_synch);
       syncData_t *syncMsg=(syncData_t *)NotifiedFifoData(Msg);
@@ -1117,7 +1098,7 @@ void init_NR_UE_threads(int nb_inst) {
   for (inst=0; inst < nb_inst; inst++) {
     PHY_VARS_NR_UE *UE = PHY_vars_UE_g[inst][0];
 
-    LOG_I(PHY,"Intializing UE Threads for instance %d (%p,%p)...\n",inst,PHY_vars_UE_g[inst],PHY_vars_UE_g[inst][0]);
+    LOG_I(PHY,"Melissa Intializing UE Threads for instance %d (%p,%p)...\n",inst,PHY_vars_UE_g[inst],PHY_vars_UE_g[inst][0]);
     threadCreate(&threads[inst], UE_thread, (void *)UE, "UEthread", -1, OAI_PRIORITY_RT_MAX);
     if (!IS_SOFTMODEM_NOSTATS_BIT) {
       pthread_t stat_pthread;

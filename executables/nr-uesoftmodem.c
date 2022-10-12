@@ -520,6 +520,7 @@ int main( int argc, char **argv ) {
     if(IS_SOFTMODEM_DOSCOPE) {
       load_softscope("nr",PHY_vars_UE_g[0][0]);
     }
+    LOG_I(NR_MAC, "Melissa, we are here %s():%d\n", __FUNCTION__, __LINE__);
 
     init_NR_UE_threads(1);
     printf("UE threads created by %ld\n", gettid());
