@@ -383,7 +383,14 @@ struct NR_DL_FRAME_PARMS {
   uint32_t ofdm_offset_divisor;
 };
 
-
+/* NR Sidelink PSBCH payload fields */
+typedef struct {
+  uint32_t coverageIndicator : 1;
+  uint32_t tddConfig : 12;
+  uint32_t DFN : 10;
+  uint32_t slotIndex : 7;
+  uint32_t reserved : 2;
+} PSBCH_payload;
 
 #define KHz (1000UL)
 #define MHz (1000*KHz)

@@ -427,7 +427,7 @@ int nr_rx_pbch( PHY_VARS_NR_UE *ue,
                &nr_ue_common_vars->common_vars_rx_data_per_thread[proc->thread_id].rxdataF[0][(symbol_offset+1)*frame_parms->ofdm_symbol_size],frame_parms->ofdm_symbol_size*3,1,1);
 #endif
   // symbol refers to symbol within SSB. symbol_offset is the offset of the SSB wrt start of slot
-  double log2_maxh;
+  double log2_maxh = 0;
 
   for (symbol=1; symbol<4; symbol++) {
     const uint16_t nb_re=symbol == 2 ? 72 : 180;
@@ -568,7 +568,7 @@ int nr_rx_pbch( PHY_VARS_NR_UE *ue,
   
   proc->decoded_frame_rx = frame_number_4lsb;
 #ifdef DEBUG_PBCH
-  printf("xtra_byte %x payload %x\n", xtra_byte, payload);
+  printf("xtra_byte %x payload %x\n", result->xtra_byte, payload);
 
   for (int i=0; i<(NR_POLAR_PBCH_PAYLOAD_BITS>>3); i++) {
     //     printf("unscrambling pbch_a[%d] = %x \n", i,pbch_a[i]);
@@ -590,3 +590,160 @@ int nr_rx_pbch( PHY_VARS_NR_UE *ue,
 
   return 0;
 }
+
+int nr_rx_psbch( PHY_VARS_NR_UE *ue,
+                UE_nr_rxtx_proc_t *proc,
+                int estimateSz, struct complex16 dl_ch_estimates [][estimateSz],
+                NR_UE_PBCH *nr_ue_pbch_vars,
+                NR_DL_FRAME_PARMS *frame_parms,
+                uint8_t gNB_id,
+                uint8_t i_ssb,
+                MIMO_mode_t mimo_mode,
+                NR_UE_PDCCH_CONFIG *phy_pdcch_config,
+                fapiPbch_t *result) {
+
+  NR_UE_COMMON *nr_ue_common_vars = &ue->common_vars;
+  int max_h=0;
+  int symbol;
+  uint8_t nushift;
+  uint16_t M;
+  uint8_t Lmax=frame_parms->Lmax;
+  uint32_t decoderState=0;
+  int16_t psbch_e_rx[960]= {0}; //Fixme: previous version erase only NR_POLAR_PBCH_E bytes
+  int16_t psbch_unClipped[960]= {0};
+  int psbch_e_rx_idx=0;
+  int symbol_offset=1;
+
+  if (ue->is_synchronized > 0)
+    symbol_offset=nr_get_ssb_start_symbol(frame_parms, i_ssb)%(frame_parms->symbols_per_slot);
+  else
+    symbol_offset=0;
+
+#ifdef DEBUG_PBCH
+  write_output("rxdataF0_pbch.m","rxF0pbch",
+               &nr_ue_common_vars->common_vars_rx_data_per_thread[proc->thread_id].rxdataF[0][(symbol_offset+1)*frame_parms->ofdm_symbol_size],frame_parms->ofdm_symbol_size*3,1,1);
+#endif
+  // symbol refers to symbol within SSB. symbol_offset is the offset of the SSB wrt start of slot
+  double log2_maxh = 0;
+
+  for (symbol=1; symbol<4; symbol++) {
+    const uint16_t nb_re=symbol == 2 ? 72 : 180;
+    __attribute__ ((aligned(32))) struct complex16 rxdataF_ext[frame_parms->nb_antennas_rx][PBCH_MAX_RE_PER_SYMBOL];
+    __attribute__ ((aligned(32))) struct complex16 dl_ch_estimates_ext[frame_parms->nb_antennas_rx][PBCH_MAX_RE_PER_SYMBOL];
+    memset(dl_ch_estimates_ext,0, sizeof  dl_ch_estimates_ext);
+    nr_pbch_extract(nr_ue_common_vars->common_vars_rx_data_per_thread[proc->thread_id].rxdataF,
+                    estimateSz,
+                    dl_ch_estimates,
+                    rxdataF_ext,
+                    dl_ch_estimates_ext,
+                    symbol,
+                    symbol_offset,
+                    frame_parms);
+#ifdef DEBUG_PBCH
+    LOG_I(PHY,"[PHY] PBCH Symbol %d ofdm size %d\n",symbol, frame_parms->ofdm_symbol_size );
+    LOG_I(PHY,"[PHY] PBCH starting channel_level\n");
+#endif
+
+    if (symbol == 1) {
+      max_h = nr_pbch_channel_level(dl_ch_estimates_ext,
+                                    frame_parms,
+                                    nb_re);
+      log2_maxh = 3+(log2_approx(max_h)/2);
+    }
+
+#ifdef DEBUG_PBCH
+    LOG_I(PHY,"[PHY] PBCH log2_maxh = %d (%d)\n",log2_maxh,max_h);
+#endif
+    __attribute__ ((aligned(32))) struct complex16 rxdataF_comp[frame_parms->nb_antennas_rx][PBCH_MAX_RE_PER_SYMBOL];
+    nr_pbch_channel_compensation(rxdataF_ext,
+                                 dl_ch_estimates_ext,
+                                 nb_re,
+                                 rxdataF_comp,
+                                 frame_parms,
+				 log2_maxh); // log2_maxh+I0_shift
+
+    int nb=symbol==2 ? 144 : 360;
+    nr_pbch_quantize(psbch_e_rx+psbch_e_rx_idx,
+		     (short *)rxdataF_comp[0],
+		     nb);
+    memcpy(psbch_unClipped+psbch_e_rx_idx, rxdataF_comp[0], nb*sizeof(int16_t));
+    psbch_e_rx_idx+=nb;
+  }
+
+  // legacy code use int16, but it is complex16
+  UEscopeCopy(ue, pbchRxdataF_comp, psbch_unClipped, sizeof(struct complex16), frame_parms->nb_antennas_rx, psbch_e_rx_idx/2);
+  UEscopeCopy(ue, pbchLlr, psbch_e_rx, sizeof(int16_t), frame_parms->nb_antennas_rx, psbch_e_rx_idx);
+#ifdef DEBUG_PBCH
+  for (int cnt = 0; cnt < 864  ; cnt++)
+    printf("psbch rx llr %d\n",*(psbch_e_rx+cnt));
+  
+#endif
+  //un-scrambling
+  M =  NR_POLAR_PBCH_E;
+  nushift = (Lmax==4)? i_ssb&3 : i_ssb&7;
+  uint32_t psbch_a_interleaved=0;
+  uint32_t psbch_a_prime=0;
+  nr_pbch_unscrambling(nr_ue_pbch_vars, psbch_e_rx, frame_parms->Nid_cell, nushift, M, NR_POLAR_PBCH_E,
+		       0, 0,  psbch_a_prime, &psbch_a_interleaved);
+  //polar decoding de-rate matching
+  uint64_t tmp=0;
+  decoderState = polar_decoder_int16(psbch_e_rx,(uint64_t *)&tmp,0,
+                                     NR_POLAR_PBCH_MESSAGE_TYPE, NR_POLAR_PBCH_PAYLOAD_BITS, NR_POLAR_PBCH_AGGREGATION_LEVEL);
+  psbch_a_prime=tmp;
+  if(decoderState)
+    return(decoderState);
+
+  uint32_t payload=0;
+  for (int i=0; i<NR_POLAR_PBCH_PAYLOAD_BITS; i++)
+    payload |= (((uint64_t)psbch_a_prime>>i)&1)<<(31-i);
+
+#ifdef DEBUG_PBCH
+  printf("PSBCH payload received 0x%x \n", payload);
+#endif
+  
+  for (int i=0; i<3; i++)
+    result->decoded_output[i] = (uint8_t)((payload>>((3-i)<<3))&0xff);
+  
+  frame_parms->half_frame_bit = (result->xtra_byte>>4)&0x01; // computing the half frame index from the extra byte
+  frame_parms->ssb_index = i_ssb;  // ssb index corresponds to i_ssb for Lmax = 4,8
+  
+  if (Lmax == 64) {   // for Lmax = 64 ssb index 4th,5th and 6th bits are in extra byte
+    for (int i=0; i<3; i++)
+      frame_parms->ssb_index += (((result->xtra_byte>>(7-i))&0x01)<<(3+i));
+  }
+
+  ue->symbol_offset = nr_get_ssb_start_symbol(frame_parms,frame_parms->ssb_index);
+
+  if (frame_parms->half_frame_bit)
+  ue->symbol_offset += (frame_parms->slots_per_frame>>1)*frame_parms->symbols_per_slot;
+
+  uint8_t frame_number_4lsb = 0;
+
+  for (int i=0; i<4; i++)
+    frame_number_4lsb |= ((result->xtra_byte>>i)&1)<<(3-i);
+  
+  proc->decoded_frame_rx = frame_number_4lsb;
+#ifdef DEBUG_PBCH
+  printf("xtra_byte %x payload %x\n", result->xtra_byte, payload);
+
+  for (int i=0; i<(NR_POLAR_PBCH_PAYLOAD_BITS>>3); i++) {
+    //     printf("unscrambling psbch_a[%d] = %x \n", i,psbch_a[i]);
+    printf("[PBCH] decoder payload[%d] = %x\n",i,result->decoded_output[i]);
+  }
+
+#endif
+  nr_downlink_indication_t dl_indication;
+  fapi_nr_rx_indication_t *rx_ind=calloc(sizeof(*rx_ind),1);
+  uint16_t number_pdus = 1;
+
+  nr_fill_dl_indication(&dl_indication, NULL, rx_ind, proc, ue, gNB_id, phy_pdcch_config);
+  nr_fill_rx_indication(rx_ind, FAPI_NR_RX_PDU_TYPE_SSB, gNB_id, ue, NULL, NULL, number_pdus, proc,(void *)result);
+
+  if (ue->if_inst && ue->if_inst->dl_indication)
+    ue->if_inst->dl_indication(&dl_indication, NULL);
+  else
+    free(rx_ind); // dl_indication would free(), so free() here if not called
+
+  return 0;
+}
+

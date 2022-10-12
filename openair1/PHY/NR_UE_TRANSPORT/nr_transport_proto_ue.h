@@ -1089,8 +1089,23 @@ int rx_sss(PHY_VARS_NR_UE *phy_vars_ue,int32_t *tot_metric,uint8_t *flip_max,uin
 */
 int nr_rx_pbch( PHY_VARS_NR_UE *ue,
                 UE_nr_rxtx_proc_t *proc,
-		const int estimateSz,
-		struct complex16 dl_ch_estimates[][estimateSz],
+                const int estimateSz,
+                struct complex16 dl_ch_estimates[][estimateSz],
+                NR_UE_PBCH *nr_ue_pbch_vars,
+                NR_DL_FRAME_PARMS *frame_parms,
+                uint8_t eNB_id,
+                uint8_t i_ssb,
+                MIMO_mode_t mimo_mode,
+                NR_UE_PDCCH_CONFIG *phy_pdcch_config,
+                fapiPbch_t* result);
+
+/*! \brief receiver for the PBCH
+  \returns number of tx antennas or -1 if error
+*/
+int nr_rx_psbch( PHY_VARS_NR_UE *ue,
+                UE_nr_rxtx_proc_t *proc,
+                const int estimateSz,
+                struct complex16 dl_ch_estimates[][estimateSz],
                 NR_UE_PBCH *nr_ue_pbch_vars,
                 NR_DL_FRAME_PARMS *frame_parms,
                 uint8_t eNB_id,

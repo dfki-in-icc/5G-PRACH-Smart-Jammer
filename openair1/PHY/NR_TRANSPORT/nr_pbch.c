@@ -437,3 +437,183 @@ int nr_generate_pbch(nfapi_nr_dl_tti_ssb_pdu *ssb_pdu,
 
   return 0;
 }
+
+int nr_generate_sl_psbch(nfapi_nr_dl_tti_ssb_pdu *ssb_pdu,
+                     int32_t *txdataF,
+                     int16_t amp,
+                     uint8_t ssb_start_symbol,
+                     uint8_t n_hf,
+                     int sfn,
+                     nfapi_nr_config_request_scf_t *config,
+                     NR_DL_FRAME_PARMS *frame_parms) {
+  int k,l,m;
+  int16_t mod_pbch_e[NR_POLAR_PBCH_E];
+  uint8_t idx=0;
+  uint16_t M;
+  uint8_t nushift;
+  uint64_t a_reversed=0;
+  LOG_D(PHY, "PBCH SL generation started\n");
+  NR_gNB_PBCH m_pbch;
+  NR_gNB_PBCH *pbch = &m_pbch;
+  PSBCH_payload psbch_payload;             // NR Side Link Payload for Rel 16
+
+  /* payload is 56 bits */
+  psbch_payload.coverageIndicator = 1;     // 1 bit
+  psbch_payload.tddConfig = 0xFFF;         // 12 bits for TDD configuration
+  psbch_payload.DFN = 0x3FF;               // 10 bits for DFN
+  psbch_payload.slotIndex = 0x2A;          // 7 bits for Slot Index //frame_parms->p_TDD_UL_DL_ConfigDedicated->slotIndex;
+  psbch_payload.reserved = 0;              // 2 bits reserved
+
+  memset((void *)pbch, 0, sizeof(NR_gNB_PBCH));
+  pbch->pbch_a = *((uint32_t *)&psbch_payload);
+  pbch->pbch_a_interleaved = pbch->pbch_a; // skip interlevaing for Sidelink
+  uint8_t ssb_index = ssb_pdu->ssb_pdu_rel15.SsbBlockIndex;
+  uint8_t Lmax = frame_parms->Lmax;
+
+  pbch->pbch_a_prime = 0;
+
+  #ifdef DEBUG_PBCH_ENCODING
+    printf("PSBCH payload = 0x%08x\n",pbch->pbch_a);
+  #endif
+
+  // Encoder reversal
+  for (int i=0; i<NR_POLAR_PBCH_PAYLOAD_BITS; i++)
+    a_reversed |= (((uint64_t)pbch->pbch_a_interleaved>>i)&1)<<(31-i);
+
+  /// CRC, coding and rate matching
+  polar_encoder_fast (&a_reversed, (void*)pbch->pbch_e, 0, 0,
+                      NR_POLAR_PBCH_MESSAGE_TYPE, NR_POLAR_PBCH_PAYLOAD_BITS, NR_POLAR_PBCH_AGGREGATION_LEVEL);
+
+#ifdef DEBUG_PBCH_ENCODING
+  printf("PBCH SL generation started\n");
+  printf("Channel coding:\n");
+
+  for (int i=0; i<NR_POLAR_PBCH_E_DWORD; i++)
+    printf("sl_pbch_e[%d]: 0x%08x\n", i, pbch->pbch_e[i]);
+
+  printf("\n");
+#endif
+  /// Scrambling
+  M =  NR_POLAR_PBCH_E;
+  nushift = (Lmax==4)? ssb_index&3 : ssb_index&7;
+  nr_pbch_scrambling(pbch, (uint32_t)config->cell_config.phy_cell_id.value, nushift, M, NR_POLAR_PBCH_E, 1, 0);
+#ifdef DEBUG_PBCH_ENCODING
+  printf("Scrambling:\n");
+
+  for (int i=0; i<NR_POLAR_PBCH_E_DWORD; i++) {
+    printf("sl_pbch_e[%d]: 0x%08x\n", i, pbch->pbch_e[i]);
+}
+
+  printf("\n");
+#endif
+
+  /// QPSK modulation
+  for (int i=0; i<NR_POLAR_PBCH_E>>1; i++) {
+    idx = ((pbch->pbch_e[(i<<1)>>5]>>((i<<1)&0x1f))&3);
+    mod_pbch_e[i<<1] = nr_qpsk_mod_table[idx<<1];
+    mod_pbch_e[(i<<1)+1] = nr_qpsk_mod_table[(idx<<1)+1];
+#ifdef DEBUG_PBCH
+    printf("i %d idx %d  mod_pbch %d %d\n", i, idx, mod_pbch_e[2*i], mod_pbch_e[2*i+1]);
+#endif
+  }
+
+  /// Resource mapping
+  nushift = config->cell_config.phy_cell_id.value &3;
+  // PBCH modulated symbols are mapped  within the SSB block on symbols 1, 2, 3 excluding the subcarriers used for the PBCH DMRS
+  ///symbol 1  [0:239] -- 180 mod symbols
+  k = frame_parms->first_carrier_offset + frame_parms->ssb_start_subcarrier;
+  l = ssb_start_symbol + 1;
+  m = 0;
+
+  for (int ssb_sc_idx = 0; ssb_sc_idx < 240; ssb_sc_idx++) {
+    if ((ssb_sc_idx&3) == nushift) {  //skip DMRS
+      k++;
+      continue;
+    } else {
+#ifdef DEBUG_PBCH
+      printf("m %d ssb_sc_idx %d at k %d of l %d\n", m, ssb_sc_idx, k, l);
+#endif
+      ((int16_t *)txdataF)[(l*frame_parms->ofdm_symbol_size + k)<<1]       = (amp * mod_pbch_e[m<<1]) >> 15;
+      ((int16_t *)txdataF)[((l*frame_parms->ofdm_symbol_size + k)<<1) + 1] = (amp * mod_pbch_e[(m<<1) + 1]) >> 15;
+      k++;
+      m++;
+    }
+
+    if (k >= frame_parms->ofdm_symbol_size)
+      k-=frame_parms->ofdm_symbol_size;
+  }
+
+  ///symbol 2  [0:47 ; 192:239] -- 72 mod symbols
+  k = frame_parms->first_carrier_offset + frame_parms->ssb_start_subcarrier;
+  l++;
+  m=180;
+
+  for (int ssb_sc_idx = 0; ssb_sc_idx < 48; ssb_sc_idx++) {
+    if ((ssb_sc_idx&3) == nushift) {
+      k++;
+      continue;
+    } else {
+#ifdef DEBUG_PBCH
+      printf("m %d ssb_sc_idx %d at k %d of l %d\n", m, ssb_sc_idx, k, l);
+#endif
+      ((int16_t *)txdataF)[(l*frame_parms->ofdm_symbol_size + k)<<1]       = (amp * mod_pbch_e[m<<1]) >> 15;
+      ((int16_t *)txdataF)[((l*frame_parms->ofdm_symbol_size + k)<<1) + 1] = (amp * mod_pbch_e[(m<<1) + 1]) >> 15;
+      k++;
+      m++;
+    }
+
+    if (k >= frame_parms->ofdm_symbol_size)
+      k-=frame_parms->ofdm_symbol_size;
+  }
+
+  k += 144;
+
+  if (k >= frame_parms->ofdm_symbol_size)
+    k-=frame_parms->ofdm_symbol_size;
+
+  m=216;
+
+  for (int ssb_sc_idx = 192; ssb_sc_idx < 240; ssb_sc_idx++) {
+    if ((ssb_sc_idx&3) == nushift) {
+      k++;
+      continue;
+    } else {
+#ifdef DEBUG_PBCH
+      printf("m %d ssb_sc_idx %d at k %d of l %d\n", m, ssb_sc_idx, k, l);
+#endif
+      ((int16_t *)txdataF)[(l*frame_parms->ofdm_symbol_size + k)<<1]       = (amp * mod_pbch_e[m<<1]) >> 15;
+      ((int16_t *)txdataF)[((l*frame_parms->ofdm_symbol_size + k)<<1) + 1] = (amp * mod_pbch_e[(m<<1) + 1]) >> 15;
+      k++;
+      m++;
+    }
+
+    if (k >= frame_parms->ofdm_symbol_size)
+      k-=frame_parms->ofdm_symbol_size;
+  }
+
+  ///symbol 3  [0:239] -- 180 mod symbols
+  k = frame_parms->first_carrier_offset + frame_parms->ssb_start_subcarrier;
+  l++;
+  m=252;
+
+  for (int ssb_sc_idx = 0; ssb_sc_idx < 240; ssb_sc_idx++) {
+    if ((ssb_sc_idx&3) == nushift) {
+      k++;
+      continue;
+    } else {
+#ifdef DEBUG_PBCH
+      printf("m %d ssb_sc_idx %d at k %d of l %d\n", m, ssb_sc_idx, k, l);
+#endif
+      ((int16_t *)txdataF)[(l*frame_parms->ofdm_symbol_size + k)<<1]       = (amp * mod_pbch_e[m<<1]) >> 15;
+      ((int16_t *)txdataF)[((l*frame_parms->ofdm_symbol_size + k)<<1) + 1] = (amp * mod_pbch_e[(m<<1) + 1]) >> 15;
+      k++;
+      m++;
+    }
+
+
+    if (k >= frame_parms->ofdm_symbol_size)
+      k-=frame_parms->ofdm_symbol_size;
+  }
+
+  return 0;
+}
