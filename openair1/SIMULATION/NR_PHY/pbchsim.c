@@ -768,21 +768,21 @@ int main(int argc, char **argv)
 	fapiPbch_t result;
 
 	ret = nr_rx_pbch(UE,
-                    &proc,
-                    estimateSz, 
-                    dl_ch_estimates,
-                    UE->pbch_vars[0],
-                    frame_parms,
-                    0,
-                    ssb_index%8,
-                    SISO,
-                    &phy_pdcch_config,
-                    &result);
+                   &proc,
+                   estimateSz, 
+                   dl_ch_estimates,
+                   UE->pbch_vars[0],
+                   frame_parms,
+                   0,
+                   ssb_index%8,
+                   SISO,
+                   &phy_pdcch_config,
+                   &result);
                     
 	/* Side link rx PSBCH */
   ret = nr_rx_psbch(UE,
                     &proc,
-                    estimateSz, 
+                    estimateSz,
                     dl_ch_estimates,
                     UE->pbch_vars[0],
                     frame_parms,
