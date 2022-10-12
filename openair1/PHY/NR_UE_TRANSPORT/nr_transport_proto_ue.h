@@ -1369,6 +1369,10 @@ void init_transport_channels(uint8_t);
 
 void generate_RIV_tables(void);
 
+int nr_sl_initial_sync(UE_nr_rxtx_proc_t *proc,
+                    PHY_VARS_NR_UE *phy_vars_ue,
+                    int n_frames);
+
 /*!
   \brief This function performs the initial cell search procedure - PSS detection, SSS detection and PBCH detection.  At the
   end, the basic frame parameters are known (Frame configuration - TDD/FDD and cyclic prefix length,
@@ -1378,7 +1382,7 @@ void generate_RIV_tables(void);
   @param mode current running mode
 */
 int nr_initial_sync(UE_nr_rxtx_proc_t *proc,
-                    PHY_VARS_NR_UE *phy_vars_ue, 
+                    PHY_VARS_NR_UE *phy_vars_ue,
                     int n_frames,
                     int sa);
 

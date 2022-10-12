@@ -574,7 +574,7 @@ static void UE_synch(void *arg) {
       }
      case pbsch:
       LOG_I(PHY, "[UE thread Synch] Running Initial SL-Synch (mode %d)\n", UE->mode);
-      //if (nr_sl_initial_sync(&syncD->proc, UE, 2, get_softmodem_params()->sl_mode) == 2) {
+      if (nr_sl_initial_sync(&syncD->proc, UE, 2) == 0) {
       break;
   }
 }
