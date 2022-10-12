@@ -1270,14 +1270,14 @@ class Containerize():
 		html_queue.put(html_cell)
 		HTML.CreateHtmlTestRowQueue(self.pingOptions, 'OK', 1, html_queue)
 
-	def PingFromContainer(self, HTML, RAN, UE):
+	def PingFromNode(self, HTML, RAN, UE):
 		self.exitStatus = 0
 		ymlPath = self.yamlPath[0].split('/')
 		logPath = '../cmake_targets/log/' + ymlPath[1]
 		cmd = 'mkdir -p ' + logPath
 		deployStatus = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT, universal_newlines=True, timeout=10)
 
-		cmd = 'docker exec ' + self.pingContName + ' /bin/bash -c "ping ' + self.pingOptions + '" 2>&1 | tee ' + logPath + '/ping_' + HTML.testCase_id + '.log || true'
+		cmd = self.prefix + self.ping_args + '" 2>&1 | tee ' + logPath + '/ping_' + HTML.testCase_id + '.log || true'
 
 		logging.info(cmd)
 		deployStatus = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT, universal_newlines=True, timeout=100)
