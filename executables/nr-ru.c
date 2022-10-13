@@ -1307,7 +1307,8 @@ int start_streaming(RU_t *ru) {
 }
 
 int nr_start_if(struct RU_t_s *ru, struct PHY_VARS_gNB_s *gNB) {
-  for (int i=0;i<ru->nb_rx;i++) ru->openair0_cfg.rxbase[i] = ru->common.rxdata[i];
+  if (ru->if_south <= REMOTE_IF5)
+    for (int i=0;i<ru->nb_rx;i++) ru->openair0_cfg.rxbase[i] = ru->common.rxdata[i];
   ru->openair0_cfg.rxsize = ru->nr_frame_parms->samples_per_subframe*10;
   reset_meas(&ru->ifdevice.tx_fhaul);
   return(ru->ifdevice.trx_start_func(&ru->ifdevice));
