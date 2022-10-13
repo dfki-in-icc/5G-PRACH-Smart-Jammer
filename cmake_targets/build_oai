@@ -754,9 +754,22 @@ function main() {
   ######################
   if [ ! -z "$BUILD_OPTLIB" ] ; then 
      for oklib in $BUILD_OPTLIB ; do
-         compilations \
-             $BUILD_DIR $oklib \
-             lib${oklib}.so $dbin/lib${oklib}.so
+         if [ "$oklib" != "nrqtscope" ]; then
+            compilations \
+                $BUILD_DIR $oklib \
+                lib${oklib}.so $dbin/lib${oklib}.so
+          fi 
+
+          if [ "$oklib" = "nrqtscope" ]; then
+              HEAD_PATH="$(find /usr/ -iname qwidget.h)"
+              if [ "$HEAD_PATH" != "" ]; then 
+                  compilations \
+                      $BUILD_DIR $oklib \
+                      lib${oklib}.so $dbin/lib${oklib}.so
+              else
+                  echo_warning "qt scope could not compile; make sure to install the Qt packages!"
+              fi
+          fi
      done
   fi
   
