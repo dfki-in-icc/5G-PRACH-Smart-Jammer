@@ -44,6 +44,7 @@
 #include "executables/nr-uesoftmodem.h"
 #include "PHY/CODING/nrLDPC_extern.h"
 #include "common/utils/nr/nr_common.h"
+#include "openair1/PHY/TOOLS/phy_scope_interface.h"
 
 //#define ENABLE_PHY_PAYLOAD_DEBUG 1
 
@@ -53,9 +54,50 @@
 static uint64_t nb_total_decod =0;
 static uint64_t nb_error_decod =0;
 
+static int nb_ack = 0;
+static int nb_nack = 0;
+static uint32_t blockSize = 0;
+static uint8_t dl_mcs = 0;
+static uint16_t nofRBs = 0;
+
 notifiedFIFO_t freeBlocks_dl;
 notifiedFIFO_elt_t *msgToPush_dl;
 int nbDlProcessing =0;
+
+
+static  tpool_t pool_dl;
+//extern double cpuf;
+
+void getKPIUE(extended_kpi_ue* kpiStructure)
+{
+  float dl_bler = 1.0;
+  if (nb_ack > 0){
+    dl_bler = (float)nb_nack / (float)nb_ack;
+  }
+
+  kpiStructure->DL_BLER = dl_bler;
+  kpiStructure->blockSize = blockSize;
+  kpiStructure->dl_mcs = dl_mcs;
+  kpiStructure->nofRBs = nofRBs;
+}
+
+void init_dlsch_tpool(uint8_t num_dlsch_threads) {
+  char *params = NULL;
+
+  if( num_dlsch_threads==0) {
+    params = calloc(1,2);
+    memcpy(params,"N",1);
+  }
+  else {
+    params = calloc(1,(num_dlsch_threads*3)+1);
+    for (int i=0; i<num_dlsch_threads; i++) {
+      memcpy(params+(i*3),"-1,",3);
+    }
+  }
+
+  initNamedTpool(params, &pool_dl, false,"dlsch");
+  free(params);
+}
 
 void free_nr_ue_dlsch(NR_UE_DLSCH_t **dlschptr, uint16_t N_RB_DL) {
 
@@ -194,6 +236,11 @@ bool nr_ue_postDecode(PHY_VARS_NR_UE *phy_vars_ue, notifiedFIFO_elt_t *req, bool
 
   // if all segments are done
   if (last) {
+    nb_ack++;
+    blockSize = harq_process->TBS;
+    dl_mcs = harq_process->mcs;
+    nofRBs = harq_process->nb_rb;
+
     if (decodeSuccess) {
       //LOG_D(PHY,"[UE %d] DLSCH: Setting ACK for nr_slot_rx %d TBS %d mcs %d nb_rb %d harq_process->round %d\n",
       //      phy_vars_ue->Mod_id,nr_slot_rx,harq_process->TBS,harq_process->mcs,harq_process->nb_rb, harq_process->round);
@@ -209,6 +256,7 @@ bool nr_ue_postDecode(PHY_VARS_NR_UE *phy_vars_ue, notifiedFIFO_elt_t *req, bool
       dlsch->last_iteration_cnt = rdata->decodeIterations;
       LOG_D(PHY, "DLSCH received ok \n");
     } else {
+      nb_nack++;
       //LOG_D(PHY,"[UE %d] DLSCH: Setting NAK for SFN/SF %d/%d (pid %d, status %d, round %d, TBS %d, mcs %d) Kr %d r %d harq_process->round %d\n",
       //      phy_vars_ue->Mod_id, frame, nr_slot_rx, harq_pid,harq_process->status, harq_process->round,harq_process->TBS,harq_process->mcs,Kr,r,harq_process->round);
       harq_process->ack = 0;

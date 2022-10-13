@@ -2484,6 +2484,24 @@ set (SIMUSRC
 ##########################
 add_library(SIMU SHARED ${SIMUSRC} )
 
+# Qt-based scope
+set(QTSCOPE_SOURCE_NR
+  ${OPENAIR1_DIR}/PHY/TOOLS/nr_phy_qt_scope.cpp
+  )
+
+find_package(Qt5 COMPONENTS Widgets Charts)
+if (Qt5_FOUND)
+    message ("Qt5 Packages found.")
+    # Creates rules for calling the Meta-Object Compiler (moc) on the given source files
+    qt5_wrap_cpp(QTSCOPE_SOURCE_NR ${OPENAIR1_DIR}/PHY/TOOLS/nr_phy_qt_scope.h)
+
+    add_library(nrqtscope MODULE ${QTSCOPE_SOURCE_NR})
+    # Use the Widgets module from Qt5.
+    target_link_libraries(nrqtscope Qt5::Widgets Qt5::Charts)
+else (Qt5_FOUND)
+    message ("WARNING: Qt5 Packages NOT found, so qt scope can NOT be displayed.")
+endif ()
+
 add_library(SIMU_ETH
 ${OPENAIR1_DIR}/SIMULATION/ETH_TRANSPORT/netlink_init.c
 ${OPENAIR1_DIR}/SIMULATION/ETH_TRANSPORT/multicast_link.c

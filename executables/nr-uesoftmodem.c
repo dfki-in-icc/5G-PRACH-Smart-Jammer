@@ -518,6 +518,10 @@ int main( int argc, char **argv ) {
     set_latency_target();
     mlockall(MCL_CURRENT | MCL_FUTURE);
 
+    if(IS_SOFTMODEM_DOSCOPE_QT) {
+      load_softscope("nrqt",PHY_vars_UE_g[0][0]);
+    }
+
     if(IS_SOFTMODEM_DOSCOPE) {
       load_softscope("nr",PHY_vars_UE_g[0][0]);
     }
