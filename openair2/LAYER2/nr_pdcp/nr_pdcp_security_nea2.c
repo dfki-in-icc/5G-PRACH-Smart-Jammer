@@ -54,8 +54,9 @@ void nr_pdcp_security_nea2_cipher(void *security_context, unsigned char *buffer,
 
   uint8_t out[length];
   memset(out, 0, length);
-  const size_t len_out = length;
-  aes_128_ctr(&p, length, buffer, len_out, out);
+
+  byte_array_t msg = {.buf =  buffer, .len = length};;
+  aes_128_ctr(&p, msg, length, out);
 
   memcpy(buffer, out, length);
 }

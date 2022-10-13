@@ -28,6 +28,7 @@
 
 #include "assertions.h"
 #include "common/utils/LOG/log.h"
+
 #include "openair3/SECU/aes_128_cbc_cmac.h"
 
 #include "osa_defs.h"
@@ -234,7 +235,8 @@ int stream_compute_integrity_eia2(stream_cipher_t *stream_cipher, uint8_t out[4]
   const size_t m_length = stream_cipher->blength >> 3;
 
   uint8_t result[16] = {0};
-  aes_128_cbc_cmac(&k_iv, m_length, stream_cipher->message, sizeof(result), result);
+  byte_array_t msg = {.len = m_length, .buf = stream_cipher->message };
+  aes_128_cbc_cmac(&k_iv, msg, sizeof(result), result);
 
   memcpy(out, result, 4);
   return 0;

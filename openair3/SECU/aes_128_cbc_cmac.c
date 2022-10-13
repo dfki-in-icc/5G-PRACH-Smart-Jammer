@@ -32,7 +32,7 @@
 static 
 const char *propq = NULL;
 
-void aes_128_cbc_cmac(const aes_128_t* k_iv, size_t len, uint8_t const plain[len], size_t len_out, uint8_t out[len_out])
+void aes_128_cbc_cmac(const aes_128_t* k_iv, byte_array_t msg, size_t len_out, uint8_t out[len_out])
 {
   OSSL_LIB_CTX* library_context = OSSL_LIB_CTX_new();
   assert(library_context != NULL);
@@ -74,7 +74,7 @@ void aes_128_cbc_cmac(const aes_128_t* k_iv, size_t len, uint8_t const plain[len
   assert(rc != 0);
 
   /* Make one or more calls to process the data to be authenticated */
-  rc = EVP_MAC_update(mctx, plain, len);
+  rc = EVP_MAC_update(mctx, msg.buf, msg.len);
   assert(rc != 0);
 
   /* Make a call to the final with a NULL buffer to get the length of the MAC */
@@ -90,7 +90,7 @@ void aes_128_cbc_cmac(const aes_128_t* k_iv, size_t len, uint8_t const plain[len
 #else
 // code for 1.1.x or lower
 
-void aes_128_cbc_cmac(const aes_128_t* k_iv, size_t len, uint8_t const plain[len], size_t len_out, uint8_t out[len_out])
+void aes_128_cbc_cmac(const aes_128_t* k_iv, byte_array_t msg, size_t len_out, uint8_t out[len_out])
 {
   DevAssert(k_iv != NULL);
 
@@ -113,7 +113,7 @@ void aes_128_cbc_cmac(const aes_128_t* k_iv, size_t len, uint8_t const plain[len
 
   CMAC_Update(ctx, iv, sz_iv);
 
-  CMAC_Update(ctx, plain, len);
+  CMAC_Update(ctx, msg.buf, msg.len);
   size_t len_res = 0;
   CMAC_Final(ctx, out, &len_res);
   DevAssert(len_res <= len_out);

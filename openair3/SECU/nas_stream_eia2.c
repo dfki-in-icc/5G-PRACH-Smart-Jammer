@@ -28,19 +28,7 @@
 #include "secu_defs.h"
 
 #include <arpa/inet.h>
-
-#include <openssl/aes.h>
-#include <openssl/cmac.h>
-#include <openssl/evp.h>
-
-// test
-#include <openssl/ssl.h>
-#include <openssl/err.h>
-#include <openssl/bio.h>
-#include <openssl/core_names.h>
-
 #include "aes_128_cbc_cmac.h"
-
 #include "assertions.h"
 #include "conversions.h"
 
@@ -54,7 +42,6 @@
 
 int nas_stream_encrypt_eia2(nas_stream_cipher_t *stream_cipher, uint8_t out[4])
 {
-  
   DevAssert(stream_cipher != NULL);
   DevAssert(stream_cipher->message != NULL);
   DevAssert(stream_cipher->bearer < 32);
@@ -68,9 +55,10 @@ int nas_stream_encrypt_eia2(nas_stream_cipher_t *stream_cipher, uint8_t out[4])
   k_iv.iv8.d.direction = stream_cipher->direction;
   k_iv.iv8.d.count = htonl(stream_cipher->count);
 
-  size_t const m_length_a = stream_cipher->blength >> 3;
+  size_t const m_length = stream_cipher->blength >> 3;
   uint8_t result[16] = {0};
-  aes_128_cbc_cmac(&k_iv, m_length_a, stream_cipher->message, sizeof(result), result);
+  byte_array_t msg = {.buf = stream_cipher->message, .len = m_length };
+  aes_128_cbc_cmac(&k_iv, msg, sizeof(result), result);
   
   memcpy(out, result, 4);
   return 0;

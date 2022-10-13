@@ -22,13 +22,12 @@
 // TS 133 401 pag. 88
 
 #include "aes_128_ctr.h"
-
 #include "common/utils/assertions.h"
 #include <openssl/aes.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
 
-void aes_128_ctr(const aes_128_t* k_iv, size_t len, uint8_t const plain[len], size_t len_out, uint8_t out[len_out])
+void aes_128_ctr(const aes_128_t* k_iv, byte_array_t msg, size_t len_out, uint8_t out[len_out])
 {
   DevAssert(k_iv != NULL);
 
@@ -49,7 +48,7 @@ void aes_128_ctr(const aes_128_t* k_iv, size_t len, uint8_t const plain[len], si
   OPENSSL_assert(EVP_CIPHER_CTX_iv_length(ctx) == AES_BLOCK_SIZE);
 
   int len_ev = 0;
-  rc = EVP_EncryptUpdate(ctx, out, &len_ev, plain, len);
+  rc = EVP_EncryptUpdate(ctx, out, &len_ev, msg.buf, msg.len);
   DevAssert(!(len_ev > len_out) && "Buffer overflow");
 
   // Finalise the encryption. Normally ciphertext bytes may be written at

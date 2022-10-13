@@ -26,6 +26,7 @@
 #include <string.h>
 
 #include "common/utils/LOG/log.h"
+#include "openair2/UTIL/ALG_DS/DS/byte_array.h"
 #include "openair3//SECU//aes_128_ctr.h"
 
 #include "assertions.h"
@@ -160,7 +161,8 @@ int stream_encrypt_eea2(stream_cipher_t *stream_cipher, uint8_t **out)
   const uint32_t byte_lenght = stream_cipher->blength >> 3;
   // Precondition: out must have enough space, at least as much as the input
   const size_t len_out = byte_lenght;
-  aes_128_ctr(&p, byte_lenght, stream_cipher->message, len_out, *out);
+  byte_array_t msg = {.buf = stream_cipher->message, .len =byte_lenght};
+  aes_128_ctr(&p, msg, len_out, *out);
   return 0;
 }
 

@@ -23,11 +23,11 @@
 #define AES_128_CTR_OAI_H
 
 #include "aes_128.h"
-
+#include "openair2/UTIL/ALG_DS/DS/byte_array.h"
 #include <endian.h>
 #include <stdint.h>
 #include <stdlib.h>
 
-void aes_128_ctr(const aes_128_t* k_iv, size_t len, uint8_t const plain[len], size_t len_out, uint8_t out[len_out]);
+void aes_128_ctr(const aes_128_t* k_iv, byte_array_t msg, size_t len_out, uint8_t out[len_out]);
 
 #endif
