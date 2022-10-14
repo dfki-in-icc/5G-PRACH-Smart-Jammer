@@ -100,7 +100,7 @@ typedef enum {
   pss = 0,
   pbch = 1,
   si = 2,
-  pbsch = 3,
+  psbch = 3,
 } sync_mode_t;
 
 queue_t nr_rach_ind_queue;
@@ -495,8 +495,8 @@ static void UE_synch(void *arg) {
   //int CC_id = UE->CC_id;
   static int freq_offset=0;
   UE->is_synchronized = 0;
+  UE->is_synchronizedSL = 0;
 
-  LOG_I(NR_MAC, "Melissa, we are here %s():%d. UE->UE_scan %d\n", __FUNCTION__, __LINE__, UE->UE_scan);
   if (UE->UE_scan == 0) {
 
     for (i=0; i<openair0_cfg[UE->rf_map.card].rx_num_channels; i++) {
@@ -511,18 +511,16 @@ static void UE_synch(void *arg) {
 
     }
 
-    sync_mode = get_softmodem_params()->sl_mode == 2 ? pbsch : pbch;
-    LOG_I(NR_MAC, "Melissa, we are here %s():%d. sync_mode %d\n", __FUNCTION__, __LINE__, sync_mode);
-
+    sync_mode = get_softmodem_params()->sl_mode == 2 ? psbch : pbch;
   } else {
     LOG_E(PHY,"Fixme!\n");
   }
 
-  LOG_W(PHY, "Melissa Starting sync detection\n");
+  LOG_W(PHY, "Starting sync detection\n");
 
   switch (sync_mode) {
     case pbch:
-      LOG_I(PHY, "Melissa [UE thread Synch] Running Initial Synch (mode %d)\n",UE->mode);
+      LOG_I(PHY, "[UE thread Synch] Running Initial Synch (mode %d)\n",UE->mode);
 
       uint64_t dl_carrier, ul_carrier;
       nr_get_carrier_frequencies(UE, &dl_carrier, &ul_carrier);
@@ -564,17 +562,30 @@ static void UE_synch(void *arg) {
 
           UE->rfdevice.trx_set_freq_func(&UE->rfdevice,&openair0_cfg[0],0);
         }
-
-        break;
-
-      case si:
-      default:
-        LOG_I(NR_MAC, "Melissa, we are here %s():%d.\n", __FUNCTION__, __LINE__);
-        break;
       }
-     case pbsch:
+
+      break;
+
+    case si:
+      break;
+    case psbch:
       LOG_I(PHY, "[UE thread Synch] Running Initial SL-Synch (mode %d)\n", UE->mode);
-      if (nr_sl_initial_sync(&syncD->proc, UE, 2) == 0) {
+      int initial_synch = nr_sl_initial_sync(&syncD->proc, UE, 2);
+      if (initial_synch >= 0) {
+        LOG_I(PHY,"Found SynchRef UE\n");
+        // TODO:: rerun with new cell parameters and frequency-offset
+        if (UE->UE_scan_carrier == 1) {
+          UE->UE_scan_carrier = 0;
+        } else {
+          // TODO:: Need to protect while changing status
+          UE->is_synchronizedSL = 1;
+        }
+      } else {
+        // TODO:: Adjust Rx Freq by adding freq_offset to the ul_CarrierFreq
+        LOG_I(PHY,"No SynchRefUE found\n");
+      }
+      break;
+    default:
       break;
   }
 }
@@ -620,17 +631,14 @@ void processSlotTX(void *arg) {
 
 void processSlotRX(void *arg) {
 
-  LOG_I(NR_MAC, "Melissa, we are here %s():%d\n", __FUNCTION__, __LINE__);
   nr_rxtx_thread_data_t *rxtxD = (nr_rxtx_thread_data_t *) arg;
   UE_nr_rxtx_proc_t *proc = &rxtxD->proc;
   PHY_VARS_NR_UE    *UE   = rxtxD->UE;
   fapi_nr_config_request_t *cfg = &UE->nrUE_config;
-  LOG_I(NR_MAC, "Melissa, we are here %s():%d\n", __FUNCTION__, __LINE__);
   int rx_slot_type = nr_ue_slot_select(cfg, proc->frame_rx, proc->nr_slot_rx);
   int tx_slot_type = nr_ue_slot_select(cfg, proc->frame_tx, proc->nr_slot_tx);
   uint8_t gNB_id = 0;
   NR_UE_PDCCH_CONFIG phy_pdcch_config={0};
-  LOG_I(NR_MAC, "Melissa, we are here %s():%d\n", __FUNCTION__, __LINE__);
 
   if (IS_SOFTMODEM_NOS1 || get_softmodem_params()->sa) {
     /* send tick to RLC and PDCP every ms */
@@ -704,7 +712,7 @@ void processSlotRX(void *arg) {
     }
     LOG_D(PHY,"****** end TX-Chain for AbsSubframe %d.%d ******\n", proc->frame_tx, proc->nr_slot_tx);
   }
-  LOG_I(NR_MAC, "Melissa, we are here %s():%d\n", __FUNCTION__, __LINE__);
+
   ue_ta_procedures(UE, proc->nr_slot_tx, proc->frame_tx);
 }
 
@@ -815,16 +823,14 @@ void *UE_thread(void *arg) {
   UE->rfdevice.host_type = RAU_HOST;
   UE->lost_sync = 0;
   UE->is_synchronized = 0;
+  UE->is_synchronizedSL = 0;
   AssertFatal(UE->rfdevice.trx_start_func(&UE->rfdevice) == 0, "Could not start the device\n");
-  LOG_I(NR_MAC, "Melissa, we are here %s():%d\n", __FUNCTION__, __LINE__);
 
   notifiedFIFO_t nf;
   initNotifiedFIFO(&nf);
-  LOG_I(NR_MAC, "Melissa, we are here %s():%d\n", __FUNCTION__, __LINE__);
 
   notifiedFIFO_t freeBlocks;
   initNotifiedFIFO_nothreadSafe(&freeBlocks);
-  LOG_I(NR_MAC, "Melissa, we are here %s():%d\n", __FUNCTION__, __LINE__);
 
   int nbSlotProcessing=0;
   int thread_idx=0;
@@ -835,9 +841,7 @@ void *UE_thread(void *arg) {
   const int nb_slot_frame = UE->frame_parms.slots_per_frame;
   int absolute_slot=0, decoded_frame_rx=INT_MAX, trashed_frames=0;
 
-  LOG_I(NR_MAC, "Melissa, we are here %s():%d, NR_RX_NB_TH %d\n", __FUNCTION__, __LINE__, NR_RX_NB_TH);
   for (int i=0; i<NR_RX_NB_TH+1; i++) {// NR_RX_NB_TH working + 1 we are making to be pushed
-    LOG_I(NR_MAC, "Melissa, we are here %s():%d\n", __FUNCTION__, __LINE__);
     notifiedFIFO_elt_t *newElt = newNotifiedFIFO_elt(sizeof(nr_rxtx_thread_data_t), RX_JOB_ID,&nf,processSlotRX);
     nr_rxtx_thread_data_t *curMsg=(nr_rxtx_thread_data_t *)NotifiedFifoData(newElt);
     initNotifiedFIFO(&curMsg->txFifo);
@@ -846,7 +850,6 @@ void *UE_thread(void *arg) {
 
   while (!oai_exit) {
     if (UE->lost_sync) {
-      LOG_I(NR_MAC, "Melissa, we are here %s():%d.\n", __FUNCTION__, __LINE__);
       int nb = abortTpoolJob(&(get_nrUE_params()->Tpool),RX_JOB_ID);
       nb += abortNotifiedFIFOJob(&nf, RX_JOB_ID);
       LOG_I(PHY,"Number of aborted slots %d\n",nb);
@@ -880,8 +883,9 @@ void *UE_thread(void *arg) {
 
     AssertFatal( !syncRunning, "At this point synchronization can't be running\n");
 
-    if (!UE->is_synchronized) {
-      LOG_I(NR_MAC, "Melissa, we are here %s():%d. UE is not synchronized\n", __FUNCTION__, __LINE__);
+    int need_sync_uU = !UE->is_synchronized && get_softmodem_params()->sl_mode == 0;
+    int need_sync_SL = !UE->is_synchronizedSL && get_softmodem_params()->sl_mode == 2;
+    if (need_sync_uU | need_sync_SL) {
       readFrame(UE, &timestamp, false);
       notifiedFIFO_elt_t *Msg=newNotifiedFIFO_elt(sizeof(syncData_t),0,&nf,UE_synch);
       syncData_t *syncMsg=(syncData_t *)NotifiedFifoData(Msg);
@@ -895,7 +899,8 @@ void *UE_thread(void *arg) {
 
     if (start_rx_stream==0) {
       start_rx_stream=1;
-      syncInFrame(UE, &timestamp);
+      if (get_softmodem_params()->sl_mode == 0)
+        syncInFrame(UE, &timestamp);
       UE->rx_offset=0;
       UE->time_sync_cell=0;
       // read in first symbol
@@ -1098,7 +1103,7 @@ void init_NR_UE_threads(int nb_inst) {
   for (inst=0; inst < nb_inst; inst++) {
     PHY_VARS_NR_UE *UE = PHY_vars_UE_g[inst][0];
 
-    LOG_I(PHY,"Melissa Intializing UE Threads for instance %d (%p,%p)...\n",inst,PHY_vars_UE_g[inst],PHY_vars_UE_g[inst][0]);
+    LOG_I(PHY,"Intializing UE Threads for instance %d (%p,%p)...\n",inst,PHY_vars_UE_g[inst],PHY_vars_UE_g[inst][0]);
     threadCreate(&threads[inst], UE_thread, (void *)UE, "UEthread", -1, OAI_PRIORITY_RT_MAX);
     if (!IS_SOFTMODEM_NOSTATS_BIT) {
       pthread_t stat_pthread;

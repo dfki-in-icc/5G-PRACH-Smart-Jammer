@@ -670,6 +670,10 @@ typedef struct {
   int is_synchronized;
   /// \brief Indicator that UE lost frame synchronization
   int lost_sync;
+  /// \brief Indicator that UE is synchronized to a SyncRef UE on SL
+  int is_synchronizedSL;
+  /// \brief Indicator that UE is an SynchRef UE
+  int is_SynchRef;
   /// Data structure for UE process scheduling
   UE_nr_proc_t proc;
   /// Flag to indicate the UE shouldn't do timing correction at all
