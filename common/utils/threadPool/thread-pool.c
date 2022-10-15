@@ -23,6 +23,7 @@
 
 
 #define _GNU_SOURCE
+#include <assert.h>
 #include <sched.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -194,99 +195,82 @@ void processing(void *arg) {
   //printf("done: %d, %s, in thr %ld\n",in->id, in->txt,pthread_self() );
 }
 
-int main() {
-  notifiedFIFO_t myFifo;
-  initNotifiedFIFO(&myFifo);
-  pushNotifiedFIFO(&myFifo,newNotifiedFIFO_elt(sizeof(struct testData), 1234,NULL,NULL));
+static inline
+int64_t time_now_us(void)
+{
+  struct timespec tms;
 
-  for(int i=10; i>1; i--) {
-    pushNotifiedFIFO(&myFifo,newNotifiedFIFO_elt(sizeof(struct testData), 1000+i,NULL,NULL));
+  /* The C11 way */
+  /* if (! timespec_get(&tms, TIME_UTC))  */
+
+  /* POSIX.1-2008 way */
+  if (clock_gettime(CLOCK_REALTIME,&tms)) {
+    return -1;
   }
+  /* seconds, multiplied with 1 million */
+  int64_t micros = tms.tv_sec * 1000000;
+  /* Add full microseconds */
+  micros += tms.tv_nsec/1000;
+  /* round up if necessary */
+  if (tms.tv_nsec % 1000 >= 500) {
+    ++micros;
+  }
+  return micros;
+}
 
-  displayList(&myFifo);
-  notifiedFIFO_elt_t *tmp=pullNotifiedFIFO(&myFifo);
-  printf("pulled: %lu\n", tmp->key);
-  displayList(&myFifo);
-  tmp=pullNotifiedFIFO(&myFifo);
-  printf("pulled: %lu\n", tmp->key);
-  displayList(&myFifo);
-  abortNotifiedFIFOJob(&myFifo,1005);
-  printf("aborted 1005\n");
-  displayList(&myFifo);
-  pushNotifiedFIFO(&myFifo,newNotifiedFIFO_elt(sizeof(struct testData), 12345678, NULL, NULL));
-  displayList(&myFifo);
-  abortNotifiedFIFOJob(&myFifo,12345678);
-  printf("aborted 12345678\n");
-  displayList(&myFifo);
+static
+int64_t naive_fibonnacci(int64_t a)
+{
+  if(a < 2)
+    return 1;
+  
+  return naive_fibonnacci(a-1) + naive_fibonnacci(a-2);
+}
 
-  do {
-    tmp=pollNotifiedFIFO(&myFifo);
+typedef struct{
+  int64_t a;
+  int64_t time;
+}pair_t;
 
-    if (tmp) {
-      printf("pulled: %lu\n", tmp->key);
-      displayList(&myFifo);
-    } else
-      printf("Empty list \n");
-  } while(tmp);
 
+
+static
+__thread int acc = 0;
+
+static
+void do_work(void* arg)
+{
+  pair_t* a = (pair_t*)arg;
+  assert(a->a < 10);
+  naive_fibonnacci(19 + a->a);
+
+  if((acc % 4096) == 0)
+    printf("%ld \n", time_now_us() -a->time   );  
+  acc += 1;
+
+//  free(a);
+}
+
+int main(void)
+{
   tpool_t  pool;
-  char params[]="1,2,3,4,5";
-  initTpool(params,&pool, true);
+  char params[]="0,1,2,3,4,5,6,7";
+  initTpool(params,&pool, false);
   notifiedFIFO_t worker_back;
   initNotifiedFIFO(&worker_back);
 
   sleep(1);
-  int cumulProcessTime=0, cumulTime=0;
-  struct timespec st,end;
-  clock_gettime(CLOCK_MONOTONIC, &st);
-  int nb_jobs=4;
-  for (int i=0; i <1000 ; i++) {
-    int parall=nb_jobs;
-    for (int j=0; j <parall ; j++) {
-      notifiedFIFO_elt_t *work=newNotifiedFIFO_elt(sizeof(struct testData), i, &worker_back, processing);
-      struct testData *x=(struct testData *)NotifiedFifoData(work);
-      x->id=i;
+
+  int64_t now = time_now_us();
+  for (int i=0; i < 8*1024*1024; i++) {
+      notifiedFIFO_elt_t *work=newNotifiedFIFO_elt(sizeof(pair_t), i, &worker_back, do_work);
+      pair_t* x =( pair_t *)NotifiedFifoData(work);
+      x->a=0; //i%10;
+      x->time = now; 
       pushTpool(&pool, work);
     }
-    int sleepmax=0;
-    while (parall) {
-      tmp=pullTpool(&worker_back,&pool);
-      if (tmp) {
-	parall--;
-	struct testData *dd=NotifiedFifoData(tmp);
-	if (dd->sleepTime > sleepmax)
-	  sleepmax=dd->sleepTime;
-	delNotifiedFIFO_elt(tmp);
-      }
-    }
-    cumulProcessTime+=sleepmax;
-  }
-  clock_gettime(CLOCK_MONOTONIC, &end);
-  long long dur=(end.tv_sec-st.tv_sec)*1000*1000+(end.tv_nsec-st.tv_nsec)/1000;
-  printf("In µs, Total time per group of %d job:%lld, work time per job %d, overhead per job %lld\n",
-	 nb_jobs, dur/1000, cumulProcessTime/1000, (dur-cumulProcessTime)/(1000*nb_jobs));
-
-	/*	
-  for (int i=0; i <1000 ; i++) {
-    notifiedFIFO_elt_t *work=newNotifiedFIFO_elt(sizeof(struct testData), i, &worker_back, processing);
-    struct testData *x=(struct testData *)NotifiedFifoData(work);
-    x->id=i;
-    pushTpool(&pool, work);
-  }
-
-  do {
-    tmp=pullTpool(&worker_back,&pool);
-
-    if (tmp) {
-      struct testData *dd=NotifiedFifoData(tmp);
-      printf("Result: %s\n",dd->txt);
-      delNotifiedFIFO_elt(tmp);
-    } else
-      printf("Empty list \n");
-
-    abortTpoolJob(&pool,510);
-  } while(tmp);
-	*/
-  return 0;
+  
+  sleep(20);
 }
+
 #endif
