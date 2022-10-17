@@ -55,45 +55,34 @@ extern "C" {
 /* 
  * SEC 0: General data types that make the mapping between ASN data types and RIC ones
  */
-typedef byte_array_t            adapter_OCTET_STRING_t;
-typedef adapter_OCTET_STRING_t  adapter_PrintableString_t;
-typedef adapter_OCTET_STRING_t  adapter_TimeStamp_t; // IETF RFC 5905 , NTP spec, 4 bytes long
+typedef byte_array_t              adapter_OCTET_STRING_t;
+typedef adapter_OCTET_STRING_t    adapter_PrintableString_t;
+typedef uint32_t                  adapter_TimeStamp_t; // IETF RFC 5905 , NTP spec, 4 bytes long
 
-/*******************************************************
- * SEC 1. RIC Event Trigger Definition as per $8.2.1.1
- *******************************************************/
-typedef struct kpm_event_trigger_t {
-  unsigned long ms; // reporting period in milliseconds
-} kpm_event_trigger_t;
-
-/*******************************************************
- * SEC 2. RIC Action Definition as per $8.2.1.2
- *******************************************************/
-
-typedef byte_array_t  adapter_MeasurementTypeName_t;
-typedef long	        adapter_MeasurementTypeID_t;
-typedef byte_array_t  adapter_PLMNIdentity_t;   // 3 bytes size
-typedef uint64_t      adapter_NRCellIdentity_t; // 36 bits size
+typedef adapter_PrintableString_t adapter_MeasurementTypeName_t;
+typedef long	                    adapter_MeasurementTypeID_t;
+typedef byte_array_t              adapter_PLMNIdentity_t;   // 3 bytes size
+typedef uint64_t                  adapter_NRCellIdentity_t; // 36 bits size
  
 
-typedef long          adapter_QCI_t;
-typedef byte_array_t	adapter_SST_t;// size = 1 byte
-typedef byte_array_t  adapter_SD_t; // size = 3 byte
+typedef long                      adapter_QCI_t;
+typedef byte_array_t	            adapter_SST_t;// size = 1 byte
+typedef byte_array_t              adapter_SD_t; // size = 3 byte
 
 typedef struct S_NSSAI {
 	adapter_SST_t	  sST;
 	adapter_SD_t	  *sD;	/* OPTIONAL */
 } adapter_S_NSSAI_t;
 
-typedef long	        adapter_FiveQI_t; // values: 0..255
-typedef long	        adapter_QosFlowIdentifier_t;
-
+typedef long	                    adapter_FiveQI_t; // values: 0..255
+typedef long	                    adapter_QosFlowIdentifier_t;
+typedef uint64_t                  adapter_EUTRACellIdentity_t; // 28 bit size
 /* 
- * Structure 'adapter_LabelInfoList_t' defines the values of the subcounters that are applicable to an associated measurement type
+ * Structure 'adapter_LabelInfoItem_t_t' defines the values of the subcounters that are applicable to an associated measurement type
  * identified by measName or measID. All the fields are indicated as optional. If value is != NULL, it means presence of the optional 
  * field.
  */
-typedef struct adapter_LabelInfoList_t {
+typedef struct adapter_LabelInfoItem_t {
   long	                        *noLabel;	/* OPTIONAL: looks like this is an enumeration datatype that accepts only true (0) */
 	adapter_PLMNIdentity_t	      *plmnID;	/* OPTIONAL */
 	adapter_S_NSSAI_t	            *sliceID;	/* OPTIONAL */
@@ -115,18 +104,29 @@ typedef struct adapter_LabelInfoList_t {
 	long	                        *min;	    /* OPTIONAL */
 	long	                        *max;	    /* OPTIONAL */
 	long	                        *avg;	    /* OPTIONAL */
-} adapter_LabelInfoList_t;
+} adapter_LabelInfoItem_t;
+
+void free_label_info(adapter_LabelInfoItem_t *l);
+void cp_label_info(adapter_LabelInfoItem_t *dst, adapter_LabelInfoItem_t const *src);
 
 typedef struct MeasInfo_t {
   enum {MeasurementType_NAME = 1, MeasurementType_ID=2}	measType;
   adapter_MeasurementTypeName_t	 measName;
 	adapter_MeasurementTypeID_t	   measID; 
-	adapter_LabelInfoList_t	       *labelInfo;   // list implemented as array having a maximum of 'maxnoofLabelInfo' items
+	adapter_LabelInfoItem_t	         *labelInfo;   // list implemented as array having a maximum of 'maxnoofLabelInfo' items
   size_t                         labelInfo_len;// length of the array labelInfo
 } MeasInfo_t; 
 
-typedef uint64_t  adapter_EUTRACellIdentity_t; // 28 bit size
+/*******************************************************
+ * SEC 1. RIC Event Trigger Definition as per $8.2.1.1
+ *******************************************************/
+typedef struct kpm_event_trigger_t {
+  unsigned long ms; // reporting period in milliseconds
+} kpm_event_trigger_t;
 
+/*******************************************************
+ * SEC 2. RIC Action Definition as per $8.2.1.2
+ *******************************************************/
 typedef struct kpm_action_def_t
 {
   /*
@@ -166,7 +166,6 @@ typedef struct kpm_action_def_t
 } kpm_action_def_t;
 
 void free_kpm_action_def(kpm_action_def_t* src);
-void free_kpm_label_info(adapter_LabelInfoList_t *l);
 /************************************************
  * SEC 3. RIC Indication Header as per $8.2.1.3.1
  ************************************************/

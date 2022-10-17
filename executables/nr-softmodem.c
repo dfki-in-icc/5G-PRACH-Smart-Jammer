@@ -941,17 +941,8 @@ void read_kpm_sm(kpm_ind_data_t* data)
 
   // Fill KPM indication header
   kpm_ind_hdr_t* hdr = &data->hdr;
-  hdr->collectStartTime.len = 4;
-  hdr->collectStartTime.buf = calloc(1, 4);
-  assert(hdr->collectStartTime.buf != NULL && "memory exhausted");
-
   int64_t t = time_now_us();
-  uint32_t t_truncated = t / 1000000;
-#if BYTE_ORDER == LITTLE_ENDIAN
-  t_truncated = __bswap_32 (t_truncated);
-#endif
-
-  memcpy(hdr->collectStartTime.buf, &t_truncated, 4);
+  hdr->collectStartTime = t / 1000000; // needs to be truncated to 32 bits to arrive to a resolution of seconds
   hdr->fileFormatversion = NULL;
   hdr->senderName = NULL;
   hdr->senderType = NULL;
@@ -1060,10 +1051,12 @@ void read_kpm_sm(kpm_ind_data_t* data)
 
       // TODO: assign labelInfo_len according to the action definition (?)
       info->labelInfo_len = 1;
-      info->labelInfo = calloc(info->labelInfo_len, sizeof(adapter_LabelInfoList_t));
-      adapter_LabelInfoList_t* label = &info->labelInfo[0];
+      info->labelInfo = calloc(info->labelInfo_len, sizeof(adapter_LabelInfoItem_t));
+      assert(info->labelInfo != NULL && "memory exhausted");
+      adapter_LabelInfoItem_t* label = &info->labelInfo[0];
       label->noLabel = calloc(1, sizeof(long));
-      *(label->noLabel) = 1;
+      assert(label->noLabel != NULL && "memory exhausted");
+      *(label->noLabel) = 0;
     }
   } else {
     for (size_t i = 0; i < msg->MeasData_len; i++) {
