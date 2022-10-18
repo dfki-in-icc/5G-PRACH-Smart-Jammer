@@ -710,7 +710,6 @@ elif re.match('^InitiateHtml$', mode, re.IGNORECASE):
 	if (CiTestObj.ADBIPAddress != 'none') and (CiTestObj.ADBIPAddress != 'modules'):
 		terminate_ue_flag = False
 		CiTestObj.GetAllUEDevices(terminate_ue_flag)
-		CiTestObj.GetAllCatMDevices(terminate_ue_flag)
 		HTML.SethtmlUEConnected(len(CiTestObj.UEDevices) + len(CiTestObj.CatMDevices))
 		HTML.htmlNb_Smartphones=len(CiTestObj.UEDevices)
 		HTML.htmlNb_CATM_Modules=len(CiTestObj.CatMDevices)
@@ -813,7 +812,6 @@ elif re.match('^TesteNB$', mode, re.IGNORECASE) or re.match('^TestUE$', mode, re
 	if (CiTestObj.ADBIPAddress != 'none') and (CiTestObj.ADBIPAddress != 'modules'):
 		terminate_ue_flag = False
 		CiTestObj.GetAllUEDevices(terminate_ue_flag)
-		CiTestObj.GetAllCatMDevices(terminate_ue_flag)
 	elif (CiTestObj.ADBIPAddress == 'modules'):
 		CiTestObj.UEDevices.append('COTS-Module')
 	else:
@@ -864,15 +862,15 @@ elif re.match('^TesteNB$', mode, re.IGNORECASE) or re.match('^TestUE$', mode, re
 					continue
 				CiTestObj.ShowTestID()
 				GetParametersFromXML(action)
-				if action == 'Initialize_UE' or action == 'Attach_UE' or action == 'Detach_UE' or action == 'Ping' or action == 'Iperf' or action == 'Reboot_UE' or action == 'DataDisable_UE' or action == 'DataEnable_UE' or action == 'CheckStatusUE':
-					if (CiTestObj.ADBIPAddress != 'none') and (CiTestObj.ADBIPAddress != 'modules'):
+				#if action == 'Initialize_UE' or action == 'Attach_UE' or action == 'Detach_UE' or action == 'Ping' or action == 'Iperf' or action == 'Reboot_UE' or action == 'DataDisable_UE' or action == 'DataEnable_UE' or action == 'CheckStatusUE':
+#					if (CiTestObj.ADBIPAddress != 'none') and (CiTestObj.ADBIPAddress != 'modules'):
 						#in these cases, having no devices is critical, GetAllUEDevices function has to manage it as a critical error, reason why terminate_ue_flag is set to True
-						terminate_ue_flag = True 
+#						terminate_ue_flag = True 
 						# Now we stop properly the test-suite --> clean reporting
-						status = CiTestObj.GetAllUEDevices(terminate_ue_flag)
-						if not status:
-							RAN.prematureExit = True
-							break
+#						status = CiTestObj.GetAllUEDevices(terminate_ue_flag)
+#						if not status:
+#							RAN.prematureExit = True
+#							break
 				if action == 'Build_eNB':
 					RAN.BuildeNB(HTML)
 				elif action == 'WaitEndBuild_eNB':
@@ -887,10 +885,12 @@ elif re.match('^TesteNB$', mode, re.IGNORECASE) or re.match('^TestUE$', mode, re
 				elif action == 'Terminate_eNB':
 					RAN.TerminateeNB(HTML, EPC)
 				elif action == 'Initialize_UE':
+					print("Calling InitializeUE")
 					CiTestObj.InitializeUE(HTML,RAN, EPC, COTS_UE, InfraUE, CiTestObj.ue_trace, CONTAINERS)
 				elif action == 'Terminate_UE':
 					CiTestObj.TerminateUE(HTML,COTS_UE, InfraUE, CiTestObj.ue_trace)
 				elif action == 'Attach_UE':
+					print("calling action ATTACHUE::")
 					CiTestObj.AttachUE(HTML,RAN,EPC,COTS_UE,InfraUE,CONTAINERS)
 				elif action == 'Detach_UE':
 					CiTestObj.DetachUE(HTML,RAN,EPC,COTS_UE,InfraUE,CONTAINERS)

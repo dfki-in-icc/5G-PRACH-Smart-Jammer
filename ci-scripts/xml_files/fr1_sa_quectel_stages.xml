@@ -30,6 +30,7 @@
  041000
  000002
  011000
+ 011001
  000001
  051000
  000001
@@ -45,6 +46,7 @@
  000001
  071005
  000001
+ 011011
  011002
  081000
 	</TestCaseRequestedList>
@@ -56,7 +58,17 @@
 		<id>nrmodule2_quectel</id>
 		<UE_Trace>yes</UE_Trace>
 	</testCase>
+  <testCase id="011001">
+    <class>Attach_UE</class>
+    <desc>Attach Quectel UE</desc>
+    <id>nrmodule2_quectel</id>
+  </testCase>
 
+  <testCase id = "011011">
+    <class>Detach_UE</class>
+    <desc>Detach Quectel UE </desc>
+    <id>nrmodule2_quectel</id>
+  </testCase>
 
 	<testCase id="011002">
 		<class>Terminate_UE</class>

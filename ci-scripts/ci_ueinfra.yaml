@@ -4,18 +4,19 @@ idefix:
   Kind : quectel
   Process : 
     Name : quectel-CM
-    Cmd : /home/oaicicd/quectel-CM/quectel-CM -4 -s
+    StartCmd : sudo /home/oaicicd/quectel-CM/quectel-CM -4 -s oai.ipv4
+    StopCmd : sudo -S killall --signal SIGKILL quectel-CM 
     Apn :
       ltebox : oai.ipv4
-  WakeupScript : ci_ctl_qtel.py /dev/ttyUSB2 wup
-  DetachScript : ci_ctl_qtel.py /dev/ttyUSB2 detach
+  AttachScript : sudo python3 ci_ctl_qtel.py /dev/ttyUSB2 wup
+  DetachScript : sudo python3 ci_ctl_qtel.py /dev/ttyUSB2 detach
   LogStore : /media/usb-drive/ci_qlogs
-  PLMN : 22201
-  UENetwork : wwan0 
+  UENetwork : ip a show dev wwan0
+  GetIP : sudo python3 ci_ctl_qtel.py /dev/ttyUSB2 getIP
+  MTUSize : sudo python3 ci_ctl_qtel.py /dev/ttyUSB2 mtu
   HostIPAddress : 172.21.16.135
   HostUsername : oaicicd
-  HostPassword : oaicicd
-  HostSourceCodePath : none
+  HostPassword : 
   MTU : 1500
 nrmodule2_quectel:
   ID: nrmodule2_quectel
@@ -23,75 +24,262 @@ nrmodule2_quectel:
   Kind : quectel
   Process :
     Name : quectel-CM
-    Cmd : /home/nrmodule2/quectel-CM/quectel-CM -4 -s
+    StartCmd : sudo /home/nrmodule2/quectel-CM/quectel-CM -4 -s oai.ipv4
+    StopCmd : sudo -S killall --signal SIGKILL quectel-CM      
     Apn :
       OAICN5G : oai
       OAI-Rel14-Docker : oai.ipv4
-  WakeupScript : ci_ctl_qtel.py /dev/ttyUSB2 wup
-  DetachScript : ci_ctl_qtel.py /dev/ttyUSB2 detach
-  LogStore : /media/ci_qlogs  
-  PLMN : 20897
-  UENetwork : wwan0
+  AttachScript : sudo python3 ci_ctl_qtel.py /dev/ttyUSB2 wup
+  DetachScript : sudo python3 ci_ctl_qtel.py /dev/ttyUSB2 detach
+  LogStore : /media/ci_qlogs 
+  GetIP : sudo python3 ci_ctl_qtel.py /dev/ttyUSB2 getIP
+  MTUSize : sudo python3 ci_ctl_qtel.py /dev/ttyUSB2 mtu
+  UENetwork : ip a show dev wwan0
   HostIPAddress : 172.21.16.139
-  HostUsername : nrmodule2 
-  HostPassword : linux 
-  HostSourceCodePath : none
-  StartCommands :
-    - sudo -S ip link set dev wwan1 mtu 1500
+  HostUsername : nrmodule2
+  HostPassword : 
   MTU : 1500
 
-# CAUTION: 192.168.18.89 address has to be changed when the server is moved
-#single UE single ping
-amarisoft_ue_1:
-  ID: amarisoft_ue_1
+adb_ue_1:
+  ID: adb_ue_1
+  State: enabled
+  Kind : adb_ue
+  HostIPAddress: nano
+  HostUsername:  oaicicd
+  HostPassword:
+  Process:
+    Name: adbue
+    StartCmd: python3 ci_ctl_adb.py initializeUE 1
+    StopCmd:  python3 ci_ctl_adb.py terminateUE  1
+  AttachScript: python3 ci_ctl_adb.py attach 1
+  DetachScript:  python3 ci_ctl_adb.py detach 1
+  GetIP: python3 ci_ctl_adb.py getIP 1
+  MTUSize : python3 ci_ctl_adb.py mtu 1
+  UENetwork: ip a show dev rmnet #TODO: require change
+  LogStore : /media/usb-drive/ci_adb_1-logs
+  MTU : 1500
+adb_ue_2:
+  ID: adb_ue_2
+  State: enabled
+  Kind : adb_ue
+  HostIPAddress: nano
+  HostUsername: oaicicd
+  HostPassword:
+  Process:
+    Name: adbue
+    StartCmd: python3 ci_ctl_adb.py initializeUE 2
+    StopCmd:  python3 ci_ctl_adb.py terminateUE 2
+  AttachScript: python3 ci_ctl_adb.py attach 2
+  DetachScript:  python3 ci_ctl_adb.py detach 2
+  GetIP: python3 ci_ctl_adb.py getIP 2
+  MTUSize : python3 ci_ctl_adb.py mtu 2
+  UENetwork: ip a show dev rmnet
+  LogStore : /media/usb-drive/ci_adb_2-logs
+  MTU : 1500
+
+#Multiple Amarisoft UE
+amarisoft_ue:
+  ID: amarisoft_ue
   State : enabled
   Kind : amarisoft
-  #not required for AS config but needed for py script
-  WakeupScript : none
-  DetachScript : none
-  #end 
-  Cmd : /root/NV18-06-2022/ue/lteue
-  Config : /root/NV17-12-21/ue/config/oaicicd-ue-Ping-SATest.cfg 
-  Duration : 60
-  Ping : /tmp/test_ue1.log
-  UELog : /tmp/ue1.log
   HostIPAddress : 172.21.16.144
   HostUsername : root
-  HostPassword : toor 
-  HostSourceCodePath : /tmp
+  HostPassword :
+  AttachScript :
+  DetachScript :
+  GetIP :
+  MTUSize :
+  Process : 
+    Name : lteue-avx2
+    StartCmd : /root/NV18-06-2022/ue/lteue /root/NV18-06-2022/ue/config/oaicicd-ue-ci-test.cfg
+    StopCmd : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"quit"}'
+#UE-1
+amarisoft_ue_1:
+  ID: amarisoft_ue_1
+  Kind: amarisoft_ue
+  AttachScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_on","ue_id" :1}'
+  DetachScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_off","ue_id" :1}'
+  GetIP : python3 ci_ctl_asue.py getIP ue1
+  MTUSize : python3 ci_ctl_asue.py mtu ue1
+  UENetwork : ip netns exec ue1 ip a show dev pdn0
+  HostIPAddress : 172.21.16.144
+  HostUsername : root
+  HostPassword :
+  Process:
+    Name: lteue-avx2
+    StopCmd : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"quit"}'   
+  LogStore : /media/usb-drive/ci_amariue1-logs
+  MTU : 1500
 
-
-#an other scenario example
-#notice : this will not work as such, only suggestion for multi ue scenario
+#UE-2
 amarisoft_ue_2:
   ID: amarisoft_ue_2
-  State : enabled
-  Kind : amarisoft
-  #not required for AS config but needed for py script
-  WakeupScript : none
-  DetachScript : none
-  #end 
-  Cmd : /root/NV18-06-2022/ue/lteue
-  Config : /root/NV17-12-21/ue/config/xxxxxxx.cfg #to be updated for an other scenario 
-  Duration : 60
-  Ping :
-    - /tmp/test_ue1.log #to be updated fo an other scenario
-    - /tmp/test_ue2.log #could be a list for a multi ue scenario
-  UELog :
-    - /tmp/ue1.log
-    - /tmp/ue1.log
-  HostIPAddress : 192.168.18.89
+  Kind: amarisoft_ue  
+  AttachScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_on","ue_id" :2}'
+  DetachScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_off","ue_id" :2}'
+  GetIP : python3 ci_ctl_asue.py getIP ue2 
+  MTUSize : python3 ci_ctl_asue.py mtu ue2
+  UENetwork : ip netns exec ue2 ip a show dev pdn0
+  HostIPAddress : 172.21.16.144
   HostUsername : root
-  HostPassword : toor 
-  HostSourceCodePath : /tmp
+  HostPassword :
+  Process:
+    Name: lteue-avx2
+    StopCmd : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"quit"}' 
+  LogStore : /media/usb-drive/ci_amariue2-logs
+  MTU : 1500
 
+#UE-3
+amarisoft_ue_3:
+  ID: amarisoft_ue_3
+  Kind: amarisoft_ue
+  AttachScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_on","ue_id" :3}'
+  DetachScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_off","ue_id" :3}'
+  GetIP : ip netns exec ue3 ip a show dev
+  UENetwork : pdn0
+  HostIPAddress : 172.21.16.144
+  HostUsername : root
+  HostPassword : 
+  HostSourceCodePath : /tmp
+  Process:
+    Name: lteue-avx2
+    StopCmd : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"quit"}' 
+  LogStore : /media/usb-drive/ci_amariue3-logs
+  MTU : 1500
+
+
+#UE-4
+amarisoft_ue_4:
+  ID: amarisoft_ue_4
+  Kind: amarisoft_ue  
+  AttachScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_on","ue_id" :4}'
+  DetachScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_off","ue_id" :4}'
+  GetIP : ip netns exec ue4 ip a show dev
+  UENetwork : pdn0
+  HostIPAddress : 172.21.16.144
+  HostUsername : root
+  HostPassword : 
+  HostSourceCodePath : /tmp
+  Process:
+    Name: lteue-avx2
+    StopCmd : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"quit"}' 
+  LogStore : /media/usb-drive/ci_amariue4-logs
+  MTU : 1500
+
+#UE-5
+amarisoft_ue_5:
+  ID: amarisoft_ue_5
+  Kind: amarisoft_ue  
+  AttachScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_on","ue_id" :5}'
+  DetachScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_off","ue_id" :5}'
+  GetIP : ip netns exec ue5 ip a show dev
+  UENetwork : pdn0
+  HostIPAddress : 172.21.16.144
+  HostUsername : root
+  HostPassword : 
+  HostSourceCodePath : /tmp
+  Process:
+    Name: lteue-avx2
+    StopCmd : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"quit"}' 
+  LogStore : /media/usb-drive/ci_amariue5-logs
+  MTU : 1500
+
+#UE-6
+amarisoft_ue_6:
+  ID: amarisoft_ue_6
+  Kind: amarisoft_ue  
+  AttachScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_on","ue_id" :6}'
+  DetachScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_off","ue_id" :6}'
+  GetIP : ip netns exec ue6 ip a show dev
+  UENetwork : pdn0
+  HostIPAddress : 172.21.16.144
+  HostUsername : root
+  HostPassword : 
+  HostSourceCodePath : /tmp
+  Process:
+    Name: lteue-avx2
+    StopCmd : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"quit"}' 
+  LogStore : /media/usb-drive/ci_amariue6-logs
+  MTU : 1500
+
+#UE-7
+amarisoft_ue_7:
+  ID: amarisoft_ue_7
+  Kind: amarisoft_ue  
+  AttachScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_on","ue_id" :7}'
+  DetachScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_off","ue_id" :7}'
+  GetIP : ip netns exec ue7 ip a show dev
+  UENetwork : pdn0
+  HostIPAddress : 172.21.16.144
+  HostUsername : root
+  HostPassword : 
+  HostSourceCodePath : /tmp
+  Process:
+    Name: lteue-avx2
+    StopCmd : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"quit"}' 
+  LogStore : /media/usb-drive/ci_amariue7-logs
+  MTU : 1500
+
+#UE-8
+amarisoft_ue_8:
+  ID: amarisoft_ue_8
+  Kind: amarisoft_ue  
+  AttachScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_on","ue_id" :8}'
+  DetachScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_off","ue_id" :8}'
+  GetIP : ip netns exec ue8 ip a show dev
+  UENetwork : pdn0
+  HostIPAddress : 172.21.16.144
+  HostUsername : root
+  HostPassword : 
+  HostSourceCodePath : /tmp
+  Process:
+    Name: lteue-avx2
+    StopCmd : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"quit"}' 
+  LogStore : /media/usb-drive/ci_amariue8-logs
+  MTU : 1500
+
+#UE-9
+amarisoft_ue_9:
+  ID: amarisoft_ue_9
+  Kind: amarisoft_ue  
+  AttachScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_on","ue_id" :9}'
+  DetachScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_off","ue_id" :9}'
+  GetIP : ip netns exec ue9 ip a show dev
+  UENetwork : pdn0
+  HostIPAddress : 172.21.16.144
+  HostUsername : root
+  HostPassword : 
+  HostSourceCodePath : /tmp
+  Process:
+    Name: lteue-avx2
+    StopCmd : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"quit"}' 
+  LogStore : /media/usb-drive/ci_amariue9-logs
+  MTU : 1500
+
+#UE-10
+amarisoft_ue_10:
+  ID: amarisoft_ue_10
+  Kind: amarisoft_ue  
+  AttachScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_on","ue_id" :10}'
+  DetachScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_off","ue_id" :10}'
+  GetIP : ip netns exec ue10 ip a show dev
+  UENetwork : pdn0
+  HostIPAddress : 172.21.16.144
+  HostUsername : root
+  HostPassword : 
+  HostSourceCodePath : /tmp
+  Process:
+    Name: lteue-avx2
+    StopCmd : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"quit"}' 
+  LogStore : /media/usb-drive/ci_amariue10-logs
+  MTU : 1500
 
 #do not remove
 dummy:
   ID: ''
   State : ''
   Kind : ''
-  Process : 
+  Process :
     Name : ''
     Cmd : ''
   WakeupScript : ''
@@ -102,5 +290,3 @@ dummy:
   HostUsername : oaicicd
   HostPassword : oaicicd
   HostSourceCodePath : none
-
-

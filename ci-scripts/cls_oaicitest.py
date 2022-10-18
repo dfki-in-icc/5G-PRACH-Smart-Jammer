@@ -51,7 +51,6 @@ import constants as CONST
 import sshconnection
 
 import cls_module_ue
-import cls_amarisoft_ue
 import cls_ci_ueinfra		#class defining the multi Ue infrastrucure
 
 logging.getLogger("matplotlib").setLevel(logging.WARNING)
@@ -356,79 +355,61 @@ class OaiCiTest():
 		except:
 			os.kill(os.getppid(),signal.SIGUSR1)
 
+	def CheckFlexranCtrlInstallation(self,RAN,EPC,CONTAINERS):
+		if EPC.IPAddress == '' or EPC.UserName == '' or EPC.Password == '':
+			return
+		SSH = sshconnection.SSHConnection()
+		SSH.open(EPC.IPAddress, EPC.UserName, EPC.Password)
+		SSH.command('ls -ls /opt/flexran_rtc/*/rt_controller', '\$', 5)
+		result = re.search('/opt/flexran_rtc/build/rt_controller', SSH.getBefore())
+		if result is not None:
+			RAN.flexranCtrlInstalled=True
+			RAN.flexranCtrlIpAddress=EPC.IPAddress
+			logging.debug('Flexran Controller is installed')
+		else:
+			# Maybe flexran-rtc is deployed into a container
+			SSH.command('docker inspect --format="FLEX_RTC_IP_ADDR = {{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}" prod-flexran-rtc', '\$', 5)
+			result = re.search('FLEX_RTC_IP_ADDR = (?P<flex_ip_addr>[0-9\.]+)', SSH.getBefore())
+			if result is not None:
+				RAN.flexranCtrlDeployed=True
+				RAN.flexranCtrlIpAddress=result.group('flex_ip_addr')
+				CONTAINERS.flexranCtrlDeployed=True
+				CONTAINERS.flexranCtrlIpAddress=result.group('flex_ip_addr')
+				logging.debug('Flexran Controller is deployed: ' + RAN.flexranCtrlIpAddress)
+		SSH.close()
+
+	def InitializeFlexranCtrl(self, HTML,RAN,EPC):
+		if RAN.flexranCtrlInstalled == False:
+			return
+		if EPC.IPAddress == '' or EPC.UserName == '' or EPC.Password == '':
+			HELP.GenericHelp(CONST.Version)
+			sys.exit('Insufficient Parameter')
+		SSH = sshconnection.SSHConnection()
+		SSH.open(EPC.IPAddress, EPC.UserName, EPC.Password)
+		SSH.command('cd /opt/flexran_rtc', '\$', 5)
+		SSH.command('echo ' + EPC.Password + ' | sudo -S rm -f log/*.log', '\$', 5)
+		SSH.command('echo ' + EPC.Password + ' | sudo -S echo "build/rt_controller -c log_config/basic_log" > ./my-flexran-ctl.sh', '\$', 5)
+		SSH.command('echo ' + EPC.Password + ' | sudo -S chmod 755 ./my-flexran-ctl.sh', '\$', 5)
+		SSH.command('echo ' + EPC.Password + ' | sudo -S daemon --unsafe --name=flexran_rtc_daemon --chdir=/opt/flexran_rtc -o /opt/flexran_rtc/log/flexranctl_' + self.testCase_id + '.log ././my-flexran-ctl.sh', '\$', 5)
+		SSH.command('ps -aux | grep --color=never rt_controller', '\$', 5)
+		result = re.search('rt_controller -c ', SSH.getBefore())
+		if result is not None:
+			logging.debug('\u001B[1m Initialize FlexRan Controller Completed\u001B[0m')
+			RAN.flexranCtrlStarted=True
+		SSH.close()
+		HTML.CreateHtmlTestRow('N/A', 'OK', CONST.ALL_PROCESSES_OK)
+	
+
+
 	def InitializeUE(self,HTML,RAN,EPC, COTS_UE, InfraUE,ue_trace,CONTAINERS):
-		if self.ue_id=='':#no ID specified, then it is a COTS controlled by ADB
-			if self.ADBIPAddress == '' or self.ADBUserName == '' or self.ADBPassword == '':
-				HELP.GenericHelp(CONST.Version)
-				sys.exit('Insufficient Parameter')
-			multi_jobs = []
-			i = 0
-			for device_id in self.UEDevices:
-				p = Process(target = self.InitializeUE_common, args = (device_id,i,COTS_UE,))
-				p.daemon = True
-				p.start()
-				multi_jobs.append(p)
-				i += 1
-			for job in multi_jobs:
-				job.join()
-			HTML.CreateHtmlTestRow('N/A', 'OK', CONST.ALL_PROCESSES_OK)
-		else: #if an ID is specified, it is a UE from the yaml infrastructure file
-			ue_kind = InfraUE.ci_ue_infra[self.ue_id]['Kind']
-			logging.debug("Detected UE Kind : " + ue_kind)
-
-			#case it is a quectel module (only 1 at a time supported at the moment)
-			if ue_kind == 'quectel':
-				Module_UE = cls_module_ue.Module_UE(InfraUE.ci_ue_infra[self.ue_id])
-				Module_UE.ue_trace=ue_trace
-				is_module=Module_UE.CheckCMProcess(EPC.Type)
-				if is_module:
-					Module_UE.EnableTrace()
-					time.sleep(5)
-
-					# Looping attach / detach / wait to be successful at least once
-					cnt = 0
-					status = -1
-					while cnt < 4:
-						Module_UE.Command("wup")
-						logging.debug("Waiting for IP address to be assigned")
-						time.sleep(5)
-						logging.debug("Retrieve IP address")
-						status=Module_UE.GetModuleIPAddress()
-						if status==0:
-							cnt = 10
-						else:
-							cnt += 1
-							Module_UE.Command("detach")
-							time.sleep(20)
-
-					if cnt == 10 and status == 0:
-						HTML.CreateHtmlTestRow(Module_UE.UEIPAddress, 'OK', CONST.ALL_PROCESSES_OK)	
-						logging.debug('UE IP addresss : '+ Module_UE.UEIPAddress)
-						#execute additional commands from yaml file after UE attach
-						SSH = sshconnection.SSHConnection()
-						SSH.open(Module_UE.HostIPAddress, Module_UE.HostUsername, Module_UE.HostPassword)
-						if hasattr(Module_UE,'StartCommands'):
-							for startcommand in Module_UE.StartCommands:
-								cmd = 'echo ' + Module_UE.HostPassword + ' | ' + startcommand
-								SSH.command(cmd,'\$',5)
-						SSH.close()
-						#check that the MTU is as expected / requested
-						Module_UE.CheckModuleMTU()
-					else: #status==-1 failed to retrieve IP address
-						HTML.CreateHtmlTestRow('N/A', 'KO', CONST.UE_IP_ADDRESS_ISSUE)
-						self.AutoTerminateUEandeNB(HTML,RAN,COTS_UE,EPC,InfraUE,CONTAINERS)
-						return
-
-			#case it is a amarisoft ue (only 1 at a time supported at the moment)
-			elif ue_kind == 'amarisoft':
-				AS_UE = cls_amarisoft_ue.AS_UE(InfraUE.ci_ue_infra[self.ue_id])
-				HTML.CreateHtmlTestRow(AS_UE.Config, 'OK', CONST.ALL_PROCESSES_OK)
-				AS_UE.RunScenario()
-				AS_UE.WaitEndScenario()
-				AS_UE.KillASUE()
-
-			else:
-				logging.debug("Incorrect UE Kind was detected")								
+		ue_kind = InfraUE.ci_ue_infra[self.ue_id]['Kind']
+		logging.debug("Detected UE Kind : " + ue_kind)
+		module_ue = cls_module_ue.Module_UE(InfraUE.ci_ue_infra[self.ue_id])
+		module_ue.ue_trace = ue_trace
+		is_module=module_ue.InitializeUEModule()
+		if is_module:
+			module_ue.EnableTrace()
+			time.sleep(20)
 
 
 	def InitializeOAIUE(self,HTML,RAN,EPC,COTS_UE,InfraUE,CONTAINERS):
@@ -657,498 +638,45 @@ class OaiCiTest():
 			logging.error('\033[91mInitialize OAI UE Failed! \033[0m')
 			self.AutoTerminateUEandeNB(HTML,RAN,COTS_UE,EPC,InfraUE,CONTAINERS)
 
-	def checkDevTTYisUnlocked(self):
-		SSH = sshconnection.SSHConnection()
-		SSH.open(self.ADBIPAddress, self.ADBUserName, self.ADBPassword)
-		count = 0
-		while count < 5:
-			SSH.command('echo ' + self.ADBPassword + ' | sudo -S lsof | grep --colour=never ttyUSB0', '\$', 10)
-			result = re.search('picocom', SSH.getBefore())
-			if result is None:
-				count = 10
-			else:
-				time.sleep(5)
-				count = count + 1
-		SSH.close()
-
-	def InitializeCatM(self,HTML):
-		if self.ADBIPAddress == '' or self.ADBUserName == '' or self.ADBPassword == '':
-			HELP.GenericHelp(CONST.Version)
-			sys.exit('Insufficient Parameter')
-		SSH = sshconnection.SSHConnection()
-		SSH.enablePicocomClosure()
-		SSH.open(self.ADBIPAddress, self.ADBUserName, self.ADBPassword)
-		# dummy call to start a sudo session. The picocom command does NOT handle well the `sudo -S`
-		SSH.command('echo ' + self.ADBPassword + ' | sudo -S ls', '\$', 10)
-		SSH.command('sudo picocom --baud 921600 --flow n --databits 8 /dev/ttyUSB0', 'Terminal ready', 10)
-		time.sleep(1)
-		# Calling twice AT to clear all buffers
-		SSH.command('AT', 'OK|ERROR', 5)
-		SSH.command('AT', 'OK', 5)
-		# Doing a power cycle
-		SSH.command('AT^RESET', 'SIMSTORE,READY', 15)
-		SSH.command('AT', 'OK|ERROR', 5)
-		SSH.command('AT', 'OK', 5)
-		SSH.command('ATE1', 'OK', 5)
-		# Disabling the Radio
-		SSH.command('AT+CFUN=0', 'OK', 5)
-		logging.debug('\u001B[1m Cellular Functionality disabled\u001B[0m')
-		# Checking if auto-attach is enabled
-		SSH.command('AT^AUTOATT?', 'OK', 5)
-		result = re.search('AUTOATT: (?P<state>[0-9\-]+)', SSH.getBefore())
-		if result is not None:
-			if result.group('state') is not None:
-				autoAttachState = int(result.group('state'))
-				if autoAttachState is not None:
-					if autoAttachState == 0:
-						SSH.command('AT^AUTOATT=1', 'OK', 5)
-					logging.debug('\u001B[1m Auto-Attach enabled\u001B[0m')
-		else:
-			logging.debug('\u001B[1;37;41m Could not check Auto-Attach! \u001B[0m')
-		# Force closure of picocom but device might still be locked
-		SSH.close()
-		SSH.disablePicocomClosure()
-		HTML.CreateHtmlTestRow('N/A', 'OK', CONST.ALL_PROCESSES_OK)
-		self.checkDevTTYisUnlocked()
-
-	def TerminateCatM(self,HTML):
-		if self.ADBIPAddress == '' or self.ADBUserName == '' or self.ADBPassword == '':
-			HELP.GenericHelp(CONST.Version)
-			sys.exit('Insufficient Parameter')
-		SSH = sshconnection.SSHConnection()
-		SSH.enablePicocomClosure()
-		SSH.open(self.ADBIPAddress, self.ADBUserName, self.ADBPassword)
-		# dummy call to start a sudo session. The picocom command does NOT handle well the `sudo -S`
-		SSH.command('echo ' + self.ADBPassword + ' | sudo -S ls', '\$', 10)
-		SSH.command('sudo picocom --baud 921600 --flow n --databits 8 /dev/ttyUSB0', 'Terminal ready', 10)
-		time.sleep(1)
-		# Calling twice AT to clear all buffers
-		SSH.command('AT', 'OK|ERROR', 5)
-		SSH.command('AT', 'OK', 5)
-		# Disabling the Radio
-		SSH.command('AT+CFUN=0', 'OK', 5)
-		logging.debug('\u001B[1m Cellular Functionality disabled\u001B[0m')
-		SSH.close()
-		SSH.disablePicocomClosure()
-		HTML.CreateHtmlTestRow('N/A', 'OK', CONST.ALL_PROCESSES_OK)
-		self.checkDevTTYisUnlocked()
-
-	def AttachCatM(self,HTML,RAN,COTS_UE,EPC,InfraUE,CONTAINERS):
-		if self.ADBIPAddress == '' or self.ADBUserName == '' or self.ADBPassword == '':
-			HELP.GenericHelp(CONST.Version)
-			sys.exit('Insufficient Parameter')
-		SSH = sshconnection.SSHConnection()
-		SSH.enablePicocomClosure()
-		SSH.open(self.ADBIPAddress, self.ADBUserName, self.ADBPassword)
-		# dummy call to start a sudo session. The picocom command does NOT handle well the `sudo -S`
-		SSH.command('echo ' + self.ADBPassword + ' | sudo -S ls', '\$', 10)
-		SSH.command('sudo picocom --baud 921600 --flow n --databits 8 /dev/ttyUSB0', 'Terminal ready', 10)
-		time.sleep(1)
-		# Calling twice AT to clear all buffers
-		SSH.command('AT', 'OK|ERROR', 5)
-		SSH.command('AT', 'OK', 5)
-		# Enabling the Radio
-		SSH.command('AT+CFUN=1', 'SIMSTORE,READY', 5)
-		logging.debug('\u001B[1m Cellular Functionality enabled\u001B[0m')
-		time.sleep(4)
-		# We should check if we register
-		count = 0
-		attach_cnt = 0
-		attach_status = False
-		while count < 5:
-			SSH.command('AT+CEREG?', 'OK', 5)
-			result = re.search('CEREG: 2,(?P<state>[0-9\-]+),', SSH.getBefore())
-			if result is not None:
-				mDataConnectionState = int(result.group('state'))
-				if mDataConnectionState is not None:
-					if mDataConnectionState == 1:
-						count = 10
-						attach_status = True
-						result = re.search('CEREG: 2,1,"(?P<networky>[0-9A-Z]+)","(?P<networkz>[0-9A-Z]+)"', SSH.getBefore())
-						if result is not None:
-							networky = result.group('networky')
-							networkz = result.group('networkz')
-							logging.debug('\u001B[1m CAT-M module attached to eNB (' + str(networky) + '/' + str(networkz) + ')\u001B[0m')
-						else:
-							logging.debug('\u001B[1m CAT-M module attached to eNB\u001B[0m')
-					else:
-						logging.debug('+CEREG: 2,' + str(mDataConnectionState))
-						attach_cnt = attach_cnt + 1
-			else:
-				logging.debug(SSH.getBefore())
-				attach_cnt = attach_cnt + 1
-			count = count + 1
-			time.sleep(1)
-		if attach_status:
-			SSH.command('AT+CESQ', 'OK', 5)
-			result = re.search('CESQ: 99,99,255,255,(?P<rsrq>[0-9]+),(?P<rsrp>[0-9]+)', SSH.getBefore())
-			if result is not None:
-				nRSRQ = int(result.group('rsrq'))
-				nRSRP = int(result.group('rsrp'))
-				if (nRSRQ is not None) and (nRSRP is not None):
-					logging.debug('    RSRQ = ' + str(-20+(nRSRQ/2)) + ' dB')
-					logging.debug('    RSRP = ' + str(-140+nRSRP) + ' dBm')
-		SSH.close()
-		SSH.disablePicocomClosure()
-		html_queue = SimpleQueue()
-		self.checkDevTTYisUnlocked()
-		if attach_status:
-			html_cell = '<pre style="background-color:white">CAT-M module Attachment Completed in ' + str(attach_cnt+4) + ' seconds'
-			if (nRSRQ is not None) and (nRSRP is not None):
-				html_cell += '\n   RSRQ = ' + str(-20+(nRSRQ/2)) + ' dB'
-				html_cell += '\n   RSRP = ' + str(-140+nRSRP) + ' dBm</pre>'
-			else:
-				html_cell += '</pre>'
-			html_queue.put(html_cell)
-			HTML.CreateHtmlTestRowQueue('N/A', 'OK', 1, html_queue)
-		else:
-			logging.error('\u001B[1m CAT-M module Attachment Failed\u001B[0m')
-			html_cell = '<pre style="background-color:white">CAT-M module Attachment Failed</pre>'
-			html_queue.put(html_cell)
-			HTML.CreateHtmlTestRowQueue('N/A', 'KO', 1, html_queue)
-			self.AutoTerminateUEandeNB(HTML,RAN,COTS_UE,EPC,InfraUE,CONTAINERS)
-
-	def PingCatM(self,HTML,RAN,EPC,COTS_UE,InfraUE,CONTAINERS):
-		if EPC.IPAddress == '' or EPC.UserName == '' or EPC.Password == '' or EPC.SourceCodePath == '':
-			HELP.GenericHelp(CONST.Version)
-			sys.exit('Insufficient Parameter')
-		check_eNB = True
-		check_OAI_UE = False
-		pStatus = self.CheckProcessExist(check_eNB, check_OAI_UE,RAN,EPC)
-		if (pStatus < 0):
-			HTML.CreateHtmlTestRow(self.ping_args, 'KO', pStatus)
-			self.AutoTerminateUEandeNB(HTML,RAN,COTS_UE,EPC,InfraUE,CONTAINERS)
-			return
-		try:
-			statusQueue = SimpleQueue()
-			lock = Lock()
-			SSH = sshconnection.SSHConnection()
-			SSH.open(EPC.IPAddress, EPC.UserName, EPC.Password)
-			SSH.command('cd ' + EPC.SourceCodePath, '\$', 5)
-			SSH.command('cd scripts', '\$', 5)
-			if re.match('OAI', EPC.Type, re.IGNORECASE):
-				logging.debug('Using the OAI EPC HSS: not implemented yet')
-				HTML.CreateHtmlTestRow(self.ping_args, 'KO', pStatus)
-				HTML.CreateHtmlTabFooter(False)
-				self.ConditionalExit()
-			else:
-				SSH.command('egrep --color=never "Allocated ipv4 addr" /opt/ltebox/var/log/xGwLog.0', '\$', 5)
-				result = re.search('Allocated ipv4 addr: (?P<ipaddr>[0-9\.]+) from Pool', SSH.getBefore())
-				if result is not None:
-					moduleIPAddr = result.group('ipaddr')
-				else:
-					HTML.CreateHtmlTestRow(self.ping_args, 'KO', pStatus)
-					self.AutoTerminateUEandeNB(HTML,RAN,COTS_UE,EPC,InfraUE,CONTAINERS)
-					return
-			ping_time = re.findall("-c (\d+)",str(self.ping_args))
-			device_id = 'catm'
-			ping_status = SSH.command('stdbuf -o0 ping ' + self.ping_args + ' ' + str(moduleIPAddr) + ' 2>&1 | stdbuf -o0 tee ping_' + self.testCase_id + '_' + device_id + '.log', '\$', int(ping_time[0])*1.5)
-			# TIMEOUT CASE
-			if ping_status < 0:
-				message = 'Ping with UE (' + str(moduleIPAddr) + ') crashed due to TIMEOUT!'
-				logging.debug('\u001B[1;37;41m ' + message + ' \u001B[0m')
-				SSH.close()
-				self.ping_iperf_wrong_exit(lock, moduleIPAddr, device_id, statusQueue, message)
-				return
-			result = re.search(', (?P<packetloss>[0-9\.]+)% packet loss, time [0-9\.]+ms', SSH.getBefore())
-			if result is None:
-				message = 'Packet Loss Not Found!'
-				logging.debug('\u001B[1;37;41m ' + message + ' \u001B[0m')
-				SSH.close()
-				self.ping_iperf_wrong_exit(lock, moduleIPAddr, device_id, statusQueue, message)
-				return
-			packetloss = result.group('packetloss')
-			if float(packetloss) == 100:
-				message = 'Packet Loss is 100%'
-				logging.debug('\u001B[1;37;41m ' + message + ' \u001B[0m')
-				SSH.close()
-				self.ping_iperf_wrong_exit(lock, moduleIPAddr, device_id, statusQueue, message)
-				return
-			result = re.search('rtt min\/avg\/max\/mdev = (?P<rtt_min>[0-9\.]+)\/(?P<rtt_avg>[0-9\.]+)\/(?P<rtt_max>[0-9\.]+)\/[0-9\.]+ ms', SSH.getBefore())
-			if result is None:
-				message = 'Ping RTT_Min RTT_Avg RTT_Max Not Found!'
-				logging.debug('\u001B[1;37;41m ' + message + ' \u001B[0m')
-				SSH.close()
-				self.ping_iperf_wrong_exit(lock, moduleIPAddr, device_id, statusQueue, message)
-				return
-			rtt_min = result.group('rtt_min')
-			rtt_avg = result.group('rtt_avg')
-			rtt_max = result.group('rtt_max')
-			pal_msg = 'Packet Loss : ' + packetloss + '%'
-			min_msg = 'RTT(Min)    : ' + rtt_min + ' ms'
-			avg_msg = 'RTT(Avg)    : ' + rtt_avg + ' ms'
-			max_msg = 'RTT(Max)    : ' + rtt_max + ' ms'
-			lock.acquire()
-			logging.debug('\u001B[1;37;44m ping result (' + moduleIPAddr + ') \u001B[0m')
-			logging.debug('\u001B[1;34m    ' + pal_msg + '\u001B[0m')
-			logging.debug('\u001B[1;34m    ' + min_msg + '\u001B[0m')
-			logging.debug('\u001B[1;34m    ' + avg_msg + '\u001B[0m')
-			logging.debug('\u001B[1;34m    ' + max_msg + '\u001B[0m')
-			qMsg = pal_msg + '\n' + min_msg + '\n' + avg_msg + '\n' + max_msg
-			packetLossOK = True
-			if packetloss is not None:
-				if float(packetloss) > float(self.ping_packetloss_threshold):
-					qMsg += '\nPacket Loss too high'
-					logging.debug('\u001B[1;37;41m Packet Loss too high \u001B[0m')
-					packetLossOK = False
-				elif float(packetloss) > 0:
-					qMsg += '\nPacket Loss is not 0%'
-					logging.debug('\u001B[1;30;43m Packet Loss is not 0% \u001B[0m')
-			lock.release()
-			SSH.close()
-			html_cell = '<pre style="background-color:white">CAT-M module\nIP Address  : ' + moduleIPAddr + '\n' + qMsg + '</pre>'
-			statusQueue.put(html_cell)
-			if (packetLossOK):
-				HTML.CreateHtmlTestRowQueue(self.ping_args, 'OK', 1, statusQueue)
-			else:
-				HTML.CreateHtmlTestRowQueue(self.ping_args, 'KO', 1, statusQueue)
-				self.AutoTerminateUEandeNB(HTML,RAN,COTS_UE,EPC,InfraUE,CONTAINERS)
-		except:
-			os.kill(os.getppid(),signal.SIGUSR1)
-
-	def AttachUE_common(self, device_id, statusQueue, lock, idx,COTS_UE):
-		try:
-			SSH = sshconnection.SSHConnection()
-			SSH.open(self.ADBIPAddress, self.ADBUserName, self.ADBPassword)
-			if self.ADBCentralized:
-				#RH quick add on to integrate cots control defined by yaml
-				#if device Id exists in yaml dictionary, we execute the new procedure defined in cots_ue class
-				#otherwise we use the legacy procedure 
-				if COTS_UE.Check_Exists(device_id):
-					#switch device to Airplane mode OFF (ie Radio ON)
-					COTS_UE.Set_Airplane(device_id, 'OFF')
-				elif device_id == '84B7N16418004022':
-					SSH.command('stdbuf -o0 adb -s ' + device_id + ' shell "su - root -c /data/local/tmp/on"', '\$', 60)
-				else:
-					SSH.command('stdbuf -o0 adb -s ' + device_id + ' shell /data/local/tmp/on', '\$', 60)
-			else:
-				# airplane mode off // radio on
-				SSH.command('ssh ' + self.UEDevicesRemoteUser[idx] + '@' + self.UEDevicesRemoteServer[idx] + ' ' + self.UEDevicesOnCmd[idx], '\$', 60)
-			time.sleep(2)
-			max_count = 45
-			count = max_count
-			while count > 0:
-				if self.ADBCentralized:
-					SSH.command('stdbuf -o0 adb -s ' + device_id + ' shell "dumpsys telephony.registry" | grep -m 1 mDataConnectionState', '\$', 15)
-				else:
-					SSH.command('ssh ' + self.UEDevicesRemoteUser[idx] + '@' + self.UEDevicesRemoteServer[idx] + ' \'adb -s ' + device_id + ' shell "dumpsys telephony.registry"\' | grep -m 1 mDataConnectionState', '\$', 60)
-				result = re.search('mDataConnectionState.*=(?P<state>[0-9\-]+)', SSH.getBefore())
-				if result is None:
-					logging.debug('\u001B[1;37;41m mDataConnectionState Not Found! \u001B[0m')
-					lock.acquire()
-					statusQueue.put(-1)
-					statusQueue.put(device_id)
-					statusQueue.put('mDataConnectionState Not Found!')
-					lock.release()
-					break
-				mDataConnectionState = int(result.group('state'))
-				if mDataConnectionState == 2:
-					logging.debug('\u001B[1mUE (' + device_id + ') Attach Completed\u001B[0m')
-					lock.acquire()
-					statusQueue.put(max_count - count)
-					statusQueue.put(device_id)
-					statusQueue.put('Attach Completed')
-					lock.release()
-					break
-				count = count - 1
-				if count == 15 or count == 30:
-					logging.debug('\u001B[1;30;43m Retry UE (' + device_id + ') Flight Mode Off \u001B[0m')
-					if self.ADBCentralized:
-					#RH quick add on to intgrate cots control defined by yaml
-					#if device id exists in yaml dictionary, we execute the new procedure defined in cots_ue class
-					#otherwise we use the legacy procedure
-						if COTS_UE.Check_Exists(device_id):
-							#switch device to Airplane mode ON  (ie Radio OFF)
-							COTS_UE.Set_Airplane(device_id, 'ON')
-						elif device_id == '84B7N16418004022':
-							SSH.command('stdbuf -o0 adb -s ' + device_id + ' shell "su - root -c /data/local/tmp/off"', '\$', 60)
-						else:
-							SSH.command('stdbuf -o0 adb -s ' + device_id + ' shell /data/local/tmp/off', '\$', 60)
-					else:
-						SSH.command('ssh ' + self.UEDevicesRemoteUser[idx] + '@' + self.UEDevicesRemoteServer[idx] + ' ' + self.UEDevicesOffCmd[idx], '\$', 60)
-					time.sleep(0.5)
-					if self.ADBCentralized:
-					#RH quick add on to integrate cots control defined by yaml
-					#if device id exists in yaml dictionary, we execute the new procedre defined incots_ue class
-					#otherwise we use the legacy procedure
-						if COTS_UE.Check_Exists(device_id):
-							#switch device to Airplane mode OFF (ie Radio ON)
-							COTS_UE.Set_Airplane(device_id, 'OFF')
-						elif device_id == '84B7N16418004022':
-							SSH.command('stdbuf -o0 adb -s ' + device_id + ' shell "su - root -c /data/local/tmp/on"', '\$', 60)
-						else:
-							SSH.command('stdbuf -o0 adb -s ' + device_id + ' shell /data/local/tmp/on', '\$', 60)
-					else:
-						SSH.command('ssh ' + self.UEDevicesRemoteUser[idx] + '@' + self.UEDevicesRemoteServer[idx] + ' ' + self.UEDevicesOnCmd[idx], '\$', 60)
-					time.sleep(0.5)
-				logging.debug('\u001B[1mWait UE (' + device_id + ') a second until mDataConnectionState=2 (' + str(max_count-count) + ' times)\u001B[0m')
-				time.sleep(1)
-			if count == 0:
-				logging.debug('\u001B[1;37;41m UE (' + device_id + ') Attach Failed \u001B[0m')
-				lock.acquire()
-				statusQueue.put(-1)
-				statusQueue.put(device_id)
-				statusQueue.put('Attach Failed')
-				lock.release()
-			SSH.close()
-		except:
-			os.kill(os.getppid(),signal.SIGUSR1)
-
+	
 	def AttachUE(self,HTML,RAN,EPC,COTS_UE,InfraUE,CONTAINERS):
-		if self.ue_id=='':#no ID specified, then it is a COTS controlled by ADB
-			if self.ADBIPAddress == '' or self.ADBUserName == '' or self.ADBPassword == '':
-				HELP.GenericHelp(CONST.Version)
-				sys.exit('Insufficient Parameter')
-			check_eNB = True
-			check_OAI_UE = False
-			pStatus = self.CheckProcessExist(check_eNB, check_OAI_UE,RAN,EPC)
-			if (pStatus < 0):
-				HTML.CreateHtmlTestRow('N/A', 'KO', pStatus)
-				self.AutoTerminateUEandeNB(HTML,RAN,COTS_UE,EPC,InfraUE,CONTAINERS)
-				return
-			multi_jobs = []
-			status_queue = SimpleQueue()
-			lock = Lock()
-			nb_ue_to_connect = 0
-			for device_id in self.UEDevices:
-				if (self.nbMaxUEtoAttach == -1) or (nb_ue_to_connect < self.nbMaxUEtoAttach):
-					self.UEDevicesStatus[nb_ue_to_connect] = CONST.UE_STATUS_ATTACHING
-					p = Process(target = self.AttachUE_common, args = (device_id, status_queue, lock,nb_ue_to_connect,COTS_UE,))
-					p.daemon = True
-					p.start()
-					multi_jobs.append(p)
-				nb_ue_to_connect = nb_ue_to_connect + 1
-			for job in multi_jobs:
-				job.join()
-
-			if (status_queue.empty()):
-				HTML.CreateHtmlTestRow('N/A', 'KO', CONST.ALL_PROCESSES_OK)
-				self.AutoTerminateUEandeNB(HTML,RAN,COTS_UE,EPC,InfraUE,CONTAINERS)
-				return
-			else:
-				attach_status = True
-				html_queue = SimpleQueue()
-				while (not status_queue.empty()):
-					count = status_queue.get()
-					if (count < 0):
-						attach_status = False
-					device_id = status_queue.get()
-					message = status_queue.get()
-					if (count < 0):
-						html_cell = '<pre style="background-color:white">UE (' + device_id + ')\n' + message + '</pre>'
-					else:
-						html_cell = '<pre style="background-color:white">UE (' + device_id + ')\n' + message + ' in ' + str(count + 2) + ' seconds</pre>'
-					html_queue.put(html_cell)
-				if (attach_status):
-					cnt = 0
-					while cnt < len(self.UEDevices):
-						if self.UEDevicesStatus[cnt] == CONST.UE_STATUS_ATTACHING:
-							self.UEDevicesStatus[cnt] = CONST.UE_STATUS_ATTACHED
-						cnt += 1
-					HTML.CreateHtmlTestRowQueue('N/A', 'OK', len(self.UEDevices), html_queue)
-					result = re.search('T_stdout', str(RAN.Initialize_eNB_args))
-					if result is not None:
-						logging.debug('Waiting 5 seconds to fill up record file')
-						time.sleep(5)
-				else:
-					HTML.CreateHtmlTestRowQueue('N/A', 'KO', len(self.UEDevices), html_queue)
-					self.AutoTerminateUEandeNB(HTML,RAN,COTS_UE,EPC,InfraUE,CONTAINERS)
-
-		else: #if an ID is specified, it is a module from the yaml infrastructure file
-			#Attention, as opposed to InitializeUE, the connect manager process is not checked as it is supposed to be active already
-			#only 1- module wakeup, 2- check IP address
-			Module_UE = cls_module_ue.Module_UE(InfraUE.ci_ue_infra[self.ue_id])
-			status = -1
-			cnt = 0
-			while cnt < 4:
-				Module_UE.Command("wup")
-				logging.debug("Waiting for IP address to be assigned")
+		Module_UE = cls_module_ue.Module_UE(InfraUE.ci_ue_infra[self.ue_id])
+		status = False
+		attach_cnt = 0
+		while attach_cnt < 4:
+			Module_UE.Command("attach")
+			wait_cnt = 0
+			logging.debug("Waiting for IP address to be assigned")
+			while wait_cnt < 12 and not status:
 				time.sleep(5)
-				logging.debug("Retrieve IP address")
-				status=Module_UE.GetModuleIPAddress()
-				if status==0:
-					cnt = 10
-				else:
-					cnt += 1
-					Module_UE.Command("detach")
-					time.sleep(20)
+				wait_cnt += 1
+				status = Module_UE.GetModuleIPAddress()
+			if status:
+				break
+			attach_cnt += 1
+			Module_UE.Command("detach")
+			time.sleep(5)
 
-			if cnt == 10 and status == 0:
-				HTML.CreateHtmlTestRow(Module_UE.UEIPAddress, 'OK', CONST.ALL_PROCESSES_OK)	
-				logging.debug('UE IP addresss : '+ Module_UE.UEIPAddress)
+		if status:
+			HTML.CreateHtmlTestRow(Module_UE.UEIPAddress, 'OK', CONST.ALL_PROCESSES_OK)	
+			logging.debug('UE IP addresss : '+ Module_UE.UEIPAddress)
 				#execute additional commands from yaml file after UE attach
-				SSH = sshconnection.SSHConnection()
-				SSH.open(Module_UE.HostIPAddress, Module_UE.HostUsername, Module_UE.HostPassword)
-				if hasattr(Module_UE,'StartCommands'):
-					for startcommand in Module_UE.StartCommands:
-						cmd = 'echo ' + Module_UE.HostPassword + ' | ' + startcommand
-						SSH.command(cmd,'\$',5)
-				SSH.close()
-				#check that the MTU is as expected / requested
-				Module_UE.CheckModuleMTU()
-			else: #status==-1 failed to retrieve IP address
-				HTML.CreateHtmlTestRow('N/A', 'KO', CONST.UE_IP_ADDRESS_ISSUE)
-				self.AutoTerminateUEandeNB(HTML,RAN,COTS_UE,EPC,InfraUE,CONTAINERS)
-				return					
-
-	def DetachUE_common(self, device_id, idx,COTS_UE):
-		try:
 			SSH = sshconnection.SSHConnection()
-			SSH.open(self.ADBIPAddress, self.ADBUserName, self.ADBPassword)
-			if self.ADBCentralized:
-				#RH quick add on to  integrate cots control defined by yaml
-				#if device id exists in yaml dictionary, we execute the new procedure defined in cots_ue class
-				#otherwise we use the legacy procedure
-				if COTS_UE.Check_Exists(device_id):
-					#switch device to Airplane mode ON (ie Radio OFF)
-					COTS_UE.Set_Airplane(device_id,'ON')
-				elif device_id == '84B7N16418004022':
-					SSH.command('stdbuf -o0 adb -s ' + device_id + ' shell "su - root -c /data/local/tmp/off"', '\$', 60)
-				else:
-					SSH.command('stdbuf -o0 adb -s ' + device_id + ' shell /data/local/tmp/off', '\$', 60)
+			SSH.open(Module_UE.HostIPAddress, Module_UE.HostUsername, Module_UE.HostPassword)
+			statusMTU = Module_UE.CheckModuleMTU()
+			if statusMTU:
+				logging.debug("MTU is as expected")
 			else:
-				SSH.command('ssh ' + self.UEDevicesRemoteUser[idx] + '@' + self.UEDevicesRemoteServer[idx] + ' ' + self.UEDevicesOffCmd[idx], '\$', 60)
-			logging.debug('\u001B[1mUE (' + device_id + ') Detach Completed\u001B[0m')
+				logging.debug("MTU size is not as expected")
 			SSH.close()
-		except:
-			os.kill(os.getppid(),signal.SIGUSR1)
+		else:
+			HTML.CreateHtmlTestRow('N/A', 'KO', CONST.UE_IP_ADDRESS_ISSUE)
+			self.AutoTerminateUEandeNB(HTML,RAN,COTS_UE,EPC,InfraUE,CONTAINERS)
 
 	def DetachUE(self,HTML,RAN,EPC,COTS_UE,InfraUE,CONTAINERS):
-		if self.ue_id=='':#no ID specified, then it is a COTS controlled by ADB
-			if self.ADBIPAddress == '' or self.ADBUserName == '' or self.ADBPassword == '':
-				HELP.GenericHelp(CONST.Version)
-				sys.exit('Insufficient Parameter')
-			check_eNB = True
-			check_OAI_UE = False
-			pStatus = self.CheckProcessExist(check_eNB, check_OAI_UE,RAN,EPC)
-			if (pStatus < 0):
-				HTML.CreateHtmlTestRow('N/A', 'KO', pStatus)
-				self.AutoTerminateUEandeNB(HTML,RAN,COTS_UE,EPC,InfraUE,CONTAINERS)
-				return
-			multi_jobs = []
-			cnt = 0
-			for device_id in self.UEDevices:
-				self.UEDevicesStatus[cnt] = CONST.UE_STATUS_DETACHING
-				p = Process(target = self.DetachUE_common, args = (device_id,cnt,COTS_UE,))
-				p.daemon = True
-				p.start()
-				multi_jobs.append(p)
-				cnt += 1
-			for job in multi_jobs:
-				job.join()
-			HTML.CreateHtmlTestRow('N/A', 'OK', CONST.ALL_PROCESSES_OK)
-			result = re.search('T_stdout', str(RAN.Initialize_eNB_args))
-			if result is not None:
-				logging.debug('Waiting 5 seconds to fill up record file')
-				time.sleep(5)
-			cnt = 0
-			while cnt < len(self.UEDevices):
-				self.UEDevicesStatus[cnt] = CONST.UE_STATUS_DETACHED
-				cnt += 1
-		else:#if an ID is specified, it is a module from the yaml infrastructure file
-			Module_UE = cls_module_ue.Module_UE(InfraUE.ci_ue_infra[self.ue_id])
-			Module_UE.Command("detach")
-			HTML.CreateHtmlTestRow('NA', 'OK', CONST.ALL_PROCESSES_OK)	
+		Module_UE = cls_module_ue.Module_UE(InfraUE.ci_ue_infra[self.ue_id])
+		Module_UE.Command("detach")
+		HTML.CreateHtmlTestRow('NA', 'OK', CONST.ALL_PROCESSES_OK)	
 				
 							
 
@@ -1504,6 +1032,7 @@ class OaiCiTest():
 		SSH.close()
 		return ue_ip_status
 
+	
 	def ping_iperf_wrong_exit(self, lock, UE_IPAddress, device_id, statusQueue, message):
 		lock.acquire()
 		statusQueue.put(-1)
@@ -3450,21 +2979,21 @@ class OaiCiTest():
 		else: #if an ID is specified, it is a module from the yaml infrastructure file
 			ue_kind = InfraUE.ci_ue_infra[self.ue_id]['Kind']
 			logging.debug("Detected UE Kind : " + ue_kind)
-			if ue_kind == 'quectel':
-				Module_UE = cls_module_ue.Module_UE(InfraUE.ci_ue_infra[self.ue_id])
-				Module_UE.ue_trace=ue_trace
-				Module_UE.Command("detach")
-				Module_UE.DisableTrace()
-				Module_UE.DisableCM()
-				archive_destination=Module_UE.LogCollect()
-				if Module_UE.ue_trace=='yes':
-					HTML.CreateHtmlTestRow('QLog at : '+archive_destination, 'OK', CONST.ALL_PROCESSES_OK)
-				else:
-					HTML.CreateHtmlTestRow('QLog trace is disabled', 'OK', CONST.ALL_PROCESSES_OK)
-			elif ue_kind == 'amarisoft':
-				HTML.CreateHtmlTestRow('AS UE is already terminated', 'OK', CONST.ALL_PROCESSES_OK)
+			#if ue_kind == 'quectel':
+			Module_UE = cls_module_ue.Module_UE(InfraUE.ci_ue_infra[self.ue_id])
+			Module_UE.ue_trace=ue_trace
+				#Module_UE.Command("detach")
+			Module_UE.DisableTrace()
+			Module_UE.TerminateUEModule()
+			archive_destination=Module_UE.LogCollect()
+			if Module_UE.ue_trace=='yes':
+				HTML.CreateHtmlTestRow('QLog at : '+archive_destination, 'OK', CONST.ALL_PROCESSES_OK)
 			else:
-				logging.debug("Incorrect UE Kind was detected")
+				HTML.CreateHtmlTestRow('QLog trace is disabled', 'OK', CONST.ALL_PROCESSES_OK)
+			#elif ue_kind == 'amarisoft':
+			#	HTML.CreateHtmlTestRow('AS UE is already terminated', 'OK', CONST.ALL_PROCESSES_OK)
+			#else:
+			#	logging.debug("Incorrect UE Kind was detected")
 
 	def TerminateOAIUE(self,HTML,RAN,COTS_UE,EPC,InfraUE,CONTAINERS):
 		SSH = sshconnection.SSHConnection()
@@ -3585,7 +3114,14 @@ class OaiCiTest():
 					CONTAINERS.eNB_instance=instance
 					CONTAINERS.UndeployObject(HTML,RAN)
 		RAN.prematureExit=True
-
+	def GetAllUEDevices(self,terminate_ue_flag):
+		SSH = sshconnection.SSHConnection()
+		SSH.open(self.ADBIPAddress, self.ADBUserName, self.ADBPassword)
+		SSH.command('adb devices', '\$', 15)
+		self.UEDevices = re.findall('\r\n([A-Za-z0-9]+)\tdevice',SSH.getBefore())
+		msg = "UEDevices found by GetAllUEDevices : " + " ".join(self.UEDevices)
+		logging.debug(msg)
+		SSH.close()
 
 	def IdleSleep(self,HTML):
 		time.sleep(self.idle_sleep_time)

@@ -23,59 +23,33 @@
 #     Python 3.x
 #
 #---------------------------------------------------------------------
-
-#to use isfile
-import os
 import sys
-import logging
-#to create a SSH object locally in the methods
-import sshconnection
-#time.sleep
 import time
-
-
+import subprocess as sp
 import re
-import subprocess
 
-from datetime import datetime
+class asue_ctl:
+    def __init__(self,cmd):
+        self.UE = ""
+        self.cmd_dict={"getIP" : self.getIP, "mtu" : self.mtu }
 
+    def getIP(self):
+        ueIP = f' ip netns exec {self.UE} ip a show dev pdn0 | grep --colour=never inet | grep pdn0'
+        print(ueIP)
+        return ueIP
 
-class AS_UE:
+    def mtu(self):
+        mtuSize = f' ip netns exec {self.UE} ip a show dev pdn0 | grep --colour=never mtu'
+        print(mtuSize)
+        return mtuSize
 
-	def __init__(self,Module):
-		#create attributes as in the UE dictionary
-		for k, v in Module.items():
-			setattr(self, k, v)
-	
-
-
-
-#-----------------$
-#PUBLIC Methods$
-#-----------------$
-
-	def WaitEndScenario(self):
-		logging.debug('waiting for scenario duration')
-		time.sleep(int(self.Duration))
-
-	def KillASUE(self):
-		mySSH = sshconnection.SSHConnection()
-		mySSH.open(self.HostIPAddress, self.HostUsername, self.HostPassword)
-		mySSH.command('killall --signal SIGKILL lteue-avx2', '\$', 5)
-		mySSH.close()
-
-	def RunScenario(self):
-		mySSH = sshconnection.SSHConnection()
-		mySSH.open(self.HostIPAddress, self.HostUsername, self.HostPassword)
-
-		logging.debug("Deleting old artifacts :")
-		cmd='rm -rf ' + self.Ping + ' ' + self.UELog 
-		mySSH.command(cmd, '\$',5)
-		logging.debug("Running scenario :")
-		cmd='echo $USER; nohup '+self.Cmd + ' ' + self.Config + ' &'
-		mySSH.command(cmd, '\$',5)
-
-		mySSH.close()
-
-
-
+if __name__ == "__main__":
+    if len(sys.argv) == 3:
+        command = sys.argv[1]
+        Module=asue_ctl(sys.argv[0])
+        Module.UE=sys.argv[2]
+        print(command)
+        Module.cmd_dict[command]()
+        print(Module.cmd_dict[command])
+    else:
+        print("Too many arguments")

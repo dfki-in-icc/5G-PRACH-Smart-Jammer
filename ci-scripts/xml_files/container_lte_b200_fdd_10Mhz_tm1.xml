@@ -29,10 +29,10 @@ Replaces xml_files/enb_usrp210_band7_test_10mhz_tm1.xml
     <htmlTabIcon>tasks</htmlTabIcon>
     <TestCaseRequestedList>
 111110
-040101
+040101 040102
 030111
 000001
-040301 040511 040613 040614 040615 040651 040652 040653 040654 040401 040201
+040301 040302 040511 040613 040614 040615 040651 040652 040653 040654 040401 040402 040201 040202
 030201
     </TestCaseRequestedList>
     <TestCaseExclusionList></TestCaseExclusionList>
@@ -69,21 +69,45 @@ Replaces xml_files/enb_usrp210_band7_test_10mhz_tm1.xml
     <testCase id="040101">
         <class>Initialize_UE</class>
         <desc>Initialize UE</desc>
+        <id>adb_ue_1</id>
+    </testCase>
+    <testCase id="040102">
+        <class>Initialize_UE</class>
+        <desc>Initialize UE</desc>
+        <id>adb_ue_2</id>
     </testCase>
 
     <testCase id="040201">
         <class>Terminate_UE</class>
         <desc>Terminate UE</desc>
+        <id>adb_ue_1</id>
+    </testCase>
+    <testCase id="040202">
+        <class>Terminate_UE</class>
+        <desc>Terminate UE</desc>
+        <id>adb_ue_2</id>
     </testCase>
 
     <testCase id="040301">
         <class>Attach_UE</class>
         <desc>Attach UE</desc>
+        <id>adb_ue_1</id>
+    </testCase>
+    <testCase id="040302">
+        <class>Attach_UE</class>
+        <desc>Attach UE</desc>
+        <id>adb_ue_2</id>
     </testCase>
 
     <testCase id="040401">
         <class>Detach_UE</class>
         <desc>Detach UE</desc>
+        <id>adb_ue_1</id>
+    </testCase>
+    <testCase id="040402">
+        <class>Detach_UE</class>
+        <desc>Detach UE</desc>
+        <id>adb_ue_2</id>
     </testCase>
 
     <testCase id="040511">

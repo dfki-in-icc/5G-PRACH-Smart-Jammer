@@ -31,11 +31,11 @@
     030101
     000001
     010000
+    010001
     000001
     050000
     050001
-    070001
-    070000
+    010010
     010002
     000001
     030201
@@ -59,8 +59,17 @@
     <desc>Initialize Quectel</desc>
     <id>idefix</id>
   </testCase>
-
-
+  
+  <testCase id="010001">
+    <class>Attach_UE</class>
+    <desc>Attach UE</desc>
+    <id>idefix</id>
+  </testCase>
+  <testCase id="010010">
+    <class>Detach_UE</class>
+    <desc>Detach UE</desc>
+    <id>idefix</id>
+  </testCase>
   <testCase id="010002">
     <class>Terminate_UE</class>
     <desc>Terminate Quectel</desc>

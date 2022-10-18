@@ -31,9 +31,11 @@
     130102
     100001
     110000
+    110001
     100001
     150000
     150001
+    110011
     110002
     100001
     130201
@@ -57,6 +59,16 @@
   <testCase id="110002">
     <class>Terminate_UE</class>
     <desc>Terminate Quectel</desc>
+    <id>idefix</id>
+  </testCase>
+  <testCase id="110001">
+    <class>Attach_UE</class>
+    <desc>Attach Quectel</desc>
+    <id>idefix</id>
+  </testCase>
+  <testCase id="110011">
+    <class>Detach_UE</class>
+    <desc>Detach Quectel</desc>
     <id>idefix</id>
   </testCase>
 

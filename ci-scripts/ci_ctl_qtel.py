@@ -32,7 +32,7 @@
 import sys
 import time
 import serial
-
+import subprocess as sp
 
 class qtel_ctl:
 	#---------------
@@ -41,7 +41,8 @@ class qtel_ctl:
     def __init__(self, usb_port_at):
         self.QUECTEL_USB_PORT_AT = usb_port_at #ex : '/dev/ttyUSB2'
         self.modem = serial.Serial(self.QUECTEL_USB_PORT_AT, timeout=1)
-        self.cmd_dict= {"wup": self.wup,"detach":self.detach}#dictionary of function pointers
+        self.UENetwork = "ip a show dev wwan0"
+        self.cmd_dict= {"wup": self.wup,"detach":self.detach,"getIP":self.getIP, "mtu" : self.mtu}#dictionary of function pointers
 
     def __set_modem_state(self,ser,state):
 	    self.__send_command(ser,"AT+CFUN={}\r".format(state))
@@ -74,13 +75,26 @@ class qtel_ctl:
     def detach(self):#sending AT+CFUN=0
         self.__set_modem_state(self.modem,'0')
 
+    def getIP(self):
+        print("inside getIP")
+        ueIP = f'{self.UENetwork} | grep --colour=never inet | grep wwan0'
+        print(sp.getoutput(ueIP))
+        return ueIP
 
-
+    def mtu(self):
+        mtuSize = f' {self.UENetwork} | grep --colour=never mtu'
+        print(sp.getoutput(mtuSize))
+        return mtuSize
 
 if __name__ == "__main__":
     #argv[1] : usb port
     #argv[2] : qtel command (see function pointers dict "wup", "detach" etc ...)
-    command = sys.argv[2]
-    Module=qtel_ctl(sys.argv[1])
+	if len(sys.argv) >= 3:
+		command = sys.argv[2]
+		print(command)
+		Module=qtel_ctl(sys.argv[1])
     #calling the function to be applied
-    Module.cmd_dict[command]()
+		Module.cmd_dict[command]()
+		print(Module.cmd_dict[command])
+	else:
+		print("To many arguments")
