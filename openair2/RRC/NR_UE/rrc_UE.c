@@ -1258,6 +1258,7 @@ nr_rrc_ue_process_masterCellGroup(
   }
 
   if( cellGroupConfig->spCellConfig != NULL &&  cellGroupConfig->spCellConfig->reconfigurationWithSync != NULL){
+    LOG_A(NR_RRC, "Received the reconfigurationWithSync in %s\n", __FUNCTION__);
     //TODO (perform Reconfiguration with sync according to 5.3.5.5.2)
     //TODO (resume all suspended radio bearers and resume SCG transmission for all radio bearers, if suspended)
     // NSA procedures

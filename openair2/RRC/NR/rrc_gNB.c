@@ -939,20 +939,65 @@ rrc_gNB_generate_dedicatedRRCReconfiguration(
     cellGroupConfig = cell_groupConfig_from_DU;
   }
 
-  size = do_RRCReconfiguration(ctxt_pP, buffer, sizeof(buffer),
-                                xid,
-                                *SRB_configList2,
-                                *DRB_configList,
-                                NULL,
-                                NULL,
-                                NULL,
-                                NULL,
-                                dedicatedNAS_MessageList,
-                                ue_context_pP,
-                                &rrc->carrier,
-                                &rrc->configuration,
-                                NULL,
-                                cellGroupConfig);
+  NR_ServingCellConfigCommon_t *scc = rrc->carrier.servingcellconfigcommon;
+  if (ue_p->masterCellGroup->spCellConfig->reconfigurationWithSync == NULL) {
+    ue_p->masterCellGroup->spCellConfig->reconfigurationWithSync = calloc(1, sizeof(*ue_p->masterCellGroup->spCellConfig->reconfigurationWithSync));
+    NR_ReconfigurationWithSync_t *reconfigurationWithSync = ue_p->masterCellGroup->spCellConfig->reconfigurationWithSync;
+    reconfigurationWithSync->spCellConfigCommon = scc;
+    reconfigurationWithSync->newUE_Identity = ue_p->rnti;
+    reconfigurationWithSync->t304 = NR_ReconfigurationWithSync__t304_ms2000;
+    reconfigurationWithSync->rach_ConfigDedicated = NULL;
+    reconfigurationWithSync->ext1 = NULL;
+  }
+  if (ue_p->masterCellGroup->spCellConfig->reconfigurationWithSync->rach_ConfigDedicated == NULL) {
+    ue_p->masterCellGroup->spCellConfig->reconfigurationWithSync->rach_ConfigDedicated = calloc(1, sizeof(struct NR_ReconfigurationWithSync__rach_ConfigDedicated));
+    struct NR_ReconfigurationWithSync__rach_ConfigDedicated *rach_ConfigDedicated = ue_p->masterCellGroup->spCellConfig->reconfigurationWithSync->rach_ConfigDedicated;
+    rach_ConfigDedicated->present = NR_ReconfigurationWithSync__rach_ConfigDedicated_PR_uplink;
+    rach_ConfigDedicated->choice.uplink = calloc(1, sizeof(struct NR_RACH_ConfigDedicated));
+    rach_ConfigDedicated->choice.uplink->ra_Prioritization = NULL;
+    rach_ConfigDedicated->choice.uplink->ext1 = NULL;
+    rach_ConfigDedicated->choice.uplink->cfra = calloc(1, sizeof(struct NR_CFRA));
+    struct NR_CFRA *cfra = rach_ConfigDedicated->choice.uplink->cfra;
+    cfra->occasions = calloc(1, sizeof(struct NR_CFRA__occasions));
+    memcpy(&cfra->occasions->rach_ConfigGeneric,
+           &scc->uplinkConfigCommon->initialUplinkBWP->rach_ConfigCommon->choice.setup->rach_ConfigGeneric,
+           sizeof(NR_RACH_ConfigGeneric_t));
+    cfra->occasions->ssb_perRACH_Occasion = calloc(1, sizeof(long));
+    *cfra->occasions->ssb_perRACH_Occasion = NR_CFRA__occasions__ssb_perRACH_Occasion_one;
+    cfra->resources.present = NR_CFRA__resources_PR_ssb;
+    cfra->resources.choice.ssb = calloc(1, sizeof(struct NR_CFRA__resources__ssb));
+    cfra->resources.choice.ssb->ra_ssb_OccasionMaskIndex = 0;
+    int n_ssb = 0;
+    uint64_t bitmap = get_ssb_bitmap(scc);
+    struct NR_CFRA_SSB_Resource *ssbElem[64];
+    for (int el = 0; el < 64; el++) {
+      if ((bitmap >> (63 - el)) & 0x01) {
+        ssbElem[n_ssb] = calloc(1, sizeof(struct NR_CFRA_SSB_Resource));
+        ssbElem[n_ssb]->ssb = el;
+        ssbElem[n_ssb]->ra_PreambleIndex = 63 - (ue_context_pP->local_uid % 64);
+        ASN_SEQUENCE_ADD(&cfra->resources.choice.ssb->ssb_ResourceList.list, ssbElem[n_ssb]);
+        n_ssb++;
+      }
+    }
+  }
+
+  size = do_RRCReconfiguration(ctxt_pP,
+                               buffer,
+                               sizeof(buffer),
+                               xid,
+                               *SRB_configList2,
+                               *DRB_configList,
+                               NULL,
+                               NULL,
+                               NULL,
+                               NULL,
+                               dedicatedNAS_MessageList,
+                               ue_context_pP,
+                               &rrc->carrier,
+                               &rrc->configuration,
+                               NULL,
+                               ue_p->masterCellGroup);
+
   LOG_DUMPMSG(NR_RRC,DEBUG_RRC,(char *)buffer,size,"[MSG] RRC Reconfiguration\n");
 
   /* Free all NAS PDUs */

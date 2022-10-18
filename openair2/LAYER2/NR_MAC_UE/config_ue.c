@@ -642,6 +642,7 @@ int nr_rrc_mac_config_req_ue(
 
       config_control_ue(mac);
       if (scell_group_config->spCellConfig->reconfigurationWithSync) {
+        LOG_A(NR_MAC, "Received the reconfigurationWithSync in %s\n", __FUNCTION__);
         if (scell_group_config->spCellConfig->reconfigurationWithSync->rach_ConfigDedicated) {
           ra->rach_ConfigDedicated = scell_group_config->spCellConfig->reconfigurationWithSync->rach_ConfigDedicated->choice.uplink;
         }
