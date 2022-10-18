@@ -1272,19 +1272,42 @@ int main( int argc, char **argv ) {
   const gNB_RRC_INST* rrc = RC.nrrrc[mod_id];
   assert(rrc != NULL && "rrc cannot be NULL");
 
-  const int mcc = rrc->configuration.mcc[0]; // 208;
-  const int mnc = rrc->configuration.mnc[0]; // 94;
-  const int mnc_digit_len = rrc->configuration.mnc_digit_length[0]; // 2;
-  const int nb_id = rrc->configuration.cell_identity; //42;
+  const int mcc = rrc->configuration.mcc[0];
+  const int mnc = rrc->configuration.mnc[0];
+  const int mnc_digit_len = rrc->configuration.mnc_digit_length[0];
+  const ngran_node_t node_type = rrc->node_type;
+  int nb_id = 0;
+  int cu_du_id = 0;
+  if (node_type == ngran_gNB) {
+    nb_id = rrc->configuration.cell_identity;
+  } else if (node_type == ngran_gNB_DU) {
+    cu_du_id = rrc->configuration.cell_identity;
+  } else if (node_type == ngran_gNB_CU) {
+    cu_du_id = rrc->node_id;
+  } else {
+    LOG_E(NR_RRC, "not supported ran type detect\n");
+  }
   sm_io_ag_t io = {.read = read_RAN, .write = write_RAN};
   printf("[E2 NODE]: mcc = %d mnc = %d mnc_digit = %d nd_id = %d \n", mcc, mnc, mnc_digit_len, nb_id);
 
+  // TODO: need to fix, parse the FlexRIC config in runtime
   int const agent_argc = 1;
   char** agent_argv = NULL;
   fr_args_t ric_args = init_fr_args(agent_argc, agent_argv);
-  strcpy(ric_args.conf_file, "/usr/local/flexric/flexric.conf");
-  strcpy(ric_args.libs_dir, "/usr/local/flexric/");
-  init_agent_api( mcc, mnc, mnc_digit_len, nb_id, io, &ric_args);
+  // TODO: integrate with oai config
+  char* conf_dir = getenv("FLEXRIC_CONF");
+  char* lib_dir = getenv("FLEXRIC_LIB_DIR");
+
+  if (conf_dir != NULL)
+    strcpy(ric_args.conf_file, conf_dir);
+  else
+    strcpy(ric_args.conf_file, "/usr/local/etc/flexric/flexric.conf");
+  if (lib_dir != NULL)
+    strcpy(ric_args.libs_dir, lib_dir);
+  else
+    strcpy(ric_args.libs_dir, "/usr/local/lib/flexric/");
+
+  init_agent_api( mcc, mnc, mnc_digit_len, nb_id, cu_du_id, node_type, io, &ric_args);
 //////////////////////////////////
 //////////////////////////////////
 
