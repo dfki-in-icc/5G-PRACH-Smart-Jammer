@@ -33,7 +33,7 @@
 
 #include "PHY/NR_REFSIG/ul_ref_seq_nr.h"
 #include "executables/softmodem-common.h"
-
+#include "T.h" //adeel changes
 
 //#define DEBUG_CH
 //#define DEBUG_PUSCH
@@ -41,6 +41,23 @@
 
 #define NO_INTERP 1
 #define dBc(x,y) (dB_fixed(((int32_t)(x))*(x) + ((int32_t)(y))*(y)))
+
+//////////////////GEO5G MQTT TESTing//////////////
+#include <stdio.h>
+#include <stdlib.h>
+#include "cjson/cJSON.h"
+#include "MQTTClient.h"
+#define ADDRESS     "tcp://localhost:1883"
+//#define ADDRESS     "tcp://172.24.10.178:1883"
+#define CLIENTID    "Gnb1"
+#define TOPIC       "channel_est_Time"
+#define QOS         1
+#define TIMEOUT     100L
+void srs_toa_MQTT(int32_t *buffer, int32_t buf_len,  int32_t gNB_id);
+//////////////////GEO5G TESTing//////////////*/
+
+
+
 
 void freq2time(uint16_t ofdm_symbol_size,
                int16_t *freq_signal,
@@ -89,7 +106,7 @@ __attribute__((always_inline)) inline c16_t c32x16cumulVectVectWithSteps(c16_t *
 
   int localOffset1=*offset1;
   int localOffset2=*offset2;
-  c32_t cumul={0}; 
+  c32_t cumul={0};
   for (int i=0; i<N; i++) {
     cumul=c32x16maddShift(in1[localOffset1], in2[localOffset2], cumul, 15);
     localOffset1+=step1;
@@ -202,14 +219,14 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
   //------------------------------------------------//
 
 #ifdef DEBUG_PUSCH
-  
+
   for (int i = 0; i < (6 * nb_rb_pusch); i++) {
     LOG_I(PHY, "In %s: %d + j*(%d)\n", __FUNCTION__, pilot[i].r,pilot[i].i);
   }
-  
+
 #endif
   const uint8_t b_shift = pusch_pdu->nrOfLayers == 1;
-  
+
   for (int aarx=0; aarx<gNB->frame_parms.nb_antennas_rx; aarx++) {
     c16_t *rxdataF = (c16_t *)&gNB->common_vars.rxdataF[aarx][symbol_offset];
     c16_t *ul_ch = &ul_ch_estimates[p*gNB->frame_parms.nb_antennas_rx+aarx][ch_offset];
@@ -221,20 +238,20 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
     LOG_I(PHY, "In %s bwp_start_subcarrier %d, k0 %d, first_carrier %d, nb_rb_pusch %d\n", __FUNCTION__, bwp_start_subcarrier, k0, gNB->frame_parms.first_carrier_offset, nb_rb_pusch);
     LOG_I(PHY, "In %s ul_ch addr %p nushift %d\n", __FUNCTION__, ul_ch, nushift);
 #endif
-    
+
     if (pusch_pdu->dmrs_config_type == pusch_dmrs_type1 && chest_freq == 0) {
-      c16_t *pil   = pilot;    
+      c16_t *pil   = pilot;
       int re_offset = k0;
       LOG_D(PHY,"PUSCH estimation DMRS type 1, Freq-domain interpolation");
       // For configuration type 1: k = 4*n + 2*k' + delta,
       // where k' is 0 or 1, and delta is in Table 6.4.1.1.3-1 from TS 38.211
       int pilot_cnt = 0;
       int delta = nr_pusch_dmrs_delta(pusch_dmrs_type1, p);
-      
+
       for (int n = 0; n < 3*nb_rb_pusch; n++) {
         // LS estimation
         c32_t ch = {0};
-        
+
         for (int k_line = 0; k_line <= 1; k_line++) {
           re_offset = (k0 + (n << 2) + (k_line << 1) + delta) % symbolSize;
           ch=c32x16maddShift(*pil,
@@ -243,9 +260,9 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
                              15+b_shift);
           pil++;
         }
-        
+
         c16_t ch16= {.r=(int16_t)ch.r, .i=(int16_t)ch.i};
-        
+
         // Channel interpolation
         for (int k_line = 0; k_line <= 1; k_line++) {
 #ifdef DEBUG_PUSCH
@@ -254,7 +271,7 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
           printf("pilot %4u: pil -> (%6d,%6d), rxF -> (%4d,%4d), ch -> (%4d,%4d)\n",
                  pilot_cnt, pil->r, pil->i, rxF->r, rxF->i, ch.r, ch.i);
 #endif
-          
+
           if (pilot_cnt == 0) {
             c16multaddVectRealComplex(fl, &ch16, ul_ch, 8);
           } else if (pilot_cnt == 1) {
@@ -270,7 +287,7 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
           } else {
             c16multaddVectRealComplex(fm, &ch16, ul_ch, 8);
           }
-          
+
           pilot_cnt++;
         }
       }
@@ -365,7 +382,7 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
         ch_offset++;
         re_offset = (re_offset + 1)%symbolSize;
       }
-      
+
       // Treat last pilot specially (right edge)
       c16_t ch_l=c16mulShift(*pil,
                              rxdataF[soffset+nushift+re_offset],
@@ -381,7 +398,7 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
                                                       ul_ch);
       __m128i *ul_ch_128 = (__m128i *)&ul_ch_estimates[p*gNB->frame_parms.nb_antennas_rx+aarx][ch_offset];
       ul_ch_128[0] = _mm_slli_epi16 (ul_ch_128[0], 2);
-    } 
+    }
 
     else if (pusch_pdu->dmrs_config_type == pusch_dmrs_type1) { // this is case without frequency-domain linear interpolation, just take average of LS channel estimates of 6 DMRS REs and use a common value for the whole PRB
       LOG_D(PHY,"PUSCH estimation DMRS type 1, no Freq-domain interpolation\n");
@@ -389,7 +406,7 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
       int pil_offset = 0;
       int re_offset = k0;
       c16_t ch;
-      
+
       // First PRB
       ch=c32x16cumulVectVectWithSteps(pilot, &pil_offset, 1, rxF, &re_offset, 2, symbolSize, 6);
 
@@ -428,20 +445,20 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
       }
       // Last PRB
       ch=c32x16cumulVectVectWithSteps(pilot, &pil_offset, 1, rxF, &re_offset, 2, symbolSize, 6);
-      
+
 #if NO_INTERP
       for (c16_t *end=ul_ch+12; ul_ch<end; ul_ch++)
         *ul_ch=ch;
 #else
       ul_ch[3].r += (ch.r * 1365)>>15; // 1/12*16384
       ul_ch[3].i += (ch.i * 1365)>>15; // 1/12*16384
-      
+
       ul_ch += 4;
       c16multaddVectRealComplex(filt8_avlip3,
                                          ch,
                                          ul_ch,
                                          8);
-      
+
       ul_ch += 8;
       c16multaddVectRealComplex(filt8_avlip6,
                                          ch,
@@ -529,19 +546,19 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
       ch0=c32x16mulShift(*pil, rxdataF[nushift+re_offset], 15);
       pil++;
       re_offset = (re_offset+1) % symbolSize;
-      
+
       ch0=c32x16maddShift(*pil, rxdataF[nushift+re_offset], ch0, 15);
       pil++;
       re_offset = (re_offset+5) % symbolSize;
-      
+
       ch0=c32x16maddShift(*pil, rxdataF[nushift+re_offset], ch0, 15);
       pil++;
       re_offset = (re_offset+1) % symbolSize;
-      
+
       ch0=c32x16maddShift(*pil, rxdataF[nushift+re_offset], ch0, 15);
       pil++;
       re_offset = (re_offset+5) % symbolSize;
-      
+
       ch=c16x32div(ch0, 4);
 #if NO_INTERP
       for (c16_t *end=ul_ch+12; ul_ch<end; ul_ch++)
@@ -554,7 +571,7 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
       c16multaddVectRealComplex(filt8_avlip6, &ch, ul_ch, 8);
 #endif
     }
-    
+
 #ifdef DEBUG_PUSCH
     ul_ch = &ul_ch_estimates[p*gNB->frame_parms.nb_antennas_rx+aarx][ch_offset];
 
@@ -628,7 +645,7 @@ void nr_pusch_ptrs_processing(PHY_VARS_gNB *gNB,
     c16_t *phase_per_symbol = (c16_t*)gNB->pusch_vars[ulsch_id]->ptrs_phase_per_slot[aarx];
     ptrs_re_symbol = &gNB->pusch_vars[ulsch_id]->ptrs_re_per_slot;
     *ptrs_re_symbol = 0;
-    phase_per_symbol[symbol].i = 0; 
+    phase_per_symbol[symbol].i = 0;
     /* set DMRS estimates to 0 angle with magnitude 1 */
     if(is_dmrs_symbol(symbol,*dmrsSymbPos)) {
       /* set DMRS real estimation to 32767 */
@@ -638,7 +655,7 @@ void nr_pusch_ptrs_processing(PHY_VARS_gNB *gNB,
 #endif
     }
     else {// real ptrs value is set to 0
-      phase_per_symbol[symbol].r = 0; 
+      phase_per_symbol[symbol].r = 0;
     }
 
     if(symbol == *startSymbIndex) {
@@ -951,7 +968,27 @@ int nr_srs_channel_estimation(const PHY_VARS_gNB *gNB,
              &srs_estimated_channel_time[ant][p_index][0],
              (gNB->frame_parms.ofdm_symbol_size>>1)*sizeof(int32_t));
 
+       // T tracer dump
+    //T(T_UE_PHY_INPUT_SIGNAL, T_INT(gNB_id),
+     // T_INT(proc->frame_rx), T_INT(proc->nr_slot_rx),
+      //T_INT(rxAnt), T_BUFFER(&rxdataF[rxAnt][0], frame_params->samples_per_slot_wCP*sizeof(int32_t)));
+    //FORMAT = int,gNB_ID : int,rnti : int,frame : int,subframe : int,antenna : buffer,chest_t
+   // T(T_GNB_PHY_UL_TIME_CHANNEL_ESTIMATE, T_INT(0), T_INT(0),
+    //  T_INT(frame), T_INT(slot),
+     // T_INT(1), T_BUFFER(&srs_estimated_channel_time[ant], frame_parms->ofdm_symbol_size*sizeof(int32_t)));
+ //T(T_GNB_PHY_UL_TIME_CHANNEL_ESTIMATE, T_INT(0), T_INT(0),
+   //   T_INT(frame), T_INT(slot),
+     // T_INT(1), T_BUFFER(5, frame_parms->ofdm_symbol_size*sizeof(int32_t)));
+
     } // for (int p_index = 0; p_index < N_ap; p_index++)
+     //Start: SRS MQTT TESTing ( adeel )
+         //srs_toa_MQTT(&srs_estimated_channel_time[ant][0], frame_parms->ofdm_symbol_size, gNB->PgNB_id);     // peak estimator and MQTT client activation /// id of gNB
+         //srs_toa_MQTT(&srs_estimated_channel_time[ant][0], frame_parms->ofdm_symbol_size, 1);     // peak estimator and MQTT client activation /// id of gNB
+         srs_toa_MQTT((int32_t *)srs_estimated_channel_time[ant], frame_parms->ofdm_symbol_size, 1);     // peak estimator and MQTT client activation /// id of gNB
+
+     // END: SRS MQTT TESTing ( adeel )
+
+
   } // for (int ant = 0; ant < frame_parms->nb_antennas_rx; ant++)
 
   // Compute signal power
@@ -1020,3 +1057,106 @@ int nr_srs_channel_estimation(const PHY_VARS_gNB *gNB,
 
   return 0;
 }
+
+
+
+
+void srs_toa_MQTT(int32_t *buffer, int32_t buf_len, int32_t gNB_id)  // : SRS MQTT TESTing ( adeel )
+{
+
+
+int peak_idx =0;
+
+
+//MQTT Part
+   MQTTClient client;
+    MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
+   MQTTClient_message pubmsg = MQTTClient_message_initializer;
+    MQTTClient_deliveryToken token;
+    int rc;
+    MQTTClient_create(&client, ADDRESS, CLIENTID,
+        MQTTCLIENT_PERSISTENCE_NONE, NULL);
+    conn_opts.keepAliveInterval = 20;
+    conn_opts.cleansession = 1;
+    if ((rc = MQTTClient_connect(client, &conn_opts)) != MQTTCLIENT_SUCCESS)
+    {
+        printf("[srs_toa_MQTT] Failed to connect, return code %d\n", rc);
+        exit(EXIT_FAILURE);
+    }
+
+  cJSON *mqtt_payload  = cJSON_CreateObject();
+  cJSON_AddNumberToObject(mqtt_payload, "peak_index",peak_idx);
+   cJSON_AddNumberToObject(mqtt_payload, "source", (int)gNB_id);
+    cJSON *chest_json    = NULL; //cJSON_CreateArray();
+  chest_json= cJSON_AddArrayToObject(mqtt_payload, "ch_est_T");
+
+
+
+//Peak Calculation
+
+int32_t max_val = 0, max_idx = 0, abs_val = 0;
+
+  for(int k = 0; k < buf_len; k++)
+  {
+
+
+    int Re = ((c16_t*)buffer)[k].r;
+      int Im = ((c16_t*)buffer)[k].i;
+      abs_val = (Re*Re/2) + (Im*Im/2);
+//int im = srs_estimated_channel_time[ant][k]<<16
+//int re = srs_estimated_channel_time[ant][k]>>16
+
+    if(abs_val > max_val)
+    {
+      max_val = abs_val;
+      max_idx = k;
+        }
+
+
+   cJSON *chest_json_value   = cJSON_CreateObject();
+   cJSON_AddNumberToObject(chest_json_value,"ch_est",  abs_val);
+   cJSON_AddItemToArray(chest_json,  chest_json_value );
+
+
+  }
+  //*peak_val = max_val;
+
+// printf("\n####################[nr_ul_channel_estimation]#################\n"); //adeel changes
+//  printf("####################FUNCtionTiming Advance =  %d #########################\n",timing_advance); //adeel changes
+
+ peak_idx =  max_idx;
+
+// Scalling
+//if (peak_idx > buf_len/2) {
+ //   peak_idx= peak_idx- buf_len;
+ // }
+  //printf("\n####################[nr_ul_channel_estimation]#################\n"); //adeel changes
+  //printf("####################FUNCTIOn Timing Advance after scaling =  %d ###########\n",timing_advance); //adeel changes
+
+
+     cJSON_SetIntValue(cJSON_GetObjectItem(mqtt_payload, "peak_index"), peak_idx);
+
+// PUBLISHING the Message
+    pubmsg.payload = cJSON_Print(mqtt_payload) ; //&PAYLOAD;
+    pubmsg.payloadlen = (int)strlen(pubmsg.payload); //sizeof(mqtt_payload);//strlen(PAYLOAD);
+    pubmsg.qos = QOS;
+    pubmsg.retained = 0;
+    MQTTClient_publishMessage(client, TOPIC, &pubmsg, &token);
+
+    rc = MQTTClient_waitForCompletion(client, token, TIMEOUT);
+    printf("[srs_toa_MQTT] Message with delivery token %d delivered\n", token);
+
+    MQTTClient_disconnect(client, 10);
+    MQTTClient_destroy(&client);
+
+    //MQTTClient_disconnect(client, 10000);
+    //MQTTClient_destroy(&client);
+
+
+
+
+
+
+
+ }
+
