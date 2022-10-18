@@ -76,8 +76,8 @@ class Module_UE:
 			logging.debug('Starting ' + self.Process['Name'])
 			mySSH = sshconnection.SSHConnection()
 			mySSH.open(self.HostIPAddress, self.HostUsername, self.HostPassword)
-			mySSH.command('echo ' + self.HostPassword + ' | sudo -S rm -f /tmp/quectel-cm.log','\$',5)
-			mySSH.command('echo $USER; echo ' + self.HostPassword + ' | nohup sudo -S stdbuf -o0 ' + self.Process['Cmd'] + ' ' +  self.Process['Apn'][CNType]  + ' > /tmp/quectel-cm.log 2>&1 &','\$',5)
+			mySSH.command(' sudo -S rm -f /tmp/module-ue.log','\$',5)
+			mySSH.command('nohup' + '  ' + self.Process['StartCmd']+ ' > /tmp/module-ue.log 2>&1 &','\#',5)
 			mySSH.close()
 			#checking the process
 			time.sleep(5)
@@ -97,8 +97,8 @@ class Module_UE:
 	def Command(self,cmd):
 		mySSH = sshconnection.SSHConnection()
 		mySSH.open(self.HostIPAddress, self.HostUsername, self.HostPassword)
-		mySSH.command('echo ' + self.HostPassword + ' | sudo -S python3 ' + self.cmd_dict[cmd],'\$',10)
-		time.sleep(5)
+		mySSH.command('nohup ' + '  ' + self.cmd_dict[cmd],'\$',50)
+		time.sleep(20)
 		logging.debug("Module "+ cmd)
 		mySSH.close()
 
@@ -109,7 +109,7 @@ class Module_UE:
 		response= []
 		tentative = 8
 		while (len(response)==0) and (tentative>0):
-			COMMAND="ip a show dev " + self.UENetwork + " | grep --colour=never inet | grep " + self.UENetwork
+			COMMAND= self.GetIP + self.UENetwork + " | grep --colour=never inet | grep " + self.UENetwork
 			if tentative == 8:
 				logging.debug(COMMAND)
 			ssh = subprocess.Popen(["ssh", "%s" % HOST, COMMAND],shell=False,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
@@ -138,7 +138,7 @@ class Module_UE:
 		response= []
 		tentative = 3 
 		while (len(response)==0) and (tentative>0):
-			COMMAND="ip a show dev " + self.UENetwork + " | grep --colour=never mtu"
+			COMMAND=self.GetIP + self.UENetwork + " | grep --colour=never mtu"
 			logging.debug(COMMAND)
 			ssh = subprocess.Popen(["ssh", "%s" % HOST, COMMAND],shell=False,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
 			response = ssh.stdout.readlines()
@@ -180,7 +180,10 @@ class Module_UE:
 	def DisableCM(self):
 		mySSH = sshconnection.SSHConnection()
 		mySSH.open(self.HostIPAddress, self.HostUsername, self.HostPassword)
-		mySSH.command('echo ' + self.HostPassword + ' | sudo -S killall --signal SIGKILL *'+self.Process['Name']+'*', '\$', 5)
+        if self.Name == lteue:
+            mySSH.command('nohup sudo -S stdbuf -o0 ' + self.Process['StopCmd'])
+        else:
+		    mySSH.command('echo ' + self.HostPassword + ' | sudo -S killall --signal SIGKILL *'+self.Process['Name']+'*', '\$', 5)
 		mySSH.close()
 
 

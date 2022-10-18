@@ -465,14 +465,47 @@ class OaiCiTest():
 
 			#case it is a amarisoft ue (only 1 at a time supported at the moment)
 			elif ue_kind == 'amarisoft':
-				AS_UE = cls_amarisoft_ue.AS_UE(InfraUE.ci_ue_infra[self.ue_id])
-				HTML.CreateHtmlTestRow(AS_UE.Config, 'OK', CONST.ALL_PROCESSES_OK)
-				AS_UE.RunScenario()
-				AS_UE.WaitEndScenario()
-				AS_UE.KillASUE()
+                Module_UE = cls_module_ue.Module_UE(InfraUE.ci_ue_infra[self.ue_id])
+                is_module=Module_UE.CheckCMProcess()
+                if is_module:
+                    Module_UE.EnableTrace()
+                    time.sleep(5)
+                    cnt = 0
+                    status = -1
+                    while cnt < 4:
+                        Module_UE.Command('wup')
+                        logging.debug("waitng for IP address to be assigned")
+                        time.sleep(20)
+                        status = Module_UE.GetModuleIPAddress()
+                        logging.debug("Retrieve IP address")
+                        if status == 0:
+                            cnt = 10
+                        else:
+                            cnt +=1
+                            Module_UE.Command('detach')
+                            time.sleep(20)
+                    if cnt == 10 and status == 0:
+                        HTML.CreationHtmlTestRow(module_UE.UEIPAddress,'OK', CONST.ALL_PROCESSES_OK)
+                        logging.debug('UE IP address: ', Module_UE.UEIPAddress)
+                        SSH = sshconnection.SSHConnection()
+                        SSH.open(Module_UE.HostIPAddress, Module_UE.HostUsername, Module_UE.HostPassword)
+                        if hasattr(Module_UE, 'StartCommands'):
+                            for startcommand in Module_UE.StartCommands:
+                                cmd = 'echo' + Module_UE.HostPassword + '|' + startcommand
+                                SSH.command(cmd, '\$', 5)
+                        SSH.close()
+                        Module_UE.CheckModuleMTU()
+                    else:
+                        self.AutoTerminateUEandeNB(HTML, RAN, COTS_UE,EPC,InfraUE,CONTAINERS)
+                    
+				#AS_UE = cls_amarisoft_ue.AS_UE(InfraUE.ci_ue_infra[self.ue_id])
+				#HTML.CreateHtmlTestRow(AS_UE.Config, 'OK', CONST.ALL_PROCESSES_OK)
+				#AS_UE.RunScenario()
+				#AS_UE.WaitEndScenario()
+				#AS_UE.KillASUE()
 
 			else:
-				logging.debug("Incorrect UE Kind was detected")								
+				logging.warning("Incorrect UE Kind was detected")								
 
 
 	def InitializeOAIUE(self,HTML,RAN,EPC,COTS_UE,InfraUE,CONTAINERS):
