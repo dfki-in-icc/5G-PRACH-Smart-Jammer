@@ -97,18 +97,16 @@
         <testCase id="020011">
                 <class>PingFromNode</class>
                 <desc>Ping Traffic-Gen from LTE-UE</desc>
-		<container_name>rfsim4g-oai-lte-ue0</container_name>
-		<prefix>docker exec</prefix>
-                <ping_args>rfsim4g-oai-lte-ue0 ping -I oaitun_ue1 -c 20 192.168.61.11</ping_args>
+		<prefix>docker exec rfsim4g-oai-lte-ue0</prefix>
+                <ping_args>-I oaitun_ue1 -c 20 192.168.61.11</ping_args>
                 <loss_threshold>5</loss_threshold>
         </testCase>
 
         <testCase id="020012">
                 <class>PingFromNode</class>
                 <desc>Ping LTE-UE from Traffic-Gen</desc>
-		<container_name>rfsim4g-trf-gen</container_name>
-		<prefix>docker exec</prefix>
-                <ping_args>rfsim4g-trf-gen ping -c 20 12.0.0.2</ping_args>
+		<prefix>docker exec rfsim4g-trf-gen</prefix>
+                <ping_args> -c 20 12.0.0.2</ping_args>
                 <loss_threshold>5</loss_threshold>
         </testCase>
 

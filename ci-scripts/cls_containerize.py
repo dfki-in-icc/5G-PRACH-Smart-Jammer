@@ -1277,7 +1277,7 @@ class Containerize():
 		cmd = 'mkdir -p ' + logPath
 		deployStatus = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT, universal_newlines=True, timeout=10)
 
-		cmd = self.prefix + self.ping_args + '" 2>&1 | tee ' + logPath + '/ping_' + HTML.testCase_id + '.log || true'
+		cmd = f'{self.prefix} ping {self.ping_args}  2>&1 | tee {logPath} /ping_{HTML.testCase_id}.log'
 
 		logging.info(cmd)
 		deployStatus = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT, universal_newlines=True, timeout=100)
