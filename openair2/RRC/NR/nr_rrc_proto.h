@@ -218,3 +218,5 @@ bool nr_rrc_pdcp_config_asn1_req(const protocol_ctxt_t *const  ctxt_pP,
                                  LTE_PMCH_InfoList_r9_t   *pmch_InfoList_r9,
                                  rb_id_t                  *const defaultDRB,
                                  struct NR_CellGroupConfig__rlc_BearerToAddModList *rlc_bearer2add_list);
+
+NR_RRC_status_t nr_rrc_rx_tx_ue(const protocol_ctxt_t *ctxt_p, const uint8_t gnb_index);

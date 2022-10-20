@@ -1089,6 +1089,25 @@ bool nr_ue_periodic_srs_scheduling(module_id_t mod_id, frame_t frame, slot_t slo
   return srs_scheduled;
 }
 
+NR_UE_L2_STATE_t get_ue_l2_state(const protocol_ctxt_t *ctxt, const uint8_t gnb_index)
+{
+  NR_UE_L2_STATE_t l2_state = UE_CONNECTION_OK;
+
+  switch (nr_rrc_rx_tx_ue(ctxt, gnb_index)) {
+    case NR_RRC_ConnSetup_failed:
+      break;
+    case NR_RRC_PHY_RESYNCH:
+      l2_state = UE_PHY_RESYNCH;
+    case NR_RRC_Handover_failed:
+    case NR_RRC_HO_STARTED:
+      break;
+    default:
+      l2_state = UE_CONNECTION_OK;
+  }
+
+  return l2_state;
+}
+
 // Performs :
 // 1. TODO: Call RRC for link status return to PHY
 // 2. TODO: Perform SR/BSR procedures for scheduling feedback

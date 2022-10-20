@@ -644,6 +644,12 @@ void UE_processing(nr_rxtx_thread_data_t *rxtxD) {
   NR_UE_PDCCH_CONFIG phy_pdcch_config={0};
 
   if (IS_SOFTMODEM_NOS1 || get_softmodem_params()->sa) {
+
+    NR_UE_MAC_INST_t *mac = get_mac_inst(0);
+    protocol_ctxt_t ctxt;
+    PROTOCOL_CTXT_SET_BY_MODULE_ID(&ctxt, UE->Mod_id, ENB_FLAG_NO, mac->crnti, proc->frame_rx, proc->nr_slot_rx, 0);
+    NR_UE_L2_STATE_t ue_l2_state = get_ue_l2_state(&ctxt, gNB_id);
+
     /* send tick to RLC and PDCP every ms */
     if (proc->nr_slot_rx % UE->frame_parms.slots_per_subframe == 0) {
       void nr_rlc_tick(int frame, int subframe);

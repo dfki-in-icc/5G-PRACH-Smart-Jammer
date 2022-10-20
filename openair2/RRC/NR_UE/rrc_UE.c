@@ -2889,3 +2889,24 @@ void process_lte_nsa_msg(nsa_msg_t *msg, int msg_len)
             LOG_E(NR_RRC, "No NSA Message Found\n");
     }
 }
+
+NR_RRC_status_t nr_rrc_rx_tx_ue(const protocol_ctxt_t *ctxt_p, const uint8_t gnb_index)
+{
+  NR_RRC_status_t rrc_status = NR_RRC_OK;
+
+  if (NR_UE_rrc_inst[ctxt_p->module_id].Info[gnb_index].T304_active == 1) {
+    rrc_status = NR_RRC_PHY_RESYNCH;
+
+    if ((NR_UE_rrc_inst[ctxt_p->module_id].Info[gnb_index].T304_cnt % 100) == 0) {
+      LOG_W(NR_RRC, "T304: %u\n", NR_UE_rrc_inst[ctxt_p->module_id].Info[gnb_index].T304_cnt);
+    }
+
+    if (NR_UE_rrc_inst[ctxt_p->module_id].Info[gnb_index].T304_cnt == 1) {
+      NR_UE_rrc_inst[ctxt_p->module_id].Info[gnb_index].T304_active = 0;
+    }
+
+    NR_UE_rrc_inst[ctxt_p->module_id].Info[gnb_index].T304_cnt--;
+  }
+
+  return rrc_status;
+}

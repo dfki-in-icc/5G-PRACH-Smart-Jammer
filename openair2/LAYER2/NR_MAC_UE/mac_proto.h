@@ -112,6 +112,11 @@ int nr_rrc_mac_config_req_ue(
 /**\brief initialization NR UE MAC instance(s), total number of MAC instance based on NB_NR_UE_MAC_INST*/
 NR_UE_MAC_INST_t * nr_l2_init_ue(NR_UE_RRC_INST_t* rrc_inst);
 
+/**\brief get the L2 state (UE_CONNECTION_OK, UE_CONNECTION_LOST, ...)
+   \param ctxt protocol context
+   \param gnb_index gNB index*/
+NR_UE_L2_STATE_t get_ue_l2_state(const protocol_ctxt_t *ctxt, const uint8_t gnb_index);
+
 /**\brief fetch MAC instance by module_id, within 0 - (NB_NR_UE_MAC_INST-1)
    \param module_id index of MAC instance(s)*/
 NR_UE_MAC_INST_t *get_mac_inst(
