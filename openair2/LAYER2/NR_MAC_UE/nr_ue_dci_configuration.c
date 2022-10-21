@@ -283,7 +283,17 @@ void ue_dci_configuration(NR_UE_MAC_INST_t *mac, fapi_nr_dl_config_request_t *dl
   uint8_t bwp_id = (mac->cg) ? mac->DL_BWP_Id : 0;
   //NR_ServingCellConfig_t *scd = mac->scg->spCellConfig->spCellConfigDedicated;
   NR_BWP_DownlinkDedicated_t *bwpd  = (bwp_id>0) ? mac->DLbwp[bwp_id-1]->bwp_Dedicated : mac->cg->spCellConfig->spCellConfigDedicated->initialDownlinkBWP;
-  NR_BWP_DownlinkCommon_t *bwp_Common = (bwp_id>0) ? mac->DLbwp[bwp_id-1]->bwp_Common : &mac->scc_SIB->downlinkConfigCommon.initialDownlinkBWP;
+
+  NR_BWP_DownlinkCommon_t *bwp_Common = NULL;
+  if (bwp_id > 0) {
+    bwp_Common = mac->DLbwp[bwp_id - 1]->bwp_Common;
+  } else if (mac->scc) {
+    bwp_Common = mac->scc->downlinkConfigCommon->initialDownlinkBWP;
+  } else if (mac->scc_SIB) {
+    bwp_Common = &mac->scc_SIB->downlinkConfigCommon.initialDownlinkBWP;
+  } else {
+    AssertFatal(1 == 0, "DL BWP Common was not found!\n");
+  }
 
   LOG_D(NR_MAC, "[DCI_CONFIG] ra_rnti %p (%x) crnti %p (%x) t_crnti %p (%x)\n", &ra->ra_rnti, ra->ra_rnti, &mac->crnti, mac->crnti, &ra->t_crnti, ra->t_crnti);
 

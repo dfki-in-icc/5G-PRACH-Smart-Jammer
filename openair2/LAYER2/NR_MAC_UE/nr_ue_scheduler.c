@@ -116,22 +116,32 @@ long get_k2(NR_UE_MAC_INST_t *mac, uint8_t time_domain_ind) {
 
   NR_BWP_Id_t ul_bwp_id = mac->UL_BWP_Id;
   // Get K2 from RRC configuration
-  NR_PUSCH_Config_t *pusch_config= ul_bwp_id > 0 && mac->ULbwp[ul_bwp_id-1] ? mac->ULbwp[ul_bwp_id-1]->bwp_Dedicated->pusch_Config->choice.setup : NULL;
+  NR_PUSCH_Config_t *pusch_config = ul_bwp_id > 0 && mac->ULbwp[ul_bwp_id - 1] ? mac->ULbwp[ul_bwp_id - 1]->bwp_Dedicated->pusch_Config->choice.setup : NULL;
   NR_PUSCH_TimeDomainResourceAllocationList_t *pusch_TimeDomainAllocationList = NULL;
   if (pusch_config && pusch_config->pusch_TimeDomainAllocationList) {
     pusch_TimeDomainAllocationList = pusch_config->pusch_TimeDomainAllocationList->choice.setup;
+  } else if (ul_bwp_id > 0 &&
+             mac->ULbwp[ul_bwp_id - 1] &&
+             mac->ULbwp[ul_bwp_id - 1]->bwp_Common &&
+             mac->ULbwp[ul_bwp_id - 1]->bwp_Common->pusch_ConfigCommon &&
+             mac->ULbwp[ul_bwp_id - 1]->bwp_Common->pusch_ConfigCommon->choice.setup &&
+             mac->ULbwp[ul_bwp_id - 1]->bwp_Common->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList) {
+    pusch_TimeDomainAllocationList = mac->ULbwp[ul_bwp_id - 1]->bwp_Common->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList;
+  } else if (mac->scc &&
+             mac->scc->uplinkConfigCommon &&
+             mac->scc->uplinkConfigCommon->initialUplinkBWP &&
+             mac->scc->uplinkConfigCommon->initialUplinkBWP->pusch_ConfigCommon &&
+             mac->scc->uplinkConfigCommon->initialUplinkBWP->pusch_ConfigCommon->choice.setup) {
+    pusch_TimeDomainAllocationList = mac->scc->uplinkConfigCommon->initialUplinkBWP->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList;
+  } else if (mac->scc_SIB &&
+             mac->scc_SIB->uplinkConfigCommon &&
+             mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP.pusch_ConfigCommon &&
+             mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP.pusch_ConfigCommon->choice.setup &&
+             mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP.pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList) {
+    pusch_TimeDomainAllocationList = mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP.pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList;
+  } else {
+    AssertFatal(1 == 0, "need to fall back to default PUSCH time-domain allocations\n");
   }
-  else if (ul_bwp_id > 0 &&
-	   mac->ULbwp[ul_bwp_id-1] &&
-	   mac->ULbwp[ul_bwp_id-1]->bwp_Common&&
-	   mac->ULbwp[ul_bwp_id-1]->bwp_Common->pusch_ConfigCommon&&
-	   mac->ULbwp[ul_bwp_id-1]->bwp_Common->pusch_ConfigCommon->choice.setup &&
-	   mac->ULbwp[ul_bwp_id-1]->bwp_Common->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList) {
-    pusch_TimeDomainAllocationList = mac->ULbwp[ul_bwp_id-1]->bwp_Common->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList;
-  }
-  else if (mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP.pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList)
-    pusch_TimeDomainAllocationList=mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP.pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList;
-  else AssertFatal(1==0,"need to fall back to default PUSCH time-domain allocations\n");
 
   if (pusch_TimeDomainAllocationList) {
     if (time_domain_ind >= pusch_TimeDomainAllocationList->list.count) {
@@ -168,9 +178,17 @@ fapi_nr_ul_config_request_t *get_ul_config_request(NR_UE_MAC_INST_t *mac, int sl
   // Calculate the index of the UL slot in mac->ul_config_request list. This is
   // based on the TDD pattern (slot configuration period) and number of UL+mixed
   // slots in the period. TS 38.213 Sec 11.1
-  int mu = ul_bwp_id > 0 && mac->ULbwp[ul_bwp_id-1] ?
-    mac->ULbwp[ul_bwp_id-1]->bwp_Common->genericParameters.subcarrierSpacing :
-    mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP.genericParameters.subcarrierSpacing;
+  int mu = 0;
+  if (ul_bwp_id > 0 && mac->ULbwp[ul_bwp_id - 1]) {
+    mu = mac->ULbwp[ul_bwp_id - 1]->bwp_Common->genericParameters.subcarrierSpacing;
+  } else if (mac->scc) {
+    mu = mac->scc->uplinkConfigCommon->initialUplinkBWP->genericParameters.subcarrierSpacing;
+  } else if (mac->scc_SIB) {
+    mu = mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP.genericParameters.subcarrierSpacing;
+  } else {
+    AssertFatal(1 == 0, "subcarrierSpacing was not found!\n");
+  }
+
   const int n = nr_slots_per_frame[mu];
   const int num_slots_per_tdd = tdd_config ? (n >> (7 - tdd_config->pattern1.dl_UL_TransmissionPeriodicity)) : n;
   const int num_slots_ul = tdd_config ? (tdd_config->pattern1.nrofUplinkSlots + (tdd_config->pattern1.nrofUplinkSymbols != 0)) : n;
@@ -664,7 +682,7 @@ int nr_config_pusch_pdu(NR_UE_MAC_INST_t *mac,
     pusch_config_pdu->transform_precoding = get_transformPrecoding(initialUplinkBWP, pusch_Config, NULL, NULL, NR_RNTI_TC, 0); // TBR fix rnti and take out
 
     // Resource allocation in frequency domain according to 6.1.2.2 in TS 38.214
-    pusch_config_pdu->resource_alloc = (mac->cg) ? pusch_Config->resourceAllocation : 1;
+    pusch_config_pdu->resource_alloc = mac->cg && pusch_Config ? pusch_Config->resourceAllocation : 1;
 
     //// Completing PUSCH PDU
     pusch_config_pdu->mcs_table = 0;
@@ -1618,17 +1636,22 @@ int nr_ue_pusch_scheduler(NR_UE_MAC_INST_t *mac,
   NR_BWP_Id_t ul_bwp_id = mac->UL_BWP_Id;
 
   // Get the numerology to calculate the Tx frame and slot
-  int mu = ul_bwp_id > 0 && mac->ULbwp[ul_bwp_id-1] ?
-    mac->ULbwp[ul_bwp_id-1]->bwp_Common->genericParameters.subcarrierSpacing :
-    mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP.genericParameters.subcarrierSpacing;
+  int mu = 0;
+  NR_PUSCH_TimeDomainResourceAllocationList_t *pusch_TimeDomainAllocationList = NULL;
+  if (ul_bwp_id > 0 && mac->ULbwp[ul_bwp_id - 1]) {
+    mu = mac->ULbwp[ul_bwp_id - 1]->bwp_Common->genericParameters.subcarrierSpacing;
+    pusch_TimeDomainAllocationList = mac->ULbwp[ul_bwp_id - 1]->bwp_Common->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList;
+  } else if (mac->scc) {
+    mu = mac->scc->uplinkConfigCommon->initialUplinkBWP->genericParameters.subcarrierSpacing;
+    pusch_TimeDomainAllocationList = mac->scc->uplinkConfigCommon->initialUplinkBWP->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList;
+  } else {
+    mu = mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP.genericParameters.subcarrierSpacing;
+    pusch_TimeDomainAllocationList = mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP.pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList;
+  }
 
-  NR_PUSCH_TimeDomainResourceAllocationList_t *pusch_TimeDomainAllocationList = ul_bwp_id > 0 && mac->ULbwp[ul_bwp_id-1] ?
-    mac->ULbwp[ul_bwp_id-1]->bwp_Common->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList:
-    mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP.pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList;
   // k2 as per 3GPP TS 38.214 version 15.9.0 Release 15 ch 6.1.2.1.1
   // PUSCH time domain resource allocation is higher layer configured from uschTimeDomainAllocationList in either pusch-ConfigCommon
   int k2;
-
   if (is_Msg3) {
     k2 = *pusch_TimeDomainAllocationList->list.array[tda_id]->k2;
 
@@ -1645,6 +1668,8 @@ int nr_ue_pusch_scheduler(NR_UE_MAC_INST_t *mac,
       case 3:
         delta = 6;
         break;
+      default:
+        AssertFatal(1 == 0, "Invalid numerology %i\n", mu);
     }
 
     AssertFatal((k2+delta) >= DURATION_RX_TO_TX,

@@ -642,7 +642,6 @@ int nr_rrc_mac_config_req_ue(
 
       config_control_ue(mac);
       if (scell_group_config->spCellConfig->reconfigurationWithSync) {
-        LOG_A(NR_MAC, "Received the reconfigurationWithSync in %s\n", __FUNCTION__);
         if (scell_group_config->spCellConfig->reconfigurationWithSync->rach_ConfigDedicated) {
           ra->rach_ConfigDedicated = scell_group_config->spCellConfig->reconfigurationWithSync->rach_ConfigDedicated->choice.uplink;
         }
@@ -661,8 +660,24 @@ int nr_rrc_mac_config_req_ue(
       mac->cg = cell_group_config;
       if (cell_group_config->spCellConfig) {
         mac->servCellIndex = cell_group_config->spCellConfig->servCellIndex ? *cell_group_config->spCellConfig->servCellIndex : 0;
-        mac->DL_BWP_Id=mac->cg->spCellConfig->spCellConfigDedicated->firstActiveDownlinkBWP_Id ? *mac->cg->spCellConfig->spCellConfigDedicated->firstActiveDownlinkBWP_Id : 0;
-        mac->UL_BWP_Id=mac->cg->spCellConfig->spCellConfigDedicated->uplinkConfig->firstActiveUplinkBWP_Id ? *mac->cg->spCellConfig->spCellConfigDedicated->uplinkConfig->firstActiveUplinkBWP_Id : 0;
+        mac->DL_BWP_Id = mac->cg->spCellConfig->spCellConfigDedicated->firstActiveDownlinkBWP_Id ? *mac->cg->spCellConfig->spCellConfigDedicated->firstActiveDownlinkBWP_Id : 0;
+        mac->UL_BWP_Id = mac->cg->spCellConfig->spCellConfigDedicated->uplinkConfig->firstActiveUplinkBWP_Id ? *mac->cg->spCellConfig->spCellConfigDedicated->uplinkConfig->firstActiveUplinkBWP_Id : 0;
+        if (cell_group_config->spCellConfig && cell_group_config->spCellConfig->reconfigurationWithSync) {
+          LOG_A(NR_MAC, "Received the reconfigurationWithSync in %s\n", __FUNCTION__);
+          if (cell_group_config->spCellConfig->reconfigurationWithSync->rach_ConfigDedicated) {
+            ra->rach_ConfigDedicated = cell_group_config->spCellConfig->reconfigurationWithSync->rach_ConfigDedicated->choice.uplink;
+          }
+          mac->scc = cell_group_config->spCellConfig->reconfigurationWithSync->spCellConfigCommon;
+          if (mac->scc_SIB) {
+            free(mac->scc_SIB);
+            mac->scc_SIB = NULL;
+          }
+          mac->ra.ra_state = RA_UE_IDLE;
+          mac->physCellId = *mac->scc->physCellId;
+          config_common_ue(mac, module_id, cc_idP);
+          mac->crnti = cell_group_config->spCellConfig->reconfigurationWithSync->newUE_Identity;
+          LOG_I(MAC, "Configuring CRNTI %04x\n", mac->crnti);
+        }
       }
       else {
         mac->servCellIndex = 0;

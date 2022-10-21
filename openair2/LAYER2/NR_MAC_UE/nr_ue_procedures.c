@@ -840,18 +840,18 @@ int8_t nr_ue_process_dci(module_id_t module_id, int cc_id, uint8_t gNB_index, fr
         dl_config->dl_config_list[dl_config->number_pdus].pdu_type = FAPI_NR_DL_CONFIG_TYPE_DLSCH;
       }
       if( (ra->RA_window_cnt >= 0 && rnti == ra->ra_rnti) || (rnti == ra->t_crnti) ) {
-        if (mac->scc == NULL) { // use coreset0
-          dlsch_config_pdu_1_0->BWPSize = mac->type0_PDCCH_CSS_config.num_rbs;
-          dlsch_config_pdu_1_0->BWPStart = mac->type0_PDCCH_CSS_config.cset_start_rb;
-          is_common=1;
-        }
-        else {
+        if (dl_bwp_id > 0 && mac->DLbwp[dl_bwp_id - 1]) {
+          dlsch_config_pdu_1_0->BWPSize = NRRIV2BW(mac->DLbwp[dl_bwp_id - 1]->bwp_Common->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
+          dlsch_config_pdu_1_0->BWPStart = NRRIV2PRBOFFSET(mac->DLbwp[dl_bwp_id - 1]->bwp_Common->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
+          pdsch_config = mac->DLbwp[dl_bwp_id - 1]->bwp_Dedicated->pdsch_Config->choice.setup;
+        } else if (ra->ss && ra->ss->controlResourceSetId && *ra->ss->controlResourceSetId != 0) {
           dlsch_config_pdu_1_0->BWPSize = NRRIV2BW(mac->scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
           dlsch_config_pdu_1_0->BWPStart = NRRIV2PRBOFFSET(mac->scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
-        }
-        if (!get_softmodem_params()->sa) { // NSA mode is not using the Initial BWP
-          dlsch_config_pdu_1_0->BWPStart = NRRIV2PRBOFFSET(mac->DLbwp[dl_bwp_id-1]->bwp_Common->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
-          pdsch_config = mac->DLbwp[dl_bwp_id-1]->bwp_Dedicated->pdsch_Config->choice.setup;
+        } else {
+          // To use coreset0
+          dlsch_config_pdu_1_0->BWPSize = mac->type0_PDCCH_CSS_config.num_rbs;
+          dlsch_config_pdu_1_0->BWPStart = mac->type0_PDCCH_CSS_config.cset_start_rb;
+          is_common = 1;
         }
       } else if (dl_bwp_id>0 && mac->DLbwp[dl_bwp_id-1]) {
         dlsch_config_pdu_1_0->BWPSize = NRRIV2BW(mac->DLbwp[dl_bwp_id-1]->bwp_Common->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
@@ -878,18 +878,24 @@ int8_t nr_ue_process_dci(module_id_t module_id, int cc_id, uint8_t gNB_index, fr
       return -1;
     }
 
-
     NR_PDSCH_TimeDomainResourceAllocationList_t *pdsch_TimeDomainAllocationList = NULL;
-    if (dl_bwp_id>0 &&
-        mac->DLbwp[dl_bwp_id-1] &&
-        mac->DLbwp[dl_bwp_id-1]->bwp_Dedicated &&
-        mac->DLbwp[dl_bwp_id-1]->bwp_Dedicated->pdsch_Config &&
-        mac->DLbwp[dl_bwp_id-1]->bwp_Dedicated->pdsch_Config->choice.setup->pdsch_TimeDomainAllocationList)
-      pdsch_TimeDomainAllocationList = mac->DLbwp[dl_bwp_id-1]->bwp_Dedicated->pdsch_Config->choice.setup->pdsch_TimeDomainAllocationList->choice.setup;
-    else if (dl_bwp_id>0 && mac->DLbwp[dl_bwp_id-1] && mac->DLbwp[dl_bwp_id-1]->bwp_Common->pdsch_ConfigCommon->choice.setup->pdsch_TimeDomainAllocationList)
-      pdsch_TimeDomainAllocationList = mac->DLbwp[dl_bwp_id-1]->bwp_Common->pdsch_ConfigCommon->choice.setup->pdsch_TimeDomainAllocationList;
-    else if (mac->scc_SIB && mac->scc_SIB->downlinkConfigCommon.initialDownlinkBWP.pdsch_ConfigCommon->choice.setup)
+    if (dl_bwp_id > 0 &&
+        mac->DLbwp[dl_bwp_id - 1] &&
+        mac->DLbwp[dl_bwp_id - 1]->bwp_Dedicated &&
+        mac->DLbwp[dl_bwp_id - 1]->bwp_Dedicated->pdsch_Config &&
+        mac->DLbwp[dl_bwp_id - 1]->bwp_Dedicated->pdsch_Config->choice.setup->pdsch_TimeDomainAllocationList) {
+      pdsch_TimeDomainAllocationList = mac->DLbwp[dl_bwp_id - 1]->bwp_Dedicated->pdsch_Config->choice.setup->pdsch_TimeDomainAllocationList->choice.setup;
+    } else if (dl_bwp_id > 0 &&
+             mac->DLbwp[dl_bwp_id - 1] &&
+             mac->DLbwp[dl_bwp_id - 1]->bwp_Common->pdsch_ConfigCommon->choice.setup->pdsch_TimeDomainAllocationList) {
+      pdsch_TimeDomainAllocationList = mac->DLbwp[dl_bwp_id - 1]->bwp_Common->pdsch_ConfigCommon->choice.setup->pdsch_TimeDomainAllocationList;
+    } else if (mac->scc &&
+             mac->scc->downlinkConfigCommon->initialDownlinkBWP->pdsch_ConfigCommon->choice.setup) {
+      pdsch_TimeDomainAllocationList = mac->scc->downlinkConfigCommon->initialDownlinkBWP->pdsch_ConfigCommon->choice.setup->pdsch_TimeDomainAllocationList;
+    } else if (mac->scc_SIB &&
+             mac->scc_SIB->downlinkConfigCommon.initialDownlinkBWP.pdsch_ConfigCommon->choice.setup) {
       pdsch_TimeDomainAllocationList = mac->scc_SIB->downlinkConfigCommon.initialDownlinkBWP.pdsch_ConfigCommon->choice.setup->pdsch_TimeDomainAllocationList;
+    }
 
     int mappingtype;
     /* TIME_DOM_RESOURCE_ASSIGNMENT */
@@ -917,7 +923,7 @@ int8_t nr_ue_process_dci(module_id_t module_id, int cc_id, uint8_t gNB_index, fr
 
     /* dmrs symbol positions*/
     dlsch_config_pdu_1_0->dlDmrsSymbPos = fill_dmrs_mask(pdsch_config,
-                                                         (get_softmodem_params()->nsa) ? mac->scc->dmrs_TypeA_Position : mac->mib->dmrs_TypeA_Position,
+                                                         mac->scc ? mac->scc->dmrs_TypeA_Position : mac->mib->dmrs_TypeA_Position,
                                                          dlsch_config_pdu_1_0->number_symbols,
                                                          dlsch_config_pdu_1_0->start_symbol,
                                                          mappingtype,
@@ -1636,8 +1642,13 @@ void nr_ue_configure_pucch(NR_UE_MAC_INST_t *mac,
              mac->cg->spCellConfig->spCellConfigDedicated->uplinkConfig->initialUplinkBWP->pucch_Config &&
              mac->cg->spCellConfig->spCellConfigDedicated->uplinkConfig->initialUplinkBWP->pucch_Config->choice.setup) {
       pucch_Config = mac->cg->spCellConfig->spCellConfigDedicated->uplinkConfig->initialUplinkBWP->pucch_Config->choice.setup;
-      pucch_pdu->bwp_size = NRRIV2BW(mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP.genericParameters.locationAndBandwidth,MAX_BWP_SIZE);
-      pucch_pdu->bwp_start = NRRIV2PRBOFFSET(mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP.genericParameters.locationAndBandwidth,MAX_BWP_SIZE);
+      if (mac->scc) {
+        pucch_pdu->bwp_size = NRRIV2BW(mac->scc->uplinkConfigCommon->initialUplinkBWP->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
+        pucch_pdu->bwp_start = NRRIV2PRBOFFSET(mac->scc->uplinkConfigCommon->initialUplinkBWP->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
+      } else {
+        pucch_pdu->bwp_size = NRRIV2BW(mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP.genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
+        pucch_pdu->bwp_start = NRRIV2PRBOFFSET(mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP.genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
+      }
     }
     else AssertFatal(1==0,"no pucch_Config\n");
 
@@ -2839,12 +2850,29 @@ int get_n_rb(NR_UE_MAC_INST_t *mac, int rnti_type){
   NR_BWP_Id_t dl_bwp_id = mac->DL_BWP_Id;
   switch(rnti_type) {
     case NR_RNTI_RA:
+      if (dl_bwp_id > 0 &&
+          mac->DLbwp[dl_bwp_id - 1]->bwp_Common->pdcch_ConfigCommon->choice.setup->controlResourceSetZero) {
+        NR_ControlResourceSet_t *coreset = mac->coreset[dl_bwp_id][0];
+        get_coreset_rballoc(coreset->frequencyDomainResources.buf, &N_RB, &start_RB);
+      } else if (mac->scc && mac->ra.ss && mac->ra.ss->controlResourceSetId && *mac->ra.ss->controlResourceSetId != 0) {
+        N_RB = NRRIV2BW(mac->scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
+      } else {
+        N_RB = mac->type0_PDCCH_CSS_config.num_rbs;
+      }
+      break;
     case NR_RNTI_TC:
+      if (dl_bwp_id > 0 && mac->DLbwp[dl_bwp_id - 1]) {
+        N_RB = NRRIV2BW(mac->DLbwp[dl_bwp_id - 1]->bwp_Common->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
+      } else {
+        N_RB = mac->type0_PDCCH_CSS_config.num_rbs;
+      }
+      break;
     case NR_RNTI_P: {
-      if (mac->DLbwp[dl_bwp_id-1]->bwp_Common->pdcch_ConfigCommon->choice.setup->controlResourceSetZero) {
+      if (dl_bwp_id > 0 &&
+          mac->DLbwp[dl_bwp_id - 1]->bwp_Common->pdcch_ConfigCommon->choice.setup->controlResourceSetZero) {
         uint8_t coreset_id = 0; // assuming controlResourceSetId is 0 for controlResourceSetZero
         NR_ControlResourceSet_t *coreset = mac->coreset[dl_bwp_id][coreset_id];
-        get_coreset_rballoc(coreset->frequencyDomainResources.buf,&N_RB,&start_RB);
+        get_coreset_rballoc(coreset->frequencyDomainResources.buf, &N_RB, &start_RB);
       } else {
         N_RB = NRRIV2BW(mac->scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
       }
@@ -2854,7 +2882,13 @@ int get_n_rb(NR_UE_MAC_INST_t *mac, int rnti_type){
       N_RB = mac->type0_PDCCH_CSS_config.num_rbs;
       break;
     case NR_RNTI_C:
-      N_RB = NRRIV2BW(mac->DLbwp[dl_bwp_id-1]->bwp_Common->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
+      if (dl_bwp_id > 0 && mac->DLbwp[dl_bwp_id - 1]) {
+        N_RB = NRRIV2BW(mac->DLbwp[dl_bwp_id - 1]->bwp_Common->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
+      } else if (mac->scc) {
+        N_RB = NRRIV2BW(mac->scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
+      } else {
+        N_RB = NRRIV2BW(mac->scc_SIB->downlinkConfigCommon.initialDownlinkBWP.genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
+      }
       break;
   }
   return N_RB;
@@ -2862,26 +2896,25 @@ int get_n_rb(NR_UE_MAC_INST_t *mac, int rnti_type){
 }
 
 static uint8_t nr_extract_dci_info(NR_UE_MAC_INST_t *mac,
-                            uint8_t dci_format,
-                            uint8_t dci_size,
-                            uint16_t rnti,
-                            uint64_t *dci_pdu,
-                            dci_pdu_rel15_t *dci_pdu_rel15) {
-
-  int N_RB = 0;
+                                   uint8_t dci_format,
+                                   uint8_t dci_size,
+                                   uint16_t rnti,
+                                   uint64_t *dci_pdu,
+                                   dci_pdu_rel15_t *dci_pdu_rel15)
+{
   int pos = 0;
   int fsize = 0;
 
   int rnti_type = get_rnti_type(mac, rnti);
-  NR_BWP_Id_t dl_bwp_id =  mac->DL_BWP_Id ;
-  NR_BWP_Id_t ul_bwp_id =  mac->UL_BWP_Id ;
+  int N_RB = get_n_rb(mac, rnti_type);
 
   int N_RB_UL = 0;
-  if(ul_bwp_id > 0 && mac->ULbwp[ul_bwp_id-1]) {
+  NR_BWP_Id_t ul_bwp_id = mac->UL_BWP_Id;
+  if (ul_bwp_id > 0 && mac->ULbwp[ul_bwp_id - 1]) {
     N_RB_UL = NRRIV2BW(mac->ULbwp[ul_bwp_id - 1]->bwp_Common->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
-  } else if(mac->scc) {
+  } else if (mac->scc) {
     N_RB_UL = NRRIV2BW(mac->scc->uplinkConfigCommon->initialUplinkBWP->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
-  } else if(mac->scc_SIB) {
+  } else if (mac->scc_SIB) {
     N_RB_UL = NRRIV2BW(mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP.genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
   }
 
@@ -2889,13 +2922,9 @@ static uint8_t nr_extract_dci_info(NR_UE_MAC_INST_t *mac,
   switch(dci_format) {
 
   case NR_DL_DCI_FORMAT_1_0:
+
     switch(rnti_type) {
     case NR_RNTI_RA:
-      if(mac->scc_SIB) {
-        N_RB = mac->type0_PDCCH_CSS_config.num_rbs;
-      } else {
-        N_RB = get_n_rb(mac, rnti_type);
-      }
       // Freq domain assignment
       fsize = (int)ceil( log2( (N_RB*(N_RB+1))>>1 ) );
       pos=fsize;
@@ -2944,10 +2973,6 @@ static uint8_t nr_extract_dci_info(NR_UE_MAC_INST_t *mac,
 #ifdef DEBUG_EXTRACT_DCI
       LOG_D(MAC,"Format indicator %d (%d bits) N_RB_BWP %d => %d (0x%lx)\n",dci_pdu_rel15->format_indicator,1,N_RB,dci_size-pos,*dci_pdu);
 #endif
-
-      // check BWP id
-      if (dl_bwp_id>0 && mac->DLbwp[dl_bwp_id-1]) N_RB=NRRIV2BW(mac->DLbwp[dl_bwp_id-1]->bwp_Common->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
-      else         N_RB=NRRIV2BW(mac->scc_SIB->downlinkConfigCommon.initialDownlinkBWP.genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
 
       // Freq domain assignment (275rb >> fsize = 16)
       fsize = (int)ceil( log2( (N_RB*(N_RB+1))>>1 ) );
@@ -3088,7 +3113,7 @@ static uint8_t nr_extract_dci_info(NR_UE_MAC_INST_t *mac,
       break;
   	
     case NR_RNTI_SI:
-      N_RB = mac->type0_PDCCH_CSS_config.num_rbs;
+
       // Freq domain assignment 0-16 bit
       fsize = (int)ceil( log2( (N_RB*(N_RB+1))>>1 ) );
       pos+=fsize;
@@ -3127,11 +3152,6 @@ static uint8_t nr_extract_dci_info(NR_UE_MAC_INST_t *mac,
       break;
 	
     case NR_RNTI_TC:
-
-      // check BWP id
-      if (dl_bwp_id>0 && mac->DLbwp[dl_bwp_id-1]) N_RB=NRRIV2BW(mac->DLbwp[dl_bwp_id-1]->bwp_Common->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
-      else         N_RB=mac->type0_PDCCH_CSS_config.num_rbs;
-
 
       // indicating a DL DCI format 1bit
       pos++;

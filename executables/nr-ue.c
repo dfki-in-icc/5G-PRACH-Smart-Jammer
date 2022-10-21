@@ -649,6 +649,9 @@ void UE_processing(nr_rxtx_thread_data_t *rxtxD) {
     protocol_ctxt_t ctxt;
     PROTOCOL_CTXT_SET_BY_MODULE_ID(&ctxt, UE->Mod_id, ENB_FLAG_NO, mac->crnti, proc->frame_rx, proc->nr_slot_rx, 0);
     NR_UE_L2_STATE_t ue_l2_state = get_ue_l2_state(&ctxt, gNB_id);
+    if (ue_l2_state == UE_PHY_RESYNCH && UE->UE_mode[gNB_id] >= PUSCH) {
+      UE->UE_mode[gNB_id] = PRACH;
+    }
 
     /* send tick to RLC and PDCP every ms */
     if (proc->nr_slot_rx % UE->frame_parms.slots_per_subframe == 0) {

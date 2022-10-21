@@ -619,6 +619,31 @@ int rrc_mac_config_req_gNB(module_id_t Mod_idP,
         return -1;
       }
 
+      NR_COMMON_channels_t *cc = &RC.nrmac[Mod_idP]->common_channels[0];
+      NR_RA_t *ra = &cc->ra[0];
+      ra->CellGroup = CellGroup;
+      if (CellGroup->spCellConfig &&
+          CellGroup->spCellConfig->reconfigurationWithSync &&
+          CellGroup->spCellConfig->reconfigurationWithSync->rach_ConfigDedicated != NULL) {
+        if (CellGroup->spCellConfig->reconfigurationWithSync->rach_ConfigDedicated->choice.uplink->cfra != NULL) {
+          ra->cfra = true;
+          ra->rnti = CellGroup->spCellConfig->reconfigurationWithSync->newUE_Identity;
+          struct NR_CFRA *cfra = CellGroup->spCellConfig->reconfigurationWithSync->rach_ConfigDedicated->choice.uplink->cfra;
+          uint8_t num_preamble = cfra->resources.choice.ssb->ssb_ResourceList.list.count;
+          ra->preambles.num_preambles = num_preamble;
+          ra->preambles.preamble_list = (uint8_t *)malloc(num_preamble * sizeof(uint8_t));
+          for (int i = 0; i < cc->num_active_ssb; i++) {
+            for (int j = 0; j < num_preamble; j++) {
+              if (cc->ssb_index[i] == cfra->resources.choice.ssb->ssb_ResourceList.list.array[j]->ssb) {
+                // One dedicated preamble for each beam
+                ra->preambles.preamble_list[i] = cfra->resources.choice.ssb->ssb_ResourceList.list.array[j]->ra_PreambleIndex;
+                break;
+              }
+            }
+          }
+        }
+      }
+
       /* copy CellGroup by calling asn1c encode
          this is a temporary hack to avoid the gNB having
          a pointer to RRC CellGroup structure
