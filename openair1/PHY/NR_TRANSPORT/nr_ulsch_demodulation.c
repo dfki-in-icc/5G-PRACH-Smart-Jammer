@@ -803,6 +803,7 @@ void nr_ulsch_extract_rbs(int32_t **rxdataF,
         }
       }
     }
+#endif      
   }
 }
 
