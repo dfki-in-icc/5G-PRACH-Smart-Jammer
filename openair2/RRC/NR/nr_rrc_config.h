@@ -150,6 +150,7 @@ void config_srs(NR_SetupRelease_SRS_Config_t *setup_release_srs_Config,
                 const int curr_bwp,
                 const int uid,
                 const int res_id,
+                const long maxMIMO_Layers,
                 const int do_srs);
 void set_dl_mcs_table(int scs,
                       NR_UE_NR_Capability_t *cap,
@@ -160,6 +161,7 @@ void prepare_sim_uecap(NR_UE_NR_Capability_t *cap,
                        int numerology,
                        int rbsize,
                        int mcs_table);
+struct NR_SetupRelease_PUSCH_Config *config_pusch(NR_PUSCH_Config_t *pusch_Config, const NR_ServingCellConfigCommon_t *scc);
 void config_downlinkBWP(NR_BWP_Downlink_t *bwp,
                         const NR_ServingCellConfigCommon_t *scc,
                         const NR_ServingCellConfig_t *servingcellconfigdedicated,

@@ -600,24 +600,6 @@ int pss_synchro_nr(PHY_VARS_NR_UE *PHY_vars_UE, int is, int rate_change)
 }
 
 
-static inline int abs32(int x)
-{
-  return (((int)((short*)&x)[0])*((int)((short*)&x)[0]) + ((int)((short*)&x)[1])*((int)((short*)&x)[1]));
-}
-
-static inline int64_t abs64(int64_t x)
-{
-  return (((int64_t)((int32_t*)&x)[0])*((int64_t)((int32_t*)&x)[0]) + ((int64_t)((int32_t*)&x)[1])*((int64_t)((int32_t*)&x)[1]));
-}
-
-static inline double angle64(int64_t x)
-{
-
-  double re=((int32_t*)&x)[0];
-  double im=((int32_t*)&x)[1];
-  return (atan2(im,re));
-}
-
 
 /*******************************************************************
 *
@@ -679,7 +661,6 @@ int pss_search_time_nr(int **rxdata, ///rx data in time domain
 {
   unsigned int n, ar, peak_position, pss_source;
   int64_t peak_value;
-  int64_t result;
   int64_t avg[NUMBER_PSS_SEQUENCE]={0};
   double ffo_est=0;
 
@@ -722,11 +703,13 @@ int pss_search_time_nr(int **rxdata, ///rx data in time domain
       for (ar=0; ar<frame_parms->nb_antennas_rx; ar++) {
 
         /* perform correlation of rx data and pss sequence ie it is a dot product */
-        result  = dot_product64((short*)primary_synchro_time_nr[pss_index],
-                                (short*)&(rxdata[ar][n+is*frame_parms->samples_per_frame]),
-                                frame_parms->ofdm_symbol_size,
-                                shift);
-        pss_corr_ue += abs64(result);
+        const int64_t result = dot_product64((short *)primary_synchro_time_nr[pss_index],
+                                             (short *)&(rxdata[ar][n + is * frame_parms->samples_per_frame]),
+                                             frame_parms->ofdm_symbol_size,
+                                             shift);
+        const c32_t r32 = *(c32_t*)&result;
+        const c64_t r64 = {.r = r32.r, .i = r32.i};
+        pss_corr_ue += squaredMod(r64);
         //((short*)pss_corr_ue[pss_index])[2*n] += ((short*) &result)[0];   /* real part */
         //((short*)pss_corr_ue[pss_index])[2*n+1] += ((short*) &result)[1]; /* imaginary part */
         //((short*)&synchro_out)[0] += ((int*) &result)[0];               /* real part */

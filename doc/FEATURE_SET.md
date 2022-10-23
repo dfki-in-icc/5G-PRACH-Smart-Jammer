@@ -1,30 +1,6 @@
 **Table of Contents**
 
-1. [Functional Split Architecture](#functional-split-architecture)
-2. [OpenAirInterface Block Diagram](#openairinterface-block-diagram)
-2. [OpenAirInterface 4G-LTE eNB Feature Set](#openairinterface-4g-lte-enb-feature-set)
-   1. [eNB PHY Layer](#enb-phy-layer)
-   2. [eNB MAC Layer](#enb-mac-layer)
-   3. [eNB RLC Layer](#enb-rlc-layer)
-   4. [eNB PDCP Layer](#enb-pdcp-layer)
-   5. [eNB RRC Layer](#enb-rrc-layer)
-   6. [eNB X2AP](#enb-x2ap)
-   7. [eNB/MCE M2AP](#enbmce-m2ap)
-   8. [MCE/MME M3AP](#mcemme-m3ap)
-3. [OpenAirInterface 4G-LTE UE Feature Set](#openairinterface-4g-lte-ue-feature-set)
-   1.  [LTE UE PHY Layer](#lte-ue-phy-layer)
-   2.  [LTE UE MAC Layer](#lte-ue-mac-layer)
-   3.  [LTE UE RLC Layer](#lte-ue-rlc-layer)
-   4.  [LTE UE PDCP Layer](#lte-ue-pdcp-layer)
-   5.  [LTE UE RRC Layer](#lte-ue-rrc-layer)
-4. [OpenAirInterface 5G-NR gNB Feature Set](#openairinterface-5g-nr-feature-set)
-   1. [General Parameters](#general-parameters)
-   2. [gNB Physical Layer](#gnb-phy-layer)
-   3. [gNB Higher Layers](#gnb-higher-layers)
-5. [OpenAirInterface 5G-NR UE Feature Set](#openairinterface-5g-nr-ue-feature-set)
-   1. [UE Physical Layer](#ue-phy-layer)
-   2. [UE Higher Layers](#ue-higher-layers)
-
+[[_TOC_]]
 
 # Functional Split Architecture #
 
@@ -256,10 +232,10 @@ The following features are valid for the gNB and the 5G-NR UE.
 *  Static TDD, 
 *  FDD
 *  Normal CP
-*  30 kHz subcarrier spacing
+*  Subcarrier spacings: 15 and 30kHz (FR1), 120kHz (FR2)
 *  Bandwidths: 10, 20, 40, 80, 100MHz (273 Physical Resource Blocks)
 *  Intermediate downlink and uplink frequencies to interface with IF equipment
-*  Single antenna port (single beam)
+*  Procedures for 2-layer DL MIMO
 *  Slot format: 14 OFDM symbols in UL or DL
 *  Highly efficient 3GPP compliant LDPC encoder and decoder (BG1 and BG2 supported)
 *  Highly efficient 3GPP compliant polar encoder and decoder
@@ -269,7 +245,7 @@ The following features are valid for the gNB and the 5G-NR UE.
 
 ## gNB PHY Layer ##
 
-*  30KHz SCS for FR1 and 120 KHz SCS for FR2
+*  15kHz and 30kHz SCS for FR1 and 120kHz SCS for FR2
 *  Generation of NR-PSS/NR-SSS
 *  NR-PBCH supports multiple SSBs and flexible periodicity
 *  Generation of NR-PDCCH (including generation of DCI, polar encoding, scrambling, modulation, RB mapping, etc)
@@ -289,7 +265,7 @@ The following features are valid for the gNB and the 5G-NR UE.
    - DMRS configuration type 1 and 2
    - Single and multiple DMRS symbols
    - PTRS support
-   - Support for 1 RX antenna
+   - Support for 2 RX antenna
    - Support for 1 layer
 *  NR-PUCCH 
    - Format 0 (2 bits, for ACK/NACK and SR)
@@ -298,6 +274,10 @@ The following features are valid for the gNB and the 5G-NR UE.
     - SRS signal reception
     - Channel estimation (with T tracer real time monitoring)
     - Power noise estimation
+*  NR-PRS
+    - Rel16 Positioning reference signal(PRS) generation and modulation
+    - Multiple PRS resources, one per beam is supported in FR2 TDD mode
+    - FR1 and FR2 support with config file
 *  NR-PRACH
    - Formats 0,1,2,3, A1-A3, B1-B3
 *  Highly efficient 3GPP compliant LDPC encoder and decoder (BG1 and BG2 are supported)
@@ -328,6 +308,7 @@ The following features are valid for the gNB and the 5G-NR UE.
   - HARQ procedures for uplink
 - Scheduler procedures for SRS reception
   - Periodic SRS reception
+  - TPMI computation based on SRS up 4 antenna ports and 1 layer
 - MAC procedures to handle CSI measurement report
   - evalution of RSRP report
   - evaluation of CQI report
@@ -424,11 +405,13 @@ The following features are valid for the gNB and the 5G-NR UE.
 ##  NR UE PHY Layer ##
 
 *  Initial synchronization
+   - the UE needs to know the position in frequency of the SSBs (via command line parameter in SA)
 *  Time tracking based on PBCH DMRS
-*  Frequency offset estimation
-*  30KHz SCS for FR1 and 120 KHz SCS for FR2
+*  Frequency offset estimation based on PSS and SSS
+*  15kHz and 30kHz SCS for FR1 and 120 kHz SCS for FR2
 *  Reception of NR-PSS/NR-SSS
 *  NR-PBCH supports multiple SSBs and flexible periodicity
+   - RSRP measurement for the strongest SSB
 *  Reception of NR-PDCCH (including reception of DCI, polar decoding, de-scrambling, de-modulation, RB de-mapping, etc)
    - common search space configured by MIB
    - user-specific search space configured by RRC
@@ -441,27 +424,31 @@ The following features are valid for the gNB and the 5G-NR UE.
    - Support for 1, 2 and 4 RX antennas
    - Support for up to 2 layers (currently limited to DMRS configuration type 2)
 * Measurements based on NR-CSIRS
-    - RI, PMI and CQI computation
-    - Support for 1 and 2 RX antennas
-    - Support for up to 2 layers
+   - RSRP measurements
+   - RI, PMI and CQI computation
+   - Support for up to 4 RX antennas
+   - Support for up to 2 layers
 *  NR-PUSCH (including Segmentation, LDPC encoding, rate matching, scrambling, modulation, RB mapping, etc).
    - PUSCH mapping type A and B
    - DMRS configuration type 1 and 2
    - Single and multiple DMRS symbols
    - PTRS support
-   - Support for 1 TX antenna
+   - Support for 2 TX antenna
    - Support for 1 layer
 *  NR-PUCCH 
    - Format 0 (2 bits for ACK/NACK and SR)
-   - Format 2 (up to 64 bits, mainly for CSI feedback)
-   - Format 1, 3 and 4 present but old code never dested (need restructuring before verification)
+   - Format 2 (up to 11 bits, mainly for CSI feedback)
+   - Format 1, 3 and 4 present but old code never tested (need restructuring before verification)
 * NR-SRS
-    - Generation of sequence at PHY
-    - SRS signal transmission
+   - Generation of sequence at PHY
+   - SRS signal transmission
+* NR-PRS
+   - PRS based Channel estimation with T tracer dumps
+   - Time of arrival(ToA) estimation based on channel impulse response(CIR)
+   - Finer ToA estimation by 16x oversampled IDFT for CIR
+   - Support for multiple gNB reception with gNBs synced via GPSDO
 * NR-PRACH
    - Formats 0,1,2,3, A1-A3, B1-B3
-* SS-RSRP
-   - RSRP measured on synchronization SSB (ok only for single SSB)
 *  Highly efficient 3GPP compliant LDPC encoder and decoder (BG1 and BG2 are supported)
 *  Highly efficient 3GPP compliant polar encoder and decoder
 *  Encoder and decoder for short block
@@ -536,6 +523,7 @@ The following features are valid for the gNB and the 5G-NR UE.
    - RRC Uplink/Downlink Information transfer carrying NAS messages transparently
    - RRC Reconfiguration/Reconfiguration complete
    - Support for master cell group configuration
+   - Reception of UECapabilityEnquiry, encoding and transmission of UECapability
 * Interface with PDCP: configuration, DCCH and CCCH message handling
 * Interface with RLC and MAC for configuration
 

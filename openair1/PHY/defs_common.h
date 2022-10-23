@@ -66,7 +66,7 @@
 
 #include "TOOLS/tools_defs.h"
 
-#include "openairinterface5g_limits.h"
+#include "common/openairinterface5g_limits.h"
 #include "common/utils/LOG/log.h"
 
 #include "types.h"
@@ -98,6 +98,7 @@
 
 #define NB_RX_ANTENNAS_MAX 64
 
+#define TC_NSEC_x32768 16667
 
 typedef enum {TDD=1,FDD=0} frame_type_t;
 

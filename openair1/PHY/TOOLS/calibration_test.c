@@ -1,6 +1,6 @@
 #include <stdint.h>
 #include <openair1/PHY/impl_defs_top.h>
-#include <sdr/COMMON/common_lib.h>
+#include <radio/COMMON/common_lib.h>
 #include <executables/softmodem-common.h>
 #include <openair1/PHY/TOOLS/calibration_scope.h>
 
@@ -108,7 +108,6 @@ int main(int argc, char **argv) {
     //! timing_source
     .time_source=internal, //internal gpsdo external
     //! Manual SDR IP address
-    //#if defined(EXMIMO) || defined(OAI_USRP) || defined(OAI_BLADERF) || defined(OAI_LMSSDR)
     .sdr_addrs=usrp_addrs,
     //! Auto calibration flag
     .autocal={0},
@@ -260,7 +259,6 @@ int main(int argc, char **argv) {
     /*! \brief Set RX feaquencies
      * \param device the hardware to use
      * \param openair0_cfg RF frontend parameters set by application
-     * \param exmimo_dump_config  dump EXMIMO configuration
      * \returns 0 in success
      */
     .trx_set_freq_func=NULL,

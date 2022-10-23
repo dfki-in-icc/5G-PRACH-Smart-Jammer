@@ -16,12 +16,7 @@
 
 **Table of Contents**
 
-1. [Build Strategy](#1-build-strategy)
-2. [File organization](#2-file-organization)
-3. [Building using docker under Ubuntu 18.04](#3-building-using-docker-under-ubuntu-1804)
-4. [Building using podman under Red Hat Entreprise Linux 8.2](#4-building-using-podman-under-red-hat-entreprise-linux-82)
-5. [Running modems using docker under Ubuntu 18.04](#5-running-modems-using-docker-under-ubuntu-1804)
-6. [Running modems using podman under Red Hat Entreprise Linux 8.2](#6-running-modems-using-podman-under-red-hat-entreprise-linux-82)
+[[_TOC_]]
 
 ---
 
@@ -46,8 +41,8 @@ For all platforms, the strategy for building docker/podman images is the same:
    -  lte-UE
    -  nr-UE
 *  These target images will only contain:
-   -  the generated executable (for example `lte-softmodem.Rel15`)
-   -  the generated shared libraries (for example `liboai_usrpdevif.so.Rel15`)
+   -  the generated executable (for example `lte-softmodem`)
+   -  the generated shared libraries (for example `liboai_usrpdevif.so`)
    -  the needed libraries and packages to run these generated binaries
    -  Some configuration file templates
    -  Some tools (such as `ping`, `ifconfig`)
