@@ -829,7 +829,7 @@ uint8_t nr_ue_get_rach(NR_PRACH_RESOURCES_t *prach_resources,
 
         if(ra->cfra) {
           // Reset RA_active flag: it disables Msg3 retransmission (8.3 of TS 38.213)
-          nr_ra_succeeded(mod_id, frame, nr_slot_tx);
+          nr_ra_succeeded(mod_id, gNB_id, frame, nr_slot_tx);
         } else {
           ra->generate_nr_prach = GENERATE_IDLE;
         }
@@ -955,15 +955,15 @@ void nr_ue_contention_resolution(module_id_t module_id, int cc_id, frame_t frame
 // according to section 5 of 3GPP TS 38.321 version 16.2.1 Release 16
 // todo:
 // - complete handling of received contention-based RA preamble
-void nr_ra_succeeded(module_id_t mod_id, frame_t frame, int slot){
-
+void nr_ra_succeeded(const module_id_t mod_id, const uint8_t gNB_index, const frame_t frame, const int slot)
+{
   NR_UE_MAC_INST_t *mac = get_mac_inst(mod_id);
   RA_config_t *ra = &mac->ra;
 
   if (ra->cfra) {
 
     LOG_I(MAC, "[UE %d][%d.%d][RAPROC] RA procedure succeeded. CF-RA: RAR successfully received.\n", mod_id, frame, slot);
-
+    nr_rrc_RA_succeeded(mod_id, gNB_index);
     ra->RA_window_cnt = -1;
 
   } else {

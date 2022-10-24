@@ -405,7 +405,7 @@ void nr_ue_contention_resolution(module_id_t module_id, int cc_id, frame_t frame
 
 void nr_ra_failed(uint8_t mod_id, uint8_t CC_id, NR_PRACH_RESOURCES_t *prach_resources, frame_t frame, int slot);
 
-void nr_ra_succeeded(module_id_t mod_id, frame_t frame, int slot);
+void nr_ra_succeeded(const module_id_t mod_id, const uint8_t gNB_index, const frame_t frame, const int slot);
 
 /* \brief Function called by PHY to retrieve information to be transmitted using the RA procedure.
 If the UE is not in PUSCH mode for a particular eNB index, this is assumed to be an Msg3 and MAC
