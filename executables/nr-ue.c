@@ -656,6 +656,7 @@ void UE_processing(nr_rxtx_thread_data_t *rxtxD) {
     NR_UE_L2_STATE_t ue_l2_state = get_ue_l2_state(&ctxt, gNB_id);
     if (ue_l2_state == UE_PHY_RESYNCH && UE->UE_mode[gNB_id] >= PUSCH) {
       UE->UE_mode[gNB_id] = PRACH;
+      clean_UE_ulsch(UE, gNB_id);
     }
 
     /* send tick to RLC and PDCP every ms */
