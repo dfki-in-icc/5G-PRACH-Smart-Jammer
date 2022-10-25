@@ -475,8 +475,10 @@ void handle_nr_ul_harq(const int CC_idP,
                        sub_frame_t slot,
                        const nfapi_nr_crc_t *crc_pdu)
 {
-  NR_UE_info_t* UE = find_nr_UE(&RC.nrmac[mod_id]->UE_info, crc_pdu->rnti);
-  if (!UE) {
+  NR_UE_info_t *UE = find_nr_UE(&RC.nrmac[mod_id]->UE_info, crc_pdu->rnti);
+  bool UE_waiting_CFRA_msg3 = get_UE_waiting_CFRA_msg3(RC.nrmac[mod_id], CC_idP, frame, slot);
+
+  if (!UE || UE_waiting_CFRA_msg3 == true) {
     LOG_W(NR_MAC, "handle harq for rnti %04x, in RA process\n", crc_pdu->rnti);
     for (int i = 0; i < NR_NB_RA_PROC_MAX; ++i) {
       NR_RA_t *ra = &RC.nrmac[mod_id]->common_channels[CC_idP].ra[i];
