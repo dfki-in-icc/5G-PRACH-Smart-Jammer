@@ -50,7 +50,7 @@ class Module_UE:
 			setattr(self, k, v)
 		self.UEIPAddress = ""
 		#dictionary linking command names and related module scripts
-		self.cmd_dict= {"wup": self.WakeupScript,"detach":self.DetachScript}#dictionary of function scripts
+		self.cmd_dict= {"attach": self.WakeupScript,"detach":self.DetachScript}#dictionary of function scripts
 		self.ue_trace=''		
 
 
@@ -61,9 +61,9 @@ class Module_UE:
 
 	#this method checks if the specified Process is running on the server hosting the module
 	#if not it will be started
-	def CheckCMProcess(self,CNType):
+	def TriggerUE(self):
 		HOST=self.HostUsername+'@'+self.HostIPAddress
-		COMMAND="ps aux | grep --colour=never " + self.Process['Name'] + " | grep -v grep "
+		COMMAND="ps aux | grep --colour=never inside Trigger UE " + self.Process['Name'] + " | grep -v grep "
 		logging.debug(COMMAND)
 		ssh = subprocess.Popen(["ssh", "%s" % HOST, COMMAND],shell=False,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
 		result = ssh.stdout.readlines()
@@ -77,21 +77,23 @@ class Module_UE:
 			mySSH = sshconnection.SSHConnection()
 			mySSH.open(self.HostIPAddress, self.HostUsername, self.HostPassword)
 			mySSH.command(' sudo -S rm -f /tmp/module-ue.log','\$',5)
-			mySSH.command('nohup' + '  ' + self.Process['StartCmd']+ ' > /tmp/module-ue.log 2>&1 &','\#',5)
+			mySSH.command('nohup' + '  ' + self.Process['StartCmd']+ ' > /tmp/module-ue.log 2>&1 &','\$',5)
 			mySSH.close()
+			return True
 			#checking the process
-			time.sleep(5)
-			HOST=self.HostUsername+'@'+self.HostIPAddress
-			COMMAND="ps aux | grep --colour=never " + self.Process['Name'] + " | grep -v grep "
-			logging.debug(COMMAND)
-			ssh = subprocess.Popen(["ssh", "%s" % HOST, COMMAND],shell=False,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-			result = ssh.stdout.readlines()
-			if len(result)!=0:
-				logging.debug(self.Process['Name'] + " process found")
-				return True
-			else:
-				logging.debug(self.Process['Name'] + " process NOT found")
-				return False 
+			#time.sleep(5)
+			#HOST=self.HostUsername+'@'+self.HostIPAddress
+			#COMMAND="ps aux | grep --colour=never" + ' ' +self.Process['Name'] + " | grep -v grep "
+			#logging.debug(COMMAND)
+			#ssh = subprocess.Popen(["ssh", "%s" % HOST, COMMAND],shell=False,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+			#print("%s",ssh)
+			#result = ssh.stdout.readlines()
+			#if len(result)!=0:
+			#	logging.debug(self.Process['Name'] + " process found")
+			#	return True
+			#else:
+			#	logging.debug(self.Process['Name'] + " process NOT found")
+			#	return False 
 
 	#Generic command function, using function pointers dictionary
 	def Command(self,cmd):
@@ -177,13 +179,10 @@ class Module_UE:
 		mySSH.close()
 
 
-	def DisableCM(self):
+	def StopUE(self):
 		mySSH = sshconnection.SSHConnection()
 		mySSH.open(self.HostIPAddress, self.HostUsername, self.HostPassword)
-        if self.Name == lteue:
-            mySSH.command('nohup sudo -S stdbuf -o0 ' + self.Process['StopCmd'])
-        else:
-		    mySSH.command('echo ' + self.HostPassword + ' | sudo -S killall --signal SIGKILL *'+self.Process['Name']+'*', '\$', 5)
+		mySSH.command('nohup' + ' ' + self.Process['StopCmd'])
 		mySSH.close()
 
 
@@ -205,3 +204,4 @@ class Module_UE:
 		else:
 			destination=""
 		return destination
+

@@ -51,7 +51,6 @@ import constants as CONST
 import sshconnection
 
 import cls_module_ue
-import cls_amarisoft_ue
 import cls_ci_ueinfra		#class defining the multi Ue infrastrucure
 
 logging.getLogger("matplotlib").setLevel(logging.WARNING)
@@ -400,6 +399,36 @@ class OaiCiTest():
 		except:
 			os.kill(os.getppid(),signal.SIGUSR1)
 
+	def RunUeScript(self, HTML, RAN, EPC, InfraUE, ue_trace, CONTAINERS):
+		module_ue = cls_module_ue.Module_UE(InfraUE.ci_ue_infra[self.ue_id])
+		module_ue.ue_trace = ue_trace
+		is_module=module_ue.TriggerUE()
+		if is_module:
+			module_ue.EnableTrace()
+			time.sleep(20)
+			cnt=0
+			status=False
+			while cnt<4:
+				module_ue.Command("attach")
+				logging.debug("Waiting for IP address to be assigned")
+				time.sleep(20)
+				logging.debug("Retreive IP address")
+				status=module_ue.GetModuleIPAddress()
+				if status==True:
+					cnt=10
+				else:
+					cnt+=1
+					module_ue.Command("detach")
+					time.sleep(20)
+			if cnt==10 and status ==True:
+				HTML.CreateHtmlTestRow(Module_UE.UEIPAddress,'OK', CONST.ALL_PROCESSES_OK)
+				logging.debug('UE IP addresss : '+ Module_UE.UEIPAddress)
+			else:
+				HTML.CreateHtmlTestRow('N/A', 'KO', CONST.UE_IP_ADDRESS_ISSUE)
+				self.AutoTerminateUEandeNB(HTML,RAN,COTS_UE,EPC,InfraUE,CONTAINERS)
+				return
+
+
 	def InitializeUE(self,HTML,RAN,EPC, COTS_UE, InfraUE,ue_trace,CONTAINERS):
 		if self.ue_id=='':#no ID specified, then it is a COTS controlled by ADB
 			if self.ADBIPAddress == '' or self.ADBUserName == '' or self.ADBPassword == '':
@@ -419,12 +448,13 @@ class OaiCiTest():
 		else: #if an ID is specified, it is a UE from the yaml infrastructure file
 			ue_kind = InfraUE.ci_ue_infra[self.ue_id]['Kind']
 			logging.debug("Detected UE Kind : " + ue_kind)
-
+			self.RunUeScript(HTML,RAN,EPC,InfraUE,ue_trace,CONTAINERS)
+			"""
 			#case it is a quectel module (only 1 at a time supported at the moment)
 			if ue_kind == 'quectel':
 				Module_UE = cls_module_ue.Module_UE(InfraUE.ci_ue_infra[self.ue_id])
 				Module_UE.ue_trace=ue_trace
-				is_module=Module_UE.CheckCMProcess(EPC.Type)
+				is_module=Module_UE.CheckCMProcess()
 				if is_module:
 					Module_UE.EnableTrace()
 					time.sleep(5)
@@ -503,9 +533,9 @@ class OaiCiTest():
 				#AS_UE.RunScenario()
 				#AS_UE.WaitEndScenario()
 				#AS_UE.KillASUE()
-
-			else:
-				logging.warning("Incorrect UE Kind was detected")								
+                """
+			'''else:
+				logging.warning("Incorrect UE Kind was detected")'''								
 
 
 	def InitializeOAIUE(self,HTML,RAN,EPC,COTS_UE,InfraUE,CONTAINERS):
@@ -3569,7 +3599,7 @@ class OaiCiTest():
 				Module_UE.ue_trace=ue_trace
 				Module_UE.Command("detach")
 				Module_UE.DisableTrace()
-				Module_UE.DisableCM()
+				Module_UE.StopUE()
 				archive_destination=Module_UE.LogCollect()
 				if Module_UE.ue_trace=='yes':
 					HTML.CreateHtmlTestRow('QLog at : '+archive_destination, 'OK', CONST.ALL_PROCESSES_OK)
