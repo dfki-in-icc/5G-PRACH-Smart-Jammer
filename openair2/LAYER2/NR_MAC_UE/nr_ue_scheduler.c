@@ -1022,14 +1022,21 @@ bool nr_ue_periodic_srs_scheduling(module_id_t mod_id, frame_t frame, slot_t slo
       continue;
     }
 
-    NR_BWP_t ubwp = ul_bwp_id > 0 && mac->ULbwp[ul_bwp_id-1] ?
-                    mac->ULbwp[ul_bwp_id-1]->bwp_Common->genericParameters :
-                    mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP.genericParameters;
+    NR_BWP_t *ubwp = NULL;
+    if (ul_bwp_id > 0 && mac->ULbwp[ul_bwp_id - 1]) {
+      ubwp = &mac->ULbwp[ul_bwp_id - 1]->bwp_Common->genericParameters;
+    } else if (mac->scc) {
+      ubwp = &mac->scc->uplinkConfigCommon->initialUplinkBWP->genericParameters;
+    } else if (mac->scc_SIB) {
+      ubwp = &mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP.genericParameters;
+    } else {
+      AssertFatal(1 == 0, "UL BWP was not found in %s\n", __FUNCTION__);
+    }
 
     uint16_t period = srs_period[srs_resource->resourceType.choice.periodic->periodicityAndOffset_p.present];
     uint16_t offset = get_nr_srs_offset(srs_resource->resourceType.choice.periodic->periodicityAndOffset_p);
 
-    int n_slots_frame = nr_slots_per_frame[ubwp.subcarrierSpacing];
+    int n_slots_frame = nr_slots_per_frame[ubwp->subcarrierSpacing];
 
     // Check if UE should transmit the SRS
     if((frame*n_slots_frame+slot-offset)%period == 0) {
@@ -1039,9 +1046,9 @@ bool nr_ue_periodic_srs_scheduling(module_id_t mod_id, frame_t frame, slot_t slo
 
       srs_config_pdu->rnti = mac->crnti;
       srs_config_pdu->handle = 0;
-      srs_config_pdu->bwp_size = NRRIV2BW(ubwp.locationAndBandwidth, MAX_BWP_SIZE);;
-      srs_config_pdu->bwp_start = NRRIV2PRBOFFSET(ubwp.locationAndBandwidth, MAX_BWP_SIZE);;
-      srs_config_pdu->subcarrier_spacing = ubwp.subcarrierSpacing;
+      srs_config_pdu->bwp_size = NRRIV2BW(ubwp->locationAndBandwidth, MAX_BWP_SIZE);;
+      srs_config_pdu->bwp_start = NRRIV2PRBOFFSET(ubwp->locationAndBandwidth, MAX_BWP_SIZE);;
+      srs_config_pdu->subcarrier_spacing = ubwp->subcarrierSpacing;
       srs_config_pdu->cyclic_prefix = 0;
       srs_config_pdu->num_ant_ports = srs_resource->nrofSRS_Ports;
       srs_config_pdu->num_symbols = srs_resource->resourceMapping.nrofSymbols;
@@ -2546,10 +2553,14 @@ void nr_schedule_csirs_reception(NR_UE_MAC_INST_t *mac, int frame, int slot) {
   NR_BWP_Id_t dl_bwp_id = mac->DL_BWP_Id;
 
   NR_BWP_t *genericParameters = NULL;
-  if(dl_bwp_id > 0 && mac->DLbwp[dl_bwp_id-1]) {
-    genericParameters = &mac->DLbwp[dl_bwp_id-1]->bwp_Common->genericParameters;
-  } else {
+  if (dl_bwp_id > 0 && mac->DLbwp[dl_bwp_id - 1]) {
+    genericParameters = &mac->DLbwp[dl_bwp_id - 1]->bwp_Common->genericParameters;
+  } else if (mac->scc) {
+    genericParameters = &mac->scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters;
+  } else if (mac->scc_SIB) {
     genericParameters = &mac->scc_SIB->downlinkConfigCommon.initialDownlinkBWP.genericParameters;
+  } else {
+    AssertFatal(1 == 0, "DL BWP was not found in %s\n", __FUNCTION__);
   }
 
   int mu = genericParameters->subcarrierSpacing;
