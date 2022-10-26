@@ -8,7 +8,7 @@ idefix:
     StopCmd : sudo -S killall --signal SIGKILL quectel-CM 
     Apn :
       ltebox : oai.ipv4
-  WakeupScript : sudo python3 ci_ctl_qtel.py /dev/ttyUSB2 wup
+  AttachScript : sudo python3 ci_ctl_qtel.py /dev/ttyUSB2 wup
   DetachScript : sudo python3 ci_ctl_qtel.py /dev/ttyUSB2 detach
   LogStore : /media/usb-drive/ci_qlogs
     #PLMN : 22201
@@ -27,10 +27,10 @@ nrmodule2_quectel:
     Apn :
       OAICN5G : oai
       OAI-Rel14-Docker : oai.ipv4
-  WakeupScript : sudo python3 ci_ctl_qtel.py /dev/ttyUSB2 wup
+  AttachScript : sudo python3 ci_ctl_qtel.py /dev/ttyUSB2 wup
   DetachScript : sudo python3 ci_ctl_qtel.py /dev/ttyUSB2 detach
-  GetIP : ip a show dev
-  LogStore : /media/ci_qlogs  
+  LogStore : /media/ci_qlogs 
+  GetIP : ip a show dev  
   UENetwork : wwan0
   HostIPAddress : 172.21.16.139
   HostUsername : nrmodule2 
@@ -48,9 +48,9 @@ amarisoft_ue_1:
     Name : lteue-avx2
     StartCmd : /root/NV18-06-2022/ue/lteue /root/NV18-06-2022/ue/config/oaicicd-ue-ping-SA-dhanuja.cfg
     StopCmd : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"quit"}'
-  WakeupScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_on","ue_id" :1}'
+  AttachScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_on","ue_id" :1}'
   DetachScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_off","ue_id" :1}'
-  GetIP : ip netns exec ue1 ip a
+  GetIP : ip netns exec ue1 ip a 
   UENetwork : pdn0
   Ping : /tmp/test_ue1.log
   UELog : /tmp/ue1.log

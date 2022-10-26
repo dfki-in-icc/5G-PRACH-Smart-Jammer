@@ -50,7 +50,7 @@ class Module_UE:
 			setattr(self, k, v)
 		self.UEIPAddress = ""
 		#dictionary linking command names and related module scripts
-		self.cmd_dict= {"attach": self.WakeupScript,"detach":self.DetachScript}#dictionary of function scripts
+		self.cmd_dict= {"attach": self.AttachScript,"detach":self.DetachScript}#dictionary of function scripts
 		self.ue_trace=''		
 
 
@@ -111,7 +111,7 @@ class Module_UE:
 		response= []
 		tentative = 8
 		while (len(response)==0) and (tentative>0):
-			COMMAND= self.GetIP + self.UENetwork + " | grep --colour=never inet | grep " + self.UENetwork
+			COMMAND= f'{self.GetIP} { self.UENetwork} | grep --colour=never inet | grep {self.UENetwork}'
 			if tentative == 8:
 				logging.debug(COMMAND)
 			ssh = subprocess.Popen(["ssh", "%s" % HOST, COMMAND],shell=False,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
@@ -140,7 +140,7 @@ class Module_UE:
 		response= []
 		tentative = 3 
 		while (len(response)==0) and (tentative>0):
-			COMMAND=self.GetIP + self.UENetwork + " | grep --colour=never mtu"
+			COMMAND=f'{self.GetIP} {self.UENetwork} | grep --colour=never mtu'
 			logging.debug(COMMAND)
 			ssh = subprocess.Popen(["ssh", "%s" % HOST, COMMAND],shell=False,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
 			response = ssh.stdout.readlines()
