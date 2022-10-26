@@ -735,6 +735,7 @@ void nr_rx_sdu(const module_id_t gnb_mod_idP,
           UE_msg3_stage->ra_timer = 0;
           nr_mac_remove_ra_rnti(gnb_mod_idP, ra->rnti);
           nr_clear_ra_proc(gnb_mod_idP, CC_idP, frameP, ra);
+          reset_ul_harq_list(UE_scheduling_control);
           process_CellGroup(ra->CellGroup, UE_scheduling_control);
 
         } else {

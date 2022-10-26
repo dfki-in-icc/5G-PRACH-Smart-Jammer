@@ -676,6 +676,7 @@ int nr_rrc_mac_config_req_ue(
           mac->physCellId = *mac->scc->physCellId;
           config_common_ue(mac, module_id, cc_idP);
           mac->crnti = cell_group_config->spCellConfig->reconfigurationWithSync->newUE_Identity;
+          nr_ue_init_mac(module_id);
           LOG_I(MAC, "Configuring CRNTI %04x\n", mac->crnti);
         }
       }
