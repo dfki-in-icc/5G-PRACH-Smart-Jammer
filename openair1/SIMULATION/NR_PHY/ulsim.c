@@ -224,6 +224,15 @@ int8_t nr_mac_rrc_data_req_ue(const module_id_t Mod_idP,
   return 0;
 }
 
+NR_RRC_status_t nr_rrc_rx_tx_ue(const protocol_ctxt_t *ctxt_p, const uint8_t gnb_index)
+{
+  return 0;
+}
+
+int8_t nr_rrc_RA_succeeded(const module_id_t mod_id, const uint8_t gNB_index) {
+  return 0;
+}
+
 int DU_send_INITIAL_UL_RRC_MESSAGE_TRANSFER(module_id_t     module_idP,
                                             int             CC_idP,
                                             int             UE_id,
