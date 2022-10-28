@@ -59,7 +59,6 @@ void srs_toa_MQTT(int32_t *buffer, int32_t buf_len,  int32_t gNB_id);
 
 
 
-
 void freq2time(uint16_t ofdm_symbol_size,
                int16_t *freq_signal,
                int16_t *time_signal) {
@@ -771,14 +770,6 @@ int nr_srs_channel_estimation(const PHY_VARS_gNB *gNB,
     fd_cdm = 2;
   }
 
-   // Adeel testing
-   if (frame%35==0 && slot== 17 ){
-printf("\n gNB 1: Frame Parameter\n nb_prefix_samples0=%lu \n, ofdm_symbol_size=%lu \n,  nb_prefix_samples=%lu \n,  symbols_per_slot=%lu \n,  slots_per_subframe=%lu \n , first_carrier_offset=%lu \n", (unsigned long int)frame_parms->nb_prefix_samples0, (unsigned long int)frame_parms->ofdm_symbol_size,  (unsigned long int)frame_parms->nb_prefix_samples,  (unsigned long int)frame_parms->symbols_per_slot,  (unsigned long int)frame_parms->slots_per_subframe, (unsigned long int)frame_parms->first_carrier_offset);
-printf("\n gNB 1: SRS Parameter\n B_SRS =%u \n C_SRS = %u \n  b_hop = %u \n K_TC = %u \n K_TC_overbar = %u \n n_SRS_cs = %u \n n_ID_SRS = %u \n n_shift = %u \n n_RRC = %u \n groupOrSequenceHopping = %u \n l_offset = %u \n T_SRS = %u \n  T_offset = %u \n  R = %u \n  Number of antenna port for transmission N_ap = %u \n Number of consecutive OFDM symbols N_symb_SRS = %u \n Starting symbol position in the time domain l0 = %u  \n n_SRS_cs_max = %u \n Number of resource blocks m_SRS_b = %u \n  Length of the SRS sequence M_sc_b_SRS =  %u \n", srs_pdu->bandwidth_index, srs_pdu->config_index,  srs_pdu->frequency_hopping, 2<<srs_pdu->comb_size, srs_pdu->comb_offset, srs_pdu->cyclic_shift, srs_pdu->sequence_id, srs_pdu->frequency_position, srs_pdu->frequency_shift,srs_pdu->group_or_sequence_hopping, srs_pdu->time_start_position, srs_pdu->t_srs, srs_pdu->t_offset, 1<<srs_pdu->num_repetitions, 1<<srs_pdu->num_ant_ports, 1<<srs_pdu->num_symbols, frame_parms->symbols_per_slot - 1 - srs_pdu->time_start_position ,srs_max_number_cs[srs_pdu->comb_size], m_SRS_b, M_sc_b_SRS);
-}
-  // Adeel testing
-
-
   int16_t ch_real[frame_parms->nb_antennas_rx*N_ap*M_sc_b_SRS];
   int16_t ch_imag[frame_parms->nb_antennas_rx*N_ap*M_sc_b_SRS];
   int16_t noise_real[frame_parms->nb_antennas_rx*N_ap*M_sc_b_SRS];
@@ -977,8 +968,6 @@ printf("\n gNB 1: SRS Parameter\n B_SRS =%u \n C_SRS = %u \n  b_hop = %u \n K_TC
              &srs_estimated_channel_time[ant][p_index][0],
              (gNB->frame_parms.ofdm_symbol_size>>1)*sizeof(int32_t));
 
-       //////////////////ADEEL TESTing//////////////
-
        // T tracer dump
     //T(T_UE_PHY_INPUT_SIGNAL, T_INT(gNB_id),
      // T_INT(proc->frame_rx), T_INT(proc->nr_slot_rx),
@@ -991,29 +980,13 @@ printf("\n gNB 1: SRS Parameter\n B_SRS =%u \n C_SRS = %u \n  b_hop = %u \n K_TC
    //   T_INT(frame), T_INT(slot),
      // T_INT(1), T_BUFFER(5, frame_parms->ofdm_symbol_size*sizeof(int32_t)));
 
-        //T(T_GNB_PHY_UL_FREQ_CHANNEL_ESTIMATE, T_INT(0), T_INT(srs_pdu->rnti), T_INT(frame), T_INT(0), T_INT(0),
-         //T_BUFFER(&srs_estimated_channel_freq[ant], frame_parms->ofdm_symbol_size*sizeof(int32_t)));
-
-       //T(T_GNB_PHY_UL_TIME_CHANNEL_ESTIMATE, T_INT(0), T_INT(srs_pdu->rnti), T_INT(frame), T_INT(0), T_INT(0),
-         //T_BUFFER(&srs_estimated_channel_time[ant], frame_parms->ofdm_symbol_size*sizeof(int32_t)));
-
-
-
-
-
-
-
     } // for (int p_index = 0; p_index < N_ap; p_index++)
-
-//Start: SRS MQTT TESTing ( adeel )
+     //Start: SRS MQTT TESTing ( adeel )
          //srs_toa_MQTT(&srs_estimated_channel_time[ant][0], frame_parms->ofdm_symbol_size, gNB->PgNB_id);     // peak estimator and MQTT client activation /// id of gNB
          //srs_toa_MQTT(&srs_estimated_channel_time[ant][0], frame_parms->ofdm_symbol_size, 1);     // peak estimator and MQTT client activation /// id of gNB
-        // printf("\n####################[Gnb_1 nr_ul_channel_estimation.c SRS estimate]#################\n"); //adeel changes
-          printf("\n####################[Gnb_1 nr_ul_channel_estimation.c SRS estimate]############# frame = %d, Slot = %d\n", frame, slot); //adeel changes
          srs_toa_MQTT((int32_t *)srs_estimated_channel_time[ant], frame_parms->ofdm_symbol_size, 1);     // peak estimator and MQTT client activation /// id of gNB
- //srs_toa_MQTT(&srs_estimated_channel_time[ant][0], frame_parms->ofdm_symbol_size, gNB->PgNB_id);          /// id of Primary eNB );
-     // END: SRS MQTT TESTing ( adeel )
 
+     // END: SRS MQTT TESTing ( adeel )
 
 
   } // for (int ant = 0; ant < frame_parms->nb_antennas_rx; ant++)
@@ -1084,6 +1057,7 @@ printf("\n gNB 1: SRS Parameter\n B_SRS =%u \n C_SRS = %u \n  b_hop = %u \n K_TC
 
   return 0;
 }
+
 
 
 
@@ -1177,6 +1151,12 @@ int32_t max_val = 0, max_idx = 0, abs_val = 0;
 
     //MQTTClient_disconnect(client, 10000);
     //MQTTClient_destroy(&client);
+
+
+
+
+
+
 
  }
 

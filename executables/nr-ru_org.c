@@ -60,24 +60,6 @@ unsigned short config_frames[4] = {2,9,11,13};
 #endif
 
 
-//////////////////GEO5G MQTT TESTing//////////////
-#include <stdio.h>
-#include <stdlib.h>
-#include "cjson/cJSON.h"
-#include "MQTTClient.h"
-#define ADDRESS     "tcp://localhost:1883"
-//#define ADDRESS     "tcp://172.24.10.178:1883"
-#define CLIENTID    "Gnb1"
-#define TOPIC       "Frame_rx"
-#define QOS         1
-#define TIMEOUT     100L
-void Frame_MQTT(void *data, int32_t length, int32_t frame_id,   int32_t gNB_id);
-
-//////////////////GEO5G TESTing//////////////*/
-
-
-
-
 /* these variables have to be defined before including ENB_APP/enb_paramdef.h and GNB_APP/gnb_paramdef.h */
 static int DEFBANDS[] = {7};
 static int DEFENBS[] = {0};
@@ -296,8 +278,8 @@ int connect_rau(RU_t *ru) {
 void fh_if5_south_out(RU_t *ru, int frame, int slot, uint64_t timestamp) {
   if (ru == RC.ru[0]) VCD_SIGNAL_DUMPER_DUMP_VARIABLE_BY_NAME( VCD_SIGNAL_DUMPER_VARIABLES_TRX_TST, ru->proc.timestamp_tx&0xffffffff );
   int offset = ru->nr_frame_parms->get_samples_slot_timestamp(slot,ru->nr_frame_parms,0);
-  void *buffs[ru->nb_tx];
-  for (int aid=0;aid<ru->nb_tx;aid++) buffs[aid] = (void*)&ru->common.txdata[aid][offset];
+  void *buffs[ru->nb_tx]; 
+  for (int aid=0;aid<ru->nb_tx;aid++) buffs[aid] = (void*)&ru->common.txdata[aid][offset]; 
   struct timespec txmeas;
   clock_gettime(CLOCK_MONOTONIC, &txmeas);
   LOG_D(PHY,"IF5 TX %d.%d, TS %llu, buffs[0] %p, buffs[1] %p ener0 %f dB, tx start %d\n",frame,slot,(unsigned long long)timestamp,buffs[0],buffs[1],
@@ -308,7 +290,7 @@ void fh_if5_south_out(RU_t *ru, int frame, int slot, uint64_t timestamp) {
 			       0,
 			       ru->nr_frame_parms->get_samples_per_slot(slot,ru->nr_frame_parms),
 			       0,
-			       ru->nb_tx);
+			       ru->nb_tx); 
 
 }
 
@@ -334,10 +316,10 @@ void fh_if5_south_in(RU_t *ru,
                      int *tti) {
   NR_DL_FRAME_PARMS *fp = ru->nr_frame_parms;
   RU_proc_t *proc = &ru->proc;
-  VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME( VCD_SIGNAL_DUMPER_FUNCTIONS_RECV_IF5, 1 );
+  VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME( VCD_SIGNAL_DUMPER_FUNCTIONS_RECV_IF5, 1 );   
   start_meas(&ru->rx_fhaul);
 
-  ru->ifdevice.trx_read_func2(&ru->ifdevice,&proc->timestamp_rx,NULL,fp->get_samples_per_slot(*tti,fp));
+  ru->ifdevice.trx_read_func2(&ru->ifdevice,&proc->timestamp_rx,NULL,fp->get_samples_per_slot(*tti,fp)); 
   if (proc->first_rx == 1) ru->ts_offset = proc->timestamp_rx;
   proc->frame_rx    = ((proc->timestamp_rx-ru->ts_offset) / (fp->samples_per_subframe*10))&1023;
   proc->tti_rx = fp->get_slot_from_timestamp(proc->timestamp_rx-ru->ts_offset,fp);
@@ -698,13 +680,6 @@ void rx_rf(RU_t *ru,int *frame,int *slot) {
         (unsigned long long int)(proc->timestamp_rx+ru->ts_offset),
         proc->frame_rx,proc->tti_rx,proc->tti_tx,fp->slots_per_frame);
 
-
-         // start adeel changes
-           // printf("gNB1 [nr-ru.c] rx_rf: %d/%d TS %llu , frame %d, slot %d.%d / %d\n",  ru->idx,   0, (unsigned long long int)(proc->timestamp_rx+ru->ts_offset), proc->frame_rx,proc->tti_rx,proc->tti_tx,fp->slots_per_frame);
-   // end adeel changes
-
-
-
   // dump VCD output for first RU in list
   if (ru == RC.ru[0]) {
     VCD_SIGNAL_DUMPER_DUMP_VARIABLE_BY_NAME( VCD_SIGNAL_DUMPER_VARIABLES_FRAME_NUMBER_RX0_RU, proc->frame_rx );
@@ -829,7 +804,7 @@ void tx_rf(RU_t *ru,int frame,int slot, uint64_t timestamp) {
 
     for (i=0; i<ru->nb_tx; i++)
       txp[i] = (void *)&ru->common.txdata[i][fp->get_samples_slot_timestamp(slot,fp,0)]-sf_extension*sizeof(int32_t);
-
+    
     VCD_SIGNAL_DUMPER_DUMP_VARIABLE_BY_NAME( VCD_SIGNAL_DUMPER_VARIABLES_TRX_TST, (timestamp+ru->ts_offset-ru->openair0_cfg.tx_sample_advance)&0xffffffff );
     VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME( VCD_SIGNAL_DUMPER_FUNCTIONS_TRX_WRITE, 1 );
       // prepare tx buffer pointers
@@ -1012,7 +987,7 @@ void *ru_stats_thread(void *param) {
         print_meas(&ru->ofdm_total_stats,"feptx_total",NULL,NULL);
       }
       print_meas(&ru->rx_fhaul,"rx_fhaul",NULL,NULL);
-      if (ru->if_south == REMOTE_IF5) print_meas(&ru->ifdevice.tx_fhaul,"tx_fhaul (IF5)",NULL,NULL);
+      if (ru->if_south == REMOTE_IF5) print_meas(&ru->ifdevice.tx_fhaul,"tx_fhaul (IF5)",NULL,NULL); 
       else print_meas(&ru->tx_fhaul,"tx_fhaul",NULL,NULL);
 
       if (ru->fh_north_out) {
@@ -1033,7 +1008,7 @@ void ru_tx_func(void *param) {
   int slot_tx = info->slot_tx;
   int print_frame = 8;
   char filename[40];
-
+ 
 
   // note that this will break for 60/120 kHz, to be handled
   int absslot_tx = info->timestamp_tx/fp->get_samples_per_slot(slot_tx,fp);
@@ -1134,7 +1109,7 @@ void *ru_thread( void *param ) {
       if (ru->has_ctrl_prt > 0) {
         if (ru->if_south == LOCAL_RF) ret = connect_rau(ru);
         else ret = attach_rru(ru);
-
+  
         AssertFatal(ret==0,"Cannot connect to remote radio\n");
       }
 
@@ -1184,31 +1159,31 @@ void *ru_thread( void *param ) {
   // This is a forever while loop, it loops over subframes which are scheduled by incoming samples from HW devices
   struct timespec slot_start;
 	clock_gettime(CLOCK_MONOTONIC, &slot_start);
-
-  struct timespec slot_duration;
+  
+  struct timespec slot_duration; 
 	slot_duration.tv_sec = 0;
 	//slot_duration.tv_nsec = 0.5e6;
 	slot_duration.tv_nsec = 0.5e6;
 
-
+  
 
   while (!oai_exit) {
-
+    
     if (NFAPI_MODE==NFAPI_MODE_VNF) {
       // We should make a VNF main loop with proper tasks calls in case of VNF
       slot_start = timespec_add(slot_start,slot_duration);
       struct timespec curr_time;
       clock_gettime(CLOCK_MONOTONIC, &curr_time);
-
+      
       struct timespec sleep_time;
-
+      
       if((slot_start.tv_sec > curr_time.tv_sec) || (slot_start.tv_sec == curr_time.tv_sec && slot_start.tv_nsec > curr_time.tv_nsec)){
 	sleep_time = timespec_sub(slot_start,curr_time);
-
-	usleep(sleep_time.tv_nsec * 1e-3);
+	
+	usleep(sleep_time.tv_nsec * 1e-3); 
       }
     }
-
+    
     if (slot==(fp->slots_per_frame-1)) {
       slot=0;
       frame++;
@@ -1259,40 +1234,7 @@ void *ru_thread( void *param ) {
 
     if (ru->idx!=0) proc->frame_tx = (proc->frame_tx+proc->frame_offset)&1023;
 
-
-
-
-    //start:adeel changes Frame extraction
-//Start: Sending Frame samples via MQTT
-    if (proc->frame_rx %20==0 && proc->tti_rx== 15 ){  // As this function is called at each slot, we use if condition to make sure to send limited amount of frame data via MQTT (currently every 20th frame), sending more frequently may overwhelm the matlab processing
-         Frame_MQTT(&ru->common.rxdata[0][0], fp->samples_per_frame,  proc->frame_rx, 1) ; //
-    }
-
-     //printf("\n gNB1 [nr-ru.c] samples_per_tti= %d  \n", ru->frame_parms->samples_per_tti); // adeel changes
-    //printf("\n gNB1 [nr-ru.c] UPlink slot timestamp_rx %" PRId64 "\n", proc->timestamp_rx);// adeel changes  /// timestamp received from HW  openair0_timestamp timestamp_rx;
-
-//End: Sending Frame samples via MQTT
-
-//Start: Extracting Frame sample in txt file
-    if (proc->frame_rx == 132 && proc->tti_rx== 17){ // As this function is called at each slot, we use if condition to make sure we extract only one frame in txt file,
-           void *data= &ru->common.rxdata[0][0];
-					  int length=fp->samples_per_frame;
-					  int dec=1;
-  FILE *file_p=NULL;
-      int i_c;
-    file_p = fopen("rxdataabs_gnb1.txt","a");
-      for (i_c=0; i_c<length<<1; i_c+=(2*dec)) {
-           fprintf(file_p,"%d \n",( ((short *)data)[i_c]*((short *)data)[i_c]+((short *)data)[i_c+1]*((short *)data)[i_c+1] )/2 );
-      }
-      fclose(file_p);
-}
- //End: Extracting Frame sample in txt file
-
-// end adeel changes Frame extraction
-
-
-
-// do RX front-end processing (frequency-shift, dft) if needed
+    // do RX front-end processing (frequency-shift, dft) if needed
     int slot_type = nr_slot_select(cfg,proc->frame_rx,proc->tti_rx);
 
     if (slot_type == NR_UPLINK_SLOT || slot_type == NR_MIXED_SLOT) {
@@ -1300,8 +1242,6 @@ void *ru_thread( void *param ) {
         ru->feprx(ru,proc->tti_rx);
         clock_gettime(CLOCK_MONOTONIC,&ru->rt_ru_profiling.return_RU_feprx[rt_prof_idx]);
         //LOG_M("rxdata.m","rxs",ru->common.rxdata[0],1228800,1,1);
-
-
         LOG_D(PHY,"RU proc: frame_rx = %d, tti_rx = %d\n", proc->frame_rx, proc->tti_rx);
         if (IS_SOFTMODEM_DOSCOPE && RC.gNB[0]->scopeData)
           ((scopeData_t *)RC.gNB[0]->scopeData)->slotFunc(ru->common.rxdataF[0],proc->tti_rx, RC.gNB[0]->scopeData);
@@ -1411,7 +1351,7 @@ void init_RU_proc(RU_t *ru) {
 
   if(emulate_rf)
     threadCreate( &proc->pthread_emulateRF, emulatedRF_thread, (void *)proc, "emulateRF", -1, OAI_PRIORITY_RT );
-  if (opp_enabled == 1)
+  if (opp_enabled == 1) 
     threadCreate( &ru->ru_stats_thread, ru_stats_thread, (void *)ru,"ru_stats", -1, OAI_PRIORITY_RT );
   if (get_thread_worker_conf() == WORKER_ENABLE) {
   }
@@ -1663,7 +1603,7 @@ void set_function_spec_param(RU_t *ru) {
         ru->do_prach             = 0;                       // no prach processing in RU
         ru->feprx                = nr_fep_tp;     // this is frequency-shift + DFTs
         ru->feptx_ofdm           = nr_feptx_tp;             // this is fep with idft and precoding
-        ru->feptx_prec           = NULL;
+        ru->feptx_prec           = NULL;                    
         ru->fh_north_in          = NULL;                    // no incoming fronthaul from north
         ru->fh_north_out         = NULL;                    // no outgoing fronthaul to north
         ru->nr_start_if          = NULL;                    // no if interface
@@ -1707,7 +1647,7 @@ void set_function_spec_param(RU_t *ru) {
       ru->ifdevice.eth_params    = &ru->eth_params;
       ru->ifdevice.configure_rru = configure_ru;
 
-      printf("starting transport : rx_num_antennas %d, tx_num_antennas %d\n",ru->openair0_cfg.rx_num_channels,ru->openair0_cfg.tx_num_channels);
+      printf("starting transport : rx_num_antennas %d, tx_num_antennas %d\n",ru->openair0_cfg.rx_num_channels,ru->openair0_cfg.tx_num_channels); 
       ret = openair0_transport_load(&ru->ifdevice,&ru->openair0_cfg,&ru->eth_params);
       printf("openair0_transport_init returns %d for ru_id %u\n", ret, ru->idx);
 
@@ -2028,7 +1968,7 @@ static void NRRCconfig_RU(void) {
       RC.ru[j]->openair0_cfg.txfh_cores[0]        = *(RUParamList.paramarray[j][RU_TXFH_CORE_ID].iptr);
       RC.ru[j]->num_tpcores                       = *(RUParamList.paramarray[j][RU_NUM_TP_CORES].iptr);
       RC.ru[j]->half_slot_parallelization         = *(RUParamList.paramarray[j][RU_HALF_SLOT_PARALLELIZATION].iptr);
-      printf("[RU %d] Setting half-slot parallelization to %d\n",j,RC.ru[j]->half_slot_parallelization);
+      printf("[RU %d] Setting half-slot parallelization to %d\n",j,RC.ru[j]->half_slot_parallelization); 
       AssertFatal(RC.ru[j]->num_tpcores <= RUParamList.paramarray[j][RU_TP_CORES].numelt, "Number of TP cores should be <=16\n");
       for (i=0; i<RC.ru[j]->num_tpcores; i++) RC.ru[j]->tpcores[i] = RUParamList.paramarray[j][RU_TP_CORES].iptr[i];
       if (config_isparamset(RUParamList.paramarray[j], RU_BF_WEIGHTS_LIST_IDX)) {
@@ -2047,69 +1987,4 @@ static void NRRCconfig_RU(void) {
 
   return;
 }
-
-void Frame_MQTT(void *data, int32_t length,  int32_t frame_id, int32_t gNB_id)  // GEO 5G testing: Sending Frame samples via MQTT
-{
-
-
-//MQTT Part
-   MQTTClient client;
-    MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
-   MQTTClient_message pubmsg = MQTTClient_message_initializer;
-    MQTTClient_deliveryToken token;
-    int rc;
-    MQTTClient_create(&client, ADDRESS, CLIENTID,
-        MQTTCLIENT_PERSISTENCE_NONE, NULL);
-    conn_opts.keepAliveInterval = 20;
-    conn_opts.cleansession = 1;
-    if ((rc = MQTTClient_connect(client, &conn_opts)) != MQTTCLIENT_SUCCESS)
-    {
-        printf("[Frame_MQTT] Failed to connect, return code %d\n", rc);
-        exit(EXIT_FAILURE);
-    }
-
-
-
-  //Converting data into JSON format
-  cJSON *mqtt_payload  = cJSON_CreateObject();
-  cJSON_AddNumberToObject(mqtt_payload, "frame_id",frame_id);
-   cJSON_AddNumberToObject(mqtt_payload, "source", gNB_id);
-    cJSON *rx_samples_json    = NULL; //cJSON_CreateArray();
-  rx_samples_json= cJSON_AddArrayToObject(mqtt_payload, "Frame_samples");
-
-      int dec=1;
-      int i_c;
-      int32_t abs_val = 0;
-         for (i_c=0; i_c<length<<1; i_c+=(2*dec)) {
-
-     abs_val= ( ((short *)data)[i_c]*((short *)data)[i_c]+((short *)data)[i_c+1]*((short *)data)[i_c+1] )/2 ;
-
-   cJSON *rx_samples_json_value   = cJSON_CreateObject();
-   cJSON_AddNumberToObject(rx_samples_json_value,"rx_samples",  abs_val);
-   cJSON_AddItemToArray(rx_samples_json,  rx_samples_json_value );
-
-
-      }
-
-
-
-// PUBLISHING the Message
-    pubmsg.payload = cJSON_Print(mqtt_payload) ; //&PAYLOAD;
-    pubmsg.payloadlen = (int)strlen(pubmsg.payload); //sizeof(mqtt_payload);//strlen(PAYLOAD);
-    pubmsg.qos = QOS;
-    pubmsg.retained = 0;
-    MQTTClient_publishMessage(client, TOPIC, &pubmsg, &token);
-
-    rc = MQTTClient_waitForCompletion(client, token, TIMEOUT);
-    printf("[Frame_MQTT] Message with delivery token %d delivered\n", token);
-
-    MQTTClient_disconnect(client, 10);
-    MQTTClient_destroy(&client);
-
-
- }
-
-
-
-
 
