@@ -32,6 +32,7 @@
 #include "assertions.h"
 #include "common/utils/time_meas.h"
 #include "common/utils/system.h"
+#define USE_SLEEP 1
 
 #ifdef DEBUG
   #define THREADINIT   PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP
@@ -47,6 +48,11 @@
 #define mutextrylock(mutex)   pthread_mutex_trylock(&mutex)
 #define mutexunlock(mutex) {int ret=pthread_mutex_unlock(&mutex); \
                             AssertFatal(ret==0,"ret=%d\n",ret);}
+#ifdef USE_SLEEP
+  #undef mutexlock
+  #define mutexlock(mutex) {int ret=mutextrylock(mutex); \
+                            while (ret!=0) {usleep(1); ret=mutextrylock(mutex);}}
+#endif
 #define condwait(condition, mutex) {int ret=pthread_cond_wait(&condition, &mutex); \
                                     AssertFatal(ret==0,"ret=%d\n",ret);}
 #define condbroadcast(signal) {int ret=pthread_cond_broadcast(&signal); \
@@ -129,6 +135,7 @@ static inline void pushNotifiedFIFO_nothreadSafe(notifiedFIFO_t *nf, notifiedFIF
 
   nf->inF = msg;
 }
+
 
 static inline void pushNotifiedFIFO(notifiedFIFO_t *nf, notifiedFIFO_elt_t *msg) {
   mutexlock(nf->lockF);
