@@ -494,7 +494,8 @@ static bool flushInput(rfsimulator_state_t *t, int timeout, int nsamps_for_initi
       AssertFatal( (conn_sock = accept(t->listen_sock,NULL,NULL)) != -1, "");
       setblocking(conn_sock, notBlocking);
       allocCirBuf(t, conn_sock);
-      LOG_I(HW,"A client connected, sending the current time\n");
+      openair0_timestamp ts = t->lastWroteTS > 1 ? t->lastWroteTS-1 : 0;
+	LOG_I(HW,"A client connected, sending the current time %lu\n",ts);
       c16_t v= {0};
       void *samplesVoid[t->tx_num_channels];
 
