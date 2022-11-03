@@ -33,19 +33,83 @@
 #include "common/utils/time_meas.h"
 #include "common/utils/system.h"
 
+#include <stdatomic.h>
+
+typedef struct{
+  _Atomic bool lock;  
+} spinlock_t;
+
+static
+void lock_spinlock(spinlock_t* s)
+{
+    for (;;) {
+      // Optimistically assume the lock is free on the first try
+      if(!atomic_exchange_explicit(&s->lock, true, memory_order_acquire) ){
+        return;
+      }
+
+      // Wait for lock to be released without generating cache misses
+      while (atomic_load_explicit(&s->lock, memory_order_relaxed)){
+        // Issue X86 PAUSE or ARM YIELD instruction to reduce contention between
+        // hyper-threads
+        __builtin_ia32_pause();
+      }
+    }
+
+}
+
+static
+bool try_lock_spinlock(spinlock_t* s)
+{
+    // First do a relaxed load to check if lock is free in order to prevent
+    // unnecessary cache misses if someone does while(!try_lock())
+    return !atomic_load_explicit(&s->lock, memory_order_relaxed) &&
+           !atomic_exchange_explicit(&s->lock, true, memory_order_acquire);
+}
+
+
+
+static
+void unlock_spinlock(spinlock_t* s)
+{
+  atomic_store_explicit(&s->lock, false, memory_order_release);
+}
+
 #ifdef DEBUG
   #define THREADINIT   PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP
 #else
   #define THREADINIT   PTHREAD_MUTEX_INITIALIZER
 #endif
+
+
 #define mutexinit(mutex)   {int ret=pthread_mutex_init(&mutex,NULL); \
                             AssertFatal(ret==0,"ret=%d\n",ret);}
-#define condinit(signal)   {int ret=pthread_cond_init(&signal,NULL); \
-                            AssertFatal(ret==0,"ret=%d\n",ret);}
-#define mutexlock(mutex)   {int ret=pthread_mutex_lock(&mutex); \
-                            AssertFatal(ret==0,"ret=%d\n",ret);}
+
+#define mutexlock(mutex)   {  int mtx_cnt = 2048;\
+                              int ret_mtx_cnt = 1;\
+                              while(ret_mtx_cnt != 0 &&  mtx_cnt != 0){\
+                               ret_mtx_cnt = pthread_mutex_trylock(&mutex);\
+                               mtx_cnt -=1; \
+                              }\
+                              if(ret_mtx_cnt != 0){\
+                              int ret=pthread_mutex_lock(&mutex); \
+                              AssertFatal(ret==0,"ret=%d\n",ret); } \
+                              }
+
 #define mutextrylock(mutex)   pthread_mutex_trylock(&mutex)
 #define mutexunlock(mutex) {int ret=pthread_mutex_unlock(&mutex); \
+                            AssertFatal(ret==0,"ret=%d\n",ret);}
+
+
+//#define mutexinit(mutex)   { (&mutex)->lock = false }
+//#define mutexlock(mutex)   {   lock_spinlock(&mutex); }
+//#define mutextrylock(mutex)   { try_lock_spinlock(&mutex); } 
+//#define mutexunlock(mutex) { unlock_spinlock(&mutex); }
+
+
+
+
+#define condinit(signal)   {int ret=pthread_cond_init(&signal,NULL); \
                             AssertFatal(ret==0,"ret=%d\n",ret);}
 #define condwait(condition, mutex) {int ret=pthread_cond_wait(&condition, &mutex); \
                                     AssertFatal(ret==0,"ret=%d\n",ret);}
@@ -54,6 +118,19 @@
 #define condsignal(signal)    {int ret=pthread_cond_signal(&signal); \
                                AssertFatal(ret==0,"ret=%d\n",ret);}
 #define tpool_nbthreads(tpool)   (tpool.nbThreads)
+
+
+
+
+
+
+
+
+
+
+
+
+
 typedef struct notifiedFIFO_elt_s {
   struct notifiedFIFO_elt_s *next;
   uint64_t key; //To filter out elements
@@ -71,6 +148,8 @@ typedef struct notifiedFIFO_s {
   notifiedFIFO_elt_t *outF;
   notifiedFIFO_elt_t *inF;
   pthread_mutex_t lockF;
+// spinlock_t lockF;
+
   pthread_cond_t  notifF;
   bool abortFIFO; // if set, the FIFO always returns NULL -> abort condition
 } notifiedFIFO_t;
