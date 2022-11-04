@@ -53,6 +53,7 @@ typedef struct {
   memcpy(ba.buf, octet.buf, octet.size);\
   ba.len = octet.size;
 
+
 byte_array_t copy_byte_array(byte_array_t src);
 
 void free_byte_array(byte_array_t ba);

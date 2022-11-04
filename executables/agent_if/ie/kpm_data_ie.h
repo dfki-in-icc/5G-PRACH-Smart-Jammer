@@ -109,8 +109,14 @@ typedef struct adapter_LabelInfoItem_t {
 void free_label_info(adapter_LabelInfoItem_t *l);
 void cp_label_info(adapter_LabelInfoItem_t *dst, adapter_LabelInfoItem_t const *src);
 
+typedef enum {
+    KPM_V2_MEASUREMENT_TYPE_NAME = 1, 
+    KPM_V2_MEASUREMENT_TYPE_ID = 2
+  }	meas_type_e;
+
+
 typedef struct MeasInfo_t {
-  enum {MeasurementType_NAME = 1, MeasurementType_ID=2}	measType;
+	meas_type_e meas_type;
   adapter_MeasurementTypeName_t	 measName;
 	adapter_MeasurementTypeID_t	   measID; 
 	adapter_LabelInfoItem_t	         *labelInfo;   // list implemented as array having a maximum of 'maxnoofLabelInfo' items
@@ -123,6 +129,14 @@ typedef struct MeasInfo_t {
 typedef struct kpm_event_trigger_t {
   unsigned long ms; // reporting period in milliseconds
 } kpm_event_trigger_t;
+
+
+
+typedef enum { 
+  KPMV2_CELL_ID_CHOICE_NOTHING = 0, 
+  KPMV2_CELL_ID_CHOICE_NR_CGI, 
+  KPMV2_CELL_ID_CHOICE_EUTRA_CGI 
+} cell_global_id_t;
 
 /*******************************************************
  * SEC 2. RIC Action Definition as per $8.2.1.2
@@ -153,11 +167,12 @@ typedef struct kpm_action_def_t
   MeasInfo_t                    *MeasInfo;    
   
   // If cellGlobalIDtype == choice_NOTHING, the field 'cellGlobalID' in asn format will be NULL
-  enum { choice_NOTHING, choice_nR_CGI, choice_eUTRA_CGI } cellGlobalIDtype; 
-  
+  cell_global_id_t cell_global_id;
+
   adapter_NRCellIdentity_t      nRCellIdentity;
   adapter_PLMNIdentity_t	      pLMNIdentity;
 	adapter_EUTRACellIdentity_t   eUTRACellIdentity;
+
 
   /* 
    * XXX-extensions: below add all the info you might find in all the actions types . 

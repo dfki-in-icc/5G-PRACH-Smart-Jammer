@@ -1042,7 +1042,7 @@ void read_kpm_sm(kpm_ind_data_t* data)
       assert(msg->MeasInfo != NULL && "Memory exhausted" );
 
       MeasInfo_t* info = &msg->MeasInfo[0];
-      info->measType = MeasurementType_NAME;
+      info->meas_type = KPM_V2_MEASUREMENT_TYPE_NAME;
       char* measName = "PrbDlUsage";
       info->measName.len = strlen(measName);
       info->measName.buf = malloc(strlen(measName));
