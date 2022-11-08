@@ -882,6 +882,7 @@ void config_uldci(const NR_SIB1_t *sib1,
                   const NR_ServingCellConfigCommon_t *scc,
                   const nfapi_nr_pusch_pdu_t *pusch_pdu,
                   dci_pdu_rel15_t *dci_pdu_rel15,
+                  nr_srs_feedback_t *srs_feedback,
                   int time_domain_assignment,
                   uint8_t tpc,
                   NR_UE_UL_BWP_t *ul_bwp) {
@@ -916,13 +917,14 @@ void config_uldci(const NR_SIB1_t *sib1,
           pusch_Config->txConfig != NULL) {
         AssertFatal(*pusch_Config->txConfig == NR_PUSCH_Config__txConfig_codebook,
                     "Non Codebook configuration non supported\n");
-        dci_pdu_rel15->srs_resource_indicator.val = 0; // taking resource 0 for SRS
+        compute_srs_resource_indicator(ul_bwp->pusch_servingcellconfig, pusch_Config, ul_bwp->srs_Config, srs_feedback, &dci_pdu_rel15->srs_resource_indicator.val);
       }
-      dci_pdu_rel15->precoding_information.val= 0;
-      if (pusch_pdu->nrOfLayers == 2)
-        dci_pdu_rel15->precoding_information.val = 4;
-      else if (pusch_pdu->nrOfLayers == 4)
-        dci_pdu_rel15->precoding_information.val = 11;
+      compute_precoding_information(pusch_Config,
+                                    ul_bwp->srs_Config,
+                                    dci_pdu_rel15->srs_resource_indicator,
+                                    srs_feedback,
+                                    &pusch_pdu->nrOfLayers,
+                                    &dci_pdu_rel15->precoding_information.val);
 
       // antenna_ports.val = 0 for transform precoder is disabled, dmrs-Type=1, maxLength=1, Rank=1/2/3/4
       // Antenna Ports
@@ -1018,7 +1020,7 @@ int nr_get_pucch_resource(NR_ControlResourceSet_t *coreset,
 // This function configures pucch pdu fapi structure
 void nr_configure_pucch(nfapi_nr_pucch_pdu_t* pucch_pdu,
                         NR_ServingCellConfigCommon_t *scc,
-                        NR_UE_info_t* UE,
+                        NR_UE_info_t *UE,
                         uint8_t pucch_resource,
                         uint16_t O_csi,
                         uint16_t O_ack,
@@ -1085,7 +1087,7 @@ void nr_configure_pucch(nfapi_nr_pucch_pdu_t* pucch_pdu,
   pucch_pdu->cyclic_prefix = (current_BWP->cyclicprefix==NULL) ? 0 : *current_BWP->cyclicprefix;
 
   NR_PUCCH_Config_t *pucch_Config = current_BWP->pucch_Config;
-  if (r_pucch<0 || pucch_Config){
+  if (r_pucch<0 || pucch_Config) {
       LOG_D(NR_MAC,"pucch_acknak: Filling dedicated configuration for PUCCH\n");
 
       AssertFatal(pucch_Config->resourceSetToAddModList!=NULL,
@@ -1164,6 +1166,7 @@ void nr_configure_pucch(nfapi_nr_pucch_pdu_t* pucch_pdu,
             break;
           case NR_PUCCH_Resource__format_PR_format2 :
             pucch_pdu->format_type = 2;
+            pucch_pdu->sr_flag = O_sr;
             pucch_pdu->nr_of_symbols = pucchres->format.choice.format2->nrofSymbols;
             pucch_pdu->start_symbol_index = pucchres->format.choice.format2->startingSymbolIndex;
             pucch_pdu->data_scrambling_id = pusch_id!= NULL ? *pusch_id : *scc->physCellId;
@@ -2207,6 +2210,20 @@ void delete_nr_ue_data(NR_UE_info_t *UE, NR_COMMON_channels_t *ccPtr, uid_alloca
   }
 }
 
+
+void set_max_fb_time(NR_UE_UL_BWP_t *UL_BWP, const NR_UE_DL_BWP_t *DL_BWP)
+{
+  UL_BWP->max_fb_time = 8; // default value
+  // take the maximum in dl_DataToUL_ACK list
+  if (DL_BWP->dci_format != NR_DL_DCI_FORMAT_1_0 && UL_BWP->pucch_Config) {
+    const struct NR_PUCCH_Config__dl_DataToUL_ACK *fb_times = UL_BWP->pucch_Config->dl_DataToUL_ACK;
+    for (int i = 0; i < fb_times->list.count; i++) {
+      if(*fb_times->list.array[i] > UL_BWP->max_fb_time)
+        UL_BWP->max_fb_time = *fb_times->list.array[i];
+    }
+  }
+}
+
 // main function to configure parameters of current BWP
 void configure_UE_BWP(gNB_MAC_INST *nr_mac,
                       NR_ServingCellConfigCommon_t *scc,
@@ -2373,7 +2390,6 @@ void configure_UE_BWP(gNB_MAC_INST *nr_mac,
   else
     UL_BWP->pucch_ConfigCommon = scc->uplinkConfigCommon->initialUplinkBWP->pucch_ConfigCommon->choice.setup;
 
-
   if(UE) {
     // setting PDCCH related structures for sched_ctrl
     sched_ctrl->search_space = get_searchspace(scc,
@@ -2408,6 +2424,8 @@ void configure_UE_BWP(gNB_MAC_INST *nr_mac,
     if (UL_BWP->csi_MeasConfig)
       compute_csi_bitlen (UL_BWP->csi_MeasConfig, UE->csi_report_template);
 
+    set_max_fb_time(UL_BWP, DL_BWP);
+    set_sched_pucch_list(sched_ctrl, UL_BWP, scc);
   }
 
   if(ra) {
@@ -2454,6 +2472,13 @@ void configure_UE_BWP(gNB_MAC_INST *nr_mac,
                                           NR_RNTI_C,
                                           target_ss,
                                           false);
+
+}
+
+void reset_srs_stats(NR_UE_info_t *UE) {
+  if (UE) {
+    UE->mac_stats.srs_stats[0] = '\0';
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -2522,6 +2547,8 @@ NR_UE_info_t *add_new_nr_ue(gNB_MAC_INST *nr_mac, rnti_t rntiP, NR_CellGroupConf
   create_nr_list(&sched_ctrl->feedback_ul_harq, 16);
   create_nr_list(&sched_ctrl->retrans_ul_harq, 16);
 
+  reset_srs_stats(UE);
+
   pthread_mutex_lock(&UE_info->mutex);
   int i;
   for(i=0; i<MAX_MOBILES_PER_GNB; i++) {
@@ -2541,6 +2568,31 @@ NR_UE_info_t *add_new_nr_ue(gNB_MAC_INST *nr_mac, rnti_t rntiP, NR_CellGroupConf
   LOG_D(NR_MAC, "Add NR rnti %x\n", rntiP);
   dump_nr_list(UE_info->list);
   return (UE);
+}
+
+void set_sched_pucch_list(NR_UE_sched_ctrl_t *sched_ctrl,
+                          const NR_UE_UL_BWP_t *ul_bwp,
+                          const NR_ServingCellConfigCommon_t *scc) {
+
+  const NR_TDD_UL_DL_Pattern_t *tdd = scc->tdd_UL_DL_ConfigurationCommon ? &scc->tdd_UL_DL_ConfigurationCommon->pattern1 : NULL;
+  const int n_slots_frame = nr_slots_per_frame[ul_bwp->scs];
+  const int nr_slots_period = tdd ? n_slots_frame / get_nb_periods_per_frame(tdd->dl_UL_TransmissionPeriodicity) : n_slots_frame;
+  const int n_ul_slots_period = tdd ? tdd->nrofUplinkSlots + (tdd->nrofUplinkSymbols > 0 ? 1 : 0) : n_slots_frame;
+  // PUCCH list size is given by the number of UL slots in the PUCCH period
+  // the length PUCCH period is determined by max_fb_time since we may need to prepare PUCCH for ACK/NACK max_fb_time slots ahead
+  const int list_size = n_ul_slots_period << (ul_bwp->max_fb_time/nr_slots_period);
+  if(!sched_ctrl->sched_pucch) {
+    sched_ctrl->sched_pucch = calloc(list_size, sizeof(*sched_ctrl->sched_pucch));
+    sched_ctrl->sched_pucch_size = list_size;
+  }
+  else if (list_size > sched_ctrl->sched_pucch_size) {
+    sched_ctrl->sched_pucch = realloc(sched_ctrl->sched_pucch, list_size * sizeof(*sched_ctrl->sched_pucch));
+    for(int i=sched_ctrl->sched_pucch_size; i<list_size; i++){
+      NR_sched_pucch_t *curr_pucch = &sched_ctrl->sched_pucch[i];
+      memset(curr_pucch, 0, sizeof(*curr_pucch));
+    }
+    sched_ctrl->sched_pucch_size = list_size;
+  }
 }
 
 void create_dl_harq_list(NR_UE_sched_ctrl_t *sched_ctrl,
@@ -2662,23 +2714,17 @@ uint8_t nr_get_tpc(int target, uint8_t cqi, int incr) {
 
 void get_pdsch_to_harq_feedback(NR_PUCCH_Config_t *pucch_Config,
                                 nr_dci_format_t dci_format,
-                                int *max_fb_time,
                                 uint8_t *pdsch_to_harq_feedback) {
 
   if (dci_format == NR_DL_DCI_FORMAT_1_0) {
-    for (int i=0; i<8; i++) {
+    for (int i=0; i<8; i++)
       pdsch_to_harq_feedback[i] = i+1;
-      if(pdsch_to_harq_feedback[i]>*max_fb_time)
-        *max_fb_time = pdsch_to_harq_feedback[i];
-    }
   }
   else {
     AssertFatal(pucch_Config!=NULL,"pucch_Config shouldn't be null here\n");
     if(pucch_Config->dl_DataToUL_ACK != NULL) {
       for (int i=0; i<8; i++) {
         pdsch_to_harq_feedback[i] = *pucch_Config->dl_DataToUL_ACK->list.array[i];
-        if(pdsch_to_harq_feedback[i]>*max_fb_time)
-          *max_fb_time = pdsch_to_harq_feedback[i];
       }
     }
     else
@@ -2928,6 +2974,8 @@ void nr_mac_update_timers(module_id_t module_id,
       sched_ctrl->rrc_processing_timer--;
       if (sched_ctrl->rrc_processing_timer == 0) {
         LOG_I(NR_MAC, "(%d.%d) De-activating RRC processing timer for UE %04x\n", frame, slot, UE->rnti);
+
+        reset_srs_stats(UE);
 
         NR_CellGroupConfig_t *cg = NULL;
         uper_decode(NULL,

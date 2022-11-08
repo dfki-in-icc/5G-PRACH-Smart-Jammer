@@ -34,7 +34,6 @@
 #define __LAYER2_MAC_UE_PROTO_H__
 
 #include "mac_defs.h"
-#include "PHY/defs_nr_UE.h"
 #include "RRC/NR_UE/rrc_defs.h"
 
 #define NR_DL_MAX_DAI                            (4)                      /* TS 38.213 table 9.1.3-1 Value of counter DAI for DCI format 1_0 and 1_1 */
@@ -141,7 +140,6 @@ void fill_scheduled_response(nr_scheduled_response_t *scheduled_response,
                              int cc_id,
                              frame_t frame,
                              int slot,
-                             int thread_id,
                              void *phy_data);
 
 /*! \fn int8_t nr_ue_get_SR(module_id_t module_idP, frame_t frameP, slot_t slotP);
@@ -177,13 +175,6 @@ uint8_t nr_locate_BsrIndexByBufferSize(const uint32_t *table, int size,
 \return the number of subframe
 */
 int nr_get_sf_periodicBSRTimer(uint8_t bucketSize);
-
-/*! \fn  int nr_get_ms_bucketsizeduration(uint8_t bucketSize)
-   \brief get the time in ms form the bucket size duration configured by the higher layer
-\param[in]  bucketSize the bucket size duration
-\return the time in ms
-*/
-int nr_get_ms_bucketsizeduration(uint8_t bucketsizeduration);
 
 /*! \fn  int nr_get_sf_retxBSRTimer(uint8_t retxBSR_Timer)
    \brief get the number of subframe form the bucket size duration configured by the higher layer
@@ -353,11 +344,10 @@ and fills the PRACH PDU per each FD occasion.
 @param module_idP Index of UE instance
 @param frameP Frame index
 @param slotP Slot index
-@param thread_id RX/TX Thread ID
 @returns void
 */
-void nr_ue_prach_scheduler(module_id_t module_idP, frame_t frameP, sub_frame_t slotP, int thread_id);
-void nr_ue_pucch_scheduler(module_id_t module_idP, frame_t frameP, int slotP, int thread_id);
+void nr_ue_prach_scheduler(module_id_t module_idP, frame_t frameP, sub_frame_t slotP);
+void nr_ue_pucch_scheduler(module_id_t module_idP, frame_t frameP, int slotP, void *phy_data);
 void nr_schedule_csirs_reception(NR_UE_MAC_INST_t *mac, int frame, int slot);
 void nr_schedule_csi_for_im(NR_UE_MAC_INST_t *mac, int frame, int slot);
 
@@ -395,8 +385,6 @@ random-access procedure
 @returns timing advance or 0xffff if preamble doesn't match
 */
 int nr_ue_process_rar(nr_downlink_indication_t *dl_info, NR_UL_TIME_ALIGNMENT_t *ul_time_alignment, int pdu_id);
-
-void nr_process_rar(nr_downlink_indication_t *dl_info);
 
 void nr_ue_contention_resolution(module_id_t module_id, int cc_id, frame_t frame, int slot, NR_PRACH_RESOURCES_t *prach_resources);
 

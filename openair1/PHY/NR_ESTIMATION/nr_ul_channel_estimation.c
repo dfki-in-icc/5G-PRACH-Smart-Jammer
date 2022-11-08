@@ -415,11 +415,11 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
       for (c16_t *end=ul_ch+12; ul_ch<end; ul_ch++)
         *ul_ch=ch;
 #else
-      c16multaddVectRealComplex(filt8_avlip0, ch, ul_ch, 8);
+      c16multaddVectRealComplex(filt8_avlip0, &ch, ul_ch, 8);
       ul_ch += 8;
-      c16multaddVectRealComplex(filt8_avlip1, ch, ul_ch, 8);
+      c16multaddVectRealComplex(filt8_avlip1, &ch, ul_ch, 8);
       ul_ch += 8;
-      c16multaddVectRealComplex(filt8_avlip2, ch, ul_ch, 8);
+      c16multaddVectRealComplex(filt8_avlip2, &ch, ul_ch, 8);
       ul_ch -= 12;
 #endif
 
@@ -434,13 +434,11 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
         ul_ch[3].i += (ch.i * 1365)>>15; // 1/12*16384
 
         ul_ch += 4;
-        multadd_real_vector_complex_scalar(filt8_avlip3, ch, ul_ch, 8);
-
+        c16multaddVectRealComplex(filt8_avlip3, &ch, ul_ch, 8);
         ul_ch += 8;
-        multadd_real_vector_complex_scalar(filt8_avlip4, ch, ul_ch, 8);
-
+        c16multaddVectRealComplex(filt8_avlip4, &ch, ul_ch, 8);
         ul_ch += 8;
-        multadd_real_vector_complex_scalar(filt8_avlip5, ch, ul_ch, 8);
+        c16multaddVectRealComplex(filt8_avlip5, &ch, ul_ch, 8);
         ul_ch -= 8;
 #endif
       }
@@ -455,16 +453,37 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
       ul_ch[3].i += (ch.i * 1365)>>15; // 1/12*16384
 
       ul_ch += 4;
+<<<<<<< Updated upstream
+      c16multaddVectRealComplex(filt8_avlip3, &ch, ul_ch, 8);
+||||||| constructed merge base
       c16multaddVectRealComplex(filt8_avlip3,
                                          ch,
                                          ul_ch,
                                          8);
+<<<<<<< HEAD
 
       ul_ch += 8;
       c16multaddVectRealComplex(filt8_avlip6,
+||||||| a1de5e3d11
+      
+      ul_ch += 8;
+      c16multaddVectRealComplex(filt8_avlip6,
+=======
+
+=======
+<<<<<<< HEAD
+      c16multaddVectRealComplex(filt8_avlip3,
+>>>>>>> develop
                                          ch,
                                          ul_ch,
                                          8);
+
+=======
+      c16multaddVectRealComplex(filt8_avlip3, &ch, ul_ch, 8);
+>>>>>>> develop
+>>>>>>> Stashed changes
+      ul_ch += 8;
+      c16multaddVectRealComplex(filt8_avlip6, &ch, ul_ch, 8);
 #endif
     } else  { // this is case without frequency-domain linear interpolation, just take average of LS channel estimates of 4 DMRS REs and use a common value for the whole PRB
       LOG_D(PHY,"PUSCH estimation DMRS type 2, no Freq-domain interpolation");
@@ -532,7 +551,7 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
         for (c16_t *end=ul_ch+12; ul_ch<end; ul_ch++)
           *ul_ch=ch;
 #else
-        ul_ch[3]=c16maddShift(ch,(c16_t) {1365,1365},15); // 1365 = 1/12*16384 (full range is +/- 32768)
+        ul_ch[3] = c16maddShift(ch, (c16_t){1365, 1365}, (c16_t){0, 0}, 15); // 1365 = 1/12*16384 (full range is +/- 32768)
         ul_ch += 4;
         c16multaddVectRealComplex(filt8_avlip3, &ch, ul_ch, 8);
         ul_ch += 8;
@@ -565,7 +584,7 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
       for (c16_t *end=ul_ch+12; ul_ch<end; ul_ch++)
           *ul_ch=ch;
 #else
-      ul_ch[3]=c16maddShift(ch, c16_t {1365,1365},15);// 1365 = 1/12*16384 (full range is +/- 32768)
+      ul_ch[3] = c16maddShift(ch, (c16_t){1365, 1365}, (c16_t){0, 0}, 15); // 1365 = 1/12*16384 (full range is +/- 32768)
       ul_ch += 4;
       c16multaddVectRealComplex(filt8_avlip3, &ch, ul_ch, 8);
       ul_ch += 8;
@@ -745,13 +764,9 @@ int nr_srs_channel_estimation(const PHY_VARS_gNB *gNB,
                               const nr_srs_info_t *nr_srs_info,
                               const int32_t **srs_generated_signal,
                               int32_t srs_received_signal[][gNB->frame_parms.ofdm_symbol_size*(1<<srs_pdu->num_symbols)],
-                              int32_t srs_ls_estimated_channel[][1<<srs_pdu->num_ant_ports][gNB->frame_parms.ofdm_symbol_size*(1<<srs_pdu->num_symbols)],
                               int32_t srs_estimated_channel_freq[][1<<srs_pdu->num_ant_ports][gNB->frame_parms.ofdm_symbol_size*(1<<srs_pdu->num_symbols)],
                               int32_t srs_estimated_channel_time[][1<<srs_pdu->num_ant_ports][gNB->frame_parms.ofdm_symbol_size],
                               int32_t srs_estimated_channel_time_shifted[][1<<srs_pdu->num_ant_ports][gNB->frame_parms.ofdm_symbol_size],
-                              uint32_t *signal_power,
-                              uint32_t *noise_power_per_rb,
-                              uint32_t *noise_power,
                               int8_t *snr_per_rb,
                               int8_t *snr) {
 
@@ -771,6 +786,7 @@ int nr_srs_channel_estimation(const PHY_VARS_gNB *gNB,
     fd_cdm = 2;
   }
 
+<<<<<<< HEAD
    // Adeel testing
    if (frame%35==0 && slot== 17 ){
 printf("\n gNB 1: Frame Parameter\n nb_prefix_samples0=%lu \n, ofdm_symbol_size=%lu \n,  nb_prefix_samples=%lu \n,  symbols_per_slot=%lu \n,  slots_per_subframe=%lu \n , first_carrier_offset=%lu \n", (unsigned long int)frame_parms->nb_prefix_samples0, (unsigned long int)frame_parms->ofdm_symbol_size,  (unsigned long int)frame_parms->nb_prefix_samples,  (unsigned long int)frame_parms->symbols_per_slot,  (unsigned long int)frame_parms->slots_per_subframe, (unsigned long int)frame_parms->first_carrier_offset);
@@ -779,11 +795,40 @@ printf("\n gNB 1: SRS Parameter\n B_SRS =%u \n C_SRS = %u \n  b_hop = %u \n K_TC
   // Adeel testing
 
 
+||||||| a1de5e3d11
+=======
+<<<<<<< Updated upstream
+  c16_t srs_ls_estimated_channel[frame_parms->ofdm_symbol_size*(1<<srs_pdu->num_symbols)];
+  uint32_t noise_power_per_rb[srs_pdu->bwp_size];
+||||||| constructed merge base
+   // Adeel testing
+   if (frame%35==0 && slot== 17 ){
+printf("\n gNB 1: Frame Parameter\n nb_prefix_samples0=%lu \n, ofdm_symbol_size=%lu \n,  nb_prefix_samples=%lu \n,  symbols_per_slot=%lu \n,  slots_per_subframe=%lu \n , first_carrier_offset=%lu \n", (unsigned long int)frame_parms->nb_prefix_samples0, (unsigned long int)frame_parms->ofdm_symbol_size,  (unsigned long int)frame_parms->nb_prefix_samples,  (unsigned long int)frame_parms->symbols_per_slot,  (unsigned long int)frame_parms->slots_per_subframe, (unsigned long int)frame_parms->first_carrier_offset);
+printf("\n gNB 1: SRS Parameter\n B_SRS =%u \n C_SRS = %u \n  b_hop = %u \n K_TC = %u \n K_TC_overbar = %u \n n_SRS_cs = %u \n n_ID_SRS = %u \n n_shift = %u \n n_RRC = %u \n groupOrSequenceHopping = %u \n l_offset = %u \n T_SRS = %u \n  T_offset = %u \n  R = %u \n  Number of antenna port for transmission N_ap = %u \n Number of consecutive OFDM symbols N_symb_SRS = %u \n Starting symbol position in the time domain l0 = %u  \n n_SRS_cs_max = %u \n Number of resource blocks m_SRS_b = %u \n  Length of the SRS sequence M_sc_b_SRS =  %u \n", srs_pdu->bandwidth_index, srs_pdu->config_index,  srs_pdu->frequency_hopping, 2<<srs_pdu->comb_size, srs_pdu->comb_offset, srs_pdu->cyclic_shift, srs_pdu->sequence_id, srs_pdu->frequency_position, srs_pdu->frequency_shift,srs_pdu->group_or_sequence_hopping, srs_pdu->time_start_position, srs_pdu->t_srs, srs_pdu->t_offset, 1<<srs_pdu->num_repetitions, 1<<srs_pdu->num_ant_ports, 1<<srs_pdu->num_symbols, frame_parms->symbols_per_slot - 1 - srs_pdu->time_start_position ,srs_max_number_cs[srs_pdu->comb_size], m_SRS_b, M_sc_b_SRS);
+}
+  // Adeel testing
+
+
+=======
+<<<<<<< HEAD
+   // Adeel testing
+   if (frame%35==0 && slot== 17 ){
+printf("\n gNB 1: Frame Parameter\n nb_prefix_samples0=%lu \n, ofdm_symbol_size=%lu \n,  nb_prefix_samples=%lu \n,  symbols_per_slot=%lu \n,  slots_per_subframe=%lu \n , first_carrier_offset=%lu \n", (unsigned long int)frame_parms->nb_prefix_samples0, (unsigned long int)frame_parms->ofdm_symbol_size,  (unsigned long int)frame_parms->nb_prefix_samples,  (unsigned long int)frame_parms->symbols_per_slot,  (unsigned long int)frame_parms->slots_per_subframe, (unsigned long int)frame_parms->first_carrier_offset);
+printf("\n gNB 1: SRS Parameter\n B_SRS =%u \n C_SRS = %u \n  b_hop = %u \n K_TC = %u \n K_TC_overbar = %u \n n_SRS_cs = %u \n n_ID_SRS = %u \n n_shift = %u \n n_RRC = %u \n groupOrSequenceHopping = %u \n l_offset = %u \n T_SRS = %u \n  T_offset = %u \n  R = %u \n  Number of antenna port for transmission N_ap = %u \n Number of consecutive OFDM symbols N_symb_SRS = %u \n Starting symbol position in the time domain l0 = %u  \n n_SRS_cs_max = %u \n Number of resource blocks m_SRS_b = %u \n  Length of the SRS sequence M_sc_b_SRS =  %u \n", srs_pdu->bandwidth_index, srs_pdu->config_index,  srs_pdu->frequency_hopping, 2<<srs_pdu->comb_size, srs_pdu->comb_offset, srs_pdu->cyclic_shift, srs_pdu->sequence_id, srs_pdu->frequency_position, srs_pdu->frequency_shift,srs_pdu->group_or_sequence_hopping, srs_pdu->time_start_position, srs_pdu->t_srs, srs_pdu->t_offset, 1<<srs_pdu->num_repetitions, 1<<srs_pdu->num_ant_ports, 1<<srs_pdu->num_symbols, frame_parms->symbols_per_slot - 1 - srs_pdu->time_start_position ,srs_max_number_cs[srs_pdu->comb_size], m_SRS_b, M_sc_b_SRS);
+}
+  // Adeel testing
+
+
+=======
+  c16_t srs_ls_estimated_channel[frame_parms->ofdm_symbol_size*(1<<srs_pdu->num_symbols)];
+  uint32_t noise_power_per_rb[srs_pdu->bwp_size];
+>>>>>>> develop
+>>>>>>> Stashed changes
+>>>>>>> develop
   int16_t ch_real[frame_parms->nb_antennas_rx*N_ap*M_sc_b_SRS];
   int16_t ch_imag[frame_parms->nb_antennas_rx*N_ap*M_sc_b_SRS];
   int16_t noise_real[frame_parms->nb_antennas_rx*N_ap*M_sc_b_SRS];
   int16_t noise_imag[frame_parms->nb_antennas_rx*N_ap*M_sc_b_SRS];
-
   int16_t ls_estimated[2];
 
   uint8_t mem_offset = ((16 - ((long)&srs_estimated_channel_freq[0][0][subcarrier_offset + nr_srs_info->k_0_p[0][0]])) & 0xF) >> 2; // >> 2 <=> /sizeof(int32_t)
@@ -798,7 +843,7 @@ printf("\n gNB 1: SRS Parameter\n B_SRS =%u \n C_SRS = %u \n  b_hop = %u \n K_TC
 
     for (int p_index = 0; p_index < N_ap; p_index++) {
 
-      memset(srs_ls_estimated_channel[ant][p_index], 0, frame_parms->ofdm_symbol_size*(1<<srs_pdu->num_symbols)*sizeof(int32_t));
+      memset(srs_ls_estimated_channel, 0, frame_parms->ofdm_symbol_size*(1<<srs_pdu->num_symbols)*sizeof(c16_t));
       memset(srs_est, 0, (frame_parms->ofdm_symbol_size*(1<<srs_pdu->num_symbols) + mem_offset)*sizeof(int32_t));
 
 #ifdef SRS_DEBUG
@@ -841,7 +886,8 @@ printf("\n gNB 1: SRS Parameter\n B_SRS =%u \n C_SRS = %u \n  b_hop = %u \n K_TC
           }
         }
 
-        srs_ls_estimated_channel[ant][p_index][subcarrier] = ls_estimated[0] + (((int32_t)ls_estimated[1] << 16) & 0xFFFF0000);
+        srs_ls_estimated_channel[subcarrier].r = ls_estimated[0];
+        srs_ls_estimated_channel[subcarrier].i = ls_estimated[1];
 
 #ifdef SRS_DEBUG
         int subcarrier_log = subcarrier-subcarrier_offset;
@@ -854,8 +900,8 @@ printf("\n gNB 1: SRS Parameter\n B_SRS =%u \n C_SRS = %u \n  b_hop = %u \n K_TC
         }
         LOG_I(NR_PHY,"(%4i) %6i\t%6i  |  %6i\t%6i  |  %6i\t%6i\n",
               subcarrier_log,
-              (int16_t)(srs_generated_signal[p_index][subcarrier] & 0xFFFF), (int16_t)((srs_generated_signal[p_index][subcarrier] >> 16) & 0xFFFF),
-              (int16_t)(srs_received_signal[ant][subcarrier] & 0xFFFF), (int16_t)((srs_received_signal[ant][subcarrier] >> 16) & 0xFFFF),
+              ((c16_t*)srs_generated_signal[p_index])[subcarrier].r, ((c16_t*)srs_generated_signal[p_index])[subcarrier].i,
+              ((c16_t*)srs_received_signal[ant])[subcarrier].r, ((c16_t*)srs_received_signal[ant])[subcarrier].i,
               ls_estimated[0], ls_estimated[1]);
 #endif
 
@@ -922,8 +968,8 @@ printf("\n gNB 1: SRS Parameter\n B_SRS =%u \n C_SRS = %u \n  b_hop = %u \n K_TC
       for (int k = 0; k < M_sc_b_SRS; k++) {
         ch_real[base_idx+k] = ((c16_t*)srs_estimated_channel_freq[ant][p_index])[subcarrier].r;
         ch_imag[base_idx+k] = ((c16_t*)srs_estimated_channel_freq[ant][p_index])[subcarrier].i;
-        noise_real[base_idx+k] = abs(((c16_t*)srs_ls_estimated_channel[ant][p_index])[subcarrier].r - ch_real[base_idx+k]);
-        noise_imag[base_idx+k] = abs(((c16_t*)srs_ls_estimated_channel[ant][p_index])[subcarrier].i - ch_imag[base_idx+k]);
+        noise_real[base_idx+k] = abs(srs_ls_estimated_channel[subcarrier].r - ch_real[base_idx+k]);
+        noise_imag[base_idx+k] = abs(srs_ls_estimated_channel[subcarrier].i - ch_imag[base_idx+k]);
         subcarrier += K_TC;
         if (subcarrier >= frame_parms->ofdm_symbol_size) {
           subcarrier=subcarrier-frame_parms->ofdm_symbol_size;
@@ -950,10 +996,10 @@ printf("\n gNB 1: SRS Parameter\n B_SRS =%u \n C_SRS = %u \n  b_hop = %u \n K_TC
 
         LOG_I(NR_PHY,"(%4i) %6i\t%6i  |  %6i\t%6i  |  %6i\t%6i\n",
               subcarrier_log,
-              (int16_t)(srs_ls_estimated_channel[ant][p_index][subcarrier]&0xFFFF),
-              (int16_t)((srs_ls_estimated_channel[ant][p_index][subcarrier]>>16)&0xFFFF),
-              (int16_t)(srs_estimated_channel_freq[ant][p_index][subcarrier]&0xFFFF),
-              (int16_t)((srs_estimated_channel_freq[ant][p_index][subcarrier]>>16)&0xFFFF),
+              srs_ls_estimated_channel[subcarrier].r,
+              srs_ls_estimated_channel[subcarrier].i,
+              ((c16_t*)srs_estimated_channel_freq[ant][p_index])[subcarrier].r,
+              ((c16_t*)srs_estimated_channel_freq[ant][p_index])[subcarrier].i,
               noise_real[base_idx+(k/K_TC)], noise_imag[base_idx+(k/K_TC)]);
 
         // Subcarrier increment
@@ -1019,21 +1065,21 @@ printf("\n gNB 1: SRS Parameter\n B_SRS =%u \n C_SRS = %u \n  b_hop = %u \n K_TC
   } // for (int ant = 0; ant < frame_parms->nb_antennas_rx; ant++)
 
   // Compute signal power
-  *signal_power = calc_power(ch_real,frame_parms->nb_antennas_rx*N_ap*M_sc_b_SRS)
-                  + calc_power(ch_imag,frame_parms->nb_antennas_rx*N_ap*M_sc_b_SRS);
+  uint32_t signal_power = calc_power(ch_real,frame_parms->nb_antennas_rx*N_ap*M_sc_b_SRS)
+                          + calc_power(ch_imag,frame_parms->nb_antennas_rx*N_ap*M_sc_b_SRS);
 
 #ifdef SRS_DEBUG
-  LOG_I(NR_PHY,"signal_power = %u\n", *signal_power);
+  LOG_I(NR_PHY,"signal_power = %u\n", signal_power);
 #endif
 
-  if (*signal_power == 0) {
+  if (signal_power == 0) {
     LOG_W(NR_PHY, "Received SRS signal power is 0\n");
     return -1;
   }
 
   // Compute noise power
 
-  const uint8_t signal_power_bits = log2_approx(*signal_power);
+  const uint8_t signal_power_bits = log2_approx(signal_power);
   const uint8_t factor_bits = signal_power_bits < 32 ? 32 - signal_power_bits : 0; // 32 due to input of dB_fixed(uint32_t x)
   const int32_t factor_dB = dB_fixed(1<<factor_bits);
 
@@ -1065,7 +1111,7 @@ printf("\n gNB 1: SRS Parameter\n B_SRS =%u \n C_SRS = %u \n  b_hop = %u \n K_TC
 
     noise_power_per_rb[rb] = max(sum_re2 / n_noise_est - (sum_re / n_noise_est) * (sum_re / n_noise_est) +
                                  sum_im2 / n_noise_est - (sum_im / n_noise_est) * (sum_im / n_noise_est), 1);
-    snr_per_rb[rb] = dB_fixed((int32_t)((*signal_power<<factor_bits)/noise_power_per_rb[rb])) - factor_dB;
+    snr_per_rb[rb] = dB_fixed((int32_t)((signal_power<<factor_bits)/noise_power_per_rb[rb])) - factor_dB;
 
 #ifdef SRS_DEBUG
     LOG_I(NR_PHY,"noise_power_per_rb[%i] = %i, snr_per_rb[%i] = %i dB\n", rb, noise_power_per_rb[rb], rb, snr_per_rb[rb]);
@@ -1073,13 +1119,13 @@ printf("\n gNB 1: SRS Parameter\n B_SRS =%u \n C_SRS = %u \n  b_hop = %u \n K_TC
 
   } // for (int rb = 0; rb < m_SRS_b; rb++)
 
-  *noise_power = max(calc_power(noise_real,frame_parms->nb_antennas_rx*N_ap*M_sc_b_SRS)
-                     + calc_power(noise_imag,frame_parms->nb_antennas_rx*N_ap*M_sc_b_SRS), 1);
+  uint32_t noise_power = max(calc_power(noise_real,frame_parms->nb_antennas_rx*N_ap*M_sc_b_SRS)
+                             + calc_power(noise_imag,frame_parms->nb_antennas_rx*N_ap*M_sc_b_SRS), 1);
 
-    *snr = dB_fixed((int32_t)((*signal_power<<factor_bits)/(*noise_power))) - factor_dB;
+  *snr = dB_fixed((int32_t)((signal_power<<factor_bits)/(noise_power))) - factor_dB;
 
 #ifdef SRS_DEBUG
-  LOG_I(NR_PHY,"noise_power = %u, SNR = %i dB\n", *noise_power, *snr);
+  LOG_I(NR_PHY,"noise_power = %u, SNR = %i dB\n", noise_power, *snr);
 #endif
 
   return 0;

@@ -73,7 +73,7 @@ void clear_nr_nfapi_information(gNB_MAC_INST * gNB,
   nfapi_nr_dl_tti_request_t    *DL_req = &gNB->DL_req[0];
   nfapi_nr_dl_tti_pdcch_pdu_rel15_t **pdcch = (nfapi_nr_dl_tti_pdcch_pdu_rel15_t **)gNB->pdcch_pdu_idx[CC_idP];
   nfapi_nr_ul_tti_request_t    *future_ul_tti_req =
-      &gNB->UL_tti_req_ahead[CC_idP][(slotP + num_slots - 1) % num_slots];
+    &gNB->UL_tti_req_ahead[CC_idP][(slotP + num_slots - 1) % num_slots];
   nfapi_nr_ul_dci_request_t    *UL_dci_req = &gNB->UL_dci_req[0];
   nfapi_nr_tx_data_request_t   *TX_req = &gNB->TX_req[0];
 
@@ -215,9 +215,8 @@ void gNB_dlsch_ulsch_scheduler(module_id_t module_idP,
   // Schedule CSI-RS transmission
   nr_csirs_scheduling(module_idP, frame, slot, nr_slots_per_frame[*scc->ssbSubcarrierSpacing]);
 
-  // Schedule CSI measurement reporting: check in slot 0 for the whole frame
-  if (slot == 0)
-    nr_csi_meas_reporting(module_idP, frame, slot);
+  // Schedule CSI measurement reporting
+  nr_csi_meas_reporting(module_idP, frame, slot);
 
   // Schedule SRS: check in slot 0 for the whole frame
   if (slot == 0)
@@ -237,10 +236,9 @@ void gNB_dlsch_ulsch_scheduler(module_id_t module_idP,
   nr_schedule_ue_spec(module_idP, frame, slot); 
   stop_meas(&gNB->schedule_dlsch);
 
-  nr_schedule_pucch(RC.nrmac[module_idP], frame, slot);
-
-  // This schedule SR after PUCCH for multiplexing
   nr_sr_reporting(RC.nrmac[module_idP], frame, slot);
+
+  nr_schedule_pucch(RC.nrmac[module_idP], frame, slot);
 
   stop_meas(&RC.nrmac[module_idP]->eNB_scheduler);
   

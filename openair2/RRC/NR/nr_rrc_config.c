@@ -356,8 +356,9 @@ void config_srs(NR_SetupRelease_SRS_Config_t *setup_release_srs_Config,
                 const int curr_bwp,
                 const int uid,
                 const int res_id,
-                const int do_srs) {
-
+                const long maxMIMO_Layers,
+                const int do_srs)
+{
   setup_release_srs_Config->present = NR_SetupRelease_SRS_Config_PR_setup;
 
   NR_SRS_Config_t *srs_Config;
@@ -419,26 +420,45 @@ void config_srs(NR_SetupRelease_SRS_Config_t *setup_release_srs_Config,
   NR_SRS_Resource_t *srs_res0=calloc(1,sizeof(*srs_res0));
   srs_res0->srs_ResourceId = res_id;
   srs_res0->nrofSRS_Ports = NR_SRS_Resource__nrofSRS_Ports_port1;
-  //  if (uecap &&
-  //      uecap->featureSets &&
-  //      uecap->featureSets->featureSetsUplink &&
-  //      uecap->featureSets->featureSetsUplink->list.count > 0) {
-  //    NR_FeatureSetUplink_t *ul_feature_setup = uecap->featureSets->featureSetsUplink->list.array[0];
-  //    switch (ul_feature_setup->supportedSRS_Resources->maxNumberSRS_Ports_PerResource) {
-  //      case NR_SRS_Resources__maxNumberSRS_Ports_PerResource_n1:
-  //        srs_res0->nrofSRS_Ports = NR_SRS_Resource__nrofSRS_Ports_port1;
-  //        break;
-  //      case NR_SRS_Resources__maxNumberSRS_Ports_PerResource_n2:
-  //        srs_res0->nrofSRS_Ports = NR_SRS_Resource__nrofSRS_Ports_ports2;
-  //        break;
-  //      case NR_SRS_Resources__maxNumberSRS_Ports_PerResource_n4:
-  //        srs_res0->nrofSRS_Ports = NR_SRS_Resource__nrofSRS_Ports_ports4;
-  //        break;
-  //      default:
-  //        LOG_E(NR_RRC, "Max Number of SRS Ports Per Resource %ld is invalid!\n",
-  //              ul_feature_setup->supportedSRS_Resources->maxNumberSRS_Ports_PerResource);
-  //    }
-  //  }
+  if (do_srs) {
+    long nrofSRS_Ports = 1;
+    if (uecap &&
+        uecap->featureSets &&
+        uecap->featureSets->featureSetsUplink &&
+        uecap->featureSets->featureSetsUplink->list.count > 0) {
+      NR_FeatureSetUplink_t *ul_feature_setup = uecap->featureSets->featureSetsUplink->list.array[0];
+      switch (ul_feature_setup->supportedSRS_Resources->maxNumberSRS_Ports_PerResource) {
+        case NR_SRS_Resources__maxNumberSRS_Ports_PerResource_n1:
+          nrofSRS_Ports = 1;
+          break;
+        case NR_SRS_Resources__maxNumberSRS_Ports_PerResource_n2:
+          nrofSRS_Ports = 2;
+          break;
+        case NR_SRS_Resources__maxNumberSRS_Ports_PerResource_n4:
+          nrofSRS_Ports = 4;
+          break;
+        default:
+          LOG_E(NR_RRC, "Max Number of SRS Ports Per Resource %ld is invalid!\n",
+                ul_feature_setup->supportedSRS_Resources->maxNumberSRS_Ports_PerResource);
+      }
+      nrofSRS_Ports = min(nrofSRS_Ports, maxMIMO_Layers);
+      switch (nrofSRS_Ports) {
+        case 1:
+          srs_res0->nrofSRS_Ports = NR_SRS_Resource__nrofSRS_Ports_port1;
+          break;
+        case 2:
+          srs_res0->nrofSRS_Ports = NR_SRS_Resource__nrofSRS_Ports_ports2;
+          break;
+        case 4:
+          srs_res0->nrofSRS_Ports = NR_SRS_Resource__nrofSRS_Ports_ports4;
+          break;
+        default:
+          LOG_E(NR_RRC, "Number of SRS Ports Per Resource %ld is invalid!\n",
+                ul_feature_setup->supportedSRS_Resources->maxNumberSRS_Ports_PerResource);
+      }
+    }
+    LOG_I(NR_RRC, "SRS configured with %d ports\n", 1<<srs_res0->nrofSRS_Ports);
+  }
   srs_res0->ptrs_PortIndex = NULL;
   srs_res0->transmissionComb.present = NR_SRS_Resource__transmissionComb_PR_n2;
   srs_res0->transmissionComb.choice.n2 = calloc(1,sizeof(*srs_res0->transmissionComb.choice.n2));
@@ -586,21 +606,24 @@ void nr_rrc_config_ul_tda(NR_ServingCellConfigCommon_t *scc, int min_fb_delay){
         pusch_timedomainresourceallocation->mappingType = NR_PUSCH_TimeDomainResourceAllocation__mappingType_typeB;
         pusch_timedomainresourceallocation->startSymbolAndLength = get_SLIV(14-ul_symb,ul_symb-1); // starting in fist ul symbol til the last but one
         ASN_SEQUENCE_ADD(&scc->uplinkConfigCommon->initialUplinkBWP->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList->list,pusch_timedomainresourceallocation);
-
-        // UL TDA index 2 for msg3 in the mixed slot (TDD)
-        int nb_periods_per_frame = get_nb_periods_per_frame(scc->tdd_UL_DL_ConfigurationCommon->pattern1.dl_UL_TransmissionPeriodicity);
-        int nb_slots_per_period = ((1<<mu) * 10)/nb_periods_per_frame;
-        struct NR_PUSCH_TimeDomainResourceAllocation *pusch_timedomainresourceallocation_msg3 = CALLOC(1,sizeof(struct NR_PUSCH_TimeDomainResourceAllocation));
-        pusch_timedomainresourceallocation_msg3->k2  = CALLOC(1,sizeof(long));
-        *pusch_timedomainresourceallocation_msg3->k2 = nb_slots_per_period - DELTA[mu];
-        if(*pusch_timedomainresourceallocation_msg3->k2 < min_fb_delay)
-          *pusch_timedomainresourceallocation_msg3->k2 += nb_slots_per_period;
-        AssertFatal(*pusch_timedomainresourceallocation_msg3->k2<33,"Computed k2 for msg3 %ld is larger than the range allowed by RRC (0..32)\n",
-                    *pusch_timedomainresourceallocation_msg3->k2);
-        pusch_timedomainresourceallocation_msg3->mappingType = NR_PUSCH_TimeDomainResourceAllocation__mappingType_typeB;
-        pusch_timedomainresourceallocation_msg3->startSymbolAndLength = get_SLIV(14-ul_symb,ul_symb-1); // starting in fist ul symbol til the last but one
-        ASN_SEQUENCE_ADD(&scc->uplinkConfigCommon->initialUplinkBWP->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList->list,pusch_timedomainresourceallocation_msg3);
       }
+      // UL TDA index 2 for msg3 in the mixed slot (TDD)
+      int nb_periods_per_frame = get_nb_periods_per_frame(scc->tdd_UL_DL_ConfigurationCommon->pattern1.dl_UL_TransmissionPeriodicity);
+      int nb_slots_per_period = ((1<<mu) * 10)/nb_periods_per_frame;
+      struct NR_PUSCH_TimeDomainResourceAllocation *pusch_timedomainresourceallocation_msg3 = CALLOC(1,sizeof(struct NR_PUSCH_TimeDomainResourceAllocation));
+      pusch_timedomainresourceallocation_msg3->k2  = CALLOC(1,sizeof(long));
+      int no_mix_slot = ul_symb < 3 ? 1 : 0; // we need at least 2 symbols for scheduling Msg3
+      *pusch_timedomainresourceallocation_msg3->k2 = nb_slots_per_period - DELTA[mu] + no_mix_slot;
+      if(*pusch_timedomainresourceallocation_msg3->k2 < min_fb_delay)
+        *pusch_timedomainresourceallocation_msg3->k2 += nb_slots_per_period;
+      AssertFatal(*pusch_timedomainresourceallocation_msg3->k2<33,"Computed k2 for msg3 %ld is larger than the range allowed by RRC (0..32)\n",
+                  *pusch_timedomainresourceallocation_msg3->k2);
+      pusch_timedomainresourceallocation_msg3->mappingType = NR_PUSCH_TimeDomainResourceAllocation__mappingType_typeB;
+      if(no_mix_slot)
+        pusch_timedomainresourceallocation_msg3->startSymbolAndLength = get_SLIV(0,13); // full allocation if there is no mixed slot
+      else
+        pusch_timedomainresourceallocation_msg3->startSymbolAndLength = get_SLIV(14-ul_symb,ul_symb-1); // starting in fist ul symbol til the last but one
+      ASN_SEQUENCE_ADD(&scc->uplinkConfigCommon->initialUplinkBWP->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList->list,pusch_timedomainresourceallocation_msg3);
     }
   }
 }
@@ -849,6 +872,77 @@ void set_dl_mcs_table(int scs,
     bwp_Dedicated->pdsch_Config->choice.setup->mcs_Table = NULL;
 }
 
+struct NR_SetupRelease_PUSCH_Config *config_pusch(NR_PUSCH_Config_t *pusch_Config, const NR_ServingCellConfigCommon_t *scc)
+{
+  struct NR_SetupRelease_PUSCH_Config *setup_puschconfig = calloc(1, sizeof(*setup_puschconfig));
+  setup_puschconfig->present = NR_SetupRelease_PUSCH_Config_PR_setup;
+  if (!pusch_Config)
+    pusch_Config = calloc(1, sizeof(*pusch_Config));
+  setup_puschconfig->choice.setup = pusch_Config;
+
+  pusch_Config->dataScramblingIdentityPUSCH = NULL;
+  pusch_Config->txConfig = calloc(1, sizeof(*pusch_Config->txConfig));
+  *pusch_Config->txConfig = NR_PUSCH_Config__txConfig_codebook;
+  pusch_Config->dmrs_UplinkForPUSCH_MappingTypeA = NULL;
+  pusch_Config->dmrs_UplinkForPUSCH_MappingTypeB = calloc(1, sizeof(*pusch_Config->dmrs_UplinkForPUSCH_MappingTypeB));
+  pusch_Config->dmrs_UplinkForPUSCH_MappingTypeB->present = NR_SetupRelease_DMRS_UplinkConfig_PR_setup;
+  pusch_Config->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup = calloc(1, sizeof(*pusch_Config->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup));
+  NR_DMRS_UplinkConfig_t *NR_DMRS_UplinkConfig = pusch_Config->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup;
+  NR_DMRS_UplinkConfig->dmrs_Type = NULL;
+  NR_DMRS_UplinkConfig->dmrs_AdditionalPosition = NULL;
+  NR_DMRS_UplinkConfig->phaseTrackingRS = NULL;
+  NR_DMRS_UplinkConfig->maxLength = NULL;
+  NR_DMRS_UplinkConfig->transformPrecodingDisabled = calloc(1, sizeof(*NR_DMRS_UplinkConfig->transformPrecodingDisabled));
+  NR_DMRS_UplinkConfig->transformPrecodingDisabled->scramblingID0 = NULL;
+  NR_DMRS_UplinkConfig->transformPrecodingDisabled->scramblingID1 = NULL;
+  NR_DMRS_UplinkConfig->transformPrecodingEnabled = NULL;
+  pusch_Config->pusch_PowerControl = calloc(1, sizeof(*pusch_Config->pusch_PowerControl));
+  pusch_Config->pusch_PowerControl->tpc_Accumulation = NULL;
+  pusch_Config->pusch_PowerControl->msg3_Alpha = calloc(1, sizeof(*pusch_Config->pusch_PowerControl->msg3_Alpha));
+  *pusch_Config->pusch_PowerControl->msg3_Alpha = NR_Alpha_alpha1;
+  pusch_Config->pusch_PowerControl->p0_NominalWithoutGrant = NULL;
+  pusch_Config->pusch_PowerControl->p0_AlphaSets = calloc(1, sizeof(*pusch_Config->pusch_PowerControl->p0_AlphaSets));
+  NR_P0_PUSCH_AlphaSet_t *aset = calloc(1, sizeof(*aset));
+  aset->p0_PUSCH_AlphaSetId = 0;
+  aset->p0 = calloc(1, sizeof(*aset->p0));
+  *aset->p0 = 0;
+  aset->alpha = calloc(1, sizeof(*aset->alpha));
+  *aset->alpha = NR_Alpha_alpha1;
+  ASN_SEQUENCE_ADD(&pusch_Config->pusch_PowerControl->p0_AlphaSets->list, aset);
+  pusch_Config->pusch_PowerControl->pathlossReferenceRSToAddModList = calloc(1, sizeof(*pusch_Config->pusch_PowerControl->pathlossReferenceRSToAddModList));
+  NR_PUSCH_PathlossReferenceRS_t *plrefRS = calloc(1, sizeof(*plrefRS));
+  plrefRS->pusch_PathlossReferenceRS_Id = 0;
+  plrefRS->referenceSignal.present = NR_PUSCH_PathlossReferenceRS__referenceSignal_PR_ssb_Index;
+  plrefRS->referenceSignal.choice.ssb_Index = 0;
+  ASN_SEQUENCE_ADD(&pusch_Config->pusch_PowerControl->pathlossReferenceRSToAddModList->list, plrefRS);
+  pusch_Config->pusch_PowerControl->pathlossReferenceRSToReleaseList = NULL;
+  pusch_Config->pusch_PowerControl->twoPUSCH_PC_AdjustmentStates = NULL;
+  pusch_Config->pusch_PowerControl->deltaMCS = calloc(1, sizeof(*pusch_Config->pusch_PowerControl->deltaMCS));
+  *pusch_Config->pusch_PowerControl->deltaMCS = NR_PUSCH_PowerControl__deltaMCS_enabled;
+  pusch_Config->pusch_PowerControl->sri_PUSCH_MappingToAddModList = NULL;
+  pusch_Config->pusch_PowerControl->sri_PUSCH_MappingToReleaseList = NULL;
+  pusch_Config->frequencyHopping = NULL;
+  pusch_Config->frequencyHoppingOffsetLists = NULL;
+  pusch_Config->resourceAllocation = NR_PUSCH_Config__resourceAllocation_resourceAllocationType1;
+  pusch_Config->pusch_TimeDomainAllocationList = NULL;
+  pusch_Config->pusch_AggregationFactor = NULL;
+  pusch_Config->mcs_Table = NULL;
+  pusch_Config->mcs_TableTransformPrecoder = NULL;
+  pusch_Config->transformPrecoder = NULL;
+  if (scc->uplinkConfigCommon->initialUplinkBWP->rach_ConfigCommon->choice.setup->msg3_transformPrecoder == NULL) {
+    pusch_Config->transformPrecoder = calloc(1, sizeof(*pusch_Config->transformPrecoder));
+    *pusch_Config->transformPrecoder = NR_PUSCH_Config__transformPrecoder_disabled;
+  }
+  pusch_Config->codebookSubset = calloc(1, sizeof(*pusch_Config->codebookSubset));
+  *pusch_Config->codebookSubset = NR_PUSCH_Config__codebookSubset_nonCoherent;
+  asn1cCallocOne(pusch_Config->maxRank, 1);
+  pusch_Config->rbg_Size = NULL;
+  pusch_Config->uci_OnPUSCH = NULL;
+  pusch_Config->tp_pi2BPSK = NULL;
+
+  return setup_puschconfig;
+}
+
 void config_downlinkBWP(NR_BWP_Downlink_t *bwp,
                         const NR_ServingCellConfigCommon_t *scc,
                         const NR_ServingCellConfig_t *servingcellconfigdedicated,
@@ -1050,7 +1144,14 @@ void config_uplinkBWP(NR_BWP_Uplink_t *ubwp,
 
   ubwp->bwp_Common->rach_ConfigCommon  = is_SA ? NULL : scc->uplinkConfigCommon->initialUplinkBWP->rach_ConfigCommon;
   ubwp->bwp_Common->pusch_ConfigCommon = scc->uplinkConfigCommon->initialUplinkBWP->pusch_ConfigCommon;
-  ubwp->bwp_Common->pucch_ConfigCommon = scc->uplinkConfigCommon->initialUplinkBWP->pucch_ConfigCommon;
+  ubwp->bwp_Common->pucch_ConfigCommon = CALLOC(1,sizeof(struct NR_SetupRelease_PUCCH_ConfigCommon));
+  ubwp->bwp_Common->pucch_ConfigCommon->present= NR_SetupRelease_PUCCH_ConfigCommon_PR_setup;
+  ubwp->bwp_Common->pucch_ConfigCommon->choice.setup = CALLOC(1,sizeof(struct NR_PUCCH_ConfigCommon));
+  struct NR_PUCCH_ConfigCommon *pucch_ConfigCommon = ubwp->bwp_Common->pucch_ConfigCommon->choice.setup;
+  pucch_ConfigCommon->pucch_ResourceCommon = NULL; // for BWP != 0 as per 38.213 section 9.2.1
+  pucch_ConfigCommon->pucch_GroupHopping = scc->uplinkConfigCommon->initialUplinkBWP->pucch_ConfigCommon->choice.setup->pucch_GroupHopping;
+  pucch_ConfigCommon->hoppingId = scc->uplinkConfigCommon->initialUplinkBWP->pucch_ConfigCommon->choice.setup->hoppingId;
+  pucch_ConfigCommon->p0_nominal = scc->uplinkConfigCommon->initialUplinkBWP->pucch_ConfigCommon->choice.setup->p0_nominal;
 
   if (!ubwp->bwp_Dedicated) {
     ubwp->bwp_Dedicated = calloc(1,sizeof(*ubwp->bwp_Dedicated));
@@ -1070,73 +1171,19 @@ void config_uplinkBWP(NR_BWP_Uplink_t *ubwp,
   scheduling_request_config(scc, pucch_Config);
   set_dl_DataToUL_ACK(pucch_Config, configuration->minRXTXTIME);
 
-  ubwp->bwp_Dedicated->pusch_Config = calloc(1,sizeof(*ubwp->bwp_Dedicated->pusch_Config));
-  ubwp->bwp_Dedicated->pusch_Config->present = NR_SetupRelease_PUSCH_Config_PR_setup;
   NR_PUSCH_Config_t *pusch_Config = NULL;
   if(servingcellconfigdedicated->uplinkConfig->uplinkBWP_ToAddModList &&
      bwp_loop < servingcellconfigdedicated->uplinkConfig->uplinkBWP_ToAddModList->list.count) {
     pusch_Config = servingcellconfigdedicated->uplinkConfig->uplinkBWP_ToAddModList->list.array[bwp_loop]->bwp_Dedicated->pusch_Config->choice.setup;
-  } else {
-    pusch_Config = calloc(1,sizeof(*pusch_Config));
   }
-  ubwp->bwp_Dedicated->pusch_Config->choice.setup = pusch_Config;
-  pusch_Config->txConfig=calloc(1,sizeof(*pusch_Config->txConfig));
-  *pusch_Config->txConfig= NR_PUSCH_Config__txConfig_codebook;
-  pusch_Config->dmrs_UplinkForPUSCH_MappingTypeA = NULL;
-  if (!pusch_Config->dmrs_UplinkForPUSCH_MappingTypeB) {
-    pusch_Config->dmrs_UplinkForPUSCH_MappingTypeB = calloc(1,sizeof(*pusch_Config->dmrs_UplinkForPUSCH_MappingTypeB));
-    pusch_Config->dmrs_UplinkForPUSCH_MappingTypeB->present = NR_SetupRelease_DMRS_UplinkConfig_PR_setup;
-    pusch_Config->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup = calloc(1,sizeof(*pusch_Config->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup));
-  }
-  NR_DMRS_UplinkConfig_t *NR_DMRS_UplinkConfig = pusch_Config->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup;
-  NR_DMRS_UplinkConfig->dmrs_Type = NULL;
-  NR_DMRS_UplinkConfig->dmrs_AdditionalPosition = calloc(1,sizeof(*NR_DMRS_UplinkConfig->dmrs_AdditionalPosition));
-  *NR_DMRS_UplinkConfig->dmrs_AdditionalPosition = NR_DMRS_UplinkConfig__dmrs_AdditionalPosition_pos0;
-  NR_DMRS_UplinkConfig->phaseTrackingRS=NULL;
-  NR_DMRS_UplinkConfig->maxLength=NULL;
-  NR_DMRS_UplinkConfig->transformPrecodingDisabled = calloc(1,sizeof(*NR_DMRS_UplinkConfig->transformPrecodingDisabled));
-  NR_DMRS_UplinkConfig->transformPrecodingDisabled->scramblingID0 = NULL;
-  NR_DMRS_UplinkConfig->transformPrecodingDisabled->scramblingID1 = NULL;
-  NR_DMRS_UplinkConfig->transformPrecodingEnabled = NULL;
-  pusch_Config->pusch_PowerControl = calloc(1,sizeof(*pusch_Config->pusch_PowerControl));
-  pusch_Config->pusch_PowerControl->tpc_Accumulation = NULL;
-  pusch_Config->pusch_PowerControl->msg3_Alpha = calloc(1,sizeof(*pusch_Config->pusch_PowerControl->msg3_Alpha));
-  *pusch_Config->pusch_PowerControl->msg3_Alpha = NR_Alpha_alpha1;
-  pusch_Config->pusch_PowerControl->p0_NominalWithoutGrant = NULL;
-  pusch_Config->pusch_PowerControl->p0_AlphaSets = calloc(1,sizeof(*pusch_Config->pusch_PowerControl->p0_AlphaSets));
-  NR_P0_PUSCH_AlphaSet_t *aset = calloc(1,sizeof(*aset));
-  aset->p0_PUSCH_AlphaSetId=0;
-  aset->p0=calloc(1,sizeof(*aset->p0));
-  *aset->p0 = 0;
-  aset->alpha=calloc(1,sizeof(*aset->alpha));
-  *aset->alpha=NR_Alpha_alpha1;
-  ASN_SEQUENCE_ADD(&pusch_Config->pusch_PowerControl->p0_AlphaSets->list,aset);
-  pusch_Config->pusch_PowerControl->pathlossReferenceRSToAddModList = NULL;
-  pusch_Config->pusch_PowerControl->pathlossReferenceRSToReleaseList = NULL;
-  pusch_Config->pusch_PowerControl->twoPUSCH_PC_AdjustmentStates = NULL;
-  pusch_Config->pusch_PowerControl->deltaMCS = calloc(1, sizeof(*pusch_Config->pusch_PowerControl->deltaMCS));
-  *pusch_Config->pusch_PowerControl->deltaMCS = NR_PUSCH_PowerControl__deltaMCS_enabled;
-  pusch_Config->pusch_PowerControl->sri_PUSCH_MappingToAddModList = NULL;
-  pusch_Config->pusch_PowerControl->sri_PUSCH_MappingToReleaseList = NULL;
-  pusch_Config->frequencyHopping=NULL;
-  pusch_Config->frequencyHoppingOffsetLists=NULL;
-  pusch_Config->resourceAllocation = NR_PUSCH_Config__resourceAllocation_resourceAllocationType1;
-  pusch_Config->pusch_TimeDomainAllocationList = NULL;
-  pusch_Config->pusch_AggregationFactor=NULL;
-  pusch_Config->mcs_Table=NULL;
-  pusch_Config->mcs_TableTransformPrecoder=NULL;
-  pusch_Config->transformPrecoder= NULL;
-  if (scc->uplinkConfigCommon->initialUplinkBWP->rach_ConfigCommon->choice.setup->msg3_transformPrecoder == NULL) {
-    pusch_Config->transformPrecoder=calloc(1,sizeof(*pusch_Config->transformPrecoder));
-    *pusch_Config->transformPrecoder = NR_PUSCH_Config__transformPrecoder_disabled;
-  }
-  pusch_Config->codebookSubset=calloc(1,sizeof(*pusch_Config->codebookSubset));
-  *pusch_Config->codebookSubset = NR_PUSCH_Config__codebookSubset_nonCoherent;
-  pusch_Config->maxRank=calloc(1,sizeof(*pusch_Config->maxRank));
-  *pusch_Config->maxRank= 1;
-  pusch_Config->rbg_Size=NULL;
-  pusch_Config->uci_OnPUSCH=NULL;
-  pusch_Config->tp_pi2BPSK=NULL;
+  ubwp->bwp_Dedicated->pusch_Config = config_pusch(pusch_Config, scc);
+
+  long maxMIMO_Layers = servingcellconfigdedicated &&
+                                servingcellconfigdedicated->uplinkConfig
+                                && servingcellconfigdedicated->uplinkConfig->pusch_ServingCellConfig
+                                && servingcellconfigdedicated->uplinkConfig->pusch_ServingCellConfig->choice.setup->ext1
+                                && servingcellconfigdedicated->uplinkConfig->pusch_ServingCellConfig->choice.setup->ext1->maxMIMO_Layers ?
+                            *servingcellconfigdedicated->uplinkConfig->pusch_ServingCellConfig->choice.setup->ext1->maxMIMO_Layers : 1;
 
   ubwp->bwp_Dedicated->srs_Config = calloc(1,sizeof(*ubwp->bwp_Dedicated->srs_Config));
   config_srs(ubwp->bwp_Dedicated->srs_Config,
@@ -1144,6 +1191,7 @@ void config_uplinkBWP(NR_BWP_Uplink_t *ubwp,
              curr_bwp,
              uid,
              bwp_loop+1,
+             maxMIMO_Layers,
              configuration->do_SRS);
 
   ubwp->bwp_Dedicated->configuredGrantConfig = NULL;

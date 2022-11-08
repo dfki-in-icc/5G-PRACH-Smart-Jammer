@@ -43,7 +43,7 @@
 #include <string.h>
 
 /* Commmon */
-#include "sdr/COMMON/common_lib.h"
+#include "radio/COMMON/common_lib.h"
 #include "COMMON/platform_constants.h"
 #include "common/ran_context.h"
 #include "collection/linear_alloc.h"
@@ -123,6 +123,7 @@ typedef struct NR_UE_UL_BWP {
   uint8_t transform_precoding;
   uint8_t mcs_table;
   nr_dci_format_t dci_format;
+  int max_fb_time;
 } NR_UE_UL_BWP_t;
 
 typedef enum {
@@ -171,10 +172,6 @@ typedef struct {
   frame_t Msg3_frame;
   /// Msg3 time domain allocation index
   uint8_t Msg3_tda_id;
-  /// Subframe where Msg4 is to be sent
-  sub_frame_t Msg4_slot;
-  /// Frame where Msg4 is to be sent
-  frame_t Msg4_frame;
   /// harq_pid used for Msg4 transmission
   uint8_t harq_pid;
   /// UE RNTI allocated during RAR
@@ -358,6 +355,7 @@ typedef struct UE_info {
 } NR_UE_mac_ce_ctrl_t;
 
 typedef struct NR_sched_pucch {
+  bool active;
   int frame;
   int ul_slot;
   bool sr_flag;
@@ -564,9 +562,12 @@ typedef struct {
   /// corresponding to the sched_pusch/sched_pdsch structures below
   int cce_index;
   uint8_t aggregation_level;
-  /// PUCCH scheduling information. Array of two: HARQ+SR in the first field,
-  /// CSI in second.  This order is important for nr_acknack_scheduling()!
-  NR_sched_pucch_t sched_pucch[2];
+
+  /// Array of PUCCH scheduling information
+  /// Its size depends on TDD configuration and max feedback time
+  /// There will be a structure for each UL slot in the active period determined by the size
+  NR_sched_pucch_t *sched_pucch;
+  int sched_pucch_size;
 
   /// Sched PUSCH: scheduling decisions, copied into HARQ and cleared every TTI
   NR_sched_pusch_t sched_pusch;
@@ -634,7 +635,7 @@ typedef struct {
   NR_list_t feedback_ul_harq;
   /// UL HARQ processes that await retransmission
   NR_list_t retrans_ul_harq;
-  NR_UE_mac_ce_ctrl_t UE_mac_ce_ctrl;// MAC CE related information
+  NR_UE_mac_ce_ctrl_t UE_mac_ce_ctrl; // MAC CE related information
   /// number of active DL LCs
   uint8_t dl_lc_num;
   /// order in which DLSCH scheduler should allocate LCs
@@ -642,6 +643,9 @@ typedef struct {
 
   /// Timer for RRC processing procedures
   uint32_t rrc_processing_timer;
+
+  /// sri, ul_ri and tpmi based on SRS
+  nr_srs_feedback_t srs_feedback;
 } NR_UE_sched_ctrl_t;
 
 typedef struct {
@@ -668,7 +672,7 @@ typedef struct NR_mac_stats {
   uint32_t pucch0_DTX;
   int cumul_rsrp;
   uint8_t num_rsrp_meas;
-  int8_t srs_wide_band_snr;
+  char srs_stats[50]; // Statistics may differ depending on SRS usage
 } NR_mac_stats_t;
 
 typedef struct NR_bler_options {

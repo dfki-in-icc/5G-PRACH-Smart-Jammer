@@ -78,7 +78,7 @@ fifo_dump_emos_UE emos_dump_UE;
 
 char nr_mode_string[NUM_UE_MODE][20] = {"NOT SYNCHED","PRACH","RAR","RA_WAIT_CR", "PUSCH", "RESYNCH"};
 
-#if defined(EXMIMO) || defined(OAI_USRP) || defined(OAI_BLADERF) || defined(OAI_LMSSDR) || defined(OAI_ADRV9371_ZC706)
+#if defined(OAI_USRP) || defined(OAI_BLADERF) || defined(OAI_LMSSDR) || defined(OAI_ADRV9371_ZC706)
 extern uint64_t downlink_frequency[MAX_NUM_CCs][4];
 #endif
 
@@ -99,7 +99,6 @@ void nr_fill_dl_indication(nr_downlink_indication_t *dl_ind,
   dl_ind->cc_id     = ue->CC_id;
   dl_ind->frame     = proc->frame_rx;
   dl_ind->slot      = proc->nr_slot_rx;
-  dl_ind->thread_id = proc->thread_id;
   dl_ind->phy_data  = phy_data;
 
   if (dci_ind) {
@@ -228,10 +227,6 @@ int get_tx_amp_prach(int power_dBm, int power_max_dBm, int N_RB_UL){
   return (amp_x_100);
 }
 
-UE_MODE_t get_nrUE_mode(uint8_t Mod_id,uint8_t CC_id,uint8_t gNB_id){
-  return(PHY_vars_UE_g[Mod_id][CC_id]->UE_mode[gNB_id]);
-}
-
 // convert time factor "16 * 64 * T_c / (2^mu)" in N_TA calculation in TS38.213 section 4.2 to samples by multiplying with samples per second
 //   16 * 64 * T_c            / (2^mu) * samples_per_second
 // = 16 * T_s                 / (2^mu) * samples_per_second
@@ -298,20 +293,19 @@ void phy_procedures_nrUE_TX(PHY_VARS_NR_UE *ue,
 
   if (ue->UE_mode[gNB_id] <= PUSCH){
 
-    for (uint8_t harq_pid = 0; harq_pid < ue->ulsch[proc->thread_id][gNB_id]->number_harq_processes_for_pusch; harq_pid++) {
-      if (ue->ulsch[proc->thread_id][gNB_id]->harq_processes[harq_pid]->status == ACTIVE)
-        nr_ue_ulsch_procedures(ue, harq_pid, frame_tx, slot_tx, proc->thread_id, gNB_id);
+    for (uint8_t harq_pid = 0; harq_pid < ue->ulsch[gNB_id]->number_harq_processes_for_pusch; harq_pid++) {
+      if (ue->ulsch[gNB_id]->harq_processes[harq_pid]->status == ACTIVE)
+        nr_ue_ulsch_procedures(ue, harq_pid, frame_tx, slot_tx, gNB_id);
     }
   }
 
   if (ue->UE_mode[gNB_id] == PUSCH) {
     ue_srs_procedures_nr(ue, proc, gNB_id);
   }
+  LOG_D(PHY,"****** end TX-Chain for AbsSubframe %d.%d ******\n", proc->frame_tx, proc->nr_slot_tx);
 
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PHY_PROCEDURES_UE_TX, VCD_FUNCTION_OUT);
   stop_meas(&ue->phy_proc_tx);
-
-
 }
 
 void nr_ue_measurement_procedures(uint16_t l,
@@ -545,7 +539,6 @@ int nr_ue_pdcch_procedures(uint8_t gNB_id,
       dci_ind->dci_list[i].rnti,
       dci_ind->dci_list[i].dci_format);
   }
-  ue->pdcch_vars[proc->thread_id][gNB_id]->dci_received += dci_cnt;
 
   dci_ind->number_of_dcis = dci_cnt;
 
@@ -611,7 +604,7 @@ int nr_ue_pdsch_procedures(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, int gNB_
           char filename[100];
           for (uint8_t aarx=0; aarx<ue->frame_parms.nb_antennas_rx; aarx++) {
             sprintf(filename,"PDSCH_CHANNEL_frame%d_slot%d_sym%d_port%d_rx%d.m", nr_frame_rx, nr_slot_rx, m, aatx,aarx);
-            int **dl_ch_estimates = ue->pdsch_vars[proc->thread_id][gNB_id]->dl_ch_estimates;
+            int **dl_ch_estimates = ue->pdsch_vars[gNB_id]->dl_ch_estimates;
             LOG_M(filename,"channel_F",&dl_ch_estimates[aatx*ue->frame_parms.nb_antennas_rx+aarx][ue->frame_parms.ofdm_symbol_size*m],ue->frame_parms.ofdm_symbol_size, 1, 1);
           }
 #endif
@@ -621,7 +614,7 @@ int nr_ue_pdsch_procedures(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, int gNB_
 
     if (ue->chest_time == 1) { // averaging time domain channel estimates
       nr_chest_time_domain_avg(&ue->frame_parms,
-                               ue->pdsch_vars[proc->thread_id][gNB_id]->dl_ch_estimates,
+                               ue->pdsch_vars[gNB_id]->dl_ch_estimates,
                                dlsch0_harq->nb_symbols,
                                dlsch0_harq->start_symbol,
                                dlsch0_harq->dlDmrsSymbPos,
@@ -654,7 +647,7 @@ int nr_ue_pdsch_procedures(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, int gNB_
       uint8_t slot = 0;
       if(m >= ue->frame_parms.symbols_per_slot>>1)
         slot = 1;
-      start_meas(&ue->dlsch_llr_stats_parallelization[proc->thread_id][slot]);
+      start_meas(&ue->dlsch_llr_stats_parallelization[slot]);
       // process DLSCH received symbols in the slot
       // symbol by symbol processing (if data/DMRS are multiplexed is checked inside the function)
       if (pdsch == PDSCH || pdsch == SI_PDSCH || pdsch == RA_PDSCH) {
@@ -673,9 +666,9 @@ int nr_ue_pdsch_procedures(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, int gNB_
           return -1;
       } else AssertFatal(1==0,"Not RA_PDSCH, SI_PDSCH or PDSCH\n");
 
-      stop_meas(&ue->dlsch_llr_stats_parallelization[proc->thread_id][slot]);
+      stop_meas(&ue->dlsch_llr_stats_parallelization[slot]);
       if (cpumeas(CPUMEAS_GETSTATE))
-        LOG_D(PHY, "[AbsSFN %d.%d] LLR Computation Symbol %d %5.2f \n",frame_rx,nr_slot_rx,m,ue->dlsch_llr_stats_parallelization[proc->thread_id][slot].p_time/(cpuf*1000.0));
+        LOG_D(PHY, "[AbsSFN %d.%d] LLR Computation Symbol %d %5.2f \n",frame_rx,nr_slot_rx,m,ue->dlsch_llr_stats_parallelization[slot].p_time/(cpuf*1000.0));
       if(first_symbol_flag) {
         proc->first_symbol_available = 1;
       }
@@ -743,7 +736,7 @@ bool nr_ue_dlsch_procedures(PHY_VARS_NR_UE *ue,
     case RA_PDSCH:
     case P_PDSCH:
     case PDSCH:
-      pdsch_vars = ue->pdsch_vars[proc->thread_id][gNB_id];
+      pdsch_vars = ue->pdsch_vars[gNB_id];
       break;
     case PMCH:
     case PDSCH1:
@@ -760,16 +753,6 @@ bool nr_ue_dlsch_procedures(PHY_VARS_NR_UE *ue,
     if (frame_rx < *dlsch_errors)
       *dlsch_errors=0;
 
-    if (pdsch == RA_PDSCH) {
-      if (ue->prach_resources[gNB_id]!=NULL)
-        dlsch0->rnti = ue->prach_resources[gNB_id]->ra_RNTI;
-      else {
-        LOG_E(PHY,"[UE %d] Frame %d, nr_slot_rx %d: FATAL, prach_resources is NULL\n", ue->Mod_id, frame_rx, nr_slot_rx);
-        //mac_xface->macphy_exit("prach_resources is NULL");
-        return false;
-      }
-    }
-
     // exit dlsch procedures as there are no active dlsch
     if (is_cw0_active != ACTIVE && is_cw1_active != ACTIVE)
       return false;
@@ -782,15 +765,15 @@ bool nr_ue_dlsch_procedures(PHY_VARS_NR_UE *ue,
                                                    dlsch0->harq_processes[harq_pid]->Qm,
                                                    dlsch0->harq_processes[harq_pid]->Nl);
 
-      start_meas(&ue->dlsch_unscrambling_stats);
-      nr_dlsch_unscrambling(pdsch_vars->llr[0],
-                            dlsch0->harq_processes[harq_pid]->G,
-                            0,
-                            ue->frame_parms.Nid_cell,
-                            dlsch0->rnti);
+    start_meas(&ue->dlsch_unscrambling_stats);
+    nr_dlsch_unscrambling(pdsch_vars->llr[0],
+                          dlsch0->harq_processes[harq_pid]->G,
+                          0,
+                          ue->frame_parms.Nid_cell,
+                          dlsch0->rnti);
       
 
-      stop_meas(&ue->dlsch_unscrambling_stats);
+    stop_meas(&ue->dlsch_unscrambling_stats);
 
 
 #if 0
@@ -801,11 +784,11 @@ bool nr_ue_dlsch_procedures(PHY_VARS_NR_UE *ue,
       LOG_I(PHY,"start ldpc decode for CW 0 for AbsSubframe %d.%d / %d  --> Nl %d \n", frame_rx, nr_slot_rx, harq_pid, dlsch0->harq_processes[harq_pid]->Nl);
       LOG_I(PHY,"start ldpc decode for CW 0 for AbsSubframe %d.%d / %d  --> G  %d \n", frame_rx, nr_slot_rx, harq_pid, dlsch0->harq_processes[harq_pid]->G);
       LOG_I(PHY,"start ldpc decode for CW 0 for AbsSubframe %d.%d / %d  --> Kmimo  %d \n", frame_rx, nr_slot_rx, harq_pid, dlsch0->Kmimo);
-      LOG_I(PHY,"start ldpc decode for CW 0 for AbsSubframe %d.%d / %d  --> Pdcch Sym  %d \n", frame_rx, nr_slot_rx, harq_pid, ue->pdcch_vars[proc->thread_id][gNB_id]->num_pdcch_symbols);
+      LOG_I(PHY,"start ldpc decode for CW 0 for AbsSubframe %d.%d / %d  --> Pdcch Sym  %d \n", frame_rx, nr_slot_rx, harq_pid, ue->pdcch_vars[gNB_id]->num_pdcch_symbols);
 #endif
 
 
-   start_meas(&ue->dlsch_decoding_stats[proc->thread_id]);
+   start_meas(&ue->dlsch_decoding_stats);
 
     ret = nr_dlsch_decoding(ue,
                             proc,
@@ -846,12 +829,12 @@ bool nr_ue_dlsch_procedures(PHY_VARS_NR_UE *ue,
 
     LOG_D(PHY, "In %s DL PDU length in bits: %d, in bytes: %d \n", __FUNCTION__, dlsch0->harq_processes[harq_pid]->TBS, dlsch0->harq_processes[harq_pid]->TBS / 8);
 
-    stop_meas(&ue->dlsch_decoding_stats[proc->thread_id]);
+    stop_meas(&ue->dlsch_decoding_stats);
     if (cpumeas(CPUMEAS_GETSTATE))  {
       LOG_D(PHY, " --> Unscrambling for CW0 %5.3f\n",
             (ue->dlsch_unscrambling_stats.p_time)/(cpuf*1000.0));
       LOG_D(PHY, "AbsSubframe %d.%d --> LDPC Decoding for CW0 %5.3f\n",
-            frame_rx%1024, nr_slot_rx,(ue->dlsch_decoding_stats[proc->thread_id].p_time)/(cpuf*1000.0));
+            frame_rx%1024, nr_slot_rx,(ue->dlsch_decoding_stats.p_time)/(cpuf*1000.0));
     }
 
     if(is_cw1_active) {
@@ -877,10 +860,10 @@ bool nr_ue_dlsch_procedures(PHY_VARS_NR_UE *ue,
           LOG_I(PHY,"start ldpc decode for CW 1 for AbsSubframe %d.%d / %d  --> Nl %d \n", frame_rx, nr_slot_rx, harq_pid, dlsch1->harq_processes[harq_pid]->Nl);
           LOG_I(PHY,"start ldpc decode for CW 1 for AbsSubframe %d.%d / %d  --> G  %d \n", frame_rx, nr_slot_rx, harq_pid, dlsch1->harq_processes[harq_pid]->G);
           LOG_I(PHY,"start ldpc decode for CW 1 for AbsSubframe %d.%d / %d  --> Kmimo  %d \n", frame_rx, nr_slot_rx, harq_pid, dlsch1->Kmimo);
-          LOG_I(PHY,"start ldpc decode for CW 1 for AbsSubframe %d.%d / %d  --> Pdcch Sym  %d \n", frame_rx, nr_slot_rx, harq_pid, ue->pdcch_vars[proc->thread_id][gNB_id]->num_pdcch_symbols);
+          LOG_I(PHY,"start ldpc decode for CW 1 for AbsSubframe %d.%d / %d  --> Pdcch Sym  %d \n", frame_rx, nr_slot_rx, harq_pid, ue->pdcch_vars[gNB_id]->num_pdcch_symbols);
 #endif
 
-      start_meas(&ue->dlsch_decoding_stats[proc->thread_id]);
+      start_meas(&ue->dlsch_decoding_stats);
 
 
       ret1 = nr_dlsch_decoding(ue,
@@ -897,12 +880,12 @@ bool nr_ue_dlsch_procedures(PHY_VARS_NR_UE *ue,
                                pdsch==PDSCH);//proc->decoder_switch
       LOG_T(PHY,"CW dlsch decoding, ret1 = %d\n", ret1);
 
-      stop_meas(&ue->dlsch_decoding_stats[proc->thread_id]);
+      stop_meas(&ue->dlsch_decoding_stats);
       if (cpumeas(CPUMEAS_GETSTATE)) {
         LOG_D(PHY, " --> Unscrambling for CW1 %5.3f\n",
               (ue->dlsch_unscrambling_stats.p_time)/(cpuf*1000.0));
         LOG_D(PHY, "AbsSubframe %d.%d --> ldpc Decoding for CW1 %5.3f\n",
-              frame_rx%1024, nr_slot_rx,(ue->dlsch_decoding_stats[proc->thread_id].p_time)/(cpuf*1000.0));
+              frame_rx%1024, nr_slot_rx,(ue->dlsch_decoding_stats.p_time)/(cpuf*1000.0));
         }
     LOG_D(PHY, "harq_pid: %d, TBS expected dlsch1: %d \n", harq_pid, dlsch1->harq_processes[harq_pid]->TBS);
     }
@@ -1055,273 +1038,6 @@ bool nr_ue_dlsch_procedures(PHY_VARS_NR_UE *ue,
 }
 
 
-/*!
- * \brief This is the UE synchronize thread.
- * It performs band scanning and synchonization.
- * \param arg is a pointer to a \ref PHY_VARS_NR_UE structure.
- * \returns a pointer to an int. The storage is not on the heap and must not be freed.
- */
-#ifdef UE_SLOT_PARALLELISATION
-#define FIFO_PRIORITY   40
-void *UE_thread_slot1_dl_processing(void *arg) {
-
-  static __thread int UE_dl_slot1_processing_retval;
-  struct rx_tx_thread_data *rtd = arg;
-  UE_nr_rxtx_proc_t *proc = rtd->proc;
-  PHY_VARS_NR_UE    *ue   = rtd->UE;
-
-  uint8_t pilot1;
-
-  proc->instance_cnt_slot1_dl_processing=-1;
-  proc->nr_slot_rx = proc->sub_frame_start * ue->frame_parms.slots_per_subframe;
-
-  char threadname[256];
-  sprintf(threadname,"UE_thread_slot1_dl_processing_%d", proc->sub_frame_start);
-
-  cpu_set_t cpuset;
-  CPU_ZERO(&cpuset);
-  if ( (proc->sub_frame_start+1)%RX_NB_TH == 0 && threads.slot1_proc_one != -1 )
-    CPU_SET(threads.slot1_proc_one, &cpuset);
-  if ( RX_NB_TH > 1 && (proc->sub_frame_start+1)%RX_NB_TH == 1 && threads.slot1_proc_two != -1 )
-    CPU_SET(threads.slot1_proc_two, &cpuset);
-  if ( RX_NB_TH > 2 && (proc->sub_frame_start+1)%RX_NB_TH == 2 && threads.slot1_proc_three != -1 )
-    CPU_SET(threads.slot1_proc_three, &cpuset);
-
-  init_thread(900000,1000000 , FIFO_PRIORITY-1, &cpuset,
-	      threadname);
-
-  while (!oai_exit) {
-    if (pthread_mutex_lock(&proc->mutex_slot1_dl_processing) != 0) {
-      LOG_E( PHY, "[SCHED][UE] error locking mutex for UE slot1 dl processing\n" );
-      exit_fun("nothing to add");
-    }
-    while (proc->instance_cnt_slot1_dl_processing < 0) {
-      // most of the time, the thread is waiting here
-      pthread_cond_wait( &proc->cond_slot1_dl_processing, &proc->mutex_slot1_dl_processing );
-    }
-    if (pthread_mutex_unlock(&proc->mutex_slot1_dl_processing) != 0) {
-      LOG_E( PHY, "[SCHED][UE] error unlocking mutex for UE slot1 dl processing \n" );
-      exit_fun("nothing to add");
-    }
-
-    int frame_rx            = proc->frame_rx;
-    uint8_t subframe_rx         = proc->nr_slot_rx / ue->frame_parms.slots_per_subframe;
-    uint8_t next_subframe_rx    = (1 + subframe_rx) % NR_NUMBER_OF_SUBFRAMES_PER_FRAME;
-    uint8_t next_subframe_slot0 = next_subframe_rx * ue->frame_parms.slots_per_subframe;
-
-    uint8_t slot1  = proc->nr_slot_rx + 1;
-    uint8_t pilot0 = 0;
-
-    //printf("AbsSubframe %d.%d execute dl slot1 processing \n", frame_rx, nr_slot_rx);
-
-    if (ue->frame_parms.Ncp == 0) {  // normal prefix
-      pilot1 = 4;
-    } else { // extended prefix
-      pilot1 = 3;
-    }
-
-    /**** Slot1 FE Processing ****/
-
-    start_meas(&ue->ue_front_end_per_slot_stat[proc->thread_id][1]);
-
-    // I- start dl slot1 processing
-    // do first symbol of next downlink nr_slot_rx for channel estimation
-    /*
-    // 1- perform FFT for pilot ofdm symbols first (ofdmSym0 next nr_slot_rx ofdmSym11)
-    if (nr_subframe_select(&ue->frame_parms,next_nr_slot_rx) != SF_UL)
-    {
-    front_end_fft(ue,
-    pilot0,
-    next_subframe_slot0,
-    0,
-    0);
-    }
-
-    front_end_fft(ue,
-    pilot1,
-    slot1,
-    0,
-    0);
-    */
-    // 1- perform FFT
-    for (int l=1; l<ue->frame_parms.symbols_per_slot>>1; l++)
-      {
-	//if( (l != pilot0) && (l != pilot1))
-	{
-
-	  start_meas(&ue->ofdm_demod_stats);
-	  VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_UE_SLOT_FEP, VCD_FUNCTION_IN);
-	  //printf("AbsSubframe %d.%d FFT slot %d, symbol %d\n", frame_rx,nr_slot_rx,slot1,l);
-	  front_end_fft(ue,
-                        l,
-                        slot1,
-                        0,
-                        0);
-	  VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_UE_SLOT_FEP, VCD_FUNCTION_OUT);
-	  stop_meas(&ue->ofdm_demod_stats);
-	}
-      } // for l=1..l2
-
-    if (nr_subframe_select(&ue->frame_parms,next_nr_slot_rx) != SF_UL)
-      {
-	//printf("AbsSubframe %d.%d FFT slot %d, symbol %d\n", frame_rx,nr_slot_rx,next_subframe_slot0,pilot0);
-	front_end_fft(ue,
-		      pilot0,
-		      next_subframe_slot0,
-		      0,
-		      0);
-      }
-
-    // 2- perform Channel Estimation for slot1
-    for (int l=1; l<ue->frame_parms.symbols_per_slot>>1; l++)
-      {
-	if(l == pilot1)
-	  {
-	    //wait until channel estimation for pilot0/slot1 is available
-	    uint32_t wait = 0;
-	    while(proc->chan_est_pilot0_slot1_available == 0)
-	      {
-		usleep(1);
-		wait++;
-	      }
-	    //printf("[slot1 dl processing] ChanEst symbol %d slot %d wait%d\n",l,slot1,wait);
-	  }
-	//printf("AbsSubframe %d.%d ChanEst slot %d, symbol %d\n", frame_rx,nr_slot_rx,slot1,l);
-	front_end_chanEst(ue,
-			  l,
-			  slot1,
-			  0);
-	ue_measurement_procedures(l-1,ue,proc,0,slot1,0,ue->mode);
-      }
-    //printf("AbsSubframe %d.%d ChanEst slot %d, symbol %d\n", frame_rx,nr_slot_rx,next_subframe_slot0,pilot0);
-    front_end_chanEst(ue,
-		      pilot0,
-		      next_subframe_slot0,
-		      0);
-
-    if ( (nr_slot_rx == 0) && (ue->decode_MIB == 1))
-      {
-	ue_pbch_procedures(0,ue,proc,0);
-      }
-
-    proc->chan_est_slot1_available = 1;
-    //printf("Set available slot 1channelEst to 1 AbsSubframe %d.%d \n",frame_rx,nr_slot_rx);
-    //printf(" [slot1 dl processing] ==> FFT/CHanEst Done for AbsSubframe %d.%d \n", proc->frame_rx, proc->nr_slot_rx);
-
-    //printf(" [slot1 dl processing] ==> Start LLR Comuptation slot1 for AbsSubframe %d.%d \n", proc->frame_rx, proc->nr_slot_rx);
-
-
-
-    stop_meas(&ue->ue_front_end_per_slot_stat[proc->thread_id][1]);
-    if (cpumeas(CPUMEAS_GETSTATE))
-      LOG_D(PHY, "[AbsSFN %d.%d] Slot1: FFT + Channel Estimate + Pdsch Proc Slot0 %5.2f \n",frame_rx,nr_slot_rx,ue->ue_front_end_per_slot_stat[proc->thread_id][1].p_time/(cpuf*1000.0));
-
-    //wait until pdcch is decoded
-    uint32_t wait = 0;
-    while(proc->dci_slot0_available == 0)
-      {
-        usleep(1);
-        wait++;
-      }
-    //printf("[slot1 dl processing] AbsSubframe %d.%d LLR Computation Start wait DCI %d\n",frame_rx,nr_slot_rx,wait);
-
-    /**** Pdsch Procedure Slot1 ****/
-    // start slot1 thread for Pdsch Procedure (slot1)
-    // do procedures for C-RNTI
-    //printf("AbsSubframe %d.%d Pdsch Procedure (slot1)\n",frame_rx,nr_slot_rx);
-
-
-    start_meas(&ue->pdsch_procedures_per_slot_stat[proc->thread_id][1]);
-
-    // start slave thread for Pdsch Procedure (slot1)
-    // do procedures for C-RNTI
-    uint8_t gNB_id = 0;
-
-    if (ue->dlsch[proc->thread_id][gNB_id][0]->active == 1) {
-      //wait until first ofdm symbol is processed
-      //wait = 0;
-      //while(proc->first_symbol_available == 0)
-      //{
-      //    usleep(1);
-      //    wait++;
-      //}
-      //printf("[slot1 dl processing] AbsSubframe %d.%d LLR Computation Start wait First Ofdm Sym %d\n",frame_rx,nr_slot_rx,wait);
-
-      //VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PDSCH_PROC, VCD_FUNCTION_IN);
-      ue_pdsch_procedures(ue,
-			  proc,
-			  gNB_id,
-			  PDSCH,
-			  ue->dlsch[proc->thread_id][gNB_id][0],
-			  NULL,
-			  (ue->frame_parms.symbols_per_slot>>1),
-			  ue->frame_parms.symbols_per_slot-1,
-			  abstraction_flag);
-      LOG_D(PHY," ------ end PDSCH ChannelComp/LLR slot 0: AbsSubframe %d.%d ------  \n", frame_rx%1024, nr_slot_rx);
-      LOG_D(PHY," ------ --> PDSCH Turbo Decoder slot 0/1: AbsSubframe %d.%d ------  \n", frame_rx%1024, nr_slot_rx);
-    }
-
-    // do procedures for SI-RNTI
-    if ((ue->dlsch_SI[gNB_id]) && (ue->dlsch_SI[gNB_id]->active == 1)) {
-      ue_pdsch_procedures(ue,
-			  proc,
-			  gNB_id,
-			  SI_PDSCH,
-			  ue->dlsch_SI[gNB_id],
-			  NULL,
-			  (ue->frame_parms.symbols_per_slot>>1),
-			  ue->frame_parms.symbols_per_slot-1,
-			  abstraction_flag);
-    }
-
-    // do procedures for P-RNTI
-    if ((ue->dlsch_p[gNB_id]) && (ue->dlsch_p[gNB_id]->active == 1)) {
-      ue_pdsch_procedures(ue,
-			  proc,
-			  gNB_id,
-			  P_PDSCH,
-			  ue->dlsch_p[gNB_id],
-			  NULL,
-			  (ue->frame_parms.symbols_per_slot>>1),
-			  ue->frame_parms.symbols_per_slot-1,
-			  abstraction_flag);
-    }
-    // do procedures for RA-RNTI
-    if ((ue->dlsch_ra[gNB_id]) && (ue->dlsch_ra[gNB_id]->active == 1) && (UE_mode != PUSCH)) {
-      ue_pdsch_procedures(ue,
-			  proc,
-			  gNB_id,
-			  RA_PDSCH,
-			  ue->dlsch_ra[gNB_id],
-			  NULL,
-			  (ue->frame_parms.symbols_per_slot>>1),
-			  ue->frame_parms.symbols_per_slot-1,
-			  abstraction_flag);
-    }
-
-    proc->llr_slot1_available=1;
-    //printf("Set available LLR slot1 to 1 AbsSubframe %d.%d \n",frame_rx,nr_slot_rx);
-
-    stop_meas(&ue->pdsch_procedures_per_slot_stat[proc->thread_id][1]);
-    if (cpumeas(CPUMEAS_GETSTATE))
-      LOG_D(PHY, "[AbsSFN %d.%d] Slot1: LLR Computation %5.2f \n",frame_rx,nr_slot_rx,ue->pdsch_procedures_per_slot_stat[proc->thread_id][1].p_time/(cpuf*1000.0));
-
-    if (pthread_mutex_lock(&proc->mutex_slot1_dl_processing) != 0) {
-      LOG_E( PHY, "[SCHED][UE] error locking mutex for UE RXTX\n" );
-      exit_fun("noting to add");
-    }
-    proc->instance_cnt_slot1_dl_processing--;
-    if (pthread_mutex_unlock(&proc->mutex_slot1_dl_processing) != 0) {
-      LOG_E( PHY, "[SCHED][UE] error unlocking mutex for UE FEP Slo1\n" );
-      exit_fun("noting to add");
-    }
-  }
-  // thread finished
-  free(arg);
-  return &UE_dl_slot1_processing_retval;
-}
-#endif
-
 int phy_procedures_nrUE_RX(PHY_VARS_NR_UE *ue,
                            UE_nr_rxtx_proc_t *proc,
                            uint8_t gNB_id,
@@ -1331,15 +1047,13 @@ int phy_procedures_nrUE_RX(PHY_VARS_NR_UE *ue,
   int frame_rx = proc->frame_rx;
   int nr_slot_rx = proc->nr_slot_rx;
   fapi_nr_config_request_t *cfg = &ue->nrUE_config;
-
   NR_DL_FRAME_PARMS *fp = &ue->frame_parms;
   
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PHY_PROCEDURES_UE_RX, VCD_FUNCTION_IN);
-  start_meas(&ue->phy_proc_rx[proc->thread_id]);
+  start_meas(&ue->phy_proc_rx);
 
-  LOG_D(PHY," ****** start RX-Chain for Frame.Slot %d.%d (energy %d dB)******  \n",
-        frame_rx%1024, nr_slot_rx,
-        dB_fixed(signal_energy(ue->common_vars.common_vars_rx_data_per_thread[proc->thread_id].rxdataF[0],2048*14)));
+  LOG_D(PHY," ****** start RX-Chain for Frame.Slot %d.%d ******  \n",
+        frame_rx%1024, nr_slot_rx);
 
   // checking if current frame is compatible with SSB periodicity
   if (cfg->ssb_table.ssb_period == 0 ||
@@ -1410,6 +1124,29 @@ int phy_procedures_nrUE_RX(PHY_VARS_NR_UE *ue,
     }
   }
 
+  // Check for PRS slot - section 7.4.1.7.4 in 3GPP rel16 38.211
+  for(int gNB_id = 0; gNB_id < ue->prs_active_gNBs; gNB_id++)
+  {
+    for(int rsc_id = 0; rsc_id < ue->prs_vars[gNB_id]->NumPRSResources; rsc_id++)
+    {
+      prs_config_t *prs_config = &ue->prs_vars[gNB_id]->prs_resource[rsc_id].prs_cfg;
+      for (int i = 0; i < prs_config->PRSResourceRepetition; i++)
+      {
+        if( (((frame_rx*fp->slots_per_frame + nr_slot_rx) - (prs_config->PRSResourceSetPeriod[1] + prs_config->PRSResourceOffset) + prs_config->PRSResourceSetPeriod[0])%prs_config->PRSResourceSetPeriod[0]) == i*prs_config->PRSResourceTimeGap)
+        {
+          for(int j = prs_config->SymbolStart; j < (prs_config->SymbolStart+prs_config->NumPRSSymbols); j++)
+          {
+            nr_slot_fep(ue,
+                        proc,
+                        (j%fp->symbols_per_slot),
+                        nr_slot_rx);
+          }
+          nr_prs_channel_estimation(gNB_id,rsc_id,i,ue,proc,fp);
+        }
+      } // for i
+    } // for rsc_id
+  } // for gNB_id
+
   if ((frame_rx%64 == 0) && (nr_slot_rx==0)) {
     LOG_I(NR_PHY,"============================================\n");
     // fixed text + 8 HARQs rounds à 10 ("999999999/") + NULL
@@ -1474,8 +1211,8 @@ int phy_procedures_nrUE_RX(PHY_VARS_NR_UE *ue,
     LOG_D(PHY,"[UE %d] Frame %d, nr_slot_rx %d: found %d DCIs\n", ue->Mod_id, frame_rx, nr_slot_rx, dci_cnt);
 
     NR_UE_DLSCH_t *dlsch = NULL;
-    if (ue->dlsch[proc->thread_id][gNB_id][0]->active == 1){
-      dlsch = ue->dlsch[proc->thread_id][gNB_id][0];
+    if (ue->dlsch[gNB_id][0]->active == 1){
+      dlsch = ue->dlsch[gNB_id][0];
     } else if (ue->dlsch_SI[0]->active == 1){
       dlsch = ue->dlsch_SI[0];
     } else if (ue->dlsch_ra[0]->active == 1){
@@ -1511,18 +1248,18 @@ int phy_procedures_nrUE_RX(PHY_VARS_NR_UE *ue,
   nr_rxtx_thread_data_t *curMsg=(nr_rxtx_thread_data_t *)NotifiedFifoData(newElt);
   curMsg->proc = *proc;
   curMsg->UE = ue;
-  curMsg->ue_sched_mode = ONLY_PUSCH;
+  curMsg->ue_sched_mode = SCHED_PUSCH;
   pushTpool(&(get_nrUE_params()->Tpool), newElt);
   start_meas(&ue->generic_stat);
   // do procedures for C-RNTI
   int ret_pdsch = 0;
-  if (ue->dlsch[proc->thread_id][gNB_id][0]->active == 1) {
+  if (ue->dlsch[gNB_id][0]->active == 1) {
     VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PDSCH_PROC_C, VCD_FUNCTION_IN);
     ret_pdsch = nr_ue_pdsch_procedures(ue,
                                        proc,
                                        gNB_id,
                                        PDSCH,
-                                       ue->dlsch[proc->thread_id][gNB_id][0],
+                                       ue->dlsch[gNB_id][0],
                                        NULL);
 
     nr_ue_measurement_procedures(2, ue, proc, gNB_id, nr_slot_rx);
@@ -1600,34 +1337,34 @@ int phy_procedures_nrUE_RX(PHY_VARS_NR_UE *ue,
     VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PDSCH_PROC_RA, VCD_FUNCTION_OUT);
   }
   // do procedures for C-RNTI
-  if (ue->dlsch[proc->thread_id][gNB_id][0]->active == 1) {
+  if (ue->dlsch[gNB_id][0]->active == 1) {
 
     LOG_D(PHY, "DLSCH data reception at nr_slot_rx: %d\n", nr_slot_rx);
     VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PDSCH_PROC, VCD_FUNCTION_IN);
 
-    start_meas(&ue->dlsch_procedures_stat[proc->thread_id]);
+    start_meas(&ue->dlsch_procedures_stat);
 
     NR_UE_DLSCH_t *dlsch1 = NULL;
     if (NR_MAX_NB_LAYERS>4)
-      dlsch1 = ue->dlsch[proc->thread_id][gNB_id][1];
+      dlsch1 = ue->dlsch[gNB_id][1];
 
     if (ret_pdsch >= 0)
       nr_ue_dlsch_procedures(ue,
 			   proc,
 			   gNB_id,
 			   PDSCH,
-			   ue->dlsch[proc->thread_id][gNB_id][0],
+			   ue->dlsch[gNB_id][0],
 			   dlsch1,
 			   &ue->dlsch_errors[gNB_id]);
 
-  stop_meas(&ue->dlsch_procedures_stat[proc->thread_id]);
+  stop_meas(&ue->dlsch_procedures_stat);
   if (cpumeas(CPUMEAS_GETSTATE)) {
-    LOG_D(PHY, "[SFN %d] Slot1:       Pdsch Proc %5.2f\n",nr_slot_rx,ue->pdsch_procedures_stat[proc->thread_id].p_time/(cpuf*1000.0));
-    LOG_D(PHY, "[SFN %d] Slot0 Slot1: Dlsch Proc %5.2f\n",nr_slot_rx,ue->dlsch_procedures_stat[proc->thread_id].p_time/(cpuf*1000.0));
+    LOG_D(PHY, "[SFN %d] Slot1:       Pdsch Proc %5.2f\n",nr_slot_rx,ue->pdsch_procedures_stat.p_time/(cpuf*1000.0));
+    LOG_D(PHY, "[SFN %d] Slot0 Slot1: Dlsch Proc %5.2f\n",nr_slot_rx,ue->dlsch_procedures_stat.p_time/(cpuf*1000.0));
   }
 
   // deactivate dlsch once dlsch proc is done
-  ue->dlsch[proc->thread_id][gNB_id][0]->active = 0;
+  ue->dlsch[gNB_id][0]->active = 0;
 
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PDSCH_PROC, VCD_FUNCTION_OUT);
 
@@ -1700,58 +1437,14 @@ int phy_procedures_nrUE_RX(PHY_VARS_NR_UE *ue,
 
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PHY_PROCEDURES_UE_RX, VCD_FUNCTION_OUT);
 
-  stop_meas(&ue->phy_proc_rx[proc->thread_id]);
+  stop_meas(&ue->phy_proc_rx);
   if (cpumeas(CPUMEAS_GETSTATE))
-    LOG_D(PHY, "------FULL RX PROC [SFN %d]: %5.2f ------\n",nr_slot_rx,ue->phy_proc_rx[proc->thread_id].p_time/(cpuf*1000.0));
+    LOG_D(PHY, "------FULL RX PROC [SFN %d]: %5.2f ------\n",nr_slot_rx,ue->phy_proc_rx.p_time/(cpuf*1000.0));
 
   LOG_D(PHY," ****** end RX-Chain  for AbsSubframe %d.%d ******  \n", frame_rx%1024, nr_slot_rx);
   return (0);
 }
 
-
-uint8_t nr_is_cqi_TXOp(PHY_VARS_NR_UE *ue,
-		            UE_nr_rxtx_proc_t *proc,
-					uint8_t gNB_id)
-{
-  int subframe = proc->nr_slot_tx / ue->frame_parms.slots_per_subframe;
-  int frame    = proc->frame_tx;
-  CQI_REPORTPERIODIC *cqirep = &ue->cqi_report_config[gNB_id].CQI_ReportPeriodic;
-
-  //LOG_I(PHY,"[UE %d][CRNTI %x] AbsSubFrame %d.%d Checking for CQI TXOp (cqi_ConfigIndex %d) isCQIOp %d\n",
-  //      ue->Mod_id,ue->pdcch_vars[gNB_id]->crnti,frame,subframe,
-  //      cqirep->cqi_PMI_ConfigIndex,
-  //      (((10*frame + subframe) % cqirep->Npd) == cqirep->N_OFFSET_CQI));
-
-  if (cqirep->cqi_PMI_ConfigIndex==-1)
-    return(0);
-  else if (((10*frame + subframe) % cqirep->Npd) == cqirep->N_OFFSET_CQI)
-    return(1);
-  else
-    return(0);
-}
-
-
-uint8_t nr_is_ri_TXOp(PHY_VARS_NR_UE *ue,
-		           UE_nr_rxtx_proc_t *proc,
-				   uint8_t gNB_id)
-{
-  int subframe = proc->nr_slot_tx / ue->frame_parms.slots_per_subframe;
-  int frame    = proc->frame_tx;
-  CQI_REPORTPERIODIC *cqirep = &ue->cqi_report_config[gNB_id].CQI_ReportPeriodic;
-  int log2Mri = cqirep->ri_ConfigIndex/161;
-  int N_OFFSET_RI = cqirep->ri_ConfigIndex % 161;
-
-  //LOG_I(PHY,"[UE %d][CRNTI %x] AbsSubFrame %d.%d Checking for RI TXOp (ri_ConfigIndex %d) isRIOp %d\n",
-  //      ue->Mod_id,ue->pdcch_vars[gNB_id]->crnti,frame,subframe,
-  //      cqirep->ri_ConfigIndex,
-  //      (((10*frame + subframe + cqirep->N_OFFSET_CQI - N_OFFSET_RI) % (cqirep->Npd<<log2Mri)) == 0));
-  if (cqirep->ri_ConfigIndex==-1)
-    return(0);
-  else if (((10*frame + subframe + cqirep->N_OFFSET_CQI - N_OFFSET_RI) % (cqirep->Npd<<log2Mri)) == 0)
-    return(1);
-  else
-    return(0);
-}
 
 // todo:
 // - power control as per 38.213 ch 7.4
@@ -1799,14 +1492,6 @@ void nr_ue_prach_procedures(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, uint8_t
     }
 
     ue->prach_vars[gNB_id]->amp = AMP;
-
-    /* #if defined(EXMIMO) || defined(OAI_USRP) || defined(OAI_BLADERF) || defined(OAI_LMSSDR) || defined(OAI_ADRV9371_ZC706)
-      tx_amp = get_tx_amp_prach(ue->tx_power_dBm[nr_slot_tx], ue->tx_power_max_dBm, ue->frame_parms.N_RB_UL);
-      if (tx_amp != -1)
-        ue->prach_vars[gNB_id]->amp = tx_amp;
-    #else
-      ue->prach_vars[gNB_id]->amp = AMP;
-    #endif */
 
     VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_UE_GENERATE_PRACH, VCD_FUNCTION_IN);
 

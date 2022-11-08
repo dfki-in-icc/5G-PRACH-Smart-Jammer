@@ -189,6 +189,7 @@ void config_uldci(const NR_SIB1_t *sib1,
                   const NR_ServingCellConfigCommon_t *scc,
                   const nfapi_nr_pusch_pdu_t *pusch_pdu,
                   dci_pdu_rel15_t *dci_pdu_rel15,
+                  nr_srs_feedback_t *srs_feedback,
                   int time_domain_assignment,
                   uint8_t tpc,
                   NR_UE_UL_BWP_t *ul_bwp);
@@ -208,7 +209,7 @@ void nr_csi_meas_reporting(int Mod_idP,
                            frame_t frameP,
                            sub_frame_t slotP);
 
-int nr_acknack_scheduling(int Mod_idP,
+int nr_acknack_scheduling(gNB_MAC_INST *mac,
                           NR_UE_info_t *UE,
                           frame_t frameP,
                           sub_frame_t slotP,
@@ -217,7 +218,6 @@ int nr_acknack_scheduling(int Mod_idP,
 
 void get_pdsch_to_harq_feedback(NR_PUCCH_Config_t *pucch_Config,
                                 nr_dci_format_t dci_format,
-                                int *max_fb_time,
                                 uint8_t *pdsch_to_harq_feedback);
   
 void nr_configure_css_dci_initial(nfapi_nr_dl_tti_pdcch_pdu_rel15_t* pdcch_pdu,
@@ -441,12 +441,7 @@ void handle_nr_ul_harq(const int CC_idP,
 void handle_nr_srs_measurements(const module_id_t module_id,
                                 const frame_t frame,
                                 const sub_frame_t slot,
-                                const rnti_t rnti,
-                                const uint16_t timing_advance,
-                                const uint8_t num_symbols,
-                                const uint8_t wide_band_snr,
-                                const uint8_t num_reported_symbols,
-                                nfapi_nr_srs_indication_reported_symbol_t* reported_symbol_list);
+                                const nfapi_nr_srs_indication_pdu_t *srs_ind);
 
 int16_t ssb_index_from_prach(module_id_t module_idP,
                              frame_t frameP,
@@ -469,6 +464,10 @@ uint16_t get_pm_index(const NR_UE_info_t *UE,
 uint8_t get_mcs_from_cqi(int mcs_table, int cqi_table, int cqi_idx);
 
 uint8_t get_dl_nrOfLayers(const NR_UE_sched_ctrl_t *sched_ctrl, const nr_dci_format_t dci_format);
+
+void set_sched_pucch_list(NR_UE_sched_ctrl_t *sched_ctrl,
+                          const NR_UE_UL_BWP_t *ul_bwp,
+                          const NR_ServingCellConfigCommon_t *scc);
 
 const int get_dl_tda(const gNB_MAC_INST *nrmac, const NR_ServingCellConfigCommon_t *scc, int slot);
 const int get_ul_tda(const gNB_MAC_INST *nrmac, const NR_ServingCellConfigCommon_t *scc, int slot);

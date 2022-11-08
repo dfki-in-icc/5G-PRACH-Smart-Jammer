@@ -67,7 +67,7 @@ const int get_dl_tda(const gNB_MAC_INST *nrmac, const NR_ServingCellConfigCommon
     if ((slot%nr_slots_period) == tdd->nrofDownlinkSlots)
       return 2;
   }
-  return 0; // if FDD or not mixed slot in TDD, for now use default TDA (TODO handle CSI-RS slots)
+  return 0; // if FDD or not mixed slot in TDD, for now use default TDA
 }
 
 // Compute and write all MAC CEs and subheaders, and return number of written
@@ -508,7 +508,7 @@ bool allocate_dl_retransmission(module_id_t module_id,
    * allocation after CCE alloc fail would be more complex) */
 
   int r_pucch = nr_get_pucch_resource(sched_ctrl->coreset, ul_bwp->pucch_Config, CCEIndex);
-  const int alloc = nr_acknack_scheduling(module_id, UE, frame, slot, r_pucch, 0);
+  const int alloc = nr_acknack_scheduling(nr_mac, UE, frame, slot, r_pucch, 0);
   if (alloc<0) {
     LOG_D(MAC,
           "could not find PUCCH for UE %04x@%d.%d\n",
@@ -701,7 +701,7 @@ void pf_dl(module_id_t module_id,
     * allocation after CCE alloc fail would be more complex) */
 
     int r_pucch = nr_get_pucch_resource(sched_ctrl->coreset, ul_bwp->pucch_Config, CCEIndex);
-    const int alloc = nr_acknack_scheduling(module_id, iterator->UE, frame, slot, r_pucch, 0);
+    const int alloc = nr_acknack_scheduling(mac, iterator->UE, frame, slot, r_pucch, 0);
 
     if (alloc<0) {
       LOG_D(NR_MAC,
