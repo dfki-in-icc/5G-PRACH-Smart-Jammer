@@ -435,7 +435,25 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
       ul_ch[3].i += (ch.i * 1365)>>15; // 1/12*16384
 
       ul_ch += 4;
+<<<<<<< Updated upstream
       c16multaddVectRealComplex(filt8_avlip3, &ch, ul_ch, 8);
+||||||| constructed merge base
+      c16multaddVectRealComplex(filt8_avlip3,
+                                         ch,
+                                         ul_ch,
+                                         8);
+
+=======
+<<<<<<< HEAD
+      c16multaddVectRealComplex(filt8_avlip3,
+                                         ch,
+                                         ul_ch,
+                                         8);
+
+=======
+      c16multaddVectRealComplex(filt8_avlip3, &ch, ul_ch, 8);
+>>>>>>> develop
+>>>>>>> Stashed changes
       ul_ch += 8;
       c16multaddVectRealComplex(filt8_avlip6, &ch, ul_ch, 8);
 #endif
@@ -740,8 +758,33 @@ int nr_srs_channel_estimation(const PHY_VARS_gNB *gNB,
     fd_cdm = 2;
   }
 
+<<<<<<< Updated upstream
   c16_t srs_ls_estimated_channel[frame_parms->ofdm_symbol_size*(1<<srs_pdu->num_symbols)];
   uint32_t noise_power_per_rb[srs_pdu->bwp_size];
+||||||| constructed merge base
+   // Adeel testing
+   if (frame%35==0 && slot== 17 ){
+printf("\n gNB 1: Frame Parameter\n nb_prefix_samples0=%lu \n, ofdm_symbol_size=%lu \n,  nb_prefix_samples=%lu \n,  symbols_per_slot=%lu \n,  slots_per_subframe=%lu \n , first_carrier_offset=%lu \n", (unsigned long int)frame_parms->nb_prefix_samples0, (unsigned long int)frame_parms->ofdm_symbol_size,  (unsigned long int)frame_parms->nb_prefix_samples,  (unsigned long int)frame_parms->symbols_per_slot,  (unsigned long int)frame_parms->slots_per_subframe, (unsigned long int)frame_parms->first_carrier_offset);
+printf("\n gNB 1: SRS Parameter\n B_SRS =%u \n C_SRS = %u \n  b_hop = %u \n K_TC = %u \n K_TC_overbar = %u \n n_SRS_cs = %u \n n_ID_SRS = %u \n n_shift = %u \n n_RRC = %u \n groupOrSequenceHopping = %u \n l_offset = %u \n T_SRS = %u \n  T_offset = %u \n  R = %u \n  Number of antenna port for transmission N_ap = %u \n Number of consecutive OFDM symbols N_symb_SRS = %u \n Starting symbol position in the time domain l0 = %u  \n n_SRS_cs_max = %u \n Number of resource blocks m_SRS_b = %u \n  Length of the SRS sequence M_sc_b_SRS =  %u \n", srs_pdu->bandwidth_index, srs_pdu->config_index,  srs_pdu->frequency_hopping, 2<<srs_pdu->comb_size, srs_pdu->comb_offset, srs_pdu->cyclic_shift, srs_pdu->sequence_id, srs_pdu->frequency_position, srs_pdu->frequency_shift,srs_pdu->group_or_sequence_hopping, srs_pdu->time_start_position, srs_pdu->t_srs, srs_pdu->t_offset, 1<<srs_pdu->num_repetitions, 1<<srs_pdu->num_ant_ports, 1<<srs_pdu->num_symbols, frame_parms->symbols_per_slot - 1 - srs_pdu->time_start_position ,srs_max_number_cs[srs_pdu->comb_size], m_SRS_b, M_sc_b_SRS);
+}
+  // Adeel testing
+
+
+=======
+<<<<<<< HEAD
+   // Adeel testing
+   if (frame%35==0 && slot== 17 ){
+printf("\n gNB 1: Frame Parameter\n nb_prefix_samples0=%lu \n, ofdm_symbol_size=%lu \n,  nb_prefix_samples=%lu \n,  symbols_per_slot=%lu \n,  slots_per_subframe=%lu \n , first_carrier_offset=%lu \n", (unsigned long int)frame_parms->nb_prefix_samples0, (unsigned long int)frame_parms->ofdm_symbol_size,  (unsigned long int)frame_parms->nb_prefix_samples,  (unsigned long int)frame_parms->symbols_per_slot,  (unsigned long int)frame_parms->slots_per_subframe, (unsigned long int)frame_parms->first_carrier_offset);
+printf("\n gNB 1: SRS Parameter\n B_SRS =%u \n C_SRS = %u \n  b_hop = %u \n K_TC = %u \n K_TC_overbar = %u \n n_SRS_cs = %u \n n_ID_SRS = %u \n n_shift = %u \n n_RRC = %u \n groupOrSequenceHopping = %u \n l_offset = %u \n T_SRS = %u \n  T_offset = %u \n  R = %u \n  Number of antenna port for transmission N_ap = %u \n Number of consecutive OFDM symbols N_symb_SRS = %u \n Starting symbol position in the time domain l0 = %u  \n n_SRS_cs_max = %u \n Number of resource blocks m_SRS_b = %u \n  Length of the SRS sequence M_sc_b_SRS =  %u \n", srs_pdu->bandwidth_index, srs_pdu->config_index,  srs_pdu->frequency_hopping, 2<<srs_pdu->comb_size, srs_pdu->comb_offset, srs_pdu->cyclic_shift, srs_pdu->sequence_id, srs_pdu->frequency_position, srs_pdu->frequency_shift,srs_pdu->group_or_sequence_hopping, srs_pdu->time_start_position, srs_pdu->t_srs, srs_pdu->t_offset, 1<<srs_pdu->num_repetitions, 1<<srs_pdu->num_ant_ports, 1<<srs_pdu->num_symbols, frame_parms->symbols_per_slot - 1 - srs_pdu->time_start_position ,srs_max_number_cs[srs_pdu->comb_size], m_SRS_b, M_sc_b_SRS);
+}
+  // Adeel testing
+
+
+=======
+  c16_t srs_ls_estimated_channel[frame_parms->ofdm_symbol_size*(1<<srs_pdu->num_symbols)];
+  uint32_t noise_power_per_rb[srs_pdu->bwp_size];
+>>>>>>> develop
+>>>>>>> Stashed changes
   int16_t ch_real[frame_parms->nb_antennas_rx*N_ap*M_sc_b_SRS];
   int16_t ch_imag[frame_parms->nb_antennas_rx*N_ap*M_sc_b_SRS];
   int16_t noise_real[frame_parms->nb_antennas_rx*N_ap*M_sc_b_SRS];
