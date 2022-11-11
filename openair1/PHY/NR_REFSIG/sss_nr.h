@@ -97,6 +97,7 @@ int pss_ch_est_nr(PHY_VARS_NR_UE *ue,
                   int32_t sss_ext[NB_ANTENNAS_RX][LENGTH_SSS_NR]);
 
 int rx_sss_nr(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, int32_t *tot_metric, uint8_t *phase_max, int *freq_offset_sss);
+int rx_sss_by_Nid_cell_nr(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, int Nid_cell, int32_t *tot_metric, uint8_t *phase_max, int *freq_offset_sss);
 
 #undef INIT_VARIABLES_SSS_NR_H
 #undef EXTERN

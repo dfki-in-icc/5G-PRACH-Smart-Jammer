@@ -128,11 +128,18 @@ int set_pss_nr(int ofdm_symbol_size);
 int pss_synchro_nr(PHY_VARS_NR_UE *PHY_vars_UE, int is, int rate_change);
 int pss_search_time_nr(int **rxdata, ///rx data in time domain
                        NR_DL_FRAME_PARMS *frame_parms,
-		       int fo_flag,
+                       int fo_flag,
                        int is,
                        int *eNB_id,
-		       int *f_off);
-
+                       int *f_off);
+int pss_synchro_by_Nid_cell_nr(PHY_VARS_NR_UE *PHY_vars_UE, int Nid_cell, int is, int rate_change);
+int pss_search_time_by_Nid_cell_nr(int **rxdata,
+                                   NR_DL_FRAME_PARMS *frame_parms,
+                                   int Nid_cell,
+                                   int fo_flag,
+                                   int is,
+                                   int *eNB_id,
+                                   int *f_off);
 #endif
 #undef EXTERN
 

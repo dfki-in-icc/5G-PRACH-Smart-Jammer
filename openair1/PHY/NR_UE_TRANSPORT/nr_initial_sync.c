@@ -595,3 +595,150 @@ int nr_initial_sync(UE_nr_rxtx_proc_t *proc,
   return ret;
 }
 
+int nr_resync_by_Nid_cell(UE_nr_rxtx_proc_t *proc, PHY_VARS_NR_UE *ue, int Nid_cell, int n_frames, int sa)
+{
+  NR_DL_FRAME_PARMS *fp = &ue->frame_parms;
+  int ret = -1;
+
+  for (int is = 0; is < n_frames; is++) {
+    // process pss search on received buffer
+    int32_t sync_pos = pss_synchro_by_Nid_cell_nr(ue, Nid_cell, is, NO_RATE_CHANGE);
+    if (sync_pos < fp->nb_prefix_samples) {
+      continue;
+    }
+    ue->ssb_offset = sync_pos - fp->nb_prefix_samples;
+    LOG_I(NR_PHY, "[UE%d] Resync: Estimated PSS position %d, ssb_offset %d, Nid2 %d\n", ue->Mod_id, sync_pos, ue->ssb_offset, ue->common_vars.eNb_id);
+
+    // check that SSS/PBCH block is continuous inside the received buffer
+    if (ue->ssb_offset + NR_N_SYMBOLS_SSB * (fp->ofdm_symbol_size + fp->nb_prefix_samples) < fp->samples_per_frame) {
+      // digital compensation of FFO for SSB symbols
+      if (ue->UE_fo_compensation) {
+        double s_time = 1 / (1.0e3 * fp->samples_per_subframe); // sampling time
+        double off_angle = -2 * M_PI * s_time * (ue->common_vars.freq_offset); // offset rotation angle compensation per sample
+
+        // start for offset correction
+        int start = is * fp->samples_per_frame;
+
+        // loop over samples
+        int end = start + fp->samples_per_frame;
+
+        for (int n = start; n < end; n++) {
+          for (int ar = 0; ar < fp->nb_antennas_rx; ar++) {
+            double re = ((double)(((short *)ue->common_vars.rxdata[ar]))[2 * n]);
+            double im = ((double)(((short *)ue->common_vars.rxdata[ar]))[2 * n + 1]);
+            ((short *)ue->common_vars.rxdata[ar])[2 * n] = (short)(round(re * cos(n * off_angle) - im * sin(n * off_angle)));
+            ((short *)ue->common_vars.rxdata[ar])[2 * n + 1] = (short)(round(re * sin(n * off_angle) + im * cos(n * off_angle)));
+          }
+        }
+      }
+
+      for (int i = 0; i < NR_N_SYMBOLS_SSB; i++) {
+        nr_slot_fep_init_sync(ue, proc, i, 0, is * fp->samples_per_frame + ue->ssb_offset, false);
+      }
+
+      int32_t metric_tdd_ncp = 0;
+      uint8_t phase_tdd_ncp = 0;
+      int freq_offset_sss = 0;
+      ret = rx_sss_by_Nid_cell_nr(ue, proc, Nid_cell, &metric_tdd_ncp, &phase_tdd_ncp, &freq_offset_sss);
+
+      // digital compensation of FFO for SSB symbols
+      if (ue->UE_fo_compensation) {
+        double s_time = 1 / (1.0e3 * fp->samples_per_subframe); // sampling time
+        double off_angle = -2 * M_PI * s_time * freq_offset_sss; // offset rotation angle compensation per sample
+
+        // start for offset correction
+        int start = is * fp->samples_per_frame;
+
+        // loop over samples
+        int end = start + fp->samples_per_frame;
+
+        for (int n = start; n < end; n++) {
+          for (int ar = 0; ar < fp->nb_antennas_rx; ar++) {
+            double re = ((double)(((short *)ue->common_vars.rxdata[ar]))[2 * n]);
+            double im = ((double)(((short *)ue->common_vars.rxdata[ar]))[2 * n + 1]);
+            ((short *)ue->common_vars.rxdata[ar])[2 * n] = (short)(round(re * cos(n * off_angle) - im * sin(n * off_angle)));
+            ((short *)ue->common_vars.rxdata[ar])[2 * n + 1] = (short)(round(re * sin(n * off_angle) + im * cos(n * off_angle)));
+          }
+        }
+
+        ue->common_vars.freq_offset += freq_offset_sss;
+      }
+
+      if (ret == 0) {
+        nr_gold_pbch(ue);
+        nr_phy_data_t phy_data = {0};
+        // start pbch detection at first symbol after pss
+        ret = nr_pbch_detection(proc, ue, 1, &phy_data);
+      }
+
+      if (ret == 0) {
+        // sync at symbol ue->symbol_offset
+        // computing the offset wrt the beginning of the frame
+        // number of symbols with different prefix length
+        // every 7*(1<<mu) symbols there is a different prefix length (38.211 5.3.1)
+        int mu = fp->numerology_index;
+        int n_symb_prefix0 = (ue->symbol_offset / (7 * (1 << mu))) + 1;
+        int32_t sync_pos_frame = n_symb_prefix0 * (fp->ofdm_symbol_size + fp->nb_prefix_samples0) + (ue->symbol_offset - n_symb_prefix0) * (fp->ofdm_symbol_size + fp->nb_prefix_samples);
+
+        // for a correct computation of frame number to sync with the one decoded at MIB we need to take into account in which of the n_frames we got sync
+        ue->init_sync_frame = n_frames - 1 - is;
+
+        // compute the scramblingID_pdcch and the gold pdcch
+        ue->scramblingID_pdcch = fp->Nid_cell;
+        nr_gold_pdcch(ue, fp->Nid_cell);
+
+        // compute the scrambling IDs for PDSCH DMRS
+        for (int i = 0; i < NR_NB_NSCID; i++) {
+          ue->scramblingID_dlsch[i] = fp->Nid_cell;
+          nr_gold_pdsch(ue, i, ue->scramblingID_dlsch[i]);
+        }
+
+        nr_init_csi_rs(fp, ue->nr_csi_info->nr_gold_csi_rs, fp->Nid_cell);
+
+        // initialize the pusch dmrs
+        for (int i = 0; i < NR_NB_NSCID; i++) {
+          ue->scramblingID_ulsch[i] = fp->Nid_cell;
+          nr_init_pusch_dmrs(ue, ue->scramblingID_ulsch[i], i);
+        }
+
+        // we also need to take into account the shift by samples_per_frame in case the if is true
+        if (ue->ssb_offset < sync_pos_frame) {
+          ue->rx_offset = fp->samples_per_frame - sync_pos_frame + ue->ssb_offset;
+          ue->init_sync_frame += 1;
+        } else {
+          ue->rx_offset = ue->ssb_offset - sync_pos_frame;
+        }
+      }
+
+      LOG_I(NR_PHY, "TDD Normal prefix: CellId %d metric %d, phase %d, pbch %d\n", fp->Nid_cell, metric_tdd_ncp, phase_tdd_ncp, ret);
+
+    } else {
+      LOG_E(NR_PHY, "TDD Normal prefix: SSS error condition: sync_pos %d\n", sync_pos);
+    }
+
+    // Resync performed on two successive frames, if pbch passes on first frame, no need to process second frame
+    if (ret == 0) {
+      break;
+    }
+  }
+
+  // PBCH found so indicate sync to higher layers and configure frame parameters
+  if (ret == 0) {
+    LOG_I(NR_PHY, "[UE%d] In resynch, rx_offset %d samples\n", ue->Mod_id, ue->rx_offset);
+    if (ue->UE_scan_carrier == 0) {
+      // send sync status to higher layers later when timing offset converge to target timing
+      ue->pbch_vars[0]->pdu_errors_conseq = 0;
+    }
+  } else {
+    ue->UE_mode[0] = NOT_SYNCHED;
+    ue->pbch_vars[0]->pdu_errors_last = ue->pbch_vars[0]->pdu_errors;
+    ue->pbch_vars[0]->pdu_errors++;
+    ue->pbch_vars[0]->pdu_errors_conseq++;
+
+    // we might add a low-pass filter here later
+    ue->measurements.rx_power_avg[0] = 0;
+    ue->measurements.rx_power_avg_dB[0] = dB_fixed(ue->measurements.rx_power_avg[0]);
+  }
+
+  return ret;
+}

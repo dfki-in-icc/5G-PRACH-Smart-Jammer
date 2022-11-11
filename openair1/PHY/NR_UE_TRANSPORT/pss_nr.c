@@ -795,3 +795,125 @@ int pss_search_time_nr(int **rxdata, ///rx data in time domain
   return(peak_position);
 }
 
+int pss_synchro_by_Nid_cell_nr(PHY_VARS_NR_UE *PHY_vars_UE, int Nid_cell, int is, int rate_change)
+{
+  NR_DL_FRAME_PARMS *frame_parms = &(PHY_vars_UE->frame_parms);
+
+  int **rxdata = NULL;
+  if (rate_change != 1) {
+    rxdata = (int32_t **)malloc16(frame_parms->nb_antennas_rx * sizeof(int32_t *));
+    for (int aa = 0; aa < frame_parms->nb_antennas_rx; aa++) {
+      rxdata[aa] = (int32_t *)malloc16_clear((frame_parms->samples_per_frame + 8192) * sizeof(int32_t));
+    }
+  } else {
+    rxdata = PHY_vars_UE->common_vars.rxdata;
+  }
+
+  int synchro_position = pss_search_time_by_Nid_cell_nr(rxdata,
+                                                        frame_parms,
+                                                        Nid_cell,
+                                                        PHY_vars_UE->UE_fo_compensation,
+                                                        is,
+                                                        (int *)&PHY_vars_UE->common_vars.eNb_id,
+                                                        (int *)&PHY_vars_UE->common_vars.freq_offset);
+
+  return synchro_position;
+}
+
+int pss_search_time_by_Nid_cell_nr(int **rxdata, NR_DL_FRAME_PARMS *frame_parms, int Nid_cell, int fo_flag, int is, int *eNB_id, int *f_off)
+{
+  // performing the correlation on a frame length plus one symbol for the first of the two frame
+  // to take into account the possibility of PSS in between the two frames
+  unsigned int length;
+  if (is == 0) {
+    length = frame_parms->samples_per_frame + (2 * frame_parms->ofdm_symbol_size);
+  } else {
+    length = frame_parms->samples_per_frame;
+  }
+  AssertFatal(length > 0, "illegal length %d\n", length);
+
+  int pss_index = GET_NID2(Nid_cell);
+  int maxval = 0;
+  for (int i = 0; i < IQ_SIZE * (frame_parms->ofdm_symbol_size); i++) {
+    maxval = max(maxval, primary_synchro_time_nr[pss_index][i]);
+    maxval = max(maxval, -primary_synchro_time_nr[pss_index][i]);
+  }
+  int shift = log2_approx(maxval);
+
+  // Search pss in the received buffer each 4 samples which ensures a memory alignment on 128 bits (32 bits x 4 )
+  // This is required by SIMD (single instruction Multiple Data) Extensions of Intel processors.
+  // Correlation computation is based on a a dot product which is realized thank to SIMS extensions
+
+  int peak_position = 0;
+  int64_t peak_value = 0;
+  int64_t avg = 0;
+
+  for (int n = 0; n < length; n += 4) {
+    int64_t pss_corr_ue = 0;
+
+    // calculate dot product of primary_synchro_time_nr and rxdata[ar][n] * (ar=0..nb_ant_rx) and store the sum in temp[n];
+    for (int ar = 0; ar < frame_parms->nb_antennas_rx; ar++) {
+      // perform correlation of rx data and pss sequence ie it is a dot product
+      const int64_t result = dot_product64((short *)primary_synchro_time_nr[pss_index],
+                                           (short *)&(rxdata[ar][n + is * frame_parms->samples_per_frame]),
+                                           frame_parms->ofdm_symbol_size,
+                                           shift);
+      const c32_t r32 = *(c32_t *)&result;
+      const c64_t r64 = {.r = r32.r, .i = r32.i};
+      pss_corr_ue += squaredMod(r64);
+    }
+
+    // calculate the absolute value of sync_corr[n]
+    avg += pss_corr_ue;
+    if (pss_corr_ue > peak_value) {
+      peak_value = pss_corr_ue;
+      peak_position = n;
+    }
+  }
+
+  double ffo_est = 0;
+  if (fo_flag) {
+    // Computing cross-correlation at peak on half the symbol size for first half of data
+    int64_t result1 = dot_product64((short *)primary_synchro_time_nr[pss_index],
+                                    (short *)&(rxdata[0][peak_position + is * frame_parms->samples_per_frame]),
+                                    frame_parms->ofdm_symbol_size >> 1,
+                                    shift);
+
+    // Computing cross-correlation at peak on half the symbol size for data shifted by half symbol size
+    // as it is real and complex it is necessary to shift by a value equal to symbol size to obtain such shift
+    int64_t result2 = dot_product64((short *)primary_synchro_time_nr[pss_index] + (frame_parms->ofdm_symbol_size),
+                                    (short *)&(rxdata[0][peak_position + is * frame_parms->samples_per_frame]) + frame_parms->ofdm_symbol_size,
+                                    frame_parms->ofdm_symbol_size >> 1,
+                                    shift);
+
+    int64_t re1 = ((int *)&result1)[0];
+    int64_t re2 = ((int *)&result2)[0];
+    int64_t im1 = ((int *)&result1)[1];
+    int64_t im2 = ((int *)&result2)[1];
+
+    // estimation of fractional frequency offset: angle[(result1)'*(result2)]/pi
+    ffo_est = atan2(re1 * im2 - re2 * im1, re1 * re2 + im1 * im2) / M_PI;
+  }
+
+  // computing absolute value of frequency offset
+  *f_off = ffo_est * frame_parms->subcarrier_spacing;
+
+  avg /= (length / 4);
+
+  *eNB_id = pss_index;
+
+  LOG_I(NR_PHY,
+        "%s PSS Peak found at pos %d, val = %llu (%d dB) avg %d dB, ffo %lf\n",
+        peak_value < 5 * avg ? "INVALID" : "VALID",
+        peak_position,
+        (unsigned long long)peak_value,
+        dB_fixed64(peak_value),
+        dB_fixed64(avg),
+        ffo_est);
+
+  if (peak_value < 5 * avg) {
+    return -1;
+  }
+
+  return peak_position;
+}
