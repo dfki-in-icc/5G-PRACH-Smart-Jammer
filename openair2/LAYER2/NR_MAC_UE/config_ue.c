@@ -675,8 +675,12 @@ int nr_rrc_mac_config_req_ue(
           mac->ra.ra_state = RA_UE_IDLE;
           mac->physCellId = *mac->scc->physCellId;
           config_common_ue(mac, module_id, cc_idP);
+          build_ssb_to_ro_map(mac);
           mac->crnti = cell_group_config->spCellConfig->reconfigurationWithSync->newUE_Identity;
           nr_ue_init_mac(module_id);
+          if (!get_softmodem_params()->emulate_l1) {
+            mac->if_module->phy_config_request(&mac->phy_config);
+          }
           LOG_I(MAC, "Configuring CRNTI %04x\n", mac->crnti);
         }
       }
