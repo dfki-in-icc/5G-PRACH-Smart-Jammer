@@ -61,9 +61,6 @@ void thread_top_init(char *thread_name,
  * Functions to check system at runtime.
  ****************************************************/
 
-int checkIfFedoraDistribution(void);
-int checkIfGenericKernelOnFedora(void);
-int checkIfInsideContainer(void);
 int rt_sleep_ns (uint64_t x);
 #ifdef __cplusplus
 }

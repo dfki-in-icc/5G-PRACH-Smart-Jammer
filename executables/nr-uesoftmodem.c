@@ -405,13 +405,7 @@ static void get_channel_model_mode() {
 
 
 int main( int argc, char **argv ) {
-  int set_exe_prio = 1;
-  if (checkIfFedoraDistribution())
-    if (checkIfGenericKernelOnFedora())
-      if (checkIfInsideContainer())
-        set_exe_prio = 0;
-  if (set_exe_prio)
-    set_priority(79);
+  set_priority(79);
 
   //uint8_t beta_ACK=0,beta_RI=0,beta_CQI=2;
   PHY_VARS_NR_UE *UE[MAX_NUM_CCs];

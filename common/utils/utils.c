@@ -127,14 +127,14 @@ void *memcpy1(void *dst,const void *src,size_t n) {
 
 void set_priority(int priority)
 {
-  struct sched_param param =
-  {
-    .sched_priority = priority,
-  };
-  fprintf(stderr, "Calling sched_setscheduler(%d)\n", priority);
-  if (sched_setscheduler(0, SCHED_RR, &param) == -1)
-  {
-    fprintf(stderr, "sched_setscheduler: %s\n", strerror(errno));
-    abort();
+  if (!getenv("noRootPriv")) {
+    struct sched_param param = {
+        .sched_priority = priority,
+    };
+    fprintf(stderr, "Calling sched_setscheduler(%d)\n", priority);
+    if (sched_setscheduler(0, SCHED_RR, &param) == -1) {
+      fprintf(stderr, "sched_setscheduler: %s\n", strerror(errno));
+      abort();
+    }
   }
 }

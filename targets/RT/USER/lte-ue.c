@@ -194,37 +194,29 @@ void init_thread(int sched_runtime,
                  int sched_fifo,
                  cpu_set_t *cpuset,
                  char *name) {
-  int settingPriority = 1;
-
-  if (checkIfFedoraDistribution())
-    if (checkIfGenericKernelOnFedora())
-      if (checkIfInsideContainer())
-        settingPriority = 0;
-
-  if (settingPriority) {
+  if (!getenv("noRootPriv")) {
     if (CPU_COUNT(cpuset) > 0)
       AssertFatal( 0 == pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), cpuset), "");
 
     struct sched_param sp;
     sp.sched_priority = sched_fifo;
-    AssertFatal(pthread_setschedparam(pthread_self(),SCHED_FIFO,&sp)==0,
-                "Can't set thread priority, Are you root?\n");
-  }
+    AssertFatal(pthread_setschedparam(pthread_self(), SCHED_FIFO, &sp) == 0, "Can't set thread priority, Are you root?\n");
 
-  /* Check the actual affinity mask assigned to the thread */
-  cpu_set_t *cset=CPU_ALLOC(CPU_SETSIZE);
+    /* Check the actual affinity mask assigned to the thread */
+    cpu_set_t *cset = CPU_ALLOC(CPU_SETSIZE);
 
-  if (0 == pthread_getaffinity_np(pthread_self(), CPU_ALLOC_SIZE(CPU_SETSIZE), cset)) {
-    char txt[512]= {0};
+    if (0 == pthread_getaffinity_np(pthread_self(), CPU_ALLOC_SIZE(CPU_SETSIZE), cset)) {
+      char txt[512] = {0};
 
-    for (int j = 0; j < CPU_SETSIZE; j++)
-      if (CPU_ISSET(j, cset))
-        sprintf(txt+strlen(txt), " %d ", j);
+      for (int j = 0; j < CPU_SETSIZE; j++)
+        if (CPU_ISSET(j, cset))
+          sprintf(txt + strlen(txt), " %d ", j);
 
-    printf("CPU Affinity of thread %s is %s\n", name, txt);
+      printf("CPU Affinity of thread %s is %s\n", name, txt);
   }
 
   CPU_FREE(cset);
+  }
 }
 
 void init_UE(int nb_inst,

@@ -95,17 +95,6 @@ static void read_pipe(int p, char *b, int size) {
     size -= ret;
   }
 }
-int checkIfFedoraDistribution(void) {
-  return !system("grep -iq 'ID_LIKE.*fedora' /etc/os-release ");
-}
-
-int checkIfGenericKernelOnFedora(void) {
-  return system("uname -a | grep -q rt");
-}
-
-int checkIfInsideContainer(void) {
-  return !system("egrep -q 'libpod|podman|kubepods'  /proc/self/cgroup");
-}
 
 /********************************************************************/
 /* background process                                               */
@@ -228,16 +217,10 @@ int rt_sleep_ns (uint64_t x)
 void threadCreate(pthread_t* t, void * (*func)(void*), void * param, char* name, int affinity, int priority){
   pthread_attr_t attr;
   int ret;
-  int settingPriority = 1;
   ret=pthread_attr_init(&attr);
   AssertFatal(ret==0,"ret: %d, errno: %d\n",ret, errno);
-  
-  if (checkIfFedoraDistribution())
-    if (checkIfGenericKernelOnFedora())
-      if (checkIfInsideContainer())
-        settingPriority = 0;
-  
-  if (settingPriority) {
+
+  if (!getenv("noRootPriv")) {
     ret=pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
     AssertFatal(ret==0,"ret: %d, errno: %d\n",ret, errno);
     ret=pthread_attr_setschedpolicy(&attr, SCHED_OAI);
@@ -258,7 +241,7 @@ void threadCreate(pthread_t* t, void * (*func)(void*), void * param, char* name,
     ret=pthread_attr_setschedparam(&attr, &sparam);
     AssertFatal(ret==0,"ret: %d, errno: %d\n",ret, errno);
   }
-  
+
   ret=pthread_create(t, &attr, func, param);
   AssertFatal(ret==0,"ret: %d, errno: %d\n",ret, errno);
   
@@ -284,7 +267,6 @@ void thread_top_init(char *thread_name,
   struct sched_param sparam;
   char cpu_affinity[1024];
   cpu_set_t cpuset;
-  int settingPriority = 1;
 
   /* Set affinity mask to include CPUs 2 to MAX_CPUS */
   /* CPU 0 is reserved for UHD threads */
@@ -310,12 +292,7 @@ void thread_top_init(char *thread_name,
     }
   }
 
-  if (checkIfFedoraDistribution())
-    if (checkIfGenericKernelOnFedora())
-      if (checkIfInsideContainer())
-        settingPriority = 0;
-
-  if (settingPriority) {
+  if (!getenv("noRootPriv")) {
     memset(&sparam, 0, sizeof(sparam));
     sparam.sched_priority = sched_get_priority_max(SCHED_FIFO);
     policy = SCHED_FIFO;
@@ -346,29 +323,30 @@ void thread_top_init(char *thread_name,
 
 // Block CPU C-states deep sleep
 void set_latency_target(void) {
-  int ret;
-  static int latency_target_fd=-1;
-  uint32_t latency_target_value=2; // in microseconds
-  if (latency_target_fd == -1) {
-    if ( (latency_target_fd = open("/dev/cpu_dma_latency", O_RDWR)) != -1 ) {
-      ret = write(latency_target_fd, &latency_target_value, sizeof(latency_target_value));
-      if (ret == 0) {
-	printf("# error setting cpu_dma_latency to %u!: %s\n", latency_target_value, strerror(errno));
-	close(latency_target_fd);
-	latency_target_fd=-1;
-	return;
+  if (!getenv("noRootPriv")) {
+    int ret;
+    static int latency_target_fd = -1;
+    uint32_t latency_target_value = 2; // in microseconds
+    if (latency_target_fd == -1) {
+      if ((latency_target_fd = open("/dev/cpu_dma_latency", O_RDWR)) != -1) {
+        ret = write(latency_target_fd, &latency_target_value, sizeof(latency_target_value));
+        if (ret == 0) {
+          printf("# error setting cpu_dma_latency to %u!: %s\n", latency_target_value, strerror(errno));
+          close(latency_target_fd);
+          latency_target_fd = -1;
+          return;
+        }
       }
     }
+    if (latency_target_fd != -1)
+      LOG_I(HW, "# /dev/cpu_dma_latency set to %u us\n", latency_target_value);
+    else
+      LOG_E(HW, "Can't set /dev/cpu_dma_latency to %u us\n", latency_target_value);
+
+    // Set CPU frequency to it's maximum
+    if (0 != system("for d in /sys/devices/system/cpu/cpu[0-9]*; do cat $d/cpufreq/cpuinfo_max_freq > $d/cpufreq/scaling_min_freq; done"))
+      LOG_E(HW, "Can't set cpu frequency\n");
+
+    mlockall(MCL_CURRENT | MCL_FUTURE);
   }
-  if (latency_target_fd != -1) 
-    LOG_I(HW,"# /dev/cpu_dma_latency set to %u us\n", latency_target_value);
-  else
-    LOG_E(HW,"Can't set /dev/cpu_dma_latency to %u us\n", latency_target_value);
-
-  // Set CPU frequency to it's maximum
-  if ( 0 != system("for d in /sys/devices/system/cpu/cpu[0-9]*; do cat $d/cpufreq/cpuinfo_max_freq > $d/cpufreq/scaling_min_freq; done"))
-	  LOG_E(HW,"Can't set cpu frequency\n");
-
-  mlockall(MCL_CURRENT | MCL_FUTURE);
-
 }

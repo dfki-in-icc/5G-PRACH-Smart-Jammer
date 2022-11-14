@@ -67,13 +67,10 @@ void reset_stats(FL_OBJECT *button, long arg) {
   }
 }
 
-static void *scope_thread_eNB(void *arg) {
-  struct sched_param sched_param;
+static void *scope_thread_eNB(void *arg)
+{
   int UE_id, CC_id;
-  int ue_cnt=0;
-  sched_param.sched_priority = sched_get_priority_min(SCHED_FIFO)+1;
-  sched_setscheduler(0, SCHED_FIFO,&sched_param);
-  printf("Scope thread has priority %d\n",sched_param.sched_priority);
+  int ue_cnt = 0;
   while (!oai_exit) {
     ue_cnt=0;
 
@@ -93,7 +90,6 @@ static void *scope_thread_eNB(void *arg) {
 
   pthread_exit((void *)arg);
 }
-
 
 int enbscope_autoinit(void) {
   int UE_id;
