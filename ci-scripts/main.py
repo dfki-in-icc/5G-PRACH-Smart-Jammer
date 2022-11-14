@@ -441,7 +441,7 @@ def GetParametersFromXML(action):
 		if (string_field is not None):
 			CONTAINERS.ran_checkers['u_retx_th'] = [float(x) for x in string_field.split(',')]
 
-	elif action == 'PingFromContainer':
+	elif action == 'PingFromNode':
 		string_field = test.findtext('container_name')
 		if (string_field is not None):
 			CONTAINERS.pingContName = string_field
@@ -1002,8 +1002,8 @@ elif re.match('^TesteNB$', mode, re.IGNORECASE) or re.match('^TestUE$', mode, re
 					CONTAINERS.UndeployGenObject(HTML, RAN, CiTestObj)
 					if CONTAINERS.exitStatus==1:
 						RAN.prematureExit = True
-				elif action == 'PingFromContainer':
-					CONTAINERS.PingFromContainer(HTML, RAN, CiTestObj)
+				elif action == 'PingFromNode':
+					CONTAINERS.PingFromNode(HTML, RAN, CiTestObj)
 					if CONTAINERS.exitStatus==1:
 						RAN.prematureExit = True
 				elif action == 'IperfFromContainer':

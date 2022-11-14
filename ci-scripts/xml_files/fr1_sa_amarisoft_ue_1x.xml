@@ -67,7 +67,7 @@
 		<desc>Ping Log Analysis</desc>
 		<id>amarisoft_ue_1</id>
 		<prefix>ip netns exec ue1</prefix>
-		<ping_args> -I pdn0 -c 20 192.168.70.136 -i1 -t10 -b10M</ping_args>
+		<ping_args> -I pdn0 -c 20 192.168.70.136</ping_args>
 		<ping_packetloss_threshold>1</ping_packetloss_threshold>
         </testCase>
 
