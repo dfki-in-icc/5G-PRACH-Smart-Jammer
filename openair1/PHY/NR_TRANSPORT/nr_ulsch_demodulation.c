@@ -16,6 +16,41 @@
 #define print_shorts(s,x) printf("%s %d,%d,%d,%d,%d,%d,%d,%d\n",s,(x)[0],(x)[1],(x)[2],(x)[3],(x)[4],(x)[5],(x)[6],(x)[7])
 #define print_shorts64(s,x) printf("%s %d,%d,%d,%d\n",s,(x)[0],(x)[1],(x)[2],(x)[3])
 
+#include <time.h>
+#include <stdint.h>
+
+#include "common/utils/thread_pool/task_manager.h"
+
+
+int64_t time_now_us(void)
+{
+  struct timespec tms;
+
+  /* The C11 way */
+  /* if (! timespec_get(&tms, TIME_UTC))  */
+
+  /* POSIX.1-2008 way */
+  if (clock_gettime(CLOCK_REALTIME,&tms)) {
+    return -1;
+  }
+  /* seconds, multiplied with 1 million */
+  int64_t micros = tms.tv_sec * 1000000;
+  /* Add full microseconds */
+  micros += tms.tv_nsec/1000;
+  /* round up if necessary */
+  if (tms.tv_nsec % 1000 >= 500) {
+    ++micros;
+  }
+  return micros;
+}
+
+
+
+
+
+
+
+
 void nr_idft(int32_t *z, uint32_t Msc_PUSCH)
 {
 
@@ -2014,7 +2049,12 @@ void inner_rx_16qam(int *rxF, int *ul_ch, int16_t *llr, int aarx, int length,int
 }
 
 
-void nr_pusch_symbol_processing_noprecoding(void *arg) {
+void nr_pusch_symbol_processing_noprecoding(void *arg)
+{
+
+  int64_t now = time_now_us();
+  printf("Into  nr_pusch_symbol_processing_noprecoding %ld \n ", now);
+
   puschSymbolProc_t *rdata=(puschSymbolProc_t*)arg;
 
   PHY_VARS_gNB *gNB=rdata->gNB;
@@ -2076,6 +2116,9 @@ void nr_pusch_symbol_processing_noprecoding(void *arg) {
     s+=(nb_re_pusch*rel15_ul->qam_mod_order);
     llr+=(nb_re_pusch*rel15_ul->qam_mod_order);
   }    
+
+  int64_t end = time_now_us(); 
+  printf("Elapsed time = %ld tstamp %ld  id %lu \n", end - now, end,  pthread_self());
 }
 
 /*
@@ -3148,6 +3191,10 @@ int nr_rx_pusch_tp(PHY_VARS_gNB *gNB,
                    unsigned char harq_pid)
 {
 
+#ifdef TASK_MANAGER
+  wake_spin_task_manager(&gNB->man);
+#endif
+
   uint8_t aarx;
   uint32_t bwp_start_subcarrier;
 
@@ -3214,6 +3261,9 @@ int nr_rx_pusch_tp(PHY_VARS_gNB *gNB,
     gNB->pusch_vars[ulsch_id]->dmrs_symbol = get_next_dmrs_symbol_in_slot(rel15_ul->ul_dmrs_symb_pos, rel15_ul->start_symbol_index, rel15_ul->nr_of_symbols);
   }
   stop_meas(&gNB->ulsch_channel_estimation_stats);
+
+
+
 
   start_meas(&gNB->rx_pusch_init_stats);
 
@@ -3284,8 +3334,19 @@ int nr_rx_pusch_tp(PHY_VARS_gNB *gNB,
   gNB->pusch_vars[ulsch_id]->cl_done = 1;
   gNB->pusch_vars[ulsch_id]->extraction_done[meas_symbol]=1;
   stop_meas(&gNB->rx_pusch_init_stats);
+
+
+  int64_t start = time_now_us(); 
+  printf("Tasks started %ld \n", start );
+
   start_meas(&gNB->rx_pusch_symbol_processing_stats);
   int numSymbols=gNB->num_pusch_symbols_per_thread;
+
+
+#ifdef TASK_MANAGER
+  puschSymbolProc_t arr[rel15_ul->nr_of_symbols];
+  int idx_arr = 0;
+#endif
   for(uint8_t symbol = rel15_ul->start_symbol_index; 
       symbol < (rel15_ul->start_symbol_index + rel15_ul->nr_of_symbols); 
       symbol+=numSymbols) {
@@ -3298,10 +3359,15 @@ int nr_rx_pusch_tp(PHY_VARS_gNB *gNB,
 	total_res+=gNB->pusch_vars[ulsch_id]->ul_valid_re_per_slot[symbol+s];
     }	
     if (total_res > 0)  {
+#ifdef TASK_MANAGER
+      puschSymbolProc_t *rdata = &arr[idx_arr];
+      idx_arr++;
+#else
       union puschSymbolReqUnion id = {.s={ulsch_id,frame,slot,0}};
       id.p=1+symbol;
       notifiedFIFO_elt_t *req=newNotifiedFIFO_elt(sizeof(puschSymbolProc_t),id.p,gNB->respPuschSymb,nr_pusch_symbol_processing_ptr);
       puschSymbolProc_t *rdata=(puschSymbolProc_t*)NotifiedFifoData(req);
+#endif
       rdata->gNB = gNB;
       rdata->frame_parms=frame_parms;
       rdata->rel15_ul = rel15_ul;
@@ -3311,17 +3377,38 @@ int nr_rx_pusch_tp(PHY_VARS_gNB *gNB,
       rdata->ulsch_id=ulsch_id;
       rdata->llr = &gNB->pusch_vars[ulsch_id]->llr[gNB->pusch_vars[ulsch_id]->llr_offset[symbol]];
       rdata->s   = &s[gNB->pusch_vars[ulsch_id]->llr_offset[symbol]];
+
+#ifdef TASK_MANAGER
+    task_t const t = {.args = rdata, .func = nr_pusch_symbol_processing_noprecoding};
+    async_task_manager(&gNB->man, t);
+#else
       pushTpool(&gNB->threadPool,req);
+#endif
+
+
       gNB->nbSymb++;
       LOG_D(PHY,"%d.%d Added symbol %d (count %d) to process, in pipe\n",frame,slot,symbol,gNB->nbSymb);
     }
   } // symbol loop
 
+
+  printf("Waiting %ld \n", time_now_us());
+
+
+#ifdef TASK_MANAGER
+ stop_spin_manager(&gNB->man);
+ wait_all_task_manager(&gNB->man);
+#else
   while (gNB->nbSymb > 0) {
     notifiedFIFO_elt_t *req=pullTpool(gNB->respPuschSymb, &gNB->threadPool);
     gNB->nbSymb--;
     delNotifiedFIFO_elt(req);
   }
+#endif
+
+  int64_t const finish = time_now_us();
+  printf("Tasks finished %ld delay %ld \n", finish , finish-start );
+
   stop_meas(&gNB->rx_pusch_symbol_processing_stats);
   return 0;
 }
