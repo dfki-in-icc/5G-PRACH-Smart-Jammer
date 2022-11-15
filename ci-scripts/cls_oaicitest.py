@@ -192,7 +192,7 @@ class OaiCiTest():
 		self.expectedNbOfConnectedUEs = 0
 		self.ue_id = '' #used for module identification
 		self.ue_trace ='' #used to enable QLog trace for Module UE, passed to Module UE object at InitializeUE()
-
+		self.ue_info = ''
 
 	def BuildOAIUE(self,HTML):
 		if self.UEIPAddress == '' or self.ranRepository == '' or self.ranBranch == '' or self.UEUserName == '' or self.UEPassword == '' or self.UESourceCodePath == '':
@@ -399,35 +399,6 @@ class OaiCiTest():
 		except:
 			os.kill(os.getppid(),signal.SIGUSR1)
 
-	def RunUeScript(self, HTML, RAN, EPC, InfraUE, ue_trace, CONTAINERS):
-		module_ue = cls_module_ue.Module_UE(InfraUE.ci_ue_infra[self.ue_id])
-		module_ue.ue_trace = ue_trace
-		is_module=module_ue.TriggerUE()
-		if is_module:
-			module_ue.EnableTrace()
-			time.sleep(20)
-			cnt=0
-			status=False
-			while cnt<4:
-				module_ue.Command("attach")
-				logging.debug("Waiting for IP address to be assigned")
-				time.sleep(20)
-				logging.debug("Retreive IP address")
-				status=module_ue.GetModuleIPAddress()
-				if status==True:
-					cnt=10
-				else:
-					cnt+=1
-					module_ue.Command("detach")
-					time.sleep(20)
-			if cnt==10 and status ==True:
-				HTML.CreateHtmlTestRow(Module_UE.UEIPAddress,'OK', CONST.ALL_PROCESSES_OK)
-				logging.debug('UE IP addresss : '+ Module_UE.UEIPAddress)
-			else:
-				HTML.CreateHtmlTestRow('N/A', 'KO', CONST.UE_IP_ADDRESS_ISSUE)
-				self.AutoTerminateUEandeNB(HTML,RAN,COTS_UE,EPC,InfraUE,CONTAINERS)
-				return
-
 
 	def InitializeUE(self,HTML,RAN,EPC, COTS_UE, InfraUE,ue_trace,CONTAINERS):
 		if self.ue_id=='':#no ID specified, then it is a COTS controlled by ADB
@@ -448,7 +419,13 @@ class OaiCiTest():
 		else: #if an ID is specified, it is a UE from the yaml infrastructure file
 			ue_kind = InfraUE.ci_ue_infra[self.ue_id]['Kind']
 			logging.debug("Detected UE Kind : " + ue_kind)
-			self.RunUeScript(HTML,RAN,EPC,InfraUE,ue_trace,CONTAINERS)
+			module_ue = cls_module_ue.Module_UE(InfraUE.ci_ue_infra[self.ue_id])
+			module_ue.ue_trace = ue_trace
+			is_module=module_ue.TriggerUE()
+			if is_module:
+				module_ue.EnableTrace()
+				time.sleep(20)
+			#self.RunUeScript(HTML,RAN,EPC,InfraUE,ue_trace,CONTAINERS)
 			"""
 			#case it is a quectel module (only 1 at a time supported at the moment)
 			if ue_kind == 'quectel':
@@ -1165,22 +1142,22 @@ class OaiCiTest():
 			#Attention, as opposed to InitializeUE, the connect manager process is not checked as it is supposed to be active already
 			#only 1- module wakeup, 2- check IP address
 			Module_UE = cls_module_ue.Module_UE(InfraUE.ci_ue_infra[self.ue_id])
-			status = -1
+			status = False
 			cnt = 0
 			while cnt < 4:
-				Module_UE.Command("wup")
+				Module_UE.Command("attach")
 				logging.debug("Waiting for IP address to be assigned")
-				time.sleep(5)
+				time.sleep(20)
 				logging.debug("Retrieve IP address")
 				status=Module_UE.GetModuleIPAddress()
-				if status==0:
+				if status==True:
 					cnt = 10
 				else:
 					cnt += 1
 					Module_UE.Command("detach")
 					time.sleep(20)
 
-			if cnt == 10 and status == 0:
+			if cnt == 10 and status == True:
 				HTML.CreateHtmlTestRow(Module_UE.UEIPAddress, 'OK', CONST.ALL_PROCESSES_OK)	
 				logging.debug('UE IP addresss : '+ Module_UE.UEIPAddress)
 				#execute additional commands from yaml file after UE attach
@@ -1192,7 +1169,7 @@ class OaiCiTest():
 						SSH.command(cmd,'\$',5)
 				SSH.close()
 				#check that the MTU is as expected / requested
-				Module_UE.CheckModuleMTU()
+				#Module_UE.CheckModuleMTU()
 			else: #status==-1 failed to retrieve IP address
 				HTML.CreateHtmlTestRow('N/A', 'KO', CONST.UE_IP_ADDRESS_ISSUE)
 				self.AutoTerminateUEandeNB(HTML,RAN,COTS_UE,EPC,InfraUE,CONTAINERS)

@@ -236,6 +236,10 @@ def GetParametersFromXML(action):
 
 	elif action == 'Attach_UE':
 		ue_id = test.findtext('id')
+		logging.debug("ue_id in attachUE main::\n" +ue_id)
+		print("inside attach ue")
+		ue_info = test.findtext('ueid')
+		logging.debug("ue_info in attach UE main ::\n" +ue_info)
 		if (ue_id is None):
 			CiTestObj.ue_id = ""
 		else:

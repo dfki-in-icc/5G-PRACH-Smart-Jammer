@@ -29,6 +29,8 @@
  040000
  000001
  010000
+ 010001
+ 010002
  000002
  050000
  080000
@@ -39,6 +41,30 @@
 		<class>Initialize_UE</class>
 		<desc>Run AS UE Scenario</desc>
 		<id>amarisoft_ue_1</id>
+	</testCase>
+        <testCase id="010001">
+		<class>Attach_UE</class>
+		<desc>Run UE</desc>
+		<id>amarisoft_ue_1</id>
+		<ueid>1</ueid>
+	</testCase>
+        <testCase id="010002">
+		<class>Attach_UE</class>
+		<desc>Run UE</desc>
+		<id>amarisoft_ue_2</id>
+		<ueid>2</ueid>
+	</testCase>
+        <testCase id="010003">
+		<class>Attach_UE</class>
+		<desc>Run UE</desc>
+		<id>amarisoft_ue_3</id>
+		<ueid>3</ueid>
+	</testCase>
+        <testCase id="010004">
+		<class>Attach_UE</class>
+		<desc>Run UE</desc>
+		<id>amarisoft_ue_4</id>
+		<ueid>4</ueid>
 	</testCase>
 
 

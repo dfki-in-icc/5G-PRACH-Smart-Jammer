@@ -50,7 +50,10 @@ class Module_UE:
 			setattr(self, k, v)
 		self.UEIPAddress = ""
 		#dictionary linking command names and related module scripts
-		self.cmd_dict= {"attach": self.AttachScript,"detach":self.DetachScript}#dictionary of function scripts
+		if hasattr(self, "AttachScript") and hasattr(self, "DetachScript"):
+			self.cmd_dict= {"attach": self.AttachScript,"detach":self.DetachScript}#dictionary of function scripts
+		else:
+			self.cmd_dict={"attach":None, "detach":None}
 		self.ue_trace=''		
 
 
@@ -182,7 +185,7 @@ class Module_UE:
 	def StopUE(self):
 		mySSH = sshconnection.SSHConnection()
 		mySSH.open(self.HostIPAddress, self.HostUsername, self.HostPassword)
-		mySSH.command('nohup' + ' ' + self.Process['StopCmd'])
+		mySSH.command('nohup' + ' ' + self.Process['StopCmd'],'\$',5)
 		mySSH.close()
 
 

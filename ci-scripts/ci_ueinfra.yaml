@@ -39,15 +39,22 @@ nrmodule2_quectel:
   MTU : 1500
 
 # CAUTION: 192.168.18.89 address has to be changed when the server is moved
-#single UE single ping
-amarisoft_ue_1:
-  ID: amarisoft_ue_1
+#Amarisoft UE 
+amarisoft_ue:
+  ID: amarisoft_ue
   State : enabled
   Kind : amarisoft
+  HostIPAddress : 192.168.18.89
+  HostUsername : root
+  HostPassword : toor 
   Process : 
     Name : lteue-avx2
     StartCmd : /root/NV18-06-2022/ue/lteue /root/NV18-06-2022/ue/config/oaicicd-ue-ping-SA-dhanuja.cfg
     StopCmd : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"quit"}'
+  
+# multi ue scenario
+amarisoft_ue_1:
+  ID: amarisoft_ue_1
   AttachScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_on","ue_id" :1}'
   DetachScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_off","ue_id" :1}'
   GetIP : ip netns exec ue1 ip a 
@@ -56,31 +63,73 @@ amarisoft_ue_1:
   UELog : /tmp/ue1.log
   HostIPAddress : 172.21.16.144
   HostUsername : root
-
-
-#an other scenario example
-#notice : this will not work as such, only suggestion for multi ue scenario
+  HostPassword : toor 
 amarisoft_ue_2:
   ID: amarisoft_ue_2
-  State : enabled
-  Kind : amarisoft
-  #not required for AS config but needed for py script
-  WakeupScript : none
-  DetachScript : none
-  #end 
-  Cmd : /root/NV18-06-2022/ue/lteue
-  Config : /root/NV17-12-21/ue/config/xxxxxxx.cfg #to be updated for an other scenario 
-  Duration : 60
-  Ping :
-    - /tmp/test_ue1.log #to be updated fo an other scenario
-    - /tmp/test_ue2.log #could be a list for a multi ue scenario
-  UELog :
-    - /tmp/ue1.log
-    - /tmp/ue1.log
-  HostIPAddress : 192.168.18.89
+  AttachScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_on","ue_id" :2}'
+  DetachScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_off","ue_id" :2}'
+  GetIP : ip netns exec ue2 ip a 
+  UENetwork : pdn0
+  Ping : /tmp/test_ue2.log
+  UELog : /tmp/ue2.log
+  HostIPAddress : 172.21.16.144
   HostUsername : root
   HostPassword : toor 
-  HostSourceCodePath : /tmp
+amarisoft_ue_3:
+  ID: amarisoft_ue_3
+  AttachScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_on","ue_id" :3'
+  DetachScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_off","ue_id" :3}'
+  GetIP : ip netns exec ue3 ip a 
+  UENetwork : pdn0
+  Ping : /tmp/test_ue3.log
+  UELog : /tmp/ue3.log
+  HostIPAddress : 172.21.16.144
+  HostUsername : root
+  HostPassword : toor 
+amarisoft_ue_4:
+  ID: amarisoft_ue_4
+  AttachScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_on","ue_id" :4}'
+  DetachScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_off","ue_id" :4}'
+  GetIP : ip netns exec ue4 ip a 
+  UENetwork : pdn0
+  Ping : /tmp/test_ue4.log
+  UELog : /tmp/ue4.log
+  HostIPAddress : 172.21.16.144
+  HostUsername : root
+  HostPassword : toor 
+amarisoft_ue_5:
+  ID: amarisoft_ue_5
+  AttachScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_on","ue_id" :5}'
+  DetachScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_off","ue_id" :5}'
+  GetIP : ip netns exec ue5 ip a 
+  UENetwork : pdn0
+  Ping : /tmp/test_ue5.log
+  UELog : /tmp/ue5.log
+  HostIPAddress : 172.21.16.144
+  HostUsername : root
+  HostPassword : toor 
+amarisoft_ue_6:
+  ID: amarisoft_ue_6
+  AttachScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_on","ue_id" :6}'
+  DetachScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_off","ue_id" :6}'
+  GetIP : ip netns exec ue6 ip a 
+  UENetwork : pdn0
+  Ping : /tmp/test_ue6.log
+  UELog : /tmp/ue6.log
+  HostIPAddress : 172.21.16.144
+  HostUsername : root
+  HostPassword : toor 
+amarisoft_ue_7:
+  ID: amarisoft_ue_7
+  AttachScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_on","ue_id" :7}'
+  DetachScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_off","ue_id" :7}'
+  GetIP : ip netns exec ue7 ip a 
+  UENetwork : pdn0
+  Ping : /tmp/test_ue7.log
+  UELog : /tmp/ue7.log
+  HostIPAddress : 172.21.16.144
+  HostUsername : root
+  HostPassword : toor 
 
 
 #do not remove
