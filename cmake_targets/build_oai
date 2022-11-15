@@ -67,6 +67,7 @@ RU=0
 CMAKE_C_FLAGS=()
 CMAKE_CXX_FLAGS=()
 
+
 function print_help() {
   echo_info "
 This script compiles OpenAirInterface Software, and can install dependencies
@@ -175,6 +176,8 @@ Options:
   Enable the address sanitizer on all targets
 --sanitize-undefined | -fsanitize=undefined
   Enable the undefined behavior sanitizer on all targets
+--enable-latseq
+  enables latency sequence tool, https://github.com/Orange-OpenSource/LatSeq
 -h | --help
    Print this help"
 }
@@ -421,6 +424,10 @@ function main() {
             shift;;
         --sanitize-undefined | -fundefined=address)
             CMAKE_CMD="$CMAKE_CMD -DSANITIZE_UNDEFINED=True"
+            shift;;
+        --enable-latseq)
+            LATSEQ='True'
+            echo info "Enabling Latency Sequence measures, https://github.com/Orange-OpenSource/LatSeq"
             shift;;
         -h | --help)
             print_help
