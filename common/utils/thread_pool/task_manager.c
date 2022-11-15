@@ -64,14 +64,15 @@ void* worker_thread(void* arg)
     if(ret.success == false && pop_not_q(&man->q_arr[idx], &ret) == false)
       break;
 
-    int64_t now = time_now_us();
-    printf("Before func %ld id %lu \n", now , pthread_self() );
+    //int64_t now = time_now_us();
+    //printf("Before func %ld id %lu \n", now , pthread_self() );
+    
     ret.t.func(ret.t.args); 
     man->num_task -= 1;
-    printf("After func %ld id %lu elapsed %ld \n", time_now_us(), pthread_self(), time_now_us()-now );
+    //printf("After func %ld id %lu elapsed %ld \n", time_now_us(), pthread_self(), time_now_us()-now );
 
     if(man->num_task == 0 && man->waiting == true ){
-      printf("time now task manager %ld \n ", time_now_us()); 
+      //printf("time now task manager %ld \n ", time_now_us()); 
       pthread_cond_signal(&man->wait_cv);
     }
 

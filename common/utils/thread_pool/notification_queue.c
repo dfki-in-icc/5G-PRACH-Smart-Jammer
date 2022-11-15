@@ -56,7 +56,6 @@ void init_not_q(not_q_t* q)
   assert(rc == 0);
 
   q->spin = false;
-  q->sl.lock = false;
 }
 
 void free_not_q(not_q_t* q, void (*clean)(void*) )
@@ -198,7 +197,7 @@ label:
     } 
   }
 
-  printf("Thread id %ld waked up at %ld\n", pthread_self(), time_now_us());
+//  printf("Thread id %ld waked up at %ld\n", pthread_self(), time_now_us());
 
   void* it = seq_ring_at(&q->r, 0);
   assert(it != seq_ring_end(&q->r));
@@ -231,7 +230,6 @@ void done_not_q(not_q_t* q)
 void wake_spin_not_q(not_q_t* q)
 {
   assert(q != NULL);
-  q->sl.lock = true;
   q->spin = true;
   pthread_cond_signal(&q->cv);
 }
@@ -241,7 +239,6 @@ void stop_spin_not_q(not_q_t* q)
   assert(q != NULL);
   q->spin = false;
   unlock_spinlock(&q->sl);
-  assert(q->sl.lock == false);
 }
 
 

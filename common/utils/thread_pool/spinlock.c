@@ -1,7 +1,14 @@
 #include "spinlock.h"
 
+#include <assert.h>
+#include <stdlib.h>
+
 void lock_spinlock(spinlock_t* s)
 {
+  assert(s != NULL);
+
+  s->lock = true;
+
     for (;;) {
       // Optimistically assume the lock is free on the first try
       if(!atomic_exchange_explicit(&s->lock, true, memory_order_acquire) ){
@@ -20,6 +27,7 @@ void lock_spinlock(spinlock_t* s)
 
 bool try_lock_spinlock(spinlock_t* s)
 {
+  assert(s != NULL);
     // First do a relaxed load to check if lock is free in order to prevent
     // unnecessary cache misses if someone does while(!try_lock())
     return !atomic_load_explicit(&s->lock, memory_order_relaxed) &&
@@ -28,6 +36,8 @@ bool try_lock_spinlock(spinlock_t* s)
 
 void unlock_spinlock(spinlock_t* s)
 {
+  assert(s != NULL);
   atomic_store_explicit(&s->lock, false, memory_order_release);
+  assert(s->lock == false);
 }
 

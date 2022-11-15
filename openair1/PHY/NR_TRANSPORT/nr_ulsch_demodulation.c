@@ -2052,8 +2052,8 @@ void inner_rx_16qam(int *rxF, int *ul_ch, int16_t *llr, int aarx, int length,int
 void nr_pusch_symbol_processing_noprecoding(void *arg)
 {
 
-  int64_t now = time_now_us();
-  printf("Into  nr_pusch_symbol_processing_noprecoding %ld \n ", now);
+//  int64_t now = time_now_us();
+//  printf("Into  nr_pusch_symbol_processing_noprecoding %ld \n ", now);
 
   puschSymbolProc_t *rdata=(puschSymbolProc_t*)arg;
 
@@ -2117,8 +2117,8 @@ void nr_pusch_symbol_processing_noprecoding(void *arg)
     llr+=(nb_re_pusch*rel15_ul->qam_mod_order);
   }    
 
-  int64_t end = time_now_us(); 
-  printf("Elapsed time = %ld tstamp %ld  id %lu \n", end - now, end,  pthread_self());
+//  int64_t end = time_now_us(); 
+//  printf("Elapsed time = %ld tstamp %ld  id %lu \n", end - now, end,  pthread_self());
 }
 
 /*
@@ -3336,8 +3336,8 @@ int nr_rx_pusch_tp(PHY_VARS_gNB *gNB,
   stop_meas(&gNB->rx_pusch_init_stats);
 
 
-  int64_t start = time_now_us(); 
-  printf("Tasks started %ld \n", start );
+//  int64_t start = time_now_us(); 
+//  printf("Tasks started %ld \n", start );
 
   start_meas(&gNB->rx_pusch_symbol_processing_stats);
   int numSymbols=gNB->num_pusch_symbols_per_thread;
@@ -3382,7 +3382,7 @@ int nr_rx_pusch_tp(PHY_VARS_gNB *gNB,
     task_t const t = {.args = rdata, .func = nr_pusch_symbol_processing_noprecoding};
     async_task_manager(&gNB->man, t);
 #else
-      pushTpool(&gNB->threadPool,req);
+    pushTpool(&gNB->threadPool,req);
 #endif
 
 
@@ -3392,7 +3392,7 @@ int nr_rx_pusch_tp(PHY_VARS_gNB *gNB,
   } // symbol loop
 
 
-  printf("Waiting %ld \n", time_now_us());
+//  printf("Waiting %ld \n", time_now_us());
 
 
 #ifdef TASK_MANAGER
@@ -3406,8 +3406,8 @@ int nr_rx_pusch_tp(PHY_VARS_gNB *gNB,
   }
 #endif
 
-  int64_t const finish = time_now_us();
-  printf("Tasks finished %ld delay %ld \n", finish , finish-start );
+//  int64_t const finish = time_now_us();
+//  printf("Tasks finished %ld delay %ld \n", finish , finish-start );
 
   stop_meas(&gNB->rx_pusch_symbol_processing_stats);
   return 0;
