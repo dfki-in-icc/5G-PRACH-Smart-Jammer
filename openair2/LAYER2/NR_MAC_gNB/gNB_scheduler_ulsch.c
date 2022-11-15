@@ -156,7 +156,7 @@ int nr_process_mac_pdu(instance_t module_idP,
         NR_BSR_SHORT *bsr_s = (NR_BSR_SHORT *) ce_ptr;
         sched_ctrl->estimated_ul_buffer = 0;
         sched_ctrl->estimated_ul_buffer = NR_SHORT_BSR_TABLE[bsr_s->Buffer_size];
-        LOG_D(NR_MAC,
+        LOG_I(NR_MAC,
               "SHORT BSR at %4d.%2d, LCG ID %d, BS Index %d, BS value < %d, est buf %d\n",
               frameP,
               slot,
@@ -193,7 +193,7 @@ int nr_process_mac_pdu(instance_t module_idP,
                 n, n_Lcg, pduP[mac_subheader_len + 1 + n],
                 NR_LONG_BSR_TABLE[pduP[mac_subheader_len + 1 + n]]);
           sched_ctrl->estimated_ul_buffer += NR_LONG_BSR_TABLE[pduP[mac_subheader_len + 1 + n]];
-          LOG_D(NR_MAC,
+          LOG_I(NR_MAC,
                 "LONG BSR at %4d.%2d, %d/%d (n/n_Lcg), BS Index %d, BS value < %d, total %d\n",
                 frameP,
                 slot,
@@ -522,6 +522,7 @@ void nr_rx_sdu(const module_id_t gnb_mod_idP,
                const frame_t frameP,
                const sub_frame_t slotP,
                const rnti_t rntiP,
+               const int8_t harq_pid,
                uint8_t *sduP,
                const uint16_t sdu_lenP,
                const uint16_t timing_advance,
@@ -538,7 +539,6 @@ void nr_rx_sdu(const module_id_t gnb_mod_idP,
   NR_UE_info_t* UE = find_nr_UE(&gNB_mac->UE_info, current_rnti);
   if (UE) {
     NR_UE_sched_ctrl_t *UE_scheduling_control = &UE->UE_sched_ctrl;
-    const int8_t harq_pid = UE_scheduling_control->feedback_ul_harq.head;
 
     if (sduP)
       T(T_GNB_MAC_UL_PDU_WITH_DATA, T_INT(gnb_mod_idP), T_INT(CC_idP),
@@ -1632,6 +1632,8 @@ void nr_schedule_ulsch(module_id_t module_id, frame_t frame, sub_frame_t slot)
       sched_ctrl->sched_ul_bytes += sched_pusch->tb_size;
       UE->mac_stats.ul.total_rbs += sched_pusch->rbSize;
 
+      if(sched_ctrl->sched_ul_bytes > 20000)
+        sched_ctrl->sched_ul_bytes = 20000;
     } else {
       LOG_D(NR_MAC,
             "%d.%2d UL retransmission RNTI %04x sched %d.%2d HARQ PID %d round %d NDI %d\n",

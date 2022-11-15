@@ -190,6 +190,9 @@ void handle_nr_ulsch(NR_UL_IND_t *UL_info)
       AssertFatal(crc->rnti == rx->rnti, "mis-match between CRC RNTI %04x and RX RNTI %04x\n",
                   crc->rnti, rx->rnti);
 
+      AssertFatal(crc->harq_id == rx->harq_id, "mis-match between CRC HARQ ID %04x and RX HARQ ID %04x\n",
+                  crc->harq_id, rx->harq_id);
+
       LOG_D(NR_MAC,
             "%4d.%2d Calling rx_sdu (CRC %s/tb_crc_status %d)\n",
             UL_info->frame,
@@ -203,6 +206,7 @@ void handle_nr_ulsch(NR_UL_IND_t *UL_info)
                 UL_info->rx_ind.sfn,
                 UL_info->rx_ind.slot,
                 rx->rnti,
+                rx->harq_id,
                 crc->tb_crc_status ? NULL : rx->pdu,
                 rx->pdu_length,
                 rx->timing_advance,
