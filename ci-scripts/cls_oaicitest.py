@@ -155,6 +155,7 @@ class OaiCiTest():
 		self.testStabilityPointReached = False
 		self.desc = ''
 		self.ping_args = ''
+		self.prefix = ''
 		self.ping_packetloss_threshold = ''
 		self.ping_rttavg_threshold =''
 		self.iperf_args = ''
