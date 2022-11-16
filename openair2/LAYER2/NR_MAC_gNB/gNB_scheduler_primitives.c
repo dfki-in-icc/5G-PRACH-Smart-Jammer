@@ -2456,11 +2456,6 @@ void configure_UE_BWP(gNB_MAC_INST *nr_mac,
     DL_BWP->mcsTableIdx = 0;
   LOG_D(NR_MAC,"DL MCS Table Index: %d\n",DL_BWP->mcsTableIdx);
 
-  if (UL_BWP->pusch_Config == NULL || !UL_BWP->pusch_Config->transformPrecoder)
-    UL_BWP->transform_precoding = !scc->uplinkConfigCommon->initialUplinkBWP->rach_ConfigCommon->choice.setup->msg3_transformPrecoder;
-  else
-    UL_BWP->transform_precoding = *UL_BWP->pusch_Config->transformPrecoder;
-
   if(UL_BWP->bwp_id>0)
     UL_BWP->pucch_ConfigCommon = ul_bwp->bwp_Common->pucch_ConfigCommon->choice.setup;
   else
@@ -2539,15 +2534,23 @@ void configure_UE_BWP(gNB_MAC_INST *nr_mac,
     DL_BWP->dci_format = NR_DL_DCI_FORMAT_1_0;
   }
 
+  // 0 precoding enabled 1 precoding disabled
+  if (UL_BWP->dci_format == NR_UL_DCI_FORMAT_0_0 ||
+      UL_BWP->pusch_Config == NULL || UL_BWP->pusch_Config->transformPrecoder == NULL)
+    UL_BWP->transform_precoding = scc->uplinkConfigCommon->initialUplinkBWP->rach_ConfigCommon->choice.setup->msg3_transformPrecoder;
+  else
+    UL_BWP->transform_precoding = UL_BWP->pusch_Config->transformPrecoder;
+
   // Set uplink MCS table
   long *mcs_Table = NULL;
+  bool not_tp = (UL_BWP->transform_precoding == NULL || *UL_BWP->transform_precoding == 1);
   if (UL_BWP->pusch_Config)
-    mcs_Table = UL_BWP->transform_precoding ?
+    mcs_Table = not_tp ?
                 UL_BWP->pusch_Config->mcs_Table :
                 UL_BWP->pusch_Config->mcs_TableTransformPrecoder;
 
   UL_BWP->mcs_table = get_pusch_mcs_table(mcs_Table,
-                                          UL_BWP->transform_precoding ? 0 : 1,
+                                          !not_tp,
                                           UL_BWP->dci_format,
                                           NR_RNTI_C,
                                           target_ss,
