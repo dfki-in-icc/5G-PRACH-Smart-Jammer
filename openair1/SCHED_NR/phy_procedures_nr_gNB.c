@@ -629,6 +629,32 @@ void phy_procedures_gNB_common_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx) 
 
 }
 
+//[modify]
+void multi_phy_procedures_gNB_common_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx, int32_t **rxdata, int32_t **rxdataF, int antennas) {
+
+  uint8_t symbol;
+  unsigned char aa;   
+  for(symbol = 0; symbol < (gNB->frame_parms.Ncp==EXTENDED?12:14); symbol++) {
+    for (aa = 0; aa < antennas; aa++) {
+      nr_slot_fep_ul(&gNB->frame_parms,
+                     rxdata[aa],
+                     rxdataF[aa],
+                     symbol,
+                     slot_rx,
+                     0);
+    }
+  }
+
+  for (aa = 0; aa < antennas; aa++) {
+    apply_nr_rotation_ul(&gNB->frame_parms,
+			 rxdataF[aa],
+			 slot_rx,
+			 0,
+			 gNB->frame_parms.Ncp==EXTENDED?12:14,
+			 gNB->frame_parms.ofdm_symbol_size);
+  }
+  
+}
 int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx) {
   /* those variables to log T_GNB_PHY_PUCCH_PUSCH_IQ only when we try to decode */
   int pucch_decode_done = 0;

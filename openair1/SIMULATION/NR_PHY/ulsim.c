@@ -85,6 +85,20 @@ THREAD_STRUCT thread_struct;
 nfapi_ue_release_request_body_t release_rntis;
 uint32_t N_RB_DL = 106;
 
+ /*! \file openairinterface5g/openair1/SIMULATION/NR_PHY/ulsim.c
+ * \brief Integrate MUSIC & MVDR algorithm multi-user fix UE RB
+ * \author NYCU OpinConnect Sendren Xu, Terng-Yin Hsu, Ming-Hsun Wu, Chao-Hung Hsu
+ * \email  sdxu@mail.ntust.edu.tw, tyhsu@cs.nctu.edu.tw, sam0104502@gmail.com, abby88771@gmail.com
+ * \date   17-11-2022
+ * \version 1.0
+ * \note
+ * \warning
+ */
+//min
+#define MU_USERS 1
+#define DOA_SAMPLE 4096
+#include "openair1/PHY/BF/angle.h"
+
 extern void fix_scd(NR_ServingCellConfig_t *scd);// forward declaration
 
 int8_t nr_mac_rrc_data_ind_ue(const module_id_t module_id,
@@ -250,6 +264,7 @@ int main(int argc, char **argv)
   int i;
   double SNR, snr0 = -2.0, snr1 = 2.0;
   double sigma, sigma_dB;
+  double sigma_ue[4], sigma_ue_db[4];
   double snr_step = .2;
   uint8_t snr1set = 0;
   int slot = 8, frame = 1;
@@ -323,13 +338,21 @@ int main(int argc, char **argv)
     exit_fun("[NR_ULSIM] Error, configuration module init failed\n");
   }
   int ul_proc_error = 0; // uplink processing checking status flag
+
+  int bb;
+  int cc;
+  int dd;
+  global_antenna = 6;
+  global_QR_iteration = 10;
+  global_multi_user_num = 4;
+
   //logInit();
   randominit(0);
 
   /* initialize the sin-cos table */
    InitSinLUT();
 
-  while ((c = getopt(argc, argv, "a:b:c:d:ef:g:h:ikl:m:n:p:r:s:u:w:y:z:F:G:H:M:N:PR:S:T:U:L:Z")) != -1) {
+ while ((c = getopt(argc, argv, "A:B:C:D:E:I:J:K:W:X:a:b:c:d:ef:g:h:ikl:m:n:p:r:s:u:w:y:z:F:G:H:M:N:PR:S:T:U:L:Z")) != -1) {
     printf("handling optarg %c\n",c);
     switch (c) {
 
@@ -575,7 +598,70 @@ int main(int argc, char **argv)
       printf("NOTE: TRANSFORM PRECODING (SC-FDMA) is ENABLED in UPLINK (0 - ENABLE, 1 - DISABLE) : %d \n",  transform_precoding);
 
       break;
+//min
+    ///////////////////////////////////////////////////////////////////////////  
+    case 'A' :
+      global_antenna = atoi(optarg);
+      printf("Antenna number is setting to %d\n", global_antenna);
+      break;
 
+    case 'B' :
+      global_QR_iteration = atoi(optarg);
+      printf("QR decomposition iteration times is setting to %d\n", global_QR_iteration);
+      break;
+
+    case 'C' :
+      global_DOA_algorithm = atoi(optarg);
+      printf("DOA algorithm is setting to %d\n", global_DOA_algorithm);
+      break;
+
+    case 'D' :
+      global_angle = atoi(optarg);
+      printf("Angle theta is setting to %d\n", global_angle);
+      break;
+
+    case 'E' :
+      global_SNR = atoi(optarg);
+      printf("SNR is setting to %d\n", global_SNR);
+      break;    
+
+    case 'I' :
+      global_multi_user_num = atoi(optarg);
+      printf("Multi user num is setting to %d\n", global_multi_user_num);
+      break;  
+    
+    case 'J' :
+      switch ((char) *optarg) {
+          case 'A':
+            global_multi_angle[0] = -60;
+            global_multi_angle[1] = -34;
+            global_multi_angle[2] = 56;
+            global_multi_angle[3] = 60;
+        break;
+           case 'B':
+            global_multi_angle[0] = -56;
+            global_multi_angle[1] = -34;
+            global_multi_angle[2] = 48;
+            global_multi_angle[3] = 58;
+        break;
+            case 'C':
+            // srand( time(NULL) );
+            // int min = -60;
+            // int max = 60;
+            // int w = rand() % (max - min + 1) + min;
+            // int x = rand() % (max - min + 1) + min;
+            // int y = rand() % (max - min + 1) + min;
+            // int z = rand() % (max - min + 1) + min;
+            // global_multi_angle[0] = w;
+            // global_multi_angle[1] = x;
+            // global_multi_angle[2] = y;
+            // global_multi_angle[3] = z;
+        break;
+
+      }
+      break; 
+  ///////////////////////////////////////////////////////////////////////////  
+    
     default:
     case 'h':
       printf("%s -h(elp) -p(extended_prefix) -N cell_id -f output_filename -F input_filename -g channel_model -n n_frames -t Delayspread -s snr0 -S snr1 -x transmission_mode -y TXant -z RXant -i Intefrence0 -j Interference1 -A interpolation_file -C(alibration offset dB) -N CellId -Z Enable SC-FDMA in Uplink \n", argv[0]);
@@ -794,6 +880,24 @@ int main(int argc, char **argv)
   
   UE_mac->if_module = nr_ue_if_module_init(0);
 
+  //min // MU USER nb_rb 
+  UE->multi_user.nb_rb_ue0 = nb_rb;
+//   UE->multi_user.nb_rb_ue1 = bb;
+//   UE->multi_user.nb_rb_ue2 = cc;
+//   UE->multi_user.nb_rb_ue3 = dd;
+//   UE->multi_user.nb_rb_ue1 = 30;
+//   UE->multi_user.nb_rb_ue2 = 20;
+//   UE->multi_user.nb_rb_ue3 = 10;
+
+  UE->multi_user.nb_rb_ue1 = nb_rb;
+  UE->multi_user.nb_rb_ue2 = nb_rb;
+  UE->multi_user.nb_rb_ue3 = nb_rb;
+
+  int ue_rb[4];
+  ue_rb[0] = UE->multi_user.nb_rb_ue0;
+  ue_rb[1] = UE->multi_user.nb_rb_ue1;  
+  ue_rb[2] = UE->multi_user.nb_rb_ue2;
+  ue_rb[3] = UE->multi_user.nb_rb_ue3;
 //  nr_rrc_mac_config_req_ue(0,0,0,rrc.carrier.mib.message.choice.mib, NULL, NULL, secondaryCellGroup);
 
   nr_ue_phy_config_request(&UE_mac->phy_config);
@@ -1213,41 +1317,389 @@ int main(int argc, char **argv)
       }	
       else n_trials = 1;
 
-      if (input_fd == NULL ) {
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //   [original]
+    //   if (input_fd == NULL ) {
 
-        sigma_dB = 10 * log10((double)txlev * ((double)frame_parms->ofdm_symbol_size/(12*nb_rb))) - SNR;;
-        sigma    = pow(10,sigma_dB/10);
+    //     sigma_dB = 10 * log10((double)txlev * ((double)frame_parms->ofdm_symbol_size/(12*nb_rb))) - SNR;;
+    //     sigma    = pow(10,sigma_dB/10);
 
 
-        if(n_trials==1) printf("sigma %f (%f dB), txlev %f (factor %f)\n",sigma,sigma_dB,10*log10((double)txlev),(double)(double)
-                                frame_parms->ofdm_symbol_size/(12*nb_rb));
+    //     if(n_trials==1) printf("sigma %f (%f dB), txlev %f (factor %f)\n",sigma,sigma_dB,10*log10((double)txlev),(double)(double)
+    //                             frame_parms->ofdm_symbol_size/(12*nb_rb));
 
-        for (i=0; i<slot_length; i++) {
-          for (int aa=0; aa<frame_parms->nb_antennas_tx; aa++) {
-            s_re[aa][i] = ((double)(((short *)&UE->common_vars.txdata[aa][slot_offset]))[(i<<1)]);
-            s_im[aa][i] = ((double)(((short *)&UE->common_vars.txdata[aa][slot_offset]))[(i<<1)+1]);
-          }
+    //     for (i=0; i<slot_length; i++) {
+    //       for (int aa=0; aa<frame_parms->nb_antennas_tx; aa++) {
+    //         s_re[aa][i] = ((double)(((short *)&UE->common_vars.txdata[aa][slot_offset]))[(i<<1)]);
+    //         s_im[aa][i] = ((double)(((short *)&UE->common_vars.txdata[aa][slot_offset]))[(i<<1)+1]);
+    //       }
+    //     }
+
+
+    //     if (UE2gNB->max_Doppler == 0) {
+    //       multipath_channel(UE2gNB, s_re, s_im, r_re, r_im, slot_length, 0, (n_trials==1)?1:0);
+    //     } else {
+    //       multipath_tv_channel(UE2gNB, s_re, s_im, r_re, r_im, 2*slot_length, 0);
+    //     }
+    //     for (i=0; i<slot_length; i++) {
+    //       for (ap=0; ap<frame_parms->nb_antennas_rx; ap++) {
+    //         ((int16_t*) &gNB->common_vars.rxdata[ap][slot_offset])[(2*i)   + (delay*2)] = (int16_t)((r_re[ap][i]) + (sqrt(sigma/2)*gaussdouble(0.0,1.0))); // convert to fixed point
+    //         ((int16_t*) &gNB->common_vars.rxdata[ap][slot_offset])[(2*i)+1 + (delay*2)] = (int16_t)((r_im[ap][i]) + (sqrt(sigma/2)*gaussdouble(0.0,1.0)));
+    //         /* Add phase noise if enabled */
+    //         if (pdu_bit_map & PUSCH_PDU_BITMAP_PUSCH_PTRS) {
+    //           phase_noise(ts, &((int16_t*)&gNB->common_vars.rxdata[ap][slot_offset])[(2*i)],
+    //                       &((int16_t*)&gNB->common_vars.rxdata[ap][slot_offset])[(2*i)+1]);
+    //         }
+    //       }
+    //     }
+
+    //   } /*End input_fd */
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        //min 
+        double **s_re_temp = (double**)malloc(n_tx*sizeof(double*));
+        double **s_im_temp = (double**)malloc(n_tx*sizeof(double*));
+        double **r_re_temp = (double**)malloc(n_rx*sizeof(double*));
+        double **r_im_temp = (double**)malloc(n_rx*sizeof(double*));
+
+        for (int aa = 0; aa < n_tx; aa++) {
+            s_re_temp[aa] = calloc(1,frame_length_complex_samples*sizeof(double));
+            s_im_temp[aa] = calloc(1,frame_length_complex_samples*sizeof(double));
+        }
+        
+        for (int aa = 0; aa < n_rx; aa++) {
+            r_re_temp[aa] = calloc(1,frame_length_complex_samples*sizeof(double));
+            r_im_temp[aa] = calloc(1,frame_length_complex_samples*sizeof(double));
         }
 
-
-        if (UE2gNB->max_Doppler == 0) {
-          multipath_channel(UE2gNB, s_re, s_im, r_re, r_im, slot_length, 0, (n_trials==1)?1:0);
-        } else {
-          multipath_tv_channel(UE2gNB, s_re, s_im, r_re, r_im, 2*slot_length, 0);
-        }
-        for (i=0; i<slot_length; i++) {
-          for (ap=0; ap<frame_parms->nb_antennas_rx; ap++) {
-            ((int16_t*) &gNB->common_vars.rxdata[ap][slot_offset])[(2*i)   + (delay*2)] = (int16_t)((r_re[ap][i]) + (sqrt(sigma/2)*gaussdouble(0.0,1.0))); // convert to fixed point
-            ((int16_t*) &gNB->common_vars.rxdata[ap][slot_offset])[(2*i)+1 + (delay*2)] = (int16_t)((r_im[ap][i]) + (sqrt(sigma/2)*gaussdouble(0.0,1.0)));
-            /* Add phase noise if enabled */
-            if (pdu_bit_map & PUSCH_PDU_BITMAP_PUSCH_PTRS) {
-              phase_noise(ts, &((int16_t*)&gNB->common_vars.rxdata[ap][slot_offset])[(2*i)],
-                          &((int16_t*)&gNB->common_vars.rxdata[ap][slot_offset])[(2*i)+1]);
+        for (int aa = 0; aa < NUM_NR_UE; aa++) {
+            for (i=0; i<slot_length; i++) {
+            s_re_temp[0][i] = ((double)(((short *)&UE->multi_user.txdata_UE[aa][0][slot_offset]))[(i<<1)]);
+            s_im_temp[0][i] = ((double)(((short *)&UE->multi_user.txdata_UE[aa][0][slot_offset]))[(i<<1)+1]);
             }
-          }
+            if (UE2gNB->max_Doppler == 0) {
+            multipath_channel(UE2gNB, s_re_temp, s_im_temp, r_re_temp, r_im_temp, slot_length, 0, (n_trials==1)?1:0);
+            } else {
+            multipath_tv_channel(UE2gNB, s_re_temp, s_im_temp, r_re_temp, r_re_temp, 2 * slot_length, 0);
+            }
+            memcpy(&UE->multi_user.r_re_ue[aa][0][0], &r_re_temp[0][0], slot_length * sizeof(double));
+            memcpy(&UE->multi_user.r_im_ue[aa][0][0], &r_im_temp[0][0], slot_length * sizeof(double));
+        }
+        for (int k = 0; k < NUM_NR_UE; k++) {
+            for (i=0; i<slot_length; i++) {
+                for (ap=0; ap<frame_parms->nb_antennas_rx; ap++) {                
+                    ((int16_t*) &UE->multi_user.rxdata_UE[k][ap][slot_offset])[(2*i) + (delay*2)] = (int16_t)(UE->multi_user.r_re_ue[k][ap][i]); // convert to fixed point
+                    ((int16_t*) &UE->multi_user.rxdata_UE[k][ap][slot_offset])[(2*i)+1 + (delay*2)] = (int16_t)(UE->multi_user.r_im_ue[k][ap][i]);
+                    /* Add phase noise if enabled */
+                    if (pdu_bit_map & PUSCH_PDU_BITMAP_PUSCH_PTRS) {
+                    phase_noise(ts, &((int16_t*)&UE->multi_user.rxdata_UE[k][ap][slot_offset])[(2*i)],
+                                &((int16_t*)&UE->multi_user.rxdata_UE[k][ap][slot_offset])[(2*i)+1]);
+                    }
+                }
+            }
+        }
+        
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    #if MU_USERS
+     srand( time(NULL) );
+            int min = -60;
+            int max = 60;
+            int w = rand() % (max - min + 1) + min;
+            int x = rand() % (max - min + 1) + min;
+            int y = rand() % (max - min + 1) + min;
+            int z = rand() % (max - min + 1) + min;
+            global_multi_angle[0] = w;
+            global_multi_angle[1] = x;
+            global_multi_angle[2] = y;
+            global_multi_angle[3] = z;
+    
+    printf("global_multi_angle: ");
+    for (int i = 0; i < 4; i++){
+        printf("%d ",global_multi_angle[i]);
+    }
+    printf("\n");
+    global_SNR = SNR;
+
+    for (int i = 0; i < global_multi_user_num; i++){
+            sigma_ue_db[i] = 10 * log10((double)txlev * ((double)frame_parms->ofdm_symbol_size/(12 * ue_rb[i]))) - SNR;
+            sigma_ue[i]    = pow(10,sigma_ue_db[i]/10);
         }
 
-      } /*End input_fd */
+    printf("[START] MU channel beamforming (FD) \n");
+    //produce beam_weights
+    int8_t **bws;
+      bws = (int8_t**)malloc(global_multi_user_num * sizeof(int8_t*));
+    for (int aa=0; aa < global_multi_user_num; aa++) {
+        bws[aa] = (int8_t*) malloc(2 * global_antenna * sizeof(int8_t));
+    }
+    for (int i = 0; i < global_multi_user_num; i++) {
+        beam_weight_mu_user_int8_t(bws, global_antenna ,i ,global_multi_angle[i]);    
+    }
+
+    //produce IQ data
+    int16_t **IQ;
+     IQ = (int16_t**)malloc(global_multi_user_num * sizeof(int16_t*));
+    for (int aa = 0; aa < global_multi_user_num; aa++) {
+        IQ[aa] = (int16_t*) malloc(2 * (slot_offset+slot_length) * sizeof(int16_t));    
+    }
+    
+    for (int k = 0; k < global_multi_user_num; k++) {
+        memcpy(&IQ[k][0], (int16_t*)&UE->multi_user.rxdata_UE[k][0][0], (slot_offset+slot_length) * sizeof(int32_t));
+        for (int j = 0; j < (slot_offset + slot_length); j++) {
+            for (int i = 0; i < global_antenna; i++) {
+                UE->multi_user.rxdata_UE_IQ[k][i][j*2] = ((bws[k][i*2] * IQ[k][j*2] - bws[k][i*2+1] * IQ[k][j*2+1])>>6) + (sqrt(sigma_ue[k]/2)*gaussdouble(0.0,1.0));
+                UE->multi_user.rxdata_UE_IQ[k][i][j*2+1] = ((bws[k][i*2] * IQ[k][j*2+1] + bws[k][i*2+1] * IQ[k][j*2])>>6)+ (sqrt(sigma_ue[k]/2)*gaussdouble(0.0,1.0));
+            }
+        }
+    }
+
+    int32_t **rxdata_UE_temp_1;
+     rxdata_UE_temp_1 = (int32_t**)malloc16(global_antenna * sizeof(int32_t*));
+    for (int aa = 0; aa < global_antenna; aa++) {
+        rxdata_UE_temp_1[aa] = (int32_t*) malloc16_clear(2*(slot_offset+slot_length) * sizeof(int32_t));    
+    }
+    
+    // total UE Antnna
+    for (int k = 0; k < global_multi_user_num; k++){
+        for (int j = 0; j < 2 * slot_length; j++) {
+            for (int i = 0; i < global_antenna; i++) {
+                rxdata_UE_temp_1[i][2 * slot_offset + j] += UE->multi_user.rxdata_UE_IQ[k][i][2 * slot_offset + j];
+            }
+        }
+    }
+
+    int32_t **rxdata_UE_temp;
+     rxdata_UE_temp = (int32_t**)malloc16(global_antenna * sizeof(int32_t*));
+    for (int aa = 0; aa < global_antenna; aa++) {
+        rxdata_UE_temp[aa] = (int32_t*) malloc16_clear((slot_offset+slot_length) * sizeof(int32_t));    
+    }       
+
+    for (int k = 0; k < (slot_offset + slot_length); k++) {
+        for (int j = 0; j < global_antenna; j++) { 
+            ((int16_t*) &rxdata_UE_temp[j][0])[(2*k)] = (int16_t)(rxdata_UE_temp_1[j][(2*k)]);
+            ((int16_t*) &rxdata_UE_temp[j][0])[(2*k)+1] = (int16_t)(rxdata_UE_temp_1[j][(2*k+1)]);
+        }   
+    }
+    printf("[END] MU channel beamforming (FD)\n");
+    printf("\n-----------------------------------------\n");
+    
+    printf("[START] MUSIC/MVDR \n");
+    float result_temp[1];
+    float result[4] = {0};
+
+    int32_t **rxdata_F_UE_temp;
+     rxdata_F_UE_temp = (int32_t**)malloc16(global_antenna * sizeof(int32_t*));
+    for (int aa = 0; aa < global_antenna; aa++) {
+        rxdata_F_UE_temp[aa] = (int32_t*) malloc16_clear((MAX_NUM_NR_FFT_SIZE) * sizeof(int32_t));    
+    }
+
+    multi_phy_procedures_gNB_common_RX(gNB, frame, slot, rxdata_UE_temp, rxdata_F_UE_temp ,global_antenna);
+    int start_sc = UE->multi_user.start_sc;
+   
+    //Fix UE RB
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    for (int k = 0; k < global_multi_user_num; k++) {
+        for (int l= 0; l < global_antenna; l++) {
+            for (int i = 0; i < NR_NUMBER_OF_SYMBOLS_PER_SLOT; i++) {
+                for (int j = 0; j < nb_rb * NR_NB_SC_PER_RB; j++) {
+                    UE->multi_user.rxdata_F_UE[k][l][j + i *(nb_rb * NR_NB_SC_PER_RB)] = rxdata_F_UE_temp[l][(((frame_parms->ofdm_symbol_size * i) + start_sc + ((nb_rb * NR_NB_SC_PER_RB) * k )+ j) % (frame_parms->ofdm_symbol_size)) + frame_parms->ofdm_symbol_size * i];
+                }    
+            } 
+        }
+    }
+
+    for (int i = 0; i < global_multi_user_num; i++){ 
+        int angle_temp = global_multi_angle[i];
+        for (int aa = 0; aa < global_antenna; aa++) {
+            memcpy(&rxdata_F_UE_temp[aa][0], &UE->multi_user.rxdata_F_UE[i][aa][0], (nb_rb * NR_NB_SC_PER_RB * NR_NUMBER_OF_SYMBOLS_PER_SLOT ) * sizeof(int32_t));
+        }
+
+        //printf("\n------------------------UE[%d]，RB:%d------------------------\n",i ,ue_rb[i]);
+        //printf("\n------------------------UE[%d]，RB:%d------------------------\n",i ,nb_rb);
+        // use C to change to 0(MUSIC) or 1(MVDR)
+        // start DOA algorithm 
+        if(global_DOA_algorithm == 0){
+            MUSIC_MU_init(rxdata_F_UE_temp , result_temp, angle_temp);
+        }
+        else if(global_DOA_algorithm == 1){
+            MVDR_MU_init(rxdata_F_UE_temp , result_temp, angle_temp);
+        }    
+        result[i] = result_temp[0];
+    }
+   
+    for (int i = 0; i < 4; i++){
+        printf("result[%d] :%f\n", i, result[i]);
+    }
+
+    printf("[END] MUSIC/MVDR \n");
+    
+    printf("[START] MU RX beamforming (FD)\n");
+
+    int8_t **bws_rx;
+      bws_rx = (int8_t**)malloc(global_multi_user_num * sizeof(int8_t*));
+    for (int aa=0; aa < global_multi_user_num; aa++) {
+        bws_rx[aa] = (int8_t*) malloc(2 * global_antenna * sizeof(int8_t));
+    }
+    for (int i = 0; i < global_multi_user_num; i++) {
+        beam_weight_mu_user_int8_t(bws_rx, global_antenna ,i ,-((int)result[i]));    
+    }
+
+    int32_t **rxdata_temp;
+     rxdata_temp = (int32_t**)malloc16(global_antenna * sizeof(int32_t*));
+    for (int aa = 0; aa < global_antenna; aa++) {
+        rxdata_temp[aa] = (int32_t*) malloc16_clear(2*(slot_offset+slot_length) * sizeof(int32_t));    
+    }
+    
+    //ue0
+    int32_t **rxdata_temp_1;
+     rxdata_temp_1 = (int32_t**)malloc16(global_antenna * sizeof(int32_t*));
+    for (int aa = 0; aa < global_antenna; aa++) {
+        rxdata_temp_1[aa] = (int32_t*) malloc16_clear(2*(slot_offset+slot_length) * sizeof(int32_t));    
+    }
+    //ue1
+    int32_t **rxdata_temp_3;
+     rxdata_temp_3 = (int32_t**)malloc16(global_antenna * sizeof(int32_t*));
+    for (int aa = 0; aa < global_antenna; aa++) {
+        rxdata_temp_3[aa] = (int32_t*) malloc16_clear(2*(slot_offset+slot_length) * sizeof(int32_t));    
+    }
+    //ue2
+    int32_t **rxdata_temp_4;
+     rxdata_temp_4 = (int32_t**)malloc16(global_antenna * sizeof(int32_t*));
+    for (int aa = 0; aa < global_antenna; aa++) {
+        rxdata_temp_4[aa] = (int32_t*) malloc16_clear(2*(slot_offset+slot_length) * sizeof(int32_t));    
+    }
+    //ue3
+    int32_t **rxdata_temp_5;
+     rxdata_temp_5 = (int32_t**)malloc16(global_antenna * sizeof(int32_t*));
+    for (int aa = 0; aa < global_antenna; aa++) {
+        rxdata_temp_5[aa] = (int32_t*) malloc16_clear(2*(slot_offset+slot_length) * sizeof(int32_t));    
+    }
+
+    int32_t ***rxdata_temp_2;
+    rxdata_temp_2 = (int32_t***)malloc16(global_multi_user_num * sizeof(int32_t**));
+      for (int aa = 0; aa < global_multi_user_num; aa++) {
+        rxdata_temp_2[aa] = (int32_t**) malloc16( global_antenna* sizeof(int32_t*));
+        for (int bb = 0; bb < global_antenna; bb++) {
+            rxdata_temp_2[aa][bb] = (int32_t*) malloc16_clear(2*(slot_offset+slot_length) * sizeof(int32_t));    
+        }   
+    }
+    
+    //UE Rotation angle
+    for (int k = 0; k< global_multi_user_num; k++){
+        for (int j = 0; j < slot_offset + slot_length; j++){
+            for (int i = 0; i < global_antenna; i++){
+                rxdata_temp_2[k][i][j*2] = ((bws_rx[k][i*2] * rxdata_UE_temp_1[i][j*2]) - (bws_rx[k][i*2+1] * rxdata_UE_temp_1[i][j*2+1]))>>6; 
+                rxdata_temp_2[k][i][j*2+1] = ((bws_rx[k][i*2] * rxdata_UE_temp_1[i][j*2+1]) + (bws_rx[k][i*2+1] * rxdata_UE_temp_1[i][j*2]))>>6;
+            }
+        }
+    }
+        for (int j = 0; j < slot_offset+slot_length; j++) {
+            for (int i = 0; i < global_antenna; i++) { 
+                if(global_multi_user_num == 1){   
+                    rxdata_temp_1[0][j*2] += rxdata_temp_2[0][i][j*2]; 
+                    rxdata_temp_1[0][j*2+1] += rxdata_temp_2[0][i][j*2+1];
+                }
+                else if(global_multi_user_num == 2){   
+                    rxdata_temp_1[0][j*2] += rxdata_temp_2[0][i][j*2]; 
+                    rxdata_temp_1[0][j*2+1] += rxdata_temp_2[0][i][j*2+1];
+                    rxdata_temp_3[0][j*2] += rxdata_temp_2[1][i][j*2]; 
+                    rxdata_temp_3[0][j*2+1] += rxdata_temp_2[1][i][j*2+1];
+                }
+                else if(global_multi_user_num == 3){   
+                    rxdata_temp_1[0][j*2] += rxdata_temp_2[0][i][j*2]; 
+                    rxdata_temp_1[0][j*2+1] += rxdata_temp_2[0][i][j*2+1];
+                    rxdata_temp_3[0][j*2] += rxdata_temp_2[1][i][j*2]; 
+                    rxdata_temp_3[0][j*2+1] += rxdata_temp_2[1][i][j*2+1];
+                    rxdata_temp_4[0][j*2] += rxdata_temp_2[2][i][j*2]; 
+                    rxdata_temp_4[0][j*2+1] += rxdata_temp_2[2][i][j*2+1];
+                }
+                else if(global_multi_user_num == 4){   
+                    rxdata_temp_1[0][j*2] += rxdata_temp_2[0][i][j*2]; 
+                    rxdata_temp_1[0][j*2+1] += rxdata_temp_2[0][i][j*2+1];
+                    rxdata_temp_3[0][j*2] += rxdata_temp_2[1][i][j*2]; 
+                    rxdata_temp_3[0][j*2+1] += rxdata_temp_2[1][i][j*2+1];
+                    rxdata_temp_4[0][j*2] += rxdata_temp_2[2][i][j*2]; 
+                    rxdata_temp_4[0][j*2+1] += rxdata_temp_2[2][i][j*2+1];
+                    rxdata_temp_5[0][j*2] += rxdata_temp_2[3][i][j*2]; 
+                    rxdata_temp_5[0][j*2+1] += rxdata_temp_2[3][i][j*2+1];
+                }
+            }
+        }
+
+    //ue1
+    int32_t **rxdata_1;
+     rxdata_1 = (int32_t**)malloc16(1 * sizeof(int32_t*));
+    for (int aa = 0; aa < 1; aa++) {
+        rxdata_1[aa] = (int32_t*) malloc16_clear((slot_offset+slot_length) * sizeof(int32_t));    
+    }
+    //ue2
+    int32_t **rxdata_2;
+     rxdata_2 = (int32_t**)malloc16(1 * sizeof(int32_t*));
+    for (int aa = 0; aa < 1; aa++) {
+        rxdata_2[aa] = (int32_t*) malloc16_clear((slot_offset+slot_length) * sizeof(int32_t));    
+    }
+    //ue3
+    int32_t **rxdata_3;
+     rxdata_3 = (int32_t**)malloc16(1 * sizeof(int32_t*));
+    for (int aa = 0; aa < 1; aa++) {
+        rxdata_3[aa] = (int32_t*) malloc16_clear((slot_offset+slot_length) * sizeof(int32_t));    
+    }
+
+    //TEST
+    memset(&gNB->common_vars.rxdata[0][0],0,(slot_offset+slot_length)*sizeof(int32_t)); 
+    for (int j = 0; j < (slot_offset+slot_length); j++) {
+        ((int16_t*) &gNB->common_vars.rxdata[0][0])[(2*j)] = (int16_t)((rxdata_temp_1[0][(2*j)])/global_antenna);
+        ((int16_t*) &gNB->common_vars.rxdata[0][0])[(2*j)+1] = (int16_t)((rxdata_temp_1[0][(2*j)+1])/global_antenna);
+        ((int16_t*) &rxdata_1[0][0])[(2*j)] = (int16_t)((rxdata_temp_3[0][(2*j)])/global_antenna);
+        ((int16_t*) &rxdata_1[0][0])[(2*j)+1] = (int16_t)((rxdata_temp_3[0][(2*j)+1])/global_antenna);
+        ((int16_t*) &rxdata_2[0][0])[(2*j)] = (int16_t)((rxdata_temp_4[0][(2*j)])/global_antenna);
+        ((int16_t*) &rxdata_2[0][0])[(2*j)+1] = (int16_t)((rxdata_temp_4[0][(2*j)+1])/global_antenna);
+        ((int16_t*) &rxdata_3[0][0])[(2*j)] = (int16_t)((rxdata_temp_5[0][(2*j)])/global_antenna);
+        ((int16_t*) &rxdata_3[0][0])[(2*j)+1] = (int16_t)((rxdata_temp_5[0][(2*j)+1])/global_antenna);
+    }
+    printf("[END] MU RX beamforming (FD)\n");
+
+  
+    // free memory
+    for (int k = 0; k < global_multi_user_num; k++) {
+        for (int l = 0; l < global_antenna; l++) {
+            free(rxdata_temp_2[k][l]);
+        }    
+    }
+    
+    for (int i = 0; i < global_multi_user_num; i++) {
+        free(bws[i]);
+        free(IQ[i]);
+        free(rxdata_temp_2[i]);
+    }
+
+    for (int i = 0; i < global_antenna; i++) {
+        free(rxdata_UE_temp[i]);
+        free(rxdata_F_UE_temp[i]);
+        free(rxdata_temp[i]);
+        free(rxdata_temp_1[i]);
+        free(rxdata_temp_3[i]);
+        free(rxdata_temp_4[i]);
+        free(rxdata_temp_5[i]);
+        free(rxdata_UE_temp_1[i]);
+    }
+    free(bws);
+    free(bws_rx);
+    free(IQ);
+    free(rxdata_UE_temp);
+    free(rxdata_F_UE_temp);
+    free(rxdata_temp);
+    free(rxdata_temp_1);
+    free(rxdata_temp_3);
+    free(rxdata_temp_4);
+    free(rxdata_temp_5);
+    free(rxdata_temp_2);
+    free(rxdata_UE_temp_1);
+    #endif
+    
 
 
       if(pusch_pdu->pdu_bit_map & PUSCH_PDU_BITMAP_PUSCH_PTRS) {
@@ -1267,6 +1719,19 @@ int main(int argc, char **argv)
 	//----------------------------------------------------------
 	gNB->UL_INFO.rx_ind.number_of_pdus = 0;
 	gNB->UL_INFO.crc_ind.number_crcs = 0;
+
+    multi_phy_procedures_gNB_common_RX(gNB, frame, slot, rxdata_1, gNB->common_vars.rxdataF ,1);
+    multi_phy_procedures_gNB_common_RX(gNB, frame, slot, rxdata_2, gNB->common_vars.rxdataF ,1);
+    multi_phy_procedures_gNB_common_RX(gNB, frame, slot, rxdata_3, gNB->common_vars.rxdataF ,1);
+    
+    // free memory 
+        free(rxdata_1[0]);
+        free(rxdata_2[0]);
+        free(rxdata_3[0]);
+
+        free(rxdata_1);
+        free(rxdata_2);
+        free(rxdata_3);
 
         phy_procedures_gNB_common_RX(gNB, frame, slot);
 

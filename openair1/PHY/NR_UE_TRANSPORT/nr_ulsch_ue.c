@@ -46,6 +46,16 @@
 #include "executables/softmodem-common.h"
 #include "PHY/NR_REFSIG/ul_ref_seq_nr.h"
 
+ /*! \file PHY/NR_UE_TRANSPORT/nr_ulsch.c
+ * \brief Integrate MUSIC & MVDR algorithm multi-user fix UE RB
+ * \author NYCU OpinConnect Sendren Xu, Terng-Yin Hsu, Ming-Hsun Wu, Chao-Hung Hsu
+ * \email  sdxu@mail.ntust.edu.tw, tyhsu@cs.nctu.edu.tw, sam0104502@gmail.com, abby88771@gmail.com
+ * \date   17-11-2022
+ * \version 1.0
+ * \note
+ * \warning
+ */
+
 //#define DEBUG_PUSCH_MAPPING
 //#define DEBUG_MAC_PDU
 //#define DEBUG_DFT_IDFT
@@ -136,6 +146,11 @@ void nr_ue_ulsch_procedures(PHY_VARS_NR_UE *UE,
     uint8_t cdm_grps_no_data  = pusch_pdu->num_dmrs_cdm_grps_no_data;
     uint16_t start_sc         = frame_parms->first_carrier_offset + (start_rb+pusch_pdu->bwp_start)*NR_NB_SC_PER_RB;
 
+    UE->multi_user.nb_rb = nb_rb;
+    UE->multi_user.number_of_symbols = number_of_symbols;
+    UE->multi_user.start_symbol =  start_symbol;
+    UE->multi_user.start_sc = start_sc;
+    
     if (start_sc >= frame_parms->ofdm_symbol_size)
       start_sc -= frame_parms->ofdm_symbol_size;
 
@@ -501,7 +516,87 @@ uint8_t nr_ue_pusch_common_procedures(PHY_VARS_NR_UE *UE,
   txdata = UE->common_vars.txdata;
   txdataF = UE->common_vars.txdataF;
 
-  int symb_offset = (slot%frame_parms->slots_per_subframe)*frame_parms->symbols_per_slot;
+ /////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //min  
+    int32_t txdataF_temp[1][4096*14];
+    memcpy(&txdataF_temp[0][0], &txdataF[0][0] , MAX_NUM_NR_FFT_SIZE * sizeof(int32_t));
+    
+    int first_carrier_offset = frame_parms->first_carrier_offset;
+    int number_of_symbols = UE->multi_user.number_of_symbols;
+    int nb_rb = UE->multi_user.nb_rb;
+    int nb_rb_1 = UE->multi_user.nb_rb_ue1;
+    int nb_rb_2 = UE->multi_user.nb_rb_ue2;
+    int nb_rb_3 = UE->multi_user.nb_rb_ue3;
+    int nb_rb_sc_0 = nb_rb * NR_NB_SC_PER_RB;
+    int nb_rb_sc_1 = nb_rb_1 * NR_NB_SC_PER_RB + nb_rb_sc_0;
+    int nb_rb_sc_2 = nb_rb_2 * NR_NB_SC_PER_RB + nb_rb_sc_1;
+    int nb_rb_sc_3 = nb_rb_3 * NR_NB_SC_PER_RB + nb_rb_sc_2;
+    UE->multi_user.start_sc_0 = nb_rb_sc_0; 
+    UE->multi_user.start_sc_1 = nb_rb_sc_1; 
+    UE->multi_user.start_sc_2 = nb_rb_sc_2; 
+    UE->multi_user.start_sc_3 = nb_rb_sc_3; 
+    
+ for (int i = 0; i < number_of_symbols ; i++) {
+        for (int j = 0; j < nb_rb * NR_NB_SC_PER_RB; j++) {
+            UE->multi_user.txdataF_UE[0][0][((frame_parms->ofdm_symbol_size * i) + first_carrier_offset + j)% (frame_parms->ofdm_symbol_size) +(frame_parms->ofdm_symbol_size * i)] = txdataF[0][((frame_parms->ofdm_symbol_size * i) + first_carrier_offset + j)% (frame_parms->ofdm_symbol_size) +(frame_parms->ofdm_symbol_size * i)];
+        }
+    }
+
+    for (int i = 0; i < number_of_symbols ; i++) {
+        for (int j = 0; j < nb_rb_1 * NR_NB_SC_PER_RB; j++) {
+            UE->multi_user.txdataF_UE[1][0][((frame_parms->ofdm_symbol_size * i) + first_carrier_offset + nb_rb_sc_0 + j) % (frame_parms->ofdm_symbol_size) +(frame_parms->ofdm_symbol_size * i)] = txdataF[0][frame_parms->ofdm_symbol_size * i + first_carrier_offset + j];
+        }
+    }
+    for (int i = 0; i < number_of_symbols ; i++) {
+        for (int j = 0; j < nb_rb_2 * NR_NB_SC_PER_RB; j++) {
+            UE->multi_user.txdataF_UE[2][0][((frame_parms->ofdm_symbol_size * i) + first_carrier_offset + nb_rb_sc_1 + j) % (frame_parms->ofdm_symbol_size) +(frame_parms->ofdm_symbol_size * i)] = txdataF[0][frame_parms->ofdm_symbol_size * i + first_carrier_offset + j];
+        }
+    }
+    for (int i = 0; i < number_of_symbols ; i++) {
+        for (int j = 0; j < nb_rb_3 * NR_NB_SC_PER_RB; j++) {
+            UE->multi_user.txdataF_UE[3][0][((frame_parms->ofdm_symbol_size * i) + first_carrier_offset + nb_rb_sc_2 + j) % (frame_parms->ofdm_symbol_size) +(frame_parms->ofdm_symbol_size * i)] = txdataF[0][frame_parms->ofdm_symbol_size * i + first_carrier_offset + j];
+        }
+    }
+    int symb_offset = (slot%frame_parms->slots_per_subframe)*frame_parms->symbols_per_slot; 
+        for (int k = 0; k < NUM_NR_UE; k++) {
+            for(ap = 0; ap < Nl; ap++) {
+                for (int s=0;s<NR_NUMBER_OF_SYMBOLS_PER_SLOT;s++) {
+                rotate_cpx_vector((int16_t *)(&UE->multi_user.txdataF_UE[k][ap][frame_parms->ofdm_symbol_size * s]),
+                            &frame_parms->symbol_rotation[1][2 * (s + symb_offset)],
+                            (int16_t *)&txdataF[ap][frame_parms->ofdm_symbol_size * s],
+                            frame_parms->ofdm_symbol_size,
+                            15);
+                }
+            }   
+        memcpy(&UE->multi_user.txdataF_UE[k][0][0], &txdataF[0][0], MAX_NUM_NR_FFT_SIZE * sizeof(int32_t)); 
+    }
+
+    for (int k = 0; k < NUM_NR_UE; k++) {
+     for (ap = 0; ap < Nl; ap++) {
+        if (frame_parms->Ncp == 1) { // extended cyclic prefix
+        PHY_ofdm_mod(&UE->multi_user.txdataF_UE[k][ap],
+                    &UE->multi_user.txdata_UE[k][ap][tx_offset],
+                    frame_parms->ofdm_symbol_size,
+                    12,
+                    frame_parms->nb_prefix_samples,
+                    CYCLIC_PREFIX);
+        } else { // normal cyclic prefix
+            //run here
+        nr_normal_prefix_mod(&UE->multi_user.txdataF_UE[k][ap],
+                            &UE->multi_user.txdata_UE[k][ap][tx_offset],
+                            14,
+                            frame_parms,
+                            slot);
+        }
+      }
+    } 
+ //////////////////////////////////////////////////////////////////////////////////
+    
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////
+   // [original]
+    // int symb_offset = (slot%frame_parms->slots_per_subframe)*frame_parms->symbols_per_slot;
+    memcpy(&txdataF[0][0] , &txdataF_temp[0][0], MAX_NUM_NR_FFT_SIZE * sizeof(int32_t));
+ 
   for(ap = 0; ap < Nl; ap++) {
     for (int s=0;s<NR_NUMBER_OF_SYMBOLS_PER_SLOT;s++){
 

@@ -115,6 +115,60 @@
 #include <pthread.h>
 #include "targets/ARCH/COMMON/common_lib.h"
 
+ /*! \file PHY/defs_nr_UE.h
+ * \brief Integrate MUSIC & MVDR algorithm multi-user fix UE RB
+ * \author NYCU OpinConnect Sendren Xu, Terng-Yin Hsu, Ming-Hsun Wu, Chao-Hung Hsu
+ * \email  sdxu@mail.ntust.edu.tw, tyhsu@cs.nctu.edu.tw, sam0104502@gmail.com, abby88771@gmail.com
+ * \date   17-11-2022
+ * \version 1.0
+ * \note
+ * \warning
+ */
+
+//min
+#define MAX_NUM_NR_ANTENNA 1
+#define MAX_NUM_NR_ANTENNA_1 6
+#define MAX_NUM_NR_FFT_SIZE (4096*14) //57344
+#define MAX_NUM_NR_SLOT (61440+491520) //slot length : 61440，slot offset : 491520
+#define MAX_NUM_NR_SLOT_2 (2 * MAX_NUM_NR_SLOT )
+#define NUM_NR_UE 4
+
+typedef struct{
+  /// params
+  int start_symbol;
+  uint8_t number_of_symbols;
+  uint16_t start_rb;
+  uint16_t start_rb_temp;
+  uint16_t start_rb_ue0;
+  uint16_t start_rb_ue1;
+  uint16_t start_rb_ue2;
+  uint16_t start_rb_ue3;
+  uint16_t nb_rb;
+  uint16_t nb_rb_ue0;
+  uint16_t nb_rb_ue1;
+  uint16_t nb_rb_ue2;
+  uint16_t nb_rb_ue3;
+  uint16_t start_sc;
+  uint16_t start_sc_0;
+  uint16_t start_sc_1;
+  uint16_t start_sc_2;
+  uint16_t start_sc_3;   
+
+  /// Multi user data
+  int32_t txdataF_UE[NUM_NR_UE][MAX_NUM_NR_ANTENNA][MAX_NUM_NR_FFT_SIZE];
+  int32_t txdata_UE[NUM_NR_UE][MAX_NUM_NR_ANTENNA][MAX_NUM_NR_SLOT];
+  int32_t rxdata_UE[NUM_NR_UE][MAX_NUM_NR_ANTENNA][MAX_NUM_NR_SLOT];
+  // 32 bit IQ
+  int32_t rxdata_UE_IQ[NUM_NR_UE][MAX_NUM_NR_ANTENNA_1][MAX_NUM_NR_SLOT_2];
+  // 2 * 16bit IQ
+  int32_t rxdata_UE_IQ_1[NUM_NR_UE][MAX_NUM_NR_ANTENNA_1][MAX_NUM_NR_SLOT];
+  // FFT
+  int32_t rxdata_F_UE[NUM_NR_UE][MAX_NUM_NR_ANTENNA_1][MAX_NUM_NR_FFT_SIZE];
+  double r_re_ue[NUM_NR_UE][MAX_NUM_NR_ANTENNA][MAX_NUM_NR_SLOT_2];
+  double r_im_ue[NUM_NR_UE][MAX_NUM_NR_ANTENNA][MAX_NUM_NR_SLOT_2];
+
+ } multi_user;
+
 /// Context data structure for gNB subframe processing
 typedef struct {
   /// Component Carrier index
@@ -1068,7 +1122,7 @@ typedef struct {
 #endif
   
   int dl_stats[5];
-
+   multi_user multi_user;
 } PHY_VARS_NR_UE;
 
 /* this structure is used to pass both UE phy vars and
