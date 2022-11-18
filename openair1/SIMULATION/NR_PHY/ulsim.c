@@ -86,11 +86,11 @@ nfapi_ue_release_request_body_t release_rntis;
 uint32_t N_RB_DL = 106;
 
  /*! \file openairinterface5g/openair1/SIMULATION/NR_PHY/ulsim.c
- * \brief Integrate MUSIC & MVDR algorithm multi-user fix UE RB
+ * \brief Integrate MUSIC & MVDR algorithm multi-user rand UE RB & can set UE RB
  * \author NYCU OpinConnect Sendren Xu, Terng-Yin Hsu, Ming-Hsun Wu, Chao-Hung Hsu
  * \email  sdxu@mail.ntust.edu.tw, tyhsu@cs.nctu.edu.tw, sam0104502@gmail.com, abby88771@gmail.com
- * \date   17-11-2022
- * \version 1.0
+ * \date   19-11-2022
+ * \version 1.1
  * \note
  * \warning
  */
@@ -339,9 +339,13 @@ int main(int argc, char **argv)
   }
   int ul_proc_error = 0; // uplink processing checking status flag
 
-  int bb;
-  int cc;
-  int dd;
+    srand( time(NULL) );
+    int ue_min = 1;
+    int ue_max = 60;
+    int ue1_rb = rand() % (ue_max - ue_min + 1) + ue_min;
+    int ue2_rb = rand() % (ue_max - ue_min + 1) + ue_min;
+    int ue3_rb = rand() % (ue_max - ue_min + 1) + ue_min;
+
   global_antenna = 6;
   global_QR_iteration = 10;
   global_multi_user_num = 4;
@@ -645,17 +649,6 @@ int main(int argc, char **argv)
             global_multi_angle[3] = 58;
         break;
             case 'C':
-            // srand( time(NULL) );
-            // int min = -60;
-            // int max = 60;
-            // int w = rand() % (max - min + 1) + min;
-            // int x = rand() % (max - min + 1) + min;
-            // int y = rand() % (max - min + 1) + min;
-            // int z = rand() % (max - min + 1) + min;
-            // global_multi_angle[0] = w;
-            // global_multi_angle[1] = x;
-            // global_multi_angle[2] = y;
-            // global_multi_angle[3] = z;
         break;
 
       }
@@ -880,24 +873,26 @@ int main(int argc, char **argv)
   
   UE_mac->if_module = nr_ue_if_module_init(0);
 
-  //min // MU USER nb_rb 
+  //min rand MU USER RB
+  //////////////////////////////////////////////////////////////////////////
+  //min rand MU USER RB 
   UE->multi_user.nb_rb_ue0 = nb_rb;
-//   UE->multi_user.nb_rb_ue1 = bb;
-//   UE->multi_user.nb_rb_ue2 = cc;
-//   UE->multi_user.nb_rb_ue3 = dd;
+  UE->multi_user.nb_rb_ue1 = ue1_rb;
+  UE->multi_user.nb_rb_ue2 = ue2_rb;
+  UE->multi_user.nb_rb_ue3 = ue3_rb;
+    
+   //min set MU USER RB 
 //   UE->multi_user.nb_rb_ue1 = 30;
 //   UE->multi_user.nb_rb_ue2 = 20;
 //   UE->multi_user.nb_rb_ue3 = 10;
-
-  UE->multi_user.nb_rb_ue1 = nb_rb;
-  UE->multi_user.nb_rb_ue2 = nb_rb;
-  UE->multi_user.nb_rb_ue3 = nb_rb;
 
   int ue_rb[4];
   ue_rb[0] = UE->multi_user.nb_rb_ue0;
   ue_rb[1] = UE->multi_user.nb_rb_ue1;  
   ue_rb[2] = UE->multi_user.nb_rb_ue2;
   ue_rb[3] = UE->multi_user.nb_rb_ue3;
+ 
+ ////////////////////////////////////////////////////////////////////////// 
 //  nr_rrc_mac_config_req_ue(0,0,0,rrc.carrier.mib.message.choice.mib, NULL, NULL, secondaryCellGroup);
 
   nr_ue_phy_config_request(&UE_mac->phy_config);
@@ -1416,7 +1411,13 @@ int main(int argc, char **argv)
             global_multi_angle[2] = y;
             global_multi_angle[3] = z;
     
-    printf("global_multi_angle: ");
+    printf("UE RB: ");
+    for (int i = 0; i < 4; i++){
+        printf("%d ",ue_rb[i]);
+    }
+    printf("\n");
+
+    printf("multi_UE_angle: ");
     for (int i = 0; i < 4; i++){
         printf("%d ",global_multi_angle[i]);
     }
@@ -1501,6 +1502,7 @@ int main(int argc, char **argv)
    
     //Fix UE RB
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /*
     for (int k = 0; k < global_multi_user_num; k++) {
         for (int l= 0; l < global_antenna; l++) {
             for (int i = 0; i < NR_NUMBER_OF_SYMBOLS_PER_SLOT; i++) {
@@ -1529,11 +1531,69 @@ int main(int argc, char **argv)
         }    
         result[i] = result_temp[0];
     }
-   
-    for (int i = 0; i < 4; i++){
-        printf("result[%d] :%f\n", i, result[i]);
-    }
+    */
+   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    
+   // NO Fix UE RB
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+       for (int l= 0; l < global_antenna; l++) {
+            for (int i = 0; i < NR_NUMBER_OF_SYMBOLS_PER_SLOT; i++) {
+                for (int j = 0; j < (UE->multi_user.nb_rb_ue0) * NR_NB_SC_PER_RB; j++) {
+                    UE->multi_user.rxdata_F_UE[0][l][j + i *(UE->multi_user.nb_rb_ue0 * NR_NB_SC_PER_RB)] = rxdata_F_UE_temp[l][(((frame_parms->ofdm_symbol_size * i) + start_sc + j) % (frame_parms->ofdm_symbol_size)) + frame_parms->ofdm_symbol_size * i];
+                }    
+            } 
+        }
+
+        for (int l= 0; l < global_antenna; l++) {
+            for (int i = 0; i < NR_NUMBER_OF_SYMBOLS_PER_SLOT; i++) {
+                for (int j = 0; j < (UE->multi_user.nb_rb_ue1) * NR_NB_SC_PER_RB; j++) {
+                    UE->multi_user.rxdata_F_UE[1][l][j + i *(UE->multi_user.nb_rb_ue1 * NR_NB_SC_PER_RB)] = rxdata_F_UE_temp[l][(((frame_parms->ofdm_symbol_size * i) + start_sc + (UE->multi_user.start_sc_0)+ j) % (frame_parms->ofdm_symbol_size)) + frame_parms->ofdm_symbol_size * i];
+                }    
+            } 
+        }
+
+        for (int l= 0; l < global_antenna; l++) {
+            for (int i = 0; i < NR_NUMBER_OF_SYMBOLS_PER_SLOT; i++) {
+                for (int j = 0; j < (UE->multi_user.nb_rb_ue2) * NR_NB_SC_PER_RB; j++) {
+                    UE->multi_user.rxdata_F_UE[2][l][j + i *(UE->multi_user.nb_rb_ue2 * NR_NB_SC_PER_RB)] = rxdata_F_UE_temp[l][(((frame_parms->ofdm_symbol_size * i) + start_sc + (UE->multi_user.start_sc_1)+ j) % (frame_parms->ofdm_symbol_size)) + frame_parms->ofdm_symbol_size * i];
+                }    
+            } 
+        }
+
+        for (int l= 0; l < global_antenna; l++) {
+            for (int i = 0; i < NR_NUMBER_OF_SYMBOLS_PER_SLOT; i++) {
+                for (int j = 0; j < (UE->multi_user.nb_rb_ue3) * NR_NB_SC_PER_RB; j++) {
+                    UE->multi_user.rxdata_F_UE[3][l][j + i *(UE->multi_user.nb_rb_ue3 * NR_NB_SC_PER_RB)] = rxdata_F_UE_temp[l][(((frame_parms->ofdm_symbol_size * i) + start_sc + (UE->multi_user.start_sc_2)+ j) % (frame_parms->ofdm_symbol_size)) + frame_parms->ofdm_symbol_size * i];
+                }    
+            } 
+        }
+
+    for (int i = 0; i < global_multi_user_num; i++){ 
+        int angle_temp = global_multi_angle[i];
+        int ue_sc = ue_rb[i] * NR_NB_SC_PER_RB * NR_NUMBER_OF_SYMBOLS_PER_SLOT;
+        for (int aa = 0; aa < global_antenna; aa++) {
+            memcpy(&rxdata_F_UE_temp[aa][0], &UE->multi_user.rxdata_F_UE[i][aa][0], ue_sc * sizeof(int32_t));
+        }
+    
+        //printf("\n------------------------UE[%d]，RB:%d------------------------\n",i ,ue_rb[i]);
+        // use C to change to 0(MUSIC) or 1(MVDR)
+        // start DOA algorithm 
+        if(global_DOA_algorithm == 0){
+            //printf("MUSIC algorithm\n");
+            MUSIC_MU_ue_rb_init(rxdata_F_UE_temp , result_temp, angle_temp ,ue_sc);
+        }
+        else if(global_DOA_algorithm == 1){
+            //printf("MVDR algorithm\n");
+            MVDR_MU_ue_rb_init(rxdata_F_UE_temp , result_temp, angle_temp ,ue_sc);
+        }    
+        result[i] = result_temp[0]; 
+    }
+        printf("DOA estimation result:");
+        for (int i = 0; i < 4; i++){
+            printf("%f ",result[i]);
+        }
+        printf("\n");
     printf("[END] MUSIC/MVDR \n");
     
     printf("[START] MU RX beamforming (FD)\n");
