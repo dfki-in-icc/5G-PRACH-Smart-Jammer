@@ -38,6 +38,6 @@ void unlock_spinlock(spinlock_t* s)
 {
   assert(s != NULL);
   atomic_store_explicit(&s->lock, false, memory_order_release);
-  assert(s->lock == false);
+//  assert(s->lock == false);
 }
 

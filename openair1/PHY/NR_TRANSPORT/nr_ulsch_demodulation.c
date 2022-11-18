@@ -21,7 +21,9 @@
 
 #include "common/utils/thread_pool/task_manager.h"
 
+#include "nr_ulsch_demodulation.h"
 
+static inline
 int64_t time_now_us(void)
 {
   struct timespec tms;
@@ -1838,7 +1840,7 @@ void inner_rx_256qam(int *rxF, int *ul_ch, int16_t *llr, int aarx, int length,in
    }  
 }
 
-void inner_rx_64qam(int *rxF, int *ul_ch, int16_t *llr, int aarx, int length,int output_shift) {
+void inner_rx_64qam(int * restrict rxF, int * restrict ul_ch, int16_t *restrict llr, int aarx, int length,int output_shift) {
    register __m256i xmmtmpD0,xmmtmpD1,xmmtmpD2,xmmtmpD3,xmmtmpD4,xmmtmpD6,xmmtmpD7;
    register __m256i complex_shuffle256 = simde_mm256_set_epi8(29,28,31,30,25,24,27,26,21,20,23,22,17,16,19,18,13,12,15,14,9,8,11,10,5,4,7,6,1,0,3,2);
    register __m256i conj256 = simde_mm256_set_epi16(1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1);
@@ -1948,7 +1950,7 @@ void inner_rx_64qam(int *rxF, int *ul_ch, int16_t *llr, int aarx, int length,int
    }  
 }
 
-void inner_rx_16qam(int *rxF, int *ul_ch, int16_t *llr, int aarx, int length,int output_shift) {
+void inner_rx_16qam( int * rxF, int * ul_ch, int16_t * llr, int aarx, int length,int output_shift) {
    register __m256i xmmtmpD0,xmmtmpD1,xmmtmpD2,xmmtmpD3,xmmtmpD4,xmmtmpD5;
    register __m256i complex_shuffle256 = simde_mm256_set_epi8(29,28,31,30,25,24,27,26,21,20,23,22,17,16,19,18,13,12,15,14,9,8,11,10,5,4,7,6,1,0,3,2);
    register __m256i conj256 = simde_mm256_set_epi16(1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1);
@@ -3379,7 +3381,7 @@ int nr_rx_pusch_tp(PHY_VARS_gNB *gNB,
       rdata->s   = &s[gNB->pusch_vars[ulsch_id]->llr_offset[symbol]];
 
 #ifdef TASK_MANAGER
-    task_t const t = {.args = rdata, .func = nr_pusch_symbol_processing_noprecoding};
+    task_t const t = {.args = rdata, .func = &nr_pusch_symbol_processing_noprecoding };
     async_task_manager(&gNB->man, t);
 #else
     pushTpool(&gNB->threadPool,req);
@@ -3397,7 +3399,7 @@ int nr_rx_pusch_tp(PHY_VARS_gNB *gNB,
 
 #ifdef TASK_MANAGER
  stop_spin_manager(&gNB->man);
- wait_all_task_manager(&gNB->man);
+ wait_all_spin_task_manager(&gNB->man);
 #else
   while (gNB->nbSymb > 0) {
     notifiedFIFO_elt_t *req=pullTpool(gNB->respPuschSymb, &gNB->threadPool);

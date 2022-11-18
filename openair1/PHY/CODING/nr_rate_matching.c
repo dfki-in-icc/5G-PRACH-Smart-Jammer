@@ -310,7 +310,7 @@ void nr_interleaving_ldpc(uint32_t E, uint8_t Qm, uint8_t *e,uint8_t *f)
 void nr_deinterleaving_ldpc(uint32_t E, uint8_t Qm, int16_t *e,int16_t *f)
 { 
 
-  
+// printf("id %lu Qm %u E %u \n", pthread_self(), Qm, E); 
   switch(Qm) {
   case 2:
     {

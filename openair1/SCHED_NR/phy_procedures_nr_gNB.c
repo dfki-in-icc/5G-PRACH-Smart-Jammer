@@ -44,12 +44,47 @@
 
 #include "intertask_interface.h"
 
+#include "phy_procedures_nr_gNB.h"
+
+
 //#define DEBUG_RXDATA
 //#define SRS_IND_DEBUG
 
 uint8_t SSB_Table[38]={0,2,4,6,8,10,12,14,254,254,16,18,20,22,24,26,28,30,254,254,32,34,36,38,40,42,44,46,254,254,48,50,52,54,56,58,60,62};
 
 extern uint8_t nfapi_mode;
+
+#include <time.h>
+#include <stdint.h>
+#include <stdio.h>
+
+static inline
+int64_t time_now_us(void)
+{
+  struct timespec tms;
+
+  /* The C11 way */
+  /* if (! timespec_get(&tms, TIME_UTC))  */
+
+  /* POSIX.1-2008 way */
+  if (clock_gettime(CLOCK_REALTIME,&tms)) {
+    return -1;
+  }
+  /* seconds, multiplied with 1 million */
+  int64_t micros = tms.tv_sec * 1000000;
+  /* Add full microseconds */
+  micros += tms.tv_nsec/1000;
+  /* round up if necessary */
+  if (tms.tv_nsec % 1000 >= 500) {
+    ++micros;
+  }
+  return micros;
+}
+
+
+
+
+
 
 void nr_common_signal_procedures (PHY_VARS_gNB *gNB,int frame,int slot,nfapi_nr_dl_tti_ssb_pdu ssb_pdu) {
 
@@ -207,8 +242,19 @@ void phy_procedures_gNB_TX(processingData_L1tx_t *msgTx,
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PHY_PROCEDURES_gNB_TX+offset,0);
 }
 
-void nr_postDecode(PHY_VARS_gNB *gNB, notifiedFIFO_elt_t *req) {
+#ifdef TASK_MANAGER
+void nr_postDecode(PHY_VARS_gNB *gNB, ldpcDecode_t *rdata) 
+#else
+void nr_postDecode(PHY_VARS_gNB *gNB, notifiedFIFO_elt_t *req) 
+#endif
+{
+
+  //int64_t const start = time_now_us();
+  //printf(" nr_postDecode  Starting %lu \n ", start );
+#ifndef TASK_MANAGER
   ldpcDecode_t *rdata = (ldpcDecode_t*) NotifiedFifoData(req);
+#endif
+
   NR_UL_gNB_HARQ_t *ulsch_harq = rdata->ulsch_harq;
   NR_gNB_ULSCH_t *ulsch = rdata->ulsch;
   int r = rdata->segment_r;
@@ -225,6 +271,8 @@ void nr_postDecode(PHY_VARS_gNB *gNB, notifiedFIFO_elt_t *req) {
            rdata->Kr_bytes - (ulsch_harq->F>>3) -((ulsch_harq->C>1)?3:0));
 
   } else {
+    assert(0!=0 && "Do not come here" );
+    /*
     if ( rdata->nbSegments != ulsch_harq->processedSegments ) {
       int nb = abortTpoolJob(&gNB->threadPool, req->key);
       nb += abortNotifiedFIFOJob(&gNB->respDecode, req->key);
@@ -235,6 +283,7 @@ void nr_postDecode(PHY_VARS_gNB *gNB, notifiedFIFO_elt_t *req) {
 		  ulsch_harq->processedSegments, nb, rdata->nbSegments);
       ulsch_harq->processedSegments=rdata->nbSegments;
     }
+    */
   }
 
   //int dumpsig=0;
@@ -301,11 +350,20 @@ void nr_postDecode(PHY_VARS_gNB *gNB, notifiedFIFO_elt_t *req) {
     ulsch->last_iteration_cnt = rdata->decodeIterations;
     VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PHY_gNB_ULSCH_DECODING,0);
   }
+
+  //int64_t end  = time_now_us();
+  //printf("end  nr_postDecode %lu tstamp %lu \n ", end -start, end );
+
 }
 
 
 void nr_ulsch_procedures(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx, int ULSCH_id, uint8_t harq_pid)
 {
+
+#ifdef TASK_MANAGER
+  wake_spin_task_manager(&gNB->man);
+#endif
+
   NR_DL_FRAME_PARMS *frame_parms = &gNB->frame_parms;
   nfapi_nr_pusch_pdu_t *pusch_pdu = &gNB->ulsch[ULSCH_id]->harq_processes[harq_pid]->ulsch_pdu;
   
@@ -347,6 +405,8 @@ void nr_ulsch_procedures(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx, int ULSCH
 	pusch_pdu->qam_mod_order,
 	pusch_pdu->nrOfLayers);
 
+
+
   if (gNB->use_pusch_tp == 0) {
     nr_ulsch_layer_demapping(gNB->pusch_vars[ULSCH_id]->llr,
                              pusch_pdu->nrOfLayers,
@@ -369,6 +429,8 @@ void nr_ulsch_procedures(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx, int ULSCH
   //----------------------------------------------------------
 
   start_meas(&gNB->ulsch_decoding_stats);
+  //int64_t start = time_now_us();
+  //printf(" nr_ulsch_decoding %lu \n", start );
   nr_ulsch_decoding(gNB,
                     ULSCH_id,
                     gNB->pusch_vars[ULSCH_id]->llr,
@@ -378,15 +440,20 @@ void nr_ulsch_procedures(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx, int ULSCH
                     slot_rx,
                     harq_pid,
                     G);
+#ifndef TASK_MANAGER
   if (enable_ldpc_offload ==0) {
     while (gNB->nbDecode > 0) {
       notifiedFIFO_elt_t *req = pullTpool(&gNB->respDecode, &gNB->threadPool);
       if (req == NULL)
-	break; // Tpool has been stopped
+	        break; // Tpool has been stopped
       nr_postDecode(gNB, req);
       delNotifiedFIFO_elt(req);
     }
   } 
+#endif
+  //int64_t end = time_now_us();
+  //printf(" nr_ulsch_decoding %lu \n", end-start );
+
   stop_meas(&gNB->ulsch_decoding_stats);
 }
 

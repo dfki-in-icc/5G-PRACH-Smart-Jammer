@@ -976,7 +976,7 @@ typedef struct LDPCDecode_s {
   int offset;
   int decodeIterations;
   uint32_t tbslbrm;
-} ldpcDecode_t;
+} ldpcDecode_t ;
 
 struct ldpcReqId {
   uint16_t rnti;

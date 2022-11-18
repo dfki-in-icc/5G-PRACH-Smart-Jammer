@@ -55,6 +55,40 @@
 
 //extern double cpuf;
 
+#include "SCHED_NR/phy_procedures_nr_gNB.h"
+#include "common/utils/thread_pool/task_manager.h"
+#include <stdint.h>
+#include <time.h>
+
+#include <stdalign.h>
+
+#include "nr_ulsch_decoding.h"
+
+static inline
+int64_t time_now_us(void)
+{
+  struct timespec tms;
+
+  /* The C11 way */
+  /* if (! timespec_get(&tms, TIME_UTC))  */
+
+  /* POSIX.1-2008 way */
+  if (clock_gettime(CLOCK_REALTIME,&tms)) {
+    return -1;
+  }
+  /* seconds, multiplied with 1 million */
+  int64_t micros = tms.tv_sec * 1000000;
+  /* Add full microseconds */
+  micros += tms.tv_nsec/1000;
+  /* round up if necessary */
+  if (tms.tv_nsec % 1000 >= 500) {
+    ++micros;
+  }
+  return micros;
+}
+
+
+
 void free_gNB_ulsch(NR_gNB_ULSCH_t **ulschptr, uint16_t N_RB_UL)
 {
 
@@ -211,7 +245,12 @@ void clean_gNB_ulsch(NR_gNB_ULSCH_t *ulsch)
   static uint32_t prnt_crc_cnt = 0;
 #endif
 
-void nr_processULSegment(void* arg) {
+void nr_processULSegment(void* arg) 
+{
+
+  //const int64_t start_time = time_now_us();
+  //printf("id %lu starting %ld \n", pthread_self(), start_time );
+
   ldpcDecode_t *rdata = (ldpcDecode_t*) arg;
   PHY_VARS_gNB *phy_vars_gNB = rdata->gNB;
   NR_UL_gNB_HARQ_t *ulsch_harq = rdata->ulsch_harq;
@@ -227,13 +266,17 @@ void nr_processULSegment(void* arg) {
   int r = rdata->segment_r;
   int A = rdata->A;
   int E = rdata->E;
+  //assert(E > 0);
   int Qm = rdata->Qm;
+  //printf("Qm at porcessULSegment %d \n ", Qm);
+  //assert(Qm < 10 && Qm > 0);
   int rv_index = rdata->rv_index;
   int r_offset = rdata->r_offset;
   uint8_t kc = rdata->Kc;
   short* ulsch_llr = rdata->ulsch_llr;
   int max_ldpc_iterations = p_decoderParms->numMaxIter;
   int8_t llrProcBuf[OAI_UL_LDPC_MAX_NUM_LLR] __attribute__ ((aligned(32)));
+  //printf("BG %d\n", p_decoderParms->BG);
   p_decoderParms->R = nr_get_R_ldpc_decoder(rv_index,
                                             E,
                                             p_decoderParms->BG,
@@ -369,6 +412,14 @@ void nr_processULSegment(void* arg) {
     ulsch_harq->c[r][m]= (uint8_t) llrProcBuf[m];
   }
 
+#ifdef TASK_MANAGER
+  if( phy_vars_gNB->ldpc_offload_flag)
+    nr_postDecode(rdata->gNB, rdata);
+#endif
+
+  //const int64_t end = time_now_us();
+  //printf("id %lu Total time %ld tstamp %ld \n ", pthread_self(), end - start_time, end);
+
   //stop_meas(&phy_vars_gNB->ulsch_ldpc_decoding_stats);
 }
 
@@ -381,6 +432,10 @@ uint32_t nr_ulsch_decoding(PHY_VARS_gNB *phy_vars_gNB,
                            uint8_t nr_tti_rx,
                            uint8_t harq_pid,
                            uint32_t G) {
+
+  //const int64_t now = time_now_us(); 
+  //printf("id %lu nr_ulsch_decoding %lu \n", now, pthread_self());
+
 
   uint32_t A;
   uint32_t r;
@@ -723,12 +778,25 @@ uint32_t nr_ulsch_decoding(PHY_VARS_gNB *phy_vars_gNB,
   dtx_det = 0;
   void (*nr_processULSegment_ptr)(void*) = &nr_processULSegment;
 
+  //printf("Before preparing data = %lu \n" , time_now_us() - now );
+
+#ifdef TASK_MANAGER
+  ldpcDecode_t* arr = calloc(harq_process->C, sizeof(ldpcDecode_t)); 
+  int idx_arr = 0;
+#endif
+
   for (r=0; r<harq_process->C; r++) {
 
     E = nr_get_E(G, harq_process->C, Qm, n_layers, r);
+#ifdef TASK_MANAGER
+    ldpcDecode_t* rdata = &arr[idx_arr]; //calloc(1, sizeof( ldpcDecode_t ));// &arr[idx_arr];
+//    arr[idx_arr] = rdata;                                                         //
+    ++idx_arr; 
+#else
     union ldpcReqUnion id = {.s={ulsch->rnti,frame,nr_tti_rx,0,0}};
     notifiedFIFO_elt_t *req = newNotifiedFIFO_elt(sizeof(ldpcDecode_t), id.p, &phy_vars_gNB->respDecode, nr_processULSegment_ptr);
     ldpcDecode_t * rdata=(ldpcDecode_t *) NotifiedFifoData(req);
+#endif
 
     rdata->gNB = phy_vars_gNB;
     rdata->ulsch_harq = harq_process;
@@ -748,13 +816,37 @@ uint32_t nr_ulsch_decoding(PHY_VARS_gNB *phy_vars_gNB,
     rdata->ulsch = ulsch;
     rdata->ulsch_id = ULSCH_id;
     rdata->tbslbrm = pusch_pdu->maintenance_parms_v3.tbSizeLbrmBytes;
+#ifdef TASK_MANAGER
+  task_t t = { .args = rdata, .func =  &nr_processULSegment };
+  async_task_manager(&phy_vars_gNB->man, t);
+#else
     pushTpool(&phy_vars_gNB->threadPool, req);
+#endif
     phy_vars_gNB->nbDecode++;
     LOG_I(PHY,"Added a block to decode (Z %d, Kr %d, in pipe: %d\n",decParams.Z,Kr,phy_vars_gNB->nbDecode);
     r_offset += E;
     offset += (Kr_bytes - (harq_process->F>>3) - ((harq_process->C>1)?3:0));
     //////////////////////////////////////////////////////////////////////////////////////////
   }
+
+  //const int64_t after = time_now_us(); 
+  //printf("After preparing data = %lu  now %lu\n" , time_now_us() - now, after );
+
+
+#ifdef TASK_MANAGER
+  stop_spin_manager(&phy_vars_gNB->man);
+  wait_all_spin_task_manager(&phy_vars_gNB->man);
+  free(arr); 
+#endif
+
+ // for(size_t i = 0; i < harq_process->C; ++i){
+ // }
+
   } 
+
+  //const int64_t end = time_now_us();
+  //printf("After waiting all the tasks %ld tstamp %ld \n", end-now, end);
+
+
   return 1;
 }

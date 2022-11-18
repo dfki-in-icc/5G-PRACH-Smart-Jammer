@@ -7,7 +7,7 @@
 
 #include "task.h"
 #include "notification_queue.h"
-#include "wait.h"
+#include "spinlock.h"
 
 #include <pthread.h>
 #include <stdatomic.h>
@@ -26,8 +26,10 @@ typedef struct{
 
   pthread_cond_t  wait_cv; 
   pthread_mutex_t wait_mtx;
-  _Atomic bool waiting;
+  spinlock_t spin;
 
+  _Atomic int waiting; // 1 cv, 2 spin
+//  _Atomic bool wait_spin;
 } task_manager_t;
 
 void init_task_manager(task_manager_t* man, uint32_t num_threads);
@@ -39,6 +41,8 @@ void async_task_manager(task_manager_t* man, task_t t);
 void async_batch_task_manager(task_manager_t* man, batch_task_t const* b);
 
 void wait_all_task_manager(task_manager_t* man);
+
+void wait_all_spin_task_manager(task_manager_t* man);
 
 void wake_spin_task_manager(task_manager_t* man);
 

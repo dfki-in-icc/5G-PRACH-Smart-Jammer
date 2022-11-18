@@ -2,8 +2,13 @@
 
 #include <assert.h> 
 #include <stdlib.h>
-
+#include <threads.h>
 #include <stdio.h>
+
+
+
+//#include "../../../openair1/PHY/NR_TRANSPORT/nr_ulsch_decoding.h"
+//#include "../../../openair1/PHY/NR_TRANSPORT/nr_ulsch_demodulation.h"
 
 
 static
@@ -43,6 +48,9 @@ void* worker_thread(void* arg)
 {
   assert(arg != NULL);
 
+
+//   static _Thread_local void (*fp)(void*) = NULL;
+
   task_thread_args_t* args = (task_thread_args_t*)arg; 
   int const idx = args->idx;
   task_manager_t* man = args->man;
@@ -66,14 +74,17 @@ void* worker_thread(void* arg)
 
     //int64_t now = time_now_us();
     //printf("Before func %ld id %lu \n", now , pthread_self() );
-    
+   
+//    if(fp != ret.t.func)
+//      fp = ret.t.func; 
+
     ret.t.func(ret.t.args); 
     man->num_task -= 1;
     //printf("After func %ld id %lu elapsed %ld \n", time_now_us(), pthread_self(), time_now_us()-now );
 
-    if(man->num_task == 0 && man->waiting == true ){
+    if(man->num_task == 0 && man->waiting != 0 ){
       //printf("time now task manager %ld \n ", time_now_us()); 
-      pthread_cond_signal(&man->wait_cv);
+      man->waiting == 1 ? pthread_cond_signal(&man->wait_cv) : unlock_spinlock(&man->spin);
     }
 
   }
@@ -143,7 +154,7 @@ void init_task_manager(task_manager_t* man, uint32_t num_threads)
 
   // Waiting all
 
-  man->waiting = false;
+  man->waiting = 0;
 
   pthread_mutexattr_t attr = {0};
 #ifdef _DEBUG
@@ -186,7 +197,7 @@ void free_task_manager(task_manager_t* man, void (*clean)(void*))
 void async_task_manager(task_manager_t* man, task_t t)
 {
   assert(man != NULL);
-  assert(t.func != NULL);
+  //assert(t.func != NULL);
   //assert(t.args != NULL);
 
   uint64_t const index = man->index++;
@@ -229,14 +240,25 @@ void wait_all_task_manager(task_manager_t* man)
   assert(man != NULL);
 
   pthread_mutex_lock(&man->wait_mtx);
-  man->waiting = true;
+  man->waiting = 1;
 
   while(man->num_task != 0) 
     pthread_cond_wait(&man->wait_cv , &man->wait_mtx);
 
-  man->waiting = false;
+  man->waiting = 0;
   pthread_mutex_unlock(&man->wait_mtx);
 }
+
+void wait_all_spin_task_manager(task_manager_t* man)
+{
+  assert(man != NULL);
+
+  man->waiting = 2;
+  lock_spinlock(&man->spin);
+  man->waiting = 0;
+}
+
+
 
 void wake_spin_task_manager(task_manager_t* man)
 {
