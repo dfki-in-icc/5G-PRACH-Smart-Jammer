@@ -89,7 +89,7 @@ uint32_t N_RB_DL = 106;
  * \brief Integrate MUSIC & MVDR algorithm multi-user rand UE RB & can set UE RB
  * \author NYCU OpinConnect Sendren Xu, Terng-Yin Hsu, Ming-Hsun Wu, Chao-Hung Hsu
  * \email  sdxu@mail.ntust.edu.tw, tyhsu@cs.nctu.edu.tw, sam0104502@gmail.com, abby88771@gmail.com
- * \date   19-11-2022
+ * \date   18-11-2022
  * \version 1.1
  * \note
  * \warning
