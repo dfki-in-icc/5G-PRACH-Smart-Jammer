@@ -491,8 +491,8 @@ typedef struct {
   int if_freq_off;
   /// \brief Indicator that UE is synchronized to a gNB
   int is_synchronized;
-  /// \brief Indicator that UE is resynchronizing to a gNB
-  int is_resynchronizing;
+  /// \brief State indicator that UE is resynchronizing to a gNB
+  int resynchronizing_state;
   /// \brief Target gNB Nid_cell when UE is resynchronizing
   uint16_t target_Nid_cell;
   /// \brief Indicator that UE lost frame synchronization

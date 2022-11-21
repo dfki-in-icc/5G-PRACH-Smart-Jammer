@@ -650,7 +650,7 @@ static void UE_resynch(void *arg)
     } else {
       UE->is_synchronized = 1;
     }
-    UE->is_resynchronizing = 0;
+    UE->resynchronizing_state = RESYNCH_RA;
     UE->UE_mode[gNB_id] = PRACH;
 
   } else {
@@ -712,11 +712,13 @@ void UE_processing(nr_rxtx_thread_data_t *rxtxD) {
     protocol_ctxt_t ctxt;
     PROTOCOL_CTXT_SET_BY_MODULE_ID(&ctxt, UE->Mod_id, ENB_FLAG_NO, mac->crnti, proc->frame_rx, proc->nr_slot_rx, 0);
     NR_UE_L2_STATE_t ue_l2_state = get_ue_l2_state(&ctxt, gNB_id);
-    if (ue_l2_state == UE_PHY_RESYNCH && UE->UE_mode[gNB_id] >= PUSCH) {
+    if (ue_l2_state == UE_PHY_RESYNCH && UE->resynchronizing_state == RESYNCH_IDLE) {
       UE->target_Nid_cell = UE->common_vars.eNb_id; // FIXME: Get the target Nid_cell
       UE->UE_mode[gNB_id] = NOT_SYNCHED;
-      UE->is_resynchronizing = 1;
+      UE->resynchronizing_state = RESYNCH_SSB;
       clean_UE_ulsch(UE, gNB_id);
+    } else if (ue_l2_state == UE_CONNECTION_OK && UE->resynchronizing_state != RESYNCH_IDLE) {
+      UE->resynchronizing_state = RESYNCH_IDLE;
     }
 
     /* send tick to RLC and PDCP every ms */
@@ -947,7 +949,7 @@ void *UE_thread(void *arg) {
 
     AssertFatal( !syncRunning, "At this point synchronization can't be running\n");
 
-    if (UE->is_resynchronizing == 1) {
+    if (UE->resynchronizing_state == RESYNCH_SSB) {
       readFrame(UE, &timestamp, false);
       notifiedFIFO_elt_t *Msg = newNotifiedFIFO_elt(sizeof(syncData_t), 0, &nf, UE_resynch);
       syncData_t *syncMsg = (syncData_t *)NotifiedFifoData(Msg);
