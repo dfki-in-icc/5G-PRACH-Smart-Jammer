@@ -734,7 +734,8 @@ void check_and_process_dci(nfapi_nr_dl_tti_request_t *dl_tti_request,
 
     NR_UL_TIME_ALIGNMENT_t ul_time_alignment;
     memset(&ul_time_alignment, 0, sizeof(ul_time_alignment));
-    fill_dci_from_dl_config(&mac->dl_info, &mac->dl_config_request);
+    fapi_nr_dl_config_request_t *dl_config = get_dl_config_request(mac, slot);
+    fill_dci_from_dl_config(&mac->dl_info, dl_config);
     nr_ue_scheduler(&mac->dl_info, NULL);
     nr_ue_dl_indication(&mac->dl_info, &ul_time_alignment);
 
@@ -1152,7 +1153,7 @@ int nr_ue_dl_indication(nr_downlink_indication_t *dl_info, NR_UL_TIME_ALIGNMENT_
   uint32_t ret_mask = 0x0;
   module_id_t module_id = dl_info->module_id;
   NR_UE_MAC_INST_t *mac = get_mac_inst(module_id);
-  fapi_nr_dl_config_request_t *dl_config = &mac->dl_config_request;
+  fapi_nr_dl_config_request_t *dl_config = get_dl_config_request(mac, dl_info->slot);
 
   if ((!dl_info->dci_ind && !dl_info->rx_ind)) {
     // UL indication to schedule DCI reception
@@ -1281,8 +1282,8 @@ int nr_ue_dcireq(nr_dcireq_t *dcireq) {
 
   fapi_nr_dl_config_request_t *dl_config = &dcireq->dl_config_req;
   NR_UE_MAC_INST_t *UE_mac = get_mac_inst(0);
-  dl_config->sfn = UE_mac->dl_config_request.sfn;
-  dl_config->slot = UE_mac->dl_config_request.slot;
+  dl_config->sfn = dcireq->frame;
+  dl_config->slot = dcireq->slot;
 
   LOG_T(PHY, "Entering UE DCI configuration frame %d slot %d \n", dcireq->frame, dcireq->slot);
 

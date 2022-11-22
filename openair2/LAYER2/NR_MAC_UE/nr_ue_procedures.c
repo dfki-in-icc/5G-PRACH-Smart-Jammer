@@ -386,9 +386,6 @@ int8_t nr_ue_decode_mib(module_id_t module_id,
       mac->first_sync_frame = frame;
   }
 
-  mac->dl_config_request.sfn = frame;
-  mac->dl_config_request.slot = ssb_start_symbol/14;
-
   return 0;
 }
 
@@ -641,7 +638,7 @@ int8_t nr_ue_process_dci(module_id_t module_id, int cc_id, uint8_t gNB_index, fr
   bool valid_ptrs_setup = 0;
   NR_UE_MAC_INST_t *mac = get_mac_inst(module_id);
   RA_config_t *ra = &mac->ra;
-  fapi_nr_dl_config_request_t *dl_config = &mac->dl_config_request;
+  fapi_nr_dl_config_request_t *dl_config = get_dl_config_request(mac, slot);
   uint8_t is_Msg3 = 0;
   NR_UE_DL_BWP_t *current_DL_BWP = &mac->current_DL_BWP;
   NR_UE_UL_BWP_t *current_UL_BWP = &mac->current_UL_BWP;
@@ -1313,7 +1310,7 @@ int8_t nr_ue_process_dci(module_id_t module_id, int cc_id, uint8_t gNB_index, fr
                                                          dlsch_config_pdu_1_1->n_front_load_symb);
 
     /* TCI */
-    if (mac->dl_config_request.dl_config_list[0].dci_config_pdu.dci_config_rel15.coreset.tci_present_in_dci == 1){
+    if (dl_config->dl_config_list[dl_config->number_pdus].dci_config_pdu.dci_config_rel15.coreset.tci_present_in_dci == 1){
       // 0 bit if higher layer parameter tci-PresentInDCI is not enabled
       // otherwise 3 bits as defined in Subclause 5.1.5 of [6, TS38.214]
       dlsch_config_pdu_1_1->tci_state = dci->transmission_configuration_indication.val;
@@ -2171,10 +2168,14 @@ uint8_t get_downlink_ack(NR_UE_MAC_INST_t *mac,
               }
 
               number_harq_feedback++;
-              if (current_harq->ack_received)
+              if (current_harq->ack_received) {
                 ack_data[code_word][dai_current - 1] = current_harq->ack;
-              else
+                current_harq->active = false;
+                current_harq->ack_received = false;
+              } else {
+                LOG_W(NR_MAC, "DLSCH ACK/NACK reporting initiated for harq pid %d before DLSCH decoding completed\n", dl_harq_pid);
                 ack_data[code_word][dai_current - 1] = 0;
+              }
               dai[code_word][dai_current - 1] = dai_current;
 
               pucch->resource_indicator = current_harq->pucch_resource_indicator;
@@ -2182,9 +2183,7 @@ uint8_t get_downlink_ack(NR_UE_MAC_INST_t *mac,
               pucch->N_CCE = current_harq->N_CCE;
               pucch->delta_pucch = current_harq->delta_pucch;
               pucch->is_common = current_harq->is_common;
-              current_harq->active = false;
-              current_harq->ack_received = false;
-	      LOG_D(PHY,"%4d.%2d Sent %d ack on harq pid %d\n", frame, slot, current_harq->ack, dl_harq_pid);
+              LOG_D(PHY,"%4d.%2d Sent %d ack on harq pid %d\n", frame, slot, current_harq->ack, dl_harq_pid);
             }
           }
         }

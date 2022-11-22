@@ -438,7 +438,7 @@ typedef struct {
   int first_ul_tx[NR_MAX_HARQ_PROCESSES];
   ////	FAPI-like interface message
   fapi_nr_ul_config_request_t *ul_config_request;
-  fapi_nr_dl_config_request_t dl_config_request;
+  fapi_nr_dl_config_request_t *dl_config_request;
 
   ///     Interface module instances
   nr_ue_if_module_t       *if_module;
