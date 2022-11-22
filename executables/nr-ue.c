@@ -580,7 +580,9 @@ void processSlotTX(void *arg) {
       ul_indication.slot_tx   = proc->nr_slot_tx;
       ul_indication.phy_data      = &phy_data;
 
+      pthread_mutex_lock(&UE->mac_IF_mutex);
       UE->if_inst->ul_indication(&ul_indication);
+      pthread_mutex_unlock(&UE->mac_IF_mutex);
       stop_meas(&UE->ue_ul_indication_stats);
     }
 
@@ -590,8 +592,9 @@ void processSlotTX(void *arg) {
   RU_write(rxtxD);
 }
 
-void UE_processing(nr_rxtx_thread_data_t *rxtxD) {
+void UE_processing(void *arg) {
 
+  nr_rxtx_thread_data_t *rxtxD = (nr_rxtx_thread_data_t *) arg;
   UE_nr_rxtx_proc_t *proc = &rxtxD->proc;
   PHY_VARS_NR_UE    *UE   = rxtxD->UE;
   nr_phy_data_t phy_data = {0};
@@ -611,17 +614,14 @@ void UE_processing(nr_rxtx_thread_data_t *rxtxD) {
     if(UE->if_inst != NULL && UE->if_inst->dl_indication != NULL) {
       nr_downlink_indication_t dl_indication;
       nr_fill_dl_indication(&dl_indication, NULL, NULL, proc, UE, &phy_data);
+      pthread_mutex_lock(&UE->mac_IF_mutex);
       UE->if_inst->dl_indication(&dl_indication, NULL);
+      pthread_mutex_unlock(&UE->mac_IF_mutex);
     }
 
-  // Process Rx data for one sub-frame
-#ifdef UE_SLOT_PARALLELISATION
-    phy_procedures_slot_parallelization_nrUE_RX( UE, proc, 0, 0, 1, no_relay, NULL );
-#else
     uint64_t a=rdtsc_oai();
     phy_procedures_nrUE_RX(UE, proc, &phy_data);
     LOG_D(PHY, "In %s: slot %d, time %llu\n", __FUNCTION__, proc->nr_slot_rx, (rdtsc_oai()-a)/3500);
-#endif
 
     if(IS_SOFTMODEM_NOS1 || get_softmodem_params()->sa){
       NR_UE_MAC_INST_t *mac = get_mac_inst(0);
@@ -752,6 +752,8 @@ void *UE_thread(void *arg) {
 
   notifiedFIFO_t freeBlocks;
   initNotifiedFIFO_nothreadSafe(&freeBlocks);
+
+  pthread_mutex_init(&UE->mac_IF_mutex, NULL);
 
   int timing_advance = UE->timing_advance;
   NR_UE_MAC_INST_t *mac = get_mac_inst(0);
@@ -907,8 +909,12 @@ void *UE_thread(void *arg) {
     curMsgTx->UE = UE;
     pushTpool(&(get_nrUE_params()->Tpool), newElt);
 
-    // RX slot processing
-    UE_processing(&curMsg);
+    // RX slot processing. We launch and forget.
+    newElt = newNotifiedFIFO_elt(sizeof(nr_rxtx_thread_data_t), curMsg.proc.nr_slot_rx, NULL, UE_processing);
+    nr_rxtx_thread_data_t *curMsgRx = (nr_rxtx_thread_data_t *) NotifiedFifoData(newElt);
+    curMsgRx->proc = curMsg.proc;
+    curMsgRx->UE = UE;
+    pushTpool(&(get_nrUE_params()->Tpool), newElt);
 
     if (curMsg.proc.decoded_frame_rx != -1)
       decoded_frame_rx=(((mac->mib->systemFrameNumber.buf[0] >> mac->mib->systemFrameNumber.bits_unused)<<4) | curMsg.proc.decoded_frame_rx);

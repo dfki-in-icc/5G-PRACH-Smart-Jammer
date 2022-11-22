@@ -539,7 +539,9 @@ int nr_ue_pdcch_procedures(PHY_VARS_NR_UE *ue,
   // fill dl_indication message
   nr_fill_dl_indication(&dl_indication, &dci_ind, NULL, proc, ue, phy_data);
   //  send to mac
+  pthread_mutex_lock(&ue->mac_IF_mutex);
   ue->if_inst->dl_indication(&dl_indication, NULL);
+  pthread_mutex_unlock(&ue->mac_IF_mutex);
 
 
   stop_meas(&ue->dlsch_rx_pdcch_stats);
@@ -886,7 +888,9 @@ bool nr_ue_dlsch_procedures(PHY_VARS_NR_UE *ue,
   }
   //  send to mac
   if (ue->if_inst && ue->if_inst->dl_indication) {
+    pthread_mutex_lock(&ue->mac_IF_mutex);
     ue->if_inst->dl_indication(&dl_indication, ul_time_alignment);
+    pthread_mutex_unlock(&ue->mac_IF_mutex);
   }
 
   if (ue->mac_enabled == 1) { // TODO: move this from PHY to MAC layer!
