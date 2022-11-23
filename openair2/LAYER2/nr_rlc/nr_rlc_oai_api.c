@@ -39,6 +39,7 @@
 #include "NR_UL-CCCH-Message.h"
 
 #include "openair2/F1AP/f1ap_du_rrc_message_transfer.h"
+#include "common/utils/LATSEQ/latseq.h"
 
 extern RAN_CONTEXT_t RC;
 
@@ -172,6 +173,7 @@ void mac_rlc_data_ind     (
 
   if (rb != NULL) {
 	LOG_D(RLC, "RB found! (channel ID %d) \n", channel_idP);
+    LATSEQ_P("U mac.push--rlc.decoded", "len%d::frame%d.lcid%d.bufaddress%u", tb_sizeP, frameP, channel_idP, buffer_pP);
     rb->set_time(rb, nr_rlc_current_time);
     rb->recv_pdu(rb, buffer_pP, tb_sizeP);
   } else {

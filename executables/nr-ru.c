@@ -58,6 +58,7 @@
 #include "PHY/TOOLS/smbv.h"
 unsigned short config_frames[4] = {2,9,11,13};
 #endif
+#include "common/utils/LATSEQ/latseq.h"
 
 
 /* these variables have to be defined before including ENB_APP/enb_paramdef.h and GNB_APP/gnb_paramdef.h */
@@ -621,6 +622,7 @@ void *emulatedRF_thread(void *param) {
 
 void rx_rf(RU_t *ru,int *frame,int *slot) {
   RU_proc_t *proc = &ru->proc;
+  LATSEQ_P("U phy.start--phy.ant","::frame%d.slot%d", *frame, *slot);
   NR_DL_FRAME_PARMS *fp = ru->nr_frame_parms;
   openair0_config_t *cfg   = &ru->openair0_cfg;
   void *rxp[ru->nb_rx];
@@ -717,7 +719,7 @@ void rx_rf(RU_t *ru,int *frame,int *slot) {
     //exit_fun( "problem receiving samples" );
     LOG_E(PHY, "problem receiving samples\n");
   }
-
+  LATSEQ_P("U phy.ant--mac.decoded","len%d::frame%d.slot%d", rxs, proc->frame_rx, proc->tti_rx);
   stop_meas(&ru->rx_fhaul);
 }
 

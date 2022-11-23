@@ -28,6 +28,7 @@
 
 #include "LOG/log.h"
 #include "common/utils/time_stat.h"
+#include "common/utils/LATSEQ/latseq.h"
 
 /* for a given SDU/SDU segment, computes the corresponding PDU header size */
 static int compute_pdu_header_size(nr_rlc_entity_am_t *entity,
@@ -219,6 +220,7 @@ static void reassemble_and_deliver(nr_rlc_entity_am_t *entity, int sn)
     return;
 
   /* deliver */
+  LATSEQ_P("U rlc.reassembled--pdcp.decoded", "len%d::sn%d", so, sn);
   entity->common.deliver_sdu(entity->common.deliver_sdu_data,
                              (nr_rlc_entity_t *)entity,
                              sdu, so);
@@ -719,6 +721,7 @@ void nr_rlc_entity_am_recv_pdu(nr_rlc_entity_t *_entity,
   }
 
   data_size = size - decoder.byte;
+  LATSEQ_P("U rlc.decoded--rlc.reassembled", "len%d::bufaddress%u.dc%d.p%d.si%d.sn%d.so%d", data_size, buffer, dc, p, si, sn, so);
 
   /* dicard PDU if no data */
   if (data_size <= 0) {

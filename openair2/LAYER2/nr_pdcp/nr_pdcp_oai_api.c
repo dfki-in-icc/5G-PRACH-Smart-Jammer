@@ -39,6 +39,7 @@
 #include <openair3/ocp-gtpu/gtp_itf.h>
 #include "openair2/SDAP/nr_sdap/nr_sdap.h"
 #include "executables/softmodem-common.h"
+#include "common/utils/LATSEQ/latseq.h"
 
 #define TODO do { \
     printf("%s:%d:%s: todo\n", __FILE__, __LINE__, __FUNCTION__); \
@@ -609,7 +610,7 @@ uint64_t nr_pdcp_module_init(uint64_t _pdcp_optmask, int id)
 }
 
 static void deliver_sdu_drb(void *_ue, nr_pdcp_entity_t *entity,
-                            char *buf, int size)
+                            char *buf, int size, int sn_latseq)
 {
   nr_pdcp_ue_t *ue = _ue;
   int rb_id;
@@ -617,7 +618,7 @@ static void deliver_sdu_drb(void *_ue, nr_pdcp_entity_t *entity,
 
   if (IS_SOFTMODEM_NOS1 || UE_NAS_USE_TUN) {
     LOG_D(PDCP, "IP packet received with size %d, to be sent to SDAP interface, UE ID/RNTI: %ld\n", size, ue->rntiMaybeUEid);
-    sdap_data_ind(entity->rb_id, entity->is_gnb, entity->has_sdap, entity->has_sdapULheader, entity->pdusession_id, ue->rntiMaybeUEid, buf, size);
+    sdap_data_ind(entity->rb_id, entity->is_gnb, entity->has_sdap, entity->has_sdapULheader, entity->pdusession_id, ue->rntiMaybeUEid, buf, size, sn_latseq);
   }
   else{
     for (i = 0; i < MAX_DRBS_PER_UE; i++) {
@@ -633,7 +634,7 @@ static void deliver_sdu_drb(void *_ue, nr_pdcp_entity_t *entity,
     rb_found:
     {
       LOG_D(PDCP, "%s() (drb %d) sending message to SDAP size %d\n", __func__, rb_id, size);
-      sdap_data_ind(rb_id, ue->drb[rb_id - 1]->is_gnb, ue->drb[rb_id - 1]->has_sdap, ue->drb[rb_id - 1]->has_sdapULheader, ue->drb[rb_id - 1]->pdusession_id, ue->rntiMaybeUEid, buf, size);
+      sdap_data_ind(rb_id, ue->drb[rb_id - 1]->is_gnb, ue->drb[rb_id - 1]->has_sdap, ue->drb[rb_id - 1]->has_sdapULheader, ue->drb[rb_id - 1]->pdusession_id, ue->rntiMaybeUEid, buf, size, sn_latseq);
     }
   }
 }
@@ -699,7 +700,7 @@ rb_found:
 }
 
 static void deliver_sdu_srb(void *_ue, nr_pdcp_entity_t *entity,
-                            char *buf, int size)
+                            char *buf, int size, int sn_latseq)
 {
   nr_pdcp_ue_t *ue = _ue;
   int srb_id;

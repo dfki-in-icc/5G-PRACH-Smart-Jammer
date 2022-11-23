@@ -93,7 +93,7 @@ typedef struct nr_pdcp_entity_t {
 
   /* callbacks provided to the PDCP module */
   void (*deliver_sdu)(void *deliver_sdu_data, struct nr_pdcp_entity_t *entity,
-                      char *buf, int size);
+                      char *buf, int size, int sn_latseq);
   void *deliver_sdu_data;
   void (*deliver_pdu)(void *deliver_pdu_data, struct nr_pdcp_entity_t *entity,
                       char *buf, int size, int sdu_id);
@@ -172,7 +172,7 @@ nr_pdcp_entity_t *new_nr_pdcp_entity(
     int is_gnb, int rb_id, int pdusession_id,int has_sdap,
     int has_sdapULheader,int has_sdapDLheader,
     void (*deliver_sdu)(void *deliver_sdu_data, struct nr_pdcp_entity_t *entity,
-                        char *buf, int size),
+                        char *buf, int size, int sn_latseq),
     void *deliver_sdu_data,
     void (*deliver_pdu)(void *deliver_pdu_data, struct nr_pdcp_entity_t *entity,
                         char *buf, int size, int sdu_id),

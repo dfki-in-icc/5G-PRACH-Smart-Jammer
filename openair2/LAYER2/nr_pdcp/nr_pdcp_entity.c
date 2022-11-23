@@ -31,6 +31,7 @@
 #include "nr_pdcp_sdu.h"
 
 #include "LOG/log.h"
+#include "common/utils/LATSEQ/latseq.h"
 
 static void nr_pdcp_entity_recv_pdu(nr_pdcp_entity_t *entity,
                                     char *_buffer, int size)
@@ -133,6 +134,7 @@ static void nr_pdcp_entity_recv_pdu(nr_pdcp_entity_t *entity,
 
     return;
   }
+  LATSEQ_P("U pdcp.decoded--sdap.sdu", "len%d::sn%d", size, rcvd_sn);
 
   sdu = nr_pdcp_new_sdu(rcvd_count,
                         (char *)buffer + header_size,
@@ -152,7 +154,7 @@ static void nr_pdcp_entity_recv_pdu(nr_pdcp_entity_t *entity,
     while (entity->rx_list != NULL && count == entity->rx_list->count) {
       nr_pdcp_sdu_t *cur = entity->rx_list;
       entity->deliver_sdu(entity->deliver_sdu_data, entity,
-                          cur->buffer, cur->size);
+                          cur->buffer, cur->size, rcvd_sn);
       entity->rx_list = cur->next;
       entity->rx_size -= cur->size;
       entity->stats.txsdu_pkts++;
@@ -333,7 +335,7 @@ static void check_t_reordering(nr_pdcp_entity_t *entity)
   while (entity->rx_list != NULL && entity->rx_list->count < entity->rx_reord) {
     nr_pdcp_sdu_t *cur = entity->rx_list;
     entity->deliver_sdu(entity->deliver_sdu_data, entity,
-                        cur->buffer, cur->size);
+                        cur->buffer, cur->size, 30001);
     entity->rx_list = cur->next;
     entity->rx_size -= cur->size;
     nr_pdcp_free_sdu(cur);
@@ -344,7 +346,7 @@ static void check_t_reordering(nr_pdcp_entity_t *entity)
   while (entity->rx_list != NULL && count == entity->rx_list->count) {
     nr_pdcp_sdu_t *cur = entity->rx_list;
     entity->deliver_sdu(entity->deliver_sdu_data, entity,
-                        cur->buffer, cur->size);
+                        cur->buffer, cur->size, 30002);
     entity->rx_list = cur->next;
     entity->rx_size -= cur->size;
     nr_pdcp_free_sdu(cur);
@@ -393,7 +395,7 @@ nr_pdcp_entity_t *new_nr_pdcp_entity(
     int is_gnb, int rb_id, int pdusession_id,int has_sdap,
     int has_sdapULheader, int has_sdapDLheader,
     void (*deliver_sdu)(void *deliver_sdu_data, struct nr_pdcp_entity_t *entity,
-                        char *buf, int size),
+                        char *buf, int size, int sn_latseq),
     void *deliver_sdu_data,
     void (*deliver_pdu)(void *deliver_pdu_data, struct nr_pdcp_entity_t *entity,
                         char *buf, int size, int sdu_id),
