@@ -60,9 +60,9 @@ int rrc_mac_config_req_gNB(module_id_t Mod_idP,
                            uint32_t rnti,
                            NR_CellGroupConfig_t *CellGroup);
 
-void clear_nr_nfapi_information(gNB_MAC_INST * gNB, 
+void clear_nr_nfapi_information(gNB_MAC_INST * gNB,
                                 int CC_idP,
-                                frame_t frameP, 
+                                frame_t frameP,
                                 sub_frame_t subframeP);
 
 void nr_mac_update_timers(module_id_t module_id,
@@ -200,6 +200,8 @@ void nr_schedule_pucch(gNB_MAC_INST *nrmac,
 
 void nr_schedule_srs(int module_id, frame_t frame);
 
+void nr_schedule_srs_secondary(int module_id, frame_t frame, int UE_id);
+
 void nr_csirs_scheduling(int Mod_idP,
                          frame_t frame,
                          sub_frame_t slot,
@@ -219,7 +221,7 @@ int nr_acknack_scheduling(gNB_MAC_INST *mac,
 void get_pdsch_to_harq_feedback(NR_PUCCH_Config_t *pucch_Config,
                                 nr_dci_format_t dci_format,
                                 uint8_t *pdsch_to_harq_feedback);
-  
+
 void nr_configure_css_dci_initial(nfapi_nr_dl_tti_pdcch_pdu_rel15_t* pdcch_pdu,
                                   nr_scs_e scs_common,
                                   nr_scs_e pdcch_scs,

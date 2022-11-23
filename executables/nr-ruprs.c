@@ -67,9 +67,9 @@ unsigned short config_frames[4] = {2,9,11,13};
 #include "MQTTClient.h"
 #define ADDRESS     "tcp://localhost:1883"
 //#define ADDRESS     "tcp://172.24.10.178:1883"
-//#define CLIENTID    "Gnb1"
+#define CLIENTID    "Gnb1"
 #define TOPIC       "Frame_rx"
-#define QOS         0
+#define QOS         1
 #define TIMEOUT     100L
 void Frame_MQTT(void *data, int32_t length, int32_t frame_id,   int32_t gNB_id);
 
@@ -1203,7 +1203,24 @@ void *ru_thread( void *param ) {
 	//slot_duration.tv_nsec = 0.5e6;
 	slot_duration.tv_nsec = 0.5e6;
 
+/* adeel changes
+int rc;
+  MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
+  if ((rc = MQTTClient_create(&client, gNB->mqtt_cfg.MqttBrokerAddr, gNB->mqtt_cfg.MqttClientId,
+      MQTTCLIENT_PERSISTENCE_NONE, NULL)) != MQTTCLIENT_SUCCESS)
+  {
+       printf("Failed to create MQTT client %s, return code %d\n", gNB->mqtt_cfg.MqttClientId, rc);
+       exit(EXIT_FAILURE);
+  }
+  conn_opts.keepAliveInterval = 20;
+  conn_opts.cleansession = 1;
+  if ((rc = MQTTClient_connect(client, &conn_opts)) != MQTTCLIENT_SUCCESS)
+  {
+      printf("Failed to create MQTT client %s, return code %d\n", gNB->mqtt_cfg.MqttClientId, rc);
+      exit(EXIT_FAILURE);
+  }
 
+*/
 
   while (!oai_exit) {
 
@@ -1278,12 +1295,9 @@ void *ru_thread( void *param ) {
     //start:adeel changes Frame extraction
 //Start: Sending Frame samples via MQTT
 //proc->frame_rx %20==0 &&
-
-//long trp_id= gNB->gNB_config.cell_config.trp_id;
-//    if (proc->frame_rx %50==0 && proc->tti_rx== 15 ){  // As this function is called at each slot, we use if condition to make sure to send limited amount of frame data via MQTT (currently every 20th frame), sending more frequently may overwhelm the matlab processing
- //        Frame_MQTT(&ru->common.rxdata[0][0], fp->samples_per_frame,  proc->frame_rx, trp_id) ; //
- //   }
-
+    if (proc->frame_rx %50==0 && proc->tti_rx== 15 ){  // As this function is called at each slot, we use if condition to make sure to send limited amount of frame data via MQTT (currently every 20th frame), sending more frequently may overwhelm the matlab processing
+         Frame_MQTT(&ru->common.rxdata[0][0], fp->samples_per_frame,  proc->frame_rx, 1) ; //
+    }
 
      //printf("\n gNB1 [nr-ru.c] samples_per_tti= %d  \n", ru->frame_parms->samples_per_tti); // adeel changes
     //printf("\n gNB1 [nr-ru.c] UPlink slot timestamp_rx %" PRId64 "\n", proc->timestamp_rx);// adeel changes  /// timestamp received from HW  openair0_timestamp timestamp_rx;
@@ -1369,6 +1383,12 @@ void *ru_thread( void *param ) {
     pushTpool(&gNB->threadPool, res);
   }
 
+
+  /*  adeel changes
+  if ((rc = MQTTClient_disconnect(client, 10000)) != MQTTCLIENT_SUCCESS)
+    printf("Failed to disconnect MQTT client %s, return code %d\n", gNB->mqtt_cfg.MqttClientId, rc);
+  MQTTClient_destroy(&client);
+  */
   printf( "Exiting ru_thread \n");
 
   if (ru->stop_rf != NULL) {
@@ -2075,12 +2095,8 @@ void Frame_MQTT(void *data, int32_t length,  int32_t frame_id, int32_t gNB_id)  
    MQTTClient_message pubmsg = MQTTClient_message_initializer;
     MQTTClient_deliveryToken token;
     int rc;
-
-//    MQTTClient_create(&client, ADDRESS, CLIENTID, MQTTCLIENT_PERSISTENCE_NONE, NULL);
- char CLIENTID[5];
-//#define CLIENTID    "Gnb1"
-sprintf(CLIENTID,"Gnb%d", gNB_id);
-    MQTTClient_create(&client, ADDRESS, CLIENTID, MQTTCLIENT_PERSISTENCE_NONE, NULL);
+    MQTTClient_create(&client, ADDRESS, CLIENTID,
+        MQTTCLIENT_PERSISTENCE_NONE, NULL);
     conn_opts.keepAliveInterval = 20;
     conn_opts.cleansession = 1;
     if ((rc = MQTTClient_connect(client, &conn_opts)) != MQTTCLIENT_SUCCESS)

@@ -53,7 +53,7 @@ int nr_est_timing_advance_pusch(PHY_VARS_gNB* gNB, int UE_id)
     for (int aa = 0; aa < frame_parms->nb_antennas_rx; aa++) {
       int Re = ((int16_t*)ul_ch_estimates_time[aa])[(i<<1)];
       int Im = ((int16_t*)ul_ch_estimates_time[aa])[1+(i<<1)];
-      temp += (Re*Re/2) + (Im*Im/2);
+      temp += (Re*Re/2) + (Im*Im/2);      
     }
     if (temp > max_val) {
       max_pos = i;
@@ -67,7 +67,7 @@ int nr_est_timing_advance_pusch(PHY_VARS_gNB* gNB, int UE_id)
   return max_pos - sync_pos;
 }
 
-int nr_est_timing_advance_srs(const NR_DL_FRAME_PARMS *frame_parms,
+int nr_est_timing_advance_srs(const NR_DL_FRAME_PARMS *frame_parms, 
                               const int32_t srs_estimated_channel_time[][frame_parms->ofdm_symbol_size]) {
   int timing_advance = 0;
   int max_val = 0;
@@ -108,9 +108,7 @@ int nr_est_timing_advance_srs(const NR_DL_FRAME_PARMS *frame_parms,
   if (timing_advance_update < 0)  timing_advance_update = 0;
   if (timing_advance_update > 63) timing_advance_update = 63;
 
-
-//   printf("\n####################[nr_measurement_gnb] ## Timing advance %d \n", timing_advance_update); //adeel changes
- return timing_advance_update;
+  return timing_advance_update;
 }
 
 void dump_nr_I0_stats(FILE *fd,PHY_VARS_gNB *gNB) {
@@ -120,7 +118,7 @@ void dump_nr_I0_stats(FILE *fd,PHY_VARS_gNB *gNB) {
     int amin=0,amax=0;
     fprintf(fd,"Blacklisted PRBs %d/%d\n",gNB->num_ulprbbl,gNB->frame_parms.N_RB_UL);
     for (int i=0; i<gNB->frame_parms.N_RB_UL; i++) {
-      if (gNB->ulprbbl[i] > 0) continue;
+      if (gNB->ulprbbl[i] > 0) continue;	    
 
       if (gNB->measurements.n0_subband_power_tot_dB[i]<min_I0) {min_I0 = gNB->measurements.n0_subband_power_tot_dB[i]; amin=i;}
 
@@ -129,7 +127,7 @@ void dump_nr_I0_stats(FILE *fd,PHY_VARS_gNB *gNB) {
 
     for (int i=0; i<gNB->frame_parms.N_RB_UL; i++) {
      if (gNB->ulprbbl[i] ==0) fprintf(fd,"%2d.",gNB->measurements.n0_subband_power_tot_dB[i]-gNB->measurements.n0_subband_power_avg_dB);
-     else fprintf(fd," X.");
+     else fprintf(fd," X."); 
      if (i%25 == 24) fprintf(fd,"\n");
     }
     fprintf(fd,"\n");
@@ -160,12 +158,12 @@ void gNB_I0_measurements(PHY_VARS_gNB *gNB,int slot, int first_symb,int num_symb
     for (rb=0; rb<frame_parms->N_RB_UL; rb++) {
       if (s==first_symb /*&& ((gNB->rb_mask_ul[s][rb>>5]&(1<<(rb&31))) == 0)*/) {
         nb_symb[rb]=0;
-        for (int aarx=0; aarx<frame_parms->nb_antennas_rx;aarx++)
-           measurements->n0_subband_power[aarx][rb]=0;
+        for (int aarx=0; aarx<frame_parms->nb_antennas_rx;aarx++) 
+           measurements->n0_subband_power[aarx][rb]=0;   
       }
       int offset0 = (slot&3)*(frame_parms->symbols_per_slot * frame_parms->ofdm_symbol_size) + (frame_parms->first_carrier_offset + (rb*12))%frame_parms->ofdm_symbol_size;
       if ((gNB->rb_mask_ul[s][rb >> 5] & (1U << (rb & 31))) == 0) {  // check that rb was not used in this subframe
-        nb_symb[rb]++;
+        nb_symb[rb]++;          
         for (int aarx=0; aarx<frame_parms->nb_antennas_rx; aarx++) {
           int offset = offset0 + (s*frame_parms->ofdm_symbol_size);
           int32_t *ul_ch  = &common_vars->rxdataF[aarx][offset];
@@ -249,6 +247,7 @@ void nr_gnb_measurements(PHY_VARS_gNB *gNB, uint8_t ulsch_id, unsigned char harq
 
     }
     LOG_D(PHY, "[ULSCH ID %d] RX power in antenna %d = %d\n", ulsch_id, aarx, rx_power[ulsch_id][aarx]);
+
     rx_power_tot[ulsch_id] += rx_power[ulsch_id][aarx];
 
   }

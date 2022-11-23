@@ -1278,12 +1278,10 @@ void *ru_thread( void *param ) {
     //start:adeel changes Frame extraction
 //Start: Sending Frame samples via MQTT
 //proc->frame_rx %20==0 &&
-
 //long trp_id= gNB->gNB_config.cell_config.trp_id;
-//    if (proc->frame_rx %50==0 && proc->tti_rx== 15 ){  // As this function is called at each slot, we use if condition to make sure to send limited amount of frame data via MQTT (currently every 20th frame), sending more frequently may overwhelm the matlab processing
- //        Frame_MQTT(&ru->common.rxdata[0][0], fp->samples_per_frame,  proc->frame_rx, trp_id) ; //
- //   }
-
+    if (proc->frame_rx %50==0 && proc->tti_rx== 15 ){  // As this function is called at each slot, we use if condition to make sure to send limited amount of frame data via MQTT (currently every 20th frame), sending more frequently may overwhelm the matlab processing
+         Frame_MQTT(&ru->common.rxdata[0][0], fp->samples_per_frame,  proc->frame_rx, trp_id) ; //
+    }
 
      //printf("\n gNB1 [nr-ru.c] samples_per_tti= %d  \n", ru->frame_parms->samples_per_tti); // adeel changes
     //printf("\n gNB1 [nr-ru.c] UPlink slot timestamp_rx %" PRId64 "\n", proc->timestamp_rx);// adeel changes  /// timestamp received from HW  openair0_timestamp timestamp_rx;

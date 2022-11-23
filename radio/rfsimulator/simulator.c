@@ -364,7 +364,7 @@ static int rfsimu_setchanmod_cmd(char *buff, int debug, telnet_printfunc_t prnt,
         }
       } /* for */
       if (found==0)
-      	prnt("Channel %s not found or not currently used\n",modelname); 
+      	prnt("Channel %s not found or not currently used\n",modelname);
     }
   } else {
     prnt("ERROR: 2 parameters required: model name and model type (%i found)\n",s);
@@ -658,7 +658,8 @@ static bool flushInput(rfsimulator_state_t *t, int timeout, int nsamps_for_initi
       AssertFatal( (conn_sock = accept(t->listen_sock,NULL,NULL)) != -1, "");
       setblocking(conn_sock, notBlocking);
       allocCirBuf(t, conn_sock);
-      LOG_I(HW,"A client connected, sending the current time\n");
+          openair0_timestamp ts = t->lastWroteTS > 1 ? t->lastWroteTS-1 : 0;
+	LOG_I(HW,"A client connected, sending the current time %lu\n",ts);
       c16_t v= {0};
       void *samplesVoid[t->tx_num_channels];
 
@@ -868,7 +869,7 @@ static int rfsimulator_read(openair0_device *device, openair0_timestamp *ptimest
                      CirSize);
         }
         else { // no channel modeling
-          
+
           double H_awgn_mimo[4][4] ={{1.0, 0.2, 0.1, 0.05}, //rx 0
                                       {0.2, 1.0, 0.2, 0.1}, //rx 1
                                      {0.1, 0.2, 1.0, 0.2}, //rx 2
@@ -934,7 +935,7 @@ int device_init(openair0_device *device, openair0_config_t *openair0_cfg) {
   rfsimulator->tx_num_channels=openair0_cfg->tx_num_channels;
   rfsimulator->rx_num_channels=openair0_cfg->rx_num_channels;
   rfsimulator->sample_rate=openair0_cfg->sample_rate;
-  rfsimulator->tx_bw=openair0_cfg->tx_bw;  
+  rfsimulator->tx_bw=openair0_cfg->tx_bw;
   rfsimulator_readconfig(rfsimulator);
   LOG_W(HW, "rfsim: sample_rate %f\n", rfsimulator->sample_rate);
   pthread_mutex_init(&Sockmutex, NULL);

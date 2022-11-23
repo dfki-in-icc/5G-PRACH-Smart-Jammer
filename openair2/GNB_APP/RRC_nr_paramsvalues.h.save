@@ -20,7 +20,7 @@
  */
 
 /*! \file openair2/GNB_APP/RRC_nr_paramsvalues.h
- * \brief macro definitions for RRC authorized and asn1 parameters values, to be used in paramdef_t/chechedparam_t structure initializations
+ * \brief macro definitions for RRC authorized and asn1 parameters values, to be used in paramdef_t/chechedparam_t structure initializations 
  * \author Francois TABURET, WEI-TAI CHEN, Turker Yilmaz
  * \date 2018
  * \version 0.1
@@ -79,11 +79,11 @@
 #define GNB_CONFIG_STRING_RARESPONSEWINDOW                      "ra_ResponseWindow"
 #define GNB_CONFIG_STRING_SSBPERRACHOCCASIONANDCBPREAMBLESPERSSBPR   "ssb_perRACH_OccasionAndCB_PreamblesPerSSB_PR"
 #define GNB_CONFIG_STRING_SSBPERRACHOCCASIONANDCBPREAMBLESPERSSB     "ssb_perRACH_OccasionAndCB_PreamblesPerSSB"
-#define GNB_CONFIG_STRING_RACONTENTIONRESOLUTIONTIMER           "ra_ContentionResolutionTimer"
-#define GNB_CONFIG_STRING_RSRPTHRESHOLDSSB                      "rsrp_ThresholdSSB"
-#define GNB_CONFIG_STRING_PRACHROOTSEQUENCEINDEXPR              "prach_RootSequenceIndex_PR"
-#define GNB_CONFIG_STRING_PRACHROOTSEQUENCEINDEX                "prach_RootSequenceIndex"
-#define GNB_CONFIG_STRING_MSG1SUBCARRIERSPACING                 "msg1_SubcarrierSpacing"
+#define GNB_CONFIG_STRING_RACONTENTIONRESOLUTIONTIMER           "ra_ContentionResolutionTimer"                     
+#define GNB_CONFIG_STRING_RSRPTHRESHOLDSSB                      "rsrp_ThresholdSSB"                                
+#define GNB_CONFIG_STRING_PRACHROOTSEQUENCEINDEXPR              "prach_RootSequenceIndex_PR"                     
+#define GNB_CONFIG_STRING_PRACHROOTSEQUENCEINDEX                "prach_RootSequenceIndex"                     
+#define GNB_CONFIG_STRING_MSG1SUBCARRIERSPACING                 "msg1_SubcarrierSpacing"                           
 #define GNB_CONFIG_STRING_RESTRICTEDSETCONFIG                   "restrictedSetConfig"
 #define GNB_CONFIG_STRING_MSG3TRANSFPREC                        "msg3_transformPrecoder"
 #define GNB_CONFIG_STRING_PUSCHTIMEDOMAINALLOCATIONLIST         "puschTimeDomainAllocationList"
@@ -188,10 +188,10 @@
 #define GNB_CONFIG_ABSOLUTEFREQUENCYPOINTA_IDX 7
 #define GNB_CONFIG_DLCARRIERBANDWIDTH_IDX 10
 
-//adeel changes TRPID
+
 #define SCCPARAMS_DESC(scc) { \
+{GNB_CONFIG_STRING_PHYSCELLID,NULL,0,i64ptr:scc->Trp,defint64val:0,TYPE_INT64,0/*0*/}, \
 {GNB_CONFIG_STRING_PHYSCELLID,NULL,0,i64ptr:scc->physCellId,defint64val:0,TYPE_INT64,0/*0*/}, \
-{GNB_CONFIG_STRING_TRPID,NULL,0,i64ptr:scc->TrpId,defint64val:0,TYPE_INT64,0/*1*/}, \
 {GNB_CONFIG_STRING_NTIMINGADVANCEOFFSET,NULL,0,i64ptr:scc->n_TimingAdvanceOffset,defint64val:NR_ServingCellConfigCommon__n_TimingAdvanceOffset_n0,TYPE_INT64,0/*1*/},\
 {GNB_CONFIG_STRING_SSBPERIODICITYSERVINGCELL,NULL,0,i64ptr:scc->ssb_periodicityServingCell,defint64val:NR_ServingCellConfigCommon__ssb_periodicityServingCell_ms20,TYPE_INT64,0/*2*/},\
 {GNB_CONFIG_STRING_DMRSTYPEAPOSITION,NULL,0,i64ptr:&scc->dmrs_TypeA_Position,defint64val:NR_ServingCellConfigCommon__dmrs_TypeA_Position_pos2,TYPE_INT64,0/*3*/},\

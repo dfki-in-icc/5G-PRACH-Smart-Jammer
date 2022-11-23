@@ -162,7 +162,7 @@ void gNB_dlsch_ulsch_scheduler(module_id_t module_idP,
 
     clear_nr_nfapi_information(RC.nrmac[module_idP], CC_id, frame, slot);
 
-    /*VNF first entry into scheduler. Since frame numbers for future_ul_tti_req of some future slots 
+    /*VNF first entry into scheduler. Since frame numbers for future_ul_tti_req of some future slots
     will not be set before we encounter them, set them here */
 
     if (NFAPI_MODE == NFAPI_MODE_VNF){
@@ -219,8 +219,12 @@ void gNB_dlsch_ulsch_scheduler(module_id_t module_idP,
   nr_csi_meas_reporting(module_idP, frame, slot);
 
   // Schedule SRS: check in slot 0 for the whole frame
-  if (slot == 0)
-    nr_schedule_srs(module_idP, frame);
+  if (slot == 0){
+    nr_schedule_srs(module_idP, frame);}
+
+    if ((slot==0) && (get_softmodem_params()->phy_test == 0)){
+    nr_schedule_srs_secondary(module_idP,frame,0/*UE_id*/);}
+
 
   // This schedule RA procedure if not in phy_test mode
   // Otherwise already consider 5G already connected
@@ -233,7 +237,7 @@ void gNB_dlsch_ulsch_scheduler(module_id_t module_idP,
 
   // This schedules the DCI for Downlink and PDSCH
   start_meas(&gNB->schedule_dlsch);
-  nr_schedule_ue_spec(module_idP, frame, slot); 
+  nr_schedule_ue_spec(module_idP, frame, slot);
   stop_meas(&gNB->schedule_dlsch);
 
   nr_sr_reporting(RC.nrmac[module_idP], frame, slot);
@@ -241,6 +245,6 @@ void gNB_dlsch_ulsch_scheduler(module_id_t module_idP,
   nr_schedule_pucch(RC.nrmac[module_idP], frame, slot);
 
   stop_meas(&RC.nrmac[module_idP]->eNB_scheduler);
-  
+
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_gNB_DLSCH_ULSCH_SCHEDULER,VCD_FUNCTION_OUT);
 }
