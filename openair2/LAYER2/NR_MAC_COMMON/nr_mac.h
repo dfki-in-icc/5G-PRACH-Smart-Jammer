@@ -597,7 +597,7 @@ typedef struct NR_UE_UL_BWP {
   NR_PUCCH_ConfigCommon_t *pucch_ConfigCommon;
   NR_CSI_MeasConfig_t *csi_MeasConfig;
   NR_SRS_Config_t *srs_Config;
-  long *transform_precoding;
+  int transform_precoding;
   uint8_t mcs_table;
   nr_dci_format_t dci_format;
   int max_fb_time;
