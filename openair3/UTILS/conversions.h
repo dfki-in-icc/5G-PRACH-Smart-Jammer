@@ -19,10 +19,12 @@
  *      contact@openairinterface.org
  */
 
-#include "assertions.h"
+// #include "assertions.h"
 
 #ifndef CONVERSIONS_H_
 #define CONVERSIONS_H_
+
+#include <assert.h>
 
 /* Endianness conversions for 16 and 32 bits integers from host to network order */
 #if (BYTE_ORDER == LITTLE_ENDIAN)
@@ -275,7 +277,7 @@ do {                                                                \
 
 #define BIT_STRING_TO_NR_CELL_IDENTITY(aSN, vALUE)                     \
 do {                                                                   \
-    DevCheck((aSN)->bits_unused == 4, (aSN)->bits_unused, 4, 0);       \
+    assert((aSN)->bits_unused == 4); \
     vALUE = ((aSN)->buf[0] << 28) | ((aSN)->buf[1] << 20) |            \
         ((aSN)->buf[2] << 12) | ((aSN)->buf[3]<<4) | ((aSN)->buf[4]>>4);  \
 } while(0)
@@ -331,7 +333,7 @@ do {                                                                 \
 #define TBCD_TO_MCC_MNC(tBCDsTRING, mCC, mNC, mNCdIGITlENGTH)    \
 do {                                                             \
     int mNC_hundred;                                             \
-    DevAssert((tBCDsTRING)->size == 3);                          \
+    assert((tBCDsTRING)->size == 3);                          \
     mNC_hundred = (((tBCDsTRING)->buf[1] & 0xf0) >> 4);          \
     if (mNC_hundred == 0xf) {                                    \
         mNC_hundred = 0;                                         \

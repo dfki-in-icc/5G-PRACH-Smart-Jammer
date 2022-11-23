@@ -24,6 +24,16 @@
 cmake_minimum_required (VERSION 3.5)
 project (OpenAirInterface LANGUAGES C CXX)
 
+SET(CMAKE_EXPORT_COMPILE_COMMANDS ON )
+# For YouCompleteMe configuration
+IF( EXISTS "${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json" )
+  EXECUTE_PROCESS( COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    ${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json
+    ${CMAKE_CURRENT_SOURCE_DIR}/compile_commands.json
+  )
+ENDIF()
+
+
 include("cmake_targets/macros.cmake")
 
 # System packages that are required
