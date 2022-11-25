@@ -169,7 +169,18 @@ void L1_nr_prach_procedures(PHY_VARS_gNB *gNB,int frame,int slot) {
 	
 	T(T_ENB_PHY_INITIATE_RA_PROCEDURE, T_INT(gNB->Mod_id), T_INT(frame), T_INT(slot),
 	  T_INT(max_preamble[0]), T_INT(max_preamble_energy[0]), T_INT(max_preamble_delay[0]));
-	
+
+        // to avoid the same preamble being selected in more than one occasion
+        bool skip_pdu = false;
+        for(int p = 0; p < pdu_index; p++) {
+          nfapi_nr_prach_indication_pdu_t *old_prach = &gNB->prach_pdu_indication_list[p];
+          if (max_preamble == old_prach->preamble_list[0].preamble_index) {
+            skip_pdu = true;
+            break;
+          }
+        }
+
+        if (skip_pdu) continue;
 	
 	gNB->UL_INFO.rach_ind.number_of_pdus  += 1;
 	
