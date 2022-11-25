@@ -57,6 +57,7 @@
 #include "NGAP_Cause.h"
 #include "NGAP_CauseRadioNetwork.h"
 #include "f1ap_messages_types.h"
+#include "uper_encoder.h"
 
 extern RAN_CONTEXT_t RC;
 

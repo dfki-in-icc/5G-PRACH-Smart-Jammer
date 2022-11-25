@@ -59,6 +59,8 @@
 #include "NR_PDCCH-ConfigCommon.h"
 #include "NR_ControlResourceSet.h"
 #include "NR_SearchSpace.h"
+#include "uper_decoder.h"
+#include "uper_encoder.h"
 
 #include "nfapi_nr_interface.h"
 

@@ -45,6 +45,7 @@
 #include "rrc_gNB_UE_context.h"
 #include <openair2/RRC/NR/MESSAGES/asn1_msg.h>
 #include <openair2/F1AP/f1ap_du_rrc_message_transfer.h>
+#include "uper_encoder.h"
 
 
 extern RAN_CONTEXT_t RC;

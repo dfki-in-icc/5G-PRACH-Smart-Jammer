@@ -41,6 +41,7 @@
 #include "LTE_DL-CCCH-Message.h"
 #include "LTE_DL-DCCH-Message.h"
 #include "LTE_UL-DCCH-Message.h"
+#include "uper_decoder.h"
 
 #include "NR_DL-CCCH-Message.h"
 #include "NR_UL-CCCH-Message.h"

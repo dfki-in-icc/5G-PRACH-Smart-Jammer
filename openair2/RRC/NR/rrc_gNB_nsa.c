@@ -35,6 +35,8 @@
 #include "LTE_UE-CapabilityRAT-ContainerList.h"
 #include "NR_CG-Config.h"
 //#include "NR_SRB-ToAddModList.h"
+#include "uper_encoder.h"
+#include "uper_decoder.h"
 #include "openair2/LAYER2/NR_MAC_gNB/mac_proto.h"
 #include "openair2/RRC/LTE/rrc_eNB_GTPV1U.h"
 #include "executables/softmodem-common.h"

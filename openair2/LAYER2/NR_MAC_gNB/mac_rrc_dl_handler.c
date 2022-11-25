@@ -28,6 +28,7 @@
 #include "NR_RRCSetup.h"
 #include "NR_DL-CCCH-Message.h"
 #include "NR_CellGroupConfig.h"
+#include "uper_decoder.h"
 
 int dl_rrc_message_rrcSetup(module_id_t module_id, const f1ap_dl_rrc_message_t *dl_rrc, NR_RRCSetup_t *rrcSetup);
 
