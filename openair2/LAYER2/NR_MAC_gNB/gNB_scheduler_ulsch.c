@@ -737,10 +737,14 @@ void nr_rx_sdu(const module_id_t gnb_mod_idP,
         LOG_D(NR_MAC, "[UE %04x] PUSCH TPC %d and TA %d\n", UE_msg3_stage->rnti, UE_scheduling_control->tpc0, UE_scheduling_control->ta_update);
         if (ra->cfra) {
           LOG_A(NR_MAC, "(rnti 0x%04x) CFRA procedure succeeded!\n", ra->rnti);
+          nr_mac_gNB_rrc_ul_failure_reset(gnb_mod_idP, frameP, slotP, ra->rnti);
+          reset_dl_harq_list(UE_scheduling_control);
+          reset_ul_harq_list(UE_scheduling_control);
+          UE_scheduling_control->pusch_consecutive_dtx_cnt = 0;
+          UE_scheduling_control->ul_failure = 0;
           UE_msg3_stage->ra_timer = 0;
           nr_mac_remove_ra_rnti(gnb_mod_idP, ra->rnti);
           nr_clear_ra_proc(gnb_mod_idP, CC_idP, frameP, ra);
-          reset_ul_harq_list(UE_scheduling_control);
           process_CellGroup(ra->CellGroup, UE_scheduling_control);
 
         } else {
