@@ -761,6 +761,7 @@ void *UE_thread(void *arg) {
   bool syncRunning=false;
   const int nb_slot_frame = UE->frame_parms.slots_per_frame;
   int absolute_slot=0, decoded_frame_rx=INT_MAX, trashed_frames=0;
+  initNotifiedFIFO(&UE->phy_config_ind);
 
   while (!oai_exit) {
     if (UE->lost_sync) {
@@ -778,6 +779,11 @@ void *UE_thread(void *arg) {
           decoded_frame_rx=(((mac->mib->systemFrameNumber.buf[0] >> mac->mib->systemFrameNumber.bits_unused)<<4) | tmp->proc.decoded_frame_rx);
           // shift the frame index with all the frames we trashed meanwhile we perform the synch search
           decoded_frame_rx=(decoded_frame_rx + UE->init_sync_frame + trashed_frames) % MAX_FRAME_NUMBER;
+          // wait for RRC to configure PHY parameters from SIB
+          if (get_softmodem_params()->sa) {
+            notifiedFIFO_elt_t *phy_config_res = pullNotifiedFIFO(&UE->phy_config_ind);
+            delNotifiedFIFO_elt(phy_config_res);
+          }
         }
         delNotifiedFIFO_elt(res);
         start_rx_stream=0;
