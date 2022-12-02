@@ -740,15 +740,23 @@ void fill_initial_SpCellConfig(int uid,
 
   initialUplinkBWP->pusch_Config = config_pusch(NULL, scc);
 
-  long maxMIMO_Layers = uplinkConfig &&
+  long maxMIMO_Layers = configuration->pusch_AntennaPorts; /*uplinkConfig &&
                                 uplinkConfig->pusch_ServingCellConfig &&
                                 uplinkConfig->pusch_ServingCellConfig->choice.setup->ext1 &&
                                 uplinkConfig->pusch_ServingCellConfig->choice.setup->ext1->maxMIMO_Layers ?
-                            *uplinkConfig->pusch_ServingCellConfig->choice.setup->ext1->maxMIMO_Layers : 1;
+                            *uplinkConfig->pusch_ServingCellConfig->choice.setup->ext1->maxMIMO_Layers : 1;*/
+
+  if (uplinkConfig->initialUplinkBWP->pusch_Config) {
+    NR_PUSCH_Config_t *pusch_Config = uplinkConfig->initialUplinkBWP->pusch_Config->choice.setup;
+    if (pusch_Config->maxRank == NULL) {
+      pusch_Config->maxRank = calloc(1, sizeof(*pusch_Config->maxRank));
+    }
+    *pusch_Config->maxRank = maxMIMO_Layers;
+  }
 
   // We are using do_srs = 0 here because the periodic SRS will only be enabled in update_cellGroupConfig() if do_srs == 1
   initialUplinkBWP->srs_Config = calloc(1,sizeof(*initialUplinkBWP->srs_Config));
-  config_srs(initialUplinkBWP->srs_Config, NULL, curr_bwp, uid, 0, maxMIMO_Layers, 0);
+  config_srs(initialUplinkBWP->srs_Config, NULL, curr_bwp, uid, 0, maxMIMO_Layers, configuration->do_SRS);
 
   scheduling_request_config(scc, pucch_Config);
 
@@ -1185,13 +1193,13 @@ void update_cellGroupConfig(NR_CellGroupConfig_t *cellGroupConfig,
     int curr_bwp = NRRIV2BW(scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
     NR_UplinkConfig_t *uplinkConfig = SpCellConfig && SpCellConfig->spCellConfigDedicated ? SpCellConfig->spCellConfigDedicated->uplinkConfig : NULL;
 
-    if (uecap &&
+    if (/*uecap &&
         uecap->featureSets &&
         uecap->featureSets->featureSetsUplinkPerCC &&
-        uecap->featureSets->featureSetsUplinkPerCC->list.count > 0) {
-      NR_FeatureSetUplinkPerCC_t *ul_feature_setup_per_cc = uecap->featureSets->featureSetsUplinkPerCC->list.array[0];
-      uint8_t ul_max_layers = 1;
-      if (ul_feature_setup_per_cc->mimo_CB_PUSCH->maxNumberMIMO_LayersCB_PUSCH) {
+        uecap->featureSets->featureSetsUplinkPerCC->list.count > 0*/ true) {
+      //NR_FeatureSetUplinkPerCC_t *ul_feature_setup_per_cc = uecap->featureSets->featureSetsUplinkPerCC->list.array[0];
+      uint8_t ul_max_layers = configuration->pusch_AntennaPorts;
+      /*if (ul_feature_setup_per_cc->mimo_CB_PUSCH->maxNumberMIMO_LayersCB_PUSCH) {
         switch (*ul_feature_setup_per_cc->mimo_CB_PUSCH->maxNumberMIMO_LayersCB_PUSCH) {
           case NR_MIMO_LayersUL_twoLayers:
             ul_max_layers = 2;
@@ -1202,7 +1210,7 @@ void update_cellGroupConfig(NR_CellGroupConfig_t *cellGroupConfig,
           default:
             ul_max_layers = 1;
         }
-      }
+      }*/
       ul_max_layers = min(ul_max_layers, configuration->pusch_AntennaPorts);
       if (uplinkConfig->initialUplinkBWP->pusch_Config) {
         NR_PUSCH_Config_t *pusch_Config = uplinkConfig->initialUplinkBWP->pusch_Config->choice.setup;

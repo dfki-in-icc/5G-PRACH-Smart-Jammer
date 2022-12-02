@@ -467,12 +467,12 @@ void config_srs(NR_SetupRelease_SRS_Config_t *setup_release_srs_Config,
   srs_res0->srs_ResourceId = res_id;
   srs_res0->nrofSRS_Ports = NR_SRS_Resource__nrofSRS_Ports_port1;
   if (do_srs) {
-    long nrofSRS_Ports = 1;
-    if (uecap &&
+    long nrofSRS_Ports = maxMIMO_Layers;
+    if (/*uecap &&
         uecap->featureSets &&
         uecap->featureSets->featureSetsUplink &&
-        uecap->featureSets->featureSetsUplink->list.count > 0) {
-      NR_FeatureSetUplink_t *ul_feature_setup = uecap->featureSets->featureSetsUplink->list.array[0];
+        uecap->featureSets->featureSetsUplink->list.count > 0*/ true) {
+      /*NR_FeatureSetUplink_t *ul_feature_setup = uecap->featureSets->featureSetsUplink->list.array[0];
       switch (ul_feature_setup->supportedSRS_Resources->maxNumberSRS_Ports_PerResource) {
         case NR_SRS_Resources__maxNumberSRS_Ports_PerResource_n1:
           nrofSRS_Ports = 1;
@@ -486,7 +486,7 @@ void config_srs(NR_SetupRelease_SRS_Config_t *setup_release_srs_Config,
         default:
           LOG_E(NR_RRC, "Max Number of SRS Ports Per Resource %ld is invalid!\n",
                 ul_feature_setup->supportedSRS_Resources->maxNumberSRS_Ports_PerResource);
-      }
+      }*/
       nrofSRS_Ports = min(nrofSRS_Ports, maxMIMO_Layers);
       switch (nrofSRS_Ports) {
         case 1:
@@ -499,8 +499,7 @@ void config_srs(NR_SetupRelease_SRS_Config_t *setup_release_srs_Config,
           srs_res0->nrofSRS_Ports = NR_SRS_Resource__nrofSRS_Ports_ports4;
           break;
         default:
-          LOG_E(NR_RRC, "Number of SRS Ports Per Resource %ld is invalid!\n",
-                ul_feature_setup->supportedSRS_Resources->maxNumberSRS_Ports_PerResource);
+          LOG_E(NR_RRC, "Number of SRS Ports Per Resource is invalid!\n");
       }
     }
     LOG_I(NR_RRC, "SRS configured with %d ports\n", 1<<srs_res0->nrofSRS_Ports);
