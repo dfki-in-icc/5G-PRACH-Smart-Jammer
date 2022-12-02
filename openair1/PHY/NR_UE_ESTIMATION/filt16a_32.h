@@ -219,4 +219,20 @@ extern short filt24_start[24];
 extern short filt24_end[24];
 extern short filt24_middle[24];
 
+/*UL*/
+extern short filt16_ul_p0[16];
+extern short filt16_ul_p1p2[16];
+extern short filt16_ul_middle[16];
+extern short filt16_ul_last[16];
+
+/*DL*/
+// DL DMRS_Type1
+extern short filt16_dl_first[16];
+extern short filt16_dl_middle[16];
+extern short filt16_dl_last[16];
+
+// DL DMRS_Type2
+extern short filt16_dl_first_type2[16];
+extern short filt16_dl_middle_type2[16];
+extern short filt16_dl_last_type2[16];
 #endif
