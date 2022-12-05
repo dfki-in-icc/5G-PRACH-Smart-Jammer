@@ -104,7 +104,6 @@ void prepare_scc(NR_ServingCellConfigCommon_t *scc) {
   //  NR_SearchSpace_t                                *bwp_dl_searchspace;
 
   scc->physCellId                                = CALLOC(1,sizeof(NR_PhysCellId_t));
-  scc->TrpId                                     = CALLOC(1,sizeof(int));//adeel changes
   scc->downlinkConfigCommon                      = CALLOC(1,sizeof(struct NR_DownlinkConfigCommon));
   scc->downlinkConfigCommon->frequencyInfoDL     = CALLOC(1,sizeof(struct NR_FrequencyInfoDL));
   scc->downlinkConfigCommon->initialDownlinkBWP  = CALLOC(1,sizeof(struct NR_BWP_DownlinkCommon));
@@ -215,8 +214,7 @@ void fill_scc_sim(NR_ServingCellConfigCommon_t *scc,uint64_t *ssb_bitmap,int N_R
 
   *scc->physCellId=0;							\
   //  *scc->n_TimingAdvanceOffset=NR_ServingCellConfigCommon__n_TimingAdvanceOffset_n0;
-  *scc->TrpId=1; //adeel changes
-  *scc->ssb_periodicityServingCell=NR_ServingCellConfigCommon__ssb_periodicityServingCell_ms20;
+    *scc->ssb_periodicityServingCell=NR_ServingCellConfigCommon__ssb_periodicityServingCell_ms20;
   scc->dmrs_TypeA_Position=NR_ServingCellConfigCommon__dmrs_TypeA_Position_pos2;
   *scc->ssbSubcarrierSpacing=mu_dl;
   if (mu_dl == 0) {
@@ -1206,16 +1204,7 @@ void RCconfig_NRRRC(MessageDef *msg_p, uint32_t i, gNB_RRC_INST *rrc) {
 	    (int)scc->downlinkConfigCommon->frequencyInfoDL->scs_SpecificCarrierList.list.array[0]->carrierBandwidth,
 	    (int)scc->uplinkConfigCommon->initialUplinkBWP->rach_ConfigCommon->choice.setup->rach_ConfigGeneric.preambleReceivedTargetPower);
 
-	    //adeel changes
-	     printf("Read in ServingCellConfigCommon (PhysCellId %d, TrpId %d, ABSFREQSSB %d, DLBand %d, ABSFREQPOINTA %d, DLBW %d,RACH_TargetReceivedPower %d\n",
-	    (int)*scc->physCellId,
-	    (int)*scc->TrpId,
-	    (int)*scc->downlinkConfigCommon->frequencyInfoDL->absoluteFrequencySSB,
-	    (int)*scc->downlinkConfigCommon->frequencyInfoDL->frequencyBandList.list.array[0],
-	    (int)scc->downlinkConfigCommon->frequencyInfoDL->absoluteFrequencyPointA,
-	    (int)scc->downlinkConfigCommon->frequencyInfoDL->scs_SpecificCarrierList.list.array[0]->carrierBandwidth,
-	    (int)scc->uplinkConfigCommon->initialUplinkBWP->rach_ConfigCommon->choice.setup->rach_ConfigGeneric.preambleReceivedTargetPower);
-      fix_scc(scc,ssb_bitmap);
+	      fix_scc(scc,ssb_bitmap);
     }
 
     sprintf(aprefix, "%s.[%i]", GNB_CONFIG_STRING_GNB_LIST, 0);

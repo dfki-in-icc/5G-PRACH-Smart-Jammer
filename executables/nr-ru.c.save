@@ -1296,14 +1296,14 @@ void *ru_thread( void *param ) {
 
 
  //start: Frame extraction (adeel)
-
+  
   //Start: Sending Frame samples via MQTT
   //  if (proc->frame_rx %50==0 && proc->tti_rx== 15 ){  // As this function is called at each slot, we use if condition to make sure to send limited amount of frame data via MQTT (currently every 20th frame), sending more frequently may overwhelm the matlab processing
   //       Frame_MQTT(&ru->common.rxdata[0][0], fp->samples_per_frame,  proc->frame_rx, gNB ) ; //
    //}
  //End: Sending Frame samples via MQTT
 
-
+ 
 /*//Start: Extracting Frame sample in txt file
     if (proc->frame_rx == 132 && proc->tti_rx== 17){ // As this function is called at each slot, we use if condition to make sure we extract only one frame in txt file,
            void *data= &ru->common.rxdata[0][0];

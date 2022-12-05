@@ -235,9 +235,6 @@ void config_common(int Mod_idP, int pdsch_AntennaPorts, int pusch_AntennaPorts, 
   RC.nrmac[Mod_idP]->common_channels[0].frame_type = frame_type;
 
   // Cell configuration
-   printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n[MAC gnb testing] Trp_id = %d,  ,phy_cell_id=%d\n\n\n\n\n\n\n\n\n\n\n\n\n\n",  *scc->TrpId, *scc->physCellId) ;
-   cfg->cell_config.trp_id = *scc->TrpId; //adeel changes
-//  cfg->cell_config.phy_cell_id.tl.tag = NFAPI_NR_CONFIG_PHY_CELL_ID_TAG;
   cfg->cell_config.phy_cell_id.value = *scc->physCellId;
   cfg->cell_config.phy_cell_id.tl.tag = NFAPI_NR_CONFIG_PHY_CELL_ID_TAG;
   cfg->num_tlv++;

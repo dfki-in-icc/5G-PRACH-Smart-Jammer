@@ -42,7 +42,6 @@
 #define GNB_CONFIG_STRING_PDCCH_CONFIGSIB1                      "pdcch_ConfigSIB1"
 #define GNB_CONFIG_STRING_SERVINGCELLCONFIGCOMMON               "servingCellConfigCommon"
 #define GNB_CONFIG_STRING_PHYSCELLID                            "physCellId"
-#define GNB_CONFIG_STRING_TRPID                                 "TrpId" //adeel changes
 #define GNB_CONFIG_STRING_NTIMINGADVANCEOFFSET                  "n_TimingAdvanceOffset"
 #define GNB_CONFIG_STRING_SUBCARRIERSPACING                     "subcarrierSpacing"
 #define GNB_CONFIG_STRING_ABSOLUTEFREQUENCYSSB                  "absoluteFrequencySSB"
@@ -182,16 +181,13 @@
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 
 #define GNB_CONFIG_PHYSCELLID_IDX 0
-#define GNB_CONFIG_TRPID_IDX 0 //adeel changes
 #define GNB_CONFIG_ABSOLUTEFREQUENCYSSB_IDX 5
 #define GNB_CONFIG_DLFREQUENCYBAND_IDX 6
 #define GNB_CONFIG_ABSOLUTEFREQUENCYPOINTA_IDX 7
 #define GNB_CONFIG_DLCARRIERBANDWIDTH_IDX 10
 
-//adeel changes TRPID
 #define SCCPARAMS_DESC(scc) { \
 {GNB_CONFIG_STRING_PHYSCELLID,NULL,0,i64ptr:scc->physCellId,defint64val:0,TYPE_INT64,0/*0*/}, \
-{GNB_CONFIG_STRING_TRPID,NULL,0,i64ptr:scc->TrpId,defint64val:0,TYPE_INT64,0/*1*/}, \
 {GNB_CONFIG_STRING_NTIMINGADVANCEOFFSET,NULL,0,i64ptr:scc->n_TimingAdvanceOffset,defint64val:NR_ServingCellConfigCommon__n_TimingAdvanceOffset_n0,TYPE_INT64,0/*1*/},\
 {GNB_CONFIG_STRING_SSBPERIODICITYSERVINGCELL,NULL,0,i64ptr:scc->ssb_periodicityServingCell,defint64val:NR_ServingCellConfigCommon__ssb_periodicityServingCell_ms20,TYPE_INT64,0/*2*/},\
 {GNB_CONFIG_STRING_DMRSTYPEAPOSITION,NULL,0,i64ptr:&scc->dmrs_TypeA_Position,defint64val:NR_ServingCellConfigCommon__dmrs_TypeA_Position_pos2,TYPE_INT64,0/*3*/},\
