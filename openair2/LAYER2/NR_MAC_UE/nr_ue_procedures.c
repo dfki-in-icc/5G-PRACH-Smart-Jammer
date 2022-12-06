@@ -1573,11 +1573,12 @@ void nr_ue_configure_pucch(NR_UE_MAC_INST_t *mac,
         mac->ULbwp[bwp_id-1]->bwp_Dedicated->pucch_Config->choice.setup) {
       NR_PUSCH_Config_t *pusch_Config = mac->ULbwp[bwp_id-1]->bwp_Dedicated->pusch_Config->choice.setup;
       pusch_id = pusch_Config->dataScramblingIdentityPUSCH;
-      if (pusch_Config->dmrs_UplinkForPUSCH_MappingTypeA != NULL)
+      if (pusch_Config->dmrs_UplinkForPUSCH_MappingTypeA != NULL &&
+          pusch_Config->dmrs_UplinkForPUSCH_MappingTypeA->choice.setup->transformPrecodingDisabled != NULL)
         id0 = pusch_Config->dmrs_UplinkForPUSCH_MappingTypeA->choice.setup->transformPrecodingDisabled->scramblingID0;
-      else if (pusch_Config->dmrs_UplinkForPUSCH_MappingTypeB != NULL)
+      else if (pusch_Config->dmrs_UplinkForPUSCH_MappingTypeB != NULL &&
+               pusch_Config->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup->transformPrecodingDisabled != NULL)
         id0 = pusch_Config->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup->transformPrecodingDisabled->scramblingID0;
-      else *id0 = mac->physCellId;
       pucch_Config =  mac->ULbwp[bwp_id-1]->bwp_Dedicated->pucch_Config->choice.setup;
     }
     else if (bwp_id==0 &&
