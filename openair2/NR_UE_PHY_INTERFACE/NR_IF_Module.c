@@ -1085,6 +1085,12 @@ int handle_dci(module_id_t module_id, int cc_id, unsigned int gNB_index, frame_t
 
 }
 
+void  handle_ssb_meas(NR_UE_MAC_INST_t *mac, uint8_t ssb_index, int16_t rsrp_dbm)
+{
+  mac->phy_measurements.ssb_index = ssb_index;
+  mac->phy_measurements.ssb_rsrp_dBm = rsrp_dbm;
+}
+
 // L2 Abstraction Layer
 // Note: sdu should always be processed because data and timing advance updates are transmitted by the UE
 int8_t handle_dlsch(nr_downlink_indication_t *dl_info, NR_UL_TIME_ALIGNMENT_t *ul_time_alignment, int pdu_id){
@@ -1134,17 +1140,10 @@ int nr_ue_ul_indication(nr_uplink_indication_t *ul_info){
   LOG_T(NR_MAC, "In %s():%d not calling scheduler. sched mode = %d and mac->ra.ra_state = %d\n",
         __FUNCTION__, __LINE__, ul_info->ue_sched_mode, mac->ra.ra_state);
 
-  switch (ul_info->ue_sched_mode) {
-    case SCHED_PUSCH:
-      ret = nr_ue_scheduler(NULL, ul_info);
-      if (is_nr_UL_slot(tdd_UL_DL_ConfigurationCommon, ul_info->slot_tx, mac->frame_type) && !get_softmodem_params()->phy_test)
-        nr_ue_prach_scheduler(module_id, ul_info->frame_tx, ul_info->slot_tx);
-      break;
-
-    case SCHED_PUCCH:
-      if (is_nr_UL_slot(tdd_UL_DL_ConfigurationCommon, ul_info->slot_tx, mac->frame_type))
-        nr_ue_pucch_scheduler(module_id, ul_info->frame_tx, ul_info->slot_tx, ul_info->phy_data);
-      break;
+  ret = nr_ue_scheduler(NULL, ul_info);
+  if (is_nr_UL_slot(tdd_UL_DL_ConfigurationCommon, ul_info->slot_tx, mac->frame_type) && !get_softmodem_params()->phy_test) {
+    nr_ue_pucch_scheduler(module_id, ul_info->frame_tx, ul_info->slot_tx, ul_info->phy_data);
+    nr_ue_prach_scheduler(module_id, ul_info->frame_tx, ul_info->slot_tx);
   }
 
   switch(ret){
@@ -1208,7 +1207,6 @@ int nr_ue_dl_indication(nr_downlink_indication_t *dl_info, NR_UL_TIME_ALIGNMENT_
         }
         memset(def_dci_pdu_rel15, 0, sizeof(*def_dci_pdu_rel15));
       }
-      free(dl_info->dci_ind);
       dl_info->dci_ind = NULL;
     }
 
@@ -1223,7 +1221,9 @@ int nr_ue_dl_indication(nr_downlink_indication_t *dl_info, NR_UL_TIME_ALIGNMENT_
 
         switch(dl_info->rx_ind->rx_indication_body[i].pdu_type){
           case FAPI_NR_RX_PDU_TYPE_SSB:
-            mac->ssb_rsrp_dBm = (dl_info->rx_ind->rx_indication_body+i)->ssb_pdu.rsrp_dBm;
+            handle_ssb_meas(mac,
+                            (dl_info->rx_ind->rx_indication_body+i)->ssb_pdu.ssb_index,
+                            (dl_info->rx_ind->rx_indication_body+i)->ssb_pdu.rsrp_dBm);
             ret_mask |= (handle_bcch_bch(dl_info->module_id, dl_info->cc_id, dl_info->gNB_index, dl_info->phy_data,
                                          (dl_info->rx_ind->rx_indication_body+i)->ssb_pdu.pdu,
                                          (dl_info->rx_ind->rx_indication_body+i)->ssb_pdu.additional_bits,

@@ -423,6 +423,9 @@ def GetParametersFromXML(action):
 		string_field=test.findtext('u_retx_th')
 		if (string_field is not None):
 			CONTAINERS.ran_checkers['u_retx_th'] = [float(x) for x in string_field.split(',')]
+		string_field = test.findtext('services')
+		if string_field is not None:
+			CONTAINERS.services[CONTAINERS.eNB_instance] = string_field
 
 	elif action == 'DeployGenObject' or action == 'UndeployGenObject' or action == 'StatsFromGenObject':
 		string_field=test.findtext('yaml_path')
@@ -793,7 +796,6 @@ elif re.match('^TesteNB$', mode, re.IGNORECASE) or re.match('^TestUE$', mode, re
 			logging.error('requested test is invalidly formatted: ' + test)
 			sys.exit(1)
 	if (EPC.IPAddress != '') and (EPC.IPAddress != 'none'):
-		CiTestObj.CheckFlexranCtrlInstallation(RAN,EPC,CONTAINERS)
 		EPC.SetMmeIPAddress()
 		EPC.SetAmfIPAddress()
 
@@ -940,10 +942,6 @@ elif re.match('^TesteNB$', mode, re.IGNORECASE) or re.match('^TestUE$', mode, re
 					EPC.DeployEpc(HTML)
 				elif action == 'Undeploy_EPC':
 					EPC.UndeployEpc(HTML)
-				elif action == 'Initialize_FlexranCtrl':
-					CiTestObj.InitializeFlexranCtrl(HTML,RAN,EPC)
-				elif action == 'Terminate_FlexranCtrl':
-					CiTestObj.TerminateFlexranCtrl(HTML,RAN,EPC)
 				elif action == 'IdleSleep':
 					CiTestObj.IdleSleep(HTML)
 				elif action == 'Perform_X2_Handover':
@@ -986,6 +984,9 @@ elif re.match('^TesteNB$', mode, re.IGNORECASE) or re.match('^TestUE$', mode, re
 						RAN.prematureExit = True
 				elif action == 'Undeploy_Object':
 					CONTAINERS.UndeployObject(HTML, RAN)
+					if CONTAINERS.exitStatus == 1:
+						CiTestObj.AutoTerminateeNB(HTML,RAN,EPC,CONTAINERS)
+						RAN.prematureExit = True
 				elif action == 'Cppcheck_Analysis':
 					SCA.CppCheckAnalysis(HTML)
 				elif action == 'LicenceAndFormattingCheck':
@@ -1007,7 +1008,7 @@ elif re.match('^TesteNB$', mode, re.IGNORECASE) or re.match('^TestUE$', mode, re
 					if CONTAINERS.exitStatus==1:
 						RAN.prematureExit = True
 				elif action == 'IperfFromContainer':
-					CONTAINERS.IperfFromContainer(HTML, RAN)
+					CONTAINERS.IperfFromContainer(HTML, RAN, CiTestObj)
 					if CONTAINERS.exitStatus==1:
 						RAN.prematureExit = True
 				elif action == 'StatsFromGenObject':

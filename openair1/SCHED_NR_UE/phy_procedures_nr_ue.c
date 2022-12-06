@@ -52,7 +52,7 @@
 #include "executables/softmodem-common.h"
 #include "executables/nr-uesoftmodem.h"
 #include "LAYER2/NR_MAC_UE/mac_proto.h"
-#include "LAYER2/NR_MAC_UE/nr_l1_helpers.h"
+#include "openair1/SCHED_NR_UE/pucch_uci_ue_nr.h"
 
 //#define DEBUG_PHY_PROC
 #define NR_PDCCH_SCHED
@@ -270,7 +270,8 @@ void ue_ta_procedures(PHY_VARS_NR_UE *ue, int slot_tx, int frame_tx){
 
 void phy_procedures_nrUE_TX(PHY_VARS_NR_UE *ue,
                             UE_nr_rxtx_proc_t *proc,
-                            uint8_t gNB_id) {
+                            uint8_t gNB_id,
+                            nr_phy_data_tx_t *phy_data) {
 
   int slot_tx = proc->nr_slot_tx;
   int frame_tx = proc->frame_tx;
@@ -288,15 +289,32 @@ void phy_procedures_nrUE_TX(PHY_VARS_NR_UE *ue,
 
   if (ue->UE_mode[gNB_id] <= PUSCH){
 
-    for (uint8_t harq_pid = 0; harq_pid < ue->ulsch[gNB_id]->number_harq_processes_for_pusch; harq_pid++) {
-      if (ue->ulsch[gNB_id]->harq_processes[harq_pid]->status == ACTIVE)
-        nr_ue_ulsch_procedures(ue, harq_pid, frame_tx, slot_tx, gNB_id);
+    for (uint8_t harq_pid = 0; harq_pid < NR_MAX_ULSCH_HARQ_PROCESSES; harq_pid++) {
+      if (ue->ul_harq_processes[harq_pid].status == ACTIVE)
+        nr_ue_ulsch_procedures(ue, harq_pid, frame_tx, slot_tx, gNB_id, phy_data);
     }
   }
 
   if (ue->UE_mode[gNB_id] == PUSCH) {
     ue_srs_procedures_nr(ue, proc, gNB_id);
   }
+
+  if (ue->UE_mode[gNB_id] <= PUSCH) {
+    pucch_procedures_ue_nr(ue,
+                           gNB_id,
+                           proc,
+                           phy_data);
+  }
+
+  LOG_D(PHY, "Sending Uplink data \n");
+  nr_ue_pusch_common_procedures(ue,
+                                proc->nr_slot_tx,
+                                &ue->frame_parms,
+                                ue->frame_parms.nb_antennas_tx);
+
+  if (ue->UE_mode[gNB_id] > NOT_SYNCHED && ue->UE_mode[gNB_id] < PUSCH)
+    nr_ue_prach_procedures(ue, proc, proc->gNB_id);
+
   LOG_D(PHY,"****** end TX-Chain for AbsSubframe %d.%d ******\n", proc->frame_tx, proc->nr_slot_tx);
 
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PHY_PROCEDURES_UE_TX, VCD_FUNCTION_OUT);
@@ -391,8 +409,6 @@ static void nr_ue_pbch_procedures(uint8_t gNB_id,
     if (ue->UE_mode[gNB_id] == NOT_SYNCHED && ue->no_timing_correction == 1){
       if (get_softmodem_params()->do_ra) {
         ue->UE_mode[gNB_id] = PRACH;
-        ue->prach_resources[gNB_id]->sync_frame = frame_rx;
-        ue->prach_resources[gNB_id]->init_msg1 = 0;
       } else {
         ue->UE_mode[gNB_id] = PUSCH;
       }
@@ -495,7 +511,7 @@ int nr_ue_pdcch_procedures(uint8_t gNB_id,
   int frame_rx = proc->frame_rx;
   int nr_slot_rx = proc->nr_slot_rx;
   unsigned int dci_cnt=0;
-  fapi_nr_dci_indication_t *dci_ind = calloc(1, sizeof(*dci_ind));
+  fapi_nr_dci_indication_t dci_ind = {0};
   nr_downlink_indication_t dl_indication;
   NR_UE_PDCCH_CONFIG *phy_pdcch_config = &phy_data->phy_pdcch_config;
 
@@ -519,7 +535,7 @@ int nr_ue_pdcch_procedures(uint8_t gNB_id,
 	 n_ss);
 #endif
 
-  dci_cnt = nr_dci_decoding_procedure(ue, proc, pdcch_e_rx, dci_ind, rel15);
+  dci_cnt = nr_dci_decoding_procedure(ue, proc, pdcch_e_rx, &dci_ind, rel15);
 
 #ifdef NR_PDCCH_SCHED_DEBUG
   LOG_I(PHY,"<-NR_PDCCH_PHY_PROCEDURES_LTE_UE (nr_ue_pdcch_procedures)-> Ending function nr_dci_decoding_procedure() -> dci_cnt=%u\n",dci_cnt);
@@ -533,14 +549,14 @@ int nr_ue_pdcch_procedures(uint8_t gNB_id,
       ue->Mod_id,frame_rx%1024,nr_slot_rx,nr_mode_string[ue->UE_mode[gNB_id]],
       i + 1,
       dci_cnt,
-      dci_ind->dci_list[i].rnti,
-      dci_ind->dci_list[i].dci_format);
+      dci_ind.dci_list[i].rnti,
+      dci_ind.dci_list[i].dci_format);
   }
 
-  dci_ind->number_of_dcis = dci_cnt;
+  dci_ind.number_of_dcis = dci_cnt;
 
   // fill dl_indication message
-  nr_fill_dl_indication(&dl_indication, dci_ind, NULL, proc, ue, gNB_id, phy_data);
+  nr_fill_dl_indication(&dl_indication, &dci_ind, NULL, proc, ue, gNB_id, phy_data);
   //  send to mac
   ue->if_inst->dl_indication(&dl_indication, NULL);
 
@@ -983,8 +999,7 @@ bool nr_ue_dlsch_procedures(PHY_VARS_NR_UE *ue,
 int phy_procedures_nrUE_RX(PHY_VARS_NR_UE *ue,
                            UE_nr_rxtx_proc_t *proc,
                            uint8_t gNB_id,
-                           nr_phy_data_t *phy_data,
-                           notifiedFIFO_t *txFifo) {
+                           nr_phy_data_t *phy_data) {
 
   int frame_rx = proc->frame_rx;
   int nr_slot_rx = proc->nr_slot_rx;
@@ -1178,13 +1193,6 @@ int phy_procedures_nrUE_RX(PHY_VARS_NR_UE *ue,
 
 #endif //NR_PDCCH_SCHED
 
-  // Start PUSCH processing here. It runs in parallel with PDSCH processing
-  notifiedFIFO_elt_t *newElt = newNotifiedFIFO_elt(sizeof(nr_rxtx_thread_data_t), proc->nr_slot_tx,txFifo,processSlotTX);
-  nr_rxtx_thread_data_t *curMsg=(nr_rxtx_thread_data_t *)NotifiedFifoData(newElt);
-  curMsg->proc = *proc;
-  curMsg->UE = ue;
-  curMsg->ue_sched_mode = SCHED_PUSCH;
-  pushTpool(&(get_nrUE_params()->Tpool), newElt);
   start_meas(&ue->generic_stat);
   // do procedures for C-RNTI
   int ret_pdsch = 0;
@@ -1302,44 +1310,25 @@ void nr_ue_prach_procedures(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, uint8_t
 
   int frame_tx = proc->frame_tx, nr_slot_tx = proc->nr_slot_tx, prach_power; // tx_amp
   uint8_t mod_id = ue->Mod_id;
-  NR_PRACH_RESOURCES_t * prach_resources = ue->prach_resources[gNB_id];
-  AssertFatal(prach_resources != NULL, "ue->prach_resources[%u] == NULL\n", gNB_id);
   uint8_t nr_prach = 0;
 
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PHY_PROCEDURES_UE_TX_PRACH, VCD_FUNCTION_IN);
 
-  if (ue->mac_enabled == 0){
-
-    prach_resources->ra_TDD_map_index = 0;
-    prach_resources->ra_PREAMBLE_RECEIVED_TARGET_POWER = 10;
-    prach_resources->ra_RNTI = 0x1234;
-    nr_prach = 1;
-    prach_resources->init_msg1 = 1;
-
-  } else {
-
-    nr_prach = nr_ue_get_rach(prach_resources, &ue->prach_vars[0]->prach_pdu, mod_id, ue->CC_id, frame_tx, gNB_id, nr_slot_tx);
-    LOG_D(PHY, "In %s:[%d.%d] getting PRACH resources : %d\n", __FUNCTION__, frame_tx, nr_slot_tx,nr_prach);
-  }
+  nr_prach = nr_ue_get_rach(&ue->prach_vars[gNB_id]->prach_pdu, mod_id, ue->CC_id, frame_tx, gNB_id, nr_slot_tx);
+  LOG_D(PHY, "In %s:[%d.%d] getting PRACH resources : %d\n", __FUNCTION__, frame_tx, nr_slot_tx,nr_prach);
 
   if (nr_prach == GENERATE_PREAMBLE) {
 
-    if (ue->mac_enabled == 1) {
-      int16_t pathloss = get_nr_PL(mod_id, ue->CC_id, gNB_id);
-      int16_t ra_preamble_rx_power = (int16_t)(prach_resources->ra_PREAMBLE_RECEIVED_TARGET_POWER - pathloss + 30);
-      ue->tx_power_dBm[nr_slot_tx] = min(nr_get_Pcmax(mod_id), ra_preamble_rx_power);
+    fapi_nr_ul_config_prach_pdu *prach_pdu = &ue->prach_vars[gNB_id]->prach_pdu;
+    ue->tx_power_dBm[nr_slot_tx] = prach_pdu->prach_tx_power;
 
-      LOG_D(PHY, "In %s: [UE %d][RAPROC][%d.%d]: Generating PRACH Msg1 (preamble %d, PL %d dB, P0_PRACH %d, TARGET_RECEIVED_POWER %d dBm, RA-RNTI %x)\n",
-        __FUNCTION__,
-        mod_id,
-        frame_tx,
-        nr_slot_tx,
-        prach_resources->ra_PreambleIndex,
-        pathloss,
-        ue->tx_power_dBm[nr_slot_tx],
-        prach_resources->ra_PREAMBLE_RECEIVED_TARGET_POWER,
-        prach_resources->ra_RNTI);
-    }
+    LOG_D(PHY, "In %s: [UE %d][RAPROC][%d.%d]: Generating PRACH Msg1 (preamble %d, P0_PRACH %d)\n",
+          __FUNCTION__,
+          mod_id,
+          frame_tx,
+          nr_slot_tx,
+          prach_pdu->ra_PreambleIndex,
+          ue->tx_power_dBm[nr_slot_tx]);
 
     ue->prach_vars[gNB_id]->amp = AMP;
 
@@ -1357,9 +1346,6 @@ void nr_ue_prach_procedures(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, uint8_t
       ue->tx_power_dBm[nr_slot_tx],
       dB_fixed(prach_power),
       ue->prach_vars[gNB_id]->amp);
-
-    if (ue->mac_enabled == 1)
-      nr_Msg1_transmitted(mod_id, ue->CC_id, frame_tx, gNB_id);
 
   } else if (nr_prach == WAIT_CONTENTION_RESOLUTION) {
     LOG_D(PHY, "In %s: [UE %d] RA waiting contention resolution\n", __FUNCTION__, mod_id);

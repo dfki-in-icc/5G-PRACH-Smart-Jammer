@@ -75,13 +75,15 @@ int nr_find_pucch(uint16_t rnti,
   AssertFatal(gNB!=NULL,"gNB is null\n");
   int index = -1;
 
-  for (int i=0; i<NUMBER_OF_NR_PUCCH_MAX; i++) {
-    AssertFatal(gNB->pucch[i]!=NULL,"gNB->pucch[%d] is null\n",i);
-    if ((gNB->pucch[i]->active >0) &&
-        (gNB->pucch[i]->pucch_pdu.rnti==rnti) &&
-        (gNB->pucch[i]->frame==frame) &&
-        (gNB->pucch[i]->slot==slot)) return(i);
-    else if ((gNB->pucch[i]->active == 0) && (index==-1)) index=i;
+  for (int i = 0; i < NUMBER_OF_NR_PUCCH_MAX; i++) {
+    AssertFatal(gNB->pucch[i] != NULL,"gNB->pucch[%d] is null\n",i);
+    if ((gNB->pucch[i]->active > 0) &&
+        (gNB->pucch[i]->pucch_pdu.rnti == rnti) &&
+        (gNB->pucch[i]->frame == frame) &&
+        (gNB->pucch[i]->slot == slot))
+      return(i);
+    else if ((gNB->pucch[i]->active == 0) && (index == -1))
+      index=i;
   }
 
   if (index==-1)
@@ -97,15 +99,16 @@ void nr_fill_pucch(PHY_VARS_gNB *gNB,
   if (NFAPI_MODE == NFAPI_MODE_PNF)
     gNB->pucch[0]->active = 0; //check if ture in monolithic mode 
   int id = nr_find_pucch(pucch_pdu->rnti,frame,slot,gNB);
-  AssertFatal( (id>=0) && (id<NUMBER_OF_NR_PUCCH_MAX),
+  AssertFatal((id >= 0) && (id < NUMBER_OF_NR_PUCCH_MAX),
               "invalid id found for pucch !!! rnti %04x id %d\n",pucch_pdu->rnti,id);
 
   NR_gNB_PUCCH_t  *pucch = gNB->pucch[id];
   pucch->frame = frame;
   pucch->slot = slot;
   pucch->active = 1;
-  if (pucch->pucch_pdu.format_type > 0) LOG_D(PHY,"Programming PUCCH[%d] for %d.%d, format %d, nb_harq %d, nb_sr %d, nb_csi %d\n",id,
-                                          pucch->frame,pucch->slot,pucch->pucch_pdu.format_type,pucch->pucch_pdu.bit_len_harq,pucch->pucch_pdu.sr_flag,pucch->pucch_pdu.bit_len_csi_part1);
+  if (pucch->pucch_pdu.format_type > 0)
+    LOG_D(PHY,"Programming PUCCH[%d] for %d.%d, format %d, nb_harq %d, nb_sr %d, nb_csi %d\n",id,
+          pucch->frame,pucch->slot,pucch->pucch_pdu.format_type,pucch->pucch_pdu.bit_len_harq,pucch->pucch_pdu.sr_flag,pucch->pucch_pdu.bit_len_csi_part1);
   memcpy((void*)&pucch->pucch_pdu, (void*)pucch_pdu, sizeof(nfapi_nr_pucch_pdu_t));
 }
 
@@ -1515,30 +1518,49 @@ void nr_decode_pucch2(PHY_VARS_gNB *gNB,
 
 #endif
             prod_re[aa] = simde_mm256_hadds_epi16(prod_re[aa],prod_re[aa]);// 0+1
+#ifdef DEBUG_NR_PUCCH_RX
+            printf("0.prod_re[%d] => (%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d)\n",aa,
+                   ((int16_t*)&prod_re[aa])[0],((int16_t*)&prod_re[aa])[1],((int16_t*)&prod_re[aa])[2],((int16_t*)&prod_re[aa])[3],
+                   ((int16_t*)&prod_re[aa])[4],((int16_t*)&prod_re[aa])[5],((int16_t*)&prod_re[aa])[6],((int16_t*)&prod_re[aa])[7],
+                   ((int16_t*)&prod_re[aa])[8],((int16_t*)&prod_re[aa])[9],((int16_t*)&prod_re[aa])[10],((int16_t*)&prod_re[aa])[11],
+                   ((int16_t*)&prod_re[aa])[12],((int16_t*)&prod_re[aa])[13],((int16_t*)&prod_re[aa])[14],((int16_t*)&prod_re[aa])[15]);
+#endif	    
             prod_im[aa] = simde_mm256_hadds_epi16(prod_im[aa],prod_im[aa]);
             prod_re[aa] = simde_mm256_hadds_epi16(prod_re[aa],prod_re[aa]);// 0+1+2+3
+#ifdef DEBUG_NR_PUCCH_RX
+            printf("1.prod_re[%d] => (%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d)\n",aa,
+                   ((int16_t*)&prod_re[aa])[0],((int16_t*)&prod_re[aa])[1],((int16_t*)&prod_re[aa])[2],((int16_t*)&prod_re[aa])[3],
+                   ((int16_t*)&prod_re[aa])[4],((int16_t*)&prod_re[aa])[5],((int16_t*)&prod_re[aa])[6],((int16_t*)&prod_re[aa])[7],
+                   ((int16_t*)&prod_re[aa])[8],((int16_t*)&prod_re[aa])[9],((int16_t*)&prod_re[aa])[10],((int16_t*)&prod_re[aa])[11],
+                   ((int16_t*)&prod_re[aa])[12],((int16_t*)&prod_re[aa])[13],((int16_t*)&prod_re[aa])[14],((int16_t*)&prod_re[aa])[15]);
+#endif	    
             prod_im[aa] = simde_mm256_hadds_epi16(prod_im[aa],prod_im[aa]);
             prod_re[aa] = simde_mm256_hadds_epi16(prod_re[aa],prod_re[aa]);// 0+1+2+3+4+5+6+7
-            prod_im[aa] = simde_mm256_hadds_epi16(prod_im[aa],prod_im[aa]);
-            prod_re[aa] = simde_mm256_hadds_epi16(prod_re[aa],prod_re[aa]);// 0+1+2+3+4+5+6+7+8+9+10+11+12+13+14+15
+#ifdef DEBUG_NR_PUCCH_RX
+            printf("2.prod_re[%d] => (%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d)\n",aa,
+                   ((int16_t*)&prod_re[aa])[0],((int16_t*)&prod_re[aa])[1],((int16_t*)&prod_re[aa])[2],((int16_t*)&prod_re[aa])[3],
+                   ((int16_t*)&prod_re[aa])[4],((int16_t*)&prod_re[aa])[5],((int16_t*)&prod_re[aa])[6],((int16_t*)&prod_re[aa])[7],
+                   ((int16_t*)&prod_re[aa])[8],((int16_t*)&prod_re[aa])[9],((int16_t*)&prod_re[aa])[10],((int16_t*)&prod_re[aa])[11],
+                   ((int16_t*)&prod_re[aa])[12],((int16_t*)&prod_re[aa])[13],((int16_t*)&prod_re[aa])[14],((int16_t*)&prod_re[aa])[15]);
+#endif	    
             prod_im[aa] = simde_mm256_hadds_epi16(prod_im[aa],prod_im[aa]);
           }
           int64_t corr_re=0,corr_im=0;
 
 
           for (int aa=0;aa<Prx;aa++) {
+
+            corr_re = ( corr32_re[symb][group][aa]+((int16_t*)(&prod_re[aa]))[0]+((int16_t*)(&prod_re[aa]))[8]);
+            corr_im = ( corr32_im[symb][group][aa]+((int16_t*)(&prod_im[aa]))[0]+((int16_t*)(&prod_im[aa]))[8]);
 #ifdef DEBUG_NR_PUCCH_RX
             printf("pucch2 cw %d group %d aa %d: (%d,%d)+(%d,%d) = (%d,%d)\n",cw,group,aa,
               corr32_re[symb][group][aa],corr32_im[symb][group][aa],
-              ((int16_t*)(&prod_re[aa]))[0],
-              ((int16_t*)(&prod_im[aa]))[0],
-              corr32_re[symb][group][aa]+((int16_t*)(&prod_re[aa]))[0],
-              corr32_im[symb][group][aa]+((int16_t*)(&prod_im[aa]))[0]);
+              ((int16_t*)(&prod_re[aa]))[0]+((int16_t*)(&prod_re[aa]))[8],
+              ((int16_t*)(&prod_im[aa]))[0]+((int16_t*)(&prod_im[aa]))[8],
+	      corr_re,corr_im
+              );
 
 #endif
-
-            corr_re = ( corr32_re[symb][group][aa]+((int16_t*)(&prod_re[aa]))[0]);
-            corr_im = ( corr32_im[symb][group][aa]+((int16_t*)(&prod_im[aa]))[0]);
 
             corr_tmp += corr_re*corr_re + corr_im*corr_im;
           } // aa loop
@@ -1547,11 +1569,14 @@ void nr_decode_pucch2(PHY_VARS_gNB *gNB,
       if (corr_tmp > corr) {
          corr = corr_tmp;
          cw_ML=cw;
+#ifdef DEBUG_NR_PUCCH_RX
+         printf("slot %d PUCCH2 cw_ML %d, corr %llu\n",slot,cw_ML,corr);
+#endif
       }
     } // cw loop
     corr_dB = dB_fixed64((uint64_t)corr);
 #ifdef DEBUG_NR_PUCCH_RX
-    LOG_I(PHY,"slot %d PUCCH2 cw_ML %d, metric %d dB\n",slot,cw_ML,corr_dB);
+    printf("slot %d PUCCH2 cw_ML %d, metric %d \n",slot,cw_ML,corr_dB);
 #endif
     decodedPayload[0]=(uint64_t)cw_ML;
   }
