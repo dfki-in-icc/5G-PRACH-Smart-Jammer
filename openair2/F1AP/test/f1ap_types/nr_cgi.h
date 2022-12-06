@@ -13,6 +13,8 @@ typedef struct{
 
 bool eq_nr_cgi( nr_cgi_t const* m0, nr_cgi_t const* m1);
 
+void free_nr_cgi(nr_cgi_t* src);
+
 #endif
 
 

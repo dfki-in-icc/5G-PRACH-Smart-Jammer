@@ -1,0 +1,13 @@
+#ifndef UL_CONFIGURATION_F1AP_MIR_H
+#define UL_CONFIGURATION_F1AP_MIR_H
+
+// 9.3.1.31
+typedef enum{
+  NO_DATA_UL_CONF_F1AP, 
+  SHARED_UL_CONF_F1AP, 
+  ONLY_UL_CONF_F1AP,
+
+  END_UL_CONF_F1AP
+} ul_conf_f1ap_e;
+
+#endif

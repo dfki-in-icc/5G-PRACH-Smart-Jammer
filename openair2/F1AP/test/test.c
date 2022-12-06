@@ -40,6 +40,7 @@
 #include "f1ap_types/f1_setup.h"
 #include "f1ap_types/f1_setup_response.h"
 #include "f1ap_types/f1_setup_failure.h"
+#include "f1ap_types/ue_ctx_setup_request.h"
 
 void test_f1_setup_f1ap()
 {
@@ -103,6 +104,35 @@ void test_f1_setup_failure_f1ap()
   assert(eq_f1_setup_failure(&msg, &out) == true);
 }
 
+void test_f1_ue_ctx_setup_request()
+{
+  ue_ctx_setup_request_t msg = gen_rnd_ue_ctx_setup_request();
+  defer({ free_ue_ctx_setup_request(&msg); });
+
+  F1AP_F1AP_PDU_t pdu = cp_ue_ctx_setup_request_asn(&msg);
+  defer({ ASN_STRUCT_RESET(asn_DEF_F1AP_F1AP_PDU, &pdu); } );
+
+  byte_array_t ba = encode_pdu_f1ap(&pdu);
+  defer({ free_byte_array(ba); } );
+
+  F1AP_F1AP_PDU_t pdu2 = decode_pdu_f1ap(ba); 
+  defer({ ASN_STRUCT_RESET(asn_DEF_F1AP_F1AP_PDU, &pdu2); } ); 
+
+  ue_ctx_setup_request_t out = cp_ue_ctx_setup_request_ir(&pdu2);
+  defer({ free_ue_ctx_setup_request(&out); });
+
+  assert(eq_f1_ue_ctx_setup_request(&msg, &out) == true);
+}
+
+void test_f1_ue_ctx_setup_response()
+{
+
+
+}
+
+
+
+
 int main()
 {
   time_t t;
@@ -112,6 +142,10 @@ int main()
   test_f1_setup_response_f1ap();
   test_f1_setup_failure_f1ap();
 
+  test_f1_ue_ctx_setup_request();
+  test_f1_ue_ctx_setup_response();
+
+
   // Class 2: 35 Procedures
 
   return EXIT_SUCCESS;
@@ -119,6 +153,13 @@ int main()
 
 /*
 // Class 1: 21 Procedures
+
+1. F1 Setup Request/Response
+2. UE Context Setup Req/Resp 
+3. UE Context Release Req/Resp 
+4. UE Context Modification Req/Resp 
+5. Initial UL/DL RRC Message Transfer 
+
 
 Reset
 F1 Setup

@@ -11,6 +11,21 @@
 #include <poll.h>
 
 static
+BIT_STRING_t gen_bit_string(const char* str)
+{
+  BIT_STRING_t dst = {0};
+
+  dst.size = strlen(str);
+  dst.buf = calloc(1, strlen(str));
+  assert(dst.buf != NULL);
+
+  memcpy(dst.buf, str, strlen(str) );
+  dst.bits_unused = 0;
+
+  return dst;
+}
+
+static
 void gen_freq_band(freq_band_f1ap_t* dst)
 {
   assert(dst != NULL);
@@ -50,13 +65,33 @@ void gen_freq_info(nr_freq_info_f1ap_t* dst)
 }
 
 static
+s_nssai_t gen_rnd_s_nssai(void)
+{
+  s_nssai_t dst = {0};
+
+  dst.sst = rand(); 
+  
+  /*
+  dst.sd= calloc(1, sizeof(byte_array_t));
+  assert(dst.sd != NULL); 
+  dst.sd->len = 3;
+  dst.sd->buf = malloc(3);
+  uint8_t tmp[3] = {0xde, 0xad, 0xbe};
+  memcpy(dst.sd->buf, &tmp, 3); 
+  */
+
+  return dst;
+}
+
+
+static
 void gen_srv_cell_info(srv_cell_info_t* dst)
 {
   assert(dst!= NULL);
 
   // NR CGI
   dst->nr_cgi.nr_cell_id = rand()% (1UL << 36);
-  dst ->nr_cgi.plmn_id.mcc = 505;
+  dst->nr_cgi.plmn_id.mcc = 505;
   dst->nr_cgi.plmn_id.mnc = 1;
   dst->nr_cgi.plmn_id.mnc_digit_len = 2;
 
@@ -89,14 +124,7 @@ void gen_srv_cell_info(srv_cell_info_t* dst)
     }
 
     for(size_t j =0; j < dst->srv_plmn[i].sz_tai_slice_sup_lst; ++j){
-      s_nssai_t* tai_slice_sup = &dst->srv_plmn[i].tai_slice_sup_lst[j]; 
-      tai_slice_sup->sst = rand(); 
-      tai_slice_sup->sd= calloc(1, sizeof(byte_array_t));
-      assert( tai_slice_sup->sd != NULL); 
-      tai_slice_sup->sd->len = 3;
-      tai_slice_sup->sd->buf = malloc(3);
-      uint8_t tmp[3] = {0xde, 0xad, 0xbe};
-      memcpy(tai_slice_sup->sd->buf, &tmp, 3); 
+      dst->srv_plmn[i].tai_slice_sup_lst[j] = gen_rnd_s_nssai(); 
     }
 
     //  uint64_t* npn_sup_info_nid; // SIZE(44) bits 
@@ -461,6 +489,683 @@ f1_setup_failure_t gen_rnd_f1_setup_failure(void)
   dst.diagnose = malloc(sizeof(criticallity_diagnostic_f1ap_t));
   assert(dst.diagnose != NULL && "Mmeory exhausted");
   gen_rnd_criticallity_diagnostic(dst.diagnose); 
+
+  return dst;
+}
+
+static
+byte_array_t gen_byte_array(const char* str)
+{
+  assert(str != NULL);
+
+  byte_array_t dst = {0};
+
+  size_t const sz = strlen(str);
+  dst.buf = malloc(sz);
+  assert(dst.buf != NULL && "Memory exhausted");
+
+  dst.len = sz;
+  memcpy(dst.buf, str, sz);
+
+  return dst;
+}
+
+static
+byte_array_t* gen_byte_array_heap(const char* str)
+{
+  assert(str != NULL);
+
+  byte_array_t* dst = calloc(1, sizeof(byte_array_t));
+  assert(dst != NULL && "Memory exhausted");
+  *dst = gen_byte_array(str);
+
+  return dst;
+}
+
+static
+cu_to_du_rrc_info_t gen_cu_to_du_rrc_info(void)
+{
+  cu_to_du_rrc_info_t dst = {0}; 
+
+  // Optional
+  // CG-ConfigInfo
+  const char* str_1 = "String One";
+  dst.cg_config_info = gen_byte_array_heap(str_1);
+
+  // Optional
+  // UE-CapabilityRAT-ContainerList
+  const char* str_2 = "String Two";
+  dst.ue_capability_rat_con_lst = gen_byte_array_heap(str_2) ;
+
+  // Optional
+  // MeasConfig
+  const char* str_3 = "String Three";
+  dst.meas_config =  gen_byte_array_heap(str_3) ;
+
+  // Optional
+  // Handover Preparation Information
+//  const char* str_4 = "String Four";
+//  dst.handover_prep_info = gen_byte_array_heap(str_4);
+
+  // Optional
+  // CellGroupConfig
+//  const char* str_5 = "String Five";
+//  dst.cell_group_config = gen_byte_array_heap(str_5);
+
+  // Optional
+  // Measurement Timing Configuration
+//  const char* str_6 = "String Six";
+//  dst.meas_timing_conf = gen_byte_array_heap(str_6);
+
+  // Optional
+  // UEAssistanceInformation
+//  const char* str_7 = "String Seven";
+//  dst.ue_assistance_info = gen_byte_array_heap(str_7);
+
+  // Optional
+  // CG-Config
+//  const char* str_8 = "String Eight";
+//  dst.cg_config = gen_byte_array_heap(str_8);
+
+  // Optional
+  // UEAssistanceInformationEUTRA
+//  const char* str_9 = "String Nine";
+//  dst.UE_assistance_info_eutra = gen_byte_array_heap(str_9);
+
+  return dst;
+}
+
+static
+nr_cgi_t gen_rnd_nr_cgi(void)
+{
+  nr_cgi_t dst = {0}; 
+  dst.nr_cell_id = rand()% (1UL << 36);
+  dst.plmn_id.mcc = 505;
+  dst.plmn_id.mnc = 1;
+  dst.plmn_id.mnc_digit_len = 2;
+
+  return dst;
+}
+
+static
+drx_cycle_t* gen_rnd_drx_cycle(void)
+{
+  drx_cycle_t* dst = malloc(sizeof(drx_cycle_t));
+  assert(dst != NULL && "Memory exhausted");
+
+  // Mandatory 
+  // Long DRX Cycle Length
+  //long_drx_cycle_len_e long_drx_cycle_len;
+  dst->long_drx_cycle_len = rand() % END_LONG_DRX_CYCLE_LEN;
+
+  // Optional 
+  // Short DRX Cycle Length
+  //short_drx_cycle_len_e* short_drx_cycle_len;
+  dst->short_drx_cycle_len = NULL;
+
+  // Optional
+  // Short DRX Cycle Timer INTEGER (1..16)
+  dst->short_drx_cycle_timer = NULL;
+
+  return dst;
+}
+
+static
+scell_to_be_setup_t gen_rnd_scell_to_be_setup(void)
+{
+  scell_to_be_setup_t dst = {0}; 
+
+  // Mandatory
+  // SCell ID 
+  dst.scell_id = gen_rnd_nr_cgi();
+
+  // Mandatory
+  // SCellIndex
+  dst.scell_idx = (rand() % 31) + 1; // INTEGER (1..31
+
+  // Optional
+  // SCell UL Configured
+  dst.scell_ul_conf = NULL;
+
+  // Optional
+  // servingCellMO
+  dst.serv_cell_mo = NULL; // INTEGER(1..64) 
+
+  return dst;
+}
+
+static
+srb_to_be_setup_t gen_rnd_srb_to_be_setup(void)
+{
+  srb_to_be_setup_t dst = {0};
+
+  // Mandatory
+  //  SRB ID
+  dst.srb_id = rand() % 4; // [0,3]
+
+  // Optional
+  // Duplication Indication
+  dst.dup_ind = NULL;  
+
+  // Optional 
+  // Additional Duplication Indication
+  dst.add_dup_ind = NULL;
+
+  return dst;
+}
+
+static
+e_utran_qos_t gen_rnd_e_utran_qos(void)
+{
+  e_utran_qos_t dst = {0};
+  // Mandatory
+  // QCI
+  dst.qci = rand();
+
+  // Mandatory
+  // Allocation and Retention Priority alloc_retention_prio_t 
+  dst.alloc.preempt_capability = rand() % END_PREEMPT_CAPABILITY; 
+  dst.alloc.preempt_vulnerability = rand() % END_PREEMPT_VULNERABILITY;
+  dst.alloc.prio_level = rand() % 16; //  // INTEGER (0..15)
+
+  // Optional
+  // GBR QoS Information 9.3.1.21
+  dst.gbr_qos_info = NULL; 
+
+  return dst;
+}
+
+static
+non_dyn_5qi_descriptor_t gen_rnd_non_dyn_5qi_descriptor(void)
+{
+  // Non Dynamic 5QI Descriptor 9.3.1.49
+  non_dyn_5qi_descriptor_t dst = {0};
+
+  // Mandatory
+  //  5QI
+  dst.five_qi = rand();
+
+  // Optional
+  // Priority Level
+  dst.prio_level = NULL; // [1,127]
+
+  // Optional
+  // Averaging Window 9.3.1.53 INTEGER (0..4095, ...)
+  dst.av_window = NULL;
+
+  // Optional 
+  // Maximum Data Burst Volume 9.3.1.54
+  dst.max_data_burst_vol = NULL; // INTEGER (0..4095, ..., 4096..2000000)
+
+  // Optional 
+  // CN Packet Delay Budget Downlink 9.3.1.145
+  dst.pkt_delay_budget_downlink = NULL; // INTEGER (0..65535, …)
+
+  // Optional 
+  // CN Packet Delay Budget Uplink // INTEGER (0..65535, …)
+  dst.pkt_delay_budget_uplink = NULL; // INTEGER (0..65535, …)
+
+  return dst;
+}
+
+static
+dyn_5qi_descriptor_t gen_rnd_dyn_5qi_descriptor(void)
+{
+  // Dynamic 5QI Descriptor 9.3.1.47
+  dyn_5qi_descriptor_t dst = {0};
+
+  //Mandatory
+  //QoS Priority Level
+  dst.qos_prio_level = (rand() % 127) + 1; // INTEGER (1..127)
+
+  // Mandatory
+  //Packet Delay Budget 9.3.1.51
+  dst.pkt_delay_budget = rand() % 1024; // INTEGER (0..1023, ...)
+
+  // Mandatory
+  // Packet Error Rate 9.3.1.52
+  dst.pkt_error_rate.scalar = rand() % 10;   // INTEGER (0..9, ...)
+  dst.pkt_error_rate.exponent = rand() % 10; // INTEGER (0..9, ...)
+
+  // Optional
+  // 5QI
+  dst.five_qi = NULL;
+
+  // C-ifGBRflow
+  // Delay Critical 
+  dst.delay_critical = NULL; //rand() % END_DELAY_CRITICAL;
+
+  // C-ifGBRflow
+  // Averaging Window 9.3.1.53
+  dst.av_window = NULL; //rand() % 4096; // INTEGER (0..4095, ...)
+
+  // Optional 
+  // Maximum Data Burst Volume 9.3.1.54
+  dst.max_data_burst_vol = NULL; //INTEGER (0..4095, ..., 4096..2000000)
+
+  // Optional 
+  // Extended Packet Delay Budget 9.3.1.145
+  dst.ext_pkt_delay_budget = NULL; //INTEGER (0..65535, …) 
+
+  // Optional 
+  // CN Packet Delay Budget Downlink
+  dst.cn_pkt_dalay_budget_downlink = NULL; 
+
+  // Optional
+  // CN Packet Delay Budget Uplink
+  dst.cn_pkt_dalay_budget_uplink = NULL; 
+
+  return dst;
+}
+
+static
+gbr_qos_flow_info_t* gen_rnd_gbr_qos_flow_info(void)
+{
+  // GBR QoS Flow Information 9.3.1.46
+  gbr_qos_flow_info_t* dst = calloc(1, sizeof(gbr_qos_flow_info_t));
+
+  // Mandatory
+  // Maximum Flow Bit Rate Downlink 9.3.1.22
+  dst->max_flow_bit_rate_downlink = rand(); //INTEGER (0..4,000,000,000,000,...) rand() return int which only has 32 bits
+                                       
+  // Mandatory
+  // Maximum Flow Bit Rate Uplink 9.3.1.22
+  dst->max_flow_bit_rate_uplink = rand(); //INTEGER (0..4,000,000,000,000,...) rand() return int which only has 32 bits
+
+  // Mandatory
+  // Guaranteed Flow Bit Rate Downlink 9.3.1.22
+  dst->gbr_flow_bit_rate_downlink = rand(); //INTEGER (0..4,000,000,000,000,...) rand() return int which only has 32 bits
+
+  //Mandatory
+  //Guaranteed Flow Bit Rate Uplink 9.3.1.22
+  dst->gbr_flow_bit_rate_uplink = rand(); //INTEGER (0..4,000,000,000,000,...) rand() return int which only has 32 bits
+
+  //Optional
+  //Maximum Packet Loss Rate Downlink 9.3.1.50
+  dst->max_pkt_loss_rate_downlink = NULL; //INTEGER(0..1000)
+
+  //Optional
+  //Maximum Packet Loss Rate Uplink 9.3.1.50
+  dst->max_pkt_loss_rate_uplink = NULL; //INTEGER(0..1000)
+                                       
+  //Optional 
+  //Alternative QoS Parameters Set List 9.3.1.50
+  dst->alternative_qos_param = NULL; //INTEGER(0..1000)
+
+  return dst;
+}
+
+static
+qos_flow_level_qos_parameter_t gen_qos_flow_level_qos_parameter(void)
+{
+  qos_flow_level_qos_parameter_t dst = {0};
+
+  //Mandatory 
+  // CHOICE QoS Characteristics qos_characteristic_e  
+  dst.qos_characteristic = rand() % END_5QI_DESCRIPTOR;
+  assert(dst.qos_characteristic == NON_DYN_5QI_DESCRIPTOR ||  dst.qos_characteristic == DYN_5QI_DESCRIPTOR);
+
+  if(dst.qos_characteristic == NON_DYN_5QI_DESCRIPTOR){
+    dst.non_dyn = gen_rnd_non_dyn_5qi_descriptor() ;
+  } else if (dst.qos_characteristic == DYN_5QI_DESCRIPTOR){ // dst.qos_characteristic ==  
+    dst.dyn = gen_rnd_dyn_5qi_descriptor();
+  } else {
+    assert(0!=0 && "Unknown type");
+  }
+
+  // Mandatory
+  // NG-RAN Allocation and Retention Priority 9.3.1.48
+  dst.alloc_retention_prio.preempt_capability = rand() % END_PREEMPT_CAPABILITY; 
+  dst.alloc_retention_prio.preempt_vulnerability = rand() % END_PREEMPT_VULNERABILITY;
+  dst.alloc_retention_prio.prio_level = rand() % 16; //  // INTEGER (0..15)
+
+  // Optional 
+  // GBR QoS Flow Information 9.3.1.46
+  dst.gbr_qos_flow_info = NULL; // gen_rnd_gbr_qos_flow_info();
+
+  // Optional 
+  // Reflective QoS Attribute
+  dst.reflective_qos_attr = NULL;
+
+  // Optional 
+  // PDU Session ID
+  dst.pdu_session_id = NULL;
+
+  // Optional
+  //UL PDU Session Aggregate Maximum Bit Rate 9.3.1.22
+  dst.ul_pdu_session_aggr_max_bit_rate = NULL; 
+
+  // Optional
+  // QoS Monitoring Request
+   dst.qos_monitoring_request = NULL;
+
+  return dst;
+}
+
+static
+flows_mapped_to_drb_t gen_flows_mapped_to_drb(void)
+{
+  flows_mapped_to_drb_t dst = {0}; 
+  // Mandatory
+  // QoS Flow Identifier 9.3.1.63
+  dst.qfi = rand() % 64; // INTEGER (0 ..63)
+
+  // Mandatory 
+  // QoS Flow Level QoS Parameters 9.3.1.45
+  dst.qos_flow_level = gen_qos_flow_level_qos_parameter();
+
+  // Optional
+  // QoS Flow Mapping Indication 9.3.1.72
+  dst.qos_flow_mapping_ind = NULL;
+
+  // Optional
+  // TSC Traffic Characteristics 9.3.1.141
+  dst.tsc_traffic_char = NULL;
+
+  return dst;
+}
+
+static
+drb_info_t gen_rnd_drb_info(void)
+{
+  drb_info_t dst = {0}; 
+  
+  // Mandatory
+  // DRB QoS 9.3.1.45
+  dst.drb_qos = gen_qos_flow_level_qos_parameter();
+   
+  // Mandatory
+  // S-NSSAI 9.3.1.38
+  dst.nssai = gen_rnd_s_nssai();
+
+  // Optional
+  // Notification Control 9.3.1.56 notification_ctrl_e
+  dst.notification_ctrl = NULL;
+
+  // Flows Mapped to DRB [1,64]
+  dst.sz_flows_mapped_to_drb = (rand() % 64) + 1;
+  if(dst.sz_flows_mapped_to_drb > 0){
+    dst.flows_mapped_to_drb = calloc(dst.sz_flows_mapped_to_drb, sizeof(flows_mapped_to_drb_t));
+    assert(dst.flows_mapped_to_drb != NULL && "Memory exhausted");
+  }
+
+  for(size_t i = 0; i < dst.sz_flows_mapped_to_drb; ++i){
+    dst.flows_mapped_to_drb[i] = gen_flows_mapped_to_drb();
+  }
+
+  return dst;
+}
+
+static
+ul_up_tnl_info_t gen_rnd_ul_up_tnl_info(void)
+{
+  ul_up_tnl_info_t dst = {0};
+
+  // Mandatory
+  // Transport Layer Address
+  const char* str = "192.168.1.1";
+  dst.tla = gen_bit_string(str); 
+
+  // Mandatory
+  // 9.3.2.2
+  const char str_gtp[4] =  "ADAD";
+  memcpy(dst.gtp_teid, str_gtp, 4);
+
+  return dst;
+}
+
+static
+ul_up_tnl_info_lst_t gen_rnd_ul_up_tnl_info_lst(void)
+{
+  ul_up_tnl_info_lst_t dst = {0}; 
+
+  // Mandatory
+  // UL UP TNL Information 9.3.2.1
+  dst.tnl_info = gen_rnd_ul_up_tnl_info();
+
+  // Optional
+  // BH Information 9.3.1.114
+  dst.bh_info = NULL; 
+
+  return dst;
+}
+
+static
+drb_to_be_setup_t gen_drb_to_be_setup(void)
+{
+  drb_to_be_setup_t dst = {0}; 
+
+  // Mandatory
+  // DRB ID 9.3.1.8
+  dst.drb_id = rand() % 33; // INTEGER [0,32]
+
+  dst.qos_info = rand() % END_QOS_INFORMATION;
+  assert(dst.qos_info == E_UTRAN_QOS_INFORMATION || dst.qos_info == DRB_INFO_QOS_INFORMATION);
+  if(dst.qos_info == E_UTRAN_QOS_INFORMATION ){
+    dst.e_utran_qos = gen_rnd_e_utran_qos();
+  } else { // dst.qos_info == DRB_INFO_QOS_INFORMATION
+    dst.drb_info = gen_rnd_drb_info();
+  }
+
+  
+  // UL UP TNL Information to be setup List
+  dst.sz_ul_up_tnl_info_lst = (rand() % 2) + 1; // [1, 2]
+  if(dst.sz_ul_up_tnl_info_lst > 0){
+    dst.ul_up_tnl_info = calloc(dst.sz_ul_up_tnl_info_lst, sizeof(ul_up_tnl_info_lst_t));
+    assert(dst.ul_up_tnl_info != NULL && "Memory exhausted");
+  }
+  for(size_t i = 0; i < dst.sz_ul_up_tnl_info_lst; ++i){
+    dst.ul_up_tnl_info[i] = gen_rnd_ul_up_tnl_info_lst(); 
+  }
+
+  // Mandatory
+  // RLC Mode 9.3.1.27
+  dst.rlc_mode = rand() % END_RLC_MODE_F1AP;
+
+  // Optional 
+  // UL Configuration 9.3.1.31
+  dst.ul_conf = NULL;
+
+  // Optional 
+  // Duplication Activation 9.3.1.36
+  dst.dup_act = NULL;
+
+  // Optional
+  // DC Based Duplication Configured
+  dst.dc_dup_act_conf = NULL;
+
+  // Optional
+  // DC Based Duplication Activation 9.3.1.36
+  dst.dc_dup_act = NULL;
+
+  // Mandatory
+  // DL PDCP SN length
+  dst.dl_pdcp_sn_len = rand() % END_PDCP_SN_LEN;
+
+  // Optional
+  // UL PDCP SN length
+  dst.ul_pdcp_sn_len = NULL;
+
+  // Additional PDCP Duplication TNL List
+  dst.sz_add_pdcp_dup_tnl = 0; // [0,2]
+  dst.add_pdcp_dup_tnl = NULL; 
+
+  // Optional
+  // RLC Duplication Information 9.3.1.146
+  dst.sz_rlc_dup_info = 0; // [0,3]
+  dst.rlc_dup_info = NULL;  
+
+  return dst;
+}
+
+ue_ctx_setup_request_t gen_rnd_ue_ctx_setup_request(void)
+{
+  ue_ctx_setup_request_t  dst = {0};
+
+  // Mandatory
+  //gNB-CU UE F1AP ID 9.3.1.4
+  dst.gnb_cu_ue_f1ap_id = rand();
+
+  // Optional
+  // gNB-DU UE F1AP ID 9.3.1.5
+  dst.gnb_du_ue_f1ap_id = malloc(sizeof(uint32_t));
+  *dst.gnb_du_ue_f1ap_id = rand(); 
+
+  // Mandatory
+  // SpCell ID nr_cgi_t 
+  dst.sp_cell_id = gen_rnd_nr_cgi(); 
+
+     // Mandatory
+  // ServCellIndex
+  dst.serv_cell_idx = rand() % 32; // INTEGER (0..31,...) 
+
+  // Optional
+  // SpCell UL Configured 9.3.1.33
+  dst.sp_cell_ul_conf = NULL;
+
+  // Mandatory
+  // CU to DU RRC Information 9.3.1.25
+  dst.cu_to_du_rrc_info = gen_cu_to_du_rrc_info() ;  // cu_to_du_rrc_info_t 
+
+  // Optional 
+  // Candidate SpCell ID
+  dst.sz_candidate_sp_cell_id = 1; //rand()  % 65; // max. 64
+  if(dst.sz_candidate_sp_cell_id > 0){
+    dst.candidate_sp_cell_id = calloc(dst.sz_candidate_sp_cell_id, sizeof(nr_cgi_t)); 
+    assert(dst.candidate_sp_cell_id != NULL && "Memory exhausted");
+  }                                           
+  for(size_t i = 0 ; i < dst.sz_candidate_sp_cell_id; ++i){
+    dst.candidate_sp_cell_id[i] = gen_rnd_nr_cgi();  
+  }
+
+  //Optional 
+  // DRX Cycle
+  dst.drx_cycle = gen_rnd_drx_cycle();
+
+  // Optional
+  // Resource Coordination Transfer Container
+  const char* str_resource_coord = "String for coordination";
+  dst.resource_coord_transfer_container = gen_byte_array_heap(str_resource_coord); 
+  // SCell To Be Setup List
+  dst.sz_scell_to_be_setup = rand() % 33;// [0,32]
+  if(dst.sz_scell_to_be_setup > 0){
+    dst.scell_to_be_setup = calloc(dst.sz_scell_to_be_setup, sizeof(scell_to_be_setup_t )  );
+    assert(dst.scell_to_be_setup != NULL && "Memory exhausted");
+  }
+  for(size_t i = 0; i < dst.sz_scell_to_be_setup; ++i){
+    dst.scell_to_be_setup[i] = gen_rnd_scell_to_be_setup();  
+  }
+
+  // SRB to Be Setup Item
+  dst.sz_srb_to_be_setup = 8; // rand() % 9; //  [0,8]
+  if(dst.sz_srb_to_be_setup > 0) {
+    dst. srb_to_be_setup = calloc(dst.sz_srb_to_be_setup, sizeof(srb_to_be_setup_t)); 
+    assert(dst. srb_to_be_setup != NULL && "Memory exhausted");
+  }
+  for(size_t i =0; i < dst.sz_srb_to_be_setup; ++i ) {
+    dst.srb_to_be_setup[i] = gen_rnd_srb_to_be_setup();
+  }
+
+  // DRB to Be Setup Item
+  dst.sz_drb_to_be_setup = rand() % 65; // [0,64]
+  if(dst.sz_drb_to_be_setup > 0)  {
+    dst.drb_to_be_setup = calloc(dst.sz_drb_to_be_setup, sizeof(drb_to_be_setup_t) );
+    assert(dst.drb_to_be_setup != NULL && "Memory exhausted" );
+  }
+  for(size_t i = 0; i < dst.sz_drb_to_be_setup; ++i){
+    dst.drb_to_be_setup[i] = gen_drb_to_be_setup();
+  }
+
+  //
+
+  // Optional
+  // Inactivity Monitoring Request
+ 
+  //Optional 
+  // RAT-Frequency Priority Information 9.3.1.34
+
+
+  //Optional
+  //RRC-Container 9.3.1.6
+
+
+  //Optional 
+  //Masked IMEISV 9.3.1.55
+
+
+  //Optional
+  //Serving PLMN 9.3.1.14
+
+  
+  // C-ifDRBSetup Optional
+  // gNB-DU UE Aggregate Maximum Bit Rate Uplink 9.3.1.22
+  
+
+  //Optional
+  //RRC Delivery Status Request
+  
+
+  // Optional 
+  // Resource Coordination Transfer Information 9.3.1.73
+
+
+  //Optional
+  //servingCellMO 
+
+
+  //Optional 
+  //New gNB-CU UE F1AP ID 9.3.1.4
+ 
+
+  //Optional
+  // RAN UE ID
+
+
+  //Optional
+  // Trace Activation 9.3.1.88
+
+
+  //Optional
+  // Additional RRM Policy Index 9.3.1.90
+
+
+  // BH RLC Channel to be Setup Item [0, 65536]
+  // size_t sz_bh_rlc_chan_to_be_setup; 
+  // bh_rlc_chan_to_be_setup_t* ; 
+
+  //Optional
+  // Configured BAP Address 9.3.1.111
+
+  //Optional
+  // NR V2X Services Authorized 9.3.1.116
+
+  //Optional
+  // LTE V2X Services Authorized 9.3.1.117
+
+  //Optional
+  // NR UE Sidelink Aggregate Maximum Bit Rate 9.3.1.119
+
+  //Optional
+  // LTE UE Sidelink Aggregate Maximum Bit Rate 9.3.1.118
+
+  //Optional
+  // PC5 Link Aggregate Bit Rate 9.3.1.22
+
+  //Optional
+  //SL DRB to Be Setup List [0, 64]
+
+  //Optional
+  //Conditional Inter-DU Mobility Information 
+
+  // Optional
+  // Management Based MDT PLMN List 9.3.1.151
+
+  //Optional
+  // Serving NID 9.3.1.155
+
+  //Optional
+  //F1-C Transfer Path 9.3.1.207 
+
 
   return dst;
 }

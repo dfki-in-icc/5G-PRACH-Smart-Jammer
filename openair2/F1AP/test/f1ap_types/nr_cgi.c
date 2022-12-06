@@ -21,3 +21,8 @@ bool eq_nr_cgi( nr_cgi_t const* m0, nr_cgi_t const* m1){
   return true;
 }
 
+void free_nr_cgi(nr_cgi_t* src)
+{
+  (void)src;
+  // No heap allocated
+}

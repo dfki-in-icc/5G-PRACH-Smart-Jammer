@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 3.0)
 project (f1ap C)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wno-unknown-pragmas -g -std=gnu11 -fsanitize=address -fno-omit-frame-pointer")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wno-unknown-pragmas  -g -std=gnu11 -fsanitize=address -fno-omit-frame-pointer")
 
 
 #include_directories(${SOURCE_DIR})
@@ -20,6 +20,9 @@ if(CODE_COVERAGE)
   add_compile_options("-fprofile-arcs;-ftest-coverage")
   add_link_options("-lgcov;-coverage")
   message(STATUS "Code Coverage ON. Example usage: lcov --capture --directory . --output-file coverage.info && genhtml coverage.info --output-directory out && cd out && firefox index.html")
+
+  message(STATUS "Code Coverage ON. Example usage: lcov --capture --directory . --output-file coverage.info && genhtml coverage.info --output-directory out && cd out && firefox index.html")
+  message(STATUS "To merge different coverages: lcov --add-tracefile coverage1.info -a coverage2.info ...coverageN -o merged.info")
 
 endif()
 
