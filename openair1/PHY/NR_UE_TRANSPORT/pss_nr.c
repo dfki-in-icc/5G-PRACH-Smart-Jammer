@@ -832,18 +832,14 @@ int pss_search_time_by_Nid_cell_nr(int **rxdata, NR_DL_FRAME_PARMS *frame_parms,
   int64_t peak_value = 0;
   int64_t avg = 0;
 
-  for (int n = 0; n < length; n += 4) {
+  for (int n = 0; n < length; n += 8) {
     int64_t pss_corr_ue = 0;
 
     // calculate dot product of primary_synchro_time_nr and rxdata[ar][n] * (ar=0..nb_ant_rx) and store the sum in temp[n];
     for (int ar = 0; ar < frame_parms->nb_antennas_rx; ar++) {
       // perform correlation of rx data and pss sequence ie it is a dot product
-      const int64_t result = dot_product64((short *)primary_synchro_time_nr[pss_index],
-                                           (short *)&(rxdata[ar][n + is * frame_parms->samples_per_frame]),
-                                           frame_parms->ofdm_symbol_size,
-                                           shift);
-      const c32_t r32 = *(c32_t *)&result;
-      const c64_t r64 = {.r = r32.r, .i = r32.i};
+      const c32_t result = dot_product((c16_t *)primary_synchro_time_nr[pss_index], (c16_t *)&(rxdata[ar][n + is * frame_parms->samples_per_frame]), frame_parms->ofdm_symbol_size, shift);
+      const c64_t r64 = {.r = result.r, .i = result.i};
       pss_corr_ue += squaredMod(r64);
     }
 
@@ -857,26 +853,20 @@ int pss_search_time_by_Nid_cell_nr(int **rxdata, NR_DL_FRAME_PARMS *frame_parms,
 
   double ffo_est = 0;
   if (fo_flag) {
-    // Computing cross-correlation at peak on half the symbol size for first half of data
-    int64_t result1 = dot_product64((short *)primary_synchro_time_nr[pss_index],
-                                    (short *)&(rxdata[0][peak_position + is * frame_parms->samples_per_frame]),
-                                    frame_parms->ofdm_symbol_size >> 1,
-                                    shift);
+    // fractional frequency offset computation according to Cross-correlation Synchronization Algorithm Using PSS
+    // Shoujun Huang, Yongtao Su, Ying He and Shan Tang, "Joint time and frequency offset estimation in LTE downlink," 7th International Conference on Communications and Networking in China, 2012.
 
+    // Computing cross-correlation at peak on half the symbol size for first half of data
+    c32_t r1 = dot_product((c16_t *)primary_synchro_time_nr[pss_index], (c16_t *)&(rxdata[0][peak_position + is * frame_parms->samples_per_frame]), frame_parms->ofdm_symbol_size >> 1, shift);
     // Computing cross-correlation at peak on half the symbol size for data shifted by half symbol size
     // as it is real and complex it is necessary to shift by a value equal to symbol size to obtain such shift
-    int64_t result2 = dot_product64((short *)primary_synchro_time_nr[pss_index] + (frame_parms->ofdm_symbol_size),
-                                    (short *)&(rxdata[0][peak_position + is * frame_parms->samples_per_frame]) + frame_parms->ofdm_symbol_size,
-                                    frame_parms->ofdm_symbol_size >> 1,
-                                    shift);
-
-    int64_t re1 = ((int *)&result1)[0];
-    int64_t re2 = ((int *)&result2)[0];
-    int64_t im1 = ((int *)&result1)[1];
-    int64_t im2 = ((int *)&result2)[1];
-
+    c32_t r2 = dot_product((c16_t *)primary_synchro_time_nr[pss_index] + (frame_parms->ofdm_symbol_size >> 1),
+                           (c16_t *)&(rxdata[0][peak_position + is * frame_parms->samples_per_frame]) + (frame_parms->ofdm_symbol_size >> 1),
+                           frame_parms->ofdm_symbol_size >> 1,
+                           shift);
+    cd_t r1d = {r1.r, r1.i}, r2d = {r2.r, r2.i};
     // estimation of fractional frequency offset: angle[(result1)'*(result2)]/pi
-    ffo_est = atan2(re1 * im2 - re2 * im1, re1 * re2 + im1 * im2) / M_PI;
+    ffo_est = atan2(r1d.r * r2d.i - r2d.r * r1d.i, r1d.r * r2d.r + r1d.i * r2d.i) / M_PI;
   }
 
   // computing absolute value of frequency offset
