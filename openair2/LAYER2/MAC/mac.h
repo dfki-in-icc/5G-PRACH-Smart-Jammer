@@ -1442,6 +1442,7 @@ typedef struct eNB_MAC_INST_s {
   /// are called by ULSCH/DLSCH, respectively. Pro-processor implementation can
   /// encapsulate slicing.
   pp_impl_param_t pre_processor_dl;
+  pthread_mutex_t pp_dl_mutex;
   pp_impl_param_t pre_processor_ul;
 
   int32_t puSch10xSnr;

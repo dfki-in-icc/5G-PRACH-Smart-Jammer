@@ -283,6 +283,7 @@ endif ()
 
 add_definitions("-DASN_DISABLE_OER_SUPPORT")
 
+
 #########################
 set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -ggdb2 -Wl,-rpath -Wl,${CMAKE_CURRENT_BINARY_DIR}")
 #########################
@@ -366,6 +367,38 @@ endif()
 ##################################################
 # ASN.1 grammar C code generation & dependencies #
 ##################################################
+
+
+#########################
+##### E2 AGENT
+#########################
+set(E2_AGENT "OFF" CACHE STRING "O-RAN E2 Agent")
+set_property(CACHE E2_AGENT PROPERTY STRINGS "ON" "OFF")
+
+set(E2_AGENT_LIB "" CACHE STRING "")
+set_property(CACHE E2_AGENT_LIB PROPERTY STRINGS "" "e2_agent")
+
+if(E2_AGENT STREQUAL "ON")
+  #  execute_process(COMMAND python3 "${OPENAIR2_DIR}/E2AP/lib/v1/ap/ie/asn/gen_asn.py" "${asn1_generated_dir}/E2AP" "${OPENAIR2_DIR}/E2AP/lib/v1/ap/ie/asn/e2ap-v01.01.asn1" )
+  # include_directories ("${asn1_generated_dir}/E2AP")
+
+  set(E2_AGENT_PYTHON_SCRIPT "${OPENAIR2_DIR}/E2AP/lib/v1/ap/ie/asn/gen_asn.py" )
+  set(E2_AGENT_DEST_PATH "${OPENAIR2_DIR}/E2AP/lib/v1/ap/ie/asn/")
+  set(E2_AGENT_SRC_ASN_PATH "${OPENAIR2_DIR}/E2AP/lib/v1/ap/ie/asn/e2ap-v01.01.asn1")
+
+  execute_process(COMMAND python3 ${E2_AGENT_PYTHON_SCRIPT} ${E2_AGENT_DEST_PATH} ${E2_AGENT_SRC_ASN_PATH})
+
+  include_directories (${E2_AGENT_DEST_PATH})
+
+  set(E2_AGENT_LIB "e2_agent")
+  set(E2_AGENT_ON "OAI_E2_AGENT")
+
+  set(E2AP_DIR ${OPENAIR2_DIR}/E2AP)
+  include_directories ("${E2AP_DIR}")
+
+endif()
+
+
 
 # RRC
 ######
@@ -2297,7 +2330,7 @@ target_link_libraries(lte-softmodem PRIVATE
   -Wl,--start-group
   lte_rrc nr_rrc s1ap m2ap x2ap m3ap GTPV1U f1ap SECU_CN SECU_OSA UTIL HASHTABLE SCTP_CLIENT MME_APP SCHED_LIB SCHED_RU_LIB
   PHY_COMMON PHY PHY_RU  L2 L2_LTE NFAPI_COMMON_LIB NFAPI_LIB NFAPI_VNF_LIB NFAPI_PNF_LIB NFAPI_USER_LIB MISC_NFAPI_LTE_LIB
-  ${RAL_LIB} ${NAS_UE_LIB} ITTI SIMU
+  ${RAL_LIB} ${NAS_UE_LIB} ${E2_AGENT_LIB} ITTI SIMU
   -Wl,--end-group z dl)
 
 target_link_libraries(lte-softmodem PRIVATE ${LIBXML2_LIBRARIES})
@@ -2305,6 +2338,8 @@ target_link_libraries(lte-softmodem PRIVATE pthread m CONFIG_LIB rt crypt ${CRYP
 target_link_libraries(lte-softmodem PRIVATE ${LIB_LMS_LIBRARIES})
 target_link_libraries(lte-softmodem PRIVATE ${T_LIB})
 target_link_libraries(lte-softmodem PRIVATE asn1_nr_rrc asn1_lte_rrc)
+
+target_compile_definitions(lte-softmodem PRIVATE ${E2_AGENT_ON})
 
 
 add_executable(ocp-enb
@@ -2441,7 +2476,7 @@ target_link_libraries(nr-softmodem PRIVATE
   UTIL HASHTABLE SCTP_CLIENT SCHED_LIB SCHED_RU_LIB SCHED_NR_LIB PHY_NR PHY PHY_COMMON PHY_NR_COMMON PHY_RU GTPV1U SECU_CN SECU_OSA
   ITTI ${RAL_LIB} ${NAS_UE_LIB} lte_rrc nr_rrc
   ngap s1ap L2_LTE_NR L2_NR MAC_NR_COMMON NFAPI_COMMON_LIB NFAPI_LIB NFAPI_VNF_LIB NFAPI_PNF_LIB NFAPI_USER_LIB SIMU
-  x2ap f1ap m2ap m3ap
+  x2ap f1ap m2ap m3ap ${E2_AGENT_LIB}
   -Wl,--end-group z dl)
 
 target_link_libraries(nr-softmodem PRIVATE ${LIBXML2_LIBRARIES})
@@ -2459,6 +2494,7 @@ endif ()
 # force the generation of ASN.1 so that we don't need to wait during the build
 target_link_libraries(nr-softmodem PRIVATE
                       asn1_lte_rrc asn1_nr_rrc asn1_s1ap asn1_ngap asn1_m2ap asn1_m3ap asn1_x2ap asn1_f1ap asn1_lpp)
+target_compile_definitions(nr-softmodem PRIVATE ${E2_AGENT_ON})
 
 # nr-uesoftmodem is  UE implementation
 #######################################

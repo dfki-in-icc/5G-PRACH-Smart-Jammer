@@ -81,6 +81,30 @@ unsigned short config_frames[4] = {2,9,11,13};
 #include <openair3/ocp-gtpu/gtp_itf.h>
 #include "nfapi/oai_integration/vendor_ext.h"
 
+
+#ifdef OAI_E2_AGENT
+//////////////////////////////////
+//// E2 Agent headers
+//////////////////////////////////
+
+#include "openair2/E2AP/sm/agent_if/read/sm_ag_if_rd.h"
+#include "openair2/E2AP/sm/sm_io.h"
+#include "openair2/E2AP/agent/e2_agent_api.h"
+
+#include "openair2/LAYER2/nr_rlc/nr_rlc_entity.h"
+#include "openair2/LAYER2/nr_pdcp/nr_pdcp_entity.h"
+#include "openair2/LAYER2/nr_rlc/nr_rlc_oai_api.h"
+#include "openair2/LAYER2/nr_pdcp/nr_pdcp.h"
+#include "openair2/LAYER2/NR_MAC_gNB/nr_mac_gNB.h"
+#include "openair2/LAYER2/NR_MAC_gNB/mac_proto.h"
+#include "openair2/RRC/NR/rrc_gNB_UE_context.h"
+#include <time.h>
+
+//////////////////////////////////
+//////////////////////////////////
+//////////////////////////////////
+#endif // OAI_E2_AGENT
+
 pthread_cond_t nfapi_sync_cond;
 pthread_mutex_t nfapi_sync_mutex;
 int nfapi_sync_var=-1; //!< protected by mutex \ref nfapi_sync_mutex
@@ -514,6 +538,515 @@ void init_pdcp(void) {
   }
 }
 
+
+#ifdef OAI_E2_AGENT
+
+static
+const int mod_id = 0;
+
+static
+int64_t time_now_us(void)
+{
+  struct timespec tms;
+
+  /* The C11 way */
+  /* if (! timespec_get(&tms, TIME_UTC))  */
+
+  /* POSIX.1-2008 way */
+  if (clock_gettime(CLOCK_REALTIME,&tms)) {
+    return -1;
+  }
+  /* seconds, multiplied with 1 million */
+  int64_t micros = tms.tv_sec * 1000000;
+  /* Add full microseconds */
+  micros += tms.tv_nsec/1000;
+  /* round up if necessary */
+  if (tms.tv_nsec % 1000 >= 500) {
+    ++micros;
+  }
+  return micros;
+}
+
+
+static
+void read_mac_sm(mac_ind_msg_t* data)
+{
+  assert(data != NULL);
+
+  data->tstamp = time_now_us();
+
+//  assert(0!=0 && "Read MAC called");
+
+  NR_UEs_t *UE_info = &RC.nrmac[mod_id]->UE_info;
+  size_t num_ues = 0;
+  UE_iterator(UE_info->list, ue) {
+    if (ue)
+      num_ues += 1;
+  }
+
+  data->len_ue_stats = num_ues;
+  if(data->len_ue_stats > 0){
+    data->ue_stats = calloc(data->len_ue_stats, sizeof(mac_ue_stats_impl_t));
+    assert( data->ue_stats != NULL && "Memory exhausted" );
+  }
+
+  size_t i = 0; //TODO
+  UE_iterator(UE_info->list, UE) {
+    const NR_UE_sched_ctrl_t* sched_ctrl = &UE->UE_sched_ctrl;
+    mac_ue_stats_impl_t* rd = &data->ue_stats[i];
+
+    rd->frame = RC.nrmac[mod_id]->frame;
+    rd->slot = RC.nrmac[mod_id]->slot;
+
+    rd->dl_aggr_tbs = UE->mac_stats.dl.total_bytes;
+    rd->ul_aggr_tbs = UE->mac_stats.ul.total_bytes;
+
+    if (is_xlsch_in_slot(RC.nrmac[mod_id]->dlsch_slot_bitmap[rd->slot / 64], rd->slot)) {
+      rd->dl_curr_tbs = UE->mac_stats.dl.current_bytes;
+      rd->dl_sched_rb = UE->mac_stats.dl.current_rbs;
+    }
+    if (is_xlsch_in_slot(RC.nrmac[mod_id]->ulsch_slot_bitmap[rd->slot / 64], rd->slot)) {
+      rd->ul_curr_tbs = UE->mac_stats.ul.current_bytes;
+      rd->ul_sched_rb = sched_ctrl->sched_pusch.rbSize;
+    }
+
+    rd->rnti = UE->rnti;
+    rd->dl_aggr_prb = UE->mac_stats.dl.total_rbs;
+    rd->ul_aggr_prb = UE->mac_stats.ul.total_rbs;
+    rd->dl_aggr_retx_prb = UE->mac_stats.dl.total_rbs_retx;
+    rd->ul_aggr_retx_prb = UE->mac_stats.ul.total_rbs_retx;
+
+    rd->dl_aggr_bytes_sdus = UE->mac_stats.dl.lc_bytes[3];
+    rd->ul_aggr_bytes_sdus = UE->mac_stats.ul.lc_bytes[3];
+
+    rd->dl_aggr_sdus = UE->mac_stats.dl.num_mac_sdu;
+    rd->ul_aggr_sdus = UE->mac_stats.ul.num_mac_sdu;
+
+    rd->pusch_snr = (float) sched_ctrl->pusch_snrx10 / 10; //: float = -64;
+    rd->pucch_snr = (float) sched_ctrl->pucch_snrx10 / 10; //: float = -64;
+
+    rd->wb_cqi = sched_ctrl->CSI_report.cri_ri_li_pmi_cqi_report.wb_cqi_1tb;
+    rd->dl_mcs1 = sched_ctrl->dl_bler_stats.mcs;
+    rd->dl_bler = sched_ctrl->dl_bler_stats.bler;
+    rd->ul_mcs1 = sched_ctrl->ul_bler_stats.mcs;
+    rd->ul_bler = sched_ctrl->ul_bler_stats.bler;
+    rd->dl_mcs2 = 0;
+    rd->ul_mcs2 = 0;
+    rd->phr = sched_ctrl->ph;
+
+    const uint32_t bufferSize = sched_ctrl->estimated_ul_buffer - sched_ctrl->sched_ul_bytes;
+    rd->bsr = bufferSize;
+
+    const size_t numDLHarq = 4;
+    rd->dl_num_harq = numDLHarq;
+    for (uint8_t j = 0; j < numDLHarq; ++j)
+      rd->dl_harq[j] = UE->mac_stats.dl.rounds[j];
+    rd->dl_harq[numDLHarq] = UE->mac_stats.dl.errors;
+
+    const size_t numUlHarq = 4;
+    rd->ul_num_harq = numUlHarq;
+    for (uint8_t j = 0; j < numUlHarq; ++j)
+      rd->ul_harq[j] = UE->mac_stats.ul.rounds[j];
+    rd->ul_harq[numUlHarq] = UE->mac_stats.ul.errors;
+
+    ++i;
+  }
+}
+
+static
+uint32_t num_act_rb(NR_UEs_t* UE_info)
+{
+  assert(UE_info!= NULL);
+
+
+  uint32_t act_rb = 0;
+  UE_iterator(UE_info->list, UE) {
+    uint16_t const rnti = UE->rnti;
+    for(int rb_id = 1; rb_id < 6; ++rb_id ){
+      nr_rlc_statistics_t rlc = {0};
+      const int srb_flag = 0;
+      const bool rc = nr_rlc_get_statistics(rnti, srb_flag, rb_id, &rlc);
+      if(rc) ++act_rb;
+    }
+  }
+  return act_rb;
+}
+
+
+static
+void read_rlc_sm(rlc_ind_msg_t* data)
+{
+  assert(data != NULL);
+
+  // use MAC structures to get RNTIs
+  NR_UEs_t *UE_info = &RC.nrmac[mod_id]->UE_info;
+  uint32_t const act_rb = num_act_rb(UE_info);
+
+  //assert(0!=0 && "Read RLC called");
+
+  data->len = act_rb;
+  if(data->len > 0){
+	  data->rb = calloc(data->len, sizeof(rlc_radio_bearer_stats_t));
+	  assert(data->rb != NULL && "Memory exhausted");
+  }
+
+  data->tstamp = time_now_us();
+
+  uint32_t i = 0;
+  UE_iterator(UE_info->list, UE) {
+    uint16_t const rnti = UE->rnti;
+    //for every LC ID
+    for(int rb_id = 1; rb_id < 6; ++rb_id ){
+
+      // activate the rlc to calculate the average tx time
+      nr_rlc_activate_avg_time_to_tx(rnti, rb_id, 1);
+
+      nr_rlc_statistics_t rb_rlc = {0};
+      const int srb_flag = 0;
+      const bool rc = nr_rlc_get_statistics(rnti, srb_flag, rb_id, &rb_rlc);
+      if(!rc) continue;
+      rlc_radio_bearer_stats_t* sm_rb = &data->rb[i];
+
+      /* TX */
+      sm_rb->txpdu_pkts = rb_rlc.txpdu_pkts;
+      sm_rb->txpdu_bytes =  rb_rlc.txpdu_bytes;        /* aggregated amount of transmitted bytes in RLC PDUs */
+      sm_rb->txpdu_wt_ms += rb_rlc.txsdu_avg_time_to_tx;      /* aggregated head-of-line tx packet waiting time to be transmitted (i.e. send to the MAC layer) */
+      sm_rb->txpdu_dd_pkts = rb_rlc.txpdu_dd_pkts;      /* aggregated number of dropped or discarded tx packets by RLC */
+      sm_rb->txpdu_dd_bytes = rb_rlc.txpdu_dd_bytes;     /* aggregated amount of bytes dropped or discarded tx packets by RLC */
+      sm_rb->txpdu_retx_pkts = rb_rlc.txpdu_retx_pkts;    /* aggregated number of tx pdus/pkts to be re-transmitted (only applicable to RLC AM) */
+      sm_rb->txpdu_retx_bytes = rb_rlc.txpdu_retx_bytes ;   /* aggregated amount of bytes to be re-transmitted (only applicable to RLC AM) */
+      sm_rb->txpdu_segmented = rb_rlc.txpdu_segmented  ;    /* aggregated number of segmentations */
+      sm_rb->txpdu_status_pkts = rb_rlc.txpdu_status_pkts  ;  /* aggregated number of tx status pdus/pkts (only applicable to RLC AM) */
+      sm_rb->txpdu_status_bytes = rb_rlc.txpdu_status_bytes  ; /* aggregated amount of tx status bytes  (only applicable to RLC AM) */
+      sm_rb->txbuf_occ_bytes = rb_rlc.txbuf_occ_bytes  ;    /* current tx buffer occupancy in terms of amount of bytes (average: NOT IMPLEMENTED) */
+      sm_rb->txbuf_occ_pkts = rb_rlc.txbuf_occ_pkts  ;     /* current tx buffer occupancy in terms of number of packets (average: NOT IMPLEMENTED) */
+
+      /* RX */
+      sm_rb->rxpdu_pkts = rb_rlc.rxpdu_pkts ;         /* aggregated number of received RLC PDUs */
+      sm_rb->rxpdu_bytes = rb_rlc.rxpdu_bytes ;        /* amount of bytes received by the RLC */
+      sm_rb->rxpdu_dup_pkts = rb_rlc.rxpdu_dup_pkts ;     /* aggregated number of duplicate packets */
+      sm_rb->rxpdu_dup_bytes = rb_rlc.rxpdu_dup_bytes ;    /* aggregated amount of duplicated bytes */
+      sm_rb->rxpdu_dd_pkts = rb_rlc.rxpdu_dd_pkts ;      /* aggregated number of rx packets dropped or discarded by RLC */
+      sm_rb->rxpdu_dd_bytes = rb_rlc.rxpdu_dd_bytes ;     /* aggregated amount of rx bytes dropped or discarded by RLC */
+      sm_rb->rxpdu_ow_pkts = rb_rlc.rxpdu_ow_pkts ;      /* aggregated number of out of window received RLC pdu */
+      sm_rb->rxpdu_ow_bytes = rb_rlc.rxpdu_ow_bytes ;     /* aggregated number of out of window bytes received RLC pdu */
+      sm_rb->rxpdu_status_pkts = rb_rlc.rxpdu_status_pkts ;  /* aggregated number of rx status pdus/pkts (only applicable to RLC AM) */
+      sm_rb->rxpdu_status_bytes = rb_rlc.rxpdu_status_bytes ; /* aggregated amount of rx status bytes  (only applicable to RLC AM) */
+
+      sm_rb->rxbuf_occ_bytes = rb_rlc.rxbuf_occ_bytes ;    /* current rx buffer occupancy in terms of amount of bytes (average: NOT IMPLEMENTED) */
+      sm_rb->rxbuf_occ_pkts = rb_rlc.rxbuf_occ_pkts ;     /* current rx buffer occupancy in terms of number of packets (average: NOT IMPLEMENTED) */
+
+      /* TX */
+      sm_rb->txsdu_pkts = rb_rlc.txsdu_pkts ;         /* number of SDUs delivered */
+      sm_rb->txsdu_bytes = rb_rlc.txsdu_bytes ;        /* number of bytes of SDUs delivered */
+
+      /* RX */
+      sm_rb->rxsdu_pkts = rb_rlc.rxsdu_pkts ;         /* number of SDUs received */
+      sm_rb->rxsdu_bytes = rb_rlc.rxsdu_bytes ;        /* number of bytes of SDUs received */
+      sm_rb->rxsdu_dd_pkts = rb_rlc.rxsdu_dd_pkts ;      /* number of dropped or discarded SDUs */
+      sm_rb->rxsdu_dd_bytes = rb_rlc.rxsdu_dd_bytes ;     /* number of bytes of SDUs dropped or discarded */
+
+      sm_rb->mode = rb_rlc.mode;               /* 0: RLC AM, 1: RLC UM, 2: RLC TM */
+      sm_rb->rnti = rnti;
+      sm_rb->rbid = rb_id;
+
+      ++i;
+    }
+  }
+}
+
+static
+void read_pdcp_sm(pdcp_ind_msg_t* data)
+{
+  assert(data != NULL);
+
+  //assert(0!=0 && "Calling PDCP");
+  // for the moment and while we don't have a split base station, we use the
+  // MAC structures to obtain the RNTIs which we use to query the PDCP
+  NR_UEs_t *UE_info = &RC.nrmac[mod_id]->UE_info;
+  uint32_t const act_rb = num_act_rb(UE_info);
+
+  data->len = act_rb;
+  data->tstamp = time_now_us();
+//  data->slot = 0;
+
+  if(data->len > 0){
+    data->rb = calloc(data->len , sizeof(pdcp_radio_bearer_stats_t));
+    assert(data->rb != NULL && "Memory exhausted!");
+  }
+
+  size_t i = 0;
+  UE_iterator(UE_info->list, UE) {
+
+    const int rnti = UE->rnti;
+    for(size_t rb_id = 1; rb_id < 6; ++rb_id){
+      nr_pdcp_statistics_t pdcp = {0};
+
+      const int srb_flag = 0;
+      const bool rc = nr_pdcp_get_statistics(rnti, srb_flag, rb_id, &pdcp);
+
+      if(!rc) continue;
+
+      pdcp_radio_bearer_stats_t* rd = &data->rb[i];
+
+
+      rd->txpdu_pkts = pdcp.txpdu_pkts ;     /* aggregated number of tx packets */
+      rd->txpdu_bytes = pdcp.txpdu_bytes;    /* aggregated bytes of tx packets */
+      rd->txpdu_sn = pdcp.txpdu_sn ;       /* current sequence number of last tx packet (or TX_NEXT) */
+      rd->rxpdu_pkts = pdcp.rxpdu_pkts ;     /* aggregated number of rx packets */
+      rd->rxpdu_bytes = pdcp.rxpdu_bytes ;    /* aggregated bytes of rx packets */
+      rd->rxpdu_sn = pdcp.rxpdu_sn ;       /* current sequence number of last rx packet (or  RX_NEXT) */
+      rd->rxpdu_oo_pkts = pdcp.rxpdu_oo_pkts  ;       /* aggregated number of out-of-order rx pkts  (or RX_REORD) */
+      rd->rxpdu_oo_bytes = pdcp.rxpdu_oo_bytes  ; /* aggregated amount of out-of-order rx bytes */
+      rd->rxpdu_dd_pkts = pdcp.rxpdu_dd_pkts  ;  /* aggregated number of duplicated discarded packets (or dropped packets because of other reasons such as integrity failure) (or RX_DELIV) */
+      rd->rxpdu_dd_bytes = pdcp.rxpdu_dd_bytes; /* aggregated amount of discarded packets' bytes */
+      rd->rxpdu_ro_count = pdcp.rxpdu_ro_count  ; /* this state variable indicates the COUNT value following the COUNT value associated with the PDCP Data PDU which triggered t-Reordering. (RX_REORD) */
+      rd->txsdu_pkts = pdcp.txsdu_pkts ;     /* number of SDUs delivered */
+      rd->txsdu_bytes = pdcp.txsdu_bytes ;    /* number of bytes of SDUs delivered */
+      rd->rxsdu_pkts = pdcp.rxsdu_pkts ;     /* number of SDUs received */
+      rd->rxsdu_bytes = pdcp.rxsdu_bytes ;    /* number of bytes of SDUs received */
+      rd->rnti = rnti;
+      rd->mode = pdcp.mode;               /* 0: PDCP AM, 1: PDCP UM, 2: PDCP TM */
+      rd->rbid = rb_id;
+
+      ++i;
+    }
+  }
+}
+
+static
+void read_gtp_sm(gtp_ind_msg_t* data)
+{
+  assert(data != NULL);
+
+  data->tstamp = time_now_us();
+
+  NR_UEs_t *UE_info = &RC.nrmac[mod_id]->UE_info;
+  size_t num_ues = 0;
+  UE_iterator(UE_info->list, ue) {
+    if (ue)
+      num_ues += 1;
+  }
+
+  data->len = num_ues;
+  if(data->len > 0){
+    data->ngut = calloc(data->len, sizeof(gtp_ngu_t_stats_t) );
+    assert(data->ngut != NULL);
+  }
+
+  size_t i = 0;
+  UE_iterator(UE_info->list, UE)
+  {
+    uint16_t const rnti = UE->rnti;
+    struct rrc_gNB_ue_context_s *ue_context_p = NULL;
+    ue_context_p = rrc_gNB_get_ue_context(RC.nrrrc[mod_id], rnti);
+    if (ue_context_p != NULL) {
+      int nb_pdu_session = ue_context_p->ue_context.setup_pdu_sessions - 1;
+      data->ngut[i].rnti = ue_context_p->ue_context.rnti;
+      data->ngut[i].teidgnb = ue_context_p->ue_context.pduSession[nb_pdu_session].param.gtp_teid;
+      // TODO: one PDU session has multiple QoS Flow
+      int nb_qos_flow = ue_context_p->ue_context.pduSession[nb_pdu_session].param.nb_qos -1;
+      data->ngut[i].qfi = ue_context_p->ue_context.pduSession[nb_pdu_session].param.qos[nb_qos_flow].qfi;
+      // TODO: not sure for the upf tunnel id
+      data->ngut[i].teidupf = ue_context_p->ue_context.gnb_gtp_teid[0];
+    } else {
+      LOG_W(NR_RRC,"rrc_gNB_get_ue_context return NULL\n");
+      if (data->ngut != NULL) free(data->ngut);
+    }
+    i++;
+  }
+
+}
+
+static
+void read_kpm_sm(kpm_ind_data_t* data)
+{
+  assert(data != NULL);
+
+  // Fill KPM indication header
+  kpm_ind_hdr_t* hdr = &data->hdr;
+  int64_t t = time_now_us();
+  hdr->collectStartTime = t / 1000000; // needs to be truncated to 32 bits to arrive to a resolution of seconds
+  hdr->fileFormatversion = NULL;
+  hdr->senderName = NULL;
+  hdr->senderType = NULL;
+  hdr->vendorName = NULL;
+
+  // Fill KPM indication message
+  kpm_ind_msg_t* msg = &data->msg;
+
+  // TODO: assign MeaData_len according to eventPeriod/granulPeriod from the action definition or subscription request
+  msg->MeasData_len = 1;
+  if (msg->MeasData_len > 0) {
+    msg->MeasData = calloc(msg->MeasData_len, sizeof(adapter_MeasDataItem_t));
+    assert(msg->MeasData != NULL && "Memory exhausted" );
+  }
+
+  // get the number of connected UEs
+  NR_UEs_t *UE_info = &RC.nrmac[mod_id]->UE_info;
+  size_t num_ues = 0;
+  UE_iterator(UE_info->list, ue) {
+    if (ue)
+      num_ues += 1;
+  }
+
+  if (num_ues > 0) {
+    // get the info to calculate the resource utilization
+    NR_ServingCellConfigCommon_t *scc = RC.nrmac[mod_id]->common_channels[0].ServingCellConfigCommon;
+    int cur_slot = RC.nrmac[mod_id]->slot;
+    // int num_dl_slots = scc->tdd_UL_DL_ConfigurationCommon->pattern1.nrofDownlinkSlots;
+    // get total number of available resource blocks
+    int n_rb_sched = 0;
+    if (UE_info->list[0] != NULL) {
+      /* Get bwpSize and TDA from the first UE */
+      /* This is temporary and it assumes all UEs have the same BWP and TDA*/
+      NR_UE_info_t *UE = UE_info->list[0];
+      NR_UE_sched_ctrl_t *sched_ctrl = &UE->UE_sched_ctrl;
+      NR_UE_DL_BWP_t *current_BWP = &UE->current_DL_BWP;
+      const int tda = get_dl_tda(RC.nrmac[mod_id], scc, cur_slot);
+      int startSymbolIndex, nrOfSymbols;
+      const struct NR_PDSCH_TimeDomainResourceAllocationList *tdaList = current_BWP->tdaList;
+      AssertFatal(tda < tdaList->list.count, "time_domain_allocation %d>=%d\n", tda, tdaList->list.count);
+      const int startSymbolAndLength = tdaList->list.array[tda]->startSymbolAndLength;
+      SLIV2SL(startSymbolAndLength, &startSymbolIndex, &nrOfSymbols);
+      const int coresetid = sched_ctrl->coreset->controlResourceSetId;
+      const uint16_t bwpSize = coresetid == 0 ? RC.nrmac[mod_id]->cset0_bwp_size : current_BWP->BWPSize;
+      const uint16_t BWPStart = coresetid == 0 ? RC.nrmac[mod_id]->cset0_bwp_start : current_BWP->BWPStart;
+      const uint16_t slbitmap = SL_to_bitmap(startSymbolIndex, nrOfSymbols);
+      uint16_t *vrb_map = RC.nrmac[mod_id]->common_channels[0].vrb_map;
+      uint16_t rballoc_mask[bwpSize];
+      for (int i = 0; i < bwpSize; i++) {
+        // calculate mask: init with "NOT" vrb_map:
+        // if any RB in vrb_map is blocked (1), the current RBG will be 0
+        rballoc_mask[i] = (~vrb_map[i + BWPStart]) & 0x3fff; //bitwise not and 14 symbols
+        // if all the pdsch symbols are free
+        if ((rballoc_mask[i] & slbitmap) == slbitmap) {
+          n_rb_sched++;
+        }
+      }
+    }
+
+    // TODO: assign the MeasData every granulPeriod
+    for (size_t i = 0; i < msg->MeasData_len; i++) {
+      adapter_MeasDataItem_t* item = &msg->MeasData[i];
+
+      // TODO: assign measRecord_len according to
+      //  (1) the length of Measurements Information List IE (format1) or
+      //  (2) Measurements Information Condition UE List IE (format2)
+      //  from the action definition or subscription request
+
+      // TODO: only support KPM format 1, and it only can handle one UE's information
+      //  assume to record one data: DL resource utilization
+      item->measRecord_len = 1;
+      if (item->measRecord_len > 0) {
+        item->measRecord = calloc(item->measRecord_len, sizeof(adapter_MeasRecord_t));
+        assert(item->measRecord != NULL && "Memory exhausted");
+      }
+
+      UE_iterator(UE_info->list, UE)
+      {
+        int dl_rb_usage = 0;
+        if (is_xlsch_in_slot(RC.nrmac[mod_id]->dlsch_slot_bitmap[cur_slot / 64], cur_slot))
+          dl_rb_usage = UE->mac_stats.dl.current_rbs*100/n_rb_sched;
+
+        // TODO: go through the measRecord according to the Measurements Information (format 1) or Information Condition UE (format 2) List IE
+        adapter_MeasRecord_t *record_PrbDlUsage = &item->measRecord[0];
+        record_PrbDlUsage->type = MeasRecord_int;
+        record_PrbDlUsage->int_val = dl_rb_usage;
+      }
+
+      // incompleteFlag = -1, the data is reliable
+      item->incompleteFlag = -1;
+    }
+
+    // TODO: assign MeasInfo_len according to the action definition or subscription request
+    msg->MeasInfo_len = 1;
+    if (msg->MeasInfo_len > 0) {
+      msg->MeasInfo = calloc(msg->MeasInfo_len, sizeof(MeasInfo_t));
+      assert(msg->MeasInfo != NULL && "Memory exhausted" );
+
+      MeasInfo_t* info = &msg->MeasInfo[0];
+      info->meas_type = KPM_V2_MEASUREMENT_TYPE_NAME;
+      char* measName = "PrbDlUsage";
+      info->measName.len = strlen(measName);
+      info->measName.buf = malloc(strlen(measName));
+      assert(info->measName.buf != NULL && "memory exhausted");
+      memcpy(info->measName.buf, measName, msg->MeasInfo[0].measName.len);
+
+      // TODO: assign labelInfo_len according to the action definition (?)
+      info->labelInfo_len = 1;
+      info->labelInfo = calloc(info->labelInfo_len, sizeof(adapter_LabelInfoItem_t));
+      assert(info->labelInfo != NULL && "memory exhausted");
+      adapter_LabelInfoItem_t* label = &info->labelInfo[0];
+      label->noLabel = calloc(1, sizeof(long));
+      assert(label->noLabel != NULL && "memory exhausted");
+      *(label->noLabel) = 0;
+    }
+  } else {
+    for (size_t i = 0; i < msg->MeasData_len; i++) {
+      adapter_MeasDataItem_t* item = &msg->MeasData[i];
+      item->measRecord_len = 1;
+      if (item->measRecord_len > 0) {
+        item->measRecord = calloc(item->measRecord_len, sizeof(adapter_MeasRecord_t));
+        assert(item->measRecord != NULL && "Memory exhausted");
+      }
+
+      adapter_MeasRecord_t *record_nodata = &item->measRecord[0];
+      record_nodata->type = MeasRecord_int;
+      record_nodata->int_val = 0;
+
+      // incompleteFlag = 0, the data is not reliable
+      item->incompleteFlag = 0;
+    }
+    msg->MeasInfo_len = 0;
+    msg->MeasInfo = NULL;
+  }
+
+  msg->granulPeriod = NULL;
+}
+
+
+
+static
+void read_RAN(sm_ag_if_rd_t* data)
+{
+  assert(data != NULL);
+  assert(data->type == MAC_STATS_V0
+        || data->type == RLC_STATS_V0
+        || data->type == PDCP_STATS_V0
+        || data->type == GTP_STATS_V0
+        || data->type == KPM_STATS_V0
+        );
+
+  if(data->type == MAC_STATS_V0 ){
+    read_mac_sm(&data->mac_stats.msg);
+  }else if(data->type == RLC_STATS_V0) {
+    read_rlc_sm(&data->rlc_stats.msg);
+  } else if(data->type == PDCP_STATS_V0){
+    read_pdcp_sm(&data->pdcp_stats.msg);
+  } else if(data->type == GTP_STATS_V0){
+    read_gtp_sm(&data->gtp_stats.msg);
+  } else if(data->type == KPM_STATS_V0){
+    read_kpm_sm(&data->kpm_stats);
+  } else {
+    assert(0!=0 && "Unknown data type!");
+  }
+
+}
+
+static
+sm_ag_if_ans_t write_RAN(sm_ag_if_wr_t const* data)
+{
+  assert(data != NULL);
+  assert(0!=0 && "Not implemented");
+  sm_ag_if_ans_t ans = {.type = MAC_AGENT_IF_CTRL_ANS_V0 };
+
+  return ans;
+}
+
+#endif // OAI_E2_AGENT
+
+
 int main( int argc, char **argv ) {
   int ru_id, CC_id = 0;
   start_background_system();
@@ -648,6 +1181,51 @@ int main( int argc, char **argv ) {
   }
 
   config_sync_var=0;
+
+
+#ifdef OAI_E2_AGENT
+
+//////////////////////////////////
+//////////////////////////////////
+//// Init the E2 Agent
+
+  sleep(2);
+  const gNB_RRC_INST* rrc = RC.nrrrc[mod_id];
+  assert(rrc != NULL && "rrc cannot be NULL");
+
+  const int mcc = rrc->configuration.mcc[0];
+  const int mnc = rrc->configuration.mnc[0];
+  const int mnc_digit_len = rrc->configuration.mnc_digit_length[0];
+  const ngran_node_t node_type = rrc->node_type;
+  int nb_id = 0;
+  int cu_du_id = 0;
+  if (node_type == ngran_gNB) {
+    nb_id = rrc->configuration.cell_identity;
+  } else if (node_type == ngran_gNB_DU) {
+    cu_du_id = rrc->configuration.cell_identity;
+  } else if (node_type == ngran_gNB_CU) {
+    cu_du_id = rrc->node_id;
+  } else {
+    LOG_E(NR_RRC, "not supported ran type detect\n");
+  }
+  sm_io_ag_t io = {.read = read_RAN, .write = write_RAN};
+  printf("[E2 NODE]: mcc = %d mnc = %d mnc_digit = %d nd_id = %d \n", mcc, mnc, mnc_digit_len, nb_id);
+
+  // TODO: need to fix, parse the FlexRIC config in runtime
+  int const agent_argc = 1;
+  char** agent_argv = NULL;
+  fr_args_t ric_args = init_fr_args(agent_argc, agent_argv);
+  // TODO: integrate with oai config
+
+  strcpy(ric_args.conf_file, "/usr/local/etc/flexric/flexric.conf");
+  strcpy(ric_args.libs_dir, "/usr/local/lib/flexric/");
+
+  init_agent_api( mcc, mnc, mnc_digit_len, nb_id, cu_du_id, node_type, io, &ric_args);
+//////////////////////////////////
+//////////////////////////////////
+
+#endif //  OAI_E2_AGENT
+
 
   if (NFAPI_MODE==NFAPI_MODE_PNF) {
     wait_nfapi_init("main?");
