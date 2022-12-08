@@ -2018,11 +2018,11 @@ uint8_t do_RRCSetupRequest(uint8_t Mod_id, uint8_t *buffer, size_t buffer_size, 
   rrcSetupRequest          = ul_ccch_msg.message.choice.c1->choice.rrcSetupRequest;
 
 
-  if (NR_UE_rrc_inst[Mod_id].paging_flag == 1) {
+  if (0) { //if (NR_UE_rrc_inst[Mod_id].paging_flag == 1) { // unclear what the UE instance does in the gNB RRC
     rrcSetupRequest->rrcSetupRequest.ue_Identity.present = NR_InitialUE_Identity_PR_ng_5G_S_TMSI_Part1;
     rrcSetupRequest->rrcSetupRequest.ue_Identity.choice.ng_5G_S_TMSI_Part1.size = 5;
     rrcSetupRequest->rrcSetupRequest.ue_Identity.choice.ng_5G_S_TMSI_Part1.bits_unused = 1;
-    long sTMSI = fiveG_S_TMSI[Mod_id] << 1;
+    long sTMSI = 0; //fiveG_S_TMSI[Mod_id] << 1; // fiveG_S_TMSI creates linker errors
     // The rightmost 39 bits of 5G-S-TMSI.
     rrcSetupRequest->rrcSetupRequest.ue_Identity.choice.ng_5G_S_TMSI_Part1.buf = buf;
     for (int i = 0; i < 5; i++) {
@@ -2163,12 +2163,12 @@ uint8_t do_RRCSetupComplete(uint8_t Mod_id, uint8_t *buffer, size_t buffer_size,
   RrcSetupComplete->criticalExtensions.choice.rrcSetupComplete->registeredAMF = NULL;
 
   RrcSetupComplete->criticalExtensions.choice.rrcSetupComplete->ng_5G_S_TMSI_Value = CALLOC(1, sizeof(struct NR_RRCSetupComplete_IEs__ng_5G_S_TMSI_Value));
-  if (NR_UE_rrc_inst[Mod_id].paging_flag == 1) {
+  if (0) { //if (NR_UE_rrc_inst[Mod_id].paging_flag == 1) { // Unclear what NR_UE_rrc_inst does in gNB RRC
     RrcSetupComplete->criticalExtensions.choice.rrcSetupComplete->ng_5G_S_TMSI_Value->present = NR_RRCSetupComplete_IEs__ng_5G_S_TMSI_Value_PR_ng_5G_S_TMSI_Part2;
     RrcSetupComplete->criticalExtensions.choice.rrcSetupComplete->ng_5G_S_TMSI_Value->choice.ng_5G_S_TMSI_Part2.size = 2;
     RrcSetupComplete->criticalExtensions.choice.rrcSetupComplete->ng_5G_S_TMSI_Value->choice.ng_5G_S_TMSI_Part2.bits_unused = 7;
     RrcSetupComplete->criticalExtensions.choice.rrcSetupComplete->ng_5G_S_TMSI_Value->choice.ng_5G_S_TMSI_Part2.buf = CALLOC(2,sizeof(uint8_t));
-    long sTMSI = fiveG_S_TMSI[Mod_id];
+    long sTMSI = 0; //fiveG_S_TMSI[Mod_id]; // fiveG_S_TMSI not linked into RRC
     RrcSetupComplete->criticalExtensions.choice.rrcSetupComplete->ng_5G_S_TMSI_Value->choice.ng_5G_S_TMSI_Part2.buf[0] = (sTMSI>>40)&0xff;
     RrcSetupComplete->criticalExtensions.choice.rrcSetupComplete->ng_5G_S_TMSI_Value->choice.ng_5G_S_TMSI_Part2.buf[1] = ((sTMSI<<8)>>32)&0x80;
   } else {
