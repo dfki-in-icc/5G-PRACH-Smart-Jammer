@@ -311,7 +311,6 @@ int get_nb_periods_per_frame(uint8_t tdd_period) {
       nb_periods_per_frame = 1; // 10ms/10ms
       break;
 
-    //TODO L5G
     case 10:
       nb_periods_per_frame = 2; // 10ms/5ms
       break;

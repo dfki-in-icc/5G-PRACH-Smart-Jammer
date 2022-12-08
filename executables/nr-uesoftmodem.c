@@ -98,8 +98,6 @@ pthread_cond_t sync_cond;
 pthread_mutex_t sync_mutex;
 int sync_var=-1; //!< protected by mutex \ref sync_mutex.
 int config_sync_var=-1;
-// L5G_IOT
-int use_prometheus = 0;
 int enable_parallel_pull = 0;
 int num_chest_threads = 14;
 int num_rxdlsh_threads = 14;
@@ -118,9 +116,6 @@ static int      tx_max_power[MAX_NUM_CCs] = {0};
 int      single_thread_flag = 1;
 int                 tddflag = 0;
 int                 vcdflag = 0;
-// L5G_IOT
-int      prometheus_en_flag = 0;
-uint32_t    prometheus_port = 1234;
 int          para_pull_flag = 0;
 
 double          rx_gain_off = 0.0;
@@ -268,8 +263,6 @@ static void get_options(void) {
   paramdef_t cmdline_params[] =CMDLINE_NRUEPARAMS_DESC ;
   int numparams = sizeof(cmdline_params)/sizeof(paramdef_t);
   config_process_cmdline( cmdline_params,numparams,NULL);
-  // L5G_IOT
-  if (prometheus_en_flag > 0)  use_prometheus = 1;
   if (para_pull_flag > 0)  enable_parallel_pull = 1;
 
   if (vcdflag > 0)
@@ -456,8 +449,6 @@ int main( int argc, char **argv ) {
   LOG_I(HW, "Version: %s\n", PACKAGE_VERSION);
 
   init_NR_UE(1,uecap_file,rrc_config_path);
-  // L5G_IOT
-  if (use_prometheus > 0)  init_PrometheusNodeExporter_thread( );
 
   int mode_offset = get_softmodem_params()->nsa ? NUMBER_OF_UE_MAX : 1;
   uint16_t node_number = get_softmodem_params()->node_number;

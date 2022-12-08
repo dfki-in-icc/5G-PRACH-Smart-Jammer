@@ -51,8 +51,6 @@
 #include "executables/nr-uesoftmodem.h"
 #include "LAYER2/NR_MAC_UE/mac_proto.h"
 #include "LAYER2/NR_MAC_UE/nr_l1_helpers.h"
-// L5G_IOT
-#include "prometheus_exporter.h"
 //#define DEBUG_PHY_PROC
 #define NR_PDCCH_SCHED
 //#define NR_PDCCH_SCHED_DEBUG
@@ -1005,8 +1003,6 @@ bool nr_ue_dlsch_procedures(PHY_VARS_NR_UE *ue,
     }
 
     LOG_D(PHY, "In %s DL PDU length in bits: %d, in bytes: %d \n", __FUNCTION__, dlsch0->harq_processes[harq_pid]->TBS, dlsch0->harq_processes[harq_pid]->TBS / 8);
-    // L5G_IOT
-    PROM_METRICS(RX_TBS,"RX_TBS",dlsch0->harq_processes[harq_pid]->TBS);
 
     stop_meas(&ue->dlsch_decoding_stats[proc->thread_id]);
     if (cpumeas(CPUMEAS_GETSTATE))  {

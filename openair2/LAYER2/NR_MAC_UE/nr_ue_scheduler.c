@@ -55,9 +55,6 @@
 
 #include <executables/softmodem-common.h>
 
-// L5G_IOT
-#include "prometheus_exporter.h"
-
 #include "LAYER2/NR_MAC_COMMON/nr_mac_extern.h"
 
 //#define SRS_DEBUG
@@ -673,8 +670,6 @@ int nr_config_pusch_pdu(NR_UE_MAC_INST_t *mac,
 
     // MCS
     pusch_config_pdu->mcs_index = rar_grant->mcs;
-    // L5G_IOT
-    PROM_METRICS(UL_MCS,"UL_MCS",pusch_config_pdu->mcs_index)
     // Frequency hopping
     pusch_config_pdu->frequency_hopping = rar_grant->freq_hopping;
 
@@ -822,7 +817,6 @@ int nr_config_pusch_pdu(NR_UE_MAC_INST_t *mac,
 
     /* MCS */
     pusch_config_pdu->mcs_index = dci->mcs;
-    PROM_METRICS(UL_MCS,"ul_mcs",dci->mcs);
     /* MCS TABLE */
     if (pusch_config_pdu->transform_precoding == NR_PUSCH_Config__transformPrecoder_disabled) {
       pusch_config_pdu->mcs_table = get_pusch_mcs_table(pusch_Config ? pusch_Config->mcs_Table : NULL, 0, *dci_format, rnti_type, target_ss, false);
@@ -943,7 +937,6 @@ int nr_config_pusch_pdu(NR_UE_MAC_INST_t *mac,
                                                         N_PRB_oh,
                                                         0, // TBR to verify tb scaling
                                                         pusch_config_pdu->nrOfLayers)/8;
-  PROM_METRICS(UL_TBS,"UL_TBS",pusch_config_pdu->pusch_data.tb_size)
   return 0;
 
 }

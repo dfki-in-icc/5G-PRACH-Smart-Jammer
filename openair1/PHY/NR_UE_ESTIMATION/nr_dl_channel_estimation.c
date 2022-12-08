@@ -29,8 +29,6 @@
 #include "PHY/NR_REFSIG/ptrs_nr.h"
 #include "PHY/NR_TRANSPORT/nr_sch_dmrs.h"
 #include "filt16a_32.h"
-// L5G_IOT
-#include "prometheus_exporter.h"
 int16_t* pdcch_chest_ptr;
 uint32_t  num_pdcch_chest_symbol;
 extern uint32_t  pdsch_mode;
@@ -461,7 +459,6 @@ int nr_pbch_channel_estimation(PHY_VARS_NR_UE *ue,
           }
         }
     }
-    RegisterComplexMetric(PBCH_CHEST, "PBCH_CHEST", (int16_t*)&dl_ch_estimates[0][ch_offset], 288+48);
   }
   return(0);
 }

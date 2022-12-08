@@ -43,9 +43,6 @@
 #include "PHY/NR_REFSIG/sss_nr.h"
 #undef DEFINE_VARIABLES_SSS_NR_H
 
-// L5G_IOT
-#include "prometheus_exporter.h"
-
 /*******************************************************************
 *
 * NAME :         init_context_sss_nr
@@ -301,8 +298,6 @@ int pss_ch_est_nr(PHY_VARS_NR_UE *ue,
 #endif
 
   // sss_ext now contains the compensated SSS
-  // L5G_IOT
-  RegisterComplexMetric(SSS_IQ, "SSS_IQ", (int16_t*)&sss_ext[0][0], LENGTH_PSS_NR);
   return(0);
 }
 

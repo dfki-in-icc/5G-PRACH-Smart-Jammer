@@ -39,8 +39,6 @@
 #include "PHY/NR_REFSIG/nr_refsig.h"
 #include "PHY/NR_REFSIG/dmrs_nr.h"
 #include "common/utils/nr/nr_common.h"
-// L5G_IOT
-#include "prometheus_exporter.h"
 extern uint32_t  pdsch_mode;
 
 /* dynamic shift for LLR computation for TM3/4
@@ -967,26 +965,13 @@ void nr_dlsch_channel_compensation(int **rxdataF_ext,
         rxdataF128+=3;
         rxdataF_comp128+=3;
       }
-        RegisterComplexMetric(RAR_IQ, "RAR_IQ", (int16_t*)&rxdataF_comp[0][symbol*nb_rb*12], nb_rb*12);
-        RegisterComplexMetric(RAR_CHEST, "RA_CHEST", (int16_t*)&dl_ch_estimates_ext[0][symbol*nb_rb*12], nb_rb*12);
-      // TODO L5G
-      if (pdsch_mode == SI_PDSCH){
-        RegisterComplexMetric(SIB_IQ, "SIB_IQ", (int16_t*)&rxdataF_comp[0][symbol*nb_rb*12], nb_rb*12);
-        RegisterComplexMetric(SIB_CHEST, "SIB_CHEST", (int16_t*)&dl_ch_estimates_ext[0][symbol*nb_rb*12], nb_rb*12);
-      }
-      if (pdsch_mode == RA_PDSCH){
-        RegisterComplexMetric(RAR_IQ, "RAR_IQ", (int16_t*)&rxdataF_comp[0][symbol*nb_rb*12], nb_rb*12);
-        RegisterComplexMetric(RAR_CHEST, "RA_CHEST", (int16_t*)&dl_ch_estimates_ext[0][symbol*nb_rb*12], nb_rb*12);
-      }
       if (pdsch_mode == PDSCH){
         for (int i=0;i<nb_rb;i++){
           dlsch_ch_prom_buf[i] = dl_ch_estimates_ext[0][symbol*nb_rb*12 + i * 12];
         }
-        RegisterComplexMetric(PDSCH_CHEST, "PDSCH_CHEST", (int16_t*)dlsch_ch_prom_buf, nb_rb);
         for (int i=0; i < nb_rb; i++){
           dlsch_prom_buf[i] = rxdataF_comp[0][symbol*nb_rb*12 + i*12];
         }
-        RegisterComplexMetric(PDSCH_IQ, "PDSCH_IQ", (int16_t*)&dlsch_prom_buf[0], nb_rb);
       }
     }
   }

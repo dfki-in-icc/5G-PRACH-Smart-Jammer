@@ -43,8 +43,6 @@
 #include "PHY/sse_intrin.h"
 #include "common/utils/nr/nr_common.h"
 
-// L5G_IOT
-#include "prometheus_exporter.h"
 int16_t* pdcch_cmp_ptr;
 uint32_t  num_pdcch_symbol;
 extern int16_t* pdcch_chest_ptr;
@@ -1167,11 +1165,6 @@ uint8_t nr_dci_decoding_procedure(PHY_VARS_NR_UE *ue,
       LOG_D(PHY, "(%i.%i) dci indication (rnti %x,dci format %s,n_CCE %d,payloadSize %d)\n",
            proc->frame_rx, proc->nr_slot_rx,n_rnti,nr_dci_format_string[rel15->dci_format_options[k]],CCEind,dci_length);
       if (crc == n_rnti) {
-        // L5G_IOT
-        RegisterComplexMetric(PDCCH_IQ, "PDCCH_IQ", (int16_t*)pdcch_cmp_ptr, num_pdcch_symbol);
-        RegisterComplexMetric(PDCCH_CHEST, "PDCCH_CHEST", (int16_t*)pdcch_chest_ptr, num_pdcch_chest_symbol);
-        PROM_METRICS(PDCCH_LEVEL_0,"PDCCH_LEVEL_0",pdcch_power[0]);
-        PROM_METRICS(PDCCH_LEVEL_1,"PDCCH_LEVEL_1",pdcch_power[1]);
         LOG_D(PHY, "(%i.%i) Received dci indication (rnti %x,dci format %s,n_CCE %d,payloadSize %d,payload %llx)\n",
               proc->frame_rx, proc->nr_slot_rx,n_rnti,nr_dci_format_string[rel15->dci_format_options[k]],CCEind,dci_length,*(unsigned long long*)dci_estimation);
         uint16_t mb = nr_dci_false_detection(dci_estimation,tmp_e,L*108,n_rnti, NR_POLAR_DCI_MESSAGE_TYPE, dci_length, L);

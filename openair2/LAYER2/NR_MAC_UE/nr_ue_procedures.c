@@ -60,8 +60,6 @@
 #include "asn1_conversions.h"
 #include "common/utils/LOG/log.h"
 #include "common/utils/LOG/vcd_signal_dumper.h"
-// L5G_IOT
-#include "prometheus_exporter.h"
 
 //#define DEBUG_MIB
 //#define ENABLE_MAC_PAYLOAD_DEBUG 1
@@ -449,9 +447,6 @@ int8_t nr_ue_process_dci_freq_dom_resource_assignment0(nfapi_nr_ue_pusch_pdu_t *
   LOG_D(MAC,"DLSCH n_RB_DLBWP = %i\n", n_RB_DLBWP);
   LOG_D(MAC,"DLSCH number_rbs = %i\n", dlsch_config_pdu->number_rbs);
   LOG_D(MAC,"DLSCH start_rb = %i\n", dlsch_config_pdu->start_rb);
-  // L5G_IOT
-  PROM_METRICS(DL_NUM_RB,"dl_num_rb",dlsch_config_pdu->number_rbs)
-  PROM_METRICS(DL_START_RB,"dl_start_rb",dlsch_config_pdu->start_rb)
   return 0;
 }
 
@@ -518,10 +513,6 @@ int8_t nr_ue_process_dci_freq_dom_resource_assignment(nfapi_nr_ue_pusch_pdu_t *p
     LOG_D(MAC,"ULSCH n_RB_DLBWP = %i\n", n_RB_ULBWP);
     LOG_D(MAC,"ULSCH number_rbs = %i\n", pusch_config_pdu->rb_size);
     LOG_D(MAC,"ULSCH start_rb = %i\n", pusch_config_pdu->rb_start);
-    // L5G_IOT
-    PROM_METRICS(UL_NUM_RB,"ul_num_rb",pusch_config_pdu->rb_size)
-    PROM_METRICS(UL_START_RB,"ul_start_rb",pusch_config_pdu->rb_start)
-
   }
   return 0;
 }
@@ -1193,8 +1184,6 @@ int8_t nr_ue_process_dci(module_id_t module_id, int cc_id, uint8_t gNB_index, fr
     dlsch_config_pdu_1_1->BWPSize = NRRIV2BW(bwpc->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
     dlsch_config_pdu_1_1->BWPStart = NRRIV2PRBOFFSET(bwpc->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
     dlsch_config_pdu_1_1->SubcarrierSpacing = bwpc->genericParameters.subcarrierSpacing;
-    // L5G_IOT
-    PROM_METRICS(DCI_1_1_RB,"DCI_1_1_RB",dlsch_config_pdu_1_1->BWPSize)
     /* IDENTIFIER_DCI_FORMATS */
     /* CARRIER_IND */
     /* BANDWIDTH_PART_IND */

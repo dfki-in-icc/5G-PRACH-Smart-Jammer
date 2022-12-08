@@ -90,9 +90,6 @@
 #define CONFIG_HLP_DISABLETIMECORR "disable UE timing correction\n"
 #define CONFIG_HLP_RRC_CFG_PATH  "path for RRC configuration\n"
 #define CONFIG_HLP_UECAP_FILE    "path for UE Capabilities file\n"
-// L5G_IOT
-#define CONFIG_HLP_EN_PROM        "Enable Prometheus monitoring\n"
-#define CONFIG_HLP_PROM_PORT      "Specify TCP-IP port for prmetheus\n"
 #define CONFIG_HLP_PARA_PULL      "Enable parallel pulling thread pool\n"
 
 #define CONFIG_HLP_NUMEROLOGY    "adding numerology for 5G\n"
