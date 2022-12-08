@@ -217,7 +217,7 @@ uint32_t  dlsch_decoding(PHY_VARS_UE *phy_vars_ue,
   }
 
   if (dlsch->harq_ack[subframe].ack != 2) {
-    LOG_X(PHY, "[UE %d] DLSCH @ SF%d : ACK bit is %d instead of DTX even before PDSCH is decoded!\n",
+    LOG_D(PHY, "[UE %d] DLSCH @ SF%d : ACK bit is %d instead of DTX even before PDSCH is decoded!\n",
           phy_vars_ue->Mod_id, subframe, dlsch->harq_ack[subframe].ack);
   }
 
@@ -318,7 +318,7 @@ uint32_t  dlsch_decoding(PHY_VARS_UE *phy_vars_ue,
                                             (uint8_t *) &dummy_w[r][0],
                                             (r==0) ? harq_process->F : 0);
 #ifdef DEBUG_DLSCH_DECODING
-    LOG_X(PHY,"HARQ_PID %d Rate Matching Segment %d (coded bits %d,unpunctured/repeated bits %d, TBS %d, mod_order %d, nb_rb %d, Nl %d, rv %d, round %d)...\n",
+    LOG_D(PHY,"HARQ_PID %d Rate Matching Segment %d (coded bits %d,unpunctured/repeated bits %d, TBS %d, mod_order %d, nb_rb %d, Nl %d, rv %d, round %d)...\n",
           harq_pid,r, G,
           Kr*3,
           harq_process->TBS,
@@ -419,7 +419,7 @@ uint32_t  dlsch_decoding(PHY_VARS_UE *phy_vars_ue,
 #if UE_TIMING_TRACE
       start_meas(dlsch_turbo_decoding_stats);
 #endif
-      LOG_X(PHY,"AbsSubframe %d.%d Start turbo segment %d/%d \n",frame%1024,subframe,r,harq_process->C-1);
+      LOG_D(PHY,"AbsSubframe %d.%d Start turbo segment %d/%d \n",frame%1024,subframe,r,harq_process->C-1);
       ret = tc
             (&harq_process->d[r][96],
              NULL,
@@ -573,7 +573,7 @@ uint32_t  dlsch_decoding(PHY_VARS_UE *phy_vars_ue,
 #endif
 
     if ((err_flag == 0) && (ret>=(1+dlsch->max_turbo_iterations))) {// a Code segment is in error so break;
-      LOG_X(PHY,"AbsSubframe %d.%d CRC failed, segment %d/%d \n",frame%1024,subframe,r,harq_process->C-1);
+      LOG_D(PHY,"AbsSubframe %d.%d CRC failed, segment %d/%d \n",frame%1024,subframe,r,harq_process->C-1);
       err_flag = 1;
     }
   }
@@ -590,7 +590,7 @@ uint32_t  dlsch_decoding(PHY_VARS_UE *phy_vars_ue,
 
   if (err_flag == 1) {
 #if UE_DEBUG_TRACE
-    LOG_X(PHY,"[UE %d] DLSCH: Setting NAK for SFN/SF %d/%d (pid %d, status %d, round %d, TBS %d, mcs %d) Kr %d r %d harq_process->round %d\n",
+    LOG_D(PHY,"[UE %d] DLSCH: Setting NAK for SFN/SF %d/%d (pid %d, status %d, round %d, TBS %d, mcs %d) Kr %d r %d harq_process->round %d\n",
           phy_vars_ue->Mod_id, frame, subframe, harq_pid,harq_process->status, harq_process->round,harq_process->TBS,harq_process->mcs,Kr,r,harq_process->round);
 #endif
     dlsch->harq_ack[subframe].ack = 0;
@@ -606,14 +606,14 @@ uint32_t  dlsch_decoding(PHY_VARS_UE *phy_vars_ue,
     }
 
     if(is_crnti) {
-      LOG_X(PHY,"[UE %d] DLSCH: Setting NACK for subframe %d (pid %d, pid status %d, round %d/Max %d, TBS %d)\n",
+      LOG_D(PHY,"[UE %d] DLSCH: Setting NACK for subframe %d (pid %d, pid status %d, round %d/Max %d, TBS %d)\n",
             phy_vars_ue->Mod_id,subframe,harq_pid,harq_process->status,harq_process->round,dlsch->Mdlharq,harq_process->TBS);
     }
 
     return((1+dlsch->max_turbo_iterations));
   } else {
 #if UE_DEBUG_TRACE
-    LOG_X(PHY,"[UE %d] DLSCH: Setting ACK for subframe %d TBS %d mcs %d nb_rb %d\n",
+    LOG_D(PHY,"[UE %d] DLSCH: Setting ACK for subframe %d TBS %d mcs %d nb_rb %d\n",
           phy_vars_ue->Mod_id,subframe,harq_process->TBS,harq_process->mcs,harq_process->nb_rb);
 #endif
     harq_process->status = SCH_IDLE;
@@ -625,10 +625,10 @@ uint32_t  dlsch_decoding(PHY_VARS_UE *phy_vars_ue,
     //  phy_vars_ue->Mod_id, frame, subframe, harq_pid, harq_process->status, harq_process->round,harq_process->TBS,harq_process->mcs);
 
     if(is_crnti) {
-      LOG_X(PHY,"[UE %d] DLSCH: Setting ACK for subframe %d (pid %d, round %d, TBS %d)\n",phy_vars_ue->Mod_id,subframe,harq_pid,harq_process->round,harq_process->TBS);
+      LOG_D(PHY,"[UE %d] DLSCH: Setting ACK for subframe %d (pid %d, round %d, TBS %d)\n",phy_vars_ue->Mod_id,subframe,harq_pid,harq_process->round,harq_process->TBS);
     }
 
-    //LOG_X(PHY,"[UE %d] DLSCH: Setting ACK for subframe %d (pid %d, round %d)\n",phy_vars_ue->Mod_id,subframe,harq_pid,harq_process->round);
+    //LOG_D(PHY,"[UE %d] DLSCH: Setting ACK for subframe %d (pid %d, round %d)\n",phy_vars_ue->Mod_id,subframe,harq_pid,harq_process->round);
   }
 
   // Reassembly of Transport block here

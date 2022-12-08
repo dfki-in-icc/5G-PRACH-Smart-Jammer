@@ -357,7 +357,7 @@ int ulsch_decoding_data(PHY_VARS_eNB *eNB, L1_rxtx_proc_t *proc,
     int sz=Kr_bytes - Fbytes - ((ulsch_harq->C>1)?3:0);
     pushTpool(proc->threadPool,req);
     proc->nbDecode++;
-    LOG_X(PHY,"Added a block to decode, in pipe: %d\n",proc->nbDecode);
+    LOG_D(PHY,"Added a block to decode, in pipe: %d\n",proc->nbDecode);
     r_offset+=E;
     offset+=sz;	    
   }
@@ -433,7 +433,7 @@ unsigned int  ulsch_decoding(PHY_VARS_eNB *eNB,
   int subframe = proc->subframe_rx;
   LTE_UL_eNB_HARQ_t *ulsch_harq;
 
-  LOG_X(PHY,"ue_type %d\n",ulsch->ue_type);
+  LOG_D(PHY,"ue_type %d\n",ulsch->ue_type);
 
   if (ulsch->ue_type>0)
     harq_pid = 0;
@@ -451,9 +451,9 @@ unsigned int  ulsch_decoding(PHY_VARS_eNB *eNB,
   A = ulsch_harq->TBS;
   Q_m = ulsch_harq->Qm;
   G = nb_rb * (12 * Q_m) * ulsch_harq->Nsymb_pusch;
-  LOG_X(PHY, "PUSCH nb_rb %d Q_m %d ulsch_harq->Nsymb_pusch %d\n",nb_rb, Q_m, ulsch_harq->Nsymb_pusch);  
+  LOG_D(PHY, "PUSCH nb_rb %d Q_m %d ulsch_harq->Nsymb_pusch %d\n",nb_rb, Q_m, ulsch_harq->Nsymb_pusch);  
   //#ifdef DEBUG_ULSCH_DECODING
-  LOG_X(PHY,"[PUSCH harq %d] Frame %d, Subframe %d: ulsch_decoding (Nid_cell %d, rnti %x, x2 %x): TBS %d, round %d, RV %d, O_r1 %d, O_RI %d, O_ACK %d, G %d, Q_m %d Nsymb_pusch %d nb_rb %d\n",
+  LOG_D(PHY,"[PUSCH harq %d] Frame %d, Subframe %d: ulsch_decoding (Nid_cell %d, rnti %x, x2 %x): TBS %d, round %d, RV %d, O_r1 %d, O_RI %d, O_ACK %d, G %d, Q_m %d Nsymb_pusch %d nb_rb %d\n",
         harq_pid,
         proc->frame_rx,subframe,
         frame_parms->Nid_cell,ulsch->rnti,x2,
@@ -535,7 +535,7 @@ unsigned int  ulsch_decoding(PHY_VARS_eNB *eNB,
               subframe);
   // Compute Q_ri
   Qprime = ulsch_harq->O_RI*ulsch_harq->Msc_initial*ulsch_harq->Nsymb_initial * ulsch->beta_offset_ri_times8;
-  LOG_X(PHY, "Qprime %d, O_RI %d, Msc %d, Nym %d beta %d\n",
+  LOG_D(PHY, "Qprime %d, O_RI %d, Msc %d, Nym %d beta %d\n",
 		  Qprime,
 		  ulsch_harq->O_RI,
 		  ulsch_harq->Msc_initial,
@@ -773,7 +773,7 @@ unsigned int  ulsch_decoding(PHY_VARS_eNB *eNB,
   }
 
   if (i!=(H+Q_RI))
-    LOG_X(PHY,"ulsch_decoding.c: Error in input buffer length (j %d, H+Q_RI %d)\n",i,H+Q_RI);
+    LOG_D(PHY,"ulsch_decoding.c: Error in input buffer length (j %d, H+Q_RI %d)\n",i,H+Q_RI);
 
   // HARQ-ACK Bits (LLRs are nulled in overwritten bits after copying HARQ-ACK LLR)
 
@@ -1111,7 +1111,7 @@ unsigned int  ulsch_decoding(PHY_VARS_eNB *eNB,
 #endif
   }
 
-  LOG_X(PHY,"frame %d subframe %d O_ACK:%d o_ACK[]=%d:%d:%d:%d\n",frame,subframe,ulsch_harq->O_ACK,ulsch_harq->o_ACK[0],ulsch_harq->o_ACK[1],ulsch_harq->o_ACK[2],ulsch_harq->o_ACK[3]);
+  LOG_D(PHY,"frame %d subframe %d O_ACK:%d o_ACK[]=%d:%d:%d:%d\n",frame,subframe,ulsch_harq->O_ACK,ulsch_harq->o_ACK[0],ulsch_harq->o_ACK[1],ulsch_harq->o_ACK[2],ulsch_harq->o_ACK[3]);
   // Do ULSCH Decoding for data portion
   ret = ulsch_decoding_data_all(eNB,proc, UE_id,harq_pid,llr8_flag);
   return(ret);

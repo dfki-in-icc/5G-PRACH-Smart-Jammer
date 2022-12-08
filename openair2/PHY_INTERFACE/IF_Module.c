@@ -32,9 +32,9 @@ void handle_rach(UL_IND_t *UL_info) {
     {
       if (UL_RCC_INFO.rach_ind[j].rach_indication_body.number_of_preambles > 1)
       {
-        LOG_X(MAC, "handle_rach j: %d  UL_RCC_INFO.rach_ind[j].rach_indication_body.number_of_preambles: %d\n",
+        LOG_D(MAC, "handle_rach j: %d  UL_RCC_INFO.rach_ind[j].rach_indication_body.number_of_preambles: %d\n",
           j, UL_RCC_INFO.rach_ind[j].rach_indication_body.number_of_preambles);
-        LOG_X(MAC, "UL_info[Frame %d, Subframe %d] Calling initiate_ra_proc RACH:Frame: %d Subframe: %d\n",
+        LOG_D(MAC, "UL_info[Frame %d, Subframe %d] Calling initiate_ra_proc RACH:Frame: %d Subframe: %d\n",
           UL_info->frame, UL_info->subframe, NFAPI_SFNSF2SFN(UL_RCC_INFO.rach_ind[j].sfn_sf), NFAPI_SFNSF2SF(UL_RCC_INFO.rach_ind[j].sfn_sf));
       }
       AssertFatal(UL_RCC_INFO.rach_ind[j].rach_indication_body.number_of_preambles == 1, "More than 1 preamble not supported\n"); // dump frame/sf and all things in UL_RCC_INFO
@@ -54,7 +54,7 @@ void handle_rach(UL_IND_t *UL_info) {
     if (UL_info->rach_ind.rach_indication_body.number_of_preambles>0) {
       AssertFatal(UL_info->rach_ind.rach_indication_body.number_of_preambles==1,"More than 1 preamble not supported\n");
       UL_info->rach_ind.rach_indication_body.number_of_preambles=0;
-      LOG_X(MAC,"UL_info[Frame %d, Subframe %d] Calling initiate_ra_proc RACH:SFN/SF:%d\n",UL_info->frame,UL_info->subframe, NFAPI_SFNSF2DEC(UL_info->rach_ind.sfn_sf));
+      LOG_D(MAC,"UL_info[Frame %d, Subframe %d] Calling initiate_ra_proc RACH:SFN/SF:%d\n",UL_info->frame,UL_info->subframe, NFAPI_SFNSF2DEC(UL_info->rach_ind.sfn_sf));
       initiate_ra_proc(UL_info->module_id,
                        UL_info->CC_id,
                        NFAPI_SFNSF2SFN(UL_info->rach_ind.sfn_sf),
@@ -73,7 +73,7 @@ void handle_rach(UL_IND_t *UL_info) {
     for (i=0; i<UL_info->rach_ind_br.rach_indication_body.number_of_preambles; i++) {
       AssertFatal(UL_info->rach_ind_br.rach_indication_body.preamble_list[i].preamble_rel13.rach_resource_type>0,
                   "Got regular PRACH preamble, not BL/CE\n");
-      LOG_X(MAC,"Frame %d, Subframe %d Calling initiate_ra_proc (CE_level %d)\n",UL_info->frame,UL_info->subframe,
+      LOG_D(MAC,"Frame %d, Subframe %d Calling initiate_ra_proc (CE_level %d)\n",UL_info->frame,UL_info->subframe,
             UL_info->rach_ind_br.rach_indication_body.preamble_list[i].preamble_rel13.rach_resource_type-1);
       UL_info->rach_ind_br.rach_indication_body.number_of_preambles=0;
       initiate_ra_proc(UL_info->module_id,
@@ -134,7 +134,7 @@ void handle_cqi(UL_IND_t *UL_info) {
 
   if (NFAPI_MODE==NFAPI_MODE_PNF) {
     if (UL_info->cqi_ind.cqi_indication_body.number_of_cqis>0) {
-      LOG_X(PHY,"UL_info->cqi_ind.number_of_cqis:%d\n", UL_info->cqi_ind.cqi_indication_body.number_of_cqis);
+      LOG_D(PHY,"UL_info->cqi_ind.number_of_cqis:%d\n", UL_info->cqi_ind.cqi_indication_body.number_of_cqis);
       UL_info->cqi_ind.header.message_id = NFAPI_RX_CQI_INDICATION;
       UL_info->cqi_ind.sfn_sf = UL_info->frame<<4 | UL_info->subframe;
       oai_nfapi_cqi_indication(&UL_info->cqi_ind);
@@ -179,7 +179,7 @@ void handle_cqi(UL_IND_t *UL_info) {
 
 void handle_harq(UL_IND_t *UL_info) {
   if (NFAPI_MODE == NFAPI_MODE_PNF && UL_info->harq_ind.harq_indication_body.number_of_harqs > 0) { // PNF
-    //LOG_X(PHY, "UL_info->harq_ind.harq_indication_body.number_of_harqs:%d Send to VNF\n", UL_info->harq_ind.harq_indication_body.number_of_harqs);
+    //LOG_D(PHY, "UL_info->harq_ind.harq_indication_body.number_of_harqs:%d Send to VNF\n", UL_info->harq_ind.harq_indication_body.number_of_harqs);
     int retval = oai_nfapi_harq_indication(&UL_info->harq_ind);
 
     if (retval != 0) {
@@ -222,13 +222,13 @@ void handle_ulsch(UL_IND_t *UL_info) {
 
   if(NFAPI_MODE == NFAPI_MODE_PNF) {
     if (UL_info->crc_ind.crc_indication_body.number_of_crcs>0) {
-      //LOG_X(PHY,"UL_info->crc_ind.crc_indication_body.number_of_crcs:%d CRC_IND:SFN/SF:%d\n", UL_info->crc_ind.crc_indication_body.number_of_crcs, NFAPI_SFNSF2DEC(UL_info->crc_ind.sfn_sf));
+      //LOG_D(PHY,"UL_info->crc_ind.crc_indication_body.number_of_crcs:%d CRC_IND:SFN/SF:%d\n", UL_info->crc_ind.crc_indication_body.number_of_crcs, NFAPI_SFNSF2DEC(UL_info->crc_ind.sfn_sf));
       oai_nfapi_crc_indication(&UL_info->crc_ind);
       UL_info->crc_ind.crc_indication_body.number_of_crcs = 0;
     }
 
     if (UL_info->rx_ind.rx_indication_body.number_of_pdus>0) {
-      //LOG_X(PHY,"UL_info->rx_ind.number_of_pdus:%d RX_IND:SFN/SF:%d\n", UL_info->rx_ind.rx_indication_body.number_of_pdus, NFAPI_SFNSF2DEC(UL_info->rx_ind.sfn_sf));
+      //LOG_D(PHY,"UL_info->rx_ind.number_of_pdus:%d RX_IND:SFN/SF:%d\n", UL_info->rx_ind.rx_indication_body.number_of_pdus, NFAPI_SFNSF2DEC(UL_info->rx_ind.sfn_sf));
       oai_nfapi_rx_ind(&UL_info->rx_ind);
       UL_info->rx_ind.rx_indication_body.number_of_pdus = 0;
     }
@@ -240,15 +240,15 @@ void handle_ulsch(UL_IND_t *UL_info) {
           assert(UL_RCC_INFO.crc_ind[k].crc_indication_body.number_of_crcs <= NFAPI_CRC_IND_MAX_PDU);
           for (j=0; j<UL_RCC_INFO.crc_ind[k].crc_indication_body.number_of_crcs; j++) {
             // find crc_indication j corresponding rx_indication i
-            LOG_X(PHY,"UL_info->crc_ind.crc_indication_body.crc_pdu_list[%d].rx_ue_information.rnti:%04x UL_info->rx_ind.rx_indication_body.rx_pdu_list[%d].rx_ue_information.rnti:%04x\n",
+            LOG_D(PHY,"UL_info->crc_ind.crc_indication_body.crc_pdu_list[%d].rx_ue_information.rnti:%04x UL_info->rx_ind.rx_indication_body.rx_pdu_list[%d].rx_ue_information.rnti:%04x\n",
                   j,UL_RCC_INFO.crc_ind[k].crc_indication_body.crc_pdu_list[j].rx_ue_information.rnti, i,UL_RCC_INFO.rx_ind[k].rx_indication_body.rx_pdu_list[i].rx_ue_information.rnti);
 
             if (UL_RCC_INFO.crc_ind[k].crc_indication_body.crc_pdu_list[j].rx_ue_information.rnti == UL_RCC_INFO.rx_ind[k].rx_indication_body.rx_pdu_list[i].rx_ue_information.rnti) {
-              LOG_X(PHY, "UL_info->crc_ind.crc_indication_body.crc_pdu_list[%d].crc_indication_rel8.crc_flag:%d\n",
+              LOG_D(PHY, "UL_info->crc_ind.crc_indication_body.crc_pdu_list[%d].crc_indication_rel8.crc_flag:%d\n",
                     j, UL_RCC_INFO.crc_ind[k].crc_indication_body.crc_pdu_list[j].crc_indication_rel8.crc_flag);
 
               if (UL_RCC_INFO.crc_ind[k].crc_indication_body.crc_pdu_list[j].crc_indication_rel8.crc_flag == 1) { // CRC error indication
-                LOG_X(MAC,"Frame %d, Subframe %d Calling rx_sdu (CRC error) \n",UL_info->frame,UL_info->subframe);
+                LOG_D(MAC,"Frame %d, Subframe %d Calling rx_sdu (CRC error) \n",UL_info->frame,UL_info->subframe);
                 rx_sdu(UL_info->module_id,
                        UL_info->CC_id,
                        NFAPI_SFNSF2SFN(UL_RCC_INFO.rx_ind[k].sfn_sf), //UL_info->frame,
@@ -259,7 +259,7 @@ void handle_ulsch(UL_IND_t *UL_info) {
                        UL_RCC_INFO.rx_ind[k].rx_indication_body.rx_pdu_list[i].rx_indication_rel8.timing_advance,
                        UL_RCC_INFO.rx_ind[k].rx_indication_body.rx_pdu_list[i].rx_indication_rel8.ul_cqi);
               } else {
-                LOG_X(MAC,"Frame %d, Subframe %d Calling rx_sdu (CRC ok) \n",UL_info->frame,UL_info->subframe);
+                LOG_D(MAC,"Frame %d, Subframe %d Calling rx_sdu (CRC ok) \n",UL_info->frame,UL_info->subframe);
                 rx_sdu(UL_info->module_id,
                        UL_info->CC_id,
                        NFAPI_SFNSF2SFN(UL_RCC_INFO.rx_ind[k].sfn_sf), //UL_info->frame,
@@ -291,15 +291,15 @@ void handle_ulsch(UL_IND_t *UL_info) {
         assert(UL_info->crc_ind.crc_indication_body.number_of_crcs <= NFAPI_CRC_IND_MAX_PDU);
         for (j=0; j<UL_info->crc_ind.crc_indication_body.number_of_crcs; j++) {
           // find crc_indication j corresponding rx_indication i
-          LOG_X(PHY,"UL_info->crc_ind.crc_indication_body.crc_pdu_list[%d].rx_ue_information.rnti:%04x UL_info->rx_ind.rx_indication_body.rx_pdu_list[%d].rx_ue_information.rnti:%04x\n", j,
+          LOG_D(PHY,"UL_info->crc_ind.crc_indication_body.crc_pdu_list[%d].rx_ue_information.rnti:%04x UL_info->rx_ind.rx_indication_body.rx_pdu_list[%d].rx_ue_information.rnti:%04x\n", j,
                 UL_info->crc_ind.crc_indication_body.crc_pdu_list[j].rx_ue_information.rnti, i, UL_info->rx_ind.rx_indication_body.rx_pdu_list[i].rx_ue_information.rnti);
 
           if (UL_info->crc_ind.crc_indication_body.crc_pdu_list[j].rx_ue_information.rnti ==
               UL_info->rx_ind.rx_indication_body.rx_pdu_list[i].rx_ue_information.rnti) {
-            LOG_X(PHY, "UL_info->crc_ind.crc_indication_body.crc_pdu_list[%d].crc_indication_rel8.crc_flag:%d\n", j, UL_info->crc_ind.crc_indication_body.crc_pdu_list[j].crc_indication_rel8.crc_flag);
+            LOG_D(PHY, "UL_info->crc_ind.crc_indication_body.crc_pdu_list[%d].crc_indication_rel8.crc_flag:%d\n", j, UL_info->crc_ind.crc_indication_body.crc_pdu_list[j].crc_indication_rel8.crc_flag);
 
             if (UL_info->crc_ind.crc_indication_body.crc_pdu_list[j].crc_indication_rel8.crc_flag == 1) { // CRC error indication
-              LOG_X(MAC,"Frame %d, Subframe %d Calling rx_sdu (CRC error) \n",UL_info->frame,UL_info->subframe);
+              LOG_D(MAC,"Frame %d, Subframe %d Calling rx_sdu (CRC error) \n",UL_info->frame,UL_info->subframe);
               rx_sdu(UL_info->module_id,
                      UL_info->CC_id,
                      NFAPI_SFNSF2SFN(UL_info->rx_ind.sfn_sf), //UL_info->frame,
@@ -310,7 +310,7 @@ void handle_ulsch(UL_IND_t *UL_info) {
                      UL_info->rx_ind.rx_indication_body.rx_pdu_list[i].rx_indication_rel8.timing_advance,
                      UL_info->rx_ind.rx_indication_body.rx_pdu_list[i].rx_indication_rel8.ul_cqi);
             } else {
-              LOG_X(MAC,"Frame %d, Subframe %d Calling rx_sdu (CRC ok) \n",UL_info->frame,UL_info->subframe);
+              LOG_D(MAC,"Frame %d, Subframe %d Calling rx_sdu (CRC ok) \n",UL_info->frame,UL_info->subframe);
               rx_sdu(UL_info->module_id,
                      UL_info->CC_id,
                      NFAPI_SFNSF2SFN(UL_info->rx_ind.sfn_sf), //UL_info->frame,
@@ -709,7 +709,7 @@ void UL_indication(UL_IND_t *UL_info, void *proc) {
   Sched_Rsp_t  *sched_info = &Sched_INFO[module_id][CC_id];
   IF_Module_t  *ifi        = if_inst[module_id];
   eNB_MAC_INST *mac        = RC.mac[module_id];
-  LOG_X(PHY,"SFN/SF:%d%d module_id:%d CC_id:%d UL_info[rx_ind:%d harqs:%d crcs:%d cqis:%d preambles:%d sr_ind:%d]\n",
+  LOG_D(PHY,"SFN/SF:%d%d module_id:%d CC_id:%d UL_info[rx_ind:%d harqs:%d crcs:%d cqis:%d preambles:%d sr_ind:%d]\n",
         UL_info->frame,UL_info->subframe,
         module_id,CC_id,
         UL_info->rx_ind.rx_indication_body.number_of_pdus, UL_info->harq_ind.harq_indication_body.number_of_harqs, UL_info->crc_ind.crc_indication_body.number_of_crcs,
@@ -717,7 +717,7 @@ void UL_indication(UL_IND_t *UL_info, void *proc) {
 
   if(UL_info->frame==1023&&UL_info->subframe==6) { // dl scheduling (0,0)
     frame_cnt= (frame_cnt + 1)%7; // to prevent frame_cnt get too big
-    LOG_X(MAC,"current (%d,%d) frame count dl is %d\n",UL_info->frame,UL_info->subframe,frame_cnt);
+    LOG_D(MAC,"current (%d,%d) frame count dl is %d\n",UL_info->frame,UL_info->subframe,frame_cnt);
   }
 
   if (NFAPI_MODE != NFAPI_MODE_PNF) {
@@ -744,7 +744,7 @@ void UL_indication(UL_IND_t *UL_info, void *proc) {
 
   if(sf_ahead_dl!=255) {
     mac->HI_DCI0_req[CC_id][(UL_info->subframe+sf_ahead_dl)%10].hi_dci0_request_body.number_of_hi                     = 0;
-    LOG_X(MAC,"current (%d,%d) clear HI_DCI0_req[0][%d]\n",UL_info->frame,UL_info->subframe,(UL_info->subframe+sf_ahead_dl)%10);
+    LOG_D(MAC,"current (%d,%d) clear HI_DCI0_req[0][%d]\n",UL_info->frame,UL_info->subframe,(UL_info->subframe+sf_ahead_dl)%10);
   }
 
   handle_ulsch(UL_info);
@@ -784,14 +784,14 @@ void UL_indication(UL_IND_t *UL_info, void *proc) {
         ifi->schedule_response(sched_info, proc );
       }
 
-      LOG_X(PHY,"Schedule_response: SFN_SF:%d%d dl_pdus:%d\n",sched_info->frame,sched_info->subframe,sched_info->DL_req->dl_config_request_body.number_pdu);
+      LOG_D(PHY,"Schedule_response: SFN_SF:%d%d dl_pdus:%d\n",sched_info->frame,sched_info->subframe,sched_info->DL_req->dl_config_request_body.number_pdu);
     }
   }
 }
 
 IF_Module_t *IF_Module_init(int Mod_id) {
   AssertFatal(Mod_id<MAX_MODULES,"Asking for Module %d > %d\n",Mod_id,MAX_IF_MODULES);
-  LOG_X(PHY,"Installing callbacks for IF_Module - UL_indication\n");
+  LOG_D(PHY,"Installing callbacks for IF_Module - UL_indication\n");
 
   if (if_inst[Mod_id]==NULL) {
     if_inst[Mod_id] = (IF_Module_t *)malloc(sizeof(IF_Module_t));

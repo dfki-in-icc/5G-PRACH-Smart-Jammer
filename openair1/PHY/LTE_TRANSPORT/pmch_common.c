@@ -195,7 +195,7 @@ int is_pmch_subframe(uint32_t frame, int subframe, LTE_DL_FRAME_PARMS *frame_par
   uint8_t i;
   uint8_t j;
 
-  //  LOG_X(PHY,"is_pmch_subframe: frame %d, subframe %d, num_MBSFN_config %d\n",
+  //  LOG_D(PHY,"is_pmch_subframe: frame %d, subframe %d, num_MBSFN_config %d\n",
   //  frame,subframe,frame_parms->num_MBSFN_config);
 
   for (i=0; i<frame_parms->num_MBSFN_config; i++) {  // we have at least one MBSFN configuration

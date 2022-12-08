@@ -288,7 +288,7 @@ void fh_if4p5_south_out(RU_t *ru, int frame, int slot, uint64_t timestamp) {
 
   if (ru == RC.ru[0]) VCD_SIGNAL_DUMPER_DUMP_VARIABLE_BY_NAME( VCD_SIGNAL_DUMPER_VARIABLES_TRX_TST, ru->proc.timestamp_tx&0xffffffff );
 
-  LOG_X(PHY,"Sending IF4p5 for frame %d subframe %d\n",ru->proc.frame_tx,ru->proc.tti_tx);
+  LOG_D(PHY,"Sending IF4p5 for frame %d subframe %d\n",ru->proc.frame_tx,ru->proc.tti_tx);
 
   if ((nr_slot_select(cfg,ru->proc.frame_tx,ru->proc.tti_tx)&NR_DOWNLINK_SLOT) > 0)
     send_IF4p5(ru,frame, slot, IF4p5_PDLFFT);
@@ -311,7 +311,7 @@ void fh_if5_south_in(RU_t *ru,
   proc->tti_rx = fp->get_slot_from_timestamp(proc->timestamp_rx-ru->ts_offset,fp);
 //(idx_sf * fp->slots_per_subframe + (int)round((float)(proc->timestamp_rx % fp->samples_per_subframe) / fp->samples_per_slot0))%(fp->slots_per_frame);
   ts_rx[*tti] = proc->timestamp_rx;
-  LOG_X(PHY,"IF5 %d.%d => RX %d.%d first_rx %d\n",*frame,*tti,proc->frame_rx,proc->tti_rx,proc->first_rx); 
+  LOG_D(PHY,"IF5 %d.%d => RX %d.%d first_rx %d\n",*frame,*tti,proc->frame_rx,proc->tti_rx,proc->first_rx); 
 
   if (proc->first_rx == 0) {
     if (proc->tti_rx != *tti) {
@@ -364,7 +364,7 @@ void fh_if4p5_south_in(RU_t *ru,
       // nothing in RU for RAU
     }
 
-    LOG_X(PHY,"rx_fh_if4p5: subframe %d symbol mask %x\n",*slot,proc->symbol_mask[sl]);
+    LOG_D(PHY,"rx_fh_if4p5: subframe %d symbol mask %x\n",*slot,proc->symbol_mask[sl]);
   } while(proc->symbol_mask[sl] != symbol_mask_full);
 
   //caculate timestamp_rx, timestamp_tx based on frame and subframe
@@ -400,7 +400,7 @@ void fh_if4p5_south_in(RU_t *ru,
 
   proc->symbol_mask[proc->tti_rx] = 0;
   VCD_SIGNAL_DUMPER_DUMP_VARIABLE_BY_NAME( VCD_SIGNAL_DUMPER_VARIABLES_TRX_TS, proc->timestamp_rx&0xffffffff );
-  LOG_X(PHY,"RU %d: fh_if4p5_south_in sleeping ...\n",ru->idx);
+  LOG_D(PHY,"RU %d: fh_if4p5_south_in sleeping ...\n",ru->idx);
 }
 
 // asynchronous inbound if4p5 fronthaul from south
@@ -503,7 +503,7 @@ void fh_if4p5_north_asynch_in(RU_t *ru,int *frame,int *slot) {
   uint16_t packet_type;
   uint32_t symbol_number,symbol_mask,symbol_mask_full=0;
   int slot_tx,frame_tx;
-  LOG_X(PHY, "%s(ru:%p frame, subframe)\n", __FUNCTION__, ru);
+  LOG_D(PHY, "%s(ru:%p frame, subframe)\n", __FUNCTION__, ru);
   symbol_number = 0;
   symbol_mask = 0;
 
@@ -513,7 +513,7 @@ void fh_if4p5_north_asynch_in(RU_t *ru,int *frame,int *slot) {
 
     if (((nr_slot_select(cfg,frame_tx,slot_tx) & NR_DOWNLINK_SLOT) > 0) && (symbol_number == 0)) start_meas(&ru->rx_fhaul);
 
-    LOG_X(PHY,"slot %d (%d): frame %d, slot %d, symbol %d\n",
+    LOG_D(PHY,"slot %d (%d): frame %d, slot %d, symbol %d\n",
           *slot,nr_slot_select(cfg,frame_tx,*slot),frame_tx,slot_tx,symbol_number);
 
     if (proc->first_tx != 0) {
@@ -541,7 +541,7 @@ void fh_if4p5_north_asynch_in(RU_t *ru,int *frame,int *slot) {
   if ((frame_tx == 0)&&(slot_tx == 0)) proc->frame_tx_unwrap += 1024;
 
   proc->timestamp_tx = (((uint64_t)frame_tx + (uint64_t)proc->frame_tx_unwrap) * fp->samples_per_subframe * 10) + fp->get_samples_slot_timestamp(slot_tx, fp, 0);
-  LOG_X(PHY,"RU %d/%d TST %llu, frame %d, subframe %d\n",ru->idx,0,(long long unsigned int)proc->timestamp_tx,frame_tx,slot_tx);
+  LOG_D(PHY,"RU %d/%d TST %llu, frame %d, subframe %d\n",ru->idx,0,(long long unsigned int)proc->timestamp_tx,frame_tx,slot_tx);
 
   // dump VCD output for first RU in list
   if (ru == RC.ru[0]) {
@@ -618,7 +618,7 @@ void rx_rf(RU_t *ru,int *frame,int *slot) {
 
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME( VCD_SIGNAL_DUMPER_FUNCTIONS_TRX_READ, 1 );
   old_ts = proc->timestamp_rx;
-  LOG_X(PHY,"Reading %d samples for slot %d (%p)\n",samples_per_slot,*slot,rxp[0]);
+  LOG_D(PHY,"Reading %d samples for slot %d (%p)\n",samples_per_slot,*slot,rxp[0]);
 
   if(emulate_rf) {
     wait_on_condition(&proc->mutex_emulateRF,&proc->cond_emulateRF,&proc->instance_cnt_emulateRF,"emulatedRF_thread");
@@ -647,7 +647,7 @@ void rx_rf(RU_t *ru,int *frame,int *slot) {
     samples_per_slot_prev = fp->get_samples_per_slot((*slot-1)%fp->slots_per_frame,fp);
 
     if (proc->timestamp_rx - old_ts != samples_per_slot_prev) {
-      LOG_X(PHY,"rx_rf: rfdevice timing drift of %"PRId64" samples (ts_off %"PRId64")\n",proc->timestamp_rx - old_ts - samples_per_slot_prev,ru->ts_offset);
+      LOG_D(PHY,"rx_rf: rfdevice timing drift of %"PRId64" samples (ts_off %"PRId64")\n",proc->timestamp_rx - old_ts - samples_per_slot_prev,ru->ts_offset);
       ru->ts_offset += (proc->timestamp_rx - old_ts - samples_per_slot_prev);
       proc->timestamp_rx = ts-ru->ts_offset;
     }
@@ -656,7 +656,7 @@ void rx_rf(RU_t *ru,int *frame,int *slot) {
   proc->frame_rx    = (proc->timestamp_rx / (fp->samples_per_subframe*10))&1023;
   proc->tti_rx = fp->get_slot_from_timestamp(proc->timestamp_rx,fp);
   // synchronize first reception to frame 0 subframe 0
-  LOG_X(PHY,"RU %d/%d TS %llu , frame %d, slot %d.%d / %d\n",
+  LOG_D(PHY,"RU %d/%d TS %llu , frame %d, slot %d.%d / %d\n",
         ru->idx,
         0,
         (unsigned long long int)(proc->timestamp_rx+ru->ts_offset),
@@ -782,7 +782,7 @@ void tx_rf(RU_t *ru,int frame,int slot, uint64_t timestamp) {
                                       siglen+sf_extension,
                                       ru->nb_tx,
                                       flags);
-    LOG_X(PHY,"[TXPATH] RU %d aa %d tx_rf, writing to TS %llu, %d.%d, unwrapped_frame %d, slot %d, flags %d, siglen+sf_extension %d, returned %d, E %f\n",ru->idx,i,
+    LOG_D(PHY,"[TXPATH] RU %d aa %d tx_rf, writing to TS %llu, %d.%d, unwrapped_frame %d, slot %d, flags %d, siglen+sf_extension %d, returned %d, E %f\n",ru->idx,i,
 	  (long long unsigned int)(timestamp+ru->ts_offset-ru->openair0_cfg.tx_sample_advance-sf_extension),frame,slot,proc->frame_tx_unwrap,slot, flags, siglen+sf_extension, txs,10*log10((double)signal_energy(txp[0],siglen+sf_extension)));
     VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME( VCD_SIGNAL_DUMPER_FUNCTIONS_TRX_WRITE, 0 );
       //AssertFatal(txs == 0,"trx write function error %d\n", txs);
@@ -1361,7 +1361,7 @@ void *ru_thread( void *param ) {
     }
 
     // synchronization on input FH interface, acquire signals/data and block
-    LOG_X(PHY,"[RU_thread] read data: frame_rx = %d, tti_rx = %d\n", frame, slot);
+    LOG_D(PHY,"[RU_thread] read data: frame_rx = %d, tti_rx = %d\n", frame, slot);
 
     if (ru->fh_south_in) ru->fh_south_in(ru,&frame,&slot);
     else AssertFatal(1==0, "No fronthaul interface at south port");
@@ -1382,7 +1382,7 @@ void *ru_thread( void *param ) {
     proc->timestamp_tx = proc->timestamp_rx + (sf_ahead*fp->samples_per_subframe);
     proc->frame_tx     = (proc->tti_rx > (fp->slots_per_frame-1-(fp->slots_per_subframe*sf_ahead))) ? (proc->frame_rx+1)&1023 : proc->frame_rx;
     proc->tti_tx      = (proc->tti_rx + (fp->slots_per_subframe*sf_ahead))%fp->slots_per_frame;
-    LOG_X(PHY,"AFTER fh_south_in - SFN/SL:%d%d RU->proc[RX:%d.%d TX:%d.%d] RC.gNB[0]:[RX:%d%d TX(SFN):%d]\n",
+    LOG_D(PHY,"AFTER fh_south_in - SFN/SL:%d%d RU->proc[RX:%d.%d TX:%d.%d] RC.gNB[0]:[RX:%d%d TX(SFN):%d]\n",
           frame,slot,
           proc->frame_rx,proc->tti_rx,
           proc->frame_tx,proc->tti_tx,
@@ -1398,9 +1398,9 @@ void *ru_thread( void *param ) {
       if (ru->feprx) {
         ru->feprx(ru,proc->tti_rx);
         //LOG_M("rxdata.m","rxs",ru->common.rxdata[0],1228800,1,1);
-        LOG_X(PHY,"RU proc: frame_rx = %d, tti_rx = %d\n", proc->frame_rx, proc->tti_rx);
+        LOG_D(PHY,"RU proc: frame_rx = %d, tti_rx = %d\n", proc->frame_rx, proc->tti_rx);
 /*
-        LOG_X(PHY,"Copying rxdataF from RU to gNB\n");
+        LOG_D(PHY,"Copying rxdataF from RU to gNB\n");
 
         for (int aa=0; aa<ru->nb_rx; aa++)
           memcpy((void *)RC.gNB[0]->common_vars.rxdataF[aa],
@@ -1537,7 +1537,7 @@ void init_RU_proc(RU_t *ru) {
 void kill_NR_RU_proc(int inst) {
   RU_t *ru = RC.ru[inst];
   RU_proc_t *proc = &ru->proc;
-  LOG_X(PHY, "Joining pthread_FH\n");
+  LOG_D(PHY, "Joining pthread_FH\n");
   pthread_join(proc->pthread_FH, NULL);
 
   if (get_nprocs() >= 2) {
@@ -1546,7 +1546,7 @@ void kill_NR_RU_proc(int inst) {
       proc->instance_cnt_fep = 0;
       pthread_mutex_unlock(&proc->mutex_fep);
       pthread_cond_signal(&proc->cond_fep);
-      LOG_X(PHY, "Joining pthread_fep\n");
+      LOG_D(PHY, "Joining pthread_fep\n");
       pthread_join(proc->pthread_fep, NULL);
       pthread_mutex_destroy(&proc->mutex_fep);
       pthread_cond_destroy(&proc->cond_fep);
@@ -1557,7 +1557,7 @@ void kill_NR_RU_proc(int inst) {
       proc->instance_cnt_feptx = 0;
       pthread_mutex_unlock(&proc->mutex_feptx);
       pthread_cond_signal(&proc->cond_feptx);
-      LOG_X(PHY, "Joining pthread_feptx\n");
+      LOG_D(PHY, "Joining pthread_feptx\n");
       pthread_join(proc->pthread_feptx, NULL);
       pthread_mutex_destroy(&proc->mutex_feptx);
       pthread_cond_destroy(&proc->cond_feptx);
@@ -1565,7 +1565,7 @@ void kill_NR_RU_proc(int inst) {
   }
 
   if (opp_enabled) {
-    LOG_X(PHY, "Joining ru_stats_thread\n");
+    LOG_D(PHY, "Joining ru_stats_thread\n");
     pthread_join(ru->ru_stats_thread, NULL);
   }
 }
@@ -1907,10 +1907,10 @@ void init_NR_RU(char *rf_config_file) {
   printf("configuring RU from file\n");
   NRRCconfig_RU();
   LOG_I(PHY,"number of L1 instances %d, number of RU %d, number of CPU cores %d\n",RC.nb_nr_L1_inst,RC.nb_RU,get_nprocs());
-  LOG_X(PHY,"Process RUs RC.nb_RU:%d\n",RC.nb_RU);
+  LOG_D(PHY,"Process RUs RC.nb_RU:%d\n",RC.nb_RU);
 
   for (ru_id=0; ru_id<RC.nb_RU; ru_id++) {
-    LOG_X(PHY,"Process RC.ru[%d]\n",ru_id);
+    LOG_D(PHY,"Process RC.ru[%d]\n",ru_id);
     ru                 = RC.ru[ru_id];
     ru->rf_config_file = rf_config_file;
     ru->idx            = ru_id;
@@ -1919,7 +1919,7 @@ void init_NR_RU(char *rf_config_file) {
     // NOTE: multiple CC_id are not handled here yet!
 
     if (ru->num_gNB > 0) {
-      LOG_X(PHY, "%s() RC.ru[%d].num_gNB:%d ru->gNB_list[0]:%p RC.gNB[0]:%p rf_config_file:%s\n", __FUNCTION__, ru_id, ru->num_gNB, ru->gNB_list[0], RC.gNB[0], ru->rf_config_file);
+      LOG_D(PHY, "%s() RC.ru[%d].num_gNB:%d ru->gNB_list[0]:%p RC.gNB[0]:%p rf_config_file:%s\n", __FUNCTION__, ru_id, ru->num_gNB, ru->gNB_list[0], RC.gNB[0], ru->rf_config_file);
 
       if (ru->gNB_list[0] == 0) {
         LOG_E(PHY,"%s() DJP - ru->gNB_list ru->num_gNB are not initialized - so do it manually\n", __FUNCTION__);
@@ -1936,7 +1936,7 @@ void init_NR_RU(char *rf_config_file) {
     gNB_RC           = RC.gNB[0];
     gNB0             = ru->gNB_list[0];
     fp               = ru->nr_frame_parms;
-    LOG_X(PHY, "RU FUnction:%d ru->if_south:%d\n", ru->function, ru->if_south);
+    LOG_D(PHY, "RU FUnction:%d ru->if_south:%d\n", ru->function, ru->if_south);
 
     if (gNB0) {
       if ((ru->function != NGFI_RRU_IF5) && (ru->function != NGFI_RRU_IF4p5))
@@ -1948,7 +1948,7 @@ void init_NR_RU(char *rf_config_file) {
         memcpy((void *)fp,&gNB_RC->frame_parms,sizeof(NR_DL_FRAME_PARMS));
         memcpy((void *)&gNB0->frame_parms,(void *)&gNB_RC->frame_parms,sizeof(NR_DL_FRAME_PARMS));
         // attach all RU to all gNBs in its list/
-        LOG_X(PHY,"ru->num_gNB:%d gNB0->num_RU:%d\n", ru->num_gNB, gNB0->num_RU);
+        LOG_D(PHY,"ru->num_gNB:%d gNB0->num_RU:%d\n", ru->num_gNB, gNB0->num_RU);
 
         for (i=0; i<ru->num_gNB; i++) {
           gNB0 = ru->gNB_list[i];

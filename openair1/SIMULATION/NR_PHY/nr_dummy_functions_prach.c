@@ -309,7 +309,7 @@ void nr_get_prach_resources(module_id_t mod_id,
    prach_resources->ra_RNTI = 1 + s_id + 14 * t_id + 1120 * f_id + 8960 * ul_carrier_id;
    mac->ra_rnti = prach_resources->ra_RNTI;
 
-   LOG_X(MAC, "Computed ra_RNTI is %d", prach_resources->ra_RNTI);
+   LOG_D(MAC, "Computed ra_RNTI is %d", prach_resources->ra_RNTI);
 }
 
 // TbD: RA_attempt_number not used
@@ -323,7 +323,7 @@ void nr_Msg1_transmitted(module_id_t mod_id, uint8_t CC_id, frame_t frameP, uint
 
 void nr_Msg3_transmitted(module_id_t mod_id, uint8_t CC_id, frame_t frameP, slot_t slotP, uint8_t gNB_id){
   AssertFatal(CC_id == 0, "Transmission on secondary CCs is not supported yet\n");
-  LOG_X(MAC,"[UE %d][RAPROC] Frame %d : Msg3_tx: Starting contention resolution timer\n", mod_id, frameP);
+  LOG_D(MAC,"[UE %d][RAPROC] Frame %d : Msg3_tx: Starting contention resolution timer\n", mod_id, frameP);
   NR_UE_MAC_INST_t *mac = get_mac_inst(mod_id);
   // start contention resolution timer
   mac->RA_contention_resolution_cnt = 0;

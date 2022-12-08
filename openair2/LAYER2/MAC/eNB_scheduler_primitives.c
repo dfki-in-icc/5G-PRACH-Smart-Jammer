@@ -526,7 +526,7 @@ pdcchalloc2ulframe(COMMON_channels_t *ccP,
     }
   }
 
-  LOG_X(PHY, "frame %d subframe %d: PUSCH frame = %d\n",
+  LOG_D(PHY, "frame %d subframe %d: PUSCH frame = %d\n",
         frame,
         n,
         ul_frame);
@@ -550,7 +550,7 @@ pdcchalloc2ulsubframe(COMMON_channels_t *ccP,
   else
     ul_subframe = ((n + 4) % 10);
 
-  LOG_X(PHY, "subframe %d: PUSCH subframe = %d\n",
+  LOG_D(PHY, "subframe %d: PUSCH subframe = %d\n",
         n,
         ul_subframe);
   return ul_subframe;
@@ -1214,7 +1214,7 @@ program_dlsch_acknak(module_id_t module_idP,
           // Convert it to an NFAPI_UL_CONFIG_ULSCH_UCI_HARQ_PDU_TYPE
           harq_information = &ul_config_pdu->ulsch_uci_harq_pdu.harq_information;
           ul_config_pdu->pdu_type = NFAPI_UL_CONFIG_ULSCH_UCI_HARQ_PDU_TYPE;
-          LOG_X(MAC, "Frame %d, Subframe %d: Switched UCI HARQ to ULSCH UCI HARQ\n",
+          LOG_D(MAC, "Frame %d, Subframe %d: Switched UCI HARQ to ULSCH UCI HARQ\n",
                 frameP,
                 subframeP);
         } else {
@@ -1226,7 +1226,7 @@ program_dlsch_acknak(module_id_t module_idP,
           ul_config_pdu->ulsch_harq_pdu.initial_transmission_parameters.initial_transmission_parameters_rel8.n_srs_initial = 0; // last symbol not punctured
           ul_config_pdu->ulsch_harq_pdu.initial_transmission_parameters.initial_transmission_parameters_rel8.initial_number_of_resource_blocks
             = ul_config_pdu->ulsch_harq_pdu.ulsch_pdu.ulsch_pdu_rel8.number_of_resource_blocks;  // we don't change the number of resource blocks across retransmissions yet
-          LOG_X(MAC,"Frame %d, Subframe %d: Switched UCI HARQ to ULSCH HARQ\n",
+          LOG_D(MAC,"Frame %d, Subframe %d: Switched UCI HARQ to ULSCH HARQ\n",
                 frameP,
                 subframeP);
         }
@@ -1569,7 +1569,7 @@ fill_nfapi_uci_acknak(module_id_t module_idP,
                               rntiP,
                               &ul_config_pdu->uci_harq_pdu.harq_information,
                               cce_idxP);
-  LOG_X(MAC, "Filled in UCI HARQ request for rnti %x SF %d.%d acknakSF %d.%d, cce_idxP %d-> n1_pucch %d\n",
+  LOG_D(MAC, "Filled in UCI HARQ request for rnti %x SF %d.%d acknakSF %d.%d, cce_idxP %d-> n1_pucch %d\n",
         rntiP,
         absSFP / 10,
         absSFP % 10,
@@ -1684,7 +1684,7 @@ fill_nfapi_tx_req(nfapi_tx_request_body_t *tx_req_body,
 //------------------------------------------------------------------------------
 {
   nfapi_tx_request_pdu_t *TX_req = &tx_req_body->tx_pdu_list[tx_req_body->number_of_pdus];
-  LOG_X(MAC, "Filling TX_req %d for pdu length %d\n",
+  LOG_D(MAC, "Filling TX_req %d for pdu length %d\n",
         tx_req_body->number_of_pdus,
         pdu_length);
   TX_req->pdu_length                 = pdu_length;
@@ -1754,7 +1754,7 @@ fill_nfapi_ulsch_config_request_rel8(nfapi_ul_config_request_pdu_t *ul_config_pd
     ul_config_pdu->ulsch_cqi_ri_pdu.cqi_ri_information.cqi_ri_information_rel9.tl.tag = NFAPI_UL_CONFIG_REQUEST_CQI_RI_INFORMATION_REL9_TAG;
     ul_config_pdu->ulsch_cqi_ri_pdu.cqi_ri_information.cqi_ri_information_rel9.report_type = 1;
     ul_config_pdu->ulsch_cqi_ri_pdu.cqi_ri_information.cqi_ri_information_rel9.aperiodic_cqi_pmi_ri_report.number_of_cc = 1;
-    LOG_X(MAC, "report_type %d\n",
+    LOG_D(MAC, "report_type %d\n",
           ul_config_pdu->ulsch_cqi_ri_pdu.cqi_ri_information.cqi_ri_information_rel9.report_type);
 
     if (cc->p_eNB <= 2 && (tmode == 3 || tmode == 4 || tmode == 8 || tmode == 9 || tmode == 10)) ri_size = 1;
@@ -2012,7 +2012,7 @@ find_RA_id(module_id_t mod_idP,
   RA_t *ra = (RA_t *) &RC.mac[mod_idP]->common_channels[CC_idP].ra[0];
 
   for (RA_id = 0; RA_id < NB_RA_PROC_MAX; RA_id++) {
-    LOG_X(MAC, "Checking RA_id %d for %x : state %d\n",
+    LOG_D(MAC, "Checking RA_id %d for %x : state %d\n",
           RA_id,
           rntiP,
           ra[RA_id].state);
@@ -2057,7 +2057,7 @@ UE_RNTI(module_id_t mod_idP,
     return (rnti);
   }
 
-  //LOG_X(MAC, "[eNB %d] Couldn't find RNTI for UE %d\n", mod_idP, ue_idP);
+  //LOG_D(MAC, "[eNB %d] Couldn't find RNTI for UE %d\n", mod_idP, ue_idP);
   //display_backtrace();
   return (NOT_A_RNTI);
 }
@@ -2111,7 +2111,7 @@ get_aggregation(uint8_t bw_index,
       break;
   }
 
-  LOG_X(MAC, "Aggregation level %d (cqi %d, bw_index %d, format %d)\n",
+  LOG_D(MAC, "Aggregation level %d (cqi %d, bw_index %d, format %d)\n",
         1 << aggregation,
         cqi,
         bw_index,
@@ -2180,7 +2180,7 @@ add_new_ue(module_id_t mod_idP,
   int UE_id;
   int i, j;
   UE_info_t *UE_info = &RC.mac[mod_idP]->UE_info;
-  LOG_X(MAC, "[eNB %d, CC_id %d] Adding UE with rnti %x (prev. num_UEs %d)\n",
+  LOG_D(MAC, "[eNB %d, CC_id %d] Adding UE with rnti %x (prev. num_UEs %d)\n",
         mod_idP,
         cc_idP,
         rntiP,
@@ -2242,7 +2242,7 @@ add_new_ue(module_id_t mod_idP,
 
     eNB_ulsch_info[mod_idP][cc_idP][UE_id].status = S_UL_WAITING;
     eNB_dlsch_info[mod_idP][cc_idP][UE_id].status = S_DL_WAITING;
-    LOG_X(MAC, "[eNB %d] Add UE_id %d on Primary CC_id %d: rnti %x\n",
+    LOG_D(MAC, "[eNB %d] Add UE_id %d on Primary CC_id %d: rnti %x\n",
           mod_idP,
           UE_id,
           cc_idP,
@@ -2400,7 +2400,7 @@ UE_is_to_be_scheduled(module_id_t module_idP,
     return 0;
 
   rnti_t ue_rnti = UE_RNTI(module_idP, UE_id);
-  LOG_X(MAC, "[eNB %d][PUSCH] Checking UL requirements UE %d/%x\n",
+  LOG_D(MAC, "[eNB %d][PUSCH] Checking UL requirements UE %d/%x\n",
         module_idP,
         UE_id,
         ue_rnti);
@@ -2413,7 +2413,7 @@ UE_is_to_be_scheduled(module_id_t module_idP,
       (UE_sched_ctl->ul_inactivity_timer > 10 &&
        UE_sched_ctl->ul_scheduled == 0 && rrc_status < RRC_CONNECTED) || // every Frame when not RRC_CONNECTED
       (UE_sched_ctl->cqi_req_timer > 300 && rrc_status >= RRC_CONNECTED)) { // cqi req timer expired long ago (do not put too low value)
-    LOG_X(MAC, "[eNB %d][PUSCH] UE %d/%x should be scheduled (BSR0 estimated size %d, SR %d)\n",
+    LOG_D(MAC, "[eNB %d][PUSCH] UE %d/%x should be scheduled (BSR0 estimated size %d, SR %d)\n",
           module_idP,
           UE_id,
           ue_rnti,
@@ -2877,7 +2877,7 @@ get_nCCE_offset(int *CCE_table,
       break;
   }
 
-  LOG_X(MAC, "rnti %x, Yk = %d, nCCE %d (nCCE/L %d),nb_cand %d\n",
+  LOG_D(MAC, "rnti %x, Yk = %d, nCCE %d (nCCE/L %d),nb_cand %d\n",
         rnti,
         Yk,
         nCCE,
@@ -3136,7 +3136,7 @@ allocate_CCEs(int module_idP,
     max_symbol = 3;
 
   nfapi_ul_config_request_body_t *ul_req = &eNB->UL_req_tmp[CC_idP][ackNAK_absSF % 10].ul_config_request_body;
-  LOG_X(MAC, "Allocate CCEs subframe %d, test %d : (DL PDU %d, DL DCI %d, UL %d)\n",
+  LOG_D(MAC, "Allocate CCEs subframe %d, test %d : (DL PDU %d, DL DCI %d, UL %d)\n",
         subframeP,
         test_onlyP,
         DL_req->number_pdu,
@@ -3153,7 +3153,7 @@ try_again:
     // allocate DL common DCIs first
     if (dl_config_pduLoop->pdu_type == NFAPI_DL_CONFIG_DCI_DL_PDU_TYPE &&
         dl_config_pduLoop->dci_dl_pdu.dci_dl_pdu_rel8.rnti_type == 2) {
-      LOG_X(MAC, "Trying to allocate COMMON DCI %d/%d (%d,%d) : rnti %x, aggreg %d nCCE %d / %d (num_pdcch_symbols %d)\n",
+      LOG_D(MAC, "Trying to allocate COMMON DCI %d/%d (%d,%d) : rnti %x, aggreg %d nCCE %d / %d (num_pdcch_symbols %d)\n",
             idci,
             DL_req->number_dci + HI_DCI0_req->number_of_dci,
             DL_req->number_dci,
@@ -3168,7 +3168,7 @@ try_again:
         if (DL_req->number_pdcch_ofdm_symbols == max_symbol)
           return -1;
 
-        LOG_X(MAC, "Can't fit DCI allocations with %d PDCCH symbols, increasing by 1\n",
+        LOG_D(MAC, "Can't fit DCI allocations with %d PDCCH symbols, increasing by 1\n",
               DL_req->number_pdcch_ofdm_symbols);
         DL_req->number_pdcch_ofdm_symbols++;
         nCCE_max = get_nCCE_max(cc, DL_req->number_pdcch_ofdm_symbols, subframeP);
@@ -3185,7 +3185,7 @@ try_again:
 
       if (fCCE == -1) {
         if (DL_req->number_pdcch_ofdm_symbols == max_symbol) {
-          LOG_X(MAC, "subframe %d: Dropping Allocation for RNTI %x\n",
+          LOG_D(MAC, "subframe %d: Dropping Allocation for RNTI %x\n",
                 subframeP,
                 dl_config_pduLoop->dci_dl_pdu.dci_dl_pdu_rel8.rnti);
 
@@ -3193,7 +3193,7 @@ try_again:
             dl_config_pduLoop = &dl_config_pdu[j];
 
             if (dl_config_pduLoop->pdu_type == NFAPI_DL_CONFIG_DCI_DL_PDU_TYPE)
-              LOG_X(MAC, "DCI %d/%d (%d,%d) : rnti %x dci format %d, aggreg %d nCCE %d / %d (num_pdcch_symbols %d)\n",
+              LOG_D(MAC, "DCI %d/%d (%d,%d) : rnti %x dci format %d, aggreg %d nCCE %d / %d (num_pdcch_symbols %d)\n",
                     j,
                     DL_req->number_dci + HI_DCI0_req->number_of_dci,
                     DL_req->number_dci,
@@ -3208,7 +3208,7 @@ try_again:
           return -1;
         }
 
-        LOG_X(MAC, "Can't fit DCI allocations with %d PDCCH symbols (rnti condition), increasing by 1\n",
+        LOG_D(MAC, "Can't fit DCI allocations with %d PDCCH symbols (rnti condition), increasing by 1\n",
               DL_req->number_pdcch_ofdm_symbols);
         DL_req->number_pdcch_ofdm_symbols++;
         nCCE_max = get_nCCE_max(cc, DL_req->number_pdcch_ofdm_symbols, subframeP);
@@ -3217,11 +3217,11 @@ try_again:
 
       // the allocation is feasible, rnti rule passes
       nCCE += dl_config_pduLoop->dci_dl_pdu.dci_dl_pdu_rel8.aggregation_level;
-      LOG_X(MAC, "Allocating at nCCE %d\n", fCCE);
+      LOG_D(MAC, "Allocating at nCCE %d\n", fCCE);
 
       if ((test_onlyP%2) == 0) {
         dl_config_pduLoop->dci_dl_pdu.dci_dl_pdu_rel8.cce_idx = fCCE;
-        LOG_X(MAC, "Allocate COMMON DCI CCEs subframe %d, test %d => L %d fCCE %d\n",
+        LOG_D(MAC, "Allocate COMMON DCI CCEs subframe %d, test %d => L %d fCCE %d\n",
               subframeP,
               test_onlyP,
               dl_config_pduLoop->dci_dl_pdu.dci_dl_pdu_rel8.aggregation_level,
@@ -3238,7 +3238,7 @@ try_again:
 
     // allocate UL DCIs
     if (hi_dci0_pdu[i].pdu_type == NFAPI_HI_DCI0_DCI_PDU_TYPE) {
-      LOG_X(MAC, "Trying to allocate format 0 DCI %d/%d (%d,%d) : rnti %x, aggreg %d nCCE %d / %d (num_pdcch_symbols %d)\n",
+      LOG_D(MAC, "Trying to allocate format 0 DCI %d/%d (%d,%d) : rnti %x, aggreg %d nCCE %d / %d (num_pdcch_symbols %d)\n",
             idci,
             DL_req->number_dci + HI_DCI0_req->number_of_dci,
             DL_req->number_dci,
@@ -3252,7 +3252,7 @@ try_again:
         if (DL_req->number_pdcch_ofdm_symbols == max_symbol)
           return -1;
 
-        LOG_X(MAC, "Can't fit DCI allocations with %d PDCCH symbols, increasing by 1\n",
+        LOG_D(MAC, "Can't fit DCI allocations with %d PDCCH symbols, increasing by 1\n",
               DL_req->number_pdcch_ofdm_symbols);
         DL_req->number_pdcch_ofdm_symbols++;
         nCCE_max = get_nCCE_max(cc, DL_req->number_pdcch_ofdm_symbols, subframeP);
@@ -3269,7 +3269,7 @@ try_again:
 
       if (fCCE == -1) {
         if (DL_req->number_pdcch_ofdm_symbols == max_symbol) {
-          LOG_X(MAC, "subframe %d: Dropping Allocation for RNTI %x\n",
+          LOG_D(MAC, "subframe %d: Dropping Allocation for RNTI %x\n",
                 subframeP,
                 hi_dci0_pduLoop->dci_pdu.dci_pdu_rel8.rnti);
 
@@ -3277,7 +3277,7 @@ try_again:
             hi_dci0_pduLoop = &hi_dci0_pdu[j];
 
             if (hi_dci0_pdu[j].pdu_type == NFAPI_HI_DCI0_DCI_PDU_TYPE)
-              LOG_X(MAC, "DCI %d/%d (%d,%d) : rnti %x dci format %d, aggreg %d nCCE %d / %d (num_pdcch_symbols %d)\n",
+              LOG_D(MAC, "DCI %d/%d (%d,%d) : rnti %x dci format %d, aggreg %d nCCE %d / %d (num_pdcch_symbols %d)\n",
                     j,
                     DL_req->number_dci + HI_DCI0_req->number_of_dci,
                     DL_req->number_dci,
@@ -3292,7 +3292,7 @@ try_again:
           return -1;
         }
 
-        LOG_X(MAC, "Can't fit DCI allocations with %d PDCCH symbols (rnti condition), increasing by 1\n",
+        LOG_D(MAC, "Can't fit DCI allocations with %d PDCCH symbols (rnti condition), increasing by 1\n",
               DL_req->number_pdcch_ofdm_symbols);
         DL_req->number_pdcch_ofdm_symbols++;
         nCCE_max = get_nCCE_max(cc, DL_req->number_pdcch_ofdm_symbols, subframeP);
@@ -3301,12 +3301,12 @@ try_again:
 
       // the allocation is feasible, rnti rule passes
       nCCE += hi_dci0_pduLoop->dci_pdu.dci_pdu_rel8.aggregation_level;
-      LOG_X(MAC, "Allocating at nCCE %d\n",
+      LOG_D(MAC, "Allocating at nCCE %d\n",
             fCCE);
 
       if ((test_onlyP%2) == 0) {
         hi_dci0_pduLoop->dci_pdu.dci_pdu_rel8.cce_index = fCCE;
-        LOG_X(MAC, "Allocate CCEs subframe %d, test %d\n",
+        LOG_D(MAC, "Allocate CCEs subframe %d, test %d\n",
               subframeP,
               test_onlyP);
       }
@@ -3321,7 +3321,7 @@ try_again:
     // allocate DL UE specific DCIs
     if ((dl_config_pdu[i].pdu_type == NFAPI_DL_CONFIG_DCI_DL_PDU_TYPE)
         && (dl_config_pduLoop->dci_dl_pdu.dci_dl_pdu_rel8.rnti_type == 1)) {
-      LOG_X(MAC, "Trying to allocate DL UE-SPECIFIC DCI %d/%d (%d,%d) : rnti %x, aggreg %d nCCE %d / %d (num_pdcch_symbols %d)\n",
+      LOG_D(MAC, "Trying to allocate DL UE-SPECIFIC DCI %d/%d (%d,%d) : rnti %x, aggreg %d nCCE %d / %d (num_pdcch_symbols %d)\n",
             idci,
             DL_req->number_dci + HI_DCI0_req->number_of_dci,
             DL_req->number_dci, HI_DCI0_req->number_of_dci,
@@ -3335,7 +3335,7 @@ try_again:
         if (DL_req->number_pdcch_ofdm_symbols == max_symbol)
           return -1;
 
-        LOG_X(MAC, "Can't fit DCI allocations with %d PDCCH symbols, increasing by 1\n",
+        LOG_D(MAC, "Can't fit DCI allocations with %d PDCCH symbols, increasing by 1\n",
               DL_req->number_pdcch_ofdm_symbols);
         DL_req->number_pdcch_ofdm_symbols++;
         nCCE_max = get_nCCE_max(cc, DL_req->number_pdcch_ofdm_symbols, subframeP);
@@ -3352,7 +3352,7 @@ try_again:
 
       if (fCCE == -1) {
         if (DL_req->number_pdcch_ofdm_symbols == max_symbol) {
-          LOG_X(MAC, "subframe %d: Dropping Allocation for RNTI %x\n",
+          LOG_D(MAC, "subframe %d: Dropping Allocation for RNTI %x\n",
                 subframeP,
                 dl_config_pduLoop->dci_dl_pdu.dci_dl_pdu_rel8.rnti);
 
@@ -3360,7 +3360,7 @@ try_again:
             dl_config_pduLoop = &dl_config_pdu[j];
 
             if (dl_config_pduLoop->pdu_type == NFAPI_DL_CONFIG_DCI_DL_PDU_TYPE)
-              LOG_X(MAC, "DCI %d/%d (%d,%d) : rnti %x dci format %d, aggreg %d nCCE %d / %d (num_pdcch_symbols %d)\n",
+              LOG_D(MAC, "DCI %d/%d (%d,%d) : rnti %x dci format %d, aggreg %d nCCE %d / %d (num_pdcch_symbols %d)\n",
                     j,
                     DL_req->number_dci + HI_DCI0_req->number_of_dci,
                     DL_req->number_dci,
@@ -3377,7 +3377,7 @@ try_again:
           return -1;
         }
 
-        LOG_X(MAC, "Can't fit DCI allocations with %d PDCCH symbols (rnti condition), increasing by 1\n",
+        LOG_D(MAC, "Can't fit DCI allocations with %d PDCCH symbols (rnti condition), increasing by 1\n",
               DL_req->number_pdcch_ofdm_symbols);
         DL_req->number_pdcch_ofdm_symbols++;
         nCCE_max = get_nCCE_max(cc, DL_req->number_pdcch_ofdm_symbols, subframeP);
@@ -3386,12 +3386,12 @@ try_again:
 
       // the allocation is feasible, rnti rule passes
       nCCE += dl_config_pduLoop->dci_dl_pdu.dci_dl_pdu_rel8.aggregation_level;
-      LOG_X(MAC, "Allocating at nCCE %d\n",
+      LOG_D(MAC, "Allocating at nCCE %d\n",
             fCCE);
 
       if ((test_onlyP%2) == 0) {
         dl_config_pduLoop->dci_dl_pdu.dci_dl_pdu_rel8.cce_idx = fCCE;
-        LOG_X(MAC, "Allocate CCEs subframe %d, test %d\n",
+        LOG_D(MAC, "Allocate CCEs subframe %d, test %d\n",
               subframeP,
               test_onlyP);
       }
@@ -3429,14 +3429,14 @@ has_ul_grant(module_id_t module_idP,
   nfapi_ul_config_request_body_t *ul_req = &RC.mac[module_idP]->UL_req_tmp[CC_idP][absSFP % 10].ul_config_request_body;
   nfapi_ul_config_request_pdu_t *ul_config_pdu = &ul_req->ul_config_pdu_list[0];
   uint8_t pdu_type;
-  LOG_X(MAC, "Checking for rnti %x UL grant in subframeP %d (num pdu %d)\n",
+  LOG_D(MAC, "Checking for rnti %x UL grant in subframeP %d (num pdu %d)\n",
         rnti,
         absSFP % 10,
         ul_req->number_of_pdus);
 
   for (int i = 0; i < ul_req->number_of_pdus; i++, ul_config_pdu++) {
     pdu_type = ul_config_pdu->pdu_type;
-    LOG_X(MAC, "PDU %d : type %d,rnti %x\n",
+    LOG_D(MAC, "PDU %d : type %d,rnti %x\n",
           i,
           pdu_type,
           rnti);
@@ -3513,7 +3513,7 @@ CCE_allocation_infeasible(int module_idP,
       dl_config_pdu->dci_dl_pdu.dci_dl_pdu_rel8.rnti_type         = (format_flag == 0) ? 2 : 1;
       dl_config_pdu->dci_dl_pdu.dci_dl_pdu_rel8.aggregation_level = aggregation;
       DL_req->number_pdu++;
-      LOG_X(MAC, "Subframe %d: Checking CCE feasibility format %d : (%x,%d) \n",
+      LOG_D(MAC, "Subframe %d: Checking CCE feasibility format %d : (%x,%d) \n",
             subframe, format_flag, rnti, aggregation);
 
       if (allocate_CCEs(module_idP, CC_idP, 0, subframe, 0) != -1)
@@ -3584,7 +3584,7 @@ int CCE_try_allocate_dlsch(int module_id,
   dl_config_pdu->dci_dl_pdu.dci_dl_pdu_rel8.rnti_type         = 1;
   dl_config_pdu->dci_dl_pdu.dci_dl_pdu_rel8.aggregation_level = aggregation;
   DL_req->number_pdu++;
-  LOG_X(MAC, "Subframe %d: Checking CCE feasibility format 1: (%x,%d) \n",
+  LOG_D(MAC, "Subframe %d: Checking CCE feasibility format 1: (%x,%d) \n",
         subframe, rnti, aggregation);
 
   if (allocate_CCEs(module_id, CC_id, 0, subframe, 0) < 0) {
@@ -3645,7 +3645,7 @@ int CCE_try_allocate_ulsch(int module_id,
   hi_dci0_pdu->dci_pdu.dci_pdu_rel8.rnti = rnti;
   hi_dci0_pdu->dci_pdu.dci_pdu_rel8.aggregation_level = aggregation;
   HI_DCI0_req->number_of_dci++;
-  LOG_X(MAC, "%s() sf %d: Checking CCE feasibility format 2: RNTI %04x, agg %d\n",
+  LOG_D(MAC, "%s() sf %d: Checking CCE feasibility format 2: RNTI %04x, agg %d\n",
         __func__, subframe, rnti, aggregation);
 
   if (allocate_CCEs(module_id, CC_id, 0, subframe, 0) < 0) {
@@ -3737,7 +3737,7 @@ frame_subframe2_dl_harq_pid(LTE_TDD_Config_t *tdd_Config,
           harq_pid += 7;
         }
 
-        LOG_X(MAC,"[frame_subframe2_dl_harq_pid] (%d,%d) calculate harq_pid ((( %d * 1024 + %d) *4) - 1 + %d) = %d \n",
+        LOG_D(MAC,"[frame_subframe2_dl_harq_pid] (%d,%d) calculate harq_pid ((( %d * 1024 + %d) *4) - 1 + %d) = %d \n",
               (abs_frameP + 1024) % 1024,
               subframeP,
               frame_cnt,
@@ -3976,7 +3976,7 @@ extract_harq(module_id_t mod_idP,
             if (harq_indication_tdd->harq_data[0].bundling.value_0 == 1) { //ack
               sched_ctl->round[CC_idP][harq_pid] = 8; // release HARQ process
               sched_ctl->tbcnt[CC_idP][harq_pid] = 0;
-              LOG_X(MAC, "frame %d subframe %d Acking (%d,%d) harq_pid %d round %d\n",
+              LOG_D(MAC, "frame %d subframe %d Acking (%d,%d) harq_pid %d round %d\n",
                     frameP,
                     subframeP,
                     frame_tx,
@@ -3991,7 +3991,7 @@ extract_harq(module_id_t mod_idP,
                 sched_ctl->tbcnt[CC_idP][harq_pid] = 0;
               }
 
-              LOG_X(MAC,"frame %d subframe %d Nacking (%d,%d) harq_pid %d round %d\n",
+              LOG_D(MAC,"frame %d subframe %d Nacking (%d,%d) harq_pid %d round %d\n",
                     frameP,
                     subframeP,
                     frame_tx,
@@ -4017,7 +4017,7 @@ extract_harq(module_id_t mod_idP,
 
           for (uint8_t ra_i = 0; ra_i < NB_RA_PROC_MAX; ra_i++) {
             if (ra[ra_i].rnti == rnti && ra[ra_i].state == MSGCRNTI_ACK && ra[ra_i].crnti_harq_pid == harq_pid) {
-              LOG_X(MAC,"CRNTI Reconfiguration: ACK %d rnti %x round %d frame %d subframe %d \n",
+              LOG_D(MAC,"CRNTI Reconfiguration: ACK %d rnti %x round %d frame %d subframe %d \n",
                     harq_indication_tdd->harq_data[0].bundling.value_0,
                     rnti,
                     sched_ctl->round[CC_idP][harq_pid],
@@ -4056,7 +4056,7 @@ extract_harq(module_id_t mod_idP,
     num_ack_nak         = harq_indication_fdd->number_of_ack_nack;
     pdu                 = &harq_indication_fdd->harq_tb_n[0];
     harq_pid = ((10 * frameP) + subframeP + 10236) & 7;
-    LOG_X(MAC, "frame %d subframe %d harq_pid %d mode %d tmode[0] %d num_ack_nak %d round %d\n",
+    LOG_D(MAC, "frame %d subframe %d harq_pid %d mode %d tmode[0] %d num_ack_nak %d round %d\n",
           frameP,
           subframeP,
           harq_pid,
@@ -4102,14 +4102,14 @@ extract_harq(module_id_t mod_idP,
                       harq_pid,
                       UE_id,
                       rnti);
-          LOG_X(MAC, "Received %d for harq_pid %d\n",
+          LOG_D(MAC, "Received %d for harq_pid %d\n",
                 pdu[0],
                 harq_pid);
           RA_t *ra = &eNB->common_channels[CC_idP].ra[0];
 
           for (uint8_t ra_i = 0; ra_i < NB_RA_PROC_MAX; ra_i++) {
             if (ra[ra_i].rnti == rnti && ra[ra_i].state == MSGCRNTI_ACK && ra[ra_i].crnti_harq_pid == harq_pid) {
-              LOG_X(MAC,"CRNTI Reconfiguration: ACK %d rnti %x round %d frame %d subframe %d \n",
+              LOG_D(MAC,"CRNTI Reconfiguration: ACK %d rnti %x round %d frame %d subframe %d \n",
                     pdu[0],
                     rnti,
                     sched_ctl->round[CC_idP][harq_pid],
@@ -4134,7 +4134,7 @@ extract_harq(module_id_t mod_idP,
             }
           }
 
-          LOG_X(MAC, "In extract_harq(): pdu[0] = %d for harq_pid = %d\n", pdu[0], harq_pid);
+          LOG_D(MAC, "In extract_harq(): pdu[0] = %d for harq_pid = %d\n", pdu[0], harq_pid);
 
           if (pdu[0] == 1) {  // ACK
             sched_ctl->round[CC_idP][harq_pid] = 8; // release HARQ process
@@ -4960,7 +4960,7 @@ cqi_indication(module_id_t mod_idP,
   UE_sched_ctrl_t *sched_ctl = &UE_info->UE_sched_ctrl[UE_id];
 
   if (UE_id >= 0) {
-    LOG_X(MAC,"%s() UE_id:%d channel:%d cqi:%d\n",
+    LOG_D(MAC,"%s() UE_id:%d channel:%d cqi:%d\n",
           __FUNCTION__,
           UE_id,
           ul_cqi_information->channel,
@@ -4990,7 +4990,7 @@ cqi_indication(module_id_t mod_idP,
                         subframeP,
                         pdu,
                         rel9->length);
-      LOG_X(MAC,"Frame %d Subframe %d update CQI:%d pdu 0x%016"PRIx64"\n",
+      LOG_D(MAC,"Frame %d Subframe %d update CQI:%d pdu 0x%016"PRIx64"\n",
             frameP,
             subframeP,
             sched_ctl->dl_cqi[CC_idP],pdu_val);
@@ -5032,7 +5032,7 @@ SR_indication(module_id_t mod_idP,
     if ((UE_scheduling_ctrl->cdrx_configured == TRUE) &&
         (UE_scheduling_ctrl->dci0_ongoing_timer > 0)  &&
         (UE_scheduling_ctrl->dci0_ongoing_timer < 8)) {
-      LOG_X(MAC, "[eNB %d][SR %x] Frame %d subframeP %d Signaling SR for UE %d on CC_id %d.  \
+      LOG_D(MAC, "[eNB %d][SR %x] Frame %d subframeP %d Signaling SR for UE %d on CC_id %d.  \
                   The SR is not set do to ongoing DCI0 with CDRX activated\n",
             mod_idP,
             rntiP,
@@ -5042,7 +5042,7 @@ SR_indication(module_id_t mod_idP,
             cc_idP);
     } else {
       if (mac_eNB_get_rrc_status(mod_idP, UE_RNTI(mod_idP, UE_id)) <  RRC_CONNECTED) {
-        LOG_X(MAC, "[eNB %d][SR %x] Frame %d subframeP %d Signaling SR for UE %d on CC_id %d\n",
+        LOG_D(MAC, "[eNB %d][SR %x] Frame %d subframeP %d Signaling SR for UE %d on CC_id %d\n",
               mod_idP,
               rntiP,
               frameP,
@@ -5057,7 +5057,7 @@ SR_indication(module_id_t mod_idP,
       VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_SR_INDICATION, 0);
     }
   } else {
-    LOG_X(MAC, "[eNB %d][SR %x] Frame %d subframeP %d Signaling SR for UE %d (unknown UE_id) on CC_id %d\n",
+    LOG_D(MAC, "[eNB %d][SR %x] Frame %d subframeP %d Signaling SR for UE %d (unknown UE_id) on CC_id %d\n",
           mod_idP,
           rntiP,
           frameP,
@@ -5082,7 +5082,7 @@ UL_failure_indication(module_id_t mod_idP,
   UE_info_t *UE_info = &RC.mac[mod_idP]->UE_info;
 
   if (UE_id != -1) {
-    LOG_X(MAC, "[eNB %d][UE %d/%x] Frame %d subframeP %d Signaling UL Failure for UE %d on CC_id %d (timer %d)\n",
+    LOG_D(MAC, "[eNB %d][UE %d/%x] Frame %d subframeP %d Signaling UL Failure for UE %d on CC_id %d (timer %d)\n",
           mod_idP,
           UE_id,
           rntiP,

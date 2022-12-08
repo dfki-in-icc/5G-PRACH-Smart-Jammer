@@ -73,7 +73,6 @@
 
 #include "nr_nas_msg_sim.h"
 #include <openair2/RRC/NR/nr_rrc_proto.h>
-extern int    disable_shm_log ;
 
 extern long fiveG_S_TMSI[MAX_MOBILES_PER_GNB*MAX_gNB];
 extern PHY_VARS_NR_UE ***PHY_vars_UE_g;
@@ -233,7 +232,6 @@ int8_t nr_rrc_ue_process_rrcReconfiguration(const module_id_t module_id, NR_RRCR
           if ( LOG_DEBUGFLAG(DEBUG_ASN1) ) {
             xer_fprint(stdout, &asn_DEF_NR_RadioBearerConfig, (const void *) RadioBearerConfig);
           }
-            if (disable_shm_log == 0) xer_fprint(dbg_fp, &asn_DEF_NR_RadioBearerConfig, (const void *) RadioBearerConfig);
         }
       }
       if(rrcReconfiguration->criticalExtensions.choice.rrcReconfiguration->secondaryCellGroup != NULL){
@@ -250,7 +248,6 @@ int8_t nr_rrc_ue_process_rrcReconfiguration(const module_id_t module_id, NR_RRCR
           if ( LOG_DEBUGFLAG(DEBUG_ASN1) ) {
             xer_fprint(stdout, &asn_DEF_NR_CellGroupConfig, (const void *) cellGroupConfig);
           }
-            if (disable_shm_log == 0) xer_fprint(dbg_fp, &asn_DEF_NR_CellGroupConfig, (const void *) cellGroupConfig);
 
           if(NR_UE_rrc_inst[module_id].cell_group_config == NULL){
             //  first time receive the configuration, just use the memory allocated from uper_decoder. TODO this is not good implementation, need to maintain RRC_INST own structure every time.
@@ -303,7 +300,6 @@ int8_t nr_rrc_ue_process_meas_config(NR_MeasConfig_t *meas_config){
 
 int8_t nr_rrc_ue_process_scg_config(const module_id_t module_id, NR_CellGroupConfig_t *cell_group_config){
   int i;
-  LOG_X(NR_MAC,"=== nr_rrc_ue_process_scg_config \n");
   if(cell_group_config==NULL){
     //  initial list
     if(cell_group_config->spCellConfig != NULL){
@@ -400,7 +396,6 @@ void process_nsa_message(NR_UE_RRC_INST_t *rrc, nsa_message_t nsa_message_type, 
         else if ( LOG_DEBUGFLAG(DEBUG_ASN1) ) {
           xer_fprint(stdout, &asn_DEF_NR_RadioBearerConfig, (const void *) RadioBearerConfig);
         }
-          if (disable_shm_log == 0) xer_fprint(dbg_fp, &asn_DEF_NR_RadioBearerConfig, (const void *) RadioBearerConfig);
       }
       break;
     
@@ -566,7 +561,6 @@ int8_t nr_rrc_ue_decode_NR_BCCH_BCH_Message(
     const uint8_t     buffer_len ){
 
     NR_BCCH_BCH_Message_t *bcch_message = NULL;
-    // LOG_X(NR_MAC,"=== nr_rrc_ue_decode_NR_BCCH_BCH_Message \n");
 
     if (NR_UE_rrc_inst[module_id].mib != NULL)
       SEQUENCE_free( &asn_DEF_NR_BCCH_BCH_Message, (void *)bcch_message, 1 );
@@ -1143,7 +1137,6 @@ int8_t nr_rrc_ue_decode_NR_BCCH_DL_SCH_Message(module_id_t module_id,
   NR_SIB1_t *sib1 = NR_UE_rrc_inst[module_id].sib1[gNB_index];
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME( VCD_SIGNAL_DUMPER_FUNCTIONS_UE_DECODE_BCCH, VCD_FUNCTION_IN );
 
-  LOG_X(NR_MAC,"=== nr_rrc_ue_decode_NR_BCCH_DL_SCH_Message \n");
   if (((NR_UE_rrc_inst[module_id].Info[gNB_index].SIStatus&1) == 1) && sib1->si_SchedulingInfo &&// SIB1 received
       (NR_UE_rrc_inst[module_id].Info[gNB_index].SIcnt == sib1->si_SchedulingInfo->schedulingInfoList.list.count)) {
     // to prevent memory bloating
@@ -1162,7 +1155,6 @@ int8_t nr_rrc_ue_decode_NR_BCCH_DL_SCH_Message(module_id_t module_id,
   if ( LOG_DEBUGFLAG(DEBUG_ASN1) ) {
     xer_fprint(stdout, &asn_DEF_NR_BCCH_DL_SCH_Message,(void *)bcch_message );
   }
-    // if (disable_shm_log == 0) xer_fprint(dbg_fp, &asn_DEF_NR_BCCH_DL_SCH_Message,(void *)bcch_message );
 
   if ((dec_rval.code != RC_OK) && (dec_rval.consumed == 0)) {
     LOG_E( NR_RRC, "[UE %"PRIu8"] Failed to decode BCCH_DLSCH_MESSAGE (%zu bits)\n",
@@ -1191,7 +1183,6 @@ int8_t nr_rrc_ue_decode_NR_BCCH_DL_SCH_Message(module_id_t module_id,
               xer_fprint(stdout, &asn_DEF_NR_SIB1, (const void *) NR_UE_rrc_inst[module_id].sib1[gNB_index]);
             }
             LOG_A(NR_RRC, "SIB1 decoded\n");
-              if (disable_shm_log == 0) xer_fprint(dbg_fp, &asn_DEF_NR_SIB1, (const void *) NR_UE_rrc_inst[module_id].sib1[gNB_index]);
 
             ///	    dump_SIB1();
             // FIXME: improve condition for the RA trigger
@@ -1199,12 +1190,11 @@ int8_t nr_rrc_ue_decode_NR_BCCH_DL_SCH_Message(module_id_t module_id,
             check_requested_SI_List(module_id, NR_UE_rrc_inst[module_id].requested_SI_List, *sib1);
             if( nr_rrc_get_state(module_id) <= RRC_STATE_IDLE_NR ) {
               NR_UE_rrc_inst[module_id].ra_trigger = INITIAL_ACCESS_FROM_RRC_IDLE;
-              LOG_X(PHY,"Setting state to RRC_STATE_IDLE_NR\n");
+              LOG_D(PHY,"Setting state to RRC_STATE_IDLE_NR\n");
               nr_rrc_set_state (module_id, RRC_STATE_IDLE_NR);
             }
             // take ServingCellConfigCommon and configure L1/L2
             NR_UE_rrc_inst[module_id].servingCellConfigCommonSIB = sib1->servingCellConfigCommon;
-            LOG_X(NR_MAC,"== Call nr_rrc_mac_config_req_ue( ... )\n");
             nr_rrc_mac_config_req_ue(module_id,0,0,NULL,sib1->servingCellConfigCommon,NULL,NULL);
             nr_rrc_ue_generate_ra_msg(module_id,gNB_index);
           } else {
@@ -1261,7 +1251,6 @@ nr_rrc_ue_process_masterCellGroup(
 //-----------------------------------------------------------------------------
 {
   NR_CellGroupConfig_t *cellGroupConfig=NULL;
-  LOG_X(NR_MAC,"=== nr_rrc_ue_process_masterCellGroup \n");
   uper_decode(NULL,
               &asn_DEF_NR_CellGroupConfig,   //might be added prefix later
               (void **)&cellGroupConfig,
@@ -1271,8 +1260,6 @@ nr_rrc_ue_process_masterCellGroup(
   if ( LOG_DEBUGFLAG(DEBUG_ASN1) ) {
     xer_fprint(stdout, &asn_DEF_NR_CellGroupConfig, (const void *) cellGroupConfig);
   }
-  LOG_X(NR_RRC,"* CellGroupConfig *\n");
-  if (disable_shm_log == 0)  xer_fprint(dbg_fp, &asn_DEF_NR_CellGroupConfig, (const void *) cellGroupConfig);
   
 
   if( cellGroupConfig->spCellConfig != NULL &&  cellGroupConfig->spCellConfig->reconfigurationWithSync != NULL){
@@ -1428,7 +1415,6 @@ static void rrc_ue_generate_RRCSetupComplete(
   UE_RRC_DCCH_DATA_IND (message_p).size  = size;
   itti_send_msg_to_task (TASK_RRC_GNB_SIM, ctxt_pP->instance, message_p);
 #endif
-
 }
 int rach_retry_timer=0;
 int8_t nr_rrc_ue_decode_ccch( const protocol_ctxt_t *const ctxt_pP, const NR_SRB_INFO *const Srb_info, const uint8_t gNB_index ){
@@ -1445,10 +1431,9 @@ int8_t nr_rrc_ue_decode_ccch( const protocol_ctxt_t *const ctxt_pP, const NR_SRB
 			  (uint8_t *)Srb_info->Rx_buffer.Payload,
 			  Srb_info->Rx_buffer.payload_size,0,0);
 
-	 if ( LOG_DEBUGFLAG(DEBUG_ASN1) ) {
+//	 if ( LOG_DEBUGFLAG(DEBUG_ASN1) ) {
      xer_fprint(stdout,&asn_DEF_NR_DL_CCCH_Message,(void *)dl_ccch_msg);
-	 }
-      // if (disable_shm_log == 0)  xer_fprint(dbg_fp,&asn_DEF_NR_DL_CCCH_Message,(void *)dl_ccch_msg);
+//	 }
    if ((dec_rval.code != RC_OK) && (dec_rval.consumed==0)) {
      LOG_E(RRC,"[UE %d] Frame %d : Failed to decode DL-CCCH-Message (%zu bytes)\n",ctxt_pP->module_id,ctxt_pP->frame,dec_rval.consumed);
      VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_UE_DECODE_CCCH, VCD_FUNCTION_OUT);
@@ -1481,7 +1466,7 @@ int8_t nr_rrc_ue_decode_ccch( const protocol_ctxt_t *const ctxt_pP, const NR_SRB
 	       ctxt_pP->rnti);
 
   disable_pdcch = 1;
-  LOG_X(RLC,"PDCCH Disabled\n");
+  LOG_I(RLC,"PDCCH Disabled\n");
   rrc_setup_received = 1;
   
 	 // Get configuration
@@ -1744,7 +1729,7 @@ int8_t nr_rrc_ue_decode_ccch( const protocol_ctxt_t *const ctxt_pP, const NR_SRB
     if ( LOG_DEBUGFLAG(DEBUG_ASN1) ) {
       xer_fprint(stdout, &asn_DEF_NR_UL_DCCH_Message, (void *)&ul_dcch_msg);
     }
-    //  if (disable_shm_log == 0)  xer_fprint(dbg_fp, &asn_DEF_NR_UL_DCCH_Message, (void *)&ul_dcch_msg);
+     xer_fprint(dbg_fp, &asn_DEF_NR_UL_DCCH_Message, (void *)&ul_dcch_msg);
      log_dump(MAC, buffer, 16, LOG_DUMP_CHAR, "securityModeComplete payload: ");
      LOG_D(NR_RRC, "securityModeComplete Encoded %zd bits (%zd bytes)\n", enc_rval.encoded, (enc_rval.encoded+7)/8);
 
@@ -2359,10 +2344,10 @@ int nr_rrc_mac_release_uespec(module_id_t module_id,int cc_idP,uint8_t gNB_index
    }
 
    if ( LOG_DEBUGFLAG(DEBUG_ASN1) ) {
-    //  xer_fprint(stdout, &asn_DEF_NR_DL_DCCH_Message,(void *)dl_dcch_msg);
+     xer_fprint(stdout, &asn_DEF_NR_DL_DCCH_Message,(void *)dl_dcch_msg);
    }
-    LOG_X(NR_RRC,"DL_DCCH_Message\n");
-    // if (disable_shm_log == 0)  xer_fprint(dbg_fp, &asn_DEF_NR_DL_DCCH_Message,(void *)dl_dcch_msg);
+    LOG_I(NR_RRC,"DL_DCCH_Message\n");
+    xer_fprint(dbg_fp, &asn_DEF_NR_DL_DCCH_Message,(void *)dl_dcch_msg);
      if (dl_dcch_msg->message.present == NR_DL_DCCH_MessageType_PR_c1) {
 	 switch (dl_dcch_msg->message.choice.c1->present) {
 	     case NR_DL_DCCH_MessageType__c1_PR_NOTHING:
@@ -2530,8 +2515,6 @@ int nr_rrc_mac_release_uespec(module_id_t module_id,int cc_idP,uint8_t gNB_index
            			  (void **)&dl_pcch_msg,
            			  (uint8_t *)NR_RRC_PCCH_DATA_REQ(msg_p).sdu_p,
            			  NR_RRC_PCCH_DATA_REQ(msg_p).sdu_size,0,0);
-	if (disable_shm_log == 0) xer_fprint(dbg_fp, &asn_DEF_NR_PCCH_Message, (const void *) dl_pcch_msg);
-	else xer_fprint(stdout, &asn_DEF_NR_PCCH_Message, (const void *) dl_pcch_msg);
         NR_UE_MAC_INST_t *mac = get_mac_inst(ue_mod_id);
 	mac->cg=NULL;
 	NR_UE_rrc_inst[ue_mod_id].paging_flag = 1;
@@ -2793,7 +2776,7 @@ nr_rrc_ue_process_ueCapabilityEnquiry(
   UECap = CALLOC(1,sizeof(OAI_NR_UECapability_t));
   UECap->UE_NR_Capability = UE_Capability_nr;
   xer_fprint(stdout,&asn_DEF_NR_UE_NR_Capability,(void *)UE_Capability_nr);
-  if (disable_shm_log == 0)  xer_fprint(dbg_fp,&asn_DEF_NR_UE_NR_Capability,(void *)UE_Capability_nr);
+  xer_fprint(dbg_fp,&asn_DEF_NR_UE_NR_Capability,(void *)UE_Capability_nr);
 
   enc_rval = uper_encode_to_buffer(&asn_DEF_NR_UE_NR_Capability,
                                    NULL,
@@ -2841,8 +2824,6 @@ nr_rrc_ue_process_ueCapabilityEnquiry(
       if ( LOG_DEBUGFLAG(DEBUG_ASN1) ) {
         xer_fprint(stdout, &asn_DEF_NR_UL_DCCH_Message, (void *)&ul_dcch_msg);
       }
-        LOG_X(NR_RRC,"NR_UL_DCCH_Message\n");
-        // if (disable_shm_log == 0)  xer_fprint(dbg_fp, &asn_DEF_NR_UL_DCCH_Message, (void *)&ul_dcch_msg);
 
       LOG_I(NR_RRC, "UECapabilityInformation Encoded %zd bits (%zd bytes)\n",enc_rval.encoded,(enc_rval.encoded+7)/8);
 #ifdef ITTI_SIM

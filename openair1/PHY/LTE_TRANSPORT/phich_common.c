@@ -168,7 +168,7 @@ int phich_frame2_pusch_frame(LTE_DL_FRAME_PARMS *frame_parms, int frame, int sub
     pusch_frame = (frame);
   }
 
-  //LOG_X(PHY, "frame %d subframe %d: PUSCH frame = %d\n", frame, subframe, pusch_frame);
+  //LOG_D(PHY, "frame %d subframe %d: PUSCH frame = %d\n", frame, subframe, pusch_frame);
   return pusch_frame % 1024;
 }
 
@@ -285,7 +285,7 @@ uint8_t phich_subframe2_pusch_subframe(LTE_DL_FRAME_PARMS *frame_parms,uint8_t s
       pusch_subframe = (0);
   }
 
-  LOG_X(PHY, "subframe  %d: PUSCH subframe = %d\n", subframe, pusch_subframe);
+  LOG_D(PHY, "subframe  %d: PUSCH subframe = %d\n", subframe, pusch_subframe);
   return pusch_subframe;
 }
 
@@ -319,7 +319,7 @@ void generate_phich_reg_mapping(LTE_DL_FRAME_PARMS *frame_parms) {
   }
 
 #ifdef DEBUG_PHICH
-  LOG_X(PHY,
+  LOG_D(PHY,
         "Ngroup_PHICH %d (phich_config_common.phich_resource %d,phich_config_common.phich_duration %s, NidCell %d,Ncp %d, frame_type %d), smallest pcfich REG %d, n0 %d, n1 %d (first PHICH REG %d)\n",
         ((frame_parms->Ncp == NORMAL)?Ngroup_PHICH:(Ngroup_PHICH>>1)),
         frame_parms->phich_config_common.phich_resource,

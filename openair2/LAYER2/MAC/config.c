@@ -247,7 +247,7 @@ void config_mib(int                 Mod_idP,
   cfg->rf_config.dl_channel_bandwidth.value        = to_prb(dl_BandwidthP);
   cfg->rf_config.dl_channel_bandwidth.tl.tag = NFAPI_RF_CONFIG_DL_CHANNEL_BANDWIDTH_TAG;
   cfg->num_tlv++;
-  LOG_X(PHY,"%s() dl_BandwidthP:%d\n", __FUNCTION__, dl_BandwidthP);
+  LOG_D(PHY,"%s() dl_BandwidthP:%d\n", __FUNCTION__, dl_BandwidthP);
   cfg->rf_config.ul_channel_bandwidth.value        = to_prb(dl_BandwidthP);
   cfg->rf_config.ul_channel_bandwidth.tl.tag = NFAPI_RF_CONFIG_UL_CHANNEL_BANDWIDTH_TAG;
   cfg->num_tlv++;
@@ -786,7 +786,7 @@ int rrc_mac_config_req_eNB(module_id_t Mod_idP,
   eNB_MAC_INST *eNB = RC.mac[Mod_idP];
   UE_info_t *UE_info= &eNB->UE_info;
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_RRC_MAC_CONFIG, VCD_FUNCTION_IN);
-  LOG_X(MAC, "RC.mac:%p mib:%p\n", RC.mac, mib);
+  LOG_D(MAC, "RC.mac:%p mib:%p\n", RC.mac, mib);
 
   if (mib != NULL) {
     if (RC.mac == NULL)
@@ -971,7 +971,7 @@ int rrc_mac_config_req_eNB(module_id_t Mod_idP,
   }
 
   if (nonMBSFN_SubframeConfig != NULL) {
-    LOG_X(MAC,
+    LOG_D(MAC,
           "[eNB %d][CONFIG] Received a non MBSFN subframe allocation pattern (%x,%x):%x for FeMBMS-CAS\n",
           Mod_idP, nonMBSFN_SubframeConfig->subframeAllocation_r14.buf[0],nonMBSFN_SubframeConfig->subframeAllocation_r14.buf[1],
           nonMBSFN_SubframeConfig->subframeAllocation_r14.buf[0]<<1 | nonMBSFN_SubframeConfig->subframeAllocation_r14.buf[1]>>7 );
@@ -1057,7 +1057,7 @@ int rrc_mac_config_req_eNB(module_id_t Mod_idP,
     }
   }
 
-  LOG_X(MAC, "%s() %s:%d RC.mac[Mod_idP]->if_inst->PHY_config_req:%p\n", __FUNCTION__, __FILE__, __LINE__, RC.mac[Mod_idP]->if_inst->PHY_config_req);
+  LOG_D(MAC, "%s() %s:%d RC.mac[Mod_idP]->if_inst->PHY_config_req:%p\n", __FUNCTION__, __FILE__, __LINE__, RC.mac[Mod_idP]->if_inst->PHY_config_req);
 
   // if in nFAPI mode
   if (

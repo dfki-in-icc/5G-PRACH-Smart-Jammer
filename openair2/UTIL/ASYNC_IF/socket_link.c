@@ -129,7 +129,7 @@ socket_link_t *new_link_client(const char *server, int port)
   }
   ret->socket_fd = -1;
 
-  LOG_X(MAC, "create a new link client socket connecting to %s:%d\n", server, port);
+  LOG_D(MAC, "create a new link client socket connecting to %s:%d\n", server, port);
 
   ret->socket_fd = socket(AF_INET, SOCK_STREAM, 0);
   if (ret->socket_fd == -1) {
@@ -155,7 +155,7 @@ socket_link_t *new_link_client(const char *server, int port)
     goto error;
   }
 
-  LOG_X(MAC, "connection to %s:%d established\n", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
+  LOG_D(MAC, "connection to %s:%d established\n", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
   return ret;
 
 error:

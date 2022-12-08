@@ -99,7 +99,7 @@ multicast_link_init(void)
                                  SOCK_DGRAM,
                                  &group_list[group].port, &sin);
 
-    LOG_X(PHY, "multicast_link_init(): Created socket %d for group %d, port %d\n",
+    LOG_D(PHY, "multicast_link_init(): Created socket %d for group %d, port %d\n",
           group_list[group].socket,group,group_list[group].port);
 
     /* Used so we can re-bind to our port while a previous connection is still
@@ -274,7 +274,7 @@ int multicast_link_read_data_from_sock(uint8_t is_master)
 
   multicast_link_build_select_list ();
 
-  LOG_X(PHY, "Stuck on select with timeout %s\n",
+  LOG_D(PHY, "Stuck on select with timeout %s\n",
         timeout_p == NULL ? "infinite" : "15000 usecs");
 
   readsocks = select(highsock + 1, &socks, (fd_set *) 0, (fd_set *) 0, timeout_p);
@@ -313,7 +313,7 @@ void multicast_link_start(void (*rx_handlerP) (unsigned int, char *),
         rx_handler);
   multicast_link_init ();
 #if ! defined(ENABLE_NEW_MULTICAST)
-  LOG_X(PHY, "[MULTICAST] multicast link start thread\n");
+  LOG_D(PHY, "[MULTICAST] multicast link start thread\n");
 
   if (pthread_create (&main_loop_thread, NULL, multicast_link_main_loop,
                       NULL) != 0) {

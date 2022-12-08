@@ -420,7 +420,7 @@ void lte_param_init(  unsigned char transmission_mode,
         LOG_E(PHY,"Can't get eNb dlsch structures\n");
         exit(-1);
       } else {
-        LOG_X(PHY,"dlsch_eNB[%d][%d] => %p\n",i,j,PHY_vars_eNB_g[0]->dlsch_eNB[i][j]);
+        LOG_D(PHY,"dlsch_eNB[%d][%d] => %p\n",i,j,PHY_vars_eNB_g[0]->dlsch_eNB[i][j]);
         PHY_vars_eNB_g[0]->dlsch_eNB[i][j]->rnti=n_rnti+i;
       }
     }
@@ -444,9 +444,9 @@ void lte_param_init(  unsigned char transmission_mode,
   }
 
   PHY_vars_eNB_g[0]->dlsch_eNB_SI  = new_eNB_dlsch(1,1,0);
-  LOG_X(PHY,"[eNB %d] : SI %p\n",0,PHY_vars_eNB_g[0]->dlsch_eNB_SI);
+  LOG_D(PHY,"[eNB %d] : SI %p\n",0,PHY_vars_eNB_g[0]->dlsch_eNB_SI);
   PHY_vars_eNB_g[0]->dlsch_eNB_ra  = new_eNB_dlsch(1,1,0);
-  LOG_X(PHY,"[eNB %d] : RA %p\n",0,PHY_vars_eNB_g[0]->dlsch_eNB_ra);
+  LOG_D(PHY,"[eNB %d] : RA %p\n",0,PHY_vars_eNB_g[0]->dlsch_eNB_ra);
   PHY_vars_eNB_g[0]->rx_total_gain_eNB_dB=150;
 
 

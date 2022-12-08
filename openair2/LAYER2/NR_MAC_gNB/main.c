@@ -120,11 +120,11 @@ void dump_mac_stats(gNB_MAC_INST *gNB, char *output, int strlen, bool reset_rsrp
     for (int lc_id = 0; lc_id < 63; lc_id++) {
       if (stats->lc_bytes_tx[lc_id] > 0) {
         stroff+=sprintf(output+stroff, "UE %d: LCID %d: %"PRIu64" bytes TX\n", UE_id, lc_id, stats->lc_bytes_tx[lc_id]);
-	LOG_X(NR_MAC, "UE %d: LCID %d: %"PRIu64" bytes TX\n", UE_id, lc_id, stats->lc_bytes_tx[lc_id]);
+	LOG_D(NR_MAC, "UE %d: LCID %d: %"PRIu64" bytes TX\n", UE_id, lc_id, stats->lc_bytes_tx[lc_id]);
       }
       if (stats->lc_bytes_rx[lc_id] > 0) {
         stroff+=sprintf(output+stroff, "UE %d: LCID %d: %"PRIu64" bytes RX\n", UE_id, lc_id, stats->lc_bytes_rx[lc_id]);
-	LOG_X(NR_MAC, "UE %d: LCID %d: %"PRIu64" bytes RX\n", UE_id, lc_id, stats->lc_bytes_rx[lc_id]);
+	LOG_D(NR_MAC, "UE %d: LCID %d: %"PRIu64" bytes RX\n", UE_id, lc_id, stats->lc_bytes_rx[lc_id]);
       }
     }
   }
@@ -160,7 +160,7 @@ void mac_top_init_gNB(void)
                   RC.nb_nr_macrlc_inst * sizeof(gNB_MAC_INST *),
                   RC.nb_nr_macrlc_inst, sizeof(gNB_MAC_INST));
       
-      LOG_X(MAC,"[MAIN] ALLOCATE %zu Bytes for %d gNB_MAC_INST @ %p\n",sizeof(gNB_MAC_INST), RC.nb_nr_macrlc_inst, RC.mac);
+      LOG_D(MAC,"[MAIN] ALLOCATE %zu Bytes for %d gNB_MAC_INST @ %p\n",sizeof(gNB_MAC_INST), RC.nb_nr_macrlc_inst, RC.mac);
       
       bzero(RC.nrmac[i], sizeof(gNB_MAC_INST));
       

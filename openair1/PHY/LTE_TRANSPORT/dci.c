@@ -206,7 +206,7 @@ void pdcch_scrambling(LTE_DL_FRAME_PARMS *frame_parms,
   int i;
   uint8_t reset;
   uint32_t x1, x2, s=0;
-  //LOG_X(PHY, "%s(fp, subframe:%d, e, length:%d)\n", __FUNCTION__, subframe, length);
+  //LOG_D(PHY, "%s(fp, subframe:%d, e, length:%d)\n", __FUNCTION__, subframe, length);
   reset = 1;
   // x1 is set in lte_gold_generic
   x2 = (subframe<<9) + frame_parms->Nid_cell; //this is c_init in 36.211 Sec 6.8.2
@@ -300,7 +300,7 @@ uint8_t generate_dci_top(uint8_t num_pdcch_symbols,
   for (L=8; L>=1; L>>=1) {
     for (i=0; i<num_dci; i++) {
       if (dci_alloc[i].L == (uint8_t)L) {
-        LOG_X(PHY,"Generating DCI %d/%d (nCCE %d) of length %d, aggregation %d (%x), rnti %x\n",
+        LOG_D(PHY,"Generating DCI %d/%d (nCCE %d) of length %d, aggregation %d (%x), rnti %x\n",
               i,num_dci,dci_alloc[i].firstCCE,dci_alloc[i].dci_length,dci_alloc[i].L,
               *(unsigned int *)dci_alloc[i].dci_pdu,
               dci_alloc[i].rnti);
@@ -321,7 +321,7 @@ uint8_t generate_dci_top(uint8_t num_pdcch_symbols,
 #ifdef DEBUG_DCI_ENCODING
   printf("pdcch scrambling\n");
 #endif
-  //LOG_X(PHY, "num_pdcch_symbols:%d mi:%d nquad:%d\n", num_pdcch_symbols, mi, get_nquad(num_pdcch_symbols, frame_parms, mi));
+  //LOG_D(PHY, "num_pdcch_symbols:%d mi:%d nquad:%d\n", num_pdcch_symbols, mi, get_nquad(num_pdcch_symbols, frame_parms, mi));
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PDCCH_SCRAMBLING,1);
   pdcch_scrambling(frame_parms,
                    subframe,
@@ -342,7 +342,7 @@ uint8_t generate_dci_top(uint8_t num_pdcch_symbols,
   printf(" PDCCH Modulation, Msymb %d, Msymb2 %d,gain_lin_QPSK %d\n",Msymb,Msymb2,gain_lin_QPSK);
 #endif
 
-  //LOG_X(PHY,"%s() Msymb2:%d\n", __FUNCTION__, Msymb2);
+  //LOG_D(PHY,"%s() Msymb2:%d\n", __FUNCTION__, Msymb2);
 
   if (frame_parms->nb_antenna_ports_eNB==1) { //SISO
     for (i=0; i<Msymb2; i++) {

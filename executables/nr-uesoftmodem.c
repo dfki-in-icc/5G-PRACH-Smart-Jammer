@@ -101,9 +101,9 @@ int config_sync_var=-1;
 // L5G_IOT
 int use_prometheus = 0;
 int enable_parallel_pull = 0;
-int disable_shm_log = 0;
 int num_chest_threads = 14;
 int num_rxdlsh_threads = 14;
+
 // not used in UE
 instance_t CUuniqInstance=0;
 instance_t DUuniqInstance=0;
@@ -122,7 +122,6 @@ int                 vcdflag = 0;
 int      prometheus_en_flag = 0;
 uint32_t    prometheus_port = 1234;
 int          para_pull_flag = 0;
-int    shm_log_disable_flag = 0;
 
 double          rx_gain_off = 0.0;
 char             *usrp_args = NULL;
@@ -272,7 +271,6 @@ static void get_options(void) {
   // L5G_IOT
   if (prometheus_en_flag > 0)  use_prometheus = 1;
   if (para_pull_flag > 0)  enable_parallel_pull = 1;
-  if (shm_log_disable_flag > 0)  disable_shm_log = 1; else disable_shm_log = 0;
 
   if (vcdflag > 0)
     ouput_vcd = 1;

@@ -2375,7 +2375,7 @@ int dlsch_modulation(PHY_VARS_eNB* phy_vars_eNB,
   for (l=num_pdcch_symbols; l<nsymb; l++) {
 
   if (dlsch0 != NULL ) {
-     LOG_X(PHY,"Generating DLSCH (num_pdcch_symb %d harq_pid %d,mimo %d, pmi_alloc0 %lx, mod0 %d, mod1 %d, rb_alloc[0] %x)\n",
+     LOG_D(PHY,"Generating DLSCH (num_pdcch_symb %d harq_pid %d,mimo %d, pmi_alloc0 %lx, mod0 %d, mod1 %d, rb_alloc[0] %x)\n",
             num_pdcch_symbols,harq_pid,
             dlsch0_harq->mimo_mode,
             pmi2hex_2Ar2(dlsch0_harq->pmi_alloc),
@@ -2981,7 +2981,7 @@ int allocate_REs_in_RB_MCH_khz_1dot25(int32_t **txdataF,
 
       case 2:  //QPSK
 
-      LOG_X(PHY,"%d : %d,%d => ",tti_offset,((int16_t*)&txdataF[0][tti_offset])[0],((int16_t*)&txdataF[0][tti_offset])[1]);
+      LOG_D(PHY,"%d : %d,%d => ",tti_offset,((int16_t*)&txdataF[0][tti_offset])[0],((int16_t*)&txdataF[0][tti_offset])[1]);
       ((int16_t*)&txdataF[0][tti_offset])[0] = (x0[*jj]==1) ? (-gain_lin_QPSK) : gain_lin_QPSK; //I //b_i
 
       *jj = *jj + 1;
@@ -2990,7 +2990,7 @@ int allocate_REs_in_RB_MCH_khz_1dot25(int32_t **txdataF,
 
       *jj = *jj + 1;
 
-      LOG_X(PHY,"subframe%d alloc[%d][%d][%d](%d,%d)\n",subframe,tti_offset,symbol_offset,tti_offset-symbol_offset,((int16_t*)&txdataF[0][tti_offset])[0],((int16_t*)&txdataF[0][tti_offset])[1]);
+      LOG_D(PHY,"subframe%d alloc[%d][%d][%d](%d,%d)\n",subframe,tti_offset,symbol_offset,tti_offset-symbol_offset,((int16_t*)&txdataF[0][tti_offset])[0],((int16_t*)&txdataF[0][tti_offset])[1]);
       break;
 
 

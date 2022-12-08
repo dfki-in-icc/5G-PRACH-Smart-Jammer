@@ -162,18 +162,18 @@ void init_transport(PHY_VARS_eNB *eNB) {
   LOG_I(PHY, "Initialise transport\n");
 
   for (int i=0; i<NUMBER_OF_DLSCH_MAX; i++) {
-    LOG_X(PHY,"Allocating Transport Channel Buffers for DLSCH, UE %d\n",i);
+    LOG_D(PHY,"Allocating Transport Channel Buffers for DLSCH, UE %d\n",i);
 
     for (int j=0; j<2; j++) {
       AssertFatal( (eNB->dlsch[i][j] = new_eNB_dlsch(1,8,NSOFT,fp->N_RB_DL,0,fp)) != NULL,
                    "Can't get eNB dlsch structures for UE %d \n", i);
       eNB->dlsch[i][j]->rnti=0;
-      LOG_X(PHY,"dlsch[%d][%d] => %p rnti:%d\n",i,j,eNB->dlsch[i][j], eNB->dlsch[i][j]->rnti);
+      LOG_D(PHY,"dlsch[%d][%d] => %p rnti:%d\n",i,j,eNB->dlsch[i][j], eNB->dlsch[i][j]->rnti);
     }
   }
 
   for (int i=0; i<NUMBER_OF_ULSCH_MAX; i++) {
-    LOG_X(PHY,"Allocating Transport Channel Buffer for ULSCH, UE %d\n",i);
+    LOG_D(PHY,"Allocating Transport Channel Buffer for ULSCH, UE %d\n",i);
     AssertFatal((eNB->ulsch[1+i] = new_eNB_ulsch(MAX_TURBO_ITERATIONS,fp->N_RB_UL, 0)) != NULL,
                 "Can't get eNB ulsch structures\n");
     // this is the transmission mode for the signalling channels
@@ -185,11 +185,11 @@ void init_transport(PHY_VARS_eNB *eNB) {
   AssertFatal( (eNB->ulsch[0] = new_eNB_ulsch(MAX_TURBO_ITERATIONS, fp->N_RB_UL, 0)) !=NULL,
                "Can't get eNB ulsch structures\n");
   eNB->dlsch_SI  = new_eNB_dlsch(1,8,NSOFT,fp->N_RB_DL, 0, fp);
-  LOG_X(PHY,"eNB %d.%d : SI %p\n",eNB->Mod_id,eNB->CC_id,eNB->dlsch_SI);
+  LOG_D(PHY,"eNB %d.%d : SI %p\n",eNB->Mod_id,eNB->CC_id,eNB->dlsch_SI);
   eNB->dlsch_ra  = new_eNB_dlsch(1,8,NSOFT,fp->N_RB_DL, 0, fp);
-  LOG_X(PHY,"eNB %d.%d : RA %p\n",eNB->Mod_id,eNB->CC_id,eNB->dlsch_ra);
+  LOG_D(PHY,"eNB %d.%d : RA %p\n",eNB->Mod_id,eNB->CC_id,eNB->dlsch_ra);
   eNB->dlsch_MCH = new_eNB_dlsch(1,8,NSOFT,fp->N_RB_DL, 0, fp);
-  LOG_X(PHY,"eNB %d.%d : MCH %p\n",eNB->Mod_id,eNB->CC_id,eNB->dlsch_MCH);
+  LOG_D(PHY,"eNB %d.%d : MCH %p\n",eNB->Mod_id,eNB->CC_id,eNB->dlsch_MCH);
   eNB->rx_total_gain_dB=130;
 
   for(int i=0; i<NUMBER_OF_UE_MAX; i++)
@@ -521,7 +521,7 @@ void prach_procedures_ocp(PHY_VARS_eNB *eNB, L1_rxtx_proc_t *proc, int br_flag) 
                0
                ,br_flag
               );
-  LOG_X(PHY,"RACH detection index 0: max preamble: %u, energy: %u, delay: %u, avg energy: %u\n",
+  LOG_D(PHY,"RACH detection index 0: max preamble: %u, energy: %u, delay: %u, avg energy: %u\n",
         max_preamble[0],
         max_preamble_energy[0],
         max_preamble_delay[0],
@@ -591,7 +591,7 @@ void prach_procedures_ocp(PHY_VARS_eNB *eNB, L1_rxtx_proc_t *proc, int br_flag) 
     eNB->preamble_list[0].instance_length                     = 0; //don't know exactly what this is
 
     if (NFAPI_MODE==NFAPI_MODE_PNF) {  // If NFAPI PNF then we need to send the message to the VNF
-      LOG_X(PHY,"Filling NFAPI indication for RACH : SFN_SF:%d TA %d, Preamble %d, rnti %x, rach_resource_type %d\n",
+      LOG_D(PHY,"Filling NFAPI indication for RACH : SFN_SF:%d TA %d, Preamble %d, rnti %x, rach_resource_type %d\n",
             NFAPI_SFNSF2DEC(eNB->UL_INFO.rach_ind.sfn_sf),
             eNB->preamble_list[0].preamble_rel8.timing_advance,
             eNB->preamble_list[0].preamble_rel8.preamble,
@@ -745,7 +745,7 @@ void ocp_tx_rf(RU_t *ru, L1_rxtx_proc_t *proc) {
                                 siglen+sf_extension,
                                 ru->nb_tx,
                                 flags);
-    LOG_X(PHY,"[TXPATH] RU %d tx_rf, writing to TS %llu, frame %d, subframe %d\n",ru->idx,
+    LOG_D(PHY,"[TXPATH] RU %d tx_rf, writing to TS %llu, frame %d, subframe %d\n",ru->idx,
           (long long unsigned int)proc->timestamp_tx,proc->frame_tx,proc->subframe_tx);
   }
 
@@ -836,7 +836,7 @@ void ocp_init_RU(RU_t *ru, char *rf_config_file, int send_dmrssync) {
       for (CC_id=0; CC_id<RC.nb_CC[i]; CC_id++)
         RC.eNB[i][CC_id]->num_RU=0;
 
-  LOG_X(PHY,"Process RUs RC.nb_RU:%d\n",RC.nb_RU);
+  LOG_D(PHY,"Process RUs RC.nb_RU:%d\n",RC.nb_RU);
   ru->rf_config_file = rf_config_file;
   ru->idx          = 0;
   ru->ts_offset    = 0;
@@ -919,7 +919,7 @@ void ocpRCconfig_RU(RU_t *ru) {
 
   if (config_isparamset(vals, RU_SDR_CLK_SRC)) {
     char *paramVal=*(vals[RU_SDR_CLK_SRC].strptr);
-    LOG_X(PHY, "RU clock source set as %s\n", paramVal);
+    LOG_D(PHY, "RU clock source set as %s\n", paramVal);
 
     if (strcmp(paramVal, "internal") == 0) {
       ru->openair0_cfg.clock_source = internal;

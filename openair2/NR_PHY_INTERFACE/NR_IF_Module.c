@@ -65,7 +65,7 @@ void handle_nr_rach(NR_UL_IND_t *UL_info)
 {
   if (NFAPI_MODE == NFAPI_MODE_PNF) {
     if (UL_info->rach_ind.number_of_pdus > 0) {
-      LOG_X(PHY,"UL_info->UL_info->rach_ind.number_of_pdus:%d SFN/Slot:%d.%d \n", UL_info->rach_ind.number_of_pdus, UL_info->rach_ind.sfn,UL_info->rach_ind.slot);
+      LOG_D(PHY,"UL_info->UL_info->rach_ind.number_of_pdus:%d SFN/Slot:%d.%d \n", UL_info->rach_ind.number_of_pdus, UL_info->rach_ind.sfn,UL_info->rach_ind.slot);
       oai_nfapi_nr_rach_indication(&UL_info->rach_ind);
       UL_info->rach_ind.number_of_pdus = 0;
     }
@@ -101,7 +101,7 @@ void handle_nr_uci(NR_UL_IND_t *UL_info)
 {
   if(NFAPI_MODE == NFAPI_MODE_PNF) {
     if (UL_info->uci_ind.num_ucis > 0) {
-      LOG_X(PHY,"PNF Sending UL_info->num_ucis:%d PDU_type: %d, SFN/SF:%d.%d \n", UL_info->uci_ind.num_ucis, UL_info->uci_ind.uci_list[0].pdu_type ,UL_info->frame, UL_info->slot);
+      LOG_D(PHY,"PNF Sending UL_info->num_ucis:%d PDU_type: %d, SFN/SF:%d.%d \n", UL_info->uci_ind.num_ucis, UL_info->uci_ind.uci_list[0].pdu_type ,UL_info->frame, UL_info->slot);
       oai_nfapi_nr_uci_indication(&UL_info->uci_ind);
       UL_info->uci_ind.num_ucis = 0;
     }
@@ -122,7 +122,7 @@ void handle_nr_uci(NR_UL_IND_t *UL_info)
 
       case NFAPI_NR_UCI_FORMAT_0_1_PDU_TYPE: {
         const nfapi_nr_uci_pucch_pdu_format_0_1_t *uci_pdu = &uci_list[i].pucch_pdu_format_0_1;
-        LOG_X(NR_MAC, "The received uci has sfn slot %d %d, num_ucis %d and pdu_size %d\n",
+        LOG_D(NR_MAC, "The received uci has sfn slot %d %d, num_ucis %d and pdu_size %d\n",
                 UL_info->uci_ind.sfn, UL_info->uci_ind.slot, num_ucis, uci_list[i].pdu_size);
         handle_nr_uci_pucch_0_1(mod_id, frame, slot, uci_pdu);
         break;
@@ -133,7 +133,7 @@ void handle_nr_uci(NR_UL_IND_t *UL_info)
           handle_nr_uci_pucch_2_3_4(mod_id, frame, slot, uci_pdu);
           break;
         }
-      LOG_X(MAC, "UCI handled \n");
+      LOG_D(MAC, "UCI handled \n");
     }
   }
 
@@ -165,13 +165,13 @@ void handle_nr_ulsch(NR_UL_IND_t *UL_info)
 {
   if(NFAPI_MODE == NFAPI_MODE_PNF) {
     if (UL_info->crc_ind.number_crcs > 0) {
-      LOG_X(PHY,"UL_info->UL_info->crc_ind.number_crcs:%d CRC_IND:SFN/Slot:%d.%d\n", UL_info->crc_ind.number_crcs, UL_info->crc_ind.sfn, UL_info->crc_ind.slot);
+      LOG_D(PHY,"UL_info->UL_info->crc_ind.number_crcs:%d CRC_IND:SFN/Slot:%d.%d\n", UL_info->crc_ind.number_crcs, UL_info->crc_ind.sfn, UL_info->crc_ind.slot);
       oai_nfapi_nr_crc_indication(&UL_info->crc_ind);
       UL_info->crc_ind.number_crcs = 0;
     }
 
     if (UL_info->rx_ind.number_of_pdus > 0) {
-      LOG_X(PHY,"UL_info->rx_ind.number_of_pdus:%d RX_IND:SFN/Slot:%d.%d \n", UL_info->rx_ind.number_of_pdus, UL_info->rx_ind.sfn, UL_info->rx_ind.slot);
+      LOG_D(PHY,"UL_info->rx_ind.number_of_pdus:%d RX_IND:SFN/Slot:%d.%d \n", UL_info->rx_ind.number_of_pdus, UL_info->rx_ind.sfn, UL_info->rx_ind.slot);
       oai_nfapi_nr_rx_data_indication(&UL_info->rx_ind);
       UL_info->rx_ind.number_of_pdus = 0;
     }
@@ -192,7 +192,7 @@ void handle_nr_ulsch(NR_UL_IND_t *UL_info)
       AssertFatal(crc->rnti == rx->rnti, "mis-match between CRC RNTI %04x and RX RNTI %04x\n",
                   crc->rnti, rx->rnti);
 
-      LOG_X(NR_MAC,
+      LOG_D(NR_MAC,
             "%4d.%2d Calling rx_sdu (CRC %s/tb_crc_status %d)\n",
             UL_info->frame,
             UL_info->slot,
@@ -396,19 +396,19 @@ void NR_UL_indication(NR_UL_IND_t *UL_info) {
   if (get_softmodem_params()->emulate_l1)
   {
     if (gnb_rach_ind_queue.num_items > 0) {
-      LOG_X(NR_MAC, "gnb_rach_ind_queue size = %zu\n", gnb_rach_ind_queue.num_items);
+      LOG_D(NR_MAC, "gnb_rach_ind_queue size = %zu\n", gnb_rach_ind_queue.num_items);
       rach_ind = get_queue(&gnb_rach_ind_queue);
       AssertFatal(rach_ind->number_of_pdus > 0, "Invalid number of PDUs\n");
       UL_info->rach_ind = *rach_ind;
     }
     if (gnb_uci_ind_queue.num_items > 0) {
-      LOG_X(NR_MAC, "gnb_uci_ind_queue size = %zu\n", gnb_uci_ind_queue.num_items);
+      LOG_D(NR_MAC, "gnb_uci_ind_queue size = %zu\n", gnb_uci_ind_queue.num_items);
       uci_ind = get_queue(&gnb_uci_ind_queue);
       AssertFatal(uci_ind->num_ucis > 0, "Invalid number of PDUs\n");
       UL_info->uci_ind = *uci_ind;
     }
     if (gnb_rx_ind_queue.num_items > 0 && gnb_crc_ind_queue.num_items > 0) {
-      LOG_X(NR_MAC, "gnb_rx_ind_queue size = %zu and gnb_crc_ind_queue size = %zu\n",
+      LOG_D(NR_MAC, "gnb_rx_ind_queue size = %zu and gnb_crc_ind_queue size = %zu\n",
             gnb_rx_ind_queue.num_items, gnb_crc_ind_queue.num_items);
       rx_ind = get_queue(&gnb_rx_ind_queue);
       int sfn_slot = NFAPI_SFNSLOT2HEX(rx_ind->sfn, rx_ind->slot);

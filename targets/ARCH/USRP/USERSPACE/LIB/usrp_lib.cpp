@@ -555,7 +555,7 @@ void *trx_usrp_write_thread(void * arg){
     s->tx_md.start_of_burst = (s->tx_count==0) ? true : first_packet;
     s->tx_md.end_of_burst   = last_packet;
     s->tx_md.time_spec      = uhd::time_spec_t::from_ticks(timestamp, s->sample_rate);
-    LOG_X(PHY,"usrp_tx_write: tx_count %llu SoB %d, EoB %d, TS %llu\n",(unsigned long long)s->tx_count,s->tx_md.start_of_burst,s->tx_md.end_of_burst,(unsigned long long)timestamp); 
+    LOG_D(PHY,"usrp_tx_write: tx_count %llu SoB %d, EoB %d, TS %llu\n",(unsigned long long)s->tx_count,s->tx_md.start_of_burst,s->tx_md.end_of_burst,(unsigned long long)timestamp); 
     s->tx_count++;
 
     // bit 3 enables gpio (for backward compatibility)
@@ -576,7 +576,6 @@ void *trx_usrp_write_thread(void * arg){
       ret = (int)s->tx_stream->send(buff_ptrs, nsamps, s->tx_md);
     }
     else {
-      //LOG_X(RLC,"-----> usrp start send\n");
       ret = (int)s->tx_stream->send(&(((int16_t *)buff_tx[0])[0]), nsamps, s->tx_md);
     }
 

@@ -673,7 +673,7 @@ int dlsch_qpsk_llr(LTE_DL_FRAME_PARMS *frame_parms,
   }
 
 
-  LOG_X(PHY,"[p %d : symb %d / FirstSym %d / Length %d]: @LLR Buff %p, @LLR Buff(symb) %p \n",
+  LOG_D(PHY,"[p %d : symb %d / FirstSym %d / Length %d]: @LLR Buff %p, @LLR Buff(symb) %p \n",
 	frame_parms->nb_antenna_ports_eNB,
 	symbol,
 	first_symbol_flag,

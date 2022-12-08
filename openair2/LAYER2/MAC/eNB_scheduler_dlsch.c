@@ -77,7 +77,7 @@ add_ue_dlsch_info(module_id_t module_idP,
 //------------------------------------------------------------------------------
 {
   eNB_DLSCH_INFO *info = &eNB_dlsch_info[module_idP][CC_id][UE_id];
-  // LOG_X(MAC, "%s(module_idP:%d, CC_id:%d, UE_id:%d, subframeP:%d, status:%d) serving_num:%d rnti:%x\n", __FUNCTION__, module_idP, CC_id, UE_id, subframeP, status, eNB_dlsch_info[module_idP][CC_id][UE_id].serving_num, UE_RNTI(module_idP,UE_id));
+  // LOG_D(MAC, "%s(module_idP:%d, CC_id:%d, UE_id:%d, subframeP:%d, status:%d) serving_num:%d rnti:%x\n", __FUNCTION__, module_idP, CC_id, UE_id, subframeP, status, eNB_dlsch_info[module_idP][CC_id][UE_id].serving_num, UE_RNTI(module_idP,UE_id));
   info->rnti = rnti;
   //  info->weight = weight;
   info->subframe = subframeP;
@@ -154,7 +154,7 @@ generate_dlsch_header(unsigned char *mac_header,
     AssertFatal(timing_advance_cmd < 64, "timing_advance_cmd %d > 63\n",
                 timing_advance_cmd);
     ((TIMING_ADVANCE_CMD *) ce_ptr)->TA = timing_advance_cmd;    //(timing_advance_cmd+31)&0x3f;
-    LOG_X(MAC, "timing advance =%d (%d)\n",
+    LOG_D(MAC, "timing advance =%d (%d)\n",
           timing_advance_cmd,
           ((TIMING_ADVANCE_CMD *) ce_ptr)->TA);
     ce_ptr += sizeof(TIMING_ADVANCE_CMD);
@@ -230,7 +230,7 @@ generate_dlsch_header(unsigned char *mac_header,
       ((SCH_SUBHEADER_LONG *) mac_header_ptr)->padding = 0x00;
       last_size = 3;
 #ifdef DEBUG_HEADER_PARSING
-      LOG_X(MAC, "[eNB] generate long sdu, size %x (MSB %x, LSB %x)\n",
+      LOG_D(MAC, "[eNB] generate long sdu, size %x (MSB %x, LSB %x)\n",
             sdu_lengths[i],
             ((SCH_SUBHEADER_LONG *) mac_header_ptr)->L_MSB,
             ((SCH_SUBHEADER_LONG *) mac_header_ptr)->L_LSB);
@@ -298,7 +298,7 @@ set_ul_DAI(int module_idP,
 
   if (cc->tdd_Config != NULL) {    //TDD
     DAI = (UE_info->UE_template[CC_idP][UE_idP].DAI - 1) & 3;
-    LOG_X(MAC, "[eNB %d] CC_id %d Frame %d, subframe %d: DAI %d for UE %d\n",
+    LOG_D(MAC, "[eNB %d] CC_id %d Frame %d, subframe %d: DAI %d for UE %d\n",
           module_idP,
           CC_idP,
           frameP,
@@ -343,7 +343,7 @@ set_ul_DAI(int module_idP,
       case 3:
 
         //if ((subframeP==6)||(subframeP==8)||(subframeP==0)) {
-        //  LOG_X(MAC,"schedule_ue_spec: setting UL DAI to %d for subframeP %d => %d\n",DAI,subframeP, ((subframeP+8)%10)>>1);
+        //  LOG_D(MAC,"schedule_ue_spec: setting UL DAI to %d for subframeP %d => %d\n",DAI,subframeP, ((subframeP+8)%10)>>1);
         //  UE_info->UE_template[CC_idP][UE_idP].DAI_ul[((subframeP+8)%10)>>1] = DAI;
         //}
         switch (subframeP) {
@@ -413,7 +413,7 @@ void ue_rrc_release(rnti_t rnti) {
       for(uint16_t mui_num = 0; mui_num < rlc_am_mui.rrc_mui_num; mui_num++) {
         if(release_ctrl->rrc_eNB_mui == rlc_am_mui.rrc_mui[mui_num]) {
           release_ctrl->flag = 3;
-          LOG_X(MAC,
+          LOG_D(MAC,
                 "DLSCH Release send:index %d rnti %x mui %d mui_num %d flag 1->3\n",
                 n, rnti, rlc_am_mui.rrc_mui[mui_num], mui_num);
           break;
@@ -425,7 +425,7 @@ void ue_rrc_release(rnti_t rnti) {
       for (uint16_t mui_num = 0; mui_num < rlc_am_mui.rrc_mui_num; mui_num++) {
         if(release_ctrl->rrc_eNB_mui == rlc_am_mui.rrc_mui[mui_num]) {
           release_ctrl->flag = 4;
-          LOG_X(MAC, "DLSCH Release send:index %d rnti %x mui %d mui_num %d flag 2->4\n",
+          LOG_D(MAC, "DLSCH Release send:index %d rnti %x mui %d mui_num %d flag 2->4\n",
                 n,
                 rnti,
                 rlc_am_mui.rrc_mui[mui_num],
@@ -579,7 +579,7 @@ schedule_ue_spec(module_id_t module_idP,
                                           VCD_FUNCTION_OUT);
 
   for (int UE_id = UE_info->list.head; UE_id >= 0; UE_id = UE_info->list.next[UE_id]) {
-    LOG_X(MAC, "doing schedule_ue_spec for CC_id %d UE %d\n",
+    LOG_D(MAC, "doing schedule_ue_spec for CC_id %d UE %d\n",
           CC_id,
           UE_id);
     UE_sched_ctrl_t *ue_sched_ctrl = &UE_info->UE_sched_ctrl[UE_id];
@@ -607,7 +607,7 @@ schedule_ue_spec(module_id_t module_idP,
     check_ra_rnti_mui(module_idP, CC_id, frameP, subframeP, rnti);
 
     if (ue_sched_ctrl->pre_nb_available_rbs[CC_id] == 0) { // no RBs allocated
-      LOG_X(MAC, "%d.%d: no RBs allocated for UE %d on CC_id %d\n",
+      LOG_D(MAC, "%d.%d: no RBs allocated for UE %d on CC_id %d\n",
             frameP,
             subframeP,
             UE_id,
@@ -656,7 +656,7 @@ schedule_ue_spec(module_id_t module_idP,
       ue_sched_ctrl->uplane_inactivity_timer = 0;
     }
 
-    LOG_X(MAC, "[eNB %d] Frame %d: Scheduling UE %d on CC_id %d (rnti %x, harq_pid %d, round %d, rb %d, cqi %d, mcs %d, rrc %d)\n",
+    LOG_D(MAC, "[eNB %d] Frame %d: Scheduling UE %d on CC_id %d (rnti %x, harq_pid %d, round %d, rb %d, cqi %d, mcs %d, rrc %d)\n",
           module_idP,
           frameP,
           UE_id,
@@ -708,7 +708,7 @@ schedule_ue_spec(module_id_t module_idP,
                       rnti,
                       ue_template->DAI,
                       subframeP);
-        LOG_X(MAC, "DAI update: CC_id %d subframeP %d: UE %d, DAI %d\n",
+        LOG_D(MAC, "DAI update: CC_id %d subframeP %d: UE %d, DAI %d\n",
               CC_id,
               subframeP,
               UE_id,
@@ -721,7 +721,7 @@ schedule_ue_spec(module_id_t module_idP,
         case 2:
         case 7:
         default:
-          LOG_X(MAC, "retransmission DL_REQ: rnti:%x\n",
+          LOG_D(MAC, "retransmission DL_REQ: rnti:%x\n",
                 rnti);
           dl_config_pdu->pdu_size = (uint8_t) (2 + sizeof(nfapi_dl_config_dci_dl_pdu));
           dl_config_pdu->dci_dl_pdu.dci_dl_pdu_rel8.dci_format = NFAPI_DL_DCI_FORMAT_1;
@@ -738,7 +738,7 @@ schedule_ue_spec(module_id_t module_idP,
           // TDD
           if (cc[CC_id].tdd_Config != NULL) {
             dl_config_pdu->dci_dl_pdu.dci_dl_pdu_rel8.downlink_assignment_index = (ue_template->DAI - 1) & 3;
-            LOG_X(MAC, "[eNB %d] Retransmission CC_id %d : harq_pid %d, round %d, dai %d, mcs %d\n",
+            LOG_D(MAC, "[eNB %d] Retransmission CC_id %d : harq_pid %d, round %d, dai %d, mcs %d\n",
                   module_idP,
                   CC_id,
                   harq_pid,
@@ -746,7 +746,7 @@ schedule_ue_spec(module_id_t module_idP,
                   ue_template->DAI - 1,
                   ue_template->oldmcs1[harq_pid]);
           } else {
-            LOG_X(MAC, "[eNB %d] Retransmission CC_id %d : harq_pid %d, round %d, mcs %d\n",
+            LOG_D(MAC, "[eNB %d] Retransmission CC_id %d : harq_pid %d, round %d, mcs %d\n",
                   module_idP,
                   CC_id,
                   harq_pid,
@@ -780,7 +780,7 @@ schedule_ue_spec(module_id_t module_idP,
                                   cc[CC_id].p_eNB == 1 ? 1 : 2,    // transmission mode
                                   0,    //number of PRBs treated as one subband, not used here
                                   0);   // number of beamforming vectors, not used here
-          LOG_X(MAC, "Filled NFAPI configuration for DCI/DLSCH %d, retransmission round %d\n",
+          LOG_D(MAC, "Filled NFAPI configuration for DCI/DLSCH %d, retransmission round %d\n",
                 eNB->pdu_index[CC_id],
                 round_DL);
           program_dlsch_acknak(module_idP,
@@ -844,7 +844,7 @@ schedule_ue_spec(module_id_t module_idP,
         const uint32_t data =
             min(ue_sched_ctrl->dl_lc_bytes[i],
                 TBS - ta_len - header_length_total - sdu_length_total - 3);
-        LOG_X(MAC,
+        LOG_D(MAC,
               "[eNB %d] SFN/SF %d.%d, LC%d->DLSCH CC_id %d, Requesting %d "
               "bytes from RLC (RRC message)\n",
               module_idP,
@@ -887,7 +887,7 @@ schedule_ue_spec(module_id_t module_idP,
           T_INT(harq_pid),
           T_INT(lcid),
           T_INT(sdu_lengths[num_sdus]));
-        LOG_X(MAC, "[eNB %d][LC %d] CC_id %d Got %d bytes from RLC\n",
+        LOG_D(MAC, "[eNB %d][LC %d] CC_id %d Got %d bytes from RLC\n",
               module_idP,
               lcid,
               CC_id,
@@ -945,7 +945,7 @@ schedule_ue_spec(module_id_t module_idP,
                            nb_rb);
         }
 
-        LOG_X(MAC, "dlsch_mcs before and after the rate matching = (%d, %d), TBS %d, nb_rb %d\n",
+        LOG_D(MAC, "dlsch_mcs before and after the rate matching = (%d, %d), TBS %d, nb_rb %d\n",
               eNB_UE_stats->dlsch_mcs1, mcs, TBS, nb_rb);
 
         int post_padding = TBS - header_length_total - sdu_length_total - ta_len > 2;
@@ -963,7 +963,7 @@ schedule_ue_spec(module_id_t module_idP,
 
         //#ifdef DEBUG_eNB_SCHEDULER
         if (ta_update != 31) {
-          LOG_X(MAC,
+          LOG_D(MAC,
                 "[eNB %d][DLSCH] Frame %d Generate header for UE_id %d on CC_id %d: sdu_length_total %d, num_sdus %d, sdu_lengths[0] %d, sdu_lcids[0] %d => payload offset %d,timing advance value : %d, padding %d,post_padding %d,(mcs %d, TBS %d, nb_rb %d),header_length %d\n",
                 module_idP,
                 frameP,
@@ -1074,7 +1074,7 @@ schedule_ue_spec(module_id_t module_idP,
               tpc = 1;  //0
             }
 
-            LOG_X(MAC, "[eNB %d] DLSCH scheduler: frame %d, subframe %d, harq_pid %d, tpc %d (accumulated %d), snr/target snr %d/%d (normal case)\n",
+            LOG_D(MAC, "[eNB %d] DLSCH scheduler: frame %d, subframe %d, harq_pid %d, tpc %d (accumulated %d), snr/target snr %d/%d (normal case)\n",
                   module_idP,
                   frameP,
                   subframeP,
@@ -1104,21 +1104,21 @@ schedule_ue_spec(module_id_t module_idP,
 
         if (cc[CC_id].tdd_Config != NULL) {    //TDD
           dl_config_pdu->dci_dl_pdu.dci_dl_pdu_rel8.downlink_assignment_index = (ue_template->DAI - 1) & 3;
-          LOG_X(MAC, "[eNB %d] Initial transmission CC_id %d : harq_pid %d, dai %d, mcs %d\n",
+          LOG_D(MAC, "[eNB %d] Initial transmission CC_id %d : harq_pid %d, dai %d, mcs %d\n",
                 module_idP,
                 CC_id,
                 harq_pid,
                 (ue_template->DAI - 1),
                 mcs);
         } else {
-          LOG_X(MAC, "[eNB %d] Initial transmission CC_id %d : harq_pid %d, mcs %d\n",
+          LOG_D(MAC, "[eNB %d] Initial transmission CC_id %d : harq_pid %d, mcs %d\n",
                 module_idP,
                 CC_id,
                 harq_pid,
                 mcs);
         }
 
-        LOG_X(MAC, "Checking feasibility pdu %d (new sdu)\n",
+        LOG_D(MAC, "Checking feasibility pdu %d (new sdu)\n",
               dl_req->number_pdu);
 
         ue_sched_ctrl->round[CC_id][harq_pid] = 0;
@@ -1142,7 +1142,7 @@ schedule_ue_spec(module_id_t module_idP,
         }
 
         // Toggle NDI for next time
-        LOG_X(MAC, "CC_id %d Frame %d, subframeP %d: Toggling Format1 NDI for UE %d (rnti %x/%d) oldNDI %d\n",
+        LOG_D(MAC, "CC_id %d Frame %d, subframeP %d: Toggling Format1 NDI for UE %d (rnti %x/%d) oldNDI %d\n",
               CC_id,
               frameP,
               subframeP,
@@ -1184,7 +1184,7 @@ schedule_ue_spec(module_id_t module_idP,
                                     TBS,
                                     eNB->pdu_index[CC_id],
                                     dlsch_pdu->payload[0]);
-        LOG_X(MAC, "Filled NFAPI configuration for DCI/DLSCH/TXREQ %d, new SDU\n",
+        LOG_D(MAC, "Filled NFAPI configuration for DCI/DLSCH/TXREQ %d, new SDU\n",
               eNB->pdu_index[CC_id]);
         eNB->pdu_index[CC_id]++;
         program_dlsch_acknak(module_idP,
@@ -1348,7 +1348,7 @@ schedule_ue_spec_br(module_id_t module_idP,
 
     /* Simple scheduler for 1 repetition, 1 HARQ */
     if (subframeP == 5) { // MPDCCH
-      if (round_DL < 8) LOG_X(MAC, "MPDCCH round_DL = %d in frame %d subframe %d\n", round_DL, frameP, subframeP);
+      if (round_DL < 8) LOG_D(MAC, "MPDCCH round_DL = %d in frame %d subframe %d\n", round_DL, frameP, subframeP);
 
       if (round_DL == 8) {
         rlc_status.bytes_in_buffer = 0;
@@ -1378,7 +1378,7 @@ schedule_ue_spec_br(module_id_t module_idP,
         header_len_dcch = 2; // 2 bytes DCCH SDU subheader
 
         if (TBS - ta_len-header_len_dcch > 0 ) {
-          LOG_X(MAC, "Calling mac_rlc_status_ind for DCCH\n");
+          LOG_D(MAC, "Calling mac_rlc_status_ind for DCCH\n");
           rlc_status = mac_rlc_status_ind(module_idP,
                                           rnti,
                                           module_idP,
@@ -1392,7 +1392,7 @@ schedule_ue_spec_br(module_id_t module_idP,
           sdu_lengths[0] = 0;
 
           if (rlc_status.bytes_in_buffer > 0) {  // There is DCCH to transmit
-            LOG_X(MAC, "[eNB %d] Frame %d, DL-DCCH->DLSCH CC_id %d, Requesting %d bytes from RLC (RRC message)\n",
+            LOG_D(MAC, "[eNB %d] Frame %d, DL-DCCH->DLSCH CC_id %d, Requesting %d bytes from RLC (RRC message)\n",
                   module_idP,
                   frameP,
                   CC_id,
@@ -1417,7 +1417,7 @@ schedule_ue_spec_br(module_id_t module_idP,
               T_INT(harq_pid),
               T_INT(DCCH),
               T_INT(sdu_lengths[0]));
-            LOG_X(MAC,"[eNB %d][DCCH] CC_id %d Got %d bytes from RLC\n",
+            LOG_D(MAC,"[eNB %d][DCCH] CC_id %d Got %d bytes from RLC\n",
                   module_idP,
                   CC_id,
                   sdu_lengths[0]);
@@ -1447,7 +1447,7 @@ schedule_ue_spec_br(module_id_t module_idP,
           sdu_lengths[num_sdus] = 0;
 
           if (rlc_status.bytes_in_buffer > 0) {
-            LOG_X(MAC,"[eNB %d], Frame %d, DCCH1->DLSCH, CC_id %d, Requesting %d bytes from RLC (RRC message)\n",
+            LOG_D(MAC,"[eNB %d], Frame %d, DCCH1->DLSCH, CC_id %d, Requesting %d bytes from RLC (RRC message)\n",
                   module_idP,
                   frameP,
                   CC_id,
@@ -1490,7 +1490,7 @@ schedule_ue_spec_br(module_id_t module_idP,
           /* TBD: check if the lcid is active */
           header_len_dtch += 3;
           header_len_dtch_last = 3;
-          LOG_X(MAC,"[eNB %d], Frame %d, DTCH%d->DLSCH, Checking RLC status (tbs %d, len %d)\n",
+          LOG_D(MAC,"[eNB %d], Frame %d, DTCH%d->DLSCH, Checking RLC status (tbs %d, len %d)\n",
                 module_idP,
                 frameP,
                 lcid,
@@ -1523,7 +1523,7 @@ schedule_ue_spec_br(module_id_t module_idP,
                       rnti);
               }
 
-              LOG_X(MAC,"[eNB %d][USER-PLANE DEFAULT DRB] Frame %d : DTCH->DLSCH, Requesting %d bytes from RLC (lcid %d total hdr len %d)\n",
+              LOG_D(MAC,"[eNB %d][USER-PLANE DEFAULT DRB] Frame %d : DTCH->DLSCH, Requesting %d bytes from RLC (lcid %d total hdr len %d)\n",
                     module_idP,
                     frameP,
                     TBS - header_len_dcch - sdu_length_total - header_len_dtch,
@@ -1549,7 +1549,7 @@ schedule_ue_spec_br(module_id_t module_idP,
                 T_INT(harq_pid),
                 T_INT(lcid),
                 T_INT(sdu_lengths[num_sdus]));
-              LOG_X(MAC,"[eNB %d][USER-PLANE DEFAULT DRB] Got %d bytes for DTCH %d \n",
+              LOG_D(MAC,"[eNB %d][USER-PLANE DEFAULT DRB] Got %d bytes for DTCH %d \n",
                     module_idP,
                     sdu_lengths[num_sdus],
                     lcid);
@@ -1604,7 +1604,7 @@ schedule_ue_spec_br(module_id_t module_idP,
             TBS = get_TBS_DL(mcs,6);
           }
 
-          LOG_X(MAC, "[eNB %d] CC_id %d Generated DLSCH header (mcs %d, TBS %d, nb_rb %d)\n",
+          LOG_D(MAC, "[eNB %d] CC_id %d Generated DLSCH header (mcs %d, TBS %d, nb_rb %d)\n",
                 module_idP,
                 CC_id,
                 mcs,
@@ -1638,7 +1638,7 @@ schedule_ue_spec_br(module_id_t module_idP,
                                          post_padding);
 
           if (ta_update != 31) {
-            LOG_X(MAC,
+            LOG_D(MAC,
                   "[eNB %d][DLSCH] Frame %d Generate header for UE_id %d on CC_id %d: sdu_length_total %d, num_sdus %d, sdu_lengths[0] %d, sdu_lcids[0] %d => payload offset %d,timing advance value : %d, padding %d,post_padding %d,(mcs %d, TBS %d, nb_rb %d),header_dcch %d, header_dtch %d\n",
                   module_idP,
                   frameP,
@@ -1710,7 +1710,7 @@ schedule_ue_spec_br(module_id_t module_idP,
                 tpc = 1; //0
               }
 
-              LOG_X(MAC,"[eNB %d] DLSCH scheduler: frame %d, subframe %d, harq_pid %d, tpc %d, snr/target snr %d/%d\n",
+              LOG_D(MAC,"[eNB %d] DLSCH scheduler: frame %d, subframe %d, harq_pid %d, tpc %d, snr/target snr %d/%d\n",
                     module_idP,
                     frameP,
                     subframeP,
@@ -1784,10 +1784,10 @@ schedule_ue_spec_br(module_id_t module_idP,
         UE_template->mcs[harq_pid] = dl_config_pdu->mpdcch_pdu.mpdcch_pdu_rel13.mcs;
       }
     } else if ((subframeP == 7) && (round_DL < 8)) { // DLSCH
-      LOG_X(MAC, "DLSCH round_DL = %d in frame %d subframe %d\n", round_DL, frameP, subframeP);
+      LOG_D(MAC, "DLSCH round_DL = %d in frame %d subframe %d\n", round_DL, frameP, subframeP);
       int             absSF = (frameP * 10) + subframeP;
       /* Have to check that MPDCCH was generated */
-      LOG_X(MAC, "[eNB %d][RAPROC] CC_id %d Frame %d, subframeP %d: Generating DLSCH (ce_level %d RNTI %x)\n",
+      LOG_D(MAC, "[eNB %d][RAPROC] CC_id %d Frame %d, subframeP %d: Generating DLSCH (ce_level %d RNTI %x)\n",
             module_idP,
             CC_id,
             frameP,
@@ -1895,7 +1895,7 @@ unsigned char *get_dlsch_sdu(module_id_t module_idP,
   eNB_MAC_INST *eNB = RC.mac[module_idP];
 
   if (rntiP == SI_RNTI) {
-    LOG_X(MAC, "[eNB %d] CC_id %d Frame %d Get DLSCH sdu for BCCH \n",
+    LOG_D(MAC, "[eNB %d] CC_id %d Frame %d Get DLSCH sdu for BCCH \n",
           module_idP,
           CC_id,
           frameP);
@@ -1903,7 +1903,7 @@ unsigned char *get_dlsch_sdu(module_id_t module_idP,
   }
 
   if (rntiP == P_RNTI) {
-    LOG_X(MAC, "[eNB %d] CC_id %d Frame %d Get PCH sdu for PCCH \n",
+    LOG_D(MAC, "[eNB %d] CC_id %d Frame %d Get PCH sdu for PCCH \n",
           module_idP,
           CC_id,
           frameP);
@@ -1913,7 +1913,7 @@ unsigned char *get_dlsch_sdu(module_id_t module_idP,
   UE_id = find_UE_id(module_idP, rntiP);
 
   if (UE_id != -1) {
-    LOG_X(MAC, "[eNB %d] Frame %d:  CC_id %d Get DLSCH sdu for rnti %x => UE_id %d\n",
+    LOG_D(MAC, "[eNB %d] Frame %d:  CC_id %d Get DLSCH sdu for rnti %x => UE_id %d\n",
           module_idP,
           frameP,
           CC_id,
@@ -2090,14 +2090,14 @@ schedule_PCH(module_id_t module_idP,
                                            i); // used for ue index
 
         if (pcch_sdu_length == 0) {
-          LOG_X(MAC, "[eNB %d] Frame %d subframe %d: PCCH not active(size = 0 byte)\n",
+          LOG_D(MAC, "[eNB %d] Frame %d subframe %d: PCCH not active(size = 0 byte)\n",
                 module_idP,
                 frameP,
                 subframeP);
           continue;
         }
 
-        LOG_X(MAC, "[eNB %d] Frame %d subframe %d: PCCH->PCH CC_id %d UE_id %d, Received %d bytes \n",
+        LOG_D(MAC, "[eNB %d] Frame %d subframe %d: PCCH->PCH CC_id %d UE_id %d, Received %d bytes \n",
               module_idP,
               frameP,
               subframeP,
@@ -2314,7 +2314,7 @@ schedule_PCH(module_id_t module_idP,
                                        subframeP,
                                        dl_config_pdu->dci_dl_pdu.dci_dl_pdu_rel8.aggregation_level,
                                        P_RNTI)) {
-          LOG_X(MAC,"Frame %d: Subframe %d : Adding common DCI for P_RNTI\n",
+          LOG_D(MAC,"Frame %d: Subframe %d : Adding common DCI for P_RNTI\n",
                 frameP,
                 subframeP);
           dl_req->number_dci++;
@@ -2395,7 +2395,7 @@ schedule_PCH(module_id_t module_idP,
         eNB->eNB_stats[CC_id].total_pcch_buffer += pcch_sdu_length;
         eNB->eNB_stats[CC_id].pcch_mcs = mcs;
         //paging first_rb log
-        LOG_X(MAC,"[eNB %d] Frame %d subframe %d PCH: paging_ue_index %d pcch_sdu_length %d mcs %d first_rb %d\n",
+        LOG_D(MAC,"[eNB %d] Frame %d subframe %d PCH: paging_ue_index %d pcch_sdu_length %d mcs %d first_rb %d\n",
               module_idP,
               frameP,
               subframeP,

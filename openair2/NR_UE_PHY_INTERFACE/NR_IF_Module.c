@@ -137,7 +137,7 @@ void send_nsa_standalone_msg(NR_UL_IND_t *UL_INFO, uint16_t msg_id)
     case NFAPI_NR_PHY_MSG_TYPE_RACH_INDICATION:
     {
         char buffer[NFAPI_MAX_PACKED_MESSAGE_SIZE];
-        LOG_X(NR_MAC, "RACH header id :%d", UL_INFO->rach_ind.header.message_id);
+        LOG_D(NR_MAC, "RACH header id :%d", UL_INFO->rach_ind.header.message_id);
         int encoded_size = nfapi_nr_p7_message_pack(&UL_INFO->rach_ind, buffer, sizeof(buffer), NULL);
         if (encoded_size <= 0)
         {
@@ -157,7 +157,7 @@ void send_nsa_standalone_msg(NR_UL_IND_t *UL_INFO, uint16_t msg_id)
     case NFAPI_NR_PHY_MSG_TYPE_RX_DATA_INDICATION:
     {
         char buffer[NFAPI_MAX_PACKED_MESSAGE_SIZE];
-        LOG_X(NR_MAC, "RX header id :%d", UL_INFO->rx_ind.header.message_id);
+        LOG_D(NR_MAC, "RX header id :%d", UL_INFO->rx_ind.header.message_id);
         int encoded_size = nfapi_nr_p7_message_pack(&UL_INFO->rx_ind, buffer, sizeof(buffer), NULL);
         if (encoded_size <= 0)
         {
@@ -177,7 +177,7 @@ void send_nsa_standalone_msg(NR_UL_IND_t *UL_INFO, uint16_t msg_id)
     case NFAPI_NR_PHY_MSG_TYPE_CRC_INDICATION:
     {
         char buffer[NFAPI_MAX_PACKED_MESSAGE_SIZE];
-        LOG_X(NR_MAC, "CRC header id :%d", UL_INFO->crc_ind.header.message_id);
+        LOG_D(NR_MAC, "CRC header id :%d", UL_INFO->crc_ind.header.message_id);
         int encoded_size = nfapi_nr_p7_message_pack(&UL_INFO->crc_ind, buffer, sizeof(buffer), NULL);
         if (encoded_size <= 0)
         {
@@ -242,7 +242,7 @@ static void fill_mib_in_rx_ind(nfapi_nr_dl_tti_request_pdu_t *pdu_list, fapi_nr_
                 "pdu_index (%d) is greater than rx_indication_body size!\n", pdu_idx);
     AssertFatal(pdu_idx == rx_ind->number_pdus,  "Invalid pdu_idx %d!\n", pdu_idx);
 
-    LOG_X(NR_MAC, "Recevied an SSB and are filling rx_ind with the MIB!\n");
+    LOG_D(NR_MAC, "Recevied an SSB and are filling rx_ind with the MIB!\n");
 
     nfapi_nr_dl_tti_ssb_pdu_rel15_t *ssb_pdu = &pdu_list->ssb_pdu.ssb_pdu_rel15;
     rx_ind->rx_indication_body[pdu_idx].ssb_pdu.cell_id = ssb_pdu->PhysCellId;
@@ -342,19 +342,19 @@ static void copy_dl_tti_req_to_dl_info(nr_downlink_indication_t *dl_info, nfapi_
                     {
                         mac->nr_ue_emul_l1.expected_sib = true;
                         mac->nr_ue_emul_l1.index_has_sib[j] = true;
-                        LOG_X(NR_MAC, "Setting index_has_sib[%d] = true\n", j);
+                        LOG_D(NR_MAC, "Setting index_has_sib[%d] = true\n", j);
                     }
                     else if (dci_pdu_list->RNTI == mac->ra.ra_rnti)
                     {
                         mac->nr_ue_emul_l1.expected_rar = true;
                         mac->nr_ue_emul_l1.index_has_rar[j] = true;
-                        LOG_X(NR_MAC, "Setting index_has_rar[%d] = true\n", j);
+                        LOG_D(NR_MAC, "Setting index_has_rar[%d] = true\n", j);
                     }
                     else
                     {
                         mac->nr_ue_emul_l1.expected_dci = true;
                         mac->nr_ue_emul_l1.index_has_dci[j] = true;
-                        LOG_X(NR_MAC, "Setting index_has_dci[%d] = true\n", j);
+                        LOG_D(NR_MAC, "Setting index_has_dci[%d] = true\n", j);
                     }
                     pdu_idx++;
                 }
@@ -455,7 +455,7 @@ static void copy_tx_data_req_to_dl_info(nr_downlink_indication_t *dl_info, nfapi
         }
         else
         {
-            LOG_X(NR_MAC, "mac->nr_ue_emul_l1.index_has_dci[%d] = 0, so this index contained a DCI for a different UE\n", i);
+            LOG_D(NR_MAC, "mac->nr_ue_emul_l1.index_has_dci[%d] = 0, so this index contained a DCI for a different UE\n", i);
         }
 
     }
@@ -495,7 +495,7 @@ static void copy_ul_dci_data_req_to_dl_info(nr_downlink_indication_t *dl_info, n
                 nfapi_nr_dl_dci_pdu_t *dci_pdu_list = &pdu_list->pdcch_pdu.pdcch_pdu_rel15.dci_pdu[j];
                 if (dci_pdu_list->RNTI != mac->crnti)
                 {
-                  LOG_X(NR_MAC, "dci_pdu_list->RNTI (%x) != mac->crnti (%x)\n", dci_pdu_list->RNTI, mac->crnti);
+                  LOG_D(NR_MAC, "dci_pdu_list->RNTI (%x) != mac->crnti (%x)\n", dci_pdu_list->RNTI, mac->crnti);
                   continue;
                 }
                 fill_dl_info_with_pdcch(dl_info->dci_ind, dci_pdu_list, pdu_idx);
@@ -580,7 +580,7 @@ static void copy_ul_tti_data_req_to_dl_info(nr_downlink_indication_t *dl_info, n
 
             if (uci_ind && uci_ind->num_ucis > 0)
             {
-                LOG_X(NR_MAC, "This is the SFN/SF [%d, %d] and RNTI %x of the UCI ind. ul_tti_req.pdu[%d]->rnti = %x \n",
+                LOG_D(NR_MAC, "This is the SFN/SF [%d, %d] and RNTI %x of the UCI ind. ul_tti_req.pdu[%d]->rnti = %x \n",
                         uci_ind->sfn, uci_ind->slot, uci_ind->uci_list[0].pucch_pdu_format_0_1.rnti, i, ul_tti_req->pdus_list[i].pucch_pdu.rnti);
                 uci_ind->sfn = ul_tti_req->SFN;
                 uci_ind->slot = ul_tti_req->Slot;
@@ -589,7 +589,7 @@ static void copy_ul_tti_data_req_to_dl_info(nr_downlink_indication_t *dl_info, n
                     nfapi_nr_uci_pucch_pdu_format_0_1_t *pdu_0_1 = &uci_ind->uci_list[j].pucch_pdu_format_0_1;
                     if (pdu_list->pucch_pdu.sr_flag)
                     {
-                        LOG_X(NR_MAC, "We have the SR flag in pdu i %d\n", i);
+                        LOG_D(NR_MAC, "We have the SR flag in pdu i %d\n", i);
                         pdu_0_1->pduBitmap = 1; // (value->pduBitmap >> 1) & 0x01) == HARQ and (value->pduBitmap) & 0x01) == SR
                         pdu_0_1->sr = CALLOC(1, sizeof(*pdu_0_1->sr));
                         pdu_0_1->sr->sr_confidence_level = 0;
@@ -597,7 +597,7 @@ static void copy_ul_tti_data_req_to_dl_info(nr_downlink_indication_t *dl_info, n
                     }
                     if (pdu_list->pucch_pdu.bit_len_harq > 0)
                     {
-                        LOG_X(NR_MAC, "We have the Harq len bits %d\n", pdu_list->pucch_pdu.bit_len_harq);
+                        LOG_D(NR_MAC, "We have the Harq len bits %d\n", pdu_list->pucch_pdu.bit_len_harq);
                         pdu_0_1->pduBitmap = 2; // (value->pduBitmap >> 1) & 0x01) == HARQ and (value->pduBitmap) & 0x01) == SR
                         pdu_0_1->harq = CALLOC(1, sizeof(*pdu_0_1->harq));
                         pdu_0_1->harq->num_harq = 1;
@@ -896,7 +896,7 @@ static void enqueue_nr_nfapi_msg(void *buffer, ssize_t len, nfapi_p7_message_hea
                   ul_tti_request->SFN, ul_tti_request->Slot);
             if (nr_uci_ind_queue.num_items > 0) //TODO: In the future UL_TTIs can be for ULSCH and SRS.
             {
-                LOG_X(NR_MAC, "We added UL_TTI_REQ to queue for sfn slot %d %d\n",
+                LOG_D(NR_MAC, "We added UL_TTI_REQ to queue for sfn slot %d %d\n",
                       ul_tti_request->SFN, ul_tti_request->Slot);
                 if (!put_queue(&nr_ul_tti_req_queue, ul_tti_request))
                 {
@@ -912,7 +912,7 @@ static void enqueue_nr_nfapi_msg(void *buffer, ssize_t len, nfapi_p7_message_hea
                mitigate proxy timing issues. */
             else if (nr_uci_ind_queue.num_items == 0)
             {
-                LOG_X(NR_MAC, "We added UL_TTI_REQ to queue for sfn slot %d %d\n",
+                LOG_D(NR_MAC, "We added UL_TTI_REQ to queue for sfn slot %d %d\n",
                       ul_tti_request->SFN, ul_tti_request->Slot);
                 nfapi_nr_ul_tti_request_t *evicted_ul_tti_req = put_queue_replace(&nr_wait_ul_tti_req_queue, ul_tti_request);
                 free(evicted_ul_tti_req);
@@ -1058,7 +1058,7 @@ void update_harq_status(module_id_t module_id, uint8_t harq_pid, uint8_t ack_nac
   if (current_harq->active) {
     current_harq->ack = ack_nack;
     current_harq->ack_received = true;
-    LOG_X(PHY,"Updating harq_status for harq_id %d,ack/nak %d\n",harq_pid,current_harq->ack);
+    LOG_D(PHY,"Updating harq_status for harq_id %d,ack/nak %d\n",harq_pid,current_harq->ack);
   }
   else {
     //shouldn't get here
@@ -1083,7 +1083,7 @@ int nr_ue_ul_indication(nr_uplink_indication_t *ul_info){
     ret = nr_ue_scheduler(NULL, ul_info);
   }
   else
-    LOG_X(NR_MAC, "In %s():%d not calling scheduler. sched mode = %d and mac->ra.ra_state = %d\n",
+    LOG_D(NR_MAC, "In %s():%d not calling scheduler. sched mode = %d and mac->ra.ra_state = %d\n",
         __FUNCTION__, __LINE__, ul_info->ue_sched_mode, mac->ra.ra_state);
 
   NR_TDD_UL_DL_ConfigCommon_t *tdd_UL_DL_ConfigurationCommon = mac->scc != NULL ? mac->scc->tdd_UL_DL_ConfigurationCommon : mac->scc_SIB->tdd_UL_DL_ConfigurationCommon;
@@ -1123,9 +1123,9 @@ int nr_ue_dl_indication(nr_downlink_indication_t *dl_info, NR_UL_TIME_ALIGNMENT_
   } else {
     // UL indication after reception of DCI or DL PDU
     if (dl_info && dl_info->dci_ind && dl_info->dci_ind->number_of_dcis) {
-      LOG_X(MAC,"[L2][IF MODULE][DL INDICATION][DCI_IND]\n");
+      LOG_D(MAC,"[L2][IF MODULE][DL INDICATION][DCI_IND]\n");
       for (int i = 0; i < dl_info->dci_ind->number_of_dcis; i++) {
-        LOG_X(MAC,">>>NR_IF_Module i=%d, dl_info->dci_ind->number_of_dcis=%d\n",i,dl_info->dci_ind->number_of_dcis);
+        LOG_D(MAC,">>>NR_IF_Module i=%d, dl_info->dci_ind->number_of_dcis=%d\n",i,dl_info->dci_ind->number_of_dcis);
         nr_scheduled_response_t scheduled_response;
         int8_t ret = handle_dci(dl_info->module_id,
                                 dl_info->cc_id,
@@ -1138,12 +1138,12 @@ int nr_ue_dl_indication(nr_downlink_indication_t *dl_info, NR_UL_TIME_ALIGNMENT_
 
         /* The check below filters out UL_DCIs (format 7) which are being processed as DL_DCIs. */
         if (dci_index->dci_format == 7 && mac->ra.ra_state == RA_SUCCEEDED) {
-          LOG_X(NR_MAC, "We are filtering a UL_DCI to prevent it from being treated like a DL_DCI\n");
+          LOG_D(NR_MAC, "We are filtering a UL_DCI to prevent it from being treated like a DL_DCI\n");
           break;
         }
         dci_pdu_rel15_t *def_dci_pdu_rel15 = &mac->def_dci_pdu_rel15[dci_index->dci_format];
         g_harq_pid = def_dci_pdu_rel15->harq_pid;
-        LOG_X(NR_MAC, "Setting harq_pid = %d and dci_index = %d (based on format)\n", g_harq_pid, dci_index->dci_format);
+        LOG_D(NR_MAC, "Setting harq_pid = %d and dci_index = %d (based on format)\n", g_harq_pid, dci_index->dci_format);
 
         ret_mask |= (ret << FAPI_NR_DCI_IND);
         if (ret >= 0) {
@@ -1162,7 +1162,7 @@ int nr_ue_dl_indication(nr_downlink_indication_t *dl_info, NR_UL_TIME_ALIGNMENT_
 
       for (int i=0; i<dl_info->rx_ind->number_pdus; ++i) {
 
-        LOG_X(MAC, "In %s sending DL indication to MAC. 1 PDU type %d of %d total number of PDUs \n",
+        LOG_D(MAC, "In %s sending DL indication to MAC. 1 PDU type %d of %d total number of PDUs \n",
           __FUNCTION__,
           dl_info->rx_ind->rx_indication_body[i].pdu_type,
           dl_info->rx_ind->number_pdus);
@@ -1249,7 +1249,7 @@ int nr_ue_dcireq(nr_dcireq_t *dcireq) {
   dl_config->sfn = UE_mac->dl_config_request.sfn;
   dl_config->slot = UE_mac->dl_config_request.slot;
 
-  LOG_X(PHY, "Entering UE DCI configuration frame %d slot %d \n", dcireq->frame, dcireq->slot);
+  LOG_D(PHY, "Entering UE DCI configuration frame %d slot %d \n", dcireq->frame, dcireq->slot);
 
   ue_dci_configuration(UE_mac, dl_config, dcireq->frame, dcireq->slot);
 

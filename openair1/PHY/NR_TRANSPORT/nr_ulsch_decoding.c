@@ -276,7 +276,7 @@ void nr_processULSegment(void* arg) {
   stop_meas(&phy_vars_gNB->ulsch_deinterleaving_stats);
 
 
-  /*LOG_X(PHY,"HARQ_PID %d Rate Matching Segment %d (coded bits %d,unpunctured/repeated bits %d, TBS %d, mod_order %d, nb_rb %d, Nl %d, rv %d, round %d)...\n",
+  /*LOG_D(PHY,"HARQ_PID %d Rate Matching Segment %d (coded bits %d,unpunctured/repeated bits %d, TBS %d, mod_order %d, nb_rb %d, Nl %d, rv %d, round %d)...\n",
         harq_pid,r, G,
         Kr*3,
         ulsch_harq->TBS,
@@ -594,7 +594,7 @@ uint32_t nr_ulsch_decoding(PHY_VARS_gNB *phy_vars_gNB,
     rdata->ulsch_id = ULSCH_id;
     pushTpool(phy_vars_gNB->threadPool,req);
     phy_vars_gNB->nbDecode++;
-    LOG_X(PHY,"Added a block to decode, in pipe: %d\n",phy_vars_gNB->nbDecode);
+    LOG_D(PHY,"Added a block to decode, in pipe: %d\n",phy_vars_gNB->nbDecode);
     r_offset += E;
     offset += (Kr_bytes - (harq_process->F>>3) - ((harq_process->C>1)?3:0));
     //////////////////////////////////////////////////////////////////////////////////////////

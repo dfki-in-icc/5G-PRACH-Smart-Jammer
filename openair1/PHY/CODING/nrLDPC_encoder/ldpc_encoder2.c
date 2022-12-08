@@ -227,8 +227,8 @@ int ldpc_encoder_optim(unsigned char *test_input,unsigned char *channel_input,in
 
 
 #ifdef DEBUG_LDPC
-  LOG_X(PHY,"ldpc_encoder_optim_8seg: BG %d, Zc %d, Kb %d, block_length %d\n",BG,Zc,Kb,block_length);
-  LOG_X(PHY,"ldpc_encoder_optim_8seg: PDU %x %x %x %x\n",test_input[0],test_input[1],test_input[2],test_input[3]);
+  LOG_D(PHY,"ldpc_encoder_optim_8seg: BG %d, Zc %d, Kb %d, block_length %d\n",BG,Zc,Kb,block_length);
+  LOG_D(PHY,"ldpc_encoder_optim_8seg: PDU %x %x %x %x\n",test_input[0],test_input[1],test_input[2],test_input[3]);
 #endif
 
   if ((Zc&31) > 0) simd_size = 16;
@@ -340,8 +340,8 @@ int ldpc_encoder_optim_8seg(unsigned char **test_input,unsigned char **channel_i
       }
 
 #ifdef DEBUG_LDPC
-  LOG_X(PHY,"ldpc_encoder_optim_8seg: BG %d, Zc %d, Kb %d, block_length %d, segments %d\n",BG,Zc,Kb,block_length,n_segments);
-  LOG_X(PHY,"ldpc_encoder_optim_8seg: PDU (seg 0) %x %x %x %x\n",test_input[0][0],test_input[0][1],test_input[0][2],test_input[0][3]);
+  LOG_D(PHY,"ldpc_encoder_optim_8seg: BG %d, Zc %d, Kb %d, block_length %d, segments %d\n",BG,Zc,Kb,block_length,n_segments);
+  LOG_D(PHY,"ldpc_encoder_optim_8seg: PDU (seg 0) %x %x %x %x\n",test_input[0][0],test_input[0][1],test_input[0][2],test_input[0][3]);
 #endif
 
   AssertFatal(Zc>0,"no valid Zc found for block length %d\n",block_length);
@@ -523,8 +523,8 @@ int ldpc_encoder_optim_8seg_multi(unsigned char **test_input,unsigned char **cha
     }
 
 #ifdef DEBUG_LDPC
-  LOG_X(PHY,"ldpc_encoder_optim_8seg: BG %d, Zc %d, Kb %d, block_length %d, segments %d\n",BG,Zc,Kb,block_length,n_segments);
-  LOG_X(PHY,"ldpc_encoder_optim_8seg: PDU (seg 0) %x %x %x %x\n",test_input[0][0],test_input[0][1],test_input[0][2],test_input[0][3]);
+  LOG_D(PHY,"ldpc_encoder_optim_8seg: BG %d, Zc %d, Kb %d, block_length %d, segments %d\n",BG,Zc,Kb,block_length,n_segments);
+  LOG_D(PHY,"ldpc_encoder_optim_8seg: PDU (seg 0) %x %x %x %x\n",test_input[0][0],test_input[0][1],test_input[0][2],test_input[0][3]);
 #endif
 
   AssertFatal(Zc>0,"no valid Zc found for block length %d\n",block_length);

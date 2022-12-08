@@ -45,7 +45,7 @@
 #else 
 #define LOG_DCI_D(a...)
 #endif
-#define LOG_DCI_PARM(a...) LOG_X(PHY,"\t<-NR_PDCCH_DCI_TOOLS_DEBUG (nr_generate_ue_ul_dlsch_params_from_dci)" a)
+#define LOG_DCI_PARM(a...) LOG_I(PHY,"\t<-NR_PDCCH_DCI_TOOLS_DEBUG (nr_generate_ue_ul_dlsch_params_from_dci)" a)
 
 //#define DEBUG_DCI
 #define CCE_TRIAL
@@ -62,7 +62,6 @@ void fill_dci_search_candidates(NR_SearchSpace_t *ss,
   int i=0;
   uint32_t Y = 0;
   int ssid=*ss->controlResourceSetId%3;
-  //LOG_X(RLC,"*cid %d  slot %d  rnti %d\n",ssid,slot,rnti);
   if (slot >= 0)
     Y = get_Y(ss, slot, rnti);
   for (int maxL=16;maxL>0;maxL>>=1) {
@@ -82,7 +81,6 @@ void fill_dci_search_candidates(NR_SearchSpace_t *ss,
       int N_cces = N_cce_sym*rel15->coreset.duration;
       for (int j=0; j<number_of_candidates; i++,j++) {
         int first_cce = aggregation * (( Y + CEILIDIV((j*N_cces),(aggregation*number_of_candidates)) + 0 ) % (int)(N_cces/aggregation));
-        //LOG_X(RLC,"Candidate %d of %d first_cce %d (L %d N_cces %d Y %d)\n", j, number_of_candidates, first_cce, aggregation, N_cces, Y);
         LOG_D(NR_MAC,"Candidate %d of %d first_cce %d (L %d N_cces %d Y %d)\n", j, number_of_candidates, first_cce, aggregation, N_cces, Y);
         rel15->CCE[i] = first_cce;
         rel15->L[i] = aggregation;
@@ -304,7 +302,7 @@ void config_dci_pdu(NR_UE_MAC_INST_t *mac, fapi_nr_dl_config_dci_dl_pdu_rel15_t 
     }
   }
   #ifdef DEBUG_DCI
-    LOG_X(MAC, "[DCI_CONFIG] Configure DCI PDU: rnti_type %d BWPSize %d BWPStart %d rel15->SubcarrierSpacing %d rel15->dci_format %d rel15->dci_length %d sps %d monitoringSymbolsWithinSlot %d \n",
+    LOG_D(MAC, "[DCI_CONFIG] Configure DCI PDU: rnti_type %d BWPSize %d BWPStart %d rel15->SubcarrierSpacing %d rel15->dci_format %d rel15->dci_length %d sps %d monitoringSymbolsWithinSlot %d \n",
       rnti_type,
       rel15->BWPSize,
       rel15->BWPStart,
@@ -329,7 +327,7 @@ void ue_dci_configuration(NR_UE_MAC_INST_t *mac, fapi_nr_dl_config_request_t *dl
   NR_BWP_DownlinkDedicated_t *bwpd  = (bwp_id>0 && mac->DLbwp[bwp_id-1]) ? mac->DLbwp[bwp_id-1]->bwp_Dedicated : NULL;
   NR_BWP_DownlinkCommon_t *bwp_Common = (bwp_id>0 && mac->DLbwp[bwp_id-1]) ? mac->DLbwp[bwp_id-1]->bwp_Common : &mac->scc_SIB->downlinkConfigCommon.initialDownlinkBWP;
 
-  LOG_X(NR_MAC, "[DCI_CONFIG] ra_rnti %p (%x) crnti %p (%x) t_crnti %p (%x)\n", &ra->ra_rnti, ra->ra_rnti, &mac->crnti, mac->crnti, &ra->t_crnti, ra->t_crnti);
+  LOG_D(NR_MAC, "[DCI_CONFIG] ra_rnti %p (%x) crnti %p (%x) t_crnti %p (%x)\n", &ra->ra_rnti, ra->ra_rnti, &mac->crnti, mac->crnti, &ra->t_crnti, ra->t_crnti);
 
     // loop over all available SS for CORESET ID 1
   if (bwpd) {
@@ -410,12 +408,12 @@ void ue_dci_configuration(NR_UE_MAC_INST_t *mac, fapi_nr_dl_config_request_t *dl
 	    }
 	    if (phy_cgc){
 	      if (phy_cgc->cs_RNTI){
-		LOG_X(MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in Type3-PDCCH common search space for dci_Format0_0_AndFormat1_0 with CRC scrambled by CS-RNTI...\n");
+		LOG_D(MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in Type3-PDCCH common search space for dci_Format0_0_AndFormat1_0 with CRC scrambled by CS-RNTI...\n");
 		LOG_W(MAC, "[DCI_CONFIG] This RNTI should not be configured yet...\n");
 	      }
 	      if (phy_cgc->ext1){
 		if (phy_cgc->ext1->mcs_C_RNTI){
-		  LOG_X(MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in user specific search space for dci_Format0_0_AndFormat1_0 with CRC scrambled by MCS-C-RNTI...\n");
+		  LOG_D(MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in user specific search space for dci_Format0_0_AndFormat1_0 with CRC scrambled by MCS-C-RNTI...\n");
 		  LOG_W(MAC, "[DCI_CONFIG] This RNTI should not be configured yet...\n");
 		}
 	      }
@@ -423,22 +421,22 @@ void ue_dci_configuration(NR_UE_MAC_INST_t *mac, fapi_nr_dl_config_request_t *dl
 	  } // end DCI 00 and 01
 	  // DCI 2_0
 	  if (ss->searchSpaceType->choice.common->dci_Format2_0){
-	    LOG_X(MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in Type3-PDCCH common search space for DCI format 2_0 with CRC scrambled by SFI-RNTI \n");
+	    LOG_D(MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in Type3-PDCCH common search space for DCI format 2_0 with CRC scrambled by SFI-RNTI \n");
 	    LOG_W(MAC, "[DCI_CONFIG] This format should not be configured yet...\n");
 	  }
 	  // DCI 2_1
 	  if (ss->searchSpaceType->choice.common->dci_Format2_1){
-	    LOG_X(MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in Type3-PDCCH common search space for DCI format 2_1 with CRC scrambled by INT-RNTI \n");
+	    LOG_D(MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in Type3-PDCCH common search space for DCI format 2_1 with CRC scrambled by INT-RNTI \n");
 	    LOG_W(MAC, "[DCI_CONFIG] This format should not be configured yet...\n");
 	  }
 	  // DCI 2_2
 	  if (ss->searchSpaceType->choice.common->dci_Format2_2){
-	    LOG_X(MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in Type3-PDCCH common search space for DCI format 2_2 with CRC scrambled by TPC-RNTI \n");
+	    LOG_D(MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in Type3-PDCCH common search space for DCI format 2_2 with CRC scrambled by TPC-RNTI \n");
 	    LOG_W(MAC, "[DCI_CONFIG] This format should not be configured yet...\n");
 	  }
 	  // DCI 2_3
 	  if (ss->searchSpaceType->choice.common->dci_Format2_3){
-	    LOG_X(MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in Type3-PDCCH common search space for DCI format 2_3 with CRC scrambled by TPC-SRS-RNTI \n");
+	    LOG_D(MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in Type3-PDCCH common search space for DCI format 2_3 with CRC scrambled by TPC-SRS-RNTI \n");
 	    LOG_W(MAC, "[DCI_CONFIG] This format should not be configured yet...\n");
 	  }
 
@@ -463,7 +461,7 @@ void ue_dci_configuration(NR_UE_MAC_INST_t *mac, fapi_nr_dl_config_request_t *dl
             #endif
 
 //#ifdef DEBUG_DCI
-		LOG_X(NR_MAC, "[DCI_CONFIG] ss %d ue_Specific %p searchSpaceType->present %d dci_Formats %d\n",
+		LOG_D(NR_MAC, "[DCI_CONFIG] ss %d ue_Specific %p searchSpaceType->present %d dci_Formats %d\n",
 		      ss_id,
 		      ss->searchSpaceType->choice.ue_Specific,
 		      (int)ss->searchSpaceType->present,
@@ -472,16 +470,16 @@ void ue_dci_configuration(NR_UE_MAC_INST_t *mac, fapi_nr_dl_config_request_t *dl
 	  }
 	  if (phy_cgc){
             if (phy_cgc->cs_RNTI){
-		  LOG_X(MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in user specific search space for dci_Format0_0_AndFormat1_0 with CRC scrambled by CS-RNTI...\n");
+		  LOG_D(MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in user specific search space for dci_Format0_0_AndFormat1_0 with CRC scrambled by CS-RNTI...\n");
 		  LOG_W(MAC, "[DCI_CONFIG] This RNTI should not be configured yet...");
             }
             if (phy_cgc->sp_CSI_RNTI){
-		  LOG_X(MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in user specific search space for dci_Format0_0_AndFormat1_0 with CRC scrambled by SP-CSI-RNTI...\n");
+		  LOG_D(MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in user specific search space for dci_Format0_0_AndFormat1_0 with CRC scrambled by SP-CSI-RNTI...\n");
 		  LOG_W(MAC, "[DCI_CONFIG] This RNTI should not be configured yet...");
             }
 	    if (phy_cgc->ext1 &&
 		phy_cgc->ext1->mcs_C_RNTI){
-		    LOG_X(MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in user specific search space for dci_Format0_0_AndFormat1_0 with CRC scrambled by MCS-C-RNTI...\n");
+		    LOG_D(MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in user specific search space for dci_Format0_0_AndFormat1_0 with CRC scrambled by MCS-C-RNTI...\n");
 		    LOG_W(MAC, "[DCI_CONFIG] This RNTI should not be configured yet...");
             }
 	  }
@@ -504,7 +502,7 @@ void ue_dci_configuration(NR_UE_MAC_INST_t *mac, fapi_nr_dl_config_request_t *dl
 	    if(ss->searchSpaceType->choice.ue_Specific->dci_Formats == NR_SearchSpace__searchSpaceType__ue_Specific__dci_Formats_formats0_0_And_1_0){
 	      // Monitors DCI 01 and 11 scrambled with C-RNTI, or CS-RNTI(s), or SP-CSI-RNTI
 	      if ((ra->ra_state == RA_SUCCEEDED || get_softmodem_params()->phy_test) && mac->crnti > 0) {
-          LOG_X(MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in the user specific search space\n");
+          LOG_D(MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in the user specific search space\n");
           rel15->num_dci_options = 2;
           rel15->dci_format_options[0] = NR_DL_DCI_FORMAT_1_0;
           rel15->dci_format_options[1] = NR_UL_DCI_FORMAT_0_0;
@@ -517,7 +515,7 @@ void ue_dci_configuration(NR_UE_MAC_INST_t *mac, fapi_nr_dl_config_request_t *dl
           #endif
 
 #ifdef DEBUG_DCI
-		LOG_X(MAC, "[DCI_CONFIG] ss %d ue_Specific %p searchSpaceType->present %d dci_Formats %d\n",
+		LOG_D(MAC, "[DCI_CONFIG] ss %d ue_Specific %p searchSpaceType->present %d dci_Formats %d\n",
 		      ss_id,
 		      ss->searchSpaceType->choice.ue_Specific,
 		      ss->searchSpaceType->present,
@@ -526,16 +524,16 @@ void ue_dci_configuration(NR_UE_MAC_INST_t *mac, fapi_nr_dl_config_request_t *dl
 	      }
 	      if (phy_cgc){
 		if (phy_cgc->cs_RNTI){
-		  LOG_X(MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in user specific search space for dci_Format0_0_AndFormat1_0 with CRC scrambled by CS-RNTI...\n");
+		  LOG_D(MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in user specific search space for dci_Format0_0_AndFormat1_0 with CRC scrambled by CS-RNTI...\n");
 		  LOG_W(MAC, "[DCI_CONFIG] This RNTI should not be configured yet...");
 		}
 		if (phy_cgc->sp_CSI_RNTI){
-		  LOG_X(MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in user specific search space for dci_Format0_0_AndFormat1_0 with CRC scrambled by SP-CSI-RNTI...\n");
+		  LOG_D(MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in user specific search space for dci_Format0_0_AndFormat1_0 with CRC scrambled by SP-CSI-RNTI...\n");
 		  LOG_W(MAC, "[DCI_CONFIG] This RNTI should not be configured yet...");
 		}
 		if (phy_cgc->ext1){
 		  if (phy_cgc->ext1->mcs_C_RNTI){
-		    LOG_X(MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in user specific search space for dci_Format0_0_AndFormat1_0 with CRC scrambled by MCS-C-RNTI...\n");
+		    LOG_D(MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in user specific search space for dci_Format0_0_AndFormat1_0 with CRC scrambled by MCS-C-RNTI...\n");
 		    LOG_W(MAC, "[DCI_CONFIG] This RNTI should not be configured yet...");
 		  }
 		}
@@ -544,7 +542,7 @@ void ue_dci_configuration(NR_UE_MAC_INST_t *mac, fapi_nr_dl_config_request_t *dl
 	    if(ss->searchSpaceType->choice.ue_Specific->dci_Formats == NR_SearchSpace__searchSpaceType__ue_Specific__dci_Formats_formats0_1_And_1_1){
 	      // Monitors DCI 01 and 11 scrambled with C-RNTI, or CS-RNTI(s), or SP-CSI-RNTI
 	      if ((ra->ra_state == RA_SUCCEEDED || get_softmodem_params()->phy_test) && mac->crnti > 0) {
-          LOG_X(MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in the user specific search space\n");
+          LOG_D(MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in the user specific search space\n");
           rel15->num_dci_options = 2;
           rel15->dci_format_options[0] = NR_DL_DCI_FORMAT_1_1;
           rel15->dci_format_options[1] = NR_UL_DCI_FORMAT_0_1;
@@ -556,7 +554,7 @@ void ue_dci_configuration(NR_UE_MAC_INST_t *mac, fapi_nr_dl_config_request_t *dl
           fill_dci_search_candidates(ss, rel15);
           #endif
 #ifdef DEBUG_DCI
-		LOG_X(MAC, "[DCI_CONFIG] ss %d ue_Specific %p searchSpaceType->present %d dci_Formats %d\n",
+		LOG_D(MAC, "[DCI_CONFIG] ss %d ue_Specific %p searchSpaceType->present %d dci_Formats %d\n",
 		      ss_id,
 		      ss->searchSpaceType->choice.ue_Specific,
 		      ss->searchSpaceType->present,
@@ -565,16 +563,16 @@ void ue_dci_configuration(NR_UE_MAC_INST_t *mac, fapi_nr_dl_config_request_t *dl
 	      }
 	      if (phy_cgc){
 		if (phy_cgc->cs_RNTI){
-		  LOG_X(MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in user specific search space for dci_Format0_0_AndFormat1_0 with CRC scrambled by CS-RNTI...\n");
+		  LOG_D(MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in user specific search space for dci_Format0_0_AndFormat1_0 with CRC scrambled by CS-RNTI...\n");
 		  LOG_W(MAC, "[DCI_CONFIG] This RNTI should not be configured yet...");
 		}
 		if (phy_cgc->sp_CSI_RNTI){
-		  LOG_X(MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in user specific search space for dci_Format0_0_AndFormat1_0 with CRC scrambled by SP-CSI-RNTI...\n");
+		  LOG_D(MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in user specific search space for dci_Format0_0_AndFormat1_0 with CRC scrambled by SP-CSI-RNTI...\n");
 		  LOG_W(MAC, "[DCI_CONFIG] This RNTI should not be configured yet...");
 		}
 		if (phy_cgc->ext1){
 		  if (phy_cgc->ext1->mcs_C_RNTI){
-		    LOG_X(MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in user specific search space for dci_Format0_0_AndFormat1_0 with CRC scrambled by MCS-C-RNTI...\n");
+		    LOG_D(MAC, "[DCI_CONFIG] Configure monitoring of PDCCH candidates in user specific search space for dci_Format0_0_AndFormat1_0 with CRC scrambled by MCS-C-RNTI...\n");
 		    LOG_W(MAC, "[DCI_CONFIG] This RNTI should not be configured yet...");
 		  }
 		}

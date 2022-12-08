@@ -392,7 +392,7 @@ int find_pdcch_candidate(gNB_MAC_INST *mac,
   const int N_ci = 0;
 
   if(next_cand>=nr_of_candidates) {
-    LOG_X(NR_MAC,"No more available candidates for this coreset\n");
+    LOG_D(NR_MAC,"No more available candidates for this coreset\n");
     return -1;
   }
 
@@ -532,7 +532,7 @@ void nr_set_pdsch_semi_static(const NR_ServingCellConfigCommon_t *scc,
       ps->mcsTableIdx = 2;
   }
   else ps->mcsTableIdx = 0;
-  LOG_X(NR_MAC,"MCS Table Index: %d\n",ps->mcsTableIdx);
+  LOG_D(NR_MAC,"MCS Table Index: %d\n",ps->mcsTableIdx);
 
   NR_PDSCH_Config_t *pdsch_Config;
   if (bwp &&
@@ -595,7 +595,7 @@ void nr_set_pdsch_semi_static(const NR_ServingCellConfigCommon_t *scc,
     ps->dl_dmrs_symb_pos = fill_dmrs_mask(bwpd ? bwpd->pdsch_Config->choice.setup : NULL, scc->dmrs_TypeA_Position, ps->nrOfSymbols, ps->startSymbolIndex, ps->mapping_type, ps->frontloaded_symb);
     ps->N_DMRS_SLOT = get_num_dmrs(ps->dl_dmrs_symb_pos);
   }
-  LOG_X(NR_MAC,"bwpd0 %p, bwpd %p : Filling dmrs info, ps->N_PRB_DMRS %d, ps->dl_dmrs_symb_pos %x, ps->N_DMRS_SLOT %d\n",bwpd0,bwpd,ps->N_PRB_DMRS,ps->dl_dmrs_symb_pos,ps->N_DMRS_SLOT);
+  LOG_D(NR_MAC,"bwpd0 %p, bwpd %p : Filling dmrs info, ps->N_PRB_DMRS %d, ps->dl_dmrs_symb_pos %x, ps->N_DMRS_SLOT %d\n",bwpd0,bwpd,ps->N_PRB_DMRS,ps->dl_dmrs_symb_pos,ps->N_DMRS_SLOT);
 }
 
 void nr_set_pusch_semi_static(const NR_ServingCellConfigCommon_t *scc,
@@ -925,7 +925,7 @@ void config_uldci(const NR_BWP_Uplink_t *ubwp,
       dci_pdu_rel15->format_indicator = 0;
       break;
     case NR_UL_DCI_FORMAT_0_1:
-      LOG_X(NR_MAC,"Configuring DCI Format 0_1\n");
+      LOG_D(NR_MAC,"Configuring DCI Format 0_1\n");
       dci_pdu_rel15->dai[0].val = 0; //TODO
       // bwp indicator as per table 7.3.1.1.2-1 in 38.212
       dci_pdu_rel15->bwp_indicator.val = n_ubwp < 4 ? bwp_id : bwp_id - 1;
@@ -947,7 +947,7 @@ void config_uldci(const NR_BWP_Uplink_t *ubwp,
       AssertFatal(0, "Valid UL formats are 0_0 and 0_1\n");
   }
 
-  LOG_X(NR_MAC,
+  LOG_D(NR_MAC,
         "%s() ULDCI type 0 payload: freq_alloc %d, time_alloc %d, freq_hop_flag %d, mcs %d tpc %d ndi %d rv %d\n",
         __func__,
         dci_pdu_rel15->frequency_domain_assignment.val,
@@ -991,7 +991,7 @@ void nr_configure_pdcch(nfapi_nr_dl_tti_pdcch_pdu_rel15_t *pdcch_pdu,
   for (int i=0;i<6;i++)
     pdcch_pdu->FreqDomainResource[i] = coreset->frequencyDomainResources.buf[i];
 
-  LOG_X(MAC,"Coreset : BWPstart %d, BWPsize %d, SCS %d, freq %x, , duration %d,  \n",
+  LOG_D(MAC,"Coreset : BWPstart %d, BWPsize %d, SCS %d, freq %x, , duration %d,  \n",
         pdcch_pdu->BWPStart,pdcch_pdu->BWPSize,(int)pdcch_pdu->SubcarrierSpacing,(int)coreset->frequencyDomainResources.buf[0],(int)coreset->duration);
 
   pdcch_pdu->CceRegMappingType = pdcch->CceRegMappingType;
@@ -1087,7 +1087,7 @@ void nr_configure_pucch(nfapi_nr_pucch_pdu_t* pucch_pdu,
   pucch_pdu->subcarrier_spacing = genericParameters->subcarrierSpacing;
   pucch_pdu->cyclic_prefix = (genericParameters->cyclicPrefix==NULL) ? 0 : *genericParameters->cyclicPrefix;
   if (r_pucch<0 || bwp ){
-      LOG_X(NR_MAC,"pucch_acknak: Filling dedicated configuration for PUCCH\n");
+      LOG_D(NR_MAC,"pucch_acknak: Filling dedicated configuration for PUCCH\n");
    // we have either a dedicated BWP or Dedicated PUCCH configuration on InitialBWP
       AssertFatal(bwp!=NULL || bwpd!=NULL,"We need one dedicated configuration for a BWP (neither additional or initial BWP has a dedicated configuration)\n");
       pucch_Config = bwp ?
@@ -1100,7 +1100,7 @@ void nr_configure_pucch(nfapi_nr_pucch_pdu_t* pucch_pdu,
       n_set = pucch_Config->resourceSetToAddModList->list.count;
       AssertFatal(n_set>0,"PUCCH resourceSetToAddModList is empty\n");
 
-      LOG_X(NR_MAC, "UCI n_set= %d\n", n_set);
+      LOG_D(NR_MAC, "UCI n_set= %d\n", n_set);
 
       N2 = 2;
 	// procedure to select pucch resource id from resource sets according to
@@ -1233,7 +1233,7 @@ void nr_configure_pucch(nfapi_nr_pucch_pdu_t* pucch_pdu,
     AssertFatal(res_found==1,"No PUCCH resource found corresponding to id %ld\n",*resource_id);
   }
   else { // this is the default PUCCH configuration, PUCCH format 0 or 1
-    LOG_X(NR_MAC,"pucch_acknak: Filling default PUCCH configuration from Tables (r_pucch %d, bwp %p)\n",r_pucch,bwp);
+    LOG_D(NR_MAC,"pucch_acknak: Filling default PUCCH configuration from Tables (r_pucch %d, bwp %p)\n",r_pucch,bwp);
     int rsetindex = *scc->uplinkConfigCommon->initialUplinkBWP->pucch_ConfigCommon->choice.setup->pucch_ResourceCommon;
     int prboffset = r_pucch/default_pucch_csset[rsetindex];
     int prboffsetm8 = (r_pucch-8)/default_pucch_csset[rsetindex];
@@ -1378,7 +1378,7 @@ void fill_dci_pdu_rel15(const NR_ServingCellConfigCommon_t *scc,
       fsize = (int)ceil(log2((N_RB * (N_RB + 1)) >> 1));
       pos = fsize;
       *dci_pdu |= (((uint64_t)dci_pdu_rel15->frequency_domain_assignment.val & ((1 << fsize) - 1)) << (dci_size - pos));
-      LOG_X(NR_MAC,
+      LOG_D(NR_MAC,
             "RA_RNTI, size %d frequency-domain assignment %d (%d bits) N_RB_BWP %d=> %d (0x%lx)\n",
             dci_size,dci_pdu_rel15->frequency_domain_assignment.val,
             fsize,
@@ -1388,7 +1388,7 @@ void fill_dci_pdu_rel15(const NR_ServingCellConfigCommon_t *scc,
       // Time domain assignment
       pos += 4;
       *dci_pdu |= (((uint64_t)dci_pdu_rel15->time_domain_assignment.val & 0xf) << (dci_size - pos));
-      LOG_X(NR_MAC,
+      LOG_D(NR_MAC,
             "time-domain assignment %d  (4 bits)=> %d (0x%lx)\n",
             dci_pdu_rel15->time_domain_assignment.val,
             dci_size - pos,
@@ -1396,7 +1396,7 @@ void fill_dci_pdu_rel15(const NR_ServingCellConfigCommon_t *scc,
       // VRB to PRB mapping
       pos++;
       *dci_pdu |= ((uint64_t)dci_pdu_rel15->vrb_to_prb_mapping.val & 0x1) << (dci_size - pos);
-      LOG_X(NR_MAC,
+      LOG_D(NR_MAC,
             "vrb to prb mapping %d  (1 bits)=> %d (0x%lx)\n",
             dci_pdu_rel15->vrb_to_prb_mapping.val,
             dci_size - pos,
@@ -1404,18 +1404,18 @@ void fill_dci_pdu_rel15(const NR_ServingCellConfigCommon_t *scc,
       // MCS
       pos += 5;
       *dci_pdu |= ((uint64_t)dci_pdu_rel15->mcs & 0x1f) << (dci_size - pos);
-      LOG_X(NR_MAC, "mcs %d  (5 bits)=> %d (0x%lx)\n", dci_pdu_rel15->mcs, dci_size - pos, *dci_pdu);
+      LOG_D(NR_MAC, "mcs %d  (5 bits)=> %d (0x%lx)\n", dci_pdu_rel15->mcs, dci_size - pos, *dci_pdu);
       // TB scaling
       pos += 2;
       *dci_pdu |= ((uint64_t)dci_pdu_rel15->tb_scaling & 0x3) << (dci_size - pos);
-      LOG_X(NR_MAC, "tb_scaling %d  (2 bits)=> %d (0x%lx)\n", dci_pdu_rel15->tb_scaling, dci_size - pos, *dci_pdu);
+      LOG_D(NR_MAC, "tb_scaling %d  (2 bits)=> %d (0x%lx)\n", dci_pdu_rel15->tb_scaling, dci_size - pos, *dci_pdu);
       break;
 
     case NR_RNTI_C:
       // indicating a DL DCI format 1bit
       pos++;
       *dci_pdu |= ((uint64_t)1) << (dci_size - pos);
-      LOG_X(NR_MAC,
+      LOG_D(NR_MAC,
             "DCI1_0 (size %d): Format indicator %d (%d bits) N_RB_BWP %d => %d (0x%lx)\n",
             dci_size,
             dci_pdu_rel15->format_indicator,
@@ -1427,7 +1427,7 @@ void fill_dci_pdu_rel15(const NR_ServingCellConfigCommon_t *scc,
       fsize = (int)ceil(log2((N_RB * (N_RB + 1)) >> 1));
       pos += fsize;
       *dci_pdu |= (((uint64_t)dci_pdu_rel15->frequency_domain_assignment.val & ((1 << fsize) - 1)) << (dci_size - pos));
-      LOG_X(NR_MAC,
+      LOG_D(NR_MAC,
             "Freq domain assignment %d (%d bits)=> %d (0x%lx)\n",
             dci_pdu_rel15->frequency_domain_assignment.val,
             fsize,
@@ -1457,7 +1457,7 @@ void fill_dci_pdu_rel15(const NR_ServingCellConfigCommon_t *scc,
         // Time domain assignment 4bit
         pos += 4;
         *dci_pdu |= ((dci_pdu_rel15->time_domain_assignment.val & 0xf) << (dci_size - pos));
-        LOG_X(NR_MAC,
+        LOG_D(NR_MAC,
               "Time domain assignment %d (%d bits)=> %d (0x%lx)\n",
               dci_pdu_rel15->time_domain_assignment.val,
               4,
@@ -1466,7 +1466,7 @@ void fill_dci_pdu_rel15(const NR_ServingCellConfigCommon_t *scc,
         // VRB to PRB mapping  1bit
         pos++;
         *dci_pdu |= (dci_pdu_rel15->vrb_to_prb_mapping.val & 1) << (dci_size - pos);
-        LOG_X(NR_MAC,
+        LOG_D(NR_MAC,
               "VRB to PRB %d (%d bits)=> %d (0x%lx)\n",
               dci_pdu_rel15->vrb_to_prb_mapping.val,
               1,
@@ -1475,31 +1475,31 @@ void fill_dci_pdu_rel15(const NR_ServingCellConfigCommon_t *scc,
         // MCS 5bit  //bit over 32, so dci_pdu ++
         pos += 5;
         *dci_pdu |= (dci_pdu_rel15->mcs & 0x1f) << (dci_size - pos);
-        LOG_X(NR_MAC, "MCS %d (%d bits)=> %d (0x%lx)\n", dci_pdu_rel15->mcs, 5, dci_size - pos, *dci_pdu);
+        LOG_D(NR_MAC, "MCS %d (%d bits)=> %d (0x%lx)\n", dci_pdu_rel15->mcs, 5, dci_size - pos, *dci_pdu);
         // New data indicator 1bit
         pos++;
         *dci_pdu |= (dci_pdu_rel15->ndi & 1) << (dci_size - pos);
-        LOG_X(NR_MAC, "NDI %d (%d bits)=> %d (0x%lx)\n", dci_pdu_rel15->ndi, 1, dci_size - pos, *dci_pdu);
+        LOG_D(NR_MAC, "NDI %d (%d bits)=> %d (0x%lx)\n", dci_pdu_rel15->ndi, 1, dci_size - pos, *dci_pdu);
         // Redundancy version  2bit
         pos += 2;
         *dci_pdu |= (dci_pdu_rel15->rv & 0x3) << (dci_size - pos);
-        LOG_X(NR_MAC, "RV %d (%d bits)=> %d (0x%lx)\n", dci_pdu_rel15->rv, 2, dci_size - pos, *dci_pdu);
+        LOG_D(NR_MAC, "RV %d (%d bits)=> %d (0x%lx)\n", dci_pdu_rel15->rv, 2, dci_size - pos, *dci_pdu);
         // HARQ process number  4bit
         pos += 4;
         *dci_pdu |= ((dci_pdu_rel15->harq_pid & 0xf) << (dci_size - pos));
-        LOG_X(NR_MAC, "HARQ_PID %d (%d bits)=> %d (0x%lx)\n", dci_pdu_rel15->harq_pid, 4, dci_size - pos, *dci_pdu);
+        LOG_D(NR_MAC, "HARQ_PID %d (%d bits)=> %d (0x%lx)\n", dci_pdu_rel15->harq_pid, 4, dci_size - pos, *dci_pdu);
         // Downlink assignment index  2bit
         pos += 2;
         *dci_pdu |= ((dci_pdu_rel15->dai[0].val & 3) << (dci_size - pos));
-        LOG_X(NR_MAC, "DAI %d (%d bits)=> %d (0x%lx)\n", dci_pdu_rel15->dai[0].val, 2, dci_size - pos, *dci_pdu);
+        LOG_D(NR_MAC, "DAI %d (%d bits)=> %d (0x%lx)\n", dci_pdu_rel15->dai[0].val, 2, dci_size - pos, *dci_pdu);
         // TPC command for scheduled PUCCH  2bit
         pos += 2;
         *dci_pdu |= ((dci_pdu_rel15->tpc & 3) << (dci_size - pos));
-        LOG_X(NR_MAC, "TPC %d (%d bits)=> %d (0x%lx)\n", dci_pdu_rel15->tpc, 2, dci_size - pos, *dci_pdu);
+        LOG_D(NR_MAC, "TPC %d (%d bits)=> %d (0x%lx)\n", dci_pdu_rel15->tpc, 2, dci_size - pos, *dci_pdu);
         // PUCCH resource indicator  3bit
         pos += 3;
         *dci_pdu |= ((dci_pdu_rel15->pucch_resource_indicator & 0x7) << (dci_size - pos));
-        LOG_X(NR_MAC,
+        LOG_D(NR_MAC,
               "PUCCH RI %d (%d bits)=> %d (0x%lx)\n",
               dci_pdu_rel15->pucch_resource_indicator,
               3,
@@ -1508,7 +1508,7 @@ void fill_dci_pdu_rel15(const NR_ServingCellConfigCommon_t *scc,
         // PDSCH-to-HARQ_feedback timing indicator 3bit
         pos += 3;
         *dci_pdu |= ((dci_pdu_rel15->pdsch_to_harq_feedback_timing_indicator.val & 0x7) << (dci_size - pos));
-        LOG_X(NR_MAC,
+        LOG_D(NR_MAC,
               "PDSCH to HARQ TI %d (%d bits)=> %d (0x%lx)\n",
               dci_pdu_rel15->pdsch_to_harq_feedback_timing_indicator.val,
               3,
@@ -1545,28 +1545,28 @@ void fill_dci_pdu_rel15(const NR_ServingCellConfigCommon_t *scc,
       pos = 1;
       // Freq domain assignment 0-16 bit
       fsize = (int)ceil(log2((N_RB * (N_RB + 1)) >> 1));
-      LOG_X(NR_MAC, "fsize = %i\n", fsize);
+      LOG_D(NR_MAC, "fsize = %i\n", fsize);
       for (int i = 0; i < fsize; i++)
         *dci_pdu |= (((uint64_t)dci_pdu_rel15->frequency_domain_assignment.val >> (fsize - i - 1)) & 1) << (dci_size - pos++);
-      LOG_X(NR_MAC, "dci_pdu_rel15->frequency_domain_assignment.val = %i\n", dci_pdu_rel15->frequency_domain_assignment.val);
+      LOG_D(NR_MAC, "dci_pdu_rel15->frequency_domain_assignment.val = %i\n", dci_pdu_rel15->frequency_domain_assignment.val);
       // Time domain assignment 4 bit
       for (int i = 0; i < 4; i++)
         *dci_pdu |= (((uint64_t)dci_pdu_rel15->time_domain_assignment.val >> (3 - i)) & 1) << (dci_size - pos++);
-      LOG_X(NR_MAC, "dci_pdu_rel15->time_domain_assignment.val = %i\n", dci_pdu_rel15->time_domain_assignment.val);
+      LOG_D(NR_MAC, "dci_pdu_rel15->time_domain_assignment.val = %i\n", dci_pdu_rel15->time_domain_assignment.val);
       // VRB to PRB mapping 1 bit
       *dci_pdu |= ((uint64_t)dci_pdu_rel15->vrb_to_prb_mapping.val & 1) << (dci_size - pos++);
-      LOG_X(NR_MAC, "dci_pdu_rel15->vrb_to_prb_mapping.val = %i\n", dci_pdu_rel15->vrb_to_prb_mapping.val);
+      LOG_D(NR_MAC, "dci_pdu_rel15->vrb_to_prb_mapping.val = %i\n", dci_pdu_rel15->vrb_to_prb_mapping.val);
       // MCS 5bit  //bit over 32, so dci_pdu ++
       for (int i = 0; i < 5; i++)
         *dci_pdu |= (((uint64_t)dci_pdu_rel15->mcs >> (4 - i)) & 1) << (dci_size - pos++);
-      LOG_X(NR_MAC, "dci_pdu_rel15->mcs = %i\n", dci_pdu_rel15->mcs);
+      LOG_D(NR_MAC, "dci_pdu_rel15->mcs = %i\n", dci_pdu_rel15->mcs);
       // Redundancy version  2bit
       for (int i = 0; i < 2; i++)
         *dci_pdu |= (((uint64_t)dci_pdu_rel15->rv >> (1 - i)) & 1) << (dci_size - pos++);
-      LOG_X(NR_MAC, "dci_pdu_rel15->rv = %i\n", dci_pdu_rel15->rv);
+      LOG_D(NR_MAC, "dci_pdu_rel15->rv = %i\n", dci_pdu_rel15->rv);
       // System information indicator 1bit
       *dci_pdu |= ((uint64_t)dci_pdu_rel15->system_info_indicator&1)<<(dci_size-pos++);
-      LOG_X(NR_MAC, "dci_pdu_rel15->system_info_indicator = %i\n", dci_pdu_rel15->system_info_indicator);
+      LOG_D(NR_MAC, "dci_pdu_rel15->system_info_indicator = %i\n", dci_pdu_rel15->system_info_indicator);
       break;
 
     case NR_RNTI_TC:
@@ -1606,19 +1606,19 @@ void fill_dci_pdu_rel15(const NR_ServingCellConfigCommon_t *scc,
       for (int i = 0; i < 3; i++)
         *dci_pdu |= (((uint64_t)dci_pdu_rel15->pdsch_to_harq_feedback_timing_indicator.val >> (2 - i)) & 1) << (dci_size - pos++);
 
-      LOG_X(NR_MAC,"N_RB = %i\n", N_RB);
-      LOG_X(NR_MAC,"dci_size = %i\n", dci_size);
-      LOG_X(NR_MAC,"fsize = %i\n", fsize);
-      LOG_X(NR_MAC,"dci_pdu_rel15->format_indicator = %i\n", dci_pdu_rel15->format_indicator);
-      LOG_X(NR_MAC,"dci_pdu_rel15->frequency_domain_assignment.val = %i\n", dci_pdu_rel15->frequency_domain_assignment.val);
-      LOG_X(NR_MAC,"dci_pdu_rel15->time_domain_assignment.val = %i\n", dci_pdu_rel15->time_domain_assignment.val);
-      LOG_X(NR_MAC,"dci_pdu_rel15->vrb_to_prb_mapping.val = %i\n", dci_pdu_rel15->vrb_to_prb_mapping.val);
-      LOG_X(NR_MAC,"dci_pdu_rel15->mcs = %i\n", dci_pdu_rel15->mcs);
-      LOG_X(NR_MAC,"dci_pdu_rel15->rv = %i\n", dci_pdu_rel15->rv);
-      LOG_X(NR_MAC,"dci_pdu_rel15->harq_pid = %i\n", dci_pdu_rel15->harq_pid);
-      LOG_X(NR_MAC,"dci_pdu_rel15->dai[0].val = %i\n", dci_pdu_rel15->dai[0].val);
-      LOG_X(NR_MAC,"dci_pdu_rel15->tpc = %i\n", dci_pdu_rel15->tpc);
-      LOG_X(NR_MAC,"dci_pdu_rel15->pdsch_to_harq_feedback_timing_indicator.val = %i\n", dci_pdu_rel15->pdsch_to_harq_feedback_timing_indicator.val);
+      LOG_D(NR_MAC,"N_RB = %i\n", N_RB);
+      LOG_D(NR_MAC,"dci_size = %i\n", dci_size);
+      LOG_D(NR_MAC,"fsize = %i\n", fsize);
+      LOG_D(NR_MAC,"dci_pdu_rel15->format_indicator = %i\n", dci_pdu_rel15->format_indicator);
+      LOG_D(NR_MAC,"dci_pdu_rel15->frequency_domain_assignment.val = %i\n", dci_pdu_rel15->frequency_domain_assignment.val);
+      LOG_D(NR_MAC,"dci_pdu_rel15->time_domain_assignment.val = %i\n", dci_pdu_rel15->time_domain_assignment.val);
+      LOG_D(NR_MAC,"dci_pdu_rel15->vrb_to_prb_mapping.val = %i\n", dci_pdu_rel15->vrb_to_prb_mapping.val);
+      LOG_D(NR_MAC,"dci_pdu_rel15->mcs = %i\n", dci_pdu_rel15->mcs);
+      LOG_D(NR_MAC,"dci_pdu_rel15->rv = %i\n", dci_pdu_rel15->rv);
+      LOG_D(NR_MAC,"dci_pdu_rel15->harq_pid = %i\n", dci_pdu_rel15->harq_pid);
+      LOG_D(NR_MAC,"dci_pdu_rel15->dai[0].val = %i\n", dci_pdu_rel15->dai[0].val);
+      LOG_D(NR_MAC,"dci_pdu_rel15->tpc = %i\n", dci_pdu_rel15->tpc);
+      LOG_D(NR_MAC,"dci_pdu_rel15->pdsch_to_harq_feedback_timing_indicator.val = %i\n", dci_pdu_rel15->pdsch_to_harq_feedback_timing_indicator.val);
 
       break;
     }
@@ -1627,7 +1627,7 @@ void fill_dci_pdu_rel15(const NR_ServingCellConfigCommon_t *scc,
   case NR_UL_DCI_FORMAT_0_0:
     switch (rnti_type) {
     case NR_RNTI_C:
-      LOG_X(NR_MAC,"Filling format 0_0 DCI for CRNTI (size %d bits, format ind %d)\n",dci_size,dci_pdu_rel15->format_indicator);
+      LOG_D(NR_MAC,"Filling format 0_0 DCI for CRNTI (size %d bits, format ind %d)\n",dci_size,dci_pdu_rel15->format_indicator);
       // indicating a UL DCI format 1bit
       pos=1;
       *dci_pdu |= ((uint64_t)dci_pdu_rel15->format_indicator & 1) << (dci_size - pos);
@@ -1666,18 +1666,18 @@ void fill_dci_pdu_rel15(const NR_ServingCellConfigCommon_t *scc,
       ((uint64_t)dci_pdu_rel15->ul_sul_indicator.val&1)<<(dci_size-pos++);
         */
 
-        LOG_X(NR_MAC,"N_RB = %i\n", N_RB);
-        LOG_X(NR_MAC,"dci_size = %i\n", dci_size);
-        LOG_X(NR_MAC,"fsize = %i\n", fsize);
-        LOG_X(NR_MAC,"dci_pdu_rel15->frequency_domain_assignment.val = %i\n", dci_pdu_rel15->frequency_domain_assignment.val);
-        LOG_X(NR_MAC,"dci_pdu_rel15->time_domain_assignment.val = %i\n", dci_pdu_rel15->time_domain_assignment.val);
-        LOG_X(NR_MAC,"dci_pdu_rel15->frequency_hopping_flag.val = %i\n", dci_pdu_rel15->frequency_hopping_flag.val);
-        LOG_X(NR_MAC,"dci_pdu_rel15->mcs = %i\n", dci_pdu_rel15->mcs);
-        LOG_X(NR_MAC,"dci_pdu_rel15->ndi = %i\n", dci_pdu_rel15->ndi);
-        LOG_X(NR_MAC,"dci_pdu_rel15->rv = %i\n", dci_pdu_rel15->rv);
-        LOG_X(NR_MAC,"dci_pdu_rel15->harq_pid = %i\n", dci_pdu_rel15->harq_pid);
-        LOG_X(NR_MAC,"dci_pdu_rel15->tpc = %i\n", dci_pdu_rel15->tpc);
-        LOG_X(NR_MAC,"dci_pdu_rel15->padding = %i\n", dci_pdu_rel15->padding);
+        LOG_D(NR_MAC,"N_RB = %i\n", N_RB);
+        LOG_D(NR_MAC,"dci_size = %i\n", dci_size);
+        LOG_D(NR_MAC,"fsize = %i\n", fsize);
+        LOG_D(NR_MAC,"dci_pdu_rel15->frequency_domain_assignment.val = %i\n", dci_pdu_rel15->frequency_domain_assignment.val);
+        LOG_D(NR_MAC,"dci_pdu_rel15->time_domain_assignment.val = %i\n", dci_pdu_rel15->time_domain_assignment.val);
+        LOG_D(NR_MAC,"dci_pdu_rel15->frequency_hopping_flag.val = %i\n", dci_pdu_rel15->frequency_hopping_flag.val);
+        LOG_D(NR_MAC,"dci_pdu_rel15->mcs = %i\n", dci_pdu_rel15->mcs);
+        LOG_D(NR_MAC,"dci_pdu_rel15->ndi = %i\n", dci_pdu_rel15->ndi);
+        LOG_D(NR_MAC,"dci_pdu_rel15->rv = %i\n", dci_pdu_rel15->rv);
+        LOG_D(NR_MAC,"dci_pdu_rel15->harq_pid = %i\n", dci_pdu_rel15->harq_pid);
+        LOG_D(NR_MAC,"dci_pdu_rel15->tpc = %i\n", dci_pdu_rel15->tpc);
+        LOG_D(NR_MAC,"dci_pdu_rel15->padding = %i\n", dci_pdu_rel15->padding);
       break;
 
     case NFAPI_NR_RNTI_TC:
@@ -1715,18 +1715,18 @@ void fill_dci_pdu_rel15(const NR_ServingCellConfigCommon_t *scc,
         *dci_pdu |=
       ((uint64_t)dci_pdu_rel15->ul_sul_indicator.val&1)<<(dci_size-pos++);
         */
-      LOG_X(NR_MAC,"N_RB = %i\n", N_RB);
-      LOG_X(NR_MAC,"dci_size = %i\n", dci_size);
-      LOG_X(NR_MAC,"fsize = %i\n", fsize);
-      LOG_X(NR_MAC,"dci_pdu_rel15->frequency_domain_assignment.val = %i\n", dci_pdu_rel15->frequency_domain_assignment.val);
-      LOG_X(NR_MAC,"dci_pdu_rel15->time_domain_assignment.val = %i\n", dci_pdu_rel15->time_domain_assignment.val);
-      LOG_X(NR_MAC,"dci_pdu_rel15->frequency_hopping_flag.val = %i\n", dci_pdu_rel15->frequency_hopping_flag.val);
-      LOG_X(NR_MAC,"dci_pdu_rel15->mcs = %i\n", dci_pdu_rel15->mcs);
-      LOG_X(NR_MAC,"dci_pdu_rel15->ndi = %i\n", dci_pdu_rel15->ndi);
-      LOG_X(NR_MAC,"dci_pdu_rel15->rv = %i\n", dci_pdu_rel15->rv);
-      LOG_X(NR_MAC,"dci_pdu_rel15->harq_pid = %i\n", dci_pdu_rel15->harq_pid);
-      LOG_X(NR_MAC,"dci_pdu_rel15->tpc = %i\n", dci_pdu_rel15->tpc);
-      LOG_X(NR_MAC,"dci_pdu_rel15->padding = %i\n", dci_pdu_rel15->padding);
+      LOG_D(NR_MAC,"N_RB = %i\n", N_RB);
+      LOG_D(NR_MAC,"dci_size = %i\n", dci_size);
+      LOG_D(NR_MAC,"fsize = %i\n", fsize);
+      LOG_D(NR_MAC,"dci_pdu_rel15->frequency_domain_assignment.val = %i\n", dci_pdu_rel15->frequency_domain_assignment.val);
+      LOG_D(NR_MAC,"dci_pdu_rel15->time_domain_assignment.val = %i\n", dci_pdu_rel15->time_domain_assignment.val);
+      LOG_D(NR_MAC,"dci_pdu_rel15->frequency_hopping_flag.val = %i\n", dci_pdu_rel15->frequency_hopping_flag.val);
+      LOG_D(NR_MAC,"dci_pdu_rel15->mcs = %i\n", dci_pdu_rel15->mcs);
+      LOG_D(NR_MAC,"dci_pdu_rel15->ndi = %i\n", dci_pdu_rel15->ndi);
+      LOG_D(NR_MAC,"dci_pdu_rel15->rv = %i\n", dci_pdu_rel15->rv);
+      LOG_D(NR_MAC,"dci_pdu_rel15->harq_pid = %i\n", dci_pdu_rel15->harq_pid);
+      LOG_D(NR_MAC,"dci_pdu_rel15->tpc = %i\n", dci_pdu_rel15->tpc);
+      LOG_D(NR_MAC,"dci_pdu_rel15->padding = %i\n", dci_pdu_rel15->padding);
 
       break;
     }
@@ -1735,7 +1735,7 @@ void fill_dci_pdu_rel15(const NR_ServingCellConfigCommon_t *scc,
   case NR_UL_DCI_FORMAT_0_1:
     switch (rnti_type) {
     case NR_RNTI_C:
-      LOG_X(NR_MAC,"Filling NR_UL_DCI_FORMAT_0_1 size %d format indicator %d\n",dci_size,dci_pdu_rel15->format_indicator);
+      LOG_D(NR_MAC,"Filling NR_UL_DCI_FORMAT_0_1 size %d format indicator %d\n",dci_size,dci_pdu_rel15->format_indicator);
       // Indicating a DL DCI format 1bit
       pos = 1;
       *dci_pdu |= ((uint64_t)dci_pdu_rel15->format_indicator & 0x1) << (dci_size - pos);
@@ -1814,7 +1814,7 @@ void fill_dci_pdu_rel15(const NR_ServingCellConfigCommon_t *scc,
 
   case NR_DL_DCI_FORMAT_1_1:
     // Indicating a DL DCI format 1bit
-    LOG_X(NR_MAC,"Filling Format 1_1 DCI of size %d\n",dci_size);
+    LOG_D(NR_MAC,"Filling Format 1_1 DCI of size %d\n",dci_size);
     pos = 1;
     *dci_pdu |= ((uint64_t)dci_pdu_rel15->format_indicator & 0x1) << (dci_size - pos);
     // Carrier indicator
@@ -1895,7 +1895,7 @@ void fill_dci_pdu_rel15(const NR_ServingCellConfigCommon_t *scc,
     pos += 1;
     *dci_pdu |= ((uint64_t)dci_pdu_rel15->dmrs_sequence_initialization.val & 0x1) << (dci_size - pos);
   }
-  LOG_X(NR_MAC, "DCI has %d bits and the payload is %lx\n", dci_size, *dci_pdu);
+  LOG_D(NR_MAC, "DCI has %d bits and the payload is %lx\n", dci_size, *dci_pdu);
 }
 
 int get_spf(nfapi_nr_config_request_scf_t *cfg) {
@@ -2100,7 +2100,7 @@ int find_nr_RA_id(module_id_t mod_idP, int CC_idP, rnti_t rntiP) {
   RA_t *ra = (RA_t *) &RC.nrmac[mod_idP]->common_channels[CC_idP].ra[0];
 
   for (RA_id = 0; RA_id < NB_RA_PROC_MAX; RA_id++) {
-    LOG_X(NR_MAC, "Checking RA_id %d for %x : state %d\n",
+    LOG_D(NR_MAC, "Checking RA_id %d for %x : state %d\n",
           RA_id,
           rntiP,
           ra[RA_id].state);
@@ -2163,7 +2163,7 @@ int add_new_nr_ue(module_id_t mod_idP, rnti_t rntiP, NR_CellGroupConfig_t *CellG
 
   for (int i = 0; i < MAX_MOBILES_PER_GNB; i++) {
     if (UE_info->active[i]) {
-      LOG_X(NR_MAC,"UE %x is active, skipping\n",rntiP);
+      LOG_D(NR_MAC,"UE %x is active, skipping\n",rntiP);
       continue;
     }
     int UE_id = i;
@@ -2246,7 +2246,7 @@ int add_new_nr_ue(module_id_t mod_idP, rnti_t rntiP, NR_CellGroupConfig_t *CellG
       add_tail_nr_list(&sched_ctrl->available_ul_harq, harq);
     create_nr_list(&sched_ctrl->feedback_ul_harq, 16);
     create_nr_list(&sched_ctrl->retrans_ul_harq, 16);
-    LOG_X(NR_MAC, "[gNB %d] Add NR UE_id %d : rnti %x\n",
+    LOG_D(NR_MAC, "[gNB %d] Add NR UE_id %d : rnti %x\n",
           mod_idP,
           UE_id,
           rntiP);
@@ -2279,7 +2279,7 @@ void create_dl_harq_list(NR_UE_sched_ctrl_t *sched_ctrl,
     create_nr_list(&sched_ctrl->feedback_dl_harq, nrofHARQ);
     create_nr_list(&sched_ctrl->retrans_dl_harq, nrofHARQ);
   } else if (sched_ctrl->available_dl_harq.len == nrofHARQ) {
-    LOG_X(NR_MAC, "nrofHARQ %d already configured\n", nrofHARQ);
+    LOG_D(NR_MAC, "nrofHARQ %d already configured\n", nrofHARQ);
   } else {
     const int old_nrofHARQ = sched_ctrl->available_dl_harq.len;
     AssertFatal(nrofHARQ > old_nrofHARQ,
@@ -2345,7 +2345,7 @@ void mac_remove_nr_ue(module_id_t mod_id, rnti_t rnti)
     NR_COMMON_channels_t *cc = &RC.nrmac[mod_id]->common_channels[cc_id];
     for (i = 0; i < NR_NB_RA_PROC_MAX; i++) {
       if (cc->ra[i].rnti == rnti) {
-        LOG_X(NR_MAC, "free RA process %d for rnti %d\n", i, rnti);
+        LOG_D(NR_MAC, "free RA process %d for rnti %d\n", i, rnti);
         /* is it enough? */
         cc->ra[i].cfra  = false;
         cc->ra[i].rnti  = 0;
@@ -2371,7 +2371,7 @@ uint8_t nr_get_tpc(int target, uint8_t cqi, int incr) {
   if (snrx10 > target + incr) return 0; // decrease 1dB
   if (snrx10 < target - (3*incr)) return 3; // increase 3dB
   if (snrx10 < target - incr) return 2; // increase 1dB
-  LOG_X(NR_MAC,"tpc : target %d, snrx10 %d\n",target,snrx10);
+  LOG_D(NR_MAC,"tpc : target %d, snrx10 %d\n",target,snrx10);
   return 1; // no change
 }
 
@@ -2503,7 +2503,7 @@ void nr_csirs_scheduling(int Mod_idP,
 
         if((frame*n_slots_frame+slot-offset)%period == 0) {
 
-          LOG_X(MAC,"Scheduling CSI-RS in frame %d slot %d\n",frame,slot);
+          LOG_D(MAC,"Scheduling CSI-RS in frame %d slot %d\n",frame,slot);
 
           nfapi_nr_dl_tti_request_pdu_t *dl_tti_csirs_pdu = &dl_req->dl_tti_pdu_list[dl_req->nPDUs];
           memset((void*)dl_tti_csirs_pdu,0,sizeof(nfapi_nr_dl_tti_request_pdu_t));

@@ -228,7 +228,7 @@ uint32_t ulsch_encoding(uint8_t *a,
     VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_UE_ULSCH_ENCODING_FILL_CQI, VCD_FUNCTION_IN);
     rnti = ue->pdcch_vars[ue->current_thread_id[subframe_rx]][eNB_id]->crnti;
     fill_CQI(ulsch,meas,0,harq_pid,ue->frame_parms.N_RB_DL,rnti, tmode,ue->sinr_eff);
-    LOG_X(PHY,"ULSCH Encoding rnti %x \n", rnti);
+    LOG_D(PHY,"ULSCH Encoding rnti %x \n", rnti);
     print_CQI(ulsch->o,ulsch->uci_format,0,ue->frame_parms.N_RB_DL);
 
     // save PUSCH pmi for later (transmission modes 4,5,6)
@@ -400,7 +400,7 @@ uint32_t ulsch_encoding(uint8_t *a,
 
   Q_ACK = Qprime * Q_m;
   Qprime_ACK = Qprime;
-  LOG_X(PHY,"UE (%x/%d) O_ACK %d, Mcs_initial %d, Nsymb_initial %d, beta_offset_harqack*8 %d, sum Kr %d, Qprime_ACK %d, Q_ACK %d\n",
+  LOG_D(PHY,"UE (%x/%d) O_ACK %d, Mcs_initial %d, Nsymb_initial %d, beta_offset_harqack*8 %d, sum Kr %d, Qprime_ACK %d, Q_ACK %d\n",
         rnti, harq_pid,
         ulsch->harq_processes[harq_pid]->O_ACK,
         ulsch->harq_processes[harq_pid]->Msc_initial,
@@ -422,7 +422,7 @@ uint32_t ulsch_encoding(uint8_t *a,
     else
       Qprime = 0;
 
-    LOG_X(PHY,"Qprime %d, O_RI %d + %d, Msc %d, Nym %d beta %d\n",
+    LOG_D(PHY,"Qprime %d, O_RI %d + %d, Msc %d, Nym %d beta %d\n",
           Qprime,
           ulsch->O, L,
           ulsch->harq_processes[harq_pid]->Msc_initial,
@@ -437,7 +437,7 @@ uint32_t ulsch_encoding(uint8_t *a,
     }
 
     G = ulsch->harq_processes[harq_pid]->nb_rb * (12 * Q_m) * (ulsch->Nsymb_pusch);
-    LOG_X(PHY,"G: rb %d * ( 12 * Qm %d ) * nsymb %d, Qprime %d, O_RI %d\n", ulsch->harq_processes[harq_pid]->nb_rb, Q_m, ulsch->Nsymb_pusch, Qprime, ulsch->O_RI);
+    LOG_D(PHY,"G: rb %d * ( 12 * Qm %d ) * nsymb %d, Qprime %d, O_RI %d\n", ulsch->harq_processes[harq_pid]->nb_rb, Q_m, ulsch->Nsymb_pusch, Qprime, ulsch->O_RI);
 
     if (Qprime > (G - ulsch->O_RI))
       Qprime = G - ulsch->O_RI;
@@ -445,7 +445,7 @@ uint32_t ulsch_encoding(uint8_t *a,
     Q_CQI = Q_m * Qprime;
     Qprime_CQI = Qprime;
     G = G - Q_RI - Q_CQI;
-    LOG_X(PHY,"new G: %d, Q_RI %d Q_CQI %d\n",  G, Q_RI, Q_CQI);
+    LOG_D(PHY,"new G: %d, Q_RI %d Q_CQI %d\n",  G, Q_RI, Q_CQI);
     ulsch->harq_processes[harq_pid]->G = G;
 
     /*

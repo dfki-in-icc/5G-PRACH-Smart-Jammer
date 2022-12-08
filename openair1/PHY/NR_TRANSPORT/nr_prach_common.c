@@ -110,7 +110,7 @@ void compute_nr_prach_seq(uint8_t short_sequence,
 
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PHY_UE_COMPUTE_PRACH, VCD_FUNCTION_IN);
 
-  LOG_X(PHY,"compute_prach_seq: prach short sequence %x, num_sequences %d, rootSequenceIndex %d\n", short_sequence, num_sequences, rootSequenceIndex);
+  LOG_D(PHY,"compute_prach_seq: prach short sequence %x, num_sequences %d, rootSequenceIndex %d\n", short_sequence, num_sequences, rootSequenceIndex);
 
   N_ZC = (short_sequence) ? 139 : 839;
   //init_prach_tables(N_ZC); //moved to phy_init_lte_ue/eNB, since it takes to long in real-time
@@ -138,7 +138,7 @@ void compute_nr_prach_seq(uint8_t short_sequence,
     }
 
     u = prach_root_sequence_map[index];
-    LOG_X(PHY,"prach index %d => u=%d\n",index,u);
+    LOG_D(PHY,"prach index %d => u=%d\n",index,u);
     inv_u = nr_ZC_inv[u]; // multiplicative inverse of u
 
 

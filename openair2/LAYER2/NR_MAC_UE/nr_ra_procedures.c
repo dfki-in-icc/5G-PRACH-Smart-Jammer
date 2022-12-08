@@ -188,7 +188,7 @@ void init_RA(module_id_t mod_id,
 
   if (nr_rach_ConfigCommon->ext1) {
     if (nr_rach_ConfigCommon->ext1->ra_PrioritizationForAccessIdentity_r16){
-      LOG_X(MAC, "In %s:%d: Missing implementation for Access Identity initialization procedures\n", __FUNCTION__, __LINE__);
+      LOG_D(MAC, "In %s:%d: Missing implementation for Access Identity initialization procedures\n", __FUNCTION__, __LINE__);
     }
   }
 }
@@ -312,7 +312,7 @@ int nr_get_Po_NOMINAL_PUSCH(NR_PRACH_RESOURCES_t *prach_resources, module_id_t m
 
   receivedTargerPower = preambleReceivedTargetPower + delta_preamble + (prach_resources->RA_PREAMBLE_POWER_RAMPING_COUNTER - 1) * prach_resources->RA_PREAMBLE_POWER_RAMPING_STEP + prach_resources->POWER_OFFSET_2STEP_RA;
 
-  LOG_X(MAC, "In %s: receivedTargerPower is %d dBm \n", __FUNCTION__, receivedTargerPower);
+  LOG_D(MAC, "In %s: receivedTargerPower is %d dBm \n", __FUNCTION__, receivedTargerPower);
 
   return receivedTargerPower;
 }
@@ -412,17 +412,17 @@ void ra_preambles_config(NR_PRACH_RESOURCES_t *prach_resources, NR_UE_MAC_INST_t
   NR_BWP_UplinkCommon_t *initialUplinkBWP = (mac->scc) ? mac->scc->uplinkConfigCommon->initialUplinkBWP : &mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP;
   if (initialUplinkBWP->pusch_ConfigCommon->choice.setup->msg3_DeltaPreamble){
     deltaPreamble_Msg3 = (*initialUplinkBWP->pusch_ConfigCommon->choice.setup->msg3_DeltaPreamble) * 2; // dB
-    LOG_X(MAC, "In %s: deltaPreamble_Msg3 set to %ld\n", __FUNCTION__, deltaPreamble_Msg3);
+    LOG_D(MAC, "In %s: deltaPreamble_Msg3 set to %ld\n", __FUNCTION__, deltaPreamble_Msg3);
   }
 
   if (!setup->groupBconfigured) {
     noGroupB = 1;
-    LOG_X(MAC, "In %s:%d: preambles group B is not configured...\n", __FUNCTION__, __LINE__);
+    LOG_D(MAC, "In %s:%d: preambles group B is not configured...\n", __FUNCTION__, __LINE__);
   } else {
     // RA preambles group B is configured
     // - Random Access Preambles group B is configured for 4-step RA type
     // - Defining the number of RA preambles in RA Preamble Group A for each SSB
-    LOG_X(MAC, "In %s:%d: preambles group B is configured...\n", __FUNCTION__, __LINE__);
+    LOG_D(MAC, "In %s:%d: preambles group B is configured...\n", __FUNCTION__, __LINE__);
     sizeOfRA_PreamblesGroupA = setup->groupBconfigured->numberOfRA_PreamblesGroupA;
     switch (setup->groupBconfigured->ra_Msg3SizeGroupA){
       /* - Threshold to determine the groups of RA preambles */
@@ -545,7 +545,7 @@ uint16_t set_ra_rnti(NR_UE_MAC_INST_t *mac, fapi_nr_ul_config_prach_pdu *prach_p
 
   ra->ra_rnti = 1 + s_id + 14 * t_id + 1120 * f_id + 8960 * ul_carrier_id;
 
-  LOG_X(MAC, "Computed ra_RNTI is %x \n", ra->ra_rnti);
+  LOG_D(MAC, "Computed ra_RNTI is %x \n", ra->ra_rnti);
 
   return ra->ra_rnti;
 
@@ -585,14 +585,14 @@ void nr_get_prach_resources(module_id_t mod_id,
     mac->scc->uplinkConfigCommon->initialUplinkBWP->rach_ConfigCommon->choice.setup : 
     mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP.rach_ConfigCommon->choice.setup;
 
-  LOG_X(PHY, "In %s: getting PRACH resources frame (first_Msg3 %d)\n", __FUNCTION__, ra->first_Msg3);
+  LOG_D(PHY, "In %s: getting PRACH resources frame (first_Msg3 %d)\n", __FUNCTION__, ra->first_Msg3);
 
   if (rach_ConfigDedicated) {
     if (rach_ConfigDedicated->cfra){
       uint8_t cfra_ssb_resource_idx = 0;
       ra->ra_PreambleIndex = rach_ConfigDedicated->cfra->resources.choice.ssb->ssb_ResourceList.list.array[cfra_ssb_resource_idx]->ra_PreambleIndex;
       prach_resources->ra_PreambleIndex = ra->ra_PreambleIndex;
-      LOG_X(MAC, "In %s: selected RA preamble index %d for contention-free random access procedure for SSB with Id %d\n", __FUNCTION__, prach_resources->ra_PreambleIndex, cfra_ssb_resource_idx);
+      LOG_D(MAC, "In %s: selected RA preamble index %d for contention-free random access procedure for SSB with Id %d\n", __FUNCTION__, prach_resources->ra_PreambleIndex, cfra_ssb_resource_idx);
     }
   } else {
     /* TODO: This controls the tx_power of UE and the ramping procedure of RA of UE. Later we
@@ -600,7 +600,7 @@ void nr_get_prach_resources(module_id_t mod_id,
     int16_t dl_pathloss = !get_softmodem_params()->emulate_l1 ? get_nr_PL(mod_id, CC_id, gNB_id) : 0;
     ssb_rach_config(ra, prach_resources, nr_rach_ConfigCommon, prach_pdu);
     ra_preambles_config(prach_resources, mac, dl_pathloss);
-    LOG_X(MAC, "[RAPROC] - Selected RA preamble index %d for contention-based random access procedure... \n", prach_resources->ra_PreambleIndex);
+    LOG_D(MAC, "[RAPROC] - Selected RA preamble index %d for contention-based random access procedure... \n", prach_resources->ra_PreambleIndex);
   }
 
   if (prach_resources->RA_PREAMBLE_TRANSMISSION_COUNTER > 1)
@@ -636,7 +636,7 @@ void nr_Msg3_transmitted(module_id_t mod_id, uint8_t CC_id, frame_t frameP, slot
   ra->RA_contention_resolution_target_frame = frameP + (RA_contention_resolution_timer_subframes/10);
   ra->RA_contention_resolution_target_slot = (slotP + (RA_contention_resolution_timer_subframes * subframes_per_slot)) % nr_slots_per_frame[mu];
 
-  LOG_X(MAC,"In %s: [UE %d] CB-RA: contention resolution timer set in frame.slot %d.%d and expiring in %d.%d\n",
+  LOG_D(MAC,"In %s: [UE %d] CB-RA: contention resolution timer set in frame.slot %d.%d and expiring in %d.%d\n",
        __FUNCTION__, mod_id, frameP, slotP, ra->RA_contention_resolution_target_frame, ra->RA_contention_resolution_target_slot);
 
   ra->RA_contention_resolution_timer_active = 1;
@@ -680,12 +680,12 @@ uint8_t nr_ue_get_rach(NR_PRACH_RESOURCES_t *prach_resources,
        ((MAX_FRAME_NUMBER + frame - prach_resources->sync_frame) % MAX_FRAME_NUMBER) > 150) {
       prach_resources->init_msg1 = 1;
     } else {
-      LOG_X(NR_MAC,"PRACH Condition not met: frame %d, prach_resources->sync_frame %d\n",frame,prach_resources->sync_frame);
+      LOG_D(NR_MAC,"PRACH Condition not met: frame %d, prach_resources->sync_frame %d\n",frame,prach_resources->sync_frame);
       return 0;
     }
   }
 
-  LOG_X(NR_MAC, "In %s: [UE %d][%d.%d]: init_msg1 %d, ra_state %d, RA_active %d\n",
+  LOG_D(NR_MAC, "In %s: [UE %d][%d.%d]: init_msg1 %d, ra_state %d, RA_active %d\n",
     __FUNCTION__,
     mod_id,
     frame,
@@ -699,7 +699,7 @@ uint8_t nr_ue_get_rach(NR_PRACH_RESOURCES_t *prach_resources,
     if (ra->RA_active == 0) {
       /* RA not active - checking if RRC is ready to initiate the RA procedure */
 
-      LOG_X(NR_MAC, "In %s: RA not active. Checking for data to transmit from upper layers...\n", __FUNCTION__);
+      LOG_D(NR_MAC, "In %s: RA not active. Checking for data to transmit from upper layers...\n", __FUNCTION__);
 
       const uint8_t lcid = UL_SCH_LCID_CCCH;
       const uint8_t sh_size = sizeof(NR_MAC_SUBHEADER_FIXED);
@@ -721,7 +721,7 @@ uint8_t nr_ue_get_rach(NR_PRACH_RESOURCES_t *prach_resources,
 
         // CCCH PDU
         size_sdu = nr_mac_rrc_data_req_ue(mod_id, CC_id, gNB_id, frame, CCCH, pdu);
-        LOG_X(NR_MAC, "In %s: [UE %d][%d.%d]: Requested RRCConnectionRequest, got %d bytes for LCID 0x%02x \n", __FUNCTION__, mod_id, frame, nr_slot_tx, size_sdu, lcid);
+        LOG_D(NR_MAC, "In %s: [UE %d][%d.%d]: Requested RRCConnectionRequest, got %d bytes for LCID 0x%02x \n", __FUNCTION__, mod_id, frame, nr_slot_tx, size_sdu, lcid);
 
         if (size_sdu > 0) {
 
@@ -775,7 +775,7 @@ uint8_t nr_ue_get_rach(NR_PRACH_RESOURCES_t *prach_resources,
 
       if (size_sdu > 0 && (ra->generate_nr_prach == GENERATE_PREAMBLE || get_softmodem_params()->nsa)) {
 
-        LOG_X(NR_MAC, "In %s: [UE %d][%d.%d]: starting initialisation Random Access Procedure...\n", __FUNCTION__, mod_id, frame, nr_slot_tx);
+        LOG_D(NR_MAC, "In %s: [UE %d][%d.%d]: starting initialisation Random Access Procedure...\n", __FUNCTION__, mod_id, frame, nr_slot_tx);
 
         // Init RA procedure
         init_RA(mod_id, prach_resources, setup, rach_ConfigGeneric, rach_ConfigDedicated);
@@ -787,7 +787,7 @@ uint8_t nr_ue_get_rach(NR_PRACH_RESOURCES_t *prach_resources,
         // Padding: fill remainder with 0
         if (TBS_max - ra->Msg3_size > 0) {
           AssertFatal(TBS_max > ra->Msg3_size, "In %s: allocated resources are not enough for Msg3!\n", __FUNCTION__);
-          LOG_X(NR_MAC, "In %s: remaining %d bytes, filling with padding\n", __FUNCTION__, TBS_max - ra->Msg3_size);
+          LOG_D(NR_MAC, "In %s: remaining %d bytes, filling with padding\n", __FUNCTION__, TBS_max - ra->Msg3_size);
           ((NR_MAC_SUBHEADER_FIXED *) pdu)->R = 0;
           ((NR_MAC_SUBHEADER_FIXED *) pdu)->LCID = UL_SCH_LCID_PADDING;
           pdu += sizeof(NR_MAC_SUBHEADER_FIXED);
@@ -797,9 +797,9 @@ uint8_t nr_ue_get_rach(NR_PRACH_RESOURCES_t *prach_resources,
         }
 
         // Dumping ULSCH payload
-        LOG_X(NR_MAC, "In %s: dumping UL Msg3 MAC PDU with length %d: \n", __FUNCTION__, TBS_max);
+        LOG_D(NR_MAC, "In %s: dumping UL Msg3 MAC PDU with length %d: \n", __FUNCTION__, TBS_max);
         for(int k = 0; k < TBS_max; k++) {
-          LOG_X(NR_MAC,"(%i): %i\n", k, payload[k]);
+          LOG_D(NR_MAC,"(%i): %i\n", k, payload[k]);
         }
 
         // Msg3 was initialized with TBS_max bytes because the RA_Msg3_size will only be known after
@@ -815,7 +815,7 @@ uint8_t nr_ue_get_rach(NR_PRACH_RESOURCES_t *prach_resources,
       }
     } else if (ra->RA_window_cnt != -1) { // RACH is active
 
-      LOG_X(MAC, "In %s [%d.%d] RA is active: RA window count %d, RA backoff count %d\n", __FUNCTION__, frame, nr_slot_tx, ra->RA_window_cnt, ra->RA_backoff_cnt);
+      LOG_D(MAC, "In %s [%d.%d] RA is active: RA window count %d, RA backoff count %d\n", __FUNCTION__, frame, nr_slot_tx, ra->RA_window_cnt, ra->RA_backoff_cnt);
 
       if (ra->RA_BI_found){
         prach_resources->RA_PREAMBLE_BACKOFF = prach_resources->RA_SCALING_FACTOR_BI * ra->RA_backoff_indicator;
@@ -840,7 +840,7 @@ uint8_t nr_ue_get_rach(NR_PRACH_RESOURCES_t *prach_resources,
 
       } else if (ra->RA_window_cnt > 0) {
 
-        LOG_X(MAC, "[UE %d][%d.%d]: RAR not received yet (RA window count %d) \n", mod_id, frame, nr_slot_tx, ra->RA_window_cnt);
+        LOG_D(MAC, "[UE %d][%d.%d]: RAR not received yet (RA window count %d) \n", mod_id, frame, nr_slot_tx, ra->RA_window_cnt);
 
         // Fill in preamble and PRACH resources
         ra->RA_window_cnt--;
@@ -849,7 +849,7 @@ uint8_t nr_ue_get_rach(NR_PRACH_RESOURCES_t *prach_resources,
         }
       } else if (ra->RA_backoff_cnt > 0) {
 
-        LOG_X(MAC, "[UE %d][%d.%d]: RAR not received yet (RA backoff count %d) \n", mod_id, frame, nr_slot_tx, ra->RA_backoff_cnt);
+        LOG_D(MAC, "[UE %d][%d.%d]: RAR not received yet (RA backoff count %d) \n", mod_id, frame, nr_slot_tx, ra->RA_backoff_cnt);
 
         ra->RA_backoff_cnt--;
 
@@ -865,7 +865,7 @@ uint8_t nr_ue_get_rach(NR_PRACH_RESOURCES_t *prach_resources,
     nr_ue_contention_resolution(mod_id, CC_id, frame, nr_slot_tx, prach_resources);
   }
 
-  LOG_X(MAC,"ra->generate_nr_prach %d ra->ra_state %d (GENERATE_IDLE %d)\n",ra->generate_nr_prach,ra->ra_state,GENERATE_IDLE);
+  LOG_D(MAC,"ra->generate_nr_prach %d ra->ra_state %d (GENERATE_IDLE %d)\n",ra->generate_nr_prach,ra->ra_state,GENERATE_IDLE);
   if(ra->generate_nr_prach != GENERATE_IDLE) {
     return ra->generate_nr_prach;
   } else {
@@ -972,11 +972,11 @@ void nr_ra_succeeded(module_id_t mod_id, frame_t frame, int slot){
     mac->crnti = ra->t_crnti;
     ra->t_crnti = 0;
 
-    LOG_X(MAC, "In %s: [UE %d][%d.%d] CB-RA: cleared contention resolution timer...\n", __FUNCTION__, mod_id, frame, slot);
+    LOG_D(MAC, "In %s: [UE %d][%d.%d] CB-RA: cleared contention resolution timer...\n", __FUNCTION__, mod_id, frame, slot);
 
   }
 
-  LOG_X(MAC, "In %s: [UE %d] clearing RA_active flag...\n", __FUNCTION__, mod_id);
+  LOG_D(MAC, "In %s: [UE %d] clearing RA_active flag...\n", __FUNCTION__, mod_id);
   ra->RA_active = 0;
   ra->generate_nr_prach = GENERATE_IDLE;
   ra->ra_state = RA_SUCCEEDED;
@@ -1004,7 +1004,7 @@ void nr_ra_failed(uint8_t mod_id, uint8_t CC_id, NR_PRACH_RESOURCES_t *prach_res
 
   if (prach_resources->RA_PREAMBLE_TRANSMISSION_COUNTER == ra->preambleTransMax + 1){
 
-    LOG_X(MAC, "In %s: [UE %d][%d.%d] Maximum number of RACH attempts (%d) reached, selecting backoff time...\n",
+    LOG_D(MAC, "In %s: [UE %d][%d.%d] Maximum number of RACH attempts (%d) reached, selecting backoff time...\n",
           __FUNCTION__, mod_id, frame, slot, ra->preambleTransMax);
 
     ra->RA_backoff_cnt = nrand48(seed) % (prach_resources->RA_PREAMBLE_BACKOFF + 1);

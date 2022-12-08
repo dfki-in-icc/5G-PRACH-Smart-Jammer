@@ -99,7 +99,7 @@ t_nrPolar_params * nr_polar_params(int8_t messageType,
   //Parse the list. If the node is already created, return without initialization.
   while (currentPtr != NULL) {
     //printf("currentPtr->idx %d, (%d,%d)\n",currentPtr->idx,currentPtr->payloadBits,currentPtr->encoderLength);
-    //LOG_X(PHY,"Looking for index %d\n",(messageType * messageLength * aggregation_prime));
+    //LOG_D(PHY,"Looking for index %d\n",(messageType * messageLength * aggregation_prime));
     if (currentPtr->busy == false && currentPtr->idx == PolarKey ) {
       currentPtr->busy=true;
       pthread_mutex_unlock(&PolarListMutex);
@@ -119,7 +119,7 @@ t_nrPolar_params * nr_polar_params(int8_t messageType,
 
   AssertFatal(newPolarInitNode != NULL, "[nr_polar_init] New t_nrPolar_params * could not be created");
   
-  //   LOG_X(PHY,"Setting new polarParams index %d, messageType %d, messageLength %d, aggregation_prime %d\n",(messageType * messageLength * aggregation_prime),messageType,messageLength,aggregation_prime);
+  //   LOG_D(PHY,"Setting new polarParams index %d, messageType %d, messageLength %d, aggregation_prime %d\n",(messageType * messageLength * aggregation_prime),messageType,messageLength,aggregation_prime);
   newPolarInitNode->idx = PolarKey;
   newPolarInitNode->nextPtr = NULL;
   //printf("newPolarInitNode->idx %d, (%d,%d,%d:%d)\n",newPolarInitNode->idx,messageType,messageLength,aggregation_prime,aggregation_level);
@@ -179,7 +179,7 @@ t_nrPolar_params * nr_polar_params(int8_t messageType,
     newPolarInitNode->payloadBits = messageLength;
     newPolarInitNode->crcCorrectionBits = NR_POLAR_PUCCH_CRC_ERROR_CORRECTION_BITS;
     //newPolarInitNode->crc_generator_matrix=crc24c_generator_matrix(newPolarInitNode->payloadBits+newPolarInitNode->crcParityBits);//G_P
-    //LOG_X(PHY,"New polar node, encoderLength %d, aggregation_level %d\n",newPolarInitNode->encoderLength,aggregation_level);
+    //LOG_D(PHY,"New polar node, encoderLength %d, aggregation_level %d\n",newPolarInitNode->encoderLength,aggregation_level);
   } else {
     AssertFatal(1 == 0, "[nr_polar_init] Incorrect Message Type(%d)", messageType);
   }

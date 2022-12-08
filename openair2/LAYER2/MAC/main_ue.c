@@ -48,7 +48,7 @@
 extern void openair_rrc_top_init_ue( int eMBMS_active, char *uecap_xer, uint8_t cba_group_active, uint8_t HO_active);
 
 void dl_phy_sync_success(module_id_t module_idP, frame_t frameP, unsigned char eNB_index, uint8_t first_sync) { //init as MR
-  LOG_X(MAC, "[UE %d] Frame %d: PHY Sync to eNB_index %d successful \n",
+  LOG_D(MAC, "[UE %d] Frame %d: PHY Sync to eNB_index %d successful \n",
         module_idP, frameP, eNB_index);
 
   if (first_sync == 1 && !(EPC_MODE_ENABLED)) {
@@ -79,7 +79,7 @@ mac_top_init_ue(int eMBMS_active, char *uecap_xer,
                 "[MAIN] Can't ALLOCATE %zu Bytes for %d UE_MAC_INST with size %zu \n",
                 NB_UE_INST * sizeof(UE_MAC_INST), NB_UE_INST,
                 sizeof(UE_MAC_INST));
-    LOG_X(MAC, "[MAIN] ALLOCATE %zu Bytes for %d UE_MAC_INST @ %p\n",
+    LOG_D(MAC, "[MAIN] ALLOCATE %zu Bytes for %d UE_MAC_INST @ %p\n",
           NB_UE_INST * sizeof(UE_MAC_INST), NB_UE_INST, UE_mac_inst);
     bzero(UE_mac_inst, NB_UE_INST * sizeof(UE_MAC_INST));
 

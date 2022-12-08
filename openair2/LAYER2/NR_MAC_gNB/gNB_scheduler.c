@@ -90,7 +90,7 @@ void clear_nr_nfapi_information(gNB_MAC_INST * gNB,
 
   /* advance last round's future UL_tti_req to be ahead of current frame/slot */
   future_ul_tti_req->SFN = (slotP == 0 ? frameP : frameP + 1) % 1024;
-  LOG_X(NR_MAC, "In %s: UL_tti_req_ahead SFN.slot = %d.%d for slot %d \n", __FUNCTION__, future_ul_tti_req->SFN, future_ul_tti_req->Slot, (slotP + num_slots - 1) % num_slots);
+  LOG_D(NR_MAC, "In %s: UL_tti_req_ahead SFN.slot = %d.%d for slot %d \n", __FUNCTION__, future_ul_tti_req->SFN, future_ul_tti_req->Slot, (slotP + num_slots - 1) % num_slots);
   /* future_ul_tti_req->Slot is fixed! */
   future_ul_tti_req->n_pdus = 0;
   future_ul_tti_req->n_ulsch = 0;

@@ -1117,12 +1117,12 @@ void rx_ulsch(PHY_VARS_eNB *eNB,
   for (i=0; i<frame_parms->nb_antennas_rx; i++) {
     pusch_vars->ulsch_power[i] = signal_energy_nodc(pusch_vars->drs_ch_estimates[i],
                                  ulsch[UE_id]->harq_processes[harq_pid]->nb_rb*12)/correction_factor;
-    LOG_X(PHY,"%4.4d.%d power harq_pid %d rb %2.2d TBS %2.2d (MPR_times_Ks %d correction %d)  power %d dBtimes10\n", proc->frame_rx, proc->subframe_rx, harq_pid,
+    LOG_D(PHY,"%4.4d.%d power harq_pid %d rb %2.2d TBS %2.2d (MPR_times_Ks %d correction %d)  power %d dBtimes10\n", proc->frame_rx, proc->subframe_rx, harq_pid,
           ulsch[UE_id]->harq_processes[harq_pid]->nb_rb, ulsch[UE_id]->harq_processes[harq_pid]->TBS,MPR_times_100Ks,correction_factor,dB_fixed_x10(pusch_vars->ulsch_power[i]));
     pusch_vars->ulsch_noise_power[i]=0;
     for (int rb=0;rb<ulsch[UE_id]->harq_processes[harq_pid]->nb_rb;rb++)
       pusch_vars->ulsch_noise_power[i]+=eNB->measurements.n0_subband_power[i][rb]/ulsch[UE_id]->harq_processes[harq_pid]->nb_rb;
-    LOG_X(PHY,"noise power[%d] %d\n",i,dB_fixed_x10(pusch_vars->ulsch_noise_power[i]));
+    LOG_D(PHY,"noise power[%d] %d\n",i,dB_fixed_x10(pusch_vars->ulsch_noise_power[i]));
 /* Check this modification w.r.t to new PUSCH modifications
     //symbol 3
     int symbol_offset = frame_parms->N_RB_UL*12*(3 - frame_parms->Ncp);
@@ -1145,7 +1145,7 @@ void rx_ulsch(PHY_VARS_eNB *eNB,
       if(pusch_vars->ulsch_interference_power[i]<1)pusch_vars->ulsch_interference_power[i] = 1;
     }
 
-    LOG_X(PHY,"%4.4d.%d power harq_pid %d rb %2.2d TBS %2.2d (MPR_times_Ks %d correction %d)  power %d dBtimes10\n", proc->frame_rx, proc->subframe_rx, harq_pid, ulsch[UE_id]->harq_processes[harq_pid]->nb_rb, ulsch[UE_id]->harq_processes[harq_pid]->TBS,MPR_times_100Ks,correction_factor,dB_fixed_x10(pusch_vars->ulsch_power[i]));
+    LOG_D(PHY,"%4.4d.%d power harq_pid %d rb %2.2d TBS %2.2d (MPR_times_Ks %d correction %d)  power %d dBtimes10\n", proc->frame_rx, proc->subframe_rx, harq_pid, ulsch[UE_id]->harq_processes[harq_pid]->nb_rb, ulsch[UE_id]->harq_processes[harq_pid]->TBS,MPR_times_100Ks,correction_factor,dB_fixed_x10(pusch_vars->ulsch_power[i]));
   */   
   }
 
@@ -1153,14 +1153,14 @@ void rx_ulsch(PHY_VARS_eNB *eNB,
                       frame_parms,
                       avgU,
                       ulsch[UE_id]->harq_processes[harq_pid]->nb_rb);
-  LOG_X(PHY,"[ULSCH] avg[0] %d\n",avgU[0]);
+  LOG_D(PHY,"[ULSCH] avg[0] %d\n",avgU[0]);
   avgs = 0;
 
   for (aarx=0; aarx<frame_parms->nb_antennas_rx; aarx++)
     avgs = cmax(avgs,avgU[aarx]);
 
   log2_maxh = 4+(log2_approx(avgs)/2); 
-  LOG_X(PHY,"[ULSCH] log2_maxh = %d (%d,%d)\n",log2_maxh,avgU[0],avgs);
+  LOG_D(PHY,"[ULSCH] log2_maxh = %d (%d,%d)\n",log2_maxh,avgU[0],avgs);
 
   for (l=0; l<(frame_parms->symbols_per_tti-ulsch[UE_id]->harq_processes[harq_pid]->srs_active); l++) {
     if (((frame_parms->Ncp == 0) && ((l==3) || (l==10)))||   // skip pilots

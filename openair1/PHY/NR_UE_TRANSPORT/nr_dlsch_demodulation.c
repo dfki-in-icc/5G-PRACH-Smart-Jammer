@@ -242,7 +242,7 @@ int nr_rx_pdsch(PHY_VARS_NR_UE *ue,
 
   if (dlsch0_harq && dlsch1_harq){
 
-    LOG_X(PHY,"AbsSubframe %d.%d / Sym %d harq_pid %d, harq status %d.%d \n", frame, nr_slot_rx, symbol, harq_pid, dlsch0_harq->status, dlsch1_harq->status);
+    LOG_D(PHY,"AbsSubframe %d.%d / Sym %d harq_pid %d, harq status %d.%d \n", frame, nr_slot_rx, symbol, harq_pid, dlsch0_harq->status, dlsch1_harq->status);
 
     if ((dlsch0_harq->status == ACTIVE) && (dlsch1_harq->status == ACTIVE)){
       codeword_TB0 = dlsch0_harq->codeword;
@@ -397,7 +397,7 @@ int nr_rx_pdsch(PHY_VARS_NR_UE *ue,
   
   //printf("nb_rb = %d, gNB_id %d\n",nb_rb,gNB_id);
   if (nb_rb==0) {
-    LOG_X(PHY,"dlsch_demodulation.c: nb_rb=0\n");
+    LOG_D(PHY,"dlsch_demodulation.c: nb_rb=0\n");
     return(-1);
   }
 
@@ -441,10 +441,8 @@ int nr_rx_pdsch(PHY_VARS_NR_UE *ue,
       for (aatx=0;aatx<n_tx;aatx++)
         for (aarx=0;aarx<n_rx;aarx++) {
           //LOG_I(PHY, "nb_rb %d len %d avg_%d_%d Power per SC is %d\n",nb_rb, len,aarx, aatx,avg[aatx*frame_parms->nb_antennas_rx+aarx]);
-          LOG_X(PHY, "nb_rb %d len %d avg_%d_%d Power per SC is %d\n",nb_rb, len,aarx, aatx,avg[aatx*frame_parms->nb_antennas_rx+aarx]);
           avgs = cmax(avgs,avg[(aatx*frame_parms->nb_antennas_rx)+aarx]);
           //LOG_I(PHY, "avgs Power per SC is %d\n", avgs);
-          LOG_X(PHY, "avgs Power per SC is %d\n", avgs);
           median[(aatx*frame_parms->nb_antennas_rx)+aarx] = avg[(aatx*frame_parms->nb_antennas_rx)+aarx];
         }
 
@@ -465,9 +463,8 @@ int nr_rx_pdsch(PHY_VARS_NR_UE *ue,
 
       pdsch_vars[gNB_id]->log2_maxh = (log2_approx(avgs)/2) + 1;
       //LOG_I(PHY, "avgs Power per SC is %d lg2_maxh %d\n", avgs,  pdsch_vars[gNB_id]->log2_maxh);
-      LOG_X(PHY, "avgs Power per SC is %d lg2_maxh %d\n", avgs,  pdsch_vars[gNB_id]->log2_maxh);
     }
-    LOG_X(PHY,"[DLSCH] AbsSubframe %d.%d log2_maxh = %d [log2_maxh0 %d log2_maxh1 %d] (%d,%d)\n",
+    LOG_D(PHY,"[DLSCH] AbsSubframe %d.%d log2_maxh = %d [log2_maxh0 %d log2_maxh1 %d] (%d,%d)\n",
           frame%1024,
           nr_slot_rx,
           pdsch_vars[gNB_id]->log2_maxh,
@@ -1529,7 +1526,7 @@ void nr_dlsch_scale_channel(int **dl_ch_estimates_ext,
 
   ch_amp = 1024*8; //((pilots) ? (dlsch_ue[0]->sqrt_rho_b) : (dlsch_ue[0]->sqrt_rho_a));
 
-  LOG_X(PHY,"Scaling PDSCH Chest in OFDM symbol %d by %d, pilots %d nb_rb %d NCP %d symbol %d\n",symbol,ch_amp,pilots,nb_rb,frame_parms->Ncp,symbol);
+  LOG_D(PHY,"Scaling PDSCH Chest in OFDM symbol %d by %d, pilots %d nb_rb %d NCP %d symbol %d\n",symbol,ch_amp,pilots,nb_rb,frame_parms->Ncp,symbol);
   // printf("Scaling PDSCH Chest in OFDM symbol %d by %d\n",symbol_mod,ch_amp);
 
   ch_amp128 = _mm_set1_epi16(ch_amp); // Q3.13

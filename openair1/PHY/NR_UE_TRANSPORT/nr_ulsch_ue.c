@@ -112,7 +112,7 @@ void nr_ue_ulsch_procedures(PHY_VARS_NR_UE *UE,
                                uint8_t thread_id,
                                int gNB_id) {
 
-  LOG_X(PHY,"nr_ue_ulsch_procedures hard_id %d %d.%d\n",harq_pid,frame,slot);
+  LOG_D(PHY,"nr_ue_ulsch_procedures hard_id %d %d.%d\n",harq_pid,frame,slot);
 
   uint32_t available_bits;
   uint8_t cwd_index, l;
@@ -168,10 +168,8 @@ void nr_ue_ulsch_procedures(PHY_VARS_NR_UE *UE,
 
     nb_dmrs_re_per_rb = ((dmrs_type == pusch_dmrs_type1) ? 6:4)*cdm_grps_no_data;
 
-    // LOG_X(PHY,"ulsch %x : start_rb %d bwp_start %d start_sc %d start_symbol %d num_symbols %d cdmgrpsnodata %d num_dmrs %d dmrs_re_per_rb %d\n",
-    //       rnti,start_rb,pusch_pdu->bwp_start,start_sc,start_symbol,number_of_symbols,cdm_grps_no_data,number_dmrs_symbols,nb_dmrs_re_per_rb);
-    LOG_X(RLC,"--> ulsch (rnti %x harq_process %d) : start_rb %d bwp_start %d start_sc %d start_symbol %d num_symbols %d cdmgrpsnodata %d num_dmrs %d dmrs_re_per_rb %d\n",
-          rnti, harq_pid, start_rb, pusch_pdu->bwp_start, start_sc,start_symbol,number_of_symbols,cdm_grps_no_data,number_dmrs_symbols,nb_dmrs_re_per_rb);
+    LOG_D(PHY,"ulsch %x : start_rb %d bwp_start %d start_sc %d start_symbol %d num_symbols %d cdmgrpsnodata %d num_dmrs %d dmrs_re_per_rb %d\n",
+          rnti,start_rb,pusch_pdu->bwp_start,start_sc,start_symbol,number_of_symbols,cdm_grps_no_data,number_dmrs_symbols,nb_dmrs_re_per_rb);
 
     // TbD num_of_mod_symbols is set but never used
     N_RE_prime = NR_NB_SC_PER_RB*number_of_symbols - nb_dmrs_re_per_rb*number_dmrs_symbols - N_PRB_oh;
@@ -273,6 +271,7 @@ void nr_ue_ulsch_procedures(PHY_VARS_NR_UE *UE,
                       Nl,
                       available_bits/mod_order,
                       tx_layers);
+
   ///////////
   ////////////////////////////////////////////////////////////////////////
 
@@ -302,7 +301,7 @@ void nr_ue_ulsch_procedures(PHY_VARS_NR_UE *UE,
     AssertFatal(index >= 0, "Num RBs not configured according to 3GPP 38.211 section 6.3.1.4. For PUSCH with transform precoding, num RBs cannot be multiple of any other primenumber other than 2,3,5\n");
     AssertFatal(dmrs_seq != NULL, "DMRS low PAPR seq not found, check if DMRS sequences are generated");
     
-    LOG_X(PHY,"Transform Precoding params. u: %d, v: %d, index for dmrsseq: %d\n", u, v, index);
+    LOG_D(PHY,"Transform Precoding params. u: %d, v: %d, index for dmrsseq: %d\n", u, v, index);
 
     for (l = start_symbol; l < start_symbol + number_of_symbols; l++) {
 
@@ -314,7 +313,7 @@ void nr_ue_ulsch_procedures(PHY_VARS_NR_UE *UE,
 
       y_offset = y_offset + nb_re_pusch;
 
-      LOG_X(PHY,"Transform precoding being done on data- symbol: %d, nb_re_pusch: %d, y_offset: %d\n", l, nb_re_pusch, y_offset);
+      LOG_D(PHY,"Transform precoding being done on data- symbol: %d, nb_re_pusch: %d, y_offset: %d\n", l, nb_re_pusch, y_offset);
 
       #ifdef DEBUG_PUSCH_MAPPING
         printf("NR_ULSCH_UE: y_offset %d\t nb_re_pusch %d \t Symbol %d \t nb_rb %d \n", 
@@ -398,7 +397,7 @@ void nr_ue_ulsch_procedures(PHY_VARS_NR_UE *UE,
 
           // TODO: performance improvement, we can skip the modulation of DMRS symbols outside the bandwidth part
           // Perform this on gold sequence, not required when SC FDMA operation is done,
-	        LOG_X(PHY,"DMRS in symbol %d\n",l);
+	        LOG_D(PHY,"DMRS in symbol %d\n",l);
           nr_modulation(pusch_dmrs[l][0], n_dmrs*2, DMRS_MOD_ORDER, mod_dmrs); // currently only codeword 0 is modulated. Qm = 2 as DMRS is QPSK modulated
 
         } else {
@@ -449,6 +448,7 @@ void nr_ue_ulsch_procedures(PHY_VARS_NR_UE *UE,
 
               ((int16_t*)txdataF[ap])[(sample_offsetF)<<1] = (Wt[l_prime[0]]*Wf[k_prime]*AMP*mod_dmrs[dmrs_idx<<1]) >> 15;
               ((int16_t*)txdataF[ap])[((sample_offsetF)<<1) + 1] = (Wt[l_prime[0]]*Wf[k_prime]*AMP*mod_dmrs[(dmrs_idx<<1) + 1]) >> 15;
+
             }
 
           #ifdef DEBUG_PUSCH_MAPPING
@@ -501,6 +501,7 @@ void nr_ue_ulsch_procedures(PHY_VARS_NR_UE *UE,
   NR_UL_UE_HARQ_t *harq_process_ulsch=NULL;
   harq_process_ulsch = UE->ulsch[thread_id][gNB_id][0]->harq_processes[harq_pid];
   harq_process_ulsch->status = SCH_IDLE;
+
   ///////////
   ////////////////////////////////////////////////////////////////////////
 

@@ -167,7 +167,7 @@ static inline int rxtx(PHY_VARS_eNB *eNB,
 #endif
 
   if (eNB ==NULL) {
-    LOG_X(PHY,"%s:%d: rxtx invalid argument, eNB pointer is NULL",__FILE__,__LINE__);
+    LOG_D(PHY,"%s:%d: rxtx invalid argument, eNB pointer is NULL",__FILE__,__LINE__);
     return -1;
   }
 
@@ -177,7 +177,7 @@ static inline int rxtx(PHY_VARS_eNB *eNB,
     uint16_t subframe = proc->subframe_rx;
     //add_subframe(&frame, &subframe, 4);
     //oai_subframe_ind(proc->frame_tx, proc->subframe_tx);
-    //LOG_X(PHY, "oai_subframe_ind(frame:%u, subframe:%d) - NOT CALLED ********\n", frame, subframe);
+    //LOG_D(PHY, "oai_subframe_ind(frame:%u, subframe:%d) - NOT CALLED ********\n", frame, subframe);
     start_meas(&nfapi_meas);
     oai_subframe_ind(frame, subframe);
     stop_meas(&nfapi_meas);
@@ -188,7 +188,7 @@ static inline int rxtx(PHY_VARS_eNB *eNB,
         eNB->UL_INFO.rach_ind.rach_indication_body.number_of_preambles ||
         eNB->UL_INFO.cqi_ind.cqi_indication_body.number_of_cqis
        ) {
-      LOG_X(PHY, "UL_info[rx_ind:%05d:%d harqs:%05d:%d crcs:%05d:%d preambles:%05d:%d cqis:%d] RX:%04d%d TX:%04d%d num_pdcch_symbols:%d\n",
+      LOG_D(PHY, "UL_info[rx_ind:%05d:%d harqs:%05d:%d crcs:%05d:%d preambles:%05d:%d cqis:%d] RX:%04d%d TX:%04d%d num_pdcch_symbols:%d\n",
             NFAPI_SFNSF2DEC(eNB->UL_INFO.rx_ind.sfn_sf),   eNB->UL_INFO.rx_ind.rx_indication_body.number_of_pdus,
             NFAPI_SFNSF2DEC(eNB->UL_INFO.harq_ind.sfn_sf), eNB->UL_INFO.harq_ind.harq_indication_body.number_of_harqs,
             NFAPI_SFNSF2DEC(eNB->UL_INFO.crc_ind.sfn_sf),  eNB->UL_INFO.crc_ind.crc_indication_body.number_of_crcs,
@@ -276,15 +276,15 @@ static inline int rxtx(PHY_VARS_eNB *eNB,
   //if (release_thread(&proc->mutex_rxtx,&proc->instance_cnt_rxtx,thread_name)<0) return(-1);
   /* CONFLICT RESOLUTION: END */
   stop_meas( &softmodem_stats_rxtx_sf );
-  LOG_X(PHY,"%s() Exit proc[rx:%d%d tx:%d%d]\n", __FUNCTION__, proc->frame_rx, proc->subframe_rx, proc->frame_tx, proc->subframe_tx);
-  LOG_X(PHY, "rxtx:%lld nfapi:%lld tx:%lld rx:%lld prach:%lld ofdm:%lld ",
+  LOG_D(PHY,"%s() Exit proc[rx:%d%d tx:%d%d]\n", __FUNCTION__, proc->frame_rx, proc->subframe_rx, proc->frame_tx, proc->subframe_tx);
+  LOG_D(PHY, "rxtx:%lld nfapi:%lld tx:%lld rx:%lld prach:%lld ofdm:%lld ",
         softmodem_stats_rxtx_sf.p_time, nfapi_meas.p_time,
         TICK_TO_US(eNB->phy_proc_tx),
         TICK_TO_US(eNB->phy_proc_rx),
         TICK_TO_US(eNB->rx_prach),
         TICK_TO_US(eNB->ofdm_mod_stats)
        );
-  LOG_X(PHY,
+  LOG_D(PHY,
         "dlsch[enc:%lld mod:%lld scr:%lld rm:%lld t:%lld i:%lld] rx_dft:%lld ",
         TICK_TO_US(eNB->dlsch_encoding_stats),
         TICK_TO_US(eNB->dlsch_modulation_stats),
@@ -293,19 +293,19 @@ static inline int rxtx(PHY_VARS_eNB *eNB,
         TICK_TO_US(eNB->dlsch_turbo_encoding_stats),
         TICK_TO_US(eNB->dlsch_interleaving_stats),
         TICK_TO_US(eNB->rx_dft_stats));
-  LOG_X(PHY," ulsch[ch:%lld freq:%lld dec:%lld demod:%lld ru:%lld ",
+  LOG_D(PHY," ulsch[ch:%lld freq:%lld dec:%lld demod:%lld ru:%lld ",
         TICK_TO_US(eNB->ulsch_channel_estimation_stats),
         TICK_TO_US(eNB->ulsch_freq_offset_estimation_stats),
         TICK_TO_US(eNB->ulsch_decoding_stats),
         TICK_TO_US(eNB->ulsch_demodulation_stats),
         TICK_TO_US(eNB->ulsch_rate_unmatching_stats));
-  LOG_X(PHY, "td:%lld dei:%lld dem:%lld llr:%lld tci:%lld ",
+  LOG_D(PHY, "td:%lld dei:%lld dem:%lld llr:%lld tci:%lld ",
         TICK_TO_US(eNB->ulsch_turbo_decoding_stats),
         TICK_TO_US(eNB->ulsch_deinterleaving_stats),
         TICK_TO_US(eNB->ulsch_demultiplexing_stats),
         TICK_TO_US(eNB->ulsch_llr_stats),
         TICK_TO_US(eNB->ulsch_tc_init_stats));
-  LOG_X(PHY, "tca:%lld tcb:%lld tcg:%lld tce:%lld l1:%lld l2:%lld]\n\n",
+  LOG_D(PHY, "tca:%lld tcb:%lld tcg:%lld tce:%lld l1:%lld l2:%lld]\n\n",
         TICK_TO_US(eNB->ulsch_tc_alpha_stats),
         TICK_TO_US(eNB->ulsch_tc_beta_stats),
         TICK_TO_US(eNB->ulsch_tc_gamma_stats),
@@ -330,13 +330,13 @@ static void *L1_thread_tx(void *param) {
 
   proc->respEncode = eNB->proc.L1_proc.respEncode;
   while (!oai_exit) {
-    LOG_X(PHY,"Waiting for TX (IC %d)\n",proc->instance_cnt);
+    LOG_D(PHY,"Waiting for TX (IC %d)\n",proc->instance_cnt);
 
     if (wait_on_condition(&proc->mutex,&proc->cond,&proc->instance_cnt,thread_name)<0) break;
 
     if (oai_exit) break;
 
-    LOG_X(PHY,"L1_thread_tx: Running for %d.%d\n",proc->frame_tx,proc->subframe_tx);
+    LOG_D(PHY,"L1_thread_tx: Running for %d.%d\n",proc->frame_tx,proc->subframe_tx);
     // *****************************************
     // TX processing for subframe n+4
     // run PHY TX procedures the one after the other for all CCs to avoid race conditions
@@ -346,7 +346,7 @@ static void *L1_thread_tx(void *param) {
     VCD_SIGNAL_DUMPER_DUMP_VARIABLE_BY_NAME(VCD_SIGNAL_DUMPER_VARIABLES_SUBFRAME_NUMBER_RX1_ENB,proc->subframe_rx);
     VCD_SIGNAL_DUMPER_DUMP_VARIABLE_BY_NAME(VCD_SIGNAL_DUMPER_VARIABLES_FRAME_NUMBER_TX1_ENB,proc->frame_tx);
     VCD_SIGNAL_DUMPER_DUMP_VARIABLE_BY_NAME(VCD_SIGNAL_DUMPER_VARIABLES_FRAME_NUMBER_RX1_ENB,proc->frame_rx);
-    LOG_X(PHY,"L1 TX processing %d.%d\n",proc->frame_tx,proc->subframe_tx);
+    LOG_D(PHY,"L1 TX processing %d.%d\n",proc->frame_tx,proc->subframe_tx);
     phy_procedures_eNB_TX(eNB, proc, 1);
     AssertFatal((ret= pthread_mutex_lock( &proc->mutex ))==0,"error locking L1_proc_tx mutex, return %d\n",ret);
     int subframe_tx = proc->subframe_tx;
@@ -354,9 +354,9 @@ static void *L1_thread_tx(void *param) {
     uint64_t timestamp_tx = proc->timestamp_tx;
     proc->instance_cnt = -1;
     VCD_SIGNAL_DUMPER_DUMP_VARIABLE_BY_NAME(VCD_SIGNAL_DUMPER_VARIABLES_L1_PROC_TX_IC,proc->instance_cnt);
-    LOG_X(PHY,"L1 TX signaling done for %d.%d\n",proc->frame_tx,proc->subframe_tx);
+    LOG_D(PHY,"L1 TX signaling done for %d.%d\n",proc->frame_tx,proc->subframe_tx);
     // the thread can now be woken up
-    LOG_X(PHY,"L1_thread_tx: signaling completion in %d.%d\n",proc->frame_tx,proc->subframe_tx);
+    LOG_D(PHY,"L1_thread_tx: signaling completion in %d.%d\n",proc->frame_tx,proc->subframe_tx);
 
     AssertFatal((ret=pthread_cond_signal(&proc->cond))== 0, "ERROR pthread_cond_signal for eNB TXnp4 thread ret %d\n",ret);
     AssertFatal((ret= pthread_mutex_unlock( &proc->mutex ))==0,"error unlocking L1_proc_tx mutex, return %d\n",ret);
@@ -414,11 +414,11 @@ static void *L1_thread( void *param ) {
   while (!oai_exit) {
     VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME( VCD_SIGNAL_DUMPER_FUNCTIONS_eNB_PROC_RXTX0, 0 );
     T(T_ENB_MASTER_TICK, T_INT(0), T_INT(proc->frame_rx), T_INT(proc->subframe_rx));
-    LOG_X(PHY,"L1RX waiting for RU RX\n");
+    LOG_D(PHY,"L1RX waiting for RU RX\n");
 
     if (wait_on_condition(&proc->mutex,&proc->cond,&proc->instance_cnt,thread_name)<0) break;
 
-    LOG_X(PHY,"L1RX starting in %d.%d\n",proc->frame_rx,proc->subframe_rx);
+    LOG_D(PHY,"L1RX starting in %d.%d\n",proc->frame_rx,proc->subframe_rx);
     VCD_SIGNAL_DUMPER_DUMP_VARIABLE_BY_NAME(VCD_SIGNAL_DUMPER_VARIABLES_CPUID_ENB_THREAD_RXTX,sched_getcpu());
     VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME( VCD_SIGNAL_DUMPER_FUNCTIONS_eNB_PROC_RXTX0, 1 );
     VCD_SIGNAL_DUMPER_DUMP_VARIABLE_BY_NAME(VCD_SIGNAL_DUMPER_VARIABLES_SUBFRAME_NUMBER_TX0_ENB,proc->subframe_tx);
@@ -432,7 +432,7 @@ static void *L1_thread( void *param ) {
       if (rxtx(eNB,proc,thread_name) < 0) break;
     }
 
-    LOG_X(PHY,"L1 RX %d.%d done\n",proc->frame_rx,proc->subframe_rx);
+    LOG_D(PHY,"L1 RX %d.%d done\n",proc->frame_rx,proc->subframe_rx);
 
     if (release_thread(&proc->mutex,&proc->instance_cnt,thread_name)<0) break;
     VCD_SIGNAL_DUMPER_DUMP_VARIABLE_BY_NAME(VCD_SIGNAL_DUMPER_VARIABLES_L1_PROC_IC, proc->instance_cnt);
@@ -446,7 +446,7 @@ static void *L1_thread( void *param ) {
 
   } // while !oai_exit
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME( VCD_SIGNAL_DUMPER_FUNCTIONS_eNB_PROC_RXTX0+(proc->subframe_rx&1), 0 );
-  LOG_X(PHY, " *** Exiting eNB thread RXn_TXnp4\n");
+  LOG_D(PHY, " *** Exiting eNB thread RXn_TXnp4\n");
   eNB_thread_rxtx_status = 0;
   return &eNB_thread_rxtx_status;
 }
@@ -490,7 +490,7 @@ int wakeup_txfh(PHY_VARS_eNB *eNB,
   RU_proc_t *ru_proc;
   LTE_DL_FRAME_PARMS *fp;
   int waitret,ret;
-  LOG_X(PHY,"L1 TX Waking up TX FH %d.%d (IC RU TX %d)\n",frame_tx,subframe_tx,proc->instance_cnt_RUs);
+  LOG_D(PHY,"L1 TX Waking up TX FH %d.%d (IC RU TX %d)\n",frame_tx,subframe_tx,proc->instance_cnt_RUs);
   // grab the information for the RU due to the following wait
   waitret=timedwait_on_condition(&proc->mutex_RUs,&proc->cond_RUs,&proc->instance_cnt_RUs,"wakeup_txfh",1000000);
   AssertFatal(release_thread(&proc->mutex_RUs,&proc->instance_cnt_RUs,"wakeup_txfh")==0, "error releaseing eNB lock on RUs\n");
@@ -535,7 +535,7 @@ int wakeup_txfh(PHY_VARS_eNB *eNB,
     ru_proc->timestamp_tx = timestamp_tx;
     ru_proc->tti_tx       = subframe_tx;
     ru_proc->frame_tx     = frame_tx;
-    LOG_X(PHY,"L1 TX Waking up TX FH (2) %d.%d\n",frame_tx,subframe_tx);
+    LOG_D(PHY,"L1 TX Waking up TX FH (2) %d.%d\n",frame_tx,subframe_tx);
     // the thread can now be woken up
     AssertFatal(pthread_cond_signal(&ru_proc->cond_eNBs) == 0,
                 "[eNB] ERROR pthread_cond_signal for eNB TXnp4 thread\n");
@@ -555,17 +555,17 @@ int wakeup_tx(PHY_VARS_eNB *eNB,
               uint64_t timestamp_tx) {
   L1_rxtx_proc_t *L1_proc_tx = &eNB->proc.L1_proc_tx;
   int ret;
-  LOG_X(PHY,"ENTERED wakeup_tx (IC %d)\n",L1_proc_tx->instance_cnt);
+  LOG_D(PHY,"ENTERED wakeup_tx (IC %d)\n",L1_proc_tx->instance_cnt);
   // check if subframe is a has TX else return
   if (subframe_select(&eNB->frame_parms,subframe_tx) == SF_UL) return 0;  
   AssertFatal((ret = pthread_mutex_lock(&L1_proc_tx->mutex))==0,"mutex_lock returns %d\n",ret);
-  LOG_X(PHY,"L1 RX %d.%d Waiting to wake up L1 TX %d.%d (IC L1TX %d)\n",frame_rx,subframe_rx,frame_tx,subframe_tx,L1_proc_tx->instance_cnt);
+  LOG_D(PHY,"L1 RX %d.%d Waiting to wake up L1 TX %d.%d (IC L1TX %d)\n",frame_rx,subframe_rx,frame_tx,subframe_tx,L1_proc_tx->instance_cnt);
 
   while(L1_proc_tx->instance_cnt == 0) {
     pthread_cond_wait(&L1_proc_tx->cond,&L1_proc_tx->mutex);
   }
 
-  LOG_X(PHY,"L1 RX Got signal that TX %d.%d is done\n",L1_proc_tx->frame_tx,L1_proc_tx->subframe_tx);
+  LOG_D(PHY,"L1 RX Got signal that TX %d.%d is done\n",L1_proc_tx->frame_tx,L1_proc_tx->subframe_tx);
   L1_proc_tx->instance_cnt = 0;
   VCD_SIGNAL_DUMPER_DUMP_VARIABLE_BY_NAME(VCD_SIGNAL_DUMPER_VARIABLES_L1_PROC_TX_IC,L1_proc_tx->instance_cnt);
   L1_proc_tx->subframe_rx   = subframe_rx;
@@ -574,7 +574,7 @@ int wakeup_tx(PHY_VARS_eNB *eNB,
   L1_proc_tx->frame_tx      = frame_tx;
   L1_proc_tx->timestamp_tx  = timestamp_tx;
   // the thread can now be woken up
-  LOG_X(PHY,"L1 RX Waking up L1 TX %d.%d\n",frame_tx,subframe_tx);
+  LOG_D(PHY,"L1 RX Waking up L1 TX %d.%d\n",frame_tx,subframe_tx);
 
   AssertFatal(pthread_cond_signal(&L1_proc_tx->cond) == 0, "ERROR pthread_cond_signal for eNB L1 thread tx\n");
   AssertFatal((ret=pthread_mutex_unlock(&L1_proc_tx->mutex))==0,"mutex_unlock returns %d\n",ret);
@@ -590,7 +590,7 @@ int wakeup_rxtx(PHY_VARS_eNB *eNB,
   L1_rxtx_proc_t *L1_proc=&proc->L1_proc;
   LTE_DL_FRAME_PARMS *fp = &eNB->frame_parms;
   int ret;
-  LOG_X(PHY,"ENTERED wakeup_rxtx, %d.%d\n",ru_proc->frame_rx,ru_proc->tti_rx);
+  LOG_D(PHY,"ENTERED wakeup_rxtx, %d.%d\n",ru_proc->frame_rx,ru_proc->tti_rx);
   // wake up TX for subframe n+sl_ahead
   // lock the TX mutex and make sure the thread is ready
   AssertFatal((ret=pthread_mutex_lock(&L1_proc->mutex)) == 0,"mutex_lock returns %d\n", ret);
@@ -619,7 +619,7 @@ int wakeup_rxtx(PHY_VARS_eNB *eNB,
   L1_proc->subframe_rx  = ru_proc->tti_rx;
   L1_proc->frame_tx     = (L1_proc->subframe_rx > (9-sf_ahead)) ? (L1_proc->frame_rx+1)&1023 : L1_proc->frame_rx;
   L1_proc->subframe_tx  = (L1_proc->subframe_rx + sf_ahead)%10;
-  LOG_X(PHY,"wakeup_rxtx: L1_proc->subframe_rx %d, L1_proc->subframe_tx %d, RU %d\n",L1_proc->subframe_rx,L1_proc->subframe_tx,ru->idx);
+  LOG_D(PHY,"wakeup_rxtx: L1_proc->subframe_rx %d, L1_proc->subframe_tx %d, RU %d\n",L1_proc->subframe_rx,L1_proc->subframe_tx,ru->idx);
   VCD_SIGNAL_DUMPER_DUMP_VARIABLE_BY_NAME(VCD_SIGNAL_DUMPER_VARIABLES_FRAME_NUMBER_WAKEUP_RXTX_RX_RU+ru->idx, L1_proc->frame_rx);
   VCD_SIGNAL_DUMPER_DUMP_VARIABLE_BY_NAME(VCD_SIGNAL_DUMPER_VARIABLES_SUBFRAME_NUMBER_WAKEUP_RXTX_RX_RU+ru->idx, L1_proc->subframe_rx);
   VCD_SIGNAL_DUMPER_DUMP_VARIABLE_BY_NAME(VCD_SIGNAL_DUMPER_VARIABLES_FRAME_NUMBER_WAKEUP_RXTX_TX_RU+ru->idx, L1_proc->frame_tx);
@@ -648,7 +648,7 @@ void wakeup_prach_eNB(PHY_VARS_eNB *eNB,
 
     for (i=0; i<eNB->num_RU; i++) {
       if (ru == eNB->RU_list[i] && eNB->RU_list[i]->wait_cnt == 0) {
-        LOG_X(PHY,"frame %d, subframe %d: RU %d for eNB %d signals PRACH (mask %x, num_RU %d)\n",frame,subframe,i,eNB->Mod_id,proc->RU_mask_prach,eNB->num_RU);
+        LOG_D(PHY,"frame %d, subframe %d: RU %d for eNB %d signals PRACH (mask %x, num_RU %d)\n",frame,subframe,i,eNB->Mod_id,proc->RU_mask_prach,eNB->num_RU);
         proc->RU_mask_prach |= (1<<i);
       } else if (eNB->RU_list[i]->state == RU_SYNC || eNB->RU_list[i]->wait_cnt > 0) {
         proc->RU_mask_prach |= (1<<i);
@@ -666,7 +666,7 @@ void wakeup_prach_eNB(PHY_VARS_eNB *eNB,
 
   // check if we have to detect PRACH first
   if (is_prach_subframe(fp,frame,subframe)>0) {
-    LOG_X(PHY,"Triggering prach processing, frame %d, subframe %d\n",frame,subframe);
+    LOG_D(PHY,"Triggering prach processing, frame %d, subframe %d\n",frame,subframe);
 
     if (proc->instance_cnt_prach == 0) {
       LOG_W(PHY,"[eNB] Frame %d Subframe %d, dropping PRACH\n", frame,subframe);
@@ -706,7 +706,7 @@ void wakeup_prach_eNB_br(PHY_VARS_eNB *eNB,
 
     for (i=0; i<eNB->num_RU; i++) {
       if (ru == eNB->RU_list[i]) {
-        LOG_X(PHY,"frame %d, subframe %d: RU %d for eNB %d signals PRACH BR (mask %x, num_RU %d)\n",frame,subframe,i,eNB->Mod_id,proc->RU_mask_prach_br,eNB->num_RU);
+        LOG_D(PHY,"frame %d, subframe %d: RU %d for eNB %d signals PRACH BR (mask %x, num_RU %d)\n",frame,subframe,i,eNB->Mod_id,proc->RU_mask_prach_br,eNB->num_RU);
 
         if ((proc->RU_mask_prach_br&(1<<i)) > 0)
           LOG_E(PHY,"eNB %d frame %d, subframe %d : previous information (PRACH BR) from RU %d (num_RU %d, mask %x) has not been served yet!\n",
@@ -727,7 +727,7 @@ void wakeup_prach_eNB_br(PHY_VARS_eNB *eNB,
 
   // check if we have to detect PRACH first
   if (is_prach_subframe(fp,frame,subframe)>0) {
-    LOG_X(PHY,"Triggering prach br processing, frame %d, subframe %d\n",frame,subframe);
+    LOG_D(PHY,"Triggering prach br processing, frame %d, subframe %d\n",frame,subframe);
 
     if (proc->instance_cnt_prach_br == 0) {
       LOG_W(PHY,"[eNB] Frame %d Subframe %d, dropping PRACH BR\n", frame,subframe);
@@ -773,7 +773,7 @@ static void *eNB_thread_prach( void *param ) {
 
     if (oai_exit) break;
 
-    LOG_X(PHY,"Running eNB prach procedures\n");
+    LOG_D(PHY,"Running eNB prach procedures\n");
     prach_procedures(eNB,0 );
 
     if (release_thread(&proc->mutex_prach,&proc->instance_cnt_prach,"eNB_prach_thread") < 0) break;
@@ -804,7 +804,7 @@ static void *eNB_thread_prach_br( void *param ) {
 
     if (oai_exit) break;
 
-    LOG_X(PHY,"Running eNB prach procedures for BL/CE UEs\n");
+    LOG_D(PHY,"Running eNB prach procedures for BL/CE UEs\n");
     prach_procedures(eNB,1);
 
     if (release_thread(&proc->mutex_prach_br,&proc->instance_cnt_prach_br,"eNB_prach_thread_br") < 0) break;
@@ -1038,7 +1038,7 @@ void kill_eNB_proc(int inst) {
     AssertFatal((ret=pthread_mutex_unlock(&proc->mutex_prach))==0,"mutex_unlock return %d\n",ret);
     pthread_cond_signal( &proc->cond_asynch_rxtx );
     pthread_cond_broadcast(&sync_phy_proc.cond_phy_proc_tx);
-    LOG_X(PHY, "joining pthread_prach\n");
+    LOG_D(PHY, "joining pthread_prach\n");
     pthread_join( proc->pthread_prach, (void **)&status );
     LOG_I(PHY, "Destroying prach mutex/cond\n");
     pthread_mutex_destroy( &proc->mutex_prach);
@@ -1104,12 +1104,12 @@ void print_opp_meas(void) {
 
 void free_transport(PHY_VARS_eNB *eNB) {
   for (int i=0; i<NUMBER_OF_DLSCH_MAX; i++) {
-    LOG_X(PHY, "Freeing Transport Channel Buffers for DLSCH %d\n",i);
+    LOG_D(PHY, "Freeing Transport Channel Buffers for DLSCH %d\n",i);
 
     for (int j=0; j<2; j++) free_eNB_dlsch(eNB->dlsch[i][j]);
   }
   for (int i=0;i<NUMBER_OF_ULSCH_MAX;i++) {
-    LOG_X(PHY, "Freeing Transport Channel Buffer for ULSCH %d\n",i);
+    LOG_D(PHY, "Freeing Transport Channel Buffer for ULSCH %d\n",i);
     free_eNB_ulsch(eNB->ulsch[i]);
   }
 }
@@ -1131,7 +1131,7 @@ void init_transport(PHY_VARS_eNB *eNB) {
           exit(-1);
         } else {
           eNB->dlsch[i][j]->rnti=0;
-          LOG_X(PHY,"dlsch[%d][%d] => %p rnti:%d\n",i,j,eNB->dlsch[i][j], eNB->dlsch[i][j]->rnti);
+          LOG_D(PHY,"dlsch[%d][%d] => %p rnti:%d\n",i,j,eNB->dlsch[i][j], eNB->dlsch[i][j]->rnti);
         }
       }
     }
@@ -1147,11 +1147,11 @@ void init_transport(PHY_VARS_eNB *eNB) {
     }
 
     eNB->dlsch_SI  = new_eNB_dlsch(1,8,NSOFT,fp->N_RB_DL, 0, fp);
-    LOG_X(PHY,"eNB %d.%d : SI %p\n",eNB->Mod_id,eNB->CC_id,eNB->dlsch_SI);
+    LOG_D(PHY,"eNB %d.%d : SI %p\n",eNB->Mod_id,eNB->CC_id,eNB->dlsch_SI);
     eNB->dlsch_ra  = new_eNB_dlsch(1,8,NSOFT,fp->N_RB_DL, 0, fp);
-    LOG_X(PHY,"eNB %d.%d : RA %p\n",eNB->Mod_id,eNB->CC_id,eNB->dlsch_ra);
+    LOG_D(PHY,"eNB %d.%d : RA %p\n",eNB->Mod_id,eNB->CC_id,eNB->dlsch_ra);
     eNB->dlsch_MCH = new_eNB_dlsch(1,8,NSOFT,fp->N_RB_DL, 0, fp);
-    LOG_X(PHY,"eNB %d.%d : MCH %p\n",eNB->Mod_id,eNB->CC_id,eNB->dlsch_MCH);
+    LOG_D(PHY,"eNB %d.%d : MCH %p\n",eNB->Mod_id,eNB->CC_id,eNB->dlsch_MCH);
   }
 
   eNB->rx_total_gain_dB=130;

@@ -45,7 +45,6 @@
 #include "common/config/config_userapi.h"
 #include <time.h>
 #include <sys/time.h>
-extern int    disable_shm_log ;
 
 // main log variables
 
@@ -69,13 +68,10 @@ mapping log_level_names[] = {
   {"warn",   OAILOG_WARNING},
   {"analysis", OAILOG_ANALYSIS},
   {"info",   OAILOG_INFO},
-  {"extra",  OAILOG_EXTRA},
   {"debug",  OAILOG_DEBUG},
   {"trace",  OAILOG_TRACE},
   {NULL, -1}
 };
-
-char dbgKind[][8]={"[E]","[W]","[A]","[I]","[X]","[D]","[T]"};
 
 mapping log_options[] = {
   {"nocolor", FLAG_NOCOLOR  },
@@ -343,7 +339,7 @@ void  log_getconfig(log_t *g_log)
     g_log->log_component[i].level = map_str_to_int(log_level_names,    *(logparams_level[i].strptr));
     set_log(i, g_log->log_component[i].level);
 
-    if ((*(logparams_logfile[i].uptr) == 1) && (disable_shm_log ==0))
+    if (*(logparams_logfile[i].uptr) == 1)
       set_component_filelog(i);
   }
 
@@ -383,7 +379,7 @@ void  log_getconfig(log_t *g_log)
 
   /* log globally enabled/disabled */
   set_glog_onlinelog(consolelog);
-  if (disable_shm_log == 0)  set_glog_filelog(1);
+  set_glog_filelog(1);
 }
 
 int register_log_component(char *name,
@@ -576,7 +572,7 @@ static inline int log_header(log_component_t *c,
   /* get time */
   gettimeofday(&oaiTime, NULL);
   time_st = localtime(&oaiTime.tv_sec);
-  snprintf(timeString, sizeof(timeString), "%s %d/%02d/%02d %02d:%02d:%02d.%06d ", dbgKind[level],
+  snprintf(timeString, sizeof(timeString), "%d/%02d/%02d %02d:%02d:%02d.%06ld ",
            time_st->tm_year+1900,  time_st->tm_mon+1,  time_st->tm_mday,
            time_st->tm_hour, time_st->tm_min, time_st->tm_sec, oaiTime.tv_usec);
 
@@ -669,8 +665,7 @@ void log_dump(int component,
     if ( flag & FLAG_NOCOLOR )
       sprintf(wbuf+pos,"\n");
     else
-      // sprintf(wbuf+pos,"%s\n",log_level_highlight_end[OAILOG_INFO]);
-      sprintf(wbuf+pos,"%s\n",log_level_highlight_end[OAILOG_EXTRA]);
+      sprintf(wbuf+pos,"%s\n",log_level_highlight_end[OAILOG_INFO]);
     c->print(c->stream,wbuf);
     free(wbuf);
   }
@@ -726,8 +721,8 @@ void set_glog_filelog(int enable)
     strftime(buf,sizeof(buf),"_%Y%m%d%H%M%S.log",local);
     strcpy(buf2,g_log->filelog_name);
     strcat(buf2,buf);
-    fptr = fopen(buf2,"w");
-    // fptr = fopen("/dev/shm/nrue_proc.log","w");
+    // fptr = fopen(buf2,"w");
+    fptr = fopen("/dev/shm/nrue_proc.log","w");
 
     for (int c=0; c< MAX_LOG_COMPONENTS; c++ ) {
       close_component_filelog(c);
@@ -968,8 +963,7 @@ static void log_output_memory(log_component_t *c, const char *file, const char *
       if (write(fileno(c->stream), log_buffer, len)) {};
     }
     if ((level <= OAILOG_INFO) || (level == OAILOG_DEBUG) || (level == OAILOG_EXTRA)){
-      if (disable_shm_log == 0)
-        if (write(fileno(c->stream_ram), log_buffer, len)) {};
+      if (write(fileno(c->stream_ram), log_buffer, len)) {};
     }
   }
 }
@@ -1068,21 +1062,21 @@ int test_log(void) {
   LOG_ENTER(MAC); // because the default level is DEBUG
   LOG_I(EMU, "1 Starting OAI logs version %s Build date: %s on %s\n",
         BUILD_VERSION, BUILD_DATE, BUILD_HOST);
-  LOG_X(MAC, "1 debug  MAC \n");
+  LOG_D(MAC, "1 debug  MAC \n");
   LOG_W(MAC, "1 warning MAC \n");
   set_log(EMU, OAILOG_INFO);
   set_log(MAC, OAILOG_WARNING);
   LOG_I(EMU, "2 Starting OAI logs version %s Build date: %s on %s\n",
         BUILD_VERSION, BUILD_DATE, BUILD_HOST);
   LOG_E(MAC, "2 error MAC\n");
-  LOG_X(MAC, "2 debug  MAC \n");
+  LOG_D(MAC, "2 debug  MAC \n");
   LOG_W(MAC, "2 warning MAC \n");
   LOG_I(MAC, "2 info MAC \n");
   set_log(MAC, OAILOG_NOTICE);
   LOG_ENTER(MAC);
   LOG_I(EMU, "3 Starting OAI logs version %s Build date: %s on %s\n",
         BUILD_VERSION, BUILD_DATE, BUILD_HOST);
-  LOG_X(MAC, "3 debug  MAC \n");
+  LOG_D(MAC, "3 debug  MAC \n");
   LOG_W(MAC, "3 warning MAC \n");
   LOG_I(MAC, "3 info MAC \n");
   set_log(MAC, LOG_DEBUG);
@@ -1090,14 +1084,14 @@ int test_log(void) {
   LOG_ENTER(MAC);
   LOG_I(EMU, "4 Starting OAI logs version %s Build date: %s on %s\n",
         BUILD_VERSION, BUILD_DATE, BUILD_HOST);
-  LOG_X(MAC, "4 debug  MAC \n");
+  LOG_D(MAC, "4 debug  MAC \n");
   LOG_W(MAC, "4 warning MAC \n");
   LOG_I(MAC, "4 info MAC \n");
   set_log(MAC, LOG_DEBUG);
   set_log(EMU, LOG_DEBUG);
   LOG_I(LOG, "5 Starting OAI logs version %s Build date: %s on %s\n",
         BUILD_VERSION, BUILD_DATE, BUILD_HOST);
-  LOG_X(MAC, "5 debug  MAC \n");
+  LOG_D(MAC, "5 debug  MAC \n");
   LOG_W(MAC, "5 warning MAC \n");
   LOG_I(MAC, "5 info MAC \n");
   set_log(MAC, LOG_TRACE);
@@ -1105,7 +1099,7 @@ int test_log(void) {
   LOG_ENTER(MAC);
   LOG_I(LOG, "6 Starting OAI logs version %s Build date: %s on %s\n",
         BUILD_VERSION, BUILD_DATE, BUILD_HOST);
-  LOG_X(MAC, "6 debug  MAC \n");
+  LOG_D(MAC, "6 debug  MAC \n");
   LOG_W(MAC, "6 warning MAC \n");
   LOG_I(MAC, "6 info MAC \n");
   LOG_EXIT(MAC);

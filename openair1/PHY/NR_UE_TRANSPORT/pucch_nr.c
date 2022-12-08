@@ -59,7 +59,7 @@ void nr_generate_pucch0(PHY_VARS_NR_UE *ue,
                         fapi_nr_ul_config_pucch_pdu *pucch_pdu) {
   LOG_I(PHY,"\t [nr_generate_pucch0] sequence generation\n");
 #ifdef DEBUG_NR_PUCCH_TX
-  printf("\t [nr_generate_pucch0] %d\n",nr_slot_tx);
+  printf("\t [nr_generate_pucch0] start function at slot(nr_slot_tx)=%d\n",nr_slot_tx);
 #endif
   /*
    * Implement TS 38.211 Subclause 6.3.2.3.1 Sequence generation
@@ -91,7 +91,7 @@ void nr_generate_pucch0(PHY_VARS_NR_UE *ue,
   // the value of u,v (delta always 0 for PUCCH) has to be calculated according to TS 38.211 Subclause 6.3.2.2.1
   uint8_t u[2]={0,0},v[2]={0,0};
 
-  LOG_X(PHY,"pucch0: slot %d nr_symbols %d, start_symbol %d, prb_start %d, second_hop_prb %d,  group_hop_flag %d, sequence_hop_flag %d, mcs %d\n",
+  LOG_D(PHY,"pucch0: slot %d nr_symbols %d, start_symbol %d, prb_start %d, second_hop_prb %d,  group_hop_flag %d, sequence_hop_flag %d, mcs %d\n",
         nr_slot_tx,pucch_pdu->nr_of_symbols,pucch_pdu->start_symbol_index,pucch_pdu->prb_start,pucch_pdu->second_hop_prb,pucch_pdu->group_hop_flag,pucch_pdu->sequence_hop_flag,pucch_pdu->mcs);
 
 #ifdef DEBUG_NR_PUCCH_TX
@@ -168,7 +168,7 @@ void nr_generate_pucch0(PHY_VARS_NR_UE *ue,
     }
   }
   disable_pdcch = 0;
-  LOG_X(RLC,"PDCCH Enabled\n");
+  LOG_I(RLC,"PDCCH Enabled\n");
 }
 
 void nr_generate_pucch1(PHY_VARS_NR_UE *ue,
@@ -185,10 +185,10 @@ void nr_generate_pucch1(PHY_VARS_NR_UE *ue,
   uint16_t startingPRB = pucch_pdu->prb_start + pucch_pdu->bwp_start;
   uint8_t timeDomainOCC = pucch_pdu->time_domain_occ_idx;
 
-//#ifdef DEBUG_NR_PUCCH_TX
-  LOG_I(PHY,"\t [nr_generate_pucch1] start function at slot(nr_slot_tx)=%d amp %d  payload=%lu m0=%d nrofSymbols=%d startingSymbolIndex=%d startingPRB=%d second_hop_prb=%d timeDomainOCC=%d nr_bit=%d\n",
-         nr_slot_tx, amp, payload,m0,nrofSymbols,startingSymbolIndex,startingPRB,pucch_pdu->second_hop_prb,timeDomainOCC,pucch_pdu->n_bit);
-//#endif
+#ifdef DEBUG_NR_PUCCH_TX
+  printf("\t [nr_generate_pucch1] start function at slot(nr_slot_tx)=%d payload=%lu m0=%d nrofSymbols=%d startingSymbolIndex=%d startingPRB=%d second_hop_prb=%d timeDomainOCC=%d nr_bit=%d\n",
+         nr_slot_tx,payload,m0,nrofSymbols,startingSymbolIndex,startingPRB,pucch_pdu->second_hop_prb,timeDomainOCC,pucch_pdu->n_bit);
+#endif
   /*
    * Implement TS 38.211 Subclause 6.3.2.4.1 Sequence modulation
    *
@@ -509,7 +509,6 @@ void nr_generate_pucch1(PHY_VARS_NR_UE *ue,
   LOG_I(PHY,"\t [nr_generate_pucch1] finished\n");
 
   disable_pdcch = 0;
-  LOG_X(RLC,"PDCCH Enabled\n");
 }
 
 #if 0
@@ -833,7 +832,7 @@ static inline void nr_pucch2_3_4_scrambling(uint16_t M_bit,uint16_t rnti,uint16_
     s = lte_gold_generic(&x1, &x2, (iprime==0) ? 1 : 0);
     B=((uint32_t*)B64)[iprime];
     for (int n=0;n<M_bit2;n+=8)
-      LOG_X(PHY,"PUCCH2 encoded %d : %d,%d,%d,%d,%d,%d,%d,%d\n",n,
+      LOG_D(PHY,"PUCCH2 encoded %d : %d,%d,%d,%d,%d,%d,%d,%d\n",n,
 	    (B>>n)&1,
 	    (B>>(n+1))&1,
 	    (B>>(n+2))&1,

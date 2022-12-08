@@ -142,11 +142,11 @@ int32_t generate_srs(LTE_DL_FRAME_PARMS *frame_parms,
   uint32_t u=frame_parms->pucch_config_common.grouphop[1+(subframe<<1)];;
   uint32_t v=frame_parms->pusch_config_common.ul_ReferenceSignalsPUSCH.seqhop[1+(subframe<<1)];
 
-  LOG_X(PHY,"SRS root sequence: u %d, v %d\n",u,v);
-  LOG_X(PHY,"CommonSrsConfig:    Csrs %d, Ssrs %d, AnSrsSimultan %d \n",Csrs,
+  LOG_D(PHY,"SRS root sequence: u %d, v %d\n",u,v);
+  LOG_D(PHY,"CommonSrsConfig:    Csrs %d, Ssrs %d, AnSrsSimultan %d \n",Csrs,
         frame_parms->soundingrs_ul_config_common.srs_SubframeConfig,
         frame_parms->soundingrs_ul_config_common.ackNackSRS_SimultaneousTransmission);
-  LOG_X(PHY,"DedicatedSrsConfig: Bsrs %d, bhop %d, nRRC %d, Isrs %d, kTC %d, n_SRS %d\n",Bsrs,soundingrs_ul_config_dedicated->srs_HoppingBandwidth,n_RRC
+  LOG_D(PHY,"DedicatedSrsConfig: Bsrs %d, bhop %d, nRRC %d, Isrs %d, kTC %d, n_SRS %d\n",Bsrs,soundingrs_ul_config_dedicated->srs_HoppingBandwidth,n_RRC
                                                                                        ,soundingrs_ul_config_dedicated->srs_ConfigIndex,kTC
                                                                                        ,soundingrs_ul_config_dedicated->cyclicShift);
 
@@ -192,7 +192,7 @@ int32_t generate_srs(LTE_DL_FRAME_PARMS *frame_parms,
   }
 
 #ifdef DEBUG_SRS
-  LOG_X(PHY,"generate_srs_tx: Msc_RS = %d, Msc_RS_idx = %d, k0 = %d\n",Msc_RS, Msc_RS_idx,k0);
+  LOG_D(PHY,"generate_srs_tx: Msc_RS = %d, Msc_RS_idx = %d, k0 = %d\n",Msc_RS, Msc_RS_idx,k0);
 #endif
 
     carrier_pos = (frame_parms->first_carrier_offset + k0);
@@ -218,7 +218,7 @@ int32_t generate_srs(LTE_DL_FRAME_PARMS *frame_parms,
 int generate_srs_tx_emul(PHY_VARS_UE *phy_vars_ue,uint8_t subframe)
 {
 
-  LOG_X(PHY,"[UE] generate_srs_tx_emul for subframe %d\n",subframe);
+  LOG_D(PHY,"[UE] generate_srs_tx_emul for subframe %d\n",subframe);
   return(0);
 }
 

@@ -373,7 +373,7 @@ schedule_SR (module_id_t module_idP,
       /* Drop the allocation because ULSCH will handle it with BSR */
       if (skip_ue == 1) continue;
 
-      LOG_X(MAC, "Frame %d, Subframe %d : Scheduling SR for UE %d/%x is_harq:%d \n",
+      LOG_D(MAC, "Frame %d, Subframe %d : Scheduling SR for UE %d/%x is_harq:%d \n",
             frameP,
             subframeP,
             UE_id,
@@ -387,11 +387,11 @@ schedule_SR (module_id_t module_idP,
         sr.sr_information_rel10.tl.tag                    = NFAPI_UL_CONFIG_REQUEST_SR_INFORMATION_REL10_TAG;
         sr.sr_information_rel10.number_of_pucch_resources = 1;
         sr.sr_information_rel10.pucch_index_p1            = *UE_info->UE_template[CC_id][UE_id].physicalConfigDedicated->ext2->schedulingRequestConfig_v1020->sr_PUCCH_ResourceIndexP1_r10;
-        LOG_X(MAC, "REL10 PUCCH INDEX P1:%d \n", sr.sr_information_rel10.pucch_index_p1);
+        LOG_D(MAC, "REL10 PUCCH INDEX P1:%d \n", sr.sr_information_rel10.pucch_index_p1);
       } else {
         sr.sr_information_rel8.tl.tag      = NFAPI_UL_CONFIG_REQUEST_SR_INFORMATION_REL8_TAG;
         sr.sr_information_rel8.pucch_index = UE_info->UE_template[CC_id][UE_id].physicalConfigDedicated->schedulingRequestConfig->choice.setup.sr_PUCCH_ResourceIndex;
-        LOG_X(MAC, "REL8 PUCCH INDEX:%d\n", sr.sr_information_rel8.pucch_index);
+        LOG_D(MAC, "REL8 PUCCH INDEX:%d\n", sr.sr_information_rel8.pucch_index);
       }
 
       /* If there is already an HARQ pdu, convert to SR_HARQ */
@@ -453,14 +453,14 @@ check_ul_failure(module_id_t module_idP, int CC_id, int UE_id,
       DL_req[CC_id].dl_config_request_body.number_pdu++;
       DL_req[CC_id].dl_config_request_body.tl.tag                      = NFAPI_DL_CONFIG_REQUEST_BODY_TAG;
       DL_req[CC_id].sfn_sf = frameP<<4 | subframeP;
-      LOG_X(MAC,
+      LOG_D(MAC,
             "UE %d rnti %x: sending PDCCH order for RAPROC (failure timer %d), resource_block_coding %d \n",
             UE_id, rnti,
             UE_info->UE_sched_ctrl[UE_id].ul_failure_timer,
             dl_config_pdu->dci_dl_pdu.
             dci_dl_pdu_rel8.resource_block_coding);
     } else {    // ra_pdcch_sent==1
-      LOG_X(MAC,
+      LOG_D(MAC,
             "UE %d rnti %x: sent PDCCH order for RAPROC waiting (failure timer %d) \n",
             UE_id, rnti,
             UE_info->UE_sched_ctrl[UE_id].ul_failure_timer);
@@ -501,7 +501,7 @@ check_ul_failure(module_id_t module_idP, int CC_id, int UE_id,
   UE_info->UE_sched_ctrl[UE_id].uplane_inactivity_timer++;
 
   if((U_PLANE_INACTIVITY_VALUE != 0) && (UE_info->UE_sched_ctrl[UE_id].uplane_inactivity_timer > (U_PLANE_INACTIVITY_VALUE * 10))) {
-    LOG_X(MAC,"UE %d rnti %x: U-Plane Failure after repeated PDCCH orders: Triggering RRC \n",UE_id,rnti);
+    LOG_D(MAC,"UE %d rnti %x: U-Plane Failure after repeated PDCCH orders: Triggering RRC \n",UE_id,rnti);
     mac_eNB_rrc_uplane_failure(module_idP,CC_id,frameP,subframeP,rnti);
     UE_info->UE_sched_ctrl[UE_id].uplane_inactivity_timer  = 0;
   }// time > 60s
@@ -548,7 +548,7 @@ copy_ulreq(module_id_t module_idP, frame_t frameP, sub_frame_t subframeP) {
     ul_req_tmp->ul_config_request_body.number_of_pdus = 0;
 
     if (ul_req->ul_config_request_body.number_of_pdus>0) {
-      LOG_X(MAC, "%s() active NOW (frameP:%d subframeP:%d) pdus:%d\n", __FUNCTION__, frameP, subframeP, ul_req->ul_config_request_body.number_of_pdus);
+      LOG_D(MAC, "%s() active NOW (frameP:%d subframeP:%d) pdus:%d\n", __FUNCTION__, frameP, subframeP, ul_req->ul_config_request_body.number_of_pdus);
     }
 
     memcpy((void *)ul_req->ul_config_request_body.ul_config_pdu_list,
@@ -592,7 +592,7 @@ eNB_dlsch_ulsch_scheduler(module_id_t module_idP,
           eNB->frame, eNB->subframe, frameP, subframeP, delta);
     return;
   }
-  LOG_X(MAC, "Entering dlsch_ulsch scheduler %d.%d -> %d.%d = %d\n",
+  LOG_D(MAC, "Entering dlsch_ulsch scheduler %d.%d -> %d.%d = %d\n",
         eNB->frame, eNB->subframe, frameP, subframeP, delta);
 
   eNB->frame    = frameP;
@@ -883,7 +883,7 @@ eNB_dlsch_ulsch_scheduler(module_id_t module_idP,
       /* Increment these timers, they are cleared when we receive an sdu */
       UE_scheduling_control->ul_inactivity_timer++;
       UE_scheduling_control->cqi_req_timer++;
-      LOG_X(MAC, "UE %d/%x : ul_inactivity %d, cqi_req %d\n",
+      LOG_D(MAC, "UE %d/%x : ul_inactivity %d, cqi_req %d\n",
             UE_id,
             rnti,
             UE_scheduling_control->ul_inactivity_timer,

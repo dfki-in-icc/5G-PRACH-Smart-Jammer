@@ -195,7 +195,7 @@ void ldpc8blocks( void *p) {
     nb_re_dmrs = 4*rel15->numDmrsCdmGrpsNoData;
 
   unsigned int G = nr_get_G(nb_rb, nb_symb_sch, nb_re_dmrs, length_dmrs,mod_order,rel15->nrOfLayers);
-  LOG_X(PHY,"dlsch coding A %d  Kr %d G %d (nb_rb %d, nb_symb_sch %d, nb_re_dmrs %d, length_dmrs %d, mod_order %d)\n",
+  LOG_D(PHY,"dlsch coding A %d  Kr %d G %d (nb_rb %d, nb_symb_sch %d, nb_re_dmrs %d, length_dmrs %d, mod_order %d)\n",
         A,impp->K,G, nb_rb,nb_symb_sch,nb_re_dmrs,length_dmrs,(int)mod_order);
   // nrLDPC_encoder output is in "d"
   // let's make this interface happy!
@@ -214,7 +214,7 @@ void ldpc8blocks( void *p) {
     }
 
 #ifdef DEBUG_DLSCH_CODING
-    LOG_X(PHY,"rvidx in encoding = %d\n", rel15->rvIndex[0]);
+    LOG_D(PHY,"rvidx in encoding = %d\n", rel15->rvIndex[0]);
 #endif
     uint32_t E = nr_get_E(G, impp->n_segments, mod_order, rel15->nrOfLayers, rr);
     //#ifdef DEBUG_DLSCH_CODING
@@ -367,15 +367,15 @@ int nr_dlsch_encoding(PHY_VARS_gNB *gNB,
     //d_tmp[r] = &harq->d[r][0];
     //channel_input[r] = &harq->d[r][0];
 #ifdef DEBUG_DLSCH_CODING
-    LOG_X(PHY,"Encoder: B %d F %d \n",harq->B, impp.F);
-    LOG_X(PHY,"start ldpc encoder segment %d/%d\n",r,impp.n_segments);
-    LOG_X(PHY,"input %d %d %d %d %d \n", harq->c[r][0], harq->c[r][1], harq->c[r][2],harq->c[r][3], harq->c[r][4]);
+    LOG_D(PHY,"Encoder: B %d F %d \n",harq->B, impp.F);
+    LOG_D(PHY,"start ldpc encoder segment %d/%d\n",r,impp.n_segments);
+    LOG_D(PHY,"input %d %d %d %d %d \n", harq->c[r][0], harq->c[r][1], harq->c[r][2],harq->c[r][3], harq->c[r][4]);
 
     for (int cnt =0 ; cnt < 22*(*impp.Zc)/8; cnt ++) {
-      LOG_X(PHY,"%d ", harq->c[r][cnt]);
+      LOG_D(PHY,"%d ", harq->c[r][cnt]);
     }
 
-    LOG_X(PHY,"\n");
+    LOG_D(PHY,"\n");
 #endif
     //ldpc_encoder_orig((unsigned char*)harq->c[r],harq->d[r],*Zc,Kb,Kr,BG,0);
     //ldpc_encoder_optim((unsigned char*)harq->c[r],(unsigned char*)&harq->d[r][0],*Zc,Kb,Kr,BG,NULL,NULL,NULL,NULL);

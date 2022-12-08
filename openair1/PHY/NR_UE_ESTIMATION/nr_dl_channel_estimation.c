@@ -454,7 +454,7 @@ int nr_pbch_channel_estimation(PHY_VARS_NR_UE *ue,
         for (p=0; p<ue->frame_parms.nb_antenna_ports_gNB; p++) {
           if (ue->pbch_vars[gNB_id]->dl_ch_estimates[(p*ue->frame_parms.nb_antennas_rx)+aarx])
           {
-            LOG_X(PHY,"Channel Impulse Computation Slot %d ThreadId %d Symbol %d ch_offset %d\n", Ns, proc->thread_id, symbol, ch_offset);
+            LOG_D(PHY,"Channel Impulse Computation Slot %d ThreadId %d Symbol %d ch_offset %d\n", Ns, proc->thread_id, symbol, ch_offset);
             idft(idftsizeidx,
                  (int16_t*) &ue->pbch_vars[gNB_id]->dl_ch_estimates[(p*ue->frame_parms.nb_antennas_rx)+aarx][ch_offset],
                  (int16_t*) ue->pbch_vars[gNB_id]->dl_ch_estimates_time[(p*ue->frame_parms.nb_antennas_rx)+aarx],1);
@@ -673,11 +673,10 @@ int nr_pdsch_channel_estimation(PHY_VARS_NR_UE *ue,
   k = bwp_start_subcarrier;
   int re_offset = k;
 
-//#ifdef DEBUG_CH
-  LOG_D(RLC,"PDSCH Channel Estimation : ThreadId %d, gNB_id %d ch_offset %d, symbol_offset %d OFDM size %d, Ncp=%d, Ns=%d, k=%d symbol %d\n",proc->thread_id, gNB_id,ch_offset,symbol_offset,ue->frame_parms.ofdm_symbol_size,
+#ifdef DEBUG_CH
+  printf("PDSCH Channel Estimation : ThreadId %d, gNB_id %d ch_offset %d, symbol_offset %d OFDM size %d, Ncp=%d, Ns=%d, k=%d symbol %d\n",proc->thread_id, gNB_id,ch_offset,symbol_offset,ue->frame_parms.ofdm_symbol_size,
          ue->frame_parms.Ncp,Ns,k, symbol);
-//#endif
- if(nb_rb_pdsch==0) return -1;
+#endif
 
   // generate pilot for gNB port number 1000+p
   uint16_t rb_offset = (bwp_start_subcarrier - ue->frame_parms.first_carrier_offset) / 12;

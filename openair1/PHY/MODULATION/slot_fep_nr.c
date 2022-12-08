@@ -353,7 +353,7 @@ void apply_nr_rotation_ul(NR_DL_FRAME_PARMS *frame_parms,
     
     uint32_t rot2 = ((uint32_t*)frame_parms->symbol_rotation[1])[symbol + symb_offset];
     ((int16_t*)&rot2)[1]=-((int16_t*)&rot2)[1];
-    LOG_X(PHY,"slot %d, symb_offset %d rotating by %d.%d\n",slot,symb_offset,((int16_t*)&rot2)[0],((int16_t*)&rot2)[1]);
+    LOG_D(PHY,"slot %d, symb_offset %d rotating by %d.%d\n",slot,symb_offset,((int16_t*)&rot2)[0],((int16_t*)&rot2)[1]);
     rotate_cpx_vector((int16_t *)&rxdataF[soffset+(frame_parms->ofdm_symbol_size*symbol)],
 		      (int16_t*)&rot2,
 		      (int16_t *)&rxdataF[soffset+(frame_parms->ofdm_symbol_size*symbol)],

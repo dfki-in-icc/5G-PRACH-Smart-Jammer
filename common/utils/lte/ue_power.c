@@ -100,7 +100,7 @@ int16_t estimate_ue_tx_power(int norm,uint32_t tbs, uint32_t nb_rb, uint8_t cont
   delta_mcs = ((hundred_times_delta_TF[MPR_x100/6]+10*dB_fixed_times10((beta_offset_pusch_x8)>>3))/100.0);
                                                                                                                  
   bw_factor = (norm!=0) ? 0 : (hundred_times_log10_NPRB[nb_rb-1]/100.0);
-  LOG_X(PHY,"estimated ue tx power %d (num_re %d, sumKr %d, mpr_x100 %d, delta_mcs %f, bw_factor %f)\n",
+  LOG_D(PHY,"estimated ue tx power %d (num_re %d, sumKr %d, mpr_x100 %d, delta_mcs %f, bw_factor %f)\n",
          (int16_t)ceil(delta_mcs + bw_factor), num_re, sumKr, MPR_x100, delta_mcs, bw_factor);
   return (int16_t)ceil(delta_mcs + bw_factor);
 

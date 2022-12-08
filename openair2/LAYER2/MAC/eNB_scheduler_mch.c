@@ -189,7 +189,7 @@ schedule_MBMS_NFAPI(module_id_t module_idP, uint8_t CC_id, frame_t frameP,
         		mch_scheduling_period = 8 << cc->pmch_Config[0]->mch_SchedulingPeriod_r9;
             }
 
-           LOG_X(MAC,"frameP %d subframe %d period %d alloc_offset %d mcch_mcs %d mcch_period %d mcch_offset %ld buf %x mch_scheduling_period %d\n",frameP, subframeP, period, alloc_offset,mcch_mcs, mcch_period, mcch_offset,(cc->mbsfn_AreaInfo[i]->mcch_Config_r9.sf_AllocInfo_r9.buf[0]),mch_scheduling_period);
+           LOG_D(MAC,"frameP %d subframe %d period %d alloc_offset %d mcch_mcs %d mcch_period %d mcch_offset %ld buf %x mch_scheduling_period %d\n",frameP, subframeP, period, alloc_offset,mcch_mcs, mcch_period, mcch_offset,(cc->mbsfn_AreaInfo[i]->mcch_Config_r9.sf_AllocInfo_r9.buf[0]),mch_scheduling_period);
 	//if( (frameP % (4 << cc->commonSF_AllocPeriod_r9) ) == 0 ){
 	//	   if((subframeP==0)){
 	//	   	x=0;
@@ -229,7 +229,7 @@ schedule_MBMS_NFAPI(module_id_t module_idP, uint8_t CC_id, frame_t frameP,
 			msi_pos=subframeP+shifted_sf;
 			if(shifted_sf==0)
 				mbms_mch_i++;
-			LOG_X(MAC,"MSP, frameP %d subframeP %d msi_pos(%d) mbms_mch_i %d shifted_sf %d\n",frameP, subframeP, msi_pos,mbms_mch_i,shifted_sf);
+			LOG_D(MAC,"MSP, frameP %d subframeP %d msi_pos(%d) mbms_mch_i %d shifted_sf %d\n",frameP, subframeP, msi_pos,mbms_mch_i,shifted_sf);
 		}
 	    }
 
@@ -325,7 +325,7 @@ schedule_MBMS_NFAPI(module_id_t module_idP, uint8_t CC_id, frame_t frameP,
             }// end switch
 
             if ((msi_flag == 1) || (mcch_flag == 1) || (mtch_flag == 1)) {
-                        LOG_X(MAC,
+                        LOG_D(MAC,
                               "[eNB %d] CC_id %d Frame %d Subframe %d: sync area %d SF alloc %d: msi flag %d, mcch flag %d, mtch flag %d\n",
                               module_idP, CC_id, frameP, subframeP, i, j,
                               msi_flag, mcch_flag, mtch_flag);
@@ -337,7 +337,7 @@ schedule_MBMS_NFAPI(module_id_t module_idP, uint8_t CC_id, frame_t frameP,
            // }
 
             if((frameP % period ) == alloc_offset){
-               LOG_X(MAC,"non_mbsfn_SubframeConfig %x\n",non_mbsfn_SubframeConfig);
+               LOG_D(MAC,"non_mbsfn_SubframeConfig %x\n",non_mbsfn_SubframeConfig);
                switch(subframeP){
                   case 0:{
                        mtch_flag=0;mcch_flag=0;msi_flag=0;
@@ -400,12 +400,12 @@ schedule_MBMS_NFAPI(module_id_t module_idP, uint8_t CC_id, frame_t frameP,
 		  if(msi_flag==1){
 		  	if ( (/*AJ*/ (/*V*/ ( /*U*/ (frameP %( 4 << cc->commonSF_AllocPeriod_r9)) ) / 8 ) % ((8 << cc->pmch_Config[mbms_mch_i]->mch_SchedulingPeriod_r9) / 8 ) ) != 0 ){
 				msi_flag=0;
-				LOG_X(MAC,"frameP %d subframeP %d reset(%d)\n",frameP, subframeP, mbms_mch_i);
+				LOG_D(MAC,"frameP %d subframeP %d reset(%d)\n",frameP, subframeP, mbms_mch_i);
 			}
 	        
 		  }
 
-	          LOG_X(MAC,"[eNB %d] CC_id %d Frame %d Subframe %d: sync area %d SF alloc %d: msi flag %d, mcch flag %d, mtch flag %d, x %d\n",
+	          LOG_D(MAC,"[eNB %d] CC_id %d Frame %d Subframe %d: sync area %d SF alloc %d: msi flag %d, mcch flag %d, mtch flag %d, x %d\n",
                   module_idP, CC_id, frameP, subframeP, i, j,
                    msi_flag, mcch_flag, mtch_flag,x);
                   break;
@@ -421,7 +421,7 @@ schedule_MBMS_NFAPI(module_id_t module_idP, uint8_t CC_id, frame_t frameP,
             	   mcch_Config_r9.mcch_RepetitionPeriod_r9);
             msi_pos = 0;
             ii = 0;
-            LOG_X(MAC, "[eNB %d] CC_id %d Frame %d subframeP %d : Checking MBSFN Sync Area %d/%d with SF allocation %d/%d for MCCH and MTCH (mbsfn period %d, mcch period %d)\n",
+            LOG_D(MAC, "[eNB %d] CC_id %d Frame %d subframeP %d : Checking MBSFN Sync Area %d/%d with SF allocation %d/%d for MCCH and MTCH (mbsfn period %d, mcch period %d)\n",
                   module_idP, CC_id, frameP, subframeP, i,
                   cc->num_active_mbsfn_area, j, cc->num_sf_allocation_pattern,
                   mbsfn_period, mcch_period);
@@ -455,14 +455,14 @@ schedule_MBMS_NFAPI(module_id_t module_idP, uint8_t CC_id, frame_t frameP,
             	     	    choice.oneFrame.buf[0] & (0x80 >> msi_pos);
             	     	msi_pos++;
             	         }
-            	         LOG_X(MAC, "[eNB %d] CC_id %d Frame %d subframeP %d : sync area %d sf allocation pattern %d sf alloc %x msi pos is %d \n",
+            	         LOG_D(MAC, "[eNB %d] CC_id %d Frame %d subframeP %d : sync area %d sf allocation pattern %d sf alloc %x msi pos is %d \n",
             	     	  module_idP, CC_id, frameP, subframeP, i, j,
             	     	  cc->mbsfn_SubframeConfig[j]->subframeAllocation.choice.oneFrame.buf[0],
             	     	  msi_pos);
 	 	         if((subframeP==1)){
 		        	x=0;
 		        	mbms_mch_i=0;
-	      	     	LOG_X(MAC,"MSP, frameP %d subframeP %d msi_pos(%d) mbms_mch_i %d\n",frameP, subframeP, msi_pos,mbms_mch_i);
+	      	     	LOG_D(MAC,"MSP, frameP %d subframeP %d msi_pos(%d) mbms_mch_i %d\n",frameP, subframeP, msi_pos,mbms_mch_i);
 		         }
             	     }
 	       
@@ -475,7 +475,7 @@ schedule_MBMS_NFAPI(module_id_t module_idP, uint8_t CC_id, frame_t frameP,
 		     	      if( x == cc->pmch_Config[mbms_mch_i]->sf_AllocEnd_r9){
 		     	 	msi_pos=1;
 		     	 	mbms_mch_i++;
-		     	 	LOG_X(MAC,"MSP, frameP %d subframeP %d msi_pos(%d) mbms_mch_i %d\n",frameP, subframeP, msi_pos,mbms_mch_i);
+		     	 	LOG_D(MAC,"MSP, frameP %d subframeP %d msi_pos(%d) mbms_mch_i %d\n",frameP, subframeP, msi_pos,mbms_mch_i);
 		     	      }
 		     	    }
             	     	    if (msi_pos == 1) {
@@ -496,7 +496,7 @@ schedule_MBMS_NFAPI(module_id_t module_idP, uint8_t CC_id, frame_t frameP,
 		     	      if( x == cc->pmch_Config[mbms_mch_i]->sf_AllocEnd_r9){
 		     	 	msi_pos=2;
 		     	 	mbms_mch_i++;
-		     	 	LOG_X(MAC,"MSP, frameP %d subframeP %d msi_pos(%d) mbms_mch_i %d\n",frameP, subframeP, msi_pos,mbms_mch_i);
+		     	 	LOG_D(MAC,"MSP, frameP %d subframeP %d msi_pos(%d) mbms_mch_i %d\n",frameP, subframeP, msi_pos,mbms_mch_i);
 		     	      }
 		     	    }
 
@@ -529,7 +529,7 @@ schedule_MBMS_NFAPI(module_id_t module_idP, uint8_t CC_id, frame_t frameP,
 		     	      if( x == cc->pmch_Config[mbms_mch_i]->sf_AllocEnd_r9){
 		     	 	msi_pos=3;
 		     	 	mbms_mch_i++;
-		     	 	LOG_X(MAC,"MSP, frameP %d subframeP %d msi_pos(%d) mbms_mch_i %d\n",frameP, subframeP, msi_pos,mbms_mch_i);
+		     	 	LOG_D(MAC,"MSP, frameP %d subframeP %d msi_pos(%d) mbms_mch_i %d\n",frameP, subframeP, msi_pos,mbms_mch_i);
 		     	      }
 		     	    }
             	     	    if (msi_pos == 3) {
@@ -564,7 +564,7 @@ schedule_MBMS_NFAPI(module_id_t module_idP, uint8_t CC_id, frame_t frameP,
 		     	      if( x == cc->pmch_Config[mbms_mch_i]->sf_AllocEnd_r9){
 		     	 	msi_pos=4;
 		     	 	mbms_mch_i++;
-		     	 	LOG_X(MAC,"MSP, frameP %d subframeP %d msi_pos(%d) mbms_mch_i %d\n",frameP, subframeP, msi_pos,mbms_mch_i);
+		     	 	LOG_D(MAC,"MSP, frameP %d subframeP %d msi_pos(%d) mbms_mch_i %d\n",frameP, subframeP, msi_pos,mbms_mch_i);
 		     	      }
 		     	    }
             	     	    if (msi_pos == 4) {
@@ -596,7 +596,7 @@ schedule_MBMS_NFAPI(module_id_t module_idP, uint8_t CC_id, frame_t frameP,
 		     	      if( x == cc->pmch_Config[mbms_mch_i]->sf_AllocEnd_r9){
 		     	 	msi_pos=5;
 		     	 	mbms_mch_i++;
-		     	 	LOG_X(MAC,"MSP, frameP %d subframeP %d msi_pos(%d) mbms_mch_i %d\n",frameP, subframeP, msi_pos,mbms_mch_i);
+		     	 	LOG_D(MAC,"MSP, frameP %d subframeP %d msi_pos(%d) mbms_mch_i %d\n",frameP, subframeP, msi_pos,mbms_mch_i);
 		     	      }
 		     	    }
 
@@ -629,7 +629,7 @@ schedule_MBMS_NFAPI(module_id_t module_idP, uint8_t CC_id, frame_t frameP,
 		     	      if( x == cc->pmch_Config[mbms_mch_i]->sf_AllocEnd_r9){
 		     	 	msi_pos=6;
 		     	 	mbms_mch_i++;
-		     	 	LOG_X(MAC,"MSP, frameP %d subframeP %d msi_pos(%d) mbms_mch_i %d\n",frameP, subframeP, msi_pos,mbms_mch_i);
+		     	 	LOG_D(MAC,"MSP, frameP %d subframeP %d msi_pos(%d) mbms_mch_i %d\n",frameP, subframeP, msi_pos,mbms_mch_i);
 		     	      }
 		     	    }
             	     	    if (msi_pos == 6) {
@@ -667,12 +667,12 @@ schedule_MBMS_NFAPI(module_id_t module_idP, uint8_t CC_id, frame_t frameP,
 			  if(msi_flag==1){
 			  	if ( (/*AJ*/ (/*V*/ ( /*U*/ (frameP %( 4 << cc->commonSF_AllocPeriod_r9)) ) / 8 ) % ((8 << cc->pmch_Config[mbms_mch_i]->mch_SchedulingPeriod_r9) / 8 ) ) != 0 ){
 					msi_flag=0;
-					LOG_X(MAC,"frameP %d subframeP %d reset(%d)\n",frameP, subframeP, mbms_mch_i);
+					LOG_D(MAC,"frameP %d subframeP %d reset(%d)\n",frameP, subframeP, mbms_mch_i);
 				}
 		        
 			  }
 
-            	         LOG_X(MAC,"[eNB %d] CC_id %d Frame %d Subframe %d: sync area %d SF alloc %d: msi flag %d, mcch flag %d, mtch flag %d x %d\n",
+            	         LOG_D(MAC,"[eNB %d] CC_id %d Frame %d Subframe %d: sync area %d SF alloc %d: msi flag %d, mcch flag %d, mtch flag %d x %d\n",
             	     	  module_idP, CC_id, frameP, subframeP, i, j,
             	     	  msi_flag, mcch_flag, mtch_flag,x);
             	         break;
@@ -750,7 +750,7 @@ schedule_MBMS_NFAPI(module_id_t module_idP, uint8_t CC_id, frame_t frameP,
 	    header_len_msi = 3;
 	}
 
-	LOG_X(MAC, "[eNB %d] CC_id %d Frame %d : MSI->MCH, length of MSI is %d bytes TBS %d, bytes in buffer %d stop_sf_LSB %d msi_sfs %d cc->pmch_Config[0]->sf_AllocEnd_r9 %ld\n",
+	LOG_D(MAC, "[eNB %d] CC_id %d Frame %d : MSI->MCH, length of MSI is %d bytes TBS %d, bytes in buffer %d stop_sf_LSB %d msi_sfs %d cc->pmch_Config[0]->sf_AllocEnd_r9 %ld\n",
 	      module_idP, CC_id, frameP, msi_length,TBS, bytes_in_buffer,msi_pmch_stop,msi_sfs,cc->pmch_Config[mbms_mch_i]->sf_AllocEnd_r9);
 	    
 	msi_sfs = 0;
@@ -764,7 +764,7 @@ schedule_MBMS_NFAPI(module_id_t module_idP, uint8_t CC_id, frame_t frameP,
 	sdu_lcids[num_sdus] = MCH_SCHDL_INFO;
 	sdu_lengths[num_sdus] = msi_length;
 	sdu_length_total += sdu_lengths[num_sdus];
-	LOG_X(MAC, "[eNB %d] CC_id %d Create %d bytes for MSI\n",
+	LOG_D(MAC, "[eNB %d] CC_id %d Create %d bytes for MSI\n",
 	      module_idP, CC_id, sdu_lengths[num_sdus]);
 	num_sdus++;
 	cc->msi_active = 1;
@@ -781,17 +781,17 @@ schedule_MBMS_NFAPI(module_id_t module_idP, uint8_t CC_id, frame_t frameP,
 
 	  if (mcch_sdu_length > 0) {
               mcch_sdu_length+=1; //RLC ?
-	      LOG_X(MAC, "[eNB %d] CC_id %d Frame %d subframeP %d : MCCH->MCH, Received %d bytes from RRC \n",
+	      LOG_D(MAC, "[eNB %d] CC_id %d Frame %d subframeP %d : MCCH->MCH, Received %d bytes from RRC \n",
 		    module_idP, CC_id, frameP, subframeP, mcch_sdu_length);
 
 	      header_len_mcch = 2;
 
 	      if (cc->tdd_Config != NULL) {
-		  LOG_X(MAC,"[eNB %d] CC_id %d Frame %d subframeP %d: Scheduling MCCH->MCH (TDD) for MCCH message %d bytes (mcs %d )\n",
+		  LOG_D(MAC,"[eNB %d] CC_id %d Frame %d subframeP %d: Scheduling MCCH->MCH (TDD) for MCCH message %d bytes (mcs %d )\n",
 			module_idP, CC_id, frameP, subframeP,
 			mcch_sdu_length, mcch_mcs);
 	      } else {
-		  LOG_X(MAC,"[eNB %d] CC_id %d Frame %d subframeP %d: Scheduling MCCH->MCH (FDD) for MCCH message %d bytes (mcs %d)\n",
+		  LOG_D(MAC,"[eNB %d] CC_id %d Frame %d subframeP %d: Scheduling MCCH->MCH (FDD) for MCCH message %d bytes (mcs %d)\n",
 			module_idP, CC_id, frameP, subframeP,
 			mcch_sdu_length, mcch_mcs);
 	      }
@@ -808,7 +808,7 @@ schedule_MBMS_NFAPI(module_id_t module_idP, uint8_t CC_id, frame_t frameP,
 	      }
 
 	      sdu_length_total += sdu_lengths[num_sdus];
-	      LOG_X(MAC,
+	      LOG_D(MAC,
 		    "[eNB %d] CC_id %d Got %d bytes for MCCH from RRC \n",
 		    module_idP, CC_id, sdu_lengths[num_sdus]);
 	      num_sdus++;
@@ -825,17 +825,17 @@ schedule_MBMS_NFAPI(module_id_t module_idP, uint8_t CC_id, frame_t frameP,
 
 	    if (mcch_sdu_length > 0) {
 		mcch_sdu_length+=1; //RLC ?
-		LOG_X(MAC,"[eNB %d] CC_id %d Frame %d subframeP %d : MCCH->MCH, Received %d bytes from RRC \n",
+		LOG_D(MAC,"[eNB %d] CC_id %d Frame %d subframeP %d : MCCH->MCH, Received %d bytes from RRC \n",
 		      module_idP, CC_id, frameP, subframeP, mcch_sdu_length);
 
 		header_len_mcch = 2;
 
 		if (cc->tdd_Config != NULL) {
-		    LOG_X(MAC,"[eNB %d] CC_id %d Frame %d subframeP %d: Scheduling MCCH->MCH (TDD) for MCCH message %d bytes (mcs %d )\n",
+		    LOG_D(MAC,"[eNB %d] CC_id %d Frame %d subframeP %d: Scheduling MCCH->MCH (TDD) for MCCH message %d bytes (mcs %d )\n",
 			  module_idP, CC_id, frameP, subframeP,
 			  mcch_sdu_length, mcch_mcs);
 		} else {
-		    LOG_X(MAC,"[eNB %d] CC_id %d Frame %d subframeP %d: Scheduling MCCH->MCH (FDD) for MCCH message %d bytes (mcs %d)\n",
+		    LOG_D(MAC,"[eNB %d] CC_id %d Frame %d subframeP %d: Scheduling MCCH->MCH (FDD) for MCCH message %d bytes (mcs %d)\n",
 			  module_idP, CC_id, frameP, subframeP,
 			  mcch_sdu_length, mcch_mcs);
 		}
@@ -852,7 +852,7 @@ schedule_MBMS_NFAPI(module_id_t module_idP, uint8_t CC_id, frame_t frameP,
 		}
 
 		sdu_length_total += sdu_lengths[num_sdus];
-		LOG_X(MAC,"[eNB %d] CC_id %d Got %d bytes for MCCH from RRC \n",
+		LOG_D(MAC,"[eNB %d] CC_id %d Got %d bytes for MCCH from RRC \n",
 		      module_idP, CC_id, sdu_lengths[num_sdus]);
 		num_sdus++;
 	    }
@@ -870,11 +870,11 @@ schedule_MBMS_NFAPI(module_id_t module_idP, uint8_t CC_id, frame_t frameP,
     if (mtch_flag == 1 ) {
 	// Calculate TBS
 	// get MTCH data from RLC (like for DTCH)
-	LOG_X(MAC,"[eNB %d] CC_id %d Frame %d subframeP %d: Schedule MTCH (area %d, sfAlloc %d)\n",
+	LOG_D(MAC,"[eNB %d] CC_id %d Frame %d subframeP %d: Schedule MTCH (area %d, sfAlloc %d)\n",
 	      module_idP, CC_id, frameP, subframeP, i, j);
 
 	header_len_mtch = 3;
-	LOG_X(MAC,"[eNB %d], CC_id %d, Frame %d, MTCH->MCH, Checking RLC status (rab %d, tbs %d, len %d)\n",
+	LOG_D(MAC,"[eNB %d], CC_id %d, Frame %d, MTCH->MCH, Checking RLC status (rab %d, tbs %d, len %d)\n",
 	      module_idP, CC_id, frameP, MTCH, TBS,
 	      TBS - header_len_mcch - header_len_msi - sdu_length_total -
 	      header_len_mtch);
@@ -928,7 +928,7 @@ schedule_MBMS_NFAPI(module_id_t module_idP, uint8_t CC_id, frame_t frameP,
 	       msi_control_element, msi_length);
 	}
 
-	LOG_X(MAC, "e-MBMS log channel %u frameP %d, subframeP %d,  rlc_status.bytes_in_buffer is %d TBS_MTCH %d pmch_stop %d msi_sfs %d\n",
+	LOG_D(MAC, "e-MBMS log channel %u frameP %d, subframeP %d,  rlc_status.bytes_in_buffer is %d TBS_MTCH %d pmch_stop %d msi_sfs %d\n",
 	      MTCH, frameP, subframeP, rlc_status.bytes_in_buffer,TBS_MTCH,msi_pmch_stop,msi_sfs);
 
 	//TODO not sure whether msi and mch MCH should be precluded ... keep in mind this konditions just in case if ((rlc_status.bytes_in_buffer > 0 &&  msi_pmch_stop > 0) && ((msi_flag!=1 || mcch_flag!=1))
@@ -945,7 +945,7 @@ schedule_MBMS_NFAPI(module_id_t module_idP, uint8_t CC_id, frame_t frameP,
                                 ,0,
                                  0
                                  );
-	    LOG_X(MAC,"[eNB %d][MBMS USER-PLANE] CC_id %d Got %d bytes for MTCH %d msi_pmch_stop %d msi_sfs %d sdu_lengths[num_sdus] %d\n",
+	    LOG_D(MAC,"[eNB %d][MBMS USER-PLANE] CC_id %d Got %d bytes for MTCH %d msi_pmch_stop %d msi_sfs %d sdu_lengths[num_sdus] %d\n",
 		  module_idP, CC_id, sdu_lengths[num_sdus], MTCH,msi_pmch_stop,msi_sfs, sdu_lengths[num_sdus]);
 
 	    cc->mtch_active = 1;
@@ -1026,10 +1026,10 @@ schedule_MBMS_NFAPI(module_id_t module_idP, uint8_t CC_id, frame_t frameP,
 	cc->MCH_pdu.msi_active = cc->msi_active;
 	cc->MCH_pdu.mcch_active = cc->mcch_active;
 	cc->MCH_pdu.mtch_active = cc->mtch_active;
-	LOG_X(MAC, " MCS for this sf is %d (mcch active %d, mtch active %d)\n",
+	LOG_D(MAC, " MCS for this sf is %d (mcch active %d, mtch active %d)\n",
 	      cc->MCH_pdu.mcs, cc->MCH_pdu.mcch_active,
 	      cc->MCH_pdu.mtch_active);
-	LOG_X(MAC, "[eNB %d][MBMS USER-PLANE ] CC_id %d Generate header : sdu_length_total %d, num_sdus %d, sdu_lengths[0] %d, sdu_lcids[0] %d => payload offset %d,padding %d,post_padding %d (mcs %d, TBS %d), header MTCH %d, header MCCH %d, header MSI %d\n",
+	LOG_D(MAC, "[eNB %d][MBMS USER-PLANE ] CC_id %d Generate header : sdu_length_total %d, num_sdus %d, sdu_lengths[0] %d, sdu_lcids[0] %d => payload offset %d,padding %d,post_padding %d (mcs %d, TBS %d), header MTCH %d, header MCCH %d, header MSI %d\n",
 	      module_idP, CC_id, sdu_length_total, num_sdus,
 	      sdu_lengths[0], sdu_lcids[0], offset, padding, post_padding,
 	      cc->MCH_pdu.mcs, TBS, header_len_mtch, header_len_mcch,
@@ -1131,7 +1131,7 @@ schedule_MBMS(module_id_t module_idP, uint8_t CC_id, frame_t frameP,
 		   mcch_Config_r9.mcch_RepetitionPeriod_r9);
 	msi_pos = 0;
 	ii = 0;
-	LOG_X(MAC,
+	LOG_D(MAC,
 	      "[eNB %d] CC_id %d Frame %d subframeP %d : Checking MBSFN Sync Area %d/%d with SF allocation %d/%d for MCCH and MTCH (mbsfn period %d, mcch period %d)\n",
 	      module_idP, CC_id, frameP, subframeP, i,
 	      cc->num_active_mbsfn_area, j, cc->num_sf_allocation_pattern,
@@ -1171,7 +1171,7 @@ schedule_MBMS(module_id_t module_idP, uint8_t CC_id, frame_t frameP,
 			msi_pos++;
 		    }
 
-		    LOG_X(MAC,
+		    LOG_D(MAC,
 			  "[eNB %d] CC_id %d Frame %d subframeP %d : sync area %d sf allocation pattern %d sf alloc %x msi pos is %d \n",
 			  module_idP, CC_id, frameP, subframeP, i, j,
 			  cc->mbsfn_SubframeConfig[j]->
@@ -1466,7 +1466,7 @@ schedule_MBMS(module_id_t module_idP, uint8_t CC_id, frame_t frameP,
 		// sf allocation is non-overlapping
 		if ((msi_flag == 1) || (mcch_flag == 1)
 		    || (mtch_flag == 1)) {
-		    LOG_X(MAC,
+		    LOG_D(MAC,
 			  "[eNB %d] CC_id %d Frame %d Subframe %d: sync area %d SF alloc %d: msi flag %d, mcch flag %d, mtch flag %d\n",
 			  module_idP, CC_id, frameP, subframeP, i, j,
 			  msi_flag, mcch_flag, mtch_flag);
@@ -1563,9 +1563,9 @@ schedule_MBMS(module_id_t module_idP, uint8_t CC_id, frame_t frameP,
 	    
 	msi_sfs = 0;
 
-	//LOG_X(MAC,"Scheduler: MSI is transmitted in this subframeP \n" );
+	//LOG_D(MAC,"Scheduler: MSI is transmitted in this subframeP \n" );
 
-	//   LOG_X(MAC,"Scheduler: MSI length is %d bytes\n",msi_length);
+	//   LOG_D(MAC,"Scheduler: MSI length is %d bytes\n",msi_length);
 	// Store MSI data to mch_buffer[0]
 	memcpy((char *) &mch_buffer[sdu_length_total],
 	       msi_control_element, msi_length);
@@ -1573,14 +1573,14 @@ schedule_MBMS(module_id_t module_idP, uint8_t CC_id, frame_t frameP,
 	sdu_lcids[num_sdus] = MCH_SCHDL_INFO;
 	sdu_lengths[num_sdus] = msi_length;
 	sdu_length_total += sdu_lengths[num_sdus];
-	LOG_X(MAC, "[eNB %d] CC_id %d Create %d bytes for MSI\n",
+	LOG_D(MAC, "[eNB %d] CC_id %d Create %d bytes for MSI\n",
 	      module_idP, CC_id, sdu_lengths[num_sdus]);
 	num_sdus++;
 	cc->msi_active = 1;
     }
     // there is MCCH
     if (mcch_flag == 1) {
-	LOG_X(MAC,
+	LOG_D(MAC,
 	      "[eNB %d] CC_id %d Frame %d Subframe %d: Schedule MCCH MESSAGE (area %d, sfAlloc %d)\n",
 	      module_idP, CC_id, frameP, subframeP, i, j);
 
@@ -1590,19 +1590,19 @@ schedule_MBMS(module_id_t module_idP, uint8_t CC_id, frame_t frameP,
         mcch_sdu_length+=1; //RLC ?
 
 	if (mcch_sdu_length > 0) {
-	    LOG_X(MAC,
+	    LOG_D(MAC,
 		  "[eNB %d] CC_id %d Frame %d subframeP %d : MCCH->MCH, Received %d bytes from RRC \n",
 		  module_idP, CC_id, frameP, subframeP, mcch_sdu_length);
 
 	    header_len_mcch = 2;
 
 	    if (cc->tdd_Config != NULL) {
-		LOG_X(MAC,
+		LOG_D(MAC,
 		      "[eNB %d] CC_id %d Frame %d subframeP %d: Scheduling MCCH->MCH (TDD) for MCCH message %d bytes (mcs %d )\n",
 		      module_idP, CC_id, frameP, subframeP,
 		      mcch_sdu_length, mcch_mcs);
 	    } else {
-		LOG_X(MAC,
+		LOG_D(MAC,
 		      "[eNB %d] CC_id %d Frame %d subframeP %d: Scheduling MCCH->MCH (FDD) for MCCH message %d bytes (mcs %d)\n",
 		      module_idP, CC_id, frameP, subframeP,
 		      mcch_sdu_length, mcch_mcs);
@@ -1620,7 +1620,7 @@ schedule_MBMS(module_id_t module_idP, uint8_t CC_id, frame_t frameP,
 	    }
 
 	    sdu_length_total += sdu_lengths[num_sdus];
-	    LOG_X(MAC,
+	    LOG_D(MAC,
 		  "[eNB %d] CC_id %d Got %d bytes for MCCH from RRC \n",
 		  module_idP, CC_id, sdu_lengths[num_sdus]);
 	    num_sdus++;
@@ -1644,10 +1644,10 @@ schedule_MBMS(module_id_t module_idP, uint8_t CC_id, frame_t frameP,
 	   }
 
 	   // get MTCH data from RLC (like for DTCH)
-	   LOG_X(MAC,"[eNB %d] CC_id %d Frame %d subframe %d: Schedule MTCH (area %d, sfAlloc %d)\n",Mod_id,CC_id,frame,subframe,i,j);
+	   LOG_D(MAC,"[eNB %d] CC_id %d Frame %d subframe %d: Schedule MTCH (area %d, sfAlloc %d)\n",Mod_id,CC_id,frame,subframe,i,j);
 
 	   header_len_mtch = 3;
-	   LOG_X(MAC,"[eNB %d], CC_id %d, Frame %d, MTCH->MCH, Checking RLC status (rab %d, tbs %d, len %d)\n",
+	   LOG_D(MAC,"[eNB %d], CC_id %d, Frame %d, MTCH->MCH, Checking RLC status (rab %d, tbs %d, len %d)\n",
 	   Mod_id,CC_id,frame,MTCH,TBS,
 	   TBS-header_len_mcch-header_len_msi-sdu_length_total-header_len_mtch);
 
@@ -1658,12 +1658,12 @@ schedule_MBMS(module_id_t module_idP, uint8_t CC_id, frame_t frameP,
 	 */
 
 	// get MTCH data from RLC (like for DTCH)
-	LOG_X(MAC,
+	LOG_D(MAC,
 	      "[eNB %d] CC_id %d Frame %d subframeP %d: Schedule MTCH (area %d, sfAlloc %d)\n",
 	      module_idP, CC_id, frameP, subframeP, i, j);
 
 	header_len_mtch = 3;
-	LOG_X(MAC,
+	LOG_D(MAC,
 	      "[eNB %d], CC_id %d, Frame %d, MTCH->MCH, Checking RLC status (rab %d, tbs %d, len %d)\n",
 	      module_idP, CC_id, frameP, MTCH, TBS,
 	      TBS - header_len_mcch - header_len_msi - sdu_length_total -
@@ -1683,7 +1683,7 @@ schedule_MBMS(module_id_t module_idP, uint8_t CC_id, frame_t frameP,
 
 	msi_sfs = rlc_status.bytes_in_buffer/TBS+(rlc_status.bytes_in_buffer%TBS?1:0);
 
-	LOG_X(MAC,
+	LOG_D(MAC,
 	      "e-MBMS log channel %u frameP %d, subframeP %d,  rlc_status.bytes_in_buffer is %d TBS %d pmch_stop %d msi_sfs %d\n",
 	      MTCH, frameP, subframeP, rlc_status.bytes_in_buffer,TBS,msi_pmch_stop,msi_sfs);
 
@@ -1798,11 +1798,11 @@ schedule_MBMS(module_id_t module_idP, uint8_t CC_id, frame_t frameP,
 	cc->MCH_pdu.msi_active = cc->msi_active;
 	cc->MCH_pdu.mcch_active = cc->mcch_active;
 	cc->MCH_pdu.mtch_active = cc->mtch_active;
-	LOG_X(MAC,
+	LOG_D(MAC,
 	      " MCS for this sf is %d (mcch active %d, mtch active %d)\n",
 	      cc->MCH_pdu.mcs, cc->MCH_pdu.mcch_active,
 	      cc->MCH_pdu.mtch_active);
-	LOG_X(MAC,
+	LOG_D(MAC,
 	      "[eNB %d][MBMS USER-PLANE ] CC_id %d Generate header : sdu_length_total %d, num_sdus %d, sdu_lengths[0] %d, sdu_lcids[0] %d => payload offset %d,padding %d,post_padding %d (mcs %d, TBS %d), header MTCH %d, header MCCH %d, header MSI %d\n",
 	      module_idP, CC_id, sdu_length_total, num_sdus,
 	      sdu_lengths[0], sdu_lcids[0], offset, padding, post_padding,
@@ -1847,7 +1847,7 @@ schedule_MBMS(module_id_t module_idP, uint8_t CC_id, frame_t frameP,
     //this is for testing
     /*
        if (mtch_flag == 1) {
-       //  LOG_X(MAC,"DUY: mch_buffer length so far is : %ld\n", &mch_buffer[sdu_length_total]-&mch_buffer[0]);
+       //  LOG_D(MAC,"DUY: mch_buffer length so far is : %ld\n", &mch_buffer[sdu_length_total]-&mch_buffer[0]);
        return 1;
        }
        else
@@ -1859,7 +1859,7 @@ MCH_PDU *get_mch_sdu(module_id_t module_idP, int CC_id, frame_t frameP,
 		     sub_frame_t subframeP)
 {
     //  RC.mac[module_idP]->MCH_pdu.mcs=0;
-    //LOG_X(MAC," MCH_pdu.mcs is %d\n", RC.mac[module_idP]->MCH_pdu.mcs);
+    //LOG_D(MAC," MCH_pdu.mcs is %d\n", RC.mac[module_idP]->MCH_pdu.mcs);
 //#warning "MCH pdu should take the CC_id index"
     return (&RC.mac[module_idP]->common_channels[CC_id].MCH_pdu);
 }

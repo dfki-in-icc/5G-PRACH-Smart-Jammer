@@ -75,7 +75,7 @@ int generate_ue_ulsch_params_from_rar(PHY_VARS_UE *ue,
   uint16_t *RIV2nb_rb_LUT, *RIV2first_rb_LUT;
   uint16_t RIV_max = 0;
 
-  LOG_X(PHY,"[eNB][RAPROC] Frame %d: generate_ue_ulsch_params_from_rar: subframe %d (harq_pid %d)\n",proc->frame_tx,subframe,harq_pid);
+  LOG_D(PHY,"[eNB][RAPROC] Frame %d: generate_ue_ulsch_params_from_rar: subframe %d (harq_pid %d)\n",proc->frame_tx,subframe,harq_pid);
 
   switch (frame_parms->N_RB_DL) {
   case 6:
@@ -115,7 +115,7 @@ int generate_ue_ulsch_params_from_rar(PHY_VARS_UE *ue,
   cqireq=rar[3]&1;
 
   if (rballoc>RIV_max) {
-    LOG_X(PHY,"rar_tools.c: ERROR: rb_alloc (%x) > RIV_max\n",rballoc);
+    LOG_D(PHY,"rar_tools.c: ERROR: rb_alloc (%x) > RIV_max\n",rballoc);
     return(-1);
   }
 
@@ -188,16 +188,16 @@ int generate_ue_ulsch_params_from_rar(PHY_VARS_UE *ue,
 
 
   //#ifdef DEBUG_RAR
-  LOG_X(PHY,"ulsch ra (UE): harq_pid %d\n",harq_pid);
-  LOG_X(PHY,"ulsch ra (UE): NBRB     %d\n",ulsch->harq_processes[harq_pid]->nb_rb);
-  LOG_X(PHY,"ulsch ra (UE): first_rb %x\n",ulsch->harq_processes[harq_pid]->first_rb);
-  LOG_X(PHY,"ulsch ra (UE): nb_rb    %d\n",ulsch->harq_processes[harq_pid]->nb_rb);
-  LOG_X(PHY,"ulsch ra (UE): round    %d\n",ulsch->harq_processes[harq_pid]->round);
-  LOG_X(PHY,"ulsch ra (UE): TBS      %d\n",ulsch->harq_processes[harq_pid]->TBS);
-  LOG_X(PHY,"ulsch ra (UE): mcs      %d\n",ulsch->harq_processes[harq_pid]->mcs);
-  LOG_X(PHY,"ulsch ra (UE): TPC      %d\n",ulsch->harq_processes[harq_pid]->TPC);
-  LOG_X(PHY,"ulsch ra (UE): O        %d\n",ulsch->O);
-  LOG_X(PHY,"ulsch ra (UE): ORI      %d\n",ulsch->O_RI);
+  LOG_D(PHY,"ulsch ra (UE): harq_pid %d\n",harq_pid);
+  LOG_D(PHY,"ulsch ra (UE): NBRB     %d\n",ulsch->harq_processes[harq_pid]->nb_rb);
+  LOG_D(PHY,"ulsch ra (UE): first_rb %x\n",ulsch->harq_processes[harq_pid]->first_rb);
+  LOG_D(PHY,"ulsch ra (UE): nb_rb    %d\n",ulsch->harq_processes[harq_pid]->nb_rb);
+  LOG_D(PHY,"ulsch ra (UE): round    %d\n",ulsch->harq_processes[harq_pid]->round);
+  LOG_D(PHY,"ulsch ra (UE): TBS      %d\n",ulsch->harq_processes[harq_pid]->TBS);
+  LOG_D(PHY,"ulsch ra (UE): mcs      %d\n",ulsch->harq_processes[harq_pid]->mcs);
+  LOG_D(PHY,"ulsch ra (UE): TPC      %d\n",ulsch->harq_processes[harq_pid]->TPC);
+  LOG_D(PHY,"ulsch ra (UE): O        %d\n",ulsch->O);
+  LOG_D(PHY,"ulsch ra (UE): ORI      %d\n",ulsch->O_RI);
 
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PHY_PROCEDURES_UE_TX_ULSCH_RAR,VCD_FUNCTION_OUT);
 

@@ -8612,7 +8612,7 @@ void process_successful_rlc_sdu_indication(int instance,
 
       if (release_ctrl->flag == 1 && release_ctrl->rnti == rnti && release_ctrl->rrc_eNB_mui == message_id) {
         release_ctrl->flag = 3;
-        LOG_X(MAC,"DLSCH Release send:index %d rnti %x mui %d flag 1->3\n",
+        LOG_D(MAC,"DLSCH Release send:index %d rnti %x mui %d flag 1->3\n",
               release_num,
               rnti,
               message_id);
@@ -8621,7 +8621,7 @@ void process_successful_rlc_sdu_indication(int instance,
 
       if (release_ctrl->flag == 2 && release_ctrl->rnti == rnti && release_ctrl->rrc_eNB_mui == message_id) {
         release_ctrl->flag = 4;
-        LOG_X(MAC, "DLSCH Release send:index %d rnti %x mui %d flag 2->4\n",
+        LOG_D(MAC, "DLSCH Release send:index %d rnti %x mui %d flag 2->4\n",
               release_num,
               rnti,
               message_id);
@@ -8660,7 +8660,7 @@ void process_unsuccessful_rlc_sdu_indication(int instance, int rnti) {
 
       if (release_ctrl->flag == 1 && release_ctrl->rnti == rnti) {
         release_ctrl->flag = 3;
-        LOG_X(MAC,"DLSCH Release send:index %d rnti %x flag 1->3\n",
+        LOG_D(MAC,"DLSCH Release send:index %d rnti %x flag 1->3\n",
               release_num,
               rnti);
         goto done;
@@ -8668,7 +8668,7 @@ void process_unsuccessful_rlc_sdu_indication(int instance, int rnti) {
 
       if (release_ctrl->flag == 2 && release_ctrl->rnti == rnti) {
         release_ctrl->flag = 4;
-        LOG_X(MAC, "DLSCH Release send:index %d rnti %x flag 2->4\n",
+        LOG_D(MAC, "DLSCH Release send:index %d rnti %x flag 2->4\n",
               release_num,
               rnti);
         goto done;

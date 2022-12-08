@@ -290,7 +290,7 @@ void phy_config_request(PHY_Config_t *phy_config) {
   fp->NonMBSFN_config.non_mbsfn_SubframeConfig = cfg->fembms_config.non_mbsfn_subframeconfig.value;
   fp->NonMBSFN_config.radioframeAllocationPeriod = cfg->fembms_config.radioframe_allocation_period.value;
   fp->NonMBSFN_config.radioframeAllocationOffset = cfg->fembms_config.radioframe_allocation_offset.value;
-  LOG_X(PHY,"eNB %d/%d frame NonMBSFN configured: %d (%x) %d/%d\n",Mod_id,CC_id,fp->NonMBSFN_config_flag,fp->NonMBSFN_config.non_mbsfn_SubframeConfig,fp->NonMBSFN_config.radioframeAllocationPeriod,
+  LOG_D(PHY,"eNB %d/%d frame NonMBSFN configured: %d (%x) %d/%d\n",Mod_id,CC_id,fp->NonMBSFN_config_flag,fp->NonMBSFN_config.non_mbsfn_SubframeConfig,fp->NonMBSFN_config.radioframeAllocationPeriod,
         fp->NonMBSFN_config.radioframeAllocationOffset);
   init_ncs_cell (fp, RC.eNB[Mod_id][CC_id]->ncs_cell);
   init_ul_hopping (fp);
@@ -503,7 +503,7 @@ int phy_init_lte_eNB(PHY_VARS_eNB *eNB,
                 "nb_antennas_rx too large");
     for (i=0; i<fp->nb_antennas_rx; i++) {
       prach_vars->rxsigF[i] = (int16_t*)malloc16_clear( fp->ofdm_symbol_size*12*2*sizeof(int16_t) );
-      LOG_X(PHY,"[INIT] prach_vars->rxsigF[%d] = %p\n",i,prach_vars->rxsigF[i]);
+      LOG_D(PHY,"[INIT] prach_vars->rxsigF[%d] = %p\n",i,prach_vars->rxsigF[i]);
       }*/
 
     printf("NUMBER_OF_ULSCH_MAX %d\n",NUMBER_OF_ULSCH_MAX);

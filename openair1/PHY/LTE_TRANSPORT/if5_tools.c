@@ -1353,7 +1353,7 @@ void recv_IF5(RU_t *ru, openair0_timestamp *proc_timestamp, int tti, uint16_t pa
         clock_gettime( CLOCK_MONOTONIC, &if_time);
         timeout[packet_id] = if_time.tv_nsec;
         timestamp[packet_id] /= (30720/spsf);
-        LOG_X(PHY,"TTI %d: Received packet %d: aid %d, TS %llu, oldTS %llu, diff %lld, \n",tti,packet_id,aid,(unsigned long long)timestamp[packet_id],(unsigned long long)oldTS,(unsigned long long)(timestamp[packet_id]-timestamp[0]));
+        LOG_D(PHY,"TTI %d: Received packet %d: aid %d, TS %llu, oldTS %llu, diff %lld, \n",tti,packet_id,aid,(unsigned long long)timestamp[packet_id],(unsigned long long)oldTS,(unsigned long long)(timestamp[packet_id]-timestamp[0]));
 
         if (aid==0) {
            if (firstTS==1) firstTS=0;
@@ -1370,7 +1370,7 @@ void recv_IF5(RU_t *ru, openair0_timestamp *proc_timestamp, int tti, uint16_t pa
         // HYPOTHESIS: first packet per subframe has lowest timestamp of subframe
         // should detect out of order and act accordingly ....
         AssertFatal(aid==0 || aid==1,"aid %d != 0 or 1\n",aid);
-        LOG_X(PHY,"rxp[%d] %p, dest %p, offset %d (%llu,%llu)\n",aid,rxp[aid],rxp[aid]+(timestamp[packet_id]-timestamp[0]),(int)(timestamp[packet_id]-timestamp[0]),(long long unsigned int)timestamp[packet_id],(long long unsigned int)timestamp[0]);
+        LOG_D(PHY,"rxp[%d] %p, dest %p, offset %d (%llu,%llu)\n",aid,rxp[aid],rxp[aid]+(timestamp[packet_id]-timestamp[0]),(int)(timestamp[packet_id]-timestamp[0]),(long long unsigned int)timestamp[packet_id],(long long unsigned int)timestamp[0]);
         memcpy((void*)(rxp[aid]+(timestamp[packet_id]-timestamp[0])),
                (void*)temp_rx,
                spp_eth<<2);

@@ -213,7 +213,7 @@ schedule_SIB1_MBMS(module_id_t module_idP,
                 bcch_sdu_length, TBS);
 
     if ((frameP & 1023) < 200)
-      LOG_X(MAC,
+      LOG_D(MAC,
             "[eNB %d] Frame %d Subframe %d: SIB1_BR->DLSCH CC_id %d, Received %d bytes, scheduling on NB %d (i %d,m %d,N_S_NB %d)  rvidx %d\n",
             module_idP, frameP, subframeP, CC_id, bcch_sdu_length,
             n_NB, i, m, N_S_NB, rvidx);
@@ -282,11 +282,11 @@ schedule_SIB1_MBMS(module_id_t module_idP,
               0xffff, WS_SI_RNTI, 0xffff, eNB->frame, eNB->subframe, 0, 0);
 
     if (cc->tdd_Config != NULL) { //TDD
-      LOG_X(MAC,
+      LOG_D(MAC,
             "[eNB] Frame %d : Scheduling BCCH-BR 0->DLSCH (TDD) for CC_id %d SIB1-BR %d bytes\n",
             frameP, CC_id, bcch_sdu_length);
     } else {
-      LOG_X(MAC,
+      LOG_D(MAC,
             "[eNB] Frame %d : Scheduling BCCH-BR 0->DLSCH (FDD) for CC_id %d SIB1-BR %d bytes\n",
             frameP, CC_id, bcch_sdu_length);
     }
@@ -437,7 +437,7 @@ schedule_SIB1_BR(module_id_t module_idP,
                 bcch_sdu_length, TBS);
 
     if ((frameP & 1023) < 200)
-      LOG_X(MAC,
+      LOG_D(MAC,
             "[eNB %d] Frame %d Subframe %d: SIB1_BR->DLSCH CC_id %d, Received %d bytes, scheduling on NB %d (i %d,m %d,N_S_NB %d)  rvidx %d\n",
             module_idP, frameP, subframeP, CC_id, bcch_sdu_length,
             n_NB, i, m, N_S_NB, rvidx);
@@ -506,11 +506,11 @@ schedule_SIB1_BR(module_id_t module_idP,
               0xffff, WS_SI_RNTI, 0xffff, eNB->frame, eNB->subframe, 0, 0);
 
     if (cc->tdd_Config != NULL) { //TDD
-      LOG_X(MAC,
+      LOG_D(MAC,
             "[eNB] Frame %d : Scheduling BCCH-BR 0->DLSCH (TDD) for CC_id %d SIB1-BR %d bytes\n",
             frameP, CC_id, bcch_sdu_length);
     } else {
-      LOG_X(MAC,
+      LOG_D(MAC,
             "[eNB] Frame %d : Scheduling BCCH-BR 0->DLSCH (FDD) for CC_id %d SIB1-BR %d bytes\n",
             frameP, CC_id, bcch_sdu_length);
     }
@@ -624,7 +624,7 @@ schedule_SI_BR(module_id_t module_idP, frame_t frameP,
             vrb_map[first_rb + 5] = 1;
 
             if ((frameP&1023) < 200)
-              LOG_X(MAC,"[eNB %d] Frame %d Subframe %d: SI_BR->DLSCH CC_id %d, Narrowband %d rvidx %d (sf_mod_period %d : si_WindowLength_BR_r13 %d : si_RepetitionPattern_r13 %d) bcch_sdu_length %d\n",
+              LOG_D(MAC,"[eNB %d] Frame %d Subframe %d: SI_BR->DLSCH CC_id %d, Narrowband %d rvidx %d (sf_mod_period %d : si_WindowLength_BR_r13 %d : si_RepetitionPattern_r13 %d) bcch_sdu_length %d\n",
                     module_idP,frameP,subframeP,CC_id,(int)si_Narrowband_r13-1,rvidx,
                     sf_mod_period,(int)si_WindowLength_BR_r13,(int)si_RepetitionPattern_r13,
                     bcch_sdu_length);
@@ -690,10 +690,10 @@ schedule_SI_BR(module_id_t module_idP, frame_t frameP,
                       0);
 
             if (cc->tdd_Config != NULL) { //TDD
-              LOG_X(MAC, "[eNB] Frame %d : Scheduling BCCH-BR %d->DLSCH (TDD) for CC_id %d SI-BR %d bytes\n",
+              LOG_D(MAC, "[eNB] Frame %d : Scheduling BCCH-BR %d->DLSCH (TDD) for CC_id %d SI-BR %d bytes\n",
                     frameP, i, CC_id, bcch_sdu_length);
             } else {
-              LOG_X(MAC, "[eNB] Frame %d : Scheduling BCCH-BR %d->DLSCH (FDD) for CC_id %d SI-BR %d bytes\n",
+              LOG_D(MAC, "[eNB] Frame %d : Scheduling BCCH-BR %d->DLSCH (FDD) for CC_id %d SI-BR %d bytes\n",
                     frameP, i, CC_id, bcch_sdu_length);
             }
           }
@@ -739,7 +739,7 @@ schedule_SI_MBMS(module_id_t module_idP, frame_t frameP,
       bcch_sdu_length = mac_rrc_data_req(module_idP, CC_id, frameP, BCCH_SI_MBMS,0xFFFF, 1, &cc->BCCH_MBMS_pdu.payload[0], 0);  // not used in this case
 
       if (bcch_sdu_length > 0) {
-        LOG_X(MAC, "[eNB %d] Frame %d : BCCH-MBMS->DLSCH CC_id %d, Received %d bytes \n", module_idP, frameP, CC_id, bcch_sdu_length);
+        LOG_D(MAC, "[eNB %d] Frame %d : BCCH-MBMS->DLSCH CC_id %d, Received %d bytes \n", module_idP, frameP, CC_id, bcch_sdu_length);
 
         // Allocate 4 PRBs in a random location
         /*
@@ -820,7 +820,7 @@ schedule_SI_MBMS(module_id_t module_idP, frame_t frameP,
         dl_config_request->sfn_sf = sfn_sf;
 
         if (!CCE_allocation_infeasible(module_idP, CC_id, 0, subframeP,dl_config_pdu->dci_dl_pdu.dci_dl_pdu_rel8.aggregation_level, SI_RNTI)) {
-          LOG_X(MAC, "Frame %d: Subframe %d : Adding common DCI for S_RNTI MBMS\n", frameP, subframeP);
+          LOG_D(MAC, "Frame %d: Subframe %d : Adding common DCI for S_RNTI MBMS\n", frameP, subframeP);
           dl_req->number_dci++;
           dl_req->number_pdu++;
           dl_config_pdu = &dl_req->dl_config_pdu_list[dl_req->number_pdu];
@@ -889,11 +889,11 @@ schedule_SI_MBMS(module_id_t module_idP, frame_t frameP,
                   WS_SI_RNTI, 0xffff, eNB->frame, eNB->subframe, 0, 0);
 
         if (0/*cc->tdd_Config != NULL*/) {  //TDD not for FeMBMS
-          LOG_X(MAC,
+          LOG_D(MAC,
                 "[eNB] Frame %d : Scheduling BCCH->DLSCH (TDD) for CC_id %d SI %d bytes (mcs %d, rb 3)\n",
                 frameP, CC_id, bcch_sdu_length, mcs);
         } else {
-          LOG_X(MAC, "[eNB] Frame %d : Scheduling BCCH-MBMS->DLSCH (FDD) for CC_id %d SI %d bytes (mcs %d, rb 3)\n", frameP, CC_id, bcch_sdu_length, mcs);
+          LOG_D(MAC, "[eNB] Frame %d : Scheduling BCCH-MBMS->DLSCH (FDD) for CC_id %d SI %d bytes (mcs %d, rb 3)\n", frameP, CC_id, bcch_sdu_length, mcs);
         }
 
         eNB->eNB_stats[CC_id].total_num_bcch_pdu += 1;
@@ -902,7 +902,7 @@ schedule_SI_MBMS(module_id_t module_idP, frame_t frameP,
         eNB->eNB_stats[CC_id].bcch_mcs = mcs;
         //printf("SI %d.%d\n", frameP, subframeP);/////////////////////////////////////////******************************
       } else {
-        //LOG_X(MAC,"[eNB %d] Frame %d : BCCH not active \n",Mod_id,frame);
+        //LOG_D(MAC,"[eNB %d] Frame %d : BCCH not active \n",Mod_id,frame);
       }
     }
   }
@@ -931,13 +931,13 @@ schedule_fembms_mib(module_id_t module_idP, frame_t frameP, sub_frame_t subframe
     dl_req = &dl_config_request->dl_config_request_body;
     cc = &eNB->common_channels[CC_id];
     mib_sdu_length = mac_rrc_data_req(module_idP, CC_id, frameP, MIBCH_MBMS, 0xFFFF, 1, &cc->MIB_pdu.payload[0], 0); // not used in this case
-    LOG_X(MAC, "Frame %d, subframe %d: BCH PDU length %d\n", frameP, subframeP, mib_sdu_length);
+    LOG_D(MAC, "Frame %d, subframe %d: BCH PDU length %d\n", frameP, subframeP, mib_sdu_length);
 
     if (mib_sdu_length > 0) {
-      LOG_X(MAC, "Frame %d, subframe %d: Adding BCH PDU in position %d (length %d)\n", frameP, subframeP, dl_req->number_pdu, mib_sdu_length);
+      LOG_D(MAC, "Frame %d, subframe %d: Adding BCH PDU in position %d (length %d)\n", frameP, subframeP, dl_req->number_pdu, mib_sdu_length);
 
       if ((frameP & 1023) < 40)
-        LOG_X(MAC,
+        LOG_D(MAC,
               "[eNB %d] Frame %d : MIB->BCH  CC_id %d, Received %d bytes (cc->mib->message.schedulingInfoSIB1_BR_r13 %d)\n",
               module_idP, frameP, CC_id, mib_sdu_length,
               (int) cc->mib->message.schedulingInfoSIB1_BR_r13);
@@ -955,7 +955,7 @@ schedule_fembms_mib(module_id_t module_idP, frame_t frameP, sub_frame_t subframe
       dl_req->number_pdu++;
       dl_config_request->header.message_id = NFAPI_DL_CONFIG_REQUEST;
       dl_config_request->sfn_sf = sfn_sf;
-      LOG_X(MAC, "eNB->DL_req[0].number_pdu %d (%p)\n", dl_req->number_pdu, &dl_req->number_pdu);
+      LOG_D(MAC, "eNB->DL_req[0].number_pdu %d (%p)\n", dl_req->number_pdu, &dl_req->number_pdu);
       // DL request
       TX_req = &eNB->TX_req[CC_id].tx_request_body.tx_pdu_list[eNB->TX_req[CC_id].tx_request_body.number_of_pdus];
       TX_req->pdu_length = 3;
@@ -990,13 +990,13 @@ schedule_mib(module_id_t module_idP, frame_t frameP, sub_frame_t subframeP) {
     dl_req = &dl_config_request->dl_config_request_body;
     cc = &eNB->common_channels[CC_id];
     mib_sdu_length = mac_rrc_data_req(module_idP, CC_id, frameP, MIBCH, 0xFFFF, 1, &cc->MIB_pdu.payload[0], 0); // not used in this case
-    LOG_X(MAC, "Frame %d, subframe %d: BCH PDU length %d\n", frameP, subframeP, mib_sdu_length);
+    LOG_D(MAC, "Frame %d, subframe %d: BCH PDU length %d\n", frameP, subframeP, mib_sdu_length);
 
     if (mib_sdu_length > 0) {
-      LOG_X(MAC, "Frame %d, subframe %d: Adding BCH PDU in position %d (length %d)\n", frameP, subframeP, dl_req->number_pdu, mib_sdu_length);
+      LOG_D(MAC, "Frame %d, subframe %d: Adding BCH PDU in position %d (length %d)\n", frameP, subframeP, dl_req->number_pdu, mib_sdu_length);
 
       if ((frameP & 1023) < 40)
-        LOG_X(MAC,
+        LOG_D(MAC,
               "[eNB %d] Frame %d : MIB->BCH  CC_id %d, Received %d bytes (cc->mib->message.schedulingInfoSIB1_BR_r13 %d)\n",
               module_idP, frameP, CC_id, mib_sdu_length,
               (int) cc->mib->message.schedulingInfoSIB1_BR_r13);
@@ -1014,7 +1014,7 @@ schedule_mib(module_id_t module_idP, frame_t frameP, sub_frame_t subframeP) {
       dl_req->number_pdu++;
       dl_config_request->header.message_id = NFAPI_DL_CONFIG_REQUEST;
       dl_config_request->sfn_sf = sfn_sf;
-      LOG_X(MAC, "eNB->DL_req[0].number_pdu %d (%p)\n", dl_req->number_pdu, &dl_req->number_pdu);
+      LOG_D(MAC, "eNB->DL_req[0].number_pdu %d (%p)\n", dl_req->number_pdu, &dl_req->number_pdu);
       // DL request
       TX_req = &eNB->TX_req[CC_id].tx_request_body.tx_pdu_list[eNB->TX_req[CC_id].tx_request_body.number_of_pdus];
       TX_req->pdu_length = 3;
@@ -1062,7 +1062,7 @@ schedule_SI(module_id_t module_idP, frame_t frameP, sub_frame_t subframeP)
       bcch_sdu_length = mac_rrc_data_req(module_idP, CC_id, frameP, BCCH, 0xFFFF,1, &cc->BCCH_pdu.payload[0], 0); // not used in this case
 
       if (bcch_sdu_length > 0) {
-        LOG_X(MAC, "[eNB %d] Frame %d : BCCH->DLSCH CC_id %d, Received %d bytes \n", module_idP, frameP, CC_id, bcch_sdu_length);
+        LOG_D(MAC, "[eNB %d] Frame %d : BCCH->DLSCH CC_id %d, Received %d bytes \n", module_idP, frameP, CC_id, bcch_sdu_length);
 
         // Allocate 4 PRBs in a random location
         /*
@@ -1145,7 +1145,7 @@ schedule_SI(module_id_t module_idP, frame_t frameP, sub_frame_t subframeP)
         dl_config_request->sfn_sf = sfn_sf;
 
         if (!CCE_allocation_infeasible(module_idP, CC_id, 0, subframeP,dl_config_pdu->dci_dl_pdu.dci_dl_pdu_rel8.aggregation_level, SI_RNTI)) {
-          LOG_X(MAC, "Frame %d: Subframe %d : Adding common DCI for S_RNTI\n", frameP, subframeP);
+          LOG_D(MAC, "Frame %d: Subframe %d : Adding common DCI for S_RNTI\n", frameP, subframeP);
           dl_req->number_dci++;
           dl_req->number_pdu++;
           dl_req->tl.tag   = NFAPI_DL_CONFIG_REQUEST_BODY_TAG;
@@ -1216,11 +1216,11 @@ schedule_SI(module_id_t module_idP, frame_t frameP, sub_frame_t subframeP)
                   WS_SI_RNTI, 0xffff, eNB->frame, eNB->subframe, 0, 0);
 
         if (cc->tdd_Config != NULL) { //TDD
-          LOG_X(MAC,
+          LOG_D(MAC,
                 "[eNB] Frame %d : Scheduling BCCH->DLSCH (TDD) for CC_id %d SI %d bytes (mcs %d, rb 3)\n",
                 frameP, CC_id, bcch_sdu_length, mcs);
         } else {
-          LOG_X(MAC, "[eNB] Frame %d : Scheduling BCCH->DLSCH (FDD) for CC_id %d SI %d bytes (mcs %d, rb 3)\n", frameP, CC_id, bcch_sdu_length, mcs);
+          LOG_D(MAC, "[eNB] Frame %d : Scheduling BCCH->DLSCH (FDD) for CC_id %d SI %d bytes (mcs %d, rb 3)\n", frameP, CC_id, bcch_sdu_length, mcs);
         }
 
         eNB->eNB_stats[CC_id].total_num_bcch_pdu += 1;
@@ -1229,7 +1229,7 @@ schedule_SI(module_id_t module_idP, frame_t frameP, sub_frame_t subframeP)
         eNB->eNB_stats[CC_id].bcch_mcs = mcs;
         //printf("SI %d.%d\n", frameP, subframeP);/////////////////////////////////////////******************************
       } else {
-        //LOG_X(MAC,"[eNB %d] Frame %d : BCCH not active \n",Mod_id,frame);
+        //LOG_D(MAC,"[eNB %d] Frame %d : BCCH not active \n",Mod_id,frame);
       }
     }
   }

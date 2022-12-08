@@ -93,7 +93,7 @@ bool try_allocate_harq_retransmission(module_id_t Mod_id,
   int nb_rbg = (nb_rb + (nb_rb % RBGsize)) / RBGsize;
   // needs more RBGs than we can allocate
   if (nb_rbg > *n_rbg_sched) {
-    LOG_X(MAC,
+    LOG_D(MAC,
           "retransmission of UE %d needs more RBGs (%d) than we have (%d)\n",
           UE_id, nb_rbg, *n_rbg_sched);
     return false;
@@ -102,7 +102,7 @@ bool try_allocate_harq_retransmission(module_id_t Mod_id,
   // if we allocate the last RBG this one should have the full RBGsize
   if ((nb_rb % RBGsize) == 0 && nb_rbg == *n_rbg_sched
       && rbgalloc_mask[N_RBG - 1] && RBGlastsize != RBGsize) {
-    LOG_X(MAC,
+    LOG_D(MAC,
           "retransmission of UE %d needs %d RBs, but the last RBG %d is too small (%d, normal %d)\n",
           UE_id, nb_rb, N_RBG - 1, RBGlastsize, RBGsize);
     return false;
@@ -110,7 +110,7 @@ bool try_allocate_harq_retransmission(module_id_t Mod_id,
   const uint8_t cqi = ue_ctrl->dl_cqi[CC_id];
   const int idx = CCE_try_allocate_dlsch(Mod_id, CC_id, subframe, UE_id, cqi);
   if (idx < 0) { // cannot allocate CCE
-    LOG_X(MAC, "cannot allocate UE %d: no CCE can be allocated\n", UE_id);
+    LOG_D(MAC, "cannot allocate UE %d: no CCE can be allocated\n", UE_id);
     return false;
   }
   /* if nb_rb is not multiple of RBGsize, then last RBG must be free
@@ -143,7 +143,7 @@ bool try_allocate_harq_retransmission(module_id_t Mod_id,
     rbgalloc_mask[start_rbg] = 0;
     nb_rbg--;
   }
-  LOG_X(MAC,
+  LOG_D(MAC,
         "%4d.%d n_rbg_sched %d after retransmission reservation for UE %d "
         "retx nb_rb %d pre_nb_available_rbs %d\n",
         frame, subframe, *n_rbg_sched, UE_id,
@@ -234,7 +234,7 @@ int rr_dl_run(module_id_t Mod_id,
     const uint8_t cqi = UE_info->UE_sched_ctrl[UE_id].dl_cqi[CC_id];
     const int idx = CCE_try_allocate_dlsch(Mod_id, CC_id, subframe, UE_id, cqi);
     if (idx < 0) {
-      LOG_X(MAC, "cannot allocate CCE for UE %d, skipping\n", UE_id);
+      LOG_D(MAC, "cannot allocate CCE for UE %d, skipping\n", UE_id);
       // SKIP this UE in the list by marking the next as the current
       *cur_UE = UE_sched.next[UE_id];
       continue;
@@ -572,7 +572,7 @@ store_dlsch_buffer(module_id_t Mod_id,
        * 0 if head SDU has not been segmented (yet), else remaining size not already segmented and sent
        */
       if (UE_template->dl_buffer_info[lcid] > 0)
-        LOG_X(MAC,
+        LOG_D(MAC,
               "[eNB %d] Frame %d Subframe %d : RLC status for UE %d in LCID%d: total of %d pdus and size %d, head sdu queuing time %d, remaining size %d, is segmeneted %d \n",
               Mod_id, frameP,
               subframeP, UE_id, lcid, UE_template->dl_pdus_in_buffer[lcid],
@@ -596,7 +596,7 @@ store_dlsch_buffer(module_id_t Mod_id,
       UE_template->dl_buffer_total += 3;
 
     if (UE_template->dl_buffer_total > 0)
-      LOG_X(MAC,
+      LOG_D(MAC,
             "[eNB %d] Frame %d Subframe %d : RLC status for UE %d : total DL buffer size %d and total number of pdu %d \n",
             Mod_id, frameP, subframeP, UE_id,
             UE_template->dl_buffer_total,
@@ -643,14 +643,14 @@ dlsch_scheduler_pre_processor(module_id_t Mod_id,
       continue;
     }
     if (ue_template->rach_resource_type > 0) {
-      LOG_X(MAC,
+      LOG_D(MAC,
             "UE %d is RACH resource type %d\n",
             UE_id,
             ue_template->rach_resource_type);
       continue;
     }
     if (mac_eNB_get_rrc_status(Mod_id, rnti) < RRC_CONNECTED) {
-      LOG_X(MAC, "UE %d is not in RRC_CONNECTED\n", UE_id);
+      LOG_D(MAC, "UE %d is not in RRC_CONNECTED\n", UE_id);
       continue;
     }
 
@@ -702,7 +702,7 @@ dlsch_scheduler_pre_processor(module_id_t Mod_id,
     if (ue_sched_ctrl->pre_nb_available_rbs[CC_id] == 0)
       continue;
 
-    LOG_X(MAC,
+    LOG_D(MAC,
           "%4d.%d UE%d %d RBs allocated, pre MCS %d\n",
           frameP,
           subframeP,
@@ -727,7 +727,7 @@ dlsch_scheduler_pre_processor(module_id_t Mod_id,
     }
   }
   if (print)
-    LOG_X(MAC, "%4d.%d DL scheduler allocation list: %s\n", frameP, subframeP, t);
+    LOG_D(MAC, "%4d.%d DL scheduler allocation list: %s\n", frameP, subframeP, t);
 #endif
 }
 
@@ -871,7 +871,7 @@ int rr_ul_run(module_id_t Mod_id,
         mac->HI_DCI0_req[CC_id][subframe].hi_dci0_request_body.number_of_dci--;
         continue;
       }
-      LOG_X(MAC, "%4d.%d UE %d retx %d RBs at start %d\n",
+      LOG_D(MAC, "%4d.%d UE %d retx %d RBs at start %d\n",
             sched_frame,
             sched_subframe,
             UE_id,
@@ -922,7 +922,7 @@ int rr_ul_run(module_id_t Mod_id,
     static int phr = 0;
     if (phr != UE_template->phr_info) {
       phr = UE_template->phr_info;
-      LOG_X(MAC, "%d.%d UE %d CC %d: pre mcs %d, pre rb_table[%d]=%d RBs (phr %d, tx power %d, bytes %d)\n",
+      LOG_D(MAC, "%d.%d UE %d CC %d: pre mcs %d, pre rb_table[%d]=%d RBs (phr %d, tx power %d, bytes %d)\n",
             frame,
             subframe,
             UE_id,
@@ -984,7 +984,7 @@ int rr_ul_run(module_id_t Mod_id,
       const int cqi = UE_info->UE_sched_ctrl[sUE_id].dl_cqi[CC_id];
       const int idx = CCE_try_allocate_ulsch(Mod_id, CC_id, subframe, sUE_id, cqi);
       if (idx < 0) {
-        LOG_X(MAC, "cannot allocate CCE for UE %d, skipping\n", sUE_id);
+        LOG_D(MAC, "cannot allocate CCE for UE %d, skipping\n", sUE_id);
         nr[r]--;
         sUE_id = next_ue_list_looped(UE_list, sUE_id); // next candidate
         continue;
@@ -1029,7 +1029,7 @@ int rr_ul_run(module_id_t Mod_id,
       UE_template->pre_allocated_rb_table_index_ul = rb_idx_given[UE_id];
       UE_template->pre_allocated_nb_rb_ul = rb_table[rb_idx_given[UE_id]];
       rbs[r].start += rb_table[rb_idx_given[UE_id]];
-      LOG_X(MAC, "%4d.%d UE %d allocated %d RBs start %d new start %d\n",
+      LOG_D(MAC, "%4d.%d UE %d allocated %d RBs start %d new start %d\n",
             sched_frame,
             sched_subframe,
             UE_id,
@@ -1145,7 +1145,7 @@ void ulsch_scheduler_pre_processor(module_id_t Mod_id,
     print = 1;
     uint8_t harq_pid = subframe2harqpid(&mac->common_channels[CC_id],
                                         sched_frameP, sched_subframeP);
-    LOG_X(MAC, "%4d.%d UE%d %d RBs (index %d) at start %d, pre MCS %d %s\n",
+    LOG_D(MAC, "%4d.%d UE%d %d RBs (index %d) at start %d, pre MCS %d %s\n",
           frameP,
           subframeP,
           UE_id,
@@ -1173,7 +1173,7 @@ void ulsch_scheduler_pre_processor(module_id_t Mod_id,
     }
   }
   if (print)
-    LOG_X(MAC,
+    LOG_D(MAC,
           "%4d.%d UL scheduler allocation list: %s\n",
           sched_frameP,
           sched_subframeP,

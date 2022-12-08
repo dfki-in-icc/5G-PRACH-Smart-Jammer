@@ -102,7 +102,7 @@ int32_t lte_ul_channel_estimation(LTE_DL_FRAME_PARMS *frame_parms,
     return(-1);
   }
 
-  LOG_X(PHY,"subframe %d, Ns %d, l %d, Msc_RS = %d, Msc_RS_idx = %d, u %d, v %d, cyclic_shift %d\n",subframe,Ns,l,Msc_RS, Msc_RS_idx,u,v,cyclic_shift);
+  LOG_D(PHY,"subframe %d, Ns %d, l %d, Msc_RS = %d, Msc_RS_idx = %d, u %d, v %d, cyclic_shift %d\n",subframe,Ns,l,Msc_RS, Msc_RS_idx,u,v,cyclic_shift);
 #ifdef DEBUG_CH
 
   if (Ns==0)
@@ -303,7 +303,7 @@ int32_t lte_ul_channel_estimation(LTE_DL_FRAME_PARMS *frame_parms,
         // negative phase index indicates negative Im of ru
         //    msg("delta_phase: %d\n",delta_phase);
 #ifdef DEBUG_CH
-        LOG_X(PHY,"lte_ul_channel_estimation: ul_ch1 = %p, ul_ch2 = %p, pilot_pos1=%d, pilot_pos2=%d\n",ul_ch1, ul_ch2, pilot_pos1,pilot_pos2);
+        LOG_D(PHY,"lte_ul_channel_estimation: ul_ch1 = %p, ul_ch2 = %p, pilot_pos1=%d, pilot_pos2=%d\n",ul_ch1, ul_ch2, pilot_pos1,pilot_pos2);
 #endif
 
         for (k=0; k<frame_parms->symbols_per_tti; k++) {
@@ -311,7 +311,7 @@ int32_t lte_ul_channel_estimation(LTE_DL_FRAME_PARMS *frame_parms,
           //      alpha = (int16_t) (((int32_t) SCALE * (int32_t) (pilot_pos2-k))/(pilot_pos2-pilot_pos1));
           //      beta  = (int16_t) (((int32_t) SCALE * (int32_t) (k-pilot_pos1))/(pilot_pos2-pilot_pos1));
 #ifdef DEBUG_CH
-          LOG_X(PHY,"lte_ul_channel_estimation: k=%d, alpha = %d, beta = %d\n",k,alpha,beta);
+          LOG_D(PHY,"lte_ul_channel_estimation: k=%d, alpha = %d, beta = %d\n",k,alpha,beta);
 #endif
           //symbol_offset_subframe = frame_parms->N_RB_UL*12*k;
 
@@ -432,7 +432,7 @@ int32_t lte_ul_channel_estimation_RRU(LTE_DL_FRAME_PARMS *frame_parms,
     return(-1);
   }
 
-  LOG_X(PHY,"subframe %d, l %d, Msc_RS = %d, Msc_RS_idx = %d, u %d, v %d, cyclic_shift %d\n",subframe_rx,l,Msc_RS, Msc_RS_idx,u,v,cyclic_shift);
+  LOG_D(PHY,"subframe %d, l %d, Msc_RS = %d, Msc_RS_idx = %d, u %d, v %d, cyclic_shift %d\n",subframe_rx,l,Msc_RS, Msc_RS_idx,u,v,cyclic_shift);
 #ifdef DEBUG_CH
 
   if (l==pilot_pos1)
@@ -634,12 +634,12 @@ int32_t lte_ul_channel_estimation_RRU(LTE_DL_FRAME_PARMS *frame_parms,
       // negative phase index indicates negative Im of ru
       //    msg("delta_phase: %d\n",delta_phase);
 #ifdef DEBUG_CH
-      LOG_X(PHY,"lte_ul_channel_estimation_RRU: ul_ch1 = %p, ul_ch2 = %p, pilot_pos1=%d, pilot_pos2=%d\n",ul_ch1, ul_ch2, pilot_pos1,pilot_pos2);
+      LOG_D(PHY,"lte_ul_channel_estimation_RRU: ul_ch1 = %p, ul_ch2 = %p, pilot_pos1=%d, pilot_pos2=%d\n",ul_ch1, ul_ch2, pilot_pos1,pilot_pos2);
 #endif
 
       for (k=0; k<frame_parms->symbols_per_tti; k++) {
 #ifdef DEBUG_CH
-        //  LOG_X(PHY,"lte_ul_channel_estimation: k=%d, alpha = %d, beta = %d\n",k,alpha,beta);
+        //  LOG_D(PHY,"lte_ul_channel_estimation: k=%d, alpha = %d, beta = %d\n",k,alpha,beta);
 #endif
         //symbol_offset_subframe = frame_parms->N_RB_UL*12*k;
 
@@ -696,7 +696,7 @@ int32_t lte_ul_channel_estimation_RRU(LTE_DL_FRAME_PARMS *frame_parms,
       delta_phase = lte_ul_freq_offset_estimation(frame_parms,
                     ul_ch_estimates[aa],
                     N_rb_alloc);
-      LOG_X(PHY,"delta_phase = %d\n",delta_phase);
+      LOG_D(PHY,"delta_phase = %d\n",delta_phase);
     }
   } //for(aa=...
 

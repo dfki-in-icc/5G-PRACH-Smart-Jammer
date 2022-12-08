@@ -388,7 +388,7 @@ const char *prachfmt[]={"0","1","2","3", "A1","A2","A3","B1","B4","C0","C2","A1/
 
 uint16_t get_NCS(uint8_t index, uint16_t format0, uint8_t restricted_set_config) {
 
-  LOG_X(MAC,"get_NCS: indx %d,format0 %d, restriced_set_config %d\n",
+  LOG_D(MAC,"get_NCS: indx %d,format0 %d, restriced_set_config %d\n",
 	index,format0,restricted_set_config);
 
   if (format0 < 3) {
@@ -1524,7 +1524,7 @@ int get_nr_prach_occasion_info_from_index(uint8_t index,
         format2 = (uint8_t) table_6_3_3_2_4_prachConfig_Index[index][1];
         
       *format = ((uint8_t) table_6_3_3_2_4_prachConfig_Index[index][0]) | (format2<<8);
-      LOG_X(MAC,"Getting Total PRACH info from index %d absoluteFrequencyPointA %u mu %u frame_type %u start_symbol %u N_t_slot %u N_dur %u N_RA_sfn = %u\n",
+      LOG_D(MAC,"Getting Total PRACH info from index %d absoluteFrequencyPointA %u mu %u frame_type %u start_symbol %u N_t_slot %u N_dur %u N_RA_sfn = %u\n",
             index,
             pointa,
             mu,
@@ -1555,7 +1555,7 @@ int get_nr_prach_occasion_info_from_index(uint8_t index,
         if (table_6_3_3_2_3_prachConfig_Index[index][1] != -1)
           format2 = (uint8_t) table_6_3_3_2_3_prachConfig_Index[index][1];
         *format = ((uint8_t) table_6_3_3_2_3_prachConfig_Index[index][0]) | (format2<<8);
-        LOG_X(NR_MAC,"Getting Total PRACH info from index %d (col %lu ) absoluteFrequencyPointA %u mu %u frame_type %u start_symbol %u N_t_slot %u N_dur %u N_RA_sfn = %u\n",
+        LOG_D(NR_MAC,"Getting Total PRACH info from index %d (col %lu ) absoluteFrequencyPointA %u mu %u frame_type %u start_symbol %u N_t_slot %u N_dur %u N_RA_sfn = %u\n",
               index, table_6_3_3_2_3_prachConfig_Index[index][6],
               pointa,
               mu,
@@ -1583,7 +1583,7 @@ int get_nr_prach_occasion_info_from_index(uint8_t index,
         if (table_6_3_3_2_2_prachConfig_Index[index][1] != -1)
           format2 = (uint8_t) table_6_3_3_2_2_prachConfig_Index[index][1];
         *format = ((uint8_t) table_6_3_3_2_2_prachConfig_Index[index][0]) | (format2<<8);
-        LOG_X(MAC,"Getting Total PRACH info from index %d absoluteFrequencyPointA %u mu %u frame_type %u start_symbol %u N_t_slot %u N_dur %u \n",
+        LOG_D(MAC,"Getting Total PRACH info from index %d absoluteFrequencyPointA %u mu %u frame_type %u start_symbol %u N_t_slot %u N_dur %u \n",
               index,
               pointa,
               mu,
@@ -1647,7 +1647,7 @@ int get_nr_prach_info_from_index(uint8_t index,
           if (table_6_3_3_2_4_prachConfig_Index[index][1] != -1)
             format2 = (uint8_t) table_6_3_3_2_4_prachConfig_Index[index][1];
           *format = ((uint8_t) table_6_3_3_2_4_prachConfig_Index[index][0]) | (format2<<8);
-          LOG_X(MAC,"Frame %d slot %d: Getting PRACH info from index %d absoluteFrequencyPointA %u mu %u frame_type %u start_symbol %u N_t_slot %u N_dur %u N_RA_slot %u RA_sfn_index %u\n",
+          LOG_D(MAC,"Frame %d slot %d: Getting PRACH info from index %d absoluteFrequencyPointA %u mu %u frame_type %u start_symbol %u N_t_slot %u N_dur %u N_RA_slot %u RA_sfn_index %u\n",
                 frame,
                 slot,
                 index,
@@ -1697,7 +1697,7 @@ int get_nr_prach_info_from_index(uint8_t index,
             if (table_6_3_3_2_3_prachConfig_Index[index][1] != -1)
               format2 = (uint8_t) table_6_3_3_2_3_prachConfig_Index[index][1];
             *format = ((uint8_t) table_6_3_3_2_3_prachConfig_Index[index][0]) | (format2<<8);
-            LOG_X(MAC,"Frame %d slot %d: Getting PRACH info from index %d (col 6 %lu) absoluteFrequencyPointA %u mu %u frame_type %u start_symbol %u N_t_slot %u N_dur %u N_RA_slot %u RA_sfn_index %u \n", frame,
+            LOG_D(MAC,"Frame %d slot %d: Getting PRACH info from index %d (col 6 %lu) absoluteFrequencyPointA %u mu %u frame_type %u start_symbol %u N_t_slot %u N_dur %u N_RA_slot %u RA_sfn_index %u \n", frame,
               slot,
               index, table_6_3_3_2_3_prachConfig_Index[index][6],
               pointa,
@@ -1743,7 +1743,7 @@ int get_nr_prach_info_from_index(uint8_t index,
             if (table_6_3_3_2_2_prachConfig_Index[index][1] != -1)
               format2 = (uint8_t) table_6_3_3_2_2_prachConfig_Index[index][1];
             *format = ((uint8_t) table_6_3_3_2_2_prachConfig_Index[index][0]) | (format2<<8);
-            LOG_X(MAC,"Frame %d slot %d: Getting PRACH info from index %d absoluteFrequencyPointA %u mu %u frame_type %u start_symbol %u N_t_slot %u N_dur %u \n",
+            LOG_D(MAC,"Frame %d slot %d: Getting PRACH info from index %d absoluteFrequencyPointA %u mu %u frame_type %u start_symbol %u N_t_slot %u N_dur %u \n",
                   frame,
                   slot,
                   index,
@@ -1825,23 +1825,18 @@ uint8_t compute_nr_root_seq(NR_RACH_ConfigCommon_t *rach_config,
   uint32_t w;
   uint8_t found_preambles = 0;
   uint8_t found_sequences = 0;
-  LOG_X(NR_MAC,"=== compute_nr_root_seq  (config index %d  ncs_index %d  format0 %x  NCS %d  L_ra %d )\n",
-                                            config_index, ncs_index, format0, NCS, L_ra);
+
   if (rach_config->restrictedSetConfig == 0) {
-    if (NCS == 0) {
-      LOG_X(NR_MAC,"=== rach_config->restrictedSetConfig == 0 (nb_preambles %d)\n",nb_preambles);
-      return nb_preambles;
-    }
+    if (NCS == 0) return nb_preambles;
     else {
       r = L_ra/NCS;
       found_sequences = (nb_preambles/r) + (nb_preambles%r!=0); //ceil(nb_preambles/r)
-      LOG_X(NR_MAC, "Computing NR root sequences: found %u sequences\n", found_sequences);
+      LOG_D(MAC, "Computing NR root sequences: found %u sequences\n", found_sequences);
       return (found_sequences);
     }
   }
   else{
     index = rach_config->prach_RootSequenceIndex.choice.l839;
-    LOG_X(NR_MAC,"=== rach_config->restrictedSetConfig != 0\n");
     while (found_preambles < nb_preambles) {
       u = table_63313[index%(L_ra-1)];
 
@@ -1874,7 +1869,7 @@ uint8_t compute_nr_root_seq(NR_RACH_ConfigCommon_t *rach_config,
         AssertFatal(1==0,"Procedure to find nb of sequences for restricted type B not implemented yet");
       }
     }
-    LOG_X(MAC, "Computing NR root sequences: found %u sequences\n", found_sequences);
+    LOG_D(MAC, "Computing NR root sequences: found %u sequences\n", found_sequences);
     return found_sequences;
   }
 }
@@ -2057,7 +2052,7 @@ uint64_t from_nrarfcn(int nr_bandP,
     }
   }
 
-  LOG_X(NR_MAC, "Frequency from NR-ARFCN for N_OFFs %lu, duplex spacing %d KHz, deltaFglobal %d KHz\n", N_OFFs, delta_duplex, deltaFglobal);
+  LOG_D(NR_MAC, "Frequency from NR-ARFCN for N_OFFs %lu, duplex spacing %d KHz, deltaFglobal %d KHz\n", N_OFFs, delta_duplex, deltaFglobal);
 
   AssertFatal(nrarfcn >= N_OFFs,"nrarfcn %u < N_OFFs[%d] %llu\n", nrarfcn, nr_bandtable[i].band, (long long unsigned int)N_OFFs);
   get_delta_arfcn(i, nrarfcn, N_OFFs);
@@ -2080,7 +2075,7 @@ void nr_get_tbs_dl(nfapi_nr_dl_tti_pdsch_pdu *pdsch_pdu,
                    uint8_t numdmrscdmgroupnodata,
                    uint8_t tb_scaling) {
 
-  LOG_X(MAC, "TBS calculation\n");
+  LOG_D(MAC, "TBS calculation\n");
 
   nfapi_nr_dl_tti_pdsch_pdu_rel15_t *pdsch_rel15 = &pdsch_pdu->pdsch_pdu_rel15;
   uint16_t N_PRB_oh = x_overhead;
@@ -2097,7 +2092,7 @@ void nr_get_tbs_dl(nfapi_nr_dl_tti_pdsch_pdu *pdsch_pdu,
   uint8_t Imcs = pdsch_rel15->mcsIndex[0];
   uint16_t dmrs_length = get_num_dmrs(pdsch_rel15->dlDmrsSymbPos);
   uint16_t N_RE_prime = NR_NB_SC_PER_RB*N_sh_symb - N_PRB_DMRS*dmrs_length - N_PRB_oh;
-  LOG_X(MAC, "N_RE_prime %d for %d symbols %d DMRS per PRB and %d overhead\n", N_RE_prime, N_sh_symb, N_PRB_DMRS, N_PRB_oh);
+  LOG_D(MAC, "N_RE_prime %d for %d symbols %d DMRS per PRB and %d overhead\n", N_RE_prime, N_sh_symb, N_PRB_DMRS, N_PRB_oh);
 
   uint16_t R;
   uint32_t TBS=0;
@@ -2126,7 +2121,7 @@ void nr_get_tbs_dl(nfapi_nr_dl_tti_pdsch_pdu *pdsch_pdu,
   //  pdsch_rel15->nb_mod_symbols = N_RE_prime*pdsch_rel15->n_prb*pdsch_rel15->nb_codewords;
   pdsch_rel15->mcsTable[0] = table_idx;
 
-  LOG_X(MAC, "TBS %d bytes: N_PRB_DMRS %d N_sh_symb %d N_PRB_oh %d R %d Qm %d table %d nb_symbols %d\n",
+  LOG_D(MAC, "TBS %d bytes: N_PRB_DMRS %d N_sh_symb %d N_PRB_oh %d R %d Qm %d table %d nb_symbols %d\n",
   TBS, N_PRB_DMRS, N_sh_symb, N_PRB_oh, R, Qm, table_idx,N_RE_prime*pdsch_rel15->rbSize*pdsch_rel15->NrOfCodewords );
 }
 
@@ -2398,7 +2393,7 @@ int32_t get_l_prime(uint8_t duration_in_symbols, uint8_t mapping_type, pusch_dmr
   uint8_t row, colomn;
   int32_t l_prime;
 
-  LOG_X(NR_MAC, "In %s: PUSCH NrofSymbols:%d, startSymbol:%d, mappingtype:%d, dmrs_TypeA_Position:%d additional_pos:%d, pusch_maxLength:%d\n",
+  LOG_D(NR_MAC, "In %s: PUSCH NrofSymbols:%d, startSymbol:%d, mappingtype:%d, dmrs_TypeA_Position:%d additional_pos:%d, pusch_maxLength:%d\n",
     __FUNCTION__,
     duration_in_symbols,
     start_symbol,
@@ -2432,11 +2427,11 @@ int32_t get_l_prime(uint8_t duration_in_symbols, uint8_t mapping_type, pusch_dmr
     l0 = 1<<l0 | 1<<(l0+1);
   }
 
-  LOG_X(NR_MAC, "PUSCH - l0:%d, ld:%d,row:%d, column:%d, addpos:%d, maxlen:%d\n", l0, ld, row, colomn, additional_pos, pusch_maxLength);
+  LOG_D(NR_MAC, "PUSCH - l0:%d, ld:%d,row:%d, column:%d, addpos:%d, maxlen:%d\n", l0, ld, row, colomn, additional_pos, pusch_maxLength);
   AssertFatal(l_prime>=0,"invalid l_prime < 0\n");
 
   l_prime = (mapping_type == typeA) ? (l_prime | l0) : (l_prime << start_symbol);
-  LOG_X(MAC, " PUSCH DMRS MASK in HEX:%x\n", l_prime);
+  LOG_D(MAC, " PUSCH DMRS MASK in HEX:%x\n", l_prime);
 
   return l_prime;
 
@@ -2466,7 +2461,7 @@ uint8_t get_L_ptrs(uint8_t mcs1, uint8_t mcs2, uint8_t mcs3, uint8_t I_mcs, uint
     mcs4 = 28;
 
   if (I_mcs < mcs1) {
-    LOG_X(PHY, "PUSH PT-RS is not present.\n");
+    LOG_D(PHY, "PUSH PT-RS is not present.\n");
     return -1;
   } else if (I_mcs >= mcs1 && I_mcs < mcs2)
     return 2;
@@ -2475,7 +2470,7 @@ uint8_t get_L_ptrs(uint8_t mcs1, uint8_t mcs2, uint8_t mcs3, uint8_t I_mcs, uint
   else if (I_mcs >= mcs3 && I_mcs < mcs4)
     return 0;
   else {
-    LOG_X(NR_MAC, "PT-RS time-density determination is obtained from the DCI for the same transport block in the initial transmission\n");
+    LOG_D(NR_MAC, "PT-RS time-density determination is obtained from the DCI for the same transport block in the initial transmission\n");
     return -1;
   }
 }
@@ -2496,7 +2491,7 @@ uint8_t get_L_ptrs(uint8_t mcs1, uint8_t mcs2, uint8_t mcs3, uint8_t I_mcs, uint
 uint8_t get_K_ptrs(uint16_t nrb0, uint16_t nrb1, uint16_t N_RB) {
 
   if (N_RB < nrb0) {
-    LOG_X(PHY,"PUSH PT-RS is not present.\n");
+    LOG_D(PHY,"PUSH PT-RS is not present.\n");
     return -1;
   } else if (N_RB >= nrb0 && N_RB < nrb1)
     return 2;
@@ -2587,7 +2582,7 @@ uint8_t get_transformPrecoding(const NR_BWP_UplinkCommon_t *initialUplinkBWP,
   if (initialUplinkBWP->rach_ConfigCommon->choice.setup->msg3_transformPrecoder == NULL) {
     return 1; // Transformprecoding disabled
   } else {
-    LOG_X(PHY, "MAC_COMMON: Transform Precodig enabled through msg3_transformPrecoder\n");
+    LOG_D(PHY, "MAC_COMMON: Transform Precodig enabled through msg3_transformPrecoder\n");
     return 0; // Enabled
   }
 
@@ -2710,7 +2705,7 @@ uint16_t nr_dci_size(const NR_BWP_DownlinkCommon_t *initialDownlinkBWP,
           dci_pdu->frequency_domain_assignment.nbits = ((int)ceil( log2( (N_RB*(N_RB+1))>>1 ) )>numRBG) ? (int)ceil( log2( (N_RB*(N_RB+1))>>1 ) )+1 : numRBG+1;
       }
       else dci_pdu->frequency_domain_assignment.nbits = (int)ceil( log2( (N_RB*(N_RB+1))>>1 ) );
-      LOG_X(NR_MAC,"PUSCH Frequency Domain Assignment nbits %d, N_RB %d\n",dci_pdu->frequency_domain_assignment.nbits,N_RB);
+      LOG_D(NR_MAC,"PUSCH Frequency Domain Assignment nbits %d, N_RB %d\n",dci_pdu->frequency_domain_assignment.nbits,N_RB);
       size += dci_pdu->frequency_domain_assignment.nbits;
       // Time domain assignment
       if (pusch_Config==NULL || pusch_Config->pusch_TimeDomainAllocationList==NULL) {
@@ -2722,7 +2717,7 @@ uint16_t nr_dci_size(const NR_BWP_DownlinkCommon_t *initialDownlinkBWP,
       else
         num_entries = pusch_Config->pusch_TimeDomainAllocationList->choice.setup->list.count;
       dci_pdu->time_domain_assignment.nbits = (int)ceil(log2(num_entries));
-      LOG_X(NR_MAC,"PUSCH Time Domain Allocation nbits %d, pusch_Config %p\n",dci_pdu->time_domain_assignment.nbits,pusch_Config);
+      LOG_D(NR_MAC,"PUSCH Time Domain Allocation nbits %d, pusch_Config %p\n",dci_pdu->time_domain_assignment.nbits,pusch_Config);
       size += dci_pdu->time_domain_assignment.nbits;
       // Frequency Hopping flag
       if (pusch_Config && 
@@ -2740,7 +2735,7 @@ uint16_t nr_dci_size(const NR_BWP_DownlinkCommon_t *initialDownlinkBWP,
       //TODO L5G
       dci_pdu->dai[0].nbits = 2;
       size += dci_pdu->dai[0].nbits;
-      LOG_X(NR_MAC,"DAI1 nbits %d\n",dci_pdu->dai[0].nbits);
+      LOG_D(NR_MAC,"DAI1 nbits %d\n",dci_pdu->dai[0].nbits);
       // 2nd DAI
       if (cg->spCellConfig->spCellConfigDedicated->pdsch_ServingCellConfig && 
           cg->spCellConfig->spCellConfigDedicated->pdsch_ServingCellConfig->choice.setup &&
@@ -2790,7 +2785,7 @@ uint16_t nr_dci_size(const NR_BWP_DownlinkCommon_t *initialDownlinkBWP,
           size += dci_pdu->srs_resource_indicator.nbits;
         }
       } else dci_pdu->srs_resource_indicator.nbits = 0;
-      LOG_X(NR_MAC,"dci_pdu->srs_resource_indicator.nbits %d\n",dci_pdu->srs_resource_indicator.nbits);
+      LOG_D(NR_MAC,"dci_pdu->srs_resource_indicator.nbits %d\n",dci_pdu->srs_resource_indicator.nbits);
       // Precoding info and number of layers
       long transformPrecoder = get_transformPrecoding(initialUplinkBWP, pusch_Config, ubwpd, (uint8_t*)&format, rnti_type, 0);
       dci_pdu->precoding_information.nbits=0;
@@ -2819,7 +2814,7 @@ uint16_t nr_dci_size(const NR_BWP_DownlinkCommon_t *initialDownlinkBWP,
         }
       }
       size += dci_pdu->precoding_information.nbits;
-      LOG_X(NR_MAC,"dci_pdu->precoding_informaiton.nbits=%d\n",dci_pdu->precoding_information.nbits);
+      LOG_D(NR_MAC,"dci_pdu->precoding_informaiton.nbits=%d\n",dci_pdu->precoding_information.nbits);
       // Antenna ports
       NR_DMRS_UplinkConfig_t *NR_DMRS_UplinkConfig = NULL;
       int xa=0;
@@ -2839,7 +2834,7 @@ uint16_t nr_dci_size(const NR_BWP_DownlinkCommon_t *initialDownlinkBWP,
       else
         dci_pdu->antenna_ports.nbits = xb;
       size += dci_pdu->antenna_ports.nbits;
-      LOG_X(NR_MAC,"dci_pdu->antenna_ports.nbits = %d\n",dci_pdu->antenna_ports.nbits);
+      LOG_D(NR_MAC,"dci_pdu->antenna_ports.nbits = %d\n",dci_pdu->antenna_ports.nbits);
       // SRS request
       if (cg->spCellConfig->spCellConfigDedicated->supplementaryUplink==NULL)
         dci_pdu->srs_request.nbits = 2;
@@ -2899,7 +2894,7 @@ uint16_t nr_dci_size(const NR_BWP_DownlinkCommon_t *initialDownlinkBWP,
       break;
 
     case NR_DL_DCI_FORMAT_1_1:
-      LOG_X(NR_MAC,"DCI_FORMAT 1_1 : pdsch_Config %p, pucch_Config %p\n",pdsch_Config,pucch_Config);
+      LOG_D(NR_MAC,"DCI_FORMAT 1_1 : pdsch_Config %p, pucch_Config %p\n",pdsch_Config,pucch_Config);
       // General note: 0 bits condition is ignored as default nbits is 0.
       // Format identifier
       size = 1;
@@ -2934,7 +2929,7 @@ uint16_t nr_dci_size(const NR_BWP_DownlinkCommon_t *initialDownlinkBWP,
       else
          dci_pdu->frequency_domain_assignment.nbits = ((int)ceil( log2( (N_RB*(N_RB+1))>>1 ) )>numRBG) ? (int)ceil( log2( (N_RB*(N_RB+1))>>1 ) )+1 : numRBG+1;
       size += dci_pdu->frequency_domain_assignment.nbits;
-      LOG_X(NR_MAC,"dci_pdu->frequency_domain_assignment.nbits %d (N_RB %d)\n",dci_pdu->frequency_domain_assignment.nbits,N_RB);
+      LOG_D(NR_MAC,"dci_pdu->frequency_domain_assignment.nbits %d (N_RB %d)\n",dci_pdu->frequency_domain_assignment.nbits,N_RB);
       // Time domain assignment (see table 5.1.2.1.1-1 in 38.214
       if (pdsch_Config == NULL || pdsch_Config->pdsch_TimeDomainAllocationList==NULL) {
         if (bwpc->pdsch_ConfigCommon->choice.setup->pdsch_TimeDomainAllocationList==NULL)
@@ -2945,7 +2940,7 @@ uint16_t nr_dci_size(const NR_BWP_DownlinkCommon_t *initialDownlinkBWP,
       else
         num_entries = pdsch_Config->pdsch_TimeDomainAllocationList->choice.setup->list.count;
       dci_pdu->time_domain_assignment.nbits = (int)ceil(log2(num_entries));
-      LOG_X(NR_MAC,"pdsch tda.nbits= %d\n",dci_pdu->time_domain_assignment.nbits);
+      LOG_D(NR_MAC,"pdsch tda.nbits= %d\n",dci_pdu->time_domain_assignment.nbits);
       size += dci_pdu->time_domain_assignment.nbits;
       // VRB to PRB mapping 
       if (pdsch_Config && 
@@ -2990,7 +2985,7 @@ uint16_t nr_dci_size(const NR_BWP_DownlinkCommon_t *initialDownlinkBWP,
         dci_pdu->dai[0].nbits = 2;
         size += dci_pdu->dai[0].nbits;
       }
-      LOG_X(NR_MAC,"dci_pdu->dai[0].nbits %d\n",dci_pdu->dai[0].nbits);
+      LOG_D(NR_MAC,"dci_pdu->dai[0].nbits %d\n",dci_pdu->dai[0].nbits);
       // TPC PUCCH
       size += 2;
       // PUCCH resource indicator
@@ -2999,14 +2994,14 @@ uint16_t nr_dci_size(const NR_BWP_DownlinkCommon_t *initialDownlinkBWP,
       uint8_t I = pucch_Config->dl_DataToUL_ACK ? pucch_Config->dl_DataToUL_ACK->list.count : 8;
       dci_pdu->pdsch_to_harq_feedback_timing_indicator.nbits = (int)ceil(log2(I));
       size += dci_pdu->pdsch_to_harq_feedback_timing_indicator.nbits;
-      LOG_X(NR_MAC,"dci_pdu->pdsch_to_harq_feedback_timing_indicator.nbits %d\n",dci_pdu->pdsch_to_harq_feedback_timing_indicator.nbits);
+      LOG_D(NR_MAC,"dci_pdu->pdsch_to_harq_feedback_timing_indicator.nbits %d\n",dci_pdu->pdsch_to_harq_feedback_timing_indicator.nbits);
       // Antenna ports
       NR_SetupRelease_DMRS_DownlinkConfig_t *typeA = pdsch_Config ? pdsch_Config->dmrs_DownlinkForPDSCH_MappingTypeA : NULL;
       NR_SetupRelease_DMRS_DownlinkConfig_t *typeB = pdsch_Config ? pdsch_Config->dmrs_DownlinkForPDSCH_MappingTypeB : NULL;
       AssertFatal(typeA!=NULL || typeB!=NULL, "either dmrs_typeA or typeB must be configured\n");
       dci_pdu->antenna_ports.nbits = getAntPortBitWidth(typeA,typeB);
       size += dci_pdu->antenna_ports.nbits;
-      LOG_X(NR_MAC,"dci_pdu->antenna_ports.nbits %d\n",dci_pdu->antenna_ports.nbits);
+      LOG_D(NR_MAC,"dci_pdu->antenna_ports.nbits %d\n",dci_pdu->antenna_ports.nbits);
       // Tx Config Indication
       long *isTciEnable = pdcch_Config->controlResourceSetToAddModList->list.array[0]->tci_PresentInDCI;
       if (isTciEnable != NULL) {
@@ -3147,7 +3142,7 @@ int16_t fill_dmrs_mask(NR_PDSCH_Config_t *pdsch_Config,int dmrs_TypeA_Position,i
   int l0;int dmrs_AdditionalPosition = 0;
   NR_DMRS_DownlinkConfig_t *dmrs_config = NULL;
 
-  LOG_X(MAC, "NrofSymbols:%d, startSymbol:%d, mappingtype:%d, dmrs_TypeA_Position:%d\n", NrOfSymbols, startSymbol, mappingtype_fromDCI, dmrs_TypeA_Position);
+  LOG_D(MAC, "NrofSymbols:%d, startSymbol:%d, mappingtype:%d, dmrs_TypeA_Position:%d\n", NrOfSymbols, startSymbol, mappingtype_fromDCI, dmrs_TypeA_Position);
 
   if (dmrs_TypeA_Position == NR_ServingCellConfigCommon__dmrs_TypeA_Position_pos2) l0=2;
   else if (dmrs_TypeA_Position == NR_ServingCellConfigCommon__dmrs_TypeA_Position_pos3) l0=3;
@@ -3213,11 +3208,11 @@ int16_t fill_dmrs_mask(NR_PDSCH_Config_t *pdsch_Config,int dmrs_TypeA_Position,i
     l0 = 1<<l0 | 1<<(l0+1);
   }
 
-  LOG_X(MAC, "l0:%d, ld:%d,row:%d, column:%d, addpos:%d, maxlen:%d\n", l0, ld, row, column, dmrs_AdditionalPosition, length);
+  LOG_D(MAC, "l0:%d, ld:%d,row:%d, column:%d, addpos:%d, maxlen:%d\n", l0, ld, row, column, dmrs_AdditionalPosition, length);
   AssertFatal(l_prime>=0,"ERROR in configuration.Check Time Domain allocation of this Grant. l_prime < 1. row:%d, column:%d\n", row, column);
 
   l_prime = (mappingtype_fromDCI == typeA) ? (l_prime | l0) : (l_prime << startSymbol);
-  LOG_X(MAC, " PDSCH DMRS MASK in HEX:%x\n", l_prime);
+  LOG_D(MAC, " PDSCH DMRS MASK in HEX:%x\n", l_prime);
 
   return l_prime;
 }
@@ -3541,7 +3536,7 @@ void get_type0_PDCCH_CSS_config_parameters(NR_Type0_PDCCH_CSS_config_t *type0_PD
   type0_PDCCH_CSS_config->num_rbs = -1;
   type0_PDCCH_CSS_config->num_symbols = -1;
   type0_PDCCH_CSS_config->rb_offset = -1;
-  LOG_X(NR_MAC,"NR_SubcarrierSpacing_kHz30 %d, scs_ssb %d, scs_pdcch %d, min_chan_bw %d\n",(int)NR_SubcarrierSpacing_kHz30,(int)scs_ssb,(int)scs_pdcch,min_channel_bw);
+  LOG_D(NR_MAC,"NR_SubcarrierSpacing_kHz30 %d, scs_ssb %d, scs_pdcch %d, min_chan_bw %d\n",(int)NR_SubcarrierSpacing_kHz30,(int)scs_ssb,(int)scs_pdcch,min_channel_bw);
 
   //  type0-pdcch coreset
   switch( ((int)scs_ssb << 3) | (int)scs_pdcch ){
@@ -3658,7 +3653,7 @@ void get_type0_PDCCH_CSS_config_parameters(NR_Type0_PDCCH_CSS_config_t *type0_PD
       break;
   }
 
-  LOG_X(NR_MAC,"Coreset0: index_4msb=%d, num_rbs=%d, num_symb=%d, rb_offset=%d\n",
+  LOG_D(NR_MAC,"Coreset0: index_4msb=%d, num_rbs=%d, num_symb=%d, rb_offset=%d\n",
         index_4msb,type0_PDCCH_CSS_config->num_rbs,type0_PDCCH_CSS_config->num_symbols,type0_PDCCH_CSS_config->rb_offset );
 
   AssertFatal(type0_PDCCH_CSS_config->num_rbs != -1, "Type0 PDCCH coreset num_rbs undefined, index_4msb=%d, min_channel_bw %d, scs_ssb %d, scs_pdcch %d\n",index_4msb,min_channel_bw,(int)scs_ssb,(int)scs_pdcch);

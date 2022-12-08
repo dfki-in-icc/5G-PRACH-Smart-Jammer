@@ -144,7 +144,7 @@ rx_sdu(const module_id_t enb_mod_idP,
   if (UE_id != -1) {
     UE_scheduling_control = &UE_info->UE_sched_ctrl[UE_id];
     UE_template_ptr = &UE_info->UE_template[CC_idP][UE_id];
-    LOG_X(MAC, "[eNB %d][PUSCH %d] CC_id %d %d.%d Received ULSCH (%s) sdu round %d from PHY (rnti %x, UE_id %d) ul_cqi %d, timing_advance %d\n",
+    LOG_D(MAC, "[eNB %d][PUSCH %d] CC_id %d %d.%d Received ULSCH (%s) sdu round %d from PHY (rnti %x, UE_id %d) ul_cqi %d, timing_advance %d\n",
           enb_mod_idP,
           harq_pid,
           CC_idP,
@@ -201,7 +201,7 @@ rx_sdu(const module_id_t enb_mod_idP,
       }
     } else {  // sduP == NULL => error
       UE_scheduling_control->pusch_rx_error_num[CC_idP]++;
-      LOG_X(MAC, "[eNB %d][PUSCH %d] CC_id %d %d.%d ULSCH in error in round %d, ul_cqi %d, UE_id %d, RNTI %x (len %d)\n",
+      LOG_D(MAC, "[eNB %d][PUSCH %d] CC_id %d %d.%d ULSCH in error in round %d, ul_cqi %d, UE_id %d, RNTI %x (len %d)\n",
             enb_mod_idP,
             harq_pid,
             CC_idP,
@@ -255,7 +255,7 @@ rx_sdu(const module_id_t enb_mod_idP,
 
       first_rb = UE_template_ptr->first_rb_ul[harq_pid];
       /* Program NACK for PHICH */
-      LOG_X(MAC, "Programming PHICH NACK for rnti %x harq_pid %d (first_rb %d)\n",
+      LOG_D(MAC, "Programming PHICH NACK for rnti %x harq_pid %d (first_rb %d)\n",
             current_rnti,
             harq_pid,
             first_rb);
@@ -290,7 +290,7 @@ rx_sdu(const module_id_t enb_mod_idP,
     AssertFatal(mac->common_channels[CC_idP].radioResourceConfigCommon->rach_ConfigCommon.maxHARQ_Msg3Tx > 1,
                 "maxHARQ %d should be greater than 1\n",
                 (int) mac->common_channels[CC_idP].radioResourceConfigCommon->rach_ConfigCommon.maxHARQ_Msg3Tx);
-    LOG_X(MAC, "[eNB %d][PUSCH %d] CC_id %d [RAPROC Msg3] Received ULSCH sdu (%s) round %d from PHY (rnti %x, RA_id %d) ul_cqi %d, timing advance %d\n",
+    LOG_D(MAC, "[eNB %d][PUSCH %d] CC_id %d [RAPROC Msg3] Received ULSCH sdu (%s) round %d from PHY (rnti %x, RA_id %d) ul_cqi %d, timing advance %d\n",
           enb_mod_idP,
           harq_pid,
           CC_idP,
@@ -316,10 +316,10 @@ rx_sdu(const module_id_t enb_mod_idP,
     if (no_sig || sduP == NULL) { // we've got an error on Msg3
 
       if(no_sig) {
-        LOG_X(MAC,"No signal in Msg3\n");
+        LOG_D(MAC,"No signal in Msg3\n");
       }
 
-      LOG_X(MAC, "[eNB %d] CC_id %d, RA %d ULSCH in error in round %d/%d\n",
+      LOG_D(MAC, "[eNB %d] CC_id %d, RA %d ULSCH in error in round %d/%d\n",
             enb_mod_idP,
             CC_idP,
             RA_id,
@@ -445,7 +445,7 @@ rx_sdu(const module_id_t enb_mod_idP,
             UE_template_ptr->phr_info = 40;
           }
 
-          LOG_X(MAC, "[eNB %d] CC_id %d MAC CE_LCID %d : Received PHR PH = %d (db)\n",
+          LOG_D(MAC, "[eNB %d] CC_id %d MAC CE_LCID %d : Received PHR PH = %d (db)\n",
                 enb_mod_idP,
                 CC_idP,
                 rx_ces[i],
@@ -474,7 +474,7 @@ rx_sdu(const module_id_t enb_mod_idP,
         /* Receiving CRNTI means that the current rnti has to go away */
         if (old_UE_id != -1) {
           if (mac_eNB_get_rrc_status(enb_mod_idP,old_rnti) ==  RRC_HO_EXECUTION) {
-            LOG_X(MAC, "[eNB %d] Frame %d, Subframe %d CC_id %d : (rnti %x UE_id %d) Handover case\n",
+            LOG_D(MAC, "[eNB %d] Frame %d, Subframe %d CC_id %d : (rnti %x UE_id %d) Handover case\n",
                   enb_mod_idP,
                   frameP,
                   subframeP,
@@ -583,7 +583,7 @@ rx_sdu(const module_id_t enb_mod_idP,
       case TRUNCATED_BSR:
       case SHORT_BSR:
         lcgid = (payload_ptr[0] >> 6);
-        LOG_X(MAC, "[eNB %d] CC_id %d MAC CE_LCID %d : Received short BSR LCGID = %u bsr = %d\n",
+        LOG_D(MAC, "[eNB %d] CC_id %d MAC CE_LCID %d : Received short BSR LCGID = %u bsr = %d\n",
               enb_mod_idP,
               CC_idP,
               rx_ces[i],
@@ -612,7 +612,7 @@ rx_sdu(const module_id_t enb_mod_idP,
           }
 
           if (mac_eNB_get_rrc_status(enb_mod_idP,UE_RNTI(enb_mod_idP, UE_id)) < RRC_CONNECTED) {
-            LOG_X(MAC, "[eNB %d] CC_id %d MAC CE_LCID %d : estimated_ul_buffer = %d (lcg increment %d)\n",
+            LOG_D(MAC, "[eNB %d] CC_id %d MAC CE_LCID %d : estimated_ul_buffer = %d (lcg increment %d)\n",
                   enb_mod_idP,
                   CC_idP,
                   rx_ces[i],
@@ -646,7 +646,7 @@ rx_sdu(const module_id_t enb_mod_idP,
             UE_template_ptr->ul_buffer_info[LCGID1] +
             UE_template_ptr->ul_buffer_info[LCGID2] +
             UE_template_ptr->ul_buffer_info[LCGID3];
-          LOG_X(MAC, "[eNB %d] CC_id %d MAC CE_LCID %d: Received long BSR. Size is LCGID0 = %u LCGID1 = %u LCGID2 = %u LCGID3 = %u\n",
+          LOG_D(MAC, "[eNB %d] CC_id %d MAC CE_LCID %d: Received long BSR. Size is LCGID0 = %u LCGID1 = %u LCGID2 = %u LCGID3 = %u\n",
                 enb_mod_idP,
                 CC_idP,
                 rx_ces[i],
@@ -656,7 +656,7 @@ rx_sdu(const module_id_t enb_mod_idP,
                 UE_template_ptr->ul_buffer_info[LCGID3]);
 
           if (crnti_rx == 1) {
-            LOG_X(MAC, "[eNB %d] CC_id %d MAC CE_LCID %d: Received CRNTI.\n",
+            LOG_D(MAC, "[eNB %d] CC_id %d MAC CE_LCID %d: Received CRNTI.\n",
                   enb_mod_idP,
                   CC_idP,
                   rx_ces[i]);
@@ -684,7 +684,7 @@ rx_sdu(const module_id_t enb_mod_idP,
   } // end for loop on control element
 
   for (int i = 0; i < num_sdu; i++) {
-    LOG_X(MAC, "SDU Number %d MAC Subheader SDU_LCID %d, length %d\n",
+    LOG_D(MAC, "SDU Number %d MAC Subheader SDU_LCID %d, length %d\n",
           i,
           rx_lcids[i],
           rx_lengths[i]);
@@ -728,11 +728,11 @@ rx_sdu(const module_id_t enb_mod_idP,
         }
 
         if(no_sig) {
-          LOG_X(MAC, "No signal\n");
+          LOG_D(MAC, "No signal\n");
           break;
         }
 
-        LOG_X(MAC, "[eNB %d][RAPROC] CC_id %d Frame %d, Received CCCH:  %x.%x.%x.%x.%x.%x, Terminating RA procedure for UE rnti %x\n",
+        LOG_D(MAC, "[eNB %d][RAPROC] CC_id %d Frame %d, Received CCCH:  %x.%x.%x.%x.%x.%x, Terminating RA procedure for UE rnti %x\n",
               enb_mod_idP,
               CC_idP,
               frameP,
@@ -744,7 +744,7 @@ rx_sdu(const module_id_t enb_mod_idP,
 
         if (RA_id != -1) {
           RA_t *ra = &(mac->common_channels[CC_idP].ra[RA_id]);
-          LOG_X(MAC, "[mac %d][RAPROC] CC_id %d Checking proc %d : rnti (%x, %x), state %d\n",
+          LOG_D(MAC, "[mac %d][RAPROC] CC_id %d Checking proc %d : rnti (%x, %x), state %d\n",
                 enb_mod_idP,
                 CC_idP,
                 RA_id,
@@ -754,7 +754,7 @@ rx_sdu(const module_id_t enb_mod_idP,
 
           if (UE_id < 0) {
             memcpy(&(ra->cont_res_id[0]), payload_ptr, 6);
-            LOG_X(MAC, "[eNB %d][RAPROC] CC_id %d Frame %d CCCH: Received Msg3: length %d, offset %ld\n",
+            LOG_D(MAC, "[eNB %d][RAPROC] CC_id %d Frame %d CCCH: Received Msg3: length %d, offset %ld\n",
                   enb_mod_idP,
                   CC_idP,
                   frameP,
@@ -767,7 +767,7 @@ rx_sdu(const module_id_t enb_mod_idP,
               break;
               // kill RA proc
             } else {
-              LOG_X(MAC, "[eNB %d][RAPROC] CC_id %d Frame %d Added user with rnti %x => UE %d\n",
+              LOG_D(MAC, "[eNB %d][RAPROC] CC_id %d Frame %d Added user with rnti %x => UE %d\n",
                     enb_mod_idP,
                     CC_idP,
                     frameP,
@@ -777,7 +777,7 @@ rx_sdu(const module_id_t enb_mod_idP,
               UE_template_ptr = &UE_info->UE_template[CC_idP][UE_id];
             }
           } else {
-            LOG_X(MAC, "[eNB %d][RAPROC] CC_id %d Frame %d CCCH: Received Msg3 from already registered UE %d: length %d, offset %ld\n",
+            LOG_D(MAC, "[eNB %d][RAPROC] CC_id %d Frame %d CCCH: Received Msg3 from already registered UE %d: length %d, offset %ld\n",
                   enb_mod_idP,
                   CC_idP,
                   frameP,
@@ -869,7 +869,7 @@ rx_sdu(const module_id_t enb_mod_idP,
             //UE_template_ptr->estimated_ul_buffer += UE_template_ptr->estimated_ul_buffer / 4;
           }
 
-          LOG_X(MAC,
+          LOG_D(MAC,
                 "[eNB %d] CC_id %d Frame %d : ULSCH -> UL-DCCH, received %d bytes form UE %d on LCID %d \n",
                 enb_mod_idP, CC_idP, frameP, rx_lengths[i], UE_id,
                 rx_lcids[i]);
@@ -909,7 +909,7 @@ rx_sdu(const module_id_t enb_mod_idP,
             UE_info->eNB_UE_stats[CC_idP][UE_id].num_errors_rx += 1;
             break;
           }
-          LOG_X(MAC, "[eNB %d] CC_id %d Frame %d : ULSCH -> UL-DTCH, received %d bytes from UE %d for lcid %d\n",
+          LOG_D(MAC, "[eNB %d] CC_id %d Frame %d : ULSCH -> UL-DTCH, received %d bytes from UE %d for lcid %d\n",
                 enb_mod_idP,
                 CC_idP,
                 frameP,
@@ -938,7 +938,7 @@ rx_sdu(const module_id_t enb_mod_idP,
                break;
             }
             /* Adjust buffer occupancy of the correponding logical channel group */
-            LOG_X(MAC, "[eNB %d] CC_id %d Frame %d : ULSCH -> UL-DTCH, received %d bytes from UE %d for lcid %d, removing from LCGID %ld, %d\n",
+            LOG_D(MAC, "[eNB %d] CC_id %d Frame %d : ULSCH -> UL-DTCH, received %d bytes from UE %d for lcid %d, removing from LCGID %ld, %d\n",
                   enb_mod_idP,
                   CC_idP,
                   frameP,
@@ -1016,7 +1016,7 @@ rx_sdu(const module_id_t enb_mod_idP,
   }
 
   /* Program ACK for PHICH */
-  LOG_X(MAC, "Programming PHICH ACK for rnti %x harq_pid %d (first_rb %d)\n",
+  LOG_D(MAC, "Programming PHICH ACK for rnti %x harq_pid %d (first_rb %d)\n",
         current_rnti,
         harq_pid,
         first_rb);
@@ -1145,7 +1145,7 @@ parse_ulsch_header(unsigned char *mac_header,
         }
       }
 
-      LOG_X(MAC, "[eNB] sdu %d lcid %d tb_length %d length %d (offset now %ld)\n",
+      LOG_D(MAC, "[eNB] sdu %d lcid %d tb_length %d length %d (offset now %ld)\n",
             num_sdus,
             lcid,
             tb_length,
@@ -1448,7 +1448,7 @@ schedule_ulsch_rnti(module_id_t   module_idP,
 
     // don't schedule if Msg5 is not received yet
     if (UE_info->UE_template[CC_id][UE_id].configured == FALSE) {
-      LOG_X(MAC,
+      LOG_D(MAC,
             "[eNB %d] frame %d, subframe %d, UE %d: not configured, skipping "
             "UE scheduling \n",
             module_idP,
@@ -1511,7 +1511,7 @@ schedule_ulsch_rnti(module_id_t   module_idP,
       continue;
     }
 
-    LOG_X(MAC,
+    LOG_D(MAC,
           "[eNB %d][PUSCH %d] %d.%d Scheduling UE %d/%x in "
           "round %d (SR %d, UL_inactivity timer %d, UL_failure timer "
           "%d, cqi_req_timer %d)\n",
@@ -1562,7 +1562,7 @@ schedule_ulsch_rnti(module_id_t   module_idP,
       }
     }
     if (tpc != 1) {
-      LOG_X(MAC,
+      LOG_D(MAC,
             "[eNB %d] ULSCH scheduler: frame %d, subframe %d, harq_pid %d, "
             "tpc %d, accumulated %d, snr/target snr %d/%d\n",
             module_idP,
@@ -1579,7 +1579,7 @@ schedule_ulsch_rnti(module_id_t   module_idP,
     if (round_index == 0) {
       /* Handle the aperiodic CQI report */
       uint32_t cqi_req = 0;
-      LOG_X(MAC,
+      LOG_D(MAC,
             "RRC Connection status %d, cqi_timer %d\n",
             status,
             UE_sched_ctrl_ptr->cqi_req_timer);
@@ -1587,7 +1587,7 @@ schedule_ulsch_rnti(module_id_t   module_idP,
       if (status >= RRC_CONNECTED && UE_sched_ctrl_ptr->cqi_req_timer > 30) {
         if (UE_sched_ctrl_ptr->cqi_received == 0) {
           cqi_req = 1;
-          LOG_X(MAC,
+          LOG_D(MAC,
                 "Setting CQI_REQ (timer %d)\n",
                 UE_sched_ctrl_ptr->cqi_req_timer);
 
@@ -1614,7 +1614,7 @@ schedule_ulsch_rnti(module_id_t   module_idP,
           if (cqi_req == 1)
             UE_sched_ctrl_ptr->cqi_req_flag |= 1 << sched_subframeP;
         } else {
-          LOG_X(MAC, "Clearing CQI request timer\n");
+          LOG_D(MAC, "Clearing CQI request timer\n");
           UE_sched_ctrl_ptr->cqi_req_flag = 0;
           UE_sched_ctrl_ptr->cqi_received = 0;
           UE_sched_ctrl_ptr->cqi_req_timer = 0;
@@ -1675,7 +1675,7 @@ schedule_ulsch_rnti(module_id_t   module_idP,
       }
 
       /* Adjust scheduled UL bytes by TBS, wait for UL sdus to do final update */
-      LOG_X(MAC,
+      LOG_D(MAC,
             "[eNB %d] CC_id %d UE %d/%x : adjusting scheduled_ul_bytes, old "
             "%d, TBS %d\n",
             module_idP,
@@ -1685,7 +1685,7 @@ schedule_ulsch_rnti(module_id_t   module_idP,
             UE_template_ptr->scheduled_ul_bytes,
             UE_template_ptr->TBS_UL[harq_pid]);
       UE_template_ptr->scheduled_ul_bytes += UE_template_ptr->TBS_UL[harq_pid];
-      LOG_X(MAC,
+      LOG_D(MAC,
             "scheduled_ul_bytes, new %d\n",
             UE_template_ptr->scheduled_ul_bytes);
       /* Cyclic shift for DM-RS */
@@ -1715,7 +1715,7 @@ schedule_ulsch_rnti(module_id_t   module_idP,
       hi_dci0_req_body->tl.tag = NFAPI_HI_DCI0_REQUEST_BODY_TAG;
       hi_dci0_req->sfn_sf = frameP << 4 | subframeP;
       hi_dci0_req->header.message_id = NFAPI_HI_DCI0_REQUEST;
-      LOG_X(MAC,
+      LOG_D(MAC,
             "[PUSCH %d] Frame %d, Subframe %d: Adding UL CONFIG.Request for UE "
             "%d/%x, ulsch_frame %d, ulsch_subframe %d\n",
             harq_pid,
@@ -1732,7 +1732,7 @@ schedule_ulsch_rnti(module_id_t   module_idP,
         if (ul_req_tmp_body->ul_config_pdu_list[ul_req_index].pdu_type == NFAPI_UL_CONFIG_UCI_HARQ_PDU_TYPE &&
             ul_req_tmp_body->ul_config_pdu_list[ul_req_index].uci_harq_pdu.ue_information.ue_information_rel8.rnti == rnti) {
           dlsch_flag = 1;
-          LOG_X(MAC,
+          LOG_D(MAC,
                 "Frame %d, Subframe %d:rnti %x ul_req_index %d Switched UCI "
                 "HARQ to ULSCH HARQ(first)\n",
                 frameP,
@@ -1801,7 +1801,7 @@ schedule_ulsch_rnti(module_id_t   module_idP,
       mac->ul_handle++;
       ul_req_tmp->sfn_sf = sched_frame << 4 | sched_subframeP;
       add_ue_ulsch_info(module_idP, CC_id, UE_id, subframeP, S_UL_SCHEDULED);
-      LOG_X(MAC,
+      LOG_D(MAC,
             "[eNB %d] CC_id %d Frame %d, subframeP %d: Generated ULSCH DCI for "
             "next UE_id %d, format 0\n",
             module_idP,
@@ -1836,7 +1836,7 @@ schedule_ulsch_rnti(module_id_t   module_idP,
       const uint8_t nb_rb = UE_template_ptr->pre_allocated_nb_rb_ul;
       if (first_rb != UE_template_ptr->first_rb_ul[harq_pid]
           || nb_rb != UE_template_ptr->nb_rb_ul[harq_pid])
-        LOG_X(MAC,
+        LOG_D(MAC,
               "%4d.%d UE %4x retx: change freq allocation to %d RBs start %d (from %d RBs start %d)\n",
               frameP,
               subframeP,
@@ -1860,7 +1860,7 @@ schedule_ulsch_rnti(module_id_t   module_idP,
         T_INT(nb_rb),
         T_INT(round_index));
       /* Add UL_config PDUs */
-      LOG_X(MAC,
+      LOG_D(MAC,
             "[PUSCH %d] %4d.%d: Adding UL CONFIG.Request for UE "
             "%d/%x, ulsch_frame %d, ulsch_subframe %d\n",
             harq_pid,
@@ -1893,7 +1893,7 @@ schedule_ulsch_rnti(module_id_t   module_idP,
         if (ul_req_tmp_body->ul_config_pdu_list[ul_req_index].pdu_type == NFAPI_UL_CONFIG_UCI_HARQ_PDU_TYPE &&
             ul_req_tmp_body->ul_config_pdu_list[ul_req_index].uci_harq_pdu.ue_information.ue_information_rel8.rnti == rnti) {
           dlsch_flag = 1;
-          LOG_X(MAC,
+          LOG_D(MAC,
                 "Frame %d, Subframe %d:rnti %x ul_req_index %d Switched UCI "
                 "HARQ to ULSCH HARQ(first)\n",
                 frameP,
@@ -1960,7 +1960,7 @@ schedule_ulsch_rnti(module_id_t   module_idP,
       ul_req_tmp_body->tl.tag = NFAPI_UL_CONFIG_REQUEST_BODY_TAG;
       ul_req_tmp->sfn_sf = sched_frame << 4 | sched_subframeP;
       ul_req_tmp->header.message_id = NFAPI_UL_CONFIG_REQUEST;
-      LOG_X(MAC,
+      LOG_D(MAC,
             "[PUSCH %d] Frame %d, Subframe %d: Adding UL CONFIG.Request for UE "
             "%d/%x, ulsch_frame %d, ulsch_subframe %d cqi_req %d\n",
             harq_pid,
@@ -2034,7 +2034,7 @@ void schedule_ulsch_rnti_emtc(module_id_t   module_idP,
 
     /* Don't schedule if Msg4 is not received yet */
     if (UE_template->configured == FALSE) {
-      LOG_X(MAC,"[eNB %d] frame %d subframe %d, UE %d: not configured, skipping UE scheduling \n",
+      LOG_D(MAC,"[eNB %d] frame %d subframe %d, UE %d: not configured, skipping UE scheduling \n",
             module_idP,
             frameP,
             subframeP,
@@ -2066,7 +2066,7 @@ void schedule_ulsch_rnti_emtc(module_id_t   module_idP,
                   round_UL,
                   UE_id,
                   rnti);
-      LOG_X(MAC,"[eNB %d] frame %d subframe %d,Checking PUSCH %d for BL/CE UE %d/%x CC %d : aggregation level %d, N_RB_UL %d\n",
+      LOG_D(MAC,"[eNB %d] frame %d subframe %d,Checking PUSCH %d for BL/CE UE %d/%x CC %d : aggregation level %d, N_RB_UL %d\n",
             module_idP,
             frameP,
             subframeP,
@@ -2093,7 +2093,7 @@ void schedule_ulsch_rnti_emtc(module_id_t   module_idP,
            * or if there is a packet to retransmit,
            * or we want to schedule a periodic feedback every frame
            */
-          LOG_X(MAC,"[eNB %d][PUSCH %d] Frame %d subframe %d Scheduling UE %d/%x in round_UL %d(SR %d,UL_inactivity timer %d,UL_failure timer %d,cqi_req_timer %d)\n",
+          LOG_D(MAC,"[eNB %d][PUSCH %d] Frame %d subframe %d Scheduling UE %d/%x in round_UL %d(SR %d,UL_inactivity timer %d,UL_failure timer %d,cqi_req_timer %d)\n",
                 module_idP,
                 harq_pid,
                 frameP,
@@ -2143,7 +2143,7 @@ void schedule_ulsch_rnti_emtc(module_id_t   module_idP,
           }
 
           if (tpc != 1) {
-            LOG_X(MAC,"[eNB %d] ULSCH scheduler: frame %d, subframe %d, harq_pid %d, tpc %d, accumulated %d, snr/target snr %d/%d\n",
+            LOG_D(MAC,"[eNB %d] ULSCH scheduler: frame %d, subframe %d, harq_pid %d, tpc %d, accumulated %d, snr/target snr %d/%d\n",
                   module_idP,
                   frameP,
                   subframeP,
@@ -2188,7 +2188,7 @@ void schedule_ulsch_rnti_emtc(module_id_t   module_idP,
 
             /* Adjust total UL buffer status by TBS, wait for UL sdus to do final update */
             UE_template->scheduled_ul_bytes += UE_template->TBS_UL[harq_pid];
-            LOG_X(MAC, "scheduled_ul_bytes, new %d\n", UE_template->scheduled_ul_bytes);
+            LOG_D(MAC, "scheduled_ul_bytes, new %d\n", UE_template->scheduled_ul_bytes);
             /* Cyclic shift for DMRS */
             cshift = 0; // values from 0 to 7 can be used for mapping the cyclic shift (36.211 , Table 5.5.2.1.1-1)
             /* save it for a potential retransmission */
@@ -2209,7 +2209,7 @@ void schedule_ulsch_rnti_emtc(module_id_t   module_idP,
             AssertFatal(epdcch_setconfig_r11->ext2->numberPRB_Pairs_v1310 != NULL, "epdcch_setconfig_r11->ext2->numberPRB_Pairs_v1310 is null");
             AssertFatal(epdcch_setconfig_r11->ext2->numberPRB_Pairs_v1310->present == LTE_EPDCCH_SetConfig_r11__ext2__numberPRB_Pairs_v1310_PR_setup,
                         "epdcch_setconfig_r11->ext2->numberPRB_Pairs_v1310->present is not setup\n");
-            LOG_X(MAC,"[PUSCH %d] Frame %d, Subframe %d: Adding UL 6-0A MPDCCH for BL/CE UE %d/%x, ulsch_frame %d, ulsch_subframe %d, UESS MPDCCH Narrowband %d\n",
+            LOG_D(MAC,"[PUSCH %d] Frame %d, Subframe %d: Adding UL 6-0A MPDCCH for BL/CE UE %d/%x, ulsch_frame %d, ulsch_subframe %d, UESS MPDCCH Narrowband %d\n",
                   harq_pid,
                   frameP,
                   subframeP,
@@ -2261,7 +2261,7 @@ void schedule_ulsch_rnti_emtc(module_id_t   module_idP,
             hi_dci0_pdu->mpdcch_dci_pdu.mpdcch_dci_pdu_rel13.total_dci_length_include_padding = 29; // hard-coded for 10 MHz
             hi_dci0_pdu->mpdcch_dci_pdu.mpdcch_dci_pdu_rel13.number_of_tx_antenna_ports = 1;
             hi_dci0_req->number_of_dci++;
-            LOG_X(MAC,"[PUSCH %d] Frame %d, Subframe %d: Adding UL CONFIG. Request for BL/CE UE %d/%x, ulsch_frame %d, ulsch_subframe %d, UESS mpdcch narrowband %d\n",
+            LOG_D(MAC,"[PUSCH %d] Frame %d, Subframe %d: Adding UL CONFIG. Request for BL/CE UE %d/%x, ulsch_frame %d, ulsch_subframe %d, UESS mpdcch narrowband %d\n",
                   harq_pid,
                   frameP,
                   subframeP,
@@ -2303,7 +2303,7 @@ void schedule_ulsch_rnti_emtc(module_id_t   module_idP,
                               UE_id,
                               subframeP,
                               S_UL_SCHEDULED);
-            LOG_X(MAC,"[eNB %d] CC_id %d Frame %d, subframeP %d: Generated ULSCH DCI for next UE_id %d, format 0\n",
+            LOG_D(MAC,"[eNB %d] CC_id %d Frame %d, subframeP %d: Generated ULSCH DCI for next UE_id %d, format 0\n",
                   module_idP,
                   CC_id,
                   frameP,
@@ -2339,7 +2339,7 @@ void schedule_ulsch_rnti_emtc(module_id_t   module_idP,
             AssertFatal(epdcch_setconfig_r11->ext2->numberPRB_Pairs_v1310 != NULL, "epdcch_setconfig_r11->ext2->numberPRB_Pairs_v1310 is null");
             AssertFatal(epdcch_setconfig_r11->ext2->numberPRB_Pairs_v1310->present == LTE_EPDCCH_SetConfig_r11__ext2__numberPRB_Pairs_v1310_PR_setup,
                         "epdcch_setconfig_r11->ext2->numberPRB_Pairs_v1310->present is not setup\n");
-            LOG_X(MAC,"[PUSCH %d] Frame %d, Subframe %d: Adding UL 6-0A MPDCCH for BL/CE UE %d/%x, ulsch_frame %d, ulsch_subframe %d,UESS MPDCCH Narrowband %d\n",
+            LOG_D(MAC,"[PUSCH %d] Frame %d, Subframe %d: Adding UL 6-0A MPDCCH for BL/CE UE %d/%x, ulsch_frame %d, ulsch_subframe %d,UESS MPDCCH Narrowband %d\n",
                   harq_pid,
                   frameP,
                   subframeP,

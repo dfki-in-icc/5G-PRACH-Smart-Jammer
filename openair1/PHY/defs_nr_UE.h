@@ -55,7 +55,7 @@
       #include "COMMON/ral_messages_types.h"
       #include "UTIL/queue.h"
     #endif
-    #define msg(aRGS...) LOG_X(PHY, ##aRGS)
+    #define msg(aRGS...) LOG_D(PHY, ##aRGS)
 #endif
 //use msg in the real-time thread context
 #define msg_nrt printf

@@ -242,7 +242,7 @@ static void L1_nsa_prach_procedures(frame_t frame, int slot, fapi_nr_ul_config_p
     free(rach_ind->pdu_list);
     free(rach_ind);
   }
-  LOG_X(NR_MAC, "We have successfully filled the rach_ind queue with the recently filled rach ind\n");
+  LOG_D(NR_MAC, "We have successfully filled the rach_ind queue with the recently filled rach ind\n");
 }
 
 static bool sfn_slot_matcher(void *wanted, void *candidate)
@@ -316,12 +316,12 @@ static void process_queued_nr_nfapi_msgs(NR_UE_MAC_INST_t *mac, int sfn_slot)
   nfapi_nr_dl_tti_request_t *dl_tti_request = get_queue(&nr_dl_tti_req_queue);
   nfapi_nr_ul_dci_request_t *ul_dci_request = get_queue(&nr_ul_dci_req_queue);
 
-  LOG_X(NR_MAC, "Try to get a ul_tti_req for sfn/slot %d %d from queue with %lu items\n",
+  LOG_D(NR_MAC, "Try to get a ul_tti_req for sfn/slot %d %d from queue with %lu items\n",
         NFAPI_SFNSLOT2SFN(mac->nr_ue_emul_l1.active_harq_sfn_slot),NFAPI_SFNSLOT2SLOT(mac->nr_ue_emul_l1.active_harq_sfn_slot), nr_ul_tti_req_queue.num_items);
   nfapi_nr_ul_tti_request_t *ul_tti_request = unqueue_matching(&nr_ul_tti_req_queue, MAX_QUEUE_SIZE, sfn_slot_matcher, &mac->nr_ue_emul_l1.active_harq_sfn_slot);
   if (!ul_tti_request)
   {
-      LOG_X(NR_MAC, "Try to get a ul_tti_req from seprate queue because dl_tti_req was late\n");
+      LOG_D(NR_MAC, "Try to get a ul_tti_req from seprate queue because dl_tti_req was late\n");
       ul_tti_request = unqueue_matching(&nr_wait_ul_tti_req_queue, MAX_QUEUE_SIZE, sfn_slot_matcher, &mac->nr_ue_emul_l1.active_harq_sfn_slot);
   }
 
@@ -460,7 +460,7 @@ static void *NRUE_phy_stub_standalone_pnf_task(void *arg)
     nr_phy_channel_params_t *ch_info = get_queue(&nr_chan_param_queue);
     if (!slot_ind && !ch_info)
     {
-      LOG_X(MAC, "get nr_sfn_slot_queue and nr_chan_param_queue == NULL!\n");
+      LOG_D(MAC, "get nr_sfn_slot_queue and nr_chan_param_queue == NULL!\n");
       continue;
     }
     if (slot_ind) {
@@ -474,26 +474,26 @@ static void *NRUE_phy_stub_standalone_pnf_task(void *arg)
     int slot = NFAPI_SFNSLOT2SLOT(sfn_slot);
     if (sfn_slot == last_sfn_slot)
     {
-      LOG_X(NR_MAC, "repeated sfn_sf = %d.%d\n",
+      LOG_D(NR_MAC, "repeated sfn_sf = %d.%d\n",
             frame, slot);
       continue;
     }
     last_sfn_slot = sfn_slot;
 
-    LOG_X(NR_MAC, "The received sfn/slot [%d %d] from proxy\n",
+    LOG_D(NR_MAC, "The received sfn/slot [%d %d] from proxy\n",
           frame, slot);
 
     module_id_t mod_id = 0;
     NR_UE_MAC_INST_t *mac = get_mac_inst(mod_id);
     if (get_softmodem_params()->sa && mac->mib == NULL)
     {
-      LOG_X(NR_MAC, "We haven't gotten MIB. Lets see if we received it\n");
+      LOG_D(NR_MAC, "We haven't gotten MIB. Lets see if we received it\n");
       nr_ue_dl_indication(&mac->dl_info, &ul_time_alignment);
       process_queued_nr_nfapi_msgs(mac, sfn_slot);
     }
     if (mac->scc == NULL && mac->scc_SIB == NULL)
     {
-      LOG_X(MAC, "[NSA] mac->scc == NULL and [SA] mac->scc_SIB == NULL!\n");
+      LOG_D(MAC, "[NSA] mac->scc == NULL and [SA] mac->scc_SIB == NULL!\n");
       continue;
     }
 
@@ -539,7 +539,7 @@ static void *NRUE_phy_stub_standalone_pnf_task(void *arg)
                       mac->scc_SIB->tdd_UL_DL_ConfigurationCommon,
                       ul_info.slot_tx, mac->frame_type))
     {
-      LOG_X(NR_MAC, "Slot %d. calling nr_ue_ul_ind() from %s\n", ul_info.slot_tx, __FUNCTION__);
+      LOG_D(NR_MAC, "Slot %d. calling nr_ue_ul_ind() from %s\n", ul_info.slot_tx, __FUNCTION__);
       nr_ue_ul_indication(&ul_info);
       check_nr_prach(mac, &ul_info, &prach_resources);
     }
@@ -711,7 +711,7 @@ void processSlotTX(void *arg) {
   int tx_slot_type = nr_ue_slot_select(cfg, proc->frame_tx, proc->nr_slot_tx);
   uint8_t gNB_id = 0;
 
-  // LOG_X(PHY,"%d.%d => slot type %d\n",proc->frame_tx,proc->nr_slot_tx,tx_slot_type);
+  LOG_D(PHY,"%d.%d => slot type %d\n",proc->frame_tx,proc->nr_slot_tx,tx_slot_type);
   if (tx_slot_type == NR_UPLINK_SLOT || tx_slot_type == NR_MIXED_SLOT){
 
     // trigger L2 to run ue_scheduler thru IF module
@@ -775,7 +775,7 @@ void processSlotRX(void *arg) {
 #else
     uint64_t a=rdtsc_oai();
     phy_procedures_nrUE_RX(UE, proc, gNB_id, get_nrUE_params()->nr_dlsch_parallel, &rxtxD->txFifo);
-    LOG_X(PHY, "In %s: slot %d, time %llu\n", __FUNCTION__, proc->nr_slot_rx, (rdtsc_oai()-a)/3500);
+    LOG_D(PHY, "In %s: slot %d, time %llu\n", __FUNCTION__, proc->nr_slot_rx, (rdtsc_oai()-a)/3500);
 #endif
 
     if(IS_SOFTMODEM_NOS1 || get_softmodem_params()->sa){
@@ -809,19 +809,16 @@ void processSlotRX(void *arg) {
 #endif
 
   } else {
-    // UL Slot
     rxtxD->ue_sched_mode = SCHED_ALL;
     processSlotTX(rxtxD);
   }
 
-  //LOG_X(RLC,"tx_slot_type %d ( NR_UPLINK_SLOT %d  NR_MIXED_SLOT %d )\n", tx_slot_type, NR_UPLINK_SLOT, NR_MIXED_SLOT);
   if (tx_slot_type == NR_UPLINK_SLOT || tx_slot_type == NR_MIXED_SLOT){
     if (UE->UE_mode[gNB_id] <= PUSCH) {
       if (get_softmodem_params()->usim_test==0) {
         pucch_procedures_ue_nr(UE,
                                gNB_id,
                                proc);
-        //LOG_X(RLC,"pucch_procedures_ue_nr finished @ %d : %d \n",proc->frame_tx, proc->nr_slot_tx);
       }
 
       LOG_D(PHY, "Sending Uplink data \n");
@@ -1151,7 +1148,6 @@ void *UE_thread(void *arg) {
         LOG_E(PHY, "get_samples_per_slot != trx_read_func \n");
         UE->lost_sync=1;
       }
-      // LOG_X(RLC,"Got USRP data!\n");
     // L5G_IOT
     PROM_METRICS(RX_OFFSET,"rx_offset",UE->rx_offset)
     if( slot_nr==(nb_slot_frame-1)) {
@@ -1282,8 +1278,6 @@ void *UE_thread(void *arg) {
       usleep(150);  // wait for ul to finish
     }
 
-    //LOG_X(RLC,"-----> slot to send: %d\n",((slot_nr + DURATION_RX_TO_TX - NR_RX_NB_TH) % nb_slot_frame) - UE->rx_offset_diff);
-
     if (flags || IS_SOFTMODEM_RFSIM)
                   UE->rfdevice.trx_write_func(&UE->rfdevice,
                                               writeTimestamp,
@@ -1297,7 +1291,7 @@ void *UE_thread(void *arg) {
     //  memset(txp[i], 0, writeBlockSize);
     if (enable_parallel_pull == 0){ // L5G_IOT
       nbSlotProcessing++;
-      LOG_X(PHY,"Number of slots being processed at the moment: %d\n",nbSlotProcessing);
+      LOG_D(PHY,"Number of slots being processed at the moment: %d\n",nbSlotProcessing);
       pushTpool(&(get_nrUE_params()->Tpool), msgToPush);
     } // L5G_IOT
   } // while !oai_exit
@@ -1422,7 +1416,7 @@ void *pullthread(void* arg){
       LOG_E(PHY,"Decoded frame index (%d) is not compatible with current context (%d), UE should go back to synch mode\n",
             decoded_frame_rx, curMsg->proc.frame_rx);
     nbSlotProcessing++;
-    LOG_X(PHY,"Number of slots being processed at the moment: %d\n",nbSlotProcessing);
+    LOG_D(PHY,"Number of slots being processed at the moment: %d\n",nbSlotProcessing);
     pushTpool(&(get_nrUE_params()->Tpool), msgToPush);
     clock_gettime(CLOCK_MONOTONIC_RAW, &loc_ts);
 #ifdef FIFO_LOG

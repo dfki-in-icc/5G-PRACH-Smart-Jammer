@@ -79,7 +79,7 @@ void generate_pcfich(uint8_t num_pdcch_symbols,
 
   int nushiftmod3 = frame_parms->nushift%3;
 #ifdef DEBUG_PCFICH
-  LOG_X(PHY,"Generating PCFICH in subfrmae %d for %d PDCCH symbols, AMP %d, p %d, Ncp %d\n",
+  LOG_D(PHY,"Generating PCFICH in subfrmae %d for %d PDCCH symbols, AMP %d, p %d, Ncp %d\n",
 	subframe,num_pdcch_symbols,amp,frame_parms->nb_antenna_ports_eNB,frame_parms->Ncp);
 #endif
 

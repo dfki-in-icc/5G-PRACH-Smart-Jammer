@@ -269,7 +269,7 @@ fill_tx_req(nfapi_tx_request_body_t *tx_req_body,
             uint16_t                pdu_index,
             uint8_t                 *pdu) {
   nfapi_tx_request_pdu_t *TX_req = &tx_req_body->tx_pdu_list[tx_req_body->number_of_pdus];
-  LOG_X(MAC, "Filling TX_req %d for pdu length %d\n",
+  LOG_D(MAC, "Filling TX_req %d for pdu length %d\n",
         tx_req_body->number_of_pdus, pdu_length);
   TX_req->pdu_length                 = pdu_length;
   TX_req->pdu_index                  = pdu_index;
@@ -1943,7 +1943,7 @@ int main(int argc, char **argv) {
 
         if (UE->proc.proc_rxtx[UE->current_thread_id[subframe]].frame_rx % 10 == 0) {
           UE->bitrate[eNB_id] = (UE->total_TBS[eNB_id] - UE->total_TBS_last[eNB_id])*10;
-          LOG_X(PHY,"[UE %d] Calculating bitrate: total_TBS = %d, total_TBS_last = %d, bitrate = %d kbits/s\n",UE->Mod_id,UE->total_TBS[eNB_id],UE->total_TBS_last[eNB_id],
+          LOG_D(PHY,"[UE %d] Calculating bitrate: total_TBS = %d, total_TBS_last = %d, bitrate = %d kbits/s\n",UE->Mod_id,UE->total_TBS[eNB_id],UE->total_TBS_last[eNB_id],
                 UE->bitrate[eNB_id]/1000);
           UE->total_TBS_last[eNB_id] = UE->total_TBS[eNB_id];
         }

@@ -57,11 +57,11 @@ void handle_nfapi_dci_dl_pdu(PHY_VARS_eNB *eNB,
 
   if (NFAPI_MODE==NFAPI_MODE_VNF) return;
 
-  LOG_X(PHY,"Frame %d, Subframe %d: DCI processing - populating pdcch_vars->dci_alloc[%d] proc:subframe_tx:%d idx:%d pdcch_vars->num_dci:%d\n",frame,subframe, pdcch_vars->num_dci, proc->subframe_tx,
+  LOG_D(PHY,"Frame %d, Subframe %d: DCI processing - populating pdcch_vars->dci_alloc[%d] proc:subframe_tx:%d idx:%d pdcch_vars->num_dci:%d\n",frame,subframe, pdcch_vars->num_dci, proc->subframe_tx,
         idx, pdcch_vars->num_dci);
   // copy dci configuration into eNB structure
   fill_dci_and_dlsch(eNB,frame,subframe,proc,&pdcch_vars->dci_alloc[pdcch_vars->num_dci],pdu);
-  LOG_X(PHY,"Frame %d, Subframe %d: DCI processing - populated pdcch_vars->dci_alloc[%d] proc:subframe_tx:%d idx:%d pdcch_vars->num_dci:%d\n",proc->frame_tx,proc->subframe_tx, pdcch_vars->num_dci,
+  LOG_D(PHY,"Frame %d, Subframe %d: DCI processing - populated pdcch_vars->dci_alloc[%d] proc:subframe_tx:%d idx:%d pdcch_vars->num_dci:%d\n",proc->frame_tx,proc->subframe_tx, pdcch_vars->num_dci,
         proc->subframe_tx, idx, pdcch_vars->num_dci);
 }
 
@@ -75,7 +75,7 @@ void handle_nfapi_mpdcch_pdu(PHY_VARS_eNB *eNB,
 
   if (NFAPI_MODE==NFAPI_MODE_VNF) return;
 
-  LOG_X(PHY,"Frame %d, Subframe %d: MDCI processing\n",proc->frame_tx,proc->subframe_tx);
+  LOG_D(PHY,"Frame %d, Subframe %d: MDCI processing\n",proc->frame_tx,proc->subframe_tx);
   // copy dci configuration into eNB structure
   fill_mdci_and_dlsch(eNB,proc,&mpdcch_vars->mdci_alloc[mpdcch_vars->num_dci],pdu);
 }
@@ -88,7 +88,7 @@ void handle_nfapi_hi_dci0_dci_pdu(PHY_VARS_eNB *eNB,int frame,int subframe,L1_rx
 
   if (NFAPI_MODE==NFAPI_MODE_VNF) return;
 
-  //LOG_X(PHY,"%s() SFN/SF:%04d%d Before num_dci:%d\n", __FUNCTION__,frame,subframe,pdcch_vars->num_dci);
+  //LOG_D(PHY,"%s() SFN/SF:%04d%d Before num_dci:%d\n", __FUNCTION__,frame,subframe,pdcch_vars->num_dci);
   // copy dci configuration in to eNB structure
   fill_dci0(eNB,frame,subframe,proc,&pdcch_vars->dci_alloc[pdcch_vars->num_dci], &hi_dci0_config_pdu->dci_pdu);
 }
@@ -114,7 +114,7 @@ void handle_nfapi_hi_dci0_hi_pdu(PHY_VARS_eNB *eNB,int frame,int subframe,L1_rxt
   if (NFAPI_MODE==NFAPI_MODE_VNF) return;
 
   // copy dci configuration in to eNB structure
-  LOG_X(PHY,"Received HI PDU with value %d (rbstart %d,cshift %d)\n",
+  LOG_D(PHY,"Received HI PDU with value %d (rbstart %d,cshift %d)\n",
         hi_dci0_config_pdu->hi_pdu.hi_pdu_rel8.hi_value,
         hi_dci0_config_pdu->hi_pdu.hi_pdu_rel8.resource_block_start,
         hi_dci0_config_pdu->hi_pdu.hi_pdu_rel8.cyclic_shift_2_for_drms);
@@ -134,7 +134,7 @@ void handle_nfapi_bch_pdu(PHY_VARS_eNB *eNB,L1_rxtx_proc_t *proc,
   if (NFAPI_MODE==NFAPI_MODE_VNF) return;
 
   AssertFatal(rel8->length == 3, "BCH PDU has length %d != 3\n",rel8->length);
-  //LOG_X(PHY,"bch_pdu: %x,%x,%x\n",sdu[0],sdu[1],sdu[2]);
+  //LOG_D(PHY,"bch_pdu: %x,%x,%x\n",sdu[0],sdu[1],sdu[2]);
   eNB->pbch_pdu[0] = sdu[2];
   eNB->pbch_pdu[1] = sdu[1];
   eNB->pbch_pdu[2] = sdu[0];
@@ -275,13 +275,13 @@ void handle_nfapi_dlsch_pdu(PHY_VARS_eNB *eNB,int frame,int subframe,L1_rxtx_pro
     //            frame,subframe,
     //            proc->frame_tx,proc->subframe_tx,rel8->rnti,UE_id,harq_pid,
     //            dl_config_pdu->dlsch_pdu.dlsch_pdu_rel8.pdu_index,dlsch0_harq->round,dlsch0_harq->frame,dlsch0_harq->subframe,dlsch0_harq->pdu,dlsch0_harq->mcs,dlsch0_harq->ndi,dlsch0_harq->pdsch_start);
-    if (rel8->rnti != 0xFFFF) LOG_X(PHY,"NFAPI: SFN/SF:%04d%d proc:TX:[frame %d, subframe %d]: programming dlsch for round 0, rnti %x, UE_id %d, harq_pid %d\n",
+    if (rel8->rnti != 0xFFFF) LOG_D(PHY,"NFAPI: SFN/SF:%04d%d proc:TX:[frame %d, subframe %d]: programming dlsch for round 0, rnti %x, UE_id %d, harq_pid %d\n",
                                       frame,subframe,proc->frame_tx,proc->subframe_tx,rel8->rnti,UE_id,harq_pid);
 
     if (codeword_index == 0) dlsch0_harq->pdu                    = sdu;
     else                     dlsch1_harq->pdu                    = sdu;
   } else {
-    if (rel8->rnti != 0xFFFF) LOG_X(PHY,"NFAPI: SFN/SF:%04d%d proc:TX:[frame %d, subframe %d]: programming dlsch for round %d, rnti %x, UE_id %d, harq_pid %d\n",
+    if (rel8->rnti != 0xFFFF) LOG_D(PHY,"NFAPI: SFN/SF:%04d%d proc:TX:[frame %d, subframe %d]: programming dlsch for round %d, rnti %x, UE_id %d, harq_pid %d\n",
                                       frame,subframe,proc->frame_tx,proc->subframe_tx,dlsch0_harq->round,
                                       rel8->rnti,UE_id,harq_pid);
   }
@@ -300,7 +300,7 @@ void handle_nfapi_dlsch_pdu(PHY_VARS_eNB *eNB,int frame,int subframe,L1_rxtx_pro
     dlsch0->harq_mask = 1;
     dlsch0_harq     = dlsch0->harq_processes[0];
     dlsch0_harq->pdu                    = sdu;
-    LOG_X(PHY,"NFAPI: frame %d, subframe %d (TX %d.%d): Programming SI-BR (%d) => %d\n",frame,subframe,proc->frame_tx,proc->subframe_tx,rel13->pdsch_payload_type,UE_id);
+    LOG_D(PHY,"NFAPI: frame %d, subframe %d (TX %d.%d): Programming SI-BR (%d) => %d\n",frame,subframe,proc->frame_tx,proc->subframe_tx,rel13->pdsch_payload_type,UE_id);
     dlsch0->rnti             = 0xFFFF;
     dlsch0->Kmimo            = 1;
     dlsch0->Mdlharq          = 4;
@@ -375,7 +375,7 @@ void handle_nfapi_dlsch_pdu(PHY_VARS_eNB *eNB,int frame,int subframe,L1_rxtx_pro
     dlsch1 = eNB->dlsch[UE_id][1];
     dlsch0->sib1_br_flag=0;
     dlsch0->i0               = 0xFFFF;
-    LOG_X(PHY,"dlsch->i0:%04x dlsch0_harq[pdsch_start:%d nb_rb:%d vrb_type:%d rvidx:%d Nl:%d mimo_mode:%d dl_power_off:%d round:%d status:%d TBS:%d Qm:%d codeword:%d rb_alloc:%d] rel8[length:%d]\n",
+    LOG_D(PHY,"dlsch->i0:%04x dlsch0_harq[pdsch_start:%d nb_rb:%d vrb_type:%d rvidx:%d Nl:%d mimo_mode:%d dl_power_off:%d round:%d status:%d TBS:%d Qm:%d codeword:%d rb_alloc:%d] rel8[length:%d]\n",
 #ifdef PHY_TX_THREAD
           dlsch0_harq->i0,
 #else
@@ -415,13 +415,13 @@ void handle_nfapi_dlsch_pdu(PHY_VARS_eNB *eNB,int frame,int subframe,L1_rxtx_pro
                   proc->frame_tx,proc->subframe_tx,rel8->rnti,UE_id,harq_pid,
                   dl_config_pdu->dlsch_pdu.dlsch_pdu_rel8.pdu_index);
 
-      if (rel8->rnti != 0xFFFF) LOG_X(PHY,"NFAPI: frame %d, subframe %d: programming dlsch for round 0, rnti %x, UE_id %d, harq_pid %d\n",
+      if (rel8->rnti != 0xFFFF) LOG_D(PHY,"NFAPI: frame %d, subframe %d: programming dlsch for round 0, rnti %x, UE_id %d, harq_pid %d\n",
                                         proc->frame_tx,proc->subframe_tx,rel8->rnti,UE_id,harq_pid);
 
       if (codeword_index == 0) dlsch0_harq->pdu                    = sdu;
       else                     dlsch1_harq->pdu                    = sdu;
     } else {
-      if (rel8->rnti != 0xFFFF) LOG_X(PHY,"NFAPI: frame %d, subframe %d: programming dlsch for round %d, rnti %x, UE_id %d, harq_pid %d\n",
+      if (rel8->rnti != 0xFFFF) LOG_D(PHY,"NFAPI: frame %d, subframe %d: programming dlsch for round %d, rnti %x, UE_id %d, harq_pid %d\n",
                                         proc->frame_tx,proc->subframe_tx,dlsch0_harq->round,
                                         rel8->rnti,UE_id,harq_pid);
     }
@@ -476,7 +476,7 @@ void handle_ulsch_cqi_ri_pdu(PHY_VARS_eNB *eNB,int UE_id,nfapi_ul_config_request
 
   ulsch->beta_offset_ri_times8            = to_beta_offset_ri[rel9->delta_offset_ri];
   ulsch->beta_offset_cqi_times8           = to_beta_offset_cqi[rel9->delta_offset_cqi];
-  LOG_X(PHY,"Filling ulsch_cqi_ri information for frame %d, subframe %d : O_RI %d, Or1 %d, beta_offset_cqi_times8 %d (%d)\n",
+  LOG_D(PHY,"Filling ulsch_cqi_ri information for frame %d, subframe %d : O_RI %d, Or1 %d, beta_offset_cqi_times8 %d (%d)\n",
         frame,subframe,ulsch_harq->O_RI,ulsch_harq->Or1,ulsch->beta_offset_cqi_times8,
         rel9->delta_offset_cqi);
 }
@@ -508,7 +508,7 @@ void handle_uci_harq_information(PHY_VARS_eNB *eNB, LTE_eNB_UCI *uci,nfapi_ul_co
 
   if (eNB->frame_parms.frame_type == FDD) {
     uci->num_pucch_resources = harq_information->harq_information_rel9_fdd.number_of_pucch_resources;
-    LOG_X(PHY,"Programming UCI HARQ mode %d : size %d in (%d,%d)\n",
+    LOG_D(PHY,"Programming UCI HARQ mode %d : size %d in (%d,%d)\n",
           harq_information->harq_information_rel9_fdd.ack_nack_mode,
           harq_information->harq_information_rel9_fdd.harq_size,
           uci->frame,uci->subframe);
@@ -611,7 +611,7 @@ void handle_uci_sr_pdu(PHY_VARS_eNB *eNB,
   uci->ue_type                     = ul_config_pdu->uci_sr_pdu.ue_information.ue_information_rel13.ue_type;
   uci->empty_symbols               = ul_config_pdu->uci_sr_pdu.ue_information.ue_information_rel13.empty_symbols;
   uci->total_repetitions = ul_config_pdu->uci_sr_pdu.ue_information.ue_information_rel13.total_number_of_repetitions;
-  LOG_X(PHY,"Programming UCI SR rnti %x, pucch1_0 %d for (%d,%d)\n",
+  LOG_D(PHY,"Programming UCI SR rnti %x, pucch1_0 %d for (%d,%d)\n",
         uci->rnti,
         uci->n_pucch_1_0_sr[0],
         frame,
@@ -644,7 +644,7 @@ void handle_uci_harq_pdu(PHY_VARS_eNB *eNB,int UE_id,nfapi_ul_config_request_pdu
 
   if (NFAPI_MODE==NFAPI_MODE_VNF) return;
 
-  LOG_X(PHY,"Frame %d, Subframe %d: Programming UCI_HARQ process (type %d)\n",frame,subframe,HARQ);
+  LOG_D(PHY,"Frame %d, Subframe %d: Programming UCI_HARQ process (type %d)\n",frame,subframe,HARQ);
   uci->frame             = frame;
   uci->subframe          = subframe;
   uci->rnti              = ul_config_pdu->uci_harq_pdu.ue_information.ue_information_rel8.rnti;
@@ -698,7 +698,7 @@ void handle_nfapi_ul_pdu(PHY_VARS_eNB *eNB,L1_rxtx_proc_t *proc,
     //for (int i=0;i<16;i++) if (eNB->ulsch[i]->harq_mask>0) LOG_I(PHY,"rnti %x, mask %x\n",eNB->ulsch[i]->rnti,eNB->ulsch[i]->harq_mask >0);
     AssertFatal((UE_id = find_ulsch(ul_config_pdu->ulsch_pdu.ulsch_pdu_rel8.rnti,eNB,SEARCH_EXIST_OR_FREE))>=0,
                 "No existing UE ULSCH for rnti %x\n",rel8->rnti);
-    LOG_X(PHY,"Applying UL config for UE %d, rnti %x for frame %d, subframe %d, modulation %d, rvidx %d, first_rb %d, nb_rb %d\n", UE_id,rel8->rnti,frame,subframe,rel8->modulation_type,
+    LOG_D(PHY,"Applying UL config for UE %d, rnti %x for frame %d, subframe %d, modulation %d, rvidx %d, first_rb %d, nb_rb %d\n", UE_id,rel8->rnti,frame,subframe,rel8->modulation_type,
           rel8->redundancy_version,
           rel8->resource_block_start,rel8->number_of_resource_blocks);
     fill_ulsch(eNB,UE_id,&ul_config_pdu->ulsch_pdu,frame,subframe);
@@ -726,7 +726,7 @@ void handle_nfapi_ul_pdu(PHY_VARS_eNB *eNB,L1_rxtx_proc_t *proc,
     AssertFatal((UE_id = find_uci(ul_config_pdu->uci_harq_pdu.ue_information.ue_information_rel8.rnti,
                                   proc->frame_tx,proc->subframe_tx,eNB,SEARCH_EXIST_OR_FREE))>=0,
                 "No available UE UCI for rnti %x\n",ul_config_pdu->uci_harq_pdu.ue_information.ue_information_rel8.rnti);
-    LOG_X(PHY,"Applying UL UCI_HARQ config for UE %d, rnti %x for frame %d, subframe %d\n",
+    LOG_D(PHY,"Applying UL UCI_HARQ config for UE %d, rnti %x for frame %d, subframe %d\n",
           UE_id,ul_config_pdu->uci_harq_pdu.ue_information.ue_information_rel8.rnti,frame,subframe);
     handle_uci_harq_pdu(eNB,UE_id,ul_config_pdu,frame,subframe,srs_present);
   } else if (ul_config_pdu->pdu_type == NFAPI_UL_CONFIG_UCI_CQI_PDU_TYPE) {
@@ -790,17 +790,17 @@ void schedule_response(Sched_Rsp_t *Sched_INFO, void *arg) {
   eNB->pdcch_vars[subframe&1].num_dci           = 0;
   eNB->phich_vars[subframe&1].num_hi            = 0;
   eNB->mpdcch_vars[subframe&1].num_dci           = 0;
-  LOG_X(PHY,"NFAPI: Sched_INFO:SFN/SF:%04d%d DL_req:SFN/SF:%04d%d:dl_pdu:%d tx_req:SFN/SF:%04d%d:pdus:%d\n",
+  LOG_D(PHY,"NFAPI: Sched_INFO:SFN/SF:%04d%d DL_req:SFN/SF:%04d%d:dl_pdu:%d tx_req:SFN/SF:%04d%d:pdus:%d\n",
         frame,subframe,
         NFAPI_SFNSF2SFN(DL_req->sfn_sf),NFAPI_SFNSF2SF(DL_req->sfn_sf),number_dl_pdu,
         NFAPI_SFNSF2SFN(TX_req->sfn_sf),NFAPI_SFNSF2SF(TX_req->sfn_sf),TX_req->tx_request_body.number_of_pdus
        );
-  LOG_X(PHY,"NFAPI: hi_dci0:SFN/SF:%04d%d:pdus:%d\n",
+  LOG_D(PHY,"NFAPI: hi_dci0:SFN/SF:%04d%d:pdus:%d\n",
         NFAPI_SFNSF2SFN(HI_DCI0_req->sfn_sf),NFAPI_SFNSF2SF(HI_DCI0_req->sfn_sf),number_hi_dci0_pdu
        );
 
   if(UL_req!=NULL)
-    LOG_X(PHY,"NFAPI: ul_cfg:SFN/SF:%04d%d:pdus:%d num_pdcch_symbols:%d\n",
+    LOG_D(PHY,"NFAPI: ul_cfg:SFN/SF:%04d%d:pdus:%d num_pdcch_symbols:%d\n",
           NFAPI_SFNSF2SFN(UL_req->sfn_sf),NFAPI_SFNSF2SF(UL_req->sfn_sf),number_ul_pdu,
           eNB->pdcch_vars[subframe&1].num_pdcch_symbols);
 
@@ -811,7 +811,7 @@ void schedule_response(Sched_Rsp_t *Sched_INFO, void *arg) {
   //if ((ul_subframe<10)&&
   //    (subframe_select(fp,ul_subframe)==SF_UL)) { // This means that there is an ul_subframe that can be configured here
   if (ul_subframe<10) { // This means that there is an ul_subframe that can be configured here
-    LOG_X(PHY,"NFAPI: Clearing dci allocations for potential UL subframe %d\n",ul_subframe);
+    LOG_D(PHY,"NFAPI: Clearing dci allocations for potential UL subframe %d\n",ul_subframe);
     harq_pid = subframe2harq_pid(fp,ul_frame,ul_subframe);
 
     // clear DCI allocation maps for new subframe
@@ -828,7 +828,7 @@ void schedule_response(Sched_Rsp_t *Sched_INFO, void *arg) {
   for (int i=0; i<number_dl_pdu; i++) {
     dl_config_pdu = &DL_req->dl_config_request_body.dl_config_pdu_list[i];
 
-    //LOG_X(PHY,"NFAPI: dl_pdu %d : type %d\n",i,dl_config_pdu->pdu_type);
+    //LOG_D(PHY,"NFAPI: dl_pdu %d : type %d\n",i,dl_config_pdu->pdu_type);
     switch (dl_config_pdu->pdu_type) {
       case NFAPI_DL_CONFIG_DCI_DL_PDU_TYPE:
         if (NFAPI_MODE!=NFAPI_MODE_VNF)
@@ -847,7 +847,7 @@ void schedule_response(Sched_Rsp_t *Sched_INFO, void *arg) {
         eNB->pbch_configured=1;
         do_oai=1;
 
-        //LOG_X(PHY,"%s() NFAPI_DL_CONFIG_BCH_PDU_TYPE TX:%d/%d RX:%d/%d TXREQ:%d/%d\n",
+        //LOG_D(PHY,"%s() NFAPI_DL_CONFIG_BCH_PDU_TYPE TX:%d/%d RX:%d/%d TXREQ:%d/%d\n",
         //__FUNCTION__, proc->frame_tx, proc->subframe_tx, proc->frame_rx, proc->subframe_rx, NFAPI_SFNSF2SFN(TX_req->sfn_sf), NFAPI_SFNSF2SF(TX_req->sfn_sf));
         if (NFAPI_MODE!=NFAPI_MODE_VNF)
           handle_nfapi_bch_pdu(eNB,proc,dl_config_pdu,
@@ -863,7 +863,7 @@ void schedule_response(Sched_Rsp_t *Sched_INFO, void *arg) {
 	uint16_t tx_pdus = TX_req->tx_request_body.number_of_pdus;
 	uint16_t invalid_pdu = pdu_index == -1;
 	uint8_t *sdu = invalid_pdu ? NULL : pdu_index >= tx_pdus ? NULL : TX_req->tx_request_body.tx_pdu_list[pdu_index].segments[0].segment_data;
-        LOG_X(PHY,"%s() [PDU:%d] NFAPI_DL_CONFIG_MCH_PDU_TYPE SFN/SF:%04d%d TX:%d/%d RX:%d/%d pdu_index:%d sdu:%p\n",
+        LOG_D(PHY,"%s() [PDU:%d] NFAPI_DL_CONFIG_MCH_PDU_TYPE SFN/SF:%04d%d TX:%d/%d RX:%d/%d pdu_index:%d sdu:%p\n",
               __FUNCTION__, i,
               NFAPI_SFNSF2SFN(DL_req->sfn_sf),NFAPI_SFNSF2SF(DL_req->sfn_sf),
               proc->frame_tx, proc->subframe_tx,
@@ -887,7 +887,7 @@ void schedule_response(Sched_Rsp_t *Sched_INFO, void *arg) {
         uint16_t tx_pdus = TX_req->tx_request_body.number_of_pdus;
         uint16_t invalid_pdu = pdu_index == -1;
         uint8_t *sdu = invalid_pdu ? NULL : pdu_index >= tx_pdus ? NULL : TX_req->tx_request_body.tx_pdu_list[pdu_index].segments[0].segment_data;
-        LOG_X(PHY,"%s() [PDU:%d] NFAPI_DL_CONFIG_DLSCH_PDU_TYPE SFN/SF:%04d%d TX:%d/%d RX:%d/%d transport_blocks:%d pdu_index:%d sdu:%p\n",
+        LOG_D(PHY,"%s() [PDU:%d] NFAPI_DL_CONFIG_DLSCH_PDU_TYPE SFN/SF:%04d%d TX:%d/%d RX:%d/%d transport_blocks:%d pdu_index:%d sdu:%p\n",
               __FUNCTION__, i,
               NFAPI_SFNSF2SFN(DL_req->sfn_sf),NFAPI_SFNSF2SF(DL_req->sfn_sf),
               proc->frame_tx, proc->subframe_tx,
@@ -919,7 +919,7 @@ void schedule_response(Sched_Rsp_t *Sched_INFO, void *arg) {
         /*
         if (dl_config_pdu->dlsch_pdu.dlsch_pdu_rel8.rnti == eNB->preamble_list[0].preamble_rel8.rnti) {// is RAR pdu
 
-          LOG_X(PHY,"Frame %d, Subframe %d: Received LTE RAR pdu, programming based on UL Grant\n",frame,subframe);
+          LOG_D(PHY,"Frame %d, Subframe %d: Received LTE RAR pdu, programming based on UL Grant\n",frame,subframe);
           generate_eNB_ulsch_params_from_rar(eNB,
                                              TX_req->tx_request_body.tx_pdu_list[dl_config_pdu->dlsch_pdu.dlsch_pdu_rel8.pdu_index].segments[0].segment_data,
                                              frame,
@@ -976,7 +976,7 @@ void schedule_response(Sched_Rsp_t *Sched_INFO, void *arg) {
   if (NFAPI_MODE!=NFAPI_MODE_VNF)
     for (int i=0; i<number_hi_dci0_pdu; i++) {
       hi_dci0_req_pdu = &HI_DCI0_req->hi_dci0_request_body.hi_dci0_pdu_list[i];
-      LOG_X(PHY,"NFAPI: hi_dci0_pdu %d : type %d\n",i,hi_dci0_req_pdu->pdu_type);
+      LOG_D(PHY,"NFAPI: hi_dci0_pdu %d : type %d\n",i,hi_dci0_req_pdu->pdu_type);
 
       switch (hi_dci0_req_pdu->pdu_type) {
         case NFAPI_HI_DCI0_DCI_PDU_TYPE:
@@ -1007,7 +1007,7 @@ void schedule_response(Sched_Rsp_t *Sched_INFO, void *arg) {
         }
       }
       if (RC.mac[Mod_id]->scheduler_mode == SCHED_MODE_DEFAULT) {
-        //LOG_X(PHY, "UL_CONFIG to send to PNF\n");
+        //LOG_D(PHY, "UL_CONFIG to send to PNF\n");
         UL_req->sfn_sf = frame << 4 | subframe;
         oai_nfapi_ul_config_req(UL_req);
         UL_req->ul_config_request_body.number_of_pdus=0;
@@ -1027,7 +1027,7 @@ void schedule_response(Sched_Rsp_t *Sched_INFO, void *arg) {
   } else {
     for (int i=0; i<number_ul_pdu; i++) {
       ul_config_pdu = &UL_req->ul_config_request_body.ul_config_pdu_list[i];
-      LOG_X(PHY,"NFAPI: ul_pdu %d : type %d\n",i,ul_config_pdu->pdu_type);
+      LOG_D(PHY,"NFAPI: ul_pdu %d : type %d\n",i,ul_config_pdu->pdu_type);
       AssertFatal(ul_config_pdu->pdu_type == NFAPI_UL_CONFIG_ULSCH_PDU_TYPE ||
                   ul_config_pdu->pdu_type == NFAPI_UL_CONFIG_ULSCH_HARQ_PDU_TYPE ||
                   ul_config_pdu->pdu_type == NFAPI_UL_CONFIG_ULSCH_CQI_RI_PDU_TYPE ||

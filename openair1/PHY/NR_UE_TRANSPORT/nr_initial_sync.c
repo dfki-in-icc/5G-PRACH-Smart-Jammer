@@ -210,7 +210,7 @@ int nr_initial_sync(UE_nr_rxtx_proc_t *proc,
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_NR_INITIAL_UE_SYNC, VCD_FUNCTION_IN);
 
 
-  LOG_X(PHY,"nr_initial sync ue RB_DL %d\n", fp->N_RB_DL);
+  LOG_D(PHY,"nr_initial sync ue RB_DL %d\n", fp->N_RB_DL);
 
   /*   Initial synchronisation
    *

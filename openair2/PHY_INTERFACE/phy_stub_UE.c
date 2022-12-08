@@ -187,7 +187,7 @@ void fill_crc_indication_UE_MAC(int Mod_id,
                                 uint16_t rnti,
                                 nfapi_ul_config_request_t *ul_config_req) {
   pthread_mutex_lock(&fill_ul_mutex.crc_mutex);
-  LOG_X(MAC, "fill crc_indication num_crcs: %u\n",
+  LOG_D(MAC, "fill crc_indication num_crcs: %u\n",
         UL_INFO->crc_ind.crc_indication_body.number_of_crcs);
   assert(UL_INFO->crc_ind.crc_indication_body.number_of_crcs < NUMBER_OF_UE_MAX);
   nfapi_crc_indication_pdu_t *pdu =
@@ -208,7 +208,7 @@ void fill_crc_indication_UE_MAC(int Mod_id,
 
   UL_INFO->crc_ind.crc_indication_body.number_of_crcs++;
 
-  LOG_X(PHY,
+  LOG_D(PHY,
         "%s() rnti:%04x pdus:%d\n",
         __FUNCTION__,
         pdu->rx_ue_information.rnti,
@@ -284,7 +284,7 @@ void fill_ulsch_cqi_indication_UE_MAC(int Mod_id,
                                       UL_IND_t *UL_INFO,
                                       uint16_t rnti) {
   pthread_mutex_lock(&fill_ul_mutex.cqi_mutex);
-  LOG_X(MAC, "num_cqis: %u in fill_ulsch_cqi_indication_UE_MAC\n",
+  LOG_D(MAC, "num_cqis: %u in fill_ulsch_cqi_indication_UE_MAC\n",
         UL_INFO->cqi_ind.cqi_indication_body.number_of_cqis);
   assert(UL_INFO->cqi_ind.cqi_indication_body.number_of_cqis <= NFAPI_CQI_IND_MAX_PDU);
   nfapi_cqi_indication_pdu_t *pdu =
@@ -469,7 +469,7 @@ void fill_uci_harq_indication_UE_MAC(int Mod_id,
     AssertFatal(1 == 0, "only format 1a/b for now, received \n");
 
   UL_INFO->harq_ind.harq_indication_body.number_of_harqs++;
-  LOG_X(PHY,
+  LOG_D(PHY,
         "Incremented eNB->UL_INFO.harq_ind.number_of_harqs:%d\n",
         UL_INFO->harq_ind.harq_indication_body.number_of_harqs);
 
@@ -484,7 +484,7 @@ void handle_nfapi_ul_pdu_UE_MAC(module_id_t Mod_id,
                                 int index,
                                 nfapi_ul_config_request_t *ul_config_req) {
   if (ul_config_pdu->pdu_type == NFAPI_UL_CONFIG_ULSCH_PDU_TYPE) {
-    LOG_X(PHY,
+    LOG_D(PHY,
           "Applying UL config for UE, rnti %x for frame %d, subframe %d\n",
           (ul_config_pdu->ulsch_pdu.ulsch_pdu_rel8).rnti,
           frame,
@@ -496,7 +496,7 @@ void handle_nfapi_ul_pdu_UE_MAC(module_id_t Mod_id,
     uint8_t access_mode = SCHEDULED_ACCESS;
     if (buflen > 0) {
       if (UE_mac_inst[Mod_id].first_ULSCH_Tx == 1) { // Msg3 case
-        LOG_X(MAC,
+        LOG_D(MAC,
               "handle_nfapi_ul_pdu_UE_MAC 2.2, Mod_id:%d, SFN/SF: %d/%d \n",
               Mod_id,
               frame,
@@ -710,7 +710,7 @@ int ul_config_req_UE_MAC(nfapi_ul_config_request_t *req,
                          int timer_frame,
                          int timer_subframe,
                          module_id_t Mod_id) {
-  LOG_X(PHY,
+  LOG_D(PHY,
         "[PNF] UL_CONFIG_REQ %s() sfn_sf:%d pdu:%d "
         "rach_prach_frequency_resources:%d srs_present:%u\n",
         __FUNCTION__,
@@ -719,13 +719,13 @@ int ul_config_req_UE_MAC(nfapi_ul_config_request_t *req,
         req->ul_config_request_body.rach_prach_frequency_resources,
         req->ul_config_request_body.srs_present);
 
-  LOG_X(MAC, "ul_config_req Frame: %d Subframe: %d Proxy Frame: %u Subframe: %u\n",
+  LOG_D(MAC, "ul_config_req Frame: %d Subframe: %d Proxy Frame: %u Subframe: %u\n",
         NFAPI_SFNSF2SFN(req->sfn_sf), NFAPI_SFNSF2SF(req->sfn_sf),
         timer_frame, timer_subframe);
   int sfn = NFAPI_SFNSF2SFN(req->sfn_sf);
   int sf = NFAPI_SFNSF2SF(req->sfn_sf);
 
-  LOG_X(MAC,
+  LOG_D(MAC,
         "ul_config_req_UE_MAC() TOTAL NUMBER OF UL_CONFIG PDUs: %d, SFN/SF: "
         "%d/%d \n",
         req->ul_config_request_body.number_of_pdus,
@@ -753,7 +753,7 @@ int ul_config_req_UE_MAC(nfapi_ul_config_request_t *req,
       handle_nfapi_ul_pdu_UE_MAC(
           Mod_id, pdu, sfn, sf, req->ul_config_request_body.srs_present, i, req);
     } else {
-      LOG_X(MAC, "UNKNOWN UL_CONFIG_REQ PDU_TYPE or RNTI not matching pdu type: %d\n", pdu_type);
+      LOG_D(MAC, "UNKNOWN UL_CONFIG_REQ PDU_TYPE or RNTI not matching pdu type: %d\n", pdu_type);
     }
   }
 
@@ -761,7 +761,7 @@ int ul_config_req_UE_MAC(nfapi_ul_config_request_t *req,
 }
 
 int tx_req_UE_MAC(nfapi_tx_request_t *req) {
-  LOG_X(PHY,
+  LOG_D(PHY,
         "%s() SFN/SF:%d/%d PDUs:%d\n",
         __FUNCTION__,
         NFAPI_SFNSF2SFN(req->sfn_sf),
@@ -769,7 +769,7 @@ int tx_req_UE_MAC(nfapi_tx_request_t *req) {
         req->tx_request_body.number_of_pdus);
 
   for (int i = 0; i < req->tx_request_body.number_of_pdus; i++) {
-    LOG_X(PHY,
+    LOG_D(PHY,
           "%s() SFN/SF:%d/%d number_of_pdus:%d [PDU:%d] pdu_length:%d "
           "pdu_index:%d num_segments:%d\n",
           __FUNCTION__,
@@ -818,7 +818,7 @@ void dl_config_req_UE_MAC_dci(int sfn,
   if (rnti_type == 1) { // C-RNTI (Normal DLSCH case)
     for (int ue_id = 0; ue_id < num_ue; ue_id++) {
       if (UE_mac_inst[ue_id].crnti == rnti) {
-        LOG_X(MAC,
+        LOG_D(MAC,
               "%s() Received data: sfn/sf:%d.%d "
               "size:%d, TX_PDU index: %d, tx_req_num_elems: %d \n",
               __func__,
@@ -860,7 +860,7 @@ void dl_config_req_UE_MAC_dci(int sfn,
     } else if (rnti == 0x0002) { /* RA-RNTI */
       for (int ue_id = 0; ue_id < num_ue; ue_id++) {
         if (UE_mac_inst[ue_id].UE_mode[0] != RA_RESPONSE) {
-          LOG_X(MAC, "UE %d not awaiting RAR, is in mode %d\n",
+          LOG_D(MAC, "UE %d not awaiting RAR, is in mode %d\n",
                 ue_id, UE_mac_inst[ue_id].UE_mode[0]);
           continue;
         }
@@ -956,7 +956,7 @@ void dl_config_req_UE_MAC_mch(int sfn,
 
   for (int ue_id = 0; ue_id < num_ue; ue_id++) {
     if (UE_mac_inst[ue_id].UE_mode[0] == NOT_SYNCHED){
-	 LOG_X(MAC,
+	 LOG_D(MAC,
             "%s(): Received MCH in NOT_SYNCHED: UE_mode: %d, sfn/sf: %d.%d\n",
             __func__,
             UE_mac_inst[ue_id].UE_mode[0],
@@ -1023,7 +1023,7 @@ static bool is_my_ul_config_req(nfapi_ul_config_request_t *req)
     }
     else
     {
-      LOG_X(MAC, "UNKNOWN UL_CONFIG_REQ PDU_TYPE: %d or RNTI is not mine \n", pdu_type);
+      LOG_D(MAC, "UNKNOWN UL_CONFIG_REQ PDU_TYPE: %d or RNTI is not mine \n", pdu_type);
     }
   }
 
@@ -1315,7 +1315,7 @@ void *ue_standalone_pnf_task(void *context)
       assert(sf < 10);
 
       sf_rnti_mcs[sf].sinr = ch_info.sinr;
-      LOG_X(MAC, "Received_SINR = %f\n",ch_info.sinr);
+      LOG_D(MAC, "Received_SINR = %f\n",ch_info.sinr);
     }
     else
     {
@@ -2116,7 +2116,7 @@ static bool should_drop_transport_block(int sf, uint16_t rnti)
       if (drop_cutoff <= bler_val)
       {
         sf_rnti_mcs[sf].drop_flag[n] = true;
-        LOG_X(MAC, "We are dropping this packet. Bler_val = %f, MCS = %"PRIu8", sf = %d\n", bler_val, sf_rnti_mcs[sf].mcs[n], sf);
+        LOG_D(MAC, "We are dropping this packet. Bler_val = %f, MCS = %"PRIu8", sf = %d\n", bler_val, sf_rnti_mcs[sf].mcs[n], sf);
         return sf_rnti_mcs[sf].drop_flag[n];
       }
     }

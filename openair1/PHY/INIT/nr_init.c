@@ -123,7 +123,7 @@ int phy_init_nr_gNB(PHY_VARS_gNB *gNB,
 
     for (int symb=0; symb<fp->symbols_per_slot; symb++) {
       pdcch_dmrs[slot][symb] = (uint32_t *)malloc16(NR_MAX_PDCCH_DMRS_INIT_LENGTH_DWORD*sizeof(uint32_t));
-      LOG_X(PHY,"pdcch_dmrs[%d][%d] %p\n",slot,symb,pdcch_dmrs[slot][symb]);
+      LOG_D(PHY,"pdcch_dmrs[%d][%d] %p\n",slot,symb,pdcch_dmrs[slot][symb]);
       AssertFatal(pdcch_dmrs[slot][symb]!=NULL, "NR init: pdcch_dmrs for slot %d symbol %d - malloc failed\n", slot, symb);
     }
   }
@@ -174,7 +174,7 @@ int phy_init_nr_gNB(PHY_VARS_gNB *gNB,
   }
 
   uint32_t Nid_pusch[2] = {cfg->cell_config.phy_cell_id.value,cfg->cell_config.phy_cell_id.value};
-  LOG_X(PHY,"Initializing PUSCH DMRS Gold sequence with (%x,%x)\n",Nid_pusch[0],Nid_pusch[1]);
+  LOG_D(PHY,"Initializing PUSCH DMRS Gold sequence with (%x,%x)\n",Nid_pusch[0],Nid_pusch[1]);
   nr_gold_pusch(gNB, &Nid_pusch[0]);
 
   //CSI RS init
@@ -229,7 +229,7 @@ int phy_init_nr_gNB(PHY_VARS_gNB *gNB,
 
   for (i=0;i<Ptx;i++){
       common_vars->txdataF[i] = (int32_t*)malloc16_clear(fp->samples_per_frame_wCP*sizeof(int32_t)); // [hna] samples_per_frame without CP
-      LOG_X(PHY,"[INIT] common_vars->txdataF[%d] = %p (%lu bytes)\n",
+      LOG_D(PHY,"[INIT] common_vars->txdataF[%d] = %p (%lu bytes)\n",
 	    i,common_vars->txdataF[i],
 	    fp->samples_per_frame_wCP*sizeof(int32_t));
       common_vars->beam_id[i] = (uint8_t*)malloc16_clear(fp->symbols_per_slot*fp->slots_per_frame*sizeof(uint8_t));
@@ -535,7 +535,6 @@ void nr_phy_config_request(NR_PHY_Config_t *phy_config) {
     return;
   }
 
-  LOG_I(PHY,"accessing PRACH occasion list\n");
   fd_occasion = 0;
   nfapi_nr_prach_config_t *prach_config = &gNB_config->prach_config;
   short_sequence = prach_config->prach_sequence_length.value;

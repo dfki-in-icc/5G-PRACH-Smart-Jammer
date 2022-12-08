@@ -62,7 +62,7 @@ int16_t get_nr_PL(uint8_t Mod_id, uint8_t CC_id, uint8_t gNB_index){
 
     pathloss = (int16_t)(referenceSignalPower - ue->measurements.rsrp_dBm[gNB_index]);
 
-    LOG_X(MAC, "In %s: pathloss %d dB, UE RX total gain %d dB, referenceSignalPower %ld dBm/RE (%f mW), RSRP %d dBm (%f mW)\n",
+    LOG_D(MAC, "In %s: pathloss %d dB, UE RX total gain %d dB, referenceSignalPower %ld dBm/RE (%f mW), RSRP %d dBm (%f mW)\n",
       __FUNCTION__,
       pathloss,
       ue->rx_total_gain_dB,
@@ -160,7 +160,7 @@ void nr_ue_measurements(PHY_VARS_NR_UE *ue,
 
     ue->measurements.n0_power_avg = (int)(((k1*((long long int) (ue->measurements.n0_power_avg))) + (k2*((long long int) (ue->measurements.n0_power_tot))))>>10);
 
-    LOG_X(PHY, "Noise Power Computation: k1 %lld k2 %lld n0 avg %u n0 tot %u\n", k1, k2, ue->measurements.n0_power_avg, ue->measurements.n0_power_tot);
+    LOG_D(PHY, "Noise Power Computation: k1 %lld k2 %lld n0 avg %u n0 tot %u\n", k1, k2, ue->measurements.n0_power_avg, ue->measurements.n0_power_tot);
 
   } else {
 
@@ -179,7 +179,7 @@ void nr_ue_measurements(PHY_VARS_NR_UE *ue,
     ue->measurements.wideband_cqi_avg[gNB_id] = dB_fixed2(ue->measurements.rx_power_avg[gNB_id], ue->measurements.n0_power_avg);
     ue->measurements.rx_rssi_dBm[gNB_id] = ue->measurements.rx_power_avg_dB[gNB_id] + 30 - 10*log10(pow(2, 30)) - ((int)openair0_cfg[0].rx_gain[0] - (int)openair0_cfg[0].rx_gain_offset[0]) - dB_fixed(ue->frame_parms.ofdm_symbol_size);
 
-    LOG_X(PHY, "[gNB %d] Slot %d, RSSI %d dB (%d dBm/RE), WBandCQI %d dB, rxPwrAvg %d, n0PwrAvg %d\n",
+    LOG_D(PHY, "[gNB %d] Slot %d, RSSI %d dB (%d dBm/RE), WBandCQI %d dB, rxPwrAvg %d, n0PwrAvg %d\n",
       gNB_id,
       slot,
       ue->measurements.rx_power_avg_dB[gNB_id],
@@ -226,7 +226,7 @@ void nr_ue_rsrp_measurements(PHY_VARS_NR_UE *ue,
 
   if (abstraction_flag == 0) {
 
-    LOG_X(PHY, "In %s: [UE %d] slot %d l_sss %d ssb_offset %d\n", __FUNCTION__, ue->Mod_id, slot, l_sss, ssb_offset);
+    LOG_D(PHY, "In %s: [UE %d] slot %d l_sss %d ssb_offset %d\n", __FUNCTION__, ue->Mod_id, slot, l_sss, ssb_offset);
 
     nb_re = 0;
 
@@ -259,7 +259,7 @@ void nr_ue_rsrp_measurements(PHY_VARS_NR_UE *ue,
 
   ue->measurements.rsrp_dBm[gNB_id] = 10*log10(ue->measurements.rsrp[gNB_id]) + 30 - 10*log10(pow(2,30)) - ((int)openair0_cfg[0].rx_gain[0] - (int)openair0_cfg[0].rx_gain_offset[0]) - dB_fixed(ue->frame_parms.ofdm_symbol_size);
 
-  LOG_X(PHY, "In %s: [UE %d] slot %d SS-RSRP: %d dBm/RE (%d)\n",
+  LOG_D(PHY, "In %s: [UE %d] slot %d SS-RSRP: %d dBm/RE (%d)\n",
     __FUNCTION__,
     ue->Mod_id,
     slot,
@@ -288,7 +288,7 @@ void nr_ue_rrc_measurements(PHY_VARS_NR_UE *ue,
 
   ue->measurements.n0_power_tot = 0;
 
-  LOG_X(PHY, "In %s doing measurements for ssb_offset %d l_sss %d \n", __FUNCTION__, ssb_offset, l_sss);
+  LOG_D(PHY, "In %s doing measurements for ssb_offset %d l_sss %d \n", __FUNCTION__, ssb_offset, l_sss);
 
   for (aarx = 0; aarx<ue->frame_parms.nb_antennas_rx; aarx++) {
 
@@ -332,10 +332,10 @@ void nr_ue_rrc_measurements(PHY_VARS_NR_UE *ue,
   const int psd_awgn = -174;
   const int scs = 15000 * (1 << ue->frame_parms.numerology_index);
   const int nf_usrp = ue->measurements.n0_power_tot_dB + 3 + 30 - ((int)rx_gain - (int)rx_gain_offset) - 10 * log10(pow(2, 30)) - (psd_awgn + dB_fixed(scs) + dB_fixed(ue->frame_parms.ofdm_symbol_size));
-  LOG_X(PHY, "In [%s][slot:%d] NF USRP %d dB\n", __FUNCTION__, slot, nf_usrp);
+  LOG_D(PHY, "In [%s][slot:%d] NF USRP %d dB\n", __FUNCTION__, slot, nf_usrp);
   #endif
 
-  LOG_X(PHY, "In [%s][slot:%d] Noise Level %d (digital level %d dB, noise power spectral density %f dBm/RE)\n",
+  LOG_D(PHY, "In [%s][slot:%d] Noise Level %d (digital level %d dB, noise power spectral density %f dBm/RE)\n",
     __FUNCTION__,
     slot,
     ue->measurements.n0_power_tot,

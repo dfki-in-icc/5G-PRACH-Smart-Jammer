@@ -47,13 +47,13 @@ uint32_t nr_get_E(uint32_t G, uint8_t C, uint8_t Qm, uint8_t Nl, uint8_t r) {
   // AssertFatal(Nl>0,"Nl is 0\n");
   if (Nl == 0) {
     LOG_E(PHY,"Nl is 0\n");
-    LOG_X(RLC,"nr_get_E : (G %d, C %d, Qm %d, Nl %d, r %d), E %d\n",G, C, Qm, Nl, r, E);
+    LOG_I(RLC,"nr_get_E : (G %d, C %d, Qm %d, Nl %d, r %d), E %d\n",G, C, Qm, Nl, r, E);
     return 0;
   }
   // AssertFatal(Qm>0,"Qm is 0\n");
   if (Qm == 0) {
     LOG_E(PHY,"Qm is 0\n");
-    LOG_X(RLC,"nr_get_E : (G %d, C %d, Qm %d, Nl %d, r %d), E %d\n",G, C, Qm, Nl, r, E);
+    LOG_I(RLC,"nr_get_E : (G %d, C %d, Qm %d, Nl %d, r %d), E %d\n",G, C, Qm, Nl, r, E);
     return 0;
   }
   if (r <= Cprime - ((G/(Nl*Qm))%Cprime) - 1)

@@ -106,7 +106,7 @@ int slot_fep_ul(RU_t *ru,
     rx_offset = slot_offset +nb_prefix_samples0;
     if (l==0) {
 #ifdef DEBUG_FEP
-      LOG_X(PHY,"slot_fep: symbol 0 %d dB\n",
+      LOG_D(PHY,"slot_fep: symbol 0 %d dB\n",
 	    dB_fixed(signal_energy(&common->rxdata_7_5kHz[aa][rx_offset],fp->ofdm_symbol_size)));
 #endif
       dft( dftsize,(int16_t *)&common->rxdata_7_5kHz[aa][rx_offset],
@@ -136,7 +136,7 @@ int slot_fep_ul(RU_t *ru,
   }
 
 #ifdef DEBUG_FEP
-  //  LOG_X(PHY,"slot_fep: done\n");
+  //  LOG_D(PHY,"slot_fep: done\n");
 #endif
   return(0);
 }

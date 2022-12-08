@@ -60,11 +60,11 @@ uint16_t ue_process_rar(const module_id_t module_idP, const int CC_id, const fra
 
     if (rarh->T == 1) {
       n_rarpy++;
-      LOG_X(MAC, "RAPID %d\n", rarh->RAPID);
+      LOG_D(MAC, "RAPID %d\n", rarh->RAPID);
     }
 
     if (rarh->RAPID == preamble_index) {
-      LOG_X(PHY, "Found RAR with the intended RAPID %d\n",
+      LOG_D(PHY, "Found RAR with the intended RAPID %d\n",
             rarh->RAPID);
       rar = (uint8_t *) (dlsch_buffer + n_rarh + (n_rarpy - 1) * 6);
       UE_mac_inst[module_idP].UE_mode[0] = RA_RESPONSE;
@@ -88,7 +88,7 @@ uint16_t ue_process_rar(const module_id_t module_idP, const int CC_id, const fra
     }
   };
 
-  LOG_X(MAC, "number of RAR subheader %d; number of RAR pyloads %d\n",
+  LOG_D(MAC, "number of RAR subheader %d; number of RAR pyloads %d\n",
         n_rarh, n_rarpy);
 
   if (CC_id > 0) {
@@ -101,12 +101,12 @@ uint16_t ue_process_rar(const module_id_t module_idP, const int CC_id, const fra
         module_idP, frameP, *(uint8_t *) rarh, rar[0], rar[1], rar[2],
         rar[3], rar[4], rar[5], rarh->RAPID, preamble_index);
 #ifdef DEBUG_RAR
-  LOG_X(MAC, "[UE %d][RAPROC] rarh->E %d\n", module_idP, rarh->E);
-  LOG_X(MAC, "[UE %d][RAPROC] rarh->T %d\n", module_idP, rarh->T);
-  LOG_X(MAC, "[UE %d][RAPROC] rarh->RAPID %d\n", module_idP,
+  LOG_D(MAC, "[UE %d][RAPROC] rarh->E %d\n", module_idP, rarh->E);
+  LOG_D(MAC, "[UE %d][RAPROC] rarh->T %d\n", module_idP, rarh->T);
+  LOG_D(MAC, "[UE %d][RAPROC] rarh->RAPID %d\n", module_idP,
         rarh->RAPID);
   //  LOG_I(MAC,"[UE %d][RAPROC] rar->R %d\n",module_idP,rar->R);
-  LOG_X(MAC, "[UE %d][RAPROC] rar->Timing_Advance_Command %d\n",
+  LOG_D(MAC, "[UE %d][RAPROC] rar->Timing_Advance_Command %d\n",
         module_idP, (((uint16_t) (rar[0] & 0x7f)) << 4) + (rar[1] >> 4));
   //  LOG_I(MAC,"[UE %d][RAPROC] rar->hopping_flag %d\n",module_idP,rar->hopping_flag);
   //  LOG_I(MAC,"[UE %d][RAPROC] rar->rb_alloc %d\n",module_idP,rar->rb_alloc);
@@ -114,7 +114,7 @@ uint16_t ue_process_rar(const module_id_t module_idP, const int CC_id, const fra
   //  LOG_I(MAC,"[UE %d][RAPROC] rar->TPC %d\n",module_idP,rar->TPC);
   //  LOG_I(MAC,"[UE %d][RAPROC] rar->UL_delay %d\n",module_idP,rar->UL_delay);
   //  LOG_I(MAC,"[UE %d][RAPROC] rar->cqi_req %d\n",module_idP,rar->cqi_req);
-  LOG_X(MAC, "[UE %d][RAPROC] rar->t_crnti %x\n", module_idP,
+  LOG_D(MAC, "[UE %d][RAPROC] rar->t_crnti %x\n", module_idP,
         (uint16_t) rar[5] + (rar[4] << 8));
 #endif
   trace_pdu(DIRECTION_DOWNLINK, (uint8_t *) dlsch_buffer, n_rarh + n_rarpy * 6,

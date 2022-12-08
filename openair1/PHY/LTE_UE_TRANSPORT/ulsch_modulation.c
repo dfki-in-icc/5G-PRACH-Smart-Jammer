@@ -437,7 +437,7 @@ void ulsch_modulation(int32_t **txdataF,
   Msc_PUSCH = ulsch->harq_processes[harq_pid]->nb_rb*12;
 
 #ifdef DEBUG_ULSCH_MODULATION
-  LOG_X(PHY,"ulsch_modulation.c: Doing modulation (rnti %x,x2 %x) for G=%d bits, harq_pid %d , nb_rb %d, Q_m %d, Nsymb_pusch %d (nsymb %d), subframe %d\n",
+  LOG_D(PHY,"ulsch_modulation.c: Doing modulation (rnti %x,x2 %x) for G=%d bits, harq_pid %d , nb_rb %d, Q_m %d, Nsymb_pusch %d (nsymb %d), subframe %d\n",
         ulsch->rnti,x2,G,harq_pid,ulsch->harq_processes[harq_pid]->nb_rb,Q_m, ulsch->Nsymb_pusch,nsymb,subframe);
 #endif
 

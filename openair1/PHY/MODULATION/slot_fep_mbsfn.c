@@ -98,7 +98,7 @@ int slot_fep_mbsfn(PHY_VARS_UE *ue,
   }
 
 #ifdef DEBUG_FEP
-  LOG_X(PHY,"slot_fep_mbsfn: subframe %d, symbol %d, nb_prefix_samples %d, nb_prefix_samples0 %d, subframe_offset %d, sample_offset %d\n", subframe, l, nb_prefix_samples,nb_prefix_samples0,
+  LOG_D(PHY,"slot_fep_mbsfn: subframe %d, symbol %d, nb_prefix_samples %d, nb_prefix_samples0 %d, subframe_offset %d, sample_offset %d\n", subframe, l, nb_prefix_samples,nb_prefix_samples0,
         subframe_offset,
         sample_offset);
 #endif
@@ -149,7 +149,7 @@ int slot_fep_mbsfn(PHY_VARS_UE *ue,
     for (aa=0; aa<frame_parms->nb_antennas_tx; aa++) {
       if (ue->perfect_ce == 0) {
 #ifdef DEBUG_FEP
-        LOG_X(PHY,"Channel estimation eNB %d, aatx %d, subframe %d, symbol %d\n",eNB_id,aa,subframe,l);
+        LOG_D(PHY,"Channel estimation eNB %d, aatx %d, subframe %d, symbol %d\n",eNB_id,aa,subframe,l);
 #endif
         lte_dl_mbsfn_channel_estimation(ue,
                                         eNB_id,
@@ -177,7 +177,7 @@ int slot_fep_mbsfn(PHY_VARS_UE *ue,
         // do frequency offset estimation here!
         // use channel estimates from current symbol (=ch_t) and last symbol (ch_{t-1})
 #ifdef DEBUG_FEP
-        LOG_X(PHY,"Frequency offset estimation\n");
+        LOG_D(PHY,"Frequency offset estimation\n");
 #endif
         // if ((l == 0) || (l==(4-frame_parms->Ncp)))
         /*    if ((l==2)||(l==6)||(l==10))
@@ -190,7 +190,7 @@ int slot_fep_mbsfn(PHY_VARS_UE *ue,
   }
 
 #ifdef DEBUG_FEP
-  LOG_X(PHY,"slot_fep_mbsfn: done\n");
+  LOG_D(PHY,"slot_fep_mbsfn: done\n");
 #endif
   return(0);
 }
@@ -256,7 +256,7 @@ int slot_fep_mbsfn_khz_1dot25(PHY_VARS_UE *ue,
 
   subframe_offset = frame_parms->samples_per_tti * subframe;
 #ifdef DEBUG_FEP
-  LOG_X(PHY,"slot_fep_mbsfn125: subframe %d, nb_prefix_samples %d, subframe_offset %d, sample_offset %d\n", subframe, nb_prefix_samples,subframe_offset,
+  LOG_D(PHY,"slot_fep_mbsfn125: subframe %d, nb_prefix_samples %d, subframe_offset %d, sample_offset %d\n", subframe, nb_prefix_samples,subframe_offset,
         sample_offset);
 #endif
 
@@ -278,7 +278,7 @@ int slot_fep_mbsfn_khz_1dot25(PHY_VARS_UE *ue,
   for (aa=0; aa<frame_parms->nb_antennas_tx; aa++) {
     if (ue->perfect_ce == 0) {
 #ifdef DEBUG_FEP
-      LOG_X(PHY,"Channel estimation eNB %d, aatx %d, subframe %d\n",eNB_id,aa,subframe);
+      LOG_D(PHY,"Channel estimation eNB %d, aatx %d, subframe %d\n",eNB_id,aa,subframe);
 #endif
       lte_dl_mbsfn_khz_1dot25_channel_estimation(ue,
           eNB_id,
@@ -288,7 +288,7 @@ int slot_fep_mbsfn_khz_1dot25(PHY_VARS_UE *ue,
   }
 
 #ifdef DEBUG_FEP
-  LOG_X(PHY,"slot_fep_mbsfn: done\n");
+  LOG_D(PHY,"slot_fep_mbsfn: done\n");
 #endif
   return(0);
 }
