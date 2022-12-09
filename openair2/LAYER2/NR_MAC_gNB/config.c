@@ -619,13 +619,13 @@ int rrc_mac_config_req_gNB(module_id_t Mod_idP,
         return -1;
       }
 
-      NR_COMMON_channels_t *cc = &RC.nrmac[Mod_idP]->common_channels[0];
-      NR_RA_t *ra = &cc->ra[0];
-      ra->CellGroup = CellGroup;
       if (CellGroup->spCellConfig &&
           CellGroup->spCellConfig->reconfigurationWithSync &&
           CellGroup->spCellConfig->reconfigurationWithSync->rach_ConfigDedicated != NULL) {
         if (CellGroup->spCellConfig->reconfigurationWithSync->rach_ConfigDedicated->choice.uplink->cfra != NULL) {
+          NR_COMMON_channels_t *cc = &RC.nrmac[Mod_idP]->common_channels[0];
+          NR_RA_t *ra = &cc->ra[0];
+          ra->CellGroup = CellGroup;
           ra->cfra = true;
           ra->rnti = CellGroup->spCellConfig->reconfigurationWithSync->newUE_Identity;
           struct NR_CFRA *cfra = CellGroup->spCellConfig->reconfigurationWithSync->rach_ConfigDedicated->choice.uplink->cfra;
