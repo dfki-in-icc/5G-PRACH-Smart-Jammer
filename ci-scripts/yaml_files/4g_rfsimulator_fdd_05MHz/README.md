@@ -14,26 +14,13 @@
 
 This page is only valid for an `Ubuntu18` host.
 
-**TABLE OF CONTENTS**
+**Table of Contents**
 
-1. [Retrieving the images on Docker-Hub](#1-retrieving-the-images-on-docker-hub)
-2. [Deploy containers](#2-deploy-containers)
-   1. [Deploy and Configure Cassandra Database](#21-deploy-and-configure-cassandra-database)
-   2. [Deploy OAI CN4G containers](#22-deploy-oai-cn4g-containers)
-   3. [Deploy OAI eNB in RF simulator mode](#23-deploy-oai-enb-in-rf-simulator-mode)
-   4. [Deploy OAI LTE UE in RF simulator mode](#24-deploy-oai-lte-ue-in-rf-simulator-mode)
-3. [Check traffic](#3-check-traffic)
-4. [Un-deployment](#4-un-deployment)
-5. [Explanation on the configuration](#5-explanation-on-the-configuration)
-   1. [UE IMSI and Keys](#51-ue-imsi-and-keys)
-   2. [PLMN and TAI](#52-plmn-and-tai)
-   3. [Access to Internet](#53-access-to-internet)
+[[_TOC_]]
 
 # 1. Retrieving the images on Docker-Hub #
 
-Currently the images are hosted under the user account `rdefosseoai`.
-
-This may change in the future.
+Currently the images are hosted under the team account `oaisoftwarealliance`. They were previously hosted under the user account `rdefosseoai`.
 
 Once again you may need to log on [docker-hub](https://hub.docker.com/) if your organization has reached pulling limit as `anonymous`.
 
@@ -49,13 +36,13 @@ Now pull images.
 ```bash
 $ docker pull cassandra:2.1
 $ docker pull redis:6.0.5
-$ docker pull rdefosseoai/oai-hss:latest
-$ docker pull rdefosseoai/magma-mme:latest
-$ docker pull rdefosseoai/oai-spgwc:latest
-$ docker pull rdefosseoai/oai-spgwu-tiny:latest
+$ docker pull oaisoftwarealliance/oai-hss:latest
+$ docker pull oaisoftwarealliance/magma-mme:latest
+$ docker pull oaisoftwarealliance/oai-spgwc:latest
+$ docker pull oaisoftwarealliance/oai-spgwu-tiny:latest
 
-$ docker pull rdefosseoai/oai-enb:develop
-$ docker pull rdefosseoai/oai-lte-ue:develop
+$ docker pull oaisoftwarealliance/oai-enb:develop
+$ docker pull oaisoftwarealliance/oai-lte-ue:develop
 ```
 
 If the `redis` tag is not available, pick the newest available `6.0.x` tag at [Docker Hub Redis Tags](https://hub.docker.com/_/redis?tab=tags).
@@ -63,13 +50,13 @@ If the `redis` tag is not available, pick the newest available `6.0.x` tag at [D
 And **re-tag** them for tutorials' docker-compose file to work.
 
 ```bash
-$ docker image tag rdefosseoai/oai-spgwc:latest oai-spgwc:latest
-$ docker image tag rdefosseoai/oai-hss:latest oai-hss:latest
-$ docker image tag rdefosseoai/oai-spgwu-tiny:latest oai-spgwu-tiny:latest 
-$ docker image tag rdefosseoai/magma-mme:latest magma-mme:latest
+$ docker image tag oaisoftwarealliance/oai-spgwc:latest oai-spgwc:latest
+$ docker image tag oaisoftwarealliance/oai-hss:latest oai-hss:latest
+$ docker image tag oaisoftwarealliance/oai-spgwu-tiny:latest oai-spgwu-tiny:latest 
+$ docker image tag oaisoftwarealliance/magma-mme:latest magma-mme:latest
 
-$ docker image tag rdefosseoai/oai-enb:develop oai-enb:develop
-$ docker image tag rdefosseoai/oai-lte-ue:develop oai-lte-ue:develop
+$ docker image tag oaisoftwarealliance/oai-enb:develop oai-enb:develop
+$ docker image tag oaisoftwarealliance/oai-lte-ue:develop oai-lte-ue:develop
 ```
 
 ```bash
@@ -159,7 +146,7 @@ rfsim4g-trf-gen          /bin/bash -c ip route add  ...   Up (healthy)
 ## 2.3. Deploy OAI eNB in RF simulator mode ##
 
 ```bash
-$ docker-compose up -d enb
+$ docker-compose up -d oai_enb0
 Creating rfsim4g-oai-enb ... done
 ```
 
@@ -505,7 +492,7 @@ In my traffic test, I was able to ping outside of my local network.
 in SPGW-C config:
 
 ```yaml
-            DEFAULT_DNS_IPV4_ADDRESS: 192.168.18.129
+            DEFAULT_DNS_IPV4_ADDRESS: 172.21.3.100
             DEFAULT_DNS_SEC_IPV4_ADDRESS: 8.8.4.4
             PUSH_PROTOCOL_OPTION: 'true'
 ```

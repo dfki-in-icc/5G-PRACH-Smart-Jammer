@@ -30,8 +30,9 @@
 
 #ifndef __NR_LDPC_TYPES__H__
 #define __NR_LDPC_TYPES__H__
-
+#ifndef CODEGEN
 #include "time_meas.h"
+#endif
 #include "nrLDPCdecoder_defs.h"
 // ==============================================================================
 // TYPES
@@ -75,8 +76,23 @@ typedef struct nrLDPC_dec_params {
 } t_nrLDPC_dec_params;
 
 /**
+   Structure containing LDPC decoder parameters.
+ */
+typedef struct nrLDPCoffload_params {
+    uint8_t BG; /**< Base graph */
+    uint16_t Z; 
+    uint16_t Kr;  
+    uint8_t rv;
+    uint32_t E;
+    uint16_t n_cb;
+    uint16_t F; /**< Filler bits */
+    uint8_t Qm; /**< Modulation */
+} t_nrLDPCoffload_params;
+
+/**
    Structure containing LDPC decoder processing time statistics.
  */
+#ifndef CODEGEN
 typedef struct nrLDPC_time_stats {
     time_stats_t llr2llrProcBuf; /**< Statistics for function llr2llrProcBuf */
     time_stats_t llr2CnProcBuf; /**< Statistics for function llr2CnProcBuf */
@@ -90,7 +106,7 @@ typedef struct nrLDPC_time_stats {
     time_stats_t llr2bit; /**< Statistics for function llr2bit */
     time_stats_t total; /**< Statistics for total processing time */
 } t_nrLDPC_time_stats;
-
+#endif
 /**
    Structure containing the processing buffers
  */

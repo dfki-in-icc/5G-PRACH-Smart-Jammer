@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -euo pipefail
+set -uo pipefail
 
 PREFIX=/opt/oai-enb
 RRC_INACTIVITY_THRESHOLD=${RRC_INACTIVITY_THRESHOLD:-0}
@@ -18,6 +18,7 @@ if [[ -v USE_FDD_IF4P5_RCC ]]; then cp $PREFIX/etc/rcc.if4p5.fdd.conf $PREFIX/et
 if [[ -v USE_TDD_IF4P5_RCC ]]; then cp $PREFIX/etc/rcc.if4p5.tdd.conf $PREFIX/etc/enb.conf; fi
 if [[ -v USE_FDD_RRU ]]; then cp $PREFIX/etc/rru.fdd.conf $PREFIX/etc/enb.conf; fi
 if [[ -v USE_TDD_RRU ]]; then cp $PREFIX/etc/rru.tdd.conf $PREFIX/etc/enb.conf; fi
+if [[ -v USE_NFAPI_VNF ]]; then cp $PREFIX/etc/enb.nfapi.vnf.conf $PREFIX/etc/enb.conf; fi
 # Sometimes, the templates are not enough. We mount a conf file on $PREFIX/etc. It can be a template itself.
 if [[ -v USE_VOLUMED_CONF ]]; then cp $PREFIX/etc/mounted.conf $PREFIX/etc/enb.conf; fi
 
@@ -50,9 +51,15 @@ for c in ${CONFIG_FILES}; do
 
     # render template and inline replace config file
     sed -i "${EXPRESSIONS}" ${c}
+
+    echo "=================================="
+    echo "== Configuration file: ${c}"
+    cat ${c}
 done
 
 # Load the USRP binaries
+echo "=================================="
+echo "== Load USRP binaries"
 if [[ -v USE_B2XX ]]; then
     $PREFIX/bin/uhd_images_downloader.py -t b2xx
 elif [[ -v USE_X3XX ]]; then
@@ -60,6 +67,9 @@ elif [[ -v USE_X3XX ]]; then
 elif [[ -v USE_N3XX ]]; then
     $PREFIX/bin/uhd_images_downloader.py -t n3xx
 fi
+
+# enable printing of stack traces on assert
+export gdbStacks=1
 
 echo "=================================="
 echo "== Starting eNB soft modem"

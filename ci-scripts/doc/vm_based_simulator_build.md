@@ -12,11 +12,9 @@
   </tr>
 </table>
 
-## Table of Contents ##
+**Table of Contents**
 
-1.  [Introduction](#1-introduction)
-2.  [Detailed Description](#2-detailed-description)
-3.  [Typical Usage](#3-typical-usage)
+[[_TOC_]]
 
 # 1. Introduction #
 
@@ -52,7 +50,6 @@ Options:
 --------
  # OpenAirInterface Build Variants
     --variant enb-usrp        OR -v1     ( build and test  )
-    --variant basic-sim       OR -v2     ( build and test  )
     --variant phy-sim         OR -v3     ( build and test  )
     --variant cppcheck        OR -v4     ( build and test  )
     --variant gnb-usrp        OR -v5     ( build and test  )

@@ -39,9 +39,11 @@
 #include "nr_refsig.h"
 #include "PHY/defs_gNB.h"
 
-/*Table 7.4.1.1.2-1/2 from 38.211 */
+// Table 6.4.1.1.3-1/2 from TS 38.211
+int delta1[8] = {0, 0, 1, 1, 0, 0, 1, 1};
 int wf1[8][2] = {{1,1},{1,-1},{1,1},{1,-1},{1,1},{1,-1},{1,1},{1,-1}};
 int wt1[8][2] = {{1,1},{1,1},{1,1},{1,1},{1,-1},{1,-1},{1,-1},{1,-1}};
+int delta2[12] = {0, 0, 2, 2, 4, 4, 0, 0, 2, 2, 4, 4};
 int wf2[12][2] = {{1,1},{1,-1},{1,1},{1,-1},{1,1},{1,-1},{1,1},{1,-1},{1,1},{1,-1},{1,1},{1,-1}};
 int wt2[12][2] = {{1,1},{1,1},{1,1},{1,1},{1,1},{1,1},{1,-1},{1,-1},{1,-1},{1,-1},{1,-1},{1,-1}};
 
@@ -49,6 +51,13 @@ int wt2[12][2] = {{1,1},{1,1},{1,1},{1,1},{1,1},{1,1},{1,-1},{1,-1},{1,-1},{1,-1
 short nr_rx_mod_table[14]  = {0,0,23170,-23170,-23170,23170,23170,-23170,23170,23170,-23170,-23170,-23170,23170};
 short nr_rx_nmod_table[14] = {0,0,-23170,23170,23170,-23170,-23170,23170,-23170,-23170,23170,23170,23170,-23170};
 
+int nr_pusch_dmrs_delta(uint8_t dmrs_config_type, unsigned short p) {
+  if (dmrs_config_type == pusch_dmrs_type1) {
+    return delta1[p];
+  } else {
+    return delta2[p];
+  }
+}
 
 int nr_pusch_dmrs_rx(PHY_VARS_gNB *gNB,
                      unsigned int Ns,
@@ -128,29 +137,33 @@ int nr_pdsch_dmrs_rx(PHY_VARS_NR_UE *ue,
   if (config_type > 1)
     LOG_E(PHY,"Bad PDSCH DMRS config type %d\n", config_type);
 
-  if ((p>=1000) && (p<((config_type==NFAPI_NR_DMRS_TYPE1) ? 1008 : 1012))) {
-      if (ue->frame_parms.Ncp == NORMAL) {
+  if ((p >= 1000) && (p < ((config_type == NFAPI_NR_DMRS_TYPE1) ? 1008 : 1012))) {
+    if (ue->frame_parms.Ncp == NORMAL) {
+      for (int i = 0; i < nb_pdsch_rb * ((config_type == NFAPI_NR_DMRS_TYPE1) ? 6 : 4); i++) {
+        w = (wf[p - 1000][i & 1]) * (wt[p - 1000][lp]);
+        mod_table = (w == 1) ? nr_rx_mod_table : nr_rx_nmod_table;
 
-        for (int i=0; i<nb_pdsch_rb*((config_type==NFAPI_NR_DMRS_TYPE1) ? 6:4); i++) {
-
-        	w = (wf[p-1000][i&1])*(wt[p-1000][lp]);
-        	mod_table = (w==1) ? nr_rx_mod_table : nr_rx_nmod_table;
-
-        	idx = ((((nr_gold_pdsch[(i<<1)>>5])>>((i<<1)&0x1f))&1)<<1) ^ (((nr_gold_pdsch[((i<<1)+1)>>5])>>(((i<<1)+1)&0x1f))&1);
-    		((int16_t*)output)[i<<1] = mod_table[(NR_MOD_TABLE_QPSK_OFFSET + idx)<<1];
-    		((int16_t*)output)[(i<<1)+1] = mod_table[((NR_MOD_TABLE_QPSK_OFFSET + idx)<<1) + 1];
+        idx = ((((nr_gold_pdsch[(i << 1) >> 5]) >> ((i << 1) & 0x1f)) & 1) << 1) ^ (((nr_gold_pdsch[((i << 1) + 1) >> 5]) >> (((i << 1) + 1) & 0x1f)) & 1);
+        ((int16_t *)output)[i << 1] = mod_table[(NR_MOD_TABLE_QPSK_OFFSET + idx) << 1];
+        ((int16_t *)output)[(i << 1) + 1] = mod_table[((NR_MOD_TABLE_QPSK_OFFSET + idx) << 1) + 1];
 #ifdef DEBUG_PDSCH
-    		printf("nr_pdsch_dmrs_rx dmrs config type %d port %d nb_pdsch_rb %d\n", config_type, p, nb_pdsch_rb);
-    		printf("wf[%d] = %d wt[%d]= %d\n", i&1, wf[p-1000][i&1], lp, wt[p-1000][lp]);
-    		printf("i %d idx %d pdsch gold %u b0-b1 %d-%d mod_dmrs %d %d\n", i, idx, nr_gold_pdsch[(i<<1)>>5], (((nr_gold_pdsch[(i<<1)>>5])>>((i<<1)&0x1f))&1),
-    				(((nr_gold_pdsch[((i<<1)+1)>>5])>>(((i<<1)+1)&0x1f))&1), ((int16_t*)output)[i<<1], ((int16_t*)output)[(i<<1)+1]);
+        printf("nr_pdsch_dmrs_rx dmrs config type %d port %d nb_pdsch_rb %d\n", config_type, p, nb_pdsch_rb);
+        printf("wf[%d] = %d wt[%d]= %d\n", i & 1, wf[p - 1000][i & 1], lp, wt[p - 1000][lp]);
+        printf("i %d idx %d pdsch gold %u b0-b1 %d-%d mod_dmrs %d %d\n",
+               i,
+               idx,
+               nr_gold_pdsch[(i << 1) >> 5],
+               (((nr_gold_pdsch[(i << 1) >> 5]) >> ((i << 1) & 0x1f)) & 1),
+               (((nr_gold_pdsch[((i << 1) + 1) >> 5]) >> (((i << 1) + 1) & 0x1f)) & 1),
+               ((int16_t *)output)[i << 1],
+               ((int16_t *)output)[(i << 1) + 1]);
 #endif
-       	}
-      } else {
-        LOG_E(PHY,"extended cp not supported for PDSCH DMRS yet\n");
       }
+    } else {
+      LOG_E(PHY, "extended cp not supported for PDSCH DMRS yet\n");
+    }
   } else {
-    LOG_E(PHY,"Illegal p %d PDSCH DMRS port\n",p);
+    LOG_E(PHY, "Illegal p %d PDSCH DMRS port\n", p);
   }
 
   return(0);
@@ -158,7 +171,6 @@ int nr_pdsch_dmrs_rx(PHY_VARS_NR_UE *ue,
 
 
 int nr_pdcch_dmrs_rx(PHY_VARS_NR_UE *ue,
-                     uint8_t eNB_offset,
                      unsigned int Ns,
                      unsigned int *nr_gold_pdcch,
                      int32_t *output,

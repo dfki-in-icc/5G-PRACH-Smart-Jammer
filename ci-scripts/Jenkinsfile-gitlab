@@ -20,16 +20,6 @@
  *      contact@openairinterface.org
  */
 
-// Abstraction function to send social media messages:
-// like on Slack or Mattermost
-def sendSocialMediaMessage(pipeChannel, pipeColor, pipeMessage) {
-    if (params.pipelineUsesSlack != null) {
-        if (params.pipelineUsesSlack) {
-            slackSend channel: pipeChannel, color: pipeColor, message: pipeMessage
-        }
-    }
-}
-
 // Location of the executor node
 def nodeExecutor = params.nodeExecutor
 
@@ -64,10 +54,6 @@ pipeline {
                         echo "Platform is ${env.TESTPLATFORM_OWNER}"
                     }
 
-                    if (fileExists("flexran")) {
-                        sh "rm -Rf flexran > /dev/null 2>&1"
-                    }
-
                     echo '\u2705 \u001B[32mVerify Labels\u001B[0m'
                     if ("MERGE".equals(env.gitlabActionType)) {
                         LABEL_CHECK = sh returnStdout: true, script: 'ci-scripts/checkGitLabMergeRequestLabels.sh --mr-id ' + env.gitlabMergeRequestIid
@@ -81,7 +67,7 @@ pipeline {
                             message += "Not performing CI due to lack of labels"
                             addGitLabMRComment comment: message
                             error('Not performing CI due to lack of labels')
-                        } else if (LABEL_CHECK == 'FULL') {
+                        } else if (LABEL_CHECK == 'FULL' || LABEL_CHECK == 'SHORTEN-4G') {
                             doMandatoryTests = true
                             doFullTestsuite = true
                         } else if (LABEL_CHECK == 'SHORTEN-5G') {
@@ -111,17 +97,7 @@ pipeline {
                         sh "./ci-scripts/doGitLabMerge.sh --src-branch ${env.gitlabSourceBranch} --src-commit ${env.gitlabMergeRequestLastCommit} --target-branch ${env.gitlabTargetBranch} --target-commit ${GIT_COMMIT}"
                         sh "zip -r -qq localZip.zip ."
 
-                        // Running astyle options on the list of modified files by the merge request
-                        // For the moment, there is no fail criteria. Just a notification of number of files that do not follow
-                        sh "./ci-scripts/checkCodingFormattingRules.sh --src-branch ${env.gitlabSourceBranch} --target-branch ${env.gitlabTargetBranch}"
-                        def res=readFile('./oai_rules_result.txt').trim();
-                        if ("0".equals(res)) {
-                            def message = "OAI " + JOB_NAME + " build (" + BUILD_ID + "): All Changed files in Merge Request follow OAI Formatting Rules"
-                            addGitLabMRComment comment: message
-                        } else {
-                            def message = "OAI " + JOB_NAME + " build (" + BUILD_ID + "): Some Changed files in Merge Request DO NOT follow OAI Formatting Rules"
-                            addGitLabMRComment comment: message
-                        }
+                        // here was an astyle formatting check, with corresponding messages. The same could be done with clang-format
                     } else {
                         echo "Git Branch      is ${GIT_BRANCH}"
                         echo "Git Commit      is ${GIT_COMMIT}"
@@ -132,19 +108,6 @@ pipeline {
                         sh "git log -n1 --pretty=format:\"%s\" > .git/CI_COMMIT_MSG"
 
                         sh "zip -r -qq localZip.zip ."
-                        // Running astyle options on all C/H files in the repository
-                        // For the moment, there is no fail criteria. Just a notification of number of files that do not follow
-                        sh "./ci-scripts/checkCodingFormattingRules.sh"
-                    }
-                    // With Mosaic 5G being part of OSA and making all it's repositories public
-                    // No need to pass credentials to clone flexran-rtc
-                    if (doMandatoryTests) {
-                        sh "mkdir flexran"
-                        dir ('flexran') {
-                            sh "git clone https://gitlab.eurecom.fr/flexran/flexran-rtc.git . > ../git_clone.log 2>&1"
-                            sh "git checkout develop >> ../git_clone.log 2>&1"
-                            sh "zip -r -qq flexran.zip ."
-                        }
                     }
                 }
             }
@@ -156,16 +119,6 @@ pipeline {
                         currentBuild.result = 'FAILURE'
                     }
                 }
-            }
-        }
-
-        stage ("Start VM -- basic-sim") {
-            steps {
-              lock (vmResource) {
-                timeout (time: 5, unit: 'MINUTES') {
-                    sh "./ci-scripts/oai-ci-vm-tool build --workspace $WORKSPACE --variant basic-sim --job-name ${JOB_NAME} --build-id ${BUILD_ID} --daemon"
-                }
-              }
             }
         }
 
@@ -207,19 +160,10 @@ pipeline {
                 }
               }
             }
-   }
+        }
         
         stage ("Variant Builds") {
             parallel {
-                stage ("Build basic simulator") {
-                    steps {
-                        gitlabCommitStatus(name: "Build basic-sim") {
-                            timeout (time: 45, unit: 'MINUTES') {
-                                sh "./ci-scripts/oai-ci-vm-tool wait --workspace $WORKSPACE --variant basic-sim --job-name ${JOB_NAME} --build-id ${BUILD_ID} --keep-vm-alive"
-                            }
-                        }
-                    }
-                }
                 stage ("Build 5G gNB-USRP") {
                     steps {
                         gitlabCommitStatus(name: "Build gNB-USRP") {
@@ -270,9 +214,9 @@ pipeline {
                     script {
                         dir ('archives') {
                             if (fileExists('red_hat')) {
-                                sh "zip -r -qq vm_build_logs.zip basic_sim enb_eth ue_eth gnb_usrp nr_ue_usrp red_hat"
+                                sh "zip -r -qq vm_build_logs.zip enb_eth ue_eth gnb_usrp nr_ue_usrp red_hat"
                             } else {
-                                sh "zip -r -qq vm_build_logs.zip basic_sim enb_eth ue_eth gnb_usrp nr_ue_usrp"
+                                sh "zip -r -qq vm_build_logs.zip enb_eth ue_eth gnb_usrp nr_ue_usrp"
                             }
                         }
                         if(fileExists('archives/vm_build_logs.zip')) {
@@ -306,44 +250,6 @@ pipeline {
             parallel {
                 stage ("VM-based tests") {
                     stages {
-                        stage ("Build Flexran Controller") {
-                            when {
-                                expression {doMandatoryTests}
-                            }
-                            steps {
-                              lock (vmResource) {
-                                script {
-                                    timeout (time: 20, unit: 'MINUTES') {
-                                        try {
-                                            sh "./ci-scripts/oai-ci-vm-tool build --workspace $WORKSPACE --variant flexran-rtc --job-name ${JOB_NAME} --build-id ${BUILD_ID} --keep-vm-alive"
-                                        } catch (Exception e) {
-                                          currentBuild.result = 'FAILURE'
-                                        }
-                                    }
-                                }
-                              }
-                            }
-                        }
-                        stage ("Test basic simulator") {
-                            when {
-                                expression {doMandatoryTests}
-                            }
-                            steps {
-                              lock (vmResource) {
-                                script {
-                                    timeout (time: 30, unit: 'MINUTES') {
-                                        try {
-                                            gitlabCommitStatus(name: "Test basic-sim") {
-                                                sh "./ci-scripts/oai-ci-vm-tool test --workspace $WORKSPACE --variant basic-sim --job-name ${JOB_NAME} --build-id ${BUILD_ID}"
-                                            }
-                                        } catch (Exception e) {
-                                          currentBuild.result = 'FAILURE'
-                                        }
-                                    }
-                                }
-                              }
-                            }
-                        }
                         stage ("Test L1 simulator") {
                             when {
                                 expression {doMandatoryTests}
@@ -416,172 +322,13 @@ pipeline {
                         }
                     }
                 }
-                stage ("Test MONOLITHIC - FDD - Band 7 - B210") {
-                    when {
-                        expression {doFullTestsuite}
-                    }
-                    steps {
-                        script {
-                            triggerSlaveJob ('eNB-CI-FDD-Band7-B210', 'Test-Mono-FDD-Band7')
-                        }
-                    }
-                    post {
-                        always {
-                            script {
-                                finalizeSlaveJob('eNB-CI-FDD-Band7-B210')
-                            }
-                        }
-                        failure {
-                            script {
-                                currentBuild.result = 'FAILURE'
-                            }
-                        }
-                    }
-                }
-                stage ("Test MONOLITHIC - TDD - Band 40 - B210") {
-                    when {
-                        expression {doFullTestsuite}
-                    }
-                    steps {
-                        script {
-                            triggerSlaveJob ('eNB-CI-TDD-Band40-B210', 'Test-Mono-TDD-Band40')
-                        }
-                    }
-                    post {
-                        always {
-                            script {
-                                finalizeSlaveJob('eNB-CI-TDD-Band40-B210')
-                            }
-                        }
-                        failure {
-                            script {
-                                currentBuild.result = 'FAILURE'
-                            }
-                        }
-                    }
-                }
-                stage ("Test IF4p5 - FDD - Band 7 - B210") {
-                    when {
-                        expression {doFullTestsuite}
-                    }
-                    steps {
-                        script {
-                            sh "sleep 60"
-                            triggerSlaveJob ('eNB-CI-IF4p5-FDD-Band7-B210', 'Test-IF4p5-FDD-Band7')
-                        }
-                    }
-                    post {
-                        always {
-                            script {
-                                finalizeSlaveJob('eNB-CI-IF4p5-FDD-Band7-B210')
-                            }
-                        }
-                        failure {
-                            script {
-                                currentBuild.result = 'FAILURE'
-                            }
-                        }
-                    }
-                }
-                stage ("Test F1 - FDD - Band 7 - B210") {
-                    when {
-                        expression {doFullTestsuite}
-                    }
-                    steps {
-                        script {
-                            sh "sleep 60"
-                            triggerSlaveJob ('eNB-CI-F1-FDD-Band7-B210', 'Test-F1-FDD-Band7')
-                        }
-                    }
-                    post {
-                        always {
-                            script {
-                                finalizeSlaveJob('eNB-CI-F1-FDD-Band7-B210')
-                            }
-                        }
-                        failure {
-                            script {
-                                currentBuild.result = 'FAILURE'
-                            }
-                        }
-                    }
-                }
-                stage ("Test IF4p5 - TDD - Band 40 - B210") {
-                    when {
-                        expression {doFullTestsuite}
-                    }
-                    steps {
-                        script {
-                            sh "sleep 60"
-                            triggerSlaveJob ('eNB-CI-IF4p5-TDD-Band40-B210', 'Test-IF4p5-TDD-Band40')
-                        }
-                    }
-                    post {
-                        always {
-                            script {
-                                finalizeSlaveJob('eNB-CI-IF4p5-TDD-Band40-B210')
-                            }
-                        }
-                        failure {
-                            script {
-                                currentBuild.result = 'FAILURE'
-                            }
-                        }
-                    }
-                }
-                stage ("Test OAI UE - FDD - Band 20 - B200") {
-                    when {
-                        expression {doFullTestsuite}
-                    }
-                    steps {
-                        script {
-                            triggerSlaveJobNoGitLab ('UE-CI-FDD-Band20-B200')
-                        }
-                    }
-                    post {
-                        always {
-                            script {
-                                finalizeSlaveJob('UE-CI-FDD-Band20-B200')
-                            }
-                        }
-                        failure {
-                            script {
-                                currentBuild.result = 'FAILURE'
-                            }
-                        }
-                    }
-                }
-                stage ("Test OAI UE - OAI eNB - FDD - Band 7 - B200") {
-                    when {
-                        expression {doFullTestsuite}
-                    }
-                    steps {
-                        script {
-                            // Delayed trigger on slave job, so it is always the last one to run
-                            sh "sleep 240"
-                            triggerSlaveJob ('eNB-UE-CI-MONO-FDD-Band7-B200', 'Test-eNB-OAI-UE-FDD-Band7')
-                        }
-                    }
-                    post {
-                        always {
-                            script {
-                                finalizeSlaveJob('eNB-UE-CI-MONO-FDD-Band7-B200')
-                            }
-                        }
-                        failure {
-                            script {
-                                currentBuild.result = 'FAILURE'
-                            }
-                        }
-                    }
-                }
             }
             post {
                 always {
                     script {
                       if (doMandatoryTests) {
                         dir ('archives') {
-                            sh "if [ -d basic_sim/test ] || [ -d rf_sim/test ] || [ -d l2_sim/test ]; then zip -r -qq vm_tests_logs.zip */test ; fi"
+                            sh "if [ -d rf_sim/test ] || [ -d rf5g_sim/test ] || [ -d l2_sim/test ]; then zip -r -qq vm_tests_logs.zip */test ; fi"
                         }
                         if(fileExists('archives/vm_tests_logs.zip')) {
                             archiveArtifacts artifacts: 'archives/vm_tests_logs.zip'
@@ -628,10 +375,6 @@ OAI CI Team''',
                 if ("MERGE".equals(env.gitlabActionType)) {
                     echo "This is a MERGE event"
                     addGitLabMRComment comment: message
-                    def message2 = "OAI " + JOB_NAME + " build (" + BUILD_ID + "): passed (" + BUILD_URL + ") -- MergeRequest #" + env.gitlabMergeRequestIid + " (" + env.gitlabMergeRequestTitle + ")"
-                    sendSocialMediaMessage('ci-enb', 'good', message2)
-                } else {
-                    sendSocialMediaMessage('ci-enb', 'good', message)
                 }
             }
         }
@@ -641,77 +384,8 @@ OAI CI Team''',
                 if ("MERGE".equals(env.gitlabActionType)) {
                     echo "This is a MERGE event"
                     addGitLabMRComment comment: message
-                    def message2 = "OAI " + JOB_NAME + " build (" + BUILD_ID + "): failed (" + BUILD_URL + ") -- MergeRequest #" + env.gitlabMergeRequestIid + " (" + env.gitlabMergeRequestTitle + ")"
-                    sendSocialMediaMessage('ci-enb', 'danger', message2)
-                } else {
-                    sendSocialMediaMessage('ci-enb', 'danger', message)
                 }
             }
-        }
-    }
-}
-
-// ----  Slave Job functions
-
-def triggerSlaveJob (jobName, gitlabStatusName) {
-    // Workaround for the "cancelled" GitLab pipeline notification
-    // The slave job is triggered with the propagate false so the following commands are executed
-    // Its status is now PASS/SUCCESS from a stage pipeline point of view
-    // localStatus variable MUST be analyzed to properly assess the status
-    localStatus = build job: jobName,
-        parameters: [
-            string(name: 'eNB_Repository', value: String.valueOf(GIT_URL)),
-            string(name: 'eNB_Branch', value: String.valueOf(env.gitlabSourceBranch)),
-            string(name: 'eNB_CommitID', value: String.valueOf(env.gitlabMergeRequestLastCommit)),
-            booleanParam(name: 'eNB_mergeRequest', value: "MERGE".equals(env.gitlabActionType)),
-            string(name: 'eNB_TargetBranch', value: String.valueOf(env.gitlabTargetBranch))
-        ], propagate: false
-    localResult = localStatus.getResult()
-    echo "${jobName} Slave Job status is ${localResult}"
-    gitlabCommitStatus(name: gitlabStatusName) {
-        if (localStatus.resultIsBetterOrEqualTo('SUCCESS')) {
-           echo "${jobName} Slave Job is OK"
-        } else {
-           echo "${jobName} Slave Job is KO"
-           sh "ci-scripts/fail.sh"
-        }
-    }
-}
-
-def triggerSlaveJobNoGitLab (jobName) {
-    // Workaround for the "cancelled" GitLab pipeline notification
-    // The slave job is triggered with the propagate false so the following commands are executed
-    // Its status is now PASS/SUCCESS from a stage pipeline point of view
-    // localStatus variable MUST be analyzed to properly assess the status
-    localStatus = build job: jobName,
-        parameters: [
-            string(name: 'eNB_Repository', value: String.valueOf(GIT_URL)),
-            string(name: 'eNB_Branch', value: String.valueOf(env.gitlabSourceBranch)),
-            string(name: 'eNB_CommitID', value: String.valueOf(env.gitlabMergeRequestLastCommit)),
-            booleanParam(name: 'eNB_mergeRequest', value: "MERGE".equals(env.gitlabActionType)),
-            string(name: 'eNB_TargetBranch', value: String.valueOf(env.gitlabTargetBranch))
-        ], propagate: false
-    localResult = localStatus.getResult()
-    echo "${jobName} Slave Job status is ${localResult}"
-    if (localStatus.resultIsBetterOrEqualTo('SUCCESS')) {
-       echo "${jobName} Slave Job is OK"
-    } else {
-       echo "${jobName} Slave Job is KO"
-       sh "ci-scripts/fail.sh"
-    }
-}
-
-def finalizeSlaveJob(jobName) {
-    // In case of any non-success, we are retrieving the HTML report of the last completed
-    // slave job. The only drop-back is that we may retrieve the HTML report of a previous build
-    fileName = "test_results-${jobName}.html"
-    if (!fileExists(fileName)) {
-        copyArtifacts(projectName: jobName,
-            filter: 'test_results*.html',
-            selector: lastCompleted())
-        if (fileExists(fileName)) {
-            sh "sed -i -e 's#TEMPLATE_BUILD_TIME#${JOB_TIMESTAMP}#' ${fileName}"
-            archiveArtifacts artifacts: fileName
         }
     }
 }

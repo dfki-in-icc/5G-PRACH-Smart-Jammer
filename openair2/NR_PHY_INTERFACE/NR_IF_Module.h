@@ -115,6 +115,7 @@ typedef struct NR_IF_Module_s {
   uint16_t current_frame;
   uint8_t current_slot;
   pthread_mutex_t if_mutex;
+  int sl_ahead;
 } NR_IF_Module_t;
 
 /*Initial */
@@ -124,7 +125,7 @@ void NR_IF_Module_kill(int Mod_id);
 
 void NR_UL_indication(NR_UL_IND_t *UL_INFO);
 
-void RCconfig_nr_ue_L1(void);
+void RCconfig_nr_ue_macrlc(void);
 
 /*Interface for Downlink, transmitting the DLSCH SDU, DCI SDU*/
 void NR_Schedule_Response(NR_Sched_Rsp_t *Sched_INFO);

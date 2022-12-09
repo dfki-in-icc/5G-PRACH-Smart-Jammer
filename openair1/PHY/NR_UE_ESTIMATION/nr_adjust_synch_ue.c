@@ -27,7 +27,7 @@
 #include "executables/softmodem-common.h"
 #include "common/utils/LOG/vcd_signal_dumper.h"
 
-#define DEBUG_PHY
+//#define DEBUG_PHY
 
 // Adjust location synchronization point to account for drift
 // The adjustment is performed once per frame based on the
@@ -36,6 +36,8 @@
 void nr_adjust_synch_ue(NR_DL_FRAME_PARMS *frame_parms,
                         PHY_VARS_NR_UE *ue,
                         module_id_t gNB_id,
+                        const int estimateSz,
+                        struct complex16 dl_ch_estimates_time[][estimateSz],
                         uint8_t frame,
                         uint8_t subframe,
                         unsigned char clear,
@@ -60,8 +62,8 @@ void nr_adjust_synch_ue(NR_DL_FRAME_PARMS *frame_parms,
 
     int j = (i < 0) ? (i + frame_parms->ofdm_symbol_size) : i;
     for (int aa = 0; aa < frame_parms->nb_antennas_rx; aa++) {
-      int Re = ((int16_t*)ue->pbch_vars[gNB_id]->dl_ch_estimates_time[aa])[(j<<1)];
-      int Im = ((int16_t*)ue->pbch_vars[gNB_id]->dl_ch_estimates_time[aa])[1+(j<<1)];
+      int Re = dl_ch_estimates_time[aa][j].r;
+      int Im = dl_ch_estimates_time[aa][j].i;
       temp += (Re*Re/2) + (Im*Im/2);
     }
 
@@ -73,14 +75,14 @@ void nr_adjust_synch_ue(NR_DL_FRAME_PARMS *frame_parms,
 
   // filter position to reduce jitter
   if (clear == 1)
-    ue->max_pos_fil = max_pos;
+    ue->max_pos_fil = max_pos << 15;
   else
-    ue->max_pos_fil = ((ue->max_pos_fil * coef) + (max_pos * ncoef)) >> 15;
+    ue->max_pos_fil = ((ue->max_pos_fil * coef) >> 15) + (max_pos * ncoef);
 
   // do not filter to have proactive timing adjustment
-  //ue->max_pos_fil = max_pos;
+  //ue->max_pos_fil = max_pos << 15;
 
-  int diff = ue->max_pos_fil - sync_pos;
+  int diff = (ue->max_pos_fil >> 15) - sync_pos;
 
   if (frame_parms->freq_range==nr_FR2) 
     sync_offset = 2;
@@ -108,15 +110,13 @@ void nr_adjust_synch_ue(NR_DL_FRAME_PARMS *frame_parms,
       //mac_resynch();
       //dl_phy_sync_success(ue->Mod_id,frame,0,1);//ue->common_vars.eNb_id);
       ue->UE_mode[0] = PRACH;
-      ue->prach_resources[gNB_id]->sync_frame = frame;
-      ue->prach_resources[gNB_id]->init_msg1 = 0;
     } else {
       ue->UE_mode[0] = PUSCH;
     }
   }
 
 #ifdef DEBUG_PHY
-  LOG_D(PHY,"AbsSubframe %d: diff = %i, rx_offset (final) = %i : clear = %d, max_pos = %d, max_pos_fil = %d, max_val = %d, sync_pos %d\n",
+  LOG_I(PHY,"AbsSubframe %d: diff = %i, rx_offset (final) = %i : clear = %d, max_pos = %d, max_pos_fil = %d, max_val = %d, sync_pos %d\n",
         subframe,
         diff,
         ue->rx_offset,

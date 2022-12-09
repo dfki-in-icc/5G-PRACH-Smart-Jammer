@@ -12,21 +12,13 @@
   </tr>
 </table>
 
-## Table of Contents ##
+**2022/03/08: CAUTION, THIS TUTORIAL IS NO LONGER VALID on the `develop` branch after the `2022.w01` tag.**
 
-1.   [Environment](#1-environment)
-2.   [Prepare the EPC](#2-prepare-the-epc)
-3.   [Retrieve the OAI eNB-UE source code](#3-retrieve-the-oai-enb-ue-source-code)
-4.   [Setup of the USIM information in UE folder](#4-setup-of-the-usim-information-in-ue-folder)
-5.   [Setup of the Configuration files](#5-setup-of-the-configuration-files)
-     1.   [The eNB Configuration file](#51-the-enb-configuration-file)
-     2.   [The UE Configuration file](#52-the-ue-configuration-file)
-6.   [Build OAI UE and eNodeB](#6-build-oai-ue-and-enodeb)
-7.   [Start EPC](#7-start-epc)
-8.   [Start the eNB](#8-start-the-enb)
-9.   [Start the UE](#9-start-the-ue)
-10.   [Test with ping](#10-test-with-ping)
-11.   [Limitations](#11-limitations)
+**2022/03/08: CAUTION, THE LAST VALID TAG on `develop` branch is `2021.w51_c`.**
+
+**Table of Contents**
+
+[[_TOC_]]
 
 # 1. Environment #
 

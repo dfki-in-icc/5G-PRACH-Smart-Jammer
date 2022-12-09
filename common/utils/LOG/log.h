@@ -80,7 +80,7 @@ extern "C" {
  *  @brief the macros that describe the maximum length of LOG
  * @{*/
 
-#define MAX_LOG_TOTAL 1500 /*!< \brief the maximum length of a log */
+#define MAX_LOG_TOTAL 16384 /*!< \brief the maximum length of a log */
 /* @}*/
 
 /** @defgroup _log_level Message levels defined by LOG
@@ -130,6 +130,7 @@ extern "C" {
 #define FLAG_FILE_LINE   0x0040
 #define FLAG_TIME        0x0100
 #define FLAG_THREAD_ID   0x0200
+#define FLAG_REAL_TIME   0x0400
 #define FLAG_INITIALIZED 0x8000
 
 #define SET_LOG_OPTION(O)   g_log->flag = (g_log->flag | O)
@@ -216,9 +217,11 @@ typedef enum {
   OCM,
   UDP_,
   GTPU,
+  SDAP,
   SPGW,
   S1AP,
   F1AP,
+  E1AP,
   SCTP,
   HW,
   OSA,
@@ -227,11 +230,9 @@ typedef enum {
   ENB_APP,
   MCE_APP,
   MME_APP,
-  FLEXRAN_AGENT,
   TMR,
   USIM,
   LOCALIZE,
-  PROTO_AGENT,
   F1U,
   X2AP,
   M2AP,
@@ -349,7 +350,7 @@ typedef struct {
 @param format data format (0 = real 16-bit, 1 = complex 16-bit,2 real 32-bit, 3 complex 32-bit,4 = real 8-bit, 5 = complex 8-bit)
 @param multiVec create new file or append to existing (useful for writing multiple vectors to same file. Just call the function multiple times with same file name and with this parameter set to 1)
 */
-#define MATLAB_RAW (1<<31)
+#define MATLAB_RAW (1U<<31)
 #define MATLAB_SHORT 0
 #define MATLAB_CSHORT 1
 #define MATLAB_INT 2
@@ -368,6 +369,7 @@ typedef struct {
 #define MATLAB_CSHORT_BRACKET3 15
   
 int32_t write_file_matlab(const char *fname, const char *vname, void *data, int length, int dec, unsigned int format, int multiVec);
+#define write_output(a, b, c, d, e, f) write_file_matlab(a, b, c, d, e, f, 0)
 
 /*----------------macro definitions for reading log configuration from the config module */
 #define CONFIG_STRING_LOG_PREFIX                           "log_config"
@@ -395,7 +397,7 @@ int32_t write_file_matlab(const char *fname, const char *vname, void *data, int 
 /*   optname                               help                                          paramflags         XXXptr               defXXXval                          type        numelt */
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 #define LOG_GLOBALPARAMS_DESC { \
-    {LOG_CONFIG_STRING_GLOBAL_LOG_LEVEL,   "Default log level for all componemts\n",              0, strptr:(char **)&gloglevel, defstrval:log_level_names[3].name, TYPE_STRING,     0}, \
+    {LOG_CONFIG_STRING_GLOBAL_LOG_LEVEL,   "Default log level for all componemts\n",              0, strptr:&gloglevel, defstrval:log_level_names[3].name, TYPE_STRING,     0}, \
     {LOG_CONFIG_STRING_GLOBAL_LOG_ONLINE,  "Default console output option, for all components\n", 0, iptr:&(consolelog),         defintval:1,                       TYPE_INT,        0}, \
     {LOG_CONFIG_STRING_GLOBAL_LOG_OPTIONS, LOG_CONFIG_HELP_OPTIONS,                               0, strlistptr:NULL,            defstrlistval:NULL,                TYPE_STRINGLIST, 0} \
   }

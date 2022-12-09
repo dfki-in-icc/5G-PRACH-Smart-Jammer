@@ -74,7 +74,7 @@ extern uint8_t rb_table[34];
 extern uint16_t pre_nb_rbs_required[2][MAX_NUM_CCs][NUMBER_OF_UE_MAX];
 extern uint8_t dlsch_ue_select_tbl_in_use;
 extern uint8_t new_dlsch_ue_select_tbl_in_use;
-extern boolean_t pre_scd_activeUE[NUMBER_OF_UE_MAX];
+extern bool pre_scd_activeUE[NUMBER_OF_UE_MAX];
 extern eNB_UE_STATS pre_scd_eNB_UE_stats[MAX_NUM_CCs][NUMBER_OF_UE_MAX];
 #endif*/
 
@@ -143,4 +143,7 @@ extern const float   table_38213_13_12_c3[16];
 
 extern const int32_t table_38213_10_1_1_c2[5];
 
+extern const char table_38211_6_3_1_5_1[6][2][1];
+extern const char table_38211_6_3_1_5_2[28][4][1];
+extern const char table_38211_6_3_1_5_3[28][4][1];
 #endif //DEF_H

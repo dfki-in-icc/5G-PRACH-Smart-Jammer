@@ -27,6 +27,7 @@
 
 #include "nr_pdcp_security_nea2.h"
 #include "nr_pdcp_integrity_nia2.h"
+#include "nr_pdcp_integrity_nia1.h"
 #include "nr_pdcp_sdu.h"
 
 #include "LOG/log.h"
@@ -51,8 +52,16 @@ static void nr_pdcp_entity_recv_pdu(nr_pdcp_entity_t *entity,
 
   if (entity->type != NR_PDCP_SRB && !(buffer[0] & 0x80)) {
     LOG_E(PDCP, "%s:%d:%s: fatal\n", __FILE__, __LINE__, __FUNCTION__);
-    exit(1);
+    /* TODO: This is something of a hack. The most significant bit
+       in buffer[0] should be 1 if the packet is a data packet. We are
+       processing malformed data packets if the most significant bit
+       is 0. Rather than exit(1), this hack allows us to continue for now.
+       We need to investigate why this hack is neccessary. */
+    buffer[0] |= 128;
   }
+  entity->stats.rxpdu_pkts++;
+  entity->stats.rxpdu_bytes += size;
+
 
   if (entity->sn_size == 12) {
     rcvd_sn = ((buffer[0] & 0xf) <<  8) |
@@ -64,6 +73,7 @@ static void nr_pdcp_entity_recv_pdu(nr_pdcp_entity_t *entity,
                 buffer[2];
     header_size = 3;
   }
+  entity->stats.rxpdu_sn = rcvd_sn;
 
   /* SRBs always have MAC-I, even if integrity is not active */
   if (entity->has_integrity || entity->type == NR_PDCP_SRB) {
@@ -74,6 +84,11 @@ static void nr_pdcp_entity_recv_pdu(nr_pdcp_entity_t *entity,
 
   if (size < header_size + integrity_size + 1) {
     LOG_E(PDCP, "bad PDU received (size = %d)\n", size);
+
+    entity->stats.rxpdu_dd_pkts++;
+    entity->stats.rxpdu_dd_bytes += size;
+
+
     return;
   }
 
@@ -96,7 +111,7 @@ static void nr_pdcp_entity_recv_pdu(nr_pdcp_entity_t *entity,
                    entity->rb_id, rcvd_count, entity->is_gnb ? 0 : 1);
 
   if (entity->has_integrity) {
-    unsigned char integrity[4];
+    unsigned char integrity[4] = {0};
     entity->integrity(entity->integrity_context, integrity,
                       buffer, size - integrity_size,
                       entity->rb_id, rcvd_count, entity->is_gnb ? 0 : 1);
@@ -105,12 +120,19 @@ static void nr_pdcp_entity_recv_pdu(nr_pdcp_entity_t *entity,
       //TODO L5G
       integrity_size=0;
 //      return;
+      entity->stats.rxpdu_dd_pkts++;
+      entity->stats.rxpdu_dd_bytes += size;
+
     }
   }
 
   if (rcvd_count < entity->rx_deliv
       || nr_pdcp_sdu_in_list(entity->rx_list, rcvd_count)) {
-    LOG_W(PDCP, "discard NR PDU rcvd_count=%d\n", rcvd_count);
+    LOG_W(PDCP, "discard NR PDU rcvd_count=%d, entity->rx_deliv %d,sdu_in_list %d\n", rcvd_count,entity->rx_deliv,nr_pdcp_sdu_in_list(entity->rx_list,rcvd_count));
+    entity->stats.rxpdu_dd_pkts++;
+    entity->stats.rxpdu_dd_bytes += size;
+
+
     return;
   }
 
@@ -135,6 +157,10 @@ static void nr_pdcp_entity_recv_pdu(nr_pdcp_entity_t *entity,
                           cur->buffer, cur->size);
       entity->rx_list = cur->next;
       entity->rx_size -= cur->size;
+      entity->stats.txsdu_pkts++;
+      entity->stats.txsdu_bytes += cur->size;
+
+
       nr_pdcp_free_sdu(cur);
       count++;
     }
@@ -161,6 +187,9 @@ static void nr_pdcp_entity_recv_sdu(nr_pdcp_entity_t *entity,
   int      integrity_size;
   char     buf[size + 3 + 4];
   int      dc_bit;
+  entity->stats.rxsdu_pkts++;
+  entity->stats.rxsdu_bytes += size;
+
 
   count = entity->tx_next;
   sn = entity->tx_next & entity->sn_max;
@@ -192,25 +221,37 @@ static void nr_pdcp_entity_recv_sdu(nr_pdcp_entity_t *entity,
 
   memcpy(buf + header_size, buffer, size);
 
-  if (entity->has_integrity)
+  if (entity->has_integrity){
+    uint8_t integrity[4] = {0};
     entity->integrity(entity->integrity_context,
-                      (unsigned char *)buf + header_size + size,
+                      integrity,
                       (unsigned char *)buf, header_size + size,
                       entity->rb_id, count, entity->is_gnb ? 1 : 0);
+
+    memcpy((unsigned char *)buf + header_size + size, integrity, 4);
+  }
 
   // set MAC-I to 0 for SRBs with integrity not active
   else if (integrity_size == 4)
     memset(buf + header_size + size, 0, 4);
 
-  if (entity->has_ciphering)
+  if (entity->has_ciphering && (entity->is_gnb || entity->security_mode_completed)){
     entity->cipher(entity->security_context,
                    (unsigned char *)buf + header_size, size + integrity_size,
                    entity->rb_id, count, entity->is_gnb ? 1 : 0);
+  } else {
+    entity->security_mode_completed = true;
+  }
 
   entity->tx_next++;
 
   entity->deliver_pdu(entity->deliver_pdu_data, entity, buf,
                       header_size + size + integrity_size, sdu_id);
+  entity->stats.txpdu_pkts++;
+  entity->stats.txpdu_bytes += header_size + size + integrity_size;
+  entity->stats.txpdu_sn = sn;
+
+
 }
 
 /* may be called several times, take care to clean previous settings */
@@ -237,16 +278,21 @@ static void nr_pdcp_entity_set_security(nr_pdcp_entity_t *entity,
   }
 
   if (integrity_algorithm != 0 && integrity_algorithm != -1) {
-    if (integrity_algorithm != 2) {
-      LOG_E(PDCP, "FATAL: only nia2 supported for the moment\n");
-      exit(1);
-    }
     entity->has_integrity = 1;
     if (entity->free_integrity != NULL)
       entity->free_integrity(entity->integrity_context);
-    entity->integrity_context = nr_pdcp_integrity_nia2_init(entity->integrity_key);
-    entity->integrity = nr_pdcp_integrity_nia2_integrity;
-    entity->free_integrity = nr_pdcp_integrity_nia2_free_integrity;
+    if (integrity_algorithm == 2) {
+      entity->integrity_context = nr_pdcp_integrity_nia2_init(entity->integrity_key);
+      entity->integrity = nr_pdcp_integrity_nia2_integrity;
+      entity->free_integrity = nr_pdcp_integrity_nia2_free_integrity;
+    } else if (integrity_algorithm == 1) {
+      entity->integrity_context = nr_pdcp_integrity_nia1_init(entity->integrity_key);
+      entity->integrity = nr_pdcp_integrity_nia1_integrity;
+      entity->free_integrity = nr_pdcp_integrity_nia1_free_integrity;
+    } else {
+      LOG_E(PDCP, "FATAL: only nia1 and nia2 supported for the moment\n");
+      exit(1);
+    }
   }
 
   if (ciphering_algorithm == 0) {
@@ -337,6 +383,13 @@ void nr_pdcp_entity_delete(nr_pdcp_entity_t *entity)
   free(entity);
 }
 
+static void nr_pdcp_entity_get_stats(nr_pdcp_entity_t *entity,
+                                     nr_pdcp_statistics_t *out)
+{
+  *out = entity->stats;
+}
+
+
 nr_pdcp_entity_t *new_nr_pdcp_entity(
     nr_pdcp_entity_type_t type,
     int is_gnb, int rb_id, int pdusession_id,int has_sdap,
@@ -370,8 +423,9 @@ nr_pdcp_entity_t *new_nr_pdcp_entity(
   ret->set_security = nr_pdcp_entity_set_security;
   ret->set_time     = nr_pdcp_entity_set_time;
 
-  ret->delete = nr_pdcp_entity_delete;
-
+  ret->delete_entity = nr_pdcp_entity_delete;
+  
+  ret->get_stats = nr_pdcp_entity_get_stats;
   ret->deliver_sdu = deliver_sdu;
   ret->deliver_sdu_data = deliver_sdu_data;
 

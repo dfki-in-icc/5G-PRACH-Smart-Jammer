@@ -115,7 +115,7 @@ services:
             TZ: Europe/Paris
             SGW_INTERFACE_NAME_FOR_S11: eth0
             PGW_INTERFACE_NAME_FOR_SX: eth0
-            DEFAULT_DNS_IPV4_ADDRESS: 192.168.18.129
+            DEFAULT_DNS_IPV4_ADDRESS: 172.21.3.100
             DEFAULT_DNS_SEC_IPV4_ADDRESS: 8.8.4.4
             PUSH_PROTOCOL_OPTION: 'true'
             APN_NI_1: oai.ipv4
@@ -179,7 +179,7 @@ services:
             timeout: 5s
             retries: 5
 
-    enb:
+    oai_enb0:
         image: oai-enb:develop
         privileged: true
         container_name: rfsim4g-oai-enb
@@ -206,9 +206,6 @@ services:
             ENB_S1U_IF_NAME: eth0
             ENB_S1U_IP_ADDRESS: 192.168.61.20
             ENB_X2_IP_ADDRESS: 192.168.61.20
-            FLEXRAN_ENABLED: 'no'
-            FLEXRAN_INTERFACE_NAME: eth0
-            FLEXRAN_IPV4_ADDRESS: 192.168.61.10
             USE_ADDITIONAL_OPTIONS: --rfsim --log_config.global_log_options level,nocolor,time
         healthcheck:
             test: /bin/bash -c "pgrep lte-softmodem"

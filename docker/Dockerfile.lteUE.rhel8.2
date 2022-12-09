@@ -44,12 +44,12 @@ RUN yum update -y && \
         nettle \
         tzdata \
         atlas \
+        gdb \
         python3 \
         python3-pip \
         iproute \
         net-tools \
-        iputils \
-        libyaml && \
+        iputils && \
     pip3 install six && \
     pip3 install requests && \
     echo "/usr/local/lib" > /etc/ld.so.conf.d/local-lib.conf && \
@@ -57,16 +57,15 @@ RUN yum update -y && \
 
 WORKDIR /opt/oai-lte-ue/bin
 COPY --from=lte-ue-build \
-    /oai-ran/targets/bin/lte-uesoftmodem.Rel15 \
+    /oai-ran/cmake_targets/ran_build/build/lte-uesoftmodem \
     /oai-ran/docker/scripts/entrypoint.sh \
-    /oai-ran/targets/bin/conf2uedata \
-    /oai-ran/targets/bin/nvram \
-    /oai-ran/targets/bin/usim \
+    /oai-ran/cmake_targets/nas_sim_tools/build/conf2uedata \
+    /oai-ran/cmake_targets/nas_sim_tools/build/nvram \
+    /oai-ran/cmake_targets/nas_sim_tools/build/usim \
     ./
 
 COPY --from=lte-ue-build \
     /oai-ran/cmake_targets/ran_build/build/liboai_eth_transpro.so \
-    /oai-ran/cmake_targets/ran_build/build/libtcp_bridge_oai.so \
     /oai-ran/cmake_targets/ran_build/build/librfsimulator.so \
     /oai-ran/cmake_targets/ran_build/build/liboai_usrpdevif.so \
     /oai-ran/cmake_targets/ran_build/build/libcoding.so \
@@ -99,7 +98,6 @@ COPY --from=lte-ue-base \
 
 # Now we are copying from builder-image the UHD files.
 COPY --from=lte-ue-base /usr/local/bin/uhd_find_devices /usr/local/bin
-COPY --from=lte-ue-base /usr/local/lib/libprotobuf-c.so.1 /usr/local/lib
 COPY --from=lte-ue-base /usr/local/lib64/libuhd.so.3.15.0 /usr/local/lib64
 COPY --from=lte-ue-base /usr/local/lib64/uhd/utils/uhd_images_downloader.py /opt/oai-lte-ue/bin
 
@@ -114,5 +112,5 @@ WORKDIR /opt/oai-lte-ue/etc
 COPY --from=lte-ue-build /oai-ran/docker/etc .
 
 WORKDIR /opt/oai-lte-ue
-CMD ["/opt/oai-lte-ue/bin/lte-uesoftmodem.Rel15"]
+CMD ["/opt/oai-lte-ue/bin/lte-uesoftmodem"]
 ENTRYPOINT ["/opt/oai-lte-ue/bin/entrypoint.sh"]

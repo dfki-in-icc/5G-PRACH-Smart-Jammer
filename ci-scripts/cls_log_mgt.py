@@ -35,11 +35,6 @@ import re
 import subprocess
 import sshconnection
 
-logging.basicConfig(
-	level=logging.DEBUG,
-	format="[%(asctime)s] %(name)s:%(levelname)s: %(message)s"
-)
-
 class Log_Mgt:
 
 	def __init__(self,Username, IPAddress,Password,Path):
@@ -64,10 +59,10 @@ class Log_Mgt:
 		if m is not None:
 			return int(m.group(1))
 
-	def __RemoveOldest(self):
+	def __RemoveOldest(self, days):
 		mySSH = sshconnection.SSHConnection()
 		mySSH.open(self.IPAddress, self.Username, self.Password)
-		COMMAND='echo ' + self.Password + ' | sudo -S find ' + self.path + ' -type f -mtime +14 -delete'
+		COMMAND='echo ' + self.Password + ' | sudo -S find ' + self.path + ' -type f -mtime +' +  str(days) + ' -delete'
 		mySSH.command(COMMAND,'\$',20)
 		mySSH.close()
 
@@ -79,13 +74,18 @@ class Log_Mgt:
 
 
 	def LogRotation(self):
-		used_space = self.__CheckUsedSpace() #avail space in target folder
-		if used_space > 80 :
-			logging.debug('\u001B[1;37;41m  Used Disk > 80%, on '  + self.Username+'@'+self.IPAddress + '\u001B[0m')
-			logging.debug('\u001B[1;37;41m  Removing Artifacts older than 14 days \u001B[0m')
-			self.__RemoveOldest()
-		else:
-			logging.debug('Used Disk < 80%, on '  + self.Username+'@'+self.IPAddress +', no cleaning required')
+		doLoop = True
+		nbDays = 14
+		while doLoop and nbDays > 1:
+			used_space = self.__CheckUsedSpace() #avail space in target folder
+			if used_space > 80 :
+				logging.debug('\u001B[1;37;41m  Used Disk (' + str(used_space) + '%) > 80%, on '  + self.Username+'@'+self.IPAddress + '\u001B[0m')
+				logging.debug('\u001B[1;37;41m  Removing Artifacts older than ' + str(nbDays) + ' days \u001B[0m')
+				self.__RemoveOldest(nbDays)
+				nbDays -= 1
+			else:
+				logging.debug('Used Disk (' + str(used_space) + '%) < 80%, on '  + self.Username+'@'+self.IPAddress +', no cleaning required')
+				doLoop = False
 
 
 			

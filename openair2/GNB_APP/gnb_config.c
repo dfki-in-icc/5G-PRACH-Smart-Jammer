@@ -34,6 +34,7 @@
 #include "common/utils/nr/nr_common.h"
 #include "common/utils/LOG/log_extern.h"
 #include "assertions.h"
+#include "executables/softmodem-common.h"
 #include "gnb_config.h"
 #include "gnb_paramdef.h"
 #include "enb_paramdef.h"
@@ -49,11 +50,12 @@
 // #include "LAYER2/MAC/extern.h"
 // #include "LAYER2/MAC/proto.h"
 #include "PHY/INIT/phy_init.h"
-#include "targets/ARCH/ETHERNET/USERSPACE/LIB/ethernet_lib.h"
+#include "radio/ETHERNET/USERSPACE/LIB/ethernet_lib.h"
 #include "nfapi_vnf.h"
 #include "nfapi_pnf.h"
 
 //#include "L1_paramdef.h"
+#include "prs_nr_paramdef.h"
 #include "L1_nr_paramdef.h"
 #include "MACRLC_nr_paramdef.h"
 #include "common/config/config_userapi.h"
@@ -81,11 +83,13 @@
 #include "NR_EUTRA-MBSFN-SubframeConfig.h"
 
 #include "RRC/NR/MESSAGES/asn1_msg.h"
+#include "RRC/NR/nr_rrc_extern.h"
 #include "openair2/LAYER2/nr_pdcp/nr_pdcp.h"
 
 extern uint16_t sf_ahead;
 int macrlc_has_f1 = 0;
-extern ngran_node_t node_type;
+
+static ngran_node_t get_node_type(void);
 
 extern int config_check_band_frequencies(int ind, int16_t band, uint64_t downlink_frequency,
                                          int32_t uplink_frequency_offset, uint32_t  frame_type);
@@ -213,15 +217,20 @@ void fill_scc_sim(NR_ServingCellConfigCommon_t *scc,uint64_t *ssb_bitmap,int N_R
   //  *scc->n_TimingAdvanceOffset=NR_ServingCellConfigCommon__n_TimingAdvanceOffset_n0;
   *scc->ssb_periodicityServingCell=NR_ServingCellConfigCommon__ssb_periodicityServingCell_ms20;
   scc->dmrs_TypeA_Position=NR_ServingCellConfigCommon__dmrs_TypeA_Position_pos2;
-  *scc->ssbSubcarrierSpacing=NR_SubcarrierSpacing_kHz30;
-  *scc->downlinkConfigCommon->frequencyInfoDL->absoluteFrequencySSB=641032;
-  *scc->downlinkConfigCommon->frequencyInfoDL->frequencyBandList.list.array[0]=78;
-  scc->downlinkConfigCommon->frequencyInfoDL->absoluteFrequencyPointA=640000;
+  *scc->ssbSubcarrierSpacing=mu_dl;
+  if (mu_dl == 0) {
+    *scc->downlinkConfigCommon->frequencyInfoDL->absoluteFrequencySSB=520432;
+    *scc->downlinkConfigCommon->frequencyInfoDL->frequencyBandList.list.array[0]=38;
+    scc->downlinkConfigCommon->frequencyInfoDL->absoluteFrequencyPointA=520000;
+  } else {
+    *scc->downlinkConfigCommon->frequencyInfoDL->absoluteFrequencySSB=641032;
+    *scc->downlinkConfigCommon->frequencyInfoDL->frequencyBandList.list.array[0]=78;
+    scc->downlinkConfigCommon->frequencyInfoDL->absoluteFrequencyPointA=640000;
+  }
   scc->downlinkConfigCommon->frequencyInfoDL->scs_SpecificCarrierList.list.array[0]->offsetToCarrier=0;
-  scc->downlinkConfigCommon->frequencyInfoDL->scs_SpecificCarrierList.list.array[0]->subcarrierSpacing=NR_SubcarrierSpacing_kHz30;
-
+  scc->downlinkConfigCommon->frequencyInfoDL->scs_SpecificCarrierList.list.array[0]->subcarrierSpacing=mu_dl;
   scc->downlinkConfigCommon->frequencyInfoDL->scs_SpecificCarrierList.list.array[0]->carrierBandwidth=N_RB_DL;
-  scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters.locationAndBandwidth=13036;
+  scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters.locationAndBandwidth=275*(N_RB_DL-1);
   scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters.subcarrierSpacing=mu_dl;//NR_SubcarrierSpacing_kHz30;
   *scc->downlinkConfigCommon->initialDownlinkBWP->pdcch_ConfigCommon->choice.setup->controlResourceSetZero=12;
   *scc->downlinkConfigCommon->initialDownlinkBWP->pdcch_ConfigCommon->choice.setup->searchSpaceZero=0;
@@ -235,13 +244,13 @@ void fill_scc_sim(NR_ServingCellConfigCommon_t *scc,uint64_t *ssb_bitmap,int N_R
   timedomainresourceallocation1->startSymbolAndLength=57;
   ASN_SEQUENCE_ADD(&scc->downlinkConfigCommon->initialDownlinkBWP->pdsch_ConfigCommon->choice.setup->pdsch_TimeDomainAllocationList->list,
                    timedomainresourceallocation1);
-  *scc->uplinkConfigCommon->frequencyInfoUL->frequencyBandList->list.array[0]=78;
+  *scc->uplinkConfigCommon->frequencyInfoUL->frequencyBandList->list.array[0]=mu_ul?78:38;
   *scc->uplinkConfigCommon->frequencyInfoUL->absoluteFrequencyPointA=-1;
   scc->uplinkConfigCommon->frequencyInfoUL->scs_SpecificCarrierList.list.array[0]->offsetToCarrier=0;
-  scc->uplinkConfigCommon->frequencyInfoUL->scs_SpecificCarrierList.list.array[0]->subcarrierSpacing=NR_SubcarrierSpacing_kHz30;
+  scc->uplinkConfigCommon->frequencyInfoUL->scs_SpecificCarrierList.list.array[0]->subcarrierSpacing=mu_ul;
   scc->uplinkConfigCommon->frequencyInfoUL->scs_SpecificCarrierList.list.array[0]->carrierBandwidth=N_RB_UL;
   *scc->uplinkConfigCommon->frequencyInfoUL->p_Max=20;
-  scc->uplinkConfigCommon->initialUplinkBWP->genericParameters.locationAndBandwidth=13036;
+  scc->uplinkConfigCommon->initialUplinkBWP->genericParameters.locationAndBandwidth=275*(N_RB_UL-1);
   scc->uplinkConfigCommon->initialUplinkBWP->genericParameters.subcarrierSpacing=mu_ul;//NR_SubcarrierSpacing_kHz30;
   scc->uplinkConfigCommon->initialUplinkBWP->rach_ConfigCommon->choice.setup->rach_ConfigGeneric.prach_ConfigurationIndex=98;
   scc->uplinkConfigCommon->initialUplinkBWP->rach_ConfigCommon->choice.setup->rach_ConfigGeneric.msg1_FDM=NR_RACH_ConfigGeneric__msg1_FDM_one;
@@ -277,8 +286,11 @@ void fill_scc_sim(NR_ServingCellConfigCommon_t *scc,uint64_t *ssb_bitmap,int N_R
  *scc->uplinkConfigCommon->initialUplinkBWP->pucch_ConfigCommon->choice.setup->p0_nominal=-90;
  scc->ssb_PositionsInBurst->present=NR_ServingCellConfigCommon__ssb_PositionsInBurst_PR_mediumBitmap;
  *ssb_bitmap=0xff;
- scc->tdd_UL_DL_ConfigurationCommon->referenceSubcarrierSpacing=NR_SubcarrierSpacing_kHz30;
- scc->tdd_UL_DL_ConfigurationCommon->pattern1.dl_UL_TransmissionPeriodicity=NR_TDD_UL_DL_Pattern__dl_UL_TransmissionPeriodicity_ms5;
+ scc->tdd_UL_DL_ConfigurationCommon->referenceSubcarrierSpacing=mu_dl;
+ if (mu_dl == 0)
+   scc->tdd_UL_DL_ConfigurationCommon->pattern1.dl_UL_TransmissionPeriodicity=NR_TDD_UL_DL_Pattern__dl_UL_TransmissionPeriodicity_ms10;
+ else
+   scc->tdd_UL_DL_ConfigurationCommon->pattern1.dl_UL_TransmissionPeriodicity=NR_TDD_UL_DL_Pattern__dl_UL_TransmissionPeriodicity_ms5;
  scc->tdd_UL_DL_ConfigurationCommon->pattern1.nrofDownlinkSlots=7;
  scc->tdd_UL_DL_ConfigurationCommon->pattern1.nrofDownlinkSymbols=6;
  scc->tdd_UL_DL_ConfigurationCommon->pattern1.nrofUplinkSlots=2;
@@ -299,7 +311,9 @@ void fix_scc(NR_ServingCellConfigCommon_t *scc,uint64_t ssbmap) {
   int ssbmaplen = (int)scc->ssb_PositionsInBurst->present;
   uint8_t curr_bit;
 
-  AssertFatal(ssbmaplen==NR_ServingCellConfigCommon__ssb_PositionsInBurst_PR_shortBitmap || ssbmaplen==NR_ServingCellConfigCommon__ssb_PositionsInBurst_PR_mediumBitmap || ssbmaplen==NR_ServingCellConfigCommon__ssb_PositionsInBurst_PR_longBitmap, "illegal ssbmaplen %d\n",ssbmaplen);
+  AssertFatal(ssbmaplen==NR_ServingCellConfigCommon__ssb_PositionsInBurst_PR_shortBitmap ||
+              ssbmaplen==NR_ServingCellConfigCommon__ssb_PositionsInBurst_PR_mediumBitmap ||
+              ssbmaplen==NR_ServingCellConfigCommon__ssb_PositionsInBurst_PR_longBitmap, "illegal ssbmaplen %d\n",ssbmaplen);
 
   // changing endianicity of ssbmap and filling the ssb_PositionsInBurst buffers
   if(ssbmaplen==NR_ServingCellConfigCommon__ssb_PositionsInBurst_PR_shortBitmap){
@@ -343,10 +357,13 @@ void fix_scc(NR_ServingCellConfigCommon_t *scc,uint64_t ssbmap) {
   if (*scc->uplinkConfigCommon->initialUplinkBWP->rach_ConfigCommon->choice.setup->msg3_transformPrecoder!=0)
     scc->uplinkConfigCommon->initialUplinkBWP->rach_ConfigCommon->choice.setup->msg3_transformPrecoder = NULL;
 
-  // prepare DL Allocation lists
-  nr_rrc_config_dl_tda(scc);
+  frame_type_t frame_type = get_frame_type((int)*scc->downlinkConfigCommon->frequencyInfoDL->frequencyBandList.list.array[0], *scc->ssbSubcarrierSpacing);
 
-  lte_frame_type_t frame_type = get_frame_type((int)*scc->downlinkConfigCommon->frequencyInfoDL->frequencyBandList.list.array[0], *scc->ssbSubcarrierSpacing);
+  // prepare DL Allocation lists
+  nr_rrc_config_dl_tda(scc->downlinkConfigCommon->initialDownlinkBWP->pdsch_ConfigCommon->choice.setup->pdsch_TimeDomainAllocationList,
+                       frame_type, scc->tdd_UL_DL_ConfigurationCommon,
+                       scc->downlinkConfigCommon->frequencyInfoDL->scs_SpecificCarrierList.list.array[0]->carrierBandwidth);
+
   if (frame_type == FDD) {
     ASN_STRUCT_FREE(asn_DEF_NR_TDD_UL_DL_ConfigCommon, scc->tdd_UL_DL_ConfigurationCommon);
     scc->tdd_UL_DL_ConfigurationCommon = NULL;
@@ -371,241 +388,298 @@ void fix_scc(NR_ServingCellConfigCommon_t *scc,uint64_t ssbmap) {
 /* Function to allocate dedicated serving cell config strutures */
 void prepare_scd(NR_ServingCellConfig_t *scd) {
   // Allocate downlink structures
-
   scd->downlinkBWP_ToAddModList = CALLOC(1, sizeof(*scd->downlinkBWP_ToAddModList));
-
-  // Downlink bandwidth part
-  NR_BWP_Downlink_t *bwp = calloc(1, sizeof(*bwp));
-  bwp->bwp_Id = 1;
-
-  // Allocate downlink dedicated bandwidth part and PDSCH structures
-  bwp->bwp_Dedicated = calloc(1, sizeof(*bwp->bwp_Dedicated));
-  bwp->bwp_Dedicated->pdsch_Config = calloc(1, sizeof(*bwp->bwp_Dedicated->pdsch_Config));
-  bwp->bwp_Dedicated->pdsch_Config->present = NR_SetupRelease_PDSCH_Config_PR_setup;
-  bwp->bwp_Dedicated->pdsch_Config->choice.setup = calloc(1, sizeof(*bwp->bwp_Dedicated->pdsch_Config->choice.setup));
-  bwp->bwp_Dedicated->pdsch_Config->choice.setup->dmrs_DownlinkForPDSCH_MappingTypeA = calloc(1, sizeof(*bwp->bwp_Dedicated->pdsch_Config->choice.setup->dmrs_DownlinkForPDSCH_MappingTypeA));
-  bwp->bwp_Dedicated->pdsch_Config->choice.setup->dmrs_DownlinkForPDSCH_MappingTypeA->present = NR_SetupRelease_DMRS_DownlinkConfig_PR_setup;
-
-  // Allocate DL DMRS and PTRS configuration
-  bwp->bwp_Dedicated->pdsch_Config->choice.setup->dmrs_DownlinkForPDSCH_MappingTypeA->choice.setup = calloc(1, sizeof(*bwp->bwp_Dedicated->pdsch_Config->choice.setup->dmrs_DownlinkForPDSCH_MappingTypeA->choice.setup));
-  NR_DMRS_DownlinkConfig_t *NR_DMRS_DownlinkCfg = bwp->bwp_Dedicated->pdsch_Config->choice.setup->dmrs_DownlinkForPDSCH_MappingTypeA->choice.setup;
-  NR_DMRS_DownlinkCfg->phaseTrackingRS=CALLOC(1, sizeof(*NR_DMRS_DownlinkCfg->phaseTrackingRS));
-  NR_DMRS_DownlinkCfg->phaseTrackingRS->present = NR_SetupRelease_PTRS_DownlinkConfig_PR_setup;
-  NR_DMRS_DownlinkCfg->phaseTrackingRS->choice.setup = CALLOC(1, sizeof(*NR_DMRS_DownlinkCfg->phaseTrackingRS->choice.setup));
-  NR_PTRS_DownlinkConfig_t *NR_PTRS_DownlinkCfg = NR_DMRS_DownlinkCfg->phaseTrackingRS->choice.setup;
-  NR_PTRS_DownlinkCfg->frequencyDensity = CALLOC(1, sizeof(*NR_PTRS_DownlinkCfg->frequencyDensity));
-  long *dl_rbs = CALLOC(2, sizeof(long));
-  for (int i=0;i<2;i++) {
-    ASN_SEQUENCE_ADD(&NR_PTRS_DownlinkCfg->frequencyDensity->list, &dl_rbs[i]);
-  }
-  NR_PTRS_DownlinkCfg->timeDensity = CALLOC(1, sizeof(*NR_PTRS_DownlinkCfg->timeDensity));
-  long *dl_mcs = CALLOC(3, sizeof(long));
-  for (int i=0;i<3;i++) {
-    ASN_SEQUENCE_ADD(&NR_PTRS_DownlinkCfg->timeDensity->list, &dl_mcs[i]);
-  }
-  NR_PTRS_DownlinkCfg->epre_Ratio = CALLOC(1, sizeof(*NR_PTRS_DownlinkCfg->epre_Ratio));
-  NR_PTRS_DownlinkCfg->resourceElementOffset = CALLOC(1, sizeof(*NR_PTRS_DownlinkCfg->resourceElementOffset));
-  *NR_PTRS_DownlinkCfg->resourceElementOffset = 0;
-  ASN_SEQUENCE_ADD(&scd->downlinkBWP_ToAddModList->list,bwp);
-
-  // Allocate uplink structures
-
   scd->uplinkConfig = CALLOC(1, sizeof(*scd->uplinkConfig));
   scd->uplinkConfig->uplinkBWP_ToAddModList = CALLOC(1, sizeof(*scd->uplinkConfig->uplinkBWP_ToAddModList));
+  scd->bwp_InactivityTimer = CALLOC(1, sizeof(*scd->bwp_InactivityTimer));
+  scd->uplinkConfig->firstActiveUplinkBWP_Id  = CALLOC(1, sizeof(*scd->uplinkConfig->firstActiveUplinkBWP_Id));
+  scd->firstActiveDownlinkBWP_Id = CALLOC(1, sizeof(*scd->firstActiveDownlinkBWP_Id));
+  *scd->firstActiveDownlinkBWP_Id = 1;
+  *scd->uplinkConfig->firstActiveUplinkBWP_Id = 1;
+  scd->defaultDownlinkBWP_Id = CALLOC(1, sizeof(*scd->defaultDownlinkBWP_Id));
+  *scd->defaultDownlinkBWP_Id = 0;
 
-  NR_PUSCH_Config_t *pusch_Config = CALLOC(1, sizeof(*pusch_Config));
+  for (int j = 0; j < NR_MAX_NUM_BWP; j++) {
 
-  // Allocate UL DMRS and PTRS structures
-  pusch_Config->dmrs_UplinkForPUSCH_MappingTypeB = CALLOC(1, sizeof(*pusch_Config->dmrs_UplinkForPUSCH_MappingTypeB));
-  pusch_Config->dmrs_UplinkForPUSCH_MappingTypeB->present = NR_SetupRelease_DMRS_UplinkConfig_PR_setup;
-  pusch_Config->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup = CALLOC(1, sizeof(*pusch_Config->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup));
-  NR_DMRS_UplinkConfig_t *NR_DMRS_UplinkConfig = pusch_Config->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup;
-  NR_DMRS_UplinkConfig->phaseTrackingRS = CALLOC(1, sizeof(*NR_DMRS_UplinkConfig->phaseTrackingRS));
-  NR_DMRS_UplinkConfig->phaseTrackingRS->present = NR_SetupRelease_PTRS_UplinkConfig_PR_setup;
-  NR_DMRS_UplinkConfig->phaseTrackingRS->choice.setup = CALLOC(1, sizeof(*NR_DMRS_UplinkConfig->phaseTrackingRS->choice.setup));
-  NR_PTRS_UplinkConfig_t *NR_PTRS_UplinkConfig = NR_DMRS_UplinkConfig->phaseTrackingRS->choice.setup;
-  NR_PTRS_UplinkConfig->transformPrecoderDisabled = CALLOC(1, sizeof(*NR_PTRS_UplinkConfig->transformPrecoderDisabled));
-  NR_PTRS_UplinkConfig->transformPrecoderDisabled->frequencyDensity = CALLOC(1, sizeof(*NR_PTRS_UplinkConfig->transformPrecoderDisabled->frequencyDensity));
-  long *n_rbs = CALLOC(2, sizeof(long));
-  for (int i=0;i<2;i++) {
-    ASN_SEQUENCE_ADD(&NR_PTRS_UplinkConfig->transformPrecoderDisabled->frequencyDensity->list, &n_rbs[i]);
+    // Downlink bandwidth part
+    NR_BWP_Downlink_t *bwp = calloc(1, sizeof(*bwp));
+    bwp->bwp_Id = j+1;
+
+    // Allocate downlink dedicated bandwidth part and PDSCH structures
+    bwp->bwp_Common = calloc(1, sizeof(*bwp->bwp_Common));
+    bwp->bwp_Common->pdcch_ConfigCommon = calloc(1, sizeof(*bwp->bwp_Common->pdcch_ConfigCommon));
+    bwp->bwp_Common->pdsch_ConfigCommon = calloc(1, sizeof(*bwp->bwp_Common->pdsch_ConfigCommon));
+    bwp->bwp_Dedicated = calloc(1, sizeof(*bwp->bwp_Dedicated));
+    bwp->bwp_Dedicated->pdsch_Config = calloc(1, sizeof(*bwp->bwp_Dedicated->pdsch_Config));
+    bwp->bwp_Dedicated->pdsch_Config->present = NR_SetupRelease_PDSCH_Config_PR_setup;
+    bwp->bwp_Dedicated->pdsch_Config->choice.setup = calloc(1, sizeof(*bwp->bwp_Dedicated->pdsch_Config->choice.setup));
+    bwp->bwp_Dedicated->pdsch_Config->choice.setup->dmrs_DownlinkForPDSCH_MappingTypeA = calloc(1, sizeof(*bwp->bwp_Dedicated->pdsch_Config->choice.setup->dmrs_DownlinkForPDSCH_MappingTypeA));
+    bwp->bwp_Dedicated->pdsch_Config->choice.setup->dmrs_DownlinkForPDSCH_MappingTypeA->present = NR_SetupRelease_DMRS_DownlinkConfig_PR_setup;
+
+    // Allocate DL DMRS and PTRS configuration
+    bwp->bwp_Dedicated->pdsch_Config->choice.setup->dmrs_DownlinkForPDSCH_MappingTypeA->choice.setup = calloc(1, sizeof(*bwp->bwp_Dedicated->pdsch_Config->choice.setup->dmrs_DownlinkForPDSCH_MappingTypeA->choice.setup));
+    NR_DMRS_DownlinkConfig_t *NR_DMRS_DownlinkCfg = bwp->bwp_Dedicated->pdsch_Config->choice.setup->dmrs_DownlinkForPDSCH_MappingTypeA->choice.setup;
+    NR_DMRS_DownlinkCfg->phaseTrackingRS=CALLOC(1, sizeof(*NR_DMRS_DownlinkCfg->phaseTrackingRS));
+    NR_DMRS_DownlinkCfg->phaseTrackingRS->present = NR_SetupRelease_PTRS_DownlinkConfig_PR_setup;
+    NR_DMRS_DownlinkCfg->phaseTrackingRS->choice.setup = CALLOC(1, sizeof(*NR_DMRS_DownlinkCfg->phaseTrackingRS->choice.setup));
+    NR_PTRS_DownlinkConfig_t *NR_PTRS_DownlinkCfg = NR_DMRS_DownlinkCfg->phaseTrackingRS->choice.setup;
+    NR_PTRS_DownlinkCfg->frequencyDensity = CALLOC(1, sizeof(*NR_PTRS_DownlinkCfg->frequencyDensity));
+    long *dl_rbs = CALLOC(2, sizeof(long));
+    for (int i=0;i<2;i++) {
+      ASN_SEQUENCE_ADD(&NR_PTRS_DownlinkCfg->frequencyDensity->list, &dl_rbs[i]);
+    }
+    NR_PTRS_DownlinkCfg->timeDensity = CALLOC(1, sizeof(*NR_PTRS_DownlinkCfg->timeDensity));
+    long *dl_mcs = CALLOC(3, sizeof(long));
+    for (int i=0;i<3;i++) {
+      ASN_SEQUENCE_ADD(&NR_PTRS_DownlinkCfg->timeDensity->list, &dl_mcs[i]);
+    }
+    NR_PTRS_DownlinkCfg->epre_Ratio = CALLOC(1, sizeof(*NR_PTRS_DownlinkCfg->epre_Ratio));
+    NR_PTRS_DownlinkCfg->resourceElementOffset = CALLOC(1, sizeof(*NR_PTRS_DownlinkCfg->resourceElementOffset));
+    *NR_PTRS_DownlinkCfg->resourceElementOffset = 0;
+    ASN_SEQUENCE_ADD(&scd->downlinkBWP_ToAddModList->list,bwp);
+
+    // Allocate uplink structures
+
+    NR_PUSCH_Config_t *pusch_Config = CALLOC(1, sizeof(*pusch_Config));
+
+    // Allocate UL DMRS and PTRS structures
+    pusch_Config->dmrs_UplinkForPUSCH_MappingTypeB = CALLOC(1, sizeof(*pusch_Config->dmrs_UplinkForPUSCH_MappingTypeB));
+    pusch_Config->dmrs_UplinkForPUSCH_MappingTypeB->present = NR_SetupRelease_DMRS_UplinkConfig_PR_setup;
+    pusch_Config->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup = CALLOC(1, sizeof(*pusch_Config->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup));
+    NR_DMRS_UplinkConfig_t *NR_DMRS_UplinkConfig = pusch_Config->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup;
+    NR_DMRS_UplinkConfig->phaseTrackingRS = CALLOC(1, sizeof(*NR_DMRS_UplinkConfig->phaseTrackingRS));
+    NR_DMRS_UplinkConfig->phaseTrackingRS->present = NR_SetupRelease_PTRS_UplinkConfig_PR_setup;
+    NR_DMRS_UplinkConfig->phaseTrackingRS->choice.setup = CALLOC(1, sizeof(*NR_DMRS_UplinkConfig->phaseTrackingRS->choice.setup));
+    NR_PTRS_UplinkConfig_t *NR_PTRS_UplinkConfig = NR_DMRS_UplinkConfig->phaseTrackingRS->choice.setup;
+    NR_PTRS_UplinkConfig->transformPrecoderDisabled = CALLOC(1, sizeof(*NR_PTRS_UplinkConfig->transformPrecoderDisabled));
+    NR_PTRS_UplinkConfig->transformPrecoderDisabled->frequencyDensity = CALLOC(1, sizeof(*NR_PTRS_UplinkConfig->transformPrecoderDisabled->frequencyDensity));
+    long *n_rbs = CALLOC(2, sizeof(long));
+    for (int i=0;i<2;i++) {
+      ASN_SEQUENCE_ADD(&NR_PTRS_UplinkConfig->transformPrecoderDisabled->frequencyDensity->list, &n_rbs[i]);
+    }
+    NR_PTRS_UplinkConfig->transformPrecoderDisabled->timeDensity = CALLOC(1, sizeof(*NR_PTRS_UplinkConfig->transformPrecoderDisabled->timeDensity));
+    long *ptrs_mcs = CALLOC(3, sizeof(long));
+    for (int i = 0; i < 3; i++) {
+      ASN_SEQUENCE_ADD(&NR_PTRS_UplinkConfig->transformPrecoderDisabled->timeDensity->list, &ptrs_mcs[i]);
+    }
+    NR_PTRS_UplinkConfig->transformPrecoderDisabled->resourceElementOffset = CALLOC(1, sizeof(*NR_PTRS_UplinkConfig->transformPrecoderDisabled->resourceElementOffset));
+    *NR_PTRS_UplinkConfig->transformPrecoderDisabled->resourceElementOffset = 0;
+
+    // UL bandwidth part
+    NR_BWP_Uplink_t *ubwp = CALLOC(1, sizeof(*ubwp));
+    ubwp->bwp_Id = j+1;
+    ubwp->bwp_Common = CALLOC(1, sizeof(*ubwp->bwp_Common));
+    ubwp->bwp_Dedicated = CALLOC(1, sizeof(*ubwp->bwp_Dedicated));
+
+    ubwp->bwp_Dedicated->pusch_Config = CALLOC(1, sizeof(*ubwp->bwp_Dedicated->pusch_Config));
+    ubwp->bwp_Dedicated->pusch_Config->present = NR_SetupRelease_PUSCH_Config_PR_setup;
+    ubwp->bwp_Dedicated->pusch_Config->choice.setup = pusch_Config;
+
+    ASN_SEQUENCE_ADD(&scd->uplinkConfig->uplinkBWP_ToAddModList->list,ubwp);
   }
-  NR_PTRS_UplinkConfig->transformPrecoderDisabled->timeDensity = CALLOC(1, sizeof(*NR_PTRS_UplinkConfig->transformPrecoderDisabled->timeDensity));
-  long *ptrs_mcs = CALLOC(3, sizeof(long));
-  for (int i = 0; i < 3; i++) {
-    ASN_SEQUENCE_ADD(&NR_PTRS_UplinkConfig->transformPrecoderDisabled->timeDensity->list, &ptrs_mcs[i]);
-  }
-  NR_PTRS_UplinkConfig->transformPrecoderDisabled->resourceElementOffset = CALLOC(1, sizeof(*NR_PTRS_UplinkConfig->transformPrecoderDisabled->resourceElementOffset));
-  *NR_PTRS_UplinkConfig->transformPrecoderDisabled->resourceElementOffset = 0;
-
-  // UL bandwidth part
-  NR_BWP_Uplink_t *ubwp = CALLOC(1, sizeof(*ubwp));
-  ubwp->bwp_Id = 1;
-  ubwp->bwp_Dedicated = CALLOC(1, sizeof(*ubwp->bwp_Dedicated));
-
-  ubwp->bwp_Dedicated->pusch_Config = CALLOC(1, sizeof(*ubwp->bwp_Dedicated->pusch_Config));
-  ubwp->bwp_Dedicated->pusch_Config->present = NR_SetupRelease_PUSCH_Config_PR_setup;
-  ubwp->bwp_Dedicated->pusch_Config->choice.setup = pusch_Config;
-
-  ASN_SEQUENCE_ADD(&scd->uplinkConfig->uplinkBWP_ToAddModList->list,ubwp);
 }
 
-/* This function checks dedicated serving cell configuration and performs fixes as needed */ 
+/* This function checks dedicated serving cell configuration and performs fixes as needed */
 void fix_scd(NR_ServingCellConfig_t *scd) {
+
+  // Remove unused BWPs
+  int b = 0;
+  while (b<scd->downlinkBWP_ToAddModList->list.count) {
+    if (scd->downlinkBWP_ToAddModList->list.array[b]->bwp_Common->genericParameters.locationAndBandwidth == 0) {
+      asn_sequence_del(&scd->downlinkBWP_ToAddModList->list,b,1);
+    } else {
+      b++;
+    }
+  }
+
+  b = 0;
+  while (b<scd->uplinkConfig->uplinkBWP_ToAddModList->list.count) {
+    if (scd->uplinkConfig->uplinkBWP_ToAddModList->list.array[b]->bwp_Common->genericParameters.locationAndBandwidth == 0) {
+      asn_sequence_del(&scd->uplinkConfig->uplinkBWP_ToAddModList->list,b,1);
+    } else {
+      b++;
+    }
+  }
+
   // Check for DL PTRS parameters validity
-  if (scd->downlinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pdsch_Config->choice.setup->dmrs_DownlinkForPDSCH_MappingTypeA->choice.setup->phaseTrackingRS) {
-    // If any of the frequencyDensity values are not set or are out of bounds, PTRS is assumed to be not present
-    for (int i = scd->downlinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pdsch_Config->choice.setup->dmrs_DownlinkForPDSCH_MappingTypeA->choice.setup->phaseTrackingRS->choice.setup->frequencyDensity->list.count-1; i >= 0; i--) {
-      if ((*scd->downlinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pdsch_Config->choice.setup->dmrs_DownlinkForPDSCH_MappingTypeA->choice.setup->phaseTrackingRS->choice.setup->frequencyDensity->list.array[i] < 1)
-          || (*scd->downlinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pdsch_Config->choice.setup->dmrs_DownlinkForPDSCH_MappingTypeA->choice.setup->phaseTrackingRS->choice.setup->frequencyDensity->list.array[i] > 276)) {
-        LOG_I(RRC, "DL PTRS frequencyDensity %d not set. Assuming PTRS not present! \n", i);
-        free(scd->downlinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pdsch_Config->choice.setup->dmrs_DownlinkForPDSCH_MappingTypeA->choice.setup->phaseTrackingRS);
-        scd->downlinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pdsch_Config->choice.setup->dmrs_DownlinkForPDSCH_MappingTypeA->choice.setup->phaseTrackingRS = NULL;
-        break;
-      }
-    }
-  }
-  if (scd->downlinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pdsch_Config->choice.setup->dmrs_DownlinkForPDSCH_MappingTypeA->choice.setup->phaseTrackingRS) {
-    // If any of the timeDensity values are not set or are out of bounds, PTRS is assumed to be not present
-    for (int i = scd->downlinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pdsch_Config->choice.setup->dmrs_DownlinkForPDSCH_MappingTypeA->choice.setup->phaseTrackingRS->choice.setup->timeDensity->list.count-1; i >= 0; i--) {
-      if ((*scd->downlinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pdsch_Config->choice.setup->dmrs_DownlinkForPDSCH_MappingTypeA->choice.setup->phaseTrackingRS->choice.setup->timeDensity->list.array[i] < 0)
-          || (*scd->downlinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pdsch_Config->choice.setup->dmrs_DownlinkForPDSCH_MappingTypeA->choice.setup->phaseTrackingRS->choice.setup->timeDensity->list.array[i] > 29)) {
-        LOG_I(RRC, "DL PTRS timeDensity %d not set. Assuming PTRS not present! \n", i);
-        free(scd->downlinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pdsch_Config->choice.setup->dmrs_DownlinkForPDSCH_MappingTypeA->choice.setup->phaseTrackingRS);
-        scd->downlinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pdsch_Config->choice.setup->dmrs_DownlinkForPDSCH_MappingTypeA->choice.setup->phaseTrackingRS = NULL;
-        break;
-      }
-    }
-  }
-  if (scd->downlinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pdsch_Config->choice.setup->dmrs_DownlinkForPDSCH_MappingTypeA->choice.setup->phaseTrackingRS) {
-    if (*scd->downlinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pdsch_Config->choice.setup->dmrs_DownlinkForPDSCH_MappingTypeA->choice.setup->phaseTrackingRS->choice.setup->resourceElementOffset > 2) {
-      LOG_I(RRC, "Freeing DL PTRS resourceElementOffset \n");
-      free(scd->downlinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pdsch_Config->choice.setup->dmrs_DownlinkForPDSCH_MappingTypeA->choice.setup->phaseTrackingRS->choice.setup->resourceElementOffset);
-      scd->downlinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pdsch_Config->choice.setup->dmrs_DownlinkForPDSCH_MappingTypeA->choice.setup->phaseTrackingRS->choice.setup->resourceElementOffset = NULL;
-    }
-    if (*scd->downlinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pdsch_Config->choice.setup->dmrs_DownlinkForPDSCH_MappingTypeA->choice.setup->phaseTrackingRS->choice.setup->epre_Ratio > 1) {
-      LOG_I(RRC, "Freeing DL PTRS epre_Ratio \n");
-      free(scd->downlinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pdsch_Config->choice.setup->dmrs_DownlinkForPDSCH_MappingTypeA->choice.setup->phaseTrackingRS->choice.setup->epre_Ratio);
-      scd->downlinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pdsch_Config->choice.setup->dmrs_DownlinkForPDSCH_MappingTypeA->choice.setup->phaseTrackingRS->choice.setup->epre_Ratio = NULL;
-    }
-  }
+  for (int bwp_i = 0 ; bwp_i<scd->downlinkBWP_ToAddModList->list.count; bwp_i++) {
 
-  if (scd->uplinkConfig->uplinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pusch_Config->choice.setup->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup->phaseTrackingRS) {
-    // If any of the frequencyDensity values are not set or are out of bounds, PTRS is assumed to be not present
-    for (int i = scd->uplinkConfig->uplinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pusch_Config->choice.setup->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup->phaseTrackingRS->choice.setup->transformPrecoderDisabled->frequencyDensity->list.count-1; i >= 0; i--) {
-      if ((*scd->uplinkConfig->uplinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pusch_Config->choice.setup->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup->phaseTrackingRS->choice.setup->transformPrecoderDisabled->frequencyDensity->list.array[i] < 1) 
-          || (*scd->uplinkConfig->uplinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pusch_Config->choice.setup->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup->phaseTrackingRS->choice.setup->transformPrecoderDisabled->frequencyDensity->list.array[i] > 276)) {
-        LOG_I(RRC, "UL PTRS frequencyDensity %d not set. Assuming PTRS not present! \n", i);
-        free(scd->uplinkConfig->uplinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pusch_Config->choice.setup->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup->phaseTrackingRS);
-        scd->uplinkConfig->uplinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pusch_Config->choice.setup->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup->phaseTrackingRS = NULL;
-        break;
+    NR_DMRS_DownlinkConfig_t *dmrs_dl_config = scd->downlinkBWP_ToAddModList->list.array[bwp_i]->bwp_Dedicated->pdsch_Config->choice.setup->dmrs_DownlinkForPDSCH_MappingTypeA->choice.setup;
+    
+    if (dmrs_dl_config->phaseTrackingRS) {
+      // If any of the frequencyDensity values are not set or are out of bounds, PTRS is assumed to be not present
+      for (int i = dmrs_dl_config->phaseTrackingRS->choice.setup->frequencyDensity->list.count - 1; i >= 0; i--) {
+        if ((*dmrs_dl_config->phaseTrackingRS->choice.setup->frequencyDensity->list.array[i] < 1)
+            || (*dmrs_dl_config->phaseTrackingRS->choice.setup->frequencyDensity->list.array[i] > 276)) {
+          LOG_I(GNB_APP, "DL PTRS frequencyDensity %d not set. Assuming PTRS not present! \n", i);
+          free(dmrs_dl_config->phaseTrackingRS);
+          dmrs_dl_config->phaseTrackingRS = NULL;
+          break;
+        }
+      }
+    }
+
+    if (dmrs_dl_config->phaseTrackingRS) {
+      // If any of the timeDensity values are not set or are out of bounds, PTRS is assumed to be not present
+      for (int i = dmrs_dl_config->phaseTrackingRS->choice.setup->timeDensity->list.count - 1; i >= 0; i--) {
+        if ((*dmrs_dl_config->phaseTrackingRS->choice.setup->timeDensity->list.array[i] < 0)
+            || (*dmrs_dl_config->phaseTrackingRS->choice.setup->timeDensity->list.array[i] > 29)) {
+          LOG_I(GNB_APP, "DL PTRS timeDensity %d not set. Assuming PTRS not present! \n", i);
+          free(dmrs_dl_config->phaseTrackingRS);
+          dmrs_dl_config->phaseTrackingRS = NULL;
+          break;
+        }
+      }
+    }
+
+    if (dmrs_dl_config->phaseTrackingRS) {
+      if (*dmrs_dl_config->phaseTrackingRS->choice.setup->resourceElementOffset > 2) {
+        LOG_I(GNB_APP, "Freeing DL PTRS resourceElementOffset \n");
+        free(dmrs_dl_config->phaseTrackingRS->choice.setup->resourceElementOffset);
+        dmrs_dl_config->phaseTrackingRS->choice.setup->resourceElementOffset = NULL;
+      }
+      if (*dmrs_dl_config->phaseTrackingRS->choice.setup->epre_Ratio > 1) {
+        LOG_I(GNB_APP, "Freeing DL PTRS epre_Ratio \n");
+        free(dmrs_dl_config->phaseTrackingRS->choice.setup->epre_Ratio);
+        dmrs_dl_config->phaseTrackingRS->choice.setup->epre_Ratio = NULL;
       }
     }
   }
 
-  if (scd->uplinkConfig->uplinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pusch_Config->choice.setup->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup->phaseTrackingRS) {
-    // If any of the timeDensity values are not set or are out of bounds, PTRS is assumed to be not present
-    for (int i = scd->uplinkConfig->uplinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pusch_Config->choice.setup->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup->phaseTrackingRS->choice.setup->transformPrecoderDisabled->timeDensity->list.count-1; i >= 0; i--) {
-      if ((*scd->uplinkConfig->uplinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pusch_Config->choice.setup->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup->phaseTrackingRS->choice.setup->transformPrecoderDisabled->timeDensity->list.array[i] < 0)
-          || (*scd->uplinkConfig->uplinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pusch_Config->choice.setup->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup->phaseTrackingRS->choice.setup->transformPrecoderDisabled->timeDensity->list.array[i] > 29)) {
-        LOG_I(RRC, "UL PTRS timeDensity %d not set. Assuming PTRS not present! \n", i);
-        free(scd->uplinkConfig->uplinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pusch_Config->choice.setup->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup->phaseTrackingRS);
-        scd->uplinkConfig->uplinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pusch_Config->choice.setup->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup->phaseTrackingRS = NULL;
-        break;
+  // Check for UL PTRS parameters validity
+  for (int bwp_i = 0 ; bwp_i<scd->uplinkConfig->uplinkBWP_ToAddModList->list.count; bwp_i++) {
+
+    NR_DMRS_UplinkConfig_t *dmrs_ul_config = scd->uplinkConfig->uplinkBWP_ToAddModList->list.array[bwp_i]->bwp_Dedicated->pusch_Config->choice.setup->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup;
+    
+    if (dmrs_ul_config->phaseTrackingRS) {
+      // If any of the frequencyDensity values are not set or are out of bounds, PTRS is assumed to be not present
+      for (int i = dmrs_ul_config->phaseTrackingRS->choice.setup->transformPrecoderDisabled->frequencyDensity->list.count-1; i >= 0; i--) {
+        if ((*dmrs_ul_config->phaseTrackingRS->choice.setup->transformPrecoderDisabled->frequencyDensity->list.array[i] < 1)
+            || (*dmrs_ul_config->phaseTrackingRS->choice.setup->transformPrecoderDisabled->frequencyDensity->list.array[i] > 276)) {
+          LOG_I(GNB_APP, "UL PTRS frequencyDensity %d not set. Assuming PTRS not present! \n", i);
+          free(dmrs_ul_config->phaseTrackingRS);
+          dmrs_ul_config->phaseTrackingRS = NULL;
+          break;
+        }
       }
     }
-  }
-  if (scd->uplinkConfig->uplinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pusch_Config->choice.setup->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup->phaseTrackingRS) {
-    // Check for UL PTRS parameters validity
-    if (*scd->uplinkConfig->uplinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pusch_Config->choice.setup->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup->phaseTrackingRS->choice.setup->transformPrecoderDisabled->resourceElementOffset > 2) {
-      LOG_I(RRC, "Freeing UL PTRS resourceElementOffset \n");
-      free(scd->uplinkConfig->uplinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pusch_Config->choice.setup->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup->phaseTrackingRS->choice.setup->transformPrecoderDisabled->resourceElementOffset);
-      scd->uplinkConfig->uplinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pusch_Config->choice.setup->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup->phaseTrackingRS->choice.setup->transformPrecoderDisabled->resourceElementOffset = NULL;
+
+    if (dmrs_ul_config->phaseTrackingRS) {
+      // If any of the timeDensity values are not set or are out of bounds, PTRS is assumed to be not present
+      for (int i = dmrs_ul_config->phaseTrackingRS->choice.setup->transformPrecoderDisabled->timeDensity->list.count-1; i >= 0; i--) {
+        if ((*dmrs_ul_config->phaseTrackingRS->choice.setup->transformPrecoderDisabled->timeDensity->list.array[i] < 0)
+            || (*dmrs_ul_config->phaseTrackingRS->choice.setup->transformPrecoderDisabled->timeDensity->list.array[i] > 29)) {
+          LOG_I(GNB_APP, "UL PTRS timeDensity %d not set. Assuming PTRS not present! \n", i);
+          free(dmrs_ul_config->phaseTrackingRS);
+          dmrs_ul_config->phaseTrackingRS = NULL;
+          break;
+        }
+      }
     }
+
+    if (dmrs_ul_config->phaseTrackingRS) {
+      // Check for UL PTRS parameters validity
+      if (*dmrs_ul_config->phaseTrackingRS->choice.setup->transformPrecoderDisabled->resourceElementOffset > 2) {
+        LOG_I(GNB_APP, "Freeing UL PTRS resourceElementOffset \n");
+        free(dmrs_ul_config->phaseTrackingRS->choice.setup->transformPrecoderDisabled->resourceElementOffset);
+        dmrs_ul_config->phaseTrackingRS->choice.setup->transformPrecoderDisabled->resourceElementOffset = NULL;
+      }
+    }
+
   }
 }
 
-void RCconfig_nr_flexran()
+void RCconfig_nr_prs(void)
 {
-  uint16_t  i;
-  uint16_t  num_gnbs;
-  char      aprefix[MAX_OPTNAME_SIZE*2 + 8];
-  /* this will possibly truncate the cell id (RRC assumes int32_t).
-   * Both Nid_cell and gnb_id are signed in RRC case, but we use unsigned for
-   * the bitshifting to work properly */
-  uint16_t  Nid_cell_tr = 0;
-  uint32_t  gnb_id = 0;
+  uint16_t  j = 0, k = 0;
+  prs_config_t *prs_config = NULL;
+  char str[7][100] = {0};
 
-
-  /* get number of gNBs */
-  paramdef_t GNBSParams[] = GNBSPARAMS_DESC;
-  config_get(GNBSParams, sizeof(GNBSParams)/sizeof(paramdef_t), NULL);
-  num_gnbs = GNBSParams[GNB_ACTIVE_GNBS_IDX].numelt;
-
-  /* for gNB ID */
-  paramdef_t GNBParams[]  = GNBPARAMS_DESC;
-  paramlist_def_t GNBParamList = {GNB_CONFIG_STRING_GNB_LIST, NULL, 0};
-
-  paramdef_t flexranParams[] = FLEXRANPARAMS_DESC;
-  config_get(flexranParams, sizeof(flexranParams)/sizeof(paramdef_t), CONFIG_STRING_NETWORK_CONTROLLER_CONFIG);
-
-  if (!RC.flexran) {
-    RC.flexran = calloc(num_gnbs, sizeof(flexran_agent_info_t*));
-    AssertFatal(RC.flexran,
-                "can't ALLOCATE %zu Bytes for %d flexran agent info with size %zu\n",
-                num_gnbs * sizeof(flexran_agent_info_t*),
-                num_gnbs, sizeof(flexran_agent_info_t*));
+  paramdef_t PRS_Params[] = PRS_PARAMS_DESC;
+  paramlist_def_t PRS_ParamList = {CONFIG_STRING_PRS_CONFIG,NULL,0};
+  if (RC.gNB == NULL) {
+    RC.gNB                       = (PHY_VARS_gNB **)malloc((1+NUMBER_OF_gNB_MAX)*sizeof(PHY_VARS_gNB*));
+    LOG_I(NR_PHY,"RC.gNB = %p\n",RC.gNB);
+    memset(RC.gNB,0,(1+NUMBER_OF_gNB_MAX)*sizeof(PHY_VARS_gNB*));
   }
 
-  for (i = 0; i < num_gnbs; i++) {
-    RC.flexran[i] = calloc(1, sizeof(flexran_agent_info_t));
-    AssertFatal(RC.flexran[i],
-                "can't ALLOCATE %zu Bytes for flexran agent info (iteration %d/%d)\n",
-                sizeof(flexran_agent_info_t), i + 1, num_gnbs);
-    /* if config says "yes", enable Agent, in all other cases it's like "no" */
-    RC.flexran[i]->enabled          = strcasecmp(*(flexranParams[FLEXRAN_ENABLED].strptr), "yes") == 0;
-    /* if not enabled, simply skip the rest, it is not needed anyway */
-    if (!RC.flexran[i]->enabled)
-      continue;
-    RC.flexran[i]->interface_name   = strdup(*(flexranParams[FLEXRAN_INTERFACE_NAME_IDX].strptr));
-    //inet_ntop(AF_INET, &(enb_properties->properties[mod_id]->flexran_agent_ipv4_address), in_ip, INET_ADDRSTRLEN);
-    RC.flexran[i]->remote_ipv4_addr = strdup(*(flexranParams[FLEXRAN_IPV4_ADDRESS_IDX].strptr));
-    RC.flexran[i]->remote_port      = *(flexranParams[FLEXRAN_PORT_IDX].uptr);
-    RC.flexran[i]->cache_name       = strdup(*(flexranParams[FLEXRAN_CACHE_IDX].strptr));
-    RC.flexran[i]->node_ctrl_state  = strcasecmp(*(flexranParams[FLEXRAN_AWAIT_RECONF_IDX].strptr), "yes") == 0 ? ENB_WAIT : ENB_NORMAL_OPERATION;
+  config_getlist( &PRS_ParamList,PRS_Params,sizeof(PRS_Params)/sizeof(paramdef_t), NULL);
 
-    config_getlist(&GNBParamList, GNBParams, sizeof(GNBParams)/sizeof(paramdef_t),NULL);
-    /* gNB ID from configuration, as read in by RCconfig_RRC() */
-    if (!GNBParamList.paramarray[i][GNB_GNB_ID_IDX].uptr) {
-      // Calculate a default gNB ID
-    if (AMF_MODE_ENABLED) 
-      gnb_id = i + (ngap_generate_gNB_id () & 0xFFFFFF8);
-    else
-      gnb_id = i;
-    } else {
-        gnb_id = *(GNBParamList.paramarray[i][GNB_GNB_ID_IDX].uptr);
-    }
+  if (PRS_ParamList.numelt > 0) {
+    for (j = 0; j < RC.nb_nr_L1_inst; j++) {
 
-    /* cell ID */
-    sprintf(aprefix, "%s.[%i]", GNB_CONFIG_STRING_GNB_LIST, i);
+      if (RC.gNB[j] == NULL) {
+        RC.gNB[j]                       = (PHY_VARS_gNB *)malloc(sizeof(PHY_VARS_gNB));
+        LOG_I(NR_PHY,"RC.gNB[%d] = %p\n",j,RC.gNB[j]);
+        memset(RC.gNB[j],0,sizeof(PHY_VARS_gNB));
+	      RC.gNB[j]->Mod_id  = j;
+      }
 
-    RC.flexran[i]->mod_id   = i;
-    RC.flexran[i]->agent_id = (((uint64_t)i) << 48) | (((uint64_t)gnb_id) << 16) | ((uint64_t)Nid_cell_tr);
+      RC.gNB[j]->prs_vars.NumPRSResources = *(PRS_ParamList.paramarray[j][NUM_PRS_RESOURCES].uptr);
+      for (k = 0; k < RC.gNB[j]->prs_vars.NumPRSResources; k++)
+      {
+        prs_config = &RC.gNB[j]->prs_vars.prs_cfg[k];
+        prs_config->PRSResourceSetPeriod[0]  = PRS_ParamList.paramarray[j][PRS_RESOURCE_SET_PERIOD_LIST].uptr[0];
+        prs_config->PRSResourceSetPeriod[1]  = PRS_ParamList.paramarray[j][PRS_RESOURCE_SET_PERIOD_LIST].uptr[1];
+        // per PRS resources parameters
+        prs_config->SymbolStart              = PRS_ParamList.paramarray[j][PRS_SYMBOL_START_LIST].uptr[k];
+        prs_config->NumPRSSymbols            = PRS_ParamList.paramarray[j][PRS_NUM_SYMBOLS_LIST].uptr[k];
+        prs_config->REOffset                 = PRS_ParamList.paramarray[j][PRS_RE_OFFSET_LIST].uptr[k];
+        prs_config->PRSResourceOffset        = PRS_ParamList.paramarray[j][PRS_RESOURCE_OFFSET_LIST].uptr[k];
+        prs_config->NPRSID                   = PRS_ParamList.paramarray[j][PRS_ID_LIST].uptr[k];
+        // Common parameters to all PRS resources
+        prs_config->NumRB                    = *(PRS_ParamList.paramarray[j][PRS_NUM_RB].uptr);
+        prs_config->RBOffset                 = *(PRS_ParamList.paramarray[j][PRS_RB_OFFSET].uptr);
+        prs_config->CombSize                 = *(PRS_ParamList.paramarray[j][PRS_COMB_SIZE].uptr);
+        prs_config->PRSResourceRepetition    = *(PRS_ParamList.paramarray[j][PRS_RESOURCE_REPETITION].uptr);
+        prs_config->PRSResourceTimeGap       = *(PRS_ParamList.paramarray[j][PRS_RESOURCE_TIME_GAP].uptr);
+        prs_config->MutingBitRepetition      = *(PRS_ParamList.paramarray[j][PRS_MUTING_BIT_REPETITION].uptr);
+        for (int l = 0; l < PRS_ParamList.paramarray[j][PRS_MUTING_PATTERN1_LIST].numelt; l++)
+        {
+          prs_config->MutingPattern1[l]      = PRS_ParamList.paramarray[j][PRS_MUTING_PATTERN1_LIST].uptr[l];
+          if (k == 0) // print only for 0th resource 
+            snprintf(str[5]+strlen(str[5]),sizeof(str[5])-strlen(str[5]),"%d, ",prs_config->MutingPattern1[l]);
+        }
+        for (int l = 0; l < PRS_ParamList.paramarray[j][PRS_MUTING_PATTERN2_LIST].numelt; l++)
+        {
+          prs_config->MutingPattern2[l]      = PRS_ParamList.paramarray[j][PRS_MUTING_PATTERN2_LIST].uptr[l];
+          if (k == 0) // print only for 0th resource
+            snprintf(str[6]+strlen(str[6]),sizeof(str[6])-strlen(str[6]),"%d, ",prs_config->MutingPattern2[l]);
+        }
 
-    /*
-     * Assume for the moment the monolithic case, i.e. agent can provide information for all layers
-     * Consider using uint16_t flexran_get_capabilities_mask(mid_t mod_id),
-     *                    with RC.rrc[mod_id]->node_type = ngran_gNB
-     */
-    RC.flexran[i]->capability_mask = (1 << PROTOCOL__FLEX_BS_CAPABILITY__LOPHY)
-    		                       | (1 << PROTOCOL__FLEX_BS_CAPABILITY__HIPHY)
-								   | (1 << PROTOCOL__FLEX_BS_CAPABILITY__LOMAC)
-								   | (1 << PROTOCOL__FLEX_BS_CAPABILITY__HIMAC)
-								   | (1 << PROTOCOL__FLEX_BS_CAPABILITY__RLC)
-								   | (1 << PROTOCOL__FLEX_BS_CAPABILITY__PDCP)
-								   | (1 << PROTOCOL__FLEX_BS_CAPABILITY__SDAP)
-								   | (1 << PROTOCOL__FLEX_BS_CAPABILITY__RRC);
+        // print to buffer
+        snprintf(str[0]+strlen(str[0]),sizeof(str[0])-strlen(str[0]),"%d, ",prs_config->SymbolStart);
+        snprintf(str[1]+strlen(str[1]),sizeof(str[1])-strlen(str[1]),"%d, ",prs_config->NumPRSSymbols);
+        snprintf(str[2]+strlen(str[2]),sizeof(str[2])-strlen(str[2]),"%d, ",prs_config->REOffset);
+        snprintf(str[3]+strlen(str[3]),sizeof(str[3])-strlen(str[3]),"%d, ",prs_config->PRSResourceOffset);
+        snprintf(str[4]+strlen(str[4]),sizeof(str[4])-strlen(str[4]),"%d, ",prs_config->NPRSID);
+      } // for k
 
+      prs_config = &RC.gNB[j]->prs_vars.prs_cfg[0];
+      LOG_I(PHY, "-----------------------------------------\n");
+      LOG_I(PHY, "PRS Config for gNB_id %d @ %p\n", j, prs_config);
+      LOG_I(PHY, "-----------------------------------------\n");
+      LOG_I(PHY, "NumPRSResources \t%d\n", RC.gNB[j]->prs_vars.NumPRSResources);
+      LOG_I(PHY, "PRSResourceSetPeriod \t[%d, %d]\n", prs_config->PRSResourceSetPeriod[0], prs_config->PRSResourceSetPeriod[1]);
+      LOG_I(PHY, "NumRB \t\t\t%d\n", prs_config->NumRB);
+      LOG_I(PHY, "RBOffset \t\t%d\n", prs_config->RBOffset);
+      LOG_I(PHY, "CombSize \t\t%d\n", prs_config->CombSize);
+      LOG_I(PHY, "PRSResourceRepetition \t%d\n", prs_config->PRSResourceRepetition);
+      LOG_I(PHY, "PRSResourceTimeGap \t%d\n", prs_config->PRSResourceTimeGap);
+      LOG_I(PHY, "MutingBitRepetition \t%d\n", prs_config->MutingBitRepetition);
+      LOG_I(PHY, "SymbolStart \t\t[%s\b\b]\n", str[0]);
+      LOG_I(PHY, "NumPRSSymbols \t\t[%s\b\b]\n", str[1]);
+      LOG_I(PHY, "REOffset \t\t[%s\b\b]\n", str[2]);
+      LOG_I(PHY, "PRSResourceOffset \t[%s\b\b]\n", str[3]);
+      LOG_I(PHY, "NPRS_ID \t\t[%s\b\b]\n", str[4]);
+      LOG_I(PHY, "MutingPattern1 \t\t[%s\b\b]\n", str[5]);
+      LOG_I(PHY, "MutingPattern2 \t\t[%s\b\b]\n", str[6]);
+      LOG_I(PHY, "-----------------------------------------\n");
+    } // for j
+  }
+  else
+  {
+    LOG_E(PHY,"No " CONFIG_STRING_PRS_CONFIG " configuration found..!!\n");
   }
 }
 
@@ -621,22 +695,27 @@ void RCconfig_NR_L1(void) {
   int num_gnbs = GNBSParams[GNB_ACTIVE_GNBS_IDX].numelt;
   AssertFatal (num_gnbs > 0,"Failed to parse config file no gnbs %s \n",GNB_CONFIG_STRING_ACTIVE_GNBS);
 
-  config_getlist( &GNBParamList,GNBParams,sizeof(GNBParams)/sizeof(paramdef_t),NULL); 
-  char *ulprbbl = *GNBParamList.paramarray[0][GNB_ULPRBBLACKLIST_IDX].strptr; 
+  config_getlist( &GNBParamList,GNBParams,sizeof(GNBParams)/sizeof(paramdef_t),NULL);
+  int N1 = *GNBParamList.paramarray[0][GNB_PDSCH_ANTENNAPORTS_N1_IDX].iptr;
+  int N2 = *GNBParamList.paramarray[0][GNB_PDSCH_ANTENNAPORTS_N2_IDX].iptr;
+  int XP = *GNBParamList.paramarray[0][GNB_PDSCH_ANTENNAPORTS_XP_IDX].iptr;
+  char *ulprbbl = *GNBParamList.paramarray[0][GNB_ULPRBBLACKLIST_IDX].strptr;
   if (ulprbbl) LOG_I(NR_PHY,"PRB blacklist %s\n",ulprbbl);
-  char *pt = strtok(ulprbbl,",");
+  char *save = NULL;
+  char *pt = strtok_r(ulprbbl, ",", &save);
   int prbbl[275];
   int num_prbbl=0;
   memset(prbbl,0,275*sizeof(int));
 
   while (pt) {
-    prbbl[atoi(pt)] = 1;
+    const int rb = atoi(pt);
+    AssertFatal(rb < 275, "RB %d out of bounds (max 275)\n", rb);
+    prbbl[rb] = 0x3FFF; // all symbols taken
     LOG_I(NR_PHY,"Blacklisting prb %d\n",atoi(pt));
-    pt = strtok(NULL,",");
+    pt = strtok_r(NULL, ",", &save);
     num_prbbl++;
   }
 
-  
   paramdef_t L1_Params[] = L1PARAMS_DESC;
   paramlist_def_t L1_ParamList = {CONFIG_STRING_L1_LIST,NULL,0};
 
@@ -659,13 +738,18 @@ void RCconfig_NR_L1(void) {
         memset(RC.gNB[j],0,sizeof(PHY_VARS_gNB));
 	      RC.gNB[j]->Mod_id  = j;
       }
-
-      RC.gNB[j]->thread_pool_size   = *(L1_ParamList.paramarray[j][L1_THREAD_POOL_SIZE].uptr);
+      AssertFatal(*L1_ParamList.paramarray[j][L1_THREAD_POOL_SIZE].uptr == 2022,
+                  "thread_pool_size removed, please use --thread-pool\n");
       RC.gNB[j]->ofdm_offset_divisor = *(L1_ParamList.paramarray[j][L1_OFDM_OFFSET_DIVISOR].uptr);
       RC.gNB[j]->pucch0_thres       = *(L1_ParamList.paramarray[j][L1_PUCCH0_DTX_THRESHOLD].uptr);
       RC.gNB[j]->prach_thres        = *(L1_ParamList.paramarray[j][L1_PRACH_DTX_THRESHOLD].uptr);
       RC.gNB[j]->pusch_thres        = *(L1_ParamList.paramarray[j][L1_PUSCH_DTX_THRESHOLD].uptr);
+      RC.gNB[j]->srs_thres          = *(L1_ParamList.paramarray[j][L1_SRS_DTX_THRESHOLD].uptr);
+      RC.gNB[j]->max_ldpc_iterations = *(L1_ParamList.paramarray[j][L1_MAX_LDPC_ITERATIONS].uptr);
       RC.gNB[j]->num_ulprbbl        = num_prbbl;
+      RC.gNB[j]->ap_N1              = N1;
+      RC.gNB[j]->ap_N2              = N2;
+      RC.gNB[j]->ap_XP              = XP;
       LOG_I(NR_PHY,"Copying %d blacklisted PRB to L1 context\n",num_prbbl);
       memcpy(RC.gNB[j]->ulprbbl,prbbl,275*sizeof(int));
       if(strcmp(*(L1_ParamList.paramarray[j][L1_TRANSPORT_N_PREFERENCE_IDX].strptr), "local_mac") == 0) {
@@ -691,8 +775,6 @@ void RCconfig_NR_L1(void) {
         LOG_I(PHY,"%s() NFAPI PNF mode - RC.nb_nr_inst=1 this is because phy_init_RU() uses that to index and not RC.num_gNB - why the 2 similar variables?\n", __FUNCTION__);
         LOG_I(PHY,"%s() NFAPI PNF mode - RC.nb_nr_CC[0]=%d for init_gNB_afterRU()\n", __FUNCTION__, RC.nb_nr_CC[0]);
         LOG_I(PHY,"%s() NFAPI PNF mode - RC.nb_nr_macrlc_inst:%d because used by mac_top_init_gNB()\n", __FUNCTION__, RC.nb_nr_macrlc_inst);
-
-        mac_top_init_gNB();
 
         configure_nr_nfapi_pnf(RC.gNB[j]->eth_params_n.remote_addr,
                                RC.gNB[j]->eth_params_n.remote_portc,
@@ -729,6 +811,7 @@ void RCconfig_nr_macrlc() {
   paramdef_t GNBParams[]  = GNBPARAMS_DESC;
 
   paramlist_def_t GNBParamList = {GNB_CONFIG_STRING_GNB_LIST,NULL,0};
+  ngran_node_t node_type = get_node_type();
 
   config_get( GNBSParams,sizeof(GNBSParams)/sizeof(paramdef_t),NULL); 
   int num_gnbs = GNBSParams[GNB_ACTIVE_GNBS_IDX].numelt;
@@ -736,33 +819,37 @@ void RCconfig_nr_macrlc() {
   
   config_getlist( &GNBParamList,GNBParams,sizeof(GNBParams)/sizeof(paramdef_t),NULL); 
   char *ulprbbl = *GNBParamList.paramarray[0][GNB_ULPRBBLACKLIST_IDX].strptr; 
-  char *pt = strtok(ulprbbl,",");
-  int prbbl[275];
+  char *save = NULL;
+  char *pt = strtok_r(ulprbbl, ",", &save);
+  uint16_t prbbl[275];
   int num_prbbl=0;
-  int prb;
-  memset(prbbl,0,275*sizeof(int));
+  memset(prbbl,0,sizeof(prbbl));
   while (pt) {
-    prb=atoi(pt); 
-    prbbl[prb] = 1;
-    pt = strtok(NULL,",");
+    const int prb = atoi(pt);
+    AssertFatal(prb < 275, "RB %d out of bounds (max 275)\n", prb);
+    prbbl[prb] = 0x3FFF; // all symbols taken
+    pt = strtok_r(NULL, ",", &save);
     num_prbbl++;
   }
-  
   paramdef_t MacRLC_Params[] = MACRLCPARAMS_DESC;
   paramlist_def_t MacRLC_ParamList = {CONFIG_STRING_MACRLC_LIST,NULL,0};
-
+  /* map parameter checking array instances to parameter definition array instances */
+  checkedparam_t config_check_MacRLCParams [] = MACRLCPARAMS_CHECK;
+  for (int i = 0; i < sizeof(MacRLC_Params) / sizeof(paramdef_t); ++i)
+    MacRLC_Params[i].chkPptr = &(config_check_MacRLCParams[i]);
   config_getlist( &MacRLC_ParamList,MacRLC_Params,sizeof(MacRLC_Params)/sizeof(paramdef_t), NULL);    
   
   if ( MacRLC_ParamList.numelt > 0) {
 
     RC.nb_nr_macrlc_inst=MacRLC_ParamList.numelt; 
-    mac_top_init_gNB();   
+    mac_top_init_gNB(node_type);
     RC.nb_nr_mac_CC = (int*)malloc(RC.nb_nr_macrlc_inst*sizeof(int));
 
     for (j=0;j<RC.nb_nr_macrlc_inst;j++) {
       RC.nb_nr_mac_CC[j] = *(MacRLC_ParamList.paramarray[j][MACRLC_CC_IDX].iptr);
       RC.nrmac[j]->pusch_target_snrx10                   = *(MacRLC_ParamList.paramarray[j][MACRLC_PUSCHTARGETSNRX10_IDX].iptr);
       RC.nrmac[j]->pucch_target_snrx10                   = *(MacRLC_ParamList.paramarray[j][MACRLC_PUCCHTARGETSNRX10_IDX].iptr);
+      RC.nrmac[j]->ul_prbblack_SNR_threshold             = *(MacRLC_ParamList.paramarray[j][MACRLC_UL_PRBBLACK_SNR_THRESHOLD_IDX].iptr);
       RC.nrmac[j]->pucch_failure_thres                   = *(MacRLC_ParamList.paramarray[j][MACRLC_PUCCHFAILURETHRES_IDX].iptr);
       RC.nrmac[j]->pusch_failure_thres                   = *(MacRLC_ParamList.paramarray[j][MACRLC_PUSCHFAILURETHRES_IDX].iptr);
      
@@ -817,14 +904,20 @@ void RCconfig_nr_macrlc() {
         AssertFatal(1==0,"MACRLC %d: %s unknown southbound midhaul\n",j,*(MacRLC_ParamList.paramarray[j][MACRLC_TRANSPORT_S_PREFERENCE_IDX].strptr));
       } 
       RC.nrmac[j]->ulsch_max_frame_inactivity = *(MacRLC_ParamList.paramarray[j][MACRLC_ULSCH_MAX_FRAME_INACTIVITY].uptr);
-      RC.nrmac[j]->dl_bler_target_upper = *(MacRLC_ParamList.paramarray[j][MACRLC_DL_BLER_TARGET_UPPER_IDX].dblptr);
-      RC.nrmac[j]->dl_bler_target_lower = *(MacRLC_ParamList.paramarray[j][MACRLC_DL_BLER_TARGET_LOWER_IDX].dblptr);
-      RC.nrmac[j]->dl_rd2_bler_threshold = *(MacRLC_ParamList.paramarray[j][MACRLC_DL_RD2_BLER_THRESHOLD_IDX].dblptr);
-      RC.nrmac[j]->dl_max_mcs = *(MacRLC_ParamList.paramarray[j][MACRLC_DL_MAX_MCS_IDX].u8ptr);
+      NR_bler_options_t *dl_bler_options = &RC.nrmac[j]->dl_bler;
+      dl_bler_options->upper = *(MacRLC_ParamList.paramarray[j][MACRLC_DL_BLER_TARGET_UPPER_IDX].dblptr);
+      dl_bler_options->lower = *(MacRLC_ParamList.paramarray[j][MACRLC_DL_BLER_TARGET_LOWER_IDX].dblptr);
+      dl_bler_options->max_mcs = *(MacRLC_ParamList.paramarray[j][MACRLC_DL_MAX_MCS_IDX].u8ptr);
+      dl_bler_options->harq_round_max = *(MacRLC_ParamList.paramarray[j][MACRLC_DL_HARQ_ROUND_MAX_IDX].u8ptr);
+      NR_bler_options_t *ul_bler_options = &RC.nrmac[j]->ul_bler;
+      ul_bler_options->upper = *(MacRLC_ParamList.paramarray[j][MACRLC_UL_BLER_TARGET_UPPER_IDX].dblptr);
+      ul_bler_options->lower = *(MacRLC_ParamList.paramarray[j][MACRLC_UL_BLER_TARGET_LOWER_IDX].dblptr);
+      ul_bler_options->max_mcs = *(MacRLC_ParamList.paramarray[j][MACRLC_UL_MAX_MCS_IDX].u8ptr);
+      ul_bler_options->harq_round_max = *(MacRLC_ParamList.paramarray[j][MACRLC_UL_HARQ_ROUND_MAX_IDX].u8ptr);
+      RC.nrmac[j]->min_grant_prb = *(MacRLC_ParamList.paramarray[j][MACRLC_MIN_GRANT_PRB_IDX].u8ptr);
+      RC.nrmac[j]->min_grant_mcs = *(MacRLC_ParamList.paramarray[j][MACRLC_MIN_GRANT_MCS_IDX].u8ptr);
       RC.nrmac[j]->num_ulprbbl = num_prbbl;
-      LOG_I(NR_MAC,"Blacklisted PRBS %d\n",num_prbbl);
       memcpy(RC.nrmac[j]->ulprbbl,prbbl,275*sizeof(prbbl[0]));
-
     }//  for (j=0;j<RC.nb_nr_macrlc_inst;j++)
   }else {// MacRLC_ParamList.numelt > 0
     LOG_E(PHY,"No %s configuration found\n", CONFIG_STRING_MACRLC_LIST);
@@ -976,32 +1069,14 @@ void RCconfig_NRRRC(MessageDef *msg_p, uint32_t i, gNB_RRC_INST *rrc) {
   prepare_scd(scd);
   paramdef_t SCDsParams[] = SCDPARAMS_DESC(scd);
   paramlist_def_t SCDsParamList = {GNB_CONFIG_STRING_SERVINGCELLCONFIGDEDICATED, NULL, 0};
-   ////////// Physical parameters
 
+   ////////// Physical parameters
 
   /* get global parameters, defined outside any section in the config file */
  
   config_get( GNBSParams,sizeof(GNBSParams)/sizeof(paramdef_t),NULL); 
   num_gnbs = GNBSParams[GNB_ACTIVE_GNBS_IDX].numelt;
   AssertFatal (i<num_gnbs,"Failed to parse config file no %ith element in %s \n",i, GNB_CONFIG_STRING_ACTIVE_GNBS);
-
-  /*
-  if (AMF_MODE_ENABLED) {
-    if (strcasecmp( *(GNBSParams[GNB_ASN1_VERBOSITY_IDX].strptr), GNB_CONFIG_STRING_ASN1_VERBOSITY_NONE) == 0) {
-      asn_debug      = 0;
-      asn1_xer_print = 0;
-    } else if (strcasecmp( *(GNBSParams[GNB_ASN1_VERBOSITY_IDX].strptr), GNB_CONFIG_STRING_ASN1_VERBOSITY_INFO) == 0) {
-      asn_debug      = 1;
-      asn1_xer_print = 1;
-    } else if (strcasecmp(*(GNBSParams[GNB_ASN1_VERBOSITY_IDX].strptr) , GNB_CONFIG_STRING_ASN1_VERBOSITY_ANNOYING) == 0) {
-      asn_debug      = 1;
-      asn1_xer_print = 2;
-    } else {
-      asn_debug      = 0;
-      asn1_xer_print = 0;
-    }
-  }
-  */
 
   if (num_gnbs>0) {
 
@@ -1010,7 +1085,7 @@ void RCconfig_NRRRC(MessageDef *msg_p, uint32_t i, gNB_RRC_INST *rrc) {
     
     if (GNBParamList.paramarray[i][GNB_GNB_ID_IDX].uptr == NULL) {
     // Calculate a default gNB ID
-      if (AMF_MODE_ENABLED) { 
+      if (get_softmodem_params()->sa) { 
         uint32_t hash;
         hash = ngap_generate_gNB_id ();
         gnb_id = i + (hash & 0xFFFFFF8);
@@ -1054,13 +1129,17 @@ void RCconfig_NRRRC(MessageDef *msg_p, uint32_t i, gNB_RRC_INST *rrc) {
     if (SCDsParamList.numelt > 0) {    
       sprintf(aprefix, "%s.[%i].%s.[%i]", GNB_CONFIG_STRING_GNB_LIST,0,GNB_CONFIG_STRING_SERVINGCELLCONFIGDEDICATED, 0);
       config_get( SCDsParams,sizeof(SCDsParams)/sizeof(paramdef_t),aprefix);  
-      LOG_I(RRC,"Read in ServingCellConfigDedicated UL (FreqDensity_0 %d, FreqDensity_1 %d, TimeDensity_0 %d, TimeDensity_1 %d, TimeDensity_2 %d, RE offset %d \n",
+      LOG_I(RRC,"Read in ServingCellConfigDedicated UL (FreqDensity_0 %d, FreqDensity_1 %d, TimeDensity_0 %d, TimeDensity_1 %d, TimeDensity_2 %d, RE offset %d, First_active_BWP_ID %d SCS %d, LocationandBW %d \n",
       (int)*scd->uplinkConfig->uplinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pusch_Config->choice.setup->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup->phaseTrackingRS->choice.setup->transformPrecoderDisabled->frequencyDensity->list.array[0],
       (int)*scd->uplinkConfig->uplinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pusch_Config->choice.setup->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup->phaseTrackingRS->choice.setup->transformPrecoderDisabled->frequencyDensity->list.array[1],
       (int)*scd->uplinkConfig->uplinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pusch_Config->choice.setup->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup->phaseTrackingRS->choice.setup->transformPrecoderDisabled->timeDensity->list.array[0],
       (int)*scd->uplinkConfig->uplinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pusch_Config->choice.setup->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup->phaseTrackingRS->choice.setup->transformPrecoderDisabled->timeDensity->list.array[1],
       (int)*scd->uplinkConfig->uplinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pusch_Config->choice.setup->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup->phaseTrackingRS->choice.setup->transformPrecoderDisabled->timeDensity->list.array[2],
-      (int)*scd->uplinkConfig->uplinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pusch_Config->choice.setup->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup->phaseTrackingRS->choice.setup->transformPrecoderDisabled->resourceElementOffset);
+      (int)*scd->uplinkConfig->uplinkBWP_ToAddModList->list.array[0]->bwp_Dedicated->pusch_Config->choice.setup->dmrs_UplinkForPUSCH_MappingTypeB->choice.setup->phaseTrackingRS->choice.setup->transformPrecoderDisabled->resourceElementOffset,
+      (int)*scd->firstActiveDownlinkBWP_Id,
+      (int)scd->downlinkBWP_ToAddModList->list.array[0]->bwp_Common->genericParameters.subcarrierSpacing,
+      (int)scd->downlinkBWP_ToAddModList->list.array[0]->bwp_Common->genericParameters.locationAndBandwidth
+      );
     }
     fix_scd(scd);
 
@@ -1100,6 +1179,7 @@ void RCconfig_NRRRC(MessageDef *msg_p, uint32_t i, gNB_RRC_INST *rrc) {
 
     rrc->nr_cellid        = (uint64_t)*(GNBParamList.paramarray[i][GNB_NRCELLID_IDX].u64ptr);
 
+    rrc->um_on_default_drb = *(GNBParamList.paramarray[i][GNB_UMONDEFAULTDRB_IDX].uptr);
     if (strcmp(*(GNBParamList.paramarray[i][GNB_TRANSPORT_S_PREFERENCE_IDX].strptr), "local_mac") == 0) {
       
     } else if (strcmp(*(GNBParamList.paramarray[i][GNB_TRANSPORT_S_PREFERENCE_IDX].strptr), "cudu") == 0) {
@@ -1160,23 +1240,31 @@ void RCconfig_NRRRC(MessageDef *msg_p, uint32_t i, gNB_RRC_INST *rrc) {
 		      (NRRRC_CONFIGURATION_REQ (msg_p).mnc_digit_length[l] == 3),"BAD MNC DIGIT LENGTH %d",
 		      NRRRC_CONFIGURATION_REQ (msg_p).mnc_digit_length[l]);
 	}
-        LOG_I(RRC,"SSB SCO %d\n",*GNBParamList.paramarray[i][GNB_SSB_SUBCARRIEROFFSET_IDX].iptr);
-        NRRRC_CONFIGURATION_REQ (msg_p).ssb_SubcarrierOffset = *GNBParamList.paramarray[i][GNB_SSB_SUBCARRIEROFFSET_IDX].iptr;
-        LOG_I(RRC,"pdsch_AntennaPorts %d\n",*GNBParamList.paramarray[i][GNB_PDSCH_ANTENNAPORTS_IDX].iptr);
-        NRRRC_CONFIGURATION_REQ (msg_p).pdsch_AntennaPorts = *GNBParamList.paramarray[i][GNB_PDSCH_ANTENNAPORTS_IDX].iptr;
-        LOG_I(RRC,"pusch_AntennaPorts %d\n",*GNBParamList.paramarray[i][GNB_PUSCH_ANTENNAPORTS_IDX].iptr);
+        LOG_I(GNB_APP,"pdsch_AntennaPorts N1 %d\n",*GNBParamList.paramarray[i][GNB_PDSCH_ANTENNAPORTS_N1_IDX].iptr);
+        NRRRC_CONFIGURATION_REQ (msg_p).pdsch_AntennaPorts.N1 = *GNBParamList.paramarray[i][GNB_PDSCH_ANTENNAPORTS_N1_IDX].iptr;
+        LOG_I(GNB_APP,"pdsch_AntennaPorts N2 %d\n",*GNBParamList.paramarray[i][GNB_PDSCH_ANTENNAPORTS_N2_IDX].iptr);
+        NRRRC_CONFIGURATION_REQ (msg_p).pdsch_AntennaPorts.N2 = *GNBParamList.paramarray[i][GNB_PDSCH_ANTENNAPORTS_N2_IDX].iptr;
+        LOG_I(GNB_APP,"pdsch_AntennaPorts XP %d\n",*GNBParamList.paramarray[i][GNB_PDSCH_ANTENNAPORTS_XP_IDX].iptr);
+        NRRRC_CONFIGURATION_REQ (msg_p).pdsch_AntennaPorts.XP = *GNBParamList.paramarray[i][GNB_PDSCH_ANTENNAPORTS_XP_IDX].iptr;
+        LOG_I(GNB_APP,"pusch_AntennaPorts %d\n",*GNBParamList.paramarray[i][GNB_PUSCH_ANTENNAPORTS_IDX].iptr);
         NRRRC_CONFIGURATION_REQ (msg_p).pusch_AntennaPorts = *GNBParamList.paramarray[i][GNB_PUSCH_ANTENNAPORTS_IDX].iptr;
-        LOG_I(RRC,"minTXRXTIME %d\n",*GNBParamList.paramarray[i][GNB_MINRXTXTIME_IDX].iptr);
+        LOG_I(GNB_APP,"minTXRXTIME %d\n",*GNBParamList.paramarray[i][GNB_MINRXTXTIME_IDX].iptr);
         NRRRC_CONFIGURATION_REQ (msg_p).minRXTXTIME = *GNBParamList.paramarray[i][GNB_MINRXTXTIME_IDX].iptr;
-        LOG_I(RRC,"SIB1 TDA %d\n",*GNBParamList.paramarray[i][GNB_SIB1_TDA_IDX].iptr);
+        LOG_I(GNB_APP,"SIB1 TDA %d\n",*GNBParamList.paramarray[i][GNB_SIB1_TDA_IDX].iptr);
         NRRRC_CONFIGURATION_REQ (msg_p).sib1_tda = *GNBParamList.paramarray[i][GNB_SIB1_TDA_IDX].iptr;
-        LOG_I(RRC,"Do CSI-RS %d\n",*GNBParamList.paramarray[i][GNB_DO_CSIRS_IDX].iptr);
+        LOG_I(GNB_APP,"Do CSI-RS %d\n",*GNBParamList.paramarray[i][GNB_DO_CSIRS_IDX].iptr);
         NRRRC_CONFIGURATION_REQ (msg_p).do_CSIRS = *GNBParamList.paramarray[i][GNB_DO_CSIRS_IDX].iptr;
-        printf("Do SRS %d\n",*GNBParamList.paramarray[i][GNB_DO_SRS_IDX].iptr);
+        LOG_I(GNB_APP, "Do SRS %d\n",*GNBParamList.paramarray[i][GNB_DO_SRS_IDX].iptr);
         NRRRC_CONFIGURATION_REQ (msg_p).do_SRS = *GNBParamList.paramarray[i][GNB_DO_SRS_IDX].iptr;
+        NRRRC_CONFIGURATION_REQ (msg_p).force_256qam_off = *GNBParamList.paramarray[i][GNB_FORCE256QAMOFF_IDX].iptr;
+        LOG_I(GNB_APP, "256 QAM: %s\n", NRRRC_CONFIGURATION_REQ (msg_p).force_256qam_off ? "force off" : "may be on");
         NRRRC_CONFIGURATION_REQ (msg_p).scc = scc;
         NRRRC_CONFIGURATION_REQ (msg_p).scd = scd;
-	  
+        NRRRC_CONFIGURATION_REQ (msg_p).enable_sdap = *GNBParamList.paramarray[i][GNB_ENABLE_SDAP_IDX].iptr;
+        LOG_I(GNB_APP, "SDAP layer is %s\n", NRRRC_CONFIGURATION_REQ (msg_p).enable_sdap ? "enabled" : "disabled");
+        NRRRC_CONFIGURATION_REQ (msg_p).drbs = *GNBParamList.paramarray[i][GNB_DRBS].iptr;
+        LOG_I(GNB_APP, "Data Radio Bearer count %d\n", NRRRC_CONFIGURATION_REQ (msg_p).drbs);
+
       }//
     }//End for (k=0; k <num_gnbs ; k++)
     memcpy(&rrc->configuration, &NRRRC_CONFIGURATION_REQ(msg_p), sizeof(NRRRC_CONFIGURATION_REQ(msg_p)));
@@ -1259,26 +1347,8 @@ int RCconfig_NR_NG(MessageDef *msg_p, uint32_t i) {
 
   /* get global parameters, defined outside any section in the config file */
   config_get( GNBSParams,sizeof(GNBSParams)/sizeof(paramdef_t),NULL); 
-
-  /*
-  if (AMF_MODE_ENABLED) {
-    if (strcasecmp( *(GNBSParams[GNB_ASN1_VERBOSITY_IDX].strptr), GNB_CONFIG_STRING_ASN1_VERBOSITY_NONE) == 0) {
-      asn_debug      = 0;
-      asn1_xer_print = 0;
-    } else if (strcasecmp( *(GNBSParams[GNB_ASN1_VERBOSITY_IDX].strptr), GNB_CONFIG_STRING_ASN1_VERBOSITY_INFO) == 0) {
-      asn_debug      = 1;
-      asn1_xer_print = 1;
-    } else if (strcasecmp(*(GNBSParams[GNB_ASN1_VERBOSITY_IDX].strptr) , GNB_CONFIG_STRING_ASN1_VERBOSITY_ANNOYING) == 0) {
-      asn_debug      = 1;
-      asn1_xer_print = 2;
-    } else {
-      asn_debug      = 0;
-      asn1_xer_print = 0;
-    }
-  }
-  */
   
-    AssertFatal (i<GNBSParams[GNB_ACTIVE_GNBS_IDX].numelt,
+  AssertFatal (i<GNBSParams[GNB_ACTIVE_GNBS_IDX].numelt,
      "Failed to parse config file %s, %uth attribute %s \n",
      RC.config_file_name, i, GNB_CONFIG_STRING_ACTIVE_GNBS);
     
@@ -1290,7 +1360,7 @@ int RCconfig_NR_NG(MessageDef *msg_p, uint32_t i) {
       for (k = 0; k < GNBParamList.numelt; k++) {
         if (GNBParamList.paramarray[k][GNB_GNB_ID_IDX].uptr == NULL) {
           // Calculate a default gNB ID
-          if (AMF_MODE_ENABLED) {
+          if (get_softmodem_params()->sa) {
             uint32_t hash;
           
           hash = ngap_generate_gNB_id ();
@@ -1375,9 +1445,10 @@ int RCconfig_NR_NG(MessageDef *msg_p, uint32_t i) {
               NGAP_REGISTER_GNB_REQ (msg_p).num_nssai[l] = SNSSAIParamList.numelt;
               for (int s = 0; s < SNSSAIParamList.numelt; ++s) {
               
-                NGAP_REGISTER_GNB_REQ (msg_p).s_nssai[l][s].sST = *SNSSAIParamList.paramarray[s][GNB_SLICE_SERIVE_TYPE_IDX].uptr;
+                NGAP_REGISTER_GNB_REQ (msg_p).s_nssai[l][s].sST = *SNSSAIParamList.paramarray[s][GNB_SLICE_SERVICE_TYPE_IDX].uptr;
                 NGAP_REGISTER_GNB_REQ (msg_p).s_nssai[l][s].sD_flag = 0;
-                if(*SNSSAIParamList.paramarray[s][GNB_SLICE_DIFFERENTIATOR_IDX].uptr != 0) {
+                if(SNSSAIParamList.paramarray[s][GNB_SLICE_DIFFERENTIATOR_IDX].uptr != 0               // SD is optional
+                   && *SNSSAIParamList.paramarray[s][GNB_SLICE_DIFFERENTIATOR_IDX].uptr != 0xffffff) { // 0xffffff is "no SD", see 23.003 Sec 28.4.2
                   NGAP_REGISTER_GNB_REQ (msg_p).s_nssai[l][s].sD_flag = 1;
                   NGAP_REGISTER_GNB_REQ (msg_p).s_nssai[l][s].sD[0] = (*SNSSAIParamList.paramarray[s][GNB_SLICE_DIFFERENTIATOR_IDX].uptr & 0xFF0000) >> 16;
                   NGAP_REGISTER_GNB_REQ (msg_p).s_nssai[l][s].sD[1] = (*SNSSAIParamList.paramarray[s][GNB_SLICE_DIFFERENTIATOR_IDX].uptr & 0x00FF00) >> 8;
@@ -1445,7 +1516,7 @@ int RCconfig_NR_NG(MessageDef *msg_p, uint32_t i) {
             // SCTP SETTING
             NGAP_REGISTER_GNB_REQ (msg_p).sctp_out_streams = SCTP_OUT_STREAMS;
             NGAP_REGISTER_GNB_REQ (msg_p).sctp_in_streams  = SCTP_IN_STREAMS;
-            if (AMF_MODE_ENABLED) {
+            if (get_softmodem_params()->sa) {
               sprintf(aprefix,"%s.[%i].%s",GNB_CONFIG_STRING_GNB_LIST,k,GNB_CONFIG_STRING_SCTP_CONFIG);
               config_get( SCTPParams,sizeof(SCTPParams)/sizeof(paramdef_t),aprefix); 
               NGAP_REGISTER_GNB_REQ (msg_p).sctp_in_streams = (uint16_t)*(SCTPParams[GNB_SCTP_INSTREAMS_IDX].uptr);
@@ -1458,7 +1529,8 @@ int RCconfig_NR_NG(MessageDef *msg_p, uint32_t i) {
             
             //    NGAP_REGISTER_GNB_REQ (msg_p).enb_interface_name_for_NGU = strdup(enb_interface_name_for_NGU);
             cidr = *(NETParams[GNB_IPV4_ADDRESS_FOR_NG_AMF_IDX].strptr);
-            address = strtok(cidr, "/");
+            char *save = NULL;
+            address = strtok_r(cidr, "/", &save);
             
             NGAP_REGISTER_GNB_REQ (msg_p).gnb_ip_address.ipv6 = 0;
             NGAP_REGISTER_GNB_REQ (msg_p).gnb_ip_address.ipv4 = 1;
@@ -1568,7 +1640,7 @@ int RCconfig_NR_X2(MessageDef *msg_p, uint32_t i) {
       for (k = 0; k < GNBParamList.numelt; k++) {
         if (GNBParamList.paramarray[k][GNB_GNB_ID_IDX].uptr == NULL) {
           // Calculate a default eNB ID
-          if (AMF_MODE_ENABLED) {
+          if (get_softmodem_params()->sa) {
             uint32_t hash;
             hash = ngap_generate_gNB_id ();
             gnb_id = k + (hash & 0xFFFFFF8);
@@ -1711,7 +1783,7 @@ int RCconfig_NR_X2(MessageDef *msg_p, uint32_t i) {
             X2AP_REGISTER_ENB_REQ (msg_p).sctp_out_streams = SCTP_OUT_STREAMS;
             X2AP_REGISTER_ENB_REQ (msg_p).sctp_in_streams  = SCTP_IN_STREAMS;
 
-            if (AMF_MODE_ENABLED) {
+            if (get_softmodem_params()->sa) {
               sprintf(aprefix,"%s.[%i].%s",GNB_CONFIG_STRING_GNB_LIST,k,GNB_CONFIG_STRING_SCTP_CONFIG);
               config_get( SCTPParams,sizeof(SCTPParams)/sizeof(paramdef_t),aprefix);
               X2AP_REGISTER_ENB_REQ (msg_p).sctp_in_streams = (uint16_t)*(SCTPParams[GNB_SCTP_INSTREAMS_IDX].uptr);
@@ -1730,7 +1802,8 @@ int RCconfig_NR_X2(MessageDef *msg_p, uint32_t i) {
             }
 
             cidr = *(NETParams[ENB_IPV4_ADDR_FOR_X2C_IDX].strptr);
-            address = strtok(cidr, "/");
+            char *save = NULL;
+            address = strtok_r(cidr, "/", &save);
             X2AP_REGISTER_ENB_REQ (msg_p).enb_x2_ip_address.ipv6 = 0;
             X2AP_REGISTER_ENB_REQ (msg_p).enb_x2_ip_address.ipv4 = 1;
             strcpy(X2AP_REGISTER_ENB_REQ (msg_p).enb_x2_ip_address.ipv4_address, address);
@@ -1872,9 +1945,38 @@ int RCconfig_NR_DU_F1(MessageDef *msg_p, uint32_t i) {
         f1Setup->measurement_timing_information[k]             = "0";
         f1Setup->ranac[k]                                      = 0;
         f1Setup->mib[k]                                        = rrc->carrier.MIB;
-        f1Setup->sib1[k]                                       = rrc->carrier.SIB1;
         f1Setup->mib_length[k]                                 = rrc->carrier.sizeof_MIB;
-        f1Setup->sib1_length[k]                                = rrc->carrier.sizeof_SIB1;
+
+        NR_BCCH_DL_SCH_Message_t *bcch_message = NULL;
+
+        asn_dec_rval_t dec_rval = uper_decode_complete( NULL,
+            &asn_DEF_NR_BCCH_DL_SCH_Message,
+            (void **)&bcch_message,
+            (const void *)rrc->carrier.SIB1,
+            rrc->carrier.sizeof_SIB1);
+
+        if ((dec_rval.code != RC_OK) && (dec_rval.consumed == 0)) {
+          LOG_E(RRC,"SIB1 decode error\n");
+          // free the memory
+          SEQUENCE_free( &asn_DEF_NR_BCCH_DL_SCH_Message, bcch_message, 1 );
+          exit(1);
+        }
+       
+        NR_SIB1_t *bcch_SIB1 = bcch_message->message.choice.c1->choice.systemInformationBlockType1;
+        f1Setup->sib1[k] = calloc(1,rrc->carrier.sizeof_SIB1);
+        asn_enc_rval_t enc_rval = uper_encode_to_buffer(&asn_DEF_NR_SIB1,
+            NULL,
+            (void *)bcch_SIB1,
+            f1Setup->sib1[k],
+            NR_MAX_SIB_LENGTH/8);
+        AssertFatal (enc_rval.encoded > 0, "ASN1 message encoding failed (%s, %lu)!\n",
+            enc_rval.failed_type->name, enc_rval.encoded);
+
+        //if ( LOG_DEBUGFLAG(DEBUG_ASN1) ) {
+          LOG_I(NR_RRC, "SIB1 container to be integrated in F1 Setup request:\n");
+          xer_fprint(stdout, &asn_DEF_NR_SIB1,(void *)bcch_message->message.choice.c1->choice.systemInformationBlockType1 );
+        //}
+        f1Setup->sib1_length[k]                                = (enc_rval.encoded+7)/8;
         break;
       }
     }
@@ -2036,17 +2138,16 @@ void configure_gnb_du_mac(int inst) {
   // LOG_I(GNB_APP,"Configuring MAC/L1 %d, carrier->sib2 %p\n", inst, &carrier->sib2->radioResourceConfigCommon);
   LOG_I(GNB_APP,"Configuring gNB DU MAC/L1 %d \n", inst);
   rrc_mac_config_req_gNB(rrc->module_id,
-                        rrc->configuration.ssb_SubcarrierOffset,
                         rrc->configuration.pdsch_AntennaPorts,
                         rrc->configuration.pusch_AntennaPorts,
                         rrc->configuration.sib1_tda,
                         rrc->configuration.minRXTXTIME,
                         rrc->configuration.scc,
                         NULL,
+                        NULL,
                         0,
                         0, // rnti
-                        (NR_CellGroupConfig_t *)NULL
-                        );
+                        NULL);
 }
 
 
@@ -2142,8 +2243,8 @@ int gNB_app_handle_f1ap_gnb_cu_configuration_update(f1ap_gnb_cu_configuration_up
   return(ret);
 }
 
-void set_node_type(void) {
-  int               j;
+static ngran_node_t get_node_type(void)
+{
   paramdef_t        MacRLC_Params[] = MACRLCPARAMS_DESC;
   paramlist_def_t   MacRLC_ParamList = {CONFIG_STRING_MACRLC_LIST,NULL,0};
   paramdef_t        GNBParams[]  = GNBPARAMS_DESC;
@@ -2154,24 +2255,19 @@ void set_node_type(void) {
 
   if ( MacRLC_ParamList.numelt > 0) {
     RC.nb_nr_macrlc_inst = MacRLC_ParamList.numelt; 
-    for (j=0;j<RC.nb_nr_macrlc_inst;j++) {
+    for (int j = 0; j < RC.nb_nr_macrlc_inst; j++) {
       if (strcmp(*(MacRLC_ParamList.paramarray[j][MACRLC_TRANSPORT_N_PREFERENCE_IDX].strptr), "f1") == 0) {
         macrlc_has_f1 = 1;
       }
     }
   }
 
-  if (strcmp(*(GNBParamList.paramarray[0][GNB_TRANSPORT_S_PREFERENCE_IDX].strptr), "f1") == 0) {
-      node_type = ngran_gNB_CU;
-    } else {
-      if (macrlc_has_f1 == 0) {
-        node_type = ngran_gNB;
-        LOG_I(NR_RRC,"Setting node_type to ngran_gNB\n");
-      } else {
-        node_type = ngran_gNB_DU;
-        LOG_I(NR_RRC,"Setting node_type to ngran_gNB_DU\n");
-      }
-    }
+  if (strcmp(*(GNBParamList.paramarray[0][GNB_TRANSPORT_S_PREFERENCE_IDX].strptr), "f1") == 0)
+    return ngran_gNB_CU;
+  else if (macrlc_has_f1 == 0)
+    return ngran_gNB;
+  else
+    return ngran_gNB_DU;
 }
 
 void nr_read_config_and_init(void) {
@@ -2180,7 +2276,7 @@ void nr_read_config_and_init(void) {
   uint32_t    gnb_nb = RC.nb_nr_inst;
 
   RCconfig_NR_L1();
-  set_node_type();
+  RCconfig_nr_prs();
   RCconfig_nr_macrlc();
 
   LOG_I(PHY, "%s() RC.nb_nr_L1_inst:%d\n", __FUNCTION__, RC.nb_nr_L1_inst);

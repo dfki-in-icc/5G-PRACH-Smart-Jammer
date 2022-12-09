@@ -38,6 +38,7 @@
 #include "aka_functions.h"
 #include "secu_defs.h"
 #include "PduSessionEstablishRequest.h"
+#include "PduSessionEstablishmentAccept.h"
 #include "intertask_interface.h"
 #include "openair2/RRC/NAS/nas_config.h"
 #include <openair3/UICC/usim_interface.h>
@@ -45,6 +46,7 @@
 #include <openair1/PHY/phy_extern_nr_ue.h>
 #include <openair1/SIMULATION/ETH_TRANSPORT/proto.h>
 #include <openair2/RRC/NR_UE/rrc_defs.h>
+#include "openair2/SDAP/nr_sdap/nr_sdap.h"
 
 uint8_t  *registration_request_buf;
 uint32_t  registration_request_len;
@@ -432,7 +434,7 @@ void generateRegistrationRequest(as_nas_info_t *initialNasMsg, int Mod_id) {
   size += 10;
 
   // encode the message
-  initialNasMsg->data = (Byte_t *)malloc(size * sizeof(Byte_t));
+  initialNasMsg->data = malloc16_clear(size * sizeof(Byte_t));
   registration_request_buf = initialNasMsg->data;
 
   initialNasMsg->length = mm_msg_encode(mm_msg, (uint8_t*)(initialNasMsg->data), size);
@@ -907,16 +909,20 @@ static void generatePduSessionEstablishRequest(int Mod_id, uicc_t * uicc, as_nas
   mm_msg->uplink_nas_transport.pdusessionid = 1;
   mm_msg->uplink_nas_transport.requesttype = 1;
   size += 3;
-  mm_msg->uplink_nas_transport.snssai.length = 4;
+  const bool has_nssai_sd = uicc->nssai_sd != 0xffffff; // 0xffffff means "no SD", TS 23.003
+  const size_t nssai_len = has_nssai_sd ? 4 : 1;
+  mm_msg->uplink_nas_transport.snssai.length = nssai_len;
   //Fixme: it seems there are a lot of memory errors in this: this value was on the stack, 
   // but pushed  in a itti message to another thread
   // this kind of error seems in many places in 5G NAS
-  mm_msg->uplink_nas_transport.snssai.value=calloc(1,4);
+  mm_msg->uplink_nas_transport.snssai.value = calloc(1, nssai_len);
   mm_msg->uplink_nas_transport.snssai.value[0] = uicc->nssai_sst;
-  mm_msg->uplink_nas_transport.snssai.value[1] = (uicc->nssai_sd>>16)&0xFF;
-  mm_msg->uplink_nas_transport.snssai.value[2] = (uicc->nssai_sd>>8)&0xFF; 
-  mm_msg->uplink_nas_transport.snssai.value[3] = (uicc->nssai_sd)&0xFF;
-  size += (1+1+4);
+  if (has_nssai_sd) {
+    mm_msg->uplink_nas_transport.snssai.value[1] = (uicc->nssai_sd >> 16) & 0xFF;
+    mm_msg->uplink_nas_transport.snssai.value[2] = (uicc->nssai_sd >> 8)  & 0xFF;
+    mm_msg->uplink_nas_transport.snssai.value[3] = (uicc->nssai_sd)       & 0xFF;
+  }
+  size += 1 + 1 + nssai_len;
   int dnnSize=strlen(uicc->dnnStr);
   mm_msg->uplink_nas_transport.dnn.value=calloc(1,dnnSize+1);
   mm_msg->uplink_nas_transport.dnn.length = dnnSize + 1;
@@ -1100,41 +1106,8 @@ void *nas_nrue_task(void *args_p)
             LOG_I(NAS, "Send NAS_UPLINK_DATA_REQ message(PduSessionEstablishRequest)\n");
           }
         } else if(msg_type == FGS_PDU_SESSION_ESTABLISHMENT_ACC){
-            uint8_t offset = 0;
-            uint8_t *payload_container = NULL;
-            offset += SECURITY_PROTECTED_5GS_NAS_MESSAGE_HEADER_LENGTH;
-            uint16_t payload_container_length = htons(((dl_nas_transport_t *)(pdu_buffer + offset))->payload_container_length);
-            if ((payload_container_length >= PAYLOAD_CONTAINER_LENGTH_MIN) && (payload_container_length <= PAYLOAD_CONTAINER_LENGTH_MAX)) {
-              offset += (PLAIN_5GS_NAS_MESSAGE_HEADER_LENGTH + 3);
-            }
-
-            if (offset < NAS_CONN_ESTABLI_CNF(msg_p).nasMsg.length) {
-              payload_container = pdu_buffer + offset;
-            }
-            offset = 0;
-
-            while(offset < payload_container_length) {
-	      // Fixme: this is not good 'type' 0x29 searching in TLV like structure
-	      // AND fix dirsty code copy hereafter of the same!!!
-              if (*(payload_container + offset) == 0x29) { // PDU address IEI
-                if ((*(payload_container+offset+1) == 0x05) && (*(payload_container +offset+2) == 0x01)) { // IPV4
-                  nas_getparams();
-                  sprintf(baseNetAddress, "%d.%d", *(payload_container+offset+3), *(payload_container+offset+4));
-                  int third_octet = *(payload_container+offset+5);
-                  int fourth_octet = *(payload_container+offset+6);
-                  LOG_I(NAS, "Received PDU Session Establishment Accept, UE IP: %d.%d.%d.%d\n",
-                    *(payload_container+offset+3), *(payload_container+offset+4),
-                    *(payload_container+offset+5), *(payload_container+offset+6));
-                  nas_config(1,third_octet,fourth_octet,"oaitun_ue");
-                  if (NR_UE_rrc_inst[Mod_id].paging_flag == 1) {
-                    NR_UE_rrc_inst[Mod_id].paging_flag = 0;
-                  }
-                  break;
-                }
-              }
-              offset++;
-            }
-          }
+          capture_pdu_session_establishment_accept_msg(pdu_buffer, NAS_CONN_ESTABLI_CNF (msg_p).nasMsg.length);
+        }
 
         break;
       }

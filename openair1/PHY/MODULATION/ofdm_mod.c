@@ -46,18 +46,18 @@ void normal_prefix_mod(int32_t *txdataF,int32_t *txdata,uint8_t nsymb,LTE_DL_FRA
 
   
   PHY_ofdm_mod(txdataF,        // input
-	       txdata,         // output
-	       frame_parms->ofdm_symbol_size,                
+               txdata,         // output
+               frame_parms->ofdm_symbol_size,                
 
-	       1,                 // number of symbols
-	       frame_parms->nb_prefix_samples0,               // number of prefix samples
-	       CYCLIC_PREFIX);
+               1,                 // number of symbols
+               frame_parms->nb_prefix_samples0,               // number of prefix samples
+               CYCLIC_PREFIX);
   PHY_ofdm_mod(txdataF+frame_parms->ofdm_symbol_size,        // input
-	       txdata+OFDM_SYMBOL_SIZE_COMPLEX_SAMPLES0,         // output
-	       frame_parms->ofdm_symbol_size,                
-	       nsymb-1,
-	       frame_parms->nb_prefix_samples,               // number of prefix samples
-	       CYCLIC_PREFIX);
+               txdata+OFDM_SYMBOL_SIZE_COMPLEX_SAMPLES0,         // output
+               frame_parms->ofdm_symbol_size,                
+               nsymb-1,
+               frame_parms->nb_prefix_samples,               // number of prefix samples
+               CYCLIC_PREFIX);
   
 
   
@@ -153,6 +153,10 @@ void PHY_ofdm_mod(int *input,                       /// pointer to complex input
     idftsize = IDFT_512;
     break;
 
+  case 768:
+    idftsize = IDFT_768;
+    break;
+
   case 1024:
     idftsize = IDFT_1024;
     break;
@@ -203,18 +207,10 @@ void PHY_ofdm_mod(int *input,                       /// pointer to complex input
     printf("[PHY] symbol %d/%d offset %d (%p,%p -> %p)\n",i,nb_symbols,i*fftsize+(i*nb_prefix_samples),input,&input[i*fftsize],&output[(i*fftsize) + ((i)*nb_prefix_samples)]);
 #endif
 
-#ifndef __AVX2__
-    // handle 128-bit alignment for 128-bit SIMD (SSE4,NEON,AltiVEC)
-    idft(idftsize,(int16_t *)&input[i*fftsize],
-         (fftsize==128) ? (int16_t *)temp : (int16_t *)&output[(i*fftsize) + ((1+i)*nb_prefix_samples)],
-         1);
-#else
     // on AVX2 need 256-bit alignment
     idft(idftsize,(int16_t *)&input[i*fftsize],
          (int16_t *)temp,
          1);
-
-#endif
 
     // Copy to frame buffer with Cyclic Extension
     // Note:  will have to adjust for synchronization offset!
@@ -227,9 +223,6 @@ void PHY_ofdm_mod(int *input,                       /// pointer to complex input
 
       //      msg("Doing cyclic prefix method\n");
 
-#ifndef __AVX2__
-      if (fftsize==128) 
-#endif
       {
         memcpy((void*)output_ptr,(void*)temp_ptr,fftsize<<2);
       }
@@ -341,30 +334,41 @@ void do_OFDM_mod(int32_t **txdataF, int32_t **txdata, uint32_t frame,uint16_t ne
 }
 
 void apply_nr_rotation(NR_DL_FRAME_PARMS *fp,
-		       int16_t* trxdata,
-		       int slot,
-		       int first_symbol,
-		       int nsymb,
-		       int length) {
+                       int16_t* txdataF,
+                       int slot,
+                       int first_symbol,
+                       int nsymb)
+{
   int symb_offset = (slot%fp->slots_per_subframe)*fp->symbols_per_slot;
 
-  int16_t *symbol_rotation = fp->symbol_rotation[0];
+  c16_t *symbol_rotation = fp->symbol_rotation[0] + symb_offset;
 
-  for (int sidx=0;sidx<nsymb;sidx++) {
+  for (int sidx = first_symbol; sidx < first_symbol + nsymb; sidx++) {
+    c16_t *this_rotation = symbol_rotation + sidx;
+    c16_t *this_symbol = ((c16_t*) txdataF) + sidx * fp->ofdm_symbol_size;
 
-    LOG_D(PHY,"Rotating symbol %d, slot %d, symbol_subframe_index %d, length %d (%d,%d)\n",
-      first_symbol + sidx,
+    LOG_D(PHY,"Rotating symbol %d, slot %d, symbol_subframe_index %d (%d,%d)\n",
+      sidx,
       slot,
-      sidx + first_symbol + symb_offset,
-      length,
-      symbol_rotation[2 * (sidx + first_symbol + symb_offset)],
-      symbol_rotation[1 + 2 * (sidx + first_symbol + symb_offset)]);
+      sidx + symb_offset,
+      this_rotation->r,
+      this_rotation->i);
 
-    rotate_cpx_vector(trxdata + (sidx * length * 2),
-                      &symbol_rotation[2 * (sidx + first_symbol + symb_offset)],
-                      trxdata + (sidx * length * 2),
-                      length,
-                      15);
+    if (fp->N_RB_DL & 1) {
+      rotate_cpx_vector(this_symbol, this_rotation, this_symbol,
+                        (fp->N_RB_DL + 1) * 6, 15);
+      rotate_cpx_vector(this_symbol + fp->first_carrier_offset - 6,
+                        this_rotation,
+                        this_symbol + fp->first_carrier_offset - 6,
+                        (fp->N_RB_DL + 1) * 6, 15);
+    } else {
+      rotate_cpx_vector(this_symbol, this_rotation, this_symbol,
+                        fp->N_RB_DL * 6, 15);
+      rotate_cpx_vector(this_symbol + fp->first_carrier_offset,
+                        this_rotation,
+                        this_symbol + fp->first_carrier_offset,
+                        fp->N_RB_DL * 6, 15);
+    }
   }
 }
-		       
+                       

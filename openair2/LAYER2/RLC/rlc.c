@@ -34,20 +34,19 @@
 #include "common/utils/LOG/log.h"
 #include "UTIL/OCG/OCG_vars.h"
 #include "common/utils/LOG/vcd_signal_dumper.h"
-#include "targets/COMMON/openairinterface5g_limits.h"
+#include "common/openairinterface5g_limits.h"
 #include "assertions.h"
 #include <rlc.h>
 
 #include "common/ran_context.h"
 extern RAN_CONTEXT_t RC;
 
-extern boolean_t pdcp_data_ind(
-  const protocol_ctxt_t *const ctxt_pP,
-  const srb_flag_t srb_flagP,
-  const MBMS_flag_t MBMS_flagP,
-  const rb_id_t rb_idP,
-  const sdu_size_t sdu_buffer_sizeP,
-  mem_block_t *const sdu_buffer_pP);
+extern bool pdcp_data_ind(const protocol_ctxt_t *const ctxt_pP,
+                          const srb_flag_t srb_flagP,
+                          const MBMS_flag_t MBMS_flagP,
+                          const rb_id_t rb_idP,
+                          const sdu_size_t sdu_buffer_sizeP,
+                          mem_block_t *const sdu_buffer_pP);
 
 #define DEBUG_RLC_PDCP_INTERFACE 1
 //#define TRACE_RLC_PAYLOAD 1
@@ -397,7 +396,7 @@ rlc_op_status_t rlc_data_req     (const protocol_ctxt_t *const ctxt_pP,
 
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_RLC_DATA_REQ,VCD_FUNCTION_IN);
 
-  if (MBMS_flagP == TRUE) {
+  if (MBMS_flagP == true) {
     if (ctxt_pP->enb_flag) {
       log_ch_id = rlc_mbms_enb_get_lcid_by_rb_id(ctxt_pP->module_id,rb_idP);
       mbms_id_p = &rlc_mbms_lcid2service_session_id_eNB[ctxt_pP->module_id][log_ch_id];
@@ -591,7 +590,7 @@ void rlc_data_ind     (
     T(T_ENB_RLC_UL, T_INT(ctxt_pP->module_id), T_INT(ctxt_pP->rnti), T_INT(rb_idP), T_INT(sdu_sizeP));
 #endif
     const ngran_node_t type = RC.rrc[ctxt_pP->module_id]->node_type;
-    AssertFatal(type != ngran_eNB_CU && type != ngran_ng_eNB_CU && type != ngran_gNB_CU,
+    AssertFatal(!NODE_IS_CU(type),
                 "Can't be CU, bad node type %d\n", type);
 
     if (NODE_IS_DU(type) && srb_flagP == 1) {

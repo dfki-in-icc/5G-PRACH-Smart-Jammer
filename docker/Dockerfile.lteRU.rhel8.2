@@ -41,6 +41,7 @@ RUN yum update -y && \
         tzdata \
         procps-ng \
         atlas \
+        gdb \
         python3 \
         python3-pip \
         net-tools \
@@ -53,13 +54,12 @@ RUN yum update -y && \
 
 WORKDIR /opt/oai-lte-ru/bin
 COPY --from=ru-build \
-    /oai-ran/targets/bin/oairu.Rel15 \
+    /oai-ran/cmake_targets/ran_build/build/oairu \
     /oai-ran/docker/scripts/entrypoint.sh \
     .
 
 COPY --from=ru-build \
     /oai-ran/cmake_targets/ran_build/build/liboai_eth_transpro.so \
-    /oai-ran/cmake_targets/ran_build/build/libtcp_bridge_oai.so \
     /oai-ran/cmake_targets/ran_build/build/librfsimulator.so \
     /oai-ran/cmake_targets/ran_build/build/liboai_usrpdevif.so \
     /oai-ran/cmake_targets/ran_build/build/libparams_libconfig.so \
@@ -102,4 +102,4 @@ COPY --from=ru-build /oai-ran/docker/etc/rru* ./
 WORKDIR /opt/oai-lte-ru
 
 ENTRYPOINT ["/opt/oai-lte-ru/bin/entrypoint.sh"]
-CMD ["/opt/oai-lte-ru/bin/oairu.Rel15", "-O", "/opt/oai-lte-ru/etc/rru.conf"]
+CMD ["/opt/oai-lte-ru/bin/oairu", "-O", "/opt/oai-lte-ru/etc/rru.conf"]

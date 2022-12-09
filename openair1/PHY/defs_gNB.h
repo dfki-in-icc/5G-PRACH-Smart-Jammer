@@ -42,6 +42,7 @@
 #include "PHY/defs_common.h"
 #include "PHY/CODING/nrLDPC_extern.h"
 #include "PHY/CODING/nrLDPC_decoder/nrLDPC_types.h"
+#include "executables/rt_profiling.h"
 
 #include "nfapi_nr_interface_scf.h"
 
@@ -89,13 +90,13 @@ typedef struct {
   /// Pointer to the payload
   uint8_t *b;
   /// Pointers to transport block segments
-  uint8_t *c[MAX_NUM_NR_DLSCH_SEGMENTS];
+  uint8_t **c;
   /// Frame where current HARQ round was sent
   uint32_t frame;
   /// Subframe where current HARQ round was sent
   uint32_t subframe;
-  /// MIMO mode for this DLSCH
-  MIMO_mode_t mimo_mode;
+  /// Interleaver outputs
+  uint8_t *f;
   /// LDPC lifting size
   uint32_t Z;
 } NR_DL_gNB_HARQ_t;
@@ -157,47 +158,19 @@ typedef struct {
   /// Pointers to variables related to DLSCH harq process
   NR_DL_gNB_HARQ_t harq_process;
   /// TX buffers for UE-spec transmission (antenna layers 1,...,4 after to precoding)
-  int32_t *txdataF[NR_MAX_NB_LAYERS];
-  /// TX buffers for UE-spec transmission (antenna ports 1000 or 1001,...,1007, before precoding)
-  int32_t *txdataF_precoding[NR_MAX_NB_LAYERS];
+  int32_t **txdataF;
   /// Modulated symbols buffer
-  int32_t *mod_symbs[NR_MAX_NB_CODEWORDS];
+  int32_t **mod_symbs;
   /// beamforming weights for UE-spec transmission (antenna ports 5 or 7..14), for each codeword, maximum 4 layers?
-  int32_t **ue_spec_bf_weights[NR_MAX_NB_LAYERS];
-  /// dl channel estimates (estimated from ul channel estimates)
-  int32_t **calib_dl_ch_estimates;
+  int32_t ***ue_spec_bf_weights;
   /// Allocated RNTI (0 means DLSCH_t is not currently used)
   uint16_t rnti;
   /// Active flag for baseband transmitter processing
   uint8_t active;
   /// HARQ process mask, indicates which processes are currently active
   uint16_t harq_mask;
-  /// Indicator of TX activation per subframe.  Used during PUCCH detection for ACK/NAK.
-  uint8_t slot_tx[80];
-  /// First CCE of last PDSCH scheduling per subframe.  Again used during PUCCH detection for ACK/NAK.
-  uint8_t nCCE[10];
-  /// Process ID's per subframe.  Used to associate received ACKs on PUSCH/PUCCH to DLSCH harq process ids
-  uint8_t harq_ids[2][80];
-  /// Window size (in outgoing transport blocks) for fine-grain rate adaptation
-  uint8_t ra_window_size;
-  /// First-round error threshold for fine-grain rate adaptation
-  uint8_t error_threshold;
   /// Number of soft channel bits
   uint32_t G;
-  /// Codebook index for this dlsch (0,1,2,3)
-  uint8_t codebook_index;
-  /// Maximum number of HARQ processes
-  uint8_t Mdlharq;
-  /// Maximum number of HARQ rounds
-  uint8_t Mlimit;
-  /// MIMO transmission mode indicator for this sub-frame
-  uint8_t Kmimo;
-  /// Nsoft parameter related to UE Category
-  uint32_t Nsoft;
-  /// amplitude of PDSCH (compared to RS) in symbols without pilots
-  int16_t sqrt_rho_a;
-  /// amplitude of PDSCH (compared to RS) in symbols containing pilots
-  int16_t sqrt_rho_b;
 } NR_gNB_DLSCH_t;
 
 typedef struct {
@@ -227,6 +200,11 @@ typedef struct {
 } NR_gNB_PRACH;
 
 typedef struct {
+  uint8_t NumPRSResources;
+  prs_config_t prs_cfg[NR_MAX_PRS_RESOURCES_PER_SET];
+} NR_gNB_PRS;
+
+typedef struct {
   /// Nfapi ULSCH PDU
   nfapi_nr_pusch_pdu_t ulsch_pdu;
   /// Frame where current HARQ round was sent
@@ -235,37 +213,12 @@ typedef struct {
   uint32_t slot;
   /// Index of current HARQ round for this DLSCH
   uint8_t round;
-  uint8_t ndi;
   bool new_rx;
-  /// Last TPC command
-  uint8_t TPC;
-  /// MIMO mode for this DLSCH
-  MIMO_mode_t mimo_mode;
-  /// Flag indicating that this ULSCH has been allocated by a DCI (otherwise it is a retransmission based on PHICH NAK)
-  uint8_t dci_alloc;
-  /// Flag indicating that this ULSCH has been allocated by a RAR (otherwise it is a retransmission based on PHICH NAK or DCI)
-  uint8_t rar_alloc;
   /// Status Flag indicating for this ULSCH (idle,active,disabled)
   NR_SCH_status_t status;
-  /// Subframe scheduling indicator (i.e. Transmission opportunity indicator)
-  uint8_t subframe_scheduling_flag;
-  /// Subframe cba scheduling indicator (i.e. CBA Transmission opportunity indicator)
-  uint8_t subframe_cba_scheduling_flag;
-  /// PHICH active flag
-  uint8_t phich_active;
-  /// PHICH ACK
-  uint8_t phich_ACK;
-  /// First Allocated RB - previous scheduling. This is needed for PHICH generation which is done after a new scheduling
-  uint16_t previous_first_rb;
   /// Flag to indicate that the UL configuration has been handled. Used to remove a stale ULSCH when frame wraps around
   uint8_t handled;
-  /// Flag to indicate that this ULSCH is for calibration information sent from UE (i.e. no MAC SDU to pass up)
-  //  int calibration_flag;
-  /// delta_TF for power control
-  int32_t delta_TF;
-
-  
-  /////////////////////// ulsch decoding ///////////////////////
+    /////////////////////// ulsch decoding ///////////////////////
   /// Transport block size (This is A from 38.212 V15.4.0 section 5.1)
   uint32_t TBS;
   /// Pointer to the payload (38.212 V15.4.0 section 5.1)
@@ -273,7 +226,7 @@ typedef struct {
   /// The payload + CRC (24 bits) in bits (38.212 V15.4.0 section 5.1)
   uint32_t B;
   /// Pointers to code blocks after code block segmentation and CRC attachment (38.212 V15.4.0 section 5.2.2)
-  uint8_t *c[MAX_NUM_NR_ULSCH_SEGMENTS];
+  uint8_t **c;
   /// Number of bits in each code block (38.212 V15.4.0 section 5.2.2)
   uint32_t K;
   /// Number of "Filler" bits added in the code block segmentation (38.212 V15.4.0 section 5.2.2)
@@ -281,69 +234,16 @@ typedef struct {
   /// Number of code blocks after code block segmentation (38.212 V15.4.0 section 5.2.2)
   uint32_t C;
   /// Pointers to code blocks after LDPC coding (38.212 V15.4.0 section 5.3.2)
-  int16_t *d[MAX_NUM_NR_ULSCH_SEGMENTS];
-  /// LDPC processing buffer
-  t_nrLDPC_procBuf* p_nrLDPC_procBuf[MAX_NUM_NR_ULSCH_SEGMENTS];
+  int16_t **d;
   /// LDPC lifting size (38.212 V15.4.0 table 5.3.2-1)
   uint32_t Z;
-  /// code blocks after bit selection in rate matching for LDPC code (38.212 V15.4.0 section 5.4.2.1)
-  int16_t e[MAX_NUM_NR_DLSCH_SEGMENTS][3*8448];
   /// Number of bits in each code block after rate matching for LDPC code (38.212 V15.4.0 section 5.4.2.1)
   uint32_t E;
   /// Number of segments processed so far
   uint32_t processedSegments;
-  //////////////////////////////////////////////////////////////
-
-
-  /////////////////////////// DMRS /////////////////////////////
-  /// n_DMRS  for cyclic shift of DMRS (36.213 Table 9.1.2-2)
-  uint8_t n_DMRS;
-  /// n_DMRS 2 for cyclic shift of DMRS (36.211 Table 5.5.1.1.-1)
-  uint8_t n_DMRS2;
-  /// n_DMRS  for cyclic shift of DMRS (36.213 Table 9.1.2-2) - previous scheduling
-  /// This is needed for PHICH generation which
-  /// is done after a new scheduling
-  uint8_t previous_n_DMRS;
-  //////////////////////////////////////////////////////////////
-
-
-  ///////////////////// UCI multiplexing ///////////////////////
-  /// CQI CRC status
-  uint8_t cqi_crc_status;
-  /// Pointer to CQI data
-  uint8_t o[MAX_CQI_BYTES];
-  /// Format of CQI data
-  UCI_format_t uci_format;
-  /// Length of CQI data under RI=1 assumption(bits)
-  uint8_t Or1;
-  /// Length of CQI data under RI=2 assumption(bits)
-  uint8_t Or2;
-  /// Rank information
-  uint8_t o_RI[2];
-  /// Length of rank information (bits)
-  uint8_t O_RI;
-  /// Pointer to ACK
-  uint8_t o_ACK[4];
-  /// Length of ACK information (bits)
-  uint8_t O_ACK;
-  /// The value of DAI in DCI format 0
-  uint8_t V_UL_DAI;
-  /// "q" sequences for CQI/PMI (for definition see 36-212 V8.6 2009-03, p.27)
-  int8_t q[MAX_CQI_PAYLOAD];
-  /// number of coded CQI bits after interleaving
-  uint8_t o_RCC;
-  /// coded and interleaved CQI bits
-  int8_t o_w[(MAX_CQI_BITS+8)*3];
-  /// coded CQI bits
-  int8_t o_d[96+((MAX_CQI_BITS+8)*3)];
-  /// coded ACK bits
-  int16_t q_ACK[MAX_ACK_PAYLOAD];
-  /// coded RI bits
-  int16_t q_RI[MAX_RI_PAYLOAD];
-  /// Temporary h sequence to flag PUSCH_x/PUSCH_y symbols which are not scrambled
-  uint8_t h[MAX_NUM_CHANNEL_BITS];
-  /// soft bits for each received segment ("w"-sequence)(for definition see 36-212 V8.6 2009-03, p.15)
-  int16_t *w[MAX_NUM_NR_ULSCH_SEGMENTS];
+  /// Last index of LLR buffer that contains information.
+  /// Used for computing LDPC decoder R
+  int llrLen;
   //////////////////////////////////////////////////////////////
 } NR_UL_gNB_HARQ_t;
 
@@ -351,36 +251,12 @@ typedef struct {
 typedef struct {
   /// Pointers to 16 HARQ processes for the ULSCH
   NR_UL_gNB_HARQ_t *harq_processes[NR_MAX_ULSCH_HARQ_PROCESSES];
-  /// Current HARQ process id
-  int harq_process_id[NR_MAX_SLOTS_PER_FRAME];
   /// HARQ process mask, indicates which processes are currently active
   uint16_t harq_mask;
-  /// ACK/NAK Bundling flag
-  uint8_t bundling;
-  /// beta_offset_cqi times 8
-  uint16_t beta_offset_cqi_times8;
-  /// beta_offset_ri times 8
-  uint16_t beta_offset_ri_times8;
-  /// beta_offset_harqack times 8
-  uint16_t beta_offset_harqack_times8;
-  /// Flag to indicate that gNB awaits UE Msg3
-  uint8_t Msg3_active;
-  /// Flag to indicate that gNB should decode UE Msg3
-  uint8_t Msg3_flag;
-  /// Subframe for Msg3
-  uint8_t Msg3_subframe;
-  /// Frame for Msg3
-  uint32_t Msg3_frame;
   /// Allocated RNTI for this ULSCH
   uint16_t rnti;
   /// RNTI type
   uint8_t rnti_type;
-  /// cyclic shift for DM RS
-  uint8_t cyclicShift;
-  /// for cooperative communication
-  uint8_t cooperation_flag;
-  /// Maximum number of HARQ rounds
-  uint8_t Mlimit;
   /// Maximum number of LDPC iterations
   uint8_t max_ldpc_iterations;
   /// number of iterations used in last LDPC decoding
@@ -408,10 +284,6 @@ typedef struct {
 } NR_gNB_SRS_t;
 
 typedef struct {
-  /// \brief Pointers (dynamic) to the received data in the time domain.
-  /// - first index: rx antenna [0..nb_antennas_rx[
-  /// - second index: ? [0..2*ofdm_symbol_size*frame_parms->symbols_per_tti[
-  int32_t **rxdata;
   /// \brief Pointers (dynamic) to the received data in the frequency domain.
   /// - first index: rx antenna [0..nb_antennas_rx[
   /// - second index: ? [0..2*ofdm_symbol_size*frame_parms->symbols_per_tti[
@@ -436,10 +308,6 @@ typedef struct {
   /// - first index: rx antenna id [0..nb_antennas_rx[
   /// - second index: ? [0..2*ofdm_symbol_size[
   int32_t **rxdataF_ext;
-  /// \brief Holds the received data in the frequency domain for the allocated RBs in normal format.
-  /// - first index: rx antenna id [0..nb_antennas_rx[
-  /// - second index (definition from phy_init_lte_eNB()): ? [0..12*N_RB_UL*frame_parms->symbols_per_tti[
-  int32_t **rxdataF_ext2;
   /// \brief Hold the channel estimates in time domain based on DRS.
   /// - first index: rx antenna id [0..nb_antennas_rx[
   /// - second index: ? [0..4*ofdm_symbol_size[
@@ -452,14 +320,6 @@ typedef struct {
   /// - first index: ? [0..7] (hard coded) FIXME! accessed via \c nb_antennas_rx
   /// - second index: ? [0..12*N_RB_UL*frame_parms->symbols_per_tti[
   int32_t **ul_ch_estimates_ext;
-  /// \brief Hold the PTRS phase estimates in frequency domain.
-  /// - first index: rx antenna id [0..nb_antennas_rx[
-  /// - second index: ? [0..12*N_RB_UL*frame_parms->symbols_per_tti[
-  int32_t **ul_ch_ptrs_estimates;
-  /// \brief Uplink phase estimates extracted in PRBS.
-  /// - first index: ? [0..7] (hard coded) FIXME! accessed via \c nb_antennas_rx
-  /// - second index: ? [0..12*N_RB_UL*frame_parms->symbols_per_tti[
-  int32_t **ul_ch_ptrs_estimates_ext;
   /// \brief Holds the compensated signal.
   /// - first index: rx antenna id [0..nb_antennas_rx[
   /// - second index: ? [0..12*N_RB_UL*frame_parms->symbols_per_tti[
@@ -475,7 +335,7 @@ typedef struct {
   /// \brief Cross-correlation of two UE signals.
   /// - first index: rx antenna [0..nb_antennas_rx[
   /// - second index: symbol [0..]
-  int32_t **rho;
+  int32_t ***rho;
   /// \f$\log_2(\max|H_i|^2)\f$
   int16_t log2_maxh;
   /// \brief Magnitude of Uplink Channel first layer (16QAM level/First 64QAM level).
@@ -505,6 +365,10 @@ typedef struct {
   /// \brief llr values.
   /// - first index: ? [0..1179743] (hard coded)
   int16_t *llr;
+  /// \brief llr values per layer.
+  /// - first index: ? [0..3] (hard coded)
+  /// - first index: ? [0..1179743] (hard coded)
+  int16_t **llr_layers;
   /// DMRS symbol index, to be updated every DMRS symbol within a slot.
   uint8_t dmrs_symbol;
   // PTRS symbol index, to be updated every PTRS symbol within a slot.
@@ -591,9 +455,6 @@ typedef struct gNB_L1_proc_t_s {
   int instance_cnt_te;
   /// \internal This variable is protected by \ref mutex_prach.
   int instance_cnt_prach;
-
-  // instance count for over-the-air gNB synchronization
-  int instance_cnt_synch;
   /// \internal This variable is protected by \ref mutex_asynch_rxtx.
   int instance_cnt_asynch_rxtx;
   /// pthread structure for eNB single processing thread
@@ -665,12 +526,10 @@ typedef struct {
   unsigned int   n0_power_tot;
   //! estimated avg noise power (dB)
   unsigned int n0_power_tot_dB;
-  //! estimated avg noise power (dB)
-  int n0_power_tot_dBm;
   //! estimated avg noise power per RB per RX ant (lin)
-  unsigned int n0_subband_power[MAX_NUM_RU_PER_gNB][275];
+  unsigned int n0_subband_power[NB_ANTENNAS_RX][275];
   //! estimated avg noise power per RB per RX ant (dB)
-  unsigned int n0_subband_power_dB[MAX_NUM_RU_PER_gNB][275];
+  unsigned int n0_subband_power_dB[NB_ANTENNAS_RX][275];
   //! estimated avg subband noise power (dB)
   unsigned int n0_subband_power_avg_dB;
   //! estimated avg subband noise power per antenna (dB)
@@ -755,25 +614,20 @@ typedef struct PHY_VARS_gNB_s {
   /// NFAPI PRACH information
   nfapi_nr_prach_indication_preamble_t preamble_list[MAX_NUM_NR_RX_PRACH_PREAMBLES];
 
-  //Sched_Rsp_t         Sched_INFO;
   nfapi_nr_ul_tti_request_t     UL_tti_req;
   nfapi_nr_uci_indication_t uci_indication;
   
-  //  nfapi_nr_dl_tti_pdcch_pdu    *pdcch_pdu;
-  //  nfapi_nr_ul_dci_request_pdus_t  *ul_dci_pdu;
-  uint16_t num_pdsch_rnti[80];
   NR_gNB_PBCH        pbch;
   NR_gNB_COMMON      common_vars;
   NR_gNB_PRACH       prach_vars;
+  NR_gNB_PRS         prs_vars;
   NR_gNB_PUSCH       *pusch_vars[NUMBER_OF_NR_ULSCH_MAX];
   NR_gNB_PUCCH_t     *pucch[NUMBER_OF_NR_PUCCH_MAX];
   NR_gNB_SRS_t       *srs[NUMBER_OF_NR_SRS_MAX];
   NR_gNB_PDCCH_t     pdcch_pdu[NUMBER_OF_NR_PDCCH_MAX];
   NR_gNB_UL_PDCCH_t  ul_pdcch_pdu[NUMBER_OF_NR_PDCCH_MAX];
   NR_gNB_DLSCH_t     *dlsch[NUMBER_OF_NR_DLSCH_MAX][2];    // Nusers times two spatial streams
-  NR_gNB_ULSCH_t     *ulsch[NUMBER_OF_NR_ULSCH_MAX][2];  // [Nusers times][2 codewords] 
-  NR_gNB_DLSCH_t     *dlsch_SI,*dlsch_ra,*dlsch_p;
-  NR_gNB_DLSCH_t     *dlsch_PCH;
+  NR_gNB_ULSCH_t     *ulsch[NUMBER_OF_NR_ULSCH_MAX];  // [Nusers times]
   /// statistics for DLSCH measurement collection
   NR_gNB_SCH_STATS_t dlsch_stats[NUMBER_OF_NR_SCH_STATS_MAX];
   /// statistics for ULSCH measurement collection
@@ -784,8 +638,8 @@ typedef struct PHY_VARS_gNB_s {
   /// SRS variables
   nr_srs_info_t *nr_srs_info[NUMBER_OF_NR_SRS_MAX];
 
-  uint8_t pbch_configured;
-  char gNB_generate_rar;
+  /// CSI variables
+  nr_csi_info_t *nr_csi_info;
 
   // PUCCH0 Look-up table for cyclic-shifts
   NR_gNB_PUCCH0_LUT_t pucch0_lut;
@@ -802,54 +656,51 @@ typedef struct PHY_VARS_gNB_s {
   /// PDSCH DMRS sequence
   uint32_t ****nr_gold_pdsch_dmrs;
 
+  /// PDSCH codebook I precoding LUTs
+  /// first dimension: Rank number [0,...,noOfLayers-1[
+  /// second dimension: PMI [0,...,CodeSize-1[
+  /// third dimension: [i_rows*noOfLayers+j_col], i_rows=0,...pdsch_AntennaPorts-1 and j_col=0,...,noOfLayers-1
+  int32_t ***nr_mimo_precoding_matrix;
+  int pmiq_size[NR_MAX_NB_LAYERS];
+
   /// PUSCH DMRS
   uint32_t ****nr_gold_pusch_dmrs;
 
   // Mask of occupied RBs, per symbol and PRB
   uint32_t rb_mask_ul[14][9];
 
-  /// CSI  RS sequence
-  uint32_t ***nr_gold_csi_rs;
-
-  /// Indicator set to 0 after first SR
-  uint8_t first_sr[NUMBER_OF_NR_SR_MAX];
+  /// PRS sequence
+  uint32_t ****nr_gold_prs;
 
   /// PRACH root sequence
   uint32_t X_u[64][839];
 
-  uint32_t max_peak_val;
-
   /// OFDM symbol offset divisor for UL
   uint32_t ofdm_offset_divisor;
-  /// \brief sinr for all subcarriers of the current link (used only for abstraction).
-  /// first index: ? [0..N_RB_DL*12[
-  double *sinr_dB;
 
-  /// N0 (used for abstraction)
-  double N0;
+  int ldpc_offload_flag;
 
-  unsigned char first_run_I0_measurements;
+  int max_ldpc_iterations;
+  /// indicate the channel estimation technique in time domain
+  int chest_time;
+  /// indicate the channel estimation technique in freq domain
+  int chest_freq;
 
-
-  unsigned char    is_secondary_gNB; // primary by default
-  unsigned char    is_init_sync;     /// Flag to tell if initial synchronization is performed. This affects how often the secondary eNB will listen to the PSS from the primary system.
-  unsigned char    has_valid_precoder; /// Flag to tell if secondary eNB has channel estimates to create NULL-beams from, and this B/F vector is created.
-  unsigned char    PgNB_id;          /// id of Primary eNB
-
-  /// hold the precoder for NULL beam to the primary user
-  int              **dl_precoder_SgNB[3];
-  char             log2_maxp; /// holds the maximum channel/precoder coefficient
-
-  int  prb_interpolation;
-
-  /// if ==0 enables phy only test mode
-  int mac_enabled;
   /// counter to average prach energh over first 100 prach opportunities
   int prach_energy_counter;
+
+  int pdcch_gold_init;
+  int pdsch_gold_init[2];
+  int pusch_gold_init[2];
+
+  int ap_N1;
+  int ap_N2;
+  int ap_XP;
 
   int pucch0_thres;
   int pusch_thres;
   int prach_thres;
+  int srs_thres;
   uint64_t bad_pucch;
   int num_ulprbbl;
   int ulprbbl[275];
@@ -896,18 +747,19 @@ typedef struct PHY_VARS_gNB_s {
   time_stats_t rx_dft_stats;
   time_stats_t ulsch_freq_offset_estimation_stats;
   */
-  notifiedFIFO_t *respDecode;
-  notifiedFIFO_t *resp_L1;
-  notifiedFIFO_t *L1_tx_free;
-  notifiedFIFO_t *L1_tx_filled;
-  notifiedFIFO_t *L1_tx_out;
-  notifiedFIFO_t *resp_RU_tx;
-  tpool_t *threadPool;
+  notifiedFIFO_t respDecode;
+  notifiedFIFO_t resp_L1;
+  notifiedFIFO_t L1_tx_free;
+  notifiedFIFO_t L1_tx_filled;
+  notifiedFIFO_t L1_tx_out;
+  notifiedFIFO_t resp_RU_tx;
+  tpool_t threadPool;
   int nbDecode;
-  uint8_t thread_pool_size;
   int number_of_nr_dlsch_max;
   int number_of_nr_ulsch_max;
-  void * scopeData;
+  void *scopeData;
+  /// structure for analyzing high-level RT measurements
+  rt_L1_profiling_t rt_L1_profiling; 
 } PHY_VARS_gNB;
 
 typedef struct LDPCDecode_s {
@@ -928,8 +780,8 @@ typedef struct LDPCDecode_s {
   int segment_r;
   int r_offset;
   int offset;
-  int Tbslbrm;
   int decodeIterations;
+  uint32_t tbslbrm;
 } ldpcDecode_t;
 
 struct ldpcReqId {

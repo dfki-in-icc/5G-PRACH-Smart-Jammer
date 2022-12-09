@@ -12,16 +12,9 @@
   </tr>
 </table>
 
-**TABLE OF CONTENTS**
+**Table of Contents**
 
-1. [SA setup with COTS UE](#1--sa-setup-with-cots-ue)
-   1.  [gNB build and configuration](#11--gnb-build-and-configuration)
-   2.  [OAI 5G Core Network installation and configuration](#12--oai-5g-core-network-installation-and-configuration)
-   3.  [Execution of SA scenario](#13--execution-of-sa-scenario)
-2. [SA Setup with OAI NR UE Softmodem](#2-sa-setup-with-oai-nr-ue-softmodem)
-   1.  [Build and configuration](#21-build-and-configuration)
-   2.  [OAI 5G Core Network installation and configuration](#22--oai-5g-core-network-installation-and-configuration)
-   3.  [Execution of SA scenario](#23-execution-of-sa-scenario)
+[[_TOC_]]
 
 In the following tutorial we describe how to deploy configure and test the two SA OAI setups:
 
@@ -36,6 +29,8 @@ At the moment of writing this document interoperability with the following COTS 
  - [Quectel RM500Q-GL](https://www.quectel.com/product/5g-rm500q-gl/)
  - [Simcom SIMCOM8200EA](https://www.simcom.com/product/SIM8200EA_M2.html)
  - Huawei Mate 30 Pro
+ - Oneplus 8
+ - Google Pixel 5
 
  End-to-end control plane signaling to achieve a 5G SA connection, UE registration and PDU session establishment with the CN, as well as some basic user-plane traffic tests have been validated so far using SIMCOM/Quectel modules and Huawei Mate 30 pro. In terms of interoperability with different 5G Core Networks, so far this setup has been tested with:
  
@@ -48,7 +43,7 @@ At the moment of writing this document interoperability with the following COTS 
 ## 1.1  gNB build and configuration
 To get the code and build the gNB executable:
 
-### Ubuntu 18.04
+### Build gNB
 ```bash
     git clone https://gitlab.eurecom.fr/oai/openairinterface5g.git
     git checkout develop
@@ -59,42 +54,6 @@ To get the code and build the gNB executable:
     ./build_oai --gNB -w USRP
 ```
 
-### Ubuntu 20.04
-```bash
-    # Build UHD from source
-    # https://files.ettus.com/manual/page_build_guide.html
-    sudo apt-get install libboost-all-dev libusb-1.0-0-dev doxygen python3-docutils python3-mako python3-numpy python3-requests python3-ruamel.yaml python3-setuptools cmake build-essential
-    
-    git clone https://github.com/EttusResearch/uhd.git
-    cd uhd/host
-    mkdir build
-    cd build
-    cmake ../
-    make -j 4
-    make test # This step is optional
-    sudo make install
-    sudo ldconfig
-    sudo uhd_images_downloader
-
-
-    git clone https://gitlab.eurecom.fr/oai/openairinterface5g.git
-    git checkout develop
-    
-    # Install dependencies in Ubuntu 20.04
-    cd
-    cd openairinterface5g/
-    source oaienv
-    cd cmake_targets/
-    ./install_external_packages.ubuntu20
-    
-    # Build OAI gNB
-    cd
-    cd openairinterface5g/
-    source oaienv
-    cd cmake_targets/
-    ./build_oai --gNB -w USRP
-```
-
 A reference configuration file for the **monolithic** gNB is provided  [here](https://gitlab.eurecom.fr/oai/openairinterface5g/-/blob/develop/targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band78.fr1.106PRB.usrpb210.conf).     
 
 
@@ -102,21 +61,7 @@ In the following, we highlight the fields of the file that have to be configured
 ```bash
     // Tracking area code, 0x0000 and 0xfffe are reserved values
     tracking_area_code  =  1;
-    plmn_list = ({
-			 mcc = 208;
-			 mnc = 99;
-			 mnc_length = 2;
-			 snssaiList = (
-			 {
-				sst = 1;
-				sd  = 0x1; // 0 false, else true
-			 },
-			 {
-				 sst = 1;
-				 sd  = 0x112233; // 0 false, else true
-			 }
-			);
-		});
+    plmn_list = ({ mcc = 208; mnc = 99; mnc_length = 2; snssaiList = ({ sst = 1 }) });
 ```
 Then, the source and destination IP interfaces for the communication with
 the Core Network also need to be set as shown below.
@@ -215,21 +160,6 @@ nssai_sd=1;
 }
 ```
 
-Alternatively, the values can be hardcoded/edited in source file ***openair3/UICC/usim_interface.c*** through the following lines:
-```bash
-#define UICC_PARAMS_DESC {\
-    {"imsi",             "USIM IMSI\n",          0,         strptr:&(uicc->imsiStr),              defstrval:"2089900007487",           TYPE_STRING,    0 },\
-    {"nmc_size"          "number of digits in NMC", 0,      iptr:&(uicc->nmc_size),               defintval:2,         TYPE_INT,       0 },\
-    {"key",              "USIM Ki\n",            0,         strptr:&(uicc->keyStr),               defstrval:"fec86ba6eb707ed08905757b1bb44b8f", TYPE_STRING,    0 },\
-    {"opc",              "USIM OPc\n",           0,         strptr:&(uicc->opcStr),               defstrval:"c42449363bbad02b66d16bc975d77cc1", TYPE_STRING,    0 },\
-    {"amf",              "USIM amf\n",           0,         strptr:&(uicc->amfStr),               defstrval:"8000",    TYPE_STRING,    0 },\
-    {"sqn",              "USIM sqn\n",           0,         strptr:&(uicc->sqnStr),               defstrval:"000000",  TYPE_STRING,    0 },\
-    {"dnn",              "UE dnn (apn)\n",       0,         strptr:&(uicc->dnnStr),               defstrval:"oai",     TYPE_STRING,    0 },\
-    {"nssai_sst",        "UE nssai\n",           0,         iptr:&(uicc->nssai_sst),              defintval:1,    TYPE_INT,    0 }, \
-    {"nssai_sd",         "UE nssai\n",           0,         iptr:&(uicc->nssai_sd),               defintval:1,    TYPE_INT,    0 }, \
-  };
-```
-
 For interoperability with OAI or other CNs, it should be ensured that the configuration of the aforementioned parameters match the configuration of the corresponding subscribed user at the core network.
 
 
@@ -276,5 +206,22 @@ the gNB can be launched in 2 modes:
 sudo RFSIMULATOR=127.0.0.1 ./nr-uesoftmodem -r 106 --numerology 1 --band 78 -C 3619200000 \
     --rfsim --sa --nokrnmod -O <PATH_TO_UE_CONF_FILE>
 ```
+
+If you get the following error:
+
+```bash
+Assertion (k2 >= ((5))) failed!
+In get_k2() /home/mir/workspace/openairinterface5g/openair2/LAYER2/NR_MAC_UE/nr_ue_scheduler.c:147
+Slot offset K2 (2) cannot be less than DURATION_RX_TO_TX (5). K2 set according to min_rxtxtime in config file.
+```
+
+Add the following parameter (i.e., min_rxtxtime) in the gNB configuration file, just after nr_cellid.
+
+```bash
+nr_cellid = 12345678L;
+min_rxtxtime=6;
+```
+or --gNBs.[0].min_rxtxtime 6 to the gNB command line
+
 
 The IP address at the execution command of the OAI UE corresponds to the target IP of the gNB host that the RFSIMULATOR at the UE will connect to. In the above example, we assume that the gNB and UE are running on the same host so the specified address (127.0.0.1) is the one of the loopback interface.  

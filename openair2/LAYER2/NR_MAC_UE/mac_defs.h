@@ -38,9 +38,6 @@
 #include <string.h>
 #include "platform_types.h"
 
-/* PHY */
-#include "PHY/defs_nr_common.h"
-
 /* IF */
 #include "NR_IF_Module.h"
 #include "fapi_nr_ue_interface.h"
@@ -64,17 +61,14 @@
 #include "NR_CellGroupConfig.h"
 #include "NR_ServingCellConfig.h"
 #include "NR_MeasConfig.h"
-#include "fapi_nr_ue_interface.h"
-#include "NR_IF_Module.h"
-#include "PHY/defs_nr_common.h"
-#include "openair2/LAYER2/NR_MAC_COMMON/nr_mac.h"
+
 
 // ==========
 // NR UE defs
 // ==========
 
 #define NB_NR_UE_MAC_INST 1
-#define MAX_NUM_BWP       2
+#define MAX_NUM_BWP_UE       4
 #define NUM_SLOT_FRAME    10
 
 /*!\brief value for indicating BSR Timer is not running */
@@ -243,6 +237,31 @@ typedef enum {
 } RA_state_t;
 
 typedef struct {
+  /// PRACH format retrieved from prach_ConfigIndex
+  uint16_t prach_format;
+  /// Preamble Tx Counter
+  uint8_t RA_PREAMBLE_TRANSMISSION_COUNTER;
+  /// Preamble Power Ramping Counter
+  uint8_t RA_PREAMBLE_POWER_RAMPING_COUNTER;
+  /// 2-step RA power offset
+  int POWER_OFFSET_2STEP_RA;
+  /// Target received power at gNB. Baseline is range -202..-60 dBm. Depends on delta preamble, power ramping counter and step.
+  int ra_PREAMBLE_RECEIVED_TARGET_POWER;
+  /// PRACH index for TDD (0 ... 6) depending on TDD configuration and prachConfigIndex
+  uint8_t ra_TDD_map_index;
+  /// RA Preamble Power Ramping Step in dB
+  uint32_t RA_PREAMBLE_POWER_RAMPING_STEP;
+  ///
+  uint8_t RA_PREAMBLE_BACKOFF;
+  ///
+  uint8_t RA_SCALING_FACTOR_BI;
+  /// Indicating whether it is 2-step or 4-step RA
+  nr_ra_type_e RA_TYPE;
+  /// UE configured maximum output power
+  int RA_PCMAX;
+} NR_PRACH_RESOURCES_t;
+
+typedef struct {
 
   // pointer to RACH config dedicated
   NR_RACH_ConfigDedicated_t *rach_ConfigDedicated;
@@ -302,6 +321,8 @@ typedef struct {
 
   /// RA SearchSpace
   NR_SearchSpace_t *ss;
+
+  NR_PRACH_RESOURCES_t prach_resources;
 } RA_config_t;
 
 typedef struct {
@@ -344,6 +365,14 @@ typedef struct {
   int8_t delta_pucch;
 } PUCCH_sched_t;
 
+typedef struct {
+
+  uint32_t ssb_index;
+  /// SSB RSRP in dBm
+  short ssb_rsrp_dBm;
+
+} NR_PHY_meas_t;
+
 
 /*!\brief Top level UE MAC structure */
 typedef struct {
@@ -355,7 +384,7 @@ typedef struct {
   NR_CSI_ReportConfig_t           *csirc;
   long                            physCellId;
   ////  MAC config
-  int                             common_configuration_complete;
+  int                             first_sync_frame;
   NR_DRX_Config_t                 *drx_Config;
   NR_SchedulingRequestConfig_t    *schedulingRequestConfig;
   NR_BSR_Config_t                 *bsr_Config;
@@ -364,14 +393,14 @@ typedef struct {
   NR_RNTI_Value_t                 *cs_RNTI;
   NR_MIB_t                        *mib;
 
-  NR_BWP_Downlink_t               *DLbwp[MAX_NUM_BWP];
-  NR_BWP_Uplink_t                 *ULbwp[MAX_NUM_BWP];
   NR_BWP_DownlinkDedicated_t         *initDLbwp;
   NR_BWP_UplinkDedicated_t           *initULbwp;
-  NR_ControlResourceSet_t         *coreset[MAX_NUM_BWP][FAPI_NR_MAX_CORESET_PER_BWP];
-  NR_SearchSpace_t                *SSpace[MAX_NUM_BWP][FAPI_NR_MAX_SS];
+  NR_BWP_Downlink_t               *DLbwp[MAX_NUM_BWP_UE];
+  NR_BWP_Uplink_t                 *ULbwp[MAX_NUM_BWP_UE];
+  NR_ControlResourceSet_t         *coreset[MAX_NUM_BWP_UE][FAPI_NR_MAX_CORESET_PER_BWP];
+  NR_SearchSpace_t                *SSpace[MAX_NUM_BWP_UE][FAPI_NR_MAX_SS];
 
-  lte_frame_type_t frame_type;
+  frame_type_t frame_type;
 
   /*BWP*/
   // dedicated active DL BWP
@@ -398,8 +427,11 @@ typedef struct {
   RA_config_t ra;
   /// SSB index from MIB decoding
   uint8_t mib_ssb;
-  /// measured SSB RSRP in dBm
-  short ssb_rsrp_dBm;
+
+  nr_csi_report_t csi_report_template[MAX_CSI_REPORTCONFIG];
+
+  /// measurements from CSI-RS
+  fapi_nr_csirs_measurements_t csirs_measurements;
 
   /// Last NDI of UL HARQ processes
   uint8_t UL_ndi[NR_MAX_HARQ_PROCESSES];
@@ -417,7 +449,7 @@ typedef struct {
   uint8_t BSR_reporting_active;
 
   /// LogicalChannelConfig has bearer.
-  boolean_t logicalChannelBearer_exist[NR_MAX_NUM_LCID];
+  bool logicalChannelBearer_exist[NR_MAX_NUM_LCID];
   NR_UE_SCHEDULING_INFO   scheduling_info;
 
   /// PHR
@@ -430,11 +462,13 @@ typedef struct {
   uint16_t nr_band;
   uint8_t ssb_subcarrier_offset;
 
+  NR_PHY_meas_t phy_measurements;
+
   dci_pdu_rel15_t def_dci_pdu_rel15[8];
 
   // Defined for abstracted mode
   nr_downlink_indication_t dl_info;
-  NR_UE_HARQ_STATUS_t dl_harq_info[16];
+  NR_UE_HARQ_STATUS_t dl_harq_info[NR_MAX_HARQ_PROCESSES];
 
   nr_emulated_l1_t nr_ue_emul_l1;
 
@@ -442,85 +476,6 @@ typedef struct {
 
 } NR_UE_MAC_INST_t;
 
-typedef enum seach_space_mask_e {
-    type0_pdcch  = 0x1, 
-    type0a_pdcch = 0x2,
-    type1_pdcch  = 0x4, 
-    type2_pdcch  = 0x8,
-    type3_pdcch  = 0x10
-} search_space_mask_t;
-
-typedef struct {
-  uint8_t identifier_dci_formats          ; // 0  IDENTIFIER_DCI_FORMATS:
-  uint8_t carrier_ind                     ; // 1  CARRIER_IND: 0 or 3 bits, as defined in Subclause x.x of [5, TS38.213]
-  uint8_t sul_ind_0_1                     ; // 2  SUL_IND_0_1:
-  uint8_t slot_format_ind                 ; // 3  SLOT_FORMAT_IND: size of DCI format 2_0 is configurable by higher layers up to 128 bits, according to Subclause 11.1.1 of [5, TS 38.213]
-  uint8_t pre_emption_ind                 ; // 4  PRE_EMPTION_IND: size of DCI format 2_1 is configurable by higher layers up to 126 bits, according to Subclause 11.2 of [5, TS 38.213]. Each pre-emption indication is 14 bits
-  uint8_t block_number                    ; // 5  BLOCK_NUMBER: starting position of a block is determined by the parameter startingBitOfFormat2_3
-  uint8_t close_loop_ind                  ; // 6  CLOSE_LOOP_IND:
-  uint8_t bandwidth_part_ind              ; // 7  BANDWIDTH_PART_IND:
-  uint8_t short_message_ind               ; // 8  SHORT_MESSAGE_IND:
-  uint8_t short_messages                  ; // 9  SHORT_MESSAGES:
-  uint16_t freq_dom_resource_assignment_UL; // 10 FREQ_DOM_RESOURCE_ASSIGNMENT_UL: PUSCH hopping with resource allocation type 1 not considered
-  //    (NOTE 1) If DCI format 0_0 is monitored in common search space
-  //    and if the number of information bits in the DCI format 0_0 prior to padding
-  //    is larger than the payload size of the DCI format 1_0 monitored in common search space
-  //    the bitwidth of the frequency domain resource allocation field in the DCI format 0_0
-  //    is reduced such that the size of DCI format 0_0 equals to the size of the DCI format 1_0
-  uint16_t freq_dom_resource_assignment_DL; // 11 FREQ_DOM_RESOURCE_ASSIGNMENT_DL:
-  uint8_t time_dom_resource_assignment    ; // 12 TIME_DOM_RESOURCE_ASSIGNMENT: 0, 1, 2, 3, or 4 bits as defined in Subclause 6.1.2.1 of [6, TS 38.214]. The bitwidth for this field is determined as log2(I) bits,
-  //    where I the number of entries in the higher layer parameter pusch-AllocationList
-  uint8_t vrb_to_prb_mapping              ; // 13 VRB_TO_PRB_MAPPING: 0 bit if only resource allocation type 0
-  uint8_t prb_bundling_size_ind           ; // 14 PRB_BUNDLING_SIZE_IND:0 bit if the higher layer parameter PRB_bundling is not configured or is set to 'static', or 1 bit if the higher layer parameter PRB_bundling is set to 'dynamic' according to Subclause 5.1.2.3 of [6, TS 38.214]
-  uint8_t rate_matching_ind               ; // 15 RATE_MATCHING_IND: 0, 1, or 2 bits according to higher layer parameter rate-match-PDSCH-resource-set
-  uint8_t zp_csi_rs_trigger               ; // 16 ZP_CSI_RS_TRIGGER:
-  uint8_t freq_hopping_flag               ; // 17 FREQ_HOPPING_FLAG: 0 bit if only resource allocation type 0
-  uint8_t tb1_mcs                         ; // 18 TB1_MCS:
-  uint8_t tb1_ndi                         ; // 19 TB1_NDI:
-  uint8_t tb1_rv                          ; // 20 TB1_RV:
-  uint8_t tb2_mcs                         ; // 21 TB2_MCS:
-  uint8_t tb2_ndi                         ; // 22 TB2_NDI:
-  uint8_t tb2_rv                          ; // 23 TB2_RV:
-  uint8_t mcs                             ; // 24 MCS:
-  uint8_t ndi                             ; // 25 NDI:
-  uint8_t rv                              ; // 26 RV:
-  uint8_t harq_process_number             ; // 27 HARQ_PROCESS_NUMBER:
-  uint8_t dai                             ; // 28 DAI: For format1_1: 4 if more than one serving cell are configured in the DL and the higher layer parameter HARQ-ACK-codebook=dynamic, where the 2 MSB bits are the counter DAI and the 2 LSB bits are the total DAI
-  //    2 if one serving cell is configured in the DL and the higher layer parameter HARQ-ACK-codebook=dynamic, where the 2 bits are the counter DAI
-  //    0 otherwise
-  uint8_t first_dai                       ; // 29 FIRST_DAI: (1 or 2 bits) 1 bit for semi-static HARQ-ACK
-  uint8_t second_dai                      ; // 30 SECOND_DAI: (0 or 2 bits) 2 bits for dynamic HARQ-ACK codebook with two HARQ-ACK sub-codebooks
-  uint8_t tb_scaling                      ; // 31 TB_SCALING:
-  uint8_t tpc_pusch                       ; // 32 TPC_PUSCH:
-  uint8_t tpc_pucch                       ; // 33 TPC_PUCCH:
-  uint8_t pucch_resource_ind              ; // 34 PUCCH_RESOURCE_IND:
-  uint8_t pdsch_to_harq_feedback_time_ind ; // 35 PDSCH_TO_HARQ_FEEDBACK_TIME_IND:
-  uint8_t srs_resource_ind                ; // 36 SRS_RESOURCE_IND:
-  uint8_t precod_nbr_layers               ; // 37 PRECOD_NBR_LAYERS:
-  uint8_t antenna_ports                   ; // 38 ANTENNA_PORTS:
-  uint8_t tci                             ; // 39 TCI: 0 bit if higher layer parameter tci-PresentInDCI is not enabled; otherwise 3 bits
-  uint8_t srs_request                     ; // 40 SRS_REQUEST:
-  uint8_t tpc_cmd                         ; // 41 TPC_CMD:
-  uint8_t csi_request                     ; // 42 CSI_REQUEST:
-  uint8_t cbgti                           ; // 43 CBGTI: 0, 2, 4, 6, or 8 bits determined by higher layer parameter maxCodeBlockGroupsPerTransportBlock for the PDSCH
-  uint8_t cbgfi                           ; // 44 CBGFI: 0 or 1 bit determined by higher layer parameter codeBlockGroupFlushIndicator
-  uint8_t ptrs_dmrs                       ; // 45 PTRS_DMRS:
-  uint8_t beta_offset_ind                 ; // 46 BETA_OFFSET_IND:
-  uint8_t dmrs_seq_ini                    ; // 47 DMRS_SEQ_INI: 1 bit if the cell has two ULs and the number of bits for DCI format 1_0 before padding
-  //    is larger than the number of bits for DCI format 0_0 before padding; 0 bit otherwise
-  uint8_t ul_sch_ind                      ; // 48 UL_SCH_IND:  value of "1" indicates UL-SCH shall be transmitted on the PUSCH and a value of "0" indicates UL-SCH shall not be transmitted on the PUSCH
-  uint16_t padding_nr_dci                 ; // 49 PADDING_NR_DCI: (Note 2) If DCI format 0_0 is monitored in common search space
-  //    and if the number of information bits in the DCI format 0_0 prior to padding
-  //    is less than the payload size of the DCI format 1_0 monitored in common search space
-  //    zeros shall be appended to the DCI format 0_0
-  //    until the payload size equals that of the DCI format 1_0
-  uint8_t sul_ind_0_0                     ; // 50 SUL_IND_0_0:
-  uint8_t ra_preamble_index               ; // 51 RA_PREAMBLE_INDEX:
-  uint8_t sul_ind_1_0                     ; // 52 SUL_IND_1_0:
-  uint8_t ss_pbch_index                   ; // 53 SS_PBCH_INDEX
-  uint8_t prach_mask_index                ; // 54 PRACH_MASK_INDEX
-  uint8_t reserved_nr_dci                 ; // 55 RESERVED_NR_DCI
-} nr_dci_pdu_rel15_t;
 
 // The PRACH Config period is a series of selected slots in one or multiple frames
 typedef struct prach_conf_period {
@@ -548,7 +503,7 @@ typedef struct prach_association_pattern {
 
 // SSB details
 typedef struct ssb_info {
-  boolean_t transmitted; // True if the SSB index is transmitted according to the SSB positions map configuration
+  bool transmitted; // True if the SSB index is transmitted according to the SSB positions map configuration
   prach_occasion_info_t *mapped_ro[MAX_NB_RO_PER_SSB_IN_ASSOCIATION_PATTERN]; // List of mapped RACH Occasions to this SSB index
   uint16_t nb_mapped_ro; // Total number of mapped ROs to this SSB index
 } ssb_info_t;
@@ -560,12 +515,6 @@ typedef struct ssb_list_info {
 } ssb_list_info_t;
 
 void config_dci_pdu(NR_UE_MAC_INST_t *mac, fapi_nr_dl_config_dci_dl_pdu_rel15_t *rel15, fapi_nr_dl_config_request_t *dl_config, int rnti_type, int ss_id);
-#define CCE_TRIAL
-#ifdef CCE_TRIAL
-void fill_dci_search_candidates(NR_SearchSpace_t *ss,fapi_nr_dl_config_dci_dl_pdu_rel15_t *rel15, int slot, int rnti);
-#else
-void fill_dci_search_candidates(NR_SearchSpace_t *ss,fapi_nr_dl_config_dci_dl_pdu_rel15_t *rel15);
-#endif
 
 /*@}*/
 #endif /*__LAYER2_MAC_DEFS_H__ */

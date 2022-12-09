@@ -51,6 +51,8 @@
 #define CONFIG_STRING_L1_PUCCH0_DTX_THRESHOLD              "pucch0_dtx_threshold"
 #define CONFIG_STRING_L1_PRACH_DTX_THRESHOLD               "prach_dtx_threshold"
 #define CONFIG_STRING_L1_PUSCH_DTX_THRESHOLD               "pusch_dtx_threshold"
+#define CONFIG_STRING_L1_SRS_DTX_THRESHOLD                 "srs_dtx_threshold"
+#define CONFIG_STRING_L1_MAX_LDPC_ITERATIONS               "max_ldpc_iterations"
 /*----------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*                                            L1 configuration parameters                                                                             */
 /*   optname                                         helpstr   paramflags    XXXptr              defXXXval                  type           numelt     */
@@ -65,11 +67,13 @@
 {CONFIG_STRING_L1_REMOTE_N_PORTC,                    NULL,      0,         uptr:NULL,           defintval:50030,           TYPE_UINT,     0},         \
 {CONFIG_STRING_L1_LOCAL_N_PORTD,                     NULL,      0,         uptr:NULL,           defintval:50031,           TYPE_UINT,     0},         \
 {CONFIG_STRING_L1_REMOTE_N_PORTD,                    NULL,      0,         uptr:NULL,           defintval:50031,           TYPE_UINT,     0},         \
-{CONFIG_STRING_L1_THREAD_POOL_SIZE, "Maximum number of CPU cores for L1 processing (either max HW CPU cores or this value is used)",      0,         uptr:NULL,           defintval:4,               TYPE_UINT,     0},         \
+{CONFIG_STRING_L1_THREAD_POOL_SIZE, "thread_pool_size paramter removed, please use --thread-pool",      0,         uptr:NULL,           defintval:2022,               TYPE_UINT,     0},         \
 {CONFIG_STRING_L1_OFDM_OFFSET_DIVISOR,               NULL,      0,         uptr:NULL,           defuintval:8,              TYPE_UINT,     0},         \
 {CONFIG_STRING_L1_PUCCH0_DTX_THRESHOLD,              NULL,      0,         uptr:NULL,           defintval:100,             TYPE_UINT,     0},         \
 {CONFIG_STRING_L1_PRACH_DTX_THRESHOLD,               NULL,      0,         uptr:NULL,           defintval:150,             TYPE_UINT,     0},         \
-{CONFIG_STRING_L1_PUSCH_DTX_THRESHOLD,               NULL,      0,         uptr:NULL,           defintval:50,              TYPE_UINT,     0}          \
+{CONFIG_STRING_L1_PUSCH_DTX_THRESHOLD,               NULL,      0,         uptr:NULL,           defintval:50,              TYPE_UINT,     0},         \
+{CONFIG_STRING_L1_SRS_DTX_THRESHOLD,                 NULL,      0,         uptr:NULL,           defintval:50,              TYPE_UINT,     0},         \
+{CONFIG_STRING_L1_MAX_LDPC_ITERATIONS,               NULL,      0,         uptr:NULL,           defintval:5,               TYPE_UINT,     0},          \
 }
 #define L1_CC_IDX                                          0
 #define L1_TRANSPORT_N_PREFERENCE_IDX                      1
@@ -85,6 +89,8 @@
 #define L1_PUCCH0_DTX_THRESHOLD                            11
 #define L1_PRACH_DTX_THRESHOLD                             12
 #define L1_PUSCH_DTX_THRESHOLD                             13
+#define L1_SRS_DTX_THRESHOLD                               14
+#define L1_MAX_LDPC_ITERATIONS                             15
 
 /*----------------------------------------------------------------------------------------------------------------------------------------------------*/
 #endif

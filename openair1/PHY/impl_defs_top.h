@@ -175,15 +175,9 @@
 
 #define NB_ANTENNA_PORTS_ENB  6                                         // total number of eNB antenna ports
 
-#ifdef EXMIMO
-#define TARGET_RX_POWER 55    // Target digital power for the AGC
-#define TARGET_RX_POWER_MAX 55    // Maximum digital power, such that signal does not saturate (value found by simulation)
-#define TARGET_RX_POWER_MIN 50    // Minimum digital power, anything below will be discarded (value found by simulation)
-#else
 #define TARGET_RX_POWER 50    // Target digital power for the AGC
 #define TARGET_RX_POWER_MAX 65    // Maximum digital power, such that signal does not saturate (value found by simulation)
 #define TARGET_RX_POWER_MIN 35    // Minimum digital power, anything below will be discarded (value found by simulation)
-#endif
 
 //the min and max gains have to match the calibrated gain table
 //#define MAX_RF_GAIN 160
@@ -275,8 +269,6 @@
 /* FFS_NR_TODO it defines ue capability which is the number of slots     */
 /* - between reception of pdsch and tarnsmission of its acknowlegment    */
 /* - between reception of un uplink grant and its related transmission   */
-/* - FIXME temprarily set to 5 to avoid timing issues at OAI UE in rfsimulator */
-/* - issues caused by no rendez-vous point between TX and RX in the OAI UE     */
 // #define NR_UE_CAPABILITY_SLOT_RX_TO_TX           (4) 
 #define NR_UE_CAPABILITY_SLOT_RX_TO_TX           (3) 
 
@@ -313,7 +305,7 @@ typedef struct {
 #define NUMBER_OF_HARQ_PID_MAX 8
 
 #define MAX_FRAME_NUMBER 0x400
-#include "openairinterface5g_limits.h"
+#include "common/openairinterface5g_limits.h"
 #include "assertions.h"
 
 #endif //__PHY_IMPLEMENTATION_DEFS_H__ 

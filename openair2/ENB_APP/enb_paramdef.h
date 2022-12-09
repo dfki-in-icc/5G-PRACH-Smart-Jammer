@@ -99,6 +99,29 @@ typedef enum {
 #define CONFIG_STRING_RU_IF_FREQUENCY             "if_freq"
 #define CONFIG_STRING_RU_IF_FREQ_OFFSET           "if_offset"
 #define CONFIG_STRING_RU_DO_PRECODING             "do_precoding"
+#define CONFIG_STRING_RU_SF_AHEAD                 "sf_ahead"
+#define CONFIG_STRING_RU_SL_AHEAD                 "sl_ahead"
+#define CONFIG_STRING_RU_NR_FLAG                  "nr_flag"
+#define CONFIG_STRING_RU_NR_SCS_FOR_RASTER        "nr_scs_for_raster"
+#define CONFIG_STRING_RU_TX_SUBDEV                "tx_subdev"
+#define CONFIG_STRING_RU_RX_SUBDEV                "rx_subdev"
+#define CONFIG_STRING_RU_RXFH_CORE_ID             "rxfh_core_id"
+#define CONFIG_STRING_RU_TXFH_CORE_ID             "txfh_core_id"
+#define CONFIG_STRING_RU_TP_CORES                 "tp_cores"
+#define CONFIG_STRING_RU_NUM_TP_CORES             "num_tp_cores"
+#define CONFIG_STRING_RU_NUM_INTERFACES           "num_interfaces"
+#define CONFIG_STRING_RU_HALF_SLOT_PARALLELIZATION "half_slot_parallelization"
+
+#define HLP_RU_SF_AHEAD "LTE TX processing advance"
+#define HLP_RU_SL_AHEAD "NR TX processing advance"
+#define HLP_RU_NR_FLAG "Use NR numerology (for AW2SORI)"
+#define HLP_RU_NR_SCS_FOR_RASTER "NR SCS for raster (for AW2SORI)"
+#define HLP_RU_RXFH_CORE_ID "Core ID for RX Fronthaul thread (ECPRI IF5)"
+#define HLP_RU_TXFH_CORE_ID "Core ID for TX Fronthaul thread (ECPRI IF5)"
+#define HLP_RU_TP_CORES "List of cores for RU ThreadPool"
+#define HLP_RU_NUM_TP_CORES "Number of cores for RU ThreadPool"
+#define HLP_RU_NUM_INTERFACES "Number of network interfaces for RU"
+#define HLP_RU_HALF_SLOT_PARALLELIZATION "run half slots in parallel in RU FEP"
 
 #define RU_LOCAL_IF_NAME_IDX          0
 #define RU_LOCAL_ADDRESS_IDX          1
@@ -129,6 +152,18 @@ typedef enum {
 #define RU_IF_FREQUENCY               26
 #define RU_IF_FREQ_OFFSET             27
 #define RU_DO_PRECODING               28
+#define RU_SF_AHEAD                   29
+#define RU_SL_AHEAD                   30 
+#define RU_NR_FLAG                    31 
+#define RU_NR_SCS_FOR_RASTER          32
+#define RU_TX_SUBDEV                  33
+#define RU_RX_SUBDEV                  34
+#define RU_RXFH_CORE_ID               35
+#define RU_TXFH_CORE_ID               36
+#define RU_TP_CORES                   37
+#define RU_NUM_TP_CORES               38
+#define RU_NUM_INTERFACES             39
+#define RU_HALF_SLOT_PARALLELIZATION  40
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 /*                                            RU configuration parameters                                                                  */
 /*   optname                                   helpstr   paramflags    XXXptr          defXXXval                   type      numelt        */
@@ -163,6 +198,18 @@ typedef enum {
     {CONFIG_STRING_RU_IF_FREQUENCY,                NULL,       0,       u64ptr:NULL,     defuintval:0,            TYPE_UINT64,      0}, \
     {CONFIG_STRING_RU_IF_FREQ_OFFSET,              NULL,       0,       iptr:NULL,       defintval:0,             TYPE_INT,         0}, \
     {CONFIG_STRING_RU_DO_PRECODING,                NULL,       0,       iptr:NULL,       defintval:0,             TYPE_INT,         0}, \
+    {CONFIG_STRING_RU_SF_AHEAD,          HLP_RU_SF_AHEAD,      0,       iptr:NULL,       defintval:4,             TYPE_INT,         0}, \
+    {CONFIG_STRING_RU_SL_AHEAD,          HLP_RU_SL_AHEAD,      0,       iptr:NULL,       defintval:6,             TYPE_INT,         0}, \
+    {CONFIG_STRING_RU_NR_FLAG,           HLP_RU_NR_FLAG,       0,       iptr:NULL,       defintval:0,             TYPE_INT,         0}, \
+    {CONFIG_STRING_RU_NR_SCS_FOR_RASTER, HLP_RU_NR_SCS_FOR_RASTER, 0,   iptr:NULL,       defintval:1,             TYPE_INT,         0}, \
+    {CONFIG_STRING_RU_TX_SUBDEV,                   NULL,       0,       strptr:NULL,     defstrval:"",            TYPE_STRING,      0}, \
+    {CONFIG_STRING_RU_RX_SUBDEV,                   NULL,       0,       strptr:NULL,     defstrval:"",            TYPE_STRING,      0}, \
+    {CONFIG_STRING_RU_RXFH_CORE_ID, HLP_RU_RXFH_CORE_ID,       0,       uptr:NULL,       defintval:0,             TYPE_UINT,         0}, \
+    {CONFIG_STRING_RU_TXFH_CORE_ID, HLP_RU_TXFH_CORE_ID,       0,       uptr:NULL,       defintval:0,             TYPE_UINT,         0}, \
+    {CONFIG_STRING_RU_TP_CORES, HLP_RU_TP_CORES,               0,       uptr:NULL,       defintarrayval:DEFRUTPCORES,  TYPE_INTARRAY,    8}, \
+    {CONFIG_STRING_RU_NUM_TP_CORES, HLP_RU_NUM_TP_CORES,       0,       uptr:NULL,       defintval:2,             TYPE_UINT,         0}, \
+    {CONFIG_STRING_RU_NUM_INTERFACES, HLP_RU_NUM_INTERFACES,    0,       uptr:NULL,       defintval:1,             TYPE_UINT,         0}, \
+    {CONFIG_STRING_RU_HALF_SLOT_PARALLELIZATION, HLP_RU_HALF_SLOT_PARALLELIZATION,    0,       uptr:NULL,       defintval:1,             TYPE_UINT,         0}, \
   }
 
 /*---------------------------------------------------------------------------------------------------------------------------------------*/
@@ -1105,34 +1152,6 @@ typedef struct srb1_params_s {
 /* L1 configuration section names   */
 #define CONFIG_STRING_L1_LIST                              "L1s"
 #define CONFIG_STRING_L1_CONFIG                            "l1_config"
-
-/*----------------------------------------------------------------------------------------------------------------------------------------------------*/
-
-/*----------------------------------------------------------------------------------------------------------------------------------------------------*/
-#define CONFIG_STRING_NETWORK_CONTROLLER_CONFIG         "NETWORK_CONTROLLER"
-
-#define CONFIG_STRING_FLEXRAN_ENABLED             "FLEXRAN_ENABLED"
-#define CONFIG_STRING_FLEXRAN_INTERFACE_NAME      "FLEXRAN_INTERFACE_NAME"
-#define CONFIG_STRING_FLEXRAN_IPV4_ADDRESS        "FLEXRAN_IPV4_ADDRESS"
-#define CONFIG_STRING_FLEXRAN_PORT                "FLEXRAN_PORT"
-#define CONFIG_STRING_FLEXRAN_CACHE               "FLEXRAN_CACHE"
-#define CONFIG_STRING_FLEXRAN_AWAIT_RECONF        "FLEXRAN_AWAIT_RECONF"
-
-#define FLEXRAN_ENABLED                               0
-#define FLEXRAN_INTERFACE_NAME_IDX                    1
-#define FLEXRAN_IPV4_ADDRESS_IDX                      2
-#define FLEXRAN_PORT_IDX                              3
-#define FLEXRAN_CACHE_IDX                             4
-#define FLEXRAN_AWAIT_RECONF_IDX                      5
-
-#define FLEXRANPARAMS_DESC { \
-    {CONFIG_STRING_FLEXRAN_ENABLED,                NULL,   0,   strptr:NULL,   defstrval:"no",                    TYPE_STRING,   0},           \
-    {CONFIG_STRING_FLEXRAN_INTERFACE_NAME,         NULL,   0,   strptr:NULL,   defstrval:"lo",                    TYPE_STRING,   0},           \
-    {CONFIG_STRING_FLEXRAN_IPV4_ADDRESS,           NULL,   0,   strptr:NULL,   defstrval:"127.0.0.1",             TYPE_STRING,   0},           \
-    {CONFIG_STRING_FLEXRAN_PORT,                   NULL,   0,   uptr:NULL,     defintval:2210,                    TYPE_UINT,     0},           \
-    {CONFIG_STRING_FLEXRAN_CACHE,                  NULL,   0,   strptr:NULL,   defstrval:"/mnt/oai_agent_cache",  TYPE_STRING,   0},           \
-    {CONFIG_STRING_FLEXRAN_AWAIT_RECONF,           NULL,   0,   strptr:NULL,   defstrval:"no",                    TYPE_STRING,   0}            \
-  }
 
 /*----------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*----------------------------------------------------------------------------------------------------------------------------------------------------*/

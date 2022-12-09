@@ -415,7 +415,7 @@ rb_found:
       T_INT(ue->rnti), T_INT(rb_id), T_INT(size));
 
     const ngran_node_t type = RC.rrc[0 /*ctxt_pP->module_id*/]->node_type;
-    AssertFatal(type != ngran_eNB_CU && type != ngran_ng_eNB_CU && type != ngran_gNB_CU,
+    AssertFatal(!NODE_IS_CU(type),
                 "Can't be CU, bad node type %d\n", type);
 
     if (NODE_IS_DU(type)) {
@@ -1064,4 +1064,16 @@ void du_rlc_data_req(const protocol_ctxt_t *const ctxt_pP,
 		confirmP,
 		sdu_sizeP,
 		sdu_pP, NULL, NULL);
+}
+
+/* HACK to be removed: nr_rlc_get_available_tx_space is needed by
+ * openair3/ocp-gtpu/gtp_itf.cpp which is compiled in lte-softmodem
+ * so let's put a dummy nr_rlc_get_available_tx_space here
+ */
+int nr_rlc_get_available_tx_space(
+  const rnti_t            rntiP,
+  const logical_chan_id_t channel_idP)
+{
+  abort();
+  return 0;
 }

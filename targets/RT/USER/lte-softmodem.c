@@ -47,8 +47,8 @@
 #undef MALLOC //there are two conflicting definitions, so we better make sure we don't use it at all
 //#undef FRAME_LENGTH_COMPLEX_SAMPLES //there are two conflicting definitions, so we better make sure we don't use it at all
 
-#include "../../ARCH/COMMON/common_lib.h"
-#include "../../ARCH/ETHERNET/USERSPACE/LIB/if_defs.h"
+#include "radio/COMMON/common_lib.h"
+#include "radio/ETHERNET/USERSPACE/LIB/if_defs.h"
 
 //#undef FRAME_LENGTH_COMPLEX_SAMPLES //there are two conflicting definitions, so we better make sure we don't use it at all
 
@@ -96,7 +96,6 @@ pthread_cond_t nfapi_sync_cond;
 pthread_mutex_t nfapi_sync_mutex;
 int nfapi_sync_var=-1; //!< protected by mutex \ref nfapi_sync_mutex
 
-uint16_t sf_ahead=4;
 
 pthread_cond_t sync_cond;
 pthread_mutex_t sync_mutex;
@@ -107,7 +106,7 @@ uint16_t runtime_phy_rx[29][6]; // SISO [MCS 0-28][RBs 0-5 : 6, 15, 25, 50, 75, 
 uint16_t runtime_phy_tx[29][6]; // SISO [MCS 0-28][RBs 0-5 : 6, 15, 25, 50, 75, 100]
 
 
-volatile int             oai_exit = 0;
+int oai_exit = 0;
 
 uint64_t                 downlink_frequency[MAX_NUM_CCs][4];
 int32_t                  uplink_frequency_offset[MAX_NUM_CCs][4];
@@ -389,92 +388,6 @@ void terminate_task(module_id_t mod_id, task_id_t from, task_id_t to) {
 extern void  free_transport(PHY_VARS_eNB *);
 extern void  phy_free_RU(RU_t *);
 
-int stop_L1L2(module_id_t enb_id) {
-  LOG_W(ENB_APP, "stopping lte-softmodem\n");
-
-  if (!RC.ru) {
-    LOG_UI(ENB_APP, "no RU configured\n");
-    return -1;
-  }
-
-  /* these tasks need to pick up new configuration */
-  terminate_task(enb_id, TASK_ENB_APP, TASK_RRC_ENB);
-  oai_exit = 1;
-  LOG_I(ENB_APP, "calling kill_RU_proc() for instance %d\n", enb_id);
-  kill_RU_proc(RC.ru[enb_id]);
-  LOG_I(ENB_APP, "calling kill_eNB_proc() for instance %d\n", enb_id);
-  kill_eNB_proc(enb_id);
-  oai_exit = 0;
-
-  for (int cc_id = 0; cc_id < RC.nb_CC[enb_id]; cc_id++) {
-    free_transport(RC.eNB[enb_id][cc_id]);
-    phy_free_lte_eNB(RC.eNB[enb_id][cc_id]);
-  }
-
-  phy_free_RU(RC.ru[enb_id]);
-  free_lte_top();
-  return 0;
-}
-
-/*
- * Restart the lte-softmodem after it has been soft-stopped with stop_L1L2()
- */
-int restart_L1L2(module_id_t enb_id) {
-  int cc_id;
-  MessageDef *msg_p = NULL;
-  LOG_W(ENB_APP, "restarting lte-softmodem\n");
-  /* block threads */
-  pthread_mutex_lock(&sync_mutex);
-  sync_var = -1;
-  pthread_mutex_unlock(&sync_mutex);
-
-  for (cc_id = 0; cc_id < RC.nb_L1_CC[enb_id]; cc_id++) {
-    RC.eNB[enb_id][cc_id]->configured = 0;
-    for (int ru_id=0;ru_id<RC.eNB[enb_id][cc_id]->num_RU;ru_id++) {
-      int ru_idx = RC.eNB[enb_id][cc_id]->RU_list[ru_id]->idx;
-      RC.ru_mask |= (1 << ru_idx);
-      set_function_spec_param(RC.ru[ru_idx]);
-    }
-  }
-  /* reset the list of connected UEs in the MAC, since in this process with
-   * loose all UEs (have to reconnect) */
-  init_UE_info(&RC.mac[enb_id]->UE_info);
-  LOG_I(ENB_APP, "attempting to create ITTI tasks\n");
-
-  if (itti_create_task (TASK_RRC_ENB, rrc_enb_task, NULL) < 0) {
-    LOG_E(RRC, "Create task for RRC eNB failed\n");
-    return -1;
-  } else {
-    LOG_I(RRC, "Re-created task for RRC eNB successfully\n");
-  }
-
-  /* pass a reconfiguration request which will configure everything down to
-   * RC.eNB[i][j]->frame_parms, too */
-  msg_p = itti_alloc_new_message(TASK_ENB_APP, 0, RRC_CONFIGURATION_REQ);
-  RRC_CONFIGURATION_REQ(msg_p) = RC.rrc[enb_id]->configuration;
-  itti_send_msg_to_task(TASK_RRC_ENB, ENB_MODULE_ID_TO_INSTANCE(enb_id), msg_p);
-  /* TODO XForms might need to be restarted, but it is currently (09/02/18)
-   * broken, so we cannot test it */
-  wait_eNBs();
-  for (int cc_id=0;cc_id<RC.nb_L1_CC[enb_id]; cc_id++) {
-    for (int ru_id=0;ru_id<RC.eNB[enb_id][cc_id]->num_RU;ru_id++) {
-      int ru_idx = RC.eNB[enb_id][cc_id]->RU_list[ru_id]->idx;
-
-      init_RU_proc(RC.ru[ru_idx]);
-      RC.ru[ru_idx]->rf_map.card = 0;
-      RC.ru[ru_idx]->rf_map.chain = 0; /* CC_id + chain_offset;*/
-    }
-  }
-  wait_RUs();
-  init_eNB_afterRU();
-  printf("Sending sync to all threads\n");
-  pthread_mutex_lock(&sync_mutex);
-  sync_var=0;
-  pthread_cond_broadcast(&sync_cond);
-  pthread_mutex_unlock(&sync_mutex);
-  return 0;
-}
-
 static void init_pdcp(void) {
   if (!NODE_IS_DU(RC.rrc[0]->node_type)) {
     pdcp_layer_init();
@@ -510,7 +423,6 @@ static  void wait_nfapi_init(char *thread_name) {
 
 int main ( int argc, char **argv )
 {
-  int i;
   int CC_id = 0;
   int ru_id;
   int node_type = ngran_eNB;
@@ -565,22 +477,7 @@ int main ( int argc, char **argv )
     RCconfig_L1();
   }
 
-  /* We need to read RU configuration before FlexRAN starts so it knows what
-   * splits to report. Actual RU start comes later. */
-  if (RC.nb_RU > 0 && NFAPI_MODE != NFAPI_MODE_VNF) {
-    RC.ru = RCconfig_RU(RC.nb_RU,RC.nb_L1_inst,RC.eNB,&RC.ru_mask,&RC.ru_mutex,&RC.ru_cond);
-    LOG_I(PHY,
-          "number of L1 instances %d, number of RU %d, number of CPU cores %d\n",
-          RC.nb_L1_inst, RC.nb_RU, get_nprocs());
-  }
-
   if (RC.nb_inst > 0) {
-    /* Start the agent. If it is turned off in the configuration, it won't start */
-    for (i = 0; i < RC.nb_inst; i++) {
-      if(NFAPI_MODE != NFAPI_MODE_PNF)
-      flexran_agent_start(i);
-    }
-    
     /* initializes PDCP and sets correct RLC Request/PDCP Indication callbacks
      * for monolithic/F1 modes */
    init_pdcp();
@@ -646,18 +543,14 @@ int main ( int argc, char **argv )
       for (int CC_id=0; CC_id<RC.nb_L1_CC[x]; CC_id++) {
         L1_rxtx_proc_t *L1proc= &RC.eNB[x][CC_id]->proc.L1_proc;
         L1_rxtx_proc_t *L1proctx= &RC.eNB[x][CC_id]->proc.L1_proc_tx;
-	L1proc->threadPool=(tpool_t*)malloc(sizeof(tpool_t));
-        L1proc->respEncode=(notifiedFIFO_t*) malloc(sizeof(notifiedFIFO_t));
+        L1proc->threadPool = (tpool_t *)malloc(sizeof(tpool_t));
         L1proc->respDecode=(notifiedFIFO_t*) malloc(sizeof(notifiedFIFO_t));
         if ( strlen(get_softmodem_params()->threadPoolConfig) > 0 )
          initTpool(get_softmodem_params()->threadPoolConfig, L1proc->threadPool, true);
         else
-         initTpool("n", L1proc->threadPool, true);
-        initNotifiedFIFO(L1proc->respEncode);
+          initTpool("n", L1proc->threadPool, true);
         initNotifiedFIFO(L1proc->respDecode);
-        L1proctx->threadPool=L1proc->threadPool;
-        L1proctx->respEncode=L1proc->respEncode;
-        L1proctx->nbEncode=L1proc->nbEncode;
+        L1proctx->threadPool = L1proc->threadPool;
     }
 
 
@@ -670,8 +563,11 @@ int main ( int argc, char **argv )
   // RU thread and some L1 procedure aren't necessary in VNF or L2 FAPI simulator.
   // but RU thread deals with pre_scd and this is necessary in VNF and simulator.
   // some initialization is necessary and init_ru_vnf do this.
-  if (RC.nb_RU >0 && NFAPI_MODE!=NFAPI_MODE_VNF) {
-    printf("Initializing RU threads\n");
+  if (RC.nb_RU > 0 && NFAPI_MODE != NFAPI_MODE_VNF) {
+    RC.ru = RCconfig_RU(RC.nb_RU, RC.nb_L1_inst, RC.eNB, &RC.ru_mask, &RC.ru_mutex, &RC.ru_cond);
+    LOG_I(PHY,
+          "number of L1 instances %d, number of RU %d, number of CPU cores %d: Initializing RU threads\n",
+          RC.nb_L1_inst, RC.nb_RU, get_nprocs());
     init_RU(RC.ru,RC.nb_RU,RC.eNB,RC.nb_L1_inst,RC.nb_L1_CC,get_softmodem_params()->rf_config_file,get_softmodem_params()->send_dmrs_sync);
     
     for (ru_id=0; ru_id<RC.nb_RU; ru_id++) {
@@ -710,12 +606,10 @@ int main ( int argc, char **argv )
     sync_var=0;
     pthread_cond_broadcast(&sync_cond);
     pthread_mutex_unlock(&sync_mutex);
-    create_tasks_mbms(1);
     config_check_unknown_cmdlineopt(CONFIG_CHECKALLSECTIONS);
   }
-  else
-    create_tasks_mbms(1);
-  //create_tasks_mbms(1);
+
+  create_tasks_mbms(1);
 
   // wait for end of program
   LOG_UI(ENB_APP,"TYPE <CTRL-C> TO TERMINATE\n");

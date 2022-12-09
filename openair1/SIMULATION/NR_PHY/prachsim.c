@@ -54,6 +54,7 @@
 #include <openair2/RRC/NR_UE/rrc_defs.h>
 //#include "openair1/SIMULATION/NR_PHY/nr_dummy_functions.c"
 #include <openair3/ocp-gtpu/gtp_itf.h>
+#include "executables/nr-uesoftmodem.h"
 
 #define NR_PRACH_DEBUG 1
 #define PRACH_WRITE_OUTPUT_DEBUG 1
@@ -92,9 +93,21 @@ int oai_nfapi_nr_rach_indication(nfapi_nr_rach_indication_t *ind) { return(0);  
 //Fixme: Uniq dirty DU instance, by global var, datamodel need better management
 instance_t DUuniqInstance=0;
 instance_t CUuniqInstance=0;
-teid_t newGtpuCreateTunnel(instance_t instance, rnti_t rnti, int incoming_bearer_id, int outgoing_bearer_id, teid_t outgoing_teid,
-                           transport_layer_addr_t remoteAddr, int port, gtpCallback callBack) {
-return 0;
+teid_t newGtpuCreateTunnel(instance_t instance,
+                           rnti_t rnti,
+                           int incoming_bearer_id,
+                           int outgoing_bearer_id,
+                           teid_t outgoing_teid,
+                           int qfi,
+                           transport_layer_addr_t remoteAddr,
+                           int port,
+                           gtpCallback callBack,
+                           gtpCallbackSDAP callBackSDAP) {
+  return 0;
+}
+
+int newGtpuDeleteAllTunnels(instance_t instance, rnti_t rnti) {
+  return 0;
 }
 
 void
@@ -211,17 +224,13 @@ int DU_send_INITIAL_UL_RRC_MESSAGE_TRANSFER(module_id_t     module_idP,
   return 0;
 }
 
-typedef struct {
-  uint64_t       optmask;   //mask to store boolean config options
-  uint8_t        nr_dlsch_parallel; // number of threads for dlsch decoding, 0 means no parallelization
-  tpool_t        Tpool;             // thread pool
-} nrUE_params_t;
-
 nrUE_params_t nrUE_params;
 
 nrUE_params_t *get_nrUE_params(void) {
   return &nrUE_params;
 }
+
+nr_bler_struct nr_bler_data[NR_NUM_MCS];
 
 void processSlotTX(void *arg) {}
 
@@ -234,7 +243,7 @@ int main(int argc, char **argv){
   int i, l, aa, aarx, **txdata, trial, n_frames = 1, prach_start, rx_prach_start; //, ntrials=1;
   int N_RB_UL = 106, delay = 0, NCS_config = 13, rootSequenceIndex = 1, threequarter_fs = 0, mu = 1, fd_occasion = 0, loglvl = OAILOG_INFO, numRA = 0, prachStartSymbol = 0;
   uint8_t snr1set = 0, ue_speed1set = 0, transmission_mode = 1, n_tx = 1, n_rx = 1, awgn_flag = 0, msg1_frequencystart = 0, num_prach_fd_occasions = 1, prach_format=0;
-  uint8_t frame = 1, slot=19, slot_gNB=19, config_index = 98, prach_sequence_length = 1, restrictedSetConfig = 0, N_dur, N_t_slot, start_symbol;
+  uint8_t config_index = 98, prach_sequence_length = 1, restrictedSetConfig = 0, N_dur, N_t_slot, start_symbol;
   uint16_t Nid_cell = 0, preamble_tx = 0, preamble_delay, format, format0, format1;
   uint32_t tx_lev = 10000, prach_errors = 0; //,tx_lev_dB;
   uint64_t SSB_positions = 0x01;
@@ -255,7 +264,6 @@ int main(int argc, char **argv){
   int n_bytes=0;
 
   NR_DL_FRAME_PARMS *frame_parms;
-  NR_PRACH_RESOURCES_t prach_resources;
   nfapi_nr_prach_config_t *prach_config;
   nfapi_nr_prach_pdu_t *prach_pdu;
   fapi_nr_prach_config_t *ue_prach_config;
@@ -530,7 +538,7 @@ int main(int argc, char **argv){
   frame_parms->N_RB_UL          = N_RB_UL;
   frame_parms->threequarter_fs  = threequarter_fs;
   frame_parms->frame_type       = TDD;
-  frame_parms->freq_range       = (mu==1 ? nr_FR1 : nr_FR2);
+  frame_parms->freq_range       = (mu != 3 ? nr_FR1 : nr_FR2);
   frame_parms->numerology_index = mu;
 
   nr_phy_config_request_sim(gNB, N_RB_UL, N_RB_UL, mu, Nid_cell, SSB_positions);
@@ -540,9 +548,11 @@ int main(int argc, char **argv){
 				       frame_parms->numerology_index,
 				       frame_parms->N_RB_UL*(180e3)*(1 << frame_parms->numerology_index));
 
-  uint8_t subframe = slot/frame_parms->slots_per_subframe;
+  uint8_t frame = 1;
+  uint8_t subframe = 9;
+  uint8_t slot = 10 * frame_parms->slots_per_subframe - 1;
   
-  if (config_index<67 && mu==1)  { prach_sequence_length=0; slot = subframe*2; slot_gNB = 1+(subframe*2); }
+  if (config_index<67 && mu != 3)  { prach_sequence_length=0; slot = subframe * frame_parms->slots_per_subframe; }
   uint16_t N_ZC = prach_sequence_length == 0 ? 839 : 139;
 
   printf("Config_index %d, prach_sequence_length %d\n",config_index,prach_sequence_length);
@@ -563,9 +573,11 @@ int main(int argc, char **argv){
   ru->gNB_list[0]    = gNB;
   gNB->gNB_config.carrier_config.num_tx_ant.value = 1;
   gNB->gNB_config.carrier_config.num_rx_ant.value = 1;
-  if (mu==1)
+  if (mu == 0)
+    gNB->gNB_config.tdd_table.tdd_period.value = 7;
+  else if (mu == 1)
     gNB->gNB_config.tdd_table.tdd_period.value = 6;
-  else if (mu==3)
+  else if (mu == 3)
     gNB->gNB_config.tdd_table.tdd_period.value = 3;
   else {
     printf("unsupported numerology %d\n",mu);
@@ -579,7 +591,7 @@ int main(int argc, char **argv){
 
   int ret = get_nr_prach_info_from_index(config_index,
 					 (int)frame,
-					 (int)slot_gNB,
+					 (int)slot,
 					 absoluteFrequencyPointA,
 					 mu,
 					 frame_parms->frame_type,
@@ -681,7 +693,6 @@ int main(int argc, char **argv){
 
   ue_prach_pdu           = &UE->prach_vars[0]->prach_pdu;
   ue_prach_config        = &UE->nrUE_config.prach_config;
-  UE->prach_resources[0] = &prach_resources;
   txdata                 = UE->common_vars.txdata;
 
   UE->prach_vars[0]->amp        = AMP;
@@ -704,19 +715,13 @@ int main(int argc, char **argv){
   if (n_frames == 1)
     printf("raPreamble %d\n",preamble_tx);
 
-  UE->prach_resources[0]->ra_PreambleIndex = preamble_tx;
-  UE->prach_resources[0]->init_msg1 = 1;
+  ue_prach_pdu->ra_PreambleIndex = preamble_tx;
 
   // Configure channel
   bw = N_RB_UL*(180e3)*(1 << frame_parms->numerology_index);
   AssertFatal(bw<=122.88e6,"Illegal channel bandwidth %f (mu %d,N_RB_UL %d)\n", bw, frame_parms->numerology_index, N_RB_UL);
 
-  if (bw <= 30.72e6)
-    fs = 30.72e6;
-  else if (bw <= 61.44e6)
-    fs = 61.44e6;
-  else if (bw <= 122.88e6)
-    fs = 122.88e6;
+  fs = frame_parms->samples_per_subframe * 1e3;
 
   LOG_I(PHY,"Running with bandwidth %f Hz, fs %f samp/s, FRAME_LENGTH_COMPLEX_SAMPLES %d\n",bw,fs,FRAME_LENGTH_COMPLEX_SAMPLES);
 
@@ -726,9 +731,11 @@ int main(int argc, char **argv){
                                 fs,
                                 bw,
                                 DS_TDL,
+                                CORR_LEVEL_LOW,
                                 0.0,
                                 delay,
-                                0, 0);
+                                0,
+                                0);
 
   if (UE2gNB==NULL) {
     printf("Problem generating channel model. Exiting.\n");
@@ -759,14 +766,7 @@ int main(int argc, char **argv){
                        ue_prach_config->num_prach_fd_occasions_list[fd_occasion].prach_root_sequence_index,
                        UE->X_u);
 
-  /*tx_lev = generate_nr_prach(UE,
-			     0, //gNB_id,
-			     subframe); */ //commented for testing purpose
-
-  UE_nr_rxtx_proc_t proc={0};
-  proc.frame_tx   = frame;
-  proc.nr_slot_tx = slot;
-  nr_ue_prach_procedures(UE, &proc, 0);
+  generate_nr_prach(UE, 0, frame, slot);
 
   /* tx_lev_dB not used later, no need to set */
   //tx_lev_dB = (unsigned int) dB_fixed(tx_lev);
@@ -832,31 +832,31 @@ int main(int argc, char **argv){
       for (trial=0; trial<n_frames; trial++) {
 
 	if (input_fd==NULL) {
-        sigma2_dB = 10*log10((double)tx_lev) - SNR - 10*log10(N_RB_UL*12/N_ZC);
+          sigma2_dB = 10*log10((double)tx_lev) - SNR - 10*log10(N_RB_UL*12/N_ZC);
 
-        if (n_frames==1)
-          printf("sigma2_dB %f (SNR %f dB) tx_lev_dB %f\n",sigma2_dB,SNR,10*log10((double)tx_lev));
+          if (n_frames==1)
+            printf("sigma2_dB %f (SNR %f dB) tx_lev_dB %f\n",sigma2_dB,SNR,10*log10((double)tx_lev));
 
-        //AWGN
-        sigma2 = pow(10,sigma2_dB/10);
-        //  printf("Sigma2 %f (sigma2_dB %f)\n",sigma2,sigma2_dB);
+          //AWGN
+          sigma2 = pow(10,sigma2_dB/10);
+          //  printf("Sigma2 %f (sigma2_dB %f)\n",sigma2,sigma2_dB);
 
-        if (awgn_flag == 0) {
-          multipath_tv_channel(UE2gNB, s_re, s_im, r_re, r_im, frame_parms->samples_per_frame, 0);
-        }
-
-        if (n_frames==1) {
-          printf("rx_level data symbol %f, tx_lev %f\n",
-                 10*log10(signal_energy_fp(r_re,r_im,1,OFDM_SYMBOL_SIZE_COMPLEX_SAMPLES,0)),
-                 10*log10(tx_lev));
-        }
-
-        for (i = 0; i< frame_parms->samples_per_subframe; i++) {
-          for (aa = 0; aa < frame_parms->nb_antennas_rx; aa++) {
-            ((short*) &ru->common.rxdata[aa][rx_prach_start])[2*i] = (short) (.167*(r_re[aa][i] +sqrt(sigma2/2)*gaussdouble(0.0,1.0)));
-            ((short*) &ru->common.rxdata[aa][rx_prach_start])[2*i+1] = (short) (.167*(r_im[aa][i] + (iqim*r_re[aa][i]) + sqrt(sigma2/2)*gaussdouble(0.0,1.0)));
+          if (awgn_flag == 0) {
+            multipath_tv_channel(UE2gNB, s_re, s_im, r_re, r_im, frame_parms->samples_per_frame, 0);
           }
-        }
+
+          if (n_frames==1) {
+            printf("rx_level data symbol %f, tx_lev %f\n",
+                   10*log10(signal_energy_fp(r_re,r_im,1,OFDM_SYMBOL_SIZE_COMPLEX_SAMPLES,0)),
+                   10*log10(tx_lev));
+          }
+
+          for (i = 0; i< frame_parms->samples_per_subframe; i++) {
+            for (aa = 0; aa < frame_parms->nb_antennas_rx; aa++) {
+              ((short*) &ru->common.rxdata[aa][rx_prach_start])[2*i] = (short) (.167*(r_re[aa][i] +sqrt(sigma2/2)*gaussdouble(0.0,1.0)));
+              ((short*) &ru->common.rxdata[aa][rx_prach_start])[2*i+1] = (short) (.167*(r_im[aa][i] + (iqim*r_re[aa][i]) + sqrt(sigma2/2)*gaussdouble(0.0,1.0)));
+            }
+          }
 	} else {
 	  n_bytes = fread(&ru->common.rxdata[0][rx_prach_start],sizeof(int32_t),frame_parms->samples_per_subframe,input_fd);
 	  printf("fread %d bytes from file %s\n",n_bytes,input_file);

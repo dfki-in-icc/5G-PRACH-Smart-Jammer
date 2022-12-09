@@ -48,125 +48,7 @@
 #include "PHY/NR_REFSIG/sss_nr.h"
 #include "PHY/NR_UE_TRANSPORT/cic_filter_nr.h"
 
-/*******************************************************************
-*
-* NAME :         get_idft
-*
-* PARAMETERS :   size of ofdm symbol
-*
-* RETURN :       index pointing to the dft func in the dft library
-*
-* DESCRIPTION :  get idft function depending of ofdm size
-*
-*********************************************************************/
-
 //#define DBG_PSS_NR
-
-idft_size_idx_t get_idft(int ofdm_symbol_size)
-{
-  
- 
-  switch (ofdm_symbol_size) {
-    case 128:
-      return IDFT_128;
-      break;
-
-    case 256:
-      return IDFT_256;
-      break;
-
-    case 512:
-      return IDFT_512;
-      break;
-
-    case 1024:
-      return IDFT_1024;
-      break;
-
-    case 1536:
-      return IDFT_1536;
-      break;
-
-    case 2048:
-      return IDFT_2048;
-      break;
-
-    case 3072:
-      return IDFT_3072;
-      break;
-
-    case 4096:
-      return IDFT_4096;
-      break;
-
-    case 8192:
-      return IDFT_8192;
-      break;
-
-    default:
-      printf("function get_idft : unsupported ofdm symbol size \n");
-      assert(0);
-      break;
- }
- return IDFT_SIZE_IDXTABLESIZE; // never reached and will trigger assertion in idft function
-}
-
-/*******************************************************************
-*
-* NAME :         get_dft
-*
-* PARAMETERS :   size of ofdm symbol
-*
-* RETURN :       function for discrete fourier transform
-*
-* DESCRIPTION :  get dft function depending of ofdm size
-*
-*********************************************************************/
-
-dft_size_idx_t get_dft(int ofdm_symbol_size)
-{
-
-
-  switch (ofdm_symbol_size) {
-    case 128:
-      return DFT_128;
-      break;
-
-    case 256:
-      return DFT_256;
-      break;
-
-    case 512:
-      return DFT_512;
-      break;
-
-    case 1024:
-      return DFT_1024;
-      break;
-
-    case 1536:
-      return DFT_1536;
-      break;
-
-    case 2048:
-      return DFT_2048;
-      break;
-
-    case 4096:
-      return DFT_4096;
-      break;
-
-    case 8192:
-      return DFT_8192;
-      break;
-
-    default:
-      printf("function get_dft : unsupported ofdm symbol size \n");
-      assert(0);
-      break;
- }
- return DFT_SIZE_IDXTABLESIZE; // never reached and will trigger assertion in idft function;
-}
 
 /*******************************************************************
 *
@@ -381,7 +263,6 @@ void init_context_pss_nr(NR_DL_FRAME_PARMS *frame_parms_ue)
   int sizePss = LENGTH_PSS_NR * IQ_SIZE;  /* complex value i & q signed 16 bits */
   int size = ofdm_symbol_size * IQ_SIZE; /* i and q samples signed 16 bits */
   int16_t *p = NULL;
-  int64_t *q = NULL;
 
   AssertFatal(ofdm_symbol_size > 127, "illegal ofdm_symbol_size %d\n",ofdm_symbol_size);
   for (int i = 0; i < NUMBER_PSS_SEQUENCE; i++) {
@@ -410,17 +291,6 @@ void init_context_pss_nr(NR_DL_FRAME_PARMS *frame_parms_ue)
      assert(0);
     }
 
-    size = sizeof(int64_t)*(frame_parms_ue->samples_per_frame + (2*ofdm_symbol_size));
-    q = (int64_t*)malloc16(size);
-    if (q != NULL) {
-      pss_corr_ue[i] = q;
-      bzero( pss_corr_ue[i], size);
-    }
-    else {
-      LOG_E(PHY,"Fatal memory allocation problem \n");
-      assert(0);
-    }
-
     generate_pss_nr(frame_parms_ue,i);
   }
 }
@@ -443,7 +313,6 @@ void free_context_pss_nr(void)
     free_and_zero(primary_synchro_nr[i]);
     free_and_zero(primary_synchro_nr2[i]);
     free_and_zero(primary_synchro_time_nr[i]);
-    free_and_zero(pss_corr_ue[i]);
   }
 }
 
@@ -731,24 +600,6 @@ int pss_synchro_nr(PHY_VARS_NR_UE *PHY_vars_UE, int is, int rate_change)
 }
 
 
-static inline int abs32(int x)
-{
-  return (((int)((short*)&x)[0])*((int)((short*)&x)[0]) + ((int)((short*)&x)[1])*((int)((short*)&x)[1]));
-}
-
-static inline int64_t abs64(int64_t x)
-{
-  return (((int64_t)((int32_t*)&x)[0])*((int64_t)((int32_t*)&x)[0]) + ((int64_t)((int32_t*)&x)[1])*((int64_t)((int32_t*)&x)[1]));
-}
-
-static inline double angle64(int64_t x)
-{
-
-  double re=((int32_t*)&x)[0];
-  double im=((int32_t*)&x)[1];
-  return (atan2(im,re));
-}
-
 
 /*******************************************************************
 *
@@ -800,8 +651,6 @@ static inline double angle64(int64_t x)
 *
 *********************************************************************/
 
-#define DOT_PRODUCT_SCALING_SHIFT    (17)
-
 int pss_search_time_nr(int **rxdata, ///rx data in time domain
                        NR_DL_FRAME_PARMS *frame_parms,
 		       int fo_flag,
@@ -811,8 +660,7 @@ int pss_search_time_nr(int **rxdata, ///rx data in time domain
 {
   unsigned int n, ar, peak_position, pss_source;
   int64_t peak_value;
-  int64_t result;
-  int64_t avg[NUMBER_PSS_SEQUENCE];
+  int64_t avg[NUMBER_PSS_SEQUENCE]={0};
   double ffo_est=0;
 
   // performing the correlation on a frame length plus one symbol for the first of the two frame
@@ -823,9 +671,8 @@ int pss_search_time_nr(int **rxdata, ///rx data in time domain
   else
     length = frame_parms->samples_per_frame;
 
-  AssertFatal(length>0,"illegal length %d\n",length);
-  for (int i = 0; i < NUMBER_PSS_SEQUENCE; i++) AssertFatal(pss_corr_ue[i] != NULL,"pss_corr_ue[%d] not yet allocated! Exiting.\n", i);
 
+  AssertFatal(length>0,"illegal length %d\n",length);
   peak_value = 0;
   peak_position = 0;
   pss_source = 0;
@@ -846,73 +693,54 @@ int pss_search_time_nr(int **rxdata, ///rx data in time domain
   /* Correlation computation is based on a a dot product which is realized thank to SIMS extensions */
 
   for (int pss_index = 0; pss_index < NUMBER_PSS_SEQUENCE; pss_index++) {
-    avg[pss_index]=0;
-    memset(pss_corr_ue[pss_index],0,length*sizeof(int64_t)); 
-  }
+    for (n = 0; n < length; n += 8) { //
 
-  for (n=0; n < length; n+=4) { //
+      int64_t pss_corr_ue=0;
+      /* calculate dot product of primary_synchro_time_nr and rxdata[ar][n]
+       * (ar=0..nb_ant_rx) and store the sum in temp[n]; */
+      for (ar=0; ar<frame_parms->nb_antennas_rx; ar++) {
 
-    for (int pss_index = 0; pss_index < NUMBER_PSS_SEQUENCE; pss_index++) {
+        /* perform correlation of rx data and pss sequence ie it is a dot product */
+        const c32_t result = dot_product((c16_t *)primary_synchro_time_nr[pss_index], (c16_t *)&(rxdata[ar][n + is * frame_parms->samples_per_frame]), frame_parms->ofdm_symbol_size, shift);
+        const c64_t r64 = {.r = result.r, .i = result.i};
+        pss_corr_ue += squaredMod(r64);
+        //((short*)pss_corr_ue[pss_index])[2*n] += ((short*) &result)[0];   /* real part */
+        //((short*)pss_corr_ue[pss_index])[2*n+1] += ((short*) &result)[1]; /* imaginary part */
+        //((short*)&synchro_out)[0] += ((int*) &result)[0];               /* real part */
+        //((short*)&synchro_out)[1] += ((int*) &result)[1];               /* imaginary part */
 
-      if ( n < (length - frame_parms->ofdm_symbol_size)) {
-
-        /* calculate dot product of primary_synchro_time_nr and rxdata[ar][n] (ar=0..nb_ant_rx) and store the sum in temp[n]; */
-        for (ar=0; ar<frame_parms->nb_antennas_rx; ar++) {
-
-          /* perform correlation of rx data and pss sequence ie it is a dot product */
-          result  = dot_product64((short*)primary_synchro_time_nr[pss_index], 
-				  (short*) &(rxdata[ar][n+is*frame_parms->samples_per_frame]), 
-				  frame_parms->ofdm_symbol_size, 
-				  shift);
-	  pss_corr_ue[pss_index][n] += abs64(result);
-          //((short*)pss_corr_ue[pss_index])[2*n] += ((short*) &result)[0];   /* real part */
-          //((short*)pss_corr_ue[pss_index])[2*n+1] += ((short*) &result)[1]; /* imaginary part */
-          //((short*)&synchro_out)[0] += ((int*) &result)[0];               /* real part */
-          //((short*)&synchro_out)[1] += ((int*) &result)[1];               /* imaginary part */
-
-        }
       }
- 
+      
       /* calculate the absolute value of sync_corr[n] */
-      avg[pss_index]+=pss_corr_ue[pss_index][n];
-      if (pss_corr_ue[pss_index][n] > peak_value) {
-        peak_value = pss_corr_ue[pss_index][n];
+      avg[pss_index]+=pss_corr_ue;
+      if (pss_corr_ue > peak_value) {
+        peak_value = pss_corr_ue;
         peak_position = n;
         pss_source = pss_index;
-
+        
 #ifdef DEBUG_PSS_NR
-        printf("pss_index %d: n %6u peak_value %15llu\n", pss_index, n, (unsigned long long)pss_corr_ue[pss_index][n]);
+        printf("pss_index %d: n %6u peak_value %15llu\n", pss_index, n, (unsigned long long)pss_corr_ue[n]);
 #endif
       }
     }
   }
-
+  
   if (fo_flag){
 
 	  // fractional frequency offset computation according to Cross-correlation Synchronization Algorithm Using PSS
 	  // Shoujun Huang, Yongtao Su, Ying He and Shan Tang, "Joint time and frequency offset estimation in LTE downlink," 7th International Conference on Communications and Networking in China, 2012.
 
-	  int64_t result1,result2;
-	  // Computing cross-correlation at peak on half the symbol size for first half of data
-	  result1  = dot_product64((short*)primary_synchro_time_nr[pss_source], 
-				  (short*) &(rxdata[0][peak_position+is*frame_parms->samples_per_frame]), 
-				  frame_parms->ofdm_symbol_size>>1, 
-				  shift);
-	  // Computing cross-correlation at peak on half the symbol size for data shifted by half symbol size 
-	  // as it is real and complex it is necessary to shift by a value equal to symbol size to obtain such shift
-	  result2  = dot_product64((short*)primary_synchro_time_nr[pss_source]+(frame_parms->ofdm_symbol_size), 
-				  (short*) &(rxdata[0][peak_position+is*frame_parms->samples_per_frame])+frame_parms->ofdm_symbol_size, 
-				  frame_parms->ofdm_symbol_size>>1, 
-				  shift);
-
-	  int64_t re1,re2,im1,im2;
-	  re1=((int*) &result1)[0];
-	  re2=((int*) &result2)[0];
-	  im1=((int*) &result1)[1];
-	  im2=((int*) &result2)[1];
-
- 	  // estimation of fractional frequency offset: angle[(result1)'*(result2)]/pi
-	  ffo_est=atan2(re1*im2-re2*im1,re1*re2+im1*im2)/M_PI;
+    // Computing cross-correlation at peak on half the symbol size for first half of data
+    c32_t r1 = dot_product((c16_t *)primary_synchro_time_nr[pss_source], (c16_t *)&(rxdata[0][peak_position + is * frame_parms->samples_per_frame]), frame_parms->ofdm_symbol_size >> 1, shift);
+    // Computing cross-correlation at peak on half the symbol size for data shifted by half symbol size
+    // as it is real and complex it is necessary to shift by a value equal to symbol size to obtain such shift
+    c32_t r2 = dot_product((c16_t *)primary_synchro_time_nr[pss_source] + (frame_parms->ofdm_symbol_size >> 1),
+                           (c16_t *)&(rxdata[0][peak_position + is * frame_parms->samples_per_frame]) + (frame_parms->ofdm_symbol_size >> 1),
+                           frame_parms->ofdm_symbol_size >> 1,
+                           shift);
+    cd_t r1d = {r1.r, r1.i}, r2d = {r2.r, r2.i};
+    // estimation of fractional frequency offset: angle[(result1)'*(result2)]/pi
+    ffo_est = atan2(r1d.r * r2d.i - r2d.r * r1d.i, r1d.r * r2d.r + r1d.i * r2d.i) / M_PI;
 
 #ifdef DBG_PSS_NR
 	  printf("ffo %lf\n",ffo_est);
@@ -922,7 +750,8 @@ int pss_search_time_nr(int **rxdata, ///rx data in time domain
   // computing absolute value of frequency offset
   *f_off = ffo_est*frame_parms->subcarrier_spacing;  
 
-  for (int pss_index = 0; pss_index < NUMBER_PSS_SEQUENCE; pss_index++) avg[pss_index]/=(length/4);
+  for (int pss_index = 0; pss_index < NUMBER_PSS_SEQUENCE; pss_index++)
+    avg[pss_index]/=(length/4);
 
   *eNB_id = pss_source;
 
@@ -936,9 +765,6 @@ int pss_search_time_nr(int **rxdata, ///rx data in time domain
   static int debug_cnt = 0;
 
   if (debug_cnt == 0) {
-    LOG_M("pss_corr_ue0.m","pss_corr_ue0",pss_corr_ue[0],length,1,6);
-    LOG_M("pss_corr_ue1.m","pss_corr_ue1",pss_corr_ue[1],length,1,6);
-    LOG_M("pss_corr_ue2.m","pss_corr_ue2",pss_corr_ue[2],length,1,6);
     if (is)
       LOG_M("rxdata1.m","rxd0",rxdata[frame_parms->samples_per_frame],length,1,1); 
     else

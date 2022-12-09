@@ -193,8 +193,8 @@ void set_scs_parameters (NR_DL_FRAME_PARMS *fp, int mu, int N_RB_DL)
   fp->first_carrier_offset = fp->ofdm_symbol_size - (N_RB_DL * 12 / 2);
   fp->nb_prefix_samples    = fp->ofdm_symbol_size / 128 * 9;
   fp->nb_prefix_samples0   = fp->ofdm_symbol_size / 128 * (9 + (1 << mu));
-  LOG_I(PHY,"Init: N_RB_DL %d, first_carrier_offset %d, nb_prefix_samples %d,nb_prefix_samples0 %d\n",
-        N_RB_DL,fp->first_carrier_offset,fp->nb_prefix_samples,fp->nb_prefix_samples0);
+  LOG_W(PHY,"Init: N_RB_DL %d, first_carrier_offset %d, nb_prefix_samples %d,nb_prefix_samples0 %d, ofdm_symbol_size %d\n",
+        N_RB_DL,fp->first_carrier_offset,fp->nb_prefix_samples,fp->nb_prefix_samples0, fp->ofdm_symbol_size);
 }
 
 uint32_t get_samples_per_slot(int slot, NR_DL_FRAME_PARMS* fp)
@@ -212,12 +212,12 @@ uint32_t get_samples_per_slot(int slot, NR_DL_FRAME_PARMS* fp)
 uint32_t get_slot_from_timestamp(openair0_timestamp timestamp_rx, NR_DL_FRAME_PARMS* fp)
 {
    uint32_t slot_idx = 0;
-   int samples_till_the_slot = 0;
+   int samples_till_the_slot = fp->get_samples_per_slot(slot_idx,fp)-1;
    timestamp_rx = timestamp_rx%fp->samples_per_frame;
 
     while (timestamp_rx > samples_till_the_slot) {
-        samples_till_the_slot += fp->get_samples_per_slot(slot_idx,fp);
         slot_idx++;
+        samples_till_the_slot += fp->get_samples_per_slot(slot_idx,fp);
      }
    return slot_idx; 
 }
@@ -252,7 +252,6 @@ int nr_init_frame_parms(nfapi_nr_config_request_scf_t* cfg,
 
 
   LOG_I(PHY,"Initializing frame parms for mu %d, N_RB %d, Ncp %d\n",mu, fp->N_RB_DL, Ncp);
-
 
   if (Ncp == NFAPI_CP_EXTENDED)
     AssertFatal(mu == NR_MU_2,"Invalid cyclic prefix %d for numerology index %d\n", Ncp, mu);
@@ -367,8 +366,10 @@ int nr_init_frame_parms_ue(NR_DL_FRAME_PARMS *fp,
 
   uint8_t sco = 0;
   if (((fp->freq_range == nr_FR1) && (config->ssb_table.ssb_subcarrier_offset<24)) ||
-      ((fp->freq_range == nr_FR2) && (config->ssb_table.ssb_subcarrier_offset<12)) )
-    sco = config->ssb_table.ssb_subcarrier_offset;
+      ((fp->freq_range == nr_FR2) && (config->ssb_table.ssb_subcarrier_offset<12)) ) {
+    if (fp->freq_range == nr_FR1)
+      sco = config->ssb_table.ssb_subcarrier_offset>>config->ssb_config.scs_common;
+  }
 
   fp->ssb_start_subcarrier = (12 * config->ssb_table.ssb_offset_point_a + sco);
   set_Lmax(fp);
@@ -415,6 +416,8 @@ void nr_init_frame_parms_ue_sa(NR_DL_FRAME_PARMS *frame_parms, uint64_t downlink
   frame_parms->get_samples_per_slot = &get_samples_per_slot;
   frame_parms->get_samples_slot_timestamp = &get_samples_slot_timestamp;
   frame_parms->samples_per_frame = 10 * frame_parms->samples_per_subframe;
+
+  LOG_W(PHY, "samples_per_subframe %d/per second %d, wCP %d\n", frame_parms->samples_per_subframe, 1000*frame_parms->samples_per_subframe, frame_parms->samples_per_subframe_wCP);
 
 }
 

@@ -62,12 +62,11 @@
 #undef MALLOC //there are two conflicting definitions, so we better make sure we don't use it at all
 //#undef FRAME_LENGTH_COMPLEX_SAMPLES //there are two conflicting definitions, so we better make sure we don't use it at all
 
-#include "targets/ARCH/COMMON/common_lib.h"
+#include "radio/COMMON/common_lib.h"
 
 //#undef FRAME_LENGTH_COMPLEX_SAMPLES //there are two conflicting definitions, so we better make sure we don't use it at all
 
 #include "PHY/LTE_TRANSPORT/if4_tools.h"
-#include "PHY/LTE_TRANSPORT/if5_tools.h"
 #include "PHY/LTE_ESTIMATION/lte_estimation.h"
 
 #include "PHY/phy_extern.h"
@@ -106,14 +105,12 @@ struct timing_info_t {
 // Fix per CC openair rf/if device update
 // extern openair0_device openair0;
 
-extern volatile int oai_exit;
+extern int oai_exit;
 
 extern int transmission_mode;
 
 extern int oaisim_flag;
 
-//uint16_t sf_ahead=4;
-extern uint16_t sf_ahead;
 #include "executables/thread-common.h"
 //extern PARALLEL_CONF_t get_thread_parallel_conf(void);
 //extern WORKER_CONF_t   get_thread_worker_conf(void);
@@ -233,9 +230,9 @@ static inline int rxtx(PHY_VARS_eNB *eNB,
     dlsch_ue_select_tbl_in_use = !dlsch_ue_select_tbl_in_use;
     // L2-emulator can work only one eNB.
     //      memcpy(&pre_scd_eNB_UE_stats,&RC.mac[ru->eNB_list[0]->Mod_id]->UE_info.eNB_UE_stats, sizeof(eNB_UE_STATS)*MAX_NUM_CCs*NUMBER_OF_UE_MAX);
-    //      memcpy(&pre_scd_activeUE, &RC.mac[ru->eNB_list[0]->Mod_id]->UE_info.active, sizeof(boolean_t)*NUMBER_OF_UE_MAX);
+    //      memcpy(&pre_scd_activeUE, &RC.mac[ru->eNB_list[0]->Mod_id]->UE_info.active, sizeof(bool)*NUMBER_OF_UE_MAX);
     memcpy(&pre_scd_eNB_UE_stats,&RC.mac[0]->UE_info.eNB_UE_stats, sizeof(eNB_UE_STATS)*MAX_NUM_CCs*NUMBER_OF_UE_MAX);
-    memcpy(&pre_scd_activeUE, &RC.mac[0]->UE_info.active, sizeof(boolean_t)*NUMBER_OF_UE_MAX);
+    memcpy(&pre_scd_activeUE, &RC.mac[0]->UE_info.active, sizeof(bool)*NUMBER_OF_UE_MAX);
     AssertFatal((ret= pthread_mutex_lock(&ru->proc.mutex_pre_scd))==0,"[eNB] error locking proc mutex for eNB pre scd, return %d\n",ret);
     ru->proc.instance_pre_scd++;
 
@@ -328,7 +325,6 @@ static void *L1_thread_tx(void *param) {
 
   //wait_sync("tx_thread");
 
-  proc->respEncode = eNB->proc.L1_proc.respEncode;
   while (!oai_exit) {
     LOG_D(PHY,"Waiting for TX (IC %d)\n",proc->instance_cnt);
 
@@ -466,11 +462,11 @@ void eNB_top(PHY_VARS_eNB *eNB,
 
   if (!oai_exit) {
     T(T_ENB_MASTER_TICK, T_INT(0), T_INT(ru_proc->frame_rx), T_INT(ru_proc->tti_rx));
-    L1_proc->timestamp_tx = ru_proc->timestamp_rx + (sf_ahead*fp->samples_per_tti);
+    L1_proc->timestamp_tx = ru_proc->timestamp_rx + (ru->sf_ahead*fp->samples_per_tti);
     L1_proc->frame_rx     = ru_proc->frame_rx;
     L1_proc->subframe_rx  = ru_proc->tti_rx;
-    L1_proc->frame_tx     = (L1_proc->subframe_rx > (9-sf_ahead)) ? (L1_proc->frame_rx+1)&1023 : L1_proc->frame_rx;
-    L1_proc->subframe_tx  = (L1_proc->subframe_rx + sf_ahead)%10;
+    L1_proc->frame_tx     = (L1_proc->subframe_rx > (9-ru->sf_ahead)) ? (L1_proc->frame_rx+1)&1023 : L1_proc->frame_rx;
+    L1_proc->subframe_tx  = (L1_proc->subframe_rx + ru->sf_ahead)%10;
     
     if (rxtx(eNB,L1_proc,string) < 0)
       LOG_E(PHY,"eNB %d CC_id %d failed during execution\n",eNB->Mod_id,eNB->CC_id);  
@@ -614,11 +610,11 @@ int wakeup_rxtx(PHY_VARS_eNB *eNB,
   // The last (TS_rx mod samples_per_frame) was n*samples_per_tti,
   // we want to generate subframe (n+sf_ahead), so TS_tx = TX_rx+sf_ahead*samples_per_tti,
   // and proc->subframe_tx = proc->subframe_rx+sf_ahead
-  L1_proc->timestamp_tx = ru_proc->timestamp_rx + (sf_ahead*fp->samples_per_tti);
+  L1_proc->timestamp_tx = ru_proc->timestamp_rx + (ru->sf_ahead*fp->samples_per_tti);
   L1_proc->frame_rx     = ru_proc->frame_rx;
   L1_proc->subframe_rx  = ru_proc->tti_rx;
-  L1_proc->frame_tx     = (L1_proc->subframe_rx > (9-sf_ahead)) ? (L1_proc->frame_rx+1)&1023 : L1_proc->frame_rx;
-  L1_proc->subframe_tx  = (L1_proc->subframe_rx + sf_ahead)%10;
+  L1_proc->frame_tx     = (L1_proc->subframe_rx > (9-ru->sf_ahead)) ? (L1_proc->frame_rx+1)&1023 : L1_proc->frame_rx;
+  L1_proc->subframe_tx  = (L1_proc->subframe_rx + ru->sf_ahead)%10;
   LOG_D(PHY,"wakeup_rxtx: L1_proc->subframe_rx %d, L1_proc->subframe_tx %d, RU %d\n",L1_proc->subframe_rx,L1_proc->subframe_tx,ru->idx);
   VCD_SIGNAL_DUMPER_DUMP_VARIABLE_BY_NAME(VCD_SIGNAL_DUMPER_VARIABLES_FRAME_NUMBER_WAKEUP_RXTX_RX_RU+ru->idx, L1_proc->frame_rx);
   VCD_SIGNAL_DUMPER_DUMP_VARIABLE_BY_NAME(VCD_SIGNAL_DUMPER_VARIABLES_SUBFRAME_NUMBER_WAKEUP_RXTX_RX_RU+ru->idx, L1_proc->subframe_rx);
@@ -837,14 +833,9 @@ static void *process_stats_thread(void *param) {
         print_meas(&eNB->dlsch_turbo_encoding_preperation_stats,"dlsch_coding_crc",NULL,NULL);
         print_meas(&eNB->dlsch_turbo_encoding_segmentation_stats,"dlsch_segmentation",NULL,NULL);
         print_meas(&eNB->dlsch_encoding_stats,"dlsch_encoding",NULL,NULL);
-        print_meas(&eNB->dlsch_turbo_encoding_signal_stats,"coding_signal",NULL,NULL);
-        print_meas(&eNB->dlsch_turbo_encoding_main_stats,"coding_main",NULL,NULL);
         print_meas(&eNB->dlsch_turbo_encoding_stats,"turbo_encoding",NULL,NULL);
         print_meas(&eNB->dlsch_interleaving_stats,"turbo_interleaving",NULL,NULL);
         print_meas(&eNB->dlsch_rate_matching_stats,"turbo_rate_matching",NULL,NULL);
-        print_meas(&eNB->dlsch_turbo_encoding_waiting_stats,"coding_wait",NULL,NULL);
-        print_meas(&eNB->dlsch_turbo_encoding_wakeup_stats0,"coding_worker_0",NULL,NULL);
-        print_meas(&eNB->dlsch_turbo_encoding_wakeup_stats1,"coding_worker_1",NULL,NULL);
       }
 
       print_meas(&eNB->dlsch_modulation_stats,"dlsch_modulation",NULL,NULL);
@@ -926,14 +917,6 @@ void init_eNB_proc(int inst) {
     pthread_mutex_init( &proc->mutex_RU_PRACH_br,NULL);
     pthread_cond_init( &proc->cond_prach_br, NULL);
     pthread_attr_init( &proc->attr_prach_br);
-#ifndef DEADLINE_SCHEDULER
-    attr0       = &L1_proc->attr;
-    attr1       = &L1_proc_tx->attr;
-    attr_prach  = &proc->attr_prach;
-    attr_prach_br  = &proc->attr_prach_br;
-    //    attr_td     = &proc->attr_td;
-    //    attr_te     = &proc->attr_te;
-#endif
 
     if(get_thread_worker_conf() == WORKER_ENABLE) {
       init_te_thread(eNB);
@@ -1137,7 +1120,7 @@ void init_transport(PHY_VARS_eNB *eNB) {
     }
     for (int i=0;i<NUMBER_OF_ULSCH_MAX; i++) {
 
-      LOG_I(PHY,"Allocating Transport Channel Buffer for ULSCH %d/%d\n",i,NUMBER_OF_ULSCH_MAX);
+      LOG_I(PHY,"Allocating Transport Channel Buffers for ULSCH %d/%d\n",i,NUMBER_OF_ULSCH_MAX);
       eNB->ulsch[i] = new_eNB_ulsch(MAX_TURBO_ITERATIONS,fp->N_RB_UL, 0);
 
       if (!eNB->ulsch[i]) {

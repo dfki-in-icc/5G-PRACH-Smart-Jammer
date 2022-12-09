@@ -21,28 +21,14 @@
 
 # OpenAirInterface License #
 
-### Included Fixes: ###
-- Ease of use of gprof and address sanitizer for debugging purposes
-- Updated json files to allow for GDB, real-time debugging capabilities
-- Updated logging features to minimally log only key connection milestones. This imroves scalability of multiple UEs.
-- Updated logging to include time stamp for timing analysis
-- Updated memory allocation procedures to correct size requirements
-- Added debugging features to handle signal terminations
-- nfapi.c pullarray8 fix invalid pointer math
-- Overlapping destination and source memory in memcpy, so updated to memmove to check for this bug
-- Advanced error checking mechanisms in critical pack and unpack functions
-- Created option for CPU assignment to UE to improve scalability
-- Added EPC integration to allow multiple individual UE entities to each have their USIM information parced by the executables
-- Updated random value seeds to minimize probability of error in generation of random values
-- Enables capability round robin scheduler if desired
-- Enables capability real time scheduler if desired
-- Added new standalone functions to the UE phy-layer (phy_stub_ue.c) to incorporate individual UE entities
-- Updated sending and packing functions in UE (lte_ue.c) to incorporate new standalone changes
-- Incorporated semaphores to control timing of incoming downlink packets
-- Implemented new queuing system to handle message exchange from UE to eNB and vice versa
-- Updated global value in nFAPI for size of subframe
-- Updated global value to increase scalability in system
+ *  [OAI License Model](http://www.openairinterface.org/?page_id=101)
+ *  [OAI License v1.1 on our website](http://www.openairinterface.org/?page_id=698)
 
+It is distributed under **OAI Public License V1.1**.
+
+The license information is distributed under [LICENSE](LICENSE) file in the same directory.
+
+Please see [NOTICE](NOTICE.md) file for third party software that is included in the sources.
 
 # Where to Start #
 
@@ -50,11 +36,20 @@
  *  [How to build](./doc/BUILD.md)
  *  [How to run the modems](./doc/RUNMODEM.md)
 
+More information and documentation can be found in the [doc folder](./doc).
+Unfortunately, not all information is available there, and information for
+specific sub-systems might be available in the corresponding sub-directories.
+To find all READMEs, this command might be handy:
+
+```
+find . -iname "readme*"
+```
+
 # RAN repository structure #
 
 The OpenAirInterface (OAI) software is composed of the following parts: 
 
-<pre>
+```
 openairinterface5g
 ├── ci-scripts        : Meta-scripts used by the OSA CI process. Contains also configuration files used day-to-day by CI.
 ├── cmake_targets     : Build utilities to compile (simulation, emulation and real-time platforms), and generated build files.
@@ -102,5 +97,6 @@ openairinterface5g
 │   ├── TEST
 │   ├── UDP
 │   └── UTILS
+├── radio             : drivers for various radios such as USRP, AW2S, RFsim, ...
 └── targets           : Top-level wrappers for unitary simulation for PHY channels, system-level emulation (eNB-UE with and without S1), and realtime eNB and UE and RRH GW.
-</pre>
+```

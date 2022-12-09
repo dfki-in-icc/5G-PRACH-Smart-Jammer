@@ -44,7 +44,7 @@
 #include <executables/split_headers.h>
 
 extern WORKER_CONF_t get_thread_worker_conf(void);
-extern volatile int oai_exit;
+extern int oai_exit;
 
 
 
@@ -335,7 +335,10 @@ int ulsch_decoding_data(PHY_VARS_eNB *eNB, L1_rxtx_proc_t *proc,
     }
 
     union turboReqUnion id= {.s={ulsch->rnti,proc->frame_rx,proc->subframe_rx,0,0}};
-    notifiedFIFO_elt_t *req=newNotifiedFIFO_elt(sizeof(turboDecode_t), id.p, proc->respDecode, processULSegment);
+    notifiedFIFO_elt_t *req=newNotifiedFIFO_elt(sizeof(turboDecode_t),
+                                                id.p,
+                                                proc->respDecode,
+                                                processULSegment);
     turboDecode_t * rdata=(turboDecode_t *) NotifiedFifoData(req);
 
     rdata->eNB=eNB;
@@ -362,11 +365,6 @@ int ulsch_decoding_data(PHY_VARS_eNB *eNB, L1_rxtx_proc_t *proc,
     offset+=sz;	    
   }
   return(ret);
-}
-
-int ulsch_decoding_data_all(PHY_VARS_eNB *eNB,L1_rxtx_proc_t *proc,
-			    int UE_id,int harq_pid,int llr8_flag) {
-  return ulsch_decoding_data(eNB,proc,UE_id,harq_pid,llr8_flag);
 }
 
 static inline unsigned int lte_gold_unscram(unsigned int *x1, unsigned int *x2, unsigned char reset) __attribute__((always_inline));
@@ -626,17 +624,9 @@ unsigned int  ulsch_decoding(PHY_VARS_eNB *eNB,
     }
     */
 #if defined(__x86_64__) || defined(__i386__)
-#ifndef __AVX2__
-    ((__m128i *)cseq)[i2++] = ((__m128i *)unscrambling_lut)[(s&65535)<<1];
-    ((__m128i *)cseq)[i2++] = ((__m128i *)unscrambling_lut)[1+((s&65535)<<1)];
-    s>>=16;
-    ((__m128i *)cseq)[i2++] = ((__m128i *)unscrambling_lut)[(s&65535)<<1];
-    ((__m128i *)cseq)[i2++] = ((__m128i *)unscrambling_lut)[1+((s&65535)<<1)];
-#else
     ((__m256i *)cseq)[i2++] = ((__m256i *)unscrambling_lut)[s&65535];
     ((__m256i *)cseq)[i2++] = ((__m256i *)unscrambling_lut)[(s>>16)&65535];
-#endif
-#elif defined(__arm__)
+#elif defined(__arm__) || defined(__aarch64__)
     ((int16x8_t *)cseq)[i2++] = ((int16x8_t *)unscrambling_lut)[(s&65535)<<1];
     ((int16x8_t *)cseq)[i2++] = ((int16x8_t *)unscrambling_lut)[1+((s&65535)<<1)];
     s>>=16;
@@ -975,14 +965,9 @@ unsigned int  ulsch_decoding(PHY_VARS_eNB *eNB,
 
     /* To be improved according to alignment of j2
     #if defined(__x86_64__)||defined(__i386__)
-    #ifndef __AVX2__
-    for (iprime=0; iprime<G;iprime+=8,j2+=8)
-      *((__m128i *)&ulsch_harq->e[iprime]) = *((__m128i *)&y[j2]);
-    #else
     for (iprime=0; iprime<G;iprime+=16,j2+=16)
       *((__m256i *)&ulsch_harq->e[iprime]) = *((__m256i *)&y[j2]);
-    #endif
-    #elif defined(__arm__)
+    #elif defined(__arm__) || defined(__aarch64__)
     for (iprime=0; iprime<G;iprime+=8,j2+=8)
       *((int16x8_t *)&ulsch_harq->e[iprime]) = *((int16x8_t *)&y[j2]);
     #endif
@@ -1113,7 +1098,7 @@ unsigned int  ulsch_decoding(PHY_VARS_eNB *eNB,
 
   LOG_D(PHY,"frame %d subframe %d O_ACK:%d o_ACK[]=%d:%d:%d:%d\n",frame,subframe,ulsch_harq->O_ACK,ulsch_harq->o_ACK[0],ulsch_harq->o_ACK[1],ulsch_harq->o_ACK[2],ulsch_harq->o_ACK[3]);
   // Do ULSCH Decoding for data portion
-  ret = ulsch_decoding_data_all(eNB,proc, UE_id,harq_pid,llr8_flag);
+  ret = ulsch_decoding_data(eNB, proc, UE_id, harq_pid, llr8_flag);
   return(ret);
 }
 

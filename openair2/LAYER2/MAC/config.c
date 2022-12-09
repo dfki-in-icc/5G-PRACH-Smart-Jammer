@@ -58,11 +58,6 @@ extern int l2_init_eNB(void);
 extern void mac_top_init_eNB(void);
 extern void mac_init_cell_params(int Mod_idP,int CC_idP);
 
-
-int32_t **rxdata;
-int32_t **txdata;
-
-
 typedef struct eutra_bandentry_s {
   int16_t band;
   uint32_t ul_min;
@@ -1014,13 +1009,11 @@ int rrc_mac_config_req_eNB(module_id_t Mod_idP,
     LOG_I(MAC, "[eNB %d][CONFIG]  LTE_MBSFNAreaConfiguration_r9_t(%p) commonSF_AllocPeriod_r9(%d)\n",Mod_idP,mbms_AreaConfig, RC.mac[Mod_idP]->common_channels[0].commonSF_AllocPeriod_r9);
     for(i=0; i < mbms_AreaConfig->commonSF_Alloc_r9.list.count; i++){
       RC.mac[Mod_idP]->common_channels[0].commonSF_Alloc_r9_mbsfn_SubframeConfig[i] = mbms_AreaConfig->commonSF_Alloc_r9.list.array[i];
-     LOG_I(RRC,"[eNB %d][CONFIG] MBSFNArea[%d] commonSF_Alloc_r9: radioframeAllocationPeriod(%ldn),radioframeAllocationOffset(%ld), subframeAllocation(%x,%x,%x)\n"
+     LOG_I(RRC,"[eNB %d][CONFIG] MBSFNArea[%d] commonSF_Alloc_r9: radioframeAllocationPeriod(%ldn),radioframeAllocationOffset(%ld), subframeAllocation(%x)\n"
       ,Mod_idP,i
       ,RC.mac[Mod_idP]->common_channels[0].commonSF_Alloc_r9_mbsfn_SubframeConfig[i]->radioframeAllocationPeriod
       ,RC.mac[Mod_idP]->common_channels[0].commonSF_Alloc_r9_mbsfn_SubframeConfig[i]->radioframeAllocationOffset
-      ,RC.mac[Mod_idP]->common_channels[0].commonSF_Alloc_r9_mbsfn_SubframeConfig[i]->subframeAllocation.choice.oneFrame.buf[0]
-      ,RC.mac[Mod_idP]->common_channels[0].commonSF_Alloc_r9_mbsfn_SubframeConfig[i]->subframeAllocation.choice.oneFrame.buf[1]
-      ,RC.mac[Mod_idP]->common_channels[0].commonSF_Alloc_r9_mbsfn_SubframeConfig[i]->subframeAllocation.choice.oneFrame.buf[2]);
+      ,RC.mac[Mod_idP]->common_channels[0].commonSF_Alloc_r9_mbsfn_SubframeConfig[i]->subframeAllocation.choice.oneFrame.buf[0]);
     }
   }
 
@@ -1109,7 +1102,7 @@ void eNB_Config_Local_DRX(instance_t Mod_id,
 
   /* Get struct to modify */
   UE_scheduling_control = &(UE_info_mac->UE_sched_ctrl[UE_id]);
-  UE_scheduling_control->cdrx_configured = FALSE; // will be set to true when no error
+  UE_scheduling_control->cdrx_configured = false; // will be set to true when no error
 
   /* Check drx_Configuration */
   if (drx_Configuration == NULL) {
@@ -1124,9 +1117,9 @@ void eNB_Config_Local_DRX(instance_t Mod_id,
   }
 
   /* Modify scheduling control structure according to DRX configuration: doesn't support every configurations! */  
-  UE_scheduling_control->cdrx_configured = FALSE; // will be set to true when receiving RRC Reconfiguration Complete
-  UE_scheduling_control->cdrx_waiting_ack = TRUE; // waiting for RRC Reconfiguration Complete message
-  UE_scheduling_control->in_active_time = FALSE;
+  UE_scheduling_control->cdrx_configured = false; // will be set to true when receiving RRC Reconfiguration Complete
+  UE_scheduling_control->cdrx_waiting_ack = true; // waiting for RRC Reconfiguration Complete message
+  UE_scheduling_control->in_active_time = false;
   UE_scheduling_control->dci0_ongoing_timer = 0;
   UE_scheduling_control->on_duration_timer = 0;
   struct LTE_DRX_Config__setup *choiceSetup = &drx_Configuration->choice.setup;
@@ -1302,13 +1295,13 @@ void eNB_Config_Local_DRX(instance_t Mod_id,
   }
 
   if (choiceSetup->shortDRX == NULL) {
-    UE_scheduling_control->in_short_drx_cycle = FALSE;
+    UE_scheduling_control->in_short_drx_cycle = false;
     UE_scheduling_control->drx_shortCycle_timer_value = 0;
     UE_scheduling_control->short_drx_cycle_duration = 0;
     UE_scheduling_control->drx_shortCycle_timer = 0;
     UE_scheduling_control->drx_shortCycle_timer_thres = -1;
   } else {
-    UE_scheduling_control->in_short_drx_cycle = FALSE;
+    UE_scheduling_control->in_short_drx_cycle = false;
     UE_scheduling_control->drx_shortCycle_timer_value = (uint8_t) choiceSetup->shortDRX->drxShortCycleTimer;
 
     switch (choiceSetup->shortDRX->shortDRX_Cycle) {
@@ -1385,7 +1378,7 @@ void eNB_Config_Local_DRX(instance_t Mod_id,
     UE_scheduling_control->drx_shortCycle_timer_thres = UE_scheduling_control->drx_shortCycle_timer_value * UE_scheduling_control->short_drx_cycle_duration;
   }
 
-  UE_scheduling_control->in_long_drx_cycle = FALSE;
+  UE_scheduling_control->in_long_drx_cycle = false;
   UE_scheduling_control->drx_longCycle_timer = 0;
 
   switch (choiceSetup->longDRX_CycleStartOffset.present) {

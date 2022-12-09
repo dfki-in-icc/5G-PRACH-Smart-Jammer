@@ -53,7 +53,7 @@ function details_table {
     echo "        <th>Message</th>" >> $3
     echo "      </tr>" >> $3
 
-    LIST_MESSAGES=`egrep "error:|warning:" $2 | egrep -v "jobserver unavailable|Clock skew detected.|flexran.proto|disabling jobserver mode"`
+    LIST_MESSAGES=`egrep "error:|warning:" $2 | egrep -v "jobserver unavailable|Clock skew detected.|disabling jobserver mode"`
     COMPLETE_MESSAGE="start"
     for MESSAGE in $LIST_MESSAGES
     do
@@ -146,7 +146,7 @@ function summary_table_row {
         else
             echo "        <td bgcolor = \"red\" >$NB_ERRORS</th>" >> ./build_results.html
         fi
-        NB_WARNINGS=`egrep "warning:" $2 | egrep -v "jobserver unavailable|Clock skew detected.|flexran.proto|disabling jobserver mode" | egrep -c "warning:"`
+        NB_WARNINGS=`egrep "warning:" $2 | egrep -v "jobserver unavailable|Clock skew detected.|disabling jobserver mode" | egrep -c "warning:"`
         if [ $NB_WARNINGS -eq 0 ]
         then
             echo "        <td bgcolor = \"green\" >$NB_WARNINGS</th>" >> ./build_results.html
@@ -463,168 +463,99 @@ function report_build {
     echo "   </table>" >> ./build_results.html
     echo "   <h2>Build Summary</h2>" >> ./build_results.html
 
-    if [ -f ./oai_rules_result.txt ]
+    echo "   <h3>OAI Coding / Formatting Guidelines Check</h3>" >> ./build_results.html
+    if [ -f ./header-files-w-incorrect-define.txt ]
     then
-        echo "   <h3>OAI Coding / Formatting Guidelines Check</h3>" >> ./build_results.html
-        NB_FILES=`cat ./oai_rules_result.txt`
-        if [ $NB_FILES = "0" ]
-        then 
+        NB_FILES_IN_ERROR=`wc -l ./header-files-w-incorrect-define.txt | sed -e "s@ .*@@"`
+        if [ $NB_FILES_IN_ERROR -eq 0 ]
+        then
             echo "   <div class=\"alert alert-success\">" >> ./build_results.html
-            if [ $PU_TRIG -eq 1 ]; then echo "      <strong>All files in repository follow OAI rules. <span class=\"glyphicon glyphicon-ok-circle\"></span></strong>" >> ./build_results.html; fi
-            if [ $MR_TRIG -eq 1 ]; then echo "      <strong>All modified files in Merge-Request follow OAI rules. <span class=\"glyphicon glyphicon-ok-circle\"></span></strong>" >> ./build_results.html; fi
+            if [ $MR_TRIG -eq 1 ]; then echo "   <strong>No Issue for CIRCULAR DEPENDENCY PROTECTION in modified files</strong>" >> ./build_results.html; fi
+            if [ $PU_TRIG -eq 1 ]; then echo "   <strong>No Issue for CIRCULAR DEPENDENCY PROTECTION in the whole repository</strong>" >> ./build_results.html; fi
             echo "   </div>" >> ./build_results.html
         else
             echo "   <div class=\"alert alert-warning\">" >> ./build_results.html
-            if [ $PU_TRIG -eq 1 ]; then echo "      <strong>$NB_FILES files in repository DO NOT follow OAI rules. <span class=\"glyphicon glyphicon-warning-sign\"></span></strong>" >> ./build_results.html; fi
-            if [ $MR_TRIG -eq 1 ]; then echo "      <strong>$NB_FILES modified files in Merge-Request DO NOT follow OAI rules. <span class=\"glyphicon glyphicon-warning-sign\"></span></strong>" >> ./build_results.html; fi
+            if [ $MR_TRIG -eq 1 ]; then echo "   <strong>${NB_FILES_IN_ERROR} modified files MAY NOT HAVE CIRCULAR DEPENDENCY PROTECTION</strong>" >> ./build_results.html; fi
+            if [ $PU_TRIG -eq 1 ]; then echo "   <strong>${NB_FILES_IN_ERROR} files in repository MAY NOT HAVE CIRCULAR DEPENDENCY PROTECTION in the whole repository</strong>" >> ./build_results.html; fi
             echo "   </div>" >> ./build_results.html
-        fi
-        if [ -f ./oai_rules_result_list.txt ]
-        then
-            echo "   <button data-toggle=\"collapse\" data-target=\"#oai-formatting-details\">More details on formatting check</button>" >> ./build_results.html
-            echo "   <div id=\"oai-formatting-details\" class=\"collapse\">" >> ./build_results.html
-            echo "   <p>Please apply the following command to this(ese) file(s): </p>" >> ./build_results.html
-            echo "   <p style=\"margin-left: 30px\"><strong><code>astyle --options=ci-scripts/astyle-options.txt filename(s)</code></strong></p>" >> ./build_results.html
+            echo "   <button data-toggle=\"collapse\" data-target=\"#oai-circular-details\">More details on circular dependency protection check</button>" >> ./build_results.html
+            echo "   <div id=\"oai-circular-details\" class=\"collapse\">" >> ./build_results.html
             echo "   <table border = 1>" >> ./build_results.html
             echo "      <tr>" >> ./build_results.html
-            echo "        <th bgcolor = \"lightcyan\" >Filename</th>" >> ./build_results.html
+            echo "        <th bgcolor = \"lightcyan\" >Potential Issue</th>" >> ./build_results.html
+            echo "        <th bgcolor = \"lightcyan\" >Impacted File</th>" >> ./build_results.html
+            echo "        <th bgcolor = \"lightcyan\" >Incorrect Macro</th>" >> ./build_results.html
             echo "      </tr>" >> ./build_results.html
-            awk '{print "      <tr><td>"$1"</td></tr>"}' ./oai_rules_result_list.txt >> ./build_results.html
+            awk '{if($0 ~/error in/){print "      <tr><td>error in declaration</td><td>"$4"</td><td>"$5"</td></tr>"};if($0 ~/files with same/){print "      <tr><td>files with same #define</td><td>"$5"</td><td>"$6"</td></tr>"}}' ./header-files-w-incorrect-define.txt >> ./build_results.html
             echo "   </table>" >> ./build_results.html
             echo "   </div>" >> ./build_results.html
             echo "   <br>" >> ./build_results.html
         fi
-        if [ -f ./header-files-w-incorrect-define.txt ]
+    fi
+    if [ -f ./files-w-gnu-gpl-license-banner.txt ]
+    then
+        NB_FILES_IN_ERROR=`wc -l ./files-w-gnu-gpl-license-banner.txt | sed -e "s@ .*@@"`
+        if [ $NB_FILES_IN_ERROR -ne 0 ]
         then
-            NB_FILES_IN_ERROR=`wc -l ./header-files-w-incorrect-define.txt | sed -e "s@ .*@@"`
-            if [ $NB_FILES_IN_ERROR -eq 0 ]
-            then
-                echo "   <div class=\"alert alert-success\">" >> ./build_results.html
-                if [ $MR_TRIG -eq 1 ]; then echo "   <strong>No Issue for CIRCULAR DEPENDENCY PROTECTION in modified files</strong>" >> ./build_results.html; fi
-                if [ $PU_TRIG -eq 1 ]; then echo "   <strong>No Issue for CIRCULAR DEPENDENCY PROTECTION in the whole repository</strong>" >> ./build_results.html; fi
-                echo "   </div>" >> ./build_results.html
-            else
-                echo "   <div class=\"alert alert-warning\">" >> ./build_results.html
-                if [ $MR_TRIG -eq 1 ]; then echo "   <strong>${NB_FILES_IN_ERROR} modified files MAY NOT HAVE CIRCULAR DEPENDENCY PROTECTION</strong>" >> ./build_results.html; fi
-                if [ $PU_TRIG -eq 1 ]; then echo "   <strong>${NB_FILES_IN_ERROR} files in repository MAY NOT HAVE CIRCULAR DEPENDENCY PROTECTION in the whole repository</strong>" >> ./build_results.html; fi
-                echo "   </div>" >> ./build_results.html
-                echo "   <button data-toggle=\"collapse\" data-target=\"#oai-circular-details\">More details on circular dependency protection check</button>" >> ./build_results.html
-                echo "   <div id=\"oai-circular-details\" class=\"collapse\">" >> ./build_results.html
-                echo "   <table border = 1>" >> ./build_results.html
-                echo "      <tr>" >> ./build_results.html
-                echo "        <th bgcolor = \"lightcyan\" >Potential Issue</th>" >> ./build_results.html
-                echo "        <th bgcolor = \"lightcyan\" >Impacted File</th>" >> ./build_results.html
-                echo "        <th bgcolor = \"lightcyan\" >Incorrect Macro</th>" >> ./build_results.html
-                echo "      </tr>" >> ./build_results.html
-                awk '{if($0 ~/error in/){print "      <tr><td>error in declaration</td><td>"$4"</td><td>"$5"</td></tr>"};if($0 ~/files with same/){print "      <tr><td>files with same #define</td><td>"$5"</td><td>"$6"</td></tr>"}}' ./header-files-w-incorrect-define.txt >> ./build_results.html
-                echo "   </table>" >> ./build_results.html
-                echo "   </div>" >> ./build_results.html
-                echo "   <br>" >> ./build_results.html
-            fi
+            echo "   <div class=\"alert alert-danger\">" >> ./build_results.html
+            if [ $MR_TRIG -eq 1 ]; then echo "   <strong>${NB_FILES_IN_ERROR} modified files HAVE a GNU GPL license banner</strong>" >> ./build_results.html; fi
+            if [ $PU_TRIG -eq 1 ]; then echo "   <strong>${NB_FILES_IN_ERROR} files in repository HAVE a GNU GPL license banner</strong>" >> ./build_results.html; fi
+            echo "   </div>" >> ./build_results.html
+            echo "   <button data-toggle=\"collapse\" data-target=\"#oai-license-gpl\">More details on GNU GPL license banner issue</button>" >> ./build_results.html
+            echo "   <div id=\"oai-license-gpl\" class=\"collapse\">" >> ./build_results.html
+            echo "   <table border = 1>" >> ./build_results.html
+            echo "      <tr>" >> ./build_results.html
+            echo "        <th bgcolor = \"lightcyan\" >Filename</th>" >> ./build_results.html
+            echo "      </tr>" >> ./build_results.html
+            awk '{print "      <tr><td>"$1"</td></tr>"}' ./files-w-gnu-gpl-license-banner.txt >> ./build_results.html
+            echo "   </table>" >> ./build_results.html
+            echo "   </div>" >> ./build_results.html
+            echo "   <br>" >> ./build_results.html
         fi
-        if [ -f ./files-w-gnu-gpl-license-banner.txt ]
+    fi
+    if [ -f ./files-w-suspect-banner.txt ]
+    then
+        NB_FILES_IN_ERROR=`wc -l ./files-w-suspect-banner.txt | sed -e "s@ .*@@"`
+        if [ $NB_FILES_IN_ERROR -ne 0 ]
         then
-            NB_FILES_IN_ERROR=`wc -l ./files-w-gnu-gpl-license-banner.txt | sed -e "s@ .*@@"`
-            if [ $NB_FILES_IN_ERROR -ne 0 ]
-            then
-                echo "   <div class=\"alert alert-danger\">" >> ./build_results.html
-                if [ $MR_TRIG -eq 1 ]; then echo "   <strong>${NB_FILES_IN_ERROR} modified files HAVE a GNU GPL license banner</strong>" >> ./build_results.html; fi
-                if [ $PU_TRIG -eq 1 ]; then echo "   <strong>${NB_FILES_IN_ERROR} files in repository HAVE a GNU GPL license banner</strong>" >> ./build_results.html; fi
-                echo "   </div>" >> ./build_results.html
-                echo "   <button data-toggle=\"collapse\" data-target=\"#oai-license-gpl\">More details on GNU GPL license banner issue</button>" >> ./build_results.html
-                echo "   <div id=\"oai-license-gpl\" class=\"collapse\">" >> ./build_results.html
-                echo "   <table border = 1>" >> ./build_results.html
-                echo "      <tr>" >> ./build_results.html
-                echo "        <th bgcolor = \"lightcyan\" >Filename</th>" >> ./build_results.html
-                echo "      </tr>" >> ./build_results.html
-                awk '{print "      <tr><td>"$1"</td></tr>"}' ./files-w-gnu-gpl-license-banner.txt >> ./build_results.html
-                echo "   </table>" >> ./build_results.html
-                echo "   </div>" >> ./build_results.html
-                echo "   <br>" >> ./build_results.html
-            fi
-        fi
-        if [ -f ./files-w-suspect-banner.txt ]
-        then
-            NB_FILES_IN_ERROR=`wc -l ./files-w-suspect-banner.txt | sed -e "s@ .*@@"`
-            if [ $NB_FILES_IN_ERROR -ne 0 ]
-            then
-                echo "   <div class=\"alert alert-warning\">" >> ./build_results.html
-                if [ $MR_TRIG -eq 1 ]; then echo "   <strong>${NB_FILES_IN_ERROR} modified files HAVE a suspect license banner</strong>" >> ./build_results.html; fi
-                if [ $PU_TRIG -eq 1 ]; then echo "   <strong>${NB_FILES_IN_ERROR} files in repository HAVE a suspect license banner</strong>" >> ./build_results.html; fi
-                echo "   </div>" >> ./build_results.html
-                echo "   <button data-toggle=\"collapse\" data-target=\"#oai-license-suspect\">More details on suspect banner files</button>" >> ./build_results.html
-                echo "   <div id=\"oai-license-suspect\" class=\"collapse\">" >> ./build_results.html
-                echo "   <table border = 1>" >> ./build_results.html
-                echo "      <tr>" >> ./build_results.html
-                echo "        <th bgcolor = \"lightcyan\" >Filename</th>" >> ./build_results.html
-                echo "      </tr>" >> ./build_results.html
-                awk '{print "      <tr><td>"$1"</td></tr>"}' ././files-w-suspect-banner.txt >> ./build_results.html
-                echo "   </table>" >> ./build_results.html
-                echo "   </div>" >> ./build_results.html
-                echo "   <br>" >> ./build_results.html
-            fi
+            echo "   <div class=\"alert alert-warning\">" >> ./build_results.html
+            if [ $MR_TRIG -eq 1 ]; then echo "   <strong>${NB_FILES_IN_ERROR} modified files HAVE a suspect license banner</strong>" >> ./build_results.html; fi
+            if [ $PU_TRIG -eq 1 ]; then echo "   <strong>${NB_FILES_IN_ERROR} files in repository HAVE a suspect license banner</strong>" >> ./build_results.html; fi
+            echo "   </div>" >> ./build_results.html
+            echo "   <button data-toggle=\"collapse\" data-target=\"#oai-license-suspect\">More details on suspect banner files</button>" >> ./build_results.html
+            echo "   <div id=\"oai-license-suspect\" class=\"collapse\">" >> ./build_results.html
+            echo "   <table border = 1>" >> ./build_results.html
+            echo "      <tr>" >> ./build_results.html
+            echo "        <th bgcolor = \"lightcyan\" >Filename</th>" >> ./build_results.html
+            echo "      </tr>" >> ./build_results.html
+            awk '{print "      <tr><td>"$1"</td></tr>"}' ././files-w-suspect-banner.txt >> ./build_results.html
+            echo "   </table>" >> ./build_results.html
+            echo "   </div>" >> ./build_results.html
+            echo "   <br>" >> ./build_results.html
         fi
     fi
 
     echo "   <h2>Ubuntu 16.04 LTS -- Summary</h2>" >> ./build_results.html
 
-    summary_table_header "OAI Build: 4G LTE eNB -- USRP option" ./archives/enb_eth
-    summary_table_row "LTE SoftModem - Release 15" ./archives/enb_eth/lte-softmodem.Rel15.txt "Built target lte-softmodem" ./enb_eth_row1.html
-    summary_table_row "Coding - Release 15" ./archives/enb_eth/coding.Rel15.txt "Built target coding" ./enb_eth_row2.html
-    summary_table_row "OAI ETHERNET transport - Release 15" ./archives/enb_eth/oai_eth_transpro.Rel15.txt "Built target oai_eth_transpro" ./enb_eth_row3.html
-    summary_table_row "Parameters Lib Config - Release 15" ./archives/enb_eth/params_libconfig.Rel15.txt "Built target params_libconfig" ./enb_eth_row4.html
-    summary_table_row "RF Simulator - Release 15" ./archives/enb_eth/rfsimulator.Rel15.txt "Built target rfsimulator" ./enb_eth_row5.html
-    summary_table_row "TCP OAI Bridge - Release 15" ./archives/enb_eth/tcp_bridge_oai.Rel15.txt "Built target tcp_bridge_oai" ./enb_eth_row6.html
-    summary_table_row "OAI USRP device if - Release 15" ./archives/enb_eth/oai_usrpdevif.Rel15.txt "Built target oai_usrpdevif" ./enb_eth_row7.html
-    summary_table_footer
-
-    summary_table_header "OAI Build: 4G LTE UE -- USRP option" ./archives/ue_eth
-    summary_table_row "LTE UE SoftModem - Release 15" ./archives/ue_eth/lte-uesoftmodem.Rel15.txt "Built target lte-uesoftmodem" ./ue_eth_row1.html
-    summary_table_row "Coding - Release 15" ./archives/ue_eth/coding.Rel15.txt "Built target coding" ./ue_eth_row2.html
-    summary_table_row "OAI ETHERNET transport - Release 15" ./archives/ue_eth/oai_eth_transpro.Rel15.txt "Built target oai_eth_transpro" ./ue_eth_row3.html
-    summary_table_row "Parameters Lib Config - Release 15" ./archives/ue_eth/params_libconfig.Rel15.txt "Built target params_libconfig" ./ue_eth_row4.html
-    summary_table_row "RF Simulator - Release 15" ./archives/ue_eth/rfsimulator.Rel15.txt "Built target rfsimulator" ./ue_eth_row5.html
-    summary_table_row "TCP OAI Bridge - Release 15" ./archives/ue_eth/tcp_bridge_oai.Rel15.txt "Built target tcp_bridge_oai" ./ue_eth_row6.html
-    summary_table_row "Conf 2 UE Data - Release 15" ./archives/ue_eth/conf2uedata.Rel15.txt "Built target conf2uedata" ./ue_eth_row7.html
-    summary_table_row "NVRAM - Release 15" ./archives/ue_eth/nvram.Rel15.txt "Built target nvram" ./ue_eth_row8.html
-    summary_table_row "UE IP - Release 15" ./archives/ue_eth/ue_ip.Rel15.txt "Built target ue_ip" ./ue_eth_row9.html
-    summary_table_row "USIM - Release 15" ./archives/ue_eth/usim.Rel15.txt "Built target usim" ./ue_eth_row9a.html
-    summary_table_row "OAI USRP device if - Release 15" ./archives/ue_eth/oai_usrpdevif.Rel15.txt "Built target oai_usrpdevif" ./ue_eth_row9b.html
-    summary_table_footer
-
-    summary_table_header "OAI Build: 4G LTE basic simulator option" ./archives/basic_sim
-    summary_table_row "LTE SoftModem - Release 15" ./archives/basic_sim/lte-softmodem.Rel15.txt "Built target lte-softmodem" ./basic_sim_row1.html
-    summary_table_row "LTE UE SoftModem - Release 15" ./archives/basic_sim/lte-uesoftmodem.Rel15.txt "Built target lte-uesoftmodem" ./basic_sim_row2.htm
-    summary_table_row "Coding - Release 15" ./archives/basic_sim/coding.Rel15.txt "Built target coding" ./basic_sim_row3.html
-    summary_table_row "Conf 2 UE data - Release 15" ./archives/basic_sim/conf2uedata.Rel15.txt "Built target conf2uedata" ./basic_sim_row4.html
-    summary_table_row "OAI ETHERNET transport - Release 15" ./archives/basic_sim/oai_eth_transpro.Rel15.txt "Built target oai_eth_transpro" ./basic_sim_row5.html
-    summary_table_row "Parameters Lib Config - Release 15" ./archives/basic_sim/params_libconfig.Rel15.txt "Built target params_libconfig" ./basic_sim_row7.html
-    summary_table_row "RF Simulator - Release 15" ./archives/basic_sim/rfsimulator.Rel15.txt "Built target rfsimulator" ./basic_sim_row9.html
-    summary_table_row "TCP Bridge - Release 15" ./archives/basic_sim/tcp_bridge_oai.Rel15.txt "Built target tcp_bridge_oai" ./basic_sim_row10.html
-    summary_table_row "UE IP - Release 15" ./archives/basic_sim/ue_ip.Rel15.txt "Built target ue_ip" ./basic_sim_row11.html
-    summary_table_row "USIM - Release 15" ./archives/basic_sim/usim.Rel15.txt "Built target usim" ./basic_sim_row12.html
-    summary_table_row "NVRAM - Release 15" ./archives/basic_sim/nvram.Rel15.txt "Built target nvram" ./basic_sim_row13.html
-    summary_table_footer
-
-    if [ -f archives/gnb_usrp/nr-softmodem.Rel15.txt ]
+    if [ -f archives/gnb_usrp/nr-softmodem.txt ]
     then
         summary_table_header "OAI Build: 5G NR gNB -- USRP option" ./archives/gnb_usrp
-        summary_table_row "5G NR SoftModem - Release 15" ./archives/gnb_usrp/nr-softmodem.Rel15.txt "Built target nr-softmodem" ./gnb_usrp_row1.html
-        summary_table_row "Coding - Release 15" ./archives/gnb_usrp/coding.Rel15.txt "Built target coding" ./gnb_usrp_row2.html
-        summary_table_row "OAI USRP device if - Release 15" ./archives/gnb_usrp/oai_usrpdevif.Rel15.txt "Built target oai_usrpdevif" ./gnb_usrp_row3.html
-        summary_table_row "OAI ETHERNET transport - Release 15" ./archives/gnb_usrp/oai_eth_transpro.Rel15.txt "Built target oai_eth_transpro" ./gnb_usrp_row4.html
-        summary_table_row "Parameters Lib Config - Release 15" ./archives/gnb_usrp/params_libconfig.Rel15.txt "Built target params_libconfig" ./gnb_usrp_row6.html
+        summary_table_row "5G NR SoftModem" ./archives/gnb_usrp/nr-softmodem.txt "Built target nr-softmodem" ./gnb_usrp_row1.html
+        summary_table_row "Coding" ./archives/gnb_usrp/coding.txt "Built target coding" ./gnb_usrp_row2.html
+        summary_table_row "OAI USRP device if" ./archives/gnb_usrp/oai_usrpdevif.txt "Built target oai_usrpdevif" ./gnb_usrp_row3.html
+        summary_table_row "OAI ETHERNET transport" ./archives/gnb_usrp/oai_eth_transpro.txt "Built target oai_eth_transpro" ./gnb_usrp_row4.html
+        summary_table_row "Parameters Lib Config" ./archives/gnb_usrp/params_libconfig.txt "Built target params_libconfig" ./gnb_usrp_row6.html
         summary_table_footer
     fi
 
-    if [ -f archives/nr_ue_usrp/nr-uesoftmodem.Rel15.txt ]
+    if [ -f archives/nr_ue_usrp/nr-uesoftmodem.txt ]
     then
         summary_table_header "OAI Build: 5G NR UE -- USRP option" ./archives/nr_ue_usrp
-        summary_table_row "5G NR UE SoftModem - Release 15" ./archives/nr_ue_usrp/nr-uesoftmodem.Rel15.txt "Built target nr-uesoftmodem" ./nr_ue_usrp_row1.html
-        summary_table_row "Coding - Release 15" ./archives/nr_ue_usrp/coding.Rel15.txt "Built target coding" ./nr_ue_usrp_row2.html
-        summary_table_row "OAI USRP device if - Release 15" ./archives/nr_ue_usrp/oai_usrpdevif.Rel15.txt "Built target oai_usrpdevif" ./nr_ue_usrp_row3.html
-        summary_table_row "OAI ETHERNET transport - Release 15" ./archives/nr_ue_usrp/oai_eth_transpro.Rel15.txt "Built target oai_eth_transpro" ./nr_ue_usrp_row4.html
-        summary_table_row "Parameters Lib Config - Release 15" ./archives/nr_ue_usrp/params_libconfig.Rel15.txt "Built target params_libconfig" ./nr_ue_usrp_row6.html
+        summary_table_row "5G NR UE SoftModem" ./archives/nr_ue_usrp/nr-uesoftmodem.txt "Built target nr-uesoftmodem" ./nr_ue_usrp_row1.html
+        summary_table_row "Coding" ./archives/nr_ue_usrp/coding.txt "Built target coding" ./nr_ue_usrp_row2.html
+        summary_table_row "OAI USRP device if" ./archives/nr_ue_usrp/oai_usrpdevif.txt "Built target oai_usrpdevif" ./nr_ue_usrp_row3.html
+        summary_table_row "OAI ETHERNET transport" ./archives/nr_ue_usrp/oai_eth_transpro.txt "Built target oai_eth_transpro" ./nr_ue_usrp_row4.html
+        summary_table_row "Parameters Lib Config" ./archives/nr_ue_usrp/params_libconfig.txt "Built target params_libconfig" ./nr_ue_usrp_row6.html
         summary_table_footer
     fi
 
@@ -633,10 +564,10 @@ function report_build {
         echo "   <h2>Red Hat Enterprise Linux Server release 7.6) -- Summary</h2>" >> ./build_results.html
 
         summary_table_header "OAI Build: 4G LTE eNB -- USRP option (RHEL)" ./archives/red_hat
-        summary_table_row "LTE SoftModem - Release 15" ./archives/red_hat/lte-softmodem.Rel15.txt "Built target lte-softmodem" ./enb_usrp_rh_row1.html
-        summary_table_row "Coding - Release 15" ./archives/red_hat/coding.Rel15.txt "Built target coding" ./enb_usrp_rh_row2.html
-        summary_table_row "OAI USRP device if - Release 15" ./archives/red_hat/oai_usrpdevif.Rel15.txt "Built target oai_usrpdevif" ./enb_usrp_rh_row3.html
-        summary_table_row "Parameters Lib Config - Release 15" ./archives/red_hat/params_libconfig.Rel15.txt "Built target params_libconfig" ./enb_usrp_rh_row4.html
+        summary_table_row "LTE SoftModem" ./archives/red_hat/lte-softmodem.txt "Built target lte-softmodem" ./enb_usrp_rh_row1.html
+        summary_table_row "Coding" ./archives/red_hat/coding.txt "Built target coding" ./enb_usrp_rh_row2.html
+        summary_table_row "OAI USRP device if" ./archives/red_hat/oai_usrpdevif.txt "Built target oai_usrpdevif" ./enb_usrp_rh_row3.html
+        summary_table_row "Parameters Lib Config" ./archives/red_hat/params_libconfig.txt "Built target params_libconfig" ./enb_usrp_rh_row4.html
         summary_table_footer
     fi
 
@@ -654,13 +585,6 @@ function report_build {
     if [ -f ./ue_eth_row1.html ] || [ -f ./ue_eth_row2.html ] || [ -f ./ue_eth_row3.html ] || [ -f ./ue_eth_row4.html ] || [ -f ./ue_eth_row5.html ] || [ -f ./ue_eth_row6.html ] || [ -f ./ue_eth_row7.html ] || [ -f ./ue_eth_row8.html ] || [ -f ./ue_eth_row9.html ] || [ -f ./ue_eth_row9a.html ] || [ -f ./ue_eth_row9b.html ]
     then
         for DETAILS_TABLE in `ls ./ue_eth_row*.html`
-        do
-            cat $DETAILS_TABLE >> ./build_results.html
-        done
-    fi
-    if [ -f ./basic_sim_row1.html ] || [ -f ./basic_sim_row2.html ] || [ -f ./basic_sim_row3.html ] || [ -f ./basic_sim_row4.html ] || [ -f ./basic_sim_row5.html ]
-    then
-        for DETAILS_TABLE in `ls ./basic_sim_row*.html`
         do
             cat $DETAILS_TABLE >> ./build_results.html
         done

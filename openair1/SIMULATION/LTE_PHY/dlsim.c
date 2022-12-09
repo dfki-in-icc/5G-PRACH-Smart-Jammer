@@ -512,12 +512,16 @@ int main(int argc, char **argv) {
   int re;
   int s,Kr,Kr_bytes;
   LTE_DL_FRAME_PARMS *frame_parms;
-  double s_re0[30720*2],s_im0[30720*2],r_re0[30720*2],r_im0[30720*2];
-  double s_re1[30720*2],s_im1[30720*2],r_re1[30720*2],r_im1[30720*2];
-  double *s_re[2]= {s_re0,s_re1};
-  double *s_im[2]= {s_im0,s_im1};
-  double *r_re[2]= {r_re0,r_re1};
-  double *r_im[2]= {r_im0,r_im1};
+  double *tmpTX[4], *tmpRX[4] ;
+  for (int i = 0; i < 4; i++) {
+    tmpTX[i] = malloc(30720 * NB_ANTENNAS_TX * sizeof(*tmpTX));
+    tmpRX[i] = malloc(30720 * NB_ANTENNAS_RX * sizeof(*tmpRX));
+  }
+  double *s_re[NB_ANTENNAS_TX] = {tmpTX[0], tmpTX[1]};
+  double *s_im[NB_ANTENNAS_TX] = {tmpTX[2], tmpTX[3]};
+  double *r_re[NB_ANTENNAS_RX] = {tmpRX[0], tmpRX[1]};
+  double *r_im[NB_ANTENNAS_RX] = {tmpRX[2], tmpRX[3]};
+  
   uint8_t transmission_mode=1,n_tx_port=1,n_tx_phy=1,n_rx=2;
   int eNB_id = 0;
   unsigned char round;
@@ -600,7 +604,7 @@ int main(int argc, char **argv) {
   nfapi_tx_request_t TX_req;
   Sched_Rsp_t sched_resp;
   int pa=dB0;
-#if defined(__arm__)
+#if defined(__arm__) || defined(__aarch64__)
   FILE    *proc_fd = NULL;
   char buf[64];
   memset(buf,0,sizeof(buf));
@@ -1188,9 +1192,11 @@ int main(int argc, char **argv) {
                                    N_RB2sampling_rate(eNB->frame_parms.N_RB_DL),
                                    N_RB2channel_bandwidth(eNB->frame_parms.N_RB_DL),
                                    DS_TDL,
+                                   CORR_LEVEL_LOW,
                                    forgetting_factor,
                                    rx_sample_offset,
-                                   0, 0);
+                                   0,
+                                   0);
   reset_meas(&eNB2UE[0]->random_channel);
   reset_meas(&eNB2UE[0]->interp_time);
 
@@ -1202,9 +1208,11 @@ int main(int argc, char **argv) {
                                        N_RB2sampling_rate(eNB->frame_parms.N_RB_DL),
                                        N_RB2channel_bandwidth(eNB->frame_parms.N_RB_DL),
                                        DS_TDL,
+                                       CORR_LEVEL_LOW,
                                        forgetting_factor,
                                        rx_sample_offset,
-                                       0, 0);
+                                       0,
+                                       0);
       reset_meas(&eNB2UE[n]->random_channel);
       reset_meas(&eNB2UE[n]->interp_time);
     }
@@ -1302,11 +1310,9 @@ int main(int argc, char **argv) {
   }
 
   L1_rxtx_proc_t *proc_eNB = &eNB->proc.L1_proc;
-  proc_eNB->threadPool=(tpool_t*)malloc(sizeof(tpool_t));
-  proc_eNB->respEncode=(notifiedFIFO_t*) malloc(sizeof(notifiedFIFO_t));
+  proc_eNB->threadPool = (tpool_t *)malloc(sizeof(tpool_t));
   proc_eNB->respDecode=(notifiedFIFO_t*) malloc(sizeof(notifiedFIFO_t));
   initTpool("n", proc_eNB->threadPool, true);
-  initNotifiedFIFO(proc_eNB->respEncode);
   initNotifiedFIFO(proc_eNB->respDecode);
 
   proc_eNB->frame_tx=0;
