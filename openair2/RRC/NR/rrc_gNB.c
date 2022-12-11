@@ -662,7 +662,7 @@ rrc_gNB_generate_defaultRRCReconfiguration(
                                 NULL,
                                 ue_p->masterCellGroup);
   AssertFatal(size > 0, "cannot encode RRCReconfiguration in %s()\n", __func__);
-  LOG_W(RRC, "do_RRCReconfiguration(): size %d\n", size);
+  LOG_W(NR_RRC, "do_RRCReconfiguration(): size %d\n", size);
 
   if (LOG_DEBUGFLAG(DEBUG_ASN1)) {
     xer_fprint(stdout, &asn_DEF_NR_CellGroupConfig, ue_p->masterCellGroup);
