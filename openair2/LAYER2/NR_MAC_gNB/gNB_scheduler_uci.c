@@ -168,7 +168,10 @@ void nr_schedule_pucch(gNB_MAC_INST *nrmac,
     NR_sched_pucch_t *curr_pucch = &UE->UE_sched_ctrl.sched_pucch[pucch_index];
     if (!curr_pucch->active)
       continue;
-    DevAssert(frameP == curr_pucch->frame && slotP == curr_pucch->ul_slot);
+    LOG_D(NR_MAC,"Scheduling PUCCH[%d] RX for UE %04x in %4d.%2d (pucch %4d.%2d)\n",
+          pucch_index,UE->rnti,frameP,slotP,curr_pucch->frame,curr_pucch->ul_slot);
+//    DevAssert(frameP == curr_pucch->frame && slotP == curr_pucch->ul_slot);
+    if (frameP != curr_pucch->frame || slotP != curr_pucch->ul_slot) continue;
 
     const uint16_t O_ack = curr_pucch->dai_c;
     const uint16_t O_csi = curr_pucch->csi_bits;
