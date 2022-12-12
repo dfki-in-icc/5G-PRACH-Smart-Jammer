@@ -472,7 +472,7 @@ int8_t nr_ue_scheduled_response(nr_scheduled_response_t *scheduled_response){
         case (FAPI_NR_UL_CONFIG_TYPE_PUCCH):
           found = false;
           pucch_config_pdu = &ul_config->ul_config_list[i].pucch_config_pdu;
-          LOG_I(RLC,"initial_pucch %d, pucch_pdu_msg4 %d\n",initial_pucch, pucch_pdu_msg4);
+          LOG_I(RLC,"initial_pucch %d, pucch_pdu_msg4 %p\n",initial_pucch, pucch_pdu_msg4);
   #define WAIT_FOR_PUCCH_CONFIGURED
   #ifdef WAIT_FOR_PUCCH_CONFIGURED
               while (pucch_configured == 0 ) usleep(5);

@@ -521,7 +521,7 @@ void config_control_initial_ue(NR_UE_MAC_INST_t *mac){
     mac->initDLbwp = scd->initialDownlinkBWP;
     if(scd->initialDownlinkBWP->pdcch_Config && scd->initialDownlinkBWP->pdcch_Config->choice.setup->controlResourceSetToAddModList){
       mac->coreset[dl_bwp_id][coreset_id - 1] = scd->initialDownlinkBWP->pdcch_Config->choice.setup->controlResourceSetToAddModList->list.array[0];
-      LOG_I(MAC, "set coreset %d %d\n",dl_bwp_id,coreset_id);
+      LOG_I(MAC, "set coreset %ld %d\n",dl_bwp_id,coreset_id);
     }
   }
 
@@ -546,7 +546,7 @@ void config_control_initial_ue(NR_UE_MAC_INST_t *mac){
       AssertFatal(ss->monitoringSymbolsWithinSlot != NULL, "NR_SearchSpace->monitoringSymbolsWithinSlot is null\n");
       AssertFatal(ss->monitoringSymbolsWithinSlot->buf != NULL, "NR_SearchSpace->monitoringSymbolsWithinSlot->buf is null\n");
       mac->SSpace[dl_bwp_id][ss_id] = ss;
-      LOG_I(MAC, "set searchSpaces %d %d\n",ss_id,*ss->controlResourceSetId);
+      LOG_I(MAC, "set searchSpaces %d %ld\n",ss_id,*ss->controlResourceSetId);
     }
   }
 }
@@ -865,8 +865,6 @@ int nr_rrc_mac_release_uespec(
     int                             cc_idP,
     uint8_t                         gNB_index){
     NR_UE_MAC_INST_t *mac = get_mac_inst(module_id);
-    RA_config_t *ra = &mac->ra;
-    fapi_nr_config_request_t *cfg = &mac->phy_config.config_req;
     //TODO L5G
       mac->servCellIndex = 0;
       mac->DL_BWP_Id = 0;

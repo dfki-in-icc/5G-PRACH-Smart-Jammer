@@ -442,6 +442,13 @@ void generateRegistrationRequest(as_nas_info_t *initialNasMsg, int Mod_id) {
 
 }
 
+int nas_itti_kgnb_refresh_req(const uint8_t kgnb[32], int instance) {
+  MessageDef *message_p;
+  message_p = itti_alloc_new_message(TASK_NAS_NRUE, 0, NAS_KENB_REFRESH_REQ);
+  memcpy(NAS_KENB_REFRESH_REQ(message_p).kenb, kgnb, sizeof(NAS_KENB_REFRESH_REQ(message_p).kenb));
+  return itti_send_msg_to_task(TASK_RRC_NRUE, instance, message_p);
+}
+
 void generateServiceRequest(as_nas_info_t *initialNasMsg, int Mod_id) {
   int size = 0;
   int len = 44;
@@ -449,8 +456,6 @@ void generateServiceRequest(as_nas_info_t *initialNasMsg, int Mod_id) {
   unsigned char * nas_msg;
   nas_stream_cipher_t stream_cipher;
   uint8_t             mac[4];
-  uicc_t * uicc=checkUicc(Mod_id);
-  fgs_nas_message_security_protected_t *sp_msg;
   initialNasMsg->data = (Byte_t *)malloc(len * sizeof(Byte_t));
   initialNasMsg->length = len;
   nas_msg=(unsigned char *)initialNasMsg->data;
@@ -688,13 +693,6 @@ static void generateAuthenticationResp(int Mod_id,as_nas_info_t *initialNasMsg, 
   initialNasMsg->data = (Byte_t *)malloc(size * sizeof(Byte_t));
 
   initialNasMsg->length = mm_msg_encode(mm_msg, (uint8_t*)(initialNasMsg->data), size);
-}
-
-int nas_itti_kgnb_refresh_req(const uint8_t kgnb[32], int instance) {
-  MessageDef *message_p;
-  message_p = itti_alloc_new_message(TASK_NAS_NRUE, 0, NAS_KENB_REFRESH_REQ);
-  memcpy(NAS_KENB_REFRESH_REQ(message_p).kenb, kgnb, sizeof(NAS_KENB_REFRESH_REQ(message_p).kenb));
-  return itti_send_msg_to_task(TASK_RRC_NRUE, instance, message_p);
 }
 
 static void generateSecurityModeComplete(int Mod_id,as_nas_info_t *initialNasMsg)

@@ -88,7 +88,7 @@ unsigned int gain_table[31] = {100,112,126,141,158,178,200,224,251,282,316,359,3
 static tpool_t pool_dlsch_chest;
 void init_dlsch_chest_tpool(uint8_t num_threads) {
   char *params = NULL;
-  char buf[16];
+  //char buf[16];
   if( num_threads==0) {
     params = calloc(1,2);
     memcpy(params,"N",1);
@@ -109,7 +109,7 @@ void init_dlsch_chest_tpool(uint8_t num_threads) {
 static tpool_t pool_rxpdsch;
 void init_rxdlsch_tpool(uint8_t num_threads) {
   char *params = NULL;
-  char buf[16];
+  //char buf[16];
   if( num_threads==0) {
     params = calloc(1,2);
     memcpy(params,"N",1);
@@ -621,7 +621,6 @@ int nr_ue_pdsch_procedures(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, int gNB_
   int m;
   int gNB_id_i;
   int first_symbol_flag=0;
-  int ret_code;
 
   if (!dlsch[0].active)
     return 0;

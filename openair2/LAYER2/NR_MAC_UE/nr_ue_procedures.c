@@ -134,7 +134,7 @@ const initial_pucch_resource_t initial_pucch_resource[16] = {
 };
 
 int r_PUCCH;
-extern rach_retry_timer;
+extern int rach_retry_timer;
 
 static uint8_t nr_extract_dci_info(NR_UE_MAC_INST_t *mac,
                             uint8_t dci_format,
@@ -4473,16 +4473,13 @@ int16_t compute_nr_SSB_PL(NR_UE_MAC_INST_t *mac, short ssb_rsrp_dBm)
   return pathloss;
 }
 
-int nr_ue_process_pch(nr_downlink_indication_t *dl_info, NR_UL_TIME_ALIGNMENT_t *ul_time_alignment, int pdu_id){
+void nr_ue_process_pch(nr_downlink_indication_t *dl_info, NR_UL_TIME_ALIGNMENT_t *ul_time_alignment, int pdu_id){
 
   module_id_t mod_id       = dl_info->module_id;
   frame_t frame            = dl_info->frame;
   uint8_t CC_id          = dl_info->cc_id;
   int slot                 = dl_info->slot;
   uint8_t gNB_index      = dl_info->gNB_index;
-  NR_UE_MAC_INST_t *mac    = get_mac_inst(mod_id);
-  uint8_t n_subPDUs        = 0;  // number of RAR payloads
-  uint8_t n_subheaders     = 0;  // number of MAC RAR subheaders
   uint8_t *dlsch_buffer    = dl_info->rx_ind->rx_indication_body[pdu_id].pdsch_pdu.pdu;
   int len    = dl_info->rx_ind->rx_indication_body[pdu_id].pdsch_pdu.pdu_length;
   LOG_I(NR_MAC, "recieved PCH %d %d %d %d %d\n", pdu_id, mod_id, frame, slot, len);

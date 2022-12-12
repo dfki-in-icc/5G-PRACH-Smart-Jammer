@@ -35,7 +35,7 @@
 #include "T.h"
 #include <openair1/PHY/TOOLS/phy_scope_interface.h>
 
-int16_t* pdcch_chest_ptr;
+int32_t* pdcch_chest_ptr;
 uint32_t  num_pdcch_chest_symbol;
 extern uint32_t  pdsch_mode;
 
@@ -1243,7 +1243,6 @@ void nr_pdcch_channel_estimation(PHY_VARS_NR_UE *ue,
   pdcch_chest_ptr = &pdcch_dl_ch_estimates[0][ch_offset];
   num_pdcch_chest_symbol = nb_rb_coreset * 12;
 
-  return(0);
 }
 
 int nr_pdsch_channel_estimation(PHY_VARS_NR_UE *ue,

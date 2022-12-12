@@ -2440,6 +2440,10 @@ int nr_rrc_mac_release_uespec(module_id_t module_id,int cc_idP,uint8_t gNB_index
            			  (void **)&dl_pcch_msg,
            			  (uint8_t *)NR_RRC_PCCH_DATA_REQ(msg_p).sdu_p,
            			  NR_RRC_PCCH_DATA_REQ(msg_p).sdu_size,0,0);
+        if ((dec_rval.code != RC_OK) && (dec_rval.consumed == 0)) {
+          LOG_E(NR_RRC, "Failed to decode P (%zu bytes)\n", dec_rval.consumed);
+          return;
+        }
         NR_UE_MAC_INST_t *mac = get_mac_inst(ue_mod_id);
 	mac->cg=NULL;
 	NR_UE_rrc_inst[ue_mod_id].paging_flag = 1;

@@ -979,7 +979,6 @@ void *UE_thread(void *arg) {
     absolute_slot++;
 
     // L5G_IOT
-    int thread_idx = absolute_slot % NR_RX_NB_TH;
     int slot_nr = absolute_slot % nb_slot_frame;
     // L5G_IOT  
     if (enable_parallel_pull != 0){
@@ -1131,7 +1130,7 @@ void init_NR_UE_threads(int nb_inst) {
 }
 // L5G_IOT
 void *pullthread(void* arg){
-    struct timespec loc_ts,te,loc_prev_ts;
+    struct timespec loc_ts,loc_prev_ts;
     long loc_lstart, loc_lend;
     notifiedFIFO_elt_t *res;
     int slot_offset = 0;
@@ -1153,7 +1152,6 @@ void *pullthread(void* arg){
     // Fix me: will be wrong when slot 1 is slow, as slot 2 finishes
     // Slot 3 will overlap if NR_RX_NB_TH is 2
     // this is general failure in UE !!!
-    int thread_idx = (absolute_slot - slot_offset) % NR_RX_NB_TH;
     int slot_nr = (absolute_slot - slot_offset) % nb_slot_frame;
     // notifiedFIFO_elt_t *msgToPush;
     AssertFatal((msgToPush=pullNotifiedFIFO_nothreadSafe(&freeBlocks)) != NULL,"chained list failure");

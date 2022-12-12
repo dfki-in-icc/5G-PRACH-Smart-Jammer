@@ -542,7 +542,7 @@ void ue_dci_configuration(NR_UE_MAC_INST_t *mac, fapi_nr_dl_config_request_t *dl
     }
   } else {
 //    AssertFatal(1==0,"Handle DCI searching when CellGroup without dedicated BWP\n");
-    NR_SetupRelease_PDCCH_ConfigCommon_t *pdcch_ConfigCommon = bwp_Common->pdcch_ConfigCommon;
+
     fapi_nr_dl_config_dci_dl_pdu_rel15_t *rel15 = &dl_config->dl_config_list[dl_config->number_pdus].dci_config_pdu.dci_config_rel15;
     if(mac->scc_SIB) {
       struct NR_PDCCH_ConfigCommon__commonSearchSpaceList * commonSearchSpaceList = mac->scc_SIB->downlinkConfigCommon.initialDownlinkBWP.pdcch_ConfigCommon->choice.setup->commonSearchSpaceList;
