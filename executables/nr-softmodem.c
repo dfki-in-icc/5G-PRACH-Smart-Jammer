@@ -78,10 +78,6 @@ unsigned short config_frames[4] = {2,9,11,13};
 #include <openair3/ocp-gtpu/gtp_itf.h>
 #include "nfapi/oai_integration/vendor_ext.h"
 
-#ifdef XFORMS
-#include "stats.h"
-#endif
-
 pthread_cond_t nfapi_sync_cond;
 pthread_mutex_t nfapi_sync_mutex;
 int nfapi_sync_var=-1; //!< protected by mutex \ref nfapi_sync_mutex

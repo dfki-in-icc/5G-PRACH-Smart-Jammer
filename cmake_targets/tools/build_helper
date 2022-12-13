@@ -640,47 +640,34 @@ check_install_oai_software() {
     fi
     $SUDO $INSTALLER update -y
   if [[ "$OS_DISTRO" == "ubuntu" ]]; then
-    local LAPACK_LIBNAME="liblapack.so"
-    local LAPACK_TARGET="/usr/lib/atlas-base/atlas/liblapack.so"
     $SUDO apt install -y software-properties-common
     case "$(get_distribution_release)" in
         "ubuntu16.04")
-            specific_packages="libtasn1-6-dev libgnutls-dev libatlas-dev libconfig8-dev libgcrypt11-dev python-pip pydb python guile-2.0-dev"
+            specific_packages="libgnutls-dev libatlas-dev libconfig8-dev libgcrypt11-dev guile-2.0-dev"
             ;;
         "ubuntu18.04")
-            specific_packages="libtasn1-6-dev libgnutls28-dev libconfig-dev libgcrypt11-dev python-pip pydb python guile-2.0-dev"
-            LAPACK_LIBNAME="liblapack.so-x86_64-linux-gnu"
-            LAPACK_TARGET="/usr/lib/x86_64-linux-gnu/atlas/liblapack.so"
+            specific_packages="libgnutls28-dev libconfig-dev libgcrypt11-dev guile-2.0-dev"
             ;;
         "ubuntu20.04")
-            specific_packages="libtasn1-6-dev libgnutls28-dev libconfig-dev python guile-2.0-dev"
-            LAPACK_LIBNAME="liblapack.so-x86_64-linux-gnu"
-            LAPACK_TARGET="/usr/lib/x86_64-linux-gnu/atlas/liblapack.so"
+            specific_packages="libgnutls28-dev libconfig-dev guile-2.0-dev"
             ;;
          "ubuntu21.04")
-            specific_packages="libtasn1-6-dev libgnutls28-dev libconfig-dev python guile-2.0-dev"
-            LAPACK_LIBNAME="liblapack.so-x86_64-linux-gnu"
-            LAPACK_TARGET="/usr/lib/x86_64-linux-gnu/atlas/liblapack.so"
+            specific_packages="libgnutls28-dev libconfig-dev guile-2.0-dev"
             ;;
          "ubuntu22.04")
-            specific_packages="libtasn1-6-dev libgnutls28-dev libconfig-dev python2 guile-2.2-dev"
-            LAPACK_LIBNAME="liblapack.so-x86_64-linux-gnu"
-            LAPACK_TARGET="/usr/lib/x86_64-linux-gnu/atlas/liblapack.so"
+            specific_packages="libgnutls28-dev libconfig-dev guile-2.2-dev"
             ;;
     esac
-    apt-get install -y \
+    apt-get install \
       $specific_packages \
-      autoconf \
       automake \
       bison \
       build-essential \
       $CMAKE \
       doxygen \
-      gdb \
       git \
       libatlas-base-dev \
       libblas-dev \
-      libboost-dev \
       liblapack-dev \
       liblapacke-dev \
       libpython2.7-dev \
@@ -688,12 +675,11 @@ check_install_oai_software() {
       libsctp-dev \
       libssl-dev \
       libtool \
-      libxml2-dev \
       libxslt-dev \
+      libtasn1-6-dev \
       ninja-build \
       openssl \
       flex  
-  $SUDO update-alternatives --set "$LAPACK_LIBNAME" "$LAPACK_TARGET"
   $SUDO apt-get install -y nettle-dev nettle-bin #To be remove once MR1738 is merged
   elif [[ "$OS_BASEDISTRO" == "fedora" ]]; then
     if [[ "$OS_DISTRO" == "rhel" ]] || [[ "$OS_DISTRO" == "centos" ]]; then
@@ -707,13 +693,11 @@ check_install_oai_software() {
     fi
 
     $SUDO $INSTALLER install -y \
-      autoconf \
       automake \
       bc \
       bison \
       $CMAKE \
       doxygen \
-      ethtool \
       flex \
       g++ \
       gcc \
@@ -724,27 +708,18 @@ check_install_oai_software() {
       libconfig-devel \
       libffi-devel \
       libgcrypt-devel \
-      gmp-devel \
       lksctp-tools \
       lksctp-tools-devel \
       openssl-devel \
       libtasn1 \
       libtool \
-      libusb-devel \
-      libxml2 \
-      libxml2-devel \
       libxslt-devel \
       ninja-build \
       make \
       openssl \
-      patch \
-      psmisc \
-      python \
       readline-devel \
       subversion \
       xmlstarlet \
-      python-pip \
-      wget \
       kernel-headers \
       kernel-devel \
       nettle-devel \
