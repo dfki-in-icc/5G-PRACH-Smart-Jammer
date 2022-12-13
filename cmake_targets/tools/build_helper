@@ -658,7 +658,7 @@ check_install_oai_software() {
             specific_packages="libgnutls28-dev libconfig-dev guile-2.2-dev"
             ;;
     esac
-    apt-get install \
+    apt-get install -y\
       $specific_packages \
       automake \
       bison \
