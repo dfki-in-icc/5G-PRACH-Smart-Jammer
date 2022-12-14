@@ -661,7 +661,6 @@ int main( int argc, char **argv ) {
     printf("ALL RUs ready - init gNBs\n");
 
     for (int idx=0;idx<RC.nb_nr_L1_inst;idx++) RC.gNB[idx]->if_inst->sl_ahead = sl_ahead;
-#ifdef XFORMS
     if(IS_SOFTMODEM_DOSCOPE) {
       sleep(1);
       scopeParms_t p;
@@ -671,7 +670,6 @@ int main( int argc, char **argv ) {
       p.ru=RC.ru[0];
       load_softscope("nr",&p);
     }
-#endif
 
     if (NFAPI_MODE != NFAPI_MODE_PNF && NFAPI_MODE != NFAPI_MODE_VNF) {
       printf("Not NFAPI mode - call init_eNB_afterRU()\n");

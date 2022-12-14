@@ -520,11 +520,9 @@ int main( int argc, char **argv ) {
     memset (&UE_PF_PO[0][0], 0, sizeof(UE_PF_PO_t)*NUMBER_OF_UE_MAX*MAX_NUM_CCs);
     set_latency_target();
 
-#ifdef XFORMS
     if(IS_SOFTMODEM_DOSCOPE) {
       load_softscope("nr",PHY_vars_UE_g[0][0]);
     }
-#endif
 
     init_NR_UE_threads(1);
     printf("UE threads created by %ld\n", gettid());

@@ -557,7 +557,9 @@ check_install_additional_tools (){
 	wvdial \
         sshpass \
         bc \
-        ntp"
+        ntp \
+        libforms-bin \
+        libforms-dev"
   elif [[ "$OS_DISTRO" == "rhel" ]] || [[ "$OS_DISTRO" == "centos" ]]; then
     PACKAGE_LIST="\
       check \
@@ -584,7 +586,9 @@ check_install_additional_tools (){
       python-pyroute2 \
       python-netifaces \
       scipy \
-      python-matplotlib"
+      python-matplotlib \
+      xforms \
+      xforms-devel"
   elif [[ "$OS_DISTRO" == "fedora" ]]; then
     PACKAGE_LIST=" \
       check \
@@ -611,7 +615,9 @@ check_install_additional_tools (){
       python-pyroute2 \
       python-netifaces \
       python-scipy \
-      python-matplotlib"
+      python-matplotlib \
+      xforms \
+      xforms-devel"
   fi
     $SUDO $INSTALLER install -y $PACKAGE_LIST $optional_packages
 
@@ -659,27 +665,27 @@ check_install_oai_software() {
             ;;
     esac
     apt-get install -y\
-      $specific_packages \
-      automake \
-      bison \
-      build-essential \
-      $CMAKE \
-      doxygen \
-      git \
-      libatlas-base-dev \
-      libblas-dev \
-      liblapack-dev \
-      liblapacke-dev \
-      libpython2.7-dev \
-      libreadline-dev \
-      libsctp-dev \
-      libssl-dev \
-      libtool \
-      libxslt-dev \
-      libtasn1-6-dev \
-      ninja-build \
-      openssl \
-      flex  
+        $specific_packages \
+        automake \
+        bison \
+        build-essential \
+        $CMAKE \
+        doxygen \
+        git \
+        libatlas-base-dev \
+        libblas-dev \
+        liblapack-dev \
+        liblapacke-dev \
+        libpython2.7-dev \
+        libreadline-dev \
+        libsctp-dev \
+        libssl-dev \
+        libtool \
+        libxslt-dev \
+        libtasn1-6-dev \
+        ninja-build \
+        openssl \
+        flex
   $SUDO apt-get install -y nettle-dev nettle-bin #To be remove once MR1738 is merged
   elif [[ "$OS_BASEDISTRO" == "fedora" ]]; then
     if [[ "$OS_DISTRO" == "rhel" ]] || [[ "$OS_DISTRO" == "centos" ]]; then
@@ -717,6 +723,7 @@ check_install_oai_software() {
       ninja-build \
       make \
       openssl \
+      patch \
       readline-devel \
       subversion \
       xmlstarlet \
