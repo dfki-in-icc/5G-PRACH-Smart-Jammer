@@ -56,28 +56,6 @@ class adb_ctl:
 			if mDataConnectionState == 2:
 				logging.debug('\u001B[1mUE (' + self.UE + ') Attach Completed\u001B[0m')
 				return
-			else:
-				max_count = 10
-				count = max_count
-				while count >0:
-					logging.debug('\u001B[1;30;43m Retry UE (' + self.UE + ') Flight Mode Off \u001B[0m')
-					flightMode_ON = 'adb -s ' + self.UE + ' shell /data/local/tmp/off'
-					sp.getoutput(flightMode_ON)
-					sleep(1)
-					flightMode_OFF = 'adb -s ' + self.UE + ' shell /data/local/tmp/on'
-					sp.getoutput(flightMode_OFF)
-					dataConnectionState=sp.getoutput('adb -s ' + self.UE + ' shell "dumpsys telephony.registry"')
-					result = re.search('mDataConnectionState.*=(?P<state>[0-9\-]+)', dataConnectionState)
-					if result is None:
-						logging.debug('\u001B[1;37;41m mDataConnectionState Not Found! \u001B[0m')
-					else:
-						mDataConnectionState = int(result.group('state'))
-						if mDataConnectionState == 2:
-							logging.debug('\u001B[1mUE (' + self.UE + ') Attach Completed\u001B[0m')
-							break
-					count = count - 1
-					if count == 0:
-						logging.debug('\u001B[1mUE (' + self.UE + ') Attach Failed\u001B[0m')
 
 	def detach(self):
 		logging.debug(self.UE)

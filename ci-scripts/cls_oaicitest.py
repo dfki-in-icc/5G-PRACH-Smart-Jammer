@@ -298,108 +298,6 @@ class OaiCiTest():
 			HTML.CreateHtmlTabFooter(False)
 			self.ConditionalExit()
 
-	def InitializeUE_common(self, device_id, idx,COTS_UE):
-		try:
-			SSH = sshconnection.SSHConnection()
-			SSH.open(self.ADBIPAddress, self.ADBUserName, self.ADBPassword)
-			if not self.ADBCentralized:
-				# Reboot UE
-				#SSH.command('ssh ' + self.UEDevicesRemoteUser[idx] + '@' + self.UEDevicesRemoteServer[idx] + ' ' + self.UEDevicesRebootCmd[idx], '\$', 60)
-				# Wait
-				#time.sleep(60)
-				# Put in LTE-Mode only
-				#SSH.command('ssh ' + self.UEDevicesRemoteUser[idx] + '@' + self.UEDevicesRemoteServer[idx] + ' \'adb -s ' + device_id + ' shell "settings put global preferred_network_mode 11"\'', '\$', 60)
-				#SSH.command('ssh ' + self.UEDevicesRemoteUser[idx] + '@' + self.UEDevicesRemoteServer[idx] + ' \'adb -s ' + device_id + ' shell "settings put global preferred_network_mode1 11"\'', '\$', 60)
-				#SSH.command('ssh ' + self.UEDevicesRemoteUser[idx] + '@' + self.UEDevicesRemoteServer[idx] + ' \'adb -s ' + device_id + ' shell "settings put global preferred_network_mode2 11"\'', '\$', 60)
-				#SSH.command('ssh ' + self.UEDevicesRemoteUser[idx] + '@' + self.UEDevicesRemoteServer[idx] + ' \'adb -s ' + device_id + ' shell "settings put global preferred_network_mode3 11"\'', '\$', 60)
-				# enable data service
-				#SSH.command('ssh ' + self.UEDevicesRemoteUser[idx] + '@' + self.UEDevicesRemoteServer[idx] + ' \'adb -s ' + device_id + ' shell "svc data enable"\'', '\$', 60)
-				# we need to do radio on/off cycle to make sure of above changes
-				# airplane mode off // radio on
-				#SSH.command('ssh ' + self.UEDevicesRemoteUser[idx] + '@' + self.UEDevicesRemoteServer[idx] + ' ' + self.UEDevicesOnCmd[idx], '\$', 60)
-				#time.sleep(10)
-				# airplane mode on // radio off
-				#SSH.command('ssh ' + self.UEDevicesRemoteUser[idx] + '@' + self.UEDevicesRemoteServer[idx] + ' ' + self.UEDevicesOffCmd[idx], '\$', 60)
-
-				# normal procedure without reboot
-				# enable data service
-				SSH.command('ssh ' + self.UEDevicesRemoteUser[idx] + '@' + self.UEDevicesRemoteServer[idx] + ' \'adb -s ' + device_id + ' shell "svc data enable"\'', '\$', 60)
-				# airplane mode on // radio off
-				SSH.command('ssh ' + self.UEDevicesRemoteUser[idx] + '@' + self.UEDevicesRemoteServer[idx] + ' ' + self.UEDevicesOffCmd[idx], '\$', 60)
-				SSH.close()
-				return
-
-			#RH quick add-on to integrate cots control defined by yaml
-			#if device_id exists in yaml dictionary, we execute the new procedure defined in cots_ue class
-			#otherwise we use the legacy procedure
-			logging.debug('Device id ' + str(device_id) + ', in COTS UE dict : ' + str(COTS_UE.Check_Exists(device_id)))
-			if COTS_UE.Check_Exists(device_id):
-				#switch device to Airplane mode ON (ie Radio OFF) 
-				COTS_UE.Set_Airplane(device_id, 'ON')
-			else:
-				# enable data service
-				SSH.command('stdbuf -o0 adb -s ' + device_id + ' shell "svc data enable"', '\$', 60)
-
-				# The following commands are deprecated since we no longer work on Android 7+
-				# SSH.command('stdbuf -o0 adb -s ' + device_id + ' shell settings put global airplane_mode_on 1', '\$', 10)
-				# SSH.command('stdbuf -o0 adb -s ' + device_id + ' shell am broadcast -a android.intent.action.AIRPLANE_MODE --ez state true', '\$', 60)
-				# a dedicated script has to be installed inside the UE
-				# airplane mode on means call /data/local/tmp/off
-				if device_id == '84B7N16418004022':
-					SSH.command('stdbuf -o0 adb -s ' + device_id + ' shell "su - root -c /data/local/tmp/off"', '\$', 60)
-				else:
-					SSH.command('stdbuf -o0 adb -s ' + device_id + ' shell /data/local/tmp/off', '\$', 60)
-				#airplane mode off means call /data/local/tmp/on
-				logging.debug('\u001B[1mUE (' + device_id + ') Initialize Completed\u001B[0m')
-				SSH.close()
-		except:
-			os.kill(os.getppid(),signal.SIGUSR1)
-
-	def CheckFlexranCtrlInstallation(self,RAN,EPC,CONTAINERS):
-		if EPC.IPAddress == '' or EPC.UserName == '' or EPC.Password == '':
-			return
-		SSH = sshconnection.SSHConnection()
-		SSH.open(EPC.IPAddress, EPC.UserName, EPC.Password)
-		SSH.command('ls -ls /opt/flexran_rtc/*/rt_controller', '\$', 5)
-		result = re.search('/opt/flexran_rtc/build/rt_controller', SSH.getBefore())
-		if result is not None:
-			RAN.flexranCtrlInstalled=True
-			RAN.flexranCtrlIpAddress=EPC.IPAddress
-			logging.debug('Flexran Controller is installed')
-		else:
-			# Maybe flexran-rtc is deployed into a container
-			SSH.command('docker inspect --format="FLEX_RTC_IP_ADDR = {{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}" prod-flexran-rtc', '\$', 5)
-			result = re.search('FLEX_RTC_IP_ADDR = (?P<flex_ip_addr>[0-9\.]+)', SSH.getBefore())
-			if result is not None:
-				RAN.flexranCtrlDeployed=True
-				RAN.flexranCtrlIpAddress=result.group('flex_ip_addr')
-				CONTAINERS.flexranCtrlDeployed=True
-				CONTAINERS.flexranCtrlIpAddress=result.group('flex_ip_addr')
-				logging.debug('Flexran Controller is deployed: ' + RAN.flexranCtrlIpAddress)
-		SSH.close()
-
-	def InitializeFlexranCtrl(self, HTML,RAN,EPC):
-		if RAN.flexranCtrlInstalled == False:
-			return
-		if EPC.IPAddress == '' or EPC.UserName == '' or EPC.Password == '':
-			HELP.GenericHelp(CONST.Version)
-			sys.exit('Insufficient Parameter')
-		SSH = sshconnection.SSHConnection()
-		SSH.open(EPC.IPAddress, EPC.UserName, EPC.Password)
-		SSH.command('cd /opt/flexran_rtc', '\$', 5)
-		SSH.command('echo ' + EPC.Password + ' | sudo -S rm -f log/*.log', '\$', 5)
-		SSH.command('echo ' + EPC.Password + ' | sudo -S echo "build/rt_controller -c log_config/basic_log" > ./my-flexran-ctl.sh', '\$', 5)
-		SSH.command('echo ' + EPC.Password + ' | sudo -S chmod 755 ./my-flexran-ctl.sh', '\$', 5)
-		SSH.command('echo ' + EPC.Password + ' | sudo -S daemon --unsafe --name=flexran_rtc_daemon --chdir=/opt/flexran_rtc -o /opt/flexran_rtc/log/flexranctl_' + self.testCase_id + '.log ././my-flexran-ctl.sh', '\$', 5)
-		SSH.command('ps -aux | grep --color=never rt_controller', '\$', 5)
-		result = re.search('rt_controller -c ', SSH.getBefore())
-		if result is not None:
-			logging.debug('\u001B[1m Initialize FlexRan Controller Completed\u001B[0m')
-			RAN.flexranCtrlStarted=True
-		SSH.close()
-		HTML.CreateHtmlTestRow('N/A', 'OK', CONST.ALL_PROCESSES_OK)
-	
-
 
 	def InitializeUE(self,HTML,RAN,EPC, COTS_UE, InfraUE,ue_trace,CONTAINERS):
 		ue_kind = InfraUE.ci_ue_infra[self.ue_id]['Kind']
@@ -410,7 +308,6 @@ class OaiCiTest():
 		if is_module:
 			module_ue.EnableTrace()
 			time.sleep(20)
-
 
 	def InitializeOAIUE(self,HTML,RAN,EPC,COTS_UE,InfraUE,CONTAINERS):
 		if self.UEIPAddress == '' or self.UEUserName == '' or self.UEPassword == '' or self.UESourceCodePath == '':
@@ -2962,38 +2859,17 @@ class OaiCiTest():
 			os.kill(os.getppid(),signal.SIGUSR1)
 
 	def TerminateUE(self,HTML,COTS_UE,InfraUE,ue_trace):
-		if self.ue_id=='':#no ID specified, then it is a COTS controlled by ADB
-			terminate_ue_flag = False
-			self.GetAllUEDevices(terminate_ue_flag)
-			multi_jobs = []
-			i = 0
-			for device_id in self.UEDevices:
-				p = Process(target= self.TerminateUE_common, args = (device_id,i,COTS_UE,))
-				p.daemon = True
-				p.start()
-				multi_jobs.append(p)
-				i += 1
-			for job in multi_jobs:
-				job.join()
-			HTML.CreateHtmlTestRow('N/A', 'OK', CONST.ALL_PROCESSES_OK)
-		else: #if an ID is specified, it is a module from the yaml infrastructure file
-			ue_kind = InfraUE.ci_ue_infra[self.ue_id]['Kind']
-			logging.debug("Detected UE Kind : " + ue_kind)
-			#if ue_kind == 'quectel':
-			Module_UE = cls_module_ue.Module_UE(InfraUE.ci_ue_infra[self.ue_id])
-			Module_UE.ue_trace=ue_trace
-				#Module_UE.Command("detach")
-			Module_UE.DisableTrace()
-			Module_UE.TerminateUEModule()
-			archive_destination=Module_UE.LogCollect()
-			if Module_UE.ue_trace=='yes':
-				HTML.CreateHtmlTestRow('QLog at : '+archive_destination, 'OK', CONST.ALL_PROCESSES_OK)
-			else:
-				HTML.CreateHtmlTestRow('QLog trace is disabled', 'OK', CONST.ALL_PROCESSES_OK)
-			#elif ue_kind == 'amarisoft':
-			#	HTML.CreateHtmlTestRow('AS UE is already terminated', 'OK', CONST.ALL_PROCESSES_OK)
-			#else:
-			#	logging.debug("Incorrect UE Kind was detected")
+		ue_kind = InfraUE.ci_ue_infra[self.ue_id]['Kind']
+		logging.debug("Detected UE Kind : " + ue_kind)
+		Module_UE = cls_module_ue.Module_UE(InfraUE.ci_ue_infra[self.ue_id])
+		Module_UE.ue_trace=ue_trace
+		Module_UE.DisableTrace()
+		Module_UE.TerminateUEModule()
+		archive_destination=Module_UE.LogCollect()
+		if Module_UE.ue_trace=='yes':
+			HTML.CreateHtmlTestRow('QLog at : '+archive_destination, 'OK', CONST.ALL_PROCESSES_OK)
+		else:
+			HTML.CreateHtmlTestRow('QLog trace is disabled', 'OK', CONST.ALL_PROCESSES_OK)
 
 	def TerminateOAIUE(self,HTML,RAN,COTS_UE,EPC,InfraUE,CONTAINERS):
 		SSH = sshconnection.SSHConnection()

@@ -143,10 +143,6 @@ class Module_UE:
 
 	def TerminateUEModule(self):
 		self.Command("terminateUE")
-		#mySSH = sshconnection.SSHConnection()
-		#mySSH.open(self.HostIPAddress, self.HostUsername, self.HostPassword)
-		#mySSH.command('nohup' + ' ' + self.Process['StopCmd'],'\$',5)
-		#mySSH.close()
 
 
 	def LogCollect(self):
