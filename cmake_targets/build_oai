@@ -588,13 +588,13 @@ function main() {
 
     echo_info "Compiling UE specific part"
 
-    if [ $IS_CONTAINER -eq 0 ]
-    then
-      echo_info "Building ue_ip module"
-      compilations $BUILD_DIR ue_ip
-    else
-      echo_info "Bypassing ue_ip build"
-    fi #IS_CONTAINER
+    # if [ $IS_CONTAINER -eq 0 ]
+    # then
+    #   echo_info "Building ue_ip module"
+    #   compilations $BUILD_DIR ue_ip
+    # else
+    #   echo_info "Bypassing ue_ip build"
+    # fi #IS_CONTAINER
 
 #    mkdir -p $DIR/at_commands/build
 #    cd $DIR/at_commands/build
