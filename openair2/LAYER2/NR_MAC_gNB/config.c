@@ -651,7 +651,7 @@ int rrc_mac_config_req_gNB(module_id_t Mod_idP,
 	       curr_bwp,
 	       0,   //lets assume ue_id = 0.
 	       0,   //res_id = 0 for initial BWP
-	       1, //maxMIMO_Layers //adeel
+	       1, //maxMIMO_Layers
 	       1);  //do_srsg
   }
 

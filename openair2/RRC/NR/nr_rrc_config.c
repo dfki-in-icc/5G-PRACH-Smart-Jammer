@@ -477,10 +477,9 @@ void config_srs(NR_SetupRelease_SRS_Config_t *setup_release_srs_Config,
     srs_res0->resourceType.present = NR_SRS_Resource__resourceType_PR_periodic;
     srs_res0->resourceType.choice.periodic = calloc(1,sizeof(*srs_res0->resourceType.choice.periodic));
     //srs_res0->resourceType.choice.periodic->periodicityAndOffset_p.present = NR_SRS_PeriodicityAndOffset_PR_sl160;
-    srs_res0->resourceType.choice.periodic->periodicityAndOffset_p.present = NR_SRS_PeriodicityAndOffset_PR_sl20; //adeel changes NR_SRS_PeriodicityAndOffset_PR_sl160
-    srs_res0->resourceType.choice.periodic->periodicityAndOffset_p.choice.sl20 = 17 + (uid>1)*10; // 17/17/.../147/157 are mixed slots //adeel changes periodicityAndOffset_p.choice.sl160
-    //srs_res0->resourceType.choice.periodic->periodicityAndOffset_p.choice.sl160 = 17 + (uid>1)*10; // 17/17/.../147/157 are mixed slots
-  } else {
+    srs_res0->resourceType.choice.periodic->periodicityAndOffset_p.present = NR_SRS_PeriodicityAndOffset_PR_sl20;
+    srs_res0->resourceType.choice.periodic->periodicityAndOffset_p.choice.sl20 = 17 + (uid>1)*10; // 17/17/.../147/157 are mixed slots
+      } else {
     srs_res0->resourceType.present = NR_SRS_Resource__resourceType_PR_aperiodic;
     srs_res0->resourceType.choice.aperiodic = calloc(1,sizeof(*srs_res0->resourceType.choice.aperiodic));
   }
@@ -593,7 +592,7 @@ void nr_rrc_config_ul_tda(NR_ServingCellConfigCommon_t *scc, int min_fb_delay){
   *pusch_timedomainresourceallocation->k2 = k2;
   pusch_timedomainresourceallocation->mappingType = NR_PUSCH_TimeDomainResourceAllocation__mappingType_typeB;
   pusch_timedomainresourceallocation->startSymbolAndLength = get_SLIV(0,13);
-  ASN_SEQUENCE_ADD(&scc->uplinkConfigCommon->initialUplinkBWP->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList->list,pusch_timedomainresourceallocation); 
+  ASN_SEQUENCE_ADD(&scc->uplinkConfigCommon->initialUplinkBWP->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList->list,pusch_timedomainresourceallocation);
 
   if(frame_type==TDD) {
     if(scc->tdd_UL_DL_ConfigurationCommon) {

@@ -51,13 +51,6 @@
 
 
 
-//start: adeel mqtt
-#include "MQTTClient.h"
-#include "cjson/cJSON.h"
-#define QOS         1
-MQTTClient client;
-//end: adeel mqtt
-
 typedef struct {
   int nb_id;
   int Nid[MAX_PUCCH0_NID];
@@ -730,8 +723,6 @@ typedef struct PHY_VARS_gNB_s {
   NR_IF_Module_t       *if_inst;
   NR_UL_IND_t          UL_INFO;
   pthread_mutex_t      UL_INFO_mutex;
-
- mqtt_cfg_t       mqtt_cfg; // adeel mqtt
 
 
   /// NFAPI RX ULSCH information

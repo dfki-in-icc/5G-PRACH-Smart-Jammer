@@ -42,12 +42,9 @@
 #define NO_INTERP 1
 #define dBc(x,y) (dB_fixed(((int32_t)(x))*(x) + ((int32_t)(y))*(y)))
 
-//////////////////GEO5G MQTT TESTing//////////////
-//#include <stdio.h>
-//#include <stdlib.h>
-#define TIMEOUT     100L
-void srs_toa_MQTT(int32_t *buffer, int32_t buf_len, const PHY_VARS_gNB *gNB);
-//////////////////GEO5G TESTing//////////////*/
+
+void srs_TOA(int32_t *buffer, int32_t buf_len);
+
 
 
 
@@ -751,46 +748,6 @@ int nr_srs_channel_estimation(const PHY_VARS_gNB *gNB,
   }
 
 
- // Start: Adeel testing
- if (frame%2250==0 && slot== 17 ){
-printf("\n Frame Parameter\n nb_prefix_samples0=%lu \n, ofdm_symbol_size=%lu \n,  nb_prefix_samples=%lu \n,  symbols_per_slot=%lu \n,  slots_per_subframe=%lu \n , first_carrier_offset=%lu \n", (unsigned long int)frame_parms->nb_prefix_samples0, (unsigned long int)frame_parms->ofdm_symbol_size,  (unsigned long int)frame_parms->nb_prefix_samples,  (unsigned long int)frame_parms->symbols_per_slot,  (unsigned long int)frame_parms->slots_per_subframe, (unsigned long int)frame_parms->first_carrier_offset);
-//printf("\n SRS Parameter\n subcarrier_offset=%lu\n , srs_pdu->bwp_start=%lu\n, NR_NB_SC_PER_RB=%lu\n, N_ap=%lu\n, K_TC=%lu\n,srs_pdu->comb_size=%lu\n, m_SRS_b=%lu\n, M_sc_b_SRS=%lu\n, fd_cdm=%lu\n", (unsigned long int)subcarrier_offset , (unsigned long int)srs_pdu->bwp_start, (unsigned long int)NR_NB_SC_PER_RB, (unsigned long int)N_ap, (unsigned long int)K_TC,(unsigned long int)srs_pdu->comb_size, m_SRS_b, (unsigned long int) M_sc_b_SRS);
- //printf("\n ###############################################################################################N_RB_UL= %d \n",  ;
-//N_RB_UL=106
-// SRS config parameters
-printf("\n SRS Parameter\n B_SRS =%u \n C_SRS = %u \n  b_hop = %u \n K_TC = %u \n K_TC_overbar = %u \n n_SRS_cs = %u \n n_ID_SRS = %u \n n_shift = %u \n n_RRC = %u \n groupOrSequenceHopping = %u \n l_offset = %u \n T_SRS = %u \n  T_offset = %u \n  R = %u \n  Number of antenna port for transmission N_ap = %u \n Number of consecutive OFDM symbols N_symb_SRS = %u \n Starting symbol position in the time domain l0 = %u  \n n_SRS_cs_max = %u \n Number of resource blocks m_SRS_b = %u \n  Length of the SRS sequence M_sc_b_SRS =  %u \n", srs_pdu->bandwidth_index, srs_pdu->config_index,  srs_pdu->frequency_hopping, 2<<srs_pdu->comb_size, srs_pdu->comb_offset, srs_pdu->cyclic_shift, srs_pdu->sequence_id, srs_pdu->frequency_position, srs_pdu->frequency_shift,srs_pdu->group_or_sequence_hopping, srs_pdu->time_start_position, srs_pdu->t_srs, srs_pdu->t_offset, 1<<srs_pdu->num_repetitions, 1<<srs_pdu->num_ant_ports, 1<<srs_pdu->num_symbols, frame_parms->symbols_per_slot - 1 - srs_pdu->time_start_position ,srs_max_number_cs[srs_pdu->comb_size], m_SRS_b, M_sc_b_SRS);
-}
-
-/*   B_SRS = srs_pdu->bandwidth_index;
-   C_SRS = srs_pdu->config_index;
-  b_hop = srs_pdu->frequency_hopping;
-   K_TC = 2<<srs_pdu->comb_size;
-   K_TC_overbar = srs_pdu->comb_offset;
-   n_SRS_cs = srs_pdu->cyclic_shift;
- n_ID_SRS = srs_pdu->sequence_id;
-  n_shift = srs_pdu->frequency_position;       // It adjusts the SRS allocation to align with the common resource block grid in multiples of four
-   n_RRC = srs_pdu->frequency_shift;
-   groupOrSequenceHopping = srs_pdu->group_or_sequence_hopping;
-  l_offset = srs_pdu->time_start_position;
-  T_SRS = srs_pdu->t_srs;
-   T_offset = srs_pdu->t_offset;
-   R = 1<<srs_pdu->num_repetitions;
-   N_ap = 1<<srs_pdu->num_ant_ports;            // Number of antenna port for transmission
-   N_symb_SRS = 1<<srs_pdu->num_symbols;        // Number of consecutive OFDM symbols
-   l0 = frame_parms->symbols_per_slot - 1 - l_offset;  // Starting symbol position in the time domain
-   n_SRS_cs_max = srs_max_number_cs[srs_pdu->comb_size];
-   m_SRS_b = m_SRS_b  // Number of resource blocks
-   M_sc_b_SRS =  M_sc_b_SRS   // Length of the SRS sequence*/
-
-
-
-
-//SRS configuration
-
-  // End Adeel testing
-
-
-
   c16_t srs_ls_estimated_channel[frame_parms->ofdm_symbol_size*(1<<srs_pdu->num_symbols)];
   uint32_t noise_power_per_rb[srs_pdu->bwp_size];
   int16_t ch_real[frame_parms->nb_antennas_rx*N_ap*M_sc_b_SRS];
@@ -994,17 +951,8 @@ printf("\n SRS Parameter\n B_SRS =%u \n C_SRS = %u \n  b_hop = %u \n K_TC = %u \
     } // for (int p_index = 0; p_index < N_ap; p_index++)
 
 
-
-
-       //Start: SRS MQTT TESTing ( adeel )
-
-//printf("\nNid_cell = %d, PgNB_id = %d, Trp_id = %ld,  ,phy_cell_id=%d\n",frame_parms->Nid_cell, gNB->PgNB_id, trp_id, phycell_id) ;
-
-if (frame%10==0){
-  printf("\n####[Gnb %d SRS estimate]#### frame = %d, Slot = %d, phy_cell_id=%d ",gNB->mqtt_cfg.MqttTrpId, frame, slot, gNB->gNB_config.cell_config.phy_cell_id.value) ; //adeel changes
-        srs_toa_MQTT((int32_t *)srs_estimated_channel_time[ant], frame_parms->ofdm_symbol_size, gNB);     // peak estimator and MQTT client activation /// id of gNB
-          }
-    // END: SRS MQTT TESTing ( adeel )
+      LOG_I(NR_PHY,"SRS TOA Estimate for Frame = %d, Slot = %d, phy_cell_id=%d \n", frame, slot, gNB->gNB_config.cell_config.phy_cell_id.value) ;
+      srs_TOA((int32_t *)srs_estimated_channel_time[ant], frame_parms->ofdm_symbol_size);     // peak estimator ///
 
 
 
@@ -1081,31 +1029,11 @@ if (frame%10==0){
 
 
 
-void srs_toa_MQTT(int32_t *buffer, int32_t buf_len, const PHY_VARS_gNB *gNB)  // : SRS MQTT TESTing ( adeel )
-{
-
-
-int peak_idx =0;
-
-
-//MQTT Part
-    MQTTClient_message pubmsg = MQTTClient_message_initializer;
-    MQTTClient_deliveryToken token;
-
-
-    int rc;
-  cJSON *mqtt_payload  = cJSON_CreateObject();
-  cJSON_AddNumberToObject(mqtt_payload, "peak_index",peak_idx);
-  cJSON_AddNumberToObject(mqtt_payload, "source", gNB->mqtt_cfg.MqttTrpId);
-  cJSON *chest_json    = NULL; //cJSON_CreateArray();
-  chest_json= cJSON_AddArrayToObject(mqtt_payload, "ch_est_T");
-
-
+void srs_TOA(int32_t *buffer, int32_t buf_len) {
 //Peak Calculation
 int32_t max_val = 0, max_idx = 0, abs_val = 0;
 
-  for(int k = 0; k < buf_len; k++)
-  {
+  for(int k = 0; k < buf_len; k++)  {
 
     int Re = ((c16_t*)buffer)[k].r;
       int Im = ((c16_t*)buffer)[k].i;
@@ -1113,43 +1041,17 @@ int32_t max_val = 0, max_idx = 0, abs_val = 0;
 //int im = srs_estimated_channel_time[ant][k]<<16
 //int re = srs_estimated_channel_time[ant][k]>>16
 
-    if(abs_val > max_val)
-    {
+    if(abs_val > max_val){
       max_val = abs_val;
       max_idx = k;
         }
 
-
-   cJSON *chest_json_value   = cJSON_CreateObject();
-   cJSON_AddNumberToObject(chest_json_value,"ch_est",  abs_val);
-   cJSON_AddItemToArray(chest_json,  chest_json_value );
-
-
   }
-  //*peak_val = max_val;
-
- peak_idx =  max_idx;
-
 // Scalling
-//if (peak_idx > buf_len/2) {
- //   peak_idx= peak_idx- buf_len;
+//if (max_idx > buf_len/2) {
+ //   max_idx= max_idx- buf_len;
  // }
-  printf(" peak_index=%d\n", peak_idx) ; //adeel changes
-  cJSON_SetIntValue(cJSON_GetObjectItem(mqtt_payload, "peak_index"), peak_idx);
-
-
-// PUBLISHING the Message
-    pubmsg.payload = cJSON_Print(mqtt_payload) ; //&PAYLOAD;
-    pubmsg.payloadlen = (int)strlen(pubmsg.payload); //sizeof(mqtt_payload);//strlen(PAYLOAD);
-    pubmsg.qos = 0;
-    pubmsg.retained = 0;
-
-    if ((rc = MQTTClient_publishMessage(client, gNB->mqtt_cfg.MqttTopicName, &pubmsg, &token) ) != MQTTCLIENT_SUCCESS)
-    {
-         LOG_W(PHY, "Failed to publish \"SRS ToA measurements\" MQTT message, return code %d\n", rc);
-          printf( "Failed to publish \"SRS ToA measurements\" MQTT message, return code %d\n", rc);
-         exit(EXIT_FAILURE);
-    }
+    LOG_I(NR_PHY,"Peak index = %d, Peak Value = %d \n", max_idx, max_val);
 
  }
 

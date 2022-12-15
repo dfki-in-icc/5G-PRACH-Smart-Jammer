@@ -131,13 +131,13 @@ if(EXISTS "/usr/include/atlas/cblas.h" OR EXISTS "/usr/include/cblas.h")
 
 # for ubuntu 17.10, directories are different
 elseif(EXISTS "/usr/include/x86_64-linux-gnu/cblas.h")
-  
+
   include_directories("/usr/include/x86_64-linux-gnu")
   LINK_DIRECTORIES("/usr/lib/x86_64-linux-gnu")
   list(APPEND ATLAS_LIBRARIES cblas)
   list(APPEND ATLAS_LIBRARIES atlas)
   list(APPEND ATLAS_LIBRARIES lapack)
-  
+
 else()
   message("No Blas/Atlas libs found, some targets will fail")
 endif()
@@ -198,7 +198,7 @@ add_list_string_option(CMAKE_BUILD_TYPE "RelWithDebInfo" "Choose the type of bui
 
 # in case /proc/cpuinfo exists we want to inspect available Intrinsics
 # -so not to go always through SIMDE emulation
-# -so to avoid AVX512 instructions generation by gcc   
+# -so to avoid AVX512 instructions generation by gcc
 execute_process(COMMAND uname -m OUTPUT_VARIABLE CPUARCH OUTPUT_STRIP_TRAILING_WHITESPACE)
 message(STATUS "CPUARCH ${CPUARCH}")
 if(EXISTS "/proc/cpuinfo")
@@ -735,10 +735,10 @@ add_library(LPP_LIB
   ${LPP_ASN_GENERATED_C_FILES}
   )
 add_dependencies (LPP_LIB  lpp_flag)
-  
+
 include_directories ("${LPP_ASN_GENERATED_C_DIR}")
 include_directories ("${LPP_DIR}")
-  
+
 #file(GLOB LPP_C_FILES ${LPP_DIR}/*.c)
 #add_library(LPP ${LPP_C_FILES} )
 
@@ -1867,7 +1867,7 @@ set(NR_SDAP_SRC
   ${OPENAIR2_DIR}/SDAP/nr_sdap/nr_sdap.c
   ${OPENAIR2_DIR}/SDAP/nr_sdap/nr_sdap_entity.c
   )
-  
+
 set(L2_SRC
   ${PDCP_DIR}/pdcp.c
   ${PDCP_DIR}/pdcp_fifo.c
@@ -2805,7 +2805,6 @@ target_link_libraries (nr-softmodem
   -Wl,--end-group z dl)
 
 
-target_link_libraries (nr-softmodem paho-mqtt3c cjson)  ###adeel changes
 target_link_libraries (nr-softmodem ${LIBXML2_LIBRARIES})
 target_link_libraries (nr-softmodem pthread m CONFIG_LIB rt crypt ${CRYPTO_LIBRARIES} ${OPENSSL_LIBRARIES} sctp  ${XFORMS_LIBRARIES} ${PROTOBUF_LIB}  ${CMAKE_DL_LIBS} ${LIBYAML_LIBRARIES} ${ATLAS_LIBRARIES})
 target_link_libraries (nr-softmodem ${LIB_LMS_LIBRARIES})

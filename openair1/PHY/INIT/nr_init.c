@@ -46,7 +46,7 @@
 
 #include "PHY/NR_REFSIG/ul_ref_seq_nr.h"
 
-#include "openair2/COMMON/mqtt_paramdef.h" //adeel mqtt
+
 
 
 int l1_north_init_gNB() {
@@ -715,39 +715,6 @@ int phy_init_nr_gNB(PHY_VARS_gNB *gNB,
   for (ulsch_id=0; ulsch_id<NUMBER_OF_UE_MAX; ulsch_id++)
     gNB->UE_stats_ptr[ulsch_id] = &gNB->UE_stats[ulsch_id];
 */
-
-
-//Satrt: adeel mqtt changes
-
-  //MQTT parameters
-  paramlist_def_t MqttParamList = {CONFIG_STRING_MQTT_CONFIG,NULL,0};
-  paramdef_t MqttParams[] = MQTT_PARAMS_DESC;
-  config_getlist(&MqttParamList,MqttParams,sizeof(MqttParams)/sizeof(paramdef_t), NULL);
-  if(MqttParamList.numelt>0){
-   gNB->mqtt_cfg.MqttBrokerAddr = *(MqttParamList.paramarray[0][MQTT_BROKER_ADDR_IDX].strptr);
-   gNB->mqtt_cfg.MqttTopicName  = *(MqttParamList.paramarray[0][MQTT_TOPIC_NAME_IDX].strptr);
-   gNB->mqtt_cfg.MqttClientId   = *(MqttParamList.paramarray[0][MQTT_CLIENT_ID_IDX].strptr);
-   gNB->mqtt_cfg.MqttTrpId      = *(MqttParamList.paramarray[0][MQTT_TRP_ID_IDX].uptr);
-}
-  LOG_I(PHY, "MQTT Config\n");
-  LOG_I(PHY, "-----------------------------------------\n");
-  LOG_I(PHY, "MqttBrokerAddr %s\n", gNB->mqtt_cfg.MqttBrokerAddr);
-  LOG_I(PHY, "MqttTopicName  %s\n", gNB->mqtt_cfg.MqttTopicName);
-  LOG_I(PHY, "MqttClientId   %s\n", gNB->mqtt_cfg.MqttClientId);
-  LOG_I(PHY, "MqttTrpId   %d\n", gNB->mqtt_cfg.MqttTrpId);
-  LOG_I(PHY, "-----------------------------------------\n");
-
-
-
-   printf("[NR_INIT] MQTT Config\n\n");
-  printf("-----------------------------------------\n");
-  printf("MqttBrokerAddr %s\n", gNB->mqtt_cfg.MqttBrokerAddr);
-  printf("MqttTopicName  %s\n", gNB->mqtt_cfg.MqttTopicName);
-  printf("MqttClientId   %s\n", gNB->mqtt_cfg.MqttClientId);
-  printf("MqttTrpId   %d\n", gNB->mqtt_cfg.MqttTrpId);
-  printf("-----------------------------------------\n");
-//end  adeel mqtt changes
-
 
 
   return (0);

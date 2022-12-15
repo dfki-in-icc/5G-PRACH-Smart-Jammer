@@ -60,24 +60,6 @@ unsigned short config_frames[4] = {2,9,11,13};
 #endif
 
 
-//////////////////GEO5G MQTT TESTing//////////////
-//#include <stdio.h>
-//#include <stdlib.h>
-//#include "cjson/cJSON.h"
-//#include "MQTTClient.h"
-//#define ADDRESS     "tcp://localhost:1883"
-//#define ADDRESS     "tcp://172.24.10.178:1883"
-//#define CLIENTID    "Gnb1"
-//#define TOPIC       "Frame_rx"
-//#define QOS         0
-//#define TIMEOUT     100L
-void Frame_MQTT(void *data, int32_t length, int32_t frame_id,   const PHY_VARS_gNB *gNB);
-
-//////////////////GEO5G TESTing//////////////*/
-
-
-
-
 /* these variables have to be defined before including ENB_APP/enb_paramdef.h and GNB_APP/gnb_paramdef.h */
 static int DEFBANDS[] = {7};
 static int DEFENBS[] = {0};
@@ -711,12 +693,6 @@ void rx_rf(RU_t *ru,int *frame,int *slot) {
         proc->frame_rx,proc->tti_rx,proc->tti_tx,fp->slots_per_frame);
 
 
-         // start adeel changes
-           // printf("gNB1 [nr-ru.c] rx_rf: %d/%d TS %llu , frame %d, slot %d.%d / %d\n",  ru->idx,   0, (unsigned long long int)(proc->timestamp_rx+ru->ts_offset), proc->frame_rx,proc->tti_rx,proc->tti_tx,fp->slots_per_frame);
-   // end adeel changes
-
-
-
   // dump VCD output for first RU in list
   if (ru == RC.ru[0]) {
     VCD_SIGNAL_DUMPER_DUMP_VARIABLE_BY_NAME( VCD_SIGNAL_DUMPER_VARIABLES_FRAME_NUMBER_RX0_RU, proc->frame_rx );
@@ -1204,27 +1180,6 @@ void *ru_thread( void *param ) {
 	slot_duration.tv_nsec = 0.5e6;
 
 
-	//start: adeel mqtt
-	int rc;
-  MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
-  if ((rc = MQTTClient_create(&client, gNB->mqtt_cfg.MqttBrokerAddr, gNB->mqtt_cfg.MqttClientId,
-      MQTTCLIENT_PERSISTENCE_NONE, NULL)) != MQTTCLIENT_SUCCESS)
-  {
-       printf("Failed to create MQTT client %s, return code %d\n", gNB->mqtt_cfg.MqttClientId, rc);
-       exit(EXIT_FAILURE);
-  }
-  conn_opts.keepAliveInterval = 20;
-  conn_opts.cleansession = 1;
-  if ((rc = MQTTClient_connect(client, &conn_opts)) != MQTTCLIENT_SUCCESS)
-  {
-      printf("Failed to create MQTT client %s, return code %d\n", gNB->mqtt_cfg.MqttClientId, rc);
-      exit(EXIT_FAILURE);
-  }
-
-	//End: adeel mqtt
-
-
-
   while (!oai_exit) {
 
     if (NFAPI_MODE==NFAPI_MODE_VNF) {
@@ -1291,35 +1246,6 @@ void *ru_thread( void *param ) {
           RC.gNB[0]->proc.frame_tx);
 
     if (ru->idx!=0) proc->frame_tx = (proc->frame_tx+proc->frame_offset)&1023;
-
-
-
-
- //start: Frame extraction (adeel)
-
-  //Start: Sending Frame samples via MQTT
-  //  if (proc->frame_rx %50==0 && proc->tti_rx== 15 ){  // As this function is called at each slot, we use if condition to make sure to send limited amount of frame data via MQTT (currently every 20th frame), sending more frequently may overwhelm the matlab processing
-  //       Frame_MQTT(&ru->common.rxdata[0][0], fp->samples_per_frame,  proc->frame_rx, gNB ) ; //
-   //}
- //End: Sending Frame samples via MQTT
-
-
-/*//Start: Extracting Frame sample in txt file
-    if (proc->frame_rx == 132 && proc->tti_rx== 17){ // As this function is called at each slot, we use if condition to make sure we extract only one frame in txt file,
-           void *data= &ru->common.rxdata[0][0];
-					  int length=fp->samples_per_frame;
-					  int dec=1;
-  FILE *file_p=NULL;
-      int i_c;
-    file_p = fopen("rxdataabs_gnb1.txt","a");
-      for (i_c=0; i_c<length<<1; i_c+=(2*dec)) {
-           fprintf(file_p,"%d \n",( ((short *)data)[i_c]*((short *)data)[i_c]+((short *)data)[i_c+1]*((short *)data)[i_c+1] )/2 );
-      }
-      fclose(file_p);
-}
- //End: Extracting Frame sample in txt file*/
-
-// End: Frame extraction
 
 
 
@@ -2080,57 +2006,6 @@ static void NRRCconfig_RU(void) {
   return;
 }
 
-
-
-
-void Frame_MQTT(void *data, int32_t length,  int32_t frame_id, const PHY_VARS_gNB *gNB)  // GEO 5G testing: Sending Frame samples via MQTT
-{
-
-
-//MQTT Part
-    MQTTClient_message pubmsg = MQTTClient_message_initializer;
-    MQTTClient_deliveryToken token;
-    int rc;
-
-  //Converting data into JSON format
-  cJSON *mqtt_payload  = cJSON_CreateObject();
-  cJSON_AddNumberToObject(mqtt_payload, "frame_id",frame_id);
-  cJSON_AddNumberToObject(mqtt_payload, "source", gNB->mqtt_cfg.MqttTrpId);
-  cJSON *rx_samples_json    = NULL; //cJSON_CreateArray();
-  rx_samples_json= cJSON_AddArrayToObject(mqtt_payload, "Frame_samples");
-
-      int dec=1;
-      int i_c;
-      int32_t abs_val = 0;
-         for (i_c=0; i_c<length<<1; i_c+=(2*dec)) {
-
-     abs_val= ( ((short *)data)[i_c]*((short *)data)[i_c]+((short *)data)[i_c+1]*((short *)data)[i_c+1] )/2 ;
-
-   cJSON *rx_samples_json_value   = cJSON_CreateObject();
-   cJSON_AddNumberToObject(rx_samples_json_value,"rx_samples",  abs_val);
-   cJSON_AddItemToArray(rx_samples_json,  rx_samples_json_value );
-
-
-      }
-
-
-
-// PUBLISHING the Message
-    pubmsg.payload = cJSON_Print(mqtt_payload) ; //&PAYLOAD;
-    pubmsg.payloadlen = (int)strlen(pubmsg.payload); //sizeof(mqtt_payload);//strlen(PAYLOAD);
-    pubmsg.qos = 0;
-    pubmsg.retained = 0;
-//    MQTTClient_publishMessage(client, TOPIC, &pubmsg, &token);
-
-
-     if ((rc = MQTTClient_publishMessage(client, "Frame_rx", &pubmsg, &token) ) != MQTTCLIENT_SUCCESS)
-    {
-         LOG_W(PHY, "Failed to publish \" Frame Sample\" MQTT message, return code %d\n", rc);
-          printf( "Failed to publish \"Frame Sample\" MQTT message, return code %d\n", rc);
-         exit(EXIT_FAILURE);
-    }
-
- }
 
 
 
