@@ -35,6 +35,7 @@
 #include "PHY/NR_TRANSPORT/nr_dlsch.h"
 #include "PHY/NR_TRANSPORT/nr_dci.h"
 #include "nfapi/oai_integration/vendor_ext.h"
+#include "common/utils/LATSEQ/latseq.h"
 
 extern int oai_nfapi_dl_tti_req(nfapi_nr_dl_tti_request_t *dl_config_req);
 extern int oai_nfapi_tx_data_req(nfapi_nr_tx_data_request_t *tx_data_req);
@@ -206,6 +207,7 @@ void nr_schedule_response(NR_Sched_Rsp_t *Sched_INFO){
             AssertFatal(msgTx->num_pdsch_slot < gNB->number_of_nr_dlsch_max,"Number of PDSCH PDUs %d exceeded the limit %d\n",
                         msgTx->num_pdsch_slot,gNB->number_of_nr_dlsch_max);
             handle_nr_nfapi_pdsch_pdu(msgTx,&dl_tti_pdu->pdsch_pdu, sdu);
+            LATSEQ_P("D mac.nfapi.handled--", "len%u::frame%u.slot%u.scheduledframe%u.scheduledslot%u.pduindex%u", dl_tti_pdu->PDUSize, frame, slot, DL_req->SFN, DL_req->Slot);
         }
       }
 

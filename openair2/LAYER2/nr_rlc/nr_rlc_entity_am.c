@@ -28,6 +28,7 @@
 
 #include "LOG/log.h"
 #include "common/utils/time_stat.h"
+#include "common/utils/LATSEQ/latseq.h"
 
 /* for a given SDU/SDU segment, computes the corresponding PDU header size */
 static int compute_pdu_header_size(nr_rlc_entity_am_t *entity,
@@ -878,6 +879,7 @@ static int serialize_sdu(nr_rlc_entity_am_t *entity,
 
   /* data */
   memcpy(buffer + encoder.byte, sdu->sdu->data + sdu->so, sdu->size);
+  LATSEQ_P("D rlc.headeradded--mac.sdu.pulled", "len%u::sn%u.txnext%u.rlcrxsdupackets%u.rlcrxsdubytes%u", bufsize, sdu->sdu->sn, entity->rx_next, entity->common.stats.rxsdu_pkts, entity->common.stats.rxsdu_bytes);
 
   if (p)
     include_poll(entity, buffer);
@@ -1266,8 +1268,8 @@ static int generate_status(nr_rlc_entity_am_t *entity, char *buffer, int size)
   if (size < 3)
     return 0;
 
-  /* initial last_nack is rx_next - 1 */
   last_nack = (entity->rx_next - 1 + entity->sn_modulus) % entity->sn_modulus;
+  /* initial last_nack is rx_next - 1 */
 
   nr_rlc_pdu_encoder_init(&encoder, buffer, size);
 
@@ -1711,6 +1713,7 @@ void nr_rlc_entity_am_recv_sdu(nr_rlc_entity_t *_entity,
   LOG_D(RLC, "Created new RLC SDU and append it to the RLC list \n");
 
   nr_rlc_sdu_segment_list_append(&entity->tx_list, &entity->tx_end, sdu);
+  LATSEQ_P("D rlc.sdu.received--rlc.headeradded", "len%u::mui%u.sn%u.txnext%u.rlcrxsdupackets%u.rlcrxsdubytes%u", size, sdu_id, sdu->sdu->sn, entity->tx_next, entity->common.stats.rxsdu_pkts, entity->common.stats.rxsdu_bytes);
 
   /* update buffer status */
   entity->common.bstatus.tx_size += compute_pdu_header_size(entity, sdu)

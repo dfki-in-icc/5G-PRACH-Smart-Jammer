@@ -45,6 +45,8 @@
 #include "executables/softmodem-common.h"
 #include "../../../nfapi/oai_integration/vendor_ext.h"
 
+#include "common/utils/LATSEQ/latseq.h"
+
 ////////////////////////////////////////////////////////
 /////* DLSCH MAC PDU generation (6.1.2 TS 38.321) */////
 ////////////////////////////////////////////////////////
@@ -838,7 +840,9 @@ void nr_schedule_ue_spec(module_id_t module_id,
     return;
 
   /* PREPROCESSOR */
+  LATSEQ_P("D mac.preprocess.todo--mac.preprocess.done", "len%u::frame%u.slot%u", 1, frame, slot);
   gNB_mac->pre_processor_dl(module_id, frame, slot);
+  LATSEQ_P("D mac.preprocess.done--mac.sdu", "len%u::frame%u.slot%u", 1, frame, slot);
   const int CC_id = 0;
   NR_ServingCellConfigCommon_t *scc = gNB_mac->common_channels[CC_id].ServingCellConfigCommon;
   NR_UEs_t *UE_info = &gNB_mac->UE_info;
@@ -1144,6 +1148,7 @@ void nr_schedule_ue_spec(module_id_t module_id,
                   current_harq_pid);
       T(T_GNB_MAC_RETRANSMISSION_DL_PDU_WITH_DATA, T_INT(module_id), T_INT(CC_id), T_INT(rnti),
         T_INT(frame), T_INT(slot), T_INT(current_harq_pid), T_INT(harq->round), T_BUFFER(harq->transportBlock, TBS));
+      LATSEQ_P("D mac.sdu.retransmit--", "len%u::frame%u.slot%u.rnti%u.harqpid%u.harqround%u.ndi%u", TBS, frame, slot, rnti, current_harq_pid, harq->round, harq->ndi);
       UE->mac_stats.dl.total_rbs_retx += sched_pdsch->rbSize;
     } else { /* initial transmission */
       LOG_D(NR_MAC, "[%s] Initial HARQ transmission in %d.%d\n", __FUNCTION__, frame, slot);
@@ -1191,6 +1196,7 @@ void nr_schedule_ue_spec(module_id_t module_id,
                                               (char *)buf+sizeof(NR_MAC_SUBHEADER_LONG),
                                               0,
                                               0);
+            LATSEQ_P("D mac.sdu.pulled--mac.pdu.scheduled", "len%u::frame%u.slot%u.harqpid%u.lcid%u.rnti%u.pduindex%u", len, frame, slot, current_harq_pid, lcid, rnti, pduindex);
             LOG_D(NR_MAC,
                   "%4d.%2d RNTI %04x: %d bytes from %s %d (ndata %d, remaining size %ld)\n",
                   frame,
@@ -1289,6 +1295,7 @@ void nr_schedule_ue_spec(module_id_t module_id,
     tx_req->PDU_index  = pduindex;
     tx_req->num_TLV = 1;
     tx_req->TLVs[0].length = TBS + 2;
+    LATSEQ_P("D mac.pdu.scheduled--mac.nfapi.handled", "len%u::frame%u.slot%u.harqpid%u.rnti%u.pduindex%u", TBS, frame, slot, current_harq_pid, rnti, pduindex);
     memcpy(tx_req->TLVs[0].value.direct, harq->transportBlock, TBS);
     gNB_mac->TX_req[CC_id].Number_of_PDUs++;
     gNB_mac->TX_req[CC_id].SFN = frame;

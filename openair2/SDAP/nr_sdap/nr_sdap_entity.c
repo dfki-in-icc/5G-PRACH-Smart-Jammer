@@ -24,6 +24,7 @@
 #include <openair2/LAYER2/PDCP_v10.1.0/pdcp.h>
 #include <openair3/ocp-gtpu/gtp_itf.h>
 #include "openair2/LAYER2/nr_pdcp/nr_pdcp_ue_manager.h"
+#include "common/utils/LATSEQ/latseq.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -122,6 +123,7 @@ static bool nr_sdap_tx_entity(nr_sdap_entity_t *entity,
     /* Add the SDAP DL Header to the buffer */
     memcpy(&sdap_buf[0], &sdap_hdr, SDAP_HDR_LENGTH);
     memcpy(&sdap_buf[SDAP_HDR_LENGTH], sdu_buffer, sdu_buffer_size);
+    LATSEQ_P("D sdap.sdu.headeradded--sdap.pdu.push", "len%u::", sdu_buffer_size);
     LOG_D(SDAP, "TX Entity QFI: %u \n", sdap_hdr.QFI);
     LOG_D(SDAP, "TX Entity RQI: %u \n", sdap_hdr.RQI);
     LOG_D(SDAP, "TX Entity RDI: %u \n", sdap_hdr.RDI);

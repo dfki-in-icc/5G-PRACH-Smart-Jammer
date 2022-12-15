@@ -39,6 +39,7 @@
 #include <openair3/ocp-gtpu/gtp_itf.h>
 #include "openair2/SDAP/nr_sdap/nr_sdap.h"
 #include "executables/softmodem-common.h"
+#include "common/utils/LATSEQ/latseq.h"
 
 #define TODO do { \
     printf("%s:%d:%s: todo\n", __FILE__, __LINE__, __FUNCTION__); \
@@ -440,6 +441,7 @@ static void *enb_tun_read_thread(void *_)
     bool rqi = 0;
     int pdusession_id = 10;
 
+    LATSEQ_P("D sdap.sdu.receive--sdap.sdu.headeradded", "len%u::", len);
     sdap_data_req(&ctxt, rntiMaybeUEid, SRB_FLAG_NO, rb_id, RLC_MUI_UNDEFINED, RLC_SDU_CONFIRM_NO, len, (unsigned char *)rx_buf, PDCP_TRANSMISSION_MODE_DATA, NULL, NULL, qfi, rqi, pdusession_id);
   }
 
@@ -1257,6 +1259,7 @@ static bool pdcp_data_req_drb(protocol_ctxt_t  *ctxt_pP,
     return 0;
   }
 
+  LATSEQ_P("D sdap.pdu.push--pdcp.headeradded", "len%u::mui%u.rbid%u", sdu_buffer_size, muiP, rb_id);
   rb->recv_sdu(rb, (char *)sdu_buffer, sdu_buffer_size, muiP);
 
   nr_pdcp_manager_unlock(nr_pdcp_ue_manager);

@@ -39,6 +39,7 @@
 #include "common/utils/LOG/vcd_signal_dumper.h"
 #include "common/utils/nr/nr_common.h"
 #include "executables/softmodem-common.h"
+#include "common/utils/LATSEQ/latseq.h"
 
 //#define DEBUG_DLSCH
 //#define DEBUG_DLSCH_MAPPING
@@ -137,6 +138,7 @@ void nr_generate_pdsch(processingData_L1tx_t *msgTx,
                           dlsch_segmentation_stats) == -1)
       return;
     stop_meas(dlsch_encoding_stats);
+    LATSEQ_P("D phy.dlschencoded--phy.dlschscrambled", "len%u::frame%u.slot%u", encoded_length, frame, slot);
 #ifdef DEBUG_DLSCH
     printf("PDSCH encoding:\nPayload:\n");
     for (int i=0; i<harq->B>>7; i++) {
@@ -179,6 +181,7 @@ void nr_generate_pdsch(processingData_L1tx_t *msgTx,
 #endif
 
       stop_meas(dlsch_scrambling_stats);
+      LATSEQ_P("D phy.dlschscrambled--phy.dlschmodulated", "len%u::frame%u.slot%u.codeword%u", encoded_length, frame, slot, q);
       /// Modulation
       start_meas(dlsch_modulation_stats);
       nr_modulation(scrambled_output,
@@ -187,6 +190,7 @@ void nr_generate_pdsch(processingData_L1tx_t *msgTx,
                     mod_symbs[q]);
       VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_gNB_PDSCH_MODULATION, 0);
       stop_meas(dlsch_modulation_stats);
+      LATSEQ_P("D phy.dlschmodulated--phy.dlschlayermapped", "len%u::frame%u.slot%u.codeword%u", encoded_length, frame, slot, q);
 #ifdef DEBUG_DLSCH
       printf("PDSCH Modulation: Qm %d(%d)\n", Qm, nb_re);
       for (int i=0; i<nb_re>>3; i++) {
@@ -217,6 +221,7 @@ void nr_generate_pdsch(processingData_L1tx_t *msgTx,
 #endif
 
     stop_meas(&gNB->dlsch_layer_mapping_stats); 
+    LATSEQ_P("D phy.dlschlayermapped--phy.resourcemapped", "len%u::frame%u.slot%u", encoded_length, frame, slot);
 
     /// Resource mapping
     
@@ -448,6 +453,7 @@ void nr_generate_pdsch(processingData_L1tx_t *msgTx,
       } // symbol loop
     }// layer loop
     stop_meas(&gNB->dlsch_resource_mapping_stats);
+    LATSEQ_P("D phy.resourcemapped--phy.antennamapped", "len%u::frame%u.slot%u", encoded_length, frame, slot);
 
     ///Layer Precoding and Antenna port mapping
     // tx_layers 1-8 are mapped on antenna ports 1000-1007
@@ -544,6 +550,7 @@ void nr_generate_pdsch(processingData_L1tx_t *msgTx,
     }// port loop
 
     stop_meas(&gNB->dlsch_precoding_stats);
+    LATSEQ_P("D phy.antennamapped--phy.csirsgenerated", "len%u::frame%u.slot%u", encoded_length, frame, slot);
 
     // TODO: handle precoding
     // this maps the layers onto antenna ports

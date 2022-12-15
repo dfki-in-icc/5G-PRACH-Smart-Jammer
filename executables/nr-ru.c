@@ -59,6 +59,8 @@
 unsigned short config_frames[4] = {2,9,11,13};
 #endif
 
+#include "common/utils/LATSEQ/latseq.h"
+
 
 /* these variables have to be defined before including ENB_APP/enb_paramdef.h and GNB_APP/gnb_paramdef.h */
 static int DEFBANDS[] = {7};
@@ -821,6 +823,7 @@ void tx_rf(RU_t *ru,int frame,int slot, uint64_t timestamp) {
                                       siglen+sf_extension,
                                       ru->nb_tx,
                                       flags);
+    LATSEQ_P("D phy.sdu.out--phy.out", "lensamples::frame%u.slot%u", siglen+sf_extension, frame, slot);
     LOG_D(PHY,"[TXPATH] RU %d aa %d tx_rf, writing to TS %llu, %d.%d, unwrapped_frame %d, slot %d, flags %d, siglen+sf_extension %d, returned %d, E %f\n",ru->idx,i,
 	  (long long unsigned int)(timestamp+ru->ts_offset-ru->openair0_cfg.tx_sample_advance-sf_extension),frame,slot,proc->frame_tx_unwrap,slot, flags, siglen+sf_extension, txs,10*log10((double)signal_energy(txp[0],siglen+sf_extension)));
     VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME( VCD_SIGNAL_DUMPER_FUNCTIONS_TRX_WRITE, 0 );
@@ -1024,13 +1027,16 @@ void ru_tx_func(void *param) {
   int rt_prof_idx = absslot_rx % RT_PROF_DEPTH;
   clock_gettime(CLOCK_MONOTONIC,&ru->rt_ru_profiling.start_RU_TX[rt_prof_idx]);
   // do TX front-end processing if needed (precoding and/or IDFTs)
+  LATSEQ_P("D phy.reorderthread--phy.frontendprocessed", "len%u::frame%u.slot%u", 1, frame_tx, slot_tx);
   if (ru->feptx_prec) ru->feptx_prec(ru,frame_tx,slot_tx);
 
   // do OFDM with/without TX front-end processing  if needed
+  LATSEQ_P("D phy.frontendprocessed--phy.ofdmprocessed", "len%u::frame%u.slot%u", 1, frame_tx, slot_tx);
   if ((ru->fh_north_asynch_in == NULL) && (ru->feptx_ofdm)) ru->feptx_ofdm(ru,frame_tx,slot_tx);
-
+  
   if(!emulate_rf) {
     // do outgoing fronthaul (south) if needed
+    LATSEQ_P("D phy.ofdmprocessed--phy.sdu.out", "len%u::frame%u.slot%u", 1, frame_tx, slot_tx);
     if ((ru->fh_north_asynch_in == NULL) && (ru->fh_south_out)) ru->fh_south_out(ru,frame_tx,slot_tx,info->timestamp_tx);
 
     if (ru->fh_north_out) ru->fh_north_out(ru);
