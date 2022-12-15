@@ -48,7 +48,7 @@ class Module_UE:
 		for k, v in Module.items():
 			setattr(self, k, v)
 		self.UEIPAddress = ""
-		self.cmd_dict= {"attach" : self.AttachScript,"detach" : self.DetachScript, "getIP" : self.GetIP, "mtu" : self.MTUSize}#dictionary of function scripts
+		self.cmd_dict= {"attach" : self.AttachScript,"detach" : self.DetachScript, "initializeUE" : self.InitializeUE, "terminateUE" : self.TerminateUE}#dictionary of function scripts
 		self.ue_trace=''		
 
 
@@ -74,10 +74,8 @@ class Module_UE:
 			logging.debug('Starting ' + self.Process['Name'])
 			mySSH = sshconnection.SSHConnection()
 			mySSH.open(self.HostIPAddress, self.HostUsername, self.HostPassword)
-			print(self.HostIPAddress)
-			print(self.HostUsername)
 			mySSH.command(' sudo -S rm -f /tmp/module-ue.log','\$',5)
-			mySSH.command('nohup' + '  ' + self.Process['StartCmd']+ ' > /tmp/module-ue.log 2>&1 &','\$',5)
+			output = self.Command("initializeUE")
 			mySSH.close()
 			return True
 			
@@ -86,29 +84,39 @@ class Module_UE:
 	def Command(self,cmd):
 		mySSH = sshconnection.SSHConnection()
 		mySSH.open(self.HostIPAddress, self.HostUsername, self.HostPassword)
-		mySSH.command(self.cmd_dict[cmd], '\$', 100)
+		mySSH.command( self.cmd_dict[cmd] , '\$', 300)
 		# hack: trim the first and last lines, which contain the
 		# command prompt (first) and 
 		result = '\r\n'.join(mySSH.getBefore().split('\r\n')[1:-1])
 		mySSH.close()
-		logging.debug(f"{cmd} returned:\n{result}")
 		return result
 
 	#this method retrieves the Module IP address (not the Host IP address) 
 	def GetModuleIPAddress(self):
-		output = self.Command("getIP")
-		result = re.search('inet (?P<ip>[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)', output)
+		HOST=self.HostUsername+'@'+self.HostIPAddress
+		COMMAND = self.GetIP
+		ssh = subprocess.Popen(["ssh", "%s" % HOST, COMMAND],shell=False,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+		output = ssh.stdout.readlines()
+		for i in range(0, len(output)):
+			result = re.search('inet (?P<ip>[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)', output[i].decode("utf-8"))
+			if result is not None:
+				break
 		if result is not None and result.group('ip') is not None:
 			self.UEIPAddress = result.group('ip')
 			logging.debug('\u001B[1mUE Module IP Address is ' + self.UEIPAddress + '\u001B[0m')
 			return 1
 		else:
 			logging.debug('\u001B[1;37;41m Module IP Address Not Found! \u001B[0m')
+			logging.debug(result)
+			logging.debug(result.group('ip'))
 			return 0
 
 	def CheckModuleMTU(self):
-		output = self.Command("mtu")
-		result = re.search('mtu (?P<mtu>[0-9]+)', output)
+		HOST=self.HostUsername+'@'+self.HostIPAddress
+		COMMAND = self.MTUSize
+		ssh = subprocess.Popen(["ssh", "%s" % HOST, COMMAND],shell=False,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+		output = ssh.stdout.readlines()
+		result = re.search('mtu (?P<mtu>[0-9]+)', output[0].decode("utf-8"))
 		if result is not None and result.group('mtu') is not None:
 			logging.debug('\u001B[1mUE Module NIC MTU is ' + str(self.MTU) + ' as expected\u001B[0m')
 			return 1
@@ -134,10 +142,11 @@ class Module_UE:
 
 
 	def TerminateUEModule(self):
-		mySSH = sshconnection.SSHConnection()
-		mySSH.open(self.HostIPAddress, self.HostUsername, self.HostPassword)
-		mySSH.command('nohup' + ' ' + self.Process['StopCmd'],'\$',5)
-		mySSH.close()
+		self.Command("terminateUE")
+		#mySSH = sshconnection.SSHConnection()
+		#mySSH.open(self.HostIPAddress, self.HostUsername, self.HostPassword)
+		#mySSH.command('nohup' + ' ' + self.Process['StopCmd'],'\$',5)
+		#mySSH.close()
 
 
 	def LogCollect(self):
