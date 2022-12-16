@@ -1840,6 +1840,8 @@ void inner_rx_256qam(int *rxF, int *ul_ch, int16_t *llr, int aarx, int length,in
    }  
 }
 
+
+
 void inner_rx_64qam(int * restrict rxF, int * restrict ul_ch, int16_t *restrict llr, int aarx, int length,int output_shift) {
    register __m256i xmmtmpD0,xmmtmpD1,xmmtmpD2,xmmtmpD3,xmmtmpD4,xmmtmpD6,xmmtmpD7;
    register __m256i complex_shuffle256 = simde_mm256_set_epi8(29,28,31,30,25,24,27,26,21,20,23,22,17,16,19,18,13,12,15,14,9,8,11,10,5,4,7,6,1,0,3,2);
@@ -1850,7 +1852,8 @@ void inner_rx_64qam(int * restrict rxF, int * restrict ul_ch, int16_t *restrict 
    __m256i *rxF256  = (__m256i*)rxF;
    __m256i *ulch256 = (__m256i*)ul_ch;
    // need to use __m64 because llr output is not necessarily aligned to 256 bits, but it is always to 64 bits
- 
+
+   
    if (aarx==0) {
      uint32_t *llr32 = (uint32_t *)llr;   
      for (int i=0;i<((length>>3)+((length&7)>0?1:0));i++) {
@@ -1906,6 +1909,7 @@ void inner_rx_64qam(int * restrict rxF, int * restrict ul_ch, int16_t *restrict 
         llr32+=24;
      }
    } else {
+   
      __m64 *llr64 = (__m64 *)llr;   
      for (int i=0;i<((length>>3)+((length&7)>0?1:0));i++) {
         xmmtmpD0  = simde_mm256_madd_epi16(ulch256[i],rxF256[i]);
@@ -1949,6 +1953,69 @@ void inner_rx_64qam(int * restrict rxF, int * restrict ul_ch, int16_t *restrict 
      }
    }  
 }
+
+
+/*
+void inner_rx_64qam(int* rxF, int*  ul_ch, int16_t *  llr, int aarx, int length,int output_shift) {
+  __m256i xmmtmpD0,xmmtmpD1,xmmtmpD2,xmmtmpD3,xmmtmpD4,xmmtmpD6,xmmtmpD7;
+  __m256i complex_shuffle256 = _mm256_set_epi8(29,28,31,30,25,24,27,26,21,20,23,22,17,16,19,18,13,12,15,14,9,8,11,10,5,4,7,6,1,0,3,2);
+  __m256i conj256 = _mm256_set_epi16(1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1);
+
+  __m256i QAM_amp256  = _mm256_set1_epi16(QAM64_n1);  // 2/sqrt(10)
+  __m256i QAM_amp256b = _mm256_set1_epi16(QAM64_n2);
+  __m256i *rxF256  = (__m256i*)rxF;
+  __m256i *ulch256 = (__m256i*)ul_ch;
+  // need to use __m64 because llr output is not necessarily aligned to 256 bits, but it is always to 64 bits
+  __m256i shuffle_a = _mm256_set_epi32(0,3,6,1,4,7,2,5);
+  __m256i shuffle_b = _mm256_set_epi32(5,0,3,6,1,4,7,2);
+  __m256i shuffle_c = _mm256_set_epi32(2,5,0,3,6,1,4,7);
+
+  uint32_t  *llr32 = (uint32_t *)llr;   
+  __m256i *llr256 = (__m256i*)llr;
+  int const lim = (length>>3)+(length&0x7) > 0 ? 1 : 0;
+  for (int i=0; i< lim ;i++) {
+    xmmtmpD0  = _mm256_madd_epi16(ulch256[i],rxF256[i]);
+    // xmmtmpD0 ontains real part of 8 consecutive outputs (32-bit) of conj(H_m[i])*R_m[i]
+    xmmtmpD1  = _mm256_shuffle_epi8(ulch256[i],complex_shuffle256);
+    xmmtmpD1  = _mm256_sign_epi16(xmmtmpD1,conj256);
+    xmmtmpD1  = _mm256_madd_epi16(xmmtmpD1,rxF256[i]);
+    // xmmtmpD1 contains imag part of 8 consecutive outputs (32-bit) of conj(H_m[i])*R_m[i]
+    xmmtmpD0  = _mm256_srai_epi32(xmmtmpD0,output_shift);
+    xmmtmpD1  = _mm256_srai_epi32(xmmtmpD1,output_shift);
+    xmmtmpD2  = _mm256_unpacklo_epi32(xmmtmpD0,xmmtmpD1);
+    xmmtmpD3  = _mm256_unpackhi_epi32(xmmtmpD0,xmmtmpD1);
+    xmmtmpD4  = _mm256_packs_epi32(xmmtmpD2,xmmtmpD3);
+
+    // compute channel amplitude for LLR
+    xmmtmpD0 = _mm256_madd_epi16(ulch256[i],ulch256[i]);
+    xmmtmpD0 = _mm256_srai_epi32(xmmtmpD0,output_shift);
+    xmmtmpD0 = _mm256_packs_epi32(xmmtmpD0,xmmtmpD0);
+    xmmtmpD2 = _mm256_unpacklo_epi16(xmmtmpD0,xmmtmpD0);
+    xmmtmpD1 = _mm256_mulhrs_epi16(xmmtmpD2,QAM_amp256);
+    xmmtmpD6 = _mm256_mulhrs_epi16(xmmtmpD2,QAM_amp256b);
+
+    xmmtmpD2 = _mm256_abs_epi16(xmmtmpD4); // registers of even index in xmm0-> |y_R|, registers of odd index in xmm0-> |y_I|
+    xmmtmpD2 = _mm256_subs_epi16(xmmtmpD1,xmmtmpD2); // registers of even index in xmm0-> |y_R|-|h|^2, registers of odd index in xmm0-> |y_I|-|h|^2
+    xmmtmpD7 = _mm256_abs_epi16(xmmtmpD2);
+    xmmtmpD7 = _mm256_subs_epi16(xmmtmpD6,xmmtmpD7);
+
+    __m256i a =  _mm256_permutevar8x32_epi32(xmmtmpD4, shuffle_a);  
+    __m256i b =  _mm256_permutevar8x32_epi32(xmmtmpD2, shuffle_b);
+    __m256i c =  _mm256_permutevar8x32_epi32(xmmtmpD7, shuffle_c);
+
+    __m256i tmp = _mm256_blend_epi32(a, b, 0b10010010); 
+    llr256[0] = _mm256_blend_epi32(c, tmp, 0b00100100);
+
+    tmp = _mm256_blend_epi32(a, b, 0b01001001);
+    llr256[1] = _mm256_blend_epi32(c, tmp, 0b10010010);
+
+    tmp = _mm256_blend_epi32(a, b, 0b00100100);
+    llr256[2] = _mm256_blend_epi32(c,tmp, 0b01001001 );
+    llr256 += 3;
+  }
+}
+*/
+
 
 void inner_rx_16qam( int * rxF, int * ul_ch, int16_t * llr, int aarx, int length,int output_shift) {
    register __m256i xmmtmpD0,xmmtmpD1,xmmtmpD2,xmmtmpD3,xmmtmpD4,xmmtmpD5;
@@ -2972,45 +3039,50 @@ int nr_rx_pusch(PHY_VARS_gNB *gNB,
    //--------------------- Channel estimation ---------------------
    //----------------------------------------------------------
    start_meas(&gNB->ulsch_channel_estimation_stats);
+
+
    for(uint8_t symbol = rel15_ul->start_symbol_index; symbol < (rel15_ul->start_symbol_index + rel15_ul->nr_of_symbols); symbol++) {
      uint8_t dmrs_symbol_flag = (rel15_ul->ul_dmrs_symb_pos >> symbol) & 0x01;
      LOG_D(PHY, "symbol %d, dmrs_symbol_flag :%d\n", symbol, dmrs_symbol_flag);
      if (dmrs_symbol_flag == 1) {
+       assert(0!=0 && "Here we are");
        if (gNB->pusch_vars[ulsch_id]->dmrs_symbol == INVALID_VALUE)
-	 gNB->pusch_vars[ulsch_id]->dmrs_symbol = symbol;
+         gNB->pusch_vars[ulsch_id]->dmrs_symbol = symbol;
 
        for (int nl=0; nl<rel15_ul->nrOfLayers; nl++) {
 
-	 nr_pusch_channel_estimation(gNB,
-				     slot,
-				     get_dmrs_port(nl,rel15_ul->dmrs_ports),
-				     symbol,
-				     ulsch_id,
-				     bwp_start_subcarrier,
-				     rel15_ul);
+         nr_pusch_channel_estimation(gNB,
+             slot,
+             get_dmrs_port(nl,rel15_ul->dmrs_ports),
+             symbol,
+             ulsch_id,
+             bwp_start_subcarrier,
+             rel15_ul);
        }
 
        nr_gnb_measurements(gNB, ulsch_id, harq_pid, symbol,rel15_ul->nrOfLayers);
+      
+       printf(" frame_parms->nb_antennas_rx; %d \n ", frame_parms->nb_antennas_rx);
 
        for (aarx = 0; aarx < frame_parms->nb_antennas_rx; aarx++) {
-	 if (symbol == rel15_ul->start_symbol_index) {
-	   gNB->pusch_vars[ulsch_id]->ulsch_power[aarx] = 0;
-	   gNB->pusch_vars[ulsch_id]->ulsch_noise_power[aarx] = 0;
-	 }
-	 for (aatx = 0; aatx < rel15_ul->nrOfLayers; aatx++) {
-	   gNB->pusch_vars[ulsch_id]->ulsch_power[aarx] += signal_energy_nodc(
-									      &gNB->pusch_vars[ulsch_id]->ul_ch_estimates[aatx*gNB->frame_parms.nb_antennas_rx+aarx][symbol * frame_parms->ofdm_symbol_size],
-									      rel15_ul->rb_size * 12);
-	 }
-	 for (int rb = 0; rb < rel15_ul->rb_size; rb++) {
-          gNB->pusch_vars[ulsch_id]->ulsch_noise_power[aarx] +=
-              gNB->measurements.n0_subband_power[aarx][rel15_ul->bwp_start + rel15_ul->rb_start + rb] /
-	    rel15_ul->rb_size;
-	 }
-	 LOG_D(PHY,"aa %d, bwp_start%d, rb_start %d, rb_size %d: ulsch_power %d, ulsch_noise_power %d\n",aarx,
-	       rel15_ul->bwp_start,rel15_ul->rb_start,rel15_ul->rb_size,
-	       gNB->pusch_vars[ulsch_id]->ulsch_power[aarx],
-	       gNB->pusch_vars[ulsch_id]->ulsch_noise_power[aarx]);
+         if (symbol == rel15_ul->start_symbol_index) {
+           gNB->pusch_vars[ulsch_id]->ulsch_power[aarx] = 0;
+           gNB->pusch_vars[ulsch_id]->ulsch_noise_power[aarx] = 0;
+         }
+         for (aatx = 0; aatx < rel15_ul->nrOfLayers; aatx++) {
+           gNB->pusch_vars[ulsch_id]->ulsch_power[aarx] += signal_energy_nodc(
+               &gNB->pusch_vars[ulsch_id]->ul_ch_estimates[aatx*gNB->frame_parms.nb_antennas_rx+aarx][symbol * frame_parms->ofdm_symbol_size],
+               rel15_ul->rb_size * 12);
+         }
+         for (int rb = 0; rb < rel15_ul->rb_size; rb++) {
+           gNB->pusch_vars[ulsch_id]->ulsch_noise_power[aarx] +=
+             gNB->measurements.n0_subband_power[aarx][rel15_ul->bwp_start + rel15_ul->rb_start + rb] /
+             rel15_ul->rb_size;
+         }
+         LOG_D(PHY,"aa %d, bwp_start%d, rb_start %d, rb_size %d: ulsch_power %d, ulsch_noise_power %d\n",aarx,
+             rel15_ul->bwp_start,rel15_ul->rb_start,rel15_ul->rb_size,
+             gNB->pusch_vars[ulsch_id]->ulsch_power[aarx],
+             gNB->pusch_vars[ulsch_id]->ulsch_noise_power[aarx]);
        }
      }
    }
@@ -3218,9 +3290,11 @@ int nr_rx_pusch_tp(PHY_VARS_gNB *gNB,
   //----------------------------------------------------------
   start_meas(&gNB->ulsch_channel_estimation_stats);
   for(uint8_t symbol = rel15_ul->start_symbol_index; symbol < (rel15_ul->start_symbol_index + rel15_ul->nr_of_symbols); symbol++) {
+
     uint8_t dmrs_symbol_flag = (rel15_ul->ul_dmrs_symb_pos >> symbol) & 0x01;
     LOG_D(PHY, "symbol %d, dmrs_symbol_flag :%d\n", symbol, dmrs_symbol_flag);
     if (dmrs_symbol_flag == 1) {
+
       if (gNB->pusch_vars[ulsch_id]->dmrs_symbol == INVALID_VALUE)
         gNB->pusch_vars[ulsch_id]->dmrs_symbol = symbol;
 
@@ -3232,6 +3306,7 @@ int nr_rx_pusch_tp(PHY_VARS_gNB *gNB,
                                     ulsch_id,
                                     bwp_start_subcarrier,
                                     rel15_ul);
+
 
       nr_gnb_measurements(gNB, ulsch_id, harq_pid, symbol,rel15_ul->nrOfLayers);
 
@@ -3250,6 +3325,7 @@ int nr_rx_pusch_tp(PHY_VARS_gNB *gNB,
         }
       }
     }
+
   }
 
   if (gNB->chest_time == 1) { // averaging time domain channel estimates
@@ -3262,6 +3338,7 @@ int nr_rx_pusch_tp(PHY_VARS_gNB *gNB,
 
     gNB->pusch_vars[ulsch_id]->dmrs_symbol = get_next_dmrs_symbol_in_slot(rel15_ul->ul_dmrs_symb_pos, rel15_ul->start_symbol_index, rel15_ul->nr_of_symbols);
   }
+
   stop_meas(&gNB->ulsch_channel_estimation_stats);
 
 
@@ -3385,10 +3462,8 @@ int nr_rx_pusch_tp(PHY_VARS_gNB *gNB,
     async_task_manager(&gNB->man, t);
 #else
     pushTpool(&gNB->threadPool,req);
+    gNB->nbSymb++;
 #endif
-
-
-      gNB->nbSymb++;
       LOG_D(PHY,"%d.%d Added symbol %d (count %d) to process, in pipe\n",frame,slot,symbol,gNB->nbSymb);
     }
   } // symbol loop
@@ -3414,3 +3489,4 @@ int nr_rx_pusch_tp(PHY_VARS_gNB *gNB,
   stop_meas(&gNB->rx_pusch_symbol_processing_stats);
   return 0;
 }
+

@@ -87,3 +87,4 @@ __m128i xmm_shift_left(__m128i reg, const unsigned int num)
 extern void CRCInit(void);
 
 #endif /* __CRCEXT_H__ */
+
