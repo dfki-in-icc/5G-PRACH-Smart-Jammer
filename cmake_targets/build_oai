@@ -296,6 +296,8 @@ function main() {
             shift 2;;
        -t | --transport)
 	    TP=$2
+            echo_info "TP set to ${TP}"
+            CMAKE_CMD="$CMAKE_CMD -DTP_PROTO=$2"
             shift 2;;
        -P | --phy_simulators)
             SIMUS_PHY=1
