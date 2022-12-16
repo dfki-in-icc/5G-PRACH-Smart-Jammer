@@ -671,7 +671,7 @@ TARGET_LINK_LIBRARIES(oran_fhlib_4g PRIVATE ${DPDK_LIBS})
 TARGET_LINK_LIBRARIES(oran_fhlib_4g PRIVATE -L${XRAN_LIB_DIR} -lxran)
 #TARGET_LINK_LIBRARIES(oran_fhlib_4g PRIVATE -L${INTEL_LIB} -lirc)
 TARGET_LINK_LIBRARIES(oran_fhlib_4g PRIVATE pthread dl rt m numa)
-target_link_libraries(oran_fhlib_5g PRIVATE asn1_nr_rrc asn1_lte_rrc)
+target_link_libraries(oran_fhlib_4g PRIVATE asn1_nr_rrc asn1_lte_rrc)
 
 # Benetel 5G library
 ######################################################################
