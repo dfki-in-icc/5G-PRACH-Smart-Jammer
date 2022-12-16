@@ -52,6 +52,21 @@ include_directories(${CONFIG_INCLUDE_DIRS})
 pkg_search_module(CRYPTO libcrypto REQUIRED)
 include_directories(${CRYPTO_INCLUDE_DIRS})
 
+add_list2_option(TP_PROTO "None" "Ethernet" "benetel4g" "benetel5g" "oran_fhlib_4g" "oran_fhlib_5g")
+if ((${TP_PROTO} STREQUAL "oran_fhlib_5g") OR (${TP_PROTO} STREQUAL "oran_fhlib_4g"))
+  if(DEFINED ENV{RTE_SDK})
+    message("RTE_SDK $ENV{RTE_SDK}")
+  else()
+    message(FATAL_ERROR "RTE_SDK Not defined")
+  endif()
+
+  if(DEFINED ENV{RTE_TARGET})
+    message("RTE_TARGET $ENV{RTE_TARGET}")
+  else()
+    message(FATAL_ERROR "RTE_TARGET is NOT defined")
+  endif()
+endif()
+
 #uhd 4.0 and iris installs by default in /usr/local
 include_directories("/usr/local/include/")
 #use native cmake method as this package is not in pkg-config
@@ -160,10 +175,17 @@ set (OPENAIR3_DIR    ${OPENAIR_DIR}/openair3)
 set (OPENAIR_CMAKE   ${OPENAIR_DIR}/cmake_targets)
 set (OPENAIR_BIN_DIR ${CMAKE_CURRENT_BINARY_DIR}${CMAKE_FILES_DIRECTORY})
 set (XRAN_DIR        ${OPENAIR_DIR}/targets/ARCH/ORAN_FHI/lib)
-set (XRAN_LIB_DIR /usr/local/xran)
+#set (XRAN_LIB_DIR /home/vvdn/oai/git_push/phy/fhi_lib/lib/build)
 set (INTEL_LIB /usr/local/intel64)
-set (DPDK_DIR /usr/local/dpdk_19_11/include/dpdk)
+set (DPDK_DIR $ENV{RTE_SDK}/$ENV{RTE_TARGET}/include)
 
+if(DEFINED ENV{XRAN_LIB_DIR})
+  set (XRAN_LIB_DIR $ENV{XRAN_LIB_DIR})
+else()
+  set (XRAN_LIB_DIR /usr/local/xran)
+endif()
+
+Message("XRAN_LIB_DIR: ${XRAN_LIB_DIR}, DPDK_DIR: ${DPDK_DIR}")
 project (OpenAirInterface)
 
 ##############################################
@@ -645,10 +667,11 @@ add_library(oran_fhlib_4g MODULE ${ORAN_FHLIB_4G_SOURCE})
 set_target_properties(oran_fhlib_4g PROPERTIES COMPILE_FLAGS "-fvisibility=hidden -march=native -I$ENV{RTE_SDK}/$ENV{RTE_TARGET}/include")
 
 SET(DPDK_LIBS "-Wl,-rpath,$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -Wl,--whole-archive -L$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -ldpdk -Wl,--no-whole-archive")
-TARGET_LINK_LIBRARIES(oran_fhlib_4g ${DPDK_LIBS})
-TARGET_LINK_LIBRARIES(oran_fhlib_4g -L${XRAN_LIB_DIR} -lxran)
-TARGET_LINK_LIBRARIES(oran_fhlib_4g -L${INTEL_LIB} -lirc)
-TARGET_LINK_LIBRARIES(oran_fhlib_4g pthread dl rt m numa)
+TARGET_LINK_LIBRARIES(oran_fhlib_4g PRIVATE ${DPDK_LIBS})
+TARGET_LINK_LIBRARIES(oran_fhlib_4g PRIVATE -L${XRAN_LIB_DIR} -lxran)
+#TARGET_LINK_LIBRARIES(oran_fhlib_4g PRIVATE -L${INTEL_LIB} -lirc)
+TARGET_LINK_LIBRARIES(oran_fhlib_4g PRIVATE pthread dl rt m numa)
+target_link_libraries(oran_fhlib_5g PRIVATE asn1_nr_rrc asn1_lte_rrc)
 
 # Benetel 5G library
 ######################################################################
@@ -686,10 +709,11 @@ add_library(oran_fhlib_5g MODULE ${ORAN_FHLIB_5G_SOURCE})
 set_target_properties(oran_fhlib_5g PROPERTIES COMPILE_FLAGS "-fvisibility=hidden -march=native -I$ENV{RTE_SDK}/$ENV{RTE_TARGET}/include")
 
 SET(DPDK_LIBS "-Wl,-rpath,$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -Wl,--whole-archive -L$ENV{RTE_SDK}/$ENV{RTE_TARGET}/lib -ldpdk -Wl,--no-whole-archive")
-TARGET_LINK_LIBRARIES(oran_fhlib_5g ${DPDK_LIBS})
-TARGET_LINK_LIBRARIES(oran_fhlib_5g -L${XRAN_LIB_DIR} -lxran)
+TARGET_LINK_LIBRARIES(oran_fhlib_5g PRIVATE ${DPDK_LIBS})
+TARGET_LINK_LIBRARIES(oran_fhlib_5g PRIVATE -L${XRAN_LIB_DIR} -lxran)
 #TARGET_LINK_LIBRARIES(oran_fhlib_5g -L${INTEL_LIB} -lirc)
-TARGET_LINK_LIBRARIES(oran_fhlib_5g pthread dl rt m numa)
+TARGET_LINK_LIBRARIES(oran_fhlib_5g PRIVATE pthread dl rt m numa)
+target_link_libraries(oran_fhlib_5g PRIVATE asn1_nr_rrc asn1_lte_rrc)
 
 ##########################################################
 
