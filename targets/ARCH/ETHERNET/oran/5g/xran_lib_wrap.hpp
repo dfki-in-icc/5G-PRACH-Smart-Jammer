@@ -40,11 +40,18 @@
 
 #define MAX_ANT_CARRIER_SUPPORTED (XRAN_MAX_SECTOR_NR*XRAN_MAX_ANTENNA_NR)
 
+enum xran_in_period
+{
+  XRAN_IN_PREV_PERIOD  = 0,
+  XRAN_IN_CURR_PERIOD,
+  XRAN_IN_NEXT_PERIOD
+};
 extern "C"
 {
 extern uint32_t xran_lib_ota_tti;
 extern uint32_t xran_lib_ota_sym;
 extern uint32_t xran_lib_ota_sym_idx;
+extern uint32_t xran_SFN_at_Sec_Start;
 
 void sym_ota_cb(struct rte_timer *tim, void *arg);
 void tti_ota_cb(struct rte_timer *tim, void *arg);
@@ -224,6 +231,12 @@ public:
     void *get_timer_ctx();
 
     int get_symbol_index();
+
+    int get_ota_tti();
+
+    int get_SFN_at_sec_start();
+
+    int get_symbol_offset(int32_t offSym, int32_t otaSym, int32_t numSymTotal, enum xran_in_period* pInPeriod);
 
     bool is_running();
 

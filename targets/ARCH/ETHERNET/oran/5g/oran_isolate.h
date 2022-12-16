@@ -45,6 +45,9 @@ typedef struct ru_info_s{
 
         // Needed for Prach
         int *prach_buf;
+
+        // previous slot number
+        int slot_prev;
 } ru_info_t;
 
 #ifdef __cplusplus
@@ -161,7 +164,7 @@ int load_iq_from_file(void *xranlib_);
 extern "C"
 {
 #endif
-int xran_fh_rx_read_slot(void *xranlib_, ru_info_t *ru, int frame, int slot);
+int xran_fh_rx_read_slot(void *xranlib_, ru_info_t *ru, int *frame, int *slot, int oframe, int oslot, uint8_t sync);
 #ifdef __cplusplus
 }
 #endif
