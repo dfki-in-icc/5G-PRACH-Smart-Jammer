@@ -227,13 +227,16 @@ void rx_func(void *param) {
     // Do PRACH RU processing
     L1_nr_prach_procedures(gNB,frame_rx,slot_rx);
 
-    //apply the rx signal rotation here
-    for (int aa = 0; aa < gNB->frame_parms.nb_antennas_rx; aa++) {
-      apply_nr_rotation_ul(&gNB->frame_parms,
-                           gNB->common_vars.rxdataF[aa],
-                           slot_rx,
-                           0,
-                           gNB->frame_parms.Ncp==EXTENDED?12:14);
+    //WA: comment rotation in tx/rx
+    if((gNB->num_RU == 1) && (gNB->RU_list[0]->if_south != REMOTE_IF4p5)) {
+      //apply the rx signal rotation here
+      for (int aa = 0; aa < gNB->frame_parms.nb_antennas_rx; aa++) {
+        apply_nr_rotation_ul(&gNB->frame_parms,
+            gNB->common_vars.rxdataF[aa],
+            slot_rx,
+            0,
+            gNB->frame_parms.Ncp==EXTENDED?12:14);
+      }
     }
     phy_procedures_gNB_uespec_RX(gNB, frame_rx, slot_rx);
   }
