@@ -29,6 +29,8 @@
 
 // Declare variable useful for the send buffer function
 struct xran_device_ctx *p_xran_dev_ctx_2;
+volatile uint8_t first_call_set = 0;
+volatile uint8_t first_rx_set = 0;
 
 // Variable declaration useful for fill IQ samples from file
 #define IQ_PLAYBACK_BUFFER_BYTES (XRAN_NUM_OF_SLOT_IN_TDD_LOOP*N_SYM_PER_SLOT*XRAN_MAX_PRBS*N_SC_PER_PRB*4L)
@@ -36,7 +38,15 @@ int16_t    *p_tx_play_buffer[MAX_ANT_CARRIER_SUPPORTED];
 int        iq_playback_buffer_size_dl = IQ_PLAYBACK_BUFFER_BYTES;
 int32_t    tx_play_buffer_size[MAX_ANT_CARRIER_SUPPORTED];
 int32_t    tx_play_buffer_position[MAX_ANT_CARRIER_SUPPORTED];
+int rx_tti;
+int rx_sym;
+volatile uint32_t rx_cb_tti = 0;
+volatile uint32_t rx_cb_frame = 0;
+volatile uint32_t rx_cb_subframe = 0;
+volatile uint32_t rx_cb_slot = 0;
 
+#define GetFrameNum(tti,SFNatSecStart,numSubFramePerSystemFrame, numSlotPerSubFrame)  ((((uint32_t)tti / ((uint32_t)numSubFramePerSystemFrame * (uint32_t)numSlotPerSubFrame)) + SFNatSecStart) & 0x3FF)
+#define GetSlotNum(tti, numSlotPerSfn) ((uint32_t)tti % ((uint32_t)numSlotPerSfn))
 // Declare the function useful to load IQs from file
 int sys_load_file_to_buff(char *filename, char *bufname, unsigned char *pBuffer, unsigned int size, unsigned int buffers_num)
 {
@@ -91,19 +101,28 @@ int sys_load_file_to_buff(char *filename, char *bufname, unsigned char *pBuffer,
 
 //------------------------------------------------------------------------
 void xran_fh_rx_callback(void *pCallbackTag, xran_status_t status){
-    rte_pause();
-#if 0
     xran_cb_tag *callback_tag = (xran_cb_tag *)pCallbackTag;
-    printf(" xran_fh_RX_callback::: cellId=%d\tslotiId=%d\tsymbol=%d\n",callback_tag->cellId,callback_tag->slotiId,callback_tag->symbol);
-    uint32_t frame,subFrame,slot;
-    int32_t tti;
     uint64_t second;
-    tti = xran_get_slot_idx(&frame,&subFrame,&slot,&second);
-    printf("   tti=%d\tframe=%d\tsubFrame=%d\tslot=%d\tsecond=%ld\n",tti,frame,subFrame,slot,second);
-    if(callback_tag->slotiId==10){
-      exit(0);
+    uint32_t tti;
+    uint32_t frame;
+    uint32_t subframe;
+    uint32_t slot;
+    tti = xran_get_slot_idx(&frame,&subframe,&slot,&second);
+
+    rx_tti = callback_tag->slotiId;
+    rx_sym = callback_tag->symbol;
+    if (rx_sym == 7) {
+      if (first_call_set) {
+        if (!first_rx_set) {
+          printf("first_rx is set\n");
+        }
+        first_rx_set = 1;
+      }
+      rx_cb_tti = tti;
+      rx_cb_frame = frame;
+      rx_cb_subframe = subframe;
+      rx_cb_slot = slot;
     }
-#endif
 }
 void xran_fh_srs_callback(void *pCallbackTag, xran_status_t status){
     rte_pause();
@@ -123,8 +142,10 @@ void xran_fh_rx_prach_callback(void *pCallbackTag, xran_status_t status){
 
 int physide_dl_tti_call_back(void * param)
 {
-       rte_pause();
-       return 0;
+  if (!first_call_set)
+    printf("first_call set from phy cb first_call_set=%p\n",&first_call_set);
+  first_call_set = 1;
+  return 0;
 }
 
 int physide_ul_half_slot_call_back(void * param)
@@ -327,7 +348,7 @@ extern "C"
 int register_physide_callbacks(void *xranlib_){
   xranLibWraper *xranlib = ((xranLibWraper *) xranlib_);
   
-  xran_reg_physide_cb(xranlib->get_xranhandle(), physide_dl_tti_call_back, NULL, 10, XRAN_CB_TTI);
+  xran_reg_physide_cb(xranlib->get_xranhandle(), physide_dl_tti_call_back, xranlib, 1, XRAN_CB_TTI);
   xran_reg_physide_cb(xranlib->get_xranhandle(), physide_ul_half_slot_call_back, NULL, 10, XRAN_CB_HALF_SLOT_RX);
   xran_reg_physide_cb(xranlib->get_xranhandle(), physide_ul_full_slot_call_back, NULL, 10, XRAN_CB_FULL_SLOT_RX);
 
@@ -535,7 +556,7 @@ extern "C"
 		struct rte_mbuf *mb;
 
 		/* calculate tti and subframe_id from frame, slot num */
-		int tti = 10 * (frame) + (slot);
+		int tti = 20 * (frame) + (slot);
 		uint32_t subframe = XranGetSubFrameNum(tti, 2, 10);
 		uint32_t is_prach_slot = xran_is_prach_slot(subframe, (slot % 2));
 		int sym_idx = 0;
@@ -579,44 +600,53 @@ extern "C"
 extern "C"
 {
 #endif
-int xran_fh_rx_read_slot(void *xranlib_, ru_info_t *ru, int frame, int slot){
+int xran_fh_rx_read_slot(void *xranlib_, ru_info_t *ru, int *frame, int *slot, int oframe, int oslot, uint8_t sync){
   xranLibWraper *xranlib = ((xranLibWraper *) xranlib_);
 
-
-  int tti = /*frame*SUBFRAMES_PER_SYSTEMFRAME*SLOTNUM_PER_SUBFRAME+*/10*frame+slot; //commented out temporarily to check that compilation of oran 5g is working.
-
-  //int32_t flowId;
   void *ptr = NULL;
   int32_t  *pos = NULL;
   int idx = 0;
+  static int print_tmp = 1;
+  static int print_tmp_1 = 1;
 
+  while (first_call_set != 1){
+    if (print_tmp) {
+      print_tmp = 0;
+      printf("wait in ru_thread() till first_call_set is set in xran\n");
+    }
+  }
+
+  while (first_rx_set != 1){
+    if (print_tmp_1) {
+      print_tmp_1 = 0;
+      printf("wait in ru_thread for first_rx_set to set in xran\n");
+    }
+  }
+
+  volatile uint32_t prev_rx_cb_tti;
+  int tti;
+
+  prev_rx_cb_tti = rx_cb_tti;
+  *frame = rx_cb_frame;
+  *slot  = (rx_cb_subframe*2)+rx_cb_slot;
+  tti    = (*frame*20) + *slot;
+
+  while (rx_cb_tti == prev_rx_cb_tti) {
+  }
+
+
+  read_prach_data(ru, *frame, *slot);
         p_xran_dev_ctx_2 = xran_dev_get_ctx();
-#if 0
-       if (p_xran_dev_ctx_2 != NULL){
-          printf("p_xran_dev_ctx_2=%d\n",p_xran_dev_ctx_2);
-       }
-#endif
 
        int num_eaxc = xranlib->get_num_eaxc();
        int num_eaxc_ul = xranlib->get_num_eaxc_ul();
        uint32_t xran_max_antenna_nr = RTE_MAX(num_eaxc, num_eaxc_ul);
-       //uint32_t ant_el_trx = xranlib->get_num_antelmtrx();
-       //uint32_t xran_max_ant_array_elm_nr = RTE_MAX(ant_el_trx, xran_max_antenna_nr);
-
-       //int32_t nSectorIndex[XRAN_MAX_SECTOR_NR];
-       //int32_t nSectorNum;
-
-       /*
-       for (nSectorNum = 0; nSectorNum < XRAN_MAX_SECTOR_NR; nSectorNum++)
-       {
-           nSectorIndex[nSectorNum] = nSectorNum;
-       }
-       */
-       //nSectorNum = xranlib->get_num_cc();
-
-       //int maxflowid = num_eaxc * (nSectorNum-1) + (xran_max_antenna_nr-1);
        
-
+       int slot_offset_rxdata = 3&(*slot);
+       uint32_t slot_size = 4*14*4096;
+       uint8_t *rx_data = (uint8_t *)ru->rxdataF[0];
+       uint8_t *start_ptr = NULL;
+       start_ptr = rx_data + (slot_size*slot_offset_rxdata);
        for(uint16_t cc_id=0; cc_id<1/*nSectorNum*/; cc_id++){ // OAI does not support multiple CC yet.
            for(uint8_t ant_id = 0; ant_id < xran_max_antenna_nr && ant_id<ru->nb_rx; ant_id++){
               // This loop would better be more inner to avoid confusion and maybe also errors.
@@ -627,7 +657,7 @@ int xran_fh_rx_read_slot(void *xranlib_, ru_info_t *ru, int frame, int slot){
                  uint8_t *pPrbMapData = p_xran_dev_ctx_2->sFrontHaulRxPrbMapBbuIoBufCtrl[tti % XRAN_N_FE_BUF_LEN][cc_id][ant_id].sBufferList.pBuffers->pData;
                  struct xran_prb_map *pPrbMap = (struct xran_prb_map *)pPrbMapData;
                  ptr = pData;
-                 pos = &ru->rxdataF[ant_id][sym_idx * 4096 /*fp->ofdm_symbol_size*/]; // We had to use a different ru structure than benetel so the access to the buffer is not the same.
+                 pos = (int32_t *)(start_ptr + (4*sym_idx*4096));
 
                  uint8_t *u8dptr;
                  struct xran_prb_map *pRbMap = pPrbMap;
@@ -673,11 +703,9 @@ int xran_fh_rx_read_slot(void *xranlib_, ru_info_t *ru, int frame, int slot){
                        dst1 = (uint8_t *)(pos + p_prbMapElm->nRBStart*N_SC_PER_PRB);
                        // second half
                        dst2 = (uint8_t *)(pos + (p_prbMapElm->nRBStart*N_SC_PER_PRB + 3276/2) + 4096 - 3276);
-                       //printf("RRR: idxElm=%d\tcompMethod=%d\tiqWidth=%d\n",idxElm,p_prbMapElm->compMethod,p_prbMapElm->iqWidth);
                        if(p_prbMapElm->compMethod == XRAN_COMPMETHOD_NONE) {
                           payload_len = p_prbMapElm->nRBSize*N_SC_PER_PRB*4L;
                           src1 = src2 + payload_len/2;
-                          /*Convert Network Order to Host order*/
                           for (idx = 0; idx < payload_len/(2*sizeof(int16_t)); idx++) {
                             ((uint16_t *)dst1)[idx] = ntohs(((uint16_t *)src1)[idx]);
                             ((uint16_t *)dst2)[idx] = ntohs(((uint16_t *)src2)[idx]);
@@ -735,6 +763,8 @@ int xran_fh_rx_read_slot(void *xranlib_, ru_info_t *ru, int frame, int slot){
               }
             }
           }
+
+
 return(0);                                   
 
 }
@@ -750,7 +780,7 @@ int xran_fh_tx_send_slot(void *xranlib_, ru_info_t *ru, int frame, int slot, uin
   xranLibWraper *xranlib = ((xranLibWraper *) xranlib_);
 
 
-  int tti = /*frame*SUBFRAMES_PER_SYSTEMFRAME*SLOTNUM_PER_SUBFRAME+*/10*frame+slot; //commented out temporarily to check that compilation of oran 5g is working.
+  int tti = /*frame*SUBFRAMES_PER_SYSTEMFRAME*SLOTNUM_PER_SUBFRAME+*/20*frame+slot; //commented out temporarily to check that compilation of oran 5g is working.
 
   //int32_t flowId;
   void *ptr = NULL;
@@ -767,12 +797,6 @@ int xran_fh_tx_send_slot(void *xranlib_, ru_info_t *ru, int frame, int slot, uin
        int num_eaxc = xranlib->get_num_eaxc();
        int num_eaxc_ul = xranlib->get_num_eaxc_ul();
        uint32_t xran_max_antenna_nr = RTE_MAX(num_eaxc, num_eaxc_ul);
-       //uint32_t ant_el_trx = xranlib->get_num_antelmtrx();
-       //uint32_t xran_max_ant_array_elm_nr = RTE_MAX(ant_el_trx, xran_max_antenna_nr);
-
-       //int32_t nSectorIndex[XRAN_MAX_SECTOR_NR];
-       //int32_t nSectorNum;
-
        /*
        for (nSectorNum = 0; nSectorNum < XRAN_MAX_SECTOR_NR; nSectorNum++)
        {

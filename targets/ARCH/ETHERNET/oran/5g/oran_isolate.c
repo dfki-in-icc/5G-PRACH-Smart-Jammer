@@ -282,7 +282,8 @@ void oran_fh_if4p5_south_in(RU_t *ru,
   int symbol;
   int32_t *rxdata;
   int antenna;
- 
+  static uint8_t sync = 0;
+
   //printf("XXX ORAN_fh_if4p5_south_in %d %d\n", *frame, *slot);
 
   ru_info_t ru_info;
@@ -290,9 +291,11 @@ void oran_fh_if4p5_south_in(RU_t *ru,
   ru_info.rxdataF = ru->common.rxdataF;
   ru_info.prach_buf = (int *)ru->prach_rxsigF[0][0];//index: [prach_oca][ant_id]
 
-  read_prach_data(&ru_info, *frame, *slot);
+  RU_proc_t *proc = &ru->proc;
+  extern uint16_t sl_ahead;
+  int f, sl;
 
-  int ret = xran_fh_rx_read_slot(s->oran_priv, &ru_info, *frame, *slot);  
+  int ret = xran_fh_rx_read_slot(s->oran_priv, &ru_info, &f, &sl, *frame, *slot, sync);
 
   if (ret != 0){
      printf("ORAN: ORAN_fh_if4p5_south_in ERROR in RX function \n");
@@ -344,25 +347,30 @@ next:
     }
   }
 #endif
-  RU_proc_t *proc = &ru->proc;
-  extern uint16_t sl_ahead;
-  int f = *frame;
-  int sl = *slot;
-
-  //calculate timestamp_rx, timestamp_tx based on frame and slot
   proc->tti_rx       = sl;
   proc->frame_rx     = f;
-  /* TODO: be sure of samples_per_slot0
-  FK: should use get_samples_per_slot(slot)
-  but for mu=1 its ok
-  */
-  proc->timestamp_rx = ((proc->frame_rx * 20)  + proc->tti_rx ) * fp->samples_per_slot0;
+  proc->tti_tx   = (sl+sl_ahead)%20;
+  proc->frame_tx = (sl>(19-sl_ahead)) ? (f+1)&1023 : f;
 
-  if (get_nprocs()<=4) {
-    // why? what if there are more?
-    proc->tti_tx   = (sl+sl_ahead)%20;
-    proc->frame_tx = (sl>(19-sl_ahead)) ? (f+1)&1023 : f;
+  if (proc->first_rx == 0) {
+    if (proc->tti_rx != *slot) {
+      LOG_E(PHY,"Received Timestamp doesn't correspond to the time we think it is (proc->tti_rx %d, slot %d)\n",proc->tti_rx,*slot);
+       //exit_fun("Exiting");
+    }
+
+    if (proc->frame_rx != *frame) {
+      LOG_E(PHY,"Received Timestamp doesn't correspond to the time we think it is (proc->frame_rx %d frame %d proc->tti_rx %d tti %d)\n",proc->frame_rx,*frame,proc->tti_rx,*slot);
+      //exit_fun("Exiting");
+    }
+  } else {
+    proc->first_rx = 0;
+    LOG_I(PHY, "before adjusting, OAI: frame=%d slot=%d, XRAN: frame=%d slot=%d\n",*frame,*slot,proc->frame_rx,proc->tti_rx);
+    *frame = proc->frame_rx;
+    *slot = proc->tti_rx;
+    LOG_I(PHY, "After adjusting, OAI: frame=%d slot=%d, XRAN: frame=%d slot=%d\n",*frame,*slot,proc->frame_rx,proc->tti_rx);
   }
+
+  sync = 1;
 #if 0
    printf("south_in:\ttimestamp_rx=%d{frame_rx=%d,tti_rx=%d}\ttti_tx=%d\tframe_tx=%d\n\n",proc->timestamp_rx,proc->frame_rx,proc->tti_rx,proc->tti_tx,proc->frame_tx);
    if(proc->frame_rx ==20){

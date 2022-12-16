@@ -1155,6 +1155,38 @@ void * xranLibWraper::get_timer_ctx()   { return((void *)&m_timer_ctx[0]); }
 //------------------------------------------------------------------------------------------------------------------------------------------------
 int xranLibWraper::get_symbol_index()  { return (xran_lib_ota_sym); }
 
+int xranLibWraper::get_ota_tti()  { return (xran_lib_ota_tti); }
+
+int xranLibWraper::get_symbol_offset(int32_t offSym, int32_t otaSym, int32_t numSymTotal, enum xran_in_period* pInPeriod)
+{
+  int32_t sym;
+
+  // Suppose the offset is usually small
+  if (unlikely(offSym > otaSym))
+  {
+    sym = numSymTotal - offSym + otaSym;
+    *pInPeriod = XRAN_IN_PREV_PERIOD;
+  }
+  else
+  {
+    sym = otaSym - offSym;
+
+    if (unlikely(sym >= numSymTotal))
+    {
+      sym -= numSymTotal;
+      *pInPeriod = XRAN_IN_NEXT_PERIOD;
+    }
+    else
+    {
+      *pInPeriod = XRAN_IN_CURR_PERIOD;
+    }
+  }
+
+  return sym;
+}
+
+int xranLibWraper::get_SFN_at_sec_start()  { return (xran_SFN_at_Sec_Start); }
+
 //------------------------------------------------------------------------------------------------------------------------------------------------
 bool xranLibWraper::is_running()       { return((xran_get_if_state() == XRAN_RUNNING)?true:false); }
 
