@@ -666,29 +666,30 @@ check_install_oai_software() {
             specific_packages="libgnutls28-dev libconfig-dev guile-2.2-dev"
             ;;
     esac
-    apt-get install -y\
-        $specific_packages \
-        automake \
-        bison \
-        build-essential \
-        $CMAKE \
-        doxygen \
-        git \
-        libatlas-base-dev \
-        libblas-dev \
-        liblapack-dev \
-        liblapacke-dev \
-        libpython2.7-dev \
-        libreadline-dev \
-        libsctp-dev \
-        libssl-dev \
-        libtool \
-        libxslt-dev \
-        libtasn1-6-dev \
+    $SUDO apt-get install -y \
+    $specific_packages \
+	automake  \
+	bison  \
+	build-essential \
+	$CMAKE \
         ninja-build \
-        openssl \
-        flex
-  $SUDO apt-get install -y nettle-dev nettle-bin #To be remove once MR1738 is merged
+	doxygen \
+	flex  \
+	git \
+	libatlas-base-dev \
+	libblas-dev \
+	liblapack-dev \
+	liblapacke-dev \
+	libpython2.7-dev \
+        libreadline-dev \
+	libsctp-dev  \
+	libssl-dev  \
+	libtool  \
+	libxslt1-dev \
+	libtasn1-6-dev \
+	openssl
+
+    $SUDO apt-get install -y nettle-dev nettle-bin
   elif [[ "$OS_BASEDISTRO" == "fedora" ]]; then
     if [[ "$OS_DISTRO" == "rhel" ]] || [[ "$OS_DISTRO" == "centos" ]]; then
       if rpm -q epel-release > /dev/null; then
