@@ -303,6 +303,9 @@ typedef struct gNB_RRC_UE_s {
   NR_RRCReconfiguration_t            *reconfig;
   NR_RadioBearerConfig_t             *rb_config;
 
+  /* Pointer to save spCellConfig during RRC Reestablishment procedures */
+  NR_SpCellConfig_t                  *spCellConfigReestablishment;
+
   ImsiMobileIdentity_t               imsi;
 
   /* KgNB as derived from KASME received from EPC */
@@ -325,7 +328,7 @@ typedef struct gNB_RRC_UE_s {
   uint16_t                           ng_5G_S_TMSI_Part2;
   NR_EstablishmentCause_t            establishment_cause;
 
-  /* Information from UE RRC ConnectionReestablishmentRequest */
+  /* Information from UE RRCReestablishmentRequest */
   NR_ReestablishmentCause_t          reestablishment_cause;
 
   /* UE id for initial connection to S1AP */
@@ -476,6 +479,11 @@ typedef struct nr_mac_rrc_dl_if_s {
   dl_rrc_message_transfer_func_t dl_rrc_message_transfer;
 } nr_mac_rrc_dl_if_t;
 
+typedef struct nr_reestablish_rnti_map_s {
+  ue_id_t ue_id;
+  rnti_t c_rnti;
+} nr_reestablish_rnti_map_t;
+
 //---NR---(completely change)---------------------
 typedef struct gNB_RRC_INST_s {
 
@@ -525,6 +533,8 @@ typedef struct gNB_RRC_INST_s {
 
   // security configuration (preferred algorithms)
   nr_security_configuration_t security;
+
+  nr_reestablish_rnti_map_t nr_reestablish_rnti_map[MAX_MOBILES_PER_GNB];
 
   nr_mac_rrc_dl_if_t mac_rrc;
 } gNB_RRC_INST;

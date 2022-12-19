@@ -46,6 +46,7 @@
 #include "LAYER2/nr_rlc/nr_rlc_oai_api.h"
 #include "asn1_msg.h"
 #include "../nr_rrc_proto.h"
+#include "UTIL/OSA/osa_defs.h"
 #include "RRC/NR/nr_rrc_extern.h"
 #include "NR_DL-CCCH-Message.h"
 #include "NR_UL-CCCH-Message.h"
@@ -1451,10 +1452,8 @@ uint8_t do_NR_SA_UECapabilityEnquiry( const protocol_ctxt_t *const ctxt_pP,
   return((enc_rval.encoded+7)/8);
 }
 
-
-uint8_t do_NR_RRCRelease(uint8_t                            *buffer,
-                         size_t                              buffer_size,
-                         uint8_t                             Transaction_id) {
+int do_NR_RRCRelease(uint8_t *buffer, size_t buffer_size, uint8_t Transaction_id)
+{
   asn_enc_rval_t enc_rval;
   NR_DL_DCCH_Message_t dl_dcch_msg;
   NR_RRCRelease_t *rrcConnectionRelease;
@@ -1877,132 +1876,137 @@ uint8_t do_RRCReestablishmentRequest(uint8_t Mod_id, uint8_t *buffer, uint16_t c
 }
 
 //------------------------------------------------------------------------------
-uint8_t
-do_RRCReestablishment(
-const protocol_ctxt_t     *const ctxt_pP,
-rrc_gNB_ue_context_t      *const ue_context_pP,
-int                              CC_id,
-uint8_t                   *const buffer,
-size_t                           buffer_size,
-//const uint8_t                    transmission_mode,
-const uint8_t                    Transaction_id,
-NR_SRB_ToAddModList_t               **SRB_configList
-) {
-    asn_enc_rval_t enc_rval;
-    //long *logicalchannelgroup = NULL;
-    struct NR_SRB_ToAddMod *SRB1_config = NULL;
-    struct NR_SRB_ToAddMod *SRB2_config = NULL;
-    //gNB_RRC_INST *nrrrc               = RC.nrrrc[ctxt_pP->module_id];
-    NR_DL_DCCH_Message_t dl_dcch_msg;
-    NR_RRCReestablishment_t *rrcReestablishment = NULL;
-    int i = 0;
-    ue_context_pP->ue_context.reestablishment_xid = Transaction_id;
-    NR_SRB_ToAddModList_t **SRB_configList2 = NULL;
-    SRB_configList2 = &ue_context_pP->ue_context.SRB_configList2[Transaction_id];
+int16_t do_RRCReestablishment(const protocol_ctxt_t *const ctxt_pP,
+                              rrc_gNB_ue_context_t *const ue_context_pP,
+                              int CC_id,
+                              uint8_t *const buffer,
+                              size_t buffer_size,
+                              const uint8_t Transaction_id,
+                              NR_SRB_ToAddModList_t **SRB_configList,
+                              const uint8_t *masterCellGroup_from_DU,
+                              NR_ServingCellConfigCommon_t *scc,
+                              rrc_gNB_carrier_data_t *carrier)
+{
+  asn_enc_rval_t enc_rval;
+  struct NR_SRB_ToAddMod *SRB1_config = NULL;
+  struct NR_SRB_ToAddMod *SRB2_config = NULL;
+  NR_DL_DCCH_Message_t dl_dcch_msg = {0};
+  NR_RRCReestablishment_t *rrcReestablishment = NULL;
+  ue_context_pP->ue_context.reestablishment_xid = Transaction_id;
+  NR_SRB_ToAddModList_t **SRB_configList2 = NULL;
+  SRB_configList2 = &ue_context_pP->ue_context.SRB_configList2[Transaction_id];
 
-    if (*SRB_configList2) {
-      free(*SRB_configList2);
-    }
+  if (*SRB_configList2) {
+    free(*SRB_configList2);
+  }
 
-    *SRB_configList2 = CALLOC(1, sizeof(NR_SRB_ToAddModList_t));
-    memset((void *)&dl_dcch_msg, 0, sizeof(NR_DL_DCCH_Message_t));
-    dl_dcch_msg.message.present           = NR_DL_DCCH_MessageType_PR_c1;
-    dl_dcch_msg.message.choice.c1 = calloc(1,sizeof(struct NR_DL_DCCH_MessageType__c1));
-    dl_dcch_msg.message.choice.c1->present = NR_DL_DCCH_MessageType__c1_PR_rrcReestablishment;
-    dl_dcch_msg.message.choice.c1->choice.rrcReestablishment = CALLOC(1,sizeof(NR_RRCReestablishment_t));
-    rrcReestablishment = dl_dcch_msg.message.choice.c1->choice.rrcReestablishment;
+  *SRB_configList2 = CALLOC(1, sizeof(NR_SRB_ToAddModList_t));
+  dl_dcch_msg.message.present = NR_DL_DCCH_MessageType_PR_c1;
+  dl_dcch_msg.message.choice.c1 = calloc(1, sizeof(struct NR_DL_DCCH_MessageType__c1));
+  dl_dcch_msg.message.choice.c1->present = NR_DL_DCCH_MessageType__c1_PR_rrcReestablishment;
+  dl_dcch_msg.message.choice.c1->choice.rrcReestablishment = CALLOC(1, sizeof(NR_RRCReestablishment_t));
+  rrcReestablishment = dl_dcch_msg.message.choice.c1->choice.rrcReestablishment;
 
-    // get old configuration of SRB2
-    if (*SRB_configList != NULL) {
-      for (i = 0; (i < (*SRB_configList)->list.count) && (i < 3); i++) {
-        LOG_D(NR_RRC, "(*SRB_configList)->list.array[%d]->srb_Identity=%ld\n",
-              i, (*SRB_configList)->list.array[i]->srb_Identity);
-    
-        if ((*SRB_configList)->list.array[i]->srb_Identity == 2 ) {
-          SRB2_config = (*SRB_configList)->list.array[i];
-        } else if ((*SRB_configList)->list.array[i]->srb_Identity == 1 ) {
-          SRB1_config = (*SRB_configList)->list.array[i];
-        }
+  // get old configuration of SRB2
+  if (*SRB_configList != NULL) {
+    for (int i = 0; (i < (*SRB_configList)->list.count) && (i < 3); i++) {
+      LOG_D(NR_RRC, "(*SRB_configList)->list.array[%d]->srb_Identity=%ld\n", i, (*SRB_configList)->list.array[i]->srb_Identity);
+      if ((*SRB_configList)->list.array[i]->srb_Identity == 2) {
+        SRB2_config = (*SRB_configList)->list.array[i];
+      } else if ((*SRB_configList)->list.array[i]->srb_Identity == 1) {
+        SRB1_config = (*SRB_configList)->list.array[i];
       }
     }
+  }
 
-    if (SRB1_config == NULL) {
-      // default SRB1 configuration
-      LOG_W(NR_RRC,"SRB1 configuration does not exist in SRB configuration list, use default\n");
-      /// SRB1
-      SRB1_config = CALLOC(1, sizeof(*SRB1_config));
-      SRB1_config->srb_Identity = 1;
-    }
+  if (SRB1_config == NULL) {
+    // default SRB1 configuration
+    LOG_W(NR_RRC, "SRB1 configuration does not exist in SRB configuration list, use default\n");
+    /// SRB1
+    SRB1_config = CALLOC(1, sizeof(*SRB1_config));
+    SRB1_config->srb_Identity = 1;
+  }
 
-    if (SRB2_config == NULL) {
-      LOG_W(NR_RRC,"SRB2 configuration does not exist in SRB configuration list\n");
-    } else {
-      asn1cSeqAdd(&(*SRB_configList2)->list, SRB2_config);
-    }
+  if (SRB2_config == NULL) {
+    LOG_W(NR_RRC, "SRB2 configuration does not exist in SRB configuration list\n");
+  } else {
+    asn1cSeqAdd(&(*SRB_configList2)->list, SRB2_config);
+  }
 
-    if (*SRB_configList) {
-      free(*SRB_configList);
-    }
+  if (*SRB_configList) {
+    free(*SRB_configList);
+  }
 
-    *SRB_configList = CALLOC(1, sizeof(LTE_SRB_ToAddModList_t));
-    asn1cSeqAdd(&(*SRB_configList)->list,SRB1_config);
+  *SRB_configList = CALLOC(1, sizeof(NR_SRB_ToAddModList_t));
+  asn1cSeqAdd(&(*SRB_configList)->list, SRB1_config);
+  /****************************** masterCellGroup ******************************/
+  /*
+   NR_CellGroupConfig_t *cellGroupConfig = NULL;
+   char masterCellGroup_buf[1000];
+   gNB_RRC_UE_t *ue_p = &ue_context_pP->ue_context;
+   if (masterCellGroup_from_DU) {
+    // decode masterCellGroup OCTET_STRING received from DU and place in ue context
+    uper_decode(NULL,
+    &asn_DEF_NR_CellGroupConfig,   //might be added prefix later
+    (void **)&cellGroupConfig,
+    (uint8_t *)masterCellGroup_from_DU->buf,
+    masterCellGroup_from_DU->size, 0, 0);
 
-    rrcReestablishment->rrc_TransactionIdentifier = Transaction_id;
-    rrcReestablishment->criticalExtensions.present = NR_RRCReestablishment__criticalExtensions_PR_rrcReestablishment;
-    rrcReestablishment->criticalExtensions.choice.rrcReestablishment = CALLOC(1,sizeof(NR_RRCReestablishment_IEs_t));
+    xer_fprint(stdout, &asn_DEF_NR_CellGroupConfig, (const void*)cellGroupConfig);
+  }
+  else {
+    cellGroupConfig = calloc(1, sizeof(NR_CellGroupConfig_t));
+    fill_initial_cellGroupConfig(ue_context_pP->ue_context.rnti,ue_context_pP->local_uid,cellGroupConfig,scc,carrier);
 
-    uint8_t KgNB_star[32] = { 0 };
-    /** TODO
-    uint16_t pci = nrrrc->carrier[CC_id].physCellId;
-    uint32_t earfcn_dl = (uint32_t)freq_to_arfcn10(RC.mac[ctxt_pP->module_id]->common_channels[CC_id].eutra_band,
-                         nrrrc->carrier[CC_id].dl_CarrierFreq);
-    bool     is_rel8_only = true;
-    
-    if (earfcn_dl > 65535) {
-      is_rel8_only = false;
-    }
-    LOG_D(NR_RRC, "pci=%d, eutra_band=%d, downlink_frequency=%d, earfcn_dl=%u, is_rel8_only=%s\n",
-          pci,
-          RC.mac[ctxt_pP->module_id]->common_channels[CC_id].eutra_band,
-          nrrrc->carrier[CC_id].dl_CarrierFreq,
-          earfcn_dl,
-          is_rel8_only == true ? "true": "false");
-    */
-    
-    if (ue_context_pP->ue_context.nh_ncc >= 0) {
-      //TODO derive_keNB_star(ue_context_pP->ue_context.nh, pci, earfcn_dl, is_rel8_only, KgNB_star);
-      rrcReestablishment->criticalExtensions.choice.rrcReestablishment->nextHopChainingCount = ue_context_pP->ue_context.nh_ncc;
-    } else { // first HO
-      //TODO derive_keNB_star (ue_context_pP->ue_context.kgnb, pci, earfcn_dl, is_rel8_only, KgNB_star);
-      // LG: really 1
-      rrcReestablishment->criticalExtensions.choice.rrcReestablishment->nextHopChainingCount = 0;
-    }
-    // copy KgNB_star to ue_context_pP->ue_context.kgnb
-    memcpy (ue_context_pP->ue_context.kgnb, KgNB_star, 32);
-    ue_context_pP->ue_context.kgnb_ncc = 0;
-    rrcReestablishment->criticalExtensions.choice.rrcReestablishment->lateNonCriticalExtension = NULL;
-    rrcReestablishment->criticalExtensions.choice.rrcReestablishment->nonCriticalExtension = NULL;
-
-    if ( LOG_DEBUGFLAG(DEBUG_ASN1) ) {
-      xer_fprint(stdout, &asn_DEF_NR_DL_DCCH_Message, (void *)&dl_dcch_msg);
-    }
-
-    enc_rval = uper_encode_to_buffer(&asn_DEF_NR_DL_DCCH_Message,
-                                     NULL,
-                                     (void *)&dl_dcch_msg,
-                                     buffer,
-                                     100);
+    enc_rval = uper_encode_to_buffer(&asn_DEF_NR_CellGroupConfig,
+             NULL,
+             (void *)cellGroupConfig,
+             masterCellGroup_buf,
+             1000);
 
     if(enc_rval.encoded == -1) {
-      LOG_E(NR_RRC, "[gNB AssertFatal]ASN1 message encoding failed (%s, %lu)!\n",
-            enc_rval.failed_type->name, enc_rval.encoded);
+      LOG_E(NR_RRC, "ASN1 message CellGroupConfig encoding failed (%s, %lu)!\n",
+      enc_rval.failed_type->name, enc_rval.encoded);
       return -1;
     }
-    
-    LOG_D(NR_RRC,"RRCReestablishment Encoded %u bits (%u bytes)\n",
-          (uint32_t)enc_rval.encoded, (uint32_t)(enc_rval.encoded+7)/8);
-    return((enc_rval.encoded+7)/8);
+  }
+  ue_p->masterCellGroup = cellGroupConfig;
+  */
+  rrcReestablishment->rrc_TransactionIdentifier = Transaction_id;
+  rrcReestablishment->criticalExtensions.present = NR_RRCReestablishment__criticalExtensions_PR_rrcReestablishment;
+  rrcReestablishment->criticalExtensions.choice.rrcReestablishment = CALLOC(1, sizeof(NR_RRCReestablishment_IEs_t));
 
+  uint16_t pci = RC.nrrrc[ctxt_pP->module_id]->carrier.physCellId;
+  uint32_t nr_arfcn_dl = (uint64_t)*scc->downlinkConfigCommon->frequencyInfoDL->absoluteFrequencySSB;
+  LOG_I(NR_RRC, "Reestablishment update key pci=%d, earfcn_dl=%u\n", pci, nr_arfcn_dl);
+
+  // 3GPP TS 33.501 Section 6.11 Security handling for RRC connection re-establishment procedure
+  if (ue_context_pP->ue_context.nh_ncc >= 0) {
+    nr_derive_key_ng_ran_star(pci, nr_arfcn_dl, ue_context_pP->ue_context.nh, ue_context_pP->ue_context.kgnb);
+    rrcReestablishment->criticalExtensions.choice.rrcReestablishment->nextHopChainingCount = ue_context_pP->ue_context.nh_ncc;
+  } else { // first HO
+    nr_derive_key_ng_ran_star(pci, nr_arfcn_dl, ue_context_pP->ue_context.kgnb, ue_context_pP->ue_context.kgnb);
+    // LG: really 1
+    rrcReestablishment->criticalExtensions.choice.rrcReestablishment->nextHopChainingCount = 0;
+  }
+
+  ue_context_pP->ue_context.kgnb_ncc = 0;
+  rrcReestablishment->criticalExtensions.choice.rrcReestablishment->lateNonCriticalExtension = NULL;
+  rrcReestablishment->criticalExtensions.choice.rrcReestablishment->nonCriticalExtension = NULL;
+
+  if (LOG_DEBUGFLAG(DEBUG_ASN1)) {
+    xer_fprint(stdout, &asn_DEF_NR_DL_DCCH_Message, (void *)&dl_dcch_msg);
+  }
+
+  enc_rval = uper_encode_to_buffer(&asn_DEF_NR_DL_DCCH_Message, NULL, (void *)&dl_dcch_msg, buffer, 100);
+
+  if (enc_rval.encoded == -1) {
+    LOG_E(NR_RRC, "ASN1 message encoding failed (%s, %lu)!\n", enc_rval.failed_type->name, enc_rval.encoded);
+    return -1;
+  }
+
+  LOG_D(NR_RRC, "RRCReestablishment Encoded %u bits (%u bytes)\n", (uint32_t)enc_rval.encoded, (uint32_t)(enc_rval.encoded + 7) / 8);
+  return ((enc_rval.encoded + 7) / 8);
 }
 
 uint8_t 
@@ -2073,7 +2077,7 @@ NR_MeasConfig_t *get_defaultMeasConfig(const gNB_RrcConfigurationReq *conf)
   asn1cCallocOne(monr1->ext1->freqBandIndicatorNR, band);
   mo1->measObject.choice.measObjectNR = monr1;
   asn1cSeqAdd(&mc->measObjectToAddModList->list, mo1);
-  
+
   // Reporting Configuration: Specifies how reporting should be done. This could be periodic or event-triggered.
   NR_ReportConfigToAddMod_t *rc = calloc(1, sizeof(*rc));
   rc->reportConfigId = 1;

@@ -2063,6 +2063,7 @@ nr_rrc_ue_establish_srb2(
        // Refresh DRBs
      nr_pdcp_add_drbs(ctxt_pP->enb_flag,
                       ctxt_pP->rntiMaybeUEid,
+                      0,
                       radioBearerConfig->drb_ToAddModList,
                       NR_UE_rrc_inst[ctxt_pP->module_id].cipheringAlgorithm | (NR_UE_rrc_inst[ctxt_pP->module_id].integrityProtAlgorithm << 4),
                       kUPenc,
