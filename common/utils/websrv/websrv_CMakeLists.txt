@@ -28,13 +28,13 @@ if ("${NPM}" STREQUAL "ULFIUS-NOTFOUND")
   message( WARNING " npm is not installed, frontend won't be built. Possibly install npm, package is available for ubuntu and fedora")
 endif("${NPM}" STREQUAL "ULFIUS-NOTFOUND")
 
-if ( ${WBACK}   ) 
+if ( ${WBACK}   )
   message (STATUS "websrv backend can be built")
 else ( ${WBACK} )
   message (STATUS "websrv backend build skipped, dependencies not found")
 endif ( ${WBACK} )
 
-if ( ${WFRONT} ) 
+if ( ${WFRONT} )
   message (STATUS "websrv frontend can be built")
 else( ${WFRONT} )
   message (STATUS "websrv frontend build skipped,  dependencies not found")
@@ -44,15 +44,16 @@ endif ( ${WFRONT} )
 # build the backend ( the embedded web server)
 
 set(WEBSRV_SOURCE
-    ${WEBSRVROOT}/websrv.c ${WEBSRVROOT}/websrv_websockets.c  
-    ${WEBSRVROOT}/websrv_scope.c ${WEBSRVROOT}/websrv_noforms.c 
-    ${WEBSRVROOT}/websrv_scope.c ${WEBSRVROOT}/websrv_utils.c 
+    ${WEBSRVROOT}/websrv.c ${WEBSRVROOT}/websrv_websockets.c
+    ${WEBSRVROOT}/websrv_scope.c ${WEBSRVROOT}/websrv_noforms.c
+    ${WEBSRVROOT}/websrv_scope.c ${WEBSRVROOT}/websrv_utils.c
     ${OPENAIR_DIR}/openair1/PHY/TOOLS/nr_phy_scope.c
     )
-    
+
 
   add_library(websrv MODULE ${WEBSRV_SOURCE} )
   target_link_libraries(websrv PRIVATE ulfius jansson)
+  target_link_libraries(websrv PRIVATE asn1_nr_rrc asn1_lte_rrc)
   target_compile_definitions(websrv PUBLIC WEBSRVSCOPE)
 
 # build the frontend ( loaded from web server by browsers)
@@ -81,8 +82,8 @@ endif ( ${WBACK} )
 if ( ${WFRONT} )
   if (EXISTS "${OPENAIR_CMAKE}/ran_build/build" AND IS_DIRECTORY "${OPENAIR_CMAKE}/ran_build/build")
      add_custom_command(TARGET websrvfront
-                   POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${WEBSRVROOT}/frontend/dist/softmodem-ngx ${OPENAIR_CMAKE}/ran_build/build/websrv 
-                              COMMAND ${CMAKE_COMMAND} -E copy_directory ${WEBSRVROOT}/frontend/dist/softmodem-ngx ${OPENAIR_TARGETS}/bin/websrv 
+                   POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${WEBSRVROOT}/frontend/dist/softmodem-ngx ${OPENAIR_CMAKE}/ran_build/build/websrv
+                              COMMAND ${CMAKE_COMMAND} -E copy_directory ${WEBSRVROOT}/frontend/dist/softmodem-ngx ${OPENAIR_TARGETS}/bin/websrv
                               COMMAND ${CMAKE_COMMAND} -E copy_directory ${WEBSRVROOT}/helpfiles ${OPENAIR_CMAKE}/ran_build/build/websrv/helpfiles
                               COMMAND ${CMAKE_COMMAND} -E copy_directory ${WEBSRVROOT}/helpfiles ${OPENAIR_TARGETS}/bin/websrv/helpfiles
                    COMMENT "Moving frontend files to:\n    ${OPENAIR_CMAKE}/ran_build/build/websrv\n    ${OPENAIR_TARGETS}/bin/websrv" )
