@@ -866,6 +866,7 @@ set(SECU_OSA_SRC
   ${OPENAIR2_DIR}/UTIL/OSA/osa_stream_eia.c
   )
 add_library(SECU_OSA ${SECU_OSA_SRC})
+target_link_libraries(SECU_OSA PRIVATE ds)
 
 set(SECU_CN_SRC
   ${OPENAIR3_DIR}/SECU/secu_defs.c
@@ -882,6 +883,7 @@ set(SECU_CN_SRC
   ${OPENAIR3_DIR}/SECU/nas_stream_eia2.c
   )
 add_library(SECU_CN ${SECU_CN_SRC})
+target_link_libraries(SECU_CN PUBLIC ds)
 
 # Physical Channel Procedures Scheduling
 ################################"
@@ -2034,7 +2036,7 @@ add_library(LIB_NAS_SIMUE
   ${libnrnas_emm_msg_OBJS}
   ${libnrnas_ies_OBJS}
   )
-target_link_libraries(LIB_NAS_SIMUE PRIVATE lte_rrc)
+target_link_libraries(LIB_NAS_SIMUE PRIVATE lte_rrc ds)
 set(NAS_SIM_LIB LIB_NAS_SIMUE)
 target_link_libraries(LIB_NAS_SIMUE PRIVATE asn1_nr_rrc asn1_lte_rrc)
 
@@ -2055,7 +2057,7 @@ add_library(LIB_NAS_UE
   ${libnas_ue_esm_OBJS}
   ${libnas_ue_esm_sap_OBJS}
   )
-target_link_libraries(LIB_NAS_UE PRIVATE lte_rrc)
+target_link_libraries(LIB_NAS_UE PRIVATE lte_rrc ds)
 set(NAS_UE_LIB LIB_NAS_UE)
 target_link_libraries(LIB_NAS_UE PRIVATE asn1_nr_rrc asn1_lte_rrc)
 
@@ -2825,6 +2827,7 @@ include (common/utils/telnetsrv/telnetsrv_CMakeLists.txt)
 include(${OPENAIR1_DIR}/PHY/CODING/nrLDPC_decoder/nrLDPC_tools/CMakeLists.txt)
 include (${OPENAIR_DIR}/common/utils/websrv/websrv_CMakeLists.txt)
 
+add_subdirectory(common)
 add_subdirectory(doc)
 add_subdirectory(openair2)
 add_subdirectory(openair3)

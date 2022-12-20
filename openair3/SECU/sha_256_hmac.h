@@ -25,7 +25,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "../../openair2/UTIL/ALG_DS/DS/byte_array.h"
+#include "byte_array.h"
 
 void sha_256_hmac(const uint8_t key[32], byte_array_t data, size_t len, uint8_t out[len]);
 

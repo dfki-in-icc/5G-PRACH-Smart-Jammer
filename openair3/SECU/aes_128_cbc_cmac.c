@@ -22,7 +22,7 @@
 #include <assert.h>
 #include "aes_128_cbc_cmac.h"
 
-#include "../../common/utils/assertions.h"
+#include "common/utils/assertions.h"
 #include <openssl/cmac.h>
 
 #if OPENSSL_VERSION_MAJOR >= 3

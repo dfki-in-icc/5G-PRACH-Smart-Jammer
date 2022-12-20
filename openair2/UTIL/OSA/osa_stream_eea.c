@@ -26,7 +26,7 @@
 #include <string.h>
 
 #include "common/utils/LOG/log.h"
-#include "openair2/UTIL/ALG_DS/DS/byte_array.h"
+#include "byte_array.h"
 #include "openair3//SECU//aes_128_ctr.h"
 
 #include "assertions.h"
