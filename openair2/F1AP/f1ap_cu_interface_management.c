@@ -35,20 +35,21 @@
 #include "f1ap_decoder.h"
 #include "f1ap_itti_messaging.h"
 #include "f1ap_cu_interface_management.h"
+#include "f1ap_cu_task.h"
 
 int CU_send_RESET(instance_t instance, F1AP_Reset_t *Reset) {
   AssertFatal(1==0,"Not implemented yet\n");
 }
 
 int CU_handle_RESET_ACKKNOWLEDGE(instance_t instance,
-                                 uint32_t assoc_id,
+                                 int      assoc_id,
                                  uint32_t stream,
                                  F1AP_F1AP_PDU_t *pdu) {
   AssertFatal(1==0,"Not implemented yet\n");
 }
 
 int CU_handle_RESET(instance_t instance,
-                    uint32_t assoc_id,
+                    int      assoc_id,
                     uint32_t stream,
                     F1AP_F1AP_PDU_t *pdu) {
   AssertFatal(1==0,"Not implemented yet\n");
@@ -63,7 +64,7 @@ int CU_send_RESET_ACKNOWLEDGE(instance_t instance, F1AP_ResetAcknowledge_t *Rese
     Error Indication
 */
 int CU_handle_ERROR_INDICATION(instance_t instance,
-                               uint32_t assoc_id,
+                               int      assoc_id,
                                uint32_t stream,
                                F1AP_F1AP_PDU_t *pdu) {
   AssertFatal(1==0,"Not implemented yet\n");
@@ -78,7 +79,7 @@ int CU_send_ERROR_INDICATION(instance_t instance, F1AP_ErrorIndication_t *ErrorI
     F1 Setup
 */
 int CU_handle_F1_SETUP_REQUEST(instance_t instance,
-                               uint32_t assoc_id,
+                               int assoc_id,
                                uint32_t stream,
                                F1AP_F1AP_PDU_t *pdu) {
   LOG_D(F1AP, "CU_handle_F1_SETUP_REQUEST\n");
@@ -96,7 +97,7 @@ int CU_handle_F1_SETUP_REQUEST(instance_t instance,
   }
 
   /* assoc_id */
-  f1ap_setup_req_t *req=&getCxt(true, instance)->setupReq;
+  f1ap_setup_req_t *req=&f1ap_cu_assoc_id_to_context(assoc_id)->setupReq;
   req->assoc_id = assoc_id;
   /* gNB_DU_id */
   // this function exits if the ie is mandatory
@@ -145,9 +146,9 @@ int CU_handle_F1_SETUP_REQUEST(instance_t instance,
     // LTS: FIXME data model failure: we don't KNOW if we receive a 4G or a 5G cell
     // Furthermore, cell_type is not a attribute of a cell in the data structure !!!!!!!!!!
     if (RC.nrrrc && RC.nrrrc[GNB_INSTANCE_TO_MODULE_ID(instance)]->node_type == ngran_gNB_CU)
-      f1ap_req(true, instance)->cell_type=CELL_MACRO_GNB;
+      req->cell_type=CELL_MACRO_GNB;
     else
-      f1ap_req(true, instance)->cell_type=CELL_MACRO_ENB;
+      req->cell_type=CELL_MACRO_ENB;
     
     // FDD Cells
     if (servedCellInformation->nR_Mode_Info.present==F1AP_NR_Mode_Info_PR_fDD) {
@@ -201,7 +202,7 @@ int CU_handle_F1_SETUP_REQUEST(instance_t instance,
     }
 	
     struct F1AP_GNB_DU_System_Information * DUsi=served_cells_item->gNB_DU_System_Information;
-    LOG_I(F1AP, "Received Cell in %d context\n", f1ap_req(true, instance)->cell_type==CELL_MACRO_GNB);
+    LOG_I(F1AP, "Received Cell in %d context\n", req->cell_type==CELL_MACRO_GNB);
     // System Information
     /* mib */
     req->mib[i] = calloc(DUsi->mIB_message.size + 1, sizeof(char));
@@ -261,13 +262,13 @@ int CU_handle_F1_SETUP_REQUEST(instance_t instance,
   memcpy(&F1AP_SETUP_REQ(message_p), req, sizeof(f1ap_setup_req_t) );
   
   if (req->num_cells_available > 0) {
-    if (f1ap_req(true, instance)->cell_type == CELL_MACRO_GNB) {
+    if (req->cell_type == CELL_MACRO_GNB) {
       itti_send_msg_to_task(TASK_RRC_GNB, GNB_MODULE_ID_TO_INSTANCE(instance), message_p);
     } else {
       itti_send_msg_to_task(TASK_RRC_ENB, ENB_MODULE_ID_TO_INSTANCE(instance), message_p);
     }
   } else {
-    CU_send_F1_SETUP_FAILURE(instance);
+    CU_send_F1_SETUP_FAILURE(instance, assoc_id);
     itti_free(TASK_CU_F1,message_p);
     return -1;
   }
@@ -378,11 +379,12 @@ int CU_send_F1_SETUP_RESPONSE(instance_t instance,
   }
 
   ASN_STRUCT_RESET(asn_DEF_F1AP_F1AP_PDU, &pdu);
-  f1ap_itti_send_sctp_data_req(true, instance, buffer, len, 0);
+  f1ap_itti_send_sctp_data_req(true, instance, buffer, len, 0, f1ap_setup_resp->assoc_id);
   return 0;
 }
 
-int CU_send_F1_SETUP_FAILURE(instance_t instance) {
+int CU_send_F1_SETUP_FAILURE(instance_t instance, int assoc_id)
+{
   LOG_D(F1AP, "CU_send_F1_SETUP_FAILURE\n");
   instance_t enb_mod_idP=0;
   instance_t cu_mod_idP=0;
@@ -448,7 +450,7 @@ int CU_send_F1_SETUP_FAILURE(instance_t instance) {
   }
 
   ASN_STRUCT_RESET(asn_DEF_F1AP_F1AP_PDU, &pdu);
-  f1ap_itti_send_sctp_data_req(true,instance, buffer, len, 0);
+  f1ap_itti_send_sctp_data_req(true,instance, buffer, len, 0, assoc_id);
   return 0;
 }
 
@@ -457,7 +459,7 @@ int CU_send_F1_SETUP_FAILURE(instance_t instance) {
 */
 
 int CU_handle_gNB_DU_CONFIGURATION_UPDATE(instance_t instance,
-    uint32_t assoc_id,
+    int assoc_id,
     uint32_t stream,
     F1AP_F1AP_PDU_t *pdu) {
   AssertFatal(1==0,"Not implemented yet\n");
@@ -545,6 +547,15 @@ int CU_send_gNB_CU_CONFIGURATION_UPDATE(instance_t instance, f1ap_gnb_cu_configu
             AssertFatal(sIBtype < 6 || sIBtype == 9, "Illegal SI type %d\n",sIBtype);
             asn1cSequenceAdd(gNB_CUSystemInformation->sibtypetobeupdatedlist.list, F1AP_SibtypetobeupdatedListItem_t, sib_item);
             sib_item->sIBtype = sIBtype;
+{
+  unsigned char *b = f1ap_gnb_cu_configuration_update->cells_to_activate[i].SI_container[sIBtype];
+  int len = f1ap_gnb_cu_configuration_update->cells_to_activate[i].SI_container_length[sIBtype];
+  printf("celle %d put sib(%d)[%d]", i, sIBtype, len);
+  int i;
+  for (i = 0; i < len; i++) printf(" %2.2x", b[i]);
+  printf("\n");
+  fflush(stdout);
+}
             OCTET_STRING_fromBuf(&sib_item->sIBmessage,
                                  (const char *)f1ap_gnb_cu_configuration_update->cells_to_activate[i].SI_container[sIBtype],
                                  f1ap_gnb_cu_configuration_update->cells_to_activate[i].SI_container_length[sIBtype]);
@@ -754,21 +765,30 @@ int CU_send_gNB_CU_CONFIGURATION_UPDATE(instance_t instance, f1ap_gnb_cu_configu
     return -1;
   }
 
+{
+  unsigned char *b = buffer;
+  printf("cu update [%d]", len);
+  int i;
+  for (i = 0; i < len; i++) printf(" %2.2x", b[i]);
+  printf("\n");
+  fflush(stdout);
+}
+
   LOG_DUMPMSG(F1AP, LOG_DUMP_CHAR, buffer, len, "F1AP gNB-CU CONFIGURATION UPDATE : ");
   ASN_STRUCT_RESET(asn_DEF_F1AP_F1AP_PDU, &pdu);
-  f1ap_itti_send_sctp_data_req(true,instance, buffer, len, 0);
+  f1ap_itti_send_sctp_data_req(true,instance, buffer, len, 0, f1ap_gnb_cu_configuration_update->assoc_id);
   return 0;
 }
 
 int CU_handle_gNB_CU_CONFIGURATION_UPDATE_FAILURE(instance_t instance,
-    uint32_t assoc_id,
+    int assoc_id,
     uint32_t stream,
     F1AP_F1AP_PDU_t *pdu) {
   AssertFatal(1==0,"Not implemented yet\n");
 }
 
 int CU_handle_gNB_CU_CONFIGURATION_UPDATE_ACKNOWLEDGE(instance_t instance,
-    uint32_t assoc_id,
+    int assoc_id,
     uint32_t stream,
     F1AP_F1AP_PDU_t *pdu) {
   LOG_I(F1AP,"Cell Configuration ok (assoc_id %d)\n",assoc_id);
@@ -777,7 +797,7 @@ int CU_handle_gNB_CU_CONFIGURATION_UPDATE_ACKNOWLEDGE(instance_t instance,
 
 
 int CU_handle_gNB_DU_RESOURCE_COORDINATION_REQUEST(instance_t instance,
-    uint32_t assoc_id,
+    int assoc_id,
     uint32_t stream,
     F1AP_F1AP_PDU_t *pdu) {
   AssertFatal(0, "Not implemented yet\n");

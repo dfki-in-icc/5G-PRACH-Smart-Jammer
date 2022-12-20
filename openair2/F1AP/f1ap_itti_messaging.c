@@ -23,12 +23,12 @@
 #include "f1ap_itti_messaging.h"
 
 void f1ap_itti_send_sctp_data_req(bool isCu, instance_t instance, uint8_t *buffer,
-                                  uint32_t buffer_length, uint16_t stream) {
+                                  uint32_t buffer_length, uint16_t stream, int assoc_id) {
   MessageDef      *message_p;
   sctp_data_req_t *sctp_data_req;
   message_p = itti_alloc_new_message(isCu?TASK_CU_F1:TASK_DU_F1, 0, SCTP_DATA_REQ);
   sctp_data_req = &message_p->ittiMsg.sctp_data_req;
-  sctp_data_req->assoc_id      =  f1ap_assoc_id(isCu,instance);
+  sctp_data_req->assoc_id      =  isCu ? assoc_id : f1ap_assoc_id(isCu,instance);
   sctp_data_req->buffer        = buffer;
   sctp_data_req->buffer_length = buffer_length;
   sctp_data_req->stream        = stream;

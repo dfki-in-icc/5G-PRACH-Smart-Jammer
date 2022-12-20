@@ -37,6 +37,7 @@
 #include "f1ap_cu_rrc_message_transfer.h"
 #include "common/ran_context.h"
 #include "openair3/UTILS/conversions.h"
+#include "f1ap_cu_task.h"
 
 /*
     Initial UL RRC Message Transfer
@@ -46,7 +47,7 @@ int CU_handle_INITIAL_UL_RRC_MESSAGE_TRANSFER(instance_t             instance,
     uint32_t               assoc_id,
     uint32_t               stream,
     F1AP_F1AP_PDU_t       *pdu) {
-  LOG_D(F1AP, "CU_handle_INITIAL_UL_RRC_MESSAGE_TRANSFER\n");
+  LOG_D(F1AP, "CU_handle_INITIAL_UL_RRC_MESSAGE_TRANSFER assoc_id %d\n", assoc_id);
   // decode the F1 message
   // get the rrc message from the contauiner
   // call func rrc_eNB_decode_ccch: <-- needs some update here
@@ -88,7 +89,7 @@ int CU_handle_INITIAL_UL_RRC_MESSAGE_TRANSFER(instance_t             instance,
   F1AP_FIND_PROTOCOLIE_BY_ID(F1AP_InitialULRRCMessageTransferIEs_t, du2cu, container,
                              F1AP_ProtocolIE_ID_id_DUtoCURRCContainer, false);
 
-  int f1ap_uid = f1ap_add_ue(CUtype, instance, rnti);
+  int f1ap_uid = f1ap_add_ue(CUtype, instance, rnti, assoc_id);
 
   if (f1ap_uid  < 0 ) {
     LOG_E(F1AP, "Failed to add UE \n");
@@ -96,11 +97,13 @@ int CU_handle_INITIAL_UL_RRC_MESSAGE_TRANSFER(instance_t             instance,
   }
 
   // create an ITTI message and copy SDU
-  if (f1ap_req(true, instance)->cell_type==CELL_MACRO_GNB) {
+  f1ap_setup_req_t *req = &f1ap_cu_assoc_id_to_context(assoc_id)->setupReq;
+  if (req->cell_type==CELL_MACRO_GNB) {
     message_p = itti_alloc_new_message (TASK_CU_F1, 0, F1AP_INITIAL_UL_RRC_MESSAGE);
     f1ap_initial_ul_rrc_message_t *ul_rrc = &F1AP_INITIAL_UL_RRC_MESSAGE(message_p);
     ul_rrc->nr_cellid = nr_cellid; // CU instance
     ul_rrc->crnti      = rnti;
+    ul_rrc->assoc_id   = assoc_id;
     ul_rrc->rrc_container_length = rrccont->value.choice.RRCContainer.size;
     ul_rrc->rrc_container = malloc(ul_rrc->rrc_container_length);
     memcpy(ul_rrc->rrc_container, rrccont->value.choice.RRCContainer.buf, ul_rrc->rrc_container_length);
@@ -161,7 +164,7 @@ int CU_send_DL_RRC_MESSAGE_TRANSFER(instance_t                instance,
   ie1->id                             = F1AP_ProtocolIE_ID_id_gNB_CU_UE_F1AP_ID;
   ie1->criticality                    = F1AP_Criticality_reject;
   ie1->value.present                  = F1AP_DLRRCMessageTransferIEs__value_PR_GNB_CU_UE_F1AP_ID;
-  ie1->value.choice.GNB_CU_UE_F1AP_ID = f1ap_get_cu_ue_f1ap_id(CUtype, instance, f1ap_dl_rrc->rnti);
+  ie1->value.choice.GNB_CU_UE_F1AP_ID = f1ap_get_cu_ue_f1ap_id(CUtype, instance, f1ap_dl_rrc->rnti, f1ap_dl_rrc->assoc_id);
   LOG_I(F1AP, "Setting GNB_CU_UE_F1AP_ID %llu associated with UE RNTI %x (instance %ld)\n",
         (unsigned long long int)ie1->value.choice.GNB_CU_UE_F1AP_ID, f1ap_dl_rrc->rnti, instance);
   /* mandatory */
@@ -170,7 +173,7 @@ int CU_send_DL_RRC_MESSAGE_TRANSFER(instance_t                instance,
   ie2->id                             = F1AP_ProtocolIE_ID_id_gNB_DU_UE_F1AP_ID;
   ie2->criticality                    = F1AP_Criticality_reject;
   ie2->value.present                  = F1AP_DLRRCMessageTransferIEs__value_PR_GNB_DU_UE_F1AP_ID;
-  ie2->value.choice.GNB_DU_UE_F1AP_ID = f1ap_get_du_ue_f1ap_id(CUtype, instance, f1ap_dl_rrc->rnti);
+  ie2->value.choice.GNB_DU_UE_F1AP_ID = f1ap_get_du_ue_f1ap_id(CUtype, instance, f1ap_dl_rrc->rnti, f1ap_dl_rrc->assoc_id);
   LOG_I(F1AP, "GNB_DU_UE_F1AP_ID %llu associated with UE RNTI %x \n", (unsigned long long int)ie2->value.choice.GNB_DU_UE_F1AP_ID, f1ap_dl_rrc->rnti);
   /* optional */
   /* c3. oldgNB_DU_UE_F1AP_ID */
@@ -237,9 +240,19 @@ int CU_send_DL_RRC_MESSAGE_TRANSFER(instance_t                instance,
     return -1;
   }
 
-  f1ap_itti_send_sctp_data_req(true, instance, buffer, len, 0 /* BK: fix me*/);
+  f1ap_itti_send_sctp_data_req(true, instance, buffer, len, 0 /* BK: fix me*/, f1ap_dl_rrc->assoc_id);
   return 0;
 }
+
+bool nr_pdcp_data_ind(const protocol_ctxt_t *const  ctxt_pP,
+                   const int assoc_id,
+                   const srb_flag_t srb_flagP,
+                   const MBMS_flag_t MBMS_flagP,
+                   const rb_id_t rb_id,
+                   const sdu_size_t sdu_buffer_size,
+                   mem_block_t *const sdu_buffer,
+                   const uint32_t *const srcID,
+                   const uint32_t *const dstID);
 
 /*
     UL RRC Message Transfer
@@ -268,13 +281,13 @@ int CU_handle_UL_RRC_MESSAGE_TRANSFER(instance_t       instance,
                              F1AP_ProtocolIE_ID_id_gNB_CU_UE_F1AP_ID, true);
   cu_ue_f1ap_id = ie->value.choice.GNB_CU_UE_F1AP_ID;
   LOG_D(F1AP, "cu_ue_f1ap_id %lu associated with RNTI %x\n",
-        cu_ue_f1ap_id, f1ap_get_rnti_by_cu_id(CUtype, instance, cu_ue_f1ap_id));
+        cu_ue_f1ap_id, f1ap_get_rnti_by_cu_id(CUtype, instance, cu_ue_f1ap_id, assoc_id));
   /* GNB_DU_UE_F1AP_ID */
   F1AP_FIND_PROTOCOLIE_BY_ID(F1AP_ULRRCMessageTransferIEs_t, ie, container,
                              F1AP_ProtocolIE_ID_id_gNB_DU_UE_F1AP_ID, true);
   du_ue_f1ap_id = ie->value.choice.GNB_DU_UE_F1AP_ID;
   LOG_D(F1AP, "du_ue_f1ap_id %lu associated with RNTI %x\n",
-        du_ue_f1ap_id, f1ap_get_rnti_by_cu_id(CUtype, instance, du_ue_f1ap_id));
+        du_ue_f1ap_id, f1ap_get_rnti_by_cu_id(CUtype, instance, du_ue_f1ap_id, assoc_id));
   /* mandatory */
   /* SRBID */
   F1AP_FIND_PROTOCOLIE_BY_ID(F1AP_ULRRCMessageTransferIEs_t, ie, container,
@@ -294,7 +307,7 @@ int CU_handle_UL_RRC_MESSAGE_TRANSFER(instance_t       instance,
   protocol_ctxt_t ctxt={0};
   ctxt.instance = instance;
   ctxt.module_id = instance;
-  ctxt.rnti = f1ap_get_rnti_by_cu_id(CUtype, instance, cu_ue_f1ap_id);
+  ctxt.rnti = f1ap_get_rnti_by_cu_id(CUtype, instance, cu_ue_f1ap_id, assoc_id);
   ctxt.enb_flag = 1;
   ctxt.eNB_index = 0;
   mem_block_t *mb = get_free_mem_block(ie->value.choice.RRCContainer.size,__func__);
@@ -304,11 +317,12 @@ int CU_handle_UL_RRC_MESSAGE_TRANSFER(instance_t       instance,
   //for (int i = 0; i < ie->value.choice.RRCContainer.size; i++)
   //  printf("%02x ", mb->data[i]);
   //printf("\n");
-  pdcp_data_ind (&ctxt,
-                 1, // srb_flag
-                 0, // embms_flag
-                 srb_id,
-                 ie->value.choice.RRCContainer.size,
-                 mb, NULL, NULL);
+  nr_pdcp_data_ind(&ctxt,
+                   assoc_id,
+                   1, // srb_flag
+                   0, // embms_flag
+                   srb_id,
+                   ie->value.choice.RRCContainer.size,
+                   mb, NULL, NULL);
   return 0;
 }

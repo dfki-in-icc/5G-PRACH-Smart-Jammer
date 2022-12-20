@@ -871,11 +871,18 @@ sctp_eNB_accept_associations(
     if ((client_sd = accept(sctp_cnx->sd, (struct sockaddr*)&saddr, &saddr_size)) < 0) {
         SCTP_ERROR("[%d] accept failed: %s:%d\n", sctp_cnx->sd, strerror(errno), errno);
     } else {
+printf("addr size %d in6 size %ld\n", saddr_size, sizeof(struct sockaddr_in6)); fflush(stdout);
+{
+  int i;
+  for (i = 0; i < saddr_size; i++) printf(" %2.2x", ((unsigned char*)&saddr)[i]);
+  printf("\n"); fflush(stdout);
+}
         struct sctp_cnx_list_elm_s *new_cnx;
         uint16_t port;
 
         /* This is an ipv6 socket */
         port = saddr.sin6_port;
+printf("port %d %d\n", port, ntohs(port)); fflush(stdout);
 
         /* Contrary to BSD, client socket does not inherit O_NONBLOCK option */
         if (fcntl(client_sd, F_SETFL, O_NONBLOCK) < 0) {

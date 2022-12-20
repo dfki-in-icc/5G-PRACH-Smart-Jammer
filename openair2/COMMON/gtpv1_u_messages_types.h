@@ -178,6 +178,7 @@ typedef struct {
 
 typedef struct gtpv1u_gnb_create_tunnel_req_s {
   rnti_t                 rnti;
+  int                    assoc_id;
   int                    num_tunnels;
   //teid_t                 upf_NGu_teid[NR_GTPV1U_MAX_BEARERS_PER_UE];  ///< Tunnel Endpoint Identifier
   teid_t                 outgoing_teid[NR_GTPV1U_MAX_BEARERS_PER_UE];
@@ -192,6 +193,7 @@ typedef struct gtpv1u_gnb_create_tunnel_req_s {
 typedef struct gtpv1u_gnb_create_tunnel_resp_s {
   uint8_t                status;               ///< Status of S1U endpoint creation (Failed = 0xFF or Success = 0x0)
   rnti_t                 rnti;
+  int                    assoc_id;
   int                    num_tunnels;
   teid_t                 gnb_NGu_teid[NR_GTPV1U_MAX_BEARERS_PER_UE];  ///< Tunnel Endpoint Identifier
   pdusessionid_t         pdusession_id[NR_GTPV1U_MAX_BEARERS_PER_UE];
@@ -199,12 +201,14 @@ typedef struct gtpv1u_gnb_create_tunnel_resp_s {
 } gtpv1u_gnb_create_tunnel_resp_t;
 typedef struct gtpv1u_gnb_delete_tunnel_req_s {
   rnti_t                 rnti;
+  int                    assoc_id;
   uint8_t                num_pdusession;
   pdusessionid_t         pdusession_id[NR_GTPV1U_MAX_BEARERS_PER_UE];
 } gtpv1u_gnb_delete_tunnel_req_t;
 
 typedef struct gtpv1u_gnb_delete_tunnel_resp_s {
   rnti_t                 rnti;
+  int                    assoc_id;
   uint8_t                status;               ///< Status of NGU endpoint deleteion (Failed = 0xFF or Success = 0x0)
   teid_t                 gnb_NGu_teid;         ///< local NGU Tunnel Endpoint Identifier to be deleted
 } gtpv1u_gnb_delete_tunnel_resp_t;
@@ -213,6 +217,7 @@ typedef struct gtpv1u_gnb_tunnel_data_req_s {
   uint32_t               length;
   uint32_t               offset;               ///< start of message offset in buffer
   rnti_t                 rnti;
+  int                    assoc_id;
   pdusessionid_t         pdusession_id;
 } gtpv1u_gnb_tunnel_data_req_t;
 

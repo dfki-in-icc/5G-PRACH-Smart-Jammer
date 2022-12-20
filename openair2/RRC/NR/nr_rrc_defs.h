@@ -402,6 +402,10 @@ typedef struct gNB_RRC_UE_s {
   uint8_t                        nas_pdu_flag;
   ngap_nas_pdu_t                 nas_pdu;
 
+  /* F1AP assoc_id to know to which DU the UE is attached to
+   * (only valid in a cu/du scenario)
+   */
+  int f1ap_assoc_id;
 } gNB_RRC_UE_t;
 
 typedef struct rrc_gNB_ue_context_s {

@@ -159,6 +159,7 @@ void rrc_config_dl_ptrs_params(NR_BWP_Downlink_t *bwp, int *ptrsNrb, int *ptrsMc
 uint8_t
 nr_rrc_data_req(
   const protocol_ctxt_t   *const ctxt_pP,
+  const int                      assoc_id,
   const rb_id_t                  rb_idP,
   const mui_t                    muiP,
   const confirm_t                confirmP,
@@ -184,6 +185,7 @@ int nr_rrc_reconfiguration_req(rrc_gNB_ue_context_t         *const ue_context_pP
                                const int                    ul_bwp_id);
 
 int nr_rrc_gNB_decode_ccch(protocol_ctxt_t    *const ctxt_pP,
+                           int                assoc_id,
                            const uint8_t      *buffer,
                            int                buffer_length,
                            const uint8_t      *du_to_cu_rrc_container,
@@ -211,6 +213,7 @@ rlc_op_status_t nr_rrc_rlc_config_asn1_req (const protocol_ctxt_t   * const ctxt
     struct NR_CellGroupConfig__rlc_BearerToAddModList *rlc_bearer2add_list);
 
 bool nr_rrc_pdcp_config_asn1_req(const protocol_ctxt_t *const  ctxt_pP,
+                                 const int assoc_id,
                                  NR_SRB_ToAddModList_t  *const srb2add_list,
                                  NR_DRB_ToAddModList_t  *const drb2add_list,
                                  NR_DRB_ToReleaseList_t *const drb2release_list,

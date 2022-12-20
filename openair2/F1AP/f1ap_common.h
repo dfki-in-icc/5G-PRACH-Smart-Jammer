@@ -395,16 +395,17 @@
  **/
 typedef int (*f1ap_message_processing_t)(
   instance_t             instance,
-  uint32_t               assoc_id,
+  int                    assoc_id,
   uint32_t               stream,
   F1AP_F1AP_PDU_t       *message_p
 );
-int f1ap_handle_message(instance_t instance, uint32_t assoc_id, int32_t stream,
+int f1ap_handle_message(instance_t instance, int assoc_id, int32_t stream,
                         const uint8_t *const data, const uint32_t data_length);
 
 typedef struct f1ap_cudu_ue_inst_s {
   // used for eNB stats generation
   rnti_t      rnti;
+  int         assoc_id;
   instance_t f1ap_uid;
   instance_t du_ue_f1ap_id;
   instance_t cu_ue_f1ap_id;
@@ -435,24 +436,27 @@ f1ap_cudu_inst_t *getCxt(F1_t isCU, instance_t instanceP);
 void createF1inst(F1_t isCU, instance_t instanceP, f1ap_setup_req_t *req);
 int f1ap_add_ue(F1_t isCu,
                 instance_t     instanceP,
-                rnti_t          rntiP);
+                rnti_t         rntiP,
+                int            assoc_id);
 
 int f1ap_remove_ue(F1_t isCu, instance_t instanceP,
                    rnti_t            rntiP);
 
 int f1ap_get_du_ue_f1ap_id (F1_t isCu, instance_t instanceP,
-                            rnti_t            rntiP);
+                            rnti_t rntiP, int assoc_id);
 
 int f1ap_get_cu_ue_f1ap_id (F1_t isCu, instance_t instanceP,
-                            rnti_t            rntiP);
+                            rnti_t rntiP, int assoc_id);
 
 
 int f1ap_get_rnti_by_du_id(F1_t isCu, instance_t instanceP,
-                           instance_t       du_ue_f1ap_id );
+                           instance_t       du_ue_f1ap_id,
+                           int assoc_id);
 
 
 int f1ap_get_rnti_by_cu_id(F1_t isCu, instance_t instanceP,
-                           instance_t       cu_ue_f1ap_id );
+                           instance_t       cu_ue_f1ap_id,
+                           int assoc_id);
 
 int f1ap_du_add_cu_ue_id(instance_t instanceP,
                          instance_t       du_ue_f1ap_id,

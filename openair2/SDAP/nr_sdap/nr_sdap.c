@@ -25,6 +25,7 @@ uint8_t nas_qfi;
 uint8_t nas_pduid;
 
 bool sdap_data_req(protocol_ctxt_t *ctxt_p,
+                   const int assoc_id,
                    const srb_flag_t srb_flag,
                    const rb_id_t rb_id,
                    const mui_t mui,
@@ -38,7 +39,8 @@ bool sdap_data_req(protocol_ctxt_t *ctxt_p,
                    const bool rqi,
                    const int pdusession_id) {
   nr_sdap_entity_t *sdap_entity;
-  sdap_entity = nr_sdap_get_entity(ctxt_p->rnti, pdusession_id);
+printf("sdap_data_req assoc_id %d\n", assoc_id); fflush(stdout);
+  sdap_entity = nr_sdap_get_entity(ctxt_p->rnti, assoc_id, pdusession_id);
 
   if(sdap_entity == NULL) {
     LOG_E(SDAP, "%s:%d:%s: Entity not found with ue rnti: %x and pdusession id: %d\n", __FILE__, __LINE__, __FUNCTION__, ctxt_p->rnti, pdusession_id);
@@ -47,6 +49,7 @@ bool sdap_data_req(protocol_ctxt_t *ctxt_p,
 
   bool ret = sdap_entity->tx_entity(sdap_entity,
                                     ctxt_p,
+                                    assoc_id,
                                     srb_flag,
                                     rb_id,
                                     mui,
@@ -67,10 +70,12 @@ void sdap_data_ind(rb_id_t pdcp_entity,
                    int has_sdapULheader,
                    int pdusession_id,
                    int rnti,
+                   int assoc_id,
                    char *buf,
                    int size) {
   nr_sdap_entity_t *sdap_entity;
-  sdap_entity = nr_sdap_get_entity(rnti, pdusession_id);
+printf("assoc_id %d\n", assoc_id); fflush(stdout);
+  sdap_entity = nr_sdap_get_entity(rnti, assoc_id, pdusession_id);
 
   if(sdap_entity == NULL) {
     LOG_E(SDAP, "%s:%d:%s: Entity not found for ue rnti: %x and pdusession id: %d\n", __FILE__, __LINE__, __FUNCTION__, rnti, pdusession_id);
@@ -84,6 +89,7 @@ void sdap_data_ind(rb_id_t pdcp_entity,
                          has_sdapULheader,
                          pdusession_id,
                          rnti,
+                         assoc_id,
                          buf,
                          size);
 }

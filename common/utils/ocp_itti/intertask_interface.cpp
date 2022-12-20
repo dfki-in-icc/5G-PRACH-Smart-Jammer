@@ -122,6 +122,7 @@ extern "C" {
   }
 
   static inline int itti_send_msg_to_task_locked(task_id_t destination_task_id, instance_t destinationInstance, MessageDef *message) {
+if (message->ittiMsgHeader.messageId == GTPV1U_ENB_TUNNEL_DATA_REQ) exit(1);
     task_list_t *t=tasks[destination_task_id];
     message->ittiMsgHeader.destinationTaskId = destination_task_id;
     message->ittiMsgHeader.destinationInstance = destinationInstance;
@@ -144,6 +145,8 @@ extern "C" {
   }
 
   int itti_send_msg_to_task(task_id_t destination_task_id, instance_t destinationInstance, MessageDef *message) {
+//if (message->ittiMsgHeader.messageId == GTPV1U_GNB_TUNNEL_DATA_REQ && GTPV1U_GNB_TUNNEL_DATA_REQ(message).assoc_id == 0) exit(1);
+if (message->ittiMsgHeader.messageId == GTPV1U_ENB_TUNNEL_DATA_REQ) exit(1);
     task_list_t *t=tasks[destination_task_id];
     pthread_mutex_lock (&t->queue_cond_lock);
     int ret=itti_send_msg_to_task_locked(destination_task_id, destinationInstance, message);

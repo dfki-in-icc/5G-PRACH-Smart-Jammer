@@ -617,7 +617,7 @@ uint8_t do_SIB23_NR(rrc_gNB_carrier_data_t *carrier,
   sib2->present = NR_SystemInformation_IEs__sib_TypeAndInfo__Member_PR_sib2;
   sib2->choice.sib2 = CALLOC(1, sizeof(struct NR_SIB2));
   sib2->choice.sib2->cellReselectionInfoCommon.q_Hyst = NR_SIB2__cellReselectionInfoCommon__q_Hyst_dB1;
-  sib2->choice.sib2->cellReselectionServingFreqInfo.threshServingLowP = 2; // INTEGER (0..31)
+  sib2->choice.sib2->cellReselectionServingFreqInfo.threshServingLowP = 31; //2; // INTEGER (0..31)
   sib2->choice.sib2->cellReselectionServingFreqInfo.cellReselectionPriority =  2; // INTEGER (0..7)
   sib2->choice.sib2->intraFreqCellReselectionInfo.q_RxLevMin = -50; // INTEGER (-70..-22)
   sib2->choice.sib2->intraFreqCellReselectionInfo.s_IntraSearchP = 2; // INTEGER (0..31)
@@ -625,10 +625,12 @@ uint8_t do_SIB23_NR(rrc_gNB_carrier_data_t *carrier,
   sib2->choice.sib2->intraFreqCellReselectionInfo.deriveSSB_IndexFromCell = true;
   ASN_SEQUENCE_ADD(&ies->sib_TypeAndInfo.list, sib2);
 
+#if 0
   sib3 = CALLOC(1, sizeof(SystemInformation_IEs__sib_TypeAndInfo__Member));
   sib3->present = NR_SystemInformation_IEs__sib_TypeAndInfo__Member_PR_sib3;
   sib3->choice.sib3 = CALLOC(1, sizeof(struct NR_SIB3));
   ASN_SEQUENCE_ADD(&ies->sib_TypeAndInfo.list, sib3);
+#endif
 
   //encode SIB to data
   // carrier->SIB23 = (uint8_t *) malloc16(128);
@@ -640,6 +642,13 @@ uint8_t do_SIB23_NR(rrc_gNB_carrier_data_t *carrier,
   AssertFatal (enc_rval.encoded > 0, "ASN1 message encoding failed (%s, %lu)!\n",
                enc_rval.failed_type->name, enc_rval.encoded);
 
+{
+int i;
+printf("do_SIB23_NR[%d]", (int)(enc_rval.encoded+7)/8);
+for (i = 0; i < (enc_rval.encoded+7)/8; i++) printf(" %2.2x", (unsigned char)carrier->SIB23[i]);
+printf("\n");
+fflush(stdout);
+}
   if (enc_rval.encoded==-1) {
     return(-1);
   }

@@ -547,6 +547,7 @@ rb_found:
 	req->length=size;
 	req->offset=0;
 	req->rnti=ue->rnti;
+	req->assoc_id = 0;
 	req->pdusession_id=rb_id;
 	LOG_D(RLC, "Received uplink user-plane traffic at RLC-DU to be sent to the CU, size %d \n", size);
 	extern instance_t DUuniqInstance;
@@ -563,8 +564,9 @@ rb_found:
   }
   memcpy(memblock->data, buf, size);
   LOG_D(PDCP, "Calling PDCP layer from RLC in %s\n", __FUNCTION__);
-  if (!pdcp_data_ind(&ctx, is_srb, 0, rb_id, size, memblock, NULL, NULL)) {
-    LOG_E(RLC, "%s:%d:%s: ERROR: pdcp_data_ind failed\n", __FILE__, __LINE__, __FUNCTION__);
+  AssertFatal(!(NODE_IS_CU(RC.nrrrc[0]->node_type)), "CU should not call this\n");
+  if (!nr_pdcp_data_ind(&ctx, 0, is_srb, 0, rb_id, size, memblock, NULL, NULL)) {
+    LOG_E(RLC, "%s:%d:%s: ERROR: nr_pdcp_data_ind failed\n", __FILE__, __LINE__, __FUNCTION__);
     /* what to do in case of failure? for the moment: nothing */
   }
 }

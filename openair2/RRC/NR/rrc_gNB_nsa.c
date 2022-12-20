@@ -384,6 +384,7 @@ void rrc_add_nsa_user(gNB_RRC_INST *rrc,struct rrc_gNB_ue_context_s *ue_context_
         ctxt.eNB_index);
 
   nr_rrc_pdcp_config_asn1_req(&ctxt,
+                              0, /* assoc_id set to 0, NSA not functional in CU/DU split */
                               get_softmodem_params()->sa ? ue_context_p->ue_context.rb_config->srb_ToAddModList : (NR_SRB_ToAddModList_t *) NULL,
                               ue_context_p->ue_context.rb_config->drb_ToAddModList ,
                               ue_context_p->ue_context.rb_config->drb_ToReleaseList,
@@ -406,6 +407,8 @@ void rrc_add_nsa_user(gNB_RRC_INST *rrc,struct rrc_gNB_ue_context_s *ue_context_
   LOG_D(RRC, "%s:%d: done RRC PDCP/RLC ASN1 request for UE rnti %x\n", __FUNCTION__, __LINE__, ctxt.rnti);
 }
 
+bool nr_pdcp_remove_UE(const protocol_ctxt_t *const ctxt_pP, int assoc_id);
+
 void rrc_remove_nsa_user(gNB_RRC_INST *rrc, int rnti) {
   protocol_ctxt_t      ctxt;
   rrc_gNB_ue_context_t *ue_context;
@@ -420,7 +423,7 @@ void rrc_remove_nsa_user(gNB_RRC_INST *rrc, int rnti) {
     return;
   }
 
-  pdcp_remove_UE(&ctxt);
+  nr_pdcp_remove_UE(&ctxt, ue_context->ue_context.f1ap_assoc_id);
 
   rrc_rlc_remove_ue(&ctxt);
 

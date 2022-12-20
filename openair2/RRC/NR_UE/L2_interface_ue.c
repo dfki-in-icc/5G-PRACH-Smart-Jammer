@@ -166,18 +166,19 @@ rrc_data_req_nr_ue(
     message_buffer = itti_malloc (TASK_RRC_UE, TASK_PDCP_UE, sdu_sizeP);
     LOG_D(RRC,"Sending RRC message for SRB %ld, sdu_size %d\n",rb_idP, sdu_sizeP);
     memcpy (message_buffer, buffer_pP, sdu_sizeP);
-    message_p = itti_alloc_new_message ( TASK_RRC_UE, 0, RRC_DCCH_DATA_REQ);
-    RRC_DCCH_DATA_REQ (message_p).frame     = ctxt_pP->frame;
-    RRC_DCCH_DATA_REQ (message_p).enb_flag  = ctxt_pP->enb_flag;
-    RRC_DCCH_DATA_REQ (message_p).rb_id     = rb_idP;
-    RRC_DCCH_DATA_REQ (message_p).muip      = muiP;
-    RRC_DCCH_DATA_REQ (message_p).confirmp  = confirmP;
-    RRC_DCCH_DATA_REQ (message_p).sdu_size  = sdu_sizeP;
-    RRC_DCCH_DATA_REQ (message_p).sdu_p     = message_buffer;
-    RRC_DCCH_DATA_REQ (message_p).mode      = modeP;
-    RRC_DCCH_DATA_REQ (message_p).module_id = ctxt_pP->module_id;
-    RRC_DCCH_DATA_REQ (message_p).rnti      = ctxt_pP->rnti;
-    RRC_DCCH_DATA_REQ (message_p).eNB_index = ctxt_pP->eNB_index;
+    message_p = itti_alloc_new_message ( TASK_RRC_UE, 0, NR_RRC_DCCH_DATA_REQ);
+    NR_RRC_DCCH_DATA_REQ (message_p).frame     = ctxt_pP->frame;
+    NR_RRC_DCCH_DATA_REQ (message_p).enb_flag  = ctxt_pP->enb_flag;
+    NR_RRC_DCCH_DATA_REQ (message_p).rb_id     = rb_idP;
+    NR_RRC_DCCH_DATA_REQ (message_p).muip      = muiP;
+    NR_RRC_DCCH_DATA_REQ (message_p).confirmp  = confirmP;
+    NR_RRC_DCCH_DATA_REQ (message_p).sdu_size  = sdu_sizeP;
+    NR_RRC_DCCH_DATA_REQ (message_p).sdu_p     = message_buffer;
+    NR_RRC_DCCH_DATA_REQ (message_p).mode      = modeP;
+    NR_RRC_DCCH_DATA_REQ (message_p).module_id = ctxt_pP->module_id;
+    NR_RRC_DCCH_DATA_REQ (message_p).rnti      = ctxt_pP->rnti;
+    NR_RRC_DCCH_DATA_REQ (message_p).assoc_id  = 0;                     /* assoc_id is 0 for nrUE */
+    NR_RRC_DCCH_DATA_REQ (message_p).eNB_index = ctxt_pP->eNB_index;
     itti_send_msg_to_task (
       TASK_PDCP_UE,
       ctxt_pP->instance,

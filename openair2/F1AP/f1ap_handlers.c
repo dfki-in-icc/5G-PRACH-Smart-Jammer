@@ -79,7 +79,7 @@ const char *f1ap_direction2String(int f1ap_dir) {
   return(f1ap_direction_String[f1ap_dir]);
 }
 
-int f1ap_handle_message(instance_t instance, uint32_t assoc_id, int32_t stream,
+int f1ap_handle_message(instance_t instance, int assoc_id, int32_t stream,
                         const uint8_t *const data, const uint32_t data_length) {
   F1AP_F1AP_PDU_t pdu= {0};
   int ret;

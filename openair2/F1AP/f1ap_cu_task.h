@@ -22,6 +22,16 @@
 #ifndef F1AP_CU_TASK_H_
 #define F1AP_CU_TASK_H_
 
+#include "f1ap_common.h"
+
+typedef struct {
+  int assoc_id;
+  f1ap_cudu_inst_t ctxt;
+} f1ap_du_t;
+
+f1ap_du_t *f1ap_new_du(int assoc_id);
+f1ap_cudu_inst_t *f1ap_cu_assoc_id_to_context(int assoc_id);
+
 void *F1AP_CU_task(void *arg);
 
 #endif /* F1AP_CU_TASK_H_ */

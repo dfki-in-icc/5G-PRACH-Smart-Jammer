@@ -24,6 +24,7 @@
 
 static void dl_rrc_message_transfer_f1ap(module_id_t module_id, const f1ap_dl_rrc_message_t *dl_rrc)
 {
+printf("XX dl_rrc_message_transfer_f1ap assoc_id %d\n", dl_rrc->assoc_id); fflush(stdout);
   /* TODO call F1AP function directly? no real-time constraint here */
 
   MessageDef *message_p = itti_alloc_new_message (TASK_RRC_GNB, 0, F1AP_DL_RRC_MESSAGE);

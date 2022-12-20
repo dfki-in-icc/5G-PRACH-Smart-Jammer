@@ -290,6 +290,17 @@ void process_gNB_security_key (
   LOG_I(NR_RRC, "[gNB %d][UE %x] Saved security key %s\n", ctxt_pP->module_id, ue_context_pP->ue_context.rnti, ascii_buffer);
 }
 
+void nr_pdcp_config_set_security(
+        const protocol_ctxt_t* const  ctxt_pP,
+        const int assoc_id,
+        pdcp_t *const pdcp_pP,
+        const rb_id_t rb_id,
+        const uint16_t lc_idP,
+        const uint8_t security_modeP,
+        uint8_t *const kRRCenc_pP,
+        uint8_t *const kRRCint_pP,
+        uint8_t *const kUPenc_pP);
+
 //------------------------------------------------------------------------------
 void
 nr_rrc_pdcp_config_security(
@@ -334,8 +345,9 @@ nr_rrc_pdcp_config_security(
     }
   }
 
-  pdcp_config_set_security(
+  nr_pdcp_config_set_security(
       ctxt_pP,
+      ue_context_pP->ue_context.f1ap_assoc_id,
       NULL,      /* pdcp_pP not used anymore in NR */
       DCCH,
       DCCH+2,
@@ -531,6 +543,7 @@ rrc_gNB_process_NGAP_INITIAL_CONTEXT_SETUP_REQ(
 
         ue_context_p->ue_context.nb_of_pdusessions = NGAP_INITIAL_CONTEXT_SETUP_REQ (msg_p).nb_of_pdusessions;
         create_tunnel_req.rnti                     = ue_context_p->ue_context.rnti;
+        create_tunnel_req.assoc_id                 = ue_context_p->ue_context.f1ap_assoc_id;
         create_tunnel_req.num_tunnels              = pdu_sessions_done;
 
         ret = gtpv1u_create_ngu_tunnel(
@@ -808,6 +821,7 @@ rrc_gNB_process_NGAP_DOWNLINK_NAS(
           /* Transfer data to PDCP */
           nr_rrc_data_req (
               &ctxt,
+              ue_context_p->ue_context.f1ap_assoc_id,
               ue_context_p->ue_context.Srb2.Active == 1 ? ue_context_p->ue_context.Srb2.Srb_info.Srb_id : ue_context_p->ue_context.Srb1.Srb_info.Srb_id,
               (*rrc_gNB_mui)++,
               SDU_CONFIRM_NO,
@@ -827,6 +841,7 @@ rrc_gNB_process_NGAP_DOWNLINK_NAS(
           /* Transfer data to PDCP */
           nr_rrc_data_req (
               &ctxt,
+              ue_context_p->ue_context.f1ap_assoc_id,
               ue_context_p->ue_context.Srb2.Active == 1 ? ue_context_p->ue_context.Srb2.Srb_info.Srb_id : ue_context_p->ue_context.Srb1.Srb_info.Srb_id,
               (*rrc_gNB_mui)++,
               SDU_CONFIRM_NO,
@@ -1013,6 +1028,7 @@ rrc_gNB_process_NGAP_PDUSESSION_SETUP_REQ(
     ue_context_p->ue_context.gNB_ue_ngap_id    = NGAP_PDUSESSION_SETUP_REQ(msg_p).gNB_ue_ngap_id;
     ue_context_p->ue_context.amf_ue_ngap_id    = NGAP_PDUSESSION_SETUP_REQ(msg_p).amf_ue_ngap_id;
     create_tunnel_req.rnti                     = ue_context_p->ue_context.rnti;
+    create_tunnel_req.assoc_id                 = ue_context_p->ue_context.f1ap_assoc_id;
     create_tunnel_req.num_tunnels              = pdu_sessions_done;
 
     ret = gtpv1u_create_ngu_tunnel(
@@ -1049,6 +1065,7 @@ rrc_gNB_process_NGAP_PDUSESSION_SETUP_REQ(
       message_p = itti_alloc_new_message (TASK_RRC_GNB, 0, F1AP_UE_CONTEXT_MODIFICATION_REQ);
       f1ap_ue_context_setup_t *req=&F1AP_UE_CONTEXT_MODIFICATION_REQ (message_p);
       req->rnti             = ue_context_p->ue_context.rnti;
+      req->assoc_id         = ue_context_p->ue_context.f1ap_assoc_id;
       req->mcc              = RC.nrrrc[ctxt.module_id]->configuration.mcc[0];
       req->mnc              = RC.nrrrc[ctxt.module_id]->configuration.mnc[0];
       req->mnc_digit_length = RC.nrrrc[ctxt.module_id]->configuration.mnc_digit_length[0];
@@ -1071,9 +1088,11 @@ rrc_gNB_process_NGAP_PDUSESSION_SETUP_REQ(
       DRBs[0].drb_id = 1;
       DRBs[0].rlc_mode = RLC_MODE_AM;
       DRBs[0].up_ul_tnl[0].tl_address = inet_addr(RC.nrrrc[ctxt.module_id]->eth_params_s.my_addr);
+printf("XX my addr %s\n", RC.nrrrc[ctxt.module_id]->eth_params_s.my_addr); fflush(stdout);
       DRBs[0].up_ul_tnl[0].port=RC.nrrrc[ctxt.module_id]->eth_params_s.my_portd;
       DRBs[0].up_ul_tnl_length = 1;
       DRBs[0].up_dl_tnl[0].tl_address = inet_addr(RC.nrrrc[ctxt.module_id]->eth_params_s.remote_addr);
+printf("XX remote addr %s\n", RC.nrrrc[ctxt.module_id]->eth_params_s.remote_addr);
       DRBs[0].up_dl_tnl[0].port=RC.nrrrc[ctxt.module_id]->eth_params_s.remote_portd;
       DRBs[0].up_dl_tnl_length = 1;
 
@@ -1683,6 +1702,7 @@ rrc_gNB_process_NGAP_PDUSESSION_RELEASE_COMMAND(
       LOG_I(NR_RRC, "gtp tunnel delete \n");
       gtpv1u_gnb_delete_tunnel_req_t req={0};
       req.rnti = ue_context_p->ue_context.rnti;
+      req.assoc_id = ue_context_p->ue_context.f1ap_assoc_id;
 
       for(i = 0; i < NB_RB_MAX; i++) {
         if(xid == ue_context_p->ue_context.pduSession[i].xid) {

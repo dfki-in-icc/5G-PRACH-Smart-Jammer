@@ -140,6 +140,7 @@ pthread_t pdcp_stats_thread_desc;
 
 bool cu_f1u_data_req(
   protocol_ctxt_t  *ctxt_pP,
+  const int assoc_id,
   const srb_flag_t srb_flagP,
   const rb_id_t rb_id,
   const mui_t muiP,

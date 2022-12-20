@@ -84,6 +84,7 @@ typedef struct NRRrcDcchDataReq_s {
   uint8_t *sdu_p;
   uint8_t  mode;
   uint16_t rnti;
+  int      assoc_id;
   uint8_t  module_id;
   uint8_t  gNB_index;
 } NRRrcDcchDataReq;

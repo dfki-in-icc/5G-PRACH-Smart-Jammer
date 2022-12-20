@@ -31,6 +31,7 @@
  */
 
 #include "f1ap_common.h"
+#include "f1ap_cu_task.h"
 
 static f1ap_cudu_inst_t *f1_du_inst[NUMBER_OF_eNB_MAX]= {0};
 static f1ap_cudu_inst_t *f1_cu_inst[NUMBER_OF_eNB_MAX]= {0};
@@ -51,11 +52,16 @@ f1ap_cudu_inst_t *getCxt(F1_t isCU, instance_t instanceP) {
     AssertFatal ( t==-1 || t==tNew, "This is not thread safe\n");
     t=tNew;
   */
+  if (isCU == CUtype) {
+    LOG_E(F1AP, "don't use getCxt() with the CU\n");
+    exit(1);
+  }
   AssertFatal( instanceP < sizeofArray(f1_cu_inst), "");
   return isCU == CUtype ? f1_cu_inst[ instanceP]:  f1_du_inst[ instanceP];
 }
 
 void createF1inst(F1_t isCU, instance_t instanceP, f1ap_setup_req_t *req) {
+printf("createF1inst instanceP %ld\n", instanceP);
   if (isCU == CUtype) {
     AssertFatal(f1_cu_inst[instanceP] == NULL, "Double call to F1 CU init\n");
     f1_cu_inst[instanceP]=( f1ap_cudu_inst_t *) calloc(1, sizeof( f1ap_cudu_inst_t));
@@ -69,11 +75,17 @@ void createF1inst(F1_t isCU, instance_t instanceP, f1ap_setup_req_t *req) {
 
 int f1ap_add_ue(F1_t isCu,
                 instance_t          instanceP,
-                rnti_t               rntiP) {
-  f1ap_cudu_inst_t *f1_inst=getCxt(isCu, instanceP);
+                rnti_t               rntiP,
+                int                  assoc_id) {
+  f1ap_cudu_inst_t *f1_inst;
+
+  if (isCu)
+    f1_inst = f1ap_cu_assoc_id_to_context(assoc_id);
+  else
+    f1_inst = getCxt(isCu, instanceP);
 
   for (int i = 0; i < MAX_MOBILES_PER_ENB; i++) {
-    if (f1_inst->f1ap_ue[i].rnti == rntiP) {
+    if (f1_inst->f1ap_ue[i].rnti == rntiP && f1_inst->f1ap_ue[i].assoc_id == assoc_id) {
       f1_inst->f1ap_ue[i].f1ap_uid = i;
       LOG_I(F1AP, "Updating the index of UE with RNTI %x and du_ue_f1ap_id %ld\n", f1_inst->f1ap_ue[i].rnti, f1_inst->f1ap_ue[i].du_ue_f1ap_id);
       return i;
@@ -84,6 +96,7 @@ int f1ap_add_ue(F1_t isCu,
   for (int i = 0; i < MAX_MOBILES_PER_ENB; i++) {
     if (f1_inst->f1ap_ue[i].rnti == 0 ) {
       f1_inst->f1ap_ue[i].rnti = rntiP;
+      f1_inst->f1ap_ue[i].assoc_id = assoc_id;
       f1_inst->f1ap_ue[i].f1ap_uid = i;
       f1_inst->f1ap_ue[i].du_ue_f1ap_id = rntiP;
       f1_inst->f1ap_ue[i].cu_ue_f1ap_id = rntiP;
@@ -113,11 +126,17 @@ int f1ap_remove_ue(F1_t isCu, instance_t instanceP,
 }
 
 int f1ap_get_du_ue_f1ap_id(F1_t isCu, instance_t instanceP,
-                           rnti_t            rntiP) {
-  f1ap_cudu_inst_t *f1_inst=getCxt(isCu, instanceP);
+                           rnti_t rntiP, int assoc_id)
+{
+  f1ap_cudu_inst_t *f1_inst;
+
+  if (isCu)
+    f1_inst = f1ap_cu_assoc_id_to_context(assoc_id);
+  else
+    f1_inst = getCxt(isCu, instanceP);
 
   for (int i = 0; i < MAX_MOBILES_PER_ENB; i++) {
-    if (f1_inst->f1ap_ue[i].rnti == rntiP) {
+    if (f1_inst->f1ap_ue[i].rnti == rntiP && f1_inst->f1ap_ue[i].assoc_id == assoc_id) {
       return f1_inst->f1ap_ue[i].du_ue_f1ap_id;
     }
   }
@@ -126,11 +145,17 @@ int f1ap_get_du_ue_f1ap_id(F1_t isCu, instance_t instanceP,
 }
 
 int f1ap_get_cu_ue_f1ap_id(F1_t isCu, instance_t instanceP,
-                           rnti_t            rntiP) {
-  f1ap_cudu_inst_t *f1_inst=getCxt(isCu, instanceP);
+                           rnti_t rntiP, int assoc_id)
+{
+  f1ap_cudu_inst_t *f1_inst;
+
+  if (isCu)
+    f1_inst = f1ap_cu_assoc_id_to_context(assoc_id);
+  else
+    f1_inst = getCxt(isCu, instanceP);
 
   for (int i = 0; i < MAX_MOBILES_PER_ENB; i++) {
-    if (f1_inst->f1ap_ue[i].rnti == rntiP) {
+    if (f1_inst->f1ap_ue[i].rnti == rntiP && f1_inst->f1ap_ue[i].assoc_id == assoc_id) {
       return f1_inst->f1ap_ue[i].cu_ue_f1ap_id;
     }
   }
@@ -139,8 +164,15 @@ int f1ap_get_cu_ue_f1ap_id(F1_t isCu, instance_t instanceP,
 }
 
 int f1ap_get_rnti_by_du_id(F1_t isCu, instance_t instanceP,
-                           instance_t       du_ue_f1ap_id ) {
-  f1ap_cudu_inst_t *f1_inst=getCxt(isCu, instanceP);
+                           instance_t       du_ue_f1ap_id,
+                           int assoc_id)
+{
+  f1ap_cudu_inst_t *f1_inst;
+
+  if (isCu)
+    f1_inst = f1ap_cu_assoc_id_to_context(assoc_id);
+  else
+    f1_inst = getCxt(isCu, instanceP);
 
   for (int i = 0; i < MAX_MOBILES_PER_ENB; i++) {
     if (f1_inst->f1ap_ue[i].du_ue_f1ap_id == du_ue_f1ap_id) {
@@ -152,8 +184,15 @@ int f1ap_get_rnti_by_du_id(F1_t isCu, instance_t instanceP,
 }
 
 int f1ap_get_rnti_by_cu_id(F1_t isCu, instance_t instanceP,
-                           instance_t       cu_ue_f1ap_id ) {
-  f1ap_cudu_inst_t *f1_inst=getCxt(isCu, instanceP);
+                           instance_t       cu_ue_f1ap_id,
+                           int assoc_id)
+{
+  f1ap_cudu_inst_t *f1_inst;
+
+  if (isCu)
+    f1_inst = f1ap_cu_assoc_id_to_context(assoc_id);
+  else
+    f1_inst = getCxt(isCu, instanceP);
 
   for (int i = 0; i < MAX_MOBILES_PER_ENB; i++) {
     if (f1_inst->f1ap_ue[i].cu_ue_f1ap_id == cu_ue_f1ap_id) {
@@ -187,5 +226,6 @@ int f1ap_du_add_cu_ue_id(instance_t instanceP,
 
 int f1ap_assoc_id(F1_t isCu, instance_t instanceP) {
   f1ap_setup_req_t *f1_inst=f1ap_req(isCu, instanceP);
+printf("f1ap_assoc_id instanceP %ld will return f1_inst->assoc_id %d\n", instanceP, f1_inst->assoc_id);
   return f1_inst->assoc_id;
 }
