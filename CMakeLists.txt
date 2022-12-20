@@ -963,7 +963,7 @@ add_boolean_option(TRACE_RLC_UM_TX_STATUS  False "TRACE for RLC UM, TO BE CHANGE
 ##########################
 # RRC LAYER OPTIONS
 ##########################
-add_boolean_option(RRC_DEFAULT_RAB_IS_AM       True   "set the RLC mode to AM for the default bearer, otherwise it is UM.")
+add_boolean_option(RRC_DEFAULT_RAB_IS_AM       False "set the RLC mode to AM for the default bearer, otherwise it is UM.")
 
 
 ##########################

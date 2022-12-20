@@ -599,7 +599,11 @@ void pf_dl(module_id_t module_id,
       /* Calculate coeff */
       const NR_bler_options_t *bo = &mac->dl_bler;
       const int max_mcs_table = current_BWP->mcsTableIdx == 1 ? 27 : 28;
-      const int max_mcs = min(sched_ctrl->dl_max_mcs, max_mcs_table);
+      int max_mcs = min(sched_ctrl->dl_max_mcs, max_mcs_table);
+
+      if(max_mcs > 10)
+        max_mcs = 10;
+
       if (bo->harq_round_max == 1)
         sched_pdsch->mcs = max_mcs;
       else
