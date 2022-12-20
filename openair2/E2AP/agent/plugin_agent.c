@@ -19,8 +19,6 @@
  *      contact@openairinterface.org
  */
 
-
-
 #include "plugin_agent.h"
 
 #include "util/alg_ds/alg/alg.h"
@@ -42,84 +40,6 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <unistd.h>
-
-/*
-static
-void* rx_plugin_agent(void* p_v)
-{
-  plugin_ag_t* p = (plugin_ag_t*)p_v;
-  const int port = 8080;
-  char buf[128] = {0};
-
-  p->sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-
-  assert(p->sockfd != -1 && "Error creating socket");
-
-  struct sockaddr_in serv_addr = {.sin_family = AF_INET,
-    .sin_port = htons(port),
-    .sin_addr.s_addr = INADDR_ANY};
-
-  int rc = bind(p->sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr));
-  assert(rc != -1 && "Error while binding. Address already in use?");
-
-  while(true){
-    struct sockaddr_in cli_addr;
-    socklen_t len = sizeof(cli_addr); 
-
-    // Receive file name
-    rc = recvfrom(p->sockfd, buf, 128, 0, (struct sockaddr *)&cli_addr,&len);
-    if(p->flag_shutdown) 
-      break;
-    assert(rc > -1 && rc < 128 && "Buffer overflow");
-
-    printf("Name of the file = %s\n",buf);
-
-    // Receive file size
-    int size = 0;
-    rc = recvfrom(p->sockfd, &size, sizeof(int), 0, (struct sockaddr *)&cli_addr, &len);
-    if(p->flag_shutdown) 
-      break;
-    assert(rc == sizeof(int));
-
-    printf("Size of the file = %d\n",size);
-
-    char* data = calloc(1, size);
-    assert(data != NULL && "Memory exhausted!");
-    // Receive file itself 
-    rc = recvfrom(p->sockfd,data,size,0,(struct sockaddr *)&cli_addr, &len);
-    if(p->flag_shutdown) 
-      break;
-    assert(rc == size);
-
-    // Save file
-    FILE* fptr = fopen(buf, "wb");
-    rc = fwrite(data,size,1,fptr);
-    assert(rc == 1);
-    free(data);
-    fclose(fptr);
-
-    // Change the file permissions as it is a shared object
-    int const mode = strtol("0755", 0, 8);
-    rc = chmod(buf, mode);
-    assert(rc > -1);
-    if(p->flag_shutdown) 
-      break;
-
-    char full_path[PATH_MAX] = {0};
-    char* ptr = getcwd(full_path, PATH_MAX);
-    ptr[strlen(ptr)] = '/';
-    memcpy(full_path + strlen(full_path), buf, strlen(buf));
-
-    // Load the plugin in the agent
-    load_plugin_ag(p, full_path);
-    printf("File received and loaded\n");
-
-  }
-  printf("Closing the socket\n");
-  close(p->sockfd);
-  return NULL;
-}
-*/
 
 static inline
 void free_sm_agent(void* key, void* value)
@@ -215,8 +135,6 @@ void init_plugin_ag(plugin_ag_t* p, const char* dir_path, sm_io_ag_t io)
   assoc_init(&p->sm_ds, ran_func_size, cmp_ran_func_id, free_sm_agent );
 
   load_all_pugin_ag(p, dir_path);
-
-//  pthread_create(&p->thread_rx, NULL, rx_plugin_agent, p);
 }
 
 void free_plugin_ag(plugin_ag_t* p)
@@ -229,14 +147,6 @@ void free_plugin_ag(plugin_ag_t* p)
 
   // Thread management
   p->flag_shutdown = true;
-
-  //int rc = shutdown(p->sockfd, SHUT_RDWR);
-  //if(rc != 0){
-  //  printf("Closing the agent socket: %s \n", strerror(errno));
-  //}
-  //assert(rc == 0);
-//  rc = pthread_join(p->thread_rx, NULL);
-//  assert(rc == 0);
 }
 
 static inline
