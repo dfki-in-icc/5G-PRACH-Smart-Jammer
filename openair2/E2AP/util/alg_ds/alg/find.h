@@ -36,22 +36,13 @@ SOFTWARE.
 
 // Sequencial containers
 
-void* find_if_list(const seq_list_t* l, void* start_it, void* end_it, void* value, bool (*f)(const void*, const void*));
-
 
 void* find_if_arr(seq_arr_t* arr, void* start_it, void* end_it, void* value , bool(*f)(const void*, const void*));
-
-
-void* find_if_deque(const seq_deque_t* arr, void* start_it, void* end_it, void* value , bool(*f)(const void*, const void*));
-
-void* find_if_ring(seq_ring_t* arr, void* start_it, void* end_it, void* value , bool(*f)(const void*, const void*));
 
 
 // Associative containers
 
 void* find_if_rb_tree(assoc_rb_tree_t* tree, void* start_it, void* end_it, void const* value, bool(*f)(const void*, const void*)); 
-
-void* find_reg(assoc_reg_t* reg, void* start_it, void* end_it, uint32_t key);
 
 bml_iter_t find_if_bi_map_left(bi_map_t* map, bml_iter_t start_it, bml_iter_t end_it, void const* value, bool(*f)(const void*, const void*)); 
 

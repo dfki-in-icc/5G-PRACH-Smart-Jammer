@@ -26,47 +26,6 @@ SOFTWARE.
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "lower_bound.h"
-
-/*
-void* find(void* start_it, void* end_it, void* value, bool (*f)(const void*, const void*))
-{
-  while(start_it != end_it){
-    if(f(value,start_it)){
-      return start_it; 
-    }  
-
-    start_it = seq_next(l,start_it);
-  }
-  return NULL;
-}
-*/
-
-
-void* find_if_list(const seq_list_t* l, void* start_it, void* end_it, void* value, bool (*f)(const void*, const void*))
-{
-  assert(0 != 0 && "not implemented");
-  assert(l != NULL);
-  assert(start_it != NULL);
-  assert(end_it != NULL);
-  assert(value != NULL);
-  assert(f != NULL);
-
-
-  /*
-  printf("Find sequence seq_size = %lu\n",l->size);
-  while(start_it != end_it){
-    if(f(value, seq_value(l,start_it))){
-      printf("Value matched!!!\n");
-      return start_it;
-    }
-    printf("Advancing iterator!\n");
-    start_it = seq_next(l,start_it);
-  }
-  printf("Not Value matched!!!\n");
-  return start_it; 
-  */
-}
 
 
 void* find_if_arr(seq_arr_t* arr, void* start_it, void* end_it, void* value , bool(*f)(const void*, const void*))
@@ -76,42 +35,6 @@ void* find_if_arr(seq_arr_t* arr, void* start_it, void* end_it, void* value , bo
   while( start_it != end_it){
     if(f(value,start_it)) 
       return start_it;
-    start_it = seq_next(arr,start_it);
-  }
-  return start_it;
-}
-
-void* find_reg(assoc_reg_t* reg, void* start_it, void* end_it, uint32_t key)
-{
-  assert(reg != NULL);
-  assert(start_it != NULL);
-  assert(end_it != NULL);
-  assert(key > 0 && "Reserved value");
-  if (start_it == end_it)
-    return end_it;
-
-  void* it = lower_bound_reg(reg, start_it, end_it, key);
-  assert(it <= end_it);
-  if(it == end_it){ 
-    return end_it;
-  }
-
-  registry_bucket_t const* b = (registry_bucket_t*)it;
-  if(b->has_value == false || b->key != key){
-    return end_it;
-  }
-
-  return it;
-}
-
-
-void* find_if_ring(seq_ring_t* arr, void* start_it, void* end_it, void* value , bool(*f)(const void*, const void*))
-{
-  assert(arr != NULL);
-  while(start_it != end_it){
-    if(f(value,start_it)) 
-      return start_it;
-
     start_it = seq_next(arr,start_it);
   }
   return start_it;

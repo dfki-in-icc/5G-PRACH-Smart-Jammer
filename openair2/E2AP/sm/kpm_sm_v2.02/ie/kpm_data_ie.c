@@ -27,7 +27,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "../../../util/alg_ds/alg/eq_float.h"
 #include "../../../util/byte_array.h"
 #include "kpm_data_ie.h"
 

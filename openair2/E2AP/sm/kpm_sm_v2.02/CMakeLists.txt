@@ -7,9 +7,7 @@ set(SM_ENCODING_KPM_SRC
                       kpm_sm_agent.c 
                       ../../util/byte_array.c 
                       ../../util/alg_ds/alg/defer.c 
-                      ../../util/alg_ds/alg/eq_float.c 
                       ../../util/alg_ds/ds/seq_container/seq_arr.c 
-                      ../../util/alg_ds/ds/seq_container/seq_ring.c 
                       ../../util/alg_ds/ds/assoc_container/assoc_rb_tree.c
                       ../../util/alg_ds/ds/assoc_container/bimap.c
                       ie/kpm_data_ie.c

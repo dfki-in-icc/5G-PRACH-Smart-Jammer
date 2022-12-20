@@ -31,9 +31,7 @@ SOFTWARE.
 #include <string.h>
 
 #include "find.h"
-#include "for_each.h"
 #include "defer.h"
-#include "iter_swap.h"
 
 
 /*
@@ -57,23 +55,7 @@ SOFTWARE.
 
 
 #define find_if(T,U,W,X,Y) _Generic ((T), seq_arr_t*:  find_if_arr, \
-                                          seq_list_t*: find_if_list,\
-                                          seq_ring_t*: find_if_ring, \
                                           assoc_rb_tree_t*: find_if_rb_tree, \
                                           default: find_if_arr) (T,U,W,X,Y)
-
-
-#define for_each(T,U,W,X,Y) _Generic((T), seq_arr_t*: for_each_arr, \
-                                        default:  for_each_arr)(T,U,W,X,Y)
-
-
-
-
-
-#define accumulate(T,U,W) _Generic ((T), seq_ring_t*: accumulate_ring, \
-                                          default:  accumulate_ring) (T,U,W)
-
-
-// Should iterator swap come at some point...
 
 #endif

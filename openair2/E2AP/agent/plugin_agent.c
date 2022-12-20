@@ -23,7 +23,6 @@
 
 #include "util/alg_ds/alg/alg.h"
 #include "util/alg_ds/ds/lock_guard/lock_guard.h"
-//#include "util/alg_ds/alg/string/search_naive.h"
 #include "util/compare.h"
 #include "util/conf_file.h"
 #include <assert.h>
@@ -182,7 +181,7 @@ void load_plugin_ag(plugin_ag_t* p, const char* path)
   char symbol_so[256] = {'m','a','k','e','_'};
   char* needle = "_sm.so";
 
-  char* match = strstr( ptr_so_name, needle); // search_naive(strlen(needle), needle, strlen(ptr_so_name ), ptr_so_name);
+  char* match = strstr( ptr_so_name, needle);
   assert(match != NULL && "Could not find the string _sm.so in the so\n");
 
   char* ptr = &symbol_so[5];
