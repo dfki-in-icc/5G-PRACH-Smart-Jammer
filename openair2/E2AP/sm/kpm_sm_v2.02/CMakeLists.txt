@@ -25,15 +25,11 @@ elseif(SM_ENCODING_KPM STREQUAL "ASN")
   
   add_subdirectory(ie/asn)
   add_library(kpm_sm SHARED
-                      $<TARGET_OBJECTS:e2sm_kpm_asn1_obj>
                       ${SM_ENCODING_KPM_SRC}
                       enc/kpm_enc_asn.c 
                       dec/kpm_dec_asn.c 
                       )
-  target_link_libraries(kpm_sm PUBLIC -lm)
-  target_include_directories(kpm_sm PRIVATE "ie/asn")
-  target_compile_options(kpm_sm PUBLIC "-DASN_DISABLE_OER_SUPPORT")
-  target_compile_options(kpm_sm PRIVATE -Wno-missing-field-initializers -Wno-unused-parameter)
+  target_link_libraries(kpm_sm PRIVATE m asn1_e2sm_kpm)
 
 elseif(SM_ENCODING_KPM STREQUAL "FLATBUFFERS" )
   message(FATAL_ERROR "KPM SM FB not implemented")
