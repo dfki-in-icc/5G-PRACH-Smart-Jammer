@@ -25,7 +25,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "util/byte_array.h"
+#include "byte_array.h"
 #include "ric_subsequent_action.h"
 
 typedef enum { 

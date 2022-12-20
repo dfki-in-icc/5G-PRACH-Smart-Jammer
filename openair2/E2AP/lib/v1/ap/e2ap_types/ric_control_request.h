@@ -24,7 +24,7 @@
 #ifndef RIC_CONTROL_REQUEST_H
 #define RIC_CONTROL_REQUEST_H
 
-#include "util/byte_array.h"
+#include "byte_array.h"
 #include "common/ric_gen_id.h"
 #include <stdbool.h>
 

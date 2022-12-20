@@ -25,7 +25,7 @@
 #define RIC_CONTROL_ACK_H
 
 #include "common/ric_gen_id.h"
-#include "util/byte_array.h"
+#include "byte_array.h"
 
 typedef enum {
   RIC_CONTROL_STATUS_SUCCESS = 0,

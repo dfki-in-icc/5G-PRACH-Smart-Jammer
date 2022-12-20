@@ -26,7 +26,7 @@
 
 #include "common/ric_gen_id.h"
 #include "common/e2ap_cause.h" 
-#include "util/byte_array.h"
+#include "byte_array.h"
 
 typedef struct {
   ric_gen_id_t ric_id;

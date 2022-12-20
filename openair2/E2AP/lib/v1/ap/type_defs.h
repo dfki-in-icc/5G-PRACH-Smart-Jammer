@@ -29,7 +29,7 @@
 #include <stdint.h>
 
 #include "util/ngran_types.h"
-#include "util/byte_array.h"
+#include "byte_array.h"
 #include "e2ap_types/ric_control_request.h"
 
 #include "e2ap_types/e2_setup_request.h"

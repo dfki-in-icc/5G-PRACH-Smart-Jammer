@@ -28,8 +28,8 @@ SOFTWARE.
 #include <stdbool.h>
 #include <stddef.h>
 #include "../ds/seq_container/seq_generic.h"
-#include "../ds/assoc_container/assoc_generic.h"
-#include "../ds/assoc_container/bimap.h"
+#include "assoc_container/assoc_generic.h"
+#include "assoc_container/bimap.h"
 
 
 //void* find(void* start_it,void* end_it, void* value, bool (*f)(const void*, const void*));

@@ -23,7 +23,7 @@
 #define ENDPOINT_AGENT
 
 #include "lib/ep/e2ap_ep.h"   // for e2ap_ep_t
-#include "util/byte_array.h"  // for byte_array_t
+#include "byte_array.h"  // for byte_array_t
 
 typedef struct e2ap_ep_ag
 {

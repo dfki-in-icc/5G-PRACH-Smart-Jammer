@@ -23,7 +23,7 @@
 #ifndef RIC_SUBSCRIPTION_REQUEST_H
 #define RIC_SUBSCRIPTION_REQUEST_H
 
-#include "util/byte_array.h"
+#include "byte_array.h"
 #include "common/ric_gen_id.h"
 #include "common/ric_action.h"
 #include <stdbool.h>

@@ -29,7 +29,7 @@
 #include <stdatomic.h>
 #include <pthread.h>
 
-#include "util/alg_ds/ds/assoc_container/assoc_generic.h"
+#include "assoc_container/assoc_generic.h"
 
 #include "sm/sm_agent.h"
 #include "sm/sm_io.h"

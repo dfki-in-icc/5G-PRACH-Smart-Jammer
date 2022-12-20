@@ -33,7 +33,6 @@
 #include <sys/socket.h>
 #include <unistd.h> 
 
-#include "util/byte_array.h"
 #include "sctp_msg.h"
 
 

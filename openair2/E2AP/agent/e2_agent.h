@@ -24,8 +24,8 @@
 #ifndef E2_AGENT_H
 #define E2_AGENT_H
 
-#include "util/alg_ds/ds/assoc_container/assoc_generic.h"
-#include "util/alg_ds/ds/assoc_container/bimap.h"
+#include "assoc_container/assoc_generic.h"
+#include "assoc_container/bimap.h"
 
 #include "util/conf_file.h"
 #include "util/ngran_types.h"

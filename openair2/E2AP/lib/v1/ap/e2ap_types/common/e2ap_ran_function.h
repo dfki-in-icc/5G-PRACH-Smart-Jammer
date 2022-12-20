@@ -27,7 +27,7 @@
 extern "C" {
 #endif
 
-#include "../../../../../util/byte_array.h"
+#include "byte_array.h"
 #include <stdbool.h>
 #include <stdint.h>
 

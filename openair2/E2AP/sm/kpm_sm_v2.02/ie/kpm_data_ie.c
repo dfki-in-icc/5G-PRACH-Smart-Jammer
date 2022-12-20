@@ -27,7 +27,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "../../../util/byte_array.h"
+#include "byte_array.h"
 #include "kpm_data_ie.h"
 
 /* ACTION DEFINITION*/

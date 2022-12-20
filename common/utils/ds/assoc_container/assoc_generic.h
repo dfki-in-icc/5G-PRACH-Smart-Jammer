@@ -64,4 +64,3 @@ SOFTWARE.
                                     default: assoc_rb_tree_end)(T)
 
 #endif
-

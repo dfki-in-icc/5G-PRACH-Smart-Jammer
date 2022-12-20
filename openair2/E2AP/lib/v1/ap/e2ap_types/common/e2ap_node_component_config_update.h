@@ -23,7 +23,7 @@
 #ifndef E2AP_NODE_COMPONENT_CONFIG_UPDATE_H
 #define E2AP_NODE_COMPONENT_CONFIG_UPDATE_H
 
-#include "../../../../../util/byte_array.h"
+#include "byte_array.h"
 #include <stdint.h>
 
 typedef enum {

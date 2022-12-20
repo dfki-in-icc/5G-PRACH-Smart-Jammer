@@ -5,11 +5,7 @@ set(SM_ENCODING_KPM_SRC
                       ../sm_proc_data.c 
                       kpm_sm_ric.c 
                       kpm_sm_agent.c 
-                      ../../util/byte_array.c 
                       ../../util/alg_ds/alg/defer.c 
-                      ../../util/alg_ds/ds/seq_container/seq_arr.c 
-                      ../../util/alg_ds/ds/assoc_container/assoc_rb_tree.c
-                      ../../util/alg_ds/ds/assoc_container/bimap.c
                       ie/kpm_data_ie.c
                       )
 
@@ -36,3 +32,4 @@ else()
 endif()
 
 target_compile_definitions(kpm_sm PUBLIC ${SM_ENCODING_KPM})
+target_link_libraries(kpm_sm PUBLIC ds)

@@ -1,7 +1,7 @@
 #ifndef KPM_DECRYPTION_ASN_H
 #define KPM_DECRYPTION_ASN_H
 
-#include "../../../util/byte_array.h"
+#include "byte_array.h"
 #include "../ie/kpm_data_ie.h"
 
 typedef struct { } kpm_dec_asn_t;

@@ -24,7 +24,7 @@
 #ifndef KPM_ENCODING_PLAIN_H
 #define KPM_ENCODING_PLAIN_H 
 
-#include "../../../util/byte_array.h"
+#include "byte_array.h"
 #include "../ie/kpm_data_ie.h"
 
 typedef struct{

@@ -23,7 +23,7 @@
 #ifndef E2AP_TNL_INFORMATION_H
 #define E2AP_TNL_INFORMATION_H
 
-#include "util/byte_array.h"
+#include "byte_array.h"
 
 typedef struct
 {

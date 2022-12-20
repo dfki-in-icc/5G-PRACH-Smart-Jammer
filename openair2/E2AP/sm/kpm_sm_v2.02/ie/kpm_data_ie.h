@@ -51,7 +51,7 @@ extern "C" {
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "../../../util/byte_array.h"
+#include "byte_array.h"
 /* 
  * SEC 0: General data types that make the mapping between ASN data types and RIC ones
  */

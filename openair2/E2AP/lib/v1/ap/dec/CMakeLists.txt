@@ -4,18 +4,13 @@ if(E2AP_ENCODING STREQUAL "ASN")
   target_compile_options(e2ap_msg_dec_obj PRIVATE -DASN_DISABLE_OER_SUPPORT)
 
 elseif(E2AP_ENCODING STREQUAL "FLATBUFFERS")
-  add_library(e2ap_msg_dec_obj OBJECT 
-                                e2ap_msg_dec_fb.c
-                                $<TARGET_OBJECTS:e2ap_types_obj>
-                                $<TARGET_OBJECTS:e2ap_ep_obj>
-                                )
+  add_library(e2ap_msg_dec_obj OBJECT e2ap_msg_dec_fb.c)
 
-  target_link_libraries(e2ap_msg_dec_obj PRIVATE
-                                e2ap_fb_obj 
-                                 e2ap_types_obj)
+  target_link_libraries(e2ap_msg_dec_obj PRIVATE e2ap_fb_obj)
 else()
   message(FATAL_ERROR "no E2AP encoding scheme selected")
 endif()
 
 add_compile_definitions(PRIVATE ${E2AP_ENCODING})
 
+target_link_libraries(e2ap_msg_dec_obj PRIVATE e2ap_types_obj)

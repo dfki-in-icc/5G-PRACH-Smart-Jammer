@@ -23,7 +23,7 @@
 #define RIC_INDICATION_H
 
 #include "common/ric_gen_id.h"
-#include "util/byte_array.h"
+#include "byte_array.h"
 #include <stdint.h> 
 
 typedef enum {

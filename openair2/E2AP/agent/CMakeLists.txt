@@ -18,17 +18,6 @@ set(E2_AGENT_SRC
             plugin_agent.c
             not_handler_agent.c
             ../sm/sm_proc_data.c
-            $<TARGET_OBJECTS:e2ap_ap_obj>
-            $<TARGET_OBJECTS:e2ap_ep_obj>
-            $<TARGET_OBJECTS:e2ap_ds_obj>
-            $<TARGET_OBJECTS:e2ap_alg_obj>
-            $<TARGET_OBJECTS:e2_conf_obj>
-            $<TARGET_OBJECTS:pending_events_obj>
-            $<TARGET_OBJECTS:e2ap_types_obj>
-            $<TARGET_OBJECTS:e2ap_msg_enc_obj>
-            $<TARGET_OBJECTS:e2ap_msg_dec_obj>
-            $<TARGET_OBJECTS:e2ap_msg_free_obj>
-            $<TARGET_OBJECTS:e2_ngran_obj>
   )
 
 if(E2AP_ENCODING STREQUAL "ASN")
@@ -66,4 +55,16 @@ if(${BUILDING_LIBRARY} STREQUAL "DYNAMIC" )
 endif()
 
 target_compile_definitions(e2_agent PRIVATE ${E2AP_ENCODING})
-
+target_link_libraries(e2_agent PUBLIC
+                      e2ap_ap_obj
+                      e2ap_ep_obj
+                      e2ap_alg_obj
+                      e2_conf_obj
+                      pending_events_obj
+                      e2ap_types_obj
+                      e2ap_msg_enc_obj
+                      e2ap_msg_dec_obj
+                      e2ap_msg_free_obj
+                      e2_ngran_obj
+)
+target_link_libraries(e2_agent PUBLIC ds) # for byte_array_t

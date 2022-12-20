@@ -33,7 +33,7 @@ SOFTWARE.
     2- The root is black
     3- Every leaf is black
     4- If a node is red, then both its children are black
-    5- For each node, all simple paths from the node to descendant leaves contain the same number of black nodes 
+    5- For each node, all simple paths from the node to descendant leaves contain the same number of black nodes
 
     Lemma 1: a red-black tree with n internal nodes has a height at most 2lg(n+1)
 */
@@ -45,7 +45,7 @@ typedef struct assoc_node_s assoc_node_t;
 
 typedef void (*free_func_t)(void* key, void* value);
 
-typedef struct{
+typedef struct {
   assoc_node_t* dummy; // node
   assoc_node_t* root; // node
   int (*comp)(const void*, const void*);
@@ -55,9 +55,8 @@ typedef struct{
   free_func_t free_func;
   // size value
   // size_t val_sz; // Value is always a pointer to the type
-  
-} assoc_rb_tree_t;
 
+} assoc_rb_tree_t;
 
 void assoc_rb_tree_init(assoc_rb_tree_t* tree, size_t key_sz, int (*comp)(const void*, const void*), free_func_t f);
 
@@ -70,7 +69,7 @@ void assoc_rb_tree_insert(assoc_rb_tree_t* tree, void const* key, size_t key_sz,
 // It returns the void* of value. the void* of the key is freed
 void* assoc_rb_tree_extract(assoc_rb_tree_t* tree, void* key);
 
-// Get the key from an iterator 
+// Get the key from an iterator
 void* assoc_rb_tree_key(assoc_rb_tree_t* tree, void* it);
 
 // Get the value pointer form an iterator
@@ -87,4 +86,3 @@ void* assoc_rb_tree_next(assoc_rb_tree_t const* tree, void* it);
 void* assoc_rb_tree_end(assoc_rb_tree_t const* tree);
 
 #endif
-

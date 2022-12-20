@@ -34,7 +34,7 @@
 #include <unistd.h> 
 
 #include <stdbool.h>
-#include "util/byte_array.h"
+#include "byte_array.h"
 
 typedef enum {
   SCTP_MSG_PAYLOAD,

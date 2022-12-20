@@ -49,7 +49,6 @@ void bi_map_free(bi_map_t* map)
   assoc_free(&map->right);
 }
 
-
 // Modifiers
 
 void bi_map_insert(bi_map_t* map, void const* key1, size_t key_sz1, void const* key2, size_t key_sz2)
@@ -85,8 +84,8 @@ void* bi_map_extract_left(bi_map_t* map, void* key1, size_t key1_sz)
 
   // I do not like this trick. The memory should also be the same
   int cmp = map->left.comp(key2, key3);
-  //int cmp = memcmp(key1, key3, map->right.key_sz);
-  assert(cmp == 0 );
+  // int cmp = memcmp(key1, key3, map->right.key_sz);
+  assert(cmp == 0);
   free(key3);
 
   size_t sz_1 = assoc_size(&map->left);
@@ -108,8 +107,8 @@ void* bi_map_extract_right(bi_map_t* map, void* key2, size_t key2_sz)
   void* key3 = assoc_extract(&map->left, key1);
 
   int cmp = map->right.comp(key2, key3);
-//  int cmp = memcmp(key2, key3, map->right.key_sz);
-  assert(cmp == 0 );
+  //  int cmp = memcmp(key2, key3, map->right.key_sz);
+  assert(cmp == 0);
   free(key3);
 
   size_t sz_1 = assoc_size(&map->left);
@@ -128,7 +127,6 @@ size_t bi_map_size(bi_map_t* map)
   assert(cap == assoc_size(&map->right) && "Mismatch in the ds");
   return cap;
 }
-
 
 // Forward Iterator Concept
 
@@ -179,12 +177,12 @@ bmr_iter_t bi_map_end_right(bi_map_t* map)
 void* bi_map_value_left(bi_map_t* map, bml_iter_t it)
 {
   assert(map != NULL);
-  return assoc_value(&map->left, it.it); 
+  return assoc_value(&map->left, it.it);
 }
 
 void* bi_map_value_right(bi_map_t* map, bml_iter_t it)
 {
   assert(map != NULL);
-  return assoc_value(&map->right, it.it); 
+  return assoc_value(&map->right, it.it);
 }
 

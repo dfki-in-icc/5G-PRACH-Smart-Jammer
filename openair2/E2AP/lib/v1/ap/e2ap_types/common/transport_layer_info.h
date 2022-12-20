@@ -25,7 +25,7 @@
 #define E2AP_TRANSPORT_LAYER_INFO_H
 
 #include <stdint.h>
-#include "util/byte_array.h"
+#include "byte_array.h"
 
 typedef struct transport_layer_information {
   byte_array_t address;
