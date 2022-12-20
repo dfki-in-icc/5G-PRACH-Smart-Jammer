@@ -355,8 +355,8 @@ check_install_usrp_uhd_driver(){
     elif [[ "$OS_BASEDISTRO" == "fedora" ]]; then
         if [ $IS_CONTAINER -eq 0 ]
         then
-            $SUDO $INSTALLER -y install python boost libusb-devel libusbx-devel boost-devel python-mako python-docutils $CMAKE
-            $SUDO -H pip install requests
+            $SUDO $INSTALLER -y install python3 boost libusb-devel libusbx-devel boost-devel python3-mako python3-docutils $CMAKE
+            $SUDO pip3 install requests
         else
             $SUDO $INSTALLER -y install boost boost-devel $CMAKE
             $SUDO pip3 install mako requests
@@ -696,9 +696,8 @@ check_install_oai_software() {
         echo "EPEL repos already present. Good."
       else
         echo "EPEL repos not present. Installing them."
-        $SUDO $INSTALLER install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+        $SUDO $INSTALLER install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
       fi
-      $SUDO $INSTALLER install -y python-epdb vim-common
     fi
 
     $SUDO $INSTALLER install -y \
@@ -708,7 +707,6 @@ check_install_oai_software() {
       $CMAKE \
       doxygen \
       flex \
-      g++ \
       gcc \
       gdb \
       git \
