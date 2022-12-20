@@ -379,16 +379,7 @@ set(E2_AGENT_LIB "" CACHE STRING "")
 set_property(CACHE E2_AGENT_LIB PROPERTY STRINGS "" "e2_agent")
 
 if(E2_AGENT STREQUAL "ON")
-  #  execute_process(COMMAND python3 "${OPENAIR2_DIR}/E2AP/lib/v1/ap/ie/asn/gen_asn.py" "${asn1_generated_dir}/E2AP" "${OPENAIR2_DIR}/E2AP/lib/v1/ap/ie/asn/e2ap-v01.01.asn1" )
-  # include_directories ("${asn1_generated_dir}/E2AP")
 
-  set(E2_AGENT_PYTHON_SCRIPT "${OPENAIR2_DIR}/E2AP/lib/v1/ap/ie/asn/gen_asn.py" )
-  set(E2_AGENT_DEST_PATH "${OPENAIR2_DIR}/E2AP/lib/v1/ap/ie/asn/")
-  set(E2_AGENT_SRC_ASN_PATH "${OPENAIR2_DIR}/E2AP/lib/v1/ap/ie/asn/e2ap-v01.01.asn1")
-
-  execute_process(COMMAND python3 ${E2_AGENT_PYTHON_SCRIPT} ${E2_AGENT_DEST_PATH} ${E2_AGENT_SRC_ASN_PATH})
-
-  include_directories (${E2_AGENT_DEST_PATH})
 
   set(E2_AGENT_LIB "e2_agent")
   set(E2_AGENT_ON "OAI_E2_AGENT")

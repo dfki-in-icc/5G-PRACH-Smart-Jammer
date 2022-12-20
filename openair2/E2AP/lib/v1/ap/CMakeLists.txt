@@ -8,7 +8,6 @@ add_subdirectory(free)
 if(E2AP_ENCODING STREQUAL "ASN")
     add_library(e2ap_ap_obj OBJECT 
                           e2ap_ap_asn.c
-                          $<TARGET_OBJECTS:e2ap_ie_obj>
                           $<TARGET_OBJECTS:e2ap_types_obj>
                           $<TARGET_OBJECTS:e2ap_msg_enc_obj>
                           $<TARGET_OBJECTS:e2ap_msg_dec_obj>

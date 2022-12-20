@@ -30,8 +30,8 @@
 #include "e2ap_ap_asn.h"
 #include "e2ap_ap_fb.h"
 
-struct E2AP_PDU;
-typedef e2ap_msg_t (*e2ap_gen_dec_asn_fp)(const struct E2AP_PDU*);
+struct E2AP_E2AP_PDU;
+typedef e2ap_msg_t (*e2ap_gen_dec_asn_fp)(const struct E2AP_E2AP_PDU*);
 typedef byte_array_t (*e2ap_gen_enc_asn_fp)(const e2ap_msg_t*);
 
 struct e2ap_E2Message_table;
