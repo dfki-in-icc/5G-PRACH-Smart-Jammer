@@ -32,6 +32,7 @@
 void *nr_pdcp_security_nea2_init(unsigned char *ciphering_key)
 {
   // This is a hack, IMO init, cipher and free functions should be reduced to cipher.
+  // Test show a ~10% more processing time
   return ciphering_key;
 }
 

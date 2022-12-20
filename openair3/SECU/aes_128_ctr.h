@@ -23,7 +23,7 @@
 #define AES_128_CTR_OAI_H
 
 #include "aes_128.h"
-#include "byte_array.h"
+#include "common/utils/ds/byte_array.h"
 #include <endian.h>
 #include <stdint.h>
 #include <stdlib.h>

@@ -33,7 +33,13 @@
 void *nr_pdcp_integrity_nia2_init(unsigned char *integrity_key)
 {
   // This is a hack. Reduce the 3 functions to just cipher?
-  return integrity_key;
+  // No. The overhead is x8 times more. Don't change before measuring
+  // return integrity_key;
+  cbc_cmac_ctx_t* ctx = calloc(1, sizeof(cbc_cmac_ctx_t));  
+  DevAssert(ctx != NULL && "Memory exhausted");
+
+  *ctx = init_aes_128_cbc_cmac(integrity_key);
+  return ctx;
 }
 
 void nr_pdcp_integrity_nia2_integrity(void *integrity_context, unsigned char *out, unsigned char *buffer, int length, int bearer, int count, int direction)
@@ -45,9 +51,10 @@ void nr_pdcp_integrity_nia2_integrity(void *integrity_context, unsigned char *ou
   DevAssert(bearer > -1 && bearer < 32);
   DevAssert(count > -1);
 
-  uint8_t const *integrity_key = (uint8_t *)integrity_context;
+  cbc_cmac_ctx_t* ctx = (cbc_cmac_ctx_t*)integrity_context;
+
   aes_128_t k_iv = {0};
-  memcpy(&k_iv.key, integrity_key, sizeof(k_iv.key));
+  memcpy(&k_iv.key, ctx->key, sizeof(k_iv.key));
   k_iv.type = AES_INITIALIZATION_VECTOR_16;
   k_iv.iv16.d.bearer = bearer;
   k_iv.iv16.d.direction = direction;
@@ -56,7 +63,9 @@ void nr_pdcp_integrity_nia2_integrity(void *integrity_context, unsigned char *ou
 
   uint8_t result[16] = {0};
   byte_array_t msg = {.buf = buffer, .len = length};
-  aes_128_cbc_cmac(&k_iv, msg, sizeof(result), result);
+  
+  cipher_aes_128_cbc_cmac((cbc_cmac_ctx_t*)integrity_context, &k_iv, msg, sizeof(result), result);
+  //aes_128_cbc_cmac(&k_iv, msg, sizeof(result), result);
 
   // AES CMAC (RFC 4493) outputs 128 bits but NR PDCP PDUs have a MAC-I of
   // 32 bits (see 38.323 6.2). RFC 4493 2.1 says to truncate most significant
@@ -67,5 +76,6 @@ void nr_pdcp_integrity_nia2_integrity(void *integrity_context, unsigned char *ou
 
 void nr_pdcp_integrity_nia2_free_integrity(void *integrity_context)
 {
-  (void)integrity_context;
+  free( ( cbc_cmac_ctx_t*) integrity_context);
 }
+
