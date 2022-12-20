@@ -827,7 +827,8 @@ void schedule_response(Sched_Rsp_t *Sched_INFO, void *arg) {
 
   // increase inactivity counts for active dlsch
   for (int i=0; i<NUMBER_OF_DLSCH_MAX;i++)
-    if (eNB->dlsch[i][0]->harq_mask > 0) eNB->dlsch[i][0]->inactivity_cnt++;
+    if (eNB->dlsch[i][0])
+      if (eNB->dlsch[i][0]->harq_mask > 0) eNB->dlsch[i][0]->inactivity_cnt++;
 
   for (int i=0; i<number_dl_pdu; i++) {
     dl_config_pdu = &DL_req->dl_config_request_body.dl_config_pdu_list[i];
