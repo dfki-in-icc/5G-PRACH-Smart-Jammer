@@ -26,7 +26,7 @@
 
 #include "sm/sm_io.h"
 #include "../util/conf_file.h"
-#include "../util/ngran_types.h"
+#include "common/ngran_types.h"
 /*
 void init_agent_api(int mcc, 
                     int mnc, 

@@ -28,7 +28,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "util/ngran_types.h"
+#include "common/ngran_types.h"
 #include "byte_array.h"
 #include "e2ap_types/ric_control_request.h"
 

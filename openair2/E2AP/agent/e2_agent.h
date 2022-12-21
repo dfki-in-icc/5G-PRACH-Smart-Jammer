@@ -28,7 +28,7 @@
 #include "assoc_container/bimap.h"
 
 #include "util/conf_file.h"
-#include "util/ngran_types.h"
+#include "common/ngran_types.h"
 
 #include "lib/v1/ap/global_consts.h"
 #include "lib/v1/ap/type_defs.h"

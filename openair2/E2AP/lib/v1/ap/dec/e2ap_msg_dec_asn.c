@@ -52,7 +52,7 @@
 #include "lib/v1/ap/e2ap_ap.h"
 
 #include "conversions.h"
-#include "util/ngran_types.h"
+#include "common/ngran_types.h"
 
 
 static inline

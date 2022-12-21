@@ -50,4 +50,6 @@ typedef enum {
 #define NODE_IS_DU(nOdE_TyPe)         ((nOdE_TyPe) == ngran_eNB_DU || (nOdE_TyPe) == ngran_gNB_DU)
 #define NODE_IS_MBMS(nOdE_TyPe)       ((nOdE_TyPe) == ngran_eNB_MBMS_STA)
 
+char* get_ngran_name(ngran_node_t ran_type);
+
 #endif

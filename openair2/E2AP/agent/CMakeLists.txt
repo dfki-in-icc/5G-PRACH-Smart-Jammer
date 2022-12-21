@@ -64,7 +64,6 @@ target_link_libraries(e2_agent PUBLIC
                       e2ap_msg_enc_obj
                       e2ap_msg_dec_obj
                       e2ap_msg_free_obj
-                      e2_ngran_obj
 )
-target_link_libraries(e2_agent PRIVATE alg)
+target_link_libraries(e2_agent PRIVATE alg ngran_types)
 target_link_libraries(e2_agent PUBLIC ds) # for byte_array_t

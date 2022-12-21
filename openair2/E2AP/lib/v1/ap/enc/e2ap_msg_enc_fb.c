@@ -29,11 +29,9 @@
 #include "../ie/fb/e2ap_builder.h"
 #include "e2ap_verifier.h"
 
-#include "util/ngran_types.h"
+#include "common/ngran_types.h"
 #include "lib/v1/ap/type_defs.h"
 
-
-//#include "ngran_types.h"
 
 #include "../global_consts.h"
 

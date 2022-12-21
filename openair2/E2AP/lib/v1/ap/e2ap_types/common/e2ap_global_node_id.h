@@ -28,7 +28,7 @@ extern "C" {
 #endif
 
 #include "e2ap_plmn.h"
-#include "../../../../../util/ngran_types.h"
+#include "common/ngran_types.h"
 
 #include <stdbool.h>
 #include <stdint.h>
