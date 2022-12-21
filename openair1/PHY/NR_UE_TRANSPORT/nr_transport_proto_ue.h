@@ -639,8 +639,8 @@ void nr_conjch0_mult_ch1(int *ch0,
                          unsigned short nb_rb,
                          unsigned char output_shift0);
 
-void nr_a_sum_b(__m128i *input_x,
-                __m128i *input_y,
+void nr_a_sum_b(simde__m128i *input_x,
+                simde__m128i *input_y,
                 unsigned short nb_rb);
 
 

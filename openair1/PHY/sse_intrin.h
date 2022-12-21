@@ -66,14 +66,25 @@
 #if defined(__AVX512BW__) || defined(__AVX512F__)
 #include <immintrin.h>
 #endif
-
 #elif defined(__arm__) || defined(__aarch64__)
 
 /* ARM processors */
 
-#include <simde/arm/neon.h>
+#include <simde/x86/mmx.h>
+#include <simde/x86/sse.h>
+#include <simde/x86/sse2.h>
+#include <simde/x86/sse3.h>
+#include <simde/x86/ssse3.h>
+#include <simde/x86/sse4.1.h>
+#include <simde/x86/sse4.2.h>
+#include <simde/x86/avx2.h>
+#include <simde/x86/fma.h>
 
+#include <simde/arm/neon.h>
+#include <stdbool.h>
+#define _MM_SHUFFLE(z, y, x, w) (((z) << 6) | ((y) << 4) | ((x) << 2) | (w))
 #endif // x86_64 || i386
+
 
 /*
  * OAI specific
@@ -104,21 +115,22 @@ static inline vect128 mulByConjugate128(vect128 *a, vect128 *b, int8_t output_sh
 #endif
 }
 
-#if defined(__x86_64__) || defined(__i386__)
+//#if defined(__x86_64__) || defined(__i386__)
 #define displaySamples128(vect)  {\
     __m128i x=vect;                                       \
     printf("vector: %s = (%hd,%hd) (%hd,%hd) (%hd,%hd) (%hd,%hd)\n", #vect, \
-           _mm_extract_epi16(x,0),                                  \
-           _mm_extract_epi16(x,1),\
-           _mm_extract_epi16(x,2),\
-           _mm_extract_epi16(x,3),\
-           _mm_extract_epi16(x,4),\
-           _mm_extract_epi16(x,5),\
-           _mm_extract_epi16(x,6),\
-           _mm_extract_epi16(x,7));\
+           simde_mm_extract_epi16(x,0),                                  \
+           simde_mm_extract_epi16(x,1),\
+           simde_mm_extract_epi16(x,2),\
+           simde_mm_extract_epi16(x,3),\
+           simde_mm_extract_epi16(x,4),\
+           simde_mm_extract_epi16(x,5),\
+           simde_mm_extract_epi16(x,6),\
+           simde_mm_extract_epi16(x,7));\
   }
+/*
 #elif defined(__arm__) || defined(__aarch64__)
   displaySamples128(vect) {}
 //TBD
-#endif
+#endif*/
 #endif // SSE_INTRIN_H

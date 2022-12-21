@@ -57,8 +57,8 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 
 
 
-  //__m256i* p_cnProcBuf;
-  //__m256i* p_cnProcBufRes;
+  //simde__m256i* p_cnProcBuf;
+  //simde__m256i* p_cnProcBufRes;
 
   // Number of CNs in Groups
   //uint32_t M;
@@ -67,11 +67,11 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
   // Offset to each bit within a group in terms of 32 Byte
   uint32_t bitOffsetInGroup;
 
-  //__m256i ymm0, min, sgn;
-  //__m256i* p_cnProcBufResBit;
+  //simde__m256i ymm0, min, sgn;
+  //simde__m256i* p_cnProcBufResBit;
 
-  // const __m256i* p_ones   = (__m256i*) ones256_epi8;
-  // const __m256i* p_maxLLR = (__m256i*) maxLLR256_epi8;
+  // const simde__m256i* p_ones   = (simde__m256i*) ones256_epi8;
+  // const simde__m256i* p_maxLLR = (simde__m256i*) maxLLR256_epi8;
 
   // LUT with offsets for bits that need to be processed
   // 1. bit proc requires LLRs of 2. and 3. bit, 2.bits of 1. and 3. etc.
@@ -86,7 +86,7 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
   // Offsets are in units of bitOffsetInGroup (1*384/32)
   const uint8_t lut_idxCnProcG3[3][2] = {{12,24}, {0,24}, {0,12}};
 
-  fprintf(fd,"                __m256i ymm0, min, sgn,ones,maxLLR;\n");
+  fprintf(fd,"                simde__m256i ymm0, min, sgn,ones,maxLLR;\n");
   fprintf(fd,"                ones   = simde_mm256_set1_epi8((char)1);\n");
   fprintf(fd,"                maxLLR = simde_mm256_set1_epi8((char)127);\n");
 
@@ -103,8 +103,8 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 
 
       // Set pointers to start of group 3
-      //p_cnProcBuf    = (__m256i*) &cnProcBuf   [lut_startAddrCnGroups[0]];
-      //p_cnProcBufRes = (__m256i*) &cnProcBufRes[lut_startAddrCnGroups[0]];
+      //p_cnProcBuf    = (simde__m256i*) &cnProcBuf   [lut_startAddrCnGroups[0]];
+      //p_cnProcBufRes = (simde__m256i*) &cnProcBufRes[lut_startAddrCnGroups[0]];
 
       // Loop over every BN
       
@@ -120,7 +120,7 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	  fprintf(fd,"            for (int i=0;i<M;i++) {\n");
 	  // Abs and sign of 32 CNs (first BN)
 	  //                ymm0 = p_cnProcBuf[lut_idxCnProcG3[j][0] + i];
-	  fprintf(fd,"                ymm0 = ((__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[0]>>5)+lut_idxCnProcG3[j][0]);
+	  fprintf(fd,"                ymm0 = ((simde__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[0]>>5)+lut_idxCnProcG3[j][0]);
 	  //                sgn  = simde_mm256_sign_epi8(ones, ymm0);
 	  fprintf(fd,"                sgn  = simde_mm256_sign_epi8(ones, ymm0);\n");
 	  //                min  = simde_mm256_abs_epi8(ymm0);
@@ -128,7 +128,7 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	  
 	  // 32 CNs of second BN
 	  //                ymm0 = p_cnProcBuf[lut_idxCnProcG3[j][1] + i];
-	  fprintf(fd,"                ymm0 = ((__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[0]>>5)+lut_idxCnProcG3[j][1]);
+	  fprintf(fd,"                ymm0 = ((simde__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[0]>>5)+lut_idxCnProcG3[j][1]);
 	  
 	  //                min  = simde_mm256_min_epu8(min, simde_mm256_abs_epi8(ymm0));
 	  fprintf(fd,"                min  = simde_mm256_min_epu8(min, simde_mm256_abs_epi8(ymm0));\n");
@@ -141,7 +141,7 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	  fprintf(fd,"                min = simde_mm256_min_epu8(min, maxLLR);\n");
 	  //                *p_cnProcBufResBit = simde_mm256_sign_epi8(min, sgn);
 	  //                p_cnProcBufResBit++;
-	  fprintf(fd,"                ((__m256i*)cnProcBufRes)[%d+i] = simde_mm256_sign_epi8(min, sgn);\n",(lut_startAddrCnGroups[0]>>5)+(j*bitOffsetInGroup));
+	  fprintf(fd,"                ((simde__m256i*)cnProcBufRes)[%d+i] = simde_mm256_sign_epi8(min, sgn);\n",(lut_startAddrCnGroups[0]>>5)+(j*bitOffsetInGroup));
 	  fprintf(fd,"            }\n");
         }
     }
@@ -163,8 +163,8 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 
 
       // Set pointers to start of group 4
-      //p_cnProcBuf    = (__m256i*) &cnProcBuf   [lut_startAddrCnGroups[1]];
-      //p_cnProcBufRes = (__m256i*) &cnProcBufRes[lut_startAddrCnGroups[1]];
+      //p_cnProcBuf    = (simde__m256i*) &cnProcBuf   [lut_startAddrCnGroups[1]];
+      //p_cnProcBufRes = (simde__m256i*) &cnProcBufRes[lut_startAddrCnGroups[1]];
 
       // Loop over every BN
       
@@ -179,7 +179,7 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	  fprintf(fd,"            for (int i=0;i<M;i++) {\n");
 	  // Abs and sign of 32 CNs (first BN)
 	  //                ymm0 = p_cnProcBuf[lut_idxCnProcG3[j][0] + i];
-	  fprintf(fd,"                ymm0 = ((__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[1]>>5)+lut_idxCnProcG4[j][0]);
+	  fprintf(fd,"                ymm0 = ((simde__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[1]>>5)+lut_idxCnProcG4[j][0]);
 	  //                sgn  = simde_mm256_sign_epi8(ones, ymm0);
 	  fprintf(fd,"                sgn  = simde_mm256_sign_epi8(ones, ymm0);\n");
 	  //                min  = simde_mm256_abs_epi8(ymm0);
@@ -189,7 +189,7 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	  // Loop over BNs
 	  for (k=1; k<3; k++)
 	    {
-	      fprintf(fd,"                ymm0 = ((__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[1]>>5)+lut_idxCnProcG4[j][k]);
+	      fprintf(fd,"                ymm0 = ((simde__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[1]>>5)+lut_idxCnProcG4[j][k]);
 	      
 	      //                min  = simde_mm256_min_epu8(min, simde_mm256_abs_epi8(ymm0));
 	      fprintf(fd,"                min  = simde_mm256_min_epu8(min, simde_mm256_abs_epi8(ymm0));\n");
@@ -203,7 +203,7 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	  fprintf(fd,"                min = simde_mm256_min_epu8(min, maxLLR);\n");
 	  //                *p_cnProcBufResBit = simde_mm256_sign_epi8(min, sgn);
 	      //                p_cnProcBufResBit++;
-	  fprintf(fd,"                ((__m256i*)cnProcBufRes)[%d+i] = simde_mm256_sign_epi8(min, sgn);\n",(lut_startAddrCnGroups[1]>>5)+(j*bitOffsetInGroup));
+	  fprintf(fd,"                ((simde__m256i*)cnProcBufRes)[%d+i] = simde_mm256_sign_epi8(min, sgn);\n",(lut_startAddrCnGroups[1]>>5)+(j*bitOffsetInGroup));
 	  fprintf(fd,"            }\n");
         }
     }
@@ -228,8 +228,8 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 
 
       // Set pointers to start of group 4
-      //p_cnProcBuf    = (__m256i*) &cnProcBuf   [lut_startAddrCnGroups[1]];
-      //p_cnProcBufRes = (__m256i*) &cnProcBufRes[lut_startAddrCnGroups[1]];
+      //p_cnProcBuf    = (simde__m256i*) &cnProcBuf   [lut_startAddrCnGroups[1]];
+      //p_cnProcBufRes = (simde__m256i*) &cnProcBufRes[lut_startAddrCnGroups[1]];
 
       // Loop over every BN
       
@@ -244,7 +244,7 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	  fprintf(fd,"            for (int i=0;i<M;i++) {\n");
 	  // Abs and sign of 32 CNs (first BN)
 	  //                ymm0 = p_cnProcBuf[lut_idxCnProcG3[j][0] + i];
-	  fprintf(fd,"                ymm0 = ((__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[2]>>5)+lut_idxCnProcG5[j][0]);
+	  fprintf(fd,"                ymm0 = ((simde__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[2]>>5)+lut_idxCnProcG5[j][0]);
 	  //                sgn  = simde_mm256_sign_epi8(ones, ymm0);
 	  fprintf(fd,"                sgn  = simde_mm256_sign_epi8(ones, ymm0);\n");
 	  //                min  = simde_mm256_abs_epi8(ymm0);
@@ -254,7 +254,7 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	  // Loop over BNs
 	  for (k=1; k<4; k++)
 	    {
-	      fprintf(fd,"                ymm0 = ((__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[2]>>5)+lut_idxCnProcG5[j][k]);
+	      fprintf(fd,"                ymm0 = ((simde__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[2]>>5)+lut_idxCnProcG5[j][k]);
 	      
 	      //                min  = simde_mm256_min_epu8(min, simde_mm256_abs_epi8(ymm0));
 	      fprintf(fd,"                min  = simde_mm256_min_epu8(min, simde_mm256_abs_epi8(ymm0));\n");
@@ -268,7 +268,7 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	  fprintf(fd,"                min = simde_mm256_min_epu8(min, maxLLR);\n");
 	  //                *p_cnProcBufResBit = simde_mm256_sign_epi8(min, sgn);
 	  //                p_cnProcBufResBit++;
-	  fprintf(fd,"                ((__m256i*)cnProcBufRes)[%d+i] = simde_mm256_sign_epi8(min, sgn);\n",(lut_startAddrCnGroups[2]>>5)+(j*bitOffsetInGroup));
+	  fprintf(fd,"                ((simde__m256i*)cnProcBufRes)[%d+i] = simde_mm256_sign_epi8(min, sgn);\n",(lut_startAddrCnGroups[2]>>5)+(j*bitOffsetInGroup));
 	  fprintf(fd,"           }\n");
         }
     }
@@ -293,8 +293,8 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 
 
       // Set pointers to start of group 4
-      //p_cnProcBuf    = (__m256i*) &cnProcBuf   [lut_startAddrCnGroups[1]];
-      //p_cnProcBufRes = (__m256i*) &cnProcBufRes[lut_startAddrCnGroups[1]];
+      //p_cnProcBuf    = (simde__m256i*) &cnProcBuf   [lut_startAddrCnGroups[1]];
+      //p_cnProcBufRes = (simde__m256i*) &cnProcBufRes[lut_startAddrCnGroups[1]];
 
       // Loop over every BN
       
@@ -309,7 +309,7 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	  fprintf(fd,"            for (int i=0;i<M;i++) {\n");
 	  // Abs and sign of 32 CNs (first BN)
 	  //                ymm0 = p_cnProcBuf[lut_idxCnProcG3[j][0] + i];
-	  fprintf(fd,"                ymm0 = ((__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[3]>>5)+lut_idxCnProcG6[j][0]);
+	  fprintf(fd,"                ymm0 = ((simde__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[3]>>5)+lut_idxCnProcG6[j][0]);
 	  //                sgn  = simde_mm256_sign_epi8(ones, ymm0);
 	  fprintf(fd,"                sgn  = simde_mm256_sign_epi8(ones, ymm0);\n");
 	  //                min  = simde_mm256_abs_epi8(ymm0);
@@ -319,7 +319,7 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	  // Loop over BNs
 	  for (k=1; k<5; k++)
 	    {
-	      fprintf(fd,"                ymm0 = ((__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[3]>>5)+lut_idxCnProcG6[j][k]);
+	      fprintf(fd,"                ymm0 = ((simde__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[3]>>5)+lut_idxCnProcG6[j][k]);
 	      
 	      //                min  = simde_mm256_min_epu8(min, simde_mm256_abs_epi8(ymm0));
 	      fprintf(fd,"                min  = simde_mm256_min_epu8(min, simde_mm256_abs_epi8(ymm0));\n");
@@ -333,7 +333,7 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	  fprintf(fd,"                min = simde_mm256_min_epu8(min, maxLLR);\n");
 	  //                *p_cnProcBufResBit = simde_mm256_sign_epi8(min, sgn);
 	  //                p_cnProcBufResBit++;
-	  fprintf(fd,"                ((__m256i*)cnProcBufRes)[%d+i] = simde_mm256_sign_epi8(min, sgn);\n",(lut_startAddrCnGroups[3]>>5)+(j*bitOffsetInGroup));
+	  fprintf(fd,"                ((simde__m256i*)cnProcBufRes)[%d+i] = simde_mm256_sign_epi8(min, sgn);\n",(lut_startAddrCnGroups[3]>>5)+(j*bitOffsetInGroup));
 	  fprintf(fd,"            }\n");
 	}
     }
@@ -361,8 +361,8 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 
 
       // Set pointers to start of group 4
-      //p_cnProcBuf    = (__m256i*) &cnProcBuf   [lut_startAddrCnGroups[1]];
-      //p_cnProcBufRes = (__m256i*) &cnProcBufRes[lut_startAddrCnGroups[1]];
+      //p_cnProcBuf    = (simde__m256i*) &cnProcBuf   [lut_startAddrCnGroups[1]];
+      //p_cnProcBufRes = (simde__m256i*) &cnProcBufRes[lut_startAddrCnGroups[1]];
 
       // Loop over every BN
       
@@ -377,7 +377,7 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	  fprintf(fd,"            for (int i=0;i<M;i++) {\n");
 	  // Abs and sign of 32 CNs (first BN)
 	  //                ymm0 = p_cnProcBuf[lut_idxCnProcG3[j][0] + i];
-	  fprintf(fd,"                ymm0 = ((__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[4]>>5)+lut_idxCnProcG7[j][0]);
+	  fprintf(fd,"                ymm0 = ((simde__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[4]>>5)+lut_idxCnProcG7[j][0]);
 	  //                sgn  = simde_mm256_sign_epi8(ones, ymm0);
 	  fprintf(fd,"                sgn  = simde_mm256_sign_epi8(ones, ymm0);\n");
 	  //                min  = simde_mm256_abs_epi8(ymm0);
@@ -387,7 +387,7 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	  // Loop over BNs
 	  for (k=1; k<6; k++)
 	    {
-	      fprintf(fd,"                ymm0 = ((__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[4]>>5)+lut_idxCnProcG7[j][k]);
+	      fprintf(fd,"                ymm0 = ((simde__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[4]>>5)+lut_idxCnProcG7[j][k]);
 	      
 	      //                min  = simde_mm256_min_epu8(min, simde_mm256_abs_epi8(ymm0));
 	      fprintf(fd,"                min  = simde_mm256_min_epu8(min, simde_mm256_abs_epi8(ymm0));\n");
@@ -401,7 +401,7 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	  fprintf(fd,"                min = simde_mm256_min_epu8(min, maxLLR);\n");
 	  //                *p_cnProcBufResBit = simde_mm256_sign_epi8(min, sgn);
 	  //                p_cnProcBufResBit++;
-	  fprintf(fd,"                ((__m256i*)cnProcBufRes)[%d+i] = simde_mm256_sign_epi8(min, sgn);\n",(lut_startAddrCnGroups[4]>>5)+(j*bitOffsetInGroup));
+	  fprintf(fd,"                ((simde__m256i*)cnProcBufRes)[%d+i] = simde_mm256_sign_epi8(min, sgn);\n",(lut_startAddrCnGroups[4]>>5)+(j*bitOffsetInGroup));
 	  fprintf(fd,"            }\n");
 	}
     }
@@ -430,8 +430,8 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 
 
       // Set pointers to start of group 4
-      //p_cnProcBuf    = (__m256i*) &cnProcBuf   [lut_startAddrCnGroups[1]];
-      //p_cnProcBufRes = (__m256i*) &cnProcBufRes[lut_startAddrCnGroups[1]];
+      //p_cnProcBuf    = (simde__m256i*) &cnProcBuf   [lut_startAddrCnGroups[1]];
+      //p_cnProcBufRes = (simde__m256i*) &cnProcBufRes[lut_startAddrCnGroups[1]];
 
       // Loop over every BN
       
@@ -446,7 +446,7 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	  fprintf(fd,"            for (int i=0;i<M;i++) {\n");
 	  // Abs and sign of 32 CNs (first BN)
 	  //                ymm0 = p_cnProcBuf[lut_idxCnProcG3[j][0] + i];
-	  fprintf(fd,"                ymm0 = ((__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[5]>>5)+lut_idxCnProcG8[j][0]);
+	  fprintf(fd,"                ymm0 = ((simde__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[5]>>5)+lut_idxCnProcG8[j][0]);
 	  //                sgn  = simde_mm256_sign_epi8(ones, ymm0);
 	  fprintf(fd,"                sgn  = simde_mm256_sign_epi8(ones, ymm0);\n");
 	  //                min  = simde_mm256_abs_epi8(ymm0);
@@ -456,7 +456,7 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	  // Loop over BNs
 	  for (k=1; k<7; k++)
 	    {
-	      fprintf(fd,"                ymm0 = ((__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[5]>>5)+lut_idxCnProcG8[j][k]);
+	      fprintf(fd,"                ymm0 = ((simde__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[5]>>5)+lut_idxCnProcG8[j][k]);
 	      
 	      //                min  = simde_mm256_min_epu8(min, simde_mm256_abs_epi8(ymm0));
 	      fprintf(fd,"                min  = simde_mm256_min_epu8(min, simde_mm256_abs_epi8(ymm0));\n");
@@ -470,7 +470,7 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	  fprintf(fd,"                min = simde_mm256_min_epu8(min, maxLLR);\n");
 	  //                *p_cnProcBufResBit = simde_mm256_sign_epi8(min, sgn);
 	  //                p_cnProcBufResBit++;
-	  fprintf(fd,"                ((__m256i*)cnProcBufRes)[%d+i] = simde_mm256_sign_epi8(min, sgn);\n",(lut_startAddrCnGroups[5]>>5)+(j*bitOffsetInGroup));
+	  fprintf(fd,"                ((simde__m256i*)cnProcBufRes)[%d+i] = simde_mm256_sign_epi8(min, sgn);\n",(lut_startAddrCnGroups[5]>>5)+(j*bitOffsetInGroup));
 	  fprintf(fd,"              }\n");
         }
     }
@@ -499,8 +499,8 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 
 
       // Set pointers to start of group 9
-      //p_cnProcBuf    = (__m256i*) &cnProcBuf   [lut_startAddrCnGroups[1]];
-      //p_cnProcBufRes = (__m256i*) &cnProcBufRes[lut_startAddrCnGroups[1]];
+      //p_cnProcBuf    = (simde__m256i*) &cnProcBuf   [lut_startAddrCnGroups[1]];
+      //p_cnProcBufRes = (simde__m256i*) &cnProcBufRes[lut_startAddrCnGroups[1]];
 
       // Loop over every BN
      
@@ -515,7 +515,7 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	  fprintf(fd,"            for (int i=0;i<M;i++) {\n");
 	  // Abs and sign of 32 CNs (first BN)
 	  //                ymm0 = p_cnProcBuf[lut_idxCnProcG3[j][0] + i];
-	  fprintf(fd,"                ymm0 = ((__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[6]>>5)+lut_idxCnProcG9[j][0]);
+	  fprintf(fd,"                ymm0 = ((simde__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[6]>>5)+lut_idxCnProcG9[j][0]);
 	  //                sgn  = simde_mm256_sign_epi8(ones, ymm0);
 	  fprintf(fd,"                sgn  = simde_mm256_sign_epi8(ones, ymm0);\n");
 	  //                min  = simde_mm256_abs_epi8(ymm0);
@@ -525,7 +525,7 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	  // Loop over BNs
 	  for (k=1; k<8; k++)
 	    {
-	      fprintf(fd,"                ymm0 = ((__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[6]>>5)+lut_idxCnProcG9[j][k]);
+	      fprintf(fd,"                ymm0 = ((simde__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[6]>>5)+lut_idxCnProcG9[j][k]);
 	      
 	      //                min  = simde_mm256_min_epu8(min, simde_mm256_abs_epi8(ymm0));
 	      fprintf(fd,"                min  = simde_mm256_min_epu8(min, simde_mm256_abs_epi8(ymm0));\n");
@@ -539,7 +539,7 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	  fprintf(fd,"                min = simde_mm256_min_epu8(min, maxLLR);\n");
 	  //                *p_cnProcBufResBit = simde_mm256_sign_epi8(min, sgn);
 	  //                p_cnProcBufResBit++;
-	  fprintf(fd,"                ((__m256i*)cnProcBufRes)[%d+i] = simde_mm256_sign_epi8(min, sgn);\n",(lut_startAddrCnGroups[6]>>5)+(j*bitOffsetInGroup));
+	  fprintf(fd,"                ((simde__m256i*)cnProcBufRes)[%d+i] = simde_mm256_sign_epi8(min, sgn);\n",(lut_startAddrCnGroups[6]>>5)+(j*bitOffsetInGroup));
 	  fprintf(fd,"            }\n");
 	}
     }
@@ -569,8 +569,8 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 
 
       // Set pointers to start of group 10
-      //p_cnProcBuf    = (__m256i*) &cnProcBuf   [lut_startAddrCnGroups[1]];
-      //p_cnProcBufRes = (__m256i*) &cnProcBufRes[lut_startAddrCnGroups[1]];
+      //p_cnProcBuf    = (simde__m256i*) &cnProcBuf   [lut_startAddrCnGroups[1]];
+      //p_cnProcBufRes = (simde__m256i*) &cnProcBufRes[lut_startAddrCnGroups[1]];
 
       // Loop over every BN
       
@@ -585,7 +585,7 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	  fprintf(fd,"            for (int i=0;i<M;i++) {\n");
 	  // Abs and sign of 32 CNs (first BN)
 	  //                ymm0 = p_cnProcBuf[lut_idxCnProcG3[j][0] + i];
-	  fprintf(fd,"                ymm0 = ((__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[7]>>5)+lut_idxCnProcG10[j][0]);
+	  fprintf(fd,"                ymm0 = ((simde__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[7]>>5)+lut_idxCnProcG10[j][0]);
 	  //                sgn  = simde_mm256_sign_epi8(ones, ymm0);
 	  fprintf(fd,"                sgn  = simde_mm256_sign_epi8(ones, ymm0);\n");
 	  //                min  = simde_mm256_abs_epi8(ymm0);
@@ -595,7 +595,7 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	  // Loop over BNs
 	  for (k=1; k<9; k++)
 	    {
-	      fprintf(fd,"                ymm0 = ((__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[7]>>5)+lut_idxCnProcG10[j][k]);
+	      fprintf(fd,"                ymm0 = ((simde__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[7]>>5)+lut_idxCnProcG10[j][k]);
 	      
 	      //                min  = simde_mm256_min_epu8(min, simde_mm256_abs_epi8(ymm0));
 	      fprintf(fd,"                min  = simde_mm256_min_epu8(min, simde_mm256_abs_epi8(ymm0));\n");
@@ -609,7 +609,7 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	  fprintf(fd,"                min = simde_mm256_min_epu8(min, maxLLR);\n");
 	  //                *p_cnProcBufResBit = simde_mm256_sign_epi8(min, sgn);
 	  //                p_cnProcBufResBit++;
-	  fprintf(fd,"                ((__m256i*)cnProcBufRes)[%d+i] = simde_mm256_sign_epi8(min, sgn);\n",(lut_startAddrCnGroups[7]>>5)+(j*bitOffsetInGroup));
+	  fprintf(fd,"                ((simde__m256i*)cnProcBufRes)[%d+i] = simde_mm256_sign_epi8(min, sgn);\n",(lut_startAddrCnGroups[7]>>5)+(j*bitOffsetInGroup));
 	  fprintf(fd,"            }\n");
         }
     }
@@ -642,8 +642,8 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 
 
       // Set pointers to start of group 19
-      //p_cnProcBuf    = (__m256i*) &cnProcBuf   [lut_startAddrCnGroups[1]];
-      //p_cnProcBufRes = (__m256i*) &cnProcBufRes[lut_startAddrCnGroups[1]];
+      //p_cnProcBuf    = (simde__m256i*) &cnProcBuf   [lut_startAddrCnGroups[1]];
+      //p_cnProcBufRes = (simde__m256i*) &cnProcBufRes[lut_startAddrCnGroups[1]];
 
       // Loop over every BN
       
@@ -658,7 +658,7 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	  fprintf(fd,"            for (int i=0;i<M;i++) {\n");
 	  // Abs and sign of 32 CNs (first BN)
 	  //                ymm0 = p_cnProcBuf[lut_idxCnProcG3[j][0] + i];
-	  fprintf(fd,"                ymm0 = ((__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[8]>>5)+lut_idxCnProcG19[j][0]);
+	  fprintf(fd,"                ymm0 = ((simde__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[8]>>5)+lut_idxCnProcG19[j][0]);
 	  //                sgn  = simde_mm256_sign_epi8(ones, ymm0);
 	  fprintf(fd,"                sgn  = simde_mm256_sign_epi8(ones, ymm0);\n");
 	  //                min  = simde_mm256_abs_epi8(ymm0);
@@ -668,7 +668,7 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	  // Loop over BNs
 	  for (k=1; k<18; k++)
 	    {
-	      fprintf(fd,"                ymm0 = ((__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[8]>>5)+lut_idxCnProcG19[j][k]);
+	      fprintf(fd,"                ymm0 = ((simde__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[8]>>5)+lut_idxCnProcG19[j][k]);
 	      
 	      //                min  = simde_mm256_min_epu8(min, simde_mm256_abs_epi8(ymm0));
 	      fprintf(fd,"                min  = simde_mm256_min_epu8(min, simde_mm256_abs_epi8(ymm0));\n");
@@ -682,7 +682,7 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	  fprintf(fd,"                min = simde_mm256_min_epu8(min, maxLLR);\n");
 	  //                *p_cnProcBufResBit = simde_mm256_sign_epi8(min, sgn);
 	  //                p_cnProcBufResBit++;
-	  fprintf(fd,"                ((__m256i*)cnProcBufRes)[%d+i] = simde_mm256_sign_epi8(min, sgn);\n",(lut_startAddrCnGroups[8]>>5)+(j*bitOffsetInGroup));
+	  fprintf(fd,"                ((simde__m256i*)cnProcBufRes)[%d+i] = simde_mm256_sign_epi8(min, sgn);\n",(lut_startAddrCnGroups[8]>>5)+(j*bitOffsetInGroup));
 	  fprintf(fd,"            }\n");
         }
     }
