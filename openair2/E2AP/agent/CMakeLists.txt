@@ -58,7 +58,6 @@ target_compile_definitions(e2_agent PRIVATE ${E2AP_ENCODING})
 target_link_libraries(e2_agent PUBLIC
                       e2ap_ap_obj
                       e2ap_ep_obj
-                      e2ap_alg_obj
                       e2_conf_obj
                       pending_events_obj
                       e2ap_types_obj
@@ -67,4 +66,5 @@ target_link_libraries(e2_agent PUBLIC
                       e2ap_msg_free_obj
                       e2_ngran_obj
 )
+target_link_libraries(e2_agent PRIVATE alg)
 target_link_libraries(e2_agent PUBLIC ds) # for byte_array_t

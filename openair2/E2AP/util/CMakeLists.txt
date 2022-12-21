@@ -1,12 +1,7 @@
-add_library(e2ap_alg_obj OBJECT 
-                        alg_ds/alg/defer.c
-                        alg_ds/alg/find.c
-                        )
-target_link_libraries(e2ap_alg_obj PUBLIC ds)
-
 add_library(e2_conf_obj OBJECT 
                         conf_file.c
                         )
+target_link_libraries(e2_conf_obj PRIVATE alg)
 
 
 add_library(e2_time_obj OBJECT 

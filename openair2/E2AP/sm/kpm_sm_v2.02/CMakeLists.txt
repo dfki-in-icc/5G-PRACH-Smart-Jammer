@@ -5,7 +5,6 @@ set(SM_ENCODING_KPM_SRC
                       ../sm_proc_data.c 
                       kpm_sm_ric.c 
                       kpm_sm_agent.c 
-                      ../../util/alg_ds/alg/defer.c 
                       ie/kpm_data_ie.c
                       )
 
@@ -33,3 +32,4 @@ endif()
 
 target_compile_definitions(kpm_sm PUBLIC ${SM_ENCODING_KPM})
 target_link_libraries(kpm_sm PUBLIC ds)
+target_link_libraries(kpm_sm PRIVATE alg)

@@ -12,7 +12,7 @@
 #include <unistd.h>
 #include <limits.h>
 
-#include "alg_ds/alg/defer.h"
+#include "defer.h"
 
 static
 const char* default_conf_file = "/usr/local/etc/flexric/flexric.conf";
@@ -32,7 +32,7 @@ const char* default_libs_dir = "/usr/local/lib/flexric/";
 #include <string.h>
 #include <unistd.h>
 #include <sys/stat.h>
-#include "alg_ds/alg/defer.h"
+#include "defer.h"
 
 const char* conf_file = "/usr/local/etc/flexric/flexric.conf";
 const char* libs_dir = "/usr/local/lib/flexric/";

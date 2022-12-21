@@ -23,9 +23,9 @@ SOFTWARE.
 */
 
 #ifndef MIR_LOCK_GUARD_H
-#define MIR_LOCK_GUARD_H 
+#define MIR_LOCK_GUARD_H
 
-#include "../../alg/defer.h"
+#include "defer.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,8 +38,6 @@ SOFTWARE.
 
 void mir_dummy_lock_guard();
 void mir_dummy_lock_guard_const();
-
-// __attribute__((unused)) 
 
 #define CHECK_TYPE_INLINE(val, type) (void)_Generic((val), type: mir_dummy_lock_guard, const type: mir_dummy_lock_guard_const)
 
@@ -61,8 +59,6 @@ void mir_dummy_lock_guard_const();
           exit(-1); \
          } \
          }); \
-
-//         printf("Defering... \n" ); 
 
 #endif
 

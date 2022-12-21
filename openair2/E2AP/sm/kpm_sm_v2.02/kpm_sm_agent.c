@@ -27,7 +27,7 @@
 #include "kpm_sm_id.h"
 #include "enc/kpm_enc_generic.h"
 #include "dec/kpm_dec_generic.h"
-#include "../../util/alg_ds/alg/defer.h"
+#include "defer.h"
 #include "../../util/conversions.h"
 
 #include <assert.h>

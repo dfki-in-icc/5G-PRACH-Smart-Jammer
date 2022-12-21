@@ -25,7 +25,7 @@
 #include "lib/ind_event.h"
 #include "lib/pending_events.h"
 #include "sm/sm_agent.h"
-#include "util/alg_ds/alg/alg.h"
+#include "alg.h"
 #include "util/compare.h"
 
 #include <stdio.h>

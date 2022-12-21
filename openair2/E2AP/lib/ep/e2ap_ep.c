@@ -20,7 +20,7 @@
  */
 
 #include "e2ap_ep.h"
-#include "../../util/alg_ds/ds/lock_guard/lock_guard.h"
+#include "lock_guard/lock_guard.h"
 
 #include <pthread.h>
 

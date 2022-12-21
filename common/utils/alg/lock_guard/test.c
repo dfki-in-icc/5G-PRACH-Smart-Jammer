@@ -22,18 +22,51 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include "defer.h"
+#include "lock_guard.h"
 
+#include <stdio.h>
 
-#if defined __clang__  // requires -fblocks (lambdas)
-void cleanup_deferred (void (^*d) (void))
+static
+int dummy_func(pthread_mutex_t* m)
 {
-  (*d)();
+  lock_guard(m);
+   for(int i =0; i < 10; ++i){
+    printf("Value of the function = %d \n",i);
+  }
+   return 0;
 }
-#elif defined __GNUC__ // nested-function-in-stmt-expressionstatic
-void cleanup_deferred (void (**d) (void))
-{ 
-  (*d)();
-}
-#endif
 
+
+int main()
+{
+  pthread_mutex_t mtx; // = PTHREAD_MUTEX_INITIALIZER;
+  pthread_mutexattr_t attr; 
+
+  int rc = pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK);
+  assert(rc == 0);
+
+  rc = pthread_mutex_init(&mtx, &attr);
+  assert(rc == 0);
+
+
+  dummy_func(&mtx);
+
+  {
+    lock_guard(&mtx);
+  }
+
+  lock_guard(&mtx);
+
+//  rc = pthread_mutex_unlock(&mtx);
+//  if(rc != 0){
+//    fprintf(stdout, "Error while locking: %s\n", strerror(rc) ); 
+//    exit(-1);
+//   } 
+
+
+  for(int i =0; i < 10; ++i){
+    printf("Value of i = %d \n",i);
+  }
+
+  return 0;
+}

@@ -21,8 +21,8 @@
 
 #include "plugin_agent.h"
 
-#include "util/alg_ds/alg/alg.h"
-#include "util/alg_ds/ds/lock_guard/lock_guard.h"
+#include "alg.h"
+#include "lock_guard/lock_guard.h"
 #include "util/compare.h"
 #include "util/conf_file.h"
 #include <assert.h>

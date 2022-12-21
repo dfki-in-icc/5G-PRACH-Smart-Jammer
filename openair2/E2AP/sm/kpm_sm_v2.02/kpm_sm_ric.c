@@ -25,7 +25,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
-#include "../../util/alg_ds/alg/defer.h"
+#include "defer.h"
 
 #include "enc/kpm_enc_generic.h"
 #include "dec/kpm_dec_generic.h"

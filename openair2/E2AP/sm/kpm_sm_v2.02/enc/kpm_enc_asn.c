@@ -30,7 +30,7 @@
 #include "E2SM_KPMv2_RANfunction-Name.h"
 
 #include "kpm_enc_asn.h"
-#include "../../../util/alg_ds/alg/defer.h"
+#include "defer.h"
 #include "../../../util/conversions.h"
 
 #include <assert.h>
