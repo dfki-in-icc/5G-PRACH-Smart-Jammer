@@ -59,6 +59,6 @@ void time_average_add(time_average_t *t, uint64_t time, uint64_t value);
 double time_average_get_average(time_average_t *t, uint64_t time);
 
 /* unit microsecond */
-uint64_t time_average_now(void);
+uint64_t time_now_us(void);
 
 #endif /* _COMMON_UTIL_TIME_STAT_H_ */

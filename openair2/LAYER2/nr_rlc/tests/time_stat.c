@@ -18,7 +18,7 @@ double time_average_get_average(time_average_t *t, uint64_t time)
   return 0;
 }
 
-uint64_t time_average_now(void)
+uint64_t time_now_us(void)
 {
   return 0;
 }

@@ -1620,7 +1620,7 @@ static int generate_tx_pdu(nr_rlc_entity_am_t *entity, char *buffer, int size)
   entity->common.stats.txpdu_bytes += ret_size;
 
   if (sdu->sdu->time_of_arrival) {
-    uint64_t time_now = time_average_now();
+    uint64_t time_now = time_now_us();
     uint64_t waited_time = time_now - sdu->sdu->time_of_arrival;
     /* set time_of_arrival to 0 so as to update stats only once */
     sdu->sdu->time_of_arrival = 0;
@@ -1717,7 +1717,7 @@ void nr_rlc_entity_am_recv_sdu(nr_rlc_entity_t *_entity,
                                     + sdu->size;
 
   if (entity->common.avg_time_is_on)
-    sdu->sdu->time_of_arrival = time_average_now();
+    sdu->sdu->time_of_arrival = time_now_us();
 }
 
 /*************************************************************************/

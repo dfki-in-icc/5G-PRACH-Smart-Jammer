@@ -117,7 +117,7 @@ double time_average_get_average(time_average_t *t, uint64_t time)
   return (double)t->accumulated_value / t->r.size;
 }
 
-uint64_t time_average_now(void)
+uint64_t time_now_us(void)
 {
   struct timespec t;
   uint64_t ret;
