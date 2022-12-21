@@ -18,7 +18,7 @@
 #include "E2SM_KPMv2_asn_constant.h"
 
 #include "kpm_dec_asn.h"
-#include "../../../util/conversions.h"
+#include "conversions.h"
 
 #include <assert.h>
 #include <stdio.h>

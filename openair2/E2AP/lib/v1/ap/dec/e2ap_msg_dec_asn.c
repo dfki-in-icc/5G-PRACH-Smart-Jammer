@@ -51,7 +51,7 @@
 #include "lib/v1/ap/global_consts.h"
 #include "lib/v1/ap/e2ap_ap.h"
 
-#include "util/conversions.h"
+#include "conversions.h"
 #include "util/ngran_types.h"
 
 

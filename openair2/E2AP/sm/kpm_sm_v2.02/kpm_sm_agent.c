@@ -28,7 +28,7 @@
 #include "enc/kpm_enc_generic.h"
 #include "dec/kpm_dec_generic.h"
 #include "defer.h"
-#include "../../util/conversions.h"
+#include "conversions.h"
 
 #include <assert.h>
 #include <stdio.h>

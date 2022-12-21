@@ -31,7 +31,7 @@
 
 #include "kpm_enc_asn.h"
 #include "defer.h"
-#include "../../../util/conversions.h"
+#include "conversions.h"
 
 #include <assert.h>
 #include <stdio.h>

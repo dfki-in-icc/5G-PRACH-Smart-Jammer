@@ -54,7 +54,7 @@
 
 #include <assert.h>
 
-#include "util/conversions.h"
+#include "conversions.h"
 #include "lib/v1/ap/global_consts.h"
 
 static void free_pdu(E2AP_E2AP_PDU_t* pdu)

@@ -70,8 +70,8 @@
 /* Convert an integer on 16 bits to the given bUFFER */
 #define INT16_TO_BUFFER(x, buf) \
 do {                            \
-    (buf)[0] = ((x) >> 8) & 0xff; \
-    (buf)[1] = (x)      & 0xff; \
+    (buf)[0] = (x) >> 8;        \
+    (buf)[1] = (x);             \
 } while(0)
 
 /* Convert an array of char containing vALUE to x */
@@ -84,9 +84,9 @@ do {                            \
 /* Convert an integer on 24 bits to the given bUFFER */
 #define INT24_TO_BUFFER(x, buf) \
 do {                            \
-    (buf)[0] = ((x) >> 16) & 0xff;\
-    (buf)[1] = ((x) >> 8) & 0xff; \
-    (buf)[2] = (x)      & 0xff; \
+    (buf)[0] = (x) >> 16;       \
+    (buf)[1] = (x) >> 8;        \
+    (buf)[2] = (x);             \
 } while(0)
 
 /* Convert an array of char containing vALUE to x */
@@ -101,10 +101,10 @@ do {                            \
 /* Convert an integer on 32 bits to the given bUFFER */
 #define INT32_TO_BUFFER(x, buf) \
 do {                            \
-    (buf)[0] = ((x) >> 24) & 0xff;\
-    (buf)[1] = ((x) >> 16) & 0xff;\
-    (buf)[2] = ((x) >> 8) & 0xff; \
-    (buf)[3] = (x)      & 0xff; \
+    (buf)[0] = (x) >> 24;       \
+    (buf)[1] = (x) >> 16;       \
+    (buf)[2] = (x) >> 8;        \
+    (buf)[3] = (x);             \
 } while(0)
 
 /* Convert an array of char containing vALUE to x */
@@ -397,25 +397,27 @@ do {                                                    \
 /* TS 38.473 v15.2.1 section 9.3.2.3:
  * TRANSPORT LAYER ADDRESS for IPv4 is 32bit (TS 38.414)
  */
+// MIKEL TO CHECK: why this change?
 #define TRANSPORT_LAYER_ADDRESS_IPv4_TO_BIT_STRING(mACRO, bITsTRING)    \
 do {                                                    \
     (bITsTRING)->buf = calloc(4, sizeof(uint8_t));      \
-    (bITsTRING)->buf[3] = (mACRO) >> 24 & 0xFF;         \
-    (bITsTRING)->buf[2] = (mACRO) >> 16 & 0xFF;         \
-    (bITsTRING)->buf[1] = (mACRO) >> 8 & 0xFF;          \
-    (bITsTRING)->buf[0] = (mACRO) &  0xFF;              \
+    (bITsTRING)->buf[0] = (mACRO) >> 24 & 0xFF;         \
+    (bITsTRING)->buf[1] = (mACRO) >> 16 & 0xFF;         \
+    (bITsTRING)->buf[2] = (mACRO) >> 8 & 0xFF;          \
+    (bITsTRING)->buf[3] = (mACRO) >> 4 & 0xFF;          \
     (bITsTRING)->size = 4;                              \
     (bITsTRING)->bits_unused = 0;                       \
 } while(0)
 
+// MIKEL TO CHECK: why this change?
 #define BIT_STRING_TO_TRANSPORT_LAYER_ADDRESS_IPv4(bITsTRING, mACRO)    \
 do {                                                                    \
     DevCheck((bITsTRING)->size == 4, (bITsTRING)->size, 4, 0);          \
     DevCheck((bITsTRING)->bits_unused == 0, (bITsTRING)->bits_unused, 0, 0); \
-    mACRO = ((bITsTRING)->buf[3] << 24) +                               \
-            ((bITsTRING)->buf[2] << 16) +                               \
-            ((bITsTRING)->buf[1] << 8) +                                \
-            ((bITsTRING)->buf[0]);                                      \
+    mACRO = ((bITsTRING)->buf[0] << 24) +                               \
+            ((bITsTRING)->buf[1] << 16) +                               \
+            ((bITsTRING)->buf[2] << 8) +                                \
+            ((bITsTRING)->buf[3]);                                      \
 } while (0)
 
 
@@ -503,6 +505,12 @@ do {                                                    \
     (bITsTRING)->bits_unused = 4;                       \
 } while(0)
 
+#define BIT_STRING_TO_MACRO_ENB_ID(aSN, vALUE)            \
+do {                                                      \
+    assert((aSN)->bits_unused == 4);                      \
+    vALUE = ((aSN)->buf[0] << 12) | ((aSN)->buf[1] << 4) \
+          | ((aSN)->buf[2] >> 4);  \
+} while(0)
 
 #define MACRO_GNB_ID_TO_BIT_STRING(mACRO, bITsTRING)    \
 do {                                                    \
@@ -513,6 +521,13 @@ do {                                                    \
     (bITsTRING)->buf[3] = ((mACRO) & 0x0f) << 4;        \
     (bITsTRING)->size = 4;                              \
     (bITsTRING)->bits_unused = 4;                       \
+} while(0)
+
+#define BIT_STRING_TO_MACRO_GNB_ID(aSN, vALUE)            \
+do {                                                      \
+    assert((aSN)->bits_unused == 4);                      \
+    vALUE = ((aSN)->buf[0] << 20) | ((aSN)->buf[1] << 12) \
+          | ((aSN)->buf[2] << 4) | ((aSN)->buf[3] >> 4);  \
 } while(0)
 
 /* TS 36.413 v10.9.0 section 9.2.1.38:
