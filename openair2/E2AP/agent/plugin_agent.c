@@ -24,7 +24,6 @@
 #include "alg.h"
 #include "lock_guard/lock_guard.h"
 #include "util/compare.h"
-#include "util/conf_file.h"
 #include <assert.h>
 
 #include <arpa/inet.h>
@@ -78,6 +77,7 @@ static
 void load_all_pugin_ag(plugin_ag_t* p, const char* dir_path)
 {
   /* Scanning the in directory */
+  printf("[E2 AGENT] loading plugins from directory %s\n", dir_path);
   DIR* fd = opendir(dir_path);
   assert(fd != NULL && "Error opening the input directory");
 
@@ -165,6 +165,7 @@ void load_plugin_ag(plugin_ag_t* p, const char* path)
   void* handle = dlopen(path, RTLD_NOW);
   if(handle == NULL){
     printf("Error while opening the shared object = %s \n", dlerror());
+    return;
   }
   assert(handle != NULL && "Could not open the file path");
   dlerror();    

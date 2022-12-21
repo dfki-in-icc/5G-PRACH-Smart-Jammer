@@ -378,7 +378,7 @@ void e2_event_loop_agent(e2_agent_t* ag)
   ag->agent_stopped = true;
 }
 
-e2_agent_t* e2_init_agent(const char* addr, int port, global_e2_node_id_t ge2nid, sm_io_ag_t io, fr_args_t const* args)
+e2_agent_t* e2_init_agent(const char* addr, int port, global_e2_node_id_t ge2nid, sm_io_ag_t io, const char* libs_dir)
 {
   assert(addr != NULL);
   assert(port > 0 && port < 65535);
@@ -398,7 +398,7 @@ e2_agent_t* e2_init_agent(const char* addr, int port, global_e2_node_id_t ge2nid
 
   init_handle_msg_agent(&ag->handle_msg);
 
-  init_plugin_ag(&ag->plugin, args->libs_dir, io);
+  init_plugin_ag(&ag->plugin, libs_dir, io);
 
   init_pending_events(ag);
 

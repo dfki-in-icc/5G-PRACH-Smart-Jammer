@@ -874,16 +874,8 @@ int main( int argc, char **argv ) {
   sm_io_ag_t io = {.read = read_RAN, .write = write_RAN};
   printf("[E2 NODE]: mcc = %d mnc = %d mnc_digit = %d nd_id = %d \n", mcc, mnc, mnc_digit_len, nb_id);
 
-  // TODO: need to fix, parse the FlexRIC config in runtime
-  int const agent_argc = 1;
-  char** agent_argv = NULL;
-  fr_args_t ric_args = init_fr_args(agent_argc, agent_argv);
-  // TODO: integrate with oai config
-
-  strcpy(ric_args.conf_file, "/usr/local/etc/flexric/flexric.conf");
-  strcpy(ric_args.libs_dir, "/usr/local/lib/flexric/");
-
-  init_agent_api( mcc, mnc, mnc_digit_len, nb_id, cu_du_id, node_type, io, &ric_args);
+  e2_agent_args_t args = RCconfig_NR_E2agent();
+  init_agent_api( mcc, mnc, mnc_digit_len, nb_id, cu_du_id, node_type, io, &args);
 //////////////////////////////////
 //////////////////////////////////
 

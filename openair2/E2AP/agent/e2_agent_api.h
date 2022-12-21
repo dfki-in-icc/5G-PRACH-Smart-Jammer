@@ -25,27 +25,15 @@
 #define E2_AGENT_API_MOSAIC_H
 
 #include "sm/sm_io.h"
-#include "../util/conf_file.h"
 #include "common/ngran_types.h"
-/*
-void init_agent_api(int mcc, 
-                    int mnc, 
-                    int mnc_digit_len,
-                    int nb_id,
-                    sm_io_ag_t io,
-            		    fr_args_t const* args);
-*/
 
-void init_agent_api(int mcc, 
-                    int mnc, 
-                    int mnc_digit_len,
-                    int nb_id,
-                    int cu_du_id,
-                    ngran_node_t ran_type,
-                    sm_io_ag_t io,
-                    fr_args_t const* args);
+typedef struct {
+  const char *ip;
+  uint16_t port;
+  const char *sm_dir;
+} e2_agent_args_t;
 
-
+void init_agent_api(int mcc, int mnc, int mnc_digit_len, int nb_id, int cu_du_id, ngran_node_t ran_type, sm_io_ag_t io, e2_agent_args_t const *args);
 void stop_agent_api(void);
 
 #endif

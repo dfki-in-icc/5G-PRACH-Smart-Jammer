@@ -1714,6 +1714,8 @@ add_library(L2
   ${MCE_APP_SRC}
   )
 target_link_libraries(L2 PRIVATE f1ap x2ap s1ap lte_rrc m2ap)
+target_link_libraries(L2 PUBLIC ${E2_AGENT_LIB})
+target_compile_definitions(L2 PRIVATE ${E2_AGENT_ON})
 target_link_libraries(L2 PRIVATE asn1_nr_rrc asn1_lte_rrc)
 
 add_library(MAC_NR ${MAC_NR_SRC})
@@ -1732,6 +1734,8 @@ add_library(L2_NR
   )
 
 target_link_libraries(L2_NR PRIVATE f1ap x2ap s1ap ngap nr_rrc)
+target_link_libraries(L2_NR PUBLIC ${E2_AGENT_LIB})
+target_compile_definitions(L2_NR PRIVATE ${E2_AGENT_ON})
 
 add_library(L2_LTE_NR
   ${L2_RRC_SRC}
@@ -2321,7 +2325,7 @@ target_link_libraries(lte-softmodem PRIVATE
   -Wl,--start-group
   lte_rrc nr_rrc s1ap m2ap x2ap m3ap GTPV1U f1ap SECU_CN SECU_OSA UTIL HASHTABLE SCTP_CLIENT MME_APP SCHED_LIB SCHED_RU_LIB
   PHY_COMMON PHY PHY_RU  L2 L2_LTE NFAPI_COMMON_LIB NFAPI_LIB NFAPI_VNF_LIB NFAPI_PNF_LIB NFAPI_USER_LIB MISC_NFAPI_LTE_LIB
-  ${RAL_LIB} ${NAS_UE_LIB} ${E2_AGENT_LIB} ITTI SIMU
+  ${RAL_LIB} ${NAS_UE_LIB} ITTI SIMU
   -Wl,--end-group z dl)
 
 target_link_libraries(lte-softmodem PRIVATE ${LIBXML2_LIBRARIES})
@@ -2467,7 +2471,7 @@ target_link_libraries(nr-softmodem PRIVATE
   UTIL HASHTABLE SCTP_CLIENT SCHED_LIB SCHED_RU_LIB SCHED_NR_LIB PHY_NR PHY PHY_COMMON PHY_NR_COMMON PHY_RU GTPV1U SECU_CN SECU_OSA
   ITTI ${RAL_LIB} ${NAS_UE_LIB} lte_rrc nr_rrc
   ngap s1ap L2_LTE_NR L2_NR MAC_NR_COMMON NFAPI_COMMON_LIB NFAPI_LIB NFAPI_VNF_LIB NFAPI_PNF_LIB NFAPI_USER_LIB SIMU
-  x2ap f1ap m2ap m3ap ${E2_AGENT_LIB}
+  x2ap f1ap m2ap m3ap
   -Wl,--end-group z dl)
 
 target_link_libraries(nr-softmodem PRIVATE ${LIBXML2_LIBRARIES})
