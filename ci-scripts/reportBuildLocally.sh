@@ -53,7 +53,7 @@ function details_table {
     echo "        <th>Message</th>" >> $3
     echo "      </tr>" >> $3
 
-    LIST_MESSAGES=`egrep "error:|warning:" $2 | egrep -v "jobserver unavailable|Clock skew detected.|flexran.proto|disabling jobserver mode"`
+    LIST_MESSAGES=`egrep "error:|warning:" $2 | egrep -v "jobserver unavailable|Clock skew detected.|disabling jobserver mode"`
     COMPLETE_MESSAGE="start"
     for MESSAGE in $LIST_MESSAGES
     do
@@ -146,7 +146,7 @@ function summary_table_row {
         else
             echo "        <td bgcolor = \"red\" >$NB_ERRORS</th>" >> ./build_results.html
         fi
-        NB_WARNINGS=`egrep "warning:" $2 | egrep -v "jobserver unavailable|Clock skew detected.|flexran.proto|disabling jobserver mode" | egrep -c "warning:"`
+        NB_WARNINGS=`egrep "warning:" $2 | egrep -v "jobserver unavailable|Clock skew detected.|disabling jobserver mode" | egrep -c "warning:"`
         if [ $NB_WARNINGS -eq 0 ]
         then
             echo "        <td bgcolor = \"green\" >$NB_WARNINGS</th>" >> ./build_results.html
@@ -537,47 +537,25 @@ function report_build {
 
     echo "   <h2>Ubuntu 16.04 LTS -- Summary</h2>" >> ./build_results.html
 
-    summary_table_header "OAI Build: 4G LTE eNB -- USRP option" ./archives/enb_eth
-    summary_table_row "LTE SoftModem - Release 15" ./archives/enb_eth/lte-softmodem.Rel15.txt "Built target lte-softmodem" ./enb_eth_row1.html
-    summary_table_row "Coding - Release 15" ./archives/enb_eth/coding.Rel15.txt "Built target coding" ./enb_eth_row2.html
-    summary_table_row "OAI ETHERNET transport - Release 15" ./archives/enb_eth/oai_eth_transpro.Rel15.txt "Built target oai_eth_transpro" ./enb_eth_row3.html
-    summary_table_row "Parameters Lib Config - Release 15" ./archives/enb_eth/params_libconfig.Rel15.txt "Built target params_libconfig" ./enb_eth_row4.html
-    summary_table_row "RF Simulator - Release 15" ./archives/enb_eth/rfsimulator.Rel15.txt "Built target rfsimulator" ./enb_eth_row5.html
-    summary_table_row "OAI USRP device if - Release 15" ./archives/enb_eth/oai_usrpdevif.Rel15.txt "Built target oai_usrpdevif" ./enb_eth_row7.html
-    summary_table_footer
-
-    summary_table_header "OAI Build: 4G LTE UE -- USRP option" ./archives/ue_eth
-    summary_table_row "LTE UE SoftModem - Release 15" ./archives/ue_eth/lte-uesoftmodem.Rel15.txt "Built target lte-uesoftmodem" ./ue_eth_row1.html
-    summary_table_row "Coding - Release 15" ./archives/ue_eth/coding.Rel15.txt "Built target coding" ./ue_eth_row2.html
-    summary_table_row "OAI ETHERNET transport - Release 15" ./archives/ue_eth/oai_eth_transpro.Rel15.txt "Built target oai_eth_transpro" ./ue_eth_row3.html
-    summary_table_row "Parameters Lib Config - Release 15" ./archives/ue_eth/params_libconfig.Rel15.txt "Built target params_libconfig" ./ue_eth_row4.html
-    summary_table_row "RF Simulator - Release 15" ./archives/ue_eth/rfsimulator.Rel15.txt "Built target rfsimulator" ./ue_eth_row5.html
-    summary_table_row "Conf 2 UE Data - Release 15" ./archives/ue_eth/conf2uedata.Rel15.txt "Built target conf2uedata" ./ue_eth_row7.html
-    summary_table_row "NVRAM - Release 15" ./archives/ue_eth/nvram.Rel15.txt "Built target nvram" ./ue_eth_row8.html
-    summary_table_row "UE IP - Release 15" ./archives/ue_eth/ue_ip.Rel15.txt "Built target ue_ip" ./ue_eth_row9.html
-    summary_table_row "USIM - Release 15" ./archives/ue_eth/usim.Rel15.txt "Built target usim" ./ue_eth_row9a.html
-    summary_table_row "OAI USRP device if - Release 15" ./archives/ue_eth/oai_usrpdevif.Rel15.txt "Built target oai_usrpdevif" ./ue_eth_row9b.html
-    summary_table_footer
-
-    if [ -f archives/gnb_usrp/nr-softmodem.Rel15.txt ]
+    if [ -f archives/gnb_usrp/nr-softmodem.txt ]
     then
         summary_table_header "OAI Build: 5G NR gNB -- USRP option" ./archives/gnb_usrp
-        summary_table_row "5G NR SoftModem - Release 15" ./archives/gnb_usrp/nr-softmodem.Rel15.txt "Built target nr-softmodem" ./gnb_usrp_row1.html
-        summary_table_row "Coding - Release 15" ./archives/gnb_usrp/coding.Rel15.txt "Built target coding" ./gnb_usrp_row2.html
-        summary_table_row "OAI USRP device if - Release 15" ./archives/gnb_usrp/oai_usrpdevif.Rel15.txt "Built target oai_usrpdevif" ./gnb_usrp_row3.html
-        summary_table_row "OAI ETHERNET transport - Release 15" ./archives/gnb_usrp/oai_eth_transpro.Rel15.txt "Built target oai_eth_transpro" ./gnb_usrp_row4.html
-        summary_table_row "Parameters Lib Config - Release 15" ./archives/gnb_usrp/params_libconfig.Rel15.txt "Built target params_libconfig" ./gnb_usrp_row6.html
+        summary_table_row "5G NR SoftModem" ./archives/gnb_usrp/nr-softmodem.txt "Built target nr-softmodem" ./gnb_usrp_row1.html
+        summary_table_row "Coding" ./archives/gnb_usrp/coding.txt "Built target coding" ./gnb_usrp_row2.html
+        summary_table_row "OAI USRP device if" ./archives/gnb_usrp/oai_usrpdevif.txt "Built target oai_usrpdevif" ./gnb_usrp_row3.html
+        summary_table_row "OAI ETHERNET transport" ./archives/gnb_usrp/oai_eth_transpro.txt "Built target oai_eth_transpro" ./gnb_usrp_row4.html
+        summary_table_row "Parameters Lib Config" ./archives/gnb_usrp/params_libconfig.txt "Built target params_libconfig" ./gnb_usrp_row6.html
         summary_table_footer
     fi
 
-    if [ -f archives/nr_ue_usrp/nr-uesoftmodem.Rel15.txt ]
+    if [ -f archives/nr_ue_usrp/nr-uesoftmodem.txt ]
     then
         summary_table_header "OAI Build: 5G NR UE -- USRP option" ./archives/nr_ue_usrp
-        summary_table_row "5G NR UE SoftModem - Release 15" ./archives/nr_ue_usrp/nr-uesoftmodem.Rel15.txt "Built target nr-uesoftmodem" ./nr_ue_usrp_row1.html
-        summary_table_row "Coding - Release 15" ./archives/nr_ue_usrp/coding.Rel15.txt "Built target coding" ./nr_ue_usrp_row2.html
-        summary_table_row "OAI USRP device if - Release 15" ./archives/nr_ue_usrp/oai_usrpdevif.Rel15.txt "Built target oai_usrpdevif" ./nr_ue_usrp_row3.html
-        summary_table_row "OAI ETHERNET transport - Release 15" ./archives/nr_ue_usrp/oai_eth_transpro.Rel15.txt "Built target oai_eth_transpro" ./nr_ue_usrp_row4.html
-        summary_table_row "Parameters Lib Config - Release 15" ./archives/nr_ue_usrp/params_libconfig.Rel15.txt "Built target params_libconfig" ./nr_ue_usrp_row6.html
+        summary_table_row "5G NR UE SoftModem" ./archives/nr_ue_usrp/nr-uesoftmodem.txt "Built target nr-uesoftmodem" ./nr_ue_usrp_row1.html
+        summary_table_row "Coding" ./archives/nr_ue_usrp/coding.txt "Built target coding" ./nr_ue_usrp_row2.html
+        summary_table_row "OAI USRP device if" ./archives/nr_ue_usrp/oai_usrpdevif.txt "Built target oai_usrpdevif" ./nr_ue_usrp_row3.html
+        summary_table_row "OAI ETHERNET transport" ./archives/nr_ue_usrp/oai_eth_transpro.txt "Built target oai_eth_transpro" ./nr_ue_usrp_row4.html
+        summary_table_row "Parameters Lib Config" ./archives/nr_ue_usrp/params_libconfig.txt "Built target params_libconfig" ./nr_ue_usrp_row6.html
         summary_table_footer
     fi
 
@@ -586,10 +564,10 @@ function report_build {
         echo "   <h2>Red Hat Enterprise Linux Server release 7.6) -- Summary</h2>" >> ./build_results.html
 
         summary_table_header "OAI Build: 4G LTE eNB -- USRP option (RHEL)" ./archives/red_hat
-        summary_table_row "LTE SoftModem - Release 15" ./archives/red_hat/lte-softmodem.Rel15.txt "Built target lte-softmodem" ./enb_usrp_rh_row1.html
-        summary_table_row "Coding - Release 15" ./archives/red_hat/coding.Rel15.txt "Built target coding" ./enb_usrp_rh_row2.html
-        summary_table_row "OAI USRP device if - Release 15" ./archives/red_hat/oai_usrpdevif.Rel15.txt "Built target oai_usrpdevif" ./enb_usrp_rh_row3.html
-        summary_table_row "Parameters Lib Config - Release 15" ./archives/red_hat/params_libconfig.Rel15.txt "Built target params_libconfig" ./enb_usrp_rh_row4.html
+        summary_table_row "LTE SoftModem" ./archives/red_hat/lte-softmodem.txt "Built target lte-softmodem" ./enb_usrp_rh_row1.html
+        summary_table_row "Coding" ./archives/red_hat/coding.txt "Built target coding" ./enb_usrp_rh_row2.html
+        summary_table_row "OAI USRP device if" ./archives/red_hat/oai_usrpdevif.txt "Built target oai_usrpdevif" ./enb_usrp_rh_row3.html
+        summary_table_row "Parameters Lib Config" ./archives/red_hat/params_libconfig.txt "Built target params_libconfig" ./enb_usrp_rh_row4.html
         summary_table_footer
     fi
 

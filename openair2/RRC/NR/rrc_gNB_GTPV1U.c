@@ -49,7 +49,6 @@ rrc_gNB_process_GTPV1U_CREATE_TUNNEL_RESP(
   const gtpv1u_enb_create_tunnel_resp_t *const create_tunnel_resp_pP,
   uint8_t                         *inde_list
 ) {
-  rnti_t                         rnti;
   int                            i;
   struct rrc_gNB_ue_context_s   *ue_context_p = NULL;
 
@@ -57,10 +56,7 @@ rrc_gNB_process_GTPV1U_CREATE_TUNNEL_RESP(
     LOG_D(RRC, PROTOCOL_RRC_CTXT_UE_FMT" RX CREATE_TUNNEL_RESP num tunnels %u \n",
           PROTOCOL_RRC_CTXT_UE_ARGS(ctxt_pP),
           create_tunnel_resp_pP->num_tunnels);
-    rnti = create_tunnel_resp_pP->rnti;
-    ue_context_p = rrc_gNB_get_ue_context(
-                     RC.nrrrc[ctxt_pP->module_id],
-                     ctxt_pP->rnti);
+    ue_context_p = rrc_gNB_get_ue_context(RC.nrrrc[ctxt_pP->module_id], ctxt_pP->rntiMaybeUEid);
 
     for (i = 0; i < create_tunnel_resp_pP->num_tunnels; i++) {
       ue_context_p->ue_context.gnb_gtp_teid[inde_list[i]]  = create_tunnel_resp_pP->enb_S1u_teid[i];
@@ -76,7 +72,6 @@ rrc_gNB_process_GTPV1U_CREATE_TUNNEL_RESP(
 	    create_tunnel_resp_pP->enb_addr.length);
     }
 
-        (void)rnti; /* avoid gcc warning "set but not used" */
     return 0;
   } else {
     return -1;
@@ -88,7 +83,6 @@ nr_rrc_gNB_process_GTPV1U_CREATE_TUNNEL_RESP(
   const protocol_ctxt_t *const ctxt_pP,
   const gtpv1u_gnb_create_tunnel_resp_t *const create_tunnel_resp_pP
 ) {
-  rnti_t                         rnti;
   int                            i;
   struct rrc_gNB_ue_context_s   *ue_context_p = NULL;
 
@@ -96,10 +90,7 @@ nr_rrc_gNB_process_GTPV1U_CREATE_TUNNEL_RESP(
     LOG_D(NR_RRC, PROTOCOL_NR_RRC_CTXT_UE_FMT" RX CREATE_TUNNEL_RESP num tunnels %u \n",
           PROTOCOL_NR_RRC_CTXT_UE_ARGS(ctxt_pP),
           create_tunnel_resp_pP->num_tunnels);
-    rnti = create_tunnel_resp_pP->ue_id;
-    ue_context_p = rrc_gNB_get_ue_context(
-                     RC.nrrrc[ctxt_pP->module_id],
-                     ctxt_pP->rnti);
+    ue_context_p = rrc_gNB_get_ue_context(RC.nrrrc[ctxt_pP->module_id], ctxt_pP->rntiMaybeUEid);
 
     for (i = 0; i < create_tunnel_resp_pP->num_tunnels; i++) {
       ue_context_p->ue_context.gnb_gtp_teid[i]  = create_tunnel_resp_pP->gnb_NGu_teid[i];
@@ -114,7 +105,6 @@ nr_rrc_gNB_process_GTPV1U_CREATE_TUNNEL_RESP(
             create_tunnel_resp_pP->gnb_addr.length);
     }
 
-        (void)rnti; /* avoid gcc warning "set but not used" */
     return 0;
   } else {
     return -1;

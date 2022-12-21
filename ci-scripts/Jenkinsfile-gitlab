@@ -20,16 +20,6 @@
  *      contact@openairinterface.org
  */
 
-// Abstraction function to send social media messages:
-// like on Slack or Mattermost
-def sendSocialMediaMessage(pipeChannel, pipeColor, pipeMessage) {
-    if (params.pipelineUsesSlack != null) {
-        if (params.pipelineUsesSlack) {
-            slackSend channel: pipeChannel, color: pipeColor, message: pipeMessage
-        }
-    }
-}
-
 // Location of the executor node
 def nodeExecutor = params.nodeExecutor
 
@@ -64,10 +54,6 @@ pipeline {
                         echo "Platform is ${env.TESTPLATFORM_OWNER}"
                     }
 
-                    if (fileExists("flexran")) {
-                        sh "rm -Rf flexran > /dev/null 2>&1"
-                    }
-
                     echo '\u2705 \u001B[32mVerify Labels\u001B[0m'
                     if ("MERGE".equals(env.gitlabActionType)) {
                         LABEL_CHECK = sh returnStdout: true, script: 'ci-scripts/checkGitLabMergeRequestLabels.sh --mr-id ' + env.gitlabMergeRequestIid
@@ -81,7 +67,7 @@ pipeline {
                             message += "Not performing CI due to lack of labels"
                             addGitLabMRComment comment: message
                             error('Not performing CI due to lack of labels')
-                        } else if (LABEL_CHECK == 'FULL') {
+                        } else if (LABEL_CHECK == 'FULL' || LABEL_CHECK == 'SHORTEN-4G') {
                             doMandatoryTests = true
                             doFullTestsuite = true
                         } else if (LABEL_CHECK == 'SHORTEN-5G') {
@@ -342,7 +328,7 @@ pipeline {
                     script {
                       if (doMandatoryTests) {
                         dir ('archives') {
-                            sh "if [ -d rf_sim/test ] || [ -d l2_sim/test ]; then zip -r -qq vm_tests_logs.zip */test ; fi"
+                            sh "if [ -d rf_sim/test ] || [ -d rf5g_sim/test ] || [ -d l2_sim/test ]; then zip -r -qq vm_tests_logs.zip */test ; fi"
                         }
                         if(fileExists('archives/vm_tests_logs.zip')) {
                             archiveArtifacts artifacts: 'archives/vm_tests_logs.zip'
@@ -389,10 +375,6 @@ OAI CI Team''',
                 if ("MERGE".equals(env.gitlabActionType)) {
                     echo "This is a MERGE event"
                     addGitLabMRComment comment: message
-                    def message2 = "OAI " + JOB_NAME + " build (" + BUILD_ID + "): passed (" + BUILD_URL + ") -- MergeRequest #" + env.gitlabMergeRequestIid + " (" + env.gitlabMergeRequestTitle + ")"
-                    sendSocialMediaMessage('ci-enb', 'good', message2)
-                } else {
-                    sendSocialMediaMessage('ci-enb', 'good', message)
                 }
             }
         }
@@ -402,10 +384,6 @@ OAI CI Team''',
                 if ("MERGE".equals(env.gitlabActionType)) {
                     echo "This is a MERGE event"
                     addGitLabMRComment comment: message
-                    def message2 = "OAI " + JOB_NAME + " build (" + BUILD_ID + "): failed (" + BUILD_URL + ") -- MergeRequest #" + env.gitlabMergeRequestIid + " (" + env.gitlabMergeRequestTitle + ")"
-                    sendSocialMediaMessage('ci-enb', 'danger', message2)
-                } else {
-                    sendSocialMediaMessage('ci-enb', 'danger', message)
                 }
             }
         }

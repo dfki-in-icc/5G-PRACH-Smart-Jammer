@@ -28,7 +28,7 @@
 #include "openair2/SDAP/nr_sdap/nr_sdap_entity.h"
 #include "openair3/UTILS/conversions.h"
 #include "openair2/RRC/NR/MESSAGES/asn1_msg.h"
-#include "openairinterface5g_limits.h"
+#include "common/openairinterface5g_limits.h"
 #include "common/utils/LOG/log.h"
 #include "openair2/F1AP/f1ap_common.h"
 #include "e1ap_default_values.h"
@@ -1644,5 +1644,4 @@ void *E1AP_CUUP_task(void *arg) {
 
   }
 }
-
 

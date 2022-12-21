@@ -80,7 +80,7 @@ extern "C" {
  *  @brief the macros that describe the maximum length of LOG
  * @{*/
 
-#define MAX_LOG_TOTAL 1500 /*!< \brief the maximum length of a log */
+#define MAX_LOG_TOTAL 16384 /*!< \brief the maximum length of a log */
 /* @}*/
 
 /** @defgroup _log_level Message levels defined by LOG
@@ -129,6 +129,7 @@ extern "C" {
 #define FLAG_FILE_LINE   0x0040
 #define FLAG_TIME        0x0100
 #define FLAG_THREAD_ID   0x0200
+#define FLAG_REAL_TIME   0x0400
 #define FLAG_INITIALIZED 0x8000
 
 #define SET_LOG_OPTION(O)   g_log->flag = (g_log->flag | O)
@@ -228,11 +229,9 @@ typedef enum {
   ENB_APP,
   MCE_APP,
   MME_APP,
-  FLEXRAN_AGENT,
   TMR,
   USIM,
   LOCALIZE,
-  PROTO_AGENT,
   F1U,
   X2AP,
   M2AP,

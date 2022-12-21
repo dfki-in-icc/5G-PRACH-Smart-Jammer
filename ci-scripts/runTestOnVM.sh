@@ -712,11 +712,11 @@ function add_ue_l2_sim_ue {
     echo "sudo rm -f *.u*" >> $1
     if [ $LOC_NB_UES -eq 1 ]
     then
-        echo "echo \"sudo ../../../targets/bin/conf2uedata -c ../../../openair3/NAS/TOOLS/ue_eurecom_test_sfr.conf -o .\"" >> $1
-        echo "sudo ../../../targets/bin/conf2uedata -c ../../../openair3/NAS/TOOLS/ue_eurecom_test_sfr.conf -o . > /home/ubuntu/tmp/cmake_targets/log/ue_adapt.txt 2>&1" >> $1
+        echo "echo \"sudo ../../nas_sim_tools/build/conf2uedata -c ../../../openair3/NAS/TOOLS/ue_eurecom_test_sfr.conf -o .\"" >> $1
+        echo "sudo ../../nas_sim_tools/build/conf2uedata -c ../../../openair3/NAS/TOOLS/ue_eurecom_test_sfr.conf -o . > /home/ubuntu/tmp/cmake_targets/log/ue_adapt.txt 2>&1" >> $1
     else
-        echo "echo \"sudo ../../../targets/bin/conf2uedata -c ../../../openair3/NAS/TOOLS/ue_eurecom_test_sfr_multi_ues.conf -o .\"" >> $1
-        echo "sudo ../../../targets/bin/conf2uedata -c ../../../openair3/NAS/TOOLS/ue_eurecom_test_sfr_multi_ues.conf -o . > /home/ubuntu/tmp/cmake_targets/log/ue_adapt.txt 2>&1" >> $1
+        echo "echo \"sudo ../../nas_sim_tools/build/conf2uedata -c ../../../openair3/NAS/TOOLS/ue_eurecom_test_sfr_multi_ues.conf -o .\"" >> $1
+        echo "sudo ../../nas_sim_tools/build/conf2uedata -c ../../../openair3/NAS/TOOLS/ue_eurecom_test_sfr_multi_ues.conf -o . > /home/ubuntu/tmp/cmake_targets/log/ue_adapt.txt 2>&1" >> $1
     fi
 
     ssh -T -o StrictHostKeyChecking=no ubuntu@$LOC_UE_VM_IP_ADDR < $1
@@ -969,6 +969,8 @@ function start_rf_sim_ue {
     echo "echo \"cd /home/ubuntu/tmp/cmake_targets/ran_build/build/\"" >> $1
     echo "sudo chmod 777 /home/ubuntu/tmp/cmake_targets/ran_build/build/" >> $1
     echo "cd /home/ubuntu/tmp/cmake_targets/ran_build/build/" >> $1
+    echo "echo \"sudo ../../nas_sim_tools/build/conf2uedata -c ../../../openair3/NAS/TOOLS/ue_eurecom_test_sfr.conf -o .\"" >> $1
+    echo "sudo ../../nas_sim_tools/build/conf2uedata -c ../../../openair3/NAS/TOOLS/ue_eurecom_test_sfr.conf -o ." >> $1
     if [ $LOC_S1_CONFIGURATION -eq 0 ]
     then
         echo "echo \"ulimit -c unlimited && ./lte-uesoftmodem -C ${LOC_FREQUENCY}000000 -r $LOC_PRB --ue-rxgain 140 --ue-txgain 120 --nokrnmod 1 --rfsim --log_config.global_log_options level,nocolor,time --noS1\" > ./my-lte-softmodem-run.sh " >> $1
@@ -1093,12 +1095,12 @@ function start_rf_sim_gnb {
     then
         if [ $LOC_RA_SA_TEST -eq 0 ] #no RA test => use --phy-test option
         then
-            echo "echo \"./nr-softmodem -O /home/ubuntu/tmp/ci-scripts/conf_files/ci-$LOC_CONF_FILE --log_config.global_log_options level,nocolor,time --parallel-config PARALLEL_SINGLE_THREAD --noS1 --nokrnmod 1 --rfsim --phy-test --lowmem --noS1\" > ./my-nr-softmodem-run.sh " >> $1
+            echo "echo \"./nr-softmodem -O /home/ubuntu/tmp/ci-scripts/conf_files/ci-$LOC_CONF_FILE --log_config.global_log_options level,nocolor,time --parallel-config PARALLEL_SINGLE_THREAD --noS1 --nokrnmod 1 --rfsim --phy-test --noS1\" > ./my-nr-softmodem-run.sh " >> $1
         elif [ $LOC_RA_SA_TEST -eq 1 ] #RA test => use --do-ra option
         then
-            echo "echo \"./nr-softmodem -O /home/ubuntu/tmp/ci-scripts/conf_files/ci-$LOC_CONF_FILE --log_config.global_log_options level,nocolor,time --parallel-config PARALLEL_SINGLE_THREAD --rfsim --do-ra --lowmem --noS1\" > ./my-nr-softmodem-run.sh " >> $1
+            echo "echo \"./nr-softmodem -O /home/ubuntu/tmp/ci-scripts/conf_files/ci-$LOC_CONF_FILE --log_config.global_log_options level,nocolor,time --parallel-config PARALLEL_SINGLE_THREAD --rfsim --do-ra --noS1\" > ./my-nr-softmodem-run.sh " >> $1
         else #SA test => use --sa option
-            echo "echo \"./nr-softmodem -O /home/ubuntu/tmp/ci-scripts/conf_files/ci-$LOC_CONF_FILE --log_config.global_log_options level,nocolor,time --parallel-config PARALLEL_SINGLE_THREAD --rfsim --sa --lowmem \" > ./my-nr-softmodem-run.sh " >> $1
+            echo "echo \"./nr-softmodem -O /home/ubuntu/tmp/ci-scripts/conf_files/ci-$LOC_CONF_FILE --log_config.global_log_options level,nocolor,time --parallel-config PARALLEL_SINGLE_THREAD --rfsim --sa \" > ./my-nr-softmodem-run.sh " >> $1
         fi
     fi
     echo "chmod 775 ./my-nr-softmodem-run.sh" >> $1
@@ -1217,7 +1219,7 @@ function start_rf_sim_nr_ue {
         then
             echo "echo \"./nr-uesoftmodem -r 106 --numerology 1 --band 78 -C 3619200000 --rfsim --sa --log_config.global_log_options level,nocolor,time\" > ./my-nr-softmodem-run.sh " >> $1
         else # -eq 3 SA test 24PRB 
-           echo "echo \"./nr-uesoftmodem -r 24 -s 24 --numerology 1 --band 78 -C 3604320000 --rfsim --sa --log_config.global_log_options level,nocolor,time\" > ./my-nr-softmodem-run.sh " >> $1
+           echo "echo \"./nr-uesoftmodem -r 24 --ssb 24 --numerology 1 --band 78 -C 3604320000 --rfsim --sa --log_config.global_log_options level,nocolor,time\" > ./my-nr-softmodem-run.sh " >> $1
         fi
     fi
     echo "chmod 775 ./my-nr-softmodem-run.sh" >> $1
@@ -1299,24 +1301,12 @@ function run_test_on_vm {
     fi
     if [[ (( "$RUN_OPTIONS" == "complex" ) && ( $VM_NAME =~ .*-rf-sim.* ))  ]]
     then
-        ENB_VM_NAME=`echo $VM_NAME | sed -e "s#rf-sim#enb-ethernet#"`
-        ENB_VM_CMDS=${ENB_VM_NAME}_cmds.txt
-        echo "ENB_VM_NAME         = $ENB_VM_NAME"
-        echo "ENB_VM_CMD_FILE     = $ENB_VM_CMDS"
-        UE_VM_NAME=`echo $VM_NAME | sed -e "s#rf-sim#ue-ethernet#"`
-        UE_VM_CMDS=${UE_VM_NAME}_cmds.txt
-        echo "UE_VM_NAME          = $UE_VM_NAME"
-        echo "UE_VM_CMD_FILE      = $UE_VM_CMDS"
+        echo "This VM test type is no longer supported in the pipeline framework"
+        return
     elif [[ (( "$RUN_OPTIONS" == "complex" ) && ( $VM_NAME =~ .*-rf5g-sim.* ))  ]]
     then
-        GNB_VM_NAME=`echo $VM_NAME | sed -e "s#rf5g-sim#gnb-usrp#"`
-        GNB_VM_CMDS=${GNB_VM_NAME}_cmds.txt
-        echo "GNB_VM_NAME         = $GNB_VM_NAME"
-        echo "GNB_VM_CMD_FILE     = $GNB_VM_CMDS"
-        NR_UE_VM_NAME=`echo $VM_NAME | sed -e "s#rf5g-sim#nr-ue-usrp#"`
-        NR_UE_VM_CMDS=${UE_VM_NAME}_cmds.txt
-        echo "NR_UE_VM_NAME       = $NR_UE_VM_NAME"
-        echo "NR_UE_VM_CMD_FILE   = $NR_UE_VM_CMDS"
+        echo "This VM test type is no longer supported in the pipeline framework"
+        return
     else
         echo "VM_NAME             = $VM_NAME"
         echo "VM_CMD_FILE         = $VM_CMDS"

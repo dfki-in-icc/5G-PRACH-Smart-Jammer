@@ -124,15 +124,6 @@ void *F1AP_DU_task(void *arg) {
         LOG_I(F1AP, "DU Task Received F1AP_SETUP_REQ\n");
         f1ap_setup_req_t *msgSetup=&F1AP_SETUP_REQ(msg);
         createF1inst(false, myInstance, msgSetup);
-        getCxt(DUtype, myInstance)->gtpInst=du_create_gtpu_instance_to_cu(msgSetup->CU_f1_ip_address.ipv4_address, //"172.21.6.9", //"172.21.10.9",//"172.21.9.5", //msgSetup->CU_f1_ip_address.ipv4_address, //"192.168.18.91"
-                                            msgSetup->CUport,
-                                            msgSetup->DU_f1_ip_address.ipv4_address,
-                                            msgSetup->DUport);
-        AssertFatal(getCxt(DUtype, myInstance)->gtpInst>0,"Failed to create CU F1-U UDP listener");
-        // Fixme: fully inconsistent instances management
-        // dirty global var is a bad fix
-        extern instance_t legacyInstanceMapping;
-        legacyInstanceMapping = DUuniqInstance = getCxt(DUtype, myInstance)->gtpInst;
         du_task_send_sctp_association_req(myInstance,msgSetup);
         break;
 

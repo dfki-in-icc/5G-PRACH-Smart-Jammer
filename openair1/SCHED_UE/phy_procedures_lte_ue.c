@@ -37,7 +37,7 @@
 #include "PHY/defs_UE.h"
 #include "PHY/phy_extern_ue.h"
 //#include "executables/nr-uesoftmodem.h"
-#include "targets/RT/USER/lte-softmodem.h"
+#include "executables/lte-softmodem.h"
 
 #include "PHY/LTE_UE_TRANSPORT/transport_proto_ue.h"
 #include "SCHED_UE/sched_UE.h"
@@ -49,6 +49,7 @@
 #endif
 
 #include "LAYER2/MAC/mac.h"
+#include "rrc_proto.h"
 #include "common/utils/LOG/log.h"
 
 #include "common/utils/LOG/vcd_signal_dumper.h"
@@ -1210,19 +1211,6 @@ void ulsch_common_procedures(PHY_VARS_UE *ue,
       ((short *)ue->common_vars.txdata[aa])[2*k+1] = ((short *)dummy_tx_buffer)[2*l+1];
     }
 
-#if defined(EXMIMO)
-
-    // handle switch before 1st TX subframe, guarantee that the slot prior to transmission is switch on
-    for (k=ulsch_start - (frame_parms->samples_per_tti>>1) ; k<ulsch_start ; k++) {
-      if (k<0)
-        ue->common_vars.txdata[aa][k+frame_parms->samples_per_tti*LTE_NUMBER_OF_SUBFRAMES_PER_FRAME] &= 0xFFFEFFFE;
-      else if (k>(frame_parms->samples_per_tti*LTE_NUMBER_OF_SUBFRAMES_PER_FRAME))
-        ue->common_vars.txdata[aa][k-frame_parms->samples_per_tti*LTE_NUMBER_OF_SUBFRAMES_PER_FRAME] &= 0xFFFEFFFE;
-      else
-        ue->common_vars.txdata[aa][k] &= 0xFFFEFFFE;
-    }
-#endif
-
     /*
     only for debug
     LOG_I(PHY,"ul-signal [subframe: %d, ulsch_start %d, TA: %d, rxOffset: %d, timing_advance: %d, hw_timing_advance: %d]\n",subframe_tx, ulsch_start, ue->N_TA_offset, ue->rx_offset, ue->timing_advance, ue->hw_timing_advance);
@@ -2233,27 +2221,6 @@ void phy_procedures_UE_TX(PHY_VARS_UE *ue,
 
   if ( LOG_DEBUGFLAG(UE_TIMING)) {
     stop_meas(&ue->phy_proc_tx);
-  }
-}
-
-void phy_procedures_UE_S_TX(PHY_VARS_UE *ue,
-                            uint8_t eNB_id,
-                            uint8_t abstraction_flag) {
-  int aa;//i,aa;
-  LTE_DL_FRAME_PARMS *frame_parms=&ue->frame_parms;
-
-  for (aa=0; aa<frame_parms->nb_antennas_tx; aa++) {
-#if defined(EXMIMO) //this is the EXPRESS MIMO case
-    int i;
-
-    // set the whole tx buffer to RX
-    for (i=0; i<LTE_NUMBER_OF_SUBFRAMES_PER_FRAME*frame_parms->samples_per_tti; i++)
-      ue->common_vars.txdata[aa][i] = 0x00010001;
-
-#else //this is the normal case
-    //    memset(&ue->common_vars.txdata[aa][0],0,
-    //     (LTE_NUMBER_OF_SUBFRAMES_PER_FRAME*frame_parms->samples_per_tti)*sizeof(int32_t));
-#endif //else EXMIMO
   }
 }
 

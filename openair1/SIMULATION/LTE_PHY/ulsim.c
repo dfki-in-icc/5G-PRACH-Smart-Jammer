@@ -53,7 +53,7 @@
 #include "nfapi/oai_integration/vendor_ext.h"
 #include "common/config/config_load_configmodule.h"
 #include "executables/thread-common.h"
-#include "targets/RT/USER/lte-softmodem.h"
+#include "executables/lte-softmodem.h"
 #include "executables/split_headers.h"
 #include "common/ran_context.h"
 #include "PHY/LTE_ESTIMATION/lte_estimation.h"
@@ -739,13 +739,15 @@ int main(int argc, char **argv) {
                                 n_rx,
                                 channel_model,
                                 N_RB2sampling_rate(eNB->frame_parms.N_RB_UL),
+                                0,
                                 N_RB2channel_bandwidth(eNB->frame_parms.N_RB_UL),
                                 30e-9,
+                                maxDoppler,
+                                CORR_LEVEL_LOW,
                                 forgetting_factor,
                                 delay,
-                                0, 0);
-  // set Doppler
-  UE2eNB->max_Doppler = maxDoppler;
+                                0,
+                                0);
 
   // NN: N_RB_UL has to be defined in ulsim
   for (int k=0; k<NUMBER_OF_ULSCH_MAX; k++) eNB->ulsch[k] = new_eNB_ulsch(max_turbo_iterations,N_RB_DL,0);
@@ -814,11 +816,9 @@ int main(int argc, char **argv) {
   proc_rxtx_ue->frame_rx = (subframe<4)?(proc_rxtx->frame_tx-1):(proc_rxtx->frame_tx);
   proc_rxtx_ue->subframe_tx = proc_rxtx->subframe_rx;
   proc_rxtx_ue->subframe_rx = (proc_rxtx->subframe_tx+6)%10;
-  proc_rxtx->threadPool=(tpool_t*)malloc(sizeof(tpool_t));
-  proc_rxtx->respEncode=(notifiedFIFO_t*) malloc(sizeof(notifiedFIFO_t));
+  proc_rxtx->threadPool = (tpool_t *)malloc(sizeof(tpool_t));
   proc_rxtx->respDecode=(notifiedFIFO_t*) malloc(sizeof(notifiedFIFO_t));
-  initTpool("n",proc_rxtx->threadPool, true);
-  initNotifiedFIFO(proc_rxtx->respEncode);
+  initTpool("n", proc_rxtx->threadPool, true);
   initNotifiedFIFO(proc_rxtx->respDecode);
 
   printf("Init UL hopping UE\n");
@@ -1533,7 +1533,7 @@ int main(int argc, char **argv) {
   }//ch realization
 
   oai_exit=1;
-  pthread_cond_signal(&ru->proc.cond_fep);
+  pthread_cond_signal(&ru->proc.cond_fep[0]);
 
   if (abstx) { // ABSTRACTION
     fprintf(csv_fdUL,"];");

@@ -94,7 +94,6 @@ void fill_scheduled_response(nr_scheduled_response_t *scheduled_response,
                              int cc_id,
                              frame_t frame,
                              int slot,
-                             int thread_id,
                              void *phy_data){
 
   scheduled_response->dl_config  = dl_config;
@@ -104,7 +103,6 @@ void fill_scheduled_response(nr_scheduled_response_t *scheduled_response,
   scheduled_response->CC_id      = cc_id;
   scheduled_response->frame      = frame;
   scheduled_response->slot       = slot;
-  scheduled_response->thread_id  = thread_id;
   scheduled_response->phy_data   = phy_data;
 
 }
@@ -1126,7 +1124,7 @@ NR_UE_L2_STATE_t nr_ue_scheduler(nr_downlink_indication_t *dl_info, nr_uplink_in
       nr_schedule_csi_for_im(mac, rx_frame, rx_slot);
       dcireq.dl_config_req = mac->dl_config_request;
 
-      fill_scheduled_response(&scheduled_response, &dcireq.dl_config_req, NULL, NULL, mod_id, cc_id, rx_frame, rx_slot, dl_info->thread_id, dl_info->phy_data);
+      fill_scheduled_response(&scheduled_response, &dcireq.dl_config_req, NULL, NULL, mod_id, cc_id, rx_frame, rx_slot, dl_info->phy_data);
       if(mac->if_module != NULL && mac->if_module->scheduled_response != NULL) {
         LOG_D(NR_MAC,"1# scheduled_response transmitted, %d, %d\n", rx_frame, rx_slot);
         mac->if_module->scheduled_response(&scheduled_response);
@@ -1144,7 +1142,7 @@ NR_UE_L2_STATE_t nr_ue_scheduler(nr_downlink_indication_t *dl_info, nr_uplink_in
         fill_dci_search_candidates(mac->ra.ss, rel15, -1 , -1);
         dl_config->number_pdus = 1;
         LOG_D(MAC,"mac->cg %p: Calling fill_scheduled_response rnti %x, type0_pdcch, num_pdus %d\n",mac->cg,rel15->rnti,dl_config->number_pdus);
-        fill_scheduled_response(&scheduled_response, dl_config, NULL, NULL, mod_id, cc_id, rx_frame, rx_slot, dl_info->thread_id, dl_info->phy_data);
+        fill_scheduled_response(&scheduled_response, dl_config, NULL, NULL, mod_id, cc_id, rx_frame, rx_slot, dl_info->phy_data);
         if(mac->if_module != NULL && mac->if_module->scheduled_response != NULL)
           mac->if_module->scheduled_response(&scheduled_response);
       }
@@ -1253,7 +1251,7 @@ NR_UE_L2_STATE_t nr_ue_scheduler(nr_downlink_indication_t *dl_info, nr_uplink_in
         }
         pthread_mutex_unlock(&ul_config->mutex_ul_config); // avoid double lock
 
-        fill_scheduled_response(&scheduled_response, NULL, ul_config, &tx_req, mod_id, cc_id, frame_tx, slot_tx, ul_info->thread_id, NULL);
+        fill_scheduled_response(&scheduled_response, NULL, ul_config, &tx_req, mod_id, cc_id, frame_tx, slot_tx, ul_info->phy_data);
         if(mac->if_module != NULL && mac->if_module->scheduled_response != NULL){
           LOG_D(NR_MAC,"3# scheduled_response transmitted,%d, %d\n", frame_tx, slot_tx);
           mac->if_module->scheduled_response(&scheduled_response);
@@ -2318,7 +2316,7 @@ void build_ssb_to_ro_map(NR_UE_MAC_INST_t *mac) {
 }
 
 
-void nr_ue_pucch_scheduler(module_id_t module_idP, frame_t frameP, int slotP, int thread_id) {
+void nr_ue_pucch_scheduler(module_id_t module_idP, frame_t frameP, int slotP, void *phy_data) {
 
   NR_UE_MAC_INST_t *mac = get_mac_inst(module_idP);
   int O_SR = 0;
@@ -2410,7 +2408,7 @@ void nr_ue_pucch_scheduler(module_id_t module_idP, frame_t frameP, int slotP, in
                           O_SR, O_ACK, O_CSI);
     LOG_D(NR_MAC, "Configuring pucch, is_common = %d\n", pucch.is_common);
     nr_scheduled_response_t scheduled_response;
-    fill_scheduled_response(&scheduled_response, NULL, ul_config, NULL, module_idP, 0 /*TBR fix*/, frameP, slotP, thread_id, NULL);
+    fill_scheduled_response(&scheduled_response, NULL, ul_config, NULL, module_idP, 0 /*TBR fix*/, frameP, slotP, phy_data);
     if(mac->if_module != NULL && mac->if_module->scheduled_response != NULL)
       mac->if_module->scheduled_response(&scheduled_response);
   }
@@ -2514,8 +2512,25 @@ void nr_schedule_csirs_reception(NR_UE_MAC_INST_t *mac, int frame, int slot) {
   uint16_t bwp_size = NRRIV2BW(genericParameters->locationAndBandwidth, MAX_BWP_SIZE);
   uint16_t bwp_start = NRRIV2PRBOFFSET(genericParameters->locationAndBandwidth, MAX_BWP_SIZE);
 
+  // looking for the correct CSI-RS resource in current BWP
+  NR_NZP_CSI_RS_ResourceSetId_t *nzp = NULL;
+  for (int csi_list=0; csi_list<csi_measconfig->csi_ResourceConfigToAddModList->list.count; csi_list++) {
+    NR_CSI_ResourceConfig_t *csires = csi_measconfig->csi_ResourceConfigToAddModList->list.array[csi_list];
+    if(csires->bwp_Id == dl_bwp_id &&
+       csires->csi_RS_ResourceSetList.present == NR_CSI_ResourceConfig__csi_RS_ResourceSetList_PR_nzp_CSI_RS_SSB &&
+       csires->csi_RS_ResourceSetList.choice.nzp_CSI_RS_SSB->nzp_CSI_RS_ResourceSetList) {
+      nzp = csires->csi_RS_ResourceSetList.choice.nzp_CSI_RS_SSB->nzp_CSI_RS_ResourceSetList->list.array[0];
+    }
+  }
+
+  if (nzp == NULL)
+    return; // no resource associated to current BWP
+
   for (int id = 0; id < csi_measconfig->nzp_CSI_RS_ResourceToAddModList->list.count; id++){
     nzpcsi = csi_measconfig->nzp_CSI_RS_ResourceToAddModList->list.array[id];
+    // reception of CSI-RS only for current BWP
+    if (nzpcsi->nzp_CSI_RS_ResourceId != *nzp)
+      continue;
     csi_period_offset(NULL,nzpcsi->periodicityAndOffset,&period,&offset);
     if((frame*nr_slots_per_frame[mu]+slot-offset)%period != 0)
       continue;
@@ -2642,7 +2657,7 @@ void nr_schedule_csirs_reception(NR_UE_MAC_INST_t *mac, int frame, int slot) {
 // PRACH formats 9, 10, 11 are corresponding to dual PRACH format configurations A1/B1, A2/B2, A3/B3.
 // - todo:
 // - Partial configuration is actually already stored in (fapi_nr_prach_config_t) &mac->phy_config.config_req->prach_config
-void nr_ue_prach_scheduler(module_id_t module_idP, frame_t frameP, sub_frame_t slotP, int thread_id) {
+void nr_ue_prach_scheduler(module_id_t module_idP, frame_t frameP, sub_frame_t slotP) {
 
   uint16_t format, format0, format1, ncs;
   int is_nr_prach_slot;
@@ -2684,10 +2699,13 @@ void nr_ue_prach_scheduler(module_id_t module_idP, frame_t frameP, sub_frame_t s
                                                        (int)slotP,
                                                         &prach_occasion_info_p);
 
-    if (is_nr_prach_slot && ra->ra_state == RA_UE_IDLE) {
+    if (is_nr_prach_slot && ra->ra_state == GENERATE_PREAMBLE) {
       AssertFatal(NULL != prach_occasion_info_p,"PRACH Occasion Info not returned in a valid NR Prach Slot\n");
 
       ra->generate_nr_prach = GENERATE_PREAMBLE;
+
+      init_RA(module_idP, &ra->prach_resources, setup, rach_ConfigGeneric, ra->rach_ConfigDedicated);
+      nr_get_RA_window(mac);
 
       format = prach_occasion_info_p->format;
       format0 = format & 0xff;        // single PRACH format
@@ -2718,7 +2736,8 @@ void nr_ue_prach_scheduler(module_id_t module_idP, frame_t frameP, sub_frame_t s
       prach_config_pdu->restricted_set = prach_config->restricted_set_config;
       prach_config_pdu->freq_msg1 = prach_config->num_prach_fd_occasions_list[prach_occasion_info_p->fdm].k1;
 
-      LOG_D(NR_MAC,"Selected RO Frame %u, Slot %u, Symbol %u, Fdm %u\n", frameP, prach_config_pdu->prach_slot, prach_config_pdu->prach_start_symbol, prach_config_pdu->num_ra);
+      LOG_D(NR_MAC,"PRACH scheduler: Selected RO Frame %u, Slot %u, Symbol %u, Fdm %u\n",
+            frameP, prach_config_pdu->prach_slot, prach_config_pdu->prach_start_symbol, prach_config_pdu->num_ra);
 
       // Search which SSB is mapped in the RO (among all the SSBs mapped to this RO)
       for (prach_config_pdu->ssb_nb_in_ro=0; prach_config_pdu->ssb_nb_in_ro<prach_occasion_info_p->nb_mapped_ssb; prach_config_pdu->ssb_nb_in_ro++) {
@@ -2781,9 +2800,16 @@ void nr_ue_prach_scheduler(module_id_t module_idP, frame_t frameP, sub_frame_t s
         }
       } // if format1
 
-      fill_scheduled_response(&scheduled_response, NULL, ul_config, NULL, module_idP, 0 /*TBR fix*/, frameP, slotP, thread_id, NULL);
+      nr_get_prach_resources(module_idP, 0, 0, &ra->prach_resources, prach_config_pdu, ra->rach_ConfigDedicated);
+      prach_config_pdu->ra_PreambleIndex = ra->ra_PreambleIndex;
+      prach_config_pdu->prach_tx_power = get_prach_tx_power(module_idP);
+      set_ra_rnti(mac, prach_config_pdu);
+
+      fill_scheduled_response(&scheduled_response, NULL, ul_config, NULL, module_idP, 0 /*TBR fix*/, frameP, slotP, NULL);
       if(mac->if_module != NULL && mac->if_module->scheduled_response != NULL)
         mac->if_module->scheduled_response(&scheduled_response);
+
+      nr_Msg1_transmitted(module_idP);
     } // is_nr_prach_slot
   } // if is_nr_UL_slot
 }
@@ -2845,7 +2871,7 @@ void nr_ue_sib1_scheduler(module_id_t module_idP,
     slot_s = mac->type0_PDCCH_CSS_config.n_c;
   }
   LOG_D(MAC,"Calling fill_scheduled_response, type0_pdcch, num_pdus %d\n",dl_config->number_pdus);
-  fill_scheduled_response(&scheduled_response, dl_config, NULL, NULL, module_idP, cc_id, frame_s, slot_s, 0, phy_data); // TODO fix thread_id, for now assumed 0
+  fill_scheduled_response(&scheduled_response, dl_config, NULL, NULL, module_idP, cc_id, frame_s, slot_s, phy_data);
 
   if (dl_config->number_pdus) {
     if(mac->if_module != NULL && mac->if_module->scheduled_response != NULL)

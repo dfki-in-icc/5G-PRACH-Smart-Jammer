@@ -46,42 +46,6 @@
 //#define DEBUG_MEAS_UE
 //#define DEBUG_RANK_EST
 
-// Returns the pathloss in dB for the active UL BWP on the selected carrier based on the DL RS associated with the PRACH transmission
-// computation according to clause 7.4 (Physical random access channel) of 3GPP TS 38.213 version 16.3.0 Release 16
-// Assumptions:
-// - PRACH transmission from a UE is not in response to a detection of a PDCCH order by the UE
-// Measurement units:
-// - referenceSignalPower:   dBm/RE (average EPRE of the resources elements that carry secondary synchronization signals in dBm)
-int16_t get_nr_PL(uint8_t Mod_id, uint8_t CC_id, uint8_t gNB_index){
-
-  PHY_VARS_NR_UE *ue = PHY_vars_UE_g[Mod_id][CC_id];
-  int16_t pathloss;
-
-  if (get_softmodem_params()->do_ra){
-
-    long referenceSignalPower = ue->nrUE_config.ssb_config.ss_pbch_power;
-
-    pathloss = (int16_t)(referenceSignalPower - ue->measurements.rsrp_dBm[gNB_index]);
-
-    LOG_D(MAC, "In %s: pathloss %d dB, UE RX total gain %d dB, referenceSignalPower %ld dBm/RE (%f mW), RSRP %d dBm (%f mW)\n",
-      __FUNCTION__,
-      pathloss,
-      ue->rx_total_gain_dB,
-      referenceSignalPower,
-      pow(10, referenceSignalPower/10),
-      ue->measurements.rsrp_dBm[gNB_index],
-      pow(10, ue->measurements.rsrp_dBm[gNB_index]/10));
-
-  } else {
-
-    pathloss = ((int16_t)(((10*ue->rx_total_gain_dB) - dB_fixed_times10(ue->measurements.rsrp[gNB_index]))/10));
-
-  }
-
-  return pathloss;
-
-}
-
 uint32_t get_nr_rx_total_gain_dB (module_id_t Mod_id,uint8_t CC_id)
 {
 
@@ -112,14 +76,13 @@ float_t get_nr_RSRP(module_id_t Mod_id,uint8_t CC_id,uint8_t gNB_index)
 
 void nr_ue_measurements(PHY_VARS_NR_UE *ue,
                         UE_nr_rxtx_proc_t *proc,
-                        uint8_t slot)
+                        uint8_t slot,
+                        NR_UE_DLSCH_t *dlsch)
 {
   int aarx, aatx, gNB_id = 0;
   NR_DL_FRAME_PARMS *frame_parms = &ue->frame_parms;
   int ch_offset = frame_parms->ofdm_symbol_size*2;
-  NR_UE_DLSCH_t *dlsch = ue->dlsch[proc->thread_id][gNB_id][0];
-  uint8_t harq_pid = dlsch->current_harq_pid;
-  int N_RB_DL = dlsch->harq_processes[harq_pid]->nb_rb;
+  int N_RB_DL = dlsch->dlsch_config.number_rbs;
 
   ue->measurements.nb_antennas_rx = frame_parms->nb_antennas_rx;
 
@@ -134,7 +97,7 @@ void nr_ue_measurements(PHY_VARS_NR_UE *ue,
 
       for (aatx = 0; aatx < frame_parms->nb_antenna_ports_gNB; aatx++){
 
-        ue->measurements.rx_spatial_power[gNB_id][aatx][aarx] = (signal_energy_nodc(&ue->pdsch_vars[proc->thread_id][0]->dl_ch_estimates[gNB_id][ch_offset], N_RB_DL*NR_NB_SC_PER_RB));
+        ue->measurements.rx_spatial_power[gNB_id][aatx][aarx] = (signal_energy_nodc(&ue->pdsch_vars[0]->dl_ch_estimates[gNB_id][ch_offset], N_RB_DL*NR_NB_SC_PER_RB));
 
         if (ue->measurements.rx_spatial_power[gNB_id][aatx][aarx]<0)
           ue->measurements.rx_spatial_power[gNB_id][aatx][aarx] = 0;
@@ -229,7 +192,7 @@ void nr_ue_ssb_rsrp_measurements(PHY_VARS_NR_UE *ue,
 
   for (int aarx = 0; aarx < ue->frame_parms.nb_antennas_rx; aarx++) {
 
-    int16_t *rxF_sss = (int16_t *)&ue->common_vars.common_vars_rx_data_per_thread[proc->thread_id].rxdataF[aarx][(l_sss*ue->frame_parms.ofdm_symbol_size) + ssb_offset];
+    int16_t *rxF_sss = (int16_t *)&ue->common_vars.rxdataF[aarx][(l_sss*ue->frame_parms.ofdm_symbol_size) + ssb_offset];
 
     for(int k = k_start; k < k_end; k++){
 
@@ -283,7 +246,7 @@ void nr_ue_rrc_measurements(PHY_VARS_NR_UE *ue,
 
     nb_nulls = 0;
     ue->measurements.n0_power[aarx] = 0;
-    rxF_sss = (int16_t *)&ue->common_vars.common_vars_rx_data_per_thread[proc->thread_id].rxdataF[aarx][(l_sss*ue->frame_parms.ofdm_symbol_size) + ssb_offset];
+    rxF_sss = (int16_t *)&ue->common_vars.rxdataF[aarx][(l_sss*ue->frame_parms.ofdm_symbol_size) + ssb_offset];
 
     //-ve spectrum from SSS
     for(k = k_left; k < k_left + k_length; k++){

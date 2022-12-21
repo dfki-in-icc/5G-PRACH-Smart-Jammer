@@ -58,13 +58,12 @@ RUN apt-get update && \
         libusb-1.0-0 \
         iputils-ping \
         iproute2 \
-        iperf \
-        libyaml-0-2 && \
+        iperf && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /opt/oai-nr-ue/bin
 COPY --from=nr-ue-build \
-    /oai-ran/targets/bin/nr-uesoftmodem.Rel15 \
+    /oai-ran/cmake_targets/ran_build/build/nr-uesoftmodem \
     /oai-ran/docker/scripts/entrypoint.sh \
     ./
 
@@ -91,10 +90,7 @@ COPY --from=nr-ue-build \
 
 # Now we are copying from builder-image the UHD files.
 COPY --from=nr-ue-base /usr/local/bin/uhd_find_devices /usr/local/bin
-COPY --from=nr-ue-base \
-     /usr/local/lib/libuhd.so.3.15.0 \
-     /usr/lib/x86_64-linux-gnu/libprotobuf-c.so.1 \
-     /usr/local/lib/
+COPY --from=nr-ue-base /usr/local/lib/libuhd.so.3.15.0 /usr/local/lib
 COPY --from=nr-ue-base /usr/local/lib/uhd/utils/uhd_images_downloader.py /opt/oai-nr-ue/bin
 
 COPY --from=nr-ue-base \
@@ -111,5 +107,5 @@ RUN /bin/bash -c "ln -s /usr/local/lib/liboai_usrpdevif.so /usr/local/lib/liboai
     ldconfig
 
 WORKDIR /opt/oai-nr-ue
-CMD ["/opt/oai-nr-ue/bin/nr-uesoftmodem.Rel15", "-O", "/opt/oai-nr-ue/etc/nr-ue.conf"]
+CMD ["/opt/oai-nr-ue/bin/nr-uesoftmodem", "-O", "/opt/oai-nr-ue/etc/nr-ue.conf"]
 ENTRYPOINT ["/opt/oai-nr-ue/bin/entrypoint.sh"]

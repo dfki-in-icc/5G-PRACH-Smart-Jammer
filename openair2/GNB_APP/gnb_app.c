@@ -154,15 +154,15 @@ void *gNB_app_task(void *args_p)
         node_type == ngran_gNB_CU ||
         node_type == ngran_eNB_CU ||
         node_type == ngran_ng_eNB_CU) {
-    
+
       if (itti_create_task(TASK_CU_F1, F1AP_CU_task, NULL) < 0) {
         LOG_E(F1AP, "Create task for F1AP CU failed\n");
         AssertFatal(1==0,"exiting");
       }
     }
-    
+
     if (node_type == ngran_gNB_CUCP) {
-      
+
       if (itti_create_task(TASK_CUCP_E1, E1AP_CUCP_task, NULL) < 0) {
         LOG_E(E1AP, "Create task for E1AP CP failed\n");
         AssertFatal(1==0, "exiting");
@@ -170,9 +170,9 @@ void *gNB_app_task(void *args_p)
         // To initialize SCTP listener
       msg_p = itti_alloc_new_message(TASK_GNB_APP, 0, E1AP_SETUP_REQ);
       RCconfig_NR_CU_E1(msg_p, 0);
-      
+
       itti_send_msg_to_task(TASK_CUCP_E1, GNB_MODULE_ID_TO_INSTANCE(0), msg_p);
-      
+
     }
 
     if (node_type == ngran_gNB_CUUP) {
@@ -184,12 +184,12 @@ void *gNB_app_task(void *args_p)
       LOG_I(GNB_APP, "ngran_gNB_CU: Allocating ITTI message for E1AP_SETUP_REQ\n");
       msg_p = itti_alloc_new_message(TASK_GNB_APP, 0, E1AP_SETUP_REQ);
       RCconfig_NR_CU_E1(msg_p, 0);
-      
+
       itti_send_msg_to_task(TASK_CUUP_E1, GNB_MODULE_ID_TO_INSTANCE(0), msg_p);
     }
 
     if (NODE_IS_DU(node_type)) {
-      
+
       if (itti_create_task(TASK_DU_F1, F1AP_DU_task, NULL) < 0) {
         LOG_E(F1AP, "Create task for F1AP DU failed\n");
         AssertFatal(1==0,"exiting");
@@ -198,7 +198,7 @@ void *gNB_app_task(void *args_p)
       LOG_I(GNB_APP,"ngran_gNB_DU: Allocating ITTI message for F1AP_SETUP_REQ\n");
       msg_p = itti_alloc_new_message (TASK_GNB_APP, 0, F1AP_SETUP_REQ);
       RCconfig_NR_DU_F1(msg_p, 0);
-      
+
       itti_send_msg_to_task (TASK_DU_F1, GNB_MODULE_ID_TO_INSTANCE(0), msg_p);
     }
   }

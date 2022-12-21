@@ -48,8 +48,7 @@ RUN yum update -y && \
         python3-pip \
         net-tools \
         iputils \
-        iproute \
-        libyaml && \
+        iproute && \
     pip3 install six && \
     pip3 install requests && \
     echo "/usr/local/lib" > /etc/ld.so.conf.d/local-lib.conf && \
@@ -57,7 +56,7 @@ RUN yum update -y && \
 
 WORKDIR /opt/oai-enb/bin
 COPY --from=enb-build \
-    /oai-ran/targets/bin/lte-softmodem.Rel15 \
+    /oai-ran/cmake_targets/ran_build/build/lte-softmodem \
     /oai-ran/docker/scripts/entrypoint.sh \
     ./
 
@@ -97,7 +96,6 @@ COPY --from=enb-base \
 
 # Now we are copying from builder-image the UHD files.
 COPY --from=enb-base /usr/local/bin/uhd_find_devices /usr/local/bin
-COPY --from=enb-base /usr/lib64/libprotobuf-c.so.1 /usr/local/lib
 COPY --from=enb-base /usr/local/lib64/libuhd.so.3.15.0 /usr/local/lib64
 COPY --from=enb-base /usr/local/lib64/uhd/utils/uhd_images_downloader.py /opt/oai-enb/bin
 
@@ -119,4 +117,4 @@ WORKDIR /opt/oai-enb
 EXPOSE 2152/udp 36412/udp 36422/udp
 
 ENTRYPOINT ["/opt/oai-enb/bin/entrypoint.sh"]
-CMD ["/opt/oai-enb/bin/lte-softmodem.Rel15", "-O", "/opt/oai-enb/etc/enb.conf"]
+CMD ["/opt/oai-enb/bin/lte-softmodem", "-O", "/opt/oai-enb/etc/enb.conf"]

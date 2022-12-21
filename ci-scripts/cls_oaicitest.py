@@ -44,10 +44,6 @@ import datetime
 import signal
 import statistics as stat
 from multiprocessing import Process, Lock, SimpleQueue
-logging.basicConfig(
-	level=logging.DEBUG,
-	format="[%(asctime)s] %(name)s:%(levelname)s: %(message)s"
-)
 
 #import our libs
 import helpreadme as HELP
@@ -263,10 +259,10 @@ class OaiCiTest():
 		if self.ranAllowMerge:
 			if self.ranTargetBranch == '':
 				if (self.ranBranch != 'develop') and (self.ranBranch != 'origin/develop'):
-					SSH.command('git merge --ff origin/develop -m "Temporary merge for CI"', '\$', 5)
+					SSH.command('git merge --ff origin/develop -m "Temporary merge for CI"', '\$', 30)
 			else:
 				logging.debug('Merging with the target branch: ' + self.ranTargetBranch)
-				SSH.command('git merge --ff origin/' + self.ranTargetBranch + ' -m "Temporary merge for CI"', '\$', 5)
+				SSH.command('git merge --ff origin/' + self.ranTargetBranch + ' -m "Temporary merge for CI"', '\$', 30)
 		SSH.command('source oaienv', '\$', 5)
 		SSH.command('cd cmake_targets', '\$', 5)
 		SSH.command('mkdir -p log', '\$', 5)
@@ -303,50 +299,6 @@ class OaiCiTest():
 			HTML.CreateHtmlTabFooter(False)
 			self.ConditionalExit()
 
-	def CheckFlexranCtrlInstallation(self,RAN,EPC,CONTAINERS):
-		if EPC.IPAddress == '' or EPC.UserName == '' or EPC.Password == '':
-			return
-		SSH = sshconnection.SSHConnection()
-		SSH.open(EPC.IPAddress, EPC.UserName, EPC.Password)
-		SSH.command('ls -ls /opt/flexran_rtc/*/rt_controller', '\$', 5)
-		result = re.search('/opt/flexran_rtc/build/rt_controller', SSH.getBefore())
-		if result is not None:
-			RAN.flexranCtrlInstalled=True
-			RAN.flexranCtrlIpAddress=EPC.IPAddress
-			logging.debug('Flexran Controller is installed')
-		else:
-			# Maybe flexran-rtc is deployed into a container
-			SSH.command('docker inspect --format="FLEX_RTC_IP_ADDR = {{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}" prod-flexran-rtc', '\$', 5)
-			result = re.search('FLEX_RTC_IP_ADDR = (?P<flex_ip_addr>[0-9\.]+)', SSH.getBefore())
-			if result is not None:
-				RAN.flexranCtrlDeployed=True
-				RAN.flexranCtrlIpAddress=result.group('flex_ip_addr')
-				CONTAINERS.flexranCtrlDeployed=True
-				CONTAINERS.flexranCtrlIpAddress=result.group('flex_ip_addr')
-				logging.debug('Flexran Controller is deployed: ' + RAN.flexranCtrlIpAddress)
-		SSH.close()
-
-	def InitializeFlexranCtrl(self, HTML,RAN,EPC):
-		if RAN.flexranCtrlInstalled == False:
-			return
-		if EPC.IPAddress == '' or EPC.UserName == '' or EPC.Password == '':
-			HELP.GenericHelp(CONST.Version)
-			sys.exit('Insufficient Parameter')
-		SSH = sshconnection.SSHConnection()
-		SSH.open(EPC.IPAddress, EPC.UserName, EPC.Password)
-		SSH.command('cd /opt/flexran_rtc', '\$', 5)
-		SSH.command('echo ' + EPC.Password + ' | sudo -S rm -f log/*.log', '\$', 5)
-		SSH.command('echo ' + EPC.Password + ' | sudo -S echo "build/rt_controller -c log_config/basic_log" > ./my-flexran-ctl.sh', '\$', 5)
-		SSH.command('echo ' + EPC.Password + ' | sudo -S chmod 755 ./my-flexran-ctl.sh', '\$', 5)
-		SSH.command('echo ' + EPC.Password + ' | sudo -S daemon --unsafe --name=flexran_rtc_daemon --chdir=/opt/flexran_rtc -o /opt/flexran_rtc/log/flexranctl_' + self.testCase_id + '.log ././my-flexran-ctl.sh', '\$', 5)
-		SSH.command('ps -aux | grep --color=never rt_controller', '\$', 5)
-		result = re.search('rt_controller -c ', SSH.getBefore())
-		if result is not None:
-			logging.debug('\u001B[1m Initialize FlexRan Controller Completed\u001B[0m')
-			RAN.flexranCtrlStarted=True
-		SSH.close()
-		HTML.CreateHtmlTestRow('N/A', 'OK', CONST.ALL_PROCESSES_OK)
-	
 	def InitializeUE_common(self, device_id, idx,COTS_UE):
 		try:
 			SSH = sshconnection.SSHConnection()
@@ -526,7 +478,7 @@ class OaiCiTest():
 				else:
 					SSH.command('sed -e "s#93#92#" -e "s#8baf473f2f8fd09487cccbd7097c6862#fec86ba6eb707ed08905757b1bb44b8f#" -e "s#e734f8734007d6c5ce7a0508809e7e9c#C42449363BBAD02B66D16BC975D77CC1#" ../../../openair3/NAS/TOOLS/ue_eurecom_test_sfr.conf > ../../../openair3/NAS/TOOLS/ci-ue_eurecom_test_sfr.conf', '\$', 5)
 				SSH.command('echo ' + self.UEPassword + ' | sudo -S rm -Rf .u*', '\$', 5)
-				SSH.command('echo ' + self.UEPassword + ' | sudo -S ../../../targets/bin/conf2uedata -c ../../../openair3/NAS/TOOLS/ci-ue_eurecom_test_sfr.conf -o .', '\$', 5)
+				SSH.command('echo ' + self.UEPassword + ' | sudo -S ../../nas_sim_tools/build/conf2uedata -c ../../../openair3/NAS/TOOLS/ci-ue_eurecom_test_sfr.conf -o .', '\$', 5)
 		else:
 			SSH.command('if [ -e rbconfig.raw ]; then echo ' + self.UEPassword + ' | sudo -S rm rbconfig.raw; fi', '\$', 5)
 			SSH.command('if [ -e reconfig.raw ]; then echo ' + self.UEPassword + ' | sudo -S rm reconfig.raw; fi', '\$', 5)
@@ -1468,27 +1420,8 @@ class OaiCiTest():
 			i += 1
 		for job in multi_jobs:
 			job.join()
-		if (RAN.flexranCtrlInstalled and RAN.flexranCtrlStarted) or RAN.flexranCtrlDeployed:
-			SSH = sshconnection.SSHConnection()
-			SSH.open(EPC.IPAddress, EPC.UserName, EPC.Password)
-			SSH.command('cd ' + EPC.SourceCodePath + '/scripts', '\$', 5)
-			SSH.command('curl http://' + RAN.flexranCtrlIpAddress + ':9999/stats | jq \'.\' > check_status_' + self.testCase_id + '.log 2>&1', '\$', 5)
-			SSH.command('cat check_status_' + self.testCase_id + '.log | jq \'.eNB_config[0].UE\' | grep -c rnti | sed -e "s#^#Nb Connected UE = #"', '\$', 5)
-			result = re.search('Nb Connected UE = (?P<nb_ues>[0-9]+)', SSH.getBefore())
-			passStatus = True
-			if result is not None:
-				nb_ues = int(result.group('nb_ues'))
-				htmlOptions = 'Nb Connected UE(s) to eNB = ' + str(nb_ues)
-				logging.debug('\u001B[1;37;44m ' + htmlOptions + ' \u001B[0m')
-				if self.expectedNbOfConnectedUEs > -1:
-					if nb_ues != self.expectedNbOfConnectedUEs:
-						passStatus = False
-			else:
-				htmlOptions = 'N/A'
-			SSH.close()
-		else:
-			passStatus = True
-			htmlOptions = 'N/A'
+		passStatus = True
+		htmlOptions = 'N/A'
 
 		if (status_queue.empty()):
 			HTML.CreateHtmlTestRow(htmlOptions, 'KO', CONST.ALL_PROCESSES_OK)
@@ -1665,7 +1598,7 @@ class OaiCiTest():
 					logging.debug("Ping analysis from Amarisoft scenario")
 					path,ping_log_file = os.path.split(Module_UE.Ping)
 					SSH.open(Module_UE.HostIPAddress, Module_UE.HostUsername, Module_UE.HostPassword)
-					SSH.command('cat ' + Module_UE.Ping, '\#', 5)
+					SSH.command('cat ' + Module_UE.Ping, '\$', 5)
 
 				else:
 					ping_status=-1
@@ -2387,6 +2320,8 @@ class OaiCiTest():
 				iperf_status = SSH.command('ssh ' + self.UEDevicesRemoteUser[idx] + '@' + self.UEDevicesRemoteServer[idx] + ' \'adb -s ' + device_id + ' shell "/data/local/tmp/iperf -c ' + EPC_Iperf_UE_IPAddress + ' ' + modified_options + ' -p ' + str(port) + '"\' 2>&1 > iperf_' + self.testCase_id + '_' + device_id + '.log', '\$', int(iperf_time)*5.0)
 				SSH.command('fromdos -o iperf_' + self.testCase_id + '_' + device_id + '.log', '\$', 5)
 				SSH.command('cat iperf_' + self.testCase_id + '_' + device_id + '.log', '\$', 5)
+			# Copying locally iperf client for artifacting
+			SSH.copyin(self.ADBIPAddress, self.ADBUserName, self.ADBPassword, EPC.SourceCodePath+ '/scripts/iperf_' + self.testCase_id + '_' + device_id + '.log', '.')
 		# TIMEOUT Case
 		if iperf_status < 0:
 			SSH.close()
@@ -2404,7 +2339,7 @@ class OaiCiTest():
 			if launchFromTrfContainer:
 				SSH.command('docker exec -it prod-trf-gen /bin/bash -c "killall --signal SIGKILL iperf"', '\$', 5)
 			else:
-				SSH.command('killall --signal SIGKILL iperf', EPC.UserName, 5)
+				SSH.command('killall --signal SIGKILL iperf', '\$', 5)
 			SSH.close()
 		else:
 			cmd = 'killall --signal SIGKILL iperf'
@@ -2425,6 +2360,10 @@ class OaiCiTest():
 				SSH.copyin(EPC.IPAddress, EPC.UserName, EPC.Password, EPC.SourceCodePath+ '/scripts/iperf_server_' + self.testCase_id + '_' + device_id + '.log', '.')
 			filename='iperf_server_' + self.testCase_id + '_' + device_id + '.log'
 			self.Iperf_analyzeV2Server(lock, UE_IPAddress, device_id, statusQueue, modified_options,filename,0)
+		else:
+			# Copying all the time the iperf server for artifacting
+			if launchFromEpc:
+				SSH.copyin(EPC.IPAddress, EPC.UserName, EPC.Password, EPC.SourceCodePath+ '/scripts/iperf_server_' + self.testCase_id + '_' + device_id + '.log', '.')
 		# in case of OAI-UE 
 		if (device_id == 'OAI-UE'):
 			SSH.copyin(self.UEIPAddress, self.UEUserName, self.UEPassword, self.UESourceCodePath + '/cmake_targets/iperf_' + self.testCase_id + '_' + device_id + '.log', '.')
@@ -2784,6 +2723,8 @@ class OaiCiTest():
 					os.remove('iperf_' + self.testCase_id + '_' + device_id + '.log')
 			if (useIperf3):
 				SSH.command('stdbuf -o0 iperf3 -c ' + UE_IPAddress + ' ' + modified_options + ' 2>&1 | stdbuf -o0 tee iperf_' + self.testCase_id + '_' + device_id + '.log', '\$', int(iperf_time)*5.0)
+				# Copying the iperf client locally for artifacting
+				SSH.copyin(EPC.IPAddress, EPC.UserName, EPC.Password, EPC.SourceCodePath + '/scripts/iperf_' + self.testCase_id + '_' + device_id + '.log', '.')
 
 				clientStatus = 0
 				self.Iperf_analyzeV3Output(lock, UE_IPAddress, device_id, statusQueue,SSH)
@@ -2799,6 +2740,8 @@ class OaiCiTest():
 						iperf_status = SSH.command('docker exec -it prod-trf-gen /bin/bash -c "' + prefix + 'iperf -c ' + UE_IPAddress + ' ' + modified_options + '" 2>&1 | tee iperf_' + self.testCase_id + '_' + device_id + '.log', '\$', int(iperf_time)*5.0)
 					else:
 						iperf_status = SSH.command('stdbuf -o0 iperf -c ' + UE_IPAddress + ' ' + modified_options + ' 2>&1 | stdbuf -o0 tee iperf_' + self.testCase_id + '_' + device_id + '.log', '\$', int(iperf_time)*5.0)
+					# Copying the iperf client locally for artifacting
+					SSH.copyin(EPC.IPAddress, EPC.UserName, EPC.Password, EPC.SourceCodePath + '/scripts/iperf_' + self.testCase_id + '_' + device_id + '.log', '.')
 				else:
 					if self.ueIperfVersion == self.dummyIperfVersion:
 						prefix = ''
@@ -2866,6 +2809,13 @@ class OaiCiTest():
 					pass
 				filename='iperf_server_' + self.testCase_id + '_' + device_id + '.log'
 				self.Iperf_analyzeV2Server(lock, UE_IPAddress, device_id, statusQueue, modified_options,filename,0)
+			else:
+				# Copying all the time the iperf server for artifacting
+				time.sleep(1)
+				if (device_id == 'OAI-UE'):
+					SSH.copyin(self.UEIPAddress, self.UEUserName, self.UEPassword, self.UESourceCodePath + '/cmake_targets/iperf_server_' + self.testCase_id + '_' + device_id + '.log', '.')
+				else:
+					SSH.copyin(self.ADBIPAddress, self.ADBUserName, self.ADBPassword, EPC.SourceCodePath + '/scripts/iperf_server_' + self.testCase_id + '_' + device_id + '.log', '.')
 
 			# in case of OAI UE: 
 			if (device_id == 'OAI-UE'):
@@ -3128,12 +3078,10 @@ class OaiCiTest():
 				fileCheck = re.search('enb_', str(RAN.eNBLogFiles[0]))
 				if fileCheck is not None:
 					SSH.copyin(RAN.eNBIPAddress, RAN.eNBUserName, RAN.eNBPassword, RAN.eNBSourceCodePath + '/cmake_targets/' + RAN.eNBLogFiles[0], '.')
-					logStatus = RAN.AnalyzeLogFile_eNB(RAN.eNBLogFiles[0])
+					logStatus = RAN.AnalyzeLogFile_eNB(RAN.eNBLogFiles[0],HTML, RAN.ran_checkers)
 					if logStatus < 0:
 						result = logStatus
 					RAN.eNBLogFiles[0]=''
-				if RAN.flexranCtrlInstalled and RAN.flexranCtrlStarted:
-					self.TerminateFlexranCtrl()
 			return result
 
 	def CheckOAIUEProcessExist(self, initialize_OAI_UE_flag,HTML,RAN):
@@ -3449,22 +3397,6 @@ class OaiCiTest():
 		return global_status
 
 
-	def TerminateFlexranCtrl(self,HTML,RAN,EPC):
-		if RAN.flexranCtrlInstalled == False or RAN.flexranCtrlStarted == False:
-			return
-		if EPC.IPAddress == '' or EPC.UserName == '' or EPC.Password == '':
-			HELP.GenericHelp(CONST.Version)
-			sys.exit('Insufficient Parameter')
-		SSH = sshconnection.SSHConnection()
-		SSH.open(EPC.IPAddress, EPC.UserName, EPC.Password)
-		SSH.command('echo ' + EPC.Password + ' | sudo -S daemon --name=flexran_rtc_daemon --stop', '\$', 5)
-		time.sleep(1)
-		SSH.command('echo ' + EPC.Password + ' | sudo -S killall --signal SIGKILL rt_controller', '\$', 5)
-		time.sleep(1)
-		SSH.close()
-		RAN.flexranCtrlStarted=False
-		HTML.CreateHtmlTestRow('N/A', 'OK', CONST.ALL_PROCESSES_OK)
-
 	def TerminateUE_common(self, device_id, idx,COTS_UE):
 		try:
 			SSH = sshconnection.SSHConnection()
@@ -3615,13 +3547,6 @@ class OaiCiTest():
 					logging.debug('Auto Termination of Instance ' + str(instance) + ' : ' + RAN.air_interface[instance])
 					RAN.eNB_instance=instance
 					RAN.TerminateeNB(HTML,EPC)
-		if RAN.flexranCtrlInstalled and RAN.flexranCtrlStarted:
-			self.testCase_id = 'AUTO-KILL-flexran-ctl'
-			HTML.testCase_id = self.testCase_id
-			self.desc = 'Automatic Termination of FlexRan CTL'
-			HTML.desc = self.desc
-			self.ShowTestID()
-			self.TerminateFlexranCtrl(HTML,RAN,EPC)
 		if CONTAINERS.yamlPath[0] != '':
 			self.testCase_id = 'AUTO-KILL-CONTAINERS'
 			HTML.testCase_id = self.testCase_id
@@ -3649,13 +3574,6 @@ class OaiCiTest():
 					logging.debug('Auto Termination of Instance ' + str(instance) + ' : ' + RAN.air_interface[instance])
 					RAN.eNB_instance=instance
 					RAN.TerminateeNB(HTML,EPC)
-		if RAN.flexranCtrlInstalled and RAN.flexranCtrlStarted:
-			self.testCase_id = 'AUTO-KILL-flexran-ctl'
-			HTML.testCase_id = self.testCase_id
-			self.desc = 'Automatic Termination of FlexRan CTL'
-			HTML.desc = self.desc
-			self.ShowTestID()
-			self.TerminateFlexranCtrl(HTML,RAN,EPC)
 		if CONTAINERS.yamlPath[0] != '':
 			self.testCase_id = 'AUTO-KILL-CONTAINERS'
 			HTML.testCase_id = self.testCase_id
@@ -3699,9 +3617,6 @@ class OaiCiTest():
 				ueIdx += 1
 			cnt += 1
 
-		msg = "FlexRan Controller is connected to " + str(self.x2NbENBs) + " eNB(s)"
-		logging.debug(msg)
-		message += msg + '\n'
 		cnt = 0
 		while cnt < self.x2NbENBs:
 			msg = "   -- eNB: " + str(self.x2ENBBsIds[idx][cnt]) + " is connected to " + str(len(self.x2ENBConnectedUEs[idx][cnt])) + " UE(s)"
@@ -3723,68 +3638,14 @@ class OaiCiTest():
 		logging.debug(msg)
 		fullMessage += msg + '\n'
 		if self.x2_ho_options == 'network':
-			if RAN.flexranCtrlInstalled and RAN.flexranCtrlStarted:
-				self.x2ENBBsIds = []
-				self.x2ENBConnectedUEs = []
-				self.x2ENBBsIds.append([])
-				self.x2ENBBsIds.append([])
-				self.x2ENBConnectedUEs.append([])
-				self.x2ENBConnectedUEs.append([])
-				fullMessage += self.X2_Status(0, self.testCase_id + '_pre_ho.json') 
-
-				msg = "Activating the X2 Net control on each eNB"
-				logging.debug(msg)
-				fullMessage += msg + '\n'
-				eNB_cnt = self.x2NbENBs
-				cnt = 0
-				while cnt < eNB_cnt:
-					cmd = "curl -XPOST http://" + EPC.IPAddress + ":9999/rrc/x2_ho_net_control/enb/" + str(self.x2ENBBsIds[0][cnt]) + "/1"
-					logging.debug(cmd)
-					fullMessage += cmd + '\n'
-					subprocess.run(cmd, shell=True)
-					cnt += 1
-				# Waiting for the activation to be active
-				time.sleep(10)
-				msg = "Switching UE(s) from eNB to eNB"
-				logging.debug(msg)
-				fullMessage += msg + '\n'
-				cnt = 0
-				while cnt < eNB_cnt:
-					ueIdx = 0
-					while ueIdx < len(self.x2ENBConnectedUEs[0][cnt]):
-						cmd = "curl -XPOST http://" + EPC.IPAddress() + ":9999/rrc/ho/senb/" + str(self.x2ENBBsIds[0][cnt]) + "/ue/" + str(self.x2ENBConnectedUEs[0][cnt][ueIdx]) + "/tenb/" + str(self.x2ENBBsIds[0][eNB_cnt - cnt - 1])
-						logging.debug(cmd)
-						fullMessage += cmd + '\n'
-						subprocess.run(cmd, shell=True)
-						ueIdx += 1
-					cnt += 1
-				time.sleep(10)
-				# check
-				logging.debug("Checking the Status after X2 Handover")
-				fullMessage += self.X2_Status(1, self.testCase_id + '_post_ho.json') 
-				cnt = 0
-				x2Status = True
-				while cnt < eNB_cnt:
-					if len(self.x2ENBConnectedUEs[0][cnt]) == len(self.x2ENBConnectedUEs[1][cnt]):
-						x2Status = False
-					cnt += 1
-				if x2Status:
-					msg = "X2 Handover was successful"
-					logging.debug(msg)
-					fullMessage += msg + '</pre>'
-					html_queue.put(fullMessage)
-					HTML.CreateHtmlTestRowQueue('N/A', 'OK', len(self.UEDevices), html_queue)
-				else:
-					msg = "X2 Handover FAILED"
-					logging.error(msg)
-					fullMessage += msg + '</pre>'
-					html_queue.put(fullMessage)
-					HTML.CreateHtmlTestRowQueue('N/A', 'OK', len(self.UEDevices), html_queue)
-			else:
-				HTML.CreateHtmlTestRow('Cannot perform requested X2 Handover', 'KO', CONST.ALL_PROCESSES_OK)
+			HTML.CreateHtmlTestRow('Cannot perform requested X2 Handover', 'KO', CONST.ALL_PROCESSES_OK)
 
 	def LogCollectBuild(self,RAN):
-		SSH = sshconnection.SSHConnection()
+		# Some pipelines are using "none" IP / Credentials
+		# In that case, just forget about it
+		if RAN.eNBIPAddress == 'none' or self.UEIPAddress == 'none':
+			sys.exit(0)
+
 		if (RAN.eNBIPAddress != '' and RAN.eNBUserName != '' and RAN.eNBPassword != ''):
 			IPAddress = RAN.eNBIPAddress
 			UserName = RAN.eNBUserName
@@ -3797,6 +3658,7 @@ class OaiCiTest():
 			SourceCodePath = self.UESourceCodePath
 		else:
 			sys.exit('Insufficient Parameter')
+		SSH = sshconnection.SSHConnection()
 		SSH.open(IPAddress, UserName, Password)
 		SSH.command('cd ' + SourceCodePath, '\$', 5)
 		SSH.command('cd cmake_targets', '\$', 5)
@@ -3805,6 +3667,10 @@ class OaiCiTest():
 		SSH.close()
 
 	def LogCollectPing(self,EPC):
+		# Some pipelines are using "none" IP / Credentials
+		# In that case, just forget about it
+		if EPC.IPAddress == 'none':
+			sys.exit(0)
 		SSH = sshconnection.SSHConnection()
 		SSH.open(EPC.IPAddress, EPC.UserName, EPC.Password)
 		SSH.command('cd ' + EPC.SourceCodePath, '\$', 5)
@@ -3815,6 +3681,10 @@ class OaiCiTest():
 		SSH.close()
 
 	def LogCollectIperf(self,EPC):
+		# Some pipelines are using "none" IP / Credentials
+		# In that case, just forget about it
+		if EPC.IPAddress == 'none':
+			sys.exit(0)
 		SSH = sshconnection.SSHConnection()
 		SSH.open(EPC.IPAddress, EPC.UserName, EPC.Password)
 		SSH.command('cd ' + EPC.SourceCodePath, '\$', 5)
@@ -3825,6 +3695,10 @@ class OaiCiTest():
 		SSH.close()
 	
 	def LogCollectOAIUE(self):
+		# Some pipelines are using "none" IP / Credentials
+		# In that case, just forget about it
+		if self.UEIPAddress == 'none':
+			sys.exit(0)
 		SSH = sshconnection.SSHConnection()
 		SSH.open(self.UEIPAddress, self.UEUserName, self.UEPassword)
 		SSH.command('cd ' + self.UESourceCodePath, '\$', 5)
@@ -3894,8 +3768,8 @@ class OaiCiTest():
 			logging.debug('UHD Version is: ' + UhdVersion)
 			HTML.UhdVersion[idx]=UhdVersion
 		else:
-			SSH.command('uhd_config_info --version', '\$', 5)
-			result = re.search('UHD (?P<uhd_version>[a-zA-Z0-9\.\-]+)', SSH.getBefore())
+			SSH.command('uhd_config_info --abi-version', '\$', 5)
+			result = re.search('ABI version string: (?P<uhd_version>[a-zA-Z0-9\.\-]+)', SSH.getBefore())
 			if result is not None:
 				UhdVersion = result.group('uhd_version')
 				logging.debug('UHD Version is: ' + UhdVersion)
@@ -3937,7 +3811,7 @@ class OaiCiTest():
 		sys.exit(1)
 
 	def ShowTestID(self):
-		logging.debug('\u001B[1m----------------------------------------\u001B[0m')
-		logging.debug('\u001B[1mTest ID:' + self.testCase_id + '\u001B[0m')
-		logging.debug('\u001B[1m' + self.desc + '\u001B[0m')
-		logging.debug('\u001B[1m----------------------------------------\u001B[0m')
+		logging.info('\u001B[1m----------------------------------------\u001B[0m')
+		logging.info('\u001B[1mTest ID:' + self.testCase_id + '\u001B[0m')
+		logging.info('\u001B[1m' + self.desc + '\u001B[0m')
+		logging.info('\u001B[1m----------------------------------------\u001B[0m')

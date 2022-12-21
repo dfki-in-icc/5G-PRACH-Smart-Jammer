@@ -62,7 +62,7 @@ function build_on_vm {
     echo "ARCHIVES_LOC        = $ARCHIVES_LOC"
     echo "BUILD_OPTIONS       = $BUILD_OPTIONS"
 
-    if [[ "$VM_NAME" == *"-enb-usrp"* ]] || [[ "$VM_NAME" == *"-cppcheck"* ]] || [[ "$VM_NAME" == *"-phy-sim"* ]] || [[ "$VM_NAME" == *"-basic-sim"* ]] || [[ "$VM_NAME" == *"-flexran-rtc"* ]]
+    if [[ "$VM_NAME" == *"-enb-usrp"* ]] || [[ "$VM_NAME" == *"-cppcheck"* ]] || [[ "$VM_NAME" == *"-phy-sim"* ]] || [[ "$VM_NAME" == *"-basic-sim"* ]] || [[ "$VM_NAME" == *"-flexran-rtc"* ]] || [[ "$VM_NAME" == *"-rf-sim"* ]] || [[ "$VM_NAME" == *"-ethernet"* ]] || [[ "$VM_NAME" == *"rf5g-sim"* ]] || [[ "$VM_NAME" == *"gnb-usrp"* ]] || [[ "$VM_NAME" == *"nr-ue-usrp"* ]]
     then
         echo "This VM type is no longer supported in the pipeline framework"
         return
@@ -196,7 +196,7 @@ function build_on_vm {
         echo "echo \"cd build\"" >> $VM_CMDS
         echo "cd build" >> $VM_CMDS
         echo "echo \"$BUILD_OPTIONS \"" >> $VM_CMDS
-        echo "$BUILD_OPTIONS > ../cmake_targets/log/rt_controller.Rel15.txt 2>&1" >> $VM_CMDS
+        echo "$BUILD_OPTIONS > ../cmake_targets/log/rt_controller.txt 2>&1" >> $VM_CMDS
     fi
     if [[ "$VM_NAME" != *"-cppcheck"* ]] && [[ "$VM_NAME" != *"-flexran-rtc"* ]]
     then

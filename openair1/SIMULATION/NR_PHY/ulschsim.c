@@ -79,6 +79,16 @@ nfapi_mode_t nfapi_getmode(void) {
 }
 void nfapi_setmode(nfapi_mode_t nfapi_mode) { nfapi_mod=nfapi_mode; }
 
+int pack_nr_srs_normalized_channel_iq_matrix(void *pMessageBuf, void *pPackedBuf, uint32_t packedBufLen)
+{
+  return 0;
+}
+
+int pack_nr_srs_beamforming_report(void *pMessageBuf, void *pPackedBuf, uint32_t packedBufLen)
+{
+  return 0;
+}
+
 NR_IF_Module_t *NR_IF_Module_init(int Mod_id) {return(NULL);}
 
 int nr_postDecode_sim(PHY_VARS_gNB *gNB, notifiedFIFO_elt_t *req) {
@@ -129,7 +139,7 @@ nrUE_params_t *get_nrUE_params(void) {
 int main(int argc, char **argv)
 {
   char c;
-  int i,sf;
+  int i;
   double SNR, snr0 = -2.0, snr1 = 2.0, SNR_lin;
   double snr_step = 0.1;
   uint8_t snr1set = 0;
@@ -389,9 +399,15 @@ int main(int argc, char **argv)
                                 n_rx,
                                 channel_model,
                                 61.44e6, //N_RB2sampling_rate(N_RB_DL),
+                                0,
                                 40e6, //N_RB2channel_bandwidth(N_RB_DL),
                                 DS_TDL,
-                                0,0,0, 0);
+                                0.0,
+                                CORR_LEVEL_LOW,
+                                0,
+                                0,
+                                0,
+                                0);
 
   if (gNB2UE == NULL) {
     printf("Problem generating channel model. Exiting.\n");
@@ -421,7 +437,7 @@ int main(int argc, char **argv)
 
   nr_phy_config_request_sim(gNB, N_RB_UL, N_RB_UL, mu, Nid_cell, SSB_positions);
 
-  phy_init_nr_gNB(gNB, 0, 1); //lowmem
+  phy_init_nr_gNB(gNB);
 
   //configure UE
   UE = malloc(sizeof(PHY_VARS_NR_UE));
@@ -436,13 +452,7 @@ int main(int argc, char **argv)
     exit(-1);
   }
 
-  for (sf = 0; sf < 2; sf++) {
-    UE->ulsch[sf][0] = new_nr_ue_ulsch(N_RB_UL, 8, frame_parms);
-    if (!UE->ulsch[sf][0]) {
-      printf("Can't get ue ulsch structures.\n");
-      exit(-1);
-    }
-  }
+  nr_init_ul_harq_processes(UE->ul_harq_processes, NR_MAX_ULSCH_HARQ_PROCESSES, UE->frame_parms.N_RB_UL, UE->frame_parms.nb_antennas_tx);
 
   unsigned char harq_pid = 0;
   unsigned int TBS = 8424;
@@ -459,7 +469,8 @@ int main(int argc, char **argv)
   NR_UL_gNB_HARQ_t *harq_process_gNB = ulsch_gNB->harq_processes[harq_pid];
   nfapi_nr_pusch_pdu_t *rel15_ul = &harq_process_gNB->ulsch_pdu;
 
-  NR_UE_ULSCH_t *ulsch_ue = UE->ulsch[0][0];
+  nr_phy_data_tx_t phy_data = {0};
+  NR_UE_ULSCH_t *ulsch_ue = &phy_data.ulsch;
 
   if ((Nl==4)||(Nl==3))
     nb_re_dmrs = nb_re_dmrs*2;
@@ -494,22 +505,22 @@ int main(int argc, char **argv)
 
   /////////////////////////[adk] preparing UL harq_process parameters/////////////////////////
   ///////////
-  NR_UL_UE_HARQ_t *harq_process_ul_ue = ulsch_ue->harq_processes[harq_pid];
+  NR_UL_UE_HARQ_t *harq_process_ul_ue = &UE->ul_harq_processes[harq_pid];
   DevAssert(harq_process_ul_ue);
 
   N_PRB_oh   = 0; // higher layer (RRC) parameter xOverhead in PUSCH-ServingCellConfig
   N_RE_prime = NR_NB_SC_PER_RB*nb_symb_sch - nb_re_dmrs - N_PRB_oh;
 
-  harq_process_ul_ue->pusch_pdu.rnti = n_rnti;
-  harq_process_ul_ue->pusch_pdu.mcs_index = Imcs;
-  harq_process_ul_ue->pusch_pdu.nrOfLayers = Nl;
-  harq_process_ul_ue->pusch_pdu.rb_size = nb_rb;
-  harq_process_ul_ue->pusch_pdu.nr_of_symbols = nb_symb_sch;
+  ulsch_ue->pusch_pdu.rnti = n_rnti;
+  ulsch_ue->pusch_pdu.mcs_index = Imcs;
+  ulsch_ue->pusch_pdu.nrOfLayers = Nl;
+  ulsch_ue->pusch_pdu.rb_size = nb_rb;
+  ulsch_ue->pusch_pdu.nr_of_symbols = nb_symb_sch;
   harq_process_ul_ue->num_of_mod_symbols = N_RE_prime*nb_rb*nb_codewords;
-  harq_process_ul_ue->pusch_pdu.pusch_data.rv_index = rvidx;
-  harq_process_ul_ue->pusch_pdu.pusch_data.tb_size  = TBS>>3;
-  harq_process_ul_ue->pusch_pdu.target_code_rate = code_rate;
-  harq_process_ul_ue->pusch_pdu.qam_mod_order = mod_order;
+  ulsch_ue->pusch_pdu.pusch_data.rv_index = rvidx;
+  ulsch_ue->pusch_pdu.pusch_data.tb_size  = TBS>>3;
+  ulsch_ue->pusch_pdu.target_code_rate = code_rate;
+  ulsch_ue->pusch_pdu.qam_mod_order = mod_order;
   unsigned char *test_input = harq_process_ul_ue->a;
 
   ///////////
@@ -555,7 +566,7 @@ int main(int argc, char **argv)
             }
         */
 
-        if (ulsch_ue->harq_processes[harq_pid]->f[i] == 0)
+        if (harq_process_ul_ue->f[i] == 0)
           modulated_input[i] = 1.0;        ///sqrt(2);  //QPSK
         else
           modulated_input[i] = -1.0;        ///sqrt(2);
@@ -579,7 +590,7 @@ int main(int argc, char **argv)
         else
           channel_output_uncoded[i] = 0;
 
-        if (channel_output_uncoded[i] != ulsch_ue->harq_processes[harq_pid]->f[i])
+        if (channel_output_uncoded[i] != harq_process_ul_ue->f[i])
           errors_bit_uncoded = errors_bit_uncoded + 1;
       }
 /*
@@ -644,8 +655,7 @@ int main(int argc, char **argv)
     printf("\n");
   }
 
-  for (sf = 0; sf < 2; sf++)
-    free_nr_ue_ulsch(&UE->ulsch[sf][0], N_RB_UL, frame_parms);
+  free_nr_ue_ul_harq(UE->ul_harq_processes, NR_MAX_ULSCH_HARQ_PROCESSES, UE->frame_parms.N_RB_UL, UE->frame_parms.nb_antennas_tx);
 
   term_nr_ue_signal(UE, 1);
   free(UE);

@@ -546,11 +546,7 @@ instance_t gtpv1Init(openAddr_t context) {
   return id;
 }
 
-void GtpuUpdateTunnelOutgoingPair(instance_t instance,
-                                  ue_id_t ue_id,
-                                  ebi_t bearer_id,
-                                  teid_t newOutgoingTeid,
-                                  transport_layer_addr_t newRemoteAddr) {
+void GtpuUpdateTunnelOutgoingPair(instance_t instance, ue_id_t ue_id, ebi_t bearer_id, teid_t newOutgoingTeid, transport_layer_addr_t newRemoteAddr) {
   pthread_mutex_lock(&globGtp.gtp_lock);
   getInstRetVoid(compatInst(instance));
   getUeRetVoid(inst, ue_id);
@@ -954,7 +950,7 @@ static int Gtpv1uHandleEndMarker(int h,
   ctxt.module_id = 0;
   ctxt.enb_flag = 1;
   ctxt.instance = inst->addr.originInstance;
-  ctxt.rnti = tunnel->second.ue_id;
+  ctxt.rntiMaybeUEid = tunnel->second.ue_id;
   ctxt.frame = 0;
   ctxt.subframe = 0;
   ctxt.eNB_index = 0;
@@ -1087,7 +1083,7 @@ static int Gtpv1uHandleGpdu(int h,
   ctxt.module_id = 0;
   ctxt.enb_flag = 1;
   ctxt.instance = inst->addr.originInstance;
-  ctxt.rnti = tunnel->second.ue_id;
+  ctxt.rntiMaybeUEid = tunnel->second.ue_id;
   ctxt.frame = 0;
   ctxt.subframe = 0;
   ctxt.eNB_index = 0;
@@ -1137,7 +1133,7 @@ static int Gtpv1uHandleGpdu(int h,
 
   if(NR_PDCP_PDU_SN > 0 && NR_PDCP_PDU_SN %5 ==0){
     LOG_D (GTPU, "Create and send DL DATA Delivery status for the previously received PDU, NR_PDCP_PDU_SN: %u \n", NR_PDCP_PDU_SN);
-    int rlc_tx_buffer_space = nr_rlc_get_available_tx_space(ctxt.rnti, rb_id);
+    int rlc_tx_buffer_space = nr_rlc_get_available_tx_space(ctxt.rntiMaybeUEid, rb_id + 3);
     LOG_D(GTPU, "Available buffer size in RLC for Tx: %d \n", rlc_tx_buffer_space);
     /*Total size of DDD_status PDU = 1 octet to report extension header length
      * size of mandatory part + 3 octets for highest transmitted/delivered PDCP SN

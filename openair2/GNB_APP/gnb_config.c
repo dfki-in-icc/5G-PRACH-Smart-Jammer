@@ -50,11 +50,12 @@
 // #include "LAYER2/MAC/extern.h"
 // #include "LAYER2/MAC/proto.h"
 #include "PHY/INIT/phy_init.h"
-#include "targets/ARCH/ETHERNET/USERSPACE/LIB/ethernet_lib.h"
+#include "radio/ETHERNET/USERSPACE/LIB/ethernet_lib.h"
 #include "nfapi_vnf.h"
 #include "nfapi_pnf.h"
 
 //#include "L1_paramdef.h"
+#include "prs_nr_paramdef.h"
 #include "L1_nr_paramdef.h"
 #include "MACRLC_nr_paramdef.h"
 #include "common/config/config_userapi.h"
@@ -82,6 +83,7 @@
 #include "NR_EUTRA-MBSFN-SubframeConfig.h"
 
 #include "RRC/NR/MESSAGES/asn1_msg.h"
+#include "RRC/NR/nr_rrc_extern.h"
 #include "openair2/LAYER2/nr_pdcp/nr_pdcp.h"
 
 extern uint16_t sf_ahead;
@@ -587,87 +589,97 @@ void fix_scd(NR_ServingCellConfig_t *scd) {
   }
 }
 
-void RCconfig_nr_flexran()
+void RCconfig_nr_prs(void)
 {
-  uint16_t  i;
-  uint16_t  num_gnbs;
-  char      aprefix[MAX_OPTNAME_SIZE*2 + 8];
-  /* this will possibly truncate the cell id (RRC assumes int32_t).
-   * Both Nid_cell and gnb_id are signed in RRC case, but we use unsigned for
-   * the bitshifting to work properly */
-  uint16_t  Nid_cell_tr = 0;
-  uint32_t  gnb_id = 0;
+  uint16_t  j = 0, k = 0;
+  prs_config_t *prs_config = NULL;
+  char str[7][100] = {0};
 
-
-  /* get number of gNBs */
-  paramdef_t GNBSParams[] = GNBSPARAMS_DESC;
-  config_get(GNBSParams, sizeof(GNBSParams)/sizeof(paramdef_t), NULL);
-  num_gnbs = GNBSParams[GNB_ACTIVE_GNBS_IDX].numelt;
-
-  /* for gNB ID */
-  paramdef_t GNBParams[]  = GNBPARAMS_DESC;
-  paramlist_def_t GNBParamList = {GNB_CONFIG_STRING_GNB_LIST, NULL, 0};
-
-  paramdef_t flexranParams[] = FLEXRANPARAMS_DESC;
-  config_get(flexranParams, sizeof(flexranParams)/sizeof(paramdef_t), CONFIG_STRING_NETWORK_CONTROLLER_CONFIG);
-
-  if (!RC.flexran) {
-    RC.flexran = calloc(num_gnbs, sizeof(flexran_agent_info_t*));
-    AssertFatal(RC.flexran,
-                "can't ALLOCATE %zu Bytes for %d flexran agent info with size %zu\n",
-                num_gnbs * sizeof(flexran_agent_info_t*),
-                num_gnbs, sizeof(flexran_agent_info_t*));
+  paramdef_t PRS_Params[] = PRS_PARAMS_DESC;
+  paramlist_def_t PRS_ParamList = {CONFIG_STRING_PRS_CONFIG,NULL,0};
+  if (RC.gNB == NULL) {
+    RC.gNB                       = (PHY_VARS_gNB **)malloc((1+NUMBER_OF_gNB_MAX)*sizeof(PHY_VARS_gNB*));
+    LOG_I(NR_PHY,"RC.gNB = %p\n",RC.gNB);
+    memset(RC.gNB,0,(1+NUMBER_OF_gNB_MAX)*sizeof(PHY_VARS_gNB*));
   }
 
-  for (i = 0; i < num_gnbs; i++) {
-    RC.flexran[i] = calloc(1, sizeof(flexran_agent_info_t));
-    AssertFatal(RC.flexran[i],
-                "can't ALLOCATE %zu Bytes for flexran agent info (iteration %d/%d)\n",
-                sizeof(flexran_agent_info_t), i + 1, num_gnbs);
-    /* if config says "yes", enable Agent, in all other cases it's like "no" */
-    RC.flexran[i]->enabled          = strcasecmp(*(flexranParams[FLEXRAN_ENABLED].strptr), "yes") == 0;
-    /* if not enabled, simply skip the rest, it is not needed anyway */
-    if (!RC.flexran[i]->enabled)
-      continue;
-    RC.flexran[i]->interface_name   = strdup(*(flexranParams[FLEXRAN_INTERFACE_NAME_IDX].strptr));
-    //inet_ntop(AF_INET, &(enb_properties->properties[mod_id]->flexran_agent_ipv4_address), in_ip, INET_ADDRSTRLEN);
-    RC.flexran[i]->remote_ipv4_addr = strdup(*(flexranParams[FLEXRAN_IPV4_ADDRESS_IDX].strptr));
-    RC.flexran[i]->remote_port      = *(flexranParams[FLEXRAN_PORT_IDX].uptr);
-    RC.flexran[i]->cache_name       = strdup(*(flexranParams[FLEXRAN_CACHE_IDX].strptr));
-    RC.flexran[i]->node_ctrl_state  = strcasecmp(*(flexranParams[FLEXRAN_AWAIT_RECONF_IDX].strptr), "yes") == 0 ? ENB_WAIT : ENB_NORMAL_OPERATION;
+  config_getlist( &PRS_ParamList,PRS_Params,sizeof(PRS_Params)/sizeof(paramdef_t), NULL);
 
-    config_getlist(&GNBParamList, GNBParams, sizeof(GNBParams)/sizeof(paramdef_t),NULL);
-    /* gNB ID from configuration, as read in by RCconfig_RRC() */
-    if (!GNBParamList.paramarray[i][GNB_GNB_ID_IDX].uptr) {
-      // Calculate a default gNB ID
-    if (get_softmodem_params()->sa) 
-      gnb_id = i + (ngap_generate_gNB_id () & 0xFFFFFF8);
-    else
-      gnb_id = i;
-    } else {
-        gnb_id = *(GNBParamList.paramarray[i][GNB_GNB_ID_IDX].uptr);
-    }
+  if (PRS_ParamList.numelt > 0) {
+    for (j = 0; j < RC.nb_nr_L1_inst; j++) {
 
-    /* cell ID */
-    sprintf(aprefix, "%s.[%i]", GNB_CONFIG_STRING_GNB_LIST, i);
+      if (RC.gNB[j] == NULL) {
+        RC.gNB[j]                       = (PHY_VARS_gNB *)malloc(sizeof(PHY_VARS_gNB));
+        LOG_I(NR_PHY,"RC.gNB[%d] = %p\n",j,RC.gNB[j]);
+        memset(RC.gNB[j],0,sizeof(PHY_VARS_gNB));
+	      RC.gNB[j]->Mod_id  = j;
+      }
 
-    RC.flexran[i]->mod_id   = i;
-    RC.flexran[i]->agent_id = (((uint64_t)i) << 48) | (((uint64_t)gnb_id) << 16) | ((uint64_t)Nid_cell_tr);
+      RC.gNB[j]->prs_vars.NumPRSResources = *(PRS_ParamList.paramarray[j][NUM_PRS_RESOURCES].uptr);
+      for (k = 0; k < RC.gNB[j]->prs_vars.NumPRSResources; k++)
+      {
+        prs_config = &RC.gNB[j]->prs_vars.prs_cfg[k];
+        prs_config->PRSResourceSetPeriod[0]  = PRS_ParamList.paramarray[j][PRS_RESOURCE_SET_PERIOD_LIST].uptr[0];
+        prs_config->PRSResourceSetPeriod[1]  = PRS_ParamList.paramarray[j][PRS_RESOURCE_SET_PERIOD_LIST].uptr[1];
+        // per PRS resources parameters
+        prs_config->SymbolStart              = PRS_ParamList.paramarray[j][PRS_SYMBOL_START_LIST].uptr[k];
+        prs_config->NumPRSSymbols            = PRS_ParamList.paramarray[j][PRS_NUM_SYMBOLS_LIST].uptr[k];
+        prs_config->REOffset                 = PRS_ParamList.paramarray[j][PRS_RE_OFFSET_LIST].uptr[k];
+        prs_config->PRSResourceOffset        = PRS_ParamList.paramarray[j][PRS_RESOURCE_OFFSET_LIST].uptr[k];
+        prs_config->NPRSID                   = PRS_ParamList.paramarray[j][PRS_ID_LIST].uptr[k];
+        // Common parameters to all PRS resources
+        prs_config->NumRB                    = *(PRS_ParamList.paramarray[j][PRS_NUM_RB].uptr);
+        prs_config->RBOffset                 = *(PRS_ParamList.paramarray[j][PRS_RB_OFFSET].uptr);
+        prs_config->CombSize                 = *(PRS_ParamList.paramarray[j][PRS_COMB_SIZE].uptr);
+        prs_config->PRSResourceRepetition    = *(PRS_ParamList.paramarray[j][PRS_RESOURCE_REPETITION].uptr);
+        prs_config->PRSResourceTimeGap       = *(PRS_ParamList.paramarray[j][PRS_RESOURCE_TIME_GAP].uptr);
+        prs_config->MutingBitRepetition      = *(PRS_ParamList.paramarray[j][PRS_MUTING_BIT_REPETITION].uptr);
+        for (int l = 0; l < PRS_ParamList.paramarray[j][PRS_MUTING_PATTERN1_LIST].numelt; l++)
+        {
+          prs_config->MutingPattern1[l]      = PRS_ParamList.paramarray[j][PRS_MUTING_PATTERN1_LIST].uptr[l];
+          if (k == 0) // print only for 0th resource 
+            snprintf(str[5]+strlen(str[5]),sizeof(str[5])-strlen(str[5]),"%d, ",prs_config->MutingPattern1[l]);
+        }
+        for (int l = 0; l < PRS_ParamList.paramarray[j][PRS_MUTING_PATTERN2_LIST].numelt; l++)
+        {
+          prs_config->MutingPattern2[l]      = PRS_ParamList.paramarray[j][PRS_MUTING_PATTERN2_LIST].uptr[l];
+          if (k == 0) // print only for 0th resource
+            snprintf(str[6]+strlen(str[6]),sizeof(str[6])-strlen(str[6]),"%d, ",prs_config->MutingPattern2[l]);
+        }
 
-    /*
-     * Assume for the moment the monolithic case, i.e. agent can provide information for all layers
-     * Consider using uint16_t flexran_get_capabilities_mask(mid_t mod_id),
-     *                    with RC.rrc[mod_id]->node_type = ngran_gNB
-     */
-    RC.flexran[i]->capability_mask = (1 << PROTOCOL__FLEX_BS_CAPABILITY__LOPHY)
-    		                       | (1 << PROTOCOL__FLEX_BS_CAPABILITY__HIPHY)
-								   | (1 << PROTOCOL__FLEX_BS_CAPABILITY__LOMAC)
-								   | (1 << PROTOCOL__FLEX_BS_CAPABILITY__HIMAC)
-								   | (1 << PROTOCOL__FLEX_BS_CAPABILITY__RLC)
-								   | (1 << PROTOCOL__FLEX_BS_CAPABILITY__PDCP)
-								   | (1 << PROTOCOL__FLEX_BS_CAPABILITY__SDAP)
-								   | (1 << PROTOCOL__FLEX_BS_CAPABILITY__RRC);
+        // print to buffer
+        snprintf(str[0]+strlen(str[0]),sizeof(str[0])-strlen(str[0]),"%d, ",prs_config->SymbolStart);
+        snprintf(str[1]+strlen(str[1]),sizeof(str[1])-strlen(str[1]),"%d, ",prs_config->NumPRSSymbols);
+        snprintf(str[2]+strlen(str[2]),sizeof(str[2])-strlen(str[2]),"%d, ",prs_config->REOffset);
+        snprintf(str[3]+strlen(str[3]),sizeof(str[3])-strlen(str[3]),"%d, ",prs_config->PRSResourceOffset);
+        snprintf(str[4]+strlen(str[4]),sizeof(str[4])-strlen(str[4]),"%d, ",prs_config->NPRSID);
+      } // for k
 
+      prs_config = &RC.gNB[j]->prs_vars.prs_cfg[0];
+      LOG_I(PHY, "-----------------------------------------\n");
+      LOG_I(PHY, "PRS Config for gNB_id %d @ %p\n", j, prs_config);
+      LOG_I(PHY, "-----------------------------------------\n");
+      LOG_I(PHY, "NumPRSResources \t%d\n", RC.gNB[j]->prs_vars.NumPRSResources);
+      LOG_I(PHY, "PRSResourceSetPeriod \t[%d, %d]\n", prs_config->PRSResourceSetPeriod[0], prs_config->PRSResourceSetPeriod[1]);
+      LOG_I(PHY, "NumRB \t\t\t%d\n", prs_config->NumRB);
+      LOG_I(PHY, "RBOffset \t\t%d\n", prs_config->RBOffset);
+      LOG_I(PHY, "CombSize \t\t%d\n", prs_config->CombSize);
+      LOG_I(PHY, "PRSResourceRepetition \t%d\n", prs_config->PRSResourceRepetition);
+      LOG_I(PHY, "PRSResourceTimeGap \t%d\n", prs_config->PRSResourceTimeGap);
+      LOG_I(PHY, "MutingBitRepetition \t%d\n", prs_config->MutingBitRepetition);
+      LOG_I(PHY, "SymbolStart \t\t[%s\b\b]\n", str[0]);
+      LOG_I(PHY, "NumPRSSymbols \t\t[%s\b\b]\n", str[1]);
+      LOG_I(PHY, "REOffset \t\t[%s\b\b]\n", str[2]);
+      LOG_I(PHY, "PRSResourceOffset \t[%s\b\b]\n", str[3]);
+      LOG_I(PHY, "NPRS_ID \t\t[%s\b\b]\n", str[4]);
+      LOG_I(PHY, "MutingPattern1 \t\t[%s\b\b]\n", str[5]);
+      LOG_I(PHY, "MutingPattern2 \t\t[%s\b\b]\n", str[6]);
+      LOG_I(PHY, "-----------------------------------------\n");
+    } // for j
+  }
+  else
+  {
+    LOG_E(PHY,"No " CONFIG_STRING_PRS_CONFIG " configuration found..!!\n");
   }
 }
 
@@ -732,6 +744,7 @@ void RCconfig_NR_L1(void) {
       RC.gNB[j]->pucch0_thres       = *(L1_ParamList.paramarray[j][L1_PUCCH0_DTX_THRESHOLD].uptr);
       RC.gNB[j]->prach_thres        = *(L1_ParamList.paramarray[j][L1_PRACH_DTX_THRESHOLD].uptr);
       RC.gNB[j]->pusch_thres        = *(L1_ParamList.paramarray[j][L1_PUSCH_DTX_THRESHOLD].uptr);
+      RC.gNB[j]->srs_thres          = *(L1_ParamList.paramarray[j][L1_SRS_DTX_THRESHOLD].uptr);
       RC.gNB[j]->max_ldpc_iterations = *(L1_ParamList.paramarray[j][L1_MAX_LDPC_ITERATIONS].uptr);
       RC.gNB[j]->num_ulprbbl        = num_prbbl;
       RC.gNB[j]->ap_N1              = N1;
@@ -1241,6 +1254,8 @@ void RCconfig_NRRRC(MessageDef *msg_p, uint32_t i, gNB_RRC_INST *rrc) {
         NRRRC_CONFIGURATION_REQ (msg_p).scd = scd;
         NRRRC_CONFIGURATION_REQ (msg_p).enable_sdap = *GNBParamList.paramarray[i][GNB_ENABLE_SDAP_IDX].iptr;
         LOG_I(GNB_APP, "SDAP layer is %s\n", NRRRC_CONFIGURATION_REQ (msg_p).enable_sdap ? "enabled" : "disabled");
+        NRRRC_CONFIGURATION_REQ (msg_p).drbs = *GNBParamList.paramarray[i][GNB_DRBS].iptr;
+        LOG_I(GNB_APP, "Data Radio Bearer count %d\n", NRRRC_CONFIGURATION_REQ (msg_p).drbs);
 
       }//
     }//End for (k=0; k <num_gnbs ; k++)
@@ -2334,6 +2349,7 @@ void nr_read_config_and_init(void) {
   uint32_t    gnb_nb = RC.nb_nr_inst;
 
   RCconfig_NR_L1();
+  RCconfig_nr_prs();
   RCconfig_nr_macrlc();
 
   LOG_I(PHY, "%s() RC.nb_nr_L1_inst:%d\n", __FUNCTION__, RC.nb_nr_L1_inst);

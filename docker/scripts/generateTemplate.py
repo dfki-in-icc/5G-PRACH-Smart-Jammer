@@ -60,7 +60,7 @@ def main():
                              "rcc.band40.tm1.25PRB": f'{data[0]["paths"]["dest_dir"]}/{outputfilename}',
                              "gnb.band78.tm1.fr1.106PRB.usrpb210.conf": f'{data[0]["paths"]["dest_dir"]}/{outputfilename}',
                              "gnb.band78.sa.fr1.106PRB.usrpn310.conf": f'{data[0]["paths"]["dest_dir"]}/{outputfilename}',
-                             "gnb.sa.band78.fr1.106PRB.usrpb210.conf": f'{data[0]["paths"]["dest_dir"]}/{outputfilename}',
+                             "gnb.sa.band78.fr1.51PRB.usrpb210.conf": f'{data[0]["paths"]["dest_dir"]}/{outputfilename}',
                              "gnb.sa.band66.fr1.106PRB.usrpn300.conf": f'{data[0]["paths"]["dest_dir"]}/{outputfilename}',
                              "gNB_SA_CU.conf": f'{data[0]["paths"]["dest_dir"]}/{outputfilename}',
                              "gNB_SA_DU.conf": f'{data[0]["paths"]["dest_dir"]}/{outputfilename}',
@@ -90,7 +90,7 @@ def main():
               if templine.find(key["key"]) >= 0:
                 if re.search(r'preference', templine): # false positive
                   continue
-                if re.search(r'sdr_addrs', templine): # false positive
+                if key["key"] != 'sdr_addrs' and re.search(r'sdr_addrs', templine): # false positive
                   continue
                 elif re.search('downlink_frequency', line):
                   templine = re.sub(r'[0-9]+', key["env"], line)
@@ -106,7 +106,10 @@ def main():
                                     r'\1' + key["env"] + r"\2", templine)
                 # next: matches key = NUMBER
                 elif re.search(key["key"] + "\s*=\s*[x0-9]+", templine): # x for "0x" hex start
-                  templine = re.sub("(" + key["key"] + "\s*=\s*(?:0x)?)[x0-9]+", r"\1" + key["env"], templine)
+                  templine = re.sub("(" + key["key"] + "\s*=\s*(?:0x)?)[x0-9a-fA-F]+", r"\1" + key["env"], templine)
+                # next: special case for sdr_addrs
+                elif key["key"] == 'sdr_addrs' and re.search(key["key"] + "\s*=\s*", templine):
+                  templine = re.sub("(" + key["key"] + "\s*=\s*.*$)", key["key"] + " = \"" + key["env"] + "\"", templine)
             outputfile.write(templine)
 
 if __name__ == "__main__":

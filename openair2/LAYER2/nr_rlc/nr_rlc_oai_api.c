@@ -164,9 +164,10 @@ void mac_rlc_data_ind     (
 	  LOG_I(RLC, "RLC instance for the given UE was not found \n");
 
   switch (channel_idP) {
-  case 1 ... 3: rb = ue->srb[channel_idP - 1]; break;
-  case 4 ... 8: rb = ue->drb[channel_idP - 4]; break;
-  default:      rb = NULL;                     break;
+  case 0:        rb = ue->srb0;                 break;
+  case 1 ... 3:  rb = ue->srb[channel_idP - 1]; break;
+  case 4 ... 32: rb = ue->drb[channel_idP - 4]; break;
+  default:       rb = NULL;                     break;
   }
 
   if (rb != NULL) {
@@ -205,8 +206,9 @@ tbs_size_t mac_rlc_data_req(
   ue = nr_rlc_manager_get_ue(nr_rlc_ue_manager, rntiP);
 
   switch (channel_idP) {
-  case 1 ... 3: rb = ue->srb[channel_idP - 1]; break;
-  case 4 ... 8: rb = ue->drb[channel_idP - 4]; break;
+  case 0:        rb = ue->srb0;                 break;
+  case 1 ... 3:  rb = ue->srb[channel_idP - 1]; break;
+  case 4 ... 32: rb = ue->drb[channel_idP - 4]; break;
   default:
   rb = NULL;
   LOG_E(RLC, "In %s:%d:%s: data request for unknown RB with LCID 0x%02x !\n", __FILE__, __LINE__, __FUNCTION__, channel_idP);
@@ -253,9 +255,10 @@ mac_rlc_status_resp_t mac_rlc_status_ind(
   ue = nr_rlc_manager_get_ue(nr_rlc_ue_manager, rntiP);
 
   switch (channel_idP) {
-  case 1 ... 3: rb = ue->srb[channel_idP - 1]; break;
-  case 4 ... 8: rb = ue->drb[channel_idP - 4]; break;
-  default:      rb = NULL;                     break;
+  case 0:                          rb = ue->srb0;                 break;
+  case 1 ... 3:                    rb = ue->srb[channel_idP - 1]; break;
+  case 4 ... NGAP_MAX_DRBS_PER_UE: rb = ue->drb[channel_idP - 4]; break;
+  default:                         rb = NULL;                     break;
   }
 
   if (rb != NULL) {
@@ -271,7 +274,7 @@ mac_rlc_status_resp_t mac_rlc_status_ind(
                         + buf_stat.retx_size
                         + buf_stat.tx_size;
   } else {
-    if (!(frameP%128)) //to suppress this warning message
+    if (!(frameP%128) || channel_idP == 0) //to suppress this warning message
       LOG_W(RLC, "[%s] Radio Bearer (channel ID %d) is NULL for UE with rntiP %x\n", __FUNCTION__, channel_idP, rntiP);
     ret.bytes_in_buffer = 0;
   }
@@ -317,7 +320,7 @@ rlc_buffer_occupancy_t mac_rlc_get_buffer_occupancy_ind(
 
   switch (channel_idP) {
   case 1 ... 3: rb = ue->srb[channel_idP - 1]; break;
-  case 4 ... 8: rb = ue->drb[channel_idP - 4]; break;
+  case 4 ... NGAP_MAX_DRBS_PER_UE: rb = ue->drb[channel_idP - 4]; break;
   default:      rb = NULL;                     break;
   }
 
@@ -358,7 +361,7 @@ rlc_op_status_t rlc_data_req     (const protocol_ctxt_t *const ctxt_pP,
                         const uint32_t *const destinationL2Id
 			)
 {
-  int rnti = ctxt_pP->rnti;
+  int rnti = ctxt_pP->rntiMaybeUEid;
   nr_rlc_ue_t *ue;
   nr_rlc_entity_t *rb;
 
@@ -367,8 +370,7 @@ rlc_op_status_t rlc_data_req     (const protocol_ctxt_t *const ctxt_pP,
         MBMS_flagP);
 
   if (ctxt_pP->enb_flag)
-    T(T_ENB_RLC_DL, T_INT(ctxt_pP->module_id),
-      T_INT(ctxt_pP->rnti), T_INT(rb_idP), T_INT(sdu_sizeP));
+    T(T_ENB_RLC_DL, T_INT(ctxt_pP->module_id), T_INT(ctxt_pP->rntiMaybeUEid), T_INT(rb_idP), T_INT(sdu_sizeP));
 
   nr_rlc_manager_lock(nr_rlc_ue_manager);
   ue = nr_rlc_manager_get_ue(nr_rlc_ue_manager, rnti);
@@ -379,7 +381,7 @@ rlc_op_status_t rlc_data_req     (const protocol_ctxt_t *const ctxt_pP,
     if (rb_idP >= 1 && rb_idP <= 2)
       rb = ue->srb[rb_idP - 1];
   } else {
-    if (rb_idP >= 1 && rb_idP <= 5)
+    if (rb_idP >= 1 && rb_idP <= MAX_DRBS_PER_UE)
       rb = ue->drb[rb_idP - 1];
   }
 
@@ -410,7 +412,7 @@ int nr_rlc_get_available_tx_space(
 
   switch (channel_idP) {
   case 1 ... 3: rb = ue->srb[channel_idP - 1]; break;
-  case 4 ... 8: rb = ue->drb[channel_idP - 4]; break;
+  case 4 ... NGAP_MAX_DRBS_PER_UE: rb = ue->drb[channel_idP - 4]; break;
   default:      rb = NULL;                     break;
   }
 
@@ -503,7 +505,7 @@ rb_found:
 
   /* used fields? */
   ctx.module_id = 0;
-  ctx.rnti = ue->rnti;
+  ctx.rntiMaybeUEid = ue->rnti;
 
   is_enb = nr_rlc_manager_get_enb_flag(nr_rlc_ue_manager);
   ctx.enb_flag = is_enb;
@@ -587,7 +589,7 @@ static void successful_delivery(void *_ue, nr_rlc_entity_t *entity, int sdu_id)
   }
 
   /* maybe DRB? */
-  for (i = 0; i < 5; i++) {
+  for (i = 0; i < MAX_DRBS_PER_UE; i++) {
     if (entity == ue->drb[i]) {
       is_srb = 0;
       rb_id = i+1;
@@ -645,7 +647,7 @@ static void max_retx_reached(void *_ue, nr_rlc_entity_t *entity)
   }
 
   /* maybe DRB? */
-  for (i = 0; i < 5; i++) {
+  for (i = 0; i < MAX_DRBS_PER_UE; i++) {
     if (entity == ue->drb[i]) {
       is_srb = 0;
       rb_id = i+1;
@@ -746,7 +748,7 @@ static void add_rlc_srb(int rnti, struct NR_SRB_ToAddMod *s, NR_RLC_BearerConfig
   nr_rlc_manager_lock(nr_rlc_ue_manager);
   ue = nr_rlc_manager_get_ue(nr_rlc_ue_manager, rnti);
   if (ue->srb[srb_id-1] != NULL) {
-    LOG_W(RLC, "%s:%d:%s: SRB %d already exists for UE with RNTI 0x%x, do nothing\n", __FILE__, __LINE__, __FUNCTION__, srb_id, rnti);
+    LOG_W(RLC, "%s:%d:%s: SRB %d already exists for UE with RNTI %04x, do nothing\n", __FILE__, __LINE__, __FUNCTION__, srb_id, rnti);
   } else {
     /* hack: hardcode values for NR */
     t_poll_retransmit = 45;
@@ -791,7 +793,7 @@ static void add_drb_am(int rnti, struct NR_DRB_ToAddMod *s, NR_RLC_BearerConfig_
   int t_reassembly;
   int sn_field_length;
 
-  if (!(drb_id >= 1 && drb_id <= 5)) {
+  if (!(drb_id >= 1 && drb_id <= MAX_DRBS_PER_UE)) {
     LOG_E(RLC, "%s:%d:%s: fatal, bad srb id %d\n",
           __FILE__, __LINE__, __FUNCTION__, drb_id);
     exit(1);
@@ -836,7 +838,7 @@ static void add_drb_am(int rnti, struct NR_DRB_ToAddMod *s, NR_RLC_BearerConfig_
   nr_rlc_manager_lock(nr_rlc_ue_manager);
   ue = nr_rlc_manager_get_ue(nr_rlc_ue_manager, rnti);
   if (ue->drb[drb_id-1] != NULL) {
-    LOG_W(RLC, "%s:%d:%s: DRB %d already exists for UE with RNTI %d, do nothing\n", __FILE__, __LINE__, __FUNCTION__, drb_id, rnti);
+    LOG_W(RLC, "%s:%d:%s: DRB %d already exists for UE with RNTI %04x, do nothing\n", __FILE__, __LINE__, __FUNCTION__, drb_id, rnti);
   } else {
     nr_rlc_am = new_nr_rlc_entity_am(10000000,
                                      10000000,
@@ -868,7 +870,7 @@ static void add_drb_um(int rnti, struct NR_DRB_ToAddMod *s, NR_RLC_BearerConfig_
   int sn_field_length;
   int t_reassembly;
 
-  if (!(drb_id >= 1 && drb_id <= 5)) {
+  if (!(drb_id >= 1 && drb_id <= MAX_DRBS_PER_UE)) {
     LOG_E(RLC, "%s:%d:%s: fatal, bad srb id %d\n",
           __FILE__, __LINE__, __FUNCTION__, drb_id);
     exit(1);
@@ -958,7 +960,7 @@ rlc_op_status_t nr_rrc_rlc_config_asn1_req (const protocol_ctxt_t   * const ctxt
     const LTE_PMCH_InfoList_r9_t * const pmch_InfoList_r9_pP,
     struct NR_CellGroupConfig__rlc_BearerToAddModList *rlc_bearer2add_list)
 {
-  int rnti = ctxt_pP->rnti;
+  int rnti = ctxt_pP->rntiMaybeUEid;
   int i;
   int j;
 
@@ -1017,6 +1019,66 @@ rlc_op_status_t nr_rrc_rlc_config_asn1_req (const protocol_ctxt_t   * const ctxt
   return RLC_OP_STATUS_OK;
 }
 
+struct srb0_data {
+  int module_id;
+  int CC_id;
+  int rnti;
+  int uid;
+  void (*send_initial_ul_rrc_message)(module_id_t        module_id,
+                                      int                CC_id,
+                                      int                rnti,
+                                      int                uid,
+                                      const uint8_t      *sdu,
+                                      sdu_size_t         sdu_len);
+};
+
+void deliver_sdu_srb0(void *deliver_sdu_data, struct nr_rlc_entity_t *entity,
+                      char *buf, int size)
+{
+  struct srb0_data *s0 = (struct srb0_data *)deliver_sdu_data;
+  s0->send_initial_ul_rrc_message(s0->module_id, s0->CC_id, s0->rnti, s0->uid,
+                                  (unsigned char *)buf, size);
+}
+
+void nr_rlc_activate_srb0(int rnti, int module_id, int cc_id, int uid,
+                          void (*send_initial_ul_rrc_message)(
+                                    module_id_t        module_id,
+                                     int                CC_id,
+                                     int                rnti,
+                                     int                uid,
+                                     const uint8_t      *sdu,
+                                     sdu_size_t         sdu_len))
+{
+  nr_rlc_entity_t            *nr_rlc_tm;
+  nr_rlc_ue_t                *ue;
+  struct srb0_data           *srb0_data;
+
+  srb0_data = calloc(1, sizeof(struct srb0_data));
+  AssertFatal(srb0_data != NULL, "out of memory\n");
+
+  srb0_data->module_id = module_id;
+  srb0_data->CC_id     = cc_id;
+  srb0_data->rnti      = rnti;
+  srb0_data->uid       = uid;
+  srb0_data->send_initial_ul_rrc_message = send_initial_ul_rrc_message;
+
+  nr_rlc_manager_lock(nr_rlc_ue_manager);
+  ue = nr_rlc_manager_get_ue(nr_rlc_ue_manager, rnti);
+  if (ue->srb0 != NULL) {
+    LOG_W(RLC, "SRB0 already exists for UE with RNTI 0x%x, do nothing\n", rnti);
+    free(srb0_data);
+    nr_rlc_manager_unlock(nr_rlc_ue_manager);
+    return;
+  }
+
+  nr_rlc_tm = new_nr_rlc_entity_tm(10000,
+                                   deliver_sdu_srb0, srb0_data);
+  nr_rlc_ue_add_srb_rlc_entity(ue, 0, nr_rlc_tm);
+
+  LOG_I(RLC, "activated srb0 for UE with RNTI 0x%x\n", rnti);
+  nr_rlc_manager_unlock(nr_rlc_ue_manager);
+}
+
 rlc_op_status_t rrc_rlc_config_req   (
   const protocol_ctxt_t* const ctxt_pP,
   const srb_flag_t      srb_flagP,
@@ -1041,13 +1103,13 @@ rlc_op_status_t rrc_rlc_config_req   (
     exit(1);
   }
   if ((srb_flagP && !(rb_idP >= 1 && rb_idP <= 2)) ||
-      (!srb_flagP && !(rb_idP >= 1 && rb_idP <= 5))) {
+      (!srb_flagP && !(rb_idP >= 1 && rb_idP <= MAX_DRBS_PER_UE))) {
     LOG_E(RLC, "%s:%d:%s: bad rb_id (%ld) (is_srb %d)\n", __FILE__, __LINE__, __FUNCTION__, rb_idP, srb_flagP);
     exit(1);
   }
   nr_rlc_manager_lock(nr_rlc_ue_manager);
-  LOG_D(RLC, "%s:%d:%s: remove rb %ld (is_srb %d) for UE RNTI %x\n", __FILE__, __LINE__, __FUNCTION__, rb_idP, srb_flagP, ctxt_pP->rnti);
-  ue = nr_rlc_manager_get_ue(nr_rlc_ue_manager, ctxt_pP->rnti);
+  LOG_D(RLC, "%s:%d:%s: remove rb %ld (is_srb %d) for UE RNTI %lx\n", __FILE__, __LINE__, __FUNCTION__, rb_idP, srb_flagP, ctxt_pP->rntiMaybeUEid);
+  ue = nr_rlc_manager_get_ue(nr_rlc_ue_manager, ctxt_pP->rntiMaybeUEid);
   if (srb_flagP) {
     if (ue->srb[rb_idP-1] != NULL) {
       ue->srb[rb_idP-1]->delete(ue->srb[rb_idP-1]);
@@ -1066,11 +1128,11 @@ rlc_op_status_t rrc_rlc_config_req   (
     if (ue->srb[i] != NULL)
       break;
   if (i == 2) {
-    for (i = 0; i < 5; i++)
+    for (i = 0; i < MAX_DRBS_PER_UE; i++)
       if (ue->drb[i] != NULL)
         break;
-    if (i == 5)
-      nr_rlc_manager_remove_ue(nr_rlc_ue_manager, ctxt_pP->rnti);
+    if (i == MAX_DRBS_PER_UE)
+      nr_rlc_manager_remove_ue(nr_rlc_ue_manager, ctxt_pP->rntiMaybeUEid);
   }
   nr_rlc_manager_unlock(nr_rlc_ue_manager);
   return RLC_OP_STATUS_OK;
@@ -1081,13 +1143,17 @@ void rrc_rlc_register_rrc (rrc_data_ind_cb_t rrc_data_indP, rrc_data_conf_cb_t r
   /* nothing to do */
 }
 
+void nr_rlc_remove_ue(int rnti)
+{
+  LOG_W(RLC, "remove UE %x\n", rnti);
+  nr_rlc_manager_lock(nr_rlc_ue_manager);
+  nr_rlc_manager_remove_ue(nr_rlc_ue_manager, rnti);
+  nr_rlc_manager_unlock(nr_rlc_ue_manager);
+}
+
 rlc_op_status_t rrc_rlc_remove_ue (const protocol_ctxt_t* const x)
 {
-  LOG_D(RLC, "%s:%d:%s: remove UE %d\n", __FILE__, __LINE__, __FUNCTION__, x->rnti);
-  nr_rlc_manager_lock(nr_rlc_ue_manager);
-  nr_rlc_manager_remove_ue(nr_rlc_ue_manager, x->rnti);
-  nr_rlc_manager_unlock(nr_rlc_ue_manager);
-
+  nr_rlc_remove_ue(x->rntiMaybeUEid);
   return RLC_OP_STATUS_OK;
 }
 
@@ -1172,4 +1238,28 @@ const bool nr_rlc_get_statistics(
   nr_rlc_manager_unlock(nr_rlc_ue_manager);
 
   return ret;
+}
+
+void nr_rlc_srb_recv_sdu(const int rnti, const logical_chan_id_t channel_id, unsigned char *buf, int size)
+{
+  nr_rlc_ue_t *ue;
+  nr_rlc_entity_t *rb;
+
+  T(T_ENB_RLC_DL, T_INT(0), T_INT(rnti), T_INT(0), T_INT(size));
+
+  nr_rlc_manager_lock(nr_rlc_ue_manager);
+  ue = nr_rlc_manager_get_ue(nr_rlc_ue_manager, rnti);
+
+  if (channel_id == 0) {
+    rb = ue->srb0;
+  } else {
+    rb = ue->srb[channel_id - 1];
+  }
+
+  AssertFatal(rb != NULL, "SDU sent to unknown RB RNTI %04x SRB %d\n", rnti, channel_id);
+
+  rb->set_time(rb, nr_rlc_current_time);
+  rb->recv_sdu(rb, (char *)buf, size, -1);
+
+  nr_rlc_manager_unlock(nr_rlc_ue_manager);
 }

@@ -3,7 +3,6 @@
 
 #include <executables/nr-softmodem-common.h>
 
-#include "flexran_agent.h"
 #include "PHY/defs_gNB.h"
 
 #define DEFAULT_DLF 2680000000
@@ -29,13 +28,11 @@
     {"D" ,                    CONFIG_HLP_DLBM_PHYTEST,0,                u64ptr:&dlsch_slot_bitmap,          defintval:0,                   TYPE_UINT64, 0},        \
     {"U" ,                    CONFIG_HLP_ULBM_PHYTEST,0,                u64ptr:&ulsch_slot_bitmap,          defintval:0,                   TYPE_UINT64, 0},        \
     {"usrp-tx-thread-config", CONFIG_HLP_USRP_THREAD, 0,                iptr:&usrp_tx_thread,               defstrval:0,                   TYPE_INT,    0},        \
-    {"ldpc-offload-enable",   CONFIG_HLP_LDPC_OFFLOAD, 0,               iptr:&ldpc_offload_flag,          defstrval:0,                   TYPE_INT,    0},        \
-    {"uecap_file",            CONFIG_HLP_UECAP_FILE,  0,                strptr:&uecap_file,        defstrval:"./uecap.xml",       TYPE_STRING, 0},        \
+    {"ldpc-offload-enable",   CONFIG_HLP_LDPC_OFFLOAD, 0,               iptr:&ldpc_offload_flag,            defstrval:0,                   TYPE_INT,    0},        \
+    {"uecap_file",            CONFIG_HLP_UECAP_FILE,  0,                strptr:&uecap_file,                 defstrval:"./uecap_ports1.xml",TYPE_STRING, 0},        \
     {"s" ,                    CONFIG_HLP_SNR,         0,                dblptr:&snr_dB,                     defdblval:25,                  TYPE_DOUBLE, 0},        \
   }
 
-#include "threads_t.h"
-extern threads_t threads;
 extern uint32_t target_dl_mcs;
 extern uint32_t target_dl_Nl;
 extern uint32_t target_ul_Nl;
@@ -63,8 +60,6 @@ extern void reset_opp_meas(void);
 extern void print_opp_meas(void);
 void init_gNB_afterRU(void);
 
-extern int stop_L1L2(module_id_t gnb_id);
-extern int restart_L1L2(module_id_t gnb_id);
 void init_pdcp(void);
 
 #endif

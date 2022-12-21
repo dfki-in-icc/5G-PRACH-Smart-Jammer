@@ -31,8 +31,10 @@
  *  @{
  */
 
+#ifndef __NR_RRC_PROTO_H__
+#define __NR_RRC_PROTO_H__
+
 #include "RRC/NR/nr_rrc_defs.h"
-#include "flexran_agent_extern.h"
 #include "NR_RRCReconfiguration.h"
 #include "NR_UE-NR-Capability.h"
 #include "NR_UE-CapabilityRAT-ContainerList.h"
@@ -40,6 +42,8 @@
 #include "NR_CG-Config.h"
 #include "NR_CG-ConfigInfo.h"
 #include "NR_SecurityConfig.h"
+
+#define NR_MAX_SUPPORTED_DL_LAYERS 2
 
 int rrc_init_nr_global_param(void);
 
@@ -206,19 +210,6 @@ rlc_op_status_t nr_rrc_rlc_config_asn1_req (const protocol_ctxt_t   * const ctxt
     const LTE_PMCH_InfoList_r9_t * const pmch_InfoList_r9_pP,
     struct NR_CellGroupConfig__rlc_BearerToAddModList *rlc_bearer2add_list);
 
-void nr_pdcp_add_srbs(eNB_flag_t enb_flag, rnti_t rnti,
-                   NR_SRB_ToAddModList_t  *const srb2add_list,
-                   const uint8_t security_modeP,
-                   uint8_t  *const kRRCenc,
-                      uint8_t *const  kUPint);
-
-void nr_pdcp_add_drbs(eNB_flag_t enb_flag, rnti_t rnti,
-                      NR_DRB_ToAddModList_t  *const drb2add_list,
-                      const uint8_t  security_modeP,
-                      uint8_t                  *const kUPenc,
-                      uint8_t                  *const kUPint,
-                      struct NR_CellGroupConfig__rlc_BearerToAddModList *rlc_bearer2add_list);
-
 void bearer_context_setup_direct(e1ap_bearer_setup_req_t *req,
                                  instance_t instance);
 
@@ -236,3 +227,13 @@ void fill_DRB_configList(const protocol_ctxt_t *const ctxt_pP,
 
 void prepare_and_send_ue_context_modification_f1(rrc_gNB_ue_context_t *ue_context_p,
                                                  e1ap_bearer_setup_resp_t *e1ap_resp);
+void nr_pdcp_add_srbs(eNB_flag_t enb_flag, ue_id_t rntiMaybeUEid, NR_SRB_ToAddModList_t *const srb2add_list, const uint8_t security_modeP, uint8_t *const kRRCenc, uint8_t *const kUPint);
+
+void nr_pdcp_add_drbs(eNB_flag_t enb_flag,
+                      ue_id_t rntiMaybeUEid,
+                      NR_DRB_ToAddModList_t *const drb2add_list,
+                      const uint8_t security_modeP,
+                      uint8_t *const kUPenc,
+                      uint8_t *const kUPint,
+                      struct NR_CellGroupConfig__rlc_BearerToAddModList *rlc_bearer2add_list);
+#endif

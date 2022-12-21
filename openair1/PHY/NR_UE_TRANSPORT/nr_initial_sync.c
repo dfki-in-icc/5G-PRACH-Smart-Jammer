@@ -51,7 +51,7 @@ extern openair0_config_t openair0_cfg[];
 int cnt=0;
 
 #define DEBUG_INITIAL_SYNCH
-
+#define DUMP_PBCH_CH_ESTIMATES 0
 
 // create a new node of SSB structure
 NR_UE_SSB* create_ssb_node(uint8_t  i, uint8_t  h) {
@@ -101,7 +101,7 @@ void free_list(NR_UE_SSB *node) {
 }
 
 
-int nr_pbch_detection(UE_nr_rxtx_proc_t * proc, PHY_VARS_NR_UE *ue, int pbch_initial_symbol, NR_UE_PDCCH_CONFIG *phy_pdcch_config)
+int nr_pbch_detection(UE_nr_rxtx_proc_t * proc, PHY_VARS_NR_UE *ue, int pbch_initial_symbol, nr_phy_data_t *phy_data)
 {
   NR_DL_FRAME_PARMS *frame_parms=&ue->frame_parms;
   int ret =-1;
@@ -165,8 +165,13 @@ int nr_pbch_detection(UE_nr_rxtx_proc_t * proc, PHY_VARS_NR_UE *ue, int pbch_ini
                      0,
                      temp_ptr->i_ssb,
                      SISO,
-                     phy_pdcch_config,
+                     phy_data,
                      &result);
+
+    if (DUMP_PBCH_CH_ESTIMATES && (ret == 0)) {
+      write_output("pbch_ch_estimates.m", "pbch_ch_estimates", dl_ch_estimates, frame_parms->nb_antennas_rx*estimateSz, 1, 1);
+      write_output("pbch_ch_estimates_time.m", "pbch_ch_estimates_time", dl_ch_estimates_time, frame_parms->nb_antennas_rx*frame_parms->ofdm_symbol_size, 1, 1);
+    }
 
     temp_ptr=temp_ptr->next_ssb;
   }
@@ -216,7 +221,8 @@ int nr_initial_sync(UE_nr_rxtx_proc_t *proc,
   int ret=-1;
   int rx_power=0; //aarx,
 
-  NR_UE_PDCCH_CONFIG phy_pdcch_config={0};
+  nr_phy_data_t phy_data = {0};
+  NR_UE_PDCCH_CONFIG *phy_pdcch_config = &phy_data.phy_pdcch_config;
   
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_NR_INITIAL_UE_SYNC, VCD_FUNCTION_IN);
 
@@ -246,59 +252,59 @@ int nr_initial_sync(UE_nr_rxtx_proc_t *proc,
 
     /* process pss search on received buffer */
     sync_pos = pss_synchro_nr(ue, is, NO_RATE_CHANGE);
+    if (sync_pos < fp->nb_prefix_samples)
+      continue;
 
-    if (sync_pos >= fp->nb_prefix_samples)
-      ue->ssb_offset = sync_pos - fp->nb_prefix_samples;
-    else
-      ue->ssb_offset = sync_pos + (fp->samples_per_subframe * 10) - fp->nb_prefix_samples;
+    ue->ssb_offset = sync_pos - fp->nb_prefix_samples;
 
 #ifdef DEBUG_INITIAL_SYNCH
     LOG_I(PHY,"[UE%d] Initial sync : Estimated PSS position %d, Nid2 %d\n", ue->Mod_id, sync_pos,ue->common_vars.eNb_id);
     LOG_I(PHY,"sync_pos %d ssb_offset %d \n",sync_pos,ue->ssb_offset);
 #endif
 
-    // digital compensation of FFO for SSB symbols
-    if (ue->UE_fo_compensation){
-      double s_time = 1/(1.0e3*fp->samples_per_subframe);  // sampling time
-      double off_angle = -2*M_PI*s_time*(ue->common_vars.freq_offset);  // offset rotation angle compensation per sample
+    /* check that SSS/PBCH block is continuous inside the received buffer */
+    if (ue->ssb_offset + NR_N_SYMBOLS_SSB * (fp->ofdm_symbol_size + fp->nb_prefix_samples) < fp->samples_per_frame) {
 
-      // In SA we need to perform frequency offset correction until the end of buffer because we need to decode SIB1
-      // and we do not know yet in which slot it goes.
+      // digital compensation of FFO for SSB symbols
+      if (ue->UE_fo_compensation){
+        double s_time = 1/(1.0e3*fp->samples_per_subframe);  // sampling time
+        double off_angle = -2*M_PI*s_time*(ue->common_vars.freq_offset);  // offset rotation angle compensation per sample
 
-      // start for offset correction
-      int start = sa ? is*fp->samples_per_frame : is*fp->samples_per_frame + ue->ssb_offset;
+        // In SA we need to perform frequency offset correction until the end of buffer because we need to decode SIB1
+        // and we do not know yet in which slot it goes.
 
-      // loop over samples
-      int end = sa ? n_frames*fp->samples_per_frame-1 : start + NR_N_SYMBOLS_SSB*(fp->ofdm_symbol_size + fp->nb_prefix_samples);
+        // start for offset correction
+        int start = is*fp->samples_per_frame;
 
-      for(int n=start; n<end; n++){
-        for (int ar=0; ar<fp->nb_antennas_rx; ar++) {
-          re = ((double)(((short *)ue->common_vars.rxdata[ar]))[2*n]);
-          im = ((double)(((short *)ue->common_vars.rxdata[ar]))[2*n+1]);
-          ((short *)ue->common_vars.rxdata[ar])[2*n] = (short)(round(re*cos(n*off_angle) - im*sin(n*off_angle)));
-          ((short *)ue->common_vars.rxdata[ar])[2*n+1] = (short)(round(re*sin(n*off_angle) + im*cos(n*off_angle)));
+        // loop over samples
+        int end = start + fp->samples_per_frame;
+
+        for(int n=start; n<end; n++){
+          for (int ar=0; ar<fp->nb_antennas_rx; ar++) {
+            re = ((double)(((short *)ue->common_vars.rxdata[ar]))[2*n]);
+            im = ((double)(((short *)ue->common_vars.rxdata[ar]))[2*n+1]);
+            ((short *)ue->common_vars.rxdata[ar])[2*n] = (short)(round(re*cos(n*off_angle) - im*sin(n*off_angle)));
+            ((short *)ue->common_vars.rxdata[ar])[2*n+1] = (short)(round(re*sin(n*off_angle) + im*cos(n*off_angle)));
+          }
         }
       }
-    }
 
-    /* check that SSS/PBCH block is continuous inside the received buffer */
-    if (sync_pos < (NR_NUMBER_OF_SUBFRAMES_PER_FRAME*fp->samples_per_subframe - (NB_SYMBOLS_PBCH * fp->ofdm_symbol_size))) {
-
-    /* slop_fep function works for lte and takes into account begining of frame with prefix for subframe 0 */
-    /* for NR this is not the case but slot_fep is still used for computing FFT of samples */
-    /* in order to achieve correct processing for NR prefix samples is forced to 0 and then restored after function call */
-    /* symbol number are from beginning of SS/PBCH blocks as below:  */
-    /*    Signal            PSS  PBCH  SSS  PBCH                     */
-    /*    symbol number      0     1    2    3                       */
-    /* time samples in buffer rxdata are used as input of FFT -> FFT results are stored in the frequency buffer rxdataF */
-    /* rxdataF stores SS/PBCH from beginning of buffers in the same symbol order as in time domain */
+      /* slop_fep function works for lte and takes into account begining of frame with prefix for subframe 0 */
+      /* for NR this is not the case but slot_fep is still used for computing FFT of samples */
+      /* in order to achieve correct processing for NR prefix samples is forced to 0 and then restored after function call */
+      /* symbol number are from beginning of SS/PBCH blocks as below:  */
+      /*    Signal            PSS  PBCH  SSS  PBCH                     */
+      /*    symbol number      0     1    2    3                       */
+      /* time samples in buffer rxdata are used as input of FFT -> FFT results are stored in the frequency buffer rxdataF */
+      /* rxdataF stores SS/PBCH from beginning of buffers in the same symbol order as in time domain */
 
       for(int i=0; i<4;i++)
         nr_slot_fep_init_sync(ue,
                               proc,
                               i,
                               0,
-                              is*fp->samples_per_frame+ue->ssb_offset);
+                              is*fp->samples_per_frame+ue->ssb_offset,
+                              false);
 
 #ifdef DEBUG_INITIAL_SYNCH
       LOG_I(PHY,"Calling sss detection (normal CP)\n");
@@ -316,10 +322,10 @@ int nr_initial_sync(UE_nr_rxtx_proc_t *proc,
         // and we do not know yet in which slot it goes.
 
         // start for offset correction
-        int start = sa ? is*fp->samples_per_frame : is*fp->samples_per_frame + ue->ssb_offset;
+        int start = is*fp->samples_per_frame;
 
         // loop over samples
-        int end = sa ? n_frames*fp->samples_per_frame-1 : start + NR_N_SYMBOLS_SSB*(fp->ofdm_symbol_size + fp->nb_prefix_samples);
+        int end = start + fp->samples_per_frame;
 
         for(int n=start; n<end; n++){
           for (int ar=0; ar<fp->nb_antennas_rx; ar++) {
@@ -335,10 +341,11 @@ int nr_initial_sync(UE_nr_rxtx_proc_t *proc,
 
       if (ret==0) { //we got sss channel
         nr_gold_pbch(ue);
-        ret = nr_pbch_detection(proc, ue, 1, &phy_pdcch_config);  // start pbch detection at first symbol after pss
+        ret = nr_pbch_detection(proc, ue, 1, &phy_data);  // start pbch detection at first symbol after pss
       }
 
       if (ret == 0) {
+
         // sync at symbol ue->symbol_offset
         // computing the offset wrt the beginning of the frame
         int mu = fp->numerology_index;
@@ -443,18 +450,7 @@ int nr_initial_sync(UE_nr_rxtx_proc_t *proc,
     }
 
 
-/*    LOG_I(PHY, "[UE %d] Frame %d MIB Information => %s, %s, NidCell %d, N_RB_DL %d, PHICH DURATION %d, PHICH RESOURCE %s, TX_ANT %d\n",
-	  ue->Mod_id,
-	  ue->proc.proc_rxtx[0].frame_rx,
-	  duplex_string[fp->frame_type],
-	  prefix_string[fp->Ncp],
-	  fp->Nid_cell,
-	  fp->N_RB_DL,
-	  fp->phich_config_common.phich_duration,
-	  phich_string[fp->phich_config_common.phich_resource],
-	  fp->nb_antenna_ports_gNB);*/
-
-#if defined(OAI_USRP) || defined(EXMIMO) || defined(OAI_BLADERF) || defined(OAI_LMSSDR) || defined(OAI_ADRV9371_ZC706)
+#if defined(OAI_USRP) || defined(OAI_BLADERF) || defined(OAI_LMSSDR) || defined(OAI_ADRV9371_ZC706)
     LOG_I(PHY, "[UE %d] Measured Carrier Frequency %.0f Hz (offset %d Hz)\n",
 	  ue->Mod_id,
 	  openair0_cfg[0].rx_freq[0]+ue->common_vars.freq_offset,
@@ -527,74 +523,67 @@ int nr_initial_sync(UE_nr_rxtx_proc_t *proc,
 
   // if stand alone and sync on ssb do sib1 detection as part of initial sync
   if (sa==1 && ret==0) {
+    nr_ue_dlsch_init(phy_data.dlsch, 1, ue->max_ldpc_iterations);
     bool dec = false;
     int gnb_id = 0; //FIXME
-    int coreset_nb_rb=0;
-    int coreset_start_rb=0;
 
     // Hold the channel estimates in frequency domain.
     int32_t pdcch_est_size = ((((fp->symbols_per_slot*(fp->ofdm_symbol_size+LTE_CE_FILTER_LENGTH))+15)/16)*16);
     __attribute__ ((aligned(16))) int32_t pdcch_dl_ch_estimates[4*fp->nb_antennas_rx][pdcch_est_size];
 
-
-    for(int n_ss = 0; n_ss<phy_pdcch_config.nb_search_space; n_ss++) {
-      uint8_t nb_symb_pdcch = phy_pdcch_config.pdcch_config[n_ss].coreset.duration;
-      int start_symb = phy_pdcch_config.pdcch_config[n_ss].coreset.StartSymbolIndex;
-      get_coreset_rballoc(phy_pdcch_config.pdcch_config[n_ss].coreset.frequency_domain_resource,&coreset_nb_rb,&coreset_start_rb);
+    for(int n_ss = 0; n_ss<phy_pdcch_config->nb_search_space; n_ss++) {
+      proc->nr_slot_rx = phy_pdcch_config->slot; // setting PDCCH slot to proc
+      uint8_t nb_symb_pdcch = phy_pdcch_config->pdcch_config[n_ss].coreset.duration;
+      int start_symb = phy_pdcch_config->pdcch_config[n_ss].coreset.StartSymbolIndex;
       for (uint16_t l=start_symb; l<start_symb+nb_symb_pdcch; l++) {
         nr_slot_fep_init_sync(ue,
                               proc,
                               l, // the UE PHY has no notion of the symbols to be monitored in the search space
-                              phy_pdcch_config.slot,
-                              is*fp->samples_per_frame+phy_pdcch_config.sfn*fp->samples_per_frame+ue->rx_offset);
+                              phy_pdcch_config->slot,
+                              is*fp->samples_per_frame+phy_pdcch_config->sfn*fp->samples_per_frame+ue->rx_offset,
+                              true);
 
-        if (coreset_nb_rb > 0)
-          nr_pdcch_channel_estimation(ue,
-                                      proc,
-                                      0,
-                                      phy_pdcch_config.slot,
-                                      l,
-                                      fp->Nid_cell,
-                                      fp->first_carrier_offset+(phy_pdcch_config.pdcch_config[n_ss].BWPStart + coreset_start_rb)*12,
-                                      coreset_nb_rb,
-                                      pdcch_est_size,
-                                      pdcch_dl_ch_estimates);
+        nr_pdcch_channel_estimation(ue,
+                                    proc,
+                                    0,
+                                    phy_pdcch_config->slot,
+                                    l,
+                                    &phy_pdcch_config->pdcch_config[n_ss].coreset,
+                                    fp->first_carrier_offset,
+                                    phy_pdcch_config->pdcch_config[n_ss].BWPStart,
+                                    pdcch_est_size,
+                                    pdcch_dl_ch_estimates);
 
       }
-      int  dci_cnt = nr_ue_pdcch_procedures(gnb_id, ue, proc, pdcch_est_size, pdcch_dl_ch_estimates, &phy_pdcch_config, n_ss);
+      int  dci_cnt = nr_ue_pdcch_procedures(gnb_id, ue, proc, pdcch_est_size, pdcch_dl_ch_estimates, &phy_data, n_ss);
       if (dci_cnt>0){
-        NR_UE_DLSCH_t *dlsch = ue->dlsch_SI[gnb_id];
-        if (dlsch && (dlsch->active == 1)) {
-          uint8_t harq_pid = dlsch->current_harq_pid;
-          NR_DL_UE_HARQ_t *dlsch0_harq = dlsch->harq_processes[harq_pid];
-          uint16_t nb_symb_sch = dlsch0_harq->nb_symbols;
-          uint16_t start_symb_sch = dlsch0_harq->start_symbol;
+        NR_UE_DLSCH_t *dlsch = phy_data.dlsch;
+        if (dlsch[0].active == 1) {
+          uint16_t nb_symb_sch = dlsch->dlsch_config.number_symbols;
+          uint16_t start_symb_sch = dlsch->dlsch_config.start_symbol;
 
           for (uint16_t m=start_symb_sch;m<(nb_symb_sch+start_symb_sch) ; m++){
             nr_slot_fep_init_sync(ue,
                                   proc,
                                   m,
-                                  phy_pdcch_config.slot,  // same slot and offset as pdcch
-                                  is*fp->samples_per_frame+phy_pdcch_config.sfn*fp->samples_per_frame+ue->rx_offset);
+                                  phy_pdcch_config->slot,  // same slot and offset as pdcch
+                                  is*fp->samples_per_frame+phy_pdcch_config->sfn*fp->samples_per_frame+ue->rx_offset,
+                                  true);
           }
 
           int ret = nr_ue_pdsch_procedures(ue,
                                            proc,
                                            gnb_id,
-                                           SI_PDSCH,
-                                           ue->dlsch_SI[gnb_id],
-                                           NULL);
+                                           dlsch);
           if (ret >= 0)
             dec = nr_ue_dlsch_procedures(ue,
                                          proc,
                                          gnb_id,
-                                         SI_PDSCH,
-                                         ue->dlsch_SI[gnb_id],
-                                         NULL,
-                                         &ue->dlsch_SI_errors[gnb_id]);
+                                         dlsch,
+                                         NULL);
 
           // deactivate dlsch once dlsch proc is done
-          ue->dlsch_SI[gnb_id]->active = 0;
+          dlsch->active = 0;
         }
       }
     }

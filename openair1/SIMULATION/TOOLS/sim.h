@@ -50,6 +50,13 @@ typedef enum {
 #define CHANMODEL_FREE_RSQRT_6     1<<1
 #define CHANMODEL_FREE_RSQRT_NTAPS 1<<2
 #define CHANMODEL_FREE_AMPS        1<<3
+
+typedef enum {
+  CORR_LEVEL_LOW,
+  CORR_LEVEL_MEDIUM,
+  CORR_LEVEL_HIGH
+} corr_level_t;
+
 typedef struct {
   ///Number of tx antennas
   uint8_t nb_tx;
@@ -59,6 +66,8 @@ typedef struct {
   uint8_t nb_taps;
   ///linear amplitudes of taps
   double *amps;
+  ///normalization channel factor
+  double normalization_ch_factor;
   ///Delays of the taps in mus. length(delays)=nb_taps. Has to be between 0 and Td.
   double *delays;
   ///length of impulse response. should be set to 11+2*bw*t_max
@@ -71,12 +80,16 @@ typedef struct {
   struct complexd **chF;
   ///Maximum path delay in mus.
   double Td;
+  ///Carrier center frequency
+  uint64_t center_freq;
   ///Channel bandwidth in MHz.
   double channel_bandwidth;
   ///System sampling rate in Msps.
   double sampling_rate;
-  ///Ricean factor of first tap wrt other taps (0..1, where 0 means AWGN and 1 means Rayleigh channel).
+  ///Ricean factor, sqrt(1/(K+1)), of first tap wrt other taps (0..1, where 0 means AWGN and 1 means Rayleigh channel).
   double ricean_factor;
+  ///Correlation level of correlation channel matrix
+  corr_level_t corr_level;
   ///Angle of arrival of wavefront (in radians). For Ricean channel only. This assumes that both RX and TX have linear antenna arrays with lambda/2 antenna spacing. Furhter it is assumed that the arrays are parallel to each other and that they are far enough apart so that we can safely assume plane wave propagation.
   double aoa;
   ///If set to 1, aoa is randomized according to a uniform random distribution
@@ -303,13 +316,16 @@ typedef struct {
 channel_desc_t *new_channel_desc_scm(uint8_t nb_tx,
                                      uint8_t nb_rx,
                                      SCM_t channel_model,
-				                     double sampling_rate,
+                                     double sampling_rate,
+                                     uint64_t center_freq,
                                      double channel_bandwidth,
-				                     double TDL_DS,
+                                     double DS_TDL,
+                                     double maxDoppler,
+                                     const corr_level_t corr_level,
                                      double forgetting_factor,
                                      int32_t channel_offset,
                                      double path_loss_dB,
-				                     float noise_power_dB);
+                                     float noise_power_dB);
 
 channel_desc_t *find_channel_desc_fromname( char *modelname );
 
@@ -332,11 +348,44 @@ void set_channeldesc_owner(channel_desc_t *cdesc, channelmod_moduleid_t module_i
 \param module_name is the C string to use as model name for the channel pointed by cdesc
 */
 void set_channeldesc_name(channel_desc_t *cdesc,char *modelname);
+
+/** \fn void get_cexp_doppler(struct complexd *cexp_doppler, channel_desc_t *chan_desc, const uint32_t length)
+\brief This routine generates the complex exponential to apply the Doppler shift
+\param cexp_doppler Output with the complex exponential of Doppler shift
+\param desc Pointer to the channel descriptor
+\param length Size of complex exponential of Doppler shift
+*/
+void get_cexp_doppler(struct complexd *cexp_doppler, channel_desc_t *chan_desc, const uint32_t length);
+
 /** \fn void random_channel(channel_desc_t *desc)
 \brief This routine generates a random channel response (time domain) according to a tapped delay line model.
 \param desc Pointer to the channel descriptor
 */
 int random_channel(channel_desc_t *desc, uint8_t abstraction_flag);
+
+/**
+\brief Add AWGN noise and phase noise if enabled
+\param rxdata output data with noise
+\param r_re real part of input data without noise
+\param r_im imaginary part of input data without noise
+\param sigma noise power
+\param length number of samples to apply the noise
+\param slot_offset slot offset to start applying the noise
+\param ts sampling time
+\param delay introduce delay in terms of number of samples
+\param pdu_bit_map bitmap indicating presence of optional PDUs
+\param nb_antennas_rx number of receive antennas
+*/
+void add_noise(c16_t **rxdata,
+               const double **r_re,
+               const double **r_im,
+               const double sigma,
+               const int length,
+               const int slot_offset,
+               const double ts,
+               const int delay,
+               const uint16_t pdu_bit_map,
+               const uint8_t nb_antennas_rx);
 
 /**\fn void multipath_channel(channel_desc_t *desc,
            double tx_sig_re[NB_ANTENNAS_TX],
@@ -477,6 +526,8 @@ int gauss(unsigned int *gauss_LUT,unsigned char Nbits);
 double gaussdouble(double,double);
 void randominit(unsigned int seed_init);
 double uniformrandom(void);
+double gaussZiggurat(double mean, double variance);
+void tableNor(unsigned long seed);
 int freq_channel(channel_desc_t *desc,uint16_t nb_rb, int16_t n_samples,int scs);
 int init_freq_channel(channel_desc_t *desc,uint16_t nb_rb,int16_t n_samples,int scs);
 void term_freq_channel(void);

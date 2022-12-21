@@ -50,6 +50,7 @@ RUN apt-get update && \
         libconfig9 \
         openssl \
         net-tools \
+        iperf \
         iputils-ping \
         iproute2 \
         iperf \
@@ -58,13 +59,12 @@ RUN apt-get update && \
         python3 \
         python3-six \
         python3-requests \
-        libusb-1.0-0 \
-        libyaml-0-2 && \
+        libusb-1.0-0 && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /opt/oai-enb/bin
 COPY --from=enb-build \
-    /oai-ran/targets/bin/lte-softmodem.Rel15 \
+    /oai-ran/cmake_targets/ran_build/build/lte-softmodem \
     /oai-ran/docker/scripts/entrypoint.sh \
     ./
 
@@ -82,10 +82,7 @@ COPY --from=enb-build \
 
 # Now we are copying from builder-image the UHD files.
 COPY --from=enb-base /usr/local/bin/uhd_find_devices /usr/local/bin
-COPY --from=enb-base \
-     /usr/local/lib/libuhd.so.3.15.0 \
-     /usr/lib/x86_64-linux-gnu/libprotobuf-c.so.1 \
-     /usr/local/lib/
+COPY --from=enb-base /usr/local/lib/libuhd.so.3.15.0 /usr/local/lib
 COPY --from=enb-base /usr/local/lib/uhd/utils/uhd_images_downloader.py /opt/oai-enb/bin
 COPY --from=enb-base \
      /usr/lib/x86_64-linux-gnu/libboost_date_time.so.1.65.1 \
@@ -115,4 +112,4 @@ EXPOSE 2152/udp 36412/udp 36422/udp
 #EXPOSE 50001/udp # IF5 / ECPRI (data)
 
 ENTRYPOINT ["/opt/oai-enb/bin/entrypoint.sh"]
-CMD ["/opt/oai-enb/bin/lte-softmodem.Rel15", "-O", "/opt/oai-enb/etc/enb.conf"]
+CMD ["/opt/oai-enb/bin/lte-softmodem", "-O", "/opt/oai-enb/etc/enb.conf"]

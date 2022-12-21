@@ -128,6 +128,8 @@ typedef enum {
 #define GNB_CONFIG_STRING_ENABLE_SDAP                   "enable_sdap"
 #define GNB_CONFIG_HLP_STRING_ENABLE_SDAP               "enable the SDAP layer\n"
 #define GNB_CONFIG_HLP_FORCE256QAMOFF                   "suppress activation of 256 QAM despite UE support"
+#define GNB_CONFIG_STRING_DRBS                          "drbs"
+#define GNB_CONFIG_HLP_STRING_DRBS                      "Number of total DRBs to establish, including the mandatory for PDU SEssion (default=1)\n"
 
 /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 /*                                            cell configuration parameters                                                                */
@@ -161,6 +163,7 @@ typedef enum {
 {GNB_CONFIG_STRING_UMONDEFAULTDRB,               NULL,   0,            uptr:NULL,   defuintval:0,                TYPE_UINT,      0},  \
 {GNB_CONFIG_STRING_FORCE256QAMOFF, GNB_CONFIG_HLP_FORCE256QAMOFF, PARAMFLAG_BOOL, iptr:NULL, defintval:0,        TYPE_INT,       0},  \
 {GNB_CONFIG_STRING_ENABLE_SDAP, GNB_CONFIG_HLP_STRING_ENABLE_SDAP, PARAMFLAG_BOOL, iptr:NULL, defintval:0,       TYPE_INT,       0},  \
+{GNB_CONFIG_STRING_DRBS, GNB_CONFIG_HLP_STRING_DRBS,     0,            iptr:NULL,   defintval:1,                 TYPE_INT,       0},  \
 }
 
 #define GNB_GNB_ID_IDX                  0
@@ -190,6 +193,7 @@ typedef enum {
 #define GNB_UMONDEFAULTDRB_IDX          24
 #define GNB_FORCE256QAMOFF_IDX          25
 #define GNB_ENABLE_SDAP_IDX             26
+#define GNB_DRBS                        27
 
 #define TRACKING_AREA_CODE_OKRANGE {0x0001,0xFFFD}
 #define GNBPARAMS_CHECK {                                         \
@@ -401,35 +405,6 @@ typedef enum {
 #define CONFIG_STRING_L1_LIST                              "L1s"
 #define CONFIG_STRING_L1_CONFIG                            "l1_config"
 
-
-
-/*----------------------------------------------------------------------------------------------------------------------------------------------------*/
-
-/*----------------------------------------------------------------------------------------------------------------------------------------------------*/
-#define CONFIG_STRING_NETWORK_CONTROLLER_CONFIG         "NETWORK_CONTROLLER"
-
-#define CONFIG_STRING_FLEXRAN_ENABLED                   "FLEXRAN_ENABLED"
-#define CONFIG_STRING_FLEXRAN_INTERFACE_NAME            "FLEXRAN_INTERFACE_NAME"
-#define CONFIG_STRING_FLEXRAN_IPV4_ADDRESS              "FLEXRAN_IPV4_ADDRESS"
-#define CONFIG_STRING_FLEXRAN_PORT                      "FLEXRAN_PORT"
-#define CONFIG_STRING_FLEXRAN_CACHE                     "FLEXRAN_CACHE"
-#define CONFIG_STRING_FLEXRAN_AWAIT_RECONF              "FLEXRAN_AWAIT_RECONF"
-
-#define FLEXRAN_ENABLED                               0
-#define FLEXRAN_INTERFACE_NAME_IDX                    1
-#define FLEXRAN_IPV4_ADDRESS_IDX                      2
-#define FLEXRAN_PORT_IDX                              3
-#define FLEXRAN_CACHE_IDX                             4
-#define FLEXRAN_AWAIT_RECONF_IDX                      5
-
-#define FLEXRANPARAMS_DESC { \
-{CONFIG_STRING_FLEXRAN_ENABLED,                NULL,   0,   strptr:NULL,   defstrval:"no",                    TYPE_STRING,   0},           \
-{CONFIG_STRING_FLEXRAN_INTERFACE_NAME,         NULL,   0,   strptr:NULL,   defstrval:"lo",                    TYPE_STRING,   0},           \
-{CONFIG_STRING_FLEXRAN_IPV4_ADDRESS,           NULL,   0,   strptr:NULL,   defstrval:"127.0.0.1",             TYPE_STRING,   0},           \
-{CONFIG_STRING_FLEXRAN_PORT,                   NULL,   0,   uptr:NULL,     defintval:2210,                    TYPE_UINT,     0},           \
-{CONFIG_STRING_FLEXRAN_CACHE,                  NULL,   0,   strptr:NULL,   defstrval:"/mnt/oai_agent_cache",  TYPE_STRING,   0},           \
-{CONFIG_STRING_FLEXRAN_AWAIT_RECONF,           NULL,   0,   strptr:NULL,   defstrval:"no",                    TYPE_STRING,   0}            \
-}
 
 /*----------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*----------------------------------------------------------------------------------------------------------------------------------------------------*/

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -euo pipefail
+set -uo pipefail
 
 PREFIX=/opt/oai-gnb
 ENABLE_X2=${ENABLE_X2:-yes}
@@ -13,14 +13,17 @@ if [[ -v USE_SA_TDD_MONO ]]; then cp $PREFIX/etc/gnb.sa.tdd.conf $PREFIX/etc/gnb
 if [[ -v USE_SA_TDD_MONO_B2XX ]]; then cp $PREFIX/etc/gnb.sa.tdd.b2xx.conf $PREFIX/etc/gnb.conf; fi
 if [[ -v USE_SA_FDD_MONO ]]; then cp $PREFIX/etc/gnb.sa.fdd.conf $PREFIX/etc/gnb.conf; fi
 if [[ -v USE_SA_CU ]]; then cp $PREFIX/etc/gnb.sa.cu.conf $PREFIX/etc/gnb.conf; fi
-if [[ -v USE_SA_TDD_CU ]]; then cp $PREFIX/etc/gnb.sa.du.tdd.conf $PREFIX/etc/gnb.conf; fi
+if [[ -v USE_SA_TDD_DU ]]; then cp $PREFIX/etc/gnb.sa.du.tdd.conf $PREFIX/etc/gnb.conf; fi
 if [[ -v USE_SA_NFAPI_VNF ]]; then cp $PREFIX/etc/gnb.sa.nfapi.vnf.conf $PREFIX/etc/gnb.conf; fi
 # Sometimes, the templates are not enough. We mount a conf file on $PREFIX/etc. It can be a template itself.
 if [[ -v USE_VOLUMED_CONF ]]; then cp $PREFIX/etc/mounted.conf $PREFIX/etc/gnb.conf; fi
 
-# Resolve AMF FQDN
-AMF_FQDN=${AMF_FQDN:-oai-amf-svc}
-if ($USE_FQDN); then AMF_IP_ADDRESS=(`getent hosts $AMF_FQDN | awk '{print $1}'`); fi
+# Defualt Parameters
+GNB_ID=${GNB_ID:-e00}
+NSSAI_SD=${NSSAI_SD:-ffffff}
+# AMF_IP_ADDRESS can be amf ip address of amf fqdn
+if [[ -v AMF_IP_ADDRESS ]] && [[ "${AMF_IP_ADDRESS}" =~ [a-zA-Z] ]] && [[ -z `getent hosts $AMF_IP_ADDRESS | awk '{print $1}'` ]]; then echo "not able to resolve AMF FQDN" && exit 1 ; fi
+[[ -v AMF_IP_ADDRESS ]] && [[ "${AMF_IP_ADDRESS}" =~ [a-zA-Z] ]] && AMF_IP_ADDRESS=$(getent hosts $AMF_IP_ADDRESS | awk '{print $1}')
 
 # Only this template will be manipulated
 CONFIG_FILES=`ls $PREFIX/etc/gnb.conf || true`
