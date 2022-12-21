@@ -3,7 +3,7 @@
 
 //#define TASK_MANAGER
 //#define FIBONACCI
-
+#define OMP_TP 1
 
 #include "task.h"
 #include "notification_queue.h"

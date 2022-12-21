@@ -23,6 +23,9 @@
 
 #include "nr_ulsch_demodulation.h"
 
+#include <omp.h>
+
+
 static inline
 int64_t time_now_us(void)
 {
@@ -3425,7 +3428,22 @@ int nr_rx_pusch_tp(PHY_VARS_gNB *gNB,
 #ifdef TASK_MANAGER
   puschSymbolProc_t arr[rel15_ul->nr_of_symbols];
   int idx_arr = 0;
+#elif OMP_TP
+  puschSymbolProc_t arr[rel15_ul->nr_of_symbols];
+  int idx_arr = 0;
 #endif
+
+
+#ifdef OMP_TP
+  omp_set_num_threads(4);
+
+#pragma omp parallel
+{
+#pragma omp single
+{
+
+#endif
+
   for(uint8_t symbol = rel15_ul->start_symbol_index; 
       symbol < (rel15_ul->start_symbol_index + rel15_ul->nr_of_symbols); 
       symbol+=numSymbols) {
@@ -3438,7 +3456,10 @@ int nr_rx_pusch_tp(PHY_VARS_gNB *gNB,
 	total_res+=gNB->pusch_vars[ulsch_id]->ul_valid_re_per_slot[symbol+s];
     }	
     if (total_res > 0)  {
-#ifdef TASK_MANAGER
+#ifdef TASK_MANAGER 
+      puschSymbolProc_t *rdata = &arr[idx_arr];
+      idx_arr++;
+#elif OMP_TP
       puschSymbolProc_t *rdata = &arr[idx_arr];
       idx_arr++;
 #else
@@ -3460,6 +3481,9 @@ int nr_rx_pusch_tp(PHY_VARS_gNB *gNB,
 #ifdef TASK_MANAGER
     task_t const t = {.args = rdata, .func = &nr_pusch_symbol_processing_noprecoding };
     async_task_manager(&gNB->man, t);
+#elif OMP_TP
+#pragma omp task
+nr_pusch_symbol_processing_noprecoding(rdata);
 #else
     pushTpool(&gNB->threadPool,req);
     gNB->nbSymb++;
@@ -3468,6 +3492,11 @@ int nr_rx_pusch_tp(PHY_VARS_gNB *gNB,
     }
   } // symbol loop
 
+#ifdef OMP_TP
+}
+}
+#endif
+
 
 //  printf("Waiting %ld \n", time_now_us());
 
@@ -3475,6 +3504,8 @@ int nr_rx_pusch_tp(PHY_VARS_gNB *gNB,
 #ifdef TASK_MANAGER
  stop_spin_manager(&gNB->man);
  wait_all_spin_task_manager(&gNB->man);
+#elif OMP_TP
+#pragma omp taskwait
 #else
   while (gNB->nbSymb > 0) {
     notifiedFIFO_elt_t *req=pullTpool(gNB->respPuschSymb, &gNB->threadPool);
