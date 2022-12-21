@@ -1,9 +1,9 @@
 #include "PHY/sse_intrin.h"
 // generated code for Zc=32, byte encoding
 static inline void ldpc_BG2_Zc32_byte(uint8_t *c,uint8_t *d) {
-  __m256i *csimd=(__m256i *)c,*dsimd=(__m256i *)d;
+  simde__m256i *csimd=(simde__m256i *)c,*dsimd=(simde__m256i *)d;
 
-  __m256i *c2,*d2;
+  simde__m256i *c2,*d2;
 
   int i2;
   for (i2=0; i2<1; i2++) {

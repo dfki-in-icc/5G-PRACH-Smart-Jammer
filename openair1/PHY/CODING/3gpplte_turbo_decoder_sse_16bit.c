@@ -1297,7 +1297,7 @@ uint8_t phy_threegpplte_turbo_decoder16(int16_t *y,
         // Mask64 = 2^b0 + 2^b1 + 2^b2 + 2^b3 + 2^b4 + 2^b5 + 2^b6 + 2^b7
         uint64x2_t Mask   = vpaddlq_u32(vpaddlq_u16(vandq_u16(vcgtq_s16(tmp,zeros), Powers)));
         uint64x1_t Mask64 = vget_high_u64(Mask)+vget_low_u64(Mask);
-        decoded_bytes[i] = (uint8_t)Mask64;
+        decoded_bytes[i] = *(uint8_t*)&Mask64;
 #endif
 #ifdef DEBUG_LOGMAP
         print_shorts("tmp",(int16_t *)&tmp);

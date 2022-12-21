@@ -363,8 +363,8 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
       multadd_real_four_symbols_vector_complex_scalar(filt8_rr2,
                                                       &ch_r,
                                                       ul_ch);
-      __m128i *ul_ch_128 = (__m128i *)&ul_ch_estimates[p*gNB->frame_parms.nb_antennas_rx+aarx][ch_offset];
-      ul_ch_128[0] = _mm_slli_epi16 (ul_ch_128[0], 2);
+      simde__m128i *ul_ch_128 = (simde__m128i *)&ul_ch_estimates[p*gNB->frame_parms.nb_antennas_rx+aarx][ch_offset];
+      ul_ch_128[0] = simde_mm_slli_epi16 (ul_ch_128[0], 2);
     }
 
     else if (pusch_pdu->dmrs_config_type == pusch_dmrs_type1) { // this is case without frequency-domain linear interpolation, just take average of LS channel estimates of 6 DMRS REs and use a common value for the whole PRB

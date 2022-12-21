@@ -18,7 +18,8 @@
  * For more information about the OpenAirInterface (OAI) Software Alliance:
  *      contact@openairinterface.org
  */
- 
+
+#if defined(__x86_64__) || defined(__i386__)
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -68,7 +69,6 @@ const static int16_t reflip[32]  __attribute__((aligned(32))) = {1,-1,1,-1,1,-1,
 
 
 
-#if defined(__x86_64__) || defined(__i386__)
 static inline void cmac(__m128i a,__m128i b, __m128i *re32, __m128i *im32) __attribute__((always_inline));
 static inline void cmac(__m128i a,__m128i b, __m128i *re32, __m128i *im32)
 {
@@ -305,162 +305,6 @@ static inline __m256i packed_cmult2_256(__m256i a,__m256i b,__m256i b2)
 
 }
 
-#elif defined(__arm__) || defined(__aarch64__)
-static inline void cmac(int16x8_t a,int16x8_t b, int32x4_t *re32, int32x4_t *im32) __attribute__((always_inline));
-static inline void cmac(int16x8_t a,int16x8_t b, int32x4_t *re32, int32x4_t *im32)
-{
-
-  
-  int32x4_t ab_re0,ab_re1,ab_im0,ab_im1;
-  int16x8_t bflip = vrev32q_s16(b);
-  int16x8_t bconj = vmulq_s16(b,*(int16x8_t *)reflip);
-
-  ab_re0 = vmull_s16(((int16x4_t*)&a)[0],((int16x4_t*)&bconj)[0]);
-  ab_re1 = vmull_s16(((int16x4_t*)&a)[1],((int16x4_t*)&bconj)[1]);
-  ab_im0 = vmull_s16(((int16x4_t*)&a)[0],((int16x4_t*)&bflip)[0]);
-  ab_im1 = vmull_s16(((int16x4_t*)&a)[1],((int16x4_t*)&bflip)[1]);
-  *re32 = vqaddq_s32(*re32,vcombine_s32(vpadd_s32(((int32x2_t*)&ab_re0)[0],((int32x2_t*)&ab_re0)[1]),
-					vpadd_s32(((int32x2_t*)&ab_re1)[0],((int32x2_t*)&ab_re1)[1])));
-  *im32 = vqaddq_s32(*im32,vcombine_s32(vpadd_s32(((int32x2_t*)&ab_im0)[0],((int32x2_t*)&ab_im0)[1]),
-					vpadd_s32(((int32x2_t*)&ab_im1)[0],((int32x2_t*)&ab_im1)[1])));
-}
-
-static inline void cmacc(int16x8_t a,int16x8_t b, int32x4_t *re32, int32x4_t *im32) __attribute__((always_inline));
-static inline void cmacc(int16x8_t a,int16x8_t b, int32x4_t *re32, int32x4_t *im32)
-{
-  int32x4_t ab_re0,ab_re1,ab_im0,ab_im1;
-  int16x8_t bconj = vmulq_s16(b,*(int16x8_t *)reflip);
-  int16x8_t bflip = vrev32q_s16(bconj);
-
-  ab_re0 = vmull_s16(((int16x4_t*)&a)[0],((int16x4_t*)&b)[0]);
-  ab_re1 = vmull_s16(((int16x4_t*)&a)[1],((int16x4_t*)&b)[1]);
-  ab_im0 = vmull_s16(((int16x4_t*)&a)[0],((int16x4_t*)&bflip)[0]);
-  ab_im1 = vmull_s16(((int16x4_t*)&a)[1],((int16x4_t*)&bflip)[1]);
-  *re32 = vqaddq_s32(*re32,vcombine_s32(vpadd_s32(((int32x2_t*)&ab_re0)[0],((int32x2_t*)&ab_re0)[1]),
-					vpadd_s32(((int32x2_t*)&ab_re1)[0],((int32x2_t*)&ab_re1)[1])));
-  *im32 = vqaddq_s32(*im32,vcombine_s32(vpadd_s32(((int32x2_t*)&ab_im0)[0],((int32x2_t*)&ab_im0)[1]),
-					vpadd_s32(((int32x2_t*)&ab_im1)[0],((int32x2_t*)&ab_im1)[1])));
-
-}
-
-static inline void cmult(int16x8_t a,int16x8_t b, int32x4_t *re32, int32x4_t *im32) __attribute__((always_inline));
-static inline void cmult(int16x8_t a,int16x8_t b, int32x4_t *re32, int32x4_t *im32)
-{
-  int32x4_t ab_re0,ab_re1,ab_im0,ab_im1;
-  int16x8_t bflip = vrev32q_s16(b);
-  int16x8_t bconj = vmulq_s16(b,*(int16x8_t *)reflip);
-  int16x4_t al,ah,bcl,bch,bfl,bfh;
-  int32x2_t abr0l,abr0h,abr1l,abr1h,abi0l,abi0h,abi1l,abi1h;
-
-  al  = vget_low_s16(a);      ah = vget_high_s16(a);
-  bcl = vget_low_s16(bconj);  bch = vget_high_s16(bconj);
-  bfl = vget_low_s16(bflip);  bfh = vget_high_s16(bflip);
-
-  ab_re0 = vmull_s16(al,bcl);
-  ab_re1 = vmull_s16(ah,bch);
-  ab_im0 = vmull_s16(al,bfl);
-  ab_im1 = vmull_s16(ah,bfh);
-  abr0l = vget_low_s32(ab_re0); abr0h = vget_high_s32(ab_re0);
-  abr1l = vget_low_s32(ab_re1); abr1h = vget_high_s32(ab_re1);
-  abi0l = vget_low_s32(ab_im0); abi0h = vget_high_s32(ab_im0);
-  abi1l = vget_low_s32(ab_im1); abi1h = vget_high_s32(ab_im1);
-
-  *re32 = vcombine_s32(vpadd_s32(abr0l,abr0h),
-                       vpadd_s32(abr1l,abr1h));
-  *im32 = vcombine_s32(vpadd_s32(abi0l,abi0h),
-                       vpadd_s32(abi1l,abi1h));
-}
-
-static inline void cmultc(int16x8_t a,int16x8_t b, int32x4_t *re32, int32x4_t *im32) __attribute__((always_inline));
-
-static inline void cmultc(int16x8_t a,int16x8_t b, int32x4_t *re32, int32x4_t *im32)
-{
-  int32x4_t ab_re0,ab_re1,ab_im0,ab_im1;
-  int16x8_t bconj = vmulq_s16(b,*(int16x8_t *)reflip);
-  int16x8_t bflip = vrev32q_s16(bconj);
-  int16x4_t al,ah,bl,bh,bfl,bfh; 
-  int32x2_t abr0l,abr0h,abr1l,abr1h,abi0l,abi0h,abi1l,abi1h;
-  al  = vget_low_s16(a);     ah = vget_high_s16(a);
-  bl  = vget_low_s16(b);     bh = vget_high_s16(b);
-  bfl = vget_low_s16(bflip); bfh = vget_high_s16(bflip);
-
-  ab_re0 = vmull_s16(al,bl);
-  ab_re1 = vmull_s16(ah,bh);
-  ab_im0 = vmull_s16(al,bfl);
-  ab_im1 = vmull_s16(ah,bfh);
-
-  abr0l = vget_low_s32(ab_re0); abr0h = vget_high_s32(ab_re0);
-  abr1l = vget_low_s32(ab_re1); abr1h = vget_high_s32(ab_re1);
-  abi0l = vget_low_s32(ab_im0); abi0h = vget_high_s32(ab_im0);
-  abi1l = vget_low_s32(ab_im1); abi1h = vget_high_s32(ab_im1);
-
-  *re32 = vcombine_s32(vpadd_s32(abr0l,abr0h),
-		       vpadd_s32(abr1l,abr1h));
-  *im32 = vcombine_s32(vpadd_s32(abi0l,abi0h),
-		       vpadd_s32(abi1l,abi1h));
-
-}
-
-
-static inline int16x8_t cpack(int32x4_t xre,int32x4_t xim) __attribute__((always_inline));
-
-static inline int16x8_t cpack(int32x4_t xre,int32x4_t xim)
-{
-  int32x4x2_t xtmp;
-
-  xtmp = vzipq_s32(xre,xim);
-  return(vcombine_s16(vqshrn_n_s32(xtmp.val[0],15),vqshrn_n_s32(xtmp.val[1],15)));
-
-}
-
-
-static inline void packed_cmult(int16x8_t a,int16x8_t b, int16x8_t *c) __attribute__((always_inline));
-
-static inline void packed_cmult(int16x8_t a,int16x8_t b, int16x8_t *c)
-{
-
-  int32x4_t cre,cim;
-  cmult(a,b,&cre,&cim);
-  *c = cpack(cre,cim);
-
-}
-
-
-static inline void packed_cmultc(int16x8_t a,int16x8_t b, int16x8_t *c) __attribute__((always_inline));
-
-static inline void packed_cmultc(int16x8_t a,int16x8_t b, int16x8_t *c)
-{
-
-  int32x4_t cre,cim;
-
-  cmultc(a,b,&cre,&cim);
-  *c = cpack(cre,cim);
-
-}
-
-static inline int16x8_t packed_cmult2(int16x8_t a,int16x8_t b,  int16x8_t b2) __attribute__((always_inline));
-
-static inline int16x8_t packed_cmult2(int16x8_t a,int16x8_t b,  int16x8_t b2)
-{
-
-  
-
-  int32x4_t ab_re0,ab_re1,ab_im0,ab_im1,cre,cim;
-  
-  ab_re0 = vmull_s16(((int16x4_t*)&a)[0],((int16x4_t*)&b)[0]);
-  ab_re1 = vmull_s16(((int16x4_t*)&a)[1],((int16x4_t*)&b)[1]);
-  ab_im0 = vmull_s16(((int16x4_t*)&a)[0],((int16x4_t*)&b2)[0]);
-  ab_im1 = vmull_s16(((int16x4_t*)&a)[1],((int16x4_t*)&b2)[1]);
-  cre = vcombine_s32(vpadd_s32(((int32x2_t*)&ab_re0)[0],((int32x2_t*)&ab_re0)[1]),
-		     vpadd_s32(((int32x2_t*)&ab_re1)[0],((int32x2_t*)&ab_re1)[1]));
-  cim = vcombine_s32(vpadd_s32(((int32x2_t*)&ab_im0)[0],((int32x2_t*)&ab_im0)[1]),
-		     vpadd_s32(((int32x2_t*)&ab_im1)[0],((int32x2_t*)&ab_im1)[1]));
-  return(cpack(cre,cim));
-
-}
-
-#endif // defined(__x86_64__) || defined(__i386__)
-
 const static int16_t W0s[16]__attribute__((aligned(32))) = {32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0};
 
 const static int16_t W13s[16]__attribute__((aligned(32))) = {-16384,-28378,-16384,-28378,-16384,-28378,-16384,-28378,-16384,-28378,-16384,-28378,-16384,-28378,-16384,-28378};
@@ -471,7 +315,6 @@ const static int16_t W25s[16]__attribute__((aligned(32))) = {-26509,-19260,-2650
 const static int16_t W35s[16]__attribute__((aligned(32))) = {-26510,19260,-26510,19260,-26510,19260,-26510,19260,-26510,19260,-26510,19260,-26510,19260,-26510,19260};
 const static int16_t W45s[16]__attribute__((aligned(32))) = {10126,31163,10126,31163,10126,31163,10126,31163,10126,31163,10126,31163,10126,31163,10126,31163};
 
-#if defined(__x86_64__) || defined(__i386__)
 const __m128i *W0 = (__m128i *)W0s;
 const __m128i *W13 = (__m128i *)W13s;
 const __m128i *W23 = (__m128i *)W23s;
@@ -487,16 +330,6 @@ const __m256i *W15_256 = (__m256i *)W15s;
 const __m256i *W25_256 = (__m256i *)W25s;
 const __m256i *W35_256 = (__m256i *)W35s;
 const __m256i *W45_256 = (__m256i *)W45s;
-
-#elif defined(__arm__) || defined(__aarch64__)
-int16x8_t *W0  = (int16x8_t *)W0s;
-int16x8_t *W13 = (int16x8_t *)W13s;
-int16x8_t *W23 = (int16x8_t *)W23s;
-int16x8_t *W15 = (int16x8_t *)W15s;
-int16x8_t *W25 = (int16x8_t *)W25s;
-int16x8_t *W35 = (int16x8_t *)W35s;
-int16x8_t *W45 = (int16x8_t *)W45s;
-#endif // defined(__x86_64__) || defined(__i386__)
 
 const static int16_t dft_norm_table[16] = {9459,  //12
 					   6689,//24
@@ -517,7 +350,6 @@ const static int16_t dft_norm_table[16] = {9459,  //12
 }; //sqrt(5) //300
 
 
-#if defined(__x86_64__) || defined(__i386__)
 static inline void bfly2(__m128i *x0, __m128i *x1,__m128i *y0, __m128i *y1,__m128i *tw)__attribute__((always_inline));
 
 static inline void bfly2(__m128i *x0, __m128i *x1,__m128i *y0, __m128i *y1,__m128i *tw)
@@ -570,31 +402,6 @@ static inline void bfly2_256(__m256i *x0, __m256i *x1,__m256i *y0, __m256i *y1,_
   *y1 = simde_mm256_packs_epi32(bfly2_tmp1,bfly2_tmp2);
 }
 
-#elif defined(__arm__) || defined(__aarch64__)
-
-static inline void bfly2(int16x8_t *x0, int16x8_t *x1,int16x8_t *y0, int16x8_t *y1,int16x8_t *tw)__attribute__((always_inline));
-
-static inline void bfly2(int16x8_t *x0, int16x8_t *x1,int16x8_t *y0, int16x8_t *y1,int16x8_t *tw)
-{
-
-  int32x4_t x0r_2,x0i_2,x1r_2,x1i_2,dy0r,dy1r,dy0i,dy1i;
-
-  cmult(*(x0),*(W0),&x0r_2,&x0i_2);
-  cmult(*(x1),*(tw),&x1r_2,&x1i_2);
-
-  dy0r = vqaddq_s32(x0r_2,x1r_2);
-  dy1r = vqsubq_s32(x0r_2,x1r_2);
-  dy0i = vqaddq_s32(x0i_2,x1i_2);
-  dy1i = vqsubq_s32(x0i_2,x1i_2);
-
-  *y0 = cpack(dy0r,dy0i);
-  *y1 = cpack(dy1r,dy1i);
-}
-
-
-#endif // defined(__x86_64__) || defined(__i386__)
-
-#if defined(__x86_64__) || defined(__i386__)
 static inline void bfly2_tw1(__m128i *x0, __m128i *x1, __m128i *y0, __m128i *y1)__attribute__((always_inline));
 
 static inline void bfly2_tw1(__m128i *x0, __m128i *x1, __m128i *y0, __m128i *y1)
@@ -604,21 +411,6 @@ static inline void bfly2_tw1(__m128i *x0, __m128i *x1, __m128i *y0, __m128i *y1)
   *y1  = _mm_subs_epi16(*x0,*x1);
 
 }
-
-#elif defined(__arm__) || defined(__aarch64__)
-
-static inline void bfly2_tw1(int16x8_t *x0, int16x8_t *x1, int16x8_t *y0, int16x8_t *y1)__attribute__((always_inline));
-
-static inline void bfly2_tw1(int16x8_t *x0, int16x8_t *x1, int16x8_t *y0, int16x8_t *y1)
-{
-
-  *y0  = vqaddq_s16(*x0,*x1);
-  *y1  = vqsubq_s16(*x0,*x1);
-
-}
-#endif // defined(__x86_64__) || defined(__i386__)
- 
-#if defined(__x86_64__) || defined(__i386__)
 
 static inline void bfly2_16(__m128i *x0, __m128i *x1, __m128i *y0, __m128i *y1, __m128i *tw, __m128i *twb)__attribute__((always_inline));
 
@@ -663,20 +455,6 @@ static inline void bfly2_16_256(__m256i *x0, __m256i *x1, __m256i *y0, __m256i *
     print_shorts256("y1",(int16_t*)y1);*/
 }
 
-#elif defined(__arm__) || defined(__aarch64__)
-
-static inline void bfly2_16(int16x8_t *x0, int16x8_t *x1, int16x8_t *y0, int16x8_t *y1, int16x8_t *tw, int16x8_t *twb)__attribute__((always_inline));
-
-static inline void bfly2_16(int16x8_t *x0, int16x8_t *x1, int16x8_t *y0, int16x8_t *y1, int16x8_t *tw, int16x8_t *twb)
-{
-
-  *y0  = vqaddq_s16(*x0,*x1);
-  *y1  = vqsubq_s16(*x0,*x1);
-
-}
-#endif // defined(__x86_64__) || defined(__i386__)
-
-#if defined(__x86_64__) || defined(__i386__)
 static inline void ibfly2(__m128i *x0, __m128i *x1,__m128i *y0, __m128i *y1,__m128i *tw)__attribute__((always_inline));
 
 static inline void ibfly2(__m128i *x0, __m128i *x1,__m128i *y0, __m128i *y1,__m128i *tw)
@@ -729,31 +507,8 @@ static inline void ibfly2_256(__m256i *x0, __m256i *x1,__m256i *y0, __m256i *y1,
   *y1 = simde_mm256_packs_epi32(bfly2_tmp1,bfly2_tmp2);
 }
 
-#elif defined(__arm__) || defined(__aarch64__)
-static inline void ibfly2(int16x8_t *x0, int16x8_t *x1,int16x8_t *y0, int16x8_t *y1,int16x8_t *tw)
-{
-
-  int32x4_t x0r_2,x0i_2,x1r_2,x1i_2,dy0r,dy1r,dy0i,dy1i;
-
-  cmultc(*(x0),*(W0),&x0r_2,&x0i_2);
-  cmultc(*(x1),*(tw),&x1r_2,&x1i_2);
-
-  dy0r = vqaddq_s32(x0r_2,x1r_2);
-  dy1r = vqsubq_s32(x0r_2,x1r_2);
-  dy0i = vqaddq_s32(x0i_2,x1i_2);
-  dy1i = vqsubq_s32(x0i_2,x1i_2);
-
-  *y0 = cpack(dy0r,dy0i);
-  *y1 = cpack(dy1r,dy1i);
-
-}
-
-#endif // defined(__x86_64__) || defined(__i386__)
-
 
 // This is the radix-3 butterfly (fft)
-
-#if defined(__x86_64__) || defined(__i386__)
 
 static inline void bfly3(__m128i *x0,__m128i *x1,__m128i *x2,
                          __m128i *y0,__m128i *y1,__m128i *y2,
@@ -803,35 +558,6 @@ static inline void bfly3_256(__m256i *x0,__m256i *x1,__m256i *x2,
   *(y2) = simde_mm256_adds_epi16(*(x0),*(y2));
 }
 
-#elif defined(__arm__) || defined(__aarch64__)
-static inline void bfly3(int16x8_t *x0,int16x8_t *x1,int16x8_t *x2,
-                         int16x8_t *y0,int16x8_t *y1,int16x8_t *y2,
-                         int16x8_t *tw1,int16x8_t *tw2) __attribute__((always_inline));
-
-static inline void bfly3(int16x8_t *x0,int16x8_t *x1,int16x8_t *x2,
-                         int16x8_t *y0,int16x8_t *y1,int16x8_t *y2,
-                         int16x8_t *tw1,int16x8_t *tw2)
-{
-
-  int32x4_t tmpre,tmpim;
-  int16x8_t x1_2,x2_2;
-
-  packed_cmult(*(x1),*(tw1),&x1_2);
-  packed_cmult(*(x2),*(tw2),&x2_2);
-  *(y0)  = vqaddq_s16(*(x0),vqaddq_s16(x1_2,x2_2));
-  cmult(x1_2,*(W13),&tmpre,&tmpim);
-  cmac(x2_2,*(W23),&tmpre,&tmpim);
-  *(y1) = cpack(tmpre,tmpim);
-  *(y1) = vqaddq_s16(*(x0),*(y1));
-  cmult(x1_2,*(W23),&tmpre,&tmpim);
-  cmac(x2_2,*(W13),&tmpre,&tmpim);
-  *(y2) = cpack(tmpre,tmpim);
-  *(y2) = vqaddq_s16(*(x0),*(y2));
-}
-
-#endif // defined(__x86_64__) || defined(__i386__)
-
-#if defined(__x86_64__) || defined(__i386__)
 static inline void ibfly3(__m128i *x0,__m128i *x1,__m128i *x2,
 			  __m128i *y0,__m128i *y1,__m128i *y2,
 			  __m128i *tw1,__m128i *tw2) __attribute__((always_inline));
@@ -880,34 +606,6 @@ static inline void ibfly3_256(__m256i *x0,__m256i *x1,__m256i *x2,
   *(y2) = simde_mm256_adds_epi16(*(x0),*(y2));
 }
 
-#elif defined(__arm__) || defined(__aarch64__)
-static inline void ibfly3(int16x8_t *x0,int16x8_t *x1,int16x8_t *x2,
-			  int16x8_t *y0,int16x8_t *y1,int16x8_t *y2,
-			  int16x8_t *tw1,int16x8_t *tw2) __attribute__((always_inline));
-
-static inline void ibfly3(int16x8_t *x0,int16x8_t *x1,int16x8_t *x2,
-			  int16x8_t *y0,int16x8_t *y1,int16x8_t *y2,
-			  int16x8_t *tw1,int16x8_t *tw2)
-{
-
-  int32x4_t tmpre,tmpim;
-  int16x8_t x1_2,x2_2;
-
-  packed_cmultc(*(x1),*(tw1),&x1_2);
-  packed_cmultc(*(x2),*(tw2),&x2_2);
-  *(y0)  = vqaddq_s16(*(x0),vqaddq_s16(x1_2,x2_2));
-  cmultc(x1_2,*(W13),&tmpre,&tmpim);
-  cmacc(x2_2,*(W23),&tmpre,&tmpim);
-  *(y1) = cpack(tmpre,tmpim);
-  *(y1) = vqaddq_s16(*(x0),*(y1));
-  cmultc(x1_2,*(W23),&tmpre,&tmpim);
-  cmacc(x2_2,*(W13),&tmpre,&tmpim);
-  *(y2) = cpack(tmpre,tmpim);
-  *(y2) = vqaddq_s16(*(x0),*(y2));
-}
-#endif // defined(__x86_64__) || defined(__i386__)
-
-#if defined(__x86_64__) || defined(__i386__)
 static inline void bfly3_tw1(__m128i *x0,__m128i *x1,__m128i *x2,
                              __m128i *y0,__m128i *y1,__m128i *y2) __attribute__((always_inline));
 
@@ -948,31 +646,6 @@ static inline void bfly3_tw1_256(__m256i *x0,__m256i *x1,__m256i *x2,
   *(y2) = simde_mm256_adds_epi16(*(x0),*(y2));
 }
 
-#elif defined(__arm__) || defined(__aarch64__)
-static inline void bfly3_tw1(int16x8_t *x0,int16x8_t *x1,int16x8_t *x2,
-                             int16x8_t *y0,int16x8_t *y1,int16x8_t *y2) __attribute__((always_inline));
-
-static inline void bfly3_tw1(int16x8_t *x0,int16x8_t *x1,int16x8_t *x2,
-                             int16x8_t *y0,int16x8_t *y1,int16x8_t *y2)
-{
-
-  int32x4_t tmpre,tmpim;
-
-  *(y0) = vqaddq_s16(*(x0),vqaddq_s16(*(x1),*(x2)));
-  cmult(*(x1),*(W13),&tmpre,&tmpim);
-  cmac(*(x2),*(W23),&tmpre,&tmpim);
-  *(y1) = cpack(tmpre,tmpim);
-  *(y1) = vqaddq_s16(*(x0),*(y1));
-  cmult(*(x1),*(W23),&tmpre,&tmpim);
-  cmac(*(x2),*(W13),&tmpre,&tmpim);
-  *(y2) = cpack(tmpre,tmpim);
-  *(y2) = vqaddq_s16(*(x0),*(y2));
-
-}
-
-#endif // defined(__x86_64__) || defined(__i386__)
-
-#if defined(__x86_64__) || defined(__i386__)
 static inline void bfly4(__m128i *x0,__m128i *x1,__m128i *x2,__m128i *x3,
                          __m128i *y0,__m128i *y1,__m128i *y2,__m128i *y3,
                          __m128i *tw1,__m128i *tw2,__m128i *tw3)__attribute__((always_inline));
@@ -1054,52 +727,6 @@ static inline void bfly4_256(__m256i *x0,__m256i *x1,__m256i *x2,__m256i *x3,
   dy3i = simde_mm256_sub_epi32(x1r_2,simde_mm256_add_epi32(x2i_2,x3r_2));
   *(y3) = simde_mm256_add_epi16(*(x0),cpack_256(dy3r,dy3i));
 }
-
-#elif defined(__arm__) || defined(__aarch64__)
-static inline void bfly4(int16x8_t *x0,int16x8_t *x1,int16x8_t *x2,int16x8_t *x3,
-                         int16x8_t *y0,int16x8_t *y1,int16x8_t *y2,int16x8_t *y3,
-                         int16x8_t *tw1,int16x8_t *tw2,int16x8_t *tw3)__attribute__((always_inline));
-
-static inline void bfly4(int16x8_t *x0,int16x8_t *x1,int16x8_t *x2,int16x8_t *x3,
-                         int16x8_t *y0,int16x8_t *y1,int16x8_t *y2,int16x8_t *y3,
-                         int16x8_t *tw1,int16x8_t *tw2,int16x8_t *tw3)
-{
-
-  int32x4_t x1r_2,x1i_2,x2r_2,x2i_2,x3r_2,x3i_2,dy0r,dy0i,dy1r,dy1i,dy2r,dy2i,dy3r,dy3i;
-
-  //  cmult(*(x0),*(W0),&x0r_2,&x0i_2);
-  cmult(*(x1),*(tw1),&x1r_2,&x1i_2);
-  cmult(*(x2),*(tw2),&x2r_2,&x2i_2);
-  cmult(*(x3),*(tw3),&x3r_2,&x3i_2);
-  //  dy0r = _mm_add_epi32(x0r_2,_mm_add_epi32(x1r_2,_mm_add_epi32(x2r_2,x3r_2)));
-  //  dy0i = _mm_add_epi32(x0i_2,_mm_add_epi32(x1i_2,_mm_add_epi32(x2i_2,x3i_2)));
-  //  *(y0)  = cpack(dy0r,dy0i);
-  dy0r = vqaddq_s32(x1r_2,vqaddq_s32(x2r_2,x3r_2));
-  dy0i = vqaddq_s32(x1i_2,vqaddq_s32(x2i_2,x3i_2));
-  *(y0)  = vqaddq_s16(*(x0),cpack(dy0r,dy0i));
-  //  dy1r = _mm_add_epi32(x0r_2,_mm_sub_epi32(x1i_2,_mm_add_epi32(x2r_2,x3i_2)));
-  //  dy1i = _mm_sub_epi32(x0i_2,_mm_add_epi32(x1r_2,_mm_sub_epi32(x2i_2,x3r_2)));
-  //  *(y1)  = cpack(dy1r,dy1i);
-  dy1r = vqsubq_s32(x1i_2,vqaddq_s32(x2r_2,x3i_2));
-  dy1i = vqsubq_s32(vqsubq_s32(x3r_2,x2i_2),x1r_2);
-  *(y1)  = vqaddq_s16(*(x0),cpack(dy1r,dy1i));
-  //  dy2r = _mm_sub_epi32(x0r_2,_mm_sub_epi32(x1r_2,_mm_sub_epi32(x2r_2,x3r_2)));
-  //  dy2i = _mm_sub_epi32(x0i_2,_mm_sub_epi32(x1i_2,_mm_sub_epi32(x2i_2,x3i_2)));
-  //  *(y2)  = cpack(dy2r,dy2i);
-  dy2r = vqsubq_s32(vqsubq_s32(x2r_2,x3r_2),x1r_2);
-  dy2i = vqsubq_s32(vqsubq_s32(x2i_2,x3i_2),x1i_2);
-  *(y2)  = vqaddq_s16(*(x0),cpack(dy2r,dy2i));
-  //  dy3r = _mm_sub_epi32(x0r_2,_mm_add_epi32(x1i_2,_mm_sub_epi32(x2r_2,x3i_2)));
-  //  dy3i = _mm_add_epi32(x0i_2,_mm_sub_epi32(x1r_2,_mm_add_epi32(x2i_2,x3r_2)));
-  //  *(y3) = cpack(dy3r,dy3i);
-  dy3r = vqsubq_s32(vqsubq_s32(x3i_2,x2r_2),x1i_2);
-  dy3i = vqsubq_s32(x1r_2,vqaddq_s32(x2i_2,x3r_2));
-  *(y3) = vqaddq_s16(*(x0),cpack(dy3r,dy3i));
-}
-
-#endif // defined(__x86_64__) || defined(__i386__)
-
-#if defined(__x86_64__) || defined(__i386__)
 static inline void ibfly4(__m128i *x0,__m128i *x1,__m128i *x2,__m128i *x3,
                           __m128i *y0,__m128i *y1,__m128i *y2,__m128i *y3,
                           __m128i *tw1,__m128i *tw2,__m128i *tw3)__attribute__((always_inline));
@@ -1160,42 +787,6 @@ static inline void ibfly4_256(__m256i *x0,__m256i *x1,__m256i *x2,__m256i *x3,
   *(y1) = simde_mm256_add_epi16(*(x0),cpack_256(dy1r,dy1i));
 }
 
-#elif defined(__arm__) || defined(__aarch64__)
-
-static inline void ibfly4(int16x8_t *x0,int16x8_t *x1,int16x8_t *x2,int16x8_t *x3,
-                          int16x8_t *y0,int16x8_t *y1,int16x8_t *y2,int16x8_t *y3,
-                          int16x8_t *tw1,int16x8_t *tw2,int16x8_t *tw3)__attribute__((always_inline));
-
-static inline void ibfly4(int16x8_t *x0,int16x8_t *x1,int16x8_t *x2,int16x8_t *x3,
-                          int16x8_t *y0,int16x8_t *y1,int16x8_t *y2,int16x8_t *y3,
-                          int16x8_t *tw1,int16x8_t *tw2,int16x8_t *tw3)
-{
-
-  int32x4_t x1r_2,x1i_2,x2r_2,x2i_2,x3r_2,x3i_2,dy0r,dy0i,dy1r,dy1i,dy2r,dy2i,dy3r,dy3i;
-
-
-  cmultc(*(x1),*(tw1),&x1r_2,&x1i_2);
-  cmultc(*(x2),*(tw2),&x2r_2,&x2i_2);
-  cmultc(*(x3),*(tw3),&x3r_2,&x3i_2);
-
-  dy0r  = vqaddq_s32(x1r_2,vqaddq_s32(x2r_2,x3r_2));
-  dy0i  = vqaddq_s32(x1i_2,vqaddq_s32(x2i_2,x3i_2));
-  *(y0) = vqaddq_s16(*(x0),cpack(dy0r,dy0i));
-  dy3r  = vqsubq_s32(x1i_2,vqaddq_s32(x2r_2,x3i_2));
-  dy3i  = vqsubq_s32(vqsubq_s32(x3r_2,x2i_2),x1r_2);
-  *(y3) = vqaddq_s16(*(x0),cpack(dy3r,dy3i));
-  dy2r  = vqsubq_s32(vqsubq_s32(x2r_2,x3r_2),x1r_2);
-  dy2i  = vqsubq_s32(vqsubq_s32(x2i_2,x3i_2),x1i_2);
-  *(y2) = vqaddq_s16(*(x0),cpack(dy2r,dy2i));
-  dy1r  = vqsubq_s32(vqsubq_s32(x3i_2,x2r_2),x1i_2);
-  dy1i  = vqsubq_s32(x1r_2,vqaddq_s32(x2i_2,x3r_2));
-  *(y1) = vqaddq_s16(*(x0),cpack(dy1r,dy1i));
-}
-
-#endif // defined(__x86_64__) || defined(__i386__)
-
-#if defined(__x86_64__) || defined(__i386__)
-
 static inline void bfly4_tw1(__m128i *x0,__m128i *x1,__m128i *x2,__m128i *x3,
                              __m128i *y0,__m128i *y1,__m128i *y2,__m128i *y3)__attribute__((always_inline));
 
@@ -1253,29 +844,6 @@ static inline void bfly4_tw1_256(__m256i *x0,__m256i *x1,__m256i *x2,__m256i *x3
   *(y3)   = simde_mm256_subs_epi16(x02t,x13t);  // x0 - x1f - x2 + x3f
 }
 
-#elif defined(__arm__) || defined(__aarch64__)
-
-static inline void bfly4_tw1(int16x8_t *x0,int16x8_t *x1,int16x8_t *x2,int16x8_t *x3,
-                             int16x8_t *y0,int16x8_t *y1,int16x8_t *y2,int16x8_t *y3)__attribute__((always_inline));
-
-static inline void bfly4_tw1(int16x8_t *x0,int16x8_t *x1,int16x8_t *x2,int16x8_t *x3,
-                             int16x8_t *y0,int16x8_t *y1,int16x8_t *y2,int16x8_t *y3)
-{
-
-  register int16x8_t x1_flip,x3_flip;
-
-  *(y0) = vqaddq_s16(*(x0),vqaddq_s16(*(x1),vqaddq_s16(*(x2),*(x3))));
-  x1_flip = vrev32q_s16(vmulq_s16(*(x1),*(int16x8_t*)conjugatedft));
-  x3_flip = vrev32q_s16(vmulq_s16(*(x3),*(int16x8_t*)conjugatedft));
-  *(y1)   = vqaddq_s16(*(x0),vqsubq_s16(x1_flip,vqaddq_s16(*(x2),x3_flip)));
-  *(y2)   = vqsubq_s16(*(x0),vqsubq_s16(*(x1),vqsubq_s16(*(x2),*(x3))));
-  *(y3)   = vqsubq_s16(*(x0),vqaddq_s16(x1_flip,vqsubq_s16(*(x2),x3_flip)));
-}
-
-#endif // defined(__x86_64__) || defined(__i386__)
-
-#if defined(__x86_64__) || defined(__i386__)
-
 static inline void ibfly4_tw1(__m128i *x0,__m128i *x1,__m128i *x2,__m128i *x3,
                               __m128i *y0,__m128i *y1,__m128i *y2,__m128i *y3)__attribute__((always_inline));
 
@@ -1301,27 +869,6 @@ static inline void ibfly4_tw1(__m128i *x0,__m128i *x1,__m128i *x2,__m128i *x3,
 }
 
 
-#elif defined(__arm__) || defined(__aarch64__)
-static inline void ibfly4_tw1(int16x8_t *x0,int16x8_t *x1,int16x8_t *x2,int16x8_t *x3,
-			      int16x8_t *y0,int16x8_t *y1,int16x8_t *y2,int16x8_t *y3)__attribute__((always_inline));
-
-static inline void ibfly4_tw1(int16x8_t *x0,int16x8_t *x1,int16x8_t *x2,int16x8_t *x3,
-			      int16x8_t *y0,int16x8_t *y1,int16x8_t *y2,int16x8_t *y3)
-{
-
-  register int16x8_t x1_flip,x3_flip;
-
-  *(y0) = vqaddq_s16(*(x0),vqaddq_s16(*(x1),vqaddq_s16(*(x2),*(x3))));
-  x1_flip = vrev32q_s16(vmulq_s16(*(x1),*(int16x8_t*)conjugatedft));
-  x3_flip = vrev32q_s16(vmulq_s16(*(x3),*(int16x8_t*)conjugatedft));
-  *(y1)   = vqsubq_s16(*(x0),vqaddq_s16(x1_flip,vqsubq_s16(*(x2),x3_flip)));
-  *(y2)   = vqsubq_s16(*(x0),vqsubq_s16(*(x1),vqsubq_s16(*(x2),*(x3))));
-  *(y3)   = vqaddq_s16(*(x0),vqsubq_s16(x1_flip,vqaddq_s16(*(x2),x3_flip)));
-}
-
-#endif // defined(__x86_64__) || defined(__i386__)
-
-#if defined(__x86_64__) || defined(__i386__)
 static inline void bfly4_16(__m128i *x0,__m128i *x1,__m128i *x2,__m128i *x3,
                             __m128i *y0,__m128i *y1,__m128i *y2,__m128i *y3,
                             __m128i *tw1,__m128i *tw2,__m128i *tw3,
@@ -1409,42 +956,6 @@ static inline void bfly4_16_256(__m256i *x0,__m256i *x1,__m256i *x2,__m256i *x3,
 
 }
 
-#elif defined(__arm__) || defined(__aarch64__)
-
-static inline void bfly4_16(int16x8_t *x0,int16x8_t *x1,int16x8_t *x2,int16x8_t *x3,
-                            int16x8_t *y0,int16x8_t *y1,int16x8_t *y2,int16x8_t *y3,
-                            int16x8_t *tw1,int16x8_t *tw2,int16x8_t *tw3,
-                            int16x8_t *tw1b,int16x8_t *tw2b,int16x8_t *tw3b)__attribute__((always_inline));
-
-static inline void bfly4_16(int16x8_t *x0,int16x8_t *x1,int16x8_t *x2,int16x8_t *x3,
-                            int16x8_t *y0,int16x8_t *y1,int16x8_t *y2,int16x8_t *y3,
-                            int16x8_t *tw1,int16x8_t *tw2,int16x8_t *tw3,
-                            int16x8_t *tw1b,int16x8_t *tw2b,int16x8_t *tw3b)
-{
-
-  register int16x8_t x1t,x2t,x3t,x02t,x13t;
-  register int16x8_t x1_flip,x3_flip;
-
-  x1t = packed_cmult2(*(x1),*(tw1),*(tw1b));
-  x2t = packed_cmult2(*(x2),*(tw2),*(tw2b));
-  x3t = packed_cmult2(*(x3),*(tw3),*(tw3b));
-
-
-
-  x02t  = vqaddq_s16(*(x0),x2t);
-  x13t  = vqaddq_s16(x1t,x3t);
-  *(y0)   = vqaddq_s16(x02t,x13t);
-  *(y2)   = vqsubq_s16(x02t,x13t);
-  x1_flip = vrev32q_s16(vmulq_s16(x1t,*(int16x8_t*)conjugatedft));
-  x3_flip = vrev32q_s16(vmulq_s16(x3t,*(int16x8_t*)conjugatedft));
-  x02t  = vqsubq_s16(*(x0),x2t);
-  x13t  = vqsubq_s16(x1_flip,x3_flip);
-  *(y1)   = vqaddq_s16(x02t,x13t);  // x0 + x1f - x2 - x3f
-  *(y3)   = vqsubq_s16(x02t,x13t);  // x0 - x1f - x2 + x3f
-}
-#endif // defined(__x86_64__) || defined(__i386__)
-
-#if defined(__x86_64__) || defined(__i386__)
 static inline void ibfly4_16(__m128i *x0,__m128i *x1,__m128i *x2,__m128i *x3,
                              __m128i *y0,__m128i *y1,__m128i *y2,__m128i *y3,
                              __m128i *tw1,__m128i *tw2,__m128i *tw3,
@@ -1532,40 +1043,6 @@ static inline void ibfly4_16_256(__m256i *x0,__m256i *x1,__m256i *x2,__m256i *x3
 
 }
 
-#elif defined(__arm__) || defined(__aarch64__)
-static inline void ibfly4_16(int16x8_t *x0,int16x8_t *x1,int16x8_t *x2,int16x8_t *x3,
-			     int16x8_t *y0,int16x8_t *y1,int16x8_t *y2,int16x8_t *y3,
-			     int16x8_t *tw1,int16x8_t *tw2,int16x8_t *tw3,
-			     int16x8_t *tw1b,int16x8_t *tw2b,int16x8_t *tw3b)__attribute__((always_inline));
-
-static inline void ibfly4_16(int16x8_t *x0,int16x8_t *x1,int16x8_t *x2,int16x8_t *x3,
-			     int16x8_t *y0,int16x8_t *y1,int16x8_t *y2,int16x8_t *y3,
-			     int16x8_t *tw1,int16x8_t *tw2,int16x8_t *tw3,
-			     int16x8_t *tw1b,int16x8_t *tw2b,int16x8_t *tw3b)
-{
-
-  register int16x8_t x1t,x2t,x3t,x02t,x13t;
-  register int16x8_t x1_flip,x3_flip;
-
-  x1t = packed_cmult2(*(x1),*(tw1),*(tw1b));
-  x2t = packed_cmult2(*(x2),*(tw2),*(tw2b));
-  x3t = packed_cmult2(*(x3),*(tw3),*(tw3b));
-
-  x02t    = vqaddq_s16(*(x0),x2t);
-  x13t    = vqaddq_s16(x1t,x3t);
-  *(y0)   = vqaddq_s16(x02t,x13t);
-  *(y2)   = vqsubq_s16(x02t,x13t);
-  x1_flip = vrev32q_s16(vmulq_s16(x1t,*(int16x8_t*)conjugatedft));
-  x3_flip = vrev32q_s16(vmulq_s16(x3t,*(int16x8_t*)conjugatedft));
-  x02t    = vqsubq_s16(*(x0),x2t);
-  x13t    = vqsubq_s16(x1_flip,x3_flip);
-  *(y3)   = vqaddq_s16(x02t,x13t);  // x0 - x1f - x2 + x3f
-  *(y1)   = vqsubq_s16(x02t,x13t);  // x0 + x1f - x2 - x3f
-}
-
-#endif // defined(__x86_64__) || defined(__i386__)
-
-#if defined(__x86_64__) || defined(__i386__)
 static inline void bfly5(__m128i *x0, __m128i *x1, __m128i *x2, __m128i *x3,__m128i *x4,
                          __m128i *y0, __m128i *y1, __m128i *y2, __m128i *y3,__m128i *y4,
                          __m128i *tw1,__m128i *tw2,__m128i *tw3,__m128i *tw4)__attribute__((always_inline));
@@ -1666,62 +1143,6 @@ static inline void bfly5_256(__m256i *x0, __m256i *x1, __m256i *x2, __m256i *x3,
 
 }
 
-#elif defined(__arm__) || defined(__aarch64__)
-static inline void bfly5(int16x8_t *x0, int16x8_t *x1, int16x8_t *x2, int16x8_t *x3,int16x8_t *x4,
-                         int16x8_t *y0, int16x8_t *y1, int16x8_t *y2, int16x8_t *y3,int16x8_t *y4,
-                         int16x8_t *tw1,int16x8_t *tw2,int16x8_t *tw3,int16x8_t *tw4)__attribute__((always_inline));
-
-static inline void bfly5(int16x8_t *x0, int16x8_t *x1, int16x8_t *x2, int16x8_t *x3,int16x8_t *x4,
-                         int16x8_t *y0, int16x8_t *y1, int16x8_t *y2, int16x8_t *y3,int16x8_t *y4,
-                         int16x8_t *tw1,int16x8_t *tw2,int16x8_t *tw3,int16x8_t *tw4)
-{
-
-
-
-  int16x8_t x1_2,x2_2,x3_2,x4_2;
-  int32x4_t tmpre,tmpim;
-
-  packed_cmult(*(x1),*(tw1),&x1_2);
-  packed_cmult(*(x2),*(tw2),&x2_2);
-  packed_cmult(*(x3),*(tw3),&x3_2);
-  packed_cmult(*(x4),*(tw4),&x4_2);
-
-  *(y0)  = vqaddq_s16(*(x0),vqaddq_s16(x1_2,vqaddq_s16(x2_2,vqaddq_s16(x3_2,x4_2))));
-  cmult(x1_2,*(W15),&tmpre,&tmpim);
-  cmac(x2_2,*(W25),&tmpre,&tmpim);
-  cmac(x3_2,*(W35),&tmpre,&tmpim);
-  cmac(x4_2,*(W45),&tmpre,&tmpim);
-  *(y1) = cpack(tmpre,tmpim);
-  *(y1) = vqaddq_s16(*(x0),*(y1));
-
-  cmult(x1_2,*(W25),&tmpre,&tmpim);
-  cmac(x2_2,*(W45),&tmpre,&tmpim);
-  cmac(x3_2,*(W15),&tmpre,&tmpim);
-  cmac(x4_2,*(W35),&tmpre,&tmpim);
-  *(y2) = cpack(tmpre,tmpim);
-  *(y2) = vqaddq_s16(*(x0),*(y2));
-
-  cmult(x1_2,*(W35),&tmpre,&tmpim);
-  cmac(x2_2,*(W15),&tmpre,&tmpim);
-  cmac(x3_2,*(W45),&tmpre,&tmpim);
-  cmac(x4_2,*(W25),&tmpre,&tmpim);
-  *(y3) = cpack(tmpre,tmpim);
-  *(y3) = vqaddq_s16(*(x0),*(y3));
-
-  cmult(x1_2,*(W45),&tmpre,&tmpim);
-  cmac(x2_2,*(W35),&tmpre,&tmpim);
-  cmac(x3_2,*(W25),&tmpre,&tmpim);
-  cmac(x4_2,*(W15),&tmpre,&tmpim);
-  *(y4) = cpack(tmpre,tmpim);
-  *(y4) = vqaddq_s16(*(x0),*(y4));
-
-
-}
-
-
-#endif // defined(__x86_64__) || defined(__i386__)
-
-#if defined(__x86_64__) || defined(__i386__)
 static inline void bfly5_tw1(__m128i *x0, __m128i *x1, __m128i *x2, __m128i *x3,__m128i *x4,
                              __m128i *y0, __m128i *y1, __m128i *y2, __m128i *y3,__m128i *y4) __attribute__((always_inline));
 
@@ -1794,49 +1215,9 @@ static inline void bfly5_tw1_256(__m256i *x0, __m256i *x1, __m256i *x2, __m256i 
   *(y4) = simde_mm256_adds_epi16(*(x0),*(y4));
 }
 
-#elif defined(__arm__) || defined(__aarch64__)
-static inline void bfly5_tw1(int16x8_t *x0, int16x8_t *x1, int16x8_t *x2, int16x8_t *x3,int16x8_t *x4,
-                             int16x8_t *y0, int16x8_t *y1, int16x8_t *y2, int16x8_t *y3,int16x8_t *y4) __attribute__((always_inline));
-
-static inline void bfly5_tw1(int16x8_t *x0, int16x8_t *x1, int16x8_t *x2, int16x8_t *x3,int16x8_t *x4,
-                             int16x8_t *y0, int16x8_t *y1, int16x8_t *y2, int16x8_t *y3,int16x8_t *y4)
-{
-
-  int32x4_t tmpre,tmpim;
-
-  *(y0) = vqaddq_s16(*(x0),vqaddq_s16(*(x1),vqaddq_s16(*(x2),vqaddq_s16(*(x3),*(x4)))));
-  cmult(*(x1),*(W15),&tmpre,&tmpim);
-  cmac(*(x2),*(W25),&tmpre,&tmpim);
-  cmac(*(x3),*(W35),&tmpre,&tmpim);
-  cmac(*(x4),*(W45),&tmpre,&tmpim);
-  *(y1) = cpack(tmpre,tmpim);
-  *(y1) = vqaddq_s16(*(x0),*(y1));
-  cmult(*(x1),*(W25),&tmpre,&tmpim);
-  cmac(*(x2),*(W45),&tmpre,&tmpim);
-  cmac(*(x3),*(W15),&tmpre,&tmpim);
-  cmac(*(x4),*(W35),&tmpre,&tmpim);
-  *(y2) = cpack(tmpre,tmpim);
-  *(y2) = vqaddq_s16(*(x0),*(y2));
-  cmult(*(x1),*(W35),&tmpre,&tmpim);
-  cmac(*(x2),*(W15),&tmpre,&tmpim);
-  cmac(*(x3),*(W45),&tmpre,&tmpim);
-  cmac(*(x4),*(W25),&tmpre,&tmpim);
-  *(y3) = cpack(tmpre,tmpim);
-  *(y3) = vqaddq_s16(*(x0),*(y3));
-  cmult(*(x1),*(W45),&tmpre,&tmpim);
-  cmac(*(x2),*(W35),&tmpre,&tmpim);
-  cmac(*(x3),*(W25),&tmpre,&tmpim);
-  cmac(*(x4),*(W15),&tmpre,&tmpim);
-  *(y4) = cpack(tmpre,tmpim);
-  *(y4) = vqaddq_s16(*(x0),*(y4));
-}
-
-#endif // defined(__x86_64__) || defined(__i386__)
-
 // performs 4x4 transpose of input x (complex interleaved) using 128bit SIMD intrinsics
 // i.e. x = [x0r x0i x1r x1i ... x15r x15i], y = [x0r x0i x4r x4i x8r x8i x12r x12i x1r x1i x5r x5i x9r x9i x13r x13i x2r x2i ... x15r x15i]
 
-#if defined(__x86_64__) || defined(__i386__)
 static inline void transpose16(__m128i *x,__m128i *y) __attribute__((always_inline));
 static inline void transpose16(__m128i *x,__m128i *y)
 {
@@ -1852,25 +1233,7 @@ static inline void transpose16(__m128i *x,__m128i *y)
   y[3]    = _mm_unpackhi_epi64(ytmp1,ytmp3);
 }
 
-#elif defined(__arm__) || defined(__aarch64__)
-static inline void transpose16(int16x8_t *x,int16x8_t *y) __attribute__((always_inline));
-static inline void transpose16(int16x8_t *x,int16x8_t *y)
-{
-  register uint32x4x2_t ytmp0,ytmp1;
-
-  ytmp0 = vtrnq_u32((uint32x4_t)(x[0]),(uint32x4_t)(x[1]));
-  ytmp1 = vtrnq_u32((uint32x4_t)(x[2]),(uint32x4_t)(x[3]));
-
-  y[0]  = vcombine_s16(vget_low_s16((int16x8_t)ytmp0.val[0]),vget_low_s16((int16x8_t)ytmp1.val[0]));
-  y[1]  = vcombine_s16(vget_high_s16((int16x8_t)ytmp0.val[0]),vget_high_s16((int16x8_t)ytmp1.val[0]));
-  y[2]  = vcombine_s16(vget_low_s16((int16x8_t)ytmp0.val[1]),vget_low_s16((int16x8_t)ytmp1.val[1]));
-  y[3]  = vcombine_s16(vget_high_s16((int16x8_t)ytmp0.val[1]),vget_high_s16((int16x8_t)ytmp1.val[1]));
-}
-
-#endif // defined(__x86_64__) || defined(__i386__)
-
 // same as above but output is offset by off
-#if defined(__x86_64__) || defined(__i386__)
 static inline void transpose16_ooff(__m128i *x,__m128i *y,int off) __attribute__((always_inline));
 
 static inline void transpose16_ooff(__m128i *x,__m128i *y,int off)
@@ -1916,29 +1279,6 @@ static inline void transpose16_ooff_simd256(__m256i *x,__m256i *y,int off)
   *y2    = simde_mm256_insertf128_si256(ytmp7,simde_mm256_extracti128_si256(ytmp5,1),0);  //x01 x11 x21 x31 x41 x51 x61 x71
 }
 
-#elif defined(__arm__) || defined(__aarch64__)
-static inline void transpose16_ooff(int16x8_t *x,int16x8_t *y,int off) __attribute__((always_inline));
-
-static inline void transpose16_ooff(int16x8_t *x,int16x8_t *y,int off)
-{
-  int16x8_t *y2=y;
-  register uint32x4x2_t ytmp0,ytmp1;
-
-  ytmp0 = vtrnq_u32((uint32x4_t)(x[0]),(uint32x4_t)(x[1]));
-  ytmp1 = vtrnq_u32((uint32x4_t)(x[2]),(uint32x4_t)(x[3]));
-
-  *y2   = (int16x8_t)vcombine_s16(vget_low_s16((int16x8_t)ytmp0.val[0]),vget_low_s16((int16x8_t)ytmp1.val[0])); y2+=off;
-  *y2   = (int16x8_t)vcombine_s16(vget_low_s16((int16x8_t)ytmp0.val[1]),vget_low_s16((int16x8_t)ytmp1.val[1])); y2+=off;
-  *y2   = (int16x8_t)vcombine_s16(vget_high_s16((int16x8_t)ytmp0.val[0]),vget_high_s16((int16x8_t)ytmp1.val[0])); y2+=off;
-  *y2   = (int16x8_t)vcombine_s16(vget_high_s16((int16x8_t)ytmp0.val[1]),vget_high_s16((int16x8_t)ytmp1.val[1]));
-
-
-}
-
-#endif // defined(__x86_64__) || defined(__i386__)
-
-#if defined(__x86_64__) || defined(__i386__)
-
 static inline void transpose4_ooff(__m64 *x,__m64 *y,int off)__attribute__((always_inline));
 static inline void transpose4_ooff(__m64 *x,__m64 *y,int off)
 {
@@ -1966,19 +1306,6 @@ static inline void transpose4_ooff_simd256(__m256i *x,__m256i *y,int off)
   y[0]   = simde_mm256_insertf128_si256(perm_tmp0,simde_mm256_extracti128_si256(perm_tmp1,0),1);
   y[off] = simde_mm256_insertf128_si256(perm_tmp1,simde_mm256_extracti128_si256(perm_tmp0,1),0);
 }
-
-#elif defined(__arm__) || defined(__aarch64__)
-
-static inline void transpose4_ooff(int16x4_t *x,int16x4_t *y,int off)__attribute__((always_inline));
-static inline void transpose4_ooff(int16x4_t *x,int16x4_t *y,int off)
-{
-  uint32x2x2_t ytmp = vtrn_u32((uint32x2_t)x[0],(uint32x2_t)x[1]);
-
-  y[0]   = (int16x4_t)ytmp.val[0];
-  y[off] = (int16x4_t)ytmp.val[1];
-}
-
-#endif // defined(__x86_64__) || defined(__i386__)
 
 // 16-point optimized DFT kernel
 
@@ -2026,8 +1353,6 @@ static inline void dft16(int16_t *x,int16_t *y) __attribute__((always_inline));
 
 static inline void dft16(int16_t *x,int16_t *y)
 {
-
-#if defined(__x86_64__) || defined(__i386__)
 
   __m128i *tw16a_128=(__m128i *)tw16a,*tw16b_128=(__m128i *)tw16b,*x128=(__m128i *)x,*y128=(__m128i *)y;
 
@@ -2091,77 +1416,7 @@ static inline void dft16(int16_t *x,int16_t *y)
   y128[1] = _mm_adds_epi16(x02t,x13t);  // x0 + x1f - x2 - x3f
   y128[3] = _mm_subs_epi16(x02t,x13t);  // x0 - x1f - x2 + x3f
 
-#elif defined(__arm__) || defined(__aarch64__)
-
-  int16x8_t *tw16a_128=(int16x8_t *)tw16a,*tw16b_128=(int16x8_t *)tw16b,*x128=(int16x8_t *)x,*y128=(int16x8_t *)y;
-
-  /*  This is the original version before unrolling
-
-  bfly4_tw1(x128,x128+1,x128+2,x128+3,
-      y128,y128+1,y128+2,y128+3);
-
-  transpose16(y128,ytmp);
-
-  bfly4_16(ytmp,ytmp+1,ytmp+2,ytmp+3,
-     y128,y128+1,y128+2,y128+3,
-     tw16_128,tw16_128+1,tw16_128+2);
-  */
-
-  register int16x8_t x1_flip,x3_flip,x02t,x13t;
-  register int16x8_t xtmp0,xtmp1,xtmp2,xtmp3;
-  register uint32x4x2_t ytmp0,ytmp1;
-  register int16x8_t ytmp0b,ytmp1b,ytmp2b,ytmp3b;
-
-  // First stage : 4 Radix-4 butterflies without input twiddles
-  
-  x02t    = vqaddq_s16(x128[0],x128[2]);
-  x13t    = vqaddq_s16(x128[1],x128[3]);
-  xtmp0   = vqaddq_s16(x02t,x13t);
-  xtmp2   = vqsubq_s16(x02t,x13t);
-  x1_flip = vrev32q_s16(vmulq_s16(x128[1],*(int16x8_t*)conjugatedft));
-  x3_flip = vrev32q_s16(vmulq_s16(x128[3],*(int16x8_t*)conjugatedft));
-  x02t    = vqsubq_s16(x128[0],x128[2]);
-  x13t    = vqsubq_s16(x1_flip,x3_flip);
-  xtmp1   = vqaddq_s16(x02t,x13t);  // x0 + x1f - x2 - x3f
-  xtmp3   = vqsubq_s16(x02t,x13t);  // x0 - x1f - x2 + x3f
-
-  ytmp0  = vtrnq_u32((uint32x4_t)(xtmp0),(uint32x4_t)(xtmp1));
-// y0[0] = [x00 x10 x02 x12], y0[1] = [x01 x11 x03 x13]
-  ytmp1  = vtrnq_u32((uint32x4_t)(xtmp2),(uint32x4_t)(xtmp3));
-// y1[0] = [x20 x30 x22 x32], y1[1] = [x21 x31 x23 x33]
-
-
-  ytmp0b = vcombine_s16(vget_low_s16((int16x8_t)ytmp0.val[0]),vget_low_s16((int16x8_t)ytmp1.val[0]));
-// y0 = [x00 x10 x20 x30] 
-  ytmp1b = vcombine_s16(vget_low_s16((int16x8_t)ytmp0.val[1]),vget_low_s16((int16x8_t)ytmp1.val[1]));
-// t1 = [x01 x11 x21 x31] 
-  ytmp2b = vcombine_s16(vget_high_s16((int16x8_t)ytmp0.val[0]),vget_high_s16((int16x8_t)ytmp1.val[0]));
-// t2 = [x02 x12 x22 x32]
-  ytmp3b = vcombine_s16(vget_high_s16((int16x8_t)ytmp0.val[1]),vget_high_s16((int16x8_t)ytmp1.val[1]));
-// t3 = [x03 x13 x23 x33]
-
-
-  // Second stage : 4 Radix-4 butterflies with input twiddles
-  xtmp1 = packed_cmult2(ytmp1b,tw16a_128[0],tw16b_128[0]);
-  xtmp2 = packed_cmult2(ytmp2b,tw16a_128[1],tw16b_128[1]);
-  xtmp3 = packed_cmult2(ytmp3b,tw16a_128[2],tw16b_128[2]);
-
-  x02t    = vqaddq_s16(ytmp0b,xtmp2);
-  x13t    = vqaddq_s16(xtmp1,xtmp3);
-  y128[0] = vqaddq_s16(x02t,x13t);
-  y128[2] = vqsubq_s16(x02t,x13t);
-  x1_flip = vrev32q_s16(vmulq_s16(xtmp1,*(int16x8_t*)conjugatedft));
-  x3_flip = vrev32q_s16(vmulq_s16(xtmp3,*(int16x8_t*)conjugatedft));
-  x02t    = vqsubq_s16(ytmp0b,xtmp2);
-  x13t    = vqsubq_s16(x1_flip,x3_flip);
-  y128[1] = vqaddq_s16(x02t,x13t);  // x0 + x1f - x2 - x3f
-  y128[3] = vqsubq_s16(x02t,x13t);  // x0 - x1f - x2 + x3f
-
-
-#endif // defined(__x86_64__) || defined(__i386__)
 }
-
-#if defined(__x86_64__) || defined(__i386__)
 
 // Does two 16-point DFTS (x[0 .. 15] is 128 LSBs of input vector, x[16..31] is in 128 MSBs) 
 static inline void dft16_simd256(int16_t *x,int16_t *y) __attribute__((always_inline));
@@ -2243,14 +1498,12 @@ static inline void dft16_simd256(int16_t *x,int16_t *y)
   // [y24 y25 y26 y27 y28 y29 y30 y31]
 }
 
-#endif // defined(__x86_64__) || defined(__i386__)
 
 static inline void idft16(int16_t *x,int16_t *y) __attribute__((always_inline));
 
 static inline void idft16(int16_t *x,int16_t *y)
 {
 
-#if defined(__x86_64__) || defined(__i386__)
   __m128i *tw16a_128=(__m128i *)tw16,*tw16b_128=(__m128i *)tw16c,*x128=(__m128i *)x,*y128=(__m128i *)y;
 
   /*
@@ -2309,78 +1562,11 @@ static inline void idft16(int16_t *x,int16_t *y)
   y128[3] = _mm_adds_epi16(x02t,x13t);  // x0 + x1f - x2 - x3f
   y128[1] = _mm_subs_epi16(x02t,x13t);  // x0 - x1f - x2 + x3f
 
-#elif defined(__arm__) || defined(__aarch64__)
-  int16x8_t *tw16a_128=(int16x8_t *)tw16,*tw16b_128=(int16x8_t *)tw16c,*x128=(int16x8_t *)x,*y128=(int16x8_t *)y;
-
-  /*  This is the original version before unrolling
-
-  bfly4_tw1(x128,x128+1,x128+2,x128+3,
-      y128,y128+1,y128+2,y128+3);
-
-  transpose16(y128,ytmp);
-
-  bfly4_16(ytmp,ytmp+1,ytmp+2,ytmp+3,
-     y128,y128+1,y128+2,y128+3,
-     tw16_128,tw16_128+1,tw16_128+2);
-  */
-
-  register int16x8_t x1_flip,x3_flip,x02t,x13t;
-  register int16x8_t xtmp0,xtmp1,xtmp2,xtmp3;
-  register uint32x4x2_t ytmp0,ytmp1;
-  register int16x8_t ytmp0b,ytmp1b,ytmp2b,ytmp3b;
-
-  // First stage : 4 Radix-4 butterflies without input twiddles
-
-  x02t    = vqaddq_s16(x128[0],x128[2]);
-  x13t    = vqaddq_s16(x128[1],x128[3]);
-  xtmp0   = vqaddq_s16(x02t,x13t);
-  xtmp2   = vqsubq_s16(x02t,x13t);
-  x1_flip = vrev32q_s16(vmulq_s16(x128[1],*(int16x8_t*)conjugatedft));
-  x3_flip = vrev32q_s16(vmulq_s16(x128[3],*(int16x8_t*)conjugatedft));
-  x02t    = vqsubq_s16(x128[0],x128[2]);
-  x13t    = vqsubq_s16(x1_flip,x3_flip);
-  xtmp3   = vqaddq_s16(x02t,x13t);  // x0 + x1f - x2 - x3f
-  xtmp1   = vqsubq_s16(x02t,x13t);  // x0 - x1f - x2 + x3f
-
-  ytmp0  = vtrnq_u32((uint32x4_t)(xtmp0),(uint32x4_t)(xtmp1));
-// y0[0] = [x00 x10 x02 x12], y0[1] = [x01 x11 x03 x13]
-  ytmp1  = vtrnq_u32((uint32x4_t)(xtmp2),(uint32x4_t)(xtmp3));
-// y1[0] = [x20 x30 x22 x32], y1[1] = [x21 x31 x23 x33]
-
-
-  ytmp0b = vcombine_s16(vget_low_s16((int16x8_t)ytmp0.val[0]),vget_low_s16((int16x8_t)ytmp1.val[0]));
-// y0 = [x00 x10 x20 x30] 
-  ytmp1b = vcombine_s16(vget_low_s16((int16x8_t)ytmp0.val[1]),vget_low_s16((int16x8_t)ytmp1.val[1]));
-// t1 = [x01 x11 x21 x31] 
-  ytmp2b = vcombine_s16(vget_high_s16((int16x8_t)ytmp0.val[0]),vget_high_s16((int16x8_t)ytmp1.val[0]));
-// t2 = [x02 x12 x22 x32]
-  ytmp3b = vcombine_s16(vget_high_s16((int16x8_t)ytmp0.val[1]),vget_high_s16((int16x8_t)ytmp1.val[1]));
-// t3 = [x03 x13 x23 x33]
-
-  // Second stage : 4 Radix-4 butterflies with input twiddles
-  xtmp1 = packed_cmult2(ytmp1b,tw16a_128[0],tw16b_128[0]);
-  xtmp2 = packed_cmult2(ytmp2b,tw16a_128[1],tw16b_128[1]);
-  xtmp3 = packed_cmult2(ytmp3b,tw16a_128[2],tw16b_128[2]);
-
-  x02t    = vqaddq_s16(ytmp0b,xtmp2);
-  x13t    = vqaddq_s16(xtmp1,xtmp3);
-  y128[0] = vqaddq_s16(x02t,x13t);
-  y128[2] = vqsubq_s16(x02t,x13t);
-  x1_flip = vrev32q_s16(vmulq_s16(xtmp1,*(int16x8_t*)conjugatedft));
-  x3_flip = vrev32q_s16(vmulq_s16(xtmp3,*(int16x8_t*)conjugatedft));
-  x02t    = vqsubq_s16(ytmp0b,xtmp2);
-  x13t    = vqsubq_s16(x1_flip,x3_flip);
-  y128[3] = vqaddq_s16(x02t,x13t);  // x0 + x1f - x2 - x3f
-  y128[1] = vqsubq_s16(x02t,x13t);  // x0 - x1f - x2 + x3f
-
-#endif // defined(__x86_64__) || defined(__i386__)
 }
 
 void idft16f(int16_t *x,int16_t *y) {
   idft16(x,y);
 }
-
-#if defined(__x86_64__) || defined(__i386__)
 
 // Does two 16-point IDFTS (x[0 .. 15] is 128 LSBs of input vector, x[16..31] is in 128 MSBs) 
 static inline void idft16_simd256(int16_t *x,int16_t *y) __attribute__((always_inline));
@@ -2445,8 +1631,6 @@ static inline void idft16_simd256(int16_t *x,int16_t *y)
   y256[3] = simde_mm256_insertf128_si256(ytmp3,simde_mm256_extracti128_si256(ytmp2,1),0);
 
 }
-#endif // defined(__x86_64__) || defined(__i386__)
-
 // 64-point optimized DFT
 
 const static int16_t tw64[96] __attribute__((aligned(32))) = { 
@@ -2505,26 +1689,14 @@ const static int16_t tw64c[96] __attribute__((aligned(32))) = {
 23170,-23170,15447,-28898,6393,-32138,-3211,-32610,
 -12539,-30273,-20787,-25330,-27244,-18205,-31356,-9512
                                                  };
-#if defined(__x86_64__) || defined(__i386__)
-#define simd_q15_t __m128i
-#define simdshort_q15_t __m64
-#define shiftright_int16(a,shift) _mm_srai_epi16(a,shift)
-#define mulhi_int16(a,b) _mm_mulhrs_epi16 (a,b)
-#define simd256_q15_t __m256i
+#define simd_q15_t simde__m128i
+#define simdshort_q15_t simde__m64
+#define shiftright_int16(a,shift) simde_mm_srai_epi16(a,shift)
+#define mulhi_int16(a,b) simde_mm_mulhrs_epi16 (a,b)
+#define simd256_q15_t simde__m256i
 #define shiftright_int16_simd256(a,shift) simde_mm256_srai_epi16(a,shift)
 #define set1_int16_simd256(a) simde_mm256_set1_epi16(a);
 #define mulhi_int16_simd256(a,b) simde_mm256_mulhrs_epi16(a,b); //simde_mm256_slli_epi16(simde_mm256_mulhi_epi16(a,b),1);
-
-#elif defined(__arm__) || defined(__aarch64__)
-#define simd_q15_t int16x8_t
-#define simdshort_q15_t int16x4_t
-#define shiftright_int16(a,shift) vshrq_n_s16(a,shift)
-#define set1_int16(a) vdupq_n_s16(a)
-#define mulhi_int16(a,b) vqdmulhq_s16(a,b);
-#define _mm_empty() 
-#define _m_empty()
-
-#endif // defined(__x86_64__) || defined(__i386__)
 
 void dft64(int16_t *x,int16_t *y,unsigned char scale)
 {
@@ -6102,7 +5274,7 @@ void dft48(int16_t *x, int16_t *y,unsigned char scale_flag)
             ytmp128+1,
             ytmp128+2,
             ytmp128+3,
-            y128,
+            y128,10000G
             y128+12,
             y128+24,
             y128+36);
@@ -9289,13 +8461,8 @@ int main(int argc, char**argv)
     ((int16_t *)&tw3)[7] = 0;
  */
     for (i=0;i<300;i++) {
-#if defined(__x86_64__) || defined(__i386__)
       x[i] = simde_mm256_set1_epi32(taus());
       x[i] = simde_mm256_srai_epi16(x[i],4);
-#elif defined(__arm__) || defined(__aarch64__)
-      x[i] = (int16x8_t)vdupq_n_s32(taus());
-      x[i] = vshrq_n_s16(x[i],4);
-#endif // defined(__x86_64__) || defined(__i386__)
     }
       /*
     bfly2_tw1(x,x+1,y,y+1);
@@ -10063,4 +9230,5 @@ int main(int argc, char**argv)
 }
 
 
+#endif
 #endif

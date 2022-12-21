@@ -268,10 +268,10 @@ openair0_config_t openair0_cfg[MAX_CARDS];
 
 channel_desc_t *UE2gNB[NUMBER_OF_UE_MAX][NUMBER_OF_gNB_MAX];
 
-int main(int argc, char **argv)
+int main(int argc, char *argv[])
 {
 
-  char c;
+  int c;
   int i;
   double SNR, snr0 = -2.0, snr1 = 2.0;
   double sigma, sigma_dB;
@@ -353,8 +353,9 @@ int main(int argc, char **argv)
   randominit(0);
 
   /* initialize the sin-cos table */
-   InitSinLUT();
+  InitSinLUT();
 
+  printf("argc %d, argv %s\n",argc,argv[0]);
   while ((c = getopt(argc, argv, "a:b:c:d:ef:g:h:i:kl:m:n:op:q:r:s:t:u:v:w:y:z:C:F:G:H:I:M:N:PR:S:T:U:L:ZW:")) != -1) {
     printf("handling optarg %c\n",c);
     switch (c) {
