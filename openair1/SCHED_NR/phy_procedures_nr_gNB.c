@@ -244,6 +244,8 @@ void phy_procedures_gNB_TX(processingData_L1tx_t *msgTx,
 
 #ifdef TASK_MANAGER
 void nr_postDecode(PHY_VARS_gNB *gNB, ldpcDecode_t *rdata) 
+#elif OMP_TP
+void nr_postDecode(PHY_VARS_gNB *gNB, ldpcDecode_t *rdata) 
 #else
 void nr_postDecode(PHY_VARS_gNB *gNB, notifiedFIFO_elt_t *req) 
 #endif
@@ -252,7 +254,9 @@ void nr_postDecode(PHY_VARS_gNB *gNB, notifiedFIFO_elt_t *req)
   //int64_t const start = time_now_us();
   //printf(" nr_postDecode  Starting %lu \n ", start );
 #ifndef TASK_MANAGER
+#ifndef OMP_TP
   ldpcDecode_t *rdata = (ldpcDecode_t*) NotifiedFifoData(req);
+#endif
 #endif
 
   NR_UL_gNB_HARQ_t *ulsch_harq = rdata->ulsch_harq;
@@ -441,6 +445,7 @@ void nr_ulsch_procedures(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx, int ULSCH
                     harq_pid,
                     G);
 #ifndef TASK_MANAGER
+#ifndef OMP_TP
   if (enable_ldpc_offload ==0) {
     while (gNB->nbDecode > 0) {
       notifiedFIFO_elt_t *req = pullTpool(&gNB->respDecode, &gNB->threadPool);
@@ -450,6 +455,7 @@ void nr_ulsch_procedures(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx, int ULSCH
       delNotifiedFIFO_elt(req);
     }
   } 
+#endif
 #endif
   //int64_t end = time_now_us();
   //printf(" nr_ulsch_decoding %lu \n", end-start );

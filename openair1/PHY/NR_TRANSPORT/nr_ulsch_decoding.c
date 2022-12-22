@@ -64,6 +64,8 @@
 
 #include "nr_ulsch_decoding.h"
 
+#include <omp.h>
+
 static inline
 int64_t time_now_us(void)
 {
@@ -413,6 +415,9 @@ void nr_processULSegment(void* arg)
   }
 
 #ifdef TASK_MANAGER
+  if( phy_vars_gNB->ldpc_offload_flag)
+    nr_postDecode(rdata->gNB, rdata);
+#elif OMP_TP 
   if( phy_vars_gNB->ldpc_offload_flag)
     nr_postDecode(rdata->gNB, rdata);
 #endif
@@ -783,14 +788,25 @@ uint32_t nr_ulsch_decoding(PHY_VARS_gNB *phy_vars_gNB,
 #ifdef TASK_MANAGER
   ldpcDecode_t* arr = calloc(harq_process->C, sizeof(ldpcDecode_t)); 
   int idx_arr = 0;
+#elif OMP_TP 
+  ldpcDecode_t* arr = calloc(harq_process->C, sizeof(ldpcDecode_t)); 
+  int idx_arr = 0;
+  omp_set_num_threads(4);
+#pragma omp parallel
+{
+#pragma omp single
+{
+
 #endif
 
   for (r=0; r<harq_process->C; r++) {
 
     E = nr_get_E(G, harq_process->C, Qm, n_layers, r);
 #ifdef TASK_MANAGER
-    ldpcDecode_t* rdata = &arr[idx_arr]; //calloc(1, sizeof( ldpcDecode_t ));// &arr[idx_arr];
-//    arr[idx_arr] = rdata;                                                         //
+    ldpcDecode_t* rdata = &arr[idx_arr]; 
+    ++idx_arr; 
+#elif OMP_TP 
+    ldpcDecode_t* rdata = &arr[idx_arr]; 
     ++idx_arr; 
 #else
     union ldpcReqUnion id = {.s={ulsch->rnti,frame,nr_tti_rx,0,0}};
@@ -819,6 +835,9 @@ uint32_t nr_ulsch_decoding(PHY_VARS_gNB *phy_vars_gNB,
 #ifdef TASK_MANAGER
   task_t t = { .args = rdata, .func =  &nr_processULSegment };
   async_task_manager(&phy_vars_gNB->man, t);
+#elif OMP_TP 
+#pragma omp task
+  nr_processULSegment(rdata); 
 #else
     pushTpool(&phy_vars_gNB->threadPool, req);
     phy_vars_gNB->nbDecode++;
@@ -833,9 +852,18 @@ uint32_t nr_ulsch_decoding(PHY_VARS_gNB *phy_vars_gNB,
   //printf("After preparing data = %lu  now %lu\n" , time_now_us() - now, after );
 
 
+#ifdef OMP_TP
+}
+}
+#endif
+
+
 #ifdef TASK_MANAGER
   stop_spin_manager(&phy_vars_gNB->man);
   wait_all_spin_task_manager(&phy_vars_gNB->man);
+  free(arr); 
+#elif OMP_TP
+#pragma omp taskwait
   free(arr); 
 #endif
 

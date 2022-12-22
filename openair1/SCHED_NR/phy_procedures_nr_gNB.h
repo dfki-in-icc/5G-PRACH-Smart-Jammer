@@ -17,9 +17,10 @@
 #include "PHY/INIT/phy_init.h"
 #include "PHY/MODULATION/nr_modulation.h"
 #include "PHY/NR_UE_TRANSPORT/srs_modulation_nr.h"
-#
 
 #ifdef TASK_MANAGER
+void nr_postDecode(PHY_VARS_gNB *gNB, ldpcDecode_t *rdata); 
+#elif  OMP_TP
 void nr_postDecode(PHY_VARS_gNB *gNB, ldpcDecode_t *rdata); 
 #else
 void nr_postDecode(PHY_VARS_gNB *gNB, notifiedFIFO_elt_t *req);

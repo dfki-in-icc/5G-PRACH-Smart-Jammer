@@ -1,9 +1,9 @@
 #ifndef TASK_MANAGER_WORKING_STEALING_H
 #define TASK_MANAGER_WORKING_STEALING_H 
 
-//#define TASK_MANAGER
+#define TASK_MANAGER
 //#define FIBONACCI
-#define OMP_TP 1
+//#define OMP_TP 1
 
 #include "task.h"
 #include "notification_queue.h"
