@@ -505,7 +505,6 @@ static void UE_resynch(void *arg)
   UE_nr_rxtx_proc_t *proc = &syncD->proc;
   PHY_VARS_NR_UE *UE = syncD->UE;
   int Nid_cell = UE->target_Nid_cell;
-  int gNB_id = 0;
 
   LOG_W(NR_PHY, "Running Resynch for Nid_cell = %i (mode %d)\n", Nid_cell, UE->mode);
 
@@ -547,7 +546,6 @@ static void UE_resynch(void *arg)
       UE->is_synchronized = 1;
     }
     UE->resynchronizing_state = RESYNCH_RA;
-    UE->UE_mode[gNB_id] = PRACH;
 
   } else {
     if (UE->UE_scan_carrier == 1) {
@@ -664,12 +662,11 @@ void UE_processing(nr_rxtx_thread_data_t *rxtxD) {
     NR_UE_MAC_INST_t *mac = get_mac_inst(0);
     protocol_ctxt_t ctxt;
     PROTOCOL_CTXT_SET_BY_MODULE_ID(&ctxt, UE->Mod_id, ENB_FLAG_NO, mac->crnti, proc->frame_rx, proc->nr_slot_rx, 0);
-    NR_UE_L2_STATE_t ue_l2_state = get_ue_l2_state(&ctxt, gNB_id);
+    NR_UE_L2_STATE_t ue_l2_state = get_ue_l2_state(&ctxt, proc->gNB_id);
     if (ue_l2_state == UE_PHY_RESYNCH && UE->resynchronizing_state == RESYNCH_IDLE) {
       UE->target_Nid_cell = UE->common_vars.eNb_id; // FIXME: Get the target Nid_cell
-      UE->UE_mode[gNB_id] = NOT_SYNCHED;
       UE->resynchronizing_state = RESYNCH_SSB;
-      clean_UE_ulsch(UE, gNB_id);
+      clean_UE_ulsch(UE, proc->gNB_id);
     } else if (ue_l2_state == UE_CONNECTION_OK && UE->resynchronizing_state != RESYNCH_IDLE) {
       UE->resynchronizing_state = RESYNCH_IDLE;
     }

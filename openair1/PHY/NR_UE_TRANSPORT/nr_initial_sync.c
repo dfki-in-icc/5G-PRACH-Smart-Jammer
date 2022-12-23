@@ -620,6 +620,8 @@ int nr_initial_sync(UE_nr_rxtx_proc_t *proc,
 int nr_resync_by_Nid_cell(UE_nr_rxtx_proc_t *proc, PHY_VARS_NR_UE *ue, int Nid_cell, int n_frames, int sa)
 {
   NR_DL_FRAME_PARMS *fp = &ue->frame_parms;
+  const uint32_t rxdataF_sz = ue->frame_parms.samples_per_slot_wCP;
+  __attribute__ ((aligned(32))) c16_t rxdataF[ue->frame_parms.nb_antennas_rx][rxdataF_sz];
   int ret = -1;
 
   for (int is = 0; is < n_frames; is++) {
@@ -655,13 +657,13 @@ int nr_resync_by_Nid_cell(UE_nr_rxtx_proc_t *proc, PHY_VARS_NR_UE *ue, int Nid_c
       }
 
       for (int i = 0; i < NR_N_SYMBOLS_SSB; i++) {
-        nr_slot_fep_init_sync(ue, proc, i, 0, is * fp->samples_per_frame + ue->ssb_offset, false);
+        nr_slot_fep_init_sync(ue, proc, i, is * fp->samples_per_frame + ue->ssb_offset, false, rxdataF);
       }
 
       int32_t metric_tdd_ncp = 0;
       uint8_t phase_tdd_ncp = 0;
       int freq_offset_sss = 0;
-      ret = rx_sss_by_Nid_cell_nr(ue, proc, Nid_cell, &metric_tdd_ncp, &phase_tdd_ncp, &freq_offset_sss);
+      ret = rx_sss_by_Nid_cell_nr(ue, proc, Nid_cell, &metric_tdd_ncp, &phase_tdd_ncp, &freq_offset_sss, rxdataF);
 
       // digital compensation of FFO for SSB symbols
       if (ue->UE_fo_compensation) {
@@ -690,7 +692,7 @@ int nr_resync_by_Nid_cell(UE_nr_rxtx_proc_t *proc, PHY_VARS_NR_UE *ue, int Nid_c
         nr_gold_pbch(ue);
         nr_phy_data_t phy_data = {0};
         // start pbch detection at first symbol after pss
-        ret = nr_pbch_detection(proc, ue, 1, &phy_data);
+        ret = nr_pbch_detection(proc, ue, 1, &phy_data, rxdataF);
       }
 
       if (ret == 0) {
@@ -752,7 +754,6 @@ int nr_resync_by_Nid_cell(UE_nr_rxtx_proc_t *proc, PHY_VARS_NR_UE *ue, int Nid_c
       ue->pbch_vars[0]->pdu_errors_conseq = 0;
     }
   } else {
-    ue->UE_mode[0] = NOT_SYNCHED;
     ue->pbch_vars[0]->pdu_errors_last = ue->pbch_vars[0]->pdu_errors;
     ue->pbch_vars[0]->pdu_errors++;
     ue->pbch_vars[0]->pdu_errors_conseq++;

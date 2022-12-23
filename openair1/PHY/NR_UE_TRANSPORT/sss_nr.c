@@ -582,12 +582,12 @@ int rx_sss_nr(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, int32_t *tot_metric, 
   return(0);
 }
 
-int rx_sss_by_Nid_cell_nr(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, int Nid_cell, int32_t *tot_metric, uint8_t *phase_max, int *freq_offset_sss)
+int rx_sss_by_Nid_cell_nr(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, int Nid_cell, int32_t *tot_metric, uint8_t *phase_max, int *freq_offset_sss, c16_t rxdataF[][ue->frame_parms.samples_per_slot_wCP])
 {
   // pss sss extraction
   int32_t pss_ext[NB_ANTENNAS_RX][LENGTH_PSS_NR];
   int32_t sss_ext[NB_ANTENNAS_RX][LENGTH_SSS_NR];
-  pss_sss_extract_nr(ue, proc, pss_ext, sss_ext, 0);
+  pss_sss_extract_nr(ue, proc, pss_ext, sss_ext, 0, rxdataF);
 
   // get conjugated channel estimate from PSS, H* = R* \cdot PSS
   // and do channel estimation and compensation based on PSS
