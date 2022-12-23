@@ -25,7 +25,9 @@
 	<htmlTabName>CN5G-Start</htmlTabName>
 	<htmlTabIcon>log-in</htmlTabIcon>
 	<TestCaseRequestedList>
- 000100
+100000
+200000
+000100
 	</TestCaseRequestedList>
 	<TestCaseExclusionList>
 	</TestCaseExclusionList>
@@ -33,6 +35,12 @@
 	<testCase id="000100">
 		<class>Initialize_5GCN</class>
 		<desc>Initialize 5G Core</desc>
+	</testCase>
+	<testCase id = "200000">
+		<class>Custom_Command</class>
+		<desc>To reboot USRP</desc>
+		<node>obelix</node>
+		<command>ssh root@172.21.19.13 reboot ; sleep 45</command>
 	</testCase>
 
 </testCaseList>

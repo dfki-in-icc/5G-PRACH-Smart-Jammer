@@ -28,6 +28,7 @@ Replaces xml_files/enb_usrp210_band7_test_05mhz_tm1.xml
     <htmlTabIcon>tasks</htmlTabIcon>
     <TestCaseRequestedList>
 111110
+300000
 040101
 030101
 000001
@@ -41,6 +42,12 @@ Replaces xml_files/enb_usrp210_band7_test_05mhz_tm1.xml
         <desc>Pull Images from Local Registry</desc>
         <test_svr_id>0</test_svr_id>
         <images_to_pull>oai-enb</images_to_pull>
+    </testCase>
+   <testCase id="300000">
+	    <class>Custom_Command</class>
+	    <desc>To reset cpupower</desc>
+	    <node>hutch</node>
+	    <command>sudo -S b2xx_fx3_utils --reset-device</command>
     </testCase>
 
     <testCase id="030101">
