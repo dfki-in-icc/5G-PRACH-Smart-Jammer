@@ -220,5 +220,10 @@ void nr_pdcp_add_drbs(eNB_flag_t enb_flag,
                       uint8_t *const kUPint,
                       struct NR_CellGroupConfig__rlc_BearerToAddModList *rlc_bearer2add_list);
 
+int rrc_gNB_generate_pcch_msg(uint32_t tmsi,
+                              uint8_t paging_drx,
+                              instance_t instance,
+                              uint8_t CC_id);
+
 NR_RRC_status_t nr_rrc_rx_tx_ue(const protocol_ctxt_t *ctxt_p, const uint8_t gnb_index);
 #endif
