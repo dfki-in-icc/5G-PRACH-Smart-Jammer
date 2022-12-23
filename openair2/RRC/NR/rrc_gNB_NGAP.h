@@ -195,4 +195,11 @@ rrc_gNB_get_ue_context_from_ngap_ids(
     const uint16_t    ue_initial_idP,
     const uint32_t    gNB_ue_ngap_idP
 );
+
+int
+rrc_gNB_process_PAGING_IND(
+    MessageDef *msg_p,
+    const char *msg_name,
+    instance_t instance);
+
 #endif
