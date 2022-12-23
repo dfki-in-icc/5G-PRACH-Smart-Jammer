@@ -156,17 +156,22 @@ void nr_fill_rx_indication(fapi_nr_rx_indication_t *rx_ind,
       }
       break;
     case FAPI_NR_RX_PDU_TYPE_SSB:
-      rx_ind->rx_indication_body[n_pdus - 1].ssb_pdu.pdu=malloc(sizeof(((fapiPbch_t*)typeSpecific)->decoded_output));
-      memcpy(rx_ind->rx_indication_body[n_pdus - 1].ssb_pdu.pdu,
-	     ((fapiPbch_t*)typeSpecific)->decoded_output,
-	     sizeof(((fapiPbch_t*)typeSpecific)->decoded_output));
-      rx_ind->rx_indication_body[n_pdus - 1].ssb_pdu.additional_bits = ((fapiPbch_t*)typeSpecific)->xtra_byte;
-      rx_ind->rx_indication_body[n_pdus - 1].ssb_pdu.ssb_index = (frame_parms->ssb_index)&0x7;
-      rx_ind->rx_indication_body[n_pdus - 1].ssb_pdu.ssb_length = frame_parms->Lmax;
-      rx_ind->rx_indication_body[n_pdus - 1].ssb_pdu.cell_id = frame_parms->Nid_cell;
-      rx_ind->rx_indication_body[n_pdus - 1].ssb_pdu.ssb_start_subcarrier = frame_parms->ssb_start_subcarrier;
-      rx_ind->rx_indication_body[n_pdus - 1].ssb_pdu.rsrp_dBm = ue->measurements.ssb_rsrp_dBm[frame_parms->ssb_index];
-    break;
+      if(ue->lost_sync)
+        rx_ind->rx_indication_body[n_pdus - 1].ssb_pdu.failure_flag = true;
+      else {
+        rx_ind->rx_indication_body[n_pdus - 1].ssb_pdu.pdu=malloc(sizeof(((fapiPbch_t*)typeSpecific)->decoded_output));
+        memcpy(rx_ind->rx_indication_body[n_pdus - 1].ssb_pdu.pdu,
+               ((fapiPbch_t*)typeSpecific)->decoded_output,
+               sizeof(((fapiPbch_t*)typeSpecific)->decoded_output));
+        rx_ind->rx_indication_body[n_pdus - 1].ssb_pdu.additional_bits = ((fapiPbch_t*)typeSpecific)->xtra_byte;
+        rx_ind->rx_indication_body[n_pdus - 1].ssb_pdu.ssb_index = (frame_parms->ssb_index)&0x7;
+        rx_ind->rx_indication_body[n_pdus - 1].ssb_pdu.ssb_length = frame_parms->Lmax;
+        rx_ind->rx_indication_body[n_pdus - 1].ssb_pdu.cell_id = frame_parms->Nid_cell;
+        rx_ind->rx_indication_body[n_pdus - 1].ssb_pdu.ssb_start_subcarrier = frame_parms->ssb_start_subcarrier;
+        rx_ind->rx_indication_body[n_pdus - 1].ssb_pdu.rsrp_dBm = ue->measurements.ssb_rsrp_dBm[frame_parms->ssb_index];
+        rx_ind->rx_indication_body[n_pdus - 1].ssb_pdu.failure_flag = false;
+      }
+      break;
     case FAPI_NR_CSIRS_IND:
       memcpy(&rx_ind->rx_indication_body[n_pdus - 1].csirs_measurements,
              (fapi_nr_csirs_measurements_t*)typeSpecific,
@@ -436,14 +441,17 @@ static void nr_ue_pbch_procedures(PHY_VARS_NR_UE *ue,
     ue->pbch_vars[gNB_id]->pdu_errors_conseq++;
     ue->pbch_vars[gNB_id]->pdu_errors++;
 
-    if (ue->pbch_vars[gNB_id]->pdu_errors_conseq>=100) {
-      if (get_softmodem_params()->non_stop) {
-        LOG_E(PHY,"More that 100 consecutive PBCH errors! Going back to Sync mode!\n");
-        ue->lost_sync = 1;
-      } else {
-        LOG_E(PHY,"More that 100 consecutive PBCH errors! Exiting!\n");
-        exit_fun("More that 100 consecutive PBCH errors! Exiting!\n");
-      }
+    if (ue->pbch_vars[gNB_id]->pdu_errors_conseq >= ue->SSB_errors) {
+      LOG_E(PHY,"Got %d consecutive PBCH errors! Going back to Sync mode!\n", ue->SSB_errors);
+      ue->lost_sync = 1;
+      nr_downlink_indication_t dl_indication;
+      fapi_nr_rx_indication_t *rx_ind = calloc(sizeof(*rx_ind), 1);
+      nr_fill_dl_indication(&dl_indication, NULL, rx_ind, proc, ue, phy_data);
+      nr_fill_rx_indication(rx_ind, FAPI_NR_RX_PDU_TYPE_SSB, ue, NULL, NULL, 1, proc, NULL);
+      if (ue->if_inst && ue->if_inst->dl_indication)
+        ue->if_inst->dl_indication(&dl_indication, NULL);
+      else
+       free(rx_ind);
     }
   }
 

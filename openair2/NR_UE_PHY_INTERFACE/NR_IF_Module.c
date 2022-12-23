@@ -1075,6 +1075,16 @@ int handle_dci(module_id_t module_id, int cc_id, unsigned int gNB_index, frame_t
 
 }
 
+void handle_lost_sync(NR_UE_MAC_INST_t *mac, module_id_t module_id, int gNB_index)
+{
+  // reset MAC status
+  mac->first_sync_frame = -1;
+  mac->sib1_decoded = false;
+  mac->ra.ra_state = RA_UE_IDLE;
+  free_and_zero(mac->cg);
+  nr_mac_rrc_reset_request(module_id,  gNB_index);
+}
+
 void  handle_ssb_meas(NR_UE_MAC_INST_t *mac, uint8_t ssb_index, int16_t rsrp_dbm)
 {
   mac->phy_measurements.ssb_index = ssb_index;
@@ -1159,7 +1169,6 @@ int nr_ue_dl_indication(nr_downlink_indication_t *dl_info, NR_UL_TIME_ALIGNMENT_
   module_id_t module_id = dl_info->module_id;
   NR_UE_MAC_INST_t *mac = get_mac_inst(module_id);
   fapi_nr_dl_config_request_t *dl_config = &mac->dl_config_request;
-
   if ((!dl_info->dci_ind && !dl_info->rx_ind)) {
     // UL indication to schedule DCI reception
     nr_ue_scheduler(dl_info, NULL);
@@ -1206,23 +1215,25 @@ int nr_ue_dl_indication(nr_downlink_indication_t *dl_info, NR_UL_TIME_ALIGNMENT_
       for (int i=0; i<dl_info->rx_ind->number_pdus; ++i) {
 
         LOG_D(NR_MAC, "In %s sending DL indication to MAC. 1 PDU type %d of %d total number of PDUs \n",
-          __FUNCTION__,
-          dl_info->rx_ind->rx_indication_body[i].pdu_type,
-          dl_info->rx_ind->number_pdus);
+              __FUNCTION__, dl_info->rx_ind->rx_indication_body[i].pdu_type, dl_info->rx_ind->number_pdus);
 
         switch(dl_info->rx_ind->rx_indication_body[i].pdu_type){
           case FAPI_NR_RX_PDU_TYPE_SSB:
-            handle_ssb_meas(mac,
-                            (dl_info->rx_ind->rx_indication_body+i)->ssb_pdu.ssb_index,
-                            (dl_info->rx_ind->rx_indication_body+i)->ssb_pdu.rsrp_dBm);
-            ret_mask |= (handle_bcch_bch(dl_info->module_id, dl_info->cc_id, dl_info->gNB_index, dl_info->phy_data,
-                                         (dl_info->rx_ind->rx_indication_body+i)->ssb_pdu.pdu,
-                                         (dl_info->rx_ind->rx_indication_body+i)->ssb_pdu.additional_bits,
-                                         (dl_info->rx_ind->rx_indication_body+i)->ssb_pdu.ssb_index,
-                                         (dl_info->rx_ind->rx_indication_body+i)->ssb_pdu.ssb_length,
-                                         (dl_info->rx_ind->rx_indication_body+i)->ssb_pdu.ssb_start_subcarrier,
-                                         (dl_info->rx_ind->rx_indication_body+i)->ssb_pdu.cell_id)) << FAPI_NR_RX_PDU_TYPE_SSB;
-            free((dl_info->rx_ind->rx_indication_body+i)->ssb_pdu.pdu);
+            if((dl_info->rx_ind->rx_indication_body+i)->ssb_pdu.failure_flag)
+              handle_lost_sync(mac, dl_info->module_id, dl_info->gNB_index);
+            else {
+              handle_ssb_meas(mac,
+                              (dl_info->rx_ind->rx_indication_body+i)->ssb_pdu.ssb_index,
+                              (dl_info->rx_ind->rx_indication_body+i)->ssb_pdu.rsrp_dBm);
+              ret_mask |= (handle_bcch_bch(dl_info->module_id, dl_info->cc_id, dl_info->gNB_index, dl_info->phy_data,
+                                           (dl_info->rx_ind->rx_indication_body+i)->ssb_pdu.pdu,
+                                           (dl_info->rx_ind->rx_indication_body+i)->ssb_pdu.additional_bits,
+                                           (dl_info->rx_ind->rx_indication_body+i)->ssb_pdu.ssb_index,
+                                           (dl_info->rx_ind->rx_indication_body+i)->ssb_pdu.ssb_length,
+                                           (dl_info->rx_ind->rx_indication_body+i)->ssb_pdu.ssb_start_subcarrier,
+                                           (dl_info->rx_ind->rx_indication_body+i)->ssb_pdu.cell_id)) << FAPI_NR_RX_PDU_TYPE_SSB;
+              free((dl_info->rx_ind->rx_indication_body+i)->ssb_pdu.pdu);
+            }
             break;
           case FAPI_NR_RX_PDU_TYPE_SIB:
             ret_mask |= (handle_bcch_dlsch(dl_info->module_id,

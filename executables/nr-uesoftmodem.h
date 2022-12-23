@@ -6,7 +6,7 @@
 #include "SIMULATION/ETH_TRANSPORT/proto.h"
 
 
-
+#define  CONFIG_HLP_SSB_FAIL               "Number of consecutive SSB detection errors after which synchronization is declared lost"
 #define  CONFIG_HLP_IF_FREQ                "IF frequency for RF, if needed\n"
 #define  CONFIG_HLP_IF_FREQ_OFF            "UL IF frequency offset for RF, if needed\n"
 #define  CONFIG_HLP_DLSCH_PARA             "number of threads for dlsch processing 0 for no parallelization\n"
@@ -68,6 +68,7 @@
     {"E" ,                       CONFIG_HLP_TQFS,        PARAMFLAG_BOOL,  u8ptr:&(fp->threequarter_fs),       defintval:0,           TYPE_UINT8, 0}, \
     {"r"  ,                      CONFIG_HLP_PRB_SA,      0,               iptr:&(fp->N_RB_DL),                defintval:106,         TYPE_UINT,  0}, \
     {"ssb",                      CONFIG_HLP_SSC,         0,               u16ptr:&(fp->ssb_start_subcarrier), defintval:516,         TYPE_UINT16,0}, \
+    {"ssb_failures" ,            CONFIG_HLP_SSB_FAIL,    0,               iptr:&(UE->SSB_errors),             defintval:100,         TYPE_INT,   0}, \
     {"T" ,                       CONFIG_HLP_TDD,         PARAMFLAG_BOOL,  iptr:&tddflag,                      defintval:0,           TYPE_INT,   0}, \
     {"if_freq" ,                 CONFIG_HLP_IF_FREQ,     0,               u64ptr:&(UE->if_freq),              defuintval:0,          TYPE_UINT64,0}, \
     {"if_freq_off" ,             CONFIG_HLP_IF_FREQ_OFF, 0,               iptr:&(UE->if_freq_off),            defuintval:0,          TYPE_INT,   0}, \

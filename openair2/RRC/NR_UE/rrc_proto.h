@@ -156,6 +156,8 @@ rrc_data_req_nr_ue(
   const pdcp_transmission_mode_t modeP
 );
 
+void nr_mac_rrc_reset_request(const module_id_t module_id, const uint8_t gNB_index);
+
 /**\brief RRC UE task.
    \param void *args_p Pointer on arguments to start the task. */
 void *rrc_nrue_task(void *args_p);

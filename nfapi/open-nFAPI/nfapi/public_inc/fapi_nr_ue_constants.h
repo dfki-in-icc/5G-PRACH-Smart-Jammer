@@ -22,8 +22,6 @@
 #define FAPI_NR_RX_PDU_TYPE_RAR 0x05
 #define FAPI_NR_CSIRS_IND 0x06
 
-#define FAPI_NR_SIBS_MASK_SIB1 0x1
-
 
 /// DCI_IND
 #define FAPI_NR_DCI_TYPE_0_0 0x01

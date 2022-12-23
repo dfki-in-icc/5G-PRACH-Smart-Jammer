@@ -1679,7 +1679,7 @@ int8_t nr_rrc_ue_decode_ccch( const protocol_ctxt_t *const ctxt_pP, const NR_SRB
  void nr_rrc_ue_generate_RRCSetupRequest(module_id_t module_id, const uint8_t gNB_index) {
    uint8_t i=0,rv[6];
 
-   if(NR_UE_rrc_inst[module_id].Srb0[gNB_index].Tx_buffer.payload_size ==0) {
+   if(NR_UE_rrc_inst[module_id].Srb0[gNB_index].Tx_buffer.payload_size == 0) {
      // Get RRCConnectionRequest, fill random for now
      // Generate random byte stream for contention resolution
      for (i=0; i<6; i++) {

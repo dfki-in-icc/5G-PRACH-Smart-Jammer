@@ -38,6 +38,16 @@
 
 typedef uint32_t channel_t;
 
+
+void nr_mac_rrc_reset_request(const module_id_t module_id, const uint8_t gNB_index)
+{
+
+  NR_UE_rrc_inst[module_id].nrRrcState = RRC_STATE_IDLE_NR;
+  NR_UE_rrc_inst[module_id].Info[gNB_index].SIStatus = 0;
+  NR_UE_rrc_inst[module_id].Srb0[gNB_index].Tx_buffer.payload_size = 0;
+
+}
+
 int8_t
 nr_mac_rrc_data_ind_ue(
     const module_id_t     module_id,

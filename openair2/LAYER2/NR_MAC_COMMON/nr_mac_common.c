@@ -3146,7 +3146,7 @@ uint16_t nr_dci_size(const NR_BWP_DownlinkCommon_t *initialDownlinkBWP,
   long rbg_size_config;
   int num_entries = 0;
 
-  NR_UplinkConfig_t	*uplinkConfig = NULL;
+  NR_UplinkConfig_t *uplinkConfig = NULL;
   if (cg && cg->spCellConfig && cg->spCellConfig->spCellConfigDedicated) {
     uplinkConfig = cg->spCellConfig->spCellConfigDedicated->uplinkConfig;
   }

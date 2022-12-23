@@ -657,7 +657,7 @@ int nr_config_pusch_pdu(NR_UE_MAC_INST_t *mac,
     pusch_config_pdu->transform_precoding = get_transformPrecoding(initialUplinkBWP, pusch_Config, NULL, NULL, NR_RNTI_TC, 0); // TBR fix rnti and take out
 
     // Resource allocation in frequency domain according to 6.1.2.2 in TS 38.214
-    pusch_config_pdu->resource_alloc = (mac->cg) ? pusch_Config->resourceAllocation : 1;
+    pusch_config_pdu->resource_alloc = (pusch_Config) ? pusch_Config->resourceAllocation : 1;
 
     //// Completing PUSCH PDU
     pusch_config_pdu->mcs_table = 0;
