@@ -89,10 +89,9 @@ void aes_128_cbc_cmac(const aes_128_t* k_iv, byte_array_t msg, size_t len_out, u
   OSSL_LIB_CTX_free(library_context);
 }
 
-cbc_cmac_ctx_t init_aes_128_cbc_cmac(const unsigned char* key)
+cbc_cmac_ctx_t init_aes_128_cbc_cmac(uint8_t key[16])
 {
   DevAssert(key != NULL);
-  DevAssert(strnlen((char*)key, 17) < 17);
 
   OSSL_LIB_CTX* library_context = OSSL_LIB_CTX_new();
   DevAssert(library_context != NULL);
@@ -102,7 +101,9 @@ cbc_cmac_ctx_t init_aes_128_cbc_cmac(const unsigned char* key)
   DevAssert(mac != NULL);
 
   cbc_cmac_ctx_t ctx = {.lib_ctx = library_context, .mac = mac }; 
-  memcpy(ctx.key, key, sizeof(ctx.key ) );
+
+  assert(16 == sizeof(ctx.key));
+  memcpy(ctx.key, key, sizeof(ctx.key) );
 
   return ctx; 
 }
@@ -196,16 +197,18 @@ void aes_128_cbc_cmac(const aes_128_t* k_iv, byte_array_t msg, size_t len_out, u
   CMAC_CTX_free(ctx);
 }
 
-cbc_cmac_ctx_t init_aes_128_cbc_cmac(const unsigned char* key)
+cbc_cmac_ctx_t init_aes_128_cbc_cmac(uint8_t key[16])
 {
   DevAssert(key != NULL);
-  DevAssert(strnlen((char*)key, 17) < 17);
   cbc_cmac_ctx_t ctx = {.lib_ctx = NULL, .mac = NULL }; 
 
   ctx.mac = CMAC_CTX_new();
   DevAssert(ctx.mac != NULL);
 
-  CMAC_Init(ctx.mac, key, strnlen((char*)key, 17), EVP_aes_128_cbc(), NULL);
+  assert(16 == sizeof(ctx.key));
+  memcpy(ctx.key, key, sizeof(ctx.key));
+
+  CMAC_Init(ctx.mac, key, ctx.key, EVP_aes_128_cbc(), NULL);
 
   return ctx;
 }

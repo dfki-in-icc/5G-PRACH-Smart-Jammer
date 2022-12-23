@@ -30,7 +30,7 @@
 #include "openair3/SECU/aes_128.h"
 #include "openair3/SECU/aes_128_cbc_cmac.h"
 
-void *nr_pdcp_integrity_nia2_init(unsigned char *integrity_key)
+void *nr_pdcp_integrity_nia2_init(uint8_t integrity_key[16])
 {
   // This is a hack. Reduce the 3 functions to just cipher?
   // No. The overhead is x8 times more. Don't change before measuring

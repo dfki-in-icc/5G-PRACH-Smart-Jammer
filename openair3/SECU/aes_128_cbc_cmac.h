@@ -38,8 +38,7 @@ typedef struct {
 
 void aes_128_cbc_cmac(const aes_128_t* k_iv, byte_array_t msg, size_t len_out, uint8_t out[len_out]);
 
-cbc_cmac_ctx_t init_aes_128_cbc_cmac(const unsigned char* key);
-//const aes_128_t* k_iv, byte_array_t msg, size_t len_out, uint8_t out[len_out]);
+cbc_cmac_ctx_t init_aes_128_cbc_cmac(uint8_t key[16]);
 
 void cipher_aes_128_cbc_cmac(cbc_cmac_ctx_t const* ctx, const aes_128_t* k_iv, byte_array_t msg, size_t len_out, uint8_t out[len_out]);
 
