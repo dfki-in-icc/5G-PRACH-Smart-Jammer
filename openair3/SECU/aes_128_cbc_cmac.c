@@ -205,7 +205,7 @@ cbc_cmac_ctx_t init_aes_128_cbc_cmac(const unsigned char* key)
   ctx.mac = CMAC_CTX_new();
   DevAssert(ctx.mac != NULL);
 
-  CMAC_Init(ctx.mac, key, strlen(key), EVP_aes_128_cbc(), NULL);
+  CMAC_Init(ctx.mac, key, strnlen((char*)key, 17), EVP_aes_128_cbc(), NULL);
 
   return ctx;
 }
@@ -234,11 +234,11 @@ void cipher_aes_128_cbc_cmac(cbc_cmac_ctx_t const* ctx, const aes_128_t* k_iv, b
     DevAssert(0!=0 && "Unknwon Initialization vector");
   }
 
-  CMAC_Update(ctx, iv, sz_iv);
+  CMAC_Update(ctx->mac, iv, sz_iv);
 
-  CMAC_Update(ctx, msg.buf, msg.len);
+  CMAC_Update(ctx->mac, msg.buf, msg.len);
   size_t len_res = 0;
-  CMAC_Final(ctx, out, &len_res);
+  CMAC_Final(ctx->mac, out, &len_res);
   DevAssert(len_res <= len_out);
 }
 
