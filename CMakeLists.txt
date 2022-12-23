@@ -864,9 +864,10 @@ set(SECU_OSA_SRC
   ${OPENAIR2_DIR}/UTIL/OSA/osa_snow3g.c
   ${OPENAIR2_DIR}/UTIL/OSA/osa_stream_eea.c
   ${OPENAIR2_DIR}/UTIL/OSA/osa_stream_eia.c
-  )
-add_library(SECU_OSA ${SECU_OSA_SRC})
-target_link_libraries(SECU_OSA PRIVATE ds)
+    )
+add_library(SECU_OSA ${SECU_OSA_SRC} $<TARGET_OBJECTS:ds> )
+
+target_include_directories(SECU_OSA PRIVATE ${OPENAIR_DIR}/common/utils/ds/)
 
 set(SECU_CN_SRC
   ${OPENAIR3_DIR}/SECU/secu_defs.c
@@ -882,8 +883,9 @@ set(SECU_CN_SRC
   ${OPENAIR3_DIR}/SECU/nas_stream_eea2.c
   ${OPENAIR3_DIR}/SECU/nas_stream_eia2.c
   )
-add_library(SECU_CN ${SECU_CN_SRC})
-target_link_libraries(SECU_CN PUBLIC ds)
+
+add_library(SECU_CN ${SECU_CN_SRC} $<TARGET_OBJECTS:ds>)
+target_include_directories(SECU_CN PRIVATE ${OPENAIR_DIR}/common/utils/ds/)
 
 # Physical Channel Procedures Scheduling
 ################################"
@@ -2035,8 +2037,13 @@ add_library(LIB_NAS_SIMUE
   ${libnas_ue_esm_sap_OBJS}
   ${libnrnas_emm_msg_OBJS}
   ${libnrnas_ies_OBJS}
+  $<TARGET_OBJECTS:ds>
   )
-target_link_libraries(LIB_NAS_SIMUE PRIVATE lte_rrc ds)
+target_include_directories(LIB_NAS_SIMUE PRIVATE ${OPENAIR_DIR}/common/utils/ds/)
+target_link_libraries(LIB_NAS_SIMUE PRIVATE lte_rrc)
+
+
+
 set(NAS_SIM_LIB LIB_NAS_SIMUE)
 target_link_libraries(LIB_NAS_SIMUE PRIVATE asn1_nr_rrc asn1_lte_rrc)
 
@@ -2056,8 +2063,10 @@ add_library(LIB_NAS_UE
   ${libnas_ue_emm_sap_OBJS}
   ${libnas_ue_esm_OBJS}
   ${libnas_ue_esm_sap_OBJS}
+  $<TARGET_OBJECTS:ds>
   )
-target_link_libraries(LIB_NAS_UE PRIVATE lte_rrc ds)
+target_include_directories(LIB_NAS_UE PRIVATE ${OPENAIR_DIR}/common/utils/ds/)
+target_link_libraries(LIB_NAS_UE PRIVATE lte_rrc)
 set(NAS_UE_LIB LIB_NAS_UE)
 target_link_libraries(LIB_NAS_UE PRIVATE asn1_nr_rrc asn1_lte_rrc)
 
@@ -2088,6 +2097,8 @@ add_library(LIB_5GNAS_GNB
   ${NAS_SRC}/NR_UE/ue_process_nas.c
   ${OPENAIR3_DIR}//UICC/usim_interface.c
   )
+
+target_include_directories(LIB_5GNAS_GNB PRIVATE ${OPENAIR_DIR}/common/utils/ds/)
 target_link_libraries(LIB_5GNAS_GNB PRIVATE SECU_CN ${CRYPTO_LIBRARIES})
 target_link_libraries(LIB_5GNAS_GNB PRIVATE asn1_nr_rrc asn1_lte_rrc)
 
