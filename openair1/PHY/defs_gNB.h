@@ -244,6 +244,11 @@ typedef struct {
   /// Last index of LLR buffer that contains information.
   /// Used for computing LDPC decoder R
   int llrLen;
+  /// used to indicate to remaining threads that LDPC decoding has to be skipped
+  /// this is set to true when a crc fails to avoid unnecessary computation
+  /// all accesses must be done with __atomic operations
+  /// (we can't use bool, it does not work with __atomic operations)
+  uint8_t skip_ldpc_decoding;
   //////////////////////////////////////////////////////////////
 } NR_UL_gNB_HARQ_t;
 

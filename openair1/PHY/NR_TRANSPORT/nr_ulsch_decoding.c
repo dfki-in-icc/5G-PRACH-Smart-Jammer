@@ -252,6 +252,15 @@ void nr_processULSegment(void* arg) {
     stop_meas(&phy_vars_gNB->ulsch_rate_unmatching_stats);
   }
 
+  /* don't run LDPC decoding if some other thread had a failure */
+  /* nr_rate_matching_ldpc_rx() must be called to feed d[r] in all cases
+   * so this test has to come after the call to nr_rate_matching_ldpc_rx()
+   */
+  if (__atomic_load_n(&ulsch_harq->skip_ldpc_decoding, __ATOMIC_SEQ_CST)) {
+    LOG_D(PHY, "skipping nrLDPC_decoder() for r %d because decoding of some other segment failed\n", r);
+    return;
+  }
+
   memset(ulsch_harq->c[r],0,Kr_bytes);
 
   if (ulsch_harq->C == 1) {
@@ -307,6 +316,8 @@ void nr_processULSegment(void* arg) {
       LOG_I(PHY,"CRC NOK\n");
 #endif
     rdata->decodeIterations = max_ldpc_iterations + 1;
+    /* set skip_ldpc_decoding to 1 to indicate to remaining threads that they shall not run LDPC decoding */
+    __atomic_store_n(&ulsch_harq->skip_ldpc_decoding, 1, __ATOMIC_SEQ_CST);
   }
 
   for (int m=0; m < Kr>>3; m ++) {
@@ -622,6 +633,9 @@ uint32_t nr_ulsch_decoding(PHY_VARS_gNB *phy_vars_gNB,
 
   else {
     dtx_det = 0;
+
+    /* tell to the threads that LDPC decoding has to be done */
+    __atomic_store_n(&harq_process->skip_ldpc_decoding, 0, __ATOMIC_SEQ_CST);
 
     for (int r = 0; r < harq_process->C; r++) {
       int E = nr_get_E(G, harq_process->C, Qm, n_layers, r);
