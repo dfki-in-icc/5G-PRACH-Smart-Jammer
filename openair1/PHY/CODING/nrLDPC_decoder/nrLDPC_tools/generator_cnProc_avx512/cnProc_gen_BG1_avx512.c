@@ -23,6 +23,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "../../nrLDPCdecoder_defs.h"
+#define AVOID_MAXLLR 1
 
 void nrLDPC_cnProc_BG1_generator_AVX512(const char *dir, int R)
 {
@@ -120,7 +121,9 @@ void nrLDPC_cnProc_BG1_generator_AVX512(const char *dir, int R)
 
       // Store result
       //                min = _mm512_min_epu8(min, *maxLLR); // 128 in epi8 is -127
+#ifndef AVOID_MAXLLR
       fprintf(fd, "                min = _mm512_min_epu8(min, maxLLR);\n");
+#endif
       //                *p_cnProcBufResBit = _mm512_sign_epi8(min, sgn);
       //                p_cnProcBufResBit++;
       fprintf(fd, "                ((__m512i*)cnProcBufRes)[%d+i] = conditional_negate(min, sgn,zeros);\n", (lut_startAddrCnGroups[0] >> 6) + (j * bitOffsetInGroup));
@@ -167,7 +170,9 @@ void nrLDPC_cnProc_BG1_generator_AVX512(const char *dir, int R)
 
       // Store result
       //                min = _mm512_min_epu8(min, maxLLR); // 128 in epi8 is -127
+#ifndef AVOID_MAXLLR
       fprintf(fd, "                min = _mm512_min_epu8(min, maxLLR);\n");
+#endif
       //                *p_cnProcBufResBit = _mm512_sign_epi8(min, sgn);
       //                p_cnProcBufResBit++;
       fprintf(fd, "                ((__m512i*)cnProcBufRes)[%d+i] = conditional_negate(min, sgn,zeros);\n", (lut_startAddrCnGroups[1] >> 6) + (j * bitOffsetInGroup));
@@ -213,8 +218,9 @@ void nrLDPC_cnProc_BG1_generator_AVX512(const char *dir, int R)
 
       // Store result
       //                min = _mm512_min_epu8(min, maxLLR); // 128 in epi8 is -127
+#ifndef AVOID_MAXLLR
       fprintf(fd, "                min = _mm512_min_epu8(min, maxLLR);\n");
-
+#endif
       fprintf(fd, "                ((__m512i*)cnProcBufRes)[%d+i] = conditional_negate(min, sgn,zeros);\n", (lut_startAddrCnGroups[2] >> 6) + (j * bitOffsetInGroup));
       fprintf(fd, "           }\n");
     }
@@ -259,7 +265,9 @@ void nrLDPC_cnProc_BG1_generator_AVX512(const char *dir, int R)
 
       // Store result
       //                min = _mm512_min_epu8(min, maxLLR); // 128 in epi8 is -127
+#ifndef AVOID_MAXLLR
       fprintf(fd, "                min = _mm512_min_epu8(min, maxLLR);\n");
+#endif
 
       fprintf(fd, "                ((__m512i*)cnProcBufRes)[%d+i] = conditional_negate(min, sgn,zeros);\n", (lut_startAddrCnGroups[3] >> 6) + (j * bitOffsetInGroup));
       fprintf(fd, "            }\n");
@@ -313,8 +321,9 @@ void nrLDPC_cnProc_BG1_generator_AVX512(const char *dir, int R)
 
       // Store result
       //                min = _mm512_min_epu8(min, maxLLR); // 128 in epi8 is -127
+#ifndef AVOID_MAXLLR
       fprintf(fd, "                min = _mm512_min_epu8(min, maxLLR);\n");
-
+#endif
       fprintf(fd, "                ((__m512i*)cnProcBufRes)[%d+i] = conditional_negate(min, sgn,zeros);\n", (lut_startAddrCnGroups[4] >> 6) + (j * bitOffsetInGroup));
       fprintf(fd, "            }\n");
     }
@@ -368,8 +377,9 @@ void nrLDPC_cnProc_BG1_generator_AVX512(const char *dir, int R)
 
       // Store result
       //                min = _mm512_min_epu8(min, maxLLR); // 128 in epi8 is -127
+#ifndef AVOID_MAXLLR
       fprintf(fd, "                min = _mm512_min_epu8(min, maxLLR);\n");
-
+#endif
       fprintf(fd, "                ((__m512i*)cnProcBufRes)[%d+i] = conditional_negate(min, sgn,zeros);\n", (lut_startAddrCnGroups[5] >> 6) + (j * bitOffsetInGroup));
       fprintf(fd, "              }\n");
     }
@@ -425,8 +435,9 @@ void nrLDPC_cnProc_BG1_generator_AVX512(const char *dir, int R)
 
       // Store result
       //                min = _mm512_min_epu8(min, maxLLR); // 128 in epi8 is -127
+#ifndef AVOID_MAXLLR
       fprintf(fd, "                min = _mm512_min_epu8(min, maxLLR);\n");
-
+#endif
       fprintf(fd, "                ((__m512i*)cnProcBufRes)[%d+i] = conditional_negate(min, sgn,zeros);\n", (lut_startAddrCnGroups[6] >> 6) + (j * bitOffsetInGroup));
       fprintf(fd, "              }\n");
     }
@@ -482,8 +493,9 @@ void nrLDPC_cnProc_BG1_generator_AVX512(const char *dir, int R)
 
       // Store result
       //                min = _mm512_min_epu8(min, maxLLR); // 128 in epi8 is -127
+#ifndef AVOID_MAXLLR
       fprintf(fd, "                min = _mm512_min_epu8(min, maxLLR);\n");
-
+#endif
       fprintf(fd, "                ((__m512i*)cnProcBufRes)[%d+i] = conditional_negate(min,sgn,zeros);\n", (lut_startAddrCnGroups[7] >> 6) + (j * bitOffsetInGroup));
       fprintf(fd, "            }\n");
     }
@@ -548,8 +560,9 @@ void nrLDPC_cnProc_BG1_generator_AVX512(const char *dir, int R)
 
       // Store result
       //                min = _mm512_min_epu8(min, maxLLR); // 128 in epi8 is -127
+#ifndef AVOID_MAXLLR
       fprintf(fd, "                min = _mm512_min_epu8(min, maxLLR);\n");
-
+#endif
       fprintf(fd, "                ((__m512i*)cnProcBufRes)[%d+i] = conditional_negate(min, sgn,zeros);\n", (lut_startAddrCnGroups[8] >> 6) + (j * bitOffsetInGroup));
       fprintf(fd, "            }\n");
     }
