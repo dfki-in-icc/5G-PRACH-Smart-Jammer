@@ -149,7 +149,9 @@ extern "C" {
 
     //RB_ENTRY(gtpv1u_ue_data_s) gtpv1u_ue_node;
   } gtpv1u_ue_data_t;
-  
+
+  int get_NGU_S1U_addr(char *addr, int *port);
+
 #ifdef __cplusplus
 }
 #endif

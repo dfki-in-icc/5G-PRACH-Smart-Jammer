@@ -89,8 +89,6 @@
 extern uint16_t sf_ahead;
 int macrlc_has_f1 = 0;
 
-ngran_node_t get_node_type(void);
-
 extern int config_check_band_frequencies(int ind, int16_t band, uint64_t downlink_frequency,
                                          int32_t uplink_frequency_offset, uint32_t  frame_type);
 
@@ -1265,64 +1263,6 @@ void RCconfig_NRRRC(MessageDef *msg_p, uint32_t i, gNB_RRC_INST *rrc) {
   config_security(rrc);
 }//End RCconfig_NRRRC function
 
-static int get_NGU_S1U_addr(char *addr, int *port) {
-  int               num_gnbs                      = 0;
-  char*             gnb_ipv4_address_for_NGU      = NULL;
-  uint32_t          gnb_port_for_NGU              = 0;
-  char*             gnb_ipv4_address_for_S1U      = NULL;
-  uint32_t          gnb_port_for_S1U              = 0;
-  char gtpupath[MAX_OPTNAME_SIZE*2 + 8];
-
-  paramdef_t GNBSParams[] = GNBSPARAMS_DESC;
-  paramdef_t NETParams[]  =  GNBNETPARAMS_DESC;
-  LOG_I(GTPU,"Configuring GTPu\n");
-
-/* get number of active eNodeBs */
-  config_get( GNBSParams,sizeof(GNBSParams)/sizeof(paramdef_t),NULL); 
-  num_gnbs = GNBSParams[GNB_ACTIVE_GNBS_IDX].numelt;
-  AssertFatal (num_gnbs >0,
-           "Failed to parse config file no active gNodeBs in %s \n", GNB_CONFIG_STRING_ACTIVE_GNBS);
-
-  sprintf(gtpupath,"%s.[%i].%s",GNB_CONFIG_STRING_GNB_LIST,0,GNB_CONFIG_STRING_NETWORK_INTERFACES_CONFIG);
-  config_get(NETParams,sizeof(NETParams)/sizeof(paramdef_t),gtpupath); 
-  char *cidr=NULL, *address = NULL;
-  if (NETParams[1].strptr != NULL) {
-    LOG_I(GTPU, "SA mode \n");
-    address = strtok_r(gnb_ipv4_address_for_NGU, "/", &cidr);
-    *port=gnb_port_for_NGU;
-  } else { 
-    LOG_I(GTPU, "NSA mode \n");
-    address = strtok_r(gnb_ipv4_address_for_S1U, "/", &cidr);
-    *port=gnb_port_for_S1U;
-  }
-  if (address == NULL) return 1;
-  else {
-    strcpy(addr, address);
-    return 0;
-  }
-}
-
-instance_t RCconfig_nr_gtpu(void) {
-  char address[64];
-  int port;
-  int ret = get_NGU_S1U_addr(address, &port);
-  instance_t ret_inst = 0;
-  if (!ret) {
-    eth_params_t IPaddr;
-    IPaddr.my_addr = address;
-    IPaddr.my_portd = port;
-    openAddr_t tmp= {0};
-    strcpy(tmp.originHost, IPaddr.my_addr);
-    sprintf(tmp.originService, "%d",  IPaddr.my_portd);
-    strcpy(tmp.destinationService, tmp.originService);
-    LOG_I(GTPU,"Configuring GTPu address : %s, port : %s\n", tmp.originHost, tmp.originService);
-    ret_inst = gtpv1Init(tmp);
-  } else
-    LOG_E(GTPU,"invalid address for NGU or S1U\n");
-
-  return ret_inst;
-}
-
 int RCconfig_NR_NG(MessageDef *msg_p, uint32_t i) {
 
   int               j,k = 0;
@@ -1812,67 +1752,6 @@ int RCconfig_NR_X2(MessageDef *msg_p, uint32_t i) {
         }
       }
     }
-  }
-
-  return 0;
-}
-
-int RCconfig_NR_CU_E1(MessageDef *msg_p, uint32_t i) {
-  paramdef_t GNBSParams[] = GNBSPARAMS_DESC;
-  paramdef_t GNBParams[]  = GNBPARAMS_DESC;
-  paramdef_t GNBE1Params[] = GNBE1PARAMS_DESC;
-  paramlist_def_t GNBParamList = {GNB_CONFIG_STRING_GNB_LIST,NULL,0};
-  paramlist_def_t GNBE1ParamList = {GNB_CONFIG_STRING_E1_PARAMETERS, NULL, 0};
-  config_get(GNBSParams, sizeof(GNBSParams)/sizeof(paramdef_t), NULL);
-  char aprefix[MAX_OPTNAME_SIZE*2 + 8];
-  sprintf(aprefix, "%s.[%i]", GNB_CONFIG_STRING_GNB_LIST, 0);
-  int num_gnbs = GNBSParams[GNB_ACTIVE_GNBS_IDX].numelt;
-  AssertFatal (i < num_gnbs,
-               "Failed to parse config file no %uth element in %s \n",i, GNB_CONFIG_STRING_ACTIVE_GNBS);
-
-  if (num_gnbs > 0) {
-    config_getlist(&GNBParamList, GNBParams, sizeof(GNBParams)/sizeof(paramdef_t), NULL);
-    AssertFatal(GNBParamList.paramarray[i][GNB_GNB_ID_IDX].uptr != NULL,
-                "gNB id %u is not defined in configuration file\n",i);
-    config_getlist(&GNBE1ParamList, GNBE1Params, sizeof(GNBE1Params)/sizeof(paramdef_t), aprefix);
-    e1ap_setup_req_t *e1Setup = &E1AP_SETUP_REQ(msg_p);
-    msg_p->ittiMsgHeader.destinationInstance = 0;
-    e1Setup->gNB_cu_up_id = *(GNBParamList.paramarray[0][GNB_GNB_ID_IDX].uptr);
-
-    paramdef_t PLMNParams[] = GNBPLMNPARAMS_DESC;
-    paramlist_def_t PLMNParamList = {GNB_CONFIG_STRING_PLMN_LIST, NULL, 0};
-    /* map parameter checking array instances to parameter definition array instances */
-    checkedparam_t config_check_PLMNParams [] = PLMNPARAMS_CHECK;
-
-    for (int I = 0; I < sizeof(PLMNParams) / sizeof(paramdef_t); ++I)
-      PLMNParams[I].chkPptr = &(config_check_PLMNParams[I]);
-
-    config_getlist(&PLMNParamList, PLMNParams, sizeof(PLMNParams)/sizeof(paramdef_t), aprefix);
-    int numPLMNs = PLMNParamList.numelt;
-    e1Setup->supported_plmns = numPLMNs;
-
-    for (int I = 0; I < numPLMNs; I++) {
-      e1Setup->plmns[I].mcc = *PLMNParamList.paramarray[I][GNB_MOBILE_COUNTRY_CODE_IDX].uptr;
-      e1Setup->plmns[I].mnc = *PLMNParamList.paramarray[I][GNB_MOBILE_NETWORK_CODE_IDX].uptr;
-      e1Setup->plmns[I].mnc = *PLMNParamList.paramarray[I][GNB_MNC_DIGIT_LENGTH].u8ptr;
-    }
-
-    strcpy(e1Setup->CUCP_e1_ip_address.ipv4_address, *(GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_IPV4_ADDRESS_CUCP].strptr));
-    e1Setup->CUCP_e1_ip_address.ipv4 = 1;
-    e1Setup->port_cucp = *GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_PORT_CUCP].uptr;
-    strcpy(e1Setup->CUUP_e1_ip_address.ipv4_address, *(GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_IPV4_ADDRESS_CUUP].strptr));
-    e1Setup->CUUP_e1_ip_address.ipv4 = 1;
-    e1Setup->port_cuup = *GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_PORT_CUUP].uptr;
-    e1Setup->remoteDUPort = e1Setup->port_cuup; // set same as local port for now TODO: get from F1 config
-    char N3Addr[64];
-    int N3Port;
-    if (!get_NGU_S1U_addr(N3Addr, &N3Port)) {;
-      inet_pton(AF_INET,
-                N3Addr,
-                &e1Setup->IPv4AddressN3);
-      e1Setup->portN3 = N3Port;
-    }
-    e1Setup->cn_support = *GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_CN_SUPPORT].uptr;
   }
 
   return 0;
