@@ -849,6 +849,7 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx) {
                  LOG_D(PHY, "DTX for round 0, clear mandatory data\n");
                  for (r = 0; r < ulsch->a_segments; r++) {
                    ulsch_harq->crc_ok[r] = false;
+                   memset(ulsch_harq->d[r], 0, (68*384)*sizeof(int16_t));
                  }
                }
                continue;
