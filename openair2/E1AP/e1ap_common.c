@@ -58,8 +58,8 @@ void createE1inst(E1_t type, instance_t instance, e1ap_setup_req_t *req) {
     AssertFatal(e1ap_up_inst[instance] == NULL, "Double call to E1 UP instance %d\n", (int)instance);
     e1ap_up_inst[instance] = (e1ap_upcp_inst_t *) calloc(1, sizeof(e1ap_upcp_inst_t));
     memcpy(&e1ap_up_inst[instance]->setupReq, req, sizeof(e1ap_setup_req_t));
-    e1ap_up_inst[instance]->gtpInstN3 = E1AP_GTP_INST_N3;
-    e1ap_up_inst[instance]->gtpInstF1U = E1AP_GTP_INST_F1U;
+    e1ap_up_inst[instance]->gtpInstN3 = -1;
+    e1ap_up_inst[instance]->gtpInstF1U = -1;
   } else {
     AssertFatal(false, "Unknown CU type\n");
   }
