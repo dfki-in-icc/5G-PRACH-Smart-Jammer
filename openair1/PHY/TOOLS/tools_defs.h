@@ -34,9 +34,6 @@
 #include <assert.h>
 #include "PHY/sse_intrin.h"
 #include "common/utils/assertions.h"
-#include <simde/simde-common.h>
-#include <simde/arm/neon.h>
-#include <simde/x86/sse.h>
 
 #define simd_q15_t simde__m128i
 #define simdshort_q15_t simde__m64
