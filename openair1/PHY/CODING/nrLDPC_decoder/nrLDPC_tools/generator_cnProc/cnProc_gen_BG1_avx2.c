@@ -24,6 +24,8 @@
 #include <stdint.h>
 #include "../../nrLDPCdecoder_defs.h"
 
+#define AVOID_MM256_SIGN 1
+#define DROP_MAXLLR 1
 void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 {
   const char *ratestr[3]={"13","23","89"};
@@ -87,8 +89,8 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
   const uint8_t lut_idxCnProcG3[3][2] = {{12,24}, {0,24}, {0,12}};
 
   fprintf(fd,"                simde__m256i ymm0, min, sgn,ones,maxLLR;\n");
-  fprintf(fd,"                ones   = simde_mm256_set1_epi8((char)1);\n");
-  fprintf(fd,"                maxLLR = simde_mm256_set1_epi8((char)127);\n");
+  fprintf(fd,"                ones   = simde_mm256_set1_epi8((int8_t)1);\n");
+  fprintf(fd,"                maxLLR = simde_mm256_set1_epi8((int8_t)127);\n");
 
   fprintf(fd,"                uint32_t  M;\n");
 
@@ -122,7 +124,11 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	  //                ymm0 = p_cnProcBuf[lut_idxCnProcG3[j][0] + i];
 	  fprintf(fd,"                ymm0 = ((simde__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[0]>>5)+lut_idxCnProcG3[j][0]);
 	  //                sgn  = simde_mm256_sign_epi8(ones, ymm0);
+#ifndef AVOID_MM256_SIGN
 	  fprintf(fd,"                sgn  = simde_mm256_sign_epi8(ones, ymm0);\n");
+#else
+	  fprintf(fd,"                sgn  = simde_mm256_xor_si256(ones, ymm0);\n");
+#endif	  
 	  //                min  = simde_mm256_abs_epi8(ymm0);
 	  fprintf(fd,"                min  = simde_mm256_abs_epi8(ymm0);\n");
 	  
@@ -134,18 +140,22 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	  fprintf(fd,"                min  = simde_mm256_min_epu8(min, simde_mm256_abs_epi8(ymm0));\n");
 	  
 	  //                sgn  = simde_mm256_sign_epi8(sgn, ymm0);
+#ifndef AVOID_MM256_SIGN
 	  fprintf(fd,"                sgn  = simde_mm256_sign_epi8(sgn, ymm0);\n");
-	  
+#else
+	  fprintf(fd,"                sgn  = simde_mm256_xor_si256(sgn, ymm0);\n");
+#endif
 	  // Store result
 	  //                min = simde_mm256_min_epu8(min, maxLLR); // 128 in epi8 is -127
+#ifndef DROP_MAXLLR
 	  fprintf(fd,"                min = simde_mm256_min_epu8(min, maxLLR);\n");
+#endif
 	  //                *p_cnProcBufResBit = simde_mm256_sign_epi8(min, sgn);
 	  //                p_cnProcBufResBit++;
 	  fprintf(fd,"                ((simde__m256i*)cnProcBufRes)[%d+i] = simde_mm256_sign_epi8(min, sgn);\n",(lut_startAddrCnGroups[0]>>5)+(j*bitOffsetInGroup));
 	  fprintf(fd,"            }\n");
         }
     }
-
   // =====================================================================
   // Process group with 4 BNs
   fprintf(fd,"//Process group with 4 BNs\n");
@@ -181,7 +191,11 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	  //                ymm0 = p_cnProcBuf[lut_idxCnProcG3[j][0] + i];
 	  fprintf(fd,"                ymm0 = ((simde__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[1]>>5)+lut_idxCnProcG4[j][0]);
 	  //                sgn  = simde_mm256_sign_epi8(ones, ymm0);
+#ifndef AVOID_MM256_SIGN
 	  fprintf(fd,"                sgn  = simde_mm256_sign_epi8(ones, ymm0);\n");
+#else
+	  fprintf(fd,"                sgn  = simde_mm256_xor_si256(ones, ymm0);\n");
+#endif	  
 	  //                min  = simde_mm256_abs_epi8(ymm0);
 	  fprintf(fd,"                min  = simde_mm256_abs_epi8(ymm0);\n");
 	  
@@ -195,12 +209,18 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	      fprintf(fd,"                min  = simde_mm256_min_epu8(min, simde_mm256_abs_epi8(ymm0));\n");
 	      
 	      //                sgn  = simde_mm256_sign_epi8(sgn, ymm0);
-	      fprintf(fd,"                sgn  = simde_mm256_sign_epi8(sgn, ymm0);\n");
+#ifndef AVOID_MM256_SIGN
+  	      fprintf(fd,"                sgn  = simde_mm256_sign_epi8(sgn, ymm0);\n");
+#else
+	      fprintf(fd,"                sgn  = simde_mm256_xor_si256(sgn, ymm0);\n");
+#endif
 	    }
 	  
 	  // Store result
 	  //                min = simde_mm256_min_epu8(min, maxLLR); // 128 in epi8 is -127
+#ifndef DROP_MAXLLR
 	  fprintf(fd,"                min = simde_mm256_min_epu8(min, maxLLR);\n");
+#endif	  
 	  //                *p_cnProcBufResBit = simde_mm256_sign_epi8(min, sgn);
 	      //                p_cnProcBufResBit++;
 	  fprintf(fd,"                ((simde__m256i*)cnProcBufRes)[%d+i] = simde_mm256_sign_epi8(min, sgn);\n",(lut_startAddrCnGroups[1]>>5)+(j*bitOffsetInGroup));
@@ -246,7 +266,11 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	  //                ymm0 = p_cnProcBuf[lut_idxCnProcG3[j][0] + i];
 	  fprintf(fd,"                ymm0 = ((simde__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[2]>>5)+lut_idxCnProcG5[j][0]);
 	  //                sgn  = simde_mm256_sign_epi8(ones, ymm0);
+#ifndef AVOID_MM256_SIGN
 	  fprintf(fd,"                sgn  = simde_mm256_sign_epi8(ones, ymm0);\n");
+#else
+	  fprintf(fd,"                sgn  = simde_mm256_xor_si256(ones, ymm0);\n");
+#endif	  
 	  //                min  = simde_mm256_abs_epi8(ymm0);
 	  fprintf(fd,"                min  = simde_mm256_abs_epi8(ymm0);\n");
 	  
@@ -260,12 +284,18 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	      fprintf(fd,"                min  = simde_mm256_min_epu8(min, simde_mm256_abs_epi8(ymm0));\n");
 	      
 	      //                sgn  = simde_mm256_sign_epi8(sgn, ymm0);
-	      fprintf(fd,"                sgn  = simde_mm256_sign_epi8(sgn, ymm0);\n");
+#ifndef AVOID_MM256_SIGN
+  	      fprintf(fd,"                sgn  = simde_mm256_sign_epi8(sgn, ymm0);\n");
+#else
+	      fprintf(fd,"                sgn  = simde_mm256_xor_si256(sgn, ymm0);\n");
+#endif
 	    }
 	  
 	  // Store result
 	  //                min = simde_mm256_min_epu8(min, maxLLR); // 128 in epi8 is -127
+#ifndef DROP_MAXLLR
 	  fprintf(fd,"                min = simde_mm256_min_epu8(min, maxLLR);\n");
+#endif	  
 	  //                *p_cnProcBufResBit = simde_mm256_sign_epi8(min, sgn);
 	  //                p_cnProcBufResBit++;
 	  fprintf(fd,"                ((simde__m256i*)cnProcBufRes)[%d+i] = simde_mm256_sign_epi8(min, sgn);\n",(lut_startAddrCnGroups[2]>>5)+(j*bitOffsetInGroup));
@@ -311,7 +341,11 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	  //                ymm0 = p_cnProcBuf[lut_idxCnProcG3[j][0] + i];
 	  fprintf(fd,"                ymm0 = ((simde__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[3]>>5)+lut_idxCnProcG6[j][0]);
 	  //                sgn  = simde_mm256_sign_epi8(ones, ymm0);
+#ifndef AVOID_MM256_SIGN
 	  fprintf(fd,"                sgn  = simde_mm256_sign_epi8(ones, ymm0);\n");
+#else
+	  fprintf(fd,"                sgn  = simde_mm256_xor_si256(ones, ymm0);\n");
+#endif	  
 	  //                min  = simde_mm256_abs_epi8(ymm0);
 	  fprintf(fd,"                min  = simde_mm256_abs_epi8(ymm0);\n");
 	  
@@ -325,12 +359,18 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	      fprintf(fd,"                min  = simde_mm256_min_epu8(min, simde_mm256_abs_epi8(ymm0));\n");
 	      
 	      //                sgn  = simde_mm256_sign_epi8(sgn, ymm0);
-	      fprintf(fd,"                sgn  = simde_mm256_sign_epi8(sgn, ymm0);\n");
+#ifndef AVOID_MM256_SIGN
+  	      fprintf(fd,"                sgn  = simde_mm256_sign_epi8(sgn, ymm0);\n");
+#else
+	      fprintf(fd,"                sgn  = simde_mm256_xor_si256(sgn, ymm0);\n");
+#endif
 	    }
 	  
 	  // Store result
 	  //                min = simde_mm256_min_epu8(min, maxLLR); // 128 in epi8 is -127
+#ifndef DROP_MAXLLR
 	  fprintf(fd,"                min = simde_mm256_min_epu8(min, maxLLR);\n");
+#endif	  
 	  //                *p_cnProcBufResBit = simde_mm256_sign_epi8(min, sgn);
 	  //                p_cnProcBufResBit++;
 	  fprintf(fd,"                ((simde__m256i*)cnProcBufRes)[%d+i] = simde_mm256_sign_epi8(min, sgn);\n",(lut_startAddrCnGroups[3]>>5)+(j*bitOffsetInGroup));
@@ -379,7 +419,11 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	  //                ymm0 = p_cnProcBuf[lut_idxCnProcG3[j][0] + i];
 	  fprintf(fd,"                ymm0 = ((simde__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[4]>>5)+lut_idxCnProcG7[j][0]);
 	  //                sgn  = simde_mm256_sign_epi8(ones, ymm0);
+#ifndef AVOID_MM256_SIGN
 	  fprintf(fd,"                sgn  = simde_mm256_sign_epi8(ones, ymm0);\n");
+#else
+	  fprintf(fd,"                sgn  = simde_mm256_xor_si256(ones, ymm0);\n");
+#endif	  
 	  //                min  = simde_mm256_abs_epi8(ymm0);
 	  fprintf(fd,"                min  = simde_mm256_abs_epi8(ymm0);\n");
 	  
@@ -393,12 +437,18 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	      fprintf(fd,"                min  = simde_mm256_min_epu8(min, simde_mm256_abs_epi8(ymm0));\n");
 	      
 	      //                sgn  = simde_mm256_sign_epi8(sgn, ymm0);
-	      fprintf(fd,"                sgn  = simde_mm256_sign_epi8(sgn, ymm0);\n");
+#ifndef AVOID_MM256_SIGN
+  	      fprintf(fd,"                sgn  = simde_mm256_sign_epi8(sgn, ymm0);\n");
+#else
+	      fprintf(fd,"                sgn  = simde_mm256_xor_si256(sgn, ymm0);\n");
+#endif
 	    }
 	  
 	  // Store result
 	  //                min = simde_mm256_min_epu8(min, maxLLR); // 128 in epi8 is -127
+#ifndef DROP_MAXLLR
 	  fprintf(fd,"                min = simde_mm256_min_epu8(min, maxLLR);\n");
+#endif	  
 	  //                *p_cnProcBufResBit = simde_mm256_sign_epi8(min, sgn);
 	  //                p_cnProcBufResBit++;
 	  fprintf(fd,"                ((simde__m256i*)cnProcBufRes)[%d+i] = simde_mm256_sign_epi8(min, sgn);\n",(lut_startAddrCnGroups[4]>>5)+(j*bitOffsetInGroup));
@@ -448,7 +498,11 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	  //                ymm0 = p_cnProcBuf[lut_idxCnProcG3[j][0] + i];
 	  fprintf(fd,"                ymm0 = ((simde__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[5]>>5)+lut_idxCnProcG8[j][0]);
 	  //                sgn  = simde_mm256_sign_epi8(ones, ymm0);
+#ifndef AVOID_MM256_SIGN
 	  fprintf(fd,"                sgn  = simde_mm256_sign_epi8(ones, ymm0);\n");
+#else
+	  fprintf(fd,"                sgn  = simde_mm256_xor_si256(ones, ymm0);\n");
+#endif	  
 	  //                min  = simde_mm256_abs_epi8(ymm0);
 	  fprintf(fd,"                min  = simde_mm256_abs_epi8(ymm0);\n");
 	  
@@ -462,12 +516,18 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	      fprintf(fd,"                min  = simde_mm256_min_epu8(min, simde_mm256_abs_epi8(ymm0));\n");
 	      
 	      //                sgn  = simde_mm256_sign_epi8(sgn, ymm0);
-	      fprintf(fd,"                sgn  = simde_mm256_sign_epi8(sgn, ymm0);\n");
+#ifndef AVOID_MM256_SIGN
+  	      fprintf(fd,"                sgn  = simde_mm256_sign_epi8(sgn, ymm0);\n");
+#else
+	      fprintf(fd,"                sgn  = simde_mm256_xor_si256(sgn, ymm0);\n");
+#endif
 	    }
 	  
 	  // Store result
 	  //                min = simde_mm256_min_epu8(min, maxLLR); // 128 in epi8 is -127
+#ifndef DROP_MAXLLR
 	  fprintf(fd,"                min = simde_mm256_min_epu8(min, maxLLR);\n");
+#endif
 	  //                *p_cnProcBufResBit = simde_mm256_sign_epi8(min, sgn);
 	  //                p_cnProcBufResBit++;
 	  fprintf(fd,"                ((simde__m256i*)cnProcBufRes)[%d+i] = simde_mm256_sign_epi8(min, sgn);\n",(lut_startAddrCnGroups[5]>>5)+(j*bitOffsetInGroup));
@@ -517,7 +577,11 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	  //                ymm0 = p_cnProcBuf[lut_idxCnProcG3[j][0] + i];
 	  fprintf(fd,"                ymm0 = ((simde__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[6]>>5)+lut_idxCnProcG9[j][0]);
 	  //                sgn  = simde_mm256_sign_epi8(ones, ymm0);
+#ifndef AVOID_MM256_SIGN
 	  fprintf(fd,"                sgn  = simde_mm256_sign_epi8(ones, ymm0);\n");
+#else
+	  fprintf(fd,"                sgn  = simde_mm256_xor_si256(ones, ymm0);\n");
+#endif	  
 	  //                min  = simde_mm256_abs_epi8(ymm0);
 	  fprintf(fd,"                min  = simde_mm256_abs_epi8(ymm0);\n");
 	  
@@ -531,12 +595,18 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	      fprintf(fd,"                min  = simde_mm256_min_epu8(min, simde_mm256_abs_epi8(ymm0));\n");
 	      
 	      //                sgn  = simde_mm256_sign_epi8(sgn, ymm0);
-	      fprintf(fd,"                sgn  = simde_mm256_sign_epi8(sgn, ymm0);\n");
+#ifndef AVOID_MM256_SIGN
+  	      fprintf(fd,"                sgn  = simde_mm256_sign_epi8(sgn, ymm0);\n");
+#else
+	      fprintf(fd,"                sgn  = simde_mm256_xor_si256(sgn, ymm0);\n");
+#endif
 	    }
 	  
 	  // Store result
 	  //                min = simde_mm256_min_epu8(min, maxLLR); // 128 in epi8 is -127
+#ifndef DROP_MAXLLR
 	  fprintf(fd,"                min = simde_mm256_min_epu8(min, maxLLR);\n");
+#endif
 	  //                *p_cnProcBufResBit = simde_mm256_sign_epi8(min, sgn);
 	  //                p_cnProcBufResBit++;
 	  fprintf(fd,"                ((simde__m256i*)cnProcBufRes)[%d+i] = simde_mm256_sign_epi8(min, sgn);\n",(lut_startAddrCnGroups[6]>>5)+(j*bitOffsetInGroup));
@@ -587,7 +657,11 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	  //                ymm0 = p_cnProcBuf[lut_idxCnProcG3[j][0] + i];
 	  fprintf(fd,"                ymm0 = ((simde__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[7]>>5)+lut_idxCnProcG10[j][0]);
 	  //                sgn  = simde_mm256_sign_epi8(ones, ymm0);
+#ifndef AVOID_MM256_SIGN
 	  fprintf(fd,"                sgn  = simde_mm256_sign_epi8(ones, ymm0);\n");
+#else
+	  fprintf(fd,"                sgn  = simde_mm256_xor_si256(ones, ymm0);\n");
+#endif	  
 	  //                min  = simde_mm256_abs_epi8(ymm0);
 	  fprintf(fd,"                min  = simde_mm256_abs_epi8(ymm0);\n");
 	  
@@ -601,12 +675,18 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	      fprintf(fd,"                min  = simde_mm256_min_epu8(min, simde_mm256_abs_epi8(ymm0));\n");
 	      
 	      //                sgn  = simde_mm256_sign_epi8(sgn, ymm0);
-	      fprintf(fd,"                sgn  = simde_mm256_sign_epi8(sgn, ymm0);\n");
+#ifndef AVOID_MM256_SIGN
+  	      fprintf(fd,"                sgn  = simde_mm256_sign_epi8(sgn, ymm0);\n");
+#else
+	      fprintf(fd,"                sgn  = simde_mm256_xor_si256(sgn, ymm0);\n");
+#endif
 	    }
 	  
 	  // Store result
 	  //                min = simde_mm256_min_epu8(min, maxLLR); // 128 in epi8 is -127
+#ifndef DROP_MAXLLR
 	  fprintf(fd,"                min = simde_mm256_min_epu8(min, maxLLR);\n");
+#endif	  
 	  //                *p_cnProcBufResBit = simde_mm256_sign_epi8(min, sgn);
 	  //                p_cnProcBufResBit++;
 	  fprintf(fd,"                ((simde__m256i*)cnProcBufRes)[%d+i] = simde_mm256_sign_epi8(min, sgn);\n",(lut_startAddrCnGroups[7]>>5)+(j*bitOffsetInGroup));
@@ -630,7 +710,7 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 					     {0,48,96,144,192,240,288,336,384,432,480,528,576,624,672,720,816,864}, {0,48,96,144,192,240,288,336,384,432,480,528,576,624,672,720,768,864},
 					     {0,48,96,144,192,240,288,336,384,432,480,528,576,624,672,720,768,816}};
 
-
+ 
   if (lut_numCnInCnGroups[8] > 0)
     {
       // Number of groups of 32 CNs for parallel processing
@@ -660,7 +740,11 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	  //                ymm0 = p_cnProcBuf[lut_idxCnProcG3[j][0] + i];
 	  fprintf(fd,"                ymm0 = ((simde__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[8]>>5)+lut_idxCnProcG19[j][0]);
 	  //                sgn  = simde_mm256_sign_epi8(ones, ymm0);
+#ifndef AVOID_MM256_SIGN
 	  fprintf(fd,"                sgn  = simde_mm256_sign_epi8(ones, ymm0);\n");
+#else
+	  fprintf(fd,"                sgn  = simde_mm256_xor_si256(ones, ymm0);\n");
+#endif	  
 	  //                min  = simde_mm256_abs_epi8(ymm0);
 	  fprintf(fd,"                min  = simde_mm256_abs_epi8(ymm0);\n");
 	  
@@ -674,12 +758,18 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
 	      fprintf(fd,"                min  = simde_mm256_min_epu8(min, simde_mm256_abs_epi8(ymm0));\n");
 	      
 	      //                sgn  = simde_mm256_sign_epi8(sgn, ymm0);
-	      fprintf(fd,"                sgn  = simde_mm256_sign_epi8(sgn, ymm0);\n");
+#ifndef AVOID_MM256_SIGN
+  	      fprintf(fd,"                sgn  = simde_mm256_sign_epi8(sgn, ymm0);\n");
+#else
+	      fprintf(fd,"                sgn  = simde_mm256_xor_si256(sgn, ymm0);\n");
+#endif
 	    }
 	  
 	  // Store result
 	  //                min = simde_mm256_min_epu8(min, maxLLR); // 128 in epi8 is -127
+#ifndef DROP_MAXLLR
 	  fprintf(fd,"                min = simde_mm256_min_epu8(min, maxLLR);\n");
+#endif	  
 	  //                *p_cnProcBufResBit = simde_mm256_sign_epi8(min, sgn);
 	  //                p_cnProcBufResBit++;
 	  fprintf(fd,"                ((simde__m256i*)cnProcBufRes)[%d+i] = simde_mm256_sign_epi8(min, sgn);\n",(lut_startAddrCnGroups[8]>>5)+(j*bitOffsetInGroup));
