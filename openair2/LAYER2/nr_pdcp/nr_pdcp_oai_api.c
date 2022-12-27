@@ -675,7 +675,7 @@ rb_found:
   ctxt.brOption = 0;
 
   ctxt.rntiMaybeUEid = ue->rntiMaybeUEid;
-  if (RC.nrrrc != NULL && NODE_IS_CU(node_type)) {
+  if (NODE_IS_CU(node_type)) {
     MessageDef  *message_p = itti_alloc_new_message_sized(TASK_PDCP_ENB, 0,
 							  GTPV1U_TUNNEL_DATA_REQ,
 							  sizeof(gtpv1u_tunnel_data_req_t)
@@ -696,7 +696,6 @@ rb_found:
     extern instance_t CUuniqInstance;
     itti_send_msg_to_task(TASK_GTPV1_U, CUuniqInstance, message_p);
   } else {
-    
     memblock = get_free_mem_block(size, __FUNCTION__);
     memcpy(memblock->data, buf, size);
     LOG_D(PDCP, "%s(): (drb %d) calling rlc_data_req size %d\n", __func__, rb_id, size);

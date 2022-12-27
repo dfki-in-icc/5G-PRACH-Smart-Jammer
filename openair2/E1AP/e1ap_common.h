@@ -25,6 +25,19 @@
 #define E1AP_COMMON_H_
 #include "openair2/COMMON/e1ap_messages_types.h"
 #include "e1ap_asnc.h"
+#include "openair2/COMMON/sctp_messages_types.h"
+
+typedef struct e1ap_upcp_inst_s {
+  enum sctp_state_e sockState;
+  uint32_t assoc_id;
+  instance_t gtpInstN3;
+  instance_t gtpInstF1U;
+  e1ap_setup_req_t setupReq;
+  e1ap_bearer_setup_req_t bearerSetupReq;
+  e1ap_bearer_setup_resp_t bearerSetupResp;
+} e1ap_upcp_inst_t;
+
+typedef enum { CPtype = 0, UPtype } E1_t;
 
 extern int asn1_xer_print;
 

@@ -36,8 +36,6 @@
 #define E1AP_MAX_NUM_DRBS 4
 #define E1AP_MAX_NUM_DRBS 4
 #define E1AP_MAX_NUM_UP_PARAM 4
-#define E1AP_GTP_INST_N3 10
-#define E1AP_GTP_INST_F1U 11
 
 #define E1AP_SETUP_REQ(mSGpTR)                            (mSGpTR)->ittiMsg.e1ap_setup_req
 #define E1AP_SETUP_RESP(mSGpTR)                           (mSGpTR)->ittiMsg.e1ap_setup_resp
@@ -217,17 +215,4 @@ typedef struct e1ap_bearer_setup_resp_s {
   pdu_session_setup_t pduSession[E1AP_MAX_NUM_PDU_SESSIONS];
 } e1ap_bearer_setup_resp_t;
 
-typedef struct e1ap_upcp_inst_s {
-  uint32_t                assoc_id;
-  instance_t              gtpInstN3;
-  instance_t              gtpInstF1U;
-  e1ap_setup_req_t        setupReq;
-  e1ap_bearer_setup_req_t bearerSetupReq;
-  e1ap_bearer_setup_resp_t bearerSetupResp;
-} e1ap_upcp_inst_t;
-
-typedef enum {
-  CPtype = 0,
-  UPtype
-} E1_t;
 #endif /* E1AP_MESSAGES_TYPES_H */

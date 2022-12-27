@@ -847,7 +847,6 @@ include_directories("${OPENAIR2_DIR}/UTIL/OTG")
 include_directories("${OPENAIR2_DIR}/UTIL/CLI")
 include_directories("${OPENAIR2_DIR}/UTIL/OPT")
 include_directories("${OPENAIR2_DIR}/UTIL/OMV")
-include_directories("${OPENAIR2_DIR}/RRC/LTE/MESSAGES")
 include_directories("${OPENAIR_DIR}")
 
 ###########
@@ -1660,6 +1659,8 @@ set (ENB_APP_SRC
 
 set (GNB_APP_SRC
   ${OPENAIR2_DIR}/GNB_APP/gnb_app.c
+  ${OPENAIR2_DIR}/E1AP/e1ap_setup.c
+  ${OPENAIR3_DIR}/ocp-gtpu/gtpu_setup.c
   ${OPENAIR2_DIR}/GNB_APP/gnb_config.c
   )
 
@@ -2469,8 +2470,24 @@ endif ()
 
 # force the generation of ASN.1 so that we don't need to wait during the build
 target_link_libraries(nr-softmodem PRIVATE
-                      asn1_lte_rrc asn1_nr_rrc asn1_s1ap asn1_ngap asn1_m2ap asn1_m3ap asn1_x2ap asn1_f1ap asn1_lpp)
+  asn1_lte_rrc asn1_nr_rrc asn1_s1ap asn1_ngap asn1_m2ap asn1_m3ap asn1_x2ap asn1_f1ap asn1_lpp)
 
+add_executable(cu-up
+  executables/cuup.c
+  executables/softmodem-common.c
+  ${OPENAIR1_DIR}/SIMULATION/ETH_TRANSPORT/netlink_init.c
+  ${OPENAIR2_DIR}/RRC/NAS/nas_config.c
+  ${NR_RRC_DIR}/rrc_gNB_UE_context.c
+  ${OPENAIR2_DIR}/E1AP/e1ap_setup.c
+  ${OPENAIR3_DIR}/ocp-gtpu/gtpu_setup.c
+  ${NR_PDCP_SRC}
+  ${NR_SDAP_SRC}
+  ${T_SOURCE}
+  ${SHLIB_LOADER_SOURCES}
+  )
+
+target_link_libraries(cu-up -Wl,--start-group CONFIG_LIB ITTI SCTP_CLIENT SECU_OSA GTPV1U E1AP E1_PDCP_IF asn1_lte_rrc asn1_nr_rrc asn1_f1ap ${OPENSSL_LIBRARIES}  -Wl,--end-group crypt z sctp dl)
+                      
 # nr-uesoftmodem is  UE implementation
 #######################################
 
