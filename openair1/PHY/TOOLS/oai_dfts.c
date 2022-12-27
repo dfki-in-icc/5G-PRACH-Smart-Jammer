@@ -5274,7 +5274,7 @@ void dft48(int16_t *x, int16_t *y,unsigned char scale_flag)
             ytmp128+1,
             ytmp128+2,
             ytmp128+3,
-            y128,10000G
+            y128,
             y128+12,
             y128+24,
             y128+36);

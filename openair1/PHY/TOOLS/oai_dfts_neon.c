@@ -518,7 +518,6 @@ static inline void bfly4_16(int16x8_t *x0,int16x8_t *x1,int16x8_t *x2,int16x8_t 
   *(y1)   = vqaddq_s16(x02t,x13t);  // x0 + x1f - x2 - x3f
   *(y3)   = vqsubq_s16(x02t,x13t);  // x0 - x1f - x2 + x3f
 }
-#endif
 
 static inline void ibfly4_16(int16x8_t *x0,int16x8_t *x1,int16x8_t *x2,int16x8_t *x3,
 			     int16x8_t *y0,int16x8_t *y1,int16x8_t *y2,int16x8_t *y3,
@@ -7289,7 +7288,6 @@ int write_output(const char *fname,const char *vname,void *data,int length,int d
   return 0;
 }
 
-#ifdef MR_MAIN
 int main(int argc, char**argv)
 {
 
