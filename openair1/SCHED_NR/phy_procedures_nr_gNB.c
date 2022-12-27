@@ -235,6 +235,16 @@ void nr_postDecode(PHY_VARS_gNB *gNB, notifiedFIFO_elt_t *req, int *decodeSucces
   //int dumpsig=0;
   // if all segments are done
   if (rdata->nbSegments == ulsch_harq->processedSegments) {
+    /* check global CRC */
+    if (*decodeSuccessCount == rdata->nbSegments && rdata->nbSegments > 1) {
+      int A = ulsch_harq->TBS * 8;
+      int crc_length = A > 3824 ? 3 : 2;
+      int crc_type   = A > 3824 ? CRC24_A : CRC16;
+      if (!check_crc(ulsch_harq->b, A + crc_length*8, 0 /* F - unused */, crc_type)) {
+        *decodeSuccessCount = 0;
+        LOG_E(PHY, "LDPC global CRC fails, but individual LDPC CRC succeeded\n");
+      }
+    }
     if (*decodeSuccessCount == rdata->nbSegments && !gNB->pusch_vars[rdata->ulsch_id]->DTX) {
       LOG_D(PHY,"[gNB %d] ULSCH: Setting ACK for SFN/SF %d.%d (pid %d, ndi %d, status %d, round %d, TBS %d, Max interation (all seg) %d)\n",
             gNB->Mod_id,ulsch_harq->frame,ulsch_harq->slot,rdata->harq_pid,pusch_pdu->pusch_data.new_data_indicator,ulsch_harq->status,ulsch_harq->round,ulsch_harq->TBS,rdata->decodeIterations);
