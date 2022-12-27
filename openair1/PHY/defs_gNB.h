@@ -227,6 +227,8 @@ typedef struct {
   uint32_t B;
   /// Pointers to code blocks after code block segmentation and CRC attachment (38.212 V15.4.0 section 5.2.2)
   uint8_t **c;
+  /// array to indicate that a segment has a valid CRC from a previous transmission to not run LDPC decoder again in a retransmission
+  bool *crc_ok;
   /// Number of bits in each code block (38.212 V15.4.0 section 5.2.2)
   uint32_t K;
   /// Number of "Filler" bits added in the code block segmentation (38.212 V15.4.0 section 5.2.2)
@@ -266,6 +268,8 @@ typedef struct {
   uint8_t max_ldpc_iterations;
   /// number of iterations used in last LDPC decoding
   uint8_t last_iteration_cnt;  
+  /// max number of segments for LDPC decoding
+  int a_segments;
 } NR_gNB_ULSCH_t;
 
 typedef struct {

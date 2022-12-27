@@ -226,7 +226,6 @@ void nr_postDecode(PHY_VARS_gNB *gNB, notifiedFIFO_elt_t *req, int *decodeSucces
     memcpy(ulsch_harq->b+rdata->offset,
            ulsch_harq->c[r],
            rdata->Kr_bytes - (ulsch_harq->F>>3) -((ulsch_harq->C>1)?3:0));
-
   } else {
     LOG_D(PHY,"uplink segment error %d/%d\n",rdata->segment_r,rdata->nbSegments);
     LOG_D(PHY, "ULSCH %d in error\n",rdata->ulsch_id);
@@ -844,6 +843,14 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx) {
                   Therefore, we don't yet call nr_fill_indication, it will be called later */
                nr_fill_indication(gNB,frame_rx, slot_rx, ULSCH_id, harq_pid, 1,1);
                pusch_DTX++;
+               /* if round == 0 we need to clear some data because nr_ulsch_decoding() won't do it for the retransmissions */
+               if (ulsch_harq->round == 0) {
+                 int r;
+                 LOG_D(PHY, "DTX for round 0, clear mandatory data\n");
+                 for (r = 0; r < ulsch->a_segments; r++) {
+                   ulsch_harq->crc_ok[r] = false;
+                 }
+               }
                continue;
              }
           } else {
