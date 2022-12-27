@@ -98,7 +98,7 @@ nfapi_ue_release_request_body_t release_rntis;
 instance_t DUuniqInstance=0;
 instance_t CUuniqInstance=0;
 teid_t newGtpuCreateTunnel(instance_t instance,
-                           rnti_t rnti,
+                           ue_id_t ue_id,
                            int incoming_bearer_id,
                            int outgoing_bearer_id,
                            teid_t outgoing_teid,
@@ -110,7 +110,7 @@ teid_t newGtpuCreateTunnel(instance_t instance,
   return 0;
 }
 
-int newGtpuDeleteAllTunnels(instance_t instance, rnti_t rnti) {
+int newGtpuDeleteAllTunnels(instance_t instance, ue_id_t ue_id) {
   return 0;
 }
 
@@ -189,7 +189,7 @@ int
 gtpv1u_update_ngu_tunnel(
   const instance_t                              instanceP,
   const gtpv1u_gnb_create_tunnel_req_t *const  create_tunnel_req_pP,
-  const rnti_t                                  prior_rnti
+  const ue_id_t                                  prior_ue_id
 ){
   return 0;
 }
@@ -304,11 +304,10 @@ int main(int argc, char **argv)
   uint16_t nb_rb = 50;
   int Imcs = 9;
   uint8_t precod_nbr_layers = 1;
-  int gNB_id = 0;
   int tx_offset;
   int32_t txlev_sum = 0, atxlev[4];
   int start_rb = 0;
-  int UE_id =0; // [hna] only works for UE_id = 0 because NUMBER_OF_NR_UE_MAX is set to 1 (phy_init_nr_gNB causes segmentation fault)
+  int UE_id = 0;
   int print_perf = 0;
   cpuf = get_cpu_freq_GHz();
   int msg3_flag = 0;
@@ -435,6 +434,10 @@ int main(int argc, char **argv)
         }
       }
 
+      if (optarg[3] == ',') {
+        maxDoppler = atoi(&optarg[4]);
+        printf("Maximum Doppler Frequency: %.0f Hz\n", maxDoppler);
+      }
       break;
       
     case 'i':
@@ -621,7 +624,7 @@ int main(int argc, char **argv)
       //printf("-d Use TDD\n");
       printf("-d Introduce delay in terms of number of samples\n");
       printf("-f Number of frames to simulate\n");
-      printf("-g Channel model configuration. Arguments list: Number of arguments = 2, {Channel model: [A] TDLA30, [B] TDLB100, [C] TDLC300}, {Correlation: [l] Low, [m] Medium, [h] High}, e.g. -g A,l\n");
+      printf("-g Channel model configuration. Arguments list: Number of arguments = 3, {Channel model: [A] TDLA30, [B] TDLB100, [C] TDLC300}, {Correlation: [l] Low, [m] Medium, [h] High}, {Maximum Doppler shift} e.g. -g A,l,10\n");
       printf("-h This message\n");
       printf("-i Change channel estimation technique. Arguments list: Number of arguments=2, Frequency domain {0:Linear interpolation, 1:PRB based averaging}, Time domain {0:Estimates of last DMRS symbol, 1:Average of DMRS symbols}. e.g. -i 1,0\n");
       //printf("-j Relative strength of second intefering eNB (in dB) - cell_id mod 3 = 2\n");
@@ -682,26 +685,6 @@ int main(int argc, char **argv)
                         &samples,
                         &tx_bandwidth,
                         &rx_bandwidth);
-
-  LOG_I( PHY,"++++++++++++++++++++++++++++++++++++++++++++++%i+++++++++++++++++++++++++++++++++++++++++",loglvl);  
-
-  UE2gNB = new_channel_desc_scm(n_tx,
-                                n_rx, channel_model,
-                                sampling_frequency/1e6,
-                                tx_bandwidth,
-                                DS_TDL,
-                                corr_level,
-                                0,
-                                0,
-                                0,
-                                0);
-
-  if (UE2gNB == NULL) {
-    printf("Problem generating channel model. Exiting.\n");
-    exit(-1);
-  }
-
-  UE2gNB->max_Doppler = maxDoppler;
 
   RC.gNB = (PHY_VARS_gNB **) malloc(sizeof(PHY_VARS_gNB *));
   RC.gNB[0] = calloc(1,sizeof(PHY_VARS_gNB));
@@ -794,7 +777,7 @@ int main(int argc, char **argv)
   gNB->chest_freq = chest_type[0];
   gNB->chest_time = chest_type[1];
 
-  phy_init_nr_gNB(gNB,0,1);
+  phy_init_nr_gNB(gNB);
   /* RU handles rxdataF, and gNB just has a pointer. Here, we don't have an RU,
    * so we need to allocate that memory as well. */
   for (i = 0; i < n_rx; i++)
@@ -809,8 +792,27 @@ int main(int argc, char **argv)
 
   NR_BWP_Uplink_t *ubwp=secondaryCellGroup->spCellConfig->spCellConfigDedicated->uplinkConfig->uplinkBWP_ToAddModList->list.array[0];
 
+  // Configure channel model
+  UE2gNB = new_channel_desc_scm(n_tx,
+                                n_rx,
+                                channel_model,
+                                sampling_frequency / 1e6,
+                                frame_parms->ul_CarrierFreq,
+                                tx_bandwidth,
+                                DS_TDL,
+                                maxDoppler,
+                                corr_level,
+                                0,
+                                0,
+                                0,
+                                0);
 
-  //configure UE
+  if (UE2gNB == NULL) {
+    printf("Problem generating channel model. Exiting.\n");
+    exit(-1);
+  }
+
+  // Configure UE
   UE = malloc(sizeof(PHY_VARS_NR_UE));
   memset((void*)UE,0,sizeof(PHY_VARS_NR_UE));
   PHY_vars_UE_g = malloc(sizeof(PHY_VARS_NR_UE**));
@@ -1098,6 +1100,7 @@ int main(int argc, char **argv)
 
         UE_proc.nr_slot_tx = slot;
         UE_proc.frame_tx = frame;
+        UE_proc.gNB_id   = 0;
 
         UL_tti_req->SFN = frame;
         UL_tti_req->Slot = slot;
@@ -1241,7 +1244,7 @@ int main(int argc, char **argv)
           /////////////////////////phy_procedures_nr_ue_TX///////////////////////
           ///////////
 
-          phy_procedures_nrUE_TX(UE, &UE_proc, gNB_id, &phy_data);
+          phy_procedures_nrUE_TX(UE, &UE_proc, &phy_data);
 
           if (n_trials == 1) {
             LOG_M("txsig0.m", "txs0", &UE->common_vars.txdata[0][slot_offset], slot_length, 1, 1);
@@ -1290,11 +1293,7 @@ int main(int argc, char **argv)
             }
           }
 
-          if (UE2gNB->max_Doppler == 0) {
-            multipath_channel(UE2gNB, s_re, s_im, r_re, r_im, slot_length, 0, (n_trials==1)?1:0);
-          } else {
-            multipath_tv_channel(UE2gNB, s_re, s_im, r_re, r_im, 2*slot_length, 0);
-          }
+          multipath_channel(UE2gNB, s_re, s_im, r_re, r_im, slot_length, 0, (n_trials == 1) ? 1 : 0);
           add_noise(rxdata, (const double **) r_re, (const double **) r_im, sigma, slot_length, slot_offset, ts, delay, pdu_bit_map, frame_parms->nb_antennas_rx);
 
         } /*End input_fd */
