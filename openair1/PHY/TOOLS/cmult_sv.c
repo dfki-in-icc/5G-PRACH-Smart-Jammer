@@ -21,9 +21,6 @@
 
 #include "PHY/sse_intrin.h"
 #include "tools_defs.h"
-#include <simde/simde-common.h>
-#include <simde/arm/neon.h>
-#include <simde/x86/sse.h>
 
 void multadd_complex_vector_real_scalar(int16_t *x,
                                         int16_t alpha,

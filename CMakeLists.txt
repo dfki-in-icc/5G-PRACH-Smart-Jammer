@@ -206,7 +206,7 @@ if(EXISTS "/proc/cpuinfo")
 else()
   message(WARNING "did not find /proc/cpuinfo -- not setting any x86-specific compilation variables")
 endif()
-
+ 
 eval_boolean(AUTODETECT_AVX512 DEFINED CPUFLAGS AND CPUFLAGS MATCHES "avx512")
 add_boolean_option(AVX512 ${AUTODETECT_AVX512} "Whether AVX512 intrinsics is available on the host processor")
 
@@ -296,7 +296,7 @@ set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -ggdb2 -Wl,-rpath -Wl,${C
 # these changes are related to hardcoded path to include .h files
 set(debugOpt "-ggdb2 -DMALLOC_CHECK_=3 -fno-delete-null-pointer-checks")
 set(CMAKE_C_FLAGS_DEBUG "${debugOpt} -O0")
-set(CMAKE_C_FLAGS_RELWITHDEBINFO "${debugOpt} -O3")
+set(CMAKE_C_FLAGS_RELWITHDEBINFO "${debugOpt} -O2")
 set(CMAKE_C_FLAGS_RELEASE "-O3")
 
 # Enable assert() for RelWithDebInfo builds
