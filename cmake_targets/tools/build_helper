@@ -355,11 +355,11 @@ check_install_usrp_uhd_driver(){
     elif [[ "$OS_BASEDISTRO" == "fedora" ]]; then
         if [ $IS_CONTAINER -eq 0 ]
         then
-            $SUDO $INSTALLER -y install python3 boost libusb-devel libusbx-devel boost-devel python3-mako python3-docutils $CMAKE
-            $SUDO pip3 install requests
+            $SUDO $INSTALLER -y install python boost libusb-devel libusbx-devel boost-devel python-mako python-docutils python-pip $CMAKE
+            $SUDO pip install requests
         else
             $SUDO $INSTALLER -y install boost boost-devel $CMAKE
-            $SUDO pip3 install mako requests
+            $SUDO pip install mako requests
         fi
         if [[ "$OS_DISTRO" == "rhel" ]] || [[ "$OS_DISTRO" == "centos" ]]; then
             if [ $IS_CONTAINER -eq 0 ]
@@ -708,7 +708,7 @@ check_install_oai_software() {
       doxygen \
       flex \
       gcc \
-      gdb \
+      gcc-c++ \
       git \
       guile-devel \
       atlas-devel \
@@ -726,8 +726,6 @@ check_install_oai_software() {
       openssl \
       patch \
       readline-devel \
-      subversion \
-      xmlstarlet \
       kernel-headers \
       kernel-devel \
       nettle-devel \
@@ -735,7 +733,8 @@ check_install_oai_software() {
       lapack \
       lapack-devel \
       blas \
-      blas-devel
+      blas-devel \
+      vim-common 
   fi
 
     install_asn1c_from_source $1
