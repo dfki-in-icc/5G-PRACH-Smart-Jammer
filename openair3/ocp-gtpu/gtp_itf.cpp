@@ -1249,22 +1249,21 @@ void *gtpv1uTask(void *args)  {
     */
     MessageDef *message_p = NULL;
     itti_receive_msg(TASK_GTPV1_U, &message_p);
-
     if (message_p != NULL ) {
       openAddr_t addr= {0};
-
-      switch (ITTI_MSG_ID(message_p)) {
-        // DATA TO BE SENT TO UDP
+      const instance_t myInstance = ITTI_MSG_DESTINATION_INSTANCE(message_p);
+      const int msgType = ITTI_MSG_ID(message_p);
+      LOG_D(GTPU, "GTP-U received %s for instance %ld\n", messages_info[msgType].name, myInstance);
+      switch (msgType) {
+          // DATA TO BE SENT TO UDP
 
         case GTPV1U_TUNNEL_DATA_REQ: {
-          gtpv1uSend(compatInst(ITTI_MSG_DESTINATION_INSTANCE(message_p)),
-                      &GTPV1U_TUNNEL_DATA_REQ(message_p), false, false);
+          gtpv1uSend(compatInst(myInstance), &GTPV1U_TUNNEL_DATA_REQ(message_p), false, false);
         }
         break;
 
         case GTPV1U_DU_BUFFER_REPORT_REQ:{
-          gtpv1uSendDlDeliveryStatus(compatInst(ITTI_MSG_DESTINATION_INSTANCE(message_p)),
-              &GTPV1U_DU_BUFFER_REPORT_REQ(message_p));
+          gtpv1uSendDlDeliveryStatus(compatInst(myInstance), &GTPV1U_DU_BUFFER_REPORT_REQ(message_p));
         }
         break;
 
@@ -1276,8 +1275,7 @@ void *gtpv1uTask(void *args)  {
           break;
 
         case GTPV1U_ENB_END_MARKER_REQ:
-          gtpv1uEndTunnel(compatInst(ITTI_MSG_DESTINATION_INSTANCE(message_p)),
-                          &GTPV1U_TUNNEL_DATA_REQ(message_p));
+          gtpv1uEndTunnel(compatInst(myInstance), &GTPV1U_TUNNEL_DATA_REQ(message_p));
           itti_free(TASK_GTPV1_U, GTPV1U_TUNNEL_DATA_REQ(message_p).buffer);
           break;
 

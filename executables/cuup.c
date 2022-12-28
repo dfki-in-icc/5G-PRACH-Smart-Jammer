@@ -129,6 +129,7 @@ int main(int argc, char **argv)
   AssertFatal(rc >= 0, "Create task for GTPV1U failed\n");
   rc = itti_create_task(TASK_CUUP_E1, E1AP_CUUP_task, NULL);
   AssertFatal(rc >= 0, "Create task for CUUP E1 failed\n");
+  pdcp_layer_init();
   MessageDef *msg = RCconfig_NR_CU_E1();
   if (msg)
     itti_send_msg_to_task(TASK_CUUP_E1, 0, msg);
