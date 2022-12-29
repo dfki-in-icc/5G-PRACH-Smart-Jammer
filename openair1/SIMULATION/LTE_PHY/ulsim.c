@@ -53,7 +53,7 @@
 #include "nfapi/oai_integration/vendor_ext.h"
 #include "common/config/config_load_configmodule.h"
 #include "executables/thread-common.h"
-#include "targets/RT/USER/lte-softmodem.h"
+#include "executables/lte-softmodem.h"
 #include "executables/split_headers.h"
 #include "common/ran_context.h"
 #include "PHY/LTE_ESTIMATION/lte_estimation.h"
@@ -739,15 +739,15 @@ int main(int argc, char **argv) {
                                 n_rx,
                                 channel_model,
                                 N_RB2sampling_rate(eNB->frame_parms.N_RB_UL),
+                                0,
                                 N_RB2channel_bandwidth(eNB->frame_parms.N_RB_UL),
                                 30e-9,
+                                maxDoppler,
                                 CORR_LEVEL_LOW,
                                 forgetting_factor,
                                 delay,
                                 0,
                                 0);
-  // set Doppler
-  UE2eNB->max_Doppler = maxDoppler;
 
   // NN: N_RB_UL has to be defined in ulsim
   for (int k=0; k<NUMBER_OF_ULSCH_MAX; k++) eNB->ulsch[k] = new_eNB_ulsch(max_turbo_iterations,N_RB_DL,0);

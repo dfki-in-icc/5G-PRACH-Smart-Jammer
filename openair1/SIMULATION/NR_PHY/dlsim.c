@@ -102,7 +102,7 @@ nfapi_ue_release_request_body_t release_rntis;
 instance_t DUuniqInstance=0;
 instance_t CUuniqInstance=0;
 teid_t newGtpuCreateTunnel(instance_t instance,
-                           rnti_t rnti,
+                           ue_id_t ue_id,
                            int incoming_bearer_id,
                            int outgoing_bearer_id,
                            teid_t outgoing_teid,
@@ -114,7 +114,7 @@ teid_t newGtpuCreateTunnel(instance_t instance,
   return 0;
 }
 
-int newGtpuDeleteAllTunnels(instance_t instance, rnti_t rnti) {
+int newGtpuDeleteAllTunnels(instance_t instance, ue_id_t ue_id) {
   return 0;
 }
 
@@ -189,7 +189,7 @@ int
 gtpv1u_update_ngu_tunnel(
   const instance_t                              instanceP,
   const gtpv1u_gnb_create_tunnel_req_t *const  create_tunnel_req_pP,
-  const rnti_t                                  prior_rnti
+  const ue_id_t                                 prior_ue_id
 ){
   return 0;
 }
@@ -700,6 +700,7 @@ int main(int argc, char **argv)
       printf("-g [A,B,C,D,E,F,G,R] Use 3GPP SCM (A,B,C,D) or 36-101 (E-EPA,F-EVA,G-ETU) models or R for MIMO model (ignores delay spread and Ricean factor)\n");
       printf("-y Number of TX antennas used in gNB\n");
       printf("-z Number of RX antennas used in UE\n");
+      printf("-x Num of layer for PDSCH\n");
       printf("-i Change channel estimation technique. Arguments list: Frequency domain {0:Linear interpolation, 1:PRB based averaging}, Time domain {0:Estimates of last DMRS symbol, 1:Average of DMRS symbols}\n");
       //printf("-j Relative strength of second intefering gNB (in dB) - cell_id mod 3 = 2\n");
       printf("-R N_RB_DL\n");
@@ -868,7 +869,7 @@ int main(int argc, char **argv)
   // reset preprocessor to the one of DLSIM after it has been set during
   // rrc_mac_config_req_gNB
   gNB_mac->pre_processor_dl = nr_dlsim_preprocessor;
-  phy_init_nr_gNB(gNB,0,1);
+  phy_init_nr_gNB(gNB);
   N_RB_DL = gNB->frame_parms.N_RB_DL;
   NR_UE_info_t *UE_info = RC.nrmac[0]->UE_info.list[0];
 
@@ -900,8 +901,10 @@ int main(int argc, char **argv)
                                 n_rx,
                                 channel_model,
                                 fs/1e6,//sampling frequency in MHz
+                                0,
                                 txbw,
                                 30e-9,
+                                0.0,
                                 CORR_LEVEL_LOW,
                                 0,
                                 0,
@@ -955,8 +958,10 @@ int main(int argc, char **argv)
   UE->frame_parms.nb_antennas_rx = n_rx;
   UE->max_ldpc_iterations = max_ldpc_iterations;
 
-  if (run_initial_sync==1)  UE->is_synchronized = 0;
-  else                      {UE->is_synchronized = 1; UE->UE_mode[0]=PUSCH;}
+  if (run_initial_sync==1)
+    UE->is_synchronized = 0;
+  else
+    UE->is_synchronized = 1;
 
   if (init_nr_ue_signal(UE, 1) != 0)
   {
@@ -1046,6 +1051,14 @@ int main(int argc, char **argv)
   msgDataTx->frame = frame;
   memset(msgDataTx->ssb, 0, 64*sizeof(NR_gNB_SSB_t));
 
+  // Buffers to store internal memory of slot process
+  UE->phy_sim_rxdataF = calloc(frame_parms->samples_per_slot_wCP*sizeof(int32_t), frame_parms->nb_antennas_rx);
+  UE->phy_sim_pdsch_llr = calloc((8*(3*8*8448))*sizeof(int16_t), 1); //Max length
+  UE->phy_sim_pdsch_rxdataF_ext = calloc(14*frame_parms->N_RB_DL*12*sizeof(int32_t), frame_parms->nb_antennas_rx);
+  UE->phy_sim_pdsch_rxdataF_comp = calloc(14*frame_parms->N_RB_DL*12*sizeof(int32_t), frame_parms->nb_antennas_rx);
+  UE->phy_sim_pdsch_dl_ch_estimates = calloc(14*frame_parms->ofdm_symbol_size*sizeof(int32_t), frame_parms->nb_antennas_rx);
+  UE->phy_sim_pdsch_dl_ch_estimates_ext = calloc(14*frame_parms->N_RB_DL*12*sizeof(int32_t), frame_parms->nb_antennas_rx);
+
   for (SNR = snr0; SNR < snr1; SNR += .2) {
 
     varArray_t *table_tx=initVarArray(1000,sizeof(double));
@@ -1084,6 +1097,7 @@ int main(int argc, char **argv)
       UE->rx_offset=0;
       UE_proc.frame_rx   = frame;
       UE_proc.nr_slot_rx = slot;
+      UE_proc.gNB_id     = 0;
       
       dcireq.frame     = frame;
       dcireq.slot      = slot;
@@ -1265,7 +1279,6 @@ int main(int argc, char **argv)
 
         phy_procedures_nrUE_RX(UE,
                                &UE_proc,
-                               0,
                                &phy_data);
         
         //----------------------------------------------------------
@@ -1275,8 +1288,7 @@ int main(int argc, char **argv)
         if (dlsch0->last_iteration_cnt >= dlsch0->max_ldpc_iterations+1)
           n_errors[round]++;
 
-        NR_UE_PDSCH **pdsch_vars = UE->pdsch_vars;
-        int16_t *UE_llr = pdsch_vars[0]->llr[0];
+        int16_t *UE_llr = (int16_t*)UE->phy_sim_pdsch_llr;
 
         TBS                  = dlsch0->dlsch_config.TBS;//rel15->TBSize[0];
         uint16_t length_dmrs = get_num_dmrs(rel15->dlDmrsSymbPos);
@@ -1414,11 +1426,11 @@ int main(int argc, char **argv)
       LOG_M("rxsig0.m","rxs0", UE->common_vars.rxdata[0], frame_length_complex_samples, 1, 1);
       if (UE->frame_parms.nb_antennas_rx>1)
 	LOG_M("rxsig1.m","rxs1", UE->common_vars.rxdata[1], frame_length_complex_samples, 1, 1);
-      LOG_M("rxF0.m","rxF0", UE->common_vars.rxdataF[0], frame_parms->samples_per_slot_wCP, 1, 1);
-      LOG_M("rxF_ext.m","rxFe",&UE->pdsch_vars[0]->rxdataF_ext[0][0],g_rbSize*12*14,1,1);
-      LOG_M("chestF0.m","chF0",&UE->pdsch_vars[0]->dl_ch_estimates_ext[0][0],g_rbSize*12*14,1,1);
-      write_output("rxF_comp.m","rxFc",&UE->pdsch_vars[0]->rxdataF_comp0[0][0],N_RB_DL*12*14,1,1);
-      LOG_M("rxF_llr.m","rxFllr",UE->pdsch_vars[0]->llr[0],available_bits,1,0);
+      LOG_M("rxF0.m","rxF0", UE->phy_sim_rxdataF, frame_parms->samples_per_slot_wCP, 1, 1);
+      LOG_M("rxF_ext.m","rxFe",UE->phy_sim_pdsch_rxdataF_ext,g_rbSize*12*14,1,1);
+      LOG_M("chestF0.m","chF0",UE->phy_sim_pdsch_dl_ch_estimates_ext,g_rbSize*12*14,1,1);
+      write_output("rxF_comp.m","rxFc",UE->phy_sim_pdsch_rxdataF_comp,N_RB_DL*12*14,1,1);
+      LOG_M("rxF_llr.m","rxFllr",UE->phy_sim_pdsch_llr,available_bits,1,0);
       break;
     }
 
@@ -1449,6 +1461,12 @@ int main(int argc, char **argv)
   free(txdata);
   free(test_input_bit);
   free(estimated_output_bit);
+  free(UE->phy_sim_rxdataF);
+  free(UE->phy_sim_pdsch_llr);
+  free(UE->phy_sim_pdsch_rxdataF_ext);
+  free(UE->phy_sim_pdsch_rxdataF_comp);
+  free(UE->phy_sim_pdsch_dl_ch_estimates);
+  free(UE->phy_sim_pdsch_dl_ch_estimates_ext);
   
   if (output_fd)
     fclose(output_fd);

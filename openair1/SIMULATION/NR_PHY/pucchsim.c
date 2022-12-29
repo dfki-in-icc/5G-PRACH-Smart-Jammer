@@ -404,7 +404,7 @@ int main(int argc, char **argv)
   cfg->carrier_config.num_tx_ant.value = n_tx;
   cfg->carrier_config.num_rx_ant.value = n_rx;
   nr_phy_config_request_sim(gNB,N_RB_DL,N_RB_DL,mu,Nid_cell,SSB_positions);
-  phy_init_nr_gNB(gNB,0,0);
+  phy_init_nr_gNB(gNB);
   /* RU handles rxdataF, and gNB just has a pointer. Here, we don't have an RU,
    * so we need to allocate that memory as well. */
   for (i = 0; i < n_rx; i++)
@@ -421,7 +421,7 @@ int main(int argc, char **argv)
                         &txbw,
                         &rxbw);
 
-  UE2gNB = new_channel_desc_scm(n_tx, n_rx, channel_model, fs, txbw, DS_TDL, CORR_LEVEL_LOW, 0, 0, 0, 0);
+  UE2gNB = new_channel_desc_scm(n_tx, n_rx, channel_model, fs, 0, txbw, DS_TDL, 0.0, CORR_LEVEL_LOW, 0, 0, 0, 0);
 
   if (UE2gNB==NULL) {
     printf("Problem generating channel model. Exiting.\n");

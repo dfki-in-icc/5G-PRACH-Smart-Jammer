@@ -381,8 +381,10 @@ int main(int argc, char **argv)
                                 n_rx,
                                 channel_model,
                                 61.44e6, //N_RB2sampling_rate(N_RB_DL),
+                                0,
                                 40e6, //N_RB2channel_bandwidth(N_RB_DL),
                                 DS_TDL,
+                                0.0,
                                 CORR_LEVEL_LOW,
                                 0,
                                 0,
@@ -417,7 +419,7 @@ int main(int argc, char **argv)
 
   nr_phy_config_request_sim(gNB, N_RB_UL, N_RB_UL, mu, Nid_cell, SSB_positions);
 
-  phy_init_nr_gNB(gNB, 0, 1); //lowmem
+  phy_init_nr_gNB(gNB);
 
   //configure UE
   UE = malloc(sizeof(PHY_VARS_NR_UE));

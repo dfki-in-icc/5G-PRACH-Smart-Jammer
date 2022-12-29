@@ -31,6 +31,9 @@
  *  @{
  */
 
+#ifndef __NR_RRC_PROTO_H__
+#define __NR_RRC_PROTO_H__
+
 #include "RRC/NR/nr_rrc_defs.h"
 #include "NR_RRCReconfiguration.h"
 #include "NR_UE-NR-Capability.h"
@@ -39,6 +42,8 @@
 #include "NR_CG-Config.h"
 #include "NR_CG-ConfigInfo.h"
 #include "NR_SecurityConfig.h"
+
+#define NR_MAX_SUPPORTED_DL_LAYERS 2
 
 int rrc_init_nr_global_param(void);
 
@@ -205,15 +210,19 @@ rlc_op_status_t nr_rrc_rlc_config_asn1_req (const protocol_ctxt_t   * const ctxt
     const LTE_PMCH_InfoList_r9_t * const pmch_InfoList_r9_pP,
     struct NR_CellGroupConfig__rlc_BearerToAddModList *rlc_bearer2add_list);
 
-bool nr_rrc_pdcp_config_asn1_req(const protocol_ctxt_t *const  ctxt_pP,
-                                 NR_SRB_ToAddModList_t  *const srb2add_list,
-                                 NR_DRB_ToAddModList_t  *const drb2add_list,
-                                 NR_DRB_ToReleaseList_t *const drb2release_list,
-                                 const uint8_t                   security_modeP,
-                                 uint8_t                  *const kRRCenc,
-                                 uint8_t                  *const kRRCint,
-                                 uint8_t                  *const kUPenc,
-                                 uint8_t                  *const kUPint,
-                                 LTE_PMCH_InfoList_r9_t   *pmch_InfoList_r9,
-                                 rb_id_t                  *const defaultDRB,
-                                 struct NR_CellGroupConfig__rlc_BearerToAddModList *rlc_bearer2add_list);
+void nr_pdcp_add_srbs(eNB_flag_t enb_flag, ue_id_t rntiMaybeUEid, NR_SRB_ToAddModList_t *const srb2add_list, const uint8_t security_modeP, uint8_t *const kRRCenc, uint8_t *const kUPint);
+
+void nr_pdcp_add_drbs(eNB_flag_t enb_flag,
+                      ue_id_t rntiMaybeUEid,
+                      NR_DRB_ToAddModList_t *const drb2add_list,
+                      const uint8_t security_modeP,
+                      uint8_t *const kUPenc,
+                      uint8_t *const kUPint,
+                      struct NR_CellGroupConfig__rlc_BearerToAddModList *rlc_bearer2add_list);
+
+int rrc_gNB_generate_pcch_msg(uint32_t tmsi,
+                              uint8_t paging_drx,
+                              instance_t instance,
+                              uint8_t CC_id);
+
+#endif

@@ -417,7 +417,7 @@ void term_nr_ue_signal(PHY_VARS_NR_UE *ue, int nb_connected_gNB);
 void init_nr_ue_transport(PHY_VARS_NR_UE *ue);
 void init_N_TA_offset(PHY_VARS_NR_UE *ue);
 void nr_dump_frame_parms(NR_DL_FRAME_PARMS *frame_parms);
-int phy_init_nr_gNB(PHY_VARS_gNB *gNB, unsigned char is_secondary_gNB, unsigned char lowmem_flag);
+int phy_init_nr_gNB(PHY_VARS_gNB *gNB);
 int init_codebook_gNB(PHY_VARS_gNB *gNB);
 void nr_phy_config_request(NR_PHY_Config_t *gNB);
 void nr_phy_config_request_sim(PHY_VARS_gNB *gNB,int N_RB_DL,int N_RB_UL,int mu,int Nid_cell,uint64_t position_in_burst);
@@ -434,10 +434,10 @@ void reset_DLSCH_struct(const PHY_VARS_gNB *gNB, processingData_L1tx_t *msg);
 
 void RCconfig_nrUE_prs(void *cfg);
 void init_nr_prs_ue_vars(PHY_VARS_NR_UE *ue);
-void nr_init_dl_harq_processes(NR_DL_UE_HARQ_t* harq_list, int number_of_processes, int num_rb);
-void nr_init_ul_harq_processes(NR_UL_UE_HARQ_t *harq_list, int number_of_processes, int num_rb, int num_ant_tx);
-void free_nr_ue_dl_harq(NR_DL_UE_HARQ_t* harq_list, int number_of_processes, int num_rb);
-void free_nr_ue_ul_harq(NR_UL_UE_HARQ_t *harq_list, int number_of_processes, int num_rb, int num_ant_tx);
+void nr_init_dl_harq_processes(NR_DL_UE_HARQ_t harq_list[2][NR_MAX_DLSCH_HARQ_PROCESSES], int number_of_processes, int num_rb);
+void nr_init_ul_harq_processes(NR_UL_UE_HARQ_t harq_list[NR_MAX_ULSCH_HARQ_PROCESSES], int number_of_processes, int num_rb, int num_ant_tx);
+void free_nr_ue_dl_harq(NR_DL_UE_HARQ_t harq_list[2][NR_MAX_DLSCH_HARQ_PROCESSES], int number_of_processes, int num_rb);
+void free_nr_ue_ul_harq(NR_UL_UE_HARQ_t harq_list[NR_MAX_ULSCH_HARQ_PROCESSES], int number_of_processes, int num_rb, int num_ant_tx);
 
 /** @} */
 #endif
