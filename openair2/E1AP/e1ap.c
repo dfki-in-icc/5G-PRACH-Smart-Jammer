@@ -1567,17 +1567,17 @@ void *E1AP_CUCP_task(void *arg) {
                                                &msg->ittiMsg.sctp_new_association_resp);
         break;
 
-      case E1AP_SETUP_REQ:
+      case E1AP_SETUP_REQ: {
         e1ap_setup_req_t *req = &E1AP_SETUP_REQ(msg);
         char *ipaddr;
         if (req->CUCP_e1_ip_address.ipv4 == 0) {
           LOG_E(E1AP, "No IPv4 address configured\n");
           return NULL;
-        }
-        else
+        } else {
           ipaddr = req->CUCP_e1_ip_address.ipv4_address;
         cucp_task_send_sctp_init_req(0, ipaddr);
-        break;
+        }
+      } break;
 
       case SCTP_DATA_IND:
         cuxp_task_handle_sctp_data_ind(myInstance, &msg->ittiMsg.sctp_data_ind);
@@ -1620,12 +1620,12 @@ void *E1AP_CUUP_task(void *arg) {
     const int msgType = ITTI_MSG_ID(msg);
     LOG_I(E1AP, "CUUP received %s for instance %ld\n", messages_info[msgType].name, myInstance);
     switch (msgType) {
-      case E1AP_SETUP_REQ:
+      case E1AP_SETUP_REQ: {
         e1ap_setup_req_t *msgSetup = &E1AP_SETUP_REQ(msg);
         createE1inst(UPtype, myInstance, msgSetup);
 
         cuup_task_send_sctp_association_req(myInstance, msgSetup);
-        break;
+      } break;
 
       case SCTP_NEW_ASSOCIATION_RESP:
         cuup_task_handle_sctp_association_resp(myInstance, &msg->ittiMsg.sctp_new_association_resp);
