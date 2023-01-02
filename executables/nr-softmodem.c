@@ -97,6 +97,8 @@ unsigned short config_frames[4] = {2,9,11,13};
 #include "openair2/LAYER2/NR_MAC_gNB/mac_proto.h"
 #include "openair2/RRC/NR/rrc_gNB_UE_context.h"
 #include <time.h>
+extern RAN_CONTEXT_t RC;
+
 
 //////////////////////////////////
 //////////////////////////////////
@@ -671,6 +673,13 @@ void read_mac_sm(mac_ind_msg_t* data)
     const NR_UE_sched_ctrl_t* sched_ctrl = &UE->UE_sched_ctrl;
     mac_ue_stats_impl_t* rd = &data->ue_stats[i];
 
+    // rsrp value 
+    NR_mac_stats_t *stats = &UE->mac_stats;
+    const int avg_rsrp = stats->num_rsrp_meas > 0 ? stats->cumul_rsrp / stats->num_rsrp_meas : 0;
+
+    // end rsrp value 
+
+
     rd->frame = RC.nrmac[mod_id]->frame;
     rd->slot = RC.nrmac[mod_id]->slot;
 
@@ -709,6 +718,18 @@ void read_mac_sm(mac_ind_msg_t* data)
     rd->dl_mcs2 = 0;
     rd->ul_mcs2 = 0;
     rd->phr = sched_ctrl->ph;
+    // rd->phr = 40;
+
+    // getting the ngap id of a ue 
+
+    uint16_t const rnti = UE->rnti;
+    struct rrc_gNB_ue_context_s *ue_context_p = NULL;
+    ue_context_p = rrc_gNB_get_ue_context(RC.nrrrc[mod_id], rnti);
+    if (ue_context_p != NULL) {
+      rd->dl_mcs2 = ue_context_p->ue_context.amf_ue_ngap_id;
+    }
+
+    /// end getting ngap context for ue 
 
     const uint32_t bufferSize = sched_ctrl->estimated_ul_buffer - sched_ctrl->sched_ul_bytes;
     rd->bsr = bufferSize;
