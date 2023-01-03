@@ -419,8 +419,8 @@ int phy_init_lte_eNB(PHY_VARS_eNB *eNB,
          eNB->Mod_id, fp->N_RB_DL, fp->phich_config_common.phich_resource, fp->phich_config_common.phich_duration);
   crcTableInit();
   lte_gold (fp, eNB->lte_gold_table, fp->Nid_cell);
-  generate_pcfich_reg_mapping (fp);
-  generate_phich_reg_mapping (fp);
+  generate_pcfich_reg_mapping(fp);
+  generate_phich_reg_mapping(fp);
   init_sss();
 
   init_fde();

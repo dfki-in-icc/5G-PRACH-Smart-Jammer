@@ -32,14 +32,13 @@
 
 #include "PHY/defs_eNB.h"
 
-
+// Refer to Table PHICH factor for TDD transmissions - 3GPP 36211, Table 6.9-1
 uint8_t get_mi(LTE_DL_FRAME_PARMS *frame_parms,uint8_t subframe)
 {
   // for FeMBMS
-  if(frame_parms->FeMBMS_active!=0){
-	return(0);
-  }
-
+  if(frame_parms->FeMBMS_active!=0)
+	  return(0);
+    
   // for FDD
   if (frame_parms->frame_type == FDD)
     return 1;
@@ -47,9 +46,11 @@ uint8_t get_mi(LTE_DL_FRAME_PARMS *frame_parms,uint8_t subframe)
   // for TDD
   switch (frame_parms->tdd_config) {
     case 0:
-      if ((subframe==0) || (subframe==5))
-        return(2);
-      else return(1);
+      if ((subframe==0) || (subframe==5)){
+        return 2;
+      } else if ((subframe==1) || (subframe==6)){
+        return 1;
+      } else return 0;
 
       break;
 
@@ -89,7 +90,9 @@ uint8_t get_mi(LTE_DL_FRAME_PARMS *frame_parms,uint8_t subframe)
       break;
 
     case 6:
-      return(1);
+      if ((subframe==0) || (subframe==1) || (subframe==5) || (subframe==6) || (subframe==9))
+        return 1;
+      else return 0;
       break;
 
     default:
@@ -97,82 +100,54 @@ uint8_t get_mi(LTE_DL_FRAME_PARMS *frame_parms,uint8_t subframe)
   }
 }
 
-unsigned char subframe2_ul_harq(LTE_DL_FRAME_PARMS *frame_parms,unsigned char subframe) {
+// Refer to 3GPP TS 36213, Table 8.3-1
+// In therory, Frame is not needed for other TDD modes than 0 and 6
+int phich_frame2_pusch_frame(LTE_DL_FRAME_PARMS *frame_parms, int frame, int subframe)
+{
+  int pusch_frame = frame;
+
   if (frame_parms->frame_type == FDD)
-    return(subframe&7);
-
-  switch (frame_parms->tdd_config) {
-  case 1:
-    if (subframe == 6) {
-      return(0);
-    } else if (subframe==9){
-      return(1);
-    } else if (subframe==1){
-      return(2);
-    } else if (subframe==4){
-      return(3);
-    } else {
-      LOG_E(PHY,"phich.c: subframe2_ul_harq, illegal subframe %d for tdd_config %d\n",
-            subframe,frame_parms->tdd_config);
-      return(0);
-    }
-
-    break;
-  case 2:
-    if (subframe == 3) {
-      return(1);
-    } else if (subframe==8){
-      return(0);
-    } else {
-      LOG_E(PHY,"phich.c: subframe2_ul_harq, illegal subframe %d for tdd_config %d\n",
-            subframe,frame_parms->tdd_config);
-      return(0);
-    }
-
-    break;
+  {
+    pusch_frame = subframe < 4 ? frame + 1023 : frame;
+  }
+  else
+  {
+    switch (frame_parms->tdd_config)
+    {
+    case 0:
+      if ((subframe == 0) || (subframe == 5) || (subframe == 7))
+        pusch_frame = frame + 1023;
+      break;
+    case 1:
+      if ((subframe == 1) || (subframe == 4))
+        pusch_frame = frame + 1023;
+      break;
+    case 2:
+      if ((subframe == 3))
+        pusch_frame = frame + 1023;
+      break;
     case 3:
-      if ( (subframe == 8) || (subframe == 9) ) {
-        return(subframe-8);
-      } else if (subframe==0)
-        return(2);
-      else {
-        LOG_E(PHY,"phich.c: subframe2_ul_harq, illegal subframe %d for tdd_config %d\n",
-              subframe,frame_parms->tdd_config);
-        return(0);
-      }
-
+      if ((subframe == 0))
+        pusch_frame = frame + 1023;
       break;
-
     case 4:
-      if ( (subframe == 8) || (subframe == 9) ) {
-        return(subframe-8);
-      } else {
-        LOG_E(PHY,"phich.c: subframe2_ul_harq, illegal subframe %d for tdd_config %d\n",
-              subframe,frame_parms->tdd_config);
-        return(0);
-      }
-
       break;
+    case 5:
+      break;
+    case 6:
+      if ((subframe == 0) || (subframe == 1) || (subframe == 5))
+        pusch_frame = frame + 1023;
+      break;
+    }
   }
 
-  return(0);
-}
-
-int phich_frame2_pusch_frame(LTE_DL_FRAME_PARMS *frame_parms, int frame, int subframe) {
-  int pusch_frame;
-
-  if (frame_parms->frame_type == FDD) {
-    pusch_frame = subframe<4 ? frame + 1024 - 1 : frame;
-  } else {
-    // Note this is not true, but it doesn't matter, the frame number is irrelevant for TDD!
-    pusch_frame = (frame);
-  }
-
-  //LOG_D(PHY, "frame %d subframe %d: PUSCH frame = %d\n", frame, subframe, pusch_frame);
+  LOG_D(PHY, "phich_frame2_pusch_frame frame %d subframe %d: PUSCH frame = %d\n", frame, subframe, pusch_frame);
   return pusch_frame % 1024;
 }
 
-uint8_t phich_subframe2_pusch_subframe(LTE_DL_FRAME_PARMS *frame_parms,uint8_t subframe) {
+// Refer to 3GPP TS 36213, Table 8.3-1 - K factor application to find which PUSCH
+// the PHICH will ACK/NACK
+uint8_t phich_subframe2_pusch_subframe(LTE_DL_FRAME_PARMS *frame_parms, uint8_t subframe) {
   uint8_t pusch_subframe = 255;
 
   if (frame_parms->frame_type == FDD)
@@ -181,13 +156,13 @@ uint8_t phich_subframe2_pusch_subframe(LTE_DL_FRAME_PARMS *frame_parms,uint8_t s
   switch (frame_parms->tdd_config) {
     case 0:
       if (subframe == 0)
-        pusch_subframe = (3);
+        pusch_subframe = 4;
       else if (subframe == 5) {
-        pusch_subframe = (8);
+        pusch_subframe = 9;
       } else if (subframe == 6)
-        pusch_subframe = (2);
+        pusch_subframe = 2;
       else if (subframe == 1)
-        pusch_subframe = (7);
+        pusch_subframe = 7;
       else {
         AssertFatal(1==0,"phich.c: phich_subframe2_pusch_subframe, illegal subframe %d for tdd_config %d\n",
                     subframe,frame_parms->tdd_config);

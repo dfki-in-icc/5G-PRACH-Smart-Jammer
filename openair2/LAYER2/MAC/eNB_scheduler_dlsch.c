@@ -283,6 +283,7 @@ generate_dlsch_header(unsigned char *mac_header,
 }
 
 //------------------------------------------------------------------------------
+// For Dl subframe, we allocate the DAI of UL subframe accorting table (3GPP TS 36213, Table 10.1.3.1-1 K PDSCH)
 void
 set_ul_DAI(int module_idP,
            int UE_idP,
@@ -337,9 +338,25 @@ set_ul_DAI(int module_idP,
 
       case 2:
         //      if ((subframeP==3)||(subframeP==8))
-        //  UE_info->UE_template[CC_idP][UE_idP].DAI_ul = DAI;
-        break;
+        //  UE_list->UE_template[CC_idP][UE_idP].DAI_ul = DAI;
+          switch (subframeP) {
+            case 0:
+            case 1:
+              UE_info->UE_template[CC_idP][UE_idP].DAI_ul[7] = DAI;
+              break;
 
+            case 4:
+            case 5:
+            case 8:
+              UE_info->UE_template[CC_idP][UE_idP].DAI_ul[2] = DAI;
+              break;
+
+            case 9:
+              UE_info->UE_template[CC_idP][UE_idP].DAI_ul[7] = DAI;
+              break;
+            }
+        break;
+        
       case 3:
 
         //if ((subframeP==6)||(subframeP==8)||(subframeP==0)) {
@@ -380,8 +397,27 @@ set_ul_DAI(int module_idP,
         break;
 
       case 6:
-        //      if ((subframeP==1)||(subframeP==4)||(subframeP==6)||(subframeP==9))
-        //  UE_info->UE_template[CC_idP][UE_idP].DAI_ul = DAI;
+        switch (subframeP) {
+          case 0:
+            UE_info->UE_template[CC_idP][UE_idP].DAI_ul[7] = DAI;
+            break;
+
+          case 1:
+            UE_info->UE_template[CC_idP][UE_idP].DAI_ul[8] = DAI;
+            break;
+
+          case 5:
+            UE_info->UE_template[CC_idP][UE_idP].DAI_ul[2] = DAI;
+            break;
+          
+          case 6:
+            UE_info->UE_template[CC_idP][UE_idP].DAI_ul[3] = DAI;
+            break;
+
+          case 9:
+            UE_info->UE_template[CC_idP][UE_idP].DAI_ul[4] = DAI;
+            break;
+        }
         break;
 
       default:

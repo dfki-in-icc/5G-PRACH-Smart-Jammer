@@ -929,70 +929,106 @@ uint32_t get_rballoc(vrb_t vrb_type,uint16_t rb_alloc_dci)
 
 }
 
+// In TDD modes 1-5, each HarqPID is associated with a unique subframe and the number of harq processes equals the
+// number of UL subframes. Modes 0 and 6 have more processes than UL subframes so HarqPID depends on sfn
 uint8_t subframe2harq_pid(LTE_DL_FRAME_PARMS *frame_parms,uint32_t frame,uint8_t subframe)
 {
   uint8_t ret = 255;
 
   if (frame_parms->frame_type == FDD) {
-    ret = (((frame*10)+subframe)&7);
+    ret = (((frame * 10) + subframe) & 7);
   } else {
+    switch (frame_parms->tdd_config)
+    {
+    uint32_t cycle_idx;
+    case 0:
+      cycle_idx = 7 - frame % 7;
+      if (subframe < 5)
+      {
+        ret = (cycle_idx + subframe - 2) % 7;
+        break;
+      }
+      else
+      {
+        ret = (cycle_idx + subframe - 4) % 7;
+        break;
+      }
 
-    switch (frame_parms->tdd_config) {
     case 1:
-      switch (subframe) {
+      switch (subframe)
+      {
       case 2:
       case 3:
-        ret = (subframe-2);
+        ret = (subframe - 2);
         break;
 
       case 7:
       case 8:
-        ret = (subframe-5);
+        ret = (subframe - 5);
         break;
 
       default:
-        LOG_E(PHY,"subframe2_harq_pid, Illegal subframe %d for TDD mode %d\n",subframe,frame_parms->tdd_config);
-        ret = (255);
+        LOG_E(PHY, "subframe2harq_pid, Illegal subframe %d for TDD mode %d\n", subframe, frame_parms->tdd_config);
         break;
       }
 
       break;
 
     case 2:
-      if ((subframe!=2) && (subframe!=7)) {
-	LOG_E(PHY,"subframe2_harq_pid, Illegal subframe %d for TDD mode %d\n",subframe,frame_parms->tdd_config);
-	ret=255;
+      if ((subframe != 2) && (subframe != 7))
+      {
+        LOG_E(PHY, "subframe2harq_pid, Illegal subframe %d for TDD mode %d\n", subframe, frame_parms->tdd_config);
+        break;
       }
-      else ret = (subframe/7);
+      else
+        ret = (subframe / 7);
       break;
 
     case 3:
-      if ((subframe<2) || (subframe>4)) {
-        LOG_E(PHY,"subframe2_harq_pid, Illegal subframe %d for TDD mode %d\n",subframe,frame_parms->tdd_config);
-        ret = (255);
+      if ((subframe < 2) || (subframe > 4))
+      {
+        LOG_E(PHY, "subframe2harq_pid, Illegal subframe %d for TDD mode %d\n", subframe, frame_parms->tdd_config);
+        break;
       }
-      else ret = (subframe-2);
+      else
+        ret = (subframe - 2);
       break;
 
     case 4:
-      if ((subframe<2) || (subframe>3)) {
-        LOG_E(PHY,"subframe2_harq_pid, Illegal subframe %d for TDD mode %d\n",subframe,frame_parms->tdd_config);
-        ret = (255);
+      if ((subframe < 2) || (subframe > 3))
+      {
+        LOG_E(PHY, "subframe2harq_pid, Illegal subframe %d for TDD mode %d\n", subframe, frame_parms->tdd_config);
+        break;
       }
-      else ret = (subframe-2);
+      else
+        ret = (subframe - 2);
       break;
 
     case 5:
-      if (subframe!=2) {
-        LOG_E(PHY,"subframe2_harq_pid, Illegal subframe %d for TDD mode %d\n",subframe,frame_parms->tdd_config);
-        ret = (255);
+      if (subframe != 2)
+      {
+        LOG_E(PHY, "subframe2harq_pid, Illegal subframe %d for TDD mode %d\n", subframe, frame_parms->tdd_config);
+        break;
       }
-      else ret = (subframe-2);
+      else
+        ret = (subframe - 2);
       break;
 
+    case 6:
+      cycle_idx = 6 - frame % 6;
+      if (subframe < 5)
+      {
+        ret = (cycle_idx + subframe - 2) % 6;
+        break;
+      }
+      else
+      {
+        ret = (cycle_idx + subframe - 4) % 6;
+        break;
+      }
     default:
-      LOG_E(PHY,"subframe2_harq_pid, Unsupported TDD mode %d\n",frame_parms->tdd_config);
-      ret = (255);
+      LOG_E(PHY, "subframe2harq_pid, Unsupported TDD mode %d\n", frame_parms->tdd_config);
+      break;
     }
   }
 
@@ -1001,78 +1037,117 @@ uint8_t subframe2harq_pid(LTE_DL_FRAME_PARMS *frame_parms,uint32_t frame,uint8_t
   return ret;
 }
 
-uint8_t pdcch_alloc2ul_subframe(LTE_DL_FRAME_PARMS *frame_parms,uint8_t n)
+// Application of K factor from 3GPP TS 36213, Table 8-2 for TDD. For FDD K = 4 
+uint8_t pdcch_alloc2ul_subframe(LTE_DL_FRAME_PARMS *frame_parms,uint8_t subframe)
 {
   uint8_t ul_subframe = 255;
 
-  if ((frame_parms->frame_type == TDD) &&
-      (frame_parms->tdd_config == 1)) {
-    if ((n==1)||(n==6)) { // tdd_config 0,1 SF 1,5
-      ul_subframe = ((n+6)%10);
-    } else if ((n==4)||(n==9)) {
-      ul_subframe = ((n+4)%10);
+  if (frame_parms->frame_type == TDD)
+  {
+    switch (frame_parms->tdd_config)
+    {
+    case 1: //TDD config 1 - DL subframes to grant PUSCH 1,6,4 and 9
+      if ((subframe == 1) || (subframe == 6))
+      {
+        ul_subframe = ((subframe + 6) % 10);
+      }
+      else if ((subframe == 4) || (subframe == 9))
+      {
+        ul_subframe = ((subframe + 4) % 10);
+      }
+      break;
+
+    case 6: //TDD config 6 - DL subframes to grant PUSCH 0,1,5,6 and 9
+      if ((subframe == 0) || (subframe == 1) || (subframe == 5) || (subframe == 6))
+      {
+        ul_subframe = ((subframe + 7) % 10);
+      }
+      else if (subframe == 9)
+      {
+        ul_subframe = ((subframe + 5) % 10);
+      }
+    default:
+      break;
     }
-  } else if ((frame_parms->frame_type == TDD) &&
-           (frame_parms->tdd_config == 6) &&
-           ((n==0)||(n==1)||(n==5)||(n==6)))
-    ul_subframe = ((n+7)%10);
-  else if ((frame_parms->frame_type == TDD) &&
-           (frame_parms->tdd_config == 6) &&
-           (n==9)) // tdd_config 6 SF 9
-    ul_subframe = ((n+5)%10);
-  else
-    ul_subframe = ((n+4)%10);
+  }
+  else //FDD
+    ul_subframe = ((subframe + 4) % 10);
 
-  if ( (subframe_select(frame_parms,ul_subframe) != SF_UL) && (frame_parms->frame_type == TDD)) return(255);
+  if ((subframe_select(frame_parms, ul_subframe) != SF_UL) && (frame_parms->frame_type == TDD))
+    return (255);
 
-  LOG_D(PHY, "subframe %d: PUSCH subframe = %d\n", n, ul_subframe);
+  LOG_D(PHY, "subframe %d: PUSCH subframe = %d\n", subframe, ul_subframe);
   return ul_subframe;
 }
 
-uint8_t ul_subframe2pdcch_alloc_subframe(LTE_DL_FRAME_PARMS *frame_parms,uint8_t n)
+uint8_t ul_subframe2pdcch_alloc_subframe(LTE_DL_FRAME_PARMS *frame_parms,uint8_t subframe)
 {
-  if ((frame_parms->frame_type == TDD) &&
-      (frame_parms->tdd_config == 1)) {
-    if ((n==7)||(n==2)) { // tdd_config 0,1 SF 1,5
-      return((n==7)? 1 : 6);
-    } else if ((n==3)||(n==8)) {
-      return((n==3)? 9 : 4);
-    }
-  } else if ((frame_parms->frame_type == TDD) &&
-           (frame_parms->tdd_config == 6) &&
-           ((n==7)||(n==8)||(n==2)||(n==3)))
-    return((n+3)%10);
-  else if ((frame_parms->frame_type == TDD) &&
-           (frame_parms->tdd_config == 6) &&
-           (n==4)) // tdd_config 6 SF 9
-    return(9);
-  else
-    return((n+6)%10);
+  if (frame_parms->frame_type == TDD)
+  {
+    switch (frame_parms->tdd_config)
+    {
+    case 0: //TDD config 0 - UL subframes where PUSCH has been allocated are 2,3,4,7,8 and 9
+      if ((subframe == 7) || (subframe == 8) || (subframe == 2) || (subframe == 3))
+        return ((subframe + 3) % 10);
+      else if ((subframe == 4) || (subframe == 9))
+        return ((subframe == 4) ? 9 : 5);
+      break;
 
-  LOG_E(PHY, "%s %s:%i pdcch allocation error\n",__FUNCTION__,__FILE__,__LINE__);
+    case 1: //TDD config 1 - UL subframes where PUSCH has been allocated are 2,3,7 and 8
+      if ((subframe == 7) || (subframe == 2))
+        return ((subframe == 7) ? 1 : 6);
+      else if ((subframe == 3) || (subframe == 8))
+        return ((subframe == 3) ? 9 : 4);
+      break;
+
+    case 6: //TDD config 6 - UL subframes where PUSCH has been allocated are 2,3,4, 7 and 8
+      if ((subframe == 7) || (subframe == 8) || (subframe == 2) || (subframe == 3))
+        return ((subframe + 3) % 10);
+      else if (subframe == 4)
+        return (9);
+      break;
+
+    default:
+      break;
+    }
+  }
+  else //FDD
+    return ((subframe + 6) % 10);
+
+  LOG_E(PHY, "%s %s:%i pdcch allocation error\n", __FUNCTION__, __FILE__, __LINE__);
   return 0;
 }
 
-uint32_t pdcch_alloc2ul_frame(LTE_DL_FRAME_PARMS *frame_parms,uint32_t frame, uint8_t n)
+// Find frame (current or next one) for PUSCH allocation from DL subframe
+uint32_t pdcch_alloc2ul_frame(LTE_DL_FRAME_PARMS *frame_parms, uint32_t frame, uint8_t subframe)
 {
   uint32_t ul_frame;
+  if (frame_parms->frame_type == TDD)
+  {
+    switch (frame_parms->tdd_config)
+    {
+    case 1: //TDD config 1 - For DL subframes 6 and 9 we do to next Frame to allocate PUSCH
+      if ((subframe == 1) || (subframe == 6) || (subframe == 4) || (subframe == 9))
+      {
+        ul_frame = (frame + (subframe < 5 ? 0 : 1));
+      }
+      break;
 
-  if ((frame_parms->frame_type == TDD) &&
-      (frame_parms->tdd_config == 1) &&
-      ((n==1)||(n==6)||(n==4)||(n==9))) { // tdd_config 0,1 SF 1,5
-      ul_frame = (frame + (n < 5 ? 0 : 1));
-  } else if ((frame_parms->frame_type == TDD) &&
-           (frame_parms->tdd_config == 6) &&
-           ((n==0)||(n==1)||(n==5)||(n==6)))
-    ul_frame = (frame + (n>=5 ? 1 : 0));
-  else if ((frame_parms->frame_type == TDD) &&
-           (frame_parms->tdd_config == 6) &&
-           (n==9)) // tdd_config 6 SF 9
-    ul_frame = (frame+1);
-  else
-    ul_frame = (frame+(n>=6 ? 1 : 0));
+    case 6: //TDD config 1 - For DL subframes 5, 6 and 9 we do to next Frame to allocate PUSCH
+      if ((subframe == 0) || (subframe == 1) || (subframe == 5) || (subframe == 6) || (subframe == 9))
+      {
+        ul_frame = (frame + (subframe >= 5 ? 1 : 0));
+      }
+      break;
 
-  LOG_D(PHY, "frame %d subframe %d: PUSCH frame = %d\n", frame, n, ul_frame);
+    default:
+      break;
+    }
+  }
+  else //FDD
+    ul_frame = (frame + (subframe >= 6 ? 1 : 0));
+
+  LOG_D(PHY, "frame %d subframe %d: PUSCH frame = %d\n", frame, subframe, ul_frame);
   return ul_frame % 1024;
 }
 

@@ -4685,6 +4685,10 @@ rrc_eNB_generate_HO_RRCConnectionReconfiguration(const protocol_ctxt_t *const ct
         physicalConfigDedicated2->schedulingRequestConfig->choice.setup.sr_ConfigIndex = 7 + (ue_context_pP->local_uid &
             1);    // Isr = 5 (every 10 subframes, offset=2 for UE0, 3 for UE1, 3 for UE2, 2 for UE3 , etc..)
         break;
+      case 6:
+          physicalConfigDedicated2->schedulingRequestConfig->choice.setup.sr_ConfigIndex = 18 +
+          (ue_context_pP->local_uid&3)*5;    // Isr = 18 (every 20 subframes, offset=3 for UE0, 7 for UE1, 2 for UE2, 7 for UE3 , 2 for UE4 etc..)
+          break;
 
       default:
         physicalConfigDedicated2->schedulingRequestConfig->choice.setup.sr_ConfigIndex = 7; // Isr = 5 (every 10 subframes, offset=2 for all UE0 etc..)

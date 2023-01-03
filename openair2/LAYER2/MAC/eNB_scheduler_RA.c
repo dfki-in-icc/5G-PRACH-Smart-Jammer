@@ -1331,9 +1331,10 @@ initiate_ra_proc(module_id_t module_idP,
             abort();
 
           case 1 :
-	  case 3 :
-	  case 4 :
+	        case 3 :
+	        case 4 :
           case 5 :
+          case 6 :
             offset = 6;
             break;
         }

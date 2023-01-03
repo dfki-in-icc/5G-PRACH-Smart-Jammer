@@ -728,6 +728,9 @@ void generate_phich_top(PHY_VARS_eNB *eNB,
   if (((frame_parms->phich_config_common.phich_resource*frame_parms->N_RB_DL)%48) > 0)
     Ngroup_PHICH++;
 
+  uint8_t mi = get_mi(frame_parms,subframe);
+  Ngroup_PHICH *= mi;
+
   if (frame_parms->Ncp == 1)
     NSF_PHICH = 2;
 
@@ -755,9 +758,9 @@ void generate_phich_top(PHY_VARS_eNB *eNB,
       LOG_E(PHY,"FATAL ERROR: illegal harq_pid, returning\n");
 	  return;
 	}
-    LOG_D(PHY,"[eNB %d][PUSCH %d] Frame %d subframe %d Generating PHICH, AMP %d  ngroup_PHICH %d/%d, nseq_PHICH %d : HI %d, first_rb %d)\n",
+    LOG_D(PHY,"[eNB %d][PUSCH %d] Frame %d subframe %d Generating PHICH for PUSCH slot %d, AMP %d ngroup_PHICH %d/%d, nseq_PHICH %d : HI %d, first_rb %d)\n",
 	  eNB->Mod_id,harq_pid,proc->frame_tx,
-	  subframe,amp,ngroup_PHICH,Ngroup_PHICH,nseq_PHICH,
+	  subframe, pusch_subframe,amp,ngroup_PHICH,Ngroup_PHICH,nseq_PHICH,
 	  phich->hi,
 	  phich->first_rb);
     

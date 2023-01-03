@@ -1124,6 +1124,58 @@ uint16_t get_n1_pucch(PHY_VARS_UE *ue,
         }
 
         break;
+
+        case 6: // DL:S:UL:UL:UL:DL:S:UL:UL:DL
+        harq_ack0 = 2; // DTX
+        M=1;
+        if (subframe == 2){
+            candidate_dl[0] = 5;
+        }else if (subframe == 3 ){
+          candidate_dl[0] = 6;
+        } else if(subframe == 4){
+          candidate_dl[0] = 9;
+        } else if(subframe == 7){
+          candidate_dl[0] = 0;
+        } else if(subframe == 8){
+          candidate_dl[0] = 1;
+        } else {
+          LOG_E(PHY,"[UE%d] : Frame %d phy_procedures_lte.c: get_n1pucch, illegal tx-subframe %d for tdd_config %d\n",
+                ue->Mod_id,proc->frame_tx,subframe,frame_parms->tdd_config);
+          return(0);
+        }
+
+          if (harq_ack[candidate_dl[0]].send_harq_status>0) {
+            last_dl = candidate_dl[0];
+          }
+
+        if (last_dl >= 10) {
+          LOG_E(PHY,"[UE%d] : Frame %d phy_procedures_lte.c: get_n1pucch, illegal rx-subframe %d (tx-subframe %d) for tdd_config %d\n",
+                ue->Mod_id,proc->frame_tx,last_dl,subframe,frame_parms->tdd_config);
+          return (0);
+        }
+
+        LOG_D(PHY,"SFN/SF %d/%d calculating n1_pucch0 from last_dl=%d\n",
+              proc->frame_tx%1024,
+              proc->subframe_tx,
+              last_dl);
+        // i=0
+        nCCE0 = ue->pdcch_vars[ue->current_thread_id[proc->subframe_rx]][eNB_id]->nCCE[last_dl];
+        n1_pucch0 = get_Np(frame_parms->N_RB_DL,nCCE0,0) + nCCE0+ frame_parms->pucch_config_common.n1PUCCH_AN;
+        harq_ack0 = b[0];
+
+        if (harq_ack0!=2) {  // DTX
+            if (SR == 0) {
+              b[0] = harq_ack0;
+              b[1] = harq_ack0;
+              ue->pucch_sel[subframe] = 0;
+              return(n1_pucch0);
+            } else {
+              b[0] = harq_ack0;
+              b[1] = harq_ack0;
+              return(ue->scheduling_request_config[eNB_id].sr_PUCCH_ResourceIndex);
+            }
+          }
+        break;
     }  // switch tdd_config
   }
 

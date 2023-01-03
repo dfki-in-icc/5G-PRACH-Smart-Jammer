@@ -793,15 +793,36 @@ rx_sdu(const module_id_t enb_mod_idP,
 
           if(mac->common_channels[CC_idP].tdd_Config != NULL) {
             switch(mac->common_channels[CC_idP].tdd_Config->subframeAssignment) {
+              case 0:
+                ra->Msg4_frame = frameP + 1;
+                ra->Msg4_subframe = ((subframeP < 5) ? 0 : 5);
+                break;
+
               case 1:
                 ra->Msg4_frame = frameP + ((subframeP > 2) ? 1 : 0);
                 ra->Msg4_subframe = (subframeP + 7) % 10;
                 break;
 
+              case 2:
+                ra->Msg4_frame = (frameP + ((subframeP > 2) ? 1 : 0))%1024;
+                ra->Msg4_subframe = (subframeP + 6) % 10;
+                break;
+              
+              case 3:
+              case 4:
+              case 5:
+                ra->Msg4_frame = frameP;
+	              ra->Msg4_subframe = subframeP + 4;
+	              break;
+
+              case 6:
+                ra->Msg4_frame = frameP + ((subframeP < 5) ? 0 : 1);
+                ra->Msg4_subframe = ((subframeP < 5) ? 9 : 5);
+                break;
+
               default:
                 printf("%s:%d: TODO\n", __FILE__, __LINE__);
                 abort();
-                // TODO need to be complete for other tdd configs.
             }
           } else {
             /* Program Msg4 PDCCH+DLSCH/MPDCCH transmission 4 subframes from now,
@@ -1581,12 +1602,17 @@ schedule_ulsch_rnti(module_id_t   module_idP,
            * Subframes:36.213/7.2.3 CQI definition */
           if (cc[CC_id].tdd_Config) {
             switch (cc[CC_id].tdd_Config->subframeAssignment) {
+              case 0:
               case 1:
+              case 2:
+              case 6:
                 if (subframeP == 1 || subframeP == 6)
                   cqi_req = 0;
                 break;
 
               case 3:
+              case 4:
+              case 5:
                 if (subframeP == 1)
                   cqi_req = 0;
                 break;

@@ -3128,11 +3128,16 @@ void schedule_ulsch_rnti_fairRR(module_id_t   module_idP,
         if (cc->tdd_Config) {
           switch (cc->tdd_Config->subframeAssignment) {
             case 1:
+            case 0:
+            case 2:
+            case 6:
               if( subframeP == 1 || subframeP == 6 ) cqi_req=0;
 
               break;
 
             case 3:
+            case 4:
+            case 5:
               if( subframeP == 1 ) cqi_req=0;
 
               break;
