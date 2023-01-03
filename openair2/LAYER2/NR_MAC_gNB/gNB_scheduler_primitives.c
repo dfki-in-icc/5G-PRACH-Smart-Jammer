@@ -142,31 +142,97 @@ uint8_t get_dl_nrOfLayers(const NR_UE_sched_ctrl_t *sched_ctrl,
 
 }
 
+// Table 5.2.2.2.1-3 and Table 5.2.2.2.1-4 in 38.214
+void get_k1_k2_indices(const int layers, const int N1, const int N2, const int i13, int *k1, int *k2)
+{
+
+  *k1 = 0;
+  *k2 = 0;
+  if (layers == 2) {
+    if (N2 == 1)
+      *k1 = i13;
+    else if (N1 == N2) {
+      *k1 = i13 & 1;
+      *k2 = i13 >> 1;
+    }
+    else {
+      *k1 = (i13 & 1) + (i13 == 3);
+      *k2 = (i13 == 2);
+    }
+  }
+  if (layers == 3 || layers == 4) {
+    if (N2 == 1)
+      *k1 = i13 + 1;
+    else if (N1 == 2 && N2 == 2) {
+      *k1 = !(i13 & 1);
+      *k2 = (i13 > 0);
+    }
+    else {
+      if (i13 == 0)
+        *k1 = 1;
+      if (i13 == 1)
+        *k2 = 1;
+      if (i13 == 2) {
+        *k1 = 1;
+        *k2 = 1;
+      }
+      if (i13 == 3)
+        *k1 = 2;
+    }
+  }
+}
+
 uint16_t get_pm_index(const NR_UE_info_t *UE,
                       int layers,
                       int xp_pdsch_antenna_ports) {
-
-  if (layers == 1) return 0;
 
   const NR_UE_sched_ctrl_t *sched_ctrl = &UE->UE_sched_ctrl;
   const int report_id = sched_ctrl->CSI_report.cri_ri_li_pmi_cqi_report.csi_report_id;
   const nr_csi_report_t *csi_report = &UE->csi_report_template[report_id];
   const int N1 = csi_report->N1;
   const int N2 = csi_report->N2;
-  const int antenna_ports = (N1*N2)<<1;
+  const int antenna_ports = (N1 * N2) << 1;
 
-  if (xp_pdsch_antenna_ports == 1 &&
-      antenna_ports>1)
+  if (antenna_ports < 2)
+    return 0; // single antenna port
+  if (xp_pdsch_antenna_ports == 1)
     return 0; //identity matrix (basic 5G configuration handled by PMI report is with XP antennas)
 
-  const int x1 = sched_ctrl->CSI_report.cri_ri_li_pmi_cqi_report.pmi_x1;
+  int x1 = sched_ctrl->CSI_report.cri_ri_li_pmi_cqi_report.pmi_x1;
   const int x2 = sched_ctrl->CSI_report.cri_ri_li_pmi_cqi_report.pmi_x2;
   LOG_D(NR_MAC,"PMI report: x1 %d x2 %d\n",x1,x2);
 
   if (antenna_ports == 2)
-    return x2;
-  else
-    AssertFatal(1==0,"More than 2 antenna ports not yet supported\n");
+    return x2 + 1; // index 0 is for identity matrix
+  else {
+    // the order of i1x in X1 report needs to be verified
+    // the standard is not very clear (Table 6.3.1.1.2-7 in 38.212)
+    // it says: PMI wideband information fields X1 , from left to right
+    int bitlen = csi_report->csi_meas_bitlen.pmi_i13_bitlen[layers];
+    const int i13 = x1 & ((1 << bitlen) - 1);
+    x1 >>= bitlen;
+    bitlen = csi_report->csi_meas_bitlen.pmi_i12_bitlen[layers];
+    const int i12 = x1 & ((1 << bitlen) - 1);
+    x1 >>= bitlen;
+    bitlen = csi_report->csi_meas_bitlen.pmi_i11_bitlen[layers];
+    const int i11 = x1 & ((1 << bitlen) - 1);
+    const int i2 = x2;
+    int k1, k2;
+    get_k1_k2_indices(layers, N1, N2, i13, &k1, &k2); // get indices k1 and k2 for PHY matrix (not actual k1 and k2 values)
+    const int max_i2 = (layers == 1) ? 4 : 2;
+    // num of allowed k1 and k2 according to 5.2.2.2.1-3 and -4 in 38.214
+    int K1;
+    if(N2 == N1 || N1 == 2)
+      K1 = 2;
+    else if (N2 == 1)
+      K1 = 5;
+    else
+      K1 = 3;
+    const int K2 = N2 > 1 ? 2 : 1;
+    const int O2 = N2 == 1 ? 1 : 4;
+    // computing precoding matrix index according to rule set in allocation function init_codebook_gNB
+    return 1 + i2 + (k2 * max_i2) + (k1 * max_i2 * K2) + (i12 * max_i2 * K2 * K1) + (i11 * max_i2 * K2 * K1 * N2 * O2);
+  }
 }
 
 uint8_t get_mcs_from_cqi(int mcs_table, int cqi_table, int cqi_idx)
@@ -2572,7 +2638,7 @@ NR_UE_info_t *add_new_nr_ue(gNB_MAC_INST *nr_mac, rnti_t rntiP, NR_CellGroupConf
 
   // We will attach at the end, to mitigate race conditions
   // This is not good, but we will fix it progressively
-  NR_UE_info_t *UE=calloc(1,sizeof(NR_UE_info_t));
+  NR_UE_info_t *UE = calloc(1, sizeof(NR_UE_info_t));
   if(!UE) {
     LOG_E(NR_MAC,"want to add UE %04x but the fixed allocated size is full\n",rntiP);
     return NULL;

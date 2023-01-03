@@ -523,6 +523,9 @@ typedef struct{
   uint8_t li_bitlen[8];
   uint8_t pmi_x1_bitlen[8];
   uint8_t pmi_x2_bitlen[8];
+  uint8_t pmi_i11_bitlen[8];
+  uint8_t pmi_i12_bitlen[8];
+  uint8_t pmi_i13_bitlen[8];
   uint8_t cqi_bitlen[8];
 } CSI_Meas_bitlen_t;
 

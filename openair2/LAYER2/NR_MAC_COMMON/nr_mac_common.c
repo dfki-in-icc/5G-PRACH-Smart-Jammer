@@ -4949,105 +4949,130 @@ void get_n1n2_o1o2_singlepanel(int *n1, int *n2, int *o1, int *o2,
   }
 }
 
-void get_x1x2_bitlen_singlepanel(int n1, int n2, int o1, int o2,
-                                 int *x1, int *x2, int rank, int codebook_mode) {
+void set_bitlen_size_singlepanel(nr_csi_report_t *csi_report, int n1, int n2, int o1, int o2, int rank, int codebook_mode) {
 
+  int i = rank - 1;
   // Table 6.3.1.1.2-1 in 38.212
   switch(rank){
     case 1:
-      if(n2>1) {
+      if(n2 > 1) {
         if (codebook_mode == 1) {
-          *x1 = ceil(log2(n1*o1)) + ceil(log2(n2*o2));
-          *x2 = 2;
+          csi_report->csi_meas_bitlen.pmi_i11_bitlen[i] = ceil(log2(n1 * o1));
+          csi_report->csi_meas_bitlen.pmi_i12_bitlen[i] = ceil(log2(n2 * o2));
+          csi_report->csi_meas_bitlen.pmi_x2_bitlen[i] = 2;
         }
         else {
-          *x1 = ceil(log2(n1*o1/2)) + ceil(log2(n2*o2/2));
-          *x2 = 4;
+          csi_report->csi_meas_bitlen.pmi_i11_bitlen[i] = ceil(log2(n1 * o1 / 2));
+          csi_report->csi_meas_bitlen.pmi_i12_bitlen[i] = ceil(log2(n2 * o2 / 2));
+          csi_report->csi_meas_bitlen.pmi_x2_bitlen[i] = 4;
         }
       }
       else{
         if (codebook_mode == 1) {
-          *x1 = ceil(log2(n1*o1)) + ceil(log2(n2*o2));
-          *x2 = 2;
+          csi_report->csi_meas_bitlen.pmi_i11_bitlen[i] = ceil(log2(n1 * o1));
+          csi_report->csi_meas_bitlen.pmi_i12_bitlen[i] = ceil(log2(n2 * o2));
+          csi_report->csi_meas_bitlen.pmi_x2_bitlen[i] = 2;
         }
         else {
-          *x1 = ceil(log2(n1*o1/2));
-          *x2 = 4;
+          csi_report->csi_meas_bitlen.pmi_i11_bitlen[i] = ceil(log2(n1 * o1 / 2));
+          csi_report->csi_meas_bitlen.pmi_i12_bitlen[i] = 0;
+          csi_report->csi_meas_bitlen.pmi_x2_bitlen[i] = 4;
         }
       }
+      csi_report->csi_meas_bitlen.pmi_i13_bitlen[i] = 0;
       break;
     case 2:
-      if(n1*n2 == 2) {
+      if(n1 * n2 == 2) {
         if (codebook_mode == 1) {
-          *x1 = ceil(log2(n1*o1)) + ceil(log2(n2*o2));
-          *x2 = 1;
+          csi_report->csi_meas_bitlen.pmi_i11_bitlen[i] = ceil(log2(n1 * o1));
+          csi_report->csi_meas_bitlen.pmi_i12_bitlen[i] = ceil(log2(n2 * o2));
+          csi_report->csi_meas_bitlen.pmi_x2_bitlen[i] = 1;
         }
         else {
-          *x1 = ceil(log2(n1*o1/2));
-          *x2 = 3;
+          csi_report->csi_meas_bitlen.pmi_i11_bitlen[i] = ceil(log2(n1 * o1 / 2));
+          csi_report->csi_meas_bitlen.pmi_i12_bitlen[i] = 0;
+          csi_report->csi_meas_bitlen.pmi_x2_bitlen[i] = 3;
         }
-        *x1 += 1;
+        csi_report->csi_meas_bitlen.pmi_i13_bitlen[i] = 1;
       }
       else {
-        if(n2>1) {
+        if(n2 > 1) {
           if (codebook_mode == 1) {
-            *x1 = ceil(log2(n1*o1)) + ceil(log2(n2*o2));
-            *x2 = 3;
+            csi_report->csi_meas_bitlen.pmi_i11_bitlen[i] = ceil(log2(n1 * o1));
+            csi_report->csi_meas_bitlen.pmi_i12_bitlen[i] = ceil(log2(n2 * o2));
+            csi_report->csi_meas_bitlen.pmi_x2_bitlen[i] = 1;
           }
           else {
-            *x1 = ceil(log2(n1*o1/2)) + ceil(log2(n2*o2/2));
-            *x2 = 3;
+            csi_report->csi_meas_bitlen.pmi_i11_bitlen[i] = ceil(log2(n1 * o1 / 2));
+            csi_report->csi_meas_bitlen.pmi_i12_bitlen[i] = ceil(log2(n2 * o2 / 2));
+            csi_report->csi_meas_bitlen.pmi_x2_bitlen[i] = 3;
           }
         }
         else{
           if (codebook_mode == 1) {
-            *x1 = ceil(log2(n1*o1)) + ceil(log2(n2*o2));
-            *x2 = 1;
+            csi_report->csi_meas_bitlen.pmi_i11_bitlen[i] = ceil(log2(n1 * o1));
+            csi_report->csi_meas_bitlen.pmi_i12_bitlen[i] = ceil(log2(n2 * o2));
+            csi_report->csi_meas_bitlen.pmi_x2_bitlen[i] = 1;
           }
           else {
-            *x1 = ceil(log2(n1*o1/2));
-            *x2 = 3;
+            csi_report->csi_meas_bitlen.pmi_i11_bitlen[i] = ceil(log2(n1 * o1 / 2));
+            csi_report->csi_meas_bitlen.pmi_i12_bitlen[i] = 0;
+            csi_report->csi_meas_bitlen.pmi_x2_bitlen[i] = 3;
           }
         }
-        *x1 += 2;
+        csi_report->csi_meas_bitlen.pmi_i13_bitlen[i] = 2;
       }
       break;
     case 3:
     case 4:
       if(n1*n2 == 2) {
-        *x1 = ceil(log2(n1*o1)) + ceil(log2(n2*o2));
-        *x2 = 1;
+        csi_report->csi_meas_bitlen.pmi_i11_bitlen[i] = ceil(log2(n1 * o1));
+        csi_report->csi_meas_bitlen.pmi_i12_bitlen[i] = ceil(log2(n2 * o2));
+        csi_report->csi_meas_bitlen.pmi_i13_bitlen[i] = 0;
+        csi_report->csi_meas_bitlen.pmi_x2_bitlen[i] = 1;
       }
       else {
         if(n1*n2 >= 8) {
-          *x1 = ceil(log2(n1*o1/2)) + ceil(log2(n2*o2)) + 2;
-          *x2 = 1;
+          csi_report->csi_meas_bitlen.pmi_i11_bitlen[i] = ceil(log2(n1 * o1 / 2));
+          csi_report->csi_meas_bitlen.pmi_i12_bitlen[i] = ceil(log2(n2 * o2));
+          csi_report->csi_meas_bitlen.pmi_i13_bitlen[i] = 2;
+          csi_report->csi_meas_bitlen.pmi_x2_bitlen[i] = 1;
         }
         else {
-          *x1 = ceil(log2(n1*o1)) + ceil(log2(n2*o2)) + 2;
-          *x2 = 1;
+          csi_report->csi_meas_bitlen.pmi_i11_bitlen[i] = ceil(log2(n1 * o1));
+          csi_report->csi_meas_bitlen.pmi_i12_bitlen[i] = ceil(log2(n2 * o2));
+          csi_report->csi_meas_bitlen.pmi_i13_bitlen[i] = 2;
+          csi_report->csi_meas_bitlen.pmi_x2_bitlen[i] = 1;
         }
       }
       break;
     case 5:
     case 6:
-      *x1 = ceil(log2(n1*o1)) + ceil(log2(n2*o2));
-      *x2 = 1;
+      csi_report->csi_meas_bitlen.pmi_i11_bitlen[i] = ceil(log2(n1 * o1));
+      csi_report->csi_meas_bitlen.pmi_i12_bitlen[i] = ceil(log2(n2 * o2));
+      csi_report->csi_meas_bitlen.pmi_i13_bitlen[i] = 0;
+      csi_report->csi_meas_bitlen.pmi_x2_bitlen[i] = 1;
       break;
     case 7:
     case 8:
       if(n1 == 4 && n2 == 1) {
-        *x1 = ceil(log2(n1*o1/2)) + ceil(log2(n2*o2));
-        *x2 = 1;
+        csi_report->csi_meas_bitlen.pmi_i11_bitlen[i] = ceil(log2(n1 * o1));
+        csi_report->csi_meas_bitlen.pmi_i12_bitlen[i] = ceil(log2(n2 * o2 / 2));
+        csi_report->csi_meas_bitlen.pmi_i13_bitlen[i] = 0;
+        csi_report->csi_meas_bitlen.pmi_x2_bitlen[i] = 1;
       }
       else {
         if(n1 > 2 && n2 == 2) {
-          *x1 = ceil(log2(n1*o1)) + ceil(log2(n2*o2/2));
-          *x2 = 1;
+          csi_report->csi_meas_bitlen.pmi_i11_bitlen[i] = ceil(log2(n1 * o1));
+          csi_report->csi_meas_bitlen.pmi_i12_bitlen[i] = ceil(log2(n2 * o2 / 2));
+          csi_report->csi_meas_bitlen.pmi_i13_bitlen[i] = 0;
+          csi_report->csi_meas_bitlen.pmi_x2_bitlen[i] = 1;
         }
         else {
-          *x1 = ceil(log2(n1*o1)) + ceil(log2(n2*o2));
-          *x2 = 1;
+          csi_report->csi_meas_bitlen.pmi_i11_bitlen[i] = ceil(log2(n1 * o1));
+          csi_report->csi_meas_bitlen.pmi_i12_bitlen[i] = ceil(log2(n2 * o2));
+          csi_report->csi_meas_bitlen.pmi_i13_bitlen[i] = 0;
+          csi_report->csi_meas_bitlen.pmi_x2_bitlen[i] = 1;
         }
       }
       break;
@@ -5062,10 +5087,10 @@ void compute_pmi_bitlen(struct NR_CSI_ReportConfig *csi_reportconfig,
                         nr_csi_report_t *csi_report) {
 
   struct NR_CodebookConfig *codebookConfig = csi_reportconfig->codebookConfig;
-  for(int i=0; i<8; i++) {
-    csi_report->csi_meas_bitlen.pmi_x1_bitlen[i]=0;
-    csi_report->csi_meas_bitlen.pmi_x2_bitlen[i]=0;
-    if (codebookConfig == NULL || ((ri_restriction>>i)&0x01) == 0)
+  for(int i = 0; i < 8; i++) {
+    csi_report->csi_meas_bitlen.pmi_x1_bitlen[i] = 0;
+    csi_report->csi_meas_bitlen.pmi_x2_bitlen[i] = 0;
+    if (codebookConfig == NULL || ((ri_restriction >> i) & 0x01) == 0)
       return;
     else {
       if(codebookConfig->codebookType.present == NR_CodebookConfig__codebookType_PR_type1) {
@@ -5074,20 +5099,18 @@ void compute_pmi_bitlen(struct NR_CSI_ReportConfig *csi_reportconfig,
              NR_CodebookConfig__codebookType__type1__subType__typeI_SinglePanel__nrOfAntennaPorts_PR_two) {
             csi_report->N1 = 1;
             csi_report->N2 = 1;
-            if (i==0)
-              csi_report->csi_meas_bitlen.pmi_x2_bitlen[i]=2;
-            if (i==1)
-              csi_report->csi_meas_bitlen.pmi_x2_bitlen[i]=1;
+            if (i == 0)
+              csi_report->csi_meas_bitlen.pmi_x2_bitlen[i] = 2;
+            if (i == 1)
+              csi_report->csi_meas_bitlen.pmi_x2_bitlen[i] = 1;
           }
           else {  // more than two
-            int n1,n2,o1,o2,x1,x2;
-            get_n1n2_o1o2_singlepanel(&n1,&n2,&o1,&o2,codebookConfig->codebookType.choice.type1->subType.choice.typeI_SinglePanel->nrOfAntennaPorts.choice.moreThanTwo);
-            get_x1x2_bitlen_singlepanel(n1,n2,o1,o2,&x1,&x2,i+1,codebookConfig->codebookType.choice.type1->codebookMode);
+            int n1, n2, o1, o2;
+            get_n1n2_o1o2_singlepanel(&n1, &n2, &o1, &o2, codebookConfig->codebookType.choice.type1->subType.choice.typeI_SinglePanel->nrOfAntennaPorts.choice.moreThanTwo);
+            set_bitlen_size_singlepanel(csi_report, n1, n2, o1, o2, i+1, codebookConfig->codebookType.choice.type1->codebookMode);
             csi_report->N1 = n1;
             csi_report->N2 = n2;
             csi_report->codebook_mode = codebookConfig->codebookType.choice.type1->codebookMode;
-            csi_report->csi_meas_bitlen.pmi_x1_bitlen[i]=x1;
-            csi_report->csi_meas_bitlen.pmi_x2_bitlen[i]=x2;
           }
         }
         else
