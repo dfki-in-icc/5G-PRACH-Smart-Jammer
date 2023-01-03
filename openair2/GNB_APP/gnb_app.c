@@ -172,13 +172,7 @@ void *gNB_app_task(void *args_p)
     }
 
     if (node_type == ngran_gNB_CUUP) {
-      if (itti_create_task(TASK_CUUP_E1, E1AP_CUUP_task, NULL) < 0)
-        AssertFatal(false, "Create task for E1AP UP failed\n");
-      MessageDef *msg = RCconfig_NR_CU_E1();
-      if (msg)
-        itti_send_msg_to_task(TASK_CUUP_E1, 0, msg);
-      else
-        AssertFatal(false, "Send inti to task for E1AP UP failed\n");
+      AssertFatal(false, "To run CU-UP use executable cu-up\n");
     }
 
     if (NODE_IS_DU(node_type)) {

@@ -316,12 +316,10 @@ int create_gNB_tasks(void) {
   RC.nrrrc = (gNB_RRC_INST **)malloc(RC.nb_nr_inst*sizeof(gNB_RRC_INST *));
   LOG_I(PHY, "%s() RC.nb_nr_inst:%d RC.nrrrc:%p\n", __FUNCTION__, RC.nb_nr_inst, RC.nrrrc);
   ngran_node_t node_type = get_node_type();
-  if (node_type != ngran_gNB_CUUP) {
-    for (int gnb_id = gnb_id_start; (gnb_id < gnb_id_end) ; gnb_id++) {
-      RC.nrrrc[gnb_id] = (gNB_RRC_INST*)calloc(1,sizeof(gNB_RRC_INST));
-      LOG_I(PHY, "%s() Creating RRC instance RC.nrrrc[%d]:%p (%d of %d)\n", __FUNCTION__, gnb_id, RC.nrrrc[gnb_id], gnb_id+1, gnb_id_end);
-      configure_nr_rrc(gnb_id);
-    }
+  for (int gnb_id = gnb_id_start; (gnb_id < gnb_id_end) ; gnb_id++) {
+    RC.nrrrc[gnb_id] = (gNB_RRC_INST*)calloc(1,sizeof(gNB_RRC_INST));
+    LOG_I(PHY, "%s() Creating RRC instance RC.nrrrc[%d]:%p (%d of %d)\n", __FUNCTION__, gnb_id, RC.nrrrc[gnb_id], gnb_id+1, gnb_id_end);
+    configure_nr_rrc(gnb_id);
   }
 
   if (RC.nb_nr_inst > 0 &&
@@ -339,8 +337,7 @@ int create_gNB_tasks(void) {
   /* For the CU case the gNB registration with the AMF might have to take place after the F1 setup, as the PLMN info
      * can originate from the DU. Add check on whether x2ap is enabled to account for ENDC NSA scenario.*/
   if ((get_softmodem_params()->sa || is_x2ap_enabled()) &&
-      !NODE_IS_DU(node_type) &&
-      node_type != ngran_gNB_CUUP) {
+      !NODE_IS_DU(node_type)) {
     /* Try to register each gNB */
     //registered_gnb = 0;
     __attribute__((unused)) uint32_t register_gnb_pending = gNB_app_register (gnb_id_start, gnb_id_end);
@@ -368,8 +365,7 @@ int create_gNB_tasks(void) {
   }
 
   if (get_softmodem_params()->sa &&
-      !NODE_IS_DU(node_type) &&
-      node_type != ngran_gNB_CUUP ) {
+      !NODE_IS_DU(node_type)) {
 
     char*             gnb_ipv4_address_for_NGU      = NULL;
     uint32_t          gnb_port_for_NGU              = 0;
@@ -405,11 +401,9 @@ int create_gNB_tasks(void) {
 
     LOG_I(NR_RRC,"Creating NR RRC gNB Task\n");
 
-    if (node_type != ngran_gNB_CUUP) {
-      if (itti_create_task (TASK_RRC_GNB, rrc_gnb_task, NULL) < 0) {
-        LOG_E(NR_RRC, "Create task for NR RRC gNB failed\n");
-        return -1;
-      }
+    if (itti_create_task (TASK_RRC_GNB, rrc_gnb_task, NULL) < 0) {
+      LOG_E(NR_RRC, "Create task for NR RRC gNB failed\n");
+      return -1;
     }
 
     // If CU

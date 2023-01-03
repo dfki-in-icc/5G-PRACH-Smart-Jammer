@@ -692,7 +692,6 @@ rrc_gNB_generate_defaultRRCReconfiguration(
       break;
 
     case ngran_gNB_DU:
-    case ngran_gNB_CUUP:
       // nothing to do for DU
       AssertFatal(1==0,"nothing to do for DU\n");
       break;
@@ -4208,7 +4207,6 @@ rrc_gNB_generate_SecurityModeCommand(
       break;
 
     case ngran_gNB_DU:
-    case ngran_gNB_CUUP:
       // nothing to do for DU
       AssertFatal(1==0,"nothing to do for DU\n");
       break;
@@ -4268,7 +4266,6 @@ rrc_gNB_generate_UECapabilityEnquiry(
       break;
 
     case ngran_gNB_DU:
-    case ngran_gNB_CUUP:
       // nothing to do for DU
       AssertFatal(1==0,"nothing to do for DU\n");
       break;
