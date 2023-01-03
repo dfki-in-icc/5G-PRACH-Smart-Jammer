@@ -15,6 +15,6 @@ add_custom_command(OUTPUT ${e1ap_source} ${e1ap_headers}
   COMMENT "Generating E1AP source files from ${CMAKE_CURRENT_SOURCE_DIR}/${E1AP_GRAMMAR}"
 )
 
-add_library(ASN1_E1AP_LIB ${e1ap_source})
-target_include_directories(ASN1_E1AP_LIB PUBLIC "${CMAKE_CURRENT_BINARY_DIR}")
-target_compile_options(ASN1_E1AP_LIB PRIVATE -DASN_DISABLE_OER_SUPPORT -w)
+add_library(asn1_e1ap ${e1ap_source})
+target_include_directories(asn1_e1ap PUBLIC "${CMAKE_CURRENT_BINARY_DIR}")
+target_compile_options(asn1_e1ap PRIVATE -DASN_DISABLE_OER_SUPPORT -w)

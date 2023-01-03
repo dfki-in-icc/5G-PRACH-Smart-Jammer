@@ -349,7 +349,6 @@ add_library(ITTI
   ${OCP_ITTI}/intertask_interface.cpp
   ${OPENAIR_DIR}/common/utils/backtrace.c
   )
-#add_dependencies(ITTI ASN1_E1AP_LIB)
 
 target_link_libraries(ITTI PRIVATE asn1_nr_rrc asn1_lte_rrc)
 
@@ -957,8 +956,6 @@ set(NFAPI_COMMON_SRC
 add_library(NFAPI_COMMON_LIB ${NFAPI_COMMON_SRC})
 
 include_directories(${NFAPI_DIR}/common/public_inc)
-
-include_directories(${CMAKE_CURRENT_BINARY_DIR}/openair2/E1AP/MESSAGES/)
 
 set(NFAPI_SRC
   ${NFAPI_DIR}/nfapi/src/nfapi.c
@@ -1706,20 +1703,20 @@ add_library(L2_NR
   ${GNB_APP_SRC}
   )
 
-add_library(E1_IF
+add_library(e1_if
   ${NR_RRC_DIR}/cucp_cuup_direct.c
   ${NR_RRC_DIR}/cucp_cuup_e1ap.c
   )
 
-target_link_libraries(E1_IF PRIVATE asn1_nr_rrc asn1_lte_rrc asn1_f1ap)
+target_link_libraries(e1_if PRIVATE asn1_nr_rrc asn1_lte_rrc asn1_f1ap)
 
-add_library(E1_PDCP_IF
+add_library(e1_pdcp_if
   ${OPENAIR2_DIR}/LAYER2/nr_pdcp/nr_pdcp_e1_api.c
   )
 
-target_link_libraries(E1_PDCP_IF PRIVATE asn1_nr_rrc asn1_lte_rrc)
+target_link_libraries(e1_pdcp_if PRIVATE asn1_nr_rrc asn1_lte_rrc)
 
-target_link_libraries(L2_NR PRIVATE f1ap x2ap s1ap ngap nr_rrc E1AP)
+target_link_libraries(L2_NR PRIVATE f1ap x2ap s1ap ngap nr_rrc e1ap)
 
 add_library(L2_LTE_NR
   ${L2_RRC_SRC}
@@ -2486,7 +2483,7 @@ add_executable(cu-up
   ${SHLIB_LOADER_SOURCES}
   )
 
-target_link_libraries(cu-up -Wl,--start-group CONFIG_LIB ITTI SCTP_CLIENT SECU_OSA GTPV1U E1AP E1_PDCP_IF asn1_lte_rrc asn1_nr_rrc asn1_f1ap ${OPENSSL_LIBRARIES}  -Wl,--end-group crypt z sctp dl)
+target_link_libraries(cu-up -Wl,--start-group CONFIG_LIB ITTI SCTP_CLIENT SECU_OSA GTPV1U e1ap e1_pdcp_if asn1_lte_rrc asn1_nr_rrc asn1_f1ap ${OPENSSL_LIBRARIES}  -Wl,--end-group crypt z sctp dl)
                       
 # nr-uesoftmodem is  UE implementation
 #######################################
