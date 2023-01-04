@@ -46,7 +46,7 @@
 #include "common_lib.h"
 #include "ethernet_lib.h"
 
-#include "../../oran/4g/oran.h"
+//#include "../../oran/4g/oran.h"
 
 
 int num_devices_eth = 0;
