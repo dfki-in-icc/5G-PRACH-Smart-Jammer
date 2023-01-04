@@ -478,8 +478,8 @@ typedef struct nr_mac_rrc_dl_if_s {
 } nr_mac_rrc_dl_if_t;
 
 typedef struct cucp_cuup_if_s {
-  cucp_cuup_bearer_context_setup_func_t cucp_cuup_bearer_context_setup;
-  cucp_cuup_bearer_context_setup_func_t cucp_cuup_bearer_context_mod;
+  cucp_cuup_bearer_context_setup_func_t bearer_context_setup;
+  cucp_cuup_bearer_context_setup_func_t bearer_context_mod;
 } cucp_cuup_if_t;
 
 //---NR---(completely change)---------------------

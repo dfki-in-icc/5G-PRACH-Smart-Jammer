@@ -31,28 +31,28 @@
 
 
 int e1apCUCP_handle_SETUP_REQUEST(instance_t instance,
-                                  E1AP_E1AP_PDU_t *pdu);
+                                  const E1AP_E1AP_PDU_t *pdu);
 
 int e1apCUUP_handle_SETUP_RESPONSE(instance_t instance,
-                                   E1AP_E1AP_PDU_t *pdu);
+                                   const E1AP_E1AP_PDU_t *pdu);
 
 int e1apCUUP_handle_SETUP_FAILURE(instance_t instance,
-                                  E1AP_E1AP_PDU_t *pdu);
+                                  const E1AP_E1AP_PDU_t *pdu);
 
 int e1apCUUP_handle_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
-                                                 E1AP_E1AP_PDU_t *pdu);
+                                                 const E1AP_E1AP_PDU_t *pdu);
 
 int e1apCUCP_handle_BEARER_CONTEXT_SETUP_RESPONSE(instance_t instance,
-                                                  E1AP_E1AP_PDU_t *pdu);
+                                                  const E1AP_E1AP_PDU_t *pdu);
 
 int e1apCUCP_handle_BEARER_CONTEXT_SETUP_FAILURE(instance_t instance,
-                                                 E1AP_E1AP_PDU_t *pdu);
+                                                 const E1AP_E1AP_PDU_t *pdu);
 
 int e1apCUUP_handle_BEARER_CONTEXT_MODIFICATION_REQUEST(instance_t instance,
-                                                        E1AP_E1AP_PDU_t *pdu);
+                                                        const E1AP_E1AP_PDU_t *pdu);
 
-int e1apCUUP_send_BEARER_CONTEXT_SETUP_RESPONSE(instance_t instance,
-                                                e1ap_bearer_setup_resp_t *resp);
+void e1apCUUP_send_BEARER_CONTEXT_SETUP_RESPONSE(instance_t instance,
+                                                 e1ap_bearer_setup_resp_t *const resp);
 
 void *E1AP_CUUP_task(void *arg);
 

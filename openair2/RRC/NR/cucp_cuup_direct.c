@@ -40,12 +40,12 @@
 
 extern RAN_CONTEXT_t RC;
 
-void CU_create_UP_DL_tunnel(e1ap_bearer_setup_resp_t *resp,
-                            e1ap_bearer_setup_req_t *req,
-                            instance_t gtpInst,
-                            ue_id_t ue_id,
-                            int remote_port,
-                            in_addr_t my_addr) {
+void fill_e1ap_bearer_setup_resp(e1ap_bearer_setup_resp_t *resp,
+                                 e1ap_bearer_setup_req_t *const req,
+                                 instance_t gtpInst,
+                                 ue_id_t ue_id,
+                                 int remote_port,
+                                 in_addr_t my_addr) {
 
   resp->numPDUSessions = req->numPDUSessions;
   transport_layer_addr_t dummy_address = {0};
@@ -78,7 +78,7 @@ void CU_create_UP_DL_tunnel(e1ap_bearer_setup_resp_t *resp,
   }
 }
 
-void CU_update_UP_DL_tunnel(e1ap_bearer_setup_req_t *req, instance_t instance, ue_id_t ue_id) {
+void CU_update_UP_DL_tunnel(e1ap_bearer_setup_req_t *const req, instance_t instance, ue_id_t ue_id) {
   for (int i=0; i < req->numPDUSessionsMod; i++) {
     for (int j=0; j < req->pduSessionMod[i].numDRB2Modify; j++) {
       DRB_nGRAN_to_setup_t *drb_p = req->pduSessionMod[i].DRBnGRanModList + j;
@@ -100,7 +100,7 @@ void CU_update_UP_DL_tunnel(e1ap_bearer_setup_req_t *req, instance_t instance, u
 
 static int drb_config_gtpu_create(const protocol_ctxt_t *const ctxt_p,
                                   rrc_gNB_ue_context_t  *ue_context_p,
-                                  e1ap_bearer_setup_req_t *req,
+                                  e1ap_bearer_setup_req_t *const req,
                                   NR_DRB_ToAddModList_t *DRB_configList,
                                   NR_SRB_ToAddModList_t *SRB_configList,
                                   instance_t instance) {
@@ -177,7 +177,7 @@ static int drb_config_gtpu_create(const protocol_ctxt_t *const ctxt_p,
   return ret;
 }
 
-static void cucp_cuup_bearer_context_setup_direct(e1ap_bearer_setup_req_t *req, instance_t instance) {
+static void cucp_cuup_bearer_context_setup_direct(e1ap_bearer_setup_req_t *const req, instance_t instance) {
   rrc_gNB_ue_context_t *ue_context_p = rrc_gNB_get_ue_context(RC.nrrrc[GNB_INSTANCE_TO_MODULE_ID(instance)], req->rnti);
   protocol_ctxt_t ctxt = {0};
   PROTOCOL_CTXT_SET_BY_MODULE_ID(&ctxt, 0, GNB_FLAG_YES, ue_context_p->ue_context.rnti, 0, 0, 0);
@@ -202,18 +202,18 @@ static void cucp_cuup_bearer_context_setup_direct(e1ap_bearer_setup_req_t *req, 
     in_addr_t my_addr = inet_addr(RC.nrrrc[ctxt.module_id]->eth_params_s.my_addr);
     instance_t gtpInst = getCxt(CUtype, instance)->gtpInst;
     // GTP tunnel for DL
-    CU_create_UP_DL_tunnel(&resp, req, gtpInst, ue_context_p->ue_context.rnti, remote_port, my_addr);
+    fill_e1ap_bearer_setup_resp(&resp, req, gtpInst, ue_context_p->ue_context.rnti, remote_port, my_addr);
 
     prepare_and_send_ue_context_modification_f1(ue_context_p, &resp);
   }
 }
 
-static void cucp_cuup_bearer_context_mod_direct(e1ap_bearer_setup_req_t *req, instance_t instance) {
+static void cucp_cuup_bearer_context_mod_direct(e1ap_bearer_setup_req_t *const req, instance_t instance) {
   instance_t gtpInst = getCxt(CUtype, instance)->gtpInst;
   CU_update_UP_DL_tunnel(req, gtpInst, req->rnti);
 }
 
 void cucp_cuup_message_transfer_direct_init(gNB_RRC_INST *rrc) {
-  rrc->cucp_cuup.cucp_cuup_bearer_context_setup = cucp_cuup_bearer_context_setup_direct;
-  rrc->cucp_cuup.cucp_cuup_bearer_context_mod = cucp_cuup_bearer_context_mod_direct;
+  rrc->cucp_cuup.bearer_context_setup = cucp_cuup_bearer_context_setup_direct;
+  rrc->cucp_cuup.bearer_context_mod = cucp_cuup_bearer_context_mod_direct;
 }

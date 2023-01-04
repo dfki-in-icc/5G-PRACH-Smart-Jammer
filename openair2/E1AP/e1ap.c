@@ -36,7 +36,7 @@
 #define E1AP_NUM_MSG_HANDLERS 14
 typedef int (*e1ap_message_processing_t)(
   instance_t            instance,
-  E1AP_E1AP_PDU_t       *message_p
+  const E1AP_E1AP_PDU_t       *message_p
 );
 e1ap_message_processing_t e1ap_message_processing[E1AP_NUM_MSG_HANDLERS][3] = {
 
@@ -168,13 +168,13 @@ int e1ap_send_ERROR_INDICATION(instance_t instance, E1AP_ErrorIndication_t *Erro
     E1 Setup: can be sent on both ways, to be refined
 */
 
-int e1apCUUP_send_SETUP_REQUEST(instance_t instance) {
-  E1AP_E1AP_PDU_t pdu = {0};
+void fill_SETUP_REQUEST(instance_t instance,
+                        E1AP_E1AP_PDU_t *pdu) {
   e1ap_setup_req_t *setup = &getCxtE1(UPtype, instance)->setupReq;
   /* Create */
   /* 0. pdu Type */
-  pdu.present = E1AP_E1AP_PDU_PR_initiatingMessage;
-  asn1cCalloc(pdu.choice.initiatingMessage, initMsg);
+  pdu->present = E1AP_E1AP_PDU_PR_initiatingMessage;
+  asn1cCalloc(pdu->choice.initiatingMessage, initMsg);
   initMsg->procedureCode = E1AP_ProcedureCode_id_gNB_CU_UP_E1Setup;
   initMsg->criticality   = E1AP_Criticality_reject;
   initMsg->value.present       = E1AP_InitiatingMessage__value_PR_GNB_CU_UP_E1SetupRequest;
@@ -217,22 +217,19 @@ int e1apCUUP_send_SETUP_REQUEST(instance_t instance) {
     /* 5.1 PLMN Identity */
     MCC_MNC_TO_PLMNID(setup->plmns[i].mcc, setup->plmns[i].mnc, setup->plmns[i].mnc_digit_length, &supportedPLMN->pLMN_Identity);
   }
-
-  e1ap_encode_send(UPtype, instance, &pdu, 0, __func__);
-  return 0;
 }
 
-int e1apCUCP_send_SETUP_RESPONSE(instance_t instance,
-                                 e1ap_setup_resp_t *e1ap_setup_resp) {
-  E1AP_E1AP_PDU_t pdu = {0};
+void fill_SETUP_RESPONSE(instance_t instance,
+                           const e1ap_setup_resp_t *e1ap_setup_resp,
+                           E1AP_E1AP_PDU_t *pdu) {
   /* Create */
   /* 0. pdu Type */
-  pdu.present = E1AP_E1AP_PDU_PR_successfulOutcome;
-  asn1cCalloc(pdu.choice.successfulOutcome, initMsg);
+  pdu->present = E1AP_E1AP_PDU_PR_successfulOutcome;
+  asn1cCalloc(pdu->choice.successfulOutcome, initMsg);
   initMsg->procedureCode = E1AP_ProcedureCode_id_gNB_CU_UP_E1Setup;
   initMsg->criticality = E1AP_Criticality_reject;
   initMsg->value.present = E1AP_SuccessfulOutcome__value_PR_GNB_CU_UP_E1SetupResponse;
-  E1AP_GNB_CU_UP_E1SetupResponse_t *out = &pdu.choice.successfulOutcome->value.choice.GNB_CU_UP_E1SetupResponse;
+  E1AP_GNB_CU_UP_E1SetupResponse_t *out = &pdu->choice.successfulOutcome->value.choice.GNB_CU_UP_E1SetupResponse;
   /* mandatory */
   /* c1. Transaction ID (integer value) */
   asn1cSequenceAdd(out->protocolIEs.list, E1AP_GNB_CU_UP_E1SetupResponseIEs_t, ieC1);
@@ -240,22 +237,27 @@ int e1apCUCP_send_SETUP_RESPONSE(instance_t instance,
   ieC1->criticality                = E1AP_Criticality_reject;
   ieC1->value.present              = E1AP_GNB_CU_UP_E1SetupResponseIEs__value_PR_TransactionID;
   ieC1->value.choice.TransactionID = e1ap_setup_resp->transac_id;
-
-  e1ap_encode_send(CPtype, instance, &pdu, 0, __func__);
-  return 0;
 }
 
-int e1apCUCP_send_SETUP_FAILURE(instance_t instance,
-                                long transac_id) {
+void e1apCUCP_send_SETUP_RESPONSE(instance_t instance,
+                                  const e1ap_setup_resp_t *e1ap_setup_resp) {
   E1AP_E1AP_PDU_t pdu = {0};
+  fill_SETUP_RESPONSE(instance, e1ap_setup_resp, &pdu);
+  e1ap_encode_send(CPtype, instance, &pdu, 0, __func__);
+
+}
+
+void fill_SETUP_FAILURE(instance_t instance,
+                        long transac_id,
+                        E1AP_E1AP_PDU_t *pdu) {
   /* Create */
   /* 0. pdu Type */
-  pdu.present = E1AP_E1AP_PDU_PR_unsuccessfulOutcome;
-  asn1cCalloc(pdu.choice.unsuccessfulOutcome, initMsg);
+  pdu->present = E1AP_E1AP_PDU_PR_unsuccessfulOutcome;
+  asn1cCalloc(pdu->choice.unsuccessfulOutcome, initMsg);
   initMsg->procedureCode = E1AP_ProcedureCode_id_gNB_CU_UP_E1Setup;
   initMsg->criticality = E1AP_Criticality_reject;
   initMsg->value.present = E1AP_UnsuccessfulOutcome__value_PR_GNB_CU_UP_E1SetupFailure;
-  E1AP_GNB_CU_UP_E1SetupFailure_t *out = &pdu.choice.unsuccessfulOutcome->value.choice.GNB_CU_UP_E1SetupFailure;
+  E1AP_GNB_CU_UP_E1SetupFailure_t *out = &pdu->choice.unsuccessfulOutcome->value.choice.GNB_CU_UP_E1SetupFailure;
   /* mandatory */
   /* c1. Transaction ID (integer value) */
   asn1cSequenceAdd(out->protocolIEs.list, E1AP_GNB_CU_UP_E1SetupFailureIEs_t, ieC1);
@@ -271,20 +273,19 @@ int e1apCUCP_send_SETUP_FAILURE(instance_t instance,
   ieC2->value.present              = E1AP_GNB_CU_UP_E1SetupFailureIEs__value_PR_Cause;
   ieC2->value.choice.Cause.present = E1AP_Cause_PR_radioNetwork; //choose this accordingly
   ieC2->value.choice.Cause.choice.radioNetwork = E1AP_CauseRadioNetwork_unspecified;
-
-  e1ap_encode_send(CPtype, instance, &pdu, 0, __func__);
-  return 0;
 }
 
-int e1apCUCP_handle_SETUP_REQUEST(instance_t instance,
-                                  E1AP_E1AP_PDU_t *pdu) {
+void e1apCUCP_send_SETUP_FAILURE(instance_t instance,
+                                long transac_id) {
+  E1AP_E1AP_PDU_t pdu = {0};
+  fill_SETUP_FAILURE(instance, transac_id, &pdu);
+  e1ap_encode_send(CPtype, instance, &pdu, 0, __func__);
+}
 
+void extract_SETUP_REQUEST(const E1AP_E1AP_PDU_t *pdu,
+                           e1ap_setup_req_t *req) {
   E1AP_GNB_CU_UP_E1SetupRequestIEs_t *ie;
-  DevAssert(pdu != NULL);
   E1AP_GNB_CU_UP_E1SetupRequest_t *in = &pdu->choice.initiatingMessage->value.choice.GNB_CU_UP_E1SetupRequest;
-
-  e1ap_setup_req_t *req = &getCxtE1(CPtype, instance)->setupReq;
-
   /* assoc_id */
   /* req->assoc_id = assoc_id; */
 
@@ -322,7 +323,16 @@ int e1apCUCP_handle_SETUP_REQUEST(instance_t instance,
                     req->plmns[i].mnc_digit_length);
     LOG_D(E1AP, "MCC: %d\nMNC: %d\n", req->plmns[i].mcc, req->plmns[i].mnc);
   }
+}
 
+int e1apCUCP_handle_SETUP_REQUEST(instance_t instance,
+                                  const E1AP_E1AP_PDU_t *pdu) {
+
+  DevAssert(pdu != NULL);
+
+  e1ap_setup_req_t *req = &getCxtE1(CPtype, instance)->setupReq;
+
+  extract_SETUP_REQUEST(pdu, req);
   /* Create ITTI message and send to queue */
   MessageDef *msg_p = itti_alloc_new_message(TASK_CUCP_E1, instance, E1AP_SETUP_REQ);
   memcpy(&E1AP_SETUP_REQ(msg_p), req, sizeof(e1ap_setup_req_t));
@@ -339,18 +349,13 @@ int e1apCUCP_handle_SETUP_REQUEST(instance_t instance,
 }
 
 int e1apCUUP_handle_SETUP_RESPONSE(instance_t instance,
-                                   E1AP_E1AP_PDU_t *pdu) {
+                                   const E1AP_E1AP_PDU_t *pdu) {
   LOG_D(E1AP, "%s\n", __func__);
-  AssertFatal(pdu->present == E1AP_E1AP_PDU_PR_successfulOutcome,
-              "pdu->present != E1AP_E1AP_PDU_PR_successfulOutcome\n");
-  AssertFatal(pdu->choice.successfulOutcome->procedureCode  == E1AP_ProcedureCode_id_gNB_CU_UP_E1Setup,
-              "pdu->choice.successfulOutcome->procedureCode != E1AP_ProcedureCode_id_gNB_CU_UP_E1Setup\n");
-  AssertFatal(pdu->choice.successfulOutcome->criticality  == E1AP_Criticality_reject,
-              "pdu->choice.successfulOutcome->criticality != E1AP_Criticality_reject\n");
-  AssertFatal(pdu->choice.successfulOutcome->value.present  == E1AP_SuccessfulOutcome__value_PR_GNB_CU_UP_E1SetupResponse,
-              "pdu->choice.successfulOutcome->value.present != E1AP_SuccessfulOutcome__value_PR_GNB_CU_UP_E1SetupResponse\n");
-
-  E1AP_GNB_CU_UP_E1SetupResponse_t  *in = &pdu->choice.successfulOutcome->value.choice.GNB_CU_UP_E1SetupResponse;
+  DevAssert(pdu->present == E1AP_E1AP_PDU_PR_successfulOutcome);
+  DevAssert(pdu->choice.successfulOutcome->procedureCode  == E1AP_ProcedureCode_id_gNB_CU_UP_E1Setup);
+  DevAssert(pdu->choice.successfulOutcome->criticality  == E1AP_Criticality_reject);
+  DevAssert(pdu->choice.successfulOutcome->value.present  == E1AP_SuccessfulOutcome__value_PR_GNB_CU_UP_E1SetupResponse);
+  const E1AP_GNB_CU_UP_E1SetupResponse_t  *in = &pdu->choice.successfulOutcome->value.choice.GNB_CU_UP_E1SetupResponse;
   E1AP_GNB_CU_UP_E1SetupResponseIEs_t *ie;
 
   /* transac_id */
@@ -372,7 +377,7 @@ int e1apCUUP_handle_SETUP_RESPONSE(instance_t instance,
 }
 
 int e1apCUUP_handle_SETUP_FAILURE(instance_t instance,
-                                  E1AP_E1AP_PDU_t *pdu) {
+                                  const E1AP_E1AP_PDU_t *pdu) {
   E1AP_GNB_CU_UP_E1SetupFailureIEs_t *ie;
   DevAssert(pdu != NULL);
   E1AP_GNB_CU_UP_E1SetupFailure_t *in = &pdu->choice.unsuccessfulOutcome->value.choice.GNB_CU_UP_E1SetupFailure;
@@ -386,20 +391,15 @@ int e1apCUUP_handle_SETUP_FAILURE(instance_t instance,
   return 0;
 }
 
-/*
-  E1 configuration update: can be sent in both ways, to be refined
-*/
-
-int e1apCUUP_send_CONFIGURATION_UPDATE(instance_t instance) {
-  E1AP_E1AP_PDU_t pdu = {0};
+void fill_CONFIGURATION_UPDATE(E1AP_E1AP_PDU_t *pdu) {
   /* Create */
   /* 0. pdu Type */
-  pdu.present = E1AP_E1AP_PDU_PR_initiatingMessage;
-  asn1cCalloc(pdu.choice.initiatingMessage, msg);
+  pdu->present = E1AP_E1AP_PDU_PR_initiatingMessage;
+  asn1cCalloc(pdu->choice.initiatingMessage, msg);
   msg->procedureCode = E1AP_ProcedureCode_id_gNB_CU_UP_ConfigurationUpdate;
   msg->criticality   = E1AP_Criticality_reject;
   msg->value.present = E1AP_InitiatingMessage__value_PR_GNB_CU_UP_ConfigurationUpdate;
-  E1AP_GNB_CU_UP_ConfigurationUpdate_t *out = &pdu.choice.initiatingMessage->value.choice.GNB_CU_UP_ConfigurationUpdate;
+  E1AP_GNB_CU_UP_ConfigurationUpdate_t *out = &pdu->choice.initiatingMessage->value.choice.GNB_CU_UP_ConfigurationUpdate;
   /* mandatory */
   /* c1. Transaction ID (integer value) */
   asn1cSequenceAdd(out->protocolIEs.list, E1AP_GNB_CU_UP_ConfigurationUpdateIEs_t, ieC1);
@@ -436,9 +436,16 @@ int e1apCUUP_send_CONFIGURATION_UPDATE(instance_t instance) {
     TNLAtoRemove->tNLAssociationTransportLayerAddress.present = E1AP_CP_TNL_Information_PR_endpoint_IP_Address;
     TRANSPORT_LAYER_ADDRESS_IPv4_TO_BIT_STRING(1234, &TNLAtoRemove->tNLAssociationTransportLayerAddress.choice.endpoint_IP_Address); // TODO: correct me
   }
+}
+                               
+/*
+  E1 configuration update: can be sent in both ways, to be refined
+*/
 
+void e1apCUUP_send_CONFIGURATION_UPDATE(instance_t instance) {
+  E1AP_E1AP_PDU_t pdu = {0};
+  fill_CONFIGURATION_UPDATE(&pdu);
   e1ap_encode_send(UPtype, instance, &pdu, 0, __func__);
-  return 0;
 }
 
 int e1apCUCP_send_gNB_DU_CONFIGURATION_FAILURE(instance_t instance) {
@@ -514,9 +521,9 @@ int e1ap_handle_RELEASE_ACKNOWLEDGE(instance_t instance,
   BEARER CONTEXT SETUP REQUEST
 */
 
-int e1apCUCP_send_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
-                                               e1ap_bearer_setup_req_t *bearerCxt) {
-  E1AP_E1AP_PDU_t pdu = {0};
+int fill_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
+                                       e1ap_bearer_setup_req_t *const bearerCxt,
+                                       E1AP_E1AP_PDU_t *pdu) {
   /* Create */
   /* 0. pdu Type */
   e1ap_setup_req_t *setup = &getCxtE1(CPtype, instance)->setupReq;
@@ -525,12 +532,12 @@ int e1apCUCP_send_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
     return -1;
   }
 
-  pdu.present = E1AP_E1AP_PDU_PR_initiatingMessage;
-  asn1cCalloc(pdu.choice.initiatingMessage, msg);
+  pdu->present = E1AP_E1AP_PDU_PR_initiatingMessage;
+  asn1cCalloc(pdu->choice.initiatingMessage, msg);
   msg->procedureCode = E1AP_ProcedureCode_id_bearerContextSetup;
   msg->criticality   = E1AP_Criticality_reject;
   msg->value.present = E1AP_InitiatingMessage__value_PR_BearerContextSetupRequest;
-  E1AP_BearerContextSetupRequest_t *out = &pdu.choice.initiatingMessage->value.choice.BearerContextSetupRequest;
+  E1AP_BearerContextSetupRequest_t *out = &pdu->choice.initiatingMessage->value.choice.BearerContextSetupRequest;
   /* mandatory */
   /* c1. gNB-CU-UP UE E1AP ID */
   asn1cSequenceAdd(out->protocolIEs.list, E1AP_BearerContextSetupRequestIEs_t, ieC1);
@@ -646,22 +653,26 @@ int e1apCUCP_send_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
       }
     }
   }
-
-  e1ap_encode_send(CPtype, instance, &pdu, 0, __func__);
   return 0;
 }
 
-int e1apCUUP_send_BEARER_CONTEXT_SETUP_RESPONSE(instance_t instance,
-                                                e1ap_bearer_setup_resp_t *resp) {
+void e1apCUCP_send_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
+                                                e1ap_bearer_setup_req_t *const bearerCxt) {
   E1AP_E1AP_PDU_t pdu = {0};
+  fill_BEARER_CONTEXT_SETUP_REQUEST(instance, bearerCxt, &pdu);
+  e1ap_encode_send(CPtype, instance, &pdu, 0, __func__);
+}
+
+void fill_BEARER_CONTEXT_SETUP_RESPONSE(e1ap_bearer_setup_resp_t *const resp,
+                                        E1AP_E1AP_PDU_t *pdu) {
   /* Create */
   /* 0. pdu Type */
-  pdu.present = E1AP_E1AP_PDU_PR_successfulOutcome;
-  asn1cCalloc(pdu.choice.successfulOutcome, msg);
+  pdu->present = E1AP_E1AP_PDU_PR_successfulOutcome;
+  asn1cCalloc(pdu->choice.successfulOutcome, msg);
   msg->procedureCode = E1AP_ProcedureCode_id_bearerContextSetup;
   msg->criticality   = E1AP_Criticality_reject;
   msg->value.present = E1AP_SuccessfulOutcome__value_PR_BearerContextSetupResponse;
-  E1AP_BearerContextSetupResponse_t *out = &pdu.choice.successfulOutcome->value.choice.BearerContextSetupResponse;
+  E1AP_BearerContextSetupResponse_t *out = &pdu->choice.successfulOutcome->value.choice.BearerContextSetupResponse;
   /* mandatory */
   /* c1. gNB-CU-CP UE E1AP ID */
   asn1cSequenceAdd(out->protocolIEs.list, E1AP_BearerContextSetupResponseIEs_t, ieC1);
@@ -777,8 +788,13 @@ int e1apCUUP_send_BEARER_CONTEXT_SETUP_RESPONSE(instance_t instance,
       }
     }
   }
+}
+
+void e1apCUUP_send_BEARER_CONTEXT_SETUP_RESPONSE(instance_t instance,
+                                                 e1ap_bearer_setup_resp_t *const resp) {
+  E1AP_E1AP_PDU_t pdu = {0};
+  fill_BEARER_CONTEXT_SETUP_RESPONSE(resp, &pdu);
   e1ap_encode_send(UPtype, instance, &pdu, 0, __func__);
-  return 0;
 }
 
 int e1apCUUP_send_BEARER_CONTEXT_SETUP_FAILURE(instance_t instance) {
@@ -786,28 +802,11 @@ int e1apCUUP_send_BEARER_CONTEXT_SETUP_FAILURE(instance_t instance) {
   return -1;
 }
 
-int e1apCUUP_handle_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
-                                                 E1AP_E1AP_PDU_t *pdu) {
-  e1ap_upcp_inst_t *e1_inst = getCxtE1(UPtype, instance);
-  if (!e1_inst) {
-    LOG_E(E1AP, "got BEARER_CONTEXT_SETUP_REQUEST on not established instance (%ld)\n", instance);
-    return -1;
-  }
-  
-  DevAssert(pdu != NULL);
-  AssertFatal(pdu->present == E1AP_E1AP_PDU_PR_initiatingMessage,
-              "pdu->present != E1AP_E1AP_PDU_PR_initiatingMessage\n");
-  AssertFatal(pdu->choice.initiatingMessage->procedureCode == E1AP_ProcedureCode_id_bearerContextSetup,
-              "procedureCode != E1AP_ProcedureCode_id_bearerContextSetup\n");
-  AssertFatal(pdu->choice.initiatingMessage->criticality == E1AP_Criticality_reject,
-              "criticality != E1AP_Criticality_reject\n");
-  AssertFatal(pdu->choice.initiatingMessage->value.present == E1AP_InitiatingMessage__value_PR_BearerContextSetupRequest,
-              "initiatingMessage->value.present != E1AP_InitiatingMessage__value_PR_BearerContextSetupRequest\n");
-
-  E1AP_BearerContextSetupRequest_t *in = &pdu->choice.initiatingMessage->value.choice.BearerContextSetupRequest;
+void extract_BEARER_CONTEXT_SETUP_REQUEST(const E1AP_E1AP_PDU_t *pdu,
+                                          e1ap_bearer_setup_req_t *bearerCxt) {
+  const E1AP_BearerContextSetupRequest_t *in = &pdu->choice.initiatingMessage->value.choice.BearerContextSetupRequest;
   E1AP_BearerContextSetupRequestIEs_t *ie;
 
-  e1ap_bearer_setup_req_t bearerCxt = {0};
   LOG_I(E1AP, "Bearer context setup number of IEs %d\n", in->protocolIEs.list.count);
 
   for (int i=0; i < in->protocolIEs.list.count; i++) {
@@ -815,105 +814,87 @@ int e1apCUUP_handle_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
 
     switch(ie->id) {
       case E1AP_ProtocolIE_ID_id_gNB_CU_CP_UE_E1AP_ID:
-        AssertFatal(ie->criticality == E1AP_Criticality_reject,
-                    "ie->criticality != E1AP_Criticality_reject\n");
-        AssertFatal(ie->value.present == E1AP_BearerContextSetupRequestIEs__value_PR_GNB_CU_CP_UE_E1AP_ID,
-                    "ie->value.present != E1AP_BearerContextSetupRequestIEs__value_PR_GNB_CU_CP_UE_E1AP_ID\n");
-        bearerCxt.gNB_cu_cp_ue_id = ie->value.choice.GNB_CU_CP_UE_E1AP_ID;
+        DevAssert(ie->criticality == E1AP_Criticality_reject);
+        DevAssert(ie->value.present == E1AP_BearerContextSetupRequestIEs__value_PR_GNB_CU_CP_UE_E1AP_ID);
+        bearerCxt->gNB_cu_cp_ue_id = ie->value.choice.GNB_CU_CP_UE_E1AP_ID;
         break;
 
       case E1AP_ProtocolIE_ID_id_SecurityInformation:
-        AssertFatal(ie->criticality == E1AP_Criticality_reject,
-                    "ie->criticality != E1AP_Criticality_reject\n");
-        AssertFatal(ie->value.present == E1AP_BearerContextSetupRequestIEs__value_PR_SecurityInformation,
-                    "ie->value.present != E1AP_BearerContextSetupRequestIEs__value_PR_SecurityInformation\n");
-        bearerCxt.cipheringAlgorithm = ie->value.choice.SecurityInformation.securityAlgorithm.cipheringAlgorithm;
-        memcpy(bearerCxt.encryptionKey,
+        DevAssert(ie->criticality == E1AP_Criticality_reject);
+        DevAssert(ie->value.present == E1AP_BearerContextSetupRequestIEs__value_PR_SecurityInformation);
+        bearerCxt->cipheringAlgorithm = ie->value.choice.SecurityInformation.securityAlgorithm.cipheringAlgorithm;
+        memcpy(bearerCxt->encryptionKey,
                ie->value.choice.SecurityInformation.uPSecuritykey.encryptionKey.buf,
                ie->value.choice.SecurityInformation.uPSecuritykey.encryptionKey.size);
         if (ie->value.choice.SecurityInformation.securityAlgorithm.integrityProtectionAlgorithm) {
-          bearerCxt.integrityProtectionAlgorithm = *ie->value.choice.SecurityInformation.securityAlgorithm.integrityProtectionAlgorithm;
+          bearerCxt->integrityProtectionAlgorithm = *ie->value.choice.SecurityInformation.securityAlgorithm.integrityProtectionAlgorithm;
         }
         if (ie->value.choice.SecurityInformation.uPSecuritykey.integrityProtectionKey) {
-          memcpy(bearerCxt.integrityProtectionKey,
+          memcpy(bearerCxt->integrityProtectionKey,
                  ie->value.choice.SecurityInformation.uPSecuritykey.integrityProtectionKey->buf,
                  ie->value.choice.SecurityInformation.uPSecuritykey.integrityProtectionKey->size);
         }
         break;
 
       case E1AP_ProtocolIE_ID_id_UEDLAggregateMaximumBitRate:
-        AssertFatal(ie->criticality == E1AP_Criticality_reject,
-                    "ie->criticality != E1AP_Criticality_reject\n");
-        AssertFatal(ie->value.present == E1AP_BearerContextSetupRequestIEs__value_PR_BitRate,
-                    "ie->value.present != E1AP_BearerContextSetupRequestIEs__value_PR_BitRate\n");
-        asn_INTEGER2long(&ie->value.choice.BitRate, &bearerCxt.ueDlAggMaxBitRate);
+        DevAssert(ie->criticality == E1AP_Criticality_reject);
+        DevAssert(ie->value.present == E1AP_BearerContextSetupRequestIEs__value_PR_BitRate);
+        asn_INTEGER2long(&ie->value.choice.BitRate, &bearerCxt->ueDlAggMaxBitRate);
         break;
 
       case E1AP_ProtocolIE_ID_id_Serving_PLMN:
-        AssertFatal(ie->criticality == E1AP_Criticality_ignore,
-                    "ie->criticality != E1AP_Criticality_ignore\n");
-        AssertFatal(ie->value.present == E1AP_BearerContextSetupRequestIEs__value_PR_PLMN_Identity,
-                    "ie->value.present != E1AP_BearerContextSetupRequestIEs__value_PR_PLMN_Identity\n");
+        DevAssert(ie->criticality == E1AP_Criticality_ignore);
+        DevAssert(ie->value.present == E1AP_BearerContextSetupRequestIEs__value_PR_PLMN_Identity);
         PLMNID_TO_MCC_MNC(&ie->value.choice.PLMN_Identity,
-                          bearerCxt.servingPLMNid.mcc,
-                          bearerCxt.servingPLMNid.mnc,
-                          bearerCxt.servingPLMNid.mnc_digit_length);
+                          bearerCxt->servingPLMNid.mcc,
+                          bearerCxt->servingPLMNid.mnc,
+                          bearerCxt->servingPLMNid.mnc_digit_length);
         break;
 
       case E1AP_ProtocolIE_ID_id_ActivityNotificationLevel:
-        AssertFatal(ie->criticality == E1AP_Criticality_reject,
-                    "ie->criticality != E1AP_Criticality_reject\n");
-        AssertFatal(ie->value.present == E1AP_BearerContextSetupRequestIEs__value_PR_ActivityNotificationLevel,
-                    "ie->value.present != E1AP_BearerContextSetupRequestIEs__value_PR_ActivityNotificationLevel\n");
-        bearerCxt.activityNotificationLevel = ie->value.choice.ActivityNotificationLevel;
+        DevAssert(ie->criticality == E1AP_Criticality_reject);
+        DevAssert(ie->value.present == E1AP_BearerContextSetupRequestIEs__value_PR_ActivityNotificationLevel);
+        bearerCxt->activityNotificationLevel = ie->value.choice.ActivityNotificationLevel;
         break;
 
       case E1AP_ProtocolIE_ID_id_System_BearerContextSetupRequest:
-        AssertFatal(ie->criticality == E1AP_Criticality_reject,
-                    "ie->criticality != E1AP_Criticality_reject\n");
-        AssertFatal(ie->value.present == E1AP_BearerContextSetupRequestIEs__value_PR_System_BearerContextSetupRequest,
-                    "ie->value.present != E1AP_BearerContextSetupRequestIEs__value_PR_System_BearerContextSetupRequest\n");
-        AssertFatal(ie->value.choice.System_BearerContextSetupRequest.present ==
-                    E1AP_System_BearerContextSetupRequest_PR_nG_RAN_BearerContextSetupRequest,
-                    "ie->value.choice.System_BearerContextSetupRequest.present !="
-                    "E1AP_System_BearerContextSetupRequest_PR_nG_RAN_BearerContextSetupRequest\n");
-        AssertFatal(ie->value.choice.System_BearerContextSetupRequest.choice.nG_RAN_BearerContextSetupRequest,
-                    "nG_RAN_BearerContextSetupRequest is NULL\n");
+        DevAssert(ie->criticality == E1AP_Criticality_reject);
+        DevAssert(ie->value.present == E1AP_BearerContextSetupRequestIEs__value_PR_System_BearerContextSetupRequest);
+        DevAssert(ie->value.choice.System_BearerContextSetupRequest.present ==
+                    E1AP_System_BearerContextSetupRequest_PR_nG_RAN_BearerContextSetupRequest);
+        DevAssert(ie->value.choice.System_BearerContextSetupRequest.choice.nG_RAN_BearerContextSetupRequest);
         E1AP_ProtocolIE_Container_4932P19_t *msgNGRAN_list = (E1AP_ProtocolIE_Container_4932P19_t *) ie->value.choice.System_BearerContextSetupRequest.choice.nG_RAN_BearerContextSetupRequest;
         E1AP_NG_RAN_BearerContextSetupRequest_t *msgNGRAN = msgNGRAN_list->list.array[0];
-        AssertFatal(msgNGRAN_list->list.count == 1, "nG_RAN_BearerContextSetupRequest supports only 1 count for now\n");
-        AssertFatal(msgNGRAN->id == E1AP_ProtocolIE_ID_id_PDU_Session_Resource_To_Setup_List,
-                    "msgNGRAN->id (%ld) != E1AP_ProtocolIE_ID_id_PDU_Session_Resource_To_Setup_List\n", msgNGRAN->id);
-        AssertFatal(msgNGRAN->value.present =
-                    E1AP_NG_RAN_BearerContextSetupRequest__value_PR_PDU_Session_Resource_To_Setup_List,
-                    "msgNGRAN->value.present != E1AP_NG_RAN_BearerContextSetupRequest__value_PR_PDU_Session_Resource_To_Setup_List\n");
+        DevAssert(msgNGRAN_list->list.count == 1);
+        DevAssert(msgNGRAN->id == E1AP_ProtocolIE_ID_id_PDU_Session_Resource_To_Setup_List);
+        DevAssert(msgNGRAN->value.present == E1AP_NG_RAN_BearerContextSetupRequest__value_PR_PDU_Session_Resource_To_Setup_List);
 
         E1AP_PDU_Session_Resource_To_Setup_List_t *pdu2SetupList = &msgNGRAN->value.choice.PDU_Session_Resource_To_Setup_List;
-        bearerCxt.numPDUSessions = pdu2SetupList->list.count;
+        bearerCxt->numPDUSessions = pdu2SetupList->list.count;
         for (int i=0; i < pdu2SetupList->list.count; i++) {
-          pdu_session_to_setup_t *pdu = bearerCxt.pduSession + i;
+          pdu_session_to_setup_t *pdu_session = bearerCxt->pduSession + i;
           E1AP_PDU_Session_Resource_To_Setup_Item_t *pdu2Setup = pdu2SetupList->list.array[i];
 
-          pdu->sessionId = pdu2Setup->pDU_Session_ID;
-          pdu->sessionType = pdu2Setup->pDU_Session_Type;
+          pdu_session->sessionId = pdu2Setup->pDU_Session_ID;
+          pdu_session->sessionType = pdu2Setup->pDU_Session_Type;
 
-          OCTET_STRING_TO_INT8(&pdu2Setup->sNSSAI.sST, pdu->sst);
+          OCTET_STRING_TO_INT8(&pdu2Setup->sNSSAI.sST, pdu_session->sst);
 
-          pdu->integrityProtectionIndication = pdu2Setup->securityIndication.integrityProtectionIndication;
-          pdu->confidentialityProtectionIndication = pdu2Setup->securityIndication.confidentialityProtectionIndication;
+          pdu_session->integrityProtectionIndication = pdu2Setup->securityIndication.integrityProtectionIndication;
+          pdu_session->confidentialityProtectionIndication = pdu2Setup->securityIndication.confidentialityProtectionIndication;
 
           if (pdu2Setup->nG_UL_UP_TNL_Information.choice.gTPTunnel) { // Optional IE
-            AssertFatal(pdu2Setup->nG_UL_UP_TNL_Information.present = E1AP_UP_TNL_Information_PR_gTPTunnel,
-                        "pdu2Setup->nG_UL_UP_TNL_Information.present != E1AP_UP_TNL_Information_PR_gTPTunnel\n");
+            DevAssert(pdu2Setup->nG_UL_UP_TNL_Information.present ==
+                      E1AP_UP_TNL_Information_PR_gTPTunnel);
             BIT_STRING_TO_TRANSPORT_LAYER_ADDRESS_IPv4(&pdu2Setup->nG_UL_UP_TNL_Information.choice.gTPTunnel->transportLayerAddress,
-                                                       pdu->tlAddress);
-            OCTET_STRING_TO_INT32(&pdu2Setup->nG_UL_UP_TNL_Information.choice.gTPTunnel->gTP_TEID, pdu->teId);
+                                                       pdu_session->tlAddress);
+            OCTET_STRING_TO_INT32(&pdu2Setup->nG_UL_UP_TNL_Information.choice.gTPTunnel->gTP_TEID, pdu_session->teId);
           }
 
           E1AP_DRB_To_Setup_List_NG_RAN_t *drb2SetupList = &pdu2Setup->dRB_To_Setup_List_NG_RAN;
-          pdu->numDRB2Setup = drb2SetupList->list.count;
+          pdu_session->numDRB2Setup = drb2SetupList->list.count;
           for (int j=0; j < drb2SetupList->list.count; j++) {
-            DRB_nGRAN_to_setup_t *drb = pdu->DRBnGRanList + j;
+            DRB_nGRAN_to_setup_t *drb = pdu_session->DRBnGRanList + j;
             E1AP_DRB_To_Setup_Item_NG_RAN_t *drb2Setup = drb2SetupList->list.array[j];
 
             drb->id = drb2Setup->dRB_ID;
@@ -978,27 +959,33 @@ int e1apCUUP_handle_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
     }
   }
 
+
+}
+
+int e1apCUUP_handle_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
+                                                 const E1AP_E1AP_PDU_t *pdu) {
+  e1ap_upcp_inst_t *e1_inst = getCxtE1(UPtype, instance);
+  if (!e1_inst) {
+    LOG_E(E1AP, "got BEARER_CONTEXT_SETUP_REQUEST on not established instance (%ld)\n", instance);
+    return -1;
+  }
+  
+  DevAssert(pdu != NULL);
+  DevAssert(pdu->present == E1AP_E1AP_PDU_PR_initiatingMessage);
+  DevAssert(pdu->choice.initiatingMessage->procedureCode == E1AP_ProcedureCode_id_bearerContextSetup);
+  DevAssert(pdu->choice.initiatingMessage->criticality == E1AP_Criticality_reject);
+  DevAssert(pdu->choice.initiatingMessage->value.present == E1AP_InitiatingMessage__value_PR_BearerContextSetupRequest);
+
+  e1ap_bearer_setup_req_t bearerCxt = {0};
+  extract_BEARER_CONTEXT_SETUP_REQUEST(pdu, &bearerCxt);
   CUUP_process_e1_bearer_context_setup_req(&bearerCxt, instance);
   return 0;
 }
 
-int e1apCUCP_handle_BEARER_CONTEXT_SETUP_RESPONSE(instance_t instance,
-                                                  E1AP_E1AP_PDU_t *pdu) {
-  AssertFatal(pdu->present == E1AP_E1AP_PDU_PR_successfulOutcome,
-              "pdu->present != E1AP_E1AP_PDU_PR_successfulOutcome\n");
-  AssertFatal(pdu->choice.successfulOutcome->procedureCode == E1AP_ProcedureCode_id_bearerContextSetup,
-              "procedureCode != E1AP_ProcedureCode_id_bearerContextSetup\n");
-  AssertFatal(pdu->choice.successfulOutcome->criticality == E1AP_Criticality_reject,
-              "criticality != E1AP_Criticality_reject\n");
-  AssertFatal(pdu->choice.successfulOutcome->value.present == E1AP_SuccessfulOutcome__value_PR_BearerContextSetupResponse,
-              "initiatingMessage->value.present != E1AP_InitiatingMessage__value_PR_BearerContextSetupRequest\n");
-
-  E1AP_BearerContextSetupResponse_t *in = &pdu->choice.successfulOutcome->value.choice.BearerContextSetupResponse;
+void extract_BEARER_CONTEXT_SETUP_RESPONSE(const E1AP_E1AP_PDU_t *pdu,
+                                           e1ap_bearer_setup_resp_t *bearerCxt) {
+  const E1AP_BearerContextSetupResponse_t *in = &pdu->choice.successfulOutcome->value.choice.BearerContextSetupResponse;
   E1AP_BearerContextSetupResponseIEs_t *ie;
-
-  MessageDef *msg = itti_alloc_new_message(TASK_CUCP_E1, 0, E1AP_BEARER_CONTEXT_SETUP_RESP);
-
-  e1ap_bearer_setup_resp_t *bearerCxt = &E1AP_BEARER_CONTEXT_SETUP_RESP(msg);
 
   LOG_I(E1AP, "Bearer context setup response number of IEs %d\n", in->protocolIEs.list.count);
 
@@ -1007,60 +994,48 @@ int e1apCUCP_handle_BEARER_CONTEXT_SETUP_RESPONSE(instance_t instance,
 
     switch(ie->id) {
       case E1AP_ProtocolIE_ID_id_gNB_CU_CP_UE_E1AP_ID:
-        AssertFatal(ie->criticality == E1AP_Criticality_reject,
-                    "ie->criticality != E1AP_Criticality_reject\n");
-        AssertFatal(ie->value.present == E1AP_BearerContextSetupResponseIEs__value_PR_GNB_CU_CP_UE_E1AP_ID,
-                    "ie->value.present != E1AP_BearerContextSetupRequestIEs__value_PR_GNB_CU_CP_UE_E1AP_ID\n");
+        DevAssert(ie->criticality == E1AP_Criticality_reject);
+        DevAssert(ie->value.present == E1AP_BearerContextSetupResponseIEs__value_PR_GNB_CU_CP_UE_E1AP_ID);
         bearerCxt->gNB_cu_cp_ue_id = ie->value.choice.GNB_CU_CP_UE_E1AP_ID;
         break;
 
       case E1AP_ProtocolIE_ID_id_gNB_CU_UP_UE_E1AP_ID:
-        AssertFatal(ie->criticality == E1AP_Criticality_reject,
-                    "ie->criticality != E1AP_Criticality_reject\n");
-        AssertFatal(ie->value.present == E1AP_BearerContextSetupResponseIEs__value_PR_GNB_CU_UP_UE_E1AP_ID,
-                    "ie->value.present != E1AP_BearerContextSetupRequestIEs__value_PR_GNB_CU_UP_UE_E1AP_ID\n");
+        DevAssert(ie->criticality == E1AP_Criticality_reject);
+        DevAssert(ie->value.present == E1AP_BearerContextSetupResponseIEs__value_PR_GNB_CU_UP_UE_E1AP_ID);
         bearerCxt->gNB_cu_up_ue_id = ie->value.choice.GNB_CU_UP_UE_E1AP_ID;
         break;
 
       case E1AP_ProtocolIE_ID_id_System_BearerContextSetupResponse:
-        AssertFatal(ie->criticality == E1AP_Criticality_reject,
-                    "ie->criticality != E1AP_Criticality_reject\n");
-        AssertFatal(ie->value.present == E1AP_BearerContextSetupResponseIEs__value_PR_System_BearerContextSetupResponse,
-                    "ie->value.present != E1AP_BearerContextSetupResponseIEs__value_PR_System_BearerContextSetupResponse\n");
-        AssertFatal(ie->value.choice.System_BearerContextSetupResponse.present ==
-                    E1AP_System_BearerContextSetupResponse_PR_nG_RAN_BearerContextSetupResponse,
-                    "ie->value.choice.System_BearerContextSetupResponse.present !="
-                    "E1AP_System_BearerContextSetupResponse_PR_nG_RAN_BearerContextSetupResponse\n");
+        DevAssert(ie->criticality == E1AP_Criticality_reject);
+        DevAssert(ie->value.present == E1AP_BearerContextSetupResponseIEs__value_PR_System_BearerContextSetupResponse);
+        DevAssert(ie->value.choice.System_BearerContextSetupResponse.present ==
+                    E1AP_System_BearerContextSetupResponse_PR_nG_RAN_BearerContextSetupResponse);
         E1AP_ProtocolIE_Container_4932P22_t *msgNGRAN_list = (E1AP_ProtocolIE_Container_4932P22_t *) ie->value.choice.System_BearerContextSetupResponse.choice.nG_RAN_BearerContextSetupResponse;
-        AssertFatal(msgNGRAN_list->list.count == 1, "Array count more than 1 not supported\n");
+        DevAssert(msgNGRAN_list->list.count == 1);
         E1AP_NG_RAN_BearerContextSetupResponse_t *msgNGRAN = msgNGRAN_list->list.array[0];
-        AssertFatal(msgNGRAN->id == E1AP_ProtocolIE_ID_id_PDU_Session_Resource_Setup_List,
-                    "msgNGRAN->id != E1AP_ProtocolIE_ID_id_PDU_Session_Resource_Setup_List\n");
-        AssertFatal(msgNGRAN->criticality == E1AP_Criticality_reject,
-                    "msgNGRAN->criticality != E1AP_Criticality_reject\n");
-        AssertFatal(msgNGRAN->value.present == E1AP_NG_RAN_BearerContextSetupResponse__value_PR_PDU_Session_Resource_Setup_List,
-                    "msgNGRAN->value.present != E1AP_NG_RAN_BearerContextSetupResponse__value_PR_PDU_Session_Resource_Setup_List\n");
+        DevAssert(msgNGRAN->id == E1AP_ProtocolIE_ID_id_PDU_Session_Resource_Setup_List);
+        DevAssert(msgNGRAN->criticality == E1AP_Criticality_reject);
+        DevAssert(msgNGRAN->value.present == E1AP_NG_RAN_BearerContextSetupResponse__value_PR_PDU_Session_Resource_Setup_List);
         E1AP_PDU_Session_Resource_Setup_List_t *pduSetupList = &msgNGRAN->value.choice.PDU_Session_Resource_Setup_List;
         bearerCxt->numPDUSessions = pduSetupList->list.count;
 
         for (int i=0; i < pduSetupList->list.count; i++) {
           pdu_session_setup_t *pduSetup = bearerCxt->pduSession + i;
-          E1AP_PDU_Session_Resource_Setup_Item_t *pdu = pduSetupList->list.array[i];
-          pduSetup->id = pdu->pDU_Session_ID;
+          E1AP_PDU_Session_Resource_Setup_Item_t *pdu_session = pduSetupList->list.array[i];
+          pduSetup->id = pdu_session->pDU_Session_ID;
 
-          if (pdu->nG_DL_UP_TNL_Information.choice.gTPTunnel) {
-            AssertFatal(pdu->nG_DL_UP_TNL_Information.present == E1AP_UP_TNL_Information_PR_gTPTunnel,
-                        "pdu->nG_DL_UP_TNL_Information.present != E1AP_UP_TNL_Information_PR_gTPTunnel\n");
-            BIT_STRING_TO_TRANSPORT_LAYER_ADDRESS_IPv4(&pdu->nG_DL_UP_TNL_Information.choice.gTPTunnel->transportLayerAddress,
+          if (pdu_session->nG_DL_UP_TNL_Information.choice.gTPTunnel) {
+            DevAssert(pdu_session->nG_DL_UP_TNL_Information.present == E1AP_UP_TNL_Information_PR_gTPTunnel);
+            BIT_STRING_TO_TRANSPORT_LAYER_ADDRESS_IPv4(&pdu_session->nG_DL_UP_TNL_Information.choice.gTPTunnel->transportLayerAddress,
                                                        pduSetup->tlAddress);
-            OCTET_STRING_TO_INT32(&pdu->nG_DL_UP_TNL_Information.choice.gTPTunnel->gTP_TEID,
+            OCTET_STRING_TO_INT32(&pdu_session->nG_DL_UP_TNL_Information.choice.gTPTunnel->gTP_TEID,
                                   pduSetup->teId);
           }
 
-          pduSetup->numDRBSetup = pdu->dRB_Setup_List_NG_RAN.list.count;
-          for (int j=0; j < pdu->dRB_Setup_List_NG_RAN.list.count; j++) {
+          pduSetup->numDRBSetup = pdu_session->dRB_Setup_List_NG_RAN.list.count;
+          for (int j=0; j < pdu_session->dRB_Setup_List_NG_RAN.list.count; j++) {
             DRB_nGRAN_setup_t *drbSetup = pduSetup->DRBnGRanList + j;
-            E1AP_DRB_Setup_Item_NG_RAN_t *drb = pdu->dRB_Setup_List_NG_RAN.list.array[j];
+            E1AP_DRB_Setup_Item_NG_RAN_t *drb = pdu_session->dRB_Setup_List_NG_RAN.list.array[j];
 
             drbSetup->id = drb->dRB_ID;
 
@@ -1069,8 +1044,7 @@ int e1apCUCP_handle_BEARER_CONTEXT_SETUP_RESPONSE(instance_t instance,
               up_params_t *UL_UP_param = drbSetup->UpParamList + k;
               E1AP_UP_Parameters_Item_t *in_UL_UP_param = drb->uL_UP_Transport_Parameters.list.array[k];
 
-              AssertFatal(in_UL_UP_param->uP_TNL_Information.present == E1AP_UP_TNL_Information_PR_gTPTunnel,
-                          "in_UL_UP_param->uP_TNL_Information.present != E1AP_UP_TNL_Information_PR_gTPTunnel\n");
+              DevAssert(in_UL_UP_param->uP_TNL_Information.present == E1AP_UP_TNL_Information_PR_gTPTunnel);
               E1AP_GTPTunnel_t *gTPTunnel = in_UL_UP_param->uP_TNL_Information.choice.gTPTunnel;
               if (gTPTunnel) {
                 BIT_STRING_TO_TRANSPORT_LAYER_ADDRESS_IPv4(&gTPTunnel->transportLayerAddress,
@@ -1092,14 +1066,25 @@ int e1apCUCP_handle_BEARER_CONTEXT_SETUP_RESPONSE(instance_t instance,
         break;
     }
   }
+}
 
+int e1apCUCP_handle_BEARER_CONTEXT_SETUP_RESPONSE(instance_t instance,
+                                                  const E1AP_E1AP_PDU_t *pdu) {
+  DevAssert(pdu->present == E1AP_E1AP_PDU_PR_successfulOutcome);
+  DevAssert(pdu->choice.successfulOutcome->procedureCode == E1AP_ProcedureCode_id_bearerContextSetup);
+  DevAssert(pdu->choice.successfulOutcome->criticality == E1AP_Criticality_reject);
+  DevAssert(pdu->choice.successfulOutcome->value.present == E1AP_SuccessfulOutcome__value_PR_BearerContextSetupResponse);
+
+  MessageDef *msg = itti_alloc_new_message(TASK_CUCP_E1, 0, E1AP_BEARER_CONTEXT_SETUP_RESP);
+  e1ap_bearer_setup_resp_t *bearerCxt = &E1AP_BEARER_CONTEXT_SETUP_RESP(msg);
+  extract_BEARER_CONTEXT_SETUP_RESPONSE(pdu, bearerCxt);
   itti_send_msg_to_task(TASK_RRC_GNB, instance, msg);
 
   return 0;
 }
 
 int e1apCUCP_handle_BEARER_CONTEXT_SETUP_FAILURE(instance_t instance,
-                                                 E1AP_E1AP_PDU_t *pdu) {
+                                                 const E1AP_E1AP_PDU_t *pdu) {
   AssertFatal(false,"Not implemented yet\n");
   return -1;
 }
@@ -1108,9 +1093,9 @@ int e1apCUCP_handle_BEARER_CONTEXT_SETUP_FAILURE(instance_t instance,
   BEARER CONTEXT MODIFICATION REQUEST
 */
 
-int e1apCUCP_send_BEARER_CONTEXT_MODIFICATION_REQUEST(instance_t instance,
-                                                      e1ap_bearer_setup_req_t *bearerCxt) {
-  E1AP_E1AP_PDU_t pdu = {0};
+int fill_BEARER_CONTEXT_MODIFICATION_REQUEST(instance_t instance,
+                                             e1ap_bearer_setup_req_t *const bearerCxt,
+                                             E1AP_E1AP_PDU_t *pdu) {
   /* Create */
   /* 0. pdu Type */
   e1ap_setup_req_t *setup = &getCxtE1(CPtype, instance)->setupReq;
@@ -1119,12 +1104,12 @@ int e1apCUCP_send_BEARER_CONTEXT_MODIFICATION_REQUEST(instance_t instance,
     return -1;
   }
 
-  pdu.present = E1AP_E1AP_PDU_PR_initiatingMessage;
-  asn1cCalloc(pdu.choice.initiatingMessage, msg);
+  pdu->present = E1AP_E1AP_PDU_PR_initiatingMessage;
+  asn1cCalloc(pdu->choice.initiatingMessage, msg);
   msg->procedureCode = E1AP_ProcedureCode_id_bearerContextModification;
   msg->criticality   = E1AP_Criticality_reject;
   msg->value.present = E1AP_InitiatingMessage__value_PR_BearerContextModificationRequest;
-  E1AP_BearerContextModificationRequest_t *out = &pdu.choice.initiatingMessage->value.choice.BearerContextModificationRequest;
+  E1AP_BearerContextModificationRequest_t *out = &pdu->choice.initiatingMessage->value.choice.BearerContextModificationRequest;
   /* mandatory */
   /* c1. gNB-CU-CP UE E1AP ID */
   asn1cSequenceAdd(out->protocolIEs.list, E1AP_BearerContextModificationRequestIEs_t, ieC1);
@@ -1176,9 +1161,14 @@ int e1apCUCP_send_BEARER_CONTEXT_MODIFICATION_REQUEST(instance_t instance,
       }
     }
   }
-
-  e1ap_encode_send(CPtype, instance, &pdu, 0, __func__);
   return 0;
+}
+
+void e1apCUCP_send_BEARER_CONTEXT_MODIFICATION_REQUEST(instance_t instance,
+                                                       e1ap_bearer_setup_req_t *const bearerCxt) {
+  E1AP_E1AP_PDU_t pdu = {0};
+  fill_BEARER_CONTEXT_MODIFICATION_REQUEST(instance, bearerCxt, &pdu);
+  e1ap_encode_send(CPtype, instance, &pdu, 0, __func__);
 }
 
 int e1apCUUP_send_BEARER_CONTEXT_MODIFICATION_RESPONSE(instance_t instance) {
@@ -1191,28 +1181,11 @@ int e1apCUUP_send_BEARER_CONTEXT_MODIFICATION_FAILURE(instance_t instance) {
   return -1;
 }
 
-int e1apCUUP_handle_BEARER_CONTEXT_MODIFICATION_REQUEST(instance_t instance,
-                                                        E1AP_E1AP_PDU_t *pdu) {
-  e1ap_upcp_inst_t *e1_inst = getCxtE1(UPtype, instance);
-  if (!e1_inst) {
-    LOG_E(E1AP, "got BEARER_CONTEXT_MODIFICATION_REQUEST on not established instance (%ld)\n", instance);
-    return -1;
-  }
-  
-  DevAssert(pdu != NULL);
-  AssertFatal(pdu->present == E1AP_E1AP_PDU_PR_initiatingMessage,
-              "pdu->present != E1AP_E1AP_PDU_PR_initiatingMessage\n");
-  AssertFatal(pdu->choice.initiatingMessage->procedureCode == E1AP_ProcedureCode_id_bearerContextModification,
-              "procedureCode != E1AP_ProcedureCode_id_bearerContextModification\n");
-  AssertFatal(pdu->choice.initiatingMessage->criticality == E1AP_Criticality_reject,
-              "criticality != E1AP_Criticality_reject\n");
-  AssertFatal(pdu->choice.initiatingMessage->value.present == E1AP_InitiatingMessage__value_PR_BearerContextModificationRequest,
-              "initiatingMessage->value.present != E1AP_InitiatingMessage__value_PR_BearerContextModificationRequest\n");
-
-  E1AP_BearerContextModificationRequest_t *in = &pdu->choice.initiatingMessage->value.choice.BearerContextModificationRequest;
+void extract_BEARER_CONTEXT_MODIFICATION_REQUEST(const E1AP_E1AP_PDU_t *pdu,
+                                                 e1ap_bearer_setup_req_t *bearerCxt) {
+  const E1AP_BearerContextModificationRequest_t *in = &pdu->choice.initiatingMessage->value.choice.BearerContextModificationRequest;
   E1AP_BearerContextModificationRequestIEs_t *ie;
 
-  e1ap_bearer_setup_req_t bearerCxt = {0};
   LOG_I(E1AP, "Bearer context setup number of IEs %d\n", in->protocolIEs.list.count);
 
   for (int i=0; i < in->protocolIEs.list.count; i++) {
@@ -1220,53 +1193,42 @@ int e1apCUUP_handle_BEARER_CONTEXT_MODIFICATION_REQUEST(instance_t instance,
 
     switch(ie->id) {
       case E1AP_ProtocolIE_ID_id_gNB_CU_CP_UE_E1AP_ID:
-        AssertFatal(ie->criticality == E1AP_Criticality_reject,
-                    "ie->criticality != E1AP_Criticality_reject\n");
-        AssertFatal(ie->value.present == E1AP_BearerContextModificationRequestIEs__value_PR_GNB_CU_CP_UE_E1AP_ID,
-                    "ie->value.present != E1AP_BearerContextModificationRequestIEs__value_PR_GNB_CU_CP_UE_E1AP_ID\n");
-        bearerCxt.gNB_cu_cp_ue_id = ie->value.choice.GNB_CU_CP_UE_E1AP_ID;
+        DevAssert(ie->criticality == E1AP_Criticality_reject);
+        DevAssert(ie->value.present == E1AP_BearerContextModificationRequestIEs__value_PR_GNB_CU_CP_UE_E1AP_ID);
+        bearerCxt->gNB_cu_cp_ue_id = ie->value.choice.GNB_CU_CP_UE_E1AP_ID;
         break;
 
       case E1AP_ProtocolIE_ID_id_gNB_CU_UP_UE_E1AP_ID:
-        AssertFatal(ie->criticality == E1AP_Criticality_reject,
-                    "ie->criticality != E1AP_Criticality_reject\n");
-        AssertFatal(ie->value.present == E1AP_BearerContextModificationRequestIEs__value_PR_GNB_CU_UP_UE_E1AP_ID,
-                    "ie->value.present != E1AP_BearerContextModificationRequestIEs__value_PR_GNB_CU_UP_UE_E1AP_ID\n");
-        bearerCxt.gNB_cu_up_ue_id = ie->value.choice.GNB_CU_UP_UE_E1AP_ID;
+        DevAssert(ie->criticality == E1AP_Criticality_reject);
+        DevAssert(ie->value.present == E1AP_BearerContextModificationRequestIEs__value_PR_GNB_CU_UP_UE_E1AP_ID);
+        bearerCxt->gNB_cu_up_ue_id = ie->value.choice.GNB_CU_UP_UE_E1AP_ID;
         break;
 
       case E1AP_ProtocolIE_ID_id_System_BearerContextModificationRequest:
-        AssertFatal(ie->criticality == E1AP_Criticality_reject,
-                    "ie->criticality != E1AP_Criticality_reject\n");
-        AssertFatal(ie->value.present == E1AP_BearerContextModificationRequestIEs__value_PR_System_BearerContextModificationRequest,
-                    "ie->value.present != E1AP_BearerContextModificationRequestIEs__value_PR_System_BearerContextModificationRequest\n");
-        AssertFatal(ie->value.choice.System_BearerContextModificationRequest.present ==
-                    E1AP_System_BearerContextModificationRequest_PR_nG_RAN_BearerContextModificationRequest,
-                    "ie->value.choice.System_BearerContextSetupRequest.present !="
-                    "E1AP_System_BearerContextModificationRequest_PR_nG_RAN_BearerContextModificationRequest\n");
-        AssertFatal(ie->value.choice.System_BearerContextModificationRequest.choice.nG_RAN_BearerContextModificationRequest,
-                    "nG_RAN_BearerContextModificationRequest is NULL\n");
+        DevAssert(ie->criticality == E1AP_Criticality_reject);
+        DevAssert(ie->value.present == E1AP_BearerContextModificationRequestIEs__value_PR_System_BearerContextModificationRequest);
+        DevAssert(ie->value.choice.System_BearerContextModificationRequest.present ==
+                    E1AP_System_BearerContextModificationRequest_PR_nG_RAN_BearerContextModificationRequest);
+        DevAssert(ie->value.choice.System_BearerContextModificationRequest.choice.nG_RAN_BearerContextModificationRequest != NULL);
         E1AP_ProtocolIE_Container_4932P26_t *msgNGRAN_list = (E1AP_ProtocolIE_Container_4932P26_t *) ie->value.choice.System_BearerContextModificationRequest.choice.nG_RAN_BearerContextModificationRequest;
         E1AP_NG_RAN_BearerContextModificationRequest_t *msgNGRAN = msgNGRAN_list->list.array[0];
-        AssertFatal(msgNGRAN_list->list.count == 1, "nG_RAN_BearerContextModificationRequest supports only 1 count for now\n");
-        AssertFatal(msgNGRAN->id == E1AP_ProtocolIE_ID_id_PDU_Session_Resource_To_Modify_List,
-                    "msgNGRAN->id (%ld) != E1AP_ProtocolIE_ID_id_PDU_Session_Resource_To_Modify_List\n", msgNGRAN->id);
-        AssertFatal(msgNGRAN->value.present =
-                    E1AP_NG_RAN_BearerContextModificationRequest__value_PR_PDU_Session_Resource_To_Modify_List,
-                    "msgNGRAN->value.present != E1AP_NG_RAN_BearerContextModificationRequest__value_PR_PDU_Session_Resource_To_Modify_List\n");
+        DevAssert(msgNGRAN_list->list.count == 1);
+        DevAssert(msgNGRAN->id == E1AP_ProtocolIE_ID_id_PDU_Session_Resource_To_Modify_List);
+        DevAssert(msgNGRAN->value.present =
+                    E1AP_NG_RAN_BearerContextModificationRequest__value_PR_PDU_Session_Resource_To_Modify_List);
 
         E1AP_PDU_Session_Resource_To_Modify_List_t *pdu2ModList = &msgNGRAN->value.choice.PDU_Session_Resource_To_Modify_List;
-        bearerCxt.numPDUSessionsMod = pdu2ModList->list.count;
+        bearerCxt->numPDUSessionsMod = pdu2ModList->list.count;
         for (int i=0; i < pdu2ModList->list.count; i++) {
-          pdu_session_to_setup_t *pdu = bearerCxt.pduSessionMod + i;
+          pdu_session_to_setup_t *pdu_session = bearerCxt->pduSessionMod + i;
           E1AP_PDU_Session_Resource_To_Modify_Item_t *pdu2Mod = pdu2ModList->list.array[i];
 
-          pdu->sessionId = pdu2Mod->pDU_Session_ID;
+          pdu_session->sessionId = pdu2Mod->pDU_Session_ID;
 
           E1AP_DRB_To_Modify_List_NG_RAN_t *drb2ModList = pdu2Mod->dRB_To_Modify_List_NG_RAN;
-          pdu->numDRB2Modify = drb2ModList->list.count;
+          pdu_session->numDRB2Modify = drb2ModList->list.count;
           for (int j=0; j < drb2ModList->list.count; j++) {
-            DRB_nGRAN_to_setup_t *drb = pdu->DRBnGRanModList + j;
+            DRB_nGRAN_to_setup_t *drb = pdu_session->DRBnGRanModList + j;
             E1AP_DRB_To_Modify_Item_NG_RAN_t *drb2Mod = drb2ModList->list.array[j];
 
             drb->id = drb2Mod->dRB_ID;
@@ -1277,8 +1239,7 @@ int e1apCUUP_handle_BEARER_CONTEXT_MODIFICATION_REQUEST(instance_t instance,
               up_params_t *dl_up_param = drb->DlUpParamList + k;
               E1AP_UP_Parameters_Item_t *dl_up_param_in = dl_up_paramList->list.array[k]; 
               if (dl_up_param_in->uP_TNL_Information.choice.gTPTunnel) { // Optional IE
-                AssertFatal(dl_up_param_in->uP_TNL_Information.present = E1AP_UP_TNL_Information_PR_gTPTunnel,
-                            "dl_up_param_in->uP_TNL_Information.present != E1AP_UP_TNL_Information_PR_gTPTunnel\n");
+                DevAssert(dl_up_param_in->uP_TNL_Information.present = E1AP_UP_TNL_Information_PR_gTPTunnel);
                 BIT_STRING_TO_TRANSPORT_LAYER_ADDRESS_IPv4(&dl_up_param_in->uP_TNL_Information.choice.gTPTunnel->transportLayerAddress,
                                                            dl_up_param->tlAddress);
                 OCTET_STRING_TO_INT32(&dl_up_param_in->uP_TNL_Information.choice.gTPTunnel->gTP_TEID, dl_up_param->teId);
@@ -1296,7 +1257,24 @@ int e1apCUUP_handle_BEARER_CONTEXT_MODIFICATION_REQUEST(instance_t instance,
         break;
     }
   }
+}
 
+int e1apCUUP_handle_BEARER_CONTEXT_MODIFICATION_REQUEST(instance_t instance,
+                                                        const E1AP_E1AP_PDU_t *pdu) {
+  e1ap_upcp_inst_t *e1_inst = getCxtE1(UPtype, instance);
+  if (!e1_inst) {
+    LOG_E(E1AP, "got BEARER_CONTEXT_MODIFICATION_REQUEST on not established instance (%ld)\n", instance);
+    return -1;
+  }
+  
+  DevAssert(pdu != NULL);
+  DevAssert(pdu->present == E1AP_E1AP_PDU_PR_initiatingMessage);
+  DevAssert(pdu->choice.initiatingMessage->procedureCode == E1AP_ProcedureCode_id_bearerContextModification);
+  DevAssert(pdu->choice.initiatingMessage->criticality == E1AP_Criticality_reject);
+  DevAssert(pdu->choice.initiatingMessage->value.present == E1AP_InitiatingMessage__value_PR_BearerContextModificationRequest);
+
+  e1ap_bearer_setup_req_t bearerCxt = {0};
+  extract_BEARER_CONTEXT_MODIFICATION_REQUEST(pdu, &bearerCxt);
   CUUP_process_bearer_context_mod_req(&bearerCxt, instance);
   return 0;
 }
@@ -1455,6 +1433,12 @@ void cuup_task_send_sctp_association_req(instance_t instance, e1ap_setup_req_t *
   itti_send_msg_to_task(TASK_SCTP, instance, message_p);
 }
 
+void e1apCUUP_send_SETUP_REQUEST(instance_t instance) {
+  E1AP_E1AP_PDU_t pdu = {0};
+  fill_SETUP_REQUEST(instance, &pdu);
+  e1ap_encode_send(UPtype, instance, &pdu, 0, __func__);
+}
+  
 void cuup_task_handle_sctp_association_resp(instance_t instance, sctp_new_association_resp_t *sctp_new_association_resp) {
   DevAssert(sctp_new_association_resp != NULL);
   getCxtE1(UPtype, instance)->sockState = sctp_new_association_resp->sctp_state;
@@ -1489,7 +1473,6 @@ void cuup_task_handle_sctp_association_resp(instance_t instance, sctp_new_associ
   if (getCxtE1(UPtype, instance)->gtpInstN3 < 0)
     LOG_E(E1AP, "Failed to create CUUP N3 UDP listener");
   N3GTPUInst = &getCxtE1(UPtype, instance)->gtpInstN3;
-
   e1apCUUP_send_SETUP_REQUEST(instance);
 }
 

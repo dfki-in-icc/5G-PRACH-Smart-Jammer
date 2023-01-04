@@ -756,18 +756,14 @@ void fill_DRB_configList(const protocol_ctxt_t *const ctxt_pP,
   gNB_RRC_UE_t                  *ue_p = &ue_context_pP->ue_context;
   NR_DRB_ToAddModList_t        **DRB_configList  = NULL;
   NR_DRB_ToAddModList_t        **DRB_configList2 = NULL;
-  NR_SRB_ToAddModList_t        *SRB_configList  = ue_context_pP->ue_context.SRB_configList;
   int                            qos_flow_index = 0;
   int                            pdu_sessions_done = 0;
   int i;
   uint8_t drb_id_to_setup_start = 0;
   uint8_t nb_drb_to_setup = rrc->configuration.drbs;
   long drb_priority[NGAP_MAX_DRBS_PER_UE];
-  NR_CellGroupConfig_t *cellGroupConfig = NULL;
 
   uint8_t xid = rrc_gNB_get_next_transaction_identifier(ctxt_pP->module_id);
-
-  NR_SRB_ToAddModList_t **SRB_configList2 = generateSRB2_confList(ue_p, SRB_configList, xid);
 
   DRB_configList = &ue_context_pP->ue_context.DRB_configList;
   if (*DRB_configList) {
@@ -881,6 +877,7 @@ void fill_DRB_configList(const protocol_ctxt_t *const ctxt_pP,
           ASN_SEQUENCE_ADD(&(*DRB_configList)->list, DRB_config);
           ASN_SEQUENCE_ADD(&(*DRB_configList2)->list, DRB_config);
         }
+        LOG_D(RRC, "DRB Priority %ld\n", drb_priority[drb_id]); // To supress warning for now
       }
     }
 
@@ -3540,7 +3537,7 @@ static void rrc_CU_process_ue_context_modification_response(MessageDef *msg_p, c
   }
 
   // send the F1 response message up to update F1-U tunnel info
-  rrc->cucp_cuup.cucp_cuup_bearer_context_mod(&req, instance);
+  rrc->cucp_cuup.bearer_context_mod(&req, instance);
 
   NR_CellGroupConfig_t *cellGroupConfig = NULL;
 

@@ -1070,7 +1070,7 @@ rrc_gNB_process_NGAP_PDUSESSION_SETUP_REQ(
     }
   }
 
-  rrc->cucp_cuup.cucp_cuup_bearer_context_setup(&bearer_req, instance);
+  rrc->cucp_cuup.bearer_context_setup(&bearer_req, instance);
   return;
 }
 

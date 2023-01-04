@@ -100,7 +100,7 @@ static void fill_DRB_configList_e1(NR_DRB_ToAddModList_t *DRB_configList, pdu_se
   }
 }
 
-static int drb_config_N3gtpu_create(e1ap_bearer_setup_req_t *req,
+static int drb_config_N3gtpu_create(e1ap_bearer_setup_req_t * const req,
                                     gtpv1u_gnb_create_tunnel_resp_t *create_tunnel_resp,
                                     instance_t instance) {
 
@@ -108,7 +108,7 @@ static int drb_config_N3gtpu_create(e1ap_bearer_setup_req_t *req,
 
   NR_DRB_ToAddModList_t DRB_configList = {0};
   for (int i=0; i < req->numPDUSessions; i++) {
-    pdu_session_to_setup_t *pdu = &req->pduSession[i];
+    pdu_session_to_setup_t *const pdu = &req->pduSession[i];
     create_tunnel_req.pdusession_id[i] = pdu->sessionId;
     create_tunnel_req.incoming_rb_id[i] = pdu->DRBnGRanList[0].id; // taking only the first DRB. TODO:change this
     memcpy(&create_tunnel_req.dst_addr[i].buffer,
@@ -152,7 +152,7 @@ static int drb_config_N3gtpu_create(e1ap_bearer_setup_req_t *req,
   return ret;
 }
 
-void CUUP_process_e1_bearer_context_setup_req(e1ap_bearer_setup_req_t *req, instance_t instance) {
+void CUUP_process_e1_bearer_context_setup_req(e1ap_bearer_setup_req_t *const req, instance_t instance) {
 
   gtpv1u_gnb_create_tunnel_resp_t create_tunnel_resp_N3={0};
 
@@ -169,7 +169,7 @@ void CUUP_process_e1_bearer_context_setup_req(e1ap_bearer_setup_req_t *req, inst
             &my_addr);
 
   gtpInst = getCxtE1(UPtype, instance)->gtpInstF1U;
-  CU_create_UP_DL_tunnel(&resp, req, gtpInst, req->gNB_cu_cp_ue_id, remote_port, my_addr);
+  fill_e1ap_bearer_setup_resp(&resp, req, gtpInst, req->gNB_cu_cp_ue_id, remote_port, my_addr);
 
   resp.gNB_cu_cp_ue_id = req->gNB_cu_cp_ue_id;
   resp.numPDUSessions = req->numPDUSessions;
@@ -193,7 +193,7 @@ void CUUP_process_e1_bearer_context_setup_req(e1ap_bearer_setup_req_t *req, inst
   e1apCUUP_send_BEARER_CONTEXT_SETUP_RESPONSE(instance, &resp);
 }
 
-void CUUP_process_bearer_context_mod_req(e1ap_bearer_setup_req_t *req, instance_t instance) {
+void CUUP_process_bearer_context_mod_req(e1ap_bearer_setup_req_t *const req, instance_t instance) {
   instance_t gtpInst = getCxtE1(UPtype, instance)->gtpInstF1U;
   CU_update_UP_DL_tunnel(req, gtpInst, req->gNB_cu_cp_ue_id);
   // TODO: send bearer cxt mod response
