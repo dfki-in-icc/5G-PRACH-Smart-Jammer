@@ -185,12 +185,13 @@ static void cucp_cuup_bearer_context_setup_direct(e1ap_bearer_setup_req_t *const
   fill_DRB_configList(&ctxt, ue_context_p);
 
   gNB_RRC_INST *rrc = RC.nrrrc[ctxt.module_id];
+  NR_SRB_ToAddModList_t **SRB_configList2 = generateSRB2_confList(&ue_context_p->ue_context, ue_context_p->ue_context.SRB_configList, 1);
   // GTP tunnel for UL
   int ret = drb_config_gtpu_create(&ctxt,
                                    ue_context_p,
                                    req,
                                    ue_context_p->ue_context.DRB_configList,
-                                   ue_context_p->ue_context.SRB_configList,
+                                   *SRB_configList2,
                                    rrc->gtpInstN3);
   if (ret < 0) AssertFatal(false, "Unable to configure DRB or to create GTP Tunnel\n");
 

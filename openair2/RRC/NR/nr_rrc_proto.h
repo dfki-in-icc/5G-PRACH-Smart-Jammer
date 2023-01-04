@@ -44,12 +44,7 @@
 #include "NR_SecurityConfig.h"
 
 #define NR_MAX_SUPPORTED_DL_LAYERS 2
-
-int rrc_init_nr_global_param(void);
-
-void rrc_config_nr_buffer(NR_SRB_INFO* Srb_info,
-                          uint8_t Lchan_type,
-                          uint8_t Role);
+void rrc_init_nr_srb_param(NR_LCHAN_DESC *chan);
 
 uint16_t mac_rrc_nr_data_req(const module_id_t Mod_idP,
                              const int         CC_id,
@@ -104,18 +99,6 @@ int generate_CG_Config(gNB_RRC_INST *rrc,
 		       NR_RRCReconfiguration_t *reconfig,
 		       NR_RadioBearerConfig_t *rbconfig);
 
-void apply_macrlc_config(gNB_RRC_INST *rrc,
-                         rrc_gNB_ue_context_t         *const ue_context_pP,
-                         const protocol_ctxt_t        *const ctxt_pP );
-
-void
-rrc_gNB_generate_RRCSetup(
-    const protocol_ctxt_t        *const ctxt_pP,
-    rrc_gNB_ue_context_t         *const ue_context_pP,
-    const uint8_t                *masterCellGroup,
-    int                           masterCellGroup_len,
-    NR_ServingCellConfigCommon_t *scc);
-
 int parse_CG_ConfigInfo(gNB_RRC_INST *rrc, NR_CG_ConfigInfo_t *CG_ConfigInfo, x2ap_ENDC_sgnb_addition_req_t *m);
 
 void
@@ -124,10 +107,7 @@ rrc_gNB_generate_SecurityModeCommand(
   rrc_gNB_ue_context_t          *const ue_context_pP
 );
 
-				uint8_t
-rrc_gNB_get_next_transaction_identifier(
-    module_id_t gnb_mod_idP
-);
+unsigned int rrc_gNB_get_next_transaction_identifier(module_id_t gnb_mod_idP);
 
 void
 rrc_gNB_generate_UECapabilityEnquiry(

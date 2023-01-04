@@ -1112,12 +1112,7 @@ void nr_DRB_preconfiguration(ue_id_t crntiMaybeUEid)
 
   nr_pdcp_add_drbs(ctxt.enb_flag, ctxt.rntiMaybeUEid, rbconfig->drb_ToAddModList, 0, NULL, NULL, Rlc_Bearer_ToAdd_list);
 
-  nr_rrc_rlc_config_asn1_req (&ctxt,
-      (NR_SRB_ToAddModList_t *) NULL,
-      rbconfig->drb_ToAddModList,
-      rbconfig->drb_ToReleaseList,
-      (LTE_PMCH_InfoList_r9_t *) NULL,
-      Rlc_Bearer_ToAdd_list);
+  nr_rrc_rlc_config_asn1_req(&ctxt, (NR_SRB_ToAddModList_t *)NULL, rbconfig->drb_ToAddModList, NULL, (LTE_PMCH_InfoList_r9_t *)NULL, Rlc_Bearer_ToAdd_list);
 
   LOG_D(PDCP, "%s:%d: done RRC PDCP/RLC ASN1 request for UE ID/RNTI %ld\n", __FUNCTION__, __LINE__, ctxt.rntiMaybeUEid);
 }
