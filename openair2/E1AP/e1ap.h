@@ -54,6 +54,14 @@ int e1apCUUP_handle_BEARER_CONTEXT_MODIFICATION_REQUEST(instance_t instance,
 void e1apCUUP_send_BEARER_CONTEXT_SETUP_RESPONSE(instance_t instance,
                                                  e1ap_bearer_setup_resp_t *const resp);
 
+int e1apCUUP_handle_BEARER_CONTEXT_RELEASE_COMMAND(instance_t instance,
+                                                   const E1AP_E1AP_PDU_t *pdu);
+
+int e1apCUCP_handle_BEARER_CONTEXT_RELEASE_COMPLETE(instance_t instance,
+                                                    const E1AP_E1AP_PDU_t *pdu);
+
+int e1apCUUP_send_BEARER_CONTEXT_RELEASE_COMPLETE(instance_t instance, e1ap_bearer_release_cmd_t *const cmd);
+
 void *E1AP_CUUP_task(void *arg);
 
 void *E1AP_CUCP_task(void *arg);

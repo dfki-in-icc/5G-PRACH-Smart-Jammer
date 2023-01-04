@@ -199,3 +199,12 @@ void CUUP_process_bearer_context_mod_req(e1ap_bearer_setup_req_t *const req, ins
   // TODO: send bearer cxt mod response
 }
 
+void CUUP_process_bearer_release_command(e1ap_bearer_release_cmd_t *const cmd, instance_t instance) {
+  instance_t gtpInst = getCxtE1(UPtype, instance)->gtpInstN3;
+  newGtpuDeleteAllTunnels(gtpInst, cmd->gNB_cu_up_ue_id);
+  gtpInst = getCxtE1(UPtype, instance)->gtpInstF1U;
+  newGtpuDeleteAllTunnels(gtpInst, cmd->gNB_cu_up_ue_id);
+
+  e1apCUUP_send_BEARER_CONTEXT_RELEASE_COMPLETE(instance, cmd);
+}
+

@@ -152,8 +152,8 @@ typedef struct pdu_session_to_setup_s {
 } pdu_session_to_setup_t;
 
 typedef struct e1ap_bearer_setup_req_s {
-  uint64_t gNB_cu_cp_ue_id;
-  uint64_t gNB_cu_up_ue_id;
+  uint32_t gNB_cu_cp_ue_id;
+  uint32_t gNB_cu_up_ue_id;
   rnti_t   rnti;
   uint64_t cipheringAlgorithm;
   uint64_t integrityProtectionAlgorithm;
@@ -169,6 +169,13 @@ typedef struct e1ap_bearer_setup_req_s {
   int numPDUSessionsMod;
   pdu_session_to_setup_t pduSessionMod[E1AP_MAX_NUM_PDU_SESSIONS];
 } e1ap_bearer_setup_req_t;
+
+typedef struct e1ap_bearer_release_cmd_s {
+  uint32_t gNB_cu_cp_ue_id;
+  uint32_t gNB_cu_up_ue_id;
+  long cause_type;
+  long cause;
+} e1ap_bearer_release_cmd_t;
 
 typedef struct drb_setup_s {
   int drbId;

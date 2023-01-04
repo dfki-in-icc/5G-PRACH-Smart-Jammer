@@ -51,7 +51,7 @@ e1ap_message_processing_t e1ap_message_processing[E1AP_NUM_MSG_HANDLERS][3] = {
   { e1apCUUP_handle_BEARER_CONTEXT_SETUP_REQUEST, e1apCUCP_handle_BEARER_CONTEXT_SETUP_RESPONSE, e1apCUCP_handle_BEARER_CONTEXT_SETUP_FAILURE }, /* bearerContextSetup */
   { e1apCUUP_handle_BEARER_CONTEXT_MODIFICATION_REQUEST, 0, 0 }, /* bearerContextModification */
   { 0, 0, 0 }, /* bearerContextModificationRequired */
-  { 0, 0, 0 }, /* bearerContextRelease */
+  { e1apCUUP_handle_BEARER_CONTEXT_RELEASE_COMMAND, e1apCUCP_handle_BEARER_CONTEXT_RELEASE_COMPLETE, 0 }, /* bearerContextRelease */
   { 0, 0, 0 }, /* bearerContextReleaseRequired */
   { 0, 0, 0 } /* bearerContextInactivityNotification */
 };
@@ -1324,14 +1324,85 @@ int e1apCUUP_handle_BEARER_CONTEXT_MODIFICATION_CONFIRM(instance_t instance,
   BEARER CONTEXT RELEASE
 */
 
-int e1apCUCP_send_BEARER_CONTEXT_RELEASE_COMMAND(instance_t instance) {
-  AssertFatal(false,"Not implemented yet\n");
-  return -1;
+int fill_BEARER_CONTEXT_RELEASE_COMMAND(instance_t instance,
+                                        e1ap_bearer_release_cmd_t *const cmd,
+                                        E1AP_E1AP_PDU_t *pdu) {
+
+  e1ap_setup_req_t *setup = &getCxtE1(CPtype, instance)->setupReq;
+  if (!setup) {
+    LOG_E(E1AP, "got send_BEARER_CONTEXT_RELEASE_COMMAND on not established instance (%ld)\n", instance);
+    return -1;
+  }
+
+  pdu->present = E1AP_E1AP_PDU_PR_initiatingMessage;
+  asn1cCalloc(pdu->choice.initiatingMessage, msg);
+  msg->procedureCode = E1AP_ProcedureCode_id_bearerContextRelease;
+  msg->criticality   = E1AP_Criticality_reject;
+  msg->value.present = E1AP_InitiatingMessage__value_PR_BearerContextReleaseCommand;
+  E1AP_BearerContextReleaseCommand_t *out = &pdu->choice.initiatingMessage->value.choice.BearerContextReleaseCommand;
+  /* mandatory */
+  /* c1. gNB-CU-CP UE E1AP ID */
+  asn1cSequenceAdd(out->protocolIEs.list, E1AP_BearerContextReleaseCommandIEs_t, ieC1);
+  ieC1->id                         = E1AP_ProtocolIE_ID_id_gNB_CU_CP_UE_E1AP_ID;
+  ieC1->criticality                = E1AP_Criticality_reject;
+  ieC1->value.present              = E1AP_BearerContextReleaseCommandIEs__value_PR_GNB_CU_CP_UE_E1AP_ID;
+  ieC1->value.choice.GNB_CU_CP_UE_E1AP_ID = cmd->gNB_cu_cp_ue_id;
+  /* mandatory */
+  /* c2. gNB-CU-UP UE E1AP ID */
+  asn1cSequenceAdd(out->protocolIEs.list, E1AP_BearerContextReleaseCommandIEs_t, ieC2);
+  ieC2->id                         = E1AP_ProtocolIE_ID_id_gNB_CU_UP_UE_E1AP_ID;
+  ieC2->criticality                = E1AP_Criticality_reject;
+  ieC2->value.present              = E1AP_BearerContextReleaseCommandIEs__value_PR_GNB_CU_UP_UE_E1AP_ID;
+  ieC2->value.choice.GNB_CU_UP_UE_E1AP_ID = cmd->gNB_cu_cp_ue_id;
+
+  return 0;
 }
 
-int e1apCUUP_send_BEARER_CONTEXT_RELEASE_COMPLETE(instance_t instance) {
-  AssertFatal(false,"Not implemented yet\n");
-  return -1;
+int e1apCUCP_send_BEARER_CONTEXT_RELEASE_COMMAND(instance_t instance,
+                                                 e1ap_bearer_release_cmd_t *const cmd) {
+  E1AP_E1AP_PDU_t pdu = {0};
+  fill_BEARER_CONTEXT_RELEASE_COMMAND(instance, cmd, &pdu);
+  return e1ap_encode_send(CPtype, instance, &pdu, 0, __func__);
+}
+
+int fill_BEARER_CONTEXT_RELEASE_COMPLETE(instance_t instance,
+                                         e1ap_bearer_release_cmd_t *const cmd,
+                                         E1AP_E1AP_PDU_t *pdu) {
+
+  e1ap_setup_req_t *setup = &getCxtE1(CPtype, instance)->setupReq;
+  if (!setup) {
+    LOG_E(E1AP, "got send_BEARER_CONTEXT_RELEASE_COMPLETE on not established instance (%ld)\n", instance);
+    return -1;
+  }
+
+  pdu->present = E1AP_E1AP_PDU_PR_successfulOutcome;
+  asn1cCalloc(pdu->choice.successfulOutcome, msg);
+  msg->procedureCode = E1AP_ProcedureCode_id_bearerContextRelease;
+  msg->criticality   = E1AP_Criticality_reject;
+  msg->value.present = E1AP_SuccessfulOutcome__value_PR_BearerContextReleaseComplete;
+  E1AP_BearerContextReleaseComplete_t *out = &pdu->choice.successfulOutcome->value.choice.BearerContextReleaseComplete;
+  /* mandatory */
+  /* c1. gNB-CU-CP UE E1AP ID */
+  asn1cSequenceAdd(out->protocolIEs.list, E1AP_BearerContextReleaseCompleteIEs_t, ieC1);
+  ieC1->id                         = E1AP_ProtocolIE_ID_id_gNB_CU_CP_UE_E1AP_ID;
+  ieC1->criticality                = E1AP_Criticality_reject;
+  ieC1->value.present              = E1AP_BearerContextReleaseCompleteIEs__value_PR_GNB_CU_CP_UE_E1AP_ID;
+  ieC1->value.choice.GNB_CU_CP_UE_E1AP_ID = cmd->gNB_cu_cp_ue_id;
+  /* mandatory */
+  /* c2. gNB-CU-UP UE E1AP ID */
+  asn1cSequenceAdd(out->protocolIEs.list, E1AP_BearerContextReleaseCompleteIEs_t, ieC2);
+  ieC2->id                         = E1AP_ProtocolIE_ID_id_gNB_CU_UP_UE_E1AP_ID;
+  ieC2->criticality                = E1AP_Criticality_reject;
+  ieC2->value.present              = E1AP_BearerContextReleaseCompleteIEs__value_PR_GNB_CU_UP_UE_E1AP_ID;
+  ieC2->value.choice.GNB_CU_UP_UE_E1AP_ID = cmd->gNB_cu_cp_ue_id;
+
+  return 0;
+}
+
+int e1apCUUP_send_BEARER_CONTEXT_RELEASE_COMPLETE(instance_t instance, e1ap_bearer_release_cmd_t *const cmd) {
+  E1AP_E1AP_PDU_t pdu = {0};
+  fill_BEARER_CONTEXT_RELEASE_COMPLETE(instance, cmd, &pdu);
+  return e1ap_encode_send(CPtype, instance, &pdu, 0, __func__);
 }
 
 int e1apCUUP_send_BEARER_CONTEXT_RELEASE_REQUEST(instance_t instance) {
@@ -1339,20 +1410,113 @@ int e1apCUUP_send_BEARER_CONTEXT_RELEASE_REQUEST(instance_t instance) {
   return -1;
 }
 
+void extract_BEARER_CONTEXT_RELEASE_COMMAND(const E1AP_E1AP_PDU_t *pdu,
+                                            e1ap_bearer_release_cmd_t *bearerCxt) {
+  const E1AP_BearerContextReleaseCommand_t *in = &pdu->choice.initiatingMessage->value.choice.BearerContextReleaseCommand;
+  E1AP_BearerContextReleaseCommandIEs_t *ie;
+
+  LOG_I(E1AP, "Bearer context setup number of IEs %d\n", in->protocolIEs.list.count);
+
+  for (int i=0; i < in->protocolIEs.list.count; i++) {
+    ie = in->protocolIEs.list.array[i];
+
+    switch(ie->id) {
+      case E1AP_ProtocolIE_ID_id_gNB_CU_CP_UE_E1AP_ID:
+        DevAssert(ie->criticality == E1AP_Criticality_reject);
+        DevAssert(ie->value.present == E1AP_BearerContextReleaseCommandIEs__value_PR_GNB_CU_CP_UE_E1AP_ID);
+        bearerCxt->gNB_cu_cp_ue_id = ie->value.choice.GNB_CU_CP_UE_E1AP_ID;
+        break;
+
+      case E1AP_ProtocolIE_ID_id_gNB_CU_UP_UE_E1AP_ID:
+        DevAssert(ie->criticality == E1AP_Criticality_reject);
+        DevAssert(ie->value.present == E1AP_BearerContextReleaseCommandIEs__value_PR_GNB_CU_UP_UE_E1AP_ID);
+        bearerCxt->gNB_cu_up_ue_id = ie->value.choice.GNB_CU_UP_UE_E1AP_ID;
+        break;
+
+      case E1AP_ProtocolIE_ID_id_Cause:
+        DevAssert(ie->criticality == E1AP_Criticality_ignore);
+        DevAssert(ie->value.present == E1AP_BearerContextReleaseCommandIEs__value_PR_Cause);
+        bearerCxt->cause_type = ie->value.choice.Cause.present;
+        if ((ie->value.choice.Cause.present != E1AP_Cause_PR_NOTHING) &&
+            (ie->value.choice.Cause.present != E1AP_Cause_PR_choice_extension))
+          bearerCxt->cause = ie->value.choice.Cause.choice.radioNetwork;
+
+                                                 
+      default:
+        LOG_E(E1AP, "Handle for this IE is not implemented (or) invalid IE detected\n");
+        break;
+    }
+  }
+}
+
 int e1apCUUP_handle_BEARER_CONTEXT_RELEASE_COMMAND(instance_t instance,
-                                                   uint32_t assoc_id,
-                                                   uint32_t stream,
-                                                   E1AP_E1AP_PDU_t *pdu) {
-  AssertFatal(false,"Not implemented yet\n");
-  return -1;
+                                                   const E1AP_E1AP_PDU_t *pdu) {
+  e1ap_upcp_inst_t *e1_inst = getCxtE1(UPtype, instance);
+  if (!e1_inst) {
+    LOG_E(E1AP, "got BEARER_CONTEXT_RELEASE_COMMAND on not established instance (%ld)\n", instance);
+    return -1;
+  }
+  
+  DevAssert(pdu != NULL);
+  DevAssert(pdu->present == E1AP_E1AP_PDU_PR_initiatingMessage);
+  DevAssert(pdu->choice.initiatingMessage->procedureCode == E1AP_ProcedureCode_id_bearerContextRelease);
+  DevAssert(pdu->choice.initiatingMessage->criticality == E1AP_Criticality_reject);
+  DevAssert(pdu->choice.initiatingMessage->value.present == E1AP_InitiatingMessage__value_PR_BearerContextReleaseCommand);
+
+  e1ap_bearer_release_cmd_t bearerCxt = {0};
+  extract_BEARER_CONTEXT_RELEASE_COMMAND(pdu, &bearerCxt);
+  CUUP_process_bearer_release_command(&bearerCxt, instance);
+  return 0;
+}
+
+void extract_BEARER_CONTEXT_RELEASE_COMPLETE(const E1AP_E1AP_PDU_t *pdu,
+                                             e1ap_bearer_release_cmd_t *bearerCxt) {
+  const E1AP_BearerContextReleaseComplete_t *in = &pdu->choice.successfulOutcome->value.choice.BearerContextReleaseComplete;
+  E1AP_BearerContextReleaseCompleteIEs_t *ie;
+
+  LOG_I(E1AP, "Bearer context setup number of IEs %d\n", in->protocolIEs.list.count);
+
+  for (int i=0; i < in->protocolIEs.list.count; i++) {
+    ie = in->protocolIEs.list.array[i];
+
+    switch(ie->id) {
+      case E1AP_ProtocolIE_ID_id_gNB_CU_CP_UE_E1AP_ID:
+        DevAssert(ie->criticality == E1AP_Criticality_reject);
+        DevAssert(ie->value.present == E1AP_BearerContextReleaseCompleteIEs__value_PR_GNB_CU_CP_UE_E1AP_ID);
+        bearerCxt->gNB_cu_cp_ue_id = ie->value.choice.GNB_CU_CP_UE_E1AP_ID;
+        break;
+
+      case E1AP_ProtocolIE_ID_id_gNB_CU_UP_UE_E1AP_ID:
+        DevAssert(ie->criticality == E1AP_Criticality_reject);
+        DevAssert(ie->value.present == E1AP_BearerContextReleaseCompleteIEs__value_PR_GNB_CU_UP_UE_E1AP_ID);
+        bearerCxt->gNB_cu_up_ue_id = ie->value.choice.GNB_CU_UP_UE_E1AP_ID;
+        break;
+
+      default:
+        LOG_E(E1AP, "Handle for this IE is not implemented (or) invalid IE detected\n");
+        break;
+    }
+  }
 }
 
 int e1apCUCP_handle_BEARER_CONTEXT_RELEASE_COMPLETE(instance_t instance,
-                                                    uint32_t assoc_id,
-                                                    uint32_t stream,
-                                                    E1AP_E1AP_PDU_t *pdu) {
-  AssertFatal(false,"Not implemented yet\n");
-  return -1;
+                                                    const E1AP_E1AP_PDU_t *pdu) {
+  e1ap_upcp_inst_t *e1_inst = getCxtE1(UPtype, instance);
+  if (!e1_inst) {
+    LOG_E(E1AP, "got BEARER_CONTEXT_RELEASE_COMPLETE on not established instance (%ld)\n", instance);
+    return -1;
+  }
+  
+  DevAssert(pdu != NULL);
+  DevAssert(pdu->present == E1AP_E1AP_PDU_PR_successfulOutcome);
+  DevAssert(pdu->choice.successfulOutcome->procedureCode == E1AP_ProcedureCode_id_bearerContextRelease);
+  DevAssert(pdu->choice.successfulOutcome->criticality == E1AP_Criticality_reject);
+  DevAssert(pdu->choice.successfulOutcome->value.present == E1AP_SuccessfulOutcome__value_PR_BearerContextReleaseComplete);
+
+  e1ap_bearer_release_cmd_t bearerCxt = {0};
+  extract_BEARER_CONTEXT_RELEASE_COMPLETE(pdu, &bearerCxt);
+  //TODO: CUCP_process_bearer_release_complete(&beareCxt, instance);
+  return 0;
 }
 
 int e1apCUCP_handle_BEARER_CONTEXT_RELEASE_REQUEST(instance_t instance,
