@@ -61,21 +61,23 @@ Once could take an exisiting CU configuration file and add the above parameters 
 
 The CUUP uses the IP address specified in `ipv4_cuup` for F1-U and `GNB_IPV4_ADDRESS_FOR_NGU` for N3 links. Note that `GNB_IPV4_ADDRESS_FOR_NGU` is part of the `NETWORK_INTERFACES` config member and should be present in any gNB config file.  
 
-Alternatively, you can use the config files `ci-scripts/conf_files/gNB_SA_CU_cp.conf` and `ci-scripts/conf_files/gNB_SA_CU_up.conf` which are already in the repository.
+Alternatively, you can use the config files `ci-scripts/conf_files/gnb-cucp.sa.conf` and `ci-scripts/conf_files/gnb-cuup.sa.conf` which are already in the repository.
 
 ## 2.2 Steps to Run the Split in rfsimulator with OAI UE
 Note: A 5G core must be running at this point. Steps to start the OAI 5G core can be found [here](https://gitlab.eurecom.fr/oai/cn5g/oai-cn5g-fed/-/blob/master/docs/DEPLOY_HOME.md).
-1. We start the CUCP first by running the following command ```sudo ./nr-softmodem -O ../../../ci-scripts/conf_files/gNB_SA_CU_cp.conf --gNBs.[0].min_rxtxtime 6 --rfsim --sa```
+1. We start the CUCP first by running the following command ```sudo ./nr-softmodem -O ../../../ci-scripts/conf_files/gnb-cucp.sa.conf --gNBs.[0].min_rxtxtime 6 --rfsim --sa```
 
 Note that `min_rxtxtime` should be set to `6` only when you are connecting an OAI UE to the gNB. And `--rfsim` if you are running the test with rfsimulator.
 
 2. We start the CUUP and DU (in any order)
-CUUP:```sudo ./nr-softmodem -O ../../../ci-scripts/conf_files/gNB_SA_CU_up.conf --rfsim --sa```
+CUUP (has its own executable):```sudo ./cu-up -O ../../../ci-scripts/conf_files/gnb-cuup.sa.conf --rfsim --sa```
 DU:```sudo ./nr-softmodem -O ../../../ci-scripts/conf_files/gNB_SA_DU.conf --rfsim --sa```
 
 3. Start OAI UE or COTS UE.
 OAI UE: ```sudo RFSIMULATOR=127.0.0.1 ./nr-uesoftmodem -r 106 --numerology 1 --band 78 -C 3619200000 --nokrnmod --rfsim --sa```
 
 4. Open wireshark to verify the E1AP messages.
+
+**Note**: There is no bearer context release procedure for E1AP implemented at the time of writing this.
 
 You can also run the nodes on different machines. If you do so please change the `ipv4_cucp` and `ipv4_cuup` interfaces accordingly and make sure the interfaces are reachable.
