@@ -718,6 +718,15 @@ void read_mac_sm(mac_ind_msg_t* data)
     rd->dl_mcs2 = 0;
     rd->ul_mcs2 = 0;
     rd->phr = sched_ctrl->ph;
+
+    // the OAI brance used in this release of felxric have a  know problem with the phr
+    //  this is a hotfix to avoid any crush at flexric level later 
+    if (rd->phr > 40){
+      rd->phr = 40;
+    }
+    if(rd->phr < -39){
+      rd->phr = -39;
+    }
     // rd->phr = 40;
 
     // getting the ngap id of a ue 
