@@ -54,6 +54,7 @@ void set_dl_DataToUL_ACK(NR_PUCCH_Config_t *pucch_Config, int min_feedback_time,
 void set_pucch_power_config(NR_PUCCH_Config_t *pucch_Config, int do_csirs);
 void scheduling_request_config(const NR_ServingCellConfigCommon_t *scc,
                                NR_PUCCH_Config_t *pucch_Config);
+void config_csi_codebook(const rrc_pdsch_AntennaPorts_t *antennaports, const int max_layers, struct NR_CodebookConfig *codebookConfig);
 void config_rsrp_meas_report(NR_CSI_MeasConfig_t *csi_MeasConfig, const NR_ServingCellConfigCommon_t *servingcellconfigcommon, NR_PUCCH_CSI_Resource_t *pucchcsires, int do_csi, int rep_id, int uid);
 void config_csi_meas_report(NR_CSI_MeasConfig_t *csi_MeasConfig,
                             const NR_ServingCellConfigCommon_t *servingcellconfigcommon,
@@ -81,6 +82,9 @@ void config_srs(const NR_ServingCellConfigCommon_t *scc,
                 const long maxMIMO_Layers,
                 const int do_srs);
 struct NR_SetupRelease_PDSCH_Config *config_pdsch(uint64_t ssb_bitmap, int bwp_Id, int dl_antenna_ports);
+void set_dl_maxmimolayers(NR_PDSCH_ServingCellConfig_t *pdsch_servingcellconfig,
+                          const NR_ServingCellConfigCommon_t *scc,
+                          const NR_UE_NR_Capability_t *uecap);
 void set_dl_mcs_table(int scs,
                       NR_UE_NR_Capability_t *cap,
                       NR_BWP_DownlinkDedicated_t *bwp_Dedicated,

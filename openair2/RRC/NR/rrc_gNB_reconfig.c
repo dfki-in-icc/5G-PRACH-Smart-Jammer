@@ -329,9 +329,7 @@ void fill_default_secondaryCellGroup(NR_ServingCellConfigCommon_t *servingcellco
  pdsch_servingcellconfig->nrofHARQ_ProcessesForPDSCH = calloc(1, sizeof(*pdsch_servingcellconfig->nrofHARQ_ProcessesForPDSCH));
  *pdsch_servingcellconfig->nrofHARQ_ProcessesForPDSCH = NR_PDSCH_ServingCellConfig__nrofHARQ_ProcessesForPDSCH_n16;
  pdsch_servingcellconfig->pucch_Cell= NULL;
- pdsch_servingcellconfig->ext1=calloc(1,sizeof(*pdsch_servingcellconfig->ext1));
- pdsch_servingcellconfig->ext1->maxMIMO_Layers = calloc(1,sizeof(*pdsch_servingcellconfig->ext1->maxMIMO_Layers));
- *pdsch_servingcellconfig->ext1->maxMIMO_Layers = NR_MAX_SUPPORTED_DL_LAYERS;
+ set_dl_maxmimolayers(pdsch_servingcellconfig, servingcellconfigcommon, uecap);
  pdsch_servingcellconfig->ext1->processingType2Enabled = NULL;
  
  secondaryCellGroup->spCellConfig->spCellConfigDedicated->csi_MeasConfig=NULL;
@@ -411,7 +409,7 @@ void fill_default_secondaryCellGroup(NR_ServingCellConfigCommon_t *servingcellco
    pucchcsires1->uplinkBandwidthPartId = bwp->bwp_Id;
    pucchcsires1->pucch_Resource=2;
 
-   config_csi_meas_report(csi_MeasConfig, servingcellconfigcommon, pucchcsires1, bwp->bwp_Dedicated->pdsch_Config, pdschap, NR_MAX_SUPPORTED_DL_LAYERS, bwp->bwp_Id, uid);
+   config_csi_meas_report(csi_MeasConfig, servingcellconfigcommon, pucchcsires1, bwp->bwp_Dedicated->pdsch_Config, pdschap, *pdsch_servingcellconfig->ext1->maxMIMO_Layers, bwp->bwp_Id, uid);
    config_rsrp_meas_report(csi_MeasConfig, servingcellconfigcommon, pucchcsires1, do_csirs, bwp->bwp_Id + 10, uid);
  }
  secondaryCellGroup->spCellConfig->spCellConfigDedicated->sCellDeactivationTimer=NULL;

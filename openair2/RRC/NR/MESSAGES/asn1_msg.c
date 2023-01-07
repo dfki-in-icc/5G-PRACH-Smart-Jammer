@@ -788,6 +788,13 @@ void fill_initial_SpCellConfig(int uid,
   SpCellConfig->spCellConfigDedicated->pdsch_ServingCellConfig->present = NR_SetupRelease_PDSCH_ServingCellConfig_PR_setup;
   SpCellConfig->spCellConfigDedicated->pdsch_ServingCellConfig->choice.setup = pdsch_servingcellconfig;
 
+  pdsch_servingcellconfig->codeBlockGroupTransmission = NULL;
+  pdsch_servingcellconfig->xOverhead = NULL;
+  pdsch_servingcellconfig->nrofHARQ_ProcessesForPDSCH = calloc(1, sizeof(*pdsch_servingcellconfig->nrofHARQ_ProcessesForPDSCH));
+  *pdsch_servingcellconfig->nrofHARQ_ProcessesForPDSCH = NR_PDSCH_ServingCellConfig__nrofHARQ_ProcessesForPDSCH_n16;
+  pdsch_servingcellconfig->pucch_Cell = NULL;
+  set_dl_maxmimolayers(pdsch_servingcellconfig, scc, NULL);
+
   // Downlink BWPs
   int n_dl_bwp = 0;
   if (servingcellconfigdedicated &&
@@ -920,18 +927,10 @@ void fill_initial_SpCellConfig(int uid,
       csires2->resourceType = NR_CSI_ResourceConfig__resourceType_periodic;
       asn1cSeqAdd(&csi_MeasConfig->csi_ResourceConfigToAddModList->list,csires2);
 
-      config_csi_meas_report(csi_MeasConfig, scc, pucchcsires1, pdsch_Config, &configuration->pdsch_AntennaPorts, NR_MAX_SUPPORTED_DL_LAYERS, bwp_id, uid);
+      config_csi_meas_report(csi_MeasConfig, scc, pucchcsires1, pdsch_Config, &configuration->pdsch_AntennaPorts, *pdsch_servingcellconfig->ext1->maxMIMO_Layers, bwp_id, uid);
     }
     config_rsrp_meas_report(csi_MeasConfig, scc, pucchcsires1, configuration->do_CSIRS, bwp_id + 10, uid);
   }
-  pdsch_servingcellconfig->codeBlockGroupTransmission = NULL;
-  pdsch_servingcellconfig->xOverhead = NULL;
-  pdsch_servingcellconfig->nrofHARQ_ProcessesForPDSCH = calloc(1, sizeof(*pdsch_servingcellconfig->nrofHARQ_ProcessesForPDSCH));
-  *pdsch_servingcellconfig->nrofHARQ_ProcessesForPDSCH = NR_PDSCH_ServingCellConfig__nrofHARQ_ProcessesForPDSCH_n16;
-  pdsch_servingcellconfig->pucch_Cell= NULL;
-  pdsch_servingcellconfig->ext1=calloc(1,sizeof(*pdsch_servingcellconfig->ext1));
-  pdsch_servingcellconfig->ext1->maxMIMO_Layers = calloc(1,sizeof(*pdsch_servingcellconfig->ext1->maxMIMO_Layers));
-  *pdsch_servingcellconfig->ext1->maxMIMO_Layers = 2;
 
   if ( LOG_DEBUGFLAG(DEBUG_ASN1) ) {
     xer_fprint(stdout, &asn_DEF_NR_SpCellConfig, (void *)SpCellConfig);
@@ -1065,6 +1064,14 @@ void update_cellGroupConfig(NR_CellGroupConfig_t *cellGroupConfig,
   NR_ServingCellConfigCommon_t *scc = configuration ? configuration->scc : NULL;
 
   if(scc) {
+    NR_PDSCH_ServingCellConfig_t *pdsch_servingcellconfig = SpCellConfig->spCellConfigDedicated->pdsch_ServingCellConfig->choice.setup;
+    set_dl_maxmimolayers(pdsch_servingcellconfig, scc, uecap);
+
+    NR_CSI_MeasConfig_t *csi_MeasConfig = SpCellConfig->spCellConfigDedicated->csi_MeasConfig->choice.setup;
+    for (int report = 0; report < csi_MeasConfig->csi_ReportConfigToAddModList->list.count; report++) {
+      NR_CSI_ReportConfig_t *csirep = csi_MeasConfig->csi_ReportConfigToAddModList->list.array[report];
+      config_csi_codebook(&configuration->pdsch_AntennaPorts, *pdsch_servingcellconfig->ext1->maxMIMO_Layers, csirep->codebookConfig);
+    }
 
     int curr_bwp = NRRIV2BW(scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
     NR_UplinkConfig_t *uplinkConfig = SpCellConfig && SpCellConfig->spCellConfigDedicated ? SpCellConfig->spCellConfigDedicated->uplinkConfig : NULL;
@@ -1160,7 +1167,7 @@ void update_cellGroupConfig(NR_CellGroupConfig_t *cellGroupConfig,
                    configuration->do_SRS);
       }
     }
-    update_cqitables(bwp_Dedicated->pdsch_Config, SpCellConfig->spCellConfigDedicated->csi_MeasConfig->choice.setup);
+    update_cqitables(bwp_Dedicated->pdsch_Config, csi_MeasConfig);
   }
 }
 

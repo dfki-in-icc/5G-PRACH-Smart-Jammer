@@ -43,7 +43,7 @@
 #include "NR_CG-ConfigInfo.h"
 #include "NR_SecurityConfig.h"
 
-#define NR_MAX_SUPPORTED_DL_LAYERS 2
+#define NR_MAX_SUPPORTED_DL_LAYERS 4
 
 int rrc_init_nr_global_param(void);
 

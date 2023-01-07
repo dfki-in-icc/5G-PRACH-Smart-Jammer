@@ -44,13 +44,12 @@ int tables_5_3_2[5][11] = {
   {32, 66, 132, 264, -1, -1, -1, -1, -1, -1, -1}     // 120FR2
 };
 
-int get_supported_band_index(int scs, int band, int n_rbs){
+int get_supported_band_index(int scs, frequency_range_t freq_range, int n_rbs)
+{
 
-  int scs_index = scs;
-  if (band>256)
-    scs_index++;
+  int scs_index = scs + freq_range;
   for (int i=0; i<11; i++) {
-    if(n_rbs == tables_5_3_2[scs][i])
+    if(n_rbs == tables_5_3_2[scs_index][i])
       return i;
   }
   return (-1); // not found
