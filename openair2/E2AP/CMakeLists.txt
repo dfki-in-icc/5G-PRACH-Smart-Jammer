@@ -1,11 +1,11 @@
 
-set(BUILDING_LIBRARY "STATIC" CACHE STRING "Static or dynamic library")
-set_property(CACHE BUILDING_LIBRARY PROPERTY STRINGS "STATIC" "DYNAMIC")
-message(STATUS "Selected LIBRARY TYPE: ${BUILDING_LIBRARY}")
+set(E2AP_LIBRARY "STATIC" CACHE STRING "Static or dynamic library")
+set_property(CACHE E2AP_LIBRARY PROPERTY STRINGS "STATIC" "DYNAMIC")
+message(STATUS "Selected LIBRARY TYPE: ${E2AP_LIBRARY}")
 
-if(BUILDING_LIBRARY STREQUAL "STATIC")
-  add_compile_options("-W;-Wall;-Wextra;-g;-Wno-unused-result;-fopt-info;")
-elseif(BUILDING_LIBRARY STREQUAL "DYNAMIC")
+if(E2AP_LIBRARY STREQUAL "STATIC")
+  add_compile_options("-W;-Wall;-Wextra;-g;-Wno-unused-result;")
+elseif(E2AP_LIBRARY STREQUAL "DYNAMIC")
   # -fPIC flag
   set(CMAKE_POSITION_INDEPENDENT_CODE ON)
   add_compile_options("-W;-Wall;-Wextra;-g")

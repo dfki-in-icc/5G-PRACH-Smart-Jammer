@@ -1,6 +1,6 @@
-if(BUILDING_LIBRARY STREQUAL "STATIC")
+if(E2AP_LIBRARY STREQUAL "STATIC")
   set(E2_AGENT_BLD_LIB  "STATIC")
-elseif(BUILDING_LIBRARY STREQUAL "DYNAMIC")
+elseif(E2AP_LIBRARY STREQUAL "DYNAMIC")
   set(E2_AGENT_BLD_LIB  "SHARED")
 else()
   message(FATAL_ERROR "Unknown type")
@@ -44,7 +44,7 @@ if(INCL_WHAT_YOU_USE)
   set_property(TARGET e2_agent  PROPERTY C_INCLUDE_WHAT_YOU_USE ${iwyu_path})
 endif()
 
-if(${BUILDING_LIBRARY} STREQUAL "DYNAMIC" )
+if(${E2AP_LIBRARY} STREQUAL "DYNAMIC" )
   target_link_libraries(e2_agent  
                        PUBLIC  
                        -pthread 
