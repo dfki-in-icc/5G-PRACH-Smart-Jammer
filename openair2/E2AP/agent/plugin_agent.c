@@ -74,6 +74,14 @@ int is_regular_file(const char *path)
 }
 
 static
+bool file_ends_on(const char *path, size_t plen, const char *end, size_t elen)
+{
+  size_t end_start = plen - elen;
+  /* check including the terminating null byte */
+  return strncmp(&path[end_start], end, elen + 1) == 0;
+}
+
+static
 void load_all_pugin_ag(plugin_ag_t* p, const char* dir_path)
 {
   /* Scanning the in directory */
@@ -84,22 +92,27 @@ void load_all_pugin_ag(plugin_ag_t* p, const char* dir_path)
   struct dirent* in_file = readdir(fd);
   while (in_file != NULL) {
     // We don't want current and parent directories
-    if (!strcmp (in_file->d_name, ".")){
+    if (!strncmp(in_file->d_name, ".", 2)) {
       in_file = readdir(fd);
       continue;
     }
-    if (!strcmp (in_file->d_name, "..")){
+    if (!strncmp(in_file->d_name, "..", 3)) {
+      in_file = readdir(fd);
+      continue;
+    }
+    // We don't want anything that does not end on .so
+    const size_t len = strlen(in_file->d_name);
+    if (!file_ends_on(in_file->d_name, len, ".so", 3)) {
       in_file = readdir(fd);
       continue;
     }
 
-    char file_path[1024] = {0};
-    strncat(file_path, dir_path, strlen(dir_path)); 
-    strncat(file_path + strlen(dir_path), in_file->d_name, strlen(in_file->d_name)); 
+    char file_path[FILENAME_MAX] = {0};
+    strncat(file_path, dir_path, FILENAME_MAX - 1);
+    const size_t fp_len = strlen(file_path);
+    strncat(file_path + fp_len, in_file->d_name, FILENAME_MAX - fp_len - 1);
 
-    const char* needle = ".conf";
-    const char* ans = strstr(file_path, needle);
-    if(ans == NULL && is_regular_file(file_path)) // Not a Configuration file
+    if (is_regular_file(file_path))
       load_plugin_ag(p, file_path);
 
     in_file = readdir(fd);
