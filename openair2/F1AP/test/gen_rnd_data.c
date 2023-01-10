@@ -3,6 +3,7 @@
 #include "f1ap_types/freq_band.h"
 #include "f1ap_types/nr_freq_info.h"
 #include "f1ap_types/srv_cell_info.h"
+#include "f1ap_types/dl_up_tnl_info_tbs.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -1166,6 +1167,245 @@ ue_ctx_setup_request_t gen_rnd_ue_ctx_setup_request(void)
   //Optional
   //F1-C Transfer Path 9.3.1.207 
 
+
+  return dst;
+}
+
+static
+du_to_cu_rrc_information_f1ap_t gen_rnd_du_to_cu_rrc_information_f1ap(void)
+{
+  du_to_cu_rrc_information_f1ap_t dst = {0};
+
+  // Mandatory
+  // CellGroupConfig
+  dst.cell_group_config = gen_byte_array("Cell group ID");
+
+  // Optional
+  // MeasGapConfig
+  dst.meas_gap_info = NULL; 
+
+  // Optional
+  // Requested P-MaxFR1
+  dst.req_p_max_fr1 = NULL; 
+
+  // Optional
+  // DRX Long Cycle Start Offset
+  dst.drx_lng_cyc_str_off = NULL; // [0..10239]
+
+  // Optional
+  // Selected BandCombinationIndex
+  dst.bnd_comb_idx = NULL; 
+
+  // Optional
+  // Selected FeatureSetEntryIndex
+  dst.sel_feature_set_entry_idx = NULL; 
+
+  // Optional
+  // Ph-InfoSCG
+  dst.ph_info_scg = NULL; 
+
+  // Optional
+  // Requested BandCombinationIndex
+  dst.req_bnd_cmb_idx = NULL; 
+
+  // Optional
+  // Requested FeatureSetEntryIndex
+  dst.req_feat_set_entry_idx = NULL; 
+
+  // Optional
+  // DRX Config
+  dst.drx_cnfg = NULL; 
+
+  // Optional
+  // PDCCH BlindDetectionSCG
+  dst.pdcch_blind_det_scg = NULL; 
+
+  // Optional
+  // Requested PDCCH BlindDetectionSCG
+  dst.req_pdcch_blnd_det_scg = NULL; 
+
+  // Optional
+  // Ph-InfoMCG
+  dst.ph_info_mcg = NULL; 
+
+  // Optional
+  // MeasGapSharingConfig 
+  dst.meas_gap_shr_conf = NULL; 
+
+  // Optional
+  // SL-PHY-MAC-RLC-Config
+  dst.sl_phy_mac_rlc_conf = NULL; 
+
+  // Optional
+  // SL-ConfigDedicatedEUTRA-Info 
+  dst.sl_conf_dedica_eutra_info = NULL; 
+
+  // Optional
+  // Requested P-MaxFR2 
+  dst.req_p_max_fr2 = NULL; 
+
+  return dst;
+}
+
+static
+dl_up_trans_layer_info_t gen_rnd_dl_up_tnl_info_tbs(void)
+{
+  dl_up_trans_layer_info_t dst = {0};
+
+  char const ip[] = "192.168.1.1";
+
+  dst.trans_layer_addr.bits_unused = 0;
+  dst.trans_layer_addr.size = strlen(ip);
+
+  dst.trans_layer_addr.buf = calloc(1, strlen(ip));
+  assert(dst.trans_layer_addr.buf != NULL && "Memory exhausted");
+
+  memcpy(dst.trans_layer_addr.buf, ip, strlen(ip) );
+
+  uint8_t arr[4] = {0xDE, 0xAD, 0xBE, 0xEF};
+  memcpy(dst.gtp_teid, arr, 4); 
+
+  return dst;
+}
+
+static
+drb_setup_item_f1ap_t gen_rnd_drb_setup_item(void)
+{
+  drb_setup_item_f1ap_t dst = {0}; 
+ 
+  // Mandatory
+  // DRB ID 9.3.1.8
+  dst.drb_id = (rand() % 32) + 1; // [1,32]
+ 
+  // Optional
+  // LCID 9.3.1.35
+  dst.lc_id = malloc(sizeof(uint8_t) );
+  assert(dst.lc_id != NULL && "Memory exhausted");
+  *dst.lc_id = (rand() % 32) + 1; // [1, 32]
+
+
+  // DL UP TNL Information to be setup
+  dst.sz_dl_up_tnl_info_tbs = (rand() % 2) + 1; 
+  assert(dst.sz_dl_up_tnl_info_tbs > 0);
+
+  dst.dl_up_tnl_info_tbs = calloc(dst.sz_dl_up_tnl_info_tbs, sizeof(dl_up_trans_layer_info_t));
+  assert(dst.dl_up_tnl_info_tbs != NULL && "Not implemented");
+
+  for(size_t i = 0; i < dst.sz_dl_up_tnl_info_tbs; ++i){
+    dst.dl_up_tnl_info_tbs[i] = gen_rnd_dl_up_tnl_info_tbs(); 
+  }
+
+  // Additional PDCP Duplication TNL List [0,1] 9.3.2.1 
+  dst.add_pdcp_dup_tnl_lst = NULL;
+
+  // Optional
+  // Current QoS Parameters Set Index 9.3.1.123 [1,8]
+  dst.cur_qos_par_set_idx = NULL;
+
+  return dst;
+}
+
+static
+srb_setup_item_t gen_rnd_srb_setup_item(void)
+{
+  srb_setup_item_t dst = {0};
+
+  // 9.3.1.7
+  dst.srb_id = rand() % 4; // [0,3]
+
+  // 9.3.1.35
+   dst.lc_id = (rand()% 32) + 1; // [1,32]
+
+  return dst;
+}
+
+ue_ctx_setup_response_t gen_rnd_ue_ctx_setup_response(void)
+{
+  ue_ctx_setup_response_t dst = {0};
+
+  // Mandatory
+  // gNB-CU UE F1AP ID 9.3.1.4
+  dst.gnb_cu_ue_id = rand();
+
+  // Mandatory
+  // gNB-DU UE F1AP ID 9.3.1.5
+  dst.gnb_du_ue_id = rand();
+
+  // Mandatory 
+  //  DU To CU RRC Information 9.3.1.26
+  dst.du_to_cu_rrc_info = gen_rnd_du_to_cu_rrc_information_f1ap();
+
+  // Optional
+  // C-RNTI 9.3.1.32
+  dst.c_rnti = calloc(1, sizeof(uint16_t));
+  assert(dst.c_rnti != NULL && "Memory exhausted" );
+  *dst.c_rnti = rand();
+
+  // Optional
+  // Resource Coordination Transfer Container 
+  dst.res_coord_trans_cont = NULL;
+
+  // Optional
+  // Full Configuration 
+  dst.full_config = NULL;
+
+  // DRB Setup Item Iist [0, 64]
+  dst.sz_drb_setup_item = 1; //rand() % 65;
+  if(dst.sz_drb_setup_item > 0){
+    dst.drb_setup_item = calloc(dst.sz_drb_setup_item, sizeof(drb_setup_item_f1ap_t));
+    assert( dst.drb_setup_item != NULL && "Memory exhausted");
+  }
+  for(size_t i = 0; i < dst.sz_drb_setup_item; ++i){
+    dst.drb_setup_item[i] = gen_rnd_drb_setup_item(); 
+  }
+
+  // SRB Failed to Setup List [0,8]
+  dst.sz_srb_failed_setup_item = 0;  
+  dst.srb_failed_setup_item = NULL;
+
+  // DRB Failed to Setup List [0, 64]
+  dst.sz_drb_failed_setup_item = 0;  
+  dst.drb_failed_setup_item = NULL;
+
+  // SCell Failed To Setup List [0, 32]
+  dst.scell_failed_setup_item = NULL;
+
+  // Optional
+  // Inactivity Monitoring Response
+  dst.inactivity_mon_response = NULL;
+
+  // Optional
+  // Criticality Diagnostics 9.3.1.3
+  dst.crit_diagn = NULL;
+
+  // SRB Setup List [0, 8]
+  dst.sz_srb_setup_item = rand() % 9;  
+  if(dst.sz_srb_setup_item > 0){
+    dst.srb_setup_item = calloc(dst.sz_srb_setup_item, sizeof(srb_setup_item_t) );
+    assert(dst.srb_setup_item != NULL && "Memory exhausted" );
+  }
+  for(size_t i = 0; i < dst.sz_srb_setup_item; ++i){
+    dst.srb_setup_item[i] = gen_rnd_srb_setup_item();
+  }
+
+
+  // BH RLC Channel Setup List [0,1]
+  // 9.3.1.113
+  dst.bh_rlc_setup_lst = NULL;
+
+  // BH RLC Channel Failed to be Setup List
+  dst.bh_rlc_chn_failed_tbs_lst = NULL;
+
+  // SL DRB Setup List
+  // 9.3.1.120
+  dst.sl_drb_setup_lst = NULL;// [1, 512]
+
+  // SL DRB Failed To Setup List
+  dst.sl_drb_failed_to_setup_lst = NULL;  
+
+  // Optional
+  // Requested Target Cell ID 9.3.1.12 
+  dst.req_target_cell_id = NULL;
 
   return dst;
 }

@@ -32,18 +32,14 @@
 #include "../../../cmake_targets/ran_build/build/CMakeFiles/F1AP_R16.3.1/F1AP_NonDynamic5QIDescriptor.h"
 #include "../../../cmake_targets/ran_build/build/CMakeFiles/F1AP_R16.3.1/F1AP_Dynamic5QIDescriptor.h"
 #include "../../../cmake_targets/ran_build/build/CMakeFiles/F1AP_R16.3.1/F1AP_AdditionalPDCPDuplicationTNL-Item.h"
-
 #include "../../../cmake_targets/ran_build/build/CMakeFiles/F1AP_R16.3.1/F1AP_EUTRANQoS.h"
-
-
 #include "../../../cmake_targets/ran_build/build/CMakeFiles/F1AP_R16.3.1/F1AP_UnsuccessfulOutcome.h"
-
 #include "../../../cmake_targets/ran_build/build/CMakeFiles/F1AP_R16.3.1/F1AP_CriticalityDiagnostics-IE-List.h"
-
 #include "../../../cmake_targets/ran_build/build/CMakeFiles/F1AP_R16.3.1/F1AP_CriticalityDiagnostics-IE-Item.h"
+#include "../../../cmake_targets/ran_build/build/CMakeFiles/F1AP_R16.3.1/F1AP_SibtypetobeupdatedListItem.h"
+#include "../../../cmake_targets/ran_build/build/CMakeFiles/F1AP_R16.3.1/F1AP_DLUPTNLInformation-ToBeSetup-Item.h"
 
 #include "../../../openair3/UTILS/conversions.h"
-
 
 typedef struct{
  activate_cell_t* cell; 
@@ -101,6 +97,7 @@ BIT_STRING_t copy_bit_string(BIT_STRING_t const* src)
   return dst;
 }
 
+
 uint8_t cp_trans_id_ir(F1AP_F1SetupRequestIEs_t const* ie)
 {
   assert(ie->id == F1AP_ProtocolIE_ID_id_TransactionID);
@@ -111,6 +108,7 @@ uint8_t cp_trans_id_ir(F1AP_F1SetupRequestIEs_t const* ie)
   return ie->value.choice.TransactionID;
 }
 
+static
 uint64_t cp_gnb_du_id_ir(F1AP_F1SetupRequestIEs_t const* ie)
 {
   assert(ie->id == F1AP_ProtocolIE_ID_id_gNB_DU_ID);
@@ -120,23 +118,25 @@ uint64_t cp_gnb_du_id_ir(F1AP_F1SetupRequestIEs_t const* ie)
   uint64_t tmp = 0;
   int const rc = asn_INTEGER2ulong(&ie->value.choice.GNB_DU_ID, &tmp);
   assert(rc == 0);
-  assert(tmp < (1UL << 36) && "Should not have more than 36 bits");
+  assert(tmp < (1ul << 36) && "should not have more than 36 bits");
 
   return tmp;
 }
 
+static
 byte_array_t* cp_gnb_du_name_ir(F1AP_F1SetupRequestIEs_t const* ie)
 {
   assert(ie->criticality == F1AP_Criticality_ignore);
-  assert(ie->value.present == F1AP_F1SetupRequestIEs__value_PR_GNB_DU_Name);
+  assert(ie->value.present ==  F1AP_F1SetupRequestIEs__value_PR_GNB_DU_Name);
   byte_array_t* dst = calloc(1, sizeof(byte_array_t));
-  assert(dst != NULL && "Memory exhausted");
+  assert(dst != NULL && "memory exhausted");
   *dst = copy_ostring_to_ba(ie->value.choice.GNB_DU_Name);
 
   return dst;
 }
 
-s_nssai_arr_t cp_tai_slice_sup_lst_ir(F1AP_ServedPLMNs_ItemExtIEs_t  const* src)
+static
+s_nssai_arr_t cp_tai_slice_sup_lst_ir(F1AP_ServedPLMNs_ItemExtIEs_t const* src)
 {
   s_nssai_arr_t dst = {0}; 
 
@@ -148,7 +148,7 @@ s_nssai_arr_t cp_tai_slice_sup_lst_ir(F1AP_ServedPLMNs_ItemExtIEs_t  const* src)
   size_t const sz = src_slice_sup_lst->list.count;
   dst.len = sz; 
   dst.tai_slice_sup_lst = calloc(sz, sizeof(s_nssai_t));
-  assert( dst.tai_slice_sup_lst != NULL && "Memory exhausted");
+  assert( dst.tai_slice_sup_lst != NULL && "memory exhausted");
 
   for(size_t i = 0; i < sz; ++i){
     F1AP_SliceSupportItem_t const* src_tai_ss = src_slice_sup_lst->list.array[i]; 
@@ -159,7 +159,7 @@ s_nssai_arr_t cp_tai_slice_sup_lst_ir(F1AP_ServedPLMNs_ItemExtIEs_t  const* src)
 
     if(src_tai_ss->sNSSAI.sD != NULL){
       dst_tai_ss->sd = calloc(1, sizeof(byte_array_t) );
-      assert(dst_tai_ss->sd != NULL && "Memory exhausted");
+      assert(dst_tai_ss->sd != NULL && "memory exhausted");
       *dst_tai_ss->sd = copy_ostring_to_ba(*src_tai_ss->sNSSAI.sD);
     }
   }
@@ -167,18 +167,19 @@ s_nssai_arr_t cp_tai_slice_sup_lst_ir(F1AP_ServedPLMNs_ItemExtIEs_t  const* src)
   return dst;
 }
 
+static
 srv_plmn_f1ap_t cp_srv_plmn_ir(F1AP_ServedPLMNs_Item_t const* src_srv_plmn)
 {
   srv_plmn_f1ap_t dst = {0};
 
   // mandatory 
-  // PLMN Identity 9.3.1.14 
+  // plmn identity 9.3.1.14 
   plmn_f1ap_t* dst_plmn_id = &dst.plmn_id;
   F1AP_PLMN_Identity_t const* src_plmn_id = &src_srv_plmn->pLMN_Identity; 
   TBCD_TO_MCC_MNC(src_plmn_id, dst_plmn_id->mcc,  dst_plmn_id->mnc,  dst_plmn_id->mnc_digit_len);
 
   // optional 9.3.1.37 
-  // TAI Slice support list  
+  // tai slice support list  
   if(src_srv_plmn->iE_Extensions != NULL){
     s_nssai_arr_t tmp = cp_tai_slice_sup_lst_ir( ((F1AP_ProtocolExtensionContainer_154P34_t const*)src_srv_plmn->iE_Extensions)->list.array[0]);
     dst.tai_slice_sup_lst = tmp.tai_slice_sup_lst;
@@ -186,150 +187,151 @@ srv_plmn_f1ap_t cp_srv_plmn_ir(F1AP_ServedPLMNs_Item_t const* src_srv_plmn)
   }
 
   // optional
-  // NPN Support Information
+  // npn support information
 
   // optional
-  // Extended TAI Slice Support Lis
+  // extended tai slice support lis
 
   return dst;
 }
 
-
-
-nr_freq_info_f1ap_t cp_frq_info_ir(F1AP_NRFreqInfo_t	const* src)
+static
+nr_freq_info_f1ap_t cp_frq_info_ir(F1AP_NRFreqInfo_t const* src)
 {
   assert(src != NULL);
 
   nr_freq_info_f1ap_t dst = {0}; 
 
 
-  // Mandatory
-  // NR ARFCN
+  // mandatory
+  // nr arfcn
   assert(src->nRARFCN < 3279165 + 1);
   dst.nr_arfcn = src->nRARFCN; 
 
-  // Optional
-  // 1.2. SUL Information
-  assert(src->sul_Information == NULL && "Not implemented");
+  // optional
+  // 1.2. sul information
+  assert(src->sul_Information == NULL && "not implemented");
 
   // mandatory
-  // 1.3 Frequency Band List
+  // 1.3 frequency band list
   assert(src->freqBandListNr.list.count < 33);
   dst.sz_frq_band = src->freqBandListNr.list.count; 
 
   dst.frq_band = calloc(dst.sz_frq_band, sizeof(freq_band_f1ap_t) );
-  assert(dst.frq_band != NULL && "Memory exhausted" );
+  assert(dst.frq_band != NULL && "memory exhausted" );
 
   for(int i = 0; i < dst.sz_frq_band; ++i){
     F1AP_FreqBandNrItem_t const* src_frq = src->freqBandListNr.list.array[i];
     freq_band_f1ap_t* dst_frq = &dst.frq_band[i]; 
 
     // mandatory
-    // 1.3.1 freqBandIndicatorNr 
+    // 1.3.1 freqbandindicatornr 
     assert(src_frq->freqBandIndicatorNr < 1025);
     dst_frq->frq_band = src_frq->freqBandIndicatorNr;
 
     // optional
-    /* 1.3.2 supportedSULBandList*/
+    /* 1.3.2 supportedsulbandlist*/
     if(src_frq->supportedSULBandList.list.count > 0){
       assert(src_frq->supportedSULBandList.list.count < 33);
       dst_frq->sz_sul_band = src_frq->supportedSULBandList.list.count; 
       dst_frq->sul_band = calloc(dst_frq->sz_sul_band, sizeof(uint16_t)); 
-      assert( dst_frq->sul_band != NULL && "Memory exhausted" );
+      assert( dst_frq->sul_band != NULL && "memory exhausted" );
 
       for(int j = 0; j < dst_frq->sz_sul_band; ++j ){
         assert(src_frq->supportedSULBandList.list.array[j]->freqBandIndicatorNr < 1025);
         // mandatory
-        // TDD.1.3.2.1 freqBandIndicatorNr 
+        // tdd.1.3.2.1 freqbandindicatornr 
         dst_frq->sul_band[j] = src_frq->supportedSULBandList.list.array[j]->freqBandIndicatorNr; 
       }
     }
 
     // optional
-    // Frequency Shift 7p5khz
-    assert(src->iE_Extensions == NULL && "Not implemented" );
+    // frequency shift 7p5khz
+    assert(src->iE_Extensions == NULL && "not implemented" );
   }
 
   return dst;
 }
 
-
+static
 trans_bw_f1ap_t cp_trans_bw_ir(F1AP_Transmission_Bandwidth_t const* src)
 {
   assert(src != NULL);
 
   trans_bw_f1ap_t dst = {0}; 
 
-  // Mandatory
-  // NR SCS
+  // mandatory
+  // nr scs
   dst.nr_scs = src->nRSCS;
   
-  // Mandatory
-  // NRB
+  // mandatory
+  // nrb
   dst.n_rb = src->nRNRB;
 
   return dst;
 }
 
-fdd_info_f1ap_t cp_fdd_info_ir(F1AP_FDD_Info_t	const* src)
+static
+fdd_info_f1ap_t cp_fdd_info_ir(F1AP_FDD_Info_t const* src)
 {
   fdd_info_f1ap_t dst = {0}; 
 
-  // Mandatory
-  // UL FreqInfo
+  // mandatory
+  // ul freqinfo
   dst.ul_frq_info = cp_frq_info_ir(&src->uL_NRFreqInfo);
 
-  // Mandatory
-  // DL FreqInfo
+  // mandatory
+  // dl freqinfo
   dst.dl_frq_info = cp_frq_info_ir(&src->dL_NRFreqInfo);
 
-  // Mandatory
-  // UL Transmission Bandwidth
+  // mandatory
+  // ul transmission bandwidth
   dst.ul_bw = cp_trans_bw_ir(&src->uL_Transmission_Bandwidth);
 
-  // Mandatory
-  // DL Transmission Bandwidth
+  // mandatory
+  // dl transmission bandwidth
   dst.dl_bw = cp_trans_bw_ir(&src->dL_Transmission_Bandwidth);
 
-  // Optional
-  //UL Carrier List
-  assert(src->iE_Extensions == NULL && "Not implemented");
+  // optional
+  //ul carrier list
+  assert(src->iE_Extensions == NULL && "not implemented");
 
-  // Optional
-  // DL Carrier List
-  assert(src->iE_Extensions == NULL && "Not implemented");
+  // optional
+  // dl carrier list
+  assert(src->iE_Extensions == NULL && "not implemented");
 
   return dst;
 }
 
-tdd_info_f1ap_t cp_tdd_info_ir(F1AP_TDD_Info_t	const* src)
+static
+tdd_info_f1ap_t cp_tdd_info_ir(F1AP_TDD_Info_t const* src)
 {
   tdd_info_f1ap_t dst = {0}; 
 
-  // Mandatory
-  // NR FreqInfo
+  // mandatory
+  // nr freqinfo
   dst.freq_info = cp_frq_info_ir(&src->nRFreqInfo); 
 
-  // Mandatory
-  // Transmission Bandwidth
+  // mandatory
+  // transmission bandwidth
   dst.bw = cp_trans_bw_ir(&src->transmission_Bandwidth);
 
   // optional
-  // Intended TDD DL-UL Configuration
-  assert(src->iE_Extensions == NULL && "Not implemented");
+  // intended tdd dl-ul configuration
+  assert(src->iE_Extensions == NULL && "not implemented");
 
   // optional
-  // TDD UL-DL Configuration Common NR
-  assert(src->iE_Extensions == NULL && "Not implemented");
+  // tdd ul-dl configuration common nr
+  assert(src->iE_Extensions == NULL && "not implemented");
 
   // optional
-  // Carrier List
-  assert(src->iE_Extensions == NULL && "Not implemented");
+  // carrier list
+  assert(src->iE_Extensions == NULL && "not implemented");
 
   return dst;
 }
 
-
+static
 srv_cell_info_t cp_srv_cell_info_ir(F1AP_Served_Cell_Information_t const* src_srv_cell_info)
 {
   assert( src_srv_cell_info != NULL);
@@ -337,18 +339,18 @@ srv_cell_info_t cp_srv_cell_info_ir(F1AP_Served_Cell_Information_t const* src_sr
   srv_cell_info_t dst = {0};
 
   // mandatory
-  // NR CGI
+  // nr cgi
   TBCD_TO_MCC_MNC(&src_srv_cell_info->nRCGI.pLMN_Identity, dst.nr_cgi.plmn_id.mcc, dst.nr_cgi.plmn_id.mnc, dst.nr_cgi.plmn_id.mnc_digit_len);
   BIT_STRING_TO_NR_CELL_IDENTITY(&src_srv_cell_info->nRCGI.nRCellIdentity, dst.nr_cgi.nr_cell_id);
-  assert(dst.nr_cgi.nr_cell_id < (1UL << 36) );
+  assert(dst.nr_cgi.nr_cell_id < (1ul << 36) );
 
   // mandatory 
-  // NR PCI 
+  // nr pci 
   assert(src_srv_cell_info->nRPCI < 1008); 
   dst.nr_pci = src_srv_cell_info->nRPCI;
 
   // optional 
-  // - fiveGS_TAC 
+  // - fivegs_tac 
   if(src_srv_cell_info->fiveGS_TAC != NULL) {
       assert(src_srv_cell_info->fiveGS_TAC->size == 3);
       dst.five_gs_tac = malloc(sizeof(uint32_t));
@@ -357,16 +359,16 @@ srv_cell_info_t cp_srv_cell_info_ir(F1AP_Served_Cell_Information_t const* src_sr
   }
 
     // optional 
-    // - Configured_EPS_TAC 
+    // - configured_EPS_TAC 
   if(src_srv_cell_info->configured_EPS_TAC != NULL){
     assert(src_srv_cell_info->configured_EPS_TAC->size == 2);
     dst.eps_tac = malloc(sizeof(uint16_t));
-    assert(dst.eps_tac != NULL && "Memory exhausted");
+    assert(dst.eps_tac != NULL && "memory exhausted");
     *dst.eps_tac = cp_ostring_to_uint16(*src_srv_cell_info->configured_EPS_TAC);
   } 
 
     // mandatory 
-    // servedPLMN information 
+    // servedplmn information 
     size_t const sz_srv_plmn = src_srv_cell_info->servedPLMNs.list.count;
     assert(sz_srv_plmn > 0);
     dst.sz_srv_plmn = sz_srv_plmn; 
@@ -379,7 +381,7 @@ srv_cell_info_t cp_srv_cell_info_ir(F1AP_Served_Cell_Information_t const* src_sr
     }
 
     // mandatory
-    // CHOICE NR-Mode-Info
+    // choice nr-mode-info
   assert(src_srv_cell_info->nR_Mode_Info.present == F1AP_NR_Mode_Info_PR_fDD ||  src_srv_cell_info->nR_Mode_Info.present == F1AP_NR_Mode_Info_PR_tDD);
 
   dst.nr_mode_info = src_srv_cell_info->nR_Mode_Info.present == F1AP_NR_Mode_Info_PR_fDD ? FDD_NR_MODE_INFO_F1AP : TDD_NR_MODE_INFO_F1AP;
@@ -387,64 +389,65 @@ srv_cell_info_t cp_srv_cell_info_ir(F1AP_Served_Cell_Information_t const* src_sr
 
   if(dst.nr_mode_info == FDD_NR_MODE_INFO_F1AP )
    dst.fdd = cp_fdd_info_ir(src_srv_cell_info->nR_Mode_Info.choice.fDD);
-  else // TDD_NR_MODE_INFO_F1AP
+  else // tdd_nr_mode_info_f1ap
    dst.tdd = cp_tdd_info_ir(src_srv_cell_info->nR_Mode_Info.choice.tDD);
 
   // mandatory
-  // Measurement Timing Configuration
+  // measurement timing configuration
   dst.meas_timing_conf = copy_ostring_to_ba(src_srv_cell_info->measurementTimingConfiguration);
 
   // optional
-  // RAN Area Code
-  assert(src_srv_cell_info->iE_Extensions == NULL && "Not implemented");
+  // ran area code
+  assert(src_srv_cell_info->iE_Extensions == NULL && "not implemented");
 
   // optional
-  // Extended Served PLMNs Item
-  assert(src_srv_cell_info->iE_Extensions == NULL && "Not implemented");
+  // extended served plmns item
+  assert(src_srv_cell_info->iE_Extensions == NULL && "not implemented");
 
   // optional
-  // Cell Direction
-  assert(src_srv_cell_info->iE_Extensions == NULL && "Not implemented");
+  // cell direction
+  assert(src_srv_cell_info->iE_Extensions == NULL && "not implemented");
 
   // optional
-  // Cell Type
-  assert(src_srv_cell_info->iE_Extensions == NULL && "Not implemented");
+  // cell type
+  assert(src_srv_cell_info->iE_Extensions == NULL && "not implemented");
 
   // optional
-  // Broadcast PLMN Identity Info List
-  assert(src_srv_cell_info->iE_Extensions == NULL && "Not implemented");
+  // broadcast plmn identity info list
+  assert(src_srv_cell_info->iE_Extensions == NULL && "not implemented");
 
   // optional
-  // Configured TAC Indication
-  assert(src_srv_cell_info->iE_Extensions == NULL && "Not implemented");
+  // configured tac indication
+  assert(src_srv_cell_info->iE_Extensions == NULL && "not implemented");
 
   // optional
-  //  Aggressor gNB Set ID
-  assert(src_srv_cell_info->iE_Extensions == NULL && "Not implemented");
+  //  aggressor gnb set id
+  assert(src_srv_cell_info->iE_Extensions == NULL && "not implemented");
 
   // optional
-  //  Victim gNB Set ID
-  assert(src_srv_cell_info->iE_Extensions == NULL && "Not implemented");
+  //  victim gnb set id
+  assert(src_srv_cell_info->iE_Extensions == NULL && "not implemented");
 
   // optional
-  //  IAB Info IAB-DU
-  assert(src_srv_cell_info->iE_Extensions == NULL && "Not implemented");
+  //  iab info iab-du
+  assert(src_srv_cell_info->iE_Extensions == NULL && "not implemented");
 
   // optional
-  // SSB Positions In Burst
-  assert(src_srv_cell_info->iE_Extensions == NULL && "Not implemented");
+  // ssb positions in burst
+  assert(src_srv_cell_info->iE_Extensions == NULL && "not implemented");
 
   //optional
-  //NR PRACH Configuration
-  assert(src_srv_cell_info->iE_Extensions == NULL && "Not implemented");
+  //nr prach configuration
+  assert(src_srv_cell_info->iE_Extensions == NULL && "not implemented");
 
   //optional
-  //SFN Offset
-  assert(src_srv_cell_info->iE_Extensions == NULL && "Not implemented");
+  //sfn offset
+  assert(src_srv_cell_info->iE_Extensions == NULL && "not implemented");
 
   return dst;
 }
 
+static
 gnb_du_srv_cell_f1ap_t cp_srv_cell_ir(F1AP_GNB_DU_Served_Cells_ItemIEs_t const* src_srv_cell)
 {
   assert(src_srv_cell->id == F1AP_ProtocolIE_ID_id_GNB_DU_Served_Cells_Item);
@@ -454,18 +457,16 @@ gnb_du_srv_cell_f1ap_t cp_srv_cell_ir(F1AP_GNB_DU_Served_Cells_ItemIEs_t const* 
   gnb_du_srv_cell_f1ap_t dst_srv_cell = {0};
   
   // mandatory 
-  // 4.1.1 served cell Information 
+  // 4.1.1 served cell information 
   dst_srv_cell.srv_cell_info = cp_srv_cell_info_ir(&src_srv_cell->value.choice.GNB_DU_Served_Cells_Item.served_Cell_Information);
 
   // optional 
-  // gNB-DU System Information
+  // gnb-du system information
 
   return dst_srv_cell; 
 }
 
-
-
-
+static
 srv_cell_span_t cp_srv_cell_array_ir(F1AP_F1SetupRequestIEs_t const* ie)
 {
   assert(ie->criticality == F1AP_Criticality_reject);
@@ -477,7 +478,7 @@ srv_cell_span_t cp_srv_cell_array_ir(F1AP_F1SetupRequestIEs_t const* ie)
   srv_cell_span_t dst = {0};
   dst.sz_srv_cell = sz;
   dst.srv_cell = calloc(sz, sizeof(gnb_du_srv_cell_f1ap_t));
-  assert(dst.srv_cell != NULL && "Memory exhausted");
+  assert(dst.srv_cell != NULL && "memory exhausted");
 
   for(size_t i = 0; i < sz; ++i){
     // mandatory 
@@ -486,13 +487,14 @@ srv_cell_span_t cp_srv_cell_array_ir(F1AP_F1SetupRequestIEs_t const* ie)
     dst.srv_cell[i] = cp_srv_cell_ir(src_srv_cell);
 
     // optional
-    // gNB-DU System Information
-    // Not implemented 
+    // gnb-du system information
+    // not implemented 
   }
 
   return dst; 
 } 
 
+static
 gnb_rrc_ver_f1ap_t cp_ver_ir(F1AP_RRC_Version_t const* src)
 {
   assert(src != NULL);
@@ -501,20 +503,21 @@ gnb_rrc_ver_f1ap_t cp_ver_ir(F1AP_RRC_Version_t const* src)
   dst.latest_rrc_version = copy_bit_string(&src->latest_RRC_Version);
 
   // optional
-  // Latest RRC Version Enhanced
+  // latest rrc version enhanced
 
   return dst;
 }
 
-sib_t cp_sib_ir(struct F1AP_SibtypetobeupdatedListItem const* src)
+static
+sib_t cp_sib_ir(F1AP_SibtypetobeupdatedListItem_t const* src)
 {
   assert(src != NULL);
 
   sib_t dst = {0};
 
-  // Type: indicates a certain SIB block,
-  // e.g. 2 means sibType2, 3 for
-  // sibType3, etc. Values 6, 7, 8
+  // type: indicates a certain sib block,
+  // e.g. 2 means sibtype2, 3 for
+  // sibtype3, etc. values 6, 7, 8
   // and values 10 and higher are
   // not applicable in this version
   // of the specifications.
@@ -527,7 +530,7 @@ sib_t cp_sib_ir(struct F1AP_SibtypetobeupdatedListItem const* src)
 
   // mandatory
   assert(src->valueTag < 32);
-  dst.tag = src->valueTag; // INTEGER (0..31, ...)
+  dst.tag = src->valueTag; // integer (0..31, ...)
 
   // optional
   //sib_area_scope_t* area_scope;
@@ -535,6 +538,7 @@ sib_t cp_sib_ir(struct F1AP_SibtypetobeupdatedListItem const* src)
   return dst;
 }
 
+static
 gnb_cu_sys_info_t cp_gnb_cu_system_info_ir(F1AP_ProtocolExtensionContainer_154P46_t const* src)
 {
   assert(src != NULL);
@@ -543,25 +547,25 @@ gnb_cu_sys_info_t cp_gnb_cu_system_info_ir(F1AP_ProtocolExtensionContainer_154P4
 
   assert(src->list.count == 1);
 
-  F1AP_Cells_to_be_Activated_List_ItemExtIEs_t const* src_it = src->list.array[0];
+ F1AP_Cells_to_be_Activated_List_ItemExtIEs_t const* src_it = src->list.array[0];
 
   assert(src_it->id == F1AP_ProtocolIE_ID_id_gNB_CUSystemInformation);
   assert(src_it->criticality == F1AP_Criticality_reject);
   assert(src_it->extensionValue.present == F1AP_Cells_to_be_Activated_List_ItemExtIEs__extensionValue_PR_GNB_CUSystemInformation);
 
   F1AP_GNB_CUSystemInformation_t const* src_info	= &src_it->extensionValue.choice.GNB_CUSystemInformation;
-  assert(src_info->sibtypetobeupdatedlist.list.count > 0 && src_info->sibtypetobeupdatedlist.list.count < 33 && "Out of range" );
+  assert(src_info->sibtypetobeupdatedlist.list.count > 0 && src_info->sibtypetobeupdatedlist.list.count < 33 && "out of range" );
 
   dst.len = src_info->sibtypetobeupdatedlist.list.count;
   dst.sib = calloc(dst.len, sizeof(sib_t) );
-  assert(dst.sib != NULL && "Memory exhausted");
+  assert(dst.sib != NULL && "memory exhausted");
 
   for(int i = 0; i < dst.len; ++i){
      dst.sib[i] = cp_sib_ir(src_info->sibtypetobeupdatedlist.list.array[i] ); 
   }
 
-  // Optional
-  //  assert(src->id == NULL && "Not implemented");
+  // optional
+  //  assert(src->id == NULL && "not implemented");
 
   return dst;
 }
@@ -580,13 +584,13 @@ activate_cell_t cp_activate_cell_ir(F1AP_Cells_to_be_Activated_List_ItemIEs_t co
   F1AP_Cells_to_be_Activated_List_Item_t const*	src_it = &src->value.choice.Cells_to_be_Activated_List_Item;
 
   // mandatory
-  // NR CGI
+  // nr cgi
   TBCD_TO_MCC_MNC(&src_it->nRCGI.pLMN_Identity, dst.nr_cgi.plmn_id.mcc, dst.nr_cgi.plmn_id.mnc, dst.nr_cgi.plmn_id.mnc_digit_len);
   BIT_STRING_TO_NR_CELL_IDENTITY(&src_it->nRCGI.nRCellIdentity, dst.nr_cgi.nr_cell_id);
-  assert(dst.nr_cgi.nr_cell_id < (1UL << 36) );
-  //dst.nr_cgi = cp_nr_cgi_ir(&src_it->nRCGI);
+  assert(dst.nr_cgi.nr_cell_id < (1ul << 36) );
+  //dst.nr_cgi = cp_nr_cgi_ir(&src_it->nrcgi);
 
-  // NR PCI optional
+  // nr pci optional
   if(src_it->nRPCI != NULL){
     dst.nr_pci = malloc(sizeof(uint16_t));
     assert(dst.nr_pci != NULL);
@@ -597,7 +601,7 @@ activate_cell_t cp_activate_cell_ir(F1AP_Cells_to_be_Activated_List_ItemIEs_t co
 
   if(src_it->iE_Extensions != NULL){
     F1AP_ProtocolExtensionContainer_154P46_t const* src_cont = (F1AP_ProtocolExtensionContainer_154P46_t const*)src_it->iE_Extensions;
-    assert(src_cont->list.count == 1 && "Only sys information implemented" );
+    assert(src_cont->list.count == 1 && "only sys information implemented" );
 
     dst.sys_info = calloc(1, sizeof(gnb_cu_sys_info_t)); 
     assert(dst.sys_info != NULL);
@@ -616,7 +620,6 @@ span_activate_cell_t cp_cells_to_activate_ir(F1AP_F1SetupResponseIEs_t const* sr
   assert(src->id == F1AP_ProtocolIE_ID_id_Cells_to_be_Activated_List);
   assert(src->criticality == F1AP_Criticality_reject);
   assert(src->value.present == F1AP_F1SetupResponseIEs__value_PR_Cells_to_be_Activated_List);
-
 
   assert(src->value.choice.Cells_to_be_Activated_List.list.count < 513);
 
@@ -641,16 +644,16 @@ gnb_rrc_ver_f1ap_t cp_gnb_rrc_sr_ir(F1AP_F1SetupResponseIEs_t const* src)
   assert(src->criticality == F1AP_Criticality_reject);
   assert(src->value.present == F1AP_F1SetupResponseIEs__value_PR_RRC_Version);
 
-  F1AP_RRC_Version_t const* src_rrc =  &src->value.choice.RRC_Version;
+  F1AP_RRC_Version_t const* src_rrc = &src->value.choice.RRC_Version;
 
   // mandatory
-  // Latest RRC Version
-  assert(src_rrc->latest_RRC_Version.bits_unused == 8 - 3 && "Only 3 bits used");
+  // latest rrc version
+  assert(src_rrc->latest_RRC_Version.bits_unused == 8 - 3 && "only 3 bits used");
   dst.latest_rrc_version = copy_bit_string(&src_rrc->latest_RRC_Version); 
 
   // optional
-  // Latest RRC Version Enhanced
-  assert(src_rrc->iE_Extensions == NULL && "Not implemented");
+  // latest rrc version enhanced
+  assert(src_rrc->iE_Extensions == NULL && "not implemented");
 
   return dst;
 }
@@ -668,7 +671,7 @@ uint8_t cp_trans_id_sr_ir(F1AP_F1SetupResponseIEs_t const* src)
 }
 
 ///////////////////////////////////////////
-/////////// F1AP SETUP ///////////
+/////////// f1ap setup ///////////
 ///////////////////////////////////////////
 
 
@@ -688,18 +691,18 @@ f1_setup_t cp_f1_setup_ir(F1AP_F1AP_PDU_t const* src)
   assert(src_f1_setup->protocolIEs.list.count > 1);
 
   // mandatory 
-  // c1. Transaction ID (integer value) 
+  // c1. transaction id (integer value) 
   dst.trans_id = cp_trans_id_ir(src_f1_setup->protocolIEs.list.array[0]);
 
   // mandatory 
-  // c2. GNB_DU_ID (integer value) 
+  // c2. gnb_du_id (integer value) 
   dst.gnb_du_id = cp_gnb_du_id_ir(src_f1_setup->protocolIEs.list.array[1]);
 
   for(size_t i = 2; i < src_f1_setup->protocolIEs.list.count; ++i) {
     F1AP_F1SetupRequestIEs_t const* ie = src_f1_setup->protocolIEs.list.array[i]; 
 
     // optional 
-    // c3. GNB_DU_Name   
+    // c3. gnb_du_name   
     if(ie->value.present == F1AP_F1SetupRequestIEs__value_PR_GNB_DU_Name){
       dst.gnb_du_name = cp_gnb_du_name_ir(ie);
       // optional 
@@ -713,15 +716,15 @@ f1_setup_t cp_f1_setup_ir(F1AP_F1AP_PDU_t const* src)
       dst.ver = cp_ver_ir(&ie->value.choice.RRC_Version); 
       // optional
     } else if(ie->value.present == F1AP_F1SetupRequestIEs__value_PR_Transport_Layer_Address_Info){
-      assert(0!=0 && "Not implemented"); 
+      assert(0!=0 && "not implemented"); 
       // optional
     } else if(ie->value.present == F1AP_F1SetupRequestIEs__value_PR_BAPAddress){
-      assert(0!=0 && "Not implemented"); 
+      assert(0!=0 && "not implemented"); 
       // optional
     } else if(ie->value.present == F1AP_F1SetupRequestIEs__value_PR_Extended_GNB_CU_Name){
-      assert(0!=0 && "Not implemented"); 
+      assert(0!=0 && "not implemented"); 
     } else {
-      assert(0 != 0 && "Unknown type");
+      assert(0 != 0 && "unknown type");
     }
   }
 
@@ -729,7 +732,7 @@ f1_setup_t cp_f1_setup_ir(F1AP_F1AP_PDU_t const* src)
 }
 
 //////////////////////////////////////////
-//////////////F1 SETUP RESPONSE //////////
+//////////////f1 setup response //////////
 //////////////////////////////////////////
 
 f1_setup_response_t cp_f1_setup_response_ir(F1AP_F1AP_PDU_t const* src)
@@ -738,21 +741,21 @@ f1_setup_response_t cp_f1_setup_response_ir(F1AP_F1AP_PDU_t const* src)
 
   f1_setup_response_t dst = {0};
 
-  /* Create */
-  /* 0. pdu Type */
+  /* create */
+  /* 0. pdu type */
   assert(src->present == F1AP_F1AP_PDU_PR_successfulOutcome);
   
   F1AP_SuccessfulOutcome_t* const src_out = src->choice.successfulOutcome;
 
-  assert(src_out->procedureCode ==  F1AP_ProcedureCode_id_F1Setup);
-  assert(src_out->criticality   ==  F1AP_Criticality_reject);
-  assert(src_out->value.present ==  F1AP_SuccessfulOutcome__value_PR_F1SetupResponse);
+  assert(src_out->procedureCode == F1AP_ProcedureCode_id_F1Setup);
+  assert(src_out->criticality == F1AP_Criticality_reject);
+  assert(src_out->value.present == F1AP_SuccessfulOutcome__value_PR_F1SetupResponse);
 
-  F1AP_F1SetupResponse_t *src_f1_sr = &src_out->value.choice.F1SetupResponse;
+  F1AP_F1SetupResponse_t const* src_f1_sr = &src_out->value.choice.F1SetupResponse;
   assert(src_f1_sr->protocolIEs.list.count > 1 && src_f1_sr->protocolIEs.list.count < 9);
 
   // mandatory 
-  // c1. Transaction ID (integer value)
+  // c1. transaction id (integer value)
   dst.trans_id = cp_trans_id_sr_ir(src_f1_sr->protocolIEs.list.array[0]);
 
   for(int i = 1; i < src_f1_sr->protocolIEs.list.count; ++i){
@@ -761,7 +764,7 @@ f1_setup_response_t cp_f1_setup_response_ir(F1AP_F1AP_PDU_t const* src)
     assert(ie->id == F1AP_ProtocolIE_ID_id_gNB_CU_Name 
         || ie->id == F1AP_ProtocolIE_ID_id_Cells_to_be_Activated_List 
         || ie->id == F1AP_ProtocolIE_ID_id_GNB_CU_RRC_Version
-        || !("Unknown or unimplemented ie ID") );
+        || !("unknown or unimplemented ie id") );
     
     if(ie->id == F1AP_ProtocolIE_ID_id_gNB_CU_Name){
        assert(ie->criticality == F1AP_Criticality_ignore);
@@ -772,7 +775,7 @@ f1_setup_response_t cp_f1_setup_response_ir(F1AP_F1AP_PDU_t const* src)
 
        *dst.gnb_cu_name = copy_ostring_to_ba(ie->value.choice.GNB_CU_Name); 
 
-    } else if(ie->id == F1AP_ProtocolIE_ID_id_Cells_to_be_Activated_List){
+    } else if(ie->id ==  F1AP_ProtocolIE_ID_id_Cells_to_be_Activated_List){
       assert(ie->criticality == F1AP_Criticality_reject);
       assert(ie->value.present == F1AP_F1SetupResponseIEs__value_PR_Cells_to_be_Activated_List);
 
@@ -787,7 +790,7 @@ f1_setup_response_t cp_f1_setup_response_ir(F1AP_F1AP_PDU_t const* src)
       dst.ver = cp_gnb_rrc_sr_ir(ie);
 
     } else {
-      assert(0 != 0 && "Unknown or unimplemented id");
+      assert(0 != 0 && "unknown or unimplemented id");
     }
   }
  
@@ -819,7 +822,7 @@ cause_f1ap_t cp_cause_sf(F1AP_F1SetupFailureIEs_t const* src)
   assert(src->value.present == F1AP_F1SetupFailureIEs__value_PR_Cause);
 
   cause_f1ap_t dst = {.type = END_CAUSE_F1AP}; 
-  if(src->value.choice.Cause.present == F1AP_Cause_PR_radioNetwork){
+  if(src->value.choice.Cause.present == F1AP_Cause_PR_radioNetwork  ){
     dst.type = RADIO_NETWORK_CAUSE_F1AP; 
     dst.radio = src->value.choice.Cause.choice.radioNetwork; 
   } else if(src->value.choice.Cause.present == F1AP_Cause_PR_transport){
@@ -832,7 +835,7 @@ cause_f1ap_t cp_cause_sf(F1AP_F1SetupFailureIEs_t const* src)
     dst.type = MISC_CAUSE_F1AP; 
     dst.misc = src->value.choice.Cause.choice.misc; 
   } else {
-    assert(0!=0 && "Unknown type");
+    assert(0!=0 && "unknown type");
   }
   return dst;
 }
@@ -851,7 +854,7 @@ crit_diagn_ie_t cp_crit_diagnose_ie_sf(F1AP_CriticalityDiagnostics_IE_Item_t con
   dst.id = src->iE_ID;
 
   //mandatory 
-  dst.type_of_error = src->typeOfError;
+  dst.type_of_error = src->typeOfError; 
   assert(dst.type_of_error < END_CRITICALLITY_DIAGNOSTIC_IE_F1AP);
 
   return dst;
@@ -863,10 +866,10 @@ criticallity_diagnostic_f1ap_t* cp_crit_diagnose_sf(F1AP_CriticalityDiagnostics_
   assert(src != NULL);
 
   criticallity_diagnostic_f1ap_t* dst = calloc(1, sizeof(criticallity_diagnostic_f1ap_t));    
-   assert(dst != NULL && "Memory exhausted");
+   assert(dst != NULL && "memory exhausted");
 
   //optional
-  //Procedure Code
+  //procedure code
   if(src->procedureCode != NULL){
     dst->proc_code = malloc(sizeof(uint8_t));
     assert(dst->proc_code != NULL);
@@ -876,17 +879,17 @@ criticallity_diagnostic_f1ap_t* cp_crit_diagnose_sf(F1AP_CriticalityDiagnostics_
   }
   
   //optional
-  //Triggering Message
+  //triggering message
   if(src->triggeringMessage != NULL){
     dst->trig_msg = malloc(sizeof(trig_msg_e));
-    assert(dst->trig_msg != NULL && "Memory exhausted");
+    assert(dst->trig_msg != NULL && "memory exhausted");
  
     *dst->trig_msg = *src->triggeringMessage;
     assert(*dst->trig_msg < END_TRIGGERING_MESSAGE_F1AP);
   }
 
   //optional
-  //Procedure Criticality
+  //procedure criticality
   if(src->procedureCriticality != NULL){
     dst->proc_crit = malloc(sizeof(proc_crit_e));
     assert(dst->proc_crit != NULL);
@@ -896,16 +899,16 @@ criticallity_diagnostic_f1ap_t* cp_crit_diagnose_sf(F1AP_CriticalityDiagnostics_
   }
 
   //optional
-  //Transaction ID
+  //transaction id
   if(src->transactionID != NULL){
     dst->trans_id = malloc(sizeof(uint8_t));
-    assert(dst->trans_id != NULL && "Memory exhausted");
+    assert(dst->trans_id != NULL && "memory exhausted");
 
     assert(*src->transactionID < 256);
     *dst->trans_id = *src->transactionID;
   }
 
-  // Optional
+  // optional
   if(src->iEsCriticalityDiagnostics != NULL){
     const size_t sz = src->iEsCriticalityDiagnostics->list.count; 
     assert(sz > 0 && sz < 257);
@@ -922,7 +925,7 @@ criticallity_diagnostic_f1ap_t* cp_crit_diagnose_sf(F1AP_CriticalityDiagnostics_
 
 
 //////////////////////////////////////////
-//////////////F1 SETUP FAILURE //////////
+//////////////f1 setup failure //////////
 //////////////////////////////////////////
 
 
@@ -941,28 +944,28 @@ f1_setup_failure_t cp_f1_setup_failure_ir(F1AP_F1AP_PDU_t const* src)
 
   f1_setup_failure_t dst = {0}; 
 
-  // Mandatory
-  //Transaction ID
+  // mandatory
+  //transaction id
   dst.trans_id = cp_trans_id_sf(src_out->value.choice.F1SetupFailure.protocolIEs.list.array[0]);
 
-  //Mandatory
-  //Cause
+  //mandatory
+  //cause
   dst.cause = cp_cause_sf(src_out->value.choice.F1SetupFailure.protocolIEs.list.array[1]); 
 
   for(size_t i = 2; i < src_out->value.choice.F1SetupFailure.protocolIEs.list.count; ++i){
     F1AP_F1SetupFailureIEs_t const* ie = src_out->value.choice.F1SetupFailure.protocolIEs.list.array[i]; 
 
-    // Optional
-    //Time to wait
+    // optional
+    //time to wait
     if(ie->id == F1AP_ProtocolIE_ID_id_TimeToWait){
       assert(ie->criticality == F1AP_Criticality_ignore);
       assert(ie->value.present == F1AP_F1SetupFailureIEs__value_PR_TimeToWait);
 
       dst.time_to_wait = malloc(sizeof(time_to_wait_f1ap_e));
-      assert(dst.time_to_wait != NULL && "Memory exhausted");
+      assert(dst.time_to_wait != NULL && "memory exhausted");
       *dst.time_to_wait = ie->value.choice.TimeToWait;
-      //Optional
-      //Criticality Diagnostics
+      //optional
+      //criticality diagnostics
     } else if(ie->id == F1AP_ProtocolIE_ID_id_CriticalityDiagnostics){
       assert(ie->criticality == F1AP_Criticality_ignore);
       assert(ie->value.present == F1AP_F1SetupFailureIEs__value_PR_CriticalityDiagnostics);
@@ -970,7 +973,7 @@ f1_setup_failure_t cp_f1_setup_failure_ir(F1AP_F1AP_PDU_t const* src)
 
       dst.diagnose = cp_crit_diagnose_sf(src_crit);
     } else { 
-      assert(0!=0 && "Incorrect id??" );
+      assert(0!=0 && "incorrect id??" );
     }
 
   }
@@ -984,7 +987,7 @@ f1_setup_failure_t cp_f1_setup_failure_ir(F1AP_F1AP_PDU_t const* src)
 //////////////////////////////////////////
 
 //////////////////////////////////////////
-//////////////F1 SETUP FAILURE //////////
+//////////////f1 setup failure //////////
 //////////////////////////////////////////
 
 static
@@ -996,7 +999,7 @@ uint32_t cp_gnb_cu_ue_sr_ir(F1AP_UEContextSetupRequestIEs_t const* src)
   assert(src->criticality == F1AP_Criticality_reject);
   assert(src->value.present == F1AP_UEContextSetupRequestIEs__value_PR_GNB_CU_UE_F1AP_ID);
 
-  assert(src->value.choice.GNB_CU_UE_F1AP_ID < (1UL << 32));
+  assert(src->value.choice.GNB_CU_UE_F1AP_ID < (1ul << 32));
   return src->value.choice.GNB_CU_UE_F1AP_ID;
 }
 
@@ -1026,10 +1029,10 @@ nr_cgi_t cp_spcell_id_ue_sr_ir(F1AP_UEContextSetupRequestIEs_t const* src)
   assert(src->value.present == F1AP_UEContextSetupRequestIEs__value_PR_NRCGI);
 
   nr_cgi_t dst = {0};
-  // NR CGI
+  // nr cgi
   TBCD_TO_MCC_MNC(& src->value.choice.NRCGI.pLMN_Identity, dst.plmn_id.mcc, dst.plmn_id.mnc, dst.plmn_id.mnc_digit_len);
   BIT_STRING_TO_NR_CELL_IDENTITY(&src->value.choice.NRCGI.nRCellIdentity, dst.nr_cell_id);
-  assert(dst.nr_cell_id < (1UL << 36) );
+  assert(dst.nr_cell_id < (1ul << 36) );
 
   return dst;
 }
@@ -1058,16 +1061,16 @@ cell_ul_conf_e* cp_sp_cell_ul_conf_ue_sr_ir(F1AP_UEContextSetupRequestIEs_t cons
   assert(src->value.present == F1AP_UEContextSetupRequestIEs__value_PR_CellULConfigured);
 
   cell_ul_conf_e* dst = malloc(sizeof(cell_ul_conf_e));
-  assert(dst != NULL && "Memory exhausted");
+  assert(dst != NULL && "memory exhausted");
 
   if(src->value.choice.CellULConfigured == F1AP_CellULConfigured_ul){
-    *dst =  UL_CELL_UL_CONF;
+    *dst = UL_CELL_UL_CONF;
   } else if(src->value.choice.CellULConfigured == F1AP_CellULConfigured_sul){
     *dst = SUL_CELL_UL_CONF;
   } else if(src->value.choice.CellULConfigured == F1AP_CellULConfigured_ul_and_sul){
     *dst = UL_SUL_CELL_UL_CONF;
   } else {
-    assert(0 != 0 && "Unknown type");
+    assert(0 != 0 && "unknown type");
   }
 
   return dst;
@@ -1088,45 +1091,45 @@ cu_to_du_rrc_info_t cp_cu_to_du_rrc_info_ue_sr_ir(F1AP_UEContextSetupRequestIEs_
 
   if(src_cu->cG_ConfigInfo != NULL){
     dst.cg_config_info = calloc(1, sizeof(byte_array_t)); 
-    assert(dst.cg_config_info != NULL && "Memory exhausted");
+    assert(dst.cg_config_info != NULL && "memory exhausted");
     *dst.cg_config_info = copy_ostring_to_ba(*src_cu->cG_ConfigInfo);
   }
 
   if(src_cu->uE_CapabilityRAT_ContainerList != NULL){
     dst.ue_capability_rat_con_lst = calloc(1, sizeof(byte_array_t)); 
-    assert(dst.ue_capability_rat_con_lst != NULL && "Memory exhausted");
+    assert(dst.ue_capability_rat_con_lst != NULL && "memory exhausted");
     *dst.ue_capability_rat_con_lst = copy_ostring_to_ba(*src_cu->uE_CapabilityRAT_ContainerList);
   }
 
   if(src_cu->measConfig != NULL){
     dst.meas_config= calloc(1, sizeof(byte_array_t)); 
-    assert(dst.meas_config!= NULL && "Memory exhausted");
+    assert(dst.meas_config!= NULL && "memory exhausted");
     *dst.meas_config= copy_ostring_to_ba(*src_cu->measConfig);
   }
 
-  // Optional
-  // Handover Preparation Information
-  //assert(src->handover_prep_info == NULL && "Not implemented");
+  // optional
+  // handover preparation information
+  //assert(src->handover_prep_info == NULL && "not implemented");
 
-  // Optional
-  // CellGroupConfig
-  //assert(src->cell_group_config == NULL && "Not implemented");
+  // optional
+  // cellgroupconfig
+  //assert(src->cell_group_config == NULL && "not implemented");
 
-  // Optional
-  // Measurement Timing Configuration
-  //assert(src->meas_timing_conf == NULL && "Not implemented");
+  // optional
+  // measurement timing configuration
+  //assert(src->meas_timing_conf == NULL && "not implemented");
 
-  // Optional
-  // UEAssistanceInformation
-  //assert(src->ue_assistance_info == NULL && "Not implemented");
+  // optional
+  // ueassistanceinformation
+  //assert(src->ue_assistance_info == NULL && "not implemented");
 
-  // Optional
-  // CG-Config
-  //assert(src->cg_config == NULL && "Not implemented");
+  // optional
+  // cg-config
+  //assert(src->cg_config == NULL && "not implemented");
 
-  // Optional
-  // UEAssistanceInformationEUTRA
-  //assert(src->UE_assistance_info_eutra == NULL && "Not implemented");
+  // optional
+  // ueassistanceinformationeutra
+  //assert(src->ue_assistance_info_eutra == NULL && "not implemented");
 
   return dst;
 }
@@ -1150,14 +1153,13 @@ nr_cgi_t cp_candidate_sp_cell_item_ue_sr_ir(F1AP_Candidate_SpCell_ItemIEs_t cons
 
   F1AP_NRCGI_t const* src_nr_cgi = &src->value.choice.Candidate_SpCell_Item.candidate_SpCell_ID; 
 
-  // NR CGI
+  // nr cgi
   TBCD_TO_MCC_MNC(&src_nr_cgi->pLMN_Identity, dst.plmn_id.mcc, dst.plmn_id.mnc, dst.plmn_id.mnc_digit_len);
   BIT_STRING_TO_NR_CELL_IDENTITY(&src_nr_cgi->nRCellIdentity, dst.nr_cell_id);
-  assert(dst.nr_cell_id < (1UL << 36) );
+  assert(dst.nr_cell_id < (1ul << 36) );
 
   return dst;
 }
-
 
 static
 candidate_sp_cell_id_span_t cp_candidate_sp_cell_id_ue_sr_ir(F1AP_UEContextSetupRequestIEs_t const* src)
@@ -1173,7 +1175,7 @@ candidate_sp_cell_id_span_t cp_candidate_sp_cell_id_ue_sr_ir(F1AP_UEContextSetup
   assert(src->value.choice.Candidate_SpCell_List.list.count < 65);
   dst.sz = src->value.choice.Candidate_SpCell_List.list.count; 
   dst.candidate_sp_cell_id = calloc(dst.sz, sizeof(nr_cgi_t));
-  assert(dst.candidate_sp_cell_id != NULL && "Memory exhausted");
+  assert(dst.candidate_sp_cell_id != NULL && "memory exhausted");
 
   for(size_t i = 0; i < dst.sz; ++i){
    dst.candidate_sp_cell_id[i] = cp_candidate_sp_cell_item_ue_sr_ir((F1AP_Candidate_SpCell_ItemIEs_t const*)src->value.choice.Candidate_SpCell_List.list.array[i]);   
@@ -1194,17 +1196,17 @@ drx_cycle_t* cp_drx_cycle_ue_sr_ir(F1AP_UEContextSetupRequestIEs_t const* src)
   assert(src->criticality == F1AP_Criticality_ignore);
   assert(src->value.present == F1AP_UEContextSetupRequestIEs__value_PR_DRXCycle);
 
-  // Mandatory 
-  // Long DRX Cycle Length
+  // mandatory 
+  // long drx cycle length
   F1AP_DRXCycle_t const* src_drx = &src->value.choice.DRXCycle;
   dst->long_drx_cycle_len =  src_drx->longDRXCycleLength;
-  // Optional 
-  // Short DRX Cycle Length
-  assert(src_drx->shortDRXCycleLength == NULL && "Not implemented");
+  // optional 
+  // short drx cycle length
+  assert(src_drx->shortDRXCycleLength == NULL && "not implemented");
 
-  // Optional
-  // Short DRX Cycle Timer INTEGER (1..16)
-  assert(src_drx->shortDRXCycleLength == NULL && "Not implemented");
+  // optional
+  // short drx cycle timer integer (1..16)
+  assert(src_drx->shortDRXCycleTimer == NULL && "not implemented");
 
   return dst;
 }
@@ -1215,7 +1217,7 @@ byte_array_t* cp_res_coord_trans_ue_sr_ir(F1AP_UEContextSetupRequestIEs_t const*
   assert(src != NULL);
 
   byte_array_t* dst = calloc(1, sizeof(byte_array_t));
-  assert(dst != NULL && "Memory exhausted");
+  assert(dst != NULL && "memory exhausted");
 
   assert(src->id == F1AP_ProtocolIE_ID_id_ResourceCoordinationTransferContainer);
   assert(src->criticality == F1AP_Criticality_ignore);
@@ -1232,7 +1234,7 @@ typedef struct{
 } scell_to_be_setup_span_t;
 
 static
-scell_to_be_setup_t cp_scell_to_be_setup_item_ue_sr_ir(F1AP_SCell_ToBeSetup_ItemIEs_t const* src)
+scell_to_be_setup_t cp_scell_to_be_setup_item_ue_sr_ir( F1AP_SCell_ToBeSetup_ItemIEs_t const* src)
 {
   assert(src != NULL);
 
@@ -1243,40 +1245,40 @@ scell_to_be_setup_t cp_scell_to_be_setup_item_ue_sr_ir(F1AP_SCell_ToBeSetup_Item
   assert(src->value.present == F1AP_SCell_ToBeSetup_ItemIEs__value_PR_SCell_ToBeSetup_Item);
 
   F1AP_SCell_ToBeSetup_Item_t const* src_item = &src->value.choice.SCell_ToBeSetup_Item;
-  // Mandatory
-  // SCell ID 
+  // mandatory
+  // scell id 
   F1AP_NRCGI_t const* src_nr_cgi = &src_item->sCell_ID;
 
-  // NR CGI
+  // nr cgi
   TBCD_TO_MCC_MNC(&src_nr_cgi->pLMN_Identity, dst.scell_id.plmn_id.mcc, dst.scell_id.plmn_id.mnc, dst.scell_id.plmn_id.mnc_digit_len);
   BIT_STRING_TO_NR_CELL_IDENTITY(&src_nr_cgi->nRCellIdentity, dst.scell_id.nr_cell_id);
-  assert(dst.scell_id.nr_cell_id < (1UL << 36) );
+  assert(dst.scell_id.nr_cell_id < (1ul << 36) );
 
-  // Mandatory
-  // SCellIndex
-  assert(src_item->sCellIndex < 32 &&  src_item->sCellIndex); // INTEGER (1..31
+  // mandatory
+  // scellindex
+  assert(src_item->sCellIndex < 32 &&  src_item->sCellIndex); // integer (1..31
   dst.scell_idx = src_item->sCellIndex;
 
-  // Optional
-  // SCell UL Configured
+  // optional
+  // scell ul configured
   if(src_item->sCellULConfigured != NULL){
     dst.scell_ul_conf = calloc(1, sizeof(cell_ul_conf_e)); 
-    assert(dst.scell_ul_conf != NULL && "Memory exhausted" );
+    assert(dst.scell_ul_conf != NULL && "memory exhausted" );
 
-    if(*src_item->sCellULConfigured == F1AP_CellULConfigured_ul){
+    if(*src_item->sCellULConfigured== F1AP_CellULConfigured_ul){
       *dst.scell_ul_conf = UL_CELL_UL_CONF;
     } else if(*src_item->sCellULConfigured == F1AP_CellULConfigured_sul) {
       *dst.scell_ul_conf = SUL_CELL_UL_CONF;
     } else if(*src_item->sCellULConfigured == F1AP_CellULConfigured_ul_and_sul) {
       *dst.scell_ul_conf = UL_SUL_CELL_UL_CONF;
     } else {
-      assert( 0 != 0 && "Unknown type");
+      assert( 0 != 0 && "unknown type");
     }
   }
 
-  // Optional
-  // servingCellMO
-  assert(src_item->iE_Extensions == NULL && "Not implemented"); // INTEGER(1..64) 
+  // optional
+  // servingcellmo
+  assert(src_item->iE_Extensions == NULL && "not implemented"); // integer(1..64) 
 
   return dst;
 }
@@ -1296,7 +1298,7 @@ scell_to_be_setup_span_t cp_scell_to_be_setup_ue_sr_ir(F1AP_UEContextSetupReques
   assert(dst.sz > 0 && dst.sz < 33);
   if(dst.sz > 0){
     dst.scell_to_be_setup = calloc(dst.sz, sizeof(scell_to_be_setup_t) );
-    assert(dst.scell_to_be_setup != NULL && "Memory exhausted" );
+    assert(dst.scell_to_be_setup != NULL && "memory exhausted" );
   }
 
   for(size_t i = 0; i < dst.sz; ++i){
@@ -1308,7 +1310,7 @@ scell_to_be_setup_span_t cp_scell_to_be_setup_ue_sr_ir(F1AP_UEContextSetupReques
 }
 
 typedef struct{
-  // SRB to Be Setup Item
+  // srb to be setup item
   size_t sz; // [0,8]
   srb_to_be_setup_t* srb_to_be_setup;
 } srb_to_be_setup_span_t;
@@ -1324,18 +1326,18 @@ srb_to_be_setup_t cp_srb_to_be_setup_item_ue_sr_ir(F1AP_SRBs_ToBeSetup_ItemIEs_t
   assert(src->criticality == F1AP_Criticality_reject);
   assert(src->value.present == F1AP_SRBs_ToBeSetup_ItemIEs__value_PR_SRBs_ToBeSetup_Item);
 
-  // Mandatory
-  //  SRB ID
+  // mandatory
+  //  srb id
   assert(src->value.choice.SRBs_ToBeSetup_Item.sRBID < 4); // [0,3]
   dst.srb_id = src->value.choice.SRBs_ToBeSetup_Item.sRBID;
 
-  // Optional
-  // Duplication Indication
-  assert(src->value.choice.SRBs_ToBeSetup_Item.duplicationIndication == NULL && "Not implemented");
-
-  // Optional 
-  // Additional Duplication Indication
+  // optional
+  // duplication indication
   assert(src->value.choice.SRBs_ToBeSetup_Item.duplicationIndication == NULL && "not implemented");
+
+  // optional 
+  // additional duplication indication
+  assert(src->value.choice.SRBs_ToBeSetup_Item.iE_Extensions == NULL && "not implemented");
 
   return dst;
 }
@@ -1355,7 +1357,7 @@ srb_to_be_setup_span_t cp_srb_to_be_setup_ue_sr_ir(F1AP_UEContextSetupRequestIEs
   dst.sz = src->value.choice.SRBs_ToBeSetup_List.list.count;
   
   dst.srb_to_be_setup = calloc(dst.sz, sizeof(srb_to_be_setup_t));
-  assert(dst.srb_to_be_setup != NULL && "Memory exhausted" );
+  assert(dst.srb_to_be_setup != NULL && "memory exhausted" );
 
   for(size_t i = 0; i < dst.sz; ++i){
     dst.srb_to_be_setup[i] = cp_srb_to_be_setup_item_ue_sr_ir((F1AP_SRBs_ToBeSetup_ItemIEs_t const*)src->value.choice.SRBs_ToBeSetup_List.list.array[i]); 
@@ -1376,29 +1378,29 @@ alloc_retention_prio_t cp_alloc_retention_prio(F1AP_AllocationAndRetentionPriori
 
   alloc_retention_prio_t dst = {0}; 
 
-  // Mandatory
-  // Priority Level
+  // mandatory
+  // priority level
   assert(src->priorityLevel < 16);
-  dst.prio_level = src->priorityLevel; // INTEGER (0..15)
+  dst.prio_level = src->priorityLevel; // integer (0..15)
                       
-  // Mandatory
-  // Pre-emption Capability
+  // mandatory
+  // pre-emption capability
   if(src->pre_emptionCapability == F1AP_Pre_emptionCapability_shall_not_trigger_pre_emption){
     dst.preempt_capability = SHALL_NOT_TRIGGER_PRE_EMPTION_PREEMPT_CAPABILITY;
   } else if(src->pre_emptionCapability == F1AP_Pre_emptionCapability_may_trigger_pre_emption){
     dst.preempt_capability = MAY_TRIGGER_PRE_EMPTION_PREEMPT_CAPABILITY; 
   } else {
-    assert(0!=0 && "Unknown type");
+    assert(0!=0 && "unknown type");
   }
 
-  // Mandatory
-  // Pre-emption Vulnerability
+  // mandatory
+  // pre-emption vulnerability
   if(src->pre_emptionVulnerability == F1AP_Pre_emptionVulnerability_not_pre_emptable){
     dst.preempt_vulnerability = NOT_PRE_EMPTABLE_PREEMPT_VULNERABILITY;  
   } else if(src->pre_emptionVulnerability == F1AP_Pre_emptionVulnerability_pre_emptable){
     dst.preempt_vulnerability = PRE_EMPTABLE_PREEMPT_VULNERABILITY;  
   } else {
-    assert(0!=0 && "Unknown type");
+    assert(0!=0 && "unknown type");
   }
 
   return dst;
@@ -1411,17 +1413,17 @@ e_utran_qos_t cp_e_utran_qos(F1AP_EUTRANQoS_t const* src)
 
   e_utran_qos_t dst = {0};
 
-  // Mandatory
-  // QCI
+  // mandatory
+  // qci
   assert(src->qCI < 256);
   dst.qci = src->qCI; 
 
-  // Mandatory
-  // Allocation and Retention Priority
+  // mandatory
+  // allocation and retention priority
   dst.alloc = cp_alloc_retention_prio(&src->allocationAndRetentionPriority);
 
-  // Optional
-  // GBR QoS Information 9.3.1.21
+  // optional
+  // gbr qos information 9.3.1.21
   assert(src->gbrQosInformation == NULL && "not implemented" );
 
   return dst;
@@ -1433,14 +1435,14 @@ s_nssai_t cp_nssai(F1AP_SNSSAI_t const* src)
   assert(src != NULL);
   s_nssai_t dst = {0};
 
-  // Mandatory
-  // OCTET STRING (SIZE(1))
+  // mandatory
+  // octet string (size(1))
   assert(src->sST.size == 1);
   memcpy(&dst.sst, src->sST.buf, 1) ;
 
-  // Optional
-  // OCTET STRING (SIZE(3))
-  assert(src->sD == NULL && "Not implemented"); // size 3 bytes
+  // optional
+  // octet string (size(3))
+  assert(src->sD == NULL && "not implemented"); // size 3 bytes
 
   return dst;
 }
@@ -1452,31 +1454,31 @@ non_dyn_5qi_descriptor_t cp_non_dyn_5qi(F1AP_NonDynamic5QIDescriptor_t const* sr
 
   non_dyn_5qi_descriptor_t dst = {0}; 
 
-  // Mandatory
-  //  5QI
+  // mandatory
+  //  5qi
   assert(src->fiveQI < 256);
   dst.five_qi = src->fiveQI;
 
-  // Optional
-  // Priority Level
-  assert(src->qoSPriorityLevel == NULL && "Not implemented"); // [1,127]
+  // optional
+  // priority level
+  assert(src->qoSPriorityLevel == NULL && "not implemented"); // [1,127]
 
-  // Optional
-  // Averaging Window 9.3.1.53 INTEGER (0..4095, ...)
-  assert(src->averagingWindow == NULL && "Not implemented");
+  // optional
+  // averaging window 9.3.1.53 integer (0..4095, ...)
+  assert(src->averagingWindow == NULL && "not implemented");
 
-  // Optional 
-  // Maximum Data Burst Volume 9.3.1.54
-  assert(src->maxDataBurstVolume == NULL && "Not implemented"); // INTEGER (0..4095, ..., 4096..2000000)
+  // optional 
+  // maximum data burst volume 9.3.1.54
+  assert(src->maxDataBurstVolume == NULL && "not implemented"); // integer (0..4095, ..., 4096..2000000)
 
-  // Optional 
-  // CN Packet Delay Budget Downlink 9.3.1.145
+  // optional 
+  // cn packet delay budget downlink 9.3.1.145
   assert(src->iE_Extensions == NULL && "not implemented");
-  //assert(src-> == NULL && "Not implemented"); // INTEGER (0..65535, …)
+  //assert(src-> == NULL && "not implemented"); // integer (0..65535, …)
 
-  // Optional 
-  // CN Packet Delay Budget Uplink // INTEGER (0..65535, …)
-  //assert(src->pkt_delay_budget_uplink == NULL && "Not implemented"); // INTEGER (0..65535, …)
+  // optional 
+  // cn packet delay budget uplink // integer (0..65535, …)
+  //assert(src->pkt_delay_budget_uplink == NULL && "not implemented"); // integer (0..65535, …)
 
   return dst;
 }
@@ -1488,49 +1490,49 @@ dyn_5qi_descriptor_t cp_dyn_5qi(F1AP_Dynamic5QIDescriptor_t const* src)
 
   dyn_5qi_descriptor_t dst = {0}; 
 
-  //Mandatory
-  //QoS Priority Level
+  //mandatory
+  //qos priority level
   assert(src->qoSPriorityLevel > 0 && src->qoSPriorityLevel < 128);
-  dst.qos_prio_level = src->qoSPriorityLevel; // INTEGER (1..127)
+  dst.qos_prio_level = src->qoSPriorityLevel; // integer (1..127)
 
-  // Mandatory
-  //Packet Delay Budget 9.3.1.51
+  // mandatory
+  //packet delay budget 9.3.1.51
   assert(src->packetDelayBudget < 1024);
-  dst.pkt_delay_budget = src->packetDelayBudget; // INTEGER (0..1023, ...)
+  dst.pkt_delay_budget = src->packetDelayBudget; // integer (0..1023, ...)
 
-  // Mandatory
-  // Packet Error Rate 9.3.1.52
+  // mandatory
+  // packet error rate 9.3.1.52
   dst.pkt_error_rate.scalar = src->packetErrorRate.pER_Scalar;
   dst.pkt_error_rate.exponent = src->packetErrorRate.pER_Exponent;
 
-  // Optional
-  // 5QI
-  assert(src->fiveQI == NULL && "Not implemented");
+  // optional
+  // 5qi
+  assert(src->fiveQI == NULL && "not implemented");
 
-  // C-ifGBRflow
-  // Delay Critical
-  assert(src->delayCritical == NULL && "Not implemented");
+  // c-ifgbrflow
+  // delay critical
+  assert(src->delayCritical == NULL && "not implemented");
 
-  // C-ifGBRflow
-  // Averaging Window 9.3.1.53
-  assert(src->averagingWindow == NULL && "Not implemented"); // INTEGER (0..4095, ...)
+  // c-ifgbrflow
+  // averaging window 9.3.1.53
+  assert(src->averagingWindow == NULL && "not implemented"); // integer (0..4095, ...)
 
-  // Optional 
-  // Maximum Data Burst Volume 9.3.1.54
-  assert(src->maxDataBurstVolume == NULL && "Not implemented"); //INTEGER (0..4095, ..., 4096..2000000)
+  // optional 
+  // maximum data burst volume 9.3.1.54
+  assert(src->maxDataBurstVolume == NULL && "not implemented"); //integer (0..4095, ..., 4096..2000000)
 
-  // Optional 
-  // Extended Packet Delay Budget 9.3.1.145
-  assert(src->iE_Extensions == NULL && "Not implemented" );
-  //assert(src->ext_pkt_delay_budget == NULL && "Not implemented"); //INTEGER (0..65535, …) 
+  // optional 
+  // extended packet delay budget 9.3.1.145
+  assert(src->iE_Extensions == NULL && "not implemented" );
+  //assert(src->ext_pkt_delay_budget == NULL && "not implemented"); //integer (0..65535, …) 
 
-  // Optional 
-  // CN Packet Delay Budget Downlink
-  // assert(src->cn_pkt_dalay_budget_downlink == NULL && "Not implemented"); 
+  // optional 
+  // cn packet delay budget downlink
+  // assert(src->cn_pkt_dalay_budget_downlink == NULL && "not implemented"); 
 
-  // Optional
-  // CN Packet Delay Budget Uplink
-  // assert(src->cn_pkt_dalay_budget_uplink == NULL && "Not implemented"); 
+  // optional
+  // cn packet delay budget uplink
+  // assert(src->cn_pkt_dalay_budget_uplink == NULL && "not implemented"); 
 
   return dst;
 }
@@ -1542,30 +1544,30 @@ alloc_retention_prio_t cp_ng_ran_alloc_retention_prio(F1AP_NGRANAllocationAndRet
 
   alloc_retention_prio_t dst = {0}; 
 
-  // Mandatory
-  // Priority Level
-  assert(src->priorityLevel   < 16);// INTEGER (0..15)
+  // mandatory
+  // priority level
+  assert(src->priorityLevel < 16);// integer (0..15)
   dst.prio_level = src->priorityLevel;
 
-  // Mandatory
-  // Pre-emption Capability
+  // mandatory
+  // pre-emption capability
   if(src->pre_emptionCapability == F1AP_Pre_emptionCapability_shall_not_trigger_pre_emption){
     dst.preempt_capability = SHALL_NOT_TRIGGER_PRE_EMPTION_PREEMPT_CAPABILITY;
   } else if(src->pre_emptionCapability == F1AP_Pre_emptionCapability_may_trigger_pre_emption){
     dst.preempt_capability = MAY_TRIGGER_PRE_EMPTION_PREEMPT_CAPABILITY;
   } else {
-    assert(0!=0 && "Unknown type");
+    assert(0!=0 && "unknown type");
   } 
 
-  // Mandatory
-  // Pre-emption Vulnerability
+  // mandatory
+  // pre-emption vulnerability
   //
   if(src->pre_emptionVulnerability == F1AP_Pre_emptionVulnerability_not_pre_emptable){
     dst.preempt_vulnerability = NOT_PRE_EMPTABLE_PREEMPT_VULNERABILITY; 
   } else if(src->pre_emptionVulnerability == F1AP_Pre_emptionVulnerability_pre_emptable){
     dst.preempt_vulnerability = PRE_EMPTABLE_PREEMPT_VULNERABILITY;
   } else {
-    assert(0!= 0 && "Not known type");
+    assert(0!= 0 && "not known type");
   }
 
   return dst;
@@ -1577,41 +1579,41 @@ qos_flow_level_qos_parameter_t cp_qos_flow_level_qos_parameter(F1AP_QoSFlowLevel
   assert(src != NULL);
 
   qos_flow_level_qos_parameter_t dst = {0}; 
-  //Mandatory 
-  // CHOICE QoS Characteristics
-  if(src->qoS_Characteristics.present == F1AP_QoS_Characteristics_PR_non_Dynamic_5QI){
-    // Non Dynamic 5QI Descriptor 9.3.1.49
+  //mandatory 
+  // choice qos characteristics
+  if(src->qoS_Characteristics.present == F1AP_QoS_Characteristics_PR_non_Dynamic_5QI ){
+    // non dynamic 5qi descriptor 9.3.1.49
     dst.non_dyn = cp_non_dyn_5qi(src->qoS_Characteristics.choice.non_Dynamic_5QI); 
   } else if(src->qoS_Characteristics.present == F1AP_QoS_Characteristics_PR_dynamic_5QI){
-    // Dynamic 5QI Descriptor 9.3.1.47
+    // dynamic 5qi descriptor 9.3.1.47
     dst.dyn = cp_dyn_5qi(src->qoS_Characteristics.choice.dynamic_5QI); 
   } else {
-    assert(0!=0 && "Unknown type");
+    assert(0!=0 && "unknown type");
   }
 
-  // Mandatory
-  // NG-RAN Allocation and Retention Priority 9.3.1.48
+  // mandatory
+  // ng-ran allocation and retention priority 9.3.1.48
   dst.alloc_retention_prio = cp_ng_ran_alloc_retention_prio(&src->nGRANallocationRetentionPriority);
 
-  // Optional 
-  // GBR QoS Flow Information 9.3.1.46
-  assert(src->gBR_QoS_Flow_Information == NULL && "Not implemented");
+  // optional 
+  // gbr qos flow information 9.3.1.46
+  assert(src->gBR_QoS_Flow_Information == NULL && "not implemented");
 
-  // Optional 
-  // Reflective QoS Attribute
-  assert(src->reflective_QoS_Attribute == NULL && "Not implemented");
+  // optional 
+  // reflective qos attribute
+  assert(src->reflective_QoS_Attribute == NULL && "not implemented");
 
-  // Optional 
-  // PDU Session ID
-  assert(src->iE_Extensions == NULL && "Not implemented" );
+  // optional 
+  // pdu session id
+  assert(src->iE_Extensions == NULL && "not implemented" );
   //uint8_t* pdu_session_id;
 
-  // Optional
-  //UL PDU Session Aggregate Maximum Bit Rate 9.3.1.22
+  // optional
+  //ul pdu session aggregate maximum bit rate 9.3.1.22
   //uint64_t* ul_pdu_session_aggr_max_bit_rate; 
 
-  // Optional
-  // QoS Monitoring Request
+  // optional
+  // qos monitoring request
   //qos_monitoring_request_e* qos_monitoring_request;
 
   return dst;
@@ -1624,23 +1626,23 @@ flows_mapped_to_drb_t cp_flows_mapped_to_drb_ue_sr_ir(F1AP_Flows_Mapped_To_DRB_I
 
   flows_mapped_to_drb_t dst = {0}; 
 
-  // Mandatory
-  // QoS Flow Identifier 9.3.1.63
-  assert(src->qoSFlowIdentifier < 64);  // INTEGER (0 ..63)
+  // mandatory
+  // qos flow identifier 9.3.1.63
+  assert(src->qoSFlowIdentifier < 64);  // integer (0 ..63)
   dst.qfi = src->qoSFlowIdentifier; 
 
-  // Mandatory 
-  // QoS Flow Level QoS Parameters 9.3.1.45
+  // mandatory 
+  // qos flow level qos parameters 9.3.1.45
   dst.qos_flow_level = cp_qos_flow_level_qos_parameter(&src->qoSFlowLevelQoSParameters); 
 
-  // Optional
-  // QoS Flow Mapping Indication 9.3.1.72
-  assert(src->iE_Extensions == NULL && "Not implemented" );
+  // optional
+  // qos flow mapping indication 9.3.1.72
+  assert(src->iE_Extensions == NULL && "not implemented" );
   // qos_flow_mapping_ind 
 
-  // Optional
-  // TSC Traffic Characteristics 9.3.1.141
-  //assert(src->tsc_traffic_char == NULL && "Not implemented");
+  // optional
+  // tsc traffic characteristics 9.3.1.141
+  //assert(src->tsc_traffic_char == NULL && "not implemented");
 
   return dst;
 }
@@ -1658,19 +1660,19 @@ drb_info_t cp_drb_info(F1AP_QoSInformation_ExtIEs_t const* src)
 
   F1AP_DRB_Information_t	const* src_drb = &src->value.choice.DRB_Information;
 
-  // Mandatory
-  // DRB QoS 9.3.1.45
+  // mandatory
+  // drb qos 9.3.1.45
   dst.drb_qos = cp_qos_flow_level_qos_parameter(&src_drb->dRB_QoS);
 
-  // Mandatory
-  // S-NSSAI 9.3.1.38
+  // mandatory
+  // s-nssai 9.3.1.38
   dst.nssai = cp_nssai(&src_drb->sNSSAI);
 
-  // Optional
-  // Notification Control 9.3.1.56
-  assert(src_drb->notificationControl == NULL && "Not implemented");
+  // optional
+  // notification control 9.3.1.56
+  assert(src_drb->notificationControl == NULL && "not implemented");
 
-  // Flows Mapped to DRB
+  // flows mapped to drb
   assert(src_drb->flows_Mapped_To_DRB_List.list.count > 0 && src_drb->flows_Mapped_To_DRB_List.list.count  < 65);// [1,64]
   dst.sz_flows_mapped_to_drb =  src_drb->flows_Mapped_To_DRB_List.list.count;
   dst.flows_mapped_to_drb = calloc(dst.sz_flows_mapped_to_drb, sizeof(flows_mapped_to_drb_t));
@@ -1689,18 +1691,18 @@ ul_up_tnl_info_lst_t cp_ul_up_tnl_info_ue_sr_ir(F1AP_ULUPTNLInformation_ToBeSetu
 
   ul_up_tnl_info_lst_t dst = {0}; 
 
-  // Mandatory
-  // UL UP TNL Information 9.3.2.1
-  assert(src->uLUPTNLInformation.present == F1AP_UPTransportLayerInformation_PR_gTPTunnel);
+  // mandatory
+  // ul up tnl information 9.3.2.1
+  assert(src->uLUPTNLInformation.present == F1AP_UPTransportLayerInformation_PR_gTPTunnel );
 
-  dst.tnl_info.tla = copy_bit_string(&src->uLUPTNLInformation.choice.gTPTunnel->transportLayerAddress );
+  dst.tnl_info.tla = copy_bit_string(&src->uLUPTNLInformation.choice.gTPTunnel->transportLayerAddress);
 
   assert(src->uLUPTNLInformation.choice.gTPTunnel->gTP_TEID.size == 4);
   memcpy(dst.tnl_info.gtp_teid, src->uLUPTNLInformation.choice.gTPTunnel->gTP_TEID.buf, 4);
 
-  // Optional
-  // BH Information 9.3.1.114
-  assert(src->iE_Extensions == NULL && "Not implemented");
+  // optional
+  // bh information 9.3.1.114
+  assert(src->iE_Extensions == NULL && "not implemented");
 
   return dst;
 }
@@ -1721,7 +1723,7 @@ pdcp_sn_len_e cp_dl_pdcp_sn_len_ue_sr_ir(F1AP_DRBs_ToBeSetup_ItemExtIEs_t const*
   } else if(src->extensionValue.choice.PDCPSNLength == F1AP_PDCPSNLength_eighteen_bits){
     dst = EIGHTEEN_18BITS_PDCP_SN_LEN;
   } else {
-    assert(0!=0 && "Unknown type");
+    assert(0!=0 && "unknown type");
   }
 
   return dst;
@@ -1764,7 +1766,7 @@ add_pdcp_dup_tnl_span_t cp_add_pdcp_dup_tnl_ue_sr_ir(F1AP_DRBs_ToBeSetup_ItemExt
 
   dst.sz = src->extensionValue.choice.AdditionalPDCPDuplicationTNL_List.list.count;
   dst.add_pdcp_dup_tnl = calloc(dst.sz, sizeof( add_pdcp_dup_tnl_t ) );
-  assert(dst.add_pdcp_dup_tnl != NULL && "Memory exhausted");
+  assert(dst.add_pdcp_dup_tnl != NULL && "memory exhausted");
 
   for(size_t i = 0; i < dst.sz; ++i ){
     F1AP_AdditionalPDCPDuplicationTNL_Item_t const* ie = src->extensionValue.choice.AdditionalPDCPDuplicationTNL_List.list.array[i];
@@ -1787,9 +1789,9 @@ drb_to_be_setup_t cp_drb_to_be_setup_item_ue_sr_ir(F1AP_DRBs_ToBeSetup_ItemIEs_t
 
   F1AP_DRBs_ToBeSetup_Item_t const* src_drb = &src->value.choice.DRBs_ToBeSetup_Item;
 
-  // Mandatory
-  // DRB ID 9.3.1.8
-  assert(src_drb->dRBID < 33);;// INTEGER [0,32]
+  // mandatory
+  // drb id 9.3.1.8
+  assert(src_drb->dRBID < 33);;// integer [0,32]
   dst.drb_id = src_drb->dRBID;
 
   assert(src_drb->qoSInformation.present == F1AP_QoSInformation_PR_eUTRANQoS 
@@ -1797,28 +1799,28 @@ drb_to_be_setup_t cp_drb_to_be_setup_item_ue_sr_ir(F1AP_DRBs_ToBeSetup_ItemIEs_t
 
   if(src_drb->qoSInformation.present == F1AP_QoSInformation_PR_eUTRANQoS){
     dst.qos_info = E_UTRAN_QOS_INFORMATION;
-    dst.e_utran_qos = cp_e_utran_qos(src_drb->qoSInformation.choice.eUTRANQoS );
+    dst.e_utran_qos = cp_e_utran_qos(src_drb->qoSInformation.choice.eUTRANQoS);
   } else if(src_drb->qoSInformation.present == F1AP_QoSInformation_PR_choice_extension) {
     dst.qos_info = DRB_INFO_QOS_INFORMATION;
     dst.drb_info = cp_drb_info((F1AP_QoSInformation_ExtIEs_t const*)src_drb->qoSInformation.choice.choice_extension);
   } else {
-    assert(0!= 0 && "Not implemented");
+    assert(0!= 0 && "not implemented");
   }
 
-  // UL UP TNL Information to be setup List
+  // ul up tnl information to be setup list
   assert(src_drb->uLUPTNLInformation_ToBeSetup_List.list.count < 3);
   dst.sz_ul_up_tnl_info_lst = src_drb->uLUPTNLInformation_ToBeSetup_List.list.count; 
   if(dst.sz_ul_up_tnl_info_lst > 0){
     dst.ul_up_tnl_info = calloc(dst.sz_ul_up_tnl_info_lst, sizeof(ul_up_tnl_info_lst_t) );
-    assert(dst.ul_up_tnl_info != NULL && "Memory exhausted");
+    assert(dst.ul_up_tnl_info != NULL && "memory exhausted");
 
     for(size_t i = 0; i < dst.sz_ul_up_tnl_info_lst; ++i){
       dst.ul_up_tnl_info[i] = cp_ul_up_tnl_info_ue_sr_ir( src_drb->uLUPTNLInformation_ToBeSetup_List.list.array[i]);  
     }
   }
 
-  // Mandatory
-  // RLC Mode 9.3.1.27
+  // mandatory
+  // rlc mode 9.3.1.27
   if(src_drb->rLCMode == F1AP_RLCMode_rlc_am){
     dst.rlc_mode = RLC_AM_RLC_MODE_F1AP;
   } else if(src_drb->rLCMode ==   F1AP_RLCMode_rlc_um_bidirectional){
@@ -1828,51 +1830,51 @@ drb_to_be_setup_t cp_drb_to_be_setup_item_ue_sr_ir(F1AP_DRBs_ToBeSetup_ItemIEs_t
   } else if(src_drb->rLCMode  == F1AP_RLCMode_rlc_um_unidirectional_dl){
     dst.rlc_mode = RLC_UM_UNIDIRECTIONAL_DL_RLC_MODE_F1AP;
   } else {
-    assert( 0!= 0 && "Unknown type");
+    assert( 0!= 0 && "unknown type");
   }
 
-  // Optional 
-  // UL Configuration 9.3.1.31
-  assert(src_drb->uLConfiguration == NULL && "Not implemented");
+  // optional 
+  // ul configuration 9.3.1.31
+  assert(src_drb->uLConfiguration == NULL && "not implemented");
 
-  // Optional 
-  // Duplication Activation 9.3.1.36
-  assert(src_drb->duplicationActivation == NULL && "Not implemented");
+  // optional 
+  // duplication activation 9.3.1.36
+  assert(src_drb->duplicationActivation == NULL && "not implemented");
 
-  // Optional
-  // DC Based Duplication Configured
-  // assert(src_drb->dc_dup_act_conf == NULL && "Not implemented");
+  // optional
+  // dc based duplication configured
+  // assert(src_drb->dc_dup_act_conf == NULL && "not implemented");
 
-  // Optional
-  // DC Based Duplication Activation 9.3.1.36
-  // assert(src_drb->dc_dup_act == NULL && "Not implemented");
+  // optional
+  // dc based duplication activation 9.3.1.36
+  // assert(src_drb->dc_dup_act == NULL && "not implemented");
 
   assert(((F1AP_ProtocolExtensionContainer_154P82_t*)src_drb->iE_Extensions)->list.count > 0 );
   for(size_t i = 0; i < ((F1AP_ProtocolExtensionContainer_154P82_t*)src_drb->iE_Extensions)->list.count; ++i){
 
     F1AP_DRBs_ToBeSetup_ItemExtIEs_t const* src_ie = ((F1AP_ProtocolExtensionContainer_154P82_t*)src_drb->iE_Extensions)->list.array[i];
-    // Mandatory
-    // DL PDCP SN length
+    // mandatory
+    // dl pdcp sn length
     if(src_ie->id == F1AP_ProtocolIE_ID_id_DLPDCPSNLength){
       dst.dl_pdcp_sn_len = cp_dl_pdcp_sn_len_ue_sr_ir( src_ie ) ;
-      // Additional PDCP Duplication TNL List // [0,2]
+      // additional pdcp duplication tnl list // [0,2]
     } else if(src_ie->id == F1AP_ProtocolIE_ID_id_AdditionalPDCPDuplicationTNL_List){
       add_pdcp_dup_tnl_span_t tmp = cp_add_pdcp_dup_tnl_ue_sr_ir(src_ie);
       assert(tmp.sz < 3);
       dst.sz_add_pdcp_dup_tnl = tmp.sz;
       dst.add_pdcp_dup_tnl = tmp.add_pdcp_dup_tnl;
     } else {
-      assert(0!=0 && "Unknown type");
+      assert(0!=0 && "unknown type");
     }
 
-    // Optional
-    // RLC Duplication Information 9.3.1.146
+    // optional
+    // rlc duplication information 9.3.1.146
     //assert(src->sz_rlc_dup_info < 4); // [0,3]
-    //assert(src->sz_rlc_dup_info == 0 && "Not implememted");
-    //assert(src->rlc_dup_info == NULL && "Not implememted");
-    // For future implementation
-    // F1AP_RLCDuplicationInformation_t
-    // F1AP_ProtocolIE_ID_id_RLCDuplicationInformation	
+    //assert(src->sz_rlc_dup_info == 0 && "not implememted");
+    //assert(src->rlc_dup_info == NULL && "not implememted");
+    // for future implementation
+    // f1ap_rlcduplicationinformation_t
+    // f1ap_protocolie_id_id_rlcduplicationinformation	
   }
 
   return dst;
@@ -1892,7 +1894,7 @@ drb_to_be_setup_span_t cp_drb_to_be_setup_ue_sr_ir(F1AP_UEContextSetupRequestIEs
   dst.sz = src->value.choice.DRBs_ToBeSetup_List.list.count;
   assert(dst.sz < 65);
   dst.drb_to_be_setup = calloc(dst.sz, sizeof(drb_to_be_setup_t) );
-  assert(dst.drb_to_be_setup != NULL && "Memory exhausted");
+  assert(dst.drb_to_be_setup != NULL && "memory exhausted");
 
   for(size_t i = 0; i < dst.sz; ++i){
     dst.drb_to_be_setup[i] = cp_drb_to_be_setup_item_ue_sr_ir((F1AP_DRBs_ToBeSetup_ItemIEs_t const*)src->value.choice.DRBs_ToBeSetup_List.list.array[i]) ;
@@ -1915,8 +1917,8 @@ ue_ctx_setup_request_t cp_ue_ctx_setup_request_ir(F1AP_F1AP_PDU_t const* src_pdu
   assert(src_init->value.present == F1AP_InitiatingMessage__value_PR_UEContextSetupRequest);
 
   F1AP_UEContextSetupRequest_t const* src = &src_init->value.choice.UEContextSetupRequest;
-  // Mandatory
-  //gNB-CU UE F1AP ID 9.3.1.4
+  // mandatory
+  //gnb-cu ue f1ap id 9.3.1.4
   dst.gnb_cu_ue_f1ap_id = cp_gnb_cu_ue_sr_ir(src->protocolIEs.list.array[0]);
 
   assert(src->protocolIEs.list.count < 37);
@@ -1924,136 +1926,536 @@ ue_ctx_setup_request_t cp_ue_ctx_setup_request_ir(F1AP_F1AP_PDU_t const* src_pdu
 
     F1AP_UEContextSetupRequestIEs_t const* src_it = src->protocolIEs.list.array[i];
 
-    // Optional
-    // gNB-DU UE F1AP ID 9.3.1.5
+    // optional
+    // gnb-du ue f1ap id 9.3.1.5
     if(src_it->id == F1AP_ProtocolIE_ID_id_gNB_DU_UE_F1AP_ID){
       dst.gnb_du_ue_f1ap_id = cp_gnb_du_ue_sr_ir(src_it);
-      // Mandatory
-      // SpCell ID
+      // mandatory
+      // spcell id
     } else if(src_it->id == F1AP_ProtocolIE_ID_id_SpCell_ID){
       dst.sp_cell_id = cp_spcell_id_ue_sr_ir(src_it);
-      // Mandatory
-      // ServCellIndex
+      // mandatory
+      // servcellindex
     } else if(src_it->id == F1AP_ProtocolIE_ID_id_ServCellIndex){
       dst.serv_cell_idx = cp_serv_cell_idx_ue_sr_ir(src_it);
-      // Optional
-      // SpCell UL Configured 9.3.1.33
+      // optional
+      // spcell ul configured 9.3.1.33
     } else if(src_it->id == F1AP_ProtocolIE_ID_id_SpCellULConfigured){
       dst.sp_cell_ul_conf = cp_sp_cell_ul_conf_ue_sr_ir(src_it);
-      // Mandatory
-      // CU to DU RRC Information 9.3.1.25
+      // mandatory
+      // cu to du rrc information 9.3.1.25
     } else if(src_it->id == F1AP_ProtocolIE_ID_id_CUtoDURRCInformation){
       dst.cu_to_du_rrc_info = cp_cu_to_du_rrc_info_ue_sr_ir(src_it);
-      // Optional 
-      // Candidate SpCell ID
+      // optional 
+      // candidate spcell id
     } else if(src_it->id == F1AP_ProtocolIE_ID_id_Candidate_SpCell_List){
       candidate_sp_cell_id_span_t tmp = cp_candidate_sp_cell_id_ue_sr_ir(src_it);
       dst.candidate_sp_cell_id = tmp.candidate_sp_cell_id;
       dst.sz_candidate_sp_cell_id = tmp.sz;
-      //Optional 
-      // DRX Cycle
+      //optional 
+      // drx cycle
     } else if(src_it->id == F1AP_ProtocolIE_ID_id_DRXCycle){
       dst.drx_cycle = cp_drx_cycle_ue_sr_ir(src_it);
-      // Optional
-      // Resource Coordination Transfer Container
+      // optional
+      // resource coordination transfer container
     } else if(src_it->id == F1AP_ProtocolIE_ID_id_ResourceCoordinationTransferContainer){
       dst.resource_coord_transfer_container = cp_res_coord_trans_ue_sr_ir(src_it);
-      // SCell To Be Setup List
+      // scell to be setup list
     } else if(src_it->id == F1AP_ProtocolIE_ID_id_SCell_ToBeSetup_List){
       scell_to_be_setup_span_t tmp = cp_scell_to_be_setup_ue_sr_ir(src_it);
       dst.scell_to_be_setup = tmp.scell_to_be_setup;
       dst.sz_scell_to_be_setup = tmp.sz;
-      // SRB to Be Setup Item
+      // srb to be setup item
     } else if(src_it->id == F1AP_ProtocolIE_ID_id_SRBs_ToBeSetup_List){
       srb_to_be_setup_span_t tmp = cp_srb_to_be_setup_ue_sr_ir(src_it);
       dst.srb_to_be_setup = tmp.srb_to_be_setup; 
       dst.sz_srb_to_be_setup = tmp.sz;
-      // DRB to Be Setup Item
+      // drb to be setup item
     } else if(src_it->id == F1AP_ProtocolIE_ID_id_DRBs_ToBeSetup_List){
       drb_to_be_setup_span_t tmp = cp_drb_to_be_setup_ue_sr_ir(src_it);
       dst.drb_to_be_setup = tmp.drb_to_be_setup; 
       dst.sz_drb_to_be_setup = tmp.sz;
     } else{
-      assert(0!=0 && "Unknown or unimplemented");
+      assert(0!=0 && "unknown or unimplemented");
     }
 
 
-    // Optional
-    // Inactivity Monitoring Request
+    // optional
+    // inactivity monitoring request
 
-    // Optional 
-    // RAT-Frequency Priority Information 9.3.1.34
+    // optional 
+    // rat-frequency priority information 9.3.1.34
 
-    // Optional
-    // RRC-Container 9.3.1.6
+    // optional
+    // rrc-container 9.3.1.6
 
-    // Optional 
-    // Masked IMEISV 9.3.1.55
+    // optional 
+    // masked imeisv 9.3.1.55
 
-    // Optional
-    // Serving PLMN 9.3.1.14
+    // optional
+    // serving plmn 9.3.1.14
 
-    // C-ifDRBSetup Optional
-    // gNB-DU UE Aggregate Maximum Bit Rate Uplink 9.3.1.22
+    // c-ifdrbsetup optional
+    // gnb-du ue aggregate maximum bit rate uplink 9.3.1.22
 
-    // Optional
-    // RRC Delivery Status Request
+    // optional
+    // rrc delivery status request
 
-    // Optional 
-    // Resource Coordination Transfer Information 9.3.1.73
+    // optional 
+    // resource coordination transfer information 9.3.1.73
 
-    // Optional
-    // servingCellMO 
+    // optional
+    // servingcellmo 
 
-    // Optional 
-    // New gNB-CU UE F1AP ID 9.3.1.4
+    // optional 
+    // new gnb-cu ue f1ap id 9.3.1.4
 
-    // Optional
-    // RAN UE ID
+    // optional
+    // ran ue id
 
-    // Optional
-    // Trace Activation 9.3.1.88
+    // optional
+    // trace activation 9.3.1.88
 
-    // Optional
-    // Additional RRM Policy Index 9.3.1.90
+    // optional
+    // additional rrm policy index 9.3.1.90
 
-    // BH RLC Channel to be Setup Item [0, 65536]
+    // bh rlc channel to be setup item [0, 65536]
     // size_t sz_bh_rlc_chan_to_be_setup; 
     // bh_rlc_chan_to_be_setup_t* ; 
 
-    // Optional
-    // Configured BAP Address 9.3.1.111
+    // optional
+    // configured bap address 9.3.1.111
+
+    // optional
+    // nr v2x services authorized 9.3.1.116
+
+    // optional
+    // lte v2x services authorized 9.3.1.117
+
+    // optional
+    // nr ue sidelink aggregate maximum bit rate 9.3.1.119
+
+    // optional
+    // lte ue sidelink aggregate maximum bit rate 9.3.1.118
+
+    // optional
+    // pc5 link aggregate bit rate 9.3.1.22
+
+    // optional
+    // sl drb to be setup list [0, 64]
+
+    // optional
+    // conditional inter-du mobility information 
+
+    // optional
+    // management based mdt plmn list 9.3.1.151
+
+    // optional
+    // serving nid 9.3.1.155
+
+    // optional
+    // f1-c transfer path 9.3.1.207 
+
+  }
+
+  return dst;
+}
+
+/////////
+/////////
+/////////
+
+
+static
+uint32_t cp_gnb_cu_ue_id_setup_resp(F1AP_UEContextSetupResponseIEs_t const* src)
+{
+  assert(src != NULL);
+
+  assert(src->id == F1AP_ProtocolIE_ID_id_gNB_CU_UE_F1AP_ID);	
+  assert(src->criticality == F1AP_Criticality_reject);
+  assert(src->value.present == F1AP_UEContextSetupResponseIEs__value_PR_GNB_CU_UE_F1AP_ID);
+
+  assert(src->value.choice.GNB_CU_UE_F1AP_ID < (1ul << 32) );
+  return src->value.choice.GNB_CU_UE_F1AP_ID; 
+}
+
+static
+uint32_t cp_gnb_du_ue_id_setup_resp(F1AP_UEContextSetupResponseIEs_t const* src)
+{
+  assert(src != NULL);
+
+  assert(src->id == F1AP_ProtocolIE_ID_id_gNB_DU_UE_F1AP_ID);	
+  assert(src->criticality == F1AP_Criticality_reject);
+  assert(src->value.present == F1AP_UEContextSetupResponseIEs__value_PR_GNB_DU_UE_F1AP_ID);
+
+  assert(src->value.choice.GNB_DU_UE_F1AP_ID < (1ul << 32) );
+  return src->value.choice.GNB_DU_UE_F1AP_ID;
+}
+
+static
+du_to_cu_rrc_information_f1ap_t cp_du_to_cu_rrc_info_setup_resp(F1AP_UEContextSetupResponseIEs_t const* src_ie)
+{
+  assert(src_ie != NULL);
+
+  du_to_cu_rrc_information_f1ap_t dst = {0}; 
+
+  assert(src_ie->id == F1AP_ProtocolIE_ID_id_DUtoCURRCInformation);	
+  assert(src_ie->criticality == F1AP_Criticality_reject);
+  assert(src_ie->value.present == F1AP_UEContextSetupResponseIEs__value_PR_DUtoCURRCInformation);
+
+ F1AP_DUtoCURRCInformation_t const* src = &src_ie->value.choice.DUtoCURRCInformation;
+
+  // mandatory
+  // cellgroupconfig
+  dst.cell_group_config = copy_ostring_to_ba(src->cellGroupConfig);
+
+  // optional
+  // measgapconfig
+  assert(src->measGapConfig == NULL && "not implemented"); 
+
+  // optional
+  // requested p-maxfr1
+  assert(src->requestedP_MaxFR1 == NULL && "not implemented"); 
+
+
+  assert(src->iE_Extensions == NULL && "not implemented");
+
+  // optional
+  // drx long cycle start offset
+  // assert(src->drx_lng_cyc_str_off== NULL && "not implemented"); // [0..10239]
+
+  // optional
+  // selected bandcombinationindex
+  // assert(src->bnd_comb_idx== NULL && "not implemented"); 
+
+  // optional
+  // selected featuresetentryindex
+  // assert(src->sel_feature_set_entry_idx== NULL && "not implemented"); 
+
+  // optional
+  // ph-infoscg
+  //  assert(src->ph_info_scg== NULL && "not implemented"); 
+
+  // optional
+  // requested bandcombinationindex
+  // assert(src->req_bnd_cmb_idx== NULL && "not implemented"); 
+
+  // optional
+  // requested featuresetentryindex
+  // assert(src->req_feat_set_entry_idx== NULL && "not implemented"); 
+
+  // optional
+  // drx config
+  // assert(src->drx_cnfg== NULL && "not implemented"); 
+
+  // optional
+  // pdcch blinddetectionscg
+  // assert(src->pdcch_blind_det_scg== NULL && "not implemented"); 
+
+  // optional
+  // requested pdcch blinddetectionscg
+  // assert(src->req_pdcch_blnd_det_scg== NULL && "not implemented"); 
+
+  // optional
+  // ph-infomcg
+  // assert(src->ph_info_mcg== NULL && "not implemented"); 
+
+  // optional
+  // measgapsharingconfig 
+  // assert(src->meas_gap_shr_conf== NULL && "not implemented"); 
+
+  // optional
+  // sl-phy-mac-rlc-config
+  // assert(src->sl_phy_mac_rlc_conf== NULL && "not implemented"); 
+
+  // optional
+  // sl-configdedicatedeutra-info 
+  // assert(src->sl_conf_dedica_eutra_info== NULL && "not implemented"); 
+
+  // optional
+  // requested p-maxfr2 
+  // assert(src->req_p_max_fr2== NULL && "not implemented"); 
+
+  return dst;
+}
+
+static
+uint16_t* cp_c_rnti_setup_resp(F1AP_UEContextSetupResponseIEs_t const* src_ie)
+{
+  assert(src_ie != NULL);
+
+  uint16_t* dst = malloc(sizeof(uint16_t));
+  assert(dst != NULL && "memory exhausted");
+
+  assert(src_ie->id == F1AP_ProtocolIE_ID_id_C_RNTI);	
+  assert(src_ie->criticality == F1AP_Criticality_ignore);
+  assert(src_ie->value.present == F1AP_UEContextSetupResponseIEs__value_PR_C_RNTI);
+
+  // 9.3.1.32 [0, 65535]
+  assert(src_ie->value.choice.C_RNTI <  65536);
+  *dst = src_ie->value.choice.C_RNTI;
+
+  return dst; 
+}
+
+static
+byte_array_t* cp_res_coord_trans_cont_setup_resp(F1AP_UEContextSetupResponseIEs_t const* src_ie)
+{
+  assert(src_ie != NULL);
+
+  byte_array_t* dst = calloc(1, sizeof(byte_array_t)); 
+  assert(dst != NULL && "memory exhausted");
+
+  assert(src_ie->id == F1AP_ProtocolIE_ID_id_ResourceCoordinationTransferContainer);	
+  assert(src_ie->criticality == F1AP_Criticality_ignore);
+  assert(src_ie->value.present == F1AP_UEContextSetupResponseIEs__value_PR_ResourceCoordinationTransferContainer);
+
+  *dst = copy_ostring_to_ba(src_ie->value.choice.ResourceCoordinationTransferContainer);
+
+  return dst;
+}
+
+typedef struct{
+  size_t sz;
+  drb_setup_item_f1ap_t* drb_setup_item;
+} drb_setup_item_arr_t;
+
+typedef struct{
+  size_t sz; // [1, 2]
+  dl_up_trans_layer_info_t* dl_up_tnl_info_tbs;
+} dl_up_tnl_info_tbs_arr_t;
+
+static
+dl_up_trans_layer_info_t cp_dl_up_trans_layer_info(struct F1AP_DLUPTNLInformation_ToBeSetup_Item const* src)
+{
+  assert(src != NULL);
+
+  dl_up_trans_layer_info_t dst = {0};
+
+  // 9.3.2.1
+  assert(src->dLUPTNLInformation.present == F1AP_UPTransportLayerInformation_PR_gTPTunnel); 
+
+  byte_array_t tmp = copy_ostring_to_ba(src->dLUPTNLInformation.choice.gTPTunnel->gTP_TEID);
+  assert(tmp.len == 4);
+  memcpy(dst.gtp_teid, tmp.buf, 4);
+  free_byte_array(tmp);
+
+  dst.trans_layer_addr = copy_bit_string(&src->dLUPTNLInformation.choice.gTPTunnel->transportLayerAddress);
+
+  return dst;
+}
+
+static
+dl_up_tnl_info_tbs_arr_t cp_dl_up_tnl_info_tbs_arr(F1AP_DLUPTNLInformation_ToBeSetup_List_t const* src)
+{
+  assert(src != NULL);
+
+  dl_up_tnl_info_tbs_arr_t dst = {0}; 
+
+  assert(src->list.count == 1 || src->list.count == 2);
+
+  dst.sz = src-> list.count;
+
+  dst.dl_up_tnl_info_tbs = calloc(dst.sz, sizeof(dl_up_trans_layer_info_t));
+  assert(dst.dl_up_tnl_info_tbs != NULL && "Memory exhausted");
+
+  for(size_t i = 0; i < dst.sz; ++i){
+    dst.dl_up_tnl_info_tbs[i] = cp_dl_up_trans_layer_info(src->list.array[i]);
+  }
+
+  return dst;
+}
+
+static
+drb_setup_item_f1ap_t cp_drb_setup_item_ie_setup_resp(F1AP_DRBs_Setup_ItemIEs_t const* src_ie)
+{
+  assert(src_ie != NULL);
+
+  drb_setup_item_f1ap_t dst = {0}; 
+
+  assert(src_ie->id == F1AP_ProtocolIE_ID_id_DRBs_Setup_Item);	
+  assert(src_ie->criticality == F1AP_Criticality_ignore);
+  assert(src_ie->value.present == F1AP_DRBs_Setup_ItemIEs__value_PR_DRBs_Setup_Item);
+
+  F1AP_DRBs_Setup_Item_t const* src = &src_ie->value.choice.DRBs_Setup_Item;
+
+  // Mandatory
+  // DRB ID 9.3.1.8
+  assert(src->dRBID > 0 && src->dRBID < 33);
+  dst.drb_id = src->dRBID;
+
+  // Optional
+  // LCID 9.3.1.35
+  if(src->lCID != NULL){ // [1, 32]
+    dst.lc_id = malloc(sizeof(uint8_t)); 
+    assert(dst.lc_id != NULL && "Memory exhausted");
+    
+    assert(*src->lCID > 0 && *src->lCID < 33);
+    *dst.lc_id = *src->lCID; 
+  }
+
+
+  // DL UP TNL Information to be setup
+  dl_up_tnl_info_tbs_arr_t tmp = cp_dl_up_tnl_info_tbs_arr(&src->dLUPTNLInformation_ToBeSetup_List);
+
+  dst.sz_dl_up_tnl_info_tbs = tmp.sz;
+  dst.dl_up_tnl_info_tbs = tmp.dl_up_tnl_info_tbs;
+
+	  assert(src->iE_Extensions == NULL && "Not implemented");
+
+  // Additional PDCP Duplication TNL List [0,1] 9.3.2.1 
+  // iup_trans_layer_info_t* add_pdcp_dup_tnl_lst;
+
+  // Optional
+  // Current QoS Parameters Set Index 9.3.1.123 [1,8]
+  // uint8_t* cur_qos_par_set_idx;
+
+  return dst;
+}
+
+static
+drb_setup_item_arr_t cp_drb_setup_item_setup_resp(F1AP_UEContextSetupResponseIEs_t const* src_ie)
+{
+  assert(src_ie != NULL);
+
+  drb_setup_item_arr_t dst = {0};
+
+  assert(src_ie->id == F1AP_ProtocolIE_ID_id_DRBs_Setup_List);	
+  assert(src_ie->criticality == F1AP_Criticality_ignore);
+  assert(src_ie->value.present == F1AP_UEContextSetupResponseIEs__value_PR_DRBs_Setup_List);
+
+  dst.sz = src_ie->value.choice.DRBs_Setup_List.list.count;
+
+  if(dst.sz > 0){
+    dst.drb_setup_item = calloc(dst.sz, sizeof(drb_setup_item_f1ap_t));
+    assert(dst.drb_setup_item != NULL && "Memory exhausted" );
+  }
+
+  for(size_t i = 0; i < dst.sz; ++i){
+    dst.drb_setup_item[i] = cp_drb_setup_item_ie_setup_resp((F1AP_DRBs_Setup_ItemIEs_t*)src_ie->value.choice.DRBs_Setup_List.list.array[i]);
+  }
+
+  return dst;
+}
+
+typedef struct{
+  size_t sz;
+  srb_setup_item_t* srb_setup_item;
+} srb_setup_item_arr_t; 
+
+static
+srb_setup_item_t cp_srb_setup_item_ie_stp_resp(F1AP_SRBs_Setup_ItemIEs_t const* src)
+{
+  assert(src != NULL);
+
+  srb_setup_item_t dst = {0}; 
+
+  assert(src->id == F1AP_ProtocolIE_ID_id_SRBs_Setup_Item);	
+  assert(src->criticality == F1AP_Criticality_ignore);
+  assert(src->value.present == F1AP_SRBs_Setup_ItemIEs__value_PR_SRBs_Setup_Item);
+
+  // Mandatory
+  // SRB ID 9.3.1.7
+  assert(src->value.choice.SRBs_Setup_Item.sRBID < 4); // [0,3]
+  dst.srb_id = src->value.choice.SRBs_Setup_Item.sRBID ;
+
+  // Mandatory
+  // LCID 9.3.1.35
+  assert(src->value.choice.SRBs_Setup_Item.lCID > 0 && src->value.choice.SRBs_Setup_Item.lCID < 33); // [1,32]
+
+  dst.lc_id = src->value.choice.SRBs_Setup_Item.lCID; 
+
+  return dst;
+}
+
+
+static
+srb_setup_item_arr_t cp_srb_setup_item_stp_resp(F1AP_UEContextSetupResponseIEs_t const* src_ie)
+{
+  assert(src_ie != NULL);
+
+  srb_setup_item_arr_t dst = {0}; 
+
+  assert(src_ie->id == F1AP_ProtocolIE_ID_id_SRBs_Setup_List);	
+  assert(src_ie->criticality == F1AP_Criticality_ignore);
+  assert(src_ie->value.present == F1AP_UEContextSetupResponseIEs__value_PR_SRBs_Setup_List);
+
+  F1AP_SRBs_Setup_List_t const* src = &src_ie->value.choice.SRBs_Setup_List;
+ 
+  dst.sz = src->list.count; 
+  if(src->list.count > 0){
+    dst.srb_setup_item = calloc(dst.sz, sizeof( srb_setup_item_t));
+    assert(dst.srb_setup_item != NULL && "Memory exhasuted");
+  }
+
+  for(size_t i = 0; i < dst.sz; ++i){
+    dst.srb_setup_item[i] = cp_srb_setup_item_ie_stp_resp((F1AP_SRBs_Setup_ItemIEs_t*)  src->list.array[i]);
+  }
+
+  return dst;
+}
+
+
+ue_ctx_setup_response_t cp_ue_ctx_setup_response_ir(F1AP_F1AP_PDU_t const* src_pdu)
+{
+  assert(src_pdu != NULL);
+
+  ue_ctx_setup_response_t dst = {0};
+
+  assert(src_pdu->present == F1AP_F1AP_PDU_PR_successfulOutcome);
+
+  F1AP_SuccessfulOutcome_t const* src_out = src_pdu->choice.successfulOutcome;
+
+  assert(src_out->procedureCode == F1AP_ProcedureCode_id_UEContextSetup);
+  assert(src_out->criticality == F1AP_Criticality_reject);
+  assert(src_out->value.present == F1AP_SuccessfulOutcome__value_PR_UEContextSetupResponse);
+  F1AP_UEContextSetupResponse_t const* src = &src_out->value.choice.UEContextSetupResponse;
+
+
+  assert(src->protocolIEs.list.size > 2 && "At least three IE are mandatory");
+  
+  for(size_t i = 0; i < src->protocolIEs.list.count; ++i){
+    F1AP_UEContextSetupResponseIEs_t const* src_ie = src->protocolIEs.list.array[i]; 
+
+    // Mandatory
+    //gNB-CU UE F1AP ID 9.3.1.4
+    if(src_ie->id == F1AP_ProtocolIE_ID_id_gNB_CU_UE_F1AP_ID){
+      dst.gnb_cu_ue_id = cp_gnb_cu_ue_id_setup_resp(src_ie);
+
+    // Mandatory
+    // gNB-DU UE F1AP ID 9.3.1.5
+    } else if(src_ie->id == F1AP_ProtocolIE_ID_id_gNB_DU_UE_F1AP_ID){
+      dst.gnb_du_ue_id = cp_gnb_du_ue_id_setup_resp(src_ie);
+
+    // Mandatory 
+    // DU To CU RRC Information 9.3.1.26
+    } else if(src_ie->id == F1AP_ProtocolIE_ID_id_DUtoCURRCInformation){
+      dst.du_to_cu_rrc_info = cp_du_to_cu_rrc_info_setup_resp(src_ie);  
 
     // Optional
-    // NR V2X Services Authorized 9.3.1.116
+    // C-RNTI 9.3.1.32
+    } else if(src_ie->id == F1AP_ProtocolIE_ID_id_C_RNTI){
+      dst.c_rnti = cp_c_rnti_setup_resp(src_ie);
 
     // Optional
-    // LTE V2X Services Authorized 9.3.1.117
+    // Resource Coordination Transfer Container 
+    } else if(src_ie->id == F1AP_ProtocolIE_ID_id_ResourceCoordinationTransferContainer) {
+       dst.res_coord_trans_cont = cp_res_coord_trans_cont_setup_resp(src_ie);
 
-    // Optional
-    // NR UE Sidelink Aggregate Maximum Bit Rate 9.3.1.119
+    // DRB Setup Item List [0, 64]
+    } else if(src_ie->id == F1AP_ProtocolIE_ID_id_DRBs_Setup_List){
+      drb_setup_item_arr_t tmp = cp_drb_setup_item_setup_resp(src_ie);    
+      dst.sz_drb_setup_item = tmp.sz; 
+      dst.drb_setup_item = tmp.drb_setup_item; 
 
-    // Optional
-    // LTE UE Sidelink Aggregate Maximum Bit Rate 9.3.1.118
-
-    // Optional
-    // PC5 Link Aggregate Bit Rate 9.3.1.22
-
-    // Optional
-    // SL DRB to Be Setup List [0, 64]
-
-    // Optional
-    // Conditional Inter-DU Mobility Information 
-
-    // Optional
-    // Management Based MDT PLMN List 9.3.1.151
-
-    // Optional
-    // Serving NID 9.3.1.155
-
-    // Optional
-    // F1-C Transfer Path 9.3.1.207 
-
+    // SRB Setup List [0, 8]
+    } else if(src_ie->id == F1AP_ProtocolIE_ID_id_SRBs_Setup_List){
+        srb_setup_item_arr_t tmp = cp_srb_setup_item_stp_resp(src_ie);
+        dst.sz_srb_setup_item = tmp.sz;
+        dst.srb_setup_item = tmp.srb_setup_item;
+    } else {
+      assert(0 != 0 && "Not implemented IEs");
+    } 
   }
 
   return dst;

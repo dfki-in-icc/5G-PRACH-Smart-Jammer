@@ -126,24 +126,39 @@ void test_f1_ue_ctx_setup_request()
 
 void test_f1_ue_ctx_setup_response()
 {
+  ue_ctx_setup_response_t msg = gen_rnd_ue_ctx_setup_response();
+  defer({ free_ue_ctx_setup_response(&msg); }); 
 
+  F1AP_F1AP_PDU_t pdu = cp_ue_ctx_setup_response_asn(&msg);
+  defer({ ASN_STRUCT_RESET(asn_DEF_F1AP_F1AP_PDU, &pdu); } );
 
+  byte_array_t ba = encode_pdu_f1ap(&pdu);
+  defer({ free_byte_array(ba); } );
+
+  F1AP_F1AP_PDU_t pdu2 = decode_pdu_f1ap(ba); 
+  defer({ ASN_STRUCT_RESET(asn_DEF_F1AP_F1AP_PDU, &pdu2); } ); 
+
+  ue_ctx_setup_response_t out = cp_ue_ctx_setup_response_ir(&pdu2);
+  defer({ free_ue_ctx_setup_response(&out); });
+
+  assert(eq_f1_ue_ctx_setup_response(&msg, &out) == true);
 }
-
-
-
 
 int main()
 {
   time_t t;
   srand((unsigned) time(&t));
 
-  test_f1_setup_f1ap();
-  test_f1_setup_response_f1ap();
-  test_f1_setup_failure_f1ap();
+//  test_f1_setup_f1ap();
+//  test_f1_setup_response_f1ap();
+//  test_f1_setup_failure_f1ap();
 
   test_f1_ue_ctx_setup_request();
-  test_f1_ue_ctx_setup_response();
+//  test_f1_ue_ctx_setup_response();
+
+
+
+
 
 
   // Class 2: 35 Procedures

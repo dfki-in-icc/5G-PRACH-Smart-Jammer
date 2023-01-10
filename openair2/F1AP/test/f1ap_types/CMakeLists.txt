@@ -8,15 +8,18 @@ set(f1ap_src_types
   criticallity_diagnostic_f1ap.c
   criticallity_diagnostic_ie_f1ap.c
   cu_to_du_rrc_info.c
+
+  dl_up_tnl_info_tbs.c
   drx_cycle.c
 
-
   drb_info.c
+  drb_setup_item.c
   drb_to_be_setup.c
 
   dyn_5qi_descriptor.c
-  e_utran_qos.c
+  du_to_cu_rrc_information_f1ap.c
 
+  e_utran_qos.c
 
   f1_setup.c
   f1_setup_response.c
@@ -50,6 +53,7 @@ set(f1ap_src_types
   sib.c
   srv_plmn.c
   srb_to_be_setup.c
+  srb_setup_item.c
   ssb_pos_burst.c
   sul_info.c
   tsc_traffic_char.c
@@ -58,6 +62,8 @@ set(f1ap_src_types
   tdd_info.c
   trans_bw.c
   ue_ctx_setup_request.c
+
+  ue_ctx_setup_response.c
 
   ul_up_tnl_info.c
   ul_up_tnl_info_lst.c

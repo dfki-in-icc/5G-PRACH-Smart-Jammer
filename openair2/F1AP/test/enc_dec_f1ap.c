@@ -4,6 +4,9 @@ byte_array_t encode_pdu_f1ap(F1AP_F1AP_PDU_t const* pdu)
 {
   assert(pdu != NULL);
 
+//  xer_fprint(stdout, &asn_DEF_F1AP_F1AP_PDU, pdu);
+//  fflush(stdout);
+
   const enum asn_transfer_syntax syntax = ATS_ALIGNED_BASIC_PER;
 
   asn_encode_to_new_buffer_result_t res = asn_encode_to_new_buffer(NULL, syntax, &asn_DEF_F1AP_F1AP_PDU, pdu);

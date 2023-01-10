@@ -6,7 +6,7 @@
 #include <stdlib.h>
 
 #include "triggering_message_f1ap.h"
-
+#include "criticallity_diagnostic_ie_f1ap.h"
 
 typedef struct {
 

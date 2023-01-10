@@ -255,11 +255,10 @@ int CU_handle_F1_SETUP_REQUEST(instance_t instance,
   // } nr_mode_info[F1AP_MAX_NB_CELLS];
 
 
-  
   // We copy and store in F1 task data, RRC will free "req" as it frees all itti received messages
   message_p = itti_alloc_new_message(TASK_CU_F1, 0, F1AP_SETUP_REQ);
   memcpy(&F1AP_SETUP_REQ(message_p), req, sizeof(f1ap_setup_req_t) );
-  
+
   if (req->num_cells_available > 0) {
     if (f1ap_req(true, instance)->cell_type == CELL_MACRO_GNB) {
       itti_send_msg_to_task(TASK_RRC_GNB, GNB_MODULE_ID_TO_INSTANCE(instance), message_p);
