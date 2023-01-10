@@ -66,3 +66,6 @@ target_link_libraries(e2_agent PUBLIC
 )
 target_link_libraries(e2_agent PRIVATE alg ngran_types)
 target_link_libraries(e2_agent PUBLIC ds) # for byte_array_t
+
+# list of SMs for which build should be triggered
+add_dependencies(e2_agent kpm_sm)
