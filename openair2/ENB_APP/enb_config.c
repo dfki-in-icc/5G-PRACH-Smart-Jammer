@@ -3165,7 +3165,7 @@ void read_config_and_init(void) {
   }
 }
 
-#ifdef OAI_E2_AGENT
+#ifdef E2_AGENT
 e2_agent_args_t RCconfig_E2agent(void)
 {
   paramdef_t e2agent_params[] = E2AGENT_PARAMS_DESC;

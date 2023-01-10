@@ -364,32 +364,22 @@ if (DEBUG_ASN1C)
   add_definitions(-DHAVE_CONFIG_H)
 endif()
 
-##################################################
-# ASN.1 grammar C code generation & dependencies #
-##################################################
-
 
 #########################
 ##### E2 AGENT
 #########################
-set(E2_AGENT "OFF" CACHE STRING "O-RAN E2 Agent")
+#add_boolean_option() does not work -- why?
+set(E2_AGENT "ON" CACHE STRING "O-RAN E2 Agent")
 set_property(CACHE E2_AGENT PROPERTY STRINGS "ON" "OFF")
 
-set(E2_AGENT_LIB "" CACHE STRING "")
-set_property(CACHE E2_AGENT_LIB PROPERTY STRINGS "" "e2_agent")
-
-if(E2_AGENT STREQUAL "ON")
-
-
-  set(E2_AGENT_LIB "e2_agent")
-  set(E2_AGENT_ON "OAI_E2_AGENT")
-
-  set(E2AP_DIR ${OPENAIR2_DIR}/E2AP)
-  include_directories ("${E2AP_DIR}")
-
+if(E2_AGENT)
+  include_directories(openair2/E2AP)
 endif()
 
 
+##################################################
+# ASN.1 grammar C code generation & dependencies #
+##################################################
 
 # RRC
 ######
@@ -1714,8 +1704,10 @@ add_library(L2
   ${MCE_APP_SRC}
   )
 target_link_libraries(L2 PRIVATE f1ap x2ap s1ap lte_rrc m2ap)
-target_link_libraries(L2 PUBLIC ${E2_AGENT_LIB})
-target_compile_definitions(L2 PRIVATE ${E2_AGENT_ON})
+if(E2_AGENT)
+  target_link_libraries(L2 PUBLIC e2_agent)
+  target_compile_definitions(L2 PRIVATE E2_AGENT)
+endif()
 target_link_libraries(L2 PRIVATE asn1_nr_rrc asn1_lte_rrc)
 
 add_library(MAC_NR ${MAC_NR_SRC})
@@ -1734,8 +1726,10 @@ add_library(L2_NR
   )
 
 target_link_libraries(L2_NR PRIVATE f1ap x2ap s1ap ngap nr_rrc)
-target_link_libraries(L2_NR PUBLIC ${E2_AGENT_LIB})
-target_compile_definitions(L2_NR PRIVATE ${E2_AGENT_ON})
+if(E2_AGENT)
+  target_link_libraries(L2_NR PUBLIC e2_agent)
+  target_compile_definitions(L2_NR PRIVATE E2_AGENT)
+endif()
 
 add_library(L2_LTE_NR
   ${L2_RRC_SRC}
@@ -2334,7 +2328,7 @@ target_link_libraries(lte-softmodem PRIVATE ${LIB_LMS_LIBRARIES})
 target_link_libraries(lte-softmodem PRIVATE ${T_LIB})
 target_link_libraries(lte-softmodem PRIVATE asn1_nr_rrc asn1_lte_rrc)
 
-target_compile_definitions(lte-softmodem PRIVATE ${E2_AGENT_ON})
+target_compile_definitions(lte-softmodem PRIVATE E2_AGENT)
 
 
 add_executable(ocp-enb
@@ -2489,7 +2483,7 @@ endif ()
 # force the generation of ASN.1 so that we don't need to wait during the build
 target_link_libraries(nr-softmodem PRIVATE
                       asn1_lte_rrc asn1_nr_rrc asn1_s1ap asn1_ngap asn1_m2ap asn1_m3ap asn1_x2ap asn1_f1ap asn1_lpp)
-target_compile_definitions(nr-softmodem PRIVATE ${E2_AGENT_ON})
+target_compile_definitions(nr-softmodem PRIVATE E2_AGENT)
 
 # nr-uesoftmodem is  UE implementation
 #######################################

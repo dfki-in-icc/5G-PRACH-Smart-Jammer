@@ -122,7 +122,7 @@ void fill_eMTC_configuration(MessageDef *msg_p,  ccparams_eMTC_t *eMTCconfig, in
 int RCconfig_DU_F1(MessageDef *msg_p, uint32_t i);
 void handle_f1ap_setup_resp(f1ap_setup_resp_t *resp);
 
-#ifdef OAI_E2_AGENT
+#ifdef E2_AGENT
 #include "openair2/E2AP/agent/e2_agent_api.h"
 e2_agent_args_t RCconfig_E2agent(void);
 #endif

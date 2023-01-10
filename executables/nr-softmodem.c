@@ -82,7 +82,7 @@ unsigned short config_frames[4] = {2,9,11,13};
 #include "nfapi/oai_integration/vendor_ext.h"
 
 
-#ifdef OAI_E2_AGENT
+#ifdef E2_AGENT
 
 #include "openair2/E2AP/sm/agent_if/read/sm_ag_if_rd.h"
 #include "openair2/E2AP/sm/sm_io.h"
@@ -97,7 +97,7 @@ unsigned short config_frames[4] = {2,9,11,13};
 #include "openair2/RRC/NR/rrc_gNB_UE_context.h"
 #include <time.h>
 
-#endif // OAI_E2_AGENT
+#endif // E2_AGENT
 
 pthread_cond_t nfapi_sync_cond;
 pthread_mutex_t nfapi_sync_mutex;
@@ -533,7 +533,7 @@ void init_pdcp(void) {
 }
 
 
-#ifdef OAI_E2_AGENT
+#ifdef E2_AGENT
 
 static
 void read_kpm_sm(kpm_ind_data_t* data)
@@ -707,7 +707,7 @@ sm_ag_if_ans_t write_RAN(sm_ag_if_wr_t const* data)
   return ans;
 }
 
-#endif // OAI_E2_AGENT
+#endif // E2_AGENT
 
 
 int main( int argc, char **argv ) {
@@ -846,7 +846,7 @@ int main( int argc, char **argv ) {
   config_sync_var=0;
 
 
-#ifdef OAI_E2_AGENT
+#ifdef E2_AGENT
 
 //////////////////////////////////
 //////////////////////////////////
@@ -879,7 +879,7 @@ int main( int argc, char **argv ) {
 //////////////////////////////////
 //////////////////////////////////
 
-#endif //  OAI_E2_AGENT
+#endif //  E2_AGENT
 
 
   if (NFAPI_MODE==NFAPI_MODE_PNF) {
