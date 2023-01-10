@@ -89,3 +89,12 @@ macro(eval_boolean VARIABLE)
     set(${VARIABLE} OFF)
   endif()
 endmacro()
+
+macro(conditional_target_link_libraries COND)
+  if(${COND})
+    # ${ARGN} are the remaining arguments after cond, so
+    # conditional_target_link_libraries(MY_VAR target PUBLIC LIB)
+    # will turn to target_link_libraries(target PUBLIC LIB) if MY_VAR evals to true
+    target_link_libraries(${ARGN})
+  endif()
+endmacro()

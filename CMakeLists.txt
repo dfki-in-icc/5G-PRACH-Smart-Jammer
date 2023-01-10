@@ -2191,14 +2191,6 @@ set(CMAKE_MODULE_PATH "${OPENAIR_DIR}/cmake_targets/tools/MODULES" "${CMAKE_MODU
 #no matter what
 include_directories("${OPENAIR_DIR}/common/utils/T")
 
-if (${T_TRACER})
-  set(T_SOURCE
-      ${OPENAIR_DIR}/common/utils/T/T_IDs.h
-      ${OPENAIR_DIR}/common/utils/T/T.c
-      ${OPENAIR_DIR}/common/utils/T/local_tracer.c)
-  set(T_LIB "rt")
-endif (${T_TRACER})
-
 #Some files in the T directory are generated.
 #This rule and the following deal with it.
 add_custom_command (
@@ -2214,16 +2206,6 @@ execute_process (
   COMMAND make check_vcd
   WORKING_DIRECTORY ${OPENAIR_DIR}/common/utils/T
 )
-#This rule is specifically needed to generate T files
-#before anything else in a project that uses the T.
-#See below, there are some 'add_dependencies' showing that.
-#Basically we create a custom target and we make other
-#targets depend on it. That forces cmake to generate
-#T files before anything else.
-add_custom_target (
-  generate_T
-  DEPENDS ${OPENAIR_DIR}/common/utils/T/T_IDs.h
-)
 
 # Hack on a test of asn1c version (already dirty)
 add_definitions(-DASN1_MINIMUM_VERSION=924)
@@ -2234,9 +2216,9 @@ add_definitions(-DASN1_MINIMUM_VERSION=924)
 add_library(minimal_lib
   ${OPENAIR_DIR}/common/utils/LOG/log.c
   ${OPENAIR_DIR}/common/utils/minimal_stub.c
-  ${T_SOURCE}
   )
-target_link_libraries(minimal_lib pthread dl ${T_LIB} CONFIG_LIB)
+target_link_libraries(minimal_lib PRIVATE pthread dl CONFIG_LIB)
+conditional_target_link_libraries(T_TRACER minimal_lib PUBLIC T)
 
 add_executable(nfapi_test
   ${OPENAIR_DIR}/openair2/NR_PHY_INTERFACE/nfapi_5g_test.c
@@ -2282,7 +2264,6 @@ add_executable(lte-softmodem
   ${OPENAIR_DIR}/common/utils/lte/ue_power.c
   ${OPENAIR_DIR}/common/utils/lte/prach_utils.c
   ${XFORMSINTERFACE_SOURCE}
-  ${T_SOURCE}
   ${SHLIB_LOADER_SOURCES}
   )
 add_dependencies(lte-softmodem oai_iqplayer)
@@ -2297,7 +2278,7 @@ target_link_libraries(lte-softmodem PRIVATE
 target_link_libraries(lte-softmodem PRIVATE ${LIBXML2_LIBRARIES})
 target_link_libraries(lte-softmodem PRIVATE pthread m CONFIG_LIB rt crypt ${CRYPTO_LIBRARIES} ${OPENSSL_LIBRARIES} sctp ${CMAKE_DL_LIBS})
 target_link_libraries(lte-softmodem PRIVATE ${LIB_LMS_LIBRARIES})
-target_link_libraries(lte-softmodem PRIVATE ${T_LIB})
+conditional_target_link_libraries(T_TRACER lte-softmodem PRIVATE T)
 target_link_libraries(lte-softmodem PRIVATE asn1_nr_rrc asn1_lte_rrc)
 
 
@@ -2309,7 +2290,6 @@ add_executable(oairu
   ${OPENAIR_DIR}/executables/softmodem-common.c
   ${OPENAIR_DIR}/openair1/SCHED/phy_procedures_lte_common.c
   ${OPENAIR_DIR}/executables/main_ru.c
-  ${T_SOURCE}
   ${OPENAIR_DIR}/common/utils/lte/prach_utils.c
   ${SHLIB_LOADER_SOURCES}
 )
@@ -2319,7 +2299,8 @@ target_link_libraries(oairu PRIVATE
   PHY_COMMON PHY_RU UTIL
   -Wl,--end-group z dl)
 
-target_link_libraries(oairu PRIVATE pthread m CONFIG_LIB rt ${CMAKE_DL_LIBS} ${T_LIB})
+target_link_libraries(oairu PRIVATE pthread m CONFIG_LIB rt ${CMAKE_DL_LIBS})
+conditional_target_link_libraries(T_TRACER oairu PRIVATE T)
 target_link_libraries(oairu PRIVATE asn1_nr_rrc asn1_lte_rrc)
 
 # force the generation of ASN.1 so that we don't need to wait during the build
@@ -2346,7 +2327,6 @@ add_executable(lte-uesoftmodem
   ${OPENAIR_DIR}/common/utils/lte/ue_power.c
   ${OPENAIR_DIR}/common/utils/lte/prach_utils.c
   ${XFORMSINTERFACE_SOURCE}
-  ${T_SOURCE}
   ${SHLIB_LOADER_SOURCES}
   )
 
@@ -2364,7 +2344,7 @@ target_link_libraries(lte-uesoftmodem PRIVATE
 target_link_libraries(lte-uesoftmodem PRIVATE ${LIBXML2_LIBRARIES})
 target_link_libraries(lte-uesoftmodem PRIVATE pthread m CONFIG_LIB rt crypt ${CRYPTO_LIBRARIES} ${OPENSSL_LIBRARIES} sctp ${CMAKE_DL_LIBS} ${ATLAS_LIBRARIES})
 target_link_libraries(lte-uesoftmodem PRIVATE ${LIB_LMS_LIBRARIES})
-target_link_libraries(lte-uesoftmodem PRIVATE ${T_LIB})
+conditional_target_link_libraries(T_TRACER lte-uesoftmodem PRIVATE T)
 target_link_libraries(lte-uesoftmodem PRIVATE asn1_nr_rrc asn1_lte_rrc)
 
 # force the generation of ASN.1 so that we don't need to wait during the build
@@ -2393,7 +2373,6 @@ add_executable(nr-softmodem
   ${OPENAIR_DIR}/common/utils/nr/nr_common.c
   ${PHY_INTERFACE_DIR}/queue_t.c
   ${XFORMSINTERFACE_SOURCE}
-  ${T_SOURCE}
   ${SHLIB_LOADER_SOURCES}
   )
 
@@ -2408,7 +2387,7 @@ target_link_libraries(nr-softmodem PRIVATE
 target_link_libraries(nr-softmodem PRIVATE ${LIBXML2_LIBRARIES})
 target_link_libraries(nr-softmodem PRIVATE pthread m CONFIG_LIB rt crypt ${CRYPTO_LIBRARIES} ${OPENSSL_LIBRARIES} sctp ${XFORMS_LIBRARIES} ${CMAKE_DL_LIBS} ${ATLAS_LIBRARIES})
 target_link_libraries(nr-softmodem PRIVATE ${LIB_LMS_LIBRARIES})
-target_link_libraries(nr-softmodem PRIVATE ${T_LIB})
+conditional_target_link_libraries(T_TRACER nr-softmodem PRIVATE T)
 target_link_libraries(nr-softmodem PRIVATE asn1_nr_rrc asn1_lte_rrc)
 
 add_dependencies( nr-softmodem ldpc_orig ldpc_optim ldpc_optim8seg ldpc)
@@ -2440,7 +2419,6 @@ add_executable(nr-uesoftmodem
   ${OPENAIR3_DIR}/NAS/UE/nas_ue_task.c
   ${OPENAIR_DIR}/common/utils/nr/nr_common.c
   ${XFORMSINTERFACE_SOURCE}
-  ${T_SOURCE}
   ${SHLIB_LOADER_SOURCES}
   )
 
@@ -2455,7 +2433,7 @@ target_link_libraries(nr-uesoftmodem PRIVATE
 target_link_libraries(nr-uesoftmodem PRIVATE ${LIBXML2_LIBRARIES})
 target_link_libraries(nr-uesoftmodem PRIVATE pthread m CONFIG_LIB rt crypt ${CRYPTO_LIBRARIES} ${OPENSSL_LIBRARIES} ${XFORMS_LIBRARIES} ${CMAKE_DL_LIBS} ${ATLAS_LIBRARIES})
 target_link_libraries(nr-uesoftmodem PRIVATE ${LIB_LMS_LIBRARIES})
-target_link_libraries(nr-uesoftmodem PRIVATE ${T_LIB})
+conditional_target_link_libraries(T_TRACER nr-uesoftmodem PRIVATE T)
 target_link_libraries(nr-uesoftmodem PRIVATE asn1_nr_rrc asn1_lte_rrc)
 
 add_dependencies( nr-uesoftmodem ldpc_orig ldpc_optim ldpc_optim8seg ldpc )
@@ -2480,12 +2458,12 @@ target_link_libraries(nr-uesoftmodem PRIVATE
 add_executable(dlsim_tm4
   ${OPENAIR1_DIR}/SIMULATION/LTE_PHY/dlsim_tm4.c
   ${OPENAIR1_DIR}/PHY/TOOLS/lte_phy_scope_tm4.c
-  ${T_SOURCE}
   )
 target_link_libraries (dlsim_tm4
   -Wl,--start-group SIMU UTIL SCHED_LIB SCHED_RU_LIB PHY ITTI -Wl,--end-group
-  pthread m rt CONFIG_LIB ${ATLAS_LIBRARIES} ${T_LIB}
+  pthread m rt CONFIG_LIB ${ATLAS_LIBRARIES}
   )
+conditional_target_link_libraries(T_TRACER dlsim_tm4 T)
 
 add_executable(rftest
   ${OPENAIR_DIR}/openair1/PHY/TOOLS/calibration_test.c
@@ -2494,24 +2472,24 @@ add_executable(rftest
   ${OPENAIR_DIR}/executables/softmodem-common.c
   ${SHLIB_LOADER_SOURCES}
 )
-target_link_libraries(rftest minimal_lib CONFIG_LIB PHY_NR_COMMON UTIL pthread dl m forms ${T_LIB} )
+target_link_libraries(rftest minimal_lib CONFIG_LIB PHY_NR_COMMON UTIL pthread dl m forms)
+conditional_target_link_libraries(T_TRACER rftest T)
 
 add_executable(polartest
   ${OPENAIR1_DIR}/PHY/CODING/TESTBENCH/polartest.c
   ${OPENAIR_DIR}/common/utils/nr/nr_common.c
-  ${T_SOURCE}
   ${SHLIB_LOADER_SOURCES}
   )
 target_link_libraries(polartest PRIVATE
   -Wl,--start-group UTIL SIMU PHY_COMMON PHY_NR PHY_NR_COMMON PHY_NR_UE CONFIG_LIB -Wl,--end-group
   m pthread ${ATLAS_LIBRARIES} dl
   )
+conditional_target_link_libraries(T_TRACER polartest PRIVATE T)
 target_link_libraries(polartest PRIVATE asn1_nr_rrc asn1_lte_rrc)
 
 add_executable(smallblocktest
   ${OPENAIR1_DIR}/PHY/CODING/TESTBENCH/smallblocktest.c
   ${OPENAIR_DIR}/common/utils/nr/nr_common.c
-  ${T_SOURCE}
   ${SHLIB_LOADER_SOURCES}
 )
 
@@ -2519,13 +2497,13 @@ target_link_libraries(smallblocktest PRIVATE
   -Wl,--start-group UTIL SIMU PHY_NR PHY_COMMON PHY_NR_COMMON CONFIG_LIB -Wl,--end-group
   m pthread ${ATLAS_LIBRARIES} dl
 )
+conditional_target_link_libraries(T_TRACER smallblocktest PRIVATE T)
 target_link_libraries(smallblocktest PRIVATE asn1_nr_rrc asn1_lte_rrc)
 
 
 add_executable(ldpctest
    ${PHY_NR_CODINGIF}
    ${OPENAIR1_DIR}/PHY/CODING/TESTBENCH/ldpctest.c
-   ${T_SOURCE}
    ${SHLIB_LOADER_SOURCES}
    )
 
@@ -2537,31 +2515,32 @@ target_link_libraries(ldpctest PRIVATE
   -Wl,--start-group UTIL SIMU PHY_NR PHY_COMMON PHY_NR_COMMON CONFIG_LIB -Wl,--end-group
   m pthread ${ATLAS_LIBRARIES} dl
   )
+conditional_target_link_libraries(T_TRACER ldpctest PRIVATE T)
 target_link_libraries(ldpctest PRIVATE asn1_nr_rrc asn1_lte_rrc)
 
 add_executable(nr_dlschsim
   ${OPENAIR1_DIR}/SIMULATION/NR_PHY/dlschsim.c
   ${OPENAIR_DIR}/common/utils/nr/nr_common.c
   ${OPENAIR_DIR}/executables/softmodem-common.c
-  ${T_SOURCE}
   ${SHLIB_LOADER_SOURCES}
   )
 target_link_libraries(nr_dlschsim PRIVATE
   -Wl,--start-group UTIL SIMU PHY_COMMON PHY_NR_COMMON PHY_NR PHY_NR_UE SCHED_NR_LIB CONFIG_LIB MAC_NR_COMMON -Wl,--end-group
-  m pthread ${ATLAS_LIBRARIES} ${T_LIB} ITTI dl
+  m pthread ${ATLAS_LIBRARIES} ITTI dl
   )
+conditional_target_link_libraries(T_TRACER nr_dlschsim PRIVATE T)
 target_link_libraries(nr_dlschsim PRIVATE asn1_nr_rrc asn1_lte_rrc)
 
 add_executable(nr_pbchsim
   ${OPENAIR1_DIR}/SIMULATION/NR_PHY/pbchsim.c
   ${OPENAIR_DIR}/common/utils/nr/nr_common.c
-  ${T_SOURCE}
   ${SHLIB_LOADER_SOURCES}
   )
 target_link_libraries(nr_pbchsim PRIVATE
   -Wl,--start-group UTIL SIMU PHY_COMMON PHY_NR_COMMON PHY_NR PHY_NR_UE SCHED_NR_LIB CONFIG_LIB MAC_NR_COMMON -Wl,--end-group
-  m pthread ${ATLAS_LIBRARIES} ${T_LIB} ITTI dl
+  m pthread ${ATLAS_LIBRARIES} ITTI dl
 )
+conditional_target_link_libraries(T_TRACER nr_pbchsim PRIVATE T)
 target_link_libraries(nr_pbchsim PRIVATE asn1_nr_rrc asn1_lte_rrc)
 
 
@@ -2570,13 +2549,13 @@ add_executable(nr_pucchsim
   ${OPENAIR1_DIR}/SIMULATION/NR_PHY/pucchsim.c
   ${OPENAIR_DIR}/common/utils/nr/nr_common.c
   ${OPENAIR_DIR}/executables/softmodem-common.c
-  ${T_SOURCE}
   ${SHLIB_LOADER_SOURCES}
   )
 target_link_libraries(nr_pucchsim PRIVATE
   -Wl,--start-group UTIL SIMU PHY_COMMON PHY_NR_COMMON PHY_NR PHY_NR_UE SCHED_NR_LIB CONFIG_LIB MAC_NR_COMMON -Wl,--end-group
-  m pthread ${ATLAS_LIBRARIES} ${T_LIB} ITTI dl
+  m pthread ${ATLAS_LIBRARIES} ITTI dl
 )
+conditional_target_link_libraries(T_TRACER nr_pucchsim PRIVATE T)
 target_link_libraries(nr_pucchsim PRIVATE asn1_nr_rrc asn1_lte_rrc)
 
 add_executable(nr_dlsim
@@ -2588,13 +2567,13 @@ add_executable(nr_dlsim
   ${NR_UE_RRC_DIR}/rrc_nsa.c
   ${NFAPI_USER_DIR}/nfapi.c
   ${PHY_INTERFACE_DIR}/queue_t.c
-  ${T_SOURCE}
   ${SHLIB_LOADER_SOURCES}
   )
 target_link_libraries(nr_dlsim PRIVATE
   -Wl,--start-group UTIL SIMU PHY_COMMON PHY_NR_COMMON PHY_NR PHY_NR_UE SCHED_NR_LIB SCHED_NR_UE_LIB MAC_NR MAC_UE_NR MAC_NR_COMMON lte_rrc nr_rrc CONFIG_LIB L2_LTE_NR L2_NR HASHTABLE x2ap SECU_CN ngap NFAPI_COMMON_LIB NFAPI_LIB NFAPI_PNF_LIB NFAPI_USER_LIB -lz -Wl,--end-group
-  m pthread ${ATLAS_LIBRARIES} ${T_LIB} ITTI ${OPENSSL_LIBRARIES} dl
+  m pthread ${ATLAS_LIBRARIES} ITTI ${OPENSSL_LIBRARIES} dl
   )
+conditional_target_link_libraries(T_TRACER nr_dlsim PRIVATE T)
 target_link_libraries(nr_dlsim PRIVATE asn1_nr_rrc asn1_lte_rrc)
 target_compile_definitions(nr_dlsim PUBLIC -DPHYSICAL_SIMULATOR)
 
@@ -2607,11 +2586,11 @@ add_executable(nr_prachsim
   ${NR_UE_RRC_DIR}/rrc_nsa.c
   ${NFAPI_USER_DIR}/nfapi.c
   ${PHY_INTERFACE_DIR}/queue_t.c
-  ${T_SOURCE}
   ${SHLIB_LOADER_SOURCES})
 target_link_libraries(nr_prachsim PRIVATE
   -Wl,--start-group UTIL SIMU PHY_COMMON PHY_NR_COMMON PHY_NR PHY_RU PHY_NR_UE MAC_NR_COMMON SCHED_NR_LIB SCHED_NR_UE_LIB MAC_NR MAC_UE_NR MAC_NR_COMMON lte_rrc nr_rrc CONFIG_LIB L2_LTE_NR L2_NR HASHTABLE x2ap SECU_CN ngap NFAPI_COMMON_LIB NFAPI_LIB NFAPI_PNF_LIB NFAPI_USER_LIB -lz -Wl,--end-group
-  m pthread ${ATLAS_LIBRARIES} ${T_LIB} ITTI ${OPENSSL_LIBRARIES} dl)
+  m pthread ${ATLAS_LIBRARIES} ITTI ${OPENSSL_LIBRARIES} dl)
+conditional_target_link_libraries(T_TRACER nr_prachsim PRIVATE T)
 target_link_libraries(nr_prachsim PRIVATE asn1_nr_rrc asn1_lte_rrc)
 
 add_executable(nr_ulschsim
@@ -2619,13 +2598,13 @@ add_executable(nr_ulschsim
   ${OPENAIR_DIR}/common/utils/nr/nr_common.c
   ${OPENAIR_DIR}/executables/softmodem-common.c
   ${PHY_INTERFACE_DIR}/queue_t.c
-  ${T_SOURCE}
   ${SHLIB_LOADER_SOURCES}
   )
 target_link_libraries(nr_ulschsim PRIVATE
   -Wl,--start-group UTIL SIMU PHY_COMMON PHY_NR_COMMON PHY_NR PHY_NR_UE SCHED_NR_LIB CONFIG_LIB MAC_NR_COMMON -Wl,--end-group
-  m pthread ${ATLAS_LIBRARIES} ${T_LIB} ITTI dl
+  m pthread ${ATLAS_LIBRARIES} ITTI dl
 )
+conditional_target_link_libraries(T_TRACER nr_ulschsim PRIVATE T)
 target_link_libraries(nr_ulschsim PRIVATE asn1_nr_rrc asn1_lte_rrc)
 
 add_executable(nr_ulsim
@@ -2637,7 +2616,6 @@ add_executable(nr_ulsim
   ${NR_UE_RRC_DIR}/rrc_nsa.c
   ${NFAPI_USER_DIR}/nfapi.c
   ${PHY_INTERFACE_DIR}/queue_t.c
-  ${T_SOURCE}
   ${SHLIB_LOADER_SOURCES}
   )
 
@@ -2647,8 +2625,9 @@ endif ()
 
 target_link_libraries(nr_ulsim PRIVATE
   -Wl,--start-group UTIL SIMU PHY_COMMON PHY_NR_COMMON PHY_NR PHY_NR_UE SCHED_NR_LIB SCHED_NR_UE_LIB MAC_NR MAC_UE_NR MAC_NR_COMMON lte_rrc nr_rrc CONFIG_LIB L2_LTE_NR L2_NR HASHTABLE x2ap SECU_CN ngap NFAPI_COMMON_LIB NFAPI_LIB NFAPI_PNF_LIB NFAPI_USER_LIB -lz -Wl,--end-group
-  m pthread ${ATLAS_LIBRARIES} ${T_LIB} ITTI ${OPENSSL_LIBRARIES} dl
+  m pthread ${ATLAS_LIBRARIES} ITTI ${OPENSSL_LIBRARIES} dl
   )
+conditional_target_link_libraries(T_TRACER nr_ulsim PRIVATE T)
 target_compile_definitions(nr_ulsim PUBLIC -DPHYSICAL_SIMULATOR)
 target_link_libraries(nr_ulsim PRIVATE asn1_nr_rrc asn1_lte_rrc)
 
@@ -2660,14 +2639,14 @@ foreach(myExe dlsim dlsim_tm7 ulsim pbchsim scansim mbmssim pdcchsim pucchsim pr
     ${OPENAIR_DIR}/common/utils/lte/prach_utils.c
     ${OPENAIR1_DIR}/PHY/INIT/lte_param_init.c
     ${XFORMS_SOURCE}
-    ${T_SOURCE}
     ${SHLIB_LOADER_SOURCES}
     ${NFAPI_USER_DIR}/nfapi.c
     )
   target_link_libraries (${myExe} PRIVATE
     -Wl,--start-group SIMU UTIL SCHED_LIB SCHED_RU_LIB SCHED_UE_LIB PHY_COMMON PHY_NR_COMMON PHY PHY_UE PHY_RU ITTI -Wl,--end-group
-    pthread m rt CONFIG_LIB ${ATLAS_LIBRARIES}  ${XFORMS_LIBRARIES} ${T_LIB} dl
+    pthread m rt CONFIG_LIB ${ATLAS_LIBRARIES}  ${XFORMS_LIBRARIES} dl
     )
+  conditional_target_link_libraries(T_TRACER ${myExe} PRIVATE T)
   target_link_libraries(${myExe} PRIVATE asn1_nr_rrc asn1_lte_rrc)
 
 endforeach(myExe)
@@ -2811,6 +2790,7 @@ if(BUILD_WEBSRV)
   include (${OPENAIR_DIR}/common/utils/websrv/websrv_CMakeLists.txt)
 endif()
 
+add_subdirectory(common)
 add_subdirectory(doc)
 add_subdirectory(openair2)
 add_subdirectory(openair3)
