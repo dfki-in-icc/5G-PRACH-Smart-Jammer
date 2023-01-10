@@ -1279,23 +1279,27 @@ typedef struct srb1_params_s {
 /* E2 Agent configuration */
 #define CONFIG_STRING_E2AGENT "e2_agent"
 
-#define E2AGENT_CONFIG_IP    "ip"
-#define E2AGENT_CONFIG_PORT  "port"
-#define E2AGENT_CONFIG_SMDIR "sm_dir"
+#define E2AGENT_CONFIG_ENABLE "enable"
+#define E2AGENT_CONFIG_IP     "ip"
+#define E2AGENT_CONFIG_PORT   "port"
+#define E2AGENT_CONFIG_SMDIR  "sm_dir"
 
+static const bool e2agent_config_enable_default = 0;
 static const char* const e2agent_config_ip_default = "127.0.0.1";
 static const uint16_t e2agent_config_port_default = 36421;
 static const char* const e2agent_config_smdir_default = "./openair2/E2AP/sm/";
 
 #define E2AGENT_PARAMS_DESC { \
-  {E2AGENT_CONFIG_IP,    "RIC IP address",             0, strptr:NULL, defstrval:(char*)e2agent_config_ip_default,    TYPE_STRING, 0}, \
-  {E2AGENT_CONFIG_PORT,  "RIC port",                   0, u16ptr:NULL, defuintval:e2agent_config_port_default,        TYPE_UINT16, 0}, \
-  {E2AGENT_CONFIG_SMDIR, "Directory with SMs to load", 0, strptr:NULL, defstrval:(char*)e2agent_config_smdir_default, TYPE_STRING, 0}, \
+  {E2AGENT_CONFIG_ENABLE, "Enable the E2 Agent", PARAMFLAG_BOOL, iptr:NULL, defintval:e2agent_config_enable_default,   TYPE_INT, 0}, \
+  {E2AGENT_CONFIG_IP,     "RIC IP address",             0, strptr:NULL, defstrval:(char*)e2agent_config_ip_default,    TYPE_STRING, 0}, \
+  {E2AGENT_CONFIG_PORT,   "RIC port",                   0, u16ptr:NULL, defuintval:e2agent_config_port_default,        TYPE_UINT16, 0}, \
+  {E2AGENT_CONFIG_SMDIR,  "Directory with SMs to load", 0, strptr:NULL, defstrval:(char*)e2agent_config_smdir_default, TYPE_STRING, 0}, \
 }
 
-#define E2AGENT_CONFIG_IP_IDX    0
-#define E2AGENT_CONFIG_PORT_IDX  1
-#define E2AGENT_CONFIG_SMDIR_IDX 2
+#define E2AGENT_CONFIG_ENABLE_IDX 0
+#define E2AGENT_CONFIG_IP_IDX     1
+#define E2AGENT_CONFIG_PORT_IDX   2
+#define E2AGENT_CONFIG_SMDIR_IDX  3
 
 #include "enb_paramdef_emtc.h"
 #include "enb_paramdef_sidelink.h"

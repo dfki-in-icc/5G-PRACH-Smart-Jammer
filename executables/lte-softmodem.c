@@ -519,23 +519,24 @@ int main ( int argc, char **argv )
 //////////////////////////////////
 //// Init the E2 Agent
 
-    sleep(2);
-    const eNB_RRC_INST* rrc = RC.rrc[0];
-    assert(rrc != NULL && "rrc cannot be NULL");
+    e2_agent_args_t args = {0};
+    if (RCconfig_E2agent(&args)) {
+      sleep(1);
+      const eNB_RRC_INST* rrc = RC.rrc[0];
+      assert(rrc != NULL && "rrc cannot be NULL");
 
-    const int mcc = rrc->configuration.mcc[0]; // 208;
-    const int mnc = rrc->configuration.mnc[0]; // 94;
-    const int mnc_digit_len = rrc->configuration.mnc_digit_length[0]; // 2;
-    const int nb_id = rrc->configuration.cell_identity; //42;
-    // TODO: node_type = 0 // ngran_eNB
-    const int cu_du_id = 0;
-    sm_io_ag_t io = {.read = read_RAN, .write = write_RAN};
-    printf("[E2 NODE]: mcc = %d mnc = %d mnc_digit = %d nd_id = %d \n", mcc, mnc, mnc_digit_len, nb_id);
+      const int mcc = rrc->configuration.mcc[0];
+      const int mnc = rrc->configuration.mnc[0];
+      const int mnc_digit_len = rrc->configuration.mnc_digit_length[0];
+      const int nb_id = rrc->configuration.cell_identity;
+      // TODO: node_type = 0 // ngran_eNB
+      const int cu_du_id = 0;
+      sm_io_ag_t io = {.read = read_RAN, .write = write_RAN};
+      printf("[E2 NODE]: mcc = %d mnc = %d mnc_digit = %d nd_id = %d \n", mcc, mnc, mnc_digit_len, nb_id);
 
-    e2_agent_args_t args = RCconfig_E2agent();
-    init_agent_api( mcc, mnc, mnc_digit_len, nb_id, cu_du_id, 0, io, &args);
-//////////////////////////////////
-//////////////////////////////////
+      init_agent_api( mcc, mnc, mnc_digit_len, nb_id, cu_du_id, 0, io, &args);
+    }
+
 #endif //  E2_AGENT
        
     /* initializes PDCP and sets correct RLC Request/PDCP Indication callbacks

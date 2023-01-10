@@ -110,7 +110,7 @@ void nr_read_config_and_init(void);
 
 #ifdef E2_AGENT
 #include "openair2/E2AP/agent/e2_agent_api.h"
-e2_agent_args_t RCconfig_NR_E2agent(void);
+bool RCconfig_NR_E2agent(e2_agent_args_t *args);
 #endif
 
 #endif /* GNB_CONFIG_H_ */

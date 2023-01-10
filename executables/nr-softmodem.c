@@ -852,32 +852,32 @@ int main( int argc, char **argv ) {
 //////////////////////////////////
 //// Init the E2 Agent
 
-  sleep(2);
-  const gNB_RRC_INST* rrc = RC.nrrrc[0];
-  assert(rrc != NULL && "rrc cannot be NULL");
+  e2_agent_args_t args = {0};
+  if (RCconfig_NR_E2agent(&args)) {
+    sleep(1);
+    const gNB_RRC_INST* rrc = RC.nrrrc[0];
+    assert(rrc != NULL && "rrc cannot be NULL");
 
-  const int mcc = rrc->configuration.mcc[0];
-  const int mnc = rrc->configuration.mnc[0];
-  const int mnc_digit_len = rrc->configuration.mnc_digit_length[0];
-  const ngran_node_t node_type = rrc->node_type;
-  int nb_id = 0;
-  int cu_du_id = 0;
-  if (node_type == ngran_gNB) {
-    nb_id = rrc->configuration.cell_identity;
-  } else if (node_type == ngran_gNB_DU) {
-    cu_du_id = rrc->configuration.cell_identity;
-  } else if (node_type == ngran_gNB_CU) {
-    cu_du_id = rrc->node_id;
-  } else {
-    LOG_E(NR_RRC, "not supported ran type detect\n");
+    const int mcc = rrc->configuration.mcc[0];
+    const int mnc = rrc->configuration.mnc[0];
+    const int mnc_digit_len = rrc->configuration.mnc_digit_length[0];
+    const ngran_node_t node_type = rrc->node_type;
+    int nb_id = 0;
+    int cu_du_id = 0;
+    if (node_type == ngran_gNB) {
+      nb_id = rrc->configuration.cell_identity;
+    } else if (node_type == ngran_gNB_DU) {
+      cu_du_id = rrc->configuration.cell_identity;
+    } else if (node_type == ngran_gNB_CU) {
+      cu_du_id = rrc->node_id;
+    } else {
+      LOG_E(NR_RRC, "not supported ran type detect\n");
+    }
+    sm_io_ag_t io = {.read = read_RAN, .write = write_RAN};
+    printf("[E2 NODE]: mcc = %d mnc = %d mnc_digit = %d nd_id = %d \n", mcc, mnc, mnc_digit_len, nb_id);
+
+    init_agent_api( mcc, mnc, mnc_digit_len, nb_id, cu_du_id, node_type, io, &args);
   }
-  sm_io_ag_t io = {.read = read_RAN, .write = write_RAN};
-  printf("[E2 NODE]: mcc = %d mnc = %d mnc_digit = %d nd_id = %d \n", mcc, mnc, mnc_digit_len, nb_id);
-
-  e2_agent_args_t args = RCconfig_NR_E2agent();
-  init_agent_api( mcc, mnc, mnc_digit_len, nb_id, cu_du_id, node_type, io, &args);
-//////////////////////////////////
-//////////////////////////////////
 
 #endif //  E2_AGENT
 
