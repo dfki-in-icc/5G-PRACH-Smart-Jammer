@@ -667,27 +667,26 @@ check_install_oai_software() {
             ;;
     esac
     $SUDO apt-get install -y \
-    $specific_packages \
+        $specific_packages \
 	automake  \
-	bison  \
 	build-essential \
 	$CMAKE \
         ninja-build \
-	doxygen \
-	flex  \
+	doxygen \  # opt
 	git \
 	libatlas-base-dev \
 	libblas-dev \
 	liblapack-dev \
 	liblapacke-dev \
-	libpython2.7-dev \
+	libpython2.7-dev \ #opt
         libreadline-dev \
 	libsctp-dev  \
 	libssl-dev  \
 	libtool  \
 	libxslt1-dev \
 	libtasn1-6-dev \
-	openssl
+	openssl \
+        xxd
 
     $SUDO apt-get install -y nettle-dev nettle-bin
   elif [[ "$OS_BASEDISTRO" == "fedora" ]]; then
@@ -702,11 +701,8 @@ check_install_oai_software() {
 
     $SUDO $INSTALLER install -y \
       automake \
-      bc \
-      bison \
       $CMAKE \
       doxygen \
-      flex \
       gcc \
       gcc-c++ \
       git \
@@ -726,15 +722,14 @@ check_install_oai_software() {
       openssl \
       patch \
       readline-devel \
-      kernel-headers \
-      kernel-devel \
       nettle-devel \
       gnutls-devel \
       lapack \
       lapack-devel \
       blas \
       blas-devel \
-      vim-common 
+      vim-common \
+      xxd
   fi
 
     install_asn1c_from_source $1
