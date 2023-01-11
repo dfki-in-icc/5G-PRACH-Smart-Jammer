@@ -6,10 +6,10 @@ add_subdirectory(free)
 
 
 if(E2AP_ENCODING STREQUAL "ASN")
-    add_library(e2ap_ap_obj OBJECT e2ap_ap_asn.c)
+  add_library(e2ap_ap_obj STATIC e2ap_ap_asn.c)
 
 elseif(E2AP_ENCODING STREQUAL "FLATBUFFERS")
-  add_library(e2ap_ap_obj OBJECT e2ap_ap_fb.c)
+  add_library(e2ap_ap_obj STATIC e2ap_ap_fb.c)
 
 else()
   message(FATAL_ERROR "Unknown E2AP encoding type")

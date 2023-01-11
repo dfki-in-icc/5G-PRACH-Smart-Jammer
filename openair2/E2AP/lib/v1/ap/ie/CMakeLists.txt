@@ -6,7 +6,7 @@ if(E2AP_ENCODING STREQUAL "ASN")
     COMMENT "Generating E2AP source files from ${CMAKE_CURRENT_SOURCE_DIR}/${E2AP_GRAMMAR}"
   )
 
-  add_library(asn1_e2ap OBJECT ${e2ap_source})
+  add_library(asn1_e2ap STATIC ${e2ap_source})
   target_include_directories(asn1_e2ap PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>)
   target_compile_options(asn1_e2ap PUBLIC -DASN_DISABLE_OER_SUPPORT)
   target_compile_options(asn1_e2ap PRIVATE -Wno-missing-field-initializers -Wno-unused-parameter)

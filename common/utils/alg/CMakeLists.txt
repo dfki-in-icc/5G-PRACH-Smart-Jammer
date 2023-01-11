@@ -1,4 +1,4 @@
-add_library(alg OBJECT
+add_library(alg STATIC
             defer.c
             find.c
 )

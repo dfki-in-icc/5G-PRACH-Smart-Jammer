@@ -1,2 +1,2 @@
-add_library(e2ap_msg_free_obj OBJECT e2ap_msg_free.c )
+add_library(e2ap_msg_free_obj STATIC e2ap_msg_free.c )
 target_link_libraries(e2ap_msg_free_obj PRIVATE e2ap_types_obj)

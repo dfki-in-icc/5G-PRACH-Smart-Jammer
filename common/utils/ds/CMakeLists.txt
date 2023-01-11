@@ -1,4 +1,4 @@
-add_library(ds OBJECT
+add_library(ds STATIC
             byte_array.c
             assoc_container/assoc_rb_tree.c
             assoc_container/bimap.c

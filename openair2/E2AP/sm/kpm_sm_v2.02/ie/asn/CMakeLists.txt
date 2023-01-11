@@ -6,7 +6,7 @@ add_custom_command(OUTPUT ${e2sm_kpm_source} ${e2sm_kpm_headers}
   COMMENT "Generating E2SM-KPM source files from ${CMAKE_CURRENT_SOURCE_DIR}/${E2SM_KPMv2_GRAMMAR}"
 )
 
-add_library(asn1_e2sm_kpm OBJECT ${e2sm_kpm_source})
+add_library(asn1_e2sm_kpm STATIC ${e2sm_kpm_source})
 target_include_directories(asn1_e2sm_kpm PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>)
 target_compile_options(asn1_e2sm_kpm PUBLIC -DASN_DISABLE_OER_SUPPORT)
 target_compile_options(asn1_e2sm_kpm PRIVATE -Wno-missing-field-initializers -Wno-unused-parameter)
