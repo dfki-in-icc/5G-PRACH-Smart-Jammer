@@ -664,7 +664,7 @@ check_install_oai_software() {
 	build-essential \
 	$CMAKE \
         ninja-build \
-	doxygen \  # opt
+	pkg-config \
 	git \
 	libatlas-base-dev \
 	libblas-dev \
@@ -677,6 +677,7 @@ check_install_oai_software() {
 	libtool  \
 	libxslt1-dev \
 	libtasn1-6-dev \
+	patch \
 	openssl \
         xxd
 
@@ -694,12 +695,12 @@ check_install_oai_software() {
     $SUDO $INSTALLER install -y \
       automake \
       $CMAKE \
-      doxygen \
       gcc \
       gcc-c++ \
       git \
       guile-devel \
       atlas-devel \
+      pkgconfig \
       libconfig-devel \
       libffi-devel \
       libgcrypt-devel \
