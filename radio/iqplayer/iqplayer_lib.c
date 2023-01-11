@@ -195,7 +195,7 @@ static int trx_iqplayer_read(openair0_device *device, openair0_timestamp *ptimes
     if (s->wrap_count == device->openair0_cfg->recplay_conf->u_sf_loops) {
       LOG_W(HW, "iqplayer device terminating subframes replay  after %u iteration\n",
             device->openair0_cfg->recplay_conf->u_sf_loops);
-      exit_function(__FILE__, __FUNCTION__, __LINE__,"replay ended, triggering process termination\n");
+      exit_fun("replay ended, triggering process termination\n");
     }
 
     LOG_I(HW,"go back at the beginning of IQ file");

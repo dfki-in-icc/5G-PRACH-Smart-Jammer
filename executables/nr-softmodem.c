@@ -248,35 +248,6 @@ unsigned int build_rfdc(int dcoff_i_rxfe, int dcoff_q_rxfe) {
 #define RESET "\033[0m"
 
 
-void exit_function(const char *file, const char *function, const int line, const char *s) {
-  int ru_id;
-
-  if (s != NULL) {
-    printf("%s:%d %s() Exiting OAI softmodem: %s\n",file,line, function, s);
-  }
-
-  oai_exit = 1;
-
-  if (RC.ru == NULL)
-    exit(-1); // likely init not completed, prevent crash or hang, exit now...
-
-  for (ru_id=0; ru_id<RC.nb_RU; ru_id++) {
-    if (RC.ru[ru_id] && RC.ru[ru_id]->rfdevice.trx_end_func) {
-      RC.ru[ru_id]->rfdevice.trx_end_func(&RC.ru[ru_id]->rfdevice);
-      RC.ru[ru_id]->rfdevice.trx_end_func = NULL;
-    }
-
-    if (RC.ru[ru_id] && RC.ru[ru_id]->ifdevice.trx_end_func) {
-      RC.ru[ru_id]->ifdevice.trx_end_func(&RC.ru[ru_id]->ifdevice);
-      RC.ru[ru_id]->ifdevice.trx_end_func = NULL;
-    }
-  }
-
-  sleep(1); //allow lte-softmodem threads to exit first
-  exit(1);
-}
-
-
 
 int create_gNB_tasks(uint32_t gnb_nb) {
   LOG_D(GNB_APP, "%s(gnb_nb:%d)\n", __FUNCTION__, gnb_nb);

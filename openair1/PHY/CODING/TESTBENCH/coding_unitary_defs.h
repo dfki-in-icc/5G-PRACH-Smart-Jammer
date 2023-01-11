@@ -28,12 +28,6 @@ PHY_VARS_UE ***PHY_vars_UE_g;
 #include "common/ran_context.h"
 RAN_CONTEXT_t RC;
 
-void exit_function(const char* file, const char* function, const int line, const char *s) {
-  const char * msg= s==NULL ? "no comment": s;
-  printf("Exiting at: %s:%d %s(), %s\n", file, line, function, msg);
-  exit(-1);
-}
-
 signed char quantize(double D, double x, unsigned char B) {
   double qxd;
   short maxlev;

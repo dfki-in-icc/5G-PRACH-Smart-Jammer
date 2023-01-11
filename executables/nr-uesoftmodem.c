@@ -211,26 +211,6 @@ int create_tasks_nrue(uint32_t ue_nb) {
   return 0;
 }
 
-void exit_function(const char *file, const char *function, const int line, const char *s) {
-  int CC_id;
-
-  if (s != NULL) {
-    printf("%s:%d %s() Exiting OAI softmodem: %s\n",file,line, function, s);
-  }
-
-  oai_exit = 1;
-
-  if (PHY_vars_UE_g && PHY_vars_UE_g[0]) {
-    for(CC_id=0; CC_id<MAX_NUM_CCs; CC_id++) {
-      if (PHY_vars_UE_g[0][CC_id] && PHY_vars_UE_g[0][CC_id]->rfdevice.trx_end_func)
-        PHY_vars_UE_g[0][CC_id]->rfdevice.trx_end_func(&PHY_vars_UE_g[0][CC_id]->rfdevice);
-    }
-  }
-
-  sleep(1); //allow lte-softmodem threads to exit first
-  exit(1);
-}
-
 uint64_t get_nrUE_optmask(void) {
   return nrUE_params.optmask;
 }

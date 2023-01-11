@@ -5,6 +5,8 @@
 #include <unistd.h>
 #include <sched.h>
 #include <errno.h>
+#include <sys/types.h>
+#include <signal.h>
 #include "utils.h"
 
 
@@ -137,4 +139,11 @@ void set_priority(int priority)
     fprintf(stderr, "sched_setscheduler: %s\n", strerror(errno));
     abort();
   }
+}
+
+void exit_function(const char *file, const char *function, const int line, const char *s)
+{
+  fprintf(stderr, "%s:%d %s() Exiting OAI softmodem: %s\n",file,line, function, s);
+  /* sending SIGTERM to ourselve to unblock in ITTI handler */
+  kill(getpid(), SIGTERM);
 }
