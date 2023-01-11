@@ -351,10 +351,7 @@ add_boolean_option(UE_TIMING_TRACE     False "Activate UE timing trace")
 add_boolean_option(DEBUG_CONSOLE       False "disables stdout/stderr buffering")
 
 set (OCP_ITTI ${OPENAIR_DIR}/common/utils/ocp_itti)
-add_library(ITTI
-  ${OCP_ITTI}/intertask_interface.cpp
-  ${OPENAIR_DIR}/common/utils/backtrace.c
-  )
+add_library(ITTI ${OCP_ITTI}/intertask_interface.cpp)
 target_link_libraries(ITTI PRIVATE asn1_nr_rrc asn1_lte_rrc)
 
 # asn1c skeletons have hardcoded this flag to make customized debug logs
@@ -873,7 +870,6 @@ add_library(UTIL
   ${OPENAIR_DIR}/common/utils/threadPool/thread-pool.c
   ${OPENAIR_DIR}/common/utils/utils.c
   ${OPENAIR_DIR}/common/utils/system.c
-  ${OPENAIR_DIR}/common/utils/backtrace.c
   ${OPENAIR_DIR}/common/utils/time_meas.c
   ${OPENAIR_DIR}/common/utils/time_stat.c
 )
@@ -2236,7 +2232,6 @@ add_definitions(-DASN1_MINIMUM_VERSION=924)
 # add executables for operation
 #################################
 add_library(minimal_lib
-  ${OPENAIR_DIR}/common/utils/backtrace.c
   ${OPENAIR_DIR}/common/utils/LOG/log.c
   ${OPENAIR_DIR}/common/utils/minimal_stub.c
   ${T_SOURCE}
