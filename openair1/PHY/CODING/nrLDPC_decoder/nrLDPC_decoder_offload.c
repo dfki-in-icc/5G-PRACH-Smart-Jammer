@@ -412,14 +412,14 @@ add_dev(uint8_t dev_id, struct rte_bbdev_info *info)
 #ifdef RTE_LIBRTE_PMD_BBDEV_FPGA_5GNR_FEC
 	if ((get_init_device() == true) &&
 		(!strcmp(info->drv.driver_name, FPGA_5GNR_PF_DRIVER_NAME))) {
-		struct fpga_5gnr_fec_conf conf;
+		struct rte_fpga_5gnr_fec_conf conf;
 		unsigned int i;
 
 		printf("Configure FPGA 5GNR FEC Driver %s with default values\n",
 				info->drv.driver_name);
 
 		/* clear default configuration before initialization */
-		memset(&conf, 0, sizeof(struct fpga_5gnr_fec_conf));
+		memset(&conf, 0, sizeof(struct rte_fpga_5gnr_fec_conf));
 
 		/* Set PF mode :
 		 * true if PF is used for data plane
@@ -447,7 +447,7 @@ add_dev(uint8_t dev_id, struct rte_bbdev_info *info)
 		conf.flr_time_out = FLR_5G_TIMEOUT;
 
 		/* setup FPGA PF with configuration information */
-		ret = fpga_5gnr_fec_configure(info->dev_name, &conf);
+		ret = rte_fpga_5gnr_fec_configure(info->dev_name, &conf);
 		TEST_ASSERT_SUCCESS(ret,
 				"Failed to configure 5G FPGA PF for bbdev %s",
 				info->dev_name);
@@ -1260,7 +1260,7 @@ start_pmd_dec(struct active_device *ad,
 	t_params[0].harq_pid = harq_pid;
 	t_params[0].ulsch_id = ulsch_id;
 
-	RTE_LCORE_FOREACH_SLAVE(lcore_id) {
+	RTE_LCORE_FOREACH_WORKER(lcore_id) {
 		if (used_cores >= num_lcores)
 			break;
 		t_params[used_cores].dev_id = ad->dev_id;
@@ -1421,22 +1421,16 @@ int32_t nrLDPC_decod_offload(t_nrLDPC_dec_params* p_decParams, uint8_t harq_pid,
 	/*uint64_t start_time_init;
 	  uint64_t total_time_init=0;*/
 
-	/*
-	int argc_re=2;
-	char *argv_re[2];
-	argv_re[0] = "/home/eurecom/hongzhi/dpdk-20.05orig/build/app/testbbdev";
-	argv_re[1] = "--";
-	*/
-	
-	int argc_re=7;
-        char *argv_re[7];
-        argv_re[0] = "/home/eurecom/hongzhi/dpdk-20.05orig/build/app/testbbdev";
-        argv_re[1] = "-l";
-        argv_re[2] = "31";
-        argv_re[3] = "-w";
-        argv_re[4] = "81:00.0";
-        argv_re[5] = "--file-prefix=b6";
-        argv_re[6] = "--";
+        int argc_re=8;
+        char *argv_re[8];
+        argv_re[0] = "/opt/accelercomm/ACL_BBDEV_latest/dpdk/build/app/testbbdev";
+        argv_re[1] = "--vdev";
+        argv_re[2] = "baseband_accl_ldpc_sw";
+        argv_re[3] = "-l";
+        argv_re[4] = "1-4";
+        argv_re[5] = "-a";
+        argv_re[6] = "21:00.0";
+        argv_re[7] = "--";
 	
 	test_params.num_ops=1; 
 	test_params.burst_sz=1;

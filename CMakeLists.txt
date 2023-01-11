@@ -646,24 +646,26 @@ target_link_libraries(benetel_5g PRIVATE asn1_nr_rrc asn1_lte_rrc)
 # LDPC offload library
 ##########################################################
 
-# there is no generic way to test for T1 Offload, it simply comes with the
-# shared object
-if (EXISTS "/usr/local/lib64/librte_pmd_hpac_sdfec_pmd.so")
-  set(T1_OFFLOAD_FOUND TRUE)
-else()
-  set(T1_OFFLOAD_FOUND FALSE)
-endif()
-
-if(T1_OFFLOAD_FOUND)
-  message(STATUS "T1 Offload support detected")
+add_boolean_option(BUILD_T1_OFFLOAD False "Build support for LDPC Offload to T1 library")
+if(BUILD_T1_OFFLOAD)
+  find_library(T1 NAME rte_pmd_hpac_sdfec_pmd REQUIRED)
   set(ENV{PKG_CONFIG_PATH} "$ENV{PKG_CONFIG_PATH}:/usr/local/lib64/pkgconfig/")
-  pkg_search_module(LIBDPDK REQUIRED libdpdk=20.05.0)
-  add_library(ldpc_offload MODULE ${OPENAIR1_DIR}/PHY/CODING/nrLDPC_decoder/nrLDPC_decoder_offload.c)
-  set_target_properties(ldpc_offload PROPERTIES COMPILE_FLAGS "-DALLOW_EXPERIMENTAL_API")
-  target_compile_options(ldpc_offload PRIVATE ${LIBDPDK_CFLAGS})
-  target_link_libraries(ldpc_offload ${LIBDPDK_LDFLAGS} rte_pmd_hpac_sdfec_pmd "-Wl,-rpath /usr/local/lib64")
-else()
-  message(STATUS "No T1 Offload support detected")
+  pkg_search_module(LIBDPDK_T1 REQUIRED libdpdk=20.05.0)
+  add_library(ldpc_offload_T1 MODULE ${OPENAIR1_DIR}/PHY/CODING/nrLDPC_decoder/nrLDPC_decoder_offload.c)
+  set_target_properties(ldpc_offload_T1 PROPERTIES COMPILE_FLAGS "-DALLOW_EXPERIMENTAL_API")
+  target_compile_options(ldpc_offload_T1 PRIVATE ${LIBDPDK_T1_CFLAGS})
+  target_link_libraries(ldpc_offload_T1 ${LIBDPDK_T1_LDFLAGS} rte_pmd_hpac_sdfec_pmd "-Wl,-rpath /usr/local/lib64")
+endif ()
+
+add_boolean_option(BUILD_T2_OFFLOAD True "Build support for LDPC Offload to T2 library")
+if(BUILD_T2_OFFLOAD)
+  find_library(T2 NAME rte_baseband_accl_ldpc REQUIRED)
+  set(ENV{PKG_CONFIG_PATH} "$ENV{PKG_CONFIG_PATH}:/usr/lib64/accelercomm/dpdklibs/pkgconfig/")
+  pkg_search_module(LIBDPDK_T2 REQUIRED libdpdk=20.11.3)
+  add_library(ldpc_offload_T2 MODULE ${OPENAIR1_DIR}/PHY/CODING/nrLDPC_decoder/nrLDPC_decoder_offload.c)
+  set_target_properties(ldpc_offload_T2 PROPERTIES COMPILE_FLAGS "-DALLOW_EXPERIMENTAL_API")
+  target_compile_options(ldpc_offload_T2 PRIVATE ${LIBDPDK_T2_CFLAGS})
+  target_link_libraries(ldpc_offload_T2 ${LIBDPDK_T2_LDFLAGS} rte_baseband_accl_ldpc "-Wl,-rpath /usr/lib64/accelercomm/dpdklibs")
 endif ()
 
 ##########################################################
@@ -2452,8 +2454,12 @@ target_link_libraries(nr-softmodem PRIVATE asn1_nr_rrc asn1_lte_rrc)
 
 add_dependencies( nr-softmodem ldpc_orig ldpc_optim ldpc_optim8seg ldpc)
 
-if(T1_OFFLOAD_FOUND)
-add_dependencies( nr-softmodem ldpc_offload)
+if(BUILD_T1_OFFLOAD)
+add_dependencies( nr-softmodem ldpc_offload_T1)
+endif ()
+
+if(BUILD_T2_OFFLOAD)
+add_dependencies( nr-softmodem ldpc_offload_T2)
 endif ()
 
 # force the generation of ASN.1 so that we don't need to wait during the build
@@ -2680,8 +2686,12 @@ add_executable(nr_ulsim
   ${SHLIB_LOADER_SOURCES}
   )
 
-if(T1_OFFLOAD_FOUND)
-add_dependencies( nr_ulsim ldpc_offload)
+if(BUILD_T1_OFFLOAD)
+add_dependencies( nr_ulsim ldpc_offload_T1)
+endif ()
+
+if(BUILD_T2_OFFLOAD)
+add_dependencies( nr_ulsim ldpc_offload_T2)
 endif ()
 
 target_link_libraries(nr_ulsim PRIVATE
