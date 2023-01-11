@@ -350,11 +350,11 @@ check_install_usrp_uhd_driver(){
     elif [[ "$OS_BASEDISTRO" == "fedora" ]]; then
         if [ $IS_CONTAINER -eq 0 ]
         then
-            $SUDO $INSTALLER -y install python boost libusb-devel libusbx-devel boost-devel python-mako python-docutils python-pip $CMAKE
-            $SUDO pip install requests
+            $SUDO $INSTALLER -y install python3 boost libusb-devel libusbx-devel boost-devel python3-mako python3-docutils python3-pip $CMAKE
+            $SUDO pip3 install requests
         else
             $SUDO $INSTALLER -y install boost boost-devel $CMAKE
-            $SUDO pip install mako requests
+            $SUDO pip3 install mako requests
         fi
         if [[ "$OS_DISTRO" == "rhel" ]] || [[ "$OS_DISTRO" == "centos" ]]; then
             if [ $IS_CONTAINER -eq 0 ]
