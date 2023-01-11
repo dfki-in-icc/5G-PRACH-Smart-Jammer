@@ -222,17 +222,18 @@ void pucch_procedures_ue_nr(PHY_VARS_NR_UE *ue,
       ue->tx_power_dBm[nr_slot_tx] = pucch_tx_power;
       ue->tx_total_RE[nr_slot_tx] = nb_of_prbs*N_SC_RB;
 
-      int tx_amp;
+      int tx_amp = AMP;
+      if (ue->enable_ulpc) {
 
-      /*
-      tx_amp = nr_get_tx_amp(pucch_tx_power,
+        tx_amp = nr_get_tx_amp(ue, pucch_tx_power,
                              ue->tx_power_max_dBm,
                              ue->frame_parms.N_RB_UL,
                              nb_of_prbs);
-      if (tx_amp == 0)*/
-      // FIXME temporarly using fixed amplitude before pucch power control implementation revised
-      tx_amp = AMP;
-
+        LOG_D(PHY,"ULPC ENABLED: pucch_tx_power:%d , maxpower:%d, PUCCH scaling factor:%d\n",
+                                                            pucch_tx_power, ue->tx_power_max_dBm, tx_amp);
+      } else {
+        LOG_D(PHY,"ULPC DISABLED: PUCCH scaling factor:%d\n", tx_amp);
+      }
 
       LOG_D(PHY,"Generation of PUCCH format %d at frame.slot %d.%d\n",pucch_pdu->format_type,proc->frame_tx,nr_slot_tx);
 

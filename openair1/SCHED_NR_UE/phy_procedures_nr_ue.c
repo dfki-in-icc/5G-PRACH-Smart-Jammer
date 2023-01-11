@@ -450,22 +450,65 @@ static void nr_ue_pbch_procedures(PHY_VARS_NR_UE *ue,
 }
 
 
-
-unsigned int nr_get_tx_amp(int power_dBm, int power_max_dBm, int N_RB_UL, int nb_rb)
+unsigned int nr_get_tx_amp(PHY_VARS_NR_UE *UE, int power_dBm, int power_max_dBm, int N_RB_UL, int nb_rb)
 {
 
-  int gain_dB = power_dBm - power_max_dBm;
+#define MAX_INCREASE_IN_GAIN_FROM_SCALING_FACTOR 6
+#define MIN_DECREASE_IN_GAIN_FROM_SCALING_FACTOR -12
+
+  AssertFatal(((nb_rb >0) && (nb_rb <= N_RB_UL)), "Illegal nb_rb/N_RB_UL combination (%d/%d)\n",nb_rb,N_RB_UL);
+
+  int16_t gain_db = 0, digital_gain_per_re = 0, tx_gain_adjust_dB = 0;
+  const int16_t reference_scaling_gain = 51; //51db for every RE .10log362 using scaling factor AMP (512)
+  const int16_t max_possible_bw_gain = round(10*log10(N_RB_UL));
+  const int16_t allocated_bw_gain = round(10*log10(nb_rb));
+  // Increase from 512->1024 is change in power by 6dB
+  // Decrease from 512->128 is change in power by -12dB
+  //Possible digital scaling  = 6db + bw gain possible
+  const int16_t max_digital_scaling_gain = MAX_INCREASE_IN_GAIN_FROM_SCALING_FACTOR + (max_possible_bw_gain - allocated_bw_gain); 
+  const int16_t min_digital_scaling_gain = MIN_DECREASE_IN_GAIN_FROM_SCALING_FACTOR; //-12db
+  unsigned int scaling_factor = 0;
   double gain_lin;
 
-  gain_lin = pow(10,.1*gain_dB);
-  if ((nb_rb >0) && (nb_rb <= N_RB_UL)) {
-    return((int)(AMP*sqrt(gain_lin*N_RB_UL/(double)nb_rb)));
+  gain_db = power_dBm + UE->rfdevice.openair0_cfg->tx_gain_offset[0];
+
+  LOG_I(PHY, "Expected power:%d dbm, Max power:%d dbm, tx_dbm_to_db_offset:%d dB, Applied TX gain:%d\n",
+                    power_dBm, power_max_dBm, (int)UE->rfdevice.openair0_cfg->tx_gain_offset[0], (int)UE->rfdevice.app_tx_gain[0]);
+
+  LOG_D(PHY, "gain_db:%d db, max_possible_bw_gain:%d db, bw gain:%d, MAX RBs:%d, Allocated RBs:%d \n",
+                    gain_db, max_possible_bw_gain, allocated_bw_gain, N_RB_UL, nb_rb);
+
+  // Remove the applied TX GAIN from to be achieved power gain
+  gain_db = gain_db - (int)UE->rfdevice.app_tx_gain[0];
+  digital_gain_per_re = gain_db - allocated_bw_gain; // Remove gain achieved because of Bw
+  digital_gain_per_re = digital_gain_per_re - reference_scaling_gain;
+
+  LOG_I(PHY, "gain_db:%d db, Max possible Digital scaling Gain:%d db/RE, Min Digital scaling Gain:%d db/RE, digital gain per RE:%d db/RE\n",
+                    gain_db, max_digital_scaling_gain, min_digital_scaling_gain, digital_gain_per_re);
+
+  if (digital_gain_per_re < min_digital_scaling_gain) {
+    tx_gain_adjust_dB = digital_gain_per_re - min_digital_scaling_gain;
+    digital_gain_per_re = min_digital_scaling_gain;
+
+  } else if (digital_gain_per_re > max_digital_scaling_gain) {
+    tx_gain_adjust_dB = digital_gain_per_re - max_digital_scaling_gain;
+    digital_gain_per_re = max_digital_scaling_gain;
   }
-  else {
-    LOG_E(PHY,"Illegal nb_rb/N_RB_UL combination (%d/%d)\n",nb_rb,N_RB_UL);
-    //mac_xface->macphy_exit("");
-  }
-  return(0);
+
+  gain_lin = pow(10,.1*digital_gain_per_re);
+
+  // Set USRP txgain such that the tx gain increases by tx_gain_adjust
+  // Can USRP tx_gain be set during execution?
+  // Need to check the consequences of apply tx_gain to USRP in run mode . TBD.....
+  phy_adjust_txgain_nr(UE, tx_gain_adjust_dB);
+
+  LOG_I(PHY, "USRP TX gain should be adjusted by %d dB to achieve the expected transmit power. New tx_gain value:%3.2f\n",
+                                                                      tx_gain_adjust_dB, UE->rfdevice.openair0_cfg->tx_gain[0]);
+
+  scaling_factor = (int)(AMP*sqrt(gain_lin));
+  LOG_I(PHY,"Scaling factor:%d, Digital gain from scaling factor:%d dB/RE \n",scaling_factor, digital_gain_per_re);
+
+  return scaling_factor;
 }
 
 #ifdef NR_PDCCH_SCHED

@@ -569,6 +569,7 @@ int nr_config_pusch_pdu(NR_UE_MAC_INST_t *mac,
 
   pusch_dmrs_AdditionalPosition_t add_pos = pusch_dmrs_pos2;
   int dmrslength = 1;
+  pusch_config_pdu->absolute_delta_PUSCH = 0;
 
   if (rar_grant) {
 
@@ -577,6 +578,7 @@ int nr_config_pusch_pdu(NR_UE_MAC_INST_t *mac,
     NR_BWP_UplinkDedicated_t *ibwp;
     int scs,abwp_start,abwp_size,startSymbolAndLength,mappingtype;
     NR_PUSCH_Config_t *pusch_Config=NULL;
+    NR_PUSCH_ConfigCommon_t *pusch_Configcommon = NULL;
     if (mac->cg && ubwp &&
         mac->cg->spCellConfig &&
         mac->cg->spCellConfig->spCellConfigDedicated &&
@@ -585,6 +587,7 @@ int nr_config_pusch_pdu(NR_UE_MAC_INST_t *mac,
 
       ibwp = mac->cg->spCellConfig->spCellConfigDedicated->uplinkConfig->initialUplinkBWP;
       pusch_Config = ibwp->pusch_Config->choice.setup;
+      pusch_Configcommon = ubwp->bwp_Common->pusch_ConfigCommon->choice.setup;
       startSymbolAndLength = ubwp->bwp_Common->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList->list.array[rar_grant->Msg3_t_alloc]->startSymbolAndLength;
       mappingtype = ubwp->bwp_Common->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList->list.array[rar_grant->Msg3_t_alloc]->mappingType;
 
@@ -601,6 +604,8 @@ int nr_config_pusch_pdu(NR_UE_MAC_INST_t *mac,
       abwp_start = NRRIV2PRBOFFSET(initialUplinkBWP->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
       abwp_size = NRRIV2BW(initialUplinkBWP->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
       scs = initialUplinkBWP->genericParameters.subcarrierSpacing;
+
+      pusch_Configcommon = initialUplinkBWP->pusch_ConfigCommon->choice.setup;
     }
     int ibwp_start = NRRIV2PRBOFFSET(initialUplinkBWP->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
     int ibwp_size = NRRIV2BW(initialUplinkBWP->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
@@ -674,6 +679,11 @@ int nr_config_pusch_pdu(NR_UE_MAC_INST_t *mac,
     pusch_config_pdu->pusch_data.num_cb = 0;
     pusch_config_pdu->tbslbrm = 0;
 
+    pusch_config_pdu->absolute_delta_PUSCH = mac->ra.Msg3_TPC;
+
+    nr_get_pusch_tx_power_ue_parameters(mac,pusch_Config, pusch_Configcommon, pusch_config_pdu, PUSCH_GRANT_TYPE_RAR);
+
+
   } else if (dci) {
     NR_BWP_Id_t dl_bwp_id = mac->DL_BWP_Id;
     NR_BWP_Id_t ul_bwp_id = mac->UL_BWP_Id;
@@ -691,6 +701,7 @@ int nr_config_pusch_pdu(NR_UE_MAC_INST_t *mac,
     pusch_config_pdu->bwp_size = n_RB_ULBWP;
 
     const NR_PUSCH_Config_t *pusch_Config = ubwpd? ubwpd->pusch_Config->choice.setup : NULL;
+    const NR_PUSCH_ConfigCommon_t *pusch_Configcommon = (ubwpc && ubwpc->pusch_ConfigCommon)? ubwpc->pusch_ConfigCommon->choice.setup : NULL;
 
     // Basic sanity check for MCS value to check for a false or erroneous DCI
     if (dci->mcs > 28) {
@@ -811,17 +822,32 @@ int nr_config_pusch_pdu(NR_UE_MAC_INST_t *mac,
     pusch_config_pdu->pusch_data.harq_process_id = dci->harq_pid;
     /* TPC_PUSCH */
     // according to TS 38.213 Table Table 7.1.1-1
-    if (dci->tpc == 0) {
-      pusch_config_pdu->absolute_delta_PUSCH = -4;
-    }
-    if (dci->tpc == 1) {
-      pusch_config_pdu->absolute_delta_PUSCH = -1;
-    }
-    if (dci->tpc == 2) {
-      pusch_config_pdu->absolute_delta_PUSCH = 1;
-    }
-    if (dci->tpc == 3) {
-      pusch_config_pdu->absolute_delta_PUSCH = 4;
+    if (pusch_Config->pusch_PowerControl->tpc_Accumulation != NULL) { // TPC ACCUMULATION DISABLED if IE present
+      if (dci->tpc == 0) {
+        pusch_config_pdu->absolute_delta_PUSCH = -4;
+      }
+      if (dci->tpc == 1) {
+        pusch_config_pdu->absolute_delta_PUSCH = -1;
+      }
+      if (dci->tpc == 2) {
+        pusch_config_pdu->absolute_delta_PUSCH = 1;
+      }
+      if (dci->tpc == 3) {
+        pusch_config_pdu->absolute_delta_PUSCH = 4;
+      }
+    } else { // TPC ACCULUMULATION ENABLED
+      if (dci->tpc == 0) {
+        pusch_config_pdu->absolute_delta_PUSCH = -1;
+      }
+      if (dci->tpc == 1) {
+        pusch_config_pdu->absolute_delta_PUSCH = 0;
+      }
+      if (dci->tpc == 2) {
+        pusch_config_pdu->absolute_delta_PUSCH = 1;
+      }
+      if (dci->tpc == 3) {
+        pusch_config_pdu->absolute_delta_PUSCH = 3;
+      }
     }
 
     if (NR_DMRS_ulconfig != NULL)
@@ -905,6 +931,7 @@ int nr_config_pusch_pdu(NR_UE_MAC_INST_t *mac,
       }
     }
 
+    nr_get_pusch_tx_power_ue_parameters(mac,pusch_Config, pusch_Configcommon,  pusch_config_pdu, PUSCH_GRANT_TYPE_DCI);
   }
 
   LOG_D(NR_MAC, "In %s: received UL grant (rb_start %d, rb_size %d, start_symbol_index %d, nr_of_symbols %d) for RNTI type %s \n",

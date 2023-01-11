@@ -856,6 +856,20 @@ int trx_usrp_set_gains(openair0_device *device,
   // calculate tx gain
   gain = device->max_tx_gain[0] - openair0_cfg[0].tx_gain[0];
   if(gain != device->app_tx_gain[0]) {
+    // limit to maximum TX gain
+    if (gain > device->max_tx_gain[0]) {
+      LOG_E(HW,"TX Gain 0 too high gain:%3.2f, min:%3.2f dB\n",
+            gain, device->max_tx_gain[0]);
+      gain = device->max_tx_gain[0];
+      openair0_cfg[0].tx_gain[0] = 0;
+      //exit(-1);
+    } else if (gain < device->min_tx_gain[0]) {
+      LOG_E(HW,"TX Gain 0 too low gain:%3.2f, min:%3.2f dB\n",
+            gain, device->min_tx_gain[0]);
+      gain = device->min_tx_gain[0];
+      openair0_cfg[0].tx_gain[0] = device->max_tx_gain[0] - device->min_tx_gain[0];
+      //exit(-1);
+    }
     // updated applied tx gain for UL processing
     device->app_tx_gain[0] = gain;
     if (dont_block == 1) {
@@ -864,19 +878,28 @@ int trx_usrp_set_gains(openair0_device *device,
       //API call to USRP
       s->usrp->set_tx_gain(gain);
     }
-    LOG_D(HW, "USRP TX gain is %3.2f Max Tx Gain: %3.2f)\n",
-          gain, device->max_tx_gain[0]);
+    LOG_I(HW, "USRP APPLIED TX gain is %3.2f Max: %3.2f, Min: %3.2f, tx_gain:%3.2f\n",
+          gain, device->max_tx_gain[0], device->min_tx_gain[0], openair0_cfg[0].tx_gain[0]);
   }
   // Rx gain
-  gain = openair0_cfg[0].rx_gain[0] - openair0_cfg[0].rx_gain_offset[0];
-
+  //gain = openair0_cfg[0].rx_gain[0] - openair0_cfg[0].rx_gain_offset[0];
+  gain = openair0_cfg[0].rx_gain[0];
   if(gain != device->app_rx_gain[0]) {
     // limit to maximum RX gain
     if (gain > device->max_rx_gain[0]) {
       LOG_E(HW,"RX Gain 0 too high, reduce by %3.2f dB\n",
             gain - device->max_rx_gain[0]);
-      exit(-1);
+      gain = device->max_rx_gain[0];
+      openair0_cfg[0].rx_gain[0] = 0;
+      //exit(-1);
+    } else if (gain < device->min_rx_gain[0]) {
+      LOG_E(HW,"RX Gain 0 too low gain:%3.2f, min:%3.2f dB\n",
+            gain, device->min_rx_gain[0]);
+      gain = device->min_rx_gain[0];
+      openair0_cfg[0].rx_gain[0] = device->min_rx_gain[0];
+      //exit(-1);
     }
+
     device->app_rx_gain[0] = gain;
     if (dont_block == 1) {
       pthread_create(&thread_2, NULL, set_rx_gain_thread, (void *)device);
@@ -884,8 +907,8 @@ int trx_usrp_set_gains(openair0_device *device,
       //API call to USRP
       s->usrp->set_rx_gain(gain);
     }
-    LOG_D(HW, "USRP RX gain is %3.2f, Max Rx Gain: %3.2f)\n",
-          gain, device->max_rx_gain[0]);
+    LOG_I(HW, "USRP APPLIED RX gain is %3.2f Max: %3.2f, Min: %3.2f, rx_gain:%3.2f\n",
+          gain, device->max_rx_gain[0], device->min_rx_gain[0], openair0_cfg[0].rx_gain[0]);
   }
   return(0);
 }
@@ -898,7 +921,7 @@ int trx_usrp_stop(openair0_device *device) {
 }
 
 /*! \brief USRPB210 RX calibration table */
-rx_gain_calib_table_t calib_table_b210[] = {
+rx_gain_calib_table_t rx_calib_table_b210[] = {
   {3500000000.0,44.0},
   {2660000000.0,49.0},
   {2300000000.0,50.0},
@@ -908,7 +931,7 @@ rx_gain_calib_table_t calib_table_b210[] = {
 };
 
 /*! \brief USRPB210 RX calibration table */
-rx_gain_calib_table_t calib_table_b210_38[] = {
+rx_gain_calib_table_t rx_calib_table_b210_38[] = {
   {3500000000.0,44.0},
   {2660000000.0,49.8},
   {2300000000.0,51.0},
@@ -918,8 +941,8 @@ rx_gain_calib_table_t calib_table_b210_38[] = {
 };
 
 /*! \brief USRPx310 RX calibration table */
-rx_gain_calib_table_t calib_table_x310[] = {
-  {3500000000.0,77.0},
+rx_gain_calib_table_t rx_calib_table_x310[] = {
+  {3500000000.0,73.0},
   {2660000000.0,81.0},
   {2300000000.0,81.0},
   {1880000000.0,82.0},
@@ -927,13 +950,43 @@ rx_gain_calib_table_t calib_table_x310[] = {
   {-1,0}
 };
 
-/*! \brief USRPn3xf RX calibration table */
-rx_gain_calib_table_t calib_table_n310[] = {
+/*! \brief USRPN310 RX calibration table */
+rx_gain_calib_table_t rx_calib_table_n310[] = {
+  {3500000000.0,67.0},
+  {2660000000.0,0.0},
+  {2300000000.0,0.0},
+  {1880000000.0,0.0},
+  {816000000.0,0.0},
+  {-1,0}
+};
+
+/*! \brief USRPB210 TX calibration table */
+rx_gain_calib_table_t tx_calib_table_b210[] = {
   {3500000000.0,0.0},
   {2660000000.0,0.0},
   {2300000000.0,0.0},
   {1880000000.0,0.0},
-  {816000000.0, 0.0},
+  {816000000.0,0.0},
+  {-1,0}
+};
+
+/*! \brief USRPB210 TX calibration table */
+rx_gain_calib_table_t tx_calib_table_b210_38[] = {
+  {3500000000.0,0.0},
+  {2660000000.0,0.0},
+  {2300000000.0,0.0},
+  {1880000000.0,0.0},
+  {816000000.0,0.0},
+  {-1,0}
+};
+
+/*! \brief USRPx310 TX calibration table */
+rx_gain_calib_table_t tx_calib_table_x310[] = {
+  {3500000000.0,150.0},
+  {2660000000.0,0.0},
+  {2300000000.0,0.0},
+  {1880000000.0,0.0},
+  {816000000.0,0.0},
   {-1,0}
 };
 
@@ -947,6 +1000,15 @@ rx_gain_calib_table_t calib_table_none[] = {
   {-1,0}
 };
 
+/*! \brief USRPN310 TX calibration table */
+rx_gain_calib_table_t tx_calib_table_n310[] = {
+  {3500000000.0,137.0},
+  {2660000000.0,0.0},
+  {2300000000.0,0.0},
+  {1880000000.0,0.0},
+  {816000000.0,0.0},
+  {-1,0}
+};
 
 /*! \brief Set RX gain offset
  * \param openair0_cfg RF frontend parameters set by application
@@ -995,10 +1057,10 @@ void set_rx_gain_offset(openair0_config_t *openair0_cfg, int chain_index,int bw_
 
   while (openair0_cfg->rx_gain_calib_table[i].freq>0) {
     diff = fabs(openair0_cfg->rx_freq[chain_index] - openair0_cfg->rx_gain_calib_table[i].freq);
-    LOG_I(HW,"cal %d: freq %f, offset %f, diff %f\n",
+    LOG_I(HW,"cal %d: freq %f, rx_offset %f, diff %f\n",
           i,
           openair0_cfg->rx_gain_calib_table[i].freq,
-          openair0_cfg->rx_gain_calib_table[i].offset,diff);
+          openair0_cfg->rx_gain_calib_table[i].offset, diff);
 
     if (min_diff > diff) {
       min_diff = diff;
@@ -1008,6 +1070,68 @@ void set_rx_gain_offset(openair0_config_t *openair0_cfg, int chain_index,int bw_
     i++;
   }
 }
+
+/*! \brief Set TX gain offset
+ * \param openair0_cfg RF frontend parameters set by application
+ * \param chain_index RF chain to apply settings to
+ * \returns 0 in success
+ */
+void set_tx_gain_offset(openair0_config_t *openair0_cfg, int chain_index,int bw_gain_adjust) {
+  int i=0;
+  // loop through calibration table to find best adjustment factor for TX frequency
+  double min_diff = 6e9,diff,gain_adj=0.0;
+
+  if (bw_gain_adjust==1) {
+    switch ((int)openair0_cfg[0].sample_rate) {
+      case 46080000:
+        break;
+
+      case 30720000:
+        break;
+
+      case 23040000:
+        gain_adj=1.25;
+        break;
+
+      case 15360000:
+        gain_adj=3.0;
+        break;
+
+      case 7680000:
+        gain_adj=6.0;
+        break;
+
+      case 3840000:
+        gain_adj=9.0;
+        break;
+
+      case 1920000:
+        gain_adj=12.0;
+        break;
+
+      default:
+        LOG_E(HW,"unknown sampling rate %d\n",(int)openair0_cfg[0].sample_rate);
+        //exit(-1);
+        break;
+    }
+  }
+
+  while (openair0_cfg->tx_gain_calib_table[i].freq>0) {
+    diff = fabs(openair0_cfg->tx_freq[chain_index] - openair0_cfg->tx_gain_calib_table[i].freq);
+    LOG_I(HW,"cal %d: freq %f, tx_offset %f, diff %f\n",
+          i,
+          openair0_cfg->tx_gain_calib_table[i].freq,
+          openair0_cfg->tx_gain_calib_table[i].offset, diff);
+
+    if (min_diff > diff) {
+      min_diff = diff;
+      openair0_cfg->tx_gain_offset[chain_index] = openair0_cfg->tx_gain_calib_table[i].offset+gain_adj;
+    }
+
+    i++;
+  }
+}
+
 
 /*! \brief print the USRP statistics
 * \param device the hardware to use
@@ -1200,12 +1324,12 @@ extern "C" {
   }
 
   if (device->type==USRP_X300_DEV) {
-    openair0_cfg[0].rx_gain_calib_table = calib_table_x310;
+    openair0_cfg[0].rx_gain_calib_table = rx_calib_table_x310;
     std::cerr << "-- Using calibration table: calib_table_x310" << std::endl;
   }
 
   if (device->type==USRP_N300_DEV) {
-    openair0_cfg[0].rx_gain_calib_table = calib_table_n310;
+    openair0_cfg[0].rx_gain_calib_table = rx_calib_table_n310;
     std::cerr << "-- Using calibration table: calib_table_n310" << std::endl;
   }
 
@@ -1214,6 +1338,15 @@ extern "C" {
     std::cerr << "-- Using calibration table: calib_table_none" << std::endl;
   }
 
+  if (device->type==USRP_N300_DEV) {
+    openair0_cfg[0].tx_gain_calib_table = tx_calib_table_n310;
+    std::cerr << "-- Using calibration table: tx_calib_table_n310" << std::endl;
+  }
+
+  if (device->type==USRP_X300_DEV) {
+    openair0_cfg[0].tx_gain_calib_table = tx_calib_table_x310;
+    std::cerr << "-- Using calibration table: tx_calib_table_x310" << std::endl;
+  }
 
   if (device->type==USRP_N300_DEV || device->type==USRP_X300_DEV || device->type==USRP_X400_DEV) {
     LOG_I(HW,"%s() sample_rate:%u\n", __FUNCTION__, (int)openair0_cfg[0].sample_rate);
@@ -1301,13 +1434,15 @@ extern "C" {
 
   if (device->type == USRP_B200_DEV) {
     if ((vers == 3) && (subvers == 9) && (subsubvers>=2)) {
-      openair0_cfg[0].rx_gain_calib_table = calib_table_b210;
+      openair0_cfg[0].rx_gain_calib_table = rx_calib_table_b210;
+      openair0_cfg[0].tx_gain_calib_table = tx_calib_table_b210;
       bw_gain_adjust=0;
-      std::cerr << "-- Using calibration table: calib_table_b210" << std::endl; // Bell Labs info
+      std::cerr << "-- Using calibration table: rx_calib_table_b210" << std::endl; // Bell Labs info
     } else {
-      openair0_cfg[0].rx_gain_calib_table = calib_table_b210_38;
+      openair0_cfg[0].rx_gain_calib_table = rx_calib_table_b210_38;
+      openair0_cfg[0].tx_gain_calib_table = tx_calib_table_b210_38;
       bw_gain_adjust=1;
-      std::cerr << "-- Using calibration table: calib_table_b210_38" << std::endl; // Bell Labs info
+      std::cerr << "-- Using calibration table: rx_calib_table_b210_38" << std::endl; // Bell Labs info
     }
 
     switch ((int)openair0_cfg[0].sample_rate) {
@@ -1393,22 +1528,28 @@ extern "C" {
       set_rx_gain_offset(&openair0_cfg[0],i,bw_gain_adjust);
       ::uhd::gain_range_t gain_range = s->usrp->get_rx_gain_range(i+choffset);
       // limit to maximum gain
-      double gain=openair0_cfg[0].rx_gain[i]-openair0_cfg[0].rx_gain_offset[i];
+      //double gain=openair0_cfg[0].rx_gain[i]-openair0_cfg[0].rx_gain_offset[i];
+      double gain=openair0_cfg[0].rx_gain[i]; //-openair0_cfg[0].rx_gain_offset[i];
       if ( gain > gain_range.stop())  {
                    LOG_E(HW,"RX Gain too high, lower by %f dB\n",
                    gain - gain_range.stop());
                gain=gain_range.stop();
+      } else if ( gain < gain_range.start())  {
+                   LOG_E(HW,"RX Gain too LOW, increasing by %f dB\n",
+                   gain_range.stop() - gain);
+               gain=gain_range.start();
       }
-
 
       // store the max limit for RX gain
       device->max_rx_gain[i] = gain_range.stop();
+      // store the max limit for RX gain
+      device->min_rx_gain[i] = gain_range.start();
       // store the actual applied RX gain
       device->app_rx_gain[i] = gain;
       s->usrp->set_rx_gain(gain,i+choffset);
-      LOG_I(HW,"RX Gain %d %f (%f) => %f (max %f)\n",i,
+      LOG_I(HW,"RX Gain %d %f (%f) => %f (max %f), (min %f)\n",i,
             openair0_cfg[0].rx_gain[i],openair0_cfg[0].rx_gain_offset[i],
-            openair0_cfg[0].rx_gain[i]-openair0_cfg[0].rx_gain_offset[i],gain_range.stop());
+            device->app_rx_gain[i],gain_range.stop(), gain_range.start());
     }
   }
 
@@ -1419,16 +1560,27 @@ extern "C" {
     ::uhd::gain_range_t gain_range_tx = s->usrp->get_tx_gain_range(i);
     // store the max limit for TX gain
     device->max_tx_gain[i] = gain_range_tx.stop();
+    // store the min limit for TX gain
+    device->min_tx_gain[i] = gain_range_tx.start();
     // store the actual applied TX gain
     device->app_tx_gain[i] = gain_range_tx.stop() - openair0_cfg[0].tx_gain[i];
-
+    if (device->app_tx_gain[i] > device->max_tx_gain[i]) {
+      device->app_tx_gain[i] = device->max_tx_gain[i];
+      openair0_cfg[0].tx_gain[i] = 0;
+      LOG_E(HW,"TX Gain too high, Gain set to MAX allowed:%f. set tx gain value changed:%f\n", device->app_tx_gain[i], openair0_cfg[0].tx_gain[i]);
+    } else if (device->app_tx_gain[i] < device->min_tx_gain[i]) {
+      device->app_tx_gain[i] = device->min_tx_gain[i];
+      openair0_cfg[0].tx_gain[i] = gain_range_tx.start();
+      LOG_E(HW,"TX Gain too low, Gain set to MIN allowed:%f.  set tx gain value changed:%f \n", device->app_tx_gain[i], openair0_cfg[0].tx_gain[i]);
+    }
+    set_tx_gain_offset(&openair0_cfg[0],i,bw_gain_adjust);
     if (i<openair0_cfg[0].tx_num_channels) {
       s->usrp->set_tx_rate(openair0_cfg[0].sample_rate,i+choffset);
       uhd::tune_request_t tx_tune_req(openair0_cfg[0].tx_freq[i],
                                       openair0_cfg[0].tune_offset);
       s->usrp->set_tx_freq(tx_tune_req, i+choffset);
       s->usrp->set_tx_gain(gain_range_tx.stop()-openair0_cfg[0].tx_gain[i],i+choffset);
-      LOG_I(HW,"USRP TX_GAIN:%3.2lf gain_range:%3.2lf tx_gain:%3.2lf\n", gain_range_tx.stop()-openair0_cfg[0].tx_gain[i], gain_range_tx.stop(), openair0_cfg[0].tx_gain[i]);
+      LOG_I(HW,"USRP TX_GAIN:%3.2lf gain_range_MAX:%3.2lf gain_range_MIN:%3.2lf tx_gain set:%3.2lf\n", gain_range_tx.stop()-openair0_cfg[0].tx_gain[i], gain_range_tx.stop(), gain_range_tx.start(), openair0_cfg[0].tx_gain[i]);
     }
   }
 

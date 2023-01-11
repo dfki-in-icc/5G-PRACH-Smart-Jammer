@@ -143,8 +143,11 @@ void nr_ue_measurements(PHY_VARS_NR_UE *ue,
     ue->measurements.rx_power_avg_dB[gNB_id] = dB_fixed( ue->measurements.rx_power_avg[gNB_id]);
     ue->measurements.wideband_cqi_tot[gNB_id] = dB_fixed2(ue->measurements.rx_power_tot[gNB_id], ue->measurements.n0_power_tot);
     ue->measurements.wideband_cqi_avg[gNB_id] = dB_fixed2(ue->measurements.rx_power_avg[gNB_id], ue->measurements.n0_power_avg);
-    ue->measurements.rx_rssi_dBm[gNB_id] = ue->measurements.rx_power_avg_dB[gNB_id] + 30 - 10*log10(pow(2, 30)) - ((int)openair0_cfg[0].rx_gain[0] - (int)openair0_cfg[0].rx_gain_offset[0]) - dB_fixed(ue->frame_parms.ofdm_symbol_size);
-    ue->measurements.rx_rssi_fixed_point_dB[gNB_id] = ue->measurements.rx_power_avg_dB[gNB_id] - ((int)openair0_cfg[0].rx_gain[0] - (int)openair0_cfg[0].rx_gain_offset[0])- dB_fixed(ue->frame_parms.ofdm_symbol_size);
+    //ue->measurements.rx_rssi_dBm[gNB_id] = ue->measurements.rx_power_avg_dB[gNB_id] + 30 - 10*log10(pow(2, 30)) - ((int)openair0_cfg[0].rx_gain[0] - (int)openair0_cfg[0].rx_gain_offset[0]) - dB_fixed(ue->frame_parms.ofdm_symbol_size);
+    ue->measurements.rx_rssi_dBm[gNB_id] = (ue->measurements.rx_power_avg_dB[gNB_id] - (int)ue->rfdevice.app_rx_gain[0]) - (int)openair0_cfg[0].rx_gain_offset[0];
+    //ue->measurements.rx_rssi_fixed_point_dB[gNB_id] = ue->measurements.rx_power_avg_dB[gNB_id] - ((int)openair0_cfg[0].rx_gain[0] - (int)openair0_cfg[0].rx_gain_offset[0])- dB_fixed(ue->frame_parms.ofdm_symbol_size);
+    ue->measurements.rx_rssi_fixed_point_dB[gNB_id] = (ue->measurements.rx_power_avg_dB[gNB_id] - (int)ue->rfdevice.app_rx_gain[0]) - (int)openair0_cfg[0].rx_gain_offset[0] - dB_fixed(ue->frame_parms.ofdm_symbol_size);
+
     LOG_D(PHY,
           "[gNB %d] Slot %d, RSSI %d dB (%d dBm/RE), WBandCQI %d dB, rxPwrAvg "
           "%d, n0PwrAvg %d, Instant CQI %d (dB), RSSI Fixed Point (dB) %d\n",
@@ -217,7 +220,9 @@ void nr_ue_ssb_rsrp_measurements(PHY_VARS_NR_UE *ue,
                                              ((int)openair0_cfg[0].rx_gain[0] - (int)openair0_cfg[0].rx_gain_offset[0]) -
                                              dB_fixed(ue->frame_parms.ofdm_symbol_size);
 
-  LOG_D(PHY, "In %s: [UE %d] ssb %d SS-RSRP: %d dBm/RE (%d)\n",
+  ue->measurements.ssb_rsrp_dBm[ssb_index] = (10*log10(rsrp) - (int)ue->rfdevice.app_rx_gain[0]) - (int)openair0_cfg[0].rx_gain_offset[0];
+
+  LOG_D(PHY, "In %s: [UE %d] slot %d SS-RSRP: %d dBm/RE (%d)\n",
     __FUNCTION__,
     ue->Mod_id,
     ssb_index,
@@ -241,7 +246,7 @@ void nr_ue_rrc_measurements(PHY_VARS_NR_UE *ue,
   uint8_t k_length = 8;
   uint8_t l_sss = (ue->symbol_offset + 2) % ue->frame_parms.symbols_per_slot;
   unsigned int ssb_offset = ue->frame_parms.first_carrier_offset + ue->frame_parms.ssb_start_subcarrier;
-  double rx_gain = openair0_cfg[0].rx_gain[0];
+  double rx_gain = (int)ue->rfdevice.app_rx_gain[0];
   double rx_gain_offset = openair0_cfg[0].rx_gain_offset[0];
 
   ue->measurements.n0_power_tot = 0;
@@ -298,10 +303,12 @@ void nr_ue_rrc_measurements(PHY_VARS_NR_UE *ue,
                                        ((int)rx_gain - (int)rx_gain_offset) -
                                        dB_fixed(ue->frame_parms.ofdm_symbol_size);
   /* Noise Power spectral density calculations in dBm/RE */
-  ue->measurements.noise_psd = ue->measurements.n0_power_tot_dB + 30 -
-                               10 * log10(pow(2, 30)) -
-                               dB_fixed(ue->frame_parms.ofdm_symbol_size) -
-                               ((int)rx_gain - (int)rx_gain_offset);
+  /*ue->measurements.noise_psd = ue->measurements.n0_power_tot_dB + 30 -
+                                 10 * log10(pow(2, 30)) -
+                                 dB_fixed(ue->frame_parms.ofdm_symbol_size) -
+                                 ((int)rx_gain - (int)rx_gain_offset);*/
+  ue->measurements.noise_psd = (ue->measurements.n0_power_tot_dB - (int)rx_gain) - (int)rx_gain_offset;
+
   LOG_D(PHY,
         "In [%s][slot:%d] Noise Level %d Noise Level %d (dB), Noise PSD %d (dBm/RE), NF USRP %d (dB) Noise Floor %d (dB/RE) \n",
         __FUNCTION__, slot, ue->measurements.n0_power_tot,

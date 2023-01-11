@@ -337,6 +337,12 @@ void nr_ue_configure_pucch(NR_UE_MAC_INST_t *mac,
                            fapi_nr_ul_config_pucch_pdu *pucch_pdu,
                            int O_SR, int O_ACK, int O_CSI);
 
+void nr_get_pusch_tx_power_ue_parameters(NR_UE_MAC_INST_t *mac,
+                                         NR_PUSCH_Config_t *pusch_Config,
+                                         NR_PUSCH_ConfigCommon_t *pusch_ConfigCommon,
+                                         nfapi_nr_ue_pusch_pdu_t *pusch_pdu,
+                                         e_pusch_grant_type_t grant_type);
+
 
 /* Random Access */
 

@@ -55,3 +55,28 @@ void phy_adjust_gain_nr(PHY_VARS_NR_UE *ue) {
         ue->measurements.rx_gain_update, n0_dB,
         ue->rfdevice.app_rx_gain[0], ue->rfdevice.openair0_cfg[0].rx_gain[0]);
 }
+
+/*  Adjust the TX Gain based upon gain calculated from power control */
+void phy_adjust_txgain_nr(PHY_VARS_NR_UE *ue, int16_t gain) {
+
+  int16_t app_tx_gain = ue->rfdevice.app_tx_gain[0];
+
+  /* Margin to be used for decision is 3 dB */
+  const int margin = 3;
+  /* If Gain change needed is more than margin then update the USRP TX gain */
+  if ((app_tx_gain - gain) > margin) {
+    ue->measurements.tx_gain_update = 1;
+    int16_t tx_gain = 0;
+    tx_gain = ue->rfdevice.openair0_cfg[0].tx_gain[0] - gain;
+    if (tx_gain > ue->rfdevice.max_tx_gain[0])
+      tx_gain = ue->rfdevice.max_tx_gain[0];
+    else if (tx_gain < ue->rfdevice.min_tx_gain[0])
+      tx_gain = ue->rfdevice.min_tx_gain[0];
+    ue->rfdevice.openair0_cfg[0].tx_gain[0] = tx_gain;
+  } 
+
+  LOG_I(PHY,
+        "TX Gain Control: Flag %d, Margin:%d gain change needed:%d ,applied Tx Gain: %3.2f (dB) New Tx Gain ATT value %3.2f, Max:%3.2f\n",
+        ue->measurements.tx_gain_update, margin, gain, ue->rfdevice.app_tx_gain[0], ue->rfdevice.openair0_cfg[0].tx_gain[0],
+        ue->rfdevice.max_tx_gain[0]);
+}

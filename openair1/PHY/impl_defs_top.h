@@ -184,8 +184,11 @@
 //#define MIN_RF_GAIN 96
 #define MAX_RF_GAIN 200
 #define MIN_RF_GAIN 80
-// update rx after 20 frames for usrp
-#define UPDATE_RX_GAIN 20
+// update rx after 16 frames for usrp
+#define UPDATE_RX_GAIN 16
+
+// update tx gain after 16 frames for usrp
+#define UPDATE_TX_GAIN 16
 
 #define PHY_SYNCH_OFFSET ((OFDM_SYMBOL_SIZE_COMPLEX_SAMPLES)-1)  // OFFSET of BEACON SYNCH
 #define PHY_SYNCH_MIN_POWER 1000

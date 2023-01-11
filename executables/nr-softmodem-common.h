@@ -109,6 +109,7 @@
 #define CONFIG_HLP_NOS1          "Disable s1 interface\n"
 #define CONFIG_HLP_NOKRNMOD      "(noS1 only): Use tun instead of namesh module \n"
 #define CONFIG_HLP_AGC           "Enable Receive Automatic Gain control"
+#define CONFIG_HLP_ULPC          "Enable NR Uplink power control for PUSCH and PUCCH"
 /*--------------------------------------------------------------------------------------------------------------------------------*/
 /*                                            command line parameters for LOG utility                                             */
 /*   optname         helpstr          paramflags          XXXptr                     defXXXval            type           numelt   */

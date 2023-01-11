@@ -145,7 +145,7 @@ typedef struct {
   /// f_PUSCH parameter for PUSCH power control
   int16_t f_pusch;
   /// Po_PUSCH - target output power for PUSCH
-  int16_t Po_PUSCH;
+  int16_t pusch_tx_power;
   /// PHR - current power headroom (based on last PUSCH transmission)
   int16_t PHR;
   /// Po_SRS - target output power for SRS

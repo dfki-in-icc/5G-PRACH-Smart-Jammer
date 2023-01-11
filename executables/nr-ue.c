@@ -636,10 +636,26 @@ void UE_processing(nr_rxtx_thread_data_t *rxtxD) {
         (proc->rx_slot_type == NR_MIXED_SLOT) &&
         (proc->frame_rx % UPDATE_RX_GAIN == 0) &&
         (proc->nr_slot_rx < 9)) {
+
       /* reset averaging */
       UE->init_averaging = 1;
       /* Reset the rx gain update flag */
       UE->measurements.rx_gain_update = 0;
+
+      /* Call the USRP API ina separate thread */
+      UE->rfdevice.trx_set_gains_func(&UE->rfdevice,&UE->rfdevice.openair0_cfg[0],1);
+    }
+
+    /* UPDATE TX GAIN */
+    /* USRP API Call for changing TX gain in a thread in slot 0*/
+    if ((UE->measurements.tx_gain_update == 1) &&
+         // To Ensure TX gain update done after RX gain update. 
+        (proc->frame_rx % UPDATE_TX_GAIN == 1) &&
+        (proc->nr_slot_rx == 0)) {
+
+      /* Reset the rx gain update flag */
+      UE->measurements.tx_gain_update = 0;
+
       /* Call the USRP API ina separate thread */
       UE->rfdevice.trx_set_gains_func(&UE->rfdevice,&UE->rfdevice.openair0_cfg[0],1);
     }

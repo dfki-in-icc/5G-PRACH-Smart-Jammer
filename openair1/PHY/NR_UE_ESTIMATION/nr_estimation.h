@@ -119,6 +119,7 @@ void nr_ue_rrc_measurements(PHY_VARS_NR_UE *ue,
                             c16_t rxdataF[][ue->frame_parms.samples_per_slot_wCP]);
 
 void phy_adjust_gain_nr(PHY_VARS_NR_UE *ue);
+void phy_adjust_txgain_nr(PHY_VARS_NR_UE *ue, int16_t gain);
 
 void nr_pdsch_ptrs_processing(PHY_VARS_NR_UE *ue,
                               c16_t ptrs_phase_per_slot[][14],

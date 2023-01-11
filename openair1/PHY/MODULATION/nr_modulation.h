@@ -64,12 +64,14 @@ void nr_layer_mapping(int16_t **mod_symbs,
   @param[in] n_layers, number of layers
   @param[in] n_symbs, number of modulated symbols
   @param[out] tx_layers, modulated symbols for each layer
+  @param[out] tx_amp, digital scaling factor for data
 */
 
 void nr_ue_layer_mapping(int16_t *mod_symbs,
                          uint8_t n_layers,
                          uint32_t n_symbs,
-                         int16_t **tx_layers);
+                         int16_t **tx_layers,
+                         int tx_amp);
 
 
 /*!

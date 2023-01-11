@@ -74,7 +74,9 @@
     {"chest-freq",               CONFIG_HLP_CHESTFREQ,   0,               iptr:&(UE->chest_freq),             defintval:0,           TYPE_INT,   0}, \
     {"chest-time",               CONFIG_HLP_CHESTTIME,   0,               iptr:&(UE->chest_time),             defintval:0,           TYPE_INT,   0}, \
     {"ue-timing-correction-disable", CONFIG_HLP_DISABLETIMECORR, PARAMFLAG_BOOL, iptr:&(UE->no_timing_correction), defintval:0,      TYPE_INT,   0}, \
-    {"agc",                      CONFIG_HLP_AGC,         PARAMFLAG_BOOL,  iptr:&(UE->enable_agc),             defintval:0,           TYPE_INT,   0}}
+    {"agc",                      CONFIG_HLP_AGC,         PARAMFLAG_BOOL,  iptr:&(UE->enable_agc),             defintval:0,           TYPE_INT,   0}, \
+    {"ulpc",                     CONFIG_HLP_ULPC,        PARAMFLAG_BOOL,  iptr:&(UE->enable_ulpc),            defintval:0,           TYPE_INT,   0}, \
+}
 
 
 typedef struct {

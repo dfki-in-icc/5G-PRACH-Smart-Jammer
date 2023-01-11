@@ -324,12 +324,13 @@ void nr_layer_mapping(int16_t **mod_symbs,
 void nr_ue_layer_mapping(int16_t *mod_symbs,
                          uint8_t n_layers,
                          uint32_t n_symbs,
-                         int16_t **tx_layers) {
+                         int16_t **tx_layers,
+                         int tx_amp) {
 
   for (int i=0; i<n_symbs/n_layers; i++) {
     for (int l=0; l<n_layers; l++) {
-      tx_layers[l][i<<1] = (mod_symbs[(n_layers*i+l)<<1]*AMP)>>15;
-      tx_layers[l][(i<<1)+1] = (mod_symbs[((n_layers*i+l)<<1)+1]*AMP)>>15;
+      tx_layers[l][i<<1] = (mod_symbs[(n_layers*i+l)<<1]*tx_amp)>>15;
+      tx_layers[l][(i<<1)+1] = (mod_symbs[((n_layers*i+l)<<1)+1]*tx_amp)>>15;
     }
   }
 }

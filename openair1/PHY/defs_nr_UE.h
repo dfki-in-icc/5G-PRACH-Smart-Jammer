@@ -215,6 +215,7 @@ typedef struct {
   // short          dlsch_errors;
   // update the flag to update rx gain value
   short rx_gain_update;
+  short tx_gain_update;
 } PHY_NR_MEASUREMENTS;
 
 typedef struct {
@@ -668,6 +669,11 @@ typedef struct {
   // Enables Automatic gain control. controlled by --agc flag
   int            enable_agc;
 
+  int f_pusch;
+  // Enables Power control for PUSCH/PUCCH transmission. controlled by --ulpc flag
+  //Scaling factor will be calculated based on tranmit power of the channel.
+  // by default scaling factor is 512
+  int            enable_ulpc;
 } PHY_VARS_NR_UE;
 
 typedef struct nr_phy_data_tx_s {

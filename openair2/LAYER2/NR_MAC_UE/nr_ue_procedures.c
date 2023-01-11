@@ -1818,12 +1818,12 @@ int16_t get_pucch_tx_power_ue(NR_UE_MAC_INST_t *mac,
   if (!power_config)
     return (PUCCH_POWER_DEFAULT);
 
-  int16_t P_O_UE_PUCCH;
+  int16_t P_O_UE_PUCCH = 0;
   int16_t G_b_f_c = 0;
 
   if (pucch_Config->spatialRelationInfoToAddModList != NULL) {  /* FFS TODO NR */
-    LOG_D(MAC,"PUCCH Spatial relation infos are not yet implemented : at line %d in function %s of file %s \n", LINE_FILE , __func__, __FILE__);
-    return (PUCCH_POWER_DEFAULT);
+    LOG_W(MAC,"PUCCH Spatial relation infos are not yet implemented : at line %d in function %s of file %s \n", LINE_FILE , __func__, __FILE__);
+    //return (PUCCH_POWER_DEFAULT);
   }
 
   if (power_config->p0_Set != NULL) {
@@ -1832,8 +1832,8 @@ int16_t get_pucch_tx_power_ue(NR_UE_MAC_INST_t *mac,
   }
   else {
     G_b_f_c = pucch->delta_pucch;
-    LOG_D(MAC,"PUCCH Transmit power control command not yet implemented for NR : at line %d in function %s of file %s \n", LINE_FILE , __func__, __FILE__);
-    return (PUCCH_POWER_DEFAULT);
+    LOG_W(MAC,"PUCCH Transmit power control command not yet implemented for NR : at line %d in function %s of file %s \n", LINE_FILE , __func__, __FILE__);
+    //return (PUCCH_POWER_DEFAULT);
   }
 
   int P_O_PUCCH = P_O_NOMINAL_PUCCH + P_O_UE_PUCCH;
@@ -1848,12 +1848,12 @@ int16_t get_pucch_tx_power_ue(NR_UE_MAC_INST_t *mac,
     case 0:
       N_ref_PUCCH = 2;
       DELTA_TF = 10 * log10(N_ref_PUCCH/N_symb_PUCCH);
-      delta_F_PUCCH =  *power_config->deltaF_PUCCH_f0;
+      delta_F_PUCCH = (power_config->deltaF_PUCCH_f0) ? *power_config->deltaF_PUCCH_f0 : 0 ;
       break;
     case 1:
       N_ref_PUCCH = 14;
       DELTA_TF = 10 * log10(N_ref_PUCCH/N_symb_PUCCH);
-      delta_F_PUCCH =  *power_config->deltaF_PUCCH_f1;
+      delta_F_PUCCH =  (power_config->deltaF_PUCCH_f1 != NULL) ? *power_config->deltaF_PUCCH_f1 : 0;
       break;
     case 2:
       N_sc_ctrl_RB = 10;
@@ -1865,7 +1865,7 @@ int16_t get_pucch_tx_power_ue(NR_UE_MAC_INST_t *mac,
                              pucch->n_HARQ_ACK,
                              O_ACK, O_SR,
                              O_CSI, O_CRC);
-      delta_F_PUCCH =  *power_config->deltaF_PUCCH_f2;
+      delta_F_PUCCH =  (power_config->deltaF_PUCCH_f2 != NULL) ? *power_config->deltaF_PUCCH_f2 : 0;
       break;
     case 3:
       N_sc_ctrl_RB = 14;
@@ -1877,7 +1877,7 @@ int16_t get_pucch_tx_power_ue(NR_UE_MAC_INST_t *mac,
                              pucch->n_HARQ_ACK,
                              O_ACK, O_SR,
                              O_CSI, O_CRC);
-      delta_F_PUCCH =  *power_config->deltaF_PUCCH_f3;
+      delta_F_PUCCH =  (power_config->deltaF_PUCCH_f3 != NULL) ? *power_config->deltaF_PUCCH_f3 : 0;
       break;
     case 4:
       N_sc_ctrl_RB = 14/(nb_pucch_format_4_in_subframes[subframe_number]);
@@ -1889,7 +1889,7 @@ int16_t get_pucch_tx_power_ue(NR_UE_MAC_INST_t *mac,
                              pucch->n_HARQ_ACK,
                              O_ACK, O_SR,
                              O_CSI, O_CRC);
-      delta_F_PUCCH =  *power_config->deltaF_PUCCH_f4;
+      delta_F_PUCCH =  (power_config->deltaF_PUCCH_f4 != NULL) ? *power_config->deltaF_PUCCH_f4 : 0;
       break;
     default:
     {
@@ -1898,7 +1898,7 @@ int16_t get_pucch_tx_power_ue(NR_UE_MAC_INST_t *mac,
     }
   }
 
-  if (*power_config->twoPUCCH_PC_AdjustmentStates > 1) {
+  if ((power_config->twoPUCCH_PC_AdjustmentStates != NULL) && (*power_config->twoPUCCH_PC_AdjustmentStates > 1)) {
     LOG_E(MAC,"PUCCH power control adjustment states with 2 states not yet implemented : at line %d in function %s of file %s \n", LINE_FILE , __func__, __FILE__);
     return (PUCCH_POWER_DEFAULT);
   }
@@ -1908,7 +1908,7 @@ int16_t get_pucch_tx_power_ue(NR_UE_MAC_INST_t *mac,
 
   int16_t pucch_power = P_O_PUCCH + M_pucch_component + pathloss + delta_F_PUCCH + DELTA_TF + G_b_f_c;
 
-  NR_TST_PHY_PRINTF("PUCCH ( Tx power : %d dBm ) ( 10Log(...) : %d ) ( from Path Loss : %d ) ( delta_F_PUCCH : %d ) ( DELTA_TF : %d ) ( G_b_f_c : %d ) \n",
+  LOG_I(MAC, "PUCCH ( Tx power : %d dBm ) ( 10Log(...) : %d ) ( from Path Loss : %d ) ( delta_F_PUCCH : %d ) ( DELTA_TF : %d ) ( G_b_f_c : %d ) \n",
                     pucch_power, M_pucch_component, pathloss, delta_F_PUCCH, DELTA_TF, G_b_f_c);
 
   return (pucch_power);
@@ -4259,3 +4259,200 @@ int16_t compute_nr_SSB_PL(NR_UE_MAC_INST_t *mac, short ssb_rsrp_dBm)
 
   return pathloss;
 }
+
+
+int nr_get_Po_NOMINAL_PUSCH_for_ULPC(NR_UE_MAC_INST_t *mac) {
+
+  int8_t p0_nominal_pusch = 0;
+  int8_t deltaPreamble_Msg3 = 0;
+
+  NR_RACH_ConfigCommon_t *nr_rach_ConfigCommon = (mac->scc != NULL) ? mac->scc->uplinkConfigCommon->initialUplinkBWP->rach_ConfigCommon->choice.setup
+                                                                    : mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP.rach_ConfigCommon->choice.setup;
+  long preambleReceivedTargetPower = nr_rach_ConfigCommon->rach_ConfigGeneric.preambleReceivedTargetPower;
+
+  NR_BWP_UplinkCommon_t *initialUplinkBWP = (mac->scc) ? mac->scc->uplinkConfigCommon->initialUplinkBWP
+                                                       : &mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP;
+  if (initialUplinkBWP->pusch_ConfigCommon->choice.setup->msg3_DeltaPreamble){
+    deltaPreamble_Msg3 = (*initialUplinkBWP->pusch_ConfigCommon->choice.setup->msg3_DeltaPreamble) * 2; // dB
+    LOG_D(MAC, "In %s: deltaPreamble_Msg3 set to %d\n", __FUNCTION__, deltaPreamble_Msg3);
+  }
+
+  p0_nominal_pusch = preambleReceivedTargetPower + deltaPreamble_Msg3;
+
+  LOG_D(MAC, "In %s: p0_nominal_pusch is %d dBm \n", __FUNCTION__, p0_nominal_pusch);
+
+  return p0_nominal_pusch;
+}
+
+double nr_get_alpha(NR_Alpha_t alpha) {
+
+  switch (alpha) {
+
+    case NR_Alpha_alpha0:
+
+      return 0;
+      break;
+
+    case NR_Alpha_alpha04:
+
+      return 0.4;
+      break;
+
+    case NR_Alpha_alpha05:
+
+      return 0.5;
+      break;
+
+    case NR_Alpha_alpha06:
+
+      return 0.6;
+      break;
+
+    case NR_Alpha_alpha07:
+
+      return 0.7;
+      break;
+
+    case NR_Alpha_alpha08:
+
+      return 0.8;
+      break;
+
+    case NR_Alpha_alpha09:
+
+      return 0.9;
+      break;
+
+    case NR_Alpha_alpha1:
+
+      return 1.0;
+      break;
+
+    default:
+
+      LOG_E(PHY, "In %s: unknown value of alpha %ld ...\n", __FUNCTION__, alpha);
+      return 1.0;
+      break;
+
+  }
+}
+
+void nr_get_pusch_tx_power_ue_parameters(NR_UE_MAC_INST_t *mac,
+                                         NR_PUSCH_Config_t *pusch_Config,
+                                         NR_PUSCH_ConfigCommon_t *pusch_ConfigCommon,
+                                         nfapi_nr_ue_pusch_pdu_t *pusch_pdu,
+                                         e_pusch_grant_type_t grant_type) {
+
+  NR_PUSCH_PowerControl_t *pusch_pc_cfg = NULL;
+  NR_SRI_PUSCH_PowerControl_t *SRI_PUSCH_PowerControl = NULL;
+
+  if (pusch_Config->pusch_PowerControl)
+    pusch_pc_cfg = pusch_Config->pusch_PowerControl;
+  else
+    LOG_W(MAC, "%s:NR_PUSCH_PowerControl Not present\n",__FUNCTION__);
+
+  int P0_UE_PUSCH = 0, P0_NOMINAL_PUSCH = 0;
+  P0_NOMINAL_PUSCH = nr_get_Po_NOMINAL_PUSCH_for_ULPC(mac);
+
+  int alpha_val = (pusch_pc_cfg && pusch_pc_cfg->msg3_Alpha) ? *pusch_pc_cfg->msg3_Alpha : 7;
+
+ if (grant_type == PUSCH_GRANT_TYPE_DCI) {
+
+    // p0NominalWithGrant
+    if (pusch_ConfigCommon && pusch_ConfigCommon->p0_NominalWithGrant)
+      P0_NOMINAL_PUSCH = *pusch_ConfigCommon->p0_NominalWithGrant;
+
+    if (SRI_PUSCH_PowerControl == NULL) {
+      if (pusch_pc_cfg &&
+          pusch_Config->ext1 &&
+          pusch_Config->ext1->pusch_PowerControl_v1610 &&
+          pusch_Config->ext1->pusch_PowerControl_v1610->present == NR_SetupRelease_PUSCH_PowerControl_v1610_PR_setup) {
+
+      AssertFatal(1==0, "PUSCH powercontrol v1610 IE not yet Supported\n");
+
+      } else {
+        //Determine P0 from the first set of Alphasets
+        if (pusch_pc_cfg &&
+            pusch_pc_cfg->p0_AlphaSets &&
+            pusch_pc_cfg->p0_AlphaSets->list.array[0] &&
+            pusch_pc_cfg->p0_AlphaSets->list.array[0]->p0) {
+
+          P0_UE_PUSCH = *pusch_pc_cfg->p0_AlphaSets->list.array[0]->p0;
+        }
+      }
+      if (pusch_pc_cfg &&
+          pusch_pc_cfg->p0_AlphaSets &&
+          pusch_pc_cfg->p0_AlphaSets->list.array[0] &&
+          pusch_pc_cfg->p0_AlphaSets->list.array[0]->alpha) {
+
+        alpha_val = *pusch_pc_cfg->p0_AlphaSets->list.array[0]->alpha;
+      }
+    } else { // SRI-pusch-powercontrol present, SRI in DCI field to be processed to determine P0, alpha
+      AssertFatal(1==0, "No support for SRI-PUSCH-PowerControl yet\n");
+    }
+  } else if (grant_type == PUSCH_GRANT_TYPE_MSGA) {
+    /*
+    P0_NOMINAL_PUSCH = (msgA_preambleRecvdTargetpwr) ? msgA_preambleRecvdTargetpwr : preambleRecvdTargetpwr;
+    P0_NOMINAL_PUSCH += (msgA_deltapreamble) ? msgA_deltapreamble : deltapreamble;
+    if (msgA_alpha)
+      alpha_val = msgA_alpha;
+    */
+    AssertFatal(1 == 0, "MsgA PUSCH Grant not yet Supported\n");
+
+  } else if (grant_type == PUSCH_GRANT_TYPE_CONFIGURED) {
+
+    // p0NominalWithoutGrant
+    if (pusch_pc_cfg && pusch_pc_cfg->p0_NominalWithoutGrant)
+      P0_NOMINAL_PUSCH = *pusch_pc_cfg->p0_NominalWithoutGrant;
+
+    //ConfiguredGrantconfig.p0_pusch-Alpha
+    uint16_t p0_pusch_alphasetid = 0;
+    if (pusch_pc_cfg &&
+        pusch_pc_cfg->p0_AlphaSets &&
+        pusch_pc_cfg->p0_AlphaSets->list.array[p0_pusch_alphasetid]) {
+
+      if(pusch_pc_cfg->p0_AlphaSets->list.array[p0_pusch_alphasetid]->p0) {
+        P0_UE_PUSCH = *pusch_pc_cfg->p0_AlphaSets->list.array[p0_pusch_alphasetid]->p0;
+      }
+      if(pusch_pc_cfg->p0_AlphaSets->list.array[p0_pusch_alphasetid]->alpha) {
+        alpha_val = *pusch_pc_cfg->p0_AlphaSets->list.array[p0_pusch_alphasetid]->alpha;
+      }
+    }
+    AssertFatal(1 == 0, "Configured PUSCH Grants not yet Supported\n");
+  }
+
+  float_t alpha = nr_get_alpha(alpha_val);
+  int16_t pathloss = compute_nr_SSB_PL(mac, mac->phy_measurements.ssb_rsrp_dBm);
+  pusch_pdu->pathloss_compensation = alpha*pathloss;
+
+  LOG_I(MAC, "P0_NOMINAL_PUSCH:%d, P0_UE_PUSCH:%d, AlphaVal:%d alpha = %lf, pathloss:%d dB\n",
+                                        P0_NOMINAL_PUSCH, P0_UE_PUSCH,alpha_val, alpha, pathloss);
+
+  pusch_pdu->P0_PUSCH = P0_NOMINAL_PUSCH + P0_UE_PUSCH;
+
+  //if IE tpc_accumulation is NULL, tpc accumulation is enabled. if IE present, tpc accumulation is disabled.
+  pusch_pdu->tpc_accumulation_enabled = ((pusch_pc_cfg) && (pusch_pc_cfg->tpc_Accumulation == NULL)) ? 1 : 0;
+  //if IE deltaMCS is NULL, deltaMCS is disabled. if IE present, tpc accumulation is enabled.
+  pusch_pdu->deltaMCS = (pusch_pc_cfg->deltaMCS) ? 1 : 0;
+  //MAC pdu includes ULSCH data then beta offset = 1
+  //Else if includes CSI and no ULSCH data then TBD...
+  pusch_pdu->beta_offset = 1;
+
+  /////////////////////////////////////////////  f_pusch  ///////////////////////////////////////////////
+  /// assume tpc-Accumulation is not provided!
+  if (pusch_pc_cfg->twoPUSCH_PC_AdjustmentStates) {
+
+    LOG_W(PHY, "In %s: missing implementation for twopusch_pc_cfg_AdjustmentStates\n", __FUNCTION__);
+
+  }
+
+  pusch_pdu->is_rar_grant = 0;
+  pusch_pdu->power_rampup_requested = 0;
+  if (grant_type == PUSCH_GRANT_TYPE_RAR){ // UE receives a RAR message
+    pusch_pdu->is_rar_grant = 1;
+    pusch_pdu->power_rampup_requested = mac->ra.prach_resources.ra_PREAMBLE_RECEIVED_TARGET_POWER;
+  }
+
+}
+
+

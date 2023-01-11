@@ -342,7 +342,15 @@ typedef struct
   //beamforming
   nfapi_nr_ue_ul_beamforming_t beamforming;
   //OAI specific
+  // PUSCH power related parameters
   int8_t absolute_delta_PUSCH;
+  int16_t P0_PUSCH; //P0_NOMINAL_PUSCH + P0_UE_PUSCH
+  int16_t pathloss_compensation; //db which has alpha*pathloss
+  uint16_t deltaMCS;//0 if not enabled, 1 if enabled
+  uint16_t beta_offset;//1 if PUSCHData is ulsch data
+  uint16_t tpc_accumulation_enabled; //0-DISABLED. 1-ENABLED
+  uint16_t is_rar_grant;
+  int16_t power_rampup_requested;
 } nfapi_nr_ue_pusch_pdu_t;
 
 typedef struct {

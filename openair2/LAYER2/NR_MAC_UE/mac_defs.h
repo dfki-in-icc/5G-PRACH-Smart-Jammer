@@ -514,5 +514,15 @@ typedef struct ssb_list_info {
 
 void config_dci_pdu(NR_UE_MAC_INST_t *mac, fapi_nr_dl_config_dci_dl_pdu_rel15_t *rel15, fapi_nr_dl_config_request_t *dl_config, int rnti_type, int ss_id);
 
+typedef enum e_pusch_grant_type {
+
+  PUSCH_GRANT_TYPE_MIN,
+  PUSCH_GRANT_TYPE_RAR,
+  PUSCH_GRANT_TYPE_MSGA,
+  PUSCH_GRANT_TYPE_CONFIGURED,
+  PUSCH_GRANT_TYPE_DCI
+
+} e_pusch_grant_type_t;
+
 /*@}*/
 #endif /*__LAYER2_MAC_DEFS_H__ */

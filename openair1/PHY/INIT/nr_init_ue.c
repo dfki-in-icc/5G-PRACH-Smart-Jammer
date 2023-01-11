@@ -396,6 +396,7 @@ int init_nr_ue_signal(PHY_VARS_NR_UE *ue, int nb_connected_gNB)
   init_symbol_rotation(fp);
   init_timeshift_rotation(fp);
 
+  ue->f_pusch = 0;
   return 0;
 }
 

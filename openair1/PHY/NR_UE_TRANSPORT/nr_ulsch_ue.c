@@ -55,6 +55,71 @@
 
 //extern int32_t uplink_counter;
 
+int16_t nr_get_pusch_tx_power(PHY_VARS_NR_UE *UE,
+                              int scs,
+                              nfapi_nr_ue_pusch_pdu_t *pusch_pdu,
+                              uint16_t N_RE,
+                              uint16_t harq_pid){
+
+
+  UE->tx_power_max_dBm = nr_get_Pcmax(UE->Mod_id);
+
+  /////////////////////////////////////////// delta_TF //////////////////////////////////////////////
+  float_t BPRE = 0;
+  uint8_t Nl = pusch_pdu->nrOfLayers;
+  uint16_t Kr = UE->ul_harq_processes[harq_pid].K;
+  uint16_t C = UE->ul_harq_processes[harq_pid].C;
+  int delta_TF = 0;
+  //if deltaMCS is configured, Ks = 1.25; else Ks = 0
+  // delta_TF is 0 if more than 1 layer
+  if (Nl == 1 || pusch_pdu->deltaMCS) { //deltaMCS configured or Nl = 1
+    if (pusch_pdu->beta_offset == 1)
+      BPRE = (float) C*Kr / N_RE;
+    else
+      BPRE = (pusch_pdu->qam_mod_order * (pusch_pdu->target_code_rate/10240.0))/pusch_pdu->beta_offset;
+
+    delta_TF = 10 * log10((pow(2, BPRE*1.25)-1) * pusch_pdu->beta_offset);
+  }
+
+
+  LOG_I(PHY, "Nl:%d, Qm:%d, coderate:%d Kr:%d, C:%d, N_RE:%d, BPRE:%f \n",
+                            Nl, pusch_pdu->qam_mod_order, pusch_pdu->target_code_rate, Kr, C, N_RE, BPRE);
+  LOG_I(PHY, "deltaMCS:%d, betaoffset:%d, deltaTF:%d dB \n", pusch_pdu->deltaMCS, pusch_pdu->beta_offset, delta_TF);
+  /////////////////////////////////////////////  delta_TF END  ///////////////////////////////////////////////
+
+  LOG_I(PHY, "scs:%d, M_RB_PUSCH:%d, deltapusch:%d dB, tpc_accumulation_enabled:%d \n",
+                                    scs, pusch_pdu->rb_size, pusch_pdu->absolute_delta_PUSCH, pusch_pdu->tpc_accumulation_enabled);
+
+  /// Final PUSCH target power
+  int16_t pusch_power = 0;
+  int M_pusch_component = (10 * log10((double)(1<<scs * pusch_pdu->rb_size)));
+  int16_t f_pusch = 0;
+
+  // TbD: extend delta_PUSCH to the sum of TPC command values as per clause 7.1.1 of TS 38.213 version 16.3.0 Release 16
+  // now is taking into account only the last received TPC command from DCI
+  if (pusch_pdu->is_rar_grant){ // UE receives a PUSCH from RAR grant
+    pusch_power = pusch_pdu->P0_PUSCH + M_pusch_component + pusch_pdu->pathloss_compensation + delta_TF + pusch_pdu->absolute_delta_PUSCH;
+    int delta_P_rampup = min( max(0, (UE->tx_power_max_dBm - pusch_power)), pusch_pdu->power_rampup_requested);
+    UE->f_pusch = delta_P_rampup + pusch_pdu->absolute_delta_PUSCH;
+  } else {
+    f_pusch = (pusch_pdu->tpc_accumulation_enabled) ? (UE->f_pusch + pusch_pdu->absolute_delta_PUSCH) : pusch_pdu->absolute_delta_PUSCH;
+    pusch_power = pusch_pdu->P0_PUSCH + M_pusch_component + pusch_pdu->pathloss_compensation + delta_TF + f_pusch;
+  }
+
+  LOG_I(PHY, "PUSCH(Tx power: %d dBm) (P0_offset: %d dB) (bw gain: %d dB) (gain because of pathloss: %d dB) (delta_TF: %d dB) (TPC adjustment: %d dB) \n",
+                    pusch_power, pusch_pdu->P0_PUSCH, M_pusch_component, pusch_pdu->pathloss_compensation, delta_TF, f_pusch);
+
+  /////////////////////////////////////////////  f_pusch END  ///////////////////////////////////////////////
+
+  if (pusch_power <= UE->tx_power_max_dBm)
+    UE->f_pusch = f_pusch;
+  else
+    pusch_power = UE->tx_power_max_dBm;
+
+  return (pusch_power);
+}
+
+
 void nr_pusch_codeword_scrambling_uci(uint8_t *in,
                                       uint32_t size,
                                       uint32_t Nid,
@@ -252,7 +317,38 @@ void nr_ue_ulsch_procedures(PHY_VARS_NR_UE *UE,
   }
 
   ///////////
-  ////////////////////////////////////////////////////////////////////////////////
+  /////////////////////////////PUSCH TX POWER to be calculated///////////////////////////////////////
+
+  int tx_amp = AMP;
+
+  if (UE->enable_ulpc) {
+
+    uint16_t max_dmrs_re = nb_dmrs_re_per_rb * nb_rb * number_dmrs_symbols;
+    uint16_t max_ptrs_re = 0; //
+    uint16_t N_RE = number_of_symbols*nb_rb*NR_NB_SC_PER_RB - max_dmrs_re - max_ptrs_re;
+
+    ulsch_ue->pusch_tx_power = nr_get_pusch_tx_power(UE, frame_parms->numerology_index,
+                                                     pusch_pdu,
+                                                     N_RE,
+                                                     harq_pid);
+
+    //Power headroom - remaining power - pusch tx power
+    ulsch_ue->PHR = UE->tx_power_max_dBm - ulsch_ue->pusch_tx_power;
+
+    /* set tx power */
+    UE->tx_power_dBm[slot] = ulsch_ue->pusch_tx_power;
+    UE->tx_total_RE[slot] = pusch_pdu->rb_size*N_SC_RB;
+
+    tx_amp = nr_get_tx_amp(UE, ulsch_ue->pusch_tx_power ,
+                             UE->tx_power_max_dBm,
+                             UE->frame_parms.N_RB_UL,
+                             pusch_pdu->rb_size);
+
+    LOG_I(PHY,"ULPC ENABLED: max tx power:%d, PUSCH tx power:%d PHR:%d dB , PUSCH scaling factor:%d\n",
+                                                  UE->tx_power_max_dBm, UE->tx_power_dBm[slot], ulsch_ue->PHR, tx_amp);
+  } else {
+    LOG_I(PHY,"ULPC DISABLED: PUSCH scaling factor:%d\n", tx_amp);
+  }
 
   /////////////////////////ULSCH layer mapping/////////////////////////
   ///////////
@@ -264,7 +360,7 @@ void nr_ue_ulsch_procedures(PHY_VARS_NR_UE *UE,
   nr_ue_layer_mapping((int16_t *)d_mod,
                       Nl,
                       available_bits/mod_order,
-                      tx_layers);
+                      tx_layers, tx_amp);
 
   ///////////
   ////////////////////////////////////////////////////////////////////////
@@ -425,11 +521,11 @@ void nr_ue_ulsch_procedures(PHY_VARS_NR_UE *UE,
         if (is_dmrs == 1) {
           // if transform precoding is enabled
           if (pusch_pdu->transform_precoding == transformPrecoder_enabled) {
-            ((int16_t*)tx_precoding[nl])[(sample_offsetF)<<1] = (Wt[l_prime[0]]*Wf[k_prime]*AMP*dmrs_seq[2*dmrs_idx]) >> 15;
-            ((int16_t*)tx_precoding[nl])[((sample_offsetF)<<1) + 1] = (Wt[l_prime[0]]*Wf[k_prime]*AMP*dmrs_seq[(2*dmrs_idx) + 1]) >> 15;
+            ((int16_t*)tx_precoding[nl])[(sample_offsetF)<<1] = (Wt[l_prime[0]]*Wf[k_prime]*tx_amp*dmrs_seq[2*dmrs_idx]) >> 15;
+            ((int16_t*)tx_precoding[nl])[((sample_offsetF)<<1) + 1] = (Wt[l_prime[0]]*Wf[k_prime]*tx_amp*dmrs_seq[(2*dmrs_idx) + 1]) >> 15;
           } else {
-            ((int16_t*)tx_precoding[nl])[(sample_offsetF)<<1] = (Wt[l_prime[0]]*Wf[k_prime]*AMP*mod_dmrs[dmrs_idx<<1]) >> 15;
-            ((int16_t*)tx_precoding[nl])[((sample_offsetF)<<1) + 1] = (Wt[l_prime[0]]*Wf[k_prime]*AMP*mod_dmrs[(dmrs_idx<<1) + 1]) >> 15;
+            ((int16_t*)tx_precoding[nl])[(sample_offsetF)<<1] = (Wt[l_prime[0]]*Wf[k_prime]*tx_amp*mod_dmrs[dmrs_idx<<1]) >> 15;
+            ((int16_t*)tx_precoding[nl])[((sample_offsetF)<<1) + 1] = (Wt[l_prime[0]]*Wf[k_prime]*tx_amp*mod_dmrs[(dmrs_idx<<1) + 1]) >> 15;
           }
 
 #ifdef DEBUG_PUSCH_MAPPING
@@ -444,8 +540,8 @@ void nr_ue_ulsch_procedures(PHY_VARS_NR_UE *UE,
           n+=(k_prime)?0:1;
       
         }  else if (is_ptrs == 1) {
-          ((int16_t*)tx_precoding[nl])[(sample_offsetF)<<1] = (beta_ptrs*AMP*mod_ptrs[ptrs_idx<<1]) >> 15;
-          ((int16_t*)tx_precoding[nl])[((sample_offsetF)<<1) + 1] = (beta_ptrs*AMP*mod_ptrs[(ptrs_idx<<1) + 1]) >> 15;
+          ((int16_t*)tx_precoding[nl])[(sample_offsetF)<<1] = (beta_ptrs*tx_amp*mod_ptrs[ptrs_idx<<1]) >> 15;
+          ((int16_t*)tx_precoding[nl])[((sample_offsetF)<<1) + 1] = (beta_ptrs*tx_amp*mod_ptrs[(ptrs_idx<<1) + 1]) >> 15;
           ptrs_idx++;
         } else if (!is_dmrs_sym || allowed_xlsch_re_in_dmrs_symbol(k, start_sc, frame_parms->ofdm_symbol_size, cdm_grps_no_data, dmrs_type)) {
           if (pusch_pdu->transform_precoding == transformPrecoder_disabled) {
