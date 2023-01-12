@@ -575,21 +575,6 @@ check_install_additional_tools (){
       xforms-devel"
   fi
     $SUDO $INSTALLER install -y $PACKAGE_LIST $optional_packages
-
-  #The packages below are already installed for Redhat distros (RHEL, CentOS, Fedora)
-  if [[ "$OS_DISTRO" == "ubuntu" ]]; then
-    $SUDO pip install paramiko colorama
-    log_netiface=$OPENAIR_DIR/cmake_targets/log/netiface_install_log.txt
-    echo_info "Installing Netinterfaces package. The logfile for installation is in $log_netiface"
-    (
-    $SUDO rm -fr /tmp/netifaces-0.10.4.tar.gz /tmp/netifaces
-    wget --tries=3 --retry-connrefused -P /tmp  https://pypi.python.org/packages/18/fa/dd13d4910aea339c0bb87d2b3838d8fd923c11869b1f6e741dbd0ff3bc00/netifaces-0.10.4.tar.gz
-    tar -xzvf /tmp/netifaces-0.10.4.tar.gz -C /tmp
-    cd /tmp/netifaces-0.10.4
-    $SUDO python setup.py install
-    cd -
-    ) >& $log_netiface
-  fi
 }
 
 check_install_oai_software() {
