@@ -540,7 +540,8 @@ check_install_additional_tools (){
 	uml-utilities \
         iperf3 \
         libforms-bin \
-        libforms-dev"
+        libforms-dev \
+        xmlstarlet"
   elif [[ "$OS_DISTRO" == "rhel" ]] || [[ "$OS_DISTRO" == "centos" ]]; then
     PACKAGE_LIST="\
       gawk \
@@ -555,7 +556,8 @@ check_install_additional_tools (){
       scipy \
       python3-matplotlib \
       xforms \
-      xforms-devel"
+      xforms-devel \
+      xmlstarlet"
   elif [[ "$OS_DISTRO" == "fedora" ]]; then
     PACKAGE_LIST=" \
       gawk \
@@ -572,7 +574,8 @@ check_install_additional_tools (){
       python3-scipy \
       python3-matplotlib \
       xforms \
-      xforms-devel"
+      xforms-devel \
+      xmlstarlet"
   fi
     $SUDO $INSTALLER install -y $PACKAGE_LIST $optional_packages
 }
