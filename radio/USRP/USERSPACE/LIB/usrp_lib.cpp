@@ -749,18 +749,18 @@ static int trx_usrp_read(openair0_device *device, openair0_timestamp *ptimestamp
 
   if ( recPlay != NULL) { // record mode
     // Copy subframes to memory (later dump on a file)
-    if (recPlay->nbSamplesBlocks < device->openair0_cfg->recplay_conf->u_sf_max &&
-        recPlay->maxSizeBytes > (recPlay->currentPtr-(uint8_t *)recPlay->ms_sample) +
+    if (recPlay->nbSamplesBlocks <= device->openair0_cfg->recplay_conf->u_sf_max &&
+        recPlay->maxSizeBytes >= (recPlay->currentPtr-(uint8_t *)recPlay->ms_sample) +
         sizeof(iqrec_t) + nsamps*4 ) {
       iqrec_t *hdr=(iqrec_t *)recPlay->currentPtr;
       hdr->header = BELL_LABS_IQ_HEADER;
       hdr->ts = *ptimestamp;
       hdr->nbBytes=nsamps*4;
       memcpy(hdr+1, buff[0], nsamps*4);
-      recPlay->currentPtr+=sizeof(iqrec_t)+nsamps*4;
+      recPlay->currentPtr+=sizeof(iqrec_t)+(nsamps*4);
       recPlay->nbSamplesBlocks++;
 #if 0 // BMC: this is too verbose      
-      LOG_D(HW,"recorded %d samples, for TS %lu, shift in buffer %ld\n", nsamps, hdr->ts, recPlay->currentPtr-(uint8_t *)recPlay->ms_sample);
+      LOG_D(HW,"recorded %d samples, for TS %lu, shift in buffer %ld nbBytes %d nbSamplesBlocks %d\n", nsamps, hdr->ts, recPlay->currentPtr-(uint8_t *)recPlay->ms_sample, (int)hdr->nbBytes, (int)recPlay->nbSamplesBlocks);
 #endif      
     } else
       exit_function(__FILE__, __FUNCTION__, __LINE__,"Recording reaches max iq limit\n");

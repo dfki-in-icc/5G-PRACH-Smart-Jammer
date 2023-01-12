@@ -139,7 +139,6 @@ void initNamedTpool(char *params,tpool_t *pool, bool performanceMeas, char *name
         ptr=pool->allthreads;
         pool->allthreads=(struct one_thread *)malloc(sizeof(struct one_thread));
         pool->allthreads->next=ptr;
-        printf("create a thread for core %d\n", atoi(curptr));
         pool->allthreads->coreID=atoi(curptr);
         pool->allthreads->id=pool->nbThreads;
         pool->allthreads->pool=pool;
@@ -147,7 +146,13 @@ void initNamedTpool(char *params,tpool_t *pool, bool performanceMeas, char *name
         pool->allthreads->terminate = false;
         //Configure the thread scheduler policy for Linux
         // set the thread name for debugging
-        sprintf(pool->allthreads->name,"%s%d_%d",tname,pool->nbThreads,pool->allthreads->coreID);
+	if (c == '-') { // no affinity defined
+	  sprintf(pool->allthreads->name,"%s%d",tname,pool->nbThreads);
+	  printf("create thread %s without CPU affinity\n", pool->allthreads->name);
+	} else {        // affinity defined
+	  sprintf(pool->allthreads->name,"%s%d_%d",tname,pool->nbThreads,pool->allthreads->coreID);
+	  printf("create thread %s for core %d\n", pool->allthreads->name, atoi(curptr));
+	}
         threadCreate(&pool->allthreads->threadID, one_thread, (void *)pool->allthreads,
                      pool->allthreads->name, pool->allthreads->coreID, OAI_PRIORITY_RT);
         pool->nbThreads++;

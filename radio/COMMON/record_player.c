@@ -105,6 +105,7 @@ void iqrecorder_end(openair0_device *device) {
       for (i = 0; i < rs->nbSamplesBlocks; i++) {
         int blockBytes=sizeof(iqrec_t)+((iqrec_t *)ptr)->nbBytes;
         fwrite(ptr, sizeof(unsigned char), blockBytes, rs->pFile);
+	//LOG_D(HW,"Writing record %d blockBytes %d header %d data %d\n", i+1, blockBytes, (int)sizeof(iqrec_t), (int)(blockBytes-sizeof(iqrec_t)));
         ptr+=blockBytes;
       }
 

@@ -974,7 +974,7 @@ int nr_pbch_channel_estimation(PHY_VARS_NR_UE *ue,
     if( dmrss == 2) // update time statistics for last PBCH symbol
     {
       // do ifft of channel estimate
-      LOG_D(PHY,"Channel Impulse Computation Slot %d Symbol %d ch_offset %d\n", Ns, symbol, ch_offset);
+      //LOG_D(PHY,"Channel Impulse Computation Slot %d Symbol %d ch_offset %d\n", Ns, symbol, ch_offset);
       idft(idftsizeidx,
 	   (int16_t*) &dl_ch_estimates[aarx][ch_offset],
 	   (int16_t*) dl_ch_estimates_time[aarx],

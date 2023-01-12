@@ -618,10 +618,10 @@ uint8_t nr_ue_pusch_common_procedures(PHY_VARS_NR_UE *UE,
     for (int s=0;s<NR_NUMBER_OF_SYMBOLS_PER_SLOT;s++){
       c16_t *this_symbol = (c16_t *)&txdataF[ap][frame_parms->ofdm_symbol_size * s];
       c16_t rot=frame_parms->symbol_rotation[1][s + symb_offset];
-      LOG_D(PHY,"rotating txdataF symbol %d (%d) => (%d.%d)\n",
-	    s,
-	    s + symb_offset,
-	    rot.r, rot.i);
+      /* LOG_D(PHY,"rotating txdataF symbol %d (%d) => (%d.%d)\n", */
+      /* 	    s, */
+      /* 	    s + symb_offset, */
+      /* 	    rot.r, rot.i); */
 
       if (frame_parms->N_RB_UL & 1) {
         rotate_cpx_vector(this_symbol, &rot, this_symbol,

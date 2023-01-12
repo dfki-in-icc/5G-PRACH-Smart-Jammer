@@ -44,9 +44,8 @@ extern "C"
 #define RECPLAY_REPLAYMODE   2
 
 #define BELL_LABS_IQ_HEADER       0xabababababababab
-#define BELL_LABS_IQ_PER_SF       46080 // 7680 => 5MHz bw for now; 46080 => 3/4 40MHz (106 PRBs)
+#define BELL_LABS_IQ_PER_SF       23040 // 7680 => 5MHz bw for now; 23040 => 46080/2 slots => 3/4 40MHz (106 PRBs)
 #define BELL_LABS_IQ_BYTES_PER_SF (BELL_LABS_IQ_PER_SF * 4)
-#define MAX_BELL_LABS_IQ_BYTES_PER_SF  BELL_LABS_IQ_BYTES_PER_SF*10
 
 #define OAIIQFILE_ID {'O', 'I','Q','F'}
 typedef struct {

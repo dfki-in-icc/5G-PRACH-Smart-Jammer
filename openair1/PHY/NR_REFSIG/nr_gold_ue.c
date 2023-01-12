@@ -89,7 +89,7 @@ void nr_gold_pdsch(PHY_VARS_NR_UE* ue,
       reset = 1;
       x2tmp0 = ((ue->frame_parms.symbols_per_slot*ns+l+1)*((nid<<1)+1))<<17;
       x2 = (x2tmp0+(nid<<1)+nscid)%(1U<<31);  //cinit
-      LOG_D(PHY,"UE DMRS slot %d, symb %d, x2 %x, nscid %d\n",ns,l,x2,nscid);
+      //LOG_D(PHY,"UE DMRS slot %d, symb %d, x2 %x, nscid %d\n",ns,l,x2,nscid);
 
       for (int n=0; n<pdsch_dmrs_init_length; n++) {
         ue->nr_gold_pdsch[0][ns][l][nscid][n] = lte_gold_generic(&x1, &x2, reset);
@@ -115,7 +115,7 @@ void nr_init_pusch_dmrs(PHY_VARS_NR_UE* ue,
 
       reset = 1;
       x2 = ((1<<17) * (fp->symbols_per_slot*slot+symb+1) * ((N_n_scid<<1)+1) +((N_n_scid<<1)+n_scid));
-      LOG_D(PHY,"DMRS slot %d, symb %d x2 %x\n",slot,symb,x2);
+      //LOG_D(PHY,"DMRS slot %d, symb %d x2 %x\n",slot,symb,x2);
       for (n=0; n<pusch_dmrs_init_length; n++) {
         pusch_dmrs[slot][symb][n_scid][n] = lte_gold_generic(&x1, &x2, reset);
         reset = 0;

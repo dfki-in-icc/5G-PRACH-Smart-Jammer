@@ -39,7 +39,7 @@
   fprintf(stderr, "\nExiting execution\n");				\
   fflush(stdout);							\
   fflush(stderr);							\
-  abort();
+  exit_function(__FILE__, __FUNCTION__, __LINE__, "_Assert_Exit_");
 
 #define _Assert_(cOND, aCTION, fORMAT, aRGS...)             \
 do {                                                        \

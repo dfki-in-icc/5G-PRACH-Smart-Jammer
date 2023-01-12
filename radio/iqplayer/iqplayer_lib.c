@@ -74,7 +74,6 @@ static int iqplayer_loadfile(openair0_device *device, openair0_config_t *openair
       LOG_I(HW,"Loading subframes using mmap() from %s size=%lu bytes ...\n",c->u_sf_filename, (uint64_t)sb.st_size );
       void *mptr = mmap(NULL, sb.st_size, PROT_WRITE, MAP_PRIVATE, s->fd, 0) ;
       if (mptr != MAP_FAILED) {
-        s->ms_sample = (iqrec_t *) ( mptr + sizeof(iqfile_header_t));      
         parse_iqfile_header(device, (iqfile_header_t *)mptr);
         s->ms_sample = (iqrec_t *)((char *)mptr + sizeof(iqfile_header_t));
         LOG_I(HW,"Loaded %u subframes.\n",s->nbSamplesBlocks );
@@ -92,8 +91,8 @@ static int iqplayer_loadfile(openair0_device *device, openair0_config_t *openair
         fstat(s->fd, &sb);
         s->mapsize=sb.st_size;
         LOG_I(HW, "Loading %u subframes from %s,size=%lu bytes ...\n",s->nbSamplesBlocks, c->u_sf_filename,(uint64_t)sb.st_size);
-        // allocate buffer for 1 sample at a time
-        s->ms_sample = (iqrec_t *) malloc(sizeof(iqrec_t)+MAX_BELL_LABS_IQ_BYTES_PER_SF*4);
+        // allocate buffer for 1 subframe at a time
+        s->ms_sample = (iqrec_t *) malloc(sizeof(iqrec_t)+BELL_LABS_IQ_BYTES_PER_SF);
 
         if (s->ms_sample == NULL) {
           LOG_E(HW,"Memory allocation failed for individual subframe replay mode.\n" );
@@ -117,6 +116,51 @@ static int iqplayer_loadfile(openair0_device *device, openair0_config_t *openair
   }
 
   s->currentPtr=(uint8_t *)s->ms_sample;
+  return 0;
+}
+
+  /*! \brief print the device statistics
+   * \param device the hardware to use
+   * \returns  0 on success
+   */
+static int trx_iqplayer_get_stats(openair0_device *device) {
+  LOG_I(HW,"trx_iqplayer_get_stats() called, not implemented\n");
+  return 0;
+}
+
+  /*! \brief Reset device statistics
+   * \param device the hardware to use
+   * \returns 0 in success
+   */
+static int trx_iqplayer_reset_stats(openair0_device *device) {
+  LOG_I(HW,"trx_iqplayer_reset_stats() called, not implemented\n");
+  return 0;
+}
+
+  /*! \brief Stop operation of the transceiver
+   */
+static int trx_iqplayer_stop(openair0_device *device) {
+  LOG_I(HW,"trx_iqplayer_stop() called, not implemented\n");
+  return 0;
+}
+
+/*! \brief Set RX feaquencies
+ * \param device the hardware to use
+ * \param openair0_cfg RF frontend parameters set by application
+ * \returns 0 in success
+ */
+static int trx_iqplayer_set_freq(openair0_device *device, openair0_config_t *openair0_cfg) {
+  LOG_I(HW,"trx_iqplayer_set_freq() called, not implemented\n");
+  return 0;
+}
+
+/*! \brief Set gains
+ * \param device the hardware to use
+ * \param openair0_cfg RF frontend parameters set by application
+ * \returns 0 in success
+ */
+static int trx_iqplayer_set_gains(openair0_device *device, openair0_config_t *openair0_cfg) {
+  LOG_I(HW,"trx_iqplayer_set_gains() called, not implemented\n");
   return 0;
 }
 
@@ -181,6 +225,7 @@ static int trx_iqplayer_write(openair0_device *device, openair0_timestamp timest
 */
 static int trx_iqplayer_read(openair0_device *device, openair0_timestamp *ptimestamp, void **buff, int nsamps, int cc) {
   recplay_state_t *s = device->recplay_state;
+  static int sample_cnt = 0;
   
   if (s->curSamplesBlock==0 && s->wrap_count==0) { 
     s->currentTs=s->ms_sample->ts;
@@ -188,17 +233,15 @@ static int trx_iqplayer_read(openair0_device *device, openair0_timestamp *ptimes
   }
 
   if (s->curSamplesBlock == s->nbSamplesBlocks) {
-    LOG_I(HW, "wrapping on iq file (%ld)\n", s->wrap_count);
-    s->curSamplesBlock = 0;
-    s->wrap_count++;
-
     if (s->wrap_count == device->openair0_cfg->recplay_conf->u_sf_loops) {
-      LOG_W(HW, "iqplayer device terminating subframes replay  after %u iteration\n",
+      LOG_W(HW, "iqplayer device terminating subframes replay after %u iteration\n",
             device->openair0_cfg->recplay_conf->u_sf_loops);
       exit_function(__FILE__, __FUNCTION__, __LINE__,"replay ended, triggering process termination\n");
     }
 
-    LOG_I(HW,"go back at the beginning of IQ file");
+    LOG_I(HW, "wrapping on iq file (%ld)\n", s->wrap_count);
+    s->curSamplesBlock = 0;
+    s->wrap_count++;
     device->recplay_state->currentPtr=(uint8_t *)device->recplay_state->ms_sample;
 
     if (!(device->openair0_cfg->recplay_conf->use_mmap) ) {
@@ -223,7 +266,9 @@ static int trx_iqplayer_read(openair0_device *device, openair0_timestamp *ptimes
   iqrec_t *curHeader=(iqrec_t *)s->currentPtr;
   AssertFatal(curHeader->header==BELL_LABS_IQ_HEADER,"" );
   // the current timestamp is the stored timestamp until we wrap on input
-  AssertFatal(nsamps*4==curHeader->nbBytes,"");
+  sample_cnt++;
+  //LOG_D(HW,"iqplayer_read nsamps = %d readBytes = %d recBytes = %d sample_cnt = %d\n", (int)nsamps, (int)(nsamps*4), (int)curHeader->nbBytes, sample_cnt);
+  AssertFatal(nsamps*4==curHeader->nbBytes,"nsamps=%d curHeader->nbBytes=%d", (int)nsamps, (int)curHeader->nbBytes);
   *ptimestamp = s->currentTs;
   memcpy(buff[0], curHeader+1, nsamps*4);
   s->curSamplesBlock++;
@@ -238,26 +283,26 @@ static int trx_iqplayer_read(openair0_device *device, openair0_timestamp *ptimes
   req.tv_sec = 0;
   req.tv_nsec = (device->openair0_cfg[0].recplay_conf->u_sf_read_delay) * 1000;
   nanosleep(&req, NULL);
-  LOG_D(HW, "returning %d samples at ts %lu\n", nsamps, *ptimestamp);
+  // LOG_D(HW, "returning %d samples at ts %lu\n", nsamps, *ptimestamp);
   return nsamps;
 }
 
 int device_init(openair0_device *device, openair0_config_t *openair0_cfg) {
   device->openair0_cfg = openair0_cfg;
   device->trx_start_func = trx_iqplayer_start;
-  device->trx_get_stats_func = NULL;
-  device->trx_reset_stats_func = NULL;
+  device->trx_get_stats_func = trx_iqplayer_get_stats;
+  device->trx_reset_stats_func = trx_iqplayer_reset_stats;
   device->trx_end_func   = trx_iqplayer_end;
-  device->trx_stop_func  = NULL;
-  device->trx_set_freq_func = NULL;
-  device->trx_set_gains_func   = NULL;
+  device->trx_stop_func  = trx_iqplayer_stop;
+  device->trx_set_freq_func = trx_iqplayer_set_freq;
+  device->trx_set_gains_func   = trx_iqplayer_set_gains;
   // Replay subframes from from file
   //  openair0_cfg[0].rx_gain_calib_table = calib_table_b210_38;
   //  bw_gain_adjust=1;
   device->trx_write_func = trx_iqplayer_write;
   device->trx_read_func  = trx_iqplayer_read;
   iqplayer_loadfile(device, openair0_cfg);
-  LOG_UI(HW,"iqplayer device initialized, replay %s  for %i iterations",openair0_cfg->recplay_conf->u_sf_filename,openair0_cfg->recplay_conf->u_sf_loops);
+  LOG_UI(HW,"iqplayer device initialized, replay %s for %i iterations",openair0_cfg->recplay_conf->u_sf_filename,openair0_cfg->recplay_conf->u_sf_loops);
   return 0;
 }
 /*@}*/
