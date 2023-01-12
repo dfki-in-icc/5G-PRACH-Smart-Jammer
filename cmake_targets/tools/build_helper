@@ -302,6 +302,7 @@ install_usrp_uhd_driver_from_source(){
 
 check_install_usrp_uhd_driver(){
     if [[ "$OS_DISTRO" == "ubuntu" ]]; then
+        boost_libs_ubuntu="libboost-chrono-dev libboost-date-time-dev libboost-filesystem-dev libboost-program-options-dev libboost-thread-dev libboost-test-dev libboost-regex-dev"
         #first we remove old installation
         $SUDO apt-get remove uhd -y || true
         $SUDO apt-get remove uhd-host -y || true
@@ -319,7 +320,7 @@ check_install_usrp_uhd_driver(){
         v=$(lsb_release -cs)
         $SUDO apt-add-repository --remove "deb http://files.ettus.com/binaries/uhd/repo/uhd/ubuntu/$v $v main"
         if [[ -v BUILD_UHD_FROM_SOURCE ]]; then
-            $SUDO apt-get install -y libboost-all-dev libusb-1.0-0-dev doxygen python3-docutils python3-mako python3-numpy python3-requests python3-setuptools ninja-build
+            $SUDO apt-get install -y $boost_libs_ubuntu libusb-1.0-0-dev doxygen python3-docutils python3-mako python3-numpy python3-requests python3-setuptools ninja-build
             install_usrp_uhd_driver_from_source
             return
         fi
@@ -341,19 +342,20 @@ check_install_usrp_uhd_driver(){
             x=$((x + 1))
         done
         $SUDO apt-get update
-        $SUDO apt-get -y install python-tk libboost-all-dev libusb-1.0-0-dev
+        $SUDO apt-get -y install python-tk  $boost_libs_ubuntu libusb-1.0-0-dev
         case "$(get_distribution_release)" in
           "ubuntu18.04" | "ubuntu20.04" | "ubuntu22.04")
             $SUDO apt-get -y install libuhd-dev libuhd4.2.0 uhd-host
             ;;
         esac
     elif [[ "$OS_BASEDISTRO" == "fedora" ]]; then
+        boost_libs_fedora="boost-chrono boost-date-time boost-filesystem boost-program-options boost-thread boost-test boost-regex boost-devel"
         if [ $IS_CONTAINER -eq 0 ]
         then
-            $SUDO $INSTALLER -y install python3 boost libusb-devel libusbx-devel boost-devel python3-mako python3-docutils python3-pip $CMAKE
+            $SUDO $INSTALLER -y install python3 $boost_libs_fedora libusb-devel libusbx-devel  python3-mako python3-docutils python3-pip $CMAKE
             $SUDO pip3 install requests
         else
-            $SUDO $INSTALLER -y install boost boost-devel $CMAKE
+            $SUDO $INSTALLER -y install $boost_libs_fedora $CMAKE
             $SUDO pip3 install mako requests
         fi
         if [[ "$OS_DISTRO" == "rhel" ]] || [[ "$OS_DISTRO" == "centos" ]]; then
