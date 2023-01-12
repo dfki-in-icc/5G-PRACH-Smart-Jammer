@@ -106,8 +106,8 @@ check_supported_distribution() {
         "ubuntu21.04") return 0 ;;
         "ubuntu20.04") return 0 ;;
         "ubuntu18.04") return 0 ;;
-        "fedora35")    return 0 ;;
         "fedora36")    return 0 ;;
+        "fedora37")    return 0 ;;
         "rhel7")       return 0 ;;
         "rhel7.6")     return 0 ;;
         "rhel7.7")     return 0 ;;
@@ -666,8 +666,7 @@ check_install_oai_software() {
       lapack-devel \
       blas \
       blas-devel \
-      vim-common \
-      xxd
+      vim-common
   fi
 
     install_asn1c_from_source $1
