@@ -627,7 +627,7 @@ check_install_oai_software() {
 	libblas-dev \
 	liblapack-dev \
 	liblapacke-dev \
-	libpython2.7-dev \ #opt
+	libpython2.7-dev \
         libreadline-dev \
 	libsctp-dev  \
 	libssl-dev  \
