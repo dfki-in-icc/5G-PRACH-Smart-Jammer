@@ -123,10 +123,10 @@ class StaticCodeAnalysis():
 		if (self.ranAllowMerge):
 			if self.ranTargetBranch == '':
 				if (self.ranBranch != 'develop') and (self.ranBranch != 'origin/develop'):
-					mySSH.command('git merge --ff origin/develop -m "Temporary merge for CI"', '\$', 5)
+					mySSH.command('git merge --ff origin/develop -m "Temporary merge for CI"', '\$', 30)
 			else:
 				logging.debug('Merging with the target branch: ' + self.ranTargetBranch)
-				mySSH.command('git merge --ff origin/' + self.ranTargetBranch + ' -m "Temporary merge for CI"', '\$', 5)
+				mySSH.command('git merge --ff origin/' + self.ranTargetBranch + ' -m "Temporary merge for CI"', '\$', 30)
 
 		mySSH.command('docker image rm oai-cppcheck:bionic oai-cppcheck:focal || true', '\$', 60)
 		mySSH.command('sed -e "s@xenial@bionic@" ci-scripts/docker/Dockerfile.cppcheck.xenial > ci-scripts/docker/Dockerfile.cppcheck.bionic', '\$', 6)
@@ -281,11 +281,11 @@ class StaticCodeAnalysis():
 			argToPass = '--build-arg MERGE_REQUEST=true --build-arg SRC_BRANCH=' + self.ranBranch
 			if self.ranTargetBranch == '':
 				if (self.ranBranch != 'develop') and (self.ranBranch != 'origin/develop'):
-					mySSH.command('git merge --ff origin/develop -m "Temporary merge for CI"', '\$', 5)
+					mySSH.command('git merge --ff origin/develop -m "Temporary merge for CI"', '\$', 30)
 					argToPass += ' --build-arg TARGET_BRANCH=develop '
 			else:
 				logging.debug('Merging with the target branch: ' + self.ranTargetBranch)
-				mySSH.command('git merge --ff origin/' + self.ranTargetBranch + ' -m "Temporary merge for CI"', '\$', 5)
+				mySSH.command('git merge --ff origin/' + self.ranTargetBranch + ' -m "Temporary merge for CI"', '\$', 30)
 				argToPass += ' --build-arg TARGET_BRANCH=' + self.ranTargetBranch + ' '
 
 		mySSH.command('docker image rm oai-formatting-check:latest || true', '\$', 60)
@@ -321,20 +321,6 @@ class StaticCodeAnalysis():
 					if ret is not None:
 						analyzed = True
 					if analyzed:
-						ret = re.search('Nb Files that do NOT follow OAI rules: (?P<nb_errors>[0-9\.]+)', str(line))
-						if ret is not None:
-							nbFilesNotFormatted = int(ret.group('nb_errors'))
-
-						if re.search('=== Files not properly formatted ===', str(line)) is not None:
-							listFiles = True
-						if listFiles:
-							if re.search('Removing intermediate container', str(line)) is not None:
-								listFiles = False
-							elif re.search('Running in|Files not properly formatted', str(line)) is not None:
-								pass
-							else:
-								listFilesNotFormatted.append(str(line).strip())
-
 						if re.search('=== Files with incorrect define protection ===', str(line)) is not None:
 							circularHeaderDependency = True
 						if circularHeaderDependency:

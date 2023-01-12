@@ -45,8 +45,8 @@
 #include "common/utils/load_module_shlib.h"
 
 
-#include "../../ARCH/COMMON/common_lib.h"
-#include "../../ARCH/ETHERNET/USERSPACE/LIB/if_defs.h"
+#include "radio/COMMON/common_lib.h"
+#include "radio/ETHERNET/USERSPACE/LIB/if_defs.h"
 
 
 #include "PHY/phy_vars.h"
@@ -66,6 +66,7 @@ static int DEFBANDS[] = {7};
 static int DEFENBS[] = {0};
 static int DEFBFW[] = {0x00007fff};
 
+static int DEFRUTPCORES[] = {2,4,6,8};
 THREAD_STRUCT thread_struct;
 
 pthread_cond_t sync_cond;
@@ -73,7 +74,7 @@ pthread_mutex_t sync_mutex;
 int sync_var=-1; //!< protected by mutex \ref sync_mutex.
 int config_sync_var=-1;
 
-volatile int             oai_exit = 0;
+int oai_exit = 0;
 uint16_t sf_ahead = 4;
 RU_t ru_m;
 

@@ -45,8 +45,9 @@
 #include "openair2/RRC/NR_UE/rrc_vars.h"
 #include "openair2/GNB_APP/L1_nr_paramdef.h"
 #include "openair2/GNB_APP/gnb_paramdef.h"
-#include "targets/ARCH/ETHERNET/USERSPACE/LIB/if_defs.h"
+#include "radio/ETHERNET/USERSPACE/LIB/if_defs.h"
 #include <stdio.h>
+#include "openair2/GNB_APP/MACRLC_nr_paramdef.h"
 
 #define MAX_IF_MODULES 100
 
@@ -227,17 +228,13 @@ void send_nsa_standalone_msg(NR_UL_IND_t *UL_INFO, uint16_t msg_id)
                 return;
         }
 
-        LOG_D(NR_MAC, "SLOT_IND sent to Proxy, Size: %d Frame %d Slot %d\n", encoded_size,
-                UL_INFO->rach_ind.sfn, UL_INFO->rach_ind.slot);
         if (send(ue_tx_sock_descriptor, buffer, encoded_size, 0) < 0)
         {
                 LOG_E(NR_MAC, "Send Proxy NR_UE failed\n");
                 return;
         }
-        else
-        {
-                LOG_D(NR_MAC, "Send Proxy SLOT_IND Success\n");
-        }
+        LOG_D(NR_MAC, "SLOT_IND sent to Proxy, Size: %d Frame %d Slot %d\n", encoded_size,
+                UL_INFO->rach_ind.sfn, UL_INFO->rach_ind.slot);
         break;
     }
 
@@ -736,8 +733,7 @@ void check_and_process_dci(nfapi_nr_dl_tti_request_t *dl_tti_request,
 
     if (pthread_mutex_lock(&mac->mutex_dl_info)) abort();
 
-    if (dl_tti_request)
-    {
+    if (dl_tti_request) {
         frame = dl_tti_request->SFN;
         slot = dl_tti_request->Slot;
         LOG_D(NR_PHY, "[%d, %d] dl_tti_request\n", frame, slot);
@@ -749,41 +745,34 @@ void check_and_process_dci(nfapi_nr_dl_tti_request_t *dl_tti_request,
        incoming tx_data_request is also destined for the current UE. If the
        RAR hasn't been processed yet, we do not want to be filtering the
        tx_data_requests. */
-    if (tx_data_request)
-    {
+    if (tx_data_request) {
         if (mac->nr_ue_emul_l1.expected_sib ||
             mac->nr_ue_emul_l1.expected_rar ||
-            mac->nr_ue_emul_l1.expected_dci)
-        {
+            mac->nr_ue_emul_l1.expected_dci) {
             frame = tx_data_request->SFN;
             slot = tx_data_request->Slot;
-            LOG_I(NR_PHY, "[%d, %d] PDSCH in tx_request\n", frame, slot);
+            LOG_D(NR_PHY, "[%d, %d] PDSCH in tx_request\n", frame, slot);
             copy_tx_data_req_to_dl_info(&mac->dl_info, tx_data_request);
         }
-        else
-        {
+        else {
             LOG_D(NR_MAC, "Unexpected tx_data_req\n");
         }
         free_and_zero(tx_data_request);
     }
-    else if (ul_dci_request)
-    {
+    else if (ul_dci_request) {
         frame = ul_dci_request->SFN;
         slot = ul_dci_request->Slot;
         LOG_D(NR_PHY, "[%d, %d] ul_dci_request\n", frame, slot);
         copy_ul_dci_data_req_to_dl_info(&mac->dl_info, ul_dci_request);
         free_and_zero(ul_dci_request);
     }
-    else if (ul_tti_request)
-    {
+    else if (ul_tti_request) {
         frame = ul_tti_request->SFN;
         slot = ul_tti_request->Slot;
         LOG_T(NR_PHY, "[%d, %d] ul_tti_request\n", frame, slot);
         copy_ul_tti_data_req_to_dl_info(&mac->dl_info, ul_tti_request);
-        free_and_zero(ul_tti_request);
     }
-    else
-    {
+    else {
         if (pthread_mutex_unlock(&mac->mutex_dl_info)) abort();
         LOG_T(NR_MAC, "All indications were NULL in %s\n", __FUNCTION__);
         return;
@@ -807,17 +796,14 @@ void check_and_process_dci(nfapi_nr_dl_tti_request_t *dl_tti_request,
     ul_info.slot_rx = slot;
     ul_info.slot_tx = (slot + slot_ahead) % slots_per_frame;
     ul_info.frame_tx = (ul_info.slot_rx + slot_ahead >= slots_per_frame) ? ul_info.frame_rx + 1 : ul_info.frame_rx;
-    ul_info.ue_sched_mode = SCHED_ALL;
-    if (mac->scc || mac->scc_SIB)
-    {
+    if (mac->scc || mac->scc_SIB) {
         if (is_nr_UL_slot(mac->scc ?
                           mac->scc->tdd_UL_DL_ConfigurationCommon :
                           mac->scc_SIB->tdd_UL_DL_ConfigurationCommon,
                           ul_info.slot_tx,
-                          mac->frame_type) && mac->ra.ra_state != RA_SUCCEEDED)
-        {
+                          mac->frame_type) && mac->ra.ra_state != RA_SUCCEEDED) {
             nr_ue_scheduler(NULL, &ul_info);
-            nr_ue_prach_scheduler(ul_info.module_id, ul_info.frame_tx, ul_info.slot_tx, ul_info.thread_id);
+            nr_ue_prach_scheduler(ul_info.module_id, ul_info.frame_tx, ul_info.slot_tx);
         }
     }
 }
@@ -1061,16 +1047,17 @@ void *nrue_standalone_pnf_task(void *context)
       nr_phy_channel_params_t *ch_info = CALLOC(1, sizeof(*ch_info));
       memcpy(ch_info, buffer, sizeof(*ch_info));
 
-      if (ch_info->nb_of_sinrs > 1)
-        LOG_W(NR_PHY, "Expecting at most one SINR.\n");
+      if (ch_info->nb_of_csi > 1)
+        LOG_W(NR_PHY, "Expecting only one CSI report.\n");
 
       // TODO: Update sinr field of slot_rnti_mcs to be array.
-      for (int i = 0; i < ch_info->nb_of_sinrs; ++i)
+      for (int i = 0; i < ch_info->nb_of_csi; ++i)
       {
-        slot_rnti_mcs[NFAPI_SFNSLOT2SLOT(ch_info->sfn_slot)].sinr = ch_info->sinr[i];
+        slot_rnti_mcs[NFAPI_SFNSLOT2SLOT(ch_info->sfn_slot)].sinr = ch_info->csi[i].sinr;
+        slot_rnti_mcs[NFAPI_SFNSLOT2SLOT(ch_info->sfn_slot)].area_code = ch_info->csi[i].area_code;
 
-        LOG_T(NR_PHY, "Received_SINR[%d] = %f, sfn:slot %d:%d\n",
-              i, ch_info->sinr[i], NFAPI_SFNSLOT2SFN(ch_info->sfn_slot), NFAPI_SFNSLOT2SLOT(ch_info->sfn_slot));
+        LOG_D(NR_PHY, "Received_SINR[%d] = %f, sfn:slot %d:%d\n",
+              i, ch_info->csi[i].sinr, NFAPI_SFNSLOT2SFN(ch_info->sfn_slot), NFAPI_SFNSLOT2SLOT(ch_info->sfn_slot));
       }
 
       if (!put_queue(&nr_chan_param_queue, ch_info))
@@ -1105,15 +1092,15 @@ int handle_bcch_bch(module_id_t module_id, int cc_id,
                     uint16_t ssb_start_subcarrier, uint16_t cell_id){
 
   return nr_ue_decode_mib(module_id,
-			  cc_id,
-			  gNB_index,
-			  phy_data,
-			  additional_bits,
-			  ssb_length,  //  Lssb = 64 is not support    
-			  ssb_index,
-			  pduP,
-			  ssb_start_subcarrier,
-			  cell_id);
+        cc_id,
+        gNB_index,
+        phy_data,
+        additional_bits,
+        ssb_length,  //  Lssb = 64 is not support    
+        ssb_index,
+        pduP,
+        ssb_start_subcarrier,
+        cell_id);
 
 }
 
@@ -1127,6 +1114,12 @@ int handle_dci(module_id_t module_id, int cc_id, unsigned int gNB_index, frame_t
 
   return nr_ue_process_dci_indication_pdu(module_id, cc_id, gNB_index, frame, slot, dci);
 
+}
+
+void  handle_ssb_meas(NR_UE_MAC_INST_t *mac, uint8_t ssb_index, int16_t rsrp_dbm)
+{
+  mac->phy_measurements.ssb_index = ssb_index;
+  mac->phy_measurements.ssb_rsrp_dBm = rsrp_dbm;
 }
 
 // L2 Abstraction Layer
@@ -1174,24 +1167,16 @@ int nr_ue_ul_indication(nr_uplink_indication_t *ul_info){
   module_id_t module_id = ul_info->module_id;
   NR_UE_MAC_INST_t *mac = get_mac_inst(module_id);
 
-  if (ul_info->ue_sched_mode == ONLY_PUSCH) {
-    ret = nr_ue_scheduler(NULL, ul_info);
-    return 0;
-  }
-  if (ul_info->ue_sched_mode == SCHED_ALL) {
-    ret = nr_ue_scheduler(NULL, ul_info);
-  }
-  else
-    LOG_T(NR_MAC, "In %s():%d not calling scheduler. sched mode = %d and mac->ra.ra_state = %d\n",
-        __FUNCTION__, __LINE__, ul_info->ue_sched_mode, mac->ra.ra_state);
-
   NR_TDD_UL_DL_ConfigCommon_t *tdd_UL_DL_ConfigurationCommon = mac->scc != NULL ? mac->scc->tdd_UL_DL_ConfigurationCommon : mac->scc_SIB->tdd_UL_DL_ConfigurationCommon;
+  LOG_T(NR_MAC, "In %s():%d not calling scheduler mac->ra.ra_state = %d\n",
+        __FUNCTION__, __LINE__, mac->ra.ra_state);
 
-  if (is_nr_UL_slot(tdd_UL_DL_ConfigurationCommon, ul_info->slot_tx, mac->frame_type) && !get_softmodem_params()->phy_test)
-    nr_ue_prach_scheduler(module_id, ul_info->frame_tx, ul_info->slot_tx, ul_info->thread_id);
-
-  if (is_nr_UL_slot(tdd_UL_DL_ConfigurationCommon, ul_info->slot_tx, mac->frame_type))
-    nr_ue_pucch_scheduler(module_id, ul_info->frame_tx, ul_info->slot_tx, ul_info->thread_id);
+  ret = nr_ue_scheduler(NULL, ul_info);
+  if (is_nr_UL_slot(tdd_UL_DL_ConfigurationCommon, ul_info->slot_tx, mac->frame_type)) {
+    nr_ue_pucch_scheduler(module_id, ul_info->frame_tx, ul_info->slot_tx, ul_info->phy_data);
+    if (!get_softmodem_params()->phy_test)
+      nr_ue_prach_scheduler(module_id, ul_info->frame_tx, ul_info->slot_tx);
+  }
 
   switch(ret){
   case UE_CONNECTION_OK:
@@ -1249,12 +1234,11 @@ int nr_ue_dl_indication(nr_downlink_indication_t *dl_info, NR_UL_TIME_ALIGNMENT_
         if (ret >= 0) {
           AssertFatal( nr_ue_if_module_inst[module_id] != NULL, "IF module is NULL!\n" );
           AssertFatal( nr_ue_if_module_inst[module_id]->scheduled_response != NULL, "scheduled_response is NULL!\n" );
-          fill_scheduled_response(&scheduled_response, dl_config, NULL, NULL, dl_info->module_id, dl_info->cc_id, dl_info->frame, dl_info->slot, dl_info->thread_id, dl_info->phy_data);
+          fill_scheduled_response(&scheduled_response, dl_config, NULL, NULL, dl_info->module_id, dl_info->cc_id, dl_info->frame, dl_info->slot, dl_info->phy_data);
           nr_ue_if_module_inst[module_id]->scheduled_response(&scheduled_response);
         }
         memset(def_dci_pdu_rel15, 0, sizeof(*def_dci_pdu_rel15));
       }
-      free(dl_info->dci_ind);
       dl_info->dci_ind = NULL;
     }
 
@@ -1269,7 +1253,9 @@ int nr_ue_dl_indication(nr_downlink_indication_t *dl_info, NR_UL_TIME_ALIGNMENT_
 
         switch(dl_info->rx_ind->rx_indication_body[i].pdu_type){
           case FAPI_NR_RX_PDU_TYPE_SSB:
-            mac->ssb_rsrp_dBm = (dl_info->rx_ind->rx_indication_body+i)->ssb_pdu.rsrp_dBm;
+            handle_ssb_meas(mac,
+                            (dl_info->rx_ind->rx_indication_body+i)->ssb_pdu.ssb_index,
+                            (dl_info->rx_ind->rx_indication_body+i)->ssb_pdu.rsrp_dBm);
             ret_mask |= (handle_bcch_bch(dl_info->module_id, dl_info->cc_id, dl_info->gNB_index, dl_info->phy_data,
                                          (dl_info->rx_ind->rx_indication_body+i)->ssb_pdu.pdu,
                                          (dl_info->rx_ind->rx_indication_body+i)->ssb_pdu.additional_bits,
@@ -1305,13 +1291,6 @@ int nr_ue_dl_indication(nr_downlink_indication_t *dl_info, NR_UL_TIME_ALIGNMENT_
       free(dl_info->rx_ind);
       dl_info->rx_ind = NULL;
     }
-
-    //clean up nr_downlink_indication_t *dl_info
-    free(dl_info->dci_ind);
-    dl_info->dci_ind = NULL;
-    free(dl_info->rx_ind);
-    dl_info->rx_ind  = NULL;
-
   }
   return 0;
 }
@@ -1359,29 +1338,29 @@ int nr_ue_dcireq(nr_dcireq_t *dcireq) {
   return 0;
 }
 
-void RCconfig_nr_ue_L1(void) {
+void RCconfig_nr_ue_macrlc(void) {
   int j;
-  paramdef_t L1_Params[] = L1PARAMS_DESC;
-  paramlist_def_t L1_ParamList = {CONFIG_STRING_L1_LIST, NULL, 0};
+  paramdef_t MACRLC_Params[] = MACRLCPARAMS_DESC;
+  paramlist_def_t MACRLC_ParamList = {CONFIG_STRING_MACRLC_LIST, NULL, 0};
 
-  config_getlist(&L1_ParamList, L1_Params, sizeof(L1_Params) / sizeof(paramdef_t), NULL);
-  if (L1_ParamList.numelt > 0) {
-    for (j = 0; j < L1_ParamList.numelt; j++) {
-      if (strcmp(*(L1_ParamList.paramarray[j][L1_TRANSPORT_N_PREFERENCE_IDX].strptr), "nfapi") == 0) {
+  config_getlist(&MACRLC_ParamList, MACRLC_Params, sizeof(MACRLC_Params) / sizeof(paramdef_t), NULL);
+  if (MACRLC_ParamList.numelt > 0) {
+    for (j = 0; j < MACRLC_ParamList.numelt; j++) {
+      if (strcmp(*(MACRLC_ParamList.paramarray[j][MACRLC_TRANSPORT_N_PREFERENCE_IDX].strptr), "nfapi") == 0) {
         stub_eth_params.local_if_name = strdup(
-            *(L1_ParamList.paramarray[j][L1_LOCAL_N_IF_NAME_IDX].strptr));
+            *(MACRLC_ParamList.paramarray[j][MACRLC_LOCAL_N_IF_NAME_IDX].strptr));
         stub_eth_params.my_addr = strdup(
-            *(L1_ParamList.paramarray[j][L1_LOCAL_N_ADDRESS_IDX].strptr));
+            *(MACRLC_ParamList.paramarray[j][MACRLC_LOCAL_N_ADDRESS_IDX].strptr));
         stub_eth_params.remote_addr = strdup(
-            *(L1_ParamList.paramarray[j][L1_REMOTE_N_ADDRESS_IDX].strptr));
+            *(MACRLC_ParamList.paramarray[j][MACRLC_REMOTE_N_ADDRESS_IDX].strptr));
         stub_eth_params.my_portc =
-            *(L1_ParamList.paramarray[j][L1_LOCAL_N_PORTC_IDX].iptr);
+            *(MACRLC_ParamList.paramarray[j][MACRLC_LOCAL_N_PORTC_IDX].iptr);
         stub_eth_params.remote_portc =
-            *(L1_ParamList.paramarray[j][L1_REMOTE_N_PORTC_IDX].iptr);
+            *(MACRLC_ParamList.paramarray[j][MACRLC_REMOTE_N_PORTC_IDX].iptr);
         stub_eth_params.my_portd =
-            *(L1_ParamList.paramarray[j][L1_LOCAL_N_PORTD_IDX].iptr);
+            *(MACRLC_ParamList.paramarray[j][MACRLC_LOCAL_N_PORTD_IDX].iptr);
         stub_eth_params.remote_portd =
-            *(L1_ParamList.paramarray[j][L1_REMOTE_N_PORTD_IDX].iptr);
+            *(MACRLC_ParamList.paramarray[j][MACRLC_REMOTE_N_PORTD_IDX].iptr);
         stub_eth_params.transp_preference = ETH_UDP_MODE;
       }
     }

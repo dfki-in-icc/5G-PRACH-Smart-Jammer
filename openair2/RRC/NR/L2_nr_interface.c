@@ -70,10 +70,6 @@ nr_rrc_data_req(
 )
 //------------------------------------------------------------------------------
 {
-  if(sdu_sizeP == 255) {
-    LOG_D(RRC,"sdu_sizeP == 255");
-    return false;
-  }
 
   MessageDef *message_p;
   // Uses a new buffer to avoid issue with PDCP buffer content that could be changed by PDCP (asynchronous message handling).
@@ -94,7 +90,7 @@ nr_rrc_data_req(
   //memcpy (NR_RRC_DCCH_DATA_REQ (message_p).sdu_p, buffer_pP, sdu_sizeP);
   RRC_DCCH_DATA_REQ (message_p).mode      = modeP;
   RRC_DCCH_DATA_REQ (message_p).module_id = ctxt_pP->module_id;
-  RRC_DCCH_DATA_REQ (message_p).rnti      = ctxt_pP->rnti;
+  RRC_DCCH_DATA_REQ(message_p).rnti = ctxt_pP->rntiMaybeUEid;
   RRC_DCCH_DATA_REQ (message_p).eNB_index = ctxt_pP->eNB_index;
   itti_send_msg_to_task (
     ctxt_pP->enb_flag ? TASK_PDCP_ENB : TASK_PDCP_UE,
@@ -117,7 +113,8 @@ uint16_t mac_rrc_nr_data_req(const module_id_t Mod_idP,
                              const rb_id_t     Srb_id,
                              const rnti_t      rnti,
                              const uint8_t     Nb_tb,
-                             uint8_t *const    buffer_pP ){
+                             uint8_t *const    buffer_pP)
+{
 
 #ifdef DEBUG_RRC
   LOG_D(RRC,"[eNB %d] mac_rrc_data_req to SRB ID=%ld\n",Mod_idP,Srb_id);
@@ -160,27 +157,7 @@ uint16_t mac_rrc_nr_data_req(const module_id_t Mod_idP,
 
   // CCCH
   if ((Srb_id & RAB_OFFSET) == CCCH) {
-    LOG_D(NR_RRC,"[gNB %d] Frame %d CCCH request (Srb_id %ld)\n", Mod_idP, frameP, Srb_id);
-
-    char *payload_pP;
-    struct rrc_gNB_ue_context_s *ue_context_p = rrc_gNB_get_ue_context(RC.nrrrc[Mod_idP], rnti);
-
-    LOG_D(NR_RRC,"[gNB %d] Frame %d CCCH request (Srb_id %ld)\n", Mod_idP, frameP, Srb_id);
-    if (ue_context_p == NULL) {
-      LOG_E(NR_RRC,"[gNB %d] Frame %d CCCH request but no ue_context\n", Mod_idP, frameP);
-      return 0;
-    }
-
-    uint16_t payload_size = ue_context_p->ue_context.Srb0.Tx_buffer.payload_size;
-    // check if data is there for MAC
-    if (payload_size > 0) {
-      payload_pP = ue_context_p->ue_context.Srb0.Tx_buffer.Payload;
-      LOG_D(NR_RRC,"[gNB %d] CCCH has %d bytes (dest: %p, src %p)\n", Mod_idP, payload_size, buffer_pP, payload_pP);
-      // Fill buffer
-      memcpy((void *)buffer_pP, (void*)payload_pP, payload_size);
-      ue_context_p->ue_context.Srb0.Tx_buffer.payload_size = 0;
-    }
-    return payload_size;
+    AssertFatal(0, "CCCH is managed by rlc of srb 0, not anymore by mac_rrc_nr_data_req\n");
   }
 
   return 0;
@@ -199,74 +176,6 @@ int8_t nr_mac_rrc_bwp_switch_req(const module_id_t     module_idP,
   PROTOCOL_CTXT_SET_BY_MODULE_ID(&ctxt, module_idP, GNB_FLAG_YES, rntiP, frameP, sub_frameP, 0);
   nr_rrc_reconfiguration_req(ue_context_p, &ctxt, dl_bwp_id, ul_bwp_id);
 
-  return 0;
-}
-
-int8_t nr_mac_rrc_data_ind(const module_id_t     module_idP,
-                           const int             CC_id,
-                           const frame_t         frameP,
-                           const sub_frame_t     sub_frameP,
-                           const int             UE_id,
-                           const rnti_t          rntiP,
-                           const rb_id_t         srb_idP,
-                           const uint8_t        *sduP,
-                           const sdu_size_t      sdu_lenP,
-                           const bool            brOption) {
-
-  if (NODE_IS_DU(RC.nrrrc[module_idP]->node_type)) {
-    LOG_W(RRC,"[DU %d][RAPROC] Received SDU for CCCH on SRB %ld length %d for UE id %d RNTI %x \n",
-          module_idP, srb_idP, sdu_lenP, UE_id, rntiP);
-
-    // Generate DUtoCURRCContainer
-    // call do_RRCSetup like full procedure and extract masterCellGroup
-    NR_CellGroupConfig_t cellGroupConfig;
-    NR_ServingCellConfigCommon_t *scc=RC.nrrrc[module_idP]->carrier.servingcellconfigcommon;
-    NR_ServingCellConfig_t *servingcellconfigdedicated = RC.nrrrc[module_idP]->configuration.scd;
-    memset(&cellGroupConfig,0,sizeof(cellGroupConfig));
-
-    struct rrc_gNB_ue_context_s *ue_context_p = rrc_gNB_allocate_new_UE_context(RC.nrrrc[module_idP]);
-    ue_context_p->ue_id_rnti                    = rntiP;
-    ue_context_p->ue_context.rnti               = rntiP;
-    ue_context_p->ue_context.random_ue_identity = rntiP;
-    ue_context_p->ue_context.Srb0.Active        = 1;
-    RB_INSERT(rrc_nr_ue_tree_s, &RC.nrrrc[module_idP]->rrc_ue_head, ue_context_p);
-
-    fill_initial_cellGroupConfig(ue_context_p->local_uid,&cellGroupConfig,scc,servingcellconfigdedicated,&RC.nrrrc[module_idP]->configuration);
-
-    MessageDef* tmp=itti_alloc_new_message_sized(TASK_RRC_GNB, 0, F1AP_INITIAL_UL_RRC_MESSAGE, sizeof(f1ap_initial_ul_rrc_message_t) + sdu_lenP);
-    f1ap_initial_ul_rrc_message_t *msg = &F1AP_INITIAL_UL_RRC_MESSAGE(tmp);
-
-    asn_enc_rval_t enc_rval = uper_encode_to_buffer(&asn_DEF_NR_CellGroupConfig,
-                                                    NULL,
-                                                    (void *)&cellGroupConfig,
-                                                    msg->du2cu_rrc_container,
-                                                    F1AP_MAX_DU2CU_RRC_LENGTH);
-
-    if (enc_rval.encoded == -1) {
-      LOG_E(F1AP,"Could not encoded cellGroupConfig, failed element %s\n",enc_rval.failed_type->name);
-      exit(-1);
-    }
-    /* do ITTI message */
-    msg->du2cu_rrc_container_length = (enc_rval.encoded+7)/8;
-    msg->crnti=rntiP;
-    msg->rrc_container=(uint8_t*) (msg+1); // Made extra room after the struct with itti_alloc_msg_sized()
-    memcpy(msg->rrc_container, sduP, sdu_lenP);
-    msg->rrc_container_length=sdu_lenP;
-    itti_send_msg_to_task(TASK_DU_F1, 0, tmp);
-
-    return 0;
-  }
-
-  protocol_ctxt_t ctxt;
-  PROTOCOL_CTXT_SET_BY_MODULE_ID(&ctxt, module_idP, GNB_FLAG_YES, rntiP, frameP, sub_frameP,0);
-
-  if((srb_idP & RAB_OFFSET) == CCCH) {
-    LOG_D(NR_RRC, "[gNB %d] Received SDU for CCCH on SRB %ld\n", module_idP, srb_idP);
-    ctxt.brOption = brOption;
-    if (sdu_lenP > 0) {
-      nr_rrc_gNB_decode_ccch(&ctxt, sduP, sdu_lenP, NULL, CC_id);
-    }
-  }
   return 0;
 }
 

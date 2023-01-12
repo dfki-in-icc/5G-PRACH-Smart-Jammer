@@ -19,7 +19,7 @@
 #define NFAPI_NR_MAX_NB_SEARCH_SPACES 40
 
 #define NFAPI_MAX_NUM_UL_UE_PER_GROUP 6
-#define NFAPI_MAX_NUM_UL_PDU 8
+#define NFAPI_MAX_NUM_UL_PDU 255
 #define NFAPI_MAX_NUM_UCI_INDICATION 8
 #define NFAPI_MAX_NUM_GROUPS 8
 #define NFAPI_MAX_NUM_CB 8
@@ -40,7 +40,7 @@ typedef struct {
   uint16_t length;
   union { 
     uint32_t *ptr;
-    uint32_t direct[16384];
+    uint32_t direct[38016];
   } value;
 } nfapi_nr_tx_data_request_tlv_t;
 
@@ -780,6 +780,7 @@ typedef struct {
 }  nfapi_nr_dl_tti_pdcch_pdu_rel15_t;
 
 typedef struct {
+  uint8_t ldpcBaseGraph;
   uint32_t tbSizeLbrmBytes;
 }nfapi_v3_pdsch_maintenance_parameters_t;
 
@@ -1109,17 +1110,15 @@ typedef struct {
 typedef struct
 {
   nfapi_nr_dig_bf_interface_t* dig_bf_interface_list;
-
 } nfapi_nr_ul_beamforming_number_of_prgs_t;
 
 typedef struct
 {
-  uint16_t num_prgs;
-  uint16_t prg_size;
-  //watchout: dig_bf_interface here, in table 3-43 it's dig_bf_interfaces
-  uint8_t  dig_bf_interface;
-  nfapi_nr_ul_beamforming_number_of_prgs_t* prgs_list;//
-
+  uint8_t trp_scheme;         // This field shall be set to 0, to identify that this table is used.
+  uint16_t num_prgs;          // Number of PRGs spanning this allocation. Value : 1->275
+  uint16_t prg_size;          // Size in RBs of a precoding resource block group (PRG) – to which the same digital beamforming gets applied. Value: 1->275
+  uint8_t dig_bf_interface;   // Number of logical antenna ports (parallel streams) resulting from the Rx combining. Value: 0->255
+  nfapi_nr_ul_beamforming_number_of_prgs_t *prgs_list;
 } nfapi_nr_ul_beamforming_t;
 
 typedef struct
@@ -1196,6 +1195,7 @@ typedef struct
 #define PUSCH_PDU_BITMAP_DFTS_OFDM  0x8
 
 typedef struct {
+  uint8_t ldpcBaseGraph;
   uint32_t tbSizeLbrmBytes;
 }nfapi_v3_pusch_maintenance_parameters_t;
 
@@ -1293,41 +1293,55 @@ typedef struct
 
 } nfapi_nr_pucch_pdu_t;
 
-//for srs_pdu:
+typedef struct {
+  uint16_t srs_bandwidth_start;                   // PRB index for the start of SRS signal transmission. The PRB index is relative to the CRB0 or reference Point A. 3GPP TS 38.211, section 6.4.1.4.3. Value: 0->268
+  uint8_t sequence_group;                         // Sequence group (u) as defined in 3GPP TS 38.211, section 6.4.1.4.2. Value: 0->29
+  uint8_t sequence_number;                        // Sequence number (v) as defined in 3GPP TS 38.211, section 6.4.1.4.2 TS 38.211. Value: 0->1
+} nfapi_v4_srs_parameters_symbols_t;
 
-typedef struct
-{
-  uint16_t rnti;//UE RNTI
-  uint32_t handle;//An opaque handling returned in the SRS.indication
-  //BWP
-  uint16_t bwp_size;
-  uint16_t bwp_start;
-  uint8_t  subcarrier_spacing;
-  uint8_t  cyclic_prefix;
+typedef struct {
+  uint16_t srs_bandwidth_size;                    // mSRS,b: Number of PRB’s that are sounded for each SRS symbol, per 3GPP TS 38.211, section 6.4.1.4.3. Value: 4->272
+  nfapi_v4_srs_parameters_symbols_t *symbol_list;
+  uint32_t usage;                                 // Bitmap indicating the type of report(s) expected at L2 from the SRS signaled by this PDU. Bit positions: 0 – beamManagement; 1 – codebook; 2 – nonCodebook; 3 – antennaSwitching; 4 – 255: reserved. For each of this bit positions: 1 = requested; 0 = not requested. nUsage = sum(all bits in usage)
+  uint8_t report_type[4];                         // Interpretation of each Report Type depends on usage: beamManagement (1 = PRG SNR, 2-255 reserved); codebook (1 = PRG I and Q channel estimate, per srs Tx port and gNB antenna element, 2-255 reserved); nonCodebook (1 = PRG I and Q channel estimate, per SRI and gNB antenna element, 2-255 reserved); antennaSwitching (1 = SVD representation UE Rx and gNB sets of antenna element, 2-255 reserved); all (0 – no report required).
+  uint8_t singular_Value_representation;          // 0 – 8-bit dB; 1 – 16-bit linear; 255 – not applicable
+  uint8_t iq_representation;                      // 0 – 16 bit; 1 – 32-bit; 255 - not applicable
+  uint16_t prg_size;                              // 1-272; 0 – reserved
+  uint8_t num_total_ue_antennas;                  // 1 … 16 in this release. This is the total number of UE antennas for the usage.
+  uint32_t ue_antennas_in_this_srs_resource_set;  // Bitmap of UE antenna indices for the SRS Resource set, to which the SRS Resource for this PDU corresponds.
+  uint32_t sampled_ue_antennas;                   // Bitmap of UE antenna indices sampled by the SRS waveform corresponding to this PDU’s SRS Resource. Codebook: corresponds to antenna ports in SRS Resources; non-overlapping indices; Non-codebook: corresponds to SRIs; Antennas-switch: indices of UE Rx antennas in the total number of antennas.
+  uint8_t report_scope;                           // Which antennas Report (in ReportType) should account for: Value: 0: ports in sampledUeAntennas (i.e. SRS Resource); 1: ports in ueAntennasInSrsResourceSet (i.e. SRS Resource set. For antSwith reports of SVD type, value 0 is only allowed if sampledUeAntennas = ueAntennasInSrsResourceSet.
+  uint8_t num_ul_spatial_streams_ports;           // In this release, L2 may set this number to 0 to leave spatial stream index assignment to L1 (e.g. L1 uses spatial streams reserved for SRS), regardless of the information in capability maxNumberUlSpatialStreams.
+  uint8_t Ul_spatial_stream_ports[256];           // Number of ports used for signaling this SRS allocation. Value: 0 --> (max # spatial streams - 1, per TLV)
+} nfapi_v4_srs_parameters_t;
 
-  uint8_t  num_ant_ports;
-  uint8_t  num_symbols;
-  uint8_t  num_repetitions;
-  uint8_t  time_start_position;//Starting position in the time domain l0; Note: the MAC undertakes the translation from startPosition to 𝑙0
-  uint8_t  config_index;
-  uint16_t sequence_id;
-  uint8_t  bandwidth_index;
-  uint8_t  comb_size;
-  uint8_t  comb_offset;//Transmission comb offset 𝑘 ̄ TC [TS38.211, Sec 6.4.1.4.3] Value: 0 → 1 (combSize = 0) Value: 0 → 3 (combSize = 1)
-  uint8_t  cyclic_shift;
-  uint8_t  frequency_position;
-  uint16_t frequency_shift;
-  uint8_t  frequency_hopping;
-  uint8_t  group_or_sequence_hopping;//Group or sequence hopping configuration (RRC parameter groupOrSequenceHopping in SRS-Resource
-  uint8_t  resource_type;//Type of SRS resource allocation
-  uint16_t t_srs;//SRS-Periodicity in slots [TS38.211 Sec 6.4.1.4.4] Value: 1,2,3,4,5,8,10,16,20,32,40,64,80,160,320,640,1280,2560
-  uint16_t t_offset;//Slot offset value [TS38.211, Sec 6.4.1.4.3] Value:0->2559
-
+typedef struct {
+  uint16_t rnti;                      // UE RNTI, Value: 1->65535
+  uint32_t handle;                    // An opaque handling returned in the SRS.indication
+  uint16_t bwp_size;                  // Bandwidth part size [3GPP TS 38.213, sec 12]. Number of contiguous PRBs allocated to the BWP, Value: 1->275
+  uint16_t bwp_start;                 // Bandwidth part start RB index from reference CRB [3GPP TS 38.213, sec 12], Value: 0->274
+  uint8_t subcarrier_spacing;         // subcarrierSpacing [3GPP TS 38.211, sec 4.2], Value:0->4
+  uint8_t cyclic_prefix;              // Cyclic prefix type [3GPP TS 38.211, sec 4.2], 0: Normal; 1: Extended
+  uint8_t num_ant_ports;              // Number of antenna ports N_SRS_ap [3GPP TS 38.211, Sec 6.4.1.4.1], Value: 0 = 1 port, 1 = 2 ports, 2 = 4 ports
+  uint8_t num_symbols;                // Number of symbols N_SRS_symb [3GPP TS 38.211, Sec 6.4.1.4.1], Value: 0 = 1 symbol, 1 = 2 symbols, 2 = 4 symbols
+  uint8_t num_repetitions;            // Repetition factor R [3GPP TS 38.211, Sec 6.4.1.4.3], Value: 0 = 1, 1 = 2, 2 = 4
+  uint8_t time_start_position;        // Starting position in the time domain l_0 [3GPP TS 38.211, Sec 6.4.1.4.1], Note: the MAC undertakes the translation from startPosition to l_0, Value: 0 --> 13
+  uint8_t config_index;               // SRS bandwidth config index C_SRS [3GPP TS 38.211, Sec 6.4.1.4.3], Value: 0 --> 63
+  uint16_t sequence_id;               // SRS sequence ID n_SRS_ID [3GPP TS 38.211, Sec 6.4.1.4.2], Value: 0 --> 1023
+  uint8_t bandwidth_index;            // SRS bandwidth index B_SRS [3GPP TS 38.211, Sec 6.4.1.4.3], Value: 0 --> 3
+  uint8_t comb_size;                  // Transmission comb size K_TC [3GPP TS 38.211, Sec 6.4.1.4.2], Value: 0 = comb size 2, 1 = comb size 4, 2 = comb size 8 (Rel16)
+  uint8_t comb_offset;                // Transmission comb offset K'_TC[3GPP TS 38.211, Sec 6.4.1.4.3], Value: 0 --> 1 (combSize = 0), Value: 0 --> 3 (combSize = 1), Value: 0 --> 7 (combSize = 2)
+  uint8_t cyclic_shift;               // Cyclic shift n_CS_SRS [3GPP TS 38.211, Sec 6.4.1.4.2], Value: 0 --> 7 (combSize = 0), Value: 0 --> 11 (combSize = 1), Value: 0 --> 5 (combSize = 2)
+  uint8_t frequency_position;         // Frequency domain position n_RRC [3GPP TS 38.211, Sec 6.4.1.4.3], Value: 0 --> 67
+  uint16_t frequency_shift;           // Frequency domain shift n_shift [3GPP TS 38.211, Sec 6.4.1.4.3], Value: 0 --> 268
+  uint8_t frequency_hopping;          // Frequency hopping b_hop [3GPP TS 38.211, Sec 6.4.1.4.3], Value: 0 --> 3
+  uint8_t group_or_sequence_hopping;  // Group or sequence hopping configuration (RRC parameter groupOrSequenceHopping in SRSResource IE), Value: 0 = No hopping, 1 = Group hopping groupOrSequenceHopping, 2 = Sequence hopping
+  uint8_t resource_type;              // Type of SRS resource allocation [3GPP TS 38.211, Sec 6.4.1.4.3], Value: 0: aperiodic, 1: semi-persistent, 2: periodic
+  uint16_t t_srs;                     // SRS-Periodicity in slots [3GPP TS 38.211, Sec 6.4.1.4.4], Value: 1,2,3,4,5,8,10,16,20,32,40,64,80,160,320,640,1280,2560
+  uint16_t t_offset;                  // Slot offset value [3GPP TS 38.211, Sec 6.4.1.4.3], Value:0->2559
   nfapi_nr_ul_beamforming_t beamforming;
-
+  nfapi_v4_srs_parameters_t srs_parameters_v4;
 } nfapi_nr_srs_pdu_t;
-
-//
 
 typedef enum {
   NFAPI_NR_DL_TTI_PDCCH_PDU_TYPE  = 0,
@@ -1670,33 +1684,63 @@ typedef struct
 } nfapi_nr_uci_indication_t;
 
 
-/// 5G PHY FAPI Specification: SRS indication - Section 3.4.10, Table 3-73
+/// 5G PHY FAPI Specification: SRS indication - Section 3.4.10
+
+// Normalized channel I/Q matrix
 
 typedef struct {
-  uint8_t rb_snr;                 // SNR value in dB. Value: 0 -> 255 representing -64 dB to 63 dB with a step size 0.5 dB, 0xff will be set if this field is invalid.
-} nfapi_nr_srs_indication_reported_symbol_resource_block_t;
+  uint8_t normalized_iq_representation; // 0: 16-bit normalized complex number (iqSize = 2); 1: 32-bit normalized complex number (iqSize = 4)
+  uint16_t num_gnb_antenna_elements;    // Ng: Number of gNB antenna elements. Value: 0511
+  uint16_t num_ue_srs_ports;            // Nu: Number of sampled UE SRS ports. Value: 07
+  uint16_t prg_size;                    // Size in RBs of a precoding resource block group (PRG) – to which the same digital beamforming gets applied. Value: 1->272
+  uint16_t num_prgs;                    // Number of PRGs Np to be reported for this SRS PDU. Value: 0-> 272
+  uint8_t channel_matrix[272*512*8*4];  // Array of (numPRGs*Nu*Ng) entries of the type denoted by iqRepresentation H{PRG pI} [ueAntenna uI, gNB antenna gI] = array[uI*Ng*Np + gI*Np + pI]; uI: 0…Nu-1 (UE antenna index); gI: 0…Ng-1 (gNB antenna index); pI: 0…Np-1 (PRG index)
+} nfapi_nr_srs_normalized_channel_iq_matrix_t;
+
+// Beamforming report
 
 typedef struct {
-  uint16_t num_rbs;               // Number of PRBs to be reported for this SRS PDU. Value: 0 -> 272.
-  nfapi_nr_srs_indication_reported_symbol_resource_block_t* rb_list;
-} nfapi_nr_srs_indication_reported_symbol_t;
+  uint8_t rb_snr;                       // SNR value in dB. Value: 0 -> 255 representing -64 dB to 63 dB with a step size 0.5 dB, 0xff will be set if this field is invalid.
+} nfapi_nr_srs_reported_symbol_prgs_t;
 
 typedef struct {
-  uint32_t handle;                // The handle passed to the PHY in the the UL_TTI.request SRS PDU.
-  uint16_t rnti;                  // The RNTI passed to the PHY in the UL_TTI.request SRS PDU. Value: 1 -> 65535.
-  uint16_t timing_advance;        // Timing advance TA measured for the UE [TS 38.213, Section 4.2]. NTA_new = NTA_old + (TA − 31) * 16 * 64 / (2^u). Value: 0 -> 63. 0xffff should be set if this field is invalid.
-  uint8_t num_symbols;            // Number of symbols for SRS. Value: 1 -> 4. If a PHY does not report for individual symbols then this parameter should be set to 1.
-  uint8_t wide_band_snr;          // SNR value in dB measured within configured SRS bandwidth on each symbol. Value: 0 -> 255 representing -64 dB to 63 dB with a step size 0.5 dB. 0xff will be set if this field is invalid.
-  uint8_t num_reported_symbols;   // Number of symbols reported in this message. This allows PHY to report individual symbols or aggregated symbols where this field will be set to 1. Value: 1 -> 4.
-  nfapi_nr_srs_indication_reported_symbol_t* reported_symbol_list;
+  uint16_t num_prgs;                    // Number of PRBs to be reported for this SRS PDU. Value: 0 -> 272.
+  nfapi_nr_srs_reported_symbol_prgs_t *prg_list;
+} nfapi_nr_srs_reported_symbol_t;
+
+typedef struct {
+  uint16_t prg_size;                    // Size in RBs of a precoding resource block group (PRG) – to which the same digital beamforming gets applied. Value: 1->275
+  uint8_t num_symbols;                  // Number of symbols for SRS. Value: 1 -> 4. If a PHY does not report for individual symbols then this parameter should be set to 1.
+  uint8_t wide_band_snr;                // SNR value in dB measured within configured SRS bandwidth on each symbol. Value: 0 -> 255 representing -64 dB to 63 dB with a step size 0.5 dB. 0xff will be set if this field is invalid.
+  uint8_t num_reported_symbols;         // Number of symbols reported in this message. This allows PHY to report individual symbols or aggregated symbols where this field will be set to 1. Value: 1 -> 4.
+  nfapi_nr_srs_reported_symbol_t *prgs;
+} nfapi_nr_srs_beamforming_report_t;
+
+// SRS indication
+
+typedef struct {
+  uint16_t tag;                         // 0: Report is carried directly in the value field; 3: The offset from the end of the control portion of the message to the beginning of the report. Other values are reserved.
+  uint32_t length;                      // Length of the actual report in bytes, without the padding bytes.
+  uint32_t value[16384];                // tag=0: Only the most significant bytes of the size indicated by ‘length’ field are valid. Remaining bytes are zero padded to the nearest 32-bit bit boundary; Tag=2 Offset from the end of the control portion of the message to the payload is in the value field. Occupies 32-bits.
+} nfapi_srs_report_tlv_t;
+
+typedef struct {
+  uint32_t handle;                      // The handle passed to the PHY in the the UL_TTI.request SRS PDU.
+  uint16_t rnti;                        // The RNTI passed to the PHY in the UL_TTI.request SRS PDU. Value: 1 -> 65535.
+  uint16_t timing_advance_offset;       // Timing advance TA measured for the UE in multiples of 16 * 64 * Tc / (2^u) [TS 38.213, Section 4.2]. Value: 0 -> 63. 0xffff will be set if this field is invalid.
+  int16_t timing_advance_offset_nsec;   // Timing advance measured for the UE between the reference uplink time and the observed arrival time for the UE. Value: -16800 … +16800 nanoseconds. 0xffff should be set if this field is invalid.
+  uint8_t srs_usage;                    // 0 – beamManagement; 1 – codebook; 2 – nonCodebook; 3 – antennaSwitching; 4 – 255: reserved; Note: This field matches the SRS usage field of the SRS PDU to which this report is linked.
+  uint8_t report_type;                  // The type of report included in or pointed to by Report TLV depends on the SRS usage: Beam management (1: Beamforming report); Codebook (1: Normalized Channel I/Q Matrix); nonCodebook (1: Normalized Channel I/Q Matrix); antennaSwitch (1: Channel SVD Representation); all (0: null report)
+  nfapi_srs_report_tlv_t *report_tlv;
 } nfapi_nr_srs_indication_pdu_t;
 
 typedef struct {
   nfapi_p7_message_header_t header;
-  uint16_t sfn;                   // SFN. Value: 0 -> 1023
-  uint16_t slot;                  // Slot. Value: 0 -> 159
-  uint8_t number_of_pdus;         // Number of PDUs included in this message. Value: 0 -> 255
-  nfapi_nr_srs_indication_pdu_t* pdu_list;
+  uint16_t sfn;                         // SFN. Value: 0 -> 1023
+  uint16_t slot;                        // Slot. Value: 0 -> 159
+  uint16_t control_length;              // Size of control portion of SRS indication. 0 if reports are included inline; >0 if reports are concatenated to the end of the message.
+  uint8_t number_of_pdus;               // Number of PDUs included in this message. Value: 0 -> 255
+  nfapi_nr_srs_indication_pdu_t *pdu_list;
 } nfapi_nr_srs_indication_t;
 
 

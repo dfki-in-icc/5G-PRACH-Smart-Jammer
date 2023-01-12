@@ -33,7 +33,7 @@
 #ifndef __NR_UNITARY_DEFS__H__
 #define __NR_UNITARY_DEFS__H__
 
-volatile int oai_exit=0;
+int oai_exit=0;
 
 void exit_function(const char* file, const char* function, const int line, const char *s) {
   const char * msg= s==NULL ? "no comment": s;
@@ -63,7 +63,6 @@ void fill_scc_sim(NR_ServingCellConfigCommon_t *scc,uint64_t *ssb_bitmap,int N_R
 void fix_scc(NR_ServingCellConfigCommon_t *scc,uint64_t ssbmap);
 void prepare_scc(NR_ServingCellConfigCommon_t *scc);
 void prepare_scd(NR_ServingCellConfig_t *scd);
-ngap_gNB_config_t ngap_config;
 uint32_t ngap_generate_gNB_id(void) {return 0;}
 void configure_nfapi_pnf(char *vnf_ip_addr, int vnf_p5_port, char *pnf_ip_addr, int pnf_p7_port, int vnf_p7_port) { return;}
 void configure_nfapi_vnf(char *vnf_addr, int vnf_p5_port) { return;}

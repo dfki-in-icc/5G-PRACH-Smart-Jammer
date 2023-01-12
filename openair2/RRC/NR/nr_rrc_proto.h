@@ -31,8 +31,10 @@
  *  @{
  */
 
+#ifndef __NR_RRC_PROTO_H__
+#define __NR_RRC_PROTO_H__
+
 #include "RRC/NR/nr_rrc_defs.h"
-#include "flexran_agent_extern.h"
 #include "NR_RRCReconfiguration.h"
 #include "NR_UE-NR-Capability.h"
 #include "NR_UE-CapabilityRAT-ContainerList.h"
@@ -40,6 +42,8 @@
 #include "NR_CG-Config.h"
 #include "NR_CG-ConfigInfo.h"
 #include "NR_SecurityConfig.h"
+
+#define NR_MAX_SUPPORTED_DL_LAYERS 2
 
 int rrc_init_nr_global_param(void);
 
@@ -108,9 +112,9 @@ void
 rrc_gNB_generate_RRCSetup(
     const protocol_ctxt_t        *const ctxt_pP,
     rrc_gNB_ue_context_t         *const ue_context_pP,
-    OCTET_STRING_t               *masterCellGroup_from_DU,
-    NR_ServingCellConfigCommon_t *scc,
-    const int                    CC_id);
+    const uint8_t                *masterCellGroup,
+    int                           masterCellGroup_len,
+    NR_ServingCellConfigCommon_t *scc);
 
 int parse_CG_ConfigInfo(gNB_RRC_INST *rrc, NR_CG_ConfigInfo_t *CG_ConfigInfo, x2ap_ENDC_sgnb_addition_req_t *m);
 
@@ -174,17 +178,6 @@ int8_t nr_mac_rrc_bwp_switch_req(const module_id_t     module_idP,
                                  const int             dl_bwp_id,
                                  const int             ul_bwp_id);
 
-int8_t nr_mac_rrc_data_ind(const module_id_t     module_idP,
-                           const int             CC_id,
-                           const frame_t         frameP,
-                           const sub_frame_t     sub_frameP,
-                           const int             UE_id,
-                           const rnti_t          rntiP,
-                           const rb_id_t         srb_idP,
-                           const uint8_t        *sduP,
-                           const sdu_size_t      sdu_lenP,
-                           const bool            brOption);
-
 int nr_rrc_reconfiguration_req(rrc_gNB_ue_context_t         *const ue_context_pP,
                                protocol_ctxt_t              *const ctxt_pP,
                                const int                    dl_bwp_id,
@@ -193,8 +186,8 @@ int nr_rrc_reconfiguration_req(rrc_gNB_ue_context_t         *const ue_context_pP
 int nr_rrc_gNB_decode_ccch(protocol_ctxt_t    *const ctxt_pP,
                            const uint8_t      *buffer,
                            int                buffer_length,
-                           OCTET_STRING_t     *du_to_cu_rrc_container,
-                           const int          CC_id);
+                           const uint8_t      *du_to_cu_rrc_container,
+                           int                du_to_cu_rrc_container_length);
 
 void
 rrc_gNB_generate_dedicatedRRCReconfiguration_release(
@@ -217,15 +210,19 @@ rlc_op_status_t nr_rrc_rlc_config_asn1_req (const protocol_ctxt_t   * const ctxt
     const LTE_PMCH_InfoList_r9_t * const pmch_InfoList_r9_pP,
     struct NR_CellGroupConfig__rlc_BearerToAddModList *rlc_bearer2add_list);
 
-bool nr_rrc_pdcp_config_asn1_req(const protocol_ctxt_t *const  ctxt_pP,
-                                 NR_SRB_ToAddModList_t  *const srb2add_list,
-                                 NR_DRB_ToAddModList_t  *const drb2add_list,
-                                 NR_DRB_ToReleaseList_t *const drb2release_list,
-                                 const uint8_t                   security_modeP,
-                                 uint8_t                  *const kRRCenc,
-                                 uint8_t                  *const kRRCint,
-                                 uint8_t                  *const kUPenc,
-                                 uint8_t                  *const kUPint,
-                                 LTE_PMCH_InfoList_r9_t   *pmch_InfoList_r9,
-                                 rb_id_t                  *const defaultDRB,
-                                 struct NR_CellGroupConfig__rlc_BearerToAddModList *rlc_bearer2add_list);
+void nr_pdcp_add_srbs(eNB_flag_t enb_flag, ue_id_t rntiMaybeUEid, NR_SRB_ToAddModList_t *const srb2add_list, const uint8_t security_modeP, uint8_t *const kRRCenc, uint8_t *const kUPint);
+
+void nr_pdcp_add_drbs(eNB_flag_t enb_flag,
+                      ue_id_t rntiMaybeUEid,
+                      NR_DRB_ToAddModList_t *const drb2add_list,
+                      const uint8_t security_modeP,
+                      uint8_t *const kUPenc,
+                      uint8_t *const kUPint,
+                      struct NR_CellGroupConfig__rlc_BearerToAddModList *rlc_bearer2add_list);
+
+int rrc_gNB_generate_pcch_msg(uint32_t tmsi,
+                              uint8_t paging_drx,
+                              instance_t instance,
+                              uint8_t CC_id);
+
+#endif

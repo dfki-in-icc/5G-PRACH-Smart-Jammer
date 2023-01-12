@@ -33,6 +33,7 @@ void apply_macrlc_config(gNB_RRC_INST *rrc,
 }
 
 bool sdap_data_req(protocol_ctxt_t *ctxt_p,
+                   const ue_id_t ue_id,
                    const srb_flag_t srb_flag,
                    const rb_id_t rb_id,
                    const mui_t mui,
@@ -46,4 +47,15 @@ bool sdap_data_req(protocol_ctxt_t *ctxt_p,
                    const bool rqi,
                    const int pdusession_id) {
 abort();
+}
+
+int dl_rrc_message(module_id_t module_id, const f1ap_dl_rrc_message_t *dl_rrc) {
+  abort();
+}
+
+int rrc_gNB_generate_pcch_msg(uint32_t tmsi,
+                              uint8_t paging_drx,
+                              instance_t instance,
+                              uint8_t CC_id) {
+  abort();
 }

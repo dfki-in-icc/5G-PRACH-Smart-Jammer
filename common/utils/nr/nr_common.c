@@ -135,7 +135,7 @@ uint16_t get_band(uint64_t downlink_frequency, int32_t delta_duplex)
   const uint64_t dl_freq_khz = downlink_frequency / 1000;
   const int32_t  delta_duplex_khz = delta_duplex / 1000;
 
-  uint64_t center_freq_diff_khz = 999999999999999999; // 2^64
+  uint64_t center_freq_diff_khz = UINT64_MAX; // 2^64
   uint16_t current_band = 0;
 
   for (int ind = 0; ind < sizeofArray(nr_bandtable); ind++) {
@@ -198,8 +198,8 @@ int cce_to_reg_interleaving(const int R, int k, int n_shift, const int C, int L,
     f = k;
   else {
     int c = k/R;
-     int r = k%R;
-     f = (r*C + c + n_shift)%(N_regs/L);
+    int r = k % R;
+    f = (r * C + c + n_shift) % (N_regs / L);
   }
   return f;
 }
@@ -227,7 +227,8 @@ void get_coreset_rballoc(uint8_t *FreqDomainResource,int *n_rb,int *rb_offset) {
   *n_rb = 6*count;
 }
 
-int get_nb_periods_per_frame(uint8_t tdd_period) {
+int get_nb_periods_per_frame(uint8_t tdd_period)
+{
 
   int nb_periods_per_frame;
   switch(tdd_period) {
@@ -270,7 +271,13 @@ int get_nb_periods_per_frame(uint8_t tdd_period) {
 }
 
 
-int get_dmrs_port(int nl, uint16_t dmrs_ports) {
+int get_first_ul_slot(int nrofDownlinkSlots, int nrofDownlinkSymbols, int nrofUplinkSymbols)
+{
+  return (nrofDownlinkSlots + (nrofDownlinkSymbols != 0 && nrofUplinkSymbols == 0));
+}
+
+int get_dmrs_port(int nl, uint16_t dmrs_ports)
+{
 
   if (dmrs_ports == 0) return 0; // dci 1_0
   int p = -1;
@@ -472,6 +479,250 @@ int get_subband_size(int NPRB,int size) {
  
 }
 
+void get_samplerate_and_bw(int mu,
+                           int n_rb,
+                           int8_t threequarter_fs,
+                           double *sample_rate,
+                           unsigned int *samples_per_frame,
+                           double *tx_bw,
+                           double *rx_bw) {
+
+  if (mu == 0) {
+    switch(n_rb) {
+    case 270:
+      if (threequarter_fs) {
+        *sample_rate=92.16e6;
+        *samples_per_frame = 921600;
+        *tx_bw = 50e6;
+        *rx_bw = 50e6;
+      } else {
+        *sample_rate=61.44e6;
+        *samples_per_frame = 614400;
+        *tx_bw = 50e6;
+        *rx_bw = 50e6;
+      }
+    case 216:
+      if (threequarter_fs) {
+        *sample_rate=46.08e6;
+        *samples_per_frame = 460800;
+        *tx_bw = 40e6;
+        *rx_bw = 40e6;
+      }
+      else {
+        *sample_rate=61.44e6;
+        *samples_per_frame = 614400;
+        *tx_bw = 40e6;
+        *rx_bw = 40e6;
+      }
+      break;
+    case 160: //30 MHz
+    case 133: //25 MHz
+      if (threequarter_fs) {
+        AssertFatal(1==0,"N_RB %d cannot use 3/4 sampling\n",n_rb);
+      }
+      else {
+        *sample_rate=30.72e6;
+        *samples_per_frame = 307200;
+        *tx_bw = 20e6;
+        *rx_bw = 20e6;
+      }
+    case 106:
+      if (threequarter_fs) {
+        *sample_rate=23.04e6;
+        *samples_per_frame = 230400;
+        *tx_bw = 20e6;
+        *rx_bw = 20e6;
+      }
+      else {
+        *sample_rate=30.72e6;
+        *samples_per_frame = 307200;
+        *tx_bw = 20e6;
+        *rx_bw = 20e6;
+      }
+      break;
+    case 52:
+      if (threequarter_fs) {
+        *sample_rate=11.52e6;
+        *samples_per_frame = 115200;
+        *tx_bw = 10e6;
+        *rx_bw = 10e6;
+      }
+      else {
+        *sample_rate=15.36e6;
+        *samples_per_frame = 153600;
+        *tx_bw = 10e6;
+        *rx_bw = 10e6;
+      }
+    case 25:
+      if (threequarter_fs) {
+        *sample_rate=5.76e6;
+        *samples_per_frame = 57600;
+        *tx_bw = 5e6;
+        *rx_bw = 5e6;
+      }
+      else {
+        *sample_rate=7.68e6;
+        *samples_per_frame = 76800;
+        *tx_bw = 5e6;
+        *rx_bw = 5e6;
+      }
+      break;
+    default:
+      AssertFatal(0==1,"N_RB %d not yet supported for numerology %d\n",n_rb,mu);
+    }
+  } else if (mu == 1) {
+    switch(n_rb) {
+
+    case 273:
+      if (threequarter_fs) {
+        *sample_rate=184.32e6;
+        *samples_per_frame = 1843200;
+        *tx_bw = 100e6;
+        *rx_bw = 100e6;
+      } else {
+        *sample_rate=122.88e6;
+        *samples_per_frame = 1228800;
+        *tx_bw = 100e6;
+        *rx_bw = 100e6;
+      }
+      break;
+    case 217:
+      if (threequarter_fs) {
+        *sample_rate=92.16e6;
+        *samples_per_frame = 921600;
+        *tx_bw = 80e6;
+        *rx_bw = 80e6;
+      } else {
+        *sample_rate=122.88e6;
+        *samples_per_frame = 1228800;
+        *tx_bw = 80e6;
+        *rx_bw = 80e6;
+      }
+      break;
+    case 162 :
+      if (threequarter_fs) {
+        AssertFatal(1==0,"N_RB %d cannot use 3/4 sampling\n",n_rb);
+      }
+      else {
+        *sample_rate=61.44e6;
+        *samples_per_frame = 614400;
+        *tx_bw = 60e6;
+        *rx_bw = 60e6;
+      }
+
+      break;
+
+    case 133 :
+      if (threequarter_fs) {
+	AssertFatal(1==0,"N_RB %d cannot use 3/4 sampling\n",n_rb);
+      }
+      else {
+        *sample_rate=61.44e6;
+        *samples_per_frame = 614400;
+        *tx_bw = 50e6;
+        *rx_bw = 50e6;
+      }
+
+      break;
+    case 106:
+      if (threequarter_fs) {
+        *sample_rate=46.08e6;
+        *samples_per_frame = 460800;
+        *tx_bw = 40e6;
+        *rx_bw = 40e6;
+      }
+      else {
+        *sample_rate=61.44e6;
+        *samples_per_frame = 614400;
+        *tx_bw = 40e6;
+        *rx_bw = 40e6;
+      }
+     break;
+    case 51:
+      if (threequarter_fs) {
+        *sample_rate=23.04e6;
+        *samples_per_frame = 230400;
+        *tx_bw = 20e6;
+        *rx_bw = 20e6;
+      }
+      else {
+        *sample_rate=30.72e6;
+        *samples_per_frame = 307200;
+        *tx_bw = 20e6;
+        *rx_bw = 20e6;
+      }
+      break;
+    case 24:
+      if (threequarter_fs) {
+        *sample_rate=11.52e6;
+        *samples_per_frame = 115200;
+        *tx_bw = 10e6;
+        *rx_bw = 10e6;
+      }
+      else {
+        *sample_rate=15.36e6;
+        *samples_per_frame = 153600;
+        *tx_bw = 10e6;
+        *rx_bw = 10e6;
+      }
+      break;
+    default:
+      AssertFatal(0==1,"N_RB %d not yet supported for numerology %d\n",n_rb,mu);
+    }
+  } else if (mu == 3) {
+    switch(n_rb) {
+      case 132:
+      case 128:
+        if (threequarter_fs) {
+          *sample_rate=184.32e6;
+          *samples_per_frame = 1843200;
+          *tx_bw = 200e6;
+          *rx_bw = 200e6;
+        } else {
+          *sample_rate = 245.76e6;
+          *samples_per_frame = 2457600;
+          *tx_bw = 200e6;
+          *rx_bw = 200e6;
+        }
+        break;
+
+      case 66:
+      case 64:
+        if (threequarter_fs) {
+          *sample_rate=92.16e6;
+          *samples_per_frame = 921600;
+          *tx_bw = 100e6;
+          *rx_bw = 100e6;
+        } else {
+          *sample_rate = 122.88e6;
+          *samples_per_frame = 1228800;
+          *tx_bw = 100e6;
+          *rx_bw = 100e6;
+        }
+        break;
+
+      case 32:
+        if (threequarter_fs) {
+          *sample_rate=92.16e6;
+          *samples_per_frame = 921600;
+          *tx_bw = 50e6;
+          *rx_bw = 50e6;
+        } else {
+          *sample_rate=61.44e6;
+          *samples_per_frame = 614400;
+          *tx_bw = 50e6;
+          *rx_bw = 50e6;
+        }
+        break;
+
+      default:
+        AssertFatal(0==1,"N_RB %d not yet supported for numerology %d\n",n_rb,mu);
+    }
+  } else {
+    AssertFatal(0 == 1,"Numerology %d not supported for the moment\n",mu);
+  }
+}
+
 // from start symbol index and nb or symbols to symbol occupation bitmap in a slot
 uint16_t SL_to_bitmap(int startSymbolIndex, int nrOfSymbols) {
  return ((1<<nrOfSymbols)-1)<<startSymbolIndex;
@@ -494,3 +745,4 @@ void SLIV2SL(int SLIV,int *S,int *L) {
     *S=13-SLIVmod14;
   }
 }
+

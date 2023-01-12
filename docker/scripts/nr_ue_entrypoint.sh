@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -euo pipefail
+set -uo pipefail
 
 PREFIX=/opt/oai-nr-ue
 
@@ -10,6 +10,10 @@ if [[ -v USE_NFAPI ]]; then cp $PREFIX/etc/nr-ue.nfapi.conf $PREFIX/etc/nr-ue.co
 if [[ -v USE_VOLUMED_CONF ]]; then cp $PREFIX/etc/mounted.conf $PREFIX/etc/nr-ue.conf; fi
 # if none, pick the default
 if [ ! -f $PREFIX/etc/nr-ue.conf ]; then cp $PREFIX/etc/nr-ue-sim.conf $PREFIX/etc/nr-ue.conf; fi
+
+# RFSIMULATOR can have ip-address or service name
+if [[ -v RFSIMULATOR ]] && [[ "${RFSIMULATOR}" =~ [a-zA-Z] ]] && [[ -z `getent hosts $RFSIMULATOR | awk '{print $1}'` ]]; then echo "not able to resolve RFSIMULATOR FQDN" && exit 1 ; fi
+[[ -v RFSIMULATOR ]] && [[ "${RFSIMULATOR}" =~ [a-zA-Z] ]] && RFSIMULATOR=$(getent hosts $RFSIMULATOR | awk '{print $1}')
 
 # Only this template will be manipulated
 CONFIG_FILES=`ls $PREFIX/etc/nr-ue.conf || true`
@@ -40,9 +44,15 @@ for c in ${CONFIG_FILES}; do
 
     # render template and inline replace config file
     sed -i "${EXPRESSIONS}" ${c}
+
+    echo "=================================="
+    echo "== Configuration file: ${c}"
+    cat ${c}
 done
 
 # Load the USRP binaries
+echo "=================================="
+echo "== Load USRP binaries"
 if [[ -v USE_B2XX ]]; then
     $PREFIX/bin/uhd_images_downloader.py -t b2xx
 elif [[ -v USE_X3XX ]]; then
@@ -57,6 +67,9 @@ while [[ $# -gt 0 ]]; do
   new_args+=("$1")
   shift
 done
+
+# enable printing of stack traces on assert
+export gdbStacks=1
 
 echo "=================================="
 echo "== Starting NR UE soft modem"

@@ -60,11 +60,12 @@ def main():
                              "rcc.band40.tm1.25PRB": f'{data[0]["paths"]["dest_dir"]}/{outputfilename}',
                              "gnb.band78.tm1.fr1.106PRB.usrpb210.conf": f'{data[0]["paths"]["dest_dir"]}/{outputfilename}',
                              "gnb.band78.sa.fr1.106PRB.usrpn310.conf": f'{data[0]["paths"]["dest_dir"]}/{outputfilename}',
-                             "gnb.sa.band78.fr1.106PRB.usrpb210.conf": f'{data[0]["paths"]["dest_dir"]}/{outputfilename}',
+                             "gnb.sa.band78.fr1.51PRB.usrpb210.conf": f'{data[0]["paths"]["dest_dir"]}/{outputfilename}',
                              "gnb.sa.band66.fr1.106PRB.usrpn300.conf": f'{data[0]["paths"]["dest_dir"]}/{outputfilename}',
                              "gNB_SA_CU.conf": f'{data[0]["paths"]["dest_dir"]}/{outputfilename}',
                              "gNB_SA_DU.conf": f'{data[0]["paths"]["dest_dir"]}/{outputfilename}',
                              "proxy_gnb.band78.sa.fr1.106PRB.usrpn310.conf": f'{data[0]["paths"]["dest_dir"]}/{outputfilename}',
+                             "proxy_rcc.band7.tm1.nfapi.conf": f'{data[0]["paths"]["dest_dir"]}/{outputfilename}',
                              "proxy_nr-ue.nfapi.conf": f'{data[0]["paths"]["dest_dir"]}/{outputfilename}',
                              "ue.nfapi": f'{data[0]["paths"]["dest_dir"]}/{outputfilename}',
                              "ue_sim_ci": f'{data[0]["paths"]["dest_dir"]}/{outputfilename}'
@@ -81,47 +82,35 @@ def main():
         with open(f'{inputfile}', mode='r') as inputfile, \
              open(outputfile1, mode='w') as outputfile:
           for line in inputfile:
-            count = 0
             if re.search(r'EHPLMN_LIST', line):
               outputfile.write(line)
               continue
-            if re.search(r'sd  = 0x1;', line):
-              templine = re.sub(r'sd  = 0x1;', 'sd  = 0x@NSSAI_SD0@;', line)
-              outputfile.write(templine)
-              continue
-            if re.search(r'sd  = 0x010203;', line):
-              templine = re.sub(r'sd  = 0x010203;', 'sd  = 0x@NSSAI_SD0@;', line)
-              outputfile.write(templine)
-              continue
-            if re.search(r'sd  = 0x112233;', line):
-              templine = re.sub(r'sd  = 0x112233;', 'sd  = 0x@NSSAI_SD1@;', line)
-              outputfile.write(templine)
-              continue
+            templine = line
             for key in config["config"]:
-              if line.find(key["key"]) >= 0:
-                count += 1
-                if re.search(r'preference', line):
-                  templine = line
-                elif re.search(r'mnc_length', line) and key["key"] == "mnc":
+              if templine.find(key["key"]) >= 0:
+                if re.search(r'preference', templine): # false positive
                   continue
-                elif re.search(r'plmn_list', line):
-                  templine = re.sub(r'[0-9]+', '""', line)
-                  templine = re.sub(r'\"\"', key["env"]["mcc"], templine, 1)
-                  templine = re.sub(r'\"\"', key["env"]["mnc"], templine, 1) 
-                  templine = re.sub(r'\"\"', key["env"]["mnc_length"], templine, 1)               
+                if key["key"] != 'sdr_addrs' and re.search(r'sdr_addrs', templine): # false positive
+                  continue
                 elif re.search('downlink_frequency', line):
                   templine = re.sub(r'[0-9]+', key["env"], line)
                 elif re.search('uplink_frequency_offset', line):
                   templine = re.sub(r'[0-9]+', key["env"], line)
-               
-                elif re.search(r'"(.*?)"', line):
-                  templine = re.sub(r'(?<=")[^"]*(?=")', key["env"], line)    
-                elif re.search(r'[0-9]', line):
-                  templine = re.sub(r'\d+', key["env"], line)
-                outputfile.write(templine)
-            
-            if count == 0:
-              outputfile.write(line)
-              
+                # next: matches key = ( "SOMETHING" ) or key = [ "SOMETHING" ]
+                elif re.search(key["key"] + "\s*=\s*[\(\[]\s*\"[0-9.a-zA-Z:_-]+\"\s*[\)\]]", templine):
+                  templine = re.sub("(" + key["key"] + "\s*=\s*[\(\[]\s*\")[0-9.a-zA-Z:_-]+(\"[\)\]])",
+                                    r'\1' + key["env"] + r"\2", templine)
+                # next: matches key = "SOMETHING"  or key = [SOMETHING],
+                elif re.search(key["key"] + "\s*=\s*[\"\[][0-9.a-zA-Z:_/-]+[\"\]]", templine):
+                  templine = re.sub("(" + key["key"] + "\s*=\s*[\"\[])[0-9.a-zA-Z:_/-]+([\"\]])",
+                                    r'\1' + key["env"] + r"\2", templine)
+                # next: matches key = NUMBER
+                elif re.search(key["key"] + "\s*=\s*[x0-9]+", templine): # x for "0x" hex start
+                  templine = re.sub("(" + key["key"] + "\s*=\s*(?:0x)?)[x0-9a-fA-F]+", r"\1" + key["env"], templine)
+                # next: special case for sdr_addrs
+                elif key["key"] == 'sdr_addrs' and re.search(key["key"] + "\s*=\s*", templine):
+                  templine = re.sub("(" + key["key"] + "\s*=\s*.*$)", key["key"] + " = \"" + key["env"] + "\"", templine)
+            outputfile.write(templine)
+
 if __name__ == "__main__":
     main()

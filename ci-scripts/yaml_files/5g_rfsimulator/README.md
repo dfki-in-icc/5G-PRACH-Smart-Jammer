@@ -16,22 +16,9 @@ This page is only valid for an `Ubuntu18` host.
 
 **NOTE: this version (2022-01-27) has been updated  for the `v1.3.0` version of the `OAI 5G CN`.**
 
-**TABLE OF CONTENTS**
+**Table of Contents**
 
-1. [Retrieving the images on Docker-Hub](#1-retrieving-the-images-on-docker-hub)
-2. [Deploy containers](#2-deploy-containers)
-   1. [Deploy OAI 5G Core Network](#21-deploy-oai-5g-core-network)
-   2. [Deploy OAI gNB in RF simulator mode and in Standalone Mode](#22-deploy-oai-gnb-in-rf-simulator-mode-and-in-standalone-mode)
-   3. [Deploy OAI NR-UE in RF simulator mode and in Standalone Mode](#23-deploy-oai-nr-ue-in-rf-simulator-mode-and-in-standalone-mode)
-   4. [Deploy Second OAI NR-UE in RF simulator mode and in Standalone Mode](#24-deploy-second-oai-nr-ue-in-rf-simulator-mode-and-in-standalone-mode)
-3. [Check traffic](#3-check-traffic)
-   1. [Check your Internet connectivity](#31-check-your-internet-connectivity)
-   2. [Start the iperf server inside the NR-UE container](#32-start-the-iperf-server-inside-the-nr-ue-container)
-   3. [Start the iperf client inside the ext-dn container](#33-start-the-iperf-client-inside-the-ext-dn-container)
-4. [Un-deployment](#4-un-deployment)
-5. [Explanations on the configuration in the docker-compose.yaml](##5-explanations-on-the-configuration-in-the-docker-composeyaml)
-   1. [Making the NR-UE connect to the core network](#51-making-the-nr-ue-connect-to-the-core-network)
-   2. [Making the gNB connect to the core network](#52-making-the-gnb-connect-to-the-core-network)
+[[_TOC_]]
 
 # 1. Retrieving the images on Docker-Hub #
 
@@ -50,10 +37,10 @@ Now pull images.
 
 ```bash
 $ docker pull mysql:5.7
-$ docker pull oaisoftwarealliance/oai-amf:latest
-$ docker pull oaisoftwarealliance/oai-nrf:latest
-$ docker pull oaisoftwarealliance/oai-smf:latest
-$ docker pull oaisoftwarealliance/oai-spgwu-tiny:latest
+$ docker pull oaisoftwarealliance/oai-amf:develop
+$ docker pull oaisoftwarealliance/oai-nrf:develop
+$ docker pull oaisoftwarealliance/oai-smf:develop
+$ docker pull oaisoftwarealliance/oai-spgwu-tiny:develop
 
 $ docker pull oaisoftwarealliance/oai-gnb:develop
 $ docker pull oaisoftwarealliance/oai-nr-ue:develop
@@ -62,10 +49,10 @@ $ docker pull oaisoftwarealliance/oai-nr-ue:develop
 And **re-tag** them for tutorials' docker-compose file to work.
 
 ```bash
-$ docker image tag oaisoftwarealliance/oai-amf:latest oai-amf:latest
-$ docker image tag oaisoftwarealliance/oai-nrf:latest oai-nrf:latest
-$ docker image tag oaisoftwarealliance/oai-smf:latest oai-smf:latest
-$ docker image tag oaisoftwarealliance/oai-spgwu-tiny:latest oai-spgwu-tiny:latest
+$ docker image tag oaisoftwarealliance/oai-amf:latest oai-amf:august-dev
+$ docker image tag oaisoftwarealliance/oai-nrf:latest oai-nrf:august-dev
+$ docker image tag oaisoftwarealliance/oai-smf:latest oai-smf:august-dev
+$ docker image tag oaisoftwarealliance/oai-spgwu-tiny:latest oai-spgwu-tiny:august-dev
 
 $ docker image tag oaisoftwarealliance/oai-gnb:develop oai-gnb:develop
 $ docker image tag oaisoftwarealliance/oai-nr-ue:develop oai-nr-ue:develop
@@ -274,7 +261,6 @@ Create entry for Second UE in docker-compose.yaml file as follows:
             OPC: 'C42449363BBAD02B66D16BC975D77CC1'
             DNN: oai
             NSSAI_SST: 1
-            NSSAI_SD: 1
             USE_ADDITIONAL_OPTIONS: -E --sa --rfsim -r 106 --numerology 1 -C 3619200000 --nokrnmod --log_config.global_log_options level,nocolor,time
         depends_on:
             - oai-gnb

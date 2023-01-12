@@ -56,6 +56,7 @@
 #include "intertask_interface.h"
 #include "LAYER2/NR_MAC_gNB/mac_proto.h"
 
+#include "openair2/LAYER2/NR_MAC_gNB/mac_rrc_dl_handler.h"
 
 int DU_handle_DL_NR_RRC_MESSAGE_TRANSFER(instance_t       instance,
     uint32_t         assoc_id,
@@ -163,13 +164,11 @@ int DU_handle_DL_RRC_MESSAGE_TRANSFER(instance_t       instance,
   // decode RRC Container and act on the message type
   AssertFatal(srb_id<3,"illegal srb_id\n");
   protocol_ctxt_t ctxt;
-  ctxt.rnti      = f1ap_get_rnti_by_du_id(DUtype, instance, du_ue_f1ap_id);
+  ctxt.rntiMaybeUEid = f1ap_get_rnti_by_du_id(DUtype, instance, du_ue_f1ap_id);
   ctxt.instance = instance;
   ctxt.module_id = instance;
   ctxt.enb_flag  = 1;
-  struct rrc_eNB_ue_context_s *ue_context_p = rrc_eNB_get_ue_context(
-        RC.rrc[ctxt.instance],
-        ctxt.rnti);
+  struct rrc_eNB_ue_context_s *ue_context_p = rrc_eNB_get_ue_context(RC.rrc[ctxt.instance], ctxt.rntiMaybeUEid);
 
   if (srb_id == 0) {
     LTE_DL_CCCH_Message_t *dl_ccch_msg=NULL;
@@ -255,38 +254,13 @@ int DU_handle_DL_RRC_MESSAGE_TRANSFER(instance_t       instance,
 
         if (radioResourceConfigDedicated->mac_MainConfig)
           mac_MainConfig = &radioResourceConfigDedicated->mac_MainConfig->choice.explicitValue;
-
-        rrc_mac_config_req_eNB(
-          ctxt.instance,
-          0, //primaryCC_id,
-          0,0,0,0,0,0,
-          ctxt.rnti,
-          (LTE_BCCH_BCH_Message_t *) NULL,
-          (LTE_RadioResourceConfigCommonSIB_t *) NULL,
-          (LTE_RadioResourceConfigCommonSIB_t *) NULL,
-          radioResourceConfigDedicated->physicalConfigDedicated,
-          (LTE_SCellToAddMod_r10_t *)NULL,
-          //(struct PhysicalConfigDedicatedSCell_r10 *)NULL,
-          (LTE_MeasObjectToAddMod_t **) NULL,
-          mac_MainConfig,
-          1,
-          SRB1_logicalChannelConfig,
-          NULL, // measGapConfig,
-          (LTE_TDD_Config_t *) NULL,
-          NULL,
-          (LTE_SchedulingInfoList_t *) NULL,
-          0, NULL, NULL, (LTE_MBSFN_SubframeConfigList_t *) NULL
-          , 0, (LTE_MBSFN_AreaInfoList_r9_t *) NULL, (LTE_PMCH_InfoList_r9_t *) NULL,
-          (LTE_SystemInformationBlockType1_v1310_IEs_t *)NULL
-          ,
-          0,
-          (LTE_BCCH_DL_SCH_Message_MBMS_t *) NULL,
-          (LTE_SchedulingInfo_MBMS_r14_t *) NULL,
-          (struct LTE_NonMBSFN_SubframeConfig_r14 *) NULL,
-          (LTE_SystemInformationBlockType1_MBMS_r14_t *) NULL,
-          (LTE_MBSFN_AreaInfoList_r9_t *) NULL,
-          (LTE_MBSFNAreaConfiguration_r9_t *) NULL
-        );
+        rrc_mac_config_req_eNB_t tmp = {0};
+        tmp.rnti = ctxt.rntiMaybeUEid;
+        tmp.physicalConfigDedicated = radioResourceConfigDedicated->physicalConfigDedicated;
+        tmp.mac_MainConfig = mac_MainConfig;
+        tmp.logicalChannelIdentity = 1;
+        tmp.logicalChannelConfig = SRB1_logicalChannelConfig;
+        rrc_mac_config_req_eNB(ctxt.instance, &tmp);
         break;
       } // case
 
@@ -382,7 +356,7 @@ int DU_handle_DL_RRC_MESSAGE_TRANSFER(instance_t       instance,
                     MessageDef *message_p = NULL;
                     /* Send DRX configuration to MAC task to configure timers of local UE context */
                     message_p = itti_alloc_new_message(TASK_DU_F1, 0, RRC_MAC_DRX_CONFIG_REQ);
-                    RRC_MAC_DRX_CONFIG_REQ(message_p).rnti = ctxt.rnti;
+                    RRC_MAC_DRX_CONFIG_REQ(message_p).rnti = ctxt.rntiMaybeUEid;
                     RRC_MAC_DRX_CONFIG_REQ(message_p).drx_Configuration = mac_MainConfig->drx_Config;
                     itti_send_msg_to_task(TASK_MAC_ENB, ctxt.instance, message_p);
                     LOG_D(F1AP, "DRX configured in MAC Main Configuration for RRC Connection Reconfiguration\n");
@@ -420,9 +394,9 @@ int DU_handle_DL_RRC_MESSAGE_TRANSFER(instance_t       instance,
                     if (DRB_configList->list.array[i]) {
                       drb_id = (int)DRB_configList->list.array[i]->drb_Identity;
                       LOG_I(F1AP,
-                            "[DU %ld] Logical Channel UL-DCCH, Received RRCConnectionReconfiguration for UE rnti %x, reconfiguring DRB %d/LCID %d\n",
+                            "[DU %ld] Logical Channel UL-DCCH, Received RRCConnectionReconfiguration for UE rnti %lx, reconfiguring DRB %d/LCID %d\n",
                             ctxt.instance,
-                            ctxt.rnti,
+                            ctxt.rntiMaybeUEid,
                             (int)DRB_configList->list.array[i]->drb_Identity,
                             (int)*DRB_configList->list.array[i]->logicalChannelIdentity);
 
@@ -432,37 +406,14 @@ int DU_handle_DL_RRC_MESSAGE_TRANSFER(instance_t       instance,
                         if (DRB_configList->list.array[i]->logicalChannelIdentity) {
                           DRB2LCHAN[i] = (uint8_t) * DRB_configList->list.array[i]->logicalChannelIdentity;
                         }
-
-                        rrc_mac_config_req_eNB(
-                          ctxt.instance,
-                          0,0,0,0,0,0,
-                          0,
-                          ue_context_p->ue_context.rnti,
-                          (LTE_BCCH_BCH_Message_t *) NULL,
-                          (LTE_RadioResourceConfigCommonSIB_t *) NULL,
-                          (LTE_RadioResourceConfigCommonSIB_t *) NULL,
-                          physicalConfigDedicated,
-                          (LTE_SCellToAddMod_r10_t *)NULL,
-                          //(struct PhysicalConfigDedicatedSCell_r10 *)NULL,
-                          (LTE_MeasObjectToAddMod_t **) NULL,
-                          mac_MainConfig,
-                          DRB2LCHAN[i],
-                          DRB_configList->list.array[i]->logicalChannelConfig,
-                          measGapConfig,
-                          (LTE_TDD_Config_t *) NULL,
-                          NULL,
-                          (LTE_SchedulingInfoList_t *) NULL,
-                          0, NULL, NULL, (LTE_MBSFN_SubframeConfigList_t *) NULL
-                          , 0, (LTE_MBSFN_AreaInfoList_r9_t *) NULL, (LTE_PMCH_InfoList_r9_t *) NULL,
-                          (LTE_SystemInformationBlockType1_v1310_IEs_t *)NULL,
-                          0,
-                          (LTE_BCCH_DL_SCH_Message_MBMS_t *) NULL,
-                          (LTE_SchedulingInfo_MBMS_r14_t *) NULL,
-                          (struct LTE_NonMBSFN_SubframeConfig_r14 *) NULL,
-                          (LTE_SystemInformationBlockType1_MBMS_r14_t *) NULL,
-                          (LTE_MBSFN_AreaInfoList_r9_t *) NULL,
-                          (LTE_MBSFNAreaConfiguration_r9_t *) NULL
-                        );
+                        rrc_mac_config_req_eNB_t tmp = {0};
+                        tmp.rnti = ue_context_p->ue_context.rnti;
+                        tmp.physicalConfigDedicated = physicalConfigDedicated;
+                        tmp.mac_MainConfig = mac_MainConfig;
+                        tmp.logicalChannelIdentity = DRB2LCHAN[i];
+                        tmp.logicalChannelConfig = DRB_configList->list.array[i]->logicalChannelConfig;
+                        tmp.measGapConfig = measGapConfig;
+                        rrc_mac_config_req_eNB(ctxt.instance, &tmp);
                       }
                     } else {        // remove LCHAN from MAC/PHY
                       AssertFatal(1==0,"Can't handle this yet in DU\n");
@@ -748,7 +699,7 @@ int DU_send_INITIAL_UL_RRC_MESSAGE_TRANSFER(instance_t     instanceP,
     rnti_t          rntiP,
     const uint8_t   *sduP,
     sdu_size_t      sdu_lenP,
-    const char      *sdu2P,
+    const uint8_t   *sdu2P,
     sdu_size_t      sdu2_lenP) {
   F1AP_F1AP_PDU_t                       pdu= {0};
   F1AP_InitialULRRCMessageTransfer_t    *out;
@@ -807,7 +758,7 @@ int DU_send_INITIAL_UL_RRC_MESSAGE_TRANSFER(instance_t     instanceP,
     ie5->criticality                    = F1AP_Criticality_reject;
     ie5->value.present                  = F1AP_InitialULRRCMessageTransferIEs__value_PR_DUtoCURRCContainer;
     OCTET_STRING_fromBuf(&ie5->value.choice.DUtoCURRCContainer,
-                         sdu2P,
+                         (const char *)sdu2P,
                          sdu2_lenP);
   }
   /* mandatory */
@@ -985,6 +936,16 @@ int DU_handle_DL_NR_RRC_MESSAGE_TRANSFER(instance_t       instance,
         break;
     }
   }
+
+  f1ap_dl_rrc_message_t dl_rrc = {
+    .rrc_container_length = ie->value.choice.RRCContainer.size,
+    .rrc_container = ie->value.choice.RRCContainer.buf,
+    .rnti = f1ap_get_rnti_by_du_id(DUtype, instance, du_ue_f1ap_id),
+    .srb_id = srb_id
+  };
+  int rc = dl_rrc_message(instance, &dl_rrc);
+  if (rc == 0)
+    return 0; /* has been handled, otherwise continue below */
 
   // decode RRC Container and act on the message type
   AssertFatal(srb_id<3,"illegal srb_id\n");

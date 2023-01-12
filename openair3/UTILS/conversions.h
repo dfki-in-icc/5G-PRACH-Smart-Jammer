@@ -544,6 +544,27 @@ do {                                                    \
     (bITsTRING)->bits_unused = 4;                       \
 } while(0)
 
+#define UEIDENTITYINDEX_TO_BIT_STRING(mACRO, bITsTRING)          \
+do {                                                    \
+    (bITsTRING)->buf = calloc(2, sizeof(uint8_t));      \
+    (bITsTRING)->buf[0] = (mACRO) >> 2;                 \
+    (bITsTRING)->buf[1] = ((mACRO) & 0x03)<<6;            \
+    (bITsTRING)->size = 2;                              \
+    (bITsTRING)->bits_unused = 6;                       \
+} while(0)
+
+#define FIVEG_S_TMSI_TO_BIT_STRING(mACRO, bITsTRING)      \
+do {                                                    \
+    (bITsTRING)->buf = calloc(6, sizeof(uint8_t));      \
+    (bITsTRING)->buf[0] = ((mACRO) >> 40) & 0xff;       \
+    (bITsTRING)->buf[1] = ((mACRO) >> 32) & 0xff;       \
+    (bITsTRING)->buf[2] = ((mACRO) >> 24) & 0xff;       \
+    (bITsTRING)->buf[3] = ((mACRO) >> 16) & 0xff;       \
+    (bITsTRING)->buf[4] = ((mACRO) >> 8 ) & 0xff;       \
+    (bITsTRING)->buf[5] = ((mACRO) & 0xff);             \
+    (bITsTRING)->size = 6;                              \
+    (bITsTRING)->bits_unused = 0;                       \
+} while(0)
 
 /* Used to format an uint32_t containing an ipv4 address */
 #define IPV4_ADDR    "%u.%u.%u.%u"
@@ -559,9 +580,5 @@ do {                                                    \
 #define TAC_TO_ASN1 INT16_TO_OCTET_STRING
 #define GTP_TEID_TO_ASN1 INT32_TO_OCTET_STRING
 #define OCTET_STRING_TO_TAC OCTET_STRING_TO_INT16
-
-void hexa_to_ascii(uint8_t *from, char *to, size_t length);
-
-int ascii_to_hex(uint8_t *dst, const char *h);
 
 #endif /* CONVERSIONS_H_ */

@@ -22,15 +22,51 @@
 #ifndef _NR_PDCP_ENTITY_H_
 #define _NR_PDCP_ENTITY_H_
 
+#include <stdbool.h>
 #include <stdint.h>
+#include "openair2/COMMON/platform_types.h"
 
 #include "nr_pdcp_sdu.h"
+#include "openair2/RRC/NR/rrc_gNB_radio_bearers.h"
 
 typedef enum {
   NR_PDCP_DRB_AM,
   NR_PDCP_DRB_UM,
   NR_PDCP_SRB
 } nr_pdcp_entity_type_t;
+
+typedef struct {
+  //nr_pdcp_entity_type_t mode;
+  /* PDU stats */
+  /* TX */
+  uint32_t txpdu_pkts;     /* aggregated number of tx packets */
+  uint32_t txpdu_bytes;    /* aggregated bytes of tx packets */
+  uint32_t txpdu_sn;       /* current sequence number of last tx packet (or TX_NEXT) */
+  /* RX */
+  uint32_t rxpdu_pkts;     /* aggregated number of rx packets */
+  uint32_t rxpdu_bytes;    /* aggregated bytes of rx packets */
+  uint32_t rxpdu_sn;       /* current sequence number of last rx packet (or  RX_NEXT) */
+  /* TODO? */
+  uint32_t rxpdu_oo_pkts;       /* aggregated number of out-of-order rx pkts  (or RX_REORD) */
+  /* TODO? */
+  uint32_t rxpdu_oo_bytes; /* aggregated amount of out-of-order rx bytes */
+  uint32_t rxpdu_dd_pkts;  /* aggregated number of duplicated discarded packets (or dropped packets because of other reasons such as integrity failure) (or RX_DELIV) */
+  uint32_t rxpdu_dd_bytes; /* aggregated amount of discarded packets' bytes */
+  /* TODO? */
+  uint32_t rxpdu_ro_count; /* this state variable indicates the COUNT value following the COUNT value associated with the PDCP Data PDU which triggered t-Reordering. (RX_REORD) */
+
+  /* SDU stats */
+  /* TX */
+  uint32_t txsdu_pkts;     /* number of SDUs delivered */
+  uint32_t txsdu_bytes;    /* number of bytes of SDUs delivered */
+
+  /* RX */
+  uint32_t rxsdu_pkts;     /* number of SDUs received */
+  uint32_t rxsdu_bytes;    /* number of bytes of SDUs received */
+
+  uint8_t  mode;               /* 0: PDCP AM, 1: PDCP UM, 2: PDCP TM */
+} nr_pdcp_statistics_t;
+
 
 typedef struct nr_pdcp_entity_t {
   nr_pdcp_entity_type_t type;
@@ -40,6 +76,7 @@ typedef struct nr_pdcp_entity_t {
   void (*recv_sdu)(struct nr_pdcp_entity_t *entity, char *buffer, int size,
                    int sdu_id);
   void (*delete_entity)(struct nr_pdcp_entity_t *entity);
+  void (*get_stats)(struct nr_pdcp_entity_t *entity, nr_pdcp_statistics_t *out);
 
   /* set_security: pass -1 to integrity_algorithm / ciphering_algorithm
    *               to keep the current algorithm
@@ -114,6 +151,20 @@ typedef struct nr_pdcp_entity_t {
   nr_pdcp_sdu_t *rx_list;
   int           rx_size;
   int           rx_maxsize;
+  nr_pdcp_statistics_t stats;
+
+  // WARNING: This is a hack!
+  // 3GPP TS 38.331 (RRC) version 15.3 
+  // Section 5.3.4.3 Reception of the SecurityModeCommand by the UE 
+  // The UE needs to send the Security Mode Complete message. However, the message 
+  // needs to be sent without being ciphered. 
+  // However:
+  // 1- The Security Mode Command arrives to the UE with the cipher algo (e.g., nea2).
+  // 2- The UE is configured with the cipher algo.
+  // 3- The Security Mode Complete message is sent to the itti task queue.
+  // 4- The ITTI task, forwards the message ciphering (e.g., nea2) it. 
+  // 5- The gNB cannot understand the ciphered Security Mode Complete message.
+  bool security_mode_completed;
 } nr_pdcp_entity_t;
 
 nr_pdcp_entity_t *new_nr_pdcp_entity(
@@ -134,6 +185,6 @@ nr_pdcp_entity_t *new_nr_pdcp_entity(
     unsigned char *ciphering_key,
     unsigned char *integrity_key);
 
-void nr_DRB_preconfiguration(uint16_t crnti);
+void nr_DRB_preconfiguration(ue_id_t crntiMaybeUEid);
 
 #endif /* _NR_PDCP_ENTITY_H_ */

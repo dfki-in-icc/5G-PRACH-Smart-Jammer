@@ -67,7 +67,6 @@ extern "C"
 #define CONFIG_HLP_ULF           "Set the uplink frequency offset for all component carriers\n"
 #define CONFIG_HLP_CHOFF         "Channel id offset\n"
 #define CONFIG_HLP_SOFTS         "Enable soft scope and L1 and L2 stats (Xforms)\n"
-#define CONFIG_HLP_EXMCAL        "Calibrate the EXMIMO borad, available files: exmimo2_2arxg.lime exmimo2_2brxg.lime \n"
 #define CONFIG_HLP_ITTIL         "Generate ITTI analyzser logs (similar to wireshark logs but with more details)\n"
 #define CONFIG_HLP_DLMCS         "Set the maximum downlink MCS\n"
 #define CONFIG_HLP_STMON         "Enable processing timing measurement of lte softmodem on per subframe basis \n"
@@ -139,9 +138,9 @@ extern "C"
 
 extern int usrp_tx_thread;
 #define CMDLINE_PARAMS_DESC {  \
-    {"rf-config-file",       CONFIG_HLP_RFCFGF,       0,              strptr:(char **)&RF_CONFIG_FILE,    defstrval:NULL,        TYPE_STRING, sizeof(RF_CONFIG_FILE)},\
-    {"split73",              CONFIG_HLP_SPLIT73,      0,              strptr:(char **)&SPLIT73,           defstrval:NULL,        TYPE_STRING, sizeof(SPLIT73)},       \
-    {"thread-pool",          CONFIG_HLP_TPOOL,        0,              strptr:(char **)&TP_CONFIG,         defstrval:"n",         TYPE_STRING, sizeof(TP_CONFIG)},     \
+    {"rf-config-file",       CONFIG_HLP_RFCFGF,       0,              strptr:&RF_CONFIG_FILE,    defstrval:NULL,        TYPE_STRING, 0},\
+    {"split73",              CONFIG_HLP_SPLIT73,      0,              strptr:&SPLIT73,           defstrval:NULL,        TYPE_STRING, 0},       \
+    {"thread-pool",          CONFIG_HLP_TPOOL,        0,              strptr:&TP_CONFIG,         defstrval:"-1,-1,-1,-1,-1,-1,-1,-1",         TYPE_STRING, 0},     \
     {"phy-test",             CONFIG_HLP_PHYTST,       PARAMFLAG_BOOL, iptr:&PHY_TEST,                     defintval:0,           TYPE_INT,    0},                     \
     {"do-ra",                CONFIG_HLP_DORA,         PARAMFLAG_BOOL, iptr:&DO_RA,                        defintval:0,           TYPE_INT,    0},                     \
     {"sa",                   CONFIG_HLP_SA,           PARAMFLAG_BOOL, iptr:&SA,                           defintval:0,           TYPE_INT,    0},                     \
@@ -159,8 +158,8 @@ extern int usrp_tx_thread;
     {"numerology" ,          CONFIG_HLP_NUMEROLOGY,   PARAMFLAG_BOOL, iptr:&NUMEROLOGY,                   defintval:1,           TYPE_INT,    0},                     \
     {"band" ,                CONFIG_HLP_BAND,         PARAMFLAG_BOOL, iptr:&BAND,                         defintval:78,          TYPE_INT,    0},                     \
     {"emulate-rf" ,          CONFIG_HLP_EMULATE_RF,   PARAMFLAG_BOOL, iptr:&EMULATE_RF,                   defintval:0,           TYPE_INT,    0},                     \
-    {"parallel-config",      CONFIG_HLP_PARALLEL_CMD, 0,              strptr:(char **)&parallel_config,   defstrval:NULL,        TYPE_STRING, 0},                     \
-    {"worker-config",        CONFIG_HLP_WORKER_CMD,   0,              strptr:(char **)&worker_config,     defstrval:NULL,        TYPE_STRING, 0},                     \
+    {"parallel-config",      CONFIG_HLP_PARALLEL_CMD, 0,              strptr:&parallel_config,   defstrval:NULL,        TYPE_STRING, 0},                     \
+    {"worker-config",        CONFIG_HLP_WORKER_CMD,   0,              strptr:&worker_config,     defstrval:NULL,        TYPE_STRING, 0},                     \
     {"noS1",                 CONFIG_HLP_NOS1,         PARAMFLAG_BOOL, uptr:&noS1,                         defintval:0,           TYPE_INT,    0},                     \
     {"rfsim",                CONFIG_HLP_RFSIM,        PARAMFLAG_BOOL, uptr:&rfsim,                        defintval:0,           TYPE_INT,    0},                     \
     {"nokrnmod",             CONFIG_HLP_NOKRNMOD,     PARAMFLAG_BOOL, uptr:&nokrnmod,                     defintval:0,           TYPE_INT,    0},                     \
@@ -182,20 +181,20 @@ extern int usrp_tx_thread;
 #define CONFIG_HLP_FLOG          "Enable online log \n"
 #define CONFIG_HLP_LOGL          "Set the global log level, valid options: (4:trace, 3:debug, 2:info, 1:warn, (0:error))\n"
 #define CONFIG_HLP_TELN          "Start embedded telnet server \n"
+#define CONFIG_HLP_WEB "Start embedded web server \n"
 #define CONFIG_FLOG_OPT          "R"
 #define CONFIG_LOGL_OPT          "g"
 /*-------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*                                            command line parameters for LOG utility                                                              */
 /*   optname                        helpstr       paramflags        XXXptr                              defXXXval            type           numelt */
 /*-------------------------------------------------------------------------------------------------------------------------------------------------*/
-#define CMDLINE_LOGPARAMS_DESC {  \
-    {CONFIG_FLOG_OPT ,           CONFIG_HLP_FLOG, 0,                uptr:&online_log_messages,           defintval:1,         TYPE_INT,      0},     \
-    {CONFIG_LOGL_OPT ,           CONFIG_HLP_LOGL, 0,                uptr:&glog_level,                    defintval:0,         TYPE_UINT,     0},     \
-	{"telnetsrv",                CONFIG_HLP_TELN, PARAMFLAG_BOOL,   uptr:&start_telnetsrv,               defintval:0,         TYPE_UINT,     0},     \
-	{"log-mem",                  NULL,            0,                strptr:(char **)&logmem_filename,    defstrval:NULL,      TYPE_STRING,   0},     \
-	{"telnetclt",                NULL,            0,                uptr:&start_telnetclt,               defstrval:NULL,      TYPE_UINT,     0},     \
+#define CMDLINE_LOGPARAMS_DESC                                                                                                                                                              \
+  {                                                                                                                                                                                         \
+    {CONFIG_FLOG_OPT, CONFIG_HLP_FLOG, 0, uptr : &online_log_messages, defintval : 1, TYPE_INT, 0}, {CONFIG_LOGL_OPT, CONFIG_HLP_LOGL, 0, uptr : &glog_level, defintval : 0, TYPE_UINT, 0}, \
+        {"telnetsrv", CONFIG_HLP_TELN, PARAMFLAG_BOOL | PARAMFLAG_CMDLINEONLY, uptr : &start_telnetsrv, defintval : 0, TYPE_UINT, 0},                                                       \
+        {"websrv", CONFIG_HLP_WEB, PARAMFLAG_BOOL | PARAMFLAG_CMDLINEONLY, uptr : &start_websrv, defintval : 0, TYPE_UINT, 0},                                                              \
+        {"log-mem", NULL, 0, strptr : &logmem_filename, defstrval : NULL, TYPE_STRING, 0}, {"telnetclt", NULL, 0, uptr : &start_telnetclt, defstrval : NULL, TYPE_UINT, 0},                 \
   }
-
 
 /* check function for global log level */
 #define CMDLINE_LOGPARAMS_CHECK_DESC { \
@@ -245,9 +244,9 @@ extern int usrp_tx_thread;
 typedef struct {
   uint64_t       optmask;
   //THREAD_STRUCT  thread_struct;
-  char           rf_config_file[1024];
-  char           split73[1024];
-  char           threadPoolConfig[1024];
+  char           *rf_config_file;
+  char           *split73;
+  char           *threadPoolConfig;
   int            phy_test;
   int            do_ra;
   int            sa;
@@ -277,6 +276,7 @@ typedef struct {
 
 extern uint64_t get_softmodem_optmask(void);
 extern uint64_t set_softmodem_optmask(uint64_t bitmask);
+extern uint64_t clear_softmodem_optmask(uint64_t bitmask);
 extern softmodem_params_t *get_softmodem_params(void);
 extern void get_common_options(uint32_t execmask);
 extern char *get_softmodem_function(uint64_t *sofmodemfunc_mask_ptr);
@@ -287,7 +287,8 @@ extern int32_t uplink_frequency_offset[MAX_NUM_CCs][4];
 extern int usrp_tx_thread;
 extern uint16_t sl_ahead;
 extern uint16_t sf_ahead;
-extern volatile int  oai_exit;
+extern int ldpc_offload_flag;
+extern int oai_exit;
 
 void tx_func(void *param);
 void rx_func(void *param);

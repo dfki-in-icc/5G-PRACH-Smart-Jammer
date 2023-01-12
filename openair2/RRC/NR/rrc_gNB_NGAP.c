@@ -39,8 +39,7 @@
 #include "pdcp.h"
 #include "pdcp_primitives.h"
 
-#include "gtpv1u_eNB_task.h"
-#include "gtpv1u_gNB_task.h"
+#include "openair3/ocp-gtpu/gtp_itf.h"
 #include <openair3/ocp-gtpu/gtp_itf.h>
 #include "RRC/LTE/rrc_eNB_GTPV1U.h"
 #include "RRC/NR/rrc_gNB_GTPV1U.h"
@@ -373,7 +372,7 @@ rrc_gNB_send_NGAP_NAS_FIRST_REQ(
   rrc_ue_ngap_ids_p = malloc(sizeof(rrc_ue_ngap_ids_t));
   rrc_ue_ngap_ids_p->ue_initial_id  = ue_context_pP->ue_context.ue_initial_id;
   rrc_ue_ngap_ids_p->gNB_ue_ngap_id = UE_INITIAL_ID_INVALID;
-  rrc_ue_ngap_ids_p->ue_rnti        = ctxt_pP->rnti;
+  rrc_ue_ngap_ids_p->ue_rnti = ctxt_pP->rntiMaybeUEid;
 
   h_rc = hashtable_insert(RC.nrrrc[ctxt_pP->module_id]->initial_id2_ngap_ids,
                           (hash_key_t)ue_context_pP->ue_context.ue_initial_id,
@@ -530,7 +529,7 @@ rrc_gNB_process_NGAP_INITIAL_CONTEXT_SETUP_REQ(
         }
 
         ue_context_p->ue_context.nb_of_pdusessions = NGAP_INITIAL_CONTEXT_SETUP_REQ (msg_p).nb_of_pdusessions;
-        create_tunnel_req.rnti                     = ue_context_p->ue_context.rnti;
+        create_tunnel_req.ue_id                     = ue_context_p->ue_context.rnti;
         create_tunnel_req.num_tunnels              = pdu_sessions_done;
 
         ret = gtpv1u_create_ngu_tunnel(
@@ -824,17 +823,6 @@ rrc_gNB_process_NGAP_DOWNLINK_NAS(
         case ngran_gNB:
         {
           // rrc_mac_config_req_gNB
-#ifdef ITTI_SIM
-        uint8_t *message_buffer;
-        message_buffer = itti_malloc (TASK_RRC_GNB, TASK_RRC_UE_SIM, length);
-        memcpy (message_buffer, buffer, length);
-        MessageDef *message_p = itti_alloc_new_message (TASK_RRC_GNB, 0, GNB_RRC_DCCH_DATA_IND);
-        GNB_RRC_DCCH_DATA_IND (message_p).rbid = DCCH;
-        GNB_RRC_DCCH_DATA_IND (message_p).sdu = message_buffer;
-        GNB_RRC_DCCH_DATA_IND (message_p).size  = length;
-        itti_send_msg_to_task (TASK_RRC_UE_SIM, instance, message_p);
-        LOG_I(NR_RRC, "Send DL NAS message \n");
-#else
           /* Transfer data to PDCP */
           nr_rrc_data_req (
               &ctxt,
@@ -844,7 +832,6 @@ rrc_gNB_process_NGAP_DOWNLINK_NAS(
               length,
               buffer,
               PDCP_TRANSMISSION_MODE_CONTROL);
-#endif
         }
           break;
 
@@ -1024,7 +1011,7 @@ rrc_gNB_process_NGAP_PDUSESSION_SETUP_REQ(
     ue_context_p->ue_context.nb_of_pdusessions = NGAP_PDUSESSION_SETUP_REQ(msg_p).nb_pdusessions_tosetup;
     ue_context_p->ue_context.gNB_ue_ngap_id    = NGAP_PDUSESSION_SETUP_REQ(msg_p).gNB_ue_ngap_id;
     ue_context_p->ue_context.amf_ue_ngap_id    = NGAP_PDUSESSION_SETUP_REQ(msg_p).amf_ue_ngap_id;
-    create_tunnel_req.rnti                     = ue_context_p->ue_context.rnti;
+    create_tunnel_req.ue_id                    = ue_context_p->ue_context.rnti;
     create_tunnel_req.num_tunnels              = pdu_sessions_done;
 
     ret = gtpv1u_create_ngu_tunnel(
@@ -1694,7 +1681,7 @@ rrc_gNB_process_NGAP_PDUSESSION_RELEASE_COMMAND(
       //gtp tunnel delete
       LOG_I(NR_RRC, "gtp tunnel delete \n");
       gtpv1u_gnb_delete_tunnel_req_t req={0};
-      req.rnti = ue_context_p->ue_context.rnti;
+      req.ue_id = ue_context_p->ue_context.rnti;
 
       for(i = 0; i < NB_RB_MAX; i++) {
         if(xid == ue_context_p->ue_context.pduSession[i].xid) {
@@ -1725,5 +1712,39 @@ void nr_rrc_rx_tx(void) {
 
   //
 
+}
+
+/*------------------------------------------------------------------------------*/
+int rrc_gNB_process_PAGING_IND(MessageDef *msg_p, const char *msg_name, instance_t instance) {
+
+  for (uint16_t tai_size = 0; tai_size < NGAP_PAGING_IND(msg_p).tai_size; tai_size++) {
+    LOG_I(NR_RRC,"[gNB %ld] In NGAP_PAGING_IND: MCC %d, MNC %d, TAC %d\n", instance, NGAP_PAGING_IND(msg_p).plmn_identity[tai_size].mcc,
+          NGAP_PAGING_IND(msg_p).plmn_identity[tai_size].mnc, NGAP_PAGING_IND(msg_p).tac[tai_size]);
+
+    for (uint8_t j = 0; j < RC.nrrrc[instance]->configuration.num_plmn; j++) {
+      if (RC.nrrrc[instance]->configuration.mcc[j] == NGAP_PAGING_IND(msg_p).plmn_identity[tai_size].mcc
+          && RC.nrrrc[instance]->configuration.mnc[j] == NGAP_PAGING_IND(msg_p).plmn_identity[tai_size].mnc
+          && RC.nrrrc[instance]->configuration.tac == NGAP_PAGING_IND(msg_p).tac[tai_size]) {
+        for (uint8_t CC_id = 0; CC_id < MAX_NUM_CCs; CC_id++) {
+          if (NODE_IS_CU(RC.nrrrc[instance]->node_type)) {
+            MessageDef *m = itti_alloc_new_message(TASK_RRC_GNB, 0, F1AP_PAGING_IND);
+            F1AP_PAGING_IND (m).mcc              = RC.nrrrc[j]->configuration.mcc[0];
+            F1AP_PAGING_IND (m).mnc              = RC.nrrrc[j]->configuration.mnc[0];
+            F1AP_PAGING_IND (m).mnc_digit_length = RC.nrrrc[j]->configuration.mnc_digit_length[0];
+            F1AP_PAGING_IND (m).nr_cellid        = RC.nrrrc[j]->nr_cellid;
+            F1AP_PAGING_IND (m).ueidentityindexvalue = (uint16_t)(NGAP_PAGING_IND(msg_p).ue_paging_identity.s_tmsi.m_tmsi%1024);
+            F1AP_PAGING_IND (m).fiveg_s_tmsi = NGAP_PAGING_IND(msg_p).ue_paging_identity.s_tmsi.m_tmsi;
+            F1AP_PAGING_IND (m).paging_drx = NGAP_PAGING_IND(msg_p).paging_drx;
+            LOG_E(F1AP, "ueidentityindexvalue %u fiveg_s_tmsi %ld paging_drx %u\n", F1AP_PAGING_IND (m).ueidentityindexvalue, F1AP_PAGING_IND (m).fiveg_s_tmsi, F1AP_PAGING_IND (m).paging_drx);
+            itti_send_msg_to_task(TASK_CU_F1, instance, m);
+          } else {
+            rrc_gNB_generate_pcch_msg(NGAP_PAGING_IND(msg_p).ue_paging_identity.s_tmsi.m_tmsi,(uint8_t)NGAP_PAGING_IND(msg_p).paging_drx, instance, CC_id);
+          } // end of nodetype check
+        } // end of cc loop
+      } // end of mcc mnc check
+    } // end of num_plmn
+  } // end of tai size
+
+  return 0;
 }
 

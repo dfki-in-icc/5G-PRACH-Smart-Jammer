@@ -413,29 +413,8 @@ bool dlsch_procedures(PHY_VARS_eNB *eNB,
     }
 
     start_meas(&eNB->dlsch_encoding_stats);
-    dlsch_encoding_all(eNB,
-		       proc,
-                       dlsch_harq->pdu,
-                       dlsch_harq->pdsch_start,
-                       dlsch,
-                       frame,
-                       subframe,
-                       &eNB->dlsch_rate_matching_stats,
-                       &eNB->dlsch_turbo_encoding_stats,
-                       &eNB->dlsch_turbo_encoding_waiting_stats,
-                       &eNB->dlsch_turbo_encoding_main_stats,
-                       &eNB->dlsch_turbo_encoding_wakeup_stats0,
-                       &eNB->dlsch_turbo_encoding_wakeup_stats1,
-                       &eNB->dlsch_interleaving_stats);
+    dlsch_encoding(eNB, proc, dlsch_harq->pdu, dlsch_harq->pdsch_start, dlsch, frame, subframe, &eNB->dlsch_rate_matching_stats, &eNB->dlsch_turbo_encoding_stats, &eNB->dlsch_interleaving_stats);
     stop_meas(&eNB->dlsch_encoding_stats);
-
-    if ( proc->threadPool->activated ) {
-    // Wait all other threads finish to process
-    while (proc->nbEncode) {
-      delNotifiedFIFO_elt(pullTpool(proc->respEncode, proc->threadPool));
-      proc->nbEncode--;
-    }
-  }
 
     if(eNB->dlsch_encoding_stats.p_time>500*3000 && opp_enabled == 1) {
       print_meas_now(&eNB->dlsch_encoding_stats,"total coding",stderr);
@@ -1328,8 +1307,8 @@ void postDecode(L1_rxtx_proc_t *proc, notifiedFIFO_elt_t *req) {
 	   sz);
   } else {
     if ( rdata->nbSegments != ulsch_harq->processedSegments ) {
-      int nb=abortTpool(proc->threadPool, req->key);
-      nb+=abortNotifiedFIFO(proc->respDecode, req->key);
+      int nb=abortTpoolJob(proc->threadPool, req->key);
+      nb+=abortNotifiedFIFOJob(proc->respDecode, req->key);
       proc->nbDecode-=nb;
       LOG_D(PHY,"uplink segment error %d/%d, aborted %d segments\n",rdata->segment_r,rdata->nbSegments, nb);
       AssertFatal(ulsch_harq->processedSegments+nb == rdata->nbSegments,"processed: %d, aborted: %d, total %d\n",
@@ -1502,6 +1481,8 @@ void pusch_procedures(PHY_VARS_eNB *eNB,L1_rxtx_proc_t *proc) {
   
   while (proc->nbDecode > 0) {
     notifiedFIFO_elt_t *req=pullTpool(proc->respDecode, proc->threadPool);
+    if (req == NULL)
+      break; // Tpool has been stopped
     postDecode(proc, req);
     delNotifiedFIFO_elt(req);
   }

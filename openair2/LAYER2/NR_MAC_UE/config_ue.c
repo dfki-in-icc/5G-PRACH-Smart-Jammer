@@ -432,7 +432,8 @@ void config_common_ue(NR_UE_MAC_INST_t *mac,
     @returns void
     */
 
-void config_bwp_ue(NR_UE_MAC_INST_t *mac, uint16_t *bwp_ind, uint8_t *dci_format){
+void config_bwp_ue(NR_UE_MAC_INST_t *mac, uint32_t *bwp_ind, uint8_t *dci_format)
+{
 
   NR_ServingCellConfig_t *scd = mac->cg->spCellConfig->spCellConfigDedicated;
 
@@ -471,7 +472,6 @@ void config_bwp_ue(NR_UE_MAC_INST_t *mac, uint16_t *bwp_ind, uint8_t *dci_format
   }
 
   LOG_D(MAC, "In %s setting DL_BWP_Id %ld UL_BWP_Id %ld \n", __FUNCTION__, mac->DL_BWP_Id, mac->UL_BWP_Id);
-
 }
 
 /** \brief This function is relavant for the UE procedures for control. It loads the search spaces, the BWPs and the CORESETs into the MAC instance and
@@ -632,7 +632,6 @@ int nr_rrc_mac_config_req_ue(
       build_ssb_to_ro_map(mac);//->scc, mac->phy_config.config_req.cell_config.frame_duplex_type);
       if (!get_softmodem_params()->emulate_l1)
         mac->if_module->phy_config_request(&mac->phy_config);
-      mac->common_configuration_complete = 1;
     }
     if(scell_group_config != NULL ){
       mac->cg = scell_group_config;

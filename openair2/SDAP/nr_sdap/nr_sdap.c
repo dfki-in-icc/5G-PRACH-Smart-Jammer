@@ -21,7 +21,11 @@
 
 #include "nr_sdap.h"
 
+uint8_t nas_qfi;
+uint8_t nas_pduid;
+
 bool sdap_data_req(protocol_ctxt_t *ctxt_p,
+                   const ue_id_t ue_id,
                    const srb_flag_t srb_flag,
                    const rb_id_t rb_id,
                    const mui_t mui,
@@ -35,10 +39,10 @@ bool sdap_data_req(protocol_ctxt_t *ctxt_p,
                    const bool rqi,
                    const int pdusession_id) {
   nr_sdap_entity_t *sdap_entity;
-  sdap_entity = nr_sdap_get_entity(ctxt_p->rnti, pdusession_id);
+  sdap_entity = nr_sdap_get_entity(ue_id, pdusession_id);
 
   if(sdap_entity == NULL) {
-    LOG_E(SDAP, "%s:%d:%s: Entity not found with ue rnti: %x and pdusession id: %d\n", __FILE__, __LINE__, __FUNCTION__, ctxt_p->rnti, pdusession_id);
+    LOG_E(SDAP, "%s:%d:%s: Entity not found with ue: 0x%"PRIx64" and pdusession id: %d\n", __FILE__, __LINE__, __FUNCTION__, ue_id, pdusession_id);
     return 0;
   }
 
@@ -63,14 +67,14 @@ void sdap_data_ind(rb_id_t pdcp_entity,
                    int has_sdap,
                    int has_sdapULheader,
                    int pdusession_id,
-                   int rnti,
+                   ue_id_t ue_id,
                    char *buf,
                    int size) {
   nr_sdap_entity_t *sdap_entity;
-  sdap_entity = nr_sdap_get_entity(rnti, pdusession_id);
+  sdap_entity = nr_sdap_get_entity(ue_id, pdusession_id);
 
-  if(sdap_entity == NULL) {
-    LOG_E(SDAP, "%s:%d:%s: Entity not found\n", __FILE__, __LINE__, __FUNCTION__);
+  if (sdap_entity == NULL) {
+    LOG_E(SDAP, "%s:%d:%s: Entity not found for ue rnti/ue_id: %lx and pdusession id: %d\n", __FILE__, __LINE__, __FUNCTION__, ue_id, pdusession_id);
     return;
   }
 
@@ -80,7 +84,13 @@ void sdap_data_ind(rb_id_t pdcp_entity,
                          has_sdap,
                          has_sdapULheader,
                          pdusession_id,
-                         rnti,
+                         ue_id,
                          buf,
                          size);
+}
+
+void set_qfi_pduid(uint8_t qfi, uint8_t pduid){
+  nas_qfi = qfi;
+  nas_pduid = pduid;
+  return;
 }

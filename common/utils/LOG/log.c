@@ -48,6 +48,10 @@
 
 // main log variables
 
+// Fixme: a better place to be shure it is called 
+void read_cpu_hardware (void) __attribute__ ((constructor));
+void read_cpu_hardware (void) {__builtin_cpu_init(); }
+
 log_mem_cnt_t log_mem_d[2];
 int log_mem_flag=0;
 int log_mem_multi=1;
@@ -80,9 +84,9 @@ mapping log_options[] = {
   {"function", FLAG_FUNCT},
   {"time",     FLAG_TIME},
   {"thread_id", FLAG_THREAD_ID},
+  {"wall_clock", FLAG_REAL_TIME},
   {NULL,-1}
 };
-
 
 mapping log_maskmap[] = LOG_MASKMAP_INIT;
 
@@ -302,7 +306,7 @@ void  log_getconfig(log_t *g_log)
 
   for (int i=MIN_LOG_COMPONENTS; i < MAX_LOG_PREDEF_COMPONENTS; i++) {
     if(g_log->log_component[i].name == NULL) {
-      g_log->log_component[i].name = malloc(16);
+      g_log->log_component[i].name = malloc(17);
       sprintf((char *)g_log->log_component[i].name,"comp%i?",i);
       logparams_logfile[i].paramflags = PARAMFLAG_DONOTREAD;
       logparams_level[i].paramflags = PARAMFLAG_DONOTREAD;
@@ -380,8 +384,8 @@ void  log_getconfig(log_t *g_log)
 }
 
 int register_log_component(char *name,
-		                   char *fext,
-						   int compidx)
+                           char *fext,
+                           int compidx)
 {
   int computed_compidx=compidx;
 
@@ -467,8 +471,6 @@ int logInit (void)
   register_log_component("ENB_APP","log",ENB_APP);
   register_log_component("MCE_APP","log",MCE_APP);
   register_log_component("MME_APP","log",MME_APP);
-  register_log_component("FLEXRAN_AGENT","log",FLEXRAN_AGENT);
-  register_log_component("PROTO_AGENT","log",PROTO_AGENT);
   register_log_component("TMR","",TMR);
   register_log_component("EMU","log",EMU);
   register_log_component("USIM","txt",USIM);
@@ -508,6 +510,9 @@ int logInit (void)
     memset(&(g_log->log_component[i]),0,sizeof(log_component_t));
   }
 
+  AssertFatal(!((g_log->flag & FLAG_TIME) && (g_log->flag & FLAG_REAL_TIME)),
+		   "Invalid log options: time and wall_clock both set but are mutually exclusive\n");
+
   g_log->flag =  g_log->flag | FLAG_INITIALIZED;
   printf("log init done\n");
   return 0;
@@ -542,18 +547,20 @@ static inline int log_header(log_component_t *c,
 
   char l[32];
   if (flag & FLAG_FILE_LINE && flag & FLAG_FUNCT )
-    snprintf(l, sizeof l, "(%s:%d) ", func, line);
+    snprintf(l, sizeof l, "(%.23s:%d) ", func, line);
   else if (flag & FLAG_FILE_LINE)
     snprintf(l, sizeof l, "(%d) ", line);
   else if (flag & FLAG_FUNCT)
-    snprintf(l, sizeof l, "(%s) ", func);
+    snprintf(l, sizeof l, "(%.28s) ", func);
   else
     l[0] = 0;
 
+  // output time information
   char timeString[32];
-  if ( flag & FLAG_TIME ) {
+  if ((flag & FLAG_TIME) || (flag & FLAG_REAL_TIME)) {
     struct timespec t;
-    if (clock_gettime(CLOCK_MONOTONIC, &t) == -1)
+    const clockid_t clock = flag & FLAG_TIME ? CLOCK_MONOTONIC : CLOCK_REALTIME;
+    if (clock_gettime(clock, &t) == -1)
         abort();
     snprintf(timeString, sizeof(timeString), "%lu.%06lu ",
              t.tv_sec,
@@ -800,15 +807,13 @@ void logClean (void)
   int i;
 
   if(isLogInitDone()) {
-    LOG_UI(PHY,"\n");
-
     for (i=MIN_LOG_COMPONENTS; i < MAX_LOG_COMPONENTS; i++) {
       close_component_filelog(i);
     }
   }
 }
 
-extern volatile int oai_exit;//extern int oai_exit;
+extern int oai_exit;
 void flush_mem_to_file(void)
 {
   int fp;

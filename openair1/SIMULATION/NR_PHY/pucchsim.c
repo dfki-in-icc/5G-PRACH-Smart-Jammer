@@ -27,6 +27,7 @@
 #include <sys/mman.h>
 #include "common/config/config_userapi.h"
 #include "common/utils/load_module_shlib.h"
+#include "common/utils/nr/nr_common.h"
 #include "common/utils/LOG/log.h"
 #include "common/ran_context.h" 
 #include "PHY/types.h"
@@ -46,6 +47,7 @@
 #include "openair1/SIMULATION/RF/rf.h"
 #include "openair1/SIMULATION/NR_PHY/nr_unitary_defs.h"
 #include "openair1/SIMULATION/NR_PHY/nr_dummy_functions.c"
+#include "executables/nr-uesoftmodem.h"
 
 THREAD_STRUCT thread_struct;
 PHY_VARS_gNB *gNB;
@@ -59,11 +61,19 @@ double cpuf;
 //uint8_t nfapi_mode = 0;
 uint16_t NB_UE_INST = 1;
 uint8_t const nr_rv_round_map[4] = {0, 2, 3, 1};
-
+const short conjugate[8]__attribute__((aligned(16))) = {-1,1,-1,1,-1,1,-1,1};
+const short conjugate2[8]__attribute__((aligned(16))) = {1,-1,1,-1,1,-1,1,-1};
 // needed for some functions
 PHY_VARS_NR_UE * PHY_vars_UE_g[1][1]={{NULL}};
 
 void init_downlink_harq_status(NR_DL_UE_HARQ_t *dl_harq) {}
+
+nrUE_params_t nrUE_params={0};
+
+nrUE_params_t *get_nrUE_params(void) {
+  return &nrUE_params;
+}
+
 
 int main(int argc, char **argv)
 {
@@ -94,6 +104,7 @@ int main(int argc, char **argv)
   int nr_slot_tx=0;
   int nr_frame_tx=0;
   uint64_t actual_payload=0,payload_received;
+  bool random_payload = true;
   int nr_bit=1; // maximum value possible is 2
   uint8_t m0=0;// higher layer paramater initial cyclic shift
   uint8_t nrofSymbols=1; //number of OFDM symbols can be 1-2 for format 1
@@ -307,6 +318,7 @@ int main(int argc, char **argv)
       break;
     case 'B':
       actual_payload=atoi(optarg);
+      random_payload = false;
       break;
     case 'T':
       //nacktoack_flag=(uint8_t)atoi(optarg);
@@ -344,7 +356,7 @@ int main(int argc, char **argv)
       printf("-b number of HARQ bits (1-2)\n");
       printf("-B payload to be transmitted on PUCCH\n");
       printf("-m initial cyclic shift m0\n");
-      printf("-T to check nacktoack miss for format 1");
+      printf("-T to check nacktoack miss for format 1\n");
       exit (-1);
       break;
     }
@@ -369,6 +381,10 @@ int main(int argc, char **argv)
   int do_DTX=0;
   if ((format < 2) && (actual_payload == 4)) do_DTX=1;
 
+  if (random_payload) {
+    srand(time(NULL));   // Initialization, should only be called once.
+    actual_payload = rand();      // Returns a pseudo-random integer between 0 and RAND_MAX.
+  }
   actual_payload &= ((1<<nr_bit)-1);
 
   printf("Transmitted payload is %ld, do_DTX = %d\n",actual_payload,do_DTX);
@@ -388,47 +404,24 @@ int main(int argc, char **argv)
   cfg->carrier_config.num_tx_ant.value = n_tx;
   cfg->carrier_config.num_rx_ant.value = n_rx;
   nr_phy_config_request_sim(gNB,N_RB_DL,N_RB_DL,mu,Nid_cell,SSB_positions);
-  phy_init_nr_gNB(gNB,0,0);
+  phy_init_nr_gNB(gNB);
+  /* RU handles rxdataF, and gNB just has a pointer. Here, we don't have an RU,
+   * so we need to allocate that memory as well. */
+  for (i = 0; i < n_rx; i++)
+    gNB->common_vars.rxdataF[i] = malloc16_clear(gNB->frame_parms.samples_per_frame_wCP*sizeof(int32_t));
 
-  double fs,bw,scs,eps;
+  double fs,txbw,rxbw;
+  uint32_t samples;
 
-  if (mu == 1 && N_RB_DL == 217) { 
-    fs = 122.88e6;
-    bw = 80e6;
-    scs = 30000;
-  }					       
-  else if (mu == 1 && N_RB_DL == 245) {
-    fs = 122.88e6;
-    bw = 90e6;
-    scs = 30000;
-  }
-  else if (mu == 1 && N_RB_DL == 273) {
-    fs = 122.88e6;
-    bw = 100e6;
-    scs = 30000;
-  }
-  else if (mu == 1 && N_RB_DL == 106) { 
-    fs = 61.44e6;
-    bw = 40e6;
-    scs = 30000;
-  }
-  else AssertFatal(1==0,"Unsupported numerology for mu %d, N_RB %d\n",mu, N_RB_DL);
+  get_samplerate_and_bw(mu,
+                        N_RB_DL,
+                        frame_parms->threequarter_fs,
+                        &fs,
+                        &samples,
+                        &txbw,
+                        &rxbw);
 
-  // cfo with respect to sub-carrier spacing
-  eps = cfo/scs;
-
-  // computation of integer and fractional FO to compare with estimation results
-  int IFO;
-  if(eps!=0.0){
-	printf("Introducing a CFO of %lf relative to SCS of %d kHz\n",eps,(int)(scs/1000));
-	if (eps>0)	
-  	  IFO=(int)(eps+0.5);
-	else
-	  IFO=(int)(eps-0.5);
-	printf("FFO = %lf; IFO = %d\n",eps-IFO,IFO);
-  }
-
-  UE2gNB = new_channel_desc_scm(n_tx, n_rx, channel_model, fs, bw, DS_TDL,0, 0, 0, 0);
+  UE2gNB = new_channel_desc_scm(n_tx, n_rx, channel_model, fs, 0, txbw, DS_TDL, 0.0, CORR_LEVEL_LOW, 0, 0, 0, 0);
 
   if (UE2gNB==NULL) {
     printf("Problem generating channel model. Exiting.\n");
@@ -476,9 +469,6 @@ int main(int argc, char **argv)
   UE = calloc(1,sizeof(PHY_VARS_NR_UE));
   memcpy(&UE->frame_parms,frame_parms,sizeof(NR_DL_FRAME_PARMS));
   UE->frame_parms.nb_antennas_rx=1;
-
-  if(eps!=0.0)
-    UE->UE_fo_compensation = 1; // if a frequency offset is set then perform fo estimation and compensation
 
   if (init_nr_ue_signal(UE, 1) != 0)
   {
@@ -568,7 +558,7 @@ int main(int argc, char **argv)
       }
 
       random_channel(UE2gNB,0);
-      freq_channel(UE2gNB,N_RB_DL,2*N_RB_DL+1,scs/1000);
+      freq_channel(UE2gNB,N_RB_DL,2*N_RB_DL+1,15<<mu);
       for (int symb=0; symb<nrofSymbols; symb++) {
         int i0 = (startingSymbolIndex + symb)*gNB->frame_parms.ofdm_symbol_size;
         for (int re=0;re<N_RB_DL*12;re++) {
@@ -663,7 +653,7 @@ int main(int argc, char **argv)
           if (nr_bit==1 && do_DTX == 0)
             ack_nack_errors+=(actual_payload^(!harq_list[0].harq_value));
           else if (do_DTX == 0)
-            ack_nack_errors+=(((actual_payload&1)^(!harq_list[0].harq_value))+((actual_payload>>1)^(!harq_list[1].harq_value)));
+            ack_nack_errors+=(((actual_payload&1)^(!harq_list[1].harq_value))+((actual_payload>>1)^(!harq_list[0].harq_value)));
           else if ((!confidence_lvl && !harq_list[0].harq_value) ||
                    (!confidence_lvl && nr_bit == 2 && !harq_list[1].harq_value))
             ack_nack_errors++;
@@ -731,6 +721,8 @@ int main(int argc, char **argv)
   free_channel_desc_scm(UE2gNB);
   term_freq_channel();
 
+  for (i = 0; i < n_rx; i++)
+    free(gNB->common_vars.rxdataF[i]);
   phy_free_nr_gNB(gNB);
   free(RC.gNB[0]);
   free(RC.gNB);

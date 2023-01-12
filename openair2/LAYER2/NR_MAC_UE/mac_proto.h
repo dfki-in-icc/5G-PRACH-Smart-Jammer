@@ -34,7 +34,6 @@
 #define __LAYER2_MAC_UE_PROTO_H__
 
 #include "mac_defs.h"
-#include "PHY/defs_nr_UE.h"
 #include "RRC/NR_UE/rrc_defs.h"
 
 #define NR_DL_MAX_DAI                            (4)                      /* TS 38.213 table 9.1.3-1 Value of counter DAI for DCI format 1_0 and 1_1 */
@@ -141,7 +140,6 @@ void fill_scheduled_response(nr_scheduled_response_t *scheduled_response,
                              int cc_id,
                              frame_t frame,
                              int slot,
-                             int thread_id,
                              void *phy_data);
 
 /*! \fn int8_t nr_ue_get_SR(module_id_t module_idP, frame_t frameP, slot_t slotP);
@@ -177,13 +175,6 @@ uint8_t nr_locate_BsrIndexByBufferSize(const uint32_t *table, int size,
 \return the number of subframe
 */
 int nr_get_sf_periodicBSRTimer(uint8_t bucketSize);
-
-/*! \fn  int nr_get_ms_bucketsizeduration(uint8_t bucketSize)
-   \brief get the time in ms form the bucket size duration configured by the higher layer
-\param[in]  bucketSize the bucket size duration
-\return the time in ms
-*/
-int nr_get_ms_bucketsizeduration(uint8_t bucketsizeduration);
 
 /*! \fn  int nr_get_sf_retxBSRTimer(uint8_t retxBSR_Timer)
    \brief get the number of subframe form the bucket size duration configured by the higher layer
@@ -318,6 +309,7 @@ void select_pucch_resource(NR_UE_MAC_INST_t *mac,
                            PUCCH_sched_t *pucch);
 
 int16_t get_pucch_tx_power_ue(NR_UE_MAC_INST_t *mac,
+                              int scs,
                               NR_PUCCH_Config_t *pucch_Config,
                               PUCCH_sched_t *pucch,
                               uint8_t format_type,
@@ -353,11 +345,10 @@ and fills the PRACH PDU per each FD occasion.
 @param module_idP Index of UE instance
 @param frameP Frame index
 @param slotP Slot index
-@param thread_id RX/TX Thread ID
 @returns void
 */
-void nr_ue_prach_scheduler(module_id_t module_idP, frame_t frameP, sub_frame_t slotP, int thread_id);
-void nr_ue_pucch_scheduler(module_id_t module_idP, frame_t frameP, int slotP, int thread_id);
+void nr_ue_prach_scheduler(module_id_t module_idP, frame_t frameP, sub_frame_t slotP);
+void nr_ue_pucch_scheduler(module_id_t module_idP, frame_t frameP, int slotP, void *phy_data);
 void nr_schedule_csirs_reception(NR_UE_MAC_INST_t *mac, int frame, int slot);
 void nr_schedule_csi_for_im(NR_UE_MAC_INST_t *mac, int frame, int slot);
 
@@ -396,13 +387,13 @@ random-access procedure
 */
 int nr_ue_process_rar(nr_downlink_indication_t *dl_info, NR_UL_TIME_ALIGNMENT_t *ul_time_alignment, int pdu_id);
 
-void nr_process_rar(nr_downlink_indication_t *dl_info);
-
 void nr_ue_contention_resolution(module_id_t module_id, int cc_id, frame_t frame, int slot, NR_PRACH_RESOURCES_t *prach_resources);
 
 void nr_ra_failed(uint8_t mod_id, uint8_t CC_id, NR_PRACH_RESOURCES_t *prach_resources, frame_t frame, int slot);
 
 void nr_ra_succeeded(module_id_t mod_id, frame_t frame, int slot);
+
+void nr_get_RA_window(NR_UE_MAC_INST_t *mac);
 
 /* \brief Function called by PHY to retrieve information to be transmitted using the RA procedure.
 If the UE is not in PUSCH mode for a particular eNB index, this is assumed to be an Msg3 and MAC
@@ -415,9 +406,7 @@ andom-access to transmit a BSR along with the C-RNTI control element (see 5.1.4 
 @param gNB_id gNB index
 @param nr_slot_tx slot for PRACH transmission
 @returns indication to generate PRACH to phy */
-uint8_t nr_ue_get_rach(NR_PRACH_RESOURCES_t *prach_resources,
-                       fapi_nr_ul_config_prach_pdu *prach_pdu,
-                       module_id_t mod_id,
+uint8_t nr_ue_get_rach(module_id_t mod_id,
                        int CC_id,
                        frame_t frame,
                        uint8_t gNB_id,
@@ -433,10 +422,19 @@ void nr_get_prach_resources(module_id_t mod_id,
                             int CC_id,
                             uint8_t gNB_id,
                             NR_PRACH_RESOURCES_t *prach_resources,
-                            fapi_nr_ul_config_prach_pdu *prach_pdu,
                             NR_RACH_ConfigDedicated_t * rach_ConfigDedicated);
 
-void nr_Msg1_transmitted(module_id_t mod_id, uint8_t CC_id, frame_t frameP, uint8_t gNB_id);
+void init_RA(module_id_t mod_id,
+             NR_PRACH_RESOURCES_t *prach_resources,
+             NR_RACH_ConfigCommon_t *nr_rach_ConfigCommon,
+             NR_RACH_ConfigGeneric_t *rach_ConfigGeneric,
+             NR_RACH_ConfigDedicated_t *rach_ConfigDedicated);
+
+int16_t get_prach_tx_power(module_id_t mod_id);
+
+void set_ra_rnti(NR_UE_MAC_INST_t *mac, fapi_nr_ul_config_prach_pdu *prach_pdu);
+
+void nr_Msg1_transmitted(module_id_t mod_id);
 
 void nr_Msg3_transmitted(module_id_t mod_id, uint8_t CC_id, frame_t frameP, slot_t slotP, uint8_t gNB_id);
 
@@ -453,7 +451,7 @@ void fill_dci_search_candidates(NR_SearchSpace_t *ss,fapi_nr_dl_config_dci_dl_pd
 
 void build_ssb_to_ro_map(NR_UE_MAC_INST_t *mac);
 
-void config_bwp_ue(NR_UE_MAC_INST_t *mac, uint16_t *bwp_ind, uint8_t *dci_format);
+void config_bwp_ue(NR_UE_MAC_INST_t *mac, uint32_t *bwp_ind, uint8_t *dci_format);
 
 void configure_ss_coreset(NR_UE_MAC_INST_t *mac,
                           NR_ServingCellConfig_t *scd,
@@ -462,6 +460,8 @@ void configure_ss_coreset(NR_UE_MAC_INST_t *mac,
 fapi_nr_ul_config_request_t *get_ul_config_request(NR_UE_MAC_INST_t *mac, int slot);
 
 void fill_ul_config(fapi_nr_ul_config_request_t *ul_config, frame_t frame_tx, int slot_tx, uint8_t pdu_type);
+
+int16_t compute_nr_SSB_PL(NR_UE_MAC_INST_t *mac, short ssb_rsrp_dBm);
 
 // PUSCH scheduler:
 // - Calculate the slot in which ULSCH should be scheduled. This is current slot + K2,

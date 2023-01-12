@@ -30,10 +30,6 @@
 #include "PHY/NR_TRANSPORT/nr_transport_proto.h"
 #include "PHY/NR_TRANSPORT/nr_transport_common_proto.h"
 #include "openair1/PHY/MODULATION/nr_modulation.h"
-/*#include "RadioResourceConfigCommonSIB.h"
-#include "RadioResourceConfigDedicated.h"
-#include "TDD-Config.h"
-#include "MBSFN-SubframeConfigList.h"*/
 #include "openair1/PHY/defs_RU.h"
 #include "openair1/PHY/CODING/nrLDPC_extern.h"
 #include "assertions.h"
@@ -194,9 +190,9 @@ int init_codebook_gNB(PHY_VARS_gNB *gNB) {
         }
       }
 
-      int llc;
-      int mmc;
-      double complex phase_sign;
+      int llc = 0;
+      int mmc = 0;
+      double complex phase_sign = 0;
       //Table 5.2.2.2.1-6:
       //Codebook for 2-layer CSI reporting using antenna ports 3000 to 2999+PCSI-RS
       //Compute the code book size for generating 2 layers out of Tx antenna ports
@@ -473,9 +469,8 @@ int init_codebook_gNB(PHY_VARS_gNB *gNB) {
   return 0;
 }
 
-int phy_init_nr_gNB(PHY_VARS_gNB *gNB,
-                    unsigned char is_secondary_gNB,
-                    unsigned char lowmem_flag) {
+int phy_init_nr_gNB(PHY_VARS_gNB *gNB)
+{
   // shortcuts
   NR_DL_FRAME_PARMS *const fp       = &gNB->frame_parms;
   nfapi_nr_config_request_scf_t *cfg = &gNB->gNB_config;
@@ -494,21 +489,19 @@ int phy_init_nr_gNB(PHY_VARS_gNB *gNB,
 
   while(gNB->configured == 0) usleep(10000);
 
-  if (lowmem_flag == 1) {
-    gNB->number_of_nr_dlsch_max = 2;
-    gNB->number_of_nr_ulsch_max = 2;
-  }
-  else {
-    gNB->number_of_nr_dlsch_max = NUMBER_OF_NR_DLSCH_MAX;
-    gNB->number_of_nr_ulsch_max = NUMBER_OF_NR_ULSCH_MAX;
-  }  
+  gNB->number_of_nr_dlsch_max = NUMBER_OF_NR_DLSCH_MAX;
+  gNB->number_of_nr_ulsch_max = NUMBER_OF_NR_ULSCH_MAX;
 
   load_dftslib();
 
   crcTableInit();
   init_scrambling_luts();
   init_pucch2_luts();
+
   load_nrLDPClib(NULL);
+
+  if (gNB->ldpc_offload_flag)
+    load_nrLDPClib_offload(); 
 
   init_codebook_gNB(gNB);
 
@@ -611,8 +604,15 @@ int phy_init_nr_gNB(PHY_VARS_gNB *gNB,
   gNB->nr_csi_info->csi_gold_init = cfg->cell_config.phy_cell_id.value;
   nr_init_csi_rs(&gNB->frame_parms, gNB->nr_csi_info->nr_gold_csi_rs, cfg->cell_config.phy_cell_id.value);
 
+  //PRS init
+  nr_init_prs(gNB);
+
   for (int id=0; id<NUMBER_OF_NR_SRS_MAX; id++) {
     gNB->nr_srs_info[id] = (nr_srs_info_t *)malloc16_clear(sizeof(nr_srs_info_t));
+    gNB->nr_srs_info[id]->srs_generated_signal = (int32_t**)malloc16_clear(MAX_NUM_NR_SRS_AP*sizeof(int32_t*));
+    for(int ap=0; ap<MAX_NUM_NR_SRS_AP; ap++) {
+      gNB->nr_srs_info[id]->srs_generated_signal[ap] = (int32_t*)malloc16_clear(fp->ofdm_symbol_size*MAX_NUM_NR_SRS_SYMBOLS*sizeof(int32_t));
+    }
   }
 
   generate_ul_reference_signal_sequences(SHRT_MAX);
@@ -623,11 +623,10 @@ int phy_init_nr_gNB(PHY_VARS_gNB *gNB,
   /// Transport init necessary for NR synchro
   init_nr_transport(gNB);
 
-  gNB->first_run_I0_measurements = 1;
-
-  common_vars->rxdata  = (int32_t **)malloc16(Prx*sizeof(int32_t*));
   common_vars->txdataF = (int32_t **)malloc16(Ptx*sizeof(int32_t*));
   common_vars->rxdataF = (int32_t **)malloc16(Prx*sizeof(int32_t*));
+  /* Do NOT allocate per-antenna txdataF/rxdataF: the gNB gets a pointer to the
+   * RU to copy/recover freq-domain memory from there */
   common_vars->beam_id = (uint8_t **)malloc16(Ptx*sizeof(uint8_t*));
 
   for (i=0;i<Ptx;i++){
@@ -637,10 +636,6 @@ int phy_init_nr_gNB(PHY_VARS_gNB *gNB,
           fp->samples_per_frame_wCP*sizeof(int32_t));
     common_vars->beam_id[i] = (uint8_t*)malloc16_clear(fp->symbols_per_slot*fp->slots_per_frame*sizeof(uint8_t));
     memset(common_vars->beam_id[i],255,fp->symbols_per_slot*fp->slots_per_frame);
-  }
-  for (i=0;i<Prx;i++){
-    common_vars->rxdataF[i] = (int32_t*)malloc16_clear(fp->samples_per_frame_wCP*sizeof(int32_t));
-    common_vars->rxdata[i] = (int32_t*)malloc16_clear(fp->samples_per_frame*sizeof(int32_t));
   }
   common_vars->debugBuff = (int32_t*)malloc16_clear(fp->samples_per_frame*sizeof(int32_t)*100);	
   common_vars->debugBuff_sample_offset = 0; 
@@ -656,11 +651,7 @@ int phy_init_nr_gNB(PHY_VARS_gNB *gNB,
   int n_buf = Prx*max_ul_mimo_layers;
 
   int nb_re_pusch = N_RB_UL * NR_NB_SC_PER_RB;
-#ifdef __AVX2__
   int nb_re_pusch2 = nb_re_pusch + (nb_re_pusch&7);
-#else
-  int nb_re_pusch2 = nb_re_pusch;
-#endif
 
   for (int ULSCH_id=0; ULSCH_id<gNB->number_of_nr_ulsch_max; ULSCH_id++) {
     pusch_vars[ULSCH_id] = (NR_gNB_PUSCH *)malloc16_clear( sizeof(NR_gNB_PUSCH) );
@@ -770,6 +761,10 @@ void phy_free_nr_gNB(PHY_VARS_gNB *gNB)
   free_and_zero(gNB->nr_csi_info);
 
   for (int id = 0; id < NUMBER_OF_NR_SRS_MAX; id++) {
+    for(int i=0; i<MAX_NUM_NR_SRS_AP; i++) {
+      free_and_zero(gNB->nr_srs_info[id]->srs_generated_signal[i]);
+    }
+    free_and_zero(gNB->nr_srs_info[id]->srs_generated_signal);
     free_and_zero(gNB->nr_srs_info[id]);
   }
 
@@ -784,13 +779,20 @@ void phy_free_nr_gNB(PHY_VARS_gNB *gNB)
     free_and_zero(common_vars->beam_id[i]);
   }
 
-  for (int i = 0; i < Prx; ++i) {
-    free_and_zero(common_vars->rxdataF[i]);
-    free_and_zero(common_vars->rxdata[i]);
+  for (int rsc=0; rsc < gNB->prs_vars.NumPRSResources; rsc++) {
+    for (int slot=0; slot<fp->slots_per_frame; slot++) {
+      for (int symb=0; symb<fp->symbols_per_slot; symb++) {
+        free_and_zero(gNB->nr_gold_prs[rsc][slot][symb]);
+      }
+      free_and_zero(gNB->nr_gold_prs[rsc][slot]);
+    }
+    free_and_zero(gNB->nr_gold_prs[rsc]);
   }
+  free_and_zero(gNB->nr_gold_prs);
 
+  /* Do NOT free per-antenna txdataF/rxdataF: the gNB gets a pointer to the
+   * RU's txdataF/rxdataF, and the RU will free that */
   free_and_zero(common_vars->txdataF);
-  free_and_zero(common_vars->rxdata);
   free_and_zero(common_vars->rxdataF);
   free_and_zero(common_vars->beam_id);
 
@@ -890,7 +892,6 @@ void nr_phy_config_request_sim(PHY_VARS_gNB *gNB,
   gNB_config->tdd_table.tdd_period.value = 0;
   //gNB_config->subframe_config.dl_cyclic_prefix_type.value = (fp->Ncp == NORMAL) ? NFAPI_CP_NORMAL : NFAPI_CP_EXTENDED;
 
-  gNB->mac_enabled   = 1;
   if (mu==0) {
     fp->dl_CarrierFreq = 2600000000;//from_nrarfcn(gNB_config->nfapi_config.rf_bands.rf_band[0],gNB_config->nfapi_config.nrarfcn.value);
     fp->ul_CarrierFreq = 2600000000;//fp->dl_CarrierFreq - (get_uldl_offset(gNB_config->nfapi_config.rf_bands.rf_band[0])*100000);
@@ -912,7 +913,11 @@ void nr_phy_config_request_sim(PHY_VARS_gNB *gNB,
   gNB_config->carrier_config.dl_bandwidth.value = config_bandwidth(mu, N_RB_DL, fp->nr_band);
 
   nr_init_frame_parms(gNB_config, fp);
+
   fp->ofdm_offset_divisor = UINT_MAX;
+  init_symbol_rotation(fp);
+  init_timeshift_rotation(fp);
+
   gNB->configured    = 1;
   LOG_I(PHY,"gNB configured\n");
 }
@@ -925,7 +930,6 @@ void nr_phy_config_request(NR_PHY_Config_t *phy_config) {
   nfapi_nr_config_request_scf_t *gNB_config = &RC.gNB[Mod_id]->gNB_config;
 
   memcpy((void*)gNB_config,phy_config->cfg,sizeof(*phy_config->cfg));
-  RC.gNB[Mod_id]->mac_enabled     = 1;
 
   uint64_t dl_bw_khz = (12*gNB_config->carrier_config.dl_grid_size[gNB_config->ssb_config.scs_common.value].value)*(15<<gNB_config->ssb_config.scs_common.value);
   fp->dl_CarrierFreq = ((dl_bw_khz>>1) + gNB_config->carrier_config.dl_frequency.value)*1000 ;
@@ -981,7 +985,7 @@ void init_DLSCH_struct(PHY_VARS_gNB *gNB, processingData_L1tx_t *msg) {
   for (int i=0; i<gNB->number_of_nr_dlsch_max; i++) {
     LOG_I(PHY,"Allocating Transport Channel Buffers for DLSCH %d/%d\n",i,gNB->number_of_nr_dlsch_max);
     for (int j=0; j<num_cw; j++) {
-      msg->dlsch[i][j] = new_gNB_dlsch(fp,1,16,NSOFT,0,grid_size);
+      msg->dlsch[i][j] = new_gNB_dlsch(fp, grid_size);
       AssertFatal(msg->dlsch[i][j]!=NULL,"Can't initialize dlsch %d \n", i);
     }
   }
@@ -1001,8 +1005,6 @@ void reset_DLSCH_struct(const PHY_VARS_gNB *gNB, processingData_L1tx_t *msg)
 void init_nr_transport(PHY_VARS_gNB *gNB) {
   NR_DL_FRAME_PARMS *fp = &gNB->frame_parms;
   LOG_I(PHY, "Initialise nr transport\n");
-
-  memset(gNB->num_pdsch_rnti, 0, sizeof(uint16_t)*80);
 
   for (int i=0; i<NUMBER_OF_NR_PUCCH_MAX; i++) {
     LOG_I(PHY,"Allocating Transport Channel Buffers for PUCCH %d/%d\n",i,NUMBER_OF_NR_PUCCH_MAX);

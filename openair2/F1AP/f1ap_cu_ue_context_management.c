@@ -973,9 +973,6 @@ int CU_handle_UE_CONTEXT_RELEASE_COMPLETE(instance_t       instance,
       LOG_E(F1AP, "could not find ue_context of UE RNTI %x\n", rnti);
     }
 
-#ifdef ITTI_SIM
-    return 0;
-#endif
   } else {
     struct rrc_eNB_ue_context_s *ue_context_p =
       rrc_eNB_get_ue_context(RC.rrc[instance], rnti);
@@ -1009,11 +1006,6 @@ int CU_handle_UE_CONTEXT_RELEASE_COMPLETE(instance_t       instance,
   }
 
   pdcp_remove_UE(&ctxt);
-
-  /* notify the agent */
-  if (flexran_agent_get_rrc_xface(instance))
-    flexran_agent_get_rrc_xface(instance)->flexran_agent_notify_ue_state_change(
-      instance, rnti, PROTOCOL__FLEX_UE_STATE_CHANGE_TYPE__FLUESC_DEACTIVATED);
 
   LOG_I(F1AP, "Received UE CONTEXT RELEASE COMPLETE: Removing CU UE entry for RNTI %x\n", rnti);
   f1ap_remove_ue(CUtype, instance, rnti);

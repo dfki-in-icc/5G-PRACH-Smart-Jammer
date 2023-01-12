@@ -239,12 +239,7 @@ void handle_nr_srs(NR_UL_IND_t *UL_info) {
     handle_nr_srs_measurements(module_id,
                                frame,
                                slot,
-                               srs_ind->rnti,
-                               srs_ind->timing_advance,
-                               srs_ind->num_symbols,
-                               srs_ind->wide_band_snr,
-                               srs_ind->num_reported_symbols,
-                               srs_ind->reported_symbol_list);
+                               &srs_list[i]);
   }
 
   UL_info->srs_ind.number_of_pdus = 0;
@@ -265,23 +260,8 @@ static void free_unqueued_nfapi_indications(nfapi_nr_rach_indication_t *rach_ind
   }
   if (uci_ind && uci_ind->num_ucis > 0)
   {
-    for (int i = 0; i < uci_ind->num_ucis; i++) {
-      switch (uci_ind->uci_list[i].pdu_type) {
-        case NFAPI_NR_UCI_FORMAT_0_1_PDU_TYPE:
-          if (uci_ind->uci_list[i].pucch_pdu_format_0_1.harq) {
-            free_and_zero(uci_ind->uci_list[i].pucch_pdu_format_0_1.harq->harq_list);
-          }
-          free_and_zero(uci_ind->uci_list[i].pucch_pdu_format_0_1.harq);
-          free_and_zero(uci_ind->uci_list[i].pucch_pdu_format_0_1.sr);
-          break;
-
-        case NFAPI_NR_UCI_FORMAT_2_3_4_PDU_TYPE:
-          free_and_zero(uci_ind->uci_list[i].pucch_pdu_format_2_3_4.harq.harq_payload);
-          free_and_zero(uci_ind->uci_list[i].pucch_pdu_format_2_3_4.csi_part1.csi_part1_payload);
-          free_and_zero(uci_ind->uci_list[i].pucch_pdu_format_2_3_4.csi_part2.csi_part2_payload);
-          break;
-      }
-    }
+    /* PUCCH fields (HARQ, SR) are freed in handle_nr_uci_pucch_0_1() and
+     * handle_nr_uci_pucch_2_3_4() */
     free_and_zero(uci_ind->uci_list);
     free_and_zero(uci_ind);
   }

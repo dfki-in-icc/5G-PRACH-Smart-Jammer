@@ -38,6 +38,14 @@
 
 #define NR_PBCH_PDU_BITS 24
 
+
+int nr_generate_prs(uint32_t **nr_gold_prs,
+                    int32_t *txdataF,
+                    int16_t amp,
+                    prs_config_t *prs_cfg,
+                    nfapi_nr_config_request_scf_t *config,
+                    NR_DL_FRAME_PARMS *frame_parms);
+
 /*!
 \fn int nr_generate_pss
 \brief Generation of the NR PSS
@@ -100,10 +108,6 @@ int nr_generate_pbch(nfapi_nr_dl_tti_ssb_pdu *ssb_pdu,
 void nr_init_pbch_interleaver(uint8_t *interleaver);
 
 NR_gNB_DLSCH_t *new_gNB_dlsch(NR_DL_FRAME_PARMS *frame_parms,
-                              unsigned char Kmimo,
-                              unsigned char Mdlharq,
-                              uint32_t Nsoft,
-                              uint8_t abstraction_flag,
                               uint16_t N_RB);
 
 void free_gNB_dlsch(NR_gNB_DLSCH_t **dlschptr, uint16_t N_RB, const NR_DL_FRAME_PARMS* frame_parms);
@@ -315,19 +319,19 @@ int nr_find_pucch(uint16_t rnti,
 NR_gNB_SRS_t *new_gNB_srs(void);
 void free_gNB_srs(NR_gNB_SRS_t *srs);
 
-int nr_find_srs(uint16_t rnti,
-                int frame,
-                int slot,
+int nr_find_srs(rnti_t rnti,
+                frame_t frame,
+                slot_t slot,
                 PHY_VARS_gNB *gNB);
 
 void nr_fill_srs(PHY_VARS_gNB *gNB,
-                 int frame,
-                 int slot,
+                 frame_t frame,
+                 slot_t slot,
                  nfapi_nr_srs_pdu_t *srs_pdu);
 
 int nr_get_srs_signal(PHY_VARS_gNB *gNB,
-                      int frame,
-                      int slot,
+                      frame_t frame,
+                      slot_t slot,
                       nfapi_nr_srs_pdu_t *srs_pdu,
                       nr_srs_info_t *nr_srs_info,
                       int32_t srs_received_signal[][gNB->frame_parms.ofdm_symbol_size*(1<<srs_pdu->num_symbols)]);

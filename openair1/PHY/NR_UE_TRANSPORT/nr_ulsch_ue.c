@@ -62,7 +62,7 @@ void nr_pusch_codeword_scrambling_uci(uint8_t *in,
                                       uint32_t* out)
 {
   uint8_t reset, b_idx;
-  uint32_t x1, x2, s=0, temp_out;
+  uint32_t x1 = 0, x2 = 0, s = 0, temp_out = 0;
 
   reset = 1;
   x2 = (n_RNTI<<15) + Nid;
@@ -110,8 +110,8 @@ void nr_ue_ulsch_procedures(PHY_VARS_NR_UE *UE,
                             unsigned char harq_pid,
                             uint32_t frame,
                             uint8_t slot,
-                            uint8_t thread_id,
-                            int gNB_id) {
+                            int gNB_id,
+                            nr_phy_data_tx_t *phy_data) {
 
   LOG_D(PHY,"nr_ue_ulsch_procedures hard_id %d %d.%d\n",harq_pid,frame,slot);
 
@@ -127,9 +127,9 @@ void nr_ue_ulsch_procedures(PHY_VARS_NR_UE *UE,
   int      N_PRB_oh = 0; // higher layer (RRC) parameter xOverhead in PUSCH-ServingCellConfig
   uint16_t number_dmrs_symbols = 0;
 
-  NR_UE_ULSCH_t *ulsch_ue = UE->ulsch[thread_id][gNB_id];
-  NR_UL_UE_HARQ_t *harq_process_ul_ue = ulsch_ue->harq_processes[harq_pid];
-  nfapi_nr_ue_pusch_pdu_t *pusch_pdu = &harq_process_ul_ue->pusch_pdu;
+  NR_UE_ULSCH_t *ulsch_ue = &phy_data->ulsch;
+  NR_UL_UE_HARQ_t *harq_process_ul_ue = &UE->ul_harq_processes[harq_pid];
+  nfapi_nr_ue_pusch_pdu_t *pusch_pdu = &ulsch_ue->pusch_pdu;
 
   int start_symbol          = pusch_pdu->start_symbol_index;
   uint16_t ul_dmrs_symb_pos = pusch_pdu->ul_dmrs_symb_pos;
@@ -170,7 +170,7 @@ void nr_ue_ulsch_procedures(PHY_VARS_NR_UE *UE,
 
   trace_NRpdu(DIRECTION_UPLINK,
               harq_process_ul_ue->a,
-              harq_process_ul_ue->pusch_pdu.pusch_data.tb_size,
+              pusch_pdu->pusch_data.tb_size,
               WS_C_RNTI, rnti, frame, slot, 0, 0);
 
   if (nr_ulsch_encoding(UE, ulsch_ue, frame_parms, harq_pid, G) == -1)
@@ -237,8 +237,8 @@ void nr_ue_ulsch_procedures(PHY_VARS_NR_UE *UE,
 
   if (pusch_pdu->pdu_bit_map & PUSCH_PDU_BITMAP_PUSCH_PTRS) {
 
-    K_ptrs = harq_process_ul_ue->pusch_pdu.pusch_ptrs.ptrs_freq_density;
-    L_ptrs = 1<<harq_process_ul_ue->pusch_pdu.pusch_ptrs.ptrs_time_density;
+    K_ptrs = pusch_pdu->pusch_ptrs.ptrs_freq_density;
+    L_ptrs = 1<<pusch_pdu->pusch_ptrs.ptrs_time_density;
 
     beta_ptrs = 1; // temp value until power control is implemented
 
@@ -495,15 +495,34 @@ void nr_ue_ulsch_procedures(PHY_VARS_NR_UE *UE,
         uint8_t pmi=pusch_pdu->Tpmi;
           
         if (pmi == 0) {//unitary Precoding
-          if(ap< pusch_pdu->nrOfLayers)
-            memcpy((void*)&txdataF[ap][l*frame_parms->ofdm_symbol_size  + k],
-                   (void*)&tx_precoding[ap][2*(l*frame_parms->ofdm_symbol_size + k)],
-                   NR_NB_SC_PER_RB*sizeof(int32_t));
-          else
-            memset((void*)&txdataF[ap][l*frame_parms->ofdm_symbol_size + k],
-                   0,
-                   NR_NB_SC_PER_RB*sizeof(int32_t));
-
+          if (k + NR_NB_SC_PER_RB <= frame_parms->ofdm_symbol_size) { // RB does not cross DC
+            if (ap<pusch_pdu->nrOfLayers)
+              memcpy(&txdataF[ap][l*frame_parms->ofdm_symbol_size  + k],
+                     &tx_precoding[ap][2*(l*frame_parms->ofdm_symbol_size + k)],
+                     NR_NB_SC_PER_RB*sizeof(int32_t));
+            else
+              memset(&txdataF[ap][l*frame_parms->ofdm_symbol_size + k],
+                     0,
+                     NR_NB_SC_PER_RB*sizeof(int32_t));
+          } else { // RB does cross DC
+            int neg_length = frame_parms->ofdm_symbol_size - k;
+            int pos_length = NR_NB_SC_PER_RB - neg_length;
+            if (ap<pusch_pdu->nrOfLayers) {
+              memcpy(&txdataF[ap][l*frame_parms->ofdm_symbol_size + k],
+                     &tx_precoding[ap][2*(l*frame_parms->ofdm_symbol_size + k)],
+                     neg_length*sizeof(int32_t));
+              memcpy(&txdataF[ap][l*frame_parms->ofdm_symbol_size],
+                     &tx_precoding[ap][2*(l*frame_parms->ofdm_symbol_size)],
+                     pos_length*sizeof(int32_t));
+            } else {
+              memset(&txdataF[ap][l*frame_parms->ofdm_symbol_size + k],
+                     0,
+                     neg_length*sizeof(int32_t));
+              memset(&txdataF[ap][l*frame_parms->ofdm_symbol_size],
+                     0,
+                     pos_length*sizeof(int32_t));
+            }
+          }
           k += NR_NB_SC_PER_RB;
           if (k >= frame_parms->ofdm_symbol_size) {
             k -= frame_parms->ofdm_symbol_size;
@@ -554,7 +573,7 @@ void nr_ue_ulsch_procedures(PHY_VARS_NR_UE *UE,
   }// port loop
 
   NR_UL_UE_HARQ_t *harq_process_ulsch=NULL;
-  harq_process_ulsch = UE->ulsch[thread_id][gNB_id]->harq_processes[harq_pid];
+  harq_process_ulsch = &UE->ul_harq_processes[harq_pid];
   harq_process_ulsch->status = SCH_IDLE;
 
   for (int nl = 0; nl < Nl; nl++) {
@@ -597,17 +616,28 @@ uint8_t nr_ue_pusch_common_procedures(PHY_VARS_NR_UE *UE,
   int symb_offset = (slot%frame_parms->slots_per_subframe)*frame_parms->symbols_per_slot;
   for(ap = 0; ap < n_antenna_ports; ap++) {
     for (int s=0;s<NR_NUMBER_OF_SYMBOLS_PER_SLOT;s++){
-      c16_t rot=((c16_t*)frame_parms->symbol_rotation[1])[s + symb_offset];
+      c16_t *this_symbol = (c16_t *)&txdataF[ap][frame_parms->ofdm_symbol_size * s];
+      c16_t rot=frame_parms->symbol_rotation[1][s + symb_offset];
       LOG_D(PHY,"rotating txdataF symbol %d (%d) => (%d.%d)\n",
 	    s,
 	    s + symb_offset,
 	    rot.r, rot.i);
 
-      rotate_cpx_vector((c16_t *)&txdataF[ap][frame_parms->ofdm_symbol_size * s],
-                        &rot,
-                        (c16_t *)&txdataF[ap][frame_parms->ofdm_symbol_size * s],
-                        frame_parms->ofdm_symbol_size,
-                        15);
+      if (frame_parms->N_RB_UL & 1) {
+        rotate_cpx_vector(this_symbol, &rot, this_symbol,
+                          (frame_parms->N_RB_UL + 1) * 6, 15);
+        rotate_cpx_vector(this_symbol + frame_parms->first_carrier_offset - 6,
+                          &rot,
+                          this_symbol + frame_parms->first_carrier_offset - 6,
+                          (frame_parms->N_RB_UL + 1) * 6, 15);
+      } else {
+        rotate_cpx_vector(this_symbol, &rot, this_symbol,
+                          frame_parms->N_RB_UL * 6, 15);
+        rotate_cpx_vector(this_symbol + frame_parms->first_carrier_offset,
+                          &rot,
+                          this_symbol + frame_parms->first_carrier_offset,
+                          frame_parms->N_RB_UL * 6, 15);
+      }
     }
   }
 

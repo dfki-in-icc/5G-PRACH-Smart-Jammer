@@ -33,7 +33,7 @@ OS_RELEASE=$(grep "^VERSION_ID=" /etc/os-release | sed "s/VERSION_ID=//" | sed "
 case "$OS_DISTRO" in
   fedora) OS_BASEDISTRO="fedora"; INSTALLER="dnf"; CMAKE="cmake" ;;
   rhel)   OS_BASEDISTRO="fedora"; INSTALLER="yum --skip-broken"; CMAKE="cmake3" ;;
-  centos) OS_BASEDISTRO="fedora"; INSTALLER="yum --skip-broken"; CMAKE="cmake3" ;;
+  centos) OS_BASEDISTRO="centos"; INSTALLER="yum --skip-broken"; CMAKE="cmake3" ;;
   debian) OS_BASEDISTRO="debian"; INSTALLER="apt-get"; CMAKE="cmake" ;;
   ubuntu) OS_BASEDISTRO="debian"; INSTALLER="apt-get"; CMAKE="cmake" ;;
 esac
@@ -121,7 +121,9 @@ check_supported_distribution() {
         "rhel8.5")     return 0 ;;
         "rhel8.6")     return 0 ;;
         "rhel8.7")     return 0 ;;
+        "rhel9.0")     return 0 ;;
         "centos7")     return 0 ;;
+        "centos8")     return 0 ;;
     esac
     return 1
 }
@@ -158,7 +160,6 @@ clean_kernel() {
     echo_info "Flushed iptables"
     $SUDO rmmod nasmesh > /dev/null 2>&1
     $SUDO rmmod oai_nw_drv  > /dev/null 2>&1
-    $SUDO rmmod openair_rf > /dev/null 2>&1
     $SUDO rmmod ue_ip > /dev/null 2>&1
     echo_info "removed drivers from kernel"
 }
@@ -166,7 +167,6 @@ clean_kernel() {
 clean_all_files() {
  set_openair_env
  dir=$OPENAIR_DIR/cmake_targets
- rm -rf $dir/log $OPENAIR_DIR/targets/bin/*
  rm -rf $dir/ran_build $dir/ran_build_noLOG
  rm -rf $dir/lte-simulators/build 
  rm -rf $dir/nas_sim_tools/build 
@@ -206,7 +206,7 @@ check_errors() {
 
 compilations() {
   cd $OPENAIR_DIR/cmake_targets/$1/build
-  echo_info "Log file for compilation is being written to: $dlog/$2.$REL.txt"
+  echo_info "Log file for compilation is being written to: $dlog/$2.txt"
   set +e
   {
     if [ "$BUILD_COVERITY_SCAN" == "1" ]; then
@@ -224,26 +224,18 @@ compilations() {
     fi
     fi
     ret=$?
-  } > $dlog/$2.$REL.txt 2>&1
+  } > $dlog/$2.txt 2>&1
   set -e
   if [ "$VERBOSE_CI" == "1" ]; then
-     echo_info "====== Start of log for $2.$REL.txt ======"
-     cat $dlog/$2.$REL.txt
-     echo_info "====== End of log for $2.$REL.txt ======"
+     echo_info "====== Start of log for $2.txt ======"
+     cat $dlog/$2.txt
+     echo_info "====== End of log for $2.txt ======"
   fi
-  if [[ $ret -ne 0 ]]; then
-     check_warnings "$dlog/$2.$REL.txt"
-     check_errors "$dlog/$2.$REL.txt"
-     echo_error "$2 compilation failed"
-     exit 1
-  fi
-  if [ -s $3 ] ; then
-     cp $3 $4
+  check_warnings "$dlog/$2.txt"
+  if [[ $ret -eq 0 ]]; then
      echo_success "$2 compiled"
-     check_warnings "$dlog/$2.$REL.txt"
   else
-     check_warnings "$dlog/$2.$REL.txt"
-     check_errors "$dlog/$2.$REL.txt"
+     check_errors "$dlog/$2.txt"
      echo_error "$2 compilation failed"
      exit 1
   fi
@@ -252,89 +244,6 @@ compilations() {
 ############################################
 # External packages installers
 ############################################
-
-install_protobuf_from_source(){
-    protobuf_install_log=$OPENAIR_DIR/cmake_targets/log/protobuf_install_log.txt
-    echo_info "\nInstalling Google Protobuf from sources. The log file for Protobuf installation is here: $protobuf_install_log "
-    (
-    cd /tmp
-    echo "Downloading protobuf"
-    #rm -rf /tmp/protobuf-2.6.1.tar.gz* /tmp/protobuf-2.6.1
-    #wget https://github.com/protocolbuffers/protobuf/releases/download/v2.6.1/protobuf-2.6.1.tar.gz
-    #tar -xzvf protobuf-2.6.1.tar.gz --owner $USER --group $USER --no-same-owner
-    #cd protobuf-2.6.1/
-
-    if [ $IS_CONTAINER -eq 0 ]
-    then
-      rm -rf /tmp/protobuf-cpp-3.3.0.tar.gz* /tmp/protobuf-3.3.0
-      wget --tries=3 --retry-connrefused https://github.com/protocolbuffers/protobuf/releases/download/v3.3.0/protobuf-cpp-3.3.0.tar.gz
-      tar -xzvf protobuf-cpp-3.3.0.tar.gz --owner $(id -u) --group $(id -g) --no-same-owner
-      cd protobuf-3.3.0/
-    else
-      export LD_LIBRARY_PATH=/usr/local/lib #protoc needs to know where toclook for shared libs
-      rm -rf /tmp/protobuf
-      git clone --depth=1 --branch=v3.3.0 https://github.com/protocolbuffers/protobuf.git /tmp/protobuf
-      cd /tmp/protobuf
-      git submodule update --init --recursive
-      ./autogen.sh
-    fi
-    ./configure
-    echo "Compiling protobuf"
-    make -j`nproc`
-    $SUDO make install
-    $SUDO ldconfig
-    if [[ -v CI_ENV ]]; then
-        cd /tmp
-        $SUDO rm -rf protobuf*
-    fi
-    ) >& $protobuf_install_log
-}
-
-install_protobuf_c_from_source(){
-    protobuf_c_install_log=$OPENAIR_DIR/cmake_targets/log/protobuf_c_install_log.txt
-    echo_info "\nInstalling Google Protobuf_C from sources. The log file for Protobuf_C installation is here: $protobuf_c_install_log "
-    (
-    if [[ "$OS_DISTRO" == "rhel" ]] || [[ "$OS_DISTRO" == "centos" ]]; then
-        export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
-    fi
-    cd /tmp
-    echo "Downloading protobuf-c"
-    rm -rf /tmp/protobuf-c
-    git clone https://github.com/protobuf-c/protobuf-c.git
-    cd protobuf-c
-	git checkout 2a46af42784abf86804d536f6e0122d47cfeea45
-    ./autogen.sh
-    ./configure
-    echo "Compiling protobuf-c"
-    make -j`nproc`
-    $SUDO make install
-    $SUDO ldconfig
-    if [[ -v CI_ENV ]]; then
-        cd /tmp
-        $SUDO rm -rf protobuf*
-    fi
-    ) >& $protobuf_c_install_log
-}
-
-install_protobuf_c() {
-  local protobuf_packages=""
-  case "$(get_distribution_release)" in
-    "ubuntu18.04" | "ubuntu20.04" | "ubuntu21.04" | "ubuntu22.04")
-      protobuf_packages="protobuf-c-compiler libprotobuf-c1 libprotobuf-c-dev"
-      ;;
-  esac
-  case "$OS_DISTRO" in
-    "rhel" | "centos" | "fedora") # in EPEL and Fedora repos (at least as of 35)
-      protobuf_packages="protobuf-c-compiler protobuf-c protobuf-c-devel"
-      ;;
-  esac
-  if [[ "$protobuf_packages" == "" ]]; then
-    install_protobuf_from_source
-    install_protobuf_c_from_source
-  else
-    $SUDO $INSTALLER -y install $protobuf_packages
-  fi
-}
 
 install_usrp_uhd_driver_from_source(){
     uhd_install_log=$OPENAIR_DIR/cmake_targets/log/uhd_install_log.txt
@@ -345,11 +254,34 @@ install_usrp_uhd_driver_from_source(){
     rm -rf /tmp/uhd
     git clone https://github.com/EttusResearch/uhd.git
     cd uhd
+    # For our legacy TDD eNB running with a B2xx RF board
+    # the following patch has to be applied
     if [[ -v UHD_VERSION ]]; then
         git checkout tags/v${UHD_VERSION}
+        # We recommend to use not older than 3.15.0.0
+        if [[ "$UHD_VERSION" == "3.15.0.0" ]]; then
+            # Tested that patch for the following versions:
+            # - 3.15.0.0
+            git apply $OPENAIR_DIR/cmake_targets/tools/uhd-3.15-tdd-patch.diff
+            ret=$?;[[ $ret -ne 0 ]] && echo_fatal "Could not apply the TDD patch"
+        else
+            # Tested that patch for the following versions:
+            # - 4.0.0.0
+            # - 4.1.0.0
+            # - 4.1.0.5
+            # - 4.2.0.0
+            # - 4.2.0.1
+            # - 4.3.0.0-rc1
+            git apply $OPENAIR_DIR/cmake_targets/tools/uhd-4.x-tdd-patch.diff
+            ret=$?;[[ $ret -ne 0 ]] && echo_fatal "Could not apply the TDD patch"
+        fi
     else
         git checkout tags/v4.0.0.0
+        git apply $OPENAIR_DIR/cmake_targets/tools/uhd-4.x-tdd-patch.diff
+        ret=$?;[[ $ret -ne 0 ]] && echo_fatal "Could not apply the TDD patch"
     fi
+    # Printing out the results of the patch to make sure it was properly applied
+    git diff
     mkdir -p host/build
     cd host/build || true
     $CMAKE ../ -GNinja
@@ -787,7 +719,6 @@ check_install_oai_software() {
 	openssl \
 	subversion \
 	xmlstarlet \
-	libyaml-dev \
 	wget \
 	libxpm-dev \
         libboost-all-dev
@@ -868,11 +799,11 @@ check_install_oai_software() {
       lapack \
       lapack-devel \
       blas \
-      blas-devel \
-      libyaml-devel
+      blas-devel
   fi
 
     install_asn1c_from_source $1
+    install_simde_from_source $1
 }
 
 install_asn1c_from_source(){
@@ -897,6 +828,31 @@ install_asn1c_from_source(){
         $SUDO rm -rf /tmp/asn1c
     fi
     ) > $asn1_install_log 2>&1
+}
+
+install_simde_from_source(){
+    echo_info "\nInstalling SIMDE from source without test cases (header files only)"
+    cd /tmp
+    $SUDO rm -rf /tmp/simde
+    git clone https://github.com/simd-everywhere/simde-no-tests.git /tmp/simde
+    cd /tmp/simde
+    # brute force copy into /usr/include
+    $SUDO \cp -rv ../simde /usr/include
+    $SUDO patch /usr/include/simde/x86/avx.h << FIN
+--- /usr/include/simde/x86/avx.h.old	2022-10-03 19:17:39.828223432 +0200
++++ /usr/include/simde/x86/avx.h	2022-10-05 16:19:55.086019445 +0200
+@@ -3643,6 +3643,9 @@
+ simde__m256i simde_mm256_insertf128_si256(simde__m256i a, simde__m128i b, int im
+
+   return simde__m256i_from_private(a_);
+ }
++#if defined(SIMDE_X86_AVX_NATIVE)
++  #define simde_mm256_insertf128_si256(a, b, imm8) _mm256_insertf128_si256(a, b, imm8)
++#endif
+ #if defined(SIMDE_X86_AVX_ENABLE_NATIVE_ALIASES)
+   #undef _mm256_insertf128_si256
+   #define _mm256_insertf128_si256(a, b, imm8) simde_mm256_insertf128_si256(a, b, imm8)
+FIN
 }
 
 #################################################

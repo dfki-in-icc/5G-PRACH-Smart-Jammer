@@ -25,7 +25,7 @@
 #include <common/utils/LOG/log.h>
 #include <common/utils/system.h>
 #include <common/config/config_userapi.h>
-#include <targets/RT/USER/lte-softmodem.h>
+#include "executables/lte-softmodem.h"
 #include <openair1/PHY/defs_eNB.h>
 #include <openair1/PHY/phy_extern.h>
 #include <nfapi/oai_integration/vendor_ext.h>
@@ -41,7 +41,7 @@
 #include <executables/split_headers.h>
 #include <openair1/PHY/CODING/coding_extern.h>
 #include <threadPool/thread-pool.h>
-#include <emmintrin.h>
+#include "PHY/sse_intrin.h"
 
 #define FS6_BUF_SIZE 1000*1000
 static UDPsock_t sockFS6;
@@ -740,6 +740,8 @@ void pusch_procedures_fromsplit(uint8_t *bufferZone, int bufSize, PHY_VARS_eNB *
 
   while (proc->nbDecode > 0) {
     notifiedFIFO_elt_t *req=pullTpool(proc->respDecode, proc->threadPool);
+    if (req == NULL)
+      break; // Tpool has been stopped
     postDecode(proc, req);
     delNotifiedFIFO_elt(req);
   }

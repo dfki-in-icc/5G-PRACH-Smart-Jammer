@@ -33,6 +33,7 @@
 #-----------------------------------------------------------
 import sys              # arg
 import re               # reg
+import fileinput
 import logging
 import os
 import time
@@ -102,9 +103,9 @@ class HTMLManagement():
 
 	def CreateHtmlHeader(self, ADBIPAddress):
 		if (not self.htmlHeaderCreated):
-			logging.debug('\u001B[1m----------------------------------------\u001B[0m')
-			logging.debug('\u001B[1m  Creating HTML header \u001B[0m')
-			logging.debug('\u001B[1m----------------------------------------\u001B[0m')
+			logging.info('\u001B[1m----------------------------------------\u001B[0m')
+			logging.info('\u001B[1m  Creating HTML header \u001B[0m')
+			logging.info('\u001B[1m----------------------------------------\u001B[0m')
 			self.htmlFile = open('test_results.html', 'w')
 			self.htmlFile.write('<!DOCTYPE html>\n')
 			self.htmlFile.write('<html class="no-js" lang="en-US">\n')
@@ -195,7 +196,10 @@ class HTMLManagement():
 			self.htmlFile.write('  <ul class="nav nav-pills">\n')
 			count = 0
 			while (count < self.nbTestXMLfiles):
-				pillMsg = '    <li><a data-toggle="pill" href="#'
+				if count == 0:
+					pillMsg = '    <li class="active"><a data-toggle="pill" href="#'
+				else:
+					pillMsg = '    <li><a data-toggle="pill" href="#'
 				pillMsg += self.htmlTabRefs[count]
 				pillMsg += '">'
 				pillMsg += '__STATE_' + self.htmlTabNames[count] + '__'
@@ -269,6 +273,15 @@ class HTMLManagement():
 
 	def CreateHtmlFooter(self, passStatus):
 		if (os.path.isfile('test_results.html')):
+			# Tagging the 1st tab as active so it is automatically opened.
+			firstTabFound = False
+			for line in fileinput.FileInput("test_results.html", inplace=1):
+				if re.search('tab-pane fade', line) and not firstTabFound:
+					firstTabFound = True
+					print(line.replace('tab-pane fade', 'tab-pane fade in active'), end ='')
+				else:
+					print(line, end ='')
+
 			self.htmlFile = open('test_results.html', 'a')
 			self.htmlFile.write('</div>\n')
 			self.htmlFile.write('  <p></p>\n')
@@ -453,13 +466,11 @@ class HTMLManagement():
 						self.htmlFile.write('        <td bgcolor = "red" >' + str(parameters['warnings'])  + '</td>\n')
 					elif (parameters['warnings'] == 0):
 						self.htmlFile.write('        <td bgcolor = "green" >' + str(parameters['warnings'])  + '</td>\n')
-					elif ((parameters['warnings'] > 0) and (parameters['warnings'] <= 20)):
-						self.htmlFile.write('        <td bgcolor = "orange" >' + str(parameters['warnings'])  + '</td>\n')
 					else:
-						self.htmlFile.write('        <td bgcolor = "red" >' + str(parameters['warnings'])  + '</td>\n')
+						self.htmlFile.write('        <td bgcolor = "orange" >' + str(parameters['warnings'])  + '</td>\n')
 					if (parameters['errors'] == 0) and (parameters['warnings'] == 0):
 						self.htmlFile.write('        <th colspan=' + str(1+self.htmlUEConnected) + ' bgcolor = "green" ><font color="white">OK </font></th>\n')
-					elif (parameters['errors'] == 0) and ((parameters['warnings'] > 0) and (parameters['warnings'] <= 20)):
+					elif (parameters['errors'] == 0):
 						self.htmlFile.write('        <th colspan=' + str(1+self.htmlUEConnected) + ' bgcolor = "orange" ><font color="white">OK </font></th>\n')
 					else:
 						self.htmlFile.write('        <th colspan=' + str(1+self.htmlUEConnected) + ' bgcolor = "red" > NOT OK  </th>\n')

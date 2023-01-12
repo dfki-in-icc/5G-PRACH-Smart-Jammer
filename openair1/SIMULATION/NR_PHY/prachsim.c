@@ -54,6 +54,7 @@
 #include <openair2/RRC/NR_UE/rrc_defs.h>
 //#include "openair1/SIMULATION/NR_PHY/nr_dummy_functions.c"
 #include <openair3/ocp-gtpu/gtp_itf.h>
+#include "executables/nr-uesoftmodem.h"
 
 #define NR_PRACH_DEBUG 1
 #define PRACH_WRITE_OUTPUT_DEBUG 1
@@ -93,7 +94,7 @@ int oai_nfapi_nr_rach_indication(nfapi_nr_rach_indication_t *ind) { return(0);  
 instance_t DUuniqInstance=0;
 instance_t CUuniqInstance=0;
 teid_t newGtpuCreateTunnel(instance_t instance,
-                           rnti_t rnti,
+                           ue_id_t ue_id,
                            int incoming_bearer_id,
                            int outgoing_bearer_id,
                            teid_t outgoing_teid,
@@ -105,7 +106,7 @@ teid_t newGtpuCreateTunnel(instance_t instance,
   return 0;
 }
 
-int newGtpuDeleteAllTunnels(instance_t instance, rnti_t rnti) {
+int newGtpuDeleteAllTunnels(instance_t instance, ue_id_t ue_id) {
   return 0;
 }
 
@@ -149,7 +150,7 @@ int
 gtpv1u_update_ngu_tunnel(
   const instance_t                              instanceP,
   const gtpv1u_gnb_create_tunnel_req_t *const  create_tunnel_req_pP,
-  const rnti_t                                  prior_rnti
+  const ue_id_t                                 prior_ue_id
 ){
   return 0;
 }
@@ -223,12 +224,6 @@ int DU_send_INITIAL_UL_RRC_MESSAGE_TRANSFER(module_id_t     module_idP,
   return 0;
 }
 
-typedef struct {
-  uint64_t       optmask;   //mask to store boolean config options
-  uint8_t        nr_dlsch_parallel; // number of threads for dlsch decoding, 0 means no parallelization
-  tpool_t        Tpool;             // thread pool
-} nrUE_params_t;
-
 nrUE_params_t nrUE_params;
 
 nrUE_params_t *get_nrUE_params(void) {
@@ -269,7 +264,6 @@ int main(int argc, char **argv){
   int n_bytes=0;
 
   NR_DL_FRAME_PARMS *frame_parms;
-  NR_PRACH_RESOURCES_t prach_resources;
   nfapi_nr_prach_config_t *prach_config;
   nfapi_nr_prach_pdu_t *prach_pdu;
   fapi_nr_prach_config_t *ue_prach_config;
@@ -679,7 +673,7 @@ int main(int argc, char **argv){
 
   memcpy((void*)&ru->config,(void*)&RC.gNB[0]->gNB_config,sizeof(ru->config));
   RC.nb_nr_L1_inst=1;
-  phy_init_nr_gNB(gNB,0,1); //lowmem
+  phy_init_nr_gNB(gNB);
   nr_phy_init_RU(ru);
   set_tdd_config_nr(&gNB->gNB_config, mu, 7, 6, 2, 4);
 
@@ -699,7 +693,6 @@ int main(int argc, char **argv){
 
   ue_prach_pdu           = &UE->prach_vars[0]->prach_pdu;
   ue_prach_config        = &UE->nrUE_config.prach_config;
-  UE->prach_resources[0] = &prach_resources;
   txdata                 = UE->common_vars.txdata;
 
   UE->prach_vars[0]->amp        = AMP;
@@ -722,8 +715,7 @@ int main(int argc, char **argv){
   if (n_frames == 1)
     printf("raPreamble %d\n",preamble_tx);
 
-  UE->prach_resources[0]->ra_PreambleIndex = preamble_tx;
-  UE->prach_resources[0]->init_msg1 = 1;
+  ue_prach_pdu->ra_PreambleIndex = preamble_tx;
 
   // Configure channel
   bw = N_RB_UL*(180e3)*(1 << frame_parms->numerology_index);
@@ -737,11 +729,15 @@ int main(int argc, char **argv){
                                 gNB->frame_parms.nb_antennas_rx,
                                 channel_model,
                                 fs,
+                                0,
                                 bw,
                                 DS_TDL,
                                 0.0,
+                                CORR_LEVEL_LOW,
+                                0.0,
                                 delay,
-                                0, 0);
+                                0,
+                                0);
 
   if (UE2gNB==NULL) {
     printf("Problem generating channel model. Exiting.\n");
@@ -772,14 +768,7 @@ int main(int argc, char **argv){
                        ue_prach_config->num_prach_fd_occasions_list[fd_occasion].prach_root_sequence_index,
                        UE->X_u);
 
-  /*tx_lev = generate_nr_prach(UE,
-			     0, //gNB_id,
-			     subframe); */ //commented for testing purpose
-
-  UE_nr_rxtx_proc_t proc={0};
-  proc.frame_tx   = frame;
-  proc.nr_slot_tx = slot;
-  nr_ue_prach_procedures(UE, &proc, 0);
+  generate_nr_prach(UE, 0, frame, slot);
 
   /* tx_lev_dB not used later, no need to set */
   //tx_lev_dB = (unsigned int) dB_fixed(tx_lev);
@@ -845,31 +834,31 @@ int main(int argc, char **argv){
       for (trial=0; trial<n_frames; trial++) {
 
 	if (input_fd==NULL) {
-        sigma2_dB = 10*log10((double)tx_lev) - SNR - 10*log10(N_RB_UL*12/N_ZC);
+          sigma2_dB = 10*log10((double)tx_lev) - SNR - 10*log10(N_RB_UL*12/N_ZC);
 
-        if (n_frames==1)
-          printf("sigma2_dB %f (SNR %f dB) tx_lev_dB %f\n",sigma2_dB,SNR,10*log10((double)tx_lev));
+          if (n_frames==1)
+            printf("sigma2_dB %f (SNR %f dB) tx_lev_dB %f\n",sigma2_dB,SNR,10*log10((double)tx_lev));
 
-        //AWGN
-        sigma2 = pow(10,sigma2_dB/10);
-        //  printf("Sigma2 %f (sigma2_dB %f)\n",sigma2,sigma2_dB);
+          //AWGN
+          sigma2 = pow(10,sigma2_dB/10);
+          //  printf("Sigma2 %f (sigma2_dB %f)\n",sigma2,sigma2_dB);
 
-        if (awgn_flag == 0) {
-          multipath_tv_channel(UE2gNB, s_re, s_im, r_re, r_im, frame_parms->samples_per_frame, 0);
-        }
-
-        if (n_frames==1) {
-          printf("rx_level data symbol %f, tx_lev %f\n",
-                 10*log10(signal_energy_fp(r_re,r_im,1,OFDM_SYMBOL_SIZE_COMPLEX_SAMPLES,0)),
-                 10*log10(tx_lev));
-        }
-
-        for (i = 0; i< frame_parms->samples_per_subframe; i++) {
-          for (aa = 0; aa < frame_parms->nb_antennas_rx; aa++) {
-            ((short*) &ru->common.rxdata[aa][rx_prach_start])[2*i] = (short) (.167*(r_re[aa][i] +sqrt(sigma2/2)*gaussdouble(0.0,1.0)));
-            ((short*) &ru->common.rxdata[aa][rx_prach_start])[2*i+1] = (short) (.167*(r_im[aa][i] + (iqim*r_re[aa][i]) + sqrt(sigma2/2)*gaussdouble(0.0,1.0)));
+          if (awgn_flag == 0) {
+            multipath_tv_channel(UE2gNB, s_re, s_im, r_re, r_im, frame_parms->samples_per_frame, 0);
           }
-        }
+
+          if (n_frames==1) {
+            printf("rx_level data symbol %f, tx_lev %f\n",
+                   10*log10(signal_energy_fp(r_re,r_im,1,OFDM_SYMBOL_SIZE_COMPLEX_SAMPLES,0)),
+                   10*log10(tx_lev));
+          }
+
+          for (i = 0; i< frame_parms->samples_per_subframe; i++) {
+            for (aa = 0; aa < frame_parms->nb_antennas_rx; aa++) {
+              ((short*) &ru->common.rxdata[aa][rx_prach_start])[2*i] = (short) (.167*(r_re[aa][i] +sqrt(sigma2/2)*gaussdouble(0.0,1.0)));
+              ((short*) &ru->common.rxdata[aa][rx_prach_start])[2*i+1] = (short) (.167*(r_im[aa][i] + (iqim*r_re[aa][i]) + sqrt(sigma2/2)*gaussdouble(0.0,1.0)));
+            }
+          }
 	} else {
 	  n_bytes = fread(&ru->common.rxdata[0][rx_prach_start],sizeof(int32_t),frame_parms->samples_per_subframe,input_fd);
 	  printf("fread %d bytes from file %s\n",n_bytes,input_file);

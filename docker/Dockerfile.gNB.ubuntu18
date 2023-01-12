@@ -50,19 +50,20 @@ RUN apt-get update && \
         libconfig9 \
         openssl \
         net-tools \
+        iperf \
         iproute2 \
         iputils-ping \
+        gdb \
         python \
         python3 \
         python3-six \
         python3-requests \
-        libusb-1.0-0 \
-        libyaml-0-2 && \
+        libusb-1.0-0 && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /opt/oai-gnb/bin
 COPY --from=gnb-build \
-    /oai-ran/targets/bin/nr-softmodem.Rel15 \
+    /oai-ran/cmake_targets/ran_build/build/nr-softmodem \
     /oai-ran/docker/scripts/entrypoint.sh \
     ./
 
@@ -82,10 +83,7 @@ COPY --from=gnb-build \
 
 # Now we are copying from builder-image the UHD files.
 COPY --from=gnb-base /usr/local/bin/uhd_find_devices /usr/local/bin
-COPY --from=gnb-base \
-     /usr/local/lib/libuhd.so.3.15.0 \
-     /usr/lib/x86_64-linux-gnu/libprotobuf-c.so.1 \
-     /usr/local/lib/
+COPY --from=gnb-base /usr/local/lib/libuhd.so.3.15.0 /usr/local/lib
 COPY --from=gnb-base /usr/local/lib/uhd/utils/uhd_images_downloader.py /opt/oai-gnb/bin
 COPY --from=gnb-base \
     /usr/lib/x86_64-linux-gnu/libboost_date_time.so.1.65.1 \
@@ -113,4 +111,4 @@ WORKDIR /opt/oai-gnb
 #EXPOSE 50001/udp # IF5 / ECPRI (data)
 
 ENTRYPOINT ["/opt/oai-gnb/bin/entrypoint.sh"]
-CMD ["/opt/oai-gnb/bin/nr-softmodem.Rel15", "-O", "/opt/oai-gnb/etc/gnb.conf"]
+CMD ["/opt/oai-gnb/bin/nr-softmodem", "-O", "/opt/oai-gnb/etc/gnb.conf"]

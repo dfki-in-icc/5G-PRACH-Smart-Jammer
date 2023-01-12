@@ -102,6 +102,9 @@
 #define NB_RB_MAX      (LTE_maxDRB + 3) /* was 11, now 14, maxDRB comes from asn1_constants.h, + 3 because of 3 SRB, one invisible id 0, then id 1 and 2 */
 #define NR_NB_RB_MAX   (NR_maxDRB + 3)
 
+#define NGAP_MAX_PDU_SESSION (256)  /* As defined in TS 38.413 9.2.1.1 Range Bound for PDU Sessions. */
+#define NGAP_MAX_DRBS_PER_UE (32)   /* As defined in TS 38.413 9.2.1.1 - maxnoofDRBs */
+
 #define NB_RB_MBMS_MAX (LTE_maxSessionPerPMCH*LTE_maxServiceCount)
 
 #define NB_RAB_MAX     LTE_maxDRB       /* was 8, now 11 */
@@ -115,6 +118,10 @@
 #define DIR_SHIFT      15
 #define CH_OFFSET      0x0004
 #define CH_SHIFT       2
+
+// RLC Entity
+#define RLC_TX_MAXSIZE       10000000
+#define RLC_RX_MAXSIZE       10000000
 
 // RLC_AM_SEND_MRW
 #        define SEND_MRW_OFF    15

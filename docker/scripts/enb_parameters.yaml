@@ -32,11 +32,12 @@
       env: "@ENB_NAME@"
     - key: eNB_name
       env: "@ENB_NAME@"
-    - key: plmn_list
-      env:
-        mcc: "@MCC@"
-        mnc: "@MNC@"
-        mnc_length: "@MNC_LENGTH@"
+    - key: mcc
+      env: "@MCC@"
+    - key: mnc
+      env: "@MNC@"
+    - key: mnc_length
+      env: "@MNC_LENGTH@"
     - key: tracking_area_code
       env: "@TAC@"
     - key: local_s_if_name
@@ -75,11 +76,12 @@
       env: "@ENB_NAME@"
     - key: eNB_name
       env: "@ENB_NAME@"
-    - key: plmn_list
-      env:
-        mcc: "@MCC@"
-        mnc: "@MNC@"
-        mnc_length: "@MNC_LENGTH@"
+    - key: mcc
+      env: "@MCC@"
+    - key: mnc
+      env: "@MNC@"
+    - key: mnc_length
+      env: "@MNC_LENGTH@"
     - key: tracking_area_code
       env: "@TAC@"
     - key: local_n_if_name
@@ -136,11 +138,12 @@
       env: "@ENB_NAME@"
     - key: eNB_name
       env: "@ENB_NAME@"
-    - key: plmn_list
-      env:
-        mcc: "@MCC@"
-        mnc: "@MNC@"
-        mnc_length: "@MNC_LENGTH@"
+    - key: mcc
+      env: "@MCC@"
+    - key: mnc
+      env: "@MNC@"
+    - key: mnc_length
+      env: "@MNC_LENGTH@"
     - key: tracking_area_code
       env: "@TAC@"
     - key: eutra_band
@@ -171,12 +174,6 @@
       env: "@ENB_X2_IP_ADDRESS@"
     - key: rrc_inactivity_threshold
       env: "@RRC_INACTIVITY_THRESHOLD@"
-    - key: FLEXRAN_ENABLED
-      env: "@FLEXRAN_ENABLED@"
-    - key: FLEXRAN_INTERFACE_NAME
-      env: "@FLEXRAN_INTERFACE_NAME@"
-    - key: FLEXRAN_IPV4_ADDRESS
-      env: "@FLEXRAN_IPV4_ADDRESS@"
     - key: parallel_config
       env: "@THREAD_PARALLEL_CONFIG@"
       
@@ -187,11 +184,12 @@
       env: "@ENB_NAME@"
     - key: eNB_name
       env: "@ENB_NAME@"
-    - key: plmn_list
-      env:
-        mcc: "@MCC@"
-        mnc: "@MNC@"
-        mnc_length: "@MNC_LENGTH@"
+    - key: mcc
+      env: "@MCC@"
+    - key: mnc
+      env: "@MNC@"
+    - key: mnc_length
+      env: "@MNC_LENGTH@"
     - key: tracking_area_code
       env: "@TAC@"
     - key: eutra_band
@@ -226,11 +224,12 @@
       env: "@ENB_NAME@"
     - key: eNB_name
       env: "@ENB_NAME@"
-    - key: plmn_list
-      env:
-        mcc: "@MCC@"
-        mnc: "@MNC@"
-        mnc_length: "@MNC_LENGTH@"
+    - key: mcc
+      env: "@MCC@"
+    - key: mnc
+      env: "@MNC@"
+    - key: mnc_length
+      env: "@MNC_LENGTH@"
     - key: tracking_area_code
       env: "@TAC@"
     - key: local_s_if_name
@@ -271,11 +270,12 @@
       env: "@ENB_NAME@"
     - key: eNB_name
       env: "@ENB_NAME@"
-    - key: plmn_list
-      env:
-        mcc: "@MCC@"
-        mnc: "@MNC@"
-        mnc_length: "@MNC_LENGTH@"
+    - key: mcc
+      env: "@MCC@"
+    - key: mnc
+      env: "@MNC@"
+    - key: mnc_length
+      env: "@MNC_LENGTH@"
     - key: tracking_area_code
       env: "@TAC@"
     - key: eutra_band
@@ -316,11 +316,12 @@
       env: "@ENB_NAME@"
     - key: eNB_name
       env: "@ENB_NAME@"
-    - key: plmn_list
-      env:
-        mcc: "@MCC@"
-        mnc: "@MNC@"
-        mnc_length: "@MNC_LENGTH@"
+    - key: mcc
+      env: "@MCC@"
+    - key: mnc
+      env: "@MNC@"
+    - key: mnc_length
+      env: "@MNC_LENGTH@"
     - key: tracking_area_code
       env: "@TAC@"
     - key: eutra_band
@@ -354,3 +355,46 @@
     - key: parallel_config
       env: "@THREAD_PARALLEL_CONFIG@"
 
+  - filePrefix: "proxy_rcc.band7.tm1.nfapi.conf"
+    outputfilename: "enb.nfapi.vnf.conf"
+    config:
+    - key: Active_eNBs
+      env: "@ENB_NAME@"
+    - key: eNB_name
+      env: "@ENB_NAME@"
+    - key: mcc
+      env: "@MCC@"
+    - key: mnc
+      env: "@MNC@"
+    - key: mnc_length
+      env: "@MNC_LENGTH@"
+    - key: tracking_area_code
+      env: "@TAC@"
+    - key: eutra_band
+      env: "@UTRA_BAND_ID@"
+    - key: downlink_frequency
+      env: "@DL_FREQUENCY_IN_MHZ@000000"
+    - key: uplink_frequency_offset
+      env: "@UL_FREQUENCY_OFFSET_IN_MHZ@000000"
+    - key: Nid_cell
+      env: "@NID_CELL@"
+    - key: N_RB_DL
+      env: "@NB_PRB@"
+    - key: ipv4
+      env: "@MME_S1C_IP_ADDRESS@"
+    - key: ENB_INTERFACE_NAME_FOR_S1_MME
+      env: "@ENB_INTERFACE_NAME_FOR_S1_MME@"
+    - key: ENB_IPV4_ADDRESS_FOR_S1_MME
+      env: "@ENB_IPV4_ADDRESS_FOR_S1_MME@"
+    - key: ENB_INTERFACE_NAME_FOR_S1U
+      env: "@ENB_INTERFACE_NAME_FOR_S1U@"
+    - key: ENB_IPV4_ADDRESS_FOR_S1U
+      env: "@ENB_IPV4_ADDRESS_FOR_S1U@"
+    - key: ENB_IPV4_ADDRESS_FOR_X2C
+      env: "@ENB_IPV4_ADDRESS_FOR_X2C@"
+    - key: LOCAL_S_IF_NAME
+      env: "@LOCAL_S_IF_NAME@"
+    - key: REMOTE_S_ADDRESS
+      env: "@REMOTE_S_ADDRESS@"
+    - key: LOCAL_S_ADDRESS
+      env: "@LOCAL_S_ADDRESS@"
