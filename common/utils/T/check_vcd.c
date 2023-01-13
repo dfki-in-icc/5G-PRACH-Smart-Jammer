@@ -22,7 +22,12 @@
 /*
  * Dummy needed by assertions.h
  */
-void exit_function(const char *file, const char *function, const int line, const char *s) {
+void exit_function(const char *file, const char *function, const int line, const char *s, const int assert) {
+  if (assert) {
+    abort();
+  } else {
+    exit(EXIT_SUCCESS);
+  }
 }
 
 void err(char *fmt, ...) __attribute__ ((format (printf, 1, 2)));

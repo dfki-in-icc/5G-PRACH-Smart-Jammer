@@ -98,7 +98,7 @@ void reset_opp_meas(void) {
 }
 extern void  phy_free_RU(RU_t *);
 
-void exit_function(const char *file, const char *function, const int line, const char *s) {
+void exit_function(const char *file, const char *function, const int line, const char *s, const int assert) {
   if (s != NULL) {
     printf("%s:%d %s() Exiting OAI softmodem: %s\n",file,line, function, s);
   }
@@ -106,7 +106,11 @@ void exit_function(const char *file, const char *function, const int line, const
   close_log_mem();
   oai_exit = 1;
   sleep(1); //allow lte-softmodem threads to exit first
-  exit(1);
+  if (assert) {
+    abort();
+  } else {
+    exit(EXIT_SUCCESS);
+  }
 }
 
 // Fixme: there are many mistakes in the datamodel and in redondant variables

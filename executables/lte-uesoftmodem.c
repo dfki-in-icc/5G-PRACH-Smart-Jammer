@@ -247,7 +247,7 @@ unsigned int build_rfdc(int dcoff_i_rxfe, int dcoff_q_rxfe) {
 }
 
 
-void exit_function(const char *file, const char *function, const int line, const char *s) {
+void exit_function(const char *file, const char *function, const int line, const char *s, const int assert) {
   int CC_id;
   logClean();
   printf("%s:%d %s() Exiting OAI softmodem: %s\n",file,line, function, ((s==NULL)?"":s));
@@ -266,7 +266,11 @@ void exit_function(const char *file, const char *function, const int line, const
   if(PHY_vars_UE_g != NULL )
     itti_terminate_tasks (TASK_UNKNOWN);
 
-  exit(1);
+  if (assert) {
+    abort();
+  } else {
+    exit(EXIT_SUCCESS);
+  }
 }
 
 extern int16_t dlsch_demod_shift;

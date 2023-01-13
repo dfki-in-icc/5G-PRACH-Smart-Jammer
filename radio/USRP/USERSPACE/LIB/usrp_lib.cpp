@@ -763,7 +763,7 @@ static int trx_usrp_read(openair0_device *device, openair0_timestamp *ptimestamp
       LOG_D(HW,"recorded %d samples, for TS %lu, shift in buffer %ld nbBytes %d nbSamplesBlocks %d\n", nsamps, hdr->ts, recPlay->currentPtr-(uint8_t *)recPlay->ms_sample, (int)hdr->nbBytes, (int)recPlay->nbSamplesBlocks);
 #endif      
     } else
-      exit_function(__FILE__, __FUNCTION__, __LINE__,"Recording reaches max iq limit\n");
+      exit_function(__FILE__, __FUNCTION__, __LINE__,"Recording reaches max iq limit\n", EXIT_NORMAL);
   }
 
   return samples_received;
