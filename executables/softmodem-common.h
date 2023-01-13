@@ -43,6 +43,7 @@ extern "C"
   default no pool (runs in calling thread),\n\
   list of cores, comma separated (negative value is no core affinity)\n\
   example: -1,3 launches two working threads one floating, the second set on core 3"
+#define CONFIG_HLP_REORDER       "Disable reorder thread\n"
 #define CONFIG_HLP_ULMAXE        "set the eNodeB max ULSCH erros\n"
 #define CONFIG_HLP_CALUER        "set UE RX calibration\n"
 #define CONFIG_HLP_CALUERM       ""
@@ -109,6 +110,7 @@ extern "C"
 #define RF_CONFIG_FILE      softmodem_params.rf_config_file
 #define SPLIT73             softmodem_params.split73
 #define TP_CONFIG           softmodem_params.threadPoolConfig
+#define CONTINUOUS_TX       softmodem_params.continuous_tx
 #define PHY_TEST            softmodem_params.phy_test
 #define DO_RA               softmodem_params.do_ra
 #define SA                  softmodem_params.sa
@@ -131,7 +133,7 @@ extern "C"
 #define NON_STOP            softmodem_params.non_stop
 #define EMULATE_L1          softmodem_params.emulate_l1
 #define CONTINUOUS_TX       softmodem_params.continuous_tx
-
+#define REORDER_THREAD_DISABLE    softmodem_params.reorder_thread_disable
 #define DEFAULT_RFCONFIG_FILE    "/usr/local/etc/syriq/ue.band7.tm1.PRB100.NR40.dat";
 
 extern int usrp_tx_thread;
@@ -139,6 +141,7 @@ extern int usrp_tx_thread;
     {"rf-config-file",       CONFIG_HLP_RFCFGF,       0,              strptr:&RF_CONFIG_FILE,    defstrval:NULL,        TYPE_STRING, 0},\
     {"split73",              CONFIG_HLP_SPLIT73,      0,              strptr:&SPLIT73,           defstrval:NULL,        TYPE_STRING, 0},       \
     {"thread-pool",          CONFIG_HLP_TPOOL,        0,              strptr:&TP_CONFIG,         defstrval:"-1,-1,-1,-1,-1,-1,-1,-1",         TYPE_STRING, 0},     \
+    {"reorder-thread-disable",CONFIG_HLP_REORDER,     0,              iptr:&REORDER_THREAD_DISABLE,       defstrval:0,           TYPE_INT,    0},                     \
     {"phy-test",             CONFIG_HLP_PHYTST,       PARAMFLAG_BOOL, iptr:&PHY_TEST,                     defintval:0,           TYPE_INT,    0},                     \
     {"do-ra",                CONFIG_HLP_DORA,         PARAMFLAG_BOOL, iptr:&DO_RA,                        defintval:0,           TYPE_INT,    0},                     \
     {"sa",                   CONFIG_HLP_SA,           PARAMFLAG_BOOL, iptr:&SA,                           defintval:0,           TYPE_INT,    0},                     \
@@ -244,6 +247,7 @@ typedef struct {
   char           *rf_config_file;
   char           *split73;
   char           *threadPoolConfig;
+  int            reorder_thread_disable;
   int            phy_test;
   int            do_ra;
   int            sa;
