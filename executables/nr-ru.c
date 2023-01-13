@@ -1787,8 +1787,8 @@ void init_NR_RU(char *rf_config_file) {
     if (threadCnt < 2) LOG_E(PHY,"Number of threads for gNB should be more than 1. Allocated only %d\n",threadCnt);
     else LOG_I(PHY,"RU Thread pool size %d\n",threadCnt);
     char pool[80];
-    int s_offset = sprintf(pool,"%d",ru->tpcores[0]);
-    for (int icpu=1; icpu<threadCnt; icpu++) {
+    int s_offset = sprintf(pool,"%d",ru->tpcores[1]);
+    for (int icpu=2; icpu<threadCnt; icpu++) {
        s_offset+=sprintf(pool+s_offset,",%d",ru->tpcores[icpu]);
     }
     LOG_I(PHY,"RU thread-pool core string %s\n",pool);
