@@ -129,7 +129,7 @@ def GetPingTimeAnalysis(RAN,ping_log_file,ping_rttavg_threshold):
 		logging.error("GetPingTimeAnalysis : Ping log file does not exist")
 		return -1
 
-def AnalyzePing(ping_args, lock, statusQueue, UE_IPAddress, device_id, launchFromASUE, launchFromEpc, launchFromModule, ping_log_file, ping_rttavg_threshold, RAN, ping_packetloss_threshold, SSH, status, exec_type):
+def AnalyzePing(ping_args, lock, statusQueue, UE_IPAddress, device_id, launchFromASUE, launchFromEpc, launchFromModule, ping_log_file, ping_rttavg_threshold, RAN, ping_packetloss_threshold, status, exec_type):
 		try:
 			result = re.search(', (?P<packetloss>[0-9\.]+)% packet loss, time [0-9\.]+ms', status)
 			if result is None:
@@ -243,8 +243,6 @@ def AnalyzePing(ping_args, lock, statusQueue, UE_IPAddress, device_id, launchFro
 				statusQueue.put(qMsg)
 				lock.release()
 		except:
-			import pdb
-			pdb.set_trace()
 			logging.debug('exit from Ping_Common except')
 			os.kill(os.getppid(),signal.SIGUSR1)
 
@@ -1729,8 +1727,8 @@ class OaiCiTest():
 			self.ping_iperf_wrong_exit(lock, UE_IPAddress, device_id, statusQueue, message)
 			return
 		#search is done on cat result
-		AnalyzePing(self.ping_args, lock, status_queue, UE_IPAddress, device_id, launchFromASUE, launchFromEpc, launchFromModule, ping_log_file, self.ping_rttavg_threshold, RAN, self.ping_packetloss_threshold, SSH, SSH.getBefore(),"commonType")
-          
+		AnalyzePing(self.ping_args, lock, status_queue, UE_IPAddress, device_id, launchFromASUE, launchFromEpc, launchFromModule, ping_log_file, self.ping_rttavg_threshold, RAN, self.ping_packetloss_threshold, SSH.getBefore(),"commonType")
+		SSH.close()  
 	
 	def PingNoS1_wrong_exit(self, qMsg,HTML):
 		html_queue = SimpleQueue()
