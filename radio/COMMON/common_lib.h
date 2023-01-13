@@ -135,7 +135,7 @@ typedef struct {
   double freq;
   //! Offset to be applied to RX gain
   double offset;
-} rx_gain_calib_table_t;
+} gain_calib_table_t;
 
 /*! \brief Clock source types */
 typedef enum {
@@ -218,9 +218,9 @@ typedef struct {
   double tune_offset;
   //! \brief memory
   //! \brief Pointer to Calibration table for RX gains
-  rx_gain_calib_table_t *rx_gain_calib_table;
+  gain_calib_table_t *rx_gain_calib_table;
   //! \brief Pointer to Calibration table for TX gains
-  rx_gain_calib_table_t *tx_gain_calib_table;
+  gain_calib_table_t *tx_gain_calib_table;
   //! mode for rxgain (ExpressMIMO2)
   rx_gain_t rxg_mode[4];
   //! \brief Gain for RX in dB.

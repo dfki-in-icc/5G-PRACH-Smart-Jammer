@@ -403,7 +403,7 @@ int trx_sodera_stop(int card) {
 }
 
 
-rx_gain_calib_table_t calib_table_sodera[] = {
+gain_calib_table_t calib_table_sodera[] = {
   {3500000000.0,44.0},
   {2660000000.0,49.0},
   {2300000000.0,50.0},

@@ -393,7 +393,7 @@ int trx_iris_set_gains(openair0_device *device,
 }
 
 /*! \brief Iris RX calibration table */
-rx_gain_calib_table_t calib_table_iris[] = {
+gain_calib_table_t calib_table_iris[] = {
         {3500000000.0, 83},
         {2660000000.0, 83},
         {2580000000.0, 83},

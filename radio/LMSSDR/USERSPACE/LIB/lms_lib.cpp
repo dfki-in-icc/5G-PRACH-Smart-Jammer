@@ -298,7 +298,7 @@ int trx_lms_set_freq(openair0_device* device, openair0_config_t *openair0_cfg) {
 // 31 = 19 dB => 105 dB total gain @ 2.6 GHz
 /*! \brief calibration table for LMSSDR */
 // V1.2 board
-rx_gain_calib_table_t calib_table_lmssdr_1v2[] = {
+gain_calib_table_t calib_table_lmssdr_1v2[] = {
   {3500000000.0,44.0},  // on L PAD
   {2660000000.0,55.0},  // on L PAD
   {2300000000.0,54.0},  // on L PAD
@@ -306,7 +306,7 @@ rx_gain_calib_table_t calib_table_lmssdr_1v2[] = {
   {816000000.0,79.0},   // on W PAD
   {-1,0}};
 // V1.4 board
-rx_gain_calib_table_t calib_table_lmssdr[] = {
+gain_calib_table_t calib_table_lmssdr[] = {
   {3500000000.0,44.0},  // on H PAD
   {2660000000.0,55.0},  // on H PAD
   {2300000000.0,54.0},  // on H PAD

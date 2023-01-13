@@ -144,6 +144,20 @@ typedef struct {
 } rfsimulator_state_t;
 
 
+/*! \brief Settings to be used for RF simulator. 
+Currently assumed to be 53db = 0dbm*/
+gain_calib_table_t rx_sample_calibvalues_UErfsim[] = {
+  {0.0,67.0},
+  {-1,0}
+};
+
+/*! \brief Settings to be used for RF simulator. 
+Currently assumed to be 53db = 0dbm */
+gain_calib_table_t tx_sample_calibvalues_UErfsim[] = {
+  {0.0,137.0},
+  {-1,0}
+};
+
 static void allocCirBuf(rfsimulator_state_t *bridge, int sock) {
   buffer_t *ptr=&bridge->buf[sock];
   AssertFatal ( (ptr->circularBuf=(sample_t *) malloc(sampleToByte(CirSize,1))) != NULL, "");
@@ -936,6 +950,58 @@ static int rfsimulator_set_freq(openair0_device *device, openair0_config_t *open
   return 0;
 }
 static int rfsimulator_set_gains(openair0_device *device, openair0_config_t *openair0_cfg, int dont_block) {
+
+  double gain = 0;
+
+  // calculate tx gain
+  gain = device->max_tx_gain[0] - openair0_cfg[0].tx_gain[0];
+  if(gain != device->app_tx_gain[0]) {
+    // limit to maximum TX gain
+    if (gain > device->max_tx_gain[0]) {
+      LOG_E(HW,"TX Gain 0 too high gain:%3.2f, min:%3.2f dB\n",
+            gain, device->max_tx_gain[0]);
+      gain = device->max_tx_gain[0];
+      openair0_cfg[0].tx_gain[0] = 0;
+      //exit(-1);
+    } else if (gain < device->min_tx_gain[0]) {
+      LOG_E(HW,"TX Gain 0 too low gain:%3.2f, min:%3.2f dB\n",
+            gain, device->min_tx_gain[0]);
+      gain = device->min_tx_gain[0];
+      openair0_cfg[0].tx_gain[0] = device->max_tx_gain[0] - device->min_tx_gain[0];
+      //exit(-1);
+    }
+
+    // updated applied tx gain for UL processing
+    device->app_tx_gain[0] = gain;
+
+    LOG_I(HW, "RFSIM APPLIED TX gain is %3.2f Max: %3.2f, Min: %3.2f, tx_gain:%3.2f\n",
+          gain, device->max_tx_gain[0], device->min_tx_gain[0], openair0_cfg[0].tx_gain[0]);
+  }
+  // Rx gain
+  //gain = openair0_cfg[0].rx_gain[0] - openair0_cfg[0].rx_gain_offset[0];
+  gain = openair0_cfg[0].rx_gain[0];
+  if(gain != device->app_rx_gain[0]) {
+    // limit to maximum RX gain
+    if (gain > device->max_rx_gain[0]) {
+      LOG_E(HW,"RX Gain 0 too high, reduce by %3.2f dB\n",
+            gain - device->max_rx_gain[0]);
+      gain = device->max_rx_gain[0];
+      openair0_cfg[0].rx_gain[0] = 0;
+      //exit(-1);
+    } else if (gain < device->min_rx_gain[0]) {
+      LOG_E(HW,"RX Gain 0 too low gain:%3.2f, min:%3.2f dB\n",
+            gain, device->min_rx_gain[0]);
+      gain = device->min_rx_gain[0];
+      openair0_cfg[0].rx_gain[0] = device->min_rx_gain[0];
+      //exit(-1);
+    }
+
+    device->app_rx_gain[0] = gain;
+
+    LOG_I(HW, "RFSIM APPLIED RX gain is %3.2f Max: %3.2f, Min: %3.2f, rx_gain:%3.2f\n",
+          gain, device->max_rx_gain[0], device->min_rx_gain[0], openair0_cfg[0].rx_gain[0]);
+  }
+
   return 0;
 }
 static int rfsimulator_write_init(openair0_device *device) {
@@ -968,6 +1034,15 @@ int device_init(openair0_device *device, openair0_config_t *openair0_cfg) {
   device->trx_read_func      = rfsimulator_read;
   /* let's pretend to be a b2x0 */
   device->type = RFSIMULATOR;
+  // Do this for UE, in order to test Powercontrol on UE
+  if (rfsimulator->typeStamp == UE_MAGICDL) { 
+    openair0_cfg[0].rx_gain_calib_table = rx_sample_calibvalues_UErfsim;
+    openair0_cfg[0].tx_gain_calib_table = tx_sample_calibvalues_UErfsim;
+    openair0_cfg[0].rx_gain_offset[0] = openair0_cfg[0].rx_gain_calib_table[0].offset;
+    openair0_cfg[0].tx_gain_offset[0] = openair0_cfg[0].tx_gain_calib_table[0].offset;
+    device->max_rx_gain[0] = 65.0;
+    device->max_tx_gain[0] = 65.0;
+  }
   openair0_cfg[0].rx_gain[0] = 0;
   device->openair0_cfg=&openair0_cfg[0];
   device->priv = rfsimulator;

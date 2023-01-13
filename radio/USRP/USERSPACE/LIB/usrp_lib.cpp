@@ -921,7 +921,7 @@ int trx_usrp_stop(openair0_device *device) {
 }
 
 /*! \brief USRPB210 RX calibration table */
-rx_gain_calib_table_t rx_calib_table_b210[] = {
+gain_calib_table_t rx_calib_table_b210[] = {
   {3500000000.0,44.0},
   {2660000000.0,49.0},
   {2300000000.0,50.0},
@@ -931,7 +931,7 @@ rx_gain_calib_table_t rx_calib_table_b210[] = {
 };
 
 /*! \brief USRPB210 RX calibration table */
-rx_gain_calib_table_t rx_calib_table_b210_38[] = {
+gain_calib_table_t rx_calib_table_b210_38[] = {
   {3500000000.0,44.0},
   {2660000000.0,49.8},
   {2300000000.0,51.0},
@@ -941,7 +941,7 @@ rx_gain_calib_table_t rx_calib_table_b210_38[] = {
 };
 
 /*! \brief USRPx310 RX calibration table */
-rx_gain_calib_table_t rx_calib_table_x310[] = {
+gain_calib_table_t rx_calib_table_x310[] = {
   {3500000000.0,73.0},
   {2660000000.0,81.0},
   {2300000000.0,81.0},
@@ -951,7 +951,7 @@ rx_gain_calib_table_t rx_calib_table_x310[] = {
 };
 
 /*! \brief USRPN310 RX calibration table */
-rx_gain_calib_table_t rx_calib_table_n310[] = {
+gain_calib_table_t rx_calib_table_n310[] = {
   {3500000000.0,67.0},
   {2660000000.0,0.0},
   {2300000000.0,0.0},
@@ -961,7 +961,7 @@ rx_gain_calib_table_t rx_calib_table_n310[] = {
 };
 
 /*! \brief USRPB210 TX calibration table */
-rx_gain_calib_table_t tx_calib_table_b210[] = {
+gain_calib_table_t tx_calib_table_b210[] = {
   {3500000000.0,0.0},
   {2660000000.0,0.0},
   {2300000000.0,0.0},
@@ -971,7 +971,7 @@ rx_gain_calib_table_t tx_calib_table_b210[] = {
 };
 
 /*! \brief USRPB210 TX calibration table */
-rx_gain_calib_table_t tx_calib_table_b210_38[] = {
+gain_calib_table_t tx_calib_table_b210_38[] = {
   {3500000000.0,0.0},
   {2660000000.0,0.0},
   {2300000000.0,0.0},
@@ -981,7 +981,7 @@ rx_gain_calib_table_t tx_calib_table_b210_38[] = {
 };
 
 /*! \brief USRPx310 TX calibration table */
-rx_gain_calib_table_t tx_calib_table_x310[] = {
+gain_calib_table_t tx_calib_table_x310[] = {
   {3500000000.0,150.0},
   {2660000000.0,0.0},
   {2300000000.0,0.0},
@@ -991,7 +991,7 @@ rx_gain_calib_table_t tx_calib_table_x310[] = {
 };
 
 /*! \brief Empty RX calibration table */
-rx_gain_calib_table_t calib_table_none[] = {
+gain_calib_table_t calib_table_none[] = {
   {3500000000.0,0.0},
   {2660000000.0,0.0},
   {2300000000.0,0.0},
@@ -1001,7 +1001,7 @@ rx_gain_calib_table_t calib_table_none[] = {
 };
 
 /*! \brief USRPN310 TX calibration table */
-rx_gain_calib_table_t tx_calib_table_n310[] = {
+gain_calib_table_t tx_calib_table_n310[] = {
   {3500000000.0,137.0},
   {2660000000.0,0.0},
   {2300000000.0,0.0},

@@ -330,7 +330,7 @@ int16_t cos_fsover8[8]  = {2047,   1447,      0,  -1448,  -2047,  -1448,     0, 
 int16_t cos_3fsover8[8] = {2047,  -1448,      0,   1447,  -2047,   1447,     0,  -1448};
 
 /*! \brief calibration table for BladeRF */
-rx_gain_calib_table_t calib_table_fx4[] = {
+gain_calib_table_t calib_table_fx4[] = {
     {2300000000.0,53.5},
     {1880000000.0,57.0},
     {816000000.0,73.0},
