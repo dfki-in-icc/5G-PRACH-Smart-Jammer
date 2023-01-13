@@ -6,7 +6,7 @@
  *  the OAI Public License, Version 1.1  (the "License"); you may not use this file
  *  except in compliance with the License.
  *  You may obtain a copy of the License at
- * 
+ *
  *  http://www.openairinterface.org/?page_id=698
  *
  *  Unless required by applicable law or agreed to in writing, software
@@ -21,20 +21,22 @@
 
 #ifndef __CODING_UNITARY_DEFS__h__
 #define __CODING_UNITARY_DEFS__h__
-int oai_exit=0;
+int oai_exit = 0;
 unsigned int NB_UE_INST = 1;
 #include "openair1/PHY/defs_UE.h"
-PHY_VARS_UE ***PHY_vars_UE_g;
+PHY_VARS_UE*** PHY_vars_UE_g;
 #include "common/ran_context.h"
 RAN_CONTEXT_t RC;
 
-void exit_function(const char* file, const char* function, const int line, const char *s, const int assert) {
-  const char * msg= s==NULL ? "no comment": s;
+void exit_function(const char* file, const char* function, const int line, const char* s, const int assert)
+{
+  const char* msg = s == NULL ? "no comment" : s;
   printf("Exiting at: %s:%d %s(), %s\n", file, line, function, msg);
   exit(-1);
 }
 
-signed char quantize(double D, double x, unsigned char B) {
+signed char quantize(double D, double x, unsigned char B)
+{
   double qxd;
   short maxlev;
   qxd = floor(x / D);
@@ -45,9 +47,7 @@ signed char quantize(double D, double x, unsigned char B) {
   else if (qxd >= maxlev)
     qxd = maxlev - 1;
 
-  return ((char) qxd);
+  return ((char)qxd);
 }
 
-
 #endif
-

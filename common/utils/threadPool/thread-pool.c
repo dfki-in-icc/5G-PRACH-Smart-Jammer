@@ -1,26 +1,25 @@
 /*
-* Licensed to the OpenAirInterface (OAI) Software Alliance under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The OpenAirInterface Software Alliance licenses this file to You under
-* the OAI Public License, Version 1.1  (the "License"); you may not use this file
-* except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*      http://www.openairinterface.org/?page_id=698
-*
-* Author and copyright: Laurent Thomas, open-cells.com
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*-------------------------------------------------------------------------------
-* For more information about the OpenAirInterface (OAI) Software Alliance:
-*      contact@openairinterface.org
-*/
-
+ * Licensed to the OpenAirInterface (OAI) Software Alliance under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The OpenAirInterface Software Alliance licenses this file to You under
+ * the OAI Public License, Version 1.1  (the "License"); you may not use this file
+ * except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.openairinterface.org/?page_id=698
+ *
+ * Author and copyright: Laurent Thomas, open-cells.com
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *-------------------------------------------------------------------------------
+ * For more information about the OpenAirInterface (OAI) Software Alliance:
+ *      contact@openairinterface.org
+ */
 
 #define _GNU_SOURCE
 #include <sched.h>
@@ -33,22 +32,24 @@
 #include <sys/sysinfo.h>
 #include <threadPool/thread-pool.h>
 
-void displayList(notifiedFIFO_t *nf) {
-  int n=0;
-  notifiedFIFO_elt_t *ptr=nf->outF;
+void displayList(notifiedFIFO_t *nf)
+{
+  int n = 0;
+  notifiedFIFO_elt_t *ptr = nf->outF;
 
-  while(ptr) {
-    printf("element: %d, key: %lu\n",++n,ptr->key);
-    ptr=ptr->next;
+  while (ptr) {
+    printf("element: %d, key: %lu\n", ++n, ptr->key);
+    ptr = ptr->next;
   }
 
-  printf("End of list: %d elements\n",n);
+  printf("End of list: %d elements\n", n);
 }
 
-static inline  notifiedFIFO_elt_t *pullNotifiedFifoRemember( notifiedFIFO_t *nf, struct one_thread *thr) {
+static inline notifiedFIFO_elt_t *pullNotifiedFifoRemember(notifiedFIFO_t *nf, struct one_thread *thr)
+{
   mutexlock(nf->lockF);
 
-  while(!nf->outF && !thr->terminate)
+  while (!nf->outF && !thr->terminate)
     condwait(nf->notifF, nf->lockF);
 
   if (thr->terminate) {
@@ -56,36 +57,39 @@ static inline  notifiedFIFO_elt_t *pullNotifiedFifoRemember( notifiedFIFO_t *nf,
     return NULL;
   }
 
-  notifiedFIFO_elt_t *ret=nf->outF;
-  nf->outF=nf->outF->next;
+  notifiedFIFO_elt_t *ret = nf->outF;
+  nf->outF = nf->outF->next;
 
-  if (nf->outF==NULL)
-    nf->inF=NULL;
+  if (nf->outF == NULL)
+    nf->inF = NULL;
 
   // For abort feature
-  thr->runningOnKey=ret->key;
+  thr->runningOnKey = ret->key;
   thr->dropJob = false;
   mutexunlock(nf->lockF);
   return ret;
 }
 
-void *one_thread(void *arg) {
-  struct  one_thread *myThread=(struct  one_thread *) arg;
-  struct  thread_pool *tp=myThread->pool;
+void *one_thread(void *arg)
+{
+  struct one_thread *myThread = (struct one_thread *)arg;
+  struct thread_pool *tp = myThread->pool;
 
   // Infinite loop to process requests
   do {
-    notifiedFIFO_elt_t *elt=pullNotifiedFifoRemember(&tp->incomingFifo, myThread);
+    notifiedFIFO_elt_t *elt = pullNotifiedFifoRemember(&tp->incomingFifo, myThread);
     if (elt == NULL) {
       AssertFatal(myThread->terminate, "pullNotifiedFifoRemember() returned NULL although thread not aborted\n");
       break;
     }
 
-    if (tp->measurePerf) elt->startProcessingTime=rdtsc_oai();
+    if (tp->measurePerf)
+      elt->startProcessingTime = rdtsc_oai();
 
     elt->processingFunc(NotifiedFifoData(elt));
 
-    if (tp->measurePerf) elt->endProcessingTime=rdtsc_oai();
+    if (tp->measurePerf)
+      elt->endProcessingTime = rdtsc_oai();
 
     if (elt->reponseFifo) {
       // Check if the job is still alive, else it has been aborted
@@ -95,93 +99,92 @@ void *one_thread(void *arg) {
         delNotifiedFIFO_elt(elt);
       else
         pushNotifiedFIFO(elt->reponseFifo, elt);
-      myThread->runningOnKey=-1;
+      myThread->runningOnKey = -1;
       mutexunlock(tp->incomingFifo.lockF);
     }
   } while (!myThread->terminate);
   return NULL;
 }
 
-void initNamedTpool(char *params,tpool_t *pool, bool performanceMeas, char *name) {
-  memset(pool,0,sizeof(*pool));
-  char *measr=getenv("threadPoolMeasurements");
-  pool->measurePerf=performanceMeas;
+void initNamedTpool(char *params, tpool_t *pool, bool performanceMeas, char *name)
+{
+  memset(pool, 0, sizeof(*pool));
+  char *measr = getenv("threadPoolMeasurements");
+  pool->measurePerf = performanceMeas;
   // force measurement if the output is defined
-  pool->measurePerf |= measr!=NULL;
+  pool->measurePerf |= measr != NULL;
 
   if (measr) {
-    mkfifo(measr,0666);
-    AssertFatal(-1 != (pool->dummyKeepReadingTraceFd=
-                         open(measr, O_RDONLY| O_NONBLOCK)),"");
-    AssertFatal(-1 != (pool->traceFd=
-                         open(measr, O_WRONLY|O_APPEND|O_NOATIME|O_NONBLOCK)),"");
+    mkfifo(measr, 0666);
+    AssertFatal(-1 != (pool->dummyKeepReadingTraceFd = open(measr, O_RDONLY | O_NONBLOCK)), "");
+    AssertFatal(-1 != (pool->traceFd = open(measr, O_WRONLY | O_APPEND | O_NOATIME | O_NONBLOCK)), "");
   } else
-    pool->traceFd=-1;
+    pool->traceFd = -1;
 
-  pool->activated=true;
+  pool->activated = true;
   initNotifiedFIFO(&pool->incomingFifo);
-  char *saveptr, * curptr;
-  char *parms_cpy=strdup(params);
-  pool->nbThreads=0;
-  curptr=strtok_r(parms_cpy,",",&saveptr);
-  struct one_thread * ptr;
+  char *saveptr, *curptr;
+  char *parms_cpy = strdup(params);
+  pool->nbThreads = 0;
+  curptr = strtok_r(parms_cpy, ",", &saveptr);
+  struct one_thread *ptr;
   char *tname = (name == NULL ? "Tpool" : name);
-  while ( curptr!=NULL ) {
-    int c=toupper(curptr[0]);
+  while (curptr != NULL) {
+    int c = toupper(curptr[0]);
 
     switch (c) {
-
       case 'N':
-        pool->activated=false;
+        pool->activated = false;
         break;
 
       default:
-        ptr=pool->allthreads;
-        pool->allthreads=(struct one_thread *)malloc(sizeof(struct one_thread));
-        pool->allthreads->next=ptr;
-        pool->allthreads->coreID=atoi(curptr);
-        pool->allthreads->id=pool->nbThreads;
-        pool->allthreads->pool=pool;
+        ptr = pool->allthreads;
+        pool->allthreads = (struct one_thread *)malloc(sizeof(struct one_thread));
+        pool->allthreads->next = ptr;
+        pool->allthreads->coreID = atoi(curptr);
+        pool->allthreads->id = pool->nbThreads;
+        pool->allthreads->pool = pool;
         pool->allthreads->dropJob = false;
         pool->allthreads->terminate = false;
-        //Configure the thread scheduler policy for Linux
-        // set the thread name for debugging
-	if (c == '-') { // no affinity defined
-	  sprintf(pool->allthreads->name,"%s%d",tname,pool->nbThreads);
-	  printf("create thread %s without CPU affinity\n", pool->allthreads->name);
-	} else {        // affinity defined
-	  sprintf(pool->allthreads->name,"%s%d_%d",tname,pool->nbThreads,pool->allthreads->coreID);
-	  printf("create thread %s for core %d\n", pool->allthreads->name, atoi(curptr));
-	}
-        threadCreate(&pool->allthreads->threadID, one_thread, (void *)pool->allthreads,
-                     pool->allthreads->name, pool->allthreads->coreID, OAI_PRIORITY_RT);
+        // Configure the thread scheduler policy for Linux
+        //  set the thread name for debugging
+        if (c == '-') { // no affinity defined
+          sprintf(pool->allthreads->name, "%s%d", tname, pool->nbThreads);
+          printf("create thread %s without CPU affinity\n", pool->allthreads->name);
+        } else { // affinity defined
+          sprintf(pool->allthreads->name, "%s%d_%d", tname, pool->nbThreads, pool->allthreads->coreID);
+          printf("create thread %s for core %d\n", pool->allthreads->name, atoi(curptr));
+        }
+        threadCreate(&pool->allthreads->threadID, one_thread, (void *)pool->allthreads, pool->allthreads->name, pool->allthreads->coreID, OAI_PRIORITY_RT);
         pool->nbThreads++;
     }
 
-    curptr=strtok_r(NULL,",",&saveptr);
+    curptr = strtok_r(NULL, ",", &saveptr);
   }
   free(parms_cpy);
-  if (pool->activated && pool->nbThreads==0) {
+  if (pool->activated && pool->nbThreads == 0) {
     printf("No servers created in the thread pool, exit\n");
     exit(1);
   }
 }
 
-void initFloatingCoresTpool(int nbThreads,tpool_t *pool, bool performanceMeas, char *name) {
+void initFloatingCoresTpool(int nbThreads, tpool_t *pool, bool performanceMeas, char *name)
+{
   char threads[1024] = "n";
   if (nbThreads) {
-    strcpy(threads,"-1");
-    for (int i=1; i < nbThreads; i++)
-      strncat(threads,",-1", sizeof(threads)-1);
+    strcpy(threads, "-1");
+    for (int i = 1; i < nbThreads; i++)
+      strncat(threads, ",-1", sizeof(threads) - 1);
   }
-  threads[sizeof(threads)-1]=0;
+  threads[sizeof(threads) - 1] = 0;
   initNamedTpool(threads, pool, performanceMeas, name);
 }
 
 #ifdef TEST_THREAD_POOL
-volatile int oai_exit=0;
+volatile int oai_exit = 0;
 
-void exit_function(const char *file, const char *function, const int line, const char *s, const int assert) {
+void exit_function(const char *file, const char *function, const int line, const char *s, const int assert)
+{
   if (assert) {
     abort();
   } else {
@@ -195,88 +198,89 @@ struct testData {
   char txt[30];
 };
 
-void processing(void *arg) {
-  struct testData *in=(struct testData *)arg;
-  //printf("doing: %d, %s, in thr %ld\n",in->id, in->txt,pthread_self() );
-  sprintf(in->txt,"Done by %ld, job %d", pthread_self(), in->id);
-  in->sleepTime=rand()%1000;
+void processing(void *arg)
+{
+  struct testData *in = (struct testData *)arg;
+  // printf("doing: %d, %s, in thr %ld\n",in->id, in->txt,pthread_self() );
+  sprintf(in->txt, "Done by %ld, job %d", pthread_self(), in->id);
+  in->sleepTime = rand() % 1000;
   usleep(in->sleepTime);
-  //printf("done: %d, %s, in thr %ld\n",in->id, in->txt,pthread_self() );
+  // printf("done: %d, %s, in thr %ld\n",in->id, in->txt,pthread_self() );
 }
 
-int main() {
+int main()
+{
   notifiedFIFO_t myFifo;
   initNotifiedFIFO(&myFifo);
-  pushNotifiedFIFO(&myFifo,newNotifiedFIFO_elt(sizeof(struct testData), 1234,NULL,NULL));
+  pushNotifiedFIFO(&myFifo, newNotifiedFIFO_elt(sizeof(struct testData), 1234, NULL, NULL));
 
-  for(int i=10; i>1; i--) {
-    pushNotifiedFIFO(&myFifo,newNotifiedFIFO_elt(sizeof(struct testData), 1000+i,NULL,NULL));
+  for (int i = 10; i > 1; i--) {
+    pushNotifiedFIFO(&myFifo, newNotifiedFIFO_elt(sizeof(struct testData), 1000 + i, NULL, NULL));
   }
 
   displayList(&myFifo);
-  notifiedFIFO_elt_t *tmp=pullNotifiedFIFO(&myFifo);
+  notifiedFIFO_elt_t *tmp = pullNotifiedFIFO(&myFifo);
   printf("pulled: %lu\n", tmp->key);
   displayList(&myFifo);
-  tmp=pullNotifiedFIFO(&myFifo);
+  tmp = pullNotifiedFIFO(&myFifo);
   printf("pulled: %lu\n", tmp->key);
   displayList(&myFifo);
-  abortNotifiedFIFOJob(&myFifo,1005);
+  abortNotifiedFIFOJob(&myFifo, 1005);
   printf("aborted 1005\n");
   displayList(&myFifo);
-  pushNotifiedFIFO(&myFifo,newNotifiedFIFO_elt(sizeof(struct testData), 12345678, NULL, NULL));
+  pushNotifiedFIFO(&myFifo, newNotifiedFIFO_elt(sizeof(struct testData), 12345678, NULL, NULL));
   displayList(&myFifo);
-  abortNotifiedFIFOJob(&myFifo,12345678);
+  abortNotifiedFIFOJob(&myFifo, 12345678);
   printf("aborted 12345678\n");
   displayList(&myFifo);
 
   do {
-    tmp=pollNotifiedFIFO(&myFifo);
+    tmp = pollNotifiedFIFO(&myFifo);
 
     if (tmp) {
       printf("pulled: %lu\n", tmp->key);
       displayList(&myFifo);
     } else
       printf("Empty list \n");
-  } while(tmp);
+  } while (tmp);
 
-  tpool_t  pool;
-  char params[]="1,2,3,4,5";
-  initTpool(params,&pool, true);
+  tpool_t pool;
+  char params[] = "1,2,3,4,5";
+  initTpool(params, &pool, true);
   notifiedFIFO_t worker_back;
   initNotifiedFIFO(&worker_back);
 
   sleep(1);
-  int cumulProcessTime=0, cumulTime=0;
-  struct timespec st,end;
+  int cumulProcessTime = 0, cumulTime = 0;
+  struct timespec st, end;
   clock_gettime(CLOCK_MONOTONIC, &st);
-  int nb_jobs=4;
-  for (int i=0; i <1000 ; i++) {
-    int parall=nb_jobs;
-    for (int j=0; j <parall ; j++) {
-      notifiedFIFO_elt_t *work=newNotifiedFIFO_elt(sizeof(struct testData), i, &worker_back, processing);
-      struct testData *x=(struct testData *)NotifiedFifoData(work);
-      x->id=i;
+  int nb_jobs = 4;
+  for (int i = 0; i < 1000; i++) {
+    int parall = nb_jobs;
+    for (int j = 0; j < parall; j++) {
+      notifiedFIFO_elt_t *work = newNotifiedFIFO_elt(sizeof(struct testData), i, &worker_back, processing);
+      struct testData *x = (struct testData *)NotifiedFifoData(work);
+      x->id = i;
       pushTpool(&pool, work);
     }
-    int sleepmax=0;
+    int sleepmax = 0;
     while (parall) {
-      tmp=pullTpool(&worker_back,&pool);
+      tmp = pullTpool(&worker_back, &pool);
       if (tmp) {
-	parall--;
-	struct testData *dd=NotifiedFifoData(tmp);
-	if (dd->sleepTime > sleepmax)
-	  sleepmax=dd->sleepTime;
-	delNotifiedFIFO_elt(tmp);
+        parall--;
+        struct testData *dd = NotifiedFifoData(tmp);
+        if (dd->sleepTime > sleepmax)
+          sleepmax = dd->sleepTime;
+        delNotifiedFIFO_elt(tmp);
       }
     }
-    cumulProcessTime+=sleepmax;
+    cumulProcessTime += sleepmax;
   }
   clock_gettime(CLOCK_MONOTONIC, &end);
-  long long dur=(end.tv_sec-st.tv_sec)*1000*1000+(end.tv_nsec-st.tv_nsec)/1000;
-  printf("In µs, Total time per group of %d job:%lld, work time per job %d, overhead per job %lld\n",
-	 nb_jobs, dur/1000, cumulProcessTime/1000, (dur-cumulProcessTime)/(1000*nb_jobs));
+  long long dur = (end.tv_sec - st.tv_sec) * 1000 * 1000 + (end.tv_nsec - st.tv_nsec) / 1000;
+  printf("In µs, Total time per group of %d job:%lld, work time per job %d, overhead per job %lld\n", nb_jobs, dur / 1000, cumulProcessTime / 1000, (dur - cumulProcessTime) / (1000 * nb_jobs));
 
-	/*	
+  /*
   for (int i=0; i <1000 ; i++) {
     notifiedFIFO_elt_t *work=newNotifiedFIFO_elt(sizeof(struct testData), i, &worker_back, processing);
     struct testData *x=(struct testData *)NotifiedFifoData(work);
@@ -296,7 +300,7 @@ int main() {
 
     abortTpoolJob(&pool,510);
   } while(tmp);
-	*/
+  */
   return 0;
 }
 #endif
