@@ -680,6 +680,8 @@ typedef struct PHY_VARS_gNB_s {
 
   int ldpc_offload_flag;
 
+  int reorder_thread_disable;
+
   int max_ldpc_iterations;
   /// indicate the channel estimation technique in time domain
   int chest_time;

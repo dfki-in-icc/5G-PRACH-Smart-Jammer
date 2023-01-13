@@ -163,7 +163,10 @@ void nr_schedule_response(NR_Sched_Rsp_t *Sched_INFO){
 
     if (slot_type == NR_DOWNLINK_SLOT || slot_type == NR_MIXED_SLOT) {
       notifiedFIFO_elt_t *res;
-      res = pullTpool(&gNB->L1_tx_free, &gNB->threadPool);
+      if (gNB->reorder_thread_disable) 
+        res = pullTpool(&gNB->L1_tx_out, &gNB->threadPool);
+      else
+	res = pullTpool(&gNB->L1_tx_free, &gNB->threadPool);
       if (res == NULL)
         return; // Tpool has been stopped, nothing to process
       processingData_L1tx_t *msgTx = (processingData_L1tx_t *)NotifiedFifoData(res);
@@ -212,7 +215,10 @@ void nr_schedule_response(NR_Sched_Rsp_t *Sched_INFO){
       for (int i=0; i<number_ul_dci_pdu; i++)
         msgTx->ul_pdcch_pdu[i] = UL_dci_req->ul_dci_pdu_list[i];
 
-      pushNotifiedFIFO(&gNB->L1_tx_filled,res);
+      if (gNB->reorder_thread_disable)
+        pushNotifiedFIFO(&gNB->L1_tx_out,res);
+      else
+	pushNotifiedFIFO(&gNB->L1_tx_filled,res);
     }
 
     for (int i = 0; i < number_ul_tti_pdu; i++) {
