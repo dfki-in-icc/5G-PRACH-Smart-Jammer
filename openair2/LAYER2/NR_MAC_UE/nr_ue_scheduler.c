@@ -43,7 +43,7 @@
 
 /* utils */
 #include "assertions.h"
-#include "asn1_conversions.h"
+#include "oai_asn1.h"
 #include "SIMULATION/TOOLS/sim.h" // for taus
 #include "utils.h"
 
@@ -107,7 +107,7 @@ void fill_scheduled_response(nr_scheduled_response_t *scheduled_response,
 long get_k2(NR_UE_MAC_INST_t *mac, uint8_t time_domain_ind) {
   long k2 = -1;
 
-  NR_BWP_Id_t ul_bwp_id = mac->UL_BWP_Id;
+  NR_BWP_Id_t ul_bwp_id = mac->current_UL_BWP.bwp_id;
   // Get K2 from RRC configuration
   NR_PUSCH_Config_t *pusch_config = ul_bwp_id > 0 && mac->ULbwp[ul_bwp_id - 1] ? mac->ULbwp[ul_bwp_id - 1]->bwp_Dedicated->pusch_Config->choice.setup : NULL;
   NR_PUSCH_TimeDomainResourceAllocationList_t *pusch_TimeDomainAllocationList = NULL;
@@ -159,7 +159,7 @@ long get_k2(NR_UE_MAC_INST_t *mac, uint8_t time_domain_ind) {
  */
 fapi_nr_ul_config_request_t *get_ul_config_request(NR_UE_MAC_INST_t *mac, int slot)
 {
-  NR_BWP_Id_t ul_bwp_id = mac->UL_BWP_Id;
+
   NR_TDD_UL_DL_ConfigCommon_t *tdd_config = mac->scc==NULL ? mac->scc_SIB->tdd_UL_DL_ConfigurationCommon : mac->scc->tdd_UL_DL_ConfigurationCommon;
 
   //Check if request to access ul_config is for a UL slot
@@ -171,17 +171,7 @@ fapi_nr_ul_config_request_t *get_ul_config_request(NR_UE_MAC_INST_t *mac, int sl
   // Calculate the index of the UL slot in mac->ul_config_request list. This is
   // based on the TDD pattern (slot configuration period) and number of UL+mixed
   // slots in the period. TS 38.213 Sec 11.1
-  int mu = 0;
-  if (ul_bwp_id > 0 && mac->ULbwp[ul_bwp_id - 1]) {
-    mu = mac->ULbwp[ul_bwp_id - 1]->bwp_Common->genericParameters.subcarrierSpacing;
-  } else if (mac->scc) {
-    mu = mac->scc->uplinkConfigCommon->initialUplinkBWP->genericParameters.subcarrierSpacing;
-  } else if (mac->scc_SIB) {
-    mu = mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP.genericParameters.subcarrierSpacing;
-  } else {
-    AssertFatal(1 == 0, "subcarrierSpacing was not found!\n");
-  }
-
+  int mu = mac->current_UL_BWP.scs;
   const int n = nr_slots_per_frame[mu];
   const int num_slots_per_tdd = tdd_config ? (n >> (7 - tdd_config->pattern1.dl_UL_TransmissionPeriodicity)) : n;
   const int num_slots_ul = tdd_config ? (tdd_config->pattern1.nrofUplinkSlots + (tdd_config->pattern1.nrofUplinkSymbols != 0)) : n;
@@ -202,7 +192,7 @@ fapi_nr_ul_config_request_t *get_ul_config_request(NR_UE_MAC_INST_t *mac, int sl
 void ul_layers_config(NR_UE_MAC_INST_t * mac, nfapi_nr_ue_pusch_pdu_t *pusch_config_pdu, dci_pdu_rel15_t *dci) {
 
   NR_ServingCellConfigCommon_t *scc = mac->scc;
-  NR_BWP_Id_t ul_bwp_id = mac->UL_BWP_Id;
+  NR_BWP_Id_t ul_bwp_id = mac->current_UL_BWP.bwp_id;
   NR_BWP_UplinkDedicated_t *ubwpd=NULL;
   NR_SRS_Config_t *srs_config = NULL;
 
@@ -360,7 +350,7 @@ void ul_ports_config(NR_UE_MAC_INST_t *mac, int *n_front_load_symb, nfapi_nr_ue_
 
   uint8_t rank = pusch_config_pdu->nrOfLayers;
 
-  NR_BWP_Id_t ul_bwp_id = mac->UL_BWP_Id;
+  NR_BWP_Id_t ul_bwp_id = mac->current_UL_BWP.bwp_id;
   NR_ServingCellConfigCommon_t *scc = mac->scc;
   NR_BWP_UplinkDedicated_t *ubwpd=NULL;
 
@@ -560,7 +550,8 @@ int nr_config_pusch_pdu(NR_UE_MAC_INST_t *mac,
                         dci_pdu_rel15_t *dci,
                         RAR_grant_t *rar_grant,
                         uint16_t rnti,
-                        uint8_t *dci_format){
+                        uint8_t *dci_format)
+{
 
   int f_alloc;
   int mask;
@@ -573,7 +564,8 @@ int nr_config_pusch_pdu(NR_UE_MAC_INST_t *mac,
   int                N_PRB_oh  = 0;
 
   int rnti_type = get_rnti_type(mac, rnti);
-  NR_BWP_Id_t ul_bwp_id = mac->UL_BWP_Id;
+  NR_UE_UL_BWP_t *current_UL_BWP = &mac->current_UL_BWP;
+  NR_BWP_Id_t ul_bwp_id = current_UL_BWP->bwp_id;
 
   // Common configuration
   pusch_config_pdu->dmrs_config_type = pusch_dmrs_type1;
@@ -593,7 +585,7 @@ int nr_config_pusch_pdu(NR_UE_MAC_INST_t *mac,
     // Note: for Msg3 or MsgA PUSCH transmission the N_PRB_oh is always set to 0
     NR_BWP_Uplink_t *ubwp = ul_bwp_id > 0 ? mac->ULbwp[ul_bwp_id - 1] : NULL;
     NR_BWP_UplinkDedicated_t *ibwp;
-    int scs,abwp_start,abwp_size,startSymbolAndLength,mappingtype;
+    int startSymbolAndLength,mappingtype;
     NR_PUSCH_Config_t *pusch_Config=NULL;
     if (mac->cg && ubwp &&
         mac->cg->spCellConfig &&
@@ -606,22 +598,16 @@ int nr_config_pusch_pdu(NR_UE_MAC_INST_t *mac,
       startSymbolAndLength = ubwp->bwp_Common->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList->list.array[rar_grant->Msg3_t_alloc]->startSymbolAndLength;
       mappingtype = ubwp->bwp_Common->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList->list.array[rar_grant->Msg3_t_alloc]->mappingType;
 
-      // active BWP start
-      abwp_start = NRRIV2PRBOFFSET(ubwp->bwp_Common->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
-      abwp_size = NRRIV2BW(ubwp->bwp_Common->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
-      scs = ubwp->bwp_Common->genericParameters.subcarrierSpacing;
     }
     else {
       startSymbolAndLength = initialUplinkBWP->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList->list.array[rar_grant->Msg3_t_alloc]->startSymbolAndLength;
       mappingtype = initialUplinkBWP->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList->list.array[rar_grant->Msg3_t_alloc]->mappingType;
-
-      // active BWP start
-      abwp_start = NRRIV2PRBOFFSET(initialUplinkBWP->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
-      abwp_size = NRRIV2BW(initialUplinkBWP->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
-      scs = initialUplinkBWP->genericParameters.subcarrierSpacing;
     }
-    int ibwp_start = NRRIV2PRBOFFSET(initialUplinkBWP->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
-    int ibwp_size = NRRIV2BW(initialUplinkBWP->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
+    int ibwp_start = current_UL_BWP->initial_BWPStart;
+    int ibwp_size = current_UL_BWP->initial_BWPSize;
+    int abwp_start = current_UL_BWP->BWPStart;
+    int abwp_size = current_UL_BWP->BWPSize;
+    int scs = current_UL_BWP->scs;
 
       // BWP start selection according to 8.3 of TS 38.213
     if ((ibwp_start < abwp_start) || (ibwp_size > abwp_size)) {
@@ -693,8 +679,8 @@ int nr_config_pusch_pdu(NR_UE_MAC_INST_t *mac,
     pusch_config_pdu->tbslbrm = 0;
 
   } else if (dci) {
-    NR_BWP_Id_t dl_bwp_id = mac->DL_BWP_Id;
-    NR_BWP_Id_t ul_bwp_id = mac->UL_BWP_Id;
+    NR_BWP_Id_t dl_bwp_id = mac->current_DL_BWP.bwp_id;
+    NR_BWP_Id_t ul_bwp_id = mac->current_UL_BWP.bwp_id;
     NR_BWP_DownlinkDedicated_t *bwpd=NULL;
     NR_BWP_DownlinkCommon_t *bwpc=NULL;
     NR_BWP_UplinkDedicated_t *ubwpd=NULL;
@@ -704,9 +690,8 @@ int nr_config_pusch_pdu(NR_UE_MAC_INST_t *mac,
     int target_ss;
     bool valid_ptrs_setup = 0;
 
-    uint16_t n_RB_ULBWP = NRRIV2BW(ubwpc->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
-    pusch_config_pdu->bwp_start = NRRIV2PRBOFFSET(ubwpc->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
-    pusch_config_pdu->bwp_size = n_RB_ULBWP;
+    pusch_config_pdu->bwp_start = current_UL_BWP->BWPStart;
+    pusch_config_pdu->bwp_size = current_UL_BWP->BWPSize;
 
     const NR_PUSCH_Config_t *pusch_Config = ubwpd? ubwpd->pusch_Config->choice.setup : NULL;
 
@@ -727,8 +712,6 @@ int nr_config_pusch_pdu(NR_UE_MAC_INST_t *mac,
       target_ss = NR_SearchSpace__searchSpaceType_PR_common;
 
     } else if (*dci_format == NR_UL_DCI_FORMAT_0_1) {
-
-      config_bwp_ue(mac, &dci->bwp_indicator.val, dci_format);
 
       get_bwp_info(mac,dl_bwp_id,ul_bwp_id,&bwpd,&bwpc,&ubwpd,&ubwpc);
 
@@ -798,7 +781,7 @@ int nr_config_pusch_pdu(NR_UE_MAC_INST_t *mac,
 
     /* IDENTIFIER_DCI_FORMATS */
     /* FREQ_DOM_RESOURCE_ASSIGNMENT_UL */
-    if (nr_ue_process_dci_freq_dom_resource_assignment(pusch_config_pdu, NULL, n_RB_ULBWP, 0, dci->frequency_domain_assignment.val) < 0){
+    if (nr_ue_process_dci_freq_dom_resource_assignment(pusch_config_pdu, NULL, current_UL_BWP->BWPSize, 0, dci->frequency_domain_assignment.val) < 0){
       return -1;
     }
     /* TIME_DOM_RESOURCE_ASSIGNMENT */
@@ -884,15 +867,7 @@ int nr_config_pusch_pdu(NR_UE_MAC_INST_t *mac,
       if (!maxMIMO_Layers)
         maxMIMO_Layers = pusch_Config ? pusch_Config->maxRank : NULL;
       AssertFatal (maxMIMO_Layers != NULL,"Option with max MIMO layers not configured is not supported\n");
-      int bw_tbslbrm;
-      if (mac->scc || mac->scc_SIB || mac->cg) {
-        NR_BWP_t genericParameters = initialUplinkBWP->genericParameters;
-        int BWPSize = NRRIV2BW(genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
-        bw_tbslbrm = get_ulbw_tbslbrm(BWPSize, mac->cg);
-      }
-      else {
-        bw_tbslbrm = pusch_config_pdu->bwp_size;
-      }
+      int bw_tbslbrm = get_ulbw_tbslbrm(current_UL_BWP->initial_BWPSize, mac->cg);
       pusch_config_pdu->tbslbrm = nr_compute_tbslbrm(pusch_config_pdu->mcs_table,
                                                      bw_tbslbrm,
                                                      *maxMIMO_Layers);
@@ -971,7 +946,8 @@ bool nr_ue_periodic_srs_scheduling(module_id_t mod_id, frame_t frame, slot_t slo
   bool srs_scheduled = false;
 
   NR_UE_MAC_INST_t *mac = get_mac_inst(mod_id);
-  const NR_BWP_Id_t ul_bwp_id = mac->UL_BWP_Id;
+  NR_UE_UL_BWP_t *current_UL_BWP = &mac->current_UL_BWP;
+  NR_BWP_Id_t ul_bwp_id = current_UL_BWP->bwp_id;
 
   NR_SRS_Config_t *srs_config = NULL;
   if (ul_bwp_id > 0 && mac->ULbwp[ul_bwp_id-1]) {
@@ -1015,21 +991,10 @@ bool nr_ue_periodic_srs_scheduling(module_id_t mod_id, frame_t frame, slot_t slo
       continue;
     }
 
-    NR_BWP_t *ubwp = NULL;
-    if (ul_bwp_id > 0 && mac->ULbwp[ul_bwp_id - 1]) {
-      ubwp = &mac->ULbwp[ul_bwp_id - 1]->bwp_Common->genericParameters;
-    } else if (mac->scc) {
-      ubwp = &mac->scc->uplinkConfigCommon->initialUplinkBWP->genericParameters;
-    } else if (mac->scc_SIB) {
-      ubwp = &mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP.genericParameters;
-    } else {
-      AssertFatal(1 == 0, "UL BWP was not found in %s\n", __FUNCTION__);
-    }
-
     uint16_t period = srs_period[srs_resource->resourceType.choice.periodic->periodicityAndOffset_p.present];
     uint16_t offset = get_nr_srs_offset(srs_resource->resourceType.choice.periodic->periodicityAndOffset_p);
 
-    int n_slots_frame = nr_slots_per_frame[ubwp->subcarrierSpacing];
+    int n_slots_frame = nr_slots_per_frame[current_UL_BWP->scs];
 
     // Check if UE should transmit the SRS
     if((frame*n_slots_frame+slot-offset)%period == 0) {
@@ -1039,9 +1004,9 @@ bool nr_ue_periodic_srs_scheduling(module_id_t mod_id, frame_t frame, slot_t slo
 
       srs_config_pdu->rnti = mac->crnti;
       srs_config_pdu->handle = 0;
-      srs_config_pdu->bwp_size = NRRIV2BW(ubwp->locationAndBandwidth, MAX_BWP_SIZE);;
-      srs_config_pdu->bwp_start = NRRIV2PRBOFFSET(ubwp->locationAndBandwidth, MAX_BWP_SIZE);;
-      srs_config_pdu->subcarrier_spacing = ubwp->subcarrierSpacing;
+      srs_config_pdu->bwp_size = current_UL_BWP->BWPSize;
+      srs_config_pdu->bwp_start = current_UL_BWP->BWPStart;
+      srs_config_pdu->subcarrier_spacing = current_UL_BWP->scs;
       srs_config_pdu->cyclic_prefix = 0;
       srs_config_pdu->num_ant_ports = srs_resource->nrofSRS_Ports;
       srs_config_pdu->num_symbols = srs_resource->resourceMapping.nrofSymbols;
@@ -1632,21 +1597,11 @@ int nr_ue_pusch_scheduler(NR_UE_MAC_INST_t *mac,
                           uint8_t tda_id){
 
   int delta = 0;
-  NR_BWP_Id_t ul_bwp_id = mac->UL_BWP_Id;
+  NR_UE_UL_BWP_t *current_UL_BWP = &mac->current_UL_BWP;
+  NR_BWP_Id_t ul_bwp_id = current_UL_BWP->bwp_id;
 
   // Get the numerology to calculate the Tx frame and slot
-  int mu = 0;
-  NR_PUSCH_TimeDomainResourceAllocationList_t *pusch_TimeDomainAllocationList = NULL;
-  if (ul_bwp_id > 0 && mac->ULbwp[ul_bwp_id - 1]) {
-    mu = mac->ULbwp[ul_bwp_id - 1]->bwp_Common->genericParameters.subcarrierSpacing;
-    pusch_TimeDomainAllocationList = mac->ULbwp[ul_bwp_id - 1]->bwp_Common->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList;
-  } else if (mac->scc) {
-    mu = mac->scc->uplinkConfigCommon->initialUplinkBWP->genericParameters.subcarrierSpacing;
-    pusch_TimeDomainAllocationList = mac->scc->uplinkConfigCommon->initialUplinkBWP->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList;
-  } else {
-    mu = mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP.genericParameters.subcarrierSpacing;
-    pusch_TimeDomainAllocationList = mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP.pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList;
-  }
+  int mu = current_UL_BWP->scs;
 
   // k2 as per 3GPP TS 38.214 version 15.9.0 Release 15 ch 6.1.2.1.1
   // PUSCH time domain resource allocation is higher layer configured from uschTimeDomainAllocationList in either pusch-ConfigCommon
@@ -2389,7 +2344,7 @@ void nr_ue_pucch_scheduler(module_id_t module_idP, frame_t frameP, int slotP, vo
   // ACKNACK
   O_ACK = get_downlink_ack(mac, frameP, slotP, &pucch);
 
-  NR_BWP_Id_t bwp_id = mac->UL_BWP_Id;
+  NR_BWP_Id_t bwp_id = mac->current_UL_BWP.bwp_id;
   NR_PUCCH_Config_t *pucch_Config = NULL;
 
   if (bwp_id>0 &&
@@ -2477,18 +2432,11 @@ void nr_schedule_csi_for_im(NR_UE_MAC_INST_t *mac, int frame, int slot) {
   fapi_nr_dl_config_request_t *dl_config = &mac->dl_config_request;
   NR_CSI_IM_Resource_t *imcsi;
   int period, offset;
-  NR_BWP_Id_t dl_bwp_id = mac->DL_BWP_Id;
 
-  NR_BWP_t *genericParameters = NULL;
-  if(dl_bwp_id > 0 && mac->DLbwp[dl_bwp_id-1]) {
-    genericParameters = &mac->DLbwp[dl_bwp_id-1]->bwp_Common->genericParameters;
-  } else {
-    genericParameters = &mac->scc_SIB->downlinkConfigCommon.initialDownlinkBWP.genericParameters;
-  }
-
-  int mu = genericParameters->subcarrierSpacing;
-  uint16_t bwp_size = NRRIV2BW(genericParameters->locationAndBandwidth, MAX_BWP_SIZE);
-  uint16_t bwp_start = NRRIV2PRBOFFSET(genericParameters->locationAndBandwidth, MAX_BWP_SIZE);
+  NR_UE_DL_BWP_t *current_DL_BWP = &mac->current_DL_BWP;
+  int mu = current_DL_BWP->scs;
+  uint16_t bwp_size = current_DL_BWP->BWPSize;
+  uint16_t bwp_start = current_DL_BWP->BWPStart;
 
   for (int id = 0; id < csi_measconfig->csi_IM_ResourceToAddModList->list.count; id++){
     imcsi = csi_measconfig->csi_IM_ResourceToAddModList->list.array[id];
@@ -2542,22 +2490,12 @@ void nr_schedule_csirs_reception(NR_UE_MAC_INST_t *mac, int frame, int slot) {
   fapi_nr_dl_config_request_t *dl_config = &mac->dl_config_request;
   NR_NZP_CSI_RS_Resource_t *nzpcsi;
   int period, offset;
-  NR_BWP_Id_t dl_bwp_id = mac->DL_BWP_Id;
+  NR_UE_DL_BWP_t *current_DL_BWP = &mac->current_DL_BWP;
+  NR_BWP_Id_t dl_bwp_id = current_DL_BWP->bwp_id;
 
-  NR_BWP_t *genericParameters = NULL;
-  if (dl_bwp_id > 0 && mac->DLbwp[dl_bwp_id - 1]) {
-    genericParameters = &mac->DLbwp[dl_bwp_id - 1]->bwp_Common->genericParameters;
-  } else if (mac->scc) {
-    genericParameters = &mac->scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters;
-  } else if (mac->scc_SIB) {
-    genericParameters = &mac->scc_SIB->downlinkConfigCommon.initialDownlinkBWP.genericParameters;
-  } else {
-    AssertFatal(1 == 0, "DL BWP was not found in %s\n", __FUNCTION__);
-  }
-
-  int mu = genericParameters->subcarrierSpacing;
-  uint16_t bwp_size = NRRIV2BW(genericParameters->locationAndBandwidth, MAX_BWP_SIZE);
-  uint16_t bwp_start = NRRIV2PRBOFFSET(genericParameters->locationAndBandwidth, MAX_BWP_SIZE);
+  int mu = current_DL_BWP->scs;
+  uint16_t bwp_size = current_DL_BWP->BWPSize;
+  uint16_t bwp_start = current_DL_BWP->BWPStart;
 
   // looking for the correct CSI-RS resource in current BWP
   NR_NZP_CSI_RS_ResourceSetId_t *nzp = NULL;
@@ -2585,7 +2523,7 @@ void nr_schedule_csirs_reception(NR_UE_MAC_INST_t *mac, int frame, int slot) {
     fapi_nr_dl_config_csirs_pdu_rel15_t *csirs_config_pdu = &dl_config->dl_config_list[dl_config->number_pdus].csirs_config_pdu.csirs_config_rel15;
     NR_CSI_RS_ResourceMapping_t  resourceMapping = nzpcsi->resourceMapping;
     csirs_config_pdu->subcarrier_spacing = mu;
-    csirs_config_pdu->cyclic_prefix = genericParameters->cyclicPrefix ? *genericParameters->cyclicPrefix : 0;
+    csirs_config_pdu->cyclic_prefix = current_DL_BWP->cyclicprefix ? *current_DL_BWP->cyclicprefix : 0;
 
     // According to last paragraph of TS 38.214 5.2.2.3.1
     if (resourceMapping.freqBand.startingRB < bwp_start) {
