@@ -1603,6 +1603,15 @@ int nr_ue_pusch_scheduler(NR_UE_MAC_INST_t *mac,
   // Get the numerology to calculate the Tx frame and slot
   int mu = current_UL_BWP->scs;
 
+  NR_PUSCH_TimeDomainResourceAllocationList_t *pusch_TimeDomainAllocationList = NULL;
+  if (ul_bwp_id > 0 && mac->ULbwp[ul_bwp_id - 1]) {
+    pusch_TimeDomainAllocationList = mac->ULbwp[ul_bwp_id - 1]->bwp_Common->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList;
+  } else if (mac->scc) {
+    pusch_TimeDomainAllocationList = mac->scc->uplinkConfigCommon->initialUplinkBWP->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList;
+  } else {
+    pusch_TimeDomainAllocationList = mac->scc_SIB->uplinkConfigCommon->initialUplinkBWP.pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList;
+  }
+
   // k2 as per 3GPP TS 38.214 version 15.9.0 Release 15 ch 6.1.2.1.1
   // PUSCH time domain resource allocation is higher layer configured from uschTimeDomainAllocationList in either pusch-ConfigCommon
   int k2;
