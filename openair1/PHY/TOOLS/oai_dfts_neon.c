@@ -904,6 +904,22 @@ const static int16_t tw64c[96] __attribute__((aligned(32))) = {
 23170,-23170,15447,-28898,6393,-32138,-3211,-32610,
 -12539,-30273,-20787,-25330,-27244,-18205,-31356,-9512
                                                  };
+#ifdef simd_q15_t
+#undef simd_q15_t
+#endif
+#ifdef simdshort_q15_t 
+#undef simdshort_q15_t
+#endif
+#ifdef shiftright_int16
+#undef shiftright_int16
+#endif
+#ifdef set1_int16
+#undef set1_int16
+#endif
+#ifdef mulhi_int16
+#undef mulhi_int16
+#endif
+
 #define simd_q15_t int16x8_t
 #define simdshort_q15_t int16x4_t
 #define shiftright_int16(a,shift) vshrq_n_s16(a,shift)
@@ -3568,7 +3584,7 @@ int16_t tw65536[3*2*16384] __attribute__((aligned(32)));
 void idft65536(int16_t *x,int16_t *y,unsigned char scale)
 {
 
-  simd_q15_t xtmp[16384],ytmp[16384],*tw65536_128p=(simd_q15_t *)tw65536,*x128=(simd_q15_t *)x,*y128=(simd_q15_t *)y,*y128p=(simd_q15_t *)y;
+  simd_q15_t xtmp[16384],ytmp[16384],*tw65536_128p=(simd_q15_t *)tw65536,*x128=(simd_q15_t *)x,*y128p=(simd_q15_t *)y;
   simd_q15_t *ytmpp = &ytmp[0];
   int i,j;
 

@@ -267,7 +267,11 @@ int test_ldpc(short max_iterations,
   removed_bit=(nrows-no_punctured_columns-2) * Zc+block_length-(int)(block_length/((float)nom_rate/(float)denom_rate));
   encoder_implemparams_t impp=INIT0_LDPCIMPLEMPARAMS;
 
+#if defined(__arm__) || defined(__aarch64__)  
+  impp.gen_code=2;
+#else
   impp.gen_code=1;
+#endif  
   if (ntrials==0)
     encoder_orig(test_input,channel_input, Zc, BG, block_length, BG, &impp);
   impp.gen_code=0;

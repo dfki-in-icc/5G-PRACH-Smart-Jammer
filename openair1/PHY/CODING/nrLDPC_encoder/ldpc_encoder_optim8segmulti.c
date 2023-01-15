@@ -99,9 +99,12 @@ int nrLDPC_encod(unsigned char **input,unsigned char **output,int Zc,int Kb,shor
 
   AssertFatal(Zc>0,"no valid Zc found for block length %d\n",block_length);
 
+#if defined(__arm__) || defined(__aarch64__)
+  simd_size = 16;
+#else  
   if ((Zc&31) > 0) simd_size = 16;
   else          simd_size = 32;
-
+#endif
   unsigned char cc[22*Zc] __attribute__((aligned(32))); //padded input, unpacked, max size
   unsigned char dd[46*Zc] __attribute__((aligned(32))); //coded parity part output, unpacked, max size
 
@@ -148,7 +151,7 @@ int nrLDPC_encod(unsigned char **input,unsigned char **output,int Zc,int Kb,shor
 
   if(impp->tinput != NULL) stop_meas(impp->tinput);
 
-  if ((BG==1 && Zc>176) || (BG==2 && Zc>64)) {
+  if ((BG==1 && Zc>=176) || (BG==2 && Zc>=64)) {
     // extend matrix
     if(impp->tprep != NULL) start_meas(impp->tprep);
     if(impp->tprep != NULL) stop_meas(impp->tprep);

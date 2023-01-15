@@ -30,10 +30,6 @@ int16_t conjug2[8]__attribute__((aligned(16))) = {1,-1,1,-1,1,-1,1,-1} ;
 #define simdshort_q15_t simde__m64
 #define set1_int16(a) simde_mm_set1_epi16(a)
 #define setr_int16(a0, a1, a2, a3, a4, a5, a6, a7) simde_mm_setr_epi16(a0, a1, a2, a3, a4, a5, a6, a7 )
-#if defined(__arm__) || defined(__aarch64__)
-#define _mm_empty()
-#define _m_empty()
-#endif
 
 int mult_cpx_conj_vector(int16_t *x1,
                          int16_t *x2,
@@ -91,8 +87,8 @@ int mult_cpx_conj_vector(int16_t *x1,
   }
 
 
-  _mm_empty();
-  _m_empty();
+  simde_mm_empty();
+  simde_m_empty();
 
   return(0);
 }
@@ -184,21 +180,13 @@ int multadd_cpx_vector(int16_t *x1,
   simd_q15_t *x1_128;
   simd_q15_t *x2_128;
   simd_q15_t *y_128;
-#if defined(__x86_64__) || defined(__i386__)
   simd_q15_t tmp_re,tmp_im;
   simd_q15_t tmpy0,tmpy1;
-#elif defined(__arm__) || defined(__aarch64__)
-  int32x4_t tmp_re,tmp_im;
-  int32x4_t tmp_re1,tmp_im1;
-  int16x4x2_t tmpy;
-  int32x4_t shift = vdupq_n_s32(-output_shift);
-#endif
   x1_128 = (simd_q15_t *)&x1[0];
   x2_128 = (simd_q15_t *)&x2[0];
   y_128  = (simd_q15_t *)&y[0];
   // we compute 4 cpx multiply for each loop
   for(i=0; i<(N>>2); i++) {
-#if defined(__x86_64__) || defined(__i386__)
     tmp_re = simde_mm_sign_epi16(*x1_128,*(simde__m128i*)&conjug2[0]);
     tmp_re = simde_mm_madd_epi16(tmp_re,*x2_128);
     tmp_im = simde_mm_shufflelo_epi16(*x1_128,_MM_SHUFFLE(2,3,0,1));
@@ -215,14 +203,11 @@ int multadd_cpx_vector(int16_t *x1,
     else
       *y_128 = simde_mm_adds_epi16(*y_128,simde_mm_packs_epi32(tmpy0,tmpy1));
     //print_shorts("*y_128:",&y_128[i]);
-#elif defined(__arm__) || defined(__aarch64__)
-    msg("mult_cpx_vector not implemented for __arm__ nor __aarch64__");
-#endif
     x1_128++;
     x2_128++;
     y_128++;
   }
-  _mm_empty();
-  _m_empty();
+  simde_mm_empty();
+  simde_m_empty();
   return(0);
 }

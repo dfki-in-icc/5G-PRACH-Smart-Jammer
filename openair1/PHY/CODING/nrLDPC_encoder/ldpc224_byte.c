@@ -1,3 +1,4 @@
+#ifdef __AVX2__
 #include "PHY/sse_intrin.h"
 // generated code for Zc=224, byte encoding
 static inline void ldpc224_byte(uint8_t *c,uint8_t *d) {
@@ -149,3 +150,4 @@ static inline void ldpc224_byte(uint8_t *c,uint8_t *d) {
      d2[315]=simde_mm256_xor_si256(c2[7411],simde_mm256_xor_si256(c2[7787],c2[9072]));
   }
 }
+#endif
