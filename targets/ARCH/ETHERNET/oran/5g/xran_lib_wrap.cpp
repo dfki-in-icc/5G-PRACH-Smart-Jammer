@@ -744,7 +744,20 @@ int xranLibWraper::Init(struct xran_fh_config *pCfg)
 
         uint32_t xran_max_antenna_nr = RTE_MAX(get_num_eaxc(), get_num_eaxc_ul());
         //uint32_t xran_max_ant_array_elm_nr = RTE_MAX(get_num_antelmtrx(), xran_max_antenna_nr);
-
+  int ii;
+  int jj;
+  int kk;
+  int symbol_counter = 0;
+  uint8_t symbol_config = 0;
+  int16_t mixed_slot = 0;
+  int16_t mixed_slot_dl_symbol = 0;
+  int16_t mixed_slot_dl_start_symbol = 0;
+  int16_t mixed_slot_dl_start_symbol_found = 0;
+  int16_t mixed_slot_ul_symbol = 0;
+  int16_t mixed_slot_ul_start_symbol = 0;
+  int16_t mixed_slot_ul_start_symbol_found = 0;
+  int16_t mixed_slot_gaurd_symbol = 0;
+  uint8_t mixed_slot_tti_index[40];
 
         /* Update member variables */
         if(pCfg)
@@ -784,6 +797,51 @@ int xranLibWraper::Init(struct xran_fh_config *pCfg)
             }
         }
 
+  for (ii=0;ii<m_xranConf.frame_conf.nTddPeriod;ii++) {
+    symbol_config = m_xranConf.frame_conf.sSlotConfig[ii].nSymbolType[0];
+
+    for (jj=0;jj<14;jj++) {
+      if (symbol_config == m_xranConf.frame_conf.sSlotConfig[ii].nSymbolType[jj])
+        symbol_counter++;
+    }
+
+    if (symbol_counter != 14) {
+      mixed_slot = ii;
+      jj = 0;
+      while (jj<14) {
+        switch(m_xranConf.frame_conf.sSlotConfig[ii].nSymbolType[jj]) {
+          case 0: /* DL Symbol */
+            if (!mixed_slot_dl_start_symbol_found) {
+              mixed_slot_dl_start_symbol_found = 1;
+              mixed_slot_dl_start_symbol = jj;
+            }
+            mixed_slot_dl_symbol++;
+          break;
+          case 1: /* UL Symbol */
+            if (!mixed_slot_ul_start_symbol_found) {
+              mixed_slot_ul_start_symbol_found = 1;
+              mixed_slot_ul_start_symbol = jj;
+            }
+            mixed_slot_ul_symbol++;
+          break;
+          default: /* Guard Period */
+            mixed_slot_gaurd_symbol++;
+        }
+        jj++;
+      }
+      break;
+    }
+    symbol_counter = 0;
+    printf("\n");
+  }
+
+  memset(mixed_slot_tti_index,0,sizeof(mixed_slot_tti_index));
+  mixed_slot_tti_index[mixed_slot] = 1;
+
+  for (kk=1;kk<(XRAN_N_FE_BUF_LEN/m_xranConf.frame_conf.nTddPeriod);kk++) {
+    mixed_slot_tti_index[kk*(m_xranConf.frame_conf.nTddPeriod)+mixed_slot] = 1;
+  }
+
         /* Init RB map */
         for(cc_id = 0; cc_id <nSectorNum; cc_id++) {
             for(tti  = 0; tti  < XRAN_N_FE_BUF_LEN; tti ++) {
@@ -804,8 +862,13 @@ int xranLibWraper::Init(struct xran_fh_config *pCfg)
                         pRbMap->nPrbElm                 = 1;
                         pRbMap->prbMap[0].nRBStart      = 0;
                         pRbMap->prbMap[0].nRBSize       = get_num_dlrbs();
-                        pRbMap->prbMap[0].nStartSymb    = 0;
-                        pRbMap->prbMap[0].numSymb       = 14;
+          if (mixed_slot_tti_index[tti]) {
+            pRbMap->prbMap[0].nStartSymb    = mixed_slot_dl_start_symbol;
+            pRbMap->prbMap[0].numSymb       = mixed_slot_dl_symbol;
+          } else {
+            pRbMap->prbMap[0].nStartSymb    = 0;
+            pRbMap->prbMap[0].numSymb       = 14;
+          }
                         pRbMap->prbMap[0].nBeamIndex    = 0;
                         pRbMap->prbMap[0].compMethod    = XRAN_COMPMETHOD_NONE;//BLKFLOAT; // Modify according to the target compression.
                         pRbMap->prbMap[0].iqWidth       = 16;                              // Modify according to the target compression. 
@@ -841,8 +904,13 @@ int xranLibWraper::Init(struct xran_fh_config *pCfg)
                         pRbMap->nPrbElm                 = 1;
                         pRbMap->prbMap[0].nRBStart      = 0;
                         pRbMap->prbMap[0].nRBSize       = get_num_ulrbs();
-                        pRbMap->prbMap[0].nStartSymb    = 0;
-                        pRbMap->prbMap[0].numSymb       = 14;
+          if (mixed_slot_tti_index[tti]) {
+            pRbMap->prbMap[0].nStartSymb    = mixed_slot_ul_start_symbol;
+            pRbMap->prbMap[0].numSymb       = mixed_slot_ul_symbol;
+          } else {
+            pRbMap->prbMap[0].nStartSymb    = 0;
+            pRbMap->prbMap[0].numSymb       = 14;
+          }
                         pRbMap->prbMap[0].nBeamIndex    = 0;
                         pRbMap->prbMap[0].compMethod    = XRAN_COMPMETHOD_NONE;
                         pRbMap->prbMap[0].iqWidth       = 16;                              // Modify according to the target compression.
