@@ -238,7 +238,7 @@ void multadd_real_vector_complex_scalar(int16_t *x,
                                         int16_t *y,
                                         uint32_t N);
 
-__attribute__((always_inline)) inline void multadd_real_four_symbols_vector_complex_scalar(int16_t *x,
+static __attribute__((always_inline)) inline void multadd_real_four_symbols_vector_complex_scalar(int16_t *x,
                                                                                            c16_t *alpha,
                                                                                            c16_t *y)
 {
