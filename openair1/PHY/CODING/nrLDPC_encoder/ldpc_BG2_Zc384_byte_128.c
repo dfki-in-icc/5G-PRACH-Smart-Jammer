@@ -1,3 +1,4 @@
+#ifndef __AVX2__
 #include "PHY/sse_intrin.h"
 // generated code for Zc=384, byte encoding
 static inline void ldpc_BG2_Zc384_byte(uint8_t *c,uint8_t *d) {
@@ -137,3 +138,4 @@ static inline void ldpc_BG2_Zc384_byte(uint8_t *c,uint8_t *d) {
      d2[984]=simde_mm_xor_si128(c2[4814],simde_mm_xor_si128(c2[4334],simde_mm_xor_si128(c2[2885],simde_mm_xor_si128(c2[1925],simde_mm_xor_si128(c2[6297],simde_mm_xor_si128(c2[5817],simde_mm_xor_si128(c2[6298],simde_mm_xor_si128(c2[1500],simde_mm_xor_si128(c2[1497],simde_mm_xor_si128(c2[1070],simde_mm_xor_si128(c2[590],simde_mm_xor_si128(c2[4910],simde_mm_xor_si128(c2[6871],simde_mm_xor_si128(c2[6391],simde_mm_xor_si128(c2[7349],simde_mm_xor_si128(c2[155],simde_mm_xor_si128(c2[5478],simde_mm_xor_si128(c2[4522],simde_mm_xor_si128(c2[5962],simde_mm_xor_si128(c2[3609],simde_mm_xor_si128(c2[1688],simde_mm_xor_si128(c2[3600],simde_mm_xor_si128(c2[1736],simde_mm_xor_si128(c2[1256],simde_mm_xor_si128(c2[5093],simde_mm_xor_si128(c2[3179],simde_mm_xor_si128(c2[3231],simde_mm_xor_si128(c2[827],simde_mm_xor_si128(c2[2319],simde_mm_xor_si128(c2[6634],simde_mm_xor_si128(c2[3749],simde_mm_xor_si128(c2[4286],simde_mm_xor_si128(c2[3806],simde_mm_xor_si128(c2[7155],c2[2847]))))))))))))))))))))))))))))))))));
   }
 }
+#endif

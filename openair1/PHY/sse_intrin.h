@@ -49,10 +49,6 @@
 #define SSE_INTRIN_H
 
 
-#if defined(__x86_64) || defined(__i386__)
-
-/* x86 processors */
-
 #include <simde/x86/mmx.h>
 #include <simde/x86/sse.h>
 #include <simde/x86/sse2.h>
@@ -62,24 +58,20 @@
 #include <simde/x86/sse4.2.h>
 #include <simde/x86/avx2.h>
 #include <simde/x86/fma.h>
-#include <simde/x86/clmul.h>
+#if defined(__x86_64) || defined(__i386__)
+
+/* x86 processors */
+
 #if defined(__AVX512BW__) || defined(__AVX512F__)
 #include <immintrin.h>
 #endif
 #elif defined(__arm__) || defined(__aarch64__)
 
 /* ARM processors */
-
-#include <simde/x86/mmx.h>
-#include <simde/x86/sse.h>
-#include <simde/x86/sse2.h>
-#include <simde/x86/sse3.h>
-#include <simde/x86/ssse3.h>
-#include <simde/x86/sse4.1.h>
-#include <simde/x86/sse4.2.h>
-#include <simde/x86/avx2.h>
-#include <simde/x86/fma.h>
+// note this fails on some x86 machines, with an error like:
+// /usr/lib/gcc/x86_64-redhat-linux/8/include/gfniintrin.h:57:1: error: inlining failed in call to always_inline ‘_mm_gf2p8affine_epi64_epi8’: target specific option mismatch
 #include <simde/x86/clmul.h>
+
 #include <simde/arm/neon.h>
 #include <stdbool.h>
 #define _MM_SHUFFLE(z, y, x, w) (((z) << 6) | ((y) << 4) | ((x) << 2) | (w))
