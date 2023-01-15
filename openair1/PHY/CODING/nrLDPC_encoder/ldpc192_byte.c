@@ -150,4 +150,4 @@ static inline void ldpc192_byte(uint8_t *c,uint8_t *d) {
      d2[270]=simde_mm256_xor_si256(c2[1864],simde_mm256_xor_si256(c2[5620],c2[4080]));
   }
 }
-#endif __AVX2__
+#endif

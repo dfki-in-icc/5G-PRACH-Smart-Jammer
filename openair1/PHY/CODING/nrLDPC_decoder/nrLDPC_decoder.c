@@ -37,7 +37,6 @@
 #define UNROLL_BN_PROC 1
 #define UNROLL_BN_PROC_PC 1
 #define UNROLL_BN2CN_PROC 1
-#define __AVX2__ 1
 /*----------------------------------------------------------------------
 |                  cn processing files -->AVX512
 /----------------------------------------------------------------------*/
