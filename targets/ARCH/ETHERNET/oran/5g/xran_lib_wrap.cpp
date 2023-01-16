@@ -445,7 +445,9 @@ xranLibWraper::xranLibWraper()
 
         m_xranInit.io_cfg.core              = get_globalcfg<int>(XRAN_UT_KEY_GLOBALCFG_IO, "core");
         m_xranInit.io_cfg.system_core       = get_globalcfg<int>(XRAN_UT_KEY_GLOBALCFG_IO, "system_core");
-        m_xranInit.io_cfg.pkt_proc_core     = get_globalcfg<int>(XRAN_UT_KEY_GLOBALCFG_IO, "pkt_proc_core");
+        uint8_t tmp_pkt_proc_core = get_globalcfg<int>(XRAN_UT_KEY_GLOBALCFG_IO, "pkt_proc_core");
+        m_xranInit.io_cfg.pkt_proc_core     = (uint64_t) 1 << tmp_pkt_proc_core;
+
         m_xranInit.io_cfg.pkt_aux_core      = get_globalcfg<int>(XRAN_UT_KEY_GLOBALCFG_IO, "pkt_aux_core");
         m_xranInit.io_cfg.timing_core       = get_globalcfg<int>(XRAN_UT_KEY_GLOBALCFG_IO, "timing_core");
 
