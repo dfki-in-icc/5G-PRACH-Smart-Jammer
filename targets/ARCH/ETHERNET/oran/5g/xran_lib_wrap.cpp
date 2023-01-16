@@ -37,8 +37,6 @@ json read_json_from_file(const std::string &filename)
 }
 
 
-
-//------------------------------------------------------------------------------------------------------------------------------------------------
 uint16_t xranLibWraper::get_eaxcid_mask(int numbit, int shift)
 {
    uint16_t result = 0;
@@ -50,7 +48,6 @@ uint16_t xranLibWraper::get_eaxcid_mask(int numbit, int shift)
 }
 
 
-//------------------------------------------------------------------------------------------------------------------------------------------------
 int xranLibWraper::init_memory()
 {
         xran_status_t status;
@@ -73,7 +70,7 @@ int xranLibWraper::init_memory()
             return (-1);
             }
 #if 0
-// Sofia: define the sizes according to the specified parameters in the conf file not up to the maximim boudary
+	// Define the sizes according to the specified parameters in the conf file not up to the maximim boudary
         /* initialize maximum instances to have flexibility for the tests */
         int nInstanceNum = XRAN_MAX_SECTOR_NR;
         /* initialize maximum supported CC to have flexibility on the test */
@@ -178,7 +175,6 @@ int xranLibWraper::init_memory()
                     void *sd_mb;
                     int  elm_id;
                     struct xran_prb_map * p_rb_map = (struct xran_prb_map *)ptr;
-                    //memcpy(ptr, &startupConfiguration.PrbMap, sizeof(struct xran_prb_map));
                     for (elm_id = 0; elm_id < XRAN_MAX_SECTIONS_PER_SYM; elm_id++){
                         struct xran_prb_elm *pPrbElem = &p_rb_map->prbMap[elm_id];
                         for(k = 0; k < XRAN_NUM_OF_SYMBOL_PER_SLOT; k++){
@@ -275,7 +271,6 @@ int xranLibWraper::init_memory()
                     void *sd_mb;
                     int  elm_id;
                     struct xran_prb_map * p_rb_map = (struct xran_prb_map *)ptr;
-                    //memcpy(ptr, &startupConfiguration.PrbMap, sizeof(struct xran_prb_map));
                     for (elm_id = 0; elm_id < XRAN_MAX_SECTIONS_PER_SYM; elm_id++){
                         struct xran_prb_elm *pPrbElem = &p_rb_map->prbMap[elm_id];
                         for(k = 0; k < XRAN_NUM_OF_SYMBOL_PER_SLOT; k++){
@@ -330,12 +325,10 @@ int xranLibWraper::init_memory()
                 }
             }
 
-#if 1
-// Insert the allocation of srs buffers useful for xran_5g_srs_req()
-// Code taken from sample app  
-//
+    /* Insert the allocation of srs buffers useful for xran_5g_srs_req()
+       Code taken from sample app */
 
-    /* add SRS rx buffer */
+    /* Add SRS rx buffer */
     for(i = 0; i<nSectorNum && xran_max_ant_array_elm_nr; i++)
     {
         printf("wrapper.hpp: Init memory *** XRANSRS_IN ***\n");
@@ -376,21 +369,16 @@ int xranLibWraper::init_memory()
             }
         }
     }
-
-            
-#endif
-
-        return (0);
+    return (0);
 }
 
 
-//------------------------------------------------------------------------------------------------------------------------------------------------
 // Class Constructor
 xranLibWraper::xranLibWraper()
 {
 
         //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-        // Sofia: put here all the variables that are hard coded and assign them to a variable.
+        // Put here all the variables that are hard coded and assign them to a variable.
         // This should then be changed to a dynamic config
         // At least for now we group all the hard coded value we want to get rid of them
         //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -419,9 +407,6 @@ xranLibWraper::xranLibWraper()
         // Independent
         m_nSlots  = 20;          // If mu=0 is 10, if mu=1 is 20
         m_du_mac[0]=0x00; m_du_mac[1]=0x11; m_du_mac[2]=0x22; m_du_mac[3]=0x33; m_du_mac[4]=0x44; m_du_mac[5]=0x55;
-       // m_ru_mac[0]=0x00; m_ru_mac[1]=0x11; m_ru_mac[2]=0x22; m_ru_mac[3]=0x33; m_ru_mac[4]=0x44; m_ru_mac[5]=0x66;
-
-        //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
         int i, temp, j;
         std::string tmpstr;
@@ -436,9 +421,9 @@ xranLibWraper::xranLibWraper()
         /* DPDK configuration */
         m_dpdk_dev_up = get_globalcfg<std::string>(XRAN_UT_KEY_GLOBALCFG_IO, "dpdk_dev_up");
         m_dpdk_dev_cp = get_globalcfg<std::string>(XRAN_UT_KEY_GLOBALCFG_IO, "dpdk_dev_cp");
-       m_xranInit.io_cfg.dpdk_dev[XRAN_CP_VF] = (m_dpdk_dev_cp == "") ? NULL : (char *)&m_dpdk_dev_cp[0];
-       m_xranInit.io_cfg.dpdk_dev[XRAN_UP_VF] = (m_dpdk_dev_cp == "") ? NULL : (char *)&m_dpdk_dev_up[0];
-       std::cout << "UP_VF [" << m_xranInit.io_cfg.dpdk_dev[XRAN_UP_VF] << "], CP_VF [" << m_xranInit.io_cfg.dpdk_dev[XRAN_CP_VF] << "]" << std::endl;
+        m_xranInit.io_cfg.dpdk_dev[XRAN_CP_VF] = (m_dpdk_dev_cp == "") ? NULL : (char *)&m_dpdk_dev_cp[0];
+        m_xranInit.io_cfg.dpdk_dev[XRAN_UP_VF] = (m_dpdk_dev_cp == "") ? NULL : (char *)&m_dpdk_dev_up[0];
+        std::cout << "UP_VF [" << m_xranInit.io_cfg.dpdk_dev[XRAN_UP_VF] << "], CP_VF [" << m_xranInit.io_cfg.dpdk_dev[XRAN_CP_VF] << "]" << std::endl;
         m_xranInit.io_cfg.num_vfs               = num_vfs_;
  
         printf("wrapper.hpp: m_xranInit.io_cfg.dpdk_dev[%d] =%s, m_xranInit.io_cfg.dpdk_dev[%d]=%s\n",XRAN_UP_VF,m_xranInit.io_cfg.dpdk_dev[XRAN_UP_VF],XRAN_CP_VF,m_xranInit.io_cfg.dpdk_dev[XRAN_CP_VF]);
@@ -627,20 +612,10 @@ xranLibWraper::xranLibWraper()
         m_xranConf.ru_conf.byteOrder    =  XRAN_NE_BE_BYTE_ORDER;
         m_xranConf.ru_conf.iqOrder      =  XRAN_I_Q_ORDER;
 
-        //m_xranConf.log_level    = 0; // Sofia modif
-        m_xranConf.log_level    = 1; //Sofia modif
-
-/*
-        m_xranConf.bbdev_enc = nullptr;
-        m_xranConf.bbdev_dec = nullptr;
-        m_xranConf.ttiCb    = nullptr;
-        m_xranConf.ttiCbParam   = nullptr;
-*/
-
+        m_xranConf.log_level    = 1;
 }
 
 
-//------------------------------------------------------------------------------------------------------------------------------------------------
 // Class Destructor
 xranLibWraper::~xranLibWraper()
 {
@@ -648,7 +623,6 @@ xranLibWraper::~xranLibWraper()
 }
 
 
-//------------------------------------------------------------------------------------------------------------------------------------------------
 int xranLibWraper::SetUp()
 {
         int i;
@@ -687,11 +661,8 @@ int xranLibWraper::SetUp()
             m_nSectorIndex[i] = i;
 
         /* set to maximum length to support multiple cases */
-         m_nFpgaToSW_FTH_RxBufferLen     = 13168; /* 273*12*4 + 64*/
-        #if 0
-        // Sofia: According to sample app this is not the max length. We should also include the spacce for ORAN and ETH Heaaders
-           m_nSW_ToFpga_FTH_TxBufferLen    = 13168; /* 273*12*4 + 64*/
-        #endif
+        m_nFpgaToSW_FTH_RxBufferLen    = 13168; /* 273*12*4 + 64*/
+
         m_nSW_ToFpga_FTH_TxBufferLen   = 13168 + /* 273*12*4 + 64* + ETH AND ORAN HDRs */
                         XRAN_MAX_SECTIONS_PER_SYM* (RTE_PKTMBUF_HEADROOM + sizeof(struct rte_ether_hdr) +
                         sizeof(struct xran_ecpri_hdr) +
@@ -710,7 +681,6 @@ printf("wrapper.hpp: nFpgaToSW_FTH_RxBufferLen=%d , nSW_ToFpga_FTH_TxBufferLen=%
 }
 
 
-//------------------------------------------------------------------------------------------------------------------------------------------------
 void xranLibWraper::TearDown()
 {
         if(m_xranhandle) {
@@ -726,26 +696,13 @@ void xranLibWraper::TearDown()
 //------------------------------------------------------------------------------------------------------------------------------------------------
 int xranLibWraper::Init(struct xran_fh_config *pCfg)
 {
-        //xran_status_t status;
         int32_t nSectorNum;
-        //int32_t j, k, z;
         uint32_t i;
-        //void *ptr;
-        //void *mb;
-        //uint32_t *u32dptr;
-        //uint16_t *u16dptr;
-        //uint8_t  *u8dptr;
-        //SWXRANInterfaceTypeEnum eInterfaceType;
         int32_t cc_id, tti; 
-        //int32_t sym_id;
         uint32_t ant_id;
-        //int32_t flowId;
-        //char    *pos        = NULL;
         struct xran_prb_map *pRbMap = NULL;
 
-
         uint32_t xran_max_antenna_nr = RTE_MAX(get_num_eaxc(), get_num_eaxc_ul());
-        //uint32_t xran_max_ant_array_elm_nr = RTE_MAX(get_num_antelmtrx(), xran_max_antenna_nr);
   uint8_t ii;
   uint8_t jj;
   uint8_t kk;
@@ -878,8 +835,6 @@ int xranLibWraper::Init(struct xran_fh_config *pCfg)
                         if(get_rucategory() == XRAN_CATEGORY_A) {
                             pRbMap->prbMap[0].BeamFormingType   = XRAN_BEAM_ID_BASED;
                             pRbMap->prbMap[0].bf_weight_update  = 0;
-                            //pRbMap->prbMap[0].bf_attribute.weight[];
-                            //pRbMap->prbMap[0].bf_precoding.weight[];
                             }
                         else if(get_rucategory() == XRAN_CATEGORY_B) {
                             
@@ -920,31 +875,12 @@ int xranLibWraper::Init(struct xran_fh_config *pCfg)
                         if(get_rucategory() == XRAN_CATEGORY_A) {
                             pRbMap->prbMap[0].BeamFormingType   = XRAN_BEAM_ID_BASED;
                             pRbMap->prbMap[0].bf_weight_update  = 0;
-                            //pRbMap->prbMap[0].bf_attribute.weight[];
-                            //pRbMap->prbMap[0].bf_precoding.weight[];
                             }
                         else if(get_rucategory() == XRAN_CATEGORY_B) {
-                            //int idxElm;
-                            //int iPrb;
-                            //char *ul_bfw_pos =  ((char*)p_tx_ul_bfw_buffer[flowId]) + tx_ul_bfw_buffer_position[flowId];
-                            //struct xran_prb_elm* p_prbMap = NULL;
-                            //int num_antelm;
 
                             pRbMap->prbMap[0].BeamFormingType   = XRAN_BEAM_WEIGHT;
                             pRbMap->prbMap[0].bf_weight_update  = 1;
 
-                            //num_antelm = get_num_antelmtrx();
-#if 0
-                            /* populate beam weights to C-plane for each elm */
-                            pRbMap->bf_weight.nAntElmTRx = num_antelm;
-                            for (idxElm = 0;  idxElm < pRbMap->nPrbElm; idxElm++){
-                                p_prbMap = &pRbMap->prbMap[idxElm];
-                                for (iPrb = p_prbMap->nRBStart; iPrb < (p_prbMap->nRBStart + p_prbMap->nRBSize); iPrb++){
-                                    /* copy BF W IQs for 1 PRB of */
-                                    rte_memcpy(&pRbMap->bf_weight.weight[iPrb][0], (ul_bfw_pos + (iPrb*num_antelm)*4), num_antelm*4);
-                                    }
-                                }
-#endif
                             } /* else if(get_rucategory() == XRAN_CATEGORY_B) */
 
                         } /* if(pRbMap) */
@@ -959,8 +895,6 @@ int xranLibWraper::Init(struct xran_fh_config *pCfg)
 }
 
 
-
-//------------------------------------------------------------------------------------------------------------------------------------------------
 void xranLibWraper::Cleanup()
 {
         uint32_t i;
@@ -983,13 +917,9 @@ void xranLibWraper::Cleanup()
 }
 
 
-
-
-//------------------------------------------------------------------------------------------------------------------------------------------------
 void xranLibWraper::Open(xran_ethdi_mbuf_send_fn send_cp, xran_ethdi_mbuf_send_fn send_up,
             void *fh_rx_callback, void *fh_rx_prach_callback, void *fh_srs_callback)
 {
-        //struct xran_fh_config *pXranConf;
         int32_t nSectorNum;
         int i, j ;
         uint32_t z;
@@ -1003,13 +933,6 @@ void xranLibWraper::Open(xran_ethdi_mbuf_send_fn send_cp, xran_ethdi_mbuf_send_f
         struct xran_buffer_list *pFthRxPrbMapBuffer[XRAN_MAX_SECTOR_NR][XRAN_MAX_ANTENNA_NR][XRAN_N_FE_BUF_LEN];
         struct xran_buffer_list *pFthRxRachBuffer[XRAN_MAX_SECTOR_NR][XRAN_MAX_ANTENNA_NR][XRAN_N_FE_BUF_LEN];
         struct xran_buffer_list *pFthRxSrsBuffer[XRAN_MAX_SECTOR_NR][XRAN_MAX_ANT_ARRAY_ELM_NR][XRAN_N_FE_BUF_LEN];
-
-#if 0
-        xran_reg_physide_cb(xranHandle, physide_dl_tti_call_back, NULL, 10, XRAN_CB_TTI);
-        xran_reg_physide_cb(xranHandle, physide_ul_half_slot_call_back, NULL, 10, XRAN_CB_HALF_SLOT_RX);
-        xran_reg_physide_cb(xranHandle, physide_ul_full_slot_call_back, NULL, 10, XRAN_CB_FULL_SLOT_RX);
-#endif
-        // Sofia, Roman enable xran_reg_physide_cb(xranHandle, physide_dl_tti_call_back, NULL, 10, XRAN_CB_TTI); for the CP --> In our wrapper
 
         nSectorNum = get_num_cc();
 
@@ -1057,24 +980,11 @@ void xranLibWraper::Open(xran_ethdi_mbuf_send_fn send_cp, xran_ethdi_mbuf_send_f
                 }
 
             /* add SRS callback here */
-
-/*
-            for (i = 0; i<nSectorNum && xran_max_ant_array_elm_nr; i++) {
-                xran_5g_srs_req(m_nInstanceHandle[0][i], pFthRxSrsBuffer[i],
-                    (void (*)(void *, xran_status_t))fh_srs_callback,&pFthRxSrsBuffer[i][0]);
-                }
-*/
-
             }
-
-
         xran_register_cb_mbuf2ring(send_cp, send_up);
-
-        //xran_open(m_xranhandle, &m_xranConf); // Sofia comment
 }
 
 
-//------------------------------------------------------------------------------------------------------------------------------------------------
 void xranLibWraper::Close()
 {
         if(m_xranhandle)
@@ -1082,7 +992,6 @@ void xranLibWraper::Close()
 }
 
 
-//------------------------------------------------------------------------------------------------------------------------------------------------
 int xranLibWraper::Start()
 {
         if(m_xranhandle)
@@ -1092,7 +1001,6 @@ int xranLibWraper::Start()
 }
 
 
-//------------------------------------------------------------------------------------------------------------------------------------------------
 int xranLibWraper::Stop()
 {
         if(m_xranhandle)
@@ -1102,15 +1010,13 @@ int xranLibWraper::Stop()
 }
 
 
-//------------------------------------------------------------------------------------------------------------------------------------------------
- /* emulation of timer */
+/* Emulation of timer */
 void xranLibWraper::update_tti()
 {
         tti_ota_cb(nullptr, get_timer_ctx());
 }
 
 
-//------------------------------------------------------------------------------------------------------------------------------------------------
 void xranLibWraper::update_symbol_index()
 {
         xran_lib_ota_sym_idx++;
@@ -1124,7 +1030,6 @@ void xranLibWraper::update_symbol_index()
 }
 
 
-//------------------------------------------------------------------------------------------------------------------------------------------------
 int xranLibWraper::apply_cpenable(bool flag)
 {
         struct xran_device_ctx *pCtx = xran_dev_get_ctx();
@@ -1148,8 +1053,6 @@ int xranLibWraper::apply_cpenable(bool flag)
 }
 
 
-
-//------------------------------------------------------------------------------------------------------------------------------------------------
 int xranLibWraper::get_slot_config(const std::string &cfgname, struct xran_frame_config *pCfg)
 {
         int numcfg, i;
@@ -1173,7 +1076,6 @@ int xranLibWraper::get_slot_config(const std::string &cfgname, struct xran_frame
 }
 
 
-//------------------------------------------------------------------------------------------------------------------------------------------------
 int xranLibWraper::get_num_rbs(uint32_t nNumerology, uint32_t nBandwidth, bool nSub6)
 {
         if(nNumerology > 3)
@@ -1216,13 +1118,10 @@ int xranLibWraper::get_num_rbs(uint32_t nNumerology, uint32_t nBandwidth, bool n
 }
 
 
-//------------------------------------------------------------------------------------------------------------------------------------------------
 void * xranLibWraper::get_xranhandle()  { return(m_xranhandle); }
 
-//------------------------------------------------------------------------------------------------------------------------------------------------
 void * xranLibWraper::get_timer_ctx()   { return((void *)&m_timer_ctx[0]); }
 
-//------------------------------------------------------------------------------------------------------------------------------------------------
 int xranLibWraper::get_symbol_index()  { return (xran_lib_ota_sym); }
 
 int xranLibWraper::get_ota_tti()  { return (xran_lib_ota_tti); }
@@ -1257,73 +1156,54 @@ int xranLibWraper::get_symbol_offset(int32_t offSym, int32_t otaSym, int32_t num
 
 int xranLibWraper::get_SFN_at_sec_start()  { return (xran_SFN_at_Sec_Start); }
 
-//------------------------------------------------------------------------------------------------------------------------------------------------
 bool xranLibWraper::is_running()       { return((xran_get_if_state() == XRAN_RUNNING)?true:false); }
 
-//------------------------------------------------------------------------------------------------------------------------------------------------
 enum xran_category xranLibWraper::get_rucategory()    { return(m_xranConf.ru_conf.xranCat); }
 
-//------------------------------------------------------------------------------------------------------------------------------------------------
 int xranLibWraper::get_numerology()    { return(m_xranConf.frame_conf.nNumerology); }
 
-//------------------------------------------------------------------------------------------------------------------------------------------------
 int xranLibWraper::get_duplextype()    { return(m_xranConf.frame_conf.nFrameDuplexType); }
 
-//------------------------------------------------------------------------------------------------------------------------------------------------
 uint32_t xranLibWraper::get_num_cc()        { return(m_xranConf.nCC); }
 
-//------------------------------------------------------------------------------------------------------------------------------------------------
 uint32_t xranLibWraper::get_num_eaxc()      { return(m_xranConf.neAxc); }
 
-//------------------------------------------------------------------------------------------------------------------------------------------------
 uint32_t xranLibWraper::get_num_eaxc_ul()   { return(m_xranConf.neAxcUl); }
 
-//------------------------------------------------------------------------------------------------------------------------------------------------
 uint32_t xranLibWraper::get_num_dlrbs()     { return(m_xranConf.nDLRBs); }
 
-//------------------------------------------------------------------------------------------------------------------------------------------------
 uint32_t xranLibWraper::get_num_ulrbs()     { return(m_xranConf.nULRBs); }
 
-//------------------------------------------------------------------------------------------------------------------------------------------------
 uint32_t xranLibWraper::get_num_antelmtrx() { return(m_xranConf.nAntElmTRx); }
 
-//------------------------------------------------------------------------------------------------------------------------------------------------
 bool xranLibWraper::is_cpenable()      { return(m_xranInit.enableCP); };
 
-//------------------------------------------------------------------------------------------------------------------------------------------------
 bool xranLibWraper::is_prachenable()   { return(m_xranInit.prachEnable); };
 
-//------------------------------------------------------------------------------------------------------------------------------------------------
 bool xranLibWraper::is_dynamicsection() { return(m_xranInit.DynamicSectionEna?true:false); }
 
-//------------------------------------------------------------------------------------------------------------------------------------------------
 bool  xranLibWraper::get_sub6()         { return(m_bSub6);}
 
-//------------------------------------------------------------------------------------------------------------------------------------------------
 void  xranLibWraper::get_cfg_prach(struct xran_prach_config *pCfg)
 {
         if(pCfg)
             memcpy(pCfg, &m_xranConf.prach_conf, sizeof(struct xran_prach_config));
 }
 
-//------------------------------------------------------------------------------------------------------------------------------------------------
 void  xranLibWraper::get_cfg_frame(struct xran_frame_config *pCfg)
 {
         if(pCfg)
             memcpy(pCfg, &m_xranConf.frame_conf, sizeof(struct xran_frame_config));
 }
 
-//------------------------------------------------------------------------------------------------------------------------------------------------
 void  xranLibWraper::get_cfg_ru(struct xran_ru_config *pCfg)
 {
         if(pCfg)
             memcpy(pCfg, &m_xranConf.ru_conf, sizeof(struct xran_ru_config));
 }
 
-//------------------------------------------------------------------------------------------------------------------------------------------------
 void  xranLibWraper::get_cfg_fh(struct xran_fh_config *pCfg)
 {
         if(pCfg)
             memcpy(pCfg, &m_xranConf, sizeof(struct xran_fh_config));
 }
-

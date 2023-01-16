@@ -88,7 +88,7 @@ typedef enum {
     CPU_GENERIC, /*!< C */
     SSE4_2,      /*!< SSE4_2 */
     AVX,         /*!< AVX */
-    AVX_2,        /*!< AVX2 */
+    AVX_2,       /*!< AVX2 */
     AVX_512,     /*!< AVX512 */
 }instruction_cpu_support;
 

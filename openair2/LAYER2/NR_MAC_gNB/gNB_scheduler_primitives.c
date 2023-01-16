@@ -1591,11 +1591,13 @@ void fill_dci_pdu_rel15(const NR_ServingCellConfigCommon_t *scc,
       // Time domain assignment 4 bit
       for (int i = 0; i < 4; i++)
         *dci_pdu |= (((uint64_t)dci_pdu_rel15->time_domain_assignment.val >> (3 - i)) & 1) << (dci_size - pos++);
-			LOG_D(NR_MAC, "dci_pdu_rel15->time_domain_assignment.val = %i\n", dci_pdu_rel15->time_domain_assignment.val);
-			// VRB to PRB mapping 1 bit
-			if (gNB_mac->sched_ctrlCommon->sched_pdcch.CceRegMappingType) {
-				dci_pdu_rel15->vrb_to_prb_mapping.val = 1;
-			}
+
+      LOG_D(NR_MAC, "dci_pdu_rel15->time_domain_assignment.val = %i\n", dci_pdu_rel15->time_domain_assignment.val);
+      // VRB to PRB mapping 1 bit
+      if (gNB_mac->sched_ctrlCommon->sched_pdcch.CceRegMappingType) {
+	      dci_pdu_rel15->vrb_to_prb_mapping.val = 1;
+      }
+
       *dci_pdu |= ((uint64_t)dci_pdu_rel15->vrb_to_prb_mapping.val & 1) << (dci_size - pos++);
       LOG_D(NR_MAC, "dci_pdu_rel15->vrb_to_prb_mapping.val = %i\n", dci_pdu_rel15->vrb_to_prb_mapping.val);
       // MCS 5bit  //bit over 32, so dci_pdu ++

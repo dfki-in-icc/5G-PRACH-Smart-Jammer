@@ -47,6 +47,7 @@ volatile uint32_t rx_cb_slot = 0;
 
 #define GetFrameNum(tti,SFNatSecStart,numSubFramePerSystemFrame, numSlotPerSubFrame)  ((((uint32_t)tti / ((uint32_t)numSubFramePerSystemFrame * (uint32_t)numSlotPerSubFrame)) + SFNatSecStart) & 0x3FF)
 #define GetSlotNum(tti, numSlotPerSfn) ((uint32_t)tti % ((uint32_t)numSlotPerSfn))
+
 // Declare the function useful to load IQs from file
 int sys_load_file_to_buff(char *filename, char *bufname, unsigned char *pBuffer, unsigned int size, unsigned int buffers_num)
 {
@@ -99,7 +100,6 @@ int sys_load_file_to_buff(char *filename, char *bufname, unsigned char *pBuffer,
 }
 
 
-//------------------------------------------------------------------------
 void xran_fh_rx_callback(void *pCallbackTag, xran_status_t status){
     xran_cb_tag *callback_tag = (xran_cb_tag *)pCallbackTag;
     uint64_t second;
@@ -126,17 +126,9 @@ void xran_fh_rx_callback(void *pCallbackTag, xran_status_t status){
 }
 void xran_fh_srs_callback(void *pCallbackTag, xran_status_t status){
     rte_pause();
-#if 0
-    xran_cb_tag *callback_tag = (xran_cb_tag *)pCallbackTag;
-    printf(" xran_fh_SRS_callback::: cellId=%d\tslotiId=%d\tsymbol=%d\n",callback_tag->cellId,callback_tag->slotiId,callback_tag->symbol);
-#endif
 }
 void xran_fh_rx_prach_callback(void *pCallbackTag, xran_status_t status){
     rte_pause();
-#if 0
-    xran_cb_tag *callback_tag = (xran_cb_tag *)pCallbackTag;
-    printf(" xran_fh_rx_PRACH_callback::: cellId=%d\tslotiId=%d\tsymbol=%d\n",callback_tag->cellId,callback_tag->slotiId,callback_tag->symbol);
-#endif
 }
 
 
@@ -161,7 +153,6 @@ int physide_ul_full_slot_call_back(void * param)
 }
 
 
-//------------------------------------------------------------------------
 #ifdef __cplusplus
 extern "C"
 {
@@ -178,7 +169,6 @@ void* define_oran_pointer(){
 #endif
 
 
-//------------------------------------------------------------------------
 #ifdef __cplusplus
 extern "C"
 {
@@ -203,19 +193,12 @@ void dump_oran_config(void *xranlib_){
    printf("* Number RBs DL  = %d\n", ndlrbs);
    printf("* Number RBs UL  = %d\n", nulrbs);
    printf("**--**--**--**--**--**--**--**--**--**--**--**\n");
-
-   #if 0
-     printf("dump_oran_config exit program ...\n");
-     exit(-1);
-   #endif
 }
 #ifdef __cplusplus
 }
 #endif
 
 
-
-//------------------------------------------------------------------------
 #ifdef __cplusplus
 extern "C"
 {
@@ -232,7 +215,6 @@ int setup_oran( void *xranlib_ ){
 #endif
 
 
-//------------------------------------------------------------------------
 #ifdef __cplusplus
 extern "C"
 {
@@ -253,7 +235,6 @@ int open_oran_callback(void *xranlib_){
 #endif
 
 
-//------------------------------------------------------------------------
 #ifdef __cplusplus
 extern "C"
 {
@@ -272,8 +253,6 @@ int open_oran(void *xranlib_){
 #endif
 
 
-
-//------------------------------------------------------------------------
 #ifdef __cplusplus
 extern "C"
 {
@@ -290,7 +269,6 @@ int initialize_oran(void *xranlib_){
 #endif
 
 
-//------------------------------------------------------------------------
 #ifdef __cplusplus
 extern "C"
 {
@@ -307,7 +285,6 @@ int start_oran(void *xranlib_){
 #endif
 
 
-//------------------------------------------------------------------------
 #ifdef __cplusplus
 extern "C"
 {
@@ -323,7 +300,7 @@ int stop_oran(void *xranlib_){
 }
 #endif
 
-//------------------------------------------------------------------------
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -340,7 +317,6 @@ int close_oran(void *xranlib_){
 #endif
 
 
-//------------------------------------------------------------------------
 #ifdef __cplusplus
 extern "C"
 {
@@ -360,7 +336,6 @@ int register_physide_callbacks(void *xranlib_){
 #endif
 
 
-//------------------------------------------------------------------------
 #ifdef __cplusplus
 extern "C"
 {
@@ -425,7 +400,6 @@ return(0);
 #endif
 
 
-//------------------------------------------------------------------------
 #ifdef __cplusplus
 extern "C"
 {
@@ -445,10 +419,6 @@ int xran_fh_tx_send_buffer(void *xranlib_){
        int num_eaxc = xranlib->get_num_eaxc();
        int num_eaxc_ul = xranlib->get_num_eaxc_ul();
        uint32_t xran_max_antenna_nr = RTE_MAX(num_eaxc, num_eaxc_ul);
-       //uint32_t ant_el_trx = xranlib->get_num_antelmtrx();
-       //uint32_t xran_max_ant_array_elm_nr = RTE_MAX(ant_el_trx, xran_max_antenna_nr);
-
-       //int32_t nSectorIndex[XRAN_MAX_SECTOR_NR];
        int32_t nSectorNum;
 
        /*
@@ -652,7 +622,6 @@ int xran_fh_rx_read_slot(void *xranlib_, ru_info_t *ru, int *frame, int *slot, i
               // This loop would better be more inner to avoid confusion and maybe also errors.
               for(int32_t sym_idx = 0; sym_idx < XRAN_NUM_OF_SYMBOL_PER_SLOT; sym_idx++) {
 
-                 //flowId = num_eaxc * cc_id + ant_id;
                  uint8_t *pData = p_xran_dev_ctx_2->sFrontHaulRxBbuIoBufCtrl[tti % XRAN_N_FE_BUF_LEN][cc_id][ant_id].sBufferList.pBuffers[sym_idx%XRAN_NUM_OF_SYMBOL_PER_SLOT].pData;
                  uint8_t *pPrbMapData = p_xran_dev_ctx_2->sFrontHaulRxPrbMapBbuIoBufCtrl[tti % XRAN_N_FE_BUF_LEN][cc_id][ant_id].sBufferList.pBuffers->pData;
                  struct xran_prb_map *pPrbMap = (struct xran_prb_map *)pPrbMapData;
@@ -668,7 +637,6 @@ int xran_fh_rx_read_slot(void *xranlib_, ru_info_t *ru, int *frame, int *slot, i
                     int16_t payload_len = 0;
 
                     uint8_t *src = (uint8_t *)u8dptr;
-                    //uint8_t *dst = (uint8_t *)pos;
                     // first half
                     uint8_t  *src1 = (uint8_t *)u8dptr;
                     uint8_t  *dst1 = (uint8_t *)pos;
@@ -763,10 +731,7 @@ int xran_fh_rx_read_slot(void *xranlib_, ru_info_t *ru, int *frame, int *slot, i
               }
             }
           }
-
-
 return(0);                                   
-
 }
 #ifdef __cplusplus
 }
@@ -782,7 +747,6 @@ int xran_fh_tx_send_slot(void *xranlib_, ru_info_t *ru, int frame, int slot, uin
 
   int tti = /*frame*SUBFRAMES_PER_SYSTEMFRAME*SLOTNUM_PER_SUBFRAME+*/20*frame+slot; //commented out temporarily to check that compilation of oran 5g is working.
 
-  //int32_t flowId;
   void *ptr = NULL;
   int32_t  *pos = NULL;
   int idx = 0;
@@ -803,16 +767,12 @@ int xran_fh_tx_send_slot(void *xranlib_, ru_info_t *ru, int frame, int slot, uin
            nSectorIndex[nSectorNum] = nSectorNum;
        }
        */
-       //nSectorNum = xranlib->get_num_cc();
-
-       //int maxflowid = num_eaxc * (nSectorNum-1) + (xran_max_antenna_nr-1);
 
        for(uint16_t cc_id=0; cc_id<1/*nSectorNum*/; cc_id++){ // OAI does not support multiple CC yet.
            for(uint8_t ant_id = 0; ant_id < xran_max_antenna_nr && ant_id<ru->nb_tx; ant_id++){
               // This loop would better be more inner to avoid confusion and maybe also errors.
               for(int32_t sym_idx = 0; sym_idx < XRAN_NUM_OF_SYMBOL_PER_SLOT; sym_idx++) {
 
-                 //flowId = num_eaxc * cc_id + ant_id;
                  uint8_t *pData = p_xran_dev_ctx_2->sFrontHaulTxBbuIoBufCtrl[tti % XRAN_N_FE_BUF_LEN][cc_id][ant_id].sBufferList.pBuffers[sym_idx%XRAN_NUM_OF_SYMBOL_PER_SLOT].pData;
                  uint8_t *pPrbMapData = p_xran_dev_ctx_2->sFrontHaulTxPrbMapBbuIoBufCtrl[tti % XRAN_N_FE_BUF_LEN][cc_id][ant_id].sBufferList.pBuffers->pData;
                  struct xran_prb_map *pPrbMap = (struct xran_prb_map *)pPrbMapData;
@@ -828,7 +788,6 @@ int xran_fh_tx_send_slot(void *xranlib_, ru_info_t *ru, int frame, int slot, uin
                     int16_t payload_len = 0;
 
                     uint8_t *dst = (uint8_t *)u8dptr;
-                    //uint8_t *src = (uint8_t *)pos;
                     // first half
                     uint8_t  *dst1 = (uint8_t *)u8dptr;
                     uint8_t  *src1 = (uint8_t *)pos;
@@ -838,7 +797,6 @@ int xran_fh_tx_send_slot(void *xranlib_, ru_info_t *ru, int frame, int slot, uin
 
                     struct xran_prb_elm* p_prbMapElm = &pRbMap->prbMap[idxElm];
 
-                    //printf("RRR : nPrbElm=%d\n",pRbMap->nPrbElm);
                     for (idxElm = 0;  idxElm < pRbMap->nPrbElm; idxElm++) {
                        struct xran_section_desc *p_sec_desc = NULL;
                        p_prbMapElm = &pRbMap->prbMap[idxElm];
@@ -931,7 +889,6 @@ return(0);
 
 
 
-//-----------------------------------------------------------------------
 int64_t count_sec =0;
 struct xran_common_counters x_counters;
 uint64_t nTotalTime;
@@ -999,22 +956,3 @@ void check_xran_ptp_sync(){
 #ifdef __cplusplus
 }
 #endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

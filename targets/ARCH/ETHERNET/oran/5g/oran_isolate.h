@@ -27,9 +27,6 @@
 #include <pthread.h>
 #include <stdint.h>
 
-//#include "shared_buffers.h"
-//#include "low_oran.h"
-
 /*
  * Structure added to bear the information needed from OAI RU
  */
@@ -46,7 +43,7 @@ typedef struct ru_info_s{
         // Needed for Prach
         int *prach_buf;
 
-        // previous slot number
+        // Previous Slot Number
         int slot_prev;
 } ru_info_t;
 
@@ -207,7 +204,5 @@ void check_xran_ptp_sync();
 #ifdef __cplusplus
 }
 #endif
-
-
 
 #endif /* _ORAN_ISOLATE_H_ */
