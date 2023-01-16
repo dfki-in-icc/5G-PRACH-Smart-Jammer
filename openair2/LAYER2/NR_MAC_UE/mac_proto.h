@@ -406,8 +406,7 @@ andom-access to transmit a BSR along with the C-RNTI control element (see 5.1.4 
 @param gNB_id gNB index
 @param nr_slot_tx slot for PRACH transmission
 @returns indication to generate PRACH to phy */
-uint8_t nr_ue_get_rach(fapi_nr_ul_config_prach_pdu *prach_pdu,
-                       module_id_t mod_id,
+uint8_t nr_ue_get_rach(module_id_t mod_id,
                        int CC_id,
                        frame_t frame,
                        uint8_t gNB_id,
@@ -423,7 +422,6 @@ void nr_get_prach_resources(module_id_t mod_id,
                             int CC_id,
                             uint8_t gNB_id,
                             NR_PRACH_RESOURCES_t *prach_resources,
-                            fapi_nr_ul_config_prach_pdu *prach_pdu,
                             NR_RACH_ConfigDedicated_t * rach_ConfigDedicated);
 
 void init_RA(module_id_t mod_id,
@@ -453,11 +451,17 @@ void fill_dci_search_candidates(NR_SearchSpace_t *ss,fapi_nr_dl_config_dci_dl_pd
 
 void build_ssb_to_ro_map(NR_UE_MAC_INST_t *mac);
 
-void config_bwp_ue(NR_UE_MAC_INST_t *mac, uint16_t *bwp_ind, uint8_t *dci_format);
-
 void configure_ss_coreset(NR_UE_MAC_INST_t *mac,
                           NR_ServingCellConfig_t *scd,
                           NR_BWP_Id_t dl_bwp_id);
+
+static uint8_t nr_extract_dci_info(NR_UE_MAC_INST_t *mac,
+                                   uint8_t dci_format,
+                                   uint8_t dci_size,
+                                   uint16_t rnti,
+                                   int ss_type,
+                                   uint64_t *dci_pdu,
+                                   dci_pdu_rel15_t *dci_pdu_rel15);
 
 fapi_nr_ul_config_request_t *get_ul_config_request(NR_UE_MAC_INST_t *mac, int slot);
 

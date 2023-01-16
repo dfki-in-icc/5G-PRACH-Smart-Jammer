@@ -64,7 +64,7 @@ const int get_dl_tda(const gNB_MAC_INST *nrmac, const NR_ServingCellConfigCommon
 
   if (tdd && tdd->nrofDownlinkSymbols > 1) { // if there is a mixed slot where we can transmit DL
     const int nr_slots_period = tdd->nrofDownlinkSlots + tdd->nrofUplinkSlots + 1;
-    if ((slot%nr_slots_period) == tdd->nrofDownlinkSlots)
+    if ((slot % nr_slots_period) == tdd->nrofDownlinkSlots)
       return 2;
   }
   return 0; // if FDD or not mixed slot in TDD, for now use default TDA
@@ -628,7 +628,7 @@ void pf_dl(module_id_t module_id,
     }
   }
 
-  qsort(UE_sched, sizeof(*UE_sched), sizeofArray(UE_sched), comparator);
+  qsort(UE_sched, sizeofArray(UE_sched), sizeof(UEsched_t), comparator);
   UEsched_t *iterator = UE_sched;
 
   const int min_rbSize = 5;
@@ -1012,7 +1012,7 @@ void nr_schedule_ue_spec(module_id_t module_id,
     long maxMIMO_Layers = current_BWP->pdsch_servingcellconfig ? *current_BWP->pdsch_servingcellconfig->ext1->maxMIMO_Layers : 1;
     const int nl_tbslbrm = min(maxMIMO_Layers, 4);
     // Maximum number of PRBs across all configured DL BWPs
-    int scc_bwpsize = NRRIV2BW(scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
+    int scc_bwpsize = current_BWP->initial_BWPSize;
     int bw_tbslbrm = get_dlbw_tbslbrm(scc_bwpsize, cg);
     pdsch_pdu->maintenance_parms_v3.tbSizeLbrmBytes = nr_compute_tbslbrm(current_BWP->mcsTableIdx,
                                                                          bw_tbslbrm,
@@ -1110,12 +1110,13 @@ void nr_schedule_ue_spec(module_id_t module_id,
     fill_dci_pdu_rel15(scc,
                        cg,
                        current_BWP,
+                       &UE->current_UL_BWP,
                        dci_pdu,
                        &dci_payload,
                        current_BWP->dci_format,
                        rnti_type,
-                       pdsch_pdu->BWPSize,
                        bwp_id,
+                       sched_ctrl->search_space,
                        sched_ctrl->coreset,
                        gNB_mac->cset0_bwp_size);
 

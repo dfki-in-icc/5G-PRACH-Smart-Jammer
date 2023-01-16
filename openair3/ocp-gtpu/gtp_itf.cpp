@@ -19,7 +19,7 @@ extern "C" {
 #include <openair2/LAYER2/PDCP_v10.1.0/pdcp.h>
 #include <openair2/LAYER2/nr_rlc/nr_rlc_oai_api.h>
 #include "openair2/SDAP/nr_sdap/nr_sdap.h"
-//#include <openair1/PHY/phy_extern.h>
+#include "sim.h"
 
 #pragma pack(1)
 
@@ -142,6 +142,12 @@ class gtpEndPoints {
   pthread_mutex_t gtp_lock=PTHREAD_MUTEX_INITIALIZER;
   // the instance id will be the Linux socket handler, as this is uniq
   map<uint64_t, gtpEndPoint> instances;
+
+  gtpEndPoints() {
+    unsigned int seed;
+    fill_random(&seed, sizeof(seed));
+    srandom(seed);
+  }
 
   ~gtpEndPoints() {
     // automatically close all sockets on quit
@@ -546,7 +552,7 @@ instance_t gtpv1Init(openAddr_t context) {
   return id;
 }
 
-void GtpuUpdateTunnelOutgoingTeid(instance_t instance, ue_id_t ue_id, ebi_t bearer_id, teid_t newOutgoingTeid) {
+void GtpuUpdateTunnelOutgoingAddressAndTeid(instance_t instance, ue_id_t ue_id, ebi_t bearer_id, in_addr_t newOutgoingAddr, teid_t newOutgoingTeid) {
   pthread_mutex_lock(&globGtp.gtp_lock);
   getInstRetVoid(compatInst(instance));
   getUeRetVoid(inst, ue_id);
@@ -559,8 +565,9 @@ void GtpuUpdateTunnelOutgoingTeid(instance_t instance, ue_id_t ue_id, ebi_t bear
     return;
   }
 
+  ptr2->second.outgoing_ip_addr = newOutgoingAddr;
   ptr2->second.teid_outgoing = newOutgoingTeid;
-  LOG_I(GTPU, "[%ld] Tunnel Outgoing TEID updated to %x \n", instance, ptr2->second.teid_outgoing);
+  LOG_I(GTPU, "[%ld] Tunnel Outgoing TEID updated to %x and address to %x\n", instance, ptr2->second.teid_outgoing, ptr2->second.outgoing_ip_addr);
   pthread_mutex_unlock(&globGtp.gtp_lock);
   return;
 }

@@ -164,6 +164,11 @@ typedef enum {
     UE_PHY_HO_PRACH
 } NR_UE_L2_STATE_t;
 
+typedef enum {
+  RA_2STEP = 0,
+  RA_4STEP
+} nr_ra_type_e;
+
 // LTE structure, might need to be adapted for NR
 typedef struct {
   /// buffer status for each lcgid
@@ -228,7 +233,6 @@ typedef struct {
 
 typedef enum {
   RA_UE_IDLE = 0,
-  GENERATE_IDLE = 0,
   GENERATE_PREAMBLE = 1,
   WAIT_RAR = 2,
   WAIT_CONTENTION_RESOLUTION = 3,
@@ -281,8 +285,8 @@ typedef struct {
   uint8_t RA_active;
   /// Random-access preamble index
   int ra_PreambleIndex;
-  /// Flag for the Msg1 generation: enabled at every occurrence of nr prach slot
-  RA_state_t generate_nr_prach;
+  // When multiple SSBs per RO is configured, this indicates which one is selected in this RO -> this is used to properly compute the PRACH preamble
+  uint8_t ssb_nb_in_ro;
 
   /// Random-access window counter
   int16_t RA_window_cnt;
@@ -373,7 +377,6 @@ typedef struct {
 
 } NR_PHY_meas_t;
 
-
 /*!\brief Top level UE MAC structure */
 typedef struct {
 
@@ -385,6 +388,7 @@ typedef struct {
   long                            physCellId;
   ////  MAC config
   int                             first_sync_frame;
+  bool                            sib1_decoded;
   NR_DRX_Config_t                 *drx_Config;
   NR_SchedulingRequestConfig_t    *schedulingRequestConfig;
   NR_BSR_Config_t                 *bsr_Config;
@@ -393,18 +397,15 @@ typedef struct {
   NR_RNTI_Value_t                 *cs_RNTI;
   NR_MIB_t                        *mib;
 
+  NR_UE_DL_BWP_t current_DL_BWP;
+  NR_UE_UL_BWP_t current_UL_BWP;
+
   NR_BWP_Downlink_t               *DLbwp[MAX_NUM_BWP_UE];
   NR_BWP_Uplink_t                 *ULbwp[MAX_NUM_BWP_UE];
   NR_ControlResourceSet_t         *coreset[MAX_NUM_BWP_UE][FAPI_NR_MAX_CORESET_PER_BWP];
   NR_SearchSpace_t                *SSpace[MAX_NUM_BWP_UE][FAPI_NR_MAX_SS];
 
   frame_type_t frame_type;
-
-  /*BWP*/
-  // dedicated active DL BWP
-  NR_BWP_Id_t DL_BWP_Id;
-  // dedicated active UL BWP
-  NR_BWP_Id_t UL_BWP_Id;
 
   ///     Type0-PDCCH seach space
   fapi_nr_dl_config_dci_dl_pdu_rel15_t type0_pdcch_dci_config;
