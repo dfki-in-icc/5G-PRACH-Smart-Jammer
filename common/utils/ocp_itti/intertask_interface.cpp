@@ -317,8 +317,7 @@ extern "C" {
                        void *(*start_routine)(void *),
                        void *args_p) {
     task_list_t *t=tasks[task_id];
-    static int cpuno_1 = 39;
-    threadCreate (&t->thread, start_routine, args_p, (char *)itti_get_task_name(task_id),cpuno_1++,OAI_PRIORITY_RT);
+    threadCreate (&t->thread, start_routine, args_p, (char *)itti_get_task_name(task_id),-1,OAI_PRIORITY_RT);
     LOG_I(ITTI,"Created Posix thread %s\n",  itti_get_task_name(task_id) );
     return 0;
   }
