@@ -39,7 +39,7 @@
 #include "nr_rrc_extern.h"
 #include "assertions.h"
 #include "common/ran_context.h"
-#include "asn1_conversions.h"
+#include "oai_asn1.h"
 #include "rrc_gNB_radio_bearers.h"
 
 #include "RRC/L2_INTERFACE/openair_rrc_L2_interface.h"
@@ -514,7 +514,7 @@ static void rrc_gNB_generate_defaultRRCReconfiguration(const protocol_ctxt_t *co
       OCTET_STRING_fromBuf(dedicatedNAS_Message,
                             (char *)ue_context_pP->ue_context.pduSession[i].param.nas_pdu.buffer,
                             ue_context_pP->ue_context.pduSession[i].param.nas_pdu.length);
-      ASN_SEQUENCE_ADD(&dedicatedNAS_MessageList->list, dedicatedNAS_Message);
+      asn1cSeqAdd(&dedicatedNAS_MessageList->list, dedicatedNAS_Message);
     }
 
     ue_context_pP->ue_context.pduSession[i].status = PDU_SESSION_STATUS_DONE;
@@ -527,7 +527,7 @@ static void rrc_gNB_generate_defaultRRCReconfiguration(const protocol_ctxt_t *co
     OCTET_STRING_fromBuf(dedicatedNAS_Message,
                           (char *)ue_context_pP->ue_context.nas_pdu.buffer,
                           ue_context_pP->ue_context.nas_pdu.length);
-    ASN_SEQUENCE_ADD(&dedicatedNAS_MessageList->list, dedicatedNAS_Message);
+    asn1cSeqAdd(&dedicatedNAS_MessageList->list, dedicatedNAS_Message);
   }
 
   /* If list is empty free the list and reset the address */
@@ -758,8 +758,8 @@ void fill_DRB_configList(const protocol_ctxt_t *const ctxt_pP,
                                                     rrc->security.do_drb_integrity,
                                                     rrc->security.do_drb_ciphering);
           if (drb_id_to_setup_start == 0) drb_id_to_setup_start = DRB_config->drb_Identity;
-          ASN_SEQUENCE_ADD(&(*DRB_configList)->list, DRB_config);
-          ASN_SEQUENCE_ADD(&(*DRB_configList2)->list, DRB_config);
+          asn1cSeqAdd(&(*DRB_configList)->list, DRB_config);
+          asn1cSeqAdd(&(*DRB_configList2)->list, DRB_config);
         }
         LOG_D(RRC, "DRB Priority %ld\n", drb_priority[drb_id]); // To supress warning for now
       }
@@ -804,7 +804,7 @@ rrc_gNB_generate_dedicatedRRCReconfiguration(
       OCTET_STRING_fromBuf(dedicatedNAS_Message,
                             (char *)ue_context_pP->ue_context.pduSession[i].param.nas_pdu.buffer,
                             ue_context_pP->ue_context.pduSession[i].param.nas_pdu.length);
-      ASN_SEQUENCE_ADD(&dedicatedNAS_MessageList->list, dedicatedNAS_Message);
+      asn1cSeqAdd(&dedicatedNAS_MessageList->list, dedicatedNAS_Message);
 
       LOG_I(NR_RRC,"add NAS info with size %d (pdusession id %d)\n",ue_context_pP->ue_context.pduSession[i].param.nas_pdu.length, i);
     } else {
@@ -995,7 +995,7 @@ rrc_gNB_modify_dedicatedRRCReconfiguration(
          );
     }
 
-    ASN_SEQUENCE_ADD(&DRB_configList2->list, DRB_config);
+    asn1cSeqAdd(&DRB_configList2->list, DRB_config);
 
     ue_context_pP->ue_context.modify_pdusession[i].status = PDU_SESSION_STATUS_DONE;
     ue_context_pP->ue_context.modify_pdusession[i].xid = xid;
@@ -1006,7 +1006,7 @@ rrc_gNB_modify_dedicatedRRCReconfiguration(
       OCTET_STRING_fromBuf(dedicatedNAS_Message,
                             (char *)ue_context_pP->ue_context.modify_pdusession[i].param.nas_pdu.buffer,
                             ue_context_pP->ue_context.modify_pdusession[i].param.nas_pdu.length);
-      ASN_SEQUENCE_ADD(&dedicatedNAS_MessageList->list, dedicatedNAS_Message);
+      asn1cSeqAdd(&dedicatedNAS_MessageList->list, dedicatedNAS_Message);
 
       LOG_I(NR_RRC,"add NAS info with size %d (pdusession id %d)\n",ue_context_pP->ue_context.pduSession[i].param.nas_pdu.length,
         ue_context_pP->ue_context.modify_pdusession[i].param.pdusession_id);
@@ -1107,7 +1107,7 @@ rrc_gNB_generate_dedicatedRRCReconfiguration_release(
     if((ue_context_pP->ue_context.pduSession[i].status == PDU_SESSION_STATUS_TORELEASE) && ue_context_pP->ue_context.pduSession[i].xid == xid) {
       DRB_release = CALLOC(1, sizeof(NR_DRB_Identity_t));
       *DRB_release = i+1;
-      ASN_SEQUENCE_ADD(&(*DRB_Release_configList2)->list, DRB_release);
+      asn1cSeqAdd(&(*DRB_Release_configList2)->list, DRB_release);
     }
   }
 
@@ -1119,7 +1119,7 @@ rrc_gNB_generate_dedicatedRRCReconfiguration_release(
     OCTET_STRING_fromBuf(dedicatedNAS_Message,
                          (char *)nas_buffer,
                          nas_length);
-    ASN_SEQUENCE_ADD(&dedicatedNAS_MessageList->list, dedicatedNAS_Message);
+    asn1cSeqAdd(&dedicatedNAS_MessageList->list, dedicatedNAS_Message);
     LOG_I(NR_RRC,"add NAS info with size %d\n", nas_length);
   } else {
     LOG_W(NR_RRC,"dedlicated NAS list is empty\n");
@@ -1430,8 +1430,8 @@ void rrc_gNB_process_RRCConnectionReestablishmentComplete(const protocol_ctxt_t 
 
   if (SRB2_config != NULL) {
     // Add SRB2 to SRB configuration list
-    ASN_SEQUENCE_ADD(&SRB_configList->list, SRB2_config);
-    ASN_SEQUENCE_ADD(&(*SRB_configList2)->list, SRB2_config);
+    asn1cSeqAdd(&SRB_configList->list, SRB2_config);
+    asn1cSeqAdd(&(*SRB_configList2)->list, SRB2_config);
     LOG_D(NR_RRC, "Add SRB2_config (srb_Identity:%ld) to ue_context_pP->ue_context.SRB_configList\n",
           SRB2_config->srb_Identity);
     LOG_D(NR_RRC, "Add SRB2_config (srb_Identity:%ld) to ue_context_pP->ue_context.SRB_configList2[%d]\n", SRB2_config->srb_Identity, new_xid);
@@ -1453,7 +1453,7 @@ void rrc_gNB_process_RRCConnectionReestablishmentComplete(const protocol_ctxt_t 
     for (i = 0; (i < DRB_configList->list.count) && (i < 3); i++) {
       DRB_config = DRB_configList->list.array[i];
       // Add DRB to DRB configuration list, for LTE_RRCConnectionReconfigurationComplete
-      ASN_SEQUENCE_ADD(&(*DRB_configList2)->list, DRB_config);
+      asn1cSeqAdd(&(*DRB_configList2)->list, DRB_config);
     }
   }
 
@@ -3051,7 +3051,7 @@ static void rrc_DU_process_ue_context_setup_request(MessageDef *msg_p, const cha
     for (int i=0; i<req->srbs_to_be_setup_length; i++){
       SRB2_config = CALLOC(1, sizeof(*SRB2_config));
       SRB2_config->srb_Identity = req->srbs_to_be_setup[i].srb_id;
-      ASN_SEQUENCE_ADD(&SRB_configList->list, SRB2_config);
+      asn1cSeqAdd(&SRB_configList->list, SRB2_config);
     }
   }
 
@@ -3071,7 +3071,7 @@ static void rrc_DU_process_ue_context_setup_request(MessageDef *msg_p, const cha
       DRB_config = CALLOC(1, sizeof(*DRB_config));
       DRB_config->drb_Identity = req->drbs_to_be_setup[i].drb_id;
       if (drb_id_to_setup_start == 0) drb_id_to_setup_start = DRB_config->drb_Identity;
-      ASN_SEQUENCE_ADD(&DRB_configList->list, DRB_config);
+      asn1cSeqAdd(&DRB_configList->list, DRB_config);
       f1ap_drb_to_be_setup_t drb_p = req->drbs_to_be_setup[i];
       transport_layer_addr_t addr;
       memcpy(addr.buffer, &drb_p.up_ul_tnl[0].tl_address, sizeof(drb_p.up_ul_tnl[0].tl_address));
@@ -3192,7 +3192,7 @@ static void rrc_DU_process_ue_context_modification_request(MessageDef *msg_p, co
     for (int i=0; i<req->srbs_to_be_setup_length; i++){
       SRB2_config = CALLOC(1, sizeof(*SRB2_config));
       SRB2_config->srb_Identity = req->srbs_to_be_setup[i].srb_id;
-      ASN_SEQUENCE_ADD(&SRB_configList->list, SRB2_config);
+      asn1cSeqAdd(&SRB_configList->list, SRB2_config);
     }
   }
 
@@ -3210,7 +3210,7 @@ static void rrc_DU_process_ue_context_modification_request(MessageDef *msg_p, co
       DRB_config = CALLOC(1, sizeof(*DRB_config));
       DRB_config->drb_Identity = req->drbs_to_be_setup[i].drb_id;
       if (drb_id_to_setup_start == 0) drb_id_to_setup_start = DRB_config->drb_Identity;
-      ASN_SEQUENCE_ADD(&DRB_configList->list, DRB_config);
+      asn1cSeqAdd(&DRB_configList->list, DRB_config);
       f1ap_drb_to_be_setup_t drb_p = req->drbs_to_be_setup[i];
       transport_layer_addr_t addr;
       memcpy(addr.buffer, &drb_p.up_ul_tnl[0].tl_address, sizeof(drb_p.up_ul_tnl[0].tl_address));
@@ -3343,7 +3343,7 @@ static void rrc_CU_process_ue_context_setup_response(MessageDef *msg_p, const ch
     if(ue_context_p->ue_context.masterCellGroup->rlc_BearerToAddModList != NULL){
       int ue_ctxt_rlc_Bearers = ue_context_p->ue_context.masterCellGroup->rlc_BearerToAddModList->list.count;
       for(int i=ue_ctxt_rlc_Bearers; i<ue_ctxt_rlc_Bearers + cellGroupConfig->rlc_BearerToAddModList->list.count; i++){
-        ASN_SEQUENCE_ADD(&ue_context_p->ue_context.masterCellGroup->rlc_BearerToAddModList->list,
+        asn1cSeqAdd(&ue_context_p->ue_context.masterCellGroup->rlc_BearerToAddModList->list,
           cellGroupConfig->rlc_BearerToAddModList->list.array[i-ue_ctxt_rlc_Bearers]);
       }
     }
@@ -3422,7 +3422,7 @@ static void rrc_CU_process_ue_context_modification_response(MessageDef *msg_p, c
       if(ue_context_p->ue_context.masterCellGroup->rlc_BearerToAddModList != NULL){
         int ue_ctxt_rlc_Bearers = ue_context_p->ue_context.masterCellGroup->rlc_BearerToAddModList->list.count;
         for(int i=ue_ctxt_rlc_Bearers; i<ue_ctxt_rlc_Bearers + cellGroupConfig->rlc_BearerToAddModList->list.count; i++){
-          ASN_SEQUENCE_ADD(&ue_context_p->ue_context.masterCellGroup->rlc_BearerToAddModList->list,
+          asn1cSeqAdd(&ue_context_p->ue_context.masterCellGroup->rlc_BearerToAddModList->list,
               cellGroupConfig->rlc_BearerToAddModList->list.array[i-ue_ctxt_rlc_Bearers]);
         }
       }

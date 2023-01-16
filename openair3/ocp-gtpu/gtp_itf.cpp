@@ -565,6 +565,7 @@ void GtpuUpdateTunnelOutgoingPair(instance_t instance, ue_id_t ue_id, ebi_t bear
     return;
   }
 
+  ptr2->second.outgoing_ip_addr = newOutgoingAddr;
   ptr2->second.teid_outgoing = newOutgoingTeid;
 
   int addrs_length_in_bytes = newRemoteAddr.length / 8;
