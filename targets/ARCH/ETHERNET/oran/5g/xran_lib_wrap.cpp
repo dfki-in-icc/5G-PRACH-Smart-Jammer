@@ -746,19 +746,19 @@ int xranLibWraper::Init(struct xran_fh_config *pCfg)
 
         uint32_t xran_max_antenna_nr = RTE_MAX(get_num_eaxc(), get_num_eaxc_ul());
         //uint32_t xran_max_ant_array_elm_nr = RTE_MAX(get_num_antelmtrx(), xran_max_antenna_nr);
-  int ii;
-  int jj;
-  int kk;
-  int symbol_counter = 0;
+  uint8_t ii;
+  uint8_t jj;
+  uint8_t kk;
+  uint8_t symbol_counter = 0;
   uint8_t symbol_config = 0;
-  int16_t mixed_slot = 0;
-  int16_t mixed_slot_dl_symbol = 0;
-  int16_t mixed_slot_dl_start_symbol = 0;
-  int16_t mixed_slot_dl_start_symbol_found = 0;
-  int16_t mixed_slot_ul_symbol = 0;
-  int16_t mixed_slot_ul_start_symbol = 0;
-  int16_t mixed_slot_ul_start_symbol_found = 0;
-  int16_t mixed_slot_gaurd_symbol = 0;
+  uint8_t mixed_slot = 0;
+  uint8_t mixed_slot_dl_symbol = 0;
+  uint8_t mixed_slot_dl_start_symbol = 0;
+  bool mixed_slot_dl_start_symbol_found = 0;
+  uint8_t mixed_slot_ul_symbol = 0;
+  uint8_t mixed_slot_ul_start_symbol = 0;
+  bool mixed_slot_ul_start_symbol_found = 0;
+  uint8_t mixed_slot_gaurd_symbol = 0;
   uint8_t mixed_slot_tti_index[40];
 
         /* Update member variables */
