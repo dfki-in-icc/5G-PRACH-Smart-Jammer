@@ -2234,6 +2234,10 @@ int get_modchannel_index(char *buf, int debug, void *vdata, telnet_printfunc_t p
   if (debug)
     LOG_I(UTIL, "%s received %s\n", __FUNCTION__, buf);
   webdatadef_t *tdata = (webdatadef_t *)vdata;
+  if (tdata == NULL) {
+    LOG_I(UTIL, "vdata NULL !!\n");
+    return -1;
+  }
   tdata->numlines = 0;
   if (strncmp(buf, "set", 3) == 0) {
     return get_channel_params(buf, debug, vdata, prnt);

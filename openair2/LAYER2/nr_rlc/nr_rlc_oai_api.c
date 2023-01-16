@@ -1056,6 +1056,9 @@ void nr_rlc_activate_srb0(int rnti, int module_id, int cc_id, int uid,
   srb0_data = calloc(1, sizeof(struct srb0_data));
   AssertFatal(srb0_data != NULL, "out of memory\n");
 
+  /** cppcheck-suppress */
+  if (NULL == srb0_data) return;
+
   srb0_data->module_id = module_id;
   srb0_data->CC_id     = cc_id;
   srb0_data->rnti      = rnti;

@@ -763,6 +763,9 @@ int phy_nr_uci_indication(nfapi_nr_uci_indication_t *ind)
   {
     nfapi_nr_uci_indication_t *uci_ind = CALLOC(1, sizeof(*uci_ind));
     AssertFatal(uci_ind != NULL, "Memory not allocated for uci_ind in phy_nr_uci_indication.");
+    /** cppcheck-suppress */
+    if (NULL == uci_ind) return 0;
+
     *uci_ind = *ind;
 
     uci_ind->uci_list = CALLOC(NFAPI_NR_UCI_IND_MAX_PDU, sizeof(nfapi_nr_uci_t));
