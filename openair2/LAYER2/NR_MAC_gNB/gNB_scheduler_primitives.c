@@ -1384,29 +1384,63 @@ void prepare_dci(const NR_CellGroupConfig_t *CellGroup,
 
 void fill_dci_pdu_rel15(const NR_ServingCellConfigCommon_t *scc,
                         const NR_CellGroupConfig_t *CellGroup,
-                        const NR_UE_DL_BWP_t *current_BWP,
+                        const NR_UE_DL_BWP_t *current_DL_BWP,
+                        const NR_UE_UL_BWP_t *current_UL_BWP,
                         nfapi_nr_dl_dci_pdu_t *pdcch_dci_pdu,
                         dci_pdu_rel15_t *dci_pdu_rel15,
                         int dci_format,
                         int rnti_type,
-                        int N_RB,
                         int bwp_id,
+                        NR_SearchSpace_t *ss,
                         NR_ControlResourceSet_t *coreset,
                         uint16_t cset0_bwp_size) {
   uint8_t fsize = 0, pos = 0;
   gNB_MAC_INST *gNB_mac = RC.nrmac[0];
 
+  uint8_t fsize = 0, pos = 0;
   uint64_t *dci_pdu = (uint64_t *)pdcch_dci_pdu->Payload;
-  *dci_pdu=0;
-  NR_ControlResourceSetId_t coreset_id = coreset->controlResourceSetId;
+  *dci_pdu = 0;
+  uint16_t alt_size = 0;
+  uint16_t N_RB;
+  const int controlResourceSetId = *ss->controlResourceSetId;
+  if(current_DL_BWP) {
+    N_RB = get_rb_bwp_dci(dci_format,
+                          ss->searchSpaceType->present,
+                          cset0_bwp_size,
+                          current_UL_BWP->BWPSize,
+                          current_DL_BWP->BWPSize,
+                          current_UL_BWP->initial_BWPSize,
+                          current_DL_BWP->initial_BWPSize);
+
+    // computing alternative size for padding
+    dci_pdu_rel15_t temp_pdu;
+    if(dci_format == NR_DL_DCI_FORMAT_1_0)
+      alt_size = nr_dci_size(scc->downlinkConfigCommon->initialDownlinkBWP,
+                             scc->uplinkConfigCommon->initialUplinkBWP,
+                             current_DL_BWP, current_UL_BWP,
+                             CellGroup, &temp_pdu, NR_UL_DCI_FORMAT_0_0, rnti_type,
+                             controlResourceSetId, bwp_id, ss->searchSpaceType->present, cset0_bwp_size, 0);
+
+    if(dci_format == NR_UL_DCI_FORMAT_0_0)
+      alt_size = nr_dci_size(scc->downlinkConfigCommon->initialDownlinkBWP,
+                             scc->uplinkConfigCommon->initialUplinkBWP,
+                             current_DL_BWP, current_UL_BWP,
+                             CellGroup, &temp_pdu, NR_DL_DCI_FORMAT_1_0, rnti_type,
+                             controlResourceSetId, bwp_id, ss->searchSpaceType->present, cset0_bwp_size, 0);
+
+  }
+  else
+    N_RB = cset0_bwp_size;
+
   int dci_size = nr_dci_size(scc->downlinkConfigCommon->initialDownlinkBWP,
                              scc->uplinkConfigCommon->initialUplinkBWP,
-                             CellGroup, dci_pdu_rel15, dci_format,
-                             rnti_type, N_RB, bwp_id, coreset_id, cset0_bwp_size);
+                             current_DL_BWP, current_UL_BWP,
+                             CellGroup, dci_pdu_rel15, dci_format, rnti_type, controlResourceSetId,
+                             bwp_id, ss->searchSpaceType->present, cset0_bwp_size, alt_size);
   pdcch_dci_pdu->PayloadSizeBits = dci_size;
   AssertFatal(dci_size <= 64, "DCI sizes above 64 bits not yet supported");
   if (dci_format == NR_DL_DCI_FORMAT_1_1 || dci_format == NR_UL_DCI_FORMAT_0_1)
-    prepare_dci(CellGroup, current_BWP, coreset, dci_pdu_rel15, dci_format);
+    prepare_dci(CellGroup, current_DL_BWP, coreset, dci_pdu_rel15, dci_format);
 
   /// Payload generation
   switch (dci_format) {
@@ -1676,7 +1710,7 @@ void fill_dci_pdu_rel15(const NR_ServingCellConfigCommon_t *scc,
       pos=1;
       *dci_pdu |= ((uint64_t)dci_pdu_rel15->format_indicator & 1) << (dci_size - pos);
       // Freq domain assignment  max 16 bit
-      fsize = (int)ceil(log2((N_RB * (N_RB + 1)) >> 1));
+      fsize = dci_pdu_rel15->frequency_domain_assignment.nbits;
       pos+=fsize;
       *dci_pdu |= ((uint64_t)dci_pdu_rel15->frequency_domain_assignment.val & ((1 << fsize) - 1)) << (dci_size - pos);
       // Time domain assignment 4bit
@@ -1701,7 +1735,7 @@ void fill_dci_pdu_rel15(const NR_ServingCellConfigCommon_t *scc,
       pos+=2;
       *dci_pdu |= ((uint64_t)dci_pdu_rel15->tpc & 0x3) << (dci_size - pos);
       // Padding bits
-      for (int a = pos; a < 32; a++)
+      for (int a = pos; a < dci_size; a++)
         *dci_pdu |= ((uint64_t)dci_pdu_rel15->padding & 1) << (dci_size - pos++);
       // UL/SUL indicator – 1 bit
       /* commented for now (RK): need to get this from BWP descriptor
@@ -1729,7 +1763,7 @@ void fill_dci_pdu_rel15(const NR_ServingCellConfigCommon_t *scc,
       pos=1;
       *dci_pdu |= ((uint64_t)dci_pdu_rel15->format_indicator & 1) << (dci_size - pos);
       // Freq domain assignment  max 16 bit
-      fsize = (int)ceil(log2((N_RB * (N_RB + 1)) >> 1));
+      fsize = dci_pdu_rel15->frequency_domain_assignment.nbits;
       pos+=fsize;
       *dci_pdu |= ((uint64_t)dci_pdu_rel15->frequency_domain_assignment.val & ((1 << fsize) - 1)) << (dci_size - pos);
       // Time domain assignment 4bit
@@ -2247,6 +2281,13 @@ void set_max_fb_time(NR_UE_UL_BWP_t *UL_BWP, const NR_UE_DL_BWP_t *DL_BWP)
   }
 }
 
+void reset_sched_ctrl(NR_UE_sched_ctrl_t *sched_ctrl)
+{
+  sched_ctrl->srs_feedback.ul_ri = 0;
+  sched_ctrl->srs_feedback.tpmi = 0;
+  sched_ctrl->srs_feedback.sri = 0;
+}
+
 // main function to configure parameters of current BWP
 void configure_UE_BWP(gNB_MAC_INST *nr_mac,
                       NR_ServingCellConfigCommon_t *scc,
@@ -2388,7 +2429,7 @@ void configure_UE_BWP(gNB_MAC_INST *nr_mac,
     UL_BWP->tdaList = scc->uplinkConfigCommon->initialUplinkBWP->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList;
 
   // setting generic parameters
-  NR_BWP_t dl_genericParameters = (DL_BWP->bwp_id>0 && dl_bwp) ?
+  NR_BWP_t dl_genericParameters = (DL_BWP->bwp_id > 0 && dl_bwp) ?
     dl_bwp->bwp_Common->genericParameters:
     scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters;
 
@@ -2396,8 +2437,10 @@ void configure_UE_BWP(gNB_MAC_INST *nr_mac,
   DL_BWP->cyclicprefix = dl_genericParameters.cyclicPrefix;
   DL_BWP->BWPSize = NRRIV2BW(dl_genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
   DL_BWP->BWPStart = NRRIV2PRBOFFSET(dl_genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
+  DL_BWP->initial_BWPSize = NRRIV2BW(scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
+  DL_BWP->initial_BWPStart = NRRIV2PRBOFFSET(scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
 
-  NR_BWP_t ul_genericParameters = (UL_BWP->bwp_id>0 && ul_bwp) ?
+  NR_BWP_t ul_genericParameters = (UL_BWP->bwp_id > 0 && ul_bwp) ?
     ul_bwp->bwp_Common->genericParameters:
     scc->uplinkConfigCommon->initialUplinkBWP->genericParameters;
 
@@ -2405,6 +2448,8 @@ void configure_UE_BWP(gNB_MAC_INST *nr_mac,
   UL_BWP->cyclicprefix = ul_genericParameters.cyclicPrefix;
   UL_BWP->BWPSize = NRRIV2BW(ul_genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
   UL_BWP->BWPStart = NRRIV2PRBOFFSET(ul_genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
+  UL_BWP->initial_BWPSize = NRRIV2BW(scc->uplinkConfigCommon->initialUplinkBWP->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
+  UL_BWP->initial_BWPStart = NRRIV2PRBOFFSET(scc->uplinkConfigCommon->initialUplinkBWP->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
 
   // Set downlink MCS table
   if (DL_BWP->pdsch_Config &&
@@ -2428,6 +2473,10 @@ void configure_UE_BWP(gNB_MAC_INST *nr_mac,
     UL_BWP->pucch_ConfigCommon = scc->uplinkConfigCommon->initialUplinkBWP->pucch_ConfigCommon->choice.setup;
 
   if(UE) {
+
+    // Reset required fields in sched_ctrl (e.g. ul_ri and tpmi)
+    reset_sched_ctrl(sched_ctrl);
+
     // setting PDCCH related structures for sched_ctrl
     sched_ctrl->search_space = get_searchspace(scc,
                                                bwpd,
@@ -2751,23 +2800,21 @@ uint8_t nr_get_tpc(int target, uint8_t cqi, int incr) {
 }
 
 
-void get_pdsch_to_harq_feedback(NR_PUCCH_Config_t *pucch_Config,
+int get_pdsch_to_harq_feedback(NR_PUCCH_Config_t *pucch_Config,
                                 nr_dci_format_t dci_format,
                                 uint8_t *pdsch_to_harq_feedback) {
 
   if (dci_format == NR_DL_DCI_FORMAT_1_0) {
-    for (int i=0; i<8; i++)
-      pdsch_to_harq_feedback[i] = i+1;
+    for (int i = 0; i < 8; i++)
+      pdsch_to_harq_feedback[i] = i + 1;
+    return 8;
   }
   else {
-    AssertFatal(pucch_Config!=NULL,"pucch_Config shouldn't be null here\n");
-    if(pucch_Config->dl_DataToUL_ACK != NULL) {
-      for (int i=0; i<8; i++) {
-        pdsch_to_harq_feedback[i] = *pucch_Config->dl_DataToUL_ACK->list.array[i];
-      }
+    AssertFatal(pucch_Config != NULL && pucch_Config->dl_DataToUL_ACK != NULL,"dl_DataToUL_ACK shouldn't be null here\n");
+    for (int i = 0; i < pucch_Config->dl_DataToUL_ACK->list.count; i++) {
+      pdsch_to_harq_feedback[i] = *pucch_Config->dl_DataToUL_ACK->list.array[i];
     }
-    else
-      AssertFatal(0==1,"There is no allocated dl_DataToUL_ACK for pdsch to harq feedback\n");
+    return pucch_Config->dl_DataToUL_ACK->list.count;
   }
 }
 
@@ -3084,7 +3131,7 @@ void schedule_nr_bwp_switch(module_id_t module_id,
   }
 }
 
-void UL_tti_req_ahead_initialization(gNB_MAC_INST * gNB, NR_ServingCellConfigCommon_t *scc, int n, int CCid) {
+void UL_tti_req_ahead_initialization(gNB_MAC_INST * gNB, NR_ServingCellConfigCommon_t *scc, int n, int CCid, frame_t frameP) {
 
   if(gNB->UL_tti_req_ahead[CCid]) return;
 
@@ -3096,7 +3143,7 @@ void UL_tti_req_ahead_initialization(gNB_MAC_INST * gNB, NR_ServingCellConfigCom
    * already "in the past" and thus we put frame 1 instead of 0! */
   for (int i = 0; i < n; ++i) {
     nfapi_nr_ul_tti_request_t *req = &gNB->UL_tti_req_ahead[CCid][i];
-    req->SFN = i < (gNB->if_inst->sl_ahead-1);
+    req->SFN = frameP + (i < (gNB->if_inst->sl_ahead-1));
     req->Slot = i;
   }
 }

@@ -164,13 +164,11 @@ int DU_handle_DL_RRC_MESSAGE_TRANSFER(instance_t       instance,
   // decode RRC Container and act on the message type
   AssertFatal(srb_id<3,"illegal srb_id\n");
   protocol_ctxt_t ctxt;
-  ctxt.rnti      = f1ap_get_rnti_by_du_id(DUtype, instance, du_ue_f1ap_id);
+  ctxt.rntiMaybeUEid = f1ap_get_rnti_by_du_id(DUtype, instance, du_ue_f1ap_id);
   ctxt.instance = instance;
   ctxt.module_id = instance;
   ctxt.enb_flag  = 1;
-  struct rrc_eNB_ue_context_s *ue_context_p = rrc_eNB_get_ue_context(
-        RC.rrc[ctxt.instance],
-        ctxt.rnti);
+  struct rrc_eNB_ue_context_s *ue_context_p = rrc_eNB_get_ue_context(RC.rrc[ctxt.instance], ctxt.rntiMaybeUEid);
 
   if (srb_id == 0) {
     LTE_DL_CCCH_Message_t *dl_ccch_msg=NULL;
@@ -257,7 +255,7 @@ int DU_handle_DL_RRC_MESSAGE_TRANSFER(instance_t       instance,
         if (radioResourceConfigDedicated->mac_MainConfig)
           mac_MainConfig = &radioResourceConfigDedicated->mac_MainConfig->choice.explicitValue;
         rrc_mac_config_req_eNB_t tmp = {0};
-        tmp.rnti = ctxt.rnti;
+        tmp.rnti = ctxt.rntiMaybeUEid;
         tmp.physicalConfigDedicated = radioResourceConfigDedicated->physicalConfigDedicated;
         tmp.mac_MainConfig = mac_MainConfig;
         tmp.logicalChannelIdentity = 1;
@@ -358,7 +356,7 @@ int DU_handle_DL_RRC_MESSAGE_TRANSFER(instance_t       instance,
                     MessageDef *message_p = NULL;
                     /* Send DRX configuration to MAC task to configure timers of local UE context */
                     message_p = itti_alloc_new_message(TASK_DU_F1, 0, RRC_MAC_DRX_CONFIG_REQ);
-                    RRC_MAC_DRX_CONFIG_REQ(message_p).rnti = ctxt.rnti;
+                    RRC_MAC_DRX_CONFIG_REQ(message_p).rnti = ctxt.rntiMaybeUEid;
                     RRC_MAC_DRX_CONFIG_REQ(message_p).drx_Configuration = mac_MainConfig->drx_Config;
                     itti_send_msg_to_task(TASK_MAC_ENB, ctxt.instance, message_p);
                     LOG_D(F1AP, "DRX configured in MAC Main Configuration for RRC Connection Reconfiguration\n");
@@ -396,9 +394,9 @@ int DU_handle_DL_RRC_MESSAGE_TRANSFER(instance_t       instance,
                     if (DRB_configList->list.array[i]) {
                       drb_id = (int)DRB_configList->list.array[i]->drb_Identity;
                       LOG_I(F1AP,
-                            "[DU %ld] Logical Channel UL-DCCH, Received RRCConnectionReconfiguration for UE rnti %x, reconfiguring DRB %d/LCID %d\n",
+                            "[DU %ld] Logical Channel UL-DCCH, Received RRCConnectionReconfiguration for UE rnti %lx, reconfiguring DRB %d/LCID %d\n",
                             ctxt.instance,
-                            ctxt.rnti,
+                            ctxt.rntiMaybeUEid,
                             (int)DRB_configList->list.array[i]->drb_Identity,
                             (int)*DRB_configList->list.array[i]->logicalChannelIdentity);
 
@@ -552,7 +550,7 @@ int DU_send_UL_RRC_MESSAGE_TRANSFER(instance_t instance,
   ie->criticality                    = F1AP_Criticality_reject;
   ie->value.present                  = F1AP_ULRRCMessageTransferIEs__value_PR_GNB_CU_UE_F1AP_ID;
   ie->value.choice.GNB_CU_UE_F1AP_ID = f1ap_get_cu_ue_f1ap_id(DUtype, instance, rnti);
-  ASN_SEQUENCE_ADD(&out->protocolIEs.list, ie);
+  asn1cSeqAdd(&out->protocolIEs.list, ie);
   /* mandatory */
   /* c2. GNB_DU_UE_F1AP_ID */
   ie = (F1AP_ULRRCMessageTransferIEs_t *)calloc(1, sizeof(F1AP_ULRRCMessageTransferIEs_t));
@@ -560,7 +558,7 @@ int DU_send_UL_RRC_MESSAGE_TRANSFER(instance_t instance,
   ie->criticality                    = F1AP_Criticality_reject;
   ie->value.present                  = F1AP_ULRRCMessageTransferIEs__value_PR_GNB_DU_UE_F1AP_ID;
   ie->value.choice.GNB_DU_UE_F1AP_ID = f1ap_get_du_ue_f1ap_id(DUtype, instance, rnti);
-  ASN_SEQUENCE_ADD(&out->protocolIEs.list, ie);
+  asn1cSeqAdd(&out->protocolIEs.list, ie);
   /* mandatory */
   /* c3. SRBID */
   ie = (F1AP_ULRRCMessageTransferIEs_t *)calloc(1, sizeof(F1AP_ULRRCMessageTransferIEs_t));
@@ -568,7 +566,7 @@ int DU_send_UL_RRC_MESSAGE_TRANSFER(instance_t instance,
   ie->criticality                   = F1AP_Criticality_reject;
   ie->value.present                 = F1AP_ULRRCMessageTransferIEs__value_PR_SRBID;
   ie->value.choice.SRBID            = msg->srb_id;
-  ASN_SEQUENCE_ADD(&out->protocolIEs.list, ie);
+  asn1cSeqAdd(&out->protocolIEs.list, ie);
   // issue in here
   /* mandatory */
   /* c4. RRCContainer */
@@ -579,7 +577,7 @@ int DU_send_UL_RRC_MESSAGE_TRANSFER(instance_t instance,
   OCTET_STRING_fromBuf(&ie->value.choice.RRCContainer,
                        (const char *) msg->rrc_container,
                        msg->rrc_container_length);
-  ASN_SEQUENCE_ADD(&out->protocolIEs.list, ie);
+  asn1cSeqAdd(&out->protocolIEs.list, ie);
 
   if (msg->srb_id == 1 || msg->srb_id == 2) {
     struct rrc_eNB_ue_context_s *ue_context_p = rrc_eNB_get_ue_context(RC.rrc[instance], rnti);
