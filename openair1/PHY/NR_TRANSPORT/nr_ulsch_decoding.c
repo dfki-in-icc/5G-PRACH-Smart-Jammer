@@ -859,7 +859,7 @@ uint32_t nr_ulsch_decoding(PHY_VARS_gNB *phy_vars_gNB,
 
 
 #ifdef TASK_MANAGER
-  stop_spin_manager(&phy_vars_gNB->man);
+  stop_spin_task_manager(&phy_vars_gNB->man);
   wait_all_spin_task_manager(&phy_vars_gNB->man);
   free(arr); 
 #elif OMP_TP

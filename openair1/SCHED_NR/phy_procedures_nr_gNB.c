@@ -265,8 +265,9 @@ void nr_postDecode(PHY_VARS_gNB *gNB, notifiedFIFO_elt_t *req)
   nfapi_nr_pusch_pdu_t *pusch_pdu = &gNB->ulsch[rdata->ulsch_id]->harq_processes[rdata->harq_pid]->ulsch_pdu;
   bool decodeSuccess = (rdata->decodeIterations <= rdata->decoderParms.numMaxIter);
   ulsch_harq->processedSegments++;
-  LOG_D(PHY, "processing result of segment: %d, processed %d/%d\n",
-	rdata->segment_r, ulsch_harq->processedSegments, rdata->nbSegments);
+  LOG_D(PHY, "processing result of segment: %d, in %d/%d ierations, processed segments %d/%d\n", rdata->segment_r, rdata->decodeIterations, rdata->decoderParms.numMaxIter, ulsch_harq->processedSegments, rdata->nbSegments);
+
+
   gNB->nbDecode--;
   LOG_D(PHY,"remain to decoded in subframe: %d\n", gNB->nbDecode);
   if (decodeSuccess) {
@@ -275,27 +276,36 @@ void nr_postDecode(PHY_VARS_gNB *gNB, notifiedFIFO_elt_t *req)
            rdata->Kr_bytes - (ulsch_harq->F>>3) -((ulsch_harq->C>1)?3:0));
 
   } else {
-    assert(0!=0 && "Do not come here" );
+    DevAssert(r<64);
+    ulsch_harq->aborted|=1UL<<r;
+    LOG_D(PHY,"uplink segment error %d/%d segments\n",rdata->segment_r,rdata->nbSegments);
+    LOG_D(PHY, "ULSCH %d in error\n",rdata->ulsch_id);;
+
+    //  assert(0!=0 && "Do not come here" );
     /*
-    if ( rdata->nbSegments != ulsch_harq->processedSegments ) {
-      int nb = abortTpoolJob(&gNB->threadPool, req->key);
-      nb += abortNotifiedFIFOJob(&gNB->respDecode, req->key);
-      gNB->nbDecode-=nb;
-      LOG_D(PHY,"uplink segment error %d/%d, aborted %d segments (ulsch_harq->processedSegments %d\n",rdata->segment_r,rdata->nbSegments, nb,ulsch_harq->processedSegments);
-      LOG_D(PHY, "ULSCH %d in error\n",rdata->ulsch_id);
-      AssertFatal(ulsch_harq->processedSegments+nb == rdata->nbSegments,"processed: %d, aborted: %d, total %d\n",
-		  ulsch_harq->processedSegments, nb, rdata->nbSegments);
-      ulsch_harq->processedSegments=rdata->nbSegments;
-    }
-    */
+       if ( rdata->nbSegments != ulsch_harq->processedSegments ) {
+       int nb = abortTpoolJob(&gNB->threadPool, req->key);
+       nb += abortNotifiedFIFOJob(&gNB->respDecode, req->key);
+       gNB->nbDecode-=nb;
+       LOG_D(PHY,"uplink segment error %d/%d, aborted %d segments (ulsch_harq->processedSegments %d\n",rdata->segment_r,rdata->nbSegments, nb,ulsch_harq->processedSegments);
+       LOG_D(PHY, "ULSCH %d in error\n",rdata->ulsch_id);
+       AssertFatal(ulsch_harq->processedSegments+nb == rdata->nbSegments,"processed: %d, aborted: %d, total %d\n",
+       ulsch_harq->processedSegments, nb, rdata->nbSegments);
+       ulsch_harq->processedSegments=rdata->nbSegments;
+       }
+       */
   }
 
   //int dumpsig=0;
   // if all segments are done
   if (rdata->nbSegments == ulsch_harq->processedSegments) {
-    if (decodeSuccess && !gNB->pusch_vars[rdata->ulsch_id]->DTX) {
+//    if (decodeSuccess && !gNB->pusch_vars[rdata->ulsch_id]->DTX) {
+    if (!ulsch_harq->aborted && !gNB->pusch_vars[rdata->ulsch_id]->DTX) {
+      LOG_D(PHY,"[gNB %d] ULSCH: Setting ACK for SFN/SF %d.%d (pid %d, ndi %d, status %d, round %d, TBS %d, Max interation (all seg) %d, segments in error %lx)\n",
+          gNB->Mod_id,ulsch_harq->frame,ulsch_harq->slot,rdata->harq_pid,pusch_pdu->pusch_data.new_data_indicator,ulsch_harq->status,ulsch_harq->round,ulsch_harq->TBS,rdata->decodeIterations, ulsch_harq->aborted);
+
       LOG_D(PHY,"[gNB %d] ULSCH: Setting ACK for SFN/SF %d.%d (pid %d, ndi %d, status %d, round %d, TBS %d, Max interation (all seg) %d)\n",
-            gNB->Mod_id,ulsch_harq->frame,ulsch_harq->slot,rdata->harq_pid,pusch_pdu->pusch_data.new_data_indicator,ulsch_harq->status,ulsch_harq->round,ulsch_harq->TBS,rdata->decodeIterations);
+          gNB->Mod_id,ulsch_harq->frame,ulsch_harq->slot,rdata->harq_pid,pusch_pdu->pusch_data.new_data_indicator,ulsch_harq->status,ulsch_harq->round,ulsch_harq->TBS,rdata->decodeIterations);
       ulsch_harq->status = SCH_IDLE;
       ulsch_harq->round  = 0;
       ulsch->harq_mask &= ~(1 << rdata->harq_pid);
@@ -305,19 +315,32 @@ void nr_postDecode(PHY_VARS_gNB *gNB, notifiedFIFO_elt_t *req)
       //dumpsig=1;
     } else {
       LOG_D(PHY,"[gNB %d] ULSCH: Setting NAK for SFN/SF %d/%d (pid %d, ndi %d, status %d, round %d, RV %d, prb_start %d, prb_size %d, TBS %d) r %d\n",
-            gNB->Mod_id, ulsch_harq->frame, ulsch_harq->slot,
-            rdata->harq_pid, pusch_pdu->pusch_data.new_data_indicator, ulsch_harq->status,
-	          ulsch_harq->round,
-            ulsch_harq->ulsch_pdu.pusch_data.rv_index,
-	          ulsch_harq->ulsch_pdu.rb_start,
-	          ulsch_harq->ulsch_pdu.rb_size,
-	          ulsch_harq->TBS,
-	          r);
+          gNB->Mod_id, ulsch_harq->frame, ulsch_harq->slot,
+          rdata->harq_pid, pusch_pdu->pusch_data.new_data_indicator, ulsch_harq->status,
+          ulsch_harq->round,
+          ulsch_harq->ulsch_pdu.pusch_data.rv_index,
+          ulsch_harq->ulsch_pdu.rb_start,
+          ulsch_harq->ulsch_pdu.rb_size,
+          ulsch_harq->TBS,
+          r);
+
+
+      LOG_D(PHY,"[gNB %d] ULSCH: Setting NAK for SFN/SF %d/%d (pid %d, ndi %d, status %d, round %d, RV %d, prb_start %d, prb_size %d, TBS %d) segs in error 0x%lx, maxIer %d\n",
+          gNB->Mod_id, ulsch_harq->frame, ulsch_harq->slot,
+          rdata->harq_pid, pusch_pdu->pusch_data.new_data_indicator, ulsch_harq->status,
+          ulsch_harq->round,
+          ulsch_harq->ulsch_pdu.pusch_data.rv_index,
+          ulsch_harq->ulsch_pdu.rb_start,
+          ulsch_harq->ulsch_pdu.rb_size,
+          ulsch_harq->TBS,
+          ulsch_harq->aborted,
+          rdata->decoderParms.numMaxIter);
+
       ulsch_harq->handled  = 1;
 
       LOG_D(PHY, "ULSCH %d in error\n",rdata->ulsch_id);
       nr_fill_indication(gNB,ulsch_harq->frame, ulsch_harq->slot, rdata->ulsch_id, rdata->harq_pid, 1,0);
-//      dumpsig=1;
+      //      dumpsig=1;
     }
 /*
     if (ulsch_harq->ulsch_pdu.mcs_index == 0 && dumpsig==1) {
@@ -365,7 +388,7 @@ void nr_ulsch_procedures(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx, int ULSCH
 {
 
 #ifdef TASK_MANAGER
-  wake_spin_task_manager(&gNB->man);
+  wake_and_spin_task_manager(&gNB->man);
 #endif
 
   NR_DL_FRAME_PARMS *frame_parms = &gNB->frame_parms;

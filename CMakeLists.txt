@@ -2777,6 +2777,15 @@ add_executable(nr-softmodem
   ${nr_rrc_h}
   ${s1ap_h}
 #  ${OPENAIR_BIN_DIR}/messages_xml.h
+
+   ${OPENAIR_DIR}/common/utils/thread_pool/task_manager.c
+  ${OPENAIR_DIR}/common/utils/thread_pool/notification_queue.c
+  ${OPENAIR_DIR}/common/utils/thread_pool/seq_ring_task.c
+  ${OPENAIR_DIR}/common/utils/thread_pool/spinlock.c
+
+
+
+
   ${OPENAIR_DIR}/executables/nr-gnb.c
   ${OPENAIR_DIR}/executables/nr-ru.c
   ${OPENAIR_DIR}/executables/nr-softmodem.c
@@ -2934,7 +2943,7 @@ add_executable(nr_dlschsim
 
   ${OPENAIR_DIR}/common/utils/thread_pool/task_manager.c
   ${OPENAIR_DIR}/common/utils/thread_pool/notification_queue.c
-  ${OPENAIR_DIR}/common/utils/thread_pool/seq_ring.c
+  ${OPENAIR_DIR}/common/utils/thread_pool/seq_ring_task.c
   ${OPENAIR_DIR}/common/utils/thread_pool/spinlock.c
 
 
@@ -2954,7 +2963,7 @@ add_executable(nr_pbchsim
 
   ${OPENAIR_DIR}/common/utils/thread_pool/task_manager.c
   ${OPENAIR_DIR}/common/utils/thread_pool/notification_queue.c
-  ${OPENAIR_DIR}/common/utils/thread_pool/seq_ring.c
+  ${OPENAIR_DIR}/common/utils/thread_pool/seq_ring_task.c
   ${OPENAIR_DIR}/common/utils/thread_pool/spinlock.c
 
   ${T_SOURCE}
@@ -2967,6 +2976,12 @@ target_link_libraries(nr_pbchsim
 
 #PUCCH ---> Prashanth
 add_executable(nr_pucchsim
+
+  ${OPENAIR_DIR}/common/utils/thread_pool/task_manager.c
+  ${OPENAIR_DIR}/common/utils/thread_pool/notification_queue.c
+  ${OPENAIR_DIR}/common/utils/thread_pool/seq_ring_task.c
+  ${OPENAIR_DIR}/common/utils/thread_pool/spinlock.c
+
   ${OPENAIR1_DIR}/SIMULATION/NR_PHY/pucchsim.c
   ${OPENAIR_DIR}/common/utils/nr/nr_common.c
   ${OPENAIR_DIR}/executables/softmodem-common.c
@@ -2979,6 +2994,13 @@ target_link_libraries(nr_pucchsim
   )
 
 add_executable(nr_dlsim
+
+  ${OPENAIR_DIR}/common/utils/thread_pool/task_manager.c
+  ${OPENAIR_DIR}/common/utils/thread_pool/notification_queue.c
+  ${OPENAIR_DIR}/common/utils/thread_pool/seq_ring_task.c
+  ${OPENAIR_DIR}/common/utils/thread_pool/spinlock.c
+
+
   ${OPENAIR1_DIR}/SIMULATION/NR_PHY/dlsim.c
   ${OPENAIR_DIR}/common/utils/nr/nr_common.c
   ${OPENAIR_DIR}/executables/softmodem-common.c
@@ -2997,6 +3019,13 @@ target_link_libraries(nr_dlsim
 target_compile_definitions(nr_dlsim PUBLIC -DPHYSICAL_SIMULATOR)
 
 add_executable(nr_prachsim
+
+  ${OPENAIR_DIR}/common/utils/thread_pool/task_manager.c
+  ${OPENAIR_DIR}/common/utils/thread_pool/notification_queue.c
+  ${OPENAIR_DIR}/common/utils/thread_pool/seq_ring_task.c
+  ${OPENAIR_DIR}/common/utils/thread_pool/spinlock.c
+
+
   ${OPENAIR1_DIR}/SIMULATION/NR_PHY/prachsim.c
   ${OPENAIR_DIR}/common/utils/nr/nr_common.c
   ${OPENAIR1_DIR}/SCHED_NR/phy_procedures_nr_common.c
@@ -3017,7 +3046,7 @@ add_executable(nr_ulschsim
 
   ${OPENAIR_DIR}/common/utils/thread_pool/task_manager.c
   ${OPENAIR_DIR}/common/utils/thread_pool/notification_queue.c
-  ${OPENAIR_DIR}/common/utils/thread_pool/seq_ring.c
+  ${OPENAIR_DIR}/common/utils/thread_pool/seq_ring_task.c
   ${OPENAIR_DIR}/common/utils/thread_pool/spinlock.c
 
 
@@ -3038,7 +3067,7 @@ add_executable(nr_ulsim
 
   ${OPENAIR_DIR}/common/utils/thread_pool/task_manager.c
   ${OPENAIR_DIR}/common/utils/thread_pool/notification_queue.c
-  ${OPENAIR_DIR}/common/utils/thread_pool/seq_ring.c
+  ${OPENAIR_DIR}/common/utils/thread_pool/seq_ring_task.c
   ${OPENAIR_DIR}/common/utils/thread_pool/spinlock.c
 
 

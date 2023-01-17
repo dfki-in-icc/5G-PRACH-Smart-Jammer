@@ -2,7 +2,7 @@
 #define NOTIFICATION_QUEUE_THREAD_POOL_H 
 
 #include "task.h"
-#include "seq_ring.h"
+#include "seq_ring_task.h"
 #include "spinlock.h"
 
 #include <pthread.h>
@@ -11,12 +11,11 @@
 typedef struct {
   pthread_mutex_t mtx;
   pthread_cond_t cv;
-  seq_ring_t r;
+  seq_ring_task_t r;
   int done;
 
   spinlock_t sl;
   _Atomic bool spin;
-
 } not_q_t;
 
 typedef struct{
@@ -26,13 +25,11 @@ typedef struct{
 
 void init_not_q(not_q_t* q);
 
-void free_not_q(not_q_t* q, void (*clean)(void*) );
+void free_not_q(not_q_t* q, void (*clean)(task_t*) );
 
 bool try_push_not_q(not_q_t* q, task_t t);
 
 void push_not_q(not_q_t* q, task_t t);
-
-void push_batch_not_q(not_q_t* q, size_t len, task_t const t[len]);
 
 ret_try_t try_pop_not_q(not_q_t* q);
 
@@ -43,6 +40,7 @@ void done_not_q(not_q_t* q);
 void wake_spin_not_q(not_q_t* q);
 
 void stop_spin_not_q(not_q_t* q);
+
 
 #endif
 

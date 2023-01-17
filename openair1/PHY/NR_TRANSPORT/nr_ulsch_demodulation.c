@@ -3269,7 +3269,7 @@ int nr_rx_pusch_tp(PHY_VARS_gNB *gNB,
 {
 
 #ifdef TASK_MANAGER
-  wake_spin_task_manager(&gNB->man);
+  wake_and_spin_task_manager(&gNB->man);
 #endif
 
   uint8_t aarx;
@@ -3502,7 +3502,7 @@ nr_pusch_symbol_processing_noprecoding(rdata);
 
 
 #ifdef TASK_MANAGER
- stop_spin_manager(&gNB->man);
+ stop_spin_task_manager(&gNB->man);
  wait_all_spin_task_manager(&gNB->man);
 #elif OMP_TP
 #pragma omp taskwait

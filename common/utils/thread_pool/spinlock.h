@@ -1,5 +1,5 @@
-#ifndef SPINLOCK_H
-#define SPINLOCK_H
+#ifndef SPINLOCK_MIR_H
+#define SPINLOCK_MIR_H
 
 #include <stdatomic.h>
 #include <stdbool.h>
