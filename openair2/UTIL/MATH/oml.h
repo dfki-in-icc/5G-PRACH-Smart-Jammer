@@ -37,7 +37,6 @@
 
 #include <math.h>
 #include <stdlib.h>
-#include  "../OTG/otg.h"
 
 #define PI 3.14159265
 
@@ -53,12 +52,11 @@ void set_taus_seed(unsigned int seed_type);
 
 /*! \fn inline unsigned int taus(unsigned int comp);
 * \brief compute random number
-* \param[in] integer
 * \param[out]
 * \note
 * @ingroup  _oml
 */
-unsigned int taus(unsigned int comp);
+unsigned int taus(void);
 
 
 /*! \fn void init_seeds(int seed);
