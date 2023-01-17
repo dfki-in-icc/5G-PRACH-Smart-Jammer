@@ -1,14 +1,3 @@
-From 600acce33fb9fefbd6fbd1f546404b55d19c51fa Mon Sep 17 00:00:00 2001
-From: "rajeshwari.p" <rajeshwari.p@vvdntech.in>
-Date: Fri, 19 Aug 2022 17:18:12 +0530
-Subject: [PATCH] changes to compile libxran using gcc and  disable avx512
-
-Signed-off-by: rajeshwari.p <rajeshwari.p@vvdntech.in>
----
- fhi_lib/build.sh     |  6 +++---
- fhi_lib/lib/Makefile | 23 ++++++++++++-----------
- 2 files changed, 15 insertions(+), 14 deletions(-)
-
 diff --git a/fhi_lib/build.sh b/fhi_lib/build.sh
 index 22859b5..e24e46f 100755
 --- a/fhi_lib/build.sh

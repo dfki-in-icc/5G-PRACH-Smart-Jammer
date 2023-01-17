@@ -1,13 +1,3 @@
-From 6f9c9298c9130fdf4905fa1971c561a869f413bf Mon Sep 17 00:00:00 2001
-From: "thamizhselvan.k" <thamizhselvan.k@vvdntech.in>
-Date: Wed, 17 Aug 2022 10:11:41 +0530
-Subject: [PATCH 2/8] returning proper slot_id
-
-Signed-off-by: thamizhselvan.k <thamizhselvan.k@vvdntech.in>
----
- fhi_lib/lib/src/xran_main.c | 1 +
- 1 file changed, 1 insertion(+)
-
 diff --git a/fhi_lib/lib/src/xran_main.c b/fhi_lib/lib/src/xran_main.c
 index 17acc2a..8f5705e 100644
 --- a/fhi_lib/lib/src/xran_main.c
