@@ -547,15 +547,12 @@ check_install_additional_tools (){
   elif [[ "$OS_DISTRO" == "rhel" ]] || [[ "$OS_DISTRO" == "centos" ]]; then
     PACKAGE_LIST="\
       gawk \
-      vconfig	  \
       doxygen \
       ctags \
       iperf3 \
-      numpy \
       python3-paramiko \
       python3-pyroute2 \
       python3-netifaces \
-      scipy \
       python3-matplotlib \
       xforms \
       xforms-devel \
@@ -564,16 +561,13 @@ check_install_additional_tools (){
     PACKAGE_LIST=" \
       gawk \
       pkgconfig \
-      vconfig	  \
       doxygen \
       ctags \
       ntpsec \
       iperf3 \
-      python3-numpy \
       python3-paramiko \
       python3-pyroute2 \
       python3-netifaces \
-      python3-scipy \
       python3-matplotlib \
       xforms \
       xforms-devel \
