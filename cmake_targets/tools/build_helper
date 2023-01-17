@@ -535,7 +535,6 @@ check_install_additional_tools (){
             ;;
     esac
     PACKAGE_LIST="\
-	gawk \
 	doxygen \
 	libpthread-stubs0-dev \
 	tshark \
@@ -546,29 +545,18 @@ check_install_additional_tools (){
         xmlstarlet"
   elif [[ "$OS_DISTRO" == "rhel" ]] || [[ "$OS_DISTRO" == "centos" ]]; then
     PACKAGE_LIST="\
-      gawk \
       doxygen \
       ctags \
       iperf3 \
-      python3-paramiko \
-      python3-pyroute2 \
-      python3-netifaces \
-      python3-matplotlib \
       xforms \
       xforms-devel \
       xmlstarlet"
   elif [[ "$OS_DISTRO" == "fedora" ]]; then
     PACKAGE_LIST=" \
-      gawk \
-      pkgconfig \
       doxygen \
       ctags \
       ntpsec \
       iperf3 \
-      python3-paramiko \
-      python3-pyroute2 \
-      python3-netifaces \
-      python3-matplotlib \
       xforms \
       xforms-devel \
       xmlstarlet"
