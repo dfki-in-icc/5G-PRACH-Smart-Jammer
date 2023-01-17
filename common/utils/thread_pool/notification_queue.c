@@ -22,6 +22,7 @@ void init_not_q(not_q_t* q)
   pthread_condattr_t* c_attr = NULL; 
   rc = pthread_cond_init(&q->cv, c_attr);
   assert(rc == 0);
+  q->spin = false;
 }
 
 void free_not_q(not_q_t* q, void (*clean)(task_t*) )
@@ -116,7 +117,7 @@ bool pop_not_q(not_q_t* q, ret_try_t* out)
   assert(q->done == 0 || q->done ==1);
 
 label:
-  while(size_seq_ring_task(&q->r) == 0 && q->done == 0)
+  while(size_seq_ring_task(&q->r) == 0 && q->done == 0 && q->spin == false)
     pthread_cond_wait(&q->cv , &q->mtx);
 
   if(q->done == 1){
@@ -174,7 +175,7 @@ void stop_spin_not_q(not_q_t* q)
 {
   assert(q != NULL);
 
-  unlock_spinlock(&q->sl);
   q->spin = false;
+  unlock_spinlock(&q->sl);
 }
 
