@@ -46,8 +46,6 @@
 #include "common_lib.h"
 #include "ethernet_lib.h"
 
-//#include "../../oran/4g/oran.h"
-
 
 int num_devices_eth = 0;
 struct sockaddr_in dest_addr[MAX_INST];

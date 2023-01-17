@@ -117,7 +117,7 @@ Options:
    USRP, BLADERF, LMSSDR, IRIS, SIMU, AW2SORI, None (Default)
    Adds this RF board support (in external packages installation and in compilation)
 -t | --transport
-   Selects the transport protocol type, options: None, Ethernet, benetel4g, benetel5g, oran_fhlib_4g, oran_fhlib_5g
+   Selects the transport protocol type, options: None, Ethernet, benetel4g, benetel5g, oran_fhlib_5g
 -P | --phy_simulators
    Makes the unitary tests Layer 1 simulators
 -S | --core_simulators
@@ -741,11 +741,6 @@ function main() {
               compilations $BUILD_DIR benetel_5g
               ln -sf libbenetel_5g.so liboai_transpro.so
               echo_info "liboai_transpro.so is linked to BENETEL4G transport"
-      fi
-          if [ "$TP" == "oran_fhlib_4g" ]; then
-            compilations $BUILD_DIR oran_fhlib_4g
-              ln -sf liboran_fhlib_4g.so liboai_transpro.so
-              echo_info "liboai_transpro.so is linked to oran_fhlib_4G transport"
           fi
           if [ "$TP" == "oran_fhlib_5g" ]; then
             compilations $BUILD_DIR oran_fhlib_5g
