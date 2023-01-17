@@ -181,14 +181,7 @@ const PREDEF_CMD = "show predef"
                 // possibly load help..
                 for (let i = 0; i < this.columns.length; i = i + 1) {
                   if (this.columns[i].help) {
-                    this.helpApi.getHelp$({module : this.selectedModule!.name, command : control!.api().name.replace(" ", "_"), object : this.columns[i].name.replace(" ", "_")})
-                        .subscribe(
-                            response => {
-                              if (response.status == 201)
-                                this.hlp_cc[i] = response.body!.text;
-                            },
-                            err => { this.hlp_cc[i] = ""; },
-                        );
+					this.helpApi.getHelpText(this.selectedModule!.name,control!.api().name,this.columns[i].name).subscribe(resp => { this.hlp_cc[i] = resp; }, err => { this.hlp_cc[i] = ""; });
                   } else {
                     this.hlp_cc[i] = "";
                   }

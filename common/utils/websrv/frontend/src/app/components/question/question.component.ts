@@ -48,16 +48,10 @@ export class QuestionDialogComponent {
       @Inject(MAT_DIALOG_DATA) public data: QuestionDialogData,
   )
   {
-  this.helpApi.getHelp$({module : "question", command : data.control.cmdname.replace(" ", "_"), object : "input"})
-      .subscribe(
-      response => {
-         if (response.status == 201)
-             this.hlp_question = response.body!.text;
-         },
-         err => { this.hlp_question = ""; },
-         );
-                 
+  this.helpApi.getHelpText("question", data.control.cmdname, "input").subscribe( response => { this.hlp_question = response;})
   }
+  
+  
   onNoClick()
   {
     this.dialogRef.close();

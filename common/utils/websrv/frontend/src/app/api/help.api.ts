@@ -61,9 +61,10 @@ export class HelpApi {
 
   public getHelpText(module: string, command: string, object: string): Observable<string>
   {
+	  
     return this.getHelp$({module : module, command : command.replace(" ", "_"), object : object.replace(" ", "_")})
         .pipe(map(
-            (response => { return (response.status == 201) ? response.body!.text : ""; }),
+            (response => { return (response.status == 201) ? response.body!.text.replace(/<!--(?:.|\n)*?-->/gm, '') : ""; }),
             )); // pipe
   }
 }

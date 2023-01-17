@@ -84,7 +84,7 @@ export class ErrorInterceptor implements HttpInterceptor {
             // The response body may contain clues as to what went wrong
             message = JSON.stringify(error.error);
           }
-          this.dialogService.openErrorDialog(prefix + " " + error.status, message);
+          this.dialogService.openErrorDialog(prefix + " " + request.url, "http status: " + error.status + " "  + message);
           return throwError(error);
         }),
     );
