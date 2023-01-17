@@ -813,7 +813,6 @@ void logClean (void)
   }
 }
 
-extern int oai_exit;
 void flush_mem_to_file(void)
 {
   int fp;
@@ -824,7 +823,7 @@ void flush_mem_to_file(void)
   
   pthread_setname_np( pthread_self(), "flush_mem_to_file");
 
-  while (!oai_exit) {
+  while (true) {
     pthread_mutex_lock(&log_mem_lock);
     log_mem_write_flag=0;
     pthread_cond_wait(&log_mem_notify, &log_mem_lock);
