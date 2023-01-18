@@ -74,12 +74,6 @@ int newGtpuDeleteAllTunnels(instance_t instance, ue_id_t ue_id) {
 
 instance_t gtpv1Init(openAddr_t context) {return 0;}
 
-void GtpuUpdateTunnelOutgoingPair(instance_t instance,
-                                  ue_id_t ue_id,
-                                  ebi_t bearer_id,
-                                  teid_t newOutgoingTeid,
-                                  transport_layer_addr_t newRemoteAddr) {}
-
 int
 gtpv1u_create_ngu_tunnel(
   const instance_t instanceP,

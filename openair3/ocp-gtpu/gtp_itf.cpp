@@ -552,7 +552,7 @@ instance_t gtpv1Init(openAddr_t context) {
   return id;
 }
 
-void GtpuUpdateTunnelOutgoingPair(instance_t instance, ue_id_t ue_id, ebi_t bearer_id, teid_t newOutgoingTeid, transport_layer_addr_t newRemoteAddr) {
+void GtpuUpdateTunnelOutgoingAddressAndTeid(instance_t instance, ue_id_t ue_id, ebi_t bearer_id, in_addr_t newOutgoingAddr, teid_t newOutgoingTeid) {
   pthread_mutex_lock(&globGtp.gtp_lock);
   getInstRetVoid(compatInst(instance));
   getUeRetVoid(inst, ue_id);
@@ -567,36 +567,7 @@ void GtpuUpdateTunnelOutgoingPair(instance_t instance, ue_id_t ue_id, ebi_t bear
 
   ptr2->second.outgoing_ip_addr = newOutgoingAddr;
   ptr2->second.teid_outgoing = newOutgoingTeid;
-
-  int addrs_length_in_bytes = newRemoteAddr.length / 8;
-
-  switch (addrs_length_in_bytes) {
-    case 4:
-      memcpy(&ptr2->second.outgoing_ip_addr,newRemoteAddr.buffer,4);
-      break;
-
-    case 16:
-      memcpy(ptr2->second.outgoing_ip6_addr.s6_addr,newRemoteAddr.buffer,
-             16);
-      break;
-
-    case 20:
-      memcpy(&ptr2->second.outgoing_ip_addr,newRemoteAddr.buffer,4);
-      memcpy(ptr2->second.outgoing_ip6_addr.s6_addr,
-             newRemoteAddr.buffer+4,
-             16);
-
-    default:
-      AssertFatal(false, "SGW Address size impossible");
-  }
-
-  char ip4[INET_ADDRSTRLEN];
-  char ip6[INET6_ADDRSTRLEN];
-  LOG_I(GTPU, "[%ld] Tunnel Outgoing TEID updated to %x, remote IPv4 to: %s, IPv6 to: %s\n",
-        instance,
-        ptr2->second.teid_outgoing,
-        inet_ntop(AF_INET,(void *)&ptr2->second.outgoing_ip_addr, ip4,INET_ADDRSTRLEN ),
-        inet_ntop(AF_INET6,(void *)ptr2->second.outgoing_ip6_addr.s6_addr, ip6, INET6_ADDRSTRLEN));
+  LOG_I(GTPU, "[%ld] Tunnel Outgoing TEID updated to %x and address to %x\n", instance, ptr2->second.teid_outgoing, ptr2->second.outgoing_ip_addr);
   pthread_mutex_unlock(&globGtp.gtp_lock);
   return;
 }
@@ -1250,6 +1221,7 @@ void *gtpv1uTask(void *args)  {
     */
     MessageDef *message_p = NULL;
     itti_receive_msg(TASK_GTPV1_U, &message_p);
+
     if (message_p != NULL ) {
       openAddr_t addr= {0};
       const instance_t myInstance = ITTI_MSG_DESTINATION_INSTANCE(message_p);

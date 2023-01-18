@@ -3719,7 +3719,7 @@ void prepare_and_send_ue_context_modification_f1(rrc_gNB_ue_context_t *ue_contex
   // TODO: So many hard codings
   MessageDef *message_p;
   message_p = itti_alloc_new_message (TASK_RRC_GNB, 0, F1AP_UE_CONTEXT_MODIFICATION_REQ);
-  f1ap_ue_context_setup_t *req=&F1AP_UE_CONTEXT_SETUP_REQ (message_p);
+  f1ap_ue_context_setup_t *req=&F1AP_UE_CONTEXT_MODIFICATION_REQ(message_p);
   req->rnti             = ue_context_p->ue_context.rnti;
   req->mcc              = RC.nrrrc[ctxt.module_id]->configuration.mcc[0];
   req->mnc              = RC.nrrrc[ctxt.module_id]->configuration.mnc[0];

@@ -89,11 +89,11 @@ void CU_update_UP_DL_tunnel(e1ap_bearer_setup_req_t *const req, instance_t insta
              &drb_p->DlUpParamList[0].tlAddress,
              sizeof(in_addr_t));
 
-      GtpuUpdateTunnelOutgoingPair(instance,
-                                   (ue_id & 0xFFFF),
-                                   (ebi_t)drb_p->id,
-                                   drb_p->DlUpParamList[0].teId,
-                                   newRemoteAddr);
+      GtpuUpdateTunnelOutgoingAddressAndTeid(instance,
+                                             (ue_id & 0xFFFF),
+                                             (ebi_t)drb_p->id,
+                                             *(in_addr_t*)&newRemoteAddr.buffer,
+                                             drb_p->DlUpParamList[0].teId);
     }
   }
 }

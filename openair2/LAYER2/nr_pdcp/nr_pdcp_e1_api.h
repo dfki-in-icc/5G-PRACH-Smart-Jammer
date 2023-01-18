@@ -22,7 +22,7 @@
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
-#include "asn1_utils.h"
+#include "common/utils/oai_asn1.h"
 #include "NR_RadioBearerConfig.h"
 
 #include "pdcp.h"

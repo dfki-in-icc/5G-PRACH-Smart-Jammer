@@ -658,6 +658,11 @@ int fill_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
 
 void e1apCUCP_send_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
                                                 e1ap_bearer_setup_req_t *const bearerCxt) {
+  if (!getCxtE1(CPtype,instance)) {
+    LOG_E(E1AP, "Received a UE bearer to establish while no CU-UP is connected, response on NGAP to send failure is not developped\n");
+    // Fixme: add response on NGAP to send failure
+    return;
+  }
   E1AP_E1AP_PDU_t pdu = {0};
   fill_BEARER_CONTEXT_SETUP_REQUEST(instance, bearerCxt, &pdu);
   e1ap_encode_send(CPtype, instance, &pdu, 0, __func__);
