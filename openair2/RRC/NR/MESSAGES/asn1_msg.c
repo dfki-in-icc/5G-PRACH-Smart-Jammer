@@ -854,7 +854,7 @@ void fill_initial_SpCellConfig(int uid,
   csi_MeasConfig->csi_ReportConfigToReleaseList = NULL;
 
   NR_CSI_SSB_ResourceSet_t *ssbresset0 = calloc(1,sizeof(*ssbresset0));
-  ssbresset0->csi_SSB_ResourceSetId=0;
+  ssbresset0->csi_SSB_ResourceSetId = 0;
 
   for (int i=0;i<64;i++) {
     if ((bitmap >> (63 - i)) & 0x01) {
@@ -929,7 +929,7 @@ void fill_initial_SpCellConfig(int uid,
 
       config_csi_meas_report(csi_MeasConfig, scc, pucchcsires1, pdsch_Config, &configuration->pdsch_AntennaPorts, *pdsch_servingcellconfig->ext1->maxMIMO_Layers, bwp_id, uid);
     }
-    config_rsrp_meas_report(csi_MeasConfig, scc, pucchcsires1, configuration->do_CSIRS, bwp_id + 10, uid);
+    config_rsrp_meas_report(csi_MeasConfig, scc, pucchcsires1, configuration->do_CSIRS, bwp_id + 10, uid, pdsch_AntennaPorts);
   }
 
   if ( LOG_DEBUGFLAG(DEBUG_ASN1) ) {
@@ -1070,7 +1070,8 @@ void update_cellGroupConfig(NR_CellGroupConfig_t *cellGroupConfig,
     NR_CSI_MeasConfig_t *csi_MeasConfig = SpCellConfig->spCellConfigDedicated->csi_MeasConfig->choice.setup;
     for (int report = 0; report < csi_MeasConfig->csi_ReportConfigToAddModList->list.count; report++) {
       NR_CSI_ReportConfig_t *csirep = csi_MeasConfig->csi_ReportConfigToAddModList->list.array[report];
-      config_csi_codebook(&configuration->pdsch_AntennaPorts, *pdsch_servingcellconfig->ext1->maxMIMO_Layers, csirep->codebookConfig);
+      if(csirep->codebookConfig)
+        config_csi_codebook(&configuration->pdsch_AntennaPorts, *pdsch_servingcellconfig->ext1->maxMIMO_Layers, csirep->codebookConfig);
     }
 
     int curr_bwp = NRRIV2BW(scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);

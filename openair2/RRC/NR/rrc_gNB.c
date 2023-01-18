@@ -2423,10 +2423,8 @@ rrc_gNB_decode_dcch(
             }
           }
 
-          rrc_gNB_process_RRCSetupComplete(
-                  ctxt_pP,
-                  ue_context_p,
-                  ul_dcch_msg->message.choice.c1->choice.rrcSetupComplete->criticalExtensions.choice.rrcSetupComplete);
+          rrc_gNB_process_RRCSetupComplete(ctxt_pP, ue_context_p,
+                                           ul_dcch_msg->message.choice.c1->choice.rrcSetupComplete->criticalExtensions.choice.rrcSetupComplete);
           LOG_I(NR_RRC, PROTOCOL_NR_RRC_CTXT_UE_FMT" UE State = NR_RRC_CONNECTED \n",
               PROTOCOL_NR_RRC_CTXT_UE_ARGS(ctxt_pP));
         }

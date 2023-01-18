@@ -191,7 +191,8 @@ void config_csirs(const NR_ServingCellConfigCommon_t *servingcellconfigcommon,
                   int num_dl_antenna_ports,
                   int curr_bwp,
                   int do_csirs,
-                  int id) {
+                  int id)
+{
 
   if (do_csirs) {
 
@@ -234,7 +235,7 @@ void config_csirs(const NR_ServingCellConfigCommon_t *servingcellconfigcommon,
         break;
       case 2:
         resourceMapping.frequencyDomainAllocation.present = NR_CSI_RS_ResourceMapping__frequencyDomainAllocation_PR_other;
-        resourceMapping.frequencyDomainAllocation.choice.other.buf = calloc(2, sizeof(uint8_t));
+        resourceMapping.frequencyDomainAllocation.choice.other.buf = calloc(1, sizeof(uint8_t));
         resourceMapping.frequencyDomainAllocation.choice.other.size = 1;
         resourceMapping.frequencyDomainAllocation.choice.other.bits_unused = 2;
         resourceMapping.frequencyDomainAllocation.choice.other.buf[0] = 4;
@@ -243,7 +244,7 @@ void config_csirs(const NR_ServingCellConfigCommon_t *servingcellconfigcommon,
         break;
       case 4:
         resourceMapping.frequencyDomainAllocation.present = NR_CSI_RS_ResourceMapping__frequencyDomainAllocation_PR_row4;
-        resourceMapping.frequencyDomainAllocation.choice.row4.buf = calloc(2, sizeof(uint8_t));
+        resourceMapping.frequencyDomainAllocation.choice.row4.buf = calloc(1, sizeof(uint8_t));
         resourceMapping.frequencyDomainAllocation.choice.row4.size = 1;
         resourceMapping.frequencyDomainAllocation.choice.row4.bits_unused = 5;
         resourceMapping.frequencyDomainAllocation.choice.row4.buf[0] = 32;
@@ -409,6 +410,7 @@ void set_dl_maxmimolayers(NR_PDSCH_ServingCellConfig_t *pdsch_servingcellconfig,
           fs->featureSetsDownlinkPerCC->list.array[i]->maxNumberMIMO_LayersPDSCH) {
         long ue_supported_layers = (2 << *fs->featureSetsDownlinkPerCC->list.array[i]->maxNumberMIMO_LayersPDSCH);
         *pdsch_servingcellconfig->ext1->maxMIMO_Layers = NR_MAX_SUPPORTED_DL_LAYERS < ue_supported_layers ? NR_MAX_SUPPORTED_DL_LAYERS : ue_supported_layers;
+        return;
       }
     }
   }
@@ -666,8 +668,9 @@ void prepare_sim_uecap(NR_UE_NR_Capability_t *cap,
   asn1cSeqAdd(&cap->rf_Parameters.supportedBandListNR.list,
                    nr_bandnr);
   if (mcs_table == 1) {
-    int bw = get_supported_band_index(numerology, band, rbsize);
-    if (band>256) {
+    const frequency_range_t freq_range = band < 100 ? FR1 : FR2;
+    int bw = get_supported_band_index(numerology, freq_range, rbsize);
+    if (freq_range == FR2) {
       NR_BandNR_t *bandNRinfo = cap->rf_Parameters.supportedBandListNR.list.array[0];
       bandNRinfo->pdsch_256QAM_FR2 = CALLOC(1,sizeof(*bandNRinfo->pdsch_256QAM_FR2));
       *bandNRinfo->pdsch_256QAM_FR2 = NR_BandNR__pdsch_256QAM_FR2_supported;
@@ -683,7 +686,7 @@ void prepare_sim_uecap(NR_UE_NR_Capability_t *cap,
     fs->featureSetsDownlinkPerCC = CALLOC(1,sizeof(*fs->featureSetsDownlinkPerCC));
     NR_FeatureSetDownlinkPerCC_t *fs_cc = CALLOC(1,sizeof(NR_FeatureSetDownlinkPerCC_t));
     fs_cc->supportedSubcarrierSpacingDL = numerology;
-    if(band>256) {
+    if(freq_range == FR2) {
       fs_cc->supportedBandwidthDL.present = NR_SupportedBandwidth_PR_fr2;
       fs_cc->supportedBandwidthDL.choice.fr2 = bw;
     }
@@ -992,7 +995,8 @@ void scheduling_request_config(const NR_ServingCellConfigCommon_t *scc,
 void set_dl_mcs_table(int scs,
                       NR_UE_NR_Capability_t *cap,
                       NR_BWP_DownlinkDedicated_t *bwp_Dedicated,
-                      const NR_ServingCellConfigCommon_t *scc) {
+                      const NR_ServingCellConfigCommon_t *scc)
+{
 
   if (cap == NULL){
     bwp_Dedicated->pdsch_Config->choice.setup->mcs_Table = NULL;
@@ -1002,19 +1006,20 @@ void set_dl_mcs_table(int scs,
   int band = *scc->downlinkConfigCommon->frequencyInfoDL->frequencyBandList.list.array[0];
   struct NR_FrequencyInfoDL__scs_SpecificCarrierList scs_list = scc->downlinkConfigCommon->frequencyInfoDL->scs_SpecificCarrierList;
   int bw_rb = -1;
-  for(int i=0; i<scs_list.list.count; i++){
+  for(int i = 0; i < scs_list.list.count; i++){
     if(scs == scs_list.list.array[i]->subcarrierSpacing){
       bw_rb = scs_list.list.array[i]->carrierBandwidth;
       break;
     }
   }
-  AssertFatal(bw_rb>0,"Could not find scs-SpecificCarrierList element for scs %d",scs);
-  int bw = get_supported_band_index(scs, band, bw_rb);
-  AssertFatal(bw>=0,"Supported band corresponding to %d RBs not found\n", bw_rb);
+  AssertFatal(bw_rb > 0,"Could not find scs-SpecificCarrierList element for scs %d",scs);
+  const frequency_range_t freq_range = band < 100 ? FR1 : FR2;
+  int bw = get_supported_band_index(scs, freq_range, bw_rb);
+  AssertFatal(bw >= 0,"Supported band corresponding to %d RBs not found\n", bw_rb);
 
   bool supported = false;
-  if (band>256) {
-    for (int i=0;i<cap->rf_Parameters.supportedBandListNR.list.count;i++) {
+  if (band > 256) {
+    for (int i = 0; i < cap->rf_Parameters.supportedBandListNR.list.count; i++) {
       NR_BandNR_t *bandNRinfo = cap->rf_Parameters.supportedBandListNR.list.array[i];
       if(bandNRinfo->bandNR == band && bandNRinfo->pdsch_256QAM_FR2) {
         supported = true;
@@ -1544,7 +1549,8 @@ void config_rsrp_meas_report(NR_CSI_MeasConfig_t *csi_MeasConfig,
                              NR_PUCCH_CSI_Resource_t *pucchcsires,
                              int do_csi, // if rsrp is based on CSI or SSB
                              int rep_id,
-                             int uid)
+                             int uid,
+                             int num_antenna_ports)
 {
   NR_CSI_ReportConfig_t *csirep = calloc(1, sizeof(*csirep));
   csirep->reportConfigId = rep_id;
@@ -1553,7 +1559,7 @@ void config_rsrp_meas_report(NR_CSI_MeasConfig_t *csi_MeasConfig,
   for (int csi_list = 0; csi_list < csi_MeasConfig->csi_ResourceConfigToAddModList->list.count; csi_list++) {
     NR_CSI_ResourceConfig_t *csires = csi_MeasConfig->csi_ResourceConfigToAddModList->list.array[csi_list];
     if (csires->csi_RS_ResourceSetList.present == NR_CSI_ResourceConfig__csi_RS_ResourceSetList_PR_nzp_CSI_RS_SSB) {
-      if (do_csi) {
+      if (do_csi && num_antenna_ports < 4) {
         if (csires->csi_RS_ResourceSetList.choice.nzp_CSI_RS_SSB->nzp_CSI_RS_ResourceSetList)
           resource_id = csires->csi_ResourceConfigId;
       } else {
@@ -1572,7 +1578,7 @@ void config_rsrp_meas_report(NR_CSI_MeasConfig_t *csi_MeasConfig,
   csirep->reportConfigType.choice.periodic = calloc(1, sizeof(*csirep->reportConfigType.choice.periodic));
   set_csi_meas_periodicity(servingcellconfigcommon, csirep, uid, true);
   asn1cSeqAdd(&csirep->reportConfigType.choice.periodic->pucch_CSI_ResourceList.list, pucchcsires);
-  if (do_csi) {
+  if (do_csi && num_antenna_ports < 4) {
     csirep->reportQuantity.present = NR_CSI_ReportConfig__reportQuantity_PR_cri_RSRP;
     csirep->reportQuantity.choice.cri_RSRP = (NULL_t)0;
   } else {

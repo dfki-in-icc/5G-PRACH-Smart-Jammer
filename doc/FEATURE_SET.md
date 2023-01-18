@@ -235,7 +235,7 @@ The following features are valid for the gNB and the 5G-NR UE.
 *  Subcarrier spacings: 15 and 30kHz (FR1), 120kHz (FR2)
 *  Bandwidths: 10, 20, 40, 80, 100MHz (273 Physical Resource Blocks)
 *  Intermediate downlink and uplink frequencies to interface with IF equipment
-*  Procedures for 2-layer DL MIMO
+*  Procedures for 4-layer DL MIMO
 *  Slot format: 14 OFDM symbols in UL or DL
 *  Highly efficient 3GPP compliant LDPC encoder and decoder (BG1 and BG2 supported)
 *  Highly efficient 3GPP compliant polar encoder and decoder
@@ -258,7 +258,7 @@ The following features are valid for the gNB and the 5G-NR UE.
    - Single and multiple DMRS symbols
    - PTRS support
    - Support for 1, 2 and 4 TX antennas
-   - Support for up to 2 layers (currently limited to DMRS configuration type 2)
+   - Support for up to 4 layers
 *  NR-CSIRS Generation of sequence at PHY
 *  NR-PUSCH (including Segmentation, LDPC encoding, rate matching, scrambling, modulation, RB mapping, etc).
    - PUSCH mapping type A and B
