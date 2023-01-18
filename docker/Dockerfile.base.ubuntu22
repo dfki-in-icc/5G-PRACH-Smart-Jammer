@@ -26,7 +26,7 @@
 #---------------------------------------------------------------------
 
 
-FROM ubuntu:bionic AS ran-base
+FROM ubuntu:jammy AS ran-base
 ARG NEEDED_GIT_PROXY
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Europe/Paris
