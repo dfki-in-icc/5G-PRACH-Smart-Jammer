@@ -246,23 +246,24 @@ void schedule_nr_prach(module_id_t module_idP, frame_t frameP, sub_frame_t slotP
   gNB_MAC_INST *gNB = RC.nrmac[module_idP];
   NR_COMMON_channels_t *cc = gNB->common_channels;
   NR_ServingCellConfigCommon_t *scc = cc->ServingCellConfigCommon;
-  nfapi_nr_ul_tti_request_t *UL_tti_req = &RC.nrmac[module_idP]->UL_tti_req_ahead[0][slotP];
+  int mu;
+  if (scc->uplinkConfigCommon->initialUplinkBWP->rach_ConfigCommon->choice.setup->msg1_SubcarrierSpacing)
+    mu = *scc->uplinkConfigCommon->initialUplinkBWP->rach_ConfigCommon->choice.setup->msg1_SubcarrierSpacing;
+  else
+    mu = scc->downlinkConfigCommon->frequencyInfoDL->scs_SpecificCarrierList.list.array[0]->subcarrierSpacing;
+  const int index = ul_buffer_index(frameP, slotP, mu);
+  nfapi_nr_ul_tti_request_t *UL_tti_req = &RC.nrmac[module_idP]->UL_tti_req_ahead[0][index];
   nfapi_nr_config_request_scf_t *cfg = &RC.nrmac[module_idP]->config[0];
 
   if (is_nr_UL_slot(scc->tdd_UL_DL_ConfigurationCommon, slotP, cc->frame_type)) {
 
     uint8_t config_index = scc->uplinkConfigCommon->initialUplinkBWP->rach_ConfigCommon->choice.setup->rach_ConfigGeneric.prach_ConfigurationIndex;
-    uint8_t mu,N_dur,N_t_slot,start_symbol = 0,N_RA_slot;
+    uint8_t N_dur, N_t_slot, start_symbol = 0, N_RA_slot;
     uint16_t RA_sfn_index = -1;
     uint8_t config_period = 1;
     uint16_t format;
     int slot_index = 0;
     uint16_t prach_occasion_id = -1;
-
-    if (scc->uplinkConfigCommon->initialUplinkBWP->rach_ConfigCommon->choice.setup->msg1_SubcarrierSpacing)
-      mu = *scc->uplinkConfigCommon->initialUplinkBWP->rach_ConfigCommon->choice.setup->msg1_SubcarrierSpacing;
-    else
-      mu = scc->downlinkConfigCommon->frequencyInfoDL->scs_SpecificCarrierList.list.array[0]->subcarrierSpacing;
 
     int bwp_start = NRRIV2PRBOFFSET(scc->uplinkConfigCommon->initialUplinkBWP->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
 
@@ -392,7 +393,7 @@ void schedule_nr_prach(module_id_t module_idP, frame_t frameP, sub_frame_t slotP
       const uint8_t mu_pusch =
           scc->uplinkConfigCommon->frequencyInfoUL->scs_SpecificCarrierList.list.array[0]->subcarrierSpacing;
       const int16_t N_RA_RB = get_N_RA_RB(cfg->prach_config.prach_sub_c_spacing.value, mu_pusch);
-      uint16_t *vrb_map_UL = &cc->vrb_map_UL[slotP * MAX_BWP_SIZE];
+      uint16_t *vrb_map_UL = &cc->vrb_map_UL[index * MAX_BWP_SIZE];
       for (int i = 0; i < N_RA_RB * fdm; ++i)
         vrb_map_UL[bwp_start + rach_ConfigGeneric->msg1_FrequencyStart + i] |= SL_to_bitmap(start_symbol, N_t_slot*N_dur);
     }
@@ -729,7 +730,8 @@ void nr_generate_Msg3_retransmission(module_id_t module_idP, int CC_id, frame_t 
     SLIV2SL(startSymbolAndLength, &StartSymbolIndex, &NrOfSymbols);
     int mappingtype = pusch_TimeDomainAllocationList->list.array[ra->Msg3_tda_id]->mappingType;
 
-    uint16_t *vrb_map_UL = &RC.nrmac[module_idP]->common_channels[CC_id].vrb_map_UL[sched_slot * MAX_BWP_SIZE];
+    const int buffer_index = ul_buffer_index(sched_frame, sched_slot, mu);
+    uint16_t *vrb_map_UL = &RC.nrmac[module_idP]->common_channels[CC_id].vrb_map_UL[buffer_index * MAX_BWP_SIZE];
 
     const int BWPSize = ul_bwp->initial_BWPSize;
     const int BWPStart = ul_bwp->initial_BWPStart;
@@ -749,7 +751,7 @@ void nr_generate_Msg3_retransmission(module_id_t module_idP, int CC_id, frame_t 
     LOG_I(NR_MAC, "[gNB %d][RAPROC] Frame %d, Slot %d : CC_id %d Scheduling retransmission of Msg3 in (%d,%d)\n",
           module_idP, frame, slot, CC_id, sched_frame, sched_slot);
 
-    nfapi_nr_ul_tti_request_t *future_ul_tti_req = &RC.nrmac[module_idP]->UL_tti_req_ahead[CC_id][sched_slot];
+    nfapi_nr_ul_tti_request_t *future_ul_tti_req = &RC.nrmac[module_idP]->UL_tti_req_ahead[CC_id][buffer_index];
     AssertFatal(future_ul_tti_req->SFN == sched_frame
                 && future_ul_tti_req->Slot == sched_slot,
                 "future UL_tti_req's frame.slot %d.%d does not match PUSCH %d.%d\n",
@@ -953,8 +955,8 @@ void nr_get_Msg3alloc(module_id_t module_id,
   }
 
   LOG_I(NR_MAC, "[RAPROC] Msg3 slot %d: current slot %u Msg3 frame %u k2 %u Msg3_tda_id %u\n", ra->Msg3_slot, current_slot, ra->Msg3_frame, k2,ra->Msg3_tda_id);
-  uint16_t *vrb_map_UL =
-      &RC.nrmac[module_id]->common_channels[CC_id].vrb_map_UL[ra->Msg3_slot * MAX_BWP_SIZE];
+  const int buffer_index = ul_buffer_index(ra->Msg3_frame, ra->Msg3_slot, mu);
+  uint16_t *vrb_map_UL = &RC.nrmac[module_id]->common_channels[CC_id].vrb_map_UL[buffer_index * MAX_BWP_SIZE];
 
   int bwpSize = ul_bwp->initial_BWPSize;
   int bwpStart = ul_bwp->initial_BWPStart;
@@ -1080,8 +1082,10 @@ void nr_add_msg3(module_id_t module_idP, int CC_id, frame_t frameP, sub_frame_t 
     return;
   }
 
+  const int scs = ul_bwp->scs;
   const uint16_t mask = SL_to_bitmap(ra->msg3_startsymb, ra->msg3_nrsymb);
-  uint16_t *vrb_map_UL = &RC.nrmac[module_idP]->common_channels[CC_id].vrb_map_UL[ra->Msg3_slot * MAX_BWP_SIZE];
+  const int buffer_index = ul_buffer_index(ra->Msg3_frame, ra->Msg3_slot, scs);
+  uint16_t *vrb_map_UL = &RC.nrmac[module_idP]->common_channels[CC_id].vrb_map_UL[buffer_index * MAX_BWP_SIZE];
   for (int i = 0; i < ra->msg3_nb_rb; ++i) {
     AssertFatal(!(vrb_map_UL[i + ra->msg3_first_rb + ra->msg3_bwp_start] & mask),
                 "RB %d in %4d.%2d is already taken, cannot allocate Msg3!\n",
@@ -1093,7 +1097,7 @@ void nr_add_msg3(module_id_t module_idP, int CC_id, frame_t frameP, sub_frame_t 
 
   LOG_D(NR_MAC, "[gNB %d][RAPROC] Frame %d, Slot %d : CC_id %d RA is active, Msg3 in (%d,%d)\n", module_idP, frameP, slotP, CC_id, ra->Msg3_frame, ra->Msg3_slot);
 
-  nfapi_nr_ul_tti_request_t *future_ul_tti_req = &RC.nrmac[module_idP]->UL_tti_req_ahead[CC_id][ra->Msg3_slot];
+  nfapi_nr_ul_tti_request_t *future_ul_tti_req = &RC.nrmac[module_idP]->UL_tti_req_ahead[CC_id][buffer_index];
   AssertFatal(future_ul_tti_req->SFN == ra->Msg3_frame
               && future_ul_tti_req->Slot == ra->Msg3_slot,
               "future UL_tti_req's frame.slot %d.%d does not match PUSCH %d.%d\n",
@@ -1107,7 +1111,6 @@ void nr_add_msg3(module_id_t module_idP, int CC_id, frame_t frameP, sub_frame_t 
   memset(pusch_pdu, 0, sizeof(nfapi_nr_pusch_pdu_t));
 
   const int ibwp_size = ul_bwp->initial_BWPSize;
-  const int scs = ul_bwp->scs;
   const int fh = (ul_bwp->pusch_Config && ul_bwp->pusch_Config->frequencyHopping) ? 1 : 0;
   const int startSymbolAndLength = ul_bwp->tdaList->list.array[ra->Msg3_tda_id]->startSymbolAndLength;
   const int mappingtype = ul_bwp->tdaList->list.array[ra->Msg3_tda_id]->mappingType;
@@ -1540,7 +1543,7 @@ void nr_generate_Msg4(module_id_t module_idP, int CC_id, frame_t frameP, sub_fra
     LOG_D(NR_MAC,"[RAPROC] Msg4 r_pucch %d (CCEIndex %d, delta_PRI %d)\n", r_pucch, CCEIndex, delta_PRI);
 
     int alloc = nr_acknack_scheduling(nr_mac, UE, frameP, slotP, r_pucch, 1);
-    if (alloc<0) {
+    if (alloc < 0) {
       LOG_D(NR_MAC,"Couldn't find a pucch allocation for ack nack (msg4) in frame %d slot %d\n",frameP,slotP);
       return;
     }
