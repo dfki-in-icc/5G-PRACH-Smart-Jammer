@@ -89,6 +89,7 @@ void nr_common_signal_procedures (PHY_VARS_gNB *gNB,int frame,int slot,nfapi_nr_
   else
     nr_generate_pbch_dmrs(gNB->nr_gold_pbch_dmrs[0][ssb_index&7],&txdataF[0][txdataF_offset], AMP, ssb_start_symbol, cfg, fp);
 
+#if T_TRACER
   if (T_ACTIVE(T_GNB_PHY_MIB)) {
     unsigned char bch[3];
     bch[0] = ssb_pdu.ssb_pdu_rel15.bchPayload & 0xff;
@@ -96,6 +97,7 @@ void nr_common_signal_procedures (PHY_VARS_gNB *gNB,int frame,int slot,nfapi_nr_
     bch[2] = (ssb_pdu.ssb_pdu_rel15.bchPayload >> 16) & 0xff;
     T(T_GNB_PHY_MIB, T_INT(0) /* module ID */, T_INT(frame), T_INT(slot), T_BUFFER(bch, 3));
   }
+#endif
 
   // Beam_id is currently used only for FR2
   if (fp->freq_range==nr_FR2){
