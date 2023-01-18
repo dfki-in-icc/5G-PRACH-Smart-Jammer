@@ -3,9 +3,9 @@
 
 #include <stdbool.h>
 
+// 9.3.1.106
 typedef struct{
 
-// 9.3.1.106
 
 } iab_info_iab_du_f1ap_t ;
 

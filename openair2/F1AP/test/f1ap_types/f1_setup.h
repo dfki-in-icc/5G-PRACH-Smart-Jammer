@@ -5,7 +5,7 @@
 
 #include "gnb_du_srv_cell.h"
 #include "trans_layer_add_info.h"
-#include "bad_address.h"
+#include "bap_address.h"
 #include "ext_gnb_du_name.h"
 #include "trans_layer_add_info.h"
 #include "gnb_rrc_ver.h"
@@ -36,7 +36,7 @@ typedef struct
   trans_layer_add_info_t* tlai; // 9.3.2.5
 
   // 7 BAP Address
-  bad_address_t* bad_add; // 9.3.1.111
+  bap_address_t* bad_add; // 9.3.1.111
 
   // 8 Extended gNB-DU Name
   ext_gnb_du_name_t* egdn; // 9.3.1.205

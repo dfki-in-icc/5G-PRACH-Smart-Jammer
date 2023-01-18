@@ -556,11 +556,11 @@ gnb_cu_sys_info_t cp_gnb_cu_system_info_ir(F1AP_ProtocolExtensionContainer_154P4
   F1AP_GNB_CUSystemInformation_t const* src_info	= &src_it->extensionValue.choice.GNB_CUSystemInformation;
   assert(src_info->sibtypetobeupdatedlist.list.count > 0 && src_info->sibtypetobeupdatedlist.list.count < 33 && "out of range" );
 
-  dst.len = src_info->sibtypetobeupdatedlist.list.count;
-  dst.sib = calloc(dst.len, sizeof(sib_t) );
+  dst.sz_sib = src_info->sibtypetobeupdatedlist.list.count;
+  dst.sib = calloc(dst.sz_sib, sizeof(sib_t) );
   assert(dst.sib != NULL && "memory exhausted");
 
-  for(int i = 0; i < dst.len; ++i){
+  for(int i = 0; i < dst.sz_sib; ++i){
      dst.sib[i] = cp_sib_ir(src_info->sibtypetobeupdatedlist.list.array[i] ); 
   }
 
@@ -2460,4 +2460,7 @@ ue_ctx_setup_response_t cp_ue_ctx_setup_response_ir(F1AP_F1AP_PDU_t const* src_p
 
   return dst;
 }
+
+
+
 

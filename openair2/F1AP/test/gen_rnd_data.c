@@ -296,66 +296,67 @@ f1_setup_t gen_rnd_f1_setup(void)
 }
 
 static
-void gen_rnd_act_cell(activate_cell_t* dst)
+activate_cell_t gen_rnd_act_cell()
 {
-  assert(dst != NULL);
+  activate_cell_t dst = {0};
 
   // NR CGI
-  dst->nr_cgi.nr_cell_id = rand()% (1UL << 36);
-  dst ->nr_cgi.plmn_id.mcc = 505;
-  dst->nr_cgi.plmn_id.mnc = 1;
-  dst->nr_cgi.plmn_id.mnc_digit_len = 2;
+  dst.nr_cgi.nr_cell_id = rand()% (1UL << 36);
+  dst.nr_cgi.plmn_id.mcc = 505;
+  dst.nr_cgi.plmn_id.mnc = 1;
+  dst.nr_cgi.plmn_id.mnc_digit_len = 2;
 
   // NR PCI. Optional
-  dst->nr_pci = calloc(1, sizeof(uint16_t)); 
-  assert(dst->nr_pci != NULL && "Memory exhausted");
-  *dst->nr_pci = rand() % 1008; 
+  dst.nr_pci = calloc(1, sizeof(uint16_t)); 
+  assert(dst.nr_pci != NULL && "Memory exhausted");
+  *dst.nr_pci = rand() % 1008; 
 
   // gNB-CU System Information. Optional
-  dst->sys_info = calloc(1, sizeof( gnb_cu_sys_info_t ) );  
-  assert(dst->sys_info != NULL && "Memory exhausted" );
+  dst.sys_info = calloc(1, sizeof( gnb_cu_sys_info_t ) );  
+  assert(dst.sys_info != NULL && "Memory exhausted" );
 
-  dst->sys_info->len = (rand() % 32) + 1; 
-  if(dst->sys_info->len > 0){
-    dst->sys_info->sib = calloc(dst->sys_info->len, sizeof(sib_t));
-    assert(dst->sys_info->sib != NULL && "Memory exhausted");
+  dst.sys_info->sz_sib = 1; //(rand() % 32) + 1; 
+  if(dst.sys_info->sz_sib > 0){
+    dst.sys_info->sib = calloc(dst.sys_info->sz_sib, sizeof(sib_t));
+    assert(dst.sys_info->sib != NULL && "Memory exhausted");
   }
 
-  for(size_t i = 0; i < dst->sys_info->len; ++i){
+  for(size_t i = 0; i < dst.sys_info->sz_sib; ++i){
+    // mandatory
+    dst.sys_info->sib[i].type = (rand() % 3 ) + 2 ;
 
     // mandatory
-    dst->sys_info->sib[i].type = (rand() % 3 ) + 2 ;
+    const char* dummy_str = "string";
+    dst.sys_info->sib[i].msg.buf = calloc(1, strlen(dummy_str));
+    memcpy(dst.sys_info->sib[i].msg.buf, dummy_str, strlen( dummy_str ) );
+    dst.sys_info->sib[i].msg.len = strlen(dummy_str);
 
     // mandatory
-    const char* dummy_str = "Dummy string";
-    dst->sys_info->sib[i].msg.buf = calloc(1, strlen(dummy_str));
-    memcpy(dst->sys_info->sib[i].msg.buf, dummy_str, strlen( dummy_str ) );
-    dst->sys_info->sib[i].msg.len = strlen(dummy_str);
-
-    // mandatory
-    dst->sys_info->sib[i].tag = rand() % 31;
+    dst.sys_info->sib[i].tag = rand() % 31;
 
     // optional
-    dst->sys_info->sib[i].area_scope = NULL;
+    dst.sys_info->sib[i].area_scope = NULL;
   }
 
-  dst->sys_info->id = NULL;
+  dst.sys_info->id = NULL;
 
   // Available PLMN List. Optional
-  dst->sz_avail_plmn_lst = 0;
-  dst->avail_plmn = NULL;
+  dst.sz_avail_plmn_lst = 0;
+  dst.avail_plmn = NULL;
 
   // Extended Available PLMN List. Optional
-  dst->sz_ext_avail_plmn_lst = 0; 
-  dst->ext_avail_plmn = NULL;
+  dst.sz_ext_avail_plmn_lst = 0; 
+  dst.ext_avail_plmn = NULL;
 
   // IAB Info IAB-donor-CU. Optional
-  dst->ab_info = NULL;
+  dst.ab_info = NULL;
 
   // Available SNPN ID List
-  dst->sz_av_snpn_id_lst = 0;
-  dst->av_snpn = NULL;
+  dst.sz_av_snpn_id_lst = 0;
+  dst.av_snpn = NULL;
 
+
+  return dst;
 }
 
 f1_setup_response_t gen_rnd_f1_setup_response(void)
@@ -383,7 +384,7 @@ f1_setup_response_t gen_rnd_f1_setup_response(void)
   }
 
   for(size_t i = 0; i < dst.sz_act_cell; ++i){
-    gen_rnd_act_cell(&dst.act_cell[i]);
+   dst.act_cell[i] = gen_rnd_act_cell();
   }
 
   // gNB-CU RRC version. Mandatory
@@ -1409,4 +1410,279 @@ ue_ctx_setup_response_t gen_rnd_ue_ctx_setup_response(void)
 
   return dst;
 }
+
+
+///////
+//////
+//////
+
+static
+cells_to_be_deact_t gen_rnd_cells_to_be_deact()
+{
+  cells_to_be_deact_t dst = {0}; 
+
+  // NR CGI 9.3.1.12
+  dst.nr_cgi = gen_rnd_nr_cgi();
+
+  return dst;
+}
+
+static
+endpoint_ip_addr_t gen_rnd_ep_ip_addr(void)
+{
+  endpoint_ip_addr_t dst = {0};
+
+  const char* str = "192.168.1.1";
+  dst.trans_layer_add = gen_bit_string(str); 
+
+  return dst;
+}
+
+static
+endpoint_ip_addr_port_t gen_rnd_ep_ip_addr_port(void)
+{
+  endpoint_ip_addr_port_t dst = {0};
+
+  dst.endpoint_ip_addr = gen_rnd_ep_ip_addr();
+  const char* port = "42";
+  dst.port = gen_bit_string(port);
+
+  return dst;
+}
+
+static
+cp_trans_layer_info_t gen_rnd_cp_trans_layer_info(void)
+{
+  cp_trans_layer_info_t dst = {0}; 
+
+  dst.type = rand()% END_CP_TRANS_LAYER_INFO;
+
+  // 9.3.2.4
+  if(dst.type == IP_ADDRESS_CP_TRANS_LAYER_INFO){
+    dst.ep_ip_addr = gen_rnd_ep_ip_addr();
+  } else if(dst.type ==  IP_ADDRESS_PORT_CP_TRANS_LAYER_INFO){
+    dst.ep_ip_addr_port = gen_rnd_ep_ip_addr_port();
+  } else {
+    assert(0!=0 && "Not implemented");
+  }
+
+  return dst;
+}
+
+static
+gnb_cu_tnl_asso_to_add_t gen_rnd_gnb_cu_tnl_asso_to_add(void)
+{
+  gnb_cu_tnl_asso_to_add_t dst; 
+
+  // TNL Association Transport Layer Information 9.3.2.4
+  // Mandatory
+  dst.cp_trans_layer_info = gen_rnd_cp_trans_layer_info();
+
+  // TNL Association Usage  
+  // Mandatory
+  dst.tnl_assoc_usage = rand() % END_TNL_ASSOC_USAGE;
+
+  return dst;
+}
+
+static
+gnb_cu_tnl_assoc_to_rem_t gen_rnd_gnb_cu_tnl_assoc_to_rem(void)
+{
+  gnb_cu_tnl_assoc_to_rem_t dst; 
+
+  // TNL Association Transport Layer Address 9.3.2.4
+  // Mandatory
+  dst.tnl_assoc_trans =  gen_rnd_cp_trans_layer_info();
+
+  // TNL Association Transport Layer Address gNB-DU
+  // Optional
+  dst.tnl_assoc_trans_du = NULL;
+
+  return dst;
+}
+
+static
+gnb_cu_tnl_assoc_to_upd_t gen_rnd_gnb_cu_tnl_assoc_to_upd(void)
+{
+  gnb_cu_tnl_assoc_to_upd_t dst; 
+
+  // TNL Association Transport Layer Address 9.3.2.4
+  // Mandatory
+  dst.tnl_assoc_trans_addr = gen_rnd_cp_trans_layer_info();
+
+  // TNL Association Usage
+  // Optional
+  dst.tnl_association_usage = NULL;
+
+  return dst;
+}
+
+static
+cells_to_be_barred_t gen_rnd_cells_to_be_barred(void)
+{
+  cells_to_be_barred_t dst = {0};
+
+  // NR CGI 9.3.1.12
+  // Mandatory
+  dst.nr_cgi = gen_rnd_nr_cgi();
+
+  // Cell Barred 
+  // Mandatory
+  dst.cell_barred = rand() % END_CELL_BARRED;
+
+  // IAB Barred 
+  // Optional
+  dst.iab_barred = NULL;
+
+  return dst;
+}
+
+static
+serv_eutra_cell_info_t gen_rnd_serv_eutra_cell_info(void)
+{
+  serv_eutra_cell_info_t dst = {0}; 
+
+  dst.type = rand() % END_SERV_EUTRA_CELL_INFO;
+  if( dst.type == FDD_INFO_SERV_EUTRA_CELL_INFO){
+    dst.fdd.dl_offset_to_point_a = rand() % 2200; // [0,2199]
+    dst.fdd.ul_offset_to_point_a = rand() % 2200; // [0,2199]
+  } else if( dst.type == TDD_INFO_SERV_EUTRA_CELL_INFO){
+    dst.tdd.offset_to_point_a = rand() % 2200; // [0,2199]
+  } else {
+    assert(0!=0 && "Not implemented");
+  }
+
+  dst.prot_eutra_resource_ind = NULL;
+
+  return dst;
+}
+
+static
+eutra_cell_t gen_rnd_eutra_cell(void)
+{
+  eutra_cell_t dst; 
+
+  // Mandatory
+  const char* cell_id = "1234";
+  dst.eutra_cell_id = gen_bit_string(cell_id); // [28]
+  dst.eutra_cell_id.bits_unused = 4; 
+
+  // Served E-UTRA CellInformation 9.3.1.64
+  // Mandatory
+  dst.serv_eutra_cell_info = gen_rnd_serv_eutra_cell_info();
+
+  return dst;
+}
+
+static
+prot_eutra_resources_t gen_rnd_prot_eutra_resources()
+{
+  prot_eutra_resources_t dst = {0};
+
+  dst.spec_sharing_group_id = (rand() % 256) + 1; // [1, 256]
+
+  dst.sz_eutra_cell = (rand() % 256) + 1;
+
+  dst.eutra_cell = calloc(dst.sz_eutra_cell, sizeof(eutra_cell_t));
+  assert(dst.eutra_cell != NULL && "Memory exhausted");
+
+  for(size_t i = 0; i < dst.sz_eutra_cell; ++i){
+    dst.eutra_cell[i] = gen_rnd_eutra_cell(); 
+  }
+
+  return dst;
+}
+
+gnb_cu_conf_update_t gen_rnd_gnb_cu_conf_update(void)
+{
+  gnb_cu_conf_update_t  dst = {0};
+
+  // 9.3.1.23 Transaction ID
+  // Mandatory 
+  dst.trans_id = rand();
+
+  dst.sz_cells_to_be_act = 1; // rand()%513; // [0,512]
+  if(dst.sz_cells_to_be_act > 0){
+    dst.cells_to_be_act = calloc(dst.sz_cells_to_be_act, sizeof(activate_cell_t)), 
+    assert(dst.cells_to_be_act != NULL && "Memory exhausted");
+  }
+  for(size_t i = 0; i < dst.sz_cells_to_be_act; ++i){
+    dst.cells_to_be_act[i] = gen_rnd_act_cell(); 
+  }
+
+  dst.sz_cells_to_be_deact = rand() % 513;  // [0,512]
+  if(dst.sz_cells_to_be_deact > 0){
+    dst.cells_to_be_deact = calloc(dst.sz_cells_to_be_deact, sizeof(cells_to_be_deact_t));
+    assert(dst.cells_to_be_deact != NULL && "Memory exhausted");
+  }
+  for(size_t i = 0; i < dst.sz_cells_to_be_deact; ++i){
+    dst.cells_to_be_deact[i] = gen_rnd_cells_to_be_deact();
+  }
+
+  dst.sz_gnb_cu_tnl_asso_to_add = rand()% 33; // [0, 32]
+  if(dst.sz_gnb_cu_tnl_asso_to_add > 0){
+    dst.gnb_cu_tnl_asso_to_add = calloc(dst.sz_gnb_cu_tnl_asso_to_add, sizeof(gnb_cu_tnl_asso_to_add_t));
+    assert(dst.gnb_cu_tnl_asso_to_add != NULL && "Memory exhausted");
+  }                                            
+  for(size_t i = 0; i < dst.sz_gnb_cu_tnl_asso_to_add; ++i){
+    dst.gnb_cu_tnl_asso_to_add[i] = gen_rnd_gnb_cu_tnl_asso_to_add(); 
+  }
+
+  dst.sz_gnb_cu_tnl_assoc_to_rem = rand()%33; // [0,32] 
+  if(dst.sz_gnb_cu_tnl_assoc_to_rem > 0){
+   dst.gnb_cu_tnl_assoc_to_rem = calloc(dst.sz_gnb_cu_tnl_assoc_to_rem, sizeof(gnb_cu_tnl_assoc_to_rem_t)); 
+   assert(dst.gnb_cu_tnl_assoc_to_rem != NULL && "Memory exhausted");
+  }
+  for(size_t i =0; i < dst.sz_gnb_cu_tnl_assoc_to_rem; ++i){
+    dst.gnb_cu_tnl_assoc_to_rem[i] = gen_rnd_gnb_cu_tnl_assoc_to_rem(); 
+  } 
+
+  dst.sz_gnb_cu_tnl_assoc_to_upd = rand()%33;
+  if(dst.sz_gnb_cu_tnl_assoc_to_upd > 0){
+    dst.gnb_cu_tnl_assoc_to_upd = calloc(dst.sz_gnb_cu_tnl_assoc_to_upd, sizeof(gnb_cu_tnl_assoc_to_upd_t));
+    assert(dst.gnb_cu_tnl_assoc_to_upd != NULL && "Memory exhausted");
+  }
+  for(size_t i =0; i < dst.sz_gnb_cu_tnl_assoc_to_upd; ++i){
+    dst.gnb_cu_tnl_assoc_to_upd[i] = gen_rnd_gnb_cu_tnl_assoc_to_upd();
+  }
+
+  dst.sz_cells_to_be_barred = rand()%513;
+  if(dst.sz_cells_to_be_barred > 0){
+    dst.cells_to_be_barred = calloc(dst.sz_cells_to_be_barred, sizeof( cells_to_be_barred_t ) );
+    assert(dst.cells_to_be_barred != NULL && "Memory exhausted" );
+  }
+  for(size_t i = 0; i < dst.sz_cells_to_be_barred; ++i){
+    dst.cells_to_be_barred[i] = gen_rnd_cells_to_be_barred();
+  }
+
+
+  dst.sz_prot_eutra_resources = rand() % 257;  // [0,256]  
+  if(dst.sz_prot_eutra_resources > 0){
+    dst.prot_eutra_resources = calloc(dst.sz_prot_eutra_resources , sizeof(prot_eutra_resources_t));
+    assert( dst.prot_eutra_resources != NULL && "memory exhausted" );
+  }                                                
+  for(size_t i = 0; i < dst.sz_prot_eutra_resources; ++i){
+    dst.prot_eutra_resources[i] = gen_rnd_prot_eutra_resources(); 
+  }                                                  
+
+  dst.sz_neighbour_cell_info = 0; // [0, 512]
+  dst.neighbour_cell_info = NULL;  
+
+  // Transport Layer Address Info 9.3.2.5
+  // Optional
+  dst.trans_layer_add_info = NULL;
+
+  // Uplink BH Non-UP Traffic Mapping 9.3.1.103
+  // Optional
+  dst.up_bh_non_up_traff_map = NULL; 
+
+  // BAP Address 9.3.1.111
+  // Optional
+  dst.bap_address = NULL;
+
+  return dst;
+}
+
+
+
 

@@ -5,7 +5,7 @@
 #include "gnb_rrc_ver.h"
 #include "trans_layer_add_info.h"
 #include "ubh_nup_traff.h"
-#include "bad_address.h"
+#include "bap_address.h"
 #include "ext_gnb_cu_name.h"
 
 #include <stdbool.h>
@@ -37,7 +37,7 @@ typedef struct{
   ubh_nup_traff_t* ubh_nup_traff; 
 
   // 7 BAP Address
-  bad_address_t* bad_add;
+  bap_address_t* bad_add;
 
   // 8 Extended gNB-CU Name
   ext_gnb_cu_name_t* egcn; 

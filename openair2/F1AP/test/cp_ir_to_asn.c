@@ -31,8 +31,11 @@
 #include "../../../cmake_targets/ran_build/build/CMakeFiles/F1AP_R16.3.1/F1AP_ULUPTNLInformation-ToBeSetup-Item.h"
 #include "../../../cmake_targets/ran_build/build/CMakeFiles/F1AP_R16.3.1/F1AP_GTPTunnel.h"
 #include "../../../cmake_targets/ran_build/build/CMakeFiles/F1AP_R16.3.1/F1AP_AdditionalPDCPDuplicationTNL-Item.h"
-
 #include "../../../cmake_targets/ran_build/build/CMakeFiles/F1AP_R16.3.1/F1AP_DLUPTNLInformation-ToBeSetup-Item.h"
+#include "../../../cmake_targets/ran_build/build/CMakeFiles/F1AP_R16.3.1/F1AP_Endpoint-IP-address-and-port.h"
+#include "../../../cmake_targets/ran_build/build/CMakeFiles/F1AP_R16.3.1/F1AP_EUTRACells-List-item.h"
+#include "../../../cmake_targets/ran_build/build/CMakeFiles/F1AP_R16.3.1/F1AP_EUTRA-FDD-Info.h"
+#include "../../../cmake_targets/ran_build/build/CMakeFiles/F1AP_R16.3.1/F1AP_EUTRA-TDD-Info.h"
 
 #include "../../../openair3/UTILS/conversions.h"
 
@@ -611,8 +614,8 @@ void cp_gnb_cu_system_info(gnb_cu_sys_info_t const* src, F1AP_ProtocolExtensionC
   dst->criticality = F1AP_Criticality_reject;
   dst->extensionValue.present = F1AP_Cells_to_be_Activated_List_ItemExtIEs__extensionValue_PR_GNB_CUSystemInformation;
 
-  assert(src->len > 0 && src->len < 33 && "Out of range" );
-  for(int i = 0; i < src->len; ++i){
+  assert(src->sz_sib > 0 && src->sz_sib < 33 && "Out of range" );
+  for(int i = 0; i < src->sz_sib; ++i){
     cp_sib(&src->sib[i], &dst->extensionValue.choice.GNB_CUSystemInformation.sibtypetobeupdatedlist.list); 
   }
 
@@ -648,7 +651,6 @@ void cp_activate_cell(activate_cell_t const* src, F1AP_Cells_to_be_Activated_Lis
 
   // gNB-CU System Information
   if(src->sys_info != NULL){
-
     dst->iE_Extensions = calloc(1, sizeof(F1AP_ProtocolExtensionContainer_154P46_t));
     assert(dst->iE_Extensions != NULL && "Memory exhausted");
 
@@ -2507,6 +2509,723 @@ F1AP_F1AP_PDU_t cp_ue_ctx_setup_response_asn(ue_ctx_setup_response_t const* src)
   // Optional
   // Requested Target Cell ID 9.3.1.12 
   assert(src->req_target_cell_id == NULL && "Not implemented");
+
+  return pdu;
+}
+
+
+/////
+/////
+/////
+
+static
+F1AP_GNBCUConfigurationUpdateIEs_t* cp_trans_id_cu_conf_up(uint8_t trans_id)
+{
+  F1AP_GNBCUConfigurationUpdateIEs_t* dst = calloc(1, sizeof(F1AP_GNBCUConfigurationUpdateIEs_t)); 
+  assert(dst != NULL && "Memory exhausted");
+  
+  dst->id = F1AP_ProtocolIE_ID_id_TransactionID;
+  dst->criticality = F1AP_Criticality_reject;
+  dst->value.present = F1AP_GNBCUConfigurationUpdateIEs__value_PR_TransactionID;
+  dst->value.choice.TransactionID = trans_id;
+
+  return dst;
+}
+
+/*
+static
+F1AP_GNB_CUSystemInformation_ExtIEs_t* cp_gnb_cu_system_info_cu_conf_up(gnb_cu_sys_info_t const* src)
+{
+  assert(src != NULL);
+
+  F1AP_GNB_CUSystemInformation_ExtIEs_t
+
+  F1AP_GNB_CUSystemInformation_ExtIEs_t* dst = calloc(1, sizeof(F1AP_GNB_CUSystemInformation_ExtIEs_t));
+  assert(dst != NULL && "Memory exhausted");
+
+  dst->id = ; 
+
+  dst->criticality = F1AP_Criticality_reject;
+  dst->value.present = F1AP_GNBCUConfigurationUpdateIEs__value_PR_TransactionID;
+  dst->extensionValue.choice.
+  dst->extensionValue.choice.SystemInformationAreaID.
+
+  dst->value.choice.TransactionID = trans_id;
+
+  assert(src->sz_sib > 0 && src->sz_sib < 33);
+
+  size_t sz_sib; // [1,32]
+  sib_t* sib;
+
+  // Optional. Bit String of 24
+  sys_info_area_id_t* id;
+
+}
+*/
+
+static
+F1AP_Cells_to_be_Activated_List_ItemIEs_t* cp_act_cell_cu_conf_up(activate_cell_t const* src)
+{
+  F1AP_Cells_to_be_Activated_List_ItemIEs_t* dst = calloc(1, sizeof(F1AP_Cells_to_be_Activated_List_ItemIEs_t));
+  assert(dst != NULL && "Memory exhausted");
+
+  dst->id = F1AP_ProtocolIE_ID_id_Cells_to_be_Activated_List_Item;
+  dst->criticality = F1AP_Criticality_reject;
+  dst->value.present = F1AP_Cells_to_be_Activated_List_ItemIEs__value_PR_Cells_to_be_Activated_List_Item;
+
+  F1AP_Cells_to_be_Activated_List_Item_t* dst_it = &dst->value.choice.Cells_to_be_Activated_List_Item;
+  // Mandatory
+  // NR CGI 
+  dst_it->nRCGI = cp_nr_cgi(&src->nr_cgi);
+
+  // Optional
+  // NR PCI
+  if(src->nr_pci != NULL){
+   dst_it->nRPCI = calloc(1, sizeof(F1AP_NRPCI_t));
+   assert(dst_it->nRPCI != NULL);
+   *dst_it->nRPCI = cp_nr_pci(*src->nr_pci);
+  }
+
+  if(src->sys_info != NULL || src->avail_plmn != NULL 
+      || src->ext_avail_plmn != NULL || src->ab_info != NULL 
+      || src->av_snpn != NULL){
+    dst_it->iE_Extensions = calloc(1, sizeof( F1AP_ProtocolExtensionContainer_154P46_t ));
+    assert(dst_it->iE_Extensions != NULL && "Memory exhausted");
+  }
+
+  if(src->sys_info != NULL){
+    cp_gnb_cu_system_info(src->sys_info, ((F1AP_ProtocolExtensionContainer_154P46_t*)dst_it->iE_Extensions));
+  }
+
+  // Available PLMN List. optional
+  assert(src->avail_plmn == NULL && "Not implemented");
+  assert(src->sz_avail_plmn_lst == 0 && "Not implemented");
+
+  // Extended Available PLMN List. optional
+  assert(src->ext_avail_plmn == NULL && "Not implemented");
+  assert(src->sz_ext_avail_plmn_lst == 0);
+
+  // IAB Info IAB-donor-CU. optional
+  assert(src->ab_info == NULL && "Not implemented");
+
+  // Available SNPN ID List. optional
+  assert(src->av_snpn == NULL && "Not implemented");
+  assert(src->sz_av_snpn_id_lst == 0 && "Not implemented");
+
+  return dst;
+}
+
+static
+F1AP_GNBCUConfigurationUpdateIEs_t* cp_cell_act_cu_conf_up(size_t sz, activate_cell_t act[sz])
+{
+  assert(sz < 513);
+  assert(act != NULL);
+
+  F1AP_GNBCUConfigurationUpdateIEs_t* dst = calloc(1, sizeof(F1AP_GNBCUConfigurationUpdateIEs_t)); 
+  assert(dst != NULL && "Memory exhausted");
+ 
+  dst->id = F1AP_ProtocolIE_ID_id_Cells_to_be_Activated_List; 
+  dst->criticality = F1AP_Criticality_reject;
+  dst->value.present = F1AP_GNBCUConfigurationUpdateIEs__value_PR_Cells_to_be_Activated_List;
+
+  for(size_t i = 0; i < sz; ++i){
+    F1AP_Cells_to_be_Activated_List_ItemIEs_t* id = cp_act_cell_cu_conf_up(&act[i]);
+    int const rc = ASN_SEQUENCE_ADD(&dst->value.choice.Cells_to_be_Activated_List.list, id);
+    assert(rc == 0);
+  }
+
+  return dst;
+}
+
+static
+F1AP_Cells_to_be_Deactivated_List_ItemIEs_t* cp_deact_cell_cu_conf_up(cells_to_be_deact_t const* deact)
+{
+  F1AP_Cells_to_be_Deactivated_List_ItemIEs_t* dst = calloc(1, sizeof(F1AP_Cells_to_be_Deactivated_List_ItemIEs_t));
+  assert(dst != NULL && "Memory exhausted");
+
+  dst->id = F1AP_ProtocolIE_ID_id_Cells_to_be_Deactivated_List_Item; 
+  dst->criticality = F1AP_Criticality_reject;
+  dst->value.present = F1AP_Cells_to_be_Deactivated_List_ItemIEs__value_PR_Cells_to_be_Deactivated_List_Item;
+
+  dst->value.choice.Cells_to_be_Deactivated_List_Item.nRCGI = cp_nr_cgi(&deact->nr_cgi);
+
+  return dst;
+}
+
+static
+F1AP_GNBCUConfigurationUpdateIEs_t* cp_cell_deact_cu_conf_up(size_t sz, cells_to_be_deact_t deact[sz])
+{
+  assert(sz < 513);
+  assert(deact != NULL);
+
+  F1AP_GNBCUConfigurationUpdateIEs_t* dst = calloc(1, sizeof(F1AP_GNBCUConfigurationUpdateIEs_t)); 
+  assert(dst != NULL && "Memory exhausted");
+ 
+  dst->id = F1AP_ProtocolIE_ID_id_Cells_to_be_Deactivated_List; 
+  dst->criticality = F1AP_Criticality_reject;
+  dst->value.present = F1AP_GNBCUConfigurationUpdateIEs__value_PR_Cells_to_be_Deactivated_List;
+
+  for(size_t i = 0; i < sz; ++i){
+    F1AP_Cells_to_be_Deactivated_List_ItemIEs_t* id = cp_deact_cell_cu_conf_up(&deact[i]);
+    int const rc = ASN_SEQUENCE_ADD(&dst->value.choice.Cells_to_be_Deactivated_List.list, id);
+    assert(rc == 0);
+  }
+
+  return dst;
+}
+
+static
+F1AP_TNLAssociationUsage_t cp_tnl_assoc_usage(tnl_assoc_usage_e src)
+{
+  F1AP_TNLAssociationUsage_t dst = {0}; 
+
+  if(src == UE_TNL_ASSOC_USAGE)
+    dst = F1AP_TNLAssociationUsage_ue;	
+  else if(src == NON_UE_TNL_ASSOC_USAGE )
+    dst = F1AP_TNLAssociationUsage_non_ue;	
+  else if(src == BOTH_TNL_ASSOC_USAGE)
+    dst = F1AP_TNLAssociationUsage_both;	
+  else
+    assert(0!=0 && "Unknown enum type");
+ 
+  return dst;
+}
+
+static
+struct F1AP_Endpoint_IP_address_and_port* cp_ip_addr_port(endpoint_ip_addr_port_t const* src)
+{
+  assert(src != NULL);
+
+ struct F1AP_Endpoint_IP_address_and_port* dst = calloc(1, sizeof(struct F1AP_Endpoint_IP_address_and_port));
+  assert(dst != NULL && "memory exhausted");
+
+  dst->endpointIPAddress = copy_bit_string(&src->endpoint_ip_addr.trans_layer_add);
+
+  dst->iE_Extensions = calloc(1, sizeof(F1AP_ProtocolExtensionContainer_154P93_t));
+  assert(dst->iE_Extensions != NULL && "Memory exhausted");
+
+  F1AP_Endpoint_IP_address_and_port_ExtIEs_t* ip_addr_port = calloc(1, sizeof(F1AP_Endpoint_IP_address_and_port_ExtIEs_t));
+  assert(ip_addr_port != NULL && "Memory exhausted");
+
+  ip_addr_port->id = F1AP_ProtocolIE_ID_id_portNumber; 
+  ip_addr_port->criticality = F1AP_Criticality_reject; 
+  ip_addr_port->extensionValue.present = F1AP_Endpoint_IP_address_and_port_ExtIEs__extensionValue_PR_PortNumber; 
+
+  ip_addr_port->extensionValue.choice.PortNumber = copy_bit_string(&src->port);
+
+  int const rc = ASN_SEQUENCE_ADD(&((F1AP_ProtocolExtensionContainer_154P93_t*)dst->iE_Extensions)->list, ip_addr_port);
+  assert(rc == 0);
+
+  return dst;
+}
+
+static
+F1AP_CP_TransportLayerAddress_t cp_tnl_assoc_tran_layer_addr(cp_trans_layer_info_t const* src)
+{
+  assert(src != NULL);
+
+  F1AP_CP_TransportLayerAddress_t dst = {0}; 
+
+  if(src->type == IP_ADDRESS_CP_TRANS_LAYER_INFO ){
+    dst.present = F1AP_CP_TransportLayerAddress_PR_endpoint_IP_address;
+    dst.choice.endpoint_IP_address = copy_bit_string(&src->ep_ip_addr.trans_layer_add);
+  } else if (src->type == IP_ADDRESS_PORT_CP_TRANS_LAYER_INFO){
+    dst.present = F1AP_CP_TransportLayerAddress_PR_endpoint_IP_address_and_port;
+    dst.choice.endpoint_IP_address_and_port = cp_ip_addr_port(&src->ep_ip_addr_port);
+  } else {
+    assert(0!=0 && "Unknown type");
+  }
+
+  return dst;
+}
+
+static
+F1AP_GNB_CU_TNL_Association_To_Add_ItemIEs_t* cp_tnl_assoc_to_add_it_cu_conf_up(gnb_cu_tnl_asso_to_add_t const* src)
+{
+  assert(src != NULL);
+
+  F1AP_GNB_CU_TNL_Association_To_Add_ItemIEs_t* dst = calloc(1, sizeof(F1AP_GNB_CU_TNL_Association_To_Add_ItemIEs_t));
+  assert(dst != NULL && "Memory exhausted");
+
+  dst->id = F1AP_ProtocolIE_ID_id_GNB_CU_TNL_Association_To_Add_Item;
+  dst->criticality = F1AP_Criticality_ignore;
+  dst->value.present = F1AP_GNB_CU_TNL_Association_To_Add_ItemIEs__value_PR_GNB_CU_TNL_Association_To_Add_Item;
+
+
+  // TNL Association Transport Layer Information 9.3.2.4
+  // Mandatory
+  dst->value.choice.GNB_CU_TNL_Association_To_Add_Item.tNLAssociationTransportLayerAddress = cp_tnl_assoc_tran_layer_addr( &src->cp_trans_layer_info ); 
+
+  // TNL Association Usage  
+  // Mandatory
+  dst->value.choice.GNB_CU_TNL_Association_To_Add_Item.tNLAssociationUsage = cp_tnl_assoc_usage(src->tnl_assoc_usage)  ;
+
+    return dst;
+}
+
+
+static
+F1AP_GNBCUConfigurationUpdateIEs_t* cp_tnl_assoc_to_add_cu_conf_up(size_t sz, gnb_cu_tnl_asso_to_add_t tnl[sz])
+{
+  assert(sz < 33);
+  assert(tnl != NULL);
+
+  F1AP_GNBCUConfigurationUpdateIEs_t* dst = calloc(1, sizeof(F1AP_GNBCUConfigurationUpdateIEs_t)); 
+  assert(dst != NULL && "Memory exhausted");
+ 
+  dst->id = F1AP_ProtocolIE_ID_id_GNB_CU_TNL_Association_To_Add_List; 
+  dst->criticality = F1AP_Criticality_ignore;
+  dst->value.present =  F1AP_GNBCUConfigurationUpdateIEs__value_PR_GNB_CU_TNL_Association_To_Add_List;
+
+  for(size_t i = 0; i < sz; ++i){
+    F1AP_GNB_CU_TNL_Association_To_Add_ItemIEs_t* id = cp_tnl_assoc_to_add_it_cu_conf_up(&tnl[i]);
+    int const rc = ASN_SEQUENCE_ADD(&dst->value.choice.GNB_CU_TNL_Association_To_Add_List.list, id);
+    assert(rc == 0);
+  }
+
+  return dst;
+}
+
+static
+F1AP_GNB_CU_TNL_Association_To_Remove_ItemIEs_t* cp_tnl_assoc_to_rm_it_cu_conf_up(gnb_cu_tnl_assoc_to_rem_t const* src)
+{
+  assert(src != NULL);
+
+  F1AP_GNB_CU_TNL_Association_To_Remove_ItemIEs_t* dst = calloc(1, sizeof(F1AP_GNB_CU_TNL_Association_To_Remove_ItemIEs_t));
+  assert(dst != NULL && "Memory exhausted");
+
+  dst->id = F1AP_ProtocolIE_ID_id_GNB_CU_TNL_Association_To_Remove_Item;
+  dst->criticality = F1AP_Criticality_ignore;
+  dst->value.present = F1AP_GNB_CU_TNL_Association_To_Remove_ItemIEs__value_PR_GNB_CU_TNL_Association_To_Remove_Item;
+
+  // TNL Association Transport Layer Address 9.3.2.4
+  // Mandatory
+  dst->value.choice.GNB_CU_TNL_Association_To_Remove_Item.tNLAssociationTransportLayerAddress =  cp_tnl_assoc_tran_layer_addr(&src->tnl_assoc_trans);
+
+  // TNL Association Transport Layer Address gNB-DU
+  // Optional
+  if(src->tnl_assoc_trans_du != NULL){
+    dst->value.choice.GNB_CU_TNL_Association_To_Remove_Item.iE_Extensions = calloc(1, sizeof(struct F1AP_ProtocolExtensionContainer_154P116));
+    assert(dst->value.choice.GNB_CU_TNL_Association_To_Remove_Item.iE_Extensions != NULL && "Memory exhausted");
+
+    F1AP_GNB_CU_TNL_Association_To_Remove_Item_ExtIEs_t* ie = calloc(1, sizeof(F1AP_GNB_CU_TNL_Association_To_Remove_Item_ExtIEs_t));
+    assert(ie != NULL && "Memory exhausted");
+
+    // It should be something similar to F1AP_ProtocolIE_ID_id_GNB_CU_TNL_Association_To_Remove_Item_ExtIEs, but could
+    // not find the IE id in the standard 
+    ie->id = F1AP_ProtocolIE_ID_id_GNB_CU_TNL_Association_To_Remove_Item;
+    ie->criticality = F1AP_Criticality_reject;
+    ie->extensionValue.present = F1AP_GNB_CU_TNL_Association_To_Remove_Item_ExtIEs__extensionValue_PR_CP_TransportLayerAddress;
+    ie->extensionValue.choice.CP_TransportLayerAddress = cp_tnl_assoc_tran_layer_addr(src->tnl_assoc_trans_du);
+
+    int rc = ASN_SEQUENCE_ADD(&((struct F1AP_ProtocolExtensionContainer_154P116*)dst->value.choice.GNB_CU_TNL_Association_To_Remove_Item.iE_Extensions)->list, ie);
+    assert(rc == 0);
+  }
+
+  return dst;
+}
+
+static
+F1AP_GNBCUConfigurationUpdateIEs_t* cp_tnl_assoc_to_rm_cu_conf_up(size_t sz, gnb_cu_tnl_assoc_to_rem_t tnl[sz])
+{
+  assert(sz < 33);
+  assert(tnl != NULL);
+
+  F1AP_GNBCUConfigurationUpdateIEs_t* dst = calloc(1, sizeof(F1AP_GNBCUConfigurationUpdateIEs_t)); 
+  assert(dst != NULL && "Memory exhausted");
+ 
+  dst->id = F1AP_ProtocolIE_ID_id_GNB_CU_TNL_Association_To_Remove_List; 
+  dst->criticality = F1AP_Criticality_ignore;
+  dst->value.present =  F1AP_GNBCUConfigurationUpdateIEs__value_PR_GNB_CU_TNL_Association_To_Remove_List;
+
+  for(size_t i = 0; i < sz; ++i){
+    F1AP_GNB_CU_TNL_Association_To_Remove_ItemIEs_t* id = cp_tnl_assoc_to_rm_it_cu_conf_up(&tnl[i]);
+    int const rc = ASN_SEQUENCE_ADD(&dst->value.choice.GNB_CU_TNL_Association_To_Remove_List.list, id);
+    assert(rc == 0);
+  }
+
+  return dst;
+}
+
+static
+F1AP_GNB_CU_TNL_Association_To_Update_ItemIEs_t* cp_tnl_assoc_to_upd_it_cu_conf_up(gnb_cu_tnl_assoc_to_upd_t const* src)
+{
+  assert(src != NULL);
+
+  F1AP_GNB_CU_TNL_Association_To_Update_ItemIEs_t* dst = calloc(1, sizeof(F1AP_GNB_CU_TNL_Association_To_Update_ItemIEs_t));
+  assert(dst != NULL && "Memory exhausted");
+
+  dst->id = F1AP_ProtocolIE_ID_id_GNB_CU_TNL_Association_To_Update_Item;
+  dst->criticality = F1AP_Criticality_ignore;
+  dst->value.present = F1AP_GNB_CU_TNL_Association_To_Update_ItemIEs__value_PR_GNB_CU_TNL_Association_To_Update_Item;
+
+  // TNL Association Transport Layer Address 9.3.2.4
+  // Mandatory
+  dst->value.choice.GNB_CU_TNL_Association_To_Update_Item.tNLAssociationTransportLayerAddress = cp_tnl_assoc_tran_layer_addr(&src->tnl_assoc_trans_addr);
+
+  // TNL Association Usage
+  // Optional
+  if(src->tnl_association_usage != NULL){
+    dst->value.choice.GNB_CU_TNL_Association_To_Update_Item.tNLAssociationUsage = calloc(1, sizeof(F1AP_TNLAssociationUsage_t)); 
+    assert(dst->value.choice.GNB_CU_TNL_Association_To_Update_Item.tNLAssociationUsage != NULL && "Memory exhausted");
+    *dst->value.choice.GNB_CU_TNL_Association_To_Update_Item.tNLAssociationUsage = cp_tnl_assoc_usage(*src->tnl_association_usage);
+  }
+
+  return dst;
+}
+
+static
+F1AP_GNBCUConfigurationUpdateIEs_t* cp_tnl_assoc_to_upd_cu_conf_up(size_t sz, gnb_cu_tnl_assoc_to_upd_t tnl[sz])
+{
+  assert(sz < 33);
+  assert(tnl != NULL);
+
+  F1AP_GNBCUConfigurationUpdateIEs_t* dst = calloc(1, sizeof(F1AP_GNBCUConfigurationUpdateIEs_t)); 
+  assert(dst != NULL && "Memory exhausted");
+ 
+  dst->id = F1AP_ProtocolIE_ID_id_GNB_CU_TNL_Association_To_Update_List; 
+  dst->criticality = F1AP_Criticality_ignore;
+  dst->value.present = F1AP_GNBCUConfigurationUpdateIEs__value_PR_GNB_CU_TNL_Association_To_Update_List;
+
+  for(size_t i = 0; i < sz; ++i){
+    F1AP_GNB_CU_TNL_Association_To_Update_ItemIEs_t* id = cp_tnl_assoc_to_upd_it_cu_conf_up(&tnl[i]);
+    int const rc = ASN_SEQUENCE_ADD(&dst->value.choice.GNB_CU_TNL_Association_To_Update_List.list, id);
+    assert(rc == 0);
+  }
+
+  return dst;
+}
+
+static
+F1AP_CellBarred_t cp_cell_barred(cell_barred_e src)
+{
+  assert(src == BARRED_CELL_BARRED || src == NOT_BARRED_CELL_BARRED);
+
+  F1AP_CellBarred_t dst = {0}; 
+
+  if(src == BARRED_CELL_BARRED){
+    dst = F1AP_CellBarred_barred;
+  } else if(src == NOT_BARRED_CELL_BARRED){
+    dst = F1AP_CellBarred_not_barred;
+  } else {
+    assert(0!=0 && "Unknown type");
+  }
+
+  return dst;
+}
+
+static
+F1AP_IAB_Barred_t	cp_cell_iab_barred(cell_barred_e src)
+{
+  assert(src == BARRED_CELL_BARRED || src == NOT_BARRED_CELL_BARRED);
+
+ F1AP_IAB_Barred_t dst = {0}; 
+
+  if(src == BARRED_CELL_BARRED){
+    dst = F1AP_IAB_Barred_barred;
+  } else if(src == NOT_BARRED_CELL_BARRED){
+    dst = F1AP_IAB_Barred_not_barred;
+  } else {
+    assert(0!=0 && "Unknown type");
+  }
+
+  return dst;
+}
+
+static
+F1AP_Cells_to_be_Barred_ItemIEs_t* cp_cell_to_be_barred_it_cu_conf_up(cells_to_be_barred_t const* src)
+{
+  assert(src != NULL);
+
+  F1AP_Cells_to_be_Barred_ItemIEs_t* dst = calloc(1, sizeof(F1AP_Cells_to_be_Barred_ItemIEs_t));
+  assert(dst != NULL && "Memory exhausted");
+
+  dst->id = F1AP_ProtocolIE_ID_id_Cells_to_be_Barred_Item;
+  dst->criticality = F1AP_Criticality_ignore;
+  dst->value.present = F1AP_Cells_to_be_Barred_ItemIEs__value_PR_Cells_to_be_Barred_Item;
+
+  // NR CGI 9.3.1.12
+  // Mandatory
+  dst->value.choice.Cells_to_be_Barred_Item.nRCGI = cp_nr_cgi(&src->nr_cgi);
+
+  // Cell Barred 
+  // Mandatory
+ dst->value.choice.Cells_to_be_Barred_Item.cellBarred = cp_cell_barred(src->cell_barred);
+
+  // IAB Barred 
+  // Optional
+  if(src-> iab_barred != NULL){
+    dst->value.choice.Cells_to_be_Barred_Item.iE_Extensions = calloc(1, sizeof(F1AP_ProtocolExtensionContainer_154P48_t)); 
+    assert( dst->value.choice.Cells_to_be_Barred_Item.iE_Extensions != NULL && "Memory exhausted");
+
+    F1AP_Cells_to_be_Barred_Item_ExtIEs_t * ie = calloc(1, sizeof(F1AP_Cells_to_be_Barred_Item_ExtIEs_t)); 
+    assert(ie != NULL && "Memory exhausted");
+    
+    ie->id = F1AP_ProtocolIE_ID_id_IAB_Barred;
+    ie->criticality = F1AP_Criticality_ignore;
+    ie->extensionValue.present = F1AP_Cells_to_be_Barred_Item_ExtIEs__extensionValue_PR_IAB_Barred;
+
+    ie->extensionValue.choice.IAB_Barred = cp_cell_iab_barred(*src->iab_barred);
+;
+    int const rc = ASN_SEQUENCE_ADD(& ((F1AP_ProtocolExtensionContainer_154P48_t*)dst->value.choice.Cells_to_be_Barred_Item.iE_Extensions)->list, ie);
+    assert(rc == 0);
+  }
+
+  return dst;
+}
+
+static
+F1AP_GNBCUConfigurationUpdateIEs_t* cp_cell_to_be_barred_cu_conf_up(size_t sz, cells_to_be_barred_t src[sz])
+{
+  assert(sz < 513);
+  assert(src != NULL);
+
+  F1AP_GNBCUConfigurationUpdateIEs_t* dst = calloc(1, sizeof(F1AP_GNBCUConfigurationUpdateIEs_t)); 
+  assert(dst != NULL && "Memory exhausted");
+ 
+  dst->id = F1AP_ProtocolIE_ID_id_Cells_to_be_Barred_List; 
+  dst->criticality = F1AP_Criticality_ignore;
+  dst->value.present = F1AP_GNBCUConfigurationUpdateIEs__value_PR_Cells_to_be_Barred_List;
+
+  for(size_t i = 0; i < sz; ++i){
+  F1AP_Cells_to_be_Barred_ItemIEs_t* id = cp_cell_to_be_barred_it_cu_conf_up(&src[i]);
+    int const rc = ASN_SEQUENCE_ADD(&dst->value.choice.Cells_to_be_Barred_List.list, id);
+    assert(rc == 0);
+  }
+
+  return dst;
+}
+
+static
+F1AP_EUTRA_FDD_Info_t* cp_eutra_cell_info_fdd(fdd_info_serv_eutra_cell_info_t src)
+{
+  F1AP_EUTRA_FDD_Info_t* dst = calloc(1, sizeof(F1AP_EUTRA_FDD_Info_t));
+
+  // [0,2199]
+  assert(src.ul_offset_to_point_a < 2200);
+  dst->uL_offsetToPointA = src.ul_offset_to_point_a;
+
+  // [0,2199]
+  assert(src.dl_offset_to_point_a < 2200);
+  dst->dL_offsetToPointA = src.dl_offset_to_point_a;
+
+  return dst;
+}
+
+static
+F1AP_EUTRA_TDD_Info_t* cp_eutra_cell_info_tdd(tdd_info_serv_eutra_cell_info_t src)
+{
+
+  F1AP_EUTRA_TDD_Info_t* dst = calloc(1, sizeof(F1AP_EUTRA_TDD_Info_t));
+  assert(dst != NULL && "Memory exhausted");
+
+  // [0,2199]
+  assert(src.offset_to_point_a < 2200);
+  dst->offsetToPointA = src.offset_to_point_a;
+
+  return dst;
+}
+
+static
+F1AP_Served_EUTRA_Cells_Information_t cp_serv_eutra_cell_info(serv_eutra_cell_info_t const* src)
+{
+  assert(src != NULL);
+
+  F1AP_Served_EUTRA_Cells_Information_t dst = {0}; 
+
+  assert(src->type == FDD_INFO_SERV_EUTRA_CELL_INFO || src->type == TDD_INFO_SERV_EUTRA_CELL_INFO);
+
+  if(src->type == FDD_INFO_SERV_EUTRA_CELL_INFO){
+    dst.eUTRA_Mode_Info.present = F1AP_EUTRA_Mode_Info_PR_eUTRAFDD;
+    dst.eUTRA_Mode_Info.choice.eUTRAFDD = cp_eutra_cell_info_fdd(src->fdd);
+  } else if(src->type == TDD_INFO_SERV_EUTRA_CELL_INFO){
+    dst.eUTRA_Mode_Info.present = F1AP_EUTRA_Mode_Info_PR_eUTRATDD;
+    dst.eUTRA_Mode_Info.choice.eUTRATDD = cp_eutra_cell_info_tdd(src->tdd);
+  } else {
+    assert(0 !=0 && "Unknown type");
+  }
+
+  //Optional
+  assert(src->prot_eutra_resource_ind == NULL && "Not implemented" );
+
+  return dst;
+}
+
+static
+F1AP_EUTRACells_List_item_t* cp_eutra_cell_it_cu_conf_up(eutra_cell_t const* src)
+{
+  assert(src != NULL);
+
+  F1AP_EUTRACells_List_item_t* dst = calloc(1, sizeof(F1AP_EUTRACells_List_item_t));
+  assert(dst != NULL && "Memory exhausted");
+
+  // EUTRA Cell ID
+  // Mandatory // [28]
+  assert(src->eutra_cell_id.size == 4 && src->eutra_cell_id.bits_unused == 4);
+  dst->eUTRA_Cell_ID = copy_bit_string(&src->eutra_cell_id);
+
+  // Served E-UTRA CellInformation 9.3.1.64
+  // Mandatory
+  dst->served_EUTRA_Cells_Information = cp_serv_eutra_cell_info(&src->serv_eutra_cell_info); 
+
+  return dst;
+}
+
+static
+F1AP_Protected_EUTRA_Resources_ItemIEs_t* cp_prot_eutra_res_it_cu_conf_up(prot_eutra_resources_t const* src)
+{
+  assert(src != NULL);
+
+  F1AP_Protected_EUTRA_Resources_ItemIEs_t* dst = calloc(1, sizeof(F1AP_Protected_EUTRA_Resources_ItemIEs_t));
+  assert(dst != NULL && "Memory exhausted");
+
+  dst->id = F1AP_ProtocolIE_ID_id_Protected_EUTRA_Resources_Item;
+  dst->criticality = F1AP_Criticality_reject;
+  dst->value.present = F1AP_Protected_EUTRA_Resources_ItemIEs__value_PR_Protected_EUTRA_Resources_Item;
+
+  // Spectrum sharing group [1, 256]
+  assert(src->spec_sharing_group_id > 0 && src->spec_sharing_group_id < 257);
+  dst->value.choice.Protected_EUTRA_Resources_Item.spectrumSharingGroupID = src->spec_sharing_group_id;
+
+  // EUTRA Cell                                
+  assert(src->sz_eutra_cell > 0 && src->sz_eutra_cell < 257);
+  for(size_t i =0; i < src->sz_eutra_cell ; ++i){
+    F1AP_EUTRACells_List_item_t* id = cp_eutra_cell_it_cu_conf_up(&src->eutra_cell[i]);
+    int const rc = ASN_SEQUENCE_ADD(&dst->value.choice.Protected_EUTRA_Resources_Item.eUTRACells_List.list, id);
+    assert(rc == 0);
+  }
+
+  return dst;
+}
+
+static
+F1AP_GNBCUConfigurationUpdateIEs_t* cp_prot_eutra_res_cu_conf_up(size_t sz,prot_eutra_resources_t prot[sz])
+{
+  assert(sz < 257);
+  assert(prot != NULL);
+
+  F1AP_GNBCUConfigurationUpdateIEs_t* dst = calloc(1, sizeof(F1AP_GNBCUConfigurationUpdateIEs_t)); 
+  assert(dst != NULL && "Memory exhausted");
+
+  dst->id = F1AP_ProtocolIE_ID_id_Protected_EUTRA_Resources_List; 
+  dst->criticality = F1AP_Criticality_reject;
+  dst->value.present = F1AP_GNBCUConfigurationUpdateIEs__value_PR_Protected_EUTRA_Resources_List;
+
+  
+  for(size_t i = 0; i < sz; ++i){
+    F1AP_Protected_EUTRA_Resources_ItemIEs_t* id = cp_prot_eutra_res_it_cu_conf_up(&prot[i]);
+    int const rc = ASN_SEQUENCE_ADD(&dst->value.choice.Protected_EUTRA_Resources_List.list, id);
+    assert(rc == 0);
+  }
+
+  return dst;
+}
+
+F1AP_F1AP_PDU_t cp_gnb_cu_conf_update_asn(gnb_cu_conf_update_t const* src)
+{
+  assert(src != NULL);
+
+  F1AP_F1AP_PDU_t pdu = {0}; 
+
+  /* Create */
+  /* 0. pdu Type */
+  pdu.present =  F1AP_F1AP_PDU_PR_initiatingMessage;
+  pdu.choice.initiatingMessage= calloc(1, sizeof(F1AP_InitiatingMessage_t));
+  assert(pdu.choice.initiatingMessage != NULL && "Memory exahusted");
+
+  F1AP_InitiatingMessage_t* dst_out = pdu.choice.initiatingMessage;
+
+  dst_out->procedureCode = F1AP_ProcedureCode_id_gNBCUConfigurationUpdate;
+  dst_out->criticality = F1AP_Criticality_reject;
+  dst_out->value.present = F1AP_InitiatingMessage__value_PR_GNBCUConfigurationUpdate;
+
+  F1AP_GNBCUConfigurationUpdate_t *dst = & dst_out->value.choice.GNBCUConfigurationUpdate;
+
+  // Mandatory
+  // Transaction ID 9.3.1.23
+  F1AP_GNBCUConfigurationUpdateIEs_t* id = cp_trans_id_cu_conf_up(src->trans_id);
+  int rc = ASN_SEQUENCE_ADD(&dst->protocolIEs.list, id);
+  assert(rc == 0);
+
+  // Cells to be Activated List [0,512]
+  assert(src->sz_cells_to_be_act < 513);
+  if(src->sz_cells_to_be_act > 0){
+    id = cp_cell_act_cu_conf_up(src->sz_cells_to_be_act, src->cells_to_be_act);
+    rc = ASN_SEQUENCE_ADD(&dst->protocolIEs.list, id);
+    assert(rc == 0);
+  }
+
+  
+  // Cells to be Deactivated List [0,512]
+  assert(src->sz_cells_to_be_deact < 513);
+  if(src->sz_cells_to_be_deact > 0){
+    id = cp_cell_deact_cu_conf_up(src->sz_cells_to_be_deact, src->cells_to_be_deact);
+    rc = ASN_SEQUENCE_ADD(&dst->protocolIEs.list, id);
+    assert(rc == 0);
+  }
+
+  // TNL Association To Add List
+  assert(src->sz_gnb_cu_tnl_asso_to_add < 33);
+  if(src->sz_gnb_cu_tnl_asso_to_add > 0){
+    id = cp_tnl_assoc_to_add_cu_conf_up(src->sz_gnb_cu_tnl_asso_to_add, src->gnb_cu_tnl_asso_to_add);
+    rc = ASN_SEQUENCE_ADD(&dst->protocolIEs.list, id);
+    assert(rc == 0);
+  }
+
+  // TNL Association To Remove List // [0,32] 
+  assert(src->sz_gnb_cu_tnl_assoc_to_rem < 33);
+  if(src->sz_gnb_cu_tnl_assoc_to_rem > 0){
+    id = cp_tnl_assoc_to_rm_cu_conf_up(src->sz_gnb_cu_tnl_assoc_to_rem, src->gnb_cu_tnl_assoc_to_rem);
+    rc = ASN_SEQUENCE_ADD(&dst->protocolIEs.list, id);
+    assert(rc == 0);
+  }
+
+  // TNL Association To Update List // [0,32] 
+  assert(src->sz_gnb_cu_tnl_assoc_to_upd < 33);
+  if(src->sz_gnb_cu_tnl_assoc_to_upd > 0){
+    id = cp_tnl_assoc_to_upd_cu_conf_up(src->sz_gnb_cu_tnl_assoc_to_upd, src->gnb_cu_tnl_assoc_to_upd);
+    rc = ASN_SEQUENCE_ADD(&dst->protocolIEs.list, id);
+    assert(rc == 0);
+  }
+
+  // Cells to be Barred // [0, 512] 
+  assert(src->sz_cells_to_be_barred < 513);
+  if(src->sz_cells_to_be_barred > 0){
+    id = cp_cell_to_be_barred_cu_conf_up(src->sz_cells_to_be_barred, src->cells_to_be_barred);
+    rc = ASN_SEQUENCE_ADD(&dst->protocolIEs.list, id);
+    assert(rc == 0);
+  }
+
+  // Protected EUTRA Resources 
+  assert(src->sz_prot_eutra_resources < 257);
+  if(src->sz_prot_eutra_resources > 0){
+    id = cp_prot_eutra_res_cu_conf_up(src->sz_prot_eutra_resources, src->prot_eutra_resources);
+    rc = ASN_SEQUENCE_ADD(&dst->protocolIEs.list, id);
+    assert(rc == 0);
+  }
+
+  /*
+  size_t sz_neighbour_cell_info; // [0, 512]
+  neighbour_cell_info_t* neighbour_cell_info;  
+
+  // Transport Layer Address Info 9.3.2.5
+  // Optional
+  trans_layer_add_info_t* trans_layer_add_info;
+
+  // Uplink BH Non-UP Traffic Mapping 9.3.1.103
+  // Optional
+  up_bh_non_up_traff_map_t* up_bh_non_up_traff_map; 
+
+  // BAP Address 9.3.1.111
+  // Optional
+  bap_address_t*  bap_address;
+*/
+
+
+
+
+
+
 
   return pdu;
 }

@@ -10,7 +10,8 @@
 
 #include <stdlib.h>
 
-// 9.2.1.5 ETSI TS 138 473 V16.5.0 (2021-04) F1 SETUP RESPONSE
+// 9.2.1.5 ETSI TS 138 473 V16.5.0 (2021-04) 
+// F1 SETUP RESPONSE && GNB CU CONF UPDATE
 
 typedef struct{
 
@@ -28,19 +29,19 @@ typedef struct{
 
   // optional
   // Available PLMN List 9.3.1.65 
-  size_t sz_avail_plmn_lst;
+  size_t sz_avail_plmn_lst; // [0,6]
   avail_plmn_t* avail_plmn;
 
   // optional
   // Extended Available PLMN List 9.3.1.76 
-  size_t sz_ext_avail_plmn_lst;
+  size_t sz_ext_avail_plmn_lst; // [0,6] 
   ext_avail_plmn_t* ext_avail_plmn;
 
   // optional AB Info IAB-donor-CU 9.3.1.105
-  ab_info_iab_donor_cu_t* ab_info;
+  ab_info_iab_donor_cu_t* ab_info; 
 
   // Available SNPN ID List 9.3.1.163
-  size_t sz_av_snpn_id_lst;
+  size_t sz_av_snpn_id_lst; // [0,12]
   av_snpn_id_t* av_snpn;
 
 } activate_cell_t;

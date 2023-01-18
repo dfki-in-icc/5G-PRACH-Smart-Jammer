@@ -538,7 +538,6 @@ int CU_send_gNB_CU_CONFIGURATION_UPDATE(instance_t instance, f1ap_gnb_cu_configu
         //  printf("%02x ", f1ap_setup_resp->SI_container[i][0][n]);
         //printf("\n");
 
-        // for (int sIBtype=2;sIBtype<33;sIBtype++) { //21 ? 33 ?
         for (int sIBtype=2; sIBtype<21; sIBtype++) {
           if (f1ap_gnb_cu_configuration_update->cells_to_activate[i].SI_container[sIBtype]!=NULL) {
             AssertFatal(sIBtype < 6 || sIBtype == 9, "Illegal SI type %d\n",sIBtype);

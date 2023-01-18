@@ -41,6 +41,7 @@
 #include "f1ap_types/f1_setup_response.h"
 #include "f1ap_types/f1_setup_failure.h"
 #include "f1ap_types/ue_ctx_setup_request.h"
+#include "f1ap_types/gnb_cu_conf_update.h"
 
 void test_f1_setup_f1ap()
 {
@@ -144,20 +145,44 @@ void test_f1_ue_ctx_setup_response()
   assert(eq_f1_ue_ctx_setup_response(&msg, &out) == true);
 }
 
+void test_gnb_cu_conf_update()
+{
+  gnb_cu_conf_update_t msg = gen_rnd_gnb_cu_conf_update();
+  defer({ free_gnb_cu_conf_update(&msg); }); 
+
+  F1AP_F1AP_PDU_t pdu = cp_gnb_cu_conf_update_asn(&msg);
+  defer({ ASN_STRUCT_RESET(asn_DEF_F1AP_F1AP_PDU, &pdu); } );
+
+  byte_array_t ba = encode_pdu_f1ap(&pdu);
+  defer({ free_byte_array(ba); } );
+
+  F1AP_F1AP_PDU_t pdu2 = decode_pdu_f1ap(ba); 
+  defer({ ASN_STRUCT_RESET(asn_DEF_F1AP_F1AP_PDU, &pdu2); } ); 
+
+
+
+
+}
+
+
 int main()
 {
   time_t t;
   srand((unsigned) time(&t));
 
-//  test_f1_setup_f1ap();
-//  test_f1_setup_response_f1ap();
-//  test_f1_setup_failure_f1ap();
-
+  test_f1_setup_f1ap();
+  test_f1_setup_response_f1ap();
+  test_f1_setup_failure_f1ap();
   test_f1_ue_ctx_setup_request();
-//  test_f1_ue_ctx_setup_response();
+  test_f1_ue_ctx_setup_response();
 
+  test_gnb_cu_conf_update();
+//  test_gnb_cu_conf_update_ack();
 
+//  test_dl_rrc_msg_trans();
+//  test_ul_rrc_msg_trans();
 
+//  test_ue_ctx_mod_req();
 
 
 

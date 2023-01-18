@@ -7,7 +7,8 @@ void free_gnb_cu_sys_info( gnb_cu_sys_info_t* src)
 {
   assert(src != NULL);
 
-  for(size_t i = 0; i < src->len; i++){
+  assert(src->sz_sib > 0 && src->sz_sib < 33);
+  for(size_t i = 0; i < src->sz_sib; i++){
     free_sib(&src->sib[i]);
   }
  
@@ -27,10 +28,13 @@ bool eq_gnb_cu_sys_info(gnb_cu_sys_info_t const* m0, gnb_cu_sys_info_t const* m1
   if(m1 == NULL)
     return false;
 
-  if(m0->len != m1->len)
+  if(m0->sz_sib != m1->sz_sib)
     return false;
 
-  for(size_t i =0; i < m0->len; ++i){
+  assert(m0->sz_sib > 0 && m0->sz_sib < 33);
+  assert(m1->sz_sib > 0 && m1->sz_sib < 33);
+
+  for(size_t i =0; i < m0->sz_sib; ++i){
     if(eq_sib(&m0->sib[i], &m1->sib[i]) == false)
       return false;
   }

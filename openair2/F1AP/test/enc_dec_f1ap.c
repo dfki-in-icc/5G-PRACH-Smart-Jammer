@@ -12,9 +12,11 @@ byte_array_t encode_pdu_f1ap(F1AP_F1AP_PDU_t const* pdu)
   asn_encode_to_new_buffer_result_t res = asn_encode_to_new_buffer(NULL, syntax, &asn_DEF_F1AP_F1AP_PDU, pdu);
 
   if(res.buffer == NULL || res.result.encoded == -1){
-    printf("Failed the encoding in type %s and xml_type = %s\n", res.result.failed_type->name, res.result.failed_type->xml_tag);
+    printf("Failed the encoding in count %d type %s and xml_type = %s\n", res.result.failed_type->tags_count, res.result.failed_type->name, res.result.failed_type->xml_tag);
     fflush(stdout);
     assert(res.buffer != NULL && "Failed to encode");
+    assert(res.result.encoded != -1 && "Failed to encode");
+
   }
 
   byte_array_t ba = {.len = res.result.encoded, .buf = res.buffer};
@@ -38,7 +40,4 @@ F1AP_F1AP_PDU_t decode_pdu_f1ap(byte_array_t ba)
   
   return pdu;
 }
-
-
-
 

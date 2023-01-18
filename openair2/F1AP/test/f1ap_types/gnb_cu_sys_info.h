@@ -10,7 +10,7 @@
 // 9.3.1.42
 typedef struct {
 
-  size_t len;
+  size_t sz_sib; // [1,32]
   sib_t* sib;
 
   // Optional. Bit String of 24
