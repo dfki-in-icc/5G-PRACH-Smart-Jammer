@@ -102,12 +102,13 @@ void handle_nr_nfapi_ssb_pdu(processingData_L1tx_t *msgTx,int frame,int slot,
 
 
 void handle_nfapi_nr_csirs_pdu(processingData_L1tx_t *msgTx,
-             int frame,int slot,
-			       nfapi_nr_dl_tti_csi_rs_pdu *csirs_pdu) {
+                               int frame,int slot,
+                               nfapi_nr_dl_tti_csi_rs_pdu *csirs_pdu)
+{
 
   int found = 0;
 
-  for (int id=0; id<NUMBER_OF_NR_CSIRS_MAX; id++) {
+  for (int id = 0; id < NUMBER_OF_NR_CSIRS_MAX; id++) {
     NR_gNB_CSIRS_t *csirs = &msgTx->csirs_pdu[id];
     if (csirs->active == 0) {
       LOG_D(PHY,"Frame %d Slot %d CSI_RS with ID %d is now active\n",frame,slot,id);
@@ -127,12 +128,12 @@ void handle_nr_nfapi_pdsch_pdu(processingData_L1tx_t *msgTx,
                             uint8_t *sdu)
 {
 
-
   nr_fill_dlsch(msgTx,pdsch_pdu,sdu);
 
 }
 
-void nr_schedule_response(NR_Sched_Rsp_t *Sched_INFO){
+void nr_schedule_response(NR_Sched_Rsp_t *Sched_INFO)
+{
   
   PHY_VARS_gNB *gNB;
   // copy data from L2 interface into L1 structures
@@ -170,9 +171,9 @@ void nr_schedule_response(NR_Sched_Rsp_t *Sched_INFO){
       const time_stats_t ts = exec_time_stats_NotifiedFIFO(res);
       merge_meas(&gNB->phy_proc_tx, &ts);
 
-      msgTx->num_pdsch_slot=0;
-      msgTx->num_dl_pdcch=0;
-      msgTx->num_ul_pdcch=number_ul_dci_pdu;
+      msgTx->num_pdsch_slot = 0;
+      msgTx->num_dl_pdcch = 0;
+      msgTx->num_ul_pdcch = number_ul_dci_pdu;
       msgTx->slot = slot;
       msgTx->frame = frame;
 

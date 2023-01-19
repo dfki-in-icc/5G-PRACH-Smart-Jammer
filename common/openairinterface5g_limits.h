@@ -21,6 +21,8 @@
 #        define NUMBER_OF_NR_PUCCH_MAX 16
 #        define NUMBER_OF_NR_PDCCH_MAX 16
 
+#        define NUMBER_FRAMES_PHY_UE_INACTIVE 10
+
 #define MAX_MANAGED_ENB_PER_MOBILE  2
 #define MAX_MANAGED_GNB_PER_MOBILE  2
 

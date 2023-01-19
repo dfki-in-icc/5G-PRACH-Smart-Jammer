@@ -2217,13 +2217,9 @@ int get_nrofHARQ_ProcessesForPDSCH(e_NR_PDSCH_ServingCellConfig__nrofHARQ_Proces
   }
 }
 
-/* hack data to remove UE in the phy */
-int rnti_to_remove[10];
-volatile int rnti_to_remove_count;
-pthread_mutex_t rnti_to_remove_mutex = PTHREAD_MUTEX_INITIALIZER;
-
 void delete_nr_ue_data(NR_UE_info_t *UE, NR_COMMON_channels_t *ccPtr, uid_allocator_t *uia)
 {
+
   NR_UE_sched_ctrl_t *sched_ctrl = &UE->UE_sched_ctrl;
   destroy_nr_list(&sched_ctrl->available_dl_harq);
   destroy_nr_list(&sched_ctrl->feedback_dl_harq);
@@ -2235,16 +2231,6 @@ void delete_nr_ue_data(NR_UE_info_t *UE, NR_COMMON_channels_t *ccPtr, uid_alloca
   LOG_I(NR_MAC, "Remove NR rnti 0x%04x\n", UE->rnti);
   const rnti_t rnti = UE->rnti;
   free(UE);
-  /* hack to remove UE in the phy */
-  if (pthread_mutex_lock(&rnti_to_remove_mutex))
-    exit(1);
-  if (rnti_to_remove_count == 10)
-    exit(1);
-  rnti_to_remove[rnti_to_remove_count] = rnti;
-  LOG_W(NR_MAC, "to remove in mac rnti_to_remove[%d] = 0x%04x\n", rnti_to_remove_count, rnti);
-  rnti_to_remove_count++;
-  if (pthread_mutex_unlock(&rnti_to_remove_mutex))
-    exit(1);
 
   /* clear RA process(es?) associated to the UE */
   for (int cc_id = 0; cc_id < NFAPI_CC_MAX; cc_id++) {
@@ -2253,8 +2239,8 @@ void delete_nr_ue_data(NR_UE_info_t *UE, NR_COMMON_channels_t *ccPtr, uid_alloca
       if (cc->ra[i].rnti == rnti) {
         LOG_D(NR_MAC, "free RA process %d for rnti %04x\n", i, rnti);
         /* is it enough? */
-        cc->ra[i].cfra  = false;
-        cc->ra[i].rnti  = 0;
+        cc->ra[i].cfra = false;
+        cc->ra[i].rnti = 0;
         cc->ra[i].crnti = 0;
       }
     }
@@ -2287,7 +2273,8 @@ void configure_UE_BWP(gNB_MAC_INST *nr_mac,
                       NR_ServingCellConfigCommon_t *scc,
                       NR_UE_sched_ctrl_t *sched_ctrl,
                       NR_RA_t *ra,
-                      NR_UE_info_t *UE) {
+                      NR_UE_info_t *UE)
+{
 
   AssertFatal((ra != NULL && UE == NULL) || (ra == NULL && UE != NULL), "RA and UE structures are mutually exlusive in BWP configuration\n");
 
@@ -2771,16 +2758,6 @@ void mac_remove_nr_ue(gNB_MAC_INST *nr_mac, rnti_t rnti)
   pthread_mutex_unlock(&UE_info->mutex);
 
   delete_nr_ue_data(UE, nr_mac->common_channels, &UE_info->uid_allocator);
-}
-
-void nr_mac_remove_ra_rnti(module_id_t mod_id, rnti_t rnti) {
-  // Hack to remove UE in the phy (following the same procedure as in function mac_remove_nr_ue)
-  if (pthread_mutex_lock(&rnti_to_remove_mutex)) exit(1);
-  if (rnti_to_remove_count == 10) exit(1);
-  rnti_to_remove[rnti_to_remove_count] = rnti;
-  LOG_W(NR_MAC, "to remove in mac rnti_to_remove[%d] = 0x%04x\n", rnti_to_remove_count, rnti);
-  rnti_to_remove_count++;
-  if (pthread_mutex_unlock(&rnti_to_remove_mutex)) exit(1);
 }
 
 uint8_t nr_get_tpc(int target, uint8_t cqi, int incr) {
