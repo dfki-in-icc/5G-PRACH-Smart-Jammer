@@ -87,11 +87,15 @@ void nrLDPC_cnProc_BG1_generator_AVX2(const char* dir, int R)
   // 1. bit proc requires LLRs of 2. and 3. bit, 2.bits of 1. and 3. etc.
   // Offsets are in units of bitOffsetInGroup (1*384/32)
   const uint8_t lut_idxCnProcG3[3][2] = {{12,24}, {0,24}, {0,12}};
-
+#ifndef DROP_MAXLLR
   fprintf(fd,"                simde__m256i ymm0, min, sgn,ones,maxLLR;\n");
+#else
+  fprintf(fd,"                simde__m256i ymm0, min, sgn,ones;\n");
+#endif
   fprintf(fd,"                ones   = simde_mm256_set1_epi8((int8_t)1);\n");
+#ifndef DROP_MAXLLR
   fprintf(fd,"                maxLLR = simde_mm256_set1_epi8((int8_t)127);\n");
-
+#endif
   fprintf(fd,"                uint32_t  M;\n");
 
   if (lut_numCnInCnGroups[0] > 0)
