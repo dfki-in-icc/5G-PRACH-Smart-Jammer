@@ -55,8 +55,7 @@ RUN yum update -y && \
         net-tools \
         iputils \
         bc \
-        iproute \
-        libyaml && \
+        iproute && \
     echo "/usr/local/lib" > /etc/ld.so.conf.d/local-lib.conf && \
     echo "/usr/local/lib64" >> /etc/ld.so.conf.d/local-lib.conf
 
@@ -90,7 +89,6 @@ COPY --from=phy-sim-build \
     /lib64/libxslt.so.1 \
     /usr/lib64/libasan.so.5 \
     /oai-ran/cmake_targets/ran_build/build/libdfts.so \
-    /oai-ran/cmake_targets/ran_build/build/libSIMU.so \
     /oai-ran/cmake_targets/ran_build/build/libldpc.so \
     /oai-ran/cmake_targets/ran_build/build/libldpc_orig.so \
     /usr/local/lib/

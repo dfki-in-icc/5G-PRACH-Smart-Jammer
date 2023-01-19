@@ -704,8 +704,7 @@ typedef struct {
   LTE_BCCH_DL_SCH_Message_t             systemInformation;
   LTE_BCCH_DL_SCH_Message_t             systemInformation_BR;
   LTE_BCCH_BCH_Message_MBMS_t            mib_fembms;
-  LTE_BCCH_DL_SCH_Message_MBMS_t         siblock1_MBMS;
-  LTE_BCCH_DL_SCH_Message_MBMS_t         systemInformation_MBMS;
+  LTE_BCCH_DL_SCH_Message_MBMS_t siblock1_MBMS;
   LTE_SchedulingInfo_MBMS_r14_t 	 schedulingInfo_MBMS;
   LTE_PLMN_IdentityInfo_t		 PLMN_identity_info_MBMS[6];
   LTE_MCC_MNC_Digit_t			 dummy_mcc_MBMS[6][3], dummy_mnc_MBMS[6][3];
@@ -918,11 +917,13 @@ typedef struct UE_RRC_INST_s {
 } UE_RRC_INST;
 
 typedef struct UE_PF_PO_s {
-  bool      enable_flag;  /* flag indicate whether current object is used */
+  bool enable_flag;  /* flag indicate whether current object is used */
   uint16_t ue_index_value;  /* UE index value */
   uint8_t PF_min;  /* minimal value of Paging Frame (PF) */
   uint8_t PO;  /* Paging Occasion (PO) */
   uint32_t T;  /* DRX cycle */
+  uint8_t PF_offset;
+  uint8_t i_s;
 } UE_PF_PO_t;
 
 #include "rrc_proto.h"

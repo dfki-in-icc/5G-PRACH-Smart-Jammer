@@ -37,7 +37,7 @@
 #include "PHY/defs_UE.h"
 #include "PHY/phy_extern_ue.h"
 //#include "executables/nr-uesoftmodem.h"
-#include "targets/RT/USER/lte-softmodem.h"
+#include "executables/lte-softmodem.h"
 
 #include "PHY/LTE_UE_TRANSPORT/transport_proto_ue.h"
 #include "SCHED_UE/sched_UE.h"
@@ -49,6 +49,7 @@
 #endif
 
 #include "LAYER2/MAC/mac.h"
+#include "rrc_proto.h"
 #include "common/utils/LOG/log.h"
 
 #include "common/utils/LOG/vcd_signal_dumper.h"

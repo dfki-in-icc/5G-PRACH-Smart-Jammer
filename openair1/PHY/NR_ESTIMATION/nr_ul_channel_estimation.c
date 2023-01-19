@@ -160,7 +160,7 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
                                 unsigned short bwp_start_subcarrier,
                                 nfapi_nr_pusch_pdu_t *pusch_pdu) {
   c16_t pilot[3280] __attribute__((aligned(16)));
-  int16_t *fl,*fm,*fr,*fml,*fmr,*fmm,*fdcl,*fdcr,*fdclh,*fdcrh;
+  int16_t *fdcl, *fdcr, *fdclh, *fdcrh;
 
   const int chest_freq = gNB->chest_freq;
 
@@ -202,12 +202,6 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
 
   switch (nushift) {
     case 0:
-      fl = filt8_l0;
-      fm = filt8_m0;
-      fr = filt8_r0;
-      fmm = filt8_mm0;
-      fml = filt8_m0;
-      fmr = filt8_mr0;
       fdcl = filt8_dcl0;
       fdcr = filt8_dcr0;
       fdclh = filt8_dcl0_h;
@@ -215,12 +209,6 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
       break;
 
     case 1:
-      fl = filt8_l1;
-      fm = filt8_m1;
-      fr = filt8_r1;
-      fmm = filt8_mm1;
-      fml = filt8_ml1;
-      fmr = filt8_mm1;
       fdcl = filt8_dcl1;
       fdcr = filt8_dcr1;
       fdclh = filt8_dcl1_h;
@@ -271,7 +259,6 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
   }
 
 #endif
-  const uint8_t b_shift = pusch_pdu->nrOfLayers == 1;
 
   for (int aarx=0; aarx<gNB->frame_parms.nb_antennas_rx; aarx++) {
     c16_t *rxdataF = (c16_t *)&gNB->common_vars.rxdataF[aarx][symbol_offset];
@@ -305,7 +292,7 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
           ch=c32x16maddShift(*pil,
                              rxdataF[soffset + re_offset],
                              ch,
-                             15+b_shift);
+                             16);
           pil++;
         }
 
@@ -321,19 +308,16 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
 #endif
 
           if (pilot_cnt == 0) {
-            c16multaddVectRealComplex(fl, &ch16, ul_ch, 8);
-          } else if (pilot_cnt == 1) {
-            c16multaddVectRealComplex(fml, &ch16, ul_ch, 8);
-          } else if (pilot_cnt == (6*nb_rb_pusch-2)) {
-            c16multaddVectRealComplex(fmr, &ch16, ul_ch, 8);
-            ul_ch+=4;
-          } else if (pilot_cnt == (6*nb_rb_pusch-1)) {
-            c16multaddVectRealComplex(fr, &ch16, ul_ch, 8);
-          } else if (pilot_cnt%2 == 0) {
-            c16multaddVectRealComplex(fmm, &ch16, ul_ch, 8);
-            ul_ch+=4;
+            c16multaddVectRealComplex(filt16_ul_p0, &ch16, ul_ch, 16);
+          } else if (pilot_cnt == 1 || pilot_cnt == 2) {
+            c16multaddVectRealComplex(filt16_ul_p1p2, &ch16, ul_ch, 16);
+          } else if (pilot_cnt == (6 * nb_rb_pusch - 1)) {
+            c16multaddVectRealComplex(filt16_ul_last, &ch16, ul_ch, 16);
           } else {
-            c16multaddVectRealComplex(fm, &ch16, ul_ch, 8);
+            c16multaddVectRealComplex(filt16_ul_middle, &ch16, ul_ch, 16);
+            if (pilot_cnt % 2 == 0) {
+              ul_ch += 4;
+            }
           }
 
           pilot_cnt++;
@@ -443,8 +427,8 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
       multadd_real_four_symbols_vector_complex_scalar(filt8_rr2,
                                                       &ch_r,
                                                       ul_ch);
-      __m128i *ul_ch_128 = (__m128i *)&ul_ch_estimates[p*gNB->frame_parms.nb_antennas_rx+aarx][ch_offset];
-      ul_ch_128[0] = _mm_slli_epi16 (ul_ch_128[0], 2);
+      simde__m128i *ul_ch_128 = (simde__m128i *)&ul_ch_estimates[p*gNB->frame_parms.nb_antennas_rx+aarx][ch_offset];
+      ul_ch_128[0] = simde_mm_slli_epi16 (ul_ch_128[0], 2);
     }
 
     else if (pusch_pdu->dmrs_config_type == pusch_dmrs_type1) { // this is case without frequency-domain linear interpolation, just take average of LS channel estimates of 6 DMRS REs and use a common value for the whole PRB
@@ -457,34 +441,34 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
       c32_t ch_tmp;
       for (int l=0;l<l0;l++) { 
         ch=c32x16cumulVectVectWithSteps6_2(pilot, &pil_offset, rxF, &re_offset);
-        ((__m128i *)ul_ch)[0] =  _mm_set1_epi32(*(int32_t*)&ch);
-        ((__m128i *)ul_ch)[1] =  _mm_set1_epi32(*(int32_t*)&ch);
-        ((__m128i *)ul_ch)[2] =  _mm_set1_epi32(*(int32_t*)&ch);
+        ((simde__m128i *)ul_ch)[0] =  simde_mm_set1_epi32(*(int32_t*)&ch);
+        ((simde__m128i *)ul_ch)[1] =  simde_mm_set1_epi32(*(int32_t*)&ch);
+        ((simde__m128i *)ul_ch)[2] =  simde_mm_set1_epi32(*(int32_t*)&ch);
         ul_ch+=12;
       }
       if (have_half_prb) {
         ch_tmp = c32x16cumulVectVectWithSteps3_2a(pilot, &pil_offset, rxF, &re_offset);
 	re_offset-=symbolSize;
         ch=c32x16cumulVectVectWithSteps3_2b(ch_tmp,pilot, &pil_offset, rxF, &re_offset);
-        ((__m128i *)ul_ch)[0] =  _mm_set1_epi32(*(int32_t*)&ch);
-        ((__m128i *)ul_ch)[1] =  _mm_set1_epi32(*(int32_t*)&ch);
-        ((__m128i *)ul_ch)[2] =  _mm_set1_epi32(*(int32_t*)&ch);
+        ((simde__m128i *)ul_ch)[0] =  simde_mm_set1_epi32(*(int32_t*)&ch);
+        ((simde__m128i *)ul_ch)[1] =  simde_mm_set1_epi32(*(int32_t*)&ch);
+        ((simde__m128i *)ul_ch)[2] =  simde_mm_set1_epi32(*(int32_t*)&ch);
         ul_ch+=12;
 
       } else re_offset-=symbolSize;
       for (int l=0;l<l1;l++) {
         ch=c32x16cumulVectVectWithSteps6_2(pilot, &pil_offset, rxF, &re_offset);
-        ((__m128i *)ul_ch)[0] =  _mm_set1_epi32(*(int32_t*)&ch);
-        ((__m128i *)ul_ch)[1] =  _mm_set1_epi32(*(int32_t*)&ch);
-        ((__m128i *)ul_ch)[2] =  _mm_set1_epi32(*(int32_t*)&ch);
+        ((simde__m128i *)ul_ch)[0] =  simde_mm_set1_epi32(*(int32_t*)&ch);
+        ((simde__m128i *)ul_ch)[1] =  simde_mm_set1_epi32(*(int32_t*)&ch);
+        ((simde__m128i *)ul_ch)[2] =  simde_mm_set1_epi32(*(int32_t*)&ch);
         ul_ch+=12;
       } 
 #else     
       for (int l=0;l<(l0+l1);l++) { 
         ch=c32x16cumulVectVectWithSteps(pilot, &pil_offset, 1, rxF, &re_offset, 2, symbolSize, 6);
-        ((__m128i *)ul_ch)[0] =  _mm_set1_epi32(*(int32_t*)&ch);
-        ((__m128i *)ul_ch)[1] =  _mm_set1_epi32(*(int32_t*)&ch);
-        ((__m128i *)ul_ch)[2] =  _mm_set1_epi32(*(int32_t*)&ch);
+        ((simde__m128i *)ul_ch)[0] =  simde_mm_set1_epi32(*(int32_t*)&ch);
+        ((simde__m128i *)ul_ch)[1] =  simde_mm_set1_epi32(*(int32_t*)&ch);
+        ((simde__m128i *)ul_ch)[2] =  simde_mm_set1_epi32(*(int32_t*)&ch);
         ul_ch+=12;
       }
 #endif
@@ -554,7 +538,7 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
         for (c16_t *end=ul_ch+12; ul_ch<end; ul_ch++)
           *ul_ch=ch;
 #else
-        ul_ch[3]=c16maddShift(ch,(c16_t) {1365,1365},15); // 1365 = 1/12*16384 (full range is +/- 32768)
+        ul_ch[3] = c16maddShift(ch, (c16_t){1365, 1365}, (c16_t){0, 0}, 15); // 1365 = 1/12*16384 (full range is +/- 32768)
         ul_ch += 4;
         c16multaddVectRealComplex(filt8_avlip3, &ch, ul_ch, 8);
         ul_ch += 8;
@@ -587,7 +571,7 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
       for (c16_t *end=ul_ch+12; ul_ch<end; ul_ch++)
           *ul_ch=ch;
 #else
-      ul_ch[3]=c16maddShift(ch, c16_t {1365,1365},15);// 1365 = 1/12*16384 (full range is +/- 32768)
+      ul_ch[3] = c16maddShift(ch, (c16_t){1365, 1365}, (c16_t){0, 0}, 15); // 1365 = 1/12*16384 (full range is +/- 32768)
       ul_ch += 4;
       c16multaddVectRealComplex(filt8_avlip3, &ch, ul_ch, 8);
       ul_ch += 8;
@@ -732,7 +716,7 @@ void nr_pusch_ptrs_processing(PHY_VARS_gNB *gNB,
       /*------------------------------------------------------------------------------------------------------- */
       /* 3) Compensated DMRS based estimated signal with PTRS estimation                                        */
       /*--------------------------------------------------------------------------------------------------------*/
-      for(uint8_t i = *startSymbIndex; i< symbInSlot ; i++) {
+      for(uint8_t i = *startSymbIndex; i < symbInSlot; i++) {
         /* DMRS Symbol has 0 phase so no need to rotate the respective symbol */
         /* Skip rotation if the slot processing is wrong */
         if((!is_dmrs_symbol(i,*dmrsSymbPos)) && (ret == 0)) {

@@ -35,24 +35,15 @@
 #include "PHY/sse_intrin.h"
 #include "common/utils/assertions.h"
 
-#if defined(__x86_64__) || defined(__i386__)
-#define simd_q15_t __m128i
-#define simdshort_q15_t __m64
-#define shiftright_int16(a,shift) _mm_srai_epi16(a,shift)
-#define set1_int16(a) _mm_set1_epi16(a)
-#define mulhi_int16(a,b) _mm_mulhrs_epi16 (a,b)
-#define mulhi_s1_int16(a,b) _mm_slli_epi16(_mm_mulhi_epi16(a,b),2)
-#define adds_int16(a,b) _mm_adds_epi16(a,b)
-#define mullo_int16(a,b) _mm_mullo_epi16(a,b)
-#elif defined(__arm__) || defined(__aarch64__)
-#define simd_q15_t int16x8_t
-#define simdshort_q15_t int16x4_t
-#define shiftright_int16(a,shift) vshrq_n_s16(a,shift)
-#define set1_int16(a) vdupq_n_s16(a)
-#define mulhi_int16(a,b) vqdmulhq_s16(a,b)
-#define mulhi_s1_int16(a,b) vshlq_n_s16(vqdmulhq_s16(a,b),1)
-#define adds_int16(a,b) vqaddq_s16(a,b)
-#define mullo_int16(a,b) vmulq_s16(a,b)
+#define simd_q15_t simde__m128i
+#define simdshort_q15_t simde__m64
+#define shiftright_int16(a,shift) simde_mm_srai_epi16(a,shift)
+#define set1_int16(a) simde_mm_set1_epi16(a)
+#define mulhi_int16(a,b) simde_mm_mulhrs_epi16 (a,b)
+#define mulhi_s1_int16(a,b) simde_mm_slli_epi16(simde_mm_mulhi_epi16(a,b),2)
+#define adds_int16(a,b) simde_mm_adds_epi16(a,b)
+#define mullo_int16(a,b) simde_mm_mullo_epi16(a,b)
+#if defined(__arm__) || defined(__aarch64__)
 #define _mm_empty()
 #define _m_empty()
 #endif
@@ -139,6 +130,13 @@ extern "C" {
     };
   }
 
+  __attribute__((always_inline)) inline cd_t cdMul(const cd_t a, const cd_t b)
+  {
+    return (cd_t) {
+        .r = a.r * b.r - a.i * b.i,
+        .i = a.r * b.i + a.i * b.r
+    };
+  }
 
   // On N complex numbers
   //   y.r += (x * alpha.r) >> 14
@@ -148,7 +146,7 @@ extern "C" {
                                                                        const c16_t *alpha,
                                                                        c16_t *y,
                                                                        const int N) {
-#if defined(__x86_64__) || defined(__i386__)
+//#if defined(__x86_64__) || defined(__i386__)
     // Default implementation for x86
     const int8_t makePairs[32] __attribute__((aligned(32)))={
       0,1,0+16,1+16,
@@ -160,23 +158,23 @@ extern "C" {
       12,13,12+16,13+16,
       14,15,14+16,15+16};
     
-    __m256i alpha256= simde_mm256_set1_epi32(*(int32_t *)alpha);
-    __m128i *x128=(__m128i *)x;
-    __m128i *y128=(__m128i *)y;
+    simde__m256i alpha256= simde_mm256_set1_epi32(*(int32_t *)alpha);
+    simde__m128i *x128=(simde__m128i *)x;
+    simde__m128i *y128=(simde__m128i *)y;
     AssertFatal(N%8==0,"Not implemented\n");
     for (int i=0; i<N/8; i++) {
-      const __m256i xduplicate=simde_mm256_broadcastsi128_si256(*x128);
-      const __m256i x_duplicate_ordered=simde_mm256_shuffle_epi8(xduplicate,*(__m256i*)makePairs);
-      const __m256i x_mul_alpha_shift15 =simde_mm256_mulhrs_epi16(alpha256, x_duplicate_ordered);
+      const simde__m256i xduplicate=simde_mm256_broadcastsi128_si256(*x128);
+      const simde__m256i x_duplicate_ordered=simde_mm256_shuffle_epi8(xduplicate,*(simde__m256i*)makePairs);
+      const simde__m256i x_mul_alpha_shift15 =simde_mm256_mulhrs_epi16(alpha256, x_duplicate_ordered);
       // Existing multiplication normalization is weird, constant table in alpha need to be doubled
-      const __m256i x_mul_alpha_x2= simde_mm256_adds_epi16(x_mul_alpha_shift15,x_mul_alpha_shift15);
-      *y128= _mm_adds_epi16(simde_mm256_extracti128_si256(x_mul_alpha_x2,0),*y128);
+      const simde__m256i x_mul_alpha_x2= simde_mm256_adds_epi16(x_mul_alpha_shift15,x_mul_alpha_shift15);
+      *y128= simde_mm_adds_epi16(simde_mm256_extracti128_si256(x_mul_alpha_x2,0),*y128);
       y128++;
-      *y128= _mm_adds_epi16(simde_mm256_extracti128_si256(x_mul_alpha_x2,1),*y128);
+      *y128= simde_mm_adds_epi16(simde_mm256_extracti128_si256(x_mul_alpha_x2,1),*y128);
       y128++;
       x128++;
     } 
-    
+ /*   
 #elif defined(__arm__) || defined(__aarch64__)
     // Default implementation for ARM
     uint32_t i;
@@ -219,7 +217,7 @@ extern "C" {
       y[i].r=(int16_t)tmpr;
       y[i].i=(int16_t)tmpi;
     }
-#endif
+#endif*/
   }
 //cmult_sv.h
 
@@ -237,7 +235,7 @@ void multadd_real_vector_complex_scalar(int16_t *x,
                                         int16_t *y,
                                         uint32_t N);
 
-__attribute__((always_inline)) inline void multadd_real_four_symbols_vector_complex_scalar(int16_t *x,
+static __attribute__((always_inline)) inline void multadd_real_four_symbols_vector_complex_scalar(int16_t *x,
                                                                                            c16_t *alpha,
                                                                                            c16_t *y)
 {
@@ -245,7 +243,8 @@ __attribute__((always_inline)) inline void multadd_real_four_symbols_vector_comp
   // do 8 multiplications at a time
   simd_q15_t alpha_r_128,alpha_i_128,yr,yi,*x_128=(simd_q15_t*)x;
   simd_q15_t y_128;
-  y_128 = _mm_loadu_si128((simd_q15_t*)y);
+  //y_128 = simde_mm_loadu_si128((simd_q15_t*)y);
+  y_128 = *(simd_q15_t*)y;
 
   alpha_r_128 = set1_int16(alpha->r);
   alpha_i_128 = set1_int16(alpha->i);
@@ -253,10 +252,11 @@ __attribute__((always_inline)) inline void multadd_real_four_symbols_vector_comp
 
   yr     = mulhi_s1_int16(alpha_r_128,x_128[0]);
   yi     = mulhi_s1_int16(alpha_i_128,x_128[0]);
-  y_128   = _mm_adds_epi16(y_128,_mm_unpacklo_epi16(yr,yi));
-  y_128   = _mm_adds_epi16(y_128,_mm_unpackhi_epi16(yr,yi));
+  y_128   = adds_int16(y_128,simde_mm_unpacklo_epi16((simde__m128i)yr,(simde__m128i)yi));
+  y_128   = adds_int16(y_128,simde_mm_unpackhi_epi16((simde__m128i)yr,(simde__m128i)yi));
 
-  _mm_storeu_si128((simd_q15_t*)y, y_128);
+  //simde_mm_storeu_si128((simd_q15_t*)y, y_128);
+  *(simd_q15_t*)y=y_128;
 
 }
 
@@ -742,16 +742,10 @@ int32_t phy_phase_compensation_top(uint32_t pilot_type,
                                    uint32_t last_pilot,
                                    int32_t ignore_prefix);
 
-int32_t dot_product(int16_t *x,
-                    int16_t *y,
-                    uint32_t N, //must be a multiple of 8
-                    uint8_t output_shift);
-
-int64_t dot_product64(int16_t *x,
-                      int16_t *y,
-                      uint32_t N, //must be a multiple of 8
-                      uint8_t output_shift);
-
+c32_t dot_product(const c16_t *x,
+                  const c16_t *y,
+                  const uint32_t N, // must be a multiple of 8
+                  const int output_shift);
 
 /** @} */
 
