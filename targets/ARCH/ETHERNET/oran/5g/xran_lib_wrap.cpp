@@ -703,9 +703,6 @@ int xranLibWraper::Init(struct xran_fh_config *pCfg)
         struct xran_prb_map *pRbMap = NULL;
 
         uint32_t xran_max_antenna_nr = RTE_MAX(get_num_eaxc(), get_num_eaxc_ul());
-  uint8_t ii;
-  uint8_t jj;
-  uint8_t kk;
   uint8_t symbol_counter = 0;
   uint8_t symbol_config = 0;
   uint8_t mixed_slot = 0;
@@ -756,37 +753,38 @@ int xranLibWraper::Init(struct xran_fh_config *pCfg)
             }
         }
 
-  for (ii=0;ii<m_xranConf.frame_conf.nTddPeriod;ii++) {
-    symbol_config = m_xranConf.frame_conf.sSlotConfig[ii].nSymbolType[0];
+  for (uint8_t period_counter=0; period_counter<m_xranConf.frame_conf.nTddPeriod; period_counter++) {
+    uint8_t symbol;
+    symbol_config = m_xranConf.frame_conf.sSlotConfig[period_counter].nSymbolType[0];
 
-    for (jj=0;jj<14;jj++) {
-      if (symbol_config == m_xranConf.frame_conf.sSlotConfig[ii].nSymbolType[jj])
+    for (symbol=0;symbol<14;symbol++) {
+      if (symbol_config == m_xranConf.frame_conf.sSlotConfig[period_counter].nSymbolType[symbol])
         symbol_counter++;
     }
 
     if (symbol_counter != 14) {
-      mixed_slot = ii;
-      jj = 0;
-      while (jj<14) {
-        switch(m_xranConf.frame_conf.sSlotConfig[ii].nSymbolType[jj]) {
+      mixed_slot = period_counter;
+      symbol = 0;
+      while (symbol<14) {
+        switch(m_xranConf.frame_conf.sSlotConfig[period_counter].nSymbolType[symbol]) {
           case 0: /* DL Symbol */
             if (!mixed_slot_dl_start_symbol_found) {
               mixed_slot_dl_start_symbol_found = 1;
-              mixed_slot_dl_start_symbol = jj;
+              mixed_slot_dl_start_symbol = symbol;
             }
             mixed_slot_dl_symbol++;
           break;
           case 1: /* UL Symbol */
             if (!mixed_slot_ul_start_symbol_found) {
               mixed_slot_ul_start_symbol_found = 1;
-              mixed_slot_ul_start_symbol = jj;
+              mixed_slot_ul_start_symbol = symbol;
             }
             mixed_slot_ul_symbol++;
           break;
           default: /* Guard Period */
             mixed_slot_gaurd_symbol++;
         }
-        jj++;
+        symbol++;
       }
       break;
     }
@@ -797,7 +795,7 @@ int xranLibWraper::Init(struct xran_fh_config *pCfg)
   memset(mixed_slot_tti_index,0,sizeof(mixed_slot_tti_index));
   mixed_slot_tti_index[mixed_slot] = 1;
 
-  for (kk=1;kk<(XRAN_N_FE_BUF_LEN/m_xranConf.frame_conf.nTddPeriod);kk++) {
+  for (uint8_t kk=1;kk<(XRAN_N_FE_BUF_LEN/m_xranConf.frame_conf.nTddPeriod);kk++) {
     mixed_slot_tti_index[kk*(m_xranConf.frame_conf.nTddPeriod)+mixed_slot] = 1;
   }
 
