@@ -4,6 +4,8 @@
 #include "../../../../cmake_targets/ran_build/build/CMakeFiles/F1AP_R16.3.1/BIT_STRING.h"
 #include "serv_eutra_cell_info.h"
 
+#include <stdbool.h>
+
 typedef struct {
   // Mandatory
   BIT_STRING_t eutra_cell_id; // [28]
@@ -15,6 +17,8 @@ typedef struct {
 } eutra_cell_t;
 
 void free_eutra_cell(eutra_cell_t* src);
+
+bool eq_eutra_cell(eutra_cell_t const* m0, eutra_cell_t const* m1);
 
 #endif
 

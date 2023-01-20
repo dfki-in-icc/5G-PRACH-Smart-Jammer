@@ -4,6 +4,8 @@
 #include "tnl_assoc_usage.h"
 #include "cp_trans_layer_info.h"
 
+#include <stdbool.h>
+
 typedef struct{
   // TNL Association Transport Layer Address 9.3.2.4
   // Mandatory
@@ -16,6 +18,8 @@ typedef struct{
 } gnb_cu_tnl_assoc_to_upd_t;
 
 void free_gnb_cu_tnl_assoc_to_upd( gnb_cu_tnl_assoc_to_upd_t* src);
+
+bool eq_gnb_cu_tnl_asso_to_upd(gnb_cu_tnl_assoc_to_upd_t const* m0, gnb_cu_tnl_assoc_to_upd_t const* m1);
 
 #endif
 

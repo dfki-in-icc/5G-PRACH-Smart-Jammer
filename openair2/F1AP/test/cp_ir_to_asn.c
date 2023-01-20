@@ -2589,7 +2589,7 @@ F1AP_Cells_to_be_Activated_List_ItemIEs_t* cp_act_cell_cu_conf_up(activate_cell_
   if(src->sys_info != NULL || src->avail_plmn != NULL 
       || src->ext_avail_plmn != NULL || src->ab_info != NULL 
       || src->av_snpn != NULL){
-    dst_it->iE_Extensions = calloc(1, sizeof( F1AP_ProtocolExtensionContainer_154P46_t ));
+    dst_it->iE_Extensions = calloc(1, sizeof(F1AP_ProtocolExtensionContainer_154P46_t ));
     assert(dst_it->iE_Extensions != NULL && "Memory exhausted");
   }
 
@@ -3111,7 +3111,6 @@ F1AP_GNBCUConfigurationUpdateIEs_t* cp_prot_eutra_res_cu_conf_up(size_t sz,prot_
   dst->criticality = F1AP_Criticality_reject;
   dst->value.present = F1AP_GNBCUConfigurationUpdateIEs__value_PR_Protected_EUTRA_Resources_List;
 
-  
   for(size_t i = 0; i < sz; ++i){
     F1AP_Protected_EUTRA_Resources_ItemIEs_t* id = cp_prot_eutra_res_it_cu_conf_up(&prot[i]);
     int const rc = ASN_SEQUENCE_ADD(&dst->value.choice.Protected_EUTRA_Resources_List.list, id);
@@ -3154,7 +3153,6 @@ F1AP_F1AP_PDU_t cp_gnb_cu_conf_update_asn(gnb_cu_conf_update_t const* src)
     rc = ASN_SEQUENCE_ADD(&dst->protocolIEs.list, id);
     assert(rc == 0);
   }
-
   
   // Cells to be Deactivated List [0,512]
   assert(src->sz_cells_to_be_deact < 513);
@@ -3204,28 +3202,22 @@ F1AP_F1AP_PDU_t cp_gnb_cu_conf_update_asn(gnb_cu_conf_update_t const* src)
     assert(rc == 0);
   }
 
-  /*
-  size_t sz_neighbour_cell_info; // [0, 512]
-  neighbour_cell_info_t* neighbour_cell_info;  
+  // [0, 512]
+  assert(src->sz_neighbour_cell_info == 0 && "Not implemented");
+  assert(src->neighbour_cell_info == NULL && "Not implemented");
 
   // Transport Layer Address Info 9.3.2.5
   // Optional
-  trans_layer_add_info_t* trans_layer_add_info;
+  assert(src->trans_layer_add_info == NULL && "Not implemented");
+
 
   // Uplink BH Non-UP Traffic Mapping 9.3.1.103
   // Optional
-  up_bh_non_up_traff_map_t* up_bh_non_up_traff_map; 
+  assert(src->up_bh_non_up_traff_map == NULL && "Not implemented"); 
 
   // BAP Address 9.3.1.111
   // Optional
-  bap_address_t*  bap_address;
-*/
-
-
-
-
-
-
+  assert(src->bap_address == NULL && "Not implemented");
 
   return pdu;
 }

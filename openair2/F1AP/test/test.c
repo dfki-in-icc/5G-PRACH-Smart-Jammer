@@ -159,9 +159,10 @@ void test_gnb_cu_conf_update()
   F1AP_F1AP_PDU_t pdu2 = decode_pdu_f1ap(ba); 
   defer({ ASN_STRUCT_RESET(asn_DEF_F1AP_F1AP_PDU, &pdu2); } ); 
 
+  gnb_cu_conf_update_t out = cp_gnb_cu_conf_update_ir(&pdu2);
+  defer({ free_gnb_cu_conf_update(&out); }); 
 
-
-
+  assert(eq_gnb_cu_conf_update(&msg, &out) == true);
 }
 
 

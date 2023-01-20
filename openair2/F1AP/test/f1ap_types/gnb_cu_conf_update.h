@@ -65,7 +65,7 @@ typedef struct{
 
 void free_gnb_cu_conf_update(gnb_cu_conf_update_t* src); 
 
-
+bool eq_gnb_cu_conf_update(gnb_cu_conf_update_t const* m0, gnb_cu_conf_update_t const* m1);
 
 #endif
 

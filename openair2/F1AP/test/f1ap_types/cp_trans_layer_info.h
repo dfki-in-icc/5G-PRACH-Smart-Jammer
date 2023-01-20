@@ -4,6 +4,8 @@
 #include "endpoint_ip_addr.h"
 #include "endpoint_ip_addr_port.h"
 
+#include <stdbool.h>
+
 typedef enum{
   IP_ADDRESS_CP_TRANS_LAYER_INFO,
   IP_ADDRESS_PORT_CP_TRANS_LAYER_INFO,
@@ -22,5 +24,6 @@ typedef struct{
 
 void free_cp_trans_layer_info(cp_trans_layer_info_t* src);
 
+bool eq_cp_trans_layer_info(cp_trans_layer_info_t const* m0, cp_trans_layer_info_t const* m1);
 
 #endif

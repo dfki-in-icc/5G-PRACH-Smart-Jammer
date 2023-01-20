@@ -18,5 +18,7 @@ typedef struct{
 
 void free_gnb_cu_tnl_assoc_to_rem( gnb_cu_tnl_assoc_to_rem_t* src);
 
+bool eq_gnb_cu_tnl_asso_to_rem(gnb_cu_tnl_assoc_to_rem_t const* m0, gnb_cu_tnl_assoc_to_rem_t const* m1);
+
 #endif
 

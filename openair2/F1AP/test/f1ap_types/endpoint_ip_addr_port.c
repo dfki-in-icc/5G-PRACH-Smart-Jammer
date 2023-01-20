@@ -37,3 +37,20 @@ void free_endpoint_ip_addr_port(endpoint_ip_addr_port_t* src)
   free_bit_string(src->port);
 }
 
+bool eq_endpoint_ip_addr_port(endpoint_ip_addr_port_t const* m0, endpoint_ip_addr_port_t const* m1)
+{
+  if(m0 == m1)
+    return true;
+
+  if(m0 == NULL || m1 == NULL)
+    return false;
+
+  if(eq_bit_string(m0->endpoint_ip_addr.trans_layer_add, m1->endpoint_ip_addr.trans_layer_add ) == false)
+    return false;
+
+  if(eq_bit_string(m0->port, m1->port) == false)
+    return false;
+
+  return true;
+}
+

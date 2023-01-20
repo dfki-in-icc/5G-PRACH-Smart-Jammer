@@ -38,6 +38,11 @@
 #include "../../../cmake_targets/ran_build/build/CMakeFiles/F1AP_R16.3.1/F1AP_CriticalityDiagnostics-IE-Item.h"
 #include "../../../cmake_targets/ran_build/build/CMakeFiles/F1AP_R16.3.1/F1AP_SibtypetobeupdatedListItem.h"
 #include "../../../cmake_targets/ran_build/build/CMakeFiles/F1AP_R16.3.1/F1AP_DLUPTNLInformation-ToBeSetup-Item.h"
+#include "../../../cmake_targets/ran_build/build/CMakeFiles/F1AP_R16.3.1/F1AP_Endpoint-IP-address-and-port.h"
+#include "../../../cmake_targets/ran_build/build/CMakeFiles/F1AP_R16.3.1/F1AP_EUTRACells-List-item.h"
+#include "../../../cmake_targets/ran_build/build/CMakeFiles/F1AP_R16.3.1/F1AP_EUTRA-FDD-Info.h"
+#include "../../../cmake_targets/ran_build/build/CMakeFiles/F1AP_R16.3.1/F1AP_EUTRA-TDD-Info.h"
+
 
 #include "../../../openair3/UTILS/conversions.h"
 
@@ -547,7 +552,7 @@ gnb_cu_sys_info_t cp_gnb_cu_system_info_ir(F1AP_ProtocolExtensionContainer_154P4
 
   assert(src->list.count == 1);
 
- F1AP_Cells_to_be_Activated_List_ItemExtIEs_t const* src_it = src->list.array[0];
+  F1AP_Cells_to_be_Activated_List_ItemExtIEs_t const* src_it = src->list.array[0];
 
   assert(src_it->id == F1AP_ProtocolIE_ID_id_gNB_CUSystemInformation);
   assert(src_it->criticality == F1AP_Criticality_reject);
@@ -2461,6 +2466,708 @@ ue_ctx_setup_response_t cp_ue_ctx_setup_response_ir(F1AP_F1AP_PDU_t const* src_p
   return dst;
 }
 
+/////////////////////////
+/////////////////////////
+/////////////////////////
+
+static
+uint8_t cp_trans_id_cu_conf_up_ir(F1AP_GNBCUConfigurationUpdateIEs_t const* src)
+{
+  assert(src != NULL);
+
+  assert(src->id == F1AP_ProtocolIE_ID_id_TransactionID);
+  assert(src->criticality == F1AP_Criticality_reject);
+  assert(src->value.present == F1AP_GNBCUConfigurationUpdateIEs__value_PR_TransactionID);
+ 
+  assert(src->value.choice.TransactionID < 256);
+
+  return src->value.choice.TransactionID; 
+}
+
+static
+activate_cell_t cp_act_cell_cu_conf_up_ir(F1AP_Cells_to_be_Activated_List_ItemIEs_t const* src)
+{
+  assert(src != NULL);
+
+  activate_cell_t dst = {0}; 
+
+  assert(src->id == F1AP_ProtocolIE_ID_id_Cells_to_be_Activated_List_Item);
+  assert(src->criticality == F1AP_Criticality_reject);
+  assert(src->value.present == F1AP_Cells_to_be_Activated_List_ItemIEs__value_PR_Cells_to_be_Activated_List_Item);
+
+  F1AP_Cells_to_be_Activated_List_Item_t const* src_it = &src->value.choice.Cells_to_be_Activated_List_Item;
+
+  // Mandatory
+  // NR CGI 
+  TBCD_TO_MCC_MNC(&src_it->nRCGI.pLMN_Identity, dst.nr_cgi.plmn_id.mcc, dst.nr_cgi.plmn_id.mnc, dst.nr_cgi.plmn_id.mnc_digit_len);
+  BIT_STRING_TO_NR_CELL_IDENTITY(&src_it->nRCGI.nRCellIdentity, dst.nr_cgi.nr_cell_id);
+  assert(dst.nr_cgi.nr_cell_id < (1ul << 36) );
+
+  // Optional
+  // NR PCI
+  if(src_it->nRPCI != NULL){
+    dst.nr_pci = malloc(sizeof(uint16_t));
+    assert(dst.nr_pci != NULL);
+    assert(*src_it->nRPCI < ( 1UL << 16));
+    *dst.nr_pci = *src_it->nRPCI;
+  }
+
+  if(src_it->iE_Extensions == NULL)
+    return dst;
+
+  for(size_t i = 0; i < ((F1AP_ProtocolExtensionContainer_154P46_t*)src_it->iE_Extensions)->list.count; ++i){
+    F1AP_Cells_to_be_Activated_List_ItemExtIEs_t const* ie = ((F1AP_ProtocolExtensionContainer_154P46_t*)src_it->iE_Extensions)->list.array[i];  
+
+    // gNB-CU System Information
+    if(ie->id == F1AP_ProtocolIE_ID_id_gNB_CUSystemInformation){
+      dst.sys_info = calloc(1, sizeof(gnb_cu_sys_info_t)); 
+      assert(dst.sys_info != NULL && "Memory exhausted");
+     
+      *dst.sys_info = cp_gnb_cu_system_info_ir(((F1AP_ProtocolExtensionContainer_154P46_t*)src_it->iE_Extensions));
+    } else {
+      // Available PLMN List. optional
+      // Extended Available PLMN List. optional
+      // IAB Info IAB-donor-CU. optional
+      // Available SNPN ID List. optional
+      assert(0 != 0 && "Not implemented or Unknown ID");
+    }
+  } 
+
+  return dst;
+}
+
+typedef struct{
+  size_t sz;
+  activate_cell_t* cell;
+} span_cell_act_cu_conf_up_t;
+
+static
+span_cell_act_cu_conf_up_t cp_cell_act_cu_conf_up_ir(F1AP_GNBCUConfigurationUpdateIEs_t const* src)
+{
+  assert(src != NULL);
+
+  span_cell_act_cu_conf_up_t dst = {0}; 
+
+  assert(src->id == F1AP_ProtocolIE_ID_id_Cells_to_be_Activated_List); 
+  assert(src->criticality == F1AP_Criticality_reject);
+  assert(src->value.present == F1AP_GNBCUConfigurationUpdateIEs__value_PR_Cells_to_be_Activated_List);
+
+  assert(src->value.choice.Cells_to_be_Activated_List.list.count > 0);
+  assert(src->value.choice.Cells_to_be_Activated_List.list.count < 513);
+  dst.sz = src->value.choice.Cells_to_be_Activated_List.list.count;
+
+  dst.cell = calloc(dst.sz, sizeof(activate_cell_t));
+  assert(dst.cell != NULL && "Memory exhausted");
+
+  for(size_t i = 0; i < dst.sz; ++i){
+   dst.cell[i] = cp_act_cell_cu_conf_up_ir((F1AP_Cells_to_be_Activated_List_ItemIEs_t*)src->value.choice.Cells_to_be_Activated_List.list.array[i]); 
+  }
+
+  return dst;
+}
+
+static
+cells_to_be_deact_t cp_cell_deact_it_cu_conf_up_ir(F1AP_Cells_to_be_Deactivated_List_ItemIEs_t const* src)
+{
+  assert(src != NULL);
+
+  cells_to_be_deact_t dst = {0};
+
+  assert(src->id == F1AP_ProtocolIE_ID_id_Cells_to_be_Deactivated_List_Item); 
+  assert(src->criticality == F1AP_Criticality_reject);
+  assert(src->value.present == F1AP_Cells_to_be_Deactivated_List_ItemIEs__value_PR_Cells_to_be_Deactivated_List_Item);
+
+  // mandatory
+  // NR CGI
+  TBCD_TO_MCC_MNC(&src->value.choice.Cells_to_be_Deactivated_List_Item.nRCGI.pLMN_Identity, dst.nr_cgi.plmn_id.mcc, dst.nr_cgi.plmn_id.mnc, dst.nr_cgi.plmn_id.mnc_digit_len);
+  BIT_STRING_TO_NR_CELL_IDENTITY(&src->value.choice.Cells_to_be_Deactivated_List_Item.nRCGI.nRCellIdentity, dst.nr_cgi.nr_cell_id);
+  assert(dst.nr_cgi.nr_cell_id < (1ul << 36) );
+
+  return dst;
+}
+
+typedef struct{
+  size_t sz;
+  cells_to_be_deact_t* cell; 
+} span_cell_deact_cu_conf_up_t ;
+
+span_cell_deact_cu_conf_up_t cp_cell_deact_cu_conf_up_ir(F1AP_GNBCUConfigurationUpdateIEs_t const* src)
+{
+  assert(src != NULL);
+
+  span_cell_deact_cu_conf_up_t dst = {0}; 
+
+  assert(src->id == F1AP_ProtocolIE_ID_id_Cells_to_be_Deactivated_List); 
+  assert(src->criticality == F1AP_Criticality_reject);
+  assert(src->value.present == F1AP_GNBCUConfigurationUpdateIEs__value_PR_Cells_to_be_Deactivated_List);
+
+  F1AP_Cells_to_be_Deactivated_List_t	const* src_cell = &src->value.choice.Cells_to_be_Deactivated_List;
+  assert(src_cell->list.count > 0);
+  assert(src_cell->list.count < 513);
+
+  dst.sz = src_cell->list.count; 
+  dst.cell = calloc(dst.sz, sizeof(cells_to_be_deact_t));
+  assert(dst.cell != NULL && "Memory exhausted");
+
+  for(size_t i = 0; i < dst.sz; ++i){
+    F1AP_Cells_to_be_Deactivated_List_ItemIEs_t const* ie = (F1AP_Cells_to_be_Deactivated_List_ItemIEs_t*)src_cell->list.array[i];
+    dst.cell[i] = cp_cell_deact_it_cu_conf_up_ir(ie); 
+  }
+
+  return dst;
+}
+
+static
+endpoint_ip_addr_port_t cp_ip_addr_port_ir(F1AP_Endpoint_IP_address_and_port_t* const src)
+{
+  assert(src != NULL);
+
+  endpoint_ip_addr_port_t dst = {0}; 
+
+  dst.endpoint_ip_addr.trans_layer_add = copy_bit_string(&src->endpointIPAddress);
+
+  assert(src->iE_Extensions != NULL && "Port needed" );
+
+  assert(((F1AP_ProtocolExtensionContainer_154P93_t*)src->iE_Extensions)->list.count == 1);
+
+  F1AP_Endpoint_IP_address_and_port_ExtIEs_t const* src_ie = ((F1AP_ProtocolExtensionContainer_154P93_t*)src->iE_Extensions)->list.array[0];
+
+  assert(src_ie->id == F1AP_ProtocolIE_ID_id_portNumber); 
+  assert(src_ie->criticality == F1AP_Criticality_reject); 
+  assert(src_ie->extensionValue.present == F1AP_Endpoint_IP_address_and_port_ExtIEs__extensionValue_PR_PortNumber); 
+
+  dst.port = copy_bit_string(&src_ie->extensionValue.choice.PortNumber);
+
+  return dst;
+}
+
+static
+cp_trans_layer_info_t cp_tnl_assoc_tran_layer_addr_ir(F1AP_CP_TransportLayerAddress_t	const* src)
+{
+  assert(src != NULL);
+
+  cp_trans_layer_info_t dst = {0}; 
+
+  if(src->present ==  F1AP_CP_TransportLayerAddress_PR_endpoint_IP_address) {
+    dst.type = IP_ADDRESS_CP_TRANS_LAYER_INFO; 
+    dst.ep_ip_addr.trans_layer_add = copy_bit_string(&src->choice.endpoint_IP_address); 
+  } else if (src->present == F1AP_CP_TransportLayerAddress_PR_endpoint_IP_address_and_port){
+      dst.type = IP_ADDRESS_PORT_CP_TRANS_LAYER_INFO;
+      dst.ep_ip_addr_port = cp_ip_addr_port_ir(src->choice.endpoint_IP_address_and_port);
+  } else {
+    assert(0!=0 && "Unknown type");
+  } 
+
+  return dst;
+}
+
+static
+tnl_assoc_usage_e cp_tnl_usage(F1AP_TNLAssociationUsage_t	src) 
+{
+  tnl_assoc_usage_e dst = {0}; 
+
+  if(src == F1AP_TNLAssociationUsage_ue	 ){
+    dst = UE_TNL_ASSOC_USAGE; 
+  } else if(src == F1AP_TNLAssociationUsage_non_ue){
+    dst = NON_UE_TNL_ASSOC_USAGE ; 
+  } else if (src == F1AP_TNLAssociationUsage_both){
+    dst = BOTH_TNL_ASSOC_USAGE; 
+  } else {
+    assert(0!=0 && "Unknown type" );
+  }
+
+  return dst;
+}
+
+static
+gnb_cu_tnl_asso_to_add_t cp_tnl_assoc_add_it_cu_conf_up_ir(F1AP_GNB_CU_TNL_Association_To_Add_ItemIEs_t const* src)
+{
+  assert(src != NULL);
+
+  gnb_cu_tnl_asso_to_add_t dst = {0}; 
+
+  assert(src->id == F1AP_ProtocolIE_ID_id_GNB_CU_TNL_Association_To_Add_Item);
+  assert(src->criticality == F1AP_Criticality_ignore);
+  assert(src->value.present ==  F1AP_GNB_CU_TNL_Association_To_Add_ItemIEs__value_PR_GNB_CU_TNL_Association_To_Add_Item);
+
+ F1AP_GNB_CU_TNL_Association_To_Add_Item_t const* src_ie = &src->value.choice.GNB_CU_TNL_Association_To_Add_Item;
+  
+  // TNL Association Transport Layer Address 9.3.2.4
+  // Mandatory
+  dst.cp_trans_layer_info = cp_tnl_assoc_tran_layer_addr_ir(&src_ie->tNLAssociationTransportLayerAddress); 
+
+  // TNL Association Usage
+  //  Mandatory
+  dst.tnl_assoc_usage = cp_tnl_usage(src_ie->tNLAssociationUsage) ;
+
+  return dst;
+}
 
 
+typedef struct{
+  size_t sz;
+  gnb_cu_tnl_asso_to_add_t* tnl; 
+} span_tnl_assoc_add_t; 
+
+static
+span_tnl_assoc_add_t cp_tnl_assoc_add_cu_conf_up_ir(F1AP_GNBCUConfigurationUpdateIEs_t const* src)
+{
+  assert(src != NULL);
+  span_tnl_assoc_add_t dst = {0};
+
+  assert(src->id == F1AP_ProtocolIE_ID_id_GNB_CU_TNL_Association_To_Add_List); 
+  assert(src->criticality == F1AP_Criticality_ignore);
+  assert(src->value.present == F1AP_GNBCUConfigurationUpdateIEs__value_PR_GNB_CU_TNL_Association_To_Add_List);
+
+ F1AP_GNB_CU_TNL_Association_To_Add_List_t const* src_tnl = &src->value.choice.GNB_CU_TNL_Association_To_Add_List;
+
+  assert(src_tnl->list.count > 0);
+  assert(src_tnl->list.count < 33);
+  dst.sz =src_tnl->list.count; 
+
+  dst.tnl = calloc(dst.sz, sizeof(gnb_cu_tnl_asso_to_add_t));
+  assert(dst.tnl != NULL && "Memory exhausted");
+
+  for(size_t i = 0; i < dst.sz; ++i){
+    dst.tnl[i] = cp_tnl_assoc_add_it_cu_conf_up_ir((F1AP_GNB_CU_TNL_Association_To_Add_ItemIEs_t*)src_tnl->list.array[i]);
+  }
+
+  return dst;
+}
+
+static
+gnb_cu_tnl_assoc_to_rem_t cp_tnl_assoc_rm_it_cu_conf_up_ir( F1AP_GNB_CU_TNL_Association_To_Remove_ItemIEs_t const* src)
+{
+  assert(src != NULL);
+
+  gnb_cu_tnl_assoc_to_rem_t dst = {0}; 
+
+  assert(src->id == F1AP_ProtocolIE_ID_id_GNB_CU_TNL_Association_To_Remove_Item);
+  assert(src->criticality == F1AP_Criticality_ignore);
+  assert(src->value.present == F1AP_GNB_CU_TNL_Association_To_Remove_ItemIEs__value_PR_GNB_CU_TNL_Association_To_Remove_Item);
+
+
+ F1AP_GNB_CU_TNL_Association_To_Remove_Item_t	const* src_it = &src->value.choice.GNB_CU_TNL_Association_To_Remove_Item;
+
+  // TNL Association Transport Layer Address 9.3.2.4
+  // Mandatory
+  dst.tnl_assoc_trans = cp_tnl_assoc_tran_layer_addr_ir(&src_it->tNLAssociationTransportLayerAddress);
+
+  // TNL Association Transport Layer Address gNB-DU
+  // Optional
+  if(src_it->iE_Extensions != NULL){
+
+  assert(((struct F1AP_ProtocolExtensionContainer_154P116*)src_it->iE_Extensions)->list.count == 1);
+
+  F1AP_GNB_CU_TNL_Association_To_Remove_Item_ExtIEs_t const* src_ie =  ((struct F1AP_ProtocolExtensionContainer_154P116*)src_it->iE_Extensions)->list.array[0];
+
+
+  assert(src_ie->id == F1AP_ProtocolIE_ID_id_GNB_CU_TNL_Association_To_Remove_Item);
+   assert(src_ie->criticality == F1AP_Criticality_reject);
+   assert(src_ie->extensionValue.present == F1AP_GNB_CU_TNL_Association_To_Remove_Item_ExtIEs__extensionValue_PR_CP_TransportLayerAddress);
+
+   dst.tnl_assoc_trans_du = calloc(1, sizeof(cp_trans_layer_info_t));
+   assert(dst.tnl_assoc_trans_du != NULL && "Memory exhausted");
+
+    *dst.tnl_assoc_trans_du =  cp_tnl_assoc_tran_layer_addr_ir(&src_ie->extensionValue.choice.CP_TransportLayerAddress);
+  } 
+
+  return dst;
+}
+
+typedef struct{
+  size_t sz;
+  gnb_cu_tnl_assoc_to_rem_t* tnl; 
+} span_tnl_assoc_rm_t; 
+
+static
+span_tnl_assoc_rm_t cp_tnl_assoc_rm_cu_conf_up_ir(F1AP_GNBCUConfigurationUpdateIEs_t const* src)
+{
+  assert(src != NULL);
+
+  span_tnl_assoc_rm_t dst = {0}; 
+
+  assert(src->id == F1AP_ProtocolIE_ID_id_GNB_CU_TNL_Association_To_Remove_List); 
+  assert(src->criticality == F1AP_Criticality_ignore);
+  assert(src->value.present == F1AP_GNBCUConfigurationUpdateIEs__value_PR_GNB_CU_TNL_Association_To_Remove_List);
+
+ F1AP_GNB_CU_TNL_Association_To_Remove_List_t const* src_lst = &src->value.choice.GNB_CU_TNL_Association_To_Remove_List;
+
+ assert(src_lst->list.count > 0);
+ assert(src_lst->list.count < 33);
+
+ dst.sz = src_lst->list.count;
+ dst.tnl = calloc(dst.sz, sizeof(gnb_cu_tnl_assoc_to_rem_t));
+ assert(dst.tnl != NULL && "Memory exhausted");
+
+ for(size_t i = 0; i < dst.sz; ++i){
+    dst.tnl[i] =  cp_tnl_assoc_rm_it_cu_conf_up_ir((F1AP_GNB_CU_TNL_Association_To_Remove_ItemIEs_t*)src_lst->list.array[i]);
+ }
+
+  return dst;
+}
+
+static
+gnb_cu_tnl_assoc_to_upd_t cp_tnl_assoc_to_upd_it_cu_conf_up_ir(F1AP_GNB_CU_TNL_Association_To_Update_ItemIEs_t const* src)
+{
+  assert(src != NULL);
+
+  gnb_cu_tnl_assoc_to_upd_t dst = {0}; 
+
+  assert(src->id == F1AP_ProtocolIE_ID_id_GNB_CU_TNL_Association_To_Update_Item);
+  assert(src->criticality == F1AP_Criticality_ignore);
+  assert(src->value.present == F1AP_GNB_CU_TNL_Association_To_Update_ItemIEs__value_PR_GNB_CU_TNL_Association_To_Update_Item);
+
+ F1AP_GNB_CU_TNL_Association_To_Update_Item_t const* src_it = &src->value.choice.GNB_CU_TNL_Association_To_Update_Item;
+
+ // TNL Association Transport Layer Address 9.3.2.4
+  // Mandatory
+  dst.tnl_assoc_trans_addr = cp_tnl_assoc_tran_layer_addr_ir(&src_it->tNLAssociationTransportLayerAddress);
+
+  // TNL Association Usage
+  // Optional
+  if(src_it->tNLAssociationUsage != NULL){
+    dst.tnl_association_usage = calloc(1, sizeof(tnl_assoc_usage_e));
+    assert(dst.tnl_association_usage != NULL && "Memory exhausted");
+
+    *dst.tnl_association_usage = cp_tnl_usage(*src_it->tNLAssociationUsage) ; 
+  }
+
+  return dst;
+}
+
+typedef struct{
+  size_t sz;
+  gnb_cu_tnl_assoc_to_upd_t* tnl; 
+} span_tnl_assoc_upd_t;
+
+span_tnl_assoc_upd_t cp_tnl_assoc_upd_cu_conf_up_ir(F1AP_GNBCUConfigurationUpdateIEs_t const* src) 
+{
+  assert(src != NULL);
+
+  span_tnl_assoc_upd_t dst = {0}; 
+
+  assert(src->id == F1AP_ProtocolIE_ID_id_GNB_CU_TNL_Association_To_Update_List); 
+  assert(src->criticality == F1AP_Criticality_ignore);
+  assert(src->value.present == F1AP_GNBCUConfigurationUpdateIEs__value_PR_GNB_CU_TNL_Association_To_Update_List);
+
+  F1AP_GNB_CU_TNL_Association_To_Update_List_t	const* src_lst = &src->value.choice.GNB_CU_TNL_Association_To_Update_List;
+
+  assert(src_lst->list.count > 0);
+  assert(src_lst->list.count < 33);
+
+  dst.sz = src_lst->list.count; 
+  dst.tnl = calloc(dst.sz, sizeof(gnb_cu_tnl_assoc_to_upd_t));
+  assert(dst.tnl != NULL && "Memory exhausted");
+
+  for(size_t i = 0; i < dst.sz; ++i){
+    dst.tnl[i] = cp_tnl_assoc_to_upd_it_cu_conf_up_ir((F1AP_GNB_CU_TNL_Association_To_Update_ItemIEs_t*)src_lst->list.array[i]);
+  }
+
+  return dst;
+}
+
+static
+cell_barred_e cp_cell_barred_ir(F1AP_CellBarred_t	src)
+{
+	cell_barred_e dst = {0}; 
+
+  if(src == F1AP_CellBarred_barred){
+    dst = BARRED_CELL_BARRED;
+  } else if(src == F1AP_CellBarred_not_barred){
+    dst = NOT_BARRED_CELL_BARRED;
+  } else {
+    assert( 0!= 0 && "Unknown type" );
+  }
+  
+  return dst;
+}
+
+static
+cells_to_be_barred_t cp_cell_to_be_barred_it_cu_conf_up(F1AP_Cells_to_be_Barred_ItemIEs_t const* src)
+{
+  assert(src != NULL);
+
+  cells_to_be_barred_t dst = {0}; 
+
+  assert(src->id == F1AP_ProtocolIE_ID_id_Cells_to_be_Barred_Item);
+  assert(src->criticality == F1AP_Criticality_ignore);
+  assert(src->value.present == F1AP_Cells_to_be_Barred_ItemIEs__value_PR_Cells_to_be_Barred_Item);
+
+
+ F1AP_Cells_to_be_Barred_Item_t	const* src_it = &src->value.choice.Cells_to_be_Barred_Item;
+
+  // NR CGI 9.3.1.12
+  // Mandatory
+  TBCD_TO_MCC_MNC(&src_it->nRCGI.pLMN_Identity, dst.nr_cgi.plmn_id.mcc, dst.nr_cgi.plmn_id.mnc, dst.nr_cgi.plmn_id.mnc_digit_len);
+  BIT_STRING_TO_NR_CELL_IDENTITY(&src_it->nRCGI.nRCellIdentity, dst.nr_cgi.nr_cell_id);
+  assert(dst.nr_cgi.nr_cell_id < (1ul << 36) );
+
+  // Cell Barred 
+  // Mandatory
+  dst.cell_barred = cp_cell_barred_ir(src_it->cellBarred);
+
+  // IAB Barred 
+  // Optional
+  if(src_it->iE_Extensions != NULL){
+
+    assert(((F1AP_ProtocolExtensionContainer_154P48_t*)src_it->iE_Extensions)->list.count == 1);
+
+    F1AP_Cells_to_be_Barred_Item_ExtIEs_t const* src_ie = ((F1AP_ProtocolExtensionContainer_154P48_t*)src_it->iE_Extensions)->list.array[0];
+
+    assert(src_ie->id == F1AP_ProtocolIE_ID_id_IAB_Barred);
+    assert(src_ie->criticality == F1AP_Criticality_ignore);
+    assert(src_ie->extensionValue.present == F1AP_Cells_to_be_Barred_Item_ExtIEs__extensionValue_PR_IAB_Barred);
+
+    dst.iab_barred = calloc(1, sizeof(cell_barred_e) );
+    assert(dst.iab_barred != NULL && "Memory exhausted"); 
+
+    *dst.iab_barred = cp_cell_barred_ir(src_ie->extensionValue.choice.IAB_Barred); 
+  }
+
+  return dst;
+}
+
+typedef struct{
+  size_t sz;
+  cells_to_be_barred_t* cells;
+} span_cells_to_be_barred_t; 
+
+static
+span_cells_to_be_barred_t cp_cells_to_be_barred_cu_conf_up_ir(F1AP_GNBCUConfigurationUpdateIEs_t const* src)
+{
+  assert(src != NULL);
+
+  span_cells_to_be_barred_t dst = {0}; 
+
+  assert(src->id == F1AP_ProtocolIE_ID_id_Cells_to_be_Barred_List); 
+  assert(src->criticality == F1AP_Criticality_ignore);
+  assert(src->value.present == F1AP_GNBCUConfigurationUpdateIEs__value_PR_Cells_to_be_Barred_List);
+
+  F1AP_Cells_to_be_Barred_List_t	const* src_lst = &src->value.choice.Cells_to_be_Barred_List; 
+
+  assert(src_lst->list.count > 0);
+  assert(src_lst->list.count < 513);
+
+  dst.sz = src_lst->list.count;
+  dst.cells = calloc(dst.sz, sizeof(cells_to_be_barred_t));
+  assert(dst.cells != NULL && "Memory exhausted");
+
+  for(size_t i = 0; i < dst.sz; ++i){
+    dst.cells[i] = cp_cell_to_be_barred_it_cu_conf_up((F1AP_Cells_to_be_Barred_ItemIEs_t*)src_lst->list.array[i]); 
+  } 
+
+  return dst;
+}
+
+static
+fdd_info_serv_eutra_cell_info_t cp_eutra_cell_info_fdd(F1AP_EUTRA_FDD_Info_t const* src)
+{
+  assert(src != NULL);
+
+  fdd_info_serv_eutra_cell_info_t dst = {0};
+
+// [0,2199]
+  assert(src->uL_offsetToPointA < 2200);
+  dst.ul_offset_to_point_a = src->uL_offsetToPointA;
+
+  // [0,2199]
+  assert(src->dL_offsetToPointA < 2200);
+  dst.dl_offset_to_point_a = src->dL_offsetToPointA;
+
+  return dst;
+}
+
+static
+tdd_info_serv_eutra_cell_info_t cp_eutra_cell_info_tdd(F1AP_EUTRA_TDD_Info_t const* src)
+{
+  assert(src != NULL);
+
+  tdd_info_serv_eutra_cell_info_t dst = {0}; 
+
+  // [0,2199]
+  assert(src->offsetToPointA < 2200);
+  dst.offset_to_point_a = src->offsetToPointA; 
+
+  return dst;
+}
+
+static
+serv_eutra_cell_info_t cp_serv_eutra_cell_info_ir(F1AP_Served_EUTRA_Cells_Information_t const* src)
+{
+  assert(src != NULL);
+
+  serv_eutra_cell_info_t dst = {0}; 
+
+  if(src->eUTRA_Mode_Info.present == F1AP_EUTRA_Mode_Info_PR_eUTRAFDD){
+    dst.type = FDD_INFO_SERV_EUTRA_CELL_INFO;
+    dst.fdd = cp_eutra_cell_info_fdd(src->eUTRA_Mode_Info.choice.eUTRAFDD);
+  } else if(src->eUTRA_Mode_Info.present == F1AP_EUTRA_Mode_Info_PR_eUTRATDD){
+    dst.type = TDD_INFO_SERV_EUTRA_CELL_INFO;
+    dst.tdd = cp_eutra_cell_info_tdd(src->eUTRA_Mode_Info.choice.eUTRATDD);
+  } else {
+    assert(0 !=0 && "Unknown type" );
+  }
+
+  return dst;
+}
+
+static
+eutra_cell_t cp_eutra_cell_it_cu_conf_up(F1AP_EUTRACells_List_item_t const* src)
+{
+  assert(src != NULL);
+
+  eutra_cell_t dst = {0}; 
+
+  // EUTRA Cell ID
+  // Mandatory // [28]
+  assert(src->eUTRA_Cell_ID.size == 4 && src->eUTRA_Cell_ID.bits_unused == 4);
+  dst.eutra_cell_id = copy_bit_string(&src->eUTRA_Cell_ID); 
+
+  // Served E-UTRA CellInformation 9.3.1.64
+  // Mandatory
+ 
+  dst.serv_eutra_cell_info = cp_serv_eutra_cell_info_ir(&src->served_EUTRA_Cells_Information); 
+
+
+  return dst;
+}
+
+static
+prot_eutra_resources_t cp_prot_eutra_res_it_cu_conf_up_ir(F1AP_Protected_EUTRA_Resources_ItemIEs_t const* src)
+{
+  assert(src != NULL);
+
+  prot_eutra_resources_t dst = {0}; 
+
+  assert(src->id == F1AP_ProtocolIE_ID_id_Protected_EUTRA_Resources_Item);
+  assert(src->criticality == F1AP_Criticality_reject);
+  assert(src->value.present == F1AP_Protected_EUTRA_Resources_ItemIEs__value_PR_Protected_EUTRA_Resources_Item);
+
+ F1AP_Protected_EUTRA_Resources_Item_t const* src_it = &src->value.choice.Protected_EUTRA_Resources_Item;
+  // Spectrum sharing group [1, 256]
+  assert(src_it->spectrumSharingGroupID > 0);
+  assert(src_it->spectrumSharingGroupID < 257);
+  dst.spec_sharing_group_id = src_it->spectrumSharingGroupID;
+
+  // EUTRA Cell                                
+  assert(src_it->eUTRACells_List.list.count > 0); 
+  assert(src_it->eUTRACells_List.list.count < 257); 
+
+  dst.sz_eutra_cell = src_it->eUTRACells_List.list.count; 
+  dst.eutra_cell = calloc( dst.sz_eutra_cell, sizeof(eutra_cell_t) );
+  assert(dst.eutra_cell != NULL && "Memory exhausted");
+
+  for(size_t i = 0; i < dst.sz_eutra_cell; ++i){
+    dst.eutra_cell[i] = cp_eutra_cell_it_cu_conf_up(src_it->eUTRACells_List.list.array[i]); 
+  }
+
+  return dst;
+}
+
+
+typedef struct{
+  size_t sz;
+  prot_eutra_resources_t* eutra;
+} span_prot_eutra_res_lst_t;
+
+static
+span_prot_eutra_res_lst_t cp_prot_eutra_res_cu_conf_up_ir(F1AP_GNBCUConfigurationUpdateIEs_t const* src)
+{
+  assert(src != NULL);
+
+  span_prot_eutra_res_lst_t dst = {0}; 
+
+  assert(src->id == F1AP_ProtocolIE_ID_id_Protected_EUTRA_Resources_List); 
+  assert(src->criticality == F1AP_Criticality_reject);
+  assert(src->value.present == F1AP_GNBCUConfigurationUpdateIEs__value_PR_Protected_EUTRA_Resources_List);
+
+ F1AP_Protected_EUTRA_Resources_List_t const* src_lst = &src->value.choice.Protected_EUTRA_Resources_List;
+
+  assert(src_lst->list.count > 0);
+  assert(src_lst->list.count < 257);
+
+  dst.sz = src_lst->list.count;
+  dst.eutra = calloc(dst.sz, sizeof(prot_eutra_resources_t));
+  assert(dst.eutra != NULL && "Memory exhausted");
+
+  for(size_t i = 0; i < dst.sz; ++i){
+    dst.eutra[i] = cp_prot_eutra_res_it_cu_conf_up_ir((F1AP_Protected_EUTRA_Resources_ItemIEs_t*)src_lst->list.array[i]);
+  }
+
+  return dst;
+}
+
+gnb_cu_conf_update_t cp_gnb_cu_conf_update_ir(F1AP_F1AP_PDU_t const* src_pdu)
+{
+  assert(src_pdu != NULL);
+
+  gnb_cu_conf_update_t dst = {0};
+
+  assert(src_pdu->present == F1AP_F1AP_PDU_PR_initiatingMessage);
+
+  F1AP_InitiatingMessage_t const* src_out = src_pdu->choice.initiatingMessage;
+
+  assert(src_out->procedureCode == F1AP_ProcedureCode_id_gNBCUConfigurationUpdate);
+  assert(src_out->criticality == F1AP_Criticality_reject);
+  assert(src_out->value.present == F1AP_InitiatingMessage__value_PR_GNBCUConfigurationUpdate);
+
+  F1AP_GNBCUConfigurationUpdate_t const* src = & src_out->value.choice.GNBCUConfigurationUpdate;
+
+  assert(src->protocolIEs.list.count > 1 && "At least 2 are needed");
+  for(size_t i = 0; i < src->protocolIEs.list.count; ++i){
+    F1AP_GNBCUConfigurationUpdateIEs_t const* ie = src->protocolIEs.list.array[i]; 
+    // Mandatory
+    // Transaction ID 9.3.1.23
+    if(ie->id == F1AP_ProtocolIE_ID_id_TransactionID){
+      dst.trans_id = cp_trans_id_cu_conf_up_ir(ie);
+
+      // Cells to be Activated List [0,512]
+    } else if(ie->id == F1AP_ProtocolIE_ID_id_Cells_to_be_Activated_List){
+      span_cell_act_cu_conf_up_t tmp = cp_cell_act_cu_conf_up_ir(ie);
+      dst.sz_cells_to_be_act = tmp.sz;
+      dst.cells_to_be_act = tmp.cell;
+
+      // Cells to be Deactivated List [0,512]
+    }else if(ie->id == F1AP_ProtocolIE_ID_id_Cells_to_be_Deactivated_List){
+      span_cell_deact_cu_conf_up_t tmp = cp_cell_deact_cu_conf_up_ir(ie);
+      dst.sz_cells_to_be_deact = tmp.sz;
+      dst.cells_to_be_deact = tmp.cell;
+
+      // TNL Association To Add List
+    }else if(ie->id == F1AP_ProtocolIE_ID_id_GNB_CU_TNL_Association_To_Add_List){
+      span_tnl_assoc_add_t tmp = cp_tnl_assoc_add_cu_conf_up_ir(ie);
+      dst.sz_gnb_cu_tnl_asso_to_add = tmp.sz;
+      dst.gnb_cu_tnl_asso_to_add = tmp.tnl;
+
+      // TNL Association To Remove List // [0,32] 
+    }else if(ie->id == F1AP_ProtocolIE_ID_id_GNB_CU_TNL_Association_To_Remove_List ){
+      span_tnl_assoc_rm_t tmp = cp_tnl_assoc_rm_cu_conf_up_ir(ie);
+      dst.sz_gnb_cu_tnl_assoc_to_rem = tmp.sz;
+      dst.gnb_cu_tnl_assoc_to_rem = tmp.tnl;
+
+      // TNL Association To Update List // [0,32] 
+    } else if(ie->id == F1AP_ProtocolIE_ID_id_GNB_CU_TNL_Association_To_Update_List){
+      span_tnl_assoc_upd_t tmp = cp_tnl_assoc_upd_cu_conf_up_ir(ie);
+      dst.sz_gnb_cu_tnl_assoc_to_upd = tmp.sz;
+      dst.gnb_cu_tnl_assoc_to_upd = tmp.tnl;
+
+      // Cells to be Barred // [0, 512] 
+    } else if(ie->id == F1AP_ProtocolIE_ID_id_Cells_to_be_Barred_List){
+      span_cells_to_be_barred_t tmp = cp_cells_to_be_barred_cu_conf_up_ir(ie);
+      dst.sz_cells_to_be_barred = tmp.sz;
+      dst.cells_to_be_barred = tmp.cells;
+
+      // Protected EUTRA Resources [0, 257] 
+    } else if(ie->id == F1AP_ProtocolIE_ID_id_Protected_EUTRA_Resources_List){
+      span_prot_eutra_res_lst_t tmp = cp_prot_eutra_res_cu_conf_up_ir(ie);
+      dst.sz_prot_eutra_resources = tmp.sz;
+      dst.prot_eutra_resources = tmp.eutra;
+
+    } else {
+      assert(0!=0 && "Not implemented or Unknown ie ID");
+    }
+  }
+  return dst;
+}
 

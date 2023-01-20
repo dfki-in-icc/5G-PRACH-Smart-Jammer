@@ -6,6 +6,7 @@ set(f1ap_src_types
   brdcst_PLMN_id_info.c
   cause_f1ap.c
 
+  cells_to_be_deact.c
   cells_to_be_barred.c
 
   criticallity_diagnostic_f1ap.c
@@ -73,6 +74,8 @@ set(f1ap_src_types
   srb_setup_item.c
   ssb_pos_burst.c
   sul_info.c
+
+  tnl_assoc_usage.c
 
   tsc_traffic_char.c
   tsc_assistance_info.c
