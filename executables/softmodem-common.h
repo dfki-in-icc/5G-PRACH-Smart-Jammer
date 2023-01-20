@@ -174,7 +174,7 @@ extern int usrp_tx_thread;
     {"disable-stats",        CONFIG_HLP_STATS_DISABLE, PARAMFLAG_BOOL, iptr:&stats_disabled,               defintval:0,           TYPE_INT,    0},                     \
   }
 
-#define NFAPI_IDX 31
+
 
 #define CMDLINE_PARAMS_CHECK_DESC {         \
     { .s5 = { NULL } },                     \

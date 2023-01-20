@@ -98,6 +98,7 @@ void get_common_options(uint32_t execmask) {
   uint32_t start_websrv = 0;
   uint32_t noS1 = 0, nokrnmod = 1, nonbiot = 0;
   uint32_t rfsim = 0, do_forms = 0;
+  int nfapi_index = 0;
   char *logmem_filename = NULL;
   check_execmask(execmask);
 
@@ -106,7 +107,9 @@ void get_common_options(uint32_t execmask) {
   int numparams = sizeof(cmdline_params) / sizeof(paramdef_t);
   config_set_checkfunctions(cmdline_params, cmdline_CheckParams, numparams);
   config_get(cmdline_params, sizeof(cmdline_params) / sizeof(paramdef_t), NULL);
-  nfapi_mode = config_get_processedint(&cmdline_params[NFAPI_IDX]);
+  nfapi_index = config_paramidx_fromname(cmdline_params, sizeof(cmdline_params) / sizeof(paramdef_t),"nfapi");
+  AssertFatal(nfapi_index != -1,"Index for nfapi config option not found!");
+  nfapi_mode = config_get_processedint(&cmdline_params[nfapi_index]);
 
   paramdef_t cmdline_logparams[] =CMDLINE_LOGPARAMS_DESC ;
   checkedparam_t cmdline_log_CheckParams[] = CMDLINE_LOGPARAMS_CHECK_DESC;
