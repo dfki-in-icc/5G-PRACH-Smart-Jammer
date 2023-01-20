@@ -374,7 +374,7 @@ function main() {
             BUILD_OPTLIB="" 
             if [  "$2" == "all" ] ; then
               BUILD_OPTLIB="$OPTIONAL_LIBRARIES"
-              CMAKE_CMD="$CMAKE_CMD -DENABLE_WEBSRV=ON"
+              CMAKE_CMD="$CMAKE_CMD -DENABLE_WEBSRV=ON -DENABLE_TELNETSRV=ON"
               echo_info "Enabling build of all optional shared libraries ($OPTIONAL_LIBRARIES)" 
             else
               for alib in $2 ; do 
@@ -389,6 +389,9 @@ function main() {
                 fi
                 if [ "$alib" = "websrv" -o "$alib" = "websrvfront" ]; then
                   CMAKE_CMD="$CMAKE_CMD -DENABLE_WEBSRV=ON"
+                fi
+                if [ "$alib" = "telnetsrv" ]; then
+                  CMAKE_CMD="$CMAKE_CMD -DENABLE_TELNETSRV=ON"
                 fi
               done
               if [ "${BUILD_OPTLIB## }" != "$2" ] ; then

@@ -2842,7 +2842,6 @@ if(OAI_NW_DRIVER_USE_NETLINK)
 endif()
 make_driver(ue_ip ${OPENAIR2_DIR}/NETWORK_DRIVER/UE_IP ${ue_ip_src})
 
-include (common/utils/telnetsrv/telnetsrv_CMakeLists.txt)
 include(${OPENAIR1_DIR}/PHY/CODING/nrLDPC_decoder/nrLDPC_tools/CMakeLists.txt)
 
 add_subdirectory(common)
