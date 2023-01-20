@@ -977,6 +977,10 @@ typedef struct LDPCDecode_s {
   int offset;
   int decodeIterations;
   uint32_t tbslbrm;
+
+#ifdef TASK_MANAGER
+  int* cancel_decoding; 
+#endif
 } ldpcDecode_t ;
 
 struct ldpcReqId {

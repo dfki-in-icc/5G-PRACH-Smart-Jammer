@@ -276,6 +276,11 @@ void nr_postDecode(PHY_VARS_gNB *gNB, notifiedFIFO_elt_t *req)
            rdata->Kr_bytes - (ulsch_harq->F>>3) -((ulsch_harq->C>1)?3:0));
 
   } else {
+    // Cancel the rest of the segment processing
+#ifdef TASK_MANAGER
+    *rdata->cancel_decoding = 1;
+#endif
+
     DevAssert(r<64);
     ulsch_harq->aborted|=1UL<<r;
     LOG_D(PHY,"uplink segment error %d/%d segments\n",rdata->segment_r,rdata->nbSegments);
