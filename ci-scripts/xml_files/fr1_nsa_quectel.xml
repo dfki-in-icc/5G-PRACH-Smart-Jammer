@@ -65,6 +65,18 @@
 		<desc>Terminate Quectel</desc>
 		<id>idefix</id>
 	</testCase>
+        <testCase id="100000">
+            <class>Custom_Command</class>
+            <desc>To reset cpupower</desc>
+            <node>obelix</node>
+            <command>sudo cpupower idle-set -D 0</command>
+        </testCase>
+        <testCase id="200000">
+            <class>Custom_Command</class>
+            <desc>To reset cpupower</desc>
+            <node>obelix</node>
+            <command>sudo cpupower idle-set -E</command>
+        </testCase>
 
 	<testCase id="030000">
 		<class>Initialize_eNB</class>
