@@ -943,12 +943,9 @@ static void uePdschLLR  (scopeGraphData_t **data, OAIgraph_t *graph, PHY_VARS_NR
   nx = websrv_cpllrbuff_tomsg(graph, pdsch_llr, sz, UE_id, 0, 0);
 #else
   oai_xygraph_getbuff(graph, &bit, &llr, sz, 0);
-
   for (int i=0; i<sz; i++) {
     llr[i] = (float) pdsch_llr[i];
   }
-#endif
-
   //fl_set_xyplot_xbounds(form->pdsch_llr,0,coded_bits_per_codeword);
   oai_xygraph(graph, bit, llr, nx, 0, 10);
 }
@@ -959,7 +956,7 @@ static void uePdschIQ  (scopeGraphData_t **data, OAIgraph_t *graph, PHY_VARS_NR_
 
   const int sz=data[pdschRxdataF_comp]->lineSz;
   int nz = sz;
-  float *I=NULL, *Q=NUL;
+  float *I=NULL, *Q=NULL;
   scopeSample_t *pdsch_comp = (scopeSample_t *) (data[pdschRxdataF_comp]+1);
 
 #ifdef WEBSRVSCOPE
