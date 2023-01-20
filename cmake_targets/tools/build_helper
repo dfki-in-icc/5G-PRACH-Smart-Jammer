@@ -555,7 +555,6 @@ check_install_additional_tools (){
     PACKAGE_LIST=" \
       doxygen \
       ctags \
-      ntpsec \
       iperf3 \
       xforms \
       xforms-devel \
