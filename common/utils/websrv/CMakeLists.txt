@@ -47,7 +47,7 @@ add_custom_target(
   DEPENDS frontend/package-lock.json
 )
 
-message(STATUS "Configuring webserver backend")
+message(STATUS "Configuring webserver frontend")
 add_custom_target(
   websrvfront
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/frontend
@@ -56,11 +56,8 @@ add_custom_target(
   DEPENDS websrvfront_installjsdep
 )
 
-
-#install built files, required at exec time
-install(TARGETS websrv DESTINATION bin)
-
+# copy frontend files to a websrv subdirectory of where oai copy all built files
 add_custom_command(TARGET websrvfront
-                   POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory frontend/dist/softmodem-ngx ${CMAKE_CURRENT_BINARY_DIR}/websrv
-                              COMMAND ${CMAKE_COMMAND} -E copy_directory helpfiles ${CMAKE_CURRENT_BINARY_DIR}/websrv/helpfiles
-                   COMMENT "Moving frontend files to:\n    ${CMAKE_CURRENT_BINARY_DIR}/websrv\n    ${OPENAIR_TARGETS}/bin/websrv" )
+                   POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/frontend/dist/softmodem-ngx ${OPENAIR_BIN_DIR}/../websrv
+                              COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/helpfiles ${OPENAIR_BIN_DIR}/../websrv/helpfiles
+                   COMMENT "Moving frontend files to:\n   ${OPENAIR_BIN_DIR}/../websrv \n " )
