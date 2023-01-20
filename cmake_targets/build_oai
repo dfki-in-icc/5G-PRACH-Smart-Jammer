@@ -78,7 +78,7 @@ Options:
 -d | --build-dir
    Sets build directory (will be <oai-root>/cmake_targets/<build-dir>/build)
 -I | --install-external-packages
-   Installs required packages such as LibXML, asn1.1 compiler, freediameter, ...
+   Installs required packages such as LibXML, asn1.1 compiler, ...
    This option will require root password
 --install-optional-packages
    Install useful but not mandatory packages such as valgrind
@@ -472,8 +472,6 @@ function main() {
   # Setting and printing OAI envs, we should check here #
   #######################################################
 
-  echo_info "2. Setting the OAI PATHS ..."
-
   cecho "OPENAIR_DIR    = $OPENAIR_DIR" $green
 
   # for conf files copy in this bash script
@@ -549,8 +547,6 @@ function main() {
   if [[ "$execlist" == "" && "$SIMUS_PHY" != "1" && "$HW" == "None" ]]; then
     SKIP_SHARED_LIB_FLAG="True"
   fi
-
-  echo_info "3. building the compilation directives ..."
 
   DIR=$OPENAIR_DIR/cmake_targets
 
@@ -745,7 +741,6 @@ function main() {
   # Auto-tests #
   ##############
   if [ "$OAI_TEST" = "1" ] ; then
-    echo_info "10. Running OAI pre commit tests (pre-ci) ..."
     echo_error "These scripts ASSUME that user is in /etc/sudoers and can execute commands without PASSWORD prompt"
     echo_error "Add the following lines in /etc/sudoers file to make your __user_name__ sudo without password prompt"
     echo_error " __your_user_name__ ALL = (ALL:ALL) NOPASSWD: ALL"
@@ -765,7 +760,6 @@ function main() {
     fi
     wait
   else
-    echo_info "10. Bypassing the Tests ..."
     echo_success "BUILD SHOULD BE SUCCESSFUL"
   fi
 
