@@ -2036,7 +2036,7 @@ void nr_rx_pusch(PHY_VARS_gNB *gNB,
       //--------------------- Channel Compensation ---------------
       //----------------------------------------------------------
       start_meas(&gNB->ulsch_channel_compensation_stats);
-      LOG_D(PHY,"Doing channel compensations log2_maxh %d, avgs %d (%d,%d)\n",gNB->pusch_vars[ulsch_id]->log2_maxh,avgs,avg[0],avg[1]);
+      LOG_D(PHY, "Doing channel compensations log2_maxh %d, avgs %d (%d)\n", gNB->pusch_vars[ulsch_id]->log2_maxh, avgs, avg[0]);
       nr_ulsch_channel_compensation(gNB->pusch_vars[ulsch_id]->rxdataF_ext,
                                     gNB->pusch_vars[ulsch_id]->ul_ch_estimates_ext,
                                     gNB->pusch_vars[ulsch_id]->ul_ch_mag0,

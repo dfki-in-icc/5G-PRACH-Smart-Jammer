@@ -219,6 +219,7 @@ static void nr_sdap_rx_entity(nr_sdap_entity_t *entity,
     req->ue_id         = ue_id;
     req->bearer_id     = pdusession_id;
     LOG_D(SDAP, "%s()  sending message to gtp size %d\n", __func__,  size-offset);
+    // very very dirty hack gloabl var N3GTPUInst
     itti_send_msg_to_task(TASK_GTPV1_U, *N3GTPUInst, message_p);
   } else { //nrUE
     /*

@@ -30,7 +30,7 @@
 #include "openair2/GNB_APP/gnb_paramdef.h"
 #include "openair3/ocp-gtpu/gtp_itf.h"
 
-MessageDef *RCconfig_NR_CU_E1(void)
+MessageDef *RCconfig_NR_CU_E1(bool separate_CUUP_process)
 {
   MessageDef *msgConfig = itti_alloc_new_message(TASK_GNB_APP, 0, E1AP_SETUP_REQ);
   if (!msgConfig)
@@ -73,21 +73,23 @@ MessageDef *RCconfig_NR_CU_E1(void)
       e1Setup->plmns[I].mnc = *PLMNParamList.paramarray[I][GNB_MNC_DIGIT_LENGTH].u8ptr;
     }
 
-    strcpy(e1Setup->CUCP_e1_ip_address.ipv4_address, *(GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_IPV4_ADDRESS_CUCP].strptr));
-    e1Setup->CUCP_e1_ip_address.ipv4 = 1;
-    e1Setup->port_cucp = *GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_PORT_CUCP].uptr;
-    strcpy(e1Setup->CUUP_e1_ip_address.ipv4_address, *(GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_IPV4_ADDRESS_CUUP].strptr));
-    e1Setup->CUUP_e1_ip_address.ipv4 = 1;
-    e1Setup->port_cuup = *GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_PORT_CUUP].uptr;
-    e1Setup->remoteDUPort = e1Setup->port_cuup; // set same as local port for now TODO: get from F1 config
+    if (separate_CUUP_process) {
+      strcpy(e1Setup->CUCP_e1_ip_address.ipv4_address, *(GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_IPV4_ADDRESS_CUCP].strptr));
+      e1Setup->CUCP_e1_ip_address.ipv4 = 1;
+      e1Setup->port_cucp = *GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_PORT_CUCP].uptr;
+      strcpy(e1Setup->CUUP_e1_ip_address.ipv4_address, *(GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_IPV4_ADDRESS_CUUP].strptr));
+      e1Setup->CUUP_e1_ip_address.ipv4 = 1;
+      e1Setup->port_cuup = *GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_PORT_CUUP].uptr;
+      e1Setup->remoteDUPort = e1Setup->port_cuup; // set same as local port for now TODO: get from F1 config
+      e1Setup->cn_support = *GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_CN_SUPPORT].uptr;
+    }
+
     char N3Addr[64];
     int N3Port;
     if (!get_NGU_S1U_addr(N3Addr, &N3Port)) {
-      ;
       inet_pton(AF_INET, N3Addr, &e1Setup->IPv4AddressN3);
       e1Setup->portN3 = N3Port;
     }
-    e1Setup->cn_support = *GNBE1ParamList.paramarray[0][GNB_CONFIG_E1_CN_SUPPORT].uptr;
   }
   return msgConfig;
 }

@@ -1707,7 +1707,7 @@ add_library(e1_if
   ${NR_RRC_DIR}/cucp_cuup_e1ap.c
   )
 
-target_link_libraries(e1_if PRIVATE asn1_nr_rrc asn1_lte_rrc asn1_f1ap)
+target_link_libraries(e1_if PRIVATE asn1_nr_rrc asn1_lte_rrc asn1_f1ap e1ap)
 
 add_library(e1_pdcp_if
   ${OPENAIR2_DIR}/LAYER2/nr_pdcp/nr_pdcp_e1_api.c
@@ -2449,7 +2449,7 @@ target_link_libraries(nr-softmodem PRIVATE
   UTIL HASHTABLE SCTP_CLIENT SCHED_LIB SCHED_RU_LIB SCHED_NR_LIB PHY_NR PHY PHY_COMMON PHY_NR_COMMON PHY_RU GTPV1U SECU_CN SECU_OSA
   ITTI ${RAL_LIB} ${NAS_UE_LIB} lte_rrc nr_rrc
   ngap s1ap L2_LTE_NR L2_NR MAC_NR_COMMON NFAPI_COMMON_LIB NFAPI_LIB NFAPI_VNF_LIB NFAPI_PNF_LIB NFAPI_USER_LIB SIMU
-  x2ap f1ap m2ap m3ap
+  x2ap f1ap m2ap m3ap e1ap
   -Wl,--end-group z dl)
 
 target_link_libraries(nr-softmodem PRIVATE ${LIBXML2_LIBRARIES})

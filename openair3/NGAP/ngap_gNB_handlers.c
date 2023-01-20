@@ -1046,14 +1046,14 @@ int ngap_gNB_handle_initial_context_request(uint32_t   assoc_id,
             break;
             
           default:
-            NGAP_ERROR("could not found protocolIEs id %ld\n", pdusessionTransfer_ies->id);
+            NGAP_ERROR("Not found protocolIEs id %ld\n", pdusessionTransfer_ies->id);
             return -1;
         }
       }
 
     } /* for i... */
   } else {/* ie != NULL */
-    NGAP_ERROR("could not found NGAP_ProtocolIE_ID_id_PDUSessionResourceSetupListCxtReq\n");
+    NGAP_ERROR("Not found NGAP_ProtocolIE_ID_id_PDUSessionResourceSetupListCxtReq\n");
   }
   
   /* id-AllowedNSSAI */

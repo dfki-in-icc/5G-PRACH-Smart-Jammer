@@ -112,10 +112,7 @@ void fill_DRB_configList(const protocol_ctxt_t *const ctxt_pP, rrc_gNB_ue_contex
 {
   abort();
 }
-NR_SRB_ToAddModList_t **generateSRB2_confList(gNB_RRC_UE_t *ue, NR_SRB_ToAddModList_t *SRB_configList, uint8_t xid)
-{
-  abort();
-}
+
 int main(int argc, char **argv)
 {
   /// static configuration for NR at the moment
@@ -133,7 +130,7 @@ int main(int argc, char **argv)
   rc = itti_create_task(TASK_CUUP_E1, E1AP_CUUP_task, NULL);
   AssertFatal(rc >= 0, "Create task for CUUP E1 failed\n");
   pdcp_layer_init();
-  MessageDef *msg = RCconfig_NR_CU_E1();
+  MessageDef *msg = RCconfig_NR_CU_E1(true);
   if (msg)
     itti_send_msg_to_task(TASK_CUUP_E1, 0, msg);
   else

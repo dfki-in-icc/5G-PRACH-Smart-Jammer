@@ -26,10 +26,10 @@
 
 #include "platform_types.h"
 #include "openair2/COMMON/e1ap_messages_types.h"
+#include "openair2/E1AP/e1ap_common.h"
+void cuup_init_n3(instance_t instance);
+void process_e1_bearer_context_setup_req(instance_t, e1ap_bearer_setup_req_t *const req);
+void CUUP_process_bearer_context_mod_req(instance_t, e1ap_bearer_setup_req_t *const req);
 
-void CUUP_process_e1_bearer_context_setup_req(e1ap_bearer_setup_req_t *const req, instance_t instance);
-
-void CUUP_process_bearer_context_mod_req(e1ap_bearer_setup_req_t *const req, instance_t instance);
-
-void CUUP_process_bearer_release_command(e1ap_bearer_release_cmd_t *const cmd, instance_t instance);
+void CUUP_process_bearer_release_command(instance_t, e1ap_bearer_release_cmd_t *const cmd);
 #endif

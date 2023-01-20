@@ -247,8 +247,6 @@ static void openair_rrc_gNB_configuration(const module_id_t gnb_mod_idP, gNB_Rrc
   rrc->ngap_id2_ngap_ids    = hashtable_create (NUMBER_OF_UE_MAX * 2, NULL, NULL);
   rrc->configuration = *configuration;
   rrc->carrier.servingcellconfigcommon = configuration->scc;
-  extern instance_t *N3GTPUInst;
-  N3GTPUInst = &rrc->gtpInstN3;
   rrc->carrier.servingcellconfig = configuration->scd;
   nr_rrc_config_ul_tda(configuration->scc,configuration->minRXTXTIME);
    /// System Information INIT

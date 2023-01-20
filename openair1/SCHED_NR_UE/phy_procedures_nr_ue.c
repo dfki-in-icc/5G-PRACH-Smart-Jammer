@@ -1360,7 +1360,7 @@ int phy_procedures_nrUE_RX(PHY_VARS_NR_UE *ue,
 
   stop_meas(&ue->generic_stat);
   if (cpumeas(CPUMEAS_GETSTATE))
-    LOG_D(PHY,"after tubo until end of Rx %5.2f \n",ue->generic_stat.p_time/(cpuf*1000.0));
+    LOG_D(PHY, "after LDPC until end of Rx %5.2f \n", ue->generic_stat.p_time / (cpuf * 1000.0));
 
 #ifdef EMOS
   phy_procedures_emos_UE_RX(ue,slot,gNB_id);

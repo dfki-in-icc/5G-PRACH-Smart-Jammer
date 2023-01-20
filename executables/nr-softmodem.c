@@ -81,6 +81,7 @@ unsigned short config_frames[4] = {2,9,11,13};
 #include <openair3/ocp-gtpu/gtp_itf.h>
 #include "nfapi/oai_integration/vendor_ext.h"
 #include "gnb_config.h"
+#include "openair2/E1AP/e1ap_common.h"
 
 pthread_cond_t nfapi_sync_cond;
 pthread_mutex_t nfapi_sync_mutex;
@@ -342,14 +343,8 @@ int create_gNB_tasks(void) {
     //registered_gnb = 0;
     __attribute__((unused)) uint32_t register_gnb_pending = gNB_app_register (gnb_id_start, gnb_id_end);
   }
-  
 
   if (gnb_nb > 0) {
-    /* Last task to create, others task must be ready before its start */
-    /*if (itti_create_task (TASK_GNB_APP, gNB_app_task, NULL) < 0) {
-      LOG_E(GNB_APP, "Create task for gNB APP failed\n");
-      return -1;
-    }*/
     if(itti_create_task(TASK_SCTP, sctp_eNB_task, NULL) < 0) {
       LOG_E(SCTP, "Create task for SCTP failed\n");
       return -1;
@@ -399,17 +394,22 @@ int create_gNB_tasks(void) {
       return -1;
     }
 
-    LOG_I(NR_RRC,"Creating NR RRC gNB Task\n");
-
+    LOG_I(NR_RRC, "Creating NR RRC gNB Task, that will also create TASKS\n");
     if (itti_create_task (TASK_RRC_GNB, rrc_gnb_task, NULL) < 0) {
       LOG_E(NR_RRC, "Create task for NR RRC gNB failed\n");
       return -1;
     }
 
     // If CU
-    if ((node_type == ngran_gNB_CU) ||
-        (node_type == ngran_gNB)) {
-      RC.nrrrc[gnb_id_start]->gtpInstN3 = RCconfig_nr_gtpu();
+    if (node_type == ngran_gNB_CU || node_type == ngran_gNB) {
+      MessageDef *msg = RCconfig_NR_CU_E1(false);
+      instance_t inst = 0;
+      createE1inst(UPtype, inst, &E1AP_SETUP_REQ(msg));
+      cuup_init_n3(inst);
+      itti_free(TASK_UNKNOWN, msg);
+      getCxtE1(inst)->same_process = true;
+      ;
+      RC.nrrrc[gnb_id_start]->e1_inst = inst; // stupid instance !!!*/
     }
 
     //Use check on x2ap to consider the NSA scenario 

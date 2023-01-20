@@ -34,10 +34,7 @@
 #include "e1ap_default_values.h"
 
 #define E1AP_NUM_MSG_HANDLERS 14
-typedef int (*e1ap_message_processing_t)(
-  instance_t            instance,
-  const E1AP_E1AP_PDU_t       *message_p
-);
+typedef int (*e1ap_message_processing_t)(e1ap_upcp_inst_t *inst, const E1AP_E1AP_PDU_t *message_p);
 e1ap_message_processing_t e1ap_message_processing[E1AP_NUM_MSG_HANDLERS][3] = {
 
   { 0, 0, 0 }, /* Reset */
@@ -76,35 +73,30 @@ int e1ap_handle_message(instance_t instance, uint32_t assoc_id,
     LOG_E(E1AP, "Failed to decode PDU\n");
     return -1;
   }
-
+  const E1AP_ProcedureCode_t procedureCode = pdu.choice.initiatingMessage->procedureCode;
   /* Checking procedure Code and direction of message */
-  if ((pdu.choice.initiatingMessage->procedureCode >= E1AP_NUM_MSG_HANDLERS)
-      || (pdu.present >  E1AP_E1AP_PDU_PR_unsuccessfulOutcome)
-      || (pdu.present <= E1AP_E1AP_PDU_PR_NOTHING)) {
-    LOG_E(E1AP, "[SCTP %d] Either procedureCode %ld or direction %d exceed expected\n",
-          assoc_id, pdu.choice.initiatingMessage->procedureCode, pdu.present);
+  if ((procedureCode >= E1AP_NUM_MSG_HANDLERS) || (pdu.present > E1AP_E1AP_PDU_PR_unsuccessfulOutcome) || (pdu.present <= E1AP_E1AP_PDU_PR_NOTHING)) {
+    LOG_E(E1AP, "[SCTP %d] Either procedureCode %ld or direction %d exceed expected\n", assoc_id, procedureCode, pdu.present);
     ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_E1AP_E1AP_PDU, &pdu);
     return -1;
   }
 
-  if (e1ap_message_processing[pdu.choice.initiatingMessage->procedureCode][pdu.present - 1] == NULL) {
+  if (e1ap_message_processing[procedureCode][pdu.present - 1] == NULL) {
     // No handler present. This can mean not implemented or no procedure for eNB (wrong direction).
-    LOG_E(E1AP, "[SCTP %d] No handler for procedureCode %ld in %s\n",
-          assoc_id, pdu.choice.initiatingMessage->procedureCode,
-          e1ap_direction2String(pdu.present - 1));
+    LOG_E(E1AP, "[SCTP %d] No handler for procedureCode %ld in %s\n", assoc_id, procedureCode, e1ap_direction2String(pdu.present - 1));
     ret=-1;
   } else {
     /* Calling the right handler */
     LOG_I(E1AP, "Calling handler with instance %ld\n",instance);
-    ret = (*e1ap_message_processing[pdu.choice.initiatingMessage->procedureCode][pdu.present - 1])
-          (instance, &pdu);
+    ret = (*e1ap_message_processing[procedureCode][pdu.present - 1])(getCxtE1(instance), &pdu);
   }
 
   ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_E1AP_E1AP_PDU, &pdu);
   return ret;
 }
 
-void cuxp_task_handle_sctp_data_ind(instance_t instance, sctp_data_ind_t *sctp_data_ind) {
+void e1_task_handle_sctp_data_ind(instance_t instance, sctp_data_ind_t *sctp_data_ind)
+{
   int result;
   DevAssert(sctp_data_ind != NULL);
   e1ap_handle_message(instance, sctp_data_ind->assoc_id,
@@ -120,10 +112,11 @@ void e1ap_itti_send_sctp_close_association(bool isCu, instance_t instance) {
   itti_send_msg_to_task(TASK_SCTP, instance, message);
 }
 
-int e1ap_send_RESET(bool isCu, instance_t instance, E1AP_Reset_t *Reset) {
+int e1ap_send_RESET(bool isCu, e1ap_setup_req_t *setupReq, E1AP_Reset_t *Reset)
+{
   AssertFatal(false,"Not implemented yet\n");
   E1AP_E1AP_PDU_t pdu= {0};
-  return e1ap_encode_send(isCu, instance, &pdu,0, __func__);
+  return e1ap_encode_send(isCu, setupReq, &pdu, 0, __func__);
 }
 
 int e1ap_send_RESET_ACKNOWLEDGE(instance_t instance, E1AP_Reset_t *Reset) {
@@ -168,9 +161,8 @@ int e1ap_send_ERROR_INDICATION(instance_t instance, E1AP_ErrorIndication_t *Erro
     E1 Setup: can be sent on both ways, to be refined
 */
 
-void fill_SETUP_REQUEST(instance_t instance,
-                        E1AP_E1AP_PDU_t *pdu) {
-  e1ap_setup_req_t *setup = &getCxtE1(UPtype, instance)->setupReq;
+static void fill_SETUP_REQUEST(e1ap_setup_req_t *setup, E1AP_E1AP_PDU_t *pdu)
+{
   /* Create */
   /* 0. pdu Type */
   pdu->present = E1AP_E1AP_PDU_PR_initiatingMessage;
@@ -219,9 +211,8 @@ void fill_SETUP_REQUEST(instance_t instance,
   }
 }
 
-void fill_SETUP_RESPONSE(instance_t instance,
-                           const e1ap_setup_resp_t *e1ap_setup_resp,
-                           E1AP_E1AP_PDU_t *pdu) {
+static void fill_SETUP_RESPONSE(const e1ap_setup_resp_t *e1ap_setup_resp, E1AP_E1AP_PDU_t *pdu)
+{
   /* Create */
   /* 0. pdu Type */
   pdu->present = E1AP_E1AP_PDU_PR_successfulOutcome;
@@ -239,17 +230,17 @@ void fill_SETUP_RESPONSE(instance_t instance,
   ieC1->value.choice.TransactionID = e1ap_setup_resp->transac_id;
 }
 
-void e1apCUCP_send_SETUP_RESPONSE(instance_t instance,
-                                  const e1ap_setup_resp_t *e1ap_setup_resp) {
+void e1ap_send_SETUP_RESPONSE(instance_t inst, const e1ap_setup_resp_t *e1ap_setup_resp)
+{
+  AssertFatal(getCxtE1(inst), "");
+  e1ap_setup_req_t *setupReq = &getCxtE1(inst)->setupReq;
   E1AP_E1AP_PDU_t pdu = {0};
-  fill_SETUP_RESPONSE(instance, e1ap_setup_resp, &pdu);
-  e1ap_encode_send(CPtype, instance, &pdu, 0, __func__);
-
+  fill_SETUP_RESPONSE(e1ap_setup_resp, &pdu);
+  e1ap_encode_send(getCxtE1(inst)->type, setupReq, &pdu, 0, __func__);
 }
 
-void fill_SETUP_FAILURE(instance_t instance,
-                        long transac_id,
-                        E1AP_E1AP_PDU_t *pdu) {
+static void fill_SETUP_FAILURE(long transac_id, E1AP_E1AP_PDU_t *pdu)
+{
   /* Create */
   /* 0. pdu Type */
   pdu->present = E1AP_E1AP_PDU_PR_unsuccessfulOutcome;
@@ -275,11 +266,11 @@ void fill_SETUP_FAILURE(instance_t instance,
   ieC2->value.choice.Cause.choice.radioNetwork = E1AP_CauseRadioNetwork_unspecified;
 }
 
-void e1apCUCP_send_SETUP_FAILURE(instance_t instance,
-                                long transac_id) {
+void e1apCUCP_send_SETUP_FAILURE(e1ap_setup_req_t *setupReq, long transac_id)
+{
   E1AP_E1AP_PDU_t pdu = {0};
-  fill_SETUP_FAILURE(instance, transac_id, &pdu);
-  e1ap_encode_send(CPtype, instance, &pdu, 0, __func__);
+  fill_SETUP_FAILURE(transac_id, &pdu);
+  e1ap_encode_send(CPtype, setupReq, &pdu, 0, __func__);
 }
 
 void extract_SETUP_REQUEST(const E1AP_E1AP_PDU_t *pdu,
@@ -325,22 +316,18 @@ void extract_SETUP_REQUEST(const E1AP_E1AP_PDU_t *pdu,
   }
 }
 
-int e1apCUCP_handle_SETUP_REQUEST(instance_t instance,
-                                  const E1AP_E1AP_PDU_t *pdu) {
-
+int e1apCUCP_handle_SETUP_REQUEST(e1ap_upcp_inst_t *inst, const E1AP_E1AP_PDU_t *pdu)
+{
   DevAssert(pdu != NULL);
-
-  e1ap_setup_req_t *req = &getCxtE1(CPtype, instance)->setupReq;
-
-  extract_SETUP_REQUEST(pdu, req);
+  extract_SETUP_REQUEST(pdu, &inst->setupReq);
   /* Create ITTI message and send to queue */
-  MessageDef *msg_p = itti_alloc_new_message(TASK_CUCP_E1, instance, E1AP_SETUP_REQ);
-  memcpy(&E1AP_SETUP_REQ(msg_p), req, sizeof(e1ap_setup_req_t));
+  MessageDef *msg_p = itti_alloc_new_message(TASK_CUCP_E1, 0 /*unused by callee*/, E1AP_SETUP_REQ);
+  memcpy(&E1AP_SETUP_REQ(msg_p), &inst->setupReq, sizeof(e1ap_setup_req_t));
 
-  if (req->supported_plmns > 0) {
-    itti_send_msg_to_task(TASK_RRC_GNB, instance, msg_p);
+  if (inst->setupReq.supported_plmns > 0) {
+    itti_send_msg_to_task(TASK_RRC_GNB, 0 /*unused by callee*/, msg_p);
   } else {
-    e1apCUCP_send_SETUP_FAILURE(instance, req->transac_id);
+    e1apCUCP_send_SETUP_FAILURE(&inst->setupReq, inst->setupReq.transac_id);
     itti_free(TASK_CUCP_E1, msg_p);
     return -1;
   }
@@ -348,8 +335,8 @@ int e1apCUCP_handle_SETUP_REQUEST(instance_t instance,
   return 0;
 }
 
-int e1apCUUP_handle_SETUP_RESPONSE(instance_t instance,
-                                   const E1AP_E1AP_PDU_t *pdu) {
+int e1apCUUP_handle_SETUP_RESPONSE(e1ap_upcp_inst_t *inst, const E1AP_E1AP_PDU_t *pdu)
+{
   LOG_D(E1AP, "%s\n", __func__);
   DevAssert(pdu->present == E1AP_E1AP_PDU_PR_successfulOutcome);
   DevAssert(pdu->choice.successfulOutcome->procedureCode  == E1AP_ProcedureCode_id_gNB_CU_UP_E1Setup);
@@ -360,7 +347,7 @@ int e1apCUUP_handle_SETUP_RESPONSE(instance_t instance,
 
   /* transac_id */
   long transaction_id;
-  long old_transaction_id = getCxtE1(UPtype, instance)->setupReq.transac_id;
+  long old_transaction_id = inst->setupReq.transac_id;
   F1AP_FIND_PROTOCOLIE_BY_ID(E1AP_GNB_CU_UP_E1SetupResponseIEs_t, ie, in,
                              E1AP_ProtocolIE_ID_id_TransactionID, true);
   transaction_id = ie->value.choice.TransactionID;
@@ -376,8 +363,8 @@ int e1apCUUP_handle_SETUP_RESPONSE(instance_t instance,
   return 0;
 }
 
-int e1apCUUP_handle_SETUP_FAILURE(instance_t instance,
-                                  const E1AP_E1AP_PDU_t *pdu) {
+int e1apCUUP_handle_SETUP_FAILURE(e1ap_upcp_inst_t *inst, const E1AP_E1AP_PDU_t *pdu)
+{
   E1AP_GNB_CU_UP_E1SetupFailureIEs_t *ie;
   DevAssert(pdu != NULL);
   E1AP_GNB_CU_UP_E1SetupFailure_t *in = &pdu->choice.unsuccessfulOutcome->value.choice.GNB_CU_UP_E1SetupFailure;
@@ -391,7 +378,8 @@ int e1apCUUP_handle_SETUP_FAILURE(instance_t instance,
   return 0;
 }
 
-void fill_CONFIGURATION_UPDATE(E1AP_E1AP_PDU_t *pdu) {
+static void fill_CONFIGURATION_UPDATE(E1AP_E1AP_PDU_t *pdu)
+{
   /* Create */
   /* 0. pdu Type */
   pdu->present = E1AP_E1AP_PDU_PR_initiatingMessage;
@@ -437,30 +425,32 @@ void fill_CONFIGURATION_UPDATE(E1AP_E1AP_PDU_t *pdu) {
     TRANSPORT_LAYER_ADDRESS_IPv4_TO_BIT_STRING(1234, &TNLAtoRemove->tNLAssociationTransportLayerAddress.choice.endpoint_IP_Address); // TODO: correct me
   }
 }
-                               
+
 /*
   E1 configuration update: can be sent in both ways, to be refined
 */
 
-void e1apCUUP_send_CONFIGURATION_UPDATE(instance_t instance) {
+void e1apCUUP_send_CONFIGURATION_UPDATE(e1ap_setup_req_t *setupReq)
+{
   E1AP_E1AP_PDU_t pdu = {0};
   fill_CONFIGURATION_UPDATE(&pdu);
-  e1ap_encode_send(UPtype, instance, &pdu, 0, __func__);
+  e1ap_encode_send(UPtype, setupReq, &pdu, 0, __func__);
 }
 
-int e1apCUCP_send_gNB_DU_CONFIGURATION_FAILURE(instance_t instance) {
+int e1apCUCP_send_gNB_DU_CONFIGURATION_FAILURE(e1ap_setup_req_t *setupReq)
+{
   AssertFatal(false,"Not implemented yet\n");
   return -1;
 }
 
-int e1apCUCP_send_gNB_DU_CONFIGURATION_UPDATE_ACKNOWLEDGE(instance_t instance) {
+int e1apCUCP_send_gNB_DU_CONFIGURATION_UPDATE_ACKNOWLEDGE(e1ap_setup_req_t *setupReq)
+{
   AssertFatal(false,"Not implemented yet\n");
   return -1;
 }
 
-int e1apCUCP_handle_CONFIGURATION_UPDATE(instance_t instance,
-    E1AP_E1AP_PDU_t *pdu) {
-
+int e1apCUCP_handle_CONFIGURATION_UPDATE(e1ap_setup_req_t *setupReq, E1AP_E1AP_PDU_t *pdu)
+{
   /*
   E1AP_GNB_CU_UP_E1SetupRequestIEs_t *ie;
   DevAssert(pdu != NULL);
@@ -471,18 +461,14 @@ int e1apCUCP_handle_CONFIGURATION_UPDATE(instance_t instance,
   return -1;
 }
 
-int e1apCUUP_handle_gNB_DU_CONFIGURATION_UPDATE_ACKNOWLEDGE(instance_t instance,
-    uint32_t assoc_id,
-    uint32_t stream,
-    E1AP_E1AP_PDU_t *pdu) {
+int e1apCUUP_handle_gNB_DU_CONFIGURATION_UPDATE_ACKNOWLEDGE(e1ap_setup_req_t *setupReq, uint32_t assoc_id, uint32_t stream, E1AP_E1AP_PDU_t *pdu)
+{
   AssertFatal(false,"Not implemented yet\n");
   return -1;
 }
 
-int e1apCUUP_handle_gNB_DU_CONFIGURATION_FAILURE(instance_t instance,
-    uint32_t assoc_id,
-    uint32_t stream,
-    E1AP_E1AP_PDU_t *pdu) {
+int e1apCUUP_handle_gNB_DU_CONFIGURATION_FAILURE(e1ap_setup_req_t *setupReq, uint32_t assoc_id, uint32_t stream, E1AP_E1AP_PDU_t *pdu)
+{
   AssertFatal(false,"Not implemented yet\n");
   return -1;
 }
@@ -521,17 +507,8 @@ int e1ap_handle_RELEASE_ACKNOWLEDGE(instance_t instance,
   BEARER CONTEXT SETUP REQUEST
 */
 
-int fill_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
-                                       e1ap_bearer_setup_req_t *const bearerCxt,
-                                       E1AP_E1AP_PDU_t *pdu) {
-  /* Create */
-  /* 0. pdu Type */
-  e1ap_setup_req_t *setup = &getCxtE1(CPtype, instance)->setupReq;
-  if (!setup) {
-    LOG_E(E1AP, "got send_BEARER_CONTEXT_SETUP_REQUEST on not established instance (%ld)\n", instance);
-    return -1;
-  }
-
+static int fill_BEARER_CONTEXT_SETUP_REQUEST(e1ap_setup_req_t *setup, e1ap_bearer_setup_req_t *const bearerCxt, E1AP_E1AP_PDU_t *pdu)
+{
   pdu->present = E1AP_E1AP_PDU_PR_initiatingMessage;
   asn1cCalloc(pdu->choice.initiatingMessage, msg);
   msg->procedureCode = E1AP_ProcedureCode_id_bearerContextSetup;
@@ -656,20 +633,22 @@ int fill_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
   return 0;
 }
 
-void e1apCUCP_send_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
-                                                e1ap_bearer_setup_req_t *const bearerCxt) {
-  if (!getCxtE1(CPtype,instance)) {
+void e1apCUCP_send_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance, e1ap_bearer_setup_req_t *const bearerCxt)
+{
+  if (!getCxtE1(instance)) {
     LOG_E(E1AP, "Received a UE bearer to establish while no CU-UP is connected, response on NGAP to send failure is not developped\n");
     // Fixme: add response on NGAP to send failure
     return;
   }
+
   E1AP_E1AP_PDU_t pdu = {0};
-  fill_BEARER_CONTEXT_SETUP_REQUEST(instance, bearerCxt, &pdu);
-  e1ap_encode_send(CPtype, instance, &pdu, 0, __func__);
+  e1ap_setup_req_t *setupReq = &getCxtE1(instance)->setupReq;
+  fill_BEARER_CONTEXT_SETUP_REQUEST(setupReq, bearerCxt, &pdu);
+  e1ap_encode_send(CPtype, setupReq, &pdu, 0, __func__);
 }
 
-void fill_BEARER_CONTEXT_SETUP_RESPONSE(e1ap_bearer_setup_resp_t *const resp,
-                                        E1AP_E1AP_PDU_t *pdu) {
+static void fill_BEARER_CONTEXT_SETUP_RESPONSE(e1ap_bearer_setup_resp_t *const resp, E1AP_E1AP_PDU_t *pdu)
+{
   /* Create */
   /* 0. pdu Type */
   pdu->present = E1AP_E1AP_PDU_PR_successfulOutcome;
@@ -795,11 +774,11 @@ void fill_BEARER_CONTEXT_SETUP_RESPONSE(e1ap_bearer_setup_resp_t *const resp,
   }
 }
 
-void e1apCUUP_send_BEARER_CONTEXT_SETUP_RESPONSE(instance_t instance,
-                                                 e1ap_bearer_setup_resp_t *const resp) {
+void e1apCUUP_send_BEARER_CONTEXT_SETUP_RESPONSE(e1ap_upcp_inst_t *inst, e1ap_bearer_setup_resp_t *const resp)
+{
   E1AP_E1AP_PDU_t pdu = {0};
   fill_BEARER_CONTEXT_SETUP_RESPONSE(resp, &pdu);
-  e1ap_encode_send(UPtype, instance, &pdu, 0, __func__);
+  e1ap_encode_send(UPtype, &inst->setupReq, &pdu, 0, __func__);
 }
 
 int e1apCUUP_send_BEARER_CONTEXT_SETUP_FAILURE(instance_t instance) {
@@ -967,14 +946,8 @@ void extract_BEARER_CONTEXT_SETUP_REQUEST(const E1AP_E1AP_PDU_t *pdu,
 
 }
 
-int e1apCUUP_handle_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
-                                                 const E1AP_E1AP_PDU_t *pdu) {
-  e1ap_upcp_inst_t *e1_inst = getCxtE1(UPtype, instance);
-  if (!e1_inst) {
-    LOG_E(E1AP, "got BEARER_CONTEXT_SETUP_REQUEST on not established instance (%ld)\n", instance);
-    return -1;
-  }
-  
+int e1apCUUP_handle_BEARER_CONTEXT_SETUP_REQUEST(e1ap_upcp_inst_t *e1_inst, const E1AP_E1AP_PDU_t *pdu)
+{
   DevAssert(pdu != NULL);
   DevAssert(pdu->present == E1AP_E1AP_PDU_PR_initiatingMessage);
   DevAssert(pdu->choice.initiatingMessage->procedureCode == E1AP_ProcedureCode_id_bearerContextSetup);
@@ -983,7 +956,7 @@ int e1apCUUP_handle_BEARER_CONTEXT_SETUP_REQUEST(instance_t instance,
 
   e1ap_bearer_setup_req_t bearerCxt = {0};
   extract_BEARER_CONTEXT_SETUP_REQUEST(pdu, &bearerCxt);
-  CUUP_process_e1_bearer_context_setup_req(&bearerCxt, instance);
+  process_e1_bearer_context_setup_req(e1_inst->instance, &bearerCxt);
   return 0;
 }
 
@@ -1073,8 +1046,8 @@ void extract_BEARER_CONTEXT_SETUP_RESPONSE(const E1AP_E1AP_PDU_t *pdu,
   }
 }
 
-int e1apCUCP_handle_BEARER_CONTEXT_SETUP_RESPONSE(instance_t instance,
-                                                  const E1AP_E1AP_PDU_t *pdu) {
+int e1apCUCP_handle_BEARER_CONTEXT_SETUP_RESPONSE(e1ap_upcp_inst_t *inst, const E1AP_E1AP_PDU_t *pdu)
+{
   DevAssert(pdu->present == E1AP_E1AP_PDU_PR_successfulOutcome);
   DevAssert(pdu->choice.successfulOutcome->procedureCode == E1AP_ProcedureCode_id_bearerContextSetup);
   DevAssert(pdu->choice.successfulOutcome->criticality == E1AP_Criticality_reject);
@@ -1083,13 +1056,15 @@ int e1apCUCP_handle_BEARER_CONTEXT_SETUP_RESPONSE(instance_t instance,
   MessageDef *msg = itti_alloc_new_message(TASK_CUCP_E1, 0, E1AP_BEARER_CONTEXT_SETUP_RESP);
   e1ap_bearer_setup_resp_t *bearerCxt = &E1AP_BEARER_CONTEXT_SETUP_RESP(msg);
   extract_BEARER_CONTEXT_SETUP_RESPONSE(pdu, bearerCxt);
+  // Fixme: instance is the NGAP instance, no good way to set it here
+  instance_t instance = 0;
   itti_send_msg_to_task(TASK_RRC_GNB, instance, msg);
 
   return 0;
 }
 
-int e1apCUCP_handle_BEARER_CONTEXT_SETUP_FAILURE(instance_t instance,
-                                                 const E1AP_E1AP_PDU_t *pdu) {
+int e1apCUCP_handle_BEARER_CONTEXT_SETUP_FAILURE(e1ap_upcp_inst_t *inst, const E1AP_E1AP_PDU_t *pdu)
+{
   AssertFatal(false,"Not implemented yet\n");
   return -1;
 }
@@ -1098,17 +1073,8 @@ int e1apCUCP_handle_BEARER_CONTEXT_SETUP_FAILURE(instance_t instance,
   BEARER CONTEXT MODIFICATION REQUEST
 */
 
-int fill_BEARER_CONTEXT_MODIFICATION_REQUEST(instance_t instance,
-                                             e1ap_bearer_setup_req_t *const bearerCxt,
-                                             E1AP_E1AP_PDU_t *pdu) {
-  /* Create */
-  /* 0. pdu Type */
-  e1ap_setup_req_t *setup = &getCxtE1(CPtype, instance)->setupReq;
-  if (!setup) {
-    LOG_E(E1AP, "got send_BEARER_CONTEXT_MODIFICATION_REQUEST on not established instance (%ld)\n", instance);
-    return -1;
-  }
-
+static int fill_BEARER_CONTEXT_MODIFICATION_REQUEST(e1ap_setup_req_t *setupReq, e1ap_bearer_setup_req_t *const bearerCxt, E1AP_E1AP_PDU_t *pdu)
+{
   pdu->present = E1AP_E1AP_PDU_PR_initiatingMessage;
   asn1cCalloc(pdu->choice.initiatingMessage, msg);
   msg->procedureCode = E1AP_ProcedureCode_id_bearerContextModification;
@@ -1169,11 +1135,13 @@ int fill_BEARER_CONTEXT_MODIFICATION_REQUEST(instance_t instance,
   return 0;
 }
 
-void e1apCUCP_send_BEARER_CONTEXT_MODIFICATION_REQUEST(instance_t instance,
-                                                       e1ap_bearer_setup_req_t *const bearerCxt) {
+static void e1apCUCP_send_BEARER_CONTEXT_MODIFICATION_REQUEST(instance_t inst, e1ap_bearer_setup_req_t *const bearerCxt)
+{
+  AssertFatal(getCxtE1(inst), "");
+  e1ap_setup_req_t *setupReq = &getCxtE1(inst)->setupReq;
   E1AP_E1AP_PDU_t pdu = {0};
-  fill_BEARER_CONTEXT_MODIFICATION_REQUEST(instance, bearerCxt, &pdu);
-  e1ap_encode_send(CPtype, instance, &pdu, 0, __func__);
+  fill_BEARER_CONTEXT_MODIFICATION_REQUEST(setupReq, bearerCxt, &pdu);
+  e1ap_encode_send(CPtype, setupReq, &pdu, 0, __func__);
 }
 
 int e1apCUUP_send_BEARER_CONTEXT_MODIFICATION_RESPONSE(instance_t instance) {
@@ -1264,14 +1232,8 @@ void extract_BEARER_CONTEXT_MODIFICATION_REQUEST(const E1AP_E1AP_PDU_t *pdu,
   }
 }
 
-int e1apCUUP_handle_BEARER_CONTEXT_MODIFICATION_REQUEST(instance_t instance,
-                                                        const E1AP_E1AP_PDU_t *pdu) {
-  e1ap_upcp_inst_t *e1_inst = getCxtE1(UPtype, instance);
-  if (!e1_inst) {
-    LOG_E(E1AP, "got BEARER_CONTEXT_MODIFICATION_REQUEST on not established instance (%ld)\n", instance);
-    return -1;
-  }
-  
+int e1apCUUP_handle_BEARER_CONTEXT_MODIFICATION_REQUEST(e1ap_upcp_inst_t *e1_inst, const E1AP_E1AP_PDU_t *pdu)
+{
   DevAssert(pdu != NULL);
   DevAssert(pdu->present == E1AP_E1AP_PDU_PR_initiatingMessage);
   DevAssert(pdu->choice.initiatingMessage->procedureCode == E1AP_ProcedureCode_id_bearerContextModification);
@@ -1280,7 +1242,7 @@ int e1apCUUP_handle_BEARER_CONTEXT_MODIFICATION_REQUEST(instance_t instance,
 
   e1ap_bearer_setup_req_t bearerCxt = {0};
   extract_BEARER_CONTEXT_MODIFICATION_REQUEST(pdu, &bearerCxt);
-  CUUP_process_bearer_context_mod_req(&bearerCxt, instance);
+  CUUP_process_bearer_context_mod_req(e1_inst->instance, &bearerCxt);
   return 0;
 }
 
@@ -1329,16 +1291,8 @@ int e1apCUUP_handle_BEARER_CONTEXT_MODIFICATION_CONFIRM(instance_t instance,
   BEARER CONTEXT RELEASE
 */
 
-int fill_BEARER_CONTEXT_RELEASE_COMMAND(instance_t instance,
-                                        e1ap_bearer_release_cmd_t *const cmd,
-                                        E1AP_E1AP_PDU_t *pdu) {
-
-  e1ap_setup_req_t *setup = &getCxtE1(CPtype, instance)->setupReq;
-  if (!setup) {
-    LOG_E(E1AP, "got send_BEARER_CONTEXT_RELEASE_COMMAND on not established instance (%ld)\n", instance);
-    return -1;
-  }
-
+static int fill_BEARER_CONTEXT_RELEASE_COMMAND(e1ap_setup_req_t *setupReq, e1ap_bearer_release_cmd_t *const cmd, E1AP_E1AP_PDU_t *pdu)
+{
   pdu->present = E1AP_E1AP_PDU_PR_initiatingMessage;
   asn1cCalloc(pdu->choice.initiatingMessage, msg);
   msg->procedureCode = E1AP_ProcedureCode_id_bearerContextRelease;
@@ -1363,23 +1317,15 @@ int fill_BEARER_CONTEXT_RELEASE_COMMAND(instance_t instance,
   return 0;
 }
 
-int e1apCUCP_send_BEARER_CONTEXT_RELEASE_COMMAND(instance_t instance,
-                                                 e1ap_bearer_release_cmd_t *const cmd) {
+int e1apCUCP_send_BEARER_CONTEXT_RELEASE_COMMAND(e1ap_setup_req_t *setupReq, e1ap_bearer_release_cmd_t *const cmd)
+{
   E1AP_E1AP_PDU_t pdu = {0};
-  fill_BEARER_CONTEXT_RELEASE_COMMAND(instance, cmd, &pdu);
-  return e1ap_encode_send(CPtype, instance, &pdu, 0, __func__);
+  fill_BEARER_CONTEXT_RELEASE_COMMAND(setupReq, cmd, &pdu);
+  return e1ap_encode_send(CPtype, setupReq, &pdu, 0, __func__);
 }
 
-int fill_BEARER_CONTEXT_RELEASE_COMPLETE(instance_t instance,
-                                         e1ap_bearer_release_cmd_t *const cmd,
-                                         E1AP_E1AP_PDU_t *pdu) {
-
-  e1ap_setup_req_t *setup = &getCxtE1(CPtype, instance)->setupReq;
-  if (!setup) {
-    LOG_E(E1AP, "got send_BEARER_CONTEXT_RELEASE_COMPLETE on not established instance (%ld)\n", instance);
-    return -1;
-  }
-
+int fill_BEARER_CONTEXT_RELEASE_COMPLETE(e1ap_setup_req_t *setupReq, e1ap_bearer_release_cmd_t *const cmd, E1AP_E1AP_PDU_t *pdu)
+{
   pdu->present = E1AP_E1AP_PDU_PR_successfulOutcome;
   asn1cCalloc(pdu->choice.successfulOutcome, msg);
   msg->procedureCode = E1AP_ProcedureCode_id_bearerContextRelease;
@@ -1404,10 +1350,11 @@ int fill_BEARER_CONTEXT_RELEASE_COMPLETE(instance_t instance,
   return 0;
 }
 
-int e1apCUUP_send_BEARER_CONTEXT_RELEASE_COMPLETE(instance_t instance, e1ap_bearer_release_cmd_t *const cmd) {
+int e1apCUUP_send_BEARER_CONTEXT_RELEASE_COMPLETE(e1ap_upcp_inst_t *inst, e1ap_bearer_release_cmd_t *const cmd)
+{
   E1AP_E1AP_PDU_t pdu = {0};
-  fill_BEARER_CONTEXT_RELEASE_COMPLETE(instance, cmd, &pdu);
-  return e1ap_encode_send(CPtype, instance, &pdu, 0, __func__);
+  fill_BEARER_CONTEXT_RELEASE_COMPLETE(&inst->setupReq, cmd, &pdu);
+  return e1ap_encode_send(CPtype, &inst->setupReq, &pdu, 0, __func__);
 }
 
 int e1apCUUP_send_BEARER_CONTEXT_RELEASE_REQUEST(instance_t instance) {
@@ -1454,14 +1401,8 @@ void extract_BEARER_CONTEXT_RELEASE_COMMAND(const E1AP_E1AP_PDU_t *pdu,
   }
 }
 
-int e1apCUUP_handle_BEARER_CONTEXT_RELEASE_COMMAND(instance_t instance,
-                                                   const E1AP_E1AP_PDU_t *pdu) {
-  e1ap_upcp_inst_t *e1_inst = getCxtE1(UPtype, instance);
-  if (!e1_inst) {
-    LOG_E(E1AP, "got BEARER_CONTEXT_RELEASE_COMMAND on not established instance (%ld)\n", instance);
-    return -1;
-  }
-  
+int e1apCUUP_handle_BEARER_CONTEXT_RELEASE_COMMAND(e1ap_upcp_inst_t *e1_inst, const E1AP_E1AP_PDU_t *pdu)
+{
   DevAssert(pdu != NULL);
   DevAssert(pdu->present == E1AP_E1AP_PDU_PR_initiatingMessage);
   DevAssert(pdu->choice.initiatingMessage->procedureCode == E1AP_ProcedureCode_id_bearerContextRelease);
@@ -1470,7 +1411,7 @@ int e1apCUUP_handle_BEARER_CONTEXT_RELEASE_COMMAND(instance_t instance,
 
   e1ap_bearer_release_cmd_t bearerCxt = {0};
   extract_BEARER_CONTEXT_RELEASE_COMMAND(pdu, &bearerCxt);
-  CUUP_process_bearer_release_command(&bearerCxt, instance);
+  CUUP_process_bearer_release_command(e1_inst->instance, &bearerCxt);
   return 0;
 }
 
@@ -1504,14 +1445,8 @@ void extract_BEARER_CONTEXT_RELEASE_COMPLETE(const E1AP_E1AP_PDU_t *pdu,
   }
 }
 
-int e1apCUCP_handle_BEARER_CONTEXT_RELEASE_COMPLETE(instance_t instance,
-                                                    const E1AP_E1AP_PDU_t *pdu) {
-  e1ap_upcp_inst_t *e1_inst = getCxtE1(UPtype, instance);
-  if (!e1_inst) {
-    LOG_E(E1AP, "got BEARER_CONTEXT_RELEASE_COMPLETE on not established instance (%ld)\n", instance);
-    return -1;
-  }
-  
+int e1apCUCP_handle_BEARER_CONTEXT_RELEASE_COMPLETE(e1ap_upcp_inst_t *e1_inst, const E1AP_E1AP_PDU_t *pdu)
+{
   DevAssert(pdu != NULL);
   DevAssert(pdu->present == E1AP_E1AP_PDU_PR_successfulOutcome);
   DevAssert(pdu->choice.successfulOutcome->procedureCode == E1AP_ProcedureCode_id_bearerContextRelease);
@@ -1585,10 +1520,11 @@ static instance_t cuup_task_create_gtpu_instance_to_du(eth_params_t *IPaddrs) {
   return gtpv1Init(tmp);
 }
 
-void cuup_task_send_sctp_association_req(instance_t instance, e1ap_setup_req_t *e1ap_setup_req) {
+void e1_task_send_sctp_association_req(long task_id, instance_t instance, e1ap_setup_req_t *e1ap_setup_req)
+{
   DevAssert(e1ap_setup_req != NULL);
-  getCxtE1(UPtype, instance)->sockState = SCTP_STATE_CLOSED;
-  MessageDef *message_p = itti_alloc_new_message(TASK_CUUP_E1, 0, SCTP_NEW_ASSOCIATION_REQ);
+  getCxtE1(instance)->sockState = SCTP_STATE_CLOSED;
+  MessageDef *message_p = itti_alloc_new_message(task_id, 0, SCTP_NEW_ASSOCIATION_REQ);
   sctp_new_association_req_t *sctp_new_req = &message_p->ittiMsg.sctp_new_association_req;
   sctp_new_req->ulp_cnx_id = instance;
   sctp_new_req->port = E1AP_PORT_NUMBER;
@@ -1602,15 +1538,17 @@ void cuup_task_send_sctp_association_req(instance_t instance, e1ap_setup_req_t *
   itti_send_msg_to_task(TASK_SCTP, instance, message_p);
 }
 
-void e1apCUUP_send_SETUP_REQUEST(instance_t instance) {
+static void e1apCUUP_send_SETUP_REQUEST(e1ap_setup_req_t *setup)
+{
   E1AP_E1AP_PDU_t pdu = {0};
-  fill_SETUP_REQUEST(instance, &pdu);
-  e1ap_encode_send(UPtype, instance, &pdu, 0, __func__);
+  fill_SETUP_REQUEST(setup, &pdu);
+  e1ap_encode_send(UPtype, setup, &pdu, 0, __func__);
 }
-  
-void cuup_task_handle_sctp_association_resp(instance_t instance, sctp_new_association_resp_t *sctp_new_association_resp) {
+
+static void e1_task_handle_sctp_association_resp(E1_t type, instance_t instance, sctp_new_association_resp_t *sctp_new_association_resp)
+{
   DevAssert(sctp_new_association_resp != NULL);
-  getCxtE1(UPtype, instance)->sockState = sctp_new_association_resp->sctp_state;
+  getCxtE1(instance)->sockState = sctp_new_association_resp->sctp_state;
   if (sctp_new_association_resp->sctp_state != SCTP_STATE_ESTABLISHED) {
     LOG_W(E1AP, "Received unsuccessful result for SCTP association (%u), instance %ld, cnx_id %u\n",
           sctp_new_association_resp->sctp_state,
@@ -1621,28 +1559,35 @@ void cuup_task_handle_sctp_association_resp(instance_t instance, sctp_new_associ
     return;
   }
 
-  e1ap_setup_req_t *e1ap_cuup_setup_req       = &getCxtE1(UPtype, instance)->setupReq;
-  e1ap_cuup_setup_req->assoc_id               = sctp_new_association_resp->assoc_id;
-  e1ap_cuup_setup_req->sctp_in_streams        = sctp_new_association_resp->in_streams;
-  e1ap_cuup_setup_req->sctp_out_streams       = sctp_new_association_resp->out_streams;
-  e1ap_cuup_setup_req->default_sctp_stream_id = 0;
+  if (type == UPtype) {
+    e1ap_setup_req_t *e1ap_cuup_setup_req = &getCxtE1(instance)->setupReq;
+    e1ap_cuup_setup_req->assoc_id = sctp_new_association_resp->assoc_id;
+    e1ap_cuup_setup_req->sctp_in_streams = sctp_new_association_resp->in_streams;
+    e1ap_cuup_setup_req->sctp_out_streams = sctp_new_association_resp->out_streams;
+    e1ap_cuup_setup_req->default_sctp_stream_id = 0;
 
-  eth_params_t IPaddr;
-  IPaddr.my_addr = e1ap_cuup_setup_req->CUUP_e1_ip_address.ipv4_address;
-  IPaddr.my_portd = e1ap_cuup_setup_req->port_cuup;
-  if (getCxtE1(UPtype, instance)->gtpInstF1U < 0)
-    getCxtE1(UPtype, instance)->gtpInstF1U = cuup_task_create_gtpu_instance_to_du(&IPaddr);
-  if (getCxtE1(UPtype, instance)->gtpInstF1U < 0)
-    LOG_E(E1AP, "Failed to create CUUP F1-U UDP listener");
-  extern instance_t CUuniqInstance;
-  CUuniqInstance = getCxtE1(UPtype, instance)->gtpInstF1U;
+    eth_params_t IPaddr;
+    IPaddr.my_addr = e1ap_cuup_setup_req->CUUP_e1_ip_address.ipv4_address;
+    IPaddr.my_portd = e1ap_cuup_setup_req->port_cuup;
+    if (getCxtE1(instance)->gtpInstF1U < 0)
+      getCxtE1(instance)->gtpInstF1U = cuup_task_create_gtpu_instance_to_du(&IPaddr);
+    if (getCxtE1(instance)->gtpInstF1U < 0)
+      LOG_E(E1AP, "Failed to create CUUP F1-U UDP listener");
+    extern instance_t CUuniqInstance;
+    CUuniqInstance = getCxtE1(instance)->gtpInstF1U;
+    cuup_init_n3(instance);
+    e1apCUUP_send_SETUP_REQUEST(&getCxtE1(instance)->setupReq);
+  }
+}
 
-  if (getCxtE1(UPtype, instance)->gtpInstN3 < 0)
-    getCxtE1(UPtype, instance)->gtpInstN3 = RCconfig_nr_gtpu();
-  if (getCxtE1(UPtype, instance)->gtpInstN3 < 0)
+void cuup_init_n3(instance_t instance)
+{
+  if (getCxtE1(instance)->gtpInstN3 < 0)
+    getCxtE1(instance)->gtpInstN3 = RCconfig_nr_gtpu();
+  if (getCxtE1(instance)->gtpInstN3 < 0)
     LOG_E(E1AP, "Failed to create CUUP N3 UDP listener");
-  N3GTPUInst = &getCxtE1(UPtype, instance)->gtpInstN3;
-  e1apCUUP_send_SETUP_REQUEST(instance);
+  extern instance_t *N3GTPUInst;
+  N3GTPUInst = &getCxtE1(instance)->gtpInstN3;
 }
 
 void cucp_task_send_sctp_init_req(instance_t instance, char *my_addr) {
@@ -1664,36 +1609,26 @@ void cucp_task_send_sctp_init_req(instance_t instance, char *my_addr) {
   itti_send_msg_to_task(TASK_SCTP, instance, message_p);
 }
 
-void cucp_task_handle_sctp_association_ind(instance_t instance, sctp_new_association_ind_t *sctp_new_ind)
+void e1_task_handle_sctp_association_ind(E1_t type, instance_t instance, sctp_new_association_ind_t *sctp_new_ind)
 {
-  createE1inst(CPtype, instance, NULL);
-  getCxtE1(CPtype, instance)->sockState = SCTP_STATE_ESTABLISHED;
-  e1ap_setup_req_t *setup_req = &getCxtE1(CPtype, instance)->setupReq;
+  if (getCxtE1(instance))
+    LOG_W(E1AP, "CUCP incoming call, re-use older socket context, finish implementation required\n");
+  else
+    createE1inst(type, instance, NULL);
+  getCxtE1(instance)->sockState = SCTP_STATE_ESTABLISHED;
+  getCxtE1(instance)->incoming_sock = true;
+  e1ap_setup_req_t *setup_req = &getCxtE1(instance)->setupReq;
   setup_req->assoc_id = sctp_new_ind->assoc_id;
   setup_req->sctp_in_streams = sctp_new_ind->in_streams;
   setup_req->sctp_out_streams = sctp_new_ind->out_streams;
   setup_req->default_sctp_stream_id = 0;
 }
 
-void cucp_task_handle_sctp_association_resp(instance_t instance, sctp_new_association_resp_t *sctp_new_association_resp) {
-  DevAssert(sctp_new_association_resp != NULL);
-  getCxtE1(CPtype, instance)->sockState = sctp_new_association_resp->sctp_state;
-  if (sctp_new_association_resp->sctp_state != SCTP_STATE_ESTABLISHED) {
-    LOG_W(E1AP, "Received unsuccessful result for SCTP association (%u), instance %ld, cnx_id %u\n",
-          sctp_new_association_resp->sctp_state,
-          instance,
-          sctp_new_association_resp->ulp_cnx_id);
-    long timer_id; // if we want to cancel timer
-    timer_setup(1, 0, TASK_CUCP_E1, 0, TIMER_ONE_SHOT, NULL, &timer_id);
-    return;
-  }
-}
-
 void e1apHandleTimer(instance_t myInstance)
 {
   LOG_W(E1AP, "Try to reconnect to CP\n");
-  if (getCxtE1(UPtype, myInstance)->sockState != SCTP_STATE_ESTABLISHED)
-    cuup_task_send_sctp_association_req(myInstance, &getCxtE1(UPtype, myInstance)->setupReq);
+  if (getCxtE1(myInstance)->sockState != SCTP_STATE_ESTABLISHED)
+    e1_task_send_sctp_association_req(TASK_CUUP_E1, myInstance, &getCxtE1(myInstance)->setupReq);
 }
 
 void *E1AP_CUCP_task(void *arg) {
@@ -1710,13 +1645,11 @@ void *E1AP_CUCP_task(void *arg) {
 
     switch (ITTI_MSG_ID(msg)) {
       case SCTP_NEW_ASSOCIATION_IND:
-        cucp_task_handle_sctp_association_ind(ITTI_MSG_ORIGIN_INSTANCE(msg),
-                                              &msg->ittiMsg.sctp_new_association_ind);
+        e1_task_handle_sctp_association_ind(CPtype, ITTI_MSG_ORIGIN_INSTANCE(msg), &msg->ittiMsg.sctp_new_association_ind);
         break;
 
       case SCTP_NEW_ASSOCIATION_RESP:
-        cucp_task_handle_sctp_association_resp(ITTI_MSG_ORIGIN_INSTANCE(msg),
-                                               &msg->ittiMsg.sctp_new_association_resp);
+        e1_task_handle_sctp_association_resp(CPtype, ITTI_MSG_ORIGIN_INSTANCE(msg), &msg->ittiMsg.sctp_new_association_resp);
         break;
 
       case E1AP_SETUP_REQ: {
@@ -1732,11 +1665,11 @@ void *E1AP_CUCP_task(void *arg) {
       } break;
 
       case SCTP_DATA_IND:
-        cuxp_task_handle_sctp_data_ind(myInstance, &msg->ittiMsg.sctp_data_ind);
+        e1_task_handle_sctp_data_ind(myInstance, &msg->ittiMsg.sctp_data_ind);
         break;
 
       case E1AP_SETUP_RESP:
-        e1apCUCP_send_SETUP_RESPONSE(myInstance, &E1AP_SETUP_RESP(msg));
+        e1ap_send_SETUP_RESPONSE(myInstance, &E1AP_SETUP_RESP(msg));
         break;
 
       case E1AP_BEARER_CONTEXT_SETUP_REQ:
@@ -1776,15 +1709,15 @@ void *E1AP_CUUP_task(void *arg) {
         e1ap_setup_req_t *msgSetup = &E1AP_SETUP_REQ(msg);
         createE1inst(UPtype, myInstance, msgSetup);
 
-        cuup_task_send_sctp_association_req(myInstance, msgSetup);
+        e1_task_send_sctp_association_req(TASK_CUUP_E1, myInstance, msgSetup);
       } break;
 
       case SCTP_NEW_ASSOCIATION_RESP:
-        cuup_task_handle_sctp_association_resp(myInstance, &msg->ittiMsg.sctp_new_association_resp);
+        e1_task_handle_sctp_association_resp(UPtype, myInstance, &msg->ittiMsg.sctp_new_association_resp);
         break;
 
       case SCTP_DATA_IND:
-        cuxp_task_handle_sctp_data_ind(myInstance, &msg->ittiMsg.sctp_data_ind);
+        e1_task_handle_sctp_data_ind(myInstance, &msg->ittiMsg.sctp_data_ind);
         break;
 
       case TIMER_HAS_EXPIRED:

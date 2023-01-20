@@ -37,7 +37,7 @@
 #include "rrc_gNB_GTPV1U.h"
 #include "common/ran_context.h"
 #include "openair2/F1AP/f1ap_common.h"
-
+#include "openair2/E1AP/e1ap_common.h"
 extern RAN_CONTEXT_t RC;
 
 void fill_e1ap_bearer_setup_resp(e1ap_bearer_setup_resp_t *resp,
@@ -122,9 +122,7 @@ static int drb_config_gtpu_create(const protocol_ctxt_t *const ctxt_p,
   create_tunnel_req.num_tunnels = ue_context_p->ue_context.nb_of_pdusessions;
   create_tunnel_req.ue_id       = ue_context_p->ue_context.rnti;
 
-  int ret = gtpv1u_create_ngu_tunnel(instance,
-                                     &create_tunnel_req,
-                                     &create_tunnel_resp);
+  int ret = gtpv1u_create_ngu_tunnel(getCxtE1(instance)->gtpInstN3, &create_tunnel_req, &create_tunnel_resp);
 
   if (ret != 0) {
     LOG_E(NR_RRC,"rrc_gNB_process_NGAP_PDUSESSION_SETUP_REQ : gtpv1u_create_ngu_tunnel failed,start to release UE rnti %ld\n",
@@ -177,6 +175,21 @@ static int drb_config_gtpu_create(const protocol_ctxt_t *const ctxt_p,
   return ret;
 }
 
+static NR_SRB_ToAddModList_t **generateSRB2_confList(gNB_RRC_UE_t *ue, NR_SRB_ToAddModList_t *SRB_configList, uint8_t xid)
+{
+  NR_SRB_ToAddModList_t **SRB_configList2 = NULL;
+
+  SRB_configList2 = &ue->SRB_configList2[xid];
+  if (*SRB_configList2 == NULL) {
+    *SRB_configList2 = CALLOC(1, sizeof(**SRB_configList2));
+    NR_SRB_ToAddMod_t *SRB2_config = CALLOC(1, sizeof(*SRB2_config));
+    SRB2_config->srb_Identity = 2;
+    asn1cSeqAdd(&(*SRB_configList2)->list, SRB2_config);
+    asn1cSeqAdd(&SRB_configList->list, SRB2_config);
+  }
+
+  return SRB_configList2;
+}
 static void cucp_cuup_bearer_context_setup_direct(e1ap_bearer_setup_req_t *const req, instance_t instance) {
   rrc_gNB_ue_context_t *ue_context_p = rrc_gNB_get_ue_context(RC.nrrrc[GNB_INSTANCE_TO_MODULE_ID(instance)], req->rnti);
   protocol_ctxt_t ctxt = {0};
@@ -187,12 +200,7 @@ static void cucp_cuup_bearer_context_setup_direct(e1ap_bearer_setup_req_t *const
   gNB_RRC_INST *rrc = RC.nrrrc[ctxt.module_id];
   NR_SRB_ToAddModList_t **SRB_configList2 = generateSRB2_confList(&ue_context_p->ue_context, ue_context_p->ue_context.SRB_configList, 1);
   // GTP tunnel for UL
-  int ret = drb_config_gtpu_create(&ctxt,
-                                   ue_context_p,
-                                   req,
-                                   ue_context_p->ue_context.DRB_configList,
-                                   *SRB_configList2,
-                                   rrc->gtpInstN3);
+  int ret = drb_config_gtpu_create(&ctxt, ue_context_p, req, ue_context_p->ue_context.DRB_configList, *SRB_configList2, rrc->e1_inst);
   if (ret < 0) AssertFatal(false, "Unable to configure DRB or to create GTP Tunnel\n");
 
   if(!NODE_IS_CU(RC.nrrrc[ctxt.module_id]->node_type)) {

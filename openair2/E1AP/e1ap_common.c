@@ -29,40 +29,28 @@
 #include "common/openairinterface5g_limits.h"
 #include "common/utils/ocp_itti/intertask_interface.h"
 
-static e1ap_upcp_inst_t *e1ap_cp_inst[NUMBER_OF_gNB_MAX] = {0};
-static e1ap_upcp_inst_t *e1ap_up_inst[NUMBER_OF_gNB_MAX] = {0};
+static e1ap_upcp_inst_t *e1ap_inst[NUMBER_OF_gNB_MAX] = {0};
 
-e1ap_upcp_inst_t *getCxtE1(E1_t type, instance_t instance) {
-  AssertFatal( instance < sizeofArray(e1ap_cp_inst), "instance exceeds limit\n");
-  return type == UPtype ? e1ap_up_inst[instance] : e1ap_cp_inst[instance];
+e1ap_upcp_inst_t *getCxtE1(instance_t instance)
+{
+  AssertFatal(instance < sizeofArray(e1ap_inst), "instance exceeds limit\n");
+  return e1ap_inst[instance];
 }
 
 int e1ap_assoc_id(E1_t type, instance_t instance) {
-  if (type == CPtype) {
-    AssertFatal(e1ap_cp_inst[instance] != NULL, "Trying to access uninitiated instance of CUCP\n");
-    return e1ap_cp_inst[instance]->setupReq.assoc_id;
-  } else if (type == UPtype) {
-    AssertFatal(e1ap_up_inst[instance] != NULL, "Trying to access uninitiated instance of CUUP\n");
-    return e1ap_up_inst[instance]->setupReq.assoc_id;
-  } else {
-    AssertFatal(false, "Unknown CU type\n");
-  }
-  return -1;
+  AssertFatal(e1ap_inst[instance] != NULL, "Trying to access uninitiated instance of CUCP\n");
+  return e1ap_inst[instance]->setupReq.assoc_id;
 }
 
 void createE1inst(E1_t type, instance_t instance, e1ap_setup_req_t *req) {
-  if (type == CPtype) {
-    AssertFatal(e1ap_cp_inst[instance] == NULL, "Double call to E1 CP instance %d\n", (int)instance);
-    e1ap_cp_inst[instance] = (e1ap_upcp_inst_t *) calloc(1, sizeof(e1ap_upcp_inst_t));
-  } else if (type == UPtype) {
-    AssertFatal(e1ap_up_inst[instance] == NULL, "Double call to E1 UP instance %d\n", (int)instance);
-    e1ap_up_inst[instance] = (e1ap_upcp_inst_t *) calloc(1, sizeof(e1ap_upcp_inst_t));
-    memcpy(&e1ap_up_inst[instance]->setupReq, req, sizeof(e1ap_setup_req_t));
-    e1ap_up_inst[instance]->gtpInstN3 = -1;
-    e1ap_up_inst[instance]->gtpInstF1U = -1;
-  } else {
-    AssertFatal(false, "Unknown CU type\n");
-  }
+  AssertFatal(e1ap_inst[instance] == NULL, "Double call to E1 instance %d\n", (int)instance);
+  e1ap_inst[instance] = calloc(1, sizeof(e1ap_upcp_inst_t));
+  e1ap_inst[instance]->type = type;
+  e1ap_inst[instance]->instance = instance;
+  if (req)
+    memcpy(&e1ap_inst[instance]->setupReq, req, sizeof(*req));
+  e1ap_inst[instance]->gtpInstN3 = -1;
+  e1ap_inst[instance]->gtpInstF1U = -1;
 }
 
 E1AP_TransactionID_t transacID[E1AP_MAX_NUM_TRANSAC_IDS] = {0}; 
@@ -207,7 +195,8 @@ int e1ap_decode_pdu(E1AP_E1AP_PDU_t *pdu, const uint8_t *const buffer, uint32_t 
   return -1;
 }
 
-int e1ap_encode_send(E1_t type, instance_t instance, E1AP_E1AP_PDU_t *pdu, uint16_t stream, const char *func) {
+int e1ap_encode_send(E1_t type, e1ap_setup_req_t *setupReq, E1AP_E1AP_PDU_t *pdu, uint16_t stream, const char *func)
+{
   DevAssert(pdu != NULL);
 
   if (asn1_xer_print) {
@@ -234,14 +223,13 @@ int e1ap_encode_send(E1_t type, instance_t instance, E1AP_E1AP_PDU_t *pdu, uint1
   } else {
     MessageDef *message = itti_alloc_new_message((type==CPtype)?TASK_CUCP_E1:TASK_CUUP_E1, 0, SCTP_DATA_REQ);
     sctp_data_req_t *s = &message->ittiMsg.sctp_data_req;
-    s->assoc_id      = e1ap_assoc_id(type, instance);
+    s->assoc_id = setupReq->assoc_id;
     s->buffer        = buffer;
     s->buffer_length = encoded;
     s->stream        = stream;
     LOG_I(E1AP, "%s: Sending ITTI message to SCTP Task\n", func);
-    itti_send_msg_to_task(TASK_SCTP, instance, message);
+    itti_send_msg_to_task(TASK_SCTP, 0 /*unused by callee*/, message);
   }
 
   return encoded;
 }
-
