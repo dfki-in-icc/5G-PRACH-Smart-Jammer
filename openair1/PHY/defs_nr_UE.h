@@ -654,7 +654,6 @@ typedef struct {
   void *phy_sim_pdsch_rxdataF_comp;
   void *phy_sim_pdsch_dl_ch_estimates;
   void *phy_sim_pdsch_dl_ch_estimates_ext;
-  pthread_mutex_t mac_IF_mutex;
   notifiedFIFO_t phy_config_ind;
 } PHY_VARS_NR_UE;
 

@@ -66,6 +66,7 @@ queue_t nr_dl_tti_req_queue;
 queue_t nr_tx_req_queue;
 queue_t nr_ul_dci_req_queue;
 queue_t nr_ul_tti_req_queue;
+pthread_mutex_t mac_IF_mutex;
 
 void nrue_init_standalone_socket(int tx_port, int rx_port)
 {
@@ -1117,6 +1118,7 @@ void update_harq_status(module_id_t module_id, uint8_t harq_pid, uint8_t ack_nac
 
 int nr_ue_ul_indication(nr_uplink_indication_t *ul_info){
 
+  pthread_mutex_lock(&mac_IF_mutex);
   NR_UE_L2_STATE_t ret=0;
   module_id_t module_id = ul_info->module_id;
   NR_UE_MAC_INST_t *mac = get_mac_inst(module_id);
@@ -1145,11 +1147,13 @@ int nr_ue_ul_indication(nr_uplink_indication_t *ul_info){
     break;
   }
 
+  pthread_mutex_unlock(&mac_IF_mutex);
   return 0;
 }
 
 int nr_ue_dl_indication(nr_downlink_indication_t *dl_info, NR_UL_TIME_ALIGNMENT_t *ul_time_alignment){
 
+  pthread_mutex_lock(&mac_IF_mutex);
   uint32_t ret_mask = 0x0;
   module_id_t module_id = dl_info->module_id;
   NR_UE_MAC_INST_t *mac = get_mac_inst(module_id);
@@ -1246,6 +1250,7 @@ int nr_ue_dl_indication(nr_downlink_indication_t *dl_info, NR_UL_TIME_ALIGNMENT_
       dl_info->rx_ind = NULL;
     }
   }
+  pthread_mutex_unlock(&mac_IF_mutex);
   return 0;
 }
 
@@ -1266,6 +1271,7 @@ nr_ue_if_module_t *nr_ue_if_module_init(uint32_t module_id){
     nr_ue_if_module_inst[module_id]->dl_indication = nr_ue_dl_indication;
     nr_ue_if_module_inst[module_id]->ul_indication = nr_ue_ul_indication;
   }
+  pthread_mutex_init(&mac_IF_mutex, NULL);
 
   return nr_ue_if_module_inst[module_id];
 }

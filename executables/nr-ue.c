@@ -580,9 +580,7 @@ void processSlotTX(void *arg) {
       ul_indication.slot_tx   = proc->nr_slot_tx;
       ul_indication.phy_data      = &phy_data;
 
-      pthread_mutex_lock(&UE->mac_IF_mutex);
       UE->if_inst->ul_indication(&ul_indication);
-      pthread_mutex_unlock(&UE->mac_IF_mutex);
       stop_meas(&UE->ue_ul_indication_stats);
     }
 
@@ -614,9 +612,7 @@ void UE_processing(void *arg) {
     if(UE->if_inst != NULL && UE->if_inst->dl_indication != NULL) {
       nr_downlink_indication_t dl_indication;
       nr_fill_dl_indication(&dl_indication, NULL, NULL, proc, UE, &phy_data);
-      pthread_mutex_lock(&UE->mac_IF_mutex);
       UE->if_inst->dl_indication(&dl_indication, NULL);
-      pthread_mutex_unlock(&UE->mac_IF_mutex);
     }
 
     uint64_t a=rdtsc_oai();
@@ -752,8 +748,6 @@ void *UE_thread(void *arg) {
 
   notifiedFIFO_t freeBlocks;
   initNotifiedFIFO_nothreadSafe(&freeBlocks);
-
-  pthread_mutex_init(&UE->mac_IF_mutex, NULL);
 
   int timing_advance = UE->timing_advance;
   NR_UE_MAC_INST_t *mac = get_mac_inst(0);
