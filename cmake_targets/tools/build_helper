@@ -241,6 +241,44 @@ compilations() {
   fi
 }
 
+###################################
+# Patch
+###################################
+# Use this function to apply patch not to break build
+# just set before the variable string_patch_to_apply then
+#  apply_string_patch filename
+# for example
+#  string_patch_to_apply="--- /usr/include/simde/x86/avx.h.old      2022-10-03 19:17:39.828223432 +0200
+# +++ /usr/include/simde/x86/avx.h        2022-10-05 16:19:55.086019445 +0200
+# @@ -3643,6 +3643,9 @@
+#  simde__m256i simde_mm256_insertf128_si256(simde__m256i a, simde__m128i b, int im
+
+#    return simde__m256i_from_private(a_);
+#  }
+# +#if defined(SIMDE_X86_AVX_NATIVE)
+# +  #define simde_mm256_insertf128_si256(a, b, imm8) _mm256_insertf128_si256(a, b, imm8)
+# +#endif
+#  #if defined(SIMDE_X86_AVX_ENABLE_NATIVE_ALIASES)
+#    #undef _mm256_insertf128_si256
+#    #define _mm256_insertf128_si256(a, b, imm8) simde_mm256_insertf128_si256(a, b, imm8)" # end string_patch_to_apply setting
+# apply_string_patch /usr/include/simde/x86/avx.h
+apply_string_patch(){
+  [ -z "$1"  ] && return # no parameter given
+  [ -z "${string_patch_to_apply}" -o -z "${string_patch_to_apply// }" ] && return # string_patch_to_apply not set
+  set +e
+  $SUDO patch --dry-run "$1" << FIN
+${string_patch_to_apply}
+FIN
+  res=$?
+# if res ok so patch with -f to force, no yes/no question
+  [ $res -eq 0 ] && $SUDO patch -f "$1" << FIN
+${string_patch_to_apply}
+FIN
+  [ $res -ne 0 ] && echo_error "\n Patch on $1 not applied "
+  set -e
+  string_patch_to_apply=
+}
+
 ############################################
 # External packages installers
 ############################################
@@ -262,8 +300,10 @@ install_usrp_uhd_driver_from_source(){
         if [[ "$UHD_VERSION" == "3.15.0.0" ]]; then
             # Tested that patch for the following versions:
             # - 3.15.0.0
+            set +e # do not exit on error
             git apply $OPENAIR_DIR/cmake_targets/tools/uhd-3.15-tdd-patch.diff
             ret=$?;[[ $ret -ne 0 ]] && echo_fatal "Could not apply the TDD patch"
+            set -e
         else
             # Tested that patch for the following versions:
             # - 4.0.0.0
@@ -272,13 +312,17 @@ install_usrp_uhd_driver_from_source(){
             # - 4.2.0.0
             # - 4.2.0.1
             # - 4.3.0.0-rc1
+            set +e # do not exit on error 
             git apply $OPENAIR_DIR/cmake_targets/tools/uhd-4.x-tdd-patch.diff
             ret=$?;[[ $ret -ne 0 ]] && echo_fatal "Could not apply the TDD patch"
+            set -e
         fi
     else
         git checkout tags/v4.0.0.0
+        set +e # do not exit on error
         git apply $OPENAIR_DIR/cmake_targets/tools/uhd-4.x-tdd-patch.diff
         ret=$?;[[ $ret -ne 0 ]] && echo_fatal "Could not apply the TDD patch"
+        set -e
     fi
     # Printing out the results of the patch to make sure it was properly applied
     git diff
