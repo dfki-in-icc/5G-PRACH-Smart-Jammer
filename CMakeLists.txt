@@ -669,16 +669,16 @@ target_link_libraries(benetel_5g PRIVATE asn1_nr_rrc asn1_lte_rrc)
 # ORAN 5G library
 ######################################################################
 
-include_directories("${XRAN_DIR}")
-include_directories("${DPDK_DIR}")
-include_directories("${INTEL_LIB}")
-
 set(ORAN_FHLIB_5G_SOURCE
     ${OPENAIR_TARGETS}/ARCH/ETHERNET/oran/5g/oran.cpp
     ${OPENAIR_TARGETS}/ARCH/ETHERNET/oran/5g/xran_lib_wrap.cpp
     ${OPENAIR_TARGETS}/ARCH/ETHERNET/oran/5g/oran_isolate.c
     )
 add_library(oran_fhlib_5g MODULE ${ORAN_FHLIB_5G_SOURCE})
+
+target_include_directories(oran_fhlib_5g PRIVATE ${XRAN_DIR})
+target_include_directories(oran_fhlib_5g PRIVATE ${DPDK_DIR})
+target_include_directories(oran_fhlib_5g PRIVATE ${INTEL_LIB})
 
 set_target_properties(oran_fhlib_5g PROPERTIES COMPILE_FLAGS "-fvisibility=hidden -march=native -I$ENV{RTE_SDK}/$ENV{RTE_TARGET}/include")
 
