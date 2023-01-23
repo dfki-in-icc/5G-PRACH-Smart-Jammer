@@ -33,14 +33,14 @@
 #include "nrLDPC_mPass.h"
 #include "nrLDPC_cnProc.h"
 #include "nrLDPC_bnProc.h"
-#define UNROLL_CN_PROC 1
-#define UNROLL_BN_PROC 1
-#define UNROLL_BN_PROC_PC 1
-#define UNROLL_BN2CN_PROC 1
+// #define UNROLL_CN_PROC 1
+// #define UNROLL_BN_PROC 1
+// #define UNROLL_BN_PROC_PC 1
+// #define UNROLL_BN2CN_PROC 1
 /*----------------------------------------------------------------------
 |                  cn processing files -->AVX512
 /----------------------------------------------------------------------*/
-
+#ifdef UNROLL_CN_PROC
 //BG1-------------------------------------------------------------------
 #if defined(__AVX512BW__)
 
@@ -68,11 +68,11 @@
 #include "cnProc/nrLDPC_cnProc_BG2_R23_AVX2.h"
 
 #endif
-
+#endif
 /*----------------------------------------------------------------------
 |                 bn Processing files -->AVX2
 /----------------------------------------------------------------------*/
-
+#ifdef UNROLL_BN_PROC_PC
 //bnProcPc-------------------------------------------------------------
 //BG1------------------------------------------------------------------
 #include "bnProcPc/nrLDPC_bnProcPc_BG1_R13_AVX2.h"
@@ -83,8 +83,10 @@
 #include "bnProcPc/nrLDPC_bnProcPc_BG2_R13_AVX2.h"
 #include "bnProcPc/nrLDPC_bnProcPc_BG2_R23_AVX2.h"
 
-//bnProc----------------------------------------------------------------
+#endif
 
+//bnProc----------------------------------------------------------------
+#ifdef UNROLL_BN_PROC
 #if defined(__AVX512BW__)
 //BG1-------------------------------------------------------------------
 #include "bnProc_avx512/nrLDPC_bnProc_BG1_R13_AVX512.h"
@@ -105,13 +107,13 @@
 #include "bnProc/nrLDPC_bnProc_BG2_R23_AVX2.h"
 
 #endif
+#endif
 
 
 
 
 
-
-#define NR_LDPC_ENABLE_PARITY_CHECK
+//#define NR_LDPC_ENABLE_PARITY_CHECK
 //#define NR_LDPC_PROFILER_DETAIL
 
 #ifdef NR_LDPC_DEBUG_MODE
@@ -120,8 +122,7 @@
 
 static inline uint32_t nrLDPC_decoder_core(int8_t* p_llr, int8_t* p_out, uint32_t numLLR, t_nrLDPC_lut* p_lut, t_nrLDPC_dec_params* p_decParams, t_nrLDPC_time_stats* p_profiler);
 int check_crc(uint8_t* decoded_bytes, uint32_t n, uint32_t F, uint8_t crc_type);
-void nrLDPC_initcall(t_nrLDPC_dec_params* p_decParams, int8_t* p_llr, int8_t* p_out) {
-}
+// void nrLDPC_initcall(t_nrLDPC_dec_params* p_decParams, int8_t* p_llr, int8_t* p_out) {}
 int32_t nrLDPC_decod(t_nrLDPC_dec_params* p_decParams, int8_t* p_llr, int8_t* p_out, t_nrLDPC_time_stats* p_profiler)
 {
     uint32_t numLLR;
@@ -144,22 +145,25 @@ int32_t nrLDPC_decod(t_nrLDPC_dec_params* p_decParams, int8_t* p_llr, int8_t* p_
    \param p_out Output vector
    \param numLLR Number of LLRs
    \param p_lut Pointer to decoder LUTs
-   \param p_decParamsnrLDPC decoder parameters
-   \param p_profilernrLDPC profiler statistics
+   \param p_decParams decoder parameters
+   \param p_profiler profiler statistics
 */
 static inline uint32_t nrLDPC_decoder_core(int8_t* p_llr, int8_t* p_out, uint32_t numLLR, t_nrLDPC_lut* p_lut, t_nrLDPC_dec_params* p_decParams, t_nrLDPC_time_stats* p_profiler)
 {
     uint16_t Z          = p_decParams->Z;
     uint8_t  BG         = p_decParams->BG;
-    uint8_t  R         = p_decParams->R; //Decoding rate: Format 15,13,... for code rates 1/5, 1/3,... */
+    #ifdef UNROLL_CN_PROC
+    uint8_t  R          = p_decParams->R; //Decoding rate: Format 15,13,... for code rates 1/5, 1/3,... */
+    #endif
     uint8_t  numMaxIter = p_decParams->numMaxIter;
     e_nrLDPC_outMode outMode = p_decParams->outMode;
    // int8_t* cnProcBuf=  cnProcBuf;
    // int8_t* cnProcBufRes= cnProcBufRes;
 
-    int8_t cnProcBuf[NR_LDPC_SIZE_CN_PROC_BUF]    __attribute__ ((aligned(64))) = {0};
+    // int8_t cnProcBuf[NR_LDPC_SIZE_CN_PROC_BUF]    __attribute__ ((aligned(64))) = {0};
+    int8_t procBuf[NR_LDPC_SIZE_CN_PROC_BUF]      __attribute__ ((aligned(64))) = {0};
     int8_t cnProcBufRes[NR_LDPC_SIZE_CN_PROC_BUF] __attribute__ ((aligned(64))) = {0};
-    int8_t bnProcBuf[NR_LDPC_SIZE_BN_PROC_BUF]    __attribute__ ((aligned(64))) = {0};
+    // int8_t bnProcBuf[NR_LDPC_SIZE_BN_PROC_BUF]    __attribute__ ((aligned(64))) = {0};
     int8_t bnProcBufRes[NR_LDPC_SIZE_BN_PROC_BUF] __attribute__ ((aligned(64))) = {0};
     int8_t llrRes[NR_LDPC_MAX_NUM_LLR]            __attribute__ ((aligned(64))) = {0};
     int8_t llrProcBuf[NR_LDPC_MAX_NUM_LLR]        __attribute__ ((aligned(64))) = {0};
@@ -199,15 +203,21 @@ static inline uint32_t nrLDPC_decoder_core(int8_t* p_llr, int8_t* p_out, uint32_
 #ifdef NR_LDPC_PROFILER_DETAIL
     start_meas(&p_profiler->llr2CnProcBuf);
 #endif
-    if (BG == 1) nrLDPC_llr2CnProcBuf_BG1(p_lut, p_llr, cnProcBuf, Z);
-    else nrLDPC_llr2CnProcBuf_BG2(p_lut, p_llr, cnProcBuf, Z);
+    if (BG == 1) 
+    {
+        nrLDPC_llr2CnProcBuf_BG1(p_lut, p_llr, procBuf, Z);
+    }
+    else 
+    {
+        nrLDPC_llr2CnProcBuf_BG2(p_lut, p_llr, procBuf, Z);
+    }
 #ifdef NR_LDPC_PROFILER_DETAIL
     stop_meas(&p_profiler->llr2CnProcBuf);
 #endif
 
 #ifdef NR_LDPC_DEBUG_MODE
     nrLDPC_debug_initBuffer2File(nrLDPC_buffers_CN_PROC);
-    nrLDPC_debug_writeBuffer2File(nrLDPC_buffers_CN_PROC, cnProcBuf);
+    nrLDPC_debug_writeBuffer2File(nrLDPC_buffers_CN_PROC, procBuf);
 #endif
 
     // First iteration
@@ -218,16 +228,16 @@ static inline uint32_t nrLDPC_decoder_core(int8_t* p_llr, int8_t* p_out, uint32_
 #endif
     if (BG==1) {
 #ifndef UNROLL_CN_PROC      
-        nrLDPC_cnProc_BG1(p_lut, cnProcBuf, cnProcBufRes, Z);
+        nrLDPC_cnProc_BG1(p_lut, procBuf, cnProcBufRes, Z);
 #else        
         switch (R)
         {
             case 13:
             {
                 #if defined(__AVX512BW__)
-                nrLDPC_cnProc_BG1_R13_AVX512(cnProcBuf, cnProcBufRes, Z);
+                nrLDPC_cnProc_BG1_R13_AVX512(procBuf, cnProcBufRes, Z);
                 #else
-                nrLDPC_cnProc_BG1_R13_AVX2(cnProcBuf, cnProcBufRes, Z);
+                nrLDPC_cnProc_BG1_R13_AVX2(procBuf, cnProcBufRes, Z);
                 #endif
                 break;
             }
@@ -235,9 +245,9 @@ static inline uint32_t nrLDPC_decoder_core(int8_t* p_llr, int8_t* p_out, uint32_
             case 23:
             {
                 #if defined(__AVX512BW__)
-                nrLDPC_cnProc_BG1_R23_AVX512(cnProcBuf,cnProcBufRes, Z);
+                nrLDPC_cnProc_BG1_R23_AVX512(procBuf,cnProcBufRes, Z);
                 #else
-                nrLDPC_cnProc_BG1_R23_AVX2(cnProcBuf, cnProcBufRes, Z);
+                nrLDPC_cnProc_BG1_R23_AVX2(procBuf, cnProcBufRes, Z);
                 #endif
                 break;
             }
@@ -245,9 +255,9 @@ static inline uint32_t nrLDPC_decoder_core(int8_t* p_llr, int8_t* p_out, uint32_
             case 89:
             {
                 #if defined(__AVX512BW__)
-                 nrLDPC_cnProc_BG1_R89_AVX512(cnProcBuf, cnProcBufRes, Z);
+                 nrLDPC_cnProc_BG1_R89_AVX512(procBuf, cnProcBufRes, Z);
                 #else
-                nrLDPC_cnProc_BG1_R89_AVX2(cnProcBuf, cnProcBufRes, Z);
+                nrLDPC_cnProc_BG1_R89_AVX2(procBuf, cnProcBufRes, Z);
                 #endif
                 break;
             }
@@ -256,33 +266,33 @@ static inline uint32_t nrLDPC_decoder_core(int8_t* p_llr, int8_t* p_out, uint32_
 #endif        
     } else {
 #ifndef UNROLL_CN_PROC
-        nrLDPC_cnProc_BG2(p_lut, cnProcBuf, cnProcBufRes, Z);
+        nrLDPC_cnProc_BG2(p_lut, procBuf, cnProcBufRes, Z);
 #else
         switch (R) {
             case 15:
             {
                 #if defined(__AVX512BW__)
-                nrLDPC_cnProc_BG2_R15_AVX512(cnProcBuf, cnProcBufRes, Z);
+                nrLDPC_cnProc_BG2_R15_AVX512(procBuf, cnProcBufRes, Z);
                 #else
-                nrLDPC_cnProc_BG2_R15_AVX2(cnProcBuf, cnProcBufRes, Z);
+                nrLDPC_cnProc_BG2_R15_AVX2(procBuf, cnProcBufRes, Z);
                 #endif
                 break;
             }
             case 13:
             {
                 #if defined(__AVX512BW__)
-                 nrLDPC_cnProc_BG2_R13_AVX512(cnProcBuf, cnProcBufRes, Z);
+                 nrLDPC_cnProc_BG2_R13_AVX512(procBuf, cnProcBufRes, Z);
                 #else
-                nrLDPC_cnProc_BG2_R13_AVX2(cnProcBuf, cnProcBufRes, Z);
+                nrLDPC_cnProc_BG2_R13_AVX2(procBuf, cnProcBufRes, Z);
                 #endif
                 break;
             }
             case 23:
             {
                 #if defined(__AVX512BW__)
-                 nrLDPC_cnProc_BG2_R23_AVX512(cnProcBuf, cnProcBufRes, Z);
+                 nrLDPC_cnProc_BG2_R23_AVX512(procBuf, cnProcBufRes, Z);
                 #else
-                nrLDPC_cnProc_BG2_R23_AVX2(cnProcBuf, cnProcBufRes, Z);
+                nrLDPC_cnProc_BG2_R23_AVX2(procBuf, cnProcBufRes, Z);
                 #endif
                 break;
             }
@@ -302,15 +312,21 @@ static inline uint32_t nrLDPC_decoder_core(int8_t* p_llr, int8_t* p_out, uint32_
 #ifdef NR_LDPC_PROFILER_DETAIL
     start_meas(&p_profiler->cn2bnProcBuf);
 #endif
-    if (BG == 1) nrLDPC_cn2bnProcBuf_BG1(p_lut, cnProcBufRes, bnProcBuf, Z);
-    else         nrLDPC_cn2bnProcBuf_BG2(p_lut, cnProcBufRes, bnProcBuf, Z);
+    if (BG == 1) 
+    {
+        nrLDPC_cn2bnProcBuf_BG1(p_lut, cnProcBufRes, procBuf, Z);
+    }
+    else
+    {   
+        nrLDPC_cn2bnProcBuf_BG2(p_lut, cnProcBufRes, procBuf, Z);
+    }
 #ifdef NR_LDPC_PROFILER_DETAIL
     stop_meas(&p_profiler->cn2bnProcBuf);
 #endif
 
 #ifdef NR_LDPC_DEBUG_MODE
     nrLDPC_debug_initBuffer2File(nrLDPC_buffers_BN_PROC);
-    nrLDPC_debug_writeBuffer2File(nrLDPC_buffers_BN_PROC, bnProcBuf);
+    nrLDPC_debug_writeBuffer2File(nrLDPC_buffers_BN_PROC, procBuf);
 #endif
 
     // BN processing
@@ -318,25 +334,24 @@ static inline uint32_t nrLDPC_decoder_core(int8_t* p_llr, int8_t* p_out, uint32_
     start_meas(&p_profiler->bnProcPc);
 #endif
 
-
 #ifndef UNROLL_BN_PROC_PC
-    nrLDPC_bnProcPc(p_lut, bnProcBuf, bnProcBufRes, llrProcBuf, llrRes, Z);
+    nrLDPC_bnProcPc(p_lut, procBuf, bnProcBufRes, llrProcBuf, llrRes, Z);
 #else        
     if (BG==1) {
         switch (R) {
             case 13:
             {
-                nrLDPC_bnProcPc_BG1_R13_AVX2(bnProcBuf,bnProcBufRes,llrRes, llrProcBuf, Z);
+                nrLDPC_bnProcPc_BG1_R13_AVX2(procBuf,bnProcBufRes,llrRes, llrProcBuf, Z);
                 break;
             }
             case 23:
             {
-                nrLDPC_bnProcPc_BG1_R23_AVX2(bnProcBuf,bnProcBufRes, llrRes, llrProcBuf, Z);
+                nrLDPC_bnProcPc_BG1_R23_AVX2(procBuf,bnProcBufRes, llrRes, llrProcBuf, Z);
                 break;
             }
             case 89:
             {
-                nrLDPC_bnProcPc_BG1_R89_AVX2(bnProcBuf,bnProcBufRes, llrRes, llrProcBuf, Z);
+                nrLDPC_bnProcPc_BG1_R89_AVX2(procBuf,bnProcBufRes, llrRes, llrProcBuf, Z);
                 break;
             }
         }
@@ -344,18 +359,18 @@ static inline uint32_t nrLDPC_decoder_core(int8_t* p_llr, int8_t* p_out, uint32_
         switch (R) {
             case 15:
             {
-                nrLDPC_bnProcPc_BG2_R15_AVX2(bnProcBuf,bnProcBufRes, llrRes, llrProcBuf, Z);
+                nrLDPC_bnProcPc_BG2_R15_AVX2(procBuf,bnProcBufRes, llrRes, llrProcBuf, Z);
                 break;
             }
             case 13:
             {
-                nrLDPC_bnProcPc_BG2_R13_AVX2(bnProcBuf,bnProcBufRes,llrRes,llrProcBuf, Z);
+                nrLDPC_bnProcPc_BG2_R13_AVX2(procBuf,bnProcBufRes,llrRes,llrProcBuf, Z);
                 break;
             }
 
             case 23:
             {
-                nrLDPC_bnProcPc_BG2_R23_AVX2(bnProcBuf,bnProcBufRes,llrRes, llrProcBuf, Z);
+                nrLDPC_bnProcPc_BG2_R23_AVX2(procBuf,bnProcBufRes,llrRes, llrProcBuf, Z);
                 break;
             }
         }
@@ -377,33 +392,33 @@ static inline uint32_t nrLDPC_decoder_core(int8_t* p_llr, int8_t* p_out, uint32_
 
     if (BG==1) {
 #ifndef UNROLL_BN_PROC
-        nrLDPC_bnProc(p_lut, bnProcBuf, bnProcBufRes, llrRes, Z);
+        nrLDPC_bnProc(p_lut, procBuf, bnProcBufRes, llrRes, Z);
 #else
         switch (R) {
             case 13:
             {
                 #if defined(__AVX512BW__)
-                nrLDPC_bnProc_BG1_R13_AVX512(bnProcBuf, bnProcBufRes,llrRes, Z);
+                nrLDPC_bnProc_BG1_R13_AVX512(procBuf, bnProcBufRes,llrRes, Z);
                 #else
-                nrLDPC_bnProc_BG1_R13_AVX2(bnProcBuf, bnProcBufRes,llrRes, Z);
+                nrLDPC_bnProc_BG1_R13_AVX2(procBuf, bnProcBufRes,llrRes, Z);
                 #endif
                 break;
             }
             case 23:
             {
                 #if defined(__AVX512BW__)
-                nrLDPC_bnProc_BG1_R23_AVX512(bnProcBuf, bnProcBufRes,llrRes, Z);
+                nrLDPC_bnProc_BG1_R23_AVX512(procBuf, bnProcBufRes,llrRes, Z);
                 #else
-                nrLDPC_bnProc_BG1_R23_AVX2(bnProcBuf, bnProcBufRes,llrRes, Z);
+                nrLDPC_bnProc_BG1_R23_AVX2(procBuf, bnProcBufRes,llrRes, Z);
                 #endif
                 break;
             }
             case 89:
             {
                 #if defined(__AVX512BW__)
-                nrLDPC_bnProc_BG1_R89_AVX512(bnProcBuf, bnProcBufRes,llrRes, Z);
+                nrLDPC_bnProc_BG1_R89_AVX512(procBuf, bnProcBufRes,llrRes, Z);
                 #else
-                nrLDPC_bnProc_BG1_R89_AVX2(bnProcBuf, bnProcBufRes,llrRes, Z);
+                nrLDPC_bnProc_BG1_R89_AVX2(procBuf, bnProcBufRes,llrRes, Z);
                 #endif
                 break;
             }
@@ -411,24 +426,24 @@ static inline uint32_t nrLDPC_decoder_core(int8_t* p_llr, int8_t* p_out, uint32_
 #endif
     } else {
 #ifndef UNROLL_BN2CN_PROC
-        nrLDPC_bn2cnProcBuf_BG2(p_lut, bnProcBufRes, cnProcBuf, Z);
+        nrLDPC_bn2cnProcBuf_BG2(p_lut, bnProcBufRes, procBuf, Z);
 #else
         switch (R) {
             case 15:
             {
                 #if defined(__AVX512BW__)
-                nrLDPC_bnProc_BG2_R15_AVX512(bnProcBuf, bnProcBufRes,llrRes, Z);
+                nrLDPC_bnProc_BG2_R15_AVX512(procBuf, bnProcBufRes,llrRes, Z);
                 #else
-                nrLDPC_bnProc_BG2_R15_AVX2(bnProcBuf, bnProcBufRes,llrRes, Z);
+                nrLDPC_bnProc_BG2_R15_AVX2(procBuf, bnProcBufRes,llrRes, Z);
                 #endif
                 break;
             }
             case 13:
             {
                 #if defined(__AVX512BW__)
-                nrLDPC_bnProc_BG2_R13_AVX512(bnProcBuf, bnProcBufRes,llrRes, Z);
+                nrLDPC_bnProc_BG2_R13_AVX512(procBuf, bnProcBufRes,llrRes, Z);
                 #else
-                nrLDPC_bnProc_BG2_R13_AVX2(bnProcBuf, bnProcBufRes,llrRes, Z);
+                nrLDPC_bnProc_BG2_R13_AVX2(procBuf, bnProcBufRes,llrRes, Z);
                 #endif
                 break;
             }
@@ -436,9 +451,9 @@ static inline uint32_t nrLDPC_decoder_core(int8_t* p_llr, int8_t* p_out, uint32_
             case 23:
             {
                 #if defined(__AVX512BW__)
-                nrLDPC_bnProc_BG2_R23_AVX512(bnProcBuf, bnProcBufRes,llrRes, Z);
+                nrLDPC_bnProc_BG2_R23_AVX512(procBuf, bnProcBufRes,llrRes, Z);
                 #else
-                nrLDPC_bnProc_BG2_R23_AVX2(bnProcBuf, bnProcBufRes,llrRes, Z);
+                nrLDPC_bnProc_BG2_R23_AVX2(procBuf, bnProcBufRes,llrRes, Z);
                 #endif
                 break;
             }
@@ -459,8 +474,14 @@ static inline uint32_t nrLDPC_decoder_core(int8_t* p_llr, int8_t* p_out, uint32_
 #ifdef NR_LDPC_PROFILER_DETAIL
     start_meas(&p_profiler->bn2cnProcBuf);
 #endif
-    if (BG == 1) nrLDPC_bn2cnProcBuf_BG1(p_lut, bnProcBufRes, cnProcBuf, Z);
-    else         nrLDPC_bn2cnProcBuf_BG2(p_lut, bnProcBufRes, cnProcBuf, Z);
+    if (BG == 1) 
+    {
+        nrLDPC_bn2cnProcBuf_BG1(p_lut, bnProcBufRes, procBuf, Z);
+    }
+    else
+    {
+        nrLDPC_bn2cnProcBuf_BG2(p_lut, bnProcBufRes, procBuf, Z);
+    }
 #ifdef NR_LDPC_PROFILER_DETAIL
     stop_meas(&p_profiler->bn2cnProcBuf);
 #endif
@@ -485,33 +506,33 @@ static inline uint32_t nrLDPC_decoder_core(int8_t* p_llr, int8_t* p_out, uint32_
 #endif
         if (BG==1) {
 #ifndef UNROLL_CN_PROC
-           nrLDPC_cnProc_BG1(p_lut, cnProcBuf, cnProcBufRes, Z);
+           nrLDPC_cnProc_BG1(p_lut, procBuf, cnProcBufRes, Z);
 #else        
            switch (R) {
             case 13:
             {
                 #if defined(__AVX512BW__)
-                nrLDPC_cnProc_BG1_R13_AVX512(cnProcBuf, cnProcBufRes, Z);
+                nrLDPC_cnProc_BG1_R13_AVX512(procBuf, cnProcBufRes, Z);
                 #else
-                nrLDPC_cnProc_BG1_R13_AVX2(cnProcBuf, cnProcBufRes, Z);
+                nrLDPC_cnProc_BG1_R13_AVX2(procBuf, cnProcBufRes, Z);
                 #endif
                 break;
             }
             case 23:
             {
                 #if defined(__AVX512BW__)
-                 nrLDPC_cnProc_BG1_R23_AVX512(cnProcBuf, cnProcBufRes, Z);
+                 nrLDPC_cnProc_BG1_R23_AVX512(procBuf, cnProcBufRes, Z);
                 #else
-                nrLDPC_cnProc_BG1_R23_AVX2(cnProcBuf, cnProcBufRes, Z);
+                nrLDPC_cnProc_BG1_R23_AVX2(procBuf, cnProcBufRes, Z);
                 #endif
                 break;
             }
             case 89:
             {
                 #if defined(__AVX512BW__)
-                 nrLDPC_cnProc_BG1_R89_AVX512(cnProcBuf, cnProcBufRes, Z);
+                 nrLDPC_cnProc_BG1_R89_AVX512(procBuf, cnProcBufRes, Z);
                 #else
-                nrLDPC_cnProc_BG1_R89_AVX2(cnProcBuf, cnProcBufRes, Z);
+                nrLDPC_cnProc_BG1_R89_AVX2(procBuf, cnProcBufRes, Z);
                 #endif
                 break;
             }
@@ -519,33 +540,33 @@ static inline uint32_t nrLDPC_decoder_core(int8_t* p_llr, int8_t* p_out, uint32_
 #endif        
         } else {
 #ifndef UNROLL_CN_PROC
-           nrLDPC_cnProc_BG2(p_lut, cnProcBuf, cnProcBufRes, Z);
+           nrLDPC_cnProc_BG2(p_lut, procBuf, cnProcBufRes, Z);
 #else
            switch (R) {
             case 15:
             {
                 #if defined(__AVX512BW__)
-                nrLDPC_cnProc_BG2_R15_AVX512(cnProcBuf,cnProcBufRes, Z);
+                nrLDPC_cnProc_BG2_R15_AVX512(procBuf,cnProcBufRes, Z);
                 #else
-                nrLDPC_cnProc_BG2_R15_AVX2(cnProcBuf, cnProcBufRes, Z);
+                nrLDPC_cnProc_BG2_R15_AVX2(procBuf, cnProcBufRes, Z);
                 #endif
                 break;
             }
             case 13:
             {
                 #if defined(__AVX512BW__)
-                 nrLDPC_cnProc_BG2_R13_AVX512(cnProcBuf, cnProcBufRes, Z);
+                 nrLDPC_cnProc_BG2_R13_AVX512(procBuf, cnProcBufRes, Z);
                 #else
-                nrLDPC_cnProc_BG2_R13_AVX2(cnProcBuf, cnProcBufRes, Z);
+                nrLDPC_cnProc_BG2_R13_AVX2(procBuf, cnProcBufRes, Z);
                 #endif
                 break;
             } 
             case 23:
             {
                 #if defined(__AVX512BW__)
-                 nrLDPC_cnProc_BG2_R23_AVX512(cnProcBuf, cnProcBufRes, Z);
+                 nrLDPC_cnProc_BG2_R23_AVX512(procBuf, cnProcBufRes, Z);
                 #else
-                nrLDPC_cnProc_BG2_R23_AVX2(cnProcBuf, cnProcBufRes, Z);
+                nrLDPC_cnProc_BG2_R23_AVX2(procBuf, cnProcBufRes, Z);
                 #endif
                 break;
             }
@@ -564,14 +585,20 @@ static inline uint32_t nrLDPC_decoder_core(int8_t* p_llr, int8_t* p_out, uint32_
 #ifdef NR_LDPC_PROFILER_DETAIL
         start_meas(&p_profiler->cn2bnProcBuf);
 #endif
-        if (BG == 1) nrLDPC_cn2bnProcBuf_BG1(p_lut, cnProcBufRes, bnProcBuf, Z);
-        else         nrLDPC_cn2bnProcBuf_BG2(p_lut, cnProcBufRes, bnProcBuf, Z);
+        if (BG == 1)
+        {
+            nrLDPC_cn2bnProcBuf_BG1(p_lut, cnProcBufRes, procBuf, Z);
+        }
+        else
+        {   
+            nrLDPC_cn2bnProcBuf_BG2(p_lut, cnProcBufRes, procBuf, Z);
+        }
 #ifdef NR_LDPC_PROFILER_DETAIL
         stop_meas(&p_profiler->cn2bnProcBuf);
 #endif
 
 #ifdef NR_LDPC_DEBUG_MODE
-        nrLDPC_debug_writeBuffer2File(nrLDPC_buffers_BN_PROC, bnProcBuf);
+        nrLDPC_debug_writeBuffer2File(nrLDPC_buffers_BN_PROC, procBuf);
 #endif
 
         // BN Processing
@@ -580,23 +607,23 @@ static inline uint32_t nrLDPC_decoder_core(int8_t* p_llr, int8_t* p_out, uint32_
 #endif
 
 #ifndef UNROLL_BN_PROC_PC
-        nrLDPC_bnProcPc(p_lut, bnProcBuf, bnProcBufRes, llrProcBuf, llrRes, Z);
+        nrLDPC_bnProcPc(p_lut, procBuf, bnProcBufRes, llrProcBuf, llrRes, Z);
 #else
         if (BG==1) {
           switch (R) {
             case 13:
             {
-                nrLDPC_bnProcPc_BG1_R13_AVX2(bnProcBuf,bnProcBufRes,llrRes, llrProcBuf, Z);
+                nrLDPC_bnProcPc_BG1_R13_AVX2(procBuf,bnProcBufRes,llrRes, llrProcBuf, Z);
                 break;
             }
             case 23:
             {
-                nrLDPC_bnProcPc_BG1_R23_AVX2(bnProcBuf,bnProcBufRes, llrRes, llrProcBuf, Z);
+                nrLDPC_bnProcPc_BG1_R23_AVX2(procBuf,bnProcBufRes, llrRes, llrProcBuf, Z);
                 break;
             }
             case 89:
             {
-                nrLDPC_bnProcPc_BG1_R89_AVX2(bnProcBuf,bnProcBufRes, llrRes, llrProcBuf, Z);
+                nrLDPC_bnProcPc_BG1_R89_AVX2(procBuf,bnProcBufRes, llrRes, llrProcBuf, Z);
                 break;
             }
           }
@@ -605,17 +632,17 @@ static inline uint32_t nrLDPC_decoder_core(int8_t* p_llr, int8_t* p_out, uint32_
           {
             case 15:
             {
-                nrLDPC_bnProcPc_BG2_R15_AVX2(bnProcBuf,bnProcBufRes,llrRes, llrProcBuf, Z);
+                nrLDPC_bnProcPc_BG2_R15_AVX2(procBuf,bnProcBufRes,llrRes, llrProcBuf, Z);
                 break;
             }
             case 13:
             {
-                nrLDPC_bnProcPc_BG2_R13_AVX2(bnProcBuf,bnProcBufRes,llrRes, llrProcBuf, Z);
+                nrLDPC_bnProcPc_BG2_R13_AVX2(procBuf,bnProcBufRes,llrRes, llrProcBuf, Z);
                 break;
             }
             case 23:
             {
-                nrLDPC_bnProcPc_BG2_R23_AVX2(bnProcBuf,bnProcBufRes,llrRes, llrProcBuf, Z);
+                nrLDPC_bnProcPc_BG2_R23_AVX2(procBuf,bnProcBufRes,llrRes, llrProcBuf, Z);
                 break;
             }
           }
@@ -633,34 +660,34 @@ static inline uint32_t nrLDPC_decoder_core(int8_t* p_llr, int8_t* p_out, uint32_
         start_meas(&p_profiler->bnProc);
 #endif
 #ifndef UNROLL_BN_PROC
-        nrLDPC_bnProc(p_lut, bnProcBuf, bnProcBufRes, llrRes, Z);
+        nrLDPC_bnProc(p_lut, procBuf, bnProcBufRes, llrRes, Z);
 #else     
         if (BG==1) {
           switch (R) {
             case 13:
             {
                 #if defined(__AVX512BW__)
-                nrLDPC_bnProc_BG1_R13_AVX512(bnProcBuf, bnProcBufRes,llrRes, Z);
+                nrLDPC_bnProc_BG1_R13_AVX512(procBuf, bnProcBufRes,llrRes, Z);
                 #else
-                nrLDPC_bnProc_BG1_R13_AVX2(bnProcBuf, bnProcBufRes,llrRes, Z);
+                nrLDPC_bnProc_BG1_R13_AVX2(procBuf, bnProcBufRes,llrRes, Z);
                 #endif
                 break;
             }
             case 23:
             {
                 #if defined(__AVX512BW__)
-                nrLDPC_bnProc_BG1_R23_AVX512(bnProcBuf, bnProcBufRes,llrRes, Z);
+                nrLDPC_bnProc_BG1_R23_AVX512(procBuf, bnProcBufRes,llrRes, Z);
                 #else
-                nrLDPC_bnProc_BG1_R23_AVX2(bnProcBuf,bnProcBufRes,llrRes, Z);
+                nrLDPC_bnProc_BG1_R23_AVX2(procBuf,bnProcBufRes,llrRes, Z);
                 #endif
                 break;
             }
             case 89:
             {
                 #if defined(__AVX512BW__)
-                nrLDPC_bnProc_BG1_R89_AVX512(bnProcBuf, bnProcBufRes,llrRes, Z);
+                nrLDPC_bnProc_BG1_R89_AVX512(procBuf, bnProcBufRes,llrRes, Z);
                 #else
-                nrLDPC_bnProc_BG1_R89_AVX2(bnProcBuf, bnProcBufRes,llrRes, Z);
+                nrLDPC_bnProc_BG1_R89_AVX2(procBuf, bnProcBufRes,llrRes, Z);
                 #endif
                 break;
             }
@@ -671,35 +698,33 @@ static inline uint32_t nrLDPC_decoder_core(int8_t* p_llr, int8_t* p_out, uint32_
             case 15:
             {
                 #if defined(__AVX512BW__)
-                nrLDPC_bnProc_BG2_R15_AVX512(bnProcBuf, bnProcBufRes,llrRes, Z);
+                nrLDPC_bnProc_BG2_R15_AVX512(procBuf, bnProcBufRes,llrRes, Z);
                 #else
-                nrLDPC_bnProc_BG2_R15_AVX2(bnProcBuf, bnProcBufRes,llrRes, Z);
+                nrLDPC_bnProc_BG2_R15_AVX2(procBuf, bnProcBufRes,llrRes, Z);
                 #endif
                 break;
             }
             case 13:
             {
                 #if defined(__AVX512BW__)
-                nrLDPC_bnProc_BG2_R13_AVX512(bnProcBuf, bnProcBufRes,llrRes, Z);
+                nrLDPC_bnProc_BG2_R13_AVX512(procBuf, bnProcBufRes,llrRes, Z);
                 #else
-                nrLDPC_bnProc_BG2_R13_AVX2(bnProcBuf, bnProcBufRes,llrRes, Z);
+                nrLDPC_bnProc_BG2_R13_AVX2(procBuf, bnProcBufRes,llrRes, Z);
                 #endif
                 break;
             }
             case 23:
             {
                 #if defined(__AVX512BW__)
-                nrLDPC_bnProc_BG2_R23_AVX512(bnProcBuf, bnProcBufRes,llrRes, Z);
+                nrLDPC_bnProc_BG2_R23_AVX512(procBuf, bnProcBufRes,llrRes, Z);
                 #else
-                nrLDPC_bnProc_BG2_R23_AVX2(bnProcBuf, bnProcBufRes,llrRes, Z);
+                nrLDPC_bnProc_BG2_R23_AVX2(procBuf, bnProcBufRes,llrRes, Z);
                 #endif
                 break;
             }
           }
         }
 #endif
-
-
 
 #ifdef NR_LDPC_PROFILER_DETAIL
         stop_meas(&p_profiler->bnProc);
@@ -713,14 +738,20 @@ static inline uint32_t nrLDPC_decoder_core(int8_t* p_llr, int8_t* p_out, uint32_
 #ifdef NR_LDPC_PROFILER_DETAIL
         start_meas(&p_profiler->bn2cnProcBuf);
 #endif
-        if (BG == 1) nrLDPC_bn2cnProcBuf_BG1(p_lut, bnProcBufRes, cnProcBuf, Z);
-        else         nrLDPC_bn2cnProcBuf_BG2(p_lut, bnProcBufRes, cnProcBuf, Z);
+        if (BG == 1) 
+        {   
+            nrLDPC_bn2cnProcBuf_BG1(p_lut, bnProcBufRes, procBuf, Z);
+        }
+        else
+        {   
+            nrLDPC_bn2cnProcBuf_BG2(p_lut, bnProcBufRes, procBuf, Z);
+        }
 #ifdef NR_LDPC_PROFILER_DETAIL
         stop_meas(&p_profiler->bn2cnProcBuf);
 #endif
 
 #ifdef NR_LDPC_DEBUG_MODE
-        nrLDPC_debug_writeBuffer2File(nrLDPC_buffers_CN_PROC, cnProcBuf);
+        nrLDPC_debug_writeBuffer2File(nrLDPC_buffers_CN_PROC, procBuf);
 #endif
 
    // Parity Check
@@ -728,10 +759,16 @@ static inline uint32_t nrLDPC_decoder_core(int8_t* p_llr, int8_t* p_out, uint32_
 #ifdef NR_LDPC_PROFILER_DETAIL
        start_meas(&p_profiler->cnProcPc);
 #endif
-       if (BG == 1) pcRes = nrLDPC_cnProcPc_BG1(p_lut, cnProcBuf, cnProcBufRes, Z);
-       else         pcRes = nrLDPC_cnProcPc_BG2(p_lut, cnProcBuf, cnProcBufRes, Z);
+       if (BG == 1) 
+       {
+            pcRes = nrLDPC_cnProcPc_BG1(p_lut, procBuf, cnProcBufRes, Z);
+       }
+       else
+       {    
+            pcRes = nrLDPC_cnProcPc_BG2(p_lut, procBuf, cnProcBufRes, Z);
+       }
 #ifdef NR_LDPC_PROFILER_DETAIL
-       stop_meas(&p_profiler->cnProcPc);
+       stop_meas(&p_profiler->procPc);
 #endif
 #endif
    } // end while
