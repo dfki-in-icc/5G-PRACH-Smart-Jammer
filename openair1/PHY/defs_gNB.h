@@ -457,6 +457,10 @@ typedef struct {
   /// - first index: rx antenna id [0..nb_antennas_rx[
   /// - second index: ? [0..12*N_RB_UL*frame_parms->symbols_per_tti[
   int32_t **ul_ch_magb;
+  /// \brief Magnitude of the UL channel estimates scaled for 4th bit level thresholds in LLR computation
+  /// - first index: rx antenna id [0..nb_antennas_rx[
+  /// - second index: ? [0..12*N_RB_UL*frame_parms->symbols_per_tti[
+  int32_t **ul_ch_magc;
   /// \brief Cross-correlation of two UE signals.
   /// - first index: rx antenna [0..nb_antennas_rx[
   /// - second index: symbol [0..]
@@ -479,6 +483,10 @@ typedef struct {
   /// - first index: ? [0..7] (hard coded) FIXME! accessed via \c nb_antennas_rx
   /// - second index: ? [0..168*N_RB_UL[
   int32_t **ul_ch_magb1[8][8];
+  /// \brief Magnitude of Uplink Channel, first layer (3rd 256QAM level).
+  /// - first index: ? [0..7] (hard coded) FIXME! accessed via \c nb_antennas_rx
+  /// - second index: ? [0..168*N_RB_UL[
+  int32_t **ul_ch_magc0;
   /// measured RX power based on DRS
   int ulsch_power[8];
   /// total signal over antennas

@@ -1558,21 +1558,22 @@ int main(int argc, char **argv)
       test_input_bit[i]       = (ulsch_ue->harq_processes[harq_pid]->b[i/8] & (1 << (i & 7))) >> (i & 7);
       
       if (estimated_output_bit[i] != test_input_bit[i]) {
-	/*if(errors_decoding == 0)
+/*	if(errors_decoding == 0)
 	  printf("\x1B[34m""[frame %d][trial %d]\t1st bit in error in decoding     = %d\n" "\x1B[0m", frame, trial, i);*/
 	errors_decoding++;
       }
     }
+    /*
     if (n_trials == 1) {
       for (int r=0;r<ulsch_ue->harq_processes[harq_pid]->C;r++)
 	for (int i=0;i<ulsch_ue->harq_processes[harq_pid]->K>>3;i++) {
-	  if ((ulsch_ue->harq_processes[harq_pid]->c[r][i]^ulsch_gNB->harq_processes[harq_pid]->c[r][i]) != 0) printf("************");
-	    /*printf("r %d: in[%d] %x, out[%d] %x (%x)\n",r,
+	  if ((ulsch_ue->harq_processes[harq_pid]->c[r][i]^ulsch_gNB->harq_processes[harq_pid]->c[r][i]) != 0) //printf("************");
+	    printf("r %d: in[%d] %x, out[%d] %x (%x)\n",r,
 	    i,ulsch_ue->harq_processes[harq_pid]->c[r][i],
 	    i,ulsch_gNB->harq_processes[harq_pid]->c[r][i],
-	    ulsch_ue->harq_processes[harq_pid]->c[r][i]^ulsch_gNB->harq_processes[harq_pid]->c[r][i]);*/
+	    ulsch_ue->harq_processes[harq_pid]->c[r][i]^ulsch_gNB->harq_processes[harq_pid]->c[r][i]);
 	}
-    }
+    }*/
     if (errors_decoding > 0 && error_flag == 0) {
       n_false_positive++;
       if (n_trials==1)
