@@ -663,8 +663,10 @@ int phy_init_nr_gNB(PHY_VARS_gNB *gNB)
     pusch_vars[ULSCH_id]->rxdataF_comp          = (int32_t **)malloc16(n_buf*sizeof(int32_t *) );
     pusch_vars[ULSCH_id]->ul_ch_mag0            = (int32_t **)malloc16(n_buf*sizeof(int32_t *) );
     pusch_vars[ULSCH_id]->ul_ch_magb0           = (int32_t **)malloc16(n_buf*sizeof(int32_t *) );
+    pusch_vars[ULSCH_id]->ul_ch_magc0           = (int32_t **)malloc16(n_buf*sizeof(int32_t *) );
     pusch_vars[ULSCH_id]->ul_ch_mag             = (int32_t **)malloc16(n_buf*sizeof(int32_t *) );
     pusch_vars[ULSCH_id]->ul_ch_magb            = (int32_t **)malloc16(n_buf*sizeof(int32_t *) );
+    pusch_vars[ULSCH_id]->ul_ch_magc            = (int32_t **)malloc16(n_buf*sizeof(int32_t *) );
     pusch_vars[ULSCH_id]->rho                   = (int32_t ***)malloc16(Prx*sizeof(int32_t **) );
     pusch_vars[ULSCH_id]->llr_layers            = (int16_t **)malloc16(max_ul_mimo_layers*sizeof(int32_t *) );
 
@@ -686,8 +688,10 @@ int phy_init_nr_gNB(PHY_VARS_gNB *gNB)
       pusch_vars[ULSCH_id]->rxdataF_comp[i]          = (int32_t *)malloc16_clear( sizeof(int32_t)*nb_re_pusch2*fp->symbols_per_slot );
       pusch_vars[ULSCH_id]->ul_ch_mag0[i]            = (int32_t *)malloc16_clear( sizeof(int32_t)*nb_re_pusch2*fp->symbols_per_slot );
       pusch_vars[ULSCH_id]->ul_ch_magb0[i]           = (int32_t *)malloc16_clear( sizeof(int32_t)*nb_re_pusch2*fp->symbols_per_slot );
+      pusch_vars[ULSCH_id]->ul_ch_magc0[i]           = (int32_t *)malloc16_clear( sizeof(int32_t)*nb_re_pusch2*fp->symbols_per_slot );
       pusch_vars[ULSCH_id]->ul_ch_mag[i]             = (int32_t *)malloc16_clear( sizeof(int32_t)*nb_re_pusch2*fp->symbols_per_slot );
       pusch_vars[ULSCH_id]->ul_ch_magb[i]            = (int32_t *)malloc16_clear( sizeof(int32_t)*nb_re_pusch2*fp->symbols_per_slot );
+      pusch_vars[ULSCH_id]->ul_ch_magc[i]            = (int32_t *)malloc16_clear( sizeof(int32_t)*nb_re_pusch2*fp->symbols_per_slot );
     }
 
     for (i=0; i< max_ul_mimo_layers; i++) {
@@ -823,8 +827,10 @@ void phy_free_nr_gNB(PHY_VARS_gNB *gNB)
       free_and_zero(pusch_vars[ULSCH_id]->rxdataF_comp[i]);
       free_and_zero(pusch_vars[ULSCH_id]->ul_ch_mag0[i]);
       free_and_zero(pusch_vars[ULSCH_id]->ul_ch_magb0[i]);
+      free_and_zero(pusch_vars[ULSCH_id]->ul_ch_magc0[i]);
       free_and_zero(pusch_vars[ULSCH_id]->ul_ch_mag[i]);
       free_and_zero(pusch_vars[ULSCH_id]->ul_ch_magb[i]);
+      free_and_zero(pusch_vars[ULSCH_id]->ul_ch_magc[i]);
     }
     free_and_zero(pusch_vars[ULSCH_id]->llr_layers);
     free_and_zero(pusch_vars[ULSCH_id]->rxdataF_ext);
@@ -836,8 +842,10 @@ void phy_free_nr_gNB(PHY_VARS_gNB *gNB)
     free_and_zero(pusch_vars[ULSCH_id]->rxdataF_comp);
     free_and_zero(pusch_vars[ULSCH_id]->ul_ch_mag0);
     free_and_zero(pusch_vars[ULSCH_id]->ul_ch_magb0);
+    free_and_zero(pusch_vars[ULSCH_id]->ul_ch_magc0);
     free_and_zero(pusch_vars[ULSCH_id]->ul_ch_mag);
     free_and_zero(pusch_vars[ULSCH_id]->ul_ch_magb);
+    free_and_zero(pusch_vars[ULSCH_id]->ul_ch_magc);
     free_and_zero(pusch_vars[ULSCH_id]->rho);
 
     free_and_zero(pusch_vars[ULSCH_id]->llr);
