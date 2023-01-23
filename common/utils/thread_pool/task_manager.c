@@ -40,10 +40,19 @@ void* worker_thread(void* arg)
     //printf("After func %ld id %lu elapsed %ld \n", time_now_us(), pthread_self(), time_now_us()-now );
 
     atomic_fetch_sub(&man->num_task, 1); 
+    if(man->num_task < 1 && man->waiting != 0){
 
-    if(man->num_task == 0 && man->waiting != 0){
-      man->waiting == 1 ? pthread_cond_signal(&man->wait_cv) : unlock_spinlock(&man->spin);
+        pthread_mutex_lock(&man->wait_mtx);
+       
+        man->waiting = 0;
+        pthread_cond_signal(&man->wait_cv); 
+        
+        pthread_mutex_unlock(&man->wait_mtx);
     }
+
+//    if(man->num_task < 1 && man->waiting != 0){
+//      man->waiting == 1 ? pthread_cond_signal(&man->wait_cv) : unlock_spinlock(&man->spin);
+//    }
 
   }
 
@@ -76,11 +85,11 @@ void init_task_manager(task_manager_t* man, uint32_t num_threads)
   int rc = pthread_mutex_init(&man->wait_mtx, &attr);
   assert(rc == 0 && "Error while creating the mtx");
 
+  man->spin.lock = false;
+
   pthread_condattr_t* c_attr = NULL; 
   rc = pthread_cond_init(&man->wait_cv, c_attr);
   assert(rc == 0);
-
-
 
   man->t_arr = calloc(num_threads, sizeof(pthread_t));
   assert(man->t_arr != NULL && "Memory exhausted" );
@@ -148,10 +157,9 @@ void wait_all_task_manager(task_manager_t* man)
   pthread_mutex_lock(&man->wait_mtx);
   man->waiting = 1;
 
-  while(man->num_task > 0) 
+  while(man->num_task > 0 && man->waiting != 0) 
     pthread_cond_wait(&man->wait_cv, &man->wait_mtx);
 
-  man->waiting = 0;
   pthread_mutex_unlock(&man->wait_mtx);
 }
 
@@ -159,9 +167,21 @@ void wait_all_spin_task_manager(task_manager_t* man)
 {
   assert(man != NULL);
 
+
+  while(man->num_task > 0)
+    sched_yield();
+
+  /*
+  if(man->num_task < 1)
+    return;
+
   man->waiting = 2;
   lock_spinlock(&man->spin);
+  lock_spinlock(&man->spin);
   man->waiting = 0;
+  unlock_spinlock(&man->spin);
+*/
+
 }
 
 void wake_and_spin_task_manager(task_manager_t* man)

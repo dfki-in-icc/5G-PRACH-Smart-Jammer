@@ -979,8 +979,10 @@ typedef struct LDPCDecode_s {
   uint32_t tbslbrm;
 
 #ifdef TASK_MANAGER
-  int* cancel_decoding; 
+  // I am not sure whether atomic is needed
+  _Atomic int* cancel_decoding; 
 #endif
+
 } ldpcDecode_t ;
 
 struct ldpcReqId {

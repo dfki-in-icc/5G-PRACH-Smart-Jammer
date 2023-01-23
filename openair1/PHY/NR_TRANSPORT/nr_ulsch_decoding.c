@@ -255,7 +255,7 @@ void nr_processULSegment(void* arg)
 
   ldpcDecode_t *rdata = (ldpcDecode_t*) arg;
 
-#if TASK_MANAGER
+#ifdef TASK_MANAGER
   if(*rdata->cancel_decoding == 1)
     return;
 #endif
@@ -421,10 +421,10 @@ void nr_processULSegment(void* arg)
   }
 
 #ifdef TASK_MANAGER
-  if( phy_vars_gNB->ldpc_offload_flag)
+//  if( phy_vars_gNB->ldpc_offload_flag)
     nr_postDecode(rdata->gNB, rdata);
 #elif OMP_TP 
-  if( phy_vars_gNB->ldpc_offload_flag)
+//  if( phy_vars_gNB->ldpc_offload_flag)
     nr_postDecode(rdata->gNB, rdata);
 #endif
 
@@ -794,7 +794,7 @@ uint32_t nr_ulsch_decoding(PHY_VARS_gNB *phy_vars_gNB,
 #ifdef TASK_MANAGER
   ldpcDecode_t* arr = calloc(harq_process->C, sizeof(ldpcDecode_t)); 
   int idx_arr = 0;
-  int cancel_decoding = 0;
+  _Atomic int cancel_decoding = 0;
 #elif OMP_TP 
   ldpcDecode_t* arr = calloc(harq_process->C, sizeof(ldpcDecode_t)); 
   int idx_arr = 0;

@@ -285,6 +285,7 @@ void nr_postDecode(PHY_VARS_gNB *gNB, notifiedFIFO_elt_t *req)
     ulsch_harq->aborted|=1UL<<r;
     LOG_D(PHY,"uplink segment error %d/%d segments\n",rdata->segment_r,rdata->nbSegments);
     LOG_D(PHY, "ULSCH %d in error\n",rdata->ulsch_id);;
+    rdata->nbSegments = ulsch_harq->processedSegments;
 
     //  assert(0!=0 && "Do not come here" );
     /*

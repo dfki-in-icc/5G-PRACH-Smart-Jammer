@@ -23,6 +23,8 @@ void init_not_q(not_q_t* q)
   rc = pthread_cond_init(&q->cv, c_attr);
   assert(rc == 0);
   q->spin = false;
+
+  q->sl.lock = false;
 }
 
 void free_not_q(not_q_t* q, void (*clean)(task_t*) )
@@ -131,13 +133,14 @@ label:
     assert(rc == 0);
 
     lock_spinlock(&q->sl);
+    unlock_spinlock(&q->sl);
 
     rc = pthread_mutex_lock(&q->mtx);
     assert(rc == 0);
-
-    if(size_seq_ring_task(&q->r) == 0)
-      goto label;
   }
+
+  if(size_seq_ring_task(&q->r) == 0)
+    goto label;
 
   out->t = pop_seq_ring_task(&q->r);
 
@@ -167,7 +170,19 @@ void wake_spin_not_q(not_q_t* q)
 {
   assert(q != NULL);
 
+
+  lock_spinlock(&q->sl);
+
+  int rc = pthread_mutex_lock(&q->mtx);
+  assert(rc == 0);
+ 
+  assert(q->spin == false);
   q->spin = true;
+
+  rc = pthread_mutex_unlock(&q->mtx);
+  assert(rc == 0);
+
+
   pthread_cond_signal(&q->cv);
 }
 
@@ -175,7 +190,15 @@ void stop_spin_not_q(not_q_t* q)
 {
   assert(q != NULL);
 
+  int rc = pthread_mutex_lock(&q->mtx);
+  assert(rc == 0);
+ 
+  assert(q->spin == true);
   q->spin = false;
+
+  rc = pthread_mutex_unlock(&q->mtx);
+  assert(rc == 0);
+
   unlock_spinlock(&q->sl);
 }
 

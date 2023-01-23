@@ -15,7 +15,7 @@ typedef struct {
   int done;
 
   spinlock_t sl;
-  _Atomic bool spin;
+  bool spin;
 } not_q_t;
 
 typedef struct{

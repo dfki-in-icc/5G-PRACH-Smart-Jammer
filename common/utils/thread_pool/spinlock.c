@@ -7,7 +7,7 @@ void lock_spinlock(spinlock_t* s)
 {
   assert(s != NULL);
 
-  s->lock = true;
+//  s->lock = true;
 
     for (;;) {
       // Optimistically assume the lock is free on the first try
