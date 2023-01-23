@@ -40,6 +40,7 @@ void* worker_thread(void* arg)
     //printf("After func %ld id %lu elapsed %ld \n", time_now_us(), pthread_self(), time_now_us()-now );
 
     atomic_fetch_sub(&man->num_task, 1); 
+
     if(man->num_task < 1 && man->waiting != 0){
 
         pthread_mutex_lock(&man->wait_mtx);
@@ -49,10 +50,6 @@ void* worker_thread(void* arg)
         
         pthread_mutex_unlock(&man->wait_mtx);
     }
-
-//    if(man->num_task < 1 && man->waiting != 0){
-//      man->waiting == 1 ? pthread_cond_signal(&man->wait_cv) : unlock_spinlock(&man->spin);
-//    }
 
   }
 
@@ -167,21 +164,12 @@ void wait_all_spin_task_manager(task_manager_t* man)
 {
   assert(man != NULL);
 
-
-  while(man->num_task > 0)
-    sched_yield();
-
-  /*
-  if(man->num_task < 1)
-    return;
-
-  man->waiting = 2;
-  lock_spinlock(&man->spin);
-  lock_spinlock(&man->spin);
-  man->waiting = 0;
-  unlock_spinlock(&man->spin);
-*/
-
+  // Wait without generating cache misses
+  while (atomic_load_explicit(&man->num_task, memory_order_relaxed)){
+    // Issue X86 PAUSE or ARM YIELD instruction to reduce contention between
+    // hyper-threads
+    __builtin_ia32_pause();
+  }
 }
 
 void wake_and_spin_task_manager(task_manager_t* man)

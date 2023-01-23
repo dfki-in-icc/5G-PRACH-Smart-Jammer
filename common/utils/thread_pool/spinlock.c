@@ -7,21 +7,19 @@ void lock_spinlock(spinlock_t* s)
 {
   assert(s != NULL);
 
-//  s->lock = true;
-
-    for (;;) {
-      // Optimistically assume the lock is free on the first try
-      if(!atomic_exchange_explicit(&s->lock, true, memory_order_acquire) ){
-        return;
-      }
-
-      // Wait for lock to be released without generating cache misses
-      while (atomic_load_explicit(&s->lock, memory_order_relaxed)){
-        // Issue X86 PAUSE or ARM YIELD instruction to reduce contention between
-        // hyper-threads
-        __builtin_ia32_pause();
-      }
+  for (;;) {
+    // Optimistically assume the lock is free on the first try
+    if(!atomic_exchange_explicit(&s->lock, true, memory_order_acquire) ){
+      return;
     }
+
+    // Wait for lock to be released without generating cache misses
+    while (atomic_load_explicit(&s->lock, memory_order_relaxed)){
+      // Issue X86 PAUSE or ARM YIELD instruction to reduce contention between
+      // hyper-threads
+      __builtin_ia32_pause();
+    }
+  }
 
 }
 

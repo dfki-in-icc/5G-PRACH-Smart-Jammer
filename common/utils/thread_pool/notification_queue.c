@@ -24,7 +24,7 @@ void init_not_q(not_q_t* q)
   assert(rc == 0);
   q->spin = false;
 
-  q->sl.lock = false;
+  //q->sl.lock = false;
 }
 
 void free_not_q(not_q_t* q, void (*clean)(task_t*) )
@@ -132,8 +132,12 @@ label:
     int rc = pthread_mutex_unlock(&q->mtx);
     assert(rc == 0);
 
-    lock_spinlock(&q->sl);
-    unlock_spinlock(&q->sl);
+   // Wait for lock to be released without generating cache misses
+    while (atomic_load_explicit(&q->spin, memory_order_relaxed)){
+      // Issue X86 PAUSE or ARM YIELD instruction to reduce contention between
+      // hyper-threads
+      __builtin_ia32_pause();
+    }
 
     rc = pthread_mutex_lock(&q->mtx);
     assert(rc == 0);
@@ -170,18 +174,8 @@ void wake_spin_not_q(not_q_t* q)
 {
   assert(q != NULL);
 
-
-  lock_spinlock(&q->sl);
-
-  int rc = pthread_mutex_lock(&q->mtx);
-  assert(rc == 0);
- 
-  assert(q->spin == false);
-  q->spin = true;
-
-  rc = pthread_mutex_unlock(&q->mtx);
-  assert(rc == 0);
-
+  // spin until acquired i.e., q->spin == true
+  while(atomic_exchange_explicit(&q->spin, true, memory_order_acquire)); 
 
   pthread_cond_signal(&q->cv);
 }
@@ -190,15 +184,6 @@ void stop_spin_not_q(not_q_t* q)
 {
   assert(q != NULL);
 
-  int rc = pthread_mutex_lock(&q->mtx);
-  assert(rc == 0);
- 
-  assert(q->spin == true);
-  q->spin = false;
-
-  rc = pthread_mutex_unlock(&q->mtx);
-  assert(rc == 0);
-
-  unlock_spinlock(&q->sl);
+  atomic_store_explicit(&q->spin, false, memory_order_release);
 }
 
