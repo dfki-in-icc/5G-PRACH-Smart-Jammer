@@ -371,15 +371,6 @@ static inline void nrLDPC_cnProc_BG2(t_nrLDPC_lut* p_lut, int8_t* cnProcBuf, int
 
 }
 
-
-/**
-   \brief Performs CN processing for BG1 on the CN processing buffer and stores the results in the CN processing results buffer.
-   \param p_lut Pointer to decoder LUTs
-   \param Z Lifting size
-*/
-
-
-
 /**
    \brief Performs CN processing for BG1 on the CN processing buffer and stores the results in the CN processing results buffer.
    \param p_lut Pointer to decoder LUTs
@@ -1956,6 +1947,3 @@ static inline uint32_t nrLDPC_cnProcPc_BG2(t_nrLDPC_lut* p_lut, int8_t* cnProcBu
 }
 
 #endif
-
-
-
