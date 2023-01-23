@@ -593,7 +593,7 @@ set(HWLIB_AW2SORI_SOURCE
   ${OPENAIR_DIR}/radio/AW2SORI/oaiori.c
   )
 add_library(aw2sori_transpro MODULE ${HWLIB_AW2SORI_SOURCE})
-target_compile_options(aw2sori_transpro PRIVATE -shared -fPIC -msse4 -g -ggdb -DLITE_COMPILATION)
+target_compile_options(aw2sori_transpro PRIVATE -shared -fPIC -march=native -g -ggdb -DLITE_COMPILATION)
 target_link_libraries(aw2sori_transpro libori.so)
 
 include_directories("${OPENAIR_DIR}/radio/IRIS/USERSPACE/LIB/")
