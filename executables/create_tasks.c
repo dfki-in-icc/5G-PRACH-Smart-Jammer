@@ -22,13 +22,13 @@
 # include "intertask_interface.h"
 # include "create_tasks.h"
 # include "common/utils/LOG/log.h"
-# include "targets/RT/USER/lte-softmodem.h"
+# include "executables/lte-softmodem.h"
 # include "common/ran_context.h"
 
   #include "sctp_eNB_task.h"
   #include "x2ap_eNB.h"
   #include "s1ap_eNB.h"
-  #include "gtpv1u_eNB_task.h"
+  #include "openair3/ocp-gtpu/gtp_itf.h"
   #if ENABLE_RAL
     #include "lteRALue.h"
     #include "lteRALenb.h"
@@ -85,7 +85,6 @@ int create_tasks(uint32_t enb_nb) {
   if (NODE_IS_DU(type)) {
     rc = itti_create_task(TASK_DU_F1, F1AP_DU_task, NULL);
     AssertFatal(rc >= 0, "Create task for DU F1AP failed\n");
-    // DU is now GTP-U instead of protobuf
     rc = itti_create_task(TASK_GTPV1_U, gtpv1uTask, NULL);
     AssertFatal(rc >= 0, "Create task for GTPV1U failed\n");
   }

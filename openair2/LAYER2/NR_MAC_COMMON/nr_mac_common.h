@@ -32,10 +32,8 @@
 #define __LAYER2_NR_MAC_COMMON_H__
 
 #include "NR_MIB.h"
-#include "NR_PDSCH-Config.h"
 #include "NR_CellGroupConfig.h"
 #include "nr_mac.h"
-#include "openair1/PHY/impl_defs_nr.h"
 #include "common/utils/nr/nr_common.h"
 
 typedef enum {
@@ -46,11 +44,16 @@ typedef enum {
 } pusch_dmrs_AdditionalPosition_t;
 
 typedef enum {
+  pusch_len1 = 1,
+  pusch_len2 = 2
+} pusch_maxLength_t;
+
+typedef enum {
   typeA = 0,
   typeB = 1
 } mappingType_t;
 
-uint32_t get_Y(NR_SearchSpace_t *ss, int slot, rnti_t rnti);
+uint32_t get_Y(const NR_SearchSpace_t *ss, int slot, rnti_t rnti);
 
 uint8_t get_BG(uint32_t A, uint16_t R);
 
@@ -68,29 +71,40 @@ uint8_t compute_srs_resource_indicator(NR_PUSCH_ServingCellConfig_t *pusch_servi
                                        NR_PUSCH_Config_t *pusch_Config,
                                        NR_SRS_Config_t *srs_config,
                                        nr_srs_feedback_t *srs_feedback,
-                                       uint16_t *val);
+                                       uint32_t *val);
 
 uint8_t compute_precoding_information(NR_PUSCH_Config_t *pusch_Config,
                                       NR_SRS_Config_t *srs_config,
                                       dci_field_t srs_resource_indicator,
                                       nr_srs_feedback_t *srs_feedback,
                                       const uint8_t *nrOfLayers,
-                                      uint16_t *val);
+                                      uint32_t *val);
 
-uint16_t nr_dci_size(const NR_BWP_DownlinkCommon_t *initialDLBWP,
-                     const NR_BWP_UplinkCommon_t *initialULBWP,
+uint16_t nr_dci_size(const NR_BWP_DownlinkCommon_t *initialDownlinkBWP,
+                     const NR_BWP_UplinkCommon_t *initialUplinkBWP,
+                     const NR_UE_DL_BWP_t *DL_BWP,
+                     const NR_UE_UL_BWP_t *UL_BWP,
                      const NR_CellGroupConfig_t *cg,
                      dci_pdu_rel15_t *dci_pdu,
                      nr_dci_format_t format,
                      nr_rnti_type_t rnti_type,
-                     uint16_t N_RB,
+                     int controlResourceSetId,
                      int bwp_id,
-                     NR_ControlResourceSetId_t coreset_id,
-                     uint16_t cset0_bwp_size);
+                     int ss_type,
+                     uint16_t cset0_bwp_size,
+                     uint16_t alt_size);
+
+uint16_t get_rb_bwp_dci(nr_dci_format_t format,
+                        int ss_type,
+                        uint16_t cset0_bwp_size,
+                        uint16_t ul_bwp_size,
+                        uint16_t dl_bwp_size,
+                        uint16_t initial_ul_bwp_size,
+                        uint16_t initial_dl_bwp_size);
 
 void find_aggregation_candidates(uint8_t *aggregation_level,
                                  uint8_t *nr_of_candidates,
-                                 NR_SearchSpace_t *ss,
+                                 const NR_SearchSpace_t *ss,
                                  int maxL);
 
 void find_monitoring_periodicity_offset_common(NR_SearchSpace_t *ss,
@@ -221,7 +235,7 @@ uint16_t compute_pucch_prb_size(uint8_t format,
 
 int16_t get_N_RA_RB (int delta_f_RA_PRACH,int delta_f_PUSCH);
 
-void find_period_offest_SR (NR_SchedulingRequestResourceConfig_t *SchedulingReqRec, int *period, int *offset);
+void find_period_offset_SR(const NR_SchedulingRequestResourceConfig_t *SchedulingReqRec, int *period, int *offset);
 
 void csi_period_offset(NR_CSI_ReportConfig_t *csirep,
                        struct NR_CSI_ResourcePeriodicityAndOffset *periodicityAndOffset,

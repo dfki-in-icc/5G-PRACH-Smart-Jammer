@@ -49,6 +49,7 @@ const char *ul_pdu_type[]={"PRACH", "PUCCH", "PUSCH", "SRS"};
 queue_t nr_rx_ind_queue;
 queue_t nr_crc_ind_queue;
 queue_t nr_uci_ind_queue;
+queue_t nr_rach_ind_queue;
 
 static void fill_uci_2_3_4(nfapi_nr_uci_pucch_pdu_format_2_3_4_t *pdu_2_3_4,
                            fapi_nr_ul_config_pucch_pdu *pucch_pdu)
@@ -108,29 +109,56 @@ static void free_uci_inds(nfapi_nr_uci_indication_t *uci_ind)
 }
 
 int8_t nr_ue_scheduled_response_stub(nr_scheduled_response_t *scheduled_response) {
+
   NR_UE_MAC_INST_t *mac = get_mac_inst(0);
-  if(scheduled_response != NULL)
-  {
-    if (scheduled_response->ul_config != NULL)
-    {
+
+  if(scheduled_response != NULL) {
+    if (scheduled_response->ul_config != NULL) {
       fapi_nr_ul_config_request_t *ul_config = scheduled_response->ul_config;
       AssertFatal(ul_config->number_pdus < sizeof(ul_config->ul_config_list) / sizeof(ul_config->ul_config_list[0]),
                   "Too many ul_config pdus %d", ul_config->number_pdus);
-      for (int i = 0; i < ul_config->number_pdus; ++i)
-      {
+      for (int i = 0; i < ul_config->number_pdus; ++i) {
         LOG_D(NR_PHY, "In %s: processing type %d PDU of %d total UL PDUs (ul_config %p) \n",
               __FUNCTION__, ul_config->ul_config_list[i].pdu_type, ul_config->number_pdus, ul_config);
 
         uint8_t pdu_type = ul_config->ul_config_list[i].pdu_type;
-        switch (pdu_type)
-        {
-          case (FAPI_NR_UL_CONFIG_TYPE_PUSCH):
-          {
+        switch (pdu_type) {
+          case FAPI_NR_UL_CONFIG_TYPE_PRACH: {
+            fapi_nr_ul_config_prach_pdu *prach_pdu = &ul_config->ul_config_list[i].prach_config_pdu;
+            nfapi_nr_rach_indication_t *rach_ind = CALLOC(1, sizeof(*rach_ind));
+            rach_ind->sfn = scheduled_response->frame;
+            rach_ind->slot = scheduled_response->slot;
+            rach_ind->header.message_id = NFAPI_NR_PHY_MSG_TYPE_RACH_INDICATION;
+            uint8_t pdu_index = 0;
+            rach_ind->pdu_list = CALLOC(1, sizeof(*rach_ind->pdu_list));
+            rach_ind->number_of_pdus  = 1;
+            rach_ind->pdu_list[pdu_index].phy_cell_id = prach_pdu->phys_cell_id;
+            rach_ind->pdu_list[pdu_index].symbol_index = prach_pdu->prach_start_symbol;
+            rach_ind->pdu_list[pdu_index].slot_index = prach_pdu->prach_slot;
+            rach_ind->pdu_list[pdu_index].freq_index = prach_pdu->num_ra;
+            rach_ind->pdu_list[pdu_index].avg_rssi = 128;
+            rach_ind->pdu_list[pdu_index].avg_snr = 0xff; // invalid for now
+            rach_ind->pdu_list[pdu_index].num_preamble  = 1;
+            const int num_p = rach_ind->pdu_list[pdu_index].num_preamble;
+            rach_ind->pdu_list[pdu_index].preamble_list = calloc(num_p, sizeof(nfapi_nr_prach_indication_preamble_t));
+            rach_ind->pdu_list[pdu_index].preamble_list[0].preamble_index = prach_pdu->ra_PreambleIndex;
+            rach_ind->pdu_list[pdu_index].preamble_list[0].timing_advance = 0;
+            rach_ind->pdu_list[pdu_index].preamble_list[0].preamble_pwr = 0xffffffff;
+
+            if (!put_queue(&nr_rach_ind_queue, rach_ind)) {
+              for (int pdu_index = 0; pdu_index < rach_ind->number_of_pdus; pdu_index++)
+                free(rach_ind->pdu_list[pdu_index].preamble_list);
+              free(rach_ind->pdu_list);
+              free(rach_ind);
+            }
+            LOG_D(NR_MAC, "We have successfully filled the rach_ind queue with the recently filled rach ind\n");
+            break;
+          }
+          case (FAPI_NR_UL_CONFIG_TYPE_PUSCH): {
             nfapi_nr_rx_data_indication_t *rx_ind = CALLOC(1, sizeof(*rx_ind));
             nfapi_nr_crc_indication_t *crc_ind = CALLOC(1, sizeof(*crc_ind));
             nfapi_nr_ue_pusch_pdu_t *pusch_config_pdu = &ul_config->ul_config_list[i].pusch_config_pdu;
-            if (scheduled_response->tx_request)
-            {
+            if (scheduled_response->tx_request) {
               AssertFatal(scheduled_response->tx_request->number_of_pdus <
                           sizeof(scheduled_response->tx_request->tx_request_body) / sizeof(scheduled_response->tx_request->tx_request_body[0]),
                           "Too many tx_req pdus %d", scheduled_response->tx_request->number_of_pdus);
@@ -139,8 +167,7 @@ int8_t nr_ue_scheduled_response_stub(nr_scheduled_response_t *scheduled_response
               rx_ind->slot = scheduled_response->ul_config->slot;
               rx_ind->number_of_pdus = scheduled_response->tx_request->number_of_pdus;
               rx_ind->pdu_list = CALLOC(rx_ind->number_of_pdus, sizeof(*rx_ind->pdu_list));
-              for (int j = 0; j < rx_ind->number_of_pdus; j++)
-              {
+              for (int j = 0; j < rx_ind->number_of_pdus; j++) {
                 fapi_nr_tx_request_body_t *tx_req_body = &scheduled_response->tx_request->tx_request_body[j];
                 rx_ind->pdu_list[j].handle = pusch_config_pdu->handle;
                 rx_ind->pdu_list[j].harq_id = pusch_config_pdu->pusch_data.harq_process_id;
@@ -160,8 +187,7 @@ int8_t nr_ue_scheduled_response_stub(nr_scheduled_response_t *scheduled_response
               crc_ind->sfn = scheduled_response->ul_config->sfn;
               crc_ind->slot = scheduled_response->ul_config->slot;
               crc_ind->crc_list = CALLOC(crc_ind->number_crcs, sizeof(*crc_ind->crc_list));
-              for (int j = 0; j < crc_ind->number_crcs; j++)
-              {
+              for (int j = 0; j < crc_ind->number_crcs; j++) {
                 crc_ind->crc_list[j].handle = pusch_config_pdu->handle;
                 crc_ind->crc_list[j].harq_id = pusch_config_pdu->pusch_data.harq_process_id;
                 LOG_D(NR_MAC, "This is the harq pid %d for crc_list[%d]\n", crc_ind->crc_list[j].harq_id, j);
@@ -179,11 +205,9 @@ int8_t nr_ue_scheduled_response_stub(nr_scheduled_response_t *scheduled_response
                       scheduled_response->frame, scheduled_response->slot, crc_ind->sfn, crc_ind->slot,pusch_config_pdu->mcs_index);
               }
 
-              if (!put_queue(&nr_rx_ind_queue, rx_ind))
-              {
+              if (!put_queue(&nr_rx_ind_queue, rx_ind)) {
                 LOG_E(NR_MAC, "Put_queue failed for rx_ind\n");
-                for (int i = 0; i < rx_ind->number_of_pdus; i++)
-                {
+                for (int i = 0; i < rx_ind->number_of_pdus; i++) {
                   free(rx_ind->pdu_list[i].pdu);
                   rx_ind->pdu_list[i].pdu = NULL;
                 }
@@ -193,8 +217,7 @@ int8_t nr_ue_scheduled_response_stub(nr_scheduled_response_t *scheduled_response
                 free(rx_ind);
                 rx_ind = NULL;
               }
-              if (!put_queue(&nr_crc_ind_queue, crc_ind))
-              {
+              if (!put_queue(&nr_crc_ind_queue, crc_ind)) {
                 LOG_E(NR_MAC, "Put_queue failed for crc_ind\n");
                 free(crc_ind->crc_list);
                 crc_ind->crc_list = NULL;
@@ -203,32 +226,26 @@ int8_t nr_ue_scheduled_response_stub(nr_scheduled_response_t *scheduled_response
               }
 
               LOG_D(PHY, "In %s: Filled queue rx/crc_ind which was filled by ulconfig. \n", __FUNCTION__);
-
               scheduled_response->tx_request->number_of_pdus = 0;
             }
             break;
           }
-
-          case FAPI_NR_UL_CONFIG_TYPE_PUCCH:
-          {
+          case FAPI_NR_UL_CONFIG_TYPE_PUCCH: {
             nfapi_nr_uci_indication_t *uci_ind = CALLOC(1, sizeof(*uci_ind));
             uci_ind->header.message_id = NFAPI_NR_PHY_MSG_TYPE_UCI_INDICATION;
             uci_ind->sfn = scheduled_response->frame;
             uci_ind->slot = scheduled_response->slot;
             uci_ind->num_ucis = 1;
             uci_ind->uci_list = CALLOC(uci_ind->num_ucis, sizeof(*uci_ind->uci_list));
-            for (int j = 0; j < uci_ind->num_ucis; j++)
-            {
+            for (int j = 0; j < uci_ind->num_ucis; j++) {
               LOG_D(NR_MAC, "ul_config->ul_config_list[%d].pucch_config_pdu.n_bit = %d\n", i, ul_config->ul_config_list[i].pucch_config_pdu.n_bit);
-              if (ul_config->ul_config_list[i].pucch_config_pdu.n_bit > 3 && mac->nr_ue_emul_l1.num_csi_reports > 0)
-              {
+              if (ul_config->ul_config_list[i].pucch_config_pdu.n_bit > 3 && mac->nr_ue_emul_l1.num_csi_reports > 0) {
                 uci_ind->uci_list[j].pdu_type = NFAPI_NR_UCI_FORMAT_2_3_4_PDU_TYPE;
                 uci_ind->uci_list[j].pdu_size = sizeof(nfapi_nr_uci_pucch_pdu_format_2_3_4_t);
                 nfapi_nr_uci_pucch_pdu_format_2_3_4_t *pdu_2_3_4 = &uci_ind->uci_list[j].pucch_pdu_format_2_3_4;
                 fill_uci_2_3_4(pdu_2_3_4, &ul_config->ul_config_list[i].pucch_config_pdu);
               }
-              else
-              {
+              else {
                 nfapi_nr_uci_pucch_pdu_format_0_1_t *pdu_0_1 = &uci_ind->uci_list[j].pucch_pdu_format_0_1;
                 uci_ind->uci_list[j].pdu_type = NFAPI_NR_UCI_FORMAT_0_1_PDU_TYPE;
                 uci_ind->uci_list[j].pdu_size = sizeof(nfapi_nr_uci_pucch_pdu_format_0_1_t);
@@ -248,12 +265,10 @@ int8_t nr_ue_scheduled_response_stub(nr_scheduled_response_t *scheduled_response
                   pdu_0_1->harq->harq_confidence_level = 0;
                   pdu_0_1->harq->harq_list = CALLOC(pdu_0_1->harq->num_harq, sizeof(*pdu_0_1->harq->harq_list));
                   int harq_pid = -1;
-                  for (int k = 0; k < NR_MAX_HARQ_PROCESSES; k++)
-                  {
+                  for (int k = 0; k < NR_MAX_HARQ_PROCESSES; k++) {
                     if (mac->nr_ue_emul_l1.harq[k].active &&
                         mac->nr_ue_emul_l1.harq[k].active_dl_harq_sfn == uci_ind->sfn &&
-                        mac->nr_ue_emul_l1.harq[k].active_dl_harq_slot == uci_ind->slot)
-                    {
+                        mac->nr_ue_emul_l1.harq[k].active_dl_harq_slot == uci_ind->slot) {
                       mac->nr_ue_emul_l1.harq[k].active = false;
                       harq_pid = k;
                       AssertFatal(harq_index < pdu_0_1->harq->num_harq, "Invalid harq_index %d\n", harq_index);
@@ -289,61 +304,32 @@ int8_t nr_ue_scheduled_response_stub(nr_scheduled_response_t *scheduled_response
 
 
 void configure_dlsch(NR_UE_DLSCH_t *dlsch0,
+                     NR_DL_UE_HARQ_t *harq_list,
                      fapi_nr_dl_config_dlsch_pdu_rel15_t *dlsch_config_pdu,
                      module_id_t module_id,
                      int rnti) {
 
   const uint8_t current_harq_pid = dlsch_config_pdu->harq_process_nbr;
-  dlsch0->current_harq_pid = current_harq_pid;
-  dlsch0->active = 1;
+  dlsch0->active = true;
   dlsch0->rnti = rnti;
 
   LOG_D(PHY,"current_harq_pid = %d\n", current_harq_pid);
 
-  NR_DL_UE_HARQ_t *dlsch0_harq = dlsch0->harq_processes[current_harq_pid];
-  AssertFatal(dlsch0_harq, "no harq_process for HARQ PID %d\n", current_harq_pid);
+  NR_DL_UE_HARQ_t *dlsch0_harq = &harq_list[current_harq_pid];
 
-  dlsch0_harq->BWPStart = dlsch_config_pdu->BWPStart;
-  dlsch0_harq->BWPSize = dlsch_config_pdu->BWPSize;
-  dlsch0_harq->nb_rb = dlsch_config_pdu->number_rbs;
-  dlsch0_harq->start_rb = dlsch_config_pdu->start_rb;
-  dlsch0_harq->nb_symbols = dlsch_config_pdu->number_symbols;
-  dlsch0_harq->start_symbol = dlsch_config_pdu->start_symbol;
-  dlsch0_harq->dlDmrsSymbPos = dlsch_config_pdu->dlDmrsSymbPos;
-  dlsch0_harq->dmrsConfigType = dlsch_config_pdu->dmrsConfigType;
-  dlsch0_harq->n_dmrs_cdm_groups = dlsch_config_pdu->n_dmrs_cdm_groups;
-  dlsch0_harq->dmrs_ports = dlsch_config_pdu->dmrs_ports;
-  dlsch0_harq->mcs = dlsch_config_pdu->mcs;
-  dlsch0_harq->rvidx = dlsch_config_pdu->rv;
-  dlsch0->g_pucch = dlsch_config_pdu->accumulated_delta_PUCCH;
-  dlsch0_harq->R = dlsch_config_pdu->targetCodeRate;
-  dlsch0_harq->Qm = dlsch_config_pdu->qamModOrder;
-  dlsch0_harq->TBS = dlsch_config_pdu->TBS;
-  dlsch0_harq->tbslbrm = dlsch_config_pdu->tbslbrm;
-  dlsch0_harq->nscid = dlsch_config_pdu->nscid;
-  dlsch0_harq->dlDmrsScramblingId = dlsch_config_pdu->dlDmrsScramblingId;
   //get nrOfLayers from DCI info
   uint8_t Nl = 0;
   for (int i = 0; i < 12; i++) { // max 12 ports
     if ((dlsch_config_pdu->dmrs_ports>>i)&0x01) Nl += 1;
   }
-  dlsch0_harq->Nl = Nl;
-  dlsch0_harq->mcs_table=dlsch_config_pdu->mcs_table;
-  downlink_harq_process(dlsch0_harq, dlsch0->current_harq_pid, dlsch_config_pdu->ndi, dlsch_config_pdu->rv, dlsch0->rnti_type);
+  dlsch0->Nl = Nl;
+  downlink_harq_process(dlsch0_harq, current_harq_pid, dlsch_config_pdu->ndi, dlsch_config_pdu->rv, dlsch0->rnti_type);
   if (dlsch0_harq->status != ACTIVE) {
     // dlsch0_harq->status not ACTIVE due to false retransmission
     // Reset the following flag to skip PDSCH procedures in that case and retrasmit harq status
-    dlsch0->active = 0;
-    update_harq_status(module_id,dlsch0->current_harq_pid,dlsch0_harq->ack);
+    dlsch0->active = false;
+    update_harq_status(module_id, current_harq_pid, dlsch0_harq->ack);
   }
-  /* PTRS */
-  dlsch0_harq->PTRSFreqDensity = dlsch_config_pdu->PTRSFreqDensity;
-  dlsch0_harq->PTRSTimeDensity = dlsch_config_pdu->PTRSTimeDensity;
-  dlsch0_harq->PTRSPortIndex = dlsch_config_pdu->PTRSPortIndex;
-  dlsch0_harq->nEpreRatioOfPDSCHToPTRS = dlsch_config_pdu->nEpreRatioOfPDSCHToPTRS;
-  dlsch0_harq->PTRSReOffset = dlsch_config_pdu->PTRSReOffset;
-  dlsch0_harq->pduBitmap = dlsch_config_pdu->pduBitmap;
-  LOG_D(MAC, ">>>> \tdlsch0->g_pucch = %d\tdlsch0_harq.mcs = %d\n", dlsch0->g_pucch, dlsch0_harq->mcs);
 }
 
 
@@ -357,9 +343,9 @@ int8_t nr_ue_scheduled_response(nr_scheduled_response_t *scheduled_response){
     int slot = scheduled_response->slot;
 
     // Note: we have to handle the thread IDs for this. To be revisited completely.
-    NR_UE_DLSCH_t *dlsch0 = NULL;
-    NR_UE_ULSCH_t *ulsch = PHY_vars_UE_g[module_id][cc_id]->ulsch[0];
-    NR_UE_PUCCH *pucch_vars = &((nr_phy_data_t *)scheduled_response->phy_data)->pucch_vars;
+    NR_UE_DLSCH_t *dlsch0 = &((nr_phy_data_t *)scheduled_response->phy_data)->dlsch[0];
+    NR_UE_ULSCH_t *ulsch = &((nr_phy_data_tx_t *)scheduled_response->phy_data)->ulsch;
+    NR_UE_PUCCH *pucch_vars = &((nr_phy_data_tx_t *)scheduled_response->phy_data)->pucch_vars;
     NR_UE_CSI_IM *csiim_vars = PHY_vars_UE_g[module_id][cc_id]->csiim_vars[0];
     NR_UE_CSI_RS *csirs_vars = PHY_vars_UE_g[module_id][cc_id]->csirs_vars[0];
     NR_UE_PDCCH_CONFIG *phy_pdcch_config = NULL;
@@ -380,7 +366,7 @@ int8_t nr_ue_scheduled_response(nr_scheduled_response_t *scheduled_response){
         switch(dl_config->dl_config_list[i].pdu_type) {
           case FAPI_NR_DL_CONFIG_TYPE_DCI:
             if (NULL == phy_pdcch_config) {
-              phy_pdcch_config = (NR_UE_PDCCH_CONFIG *)scheduled_response->phy_data;
+              phy_pdcch_config = &((nr_phy_data_t *)scheduled_response->phy_data)->phy_pdcch_config;
               phy_pdcch_config->nb_search_space = 0;
             }
             pdcch_config = &dl_config->dl_config_list[i].dci_config_pdu.dci_config_rel15;
@@ -402,24 +388,23 @@ int8_t nr_ue_scheduled_response(nr_scheduled_response_t *scheduled_response){
             break;
           case FAPI_NR_DL_CONFIG_TYPE_RA_DLSCH:
             dlsch_config_pdu = &dl_config->dl_config_list[i].dlsch_config_pdu.dlsch_config_rel15;
-            dlsch0 = PHY_vars_UE_g[module_id][cc_id]->dlsch_ra[0];
             dlsch0->rnti_type = _RA_RNTI_;
-            dlsch0->harq_processes[dlsch_config_pdu->harq_process_nbr]->status = ACTIVE;
-            configure_dlsch(dlsch0, dlsch_config_pdu, module_id,
+            dlsch0->dlsch_config = *dlsch_config_pdu;
+            configure_dlsch(dlsch0, PHY_vars_UE_g[module_id][cc_id]->dl_harq_processes[0], dlsch_config_pdu, module_id,
                             dl_config->dl_config_list[i].dlsch_config_pdu.rnti);
             break;
           case FAPI_NR_DL_CONFIG_TYPE_SI_DLSCH:
             dlsch_config_pdu = &dl_config->dl_config_list[i].dlsch_config_pdu.dlsch_config_rel15;
-            dlsch0 = PHY_vars_UE_g[module_id][cc_id]->dlsch_SI[0];
             dlsch0->rnti_type = _SI_RNTI_;
-            dlsch0->harq_processes[dlsch_config_pdu->harq_process_nbr]->status = ACTIVE;
-            configure_dlsch(dlsch0, dlsch_config_pdu, module_id,
+            dlsch0->dlsch_config = *dlsch_config_pdu;
+            configure_dlsch(dlsch0, PHY_vars_UE_g[module_id][cc_id]->dl_harq_processes[0], dlsch_config_pdu, module_id,
                             dl_config->dl_config_list[i].dlsch_config_pdu.rnti);
             break;
           case FAPI_NR_DL_CONFIG_TYPE_DLSCH:
             dlsch_config_pdu = &dl_config->dl_config_list[i].dlsch_config_pdu.dlsch_config_rel15;
-            dlsch0 = PHY_vars_UE_g[module_id][cc_id]->dlsch[0][0];
-            configure_dlsch(dlsch0, dlsch_config_pdu, module_id,
+            dlsch0->rnti_type = _C_RNTI_;
+            dlsch0->dlsch_config = *dlsch_config_pdu;
+            configure_dlsch(dlsch0, PHY_vars_UE_g[module_id][cc_id]->dl_harq_processes[0], dlsch_config_pdu, module_id,
                             dl_config->dl_config_list[i].dlsch_config_pdu.rnti);
             break;
         }
@@ -441,7 +426,6 @@ int8_t nr_ue_scheduled_response(nr_scheduled_response_t *scheduled_response){
 
         uint8_t pdu_type = ul_config->ul_config_list[i].pdu_type, current_harq_pid, gNB_id = 0;
         /* PRACH */
-        //NR_PRACH_RESOURCES_t *prach_resources;
         fapi_nr_ul_config_prach_pdu *prach_config_pdu;
         /* PUSCH */
         nfapi_nr_ue_pusch_pdu_t *pusch_config_pdu;
@@ -457,26 +441,21 @@ int8_t nr_ue_scheduled_response(nr_scheduled_response_t *scheduled_response){
           // pusch config pdu
           pusch_config_pdu = &ul_config->ul_config_list[i].pusch_config_pdu;
           current_harq_pid = pusch_config_pdu->pusch_data.harq_process_id;
-          NR_UL_UE_HARQ_t *harq_process_ul_ue = ulsch->harq_processes[current_harq_pid];
+          NR_UL_UE_HARQ_t *harq_process_ul_ue = &PHY_vars_UE_g[module_id][cc_id]->ul_harq_processes[current_harq_pid];
 
-          if (harq_process_ul_ue){
+          nfapi_nr_ue_pusch_pdu_t *pusch_pdu = &ulsch->pusch_pdu;
 
-            nfapi_nr_ue_pusch_pdu_t *pusch_pdu = &harq_process_ul_ue->pusch_pdu;
-            
-            LOG_D(PHY, "In %s i %d: copy pusch_config_pdu nrOfLayers:%d, num_dmrs_cdm_grps_no_data:%d \n", __FUNCTION__, i, pusch_config_pdu->nrOfLayers,pusch_config_pdu->num_dmrs_cdm_grps_no_data);
+          LOG_D(PHY, "In %s i %d: copy pusch_config_pdu nrOfLayers:%d, num_dmrs_cdm_grps_no_data:%d \n", __FUNCTION__, i, pusch_config_pdu->nrOfLayers,pusch_config_pdu->num_dmrs_cdm_grps_no_data);
 
-            memcpy(pusch_pdu, pusch_config_pdu, sizeof(nfapi_nr_ue_pusch_pdu_t));
+          memcpy(pusch_pdu, pusch_config_pdu, sizeof(nfapi_nr_ue_pusch_pdu_t));
 
-            ulsch->f_pusch = pusch_config_pdu->absolute_delta_PUSCH;
-
-            if (scheduled_response->tx_request) {
-              for (int j=0; j<scheduled_response->tx_request->number_of_pdus; j++) {
-                fapi_nr_tx_request_body_t *tx_req_body = &scheduled_response->tx_request->tx_request_body[j];
-                if ((tx_req_body->pdu_index == i) && (tx_req_body->pdu_length > 0)) {
-                  LOG_D(PHY,"%d.%d Copying %d bytes to harq_process_ul_ue->a (harq_pid %d)\n",scheduled_response->frame,slot,tx_req_body->pdu_length,current_harq_pid);
-                  memcpy(harq_process_ul_ue->a, tx_req_body->pdu, tx_req_body->pdu_length);
-                  break;
-                }
+          if (scheduled_response->tx_request) {
+            for (int j=0; j<scheduled_response->tx_request->number_of_pdus; j++) {
+              fapi_nr_tx_request_body_t *tx_req_body = &scheduled_response->tx_request->tx_request_body[j];
+              if ((tx_req_body->pdu_index == i) && (tx_req_body->pdu_length > 0)) {
+                LOG_D(PHY,"%d.%d Copying %d bytes to harq_process_ul_ue->a (harq_pid %d)\n",scheduled_response->frame,slot,tx_req_body->pdu_length,current_harq_pid);
+                memcpy(harq_process_ul_ue->a, tx_req_body->pdu, tx_req_body->pdu_length);
+                break;
               }
             }
 
@@ -517,6 +496,7 @@ int8_t nr_ue_scheduled_response(nr_scheduled_response_t *scheduled_response){
           // prach config pdu
           prach_config_pdu = &ul_config->ul_config_list[i].prach_config_pdu;
           memcpy((void*)&(PHY_vars_UE_g[module_id][cc_id]->prach_vars[gNB_id]->prach_pdu), (void*)prach_config_pdu, sizeof(fapi_nr_ul_config_prach_pdu));
+          PHY_vars_UE_g[module_id][cc_id]->prach_vars[gNB_id]->active = true;
           ul_config->ul_config_list[i].pdu_type = FAPI_NR_UL_CONFIG_TYPE_DONE; // not handle it any more
           pdu_done++;
           LOG_D(PHY, "%d.%d ul A ul_config %p t %d pdu_done %d number_pdus %d\n", scheduled_response->frame, slot, ul_config, pdu_type, pdu_done, ul_config->number_pdus);
@@ -569,11 +549,9 @@ int8_t nr_ue_phy_config_request(nr_phy_config_t *phy_config){
 
   fapi_nr_config_request_t *nrUE_config = &PHY_vars_UE_g[phy_config->Mod_id][phy_config->CC_id]->nrUE_config;
 
-  if(phy_config != NULL) {
-      memcpy(nrUE_config,&phy_config->config_req,sizeof(fapi_nr_config_request_t));
-      if (PHY_vars_UE_g[phy_config->Mod_id][phy_config->CC_id]->UE_mode[0] == NOT_SYNCHED)
-	      PHY_vars_UE_g[phy_config->Mod_id][phy_config->CC_id]->UE_mode[0] = PRACH;
-  }
+  if(phy_config != NULL)
+    memcpy(nrUE_config,&phy_config->config_req,sizeof(fapi_nr_config_request_t));
+
   return 0;
 }
 

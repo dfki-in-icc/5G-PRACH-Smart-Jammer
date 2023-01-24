@@ -730,7 +730,7 @@ unsigned int  ulsch_decoding(PHY_VARS_eNB *eNB,
                 i2=(i2+(Cmux<<2)-3);
           */
           // slightly more optimized version (equivalent to above) for 16QAM to improve computational performance
-          *(__m64 *)&y[i2] = _mm_sign_pi16(*(__m64 *)&ulsch_llr[i],*(__m64 *)&cseq[i]);
+          *(simde__m64 *)&y[i2] = simde_mm_sign_pi16(*(simde__m64 *)&ulsch_llr[i],*(simde__m64 *)&cseq[i]);
           i+=4;
           i2+=(Cmux<<2);
         }

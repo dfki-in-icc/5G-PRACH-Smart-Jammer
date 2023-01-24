@@ -1001,7 +1001,7 @@ uint8_t phy_threegpplte_turbo_decoder16(int16_t *y,
   llr_t *s,*s1,*s2,*yp1,*yp2,*yp;
   unsigned int i,j,iind;//,pi;
   unsigned char iteration_cnt=0;
-  unsigned int crc,oldcrc,crc_len;
+  uint32_t crc, oldcrc, crc_len;
   uint8_t temp;
 #if defined(__x86_64__) || defined(__i386__)
   __m128i *yp128;
@@ -1297,7 +1297,7 @@ uint8_t phy_threegpplte_turbo_decoder16(int16_t *y,
         // Mask64 = 2^b0 + 2^b1 + 2^b2 + 2^b3 + 2^b4 + 2^b5 + 2^b6 + 2^b7
         uint64x2_t Mask   = vpaddlq_u32(vpaddlq_u16(vandq_u16(vcgtq_s16(tmp,zeros), Powers)));
         uint64x1_t Mask64 = vget_high_u64(Mask)+vget_low_u64(Mask);
-        decoded_bytes[i] = (uint8_t)Mask64;
+        decoded_bytes[i] = *(uint8_t*)&Mask64;
 #endif
 #ifdef DEBUG_LOGMAP
         print_shorts("tmp",(int16_t *)&tmp);
@@ -1308,7 +1308,7 @@ uint8_t phy_threegpplte_turbo_decoder16(int16_t *y,
 
     // check status on output
     if (iteration_cnt>1) {
-      oldcrc= *((unsigned int *)(&decoded_bytes[(n>>3)-crc_len]));
+      memcpy(&oldcrc, &decoded_bytes[(n >> 3) - crc_len], sizeof(oldcrc));
 
       switch (crc_type) {
         case CRC24_A:

@@ -81,30 +81,28 @@ nrUE_params_t *get_nrUE_params(void) {
 
 void init_downlink_harq_status(NR_DL_UE_HARQ_t *dl_harq) {}
 
-int nr_ue_pdcch_procedures(uint8_t gNB_id,
-			   PHY_VARS_NR_UE *ue,
+int nr_ue_pdcch_procedures(PHY_VARS_NR_UE *ue,
 			   UE_nr_rxtx_proc_t *proc,
          int32_t pdcch_est_size,
          int32_t pdcch_dl_ch_estimates[][pdcch_est_size],
-         NR_UE_PDCCH_CONFIG *phy_pdcch_config,
-         int n_ss) {
+         nr_phy_data_t *phy_data,
+         int n_ss,
+         c16_t rxdataF[][ue->frame_parms.samples_per_slot_wCP]) {
   return 0;
 }
 
 int nr_ue_pdsch_procedures(PHY_VARS_NR_UE *ue,
                            UE_nr_rxtx_proc_t *proc,
-                           int eNB_id, PDSCH_t pdsch,
-                           NR_UE_DLSCH_t *dlsch0, NR_UE_DLSCH_t *dlsch1) {
+                           NR_UE_DLSCH_t dlsch[2],
+                           int16_t *llr[2],
+                           c16_t rxdataF[][ue->frame_parms.samples_per_slot_wCP]) {
   return 0;
 }
 
 bool nr_ue_dlsch_procedures(PHY_VARS_NR_UE *ue,
                             UE_nr_rxtx_proc_t *proc,
-                            int gNB_id,
-                            PDSCH_t pdsch,
-                            NR_UE_DLSCH_t *dlsch0,
-                            NR_UE_DLSCH_t *dlsch1,
-                            int *dlsch_errors) {
+                            NR_UE_DLSCH_t dlsch[2],
+                            int16_t *llr[2]) {
   return false;
 }
 
@@ -139,7 +137,6 @@ void nr_phy_config_request_sim_pbchsim(PHY_VARS_gNB *gNB,
   gNB_config->tdd_table.tdd_period.value = 0;
   //gNB_config->subframe_config.dl_cyclic_prefix_type.value = (fp->Ncp == NORMAL) ? NFAPI_CP_NORMAL : NFAPI_CP_EXTENDED;
 
-  gNB->mac_enabled   = 1;
   fp->dl_CarrierFreq = 3600000000;//from_nrarfcn(gNB_config->nfapi_config.rf_bands.rf_band[0],gNB_config->nfapi_config.nrarfcn.value);
   fp->ul_CarrierFreq = 3600000000;//fp->dl_CarrierFreq - (get_uldl_offset(gNB_config->nfapi_config.rf_bands.rf_band[0])*100000);
   if (mu>2) fp->nr_band = 257;
@@ -474,7 +471,7 @@ int main(int argc, char **argv)
   frame_parms->freq_range = mu<2 ? nr_FR1 : nr_FR2;
 
   nr_phy_config_request_sim_pbchsim(gNB,N_RB_DL,N_RB_DL,mu,Nid_cell,SSB_positions);
-  phy_init_nr_gNB(gNB,0,1);
+  phy_init_nr_gNB(gNB);
   frame_parms->ssb_start_subcarrier = 12 * gNB->gNB_config.ssb_table.ssb_offset_point_a.value + ssb_subcarrier_offset;
 
   uint8_t n_hf = 0;
@@ -534,12 +531,16 @@ int main(int argc, char **argv)
   gNB2UE = new_channel_desc_scm(n_tx,
                                 n_rx,
                                 channel_model,
- 				fs, 
-				bw, 
-				300e-9,
+                                fs,
+                                0,
+                                bw,
+                                300e-9,
+                                0.0,
+                                CORR_LEVEL_LOW,
                                 0,
                                 0,
-                                0, 0);
+                                0,
+                                0);
 
   if (gNB2UE==NULL) {
 	printf("Problem generating channel model. Exiting.\n");
@@ -591,6 +592,8 @@ int main(int argc, char **argv)
 
   processingData_L1tx_t msgDataTx;
   // generate signal
+  const uint32_t rxdataF_sz = UE->frame_parms.samples_per_slot_wCP;
+  __attribute__ ((aligned(32))) c16_t rxdataF[UE->frame_parms.nb_antennas_rx][rxdataF_sz];
   if (input_fd==NULL) {
 
     for (i=0; i<frame_parms->Lmax; i++) {
@@ -744,7 +747,7 @@ int main(int argc, char **argv)
       }
       else {
         UE_nr_rxtx_proc_t proc={0};
-        NR_UE_PDCCH_CONFIG phy_pdcch_config={0};
+        nr_phy_data_t phy_data={0};
 
 	UE->rx_offset=0;
 	uint8_t ssb_index = 0;
@@ -755,14 +758,16 @@ int main(int argc, char **argv)
 	UE->symbol_offset = nr_get_ssb_start_symbol(frame_parms,ssb_index);
 
         int ssb_slot = (UE->symbol_offset/14)+(n_hf*(frame_parms->slots_per_frame>>1));
+        proc.nr_slot_rx = ssb_slot;
+        proc.gNB_id = 0;
 	for (int i=UE->symbol_offset+1; i<UE->symbol_offset+4; i++) {
           nr_slot_fep(UE,
                       &proc,
                       i%frame_parms->symbols_per_slot,
-                      ssb_slot);
+                      rxdataF);
 
           nr_pbch_channel_estimation(UE,estimateSz, dl_ch_estimates, dl_ch_estimates_time, &proc, 
-				     0,ssb_slot,i%frame_parms->symbols_per_slot,i-(UE->symbol_offset+1),ssb_index%8,n_hf);
+				     i%frame_parms->symbols_per_slot,i-(UE->symbol_offset+1),ssb_index%8,n_hf,rxdataF);
 
         }
 	fapiPbch_t result;
@@ -771,11 +776,11 @@ int main(int argc, char **argv)
 			 estimateSz, dl_ch_estimates,
 			 UE->pbch_vars[0],
                          frame_parms,
-                         0,
                          ssb_index%8,
                          SISO,
-                         &phy_pdcch_config,
-                         &result);
+                         &phy_data,
+                         &result,
+                         rxdataF);
 
 	if (ret==0) {
 	  //UE->rx_ind.rx_indication_body->mib_pdu.ssb_index;  //not yet detected automatically

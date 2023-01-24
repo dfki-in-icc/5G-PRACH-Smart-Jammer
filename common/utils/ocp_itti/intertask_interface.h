@@ -256,8 +256,6 @@ typedef struct IttiMsgText_s {
 #include <openair3/MME_APP/mme_app.h>
 //#include <proto.h>
 
-#include <openair3/ocp-gtpu/gtpv1u_eNB_task.h>
-#include <openair3/ocp-gtpu/gtpv1u_gNB_task.h>
 void *rrc_enb_process_itti_msg(void *);
 #include <openair3/SCTP/sctp_eNB_task.h>
 #include <openair3/NGAP/ngap_gNB.h>
@@ -327,7 +325,6 @@ void *rrc_enb_process_msg(void *);
   TASK_DEF(TASK_GNB_APP,  TASK_PRIORITY_MED,  200, NULL, NULL)  \
   TASK_DEF(TASK_MCE_APP,  TASK_PRIORITY_MED,  200, NULL, NULL)  \
   TASK_DEF(TASK_MME_APP,  TASK_PRIORITY_MED,  200, NULL, NULL)  \
-  TASK_DEF(TASK_FLEXRAN_AGENT,TASK_PRIORITY_MED, 200, NULL, NULL) \
   TASK_DEF(TASK_PHY_UE,   TASK_PRIORITY_MED,  200, NULL, NULL)  \
   TASK_DEF(TASK_MAC_UE,   TASK_PRIORITY_MED,  200, NULL, NULL)  \
   TASK_DEF(TASK_RLC_UE,   TASK_PRIORITY_MED,  200, NULL, NULL)  \

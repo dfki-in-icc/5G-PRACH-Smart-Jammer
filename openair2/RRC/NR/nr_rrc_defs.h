@@ -286,7 +286,6 @@ typedef struct gNB_RRC_UE_s {
   uint8_t                            DRB_active[NGAP_MAX_DRBS_PER_UE];
 
   NR_SRB_INFO                       SI;
-  NR_SRB_INFO                       Srb0;
   NR_SRB_INFO_TABLE_ENTRY           Srb1;
   NR_SRB_INFO_TABLE_ENTRY           Srb2;
   NR_MeasConfig_t                   *measConfig;
@@ -412,7 +411,7 @@ typedef struct rrc_gNB_ue_context_s {
   /* Uniquely identifies the UE between MME and eNB within the eNB.
    * This id is encoded on 24bits.
    */
-  rnti_t         ue_id_rnti;
+  ue_id_t         ue_id_rnti;
 
   // another key for protocol layers but should not be used as a key for RB tree
   uid_t          local_uid;
@@ -452,7 +451,6 @@ typedef struct {
   NR_PDCCH_ConfigSIB1_t                     *pdcch_ConfigSIB1;
   NR_CellGroupConfig_t                      *secondaryCellGroup[MAX_NR_RRC_UE_CONTEXTS];
   NR_SRB_INFO                               SI;
-  NR_SRB_INFO                               Srb0;
   int                                       p_gNB;
 
 } rrc_gNB_carrier_data_t;

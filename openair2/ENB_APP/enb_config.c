@@ -49,7 +49,7 @@
 #include "radio/ETHERNET/USERSPACE/LIB/ethernet_lib.h"
 #include "nfapi_vnf.h"
 #include "nfapi_pnf.h"
-#include "targets/RT/USER/lte-softmodem.h"
+#include "executables/lte-softmodem.h"
 #include "L1_paramdef.h"
 #include "MACRLC_paramdef.h"
 #include "common/config/config_userapi.h"
@@ -64,45 +64,6 @@ extern char *parallel_config;
 extern char *worker_config;
 
 RAN_CONTEXT_t RC;
-
-void RCconfig_flexran() {
-  /* get number of eNBs */
-  paramdef_t ENBSParams[] = ENBSPARAMS_DESC;
-  config_get(ENBSParams, sizeof(ENBSParams)/sizeof(paramdef_t), NULL);
-  uint16_t num_enbs = ENBSParams[ENB_ACTIVE_ENBS_IDX].numelt;
-  paramdef_t flexranParams[] = FLEXRANPARAMS_DESC;
-  config_get(flexranParams, sizeof(flexranParams)/sizeof(paramdef_t), CONFIG_STRING_NETWORK_CONTROLLER_CONFIG);
-
-  if (!RC.flexran) {
-    RC.flexran = calloc(num_enbs, sizeof(flexran_agent_info_t *));
-    AssertFatal(RC.flexran,
-                "can't ALLOCATE %zu Bytes for %d flexran agent info with size %zu\n",
-                num_enbs * sizeof(flexran_agent_info_t *),
-                num_enbs, sizeof(flexran_agent_info_t *));
-  }
-
-  for (uint16_t i = 0; i < num_enbs; i++) {
-    RC.flexran[i] = calloc(1, sizeof(flexran_agent_info_t));
-    AssertFatal(RC.flexran[i],
-                "can't ALLOCATE %zu Bytes for flexran agent info (iteration %d/%d)\n",
-                sizeof(flexran_agent_info_t), i + 1, num_enbs);
-    /* if config says "yes", enable Agent, in all other cases it's like "no" */
-    RC.flexran[i]->enabled          = strcasecmp(*(flexranParams[FLEXRAN_ENABLED].strptr), "yes") == 0;
-
-    /* if not enabled, simply skip the rest, it is not needed anyway */
-    if (!RC.flexran[i]->enabled)
-      continue;
-
-    RC.flexran[i]->interface_name   = strdup(*(flexranParams[FLEXRAN_INTERFACE_NAME_IDX].strptr));
-    //inet_ntop(AF_INET, &(enb_properties->properties[mod_id]->flexran_agent_ipv4_address), in_ip, INET_ADDRSTRLEN);
-    RC.flexran[i]->remote_ipv4_addr = strdup(*(flexranParams[FLEXRAN_IPV4_ADDRESS_IDX].strptr));
-    RC.flexran[i]->remote_port      = *(flexranParams[FLEXRAN_PORT_IDX].uptr);
-    RC.flexran[i]->cache_name       = strdup(*(flexranParams[FLEXRAN_CACHE_IDX].strptr));
-    RC.flexran[i]->node_ctrl_state  = strcasecmp(*(flexranParams[FLEXRAN_AWAIT_RECONF_IDX].strptr), "yes") == 0 ? ENB_WAIT : ENB_NORMAL_OPERATION;
-    RC.flexran[i]->mod_id  = i;
-  }
-}
-
 
 void RCconfig_L1(void) {
   int               i,j;
@@ -3115,43 +3076,25 @@ void configure_du_mac(int inst) {
   eNB_RRC_INST *rrc = RC.rrc[inst];
   rrc_eNB_carrier_data_t *carrier = &rrc->carrier[0];
   LOG_I(ENB_APP,"Configuring MAC/L1 %d, carrier->sib2 %p\n",inst,&carrier->sib2->radioResourceConfigCommon);
-  rrc_mac_config_req_eNB(inst, 0,
-                         carrier->physCellId,
-                         carrier->p_eNB,
-                         carrier->Ncp,
-                         carrier->sib1->freqBandIndicator,
-                         carrier->dl_CarrierFreq,
-                         carrier->pbch_repetition,
-                         0, // rnti
-                         (LTE_BCCH_BCH_Message_t *) &carrier->mib,
-                         (LTE_RadioResourceConfigCommonSIB_t *) &carrier->sib2->radioResourceConfigCommon,
-                         (LTE_RadioResourceConfigCommonSIB_t *) &carrier->sib2_BR->radioResourceConfigCommon,
-                         (struct LTE_PhysicalConfigDedicated *)NULL,
-                         (LTE_SCellToAddMod_r10_t *)NULL,
-                         //(struct PhysicalConfigDedicatedSCell_r10 *)NULL,
-                         (LTE_MeasObjectToAddMod_t **) NULL,
-                         (LTE_MAC_MainConfig_t *) NULL, 0,
-                         (struct LTE_LogicalChannelConfig *)NULL,
-                         (LTE_MeasGapConfig_t *) NULL,
-                         carrier->sib1->tdd_Config,
-                         NULL,
-                         &carrier->sib1->schedulingInfoList,
-                         carrier->ul_CarrierFreq,
-                         carrier->sib2->freqInfo.ul_Bandwidth,
-                         &carrier->sib2->freqInfo.additionalSpectrumEmission,
-                         (LTE_MBSFN_SubframeConfigList_t *) carrier->sib2->mbsfn_SubframeConfigList,
-                         carrier->MBMS_flag,
-                         (LTE_MBSFN_AreaInfoList_r9_t *) & carrier->sib13->mbsfn_AreaInfoList_r9,
-                         (LTE_PMCH_InfoList_r9_t *) NULL,
-                         NULL,
-                         0,
-                         (LTE_BCCH_DL_SCH_Message_MBMS_t *) NULL,
-                         (LTE_SchedulingInfo_MBMS_r14_t *) NULL,
-                         (struct LTE_NonMBSFN_SubframeConfig_r14 *) NULL,
-                         (LTE_SystemInformationBlockType1_MBMS_r14_t *) NULL,
-                         (LTE_MBSFN_AreaInfoList_r9_t *) NULL,
-			 (LTE_MBSFNAreaConfiguration_r9_t*) NULL
-                        );
+  rrc_mac_config_req_eNB_t tmp = {0};
+  tmp.physCellId = carrier->physCellId;
+  tmp.p_eNB = carrier->p_eNB;
+  tmp.Ncp = carrier->Ncp;
+  tmp.eutra_band = carrier->sib1->freqBandIndicator;
+  tmp.dl_CarrierFreq = carrier->dl_CarrierFreq;
+  tmp.pbch_repetition = carrier->pbch_repetition;
+  tmp.mib = &carrier->mib;
+  tmp.radioResourceConfigCommon = &carrier->sib2->radioResourceConfigCommon;
+  tmp.LTE_radioResourceConfigCommon_BR = &carrier->sib2_BR->radioResourceConfigCommon;
+  tmp.tdd_Config = carrier->sib1->tdd_Config;
+  tmp.schedulingInfoList = &carrier->sib1->schedulingInfoList;
+  tmp.ul_CarrierFreq = carrier->ul_CarrierFreq;
+  tmp.ul_Bandwidth = carrier->sib2->freqInfo.ul_Bandwidth;
+  tmp.additionalSpectrumEmission = &carrier->sib2->freqInfo.additionalSpectrumEmission;
+  tmp.mbsfn_SubframeConfigList = carrier->sib2->mbsfn_SubframeConfigList;
+  tmp.MBMS_Flag = carrier->MBMS_flag;
+  tmp.mbsfn_AreaInfoList = &carrier->sib13->mbsfn_AreaInfoList_r9;
+  rrc_mac_config_req_eNB(inst, &tmp);
 }
 
 void handle_f1ap_setup_resp(f1ap_setup_resp_t *resp) {
@@ -3220,6 +3163,4 @@ void read_config_and_init(void) {
     memset((void *)RC.rrc[enb_id], 0, sizeof(eNB_RRC_INST));
     RCconfig_RRC(enb_id, RC.rrc[enb_id],macrlc_has_f1[enb_id]);
   }
-
-  RCconfig_flexran();
 }

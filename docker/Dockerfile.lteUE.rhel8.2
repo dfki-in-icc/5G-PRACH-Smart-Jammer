@@ -49,8 +49,7 @@ RUN yum update -y && \
         python3-pip \
         iproute \
         net-tools \
-        iputils \
-        libyaml && \
+        iputils && \
     pip3 install six && \
     pip3 install requests && \
     echo "/usr/local/lib" > /etc/ld.so.conf.d/local-lib.conf && \
@@ -71,7 +70,6 @@ COPY --from=lte-ue-build \
     /oai-ran/cmake_targets/ran_build/build/liboai_usrpdevif.so \
     /oai-ran/cmake_targets/ran_build/build/libcoding.so \
     /oai-ran/cmake_targets/ran_build/build/libparams_libconfig.so \
-    /oai-ran/cmake_targets/ran_build/build/libSIMU.so \
     /oai-ran/cmake_targets/ran_build/build/libdfts.so \
     /oai-ran/cmake_targets/ran_build/build/libtelnetsrv.so \
     /usr/local/lib/
@@ -99,7 +97,6 @@ COPY --from=lte-ue-base \
 
 # Now we are copying from builder-image the UHD files.
 COPY --from=lte-ue-base /usr/local/bin/uhd_find_devices /usr/local/bin
-COPY --from=lte-ue-base /usr/lib64/libprotobuf-c.so.1 /usr/local/lib
 COPY --from=lte-ue-base /usr/local/lib64/libuhd.so.3.15.0 /usr/local/lib64
 COPY --from=lte-ue-base /usr/local/lib64/uhd/utils/uhd_images_downloader.py /opt/oai-lte-ue/bin
 

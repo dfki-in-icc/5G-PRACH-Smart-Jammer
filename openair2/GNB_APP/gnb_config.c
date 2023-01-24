@@ -34,6 +34,7 @@
 #include "common/utils/nr/nr_common.h"
 #include "common/utils/LOG/log_extern.h"
 #include "assertions.h"
+#include "oai_asn1.h"
 #include "executables/softmodem-common.h"
 #include "gnb_config.h"
 #include "gnb_paramdef.h"
@@ -83,6 +84,7 @@
 #include "NR_EUTRA-MBSFN-SubframeConfig.h"
 
 #include "RRC/NR/MESSAGES/asn1_msg.h"
+#include "RRC/NR/nr_rrc_extern.h"
 #include "openair2/LAYER2/nr_pdcp/nr_pdcp.h"
 
 extern uint16_t sf_ahead;
@@ -124,8 +126,8 @@ void prepare_scc(NR_ServingCellConfigCommon_t *scc) {
   dl_frequencyBandList              = CALLOC(1,sizeof(NR_FreqBandIndicatorNR_t));
   dl_scs_SpecificCarrierList        = CALLOC(1,sizeof(struct NR_SCS_SpecificCarrier));
 
-  ASN_SEQUENCE_ADD(&scc->downlinkConfigCommon->frequencyInfoDL->frequencyBandList.list,dl_frequencyBandList);  
-  ASN_SEQUENCE_ADD(&scc->downlinkConfigCommon->frequencyInfoDL->scs_SpecificCarrierList.list,dl_scs_SpecificCarrierList);		   		   
+  asn1cSeqAdd(&scc->downlinkConfigCommon->frequencyInfoDL->frequencyBandList.list,dl_frequencyBandList);  
+  asn1cSeqAdd(&scc->downlinkConfigCommon->frequencyInfoDL->scs_SpecificCarrierList.list,dl_scs_SpecificCarrierList);		   		   
   //  scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters.cyclicPrefix    = CALLOC(1,sizeof(long));
   scc->downlinkConfigCommon->initialDownlinkBWP->pdcch_ConfigCommon                = CALLOC(1,sizeof(struct NR_SetupRelease_PDCCH_ConfigCommon));
   scc->downlinkConfigCommon->initialDownlinkBWP->pdcch_ConfigCommon->present=NR_SetupRelease_PDCCH_ConfigCommon_PR_setup; 
@@ -147,7 +149,7 @@ void prepare_scc(NR_ServingCellConfigCommon_t *scc) {
 
   ul_frequencyBandList              = CALLOC(1,sizeof(NR_FreqBandIndicatorNR_t));
   scc->uplinkConfigCommon->frequencyInfoUL->frequencyBandList          = CALLOC(1,sizeof(struct NR_MultiFrequencyBandListNR));
-  ASN_SEQUENCE_ADD(&scc->uplinkConfigCommon->frequencyInfoUL->frequencyBandList->list,ul_frequencyBandList);
+  asn1cSeqAdd(&scc->uplinkConfigCommon->frequencyInfoUL->frequencyBandList->list,ul_frequencyBandList);
 
   scc->uplinkConfigCommon->frequencyInfoUL->absoluteFrequencyPointA    = CALLOC(1,sizeof(NR_ARFCN_ValueNR_t));
   //  scc->uplinkConfigCommon->frequencyInfoUL->additionalSpectrumEmission = CALLOC(1,sizeof(NR_AdditionalSpectrumEmission_t));
@@ -190,7 +192,7 @@ void prepare_scc(NR_ServingCellConfigCommon_t *scc) {
   
 
   ul_scs_SpecificCarrierList  = CALLOC(1,sizeof(struct NR_SCS_SpecificCarrier));
-  ASN_SEQUENCE_ADD(&scc->uplinkConfigCommon->frequencyInfoUL->scs_SpecificCarrierList.list,ul_scs_SpecificCarrierList);
+  asn1cSeqAdd(&scc->uplinkConfigCommon->frequencyInfoUL->scs_SpecificCarrierList.list,ul_scs_SpecificCarrierList);
 
   //ratematchpattern                              = CALLOC(1,sizeof(struct NR_RateMatchPattern));
   //ratematchpattern->patternType.choice.bitmaps  = CALLOC(1,sizeof(struct NR_RateMatchPattern__patternType__bitmaps));
@@ -236,12 +238,12 @@ void fill_scc_sim(NR_ServingCellConfigCommon_t *scc,uint64_t *ssb_bitmap,int N_R
   struct NR_PDSCH_TimeDomainResourceAllocation *timedomainresourceallocation0 = CALLOC(1,sizeof(NR_PDSCH_TimeDomainResourceAllocation_t));
   timedomainresourceallocation0->mappingType=NR_PDSCH_TimeDomainResourceAllocation__mappingType_typeA;
   timedomainresourceallocation0->startSymbolAndLength=54;
-  ASN_SEQUENCE_ADD(&scc->downlinkConfigCommon->initialDownlinkBWP->pdsch_ConfigCommon->choice.setup->pdsch_TimeDomainAllocationList->list,
+  asn1cSeqAdd(&scc->downlinkConfigCommon->initialDownlinkBWP->pdsch_ConfigCommon->choice.setup->pdsch_TimeDomainAllocationList->list,
                    timedomainresourceallocation0);
   struct NR_PDSCH_TimeDomainResourceAllocation *timedomainresourceallocation1 = CALLOC(1,sizeof(NR_PDSCH_TimeDomainResourceAllocation_t));
   timedomainresourceallocation1->mappingType=NR_PDSCH_TimeDomainResourceAllocation__mappingType_typeA;
   timedomainresourceallocation1->startSymbolAndLength=57;
-  ASN_SEQUENCE_ADD(&scc->downlinkConfigCommon->initialDownlinkBWP->pdsch_ConfigCommon->choice.setup->pdsch_TimeDomainAllocationList->list,
+  asn1cSeqAdd(&scc->downlinkConfigCommon->initialDownlinkBWP->pdsch_ConfigCommon->choice.setup->pdsch_TimeDomainAllocationList->list,
                    timedomainresourceallocation1);
   *scc->uplinkConfigCommon->frequencyInfoUL->frequencyBandList->list.array[0]=mu_ul?78:38;
   *scc->uplinkConfigCommon->frequencyInfoUL->absoluteFrequencyPointA=-1;
@@ -271,13 +273,13 @@ void fill_scc_sim(NR_ServingCellConfigCommon_t *scc,uint64_t *ssb_bitmap,int N_R
   *pusch_timedomainresourceallocation0->k2=6;
   pusch_timedomainresourceallocation0->mappingType=NR_PUSCH_TimeDomainResourceAllocation__mappingType_typeB;
   pusch_timedomainresourceallocation0->startSymbolAndLength=55;
-  ASN_SEQUENCE_ADD(&scc->uplinkConfigCommon->initialUplinkBWP->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList->list,pusch_timedomainresourceallocation0);
+  asn1cSeqAdd(&scc->uplinkConfigCommon->initialUplinkBWP->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList->list,pusch_timedomainresourceallocation0);
   struct NR_PUSCH_TimeDomainResourceAllocation *pusch_timedomainresourceallocation1 = CALLOC(1,sizeof(struct NR_PUSCH_TimeDomainResourceAllocation));
   pusch_timedomainresourceallocation1->k2  = CALLOC(1,sizeof(long));
   *pusch_timedomainresourceallocation1->k2=6;
   pusch_timedomainresourceallocation1->mappingType=NR_PUSCH_TimeDomainResourceAllocation__mappingType_typeB;
   pusch_timedomainresourceallocation1->startSymbolAndLength=38;
-  ASN_SEQUENCE_ADD(&scc->uplinkConfigCommon->initialUplinkBWP->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList->list,pusch_timedomainresourceallocation1);
+  asn1cSeqAdd(&scc->uplinkConfigCommon->initialUplinkBWP->pusch_ConfigCommon->choice.setup->pusch_TimeDomainAllocationList->list,pusch_timedomainresourceallocation1);
   *scc->uplinkConfigCommon->initialUplinkBWP->pusch_ConfigCommon->choice.setup->msg3_DeltaPreamble=1;
   *scc->uplinkConfigCommon->initialUplinkBWP->pusch_ConfigCommon->choice.setup->p0_NominalWithGrant=-90;
  scc->uplinkConfigCommon->initialUplinkBWP->pucch_ConfigCommon->choice.setup->pucch_GroupHopping=NR_PUCCH_ConfigCommon__pucch_GroupHopping_neither; 
@@ -425,17 +427,17 @@ void prepare_scd(NR_ServingCellConfig_t *scd) {
     NR_PTRS_DownlinkCfg->frequencyDensity = CALLOC(1, sizeof(*NR_PTRS_DownlinkCfg->frequencyDensity));
     long *dl_rbs = CALLOC(2, sizeof(long));
     for (int i=0;i<2;i++) {
-      ASN_SEQUENCE_ADD(&NR_PTRS_DownlinkCfg->frequencyDensity->list, &dl_rbs[i]);
+      asn1cSeqAdd(&NR_PTRS_DownlinkCfg->frequencyDensity->list, &dl_rbs[i]);
     }
     NR_PTRS_DownlinkCfg->timeDensity = CALLOC(1, sizeof(*NR_PTRS_DownlinkCfg->timeDensity));
     long *dl_mcs = CALLOC(3, sizeof(long));
     for (int i=0;i<3;i++) {
-      ASN_SEQUENCE_ADD(&NR_PTRS_DownlinkCfg->timeDensity->list, &dl_mcs[i]);
+      asn1cSeqAdd(&NR_PTRS_DownlinkCfg->timeDensity->list, &dl_mcs[i]);
     }
     NR_PTRS_DownlinkCfg->epre_Ratio = CALLOC(1, sizeof(*NR_PTRS_DownlinkCfg->epre_Ratio));
     NR_PTRS_DownlinkCfg->resourceElementOffset = CALLOC(1, sizeof(*NR_PTRS_DownlinkCfg->resourceElementOffset));
     *NR_PTRS_DownlinkCfg->resourceElementOffset = 0;
-    ASN_SEQUENCE_ADD(&scd->downlinkBWP_ToAddModList->list,bwp);
+    asn1cSeqAdd(&scd->downlinkBWP_ToAddModList->list,bwp);
 
     // Allocate uplink structures
 
@@ -454,12 +456,12 @@ void prepare_scd(NR_ServingCellConfig_t *scd) {
     NR_PTRS_UplinkConfig->transformPrecoderDisabled->frequencyDensity = CALLOC(1, sizeof(*NR_PTRS_UplinkConfig->transformPrecoderDisabled->frequencyDensity));
     long *n_rbs = CALLOC(2, sizeof(long));
     for (int i=0;i<2;i++) {
-      ASN_SEQUENCE_ADD(&NR_PTRS_UplinkConfig->transformPrecoderDisabled->frequencyDensity->list, &n_rbs[i]);
+      asn1cSeqAdd(&NR_PTRS_UplinkConfig->transformPrecoderDisabled->frequencyDensity->list, &n_rbs[i]);
     }
     NR_PTRS_UplinkConfig->transformPrecoderDisabled->timeDensity = CALLOC(1, sizeof(*NR_PTRS_UplinkConfig->transformPrecoderDisabled->timeDensity));
     long *ptrs_mcs = CALLOC(3, sizeof(long));
     for (int i = 0; i < 3; i++) {
-      ASN_SEQUENCE_ADD(&NR_PTRS_UplinkConfig->transformPrecoderDisabled->timeDensity->list, &ptrs_mcs[i]);
+      asn1cSeqAdd(&NR_PTRS_UplinkConfig->transformPrecoderDisabled->timeDensity->list, &ptrs_mcs[i]);
     }
     NR_PTRS_UplinkConfig->transformPrecoderDisabled->resourceElementOffset = CALLOC(1, sizeof(*NR_PTRS_UplinkConfig->transformPrecoderDisabled->resourceElementOffset));
     *NR_PTRS_UplinkConfig->transformPrecoderDisabled->resourceElementOffset = 0;
@@ -474,7 +476,7 @@ void prepare_scd(NR_ServingCellConfig_t *scd) {
     ubwp->bwp_Dedicated->pusch_Config->present = NR_SetupRelease_PUSCH_Config_PR_setup;
     ubwp->bwp_Dedicated->pusch_Config->choice.setup = pusch_Config;
 
-    ASN_SEQUENCE_ADD(&scd->uplinkConfig->uplinkBWP_ToAddModList->list,ubwp);
+    asn1cSeqAdd(&scd->uplinkConfig->uplinkBWP_ToAddModList->list,ubwp);
   }
 }
 
@@ -584,90 +586,6 @@ void fix_scd(NR_ServingCellConfig_t *scd) {
         dmrs_ul_config->phaseTrackingRS->choice.setup->transformPrecoderDisabled->resourceElementOffset = NULL;
       }
     }
-
-  }
-}
-
-void RCconfig_nr_flexran()
-{
-  uint16_t  i;
-  uint16_t  num_gnbs;
-  char      aprefix[MAX_OPTNAME_SIZE*2 + 8];
-  /* this will possibly truncate the cell id (RRC assumes int32_t).
-   * Both Nid_cell and gnb_id are signed in RRC case, but we use unsigned for
-   * the bitshifting to work properly */
-  uint16_t  Nid_cell_tr = 0;
-  uint32_t  gnb_id = 0;
-
-
-  /* get number of gNBs */
-  paramdef_t GNBSParams[] = GNBSPARAMS_DESC;
-  config_get(GNBSParams, sizeof(GNBSParams)/sizeof(paramdef_t), NULL);
-  num_gnbs = GNBSParams[GNB_ACTIVE_GNBS_IDX].numelt;
-
-  /* for gNB ID */
-  paramdef_t GNBParams[]  = GNBPARAMS_DESC;
-  paramlist_def_t GNBParamList = {GNB_CONFIG_STRING_GNB_LIST, NULL, 0};
-
-  paramdef_t flexranParams[] = FLEXRANPARAMS_DESC;
-  config_get(flexranParams, sizeof(flexranParams)/sizeof(paramdef_t), CONFIG_STRING_NETWORK_CONTROLLER_CONFIG);
-
-  if (!RC.flexran) {
-    RC.flexran = calloc(num_gnbs, sizeof(flexran_agent_info_t*));
-    AssertFatal(RC.flexran,
-                "can't ALLOCATE %zu Bytes for %d flexran agent info with size %zu\n",
-                num_gnbs * sizeof(flexran_agent_info_t*),
-                num_gnbs, sizeof(flexran_agent_info_t*));
-  }
-
-  for (i = 0; i < num_gnbs; i++) {
-    RC.flexran[i] = calloc(1, sizeof(flexran_agent_info_t));
-    AssertFatal(RC.flexran[i],
-                "can't ALLOCATE %zu Bytes for flexran agent info (iteration %d/%d)\n",
-                sizeof(flexran_agent_info_t), i + 1, num_gnbs);
-    /* if config says "yes", enable Agent, in all other cases it's like "no" */
-    RC.flexran[i]->enabled          = strcasecmp(*(flexranParams[FLEXRAN_ENABLED].strptr), "yes") == 0;
-    /* if not enabled, simply skip the rest, it is not needed anyway */
-    if (!RC.flexran[i]->enabled)
-      continue;
-    RC.flexran[i]->interface_name   = strdup(*(flexranParams[FLEXRAN_INTERFACE_NAME_IDX].strptr));
-    //inet_ntop(AF_INET, &(enb_properties->properties[mod_id]->flexran_agent_ipv4_address), in_ip, INET_ADDRSTRLEN);
-    RC.flexran[i]->remote_ipv4_addr = strdup(*(flexranParams[FLEXRAN_IPV4_ADDRESS_IDX].strptr));
-    RC.flexran[i]->remote_port      = *(flexranParams[FLEXRAN_PORT_IDX].uptr);
-    RC.flexran[i]->cache_name       = strdup(*(flexranParams[FLEXRAN_CACHE_IDX].strptr));
-    RC.flexran[i]->node_ctrl_state  = strcasecmp(*(flexranParams[FLEXRAN_AWAIT_RECONF_IDX].strptr), "yes") == 0 ? ENB_WAIT : ENB_NORMAL_OPERATION;
-
-    config_getlist(&GNBParamList, GNBParams, sizeof(GNBParams)/sizeof(paramdef_t),NULL);
-    /* gNB ID from configuration, as read in by RCconfig_RRC() */
-    if (!GNBParamList.paramarray[i][GNB_GNB_ID_IDX].uptr) {
-      // Calculate a default gNB ID
-    if (get_softmodem_params()->sa) 
-      gnb_id = i + (ngap_generate_gNB_id () & 0xFFFFFF8);
-    else
-      gnb_id = i;
-    } else {
-        gnb_id = *(GNBParamList.paramarray[i][GNB_GNB_ID_IDX].uptr);
-    }
-
-    /* cell ID */
-    sprintf(aprefix, "%s.[%i]", GNB_CONFIG_STRING_GNB_LIST, i);
-
-    RC.flexran[i]->mod_id   = i;
-    RC.flexran[i]->agent_id = (((uint64_t)i) << 48) | (((uint64_t)gnb_id) << 16) | ((uint64_t)Nid_cell_tr);
-
-    /*
-     * Assume for the moment the monolithic case, i.e. agent can provide information for all layers
-     * Consider using uint16_t flexran_get_capabilities_mask(mid_t mod_id),
-     *                    with RC.rrc[mod_id]->node_type = ngran_gNB
-     */
-    RC.flexran[i]->capability_mask = (1 << PROTOCOL__FLEX_BS_CAPABILITY__LOPHY)
-    		                       | (1 << PROTOCOL__FLEX_BS_CAPABILITY__HIPHY)
-								   | (1 << PROTOCOL__FLEX_BS_CAPABILITY__LOMAC)
-								   | (1 << PROTOCOL__FLEX_BS_CAPABILITY__HIMAC)
-								   | (1 << PROTOCOL__FLEX_BS_CAPABILITY__RLC)
-								   | (1 << PROTOCOL__FLEX_BS_CAPABILITY__PDCP)
-								   | (1 << PROTOCOL__FLEX_BS_CAPABILITY__SDAP)
-								   | (1 << PROTOCOL__FLEX_BS_CAPABILITY__RRC);
 
   }
 }
