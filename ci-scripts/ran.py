@@ -85,10 +85,6 @@ class RANManagement():
 		self.eNBOptions = ['', '', '']
 		self.eNBmbmsEnables = [False, False, False]
 		self.eNBstatuses = [-1, -1, -1]
-		self.flexranCtrlInstalled = False
-		self.flexranCtrlStarted = False
-		self.flexranCtrlDeployed = False
-		self.flexranCtrlIpAddress = ''
 		self.testCase_id = ''
 		self.epcPcapFile = ''
 		self.runtime_stats= ''
@@ -99,6 +95,7 @@ class RANManagement():
 		self.USRPIPAddress = ''
 		#checkers from xml
 		self.ran_checkers={}
+		self.cmd_prefix = '' # prefix before {lte,nr}-softmodem
 
 
 #-----------------------------------------------------------
@@ -442,11 +439,6 @@ class RANManagement():
 		mySSH.command('sed -i -e \'s/CI_RRU1_IP_ADDR/' + self.eNB1IPAddress + '/\' ' + ci_full_config_file, '\$', 2);
 		mySSH.command('sed -i -e \'s/CI_RRU2_IP_ADDR/' + self.eNB2IPAddress + '/\' ' + ci_full_config_file, '\$', 2);
 		mySSH.command('sed -i -e \'s/CI_FR1_CTL_ENB_IP_ADDR/' + self.eNBIPAddress + '/\' ' + ci_full_config_file, '\$', 2);
-		if (self.flexranCtrlInstalled and self.flexranCtrlStarted) or self.flexranCtrlDeployed:
-			mySSH.command('sed -i -e \'s/FLEXRAN_ENABLED.*;/FLEXRAN_ENABLED        = "yes";/\' ' + ci_full_config_file, '\$', 2);
-			mySSH.command('sed -i -e \'s/CI_FLEXRAN_CTL_IP_ADDR/' + self.flexranCtrlIpAddress + '/\' ' + ci_full_config_file, '\$', 2);
-		else:
-			mySSH.command('sed -i -e \'s/FLEXRAN_ENABLED.*;/FLEXRAN_ENABLED        = "no";/\' ' + ci_full_config_file, '\$', 2);
 		self.eNBmbmsEnables[int(self.eNB_instance)] = False
 		mySSH.command('grep --colour=never enable_enb_m2 ' + ci_full_config_file, '\$', 2);
 		result = re.search('yes', mySSH.getBefore())
@@ -472,11 +464,7 @@ class RANManagement():
 			gNB = False
 		else:
 			gNB = True
-		if ((self.USRPIPAddress!='') and (gNB==True)):
-			mySSH.command('echo ' + lPassWord + ' | echo "ulimit -c unlimited && sudo UHD_RFNOC_DIR=/usr/local/share/uhd/rfnoc ./ran_build/build/' + self.air_interface[self.eNB_instance] + ' -O ' + lSourcePath + '/' + ci_full_config_file + extra_options + '" > ./my-lte-softmodem-run' + str(self.eNB_instance) + '.sh', '\$', 5)
-		#otherwise the regular command is ok
-		else:
-			mySSH.command('echo "ulimit -c unlimited && catchsegv ./ran_build/build/' + self.air_interface[self.eNB_instance] + ' -O ' + lSourcePath + '/' + ci_full_config_file + extra_options + '" > ./my-lte-softmodem-run' + str(self.eNB_instance) + '.sh', '\$', 5)
+		mySSH.command(f'echo "ulimit -c unlimited && {self.cmd_prefix} ./ran_build/build/{self.air_interface[self.eNB_instance]} -O {lSourcePath}/{ci_full_config_file} {extra_options}" > ./my-lte-softmodem-run{self.eNB_instance}.sh', '\$', 5)
 
 		mySSH.command('chmod 775 ./my-lte-softmodem-run' + str(self.eNB_instance) + '.sh', '\$', 5)
 		mySSH.command('echo ' + lPassWord + ' | sudo -S rm -Rf enb_' + self.testCase_id + '.log', '\$', 5)
@@ -567,7 +555,7 @@ class RANManagement():
 		mySSH.close()
 
 
-		HTML.CreateHtmlTestRow(self.air_interface[self.eNB_instance] + ' -O ' + config_file + extra_options, 'OK', CONST.ALL_PROCESSES_OK)
+		HTML.CreateHtmlTestRow(f'{self.cmd_prefix} {self.air_interface[self.eNB_instance]} -O {config_file} {extra_options}', 'OK', CONST.ALL_PROCESSES_OK)
 		logging.debug('\u001B[1m Initialize eNB/gNB/ocp-eNB Completed\u001B[0m')
 
 	def CheckeNBProcess(self, status_queue):
@@ -735,13 +723,23 @@ class RANManagement():
 
 	def LogCollecteNB(self):
 		mySSH = SSH.SSHConnection()
+		# Copying back to xNB server any log from all the runs.
+		# Should also contains ping and iperf logs
+		absPath = os.path.abspath('.')
+		if absPath.count('ci-scripts') == 0:
+			os.chdir('./ci-scripts')
+
+		for x in os.listdir():
+			if x.endswith('.log') or x.endswith('.log.png'):
+				mySSH.copyout(self.eNBIPAddress, self.eNBUserName, self.eNBPassword, x, self.eNBSourceCodePath + '/cmake_targets/', silent=True, ignorePermDenied=True)
+		# Back to normal
 		mySSH.open(self.eNBIPAddress, self.eNBUserName, self.eNBPassword)
 		mySSH.command('cd ' + self.eNBSourceCodePath, '\$', 5)
 		mySSH.command('cd cmake_targets', '\$', 5)
 		mySSH.command('echo ' + self.eNBPassword + ' | sudo -S mv /tmp/enb_*.pcap .','\$',20)
 		mySSH.command('echo ' + self.eNBPassword + ' | sudo -S mv /tmp/gnb_*.pcap .','\$',20)
 		mySSH.command('echo ' + self.eNBPassword + ' | sudo -S rm -f enb.log.zip', '\$', 5)
-		mySSH.command('echo ' + self.eNBPassword + ' | sudo -S zip enb.log.zip enb*.log enb_*record.raw enb_*.pcap gnb_*.pcap enb_*txt physim_*.log *stats.log *monitor.pickle *monitor*.png ping*.log* iperf*.log log/*/*.log log/*/*.pcap', '\$', 60)
+		mySSH.command('echo ' + self.eNBPassword + ' | sudo -S zip enb.log.zip *.log enb_*record.raw enb_*.pcap gnb_*.pcap enb_*txt physim_*.log *stats.log *monitor.pickle *monitor*.png ping*.log* iperf*.log log/*/*.log log/*/*.pcap', '\$', 60)
 		result = re.search('core.\d+', mySSH.getBefore())
 		if result is not None:
 			mySSH.command('echo ' + self.eNBPassword + ' | sudo -S zip enb.log.zip core* ran_build/build/{lte,nr}-softmodem', '\$', 60) # add core and executable to zip
@@ -764,13 +762,13 @@ class RANManagement():
 			#case where numerator > denumerator with denum ==0 is disregarded, cannot hapen in principle, will lead to 0%
 			perc[i] = 0 if (retx_data[i] == 0) else 100 * retx_data[i + 1] / retx_data[i]
 			#treating % > 100 , % > requirement
-			stats[i] = perc[i] < 100 and perc[i] <= checkers[i]
+			stats[i] = perc[i] <= 100 and perc[i] <= checkers[i]
 		return stats
 
 	def AnalyzeLogFile_eNB(self, eNBlogFile, HTML, checkers={}):
-		if (not os.path.isfile('./' + eNBlogFile)):
+		if (not os.path.isfile(eNBlogFile)):
 			return -1
-		enb_log_file = open('./' + eNBlogFile, 'r')
+		enb_log_file = open(eNBlogFile, 'r')
 		exitSignalReceived = False
 		foundAssertion = False
 		msgAssertion = ''
@@ -1041,10 +1039,7 @@ class RANManagement():
 					gnb_markers[k].append(line_cnt)
 
 			# check whether e/gNB log finishes with "Bye." message
-			# Note that it is "=" not "|=" so not only is the regex
-			# asking for EOF (\Z) but we also only retain the last
-			# line's result
-			showedByeMsg = re.search(r'^Bye.\n\Z', str(line), re.MULTILINE) is not None
+			showedByeMsg |= re.search(r'^Bye.\n', str(line), re.MULTILINE) is not None
 
 		enb_log_file.close()
 

@@ -37,6 +37,8 @@
 #include "f1ap_du_interface_management.h"
 #include "assertions.h"
 
+#include "GNB_APP/gnb_paramdef.h"
+
 int to_NRNRB(int nrb) {
   for (int i=0; i<sizeofArray(nrb_lut); i++)
     if (nrb_lut[i] == nrb)
@@ -172,20 +174,38 @@ int DU_send_F1_SETUP_REQUEST(instance_t instance) {
     MCC_MNC_TO_PLMNID(cell->mcc, cell->mnc, cell->mnc_digit_length, &servedPLMN_item->pLMN_Identity);
     // // /* - CHOICE NR-MODE-Info */
     F1AP_NR_Mode_Info_t *nR_Mode_Info= &served_cell_information->nR_Mode_Info;
-    F1AP_ProtocolExtensionContainer_154P34_t *p_154P34=calloc(1,sizeof(* p_154P34));
-    servedPLMN_item->iE_Extensions = (struct F1AP_ProtocolExtensionContainer *)p_154P34;
-    asn1cSequenceAdd(p_154P34->list, F1AP_ServedPLMNs_ItemExtIEs_t , served_plmns_itemExtIEs);
+    F1AP_ProtocolExtensionContainer_10696P34_t *p = calloc(1, sizeof(*p));
+    servedPLMN_item->iE_Extensions = (struct F1AP_ProtocolExtensionContainer *) p;
+    asn1cSequenceAdd(p->list, F1AP_ServedPLMNs_ItemExtIEs_t , served_plmns_itemExtIEs);
     served_plmns_itemExtIEs->criticality = F1AP_Criticality_ignore;
     served_plmns_itemExtIEs->id = F1AP_ProtocolIE_ID_id_TAISliceSupportList;
     served_plmns_itemExtIEs->extensionValue.present = F1AP_ServedPLMNs_ItemExtIEs__extensionValue_PR_SliceSupportList;
     F1AP_SliceSupportList_t *slice_support_list = &served_plmns_itemExtIEs->extensionValue.choice.SliceSupportList;
 
-    asn1cSequenceAdd(slice_support_list->list, F1AP_SliceSupportItem_t, SliceSupport_item);
-    INT8_TO_OCTET_STRING(1,&SliceSupport_item->sNSSAI.sST);
-    asn1cCalloc(SliceSupport_item->sNSSAI.sD, tmp);
-    INT24_TO_OCTET_STRING(10203,tmp);
-    //INT24_TO_OCTET_STRING(1,tmp);
-    
+    /* get list of sst/sd from configuration file */
+    paramdef_t SNSSAIParams[] = GNBSNSSAIPARAMS_DESC;
+    paramlist_def_t SNSSAIParamList = {GNB_CONFIG_STRING_SNSSAI_LIST, NULL, 0};
+    char sstr[100];
+    /* TODO: be sure that %d in the line below is at the right place */
+    sprintf(sstr, "%s.[%d].%s.[0]", GNB_CONFIG_STRING_GNB_LIST, i, GNB_CONFIG_STRING_PLMN_LIST);
+    config_getlist(&SNSSAIParamList, SNSSAIParams, sizeof(SNSSAIParams)/sizeof(paramdef_t), sstr);
+    AssertFatal(SNSSAIParamList.numelt > 0, "no slice configuration found (snssaiList in the configuration file)\n");
+    AssertFatal(SNSSAIParamList.numelt <= 1024, "maximum size for slice support list is 1024, see F1AP 38.473 9.3.1.37\n");
+    for (int s = 0; s < SNSSAIParamList.numelt; s++) {
+      uint32_t sst;
+      uint32_t sd;
+      bool has_sd;
+      sst = *SNSSAIParamList.paramarray[s][GNB_SLICE_SERVICE_TYPE_IDX].uptr;
+      has_sd = *SNSSAIParamList.paramarray[s][GNB_SLICE_DIFFERENTIATOR_IDX].uptr != 0xffffff;
+      asn1cSequenceAdd(slice_support_list->list, F1AP_SliceSupportItem_t, slice);
+      INT8_TO_OCTET_STRING(sst, &slice->sNSSAI.sST);
+      if (has_sd) {
+        sd = *SNSSAIParamList.paramarray[s][GNB_SLICE_DIFFERENTIATOR_IDX].uptr;
+        asn1cCalloc(slice->sNSSAI.sD, tmp);
+        INT24_TO_OCTET_STRING(sd, tmp);
+      }
+    }
+
     if (f1ap_req(false, instance)->fdd_flag) { // FDD
       nR_Mode_Info->present = F1AP_NR_Mode_Info_PR_fDD;
       asn1cCalloc(nR_Mode_Info->choice.fDD, fDD_Info);
@@ -412,7 +432,7 @@ int DU_handle_F1_SETUP_RESPONSE(instance_t instance,
                 cell->nRCGI.nRCellIdentity.buf[4]);
           BIT_STRING_TO_NR_CELL_IDENTITY(&cell->nRCGI.nRCellIdentity,
                                          F1AP_SETUP_RESP (msg_p).cells_to_activate[i].nr_cellid);
-          F1AP_ProtocolExtensionContainer_154P112_t *ext = (F1AP_ProtocolExtensionContainer_154P112_t *)cell->iE_Extensions;
+          F1AP_ProtocolExtensionContainer_10696P112_t *ext = (F1AP_ProtocolExtensionContainer_10696P112_t *)cell->iE_Extensions;
 
           if (ext==NULL)
             continue;
@@ -839,7 +859,7 @@ int DU_handle_gNB_CU_CONFIGURATION_UPDATE(instance_t instance,
                 cell->nRCGI.nRCellIdentity.buf[4]);
           BIT_STRING_TO_NR_CELL_IDENTITY(&cell->nRCGI.nRCellIdentity,
                                          F1AP_GNB_CU_CONFIGURATION_UPDATE (msg_p).cells_to_activate[i].nr_cellid);
-          F1AP_ProtocolExtensionContainer_154P112_t *ext = (F1AP_ProtocolExtensionContainer_154P112_t *)cell->iE_Extensions;
+          F1AP_ProtocolExtensionContainer_10696P112_t *ext = (F1AP_ProtocolExtensionContainer_10696P112_t *)cell->iE_Extensions;
 
           if (ext==NULL)
             continue;

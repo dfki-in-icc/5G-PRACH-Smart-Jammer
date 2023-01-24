@@ -56,6 +56,13 @@ CMAKE_CMD="$CMAKE"
 BUILD_ECLIPSE=0
 NR="False"
 OPTIONAL_LIBRARIES="telnetsrv enbscope uescope nrscope"
+ulfiusdep=$(basename ./`find /usr/lib* -name libulfius.so`)
+jssondep=$(basename ./`find /usr/lib* -name libjansson.so`)
+if [ "$ulfiusdep" == "libulfius.so" -a "$jssondep" == "libjansson.so" ] ; then
+  OPTIONAL_LIBRARIES+=" websrv"
+else
+  echo_warning "  websrv optional build not included in build-lib option  as dependencies requirements not met "
+fi
 RU=0
 CMAKE_C_FLAGS=()
 CMAKE_CXX_FLAGS=()
@@ -259,9 +266,6 @@ function main() {
             RU=1
             echo_info "Will compile RRU"
 	    shift;;
-       -a | --agent)
-            echo_info "FlexRAN support is always compiled into the eNB"
-            shift;;
        --UE)
             UE=1
             echo_info "Will compile UE"
@@ -336,7 +340,8 @@ function main() {
             echo_info "Will compile with verbose instructions"
             shift;;
        --build-doxygen)
-	        BUILD_DOXYGEN=1
+            CMAKE_CMD="$CMAKE_CMD -DGENERATE_DOXYGEN=ON"
+            BUILD_DOXYGEN=1
             echo_info "Will build doxygen support"
             shift;;     
        --build-coverity-scan)
@@ -511,9 +516,6 @@ function main() {
       #  flash_firmware_iris
       #fi
     fi
-    echo_info "Installing protobuf/protobuf-c for flexran agent support"
-    install_protobuf_c
-    echo_success "protobuf/protobuf-c installation successful"
   fi
 
   if [ "$INSTALL_OPTIONAL" = "1" ] ; then
@@ -541,9 +543,8 @@ function main() {
       execlist="$execlist nr-uesoftmodem"
   fi
 
-  if [[ "$execlist" == "" && "$SIMUS_PHY" != "1" ]]; then
-    echo_success "installing dependencies successful"
-    exit
+  if [[ "$execlist" == "" && "$SIMUS_PHY" != "1" && "$HW" == "None" ]]; then
+    SKIP_SHARED_LIB_FLAG="True"
   fi
 
   echo_info "3. building the compilation directives ..."
@@ -650,9 +651,27 @@ function main() {
   if [ ! -z "$BUILD_OPTLIB" ] ; then 
      for oklib in $BUILD_OPTLIB ; do
          compilations $BUILD_DIR $oklib
+         if [ "$oklib" == "websrv" ] ; then
+           BUILD_WEBSRVFRONT=1
+           echo_info "Build of websrv frontend enabled"
+           fi
      done
   fi
   
+  ############################################
+  # Optional targets (others than libraries) #
+  ############################################  
+  if [ "$BUILD_WEBSRVFRONT" = "1" ] ; then
+    npmv=`command npm -v`
+    npms=$?
+    nodev=`command node -v`
+    nodes=$?
+    if [ "$npms" == "0" -a "$nodes" == "0" ] ; then
+      compilations $BUILD_DIR websrvfront
+    else
+      echo_warning "build of websrv front-end skipped, dependencies not met : " $npmv " " $nodev
+    fi
+  fi
   ####################################################
   # Build RF device and transport protocol libraries #
   ####################################################
@@ -733,11 +752,7 @@ function main() {
     echo_info "Doxygen generation log is located here: $doxygen_log"
     echo_info "Generating Doxygen files....please wait"
     (
-    [ "$CLEAN" = "1" ] && rm -rf $OPENAIR_DIR/cmake_targets/doxygen/build
-    mkdir -p $OPENAIR_DIR/cmake_targets/doxygen/build
-    cd $OPENAIR_DIR/cmake_targets/doxygen/build
-    eval $CMAKE_CMD ..
-    make doc
+    $MAKE_CMD doc
     ) >& $doxygen_log
   fi
 

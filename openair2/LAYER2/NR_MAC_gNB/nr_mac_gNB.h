@@ -92,39 +92,6 @@ typedef struct {
   int len;
 } NR_list_t;
 
-typedef struct NR_UE_DL_BWP {
-  NR_BWP_Id_t bwp_id;
-  int n_dl_bwp;
-  int scs;
-  long *cyclicprefix;
-  uint16_t BWPSize;
-  uint16_t BWPStart;
-  NR_PDSCH_TimeDomainResourceAllocationList_t *tdaList;
-  NR_PDSCH_Config_t *pdsch_Config;
-  NR_PDSCH_ServingCellConfig_t *pdsch_servingcellconfig;
-  uint8_t mcsTableIdx;
-  nr_dci_format_t dci_format;
-} NR_UE_DL_BWP_t;
-
-typedef struct NR_UE_UL_BWP {
-  NR_BWP_Id_t bwp_id;
-  int n_ul_bwp;
-  int scs;
-  long *cyclicprefix;
-  uint16_t BWPSize;
-  uint16_t BWPStart;
-  NR_PUSCH_ServingCellConfig_t *pusch_servingcellconfig;
-  NR_PUSCH_TimeDomainResourceAllocationList_t *tdaList;
-  NR_PUSCH_Config_t *pusch_Config;
-  NR_PUCCH_Config_t *pucch_Config;
-  NR_PUCCH_ConfigCommon_t *pucch_ConfigCommon;
-  NR_CSI_MeasConfig_t *csi_MeasConfig;
-  NR_SRS_Config_t *srs_Config;
-  uint8_t transform_precoding;
-  uint8_t mcs_table;
-  nr_dci_format_t dci_format;
-} NR_UE_UL_BWP_t;
-
 typedef enum {
   RA_IDLE = 0,
   Msg2 = 1,
@@ -354,6 +321,7 @@ typedef struct UE_info {
 } NR_UE_mac_ce_ctrl_t;
 
 typedef struct NR_sched_pucch {
+  bool active;
   int frame;
   int ul_slot;
   bool sr_flag;
@@ -560,9 +528,12 @@ typedef struct {
   /// corresponding to the sched_pusch/sched_pdsch structures below
   int cce_index;
   uint8_t aggregation_level;
-  /// PUCCH scheduling information. Array of two: HARQ+SR in the first field,
-  /// CSI in second.  This order is important for nr_acknack_scheduling()!
-  NR_sched_pucch_t sched_pucch[2];
+
+  /// Array of PUCCH scheduling information
+  /// Its size depends on TDD configuration and max feedback time
+  /// There will be a structure for each UL slot in the active period determined by the size
+  NR_sched_pucch_t *sched_pucch;
+  int sched_pucch_size;
 
   /// Sched PUSCH: scheduling decisions, copied into HARQ and cleared every TTI
   NR_sched_pusch_t sched_pusch;

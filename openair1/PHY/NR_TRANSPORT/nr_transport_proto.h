@@ -108,10 +108,6 @@ int nr_generate_pbch(nfapi_nr_dl_tti_ssb_pdu *ssb_pdu,
 void nr_init_pbch_interleaver(uint8_t *interleaver);
 
 NR_gNB_DLSCH_t *new_gNB_dlsch(NR_DL_FRAME_PARMS *frame_parms,
-                              unsigned char Kmimo,
-                              unsigned char Mdlharq,
-                              uint32_t Nsoft,
-                              uint8_t abstraction_flag,
                               uint16_t N_RB);
 
 void free_gNB_dlsch(NR_gNB_DLSCH_t **dlschptr, uint16_t N_RB, const NR_DL_FRAME_PARMS* frame_parms);
@@ -198,6 +194,7 @@ void nr_ulsch_channel_compensation(int **rxdataF_ext,
                                    int **ul_ch_estimates_ext,
                                    int **ul_ch_mag,
                                    int **ul_ch_magb,
+                                   int **ul_ch_magc,
                                    int **rxdataF_comp,
                                    int ***rho,
                                    NR_DL_FRAME_PARMS *frame_parms,
@@ -272,6 +269,7 @@ void nr_ulsch_64qam_llr(int32_t *rxdataF_comp,
 void nr_ulsch_compute_llr(int32_t *rxdataF_comp,
                           int32_t *ul_ch_mag,
                           int32_t *ul_ch_magb,
+                          int32_t *ul_ch_magc,
                           int16_t  *ulsch_llr,
                           uint32_t nb_rb,
                           uint32_t nb_re,

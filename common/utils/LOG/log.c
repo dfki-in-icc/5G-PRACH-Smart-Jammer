@@ -50,7 +50,11 @@
 
 // Fixme: a better place to be shure it is called 
 void read_cpu_hardware (void) __attribute__ ((constructor));
-void read_cpu_hardware (void) {__builtin_cpu_init(); }
+#if !defined(__arm__) && !defined(__aarch64__) 
+  void read_cpu_hardware (void) {__builtin_cpu_init(); }
+#else 
+  void read_cpu_hardware (void) {}
+#endif
 
 log_mem_cnt_t log_mem_d[2];
 int log_mem_flag=0;
@@ -471,8 +475,6 @@ int logInit (void)
   register_log_component("ENB_APP","log",ENB_APP);
   register_log_component("MCE_APP","log",MCE_APP);
   register_log_component("MME_APP","log",MME_APP);
-  register_log_component("FLEXRAN_AGENT","log",FLEXRAN_AGENT);
-  register_log_component("PROTO_AGENT","log",PROTO_AGENT);
   register_log_component("TMR","",TMR);
   register_log_component("EMU","log",EMU);
   register_log_component("USIM","txt",USIM);

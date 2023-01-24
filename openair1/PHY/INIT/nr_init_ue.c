@@ -34,107 +34,10 @@
 #include "PHY/NR_REFSIG/nr_refsig.h"
 #include "PHY/MODULATION/nr_modulation.h"
 #include "openair2/COMMON/prs_nr_paramdef.h"
+#include "SCHED_NR_UE/harq_nr.h"
 
 
 extern uint16_t beta_cqi[16];
-
-/*! \brief Helper function to allocate memory for DLSCH data structures.
- * \param[out] pdsch Pointer to the LTE_UE_PDSCH structure to initialize.
- * \param[in] frame_parms LTE_DL_FRAME_PARMS structure.
- * \note This function is optimistic in that it expects malloc() to succeed.
- */
-void phy_init_nr_ue_PDSCH(NR_UE_PDSCH *const pdsch,
-                           const NR_DL_FRAME_PARMS *const fp) {
-
-  AssertFatal( pdsch, "pdsch==0" );
-
-  pdsch->llr128 = (int16_t **)malloc16_clear( sizeof(int16_t *) );
-  // FIXME! no further allocation for (int16_t*)pdsch->llr128 !!! expect SIGSEGV
-  // FK, 11-3-2015: this is only as a temporary pointer, no memory is stored there
-  pdsch->rxdataF_ext            = (int32_t **)malloc16_clear( fp->nb_antennas_rx*sizeof(int32_t *) );
-  pdsch->rxdataF_uespec_pilots  = (int32_t **)malloc16_clear( fp->nb_antennas_rx*sizeof(int32_t *) );
-  pdsch->rxdataF_comp0          = (int32_t **)malloc16_clear( NR_MAX_NB_LAYERS*fp->nb_antennas_rx*sizeof(int32_t *) );
-  pdsch->rho                    = (int32_t ***)malloc16_clear( fp->nb_antennas_rx*sizeof(int32_t **) );
-  pdsch->dl_ch_estimates        = (int32_t **)malloc16_clear( NR_MAX_NB_LAYERS*fp->nb_antennas_rx*sizeof(int32_t *) );
-  pdsch->dl_ch_estimates_ext    = (int32_t **)malloc16_clear( NR_MAX_NB_LAYERS*fp->nb_antennas_rx*sizeof(int32_t *) );
-  pdsch->dl_bf_ch_estimates     = (int32_t **)malloc16_clear( NR_MAX_NB_LAYERS*fp->nb_antennas_rx*sizeof(int32_t *) );
-  pdsch->dl_bf_ch_estimates_ext = (int32_t **)malloc16_clear( NR_MAX_NB_LAYERS*fp->nb_antennas_rx*sizeof(int32_t *) );
-  pdsch->dl_ch_mag0             = (int32_t **)malloc16_clear( NR_MAX_NB_LAYERS*fp->nb_antennas_rx*sizeof(int32_t *) );
-  pdsch->dl_ch_magb0            = (int32_t **)malloc16_clear( NR_MAX_NB_LAYERS*fp->nb_antennas_rx*sizeof(int32_t *) );
-  pdsch->dl_ch_magr0            = (int32_t **)malloc16_clear( NR_MAX_NB_LAYERS*fp->nb_antennas_rx*sizeof(int32_t *) );
-  pdsch->ptrs_phase_per_slot    = (int32_t **)malloc16_clear( fp->nb_antennas_rx*sizeof(int32_t *) );
-  pdsch->ptrs_re_per_slot       = (int32_t **)malloc16_clear( fp->nb_antennas_rx*sizeof(int32_t *) );
-  // the allocated memory size is fixed:
-  AssertFatal( fp->nb_antennas_rx <= 8, "nb_antennas_rx > 8" );
-
-  const size_t num = 7*2*fp->N_RB_DL*12;
-  for (int i=0; i<fp->nb_antennas_rx; i++) {
-    pdsch->rxdataF_ext[i]              = (int32_t *)malloc16_clear( sizeof(int32_t) * num );
-    pdsch->rxdataF_uespec_pilots[i]    = (int32_t *)malloc16_clear( sizeof(int32_t) * fp->N_RB_DL*12);
-    pdsch->ptrs_phase_per_slot[i]      = (int32_t *)malloc16_clear( sizeof(int32_t) * 14 );
-    pdsch->ptrs_re_per_slot[i]         = (int32_t *)malloc16_clear( sizeof(int32_t) * 14);
-    pdsch->rho[i]                      = (int32_t **)malloc16_clear( NR_MAX_NB_LAYERS*NR_MAX_NB_LAYERS*sizeof(int32_t *) );
-
-    for (int j=0; j<NR_MAX_NB_LAYERS; j++) {
-      const int idx = (j*fp->nb_antennas_rx)+i;
-      for (int k=0; k<NR_MAX_NB_LAYERS; k++) {
-        pdsch->rho[i][j*NR_MAX_NB_LAYERS+k] = (int32_t *)malloc16_clear( sizeof(int32_t) * num );
-      }
-      pdsch->rxdataF_comp0[idx]           = (int32_t *)malloc16_clear( sizeof(int32_t) * num );
-      pdsch->dl_ch_estimates[idx]         = (int32_t *)malloc16_clear( sizeof(int32_t) * fp->ofdm_symbol_size*7*2);
-      pdsch->dl_ch_estimates_ext[idx]     = (int32_t *)malloc16_clear( sizeof(int32_t) * num );
-      pdsch->dl_bf_ch_estimates[idx]      = (int32_t *)malloc16_clear( sizeof(int32_t) * fp->ofdm_symbol_size*7*2);
-      pdsch->dl_bf_ch_estimates_ext[idx]  = (int32_t *)malloc16_clear( sizeof(int32_t) * num );
-      pdsch->dl_ch_mag0[idx]              = (int32_t *)malloc16_clear( sizeof(int32_t) * num );
-      pdsch->dl_ch_magb0[idx]             = (int32_t *)malloc16_clear( sizeof(int32_t) * num );
-      pdsch->dl_ch_magr0[idx]             = (int32_t *)malloc16_clear( sizeof(int32_t) * num );
-    }
-  }
-}
-
-void phy_term_nr_ue__PDSCH(NR_UE_PDSCH* pdsch, const NR_DL_FRAME_PARMS *const fp)
-{
-  for (int i = 0; i < fp->nb_antennas_rx; i++) {
-    for (int j = 0; j < NR_MAX_NB_LAYERS; j++) {
-      const int idx = j * fp->nb_antennas_rx + i;
-      for (int k = 0; k < NR_MAX_NB_LAYERS; k++)
-        free_and_zero(pdsch->rho[i][j*NR_MAX_NB_LAYERS+k]);
-      free_and_zero(pdsch->rxdataF_comp0[idx]);
-      free_and_zero(pdsch->dl_ch_estimates[idx]);
-      free_and_zero(pdsch->dl_ch_estimates_ext[idx]);
-      free_and_zero(pdsch->dl_bf_ch_estimates[idx]);
-      free_and_zero(pdsch->dl_bf_ch_estimates_ext[idx]);
-      free_and_zero(pdsch->dl_ch_mag0[idx]);
-      free_and_zero(pdsch->dl_ch_magb0[idx]);
-      free_and_zero(pdsch->dl_ch_magr0[idx]);
-    }
-    free_and_zero(pdsch->rxdataF_ext[i]);
-    free_and_zero(pdsch->rxdataF_uespec_pilots[i]);
-    free_and_zero(pdsch->ptrs_phase_per_slot[i]);
-    free_and_zero(pdsch->ptrs_re_per_slot[i]);
-    free_and_zero(pdsch->rho[i]);
-  }
-  free_and_zero(pdsch->pmi_ext);
-  int nb_codewords = NR_MAX_NB_LAYERS > 4 ? 2 : 1;
-  for (int i=0; i<nb_codewords; i++)
-    free_and_zero(pdsch->llr[i]);
-  for (int i=0; i<NR_MAX_NB_LAYERS; i++)
-    free_and_zero(pdsch->layer_llr[i]);
-  free_and_zero(pdsch->llr128);
-  free_and_zero(pdsch->rxdataF_ext);
-  free_and_zero(pdsch->rxdataF_uespec_pilots);
-  free_and_zero(pdsch->rxdataF_comp0);
-  free_and_zero(pdsch->rho);
-  free_and_zero(pdsch->dl_ch_estimates);
-  free_and_zero(pdsch->dl_ch_estimates_ext);
-  free_and_zero(pdsch->dl_bf_ch_estimates);
-  free_and_zero(pdsch->dl_bf_ch_estimates_ext);
-  free_and_zero(pdsch->dl_ch_mag0);
-  free_and_zero(pdsch->dl_ch_magb0);
-  free_and_zero(pdsch->dl_ch_magr0);
-  free_and_zero(pdsch->ptrs_phase_per_slot);
-  free_and_zero(pdsch->ptrs_re_per_slot);
-}
 
 void RCconfig_nrUE_prs(void *cfg)
 {
@@ -405,11 +308,9 @@ int init_nr_ue_signal(PHY_VARS_NR_UE *ue, int nb_connected_gNB)
 
   // init RX buffers
   common_vars->rxdata   = (int32_t **)malloc16( fp->nb_antennas_rx*sizeof(int32_t *) );
-  common_vars->rxdataF  = (int32_t **)malloc16( fp->nb_antennas_rx*sizeof(int32_t *) );
 
   for (i=0; i<fp->nb_antennas_rx; i++) {
     common_vars->rxdata[i] = (int32_t *) malloc16_clear( (2*(fp->samples_per_frame)+fp->ofdm_symbol_size)*sizeof(int32_t) );
-    common_vars->rxdataF[i] = (int32_t *)malloc16_clear( sizeof(int32_t)*(fp->samples_per_slot_wCP) );
   }
 
   // ceil(((NB_RB<<1)*3)/32) // 3 RE *2(QPSK)
@@ -452,19 +353,6 @@ int init_nr_ue_signal(PHY_VARS_NR_UE *ue, int nb_connected_gNB)
   }
 
   // DLSCH
-  for (gNB_id = 0; gNB_id < ue->n_connected_gNB+1; gNB_id++) {
-    ue->pdsch_vars[gNB_id] = (NR_UE_PDSCH *)malloc16_clear(sizeof(NR_UE_PDSCH));
-    phy_init_nr_ue_PDSCH( ue->pdsch_vars[gNB_id], fp );
-
-    int nb_codewords = NR_MAX_NB_LAYERS > 4 ? 2 : 1;
-    for (i=0; i<nb_codewords; i++) {
-      ue->pdsch_vars[gNB_id]->llr[i] = (int16_t *)malloc16_clear( (8*(3*8*8448))*sizeof(int16_t) );//Q_m = 8 bits/Sym, Code_Rate=3, Number of Segments =8, Circular Buffer K_cb = 8448
-    }
-    for (i=0; i<NR_MAX_NB_LAYERS; i++) {
-      ue->pdsch_vars[gNB_id]->layer_llr[i] = (int16_t *)malloc16_clear( (8*(3*8*8448))*sizeof(int16_t) );//Q_m = 8 bits/Sym, Code_Rate=3, Number of Segments =8, Circular Buffer K_cb = 8448
-    }
-  }
-
   for (gNB_id = 0; gNB_id < ue->n_connected_gNB; gNB_id++) {
     prach_vars[gNB_id] = (NR_UE_PRACH *)malloc16_clear(sizeof(NR_UE_PRACH));
     pbch_vars[gNB_id] = (NR_UE_PBCH *)malloc16_clear(sizeof(NR_UE_PBCH));
@@ -498,14 +386,7 @@ int init_nr_ue_signal(PHY_VARS_NR_UE *ue, int nb_connected_gNB)
 
   }
 
-  ue->sinr_CQI_dB = (double *) malloc16_clear( fp->N_RB_DL*12*sizeof(double) );
   ue->init_averaging = 1;
-
-  // default value until overwritten by RRCConnectionReconfiguration
-  if (fp->nb_antenna_ports_gNB==2)
-    ue->pdsch_config_dedicated->p_a = dBm3;
-  else
-    ue->pdsch_config_dedicated->p_a = dB0;
 
   // enable MIB/SIB decoding by default
   ue->decode_MIB = 1;
@@ -545,9 +426,7 @@ void term_nr_ue_signal(PHY_VARS_NR_UE *ue, int nb_connected_gNB)
 
   for (int i = 0; i < fp->nb_antennas_rx; i++) {
     free_and_zero(common_vars->rxdata[i]);
-    free_and_zero(common_vars->rxdataF[i]);
   }
-  free_and_zero(common_vars->rxdataF);
   free_and_zero(common_vars->rxdata);
 
   for (int slot = 0; slot < fp->slots_per_frame; slot++) {
@@ -570,10 +449,6 @@ void term_nr_ue_signal(PHY_VARS_NR_UE *ue, int nb_connected_gNB)
   for (int gNB_id = 0; gNB_id < ue->n_connected_gNB+1; gNB_id++) {
 
     // PDSCH
-    free_and_zero(ue->pdsch_vars[gNB_id]->llr_shifts);
-    free_and_zero(ue->pdsch_vars[gNB_id]->llr128_2ndstream);
-    phy_term_nr_ue__PDSCH(ue->pdsch_vars[gNB_id], fp);
-    free_and_zero(ue->pdsch_vars[gNB_id]);
   }
 
   for (int gNB_id = 0; gNB_id < ue->n_connected_gNB; gNB_id++) {
@@ -632,47 +507,157 @@ void term_nr_ue_signal(PHY_VARS_NR_UE *ue, int nb_connected_gNB)
 
     free_and_zero(ue->prs_vars[idx]);
   }
-  free_and_zero(ue->sinr_CQI_dB);
+}
+
+void free_nr_ue_dl_harq(NR_DL_UE_HARQ_t harq_list[2][NR_MAX_DLSCH_HARQ_PROCESSES], int number_of_processes, int num_rb) {
+
+  uint16_t a_segments = MAX_NUM_NR_DLSCH_SEGMENTS_PER_LAYER*NR_MAX_NB_LAYERS;
+  if (num_rb != 273) {
+    a_segments = a_segments*num_rb;
+    a_segments = (a_segments/273)+1;
+  }
+
+  for (int j=0; j < 2; j++) {
+    for (int i=0; i<number_of_processes; i++) {
+      free_and_zero(harq_list[j][i].b);
+
+      for (int r=0; r<a_segments; r++) {
+        free_and_zero(harq_list[j][i].c[r]);
+        free_and_zero(harq_list[j][i].d[r]);
+      }
+      free_and_zero(harq_list[j][i].c);
+      free_and_zero(harq_list[j][i].d);
+    }
+  }
+}
+
+void free_nr_ue_ul_harq(NR_UL_UE_HARQ_t harq_list[NR_MAX_ULSCH_HARQ_PROCESSES], int number_of_processes, int num_rb, int num_ant_tx) {
+
+  int max_layers = (num_ant_tx < NR_MAX_NB_LAYERS) ? num_ant_tx : NR_MAX_NB_LAYERS;
+  uint16_t a_segments = MAX_NUM_NR_ULSCH_SEGMENTS_PER_LAYER*max_layers;  //number of segments to be allocated
+
+  if (num_rb != 273) {
+    a_segments = a_segments*num_rb;
+    a_segments = a_segments/273 +1;
+  }
+
+  for (int i = 0; i < number_of_processes; i++) {
+    free_and_zero(harq_list[i].a);
+    free_and_zero(harq_list[i].b);
+    for (int r = 0; r < a_segments; r++) {
+      free_and_zero(harq_list[i].c[r]);
+      free_and_zero(harq_list[i].d[r]);
+    }
+    free_and_zero(harq_list[i].c);
+    free_and_zero(harq_list[i].d);
+    free_and_zero(harq_list[i].e);
+    free_and_zero(harq_list[i].f);
+  }
 }
 
 void term_nr_ue_transport(PHY_VARS_NR_UE *ue)
 {
   const int N_RB_DL = ue->frame_parms.N_RB_DL;
-  for (int i = 0; i < NUMBER_OF_CONNECTED_gNB_MAX; i++) {
-    for (int j = 0; j < 2; j++) {
-      free_nr_ue_dlsch(&ue->dlsch[i][j], N_RB_DL);
-      if (j==0)
-        free_nr_ue_ulsch(&ue->ulsch[i], N_RB_DL, &ue->frame_parms);
-    }
+  const int N_RB_UL = ue->frame_parms.N_RB_UL;
+  free_nr_ue_dl_harq(ue->dl_harq_processes, NR_MAX_DLSCH_HARQ_PROCESSES, N_RB_DL);
+  free_nr_ue_ul_harq(ue->ul_harq_processes, NR_MAX_ULSCH_HARQ_PROCESSES, N_RB_UL, ue->frame_parms.nb_antennas_tx);
+}
 
-    free_nr_ue_dlsch(&ue->dlsch_SI[i], N_RB_DL);
-    free_nr_ue_dlsch(&ue->dlsch_ra[i], N_RB_DL);
+void nr_init_dl_harq_processes(NR_DL_UE_HARQ_t harq_list[2][NR_MAX_DLSCH_HARQ_PROCESSES], int number_of_processes, int num_rb) {
+
+  int a_segments = MAX_NUM_NR_DLSCH_SEGMENTS_PER_LAYER*NR_MAX_NB_LAYERS;  //number of segments to be allocated
+  if (num_rb != 273) {
+    a_segments = a_segments*num_rb;
+    a_segments = (a_segments/273)+1;
   }
 
-  free_nr_ue_dlsch(&ue->dlsch_MCH[0], N_RB_DL);
+  uint32_t dlsch_bytes = a_segments*1056;  // allocated bytes per segment
+
+  for (int j=0; j<2; j++) {
+    for (int i=0; i<number_of_processes; i++) {
+      memset(harq_list[j] + i, 0, sizeof(NR_DL_UE_HARQ_t));
+      init_downlink_harq_status(harq_list[j] + i);
+      harq_list[j][i].b = malloc16(dlsch_bytes);
+
+      if (harq_list[j][i].b)
+        memset(harq_list[j][i].b, 0, dlsch_bytes);
+      else
+        AssertFatal(true, "Unable to reset harq memory \"b\"\n");
+
+      harq_list[j][i].c = malloc16(a_segments*sizeof(uint8_t *));
+      harq_list[j][i].d = malloc16(a_segments*sizeof(int16_t *));
+      for (int r=0; r<a_segments; r++) {
+        harq_list[j][i].c[r] = malloc16(1056);
+        harq_list[j][i].d[r] = malloc16(5*8448*sizeof(int16_t));
+        if (harq_list[j][i].c[r])
+          memset(harq_list[j][i].c[r],0,1056);
+        else
+          AssertFatal(true, "Unable to reset harq memory \"c\"\n");
+
+        if (harq_list[j][i].d[r])
+          memset(harq_list[j][i].d[r],0,5*8448);
+        else
+          AssertFatal(true, "Unable to reset harq memory \"d\"\n");
+      }
+      harq_list[j][i].status  = 0;
+      harq_list[j][i].DLround = 0;
+    }
+  }
+}
+
+void nr_init_ul_harq_processes(NR_UL_UE_HARQ_t harq_list[NR_MAX_ULSCH_HARQ_PROCESSES], int number_of_processes, int num_rb, int num_ant_tx) {
+
+  int max_layers = (num_ant_tx < NR_MAX_NB_LAYERS) ? num_ant_tx : NR_MAX_NB_LAYERS;
+  uint16_t a_segments = MAX_NUM_NR_ULSCH_SEGMENTS_PER_LAYER*max_layers;  //number of segments to be allocated
+
+  if (num_rb != 273) {
+    a_segments = a_segments*num_rb;
+    a_segments = a_segments/273 +1;
+  }
+
+  uint32_t ulsch_bytes = a_segments*1056;  // allocated bytes per segment
+
+  for (int i = 0; i < number_of_processes; i++) {
+
+    memset(harq_list + i, 0, sizeof(NR_UL_UE_HARQ_t));
+
+    harq_list[i].a = malloc16(ulsch_bytes);
+    DevAssert(harq_list[i].a);
+    bzero(harq_list[i].a, ulsch_bytes);
+
+    harq_list[i].b = malloc16(ulsch_bytes);
+    DevAssert(harq_list[i].b);
+    bzero(harq_list[i].b, ulsch_bytes);
+
+    harq_list[i].c = malloc16(a_segments*sizeof(uint8_t *));
+    harq_list[i].d = malloc16(a_segments*sizeof(uint16_t *));
+    for (int r = 0; r < a_segments; r++) {
+      harq_list[i].c[r] = malloc16(8448);
+      DevAssert(harq_list[i].c[r]);
+      bzero(harq_list[i].c[r],8448);
+
+      harq_list[i].d[r] = malloc16(68*384); //max size for coded output
+      DevAssert(harq_list[i].d[r]);
+      bzero(harq_list[i].d[r],(68*384));
+    }
+
+    harq_list[i].e = malloc16(14*num_rb*12*16);
+    DevAssert(harq_list[i].e);
+    bzero(harq_list[i].e,14*num_rb*12*16);
+
+    harq_list[i].f = malloc16(14*num_rb*12*16);
+    DevAssert(harq_list[i].f);
+    bzero(harq_list[i].f,14*num_rb*12*16);
+
+    harq_list[i].first_tx = 1;
+    harq_list[i].round = 0;
+  }
 }
 
 void init_nr_ue_transport(PHY_VARS_NR_UE *ue) {
 
-  int num_codeword = NR_MAX_NB_LAYERS > 4? 2:1;
-
-  for (int i = 0; i < NUMBER_OF_CONNECTED_gNB_MAX; i++) {
-    for (int j=0; j<num_codeword; j++) {
-      AssertFatal((ue->dlsch[i][j]  = new_nr_ue_dlsch(1,NR_MAX_DLSCH_HARQ_PROCESSES,NSOFT,ue->max_ldpc_iterations,ue->frame_parms.N_RB_DL))!=NULL,"Can't get ue dlsch structures\n");
-      LOG_D(PHY,"dlsch[%d][%d] => %p\n",i,j,ue->dlsch[i][j]);
-      if (j==0) {
-        AssertFatal((ue->ulsch[i] = new_nr_ue_ulsch(ue->frame_parms.N_RB_UL, NR_MAX_ULSCH_HARQ_PROCESSES,&ue->frame_parms))!=NULL,"Can't get ue ulsch structures\n");
-        LOG_D(PHY,"ulsch[%d] => %p\n",i,ue->ulsch[i]);
-      }
-    }
-
-    ue->dlsch_SI[i]  = new_nr_ue_dlsch(1,1,NSOFT,ue->max_ldpc_iterations,ue->frame_parms.N_RB_DL);
-    ue->dlsch_ra[i]  = new_nr_ue_dlsch(1,1,NSOFT,ue->max_ldpc_iterations,ue->frame_parms.N_RB_DL);
-    ue->transmission_mode[i] = ue->frame_parms.nb_antenna_ports_gNB==1 ? 1 : 2;
-  }
-
-  //ue->frame_parms.pucch_config_common.deltaPUCCH_Shift = 1;
-  ue->dlsch_MCH[0]  = new_nr_ue_dlsch(1,NR_MAX_DLSCH_HARQ_PROCESSES,NSOFT,MAX_LDPC_ITERATIONS_MBSFN,ue->frame_parms.N_RB_DL);
+  nr_init_dl_harq_processes(ue->dl_harq_processes, NR_MAX_DLSCH_HARQ_PROCESSES, ue->frame_parms.N_RB_DL);
+  nr_init_ul_harq_processes(ue->ul_harq_processes, NR_MAX_ULSCH_HARQ_PROCESSES, ue->frame_parms.N_RB_UL, ue->frame_parms.nb_antennas_tx);
 
   for(int i=0; i<5; i++)
     ue->dl_stats[i] = 0;
@@ -726,15 +711,6 @@ void phy_init_nr_top(PHY_VARS_NR_UE *ue) {
   load_dftslib();
   init_context_synchro_nr(frame_parms);
   generate_ul_reference_signal_sequences(SHRT_MAX);
-  // Polar encoder init for PBCH
-  //lte_sync_time_init(frame_parms);
-  //generate_ul_ref_sigs();
-  //generate_ul_ref_sigs_rx();
-  //generate_64qam_table();
-  //generate_16qam_table();
-  //generate_RIV_tables();
-  //init_unscrambling_lut();
-  //set_taus_seed(1328);
 }
 
 void phy_term_nr_top(void)

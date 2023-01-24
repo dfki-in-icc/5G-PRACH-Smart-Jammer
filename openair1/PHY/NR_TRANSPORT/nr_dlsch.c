@@ -387,30 +387,30 @@ void nr_generate_pdsch(processingData_L1tx_t *msgTx,
           }
           // fix the alignment issues later, use 64-bit SIMD below instead of 128.
           if (0/*(frame_parms->N_RB_DL&1)==0*/) {
-            __m128i *txF=(__m128i*)&txdataF_precoding[nl][((l*frame_parms->ofdm_symbol_size+start_sc)<<1)];
+            simde__m128i *txF=(simde__m128i*)&txdataF_precoding[nl][((l*frame_parms->ofdm_symbol_size+start_sc)<<1)];
 
-            __m128i *txl = (__m128i*)&tx_layers[nl][m<<1];
-            __m128i amp128=_mm_set1_epi16(amp);
+            simde__m128i *txl = (simde__m128i*)&tx_layers[nl][m<<1];
+            simde__m128i amp128=simde_mm_set1_epi16(amp);
             for (int i=0; i<(upper_limit>>2); i++) {
-              txF[i] = _mm_mulhrs_epi16(amp128,txl[i]);
+              txF[i] = simde_mm_mulhrs_epi16(amp128,txl[i]);
             } //RE loop, first part
             m+=upper_limit;
             if (remaining_re > 0) {
-               txF = (__m128i*)&txdataF_precoding[nl][((l*frame_parms->ofdm_symbol_size)<<1)];
-               txl = (__m128i*)&tx_layers[nl][m<<1];
+               txF = (simde__m128i*)&txdataF_precoding[nl][((l*frame_parms->ofdm_symbol_size)<<1)];
+               txl = (simde__m128i*)&tx_layers[nl][m<<1];
                for (int i=0; i<(remaining_re>>2); i++) {
-                 txF[i] = _mm_mulhrs_epi16(amp128,txl[i]);
+                 txF[i] = simde_mm_mulhrs_epi16(amp128,txl[i]);
                }
             }
           }
           else {
-            __m64 *txF=(__m64*)&txdataF_precoding[nl][((l*frame_parms->ofdm_symbol_size+start_sc)<<1)];
+            simde__m64 *txF=(simde__m64*)&txdataF_precoding[nl][((l*frame_parms->ofdm_symbol_size+start_sc)<<1)];
 
-            __m64 *txl = (__m64*)&tx_layers[nl][m<<1];
-            __m64 amp64=_mm_set1_pi16(amp);
+            simde__m64 *txl = (simde__m64*)&tx_layers[nl][m<<1];
+            simde__m64 amp64=simde_mm_set1_pi16(amp);
             for (int i=0; i<(upper_limit>>1); i++) {
 
-              txF[i] = _mm_mulhrs_pi16(amp64,txl[i]);
+              txF[i] = simde_mm_mulhrs_pi16(amp64,txl[i]);
 #ifdef DEBUG_DLSCH_MAPPING
               if ((i&1) > 0)
                   printf("m %d\t l %d \t k %d \t txdataF: %d %d\n",
@@ -425,10 +425,10 @@ void nr_generate_pdsch(processingData_L1tx_t *msgTx,
             } //RE loop, first part
             m+=upper_limit;
             if (remaining_re > 0) {
-               txF = (__m64*)&txdataF_precoding[nl][((l*frame_parms->ofdm_symbol_size)<<1)];
-               txl = (__m64*)&tx_layers[nl][m<<1];
+               txF = (simde__m64*)&txdataF_precoding[nl][((l*frame_parms->ofdm_symbol_size)<<1)];
+               txl = (simde__m64*)&tx_layers[nl][m<<1];
                for (int i=0; i<(remaining_re>>1); i++) {
-                 txF[i] = _mm_mulhrs_pi16(amp64,txl[i]);
+                 txF[i] = simde_mm_mulhrs_pi16(amp64,txl[i]);
 #ifdef DEBUG_DLSCH_MAPPING
                  if ((i&1) > 0)
                    printf("m %d\t l %d \t k %d \t txdataF: %d %d\n",
@@ -544,7 +544,6 @@ void nr_generate_pdsch(processingData_L1tx_t *msgTx,
     }// port loop
 
     stop_meas(&gNB->dlsch_precoding_stats);
-    dlsch->slot_tx[slot]=0;
 
     // TODO: handle precoding
     // this maps the layers onto antenna ports

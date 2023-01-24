@@ -55,130 +55,6 @@ extern RAN_CONTEXT_t RC;
 
 //#define ENABLE_MAC_PAYLOAD_DEBUG 1
 
-/*Scheduling of DLSCH with associated DCI in common search space
- * current version has only a DCI for type 1 PDCCH for C_RNTI*/
-void nr_schedule_css_dlsch_phytest(module_id_t   module_idP,
-                                   frame_t       frameP,
-                                   sub_frame_t   slotP) {
-  uint8_t  CC_id;
-  gNB_MAC_INST                      *nr_mac      = RC.nrmac[module_idP];
-  NR_COMMON_channels_t              *cc = &nr_mac->common_channels[0];
-  nfapi_nr_dl_tti_request_body_t    *dl_req;
-  nfapi_nr_dl_tti_request_pdu_t     *dl_tti_pdcch_pdu;
-  nfapi_nr_dl_tti_request_pdu_t     *dl_tti_pdsch_pdu;
-  nfapi_nr_pdu_t        *TX_req;
-
-  uint16_t rnti = 0x1234;
-  //  int time_domain_assignment,k0;
-
-  NR_ServingCellConfigCommon_t *scc=cc->ServingCellConfigCommon;
-
-  int dlBWP_carrier_bandwidth = NRRIV2BW(scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
-
-  
-  /*
-  int scs               = scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters.subcarrierSpacing;
-  
-  int slots_per_frame   = 10*(1<<scs);
-
-  int FR                = *scc->downlinkConfigCommon->frequencyInfoDL->frequencyBandList.list.array[0] >= 257 ? nr_FR2 : nr_FR1;
-  */
-
-  for (CC_id=0; CC_id<MAX_NUM_CCs; CC_id++) {
-    LOG_D(MAC, "Scheduling common search space DCI type 1 dlBWP BW.firstRB %d.%d\n",
-	  dlBWP_carrier_bandwidth,
-	  NRRIV2PRBOFFSET(scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters.locationAndBandwidth, MAX_BWP_SIZE));
-    
-    
-    dl_req = &nr_mac->DL_req[CC_id].dl_tti_request_body;
-    dl_tti_pdcch_pdu = &dl_req->dl_tti_pdu_list[dl_req->nPDUs];
-    memset((void*)dl_tti_pdcch_pdu,0,sizeof(nfapi_nr_dl_tti_request_pdu_t));
-    dl_tti_pdcch_pdu->PDUType = NFAPI_NR_DL_TTI_PDCCH_PDU_TYPE;
-    dl_tti_pdcch_pdu->PDUSize = (uint8_t)(2+sizeof(nfapi_nr_dl_tti_pdcch_pdu));
-    
-    dl_tti_pdsch_pdu = &nr_mac->DL_req[CC_id].dl_tti_request_body.dl_tti_pdu_list[nr_mac->DL_req[CC_id].dl_tti_request_body.nPDUs+1];
-    memset((void *)dl_tti_pdsch_pdu,0,sizeof(nfapi_nr_dl_tti_request_pdu_t));
-    dl_tti_pdsch_pdu->PDUType = NFAPI_NR_DL_TTI_PDSCH_PDU_TYPE;
-    dl_tti_pdsch_pdu->PDUSize = (uint8_t)(2+sizeof(nfapi_nr_dl_tti_pdsch_pdu));
-
-    
-    //    nfapi_nr_dl_tti_pdcch_pdu_rel15_t *pdcch_pdu_rel15 = &dl_tti_pdcch_pdu->pdcch_pdu.pdcch_pdu_rel15;
-    nfapi_nr_dl_tti_pdsch_pdu_rel15_t *pdsch_pdu_rel15 = &dl_tti_pdsch_pdu->pdsch_pdu.pdsch_pdu_rel15;
-    
-    pdsch_pdu_rel15->pduBitmap = 0;
-    pdsch_pdu_rel15->rnti = rnti;
-    pdsch_pdu_rel15->pduIndex = 0;
-
-    // BWP
-    pdsch_pdu_rel15->BWPSize  = NRRIV2BW(scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
-    pdsch_pdu_rel15->BWPStart = NRRIV2PRBOFFSET(scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
-    pdsch_pdu_rel15->SubcarrierSpacing = scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters.subcarrierSpacing;
-    pdsch_pdu_rel15->CyclicPrefix = 0;
-    pdsch_pdu_rel15->NrOfCodewords = 1;
-    int mcsIndex = 9;
-    pdsch_pdu_rel15->targetCodeRate[0] = nr_get_code_rate_dl(mcsIndex,0);
-    pdsch_pdu_rel15->qamModOrder[0] = 2;
-    pdsch_pdu_rel15->mcsIndex[0] = mcsIndex;
-    pdsch_pdu_rel15->mcsTable[0] = 0;
-    pdsch_pdu_rel15->rvIndex[0] = 0;
-    pdsch_pdu_rel15->dataScramblingId = *scc->physCellId;
-    pdsch_pdu_rel15->nrOfLayers = 1;    
-    pdsch_pdu_rel15->transmissionScheme = 0;
-    pdsch_pdu_rel15->refPoint = 0; // Point A
-    
-    pdsch_pdu_rel15->dmrsConfigType = 0; // Type 1 by default for InitialBWP
-    pdsch_pdu_rel15->dlDmrsScramblingId = *scc->physCellId;
-    pdsch_pdu_rel15->SCID = 0;
-    pdsch_pdu_rel15->numDmrsCdmGrpsNoData = 1;
-    pdsch_pdu_rel15->dmrsPorts = 1;
-    pdsch_pdu_rel15->resourceAlloc = 1;
-    pdsch_pdu_rel15->rbStart = 0;
-    pdsch_pdu_rel15->rbSize = 6;
-    pdsch_pdu_rel15->VRBtoPRBMapping = 1; // non-interleaved, check if this is ok for initialBWP
-    // choose shortest PDSCH
-    int startSymbolAndLength=0;
-    int StartSymbolIndex=-1,NrOfSymbols=14;
-    int StartSymbolIndex_tmp,NrOfSymbols_tmp;
-    int mappingtype_tmp, mappingtype=0;
-
-    for (int i=0;
-	 i<scc->downlinkConfigCommon->initialDownlinkBWP->pdsch_ConfigCommon->choice.setup->pdsch_TimeDomainAllocationList->list.count;
-	 i++) {
-      startSymbolAndLength = scc->downlinkConfigCommon->initialDownlinkBWP->pdsch_ConfigCommon->choice.setup->pdsch_TimeDomainAllocationList->list.array[i]->startSymbolAndLength;
-      SLIV2SL(startSymbolAndLength,&StartSymbolIndex_tmp,&NrOfSymbols_tmp);
-      mappingtype_tmp = scc->downlinkConfigCommon->initialDownlinkBWP->pdsch_ConfigCommon->choice.setup->pdsch_TimeDomainAllocationList->list.array[i]->mappingType;
-      if (NrOfSymbols_tmp < NrOfSymbols) {
-	NrOfSymbols = NrOfSymbols_tmp;
-        StartSymbolIndex = StartSymbolIndex_tmp;
-        mappingtype = mappingtype_tmp;
-      }
-    }
-    AssertFatal(StartSymbolIndex>=0,"StartSymbolIndex is negative\n");
-    pdsch_pdu_rel15->StartSymbolIndex = StartSymbolIndex;
-    pdsch_pdu_rel15->NrOfSymbols      = NrOfSymbols;
-    pdsch_pdu_rel15->dlDmrsSymbPos = fill_dmrs_mask(NULL,
-                                                    scc->dmrs_TypeA_Position,
-                                                    NrOfSymbols,
-                                                    StartSymbolIndex,
-                                                    mappingtype,
-                                                    1);
-
-    nr_mac->DL_req[CC_id].dl_tti_request_body.nPDUs+=2;
-    
-    TX_req = &nr_mac->TX_req[CC_id].pdu_list[nr_mac->TX_req[CC_id].Number_of_PDUs];
-    TX_req->PDU_length = 6;
-    TX_req->PDU_index = nr_mac->pdu_index[CC_id]++;
-    TX_req->num_TLV = 1;
-    TX_req->TLVs[0].length = 8;
-    // why do we copy from RAR_pdu here? Shouldn't we fill some more or less
-    // meaningful data, e.g., padding + random data?
-    //memcpy((void *)&TX_req->TLVs[0].value.direct[0], (void *)&cc[CC_id].RAR_pdu[0].payload[0], TX_req->TLVs[0].length);
-    nr_mac->TX_req[CC_id].Number_of_PDUs++;
-    nr_mac->TX_req[CC_id].SFN=frameP;
-    nr_mac->TX_req[CC_id].Slot=slotP;
-  }
-}
-
 uint32_t target_dl_mcs = 9;
 uint32_t target_dl_Nl = 1;
 uint32_t target_dl_bw = 50;
@@ -250,34 +126,20 @@ void nr_preprocessor_phytest(module_id_t module_id,
                                                     0);
   sched_ctrl->num_total_bytes += sched_ctrl->rlc_status[lcid].bytes_in_buffer;
 
-  uint8_t nr_of_candidates;
-  for (int i=0; i<5; i++) {
-    // for now taking the lowest value among the available aggregation levels
-    find_aggregation_candidates(&sched_ctrl->aggregation_level,
-                                &nr_of_candidates,
-                                sched_ctrl->search_space,
-                                1<<i);
-    if(nr_of_candidates>0) break;
-  }
-  AssertFatal(nr_of_candidates>0,"nr_of_candidates is 0\n");
-
-  const uint32_t Y = get_Y(sched_ctrl->search_space, slot, UE->rnti);
-
-  int CCEIndex = find_pdcch_candidate(RC.nrmac[module_id],
-                                      CC_id,
-                                      sched_ctrl->aggregation_level,
-                                      nr_of_candidates,
-                                      &sched_ctrl->sched_pdcch,
-                                      sched_ctrl->coreset,
-                                      Y);
-
+  int CCEIndex = get_cce_index(RC.nrmac[module_id],
+                               CC_id, slot, UE->rnti,
+                               &sched_ctrl->aggregation_level,
+                               sched_ctrl->search_space,
+                               sched_ctrl->coreset,
+                               &sched_ctrl->sched_pdcch,
+                               false);
   AssertFatal(CCEIndex >= 0,
               "%s(): could not find CCE for UE %04x\n",
               __func__,
               UE->rnti);
 
   int r_pucch = nr_get_pucch_resource(sched_ctrl->coreset, UE->current_UL_BWP.pucch_Config, CCEIndex);
-  const int alloc = nr_acknack_scheduling(module_id, UE, frame, slot, r_pucch, 0);
+  const int alloc = nr_acknack_scheduling(RC.nrmac[module_id], UE, frame, slot, r_pucch, 0);
   if (alloc < 0) {
     LOG_D(MAC,
           "%s(): could not find PUCCH for UE %04x@%d.%d\n",
@@ -358,7 +220,7 @@ bool nr_ul_preprocessor_phytest(module_id_t module_id, frame_t frame, sub_frame_
   const int mu = ul_bwp->scs;
 
   const struct NR_PUSCH_TimeDomainResourceAllocationList *tdaList = ul_bwp->tdaList;
-  const int temp_tda = get_ul_tda(nr_mac, scc, slot);
+  const int temp_tda = get_ul_tda(nr_mac, scc, frame, slot);
   if (temp_tda < 0)
     return false;
   AssertFatal(temp_tda < tdaList->list.count,
@@ -368,7 +230,7 @@ bool nr_ul_preprocessor_phytest(module_id_t module_id, frame_t frame, sub_frame_
   int K2 = get_K2(ul_bwp->tdaList, temp_tda, mu);
   const int sched_frame = frame + (slot + K2 >= nr_slots_per_frame[mu]);
   const int sched_slot = (slot + K2) % nr_slots_per_frame[mu];
-  const int tda = get_ul_tda(nr_mac, scc, sched_slot);
+  const int tda = get_ul_tda(nr_mac, scc, sched_frame, sched_slot);
   if (tda < 0)
     return false;
   AssertFatal(tda < tdaList->list.count,
@@ -412,27 +274,13 @@ bool nr_ul_preprocessor_phytest(module_id_t module_id, frame_t frame, sub_frame_
   sched_ctrl->sched_pusch.slot = sched_slot;
   sched_ctrl->sched_pusch.frame = sched_frame;
 
-  uint8_t nr_of_candidates;
-  for (int i=0; i<5; i++) {
-    // for now taking the lowest value among the available aggregation levels
-    find_aggregation_candidates(&sched_ctrl->aggregation_level,
-                                &nr_of_candidates,
-                                sched_ctrl->search_space,
-                                1<<i);
-    if(nr_of_candidates>0) break;
-  }
-  AssertFatal(nr_of_candidates>0,"nr_of_candidates is 0\n");
-
-  const uint32_t Y = get_Y(sched_ctrl->search_space, slot, UE->rnti);
-
-  int CCEIndex = find_pdcch_candidate(nr_mac,
-                                      CC_id,
-                                      sched_ctrl->aggregation_level,
-                                      nr_of_candidates,
-                                      &sched_ctrl->sched_pdcch,
-                                      sched_ctrl->coreset,
-                                      Y);
-
+  int CCEIndex = get_cce_index(nr_mac,
+                               CC_id, slot, UE->rnti,
+                               &sched_ctrl->aggregation_level,
+                               sched_ctrl->search_space,
+                               sched_ctrl->coreset,
+                               &sched_ctrl->sched_pdcch,
+                               false);
   if (CCEIndex < 0) {
     LOG_E(MAC, "%s(): CCE list not empty, couldn't schedule PUSCH\n", __func__);
     return false;

@@ -834,7 +834,7 @@ int DU_handle_UE_CONTEXT_RELEASE_COMMAND(instance_t       instance,
     f1ap_ue_context_release_cmd->rnti = f1ap_get_rnti_by_cu_id(DUtype, instance, ie->value.choice.GNB_CU_UE_F1AP_ID);
   }
   else{
-    ctxt.rnti = f1ap_get_rnti_by_cu_id(DUtype, instance, ie->value.choice.GNB_CU_UE_F1AP_ID);
+    ctxt.rntiMaybeUEid = f1ap_get_rnti_by_cu_id(DUtype, instance, ie->value.choice.GNB_CU_UE_F1AP_ID);
     ctxt.instance = instance;
     ctxt.module_id = instance;
     ctxt.enb_flag  = 1;
@@ -850,9 +850,7 @@ int DU_handle_UE_CONTEXT_RELEASE_COMMAND(instance_t       instance,
             rnti, f1ap_ue_context_release_cmd->rnti);
   }
   else{
-    AssertFatal(ctxt.rnti == rnti,
-        "RNTI obtained through DU ID (%x) is different from CU ID (%x)\n",
-        rnti, ctxt.rnti);
+    AssertFatal(ctxt.rntiMaybeUEid == rnti, "RNTI obtained through DU ID (%x) is different from CU ID (%lx)\n", rnti, ctxt.rntiMaybeUEid);
   }
   int UE_out_of_sync = 0;
 
@@ -946,7 +944,7 @@ int DU_handle_UE_CONTEXT_RELEASE_COMMAND(instance_t       instance,
     return 0;
   } else {
     struct rrc_eNB_ue_context_s *ue_context_p;
-    ue_context_p = rrc_eNB_get_ue_context(RC.rrc[ctxt.instance], ctxt.rnti);
+    ue_context_p = rrc_eNB_get_ue_context(RC.rrc[ctxt.instance], ctxt.rntiMaybeUEid);
 
     if (ue_context_p && !UE_out_of_sync) {
       // UE exists and is in sync so we start a timer before releasing the
@@ -960,13 +958,12 @@ int DU_handle_UE_CONTEXT_RELEASE_COMMAND(instance_t       instance,
           else
             rrc_release_info.RRC_release_ctrl[release_num].flag = 2;
 
-          rrc_release_info.RRC_release_ctrl[release_num].rnti = ctxt.rnti;
-          LOG_D(F1AP, "add rrc_release_info RNTI %x\n", ctxt.rnti);
+          rrc_release_info.RRC_release_ctrl[release_num].rnti = ctxt.rntiMaybeUEid;
+          LOG_D(F1AP, "add rrc_release_info RNTI %lx\n", ctxt.rntiMaybeUEid);
           // TODO: how to provide the correct MUI?
           rrc_release_info.RRC_release_ctrl[release_num].rrc_eNB_mui = 0;
           rrc_release_info.num_UEs++;
-          LOG_D(RRC,"Generate DLSCH Release send: index %d rnti %x mui %d flag %d \n",release_num,
-                ctxt.rnti, 0, rrc_release_info.RRC_release_ctrl[release_num].flag);
+          LOG_D(RRC, "Generate DLSCH Release send: index %d rnti %lx mui %d flag %d \n", release_num, ctxt.rntiMaybeUEid, 0, rrc_release_info.RRC_release_ctrl[release_num].flag);
           break;
         }
       }
@@ -982,7 +979,7 @@ int DU_handle_UE_CONTEXT_RELEASE_COMMAND(instance_t       instance,
 
     // TODO send this once the connection has really been released
     f1ap_ue_context_release_cplt_t cplt;
-    cplt.rnti = ctxt.rnti;
+    cplt.rnti = ctxt.rntiMaybeUEid;
     DU_send_UE_CONTEXT_RELEASE_COMPLETE(instance, &cplt);
     return 0;
   }
@@ -1056,11 +1053,11 @@ int DU_send_UE_CONTEXT_RELEASE_COMPLETE(instance_t instance,
   //        criticalityDiagnostics_ie_item->iECriticality = F1AP_Criticality_reject;
   //        criticalityDiagnostics_ie_item->iE_ID         = 0L;
   //        criticalityDiagnostics_ie_item->typeOfError   = F1AP_TypeOfError_not_understood;
-  //        ASN_SEQUENCE_ADD(&ie->value.choice.CriticalityDiagnostics.iEsCriticalityDiagnostics->list,
+  //        asn1cSeqAdd(&ie->value.choice.CriticalityDiagnostics.iEsCriticalityDiagnostics->list,
   //                    criticalityDiagnostics_ie_item);
   //    }
   //  }
-  //  ASN_SEQUENCE_ADD(&out->protocolIEs.list, ie);
+  //  asn1cSeqAdd(&out->protocolIEs.list, ie);
   //}
   /* encode */
   uint8_t  *buffer;
@@ -1078,6 +1075,17 @@ int DU_send_UE_CONTEXT_RELEASE_COMPLETE(instance_t instance,
   f1ap_remove_ue(DUtype, instance, cplt->rnti);
   return 0;
 }
+
+static instance_t du_create_gtpu_instance_to_cu(char *CUaddr, uint16_t CUport, char *DUaddr, uint16_t DUport)
+{
+  openAddr_t tmp={0};
+  strncpy(tmp.originHost, DUaddr, sizeof(tmp.originHost)-1);
+  strncpy(tmp.destinationHost, CUaddr, sizeof(tmp.destinationHost)-1);
+  sprintf(tmp.originService, "%d", DUport);
+  sprintf(tmp.destinationService, "%d", CUport);
+  return gtpv1Init(tmp);
+}
+
 int DU_handle_UE_CONTEXT_MODIFICATION_REQUEST(instance_t       instance,
     uint32_t         assoc_id,
     uint32_t         stream,
@@ -1160,6 +1168,28 @@ int DU_handle_UE_CONTEXT_MODIFICATION_REQUEST(instance_t       instance,
        // 3GPP assumes GTP-U is on port 2152, but OAI is configurable
       drb_p->up_ul_tnl[0].port=getCxt(false,instance)->setupReq.CUport;
 
+      extern instance_t DUuniqInstance;
+      if (DUuniqInstance == 0) {
+        char gtp_tunnel_ip_address[32];
+        snprintf(gtp_tunnel_ip_address,
+                 sizeof(gtp_tunnel_ip_address),
+                 "%d.%d.%d.%d",
+                 drb_p->up_ul_tnl[0].tl_address & 0xff,
+                 (drb_p->up_ul_tnl[0].tl_address >> 8) & 0xff,
+                 (drb_p->up_ul_tnl[0].tl_address >> 16) & 0xff,
+                 (drb_p->up_ul_tnl[0].tl_address >> 24) & 0xff);
+        getCxt(DUtype, instance)->gtpInst=du_create_gtpu_instance_to_cu(
+                                            gtp_tunnel_ip_address,
+                                            getCxt(false,instance)->setupReq.CUport,
+                                            getCxt(false,instance)->setupReq.DU_f1_ip_address.ipv4_address,
+                                            getCxt(false,instance)->setupReq.DUport);
+        AssertFatal(getCxt(DUtype, instance)->gtpInst>0,"Failed to create CU F1-U UDP listener");
+        // Fixme: fully inconsistent instances management
+        // dirty global var is a bad fix
+        extern instance_t legacyInstanceMapping;
+        legacyInstanceMapping = DUuniqInstance = getCxt(DUtype, instance)->gtpInst;
+      }
+
       switch (drbs_tobesetupmod_item_p->rLCMode) {
       case F1AP_RLCMode_rlc_am:
         drb_p->rlc_mode = RLC_MODE_AM;
@@ -1217,7 +1247,7 @@ int DU_handle_UE_CONTEXT_MODIFICATION_REQUEST(instance_t       instance,
           ieRRC->value.choice.RRCContainer.buf, ieRRC->value.choice.RRCContainer.size);
       protocol_ctxt_t ctxt;
       // decode RRC Container and act on the message type
-      ctxt.rnti = f1ap_ue_context_modification_req->rnti;
+      ctxt.rntiMaybeUEid = f1ap_ue_context_modification_req->rnti;
       ctxt.instance = instance;
       ctxt.module_id  = instance;
       ctxt.enb_flag  = 1;
@@ -1399,7 +1429,7 @@ int DU_send_UE_CONTEXT_MODIFICATION_RESPONSE(instance_t instance, f1ap_ue_contex
         &srbs_failedToBeSetupMod_item_ies->value.choice.SRBs_FailedToBeSetupMod_Item;
       /* - sRBID */
       srbs_failedToBeSetupMod_item->sRBID = resp->srbs_failed_to_be_setup[i].rb_id;
-      asn1cCalloc(srbs_failedToBeSetupMod_item->cause, tmp)
+      asn1cCalloc(srbs_failedToBeSetupMod_item->cause, tmp);
       tmp->present = F1AP_Cause_PR_radioNetwork;
       tmp->choice.radioNetwork = F1AP_CauseRadioNetwork_unknown_or_already_allocated_gnb_du_ue_f1ap_id;
     }
