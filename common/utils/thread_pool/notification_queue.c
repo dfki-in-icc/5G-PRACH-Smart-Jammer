@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <stdatomic.h>
 #include <string.h>
 
 void init_not_q(not_q_t* q)
@@ -23,8 +24,6 @@ void init_not_q(not_q_t* q)
   rc = pthread_cond_init(&q->cv, c_attr);
   assert(rc == 0);
   q->spin = false;
-
-  //q->sl.lock = false;
 }
 
 void free_not_q(not_q_t* q, void (*clean)(task_t*) )
@@ -136,7 +135,7 @@ label:
     while (atomic_load_explicit(&q->spin, memory_order_relaxed)){
       // Issue X86 PAUSE or ARM YIELD instruction to reduce contention between
       // hyper-threads
-      __builtin_ia32_pause();
+      pause_or_yield();
     }
 
     rc = pthread_mutex_lock(&q->mtx);
