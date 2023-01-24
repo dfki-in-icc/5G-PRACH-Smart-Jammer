@@ -41,7 +41,7 @@
 
 #define NO_INTERP 1
 #define dBc(x,y) (dB_fixed(((int32_t)(x))*(x) + ((int32_t)(y))*(y)))
-// #define CH_UNROLLED 1
+#define CH_UNROLLED 1
 
 void freq2time(uint16_t ofdm_symbol_size,
                int16_t *freq_signal,
@@ -101,22 +101,22 @@ __attribute__((always_inline)) inline c16_t c32x16cumulVectVectWithSteps(c16_t c
   return c16x32div(cumul, N);
 }
 
-
-__attribute__((always_inline)) inline c16_t c32x16cumulVectVectWithSteps6_2(c16_t *in1,
-                                                                            int *offset1,
-                                                                            c16_t *in2,
-                                                                            int *offset2) {
+static
+__attribute__((always_inline)) inline c16_t c32x16cumulVectVectWithSteps6_2(c16_t const *in1,
+                                                                            int offset1,
+                                                                            c16_t const *in2,
+                                                                            int offset2) {
 
   c32_t cumul={0}; 
-  c16_t *in1p = &in1[*offset1],*in2p = &in2[*offset2];
+  c16_t *in1p = &in1[offset1],*in2p = &in2[offset2];
   cumul=c32x16maddShift(in1p[0], in2p[0], cumul, 15);
   cumul=c32x16maddShift(in1p[1], in2p[2], cumul, 15);
   cumul=c32x16maddShift(in1p[2], in2p[4], cumul, 15);
   cumul=c32x16maddShift(in1p[3], in2p[6], cumul, 15);
   cumul=c32x16maddShift(in1p[4], in2p[8], cumul, 15);
   cumul=c32x16maddShift(in1p[5], in2p[10], cumul, 15);
-  *offset1=*offset1+6;
-  *offset2=*offset2+12;
+//  *offset1=*offset1+6;
+//  *offset2=*offset2+12;
   return c16x32div(cumul, 6);
 }
 
@@ -440,7 +440,10 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
 #ifdef CH_UNROLLED
       c32_t ch_tmp;
       for (int l=0;l<l0;l++) { 
-        ch=c32x16cumulVectVectWithSteps6_2(pilot, &pil_offset, rxF, &re_offset);
+        ch=c32x16cumulVectVectWithSteps6_2(pilot, pil_offset, rxF, re_offset);
+         pil_offset += 6;
+         re_offset += 12;
+
         ((simde__m128i *)ul_ch)[0] =  simde_mm_set1_epi32(*(int32_t*)&ch);
         ((simde__m128i *)ul_ch)[1] =  simde_mm_set1_epi32(*(int32_t*)&ch);
         ((simde__m128i *)ul_ch)[2] =  simde_mm_set1_epi32(*(int32_t*)&ch);
@@ -457,7 +460,10 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
 
       } else re_offset-=symbolSize;
       for (int l=0;l<l1;l++) {
-        ch=c32x16cumulVectVectWithSteps6_2(pilot, &pil_offset, rxF, &re_offset);
+        ch=c32x16cumulVectVectWithSteps6_2(pilot, pil_offset, rxF, re_offset);
+         pil_offset += 6;
+         re_offset += 12;
+
         ((simde__m128i *)ul_ch)[0] =  simde_mm_set1_epi32(*(int32_t*)&ch);
         ((simde__m128i *)ul_ch)[1] =  simde_mm_set1_epi32(*(int32_t*)&ch);
         ((simde__m128i *)ul_ch)[2] =  simde_mm_set1_epi32(*(int32_t*)&ch);
