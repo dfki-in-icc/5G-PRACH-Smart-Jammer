@@ -82,8 +82,6 @@ void init_task_manager(task_manager_t* man, uint32_t num_threads)
   int rc = pthread_mutex_init(&man->wait_mtx, &attr);
   assert(rc == 0 && "Error while creating the mtx");
 
- // man->spin.lock = false;
-
   pthread_condattr_t* c_attr = NULL; 
   rc = pthread_cond_init(&man->wait_cv, c_attr);
   assert(rc == 0);

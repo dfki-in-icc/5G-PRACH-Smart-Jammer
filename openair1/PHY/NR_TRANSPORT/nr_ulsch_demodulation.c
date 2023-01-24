@@ -939,7 +939,7 @@ void nr_ulsch_channel_level(int **ul_ch_estimates_ext,
 }
 
 
-
+ 
 //==============================================================================================
 // Pre-processing for LLR computation
 //==============================================================================================
@@ -947,6 +947,7 @@ void nr_ulsch_channel_compensation(int **rxdataF_ext,
                                    int **ul_ch_estimates_ext,
                                    int **ul_ch_mag,
                                    int **ul_ch_magb,
+                                   int **ul_ch_magc,
                                    int **rxdataF_comp,
                                    int ***rho,
                                    NR_DL_FRAME_PARMS *frame_parms,
@@ -1003,8 +1004,8 @@ void nr_ulsch_channel_compensation(int **rxdataF_ext,
 
 
   int aatx,aarx;
-  simde__m256i *ul_ch256,*ul_ch_mag256,*ul_ch_mag256b,*rxdataF256,*rxdataF_comp256;
-  simde__m256i mmtmpD0,mmtmpD1,mmtmpD2,mmtmpD3,QAM_amp256={0},QAM_amp256b={0};
+  simde__m256i *ul_ch256,*ul_ch_mag256,*ul_ch_mag256b,*ul_ch_mag256c,*rxdataF256,*rxdataF_comp256;
+  simde__m256i mmtmpD0,mmtmpD1,mmtmpD2,mmtmpD3,QAM_amp256={0},QAM_amp256b={0},QAM_amp256c={0};
   QAM_amp256b = simde_mm256_setzero_si256();
   for (aatx=0; aatx<nrOfLayers; aatx++) {
     if (mod_order == 4) {
@@ -1013,6 +1014,10 @@ void nr_ulsch_channel_compensation(int **rxdataF_ext,
     } else if (mod_order == 6) {
       QAM_amp256  = simde_mm256_set1_epi16(QAM64_n1); //
       QAM_amp256b = simde_mm256_set1_epi16(QAM64_n2);
+    } else if (mod_order == 8) {
+      QAM_amp256  = simde_mm256_set1_epi16(QAM256_n1); //
+      QAM_amp256b = simde_mm256_set1_epi16(QAM256_n2);
+      QAM_amp256c = simde_mm256_set1_epi16(QAM256_n3);
     }
 
 
@@ -1020,6 +1025,7 @@ void nr_ulsch_channel_compensation(int **rxdataF_ext,
       ul_ch256          = (simde__m256i *)&ul_ch_estimates_ext[aatx*frame_parms->nb_antennas_rx+aarx][symbol*(off+(nb_rb*12))];
       ul_ch_mag256      = (simde__m256i *)&ul_ch_mag[aatx*frame_parms->nb_antennas_rx+aarx][symbol*(off+(nb_rb*12))];
       ul_ch_mag256b     = (simde__m256i *)&ul_ch_magb[aatx*frame_parms->nb_antennas_rx+aarx][symbol*(off+(nb_rb*12))];
+      ul_ch_mag256c     = (simde__m256i *)&ul_ch_magc[aatx*frame_parms->nb_antennas_rx+aarx][symbol*(off+(nb_rb*12))];
       rxdataF256        = (simde__m256i *)&rxdataF_ext[aarx][symbol*(off+(nb_rb*12))];
       rxdataF_comp256   = (simde__m256i *)&rxdataF_comp[aatx*frame_parms->nb_antennas_rx+aarx][symbol*(off+(nb_rb*12))];
 
@@ -1090,6 +1096,32 @@ void nr_ulsch_channel_compensation(int **rxdataF_ext,
           ul_ch_mag256b[re8] = ul_ch_mag256[re8];
           ul_ch_mag256[re8]  = simde_mm256_mulhrs_epi16(ul_ch_mag256[re8],QAM_amp256);
           ul_ch_mag256b[re8] = simde_mm256_mulhrs_epi16(ul_ch_mag256b[re8],QAM_amp256b);
+          // multiply by conjugated channel
+          mmtmpD0 = simde_mm256_madd_epi16(ul_ch256[re8],rxdataF256[re8]);
+          // mmtmpD0 contains real part of 8 consecutive outputs (32-bit)
+          mmtmpD1 = simde_mm256_shuffle_epi8(ul_ch256[re8],complex_shuffle);
+          mmtmpD1 = simde_mm256_sign_epi16(mmtmpD1,conj);
+          mmtmpD1 = simde_mm256_madd_epi16(mmtmpD1,rxdataF256[re8]);
+          // mmtmpD1 contains imag part of 4 consecutive outputs (32-bit)
+          mmtmpD0 = simde_mm256_srai_epi32(mmtmpD0,output_shift);
+          mmtmpD1 = simde_mm256_srai_epi32(mmtmpD1,output_shift);
+          mmtmpD2 = simde_mm256_unpacklo_epi32(mmtmpD0,mmtmpD1);
+          mmtmpD3 = simde_mm256_unpackhi_epi32(mmtmpD0,mmtmpD1);
+          rxdataF_comp256[re8] = simde_mm256_packs_epi32(mmtmpD2,mmtmpD3);
+        }
+      }
+      else if (mod_order==8) {
+        for (int re8=0; re8<len8; re8++) {
+          mmtmpD0 = simde_mm256_madd_epi16(ul_ch256[re8],ul_ch256[re8]);
+          mmtmpD0 = simde_mm256_srai_epi32(mmtmpD0,output_shift);
+          mmtmpD0 = simde_mm256_packs_epi32(mmtmpD0,mmtmpD0);
+          // store channel magnitude here in a new field of ulsch
+          ul_ch_mag256[re8]  = simde_mm256_unpacklo_epi16(mmtmpD0,mmtmpD0);
+          ul_ch_mag256b[re8] = ul_ch_mag256[re8];
+          ul_ch_mag256c[re8] = ul_ch_mag256[re8];
+          ul_ch_mag256[re8]  = simde_mm256_mulhrs_epi16(ul_ch_mag256[re8],QAM_amp256);
+          ul_ch_mag256b[re8] = simde_mm256_mulhrs_epi16(ul_ch_mag256b[re8],QAM_amp256b);
+          ul_ch_mag256c[re8] = simde_mm256_mulhrs_epi16(ul_ch_mag256c[re8],QAM_amp256c);
           // multiply by conjugated channel
           mmtmpD0 = simde_mm256_madd_epi16(ul_ch256[re8],rxdataF256[re8]);
           // mmtmpD0 contains real part of 8 consecutive outputs (32-bit)
@@ -1316,7 +1348,6 @@ void nr_ulsch_channel_compensation(int **rxdataF_ext,
   simde_mm_empty();
   _m_empty();
 
-
 #ifdef DEBUG_CH_COMP
   for (int nl2=0; nl2<nrOfLayers; nl2++) {
     for (int aarx2=0; aarx2<frame_parms->nb_antennas_rx; aarx2++) {
@@ -1354,13 +1385,14 @@ void nr_ulsch_detection_mrc(NR_DL_FRAME_PARMS *frame_parms,
                 int32_t **rxdataF_comp,
                 int32_t **ul_ch_mag,
                 int32_t **ul_ch_magb,
+                int32_t **ul_ch_magc,
                 int32_t ***rho,                
                 uint8_t  nrOfLayers,
                 uint8_t symbol,
                 uint16_t nb_rb,
                 int length) {
   int n_rx = frame_parms->nb_antennas_rx;
-  simde__m256i *rxdataF_comp256[1+n_rx],*ul_ch_mag256[1+n_rx],*ul_ch_mag256b[1+n_rx];
+  simde__m256i *rxdataF_comp256[1+n_rx],*ul_ch_mag256[1+n_rx],*ul_ch_mag256b[1+n_rx],*ul_ch_mag256c[1+n_rx];
   int32_t i;
 
   int off = ((nb_rb&1) == 1)? 4:0;
@@ -1372,6 +1404,7 @@ void nr_ulsch_detection_mrc(NR_DL_FRAME_PARMS *frame_parms,
       rxdataF_comp256[aa]   = (simde__m256i *)&rxdataF_comp[aa][(symbol*(nb_re + off))];
       ul_ch_mag256[aa]      = (simde__m256i *)&ul_ch_mag[aa][(symbol*(nb_re + off))];
       ul_ch_mag256b[aa]     = (simde__m256i *)&ul_ch_magb[aa][(symbol*(nb_re + off))];
+      ul_ch_mag256c[aa]     = (simde__m256i *)&ul_ch_magc[aa][(symbol*(nb_re + off))];
     }
     for (int aa=1;aa<frame_parms->nb_antennas_rx;aa++) {      
       // MRC on each re of rb, both on MF output and magnitude (for 16QAM/64QAM llr computation)
@@ -1379,6 +1412,7 @@ void nr_ulsch_detection_mrc(NR_DL_FRAME_PARMS *frame_parms,
 	rxdataF_comp256[0][i] = simde_mm256_adds_epi16(rxdataF_comp256[0][i],rxdataF_comp256[aa][i]);
 	ul_ch_mag256[0][i]    = simde_mm256_adds_epi16(ul_ch_mag256[0][i], ul_ch_mag256[aa][i]);
 	ul_ch_mag256b[0][i]   = simde_mm256_adds_epi16(ul_ch_mag256b[0][i],ul_ch_mag256b[aa][i]);
+	ul_ch_mag256c[0][i]   = simde_mm256_adds_epi16(ul_ch_mag256c[0][i],ul_ch_mag256c[aa][i]);
       }
 
     }
@@ -1486,20 +1520,24 @@ void inner_rx_256qam(int *rxF, int *ul_ch, int16_t *llr, int aarx, int length,in
         xmmtmpD9 = simde_mm256_abs_epi16(xmmtmpD7);
         xmmtmpD9 = simde_mm256_subs_epi16(xmmtmpD8,xmmtmpD9); // contains 16 LLRs
 
-        // xmmtmpD0 A0 A1 A2 A3 A4 A5 A6 A7
+        // xmmtmpD4 A0 A1 A2 A3 A4 A5 A6 A7
 	// xmmtmpD2 B0 B1 B2 B3 B4 B5 B6 B7
 	// xmmtmpD7 C0 C1 C2 C3 C4 C5 C6 C7
 	// xmmtmpD9 D0 D1 D2 D3 D4 D5 D6 D7	
-        xmmtmpD1 = simde_mm256_unpacklo_epi32(xmmtmpD0,xmmtmpD2); // A0 B0 A1 B1 A2 B2 A3 B3
-        xmmtmpD3 = simde_mm256_unpackhi_epi32(xmmtmpD0,xmmtmpD2); // A4 B4 A5 B5 A6 B6 A7 B7
-        xmmtmpD5 = simde_mm256_unpacklo_epi32(xmmtmpD7,xmmtmpD9); // C0 D0 C1 D1 C2 D2 C3 D3
-        xmmtmpD6 = simde_mm256_unpackhi_epi32(xmmtmpD7,xmmtmpD9); // C4 D4 C5 D5 C6 D6 C7 D7
+        xmmtmpD1 = simde_mm256_unpacklo_epi32(xmmtmpD4,xmmtmpD2); // A0 B0 A1 B1 A4 B4 A5 B5
+        xmmtmpD3 = simde_mm256_unpackhi_epi32(xmmtmpD4,xmmtmpD2); // A2 B2 A3 B3 A6 B6 A7 B7
+        xmmtmpD5 = simde_mm256_unpacklo_epi32(xmmtmpD7,xmmtmpD9); // C0 D0 C1 D1 C4 D4 C5 D5
+        xmmtmpD6 = simde_mm256_unpackhi_epi32(xmmtmpD7,xmmtmpD9); // C2 D2 C3 D3 C6 D6 C7 D7
 
-        *llr256++ = simde_mm256_unpacklo_epi64(xmmtmpD1,xmmtmpD5); // A0 B0 C0 D0 A1 B1 C1 D2
-        *llr256++ = simde_mm256_unpackhi_epi64(xmmtmpD1,xmmtmpD5); // A2 B2 C2 D2 A3 B3 C3 D3
-	*llr256++ = simde_mm256_unpacklo_epi64(xmmtmpD3,xmmtmpD6); // A4 B4 C4 D5 A5 B5 C5 D5
-	*llr256++ = simde_mm256_unpackhi_epi64(xmmtmpD3,xmmtmpD6); // A6 B6 C6 D6 A7 B7 C7 D7
-
+        xmmtmpD2 = simde_mm256_unpacklo_epi64(xmmtmpD1,xmmtmpD5); // A0 B0 C0 D0 A4 B4 C4 D4
+        xmmtmpD4 = simde_mm256_unpackhi_epi64(xmmtmpD1,xmmtmpD5); // A1 B1 C1 D1 A5 B5 C5 D5
+        xmmtmpD1 = simde_mm256_unpacklo_epi64(xmmtmpD3,xmmtmpD6); // A2 B2 C2 D2 A6 B6 C6 D6
+        xmmtmpD5 = simde_mm256_unpackhi_epi64(xmmtmpD3,xmmtmpD6); // A3 B3 C3 D3 A7 B7 C7 D7
+	llr256[0] = simde_mm256_permute2x128_si256(xmmtmpD2, xmmtmpD4, 0x20); // A0 B0 C0 D0 A1 B1 C1 D1
+	llr256[1] = simde_mm256_permute2x128_si256(xmmtmpD1, xmmtmpD5, 0x20); // A2 B2 C2 D2 A3 B3 C3 D3
+	llr256[2] = simde_mm256_permute2x128_si256(xmmtmpD2, xmmtmpD4, 0x31); // A4 B4 C4 D4 A5 B5 C5 D5
+	llr256[3] = simde_mm256_permute2x128_si256(xmmtmpD1, xmmtmpD5, 0x31); // A6 B6 C6 D6 A7 B7 C7 D7
+        llr256+=4;
      }
    } else {
      simde__m256i *llr256 = (simde__m256i *)llr;   
@@ -1532,19 +1570,24 @@ void inner_rx_256qam(int *rxF, int *ul_ch, int16_t *llr, int aarx, int length,in
         xmmtmpD9 = simde_mm256_abs_epi16(xmmtmpD7);
         xmmtmpD9 = simde_mm256_subs_epi16(xmmtmpD8,xmmtmpD9);
  
-        // xmmtmpD0 A0 A1 A2 A3 A4 A5 A6 A7
+        // xmmtmpD4 A0 A1 A2 A3 A4 A5 A6 A7
 	// xmmtmpD2 B0 B1 B2 B3 B4 B5 B6 B7
 	// xmmtmpD7 C0 C1 C2 C3 C4 C5 C6 C7
 	// xmmtmpD9 D0 D1 D2 D3 D4 D5 D6 D7	
-        xmmtmpD1 = simde_mm256_unpacklo_epi32(xmmtmpD0,xmmtmpD2); // A0 B0 A1 B1 A2 B2 A3 B3
-        xmmtmpD3 = simde_mm256_unpackhi_epi32(xmmtmpD0,xmmtmpD2); // A4 B4 A5 B5 A6 B6 A7 B7
-        xmmtmpD5 = simde_mm256_unpacklo_epi32(xmmtmpD7,xmmtmpD9); // C0 D0 C1 D1 C2 D2 C3 D3
-        xmmtmpD6 = simde_mm256_unpackhi_epi32(xmmtmpD7,xmmtmpD9); // C4 D4 C5 D5 C6 D6 C7 D7
+        xmmtmpD1 = simde_mm256_unpacklo_epi32(xmmtmpD4,xmmtmpD2); // A0 B0 A1 B1 A4 B4 A5 B5
+        xmmtmpD3 = simde_mm256_unpackhi_epi32(xmmtmpD4,xmmtmpD2); // A2 B2 A3 B3 A6 B6 A7 B7
+        xmmtmpD5 = simde_mm256_unpacklo_epi32(xmmtmpD7,xmmtmpD9); // C0 D0 C1 D1 C4 D4 C5 D5
+        xmmtmpD6 = simde_mm256_unpackhi_epi32(xmmtmpD7,xmmtmpD9); // C2 D2 C3 D3 C6 D6 C7 D7
 
-        *llr256++ = simde_mm256_adds_epi16(*llr256,simde_mm256_unpacklo_epi64(xmmtmpD1,xmmtmpD5)); // A0 B0 C0 D0 A1 B1 C1 D2
-        *llr256++ = simde_mm256_adds_epi16(*llr256,simde_mm256_unpackhi_epi64(xmmtmpD1,xmmtmpD5)); // A2 B2 C2 D2 A3 B3 C3 D3
-	*llr256++ = simde_mm256_adds_epi16(*llr256,simde_mm256_unpacklo_epi64(xmmtmpD3,xmmtmpD6)); // A4 B4 C4 D5 A5 B5 C5 D5
-	*llr256++ = simde_mm256_adds_epi16(*llr256,simde_mm256_unpackhi_epi64(xmmtmpD3,xmmtmpD6)); // A6 B6 C6 D6 A7 B7 C7 D7
+        xmmtmpD2 = simde_mm256_unpacklo_epi64(xmmtmpD1,xmmtmpD5); // A0 B0 C0 D0 A4 B4 C4 D4
+        xmmtmpD4 = simde_mm256_unpackhi_epi64(xmmtmpD1,xmmtmpD5); // A1 B1 C1 D1 A5 B5 C5 D5
+        xmmtmpD1 = simde_mm256_unpacklo_epi64(xmmtmpD3,xmmtmpD6); // A2 B2 C2 D2 A6 B6 C6 D6
+        xmmtmpD5 = simde_mm256_unpackhi_epi64(xmmtmpD3,xmmtmpD6); // A3 B3 C3 D3 A7 B7 C7 D7
+	llr256[0] = simde_mm256_adds_epi16(llr256[0],simde_mm256_permute2x128_si256(xmmtmpD2, xmmtmpD4, 0x20)); // A0 B0 C0 D0 A1 B1 C1 D1
+	llr256[1] = simde_mm256_adds_epi16(llr256[1],simde_mm256_permute2x128_si256(xmmtmpD1, xmmtmpD5, 0x20)); // A2 B2 C2 D2 A3 B3 C3 D3
+	llr256[2] = simde_mm256_adds_epi16(llr256[2],simde_mm256_permute2x128_si256(xmmtmpD2, xmmtmpD4, 0x31)); // A4 B4 C4 D4 A5 B5 C5 D5
+	llr256[3] = simde_mm256_adds_epi16(llr256[3],simde_mm256_permute2x128_si256(xmmtmpD1, xmmtmpD5, 0x31)); // A6 B6 C6 D6 A7 B7 C7 D7
+        llr256+=4;
      }
    }  
 }
@@ -2760,7 +2803,6 @@ int nr_rx_pusch(PHY_VARS_gNB *gNB,
      uint8_t dmrs_symbol_flag = (rel15_ul->ul_dmrs_symb_pos >> symbol) & 0x01;
      LOG_D(PHY, "symbol %d, dmrs_symbol_flag :%d\n", symbol, dmrs_symbol_flag);
      if (dmrs_symbol_flag == 1) {
-       assert(0!=0 && "Here we are");
        if (gNB->pusch_vars[ulsch_id]->dmrs_symbol == INVALID_VALUE)
          gNB->pusch_vars[ulsch_id]->dmrs_symbol = symbol;
 
@@ -2777,7 +2819,6 @@ int nr_rx_pusch(PHY_VARS_gNB *gNB,
 
        nr_gnb_measurements(gNB, ulsch_id, harq_pid, symbol,rel15_ul->nrOfLayers);
       
-       printf(" frame_parms->nb_antennas_rx; %d \n ", frame_parms->nb_antennas_rx);
 
        for (aarx = 0; aarx < frame_parms->nb_antennas_rx; aarx++) {
          if (symbol == rel15_ul->start_symbol_index) {
@@ -2883,6 +2924,7 @@ int nr_rx_pusch(PHY_VARS_gNB *gNB,
 				     gNB->pusch_vars[ulsch_id]->ul_ch_estimates_ext,
 				     gNB->pusch_vars[ulsch_id]->ul_ch_mag0,
 				     gNB->pusch_vars[ulsch_id]->ul_ch_magb0,
+				     gNB->pusch_vars[ulsch_id]->ul_ch_magc0,
 				     gNB->pusch_vars[ulsch_id]->rxdataF_comp,
 				     (rel15_ul->nrOfLayers>1) ? gNB->pusch_vars[ulsch_id]->rho : NULL,
 				     frame_parms,
@@ -2901,6 +2943,7 @@ int nr_rx_pusch(PHY_VARS_gNB *gNB,
 			      gNB->pusch_vars[ulsch_id]->rxdataF_comp,
 			      gNB->pusch_vars[ulsch_id]->ul_ch_mag0,
 			      gNB->pusch_vars[ulsch_id]->ul_ch_magb0,
+			      gNB->pusch_vars[ulsch_id]->ul_ch_magc0,
 			      (rel15_ul->nrOfLayers>1) ? gNB->pusch_vars[ulsch_id]->rho : NULL,
 			      rel15_ul->nrOfLayers,
 			      symbol,
@@ -2956,6 +2999,7 @@ int nr_rx_pusch(PHY_VARS_gNB *gNB,
 	 nr_ulsch_compute_llr(&gNB->pusch_vars[ulsch_id]->rxdataF_comp[aatx*frame_parms->nb_antennas_rx][symbol * (off + rel15_ul->rb_size * NR_NB_SC_PER_RB)],
 			      gNB->pusch_vars[ulsch_id]->ul_ch_mag0[aatx*frame_parms->nb_antennas_rx],
 			      gNB->pusch_vars[ulsch_id]->ul_ch_magb0[aatx*frame_parms->nb_antennas_rx],
+			      gNB->pusch_vars[ulsch_id]->ul_ch_magc0[aatx*frame_parms->nb_antennas_rx],
 			      &gNB->pusch_vars[ulsch_id]->llr_layers[aatx][rxdataF_ext_offset * rel15_ul->qam_mod_order],
 			      rel15_ul->rb_size,
 			      gNB->pusch_vars[ulsch_id]->ul_valid_re_per_slot[symbol],

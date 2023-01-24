@@ -1,7 +1,7 @@
 #ifndef TASK_MANAGER_WORKING_STEALING_H
 #define TASK_MANAGER_WORKING_STEALING_H 
 
-#define TASK_MANAGER
+//#define TASK_MANAGER
 //#define FIBONACCI
 //#define OMP_TP 1
 
@@ -26,7 +26,6 @@ typedef struct {
   pthread_cond_t wait_cv; 
   pthread_mutex_t wait_mtx;
 
-//  spinlock_t spin;
   _Atomic int waiting; // 1 cv, 2 spin
                        //
   //_Atomic bool waiting;
