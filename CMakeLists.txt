@@ -593,7 +593,7 @@ set(HWLIB_AW2SORI_SOURCE
   ${OPENAIR_DIR}/radio/AW2SORI/oaiori.c
   )
 add_library(aw2sori_transpro MODULE ${HWLIB_AW2SORI_SOURCE})
-target_compile_options(aw2sori_transpro PRIVATE -shared -fPIC -msse4 -g -ggdb -DLITE_COMPILATION)
+target_compile_options(aw2sori_transpro PRIVATE -shared -fPIC -march=native -g -ggdb -DLITE_COMPILATION)
 target_link_libraries(aw2sori_transpro libori.so)
 
 include_directories("${OPENAIR_DIR}/radio/IRIS/USERSPACE/LIB/")
@@ -2427,7 +2427,6 @@ add_executable(nr-softmodem
    ${OPENAIR_DIR}/common/utils/thread_pool/task_manager.c
   ${OPENAIR_DIR}/common/utils/thread_pool/notification_queue.c
   ${OPENAIR_DIR}/common/utils/thread_pool/seq_ring_task.c
-  ${OPENAIR_DIR}/common/utils/thread_pool/spinlock.c
 
 
 
@@ -2599,7 +2598,6 @@ add_executable(nr_dlschsim
   ${OPENAIR_DIR}/common/utils/thread_pool/task_manager.c
   ${OPENAIR_DIR}/common/utils/thread_pool/notification_queue.c
   ${OPENAIR_DIR}/common/utils/thread_pool/seq_ring_task.c
-  ${OPENAIR_DIR}/common/utils/thread_pool/spinlock.c
 
 
 
@@ -2620,7 +2618,6 @@ add_executable(nr_pbchsim
   ${OPENAIR_DIR}/common/utils/thread_pool/task_manager.c
   ${OPENAIR_DIR}/common/utils/thread_pool/notification_queue.c
   ${OPENAIR_DIR}/common/utils/thread_pool/seq_ring_task.c
-  ${OPENAIR_DIR}/common/utils/thread_pool/spinlock.c
 
   ${T_SOURCE}
   ${SHLIB_LOADER_SOURCES}
@@ -2638,7 +2635,6 @@ add_executable(nr_pucchsim
   ${OPENAIR_DIR}/common/utils/thread_pool/task_manager.c
   ${OPENAIR_DIR}/common/utils/thread_pool/notification_queue.c
   ${OPENAIR_DIR}/common/utils/thread_pool/seq_ring_task.c
-  ${OPENAIR_DIR}/common/utils/thread_pool/spinlock.c
 
   ${OPENAIR1_DIR}/SIMULATION/NR_PHY/pucchsim.c
   ${OPENAIR_DIR}/common/utils/nr/nr_common.c
@@ -2657,7 +2653,6 @@ add_executable(nr_dlsim
   ${OPENAIR_DIR}/common/utils/thread_pool/task_manager.c
   ${OPENAIR_DIR}/common/utils/thread_pool/notification_queue.c
   ${OPENAIR_DIR}/common/utils/thread_pool/seq_ring_task.c
-  ${OPENAIR_DIR}/common/utils/thread_pool/spinlock.c
 
 
   ${OPENAIR1_DIR}/SIMULATION/NR_PHY/dlsim.c
@@ -2683,7 +2678,6 @@ add_executable(nr_prachsim
   ${OPENAIR_DIR}/common/utils/thread_pool/task_manager.c
   ${OPENAIR_DIR}/common/utils/thread_pool/notification_queue.c
   ${OPENAIR_DIR}/common/utils/thread_pool/seq_ring_task.c
-  ${OPENAIR_DIR}/common/utils/thread_pool/spinlock.c
 
 
   ${OPENAIR1_DIR}/SIMULATION/NR_PHY/prachsim.c
@@ -2708,7 +2702,6 @@ add_executable(nr_ulschsim
   ${OPENAIR_DIR}/common/utils/thread_pool/task_manager.c
   ${OPENAIR_DIR}/common/utils/thread_pool/notification_queue.c
   ${OPENAIR_DIR}/common/utils/thread_pool/seq_ring_task.c
-  ${OPENAIR_DIR}/common/utils/thread_pool/spinlock.c
 
 
   ${OPENAIR_DIR}/executables/softmodem-common.c
@@ -2730,7 +2723,6 @@ add_executable(nr_ulsim
   ${OPENAIR_DIR}/common/utils/thread_pool/task_manager.c
   ${OPENAIR_DIR}/common/utils/thread_pool/notification_queue.c
   ${OPENAIR_DIR}/common/utils/thread_pool/seq_ring_task.c
-  ${OPENAIR_DIR}/common/utils/thread_pool/spinlock.c
 
 
   ${OPENAIR2_DIR}/RRC/NAS/nas_config.c

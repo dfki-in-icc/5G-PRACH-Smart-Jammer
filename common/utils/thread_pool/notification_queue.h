@@ -3,7 +3,6 @@
 
 #include "task.h"
 #include "seq_ring_task.h"
-#include "spinlock.h"
 
 #include <pthread.h>
 #include <stdbool.h>
@@ -14,7 +13,6 @@ typedef struct {
   seq_ring_task_t r;
   int done;
 
-  spinlock_t sl;
   _Atomic bool spin;
 } not_q_t;
 

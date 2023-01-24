@@ -356,12 +356,7 @@ int main(int argc, char *argv[])
   /* initialize the sin-cos table */
   InitSinLUT();
 
-<<<<<<< HEAD
-  int ct_ind=0;
-  while ((c = getopt(argc, argv, "a:b:c:d:ef:g:h:i:kl:m:n:op:q:r:s:t:u:v:w:y:z:C:F:G:H:I:M:N:PR:S:T:U:L:ZW:")) != -1) {
-=======
   while ((c = getopt(argc, argv, "a:b:c:d:ef:g:h:i:kl:m:n:op:q:r:s:t:u:v:w:y:z:C:F:G:H:I:M:N:PR:S:T:U:L:ZW:E:")) != -1) {
->>>>>>> origin/new-aarch64-build
     printf("handling optarg %c\n",c);
     switch (c) {
 
@@ -448,16 +443,11 @@ int main(int argc, char *argv[])
       break;
       
     case 'i':
-<<<<<<< HEAD
-      printf("chest optarg %d\n",atoi(optarg));
-      chest_type[ct_ind++] = atoi(optarg);
-=======
       i=0;
       do {
         chest_type[i>>1] = atoi(&optarg[i]);
         i+=2;
       } while (optarg[i-1] == ',');
->>>>>>> origin/new-aarch64-build
       break;
 	
     case 'k':
@@ -712,26 +702,6 @@ int main(int argc, char *argv[])
                         &tx_bandwidth,
                         &rx_bandwidth);
 
-<<<<<<< HEAD
-  LOG_I( PHY,"++++++++++++++++++++++++++++++++++++++++++++++%i+++++++++++++++++++++++++++++++++++++++++",loglvl);  
-
-  mlockall(MCL_CURRENT | MCL_FUTURE);
-
-  UE2gNB = new_channel_desc_scm(n_tx, n_rx, channel_model,
-                                sampling_frequency/1e6,
-                                tx_bandwidth,
-				DS_TDL,
-                                0, 0, 0, 0);
-
-  if (UE2gNB == NULL) {
-    printf("Problem generating channel model. Exiting.\n");
-    exit(-1);
-  }
-
-  UE2gNB->max_Doppler = maxDoppler;
-
-=======
->>>>>>> origin/new-aarch64-build
   RC.gNB = (PHY_VARS_gNB **) malloc(sizeof(PHY_VARS_gNB *));
   RC.gNB[0] = calloc(1,sizeof(PHY_VARS_gNB));
   gNB = RC.gNB[0];
@@ -832,13 +802,8 @@ int main(int argc, char *argv[])
   gNB->ldpc_offload_flag = ldpc_offload_flag;
   gNB->chest_freq = chest_type[0];
   gNB->chest_time = chest_type[1];
-<<<<<<< HEAD
-  printf("Setting chest to (%d,%d)\n",gNB->chest_freq,gNB->chest_time);
-  phy_init_nr_gNB(gNB,0,1);
-=======
 
   phy_init_nr_gNB(gNB);
->>>>>>> origin/new-aarch64-build
   /* RU handles rxdataF, and gNB just has a pointer. Here, we don't have an RU,
    * so we need to allocate that memory as well. */
   for (i = 0; i < n_rx; i++)
@@ -1648,30 +1613,31 @@ int main(int argc, char *argv[])
         test_input_bit[i] = (UE->ul_harq_processes[harq_pid].b[i / 8] & (1 << (i & 7))) >> (i & 7);
       
         if (estimated_output_bit[i] != test_input_bit[i]) {
-          /*if(errors_decoding == 0)
-              printf("\x1B[34m""[frame %d][trial %d]\t1st bit in error in decoding     = %d\n" "\x1B[0m", frame, trial, i);*/
-          errors_decoding++;
+/*	if(errors_decoding == 0)
+	  printf("\x1B[34m""[frame %d][trial %d]\t1st bit in error in decoding     = %d\n" "\x1B[0m", frame, trial, i);*/
+	  errors_decoding++;
         }
       }
-      if (n_trials == 1) {
-        for (int r = 0; r < UE->ul_harq_processes[harq_pid].C; r++)
-          for (int i = 0; i < UE->ul_harq_processes[harq_pid].K >> 3; i++) {
-            if ((UE->ul_harq_processes[harq_pid].c[r][i] ^ ulsch_gNB->harq_processes[harq_pid]->c[r][i]) != 0)
-              printf("************");
-            /*printf("r %d: in[%d] %x, out[%d] %x (%x)\n",r,
-              i,UE->ul_harq_processes[harq_pid].c[r][i],
-              i,ulsch_gNB->harq_processes[harq_pid]->c[r][i],
-              UE->ul_harq_processes[harq_pid].c[r][i]^ulsch_gNB->harq_processes[harq_pid]->c[r][i]);*/
-          }
-      }
+    /*
+    if (n_trials == 1) {
+      for (int r=0;r<ulsch_ue->harq_processes[harq_pid]->C;r++)
+	for (int i=0;i<ulsch_ue->harq_processes[harq_pid]->K>>3;i++) {
+	  if ((ulsch_ue->harq_processes[harq_pid]->c[r][i]^ulsch_gNB->harq_processes[harq_pid]->c[r][i]) != 0) //printf("************");
+	    printf("r %d: in[%d] %x, out[%d] %x (%x)\n",r,
+	    i,ulsch_ue->harq_processes[harq_pid]->c[r][i],
+	    i,ulsch_gNB->harq_processes[harq_pid]->c[r][i],
+	    ulsch_ue->harq_processes[harq_pid]->c[r][i]^ulsch_gNB->harq_processes[harq_pid]->c[r][i]);
+	}
+    }*/
       if (errors_decoding > 0 && error_flag == 0) {
         n_false_positive++;
         if (n_trials==1)
-	  printf("\x1B[31m""[frame %d][trial %d]\tnumber of errors in decoding     = %u\n" "\x1B[0m", frame, trial, errors_decoding);
+    	  printf("\x1B[31m""[frame %d][trial %d]\tnumber of errors in decoding     = %u\n" "\x1B[0m", frame, trial, errors_decoding);
       } 
       roundStats += ((float)round);
       if (!crc_status)
         effRate += ((double)TBS) / (double)round;
+
     } // trial loop
 
     roundStats/=((float)n_trials);

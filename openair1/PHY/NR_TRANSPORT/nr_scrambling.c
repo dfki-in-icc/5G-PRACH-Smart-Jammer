@@ -71,7 +71,7 @@ void nr_codeword_unscrambling_init(int16_t *s2, uint32_t size, uint8_t q, uint32
 
   uint8_t *s8=(uint8_t *)&s;
   s = lte_gold_generic(&x1, &x2, 1);
-  __m128i *s128=(__m128i *)s2;
+  simde__m128i *s128=(simde__m128i *)s2;
 
   for (int i = 0, j = 0; i < ((size >> 5) + ((size & 0x1f) > 0 ? 1 : 0)); i++, j += 4) {
     s128[j]   = byte2m128i[s8[0]];
