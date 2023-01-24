@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <stdatomic.h>
 #include <string.h>
 
 void init_not_q(not_q_t* q)
@@ -130,14 +131,19 @@ label:
     int rc = pthread_mutex_unlock(&q->mtx);
     assert(rc == 0);
 
-    lock_spinlock(&q->sl);
+   // Wait for lock to be released without generating cache misses
+    while (atomic_load_explicit(&q->spin, memory_order_relaxed)){
+      // Issue X86 PAUSE or ARM YIELD instruction to reduce contention between
+      // hyper-threads
+      pause_or_yield();
+    }
 
     rc = pthread_mutex_lock(&q->mtx);
     assert(rc == 0);
-
-    if(size_seq_ring_task(&q->r) == 0)
-      goto label;
   }
+
+  if(size_seq_ring_task(&q->r) == 0)
+    goto label;
 
   out->t = pop_seq_ring_task(&q->r);
 
@@ -167,7 +173,9 @@ void wake_spin_not_q(not_q_t* q)
 {
   assert(q != NULL);
 
-  q->spin = true;
+  // spin until acquired i.e., q->spin == true
+  while(atomic_exchange_explicit(&q->spin, true, memory_order_acquire)); 
+
   pthread_cond_signal(&q->cv);
 }
 
@@ -175,7 +183,6 @@ void stop_spin_not_q(not_q_t* q)
 {
   assert(q != NULL);
 
-  q->spin = false;
-  unlock_spinlock(&q->sl);
+  atomic_store_explicit(&q->spin, false, memory_order_release);
 }
 

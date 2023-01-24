@@ -254,6 +254,12 @@ void nr_processULSegment(void* arg)
   //printf("id %lu starting %ld \n", pthread_self(), start_time );
 
   ldpcDecode_t *rdata = (ldpcDecode_t*) arg;
+
+#ifdef TASK_MANAGER
+  if(*rdata->cancel_decoding == 1)
+    return;
+#endif
+
   PHY_VARS_gNB *phy_vars_gNB = rdata->gNB;
   NR_UL_gNB_HARQ_t *ulsch_harq = rdata->ulsch_harq;
   t_nrLDPC_dec_params *p_decoderParms = &rdata->decoderParms;
@@ -415,10 +421,10 @@ void nr_processULSegment(void* arg)
   }
 
 #ifdef TASK_MANAGER
-  if( phy_vars_gNB->ldpc_offload_flag)
+//  if( phy_vars_gNB->ldpc_offload_flag)
     nr_postDecode(rdata->gNB, rdata);
 #elif OMP_TP 
-  if( phy_vars_gNB->ldpc_offload_flag)
+//  if( phy_vars_gNB->ldpc_offload_flag)
     nr_postDecode(rdata->gNB, rdata);
 #endif
 
@@ -788,6 +794,7 @@ uint32_t nr_ulsch_decoding(PHY_VARS_gNB *phy_vars_gNB,
 #ifdef TASK_MANAGER
   ldpcDecode_t* arr = calloc(harq_process->C, sizeof(ldpcDecode_t)); 
   int idx_arr = 0;
+  _Atomic int cancel_decoding = 0;
 #elif OMP_TP 
   ldpcDecode_t* arr = calloc(harq_process->C, sizeof(ldpcDecode_t)); 
   int idx_arr = 0;
@@ -799,12 +806,14 @@ uint32_t nr_ulsch_decoding(PHY_VARS_gNB *phy_vars_gNB,
 
 #endif
 
+
   for (r=0; r<harq_process->C; r++) {
 
     E = nr_get_E(G, harq_process->C, Qm, n_layers, r);
 #ifdef TASK_MANAGER
     ldpcDecode_t* rdata = &arr[idx_arr]; 
     ++idx_arr; 
+    rdata->cancel_decoding = &cancel_decoding;
 #elif OMP_TP 
     ldpcDecode_t* rdata = &arr[idx_arr]; 
     ++idx_arr; 

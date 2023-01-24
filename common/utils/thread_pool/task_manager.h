@@ -7,8 +7,6 @@
 
 #include "task.h"
 #include "notification_queue.h"
-#include "spinlock.h"
-
 
 #include <pthread.h>
 #include <stdatomic.h>
@@ -27,9 +25,9 @@ typedef struct {
 
   pthread_cond_t wait_cv; 
   pthread_mutex_t wait_mtx;
-  spinlock_t spin;
 
   _Atomic int waiting; // 1 cv, 2 spin
+                       //
   //_Atomic bool waiting;
 } task_manager_t;
 

@@ -41,8 +41,14 @@ void* worker_thread(void* arg)
 
     atomic_fetch_sub(&man->num_task, 1); 
 
-    if(man->num_task == 0 && man->waiting != 0){
-      man->waiting == 1 ? pthread_cond_signal(&man->wait_cv) : unlock_spinlock(&man->spin);
+    if(man->num_task < 1 && man->waiting != 0){
+
+        pthread_mutex_lock(&man->wait_mtx);
+       
+        man->waiting = 0;
+        pthread_cond_signal(&man->wait_cv); 
+        
+        pthread_mutex_unlock(&man->wait_mtx);
     }
 
   }
@@ -79,8 +85,6 @@ void init_task_manager(task_manager_t* man, uint32_t num_threads)
   pthread_condattr_t* c_attr = NULL; 
   rc = pthread_cond_init(&man->wait_cv, c_attr);
   assert(rc == 0);
-
-
 
   man->t_arr = calloc(num_threads, sizeof(pthread_t));
   assert(man->t_arr != NULL && "Memory exhausted" );
@@ -148,10 +152,9 @@ void wait_all_task_manager(task_manager_t* man)
   pthread_mutex_lock(&man->wait_mtx);
   man->waiting = 1;
 
-  while(man->num_task > 0) 
+  while(man->num_task > 0 && man->waiting != 0) 
     pthread_cond_wait(&man->wait_cv, &man->wait_mtx);
 
-  man->waiting = 0;
   pthread_mutex_unlock(&man->wait_mtx);
 }
 
@@ -159,9 +162,12 @@ void wait_all_spin_task_manager(task_manager_t* man)
 {
   assert(man != NULL);
 
-  man->waiting = 2;
-  lock_spinlock(&man->spin);
-  man->waiting = 0;
+  // Wait without generating cache misses
+  while (atomic_load_explicit(&man->num_task, memory_order_relaxed)){
+    // Issue X86 PAUSE or ARM YIELD instruction to reduce contention between
+    // hyper-threads
+    pause_or_yield();
+  }
 }
 
 void wake_and_spin_task_manager(task_manager_t* man)
