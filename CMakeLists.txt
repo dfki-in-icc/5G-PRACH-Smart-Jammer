@@ -355,7 +355,7 @@ target_link_libraries(ITTI PRIVATE asn1_nr_rrc asn1_lte_rrc)
 # asn1c skeletons have hardcoded this flag to make customized debug logs
 # OAI uses this feature to re-use OAI LOG_I(ASN, ...)
 if (DEBUG_ASN1C)
-  add_definitions(-DHAVE_CONFIG_H)
+  add_definitions(-DDEBUG_ASN1C=1)
 endif()
 
 ##################################################

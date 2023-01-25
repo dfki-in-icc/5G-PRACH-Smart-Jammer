@@ -8,7 +8,6 @@
 #include "openair2/F1AP/f1ap_common.h"
 #include "openair2/GNB_APP/gnb_config.h"
 
-unsigned char NB_eNB_INST = 1;
 RAN_CONTEXT_t RC;
 THREAD_STRUCT thread_struct;
 uint64_t downlink_frequency[MAX_NUM_CCs][4];
@@ -108,7 +107,11 @@ f1ap_cudu_inst_t *getCxt(F1_t isCU, instance_t instanceP)
   return NULL;
 }
 
-void fill_DRB_configList(const protocol_ctxt_t *const ctxt_pP, rrc_gNB_ue_context_t *ue_context_pP)
+void fill_DRB_configList(const protocol_ctxt_t *const ctxt_pP, rrc_gNB_ue_context_t *ue_context_pP, NR_DRB_ToAddModList_t *DRB_configList)
+{
+  abort();
+}
+void fill_SRB_configList(const protocol_ctxt_t *const ctxt_pP, rrc_gNB_ue_context_t *ue_context_pP, NR_SRB_ToAddModList_t *SRB_configList)
 {
   abort();
 }

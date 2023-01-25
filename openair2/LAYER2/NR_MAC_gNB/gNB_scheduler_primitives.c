@@ -3058,11 +3058,18 @@ void nr_mac_update_timers(module_id_t module_id,
         reset_srs_stats(UE);
 
         NR_CellGroupConfig_t *cg = NULL;
-        uper_decode(NULL,
-                    &asn_DEF_NR_CellGroupConfig,   //might be added prefix later
-                    (void **)&cg,
-                    (uint8_t *)UE->cg_buf,
-                    (UE->enc_rval.encoded+7)/8, 0, 0);
+        asn_codec_ctx_t st = {.max_stack_size = 100 * 1000};
+        asn_dec_rval_t dec_ret = uper_decode(&st,
+                                             &asn_DEF_NR_CellGroupConfig, // might be added prefix later
+                                             (void **)&cg,
+                                             (uint8_t *)UE->cg_buf,
+                                             (UE->enc_rval.encoded + 7) / 8,
+                                             0,
+                                             0);
+        if (dec_ret.code != RC_OK) {
+          LOG_E(PHY, "Failed to decode asn_DEF_NR_CellGroupConfig \n");
+          return;
+        }
         UE->CellGroup = cg;
 
         if (LOG_DEBUGFLAG(DEBUG_ASN1)) {

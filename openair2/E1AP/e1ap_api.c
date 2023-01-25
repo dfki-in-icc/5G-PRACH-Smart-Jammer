@@ -90,10 +90,8 @@ static void fill_DRB_configList_e1(NR_DRB_ToAddModList_t *DRB_configList, pdu_se
   }
 }
 
-static int drb_config_N3gtpu_create(e1ap_bearer_setup_req_t * const req,
-                                    gtpv1u_gnb_create_tunnel_resp_t *create_tunnel_resp,
-                                    instance_t instance) {
-
+static int drb_config_N3_create(e1ap_bearer_setup_req_t *const req, gtpv1u_gnb_create_tunnel_resp_t *create_tunnel_resp, instance_t instance)
+{
   gtpv1u_gnb_create_tunnel_req_t create_tunnel_req={0};
 
   NR_DRB_ToAddModList_t DRB_configList = {0};
@@ -145,7 +143,7 @@ void process_e1_bearer_context_setup_req(instance_t instance, e1ap_bearer_setup_
   gtpv1u_gnb_create_tunnel_resp_t create_tunnel_resp_N3={0};
 
   // GTP tunnel for UL
-  drb_config_N3gtpu_create(req, &create_tunnel_resp_N3, inst->gtpInstN3);
+  drb_config_N3_create(req, &create_tunnel_resp_N3, inst->gtpInstN3);
 
   MessageDef *msg = itti_alloc_new_message(TASK_CUCP_E1, 0, E1AP_BEARER_CONTEXT_SETUP_RESP);
   e1ap_bearer_setup_resp_t *resp = &E1AP_BEARER_CONTEXT_SETUP_RESP(msg);

@@ -45,36 +45,6 @@
 #define SHORT_BSR 29
 /*!\brief LCID of long BSR for ULSCH */
 #define LONG_BSR 30
-/*! \brief Values of CCCH LCID for DLSCH */ 
-#define CCCH_LCHANID 0
-/*!\brief Values of BCCH logical channel */
-#define BCCH 3  // SI 
-/*!\brief Values of PCCH logical channel */
-#define PCCH 4  // Paging 
-/*!\brief Value of CCCH / SRB0 logical channel */
-#define CCCH 0  // srb0
-/*!\brief DCCH / SRB1 logical channel */
-#define DCCH 1  // srb1
-/*!\brief DCCH1 / SRB2  logical channel */
-#define DCCH1 2 // srb2
-/*!\brief DTCH DRB1  logical channel */
-#define DTCH 3 // LCID
-/*!\brief MCCH logical channel */
-//#define MCCH 4 
-//#define MCCH 62
-#define MCCH 11
-/*!\brief MTCH logical channel */
-#define MTCH 1 
-// DLSCH LCHAN ID
-/*!\brief LCID of UE contention resolution identity for DLSCH*/
-#define UE_CONT_RES 28
-/*!\brief LCID of timing advance for DLSCH */
-#define TIMING_ADV_CMD 29
-/*!\brief LCID of discontinous reception mode for DLSCH */
-#define DRX_CMD 30
-/*!\brief LCID of padding LCID for DLSCH */
-#define SHORT_PADDING 31
-
 
 typedef enum tone_type_e
 {

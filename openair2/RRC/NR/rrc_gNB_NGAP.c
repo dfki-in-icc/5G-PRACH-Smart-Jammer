@@ -299,8 +299,6 @@ nr_rrc_pdcp_config_security(
 )
 //------------------------------------------------------------------------------
 {
-  NR_SRB_ToAddModList_t              *SRB_configList = ue_context_pP->ue_context.SRB_configList;
-  (void)SRB_configList;
   uint8_t                            *kRRCenc = NULL;
   uint8_t                            *kRRCint = NULL;
   uint8_t                            *kUPenc = NULL;
@@ -308,7 +306,7 @@ nr_rrc_pdcp_config_security(
   static int                          print_keys= 1;
 
   /* Derive the keys from kgnb */
-  if (SRB_configList != NULL) {
+  if (ue_context_pP->ue_context.Srb[1].Active || ue_context_pP->ue_context.Srb[2].Active) {
     nr_derive_key_up_enc(ue_context_pP->ue_context.ciphering_algorithm,
                          ue_context_pP->ue_context.kgnb,
                          &kUPenc);
@@ -804,17 +802,16 @@ rrc_gNB_process_NGAP_DOWNLINK_NAS(
         */
        switch (RC.nrrrc[ctxt.module_id]->node_type) {
         case ngran_gNB_CU:
-        case ngran_gNB_CUCP:          
+        case ngran_gNB_CUCP: {
+          long srb_id;
+          if (ue_context_p->ue_context.Srb[2].Active)
+            srb_id = ue_context_p->ue_context.Srb[2].Srb_info.Srb_id;
+          else
+            srb_id = ue_context_p->ue_context.Srb[1].Srb_info.Srb_id;
+          AssertFatal(srb_id > 0 && srb_id < MAX_SRBs, "");
           /* Transfer data to PDCP */
-          nr_rrc_data_req (
-              &ctxt,
-              ue_context_p->ue_context.Srb2.Active == 1 ? ue_context_p->ue_context.Srb2.Srb_info.Srb_id : ue_context_p->ue_context.Srb1.Srb_info.Srb_id,
-              (*rrc_gNB_mui)++,
-              SDU_CONFIRM_NO,
-              length,
-              buffer,
-              PDCP_TRANSMISSION_MODE_CONTROL);
-          break;
+          nr_rrc_data_req(&ctxt, srb_id, (*rrc_gNB_mui)++, SDU_CONFIRM_NO, length, buffer, PDCP_TRANSMISSION_MODE_CONTROL);
+        } break;
 
         case ngran_gNB_DU:
           // nothing to do for DU
@@ -825,14 +822,12 @@ rrc_gNB_process_NGAP_DOWNLINK_NAS(
         {
           // rrc_mac_config_req_gNB
           /* Transfer data to PDCP */
-          nr_rrc_data_req (
-              &ctxt,
-              ue_context_p->ue_context.Srb2.Active == 1 ? ue_context_p->ue_context.Srb2.Srb_info.Srb_id : ue_context_p->ue_context.Srb1.Srb_info.Srb_id,
-              (*rrc_gNB_mui)++,
-              SDU_CONFIRM_NO,
-              length,
-              buffer,
-              PDCP_TRANSMISSION_MODE_CONTROL);
+          long srb_id;
+          if (ue_context_p->ue_context.Srb[2].Active)
+            srb_id = ue_context_p->ue_context.Srb[2].Srb_info.Srb_id;
+          else
+            srb_id = ue_context_p->ue_context.Srb[1].Srb_info.Srb_id;
+          nr_rrc_data_req(&ctxt, srb_id, (*rrc_gNB_mui)++, SDU_CONFIRM_NO, length, buffer, PDCP_TRANSMISSION_MODE_CONTROL);
         }
           break;
 

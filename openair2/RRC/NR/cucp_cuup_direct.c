@@ -175,32 +175,20 @@ static int drb_config_gtpu_create(const protocol_ctxt_t *const ctxt_p,
   return ret;
 }
 
-static NR_SRB_ToAddModList_t **generateSRB2_confList(gNB_RRC_UE_t *ue, NR_SRB_ToAddModList_t *SRB_configList, uint8_t xid)
-{
-  NR_SRB_ToAddModList_t **SRB_configList2 = NULL;
-
-  SRB_configList2 = &ue->SRB_configList2[xid];
-  if (*SRB_configList2 == NULL) {
-    *SRB_configList2 = CALLOC(1, sizeof(**SRB_configList2));
-    NR_SRB_ToAddMod_t *SRB2_config = CALLOC(1, sizeof(*SRB2_config));
-    SRB2_config->srb_Identity = 2;
-    asn1cSeqAdd(&(*SRB_configList2)->list, SRB2_config);
-    asn1cSeqAdd(&SRB_configList->list, SRB2_config);
-  }
-
-  return SRB_configList2;
-}
 static void cucp_cuup_bearer_context_setup_direct(e1ap_bearer_setup_req_t *const req, instance_t instance) {
   rrc_gNB_ue_context_t *ue_context_p = rrc_gNB_get_ue_context(RC.nrrrc[GNB_INSTANCE_TO_MODULE_ID(instance)], req->rnti);
   protocol_ctxt_t ctxt = {0};
   PROTOCOL_CTXT_SET_BY_MODULE_ID(&ctxt, 0, GNB_FLAG_YES, ue_context_p->ue_context.rnti, 0, 0, 0);
-
-  fill_DRB_configList(&ctxt, ue_context_p);
-
   gNB_RRC_INST *rrc = RC.nrrrc[ctxt.module_id];
-  NR_SRB_ToAddModList_t **SRB_configList2 = generateSRB2_confList(&ue_context_p->ue_context, ue_context_p->ue_context.SRB_configList, 1);
+  NR_DRB_ToAddModList_t DRB_configList = {0};
+  fill_DRB_configList(&ctxt, ue_context_p, &DRB_configList);
+
+  // SRBFIXME: what srb to add at this level: srb1, srb2 ???
+  NR_SRB_ToAddModList_t SRB_configList = {0};
+  fill_SRB_configList(&ctxt, ue_context_p, &SRB_configList);
+
   // GTP tunnel for UL
-  int ret = drb_config_gtpu_create(&ctxt, ue_context_p, req, ue_context_p->ue_context.DRB_configList, *SRB_configList2, rrc->e1_inst);
+  int ret = drb_config_gtpu_create(&ctxt, ue_context_p, req, &DRB_configList, &SRB_configList, rrc->e1_inst);
   if (ret < 0) AssertFatal(false, "Unable to configure DRB or to create GTP Tunnel\n");
 
   if(!NODE_IS_CU(RC.nrrrc[ctxt.module_id]->node_type)) {

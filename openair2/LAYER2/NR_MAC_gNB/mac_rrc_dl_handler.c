@@ -91,13 +91,8 @@ int dl_rrc_message_rrcSetup(module_id_t module_id, const f1ap_dl_rrc_message_t *
   NR_RRCSetup_IEs_t *rrcSetup_ies = rrcSetup->criticalExtensions.choice.rrcSetup;
   AssertFatal(rrcSetup_ies->masterCellGroup.buf != NULL,"masterCellGroup is NULL\n");
   NR_CellGroupConfig_t *cellGroup = NULL;
-  asn_dec_rval_t dec_rval = uper_decode(NULL,
-                                        &asn_DEF_NR_CellGroupConfig,
-                                        (void **)&cellGroup,
-                                        rrcSetup_ies->masterCellGroup.buf,
-                                        rrcSetup_ies->masterCellGroup.size,
-                                        0,
-                                        0);
+  asn_codec_ctx_t st = {.max_stack_size = 100 * 1000};
+  asn_dec_rval_t dec_rval = uper_decode(&st, &asn_DEF_NR_CellGroupConfig, (void **)&cellGroup, rrcSetup_ies->masterCellGroup.buf, rrcSetup_ies->masterCellGroup.size, 0, 0);
   AssertFatal(dec_rval.code == RC_OK, "could not decode masterCellGroup\n");
 
   /* there might be a memory leak for the cell group if we call this multiple
@@ -120,14 +115,16 @@ int dl_rrc_message_rrcSetup(module_id_t module_id, const f1ap_dl_rrc_message_t *
   gNB_RRC_INST *rrc = RC.nrrrc[module_id];
   struct rrc_gNB_ue_context_s *ue_context_p = rrc_gNB_get_ue_context(rrc, dl_rrc->rnti);
   gNB_RRC_UE_t *ue_p = &ue_context_p->ue_context;
-  ue_p->SRB_configList = rrcSetup_ies->radioBearerConfig.srb_ToAddModList;
+  // FixMEEEE
+  // ue_p->SRB_configList = rrcSetup_ies->radioBearerConfig.srb_ToAddModList;
+  abort();
   ue_p->masterCellGroup = cellGroup;
 
   nr_rlc_srb_recv_sdu(dl_rrc->rnti, CCCH, dl_rrc->rrc_container, dl_rrc->rrc_container_length);
 
   protocol_ctxt_t ctxt = {.module_id = module_id, .rntiMaybeUEid = dl_rrc->rnti};
   nr_rrc_rlc_config_asn1_req(&ctxt,
-                             ue_context_p->ue_context.SRB_configList,
+                             NULL, // ue_context_p->ue_context.SRB_configList,
                              NULL,
                              NULL,
                              NULL,

@@ -277,18 +277,18 @@ typedef struct pdu_session_param_s {
   uint8_t cause_value;
 } __attribute__ ((__packed__)) pdu_session_param_t;
 
+#define MAX_SRBs 3 // srb 0 to 2, we don't use srb 0 here, but it is simpler
 typedef struct gNB_RRC_UE_s {
   uint8_t                            primaryCC_id;
-  NR_SRB_ToAddModList_t             *SRB_configList;
-  NR_SRB_ToAddModList_t             *SRB_configList2[NR_RRC_TRANSACTION_IDENTIFIER_NUMBER];
-  NR_DRB_ToAddModList_t             *DRB_configList;
-  NR_DRB_ToAddModList_t             *DRB_configList2[NR_RRC_TRANSACTION_IDENTIFIER_NUMBER];
+  // NR_SRB_ToAddModList_t             *SRB_configList;
+  // NR_SRB_ToAddModList_t             *SRB_configList2[NR_RRC_TRANSACTION_IDENTIFIER_NUMBER];
+  // NR_DRB_ToAddModList_t             *DRB_configList;
+  // NR_DRB_ToAddModList_t             *DRB_configList2[NR_RRC_TRANSACTION_IDENTIFIER_NUMBER];
   NR_DRB_ToReleaseList_t            *DRB_Release_configList2[NR_RRC_TRANSACTION_IDENTIFIER_NUMBER];
   uint8_t                            DRB_active[NGAP_MAX_DRBS_PER_UE];
 
   NR_SRB_INFO                       SI;
-  NR_SRB_INFO_TABLE_ENTRY           Srb1;
-  NR_SRB_INFO_TABLE_ENTRY           Srb2;
+  NR_SRB_INFO_TABLE_ENTRY Srb[MAX_SRBs];
   NR_MeasConfig_t                   *measConfig;
   NR_HANDOVER_INFO                  *handover_info;
   NR_MeasResults_t                  *measResults;

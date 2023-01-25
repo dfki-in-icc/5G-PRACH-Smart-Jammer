@@ -1053,23 +1053,23 @@ int test_log(void) {
   LOG_D(MAC, "3 debug  MAC \n");
   LOG_W(MAC, "3 warning MAC \n");
   LOG_I(MAC, "3 info MAC \n");
-  set_log(MAC, LOG_DEBUG);
-  set_log(EMU, LOG_DEBUG);
+  set_log(MAC, OAILOG_DEBUG);
+  set_log(EMU, OAILOG_DEBUG);
   LOG_ENTER(MAC);
   LOG_I(EMU, "4 Starting OAI logs version %s Build date: %s on %s\n",
         BUILD_VERSION, BUILD_DATE, BUILD_HOST);
   LOG_D(MAC, "4 debug  MAC \n");
   LOG_W(MAC, "4 warning MAC \n");
   LOG_I(MAC, "4 info MAC \n");
-  set_log(MAC, LOG_DEBUG);
-  set_log(EMU, LOG_DEBUG);
+  set_log(MAC, OAILOG_DEBUG);
+  set_log(EMU, OAILOG_DEBUG);
   LOG_I(LOG, "5 Starting OAI logs version %s Build date: %s on %s\n",
         BUILD_VERSION, BUILD_DATE, BUILD_HOST);
   LOG_D(MAC, "5 debug  MAC \n");
   LOG_W(MAC, "5 warning MAC \n");
   LOG_I(MAC, "5 info MAC \n");
-  set_log(MAC, LOG_TRACE);
-  set_log(EMU, LOG_TRACE);
+  set_log(MAC, OAILOG_TRACE);
+  set_log(EMU, OAILOG_TRACE);
   LOG_ENTER(MAC);
   LOG_I(LOG, "6 Starting OAI logs version %s Build date: %s on %s\n",
         BUILD_VERSION, BUILD_DATE, BUILD_HOST);
