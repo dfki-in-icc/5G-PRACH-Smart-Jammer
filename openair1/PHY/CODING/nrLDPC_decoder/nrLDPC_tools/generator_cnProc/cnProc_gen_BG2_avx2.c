@@ -96,7 +96,7 @@ void nrLDPC_cnProc_BG2_generator_AVX2(const char* dir, int R)
       for (j=0; j<3; j++)
         {
 
-            fprintf(fd,"            for (int i=0;i<M;i+=2) {\n");
+            fprintf(fd,"            for (int i=0;i<M;i++) {\n");
             // Abs and sign of 32 CNs (first BN)
             //                ymm0 = p_cnProcBuf[lut_idxCnProcG3[j][0] + i];
             fprintf(fd,"                ymm0 = ((__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[0]>>5)+lut_idxCnProcG3[j][0]);
@@ -121,14 +121,6 @@ void nrLDPC_cnProc_BG2_generator_AVX2(const char* dir, int R)
             //                *p_cnProcBufResBit = simde_mm256_sign_epi8(min, sgn);
             //                p_cnProcBufResBit++;
             fprintf(fd,"                ((__m256i*)cnProcBufRes)[%d+i] = simde_mm256_sign_epi8(min, sgn);\n",(lut_startAddrCnGroups[0]>>5)+(j*bitOffsetInGroup));
-
-            // Abs and sign of 32 CNs (first BN)
-            //                ymm0 = p_cnProcBuf[lut_idxCnProcG3[j][0] + i];
-            fprintf(fd,"                ymm0 = ((__m256i*)cnProcBuf)[%d+i];\n",(lut_startAddrCnGroups[0]>>5)+lut_idxCnProcG3[j][0]+1);
-            //                sgn  = simde_mm256_sign_epi8(ones, ymm0);
-            fprintf(fd,"                sgn  = simde_mm256_sign_epi8(ones, ymm0);\n");
-            //                min  = simde_mm256_abs_epi8(ymm0);
-            fprintf(fd,"                min  = simde_mm256_abs_epi8(ymm0);\n");
       
             fprintf(fd,"            }\n");
           }

@@ -86,14 +86,13 @@ void nrLDPC_bnProcPc_BG1_generator_AVX2(const char *dir, int R)
     fprintf(fd,"        __m128i* p_bnProcBuf; \n");
     fprintf(fd,"        __m128i* p_llrProcBuf;\n");
     fprintf(fd,"        __m256i* p_llrRes; \n");
-  //  fprintf(fd,"        __m256i* p_bnProcBufRes; \n");
-//    fprintf(fd,"        __m256i* p_llrProcBuf256; \n");
+    fprintf(fd,"        __m256i* p_bnProcBufRes; \n");
+    fprintf(fd,"        __m256i* p_llrProcBuf256; \n");
     fprintf(fd,"         uint32_t M ;\n");
 
 
     fprintf(fd,  "// Process group with 1 CNs \n");
 
-/*
  // Process group with 1 CNs
 
    // if (lut_numBnInBnGroups[0] > 0)
@@ -109,9 +108,9 @@ void nrLDPC_bnProcPc_BG1_generator_AVX2(const char *dir, int R)
 
         // Set pointers to start of group 2
         fprintf(fd,"    p_bnProcBuf     = (__m128i*) &bnProcBuf    [%d];\n",lut_startAddrBnGroups[idxBnGroup]);
-       // fprintf(fd,"    p_bnProcBufRes     = (__m256i*) &bnProcBufRes    [%d];\n",lut_startAddrBnGroups[idxBnGroup]);
+        fprintf(fd,"    p_bnProcBufRes  = (__m256i*) &bnProcBufRes [%d];\n",lut_startAddrBnGroups[idxBnGroup]);
         fprintf(fd,"    p_llrProcBuf    = (__m128i*) &llrProcBuf   [%d];\n",lut_startAddrBnGroupsLlr[idxBnGroup]);
-       //  fprintf(fd,"   p_llrProcBuf256   = (__m256i*) &llrProcBuf   [%d];\n",lut_startAddrBnGroupsLlr[idxBnGroup]);
+        fprintf(fd,"    p_llrProcBuf256 = (__m256i*) &llrProcBuf   [%d];\n",lut_startAddrBnGroupsLlr[idxBnGroup]);
         fprintf(fd,"    p_llrRes        = (__m256i*) &llrRes       [%d];\n",lut_startAddrBnGroupsLlr[idxBnGroup]);
 
         // Loop over BNs
@@ -139,7 +138,7 @@ void nrLDPC_bnProcPc_BG1_generator_AVX2(const char *dir, int R)
 
         fprintf(fd,"}\n");
     //}
-*/  
+
     // =====================================================================
     // Process group with 2 CNs
 

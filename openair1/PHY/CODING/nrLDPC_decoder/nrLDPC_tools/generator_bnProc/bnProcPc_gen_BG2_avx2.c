@@ -86,13 +86,12 @@ void nrLDPC_bnProcPc_BG2_generator_AVX2(const char *dir, int R)
     fprintf(fd,"        __m128i* p_bnProcBuf; \n");
     fprintf(fd,"        __m128i* p_llrProcBuf;\n");
     fprintf(fd,"        __m256i* p_llrRes; \n");
-   // fprintf(fd,"        __m256i* p_bnProcBufRes; \n");
-   // fprintf(fd,"        __m256i* p_llrProcBuf256; \n");
+    fprintf(fd,"        __m256i* p_bnProcBufRes; \n");
+    fprintf(fd,"        __m256i* p_llrProcBuf256; \n");
     fprintf(fd,"         uint32_t M ;\n");
 
 
     fprintf(fd,  "// Process group with 1 CNs \n");
-/*
 
  // Process group with 1 CNs
 
@@ -139,7 +138,7 @@ void nrLDPC_bnProcPc_BG2_generator_AVX2(const char *dir, int R)
 
         fprintf(fd,"}\n");
     //}
-  */    // =====================================================================
+    // =====================================================================
     // Process group with 2 CNs
 
 
