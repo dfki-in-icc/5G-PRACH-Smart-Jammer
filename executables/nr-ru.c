@@ -28,6 +28,7 @@
 #include <linux/sched.h>
 #include <sys/sysinfo.h>
 #include <math.h>
+#include <time.h>
 
 #undef MALLOC //there are two conflicting definitions, so we better make sure we don't use it at all
 
@@ -672,11 +673,15 @@ void rx_rf(RU_t *ru,int *frame,int *slot) {
   //compute system frame number (SFN) according to O-RAN-WG4-CUS.0-v02.00 (using alpha=beta=0)
   // this assumes that the USRP has been synchronized to the GPS time
   // OAI uses timestamps in sample time stored in int64_t, but it will fit in double precision for many years to come. 
-  double gps_sec = ((double) ts)/cfg->sample_rate; 
-  //proc->frame_rx = ((int64_t) (gps_sec/0.01)) & 1023;   
+  //double gps_sec = ((double) ts)/cfg->sample_rate;
+  struct timespec tp;
+  if (clock_gettime(CLOCK_REALTIME, &tp)!=0)
+    LOG_W(PHY,"error getting system time\n");
+  double gps_sec = (double) tp.tv_sec + (double) tp.tv_nsec * 1e-9; // we might loose some precision here, but its still good enough for our purpose
+  proc->frame_rx = ((int64_t) (gps_sec/0.01)) & 1023;   
 
   // in fact the following line is the same as long as the timestamp_rx is synchronized to GPS. 
-  proc->frame_rx    = (proc->timestamp_rx / (fp->samples_per_subframe*10))&1023;
+  //proc->frame_rx    = (proc->timestamp_rx / (fp->samples_per_subframe*10))&1023;
   proc->tti_rx = fp->get_slot_from_timestamp(proc->timestamp_rx,fp);
   // synchronize first reception to frame 0 subframe 0
   LOG_D(PHY,"RU %d/%d TS %ld, GPS %f, SR %f, frame %d, slot %d.%d / %d\n",
