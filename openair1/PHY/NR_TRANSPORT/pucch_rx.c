@@ -1143,7 +1143,8 @@ void nr_decode_pucch2(PHY_VARS_gNB *gNB,
                       int frame,
                       int slot,
                       nfapi_nr_uci_pucch_pdu_format_2_3_4_t* uci_pdu,
-                      nfapi_nr_pucch_pdu_t* pucch_pdu) {
+                      nfapi_nr_pucch_pdu_t* pucch_pdu)
+{
 
   int32_t **rxdataF = gNB->common_vars.rxdataF;
   NR_DL_FRAME_PARMS *frame_parms = &gNB->frame_parms;
