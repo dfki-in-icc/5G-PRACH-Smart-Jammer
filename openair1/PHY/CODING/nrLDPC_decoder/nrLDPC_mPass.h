@@ -848,13 +848,15 @@ static inline void nrLDPC_bn2cnProcBuf_BG2(t_nrLDPC_lut* p_lut, int8_t* bnProcBu
 
     // For CN groups 3 to 6 no need to send the last BN back since it's single edge
     // and BN processing does not change the value already in the CN proc buf
+    // The above is true if seperate buffers for BNs and CNs are used
+    // However, with a common buffer we need to copy everything
 
     // =====================================================================
     // CN group with 3 BNs
 
     bitOffsetInGroup = lut_numCnInCnGroups_BG2_R15[0]*NR_LDPC_ZMAX;
 
-    for (j=0; j<2; j++)
+    for (j=0; j<3; j++)
     {
         p_cnProcBuf = &cnProcBuf[lut_startAddrCnGroups[0] + j*bitOffsetInGroup];
         for (i=0; i<lut_numCnInCnGroups[0]; i++)
@@ -870,7 +872,7 @@ static inline void nrLDPC_bn2cnProcBuf_BG2(t_nrLDPC_lut* p_lut, int8_t* bnProcBu
 
     bitOffsetInGroup = lut_numCnInCnGroups_BG2_R15[1]*NR_LDPC_ZMAX;
 
-    for (j=0; j<3; j++)
+    for (j=0; j<4; j++)
     {
         p_cnProcBuf = &cnProcBuf[lut_startAddrCnGroups[1] + j*bitOffsetInGroup];
         for (i=0; i<lut_numCnInCnGroups[1]; i++)
@@ -886,7 +888,7 @@ static inline void nrLDPC_bn2cnProcBuf_BG2(t_nrLDPC_lut* p_lut, int8_t* bnProcBu
 
     bitOffsetInGroup = lut_numCnInCnGroups_BG2_R15[2]*NR_LDPC_ZMAX;
 
-    for (j=0; j<4; j++)
+    for (j=0; j<5; j++)
     {
         p_cnProcBuf = &cnProcBuf[lut_startAddrCnGroups[2] + j*bitOffsetInGroup];
         for (i=0; i<lut_numCnInCnGroups[2]; i++)
@@ -902,7 +904,7 @@ static inline void nrLDPC_bn2cnProcBuf_BG2(t_nrLDPC_lut* p_lut, int8_t* bnProcBu
 
     bitOffsetInGroup = lut_numCnInCnGroups_BG2_R15[3]*NR_LDPC_ZMAX;
 
-    for (j=0; j<5; j++)
+    for (j=0; j<6; j++)
     {
         p_cnProcBuf = &cnProcBuf[lut_startAddrCnGroups[3] + j*bitOffsetInGroup];
         for (i=0; i<lut_numCnInCnGroups[3]; i++)
@@ -995,13 +997,15 @@ static inline void nrLDPC_bn2cnProcBuf_BG1(t_nrLDPC_lut* p_lut, int8_t* bnProcBu
 
     // For CN groups 3 to 19 no need to send the last BN back since it's single edge
     // and BN processing does not change the value already in the CN proc buf
+    // The above is true if seperate buffers for BNs and CNs are used
+    // However, with a common buffer we need to copy everything
 
     // =====================================================================
     // CN group with 3 BNs
 
     bitOffsetInGroup = lut_numCnInCnGroups_BG1_R13[0]*NR_LDPC_ZMAX;
 
-    for (j=0;j<2; j++)
+    for (j=0;j<3; j++)
     {
         p_cnProcBuf = &cnProcBuf[lut_startAddrCnGroups[0] + j*bitOffsetInGroup];
         nrLDPC_circ_memcpy(p_cnProcBuf, &bnProcBufRes[lut_startAddrBnProcBuf_CNG3[j][0]], Z, lut_circShift_CNG3[j][0]);
@@ -1012,7 +1016,7 @@ static inline void nrLDPC_bn2cnProcBuf_BG1(t_nrLDPC_lut* p_lut, int8_t* bnProcBu
 
     bitOffsetInGroup = lut_numCnInCnGroups_BG1_R13[1]*NR_LDPC_ZMAX;
   
-    for (j=0; j<3; j++)
+    for (j=0; j<4; j++)
     {
         p_cnProcBuf = &cnProcBuf[lut_startAddrCnGroups[1] + j*bitOffsetInGroup];
 
@@ -1028,7 +1032,7 @@ static inline void nrLDPC_bn2cnProcBuf_BG1(t_nrLDPC_lut* p_lut, int8_t* bnProcBu
 
     bitOffsetInGroup = lut_numCnInCnGroups_BG1_R13[2]*NR_LDPC_ZMAX;
 
-    for (j=0; j<4; j++)
+    for (j=0; j<5; j++)
     {
         p_cnProcBuf = &cnProcBuf[lut_startAddrCnGroups[2] + j*bitOffsetInGroup];
     
@@ -1045,7 +1049,7 @@ static inline void nrLDPC_bn2cnProcBuf_BG1(t_nrLDPC_lut* p_lut, int8_t* bnProcBu
 
     bitOffsetInGroup = lut_numCnInCnGroups_BG1_R13[3]*NR_LDPC_ZMAX;
     
-    for (j=0; j<5; j++)
+    for (j=0; j<6; j++)
     {
         p_cnProcBuf = &cnProcBuf[lut_startAddrCnGroups[3] + j*bitOffsetInGroup];
       
@@ -1062,7 +1066,7 @@ static inline void nrLDPC_bn2cnProcBuf_BG1(t_nrLDPC_lut* p_lut, int8_t* bnProcBu
 
     bitOffsetInGroup = lut_numCnInCnGroups_BG1_R13[4]*NR_LDPC_ZMAX;
     
-    for (j=0; j<6; j++)
+    for (j=0; j<7; j++)
     {
         p_cnProcBuf = &cnProcBuf[lut_startAddrCnGroups[4] + j*bitOffsetInGroup];
 
@@ -1080,7 +1084,7 @@ static inline void nrLDPC_bn2cnProcBuf_BG1(t_nrLDPC_lut* p_lut, int8_t* bnProcBu
 
     bitOffsetInGroup = lut_numCnInCnGroups_BG1_R13[5]*NR_LDPC_ZMAX;
 
-    for (j=0; j<7; j++)
+    for (j=0; j<8; j++)
     {
         p_cnProcBuf = &cnProcBuf[lut_startAddrCnGroups[5] + j*bitOffsetInGroup];
         for (i=0; i<lut_numCnInCnGroups[5]; i++)
@@ -1096,7 +1100,7 @@ static inline void nrLDPC_bn2cnProcBuf_BG1(t_nrLDPC_lut* p_lut, int8_t* bnProcBu
 
     bitOffsetInGroup = lut_numCnInCnGroups_BG1_R13[6]*NR_LDPC_ZMAX;
 
-    for (j=0; j<8; j++)
+    for (j=0; j<9; j++)
     {
         p_cnProcBuf = &cnProcBuf[lut_startAddrCnGroups[6] + j*bitOffsetInGroup];
 
@@ -1113,7 +1117,7 @@ static inline void nrLDPC_bn2cnProcBuf_BG1(t_nrLDPC_lut* p_lut, int8_t* bnProcBu
 
     bitOffsetInGroup = lut_numCnInCnGroups_BG1_R13[7]*NR_LDPC_ZMAX;
     
-    for (j=0; j<9; j++)
+    for (j=0; j<10; j++)
     {
         p_cnProcBuf = &cnProcBuf[lut_startAddrCnGroups[7] + j*bitOffsetInGroup];
     
