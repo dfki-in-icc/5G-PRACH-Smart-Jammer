@@ -873,12 +873,6 @@ typedef enum {
   NUM_UE_MODE=6
 } UE_MODE_t;
 
-typedef enum {
-  RESYNCH_IDLE = 0,
-  RESYNCH_SSB = 1,
-  RESYNCH_RA = 2,
-} UE_RESYNCH_t;
-
 #define FOREACH_PARALLEL(GEN)   \
   GEN(PARALLEL_SINGLE_THREAD)   \
   GEN(PARALLEL_RU_L1_SPLIT)     \

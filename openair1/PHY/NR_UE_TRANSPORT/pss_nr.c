@@ -688,7 +688,7 @@ int pss_search_time_nr(int **rxdata, PHY_VARS_NR_UE *ue, int fo_flag, int is)
 
   uint16_t pss_index_start = 0;
   uint16_t pss_index_end = NUMBER_PSS_SEQUENCE;
-  if (ue->resynchronizing_state == RESYNCH_SSB) {
+  if (ue->target_Nid_cell != -1) {
     pss_index_start = GET_NID2(ue->target_Nid_cell);
     pss_index_end = pss_index_start + 1;
   }

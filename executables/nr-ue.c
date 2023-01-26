@@ -156,6 +156,7 @@ void init_nr_ue_vars(PHY_VARS_NR_UE *ue,
   ue->mac_enabled = 1;
   ue->if_inst     = nr_ue_if_module_init(0);
   ue->dci_thres   = 0;
+  ue->target_Nid_cell = -1;
 
   // initialize all signal buffers
   init_nr_ue_signal(ue, nb_connected_gNB);
@@ -413,7 +414,11 @@ static void UE_synch(void *arg) {
     */
   }
 
-  LOG_W(PHY, "Starting sync detection\n");
+  if (UE->target_Nid_cell != -1) {
+    LOG_W(NR_PHY, "Starting re-sync detection for target Nid_cell %i\n", UE->target_Nid_cell);
+  } else {
+    LOG_W(NR_PHY, "Starting sync detection\n");
+  }
 
   switch (sync_mode) {
     /*
@@ -461,25 +466,12 @@ static void UE_synch(void *arg) {
         // todo: the freq_offset computed on DL shall be scaled before being applied to UL
         nr_rf_card_config_freq(&openair0_cfg[UE->rf_map.card], ul_carrier, dl_carrier, freq_offset);
 
-        if (UE->resynchronizing_state == RESYNCH_SSB) {
-          LOG_I(NR_PHY,
-                "Got resynch for Nid_cell %i: hw_slot_offset %d, carrier off %d Hz, rxgain %f (DL %.0f Hz, UL %.0f Hz)\n",
-                UE->target_Nid_cell,
-                hw_slot_offset,
-                freq_offset,
-                openair0_cfg[UE->rf_map.card].rx_gain[0],
-                openair0_cfg[UE->rf_map.card].rx_freq[0],
-                openair0_cfg[UE->rf_map.card].tx_freq[0]);
-          UE->resynchronizing_state = RESYNCH_RA;
-        } else {
-          LOG_I(PHY,
-                "Got synch: hw_slot_offset %d, carrier off %d Hz, rxgain %f (DL %f Hz, UL %f Hz)\n",
-                hw_slot_offset,
-                freq_offset,
-                openair0_cfg[UE->rf_map.card].rx_gain[0],
-                openair0_cfg[UE->rf_map.card].rx_freq[0],
-                openair0_cfg[UE->rf_map.card].tx_freq[0]);
-        }
+        LOG_I(PHY,"Got synch: hw_slot_offset %d, carrier off %d Hz, rxgain %f (DL %f Hz, UL %f Hz)\n",
+              hw_slot_offset,
+              freq_offset,
+              openair0_cfg[UE->rf_map.card].rx_gain[0],
+              openair0_cfg[UE->rf_map.card].rx_freq[0],
+              openair0_cfg[UE->rf_map.card].tx_freq[0]);
 
         UE->rfdevice.trx_set_freq_func(&UE->rfdevice,&openair0_cfg[0]);
         if (UE->UE_scan_carrier == 1) {
@@ -615,12 +607,12 @@ void UE_processing(nr_rxtx_thread_data_t *rxtxD) {
     protocol_ctxt_t ctxt;
     PROTOCOL_CTXT_SET_BY_MODULE_ID(&ctxt, UE->Mod_id, ENB_FLAG_NO, mac->crnti, proc->frame_rx, proc->nr_slot_rx, 0);
     NR_UE_L2_STATE_t ue_l2_state = get_ue_l2_state(&ctxt, proc->gNB_id);
-    if (ue_l2_state == UE_PHY_RESYNCH && UE->resynchronizing_state == RESYNCH_IDLE) {
+    if (ue_l2_state == UE_PHY_RESYNCH && UE->target_Nid_cell == -1) {
+      UE->is_synchronized = 0;
       UE->target_Nid_cell = UE->common_vars.eNb_id; // FIXME: Get the target Nid_cell
-      UE->resynchronizing_state = RESYNCH_SSB;
       clean_UE_ulsch(UE, proc->gNB_id);
-    } else if (ue_l2_state == UE_CONNECTION_OK && UE->resynchronizing_state != RESYNCH_IDLE) {
-      UE->resynchronizing_state = RESYNCH_IDLE;
+    } else if (ue_l2_state == UE_CONNECTION_OK && UE->target_Nid_cell != -1) {
+      UE->target_Nid_cell = -1;
     }
 
     /* send tick to RLC and PDCP every ms */
@@ -814,7 +806,7 @@ void *UE_thread(void *arg) {
 
     AssertFatal( !syncRunning, "At this point synchronization can't be running\n");
 
-    if (!UE->is_synchronized || UE->resynchronizing_state == RESYNCH_SSB) {
+    if (!UE->is_synchronized) {
       readFrame(UE, &timestamp, false);
       notifiedFIFO_elt_t *Msg = newNotifiedFIFO_elt(sizeof(syncData_t), 0, &nf, UE_synch);
       syncData_t *syncMsg = (syncData_t *)NotifiedFifoData(Msg);

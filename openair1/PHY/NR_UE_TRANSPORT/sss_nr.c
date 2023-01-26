@@ -513,7 +513,7 @@ int rx_sss_nr(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, int32_t *tot_metric, 
 
   uint16_t Nid1_start = 0;
   uint16_t Nid1_end = N_ID_1_NUMBER;
-  if (ue->resynchronizing_state == RESYNCH_SSB) {
+  if (ue->target_Nid_cell != -1) {
     Nid1_start = GET_NID1(ue->target_Nid_cell);
     Nid1_end = Nid1_start + 1;
   }

@@ -420,7 +420,7 @@ int nr_initial_sync(UE_nr_rxtx_proc_t *proc,
     ret = -1;
   }
 
-  if (ue->resynchronizing_state == RESYNCH_SSB) {
+  if (ue->target_Nid_cell != -1) {
     return ret;
   }
 
