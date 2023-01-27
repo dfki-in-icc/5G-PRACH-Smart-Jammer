@@ -1204,6 +1204,16 @@ void fill_initial_cellGroupConfig(int uid,
   cellGroupConfig->sCellToReleaseList                                       = NULL;
 }
 
+void fill_SRB_configList(rrc_gNB_ue_context_t *ue_context_pP, NR_SRB_ToAddModList_t *SRB_configList)
+{
+  for (int i = 1 /*ignore srb0 as per 3gpp*/; i < MAX_SRBs; i++) {
+    if (ue_context_pP->ue_context.Srb[i].Active) {
+      asn1cSequenceAdd(SRB_configList->list, NR_SRB_ToAddMod_t, SRB_config);
+      SRB_config->srb_Identity = ue_context_pP->ue_context.Srb[i].Srb_info.Srb_id;
+    }
+  }
+}
+
 //------------------------------------------------------------------------------
 int do_RRCSetup(rrc_gNB_ue_context_t         *const ue_context_pP,
                 uint8_t                      *const buffer,
@@ -1234,14 +1244,14 @@ int do_RRCSetup(rrc_gNB_ue_context_t         *const ue_context_pP,
     /****************************** radioBearerConfig ******************************/
 
     /* Configure SRB1 */
-    NR_SRB_ToAddMod_t SRB1_config = {0};
-    SRB1_config.srb_Identity = 1;
+    // in RRCsetup, srb1 must be activated
+    ue_context_pP->ue_context.Srb[1].Active = true;
+    ue_context_pP->ue_context.Srb[1].Srb_info.Srb_id = DCCH;
+    asn1cCalloc(ie->radioBearerConfig.srb_ToAddModList, SRB_configList);
+    fill_SRB_configList(ue_context_pP, SRB_configList);
     // SRBFixme pdcp_Config->t_Reordering
-    NR_PDCP_Config_t *pdcp_Config = NULL;
-    SRB1_config.pdcp_Config = pdcp_Config;
-    NR_SRB_ToAddModList_t SRB_configList = {0};
-    ie->radioBearerConfig.srb_ToAddModList = &SRB_configList;
-    asn1cSeqAdd(&SRB_configList.list, &SRB1_config);
+    // NR_PDCP_Config_t *pdcp_Config = NULL;
+    // SRB1_config.pdcp_Config = pdcp_Config;
 
     ie->radioBearerConfig.srb3_ToRelease    = NULL;
     ie->radioBearerConfig.drb_ToAddModList  = NULL;

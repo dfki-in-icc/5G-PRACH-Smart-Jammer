@@ -59,12 +59,7 @@ rrc_gNB_send_NGAP_NAS_FIRST_REQ(
     NR_RRCSetupComplete_IEs_t *rrcSetupComplete
 );
 
-int
-rrc_gNB_process_NGAP_INITIAL_CONTEXT_SETUP_REQ(
-    MessageDef *msg_p,
-    const char *msg_name,
-    instance_t instance
-);
+int rrc_gNB_process_NGAP_INITIAL_CONTEXT_SETUP_REQ(MessageDef *msg_p, instance_t instance);
 
 void
 rrc_gNB_send_NGAP_INITIAL_CONTEXT_SETUP_RESP(
@@ -79,13 +74,7 @@ rrc_gNB_process_security(
   ngap_security_capabilities_t *security_capabilities_pP
 );
 
-int
-rrc_gNB_process_NGAP_DOWNLINK_NAS(
-  MessageDef *msg_p,
-  const char *msg_name,
-  instance_t  instance,
-  mui_t      *rrc_gNB_mui
-);
+int rrc_gNB_process_NGAP_DOWNLINK_NAS(MessageDef *msg_p, instance_t instance, mui_t *rrc_gNB_mui);
 
 void
 rrc_gNB_send_NGAP_UPLINK_NAS(
@@ -101,19 +90,9 @@ rrc_gNB_send_NGAP_PDUSESSION_SETUP_RESP(
   uint8_t                   xid
 );
 
-void
-rrc_gNB_process_NGAP_PDUSESSION_SETUP_REQ(
-    MessageDef *msg_p,
-    const char *msg_name,
-    instance_t instance
-);
+void rrc_gNB_process_NGAP_PDUSESSION_SETUP_REQ(MessageDef *msg_p, instance_t instance);
 
-int
-rrc_gNB_process_NGAP_PDUSESSION_MODIFY_REQ(
-  MessageDef *msg_p,
-  const char *msg_name,
-  instance_t instance
-);
+int rrc_gNB_process_NGAP_PDUSESSION_MODIFY_REQ(MessageDef *msg_p, instance_t instance);
 
 int
 rrc_gNB_send_NGAP_PDUSESSION_MODIFY_RESP(
@@ -137,19 +116,9 @@ rrc_gNB_send_NGAP_UE_CONTEXT_RELEASE_REQ(
   const long cause_valueP
 );
 
-int 
-rrc_gNB_process_NGAP_UE_CONTEXT_RELEASE_REQ (
-  MessageDef *msg_p, 
-  const char *msg_name, 
-  instance_t instance
-);
+int rrc_gNB_process_NGAP_UE_CONTEXT_RELEASE_REQ(MessageDef *msg_p, instance_t instance);
 
-int
-rrc_gNB_process_NGAP_UE_CONTEXT_RELEASE_COMMAND(
-  MessageDef *msg_p,
-  const char *msg_name,
-  instance_t instance
-);
+int rrc_gNB_process_NGAP_UE_CONTEXT_RELEASE_COMMAND(MessageDef *msg_p, instance_t instance);
 
 void rrc_gNB_send_NGAP_UE_CONTEXT_RELEASE_COMPLETE(
   instance_t instance,
@@ -168,12 +137,7 @@ rrc_gNB_send_NGAP_UE_CAPABILITIES_IND(
   NR_UL_DCCH_Message_t     *const ul_dcch_msg
 );
 
-int
-rrc_gNB_process_NGAP_PDUSESSION_RELEASE_COMMAND(
-  MessageDef *msg_p,
-  const char *msg_name,
-  instance_t instance
-);
+int rrc_gNB_process_NGAP_PDUSESSION_RELEASE_COMMAND(MessageDef *msg_p, instance_t instance);
 
 void
 rrc_gNB_send_NGAP_PDUSESSION_RELEASE_RESPONSE(
@@ -196,10 +160,6 @@ rrc_gNB_get_ue_context_from_ngap_ids(
     const uint32_t    gNB_ue_ngap_idP
 );
 
-int
-rrc_gNB_process_PAGING_IND(
-    MessageDef *msg_p,
-    const char *msg_name,
-    instance_t instance);
+int rrc_gNB_process_PAGING_IND(MessageDef *msg_p, instance_t instance);
 
 #endif

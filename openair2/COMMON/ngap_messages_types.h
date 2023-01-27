@@ -242,7 +242,7 @@ typedef struct ngap_nas_pdu_s {
   uint8_t  *buffer;
   /* Length of the octet string */
   uint32_t  length;
-} ngap_nas_pdu_t, ngap_ue_radio_cap_t;
+} ngap_pdu_t;
 
 typedef struct ngap_mobility_restriction_s{
   ngap_plmn_identity_t serving_plmn;
@@ -267,13 +267,6 @@ typedef struct ngap_transport_layer_addr_s {
   uint8_t buffer[20]; // in network byte order
 } ngap_transport_layer_addr_t;
 
-#define TRANSPORT_LAYER_ADDR_COPY(dEST,sOURCE)        \
-  do {                                                \
-      AssertFatal(sOURCE.len <= 20);                  \
-      memcpy(dEST.buffer, sOURCE.buffer, sOURCE.len); \
-      dEST.length = sOURCE.length;                    \
-  } while (0)
-
 typedef enum {
   non_dynamic,
   dynamic
@@ -288,21 +281,10 @@ typedef struct pdusession_level_qos_parameter_s {
 
 typedef struct pdusession_s {
   /* Unique pdusession_id for the UE. */
-  uint8_t                          pdusession_id;
-
-  uint8_t                          nb_qos;
-  /* Quality of service for this pdusession */
-  pdusession_level_qos_parameter_t qos[QOSFLOW_MAX_VALUE];
-  /* The NAS PDU should be forwarded by the RRC layer to the NAS layer */
-  ngap_nas_pdu_t                   nas_pdu;
-  /* The transport layer address for the IP packets */
-  ngap_transport_layer_addr_t      upf_addr;
-  /* S-GW Tunnel endpoint identifier */
-  uint32_t                         gtp_teid;
-  /* Stores the DRB ID of the DRBs used by this PDU Session */
-  uint8_t                          used_drbs[NGAP_MAX_DRBS_PER_UE];
+  uint8_t pdusession_id;
+  ngap_pdu_t nas_pdu;
+  ngap_pdu_t pdusessionTransfer;
 } pdusession_t;
-
 
 typedef enum pdusession_qosflow_mapping_ind_e{
   QOSFLOW_MAPPING_INDICATION_UL = 0,
@@ -551,7 +533,7 @@ typedef struct ngap_nas_first_req_s {
   ngap_rrc_establishment_cause_t establishment_cause;
 
   /* NAS PDU */
-  ngap_nas_pdu_t nas_pdu;
+  ngap_pdu_t nas_pdu;
 
   /* If this flag is set NGAP layer is expecting the GUAMI. If = 0,
    * the temporary s-tmsi is used.
@@ -564,12 +546,12 @@ typedef struct ngap_uplink_nas_s {
   uint32_t  gNB_ue_ngap_id;
 
   /* NAS pdu */
-  ngap_nas_pdu_t nas_pdu;
+  ngap_pdu_t nas_pdu;
 } ngap_uplink_nas_t;
 
 typedef struct ngap_ue_cap_info_ind_s {
   uint32_t  gNB_ue_ngap_id;
-  ngap_ue_radio_cap_t ue_radio_cap;
+  ngap_pdu_t ue_radio_cap;
 } ngap_ue_cap_info_ind_t;
 
 typedef struct ngap_initial_context_setup_resp_s {
@@ -594,7 +576,7 @@ typedef struct ngap_initial_context_setup_fail_s {
 
 typedef struct ngap_nas_non_delivery_ind_s {
   uint32_t     gNB_ue_ngap_id;
-  ngap_nas_pdu_t nas_pdu;
+  ngap_pdu_t nas_pdu;
   /* TODO: add cause */
 } ngap_nas_non_delivery_ind_t;
 
@@ -636,7 +618,7 @@ typedef struct ngap_downlink_nas_s {
   uint32_t     gNB_ue_ngap_id;
 
   /* NAS pdu */
-  ngap_nas_pdu_t nas_pdu;
+  ngap_pdu_t nas_pdu;
 } ngap_downlink_nas_t;
 
 
@@ -676,7 +658,7 @@ typedef struct ngap_initial_context_setup_req_s {
 
   /* Nas Pdu */
   uint8_t                        nas_pdu_flag;
-  ngap_nas_pdu_t                 nas_pdu;
+  ngap_pdu_t nas_pdu;
 } ngap_initial_context_setup_req_t;
 
 
@@ -830,10 +812,7 @@ typedef struct ngap_ue_release_command_s {
 typedef struct pdusession_release_s {
   /* Unique pdusession_id for the UE. */
   uint8_t                     pdusession_id;
-  /* Octet string data */
-  uint8_t  *transfer_buffer;
-  /* Length of the octet string */
-  uint32_t  transfer_length;
+  ngap_pdu_t data;
 } pdusession_release_t;
 
 typedef struct ngap_ue_release_req_s {
@@ -885,7 +864,7 @@ typedef struct ngap_pdusession_release_command_s {
   uint32_t                       gNB_ue_ngap_id;
 
   /* The NAS PDU should be forwarded by the RRC layer to the NAS layer */
-  ngap_nas_pdu_t                 nas_pdu;
+  ngap_pdu_t nas_pdu;
 
   /* Number of pdusession to be released in the list */
   uint8_t                        nb_pdusessions_torelease;

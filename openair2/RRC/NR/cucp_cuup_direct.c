@@ -108,7 +108,7 @@ static int drb_config_gtpu_create(const protocol_ctxt_t *const ctxt_p,
   gtpv1u_gnb_create_tunnel_req_t  create_tunnel_req={0};
   gtpv1u_gnb_create_tunnel_resp_t create_tunnel_resp={0};
 
-  for (int i=0; i < ue_context_p->ue_context.nb_of_pdusessions; i++) {
+  for (int i = 0; i < ue_context_p->ue_context.nbPduSessions; i++) {
     pdu_session_param_t *pdu = ue_context_p->ue_context.pduSession + i;
     create_tunnel_req.pdusession_id[i] = pdu->param.pdusession_id;
     create_tunnel_req.incoming_rb_id[i] = i + 1;
@@ -119,7 +119,7 @@ static int drb_config_gtpu_create(const protocol_ctxt_t *const ctxt_p,
     create_tunnel_req.dst_addr[i].length = pdu->param.upf_addr.length;
     create_tunnel_req.outgoing_teid[i] = pdu->param.gtp_teid;
   }
-  create_tunnel_req.num_tunnels = ue_context_p->ue_context.nb_of_pdusessions;
+  create_tunnel_req.num_tunnels = ue_context_p->ue_context.nbPduSessions;
   create_tunnel_req.ue_id       = ue_context_p->ue_context.rnti;
 
   int ret = gtpv1u_create_ngu_tunnel(getCxtE1(instance)->gtpInstN3, &create_tunnel_req, &create_tunnel_resp);
@@ -181,11 +181,11 @@ static void cucp_cuup_bearer_context_setup_direct(e1ap_bearer_setup_req_t *const
   PROTOCOL_CTXT_SET_BY_MODULE_ID(&ctxt, 0, GNB_FLAG_YES, ue_context_p->ue_context.rnti, 0, 0, 0);
   gNB_RRC_INST *rrc = RC.nrrrc[ctxt.module_id];
   NR_DRB_ToAddModList_t DRB_configList = {0};
-  fill_DRB_configList(&ctxt, ue_context_p, &DRB_configList);
+  fill_DRB_configList(&ctxt, ue_context_p, &DRB_configList, setE1);
 
   // SRBFIXME: what srb to add at this level: srb1, srb2 ???
   NR_SRB_ToAddModList_t SRB_configList = {0};
-  fill_SRB_configList(&ctxt, ue_context_p, &SRB_configList);
+  fill_SRB_configList(ue_context_p, &SRB_configList);
 
   // GTP tunnel for UL
   int ret = drb_config_gtpu_create(&ctxt, ue_context_p, req, &DRB_configList, &SRB_configList, rrc->e1_inst);

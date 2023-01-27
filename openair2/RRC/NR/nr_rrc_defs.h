@@ -260,22 +260,27 @@ typedef struct nr_rrc_guami_s {
 } nr_rrc_guami_t;
 
 typedef enum pdu_session_satus_e {
-  PDU_SESSION_STATUS_NEW,
-  PDU_SESSION_STATUS_DONE,
-  PDU_SESSION_STATUS_ESTABLISHED,
-  PDU_SESSION_STATUS_REESTABLISHED, // after HO
-  PDU_SESSION_STATUS_TOMODIFY,      // ENDC NSA
-  PDU_SESSION_STATUS_FAILED,
-  PDU_SESSION_STATUS_TORELEASE  // to release DRB between eNB and UE
+  PDU_SESSION_notExisting,
+  PDU_SESSION_existing,
+  PDU_SESSION_failed,
+  PDU_SESSION_toCreate,
+  PDU_SESSION_createSent,
+  PDU_SESSION_toModify,
+  PDU_SESSION_modifySent,
+  PDU_SESSION_toDelete,
+  PDU_SESSION_deleteSent
 } pdu_session_status_t;
 
 typedef struct pdu_session_param_s {
   pdusession_t param;
-  uint8_t status;
-  uint8_t xid; // transaction_id
+  pdu_session_status_t statusE1;
+  pdu_session_status_t statusF1;
+  pdu_session_status_t statusNGAP;
+  bool dataTosend;
+  int xid;
   ngap_Cause_t cause;
   uint8_t cause_value;
-} __attribute__ ((__packed__)) pdu_session_param_t;
+} pdu_session_param_t;
 
 #define MAX_SRBs 3 // srb 0 to 2, we don't use srb 0 here, but it is simpler
 typedef struct gNB_RRC_UE_s {
@@ -347,24 +352,13 @@ typedef struct gNB_RRC_UE_s {
   /* Number of e_rab to be modified in the list */
   uint8_t                            nb_of_modify_e_rabs;
   uint8_t                            nb_of_failed_e_rabs;
-  nr_e_rab_param_t                   modify_e_rab[NB_RB_MAX];//[S1AP_MAX_E_RAB];
-  /* Total number of pdu session already setup in the list */
-  uint8_t                            setup_pdu_sessions;
-  /* Number of pdu session to be setup in the list */
-  uint8_t                            nb_of_pdusessions;
-  /* Number of e_rab to be modified in the list */
-  uint8_t                            nb_of_modify_pdusessions;
-  uint8_t                            nb_of_failed_pdusessions;
-  pdu_session_param_t                modify_pdusession[NR_NB_RB_MAX];
-  /* list of e_rab to be setup by RRC layers */
-  /* list of pdu session to be setup by RRC layers */
+  nr_e_rab_param_t modify_e_rab[NB_RB_MAX]; //[S1AP_MAX_E_RAB];
   nr_e_rab_param_t                   e_rab[NB_RB_MAX];//[S1AP_MAX_E_RAB];
+  int nbPduSessions;
   pdu_session_param_t                pduSession[NGAP_MAX_PDU_SESSION];
   //release e_rabs
   uint8_t                            nb_release_of_e_rabs;
-  e_rab_failed_t                     e_rabs_release_failed[S1AP_MAX_E_RAB];
-  uint8_t                            nb_release_of_pdusessions;
-  pdusession_failed_t                pdusessions_release_failed[NGAP_MAX_PDUSESSION];
+  e_rab_failed_t e_rabs_release_failed[S1AP_MAX_E_RAB];
   // LG: For GTPV1 TUNNELS
   uint32_t                           gnb_gtp_teid[S1AP_MAX_E_RAB];
   transport_layer_addr_t             gnb_gtp_addrs[S1AP_MAX_E_RAB];
@@ -400,8 +394,7 @@ typedef struct gNB_RRC_UE_s {
   struct NR_PhysicalCellGroupConfig                     *physicalCellGroupConfig;
 
   /* Nas Pdu */
-  uint8_t                        nas_pdu_flag;
-  ngap_nas_pdu_t                 nas_pdu;
+  ngap_pdu_t nas_pdu;
 
 } gNB_RRC_UE_t;
 

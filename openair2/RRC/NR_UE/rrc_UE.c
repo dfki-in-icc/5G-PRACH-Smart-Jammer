@@ -235,11 +235,14 @@ int8_t nr_rrc_ue_process_rrcReconfiguration(const module_id_t module_id, NR_RRCR
         if(get_softmodem_params()->sa || get_softmodem_params()->nsa) {
 
           NR_CellGroupConfig_t *cellGroupConfig = NULL;
-          uper_decode(NULL,
-                      &asn_DEF_NR_CellGroupConfig,   //might be added prefix later
+          const asn_codec_ctx_t asn1cStack = {.max_stack_size = 100 * 1000};
+          uper_decode(&asn1cStack,
+                      &asn_DEF_NR_CellGroupConfig, // might be added prefix later
                       (void **)&cellGroupConfig,
                       (uint8_t *)rrcReconfiguration->criticalExtensions.choice.rrcReconfiguration->secondaryCellGroup->buf,
-                      rrcReconfiguration->criticalExtensions.choice.rrcReconfiguration->secondaryCellGroup->size, 0, 0);
+                      rrcReconfiguration->criticalExtensions.choice.rrcReconfiguration->secondaryCellGroup->size,
+                      0,
+                      0);
 
           if ( LOG_DEBUGFLAG(DEBUG_ASN1) ) {
             xer_fprint(stdout, &asn_DEF_NR_CellGroupConfig, (const void *) cellGroupConfig);

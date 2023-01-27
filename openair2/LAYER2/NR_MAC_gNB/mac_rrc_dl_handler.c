@@ -111,24 +111,15 @@ int dl_rrc_message_rrcSetup(module_id_t module_id, const f1ap_dl_rrc_message_t *
                          dl_rrc->rnti,
                          cellGroup);
 
-  /* TODO: drop the RRC context */
   gNB_RRC_INST *rrc = RC.nrrrc[module_id];
   struct rrc_gNB_ue_context_s *ue_context_p = rrc_gNB_get_ue_context(rrc, dl_rrc->rnti);
   gNB_RRC_UE_t *ue_p = &ue_context_p->ue_context;
-  // FixMEEEE
-  // ue_p->SRB_configList = rrcSetup_ies->radioBearerConfig.srb_ToAddModList;
-  abort();
   ue_p->masterCellGroup = cellGroup;
 
   nr_rlc_srb_recv_sdu(dl_rrc->rnti, CCCH, dl_rrc->rrc_container, dl_rrc->rrc_container_length);
 
   protocol_ctxt_t ctxt = {.module_id = module_id, .rntiMaybeUEid = dl_rrc->rnti};
-  nr_rrc_rlc_config_asn1_req(&ctxt,
-                             NULL, // ue_context_p->ue_context.SRB_configList,
-                             NULL,
-                             NULL,
-                             NULL,
-                             cellGroup->rlc_BearerToAddModList);
+  nr_rrc_rlc_config_asn1_req(&ctxt, rrcSetup_ies->radioBearerConfig.srb_ToAddModList, NULL, NULL, NULL, cellGroup->rlc_BearerToAddModList);
 
   return 0;
 }

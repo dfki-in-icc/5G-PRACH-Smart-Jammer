@@ -111,7 +111,7 @@ void fill_DRB_configList(const protocol_ctxt_t *const ctxt_pP, rrc_gNB_ue_contex
 {
   abort();
 }
-void fill_SRB_configList(const protocol_ctxt_t *const ctxt_pP, rrc_gNB_ue_context_t *ue_context_pP, NR_SRB_ToAddModList_t *SRB_configList)
+void fill_SRB_configList(rrc_gNB_ue_context_t *ue_context_pP, NR_SRB_ToAddModList_t *SRB_configList)
 {
   abort();
 }
