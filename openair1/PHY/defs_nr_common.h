@@ -107,6 +107,8 @@
 
 #define NR_NB_NSCID 2
 
+#define MAX_UL_DELAY_COMP 20
+
 extern const uint8_t nr_rv_round_map[4]; 
 
 static inline
@@ -303,6 +305,8 @@ struct NR_DL_FRAME_PARMS {
   /// sequence used to compensate the phase rotation due to timeshifted OFDM symbols
   /// First dimenstion is for different CP lengths
   c16_t timeshift_symbol_rotation[4096*2] __attribute__ ((aligned (16)));
+  /// Table used to apply the delay compensation in UL
+  c16_t ul_delay_table[2 * MAX_UL_DELAY_COMP + 1][4096 * 2];
   /// shift of pilot position in one RB
   uint8_t nushift;
   /// SRS configuration from TS 38.331 RRC
