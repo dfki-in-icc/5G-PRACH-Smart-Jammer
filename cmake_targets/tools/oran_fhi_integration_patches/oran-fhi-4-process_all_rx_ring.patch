@@ -1,0 +1,27 @@
+From 5c99462d138042f99b3a02cec013f75bbc3732a9 Mon Sep 17 00:00:00 2001
+From: "thamizhselvan.k" <thamizhselvan.k@vvdntech.in>
+Date: Fri, 27 Jan 2023 15:48:25 +0530
+Subject: [PATCH 4/4] process all rx ring
+
+---
+ fhi_lib/lib/src/xran_common.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/fhi_lib/lib/src/xran_common.c b/fhi_lib/lib/src/xran_common.c
+index 5bbacf7..eaefe45 100644
+--- a/fhi_lib/lib/src/xran_common.c
++++ b/fhi_lib/lib/src/xran_common.c
+@@ -737,8 +737,8 @@ int32_t ring_processing_func(void)
+     /* UP first */
+ 
+     for (i = 0; i < ctx->io_cfg.num_vfs && i < (XRAN_VF_MAX - 1); i = i+2){
+-        if (process_ring(ctx->rx_ring[i]))
+-            return 0;
++        process_ring(ctx->rx_ring[i]);
++        process_ring(ctx->rx_ring[i+1]);
+ 
+         /* CP next */
+         if(ctx->io_cfg.id == O_RU) /* process CP only on O-RU */
+-- 
+2.25.1
+

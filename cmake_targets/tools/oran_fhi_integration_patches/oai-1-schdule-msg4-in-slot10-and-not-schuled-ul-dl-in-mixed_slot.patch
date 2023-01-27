@@ -1,0 +1,99 @@
+From dae591111a2ae0a8393d39871a9a7117a9e38d60 Mon Sep 17 00:00:00 2001
+From: "thamizhselvan.k" <thamizhselvan.k@vvdntech.in>
+Date: Fri, 27 Jan 2023 16:07:48 +0530
+Subject: [PATCH] schdule msg4 in slot10 and not schuled ul/dl in mixed slot
+
+---
+ openair2/LAYER2/NR_MAC_gNB/config.c            |  4 ++--
+ openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_RA.c  | 11 +++++++----
+ openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_uci.c |  2 +-
+ openair2/RRC/NR/nr_rrc_config.c                |  2 +-
+ 4 files changed, 11 insertions(+), 8 deletions(-)
+
+diff --git a/openair2/LAYER2/NR_MAC_gNB/config.c b/openair2/LAYER2/NR_MAC_gNB/config.c
+index e1ec0f6baf..80d1df5886 100644
+--- a/openair2/LAYER2/NR_MAC_gNB/config.c
++++ b/openair2/LAYER2/NR_MAC_gNB/config.c
+@@ -512,8 +512,8 @@ int rrc_mac_config_req_gNB(module_id_t Mod_idP,
+     int nr_dl_slots = n;
+     int nr_ulstart_slot = 0;
+     if (tdd) {
+-      nr_dl_slots = tdd->nrofDownlinkSlots + (tdd->nrofDownlinkSymbols != 0);
+-      nr_ulstart_slot = get_first_ul_slot(tdd->nrofDownlinkSlots, tdd->nrofDownlinkSymbols, tdd->nrofUplinkSymbols);
++      nr_dl_slots = tdd->nrofDownlinkSlots;
++      nr_ulstart_slot = tdd->nrofDownlinkSlots + 1;
+       nr_slots_period /= get_nb_periods_per_frame(tdd->dl_UL_TransmissionPeriodicity);
+     }
+     else
+diff --git a/openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_RA.c b/openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_RA.c
+index 7b545cc45c..15a148dbbb 100644
+--- a/openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_RA.c
++++ b/openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_RA.c
+@@ -485,7 +485,7 @@ void nr_schedule_msg2(uint16_t rach_frame, uint16_t rach_slot,
+ 
+   *msg2_frame = rach_frame + eff_slot / nr_slots_per_frame[mu];
+   *msg2_slot = eff_slot % nr_slots_per_frame[mu];
+-
++  *msg2_slot = 7;
+   // go to previous slot if the current scheduled slot is beyond the response window
+   // and if the slot is not among the PDCCH monitored ones (38.213 10.1)
+   while (*msg2_frame > frame_limit
+@@ -893,7 +893,7 @@ void nr_get_Msg3alloc(module_id_t module_id,
+   const NR_TDD_UL_DL_Pattern_t *tdd = scc->tdd_UL_DL_ConfigurationCommon ? &scc->tdd_UL_DL_ConfigurationCommon->pattern1 : NULL;
+   const int n_slots_frame = nr_slots_per_frame[mu];
+   uint8_t k2 = 0;
+-  if (frame_type == TDD) {
++  if ( 0 && frame_type == TDD) {
+     int msg3_slot = get_first_ul_slot(tdd->nrofDownlinkSlots, tdd->nrofDownlinkSymbols, tdd->nrofUplinkSymbols);
+     if (tdd->nrofUplinkSymbols != 0) {
+       if (tdd->nrofUplinkSymbols < 3)
+@@ -928,8 +928,8 @@ void nr_get_Msg3alloc(module_id_t module_id,
+     AssertFatal(ra->Msg3_tda_id < 16, "Couldn't find an appropriate TD allocation for Msg3\n");
+   }
+   else {
+-    ra->Msg3_tda_id = 0;
+-    k2 = *pusch_TimeDomainAllocationList->list.array[0]->k2;
++    ra->Msg3_tda_id = pusch_TimeDomainAllocationList->list.count-1;
++    k2 = *pusch_TimeDomainAllocationList->list.array[pusch_TimeDomainAllocationList->list.count-1]->k2;
+     abs_slot = current_slot + k2 + DELTA[mu]; // msg3 slot according to 8.3 in 38.213
+     ra->Msg3_slot = abs_slot % nr_slots_per_frame[mu];
+   }
+@@ -1400,6 +1400,9 @@ void nr_generate_Msg4(module_id_t module_idP, int CC_id, frame_t frameP, sub_fra
+   NR_COMMON_channels_t *cc = &nr_mac->common_channels[CC_id];
+   NR_UE_DL_BWP_t *dl_bwp = &ra->DL_BWP;
+ 
++  if (slotP != 10)
++       return;
++
+   // if it is a DL slot, if the RA is in MSG4 state
+   if (is_xlsch_in_slot(nr_mac->dlsch_slot_bitmap[slotP / 64], slotP) &&
+       ra->state == Msg4) {
+diff --git a/openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_uci.c b/openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_uci.c
+index f2d4c7946d..8cef3253fe 100644
+--- a/openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_uci.c
++++ b/openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_uci.c
+@@ -1099,7 +1099,7 @@ int nr_acknack_scheduling(gNB_MAC_INST *mac,
+   const NR_TDD_UL_DL_Pattern_t *tdd = scc->tdd_UL_DL_ConfigurationCommon ? &scc->tdd_UL_DL_ConfigurationCommon->pattern1 : NULL;
+   AssertFatal(tdd || mac->common_channels[CC_id].frame_type == FDD, "Dynamic TDD not handled yet\n");
+   const int nr_slots_period = tdd ? n_slots_frame / get_nb_periods_per_frame(tdd->dl_UL_TransmissionPeriodicity) : n_slots_frame;
+-  const int first_ul_slot_period = tdd ? get_first_ul_slot(tdd->nrofDownlinkSlots, tdd->nrofDownlinkSymbols, tdd->nrofUplinkSymbols) : 0;
++  const int first_ul_slot_period = tdd ? (tdd->nrofDownlinkSlots +1) : 0;
+ 
+   NR_UE_sched_ctrl_t *sched_ctrl = &UE->UE_sched_ctrl;
+   NR_PUCCH_Config_t *pucch_Config = ul_bwp->pucch_Config;
+diff --git a/openair2/RRC/NR/nr_rrc_config.c b/openair2/RRC/NR/nr_rrc_config.c
+index 1a81d1fa67..a4986793fa 100644
+--- a/openair2/RRC/NR/nr_rrc_config.c
++++ b/openair2/RRC/NR/nr_rrc_config.c
+@@ -742,7 +742,7 @@ void nr_rrc_config_ul_tda(NR_ServingCellConfigCommon_t *scc, int min_fb_delay){
+       struct NR_PUSCH_TimeDomainResourceAllocation *pusch_timedomainresourceallocation_msg3 = CALLOC(1,sizeof(struct NR_PUSCH_TimeDomainResourceAllocation));
+       pusch_timedomainresourceallocation_msg3->k2  = CALLOC(1,sizeof(long));
+       int no_mix_slot = ul_symb < 3 ? 1 : 0; // we need at least 2 symbols for scheduling Msg3
+-      *pusch_timedomainresourceallocation_msg3->k2 = nb_slots_per_period - DELTA[mu] + no_mix_slot;
++      *pusch_timedomainresourceallocation_msg3->k2 = nb_slots_per_period - DELTA[mu] + no_mix_slot + 2;
+       if(*pusch_timedomainresourceallocation_msg3->k2 < min_fb_delay)
+         *pusch_timedomainresourceallocation_msg3->k2 += nb_slots_per_period;
+       AssertFatal(*pusch_timedomainresourceallocation_msg3->k2<33,"Computed k2 for msg3 %ld is larger than the range allowed by RRC (0..32)\n",
+-- 
+2.25.1
+

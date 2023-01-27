@@ -1,3 +1,12 @@
+From 3055c4a6cdb3ffa91deb4c6c11ecad0c95fef759 Mon Sep 17 00:00:00 2001
+From: "thamizhselvan.k" <thamizhselvan.k@vvdntech.in>
+Date: Fri, 27 Jan 2023 15:46:02 +0530
+Subject: [PATCH 3/4] disable pkt validate at process_mbuf
+
+---
+ fhi_lib/lib/src/xran_common.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
 diff --git a/fhi_lib/lib/src/xran_common.c b/fhi_lib/lib/src/xran_common.c
 index c4cb3fb..5bbacf7 100644
 --- a/fhi_lib/lib/src/xran_common.c

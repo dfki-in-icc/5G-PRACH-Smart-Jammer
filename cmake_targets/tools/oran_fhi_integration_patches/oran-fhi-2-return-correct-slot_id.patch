@@ -1,3 +1,12 @@
+From f26a9e9a3b902d56fffcb40644fa7d3e17d793f9 Mon Sep 17 00:00:00 2001
+From: "thamizhselvan.k" <thamizhselvan.k@vvdntech.in>
+Date: Fri, 27 Jan 2023 15:43:50 +0530
+Subject: [PATCH 2/4] return correct slot_id
+
+---
+ fhi_lib/lib/src/xran_main.c | 1 +
+ 1 file changed, 1 insertion(+)
+
 diff --git a/fhi_lib/lib/src/xran_main.c b/fhi_lib/lib/src/xran_main.c
 index 17acc2a..8f5705e 100644
 --- a/fhi_lib/lib/src/xran_main.c

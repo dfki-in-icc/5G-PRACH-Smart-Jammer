@@ -1,0 +1,29 @@
+From d1ad2907b3c3572de193ae770912436fb0a96443 Mon Sep 17 00:00:00 2001
+From: "thamizhselvan.k" <thamizhselvan.k@vvdntech.in>
+Date: Fri, 27 Jan 2023 16:18:08 +0530
+Subject: [PATCH 2/2] disable dedicated bandwidth config for Amarisoft UE
+ simbox
+
+---
+ openair2/RRC/NR/MESSAGES/asn1_msg.c | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/openair2/RRC/NR/MESSAGES/asn1_msg.c b/openair2/RRC/NR/MESSAGES/asn1_msg.c
+index e52e637dd8..f15735b36f 100644
+--- a/openair2/RRC/NR/MESSAGES/asn1_msg.c
++++ b/openair2/RRC/NR/MESSAGES/asn1_msg.c
+@@ -1213,10 +1213,8 @@ void fill_initial_cellGroupConfig(int uid,
+   physicalCellGroupConfig->pdsch_HARQ_ACK_Codebook                          = NR_PhysicalCellGroupConfig__pdsch_HARQ_ACK_Codebook_dynamic;
+   cellGroupConfig->physicalCellGroupConfig                                  = physicalCellGroupConfig;
+   
+-  cellGroupConfig->spCellConfig                                             = calloc(1,sizeof(*cellGroupConfig->spCellConfig));
++  cellGroupConfig->spCellConfig                                             = NULL;
+ 
+-  fill_initial_SpCellConfig(uid,cellGroupConfig->spCellConfig,scc,servingcellconfigdedicated,configuration);
+-  
+   cellGroupConfig->sCellToAddModList                                        = NULL;
+   cellGroupConfig->sCellToReleaseList                                       = NULL;
+ }
+-- 
+2.25.1
+

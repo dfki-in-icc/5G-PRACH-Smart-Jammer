@@ -1,9 +1,22 @@
+From a7f20ad7c4ada7d50f21c5a8f15b1baab37481fa Mon Sep 17 00:00:00 2001
+From: "thamizhselvan.k" <thamizhselvan.k@vvdntech.in>
+Date: Fri, 27 Jan 2023 15:42:36 +0530
+Subject: [PATCH 1/4] compile libxran using-gcc and disable avx512
+
+---
+ fhi_lib/build.sh     |  7 ++++---
+ fhi_lib/lib/Makefile | 23 ++++++++++++-----------
+ 2 files changed, 16 insertions(+), 14 deletions(-)
+
 diff --git a/fhi_lib/build.sh b/fhi_lib/build.sh
-index 22859b5..e24e46f 100755
+index 22859b5..575bcc5 100755
 --- a/fhi_lib/build.sh
 +++ b/fhi_lib/build.sh
-@@ -72,9 +72,9 @@ echo "MLOG      = ${MLOG}"
+@@ -70,11 +70,12 @@ echo "LIBXRANSO = ${LIBXRANSO}"
+ echo "MLOG      = ${MLOG}"
+ 
  cd $XRAN_FH_LIB_DIR
++make clean
  make $COMMAND_LINE MLOG=${MLOG} LIBXRANSO=${LIBXRANSO} #DEBUG=1 VERBOSE=1
  
 -echo 'Building xRAN Test Application'
@@ -16,7 +29,7 @@ index 22859b5..e24e46f 100755
  if [ -z ${GTEST_ROOT+x} ];
  then
 diff --git a/fhi_lib/lib/Makefile b/fhi_lib/lib/Makefile
-index 579a0c6..c553fda 100644
+index 579a0c6..de5309d 100644
 --- a/fhi_lib/lib/Makefile
 +++ b/fhi_lib/lib/Makefile
 @@ -23,11 +23,11 @@ MYCUSTOMSPACE1='------------------------------------------------------------'
@@ -39,7 +52,7 @@ index 579a0c6..c553fda 100644
  	-Wall \
  	-Wimplicit-function-declaration \
 -	-g -O3 -wd1786
-+	-g -O3 -mssse3 \
++	-g -O0 -mssse3 \
 +  -march=native
  
 -CPP_FLAGS := -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -D_GNU_SOURCE -D_REENTRANT -pipe -no-prec-div \
