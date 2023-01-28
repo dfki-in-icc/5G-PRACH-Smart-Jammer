@@ -26,13 +26,13 @@
 #---------------------------------------------------------------------
 
 
-FROM ubuntu:bionic AS ran-base
+FROM ubuntu:bionic AS ran-base-aw2s
 ARG NEEDED_GIT_PROXY
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Europe/Paris
-ENV BUILD_UHD_FROM_SOURCE=True
+ENV BUILD_UHD_FROM_SOURCE=False
 #ENV UHD_VERSION=3.15.0.0
-ENV UHD_VERSION=4.3.0.0
+#ENV UHD_VERSION=4.3.0.0
 
 
 #install developers pkg/repo
@@ -59,4 +59,4 @@ COPY . .
 RUN /bin/sh oaienv && \ 
     cd cmake_targets && \
     mkdir -p log && \
-    ./build_oai -I -w USRP
+    ./build_oai -I -w AW2SORI
