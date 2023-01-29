@@ -710,11 +710,9 @@ int main(int argc, char *argv[])
   gNB->use_pusch_tp = use_tpool;
   gNB->num_pusch_symbols_per_thread = 1;
 
-
 #ifdef TASK_MANAGER
   init_task_manager(&gNB->man, threadCnt);
 #endif
-
 
   initFloatingCoresTpool(threadCnt, &gNB->threadPool, false, "gNB-tpool");
   initNotifiedFIFO(&gNB->respDecode);

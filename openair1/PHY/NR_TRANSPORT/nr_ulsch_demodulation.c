@@ -27,6 +27,9 @@
 
 #include <omp.h>
 
+#ifdef __aarch64__
+#define USE_128BIT 1
+#endif
 
 static inline
 int64_t time_now_us(void)
@@ -1476,6 +1479,7 @@ void inner_rx_qpsk(int *rxF,
 }
 
 void inner_rx_256qam(int *rxF, int *ul_ch, int16_t *llr, int aarx, int length,int output_shift) {
+#ifndef USE_128BIT	
    register simde__m256i xmmtmpD0,xmmtmpD1,xmmtmpD2,xmmtmpD3,xmmtmpD4,xmmtmpD5,xmmtmpD6,xmmtmpD7,xmmtmpD8,xmmtmpD9;
    register simde__m256i complex_shuffle256 = simde_mm256_set_epi8(29,28,31,30,25,24,27,26,21,20,23,22,17,16,19,18,13,12,15,14,9,8,11,10,5,4,7,6,1,0,3,2);
    register simde__m256i conj256 = simde_mm256_set_epi16(1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1);
@@ -1485,11 +1489,9 @@ void inner_rx_256qam(int *rxF, int *ul_ch, int16_t *llr, int aarx, int length,in
    register simde__m256i QAM_amp256c = simde_mm256_set1_epi16(QAM256_n3);
    simde__m256i *rxF256  = (simde__m256i*)rxF;
    simde__m256i *ulch256 = (simde__m256i*)ul_ch;
-   // need to use simde__m64 because llr output is not necessarily aligned to 256 bits, but it is always to 64 bits
- 
+   simde__m256i *llr256 = (simde__m256i *)llr;   
    if (aarx==0) {
-     simde__m256i *llr256 = (simde__m256i *)llr;   
-     for (int i=0;i<((length>>4)+((length&15)>0?1:0));i++) {
+     for (int i=0;i<(length>>3);i++) {
         xmmtmpD0  = simde_mm256_madd_epi16(ulch256[i],rxF256[i]);
         // xmmtmpD0 contains real part of 8 consecutive outputs (32-bit) of conj(H_m[i])*R_m[i]
         xmmtmpD1  = simde_mm256_shuffle_epi8(ulch256[i],complex_shuffle256);
@@ -1539,8 +1541,7 @@ void inner_rx_256qam(int *rxF, int *ul_ch, int16_t *llr, int aarx, int length,in
         llr256+=4;
      }
    } else {
-     simde__m256i *llr256 = (simde__m256i *)llr;   
-     for (int i=0;i<((length>>4)+((length&15)>0?1:0));i++) {
+     for (int i=0;i<(length>>3);i++) {
         xmmtmpD0  = simde_mm256_madd_epi16(ulch256[i],rxF256[i]);
         // xmmtmpD0 contains real part of 8 consecutive outputs (32-bit) of conj(H_m[i])*R_m[i]
         xmmtmpD1  = simde_mm256_shuffle_epi8(ulch256[i],complex_shuffle256);
@@ -1589,6 +1590,189 @@ void inner_rx_256qam(int *rxF, int *ul_ch, int16_t *llr, int aarx, int length,in
         llr256+=4;
      }
    }  
+   simde__m128i *llr128 = (simde__m128i*)llr256;	  
+   if ((length&7) >= 4) { //there is a single 128-bit input element remaining
+        int nb_re128 = length>>2;	   
+        simde__m128i xmm0,xmm1,xmm2,xmm3,xmm4,xmm5,xmm6;
+        simde__m128i complex_shuffle128 = simde_mm_set_epi8(13,12,15,14,9,8,11,10,5,4,7,6,1,0,3,2);
+        simde__m128i conj128 = simde_mm_set_epi16(1,-1,1,-1,1,-1,1,-1);
+        simde__m128i *rxF128     = (simde__m128i*)rxF;
+        simde__m128i *ulch128    = (simde__m128i*)ul_ch;
+        simde__m128i QAM_amp     = simde_mm_set1_epi16(QAM256_n1);  // 2/sqrt(10)
+        simde__m128i QAM_ampb    = simde_mm_set1_epi16(QAM256_n2);
+        simde__m128i QAM_ampc    = simde_mm_set1_epi16(QAM256_n3);
+
+        xmm0  = simde_mm_madd_epi16(ulch128[nb_re128-1],rxF128[nb_re128-1]);
+        // xmm0 contains real part of 4 consecutive outputs (32-bit) of conj(H_m[i])*R_m[i]
+        xmm1  = simde_mm_shuffle_epi8(ulch128[nb_re128-1],complex_shuffle128);
+        xmm1  = simde_mm_sign_epi16(xmm1,conj128);
+        xmm1  = simde_mm_madd_epi16(xmm1,rxF128[nb_re128-1]);
+        // xmm1 contains imag part of 4 consecutive outputs (32-bit) of conj(H_m[i])*R_m[i]
+        xmm0  = simde_mm_srai_epi32(xmm0,output_shift);
+        xmm1  = simde_mm_srai_epi32(xmm1,output_shift);
+        xmm2  = simde_mm_unpacklo_epi32(xmm0,xmm1);
+        xmm3  = simde_mm_unpackhi_epi32(xmm0,xmm1);
+        xmm4  = simde_mm_packs_epi32(xmm2,xmm3);
+
+	// compute channel amplitude for LLR
+        xmm0 = simde_mm_madd_epi16(ulch128[nb_re128-1],ulch128[nb_re128-1]);
+        xmm0 = simde_mm_srai_epi32(xmm0,output_shift);
+        xmm0 = simde_mm_packs_epi32(xmm0,xmm0);   // contains 16 LLRs 
+        xmm2 = simde_mm_unpacklo_epi16(xmm0,xmm0);
+        xmm1 = simde_mm_mulhrs_epi16(xmm2,QAM_amp);
+        xmm5 = simde_mm_mulhrs_epi16(xmm2,QAM_ampb);
+        xmm6 = simde_mm_mulhrs_epi16(xmm2,QAM_ampc);
+        xmm0 = simde_mm_abs_epi16(xmm4); // registers of even index in xmm0-> |y_R|, registers of odd index in xmm0-> |y_I|
+        xmm0 = simde_mm_subs_epi16(xmm1,xmm0); // registers of even index in xmm0-> |y_R|-|h|^2, registers of odd index in xmm0-> |y_I|-|h|^2
+      //  xmmtmpD2 contains 8 LLRs
+        xmm1 = simde_mm_abs_epi16(xmm0);
+        xmm1 = simde_mm_subs_epi16(xmm5,xmm1); // contains 8 LLRs
+        xmm2 = simde_mm_abs_epi16(xmm1);
+        xmm2 = simde_mm_subs_epi16(xmm6,xmm2); // contains 8 LLRs
+        // rxF[i] A0 A1 A2 A3
+        // xmm0   B0 B1 B2 B3
+        // xmm1   C0 C1 C2 C3
+        // xmm2   D0 D1 D2 D3
+        xmm3 = simde_mm_unpacklo_epi32(rxF128[nb_re128-1],xmm0); // A0 B0 A1 B1 
+        xmm4 = simde_mm_unpackhi_epi32(rxF128[nb_re128-1],xmm0); // A2 B2 A3 B3
+        xmm5 = simde_mm_unpacklo_epi32(xmm1,xmm2);   // C0 D0 C1 D1
+        xmm6 = simde_mm_unpackhi_epi32(xmm1,xmm2);   // C2 D2 C3 D3
+        if (aarx == 0) {
+          llr128[0] = simde_mm_unpacklo_epi64(xmm3,xmm5); // A0 B0 C0 D0
+          llr128[1] = simde_mm_unpackhi_epi64(xmm3,xmm5); // A1 B1 C1 D1 
+          llr128[2] = simde_mm_unpacklo_epi64(xmm4,xmm6); // A2 B2 C2 D2 
+          llr128[3] = simde_mm_unpackhi_epi64(xmm4,xmm6); // A3 B3 C3 D3
+          llr128+=4;
+        }
+	else {
+          llr128[0] = simde_mm_adds_epi16(llr128[0],simde_mm_unpacklo_epi64(xmm3,xmm5)); // A0 B0 C0 D0
+          llr128[1] = simde_mm_adds_epi16(llr128[1],simde_mm_unpackhi_epi64(xmm3,xmm5)); // A1 B1 C1 D1 
+          llr128[2] = simde_mm_adds_epi16(llr128[2],simde_mm_unpacklo_epi64(xmm4,xmm6)); // A2 B2 C2 D2 
+          llr128[3] = simde_mm_adds_epi16(llr128[3],simde_mm_unpackhi_epi64(xmm4,xmm6)); // A3 B3 C3 D3
+          llr128+=4;
+	}
+   }
+#else
+   int nb_re128 = length>>2;	   
+   simde__m128i xmm0,xmm1,xmm2,xmm3,xmm4,xmm5,xmm6;
+   simde__m128i complex_shuffle128 = simde_mm_set_epi8(13,12,15,14,9,8,11,10,5,4,7,6,1,0,3,2);
+   simde__m128i conj128            = simde_mm_set_epi16(1,-1,1,-1,1,-1,1,-1);
+   simde__m128i *rxF128            = (simde__m128i*)rxF;
+   simde__m128i *ulch128           = (simde__m128i*)ul_ch;
+   simde__m128i QAM_amp            = simde_mm_set1_epi16(QAM256_n1);  // 2/sqrt(10)
+   simde__m128i QAM_ampb           = simde_mm_set1_epi16(QAM256_n2);
+   simde__m128i QAM_ampc           = simde_mm_set1_epi16(QAM256_n3);
+   simde__m128i *llr128            = (simde__m128i*)llr;	  
+
+   for (int i=0;i<nb_re128;i++) {
+        xmm0  = simde_mm_madd_epi16(ulch128[i],rxF128[i]);
+        // xmm0 contains real part of 4 consecutive outputs (32-bit) of conj(H_m[i])*R_m[i]
+        xmm1  = simde_mm_shuffle_epi8(ulch128[i],complex_shuffle128);
+        xmm1  = simde_mm_sign_epi16(xmm1,conj128);
+        xmm1  = simde_mm_madd_epi16(xmm1,rxF128[i]);
+        // xmm1 contains imag part of 4 consecutive outputs (32-bit) of conj(H_m[i])*R_m[i]
+        xmm0  = simde_mm_srai_epi32(xmm0,output_shift);
+        xmm1  = simde_mm_srai_epi32(xmm1,output_shift);
+        xmm2  = simde_mm_unpacklo_epi32(xmm0,xmm1);
+        xmm3  = simde_mm_unpackhi_epi32(xmm0,xmm1);
+        xmm4  = simde_mm_packs_epi32(xmm2,xmm3);
+
+	// compute channel amplitude for LLR
+        xmm0 = simde_mm_madd_epi16(ulch128[i],ulch128[i]);
+        xmm0 = simde_mm_srai_epi32(xmm0,output_shift);
+        xmm0 = simde_mm_packs_epi32(xmm0,xmm0);   // contains 16 LLRs 
+        xmm2 = simde_mm_unpacklo_epi16(xmm0,xmm0);
+        xmm1 = simde_mm_mulhrs_epi16(xmm2,QAM_amp);
+        xmm5 = simde_mm_mulhrs_epi16(xmm2,QAM_ampb);
+        xmm6 = simde_mm_mulhrs_epi16(xmm2,QAM_ampc);
+        xmm0 = simde_mm_abs_epi16(xmm4); // registers of even index in xmm0-> |y_R|, registers of odd index in xmm0-> |y_I|
+        xmm0 = simde_mm_subs_epi16(xmm1,xmm0); // registers of even index in xmm0-> |y_R|-|h|^2, registers of odd index in xmm0-> |y_I|-|h|^2
+      //  xmmtmpD2 contains 8 LLRs
+        xmm1 = simde_mm_abs_epi16(xmm0);
+        xmm1 = simde_mm_subs_epi16(xmm5,xmm1); // contains 8 LLRs
+        xmm2 = simde_mm_abs_epi16(xmm1);
+        xmm2 = simde_mm_subs_epi16(xmm6,xmm2); // contains 8 LLRs
+        // rxF[i] A0 A1 A2 A3
+        // xmm0   B0 B1 B2 B3
+        // xmm1   C0 C1 C2 C3
+        // xmm2   D0 D1 D2 D3
+        xmm3 = simde_mm_unpacklo_epi32(rxF128[i],xmm0); // A0 B0 A1 B1 
+        xmm4 = simde_mm_unpackhi_epi32(rxF128[i],xmm0); // A2 B2 A3 B3
+        xmm5 = simde_mm_unpacklo_epi32(xmm1,xmm2);   // C0 D0 C1 D1
+        xmm6 = simde_mm_unpackhi_epi32(xmm1,xmm2);   // C2 D2 C3 D3
+        if (aarx == 0) {
+          llr128[0] = simde_mm_unpacklo_epi64(xmm3,xmm5); // A0 B0 C0 D0
+          llr128[1] = simde_mm_unpackhi_epi64(xmm3,xmm5); // A1 B1 C1 D1 
+          llr128[2] = simde_mm_unpacklo_epi64(xmm4,xmm6); // A2 B2 C2 D2 
+          llr128[3] = simde_mm_unpackhi_epi64(xmm4,xmm6); // A3 B3 C3 D3
+          llr128+=4;
+        }
+	else {
+          llr128[0] = simde_mm_adds_epi16(llr128[0],simde_mm_unpacklo_epi64(xmm3,xmm5)); // A0 B0 C0 D0
+          llr128[1] = simde_mm_adds_epi16(llr128[1],simde_mm_unpackhi_epi64(xmm3,xmm5)); // A1 B1 C1 D1 
+          llr128[2] = simde_mm_adds_epi16(llr128[2],simde_mm_unpacklo_epi64(xmm4,xmm6)); // A2 B2 C2 D2 
+          llr128[3] = simde_mm_adds_epi16(llr128[3],simde_mm_unpackhi_epi64(xmm4,xmm6)); // A3 B3 C3 D3
+          llr128+=4;
+	}
+   }
+
+
+#endif  
+   simde__m64 *llr64 = (simde__m64*)llr128;	  
+   if ((length&7) == 6) { // there a single 64-bit input element remaining
+        int nb_re64 = length>>1;	   
+        simde__m64 xmm0,xmm1,xmm2,xmm3,xmm4,xmm5,xmm6;
+        simde__m64 complex_shuffle64 = simde_mm_set_pi8(5,4,7,6,1,0,3,2);
+        simde__m64 conj64 = simde_mm_set_pi16(1,-1,1,-1);
+        simde__m64 *rxF64     = (simde__m64*)rxF;
+        simde__m64 *ulch64    = (simde__m64*)ul_ch;
+        simde__m64 QAM_amp     = simde_mm_set1_pi16(QAM256_n1);  // 2/sqrt(10)
+        simde__m64 QAM_ampb    = simde_mm_set1_pi16(QAM256_n2);
+        simde__m64 QAM_ampc    = simde_mm_set1_pi16(QAM256_n3);
+
+        xmm0  = simde_mm_madd_pi16(ulch64[nb_re64-1],rxF64[nb_re64-1]);
+        // xmm0 contains real part of 4 consecutive outputs (32-bit) of conj(H_m[i])*R_m[i]
+        xmm1  = simde_mm_shuffle_pi8(ulch64[nb_re64-1],complex_shuffle64);
+        xmm1  = simde_mm_sign_pi16(xmm1,conj64);
+        xmm1  = simde_mm_madd_pi16(xmm1,rxF64[nb_re64-1]);
+        // xmm1 contains imag part of 4 consecutive outputs (32-bit) of conj(H_m[i])*R_m[i]
+        xmm0  = simde_mm_srai_pi32(xmm0,output_shift);
+        xmm1  = simde_mm_srai_pi32(xmm1,output_shift);
+        xmm2  = simde_mm_unpacklo_pi32(xmm0,xmm1);
+        xmm3  = simde_mm_unpackhi_pi32(xmm0,xmm1);
+        xmm4  = simde_mm_packs_pi32(xmm2,xmm3);
+
+	// compute channel amplitude for LLR
+        xmm0 = simde_mm_madd_pi16(ulch64[nb_re64-1],ulch64[nb_re64-1]);
+        xmm0 = simde_mm_srai_pi32(xmm0,output_shift);
+        xmm0 = simde_mm_packs_pi32(xmm0,xmm0);   // contains 16 LLRs 
+        xmm2 = simde_mm_unpacklo_pi16(xmm0,xmm0);
+        xmm1 = simde_mm_mulhrs_pi16(xmm2,QAM_amp);
+        xmm5 = simde_mm_mulhrs_pi16(xmm2,QAM_ampb);
+        xmm6 = simde_mm_mulhrs_pi16(xmm2,QAM_ampc);
+        xmm0 = simde_mm_abs_pi16(xmm4); // registers of even index in xmm0-> |y_R|, registers of odd index in xmm0-> |y_I|
+        xmm0 = simde_mm_subs_pi16(xmm1,xmm0); // registers of even index in xmm0-> |y_R|-|h|^2, registers of odd index in xmm0-> |y_I|-|h|^2
+      //  xmmtmpD2 contains 8 LLRs
+        xmm1 = simde_mm_abs_pi16(xmm0);
+        xmm1 = simde_mm_subs_pi16(xmm5,xmm1); // contains 8 LLRs
+        xmm2 = simde_mm_abs_pi16(xmm1);
+        xmm2 = simde_mm_subs_pi16(xmm6,xmm2); // contains 8 LLRs
+        // rxF[i] A0 A1
+        // xmm0   B0 B1
+        // xmm1   C0 C1
+        // xmm2   D0 D1
+	if (aarx==0) {
+          llr64[0] = simde_m_punpckldq(rxF64[nb_re64-1],xmm0); // A0 B0 
+          llr64[2] = simde_m_punpckhdq(rxF64[nb_re64-1],xmm0);  // A1 B1
+          llr64[1] = simde_m_punpckldq(xmm1,xmm2);         // C0 D0
+          llr64[3] = simde_m_punpckhdq(xmm1,xmm2);         // C1 D1
+	} else {
+          llr64[0] = simde_mm_adds_pi16(llr64[0],simde_m_punpckldq(rxF64[nb_re64-1],xmm0)); // A0 B0 
+          llr64[2] = simde_mm_adds_pi16(llr64[1],simde_m_punpckhdq(rxF64[nb_re64-1],xmm0));  // A1 B1
+          llr64[1] = simde_mm_adds_pi16(llr64[2],simde_m_punpckldq(xmm1,xmm2));         // C0 D0
+          llr64[3] = simde_mm_adds_pi16(llr64[3],simde_m_punpckhdq(xmm1,xmm2));         // C1 D1
+	}
+   }
 }
 
 
