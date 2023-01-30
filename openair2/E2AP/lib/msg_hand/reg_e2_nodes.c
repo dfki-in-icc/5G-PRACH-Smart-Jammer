@@ -92,10 +92,14 @@ void add_reg_e2_node(reg_e2_nodes_t* i, global_e2_node_id_t const* id, size_t le
   assert(ran_func != NULL);
 
   seq_arr_t* arr = calloc(1, sizeof(seq_arr_t));
+  assert(arr != NULL && "Memory exhausted");
+
   seq_init(arr, sizeof(ran_function_t*));
 
   for(size_t i = 0; i < len; ++i){
     ran_function_t* tmp = calloc(1, sizeof(ran_function_t) );
+    assert(tmp != NULL && "Memory exhausted");
+
     *tmp = cp_ran_function(&ran_func[i]);
     seq_push_back(arr, &tmp, sizeof(ran_function_t*) );
   }
@@ -157,13 +161,15 @@ assoc_rb_tree_t available_e2node(reg_e2_nodes_t* n, size_t len, ran_function_t r
           if(it_ret == end_ret){
             arr = calloc(1, sizeof(seq_arr_t));
             assert(arr != NULL && "memory exhasuted");
+
             seq_init(arr,sizeof(ran_function_t*));
             assoc_insert(&ret, id, sizeof(global_e2_node_id_t), arr);
           } else{
             arr = assoc_value(&ret, it_ret);
           }
           ran_function_t* tmp = calloc(1, sizeof(ran_function_t));
-          assert(tmp != NULL);
+          assert(tmp != NULL && "Memory exhausted");
+
           *tmp = cp_ran_function(r);
           seq_push_back(arr, tmp, sizeof(ran_function_t*));
         }

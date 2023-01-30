@@ -58,7 +58,7 @@ typedef struct assoc_node_s {
 static assoc_node_t* init_node(void* key, void* value)
 {
   assoc_node_t* n = malloc(sizeof(assoc_node_t));
-  assert(n != NULL);
+  assert(n != NULL && "Memory exhausted");
   n->key = key;
   n->value = value;
   n->parent = NULL;

@@ -216,6 +216,7 @@ e2ap_msg_t e2ap_dec_subscription_response_fb(e2ap_E2Message_table_t e2mt)
   sr->len_admitted = e2ap_RicActionAdmitted_vec_len(al);
   assert(sr->len_admitted > 0);
   sr->admitted = calloc(sr->len_admitted, sizeof(*sr->admitted));
+  assert(sr->admitted);
   for (size_t i = 0; i < sr->len_admitted; ++i) {
     e2ap_RicActionAdmitted_table_t admitted = e2ap_RicActionAdmitted_vec_at(al, i);
     ric_action_admitted_t* dst = &sr->admitted[i];
@@ -226,6 +227,7 @@ e2ap_msg_t e2ap_dec_subscription_response_fb(e2ap_E2Message_table_t e2mt)
   sr->len_na = e2ap_RicActionNotAdmitted_vec_len(nal);
   if (sr->len_na > 0) {
     sr->not_admitted = calloc(sr->len_na, sizeof(ric_action_not_admitted_t));
+    assert(sr->not_admitted);
     for (size_t i = 0; i < sr->len_na; ++i) {
       e2ap_RicActionNotAdmitted_table_t not_admitted = e2ap_RicActionNotAdmitted_vec_at(nal, i);
       ric_action_not_admitted_t* dst = &sr->not_admitted[i];
