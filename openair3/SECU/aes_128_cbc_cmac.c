@@ -205,11 +205,10 @@ cbc_cmac_ctx_t init_aes_128_cbc_cmac(uint8_t key[16])
   ctx.mac = CMAC_CTX_new();
   DevAssert(ctx.mac != NULL);
 
-  assert(16 == sizeof(ctx.key));
-  memcpy(ctx.key, key, sizeof(ctx.key));
+  //assert(16 == sizeof(ctx.key));
+  memcpy(ctx.key, key, 16); //sizeof(ctx.key));
 
-  CMAC_Init(ctx.mac, key, ctx.key, EVP_aes_128_cbc(), NULL);
-
+  CMAC_Init(ctx.mac, ctx.key, 16, EVP_aes_128_cbc(), NULL);
   return ctx;
 }
 
