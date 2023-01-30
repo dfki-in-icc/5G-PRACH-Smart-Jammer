@@ -400,9 +400,6 @@ int DU_handle_DL_RRC_MESSAGE_TRANSFER(instance_t       instance,
                             (int)DRB_configList->list.array[i]->drb_Identity,
                             (int)*DRB_configList->list.array[i]->logicalChannelIdentity);
 
-                      if (ue_context_p->ue_context.DRB_active[drb_id] == 0) {
-                        ue_context_p->ue_context.DRB_active[drb_id] = 1;
-
                         if (DRB_configList->list.array[i]->logicalChannelIdentity) {
                           DRB2LCHAN[i] = (uint8_t) * DRB_configList->list.array[i]->logicalChannelIdentity;
                         }
@@ -414,7 +411,6 @@ int DU_handle_DL_RRC_MESSAGE_TRANSFER(instance_t       instance,
                         tmp.logicalChannelConfig = DRB_configList->list.array[i]->logicalChannelConfig;
                         tmp.measGapConfig = measGapConfig;
                         rrc_mac_config_req_eNB(ctxt.instance, &tmp);
-                      }
                     } else {        // remove LCHAN from MAC/PHY
                       AssertFatal(1==0,"Can't handle this yet in DU\n");
                     }

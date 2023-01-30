@@ -267,21 +267,9 @@ typedef struct ngap_transport_layer_addr_s {
   uint8_t buffer[20]; // in network byte order
 } ngap_transport_layer_addr_t;
 
-typedef enum {
-  non_dynamic,
-  dynamic
-} fiveQI_type_t;
-
-typedef struct pdusession_level_qos_parameter_s {
-  uint8_t  qfi;
-  uint64_t fiveQI;
-  fiveQI_type_t fiveQI_type;
-  ngap_allocation_retention_priority_t allocation_retention_priority;
-} pdusession_level_qos_parameter_t;
-
 typedef struct pdusession_s {
   /* Unique pdusession_id for the UE. */
-  uint8_t pdusession_id;
+  int pdusession_id;
   ngap_pdu_t nas_pdu;
   ngap_pdu_t pdusessionTransfer;
 } pdusession_t;

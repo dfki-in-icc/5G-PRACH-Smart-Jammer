@@ -514,7 +514,7 @@ static int fill_BEARER_CONTEXT_SETUP_REQUEST(e1ap_setup_req_t *setup, e1ap_beare
   msg->procedureCode = E1AP_ProcedureCode_id_bearerContextSetup;
   msg->criticality   = E1AP_Criticality_reject;
   msg->value.present = E1AP_InitiatingMessage__value_PR_BearerContextSetupRequest;
-  E1AP_BearerContextSetupRequest_t *out = &pdu->choice.initiatingMessage->value.choice.BearerContextSetupRequest;
+  E1AP_BearerContextSetupRequest_t *out = &msg->value.choice.BearerContextSetupRequest;
   /* mandatory */
   /* c1. gNB-CU-UP UE E1AP ID */
   asn1cSequenceAdd(out->protocolIEs.list, E1AP_BearerContextSetupRequestIEs_t, ieC1);

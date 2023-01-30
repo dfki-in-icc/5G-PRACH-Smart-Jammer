@@ -816,7 +816,7 @@ uint8_t nr_ue_get_rach(module_id_t mod_id,
       } else if (get_softmodem_params()->nsa) {
 
         uint8_t mac_sdus[34*1056];
-        uint16_t sdu_lengths[NB_RB_MAX] = {0};
+        uint16_t sdu_length = 0;
         int TBS_bytes = 848;
         int mac_ce_len = 0;
         int header_length_total=0;
@@ -826,11 +826,11 @@ uint8_t nr_ue_get_rach(module_id_t mod_id,
         for (int i = 0; i < TBS_bytes; i++){
           mac_sdus[i] = (unsigned char) (rand()&0xff);
         }
-        //Sending SDUs with size 1
-        //Initialize elements of sdu_lengths
-        sdu_lengths[0] = TBS_bytes - 3 - post_padding - mac_ce_len;
-        header_length_total += 2 + (sdu_lengths[0] >= 128);
-        size_sdu += sdu_lengths[0];
+        // Sending SDUs with size 1
+        // Initialize elements of sdu_length
+        sdu_length = TBS_bytes - 3 - post_padding - mac_ce_len;
+        header_length_total += 2 + (sdu_length >= 128);
+        size_sdu += sdu_length;
 
         if (size_sdu > 0) {
           memcpy(ra->cont_res_id, mac_sdus, sizeof(uint8_t) * 6);

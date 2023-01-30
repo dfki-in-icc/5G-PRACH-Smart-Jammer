@@ -51,6 +51,8 @@ typedef struct PLMN_ID_s {
   int mnc_digit_length;
 } PLMN_ID_t;
 
+typedef enum { non_dynamic, dynamic } fiveQI_type_t;
+
 typedef struct e1ap_setup_req_s {
   uint64_t              gNB_cu_up_id;
   char *                gNB_cu_up_name;

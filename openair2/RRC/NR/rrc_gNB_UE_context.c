@@ -80,10 +80,9 @@ rrc_gNB_allocate_new_UE_context(
   new_p->ue_id_rnti = uid_linear_allocator_new(&rrc_instance_pP->uid_allocator);
   new_p->local_uid =  new_p->ue_id_rnti;
 
-  for(int i = 0; i < NB_RB_MAX; i++) {
+  for (int i = 0; i < sizeofArray(new_p->ue_context.pduSession); i++) {
     new_p->ue_context.e_rab[i].xid = -1;
     new_p->ue_context.pduSession[i].xid = -1;
-    new_p->ue_context.modify_e_rab[i].xid = -1;
   }
 
   LOG_D(NR_RRC,"Returning new UE context at %p\n",new_p);

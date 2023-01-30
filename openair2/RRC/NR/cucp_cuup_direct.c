@@ -111,7 +111,6 @@ static int drb_config_gtpu_create(const protocol_ctxt_t *const ctxt_p,
   for (int i = 0; i < ue_context_p->ue_context.nbPduSessions; i++) {
     pdu_session_param_t *pdu = ue_context_p->ue_context.pduSession + i;
     create_tunnel_req.pdusession_id[i] = pdu->param.pdusession_id;
-    create_tunnel_req.incoming_rb_id[i] = i + 1;
     create_tunnel_req.outgoing_qfi[i] = req->pduSession[i].DRBnGRanList[0].qosFlows[0].id;
     memcpy(&create_tunnel_req.dst_addr[i].buffer,
            &pdu->param.upf_addr.buffer,

@@ -271,27 +271,22 @@ typedef enum pdu_session_satus_e {
   PDU_SESSION_deleteSent
 } pdu_session_status_t;
 
-typedef struct pdu_session_param_s {
-  pdusession_t param;
+typedef struct rrc_pdusession_s {
+  /* Unique pdusession_id for the UE. */
+  uint8_t pdusession_id;
   pdu_session_status_t statusE1;
   pdu_session_status_t statusF1;
   pdu_session_status_t statusNGAP;
-  bool dataTosend;
   int xid;
   ngap_Cause_t cause;
   uint8_t cause_value;
-} pdu_session_param_t;
+  ngap_pdu_t nas_pdu;
+  ngap_pdu_t pdusessionTransfer;
+} rrc_pdu_session_param_t;
 
 #define MAX_SRBs 3 // srb 0 to 2, we don't use srb 0 here, but it is simpler
 typedef struct gNB_RRC_UE_s {
-  uint8_t                            primaryCC_id;
-  // NR_SRB_ToAddModList_t             *SRB_configList;
-  // NR_SRB_ToAddModList_t             *SRB_configList2[NR_RRC_TRANSACTION_IDENTIFIER_NUMBER];
-  // NR_DRB_ToAddModList_t             *DRB_configList;
-  // NR_DRB_ToAddModList_t             *DRB_configList2[NR_RRC_TRANSACTION_IDENTIFIER_NUMBER];
-  NR_DRB_ToReleaseList_t            *DRB_Release_configList2[NR_RRC_TRANSACTION_IDENTIFIER_NUMBER];
-  uint8_t                            DRB_active[NGAP_MAX_DRBS_PER_UE];
-
+  uint8_t primaryCC_id;
   NR_SRB_INFO                       SI;
   NR_SRB_INFO_TABLE_ENTRY Srb[MAX_SRBs];
   NR_MeasConfig_t                   *measConfig;
@@ -350,23 +345,8 @@ typedef struct gNB_RRC_UE_s {
   /* Number of e_rab to be setup in the list */
   uint8_t                            nb_of_e_rabs;
   /* Number of e_rab to be modified in the list */
-  uint8_t                            nb_of_modify_e_rabs;
-  uint8_t                            nb_of_failed_e_rabs;
-  nr_e_rab_param_t modify_e_rab[NB_RB_MAX]; //[S1AP_MAX_E_RAB];
-  nr_e_rab_param_t                   e_rab[NB_RB_MAX];//[S1AP_MAX_E_RAB];
-  int nbPduSessions;
-  pdu_session_param_t                pduSession[NGAP_MAX_PDU_SESSION];
-  //release e_rabs
-  uint8_t                            nb_release_of_e_rabs;
-  e_rab_failed_t e_rabs_release_failed[S1AP_MAX_E_RAB];
-  // LG: For GTPV1 TUNNELS
-  uint32_t                           gnb_gtp_teid[S1AP_MAX_E_RAB];
-  transport_layer_addr_t             gnb_gtp_addrs[S1AP_MAX_E_RAB];
-  rb_id_t                            gnb_gtp_ebi[S1AP_MAX_E_RAB];
-  rb_id_t                            gnb_gtp_psi[S1AP_MAX_E_RAB];
-  //GTPV1 F1-U TUNNELS
-  uint32_t                           incoming_teid[S1AP_MAX_E_RAB];
-
+  nr_e_rab_param_t e_rab[NGAP_MAX_PDU_SESSION];
+  rrc_pdu_session_param_t pduSession[NGAP_MAX_PDU_SESSION];
   uint32_t                           ul_failure_timer;
   uint32_t                           ue_release_timer;
   uint32_t                           ue_release_timer_thres;
