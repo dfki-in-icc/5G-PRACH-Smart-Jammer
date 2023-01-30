@@ -866,17 +866,16 @@ int ngap_gNB_handle_initial_context_request(uint32_t   assoc_id,
   NGAP_FIND_PROTOCOLIE_BY_ID(NGAP_InitialContextSetupRequestIEs_t, ie, container,
                              NGAP_ProtocolIE_ID_id_RAN_UE_NGAP_ID, true);
 
-  if (ie != NULL) { /* checked by macro but cppcheck doesn't see it */
-    ran_ue_ngap_id = ie->value.choice.RAN_UE_NGAP_ID;
+  if (!ie)
+    return -1;
 
-    if ((ue_desc_p = ngap_gNB_get_ue_context(amf_desc_p->ngap_gNB_instance,
-                     ran_ue_ngap_id)) == NULL) {
-      NGAP_ERROR("[SCTP %d] Received initial context setup request for non "
-                 "existing UE context 0x%06lx\n", assoc_id,
-                 ran_ue_ngap_id);
-      return -1;
-    }
-  } else {
+  ran_ue_ngap_id = ie->value.choice.RAN_UE_NGAP_ID;
+  if ((ue_desc_p = ngap_gNB_get_ue_context(ran_ue_ngap_id)) == NULL) {
+    NGAP_ERROR(
+        "[SCTP %d] Received initial context setup request for non "
+        "existing UE context 0x%06lx\n",
+        assoc_id,
+        ran_ue_ngap_id);
     return -1;
   }
 
@@ -893,8 +892,8 @@ int ngap_gNB_handle_initial_context_request(uint32_t   assoc_id,
   MessageDef *message_p = itti_alloc_new_message(TASK_NGAP, 0, NGAP_INITIAL_CONTEXT_SETUP_REQ);
   ngap_initial_context_setup_req_t * msg=&NGAP_INITIAL_CONTEXT_SETUP_REQ(message_p);
   memset(msg, 0, sizeof(*msg));
-  msg->ue_initial_id  = ue_desc_p->ue_initial_id;
-  ue_desc_p->ue_initial_id = 0;
+  msg->gNB_ue_ngap_id = ue_desc_p->gNB_ue_ngap_id;
+  ue_desc_p->gNB_ue_ngap_id = 0;
   msg->gNB_ue_ngap_id = ue_desc_p->gNB_ue_ngap_id;
   msg->amf_ue_ngap_id = ue_desc_p->amf_ue_ngap_id;
   /* id-UEAggregateMaximumBitRate */
@@ -1071,7 +1070,7 @@ int ngap_gNB_handle_ue_context_release_command(uint32_t   assoc_id,
       gnb_ue_ngap_id = ie->value.choice.UE_NGAP_IDs.choice.uE_NGAP_ID_pair->rAN_UE_NGAP_ID;
       asn_INTEGER2ulong(&(ie->value.choice.UE_NGAP_IDs.choice.uE_NGAP_ID_pair->aMF_UE_NGAP_ID), &amf_ue_ngap_id);
 
-      if ((ue_desc_p = ngap_gNB_get_ue_context(amf_desc_p->ngap_gNB_instance, gnb_ue_ngap_id)) == NULL) {
+      if ((ue_desc_p = ngap_gNB_get_ue_context(gnb_ue_ngap_id)) == NULL) {
         NGAP_ERROR(
             "[SCTP %d] Received UE context release command for non "
             "existing UE context 0x%06lx\n",
@@ -1152,8 +1151,7 @@ int ngap_gNB_handle_pdusession_setup_request(uint32_t         assoc_id,
     return -1;
   }
 
-  if ((ue_desc_p = ngap_gNB_get_ue_context(amf_desc_p->ngap_gNB_instance,
-                   ran_ue_ngap_id)) == NULL) {
+  if ((ue_desc_p = ngap_gNB_get_ue_context(ran_ue_ngap_id)) == NULL) {
     NGAP_ERROR("[SCTP %d] Received pdu session resource setup request for non "
                "existing UE context 0x%06lx\n", assoc_id,
                ran_ue_ngap_id);
@@ -1177,8 +1175,8 @@ int ngap_gNB_handle_pdusession_setup_request(uint32_t         assoc_id,
   MessageDef * message_p = itti_alloc_new_message(TASK_NGAP, 0, NGAP_PDUSESSION_SETUP_REQ);
   ngap_pdusession_setup_req_t * msg=&NGAP_PDUSESSION_SETUP_REQ(message_p);
   memset(msg, 0, sizeof(*msg));
-  msg->ue_initial_id   = ue_desc_p->ue_initial_id;
-  ue_desc_p->ue_initial_id = 0;
+  msg->gNB_ue_ngap_id = ue_desc_p->gNB_ue_ngap_id;
+  ue_desc_p->gNB_ue_ngap_id = 0;
   msg->gNB_ue_ngap_id = ue_desc_p->gNB_ue_ngap_id;
   msg->amf_ue_ngap_id = ue_desc_p->amf_ue_ngap_id;
 
@@ -1355,8 +1353,7 @@ static int ngap_gNB_handle_pdusession_modify_request(uint32_t assoc_id, uint32_t
     return -1;
   }
 
-  if ((ue_desc_p = ngap_gNB_get_ue_context(amf_desc_p->ngap_gNB_instance,
-                   gnb_ue_ngap_id)) == NULL) {
+  if ((ue_desc_p = ngap_gNB_get_ue_context(gnb_ue_ngap_id)) == NULL) {
     NGAP_ERROR("[SCTP %d] Received PDUSession Resource modify request for non "
                "existing UE context 0x%08lx\n", assoc_id,
                gnb_ue_ngap_id);
@@ -1393,7 +1390,7 @@ static int ngap_gNB_handle_pdusession_modify_request(uint32_t assoc_id, uint32_t
   MessageDef *message_p = itti_alloc_new_message(TASK_NGAP, 0, NGAP_PDUSESSION_MODIFY_REQ);
   ngap_pdusession_modify_req_t * msg=&NGAP_PDUSESSION_MODIFY_REQ(message_p);
   memset(msg, 0, sizeof(*msg));
-  msg->ue_initial_id  = ue_desc_p->ue_initial_id;
+  msg->gNB_ue_ngap_id = ue_desc_p->gNB_ue_ngap_id;
   msg->amf_ue_ngap_id  = amf_ue_ngap_id;
   msg->gNB_ue_ngap_id = gnb_ue_ngap_id;
 
@@ -1459,8 +1456,7 @@ int ngap_gNB_handle_pdusession_release_command(uint32_t               assoc_id,
     return -1;
   }
 
-  if ((ue_desc_p = ngap_gNB_get_ue_context(amf_desc_p->ngap_gNB_instance,
-                   gnb_ue_ngap_id)) == NULL) {
+  if ((ue_desc_p = ngap_gNB_get_ue_context(gnb_ue_ngap_id)) == NULL) {
     NGAP_ERROR("[SCTP %d] Received PDUSession Resource release command for non existing UE context 0x%08lx\n", assoc_id,
                ie->value.choice.RAN_UE_NGAP_ID);
     return -1;

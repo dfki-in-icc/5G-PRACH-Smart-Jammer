@@ -40,18 +40,6 @@
 #include "NR_UL-DCCH-Message.h"
 #include "NGAP_CauseRadioNetwork.h"
 
-typedef struct rrc_ue_ngap_ids_s {
-  /* Tree related data */
-  RB_ENTRY(rrc_ue_ngap_ids_s) entries;
-
-  // keys
-  uint16_t ue_initial_id;
-  uint32_t gNB_ue_ngap_id;
-
-  // value
-  rnti_t   ue_rnti;
-} rrc_ue_ngap_ids_t;
-
 void
 rrc_gNB_send_NGAP_NAS_FIRST_REQ(
     const protocol_ctxt_t     *const ctxt_pP,
@@ -107,7 +95,6 @@ rrc_gNB_modify_dedicatedRRCReconfiguration(
   rrc_gNB_ue_context_t      *ue_context_pP
 );
 
-
 void
 rrc_gNB_send_NGAP_UE_CONTEXT_RELEASE_REQ(
   const module_id_t gnb_mod_idP,
@@ -120,15 +107,7 @@ int rrc_gNB_process_NGAP_UE_CONTEXT_RELEASE_REQ(MessageDef *msg_p, instance_t in
 
 int rrc_gNB_process_NGAP_UE_CONTEXT_RELEASE_COMMAND(MessageDef *msg_p, instance_t instance);
 
-void rrc_gNB_send_NGAP_UE_CONTEXT_RELEASE_COMPLETE(
-  instance_t instance,
-  uint32_t   gNB_ue_ngap_id);
-
-void
-rrc_gNB_NGAP_remove_ue_ids(
-  gNB_RRC_INST *const rrc_instance_pP,
-  struct rrc_ue_ngap_ids_s *const ue_ids_pP
-);
+void rrc_gNB_send_NGAP_UE_CONTEXT_RELEASE_COMPLETE(instance_t instance, hash_key_t gNB_ue_ngap_id);
 
 void
 rrc_gNB_send_NGAP_UE_CAPABILITIES_IND(
@@ -151,13 +130,6 @@ nr_rrc_pdcp_config_security(
     const protocol_ctxt_t  *const ctxt_pP,
     rrc_gNB_ue_context_t   *const ue_context_pP,
     const uint8_t          send_security_mode_command
-);
-
-struct rrc_gNB_ue_context_s *
-rrc_gNB_get_ue_context_from_ngap_ids(
-    const instance_t  instanceP,
-    const uint16_t    ue_initial_idP,
-    const uint32_t    gNB_ue_ngap_idP
 );
 
 int rrc_gNB_process_PAGING_IND(MessageDef *msg_p, instance_t instance);

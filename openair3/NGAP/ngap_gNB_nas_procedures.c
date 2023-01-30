@@ -69,7 +69,7 @@ static void allocAddrCopy(BIT_STRING_t *out, ngap_transport_layer_addr_t in)
 }
 
 //------------------------------------------------------------------------------
-int ngap_gNB_handle_nas_first_req(instance_t instance, ngap_nas_first_req_t *ngap_nas_first_req_p)
+int ngap_gNB_handle_nas_first_req(instance_t instance, ngap_nas_first_req_t *UEfirstReq)
 //------------------------------------------------------------------------------
 {
   ngap_gNB_instance_t          *instance_p = NULL;
@@ -77,7 +77,7 @@ int ngap_gNB_handle_nas_first_req(instance_t instance, ngap_nas_first_req_t *nga
   NGAP_NGAP_PDU_t pdu;
   uint8_t  *buffer = NULL;
   uint32_t  length = 0;
-  DevAssert(ngap_nas_first_req_p != NULL);
+  DevAssert(UEfirstReq != NULL);
   /* Retrieve the NGAP gNB instance associated with Mod_id */
   instance_p = ngap_gNB_get_instance(instance);
   DevAssert(instance_p != NULL);
@@ -91,38 +91,37 @@ int ngap_gNB_handle_nas_first_req(instance_t instance, ngap_nas_first_req_t *nga
 
   /* Select the AMF corresponding to the provided GUAMI. */
   //TODO have not be test. it's should be test
-  if (ngap_nas_first_req_p->ue_identity.presenceMask & NGAP_UE_IDENTITIES_guami) {
-    amf_desc_p = ngap_gNB_nnsf_select_amf_by_guami(instance_p, ngap_nas_first_req_p->establishment_cause, ngap_nas_first_req_p->ue_identity.guami);
+  if (UEfirstReq->ue_identity.presenceMask & NGAP_UE_IDENTITIES_guami) {
+    amf_desc_p = ngap_gNB_nnsf_select_amf_by_guami(instance_p, UEfirstReq->establishment_cause, UEfirstReq->ue_identity.guami);
 
     if (amf_desc_p) {
       NGAP_INFO("[gNB %ld] Chose AMF '%s' (assoc_id %d) through GUAMI MCC %d MNC %d AMFRI %d AMFSI %d AMFPT %d\n",
                 instance,
                 amf_desc_p->amf_name,
                 amf_desc_p->assoc_id,
-                ngap_nas_first_req_p->ue_identity.guami.mcc,
-                ngap_nas_first_req_p->ue_identity.guami.mnc,
-                ngap_nas_first_req_p->ue_identity.guami.amf_region_id,
-                ngap_nas_first_req_p->ue_identity.guami.amf_set_id,
-                ngap_nas_first_req_p->ue_identity.guami.amf_pointer);
+                UEfirstReq->ue_identity.guami.mcc,
+                UEfirstReq->ue_identity.guami.mnc,
+                UEfirstReq->ue_identity.guami.amf_region_id,
+                UEfirstReq->ue_identity.guami.amf_set_id,
+                UEfirstReq->ue_identity.guami.amf_pointer);
     }
   }
 
   if (amf_desc_p == NULL) {
     /* Select the AMF corresponding to the provided s-TMSI. */
     //TODO have not be test. it's should be test
-    if (ngap_nas_first_req_p->ue_identity.presenceMask & NGAP_UE_IDENTITIES_FiveG_s_tmsi) {
-      amf_desc_p = ngap_gNB_nnsf_select_amf_by_amf_setid(
-          instance_p, ngap_nas_first_req_p->establishment_cause, ngap_nas_first_req_p->selected_plmn_identity, ngap_nas_first_req_p->ue_identity.s_tmsi.amf_set_id);
+    if (UEfirstReq->ue_identity.presenceMask & NGAP_UE_IDENTITIES_FiveG_s_tmsi) {
+      amf_desc_p = ngap_gNB_nnsf_select_amf_by_amf_setid(instance_p, UEfirstReq->establishment_cause, UEfirstReq->selected_plmn_identity, UEfirstReq->ue_identity.s_tmsi.amf_set_id);
 
       if (amf_desc_p) {
         NGAP_INFO("[gNB %ld] Chose AMF '%s' (assoc_id %d) through S-TMSI AMFSI %d and selected PLMN Identity index %d MCC %d MNC %d\n",
                   instance,
                   amf_desc_p->amf_name,
                   amf_desc_p->assoc_id,
-                  ngap_nas_first_req_p->ue_identity.s_tmsi.amf_set_id,
-                  ngap_nas_first_req_p->selected_plmn_identity,
-                  instance_p->mcc[ngap_nas_first_req_p->selected_plmn_identity],
-                  instance_p->mnc[ngap_nas_first_req_p->selected_plmn_identity]);
+                  UEfirstReq->ue_identity.s_tmsi.amf_set_id,
+                  UEfirstReq->selected_plmn_identity,
+                  instance_p->mcc[UEfirstReq->selected_plmn_identity],
+                  instance_p->mnc[UEfirstReq->selected_plmn_identity]);
       }
     }
   }
@@ -131,16 +130,16 @@ int ngap_gNB_handle_nas_first_req(instance_t instance, ngap_nas_first_req_t *nga
     /* Select AMF based on the selected PLMN identity, received through RRC
      * Connection Setup Complete */
     //TODO have not be test. it's should be test
-    amf_desc_p = ngap_gNB_nnsf_select_amf_by_plmn_id(instance_p, ngap_nas_first_req_p->establishment_cause, ngap_nas_first_req_p->selected_plmn_identity);
+    amf_desc_p = ngap_gNB_nnsf_select_amf_by_plmn_id(instance_p, UEfirstReq->establishment_cause, UEfirstReq->selected_plmn_identity);
 
     if (amf_desc_p) {
       NGAP_INFO("[gNB %ld] Chose AMF '%s' (assoc_id %d) through selected PLMN Identity index %d MCC %d MNC %d\n",
                 instance,
                 amf_desc_p->amf_name,
                 amf_desc_p->assoc_id,
-                ngap_nas_first_req_p->selected_plmn_identity,
-                instance_p->mcc[ngap_nas_first_req_p->selected_plmn_identity],
-                instance_p->mnc[ngap_nas_first_req_p->selected_plmn_identity]);
+                UEfirstReq->selected_plmn_identity,
+                instance_p->mcc[UEfirstReq->selected_plmn_identity],
+                instance_p->mnc[UEfirstReq->selected_plmn_identity]);
     }
   }
 
@@ -150,7 +149,7 @@ int ngap_gNB_handle_nas_first_req(instance_t instance, ngap_nas_first_req_t *nga
      * identity, selects the AMF with the highest capacity.
      */
     //TODO have not be test. it's should be test
-    amf_desc_p = ngap_gNB_nnsf_select_amf(instance_p, ngap_nas_first_req_p->establishment_cause);
+    amf_desc_p = ngap_gNB_nnsf_select_amf(instance_p, UEfirstReq->establishment_cause);
 
     if (amf_desc_p) {
       NGAP_INFO("[gNB %ld] Chose AMF '%s' (assoc_id %d) through highest relative capacity\n", instance, amf_desc_p->amf_name, amf_desc_p->assoc_id);
@@ -170,25 +169,16 @@ int ngap_gNB_handle_nas_first_req(instance_t instance, ngap_nas_first_req_t *nga
   /* The gNB should allocate a unique gNB UE NGAP ID for this UE. The value
    * will be used for the duration of the connectivity.
    */
-  struct ngap_gNB_ue_context_s *ue_desc_p = ngap_gNB_allocate_new_UE_context();
+  struct ngap_gNB_ue_context_s *ue_desc_p = calloc(1, sizeof(ue_desc_p));
   DevAssert(ue_desc_p != NULL);
   /* Keep a reference to the selected AMF */
   ue_desc_p->amf_ref       = amf_desc_p;
-  ue_desc_p->ue_initial_id = ngap_nas_first_req_p->ue_initial_id;
+  ue_desc_p->gNB_ue_ngap_id = UEfirstReq->gNB_ue_ngap_id;
   ue_desc_p->gNB_instance  = instance_p;
-  ue_desc_p->selected_plmn_identity = ngap_nas_first_req_p->selected_plmn_identity;
+  ue_desc_p->selected_plmn_identity = UEfirstReq->selected_plmn_identity;
 
-  do {
-    struct ngap_gNB_ue_context_s *collision_p;
-    /* Peek a random value for the gNB_ue_ngap_id */
-    ue_desc_p->gNB_ue_ngap_id = (random() + random()) & 0xffffffff;
-
-    if ((collision_p = RB_INSERT(ngap_ue_map, &instance_p->ngap_ue_head, ue_desc_p)) == NULL) {
-      NGAP_DEBUG("Found usable gNB_ue_ngap_id: 0x%08x %u(10)\n", ue_desc_p->gNB_ue_ngap_id, ue_desc_p->gNB_ue_ngap_id);
-      /* Break the loop as the id is not already used by another UE */
-      break;
-    }
-  } while(1);
+  // insert in master table
+  ngap_gNB_allocate_new_UE_context(ue_desc_p);
 
   /* mandatory */
   {
@@ -204,7 +194,7 @@ int ngap_gNB_handle_nas_first_req(instance_t instance, ngap_nas_first_req_t *nga
     ie->id = NGAP_ProtocolIE_ID_id_NAS_PDU;
     ie->criticality = NGAP_Criticality_reject;
     ie->value.present = NGAP_InitialUEMessage_IEs__value_PR_NAS_PDU;
-    allocCopy(&ie->value.choice.NAS_PDU, ngap_nas_first_req_p->nas_pdu);
+    allocCopy(&ie->value.choice.NAS_PDU, UEfirstReq->nas_pdu);
   }
 
   /* mandatory */
@@ -236,30 +226,28 @@ int ngap_gNB_handle_nas_first_req(instance_t instance, ngap_nas_first_req_t *nga
   }
 
   /* Set the establishment cause according to those provided by RRC */
-  DevCheck(ngap_nas_first_req_p->establishment_cause < NGAP_RRC_CAUSE_LAST,
-           ngap_nas_first_req_p->establishment_cause, NGAP_RRC_CAUSE_LAST, 0);
-  
+  DevCheck(UEfirstReq->establishment_cause < NGAP_RRC_CAUSE_LAST, UEfirstReq->establishment_cause, NGAP_RRC_CAUSE_LAST, 0);
+
   /* mandatory */
   {
     asn1cSequenceAdd(out->protocolIEs.list, NGAP_InitialUEMessage_IEs_t, ie);
     ie->id = NGAP_ProtocolIE_ID_id_RRCEstablishmentCause;
     ie->criticality = NGAP_Criticality_ignore;
     ie->value.present = NGAP_InitialUEMessage_IEs__value_PR_RRCEstablishmentCause;
-    ie->value.choice.RRCEstablishmentCause = ngap_nas_first_req_p->establishment_cause;
+    ie->value.choice.RRCEstablishmentCause = UEfirstReq->establishment_cause;
   }
 
   /* optional */
-  if (ngap_nas_first_req_p->ue_identity.presenceMask & NGAP_UE_IDENTITIES_FiveG_s_tmsi) {
+  if (UEfirstReq->ue_identity.presenceMask & NGAP_UE_IDENTITIES_FiveG_s_tmsi) {
     NGAP_DEBUG("FIVEG_S_TMSI_PRESENT\n");
     asn1cSequenceAdd(out->protocolIEs.list, NGAP_InitialUEMessage_IEs_t, ie);
     ie->id = NGAP_ProtocolIE_ID_id_FiveG_S_TMSI;
     ie->criticality = NGAP_Criticality_reject;
     ie->value.present = NGAP_InitialUEMessage_IEs__value_PR_FiveG_S_TMSI;
-    AMF_SETID_TO_BIT_STRING(ngap_nas_first_req_p->ue_identity.s_tmsi.amf_set_id, &ie->value.choice.FiveG_S_TMSI.aMFSetID);
-    AMF_SETID_TO_BIT_STRING(ngap_nas_first_req_p->ue_identity.s_tmsi.amf_pointer, &ie->value.choice.FiveG_S_TMSI.aMFPointer);
-    M_TMSI_TO_OCTET_STRING(ngap_nas_first_req_p->ue_identity.s_tmsi.m_tmsi, &ie->value.choice.FiveG_S_TMSI.fiveG_TMSI);
+    AMF_SETID_TO_BIT_STRING(UEfirstReq->ue_identity.s_tmsi.amf_set_id, &ie->value.choice.FiveG_S_TMSI.aMFSetID);
+    AMF_SETID_TO_BIT_STRING(UEfirstReq->ue_identity.s_tmsi.amf_pointer, &ie->value.choice.FiveG_S_TMSI.aMFPointer);
+    M_TMSI_TO_OCTET_STRING(UEfirstReq->ue_identity.s_tmsi.m_tmsi, &ie->value.choice.FiveG_S_TMSI.fiveG_TMSI);
   }
-
 
   /* optional */
   {
@@ -343,7 +331,7 @@ int ngap_gNB_handle_nas_downlink(uint32_t         assoc_id,
                              NGAP_ProtocolIE_ID_id_RAN_UE_NGAP_ID, true);
   gnb_ue_ngap_id = ie->value.choice.RAN_UE_NGAP_ID;
 
-  if ((ue_desc_p = ngap_gNB_get_ue_context(ngap_gNB_instance, gnb_ue_ngap_id)) == NULL) {
+  if ((ue_desc_p = ngap_gNB_get_ue_context(gnb_ue_ngap_id)) == NULL) {
     NGAP_ERROR("[SCTP %d] Received NAS downlink message for non existing UE context gNB_UE_NGAP_ID: 0x%lx\n",
                assoc_id,
                gnb_ue_ngap_id);
@@ -374,11 +362,7 @@ int ngap_gNB_handle_nas_downlink(uint32_t         assoc_id,
   NGAP_FIND_PROTOCOLIE_BY_ID(NGAP_DownlinkNASTransport_IEs_t, ie, container,
                              NGAP_ProtocolIE_ID_id_NAS_PDU, true);
   /* Forward the NAS PDU to NR-RRC */
-  ngap_gNB_itti_send_nas_downlink_ind(ngap_gNB_instance->instance,
-                                      ue_desc_p->ue_initial_id,
-                                      ue_desc_p->gNB_ue_ngap_id,
-                                      ie->value.choice.NAS_PDU.buf,
-                                      ie->value.choice.NAS_PDU.size);
+  ngap_gNB_itti_send_nas_downlink_ind(ngap_gNB_instance->instance, ue_desc_p->gNB_ue_ngap_id, ie->value.choice.NAS_PDU.buf, ie->value.choice.NAS_PDU.size);
 
   return 0;
 }
@@ -397,7 +381,7 @@ int ngap_gNB_nas_uplink(instance_t instance, ngap_uplink_nas_t *ngap_uplink_nas_
   ngap_gNB_instance_p = ngap_gNB_get_instance(instance);
   DevAssert(ngap_gNB_instance_p != NULL);
 
-  if ((ue_context_p = ngap_gNB_get_ue_context(ngap_gNB_instance_p, ngap_uplink_nas_p->gNB_ue_ngap_id)) == NULL) {
+  if ((ue_context_p = ngap_gNB_get_ue_context(ngap_uplink_nas_p->gNB_ue_ngap_id)) == NULL) {
     /* The context for this gNB ue ngap id doesn't exist in the map of gNB UEs */
     NGAP_WARN("Failed to find ue context associated with gNB ue ngap id: %08x\n",
               ngap_uplink_nas_p->gNB_ue_ngap_id);
@@ -504,7 +488,7 @@ int ngap_gNB_nas_non_delivery_ind(instance_t instance,
   ngap_gNB_instance_p = ngap_gNB_get_instance(instance);
   DevAssert(ngap_gNB_instance_p != NULL);
 
-  if ((ue_context_p = ngap_gNB_get_ue_context(ngap_gNB_instance_p, ngap_nas_non_delivery_ind->gNB_ue_ngap_id)) == NULL) {
+  if ((ue_context_p = ngap_gNB_get_ue_context(ngap_nas_non_delivery_ind->gNB_ue_ngap_id)) == NULL) {
     /* The context for this gNB ue ngap id doesn't exist in the map of gNB UEs */
     NGAP_WARN("Failed to find ue context associated with gNB ue ngap id: %08x\n",
               ngap_nas_non_delivery_ind->gNB_ue_ngap_id);
@@ -586,7 +570,7 @@ int ngap_gNB_initial_ctxt_resp(instance_t instance, ngap_initial_context_setup_r
   DevAssert(initial_ctxt_resp_p != NULL);
   DevAssert(ngap_gNB_instance_p != NULL);
 
-  if ((ue_context_p = ngap_gNB_get_ue_context(ngap_gNB_instance_p, initial_ctxt_resp_p->gNB_ue_ngap_id)) == NULL) {
+  if ((ue_context_p = ngap_gNB_get_ue_context(initial_ctxt_resp_p->gNB_ue_ngap_id)) == NULL) {
     /* The context for this gNB ue ngap id doesn't exist in the map of gNB UEs */
     NGAP_WARN("Failed to find ue context associated with gNB ue ngap id: 0x%08x\n",
               initial_ctxt_resp_p->gNB_ue_ngap_id);
@@ -766,7 +750,7 @@ int ngap_gNB_ue_capabilities(instance_t instance, ngap_ue_cap_info_ind_t *ue_cap
   DevAssert(ue_cap_info_ind_p != NULL);
   DevAssert(ngap_gNB_instance_p != NULL);
 
-  if ((ue_context_p = ngap_gNB_get_ue_context(ngap_gNB_instance_p, ue_cap_info_ind_p->gNB_ue_ngap_id)) == NULL) {
+  if ((ue_context_p = ngap_gNB_get_ue_context(ue_cap_info_ind_p->gNB_ue_ngap_id)) == NULL) {
     /* The context for this gNB ue ngap id doesn't exist in the map of gNB UEs */
     NGAP_WARN("Failed to find ue context associated with gNB ue ngap id: %u\n", ue_cap_info_ind_p->gNB_ue_ngap_id);
     return -1;
@@ -845,7 +829,7 @@ int ngap_gNB_pdusession_setup_resp(instance_t instance, ngap_pdusession_setup_re
   DevAssert(pdusession_setup_resp_p != NULL);
   DevAssert(ngap_gNB_instance_p != NULL);
 
-  if ((ue_context_p = ngap_gNB_get_ue_context(ngap_gNB_instance_p, pdusession_setup_resp_p->gNB_ue_ngap_id)) == NULL) {
+  if ((ue_context_p = ngap_gNB_get_ue_context(pdusession_setup_resp_p->gNB_ue_ngap_id)) == NULL) {
     /* The context for this gNB ue ngap id doesn't exist in the map of gNB UEs */
     NGAP_WARN("Failed to find ue context associated with gNB ue ngap id: 0x%08x\n", pdusession_setup_resp_p->gNB_ue_ngap_id);
     return -1;
@@ -1025,7 +1009,7 @@ int ngap_gNB_pdusession_modify_resp(instance_t instance, ngap_pdusession_modify_
   DevAssert(pdusession_modify_resp_p != NULL);
   DevAssert(ngap_gNB_instance_p != NULL);
 
-  if ((ue_context_p = ngap_gNB_get_ue_context(ngap_gNB_instance_p, pdusession_modify_resp_p->gNB_ue_ngap_id)) == NULL) {
+  if ((ue_context_p = ngap_gNB_get_ue_context(pdusession_modify_resp_p->gNB_ue_ngap_id)) == NULL) {
     /* The context for this gNB ue ngap id doesn't exist in the map of gNB UEs */
     NGAP_WARN("Failed to find ue context associated with gNB ue ngap id: 0x%08x\n", pdusession_modify_resp_p->gNB_ue_ngap_id);
     return -1;
@@ -1187,7 +1171,7 @@ int ngap_gNB_pdusession_release_resp(instance_t instance, ngap_pdusession_releas
   DevAssert(pdusession_release_resp_p != NULL);
   DevAssert(ngap_gNB_instance_p != NULL);
 
-  if ((ue_context_p = ngap_gNB_get_ue_context(ngap_gNB_instance_p, pdusession_release_resp_p->gNB_ue_ngap_id)) == NULL) {
+  if ((ue_context_p = ngap_gNB_get_ue_context(pdusession_release_resp_p->gNB_ue_ngap_id)) == NULL) {
     /* The context for this gNB ue ngap id doesn't exist in the map of gNB UEs */
     NGAP_WARN("Failed to find ue context associated with gNB ue ngap id: 0x%08x\n", pdusession_release_resp_p->gNB_ue_ngap_id);
     return -1;

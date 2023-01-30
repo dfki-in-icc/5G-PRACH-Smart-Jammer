@@ -338,7 +338,7 @@ typedef struct gNB_RRC_UE_s {
   uint16_t                           ue_initial_id;
 
   /* Information from S1AP initial_context_setup_req */
-  uint32_t                           gNB_ue_s1ap_id :24;
+  uint32_t gNB_ue_s1ap_id: 24;
   uint32_t                           gNB_ue_ngap_id;
   uint64_t                           amf_ue_ngap_id:40;
   nr_rrc_guami_t                     ue_guami;
@@ -484,11 +484,9 @@ typedef struct gNB_RRC_INST_s {
   int                                                 module_id;
   eth_params_t                                        eth_params_s;
   rrc_gNB_carrier_data_t                              carrier;
-  uid_allocator_t                                     uid_allocator;
-  RB_HEAD(rrc_nr_ue_tree_s, rrc_gNB_ue_context_s)     rrc_ue_head; // ue_context tree key search by rnti
-  int                                                 Nb_ue;
+  uid_allocator_t uid_allocator;
   hash_table_t                                        *initial_id2_s1ap_ids; // key is    content is rrc_ue_s1ap_ids_t
-  hash_table_t                                        *s1ap_id2_s1ap_ids   ; // key is    content is rrc_ue_s1ap_ids_t
+  hash_table_t *s1ap_id2_s1ap_ids; // key is    content is rrc_ue_s1ap_ids_t
   hash_table_t                                        *initial_id2_ngap_ids;
   hash_table_t                                        *ngap_id2_ngap_ids   ;
 

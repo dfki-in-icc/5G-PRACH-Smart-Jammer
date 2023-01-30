@@ -523,7 +523,7 @@ typedef struct ngap_deregistered_gnb_ind_s {
  */
 typedef struct ngap_nas_first_req_s {
   /* UE id for initial connection to NGAP */
-  uint16_t ue_initial_id;
+  uint32_t gNB_ue_ngap_id;
 
   /* the chosen PLMN identity as index, see TS 36.331 6.2.2 RRC Connection
    * Setup Complete. This index here is zero-based, unlike the standard! */
@@ -543,19 +543,18 @@ typedef struct ngap_nas_first_req_s {
 
 typedef struct ngap_uplink_nas_s {
   /* Unique UE identifier within an gNB */
-  uint32_t  gNB_ue_ngap_id;
-
+  uint32_t gNB_ue_ngap_id;
   /* NAS pdu */
   ngap_pdu_t nas_pdu;
 } ngap_uplink_nas_t;
 
 typedef struct ngap_ue_cap_info_ind_s {
-  uint32_t  gNB_ue_ngap_id;
+  uint32_t gNB_ue_ngap_id;
   ngap_pdu_t ue_radio_cap;
 } ngap_ue_cap_info_ind_t;
 
 typedef struct ngap_initial_context_setup_resp_s {
-  uint32_t  gNB_ue_ngap_id;
+  uint32_t gNB_ue_ngap_id;
 
   /* Number of pdusession setup-ed in the list */
   uint8_t       nb_of_pdusessions;
@@ -569,19 +568,19 @@ typedef struct ngap_initial_context_setup_resp_s {
 } ngap_initial_context_setup_resp_t;
 
 typedef struct ngap_initial_context_setup_fail_s {
-  uint32_t  gNB_ue_ngap_id;
+  uint32_t gNB_ue_ngap_id;
 
   /* TODO add cause */
 } ngap_initial_context_setup_fail_t, ngap_ue_ctxt_modification_fail_t, ngap_pdusession_setup_req_fail_t;
 
 typedef struct ngap_nas_non_delivery_ind_s {
-  uint32_t     gNB_ue_ngap_id;
+  uint32_t gNB_ue_ngap_id;
   ngap_pdu_t nas_pdu;
   /* TODO: add cause */
 } ngap_nas_non_delivery_ind_t;
 
 typedef struct ngap_ue_ctxt_modification_req_s {
-  uint32_t  gNB_ue_ngap_id;
+  uint32_t gNB_ue_ngap_id;
 
   /* Bit-mask of possible present parameters */
   ngap_ue_ctxt_modification_present_t present;
@@ -599,24 +598,18 @@ typedef struct ngap_ue_ctxt_modification_req_s {
 } ngap_ue_ctxt_modification_req_t;
 
 typedef struct ngap_ue_ctxt_modification_resp_s {
-  uint32_t  gNB_ue_ngap_id;
+  uint32_t gNB_ue_ngap_id;
 } ngap_ue_ctxt_modification_resp_t;
 
 typedef struct ngap_ue_release_complete_s {
-
   uint32_t gNB_ue_ngap_id;
-
 } ngap_ue_release_complete_t;
 
 //-------------------------------------------------------------------------------------------//
 // NGAP -> RRC messages
 typedef struct ngap_downlink_nas_s {
   /* UE id for initial connection to NGAP */
-  uint16_t     ue_initial_id;
-
-  /* Unique UE identifier within an gNB */
-  uint32_t     gNB_ue_ngap_id;
-
+  uint32_t gNB_ue_ngap_id;
   /* NAS pdu */
   ngap_pdu_t nas_pdu;
 } ngap_downlink_nas_t;
@@ -624,9 +617,6 @@ typedef struct ngap_downlink_nas_s {
 
 typedef struct ngap_initial_context_setup_req_s {
   /* UE id for initial connection to NGAP */
-  uint16_t ue_initial_id;
-
-  /* gNB ue ngap id as initialized by NGAP layer */
   uint32_t gNB_ue_ngap_id;
 
   uint64_t amf_ue_ngap_id:40;
@@ -686,13 +676,10 @@ typedef struct ngap_paging_ind_s {
 
 typedef struct ngap_pdusession_setup_req_s {
   /* UE id for initial connection to NGAP */
-  uint16_t ue_initial_id;
+  uint32_t gNB_ue_ngap_id;
 
   /* AMF UE id  */
   uint64_t amf_ue_ngap_id:40;
-
-  /* gNB ue ngap id as initialized by NGAP layer */
-  uint32_t  gNB_ue_ngap_id;
 
   /* S-NSSAI */
   ngap_allowed_NSSAI_t allowed_nssai[8];
@@ -712,8 +699,7 @@ typedef struct ngap_pdusession_setup_req_s {
 } ngap_pdusession_setup_req_t;
 
 typedef struct ngap_pdusession_setup_resp_s {
-  uint32_t      gNB_ue_ngap_id;
-
+  uint32_t gNB_ue_ngap_id;
   /* Number of pdusession setup-ed in the list */
   uint8_t       nb_of_pdusessions;
   /* list of pdusession setup-ed by RRC layers */
@@ -726,8 +712,7 @@ typedef struct ngap_pdusession_setup_resp_s {
 } ngap_pdusession_setup_resp_t;
 
 typedef struct ngap_path_switch_req_s {
-
-  uint32_t  gNB_ue_ngap_id;
+  uint32_t gNB_ue_ngap_id;
 
   /* Number of pdusession setup-ed in the list */
   uint8_t       nb_of_pdusessions;
@@ -740,9 +725,7 @@ typedef struct ngap_path_switch_req_s {
 
   ngap_guami_t ue_guami;
 
-  uint16_t ue_initial_id;
-
-   /* Security algorithms */
+  /* Security algorithms */
   ngap_security_capabilities_t security_capabilities;
 
 } ngap_path_switch_req_t;
@@ -750,9 +733,7 @@ typedef struct ngap_path_switch_req_s {
 typedef struct ngap_path_switch_req_ack_s {
 
   /* UE id for initial connection to NGAP */
-  uint16_t ue_initial_id;
-
-  uint32_t  gNB_ue_ngap_id;
+  uint32_t gNB_ue_ngap_id;
 
   /* AMF UE id  */
   uint64_t amf_ue_ngap_id:40;
@@ -779,8 +760,7 @@ typedef struct ngap_path_switch_req_ack_s {
 } ngap_path_switch_req_ack_t;
 
 typedef struct ngap_pdusession_modification_ind_s {
-
-  uint32_t  gNB_ue_ngap_id;
+  uint32_t gNB_ue_ngap_id;
 
   /* AMF UE id  */
   uint64_t amf_ue_ngap_id:40;
@@ -794,15 +774,11 @@ typedef struct ngap_pdusession_modification_ind_s {
   pdusession_setup_t pdusessions_tobemodified[NGAP_MAX_PDUSESSION];
 
   pdusession_setup_t pdusessions_nottobemodified[NGAP_MAX_PDUSESSION];
-
-  uint16_t ue_initial_id;
-
 } ngap_pdusession_modification_ind_t;
 
 // NGAP --> RRC messages
 typedef struct ngap_ue_release_command_s {
-
-  uint32_t  gNB_ue_ngap_id;
+  uint32_t gNB_ue_ngap_id;
 
 } ngap_ue_release_command_t;
 
@@ -816,7 +792,7 @@ typedef struct pdusession_release_s {
 } pdusession_release_t;
 
 typedef struct ngap_ue_release_req_s {
-  uint32_t             gNB_ue_ngap_id;
+  uint32_t gNB_ue_ngap_id;
   /* Number of pdusession resource in the list */
   uint8_t              nb_of_pdusessions;
   /* list of pdusession resource by RRC layers */
@@ -826,14 +802,11 @@ typedef struct ngap_ue_release_req_s {
 } ngap_ue_release_req_t, ngap_ue_release_resp_t;
 
 typedef struct ngap_pdusession_modify_req_s {
-  /* UE id for initial connection to NGAP */
-  uint16_t ue_initial_id;
-
   /* AMF UE id  */
   uint64_t amf_ue_ngap_id:40;
 
   /* gNB ue ngap id as initialized by NGAP layer */
-  uint32_t  gNB_ue_ngap_id;
+  uint32_t gNB_ue_ngap_id;
 
   /* Number of pdusession to be modify in the list */
   uint8_t nb_pdusessions_tomodify;
@@ -843,7 +816,7 @@ typedef struct ngap_pdusession_modify_req_s {
 } ngap_pdusession_modify_req_t;
 
 typedef struct ngap_pdusession_modify_resp_s {
-  uint32_t  gNB_ue_ngap_id;
+  uint32_t gNB_ue_ngap_id;
 
   /* Number of pdusession modify-ed in the list */
   uint8_t       nb_of_pdusessions;
@@ -861,7 +834,7 @@ typedef struct ngap_pdusession_release_command_s {
   uint64_t                       amf_ue_ngap_id:40;
 
   /* gNB ue ngap id as initialized by NGAP layer */
-  uint32_t                       gNB_ue_ngap_id;
+  uint32_t gNB_ue_ngap_id;
 
   /* The NAS PDU should be forwarded by the RRC layer to the NAS layer */
   ngap_pdu_t nas_pdu;
@@ -879,7 +852,7 @@ typedef struct ngap_pdusession_release_resp_s {
   uint64_t             amf_ue_ngap_id:40;
 
   /* gNB ue ngap id as initialized by NGAP layer */
-  uint32_t             gNB_ue_ngap_id;
+  uint32_t gNB_ue_ngap_id;
 
   /* Number of pdusession released in the list */
   uint8_t              nb_of_pdusessions_released;

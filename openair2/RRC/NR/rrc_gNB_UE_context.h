@@ -33,32 +33,17 @@
 #include "collection/tree.h"
 #include "COMMON/platform_types.h"
 #include "nr_rrc_defs.h"
-
-int rrc_gNB_compare_ue_rnti_id(
-  struct rrc_gNB_ue_context_s* c1_pP,
-  struct rrc_gNB_ue_context_s* c2_pP
-);
-
-RB_PROTOTYPE(rrc_nr_ue_tree_s, rrc_gNB_ue_context_s, entries, rrc_gNB_compare_ue_rnti_id);
-
 struct rrc_gNB_ue_context_s*
 rrc_gNB_allocate_new_UE_context(
   gNB_RRC_INST* rrc_instance_pP
 );
 
-struct rrc_gNB_ue_context_s*
-rrc_gNB_get_ue_context(
-  gNB_RRC_INST* rrc_instance_pP,
-  rnti_t rntiP
-);
+struct rrc_gNB_ue_context_s* rrc_gNB_get_ue_context(const gNB_RRC_INST* rrc_instance_pP, const ue_id_t UEid);
 
-void rrc_gNB_free_mem_UE_context(
-  const protocol_ctxt_t               *const ctxt_pP,
-  struct rrc_gNB_ue_context_s         *const ue_context_pP
+void rrc_gNB_free_mem_UE_context(struct rrc_gNB_ue_context_s         *const ue_context_pP
 );
 
 void rrc_gNB_remove_ue_context(
-  const protocol_ctxt_t* const ctxt_pP,
   gNB_RRC_INST*                rrc_instance_pP,
   struct rrc_gNB_ue_context_s* ue_context_pP
 );
@@ -74,12 +59,11 @@ rrc_gNB_ue_context_5g_s_tmsi_exist(
     gNB_RRC_INST                *rrc_instance_pP,
     const uint64_t              s_TMSI
 );
+void rrc_gNB_insert_ue_context(struct rrc_gNB_ue_context_s* ue_context_p);
+struct rrc_gNB_ue_context_s* rrc_gNB_new_ue_context(const ue_id_t, gNB_RRC_INST* rrc_instance_pP, const uint64_t ue_identityP);
 
-struct rrc_gNB_ue_context_s *
-rrc_gNB_get_next_free_ue_context(
-  const protocol_ctxt_t       *const ctxt_pP,
-  gNB_RRC_INST                *rrc_instance_pP,
-  const uint64_t               ue_identityP
-);
+struct rrc_gNB_ue_context_s *rrc_gNB_ue_context_iterator_init();
+
+struct rrc_gNB_ue_context_s *rrc_gNB_ue_context_iterator_next(struct rrc_gNB_ue_context_s * it);
 
 #endif

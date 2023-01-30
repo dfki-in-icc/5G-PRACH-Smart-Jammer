@@ -106,8 +106,7 @@ f1ap_cudu_inst_t *getCxt(F1_t isCU, instance_t instanceP)
   abort();
   return NULL;
 }
-
-void fill_DRB_configList(const protocol_ctxt_t *const ctxt_pP, rrc_gNB_ue_context_t *ue_context_pP, NR_DRB_ToAddModList_t *DRB_configList)
+void fill_DRB_configList(const protocol_ctxt_t *const ctxt_pP, rrc_gNB_ue_context_t *ue_context_pP, NR_DRB_ToAddModList_t *DRB_configList, enum drbPurpose p)
 {
   abort();
 }

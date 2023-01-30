@@ -967,7 +967,8 @@ int CU_handle_UE_CONTEXT_RELEASE_COMPLETE(instance_t       instance,
       MessageDef *msg = itti_alloc_new_message(TASK_CU_F1, 0, NGAP_UE_CONTEXT_RELEASE_COMPLETE);
       NGAP_UE_CONTEXT_RELEASE_COMPLETE(msg).gNB_ue_ngap_id = ue_context_p->ue_context.gNB_ue_ngap_id;
       itti_send_msg_to_task(TASK_NGAP, instance, msg);
-      rrc_gNB_remove_ue_context(&ctxt, RC.nrrrc[instance], ue_context_p);
+      rrc_gNB_remove_ue_context(RC.nrrrc[instance], ue_context_p);
+      rrc_gNB_free_mem_UE_context(ue_context_p);
     } else {
       LOG_E(F1AP, "could not find ue_context of UE RNTI %x\n", rnti);
     }

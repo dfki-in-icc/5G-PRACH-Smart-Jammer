@@ -97,7 +97,7 @@ void CU_update_UP_DL_tunnel(e1ap_bearer_setup_req_t *const req, instance_t insta
     }
   }
 }
-
+#if 0
 static int drb_config_gtpu_create(const protocol_ctxt_t *const ctxt_p,
                                   rrc_gNB_ue_context_t  *ue_context_p,
                                   e1ap_bearer_setup_req_t *const req,
@@ -174,7 +174,6 @@ static int drb_config_gtpu_create(const protocol_ctxt_t *const ctxt_p,
   
   return ret;
 }
-
 static void cucp_cuup_bearer_context_setup_direct(e1ap_bearer_setup_req_t *const req, instance_t instance) {
   rrc_gNB_ue_context_t *ue_context_p = rrc_gNB_get_ue_context(RC.nrrrc[GNB_INSTANCE_TO_MODULE_ID(instance)], req->rnti);
   protocol_ctxt_t ctxt = {0};
@@ -214,3 +213,4 @@ void cucp_cuup_message_transfer_direct_init(gNB_RRC_INST *rrc) {
   rrc->cucp_cuup.bearer_context_setup = cucp_cuup_bearer_context_setup_direct;
   rrc->cucp_cuup.bearer_context_mod = cucp_cuup_bearer_context_mod_direct;
 }
+#endif
