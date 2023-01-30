@@ -491,8 +491,11 @@ uint16_t do_SIB1_NR(rrc_gNB_carrier_data_t *carrier,
 
   UL->timeAlignmentTimerCommon = NR_TimeAlignmentTimer_infinity;
 
-  ServCellCom->n_TimingAdvanceOffset = configuration->scc->n_TimingAdvanceOffset;
-
+  LOG_I(RRC,"n-TimingAdvanceOffset %d\n",*configuration->scc->n_TimingAdvanceOffset);
+  if (configuration->scc->n_TimingAdvanceOffset) {
+    ServCellCom->n_TimingAdvanceOffset  = calloc(1,sizeof(*ServCellCom->n_TimingAdvanceOffset));
+    *ServCellCom->n_TimingAdvanceOffset = *configuration->scc->n_TimingAdvanceOffset;
+  }
   ServCellCom->ssb_PositionsInBurst.inOneGroup.buf = calloc(1, sizeof(uint8_t));
   uint8_t bitmap8,temp_bitmap=0;
   switch (configuration->scc->ssb_PositionsInBurst->present) {
