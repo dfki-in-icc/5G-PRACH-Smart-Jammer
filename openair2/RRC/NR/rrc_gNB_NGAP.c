@@ -58,7 +58,15 @@
 #include "NGAP_CauseRadioNetwork.h"
 #include "f1ap_messages_types.h"
 #include "openair2/E1AP/e1ap_asnc.h"
-
+#include "NGAP_asn_constant.h"
+#include "NGAP_PDUSessionResourceSetupRequestTransfer.h"
+#include "NGAP_PDUSessionResourceModifyRequestTransfer.h"
+#include "NGAP_ProtocolIE-Field.h"
+#include "NGAP_GTPTunnel.h"
+#include "NGAP_QosFlowSetupRequestItem.h"
+#include "NGAP_QosFlowAddOrModifyRequestItem.h"
+#include "NGAP_NonDynamic5QIDescriptor.h"
+#include "conversions.h"
 extern RAN_CONTEXT_t RC;
 
 /* Masks for NGAP Encryption algorithms, NEA0 is always supported (not coded) */
@@ -80,6 +88,33 @@ static const uint16_t NGAP_INTEGRITY_NIA3_MASK = 0x2000;
  */
 hash_table_t *uniq_ue_ids;
 #define UE_INITIAL_ID_INVALID 0
+
+typedef struct pdusession_tobe_added_s {
+  /* Unique pdusession_id for the UE. */
+  uint8_t pdusession_id;
+
+  /* Unique drb_ID for the UE. */
+  uint8_t drb_ID;
+
+  /* The transport layer address for the IP packets */
+  ngap_transport_layer_addr_t upf_addr;
+
+  /* S-GW Tunnel endpoint identifier */
+  uint32_t gtp_teid;
+  int                          nb_qos;
+  /* Quality of service for this pdusession */
+  pdusession_level_qos_parameter_t qos[QOSFLOW_MAX_VALUE];
+  /* Stores the DRB ID of the DRBs used by this PDU Session */
+  int                          used_drbs[NGAP_MAX_DRBS_PER_UE];
+
+} pdusession_tobe_added_t;
+
+static int rrc_gNB_process_security(
+                         const protocol_ctxt_t *const ctxt_pP,
+                         rrc_gNB_ue_context_t *const ue_context_pP,
+                         ngap_security_capabilities_t *security_capabilities_pP
+                         );
+
 //------------------------------------------------------------------------------
 static uint32_t get_next_gNB_ue_ngap_id()
 //------------------------------------------------------------------------------
@@ -108,10 +143,10 @@ struct rrc_gNB_ue_context_s *rrc_gNB_get_ue_context_from_ngap_ids(instance_t ins
  */
 //------------------------------------------------------------------------------
 void process_gNB_security_key (
-  const protocol_ctxt_t *const ctxt_pP,
-  rrc_gNB_ue_context_t  *const ue_context_pP,
-  uint8_t               *security_key_pP
-)
+                               const protocol_ctxt_t *const ctxt_pP,
+                               rrc_gNB_ue_context_t  *const ue_context_pP,
+                               uint8_t               *security_key_pP
+                               )
 //------------------------------------------------------------------------------
 {
   char ascii_buffer[65];
@@ -134,10 +169,10 @@ void process_gNB_security_key (
 //------------------------------------------------------------------------------
 void
 nr_rrc_pdcp_config_security(
-    const protocol_ctxt_t  *const ctxt_pP,
-    rrc_gNB_ue_context_t   *const ue_context_pP,
-    const uint8_t          enable_ciphering
-)
+                            const protocol_ctxt_t  *const ctxt_pP,
+                            rrc_gNB_ue_context_t   *const ue_context_pP,
+                            const uint8_t          enable_ciphering
+                            )
 //------------------------------------------------------------------------------
 {
   uint8_t                            *kRRCenc = NULL;
@@ -179,14 +214,14 @@ nr_rrc_pdcp_config_security(
 
 //------------------------------------------------------------------------------
 /*
-* Initial UE NAS message on S1AP.
-*/
+ * Initial UE NAS message on S1AP.
+ */
 void
 rrc_gNB_send_NGAP_NAS_FIRST_REQ(
-    const protocol_ctxt_t     *const ctxt_pP,
-    rrc_gNB_ue_context_t      *ue_context_pP,
-    NR_RRCSetupComplete_IEs_t *rrcSetupComplete
-)
+                                const protocol_ctxt_t     *const ctxt_pP,
+                                rrc_gNB_ue_context_t      *ue_context_pP,
+                                NR_RRCSetupComplete_IEs_t *rrcSetupComplete
+                                )
 //------------------------------------------------------------------------------
 {
   // gNB_RRC_INST *rrc = RC.nrrrc[ctxt_pP->module_id];
@@ -223,48 +258,151 @@ rrc_gNB_send_NGAP_NAS_FIRST_REQ(
   req->selected_plmn_identity = selected_plmn_identity;
 
   if (rrcSetupComplete->registeredAMF != NULL) {
-      NR_RegisteredAMF_t *r_amf = rrcSetupComplete->registeredAMF;
-      req->ue_identity.presenceMask |= NGAP_UE_IDENTITIES_guami;
+    NR_RegisteredAMF_t *r_amf = rrcSetupComplete->registeredAMF;
+    req->ue_identity.presenceMask |= NGAP_UE_IDENTITIES_guami;
 
-      if (r_amf->plmn_Identity != NULL) {
-          if ((r_amf->plmn_Identity->mcc != NULL) && (r_amf->plmn_Identity->mcc->list.count > 0)) {
-              /* Use first indicated PLMN MCC if it is defined */
-              req->ue_identity.guami.mcc = *r_amf->plmn_Identity->mcc->list.array[selected_plmn_identity];
-              LOG_I(NGAP, "[gNB %d] Build NGAP_NAS_FIRST_REQ adding in s_TMSI: GUMMEI MCC %u ue %x\n", ctxt_pP->module_id, req->ue_identity.guami.mcc, UE->rnti);
-          }
-
-          if (r_amf->plmn_Identity->mnc.list.count > 0) {
-              /* Use first indicated PLMN MNC if it is defined */
-              req->ue_identity.guami.mnc = *r_amf->plmn_Identity->mnc.list.array[selected_plmn_identity];
-              LOG_I(NGAP, "[gNB %d] Build NGAP_NAS_FIRST_REQ adding in s_TMSI: GUMMEI MNC %u ue %x\n", ctxt_pP->module_id, req->ue_identity.guami.mnc, UE->rnti);
-          }
-      } else {
-          /* TODO */
+    if (r_amf->plmn_Identity != NULL) {
+      if ((r_amf->plmn_Identity->mcc != NULL) && (r_amf->plmn_Identity->mcc->list.count > 0)) {
+        /* Use first indicated PLMN MCC if it is defined */
+        req->ue_identity.guami.mcc = *r_amf->plmn_Identity->mcc->list.array[selected_plmn_identity];
+        LOG_I(NGAP, "[gNB %d] Build NGAP_NAS_FIRST_REQ adding in s_TMSI: GUMMEI MCC %u ue %x\n", ctxt_pP->module_id, req->ue_identity.guami.mcc, UE->rnti);
       }
 
-      /* amf_Identifier */
-      uint32_t amf_Id = BIT_STRING_to_uint32(&r_amf->amf_Identifier);
-      req->ue_identity.guami.amf_region_id = amf_Id >> 16;
-      req->ue_identity.guami.amf_set_id = UE->Initialue_identity_5g_s_TMSI.amf_set_id;
-      req->ue_identity.guami.amf_pointer = UE->Initialue_identity_5g_s_TMSI.amf_pointer;
+      if (r_amf->plmn_Identity->mnc.list.count > 0) {
+        /* Use first indicated PLMN MNC if it is defined */
+        req->ue_identity.guami.mnc = *r_amf->plmn_Identity->mnc.list.array[selected_plmn_identity];
+        LOG_I(NGAP, "[gNB %d] Build NGAP_NAS_FIRST_REQ adding in s_TMSI: GUMMEI MNC %u ue %x\n", ctxt_pP->module_id, req->ue_identity.guami.mnc, UE->rnti);
+      }
+    } else {
+      /* TODO */
+    }
 
-      // fixme: illogical place to set UE values, should be in the function that call this one
-      UE->ue_guami.mcc = req->ue_identity.guami.mcc;
-      UE->ue_guami.mnc = req->ue_identity.guami.mnc;
-      UE->ue_guami.mnc_len = req->ue_identity.guami.mnc_len;
-      UE->ue_guami.amf_region_id = req->ue_identity.guami.amf_region_id;
-      UE->ue_guami.amf_set_id = req->ue_identity.guami.amf_set_id;
-      UE->ue_guami.amf_pointer = req->ue_identity.guami.amf_pointer;
+    /* amf_Identifier */
+    uint32_t amf_Id = BIT_STRING_to_uint32(&r_amf->amf_Identifier);
+    req->ue_identity.guami.amf_region_id = amf_Id >> 16;
+    req->ue_identity.guami.amf_set_id = UE->Initialue_identity_5g_s_TMSI.amf_set_id;
+    req->ue_identity.guami.amf_pointer = UE->Initialue_identity_5g_s_TMSI.amf_pointer;
 
-      LOG_I(NGAP,
-            "[gNB %d] Build NGAP_NAS_FIRST_REQ adding in s_TMSI: GUAMI amf_set_id %u amf_region_id %u ue %x\n",
-            ctxt_pP->module_id,
-            req->ue_identity.guami.amf_set_id,
-            req->ue_identity.guami.amf_region_id,
-            UE->rnti);
+    // fixme: illogical place to set UE values, should be in the function that call this one
+    UE->ue_guami.mcc = req->ue_identity.guami.mcc;
+    UE->ue_guami.mnc = req->ue_identity.guami.mnc;
+    UE->ue_guami.mnc_len = req->ue_identity.guami.mnc_len;
+    UE->ue_guami.amf_region_id = req->ue_identity.guami.amf_region_id;
+    UE->ue_guami.amf_set_id = req->ue_identity.guami.amf_set_id;
+    UE->ue_guami.amf_pointer = req->ue_identity.guami.amf_pointer;
+
+    LOG_I(NGAP,
+          "[gNB %d] Build NGAP_NAS_FIRST_REQ adding in s_TMSI: GUAMI amf_set_id %u amf_region_id %u ue %x\n",
+          ctxt_pP->module_id,
+          req->ue_identity.guami.amf_set_id,
+          req->ue_identity.guami.amf_region_id,
+          UE->rnti);
   }
 
   itti_send_msg_to_task (TASK_NGAP, ctxt_pP->instance, message_p);
+}
+
+
+
+int decodePDUSessionResourceSetup (ngap_pdu_t *pdu) {
+  NGAP_PDUSessionResourceSetupRequestTransfer_t *pdusessionTransfer;
+  pdusession_tobe_added_t PduSession[NGAP_MAX_PDUSESSION];
+  asn_dec_rval_t  dec_rval = aper_decode(NULL,
+                                         &asn_DEF_NGAP_PDUSessionResourceSetupRequestTransfer,
+                                         (void **)&pdusessionTransfer,
+                                         pdu->buffer,
+                                         pdu->length, 0, 0);
+
+  if(dec_rval.code != RC_OK) {
+    LOG_E(NR_RRC, "could not decode PDUSessionResourceSetupRequestTransfer\n");
+    return -1;
+  }
+
+  for(int i=0; i< pdusessionTransfer->protocolIEs.list.count; i++) {
+    NGAP_PDUSessionResourceSetupRequestTransferIEs_t *pdusessionTransfer_ies = pdusessionTransfer->protocolIEs.list.array[i];
+    switch(pdusessionTransfer_ies->id) {
+      /* optional PDUSessionAggregateMaximumBitRate */
+    case NGAP_ProtocolIE_ID_id_PDUSessionAggregateMaximumBitRate:
+      break;
+        
+      /* mandatory UL-NGU-UP-TNLInformation */
+    case NGAP_ProtocolIE_ID_id_UL_NGU_UP_TNLInformation:
+      {
+        NGAP_GTPTunnel_t  *gTPTunnel_p = pdusessionTransfer_ies->value.choice.UPTransportLayerInformation.choice.gTPTunnel;
+              
+        /* Set the transport layer address */
+        memcpy(PduSession[i].upf_addr.buffer,
+               gTPTunnel_p->transportLayerAddress.buf, gTPTunnel_p->transportLayerAddress.size);
+              
+        PduSession[i].upf_addr.length =
+          gTPTunnel_p->transportLayerAddress.size * 8 - gTPTunnel_p->transportLayerAddress.bits_unused;
+              
+        /* GTP tunnel endpoint ID */
+        OCTET_STRING_TO_INT32(&gTPTunnel_p->gTP_TEID, PduSession[i].gtp_teid);
+      }
+            
+      break;
+            
+      /* optional AdditionalUL-NGU-UP-TNLInformation */
+    case NGAP_ProtocolIE_ID_id_AdditionalUL_NGU_UP_TNLInformation:
+      break;
+
+      /* optional DataForwardingNotPossible */
+    case NGAP_ProtocolIE_ID_id_DataForwardingNotPossible:
+      break;
+
+      /* mandatory PDUSessionType */
+    case NGAP_ProtocolIE_ID_id_PDUSessionType:
+      PduSession[i].upf_addr.pdu_session_type = (uint8_t)pdusessionTransfer_ies->value.choice.PDUSessionType;
+      break;
+
+      /* optional SecurityIndication */
+    case NGAP_ProtocolIE_ID_id_SecurityIndication:
+      break;
+
+      /* optional NetworkInstance */
+    case NGAP_ProtocolIE_ID_id_NetworkInstance:
+      break;
+
+      /* mandatory QosFlowSetupRequestList */
+    case NGAP_ProtocolIE_ID_id_QosFlowSetupRequestList:
+      {
+        DevAssert(pdusessionTransfer_ies->value.choice.QosFlowSetupRequestList.list.count > 0);
+        DevAssert(pdusessionTransfer_ies->value.choice.QosFlowSetupRequestList.list.count <= NGAP_maxnoofQosFlows);
+
+        PduSession[i].nb_qos = pdusessionTransfer_ies->value.choice.QosFlowSetupRequestList.list.count;
+                
+        for(int qosIdx = 0; qosIdx < pdusessionTransfer_ies->value.choice.QosFlowSetupRequestList.list.count; qosIdx++) {
+          NGAP_QosFlowSetupRequestItem_t *qosFlowItem_p = pdusessionTransfer_ies->value.choice.QosFlowSetupRequestList.list.array[qosIdx];
+                
+          /* Set the QOS informations */
+          PduSession[i].qos[qosIdx].qfi = (uint8_t)qosFlowItem_p->qosFlowIdentifier;
+          if(qosFlowItem_p->qosFlowLevelQosParameters.qosCharacteristics.present == NGAP_QosCharacteristics_PR_nonDynamic5QI){
+            if(qosFlowItem_p->qosFlowLevelQosParameters.qosCharacteristics.choice.nonDynamic5QI != NULL){
+              PduSession[i].qos[qosIdx].fiveQI =
+                (uint64_t)qosFlowItem_p->qosFlowLevelQosParameters.qosCharacteristics.choice.nonDynamic5QI->fiveQI;
+            }
+          }
+          ngap_allocation_retention_priority_t *tmp=& PduSession[i].qos[qosIdx].allocation_retention_priority;
+          NGAP_AllocationAndRetentionPriority_t *tmp2=&qosFlowItem_p->qosFlowLevelQosParameters.allocationAndRetentionPriority;
+          tmp->priority_level = tmp2->priorityLevelARP;
+          tmp->pre_emp_capability = tmp2->pre_emptionCapability;
+          tmp->pre_emp_vulnerability = tmp2->pre_emptionVulnerability;
+        }
+      }
+          
+      break;
+            
+      /* optional CommonNetworkInstance */
+    case NGAP_ProtocolIE_ID_id_CommonNetworkInstance:
+      break;
+            
+    default:
+      LOG_E(NR_RRC, "could not found protocolIEs id %ld\n", pdusessionTransfer_ies->id);
+      return -1;
+    }
+  }
+  return 0;
 }
 
 //------------------------------------------------------------------------------
@@ -293,8 +431,8 @@ int rrc_gNB_process_NGAP_INITIAL_CONTEXT_SETUP_REQ(MessageDef *msg_p, instance_t
   if (nb_pdusessions_tosetup != 0) {
     AssertFatal(false, "PDU sessions in Initial context setup request not handled by E1 yet\n");
     /*
-    gtpv1u_gnb_create_tunnel_req_t create_tunnel_req = {0};
-    for (int i = 0; i < NR_NB_RB_MAX - 3; i++) {
+      gtpv1u_gnb_create_tunnel_req_t create_tunnel_req = {0};
+      for (int i = 0; i < NR_NB_RB_MAX - 3; i++) {
       // if(UE->pduSession[i].statusE1 >= PDU_SESSION_DONE)
       continue;
       // UE->pduSession[i].E1status      = PDU_SESSION_SENT;
@@ -310,16 +448,16 @@ int rrc_gNB_process_NGAP_INITIAL_CONTEXT_SETUP_REQ(MessageDef *msg_p, instance_t
       pdu_sessions_done++;
 
       if (pdu_sessions_done >= nb_pdusessions_tosetup) {
-        break;
+      break;
       }
-    }
+      }
 
-    UE->nbPduSessions = req->nb_of_pdusessions;
-    create_tunnel_req.ue_id = UE->rnti;
-    create_tunnel_req.num_tunnels = pdu_sessions_done;
+      UE->nbPduSessions = req->nb_of_pdusessions;
+      create_tunnel_req.ue_id = UE->rnti;
+      create_tunnel_req.num_tunnels = pdu_sessions_done;
 
-    ret = gtpv1u_create_ngu_tunnel(instance, &create_tunnel_req, &create_tunnel_resp);
-    if (ret != 0) {
+      ret = gtpv1u_create_ngu_tunnel(instance, &create_tunnel_req, &create_tunnel_resp);
+      if (ret != 0) {
       LOG_E(NR_RRC, "rrc_gNB_process_NGAP_INITIAL_CONTEXT_SETUP_REQ : gtpv1u_create_ngu_tunnel failed,start to release UE %x\n", UE->rnti);
       UE->ue_release_timer_ng = 1;
       UE->ue_release_timer_thres_ng = 100;
@@ -328,11 +466,11 @@ int rrc_gNB_process_NGAP_INITIAL_CONTEXT_SETUP_REQ(MessageDef *msg_p, instance_t
       UE->ul_failure_timer = 20000;
       UE->ul_failure_timer = 0;
       return (0);
-    }
+      }
 
-    nr_rrc_gNB_process_GTPV1U_CREATE_TUNNEL_RESP(&ctxt, &create_tunnel_resp);
-    UE->nbPduSessions += req->nb_of_pdusessions;
-    UE->established_pdu_sessions_flag = 1;
+      nr_rrc_gNB_process_GTPV1U_CREATE_TUNNEL_RESP(&ctxt, &create_tunnel_resp);
+      UE->nbPduSessions += req->nb_of_pdusessions;
+      UE->established_pdu_sessions_flag = 1;
     */
   }
 
@@ -360,9 +498,9 @@ int rrc_gNB_process_NGAP_INITIAL_CONTEXT_SETUP_REQ(MessageDef *msg_p, instance_t
 //------------------------------------------------------------------------------
 void
 rrc_gNB_send_NGAP_INITIAL_CONTEXT_SETUP_RESP(
-  const protocol_ctxt_t *const ctxt_pP,
-  rrc_gNB_ue_context_t          *const ue_context_pP
-)
+                                             const protocol_ctxt_t *const ctxt_pP,
+                                             rrc_gNB_ue_context_t          *const ue_context_pP
+                                             )
 //------------------------------------------------------------------------------
 {
   MessageDef *msg_p = NULL;
@@ -384,11 +522,11 @@ rrc_gNB_send_NGAP_INITIAL_CONTEXT_SETUP_RESP(
       memcpy(resp->pdusessions[pdusession].gNB_addr.buffer, UE->gnb_gtp_addrs[pdusession].buffer, 20);
       resp->pdusessions[pdusession].gNB_addr.length = 4;
       /* FIXXX
-      resp->pdusessions[pdusession].nb_of_qos_flow = session->param.nb_qos;
-      for (qos_flow_index = 0; qos_flow_index < session->param.nb_qos; qos_flow_index++) {
-        resp->pdusessions[pdusession].associated_qos_flows[qos_flow_index].qfi = session->param.qos[qos_flow_index].qfi;
-        resp->pdusessions[pdusession].associated_qos_flows[qos_flow_index].qos_flow_mapping_ind = QOSFLOW_MAPPING_INDICATION_DL;
-      }
+         resp->pdusessions[pdusession].nb_of_qos_flow = session->param.nb_qos;
+         for (qos_flow_index = 0; qos_flow_index < session->param.nb_qos; qos_flow_index++) {
+         resp->pdusessions[pdusession].associated_qos_flows[qos_flow_index].qfi = session->param.qos[qos_flow_index].qfi;
+         resp->pdusessions[pdusession].associated_qos_flows[qos_flow_index].qos_flow_mapping_ind = QOSFLOW_MAPPING_INDICATION_DL;
+         }
       */
       session->statusNGAP = PDU_SESSION_existing;
     } else {
@@ -407,8 +545,8 @@ rrc_gNB_send_NGAP_INITIAL_CONTEXT_SETUP_RESP(
 }
 
 static NR_CipheringAlgorithm_t rrc_gNB_select_ciphering(
-    const protocol_ctxt_t *const ctxt_pP,
-    uint16_t algorithms)
+                                                        const protocol_ctxt_t *const ctxt_pP,
+                                                        uint16_t algorithms)
 {
   gNB_RRC_INST *rrc = RC.nrrrc[ctxt_pP->module_id];
   int i;
@@ -443,8 +581,8 @@ static NR_CipheringAlgorithm_t rrc_gNB_select_ciphering(
 }
 
 static e_NR_IntegrityProtAlgorithm rrc_gNB_select_integrity(
-    const protocol_ctxt_t *const ctxt_pP,
-    uint16_t algorithms)
+                                                            const protocol_ctxt_t *const ctxt_pP,
+                                                            uint16_t algorithms)
 {
   gNB_RRC_INST *rrc = RC.nrrrc[ctxt_pP->module_id];
   int i;
@@ -478,12 +616,12 @@ static e_NR_IntegrityProtAlgorithm rrc_gNB_select_integrity(
   return ret;
 }
 
-int
+static int
 rrc_gNB_process_security(
-  const protocol_ctxt_t *const ctxt_pP,
-  rrc_gNB_ue_context_t *const ue_context_pP,
-  ngap_security_capabilities_t *security_capabilities_pP
-) {
+                         const protocol_ctxt_t *const ctxt_pP,
+                         rrc_gNB_ue_context_t *const ue_context_pP,
+                         ngap_security_capabilities_t *security_capabilities_pP
+                         ) {
   bool                                                  changed = false;
   NR_CipheringAlgorithm_t                               cipheringAlgorithm;
   e_NR_IntegrityProtAlgorithm                           integrityProtAlgorithm;
@@ -563,26 +701,26 @@ int rrc_gNB_process_NGAP_DOWNLINK_NAS(MessageDef *msg_p, instance_t instance, mu
      * switch UL or DL NAS message without RRC piggybacked to SRB2 if active.
      */
     switch (RC.nrrrc[ctxt.module_id]->node_type) {
-      case ngran_gNB_CU:
-      case ngran_gNB_CUCP:
-      case ngran_gNB: {
-        long srb_id;
-        if (UE->Srb[2].Active)
-          srb_id = UE->Srb[2].Srb_info.Srb_id;
-        else
-          srb_id = UE->Srb[1].Srb_info.Srb_id;
-        AssertFatal(srb_id > 0 && srb_id < MAX_SRBs, "");
-        /* Transfer data to PDCP */
-        nr_rrc_data_req(&ctxt, srb_id, (*rrc_gNB_mui)++, SDU_CONFIRM_NO, length, buffer, PDCP_TRANSMISSION_MODE_CONTROL);
-      } break;
+    case ngran_gNB_CU:
+    case ngran_gNB_CUCP:
+    case ngran_gNB: {
+      long srb_id;
+      if (UE->Srb[2].Active)
+        srb_id = UE->Srb[2].Srb_info.Srb_id;
+      else
+        srb_id = UE->Srb[1].Srb_info.Srb_id;
+      AssertFatal(srb_id > 0 && srb_id < MAX_SRBs, "");
+      /* Transfer data to PDCP */
+      nr_rrc_data_req(&ctxt, srb_id, (*rrc_gNB_mui)++, SDU_CONFIRM_NO, length, buffer, PDCP_TRANSMISSION_MODE_CONTROL);
+    } break;
 
-      case ngran_gNB_DU:
-        // nothing to do for DU
-        AssertFatal(1 == 0, "nothing to do for DU\n");
-        break;
+    case ngran_gNB_DU:
+      // nothing to do for DU
+      AssertFatal(1 == 0, "nothing to do for DU\n");
+      break;
 
-      default:
-        LOG_W(NR_RRC, "Unknown node type %d\n", RC.nrrrc[ctxt.module_id]->node_type);
+    default:
+      LOG_W(NR_RRC, "Unknown node type %d\n", RC.nrrrc[ctxt.module_id]->node_type);
     }
     return (0);
   }
@@ -591,40 +729,40 @@ int rrc_gNB_process_NGAP_DOWNLINK_NAS(MessageDef *msg_p, instance_t instance, mu
 //------------------------------------------------------------------------------
 void
 rrc_gNB_send_NGAP_UPLINK_NAS(
-  const protocol_ctxt_t    *const ctxt_pP,
-  rrc_gNB_ue_context_t     *const ue_context_pP,
-  NR_UL_DCCH_Message_t     *const ul_dcch_msg
-)
+                             const protocol_ctxt_t    *const ctxt_pP,
+                             rrc_gNB_ue_context_t     *const ue_context_pP,
+                             NR_UL_DCCH_Message_t     *const ul_dcch_msg
+                             )
 //------------------------------------------------------------------------------
 {
-    uint32_t pdu_length;
-    uint8_t *pdu_buffer;
-    MessageDef *msg_p;
-    NR_ULInformationTransfer_t *ulInformationTransfer = ul_dcch_msg->message.choice.c1->choice.ulInformationTransfer;
-    gNB_RRC_UE_t *UE = &ue_context_pP->ue_context;
+  uint32_t pdu_length;
+  uint8_t *pdu_buffer;
+  MessageDef *msg_p;
+  NR_ULInformationTransfer_t *ulInformationTransfer = ul_dcch_msg->message.choice.c1->choice.ulInformationTransfer;
+  gNB_RRC_UE_t *UE = &ue_context_pP->ue_context;
 
-    if (ulInformationTransfer->criticalExtensions.present == NR_ULInformationTransfer__criticalExtensions_PR_ulInformationTransfer) {
-        pdu_length = ulInformationTransfer->criticalExtensions.choice.ulInformationTransfer->dedicatedNAS_Message->size;
-        pdu_buffer = ulInformationTransfer->criticalExtensions.choice.ulInformationTransfer->dedicatedNAS_Message->buf;
-        msg_p = itti_alloc_new_message (TASK_RRC_GNB, 0, NGAP_UPLINK_NAS);
-        NGAP_UPLINK_NAS(msg_p).gNB_ue_ngap_id = UE->gNB_ue_ngap_id;
-        NGAP_UPLINK_NAS (msg_p).nas_pdu.length = pdu_length;
-        NGAP_UPLINK_NAS (msg_p).nas_pdu.buffer = pdu_buffer;
-        // extract_imsi(NGAP_UPLINK_NAS (msg_p).nas_pdu.buffer,
-        //               NGAP_UPLINK_NAS (msg_p).nas_pdu.length,
-        //               ue_context_pP);
-        itti_send_msg_to_task (TASK_NGAP, ctxt_pP->instance, msg_p);
-        LOG_I(NR_RRC,"Send RRC GNB UL Information Transfer \n");
-    }
+  if (ulInformationTransfer->criticalExtensions.present == NR_ULInformationTransfer__criticalExtensions_PR_ulInformationTransfer) {
+    pdu_length = ulInformationTransfer->criticalExtensions.choice.ulInformationTransfer->dedicatedNAS_Message->size;
+    pdu_buffer = ulInformationTransfer->criticalExtensions.choice.ulInformationTransfer->dedicatedNAS_Message->buf;
+    msg_p = itti_alloc_new_message (TASK_RRC_GNB, 0, NGAP_UPLINK_NAS);
+    NGAP_UPLINK_NAS(msg_p).gNB_ue_ngap_id = UE->gNB_ue_ngap_id;
+    NGAP_UPLINK_NAS (msg_p).nas_pdu.length = pdu_length;
+    NGAP_UPLINK_NAS (msg_p).nas_pdu.buffer = pdu_buffer;
+    // extract_imsi(NGAP_UPLINK_NAS (msg_p).nas_pdu.buffer,
+    //               NGAP_UPLINK_NAS (msg_p).nas_pdu.length,
+    //               ue_context_pP);
+    itti_send_msg_to_task (TASK_NGAP, ctxt_pP->instance, msg_p);
+    LOG_I(NR_RRC,"Send RRC GNB UL Information Transfer \n");
+  }
 }
 
 //------------------------------------------------------------------------------
 void
 rrc_gNB_send_NGAP_PDUSESSION_SETUP_RESP(
-  const protocol_ctxt_t    *const ctxt_pP,
-  rrc_gNB_ue_context_t     *const ue_context_pP,
-  uint8_t                   xid
-)
+                                        const protocol_ctxt_t    *const ctxt_pP,
+                                        rrc_gNB_ue_context_t     *const ue_context_pP,
+                                        uint8_t                   xid
+                                        )
 //------------------------------------------------------------------------------
 {
   MessageDef *msg_p;
@@ -642,16 +780,16 @@ rrc_gNB_send_NGAP_PDUSESSION_SETUP_RESP(
       pdusession_setup_t *tmp = &resp->pdusessions[pdu_sessions_done];
       tmp->pdusession_id = session->param.pdusession_id;
       /* FIXXX
-      tmp->pdusession_id = 1;
-      tmp->nb_of_qos_flow = session->param.nb_qos;
-      tmp->gtp_teid = UE->gnb_gtp_teid[pdusession];
-      tmp->gNB_addr.pdu_session_type = PDUSessionType_ipv4;
-      tmp->gNB_addr.length = UE->gnb_gtp_addrs[pdusession].length;
-      memcpy(tmp->gNB_addr.buffer, UE->gnb_gtp_addrs[pdusession].buffer, tmp->gNB_addr.length);
-      for (qos_flow_index = 0; qos_flow_index < tmp->nb_of_qos_flow; qos_flow_index++) {
-        tmp->associated_qos_flows[qos_flow_index].qfi = session->param.qos[qos_flow_index].qfi;
-        tmp->associated_qos_flows[qos_flow_index].qos_flow_mapping_ind = QOSFLOW_MAPPING_INDICATION_DL;
-      }
+         tmp->pdusession_id = 1;
+         tmp->nb_of_qos_flow = session->param.nb_qos;
+         tmp->gtp_teid = UE->gnb_gtp_teid[pdusession];
+         tmp->gNB_addr.pdu_session_type = PDUSessionType_ipv4;
+         tmp->gNB_addr.length = UE->gnb_gtp_addrs[pdusession].length;
+         memcpy(tmp->gNB_addr.buffer, UE->gnb_gtp_addrs[pdusession].buffer, tmp->gNB_addr.length);
+         for (qos_flow_index = 0; qos_flow_index < tmp->nb_of_qos_flow; qos_flow_index++) {
+         tmp->associated_qos_flows[qos_flow_index].qfi = session->param.qos[qos_flow_index].qfi;
+         tmp->associated_qos_flows[qos_flow_index].qos_flow_mapping_ind = QOSFLOW_MAPPING_INDICATION_DL;
+         }
       */
       session->statusNGAP = PDU_SESSION_existing;
       LOG_I(NR_RRC,
@@ -757,16 +895,16 @@ void rrc_gNB_process_NGAP_PDUSESSION_SETUP_REQ(MessageDef *msg_p, instance_t ins
       pdu->confidentialityProtectionIndication = E1AP_ConfidentialityProtectionIndication_not_needed;
     }
     /* FIXXX
-    pdu->teId = msg->pdusession_setup_params[i].gtp_teid;
-    memcpy(&pdu->tlAddress,
-           msg->pdusession_setup_params[i].upf_addr.buffer,
-           sizeof(uint8_t)*4);
-    UE->pduSession[i].param = msg->pdusession_setup_params[i];
-    UE->nbPduSessions = msg->nb_pdusessions_tosetup;
-    UE->gNB_ue_ngap_id = msg->gNB_ue_ngap_id;
-    UE->amf_ue_ngap_id = msg->amf_ue_ngap_id;
-    pdu->numDRB2Setup = 1; // One DRB per PDU Session. TODO: Remove hardcoding
-    UE->setup_pdu_sessions += pdu->numDRB2Setup;
+       pdu->teId = msg->pdusession_setup_params[i].gtp_teid;
+       memcpy(&pdu->tlAddress,
+       msg->pdusession_setup_params[i].upf_addr.buffer,
+       sizeof(uint8_t)*4);
+       UE->pduSession[i].param = msg->pdusession_setup_params[i];
+       UE->nbPduSessions = msg->nb_pdusessions_tosetup;
+       UE->gNB_ue_ngap_id = msg->gNB_ue_ngap_id;
+       UE->amf_ue_ngap_id = msg->amf_ue_ngap_id;
+       pdu->numDRB2Setup = 1; // One DRB per PDU Session. TODO: Remove hardcoding
+       UE->setup_pdu_sessions += pdu->numDRB2Setup;
     */
 
     for (int j=0; j < pdu->numDRB2Setup; j++) {
@@ -795,24 +933,116 @@ void rrc_gNB_process_NGAP_PDUSESSION_SETUP_REQ(MessageDef *msg_p, instance_t ins
       }
       /* FIXXX
 
-        drb->numQosFlow2Setup = msg->pdusession_setup_params[i].nb_qos;
-        for (int k=0; k < drb->numQosFlow2Setup; k++) {
-          qos_flow_to_setup_t *qos = drb->qosFlows + k;
+         drb->numQosFlow2Setup = msg->pdusession_setup_params[i].nb_qos;
+         for (int k=0; k < drb->numQosFlow2Setup; k++) {
+         qos_flow_to_setup_t *qos = drb->qosFlows + k;
 
-          qos->id          = msg->pdusession_setup_params[i].qos[k].qfi;
-          qos->fiveQI      = msg->pdusession_setup_params[i].qos[k].fiveQI;
-          qos->fiveQI_type = msg->pdusession_setup_params[i].qos[k].fiveQI_type;
+         qos->id          = msg->pdusession_setup_params[i].qos[k].qfi;
+         qos->fiveQI      = msg->pdusession_setup_params[i].qos[k].fiveQI;
+         qos->fiveQI_type = msg->pdusession_setup_params[i].qos[k].fiveQI_type;
 
-          qos->qoSPriorityLevel = msg->pdusession_setup_params[i].qos[k].allocation_retention_priority.priority_level;
-          qos->pre_emptionCapability = msg->pdusession_setup_params[i].qos[k].allocation_retention_priority.pre_emp_capability;
-          qos->pre_emptionVulnerability = msg->pdusession_setup_params[i].qos[k].allocation_retention_priority.pre_emp_vulnerability;
-        }
+         qos->qoSPriorityLevel = msg->pdusession_setup_params[i].qos[k].allocation_retention_priority.priority_level;
+         qos->pre_emptionCapability = msg->pdusession_setup_params[i].qos[k].allocation_retention_priority.pre_emp_capability;
+         qos->pre_emptionVulnerability = msg->pdusession_setup_params[i].qos[k].allocation_retention_priority.pre_emp_vulnerability;
+         }
       */
     }
   }
 
   rrc->cucp_cuup.bearer_context_setup(&bearer_req, instance);
   return;
+}
+
+void for_modify(ngap_pdu_t *pdu) {
+  NGAP_PDUSessionResourceModifyRequestTransfer_t *pdusessionTransfer;
+  pdusession_tobe_added_t PduSession[NGAP_MAX_PDUSESSION];
+
+  asn_dec_rval_t  dec_rval = aper_decode(NULL,
+                                         &asn_DEF_NGAP_PDUSessionResourceModifyRequestTransfer,
+                                         (void **)&pdusessionTransfer,
+                                         pdu->buffer,
+                                         pdu->length, 0, 0);
+
+  if(dec_rval.code != RC_OK) {
+    LOG_E(NR_RRC,"could not decode PDUSessionResourceModifyRequestTransfer\n");
+    return;
+  }
+
+  for(int j=0; j< pdusessionTransfer->protocolIEs.list.count; j++) {
+    NGAP_PDUSessionResourceModifyRequestTransferIEs_t *pdusessionTransfer_ies = pdusessionTransfer->protocolIEs.list.array[j];
+    switch(pdusessionTransfer_ies->id) {
+      /* optional PDUSessionAggregateMaximumBitRate */
+    case NGAP_ProtocolIE_ID_id_PDUSessionAggregateMaximumBitRate:
+      // TODO
+      LOG_E(NR_RRC,"Cant' handle NGAP_ProtocolIE_ID_id_PDUSessionAggregateMaximumBitRate\n");
+      break;
+        
+      /* optional UL-NGU-UP-TNLModifyList */
+    case NGAP_ProtocolIE_ID_id_UL_NGU_UP_TNLModifyList:
+      // TODO
+      LOG_E(NR_RRC,"Cant' handle NGAP_ProtocolIE_ID_id_UL_NGU_UP_TNLModifyList\n");
+      break;
+            
+      /* optional NetworkInstance */
+    case NGAP_ProtocolIE_ID_id_NetworkInstance:
+      // TODO
+      LOG_E(NR_RRC,"Cant' handle NGAP_ProtocolIE_ID_id_NetworkInstance\n");
+      break;
+
+      /* optional QosFlowAddOrModifyRequestList */
+    case NGAP_ProtocolIE_ID_id_QosFlowAddOrModifyRequestList:
+      {
+        NGAP_QosFlowAddOrModifyRequestItem_t *qosFlowItem_p;
+        DevAssert(pdusessionTransfer_ies->value.choice.QosFlowAddOrModifyRequestList.list.count > 0);
+        DevAssert(pdusessionTransfer_ies->value.choice.QosFlowAddOrModifyRequestList.list.count <= NGAP_maxnoofQosFlows);
+
+        PduSession[j].nb_qos = pdusessionTransfer_ies->value.choice.QosFlowAddOrModifyRequestList.list.count;
+                
+        for(int qosIdx = 0; qosIdx < pdusessionTransfer_ies->value.choice.QosFlowAddOrModifyRequestList.list.count; qosIdx++) {
+          qosFlowItem_p = pdusessionTransfer_ies->value.choice.QosFlowAddOrModifyRequestList.list.array[qosIdx];
+                
+          /* Set the QOS informations */
+          PduSession[j].qos[qosIdx].qfi = (uint8_t)qosFlowItem_p->qosFlowIdentifier;
+          if(qosFlowItem_p->qosFlowLevelQosParameters) {
+            if (qosFlowItem_p->qosFlowLevelQosParameters->qosCharacteristics.present == NGAP_QosCharacteristics_PR_nonDynamic5QI) {
+              PduSession[j].qos[qosIdx].fiveQI =
+                qosFlowItem_p->qosFlowLevelQosParameters->qosCharacteristics.choice.nonDynamic5QI->fiveQI;
+            } else if (qosFlowItem_p->qosFlowLevelQosParameters->qosCharacteristics.present == NGAP_QosCharacteristics_PR_dynamic5QI) {
+              // TODO
+            }
+            ngap_allocation_retention_priority_t *tmp=& PduSession[j].qos[qosIdx].allocation_retention_priority;
+            NGAP_AllocationAndRetentionPriority_t *tmp2=&qosFlowItem_p->qosFlowLevelQosParameters->allocationAndRetentionPriority;
+            tmp->priority_level = tmp2->priorityLevelARP;
+            tmp->pre_emp_capability = tmp2->pre_emptionCapability;
+            tmp->pre_emp_vulnerability = tmp2->pre_emptionVulnerability;
+          }
+        }
+      }
+      break;
+
+      /* optional QosFlowToReleaseList */
+    case NGAP_ProtocolIE_ID_id_QosFlowToReleaseList:
+      // TODO
+      LOG_E(NR_RRC,"Cant' handle NGAP_ProtocolIE_ID_id_QosFlowToReleaseList\n");
+      break;
+
+      /* optional AdditionalUL-NGU-UP-TNLInformation */
+    case NGAP_ProtocolIE_ID_id_AdditionalUL_NGU_UP_TNLInformation:
+      // TODO
+      LOG_E(NR_RRC,"Cant' handle NGAP_ProtocolIE_ID_id_AdditionalUL_NGU_UP_TNLInformation\n");
+      break;
+
+      /* optional CommonNetworkInstance */
+    case NGAP_ProtocolIE_ID_id_CommonNetworkInstance:
+      // TODO
+      LOG_E(NR_RRC,"Cant' handle NGAP_ProtocolIE_ID_id_CommonNetworkInstance\n");
+      break;
+            
+    default:
+      LOG_E(NR_RRC,"could not found protocolIEs id %ld\n", pdusessionTransfer_ies->id);
+      return ;
+    }
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -828,94 +1058,89 @@ int rrc_gNB_process_NGAP_PDUSESSION_MODIFY_REQ(MessageDef *msg_p, instance_t ins
   ue_context_p = rrc_gNB_get_ue_context_from_ngap_ids(instance, req->gNB_ue_ngap_id);
   if (ue_context_p == NULL) {
     LOG_W(NR_RRC, "[gNB %ld] In NGAP_PDUSESSION_MODIFY_REQ: unknown UE from NGAP ids (%u)\n", instance, req->gNB_ue_ngap_id);
-    // TODO 
+    // TO implement return setup failed
     return (-1);
   } else {
     gNB_RRC_UE_t *UE = &ue_context_p->ue_context;
     PROTOCOL_CTXT_SET_BY_INSTANCE(&ctxt, instance, GNB_FLAG_YES, UE->rnti, 0, 0);
     ctxt.eNB_index = 0;
-    // FIXXX
-    UE->gNB_ue_ngap_id = req->gNB_ue_ngap_id;
-    {
-      bool is_treated[NGAP_MAX_PDUSESSION] = {false};
-      uint8_t nb_of_failed_pdusessions = 0;
-
-      for (int i = 0; i < nb_pdusessions_tomodify; i++) {
-        // pdu_session_param_t *session=&UE->pduSession[i];
-        if (is_treated[i] == true) {
-          continue;
-        }
-        
-        //Check if same PDU session ID to handle multiple pdu sessions
-        for (int j = i + 1; j < nb_pdusessions_tomodify; j++) {
-          if (is_treated[j] == false && req->pdusession_modify_params[j].pdusession_id == req->pdusession_modify_params[i].pdusession_id) {
-            // handle multiple pdu session id
-            LOG_D(NR_RRC, "handle multiple pdu session id \n");
-            UE->modify_pdusession[j].status = PDU_SESSION_STATUS_NEW;
-            UE->modify_pdusession[j].param.pdusession_id = req->pdusession_modify_params[j].pdusession_id;
-            UE->modify_pdusession[j].cause = NGAP_CAUSE_RADIO_NETWORK;
-            UE->modify_pdusession[j].cause_value = NGAP_CauseRadioNetwork_multiple_PDU_session_ID_instances;
-            nb_of_failed_pdusessions++;
-            is_treated[i] = true;
-            is_treated[j] = true;
-          }
-        }
-        // handle multiple pdu session id case
-        if (is_treated[i] == true) {
+    bool is_treated[NGAP_MAX_PDUSESSION] = {false};
+    uint8_t nb_of_failed_pdusessions = 0;
+    
+    for (int i = 0; i < nb_pdusessions_tomodify; i++) {
+      // pdu_session_param_t *session=&UE->pduSession[i];
+      if (is_treated[i] == true) {
+        continue;
+      }
+      
+      //Check if same PDU session ID to handle multiple pdu sessions
+      for (int j = i + 1; j < nb_pdusessions_tomodify; j++) {
+        if (is_treated[j] == false && req->pdusession_modify_params[j].pdusession_id == req->pdusession_modify_params[i].pdusession_id) {
+          // handle multiple pdu session id
           LOG_D(NR_RRC, "handle multiple pdu session id \n");
-          UE->modify_pdusession[i].status = PDU_SESSION_STATUS_NEW;
-          UE->modify_pdusession[i].param.pdusession_id = req->pdusession_modify_params[i].pdusession_id;
-          UE->modify_pdusession[i].cause = NGAP_CAUSE_RADIO_NETWORK;
-          UE->modify_pdusession[i].cause_value = NGAP_CauseRadioNetwork_multiple_PDU_session_ID_instances;
-          nb_of_failed_pdusessions++;
-          continue;
-        }
-
-        // Check pdu session ID is established
-        for (j = 0; j < NR_NB_RB_MAX -3; j++) {
-          if (UE->pduSession[j].param.pdusession_id == req->pdusession_modify_params[i].pdusession_id) {
-            if (UE->pduSession[j].status == PDU_SESSION_STATUS_TORELEASE || UE->pduSession[j].status == PDU_SESSION_STATUS_DONE) {
-              break;
-            }
-            // Found established pdu session, prepare to send RRC message
-            UE->modify_pdusession[i].status = PDU_SESSION_STATUS_NEW;
-            UE->modify_pdusession[i].param.pdusession_id = req->pdusession_modify_params[i].pdusession_id;
-            UE->modify_pdusession[i].cause = NGAP_CAUSE_NOTHING;
-            if (NGAP_PDUSESSION_MODIFY_REQ(msg_p).pdusession_modify_params[i].nas_pdu.buffer != NULL) {
-              UE->modify_pdusession[i].param.nas_pdu = req->pdusession_modify_params[i].nas_pdu;
-            }
-            // Save new pdu session parameters, qos, upf addr, teid
-            /* FIXXX
-            for (qos_flow_index = 0; qos_flow_index < req->pdusession_modify_params[i].nb_qos; qos_flow_index++) {
-              UE->modify_pdusession[i].param.qos[qos_flow_index] = req->pdusession_modify_params[i].qos[qos_flow_index];
-            }
-            UE->modify_pdusession[i].param.nb_qos = req->pdusession_modify_params[i].nb_qos;
-
-            UE->modify_pdusession[i].param.upf_addr = UE->pduSession[j].param.upf_addr;
-            UE->modify_pdusession[i].param.gtp_teid = UE->pduSession[j].param.gtp_teid;
-            */
-
-            is_treated[i] = true;
-            break;
-          }
-        }
-
-        // handle Unknown pdu session ID
-        if (is_treated[i] == false) {
-          LOG_D(NR_RRC, "handle Unknown pdu session ID \n");
-          UE->modify_pdusession[i].status = PDU_SESSION_STATUS_NEW;
-          UE->modify_pdusession[i].param.pdusession_id = req->pdusession_modify_params[i].pdusession_id;
-          UE->modify_pdusession[i].cause = NGAP_CAUSE_RADIO_NETWORK;
-          UE->modify_pdusession[i].cause_value = NGAP_CauseRadioNetwork_unknown_PDU_session_ID;
+          UE->modify_pdusession[j].status = PDU_SESSION_STATUS_NEW;
+          UE->modify_pdusession[j].param.pdusession_id = req->pdusession_modify_params[j].pdusession_id;
+          UE->modify_pdusession[j].cause = NGAP_CAUSE_RADIO_NETWORK;
+          UE->modify_pdusession[j].cause_value = NGAP_CauseRadioNetwork_multiple_PDU_session_ID_instances;
           nb_of_failed_pdusessions++;
           is_treated[i] = true;
+          is_treated[j] = true;
         }
       }
-
+      // handle multiple pdu session id case
+      if (is_treated[i] == true) {
+        LOG_D(NR_RRC, "handle multiple pdu session id \n");
+        UE->modify_pdusession[i].status = PDU_SESSION_STATUS_NEW;
+        UE->modify_pdusession[i].param.pdusession_id = req->pdusession_modify_params[i].pdusession_id;
+        UE->modify_pdusession[i].cause = NGAP_CAUSE_RADIO_NETWORK;
+        UE->modify_pdusession[i].cause_value = NGAP_CauseRadioNetwork_multiple_PDU_session_ID_instances;
+        nb_of_failed_pdusessions++;
+        continue;
+      }
+      
+      // Check pdu session ID is established
+      for (j = 0; j < NR_NB_RB_MAX -3; j++) {
+        if (UE->pduSession[j].param.pdusession_id == req->pdusession_modify_params[i].pdusession_id) {
+          if (UE->pduSession[j].status == PDU_SESSION_STATUS_TORELEASE || UE->pduSession[j].status == PDU_SESSION_STATUS_DONE) {
+            break;
+          }
+          // Found established pdu session, prepare to send RRC message
+          UE->modify_pdusession[i].status = PDU_SESSION_STATUS_NEW;
+          UE->modify_pdusession[i].param.pdusession_id = req->pdusession_modify_params[i].pdusession_id;
+          UE->modify_pdusession[i].cause = NGAP_CAUSE_NOTHING;
+          if (NGAP_PDUSESSION_MODIFY_REQ(msg_p).pdusession_modify_params[i].nas_pdu.buffer != NULL) {
+            UE->modify_pdusession[i].param.nas_pdu = req->pdusession_modify_params[i].nas_pdu;
+          }
+          // Save new pdu session parameters, qos, upf addr, teid
+          /* FIXXX
+             for (qos_flow_index = 0; qos_flow_index < req->pdusession_modify_params[i].nb_qos; qos_flow_index++) {
+             UE->modify_pdusession[i].param.qos[qos_flow_index] = req->pdusession_modify_params[i].qos[qos_flow_index];
+             }
+             UE->modify_pdusession[i].param.nb_qos = req->pdusession_modify_params[i].nb_qos;
+             
+             UE->modify_pdusession[i].param.upf_addr = UE->pduSession[j].param.upf_addr;
+             UE->modify_pdusession[i].param.gtp_teid = UE->pduSession[j].param.gtp_teid;
+          */
+          
+          is_treated[i] = true;
+          break;
+        }
+      }
+      
+      // handle Unknown pdu session ID
+      if (is_treated[i] == false) {
+        LOG_D(NR_RRC, "handle Unknown pdu session ID \n");
+        UE->modify_pdusession[i].status = PDU_SESSION_STATUS_NEW;
+        UE->modify_pdusession[i].param.pdusession_id = req->pdusession_modify_params[i].pdusession_id;
+        UE->modify_pdusession[i].cause = NGAP_CAUSE_RADIO_NETWORK;
+        UE->modify_pdusession[i].cause_value = NGAP_CauseRadioNetwork_unknown_PDU_session_ID;
+        nb_of_failed_pdusessions++;
+        is_treated[i] = true;
+      }
       UE->nb_of_modify_pdusessions = nb_pdusessions_tomodify;
       UE->nb_of_failed_pdusessions = nb_of_failed_pdusessions;
     }
-
+    
     if (UE->nb_of_failed_pdusessions < UE->nb_of_modify_pdusessions) {
       LOG_D(NR_RRC, "generate RRCReconfiguration \n");
       rrc_gNB_modify_dedicatedRRCReconfiguration(&ctxt, ue_context_p);
@@ -952,10 +1177,10 @@ int rrc_gNB_process_NGAP_PDUSESSION_MODIFY_REQ(MessageDef *msg_p, instance_t ins
 //------------------------------------------------------------------------------
 int
 rrc_gNB_send_NGAP_PDUSESSION_MODIFY_RESP(
-  const protocol_ctxt_t    *const ctxt_pP,
-  rrc_gNB_ue_context_t     *const ue_context_pP,
-  uint8_t                   xid
-)
+                                         const protocol_ctxt_t    *const ctxt_pP,
+                                         rrc_gNB_ue_context_t     *const ue_context_pP,
+                                         uint8_t                   xid
+                                         )
 //------------------------------------------------------------------------------
 {
   MessageDef *msg_p = NULL;
@@ -1040,10 +1265,10 @@ rrc_gNB_send_NGAP_PDUSESSION_MODIFY_RESP(
 //------------------------------------------------------------------------------
 void
 rrc_gNB_send_NGAP_UE_CONTEXT_RELEASE_REQ(
-  const module_id_t gnb_mod_idP,
-  const rrc_gNB_ue_context_t *const ue_context_pP,
-  const ngap_Cause_t causeP,
-  const long cause_valueP)
+                                         const module_id_t gnb_mod_idP,
+                                         const rrc_gNB_ue_context_t *const ue_context_pP,
+                                         const ngap_Cause_t causeP,
+                                         const long cause_valueP)
 //------------------------------------------------------------------------------
 {
   if (ue_context_pP == NULL) {
@@ -1095,9 +1320,9 @@ int rrc_gNB_process_NGAP_UE_CONTEXT_RELEASE_REQ(MessageDef *msg_p, instance_t in
 
 //-----------------------------------------------------------------------------
 /*
-* Process the NG command NGAP_UE_CONTEXT_RELEASE_COMMAND, sent by AMF.
-* The gNB should remove all pdu session, NG context, and other context of the UE.
-*/
+ * Process the NG command NGAP_UE_CONTEXT_RELEASE_COMMAND, sent by AMF.
+ * The gNB should remove all pdu session, NG context, and other context of the UE.
+ */
 int rrc_gNB_process_NGAP_UE_CONTEXT_RELEASE_COMMAND(MessageDef *msg_p, instance_t instance)
 {
   //-----------------------------------------------------------------------------
@@ -1135,8 +1360,8 @@ int rrc_gNB_process_NGAP_UE_CONTEXT_RELEASE_COMMAND(MessageDef *msg_p, instance_
 }
 
 void rrc_gNB_send_NGAP_UE_CONTEXT_RELEASE_COMPLETE(
-  instance_t instance,
-  uint32_t   gNB_ue_ngap_id) {
+                                                   instance_t instance,
+                                                   uint32_t   gNB_ue_ngap_id) {
   MessageDef *msg = itti_alloc_new_message(TASK_RRC_GNB, 0, NGAP_UE_CONTEXT_RELEASE_COMPLETE);
   NGAP_UE_CONTEXT_RELEASE_COMPLETE(msg).gNB_ue_ngap_id = gNB_ue_ngap_id;
   itti_send_msg_to_task(TASK_NGAP, instance, msg);
@@ -1148,9 +1373,9 @@ void rrc_gNB_send_NGAP_UE_CONTEXT_RELEASE_COMPLETE(
  */
 void
 rrc_gNB_NGAP_remove_ue_ids(
-  gNB_RRC_INST *const rrc_instance_pP,
-  struct rrc_ue_ngap_ids_s *const ue_ids_pP
-)
+                           gNB_RRC_INST *const rrc_instance_pP,
+                           struct rrc_ue_ngap_ids_s *const ue_ids_pP
+                           )
 //------------------------------------------------------------------------------
 {
   hashtable_rc_t h_rc;
@@ -1190,59 +1415,59 @@ rrc_gNB_NGAP_remove_ue_ids(
 }
 void
 rrc_gNB_send_NGAP_UE_CAPABILITIES_IND(
-  const protocol_ctxt_t    *const ctxt_pP,
-  rrc_gNB_ue_context_t     *const ue_context_pP,
-  NR_UL_DCCH_Message_t     *const ul_dcch_msg
-)
+                                      const protocol_ctxt_t    *const ctxt_pP,
+                                      rrc_gNB_ue_context_t     *const ue_context_pP,
+                                      NR_UL_DCCH_Message_t     *const ul_dcch_msg
+                                      )
 //------------------------------------------------------------------------------
 {
-    NR_UE_CapabilityRAT_ContainerList_t *ueCapabilityRATContainerList = ul_dcch_msg->message.choice.c1->choice.ueCapabilityInformation->criticalExtensions.choice.ueCapabilityInformation->ue_CapabilityRAT_ContainerList;
-    /* 4096 is arbitrary, should be big enough */
-    unsigned char buf[4096];
-    unsigned char *buf2;
-    NR_UERadioAccessCapabilityInformation_t rac;
+  NR_UE_CapabilityRAT_ContainerList_t *ueCapabilityRATContainerList = ul_dcch_msg->message.choice.c1->choice.ueCapabilityInformation->criticalExtensions.choice.ueCapabilityInformation->ue_CapabilityRAT_ContainerList;
+  /* 4096 is arbitrary, should be big enough */
+  unsigned char buf[4096];
+  unsigned char *buf2;
+  NR_UERadioAccessCapabilityInformation_t rac;
     
-    if (ueCapabilityRATContainerList->list.count == 0) {
-      LOG_W(RRC, "[gNB %d][UE %x] bad UE capabilities\n", ctxt_pP->module_id, UE->rnti);
-    }
+  if (ueCapabilityRATContainerList->list.count == 0) {
+    LOG_W(RRC, "[gNB %d][UE %x] bad UE capabilities\n", ctxt_pP->module_id, UE->rnti);
+  }
     
-    asn_enc_rval_t ret = uper_encode_to_buffer(&asn_DEF_NR_UE_CapabilityRAT_ContainerList, NULL, ueCapabilityRATContainerList, buf, 4096);
+  asn_enc_rval_t ret = uper_encode_to_buffer(&asn_DEF_NR_UE_CapabilityRAT_ContainerList, NULL, ueCapabilityRATContainerList, buf, 4096);
     
-    if (ret.encoded == -1) abort();
+  if (ret.encoded == -1) abort();
     
-    memset(&rac, 0, sizeof(NR_UERadioAccessCapabilityInformation_t));
-    rac.criticalExtensions.present = NR_UERadioAccessCapabilityInformation__criticalExtensions_PR_c1;
-    rac.criticalExtensions.choice.c1 = calloc(1,sizeof(*rac.criticalExtensions.choice.c1));
-    rac.criticalExtensions.choice.c1->present = NR_UERadioAccessCapabilityInformation__criticalExtensions__c1_PR_ueRadioAccessCapabilityInformation;
-    rac.criticalExtensions.choice.c1->choice.ueRadioAccessCapabilityInformation = calloc(1,sizeof(NR_UERadioAccessCapabilityInformation_IEs_t));
-    rac.criticalExtensions.choice.c1->choice.ueRadioAccessCapabilityInformation->ue_RadioAccessCapabilityInfo.buf = buf;
-    rac.criticalExtensions.choice.c1->choice.ueRadioAccessCapabilityInformation->ue_RadioAccessCapabilityInfo.size = (ret.encoded+7)/8;
-    rac.criticalExtensions.choice.c1->choice.ueRadioAccessCapabilityInformation->nonCriticalExtension = NULL;
-    /* 8192 is arbitrary, should be big enough */
-    buf2 = malloc16(8192);
+  memset(&rac, 0, sizeof(NR_UERadioAccessCapabilityInformation_t));
+  rac.criticalExtensions.present = NR_UERadioAccessCapabilityInformation__criticalExtensions_PR_c1;
+  rac.criticalExtensions.choice.c1 = calloc(1,sizeof(*rac.criticalExtensions.choice.c1));
+  rac.criticalExtensions.choice.c1->present = NR_UERadioAccessCapabilityInformation__criticalExtensions__c1_PR_ueRadioAccessCapabilityInformation;
+  rac.criticalExtensions.choice.c1->choice.ueRadioAccessCapabilityInformation = calloc(1,sizeof(NR_UERadioAccessCapabilityInformation_IEs_t));
+  rac.criticalExtensions.choice.c1->choice.ueRadioAccessCapabilityInformation->ue_RadioAccessCapabilityInfo.buf = buf;
+  rac.criticalExtensions.choice.c1->choice.ueRadioAccessCapabilityInformation->ue_RadioAccessCapabilityInfo.size = (ret.encoded+7)/8;
+  rac.criticalExtensions.choice.c1->choice.ueRadioAccessCapabilityInformation->nonCriticalExtension = NULL;
+  /* 8192 is arbitrary, should be big enough */
+  buf2 = malloc16(8192);
     
-    if (buf2 == NULL) abort();
+  if (buf2 == NULL) abort();
     
-    ret = uper_encode_to_buffer(&asn_DEF_NR_UERadioAccessCapabilityInformation, NULL, &rac, buf2, 8192);
+  ret = uper_encode_to_buffer(&asn_DEF_NR_UERadioAccessCapabilityInformation, NULL, &rac, buf2, 8192);
     
-    if (ret.encoded == -1) abort();
+  if (ret.encoded == -1) abort();
 
-    MessageDef *msg_p;
-    msg_p = itti_alloc_new_message (TASK_RRC_GNB, 0, NGAP_UE_CAPABILITIES_IND);
-    NGAP_UE_CAPABILITIES_IND(msg_p).gNB_ue_ngap_id = UE->gNB_ue_ngap_id;
-    NGAP_UE_CAPABILITIES_IND (msg_p).ue_radio_cap.length = (ret.encoded+7)/8;
-    NGAP_UE_CAPABILITIES_IND (msg_p).ue_radio_cap.buffer = buf2;
-    itti_send_msg_to_task (TASK_NGAP, ctxt_pP->instance, msg_p);
-    LOG_I(NR_RRC,"Send message to ngap: NGAP_UE_CAPABILITIES_IND\n");
+  MessageDef *msg_p;
+  msg_p = itti_alloc_new_message (TASK_RRC_GNB, 0, NGAP_UE_CAPABILITIES_IND);
+  NGAP_UE_CAPABILITIES_IND(msg_p).gNB_ue_ngap_id = UE->gNB_ue_ngap_id;
+  NGAP_UE_CAPABILITIES_IND (msg_p).ue_radio_cap.length = (ret.encoded+7)/8;
+  NGAP_UE_CAPABILITIES_IND (msg_p).ue_radio_cap.buffer = buf2;
+  itti_send_msg_to_task (TASK_NGAP, ctxt_pP->instance, msg_p);
+  LOG_I(NR_RRC,"Send message to ngap: NGAP_UE_CAPABILITIES_IND\n");
 }
 
 //------------------------------------------------------------------------------
 void
 rrc_gNB_send_NGAP_PDUSESSION_RELEASE_RESPONSE(
-  const protocol_ctxt_t    *const ctxt_pP,
-  rrc_gNB_ue_context_t     *const ue_context_pP,
-  uint8_t                   xid
-)
+                                              const protocol_ctxt_t    *const ctxt_pP,
+                                              rrc_gNB_ue_context_t     *const ue_context_pP,
+                                              uint8_t                   xid
+                                              )
 //------------------------------------------------------------------------------
 {
   int pdu_sessions_released = 0;
@@ -1296,7 +1521,7 @@ int rrc_gNB_process_NGAP_PDUSESSION_RELEASE_COMMAND(MessageDef *msg_p, instance_
   uint8_t pdusession_release_drb = 0;
 
   memcpy(&pdusession_release_params[0], &(NGAP_PDUSESSION_RELEASE_COMMAND (msg_p).pdusession_release_params[0]),
-    sizeof(pdusession_release_t)*NGAP_MAX_PDUSESSION);
+         sizeof(pdusession_release_t)*NGAP_MAX_PDUSESSION);
   gNB_ue_ngap_id = NGAP_PDUSESSION_RELEASE_COMMAND(msg_p).gNB_ue_ngap_id;
   nb_pdusessions_torelease = NGAP_PDUSESSION_RELEASE_COMMAND(msg_p).nb_pdusessions_torelease;
   if (nb_pdusessions_torelease > NGAP_MAX_PDUSESSION) {

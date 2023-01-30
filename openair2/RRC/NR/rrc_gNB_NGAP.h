@@ -55,13 +55,6 @@ rrc_gNB_send_NGAP_INITIAL_CONTEXT_SETUP_RESP(
     rrc_gNB_ue_context_t          *const ue_context_pP
 );
 
-int
-rrc_gNB_process_security(
-  const protocol_ctxt_t *const ctxt_pP,
-  rrc_gNB_ue_context_t *const ue_context_pP,
-  ngap_security_capabilities_t *security_capabilities_pP
-);
-
 int rrc_gNB_process_NGAP_DOWNLINK_NAS(MessageDef *msg_p, instance_t instance, mui_t *rrc_gNB_mui);
 
 void

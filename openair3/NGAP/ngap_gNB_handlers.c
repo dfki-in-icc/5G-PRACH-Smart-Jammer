@@ -1406,6 +1406,8 @@ static int ngap_gNB_handle_pdusession_modify_request(uint32_t assoc_id, uint32_t
       allocCopy(&msg->pdusession_modify_params[i].nas_pdu, *item_p->nAS_PDU);
       allocCopy(&msg->pdusession_modify_params[i].pdusessionTransfer, item_p->pDUSessionResourceModifyRequestTransfer);
     } else {
+      LOG_W(NGAP,"received pdu session modify with void content for UE %u, pdu session %d\n",
+            msg->gNB_ue_ngap_id, item_p->pDUSessionID);
       continue;
     }
   }

@@ -314,20 +314,6 @@ typedef struct pdusession_setup_s {
   pdusession_associate_qosflow_t associated_qos_flows[QOSFLOW_MAX_VALUE];
 } pdusession_setup_t;
 
-typedef struct pdusession_tobe_added_s {
-  /* Unique pdusession_id for the UE. */
-  uint8_t pdusession_id;
-
-  /* Unique drb_ID for the UE. */
-  uint8_t drb_ID;
-
-  /* The transport layer address for the IP packets */
-  ngap_transport_layer_addr_t upf_addr;
-
-  /* S-GW Tunnel endpoint identifier */
-  uint32_t gtp_teid;
-} pdusession_tobe_added_t;
-
 typedef struct pdusession_admitted_tobe_added_s {
   /* Unique pdusession_id for the UE. */
   uint8_t pdusession_id;
