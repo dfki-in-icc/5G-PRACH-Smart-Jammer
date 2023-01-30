@@ -76,6 +76,7 @@
 
 #include "LTE_SystemInformationBlockType1.h"
 #include "LTE_SystemInformationBlockType1-BR-r13.h"
+#include "LTE_SystemInformationBlockType1-v8h0-IEs.h"
 
 
 #include "LTE_SIB-Type.h"
@@ -937,7 +938,7 @@ uint8_t do_SIB1(rrc_eNB_carrier_data_t *carrier,
   (*sib1)->cellSelectionInfo.q_RxLevMinOffset=NULL;
   //(*sib1)->p_Max = CALLOC(1, sizeof(P_Max_t));
   // *((*sib1)->p_Max) = 23;
-  (*sib1)->freqBandIndicator = configuration->eutra_band[CC_id];
+  
   schedulingInfo.si_Periodicity=LTE_SchedulingInfo__si_Periodicity_rf8;
   if(configuration->eMBMS_M2_configured){
        schedulingInfo2.si_Periodicity=LTE_SchedulingInfo__si_Periodicity_rf8;
@@ -964,7 +965,30 @@ uint8_t do_SIB1(rrc_eNB_carrier_data_t *carrier,
   (*sib1)->systemInfoValueTag = 0;
   (*sib1)->nonCriticalExtension = calloc(1, sizeof(LTE_SystemInformationBlockType1_v890_IEs_t));
   LTE_SystemInformationBlockType1_v890_IEs_t *sib1_890 = (*sib1)->nonCriticalExtension;
-  sib1_890->lateNonCriticalExtension = NULL;
+
+  if(configuration->eutra_band[CC_id] <= 64)
+  {
+    (*sib1)->freqBandIndicator = configuration->eutra_band[CC_id];
+    sib1_890->lateNonCriticalExtension = NULL;
+  }  
+  else
+  {
+    (*sib1)->freqBandIndicator = 64;
+    
+    sib1_890->lateNonCriticalExtension = calloc(1, sizeof(OCTET_STRING_t));
+    memset(sib1_890->lateNonCriticalExtension, 0, sizeof(OCTET_STRING_t));
+
+    OCTET_STRING_t *octate = (*sib1_890).lateNonCriticalExtension;
+    octate->buf = calloc(1, 2);
+    octate->size = 2;
+    // The byte 0x60 refers to enable the freqBandIndicator-v9e0 field
+    octate->buf[0] = 0x60;
+    // Variable used to determine which band will shown freqBandIndicator-v9e0
+    int i = configuration->eutra_band[CC_id] - 65;
+    // This fied refers to the band value shown in freqBandIndicator-v9e0 field, where each band is sepated by 8 bytes starting in b64 (0x00)
+    octate->buf[1] = 8*i; 
+  }
+
   sib1_890->nonCriticalExtension = calloc(1, sizeof(LTE_SystemInformationBlockType1_v920_IEs_t));
   memset(sib1_890->nonCriticalExtension, 0, sizeof(LTE_SystemInformationBlockType1_v920_IEs_t));
   LTE_SystemInformationBlockType1_v920_IEs_t *sib1_920 = (*sib1_890).nonCriticalExtension;
