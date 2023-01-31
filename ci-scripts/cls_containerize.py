@@ -1370,7 +1370,7 @@ class Containerize():
 		cmd = f'docker exec {self.pingContName} /bin/bash -c "ping {self.pingOptions} 2>&1 | tee {logPath}/ping_{HTML.testCase_id.log} || true"'
 		logging.info(cmd)
 		deployStatus = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT, universal_newlines=True, timeout=100)
-		AnalyzePing (pingOptions, None, None, None, None, None, None, None,None, None, None, None, deployStatus, "containerType")
+		AnalyzePing (pingOptions, None, self.pingLossThreshold, deployStatus)
 
 	def PingExit(self, HTML, RAN, UE, status, message):
 		html_queue = SimpleQueue()

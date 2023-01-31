@@ -129,124 +129,66 @@ def GetPingTimeAnalysis(RAN,ping_log_file,ping_rttavg_threshold):
 		logging.error("GetPingTimeAnalysis : Ping log file does not exist")
 		return -1
 
-def AnalyzePing(ping_args, lock, statusQueue, UE_IPAddress, device_id, launchFromASUE, launchFromEpc, launchFromModule, ping_log_file, ping_rttavg_threshold, RAN, ping_packetloss_threshold, status, exec_type):
-		try:
-			result = re.search(', (?P<packetloss>[0-9\.]+)% packet loss, time [0-9\.]+ms', status)
-			if result is None:
-				if exec_type == "commonType":
-					message = 'Packet Loss Not Found!'
-					logging.debug('\u001B[1;37;41m ' + message + ' \u001B[0m')
-					SSH.close()
-					self.ping_iperf_wrong_exit(lock, UE_IPAddress, device_id, statusQueue, message)
-					return
-				else:
-					self.PingExit(HTML, RAN, UE, False, 'Packet Loss Not Found')
-					return
-			packetloss = result.group('packetloss')
-			if float(packetloss) == 100:
-				if exec_type == "commonType":
-					message = 'Packet Loss is 100%'
-					logging.debug('\u001B[1;37;41m ' + message + ' \u001B[0m')
-					SSH.close()
-					self.ping_iperf_wrong_exit(lock, UE_IPAddress, device_id, statusQueue, message)
-					return
-				else:
-					self.PingExit(HTML, RAN, UE, False, 'Packet Loss is 100%')
-					return
-			result = re.search('rtt min\/avg\/max\/mdev = (?P<rtt_min>[0-9\.]+)\/(?P<rtt_avg>[0-9\.]+)\/(?P<rtt_max>[0-9\.]+)\/[0-9\.]+ ms', status)
-			if result is None:
-				if exec_type == "commonType":
-					message = 'Ping RTT_Min RTT_Avg RTT_Max Not Found!'
-					logging.debug('\u001B[1;37;41m ' + message + ' \u001B[0m')
-					SSH.close()
-					self.ping_iperf_wrong_exit(lock, UE_IPAddress, device_id, statusQueue, message)
-					return
-				else:
-					self.PingExit(HTML, RAN, UE, False, 'Ping RTT_Min RTT_Avg RTT_Max Not Found!')
-					return 
-			rtt_min = result.group('rtt_min')
-			rtt_avg = result.group('rtt_avg')
-			rtt_max = result.group('rtt_max')
-			pal_msg = 'Packet Loss : ' + packetloss + '%'
-			min_msg = 'RTT(Min)	: ' + rtt_min + ' ms'
-			avg_msg = 'RTT(Avg)	: ' + rtt_avg + ' ms'
-			max_msg = 'RTT(Max)	: ' + rtt_max + ' ms'
-			#import pdb 
-			#pdb.set_trace()
-			if exec_type == "commonType":
-				lock.acquire()
-				logging.debug('\u001B[1;37;44m ping result (' + UE_IPAddress + ') \u001B[0m')
-			else:
-				logging.debug('\u001B[1;37;44m ping result \u001B[0m')
-			logging.debug('\u001B[1;34m	' + pal_msg + '\u001B[0m')
-			logging.debug('\u001B[1;34m	' + min_msg + '\u001B[0m')
-			logging.debug('\u001B[1;34m	' + avg_msg + '\u001B[0m')
-			logging.debug('\u001B[1;34m	' + max_msg + '\u001B[0m')
+def AnalyzePing(ping_args, rttavg_threshold, packetloss_threshold, status):
+	result = re.search(', (?P<packetloss>[0-9\.]+)% packet loss, time [0-9\.]+ms', status)
+	if result is None:
+		message = 'Packet Loss Not Found!'
+		logging.debug('\u001B[1;37;41m ' + message + ' \u001B[0m')
+		return
+	packetloss = result.group('packetloss')
+	if float(packetloss) == 100:
+		message = 'Packet Loss is 100%'
+		logging.debug('\u001B[1;37;41m ' + message + ' \u001B[0m')
+		return
+	result = re.search('rtt min\/avg\/max\/mdev = (?P<rtt_min>[0-9\.]+)\/(?P<rtt_avg>[0-9\.]+)\/(?P<rtt_max>[0-9\.]+)\/[0-9\.]+ ms', status)
+	if result is None:
+		message = 'Ping RTT_Min RTT_Avg RTT_Max Not Found!'
+		logging.debug('\u001B[1;37;41m ' + message + ' \u001B[0m')
+		return
+	rtt_min = result.group('rtt_min')
+	rtt_avg = result.group('rtt_avg')
+	rtt_max = result.group('rtt_max')
+	pal_msg = 'Packet Loss : ' + packetloss + '%'
+	min_msg = 'RTT(Min)	: ' + rtt_min + ' ms'
+	avg_msg = 'RTT(Avg)	: ' + rtt_avg + ' ms'
+	max_msg = 'RTT(Max)	: ' + rtt_max + ' ms'
+	logging.debug('\u001B[1;37;44m ping result \u001B[0m')
+	logging.debug('\u001B[1;34m	' + pal_msg + '\u001B[0m')
+	logging.debug('\u001B[1;34m	' + min_msg + '\u001B[0m')
+	logging.debug('\u001B[1;34m	' + avg_msg + '\u001B[0m')
+	logging.debug('\u001B[1;34m	' + max_msg + '\u001B[0m')
 
-			if exec_type == "commonType":
-			#adding extra ping stats from local file
-			#ping_log_file variable is defined above in this function, depending on device/ue
-				ping_stat_msg=''
-				if launchFromASUE == False : #skip in case of AS UE (for the moment)
-					logging.debug('Analyzing Ping log file : ' + os.getcwd() + '/' + ping_log_file)
-					ping_stat=GetPingTimeAnalysis(RAN,ping_log_file, ping_rttavg_threshold)
+	qMsg = ''
+	qMsg += '	' + pal_msg
+	qMsg += '	' + min_msg
+	qMsg += '	' + avg_msg
+	qMsg += '	' + max_msg
 
-				if (ping_stat!=-1) and (len(ping_stat)!=0):
-					ping_stat_msg+='Ping stats before removing largest value : \n'
-					ping_stat_msg+='RTT(Min)	: ' + str("{:.2f}".format(ping_stat['min_0'])) + 'ms \n'
-					ping_stat_msg+='RTT(Mean)   : ' + str("{:.2f}".format(ping_stat['mean_0'])) + 'ms \n'
-					ping_stat_msg+='RTT(Median) : ' + str("{:.2f}".format(ping_stat['median_0'])) + 'ms \n'
-					ping_stat_msg+='RTT(Max)	: ' + str("{:.2f}".format(ping_stat['max_0'])) + 'ms \n'
-					ping_stat_msg+='Max Index   : ' + str(ping_stat['max_loc']) + '\n'
-					ping_stat_msg+='Ping stats after removing largest value : \n'
-					ping_stat_msg+='RTT(Min)	: ' + str("{:.2f}".format(ping_stat['min_1'])) + 'ms \n'
-					ping_stat_msg+='RTT(Mean)   : ' + str("{:.2f}".format(ping_stat['mean_1'])) + 'ms \n'
-					ping_stat_msg+='RTT(Median) : ' + str("{:.2f}".format(ping_stat['median_1'])) + 'ms \n'
-					ping_stat_msg+='RTT(Max)	: ' + str("{:.2f}".format(ping_stat['max_1'])) + 'ms \n'
-
-				#building html message
-				qMsg = pal_msg + '\n' + min_msg + '\n' + avg_msg + '\n' + max_msg + '\n'  + ping_stat_msg
-				#checking packet loss compliance
-			#else:
-			#	qMsg = 'ping result\n'
-			#	qMsg += '	' + pal_msg + '\n'
-			#	qMsg += '	' + min_msg + '\n'
-			#	qMsg += '	' + avg_msg + '\n'
-			#	qMsg += '	' + max_msg + '\n'
-
-			packetLossOK = True
-			if (packetloss is not None) :
-				if float(packetloss) > float(ping_packetloss_threshold):
-					qMsg += '\nPacket Loss too high'
-					logging.debug('\u001B[1;37;41m Packet Loss too high; Target: '+ ping_packetloss_threshold + '%\u001B[0m')
-					packetLossOK = False
-				elif float(packetloss) > 0:
-					qMsg += '\nPacket Loss is not 0%'
-					logging.debug('\u001B[1;30;43m Packet Loss is not 0% \u001B[0m')
-	   
-			if exec_type == "commonType":
-			#checking RTT avg compliance
-				rttavgOK = True
-				if ping_rttavg_threshold != '':
-					if float(rtt_avg)>float(ping_rttavg_threshold):
-						ping_rttavg_error_msg = 'RTT(Avg) too high: ' + rtt_avg + ' ms; Target: '+ ping_rttavg_threshold+ ' ms'
-						qMsg += '\n'+ping_rttavg_error_msg
-						logging.debug('\u001B[1;37;41m'+ ping_rttavg_error_msg +' \u001B[0m')
-						rttavgOK = False
-
-				if packetLossOK and rttavgOK:
-					statusQueue.put(0)
-				else:
-					statusQueue.put(-1)
-				statusQueue.put(device_id)
-				statusQueue.put(UE_IPAddress)
-				statusQueue.put(qMsg)
-				lock.release()
-		except:
-			logging.debug('exit from Ping_Common except')
-			os.kill(os.getppid(),signal.SIGUSR1)
-
-	
+	packetLossOK = True
+	if (packetloss is not None) :
+		if float(packetloss) > float(packetloss_threshold):
+			#qMsg += '\nPacket Loss too high'
+			qMsg += 'Packet Loss too high'
+			logging.debug('\u001B[1;37;41m Packet Loss too high; Target: '+ packetloss_threshold + '%\u001B[0m')
+			packetLossOK = False
+			return(False, qMsg)
+		elif float(packetloss) > 0:
+			#qMsg += '\nPacket Loss is not 0%'
+			qMsg += 'Packet Loss is not 0%'
+			logging.debug('\u001B[1;30;43m Packet Loss is not 0% \u001B[0m')
+			return(True, qMsg)
+	#checking RTT avg compliance
+	rttavgOK = True
+	if rttavg_threshold != '':
+		if float(rtt_avg)>float(rttavg_threshold):
+			ping_rttavg_error_msg = 'RTT(Avg) too high: ' + rtt_avg + ' ms; Target: '+ rttavg_threshold+ ' ms'
+			#qMsg += '\n'+ping_rttavg_error_msg
+			qMsg += ping_rttavg_error_msg
+			logging.debug('\u001B[1;37;41m'+ ping_rttavg_error_msg +' \u001B[0m')
+			rttavgOK = False
+			return(False, qMsg)
+		else:
+			return(True, qMsg)
 
 #-----------------------------------------------------------
 # OaiCiTest Class Definition
@@ -1727,7 +1669,7 @@ class OaiCiTest():
 			self.ping_iperf_wrong_exit(lock, UE_IPAddress, device_id, statusQueue, message)
 			return
 		#search is done on cat result
-		AnalyzePing(self.ping_args, lock, status_queue, UE_IPAddress, device_id, launchFromASUE, launchFromEpc, launchFromModule, ping_log_file, self.ping_rttavg_threshold, RAN, self.ping_packetloss_threshold, SSH.getBefore(),"commonType")
+		AnalyzePing(self.ping_args, self.ping_rttavg_threshold, self.ping_packetloss_threshold, SSH.getBefore())
 		SSH.close()  
 	
 	def PingNoS1_wrong_exit(self, qMsg,HTML):
