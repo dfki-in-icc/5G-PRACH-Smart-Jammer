@@ -88,7 +88,7 @@ NR_PUSCH_TimeDomainResourceAllocationList_t *get_ul_tdalist(const NR_UE_UL_BWP_t
 NR_ul_tda_info_t get_ul_tda_info(NR_PUSCH_TimeDomainResourceAllocationList_t *tdalist,
                                  int tda_index,
                                  int scs,
-                                 int normal_CP);
+                                 bool normal_CP);
 
 uint16_t nr_dci_size(const NR_UE_DL_BWP_t *DL_BWP,
                      const NR_UE_UL_BWP_t *UL_BWP,

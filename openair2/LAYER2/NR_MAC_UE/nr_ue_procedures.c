@@ -489,7 +489,7 @@ int8_t nr_ue_process_dci(module_id_t module_id, int cc_id, uint8_t gNB_index, fr
 
   uint16_t rnti = dci_ind->rnti;
   uint8_t dci_format = dci_ind->dci_format;
-  int coreset_type = dci_ind->CoreSetType == NFAPI_NR_CSET_CONFIG_PDCCH_CONFIG;  // 0 for coreset0, 1 otherwise
+  int coreset_type = dci_ind->coreset_type == NFAPI_NR_CSET_CONFIG_PDCCH_CONFIG;  // 0 for coreset0, 1 otherwise
   int ret = 0;
   int pucch_res_set_cnt = 0, valid = 0;
   frame_t frame_tx = 0;
@@ -506,7 +506,7 @@ int8_t nr_ue_process_dci(module_id_t module_id, int cc_id, uint8_t gNB_index, fr
   LOG_D(MAC, "In %s: Processing received DCI format %s\n", __FUNCTION__, dci_formats[dci_format]);
   NR_PDSCH_TimeDomainResourceAllocationList_t *pdsch_TimeDomainAllocationList = NULL;
   NR_PUSCH_TimeDomainResourceAllocationList_t *pusch_TimeDomainAllocationList = NULL;
-  int normal_CP = current_UL_BWP->cyclicprefix ? 0 : 1;
+  bool normal_CP = current_UL_BWP->cyclicprefix ? false : true;
   NR_ul_tda_info_t tda_info = {0};
   NR_PUCCH_Config_t *pucch_Config = current_UL_BWP->pucch_Config;
 
@@ -823,8 +823,7 @@ int8_t nr_ue_process_dci(module_id_t module_id, int cc_id, uint8_t gNB_index, fr
     if (dci->tpc == 3) dlsch_config_pdu_1_0->accumulated_delta_PUCCH = 3;
     // Sanity check for pucch_resource_indicator value received to check for false DCI.
     valid = 0;
-    if(pucch_Config &&
-       pucch_Config->resourceSetToAddModList) {
+    if(pucch_Config && pucch_Config->resourceSetToAddModList) {
       pucch_res_set_cnt = pucch_Config->resourceSetToAddModList->list.count;
       for (int id = 0; id < pucch_res_set_cnt; id++) {
 	if (dci->pucch_resource_indicator < pucch_Config->resourceSetToAddModList->list.array[id]->resourceList.list.count) {
@@ -3769,7 +3768,7 @@ int nr_ue_process_rar(nr_downlink_indication_t *dl_info, NR_UL_TIME_ALIGNMENT_t 
 
     // Schedule Msg3
     NR_UE_UL_BWP_t *current_UL_BWP = &mac->current_UL_BWP;
-    int normal_CP = current_UL_BWP->cyclicprefix ? 0 : 1;
+    bool normal_CP = current_UL_BWP->cyclicprefix ? false : true;
     NR_PUSCH_TimeDomainResourceAllocationList_t *pusch_TimeDomainAllocationList = get_ul_tdalist(current_UL_BWP, *ra->ss->controlResourceSetId, ra->ss->searchSpaceType->present, NR_RNTI_RA);
     NR_ul_tda_info_t tda_info = get_ul_tda_info(pusch_TimeDomainAllocationList, rar_grant.Msg3_t_alloc, current_UL_BWP->scs, normal_CP);
     if(tda_info.nrOfSymbols == 0) {

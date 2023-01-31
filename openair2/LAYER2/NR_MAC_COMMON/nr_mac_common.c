@@ -419,6 +419,7 @@ const char table_38211_6_3_1_5_5[22][4][2] = {
     {{'1', '1'}, {'o', 'o'}, {'j', 'o'}, {'1', 'n'}}  // tpmi 21
 };
 
+// Default PUSCH time domain resource allocation tables from 38.214
 const uint8_t table_6_1_2_1_1_2[16][4]={
     {0,0,0,14},   // row index 1
     {0,0,0,12},    // row index 2
@@ -460,18 +461,18 @@ const uint8_t table_6_1_2_1_1_3[16][4]={
 NR_ul_tda_info_t get_ul_tda_info(NR_PUSCH_TimeDomainResourceAllocationList_t *tdalist,
                                  int tda_index,
                                  int scs,
-                                 int normal_CP)
+                                 bool normal_CP)
 {
 
   NR_ul_tda_info_t tda_info = {0};
+  //Definition of value j in Table 6.1.2.1.1-4 of 38.214
   int j = scs == 0 ? 1 : scs;
   if(tdalist) {
-    if(tda_index >= tdalist->list.count) {
-      LOG_E(MAC, "TDA index from DCI %d exceeds TDA list array size %d\n", tda_index, tdalist->list.count);
-      return tda_info;
-    }
+    AssertFatal(tda_index < tdalist->list.count, "TDA index from DCI %d exceeds TDA list array size %d\n", tda_index, tdalist->list.count);
     NR_PUSCH_TimeDomainResourceAllocation_t *tda = tdalist->list.array[tda_index];
     tda_info.mapping_type = tda->mappingType;
+    // As described in 38.331, when the field is absent the UE applies the value 1 when PUSCH SCS is 15/30KHz
+    // 2 when PUSCH SCS is 60KHz and 3 when PUSCH SCS is 120KHz. This equates to the parameter j.
     tda_info.k2 = tda->k2 ? *tda->k2 : j;
     int S, L;
     SLIV2SL(tda->startSymbolAndLength, &S, &L);
@@ -3199,9 +3200,9 @@ NR_PDSCH_TimeDomainResourceAllocationList_t *get_dl_tdalist(const NR_UE_DL_BWP_t
 
   if(!DL_BWP) return NULL;
   // see table 5.1.2.1.1-1 in 38.214
-  if((rnti_type == NR_RNTI_CS || rnti_type == NR_RNTI_C || rnti_type == NR_RNTI_MCS_C) &&
-     !(ss_type == NR_SearchSpace__searchSpaceType_PR_common && controlResourceSetId == 0) &&
-     (DL_BWP->pdsch_Config && DL_BWP->pdsch_Config->pdsch_TimeDomainAllocationList))
+  if((rnti_type == NR_RNTI_CS || rnti_type == NR_RNTI_C || rnti_type == NR_RNTI_MCS_C)
+     && !(ss_type == NR_SearchSpace__searchSpaceType_PR_common && controlResourceSetId == 0)
+     && (DL_BWP->pdsch_Config && DL_BWP->pdsch_Config->pdsch_TimeDomainAllocationList))
     return DL_BWP->pdsch_Config->pdsch_TimeDomainAllocationList->choice.setup;
   else
     return DL_BWP->tdaList;
@@ -3215,9 +3216,9 @@ NR_PUSCH_TimeDomainResourceAllocationList_t *get_ul_tdalist(const NR_UE_UL_BWP_t
                                                             nr_rnti_type_t rnti_type)
 {
 
-  if((rnti_type == NR_RNTI_CS || rnti_type == NR_RNTI_C || rnti_type == NR_RNTI_MCS_C) &&
-     !(ss_type == NR_SearchSpace__searchSpaceType_PR_common && controlResourceSetId == 0) &&
-     (UL_BWP->pusch_Config && UL_BWP->pusch_Config->pusch_TimeDomainAllocationList))
+  if((rnti_type == NR_RNTI_CS || rnti_type == NR_RNTI_C || rnti_type == NR_RNTI_MCS_C)
+     && !(ss_type == NR_SearchSpace__searchSpaceType_PR_common && controlResourceSetId == 0)
+     && (UL_BWP->pusch_Config && UL_BWP->pusch_Config->pusch_TimeDomainAllocationList))
     return UL_BWP->pusch_Config->pusch_TimeDomainAllocationList->choice.setup;
   else
     return UL_BWP->tdaList;

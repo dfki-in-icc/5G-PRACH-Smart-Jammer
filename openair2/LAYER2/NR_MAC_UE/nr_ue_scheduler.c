@@ -1420,8 +1420,8 @@ int nr_ue_pusch_scheduler(NR_UE_MAC_INST_t *mac,
                           long k2){
 
   AssertFatal(k2 >= DURATION_RX_TO_TX,
-              "Slot offset K2 (%ld) cannot be less than DURATION_RX_TO_TX (%d). K2 set according to min_rxtxtime in config file.\n",
-              k2,DURATION_RX_TO_TX);
+              "Slot offset K2 (%ld) cannot be less than DURATION_RX_TO_TX (%d). Please set min_rxtxtime at least to %d in gNB config file or gNBs.[0].min_rxtxtime=%d via command line.\n",
+              k2, DURATION_RX_TO_TX, DURATION_RX_TO_TX, DURATION_RX_TO_TX);
 
   int delta = 0;
   NR_UE_UL_BWP_t *current_UL_BWP = &mac->current_UL_BWP;
@@ -1473,7 +1473,7 @@ int nr_ue_pusch_scheduler(NR_UE_MAC_INST_t *mac,
 
   }
 
-  LOG_D(NR_MAC, "In %s: currently at [%d.%d] UL transmission in [%d.%d] (k2 %ld delta %d)\n", __FUNCTION__, current_frame, current_slot, *frame_tx, *slot_tx, k2, delta);
+  LOG_D(NR_MAC, "[%04d.%02d] UL transmission in [%04d.%02d] (k2 %ld delta %d)\n",current_frame, current_slot, *frame_tx, *slot_tx, k2, delta);
 
   return 0;
 
