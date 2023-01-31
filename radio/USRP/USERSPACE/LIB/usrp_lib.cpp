@@ -304,21 +304,29 @@ static int trx_usrp_start(openair0_device *device) {
   return 0;
 }
 
-static void trx_usrp_send_end_of_burst(usrp_state_t *s) {
+static void trx_usrp_send_end_of_burst(usrp_state_t *s)
+{
   // if last packet sent was end of burst no need to do anything. otherwise send end of burst packet
   if (s->tx_md.end_of_burst)
     return;
-
   s->tx_md.end_of_burst = true;
   s->tx_md.start_of_burst = false;
   s->tx_md.has_time_spec = false;
+  s->tx_stream->send("", 0, s->tx_md);
+}
 
-  int32_t dummy = 0;
-  std::vector<const void *> buffs;
-  for (size_t ch = 0; ch < s->tx_stream->get_num_channels(); ch++)
-    buffs.push_back(&dummy); // same buffer for each channel
+static void trx_usrp_finish_rx(usrp_state_t *s)
+{
+  /* finish rx by sending STREAM_MODE_STOP_CONTINUOUS */
+  uhd::stream_cmd_t cmd(uhd::stream_cmd_t::STREAM_MODE_STOP_CONTINUOUS);
+  s->rx_stream->issue_stream_cmd(cmd);
 
-  s->tx_stream->send(buffs, 0, s->tx_md);
+  /* collect all remaining samples (not sure if needed) */
+  size_t samples;
+  do {
+    uint8_t buf[1024];
+    samples = s->rx_stream->recv((void*)buf, sizeof(buf)/4, s->rx_md);
+  } while (samples > 0);
 }
 
 static void trx_usrp_write_reset(openair0_thread_t *wt);
@@ -339,10 +347,13 @@ static void trx_usrp_end(openair0_device *device) {
   if (usrp_tx_thread != 0)
     trx_usrp_write_reset(&device->write_thread);
 
+  /* finish tx and rx */
   trx_usrp_send_end_of_burst(s);
-  s->tx_stream->~tx_streamer();
-  s->rx_stream->~rx_streamer();
-  s->usrp->~multi_usrp();
+  trx_usrp_finish_rx(s);
+  /* set tx_stream, rx_stream, and usrp to NULL to clear/free them */
+  s->tx_stream = NULL;
+  s->rx_stream = NULL;
+  s->usrp = NULL;
   free(s);
   device->priv = NULL;
   device->trx_start_func = NULL;
