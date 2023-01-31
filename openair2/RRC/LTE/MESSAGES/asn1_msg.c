@@ -973,7 +973,6 @@ uint8_t do_SIB1(rrc_eNB_carrier_data_t *carrier,
     (*sib1)->freqBandIndicator = 64;
     
     sib1_890->lateNonCriticalExtension = calloc(1, sizeof(OCTET_STRING_t));
-    memset(sib1_890->lateNonCriticalExtension, 0, sizeof(OCTET_STRING_t));
 
     OCTET_STRING_t *octate = (*sib1_890).lateNonCriticalExtension;
     octate->buf = calloc(1, 2);

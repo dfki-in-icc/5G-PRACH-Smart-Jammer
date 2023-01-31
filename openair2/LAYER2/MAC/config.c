@@ -119,14 +119,14 @@ static const eutra_bandentry_t eutra_bandtable[] = {
   {44, 7030,  8030,  7030,  8030,  455900},
   {45, 14470, 14670, 14470, 14670, 465900},
   {46, 51500, 59250, 51500, 59250, 467900},
-  {64, 0, 0, 0, 0, 60140},//Including band 64
+  {64, 0, 0, 0, 0, 60140},//reserved
   {65, 19200, 20100, 21100, 22000, 655360},
   {66, 17100, 18000, 21100, 22000, 664360},
   {67, 0,     0,     7380,  7580,  67336 },
   {68, 6980,  7280,  7530,  7830,  67536 }
-  {71, 6630,  6980,  6170,  6520,  68586 },//Including band 71
-  {72, 4510,  4560,  4610,  4660,  68936 },//Including band 72
-  {73, 4500,  4550,  4600,  4650,  68986 }//Including band 73
+  {71, 6630,  6980,  6170,  6520,  68586 },
+  {72, 4510,  4560,  4610,  4660,  68936 },
+  {73, 4500,  4550,  4600,  4650,  68986 }
 };
 
 
@@ -142,17 +142,17 @@ uint32_t to_earfcn(int eutra_bandP, uint32_t dl_CarrierFreq, uint32_t bw) {
 
   AssertFatal(i < BANDTABLE_SIZE, "i %d >= BANDTABLE_SIZE %ld\n", i, BANDTABLE_SIZE);
   if(eutra_bandP != 64){
-  AssertFatal(dl_CarrierFreq_by_100k >= eutra_bandtable[i].dl_min,
-              "Band %d, bw %u : DL carrier frequency %u Hz < %u\n",
-              eutra_bandP, bw, dl_CarrierFreq,
-              eutra_bandtable[i].dl_min);
-  AssertFatal(dl_CarrierFreq_by_100k <=
-              (eutra_bandtable[i].dl_max - bw_by_100),
-              "Band %d, bw %u: DL carrier frequency %u Hz > %d\n",
-              eutra_bandP, bw, dl_CarrierFreq,
-              eutra_bandtable[i].dl_max - bw_by_100);
-  return (dl_CarrierFreq_by_100k - eutra_bandtable[i].dl_min +
-          (eutra_bandtable[i].N_OFFs_DL / 10));
+    AssertFatal(dl_CarrierFreq_by_100k >= eutra_bandtable[i].dl_min,
+                "Band %d, bw %u : DL carrier frequency %u Hz < %u\n",
+                eutra_bandP, bw, dl_CarrierFreq,
+                eutra_bandtable[i].dl_min);
+    AssertFatal(dl_CarrierFreq_by_100k <=
+                (eutra_bandtable[i].dl_max - bw_by_100),
+                "Band %d, bw %u: DL carrier frequency %u Hz > %d\n",
+                eutra_bandP, bw, dl_CarrierFreq,
+                eutra_bandtable[i].dl_max - bw_by_100);
+    return (dl_CarrierFreq_by_100k - eutra_bandtable[i].dl_min +
+            (eutra_bandtable[i].N_OFFs_DL / 10));
   }
 }
 
@@ -166,17 +166,17 @@ uint32_t to_earfcn_DL(int eutra_bandP, long long int dl_CarrierFreq, uint32_t bw
 
   AssertFatal(i < BANDTABLE_SIZE, "i = %d , it will trigger out-of-bounds read.\n",i);
   if(eutra_bandP != 64){
-  AssertFatal(dl_CarrierFreq_by_100k >= eutra_bandtable[i].dl_min,
-              "Band %d, bw %u : DL carrier frequency %lld Hz < %u\n",
-              eutra_bandP, bw, dl_CarrierFreq,
-              eutra_bandtable[i].dl_min);
-  AssertFatal(dl_CarrierFreq_by_100k <=
-              (eutra_bandtable[i].dl_max - bw_by_100),
-              "Band %d, bw %u : DL carrier frequency %lld Hz > %d\n",
-              eutra_bandP, bw, dl_CarrierFreq,
-              eutra_bandtable[i].dl_max - bw_by_100);
-  return (dl_CarrierFreq_by_100k - eutra_bandtable[i].dl_min +
-          (eutra_bandtable[i].N_OFFs_DL / 10));
+    AssertFatal(dl_CarrierFreq_by_100k >= eutra_bandtable[i].dl_min,
+                "Band %d, bw %u : DL carrier frequency %lld Hz < %u\n",
+                eutra_bandP, bw, dl_CarrierFreq,
+                eutra_bandtable[i].dl_min);
+    AssertFatal(dl_CarrierFreq_by_100k <=
+                (eutra_bandtable[i].dl_max - bw_by_100),
+                "Band %d, bw %u : DL carrier frequency %lld Hz > %d\n",
+                eutra_bandP, bw, dl_CarrierFreq,
+                eutra_bandtable[i].dl_max - bw_by_100);
+    return (dl_CarrierFreq_by_100k - eutra_bandtable[i].dl_min +
+            (eutra_bandtable[i].N_OFFs_DL / 10));
   }
 }
 
@@ -184,27 +184,29 @@ uint32_t to_earfcn_UL(int eutra_bandP, long long int ul_CarrierFreq, uint32_t bw
   uint32_t ul_CarrierFreq_by_100k = ul_CarrierFreq / 100000;
   int bw_by_100 = bw / 100;
   int i;
-  AssertFatal(eutra_bandP < 69, "eutra_band %d > 68\n", eutra_bandP);
+  AssertFatal(eutra_bandP < 74, "eutra_band %d > 74\n", eutra_bandP);
 
   for (i = 0; i < BANDTABLE_SIZE && eutra_bandtable[i].band != eutra_bandP; i++);
 
   AssertFatal(i < BANDTABLE_SIZE, "i = %d , it will trigger out-of-bounds read.\n",i);
-  AssertFatal(ul_CarrierFreq_by_100k >= eutra_bandtable[i].ul_min,
-              "Band %d, bw %u : UL carrier frequency %lld Hz < %u\n",
-              eutra_bandP, bw, ul_CarrierFreq,
-              eutra_bandtable[i].ul_min);
-  AssertFatal(ul_CarrierFreq_by_100k <=
-              (eutra_bandtable[i].ul_max - bw_by_100),
-              "Band %d, bw %u : UL carrier frequency %lld Hz > %d\n",
-              eutra_bandP, bw, ul_CarrierFreq,
-              eutra_bandtable[i].ul_max - bw_by_100);
-  return (ul_CarrierFreq_by_100k - eutra_bandtable[i].ul_min +
-          ((eutra_bandtable[i].N_OFFs_DL + 180000) / 10));
+  if(eutra_bandP != 64){
+    AssertFatal(ul_CarrierFreq_by_100k >= eutra_bandtable[i].ul_min,
+                "Band %d, bw %u : UL carrier frequency %lld Hz < %u\n",
+                eutra_bandP, bw, ul_CarrierFreq,
+                eutra_bandtable[i].ul_min);
+    AssertFatal(ul_CarrierFreq_by_100k <=
+                (eutra_bandtable[i].ul_max - bw_by_100),
+                "Band %d, bw %u : UL carrier frequency %lld Hz > %d\n",
+                eutra_bandP, bw, ul_CarrierFreq,
+                eutra_bandtable[i].ul_max - bw_by_100);
+    return (ul_CarrierFreq_by_100k - eutra_bandtable[i].ul_min +
+            ((eutra_bandtable[i].N_OFFs_DL + 180000) / 10));
+  }
 }
 
 uint32_t from_earfcn(int eutra_bandP, uint32_t dl_earfcn) {
   int i;
-  AssertFatal(eutra_bandP < 69, "eutra_band %d > 68\n", eutra_bandP);
+  AssertFatal(eutra_bandP < 74, "eutra_band %d > 74\n", eutra_bandP);
 
   for (i = 0; i < BANDTABLE_SIZE && eutra_bandtable[i].band != eutra_bandP; i++);
 
