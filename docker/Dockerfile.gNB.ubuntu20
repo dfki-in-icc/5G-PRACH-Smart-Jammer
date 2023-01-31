@@ -33,7 +33,7 @@ RUN python3 ./docker/scripts/generateTemplate.py ./docker/scripts/gnb_parameters
     cp /oai-ran/docker/scripts/gnb_entrypoint.sh /oai-ran/docker/scripts/entrypoint.sh
 
 #start from scratch for target executable
-FROM ubuntu:jammy as oai-gnb
+FROM ubuntu:focal as oai-gnb
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Europe
 

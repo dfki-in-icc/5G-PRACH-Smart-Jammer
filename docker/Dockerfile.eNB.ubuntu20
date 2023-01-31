@@ -33,7 +33,7 @@ RUN python3 ./docker/scripts/generateTemplate.py ./docker/scripts/enb_parameters
     cp /oai-ran/docker/scripts/enb_entrypoint.sh /oai-ran/docker/scripts/entrypoint.sh
 
 #start from scratch for target executable
-FROM ubuntu:jammy as oai-enb
+FROM ubuntu:focal as oai-enb
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Europe/Paris
 

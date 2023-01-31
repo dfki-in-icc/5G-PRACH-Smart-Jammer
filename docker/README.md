@@ -75,7 +75,7 @@ Targets can be:
 The currently-supported OS are:
 
 - `rhel8.2` for Red Hat Entreprise Linux (including images for an OpenShift cluster)
-- `ubuntu18` for Ubuntu 18.04 LTS
+- `ubuntu20` for Ubuntu 20.04 LTS
 
 For more details regarding the build on an Openshift Cluster, see [OpenShift README](../openshift/README.md).
 
@@ -95,8 +95,8 @@ There are two shared images: one that has all dependencies, and a second that co
 git clone https://gitlab.eurecom.fr/oai/openairinterface5g.git
 cd openairinterface5g
 git checkout develop
-docker build --target ran-base --tag ran-base:latest --file docker/Dockerfile.base.ubuntu18 .
-docker build --target ran-build --tag ran-build:latest --file docker/Dockerfile.build.ubuntu18 .
+docker build --target ran-base --tag ran-base:latest --file docker/Dockerfile.base.ubuntu20 .
+docker build --target ran-build --tag ran-build:latest --file docker/Dockerfile.build.ubuntu20 .
 ```
 
 After building both:
@@ -115,7 +115,7 @@ ran-base            latest              5c9c02a5b4a8        1 minute ago        
 For example, the eNB:
 
 ```bash
-docker build --target oai-enb --tag oai-enb:latest --file docker/Dockerfile.eNB.ubuntu18 .
+docker build --target oai-enb --tag oai-enb:latest --file docker/Dockerfile.eNB.ubuntu20 .
 ```
 
 After a while:
