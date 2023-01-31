@@ -31,6 +31,20 @@
 #ifndef __NR_LDPC_BNPROC__H__
 #define __NR_LDPC_BNPROC__H__
 #include "PHY/sse_intrin.h"
+
+/**
+   \brief Performs first part of BN processing on the CN results buffer and stores the results in the LLR results buffer.
+          At every BN, the sum of the returned LLRs from the connected CNs and the LLR of the receiver input is computed.
+   \param p_lut Pointer to decoder LUTs
+   \param Z Lifting size
+*/
+static inline void nrLDPC_bnProcPcOpt(t_nrLDPC_lut* p_lut, int8_t* cnProcBuf, int8_t* cnProcBufRes, int8_t* llrProcBuf, int8_t* llrRes, uint16_t Z)
+{
+    const uint8_t*  lut_numBnInBnGroups = p_lut->numBnInBnGroups;
+    const uint32_t* lut_startAddrBnGroups = p_lut->startAddrBnGroups;
+    const uint16_t* lut_startAddrBnGroupsLlr = p_lut->startAddrBnGroupsLlr;
+}
+
 /**
    \brief Performs first part of BN processing on the BN processing buffer and stores the results in the LLR results buffer.
           At every BN, the sum of the returned LLRs from the connected CNs and the LLR of the receiver input is computed.

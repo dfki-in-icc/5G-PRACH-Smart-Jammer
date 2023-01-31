@@ -33,9 +33,9 @@
 #include "nrLDPC_mPass.h"
 #include "nrLDPC_cnProc.h"
 #include "nrLDPC_bnProc.h"
-#define UNROLL_CN_PROC 1
-#define UNROLL_BN_PROC 1
-#define UNROLL_BN_PROC_PC 1
+// #define UNROLL_CN_PROC 1
+// #define UNROLL_BN_PROC 1
+// #define UNROLL_BN_PROC_PC 1
 
 /*----------------------------------------------------------------------
 |                  cn processing files -->AVX512
@@ -113,7 +113,7 @@
 
 
 
-#define NR_LDPC_ENABLE_PARITY_CHECK
+// #define NR_LDPC_ENABLE_PARITY_CHECK
 //#define NR_LDPC_PROFILER_DETAIL
 
 #ifdef NR_LDPC_DEBUG_MODE
@@ -122,7 +122,7 @@
 
 static inline uint32_t nrLDPC_decoder_core(int8_t* p_llr, int8_t* p_out, uint32_t numLLR, t_nrLDPC_lut* p_lut, t_nrLDPC_dec_params* p_decParams, t_nrLDPC_time_stats* p_profiler);
 int check_crc(uint8_t* decoded_bytes, uint32_t n, uint32_t F, uint8_t crc_type);
-void nrLDPC_initcall(t_nrLDPC_dec_params* p_decParams, int8_t* p_llr, int8_t* p_out) {}
+// void nrLDPC_initcall(t_nrLDPC_dec_params* p_decParams, int8_t* p_llr, int8_t* p_out) {}
 int32_t nrLDPC_decod(t_nrLDPC_dec_params* p_decParams, int8_t* p_llr, int8_t* p_out, t_nrLDPC_time_stats* p_profiler)
 {
     uint32_t numLLR;

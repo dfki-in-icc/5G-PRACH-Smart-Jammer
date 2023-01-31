@@ -79,6 +79,7 @@ static inline void nrLDPC_cnProc_BG2(t_nrLDPC_lut* p_lut, int8_t* cnProcBuf, int
         // Number of groups of 32 CNs for parallel processing
         // Ceil for values not divisible by 32
         M = (lut_numCnInCnGroups[0]*Z + 31)>>5;
+        M += lut_numCnInCnGroups[0];
         // Set the offset to each bit within a group in terms of 32 Byte
         bitOffsetInGroup = (lut_numCnInCnGroups_BG2_R15[0]*NR_LDPC_ZMAX)>>5;
 
@@ -130,6 +131,7 @@ static inline void nrLDPC_cnProc_BG2(t_nrLDPC_lut* p_lut, int8_t* cnProcBuf, int
         // Number of groups of 32 CNs for parallel processing
         // Ceil for values not divisible by 32
         M = (lut_numCnInCnGroups[1]*Z + 31)>>5;
+        M += lut_numCnInCnGroups[1];
         // Set the offset to each bit within a group in terms of 32 Byte
         bitOffsetInGroup = (lut_numCnInCnGroups_BG2_R15[1]*NR_LDPC_ZMAX)>>5;
 
@@ -179,6 +181,7 @@ static inline void nrLDPC_cnProc_BG2(t_nrLDPC_lut* p_lut, int8_t* cnProcBuf, int
         // Number of groups of 32 CNs for parallel processing
         // Ceil for values not divisible by 32
         M = (lut_numCnInCnGroups[2]*Z + 31)>>5;
+        M += lut_numCnInCnGroups[2];
         // Set the offset to each bit within a group in terms of 32 Byte
         bitOffsetInGroup = (lut_numCnInCnGroups_BG2_R15[2]*NR_LDPC_ZMAX)>>5;
 
@@ -229,6 +232,7 @@ static inline void nrLDPC_cnProc_BG2(t_nrLDPC_lut* p_lut, int8_t* cnProcBuf, int
         // Number of groups of 32 CNs for parallel processing
         // Ceil for values not divisible by 32
         M = (lut_numCnInCnGroups[3]*Z + 31)>>5;
+        M += lut_numCnInCnGroups[3];
         // Set the offset to each bit within a group in terms of 32 Byte
         bitOffsetInGroup = (lut_numCnInCnGroups_BG2_R15[3]*NR_LDPC_ZMAX)>>5;
 
@@ -280,6 +284,7 @@ static inline void nrLDPC_cnProc_BG2(t_nrLDPC_lut* p_lut, int8_t* cnProcBuf, int
         // Number of groups of 32 CNs for parallel processing
         // Ceil for values not divisible by 32
         M = (lut_numCnInCnGroups[4]*Z + 31)>>5;
+        M += lut_numCnInCnGroups[4];
         // Set the offset to each bit within a group in terms of 32 Byte
         bitOffsetInGroup = (lut_numCnInCnGroups_BG2_R15[4]*NR_LDPC_ZMAX)>>5;
 
@@ -332,6 +337,7 @@ static inline void nrLDPC_cnProc_BG2(t_nrLDPC_lut* p_lut, int8_t* cnProcBuf, int
         // Number of groups of 32 CNs for parallel processing
         // Ceil for values not divisible by 32
         M = (lut_numCnInCnGroups[5]*Z + 31)>>5;
+        M += lut_numCnInCnGroups[5];
         // Set the offset to each bit within a group in terms of 32 Byte
         bitOffsetInGroup = (lut_numCnInCnGroups_BG2_R15[5]*NR_LDPC_ZMAX)>>5;
 
