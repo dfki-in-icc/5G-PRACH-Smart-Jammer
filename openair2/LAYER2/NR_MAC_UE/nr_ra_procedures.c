@@ -693,7 +693,9 @@ void nr_Msg1_transmitted(module_id_t mod_id){
 
   NR_UE_MAC_INST_t *mac = get_mac_inst(mod_id);
   RA_config_t *ra = &mac->ra;
-  ra->ra_state = WAIT_RAR;
+// ra->ra_state = WAIT_RAR; 
+// MANIPULATION #1 
+  ra->ra_state = GENERATE_PREAMBLE;
   ra->RA_attempt_number++;
 }
 
