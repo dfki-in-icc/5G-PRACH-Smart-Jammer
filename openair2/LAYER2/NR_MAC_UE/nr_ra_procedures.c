@@ -213,7 +213,8 @@ void init_RA(module_id_t mod_id,
       LOG_E(MAC, "In %s: config not handled\n", __FUNCTION__);
     }
   } else if (nr_rach_ConfigCommon){
-    LOG_I(MAC, "Initialization of 4-step contention-based random access procedure\n");
+   // MANIPULATION #OPTION - LOGGING
+    LOG_I(MAC, "Initialization of PRACH-JAMMER for this period | JJ\n");
     prach_resources->RA_TYPE = RA_4STEP;
     ra->cfra = 0;
   } else {
