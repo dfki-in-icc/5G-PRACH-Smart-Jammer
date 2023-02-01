@@ -231,7 +231,7 @@ int32_t generate_nr_prach(PHY_VARS_NR_UE *ue, uint8_t gNB_id, int frame, uint8_t
   k += kbar;
   k *= 2;
 
-  LOG_I(PHY, "PRACH [UE %d] in frame.slot %d.%d, placing PRACH in position %d, msg1 frequency start %d (k1 %d), preamble_offset %d, first_nonzero_root_idx %d\n",
+    LOG_I(PHY, "PRACH [JAMMER %d] jamming in frame.slot %d.%d, placing noise over PRACH-slots in position %d, msg1 frequency start %d (k1 %d), preamble_offset %d, first_nonzero_root_idx %d\n",
         Mod_id,
         frame,
         slot,
