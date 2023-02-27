@@ -42,6 +42,8 @@
 
 #include "T.h"
 
+#include <stdlib.h>
+
 //#define NR_PRACH_DEBUG 1
 
 extern uint16_t prach_root_sequence_map_0_3[838];
@@ -396,6 +398,10 @@ int32_t generate_nr_prach(PHY_VARS_NR_UE *ue, uint8_t gNB_id, int frame, uint8_t
     LOG_M("X_u.m", "X_u", (int16_t*)ue->X_u[preamble_offset-first_nonzero_root_idx], N_ZC, 1, 1);
   #endif
 
+
+  //MANIPULATION #3 - Initialize of Random Number Generator with current system time
+  srand(time(NULL));
+
     for (offset=0,offset2=0; offset<N_ZC; offset++,offset2+=preamble_shift) {
 
     if (offset2 >= N_ZC)
@@ -406,14 +412,14 @@ int32_t generate_nr_prach(PHY_VARS_NR_UE *ue, uint8_t gNB_id, int frame, uint8_t
     //prachF[k++]= ((Xu_re*nr_ru[offset2<<1]) - (Xu_im*nr_ru[1+(offset2<<1)]))>>15;
     //prachF[k++]= ((Xu_im*nr_ru[offset2<<1]) + (Xu_re*nr_ru[1+(offset2<<1)]))>>15;
 
-    //MANIPULATION #3
-    prachF[k++]= 1024;  // REAL
-    prachF[k++]= 0;     // IMAGINARY
+    //MANIPULATION #3 - Generate random noise
+    prachF[k++]= rand() % 1024 - 512;  // REAL
+    prachF[k++]= rand() % 1024 - 512;  // IMAGINARY
 
     if (k==dftlen) k=0;
   }
-  //LOG PRACH_F
-  LOG_M("prachF.m", "prachF", &prachF[1804], 1024, 1, 1);
+  //LOG PRACH_F -> IQ Sample Logging
+  //LOG_M("prachF.m", "prachF", &prachF[1804], 1024, 1, 1);
 
   #if defined (PRACH_WRITE_OUTPUT_DEBUG)
     LOG_M("prachF.m", "prachF", &prachF[1804], 1024, 1, 1);
