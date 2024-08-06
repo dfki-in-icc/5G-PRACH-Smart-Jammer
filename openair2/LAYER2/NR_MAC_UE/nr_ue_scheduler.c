@@ -2655,7 +2655,7 @@ void nr_ue_prach_scheduler(module_id_t module_idP, frame_t frameP, sub_frame_t s
                                                        (int)frameP,
                                                        (int)slotP,
                                                         &prach_occasion_info_p);
-
+   //MANIPULATION #OPTION
     if (is_nr_prach_slot) {
       AssertFatal(NULL != prach_occasion_info_p,"PRACH Occasion Info not returned in a valid NR Prach Slot\n");
 
