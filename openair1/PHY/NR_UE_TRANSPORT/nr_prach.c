@@ -42,6 +42,8 @@
 
 #include "T.h"
 
+#include <stdlib.h>
+
 //#define NR_PRACH_DEBUG 1
 
 extern uint16_t prach_root_sequence_map_0_3[838];
@@ -231,7 +233,7 @@ int32_t generate_nr_prach(PHY_VARS_NR_UE *ue, uint8_t gNB_id, int frame, uint8_t
   k += kbar;
   k *= 2;
 
-  LOG_I(PHY, "PRACH [UE %d] in frame.slot %d.%d, placing PRACH in position %d, msg1 frequency start %d (k1 %d), preamble_offset %d, first_nonzero_root_idx %d\n",
+    LOG_I(PHY, "PRACH [JAMMER %d] jamming in frame.slot %d.%d, placing noise over PRACH-slots in position %d, msg1 frequency start %d (k1 %d), preamble_offset %d, first_nonzero_root_idx %d\n",
         Mod_id,
         frame,
         slot,
@@ -396,18 +398,28 @@ int32_t generate_nr_prach(PHY_VARS_NR_UE *ue, uint8_t gNB_id, int frame, uint8_t
     LOG_M("X_u.m", "X_u", (int16_t*)ue->X_u[preamble_offset-first_nonzero_root_idx], N_ZC, 1, 1);
   #endif
 
-  for (offset=0,offset2=0; offset<N_ZC; offset++,offset2+=preamble_shift) {
+
+  //MANIPULATION #3 - Initialize of Random Number Generator with current system time
+  srand(time(NULL));
+
+    for (offset=0,offset2=0; offset<N_ZC; offset++,offset2+=preamble_shift) {
 
     if (offset2 >= N_ZC)
       offset2 -= N_ZC;
 
-    Xu_re = (((int32_t)Xu[offset<<1]*amp)>>15);
-    Xu_im = (((int32_t)Xu[1+(offset<<1)]*amp)>>15);
-    prachF[k++]= ((Xu_re*nr_ru[offset2<<1]) - (Xu_im*nr_ru[1+(offset2<<1)]))>>15;
-    prachF[k++]= ((Xu_im*nr_ru[offset2<<1]) + (Xu_re*nr_ru[1+(offset2<<1)]))>>15;
+    //Xu_re = (((int32_t)Xu[offset<<1]*amp)>>15);
+    //Xu_im = (((int32_t)Xu[1+(offset<<1)]*amp)>>15);
+    //prachF[k++]= ((Xu_re*nr_ru[offset2<<1]) - (Xu_im*nr_ru[1+(offset2<<1)]))>>15;
+    //prachF[k++]= ((Xu_im*nr_ru[offset2<<1]) + (Xu_re*nr_ru[1+(offset2<<1)]))>>15;
+
+    //MANIPULATION #3 - Generate random noise
+    prachF[k++]= rand() % 1024 - 512;  // REAL
+    prachF[k++]= rand() % 1024 - 512;  // IMAGINARY
 
     if (k==dftlen) k=0;
   }
+  //LOG PRACH_F -> IQ Sample Logging
+  //LOG_M("prachF.m", "prachF", &prachF[1804], 1024, 1, 1);
 
   #if defined (PRACH_WRITE_OUTPUT_DEBUG)
     LOG_M("prachF.m", "prachF", &prachF[1804], 1024, 1, 1);
@@ -499,16 +511,40 @@ int32_t generate_nr_prach(PHY_VARS_NR_UE *ue, uint8_t gNB_id, int frame, uint8_t
       prach_len);
   #endif
 
-  for (i=0; i<prach_len; i++) {
-    ((int16_t*)(&ue->common_vars.txdata[0][prach_start]))[2*i] = prach[2*i];
-    ((int16_t*)(&ue->common_vars.txdata[0][prach_start]))[2*i+1] = prach[2*i+1];
+  // MANIPULATION #OPTION - LOGGING
+  /*
+  LOG_I(PHY, "PRACH [UE %d] N_RB_UL %d prach_start %d, prach_len %d, dft_len %d, Ncp %d, prach_fmt_ID %d, samples per subframe %d, mu %d \n", Mod_id,
+      fp->N_RB_UL,
+      prach_start,
+      prach_len,
+      dftlen,
+      Ncp,
+      prach_fmt_id,
+      fp->samples_per_subframe,
+      mu);
+  */
+
+  // MANIPULATION #4
+  // JAMMING ALL THREE PRACH TIME-DOMAIN OCCASIONS
+  //for (i=0; i<prach_len; i++) {
+  for (i=0; i<(prach_len*3); i++) {
+    //((int16_t*)(&ue->common_vars.txdata[0][prach_start]))[2*i] = prach[2*i];
+    //((int16_t*)(&ue->common_vars.txdata[0][prach_start]))[2*i+1] = prach[2*i+1];
+    ((int16_t*)(&ue->common_vars.txdata[0][prach_start]))[2*i] = prach[((2*i) % prach_len)];
+    ((int16_t*)(&ue->common_vars.txdata[0][prach_start]))[2*i+1] = prach[((2*i+1) % prach_len)];
   }
 
-  //printf("----------------------\n");
-  //for(int ii = prach_start; ii<2*(prach_start + prach_len); ii++){
-  //  printf("PRACH rx data[%d] = %d\n", ii, ue->common_vars.txdata[0][ii]);
-  //}
-  //printf(" \n");
+  /*
+  printf("----------------------\n");
+  for(int ii = prach_start; ii<2*(prach_start + prach_len); ii++){
+    printf("PRACH rx data[%d] = %d\n", ii, ue->common_vars.txdata[0][ii]);
+  }
+  printf(" \n");
+  */
+
+  // MANIPULATION #OPTION
+//  LOG_M("prach_tx0.m", "prachtx0", prach+(Ncp<<1), prach_len-Ncp, 1, 1);
+//  LOG_M("Prach_txsig.m","txs",(int16_t*)(&ue->common_vars.txdata[0][prach_start]), 2*(prach_start+prach_len), 1, 1);
 
   #ifdef PRACH_WRITE_OUTPUT_DEBUG
     LOG_M("prach_tx0.m", "prachtx0", prach+(Ncp<<1), prach_len-Ncp, 1, 1);
@@ -517,4 +553,3 @@ int32_t generate_nr_prach(PHY_VARS_NR_UE *ue, uint8_t gNB_id, int frame, uint8_t
 
   return signal_energy((int*)prach, 256);
 }
-
